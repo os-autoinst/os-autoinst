@@ -2,21 +2,23 @@
 use strict;
 use bmwqemu;
 
-# bios+grub+anim
-sleep 8;
+# assume bios+grub+anim already waited in start.sh
+sleep 1;
 # 1024x768
 sendkey "f3";
 sendkey "down";
 sendkey "ret";
 # German/Deutsch
-sendkey "f2";
-for(1..3) {
-	sendkey "up";
+if($ENV{INSTLANG} eq "de") {
+	sendkey "f2";
+	for(1..3) {
+		sendkey "up";
+	}
+	sendkey "ret";
 }
-sendkey "ret";
 # boot
 sendkey "ret";
 
-sleep 60;
+sleep 80;
 
 exec("./autoinst-yast.pl");

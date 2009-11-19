@@ -4,47 +4,48 @@ use bmwqemu;
 
 if(1){
 # license+lang
-sendkey "alt-w";
+sendkey $cmd{"next"};
 # autoconf
 sleep 18;
 # new inst
-sendkey "alt-w";
+sendkey $cmd{"next"};
 # timezone
 sleep 5;
-sendkey "alt-w";
+sendkey $cmd{"next"};
 # KDE
 sleep 3;
-sendkey "alt-w";
+sendkey $cmd{"next"};
 # partition based
 sleep 4;
 system("./autoinst-partitions.pl");
 }
-sendkey "alt-w";
+sendkey $cmd{"next"};
 
 # user setup
 sleep 5;
 print autotype("bernhard");
-print "sendkey tab\n";
+sendkey "tab";
 sleep 1;
-print "sendkey tab\n";
+sendkey "tab";
 for(1..2) {
 	print ((autotype("notsecret")."sendkey tab\n"));
 	sleep 1;
 }
 # done user setup
-print "sendkey alt-w\n";
+sendkey $cmd{"next"};
 # loading cracklib
 sleep 3;
-# too easy
-print "sendkey ret\n";
+# PW too easy (cracklib)
+sendkey "ret";
 sleep 1;
-print "sendkey ret\n";
+# PW too easy (only chars)
+sendkey "ret";
 
 # overview-generation
 sleep 15;
 # start install
-print "sendkey alt-i\n";
+sendkey $cmd{install};
 sleep 2;
 # confirm
-print "sendkey alt-i\n";
+sendkey $cmd{install};
 

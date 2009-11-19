@@ -3,4 +3,4 @@ use strict;
 use bmwqemu;
 
 print "sendkey alt-w\n";
-sendkey "alt-w";
+sendkey $cmd{"next"};

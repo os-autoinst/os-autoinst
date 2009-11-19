@@ -6,9 +6,9 @@ use bmwqemu;
 sub addpart($$)
 {
 	my ($size,$type)=@_;
-	sendkey "alt-h";
+	sendkey $cmd{addpart};
 	sleep 4;
-	sendkey "alt-w";
+	sendkey $cmd{"next"};
 	sleep 3;
 	for(1..10) {
 		sendkey "backspace";
@@ -16,25 +16,25 @@ sub addpart($$)
 	sleep 1;
 	print autotype($size."mb");
 	sleep 1;
-	sendkey "alt-w";
+	sendkey $cmd{"next"};
 	sleep 3;
-	sendkey "alt-n";
+	sendkey $cmd{"donotformat"};
 	sleep 1;
-	sendkey "alt-i";
+	sendkey "tab";
 	sleep 1;
 	for(1..$type) {
 		sendkey "down";
 	}
 	sleep 1;
-	sendkey "alt-b";
+	sendkey $cmd{finish};
 	sleep 3;
 }
 
 sub addraid($)
 {
 	my($step)=@_;
+	sendkey "spc";
 	for(1..3) {
-		sendkey "spc";
 		for(1..$step) {
 			sleep 1;
 			sendkey "ctrl-down";
@@ -42,11 +42,11 @@ sub addraid($)
 		sendkey "spc";
 	}
 	# add
-	sendkey "alt-h";
+	sendkey $cmd{"add"};
 	sleep 1;
-	sendkey "alt-w";
+	sendkey $cmd{"next"};
 	sleep 2;
-	sendkey "alt-w";
+	sendkey $cmd{"next"};
 	sleep 3;
 }
 
@@ -56,11 +56,11 @@ sub addraid($)
 
 if(1) {
 # create partitioning
-sendkey "alt-e";
+sendkey $cmd{createpartsetup};
 sleep 3;
 # user defined
-sendkey "alt-b";
-sendkey "alt-w";
+sendkey $cmd{custompart};
+sendkey $cmd{"next"};
 sleep 9;
 
 sendkey "tab";
@@ -79,9 +79,9 @@ for (1..4) {
 }
 
 # select RAID add
-sendkey "alt-i";
+sendkey $cmd{addraid};
 sleep 4;
-sendkey "alt-d"; # RAID 6 for /
+sendkey $cmd{"raid6"}; # RAID 6 for /
 sleep 1;
 for(1..2) {
 	sendkey "tab";
@@ -90,14 +90,14 @@ for(1..2) {
 sendkey "down";
 sleep 1;
 addraid(3);
-sendkey "alt-b";
+sendkey $cmd{"finish"};
 sleep 3;
 
 
 # select RAID add
-sendkey "alt-i";
+sendkey $cmd{addraid};
 sleep 4;
-sendkey "alt-1"; # RAID 1 for /boot
+sendkey $cmd{raid1}; # RAID 1 for /boot
 for(1..4) {
 	sleep 1;
 	sendkey "tab";
@@ -105,20 +105,20 @@ for(1..4) {
 sleep 1;
 addraid(2);
 
-sendkey "alt-e";
+sendkey $cmd{"mountpoint"};
 for(1..3) {
 	sleep 1;
 	sendkey "down";
 }
-sendkey "alt-b";
+sendkey $cmd{"finish"};
 sleep 3;
 
 }
 
 # select RAID add
-sendkey "alt-i";
+sendkey $cmd{addraid};
 sleep 4;
-sendkey "alt-0"; # RAID 0 for swap
+sendkey $cmd{raid0}; # RAID 0 for swap
 for(1..5) {
 	sleep 1;
 	sendkey "tab";
@@ -126,15 +126,16 @@ for(1..5) {
 sleep 1;
 addraid(1);
 
-sendkey "alt-s";
+# select file-system
+sendkey $cmd{filesystem};
 sleep 1;
-sendkey "end";
+sendkey "end"; # swap at end of list
 sleep 1;
-sendkey "alt-b";
+sendkey $cmd{"finish"};
 sleep 3;
 
 
 # done
-sendkey "alt-r";
+sendkey $cmd{"accept"};
 sleep 4;
 
