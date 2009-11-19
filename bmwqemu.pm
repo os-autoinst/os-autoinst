@@ -23,6 +23,7 @@ add alt-a
 raid0 alt-0
 raid1 alt-1
 raid6 alt-6
+raid10 alt-i
 mountpoint alt-m
 filesystem alt-s
 );
@@ -38,6 +39,7 @@ if($ENV{INSTLANG} eq "de") {
 	$cmd{"donotformat"}="alt-n";
 	$cmd{"add"}="alt-h";
 	$cmd{"raid6"}="alt-d";
+	$cmd{"raid10"}="alt-r";
 	$cmd{"mountpoint"}="alt-e";
 }
 

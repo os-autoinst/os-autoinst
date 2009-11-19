@@ -18,6 +18,7 @@ sendkey $cmd{"next"};
 # partition based
 sleep 4;
 system("./autoinst-partitions.pl");
+if($?>>8) { die "error ".($?>>8).",".($?&255)." from partitioning" } # FIXME doesnt work?
 }
 sendkey $cmd{"next"};
 

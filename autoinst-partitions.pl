@@ -81,9 +81,17 @@ for (1..4) {
 # select RAID add
 sendkey $cmd{addraid};
 sleep 4;
-sendkey $cmd{"raid6"}; # RAID 6 for /
-sleep 1;
-for(1..2) {
+
+if(!$ENV{INSTRAID10}) { # RAID6
+	sendkey $cmd{"raid6"}; # RAID 6 for /
+	sleep 1;
+	for(1..2) {
+		sendkey "tab";
+		sleep 1;
+	}
+} else { # RAID10
+	sendkey $cmd{"raid10"}; # RAID 10 for /
+	sleep 1;
 	sendkey "tab";
 	sleep 1;
 }
