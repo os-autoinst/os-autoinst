@@ -3,10 +3,11 @@ $|=1;
 package bmwqemu;
 use strict;
 use warnings;
+use Time::HiRes qw(sleep);
 use Exporter;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
-@EXPORT = qw(%cmd autotype sendkey);
+@EXPORT = qw(%cmd &sendkey &sendautotype &autotype);
 
 
 our %cmd=qw(
@@ -43,6 +44,25 @@ if($ENV{INSTLANG} eq "de") {
 	$cmd{"mountpoint"}="alt-e";
 }
 
+sub sendkey($)
+{
+	my $key=shift;
+	print "sendkey $key\n";
+	sleep(0.05);
+}
+
+my %charmap=("."=>"dot", "/"=>"slash", 
+   "\t"=>"tab", "\n"=>"ret", " "=>"spc", "\b"=>"backspace");
+
+sub sendautotype($)
+{
+	my $string=shift;
+	foreach my $letter (split("", $string)) {
+		if($charmap{$letter}) { $letter=$charmap{$letter} }
+		sendkey $letter;
+	}
+}
+
 sub autotype($)
 {
 	my $string=shift;
@@ -51,12 +71,6 @@ sub autotype($)
 		$result.="sendkey $letter\n";
 	}
 	return $result;
-}
-
-sub sendkey($)
-{
-	my $key=shift;
-	print "sendkey $key\n";
 }
 
 1;
