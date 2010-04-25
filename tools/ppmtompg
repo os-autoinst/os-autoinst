@@ -1,0 +1,18 @@
+#!/usr/bin/perl -w
+use strict;
+
+my $in=shift;
+my $out=shift;
+
+if(!$in || !$out) {die "usage: $0 IN OUT"}
+
+my $tmpdir="/tmp/ppmtompg";
+system("rm -rf $tmpdir");
+mkdir $tmpdir;
+my $n=0;
+for my $f (<$in/*.ppm>) {
+	link($f, sprintf("%s/%08d.ppm", $tmpdir, $n++));
+}
+
+exec("ffmpeg", "-r", 12, "-i", "$tmpdir/%08d.ppm", "-r", 24, "-vcodec", "mpeg2video", $out);
+
