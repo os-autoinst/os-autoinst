@@ -20,13 +20,13 @@ do "inst/bootloader.pm" or die @$;
 sleep 11; # time to load kernel+initrd
 do "inst/viewbootmsg.pm" or die @$;
 sleep 40; # minimum time needed to boot up (includes some idles)
-waitidle 40;
+waitgoodimage 350;
 do "inst/yast1.pm" or die @$;
 #do "inst/partitioning.pm" or die @$;
 do "inst/yast2.pm" or die @$;
 
 
-for(1..3000) { # time to let install work
+for(1..6000) { # time to let install work
 	sleep 1;
 }
 

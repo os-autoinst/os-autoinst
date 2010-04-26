@@ -4,7 +4,7 @@ use bmwqemu;
 
 if($ENV{BETA}) {
 	sendkey "ret";
-	sendkey $cmd{acceptlicense};
+	#sendkey $cmd{acceptlicense};
 }
 # license+lang
 sendkey $cmd{"next"};

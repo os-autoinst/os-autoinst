@@ -12,7 +12,7 @@ sub screenshotsub
 	}
 }
 
-sleep 2; # wait until BIOS is gone
+sleep 3; # wait until BIOS is gone
 our $screenshotthr = threads->create(\&screenshotsub);
 
 #my $pid=fork();

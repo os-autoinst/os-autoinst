@@ -6,7 +6,7 @@ my $out=shift;
 
 if(!$in || !$out) {die "usage: $0 IN OUT"}
 
-my $tmpdir="/tmp/ppmtompg";
+my $tmpdir="ppmtompg.tmp";
 system("rm -rf $tmpdir");
 mkdir $tmpdir;
 my $n=0;
@@ -14,5 +14,8 @@ for my $f (<$in/*.ppm>) {
 	link($f, sprintf("%s/%08d.ppm", $tmpdir, $n++));
 }
 
-exec("ffmpeg", "-r", 12, "-i", "$tmpdir/%08d.ppm", "-r", 24, "-vcodec", "mpeg2video", $out);
+my @bw=();
+#@bw=("-V", "700");
+system("ffmpeg2theora", @bw, "$tmpdir/%08d.ppm", "-F", 12, "-o", "$out.ogv");
 
+#system("rm -rf $tmpdir");

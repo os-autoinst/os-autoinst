@@ -4,12 +4,15 @@ package bmwqemu;
 use strict;
 use warnings;
 use Time::HiRes qw(sleep);
+use Digest::MD5;
 use Exporter;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
-@EXPORT = qw($qemupid %cmd &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &open_management_console);
+@EXPORT = qw($qemubin $qemupid %cmd 
+&sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &open_management_console);
 
 
+our $qemubin="/usr/bin/kvm";
 our $qemupid;
 our $managementcon;
 our %cmd=qw(
@@ -47,6 +50,14 @@ if($ENV{INSTLANG} eq "de") {
 	$cmd{"mountpoint"}="alt-e";
 }
 
+sub fileContent($) {my($fn)=@_;
+	open(my $fd, $fn) or return undef;
+	local $/;
+	my $result=<$fd>;
+	close($fd);
+	return $result;
+}
+
 sub qemusend($)
 {
 	print shift(@_)."\n";
@@ -82,23 +93,47 @@ sub autotype($)
 }
 
 my $lasttime;
+my $lastname;
 my $n=0;
+my %md5file;
+my %md5badlist=qw();
+our %md5goodlist;
+eval(fileContent("goodimage.pm"));
+use threads;
+use threads::shared;
+my $goodimageseen :shared = 0;
 
 sub take_screenshot()
 {
-	my $path="/tmp/qemuscreenshot/";
+	my $path="qemuscreenshot/";
 	mkdir $path;
+	if($lastname && -e $lastname) { # processing previous image, because saving takes time
+		# hardlinking identical files saves space
+		my $md5=Digest::MD5::md5_hex(fileContent($lastname));
+		if($md5badlist{$md5}) {die "error condition detected. test failed. see $lastname\n"}
+		if($md5goodlist{$md5}) {$goodimageseen=1}
+		if($md5file{$md5}) {
+			unlink($lastname); # warning: will break if FS does not support hardlinking
+			link($md5file{$md5}->[0], $lastname);
+			my $linkcount=$md5file{$md5}->[1]++;
+			#my $linkcount=(stat($lastname))[3]; # relies on FS
+			if($linkcount>230) {die "standstill detected. test ended. see $lastname\n"} # below 120s of autoreboot
+		} else {
+			$md5file{$md5}=[$lastname,1];
+		}
+	}
 	my $now=time();
 	if(!$lasttime || $lasttime!=$now) {$n=0};
-	my $filename=$path.$now."-".$n++;
+	my $filename=$path.$now."-".$n++.".ppm";
 	#print STDERR $filename,"\n";
-	qemusend "screendump $filename.ppm";
+	qemusend "screendump $filename";
+	$lastname=$filename;
 	$lasttime=$now;
 }
 
 sub qemualive()
 { 
-	if(!$qemupid) {$qemupid=`pidof -s qemu-kvm`; chomp $qemupid;}
+#	if(!$qemupid) {$qemupid=`pidof -s $qemubin`; chomp $qemupid;}
 	return 0 unless $qemupid;
 	kill 0, $qemupid;
 }
@@ -108,16 +143,15 @@ sub waitidle(;$)
 	my $timeout=shift||10;
 	my $prev;
 	for my $n (1..$timeout) {
-		open(my $statf, "< /proc/$qemupid/stat");
-		#open(my $statf, "< /proc/$qemupid/schedstat");
-		my $stat=<$statf>;
-		close($statf);
+		my $stat=fileContent("/proc/$qemupid/stat");
+			#"/proc/$qemupid/schedstat");
 		my @a=split(" ", $stat);
 		$stat=$a[13];
+		next unless $stat;
 		#$stat=$a[1];
 		if($prev) {
 			my $diff=$stat-$prev;
-			if($diff<30) { # idle for one sec
+			if($diff<10) { # idle for one sec
 			#if($diff<2000000) { # idle for one sec
 				last;
 			}
@@ -125,6 +159,17 @@ sub waitidle(;$)
 		$prev=$stat;
 		sleep 1;
 	}
+}
+
+sub waitgoodimage($)
+{
+	my $timeout=shift||10;
+	$goodimageseen=0;
+	for my $n (1..$timeout) {
+		return 1 if($goodimageseen);
+		sleep 1;
+	}
+	return 0;
 }
 
 
