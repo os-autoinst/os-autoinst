@@ -3,6 +3,7 @@ use strict;
 use bmwqemu;
 my $basedir="/home/bernhard/code/cvs/perl/autoinst/raid";
 my $iso=$ENV{SUSEISO};
+if($iso=~m/openSUSE-NET-/) {$ENV{NETBOOT}=1}
 system(qw"/bin/mkdir -p", $basedir);
 for my $i (1..4) {
 	system(qw(qemu-img create) ,"$basedir/$i", "4G");

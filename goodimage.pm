@@ -1,2 +1,11 @@
-%md5goodlist=qw(3770ad13c41d5dd9daba5d0e6c45f166 1);
+%md5goodlist=qw(
+00e67c06101a90b8e22597be4326bb62 grub
+3770ad13c41d5dd9daba5d0e6c45f166 yastms5
+8b9ae9df4d72c30fe38973ae70170bcd yastms6
+);
 
+%md5badlist=qw(
+618ddf740b3060eb1eaa489c81dbc8cc fail1
+bdcf5eae30d70c3fea49ec7db97969e2 instfail
+76fdbeccfd57006b7c74d8c4d0c66fde instfailstartinst
+);

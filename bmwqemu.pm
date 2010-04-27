@@ -9,9 +9,10 @@ use Exporter;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($qemubin $qemupid %cmd 
-&sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &open_management_console);
+&qemusend &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &open_management_console);
 
 
+our $debug=1;
 our $qemubin="/usr/bin/kvm";
 our $qemupid;
 our $managementcon;
@@ -49,6 +50,12 @@ if($ENV{INSTLANG} eq "de") {
 	$cmd{"raid10"}="alt-r";
 	$cmd{"mountpoint"}="alt-e";
 }
+
+sub diag($)
+{ return unless $debug; print STDERR "@_\n";}
+
+sub mydie($)
+{ kill(15, $qemupid); print STDERR @_; sleep 1 ; exit 1; }
 
 sub fileContent($) {my($fn)=@_;
 	open(my $fd, $fn) or return undef;
@@ -110,14 +117,15 @@ sub take_screenshot()
 	if($lastname && -e $lastname) { # processing previous image, because saving takes time
 		# hardlinking identical files saves space
 		my $md5=Digest::MD5::md5_hex(fileContent($lastname));
-		if($md5badlist{$md5}) {die "error condition detected. test failed. see $lastname\n"}
-		if($md5goodlist{$md5}) {$goodimageseen=1}
+		if($md5badlist{$md5}) {diag "error condition detected. test failed. see $lastname"; sleep 1; mydie "bad image seen"}
+		diag("md5=$md5");
+		if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
 		if($md5file{$md5}) {
 			unlink($lastname); # warning: will break if FS does not support hardlinking
 			link($md5file{$md5}->[0], $lastname);
 			my $linkcount=$md5file{$md5}->[1]++;
 			#my $linkcount=(stat($lastname))[3]; # relies on FS
-			if($linkcount>230) {die "standstill detected. test ended. see $lastname\n"} # below 120s of autoreboot
+			if($linkcount>330) {mydie "standstill detected. test ended. see $lastname\n"} # above 120s of autoreboot
 		} else {
 			$md5file{$md5}=[$lastname,1];
 		}
@@ -142,6 +150,7 @@ sub waitidle(;$)
 {
 	my $timeout=shift||10;
 	my $prev;
+	diag "waitidle(timeout=$timeout)";
 	for my $n (1..$timeout) {
 		my $stat=fileContent("/proc/$qemupid/stat");
 			#"/proc/$qemupid/schedstat");
@@ -152,21 +161,25 @@ sub waitidle(;$)
 		if($prev) {
 			my $diff=$stat-$prev;
 			if($diff<10) { # idle for one sec
-			#if($diff<2000000) { # idle for one sec
-				last;
+			#if($diff<2000000) # idle for one sec
+				diag "idle detected";
+				return 1;
 			}
 		}
 		$prev=$stat;
 		sleep 1;
 	}
+	diag "waitidle timed out";
+	return 0;
 }
 
 sub waitgoodimage($)
 {
 	my $timeout=shift||10;
 	$goodimageseen=0;
+	diag "waiting for good image(timeout=$timeout)";
 	for my $n (1..$timeout) {
-		return 1 if($goodimageseen);
+		if($goodimageseen) {diag "seen good image... continuing execution"; return 1;}
 		sleep 1;
 	}
 	return 0;
@@ -187,7 +200,7 @@ sub readconloop
 
 sub open_management_console()
 {
-	$managementcon=IO::Socket::INET->new("localhost:15222") or die "error opening management console: $!";
+	$managementcon=IO::Socket::INET->new("localhost:15222") or mydie "error opening management console: $!";
 	our $readconthread=threads->create(\&readconloop); # without this, qemu will block
 	select $managementcon;
 	$|=1; # autoflush
