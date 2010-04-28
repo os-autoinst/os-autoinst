@@ -1,0 +1,27 @@
+#!/bin/sh
+
+iso=$1
+if test -z "$iso" ; then
+	echo "usage: $0 ISO"
+	exit 1
+fi
+op=~/public_html/mirror/opensuse/
+export BETA=1
+export GWDG=1
+
+export SUSEISO=$op$iso
+export SCREENSHOTINTERVAL=0.5
+
+echo testing $SUSEISO
+# cleanup
+killall kvm 2>/dev/null
+rm -rf qemuscreenshot/*.ppm
+#alarm 300
+./start.pl
+killall kvm 2>/dev/null
+
+name=$(perl -e '$_=shift;s{.*iso/}{};s/-Media.iso//;print' $SUSEISO)
+echo tools/ppmtompg qemuscreenshot video/$name
+tools/ppmtompg qemuscreenshot video/$name
+mv video/* ~/public_html/mirror/opensuse/video/
+
