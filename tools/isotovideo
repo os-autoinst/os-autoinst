@@ -8,6 +8,7 @@ fi
 op=~/public_html/mirror/opensuse/
 export BETA=1
 export GWDG=1
+export HTTPPROXY=192.168.234.34:3128
 
 export SUSEISO=$op$iso
 export SCREENSHOTINTERVAL=0.5
@@ -23,5 +24,5 @@ killall kvm 2>/dev/null
 name=$(perl -e '$_=shift;s{.*iso/}{};s/-Media.iso//;print' $SUSEISO)
 echo tools/ppmtompg qemuscreenshot video/$name
 tools/ppmtompg qemuscreenshot video/$name
-mv video/* ~/public_html/mirror/opensuse/video/
+mv video/* $op/video/
 

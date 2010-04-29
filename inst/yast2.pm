@@ -34,5 +34,7 @@ sleep 2;
 waitidle 3;
 # confirm
 sendkey $cmd{install};
+sleep 5;
+sendkey $cmd{instdetails};
 
 1;

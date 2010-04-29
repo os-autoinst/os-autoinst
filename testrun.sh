@@ -2,6 +2,7 @@
 
 op=~/public_html/mirror/opensuse/
 export BETA=1
+export GWDG=1
 (cd $op ; make ) # update
 #ssh vm12a "sshfs delta4: ~/temp/delta/" 
 

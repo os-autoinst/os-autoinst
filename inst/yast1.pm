@@ -14,16 +14,20 @@ qemusend "mouse_move 1000 1000";
 sendkey $cmd{"next"};
 # autoconf phase
 # includes downloads, so waitidle is bad.
-sleep 15;
+sleep 25;
 waitidle 15;
-# new inst
-sendkey $cmd{"next"};
+if(!$ENV{LIVECD}) {
+	# new inst
+	sendkey $cmd{"next"};
+}
 # timezone
 waitidle;
 sendkey $cmd{"next"};
-# KDE
-waitidle;
-sendkey $cmd{"next"};
+if(!$ENV{LIVECD}) {
+	# KDE
+	waitidle;
+	sendkey $cmd{"next"};
+}
 waitidle;
 # ending at partition layout screen
 

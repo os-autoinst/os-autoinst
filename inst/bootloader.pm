@@ -45,18 +45,20 @@ if($ENV{NETBOOT}) {
                 sendautotype("/factory");
         }
 
-        sleep(0.5);
+        sleep(1.5);
 	sendkey "ret";
 }
 
 # HTTP-proxy
-if(0){
+if($ENV{NETBOOT} && $ENV{HTTPPROXY} && $ENV{HTTPPROXY}=~m/([0-9.]+):(\d+)/) {
+	my($proxyhost,$proxyport)=($1,$2);
 	sendkey "f4";
 	for(1..4) {
 		sendkey "down";
 	}
 	sendkey "ret";
-	sendautotype("192.168.234.92\t3128\n");
+	sendautotype("$proxyhost\t$proxyport\n");
+        sleep(1.5);
 }
 
 # boot

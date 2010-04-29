@@ -34,6 +34,8 @@ raid10 alt-i
 mountpoint alt-m
 filesystem alt-s
 acceptlicense alt-a
+instdetails alt-d
+rebootnow alt-n
 );
 
 $ENV{INSTLANG}||="us";
@@ -125,7 +127,7 @@ sub take_screenshot()
 			link($md5file{$md5}->[0], $lastname);
 			my $linkcount=$md5file{$md5}->[1]++;
 			#my $linkcount=(stat($lastname))[3]; # relies on FS
-			if($linkcount>330) {mydie "standstill detected. test ended. see $lastname\n"} # above 120s of autoreboot
+			if($linkcount>530) {mydie "standstill detected. test ended. see $lastname\n"} # above 120s of autoreboot
 		} else {
 			$md5file{$md5}=[$lastname,1];
 		}
