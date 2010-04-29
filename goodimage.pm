@@ -3,6 +3,8 @@
 3770ad13c41d5dd9daba5d0e6c45f166 yastms5
 8b9ae9df4d72c30fe38973ae70170bcd yastms6
 77f8db6469dc33ca89656efde4bd7c6a yastms6livekde
+1cdd8e50f974fe21aa9cc06ee84df55c yastms6livegnome
+dce08f31a9953350104bfa84514be1a6 yastms6livegnome32
 e935514757e9a23962e7d427887aea10 newinst
 bc32b148e35198bcf7a77f8b8843e2d3 ms6kdelivecdreboot
 );

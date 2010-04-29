@@ -9,7 +9,7 @@ use Exporter;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($qemubin $qemupid %cmd 
-&qemusend &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &open_management_console);
+&qemusend &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &open_management_console &close_management_console);
 
 
 our $debug=1;
@@ -79,8 +79,10 @@ sub sendkey($)
 	sleep(0.05);
 }
 
-my %charmap=("."=>"dot", "/"=>"slash", 
+my %charmap=("."=>"dot", "/"=>"slash", "="=>"equal", "-"=>"minus", "_"=>"shift-minus",
    "\t"=>"tab", "\n"=>"ret", " "=>"spc", "\b"=>"backspace", "\e"=>"esc");
+for my $c ("A".."Z") {$charmap{$c}="shift-\L$c"}
+
 
 sub sendautotype($)
 {
@@ -111,6 +113,8 @@ eval(fileContent("goodimage.pm"));
 use threads;
 use threads::shared;
 my $goodimageseen :shared = 0;
+my $endreadingcon :shared = 0;
+my $readconthread;
 
 sub take_screenshot()
 {
@@ -150,7 +154,7 @@ sub qemualive()
 
 sub waitidle(;$)
 {
-	my $timeout=shift||10;
+	my $timeout=shift||19;
 	my $prev;
 	diag "waitidle(timeout=$timeout)";
 	for my $n (1..$timeout) {
@@ -197,16 +201,27 @@ sub readconloop
 	$|=1;
 	while(<$managementcon>) {
 		print $_;
+		last if($endreadingcon);
 	}
+	diag "exiting management console read loop";
 }
 
 sub open_management_console()
 {
 	$managementcon=IO::Socket::INET->new("localhost:15222") or mydie "error opening management console: $!";
-	our $readconthread=threads->create(\&readconloop); # without this, qemu will block
+	$endreadingcon=0;
+	$readconthread=threads->create(\&readconloop); # without this, qemu will block
 	select $managementcon;
 	$|=1; # autoflush
 	$managementcon;
+}
+
+sub close_management_console()
+{
+	$endreadingcon=1;
+	qemusend "";
+	close $managementcon;
+	$readconthread->join();
 }
 
 1;

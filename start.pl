@@ -19,8 +19,12 @@ if($init) {
 do "inst/bootloader.pm" or die @$;
 sleep 11; # time to load kernel+initrd
 do "inst/viewbootmsg.pm" or die @$;
-sleep 40; # minimum time needed to boot up (includes some idles)
-waitgoodimage 450;
+if($ENV{NETBOOT}) {
+	sleep 40; # minimum time needed to boot up (includes some idles)
+	waitgoodimage 450;
+} else {
+	waitgoodimage 180;
+}
 do "inst/yast1.pm" or die @$;
 #do "inst/partitioning.pm" or die @$;
 do "inst/yast2.pm" or die @$;

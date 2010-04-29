@@ -6,7 +6,7 @@ use bmwqemu;
 sendkey $cmd{"next"};
 
 # user setup
-waitidle 8;
+waitidle 18;
 sendautotype("bernhard");
 sendkey "tab";
 #sleep 1;
@@ -31,10 +31,10 @@ waitidle 10;
 # start install
 sendkey $cmd{install};
 sleep 2;
-waitidle 3;
+waitidle 5;
 # confirm
 sendkey $cmd{install};
-sleep 5;
+sleep 5; # view installation details
 sendkey $cmd{instdetails};
 
 1;

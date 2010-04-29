@@ -5,6 +5,7 @@ my $basedir="/home/bernhard/code/cvs/perl/autoinst/raid";
 my $iso=$ENV{SUSEISO};
 if($iso=~m/openSUSE-NET-/) {$ENV{NETBOOT}=1}
 if($iso=~m/openSUSE-[A-Z]+-LiveCD/) {$ENV{LIVECD}=1}
+if($iso=~m/openSUSE-GNOME-/) {$ENV{GNOME}=1}
 system(qw"/bin/mkdir -p", $basedir);
 for my $i (1..4) {
 	system(qw(qemu-img create) ,"$basedir/$i", "4G");
