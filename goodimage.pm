@@ -1,5 +1,6 @@
 %md5goodlist=qw(
 00e67c06101a90b8e22597be4326bb62 grub
+14ba14109481d71964e4c178a7d0ee54 grub gnome
 3770ad13c41d5dd9daba5d0e6c45f166 yastms5
 8b9ae9df4d72c30fe38973ae70170bcd yastms6
 77f8db6469dc33ca89656efde4bd7c6a yastms6livekde

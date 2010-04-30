@@ -51,6 +51,7 @@ if($ENV{INSTLANG} eq "de") {
 	$cmd{"raid6"}="alt-d";
 	$cmd{"raid10"}="alt-r";
 	$cmd{"mountpoint"}="alt-e";
+	$cmd{"rebootnow"}="alt-j";
 }
 
 sub diag($)

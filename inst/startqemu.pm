@@ -14,12 +14,12 @@ for my $i (1..4) {
 $qemupid=fork();
 die "fork failed" if(!defined($qemupid));
 if($qemupid==0) {
-	my @params=(qw(-m 1024 -net user -smp 4 -monitor), "tcp:127.0.0.1:15222,server,nowait", "-net", "nic,model=e1000,macaddr=52:54:00:12:34:56");
+	my @params=(qw(-m 1024 -net user -smp 4 -monitor), "tcp:127.0.0.1:15222,server,nowait", "-net", "nic,model=virtio,macaddr=52:54:00:12:34:56");
 	for my $i (1..4) {
 		my $boot=$i==1?",boot=on":"";
 		push(@params, "-drive", "file=$basedir/$i,if=virtio$boot");
 	}
-	push(@params, "-boot", "d", "-cdrom", $iso);
+	push(@params, "-boot", "dc", "-cdrom", $iso);
 	push(@params, "-vnc", ":99");
 	exec($qemubin, @params);
 	die "exec $qemubin failed";

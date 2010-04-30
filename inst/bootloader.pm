@@ -59,11 +59,11 @@ if($ENV{NETBOOT} && $ENV{HTTPPROXY} && $ENV{HTTPPROXY}=~m/([0-9.]+):(\d+)/) {
 	sendkey "ret";
 	sendautotype("$proxyhost\t$proxyport\n");
         sleep(1.5);
-}
 
-# add boot parameters
-# ZYPP... enables proxy caching
-sendautotype("ZYPP_ARIA2C=0"); sleep 2;
+	# add boot parameters
+	# ZYPP... enables proxy caching
+	sendautotype("ZYPP_ARIA2C=0"); sleep 2;
+}
 
 # boot
 sendkey "ret";
