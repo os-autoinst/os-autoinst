@@ -6,6 +6,14 @@ use warnings;
 use Time::HiRes qw(sleep);
 use Digest::MD5;
 use Exporter;
+use ppm;
+use threads;
+use threads::shared;
+my $goodimageseen :shared = 0;
+my $endreadingcon :shared = 0;
+my $lastname;
+my $lastknowninststage :shared = "";
+
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($qemubin $qemupid %cmd 
@@ -38,6 +46,7 @@ instdetails alt-d
 rebootnow alt-n
 );
 
+
 $ENV{INSTLANG}||="us";
 if($ENV{INSTLANG} eq "de") {
 	$cmd{"next"}="alt-w";
@@ -54,11 +63,13 @@ if($ENV{INSTLANG} eq "de") {
 	$cmd{"rebootnow"}="alt-j";
 }
 
+open(LOG, ">", "currentautoinst-log.txt");
+
 sub diag($)
-{ return unless $debug; print STDERR "@_\n";}
+{ print LOG "@_\n"; return unless $debug; print STDERR "@_\n";}
 
 sub mydie($)
-{ kill(15, $qemupid); print STDERR @_; sleep 1 ; exit 1; }
+{ kill(15, $qemupid); diag "@_"; close LOG; sleep 1 ; exit 1; }
 
 sub fileContent($) {my($fn)=@_;
 	open(my $fd, $fn) or return undef;
@@ -70,6 +81,7 @@ sub fileContent($) {my($fn)=@_;
 
 sub qemusend($)
 {
+	print LOG "qemusend: $_[0]\n";
 	print shift(@_)."\n";
 }
 
@@ -77,7 +89,7 @@ sub sendkey($)
 {
 	my $key=shift;
 	qemusend "sendkey $key";
-	sleep(0.05);
+	sleep(0.25);
 }
 
 my %charmap=("."=>"dot", "/"=>"slash", "="=>"equal", "-"=>"minus", "_"=>"shift-minus",
@@ -105,17 +117,33 @@ sub autotype($)
 }
 
 my $lasttime;
-my $lastname;
 my $n=0;
 my %md5file;
-my %md5badlist=qw();
+our %md5badlist=qw();
 our %md5goodlist;
+our %md5inststage;
 eval(fileContent("goodimage.pm"));
-use threads;
-use threads::shared;
-my $goodimageseen :shared = 0;
-my $endreadingcon :shared = 0;
 my $readconthread;
+
+# input: ref on PPM data
+sub inststagedetect($)
+{ my $dataref=shift;
+	return if length($$dataref)!=1440015; # only work on images of 800x600
+	my $ppm=ppm->new($$dataref);
+	if(!$ENV{GNOME}) { 
+		# use a relevant non-text part of the screen and look it up
+		# WARNING: breaks when background (i.e. theme) changes (%md5inststage needs updating)
+		my $ppm2=$ppm->copyrect(27,128,13,250);
+		$ppm2->replacerect(0,137,13,13); # mask out text
+		$ppm2->replacerect(0,215,13,13); # mask out text
+		my $md5=Digest::MD5::md5_hex($ppm2->{data});
+		my $currentinststage=$md5inststage{$md5}||"";
+		if($currentinststage) { $lastknowninststage=$currentinststage }
+		diag "stage=$currentinststage last=$lastknowninststage $md5";
+	} else {
+		# use header text
+	}
+}
 
 sub take_screenshot()
 {
@@ -123,18 +151,22 @@ sub take_screenshot()
 	mkdir $path;
 	if($lastname && -e $lastname) { # processing previous image, because saving takes time
 		# hardlinking identical files saves space
-		my $md5=Digest::MD5::md5_hex(fileContent($lastname));
+		my $data=fileContent($lastname);
+		my $md5=Digest::MD5::md5_hex($data);
 		if($md5badlist{$md5}) {diag "error condition detected. test failed. see $lastname"; sleep 1; mydie "bad image seen"}
 		diag("md5=$md5");
 		if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
-		if($md5file{$md5}) {
+		# ignore bottom 15 lines (blinking cursor, animated mouse-pointer)
+		if(length($data)==1440015) {$md5=Digest::MD5::md5(substr($data,15,800*3*(600-15)))}
+		if($md5file{$md5}) { # old
 			unlink($lastname); # warning: will break if FS does not support hardlinking
 			link($md5file{$md5}->[0], $lastname);
 			my $linkcount=$md5file{$md5}->[1]++;
 			#my $linkcount=(stat($lastname))[3]; # relies on FS
 			if($linkcount>530) {mydie "standstill detected. test ended. see $lastname\n"} # above 120s of autoreboot
-		} else {
+		} else { # new
 			$md5file{$md5}=[$lastname,1];
+			inststagedetect(\$data);
 		}
 	}
 	my $now=time();

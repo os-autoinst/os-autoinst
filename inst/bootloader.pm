@@ -3,13 +3,24 @@ use strict;
 use bmwqemu;
 use Time::HiRes qw(sleep);
 
+
+if($ENV{MEMTEST}) { # special
+	# only run this one
+	for(1..6) {
+		sendkey "down";
+	}
+	sleep 3;
+	sendkey "ret";
+	sleep 6000;
+	exit 0; # done
+}
 # assume bios+grub+anim already waited in start.sh
-# 1024x768
 if(1||$ENV{LIVECD}) {
 	# installation (instead of HDDboot on non-live)
 	# installation (instead of live):
 	sendkey "down";
 }
+# 1024x768
 if($ENV{RES1024}) { # default is 800x600
 	sendkey "f3";
 	sendkey "down";
