@@ -53,6 +53,21 @@ sub replacerect($$$$)
 	return $self;
 }
 
+# in-place op: change all values to 0 (if below threshold) or 255 otherwise
+sub threshold($)
+{
+	my $self=shift;
+	my $threshold=shift;
+	my $tc=chr($threshold);
+	$self->{data}=~s/[$tc-\xff]/\xff/g; # white
+	$self->{data}=~s/[\000-$tc]/\000/g; # black
+#	my @a=unpack("C*", $self->{data});
+#	foreach(@a) {
+#		if($_<$threshold) {$_=0} else {$_=255}
+#	}
+#	$self->{data}=pack("C*", @a);
+}
+
 sub toppm()
 {
 	my $self=shift;
