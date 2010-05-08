@@ -63,7 +63,6 @@ if($ENV{INSTLANG} eq "de") {
 	$cmd{"rebootnow"}="alt-j";
 }
 
-open(LOG, ">", "currentautoinst-log.txt");
 
 sub diag($)
 { print LOG "@_\n"; return unless $debug; print STDERR "@_\n";}
@@ -268,6 +267,10 @@ sub readconloop
 
 sub open_management_console()
 {
+	open(LOG, ">", "currentautoinst-log.txt");
+	# set unbuffered so that sendkey lines from main thread will be written
+	my $oldfh=select(LOG); $|=1; select($oldfh);
+
 	$managementcon=IO::Socket::INET->new("localhost:15222") or mydie "error opening management console: $!";
 	$endreadingcon=0;
 	$readconthread=threads->create(\&readconloop); # without this, qemu will block
