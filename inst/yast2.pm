@@ -9,7 +9,7 @@ sendkey $cmd{"next"};
 # user setup
 waitinststage "usersettings";
 waitidle 18;
-sendautotype("bernhard");
+sendautotype("Bernhard M. Wiedemann");
 sendkey "tab";
 #sleep 1;
 sendkey "tab";

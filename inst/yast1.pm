@@ -17,8 +17,10 @@ sleep 1;
 sendkey $cmd{"next"};
 if(!$ENV{LIVECD}) {
 	# autoconf phase
+	waitinststage "systemanalysis";
 	# includes downloads, so waitidle is bad.
-	sleep 29;
+	waitgoodimage(25);
+	# TODO waitstillimage(10)
 	waitidle 29;
 	# new inst
 	sendkey $cmd{"next"};
