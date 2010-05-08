@@ -2,10 +2,12 @@
 use strict;
 use bmwqemu;
 
-
-if(!$ENV{NETBOOT}) {
+if($ENV{NETBOOT}) {
+	waitinststage "grub", 3000;
+	sleep 30; # timeout for booting to HDD
+} else {
 	# LiveCD needs confirmation for reboot
-	waitgoodimage(360);
+	waitinststage("rebootnow", 660);
 	waitidle(99);
 	sendkey $cmd{"rebootnow"};
 	sleep 11; # give some time for going down but not for booting up much
@@ -15,8 +17,9 @@ if(!$ENV{NETBOOT}) {
 	sleep 1;
 	# hard reset (same as physical reset button on PC)
 	qemusend "system_reset";
-	sleep 50;
-	qemusend "mouse_move 1000 1000"; # move mouse off screen again
+	waitinststage "grub";
 }
+waitinststage "automaticconfiguration", 70;
+qemusend "mouse_move 1000 1000"; # move mouse off screen again
 
 1;

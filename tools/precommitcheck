@@ -1,0 +1,2 @@
+#!/bin/sh
+for f in inst/* bmwqemu.pm start.pl tools/inststagedetect.pl ; do perl -c $f ; done

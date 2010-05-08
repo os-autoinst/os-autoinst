@@ -17,7 +17,7 @@ my $lastknowninststage :shared = "";
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($qemubin $qemupid %cmd 
-&qemusend &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &open_management_console &close_management_console);
+&qemusend &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console);
 
 
 our $debug=1;
@@ -130,18 +130,31 @@ sub inststagedetect($)
 { my $dataref=shift;
 	return if length($$dataref)!=1440015; # only work on images of 800x600
 	my $ppm=ppm->new($$dataref);
-	if(!$ENV{GNOME}) { 
-		# use a relevant non-text part of the screen and look it up
-		# WARNING: breaks when background (i.e. theme) changes (%md5inststage needs updating)
-		my $ppm2=$ppm->copyrect(27,128,13,250);
-		$ppm2->replacerect(0,137,13,13); # mask out text
-		$ppm2->replacerect(0,215,13,13); # mask out text
-		my $md5=Digest::MD5::md5_hex($ppm2->{data});
+	my @md5=();
+	# use several relevant non-text parts of the screen to look them up up
+	# WARNING: some break when background/theme changes (%md5inststage needs updating)
+	my $ppm2;
+	# popup text detector
+	$ppm2=$ppm->copyrect(230,230, 300,100);
+	$ppm2->threshold(0x80); # black/white => drop most background
+	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
+	# use header text for GNOME
+	$ppm2=$ppm->copyrect(0,0, 250,30);
+	$ppm2->threshold(0x80); # black/white => drop most background
+	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
+	# KDE/NET/DVD detect checks on left
+	$ppm2=$ppm->copyrect(27,128,13,250);
+	$ppm2->replacerect(0,137,13,13); # mask out text
+	$ppm2->replacerect(0,215,13,13); # mask out text
+	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
+	$ppm2->threshold(0x80); # black/white => drop most background
+	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
+
+	foreach my $md5 (@md5) {
 		my $currentinststage=$md5inststage{$md5}||"";
 		if($currentinststage) { $lastknowninststage=$currentinststage }
-		diag "stage=$currentinststage last=$lastknowninststage $md5";
-	} else {
-		# use header text
+		diag "stage=$currentinststage $md5";
+		last if($currentinststage); # stop on first match - so must put most specific tests first
 	}
 }
 
@@ -154,7 +167,7 @@ sub take_screenshot()
 		my $data=fileContent($lastname);
 		my $md5=Digest::MD5::md5_hex($data);
 		if($md5badlist{$md5}) {diag "error condition detected. test failed. see $lastname"; sleep 1; mydie "bad image seen"}
-		diag("md5=$md5");
+		diag("md5=$md5 laststage=$lastknowninststage");
 		if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
 		# ignore bottom 15 lines (blinking cursor, animated mouse-pointer)
 		if(length($data)==1440015) {$md5=Digest::MD5::md5(substr($data,15,800*3*(600-15)))}
@@ -212,7 +225,7 @@ sub waitidle(;$)
 	return 0;
 }
 
-sub waitgoodimage($)
+sub waitgoodimage(;$)
 {
 	my $timeout=shift||10;
 	$goodimageseen=0;
@@ -221,6 +234,20 @@ sub waitgoodimage($)
 		if($goodimageseen) {diag "seen good image... continuing execution"; return 1;}
 		sleep 1;
 	}
+	diag "waitgoodimage timed out";
+	return 0;
+}
+
+sub waitinststage($;$)
+{
+	my $stage=shift;
+	my $timeout=shift||30;
+	diag "start waiting $timeout seconds for stage=$stage";
+	for my $n (1..$timeout) {
+		if($stage eq $lastknowninststage) {diag "detected stage=$stage ... continuing execution"; sleep 3; return 1;}
+		sleep 1;
+	}
+	diag "waitinststage stage=$stage timed out after $timeout";
 	return 0;
 }
 

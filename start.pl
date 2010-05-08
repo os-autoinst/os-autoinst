@@ -13,18 +13,12 @@ if($init) {
 open_management_console;
 do "inst/screenshot.pm" or die @$;
 if($init) {
-	waitgoodimage 9; # wait for welcome animation to finish
+	waitinststage "grub"; # wait for welcome animation to finish
 }
 
 do "inst/bootloader.pm" or die @$;
 sleep 11; # time to load kernel+initrd
 do "inst/viewbootmsg.pm" or die @$;
-if($ENV{NETBOOT}) {
-	sleep 40; # minimum time needed to boot up (includes some idles)
-	waitgoodimage 450;
-} else {
-	waitgoodimage 180;
-}
 do "inst/yast1.pm" or die @$;
 #do "inst/partitioning.pm" or die @$;
 do "inst/yast2.pm" or die @$;

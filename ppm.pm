@@ -60,7 +60,7 @@ sub threshold($)
 	my $threshold=shift;
 	my $tc=chr($threshold);
 	$self->{data}=~s/[$tc-\xff]/\xff/g; # white
-	$self->{data}=~s/[\000-$tc]/\000/g; # black
+	$self->{data}=~s/[\000-\xfe]/\000/g; # black
 #	my @a=unpack("C*", $self->{data});
 #	foreach(@a) {
 #		if($_<$threshold) {$_=0} else {$_=255}
