@@ -37,6 +37,7 @@ addraid alt-i
 add alt-a
 raid0 alt-0
 raid1 alt-1
+raid5 alt-5
 raid6 alt-6
 raid10 alt-i
 mountpoint alt-m
@@ -57,7 +58,7 @@ if($ENV{INSTLANG} eq "de") {
 	$cmd{"accept"}="alt-r";
 	$cmd{"donotformat"}="alt-n";
 	$cmd{"add"}="alt-h";
-	$cmd{"raid6"}="alt-d";
+#	$cmd{"raid6"}="alt-d"; 11.2 only
 	$cmd{"raid10"}="alt-r";
 	$cmd{"mountpoint"}="alt-e";
 	$cmd{"rebootnow"}="alt-j";
