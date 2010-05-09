@@ -29,9 +29,8 @@ my $md5nocursor=Digest::MD5::md5_hex($ppm->{data});
 
 #print ref($ppm);
 #$ppm2->replacerect(200,200,100,100);
-$ppm2=$ppm->copyrect(27,128,13,250);
-$ppm2->replacerect(0,137,13,13); # mask out text
-$ppm2->replacerect(0,215,13,13); # mask out text
+$ppm2=$ppm->copyrect(27,128,13,200);
+$ppm2->replacerect(0,137,13,15); # mask out text
 # md5_hex($ppm2->{data});
 my @md5;
 my $md5=Digest::MD5::md5_hex($ppm2->{data});

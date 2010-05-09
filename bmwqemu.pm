@@ -142,9 +142,8 @@ sub inststagedetect($)
 	$ppm2->threshold(0x80); # black/white => drop most background
 	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
 	# KDE/NET/DVD detect checks on left
-	$ppm2=$ppm->copyrect(27,128,13,250);
-	$ppm2->replacerect(0,137,13,13); # mask out text
-	$ppm2->replacerect(0,215,13,13); # mask out text
+	$ppm2=$ppm->copyrect(27,128,13,200);
+	$ppm2->replacerect(0,137,13,15); # mask out text
 	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
 	$ppm2->threshold(0x80); # black/white => drop most background
 	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
