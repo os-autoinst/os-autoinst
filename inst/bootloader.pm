@@ -26,14 +26,8 @@ if($ENV{RES1024}) { # default is 800x600
 	sendkey "down";
 	sendkey "ret";
 }
-# German/Deutsch
-if($ENV{INSTLANG} eq "de") {
-	sendkey "f2";
-	for(1..3) {
-		sendkey "up";
-	}
-	sendkey "ret";
-}
+
+sendautotype("nohz=off "); # NOHZ caused errors with 2.6.26
 
 # set HTTP-source to not use factory-snapshot
 if($ENV{NETBOOT}) {
@@ -74,6 +68,15 @@ if($ENV{NETBOOT} && $ENV{HTTPPROXY} && $ENV{HTTPPROXY}=~m/([0-9.]+):(\d+)/) {
 	# add boot parameters
 	# ZYPP... enables proxy caching
 	sendautotype("ZYPP_ARIA2C=0"); sleep 2;
+}
+
+# German/Deutsch - set last so that above typing will not depend on keyboard layout
+if($ENV{INSTLANG} eq "de") {
+	sendkey "f2";
+	for(1..3) {
+		sendkey "up";
+	}
+	sendkey "ret";
 }
 
 # boot
