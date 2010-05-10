@@ -25,9 +25,9 @@ sub addpart($$)
 	waitidle 3;
 }
 
-sub addraid($)
+sub addraid($;$)
 {
-	my($step)=@_;
+	my($step, $chunksize)=@_;
 	sendkey "spc";
 	for(1..3) {
 		for(1..$step) {
@@ -40,12 +40,29 @@ sub addraid($)
 	waitidle 3;
 	sendkey $cmd{"next"};
 	waitidle 3;
+	# chunk size selection
+	if($chunksize) {
+		sendautotype("\t$chunksize");
+	}
 	sendkey $cmd{"next"};
 	waitidle 3;
 }
 
+sub setraidlevel($)
+{
+	my $level=shift;
+	my %entry=(0=>0, 1=>1, 5=>2, 6=>3, 10=>4);
+	for(0..$entry{$level}) {
+		sendkey "tab";
+	}
+	sendkey "spc"; # set entry
+	for($entry{$level}..$entry{10}) {
+		sendkey "tab";
+	}
+}
 
 
+if($ENV{RAIDLEVEL}) {
 if(1) {
 # create partitioning
 sendkey $cmd{createpartsetup};
@@ -73,17 +90,10 @@ for (1..4) {
 sendkey $cmd{addraid};
 waitidle 4;
 
-if(!$ENV{INSTRAID10}) { # RAID6
-	sendkey $cmd{"raid6"}; # RAID 6 for /
-	for(1..2) {
-		sendkey "tab";
-	}
-} else { # RAID10
-	sendkey $cmd{"raid10"}; # RAID 10 for /
-	sendkey "tab";
-}
-sendkey "down";
-addraid(3);
+if(!defined($ENV{RAIDLEVEL})) {$ENV{RAIDLEVEL}=6}
+setraidlevel($ENV{RAIDLEVEL});
+sendkey "down"; # start at second partition (i.e. sda2)
+addraid(3,6);
 sendkey $cmd{"finish"};
 waitidle 3;
 
@@ -91,10 +101,7 @@ waitidle 3;
 # select RAID add
 sendkey $cmd{addraid};
 waitidle 4;
-sendkey $cmd{raid1}; # RAID 1 for /boot
-for(1..4) {
-	sendkey "tab";
-}
+setraidlevel(1); # RAID 1 for /boot
 addraid(2);
 
 sendkey $cmd{"mountpoint"};
@@ -109,10 +116,7 @@ waitidle 3;
 # select RAID add
 sendkey $cmd{addraid};
 waitidle 4;
-sendkey $cmd{raid0}; # RAID 0 for swap
-for(1..5) {
-	sendkey "tab";
-}
+setraidlevel(0); # RAID 0 for swap
 addraid(1);
 
 # select file-system
@@ -125,5 +129,7 @@ waitidle 3;
 # done
 sendkey $cmd{"accept"};
 waitidle 4;
+sleep 2;
+}
 
 1;
