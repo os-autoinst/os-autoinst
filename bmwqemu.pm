@@ -157,6 +157,7 @@ sub inststagedetect($)
 	}
 }
 
+my $framecounter=0;
 sub take_screenshot()
 {
 	my $path="qemuscreenshot/";
@@ -180,6 +181,7 @@ sub take_screenshot()
 			$md5file{$md5}=[$lastname,1];
 			inststagedetect(\$data);
 		}
+		if(($framecounter++ < 10) && length($data)<800*600*3) {unlink($lastname)}
 	}
 	my $now=time();
 	if(!$lasttime || $lasttime!=$now) {$n=0};

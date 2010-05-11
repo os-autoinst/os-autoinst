@@ -10,6 +10,7 @@ system(qw"/bin/mkdir -p", $basedir);
 for my $i (1..4) {
 	system(qw(qemu-img create) ,"$basedir/$i", "5G");
 }
+system("sync");
 
 $qemupid=fork();
 die "fork failed" if(!defined($qemupid));

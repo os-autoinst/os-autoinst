@@ -8,7 +8,7 @@ if($ENV{NETBOOT}) {
 	sleep 3;
 } else {
 	# LiveCD needs confirmation for reboot
-	waitinststage("rebootnow", 690);
+	waitinststage("rebootnow", 790);
 	sendkey $cmd{"rebootnow"};
 	# no grub visible on proper first boot because of kexec
 	if(0 && !waitinststage "grub") {
