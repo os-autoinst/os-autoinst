@@ -1,0 +1,12 @@
+#!/bin/sh
+# usage:
+# tools/checkinst ~/public_html/mirror/opensuse/video/*[0-9].ogv.autoinst.txt
+while test -n "$1" ; do
+	log=$1
+	shift
+	if grep -q -e KDE -e GNOME $log ; then
+		echo "OK $log"
+	else
+		echo "bad $log"
+	fi
+done

@@ -9,6 +9,8 @@ use Exporter;
 use ppm;
 use threads;
 use threads::shared;
+use POSIX; 
+our $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
 my $goodimageseen :shared = 0;
 my $endreadingcon :shared = 0;
 my $lastname;
@@ -21,6 +23,8 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 
 
 our $debug=1;
+our $idlethreshold=14*$clock_ticks/100; # % load max for being considered idle
+our $timesidleneeded=2;
 our $qemubin="/usr/bin/kvm";
 our $qemupid;
 our $managementcon;
@@ -167,7 +171,9 @@ sub take_screenshot()
 		my $data=fileContent($lastname);
 		my $md5=Digest::MD5::md5_hex($data);
 		if($md5badlist{$md5}) {diag "error condition detected. test failed. see $lastname"; sleep 1; mydie "bad image seen"}
-		diag("md5=$md5 laststage=$lastknowninststage");
+		my($statuser,$statsystem)=proc_stat_cpu($qemupid);
+		for($statuser,$statsystem) {$_/=$clock_ticks}
+		diag("md5=$md5 laststage=$lastknowninststage statuser=$statuser statsystem=$statsystem");
 		if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
 		# ignore bottom 15 lines (blinking cursor, animated mouse-pointer)
 		if(length($data)==1440015) {$md5=Digest::MD5::md5(substr($data,15,800*3*(600-15)))}
@@ -199,25 +205,34 @@ sub qemualive()
 	kill 0, $qemupid;
 }
 
+# input: PID (process identifier)
+# output: user/system clock_ticks used
+sub proc_stat_cpu($)
+{ my $pid=shift;
+	my $stat=fileContent("/proc/$pid/stat");
+	my @a=split(" ", $stat);
+	return @a[13,14];
+}
+
 sub waitidle(;$)
 {
 	my $timeout=shift||19;
 	my $prev;
 	diag "waitidle(timeout=$timeout)";
+	my $timesidle=0;
 	for my $n (1..$timeout) {
-		my $stat=fileContent("/proc/$qemupid/stat");
-			#"/proc/$qemupid/schedstat");
-		my @a=split(" ", $stat);
-		$stat=$a[13];
+		my($stat,$systemstat)=proc_stat_cpu($qemupid);
 		next unless $stat;
-		#$stat=$a[1];
+		$stat+=$systemstat;
 		if($prev) {
 			my $diff=$stat-$prev;
-			if($diff<10) { # idle for one sec
-			#if($diff<2000000) # idle for one sec
-				diag "idle detected";
-				return 1;
-			}
+			if($diff<$idlethreshold) {
+				if(++$timesidle>$timesidleneeded) { # idle for $x sec
+				#if($diff<2000000) # idle for one sec
+					diag "idle detected";
+					return 1;
+				}
+			} else {$timesidle=0}
 		}
 		$prev=$stat;
 		sleep 1;

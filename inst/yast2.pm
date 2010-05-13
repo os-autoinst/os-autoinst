@@ -7,7 +7,7 @@ waitinststage "disk";
 sendkey $cmd{"next"};
 
 # user setup
-waitinststage "usersettings";
+waitinststage "usersettings", 120;
 waitidle 18;
 sendautotype("Bernhard M. Wiedemann");
 sendkey "tab";

@@ -1,0 +1,15 @@
+#!/usr/bin/perl -w
+use strict;
+
+my $in=shift;
+my $a=".autoinst.txt";
+
+for my $letter ("a".."z") {
+	my $modifiedname=$in;
+	$modifiedname=~s/\.ogv/$letter$&/;
+	next if -e $modifiedname;
+	print "mv -i $in $modifiedname\n";
+	print "mv -i $in$a $modifiedname$a\n";
+	last;
+}
+
