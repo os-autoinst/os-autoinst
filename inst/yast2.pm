@@ -20,7 +20,7 @@ for(1..2) {
 # done user setup
 sendkey $cmd{"next"};
 # loading cracklib
-waitidle 4;
+waitidle 6;
 # PW too easy (cracklib)
 sendkey "ret";
 #sleep 1;

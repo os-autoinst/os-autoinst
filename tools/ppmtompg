@@ -19,4 +19,4 @@ my @bw=();
 system("ffmpeg2theora", @bw, "--inputfps", 12, "$tmpdir/%08d.ppm", "--max_size","800x600", "--framerate", 12, "-o", "$out.ogv");
 
 
-#system("rm -rf $tmpdir");
+system("rm -rf $tmpdir");

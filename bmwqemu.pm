@@ -23,7 +23,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 
 
 our $debug=1;
-our $idlethreshold=14*$clock_ticks/100; # % load max for being considered idle
+our $idlethreshold=16*$clock_ticks/100; # % load max for being considered idle
 our $timesidleneeded=2;
 our $qemubin="/usr/bin/kvm";
 our $qemupid;
