@@ -14,7 +14,7 @@ sendkey "tab";
 #sleep 1;
 sendkey "tab";
 for(1..2) {
-	sendautotype("nots3cr3t\t");
+	sendautotype("$password\t");
 	#sleep 1;
 }
 # done user setup

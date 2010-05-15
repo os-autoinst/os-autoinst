@@ -18,13 +18,14 @@ my $lastknowninststage :shared = "";
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
-@EXPORT = qw($qemubin $qemupid %cmd 
+@EXPORT = qw($password $qemubin $qemupid %cmd 
 &qemusend &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console);
 
 
 our $debug=1;
 our $idlethreshold=16*$clock_ticks/100; # % load max for being considered idle
 our $timesidleneeded=2;
+our $password="nots3cr3t";
 our $qemubin="/usr/bin/kvm";
 our $qemupid;
 our $managementcon;

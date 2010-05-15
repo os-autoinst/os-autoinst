@@ -23,6 +23,10 @@ do "inst/yast1.pm" or die @$;
 do "inst/partitioning.pm" or die @$;
 do "inst/yast2.pm" or die @$;
 do "inst/livecdreboot.pm" or die @$;
+if($ENV{GNOME}) {
+} else {
+	do "inst/kde.pm" or die @$;
+}
 
 
 for(1..6000) { # time to let install work
