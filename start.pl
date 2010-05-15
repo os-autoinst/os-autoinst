@@ -24,6 +24,7 @@ do "inst/partitioning.pm" or die @$;
 do "inst/yast2.pm" or die @$;
 do "inst/livecdreboot.pm" or die @$;
 if($ENV{GNOME}) {
+	do "inst/gnome.pm" or die @$;
 } else {
 	do "inst/kde.pm" or die @$;
 }

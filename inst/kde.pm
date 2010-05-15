@@ -44,4 +44,16 @@ open_menu($kdemenu{audio});
 open_menu($kdemenu{xterm});
 sendautotype "sudo /sbin/yast2 lan\n$password\n";
 
+sleep 9;
+sendkey "ctrl-alt-delete"; # reboot
+sleep 2;
+sendautotype "\t\t\n";
+
+waitinststage "KDE", 1000; # wait until reboot is finished
+waitidle 100;
+sleep 10;
+sendkey "ctrl-alt-delete"; # shutdown
+sleep 2;
+sendautotype "\t\n";
+
 1;

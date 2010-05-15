@@ -64,6 +64,9 @@ e8fa5eee5c5e45cc081d7679acd42101 automaticconfiguration
 4ca3e0a5a8bd740deb0d750e0cef552c automaticconfiguration
 0db6d0f55610ce984acd4426d1753eb8 users
 3ef43360bf8b4c443872301f17bc8f29 KDE
+3c1e26f026013c0d629393f735953642 KDE
 9f1754bb42b4b638f7d009e797b19035 GNOME
+6bb907cafda230995d3fa5e7a9322e68 GNOME
+1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
 );
 

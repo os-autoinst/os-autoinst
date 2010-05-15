@@ -97,9 +97,14 @@ sub sendkey($)
 	sleep(0.25);
 }
 
-my %charmap=("."=>"dot", "/"=>"slash", "="=>"equal", "-"=>"minus", "_"=>"shift-minus",
+my %charmap=(","=>"comma", "."=>"dot", "/"=>"slash", "="=>"equal", "-"=>"minus", "*"=>"asterisk", 
+   "+"=>"shift-equal", "_"=>"shift-minus", '?'=>"shift-slash", ">"=>"shift-<",
    "\t"=>"tab", "\n"=>"ret", " "=>"spc", "\b"=>"backspace", "\e"=>"esc");
 for my $c ("A".."Z") {$charmap{$c}="shift-\L$c"}
+{
+	my $n=0;
+	for my $c (')','!','@','#','$','%','^','&','*','(') {$charmap{$c}="shift-".($n++)}
+}
 
 
 sub sendautotype($)
