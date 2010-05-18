@@ -33,27 +33,48 @@ sub open_menu($;$)
 
 my %kdemenu=(firefox=>1, pim=>2, office=>3, audio=>4, fileman=>5, config=>6, help=>7, xterm=>8);
 
-open_menu($kdemenu{firefox});
-open_menu($kdemenu{office});
-open_menu($kdemenu{help});
-open_menu($kdemenu{pim}, 100);
-sleep 10; waitidle 100; sleep 10; # pim needs extra time for first init
-open_menu($kdemenu{config});
-open_menu($kdemenu{fileman});
-open_menu($kdemenu{audio});
 open_menu($kdemenu{xterm});
 sendautotype "sudo /sbin/yast2 lan\n$password\n";
+sleep 12;
+sendkey "alt-f4";
+open_menu($kdemenu{firefox});
+sendkey "alt-f4"; sleep 2;
+sendkey "ret"; # confirm "save&quit"
+
+open_menu($kdemenu{office});
+sendkey "alt-f4";
+
+open_menu($kdemenu{help});
+sendkey "alt-f4";
+
+open_menu($kdemenu{config});
+sendkey "alt-f4";
+
+open_menu($kdemenu{fileman});
+sendkey "alt-f4";
+
+open_menu($kdemenu{audio});
+sendkey "alt-f4"; sleep 3; # mp3 popup
+sendkey "alt-f4"; sleep 3; # close kwallet popup
+sendkey "alt-f4"; sleep 9; # close another popup
+sendkey "ctrl-q"; # really quit. alt-f4 just backgrounds
+
+open_menu($kdemenu{pim}, 100);
+sleep 10; waitidle 100; sleep 10; # pim needs extra time for first init
+sendkey "alt-f4"; sleep 10; # close popup (tips on startup)
+sendkey "alt-f4";
 
 sleep 9;
 sendkey "ctrl-alt-delete"; # reboot
-sleep 2;
+sleep 4;
 sendautotype "\t\t\n";
 
-waitinststage "KDE", 1000; # wait until reboot is finished
+waitinststage "grub", 200; # wait until reboot 
+waitinststage "KDE", 200; # wait until reboot is finished
 waitidle 100;
-sleep 10;
+sleep 19;
 sendkey "ctrl-alt-delete"; # shutdown
-sleep 2;
+sleep 11;
 sendautotype "\t\n";
 
 1;

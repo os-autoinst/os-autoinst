@@ -266,7 +266,7 @@ sub waitinststage($;$)
 	my $timeout=shift||30;
 	diag "start waiting $timeout seconds for stage=$stage";
 	for my $n (1..$timeout) {
-		if($stage eq $lastknowninststage) {diag "detected stage=$stage ... continuing execution"; sleep 3; return 1;}
+		if($lastknowninststage=~m/$stage/) {diag "detected stage=$stage ... continuing execution"; sleep 3; return 1;}
 		sleep 1;
 	}
 	diag "waitinststage stage=$stage timed out after $timeout";
