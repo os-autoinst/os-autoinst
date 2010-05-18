@@ -3,7 +3,9 @@ use strict;
 use bmwqemu;
 
 if($ENV{NETBOOT}) {
+	set_ocr_rect(270,420,515,115);
 	waitinststage "grub|automaticconfiguration", 3000;
+	set_ocr_rect();
 	sendkey "ret"; # avoid timeout for booting to HDD
 	sleep 3;
 } else {

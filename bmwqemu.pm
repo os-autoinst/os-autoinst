@@ -19,7 +19,7 @@ my $lastknowninststage :shared = "";
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($password $qemubin $qemupid %cmd 
-&qemusend &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console);
+&fileContent &qemusend &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr);
 
 
 our $debug=1;
@@ -28,7 +28,9 @@ our $timesidleneeded=2;
 our $password="nots3cr3t";
 our $qemubin="/usr/bin/kvm";
 our $qemupid;
+our $gocrbin="/usr/bin/gocr";
 our $managementcon;
+my @ocrrect; share(@ocrrect);
 our %cmd=qw(
 next alt-n
 install alt-i
@@ -68,6 +70,10 @@ if($ENV{INSTLANG} eq "de") {
 	$cmd{"mountpoint"}="alt-e";
 	$cmd{"rebootnow"}="alt-j";
 }
+
+if(!-x $gocrbin) {$gocrbin=undef}
+if(!-x $qemubin) {$qemubin=~s/kvm/qemu-kvm/}
+if(!-x $qemubin) {die "no Qemu/KVM found"}
 
 
 sub diag($)
@@ -135,6 +141,34 @@ our %md5inststage;
 eval(fileContent("goodimage.pm"));
 my $readconthread;
 
+sub set_ocr_rect
+{
+	@ocrrect=@_;
+}
+# input: ref on PPM data
+sub get_ocr($)
+{ my $dataref=shift;
+	if(!$gocrbin || !@ocrrect) {return ""}
+	if(@ocrrect!=4) {return " ocr: bad rect"}
+	my $ppm=ppm->new($$dataref);
+	my $ppm2;
+	my $ocr="";
+	$ppm2=$ppm->copyrect(@ocrrect);
+	my $tempname="/tmp/$$-".time.rand(10000).".ppm";
+	open(my $tempfile, ">", $tempname) or return " ocr error";
+	print $tempfile $ppm2->toppm;
+	close $tempfile;
+#	exec("cat") or die "failed to exec $gocrbin: $!";
+	open(my $pipe, "$gocrbin -l 128 -d 0 -s 6 -m 2 $tempname |") or return "failed to exec $gocrbin: $!";
+	local $/;
+	$ocr=<$pipe>;
+	close($pipe);
+	unlink $tempname;
+	$ocr=~s/^[_ \t\n]+//;
+	$ocr=~s/\n/ --- /g;
+	return " ocr='$ocr'";
+}
+
 # input: ref on PPM data
 sub inststagedetect($)
 { my $dataref=shift;
@@ -191,6 +225,8 @@ sub take_screenshot()
 			if($linkcount>530) {mydie "standstill detected. test ended. see $lastname\n"} # above 120s of autoreboot
 		} else { # new
 			$md5file{$md5}=[$lastname,1];
+			my $ocr=get_ocr(\$data);
+			if($ocr) { diag $ocr }
 			inststagedetect(\$data);
 		}
 		if(($framecounter++ < 10) && length($data)<800*600*3) {unlink($lastname)}

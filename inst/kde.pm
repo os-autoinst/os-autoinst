@@ -33,6 +33,12 @@ sub open_menu($;$)
 
 my %kdemenu=(firefox=>1, pim=>2, office=>3, audio=>4, fileman=>5, config=>6, help=>7, xterm=>8);
 
+if($ENV{NETBOOT}) { # has photomanager added on #5
+	for my $x (qw(fileman config help xterm)) {
+		$kdemenu{$x}++;
+	}
+}
+
 open_menu($kdemenu{xterm});
 sendautotype "sudo /sbin/yast2 lan\n$password\n";
 sleep 12;
