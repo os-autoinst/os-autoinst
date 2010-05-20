@@ -3,12 +3,13 @@ use strict;
 use bmwqemu;
 
 if($ENV{NETBOOT}) {
-	set_ocr_rect(270,420,515,115);
+	set_ocr_rect(255,420,530,115);
 	waitinststage "grub|splashscreen|automaticconfiguration", 3000;
 	set_ocr_rect();
-	if(waitinststage "grub") {
+	if(waitinststage "grub", 1) {
 		sendkey "ret"; # avoid timeout for booting to HDD
 	}
+	qemusend "eject ide1-cd0";
 	sleep 3;
 } else {
 	set_ocr_rect(245,440,530,100);

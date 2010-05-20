@@ -31,24 +31,28 @@ sub open_menu($;$)
 	sleep 4;
 }
 
-my %kdemenu=(firefox=>1, pim=>2, office=>3, audio=>4, fileman=>5, config=>6, help=>7, xterm=>8);
+my %kdemenu=(firefox=>1, pim=>2, audio=>3, fileman=>4, config=>5, help=>6, xterm=>7);
 
 if($ENV{NETBOOT}) { # has photomanager added on #5
+	$kdemenu{audio}++; # and office on #3
 	for my $x (qw(fileman config help xterm)) {
-		$kdemenu{$x}++;
+		$kdemenu{$x}+=2;
 	}
 }
 
-open_menu($kdemenu{xterm});
-sendautotype "sudo /sbin/yast2 lan\n$password\n";
+#open_menu($kdemenu{xterm});
+sendkey "alt-f2"; sleep 2;
+sendautotype "xterm\n"; sleep 1;
+sendautotype "sudo /sbin/yast2 lan\n"; sleep 1;
+sendautotype "$password\n";
 sleep 12;
 sendkey "alt-f4";
 open_menu($kdemenu{firefox});
 sendkey "alt-f4"; sleep 2;
 sendkey "ret"; # confirm "save&quit"
 
-open_menu($kdemenu{office});
-sendkey "alt-f4";
+#open_menu($kdemenu{office});
+#sendkey "alt-f4";
 
 open_menu($kdemenu{help});
 sendkey "alt-f4";
