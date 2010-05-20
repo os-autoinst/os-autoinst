@@ -5,6 +5,7 @@ use strict;
 use warnings;
 use Time::HiRes qw(sleep);
 use Digest::MD5;
+use IO::Socket;
 use Exporter;
 use ppm;
 use threads;
@@ -142,6 +143,7 @@ our %md5goodlist;
 our %md5inststage;
 eval(fileContent("goodimage.pm"));
 my $readconthread;
+my $conmuxthread;
 
 sub set_ocr_rect
 {
@@ -319,8 +321,26 @@ sub waitinststage($;$)
 }
 
 
-use IO::Socket;
-use threads;
+
+# accept connections and forward to management console
+sub conmuxloop
+{
+	my $listen_sock=IO::Socket::INET->new(
+		Listen    => 1,
+	#	LocalAddr => 'localhost',
+		LocalPort => 15223,
+		Proto     => 'tcp',
+		ReUseAddr => 1,
+	);
+
+	# simple version with only one connection at a time
+	while(my $conn=$listen_sock->accept()) {
+		while(<$conn>) {
+			chomp;
+			qemusend $_;
+		}
+	}
+}
 
 # read all output from management console and forward it to STDOUT
 sub readconloop
@@ -341,6 +361,7 @@ sub open_management_console()
 
 	$managementcon=IO::Socket::INET->new("localhost:15222") or mydie "error opening management console: $!";
 	$endreadingcon=0;
+	$conmuxthread=threads->create(\&conmuxloop); # without this, qemu will block
 	$readconthread=threads->create(\&readconloop); # without this, qemu will block
 	select $managementcon;
 	$|=1; # autoflush
