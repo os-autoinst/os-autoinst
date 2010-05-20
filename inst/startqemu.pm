@@ -3,9 +3,8 @@ use strict;
 use bmwqemu;
 my $basedir="/home/bernhard/code/cvs/perl/autoinst/raid";
 my $iso=$ENV{SUSEISO};
-if($iso=~m/openSUSE-NET-/) {$ENV{NETBOOT}=1}
 if($iso=~m/openSUSE-[A-Z]+-LiveCD/) {$ENV{LIVECD}=1}
-if($iso=~m/openSUSE-GNOME-/) {$ENV{GNOME}=1}
+if($iso=~m/openSUSE-(NET|KDE|GNOME)-/) {$ENV{$1}=1; $ENV{NETBOOT}=$ENV{NET}}
 system(qw"/bin/mkdir -p", $basedir);
 system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/1"); # for LVM
 for my $i (1..4) {

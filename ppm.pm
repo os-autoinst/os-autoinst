@@ -27,6 +27,7 @@ sub copyrect($$$$)
 {
 	my $self=shift;
 	my ($xstart,$ystart,$xsize,$ysize)=@_;
+	if($xstart+$xsize>$self->{xres} || $ystart+$ysize>$self->{yres}) {return}
 	my $newppm={};
 	($newppm->{xres},$newppm->{yres})=($xsize,$ysize);
 	my $len=$xsize*BPP;

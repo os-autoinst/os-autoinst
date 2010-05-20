@@ -154,6 +154,7 @@ sub get_ocr($)
 	my $ppm2;
 	my $ocr="";
 	$ppm2=$ppm->copyrect(@ocrrect);
+	if(!$ppm2) {return ""}
 	my $tempname="/tmp/$$-".time.rand(10000).".ppm";
 	open(my $tempfile, ">", $tempname) or return " ocr error";
 	print $tempfile $ppm2->toppm;

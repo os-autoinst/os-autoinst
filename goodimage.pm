@@ -17,12 +17,14 @@ bc32b148e35198bcf7a77f8b8843e2d3 ms6kdelivecdreboot
 618ddf740b3060eb1eaa489c81dbc8cc fail1
 bdcf5eae30d70c3fea49ec7db97969e2 instfail
 76fdbeccfd57006b7c74d8c4d0c66fde instfailstartinst
+562354f4b03e78ef09ba82bf0a7be3a9 Could-not-find-the-openSUSE-Repository
 );
 
 
 # first entry is for NET, second for KDE, third for GNOME, 4th for GNOME/577:
 %md5inststage=qw(
 232cb27cbf4dafe0fc49900865b5548c grub
+f74242b1f62bdbc7e3d6f060ceab7e0a grub0620
 33af848897baea7919c430d7adb6d9f2 initializinggnome
 7ea9ca7bfe7277145920de67c2212a1d welcome
 0768f22e7f55bf5b11b930aac43a15df welcome
