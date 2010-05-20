@@ -15,6 +15,7 @@ my $goodimageseen :shared = 0;
 my $endreadingcon :shared = 0;
 my $lastname;
 my $lastknowninststage :shared = "";
+my $prestandstillwarning :shared = 0;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
@@ -25,6 +26,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 our $debug=1;
 our $idlethreshold=16*$clock_ticks/100; # % load max for being considered idle
 our $timesidleneeded=2;
+our $standstillthreshold=530;
 our $password="nots3cr3t";
 our $qemubin="/usr/bin/kvm";
 our $qemupid;
@@ -167,6 +169,9 @@ sub get_ocr($)
 	unlink $tempname;
 	$ocr=~s/^[_ \t\n]+//;
 	$ocr=~s/\n/ --- /g;
+	# correct common mis-readings:
+	$ocr=~s/nstaII/nstall/g;
+	$ocr=~s/l(install|Remaining)/($1/g;
 	return " ocr='$ocr'";
 }
 
@@ -223,7 +228,8 @@ sub take_screenshot()
 			link($md5file{$md5}->[0], $lastname);
 			my $linkcount=$md5file{$md5}->[1]++;
 			#my $linkcount=(stat($lastname))[3]; # relies on FS
-			if($linkcount>530) {mydie "standstill detected. test ended. see $lastname\n"} # above 120s of autoreboot
+			$prestandstillwarning=($linkcount>$standstillthreshold/2);
+			if($linkcount>$standstillthreshold) {mydie "standstill detected. test ended. see $lastname\n"} # above 120s of autoreboot
 		} else { # new
 			$md5file{$md5}=[$lastname,1];
 			my $ocr=get_ocr(\$data);
@@ -302,8 +308,10 @@ sub waitinststage($;$)
 	my $stage=shift;
 	my $timeout=shift||30;
 	diag "start waiting $timeout seconds for stage=$stage";
+	if($prestandstillwarning) { sleep 3 }
 	for my $n (1..$timeout) {
 		if($lastknowninststage=~m/$stage/) {diag "detected stage=$stage ... continuing execution"; sleep 3; return 1;}
+		if($prestandstillwarning) { diag "WARNING: waited too long for stage=$stage"; return 2; }
 		sleep 1;
 	}
 	diag "waitinststage stage=$stage timed out after $timeout";
