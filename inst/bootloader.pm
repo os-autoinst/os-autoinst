@@ -28,6 +28,7 @@ if($ENV{RES1024}) { # default is 800x600
 }
 
 sendautotype("nohz=off "); # NOHZ caused errors with 2.6.26
+#sendautotype("kiwidebug=1 ");
 
 # set HTTP-source to not use factory-snapshot
 if($ENV{NETBOOT}) {

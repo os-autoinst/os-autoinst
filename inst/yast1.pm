@@ -22,7 +22,7 @@ if(!$ENV{LIVECD}) {
 	waitgoodimage(25);
 	# TODO waitstillimage(10)
 	waitidle 29;
-	# new inst
+	# Installation Mode = new Installation
 	sendkey $cmd{"next"};
 }
 # timezone

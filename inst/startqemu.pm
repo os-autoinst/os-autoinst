@@ -10,7 +10,7 @@ system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/1"); # for LVM
 for my $i (1..4) {
 	system(qw(qemu-img create) ,"$basedir/$i", "5G");
 }
-system("sync");
+system("sync"); sleep 5;
 
 $qemupid=fork();
 die "fork failed" if(!defined($qemupid));
