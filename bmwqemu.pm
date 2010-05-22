@@ -8,6 +8,7 @@ use Digest::MD5;
 use IO::Socket;
 use Exporter;
 use ppm;
+use ocr;
 use threads;
 use threads::shared;
 use POSIX; 
@@ -152,23 +153,7 @@ sub set_ocr_rect
 # input: ref on PPM data
 sub get_ocr($)
 { my $dataref=shift;
-	if(!$gocrbin || !@ocrrect) {return ""}
-	if(@ocrrect!=4) {return " ocr: bad rect"}
-	my $ppm=ppm->new($$dataref);
-	my $ppm2;
-	my $ocr="";
-	$ppm2=$ppm->copyrect(@ocrrect);
-	if(!$ppm2) {return ""}
-	my $tempname="/tmp/$$-".time.rand(10000).".ppm";
-	open(my $tempfile, ">", $tempname) or return " ocr error";
-	print $tempfile $ppm2->toppm;
-	close $tempfile;
-#	exec("cat") or die "failed to exec $gocrbin: $!";
-	open(my $pipe, "$gocrbin -l 128 -d 0 -s 6 -m 2 $tempname |") or return "failed to exec $gocrbin: $!";
-	local $/;
-	$ocr=<$pipe>;
-	close($pipe);
-	unlink $tempname;
+	my $ocr=ocr::get_ocr($dataref, "-m 2", \@ocrrect);
 	$ocr=~s/^[_ \t\n]+//;
 	$ocr=~s/\n/ --- /g;
 	# correct common mis-readings:
