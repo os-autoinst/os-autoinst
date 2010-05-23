@@ -1,14 +1,16 @@
 #!/usr/bin/perl -w
 use strict;
 use bmwqemu;
-my $basedir="/home/bernhard/code/cvs/perl/autoinst/raid";
+my $basedir="raid";
 my $iso=$ENV{SUSEISO};
 if($iso=~m/openSUSE-[A-Z]+-LiveCD/) {$ENV{LIVECD}=1}
 if($iso=~m/openSUSE-(NET|KDE|GNOME)-/) {$ENV{$1}=1; $ENV{NETBOOT}=$ENV{NET}}
 system(qw"/bin/mkdir -p", $basedir);
 system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/1"); # for LVM
 for my $i (1..4) {
-	system(qw(qemu-img create) ,"$basedir/$i", "5G");
+	my $qemuimg="/usr/bin/kvm-img";
+	if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
+	system($qemuimg, "create" ,"$basedir/$i", "5G");
 }
 system("sync"); sleep 5;
 

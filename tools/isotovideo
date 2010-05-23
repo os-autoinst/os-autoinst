@@ -26,6 +26,7 @@ rm -rf qemuscreenshot/*.ppm
 killall kvm 2>/dev/null
 
 name=$(perl -e '$_=shift;s{.*/}{};s/-Media.iso//;print' $SUSEISO)
+mkdir -p video
 echo tools/ppmtompg qemuscreenshot video/$name
 tools/ppmtompg qemuscreenshot video/$name
 mv video/* $isodir/video/
