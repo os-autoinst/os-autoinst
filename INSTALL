@@ -1,8 +1,7 @@
-on my servers with Debian/lenny I did:
+== Debian/lenny setup ==
 
-root part:
+as root:
 echo "deb    http://ftp.de.debian.org/debian/  squeeze          main" > /etc/apt/sources.list.d/squeeze.list
-aptitude update
 
 cat >>/etc/apt/preferences <<EOF
 Package: *
@@ -10,15 +9,29 @@ Pin: release o=Debian,a=testing
 Pin-Priority: 40
 EOF
 
-aptitude install git-core kvm/testing ffmpeg2theora/testing gocr/testing
-# kvm-0.12.3 and kvm-0.12.4 need older or newer bios.bin to avoid https://bugzilla.novell.com/show_bug.cgi?id=603161
+aptitude update
 
+aptitude install git-core kvm/testing ffmpeg2theora/testing gocr/testing
+# kvm-0.12.3 needs older or newer bios.bin to avoid https://bugzilla.novell.com/show_bug.cgi?id=603161 ; kvm-0.12.4 and kvm-0.11 work
+
+echo kvm-intel >> /etc/modules
+
+
+== openSUSE setup ==
+http://software.opensuse.org/search?baseproject=openSUSE:11.2&q=kvm
+http://software.opensuse.org/search?baseproject=openSUSE:11.2&q=gocr #>=0.48 recommended
+http://packman.links2linux.de/package/ffmpeg2theora/166877
+TODO
+
+
+== more Linux setup ==
+modprobe kvm-intel # or kvm-amd
+chgrp kvm /dev/kvm ; chmod g+rw /dev/kvm # maybe redundant
 useradd -m USERNAME -G kvm
 passwd USERNAME # and/or add ~USERNAME/.ssh/authorized_keys
-modprobe kvm-intel # or kvm-amd
 
 
-user setup part:
+== user setup ==
 git clone http://www3.zq1.de/bernhard/git/autoinst.git/ autoinst
 edit tools/isotovideo # adjust or drop HTTPPROXY and GWDG lines
 
