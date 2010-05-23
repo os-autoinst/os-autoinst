@@ -1,0 +1,14 @@
+for setup see INSTALL
+
+usage:
+RAIDLEVEL=10 autoinst/tools/isotovideo PATHTO/openSUSE-KDE-LiveCD-i686-Build0625-Media.iso
+
+you can watch what it is doing by calling either
+vncviewer localhost:99
+or
+tools/viewlastimg
+
+
+to inject qemu commands for extra testing you can
+echo sendkey ctrl-alt-f1 | netcat localhost 15223
+

@@ -8,14 +8,15 @@ fi
 isodir=`pwd`
 #isodir=~/public_html/mirror/opensuse
 scriptdir=`dirname $0`/..
+# make absolute path since we change dir
+export SUSEISO=`$scriptdir/tools/absolutize $iso`
 cd $scriptdir
+echo changing directory to `/bin/pwd`
 
 export BETA=1
 export GWDG=1
 export HTTPPROXY=192.168.234.34:3128
 
-# make absolute path since we changed dir
-export SUSEISO=$isodir/$iso
 export SCREENSHOTINTERVAL=0.5
 
 echo testing $SUSEISO

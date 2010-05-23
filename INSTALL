@@ -1,0 +1,25 @@
+on my servers with Debian/lenny I did:
+
+root part:
+echo "deb    http://ftp.de.debian.org/debian/  squeeze          main" > /etc/apt/sources.list.d/squeeze.list
+aptitude update
+
+cat >>/etc/apt/preferences <<EOF
+Package: *
+Pin: release o=Debian,a=testing
+Pin-Priority: 40
+EOF
+
+aptitude install git-core kvm/testing ffmpeg2theora/testing gocr/testing
+# kvm-0.12.3 and kvm-0.12.4 need older or newer bios.bin to avoid https://bugzilla.novell.com/show_bug.cgi?id=603161
+
+useradd -m USERNAME -G kvm
+passwd USERNAME # and/or add ~USERNAME/.ssh/authorized_keys
+modprobe kvm-intel # or kvm-amd
+
+
+user setup part:
+git clone http://www3.zq1.de/bernhard/git/autoinst.git/ autoinst
+edit tools/isotovideo # adjust or drop HTTPPROXY and GWDG lines
+
+for usage see README
