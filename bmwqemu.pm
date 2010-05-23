@@ -97,7 +97,7 @@ sub fileContent($) {my($fn)=@_;
 sub qemusend($)
 {
 	print LOG "qemusend: $_[0]\n";
-	print shift(@_)."\n";
+	print $managementcon shift(@_)."\n";
 }
 
 sub sendkey($)
@@ -154,6 +154,7 @@ sub set_ocr_rect
 sub get_ocr($)
 { my $dataref=shift;
 	my $ocr=ocr::get_ocr($dataref, "-m 2", \@ocrrect);
+	if(!$ocr) {return ""}
 	$ocr=~s/^[_ \t\n]+//;
 	$ocr=~s/\n/ --- /g;
 	# correct common mis-readings:
@@ -346,10 +347,9 @@ sub open_management_console()
 
 	$managementcon=IO::Socket::INET->new("localhost:15222") or mydie "error opening management console: $!";
 	$endreadingcon=0;
+	select($managementcon); $|=1; select($oldfh); # autoflush
 	$conmuxthread=threads->create(\&conmuxloop); # without this, qemu will block
 	$readconthread=threads->create(\&readconloop); # without this, qemu will block
-	select $managementcon;
-	$|=1; # autoflush
 	$managementcon;
 }
 
