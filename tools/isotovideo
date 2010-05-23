@@ -5,24 +5,28 @@ if test -z "$iso" ; then
 	echo "usage: $0 ISO"
 	exit 1
 fi
-op=~/public_html/mirror/opensuse/
+isodir=`pwd`
+#isodir=~/public_html/mirror/opensuse
+scriptdir=`dirname $0`/..
+cd $scriptdir
+
 export BETA=1
 export GWDG=1
 export HTTPPROXY=192.168.234.34:3128
 
-export SUSEISO=$op$iso
+# make absolute path since we changed dir
+export SUSEISO=$isodir/$iso
 export SCREENSHOTINTERVAL=0.5
 
 echo testing $SUSEISO
 # cleanup
 killall kvm 2>/dev/null
 rm -rf qemuscreenshot/*.ppm
-#alarm 300
 ./start.pl
 killall kvm 2>/dev/null
 
-name=$(perl -e '$_=shift;s{.*iso/}{};s/-Media.iso//;print' $SUSEISO)
+name=$(perl -e '$_=shift;s{.*/}{};s/-Media.iso//;print' $SUSEISO)
 echo tools/ppmtompg qemuscreenshot video/$name
 tools/ppmtompg qemuscreenshot video/$name
-mv video/* $op/video/
+mv video/* $isodir/video/
 

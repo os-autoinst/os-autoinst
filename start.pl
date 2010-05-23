@@ -3,6 +3,7 @@ use strict;
 use bmwqemu;
 
 my $init=1;
+alarm 7200; # worst case timeout
 
 # init part
 if($init) {

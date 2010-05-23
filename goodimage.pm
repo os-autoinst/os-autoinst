@@ -89,6 +89,7 @@ cc752e0fd5b766ca9f2d07ee3c3566c4 kdestartscreen
 3c1e26f026013c0d629393f735953642 KDE
 9f1754bb42b4b638f7d009e797b19035 GNOME
 6bb907cafda230995d3fa5e7a9322e68 GNOME
+2cf0cc21879e01e8cf74bd2bd757c5d0 GNOME-11.3
 1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
 );
 
