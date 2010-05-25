@@ -17,7 +17,7 @@ sub get_ocr($$@)
 	open(my $tempfile, ">", $tempname) or return " ocr error writing $tempname";
 	print $tempfile $ppm2->toppm;
 	close $tempfile;
-	open(my $pipe, "$gocrbin -l 128 -d 0 -s 6 $gocrparams $tempname |") or return "failed to exec $gocrbin: $!";
+	open(my $pipe, "$gocrbin -l 128 -d 0 $gocrparams $tempname |") or return "failed to exec $gocrbin: $!";
 	local $/;
 	my $ocr=<$pipe>;
 	close($pipe);

@@ -153,7 +153,7 @@ sub set_ocr_rect
 # input: ref on PPM data
 sub get_ocr($)
 { my $dataref=shift;
-	my $ocr=ocr::get_ocr($dataref, "-m 2", \@ocrrect);
+	my $ocr=ocr::get_ocr($dataref, "-m 2 -s 6", \@ocrrect);
 	if(!$ocr) {return ""}
 	$ocr=~s/^[_ \t\n]+//;
 	$ocr=~s/\n/ --- /g;
