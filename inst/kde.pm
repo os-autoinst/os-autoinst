@@ -37,6 +37,7 @@ sub start_program($)
 	sendautotype $program; sleep 1;
 	sendkey "ret";
 	waitidle;
+	sleep 2;
 }
 
 my %kdemenu=(firefox=>1, pim=>2, office=>3, audio=>4, fileman=>5, config=>6, help=>7, xterm=>8);
@@ -53,6 +54,12 @@ start_program("xterm");
 sendautotype "sudo /sbin/yast2 lan\n"; sleep 1;
 sendautotype "$password\n";
 sleep 12;
+sendkey "alt-c"; # cancel yast2 lan
+sleep 3;
+sendautotype "sudo zypper up\n"; waitidle;
+sleep 3;
+sendkey "ret"; waitidle;
+
 sendkey "alt-f4";
 open_menu($kdemenu{firefox});
 sendkey "alt-f4"; sleep 2;
@@ -89,7 +96,7 @@ sendautotype "\t\t\n";
 waitinststage "grub", 200; # wait until reboot 
 waitinststage "KDE", 200; # wait until reboot is finished
 waitidle 100;
-sleep 25; # time for extra KDE startup
+sleep 55; # time for extra KDE startup
 sendkey "ctrl-alt-delete"; # shutdown
 sleep 11;
 sendautotype "\t\n";
