@@ -2,7 +2,7 @@
 use strict;
 use bmwqemu;
 
-if($ENV{NETBOOT}) {
+if(!$ENV{LIVECD}) {
 	set_ocr_rect(255,420,530,115);
 	waitinststage "grub|splashscreen|automaticconfiguration", 3000;
 	set_ocr_rect();
