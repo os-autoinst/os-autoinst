@@ -29,8 +29,21 @@ if(!$ENV{LIVECD}) {
 waitinststage("timezone");
 sendkey $cmd{"next"};
 if(!$ENV{LIVECD}) {
-	# KDE
+	my %desktopkeys=(kde=>"k", gnome=>"g", xfce=>"x", lxde=>"l", minimalx=>"m", "textmode"=>"i");
 	waitinststage "desktopselection";
+	my $d=$ENV{DESKTOP};
+	if($d) {
+		my $key="alt-$desktopkeys{$d}";
+		if($d eq "kde") {
+			# KDE is default
+		} elsif($d eq "gnome") {
+			sendkey $key;
+		} else { # lower selection level
+			sendkey "alt-o"; #TODO translate
+			sendkey $key;
+		}
+	} 
+	sleep 3; # to make selection visible
 	sendkey $cmd{"next"};
 }
 # ending at partition layout screen

@@ -1,7 +1,8 @@
 for setup see INSTALL
 
 usage:
-RAIDLEVEL=10 autoinst/tools/isotovideo PATHTO/openSUSE-KDE-LiveCD-i686-Build0625-Media.iso
+autoinst/tools/isotovideo PATHTO/openSUSE-KDE-LiveCD-i686-Build0625-Media.iso
+by prepending RAIDLEVEL=10 (or 6) it will do a RAID setup (takes more time)
 
 you can watch what it is doing by calling either
 vncviewer localhost:99
