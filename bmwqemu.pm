@@ -33,6 +33,8 @@ our $password="nots3cr3t";
 our $qemubin="/usr/bin/kvm";
 our $qemupid;
 our $gocrbin="/usr/bin/gocr";
+our $qemupidfilename="qemu.pid";
+$ENV{QEMUPORT}||=15222;
 our $managementcon;
 my @ocrrect; share(@ocrrect);
 our %cmd=qw(
@@ -78,7 +80,6 @@ if($ENV{INSTLANG} eq "de") {
 if(!-x $gocrbin) {$gocrbin=undef}
 if(!-x $qemubin) {$qemubin=~s/kvm/qemu-kvm/}
 if(!-x $qemubin) {die "no Qemu/KVM found"}
-$ENV{QEMUPORT}||=15222;
 if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
 	if($1 ne "http") {die "only http mirror URLs are currently supported but found '$1'."}
 }
@@ -88,7 +89,7 @@ sub diag($)
 { print LOG "@_\n"; return unless $debug; print STDERR "@_\n";}
 
 sub mydie($)
-{ kill(15, $qemupid); diag "@_"; close LOG; sleep 1 ; exit 1; }
+{ kill(15, $qemupid); unlink($qemupidfilename); diag "@_"; close LOG; sleep 1 ; exit 1; }
 
 sub fileContent($) {my($fn)=@_;
 	open(my $fd, $fn) or return undef;
@@ -146,7 +147,7 @@ my %md5file;
 our %md5badlist=qw();
 our %md5goodlist;
 our %md5inststage;
-eval(fileContent("goodimage.pm"));
+do "goodimage.pm"; # fill above vars
 my $readconthread;
 my $conmuxthread;
 
@@ -241,7 +242,7 @@ sub take_screenshot()
 
 sub qemualive()
 { 
-#	if(!$qemupid) {$qemupid=`pidof -s $qemubin`; chomp $qemupid;}
+	if(!$qemupid) {($qemupid=fileContent($qemupidfilename)) && chomp $qemupid;}
 	return 0 unless $qemupid;
 	kill 0, $qemupid;
 }
@@ -346,6 +347,7 @@ sub readconloop
 		last if($endreadingcon);
 	}
 	diag "exiting management console read loop";
+	unlink $qemupidfilename;
 }
 
 sub open_management_console()

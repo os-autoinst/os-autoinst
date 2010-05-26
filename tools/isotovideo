@@ -17,14 +17,14 @@ export PERLLIB=$scriptdir
 . env.sh
 echo testing $SUSEISO
 # cleanup
-killall kvm 2>/dev/null
+test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -rf qemuscreenshot/*.ppm
 ./start.pl
-killall kvm 2>/dev/null
 
 name=$(perl -e '$_=shift;s{.*/}{};s/-Media.iso//;print' $SUSEISO)
 mkdir -p video
 echo tools/ppmtompg qemuscreenshot video/$name
 tools/ppmtompg qemuscreenshot video/$name
 mv video/* $isodir/video/
+test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 

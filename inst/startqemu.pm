@@ -28,6 +28,9 @@ if($qemupid==0) {
 	exec($qemubin, @params);
 	die "exec $qemubin failed";
 }
+open(my $pidf, ">", $bmwqemu::qemupidfilename) or die "can not write $bmwqemu::qemupidfilename";
+print $pidf $qemupid,"\n";
+close $pidf;
 sleep 1; # time to let qemu start
 
 1;
