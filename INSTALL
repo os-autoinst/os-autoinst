@@ -3,7 +3,7 @@
 - to test 64-bit guests, you need a 64-bit host kernel
 - for hardware-accelleration (you really want that) you need a modern CPU. check with
 grep --color=auto -e vmx -e svm /proc/cpuinfo 
-- it is currently hard to test two isos at the same time, because the script does change dir to autoinst (writing all output to fixed files there) and because of the "killall kvm" used before&after a test. both can be amended in a future version.
+- it is possible to test two isos at the same time by using two different working directories with different env.sh config files. especially the QEMUPORT and VNC values must be unique
 
 
 == Debian/lenny setup ==

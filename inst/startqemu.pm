@@ -23,7 +23,10 @@ if($qemupid==0) {
 		push(@params, "-drive", "file=$basedir/$i,if=virtio$boot");
 	}
 	push(@params, "-boot", "dc", "-cdrom", $iso);
-	push(@params, "-vnc", ":99");
+	if($ENV{VNC}) {
+		push(@params, "-vnc", ":$ENV{VNC}");
+		push(@params, "-k", $ENV{VNCKB}) if($ENV{VNCKB});
+	}
 #	push(@params, "-smp", "4");
 	exec($qemubin, @params);
 	die "exec $qemubin failed";

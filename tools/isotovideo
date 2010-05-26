@@ -6,12 +6,9 @@ if test -z "$iso" ; then
 	exit 1
 fi
 isodir=`pwd`
-#isodir=~/public_html/mirror/opensuse
-scriptdir=`dirname $0`/..
-# make absolute path since we change dir
+scriptdir=$(dirname $(dirname $0))
+# make absolute path
 export SUSEISO=`$scriptdir/tools/absolutize $iso`
-cd $scriptdir
-echo changing directory to `/bin/pwd`
 export PERLLIB=$scriptdir
 
 . env.sh
@@ -19,12 +16,12 @@ echo testing $SUSEISO
 # cleanup
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -rf qemuscreenshot/*.ppm
-./start.pl
+$scriptdir/start.pl
 
 name=$(perl -e '$_=shift;s{.*/}{};s/-Media.iso//;print' $SUSEISO)
 mkdir -p video
-echo tools/ppmtompg qemuscreenshot video/$name
-tools/ppmtompg qemuscreenshot video/$name
-mv video/* $isodir/video/
+echo $scriptdir/tools/ppmtompg qemuscreenshot video/$name
+$scriptdir/tools/ppmtompg qemuscreenshot video/$name
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
-
+# return success if video was created:
+test -e video/$name.ogv
