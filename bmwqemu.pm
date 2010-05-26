@@ -26,7 +26,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 
 
 our $debug=1;
-our $idlethreshold=16*$clock_ticks/100; # % load max for being considered idle
+our $idlethreshold=($ENV{IDLETHESHOLD}||18)*$clock_ticks/100; # % load max for being considered idle
 our $timesidleneeded=2;
 our $standstillthreshold=530;
 our $password="nots3cr3t";
@@ -78,6 +78,10 @@ if($ENV{INSTLANG} eq "de") {
 if(!-x $gocrbin) {$gocrbin=undef}
 if(!-x $qemubin) {$qemubin=~s/kvm/qemu-kvm/}
 if(!-x $qemubin) {die "no Qemu/KVM found"}
+$ENV{QEMUPORT}||=15222;
+if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
+	if($1 ne "http") {die "only http mirror URLs are currently supported but found '$1'."}
+}
 
 
 sub diag($)
@@ -307,6 +311,13 @@ sub waitinststage($;$)
 }
 
 
+sub handlemuxcon($)
+{ my $conn=shift;
+	while(<$conn>) {
+		chomp;
+		qemusend $_;
+	}
+}
 
 # accept connections and forward to management console
 sub conmuxloop
@@ -314,17 +325,15 @@ sub conmuxloop
 	my $listen_sock=IO::Socket::INET->new(
 		Listen    => 1,
 	#	LocalAddr => 'localhost',
-		LocalPort => 15223,
+		LocalPort => $ENV{QEMUPORT}+1,
 		Proto     => 'tcp',
 		ReUseAddr => 1,
 	);
 
-	# simple version with only one connection at a time
 	while(my $conn=$listen_sock->accept()) {
-		while(<$conn>) {
-			chomp;
-			qemusend $_;
-		}
+		# launch one thread per connection
+		my $thr=threads->create(\&handlemuxcon, $conn);
+		$thr->detach();
 	}
 }
 
@@ -345,10 +354,11 @@ sub open_management_console()
 	# set unbuffered so that sendkey lines from main thread will be written
 	my $oldfh=select(LOG); $|=1; select($oldfh);
 
-	$managementcon=IO::Socket::INET->new("localhost:15222") or mydie "error opening management console: $!";
+	$managementcon=IO::Socket::INET->new("localhost:$ENV{QEMUPORT}") or mydie "error opening management console: $!";
 	$endreadingcon=0;
 	select($managementcon); $|=1; select($oldfh); # autoflush
-	$conmuxthread=threads->create(\&conmuxloop); # without this, qemu will block
+	$conmuxthread=threads->create(\&conmuxloop); # allow external qemu input
+	$conmuxthread->detach();
 	$readconthread=threads->create(\&readconloop); # without this, qemu will block
 	$managementcon;
 }

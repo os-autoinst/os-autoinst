@@ -34,22 +34,22 @@ sendautotype("nohz=off "); # NOHZ caused errors with 2.6.26
 if($ENV{NETBOOT}) {
 	sendkey "f4";
 	sendkey "ret";
+	my $mirroraddr="";
+	my $mirrorpath="/factory";
+	if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~m{^([a-zA-Z0-9.-]*)(/.*)$}) {
+		($mirroraddr,$mirrorpath)=($1,$2);
+	}
         #download.opensuse.org
-        if($ENV{GWDG}) {
+        if($mirroraddr) {
                 for(1..22) { sendkey "backspace" }
-                sendautotype("ftp5.gwdg.de");
+                sendautotype($mirroraddr);
         }
 	sendkey "tab";
 	# change dir
 	# leave /repo/oss/ (10 chars)
 	for(1..10) { sendkey "left"; }
 	for(1..22) { sendkey "backspace"; }
-
-        if($ENV{GWDG}) {
-                sendautotype("/pub/opensuse/factory");
-        } else {
-                sendautotype("/factory");
-        }
+	sendautotype($mirrorpath);
 
         sleep(1.5);
 	sendkey "ret";

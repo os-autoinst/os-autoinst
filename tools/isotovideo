@@ -12,13 +12,9 @@ scriptdir=`dirname $0`/..
 export SUSEISO=`$scriptdir/tools/absolutize $iso`
 cd $scriptdir
 echo changing directory to `/bin/pwd`
+export PERLLIB=$scriptdir
 
-export BETA=1
-export GWDG=1
-export HTTPPROXY=192.168.234.34:3128
-
-export SCREENSHOTINTERVAL=0.5
-
+. env.sh
 echo testing $SUSEISO
 # cleanup
 killall kvm 2>/dev/null
