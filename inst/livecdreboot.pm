@@ -14,7 +14,7 @@ if(!$ENV{LIVECD}) {
 } else {
 	set_ocr_rect(245,440,530,100);
 	# LiveCD needs confirmation for reboot
-	waitinststage("rebootnow", 790);
+	waitinststage("rebootnow", 1500);
 	set_ocr_rect();
 	sendkey $cmd{"rebootnow"};
 	# no grub visible on proper first boot because of kexec
