@@ -3,8 +3,9 @@ use strict;
 use bmwqemu;
 my $basedir="raid";
 my $iso=$ENV{SUSEISO};
-if($iso=~m/openSUSE-[A-Z]+-LiveCD/) {$ENV{LIVECD}=1}
-if($iso=~m/openSUSE-(NET|KDE|GNOME)-/) {$ENV{$1}=1; $ENV{NETBOOT}=$ENV{NET}}
+my $ison=$iso; $ison=~s{.*/}{}; # drop path
+if($ison=~m/LiveCD/i) {$ENV{LIVECD}=1}
+if($ison=~m/openSUSE-(DVD|NET|KDE|GNOME|LXDE|XFCE)-/) {$ENV{$1}=1; $ENV{NETBOOT}=$ENV{NET}}
 system(qw"/bin/mkdir -p", $basedir);
 system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/1"); # for LVM
 for my $i (1..4) {
