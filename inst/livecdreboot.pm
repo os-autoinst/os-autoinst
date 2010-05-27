@@ -4,7 +4,10 @@ use bmwqemu;
 
 if(!$ENV{LIVECD}) {
 	set_ocr_rect(255,420,530,115);
-	waitinststage "grub|splashscreen|automaticconfiguration", 3000;
+	{
+		local $ENV{SCREENSHOTINTERVAL}=5;
+		waitinststage "grub|splashscreen|automaticconfiguration", 3000;
+	}
 	set_ocr_rect();
 	if(waitinststage "grub", 1) {
 		sendkey "ret"; # avoid timeout for booting to HDD
@@ -14,7 +17,10 @@ if(!$ENV{LIVECD}) {
 } else {
 	set_ocr_rect(245,440,530,100);
 	# LiveCD needs confirmation for reboot
-	waitinststage("rebootnow", 1500);
+	{
+		local $ENV{SCREENSHOTINTERVAL}=5;
+		waitinststage("rebootnow", 1500);
+	}
 	set_ocr_rect();
 	sendkey $cmd{"rebootnow"};
 	# no grub visible on proper first boot because of kexec

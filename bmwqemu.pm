@@ -36,6 +36,7 @@ our $gocrbin="/usr/bin/gocr";
 our $qemupidfilename="qemu.pid";
 $ENV{QEMUPORT}||=15222;
 our $managementcon;
+share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 my @ocrrect; share(@ocrrect);
 our %cmd=qw(
 next alt-n
