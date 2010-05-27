@@ -20,6 +20,11 @@ if(1||$ENV{LIVECD}) {
 	# installation (instead of live):
 	sendkey "down";
 }
+if($ENV{PROMO}) {
+	# has extra GNOME-Live and KDE-Live menu entries
+	for(1..2) {sendkey "down";}
+}
+
 # 1024x768
 if($ENV{RES1024}) { # default is 800x600
 	sendkey "f3";

@@ -31,18 +31,18 @@ sendkey $cmd{"next"};
 if(!$ENV{LIVECD}) {
 	my %desktopkeys=(kde=>"k", gnome=>"g", xfce=>"x", lxde=>"l", minimalx=>"m", "textmode"=>"i");
 	waitinststage "desktopselection";
+	$ENV{DESKTOP}||="kde";
 	my $d=$ENV{DESKTOP};
-	if($d) {
-		my $key="alt-$desktopkeys{$d}";
-		if($d eq "kde") {
-			# KDE is default
-		} elsif($d eq "gnome") {
-			sendkey $key;
-		} else { # lower selection level
-			sendkey "alt-o"; #TODO translate
-			sendkey $key;
-		}
-	} 
+	$ENV{uc($d)}=1;
+	my $key="alt-$desktopkeys{$d}";
+	if($d eq "kde") {
+		# KDE is default
+	} elsif($d eq "gnome") {
+		sendkey $key;
+	} else { # lower selection level
+		sendkey "alt-o"; #TODO translate
+		sendkey $key;
+	}
 	sleep 3; # to make selection visible
 	sendkey $cmd{"next"};
 }
