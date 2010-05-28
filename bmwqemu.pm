@@ -21,14 +21,15 @@ my $prestandstillwarning :shared = 0;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
-@EXPORT = qw($password $qemubin $qemupid %cmd 
-&fileContent &qemusend &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr);
+@EXPORT = qw($username $password $qemubin $qemupid $scriptdir %cmd 
+&diag &fileContent &qemusend &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr);
 
 
 our $debug=1;
 our $idlethreshold=($ENV{IDLETHESHOLD}||18)*$clock_ticks/100; # % load max for being considered idle
 our $timesidleneeded=2;
 our $standstillthreshold=530;
+our $username="bernhard";
 our $password="nots3cr3t";
 our $qemubin="/usr/bin/kvm";
 our $qemupid;
@@ -37,6 +38,7 @@ our $qemupidfilename="qemu.pid";
 $ENV{QEMUPORT}||=15222;
 our $managementcon;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
+our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
 my @ocrrect; share(@ocrrect);
 our %cmd=qw(
 next alt-n
@@ -126,6 +128,7 @@ for my $c ("A".."Z") {$charmap{$c}="shift-\L$c"}
 sub sendautotype($)
 {
 	my $string=shift;
+	diag "sendautotype '$string'";
 	foreach my $letter (split("", $string)) {
 		if($charmap{$letter}) { $letter=$charmap{$letter} }
 		sendkey $letter;

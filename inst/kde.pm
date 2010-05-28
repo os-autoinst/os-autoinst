@@ -49,6 +49,8 @@ if($ENV{NETBOOT}) { # has photomanager added on #5
 	}
 }
 
+do "inst/consoletest.pm" or die @$;
+
 #open_menu($kdemenu{xterm});
 start_program("xterm");
 sendautotype "sudo /sbin/yast2 lan\n"; sleep 1;

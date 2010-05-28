@@ -21,10 +21,9 @@ sub open_application($;$)
 }
 
 
+do "inst/consoletest.pm" or die @$;
+
 open_application("xterm");
-sendautotype "sudo /sbin/yast2 lan\n$password\n";
-sleep 2;
-sendautotype "echo \$?\n";
 #sendautotype ",.:;-_#'+*~`\\\"' \n"; # some chars can not be produced with sendkey in qemu-0.10
 sleep 9;
 sendkey "ctrl-alt-delete";
