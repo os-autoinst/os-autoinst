@@ -53,14 +53,6 @@ do "inst/consoletest.pm" or die @$;
 
 #open_menu($kdemenu{xterm});
 start_program("xterm");
-sendautotype "sudo /sbin/yast2 lan\n"; sleep 1;
-sendautotype "$password\n";
-sleep 12;
-sendkey "alt-c"; # cancel yast2 lan
-sleep 3;
-sendautotype "sudo zypper up\n"; waitidle;
-sleep 3;
-sendkey "ret"; waitidle;
 
 sendkey "alt-f4";
 open_menu($kdemenu{firefox});

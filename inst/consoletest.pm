@@ -44,6 +44,10 @@ sendautotype "PS1=\$\n"; # set constant shell promt
 #sendautotype 'PS1=\$\ '."\n"; # qemu-0.12.4 can not do backslash yet. http://permalink.gmane.org/gmane.comp.emulators.qemu/71856
 
 
+my $path="testresults";
+mkdir $path;
+my $version=$testedversion;
+mkdir "$path/$version";
 for my $script (<$scriptdir/consoletest.d/*.pm>) {
 	clear_console; # clear screen for easier automated testing for success
 	diag "starting $script";
@@ -51,6 +55,9 @@ for my $script (<$scriptdir/consoletest.d/*.pm>) {
 	if($@) {diag "$script failed with $@";}
 	else {diag "$script done";}
 	sleep 2;
+	my $testname=$script; $testname=~s{.*/}{}; $testname=~s{\.pm$}{};
+	my $filename="$path/$version/$testname.ppm";
+	qemusend "screendump $filename";
 }
 
 # cleanup

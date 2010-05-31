@@ -1,0 +1,46 @@
+#!/usr/bin/perl -w
+use strict;
+
+my %md5goodlist=qw(
+5660b88237419b9c34efe4bfc6de960f hostname
+d0836356512337a6a7a979405322c544 zypperup-32
+e86e59f62b24bf2183660a4c5d9c7cbb zypperup-64
+62ba0ecc2c42cdfa091a703e0396bebf zypper
+6238258f9e9b27ab6999ef18a99b3670 NET-instmirror-display
+);
+
+my %md5badlist=qw(
+04ee9bd8dcb1316874939f7b63d792c0 NET-instmirror-display
+52a165a273962b59d2c72d3ad10a8bdb curl-bug-598574
+);
+
+my @stages=(qw"splashscreen welcome timezone disk usersettings installationoverview performinstallation automaticconfiguration booted");
+
+my %stageseen=();
+my %md5seen=();
+while(<>) {
+	if(/stage=([0-9a-zA-Z_.-]*) ([0-9a-f]+)/) {
+		$stageseen{$1}=1;
+		$md5seen{$2}=1;
+	}
+	if(/md5=([0-9a-f]+)/) {$md5seen{$1}=1}
+}
+
+foreach my $s (@stages) {
+	my $found=0;
+	foreach(keys(%stageseen)) {if(m/$s/){$found=1;last;}}
+	print "$s: ".($found?"OK":"fail")."\n";
+}
+
+foreach(keys(%md5goodlist)) {
+	if($md5seen{$_}) {
+		print "$md5goodlist{$_}: OK\n";
+	}
+}
+
+foreach(keys(%md5badlist)) {
+	if($md5seen{$_}) {
+		print "$md5badlist{$_}: fail\n";
+	}
+}
+

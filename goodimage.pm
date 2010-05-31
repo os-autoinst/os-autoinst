@@ -19,6 +19,8 @@ bc32b148e35198bcf7a77f8b8843e2d3 ms6kdelivecdreboot
 bdcf5eae30d70c3fea49ec7db97969e2 instfail
 76fdbeccfd57006b7c74d8c4d0c66fde instfailstartinst
 562354f4b03e78ef09ba82bf0a7be3a9 Could-not-find-the-openSUSE-Repository
+44cd99b2ab0f9783db3dcc30550d0773 an-error-occurred-during-installation
+66b0c0cfc2a4807d9605762116d9e2a9 YaST-was-unable-to-find-the-correct-control-file
 );
 
 
@@ -78,22 +80,25 @@ a13a2535f81e9980cb87e30d99231177 rebootnow
 e3f412dc306085ca4d1795f850c81dee grub
 6dad21ea36802fca6a7b4dc14db62c0e grub0620
 f2c55e899bd1ab80874ad1e246c8d7ca splashscreen
+07ba75193833b87950d8813b23de7ced splashscreen-11.3
 e8fa5eee5c5e45cc081d7679acd42101 automaticconfiguration
 0d2890c3d3fcc06f9cd7ac2d96c3c151 automaticconfiguration
 4ca3e0a5a8bd740deb0d750e0cef552c automaticconfiguration
 6dd72c423d4e97fb0b2d1ceb1deb9450 automaticconfiguration-net0620
 4fc3bb87a12afb21ce1fb6fe98d525fc automaticconfiguration-kde-11.3
 0db6d0f55610ce984acd4426d1753eb8 users
-cc752e0fd5b766ca9f2d07ee3c3566c4 kdestartscreen
-3ef43360bf8b4c443872301f17bc8f29 KDE
-3c1e26f026013c0d629393f735953642 KDE
-9f1754bb42b4b638f7d009e797b19035 GNOME
-6bb907cafda230995d3fa5e7a9322e68 GNOME
-2cf0cc21879e01e8cf74bd2bd757c5d0 GNOME-11.3
-e06959a4b7fbb1a6885c7894c14d9204 GNOME-11.3-dvd
-a0b5487f8dd6017239b13fe6f6431ddb LXDE-11.3-dvd
-b5e0c02ca60da90a22b82a031bf2c79d xdm-loginscreen
+cc752e0fd5b766ca9f2d07ee3c3566c4 booted-kdestartscreen
+3ef43360bf8b4c443872301f17bc8f29 booted-KDE
+3c1e26f026013c0d629393f735953642 booted-KDE
+9f1754bb42b4b638f7d009e797b19035 booted-GNOME
+6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
+2cf0cc21879e01e8cf74bd2bd757c5d0 booted-GNOME-11.3
+e06959a4b7fbb1a6885c7894c14d9204 booted-GNOME-11.3-dvd
+bff7185022f9fea00e12c8fbb52b29b8 booted-GNOME-11.3-dvd
+a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
+b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
 1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
+e194d7f132a654d94094de19639a5f85 YaST-was-unable-to-find-the-correct-control-file
 );
 
 1;

@@ -19,11 +19,11 @@ sendkey("alt-o"); # OK=>Save&Exit
 waitidle(180);
 sleep 10;
 
+sendkey("ctrl-l"); # clear screen
 script_run('echo $?');
 #script_run("exec su - $username"); # get new hostname on prompt
 #sendautotype("$password\n");
 #sleep 3;
-#sendkey "ctrl-l"; # clear screen
 script_run('hostname');
 
 1;

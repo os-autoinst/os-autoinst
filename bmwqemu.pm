@@ -21,7 +21,7 @@ my $prestandstillwarning :shared = 0;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
-@EXPORT = qw($username $password $qemubin $qemupid $scriptdir %cmd 
+@EXPORT = qw($username $password $qemubin $qemupid $scriptdir $testedversion %cmd 
 &diag &fileContent &qemusend &sendkey &sendautotype &autotype &take_screenshot &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr);
 
 
@@ -39,6 +39,7 @@ $ENV{QEMUPORT}||=15222;
 our $managementcon;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
+our $testedversion=$ENV{SUSEISO}||""; $testedversion=~s{.*/}{};$testedversion=~s{^([^.]+?)(?:-Media)?\.iso$}{$1};
 my @ocrrect; share(@ocrrect);
 our %cmd=qw(
 next alt-n

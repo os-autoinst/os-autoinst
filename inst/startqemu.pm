@@ -6,6 +6,7 @@ my $iso=$ENV{SUSEISO};
 my $ison=$iso; $ison=~s{.*/}{}; # drop path
 if($ison=~m/LiveCD/i) {$ENV{LIVECD}=1}
 if($ison=~m/Promo/) {$ENV{PROMO}=1}
+if($ison=~m/-i[3-6]86-/) {$ENV{QEMUCPU}="qemu32"}
 if($ison=~m/openSUSE-(DVD|NET|KDE|GNOME|LXDE|XFCE)-/) {
 	$ENV{$1}=1; $ENV{NETBOOT}=$ENV{NET};
 	if($ENV{LIVECD}) {
@@ -34,6 +35,7 @@ if($qemupid==0) {
 		push(@params, "-vnc", ":$ENV{VNC}");
 		push(@params, "-k", $ENV{VNCKB}) if($ENV{VNCKB});
 	}
+	if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
 #	push(@params, "-smp", "4");
 	exec($qemubin, @params);
 	die "exec $qemubin failed";

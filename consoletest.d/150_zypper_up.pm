@@ -1,5 +1,5 @@
-script_sudo("zypper up");
-# confirm update:
-sendkey("ret"); waitidle;
+use bmwqemu;
+script_sudo("zypper -n -q up");
+waitidle;
 
 1;
