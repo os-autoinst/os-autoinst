@@ -1,5 +1,6 @@
 use bmwqemu;
 # test yast2 lan functionality
+# https://bugzilla.novell.com/show_bug.cgi?id=600576
 
 script_sudo("/sbin/yast2 lan");
 

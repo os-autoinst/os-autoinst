@@ -37,11 +37,14 @@ if(!$ENV{LIVECD}) {
 }
 waitinststage "automaticconfiguration", 70;
 qemusend "mouse_move 1000 1000"; # move mouse off screen again
+local $ENV{SCREENSHOTINTERVAL}=$ENV{SCREENSHOTINTERVAL}*3;
 if(!$ENV{GNOME}) {
 	# read sub-stages of automaticconfiguration 
 	set_ocr_rect(240,256,530,100);
 	waitinststage "users|KDE", 180;
 	set_ocr_rect();
+} else {
+	sleep 50; # time for fast-forward
 }
 
 1;

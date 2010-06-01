@@ -84,6 +84,7 @@ f2c55e899bd1ab80874ad1e246c8d7ca splashscreen
 e8fa5eee5c5e45cc081d7679acd42101 automaticconfiguration
 0d2890c3d3fcc06f9cd7ac2d96c3c151 automaticconfiguration
 4ca3e0a5a8bd740deb0d750e0cef552c automaticconfiguration
+472a01647a0d3c5dc6ca728220176545 automaticconfiguration-gnome
 6dd72c423d4e97fb0b2d1ceb1deb9450 automaticconfiguration-net0620
 4fc3bb87a12afb21ce1fb6fe98d525fc automaticconfiguration-kde-11.3
 0db6d0f55610ce984acd4426d1753eb8 users
@@ -91,6 +92,7 @@ cc752e0fd5b766ca9f2d07ee3c3566c4 booted-kdestartscreen
 3ef43360bf8b4c443872301f17bc8f29 booted-KDE
 3c1e26f026013c0d629393f735953642 booted-KDE
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
+bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
 2cf0cc21879e01e8cf74bd2bd757c5d0 booted-GNOME-11.3
 e06959a4b7fbb1a6885c7894c14d9204 booted-GNOME-11.3-dvd
@@ -98,6 +100,7 @@ bff7185022f9fea00e12c8fbb52b29b8 booted-GNOME-11.3-dvd
 a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
 b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
 1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
+209f79c737bb62e12215b36d345fb24d failed-to-detect-CD-rebooting-in-120-seconds
 e194d7f132a654d94094de19639a5f85 YaST-was-unable-to-find-the-correct-control-file
 );
 

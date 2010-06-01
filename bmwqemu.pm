@@ -16,6 +16,7 @@ our $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
 my $goodimageseen :shared = 0;
 my $endreadingcon :shared = 0;
 my $lastname;
+my $lastinststage :shared = "";
 my $lastknowninststage :shared = "";
 my $prestandstillwarning :shared = 0;
 
@@ -41,6 +42,7 @@ share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
 our $testedversion=$ENV{SUSEISO}||""; $testedversion=~s{.*/}{};$testedversion=~s{^([^.]+?)(?:-Media)?\.iso$}{$1};
 my @ocrrect; share(@ocrrect);
+my @extrahashrects; share(@extrahashrects);
 our %cmd=qw(
 next alt-n
 install alt-i
@@ -156,6 +158,11 @@ do "goodimage.pm"; # fill above vars
 my $readconthread;
 my $conmuxthread;
 
+sub set_hash_rects()
+{ 
+	@extrahashrects=@_;
+}
+
 sub set_ocr_rect
 {
 	@ocrrect=@_;
@@ -196,13 +203,18 @@ sub inststagedetect($)
 	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
 	$ppm2->threshold(0x80); # black/white => drop most background
 	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
+	foreach my $rect (@extrahashrects) {
+		$ppm2=$ppm->copyrect(@$rect);
+		push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
+	}
 
 	foreach my $md5 (@md5) {
 		my $currentinststage=$md5inststage{$md5}||"";
-		if($currentinststage) { $lastknowninststage=$currentinststage }
+		if($currentinststage) { $lastknowninststage=$lastinststage=$currentinststage }
 		diag "stage=$currentinststage $md5";
-		last if($currentinststage); # stop on first match - so must put most specific tests first
+		return if($currentinststage); # stop on first match - so must put most specific tests first
 	}
+	$lastinststage="unknown";
 }
 
 my $framecounter=0;
@@ -217,7 +229,7 @@ sub take_screenshot()
 		if($md5badlist{$md5}) {diag "error condition detected. test failed. see $lastname"; sleep 1; mydie "bad image seen"}
 		my($statuser,$statsystem)=proc_stat_cpu($qemupid);
 		for($statuser,$statsystem) {$_/=$clock_ticks}
-		diag("md5=$md5 laststage=$lastknowninststage statuser=$statuser statsystem=$statsystem");
+		diag("md5=$md5 laststage=$lastinststage statuser=$statuser statsystem=$statsystem");
 		if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
 		# ignore bottom 15 lines (blinking cursor, animated mouse-pointer)
 		if(length($data)==1440015) {$md5=Digest::MD5::md5(substr($data,15,800*3*(600-15)))}
@@ -301,14 +313,15 @@ sub waitgoodimage(;$)
 	return 0;
 }
 
-sub waitinststage($;$)
+sub waitinststage($;$$)
 {
 	my $stage=shift;
 	my $timeout=shift||30;
+	my $extradelay=shift||3;
 	diag "start waiting $timeout seconds for stage=$stage";
 	if($prestandstillwarning) { sleep 3 }
 	for my $n (1..$timeout) {
-		if($lastknowninststage=~m/$stage/) {diag "detected stage=$stage ... continuing execution"; sleep 3; return 1;}
+		if($lastinststage=~m/$stage/) {diag "detected stage=$stage ... continuing execution"; sleep $extradelay; return 1;}
 		if($prestandstillwarning) { diag "WARNING: waited too long for stage=$stage"; return 2; }
 		sleep 1;
 	}
