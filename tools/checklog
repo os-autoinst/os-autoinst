@@ -11,6 +11,7 @@ e86e59f62b24bf2183660a4c5d9c7cbb zypperup-64
 );
 
 my %md5badlist=qw(
+9b1e290f49eac89a827d488114d9309c yast2_lan
 04ee9bd8dcb1316874939f7b63d792c0 NET-instmirror-display
 e7981cac5576dcd22aacebe08901956c NET-instmirror-display
 52a165a273962b59d2c72d3ad10a8bdb curl-bug-598574
