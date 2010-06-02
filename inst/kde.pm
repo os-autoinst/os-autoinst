@@ -4,6 +4,7 @@ use bmwqemu;
 
 # wait until ready
 waitinststage "KDE", 1000;
+qemusend "mouse_move 1000 1000"; # move mouse off screen again
 waitidle 100;
 sleep 10;
 

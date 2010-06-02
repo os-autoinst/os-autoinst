@@ -23,6 +23,6 @@ mkdir -p video
 echo $scriptdir/tools/ppmtompg qemuscreenshot video/$name
 $scriptdir/tools/ppmtompg qemuscreenshot video/$name
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
-tools/checklog currentautoinst-log.txt | tee -a currentautoinst-log.txt
+$scriptdir/tools/checklog currentautoinst-log.txt | tee -a currentautoinst-log.txt
 # return success if video was created:
 test -e video/$name.ogv

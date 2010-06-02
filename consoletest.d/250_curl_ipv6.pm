@@ -3,4 +3,7 @@ use bmwqemu;
 script_run('curl www3.zq1.de/test.txt');
 sleep 2;
 
+script_run('rpm -q curl libcurl4');
+sleep 2;
+
 1;
