@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 use warnings;
+use Time::HiRes "sleep";
 use bmwqemu;
 use threads;
 
