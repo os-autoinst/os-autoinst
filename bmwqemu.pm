@@ -23,7 +23,7 @@ my $prestandstillwarning :shared = 0;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($username $password $qemubin $qemupid $scriptdir $testedversion %cmd 
-&diag &fileContent &qemusend &sendkey &sendautotype &autotype &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr);
+&diag &fileContent &qemusend &sendkey &sendautotype &autotype &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr &script_run &script_sudo);
 
 
 our $debug=1;
@@ -389,6 +389,26 @@ sub close_management_console()
 	qemusend "";
 	close $managementcon;
 	$readconthread->join();
+}
+
+# start console application
+sub script_run($;$)
+{ my $name=shift; my $wait=shift;
+	waitidle;
+	sendautotype("$name\n");
+	waitidle $wait;
+	sleep 3;
+}
+
+my $sudos=0;
+sub script_sudo($;$)
+{ my ($prog,$wait)=@_;
+	sendautotype("sudo $prog\n");
+	if(!$sudos++) {
+		sleep 1;
+		sendautotype "$password\n";
+	}
+	waitidle $wait;
 }
 
 1;

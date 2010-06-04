@@ -1,5 +1,10 @@
+package zypper_up;
+use base "basetest";
 use bmwqemu;
-script_sudo("zypper -n -q up");
-waitidle;
+sub run()
+{
+	script_sudo("zypper -n -q up");
+	waitidle;
+}
 
 1;

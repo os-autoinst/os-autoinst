@@ -1,26 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 use bmwqemu;
-
-# start console application
-sub script_run($;$)
-{ my $name=shift; my $wait=shift;
-	waitidle;
-	sendautotype("$name\n");
-	waitidle $wait;
-	sleep 3;
-}
-
-my $sudos=0;
-sub script_sudo($;$)
-{ my ($prog,$wait)=@_;
-	sendautotype("sudo $prog\n");
-	if(!$sudos++) {
-		sleep 1;
-		sendautotype "$password\n";
-	}
-	waitidle $wait;
-}
+use autotest;
 
 sub clear_console()
 {
@@ -44,21 +25,20 @@ sendautotype "PS1=\$\n"; # set constant shell promt
 #sendautotype 'PS1=\$\ '."\n"; # qemu-0.12.4 can not do backslash yet. http://permalink.gmane.org/gmane.comp.emulators.qemu/71856
 
 
-my $path="testresults";
-mkdir $path;
-my $version=$testedversion;
-mkdir "$path/$version";
-for my $script (<$scriptdir/consoletest.d/*.pm>) {
-	clear_console; # clear screen for easier automated testing for success
-	diag "starting $script";
-	do $script;
-	if($@) {diag "$script failed with $@";}
-	else {diag "$script done";}
+sub consoletestrunfunc
+{
+	my($test)=@_;
+	my $class=ref $test;
+	clear_console; # clear screen to make screen content independent from previous tests
+	diag "starting $class";
+	$test->run();
 	sleep 2;
-	my $testname=$script; $testname=~s{.*/}{}; $testname=~s{\.pm$}{};
-	my $filename="$path/$version/$testname.ppm";
-	qemusend "screendump $filename";
+	$test->take_screenshot;
 }
+
+
+autotest::runtestdir("consoletest.d", \&consoletestrunfunc);
+
 
 # cleanup
 sleep 2;

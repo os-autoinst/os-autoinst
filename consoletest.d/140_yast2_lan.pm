@@ -1,7 +1,12 @@
+package yast2_lan;
+use base "basetest";
 use bmwqemu;
 # test yast2 lan functionality
 # https://bugzilla.novell.com/show_bug.cgi?id=600576
 
+
+sub run()
+{
 script_sudo("/sbin/yast2 lan");
 
 my $hostname="susetest";
@@ -20,11 +25,13 @@ sendkey("alt-o"); # OK=>Save&Exit
 waitidle(180);
 sleep 10;
 
+sendkey("ret");
 sendkey("ctrl-l"); # clear screen
 script_run('echo $?');
 #script_run("exec su - $username"); # get new hostname on prompt
 #sendautotype("$password\n");
 #sleep 3;
 script_run('hostname');
+}
 
 1;
