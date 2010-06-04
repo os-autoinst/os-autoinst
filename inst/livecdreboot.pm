@@ -41,7 +41,7 @@ local $ENV{SCREENSHOTINTERVAL}=$ENV{SCREENSHOTINTERVAL}*3;
 if(!$ENV{GNOME}) {
 	# read sub-stages of automaticconfiguration 
 	set_ocr_rect(240,256,530,100);
-	waitinststage "users|KDE", 180;
+	waitinststage "users|booted", 180;
 	set_ocr_rect();
 } else {
 	sleep 50; # time for fast-forward

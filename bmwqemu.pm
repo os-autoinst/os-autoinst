@@ -85,6 +85,7 @@ if($ENV{INSTLANG} eq "de") {
 
 if(!-x $gocrbin) {$gocrbin=undef}
 if(!-x $qemubin) {$qemubin=~s/kvm/qemu-kvm/}
+if(!-x $qemubin) {$qemubin=~s/-kvm//}
 if(!-x $qemubin) {die "no Qemu/KVM found"}
 if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
 	if($1 ne "http") {die "only http mirror URLs are currently supported but found '$1'."}

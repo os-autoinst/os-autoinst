@@ -37,7 +37,7 @@ sub consoletestrunfunc
 }
 
 
-autotest::runtestdir("consoletest.d", \&consoletestrunfunc);
+autotest::runtestdir("$scriptdir/consoletest.d", \&consoletestrunfunc);
 
 
 # cleanup
