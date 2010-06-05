@@ -8,6 +8,7 @@ e86e59f62b24bf2183660a4c5d9c7cbb zypperup-64
 62ba0ecc2c42cdfa091a703e0396bebf zypper
 6238258f9e9b27ab6999ef18a99b3670 NET-instmirror-display
 09e9ad21be9c7bfb145a94a54731b5a8 NET-instmirror-display
+a0f2d8b443c6fe1153ca0c5b6692a719 curl-bug-598574
 );
 
 my %md5badlist=qw(
