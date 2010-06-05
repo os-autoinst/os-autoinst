@@ -13,6 +13,18 @@ if($ison=~m/openSUSE-(DVD|NET|KDE|GNOME|LXDE|XFCE)-/) {
 		$ENV{DESKTOP}=lc($1);
 	}
 }
+if($ENV{UPGRADE} && !$ENV{LIVECD}) {
+	my $file=$ENV{UPGRADE};
+	if(!-e $file) {die "'$ENV{UPGRADE}' should be old img.gz"}
+	$ENV{KEEPHDDS}=1;
+	# restore old OS image state
+	if($file=~m/\.gz$/) {
+		system("gzip -cd $file > raid/1");
+	} else {
+		system("cp $file raid/1");
+	}
+}
+
 system(qw"/bin/mkdir -p", $basedir);
 
 if(!qemualive) {
@@ -22,7 +34,7 @@ if(!qemualive) {
 		for my $i (1..4) {
 			my $qemuimg="/usr/bin/kvm-img";
 			if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
-			system($qemuimg, "create" ,"$basedir/$i", "5G");
+			system($qemuimg, "create" ,"$basedir/$i", "7G");
 		}
 		system("sync"); sleep 5;
 	}

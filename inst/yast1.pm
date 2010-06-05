@@ -23,8 +23,12 @@ if(!$ENV{LIVECD}) {
 	# TODO waitstillimage(10)
 	waitidle 29;
 	# Installation Mode = new Installation
+	if($ENV{UPGRADE}) {
+		sendkey "alt-u";
+	}
 	sendkey $cmd{"next"};
 }
+if(!$ENV{UPGRADE}) {
 # timezone
 waitinststage("timezone");
 sendkey $cmd{"next"};
@@ -47,5 +51,19 @@ if(!$ENV{LIVECD}) {
 	sendkey $cmd{"next"};
 }
 # ending at partition layout screen
+} else {
+	# upgrade system select
+	waitidle;
+	sendkey $cmd{"next"};
+	# repos
+	waitidle;
+	sendkey $cmd{"next"};
+	sendkey "alt-u"; # Update if available
+	waitidle 10;
+	sendkey "alt-u"; # confirm
+	sleep 20;
+	sendkey "alt-d"; # details
+	sleep 1200; # time for install
+}
 
 1;

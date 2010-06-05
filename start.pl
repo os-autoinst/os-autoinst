@@ -21,9 +21,11 @@ do "inst/bootloader.pm" or die @$;
 sleep 11; # time to load kernel+initrd
 do "inst/viewbootmsg.pm" or die @$;
 do "inst/yast1.pm" or die @$;
+if(!$ENV{UPGRADE}){
 do "inst/partitioning.pm" or die @$;
 do "inst/yast2.pm" or die @$;
 do "inst/livecdreboot.pm" or die @$;
+}
 
 if(my $d=$ENV{DESKTOP}) {
 	do "inst/\L$d.pm" or diag @$;
