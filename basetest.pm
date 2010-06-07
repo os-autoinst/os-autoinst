@@ -27,4 +27,23 @@ sub take_screenshot()
 	# TODO analyse_screenshot $filename;
 }
 
+sub checklist
+{
+	#die "you need to override this method";
+	return {}
+}
+
+sub check(%)
+{
+	my $self=shift;
+	my $hashes=shift;
+	my $checklist=$self->checklist();
+	foreach my $h (keys(%$checklist)) {
+		if($hashes->{$h}) {
+			return $checklist->{$h};
+		}
+	}
+	return undef;
+}
+
 1;

@@ -1,23 +1,9 @@
 #!/usr/bin/perl -w
 use strict;
+use bmwqemu;
+use autotest;
+$scriptdir=`dirname $scriptdir`;chomp($scriptdir); # one level up
 
-my %md5goodlist=qw(
-5660b88237419b9c34efe4bfc6de960f hostname
-d0836356512337a6a7a979405322c544 zypperup-32
-e86e59f62b24bf2183660a4c5d9c7cbb zypperup-64
-62ba0ecc2c42cdfa091a703e0396bebf zypper
-6238258f9e9b27ab6999ef18a99b3670 NET-instmirror-display
-09e9ad21be9c7bfb145a94a54731b5a8 NET-instmirror-display
-a0f2d8b443c6fe1153ca0c5b6692a719 curl-bug-598574
-);
-
-my %md5badlist=qw(
-9b1e290f49eac89a827d488114d9309c yast2_lan
-04ee9bd8dcb1316874939f7b63d792c0 NET-instmirror-display
-e7981cac5576dcd22aacebe08901956c NET-instmirror-display
-52a165a273962b59d2c72d3ad10a8bdb curl-bug-598574
-0bdf7328bb37fb32dd6b6975a5656c36 curl-bug-598574
-);
 
 my @stages=(qw"splashscreen welcome timezone disk usersettings installationoverview performinstallation automaticconfiguration booted");
 
@@ -37,15 +23,14 @@ foreach my $s (@stages) {
 	print "$s: ".($found?"OK":"fail")."\n";
 }
 
-foreach(keys(%md5goodlist)) {
-	if($md5seen{$_}) {
-		print "$md5goodlist{$_}: OK\n";
-	}
+sub checkfunc
+{
+	my($test)=@_;
+	my $class=ref $test;
+	my $result=$test->check(\%md5seen)||"unknown";
+	print "$class: $result\n";
 }
 
-foreach(keys(%md5badlist)) {
-	if($md5seen{$_}) {
-		print "$md5badlist{$_}: fail\n";
-	}
-}
+autotest::runtestdir("$scriptdir/inst.d", \&checkfunc);
+autotest::runtestdir("$scriptdir/consoletest.d", \&checkfunc);
 

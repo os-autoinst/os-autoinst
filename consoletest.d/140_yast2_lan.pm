@@ -34,4 +34,13 @@ script_run('echo $?');
 script_run('hostname');
 }
 
+sub checklist()
+{
+	# return hashref:
+	return {qw(
+		5660b88237419b9c34efe4bfc6de960f OK
+		9b1e290f49eac89a827d488114d9309c fail
+	)}
+}
+
 1;

@@ -7,4 +7,12 @@ sub run()
 	waitidle;
 }
 
+sub checklist()
+{
+	# return hashref:
+	return {qw(
+		62ba0ecc2c42cdfa091a703e0396bebf OK
+	)}
+}
+
 1;
