@@ -10,12 +10,12 @@ sleep 5;
 sendautotype $username."\n";
 sleep 1;
 sendautotype $password."\n";
-waitidle;
-sleep 3;
+waitinststage "XFCE";
+sleep 4;
 
 sendkey "alt-f4"; # close hint popup
 waitidle;
-sleep 2;
+sleep 4;
 
 sendkey "alt-f2";
 waitidle;
@@ -26,11 +26,31 @@ script_run "firefox&";
 sendkey "alt-f4"; # default browser setting popup
 sleep 3;
 sendkey "alt-f4";
-sleep 1;
+waitidle;
 sendkey "ret"; # save+quit
+waitidle;
+sendkey "alt-f4"; # close xterm
 
 
-sleep 5;
+# reboot
+waitidle;
+sendkey "alt-f4";
+waitidle;
+sendkey "tab";
+waitidle;
+sendkey "ret";
+sleep 10;
+my $ok=waitinststage "xdm-loginscreen", 80;
+if($ok) {
+	waitidle;
+
+	# log in
+	sendautotype $username."\n";
+	sleep 1;
+	sendautotype $password."\n";
+	waitinststage "XFCE", 40;
+	sleep 5;
+}
 qemusend "system_powerdown";
 
 1;

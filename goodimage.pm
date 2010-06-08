@@ -109,6 +109,7 @@ bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 e06959a4b7fbb1a6885c7894c14d9204 booted-GNOME-11.3-dvd
 bff7185022f9fea00e12c8fbb52b29b8 booted-GNOME-11.3-dvd
 a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
+c2fc1822dceac430822194e210d34a6e booted-XFCE-11.3
 b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
 1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
 209f79c737bb62e12215b36d345fb24d failed-to-detect-CD-rebooting-in-120-seconds
