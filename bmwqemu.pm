@@ -23,7 +23,7 @@ my $prestandstillwarning :shared = 0;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($username $password $qemubin $qemupid $scriptdir $testedversion %cmd 
-&diag &fileContent &qemusend &sendkey &sendautotype &autotype &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr &script_run &script_sudo);
+&diag &fileContent &qemusend &sendkey &sendautotype &autotype &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout);
 
 
 our $debug=1;
@@ -411,5 +411,9 @@ sub script_sudo($;$)
 	}
 	waitidle $wait;
 }
+# reset so that next sudo will send password
+sub script_sudo_logout()
+{ $sudos=0 }
+
 
 1;

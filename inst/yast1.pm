@@ -37,6 +37,7 @@ if(!$ENV{LIVECD}) {
 	waitinststage "desktopselection";
 	$ENV{DESKTOP}||="kde";
 	my $d=$ENV{DESKTOP};
+	diag "selecting desktop=$d";
 	$ENV{uc($d)}=1;
 	my $key="alt-$desktopkeys{$d}";
 	if($d eq "kde") {

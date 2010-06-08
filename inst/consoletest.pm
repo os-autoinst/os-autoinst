@@ -41,6 +41,7 @@ autotest::runtestdir("$scriptdir/consoletest.d", \&consoletestrunfunc);
 
 
 # cleanup
+script_sudo_logout;
 sleep 2;
 sendkey "ctrl-d"; # logout
 sleep 2;
