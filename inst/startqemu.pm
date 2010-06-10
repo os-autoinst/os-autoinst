@@ -53,6 +53,7 @@ if(!qemualive) {
 			push(@params, "-k", $ENV{VNCKB}) if($ENV{VNCKB});
 		}
 		if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
+		push(@params, "-usb", "-usbdevice", "tablet");
 	#	push(@params, "-smp", "4");
 		exec($qemubin, @params);
 		die "exec $qemubin failed";

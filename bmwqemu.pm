@@ -23,7 +23,7 @@ my $prestandstillwarning :shared = 0;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($username $password $qemubin $qemupid $scriptdir $testedversion %cmd 
-&diag &fileContent &qemusend &sendkey &sendautotype &autotype &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout);
+&diag &fileContent &qemusend &sendkey &sendautotype &autotype &mousemove &mouseclick &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout);
 
 
 our $debug=1;
@@ -147,6 +147,34 @@ sub autotype($)
 		$result.="sendkey $letter\n";
 	}
 	return $result;
+}
+
+sub mousemove_raw($$)
+{
+	qemusend "mouse_move @_";
+}
+
+# send mouse move via emulated touch screen
+# in: x,y coords in pixels
+sub mousemove($$)
+{ my(@coord)=@_;
+	my @size=(800,600);
+	my $maxtouch=0x7fff;
+	# transform to touchscreen coords (0..$maxtouch)
+	for my $i (0..1) {$coord[$i]=int($coord[$i]*$maxtouch/$size[$i])}
+	mousemove_raw($coord[0], $coord[1]);
+}
+
+# send mouse click
+# in: button (default:L=1; R=2; M=4), duration of click (default: 0.15 sec)
+# still broken for some reason (Qemu?)
+sub mouseclick(;$$)
+{
+	my $button=shift||1;
+	my $time=shift||0.15;
+	qemusend "mouse_button $button";
+	sleep $time;
+	qemusend "mouse_button 0";
 }
 
 my $lasttime;
