@@ -85,6 +85,7 @@ d7aaab0e441a984d73f11291c8747a95 performinstallation-kde-11.3
 b28b4c8babb004a696d18875ab95c934 rebootnow
 a13a2535f81e9980cb87e30d99231177 rebootnow
 1fc181a6be8f6f21b916463440faa669 rebootnow
+eabf2c66351e8ee185e0a583deb1e8a7 rebootnow-gnome-11.3
 e3f412dc306085ca4d1795f850c81dee grub
 6dad21ea36802fca6a7b4dc14db62c0e grub0620
 f2c55e899bd1ab80874ad1e246c8d7ca splashscreen

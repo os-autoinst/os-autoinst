@@ -4,7 +4,7 @@ use bmwqemu;
 
 # wait until ready
 waitinststage "KDE", 1000;
-qemusend "mouse_move 1000 1000"; # move mouse off screen again
+qemusend "mouse_move 31000 31000"; # move mouse off screen again
 waitidle 100;
 sleep 10;
 
@@ -12,6 +12,7 @@ my $lastmenu=0;
 # open KDE menu
 sub open_menu($;$)
 { my $n=shift; my $wait=shift;
+	waitidle;
 	sendkey "alt-f1";
 	waitidle;
 	my $diff=$n-$lastmenu;
