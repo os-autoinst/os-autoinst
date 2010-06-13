@@ -367,6 +367,7 @@ sub readconloop
 	}
 	diag "exiting management console read loop";
 	unlink $qemupidfilename;
+	alarm 3; # kill all extra threads soon
 }
 
 sub open_management_console()
@@ -381,6 +382,7 @@ sub open_management_console()
 	$conmuxthread=threads->create(\&conmuxloop); # allow external qemu input
 	$conmuxthread->detach();
 	$readconthread=threads->create(\&readconloop); # without this, qemu will block
+	$readconthread->detach();
 	$managementcon;
 }
 
@@ -389,7 +391,6 @@ sub close_management_console()
 	$endreadingcon=1;
 	qemusend "";
 	close $managementcon;
-	$readconthread->join();
 }
 
 # start console application
