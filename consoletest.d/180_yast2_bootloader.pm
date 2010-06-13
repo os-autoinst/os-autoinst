@@ -10,6 +10,8 @@ sub run()
 	my $self=shift;
 	script_sudo("/sbin/yast2 bootloader");
 	sleep 3;
+	sendkey "alt-o"; # OK => Close
+	waitidle;
 	$self->take_screenshot;
 	sendkey "ctrl-l";
 	script_run('echo $?');
@@ -22,6 +24,7 @@ sub checklist()
 	# return hashref:
 	return {qw(
 		1e58b9fb6cd585dfc84d1aa82e1429d7 fail
+		3b66e185a5cb6dbaffeb87aeb0eed1ed OK
 	)}
 }
 
