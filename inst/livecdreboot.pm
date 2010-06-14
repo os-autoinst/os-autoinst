@@ -36,7 +36,9 @@ if(!$ENV{LIVECD}) {
 	waitinststage "automaticconfiguration";
 }
 waitinststage "automaticconfiguration", 70;
-qemusend "mouse_move 32767 32767"; # move mouse off screen again
+mousemove_raw(0x7fff,0x7fff); # move mouse off screen again
+sleep 1;
+mousemove_raw(0x7fff,0x7fff); # work around no reaction on first move
 local $ENV{SCREENSHOTINTERVAL}=$ENV{SCREENSHOTINTERVAL}*3;
 if(!$ENV{GNOME}) {
 	# read sub-stages of automaticconfiguration 

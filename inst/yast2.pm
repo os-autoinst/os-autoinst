@@ -4,6 +4,7 @@ use bmwqemu;
 
 # partition based
 waitinststage "disk";
+sleep 2;
 sendkey $cmd{"next"};
 
 # user setup

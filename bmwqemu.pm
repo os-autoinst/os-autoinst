@@ -23,7 +23,7 @@ my $prestandstillwarning :shared = 0;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($username $password $qemubin $qemupid $scriptdir $testedversion %cmd 
-&diag &fileContent &qemusend &sendkey &sendautotype &autotype &mousemove &mouseclick &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout);
+&diag &fileContent &qemusend &sendkey &sendautotype &autotype &mousemove_raw &mousemove &mouseclick &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout);
 
 
 our $debug=1;

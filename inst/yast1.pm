@@ -11,8 +11,9 @@ if($ENV{BETA} && !$ENV{LIVECD}) {
 }
 
 # animated cursor wastes disk space, so it is moved to bottom right corner
-qemusend "mouse_move 32767 32767"; 
+mousemove_raw(0x7fff,0x7fff); 
 sleep 1;
+mousemove_raw(0x7fff,0x7fff); # work around no reaction first time
 # license+lang
 sendkey $cmd{"next"};
 if(!$ENV{LIVECD}) {
