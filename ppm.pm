@@ -69,6 +69,36 @@ sub threshold($)
 #	$self->{data}=pack("C*", @a);
 }
 
+
+# in: needle to search [ppm object]
+# out: (x,y) coords if found, undef otherwise
+# inspired by OCR::Naive
+sub search($)
+{
+	my $self=shift;
+	my $needle=shift;
+	my $xneedle=$needle->{xres};
+	my $xhay=$self->{xres};
+	# build regexp from $needle
+	my $offs=0;
+	my $linesize=$xneedle*BPP;
+	my @lines=();
+	for my $n (0..($needle->{yres}-1)) {
+		my $line=substr($needle->{data},$offs,$linesize);
+		push(@lines,quotemeta($line));
+		$offs+=$linesize;
+	}
+	# any char between lines is ignored
+	my $regexp=join(".{".($xhay*BPP-$linesize)."}", @lines);
+	# actual search
+	if($self->{data}=~m/$regexp/ps) {
+		my $pos=length(${^PREMATCH})/BPP;
+		my($x,$y)=($pos % $xhay, int($pos/$xhay));
+		return($x,$y);
+	}
+	return undef;
+}
+
 sub toppm()
 {
 	my $self=shift;
