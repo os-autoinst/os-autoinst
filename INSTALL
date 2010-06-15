@@ -20,20 +20,21 @@ EOF
 aptitude update
 
 aptitude install git-core kvm/testing ffmpeg2theora/testing gocr/testing
-# kvm-0.12.3 needs older or newer bios.bin to avoid https://bugzilla.novell.com/show_bug.cgi?id=603161 ; kvm-0.12.4 and kvm-0.11 work
 
 echo kvm-intel >> /etc/modules
 
 
 == openSUSE setup ==
+zypper install git-core kvm gocr ffmpeg2theora
 http://software.opensuse.org/search?baseproject=openSUSE:11.2&q=kvm
+# kvm-0.12.3 needs older or newer bios.bin to avoid https://bugzilla.novell.com/show_bug.cgi?id=603161 ; kvm-0.12.4 and kvm-0.11 work
 http://software.opensuse.org/search?baseproject=openSUSE:11.2&q=gocr #>=0.48 recommended
 http://packman.links2linux.de/package/ffmpeg2theora/166877
 TODO
 
 
 == more Linux setup ==
-modprobe kvm-intel # or kvm-amd
+modprobe kvm-intel || modprobe kvm-amd
 chgrp kvm /dev/kvm ; chmod g+rw /dev/kvm # maybe redundant
 useradd -m USERNAME -G kvm
 passwd USERNAME # and/or add ~USERNAME/.ssh/authorized_keys

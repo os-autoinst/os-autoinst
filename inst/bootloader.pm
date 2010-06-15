@@ -58,21 +58,21 @@ if($ENV{NETBOOT}) {
 
         sleep(1.5);
 	sendkey "ret";
-}
 
-# HTTP-proxy
-if($ENV{NETBOOT} && $ENV{HTTPPROXY} && $ENV{HTTPPROXY}=~m/([0-9.]+):(\d+)/) {
-	my($proxyhost,$proxyport)=($1,$2);
-	sendkey "f4";
-	for(1..4) {
-		sendkey "down";
+	# HTTP-proxy
+	if($ENV{HTTPPROXY} && $ENV{HTTPPROXY}=~m/([0-9.]+):(\d+)/) {
+		my($proxyhost,$proxyport)=($1,$2);
+		sendkey "f4";
+		for(1..4) {
+			sendkey "down";
+		}
+		sendkey "ret";
+		sendautotype("$proxyhost\t$proxyport\n");
+		sleep(1.5);
+
+		# add boot parameters
+		# ZYPP... enables proxy caching
 	}
-	sendkey "ret";
-	sendautotype("$proxyhost\t$proxyport\n");
-        sleep(1.5);
-
-	# add boot parameters
-	# ZYPP... enables proxy caching
 	sendautotype("ZYPP_ARIA2C=0"); sleep 2;
 }
 
