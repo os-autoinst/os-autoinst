@@ -67,8 +67,8 @@ rebootnow alt-n
 );
 
 
-$ENV{INSTLANG}||="us";
-if($ENV{INSTLANG} eq "de") {
+$ENV{INSTLANG}||="en_US";
+if($ENV{INSTLANG} eq "de_DE") {
 	$cmd{"next"}="alt-w";
 	$cmd{"createpartsetup"}="alt-e";
 	$cmd{"custompart"}="alt-b";
@@ -152,6 +152,7 @@ sub autotype($)
 sub mousemove_raw($$)
 {
 	qemusend "mouse_move @_";
+	sleep 0.5;
 }
 
 # send mouse move via emulated touch screen

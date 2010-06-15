@@ -49,7 +49,8 @@ if(!qemualive) {
 		}
 		push(@params, "-boot", "dc", "-cdrom", $iso) if($iso);
 		if($ENV{VNC}) {
-			push(@params, "-vnc", ":$ENV{VNC}");
+			if($ENV{VNC}!~/:/) {$ENV{VNC}=":$ENV{VNC}"}
+			push(@params, "-vnc", $ENV{VNC});
 			push(@params, "-k", $ENV{VNCKB}) if($ENV{VNCKB});
 		}
 		if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }

@@ -37,7 +37,6 @@ if(!$ENV{LIVECD}) {
 }
 waitinststage "automaticconfiguration", 70;
 mousemove_raw(0x7fff,0x7fff); # move mouse off screen again
-sleep 1;
 mousemove_raw(0x7fff,0x7fff); # work around no reaction on first move
 local $ENV{SCREENSHOTINTERVAL}=$ENV{SCREENSHOTINTERVAL}*3;
 if(!$ENV{GNOME}) {

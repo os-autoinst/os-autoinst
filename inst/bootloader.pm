@@ -76,13 +76,88 @@ if($ENV{NETBOOT} && $ENV{HTTPPROXY} && $ENV{HTTPPROXY}=~m/([0-9.]+):(\d+)/) {
 	sendautotype("ZYPP_ARIA2C=0"); sleep 2;
 }
 
-# German/Deutsch - set last so that above typing will not depend on keyboard layout
-if($ENV{INSTLANG} eq "de") {
-	sendkey "f2";
-	for(1..3) {
-		sendkey "up";
+
+# set language last so that above typing will not depend on keyboard layout
+if($ENV{INSTLANG}) {
+# positions in isolinux language selection ; order matters
+# from cpio -i --to-stdout languages < /mnt/boot/x86_64/loader/bootlogo
+my @isolinuxlangmap=qw(
+af_ZA
+ar_EG
+ast_ES
+bn_BD
+bs_BA
+bg_BG
+ca_ES
+cs_CZ
+cy_GB
+da_DK
+de_DE
+et_EE
+en_GB
+en_US
+es_ES
+fa_IR
+fr_FR
+gl_ES
+ka_GE
+gu_IN
+el_GR
+hi_IN
+id_ID
+hr_HR
+it_IT
+he_IL
+ja_JP
+jv_ID
+km_KH
+ko_KR
+ky_KG
+lo_LA
+lt_LT
+mr_IN
+hu_HU
+mk_MK
+nl_NL
+nb_NO
+nn_NO
+pl_PL
+pt_PT
+pt_BR
+pa_IN
+ro_RO
+ru_RU
+zh_CN
+si_LK
+sk_SK
+sl_SI
+sr_RS
+fi_FI
+sv_SE
+tg_TJ
+ta_IN
+th_TH
+vi_VN
+zh_TW
+tr_TR
+uk_UA
+wa_BE
+xh_ZA
+zu_ZA
+);
+	my $n;
+	my %isolinuxlangmap=map {lc($_)=>$n++} @isolinuxlangmap;
+	$n=$isolinuxlangmap{lc($ENV{INSTLANG})};
+	my $en_us=$isolinuxlangmap{en_us};
+	if($n && $n !=$en_us) {
+		$n-=$en_us;
+		sendkey "f2";
+		for(1..abs($n)) {
+			sendkey ($n<0?"up":"down");
+		}
+		sleep 2;
+		sendkey "ret";
 	}
-	sendkey "ret";
 }
 
 # boot
