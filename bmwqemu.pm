@@ -23,7 +23,7 @@ my $prestandstillwarning :shared = 0;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($username $password $qemubin $qemupid $scriptdir $testedversion %cmd 
-&diag &fileContent &qemusend &sendkey &sendautotype &autotype &mousemove_raw &mousemove &mouseclick &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout);
+&diag &fileContent &qemusend &sendkey &sendautotype &autotype &mousemove_raw &mousemove &mouseclick &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout);
 
 
 our $debug=1;
@@ -188,9 +188,10 @@ do "goodimage.pm"; # fill above vars
 my $readconthread;
 my $conmuxthread;
 
-sub set_hash_rects()
+sub set_hash_rects
 { 
-	@extrahashrects=@_;
+	# sharing nested structure does not work, so turn arrayref into string
+	@extrahashrects=map {join(",", @$_)} @_;
 }
 
 sub set_ocr_rect
@@ -234,16 +235,22 @@ sub inststagedetect($)
 	$ppm2->threshold(0x80); # black/white => drop most background
 	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
 	foreach my $rect (@extrahashrects) {
-		$ppm2=$ppm->copyrect(@$rect);
+		next unless $rect;
+		my @r=split(",", $rect);
+		$ppm2=$ppm->copyrect(@r);
+		next unless $ppm2;
 		push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
 	}
 
+	my $found=0;
 	foreach my $md5 (@md5) {
 		my $currentinststage=$md5inststage{$md5}||"";
-		if($currentinststage) { $lastknowninststage=$lastinststage=$currentinststage }
 		diag "stage=$currentinststage $md5";
-		return if($currentinststage); # stop on first match - so must put most specific tests first
+		next if $found;
+		if($currentinststage) { $lastknowninststage=$lastinststage=$currentinststage }
+		if($currentinststage){$found=1}; # stop on first match - so must put most specific tests first
 	}
+	if($found) {return}
 	$lastinststage="unknown";
 }
 
