@@ -3,6 +3,7 @@ for setup see INSTALL
 usage:
 autoinst/tools/isotovideo PATHTO/openSUSE-KDE-LiveCD-i686-Build0625-Media.iso
 by prepending RAIDLEVEL=10 (or 6) it will do a RAID setup (takes more time)
+by prepending QEMUCPU=qemu64 you can force the Biarch DVD install type (defaults to 32 bit)
 
 you can watch what it is doing by calling either
 vncviewer localhost:99
