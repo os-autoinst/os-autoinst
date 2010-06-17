@@ -130,6 +130,9 @@ waitidle 3;
 sendkey $cmd{"accept"};
 waitidle 4;
 sleep 2;
+} elsif($ENV{LVM}) {
+	sendkey "alt-l"; # enable LVM-based proposal
+	waitidle;
 }
 
 1;
