@@ -1,4 +1,3 @@
-package hal;
 use base "basetest";
 use bmwqemu;
 # for https://bugzilla.novell.com/show_bug.cgi?id=613898

@@ -1,4 +1,3 @@
-package zypper_up;
 use base "basetest";
 use bmwqemu;
 sub run()

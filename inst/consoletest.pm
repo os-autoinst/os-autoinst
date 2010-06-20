@@ -34,6 +34,7 @@ sub consoletestrunfunc
 	$test->run();
 	sleep 2;
 	$test->take_screenshot;
+	diag "finished $class";
 }
 
 

@@ -8,34 +8,19 @@ alarm 7200; # worst case timeout
 # init part
 if($init) {
 	if(!qemualive) {
-		do "inst/startqemu.pm" or die @$;
+		do "inst/startqemu.pm" or die $@;
 	}
 }
 open_management_console;
-do "inst/screenshot.pm" or die @$;
+do "inst/screenshot.pm" or die $@;
 if($init) {
 	waitinststage "grub"; # wait for welcome animation to finish
 }
 
-do "inst/suseinst.pm" or die @$;
-
-
-if(0){
-if(!$ENV{LIVE} || !$ENV{LIVETEST}) {
-	do "inst/bootloader.pm" or die @$;
-	sleep 11; # time to load kernel+initrd
-	do "inst/viewbootmsg.pm" or die @$;
-	do "inst/yast1.pm" or die @$;
-	if(!$ENV{UPGRADE}){
-		do "inst/partitioning.pm" or die @$;
-		do "inst/yast2.pm" or die @$;
-		do "inst/livecdreboot.pm" or die @$;
-	}
-}
-}
+do "inst/suseinst.pm" or die $@;
 
 if(my $d=$ENV{DESKTOP}) {
-	do "inst/\L$d.pm" or diag @$;
+	do "inst/\L$d.pm" or diag $@;
 }
 
 

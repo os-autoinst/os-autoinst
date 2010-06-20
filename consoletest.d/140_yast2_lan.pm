@@ -1,4 +1,3 @@
-package yast2_lan;
 use base "basetest";
 use bmwqemu;
 # test yast2 lan functionality

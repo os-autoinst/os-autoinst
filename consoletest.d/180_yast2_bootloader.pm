@@ -1,4 +1,3 @@
-package yast2_bootloader;
 use base "basetest";
 use bmwqemu;
 # test yast2 bootloader functionality
