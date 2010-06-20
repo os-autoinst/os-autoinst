@@ -1,7 +1,9 @@
-#!/usr/bin/perl -w
 use strict;
+use base "basetest";
 use bmwqemu;
 
+sub run()
+{
 if(!$ENV{LIVECD}) {
 	set_ocr_rect(255,420,530,115);
 	{
@@ -52,5 +54,6 @@ set_hash_rects(
 	[30,30,100,100], # where most applications pop up
 	[0,579,100,10 ], # bottom line (KDE/GNOME bar)
 	);
+}
 
 1;

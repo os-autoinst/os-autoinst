@@ -1,7 +1,10 @@
 #!/usr/bin/perl -w
 use strict;
+use base "basetest";
 use bmwqemu;
 
+sub run()
+{
 # add a new primary partition
 sub addpart($$)
 {
@@ -133,6 +136,7 @@ sleep 2;
 } elsif($ENV{LVM}) {
 	sendkey "alt-l"; # enable LVM-based proposal
 	waitidle;
+}
 }
 
 1;

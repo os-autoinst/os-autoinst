@@ -1,7 +1,10 @@
 #!/usr/bin/perl -w
 use strict;
+use base "basetest";
 use bmwqemu;
 
+sub run()
+{
 waitinststage("welcome", 490);
 
 if($ENV{BETA} && !$ENV{LIVECD}) {
@@ -65,6 +68,7 @@ if(!$ENV{LIVECD}) {
 	sleep 20;
 	sendkey "alt-d"; # details
 	sleep 1200; # time for install
+}
 }
 
 1;

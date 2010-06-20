@@ -1,8 +1,10 @@
-#!/usr/bin/perl -w
+use base "basetest";
 use strict;
 use bmwqemu;
 use Time::HiRes qw(sleep);
 
+sub run()
+{
 
 if($ENV{MEMTEST}) { # special
 	# only run this one
@@ -162,5 +164,6 @@ zu_ZA
 
 # boot
 sendkey "ret";
+}
 
 1;

@@ -1,7 +1,10 @@
 #!/usr/bin/perl -w
 use strict;
+use base "basetest";
 use bmwqemu;
 
+sub run()
+{
 # partition based
 waitinststage "disk";
 sleep 2;
@@ -42,6 +45,7 @@ waitinststage "performinstallation";
 if(!$ENV{LIVECD}) {
 	sleep 5; # view installation details
 	sendkey $cmd{instdetails};
+}
 }
 
 1;

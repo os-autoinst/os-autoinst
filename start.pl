@@ -17,6 +17,10 @@ if($init) {
 	waitinststage "grub"; # wait for welcome animation to finish
 }
 
+do "inst/suseinst.pm" or die @$;
+
+
+if(0){
 if(!$ENV{LIVE} || !$ENV{LIVETEST}) {
 	do "inst/bootloader.pm" or die @$;
 	sleep 11; # time to load kernel+initrd
@@ -27,6 +31,7 @@ if(!$ENV{LIVE} || !$ENV{LIVETEST}) {
 		do "inst/yast2.pm" or die @$;
 		do "inst/livecdreboot.pm" or die @$;
 	}
+}
 }
 
 if(my $d=$ENV{DESKTOP}) {
