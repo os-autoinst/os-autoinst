@@ -4,7 +4,6 @@ use bmwqemu;
 sub run()
 {
 	script_sudo("zypper -n -q up");
-	local $bmwqemu::timesidleneeded=8;
 	waitidle 60;
 	sendkey "ctrl-l"; # clear screen to see that second update does not do any more
 	script_sudo("zypper -n -q up");
