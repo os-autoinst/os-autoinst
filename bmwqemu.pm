@@ -438,14 +438,18 @@ sub script_run($;$)
 	sleep 3;
 }
 
+my $sudotimeout=300; # 5 mins
+my $lastsudotime;
 my $sudos=0;
 sub script_sudo($;$)
 { my ($prog,$wait)=@_;
 	sendautotype("sudo $prog\n");
+	if(!$lastsudotime||$lastsudotime+$sudotimeout<time()) {$sudos=0}
 	if(!$sudos++) {
 		sleep 1;
 		sendautotype "$password\n";
 	}
+	$lastsudotime=time();
 	waitidle $wait;
 }
 # reset so that next sudo will send password
