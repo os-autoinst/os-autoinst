@@ -23,7 +23,7 @@ my $prestandstillwarning :shared = 0;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($username $password $qemubin $qemupid $scriptdir $testedversion %cmd 
-&diag &fileContent &qemusend &sendkey &sendautotype &autotype &mousemove_raw &mousemove &mouseclick &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout);
+&diag &fileContent &qemusend &sendkey &sendautotype &autotype &mousemove_raw &mousemove &mouseclick &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program);
 
 
 our $debug=1;
@@ -456,5 +456,14 @@ sub script_sudo($;$)
 sub script_sudo_logout()
 { $sudos=0 }
 
+
+sub x11_start_program($)
+{ my $program=shift;
+	sendkey "alt-f2"; sleep 2;
+	sendautotype $program; sleep 1;
+	sendkey "ret";
+	waitidle;
+	sleep 1;
+}
 
 1;

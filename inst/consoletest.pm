@@ -49,5 +49,10 @@ sleep 2;
 
 sendkey "ctrl-alt-f7"; # go back to X11
 sleep 2;
+sendkey "backspace"; # deactivate blanking
+sleep 2;
+waitidle;
+
+do "inst/x11test.pm" or die $@;
 
 1;

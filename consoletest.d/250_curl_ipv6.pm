@@ -1,4 +1,3 @@
-package curl_ipv6;
 use base "basetest";
 use bmwqemu;
 # test for bug https://bugzilla.novell.com/show_bug.cgi?id=598574

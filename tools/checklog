@@ -33,4 +33,5 @@ sub checkfunc
 
 autotest::runtestdir("$scriptdir/inst.d", \&checkfunc);
 autotest::runtestdir("$scriptdir/consoletest.d", \&checkfunc);
+autotest::runtestdir("$scriptdir/x11test.d", \&checkfunc);
 
