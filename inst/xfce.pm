@@ -6,16 +6,6 @@ sleep 5;
 do "inst/consoletest.pm";
 
 sleep 5;
-# log in
-sendautotype $username."\n";
-sleep 1;
-sendautotype $password."\n";
-waitinststage "XFCE";
-sleep 4;
-
-sendkey "alt-f4"; # close hint popup
-waitidle;
-sleep 4;
 
 sendkey "alt-f2";
 waitidle;
