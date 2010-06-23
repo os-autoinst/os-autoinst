@@ -13,7 +13,6 @@ sub run()
 {
 	my %desktopkeys=(kde=>"k", gnome=>"g", xfce=>"x", lxde=>"l", minimalx=>"m", "textmode"=>"i");
 	waitinststage "desktopselection";
-	$ENV{DESKTOP}||="kde";
 	my $d=$ENV{DESKTOP};
 	diag "selecting desktop=$d";
 	$ENV{uc($d)}=1;

@@ -53,36 +53,16 @@ if($ENV{NETBOOT}) { # has photomanager added on #5
 
 do "inst/consoletest.pm" or die @$;
 
-#open_menu($kdemenu{xterm});
-start_program("xterm");
+#open_menu($kdemenu{audio});
+#sendkey "alt-f4"; sleep 3; # mp3 popup
+#sendkey "alt-f4"; sleep 3; # close kwallet popup
+#sendkey "alt-f4"; sleep 9; # close another popup
+#sendkey "ctrl-q"; # really quit. alt-f4 just backgrounds
 
-sendkey "alt-f4";
-open_menu($kdemenu{firefox});
-sendkey "alt-f4"; sleep 2;
-sendkey "ret"; # confirm "save&quit"
-
-open_menu($kdemenu{office});
-sendkey "alt-f4";
-
-open_menu($kdemenu{help});
-sendkey "alt-f4";
-
-open_menu($kdemenu{config});
-sendkey "alt-f4";
-
-open_menu($kdemenu{fileman});
-sendkey "alt-f4";
-
-open_menu($kdemenu{audio});
-sendkey "alt-f4"; sleep 3; # mp3 popup
-sendkey "alt-f4"; sleep 3; # close kwallet popup
-sendkey "alt-f4"; sleep 9; # close another popup
-sendkey "ctrl-q"; # really quit. alt-f4 just backgrounds
-
-open_menu($kdemenu{pim}, 100);
-sleep 10; waitidle 100; sleep 10; # pim needs extra time for first init
-sendkey "alt-f4"; sleep 10; # close popup (tips on startup)
-sendkey "alt-f4";
+#open_menu($kdemenu{pim}, 100);
+#sleep 10; waitidle 100; sleep 10; # pim needs extra time for first init
+#sendkey "alt-f4"; sleep 10; # close popup (tips on startup)
+#sendkey "alt-f4";
 
 sleep 9;
 sendkey "ctrl-alt-delete"; # reboot
