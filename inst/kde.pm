@@ -64,17 +64,5 @@ do "inst/consoletest.pm" or die @$;
 #sendkey "alt-f4"; sleep 10; # close popup (tips on startup)
 #sendkey "alt-f4";
 
-sleep 9;
-sendkey "ctrl-alt-delete"; # reboot
-sleep 4;
-sendautotype "\t\t\n";
-
-waitinststage "grub", 200; # wait until reboot 
-waitinststage "KDE", 200; # wait until reboot is finished
-waitidle 100;
-sleep 55; # time for extra KDE startup
-sendkey "ctrl-alt-delete"; # shutdown
-sleep 11;
-sendautotype "\t\n";
 
 1;

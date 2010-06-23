@@ -10,6 +10,8 @@ sub is_applicable()
 sub run()
 {
 	my $self=shift;
+	waitinststage "KDE", 200; # wait until reboot is finished
+	waitidle 100;
 }
 
 sub checklist()
