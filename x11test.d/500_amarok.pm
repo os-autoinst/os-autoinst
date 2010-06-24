@@ -3,8 +3,7 @@ use bmwqemu;
 
 sub is_applicable()
 {
-#	return $ENV{DESKTOP} eq "kde";
-	return 1;
+	return $ENV{DESKTOP} eq "kde";
 }
 
 sub run()

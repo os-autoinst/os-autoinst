@@ -3,6 +3,12 @@ use bmwqemu;
 # for https://bugzilla.novell.com/show_bug.cgi?id=613898
 # fixed in Build0679 and later
 # TODO: revisit after 11.3 when hal is no more needed for KDE
+
+sub is_applicable()
+{
+	return ($ENV{DESKTOP} ne "gnome");
+}
+
 sub run()
 {
 	my $self=shift;
