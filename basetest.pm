@@ -38,6 +38,7 @@ sub check(%)
 	my $self=shift;
 	my $hashes=shift;
 	my $checklist=$self->checklist();
+	if(!keys %$checklist) { return "not-autochecked" }
 	foreach my $h (keys(%$checklist)) {
 		if($hashes->{$h}) {
 			return $checklist->{$h};
