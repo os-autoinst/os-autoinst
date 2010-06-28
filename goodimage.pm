@@ -89,6 +89,7 @@ a13a2535f81e9980cb87e30d99231177 rebootnow
 eabf2c66351e8ee185e0a583deb1e8a7 rebootnow-gnome-11.3
 e3f412dc306085ca4d1795f850c81dee grub
 6dad21ea36802fca6a7b4dc14db62c0e grub0620
+053ed0ae4ad4679aec1c7d696f3697b2 grub-xmas
 f2c55e899bd1ab80874ad1e246c8d7ca splashscreen
 07ba75193833b87950d8813b23de7ced splashscreen-11.3
 f3eb544d595ba28240779239c9c1ffdf automaticconfiguration-11.2
