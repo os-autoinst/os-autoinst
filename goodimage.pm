@@ -101,12 +101,16 @@ e8fa5eee5c5e45cc081d7679acd42101 automaticconfiguration
 4fc3bb87a12afb21ce1fb6fe98d525fc automaticconfiguration-kde-11.3
 0db6d0f55610ce984acd4426d1753eb8 users
 cc752e0fd5b766ca9f2d07ee3c3566c4 booted-kdestartscreen
+17d05a3d07d24a9f081eea706f4551b8 booted-kdm-11.3
 abf4721ff7f608a7b68cd0e0b2979a24 booted-KDE-11.2
 1d1e36387552e7d67310fd789ef3f41b booted-KDE-11.2
 3ef43360bf8b4c443872301f17bc8f29 booted-KDE
 3c1e26f026013c0d629393f735953642 booted-KDE
 f95b7023f2f547a78bbe0952199513fd booted-KDE-0673-SUSE-greeting
 98451b01fc7ded6dcdaf604feaea119d booted-KDE-0673
+866a30651084f519426acdb539574ed9 booted-KDE-11.3-32
+256484845a81b565834278df6d16c3da booted-KDE-11.3-64
+6d18b2d816f80e55fdc6ce1a06a908be booted-KDE-11.3-64-black
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
 bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME

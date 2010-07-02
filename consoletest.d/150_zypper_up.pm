@@ -2,8 +2,11 @@ use base "basetest";
 use bmwqemu;
 sub run()
 {
-	script_sudo("zypper -n -q up");
+	my $self=shift;
+	script_sudo("zypper -n up");
 	waitidle 60;
+	script_run("rpm -q libzypp zypper");
+	$self->take_screenshot;
 	sendkey "ctrl-l"; # clear screen to see that second update does not do any more
 	script_sudo("zypper -n -q up");
 	waitidle;
