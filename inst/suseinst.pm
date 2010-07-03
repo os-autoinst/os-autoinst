@@ -13,8 +13,11 @@ sub installrunfunc
 	diag "finished $class";
 }
 
-if(!$ENV{LIVE} || !$ENV{LIVETEST}) {
+if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
 	autotest::runtestdir("$scriptdir/suseinst.d", \&installrunfunc);
+} else {
+	$username="root"; # LiveCD account
+	$password="";
 }
 
 1;
