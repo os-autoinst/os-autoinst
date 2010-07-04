@@ -1,6 +1,11 @@
 use base "basetest";
 use bmwqemu;
 
+sub is_applicable()
+{
+	return $ENV{DESKTOP}=~/kde|gnome/;
+}
+
 sub run()
 {
 	my $self=shift;
