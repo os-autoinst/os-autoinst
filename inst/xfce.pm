@@ -7,19 +7,19 @@ do "inst/consoletest.pm";
 
 sleep 5;
 
-sendkey "alt-f2";
-waitidle;
-sleep 2;
-sendautotype "xterm\n";
-waitidle;
-script_run "firefox&";
-sendkey "alt-f4"; # default browser setting popup
-sleep 3;
-sendkey "alt-f4";
-waitidle;
-sendkey "ret"; # save+quit
-waitidle;
-sendkey "alt-f4"; # close xterm
+#sendkey "alt-f2";
+#waitidle;
+#sleep 2;
+#sendautotype "xterm\n";
+#waitidle;
+#script_run "firefox&";
+#sendkey "alt-f4"; # default browser setting popup
+#sleep 3;
+#sendkey "alt-f4";
+#waitidle;
+#sendkey "ret"; # save+quit
+#waitidle;
+#sendkey "alt-f4"; # close xterm
 
 
 # reboot
