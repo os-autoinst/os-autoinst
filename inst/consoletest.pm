@@ -13,6 +13,7 @@ sub clear_console()
 }
 
 
+if(!$ENV{NICEVIDEO}) {
 # init
 # log into text console
 sendkey "ctrl-alt-f2";
@@ -53,6 +54,7 @@ sendkey "backspace"; # deactivate blanking
 sleep 2;
 waitidle;
 
+}
 do "inst/x11test.pm" or die $@;
 
 1;
