@@ -20,6 +20,7 @@ sendkey("tab");
 for(1..15){sendkey("backspace")}
 sendautotype($domain);
 sleep 3;
+sendkey("alt-o"); # confirm possible network manager warning
 sendkey("alt-o"); # OK=>Save&Exit
 waitidle(180);
 sleep 10;
