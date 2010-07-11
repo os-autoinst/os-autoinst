@@ -7,6 +7,23 @@ sub run()
 if(!$ENV{LIVECD}) {
 	set_ocr_rect(255,420,530,115);
 	{
+		if($ENV{XDEBUG} && waitinststage("the-system-will-reboot-now", 3000, 1)) {
+			sendkey "alt-s";
+			sendkey "ctrl-alt-f2";
+			script_run "mount /dev/vda2 /mnt";
+			script_run "chroot /mnt";
+			script_run "echo nameserver 213.133.99.99 > /etc/resolv.conf";
+			script_run "wget www3.zq1.de/bernhard/linux/xdebug";
+			script_run "sh -x xdebug";
+			sleep 99;
+			sendkey "ctrl-d";
+			script_run "umount /mnt";
+			waitidle;
+			sleep 20;
+			sendkey "ctrl-alt-f7";
+			sleep 5;
+			sendkey "alt-o";
+		}
 		local $ENV{SCREENSHOTINTERVAL}=5;
 		waitinststage "grub|splashscreen|automaticconfiguration", 3000;
 	}

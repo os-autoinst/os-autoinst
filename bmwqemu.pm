@@ -224,6 +224,10 @@ sub inststagedetect($)
 	$ppm2=$ppm->copyrect(230,230, 300,100);
 	$ppm2->threshold(0x80); # black/white => drop most background
 	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
+	# smaller popup text detector
+	$ppm2=$ppm->copyrect(300,240, 100,100);
+	$ppm2->threshold(0x80); # black/white => drop most background
+	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
 	# use header text for GNOME
 	$ppm2=$ppm->copyrect(0,0, 250,30);
 	$ppm2->threshold(0x80); # black/white => drop most background
