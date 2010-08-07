@@ -10,6 +10,12 @@ if(!$ENV{LIVECD}) {
 		if($ENV{XDEBUG} && waitinststage("the-system-will-reboot-now", 3000, 1)) {
 			sendkey "alt-s";
 			sendkey "ctrl-alt-f2";
+			if(!$ENV{NET}) {
+				script_run "dhcpcd eth0";
+				#ifconfig eth0 10.0.2.15
+				#route add default gw 10.0.2.2
+				sleep 20;
+			}
 			script_run "mount /dev/vda2 /mnt";
 			script_run "chroot /mnt";
 			script_run "echo nameserver 213.133.99.99 > /etc/resolv.conf";
