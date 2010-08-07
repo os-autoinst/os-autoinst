@@ -42,7 +42,7 @@ waitidle 5;
 # confirm
 sendkey $cmd{install};
 waitinststage "performinstallation";
-if(!$ENV{LIVECD}) {
+if(!$ENV{LIVECD} && !$ENV{NICEVIDEO}) {
 	sleep 5; # view installation details
 	sendkey $cmd{instdetails};
 }
