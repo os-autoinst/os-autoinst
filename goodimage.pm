@@ -12,6 +12,7 @@ d54801169f4d47bb29e70c3756ef465b yastms6net
 e935514757e9a23962e7d427887aea10 newinst
 faa6e1e9af34b83d538691267793ba1b newinst0620
 3206a747407c6a1c91151ccd968ef902 newinst0674
+810ef338a46c839ef4715143dc1d226e 11.3-upgradeable
 bc32b148e35198bcf7a77f8b8843e2d3 ms6kdelivecdreboot
 );
 
@@ -27,6 +28,7 @@ bdcf5eae30d70c3fea49ec7db97969e2 instfail
 
 # first entry is for NET, second for KDE, third for GNOME, 4th for GNOME/577:
 %md5inststage=qw(
+2b99e9973a6d0fc8d5e5beb74f088b16 grub-11.0
 232cb27cbf4dafe0fc49900865b5548c grub
 f74242b1f62bdbc7e3d6f060ceab7e0a grub0620
 33af848897baea7919c430d7adb6d9f2 initializinggnome

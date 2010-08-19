@@ -2,7 +2,13 @@
 use strict;
 use bmwqemu;
 my $basedir="raid";
+my $qemuimg="/usr/bin/kvm-img";
+if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
 my $iso=$ENV{SUSEISO};
+$ENV{HDDMODEL}||="virtio";
+$ENV{NUMDISKS}||=1;
+if($ENV{RAIDLEVEL}) {$ENV{NUMDISKS}=4}
+
 my $ison=$iso; $ison=~s{.*/}{}; # drop path
 if($ison=~m/LiveCD/i) {$ENV{LIVECD}=1}
 if($ison=~m/Promo/) {$ENV{PROMO}=1}
@@ -17,12 +23,8 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	my $file=$ENV{UPGRADE};
 	if(!-e $file) {die "'$ENV{UPGRADE}' should be old img.gz"}
 	$ENV{KEEPHDDS}=1;
-	# restore old OS image state
-	if($file=~m/\.gz$/) {
-		system("gzip -cd $file > raid/1");
-	} else {
-		system("cp $file raid/1");
-	}
+	# use qemu snapshot/cow feature to work on old image without writing it
+	system($qemuimg, "create", "-b", $file, "-f", "qcow2", "$basedir/l1");
 }
 
 system(qw"/bin/mkdir -p", $basedir);
@@ -32,9 +34,9 @@ if(!qemualive) {
 		# fresh HDDs
 		system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/1"); # for LVM
 		for my $i (1..4) {
-			my $qemuimg="/usr/bin/kvm-img";
-			if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
 			system($qemuimg, "create" ,"$basedir/$i", "7G");
+			unlink("$basedir/l$i");
+			symlink($i,"$basedir/l$i");
 		}
 		system("sync"); sleep 5;
 	}
@@ -43,9 +45,9 @@ if(!qemualive) {
 	die "fork failed" if(!defined($qemupid));
 	if($qemupid==0) {
 		my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=virtio,macaddr=52:54:00:12:34:56");
-		for my $i (1..4) {
+		for my $i (1..$ENV{NUMDISKS}) {
 			my $boot=$i==1?",boot=on":"";
-			push(@params, "-drive", "file=$basedir/$i,if=virtio$boot");
+			push(@params, "-drive", "file=$basedir/l$i,if=$ENV{HDDMODEL}$boot");
 		}
 		push(@params, "-boot", "dc", "-cdrom", $iso) if($iso);
 		if($ENV{VNC}) {
