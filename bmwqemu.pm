@@ -216,6 +216,7 @@ sub inststagedetect($)
 { my $dataref=shift;
 	return if length($$dataref)!=1440015; # only work on images of 800x600
 	my $ppm=ppm->new($$dataref);
+	return unless $ppm;
 	my @md5=();
 	# use several relevant non-text parts of the screen to look them up up
 	# WARNING: some break when background/theme changes (%md5inststage needs updating)

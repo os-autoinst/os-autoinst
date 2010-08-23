@@ -11,6 +11,7 @@ sub get_ocr($$@)
 	if(!$gocrbin || !@ocrrect) {return ""}
 	if(@ocrrect!=4) {return " ocr: bad rect"}
 	my $ppm=ppm->new($$dataref);
+	return unless $ppm;
 	my $ppm2=$ppm->copyrect(@ocrrect);
 	if(!$ppm2) {return ""}
 	my $tempname="/dev/shm/$$-".time.rand(10000).".ppm";

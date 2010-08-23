@@ -20,6 +20,10 @@ sub new($)
 	if(!$self->{xres}) {return undef} # unsupported format
 	#$self->{header}=$&;
 	$self->{data}=substr($ppmdata,length($&));
+	if(length($self->{data})!=$self->{xres}*$self->{yres}*BPP) {
+		warn "incomplete/corrupt ppm of size ".length($self->{data});
+		return undef;
+	}
 	return bless $self,$classname;
 }
 
