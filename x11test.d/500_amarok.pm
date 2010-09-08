@@ -26,6 +26,7 @@ sub checklist()
 	# bad: has random bits in pixels at (68,67-69)
 	return {qw(
 		efc74946144a6260943d4383a972dafb OK
+		37834e420389f2a96e896d520010c629 OK
 	)}
 }
 

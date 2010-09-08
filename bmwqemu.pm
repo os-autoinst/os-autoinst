@@ -211,6 +211,17 @@ sub get_ocr($)
 	return " ocr='$ocr'";
 }
 
+sub hashrect($$$)
+{ my($ppm,$rect,$flags)=@_;
+	my $ppm2=$ppm->copyrect(@$rect);
+	my @result;
+	return unless $ppm2;
+	if($flags=~m/r/) {$ppm2->replacerect(0,137,13,15);} # mask out text
+	if($flags=~m/c/) {push(@result, [Digest::MD5::md5_hex($ppm2->{data}),$rect,$flags])} # extra coloured version hash
+	if($flags=~m/t/) {$ppm2->threshold(0x80);} # black/white => drop most background
+	return (@result,[Digest::MD5::md5_hex($ppm2->{data}),$rect,$flags]);
+}
+
 # input: ref on PPM data
 sub inststagedetect($)
 { my $dataref=shift;
@@ -218,39 +229,28 @@ sub inststagedetect($)
 	my $ppm=ppm->new($$dataref);
 	return unless $ppm;
 	my @md5=();
-	# use several relevant non-text parts of the screen to look them up up
+	# use several relevant non-text parts of the screen to look them up
 	# WARNING: some break when background/theme changes (%md5inststage needs updating)
-	my $ppm2;
 	# popup text detector
-	$ppm2=$ppm->copyrect(230,230, 300,100);
-	$ppm2->threshold(0x80); # black/white => drop most background
-	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
+	push(@md5, hashrect($ppm, [230,230, 300,100], "t"));
 	# smaller popup text detector
-	$ppm2=$ppm->copyrect(300,240, 100,100);
-	$ppm2->threshold(0x80); # black/white => drop most background
-	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
-	# use header text for GNOME
-	$ppm2=$ppm->copyrect(0,0, 250,30);
-	$ppm2->threshold(0x80); # black/white => drop most background
-	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
+	push(@md5, hashrect($ppm, [300,240, 100,100], "t"));
+	# use header text for GNOME-installer
+	push(@md5, hashrect($ppm, [0,0, 250,30], "t"));
 	# KDE/NET/DVD detect checks on left
-	$ppm2=$ppm->copyrect(27,128,13,200);
-	$ppm2->replacerect(0,137,13,15); # mask out text
-	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
-	$ppm2->threshold(0x80); # black/white => drop most background
-	push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
+	push(@md5, hashrect($ppm, [27,128,13,200], "rct"));
+	
 	foreach my $rect (@extrahashrects) {
 		next unless $rect;
 		my @r=split(",", $rect);
-		$ppm2=$ppm->copyrect(@r);
-		next unless $ppm2;
-		push(@md5, Digest::MD5::md5_hex($ppm2->{data}));
+		push(@md5, hashrect($ppm, \@r, ""));
 	}
 
 	my $found=0;
-	foreach my $md5 (@md5) {
+	foreach my $md5e (@md5) {
+		my($md5,$rect,$flags)=@$md5e;
 		my $currentinststage=$md5inststage{$md5}||"";
-		diag "stage=$currentinststage $md5";
+		diag "stage=$currentinststage $md5 ".join(",",@$rect)." $flags";
 		next if $found;
 		if($currentinststage) { $lastknowninststage=$lastinststage=$currentinststage }
 		if($currentinststage){$found=1}; # stop on first match - so must put most specific tests first
