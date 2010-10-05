@@ -3,7 +3,7 @@ use strict;
 use bmwqemu;
 
 # wait until ready
-waitinststage "GNOME", 1000;
+waitinststage "GNOME", 200;
 waitidle 100;
 sleep 10;
 

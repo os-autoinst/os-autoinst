@@ -120,9 +120,11 @@ bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
 2cf0cc21879e01e8cf74bd2bd757c5d0 booted-GNOME-11.3
 21c2c49c338c50b59ca4b3759ec62cfa booted-GNOME-0712
+aadb5da2cd5c3d0376ddc89f72cb9f0c booted-GNOME-0754
 e06959a4b7fbb1a6885c7894c14d9204 booted-GNOME-11.3-dvd
 bff7185022f9fea00e12c8fbb52b29b8 booted-GNOME-11.3-dvd
 a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
+68cadea0ed4cc94bc3752e059f715d84 booted-LXDE-11.3
 c2fc1822dceac430822194e210d34a6e booted-XFCE-11.3
 b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
 1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
