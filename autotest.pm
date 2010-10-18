@@ -15,7 +15,7 @@ sub runtest
 	&$testfunc($test);
 }
 
-sub runtestlist(@&)
+sub runtestlist($&)
 {
 	my($tests,$testfunc)=@_;
 	foreach my $script (@$tests) {

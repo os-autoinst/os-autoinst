@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 iso=$1
 if test -z "$iso" ; then

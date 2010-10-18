@@ -18,6 +18,7 @@ if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
 } else {
 	$username="root"; # LiveCD account
 	$password="";
+	autotest::runtest("$scriptdir/suseinst.d/020_bootloader.pm", \&installrunfunc)
 }
 
 1;
