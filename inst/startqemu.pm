@@ -32,11 +32,15 @@ system(qw"/bin/mkdir -p", $basedir);
 if(!qemualive) {
 	if(!$ENV{KEEPHDDS}) {
 		# fresh HDDs
-		system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/1"); # for LVM
 		for my $i (1..4) {
-			system($qemuimg, "create" ,"$basedir/$i", "7G");
 			unlink("$basedir/l$i");
-			symlink($i,"$basedir/l$i");
+			if(-e "$basedir/$i.lvm") {
+				symlink("$i.lvm","$basedir/l$i");
+				system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1"); # for LVM
+			} else {
+				system($qemuimg, "create" ,"$basedir/$i", "7G");
+				symlink($i,"$basedir/l$i");
+			}
 		}
 		system("sync"); sleep 5;
 	}
