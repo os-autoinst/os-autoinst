@@ -18,11 +18,9 @@ if($ENV{MEMTEST}) { # special
 }
 # assume bios+grub+anim already waited in start.sh
 if(!$ENV{LIVETEST}) {
-	if($ENV{LIVECD}) {
-		# installation (instead of HDDboot on non-live)
-		# installation (instead of live):
-		sendkey "down";
-	}
+	# installation (instead of HDDboot on non-live)
+	# installation (instead of live):
+	sendkey "down";
 	if($ENV{PROMO}) {
 		# has extra GNOME-Live and KDE-Live menu entries
 		for(1..2) {sendkey "down";}
