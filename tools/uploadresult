@@ -1,0 +1,44 @@
+#!/usr/bin/perl -w
+# this uploads a test-result-set into a web-service
+# using a POST request
+
+use LWP::UserAgent;
+
+# options to be saved in DB
+our @options=qw(LVM DESKTOP);
+our @notifyurls=("http://www.zq1.de/cgi-bin/openqadbfeed");
+
+do "httpnotifyconf.pm";
+
+my %params=();
+for my $o (@options) {
+	my $x=$ENV{$o};
+	$params{"IN_$o"}=$x;
+}
+
+
+
+
+sub url_encode($) {
+   return "" if not defined $_[0];
+   my $x=shift;
+   $x=~s/[^a-zA-Z0-9.-]/sprintf("%%%02x",ord($&))/ge;
+   return $x;
+}
+
+my $ua = LWP::UserAgent->new;
+$ua->agent("geekotest/0.1");
+
+foreach my $url (@notifyurls) {
+	my $params=join("&", map{"$_=".url_encode($params{$_})} keys %params);
+	print "POST $url $params\n";
+	my $req = HTTP::Request->new(POST => $url);
+	$req->content_type('application/x-www-form-urlencoded');
+	$req->content($params);
+	# Pass request to the user agent and get a response back
+	#my $res = $ua->request($req);
+	#unless ($res->is_success) { warn "error uploading to $url: $response->status_line"; }
+
+}
+
+
