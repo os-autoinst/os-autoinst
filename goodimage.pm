@@ -39,6 +39,7 @@ bbe0d620ec01763f2a01993caaed1e88 welcome-11.2
 5846c48e9e5124ab3effbf0ef4b73049 welcome
 e6eb636f1d531acb20523c62158c1001 welcome-net0620
 4a6fddf6f668c4c1c4793714c95f0449 welcome-kde-11.3
+8015fbec22ab09e523bacf50e4d094f5 welcome-kde0834
 dedd290c0897c2d0fc7fb4d2090b39c8 systemanalysis-11.2
 3fbf45fb54d21950c73488166ec98937 systemanalysis
 b9b4cf11ac2f313bae3b75d9239281c2 systemanalysis-net0620
@@ -49,6 +50,7 @@ a43e0ffec78df3af3e509e56a48f1e6f timezone
 29a8ce1da88163b13858dc0614069e5a timezone
 0a70417811cccaa6466339474224281c timezone-net0620
 6732e48f879b54522a349fcc3f96941f timezone-kde-11.3
+52c1983d3e4adba9ad92fb855e5dbb5c timezone-kde0834
 2b220cdad4ee07bdf5ae766058426740 desktopselection-11.2
 db57e0f839aa998345d1b2b67a05f580 desktopselection
 357ff3559594ae152f129117b7892996 desktopselection
@@ -60,6 +62,7 @@ dc7646ae2971f8e0fd5f7695f37095cb disk
 1b7d8730583f2893055ce3899dbb455f disk
 a0e2fc9642b7369b7f4c8b4f06aeed68 disk-net0620
 d0d05609e0008558a4e7a53a05bf6e3f disk-kde-11.3
+4b1f70bb44337f85e73a433ce95b536a disk-kde0834
 056579de8bd96af29d548bd7960322b4 usersettings-11.2
 c9e2eae9d5caa428b697f389af94a99a usersettings
 cb4e240090bc56ce5e35eb9b3ebaa414 usersettings
@@ -67,6 +70,7 @@ db695f7a9fd40aab8cf2c0a33797ccb0 usersettings
 73ce4790a9396e5a011df8f81d495991 usersettings
 14b6eca9fb9c02460e90b0a1818ce674 usersettings-net0620
 1c13ffe98e1eeed00c19fce88f06b2d4 usersettings-kde-11.3
+e6f56766a1dc94a4100f1f41ca6d268b usersettings-kde0834
 005d41298f61c84b09c202f2ceb9a180 installationoverview-11.2
 ab95aad9e25599a6215fd73f66aadb0a installationoverview
 fcad10fdd9b542bf53b176a8980887cc installationoverview
@@ -74,6 +78,7 @@ fcad10fdd9b542bf53b176a8980887cc installationoverview
 e537a8a06b454b4b95b685c0c0664766 installationoverview
 5088f581358b4527c5209358abbe777e installationoverview-net0620
 874fe25fef2708e53d7e00f965552c08 installationoverview-kde-11.3
+e7c21345939e097ef3aa67c1560d9421 installationoverview-kde0834
 3e27070e780725adf92f91b386ff335b installconfirm
 fbcc39c0a471d8a67cdad29ce639a1d0 installconfirm
 b3618300ce4ac4c870a3352bacb01cca installconfirm
@@ -84,11 +89,13 @@ d2a0411c2bd7a346ce7478194ccd6b3a performinstallation
 d506a2d8867bd562c568bfced604f50f performinstallation
 dc610bc01e6a59a1ec2b1a8a2b137efd performinstallation-net0620
 d7aaab0e441a984d73f11291c8747a95 performinstallation-kde-11.3
+9e8a64829c477d6c2fcef243b60f14e0 performinstallation-kde0834
 a7c60d22ae73f52b06a45fea10f2a9ff dvd-net-the-system-will-reboot-now
 58fa2751a39e795b872614bdb657bacc rebootnow
 b28b4c8babb004a696d18875ab95c934 rebootnow
 a13a2535f81e9980cb87e30d99231177 rebootnow
 1fc181a6be8f6f21b916463440faa669 rebootnow
+b1c0fa183e9e0a88419e8d714107a0a2 rebootnow-kde0834
 eabf2c66351e8ee185e0a583deb1e8a7 rebootnow-gnome-11.3
 e3f412dc306085ca4d1795f850c81dee grub
 6dad21ea36802fca6a7b4dc14db62c0e grub0620
@@ -102,6 +109,7 @@ e8fa5eee5c5e45cc081d7679acd42101 automaticconfiguration
 472a01647a0d3c5dc6ca728220176545 automaticconfiguration-gnome
 6dd72c423d4e97fb0b2d1ceb1deb9450 automaticconfiguration-net0620
 4fc3bb87a12afb21ce1fb6fe98d525fc automaticconfiguration-kde-11.3
+c7359502d8f01b302520f149d3e06daf automaticconfiguration-kde0834
 0db6d0f55610ce984acd4426d1753eb8 users
 cc752e0fd5b766ca9f2d07ee3c3566c4 booted-kdestartscreen
 17d05a3d07d24a9f081eea706f4551b8 booted-kdm-11.3
@@ -115,6 +123,7 @@ f95b7023f2f547a78bbe0952199513fd booted-KDE-0673-SUSE-greeting
 866a30651084f519426acdb539574ed9 booted-KDE-11.3-32
 256484845a81b565834278df6d16c3da booted-KDE-11.3-64
 6d18b2d816f80e55fdc6ce1a06a908be booted-KDE-11.3-64-black
+f1eab61e4b7ec02eb5e91e0aa969787a booted-KDE-0834
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
 bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
