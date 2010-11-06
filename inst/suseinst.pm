@@ -21,4 +21,11 @@ if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
 	autotest::runtest("$scriptdir/suseinst.d/020_bootloader.pm", \&installrunfunc)
 }
 
+set_hash_rects(
+	[30,30,100,100], # where most applications pop up
+	[630,30,100,100], # where some applications pop up
+	[0,579,100,10 ], # bottom line (KDE/GNOME bar)
+	);
+
+
 1;

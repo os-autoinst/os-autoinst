@@ -73,11 +73,6 @@ if(!$ENV{GNOME}) {
 	sleep 50; # time for fast-forward
 }
 
-set_hash_rects(
-	[30,30,100,100], # where most applications pop up
-	[630,30,100,100], # where some applications pop up
-	[0,579,100,10 ], # bottom line (KDE/GNOME bar)
-	);
 }
 
 1;
