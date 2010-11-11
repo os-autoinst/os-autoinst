@@ -14,3 +14,12 @@ tools/viewlastimg
 to inject qemu commands for extra testing you can
 echo sendkey ctrl-alt-f1 | netcat localhost 15223
 
+
+
+
+If you want to contribute to this project, please clone and send git-pull requests via
+http://gitorious.org/os-autoinst/
+
+alternatively send patches or git pull requests for the current version
+to <bernhard+osautoinst lsmod de>
+

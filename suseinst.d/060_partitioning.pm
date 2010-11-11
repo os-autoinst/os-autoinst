@@ -65,6 +65,7 @@ sub setraidlevel($)
 }
 
 
+waitinststage "disk";
 if($ENV{RAIDLEVEL}) {
 if(1) {
 # create partitioning

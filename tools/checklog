@@ -4,6 +4,7 @@ use bmwqemu;
 use autotest;
 $scriptdir=`dirname $scriptdir`;chomp($scriptdir); # one level up
 
+print "====\n"; # marker
 
 my @stages=(qw"splashscreen welcome timezone disk usersettings installationoverview performinstallation automaticconfiguration booted");
 

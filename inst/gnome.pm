@@ -4,6 +4,7 @@ use bmwqemu;
 
 # wait until ready
 waitinststage "GNOME", 200;
+mousemove_raw(31000, 31000); # move mouse off screen again
 waitidle 100;
 sleep 10;
 

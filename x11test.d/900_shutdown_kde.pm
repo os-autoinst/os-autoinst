@@ -10,7 +10,7 @@ sub run()
 {
 	my $self=shift;
 	sendkey "ctrl-alt-delete"; # shutdown
-	sleep 4;
+	waitidle;
 	sendautotype "\t";
 	sleep 1;
 	$self->take_screenshot;

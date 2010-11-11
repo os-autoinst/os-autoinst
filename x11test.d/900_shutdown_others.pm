@@ -10,9 +10,9 @@ sub run()
 {
 	my $self=shift;
 	qemusend "system_powerdown"; # shutdown
-	sleep 4;
+	waitidle;
 	$self->take_screenshot;
-	sendkey "ctrl-alt-f1"; # work-around for LXDE bug 619769
+	#sendkey "ctrl-alt-f1"; # work-around for LXDE bug 619769 ; not needed in Factory anymore
 	waitinststage("splashscreen");
 }
 

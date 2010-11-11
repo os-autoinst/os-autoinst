@@ -19,7 +19,7 @@ if(!$ENV{NICEVIDEO}) {
 sendkey "ctrl-alt-f2";
 sleep 2;
 sendautotype "$username\n";
-sleep 1;
+sleep 2;
 sendautotype "$password\n";
 sleep 3;
 sendautotype "PS1=\$\n"; # set constant shell promt
