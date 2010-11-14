@@ -22,6 +22,7 @@ sendautotype($domain);
 sleep 3;
 sendkey("alt-o"); # confirm possible network manager warning
 sendkey("alt-o"); # OK=>Save&Exit
+waitidle();
 waitidle(180);
 sleep 10;
 

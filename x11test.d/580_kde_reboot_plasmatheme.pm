@@ -19,6 +19,7 @@ sub checklist()
 	# return hashref:
 	return {qw(
 		6d18b2d816f80e55fdc6ce1a06a908be fail
+		844621cdb1baa93b49429e425d424d75 fail
 		866a30651084f519426acdb539574ed9 OK
 	)}
 }

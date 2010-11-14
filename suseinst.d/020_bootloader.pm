@@ -58,7 +58,7 @@ if($ENV{NETBOOT}) {
 	for(1..22) { sendkey "backspace"; }
 	sendautotype($mirrorpath);
 
-        sleep(1.5);
+        sleep(2);
 	sendkey "ret";
 
 	# HTTP-proxy

@@ -9,6 +9,7 @@ sub run()
 	my $self=shift;
 	script_sudo("/sbin/yast2 bootloader");
 	sleep 3;
+	$self->take_screenshot;
 	sendkey "alt-o"; # OK => Close
 	waitidle;
 	$self->take_screenshot;
