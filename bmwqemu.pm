@@ -451,7 +451,7 @@ sub script_sudo($;$)
 	sendautotype("sudo $prog\n");
 	if(!$lastsudotime||$lastsudotime+$sudotimeout<time()) {$sudos=0}
 	if(!$sudos++) {
-		sleep 1;
+		waitidle;
 		sendautotype "$password\n";
 	}
 	$lastsudotime=time();

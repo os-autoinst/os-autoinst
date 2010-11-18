@@ -24,6 +24,8 @@ sub checklist()
 	return {qw(
 		0791f673be71d1ce43788135fc6aa0f7 OK
 		5bf3bbb9c13f6297856702935f910735 OK
+		37b3b3ab3db499d7a82e47164fe9264c OK
+		553f19500f672d1b258300bb4a670e3b OK
 	)}
 }
 
