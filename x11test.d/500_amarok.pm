@@ -10,6 +10,7 @@ sub run()
 {
 	my $self=shift;
 	x11_start_program("amarok");
+	waitidle;
 	$self->take_screenshot;
 	sendkey "alt-f4"; sleep 3; # mp3 popup
 	$self->take_screenshot;
@@ -18,6 +19,7 @@ sub run()
 	sendkey "alt-f4"; sleep 9; # close another popup
 	$self->take_screenshot;
 	sendkey "ctrl-q"; # really quit (alt-f4 just backgrounds)
+	x11_start_program("killall amarok"); # to be sure that it does not interfere with later tests
 }
 
 sub checklist()
@@ -28,6 +30,7 @@ sub checklist()
 		efc74946144a6260943d4383a972dafb OK
 		37834e420389f2a96e896d520010c629 OK
 		0a2bf068e5fb68024db5aae0b704c340 OK
+		906f3c3ef44f02df0c65b46bee949c2b OK
 	)}
 }
 

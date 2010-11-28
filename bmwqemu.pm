@@ -3,7 +3,7 @@ $|=1;
 package bmwqemu;
 use strict;
 use warnings;
-use Time::HiRes qw(sleep);
+use Time::HiRes qw(sleep gettimeofday);
 use Digest::MD5;
 use IO::Socket;
 use Exporter;
@@ -43,6 +43,7 @@ our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
 our $testedversion=$ENV{SUSEISO}||""; $testedversion=~s{.*/}{};$testedversion=~s{^([^.]+?)(?:-Media)?\.iso$}{$1};
 my @ocrrect; share(@ocrrect);
 my @extrahashrects; share(@extrahashrects);
+our @keyhistory;
 our %cmd=qw(
 next alt-n
 install alt-i
@@ -116,6 +117,8 @@ sub sendkey($)
 {
 	my $key=shift;
 	qemusend "sendkey $key";
+	my @t=gettimeofday();
+	push(@keyhistory, [$t[0]*1000000+$t[1], $key]);
 	sleep(0.25);
 }
 

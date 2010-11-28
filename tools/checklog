@@ -18,10 +18,12 @@ while(<>) {
 	if(/md5=([0-9a-f]+)/) {$md5seen{$1}=1}
 }
 
+my %results;
 foreach my $s (@stages) {
 	my $found=0;
 	foreach(keys(%stageseen)) {if(m/$s/){$found=1;last;}}
-	print "$s: ".($found?"OK":"fail")."\n";
+	my $result=$results{$s}=($found?"OK":"fail");
+	print "$s: $result\n";
 }
 
 sub checkfunc
@@ -30,6 +32,7 @@ sub checkfunc
 	my $class=ref $test;
 	my $result=$test->check(\%md5seen)||"unknown";
 	print "$class: $result\n";
+	$results{$class}=$result;
 }
 
 autotest::runtest("suseinst.d/010_initenv.pm",sub{my $test=shift;$test->run;});
@@ -37,4 +40,11 @@ autotest::runtest("suseinst.d/010_initenv.pm",sub{my $test=shift;$test->run;});
 autotest::runtestdir("$scriptdir/inst.d", \&checkfunc);
 autotest::runtestdir("$scriptdir/consoletest.d", \&checkfunc);
 autotest::runtestdir("$scriptdir/x11test.d", \&checkfunc);
+
+my $overall=($results{xterm} eq "OK" or $results{firefox} eq "OK");
+for my $test (qw(automaticconfiguration booted zypper_in zypper_up yast2_lan)) {
+	$overall=0 if $results{$test} ne "OK";
+}
+
+print "overall: ".($overall?"OK":"fail")."\n";
 

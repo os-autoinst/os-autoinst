@@ -6,7 +6,7 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return ($ENV{DESKTOP} ne "gnome");
+	return ($ENV{DESKTOP} ne "gnome" and $ENV{DESKTOP} ne "lxde");
 }
 
 sub run()

@@ -23,6 +23,7 @@ sub run()
 		sendkey $key;
 	} else { # lower selection level
 		sendkey "alt-o"; #TODO translate
+		sleep 2;
 		sendkey $key;
 	}
 	sleep 3; # to make selection visible

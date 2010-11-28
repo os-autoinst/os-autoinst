@@ -24,7 +24,7 @@ sub take_screenshot()
 	my $testname=ref($self);
         my $filename="$path/$version/$testname-$self->{count}.ppm";
         qemusend "screendump $filename";
-	# TODO analyse_screenshot $filename;
+	# TODO analyze_screenshot $filename;
 }
 
 sub checklist

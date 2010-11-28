@@ -22,9 +22,9 @@ sendautotype($domain);
 sleep 3;
 sendkey("alt-o"); # confirm possible network manager warning
 sendkey("alt-o"); # OK=>Save&Exit
+sleep 20;
 waitidle();
 waitidle(180);
-sleep 10;
 
 sendkey("ret");
 sendkey("ctrl-l"); # clear screen

@@ -26,6 +26,8 @@ sub checklist()
 		5bf3bbb9c13f6297856702935f910735 OK
 		37b3b3ab3db499d7a82e47164fe9264c OK
 		553f19500f672d1b258300bb4a670e3b OK
+		1518f09067c55dbcd5abec1a14ac7cb0 OK
+		b911aaec3dde67b3d1c889c3b2f75089 OK
 	)}
 }
 

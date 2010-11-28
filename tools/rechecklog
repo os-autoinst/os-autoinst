@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+use strict;
+use bmwqemu;
+
+# main
+foreach my $log (@ARGV) {
+	die "invalid path" if $log=~m/[^a-z0-9\/+._-]/i;
+	$ENV{SUSEISO}=$log; # to autodetect desktop etc
+	if($log=~m/-(kde|gnome|xfce|lxde)/) {$ENV{DESKTOP}=$1} 
+	else {delete $ENV{DESKTOP}}
+	my $newcheckresult=`$scriptdir/checklog $log`;
+
+	my $content=fileContent($log); # cache
+	my ($atime,$mtime) = (stat($log))[8,9];
+	# strip old summary
+	$content=~s/^====\nsplashscreen: .*//sm or die "was no proper log?";
+	next if($& eq $newcheckresult); # stayed same
+
+	open(my $fd, ">", $log) or die "can not write log";
+	print $fd $content, $newcheckresult;
+	close($fd);
+	utime $atime, $mtime, $log;
+}

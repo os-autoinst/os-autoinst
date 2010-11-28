@@ -23,6 +23,7 @@ sleep 2;
 sendautotype "$password\n";
 sleep 3;
 sendautotype "PS1=\$\n"; # set constant shell promt
+sleep 1;
 #sendautotype 'PS1=\$\ '."\n"; # qemu-0.12.4 can not do backslash yet. http://permalink.gmane.org/gmane.comp.emulators.qemu/71856
 
 
