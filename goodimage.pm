@@ -13,7 +13,9 @@ e935514757e9a23962e7d427887aea10 newinst
 faa6e1e9af34b83d538691267793ba1b newinst0620
 3206a747407c6a1c91151ccd968ef902 newinst0674
 99c0bfefeda7ab364adf334a22b69f09 newinst0834
+2618535a07402d746ea81e4ef5ca57a2 newinst0915
 810ef338a46c839ef4715143dc1d226e 11.3-upgradeable
+c39c20d6342e004ede74f3b153d99310 11.3-upgradeable-0900
 bc32b148e35198bcf7a77f8b8843e2d3 ms6kdelivecdreboot
 );
 
@@ -97,6 +99,7 @@ dc610bc01e6a59a1ec2b1a8a2b137efd performinstallation-net0620
 d7aaab0e441a984d73f11291c8747a95 performinstallation-kde-11.3
 9e8a64829c477d6c2fcef243b60f14e0 performinstallation-kde0834
 287b13e0b8c669437874386f944adecf performinstallation-gnome0834
+e759e01febb94d9f3f7ae44499c28c52 performinstallation-upgrade0900
 a7c60d22ae73f52b06a45fea10f2a9ff dvd-net-the-system-will-reboot-now
 58fa2751a39e795b872614bdb657bacc rebootnow
 b28b4c8babb004a696d18875ab95c934 rebootnow
@@ -147,6 +150,7 @@ bff7185022f9fea00e12c8fbb52b29b8 booted-GNOME-11.3-dvd
 a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
 68cadea0ed4cc94bc3752e059f715d84 booted-LXDE-11.3
 c2fc1822dceac430822194e210d34a6e booted-XFCE-11.3
+7ef5b6f89e9c24065f0879740fb89669 booted-XFCE-0914
 b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
 1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
 209f79c737bb62e12215b36d345fb24d failed-to-detect-CD-rebooting-in-120-seconds
