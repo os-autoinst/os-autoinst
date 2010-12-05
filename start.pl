@@ -12,6 +12,7 @@ if($init) {
 	}
 }
 open_management_console;
+qemusend_nolog(fileContent("$ENV{HOME}/.autotestvncpw")||"");
 do "inst/screenshot.pm" or die $@;
 if($init) {
 	waitinststage "grub"; # wait for welcome animation to finish

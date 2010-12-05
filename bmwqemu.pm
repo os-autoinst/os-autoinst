@@ -19,11 +19,13 @@ my $lastname;
 my $lastinststage :shared = "";
 my $lastknowninststage :shared = "";
 my $prestandstillwarning :shared = 0;
+my $timeoutcounter :shared = 0;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
-@EXPORT = qw($username $password $qemubin $qemupid $scriptdir $testedversion %cmd 
-&diag &fileContent &qemusend &sendkey &sendautotype &autotype &mousemove_raw &mousemove &mouseclick &qemualive &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program);
+@EXPORT = qw($username $password $qemubin $qemupid $scriptdir $testresults $testedversion %cmd 
+&diag &fileContent &qemusend_nolog &qemusend &sendkey &sendautotype &autotype &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
+&waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program);
 
 
 our $debug=1;
@@ -36,6 +38,7 @@ our $qemubin="/usr/bin/kvm";
 our $qemupid;
 our $gocrbin="/usr/bin/gocr";
 our $qemupidfilename="qemu.pid";
+our $testresults="testresults";
 $ENV{QEMUPORT}||=15222;
 our $managementcon;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
@@ -107,10 +110,14 @@ sub fileContent($) {my($fn)=@_;
 	return $result;
 }
 
+sub qemusend_nolog($)
+{
+	print $managementcon shift(@_)."\n";
+}
 sub qemusend($)
 {
 	print LOG "qemusend: $_[0]\n";
-	print $managementcon shift(@_)."\n";
+	&qemusend_nolog;
 }
 
 sub sendkey($)
@@ -262,6 +269,24 @@ sub inststagedetect($)
 	$lastinststage="unknown";
 }
 
+sub result_dir()
+{
+	mkdir $testresults;
+	mkdir "$testresults/$testedversion";
+	"$testresults/$testedversion"
+}
+
+sub do_take_screenshot($)
+{ my($filename)=@_;
+	qemusend "screendump $filename";
+}
+sub timeout_screenshot()
+{
+	my $n=++$timeoutcounter;
+	my $dir=result_dir;
+	do_take_screenshot("$dir/timeout-$n.ppm");
+}
+
 my $framecounter=0;
 sub take_screenshot()
 {
@@ -297,7 +322,7 @@ sub take_screenshot()
 	if(!$lasttime || $lasttime!=$now) {$n=0};
 	my $filename=$path.$now."-".$n++.".ppm";
 	#print STDERR $filename,"\n";
-	qemusend "screendump $filename";
+	do_take_screenshot($filename);
 	$lastname=$filename;
 	$lasttime=$now;
 }
@@ -354,6 +379,7 @@ sub waitgoodimage(;$)
 		if($goodimageseen) {diag "seen good image... continuing execution"; return 1;}
 		sleep 1;
 	}
+	timeout_screenshot();
 	diag "waitgoodimage timed out";
 	return 0;
 }
@@ -367,7 +393,11 @@ sub waitinststage($;$$)
 	if($prestandstillwarning) { sleep 3 }
 	for my $n (1..$timeout) {
 		if($lastinststage=~m/$stage/) {diag "detected stage=$stage ... continuing execution"; sleep $extradelay; return 1;}
-		if($prestandstillwarning) { diag "WARNING: waited too long for stage=$stage"; return 2; }
+		if($prestandstillwarning) {
+			timeout_screenshot();
+			diag "WARNING: waited too long for stage=$stage";
+			return 2;
+		}
 		sleep 1;
 	}
 	diag "waitinststage stage=$stage timed out after $timeout";
@@ -416,7 +446,7 @@ sub readconloop
 
 sub open_management_console()
 {
-	open(LOG, ">", "currentautoinst-log.txt");
+	open(LOG, ">>", "currentautoinst-log.txt");
 	# set unbuffered so that sendkey lines from main thread will be written
 	my $oldfh=select(LOG); $|=1; select($oldfh);
 

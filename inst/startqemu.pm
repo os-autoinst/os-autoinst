@@ -24,6 +24,7 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	if(!-e $file) {die "'$ENV{UPGRADE}' should be old img.gz"}
 	$ENV{KEEPHDDS}=1;
 	# use qemu snapshot/cow feature to work on old image without writing it
+	unlink "$basedir/l1";
 	system($qemuimg, "create", "-b", $file, "-f", "qcow2", "$basedir/l1");
 }
 

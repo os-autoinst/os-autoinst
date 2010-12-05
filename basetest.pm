@@ -17,13 +17,10 @@ sub take_screenshot()
 {
 	my $self=shift;
 	++$self->{count};
-	my $path="testresults";
-	my $version=$testedversion;
-	mkdir $path;
-	mkdir "$path/$version";
+	my $path=result_dir;
 	my $testname=ref($self);
-        my $filename="$path/$version/$testname-$self->{count}.ppm";
-        qemusend "screendump $filename";
+        my $filename="$path/$testname-$self->{count}.ppm";
+        bmwqemu::do_take_screenshot($filename);
 	# TODO analyze_screenshot $filename;
 }
 
