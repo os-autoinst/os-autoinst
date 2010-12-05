@@ -8,6 +8,13 @@ sub run()
 {
 script_sudo("/sbin/yast2 lan");
 
+if($ENV{LIVETEST}) {
+	sendkey "ret";   # confirm networkmanager popup
+	sleep 1;
+	sendkey "alt-t"; # traditional ifup
+	sleep 1;
+}
+
 my $hostname="susetest";
 my $domain="zq1.de";
 
