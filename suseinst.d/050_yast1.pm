@@ -68,7 +68,9 @@ if($ENV{UPGRADE}) {
 	sendkey "alt-u"; # confirm
 	sleep 20;
 	sendkey "alt-d"; # details
-	sleep 2400; # time for install
+	local $ENV{SCREENSHOTINTERVAL}=$ENV{SCREENSHOTINTERVAL}*10;
+	sleep 3600; # time for install
+	# TODO: use waitstillimage
 	waitidle 4000;
 }
 }
