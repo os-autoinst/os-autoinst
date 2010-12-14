@@ -15,8 +15,8 @@ export PERLLIB=$scriptdir
 echo testing $SUSEISO
 # cleanup
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
-rm -rf qemuscreenshot/*.ppm currentautoinst-log.txt
-date >> currentautoinst-log.txt
+rm -f qemuscreenshot/*.ppm
+date > currentautoinst-log.txt
 curl -s $SUSEMIRROR/repo/oss/media.1/build >> currentautoinst-log.txt
 $scriptdir/start.pl
 
