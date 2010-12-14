@@ -60,6 +60,7 @@ if(!$ENV{LIVECD}) {
 	}
 	waitinststage "automaticconfiguration";
 }
+if($ENV{RAIDLEVEL}) { do "$scriptdir/workaround/656536.pm" }
 waitinststage "automaticconfiguration", 70;
 mousemove_raw(0x7fff,0x7fff); # move mouse off screen again
 mousemove_raw(0x7fff,0x7fff); # work around no reaction on first move
