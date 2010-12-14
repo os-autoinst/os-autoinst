@@ -7,6 +7,7 @@ sub run()
 	script_run('uname -a');
 #	$self->take_screenshot;
 	script_run('df');
+	script_run('free');
 }
 
 sub checklist()

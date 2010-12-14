@@ -400,6 +400,7 @@ sub waitinststage($;$$)
 		}
 		sleep 1;
 	}
+	timeout_screenshot() if($timeout>1);
 	diag "waitinststage stage=$stage timed out after $timeout";
 	return 0;
 }
