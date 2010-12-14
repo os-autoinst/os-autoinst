@@ -3,7 +3,7 @@ use strict;
 use bmwqemu;
 
 # wait until ready
-waitinststage "KDE", 1000;
+waitinststage "KDE", 200;
 mousemove_raw(31000, 31000); # move mouse off screen again
 waitidle 100;
 sleep 10;

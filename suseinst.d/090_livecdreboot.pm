@@ -58,7 +58,6 @@ if(!$ENV{LIVECD}) {
 		# hard reset (same as physical reset button on PC)
 		qemusend "system_reset";
 	}
-	waitinststage "automaticconfiguration";
 }
 if($ENV{RAIDLEVEL}) { do "$scriptdir/workaround/656536.pm" }
 waitinststage "automaticconfiguration", 70;

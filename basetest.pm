@@ -21,6 +21,7 @@ sub take_screenshot()
 	my $testname=ref($self);
         my $filename="$path/$testname-$self->{count}.ppm";
         bmwqemu::do_take_screenshot($filename);
+	sleep(0.1);
 	# TODO analyze_screenshot $filename;
 }
 

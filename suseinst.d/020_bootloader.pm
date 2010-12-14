@@ -75,7 +75,7 @@ if($ENV{NETBOOT}) {
 		# add boot parameters
 		# ZYPP... enables proxy caching
 	}
-	sendautotype("ZYPP_ARIA2C=0"); sleep 2;
+	sendautotype("ZYPP_ARIA2C=0 ZYPP_MULTICURL=0 "); sleep 2;
 }
 
 
