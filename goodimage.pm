@@ -123,6 +123,7 @@ e3f412dc306085ca4d1795f850c81dee grub
 053ed0ae4ad4679aec1c7d696f3697b2 grub-xmas
 f2c55e899bd1ab80874ad1e246c8d7ca splashscreen
 07ba75193833b87950d8813b23de7ced splashscreen-11.3
+e02daeeb40da74800a0d30cc5f2b2495 splashscreen-11.4-MS5
 f3eb544d595ba28240779239c9c1ffdf automaticconfiguration-11.2
 e8fa5eee5c5e45cc081d7679acd42101 automaticconfiguration
 0d2890c3d3fcc06f9cd7ac2d96c3c151 automaticconfiguration
@@ -167,6 +168,8 @@ e977b8787aa5b3cf50bccd4fa5a511a6 booted-LXDE-0951-64
 c2fc1822dceac430822194e210d34a6e booted-XFCE-11.3
 7ef5b6f89e9c24065f0879740fb89669 booted-XFCE-0914
 b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
+8cb5446f29cb6fe0eedfb136b9812eab booted-KDE-UNSTABLE-4.5.77
+21b2fded43dbd6637fae5f79f50f01ca grub-KDE-UNSTABLE-4.5.77
 1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
 209f79c737bb62e12215b36d345fb24d failed-to-detect-CD-rebooting-in-120-seconds
 e194d7f132a654d94094de19639a5f85 YaST-was-unable-to-find-the-correct-control-file
