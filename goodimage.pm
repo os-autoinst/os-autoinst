@@ -94,6 +94,7 @@ e537a8a06b454b4b95b685c0c0664766 installationoverview
 e7c21345939e097ef3aa67c1560d9421 installationoverview-kde0834
 c6e31fd60f22c88943853b7e07712159 installationoverview-gnome0834
 5e9691aa18c950e7ff71765ade2eb750 installationoverview-gnome0945
+a3d2536f57b51dcf1e1f838cb753094d installationoverview-upgrade0945
 3e27070e780725adf92f91b386ff335b installconfirm
 fbcc39c0a471d8a67cdad29ce639a1d0 installconfirm
 b3618300ce4ac4c870a3352bacb01cca installconfirm
@@ -151,6 +152,7 @@ f1eab61e4b7ec02eb5e91e0aa969787a booted-KDE-0834
 8eddb08ae3a0a6b47ecacbc0853beb10 booted-KDE-0900-32
 c89bec8d3c0a63cf63c30f895055531f booted-KDE-0900-64
 28ab94309c6d98833761dce0556c4080 booted-KDE-0925-64-from-11.1
+243a6ded68a1542ef1396c9186b00e22 booted-KDE-0959
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
 bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
@@ -165,6 +167,7 @@ a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
 68cadea0ed4cc94bc3752e059f715d84 booted-LXDE-11.3
 e8984c6bbac39ae3514a52cf9bc61ddc booted-LXDE-0951-32
 e977b8787aa5b3cf50bccd4fa5a511a6 booted-LXDE-0951-64
+508f4c506c58c9ffca3ed47d94b559f4 booted-LXDE-0959
 c2fc1822dceac430822194e210d34a6e booted-XFCE-11.3
 7ef5b6f89e9c24065f0879740fb89669 booted-XFCE-0914
 b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
