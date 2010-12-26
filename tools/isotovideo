@@ -22,8 +22,13 @@ $scriptdir/start.pl
 
 name=$(perl -e '$_=shift;s{.*/}{};s/-Media.iso//;print' $SUSEISO)
 mkdir -p video
+if test -e /usr/bin/ffmpeg2theora ; then
 echo $scriptdir/tools/ppmtompg qemuscreenshot video/$name
 $scriptdir/tools/ppmtompg qemuscreenshot video/$name
+else
+	umlffmpeg . video/$name
+fi
+
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 $scriptdir/tools/checklog currentautoinst-log.txt | tee -a currentautoinst-log.txt
 # return success if video was created:
