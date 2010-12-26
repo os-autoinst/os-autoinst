@@ -43,7 +43,7 @@ $ENV{QEMUPORT}||=15222;
 our $managementcon;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
-our $testedversion=$ENV{SUSEISO}||""; $testedversion=~s{.*/}{};$testedversion=~s{^([^.]+?)(?:-Media)?\.iso$}{$1};
+our $testedversion=$ENV{SUSEISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.iso$//; $testedversion=~s{^([^.]+?)(?:-Media)?$}{$1};
 my @ocrrect; share(@ocrrect);
 my @extrahashrects; share(@extrahashrects);
 our @keyhistory;
@@ -188,7 +188,6 @@ sub mouseclick(;$$)
 	qemusend "mouse_button 0";
 }
 
-my $lasttime;
 my $n=0;
 my %md5file;
 our %md5badlist=qw();
@@ -318,13 +317,11 @@ sub take_screenshot()
 		}
 		if(($framecounter++ < 10) && length($data)<800*600*3) {unlink($lastname)}
 	}
-	my $now=time();
-	if(!$lasttime || $lasttime!=$now) {$n=0};
-	my $filename=$path.$now."-".$n++.".ppm";
+	my $t=[gettimeofday()];
+	my $filename=$path.sprintf("%i.%06i.ppm", $t->[0], $t->[1]);
 	#print STDERR $filename,"\n";
 	do_take_screenshot($filename);
 	$lastname=$filename;
-	$lasttime=$now;
 }
 
 sub qemualive()
@@ -484,7 +481,7 @@ sub script_sudo($;$)
 { my ($prog,$wait)=@_;
 	sendautotype("sudo $prog\n");
 	if(!$lastsudotime||$lastsudotime+$sudotimeout<time()) {$sudos=0}
-	if(!$sudos++) {
+	if($password && !$sudos++) {
 		waitidle;
 		sendautotype "$password\n";
 	}
