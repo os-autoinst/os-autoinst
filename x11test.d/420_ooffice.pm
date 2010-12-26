@@ -25,6 +25,8 @@ sub checklist()
 		cab8e1d51a429d42ad922c88a786d591 OK
 		bd32d2896fe9ee327724bce46ffe32be OK
 		6edae3afba71dd93f7615791af5e4912 OK
+		6491e203e83083d77b603853dde03f5c OK
+		6e2f20a265525ef64a777ade0d29bc95 OK
 		1aa2225b803c4712e2213d8639131b2c minorissue64bit
 	)}
 }

@@ -8,6 +8,7 @@ sub run()
 #	$self->take_screenshot;
 	script_run('df');
 	script_run('free');
+	script_run('rpm -qa kernel-*');
 }
 
 sub checklist()
