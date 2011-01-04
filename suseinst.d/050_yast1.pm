@@ -29,6 +29,18 @@ if(!$ENV{LIVECD}) {
 	if($ENV{UPGRADE}) {
 		sendkey "alt-u";
 	}
+	if($ENV{ADDONURL}) {
+		sendkey "alt-c"; # Include Add-On Products
+		sendkey $cmd{"next"}; waitidle;
+		if(!$ENV{NET}) {
+			sendkey $cmd{"next"}; waitidle; # use network
+			sendkey "alt-o"; waitidle; # OK DHCP network
+		}
+		sendkey $cmd{"next"}; waitidle; # Specify URL (default)
+		sendautotype($ENV{ADDONURL});
+		sendkey $cmd{"next"}; waitidle;
+		sendkey "alt-i"; waitidle; # confirm import (trust) key
+	}
 	sendkey $cmd{"next"};
 }
 if($ENV{UPGRADE}) {
