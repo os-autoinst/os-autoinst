@@ -130,7 +130,14 @@ sub sendkey($)
 }
 
 my %charmap=(","=>"comma", "."=>"dot", "/"=>"slash", "="=>"equal", "-"=>"minus", "*"=>"asterisk", 
-   "+"=>"shift-equal", "_"=>"shift-minus", '?'=>"shift-slash", ">"=>"shift-<",
+   "["=>"bracket_left", "]"=>"bracket_right",
+   "{"=>"shift-bracket_left", "}"=>"shift-bracket_right",
+   "\\"=>"backslash", "|"=>"shift-backslash",
+   ";"=>"semicolon", ":"=>"shift-semicolon",
+   "'"=>"apostrophe", '"'=>"shift-apostrophe",
+   "`"=>"grave_accent", "~"=>"shift-grave_accent",
+   "<"=>"shift-comma", ">"=>"shift-dot",
+   "+"=>"shift-equal", "_"=>"shift-minus", '?'=>"shift-slash",
    "\t"=>"tab", "\n"=>"ret", " "=>"spc", "\b"=>"backspace", "\e"=>"esc");
 for my $c ("A".."Z") {$charmap{$c}="shift-\L$c"}
 {
