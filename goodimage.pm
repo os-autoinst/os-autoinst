@@ -188,6 +188,9 @@ e194d7f132a654d94094de19639a5f85 YaST-was-unable-to-find-the-correct-control-fil
 9dd970d5084fa2dcf1bf2a3947240501 debian-popconconf
 caee43e45a35e9c4c7f4872a6575bde6 debian-grubinstall
 87c3e0695f195a4f845f57d61ff801c7 debian-booted-gdm
+
+eac344f0ef7a6201c9d0a65b5ceefec4 fedora-installationcomplete
+ddb3976501b9f8b1fb62182551edd64f fedora-postreboot
 );
 
 1;

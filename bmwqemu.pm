@@ -239,10 +239,12 @@ sub hashrect($$$)
 	return (@result,[Digest::MD5::md5_hex($ppm2->{data}),$rect,$flags]);
 }
 
+my %goodsizes=(1440015=>1, 2359312=>1);
+
 # input: ref on PPM data
 sub inststagedetect($)
 { my $dataref=shift;
-	return if length($$dataref)!=1440015; # only work on images of 800x600
+	return if !$goodsizes{length($$dataref)}; # only work on images of 800x600 and 1024x768
 	my $ppm=ppm->new($$dataref);
 	return unless $ppm;
 	my @md5=();
