@@ -401,6 +401,7 @@ sub waitinststage($;$$)
 		if($prestandstillwarning) {
 			timeout_screenshot();
 			diag "WARNING: waited too long for stage=$stage";
+			$prestandstillwarning=0;
 			return 2;
 		}
 		sleep 1;
