@@ -13,7 +13,7 @@ sendkey $cmd{"next"};
 # user setup
 waitinststage "usersettings", 120;
 waitidle 18;
-sendautotype("Bernhard M. Wiedemann");
+sendautotype($realname);
 sendkey "tab";
 #sleep 1;
 sendkey "tab";

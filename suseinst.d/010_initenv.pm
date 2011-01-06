@@ -23,7 +23,7 @@ sub setrandomenv()
 
 sub run()
 {
-	my $iso=$ENV{SUSEISO};
+	my $iso=$ENV{ISO};
 	my $ison=$iso; $ison=~s{.*/}{}; # drop path
 	if($ison=~m/LiveCD/i) {$ENV{LIVECD}=1}
 	if($ison=~m/Promo/) {$ENV{PROMO}=1}

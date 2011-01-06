@@ -8,11 +8,11 @@ fi
 isodir=`pwd`
 scriptdir=$(dirname $(dirname $0))
 # make absolute path
-export SUSEISO=`$scriptdir/tools/absolutize $iso`
+export ISO=`$scriptdir/tools/absolutize $iso`
 export PERLLIB=$scriptdir
 
 . env.sh
-echo testing $SUSEISO
+echo testing $ISO
 # cleanup
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f qemuscreenshot/*.ppm
@@ -20,7 +20,7 @@ date > currentautoinst-log.txt
 curl -s $SUSEMIRROR/repo/oss/media.1/build >> currentautoinst-log.txt
 $scriptdir/start.pl
 
-name=$(perl -e '$_=shift;s{.*/}{};s/-Media.iso//;print' $SUSEISO)
+name=$(perl -e '$_=shift;s{.*/}{};s/-Media.iso//;print' $ISO)
 mkdir -p video
 if test -e /usr/bin/ffmpeg2theora ; then
 echo $scriptdir/tools/ppmtompg qemuscreenshot video/$name

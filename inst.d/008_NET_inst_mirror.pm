@@ -4,7 +4,7 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return !$ENV{SUSEISO} || $ENV{SUSEISO}=~m/-NET-/;
+	return !$ENV{ISO} || $ENV{ISO}=~m/-NET-/;
 }
 
 sub run()

@@ -183,6 +183,11 @@ b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
 1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
 209f79c737bb62e12215b36d345fb24d failed-to-detect-CD-rebooting-in-120-seconds
 e194d7f132a654d94094de19639a5f85 YaST-was-unable-to-find-the-correct-control-file
+
+553a1264c478291cfa882fee9fe62cb9 debian-mirrorselection
+9dd970d5084fa2dcf1bf2a3947240501 debian-popconconf
+caee43e45a35e9c4c7f4872a6575bde6 debian-grubinstall
+87c3e0695f195a4f845f57d61ff801c7 debian-booted-gdm
 );
 
 1;

@@ -23,7 +23,7 @@ my $timeoutcounter :shared = 0;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
-@EXPORT = qw($username $password $qemubin $qemupid $scriptdir $testresults $testedversion %cmd 
+@EXPORT = qw($realname $username $password $qemubin $qemupid $scriptdir $testresults $testedversion %cmd 
 &diag &fileContent &qemusend_nolog &qemusend &sendkey &sendautotype &autotype &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
 &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program);
 
@@ -32,6 +32,7 @@ our $debug=1;
 our $idlethreshold=($ENV{IDLETHESHOLD}||18)*$clock_ticks/100; # % load max for being considered idle
 our $timesidleneeded=2;
 our $standstillthreshold=530;
+our $realname="Bernhard M. Wiedemann";
 our $username="bernhard";
 our $password="nots3cr3t";
 our $qemubin="/usr/bin/kvm";
@@ -43,7 +44,7 @@ $ENV{QEMUPORT}||=15222;
 our $managementcon;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
-our $testedversion=$ENV{SUSEISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.iso$//; $testedversion=~s{^([^.]+?)(?:-Media)?$}{$1};
+our $testedversion=$ENV{ISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.iso$//; $testedversion=~s{^([^.]+?)(?:-Media)?$}{$1};
 my @ocrrect; share(@ocrrect);
 my @extrahashrects; share(@extrahashrects);
 our @keyhistory;

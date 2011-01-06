@@ -4,12 +4,13 @@ use bmwqemu;
 my $basedir="raid";
 my $qemuimg="/usr/bin/kvm-img";
 if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
-my $iso=$ENV{SUSEISO};
+my $iso=$ENV{ISO};
 $ENV{HDDMODEL}||="virtio";
 $ENV{NUMDISKS}||=1;
 if($ENV{RAIDLEVEL}) {$ENV{NUMDISKS}=4}
 
 my $ison=$iso; $ison=~s{.*/}{}; # drop path
+if($ison=~m/^(debian|openSUSE|Fedora)-/) {$ENV{DISTRI}=lc($1)}
 if($ison=~m/LiveCD/i) {$ENV{LIVECD}=1}
 if($ison=~m/Promo/) {$ENV{PROMO}=1}
 if($ison=~m/-i[3-6]86-/) {$ENV{QEMUCPU}||="qemu32"}
