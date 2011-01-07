@@ -9,8 +9,15 @@ if(!$in || !$out) {die "usage: $0 IN OUT"}
 my $tmpdir="ppmtompg.tmp";
 system("rm -rf $tmpdir");
 mkdir $tmpdir;
+my $biggest=0;
+my $biggestf;
+for my $f (<$in/*.ppm>) {
+	my $s=-s $f;
+	if($s>$biggest){$biggest=$s; $biggestf=$f}
+}
 my $n=0;
 for my $f (<$in/*.ppm>) {
+	if($n==0) { $f=$biggestf; } # work around ffmpeg2theora using first frame size for whole video
 	link($f, sprintf("%s/%08d.ppm", $tmpdir, $n++));
 }
 
