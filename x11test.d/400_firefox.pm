@@ -6,6 +6,7 @@ sub run()
 	my $self=shift;
 	x11_start_program("firefox");
 	$self->take_screenshot;
+	if($ENV{UPGRADE}) { sendkey("alt-d");waitidle; } # dont check for updated plugins
 	if($ENV{DESKTOP}=~/xfce|lxde/i) {
 		sendkey "ret"; # confirm default browser setting popup
 		waitidle;
@@ -33,6 +34,8 @@ sub checklist()
 		d24465c763eccca55eca712dc5820a95 OK
 		6e50bfea8b5295c9f4f2815c85624b48 OK
 		d34fb147a58ff347bf81da80c8bdde35 OK
+		e755d6c253b8e64a84c507f2a384a6ed OK
+		42a212b6b01ace847a3d9db77cdb970b OK
 		614838262da0d1976e84aba2e4636f01 fail
 		0ca35889f8b2ff0eff07304f65fdeb79 fail
 		c7bcf2e6976800803da351d4e6108fdb fail

@@ -4,7 +4,7 @@ sub run()
 {
 	my $self=shift;
 	script_sudo("zypper -n removerepo 2") if($ENV{DVD}); # remove repo on ejected DVD
-	script_run('zypper lr');
+	script_run('zypper lr -d');
 	script_sudo("zypper -n in screen rsync gvim");
 	waitidle 60;
 	script_run('echo $?');

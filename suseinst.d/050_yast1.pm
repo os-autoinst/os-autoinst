@@ -36,10 +36,14 @@ if(!$ENV{LIVECD}) {
 			sendkey $cmd{"next"}; waitidle; # use network
 			sendkey "alt-o"; waitidle; # OK DHCP network
 		}
-		sendkey $cmd{"next"}; waitidle; # Specify URL (default)
-		sendautotype($ENV{ADDONURL});
-		sendkey $cmd{"next"}; waitidle;
-		sendkey "alt-i"; waitidle; # confirm import (trust) key
+		my $repo=0;
+		foreach my $url (split(/\+/, $ENV{ADDONURL})) {
+			if($repo++) {sendkey "alt-a"; waitidle;} # Add another
+			sendkey $cmd{"next"}; waitidle; # Specify URL (default)
+			sendautotype($url);
+			sendkey $cmd{"next"}; waitidle;
+			sendkey "alt-i"; waitidle; # confirm import (trust) key
+		}
 	}
 	sendkey $cmd{"next"};
 }

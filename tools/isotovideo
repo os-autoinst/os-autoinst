@@ -20,7 +20,7 @@ date > currentautoinst-log.txt
 curl -s $SUSEMIRROR/repo/oss/media.1/build >> currentautoinst-log.txt
 $scriptdir/start.pl
 
-name=$(perl -e '$_=shift;s{.*/}{};s/-Media.iso//;print' $ISO)
+name=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media//;print' $ISO)
 mkdir -p video
 if test -e /usr/bin/ffmpeg2theora ; then
 echo $scriptdir/tools/ppmtompg qemuscreenshot video/$name

@@ -11,7 +11,7 @@ sub run()
 	my $self=shift;
 	waitidle;
 	sendkey "ctrl-alt-delete"; # reboot
-	sleep 4;
+	waitidle(15);
 	sendautotype "\t\t";
 	sleep 1;
 	$self->take_screenshot;
