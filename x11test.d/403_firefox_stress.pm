@@ -1,7 +1,7 @@
 use base "basetest";
 use bmwqemu;
 
-my @sites=qw(en.opensuse.org www.slashdot.com www.freshmeat.net www.microsoft.com www.yahoo.com www.ibm.com www.hp.com www.intel.com www.amd.com www.asus.com www.gigabyte.com software.opensuse.org);
+my @sites=qw(en.opensuse.org www.slashdot.com www.freshmeat.net www.microsoft.com www.yahoo.com www.ibm.com www.hp.com www.intel.com www.amd.com www.asus.com www.gigabyte.com software.opensuse.org about:memory);
 
 sub open_tab($)
 { my $addr=shift;
@@ -11,6 +11,8 @@ sub open_tab($)
 	sleep 2;
 	sendkey "ret";
 	sleep 6;
+	sendkey "pgdn";
+	sleep 1;
 }
 
 sub is_applicable
