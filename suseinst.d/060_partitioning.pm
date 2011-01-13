@@ -66,7 +66,7 @@ sub setraidlevel($)
 
 
 waitinststage "disk";
-if($ENV{RAIDLEVEL}) {
+if(defined($ENV{RAIDLEVEL})) {
 if(1) {
 # create partitioning
 sendkey $cmd{createpartsetup};

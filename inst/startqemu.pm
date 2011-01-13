@@ -7,7 +7,7 @@ if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
 my $iso=$ENV{ISO};
 $ENV{HDDMODEL}||="virtio";
 $ENV{NUMDISKS}||=1;
-if($ENV{RAIDLEVEL}) {$ENV{NUMDISKS}=4}
+if(defined($ENV{RAIDLEVEL})) {$ENV{NUMDISKS}=4}
 
 my $ison=$iso; $ison=~s{.*/}{}; # drop path
 if($ison=~m/^(debian|openSUSE|Fedora)-/) {$ENV{DISTRI}=lc($1)}
