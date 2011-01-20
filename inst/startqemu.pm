@@ -6,6 +6,7 @@ my $qemuimg="/usr/bin/kvm-img";
 if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
 my $iso=$ENV{ISO};
 $ENV{HDDMODEL}||="virtio";
+$ENV{NICMODEL}||="virtio";
 $ENV{NUMDISKS}||=1;
 if(defined($ENV{RAIDLEVEL})) {$ENV{NUMDISKS}=4}
 
@@ -14,12 +15,16 @@ if($ison=~m/^(debian|openSUSE|Fedora)-/) {$ENV{DISTRI}=lc($1)}
 if($ison=~m/LiveCD/i) {$ENV{LIVECD}=1}
 if($ison=~m/Promo/) {$ENV{PROMO}=1}
 if($ison=~m/-i[3-6]86-/) {$ENV{QEMUCPU}||="qemu32"}
-if($ison=~m/openSUSE-(DVD|NET|KDE|GNOME|LXDE|XFCE)-/) {
+if($ison=~m/openSUSE-Smeegol/) {$ENV{DESKTOP}||="gnome"}
+if($ison=~m/openSUSE-(DVD|NET|KDE|GNOME|LXDE|XFCE)/) {
 	$ENV{$1}=1; $ENV{NETBOOT}=$ENV{NET};
 	if($ENV{LIVECD}) {
 		$ENV{DESKTOP}=lc($1);
 	}
 }
+
+system(qw"/bin/mkdir -p", $basedir);
+
 if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	my $file=$ENV{UPGRADE};
 	if(!-e $file) {die "'$ENV{UPGRADE}' should be old img.gz"}
@@ -28,8 +33,6 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	unlink "$basedir/l1";
 	system($qemuimg, "create", "-b", $file, "-f", "qcow2", "$basedir/l1");
 }
-
-system(qw"/bin/mkdir -p", $basedir);
 
 if(!qemualive) {
 	if(!$ENV{KEEPHDDS}) {
@@ -50,7 +53,7 @@ if(!qemualive) {
 	$qemupid=fork();
 	die "fork failed" if(!defined($qemupid));
 	if($qemupid==0) {
-		my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=virtio,macaddr=52:54:00:12:34:56");
+		my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0");
 		for my $i (1..$ENV{NUMDISKS}) {
 			my $boot=$i==1?",boot=on":"";
 			push(@params, "-drive", "file=$basedir/l$i,if=$ENV{HDDMODEL}$boot");
