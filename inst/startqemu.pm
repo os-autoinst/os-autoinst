@@ -9,6 +9,7 @@ $ENV{HDDMODEL}||="virtio";
 $ENV{NICMODEL}||="virtio";
 $ENV{NUMDISKS}||=1;
 if(defined($ENV{RAIDLEVEL})) {$ENV{NUMDISKS}=4}
+my @cdrom=("-cdrom", $iso);
 
 my $ison=$iso; $ison=~s{.*/}{}; # drop path
 if($ison=~m/^(debian|openSUSE|Fedora)-/) {$ENV{DISTRI}=lc($1)}
@@ -47,6 +48,10 @@ if(!qemualive) {
 				symlink($i,"$basedir/l$i");
 			}
 		}
+		if($ENV{USBBOOT}) {
+			system("dd", "if=$iso", "of=$basedir/l1", "bs=1M", "conv=notrunc");
+			@cdrom=();
+		}
 		system("sync"); sleep 5;
 	}
 
@@ -58,7 +63,7 @@ if(!qemualive) {
 			my $boot=$i==1?",boot=on":"";
 			push(@params, "-drive", "file=$basedir/l$i,if=$ENV{HDDMODEL}$boot");
 		}
-		push(@params, "-boot", "dc", "-cdrom", $iso) if($iso);
+		push(@params, "-boot", "dc", @cdrom) if($iso);
 		if($ENV{VNC}) {
 			if($ENV{VNC}!~/:/) {$ENV{VNC}=":$ENV{VNC}"}
 			push(@params, "-vnc", $ENV{VNC});
