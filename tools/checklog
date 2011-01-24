@@ -35,7 +35,7 @@ sub checkfunc
 	$results{$class}=$result;
 }
 
-autotest::runtest("suseinst.d/010_initenv.pm",sub{my $test=shift;$test->run;});
+autotest::runtest("$scriptdir/distri/$ENV{DISTRI}/inst.d/010_initenv.pm",sub{my $test=shift;$test->run;});
 
 autotest::runtestdir("$scriptdir/inst.d", \&checkfunc);
 autotest::runtestdir("$scriptdir/consoletest.d", \&checkfunc);
