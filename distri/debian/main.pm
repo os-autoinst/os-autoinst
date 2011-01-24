@@ -14,7 +14,7 @@ sub installrunfunc
 }
 
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
-	autotest::runtestdir("$scriptdir/debian/inst.d", \&installrunfunc);
+	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
 } else {
 }
 

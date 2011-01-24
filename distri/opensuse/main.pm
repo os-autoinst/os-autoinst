@@ -9,13 +9,18 @@ sub installrunfunc
 	my $class=ref $test;
 	diag "starting $class";
 	$test->run();
-	$test->take_screenshot;
+#	sleep 1; $test->take_screenshot;
 	diag "finished $class";
 }
 
+waitinststage "grub"; # wait for welcome animation to finish
+
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
-	autotest::runtestdir("$scriptdir/fedora/inst.d", \&installrunfunc);
+	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
 } else {
+	$username="root"; # LiveCD account
+	$password="";
+	autotest::runtest("$scriptdir/suseinst.d/020_bootloader.pm", \&installrunfunc)
 }
 
 set_hash_rects(
