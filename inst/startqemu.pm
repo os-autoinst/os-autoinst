@@ -12,7 +12,6 @@ if(defined($ENV{RAIDLEVEL})) {$ENV{NUMDISKS}=4}
 my @cdrom=("-cdrom", $iso);
 
 my $ison=$iso; $ison=~s{.*/}{}; # drop path
-if($ison=~m/^(debian|openSUSE|Fedora)-/) {$ENV{DISTRI}=lc($1)}
 if($ison=~m/LiveCD/i) {$ENV{LIVECD}=1}
 if($ison=~m/Promo/) {$ENV{PROMO}=1}
 if($ison=~m/-i[3-6]86-/) {$ENV{QEMUCPU}||="qemu32"}
