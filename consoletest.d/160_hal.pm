@@ -2,11 +2,11 @@ use base "basetest";
 use bmwqemu;
 # for https://bugzilla.novell.com/show_bug.cgi?id=613898
 # fixed in Build0679 and later
-# TODO: revisit after 11.3 when hal is no more needed for KDE
+# 2011-02 hal is hardly needed anymore
 
 sub is_applicable()
 {
-	return ($ENV{DESKTOP} ne "gnome" and $ENV{DESKTOP} ne "lxde");
+	return 0;
 }
 
 sub run()

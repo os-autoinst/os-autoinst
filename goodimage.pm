@@ -50,6 +50,7 @@ e6eb636f1d531acb20523c62158c1001 welcome-net0620
 dedd290c0897c2d0fc7fb4d2090b39c8 systemanalysis-11.2
 3fbf45fb54d21950c73488166ec98937 systemanalysis
 b9b4cf11ac2f313bae3b75d9239281c2 systemanalysis-net0620
+18e75f03fc8d6a3fa97ee6e53b9d8c38 addon-selection
 977564ea1151bb571e9aa9efbaa4cd7b timezone-11.2
 e6141b40e61746e1cddbf5402f2cfc2b timezone
 a43e0ffec78df3af3e509e56a48f1e6f timezone
@@ -161,6 +162,7 @@ c89bec8d3c0a63cf63c30f895055531f booted-KDE-0900-64
 28ab94309c6d98833761dce0556c4080 booted-KDE-0925-64-from-11.1
 243a6ded68a1542ef1396c9186b00e22 booted-KDE-0959
 69144e56bfd9f8993926661a11ecfbc1 booted-KDE-0989-KDF
+174cefa8404b3d080f72f96e87968686 booted-KDE-1017
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
 bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
@@ -171,6 +173,8 @@ e06959a4b7fbb1a6885c7894c14d9204 booted-GNOME-11.3-dvd
 bff7185022f9fea00e12c8fbb52b29b8 booted-GNOME-11.3-dvd
 28544c13456e31d80268abab1d8121e4 booted-GNOME-0834
 9543c0271eeb7b4edf1ef226dee3e221 booted-GNOME-0925
+fbbe32ffb2144130af4dc66674646d61 booted-GNOME-1000
+612eecffdc1bfcaf2b065ede3f3052a5 booted-GNOME-1016
 a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
 68cadea0ed4cc94bc3752e059f715d84 booted-LXDE-11.3
 e8984c6bbac39ae3514a52cf9bc61ddc booted-LXDE-0951-32

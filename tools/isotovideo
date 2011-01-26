@@ -30,6 +30,7 @@ else
 fi
 
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
+cat serial0 >> currentautoinst-log.txt
 $scriptdir/tools/checklog currentautoinst-log.txt | tee -a currentautoinst-log.txt
 # return success if video was created:
 test -e video/$name.ogv

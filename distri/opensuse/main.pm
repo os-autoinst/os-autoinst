@@ -18,7 +18,7 @@ waitinststage "grub"; # wait for welcome animation to finish
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
 	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
 } else {
-	$username="root"; # LiveCD account
+	$username="linux"; # LiveCD account
 	$password="";
 	autotest::runtest("$scriptdir/distri/$ENV{DISTRI}/inst.d/020_bootloader.pm", \&installrunfunc)
 }

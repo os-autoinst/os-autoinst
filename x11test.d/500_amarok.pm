@@ -19,6 +19,7 @@ sub run()
 	sendkey "alt-f4"; sleep 9; # close another popup
 	$self->take_screenshot;
 	sendkey "ctrl-q"; # really quit (alt-f4 just backgrounds)
+	sleep 2; waitidle;
 	x11_start_program("killall amarok"); # to be sure that it does not interfere with later tests
 }
 

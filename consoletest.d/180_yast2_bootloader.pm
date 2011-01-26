@@ -3,6 +3,10 @@ use bmwqemu;
 # test yast2 bootloader functionality
 # https://bugzilla.novell.com/show_bug.cgi?id=610454
 
+sub is_applicable()
+{
+	return !$ENV{LIVETEST};
+}
 
 sub run()
 {

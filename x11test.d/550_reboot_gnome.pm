@@ -3,7 +3,7 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return $ENV{DESKTOP} eq "gnome";
+	return $ENV{DESKTOP} eq "gnome" && !$ENV{LIVETEST};
 }
 
 sub run()

@@ -17,7 +17,7 @@ sub open_tab($)
 
 sub is_applicable
 {
-	return !$ENV{NICEVIDEO};
+	return !$ENV{NICEVIDEO} && $ENV{BIGTEST};
 }
 
 sub run()
