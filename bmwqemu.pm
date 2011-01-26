@@ -23,7 +23,7 @@ my $timeoutcounter :shared = 0;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
-@EXPORT = qw($realname $username $password $qemubin $qemupid $scriptdir $testresults $testedversion %cmd 
+@EXPORT = qw($realname $username $password $qemubin $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
 &diag &fileContent &qemusend_nolog &qemusend &sendkey &sendautotype &autotype &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
 &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program);
 
@@ -40,6 +40,7 @@ our $qemupid;
 our $gocrbin="/usr/bin/gocr";
 our $qemupidfilename="qemu.pid";
 our $testresults="testresults";
+our $serialdev="ttyS0";
 $ENV{QEMUPORT}||=15222;
 our $managementcon;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
