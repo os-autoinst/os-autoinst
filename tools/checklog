@@ -4,26 +4,43 @@ use bmwqemu;
 use autotest;
 $scriptdir=`dirname $scriptdir`;chomp($scriptdir); # one level up
 
+sub checksize($)
+{ my $size=shift;
+  my $i=$ENV{ISO};
+  my $maxsize=737_280_000;
+  if($i=~m/-DVD/) {$maxsize=4_707_319_808}
+  if($i=~m/-DVD-Biarch/) {$maxsize=8_543_666_176}
+  if($size>$maxsize) {return "fail"}
+  if($size>$maxsize*0.995) {return "unknown"}
+  return "OK";
+}
+
 print "====\n"; # marker
 
 my @stages=(qw"splashscreen welcome timezone disk usersettings installationoverview performinstallation automaticconfiguration booted");
 
 my %stageseen=();
 my %md5seen=();
+my %results;
+sub printresult($)
+{ my $key=shift;
+	if(defined($results{$key})) {print "$key: $results{$key}\n"}
+}
 while(<>) {
 	if(/stage=([0-9a-zA-Z_.-]*) ([0-9a-f]+)/) {
 		$stageseen{$1}=1;
 		$md5seen{$2}=1;
 	}
 	if(/md5=([0-9a-f]+)/) {$md5seen{$1}=1}
+	if(/standstill detected/) {$results{standstill}="fail";}
+	if(/^iso_size=(\d+)/) {$results{isosize}=checksize($1);}
 }
 
-my %results;
 foreach my $s (@stages) {
 	my $found=0;
 	foreach(keys(%stageseen)) {if(m/$s/){$found=1;last;}}
-	my $result=$results{$s}=($found?"OK":"fail");
-	print "$s: $result\n";
+	$results{$s}=($found?"OK":"unknown");
+	printresult $s;
 }
 
 sub checkfunc
@@ -31,8 +48,8 @@ sub checkfunc
 	my($test)=@_;
 	my $class=ref $test;
 	my $result=$test->check(\%md5seen)||"unknown";
-	print "$class: $result\n";
 	$results{$class}=$result;
+	printresult $class;
 }
 
 autotest::runtest("$scriptdir/distri/$ENV{DISTRI}/inst.d/010_initenv.pm",sub{my $test=shift;$test->run;});
@@ -42,9 +59,13 @@ autotest::runtestdir("$scriptdir/consoletest.d", \&checkfunc);
 autotest::runtestdir("$scriptdir/x11test.d", \&checkfunc);
 
 my $overall=($results{xterm} eq "OK" or $results{firefox} eq "OK");
-for my $test (qw(automaticconfiguration booted zypper_in zypper_up yast2_lan)) {
+for my $test (qw(automaticconfiguration booted zypper_in zypper_up yast2_lan isosize)) {
+	next if($test eq "automaticconfiguration" && ($ENV{UPGRADE}||$ENV{LIVETEST}));
 	$overall=0 if $results{$test} ne "OK";
 }
 
-print "overall: ".($overall?"OK":"fail")."\n";
+$results{overall}=($overall?"OK":"fail");
+foreach my $k ("standstill", "isosize", "overall") {
+	printresult $k;
+}
 

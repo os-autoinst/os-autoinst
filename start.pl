@@ -12,6 +12,7 @@ if($init) {
 	}
 }
 open_management_console;
+my $size=-s $ENV{ISO}; diag("iso_size=$size");
 qemusend_nolog(fileContent("$ENV{HOME}/.autotestvncpw")||"");
 do "inst/screenshot.pm" or die $@;
 
