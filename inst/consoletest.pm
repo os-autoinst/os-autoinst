@@ -20,7 +20,7 @@ sendkey "ctrl-alt-f2";
 sleep 2;
 sendautotype "$username\n";
 sleep 2;
-sendautotype "$password\n";
+sendpassword; sendautotype "\n";
 sleep 3;
 sendautotype "PS1=\$\n"; # set constant shell promt
 sleep 1;

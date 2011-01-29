@@ -24,7 +24,7 @@ my $timeoutcounter :shared = 0;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $qemubin $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
-&diag &fileContent &qemusend_nolog &qemusend &sendkey &sendautotype &autotype &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
+&diag &fileContent &qemusend_nolog &qemusend &sendkey &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
 &waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program);
 
 
@@ -157,6 +157,11 @@ sub sendautotype($)
 		if($charmap{$letter}) { $letter=$charmap{$letter} }
 		sendkey $letter;
 	}
+}
+
+sub sendpassword()
+{
+	sendautotype($password);
 }
 
 sub autotype($)
@@ -320,7 +325,10 @@ sub take_screenshot()
 			my $linkcount=$md5file{$md5}->[1]++;
 			#my $linkcount=(stat($lastname))[3]; # relies on FS
 			$prestandstillwarning=($linkcount>$standstillthreshold/2);
-			if($linkcount>$standstillthreshold) {mydie "standstill detected. test ended. see $lastname\n"} # above 120s of autoreboot
+			if($linkcount>$standstillthreshold) { 
+				timeout_screenshot();
+				mydie "standstill detected. test ended. see $lastname\n"; # above 120s of autoreboot
+			}
 		} else { # new
 			$md5file{$md5}=[$lastname,1];
 			my $ocr=get_ocr(\$data);
@@ -496,7 +504,8 @@ sub script_sudo($;$)
 	if(!$lastsudotime||$lastsudotime+$sudotimeout<time()) {$sudos=0}
 	if($password && !$sudos++) {
 		waitidle;
-		sendautotype "$password\n";
+		sendpassword;
+		sendkey "ret";
 	}
 	$lastsudotime=time();
 	waitidle $wait;

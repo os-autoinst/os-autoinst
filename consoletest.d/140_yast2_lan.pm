@@ -36,9 +36,6 @@ waitidle(180);
 sendkey("ret");
 sendkey("ctrl-l"); # clear screen
 script_run('echo $?');
-#script_run("exec su - $username"); # get new hostname on prompt
-#sendautotype("$password\n");
-#sleep 3;
 script_run('hostname');
 }
 
