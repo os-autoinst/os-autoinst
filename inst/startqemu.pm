@@ -51,8 +51,8 @@ if(!qemualive) {
 			system("dd", "if=$iso", "of=$basedir/l1", "bs=1M", "conv=notrunc");
 			@cdrom=();
 		}
-		system("sync"); sleep 5;
 	}
+	system("sync"); sleep 5;
 
 	$qemupid=fork();
 	die "fork failed" if(!defined($qemupid));
