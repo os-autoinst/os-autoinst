@@ -10,6 +10,7 @@ sub run()
 	script_sudo("chown $username /dev/$serialdev");
 	script_sudo("zypper -n patch");
 	waitidle 60;
+	script_sudo("zypper -n patch"); # first one might only have installed "update-test-affects-package-manager"
 	script_run("rpm -q libzypp zypper");
 	$self->take_screenshot;
 	sendkey "ctrl-l"; # clear screen to see that second update does not do any more
