@@ -25,7 +25,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $qemubin $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
 &diag &fileContent &qemusend_nolog &qemusend &sendkey &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
-&waitidle &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program);
+&waitidle &waitserial &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program);
 
 
 our $debug=1;
@@ -41,6 +41,7 @@ our $gocrbin="/usr/bin/gocr";
 our $qemupidfilename="qemu.pid";
 our $testresults="testresults";
 our $serialdev="ttyS0";
+our $serialfile="serial0";
 $ENV{QEMUPORT}||=15222;
 our $managementcon;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
@@ -326,7 +327,7 @@ sub take_screenshot()
 			#my $linkcount=(stat($lastname))[3]; # relies on FS
 			$prestandstillwarning=($linkcount>$standstillthreshold/2);
 			if($linkcount>$standstillthreshold) { 
-				timeout_screenshot();
+				timeout_screenshot(); sleep 1;
 				mydie "standstill detected. test ended. see $lastname\n"; # above 120s of autoreboot
 			}
 		} else { # new
@@ -358,6 +359,18 @@ sub proc_stat_cpu($)
 	my $stat=fileContent("/proc/$pid/stat");
 	my @a=split(" ", $stat);
 	return @a[13,14];
+}
+
+# wait for a message to appear on serial output
+sub waitserial($;$)
+{ my $regexp=shift;
+  my $timeout=shift||90; # seconds
+	for my $n (1..$timeout) {
+		my $str=`tail $serialfile`;
+		if($str=~m/$regexp/) {diag "found $regexp"; return 1;}
+		sleep 1;
+	}
+	return 0;
 }
 
 sub waitidle(;$)
