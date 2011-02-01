@@ -16,8 +16,6 @@ sub run()
 	sleep 1;
 	$self->take_screenshot;
 	sendautotype "\n";
-	waitinststage "grub", 200; # wait until reboot
-
 }
 
 sub checklist()

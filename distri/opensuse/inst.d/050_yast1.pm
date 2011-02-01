@@ -86,7 +86,14 @@ sendkey $cmd{"next"};
 	# alt-a alt-o # Accept + Continue(with auto-changes)
 	}
 	addonproduct();
+	waitidle;
+	sendkey "alt-c"; # change
+	sendkey "p";	# Packages
 	sleep 120;
+	sendkey "alt-a"; # Accept
+	sleep 2;
+	sendkey "alt-o"; # cOntinue
+	waitidle;
 	sendkey "alt-u"; # Update if available
 	waitidle 10;
 	sendkey "alt-u"; # confirm

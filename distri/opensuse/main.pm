@@ -13,7 +13,7 @@ sub installrunfunc
 	diag "finished $class";
 }
 
-waitinststage "grub"; # wait for welcome animation to finish
+waitinststage "bootloader",12; # wait for welcome animation to finish
 
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
 	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);

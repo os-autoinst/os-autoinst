@@ -11,6 +11,14 @@ sub run()
 		sendkey "ret"; # confirm default browser setting popup
 		waitidle;
 	}
+	if(1) { # 4.0b10 changed default value
+		sendkey "ctrl-t"; sleep 1;
+		sendautotype "about:config\n"; sleep 1;
+		sendkey "ret"; waitidle;
+		sendautotype "warnOnQuit\n\t"; sleep 1;
+		sendkey "ret"; waitidle;
+		sendkey "ctrl-w"; sleep 1;
+	}
 	$self->take_screenshot;
 	sendkey "alt-f4"; sleep 2;
 	sendkey "ret"; # confirm "save&quit"
