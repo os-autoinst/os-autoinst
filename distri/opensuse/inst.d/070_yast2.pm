@@ -53,8 +53,8 @@ sleep 5;
 waitidle 10;
 
 if($ENV{DOCRUN}) {
-	sendkey "alt-c"; # Change
-	sendkey "s";    # Software
+	sendkey $cmd{change};	# Change
+	sendkey $cmd{software};	# Software
 	waitidle;
 	for(1..3) {
 		sendkey "down";

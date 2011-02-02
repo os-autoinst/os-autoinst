@@ -73,6 +73,8 @@ acceptlicense alt-a
 instdetails alt-d
 rebootnow alt-n
 otherrootpw alt-s
+change alt-c
+software s
 );
 
 
@@ -90,6 +92,9 @@ if($ENV{INSTLANG} eq "de_DE") {
 	$cmd{"raid10"}="alt-r";
 	$cmd{"mountpoint"}="alt-e";
 	$cmd{"rebootnow"}="alt-j";
+	$cmd{"otherrootpw"}="alt-e";
+	$cmd{"change"}="alt-n";
+	$cmd{"software"}="w";
 }
 
 if(!-x $gocrbin) {$gocrbin=undef}
