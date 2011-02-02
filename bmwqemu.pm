@@ -25,7 +25,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $qemubin $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
 &diag &fileContent &qemusend_nolog &qemusend &sendkey &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
-&waitidle &waitserial &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program);
+&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program);
 
 
 our $debug=1;
@@ -72,6 +72,7 @@ filesystem alt-s
 acceptlicense alt-a
 instdetails alt-d
 rebootnow alt-n
+otherrootpw alt-s
 );
 
 

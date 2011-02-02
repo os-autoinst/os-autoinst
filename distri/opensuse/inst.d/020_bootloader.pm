@@ -35,6 +35,13 @@ if($ENV{RES1024}) { # default is 800x600
 }
 
 sendautotype("nohz=off "); # NOHZ caused errors with 2.6.26
+if(!$ENV{NICEVIDEO}) {
+	sleep 15; sendautotype("console=ttyS0 "); # to get crash dumps as text
+	sleep 15; sendautotype("console=tty "); # to get crash dumps as text
+	my $e=$ENV{EXTRABOOTPARAMS};
+	if($e) {sleep 10;sendautotype("$e ");}
+	sleep 10; # workaround slow gfxboot drawing 662991
+}
 #sendautotype("kiwidebug=1 ");
 
 # set HTTP-source to not use factory-snapshot

@@ -56,6 +56,7 @@ dedd290c0897c2d0fc7fb4d2090b39c8 systemanalysis-11.2
 3fbf45fb54d21950c73488166ec98937 systemanalysis
 b9b4cf11ac2f313bae3b75d9239281c2 systemanalysis-net0620
 0357476564c0a53c86486ccd167d0533 systemanalysis-net1038
+107db45d4ca27a0954fe4910d8195caf systemanalysis-net1048
 18e75f03fc8d6a3fa97ee6e53b9d8c38 addon-selection
 977564ea1151bb571e9aa9efbaa4cd7b timezone-11.2
 e6141b40e61746e1cddbf5402f2cfc2b timezone
@@ -64,6 +65,7 @@ a43e0ffec78df3af3e509e56a48f1e6f timezone
 29a8ce1da88163b13858dc0614069e5a timezone
 0a70417811cccaa6466339474224281c timezone-net0620
 3b152e3e413040347fb0c41c21b8db10 timezone-net0620-addon
+c3791af16cb72dea02053d98b995c020 timezone-net1048
 6732e48f879b54522a349fcc3f96941f timezone-kde-11.3
 52c1983d3e4adba9ad92fb855e5dbb5c timezone-kde0834
 daf74711041a18d4944c8175ba1e2fe9 timezone-gnome0834
@@ -73,6 +75,7 @@ db57e0f839aa998345d1b2b67a05f580 desktopselection
 357ff3559594ae152f129117b7892996 desktopselection
 61e362dd657e154022949b9c638168f5 desktopselection-net0620
 8cca89c4dbd06793f3a5c494dce6dc77 desktopselection-net0620-addon
+3501219195d54e1b8c7cf2809027bd6b desktopselection-net1048
 7c6a71aebe9317716a503a93ebf26352 desktopselection-net1044-addon
 595f2c5f19e4bc8e3ab031de3b31fb12 disk-11.2
 4d9a6e3259a08acf074ba10665be0fa2 disk
@@ -81,6 +84,7 @@ dc7646ae2971f8e0fd5f7695f37095cb disk
 1b7d8730583f2893055ce3899dbb455f disk
 a0e2fc9642b7369b7f4c8b4f06aeed68 disk-net0620
 05781e6a4b31d0b7643275612aa237e1 disk-net0620-addon
+655c0578cadd9e865f0eec7281025cdd disk-net1048
 2eb5c977e74aba6cf9667170cbc90bf4 disk-net1044-addon
 d0d05609e0008558a4e7a53a05bf6e3f disk-kde-11.3
 4b1f70bb44337f85e73a433ce95b536a disk-kde0834
@@ -93,6 +97,7 @@ db695f7a9fd40aab8cf2c0a33797ccb0 usersettings
 73ce4790a9396e5a011df8f81d495991 usersettings
 14b6eca9fb9c02460e90b0a1818ce674 usersettings-net0620
 aa66a5db043b114c5ba749e08581b295 usersettings-net0620-addon
+7edaf2b2ded0045fd8a0461abe6b3e54 usersettings-net1044
 ee2242d41ac4159bd1864e4d7c4a771f usersettings-net1044-addon
 1c13ffe98e1eeed00c19fce88f06b2d4 usersettings-kde-11.3
 e6f56766a1dc94a4100f1f41ca6d268b usersettings-kde0834
