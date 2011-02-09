@@ -18,6 +18,8 @@ if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
 } else {
 }
 
+autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/x11test.d", \&installrunfunc);
+
 set_hash_rects(
 	[30,30,100,100], # where most applications pop up
 	[630,30,100,100], # where some applications pop up

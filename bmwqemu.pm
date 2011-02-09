@@ -47,7 +47,9 @@ our $managementcon;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
 our $testedversion=$ENV{ISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.iso$//; $testedversion=~s{^([^.]+?)(?:-Media)?$}{$1};
-if($testedversion=~m/^(debian|openSUSE|Fedora)-/) {$ENV{DISTRI}=lc($1)}
+if(!$ENV{DISTRI}) {
+	if($testedversion=~m/^(debian|openSUSE|Fedora)-/) {$ENV{DISTRI}=lc($1)}
+}
 my @ocrrect; share(@ocrrect);
 my @extrahashrects; share(@extrahashrects);
 our @keyhistory;
