@@ -9,7 +9,7 @@ sub is_applicable()
 sub run()
 {
 	my $self=shift;
-	waitinststage "booted", 200; # wait until booted again
+	waitinststage "booted", 150; # wait until booted again
 	mousemove_raw(30000, 30000); # move mouse off screen again
 }
 

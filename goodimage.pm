@@ -1,6 +1,6 @@
 use warnings;
 %md5goodlist=qw(
-00e67c06101a90b8e22597be4326bb62 grub
+00e67c06101a90b8e22597be4326bb62 bootloader-grub
 14ba14109481d71964e4c178a7d0ee54 grubgnome
 3770ad13c41d5dd9daba5d0e6c45f166 yastms5
 8b9ae9df4d72c30fe38973ae70170bcd yastms6
@@ -15,6 +15,8 @@ faa6e1e9af34b83d538691267793ba1b newinst0620
 99c0bfefeda7ab364adf334a22b69f09 newinst0834
 2618535a07402d746ea81e4ef5ca57a2 newinst0915
 4f8ed44b348ae380be67168447aad574 newinst0925
+f00b5bee3f64aa38413c4216710caf2f newinst1048
+5b8acc1f82ad5c2eca89884f05c05592 upgrade1048
 810ef338a46c839ef4715143dc1d226e 11.3-upgradeable
 c39c20d6342e004ede74f3b153d99310 11.3-upgradeable-0900
 027a095adbd45ae80aede067f7e6417f 11.3-upgradeable-0925
@@ -36,7 +38,7 @@ bdcf5eae30d70c3fea49ec7db97969e2 instfail
 2b99e9973a6d0fc8d5e5beb74f088b16 bootloader-grub-11.0
 232cb27cbf4dafe0fc49900865b5548c bootloader-grub
 f74242b1f62bdbc7e3d6f060ceab7e0a bootloader-grub0620
-5fa9163c004cc7b82cf16d06a810d270 syslinuxbootloader-1044
+7037bb735a64f3b5c65e009dbfb59b76 syslinuxbootloader-1044
 33af848897baea7919c430d7adb6d9f2 initializinggnome
 bbe0d620ec01763f2a01993caaed1e88 welcome-11.2
 7ea9ca7bfe7277145920de67c2212a1d welcome
@@ -66,6 +68,7 @@ a43e0ffec78df3af3e509e56a48f1e6f timezone
 0a70417811cccaa6466339474224281c timezone-net0620
 3b152e3e413040347fb0c41c21b8db10 timezone-net0620-addon
 c3791af16cb72dea02053d98b995c020 timezone-net1048
+fa3b644bd9988f3ff4bd2f495d084d86 timezone-net1048-addon
 6732e48f879b54522a349fcc3f96941f timezone-kde-11.3
 52c1983d3e4adba9ad92fb855e5dbb5c timezone-kde0834
 daf74711041a18d4944c8175ba1e2fe9 timezone-gnome0834
@@ -145,12 +148,13 @@ b1c0fa183e9e0a88419e8d714107a0a2 rebootnow-kde0834
 eabf2c66351e8ee185e0a583deb1e8a7 rebootnow-gnome-11.3
 3f3f3284900659cf55362cb9752a004b rebootnow-gnome0834
 093ffbabbe95584a846ccfd1be32bcb0 rebootnow-gnome0948
-e3f412dc306085ca4d1795f850c81dee grub
-6dad21ea36802fca6a7b4dc14db62c0e grub0620
-053ed0ae4ad4679aec1c7d696f3697b2 grub-xmas
+e3f412dc306085ca4d1795f850c81dee bootloader-grub
+6dad21ea36802fca6a7b4dc14db62c0e bootloader-grub0620
+053ed0ae4ad4679aec1c7d696f3697b2 bootloader-grub-xmas
 f2c55e899bd1ab80874ad1e246c8d7ca splashscreen
 07ba75193833b87950d8813b23de7ced splashscreen-11.3
 e02daeeb40da74800a0d30cc5f2b2495 splashscreen-11.4-MS5
+02212340aa913960dae41a2df7d7c35f splashscreen-11.4-RC1
 f3eb544d595ba28240779239c9c1ffdf automaticconfiguration-11.2
 e8fa5eee5c5e45cc081d7679acd42101 automaticconfiguration
 0d2890c3d3fcc06f9cd7ac2d96c3c151 automaticconfiguration
@@ -165,6 +169,7 @@ cca6b9bac97089972b63e075a7ec49a1 automaticconfiguration-net1038-addon
 4fc3bb87a12afb21ce1fb6fe98d525fc automaticconfiguration-kde-11.3
 c7359502d8f01b302520f149d3e06daf automaticconfiguration-kde0834
 38c92870dcb4d2eb584061d6821683fe automaticconfiguration-kde1038
+84cc54b236f1f24697e25b82681c2b9b automaticconfiguration-kde1048
 11885b8ea0e79a0f2341ad1cfb4b1b45 automaticconfiguration-gnome0834
 116bfc0fe08d13193874a901d1490cc2 automaticconfiguration-gnome0925
 0db6d0f55610ce984acd4426d1753eb8 users
@@ -187,6 +192,7 @@ c89bec8d3c0a63cf63c30f895055531f booted-KDE-0900-64
 243a6ded68a1542ef1396c9186b00e22 booted-KDE-0959
 69144e56bfd9f8993926661a11ecfbc1 booted-KDE-0989-KDF
 174cefa8404b3d080f72f96e87968686 booted-KDE-1017
+3c2ec8e7a473f1f9c1c110408647760d booted-KDE-1050-SUSE-greeting
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
 bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
@@ -204,12 +210,14 @@ a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
 e8984c6bbac39ae3514a52cf9bc61ddc booted-LXDE-0951-32
 e977b8787aa5b3cf50bccd4fa5a511a6 booted-LXDE-0951-64
 508f4c506c58c9ffca3ed47d94b559f4 booted-LXDE-0959
+7bb01af1976c906c586673f12b5c8d7a booted-LXDE-1068
 c2fc1822dceac430822194e210d34a6e booted-XFCE-11.3
 7ef5b6f89e9c24065f0879740fb89669 booted-XFCE-0914
+e5fea2098020b0e2d28089aa0d55c706 booted-XFCE-1071
 6abf93224b5d3e9e0a0404e20788093a booted-icewm
 b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
 8cb5446f29cb6fe0eedfb136b9812eab booted-KDE-UNSTABLE-4.5.77
-21b2fded43dbd6637fae5f79f50f01ca grub-KDE-UNSTABLE-4.5.77
+21b2fded43dbd6637fae5f79f50f01ca bootloader-grub-KDE-UNSTABLE-4.5.77
 1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
 209f79c737bb62e12215b36d345fb24d failed-to-detect-CD-rebooting-in-120-seconds
 e194d7f132a654d94094de19639a5f85 YaST-was-unable-to-find-the-correct-control-file

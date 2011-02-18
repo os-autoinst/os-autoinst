@@ -20,6 +20,7 @@ sub checklist()
 	return {qw(
 		6d18b2d816f80e55fdc6ce1a06a908be fail
 		844621cdb1baa93b49429e425d424d75 fail
+		252dfb98f3b8f0a8c9e9bcb4b3af7a64 OK
 		bc4a7feb678ef2596a67583b14d763f6 OK
 		866a30651084f519426acdb539574ed9 OK
 		8cab6a5eae51915a2682b6df6a352dec OK

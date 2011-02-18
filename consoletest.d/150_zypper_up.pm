@@ -3,12 +3,13 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
+	script_sudo("killall gpk-update-icon packagekitd");
 	if(!$ENV{NET}) {
 		# non-NET installs have only milestone repo, which might be incompatible.
 		script_sudo("zypper ar http://$ENV{SUSEMIRROR}/repo/oss Factory");
 	}
-	script_sudo("chown $username /dev/$serialdev");
 	script_sudo("zypper -n patch");
+	$self->take_screenshot;
 	waitidle 60;
 	script_sudo("zypper -n patch"); # first one might only have installed "update-test-affects-package-manager"
 	script_run("rpm -q libzypp zypper");
@@ -26,7 +27,6 @@ sub checklist()
 		62ba0ecc2c42cdfa091a703e0396bebf OK
 		65e3634bd721ba2b8f6779f6e4a114f5 OK
 		339834b0bf1b16731ce5dc8f54eb3f25 OK
-		297ce2262c9ed279124bd720f8ba7ad4 OK
 		d1ec72e7741e33bc6c666e97fa8de01e fail
 		e6edd4e984e590e493c16c975050e739 fail
 	)}

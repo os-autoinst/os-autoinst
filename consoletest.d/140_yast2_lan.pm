@@ -5,7 +5,7 @@ use bmwqemu;
 
 
 sub run()
-{
+{ my $self=shift;
 script_sudo("/sbin/yast2 lan");
 
 if($ENV{LIVETEST}) {
@@ -27,6 +27,7 @@ sendkey("tab");
 for(1..15){sendkey("backspace")}
 sendautotype($domain);
 sleep 3;
+$self->take_screenshot;
 sendkey("alt-o"); # confirm possible network manager warning
 sendkey("alt-o"); # OK=>Save&Exit
 sleep 20;

@@ -31,10 +31,10 @@ if(!$ENV{LIVECD}) {
 			sendkey "alt-o";
 		}
 		local $ENV{SCREENSHOTINTERVAL}=5;
-		waitinststage "grub|splashscreen|automaticconfiguration", 3000;
+		waitinststage "bootloader|splashscreen|automaticconfiguration", 3000;
 	}
 	set_ocr_rect();
-	if(waitinststage "grub", 1) {
+	if(waitinststage "bootloader", 1) {
 		sendkey "ret"; # avoid timeout for booting to HDD
 	}
 	qemusend "eject ide1-cd0";
@@ -49,7 +49,8 @@ if(!$ENV{LIVECD}) {
 	set_ocr_rect();
 	sendkey $cmd{"rebootnow"};
 	# no grub visible on proper first boot because of kexec
-	if(0 && !waitinststage "grub") {
+#	if(0 && !waitinststage "bootloader") {
+	if(1 || !waitinststage "bootloader") {
 		sleep 11; # give some time for going down but not for booting up much
 		# workaround:
 		# force eject+reboot as it often fails in qemu/kvm
