@@ -9,7 +9,7 @@ sub checksize($)
   my $i=$ENV{ISO};
   my $maxsize=737_280_000;
   if($i=~m/-DVD/) {$maxsize=4_707_319_808}
-  if($i=~m/-DVD-Biarch/) {$maxsize=8_543_666_176}
+  if($i=~m/-DVD-Biarch/) {$maxsize=8_539_996_160}
   if($size>$maxsize) {return "fail"}
   if($size>$maxsize*0.995) {return "unknown"}
   return "OK";

@@ -89,7 +89,7 @@ if($ENV{NETBOOT}) {
 # set language last so that above typing will not depend on keyboard layout
 if($ENV{INSTLANG}) {
 # positions in isolinux language selection ; order matters
-# from cpio -i --to-stdout languages < /mnt/boot/x86_64/loader/bootlogo
+# from cpio -i --to-stdout languages < /mnt/boot/*/loader/bootlogo
 my @isolinuxlangmap=qw(
 af_ZA
 ar_EG

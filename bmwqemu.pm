@@ -98,6 +98,9 @@ if($ENV{INSTLANG} eq "de_DE") {
 	$cmd{"change"}="alt-n";
 	$cmd{"software"}="w";
 }
+if($ENV{INSTLANG} eq "fr_FR") {
+	$cmd{"next"}="alt-s";
+}
 
 if(!-x $gocrbin) {$gocrbin=undef}
 if(!-x $qemubin) {$qemubin=~s/kvm/qemu-kvm/}
