@@ -3,16 +3,20 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return $ENV{DESKTOP} =~ m/lxde|minimalx|textmode/;
+	return $ENV{DESKTOP} eq "xfce";
 }
 
 sub run()
 {
 	my $self=shift;
-	qemusend "system_powerdown"; # shutdown
+	for(1..5) {
+		sendkey "alt-f4"; # opens log out popup after all windows closed
+	}
 	waitidle;
+	sendautotype "\t\t"; # select shutdown
+	sleep 1;
 	$self->take_screenshot;
-	#sendkey "ctrl-alt-f1"; # work-around for LXDE bug 619769 ; not needed in Factory anymore
+	sendautotype "\n";
 	waitinststage("splashscreen");
 }
 
