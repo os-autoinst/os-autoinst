@@ -356,6 +356,19 @@ sub take_screenshot()
 	$lastname=$filename;
 }
 
+sub checkrefimgs($$$)
+{
+	my ($screenimg,$refimg,$flags) = @_;
+	my $screenppm=ppm->new(fileContent($screenimg));
+	my $refppm=ppm->new(fileContent($refimg));
+	if($flags=~m/t/) {
+		# black/white => drop most background
+		$screenppm->threshold(0x80);
+		$refppm->threshold(0x80);
+	}
+	return $screenppm->search($refppm);
+}
+
 sub qemualive()
 { 
 	if(!$qemupid) {($qemupid=fileContent($qemupidfilename)) && chomp $qemupid;}
