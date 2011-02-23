@@ -66,18 +66,18 @@ sub check(%)
 				if(bmwqemu::checkrefimgs($screenimg,$refimg,'t')) {
 					my $result=$refimg;
 					$result=~s/.*-(.*)\.ppm/$1/;
-					push(@testreturn, (($result eq 'good')?'OK':'fail'));
+					push(@testreturn, (($result eq 'good')?'ok':'fail'));
 					$matched=1;
 					last;
 				}
 			}
-			push(@testreturn, "unknown") if !$matched;
+			push(@testreturn, "unk") if !$matched;
 		}
 	}
 	my $result_string = '('.join(',',@testreturn).')';
 	return 'fail'.' '.$result_string if(grep/fail/,@testreturn);
-	return 'OK'.' '.$result_string if(grep/OK/,@testreturn);
-	return 'unknown'.' '.$result_string if(grep/unknown/,@testreturn);
+	return 'OK'.' '.$result_string if(grep/ok/,@testreturn);
+	return 'unknown'.' '.$result_string if(grep/unk/,@testreturn);
 	return 'not-autochecked';
 }
 
