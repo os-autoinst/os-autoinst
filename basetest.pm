@@ -63,7 +63,7 @@ sub check(%)
 		else {
 			my $matched=0;
 			foreach my $refimg (@refimgs) {
-				if(bmwqemu::checkrefimgs($screenimg,$refimg,'t')) {
+				if(defined bmwqemu::checkrefimgs($screenimg,$refimg,'t')) {
 					my $result=$refimg;
 					$result=~s/.*-(.*)\.ppm/$1/;
 					push(@testreturn, (($result eq 'good')?'ok':'fail'));
