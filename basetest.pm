@@ -77,7 +77,7 @@ sub check(%)
 	my $result_string = '('.join(',',@testreturn).')';
 	return 'fail'.' '.$result_string if(grep/fail/,@testreturn);
 	return 'OK'.' '.$result_string if(grep/ok/,@testreturn);
-	return 'unknown'.' '.$result_string if(grep/unk/,@testreturn);
+	return 'unknown' if(keys %$checklist || grep/unk/,@testreturn); # none of our known results matched
 	return 'not-autochecked';
 }
 
