@@ -151,6 +151,7 @@ eabf2c66351e8ee185e0a583deb1e8a7 rebootnow-gnome-11.3
 e3f412dc306085ca4d1795f850c81dee bootloader-grub
 6dad21ea36802fca6a7b4dc14db62c0e bootloader-grub0620
 053ed0ae4ad4679aec1c7d696f3697b2 bootloader-grub-xmas
+8ac5e11291e3e54fa1f3928e8447c776 bootloader-grub-11.4
 f2c55e899bd1ab80874ad1e246c8d7ca splashscreen
 07ba75193833b87950d8813b23de7ced splashscreen-11.3
 e02daeeb40da74800a0d30cc5f2b2495 splashscreen-11.4-MS5
@@ -193,6 +194,8 @@ c89bec8d3c0a63cf63c30f895055531f booted-KDE-0900-64
 69144e56bfd9f8993926661a11ecfbc1 booted-KDE-0989-KDF
 174cefa8404b3d080f72f96e87968686 booted-KDE-1017
 3c2ec8e7a473f1f9c1c110408647760d booted-KDE-1050-SUSE-greeting
+41a9788e998c672abd711ff4653f8877 booted-KDE-1089
+32e7d63c3b1a80a212e24fca44d857fa booted-KDE-1089
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
 bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
@@ -205,6 +208,7 @@ bff7185022f9fea00e12c8fbb52b29b8 booted-GNOME-11.3-dvd
 9543c0271eeb7b4edf1ef226dee3e221 booted-GNOME-0925
 fbbe32ffb2144130af4dc66674646d61 booted-GNOME-1000
 612eecffdc1bfcaf2b065ede3f3052a5 booted-GNOME-1016
+9468f7f86c39a7887a26f72685f5c0c9 booted-GNOME-1096
 a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
 68cadea0ed4cc94bc3752e059f715d84 booted-LXDE-11.3
 e8984c6bbac39ae3514a52cf9bc61ddc booted-LXDE-0951-32
@@ -221,6 +225,9 @@ b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
 1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
 209f79c737bb62e12215b36d345fb24d failed-to-detect-CD-rebooting-in-120-seconds
 e194d7f132a654d94094de19639a5f85 YaST-was-unable-to-find-the-correct-control-file
+
+fd04540147a054d3ce688638eb49c0f1 sles-10-installer-language
+7a5c3fb56b45e4757e82c28797b70712 sles-10-booted-config-rootpw
 
 553a1264c478291cfa882fee9fe62cb9 debian-mirrorselection
 9dd970d5084fa2dcf1bf2a3947240501 debian-popconconf

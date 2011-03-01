@@ -15,7 +15,7 @@ sub installrunfunc
 
 waitinststage "bootloader",12; # wait for welcome animation to finish
 
-if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
+unless($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
 	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
 } else {
 	$username="linux"; # LiveCD account

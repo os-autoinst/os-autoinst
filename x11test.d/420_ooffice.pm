@@ -11,8 +11,12 @@ sub run()
 	my $self=shift;
 	x11_start_program("oowriter");
 	sleep 2; waitidle; # extra wait because oo sometimes appears to be idle during start
+	sendautotype("Hello World!");
+	sleep 2;
 	$self->take_screenshot;
 	sendkey "alt-f4"; sleep 2;
+	$self->take_screenshot;
+	sendkey "alt-d"; sleep 2; # Discard
 }
 
 sub checklist()
@@ -27,6 +31,8 @@ sub checklist()
 		6edae3afba71dd93f7615791af5e4912 OK
 		6491e203e83083d77b603853dde03f5c OK
 		6e2f20a265525ef64a777ade0d29bc95 OK
+		baf11490d0809edc8c9abea408f53eb7 OK
+		26023f0d3a37046730c47ee40115fd74 OK
 		1aa2225b803c4712e2213d8639131b2c minorissue64bit
 	)}
 }
