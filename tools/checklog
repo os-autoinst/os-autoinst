@@ -43,6 +43,8 @@ foreach my $s (@stages) {
 	printresult $s;
 }
 
+sub is_ok($) { my $x=shift; $x=~m/^OK/ }
+
 sub checkfunc
 {
 	my($test)=@_;
@@ -58,10 +60,10 @@ autotest::runtestdir("$scriptdir/inst.d", \&checkfunc);
 autotest::runtestdir("$scriptdir/consoletest.d", \&checkfunc);
 autotest::runtestdir("$scriptdir/x11test.d", \&checkfunc);
 
-my $overall=($results{xterm} eq "OK" or $results{firefox} eq "OK");
+my $overall=(is_ok($results{xterm}) or is_ok($results{firefox}));
 for my $test (qw(automaticconfiguration booted zypper_in zypper_up yast2_lan isosize)) {
 	next if($test eq "automaticconfiguration" && ($ENV{UPGRADE}||$ENV{LIVETEST}));
-	$overall=0 if $results{$test} ne "OK";
+	$overall=0 unless is_ok $results{$test};
 }
 
 $results{overall}=($overall?"OK":"fail");
