@@ -13,7 +13,7 @@ foreach my $log (@ARGV) {
 	my $content=fileContent($log); # cache
 	my ($atime,$mtime) = (stat($log))[8,9];
 	# strip old summary
-	$content=~s/^====\n.*//sm or die "was no proper log?";
+	$content=~s/\n^====\n.*//sm or die "was no proper log?";
 	next if($& eq $newcheckresult); # stayed same
 
 	open(my $fd, ">", $log) or die "can not write log";
