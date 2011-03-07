@@ -5,7 +5,7 @@ sub runtest
 {
 	my($script,$testfunc)=@_;
 	my $name=$script;
-	$name=~s{.*/\d+_}{}; $name=~s/\.pm$//;
+	$name=~s{.*/}{}; $name=~s{^\d+_}{}; $name=~s/\.pm$//;
 	{
 		eval "package $name;
 		require \$script;" or (diag("error on $script: $@") and return);

@@ -6,22 +6,20 @@ $scriptdir=`dirname $scriptdir`;chomp($scriptdir); # one level up
 
 sub checksize($)
 { my $size=shift;
-  my $i=$ENV{ISO};
-  my $maxsize=737_280_000;
-  if($i=~m/-DVD/) {$maxsize=4_707_319_808}
-  if($i=~m/-DVD-Biarch/) {$maxsize=8_539_996_160}
-  if($size>$maxsize) {return "fail"}
-  if($size>$maxsize*0.995) {return "unknown"}
-  return "OK";
+        my $i=$ENV{ISO};
+        my $maxsize=737_280_000;
+        if($i=~m/-DVD/) {$maxsize=4_707_319_808}
+        if($i=~m/-DVD-Biarch/) {$maxsize=8_539_996_160}
+        if($size>$maxsize) {return "fail"}
+        if($size>$maxsize*0.995) {return "unknown"}
+        return "OK";
 }
 
 print "====\n"; # marker
 
-my @stages=(qw"splashscreen welcome timezone disk usersettings installationoverview performinstallation automaticconfiguration booted");
-
-my %stageseen=();
-my %md5seen=();
-my %results;
+our %stageseen=();
+our %md5seen=();
+our %results;
 sub printresult($)
 { my $key=shift;
 	if(defined($results{$key})) {print "$key: $results{$key}\n"}
@@ -36,14 +34,7 @@ while(<>) {
 	if(/^iso_size=(\d+)/) {$results{isosize}=checksize($1);}
 }
 
-foreach my $s (@stages) {
-	my $found=0;
-	foreach(keys(%stageseen)) {if(m/$s/){$found=1;last;}}
-	$results{$s}=($found?"OK":"unknown");
-	printresult $s;
-}
-
-sub is_ok($) { my $x=shift; $x=~m/^OK/ }
+sub is_ok($) { my $x=shift; $x=~m/^OK|not-autochecked/ }
 
 sub checkfunc
 {
@@ -54,17 +45,7 @@ sub checkfunc
 	printresult $class;
 }
 
-autotest::runtest("$scriptdir/distri/$ENV{DISTRI}/inst.d/010_initenv.pm",sub{my $test=shift;$test->run;});
-
-autotest::runtestdir("$scriptdir/inst.d", \&checkfunc);
-autotest::runtestdir("$scriptdir/consoletest.d", \&checkfunc);
-autotest::runtestdir("$scriptdir/x11test.d", \&checkfunc);
-
-my $overall=(is_ok($results{xterm}) or is_ok($results{firefox}));
-for my $test (qw(automaticconfiguration booted zypper_in zypper_up yast2_lan isosize)) {
-	next if($test eq "automaticconfiguration" && ($ENV{UPGRADE}||$ENV{LIVETEST}));
-	$overall=0 unless is_ok $results{$test};
-}
+my $overall=autotest::runtest("$scriptdir/distri/$ENV{DISTRI}/check.pm",sub{my $test=shift;$test->check;});
 
 $results{overall}=($overall?"OK":"fail");
 foreach my $k ("standstill", "isosize", "overall") {
