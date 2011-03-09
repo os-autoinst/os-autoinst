@@ -229,6 +229,9 @@ e194d7f132a654d94094de19639a5f85 YaST-was-unable-to-find-the-correct-control-fil
 fd04540147a054d3ce688638eb49c0f1 sles-10-installer-language
 7a5c3fb56b45e4757e82c28797b70712 sles-10-booted-config-rootpw
 
+4d604b45d26c826530232389351b5e6f kiwi-opensuse-11.3-loginprompt
+643f6039cd43aaf5b63174d0dfe95929 kiwi-oem-inst-confirm
+
 553a1264c478291cfa882fee9fe62cb9 debian-mirrorselection
 9dd970d5084fa2dcf1bf2a3947240501 debian-popconconf
 caee43e45a35e9c4c7f4872a6575bde6 debian-grubinstall
