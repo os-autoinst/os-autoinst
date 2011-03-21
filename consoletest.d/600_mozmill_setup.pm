@@ -1,6 +1,5 @@
 use base "basetest";
 use bmwqemu;
-# for https://bugzilla.novell.com/show_bug.cgi?id=657626
 
 sub is_applicable()
 {
@@ -14,7 +13,7 @@ sub run()
 	$self->take_screenshot;
 	sendkey "ctrl-l";
 	#script_sudo("pip install mozmill mercurial");
-	script_sudo("pip install mozmill==1.5.1 mercurial");
+	script_sudo("pip install mozmill==1.5.2 mercurial");
 	sleep 5; waitidle(50);
 	$self->take_screenshot;
 	sendkey "ctrl-l";
