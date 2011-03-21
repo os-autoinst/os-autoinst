@@ -20,7 +20,7 @@ sub run()
 	$self->take_screenshot;
 	sendkey "ctrl-q"; # really quit (alt-f4 just backgrounds)
 	sleep 2; waitidle;
-	x11_start_program("killall amarok"); # to be sure that it does not interfere with later tests
+	x11_start_program("killall amarok") unless $ENV{NICEVIDEO}; # to be sure that it does not interfere with later tests
 }
 
 sub checklist()

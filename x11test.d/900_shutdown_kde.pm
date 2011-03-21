@@ -15,7 +15,7 @@ sub run()
 	sleep 1;
 	$self->take_screenshot;
 	sendautotype "\n";
-	waitinststage("splashscreen");
+	waitinststage("splashscreen", 40);
 }
 
 sub checklist()
