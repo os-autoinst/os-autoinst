@@ -25,7 +25,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $qemubin $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
 &diag &fileContent &qemusend_nolog &qemusend &sendkey &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
-&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program);
+&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &set_std_hash_rects);
 
 
 our $debug=1;
@@ -559,6 +559,15 @@ sub x11_start_program($)
 	sendkey "ret";
 	waitidle;
 	sleep 1;
+}
+
+sub set_std_hash_rects()
+{
+  set_hash_rects(
+	[30,30,100,100], # where most applications pop up
+	[630,30,100,100], # where some applications pop up
+	[0,579,100,10 ], # bottom line (KDE/GNOME bar)
+	);
 }
 
 1;

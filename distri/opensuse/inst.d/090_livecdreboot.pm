@@ -60,10 +60,11 @@ if(!$ENV{LIVECD}) {
 		qemusend "system_reset";
 	}
 }
-if($ENV{RAIDLEVEL}) { do "$scriptdir/workaround/656536.pm" }
+#if($ENV{RAIDLEVEL} && !$ENV{LIVECD}) { do "$scriptdir/workaround/656536.pm" }
 waitinststage "automaticconfiguration", 70;
 mousemove_raw(0x7fff,0x7fff); # move mouse off screen again
 mousemove_raw(0x7fff,0x7fff); # work around no reaction on first move
+set_std_hash_rects;
 local $ENV{SCREENSHOTINTERVAL}=$ENV{SCREENSHOTINTERVAL}*3;
 if(!$ENV{GNOME}) {
 	# read sub-stages of automaticconfiguration 

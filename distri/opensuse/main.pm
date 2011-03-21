@@ -23,11 +23,6 @@ unless($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
 	autotest::runtest("$scriptdir/distri/$ENV{DISTRI}/inst.d/020_bootloader.pm", \&installrunfunc)
 }
 
-set_hash_rects(
-	[30,30,100,100], # where most applications pop up
-	[630,30,100,100], # where some applications pop up
-	[0,579,100,10 ], # bottom line (KDE/GNOME bar)
-	);
-
+set_std_hash_rects;
 
 1;
