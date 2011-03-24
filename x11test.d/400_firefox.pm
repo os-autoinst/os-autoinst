@@ -11,11 +11,11 @@ sub run()
 		sendkey "ret"; # confirm default browser setting popup
 		waitidle;
 	}
-	if(1) { # 4.0b10 changed default value
+	if(0) { # 4.0b10 changed default value - b12 has showQuitWarning
 		sendkey "ctrl-t"; sleep 1;
 		sendautotype "about:config\n"; sleep 1;
 		sendkey "ret"; waitidle;
-		sendautotype "warnOnQuit\n\t"; sleep 1;
+		sendautotype "showQuit\n\t"; sleep 1;
 		sendkey "ret"; waitidle;
 		sendkey "ctrl-w"; sleep 1;
 	}
@@ -56,6 +56,7 @@ sub checklist()
 		a49cb9d5f70aba8d750911c3782736e0 OK
 		3a37c85fd4f2e7a37f0fc8ae5845aa61 OK
 		48ca897fe85cbbec1fd9d853954eae4d OK
+		92db570cfa35c753fb0a37f69264807a OK
 		614838262da0d1976e84aba2e4636f01 fail
 		0ca35889f8b2ff0eff07304f65fdeb79 fail
 		c7bcf2e6976800803da351d4e6108fdb fail
