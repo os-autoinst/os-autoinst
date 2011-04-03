@@ -239,6 +239,8 @@ caee43e45a35e9c4c7f4872a6575bde6 debian-grubinstall
 
 eac344f0ef7a6201c9d0a65b5ceefec4 fedora-installationcomplete
 ddb3976501b9f8b1fb62182551edd64f fedora-postreboot
+
+22f3a1ddd0f0165d79a26a7aa7a49f15 openindiana-booted-live-148
 );
 
 1;
