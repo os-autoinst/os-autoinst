@@ -15,7 +15,7 @@ use POSIX;
 our $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
 my $goodimageseen :shared = 0;
 my $endreadingcon :shared = 0;
-my $lastname;
+my $lastname :shared = 0;
 my $lastinststage :shared = "";
 my $lastknowninststage :shared = "";
 my $prestandstillwarning :shared = 0;
@@ -369,6 +369,33 @@ sub checkrefimgs($$$)
 		$refppm->threshold(0x80);
 	}
 	return $screenppm->search($refppm);
+}
+
+sub waitimage {
+	my ($reflist,$timeout) = @_;
+	$timeout = 60 unless defined $timeout;
+	diag "Waiting for <$reflist.ppm> in screenshot. timeout=$timeout";
+	$timeout = $timeout / 2;
+	my @refimgs=<$scriptdir/waitimgs/$reflist.ppm>;
+	my ($lastmd5,$thismd5) = (0,0);
+	for(my $i=0;$i<=$timeout;$i++) {
+		# prevent reading while screendump is not finished
+		my $mylastname = $lastname;
+		sleep 2;
+		$thismd5 = Digest::MD5::md5_hex(fileContent($mylastname));
+		# image is equal with previous one
+		unless($lastmd5 eq $thismd5) {
+			foreach my $refimg (@refimgs) {
+				if(defined checkrefimgs($mylastname,$refimg,'t')) {
+					diag "Found $refimg in $mylastname";
+					return 1;
+				}
+			}
+		}
+		$lastmd5 = $thismd5;
+	}
+	diag "Waiting timed out!";
+	return 0;
 }
 
 sub qemualive()
