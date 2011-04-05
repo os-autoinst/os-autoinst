@@ -394,6 +394,7 @@ sub waitimage($;$) {
 		}
 		$lastmd5 = $thismd5;
 	}
+	timeout_screenshot();
 	diag "Waiting timed out!";
 	return 0;
 }
