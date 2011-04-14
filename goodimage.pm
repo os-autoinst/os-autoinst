@@ -241,6 +241,8 @@ eac344f0ef7a6201c9d0a65b5ceefec4 fedora-installationcomplete
 ddb3976501b9f8b1fb62182551edd64f fedora-postreboot
 
 22f3a1ddd0f0165d79a26a7aa7a49f15 openindiana-booted-live-148
+
+61b8b01192becf67347ad0420724947e freebsd-install-done
 );
 
 1;

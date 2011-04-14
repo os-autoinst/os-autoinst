@@ -48,7 +48,7 @@ share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
 our $testedversion=$ENV{ISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.iso$//; $testedversion=~s{^([^.]+?)(?:-Media)?$}{$1};
 if(!$ENV{DISTRI}) {
-	if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi)-/) {$ENV{DISTRI}=lc($1)}
+	if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi|FreeBSD)-/) {$ENV{DISTRI}=lc($1)}
 }
 my @ocrrect; share(@ocrrect);
 my @extrahashrects; share(@extrahashrects);
@@ -260,7 +260,7 @@ sub hashrect($$$)
 	return (@result,[Digest::MD5::md5_hex($ppm2->{data}),$rect,$flags]);
 }
 
-my %goodsizes=(1440015=>1, 2359312=>1);
+my %goodsizes=(1440015=>1, 2359312=>1, 864015=>1);
 
 # input: ref on PPM data
 sub inststagedetect($)
