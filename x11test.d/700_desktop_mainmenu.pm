@@ -9,7 +9,17 @@ sub is_applicable()
 sub run()
 {
 	my $self=shift;
-	sendkey "alt-f1"; # open main menu
+	if($ENV{DESKTOP} eq "lxde") {
+		x11_start_program("lxpanelctl menu"); # or Super_L or Windows key
+	} elsif($ENV{DESKTOP} eq "xfce") {
+		mouse_move(0,0);
+		sleep 1;
+		sendkey "ctrl-esc";	# open menu
+		sleep 1;
+		sendkey "up";		# go into Applications submenu
+	} else {
+		sendkey "alt-f1"; # open main menu
+	}
 	sleep 2;
 	$self->take_screenshot;
 	sendkey "esc"; 
