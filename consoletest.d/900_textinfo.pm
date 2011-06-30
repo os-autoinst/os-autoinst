@@ -15,6 +15,7 @@ sub run()
 	script_run('grep DEFAULT /etc/sysconfig/windowmanager');
 	script_run("ps ax > /dev/$serialdev");
 	script_run("rpm -qa > /dev/$serialdev");
+	script_run("ls -l /etc/ntp*");
 	sendkey "ctrl-c";
 }
 

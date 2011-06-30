@@ -137,6 +137,8 @@ sleep 2;
 } elsif($ENV{LVM}) {
 	sendkey "alt-l"; # enable LVM-based proposal
 	waitidle;
+} elsif($ENV{BTRFS}) {
+	sendkey "alt-u"  # Use btrfs
 }
 }
 

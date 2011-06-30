@@ -31,6 +31,7 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	$ENV{KEEPHDDS}=1;
 	# use qemu snapshot/cow feature to work on old image without writing it
 	unlink "$basedir/l1";
+	unlink "$basedir/1";
 	system($qemuimg, "create", "-b", $file, "-f", "qcow2", "$basedir/l1");
 }
 

@@ -9,7 +9,7 @@ sub is_applicable()
 sub run()
 {
 	my $self=shift;
-	x11_start_program("banshee-1");
+	x11_start_program("banshee");
 	$self->take_screenshot;
 	sendkey "ctrl-q"; # really quit (alt-f4 just backgrounds)
 	sendkey "alt-f4"; 

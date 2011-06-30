@@ -12,6 +12,8 @@ sub run()
 	mousemove_raw(31000, 31000); # move mouse off screen again
 	x11_start_program("xterm");
 	sleep 2;
+	sendautotype("cd\n"); sleep 1; # go to $HOME (for KDE)
+	sendkey "ctrl-l"; # clear
 	for(1..13) { sendkey "ret" }
 	sendautotype("echo If you can see this text xterm is working.\n");
 	sleep 2;
@@ -34,6 +36,7 @@ sub checklist()
 		36c705aa428c568d454fc44604298613 OK
 		e893ef885c201a8bbb067ad6613576f8 OK
 		f0f9a5be127697c8a19c100591b8f33c OK
+		1d1c247b294866d58678e602dc2418c7 OK
 	)}
 }
 

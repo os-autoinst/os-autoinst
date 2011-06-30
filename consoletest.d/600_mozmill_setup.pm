@@ -13,7 +13,7 @@ sub run()
 	$self->take_screenshot;
 	sendkey "ctrl-l";
 	#script_sudo("pip install mozmill mercurial");
-	script_sudo("pip install mozmill==1.5.2 mercurial");
+	script_sudo("pip install mozmill==1.5.3 mercurial");
 	sleep 5; waitidle(50);
 	$self->take_screenshot;
 	sendkey "ctrl-l";
