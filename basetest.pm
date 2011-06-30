@@ -1,5 +1,6 @@
 package basetest;
 use bmwqemu;
+use Time::HiRes;
 
 sub new()
 {
@@ -63,7 +64,10 @@ sub check(%)
 		else {
 			my $matched=0;
 			foreach my $refimg (@refimgs) {
-				if(defined bmwqemu::checkrefimgs($screenimg,$refimg,'t')) {
+				#my $t=[Time::HiRes::gettimeofday()];
+				my $c=bmwqemu::checkrefimgs($screenimg,$refimg,'t');
+				#print "$refimg: ".Time::HiRes::tv_interval($t)."\n";
+				if(defined $c) {
 					my $result=$refimg;
 					$result=~s/.*-(.*)\.ppm/$1/;
 					push(@testreturn, (($result eq 'good')?'ok':'fail'));
