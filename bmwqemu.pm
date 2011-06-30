@@ -375,10 +375,9 @@ sub waitimage($;$) {
 	my ($reflist,$timeout) = @_;
 	$timeout = 60 unless defined $timeout;
 	diag "Waiting for <$reflist.ppm> in screenshot. timeout=$timeout";
-	$timeout = $timeout / 2;
 	my @refimgs=<$scriptdir/waitimgs/$reflist.ppm>;
 	my ($lastmd5,$thismd5) = (0,0);
-	for(my $i=0;$i<=$timeout;$i++) {
+	for(my $i=0;$i<=$timeout;$i+=2) {
 		# prevent reading while screendump is not finished
 		my $mylastname = $lastname;
 		sleep 2;
@@ -395,7 +394,7 @@ sub waitimage($;$) {
 		$lastmd5 = $thismd5;
 	}
 	timeout_screenshot();
-	diag "Waiting timed out!";
+	diag "Waiting for images $reflist timed out!";
 	return 0;
 }
 
