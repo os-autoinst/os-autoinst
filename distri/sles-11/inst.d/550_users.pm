@@ -6,6 +6,8 @@ sub run()
 { my $self=shift;
         # Users / User Auth Method
         sendkeyw "alt-n";
+        sleep 2;
+        waitidle;
         sendautotype "$realname\t\t";
         sendautotype "$password\t";
         sendautotype $password;

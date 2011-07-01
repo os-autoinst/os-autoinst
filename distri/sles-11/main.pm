@@ -12,6 +12,19 @@ sub installrunfunc
 	$test->take_screenshot;
 	diag "finished $class";
 }
+sub consoletestrunfunc
+{
+	my($test)=@_;
+	my $class=ref $test;
+	clear_console; # clear screen to make screen content independent from previous tests
+	diag "starting $class";
+	$test->run();
+	sleep 2;
+	$test->take_screenshot;
+	diag "finished $class";
+}
+
+$ENV{DESKTOP}||="gnome";
 
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
 	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
@@ -24,6 +37,8 @@ set_hash_rects(
 	[0,579,100,10 ], # bottom line (KDE/GNOME bar)
 	);
 
-	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/test.d", \&installrunfunc);
+sendkey "ctrl-alt-f3"; waitidle; # avoid "reset" being typed into tty2 or 7
+autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/consoletest.d", \&consoletestrunfunc);
+autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/x11test.d", \&installrunfunc);
 
 1;

@@ -1,0 +1,1 @@
+../../sles-11/consoletest.d/550_syslinux.pm

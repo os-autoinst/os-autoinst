@@ -8,7 +8,8 @@ sub run()
 	waitidle;
 	sendpassword();
 	sendkey("ret");
-	waitidle;
+	sleep 6;
+	waitidle(70);
 }
 
 1;

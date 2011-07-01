@@ -1,0 +1,1 @@
+../../../consoletest.d/140_yast2_lan.pm

@@ -5,8 +5,8 @@ use bmwqemu;
 
 sub run()
 {
-
-$ENV{DOCRUN}=1;
+	my $self=shift;
+	$ENV{DOCRUN}=1;
 	if(0){
 		# user setup
 		waitinststage "usersettings";
@@ -64,12 +64,15 @@ if($ENV{DOCRUN}) {
 }
 sendkey $cmd{accept}; # agfa-fonts license
 sleep 2;
+waitidle;
 
 # start install
+$self->take_screenshot;
 sendkey $cmd{install};
 sleep 2;
 waitidle 5;
 # confirm
+$self->take_screenshot;
 sendkey $cmd{install};
 waitinststage "performinstallation";
 if(!$ENV{LIVECD} && !$ENV{NICEVIDEO}) {

@@ -4,12 +4,11 @@ use bmwqemu;
 
 sub run()
 {
-	sleep 6; # wait anim
+	waitinststage("syslinux-bootloader", 25); # wait anim
 	# install
 	sendkey "down";
+	sleep 1;
 	sendkey "ret";
-	sleep 29;
-	waitidle;
 }
 
 1;

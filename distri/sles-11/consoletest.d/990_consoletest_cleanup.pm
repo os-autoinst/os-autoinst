@@ -4,10 +4,8 @@ use bmwqemu;
 
 sub run()
 { my $self=shift;
-	sendkey "ctrl-alt-f2";
+	sendkey "ctrl-alt-f7";
 	sleep 2;
-	script_sudo("tail -20 /var/log/messages > /dev/$serialdev");
-	script_sudo("/sbin/halt");
 }
 
 sub checklist()

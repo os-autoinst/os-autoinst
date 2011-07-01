@@ -5,6 +5,7 @@ use bmwqemu;
 
 sub run()
 {
+	my $self=shift;
 
 # user setup
 waitinststage "usersettings";
@@ -61,11 +62,19 @@ if($ENV{DOCRUN}) {
 	waitidle;
 }
 
+for(1..7) {
+sendkey $cmd{accept}; # java,java-plugin,ICAClient,flash,agfa-fonts,fluendo-mp3 license
+sleep 2;
+}
+waitidle;
+
 # start install
+$self->take_screenshot;
 sendkey $cmd{install};
 sleep 2;
 waitidle 5;
 # confirm
+$self->take_screenshot;
 sendkey $cmd{install};
 waitinststage "performinstallation";
 if(!$ENV{LIVECD} && !$ENV{NICEVIDEO}) {

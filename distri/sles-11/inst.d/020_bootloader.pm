@@ -4,7 +4,7 @@ use bmwqemu;
 
 sub run()
 {
-	waitinststage("syslinux-bootloader", 15); # wait anim
+	waitinststage("syslinux-bootloader", 20); # wait anim
 	# install
 	sendkey "down";
 	sleep 1;

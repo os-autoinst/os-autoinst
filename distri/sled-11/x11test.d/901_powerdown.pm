@@ -1,0 +1,1 @@
+../../sles-11/x11test.d/901_powerdown.pm
