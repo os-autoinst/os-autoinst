@@ -3,14 +3,6 @@ use strict;
 use bmwqemu;
 use autotest;
 
-sub clear_console()
-{
-	sendkey "ctrl-c";
-	sleep 1;
-	sendkey "ctrl-c";
-	sendautotype "reset\n";
-	sleep 2;
-}
 
 
 if(!$ENV{NICEVIDEO}) {
