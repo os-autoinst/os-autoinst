@@ -58,7 +58,7 @@ if(!qemualive) {
 	$qemupid=fork();
 	die "fork failed" if(!defined($qemupid));
 	if($qemupid==0) {
-		my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0");
+		my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,wait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0");
 		for my $i (1..$ENV{NUMDISKS}) {
 			my $boot=$i==1?",boot=on":"";
 			push(@params, "-drive", "file=$basedir/l$i,if=$ENV{HDDMODEL}$boot");
@@ -78,7 +78,7 @@ if(!qemualive) {
 	open(my $pidf, ">", $bmwqemu::qemupidfilename) or die "can not write $bmwqemu::qemupidfilename";
 	print $pidf $qemupid,"\n";
 	close $pidf;
-	sleep 1; # time to let qemu start
+	sleep 6; # time to let qemu start
 }
 
 1;
