@@ -79,6 +79,7 @@ c3791af16cb72dea02053d98b995c020 timezone-net1048
 fa3b644bd9988f3ff4bd2f495d084d86 timezone-net1048-addon
 6732e48f879b54522a349fcc3f96941f timezone-kde-11.3
 52c1983d3e4adba9ad92fb855e5dbb5c timezone-kde0834
+da6ae863e7ad3a7a780f47e91c3585b1 timezone-kde0109
 daf74711041a18d4944c8175ba1e2fe9 timezone-gnome0834
 d55bc446162f2ed31f829d4d7659904a timezone-gnome0945
 3ef90c0e56849a0f4c6165466f0a4351 timezone-sled11sp2
@@ -101,6 +102,7 @@ a0e2fc9642b7369b7f4c8b4f06aeed68 disk-net0620
 2eb5c977e74aba6cf9667170cbc90bf4 disk-net1044-addon
 d0d05609e0008558a4e7a53a05bf6e3f disk-kde-11.3
 4b1f70bb44337f85e73a433ce95b536a disk-kde0834
+177bc9674628d81e7fccaae1f7aa1070 disk-kde0109
 34594787221d2fc3cbbf71e767136112 disk-gnome0834
 dac1e39ab6f9ff406ba397eecb73bacc disk-gnome0945
 056579de8bd96af29d548bd7960322b4 usersettings-11.2
@@ -114,6 +116,7 @@ aa66a5db043b114c5ba749e08581b295 usersettings-net0620-addon
 ee2242d41ac4159bd1864e4d7c4a771f usersettings-net1044-addon
 1c13ffe98e1eeed00c19fce88f06b2d4 usersettings-kde-11.3
 e6f56766a1dc94a4100f1f41ca6d268b usersettings-kde0834
+80710c65dc2e072bcdc1b138304220e2 usersettings-kde0109
 80acbfc07414bbf64301077d1ea75872 usersettings-gnome0834
 0042d00453f698b3994a382dcc0ac6fa usersettings-gnome0945
 ef4eb0e3d3b154f3d61b4ebba42a148f usersettings-sled11sp2
@@ -128,6 +131,7 @@ e626f26a34eee63443ca8d5968fcc183 installationoverview-net0620-addon
 cc75ef945c28fbe4ddb0c6d44e79f14b installationoverview-net1044-addon
 874fe25fef2708e53d7e00f965552c08 installationoverview-kde-11.3
 e7c21345939e097ef3aa67c1560d9421 installationoverview-kde0834
+4ab8b11159cc9d5fdd33888510f000f0 installationoverview-kde0109
 c6e31fd60f22c88943853b7e07712159 installationoverview-gnome0834
 5e9691aa18c950e7ff71765ade2eb750 installationoverview-gnome0945
 a3d2536f57b51dcf1e1f838cb753094d installationoverview-upgrade0945
@@ -153,6 +157,7 @@ d7aaab0e441a984d73f11291c8747a95 performinstallation-kde-11.3
 e759e01febb94d9f3f7ae44499c28c52 performinstallation-upgrade0900
 06abcb58d435cd9f2817e06821820d66 performinstallation-upgrade0925
 758d13eeaa8a1e3357a05003e8e5f528 performinstallation-sles11sp2-0041
+f0419ce657e98dcc5020cb18388f458c performinstallation-sled11sp2-0090
 a7c60d22ae73f52b06a45fea10f2a9ff dvd-net-the-system-will-reboot-now
 58fa2751a39e795b872614bdb657bacc rebootnow
 b28b4c8babb004a696d18875ab95c934 rebootnow
@@ -249,6 +254,7 @@ fd04540147a054d3ce688638eb49c0f1 sles-10-installer-language
 f661dc2bac9ad963accbc7f633a4c550 sled-11-syslinux-bootloader
 50893b5ca96290b4c41c44d8484ecf76 sles-11-splashscreen
 04801d7899f4313a2c37a8fb3d6a15e4 sled-11-splashscreen
+26ec05e79c88d4a6d78882bafb5018e5 sled-11-secondstage-register
 
 4d604b45d26c826530232389351b5e6f kiwi-opensuse-11.3-loginprompt
 643f6039cd43aaf5b63174d0dfe95929 kiwi-oem-inst-confirm
