@@ -1,0 +1,1 @@
+../../sles-11/inst.d/080_partitioning.pm

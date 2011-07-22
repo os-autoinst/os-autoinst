@@ -5,7 +5,15 @@ use bmwqemu;
 
 sub run()
 {
-return 0; # FIXME: missing in Build0012?
+	# open from installation overview
+	sendkey $cmd{change};
+	sendkey "p"; # partitioning
+	waitidle;
+	sendkey "alt-1"; # whole disk #1
+	sendkey $cmd{"next"};
+	waitidle;
+
+
 # add a new primary partition
 sub addpart($$)
 {
@@ -138,7 +146,10 @@ sleep 2;
 } elsif($ENV{LVM}) {
 	sendkey "alt-l"; # enable LVM-based proposal
 	waitidle;
+} elsif($ENV{BTRFS}) {
+	sendkey "alt-u"  # Use btrfs
 }
+
 sendkey $cmd{"next"};
 }
 

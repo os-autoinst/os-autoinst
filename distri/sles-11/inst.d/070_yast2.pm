@@ -65,20 +65,6 @@ if($ENV{DOCRUN}) {
 sendkey $cmd{accept}; # agfa-fonts license
 sleep 2;
 waitidle;
-
-# start install
-$self->take_screenshot;
-sendkey $cmd{install};
-sleep 2;
-waitidle 5;
-# confirm
-$self->take_screenshot;
-sendkey $cmd{install};
-waitinststage "performinstallation";
-if(!$ENV{LIVECD} && !$ENV{NICEVIDEO}) {
-	sleep 5; # view installation details
-	sendkey $cmd{instdetails};
-}
 }
 
 1;

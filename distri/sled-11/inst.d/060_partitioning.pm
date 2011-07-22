@@ -1,1 +1,0 @@
-../../sles-11/inst.d/060_partitioning.pm
