@@ -16,6 +16,11 @@ sub addonproduct()
 			sendkey $cmd{"next"}; waitidle; # Specify URL (default)
 			sendautotype($url);
 			sendkey $cmd{"next"}; waitidle;
+			if($ENV{DISTRI}=~m/^sle/i) {
+				sendkey "alt-y"; # accept Add-On's license
+				sendkey $cmd{"next"};
+			}
+
 			sendkey "alt-i"; waitidle; # confirm import (trust) key
 		}
 		sendkey $cmd{"next"}; waitidle; # done
