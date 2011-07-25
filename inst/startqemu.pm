@@ -11,6 +11,9 @@ $ENV{NUMDISKS}||=1;
 if(defined($ENV{RAIDLEVEL})) {$ENV{NUMDISKS}=4}
 my @cdrom=("-cdrom", $iso);
 
+$ENV{QEMU_AUDIO_DRV}="wav";
+$ENV{QEMU_WAV_PATH}="/dev/null";
+
 my $ison=$iso; $ison=~s{.*/}{}; # drop path
 if($ison=~m/LiveCD/i) {$ENV{LIVECD}=1}
 if($ison=~m/Promo/) {$ENV{PROMO}=1}
@@ -58,7 +61,7 @@ if(!qemualive) {
 	$qemupid=fork();
 	die "fork failed" if(!defined($qemupid));
 	if($qemupid==0) {
-		my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,wait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0");
+		my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,wait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97");
 		for my $i (1..$ENV{NUMDISKS}) {
 			my $boot=$i==1?",boot=on":"";
 			push(@params, "-drive", "file=$basedir/l$i,if=$ENV{HDDMODEL}$boot");
