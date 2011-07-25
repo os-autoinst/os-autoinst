@@ -1,4 +1,4 @@
-use base "basetest";
+use base "basenoupdate";
 use strict;
 use bmwqemu;
 

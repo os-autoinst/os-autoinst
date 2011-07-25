@@ -8,7 +8,7 @@ sub run()
 	waitinststage "performinstallation";
 	local $ENV{SCREENSHOTINTERVAL}=5; # fast-forward
 	$self->take_screenshot;
-	waitinststage "^[^p][^e][^r][^f]", 5000;
+	waitinststage("^[^p][^e][^r][^f]", 5000)==2 && sendkey "alt-d"; # details in case of error
 }
 
 1;

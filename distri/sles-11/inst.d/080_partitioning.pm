@@ -4,13 +4,11 @@ use base "basenoupdate";
 use bmwqemu;
 
 sub run()
-{
+{ my $self=shift;
 	# open from installation overview
 	sendkey $cmd{change};
+	sleep 2;
 	sendkey "p"; # partitioning
-	waitidle;
-	sendkey "alt-1"; # whole disk #1
-	sendkey $cmd{"next"};
 	waitidle;
 
 
@@ -77,9 +75,6 @@ sub setraidlevel($)
 waitinststage "disk";
 if(defined($ENV{RAIDLEVEL})) {
 if(1) {
-# create partitioning
-sendkey $cmd{createpartsetup};
-waitidle 3;
 # user defined
 sendkey $cmd{custompart};
 sendkey $cmd{"next"};
@@ -143,14 +138,23 @@ waitidle 3;
 sendkey $cmd{"accept"};
 waitidle 4;
 sleep 2;
-} elsif($ENV{LVM}) {
-	sendkey "alt-l"; # enable LVM-based proposal
+} else {
+	sendkey "alt-1"; # whole disk #1
+	sendkey $cmd{"next"};
 	waitidle;
-} elsif($ENV{BTRFS}) {
-	sendkey "alt-u"  # Use btrfs
+	
+	if($ENV{LVM}) {
+		sendkey "alt-l"; # enable LVM-based proposal
+		waitidle;
+	} elsif($ENV{BTRFS}) {
+		sendkey "alt-u";  # Use btrfs
+		sleep 6;
+	}
 }
 
+$self->take_screenshot;
 sendkey $cmd{"next"};
+waitidle;
 }
 
 1;

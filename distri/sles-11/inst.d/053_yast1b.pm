@@ -80,8 +80,9 @@ sub run()
 	addonproduct();
 	waitidle;
 	sendkey "alt-c"; # change
+	sleep 2;
 	sendkey "p";	# Packages
-	sleep 120;
+	sleep 60;
 	sendkey "alt-a"; # Accept
 	sleep 2;
 	sendkey "alt-o"; # cOntinue
@@ -91,8 +92,10 @@ sub run()
 	sendkey "alt-u"; # confirm
 	sleep 20;
 	sendkey "alt-d"; # details
-	local $ENV{SCREENSHOTINTERVAL}=5;
-	waitinststage("splashscreen|booted", 5600); # time for install
+	{
+		local $ENV{SCREENSHOTINTERVAL}=5;
+		waitinststage("splashscreen|booted", 5600); # time for install
+	}
 	waitidle 100;
       }
   }

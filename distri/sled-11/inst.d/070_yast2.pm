@@ -50,6 +50,7 @@ waitidle 10;
 
 if($ENV{DOCRUN}) {
 	sendkey $cmd{change};	# Change
+	sleep 2;
 	sendkey $cmd{software};	# Software
 	waitidle;
 	for(1..3) {
