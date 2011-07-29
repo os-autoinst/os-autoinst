@@ -20,13 +20,37 @@ sub take_screenshot()
 	++$self->{count};
 	my $path=result_dir;
 	my $testname=ref($self);
-        my $filename="$path/$testname-$self->{count}.ppm";
-        bmwqemu::do_take_screenshot($filename);
+	my $filename="$path/$testname-$self->{count}.ppm";
+	bmwqemu::do_take_screenshot($filename);
 	sleep(0.1);
 	# TODO analyze_screenshot $filename;
 }
 
+sub start_audiocapture
+{
+	my $self=shift;
+	++$self->{wav_count};
+	my $path=result_dir;
+	my $testname=ref($self);
+	my $filename="$path/$testname-$self->{wav_count}.wav";
+	bmwqemu::do_start_audiocapture($filename);
+	sleep(0.1);
+}
+
+sub stop_audiocapture
+{
+	my $index = shift || 0;
+	bmwqemu::do_stop_audiocapture($index);
+	sleep(0.1);
+}
+
 sub checklist
+{
+	#die "you need to override this method";
+	return {}
+}
+
+sub wav_checklist
 {
 	#die "you need to override this method";
 	return {}
@@ -45,14 +69,18 @@ sub check(%)
 	}
 	my $testname=ref($self);
 	my @screenshots=<$path/$testname-*.ppm>;
+	my @wavdumps=<$path/$testname-*.wav>;
 	my $checklist=$self->checklist();
-	if(!keys %$checklist && !@screenshots) { return "not-autochecked" }
+	my $wav_checklist=$self->wav_checklist();
+	if(!keys %$checklist && !@screenshots && (!@wavdumps || !keys %$wav_checklist)) { return "not-autochecked" }
+	my $checkval = '';
 	foreach my $h (keys(%$checklist)) {
 		if($hashes->{$h}) {
-			return $checklist->{$h};
+			$checkval = lc $checklist->{$h};
+			last;
 		}
 	}
-	my @testreturn;
+	my @testreturn = ();
 	foreach my $screenimg (@screenshots) {
 		my $prefix = $screenimg;
 		$prefix=~s{.*/$testname-(\d+)\.ppm}{$testname-$1};
@@ -78,10 +106,30 @@ sub check(%)
 			push(@testreturn, "unk") if !$matched;
 		}
 	}
-	my $result_string = '('.join(',',@testreturn).')';
-	return 'fail'.' '.$result_string if(grep/fail/,@testreturn);
-	return 'OK'.' '.$result_string if(grep/ok/,@testreturn);
-	return 'unknown' if(keys %$checklist || grep/unk/,@testreturn); # none of our known results matched
+	my @wavreturn = ();
+	foreach my $audiofile (@wavdumps) {
+		my $aid = $audiofile;
+		$aid=~s{.*/$testname-(\d+)\.wav}{$1};
+		if(defined $wav_checklist->{$aid}) {
+			my $decoded_text = bmwqemu::decodewav($audiofile);
+			if((uc $wav_checklist->{$aid}) eq $decoded_text) {
+				push(@wavreturn, "ok");
+			}
+			else {
+				push(@wavreturn, "fail");
+			}
+		}
+		else {
+			push(@wavreturn, "na");
+		}
+	}
+	my $result_string;
+	if(@testreturn) {$result_string .= ' ('.join(',',@testreturn).')';}
+	if(@wavreturn) {$result_string .= ' ['.join(',',@wavreturn).']';}
+	my @returnval = (@testreturn, @wavreturn, $checkval);
+	return 'fail'.$result_string if(grep/fail/,@returnval);
+	return 'OK'.$result_string if(grep/ok/,@returnval);
+	return 'unknown' if(keys %$checklist || grep/unk/,@returnval); # none of our known results matched
 	return 'not-autochecked';
 }
 

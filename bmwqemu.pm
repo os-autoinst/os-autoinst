@@ -307,14 +307,28 @@ sub result_dir()
 }
 
 sub do_take_screenshot($)
-{ my($filename)=@_;
+{
+	my($filename)=@_;
 	qemusend "screendump $filename";
 }
+
 sub timeout_screenshot()
 {
 	my $n=++$timeoutcounter;
 	my $dir=result_dir;
 	do_take_screenshot("$dir/timeout-$n.ppm");
+}
+
+sub do_start_audiocapture($)
+{
+	my($filename)=@_;
+	qemusend "wavcapture $filename";
+}
+
+sub do_stop_audiocapture($)
+{
+	my $index = shift;
+	qemusend "stopcapture $index";
 }
 
 my $framecounter=0;
@@ -369,6 +383,25 @@ sub checkrefimgs($$$)
 		$refppm->threshold(0x80);
 	}
 	return $screenppm->search($refppm);
+}
+
+sub decodewav($)
+{
+	my $wavfile = shift;
+	my $tmpfile = "/dev/shm/openqa-tmp-".time().".wav";
+	unlink($tmpfile);
+	system("ffmpeg -i $wavfile -ac 1 $tmpfile > /dev/null 2>&1");
+	my $dtmf = '';
+	my $mm = "multimon -a DTMF -t wav $tmpfile";
+	open M, "$mm |" || return 1;
+	while (<M>) {
+		next unless /^DTMF: .$/;
+		my ($a, $b) = split ':';
+		$b =~ tr/0-9*#ABCD//csd; # Allow 0-9 * # A B C D
+		$dtmf .= $b;
+	}
+	unlink($tmpfile);
+	return $dtmf;
 }
 
 sub waitimage($;$) {
