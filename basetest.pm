@@ -14,13 +14,18 @@ sub is_applicable()
 	return 1;
 }
 
+sub next_resultname($)
+{ my($self,$type)=@_;
+	my $count=++$self->{$type."_count"};
+	my $path=result_dir;
+	my $testname=ref($self);
+	return "$path/$testname-$count.$type";
+}
+
 sub take_screenshot()
 {
 	my $self=shift;
-	++$self->{count};
-	my $path=result_dir;
-	my $testname=ref($self);
-	my $filename="$path/$testname-$self->{count}.ppm";
+	my $filename=$self->next_resultname("ppm");
 	bmwqemu::do_take_screenshot($filename);
 	sleep(0.1);
 	# TODO analyze_screenshot $filename;
@@ -29,10 +34,7 @@ sub take_screenshot()
 sub start_audiocapture
 {
 	my $self=shift;
-	++$self->{wav_count};
-	my $path=result_dir;
-	my $testname=ref($self);
-	my $filename="$path/$testname-$self->{wav_count}.wav";
+	my $filename=$self->next_resultname("wav");
 	bmwqemu::do_start_audiocapture($filename);
 	sleep(0.1);
 }
