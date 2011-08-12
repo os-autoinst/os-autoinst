@@ -19,13 +19,14 @@ EOF
 
 aptitude update
 
-aptitude install git-core kvm/testing ffmpeg2theora/testing gocr/testing
+aptitude install git-core kvm/testing ffmpeg2theora/testing gocr/testing multimon sox
 
 echo kvm-intel >> /etc/modules
 
 
 == openSUSE setup ==
-zypper install git-core kvm gocr ffmpeg2theora vorbis-tools ffmpeg
+OneClickInstallUI http://multiymp.zq1.de/multimon?base=http://download.opensuse.org/repositories/hamradio/
+zypper install git-core kvm gocr ffmpeg2theora
 usermod -A kvm geeko
 http://software.opensuse.org/search?baseproject=openSUSE:11.2&q=kvm
 # kvm-0.12.3 needs older or newer bios.bin to avoid https://bugzilla.novell.com/show_bug.cgi?id=603161 ; kvm-0.12.4 and kvm-0.11 work

@@ -39,6 +39,7 @@ sub start_audiocapture
 
 sub stop_audiocapture
 {
+	my $self=shift;
 	my $index = shift || 0;
 	bmwqemu::do_stop_audiocapture($index);
 	sleep(0.1);

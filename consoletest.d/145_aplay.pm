@@ -4,14 +4,11 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
+	script_run('wget openqa.opensuse.org/opensuse/audio/bar.wav');
+	$self->take_screenshot;
 	$self->start_audiocapture;
-	script_run('wget upload.kruton.de/files/1311770853/bar.wav');
-	$self->take_screenshot;
-	sleep 2;
 	script_run('aplay bar.wav');
-	$self->take_screenshot;
 	$self->stop_audiocapture;
-	sleep 2;
 }
 
 sub wav_checklist()

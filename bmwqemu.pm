@@ -322,7 +322,7 @@ sub timeout_screenshot()
 sub do_start_audiocapture($)
 {
 	my($filename)=@_;
-	qemusend "wavcapture $filename";
+	qemusend "wavcapture $filename 44100 16 1";
 }
 
 sub do_stop_audiocapture($)
@@ -388,11 +388,8 @@ sub checkrefimgs($$$)
 sub decodewav($)
 {
 	my $wavfile = shift;
-	my $tmpfile = "/dev/shm/openqa-tmp-".time().".wav";
-	unlink($tmpfile);
-	system("ffmpeg -i $wavfile -ac 1 $tmpfile > /dev/null 2>&1");
 	my $dtmf = '';
-	my $mm = "multimon -a DTMF -t wav $tmpfile";
+	my $mm = "multimon -a DTMF -t wav $wavfile";
 	open M, "$mm |" || return 1;
 	while (<M>) {
 		next unless /^DTMF: .$/;
@@ -400,7 +397,6 @@ sub decodewav($)
 		$b =~ tr/0-9*#ABCD//csd; # Allow 0-9 * # A B C D
 		$dtmf .= $b;
 	}
-	unlink($tmpfile);
 	return $dtmf;
 }
 
