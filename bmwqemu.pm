@@ -44,6 +44,7 @@ our $serialdev="ttyS0";
 our $serialfile="serial0";
 $ENV{QEMUPORT}||=15222;
 our $managementcon;
+our $logfd;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
 our $testedversion=$ENV{ISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.iso$//; $testedversion=~s{^([^.]+?)(?:-Media1?)?$}{$1};
@@ -112,10 +113,10 @@ if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
 
 
 sub diag($)
-{ print LOG "@_\n"; return unless $debug; print STDERR "@_\n";}
+{ $logfd && print $logfd "@_\n"; return unless $debug; print STDERR "@_\n";}
 
 sub mydie($)
-{ kill(15, $qemupid); unlink($qemupidfilename); diag "@_"; close LOG; sleep 1 ; exit 1; }
+{ kill(15, $qemupid); unlink($qemupidfilename); diag "@_"; close $logfd; sleep 1 ; exit 1; }
 
 sub fileContent($) {my($fn)=@_;
 	open(my $fd, $fn) or return undef;
@@ -131,7 +132,7 @@ sub qemusend_nolog($)
 }
 sub qemusend($)
 {
-	print LOG "qemusend: $_[0]\n";
+	print $logfd "qemusend: $_[0]\n";
 	&qemusend_nolog;
 }
 
@@ -560,9 +561,9 @@ sub readconloop
 
 sub open_management_console()
 {
-	open(LOG, ">>", "currentautoinst-log.txt");
+	open($logfd, ">>", "currentautoinst-log.txt");
 	# set unbuffered so that sendkey lines from main thread will be written
-	my $oldfh=select(LOG); $|=1; select($oldfh);
+	my $oldfh=select($logfd); $|=1; select($oldfh);
 
 	$managementcon=IO::Socket::INET->new("localhost:$ENV{QEMUPORT}") or mydie "error opening management console: $!";
 	$endreadingcon=0;

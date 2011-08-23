@@ -4,7 +4,6 @@ use bmwqemu;
 # usage: $0 | netcat localhost 16223
 my $standalone=0;
 if($standalone) {
-	open(bmwqemu::LOG, ">/dev/null");
 	open($bmwqemu::managementcon, ">&STDOUT");
 	select $bmwqemu::managementcon;
 	$|=1;

@@ -7,10 +7,8 @@ sub installrunfunc
 {
 	my($test)=@_;
 	my $class=ref $test;
-	diag "starting $class";
 	$test->run();
 #	sleep 1; $test->take_screenshot;
-	diag "finished $class";
 }
 
 waitinststage "bootloader",12; # wait for welcome animation to finish

@@ -9,10 +9,8 @@ sub installrunfunc
 {
 	my($test)=@_;
 	my $class=ref $test;
-	diag "starting $class";
 	$test->run();
 	$test->take_screenshot;
-	diag "finished $class";
 }
 
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {

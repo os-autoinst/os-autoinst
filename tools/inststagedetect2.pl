@@ -6,7 +6,6 @@ use Digest::MD5;
 use bmwqemu;
 
 if(!@ARGV) { die "need arg";}
-open(bmwqemu::LOG, ">/dev/null");
 
 set_hash_rects(
 	[30,30,100,100], # where most applications pop up
