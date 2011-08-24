@@ -13,10 +13,14 @@ sub run()
 	script_run('rpm -qa kernel-*');
 	script_run('grep DISPLAYMANAGER= /etc/sysconfig/displaymanager');
 	script_run('grep DEFAULT /etc/sysconfig/windowmanager');
+	script_run("ls -l /etc/ntp*");
+	$self->take_screenshot;
+	local $ENV{SCREENSHOTINTERVAL}=3; # uninteresting stuff for automatic processing:
 	script_run("ps ax > /dev/$serialdev");
 	script_run("rpm -qa > /dev/$serialdev");
-	script_run("ls -l /etc/ntp*");
-	sendkey "ctrl-c";
+	script_sudo("tar cjf /tmp/logs.tar.bz2 /var/log");
+	my $ver=`cat testname`; chomp($ver);
+	script_run("curl --form testname=$ver --form upload=@/tmp/logs.tar.bz2 10.0.2.2/cgi-bin/uploadlog");
 }
 
 sub checklist()
