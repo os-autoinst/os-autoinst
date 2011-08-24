@@ -17,8 +17,9 @@ sub runtest
 		close $fd;
 	}
 	diag "starting $name $script";
-	&$testfunc($test);
+	my $ret=&$testfunc($test);
 	diag "finished $name";
+	return $ret;
 }
 
 sub runtestlist($&)
