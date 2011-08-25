@@ -3,6 +3,11 @@ use strict;
 use base "basetest";
 use bmwqemu;
 
+sub is_applicable()
+{
+  return !$ENV{LIVECD};
+}
+
 sub addonproduct()
 {
 	if($ENV{ADDONURL}) {
@@ -24,20 +29,6 @@ sub addonproduct()
 
 sub run()
 {
-waitinststage("welcome", 490);
-
-if($ENV{BETA} && !$ENV{LIVECD}) {
-	# ack beta message
-	sendkey "ret";
-	#sendkey $cmd{acceptlicense};
-}
-
-# animated cursor wastes disk space, so it is moved to bottom right corner
-mousemove_raw(0x7fff,0x7fff); 
-mousemove_raw(0x7fff,0x7fff); # work around no reaction first time
-# license+lang
-sendkey $cmd{"next"};
-  if(!$ENV{LIVECD}) {
 	# autoconf phase
 	waitinststage "systemanalysis";
 	# includes downloads, so waitidle is bad.
@@ -103,7 +94,6 @@ sendkey $cmd{"next"};
 	waitinststage("splashscreen|booted", 5600); # time for install
 	waitidle 100;
       }
-  } 
 }
 
 1;
