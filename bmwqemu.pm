@@ -613,7 +613,7 @@ sub script_sudo_logout()
 
 sub x11_start_program($)
 { my $program=shift;
-	sendkey "alt-f2"; sleep 2;
+	sendkey "alt-f2"; sleep 3;
 	sendautotype $program; sleep 1;
 	sendkey "ret";
 	waitidle;

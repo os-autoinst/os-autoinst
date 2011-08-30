@@ -19,10 +19,6 @@ do "inst/screenshot.pm" or die $@;
 if(!$ENV{DISTRI}) { die "DISTRI environment variable not set. unknown OS?" }
 do "$scriptdir/distri/$ENV{DISTRI}/main.pm" or die $@;
 
-if(my $d=$ENV{DESKTOP}) {
-	do "inst/\L$d.pm" or diag $@;
-}
-
 
 for(1..6000) { # time to let install work
 	sleep 1;

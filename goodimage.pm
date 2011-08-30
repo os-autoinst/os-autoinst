@@ -158,6 +158,7 @@ e759e01febb94d9f3f7ae44499c28c52 performinstallation-upgrade0900
 06abcb58d435cd9f2817e06821820d66 performinstallation-upgrade0925
 758d13eeaa8a1e3357a05003e8e5f528 performinstallation-sles11sp2-0041
 f0419ce657e98dcc5020cb18388f458c performinstallation-sled11sp2-0090
+3ecf550c356918c106c96cab860dcf1c performinstallation-sled11sp2-0226-addon
 a7c60d22ae73f52b06a45fea10f2a9ff dvd-net-the-system-will-reboot-now
 58fa2751a39e795b872614bdb657bacc rebootnow
 b28b4c8babb004a696d18875ab95c934 rebootnow
@@ -249,12 +250,14 @@ e194d7f132a654d94094de19639a5f85 YaST-was-unable-to-find-the-correct-control-fil
 fd04540147a054d3ce688638eb49c0f1 sles-10-installer-language
 7a5c3fb56b45e4757e82c28797b70712 sles-10-booted-config-rootpw
 7fde3d3dfbe8668274e7fe31a11d6262 sles-11-booted-config-rootpw
+bf033b80603fd2b7014c1dd898df34af sles-11-networktest-upgrade
 
 60185e4110220e2ae56fc2141e37260c sles-11-syslinux-bootloader
 f661dc2bac9ad963accbc7f633a4c550 sled-11-syslinux-bootloader
 50893b5ca96290b4c41c44d8484ecf76 sles-11-splashscreen
 04801d7899f4313a2c37a8fb3d6a15e4 sled-11-splashscreen
 26ec05e79c88d4a6d78882bafb5018e5 sled-11-secondstage-register
+6cf0ea41fe9a67f111a46c7dfe881485 sle-11-booted-gnome-desktop
 
 4d604b45d26c826530232389351b5e6f kiwi-opensuse-11.3-loginprompt
 643f6039cd43aaf5b63174d0dfe95929 kiwi-oem-inst-confirm

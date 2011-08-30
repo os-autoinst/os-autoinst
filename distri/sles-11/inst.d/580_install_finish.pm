@@ -7,7 +7,7 @@ sub run()
         # Completed
         sendkey "alt-f"; # finish
         sleep 20;
-        waitidle(120);
+        waitinststage("booted", 120);
         # done booting first time here
 }
 

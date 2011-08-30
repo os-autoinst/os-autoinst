@@ -4,10 +4,11 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
-	script_run('wget openqa.opensuse.org/opensuse/audio/bar.wav');
+	script_run('cd /tmp;wget openqa.opensuse.org/opensuse/audio/bar.wav');
 	$self->take_screenshot;
 	$self->start_audiocapture;
-	script_run('aplay bar.wav');
+	script_run("aplay bar.wav ; echo aplay_finished > /dev/$serialdev");
+	waitserial('aplay_finished');
 	$self->stop_audiocapture;
 }
 

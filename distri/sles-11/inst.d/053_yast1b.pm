@@ -92,11 +92,6 @@ sub run()
 	sendkey "alt-u"; # confirm
 	sleep 20;
 	sendkey "alt-d"; # details
-	{
-		local $ENV{SCREENSHOTINTERVAL}=5;
-		waitinststage("splashscreen|booted", 5600); # time for install
-	}
-	waitidle 100;
       }
   }
 }

@@ -1,0 +1,1 @@
+../../opensuse/inst.d/056_logpackages.pm

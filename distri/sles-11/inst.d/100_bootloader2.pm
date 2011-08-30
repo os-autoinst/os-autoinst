@@ -1,5 +1,5 @@
 use strict;
-use base "basenoupdate";
+use base "basetest";
 use bmwqemu;
 
 sub run()

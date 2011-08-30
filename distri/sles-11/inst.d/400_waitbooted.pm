@@ -1,14 +1,12 @@
-use base "basenoupdate";
+use base "basetest";
 use strict;
 use bmwqemu;
 
 sub run()
 { my $self=shift;
+	waitinststage("config-rootpw|networktest",190);
+	waitidle(60); # especially for upgrade case
         mousemove_raw(31000, 31000); # move mouse off screen again
-	$self->take_screenshot;
-        sendkeyw "alt-n";
-	sleep 10;
-	waitidle; #TODO waitinststage
 }
 
 1;

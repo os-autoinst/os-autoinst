@@ -4,9 +4,10 @@ use bmwqemu;
 
 sub run()
 { my $self=shift;
-	sendkey "ctrl-alt-f2";
+	sendkey "ctrl-alt-f4";
 	sleep 2;
 	sendautotype "$username\n";
+	waitidle;
 	sleep 2;
 	sendpassword; sendautotype "\n";
 	sleep 3;

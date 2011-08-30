@@ -8,6 +8,7 @@ foreach my $log (@ARGV) {
 	$ENV{ISO}=$log; # to autodetect desktop etc
 	if($log=~m/-(kde|gnome|xfce|lxde)/) {$ENV{DESKTOP}=$1} 
 	else {delete $ENV{DESKTOP}}
+	if($log=~m/dup/) {$ENV{UPGRADE}=1}
 	my $newcheckresult=`$scriptdir/checklog $log`;
 
 	my $content=fileContent($log); # cache

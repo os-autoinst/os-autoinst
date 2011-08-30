@@ -23,4 +23,8 @@ unless($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
 
 set_std_hash_rects;
 
+if(my $d=$ENV{DESKTOP}) {
+	do "inst/\L$d.pm" or diag $@;
+}
+
 1;

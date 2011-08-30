@@ -143,6 +143,7 @@ sleep 2;
 	sendkey $cmd{"next"};
 	waitidle;
 	
+	if($ENV{DISTRI} eq "sled-11") {sendkey "alt-h";} # separate home does not fit on SLED-11-SP2-DVD-x86_64-Build0190
 	if($ENV{LVM}) {
 		sendkey "alt-l"; # enable LVM-based proposal
 		waitidle;

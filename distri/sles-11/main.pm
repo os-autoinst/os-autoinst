@@ -10,11 +10,14 @@ sub installrunfunc
 	$test->run();
 	$test->take_screenshot;
 }
+my $testcount=0;
 sub consoletestrunfunc
 {
 	my($test)=@_;
 	my $class=ref $test;
-	clear_console; # clear screen to make screen content independent from previous tests
+	if($testcount++) {
+		clear_console; # clear screen to make screen content independent from previous tests
+	}
 	diag "starting $class";
 	$test->run();
 	sleep 2;
@@ -35,7 +38,7 @@ set_hash_rects(
 	[0,579,100,10 ], # bottom line (KDE/GNOME bar)
 	);
 
-sendkey "ctrl-alt-f3"; waitidle; # avoid "reset" being typed into tty2 or 7
+sendkey "ctrl-alt-f3"; sleep 3; waitidle; # avoid "reset" being typed into tty2 or 7
 autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/consoletest.d", \&consoletestrunfunc);
 autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/x11test.d", \&installrunfunc);
 

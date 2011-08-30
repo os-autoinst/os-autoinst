@@ -4,8 +4,8 @@ use bmwqemu;
 
 sub run()
 { my $self=shift;
-	sendkey "ctrl-alt-f7";
-	sleep 2;
+	sendkeyw "ctrl-alt-f7";
+	sleep 4;
 }
 
 sub checklist()
