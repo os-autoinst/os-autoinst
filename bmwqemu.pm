@@ -317,7 +317,8 @@ sub timeout_screenshot()
 {
 	my $n=++$timeoutcounter;
 	my $dir=result_dir;
-	do_take_screenshot("$dir/timeout-$n.ppm");
+	my $n2=sprintf("%02i",$n);
+	do_take_screenshot("$dir/timeout-$n2.ppm");
 }
 
 sub do_start_audiocapture($)
