@@ -573,6 +573,7 @@ sub open_management_console()
 	$conmuxthread->detach();
 	$readconthread=threads->create(\&readconloop); # without this, qemu will block
 	$readconthread->detach();
+	qemusend "cont"; # start VM execution
 	$managementcon;
 }
 

@@ -47,7 +47,7 @@ if(!qemualive) {
 				symlink("$i.lvm","$basedir/l$i");
 				system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1"); # for LVM
 			} else {
-				system($qemuimg, "create" ,"$basedir/$i", "7G");
+				system($qemuimg, "create" ,"$basedir/$i", "8G");
 				symlink($i,"$basedir/l$i");
 			}
 		}
@@ -61,9 +61,9 @@ if(!qemualive) {
 	$qemupid=fork();
 	die "fork failed" if(!defined($qemupid));
 	if($qemupid==0) {
-		my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,wait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97");
+		my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,wait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-S");
 		for my $i (1..$ENV{NUMDISKS}) {
-			my $boot=$i==1?",boot=on":"";
+			my $boot="";#$i==1?",boot=on":""; # workaround bnc#696890
 			push(@params, "-drive", "file=$basedir/l$i,if=$ENV{HDDMODEL}$boot");
 		}
 		push(@params, "-boot", "dc", @cdrom) if($iso);
