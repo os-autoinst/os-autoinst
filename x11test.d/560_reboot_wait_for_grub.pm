@@ -3,7 +3,7 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return !$ENV{LIVETEST};
+	return !$ENV{LIVETEST} || $ENV{USBBOOT};
 }
 
 sub run()

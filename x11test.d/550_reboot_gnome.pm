@@ -3,18 +3,23 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return $ENV{DESKTOP} eq "gnome" && !$ENV{LIVETEST};
+	return (($ENV{DESKTOP} eq "gnome") and (!$ENV{LIVETEST} or $ENV{USBBOOT}));
 }
 
 sub run()
 {
 	my $self=shift;
 	waitidle;
-	sendkey "ctrl-alt-delete"; # reboot
-	sleep 2;
-	sendkey "down"; # reboot
-	sleep 2;
-	sendkey "ret"; # confirm 
+	if($ENV{GNOME2}) {
+		sendkey "ctrl-alt-delete"; # reboot
+		sleep 2;
+		sendkey "down"; # reboot
+		sleep 2;
+		sendkey "ret"; # confirm 
+	} else {
+		sendkey "ctrl-alt-f2"; sleep 2; # goto console so that gnome does not catch CAD
+		sendkey "ctrl-alt-delete"; # reboot
+	}
 }
 
 sub checklist()

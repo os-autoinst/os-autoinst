@@ -13,6 +13,13 @@ sub run()
 	waitidle;
 	$self->take_screenshot;
 	sendkey "ret"; # confirm shutdown
+	if(!$ENV{GNOME2}) {
+		sleep 3;
+		$self->take_screenshot;
+		sendkey "ctrl-alt-f1";
+		sleep 3;
+		qemusend "system_powerdown"; # shutdown
+	}
 	waitinststage("splashscreen");
 }
 

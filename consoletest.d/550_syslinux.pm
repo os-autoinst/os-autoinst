@@ -10,7 +10,7 @@ sub is_applicable()
 sub run()
 {
 	my $self=shift;
-	script_run("wget -q openqa.opensuse.org/opensuse/qatests/qa_syslinux.sh");
+	script_run("cd /tmp ; wget -q openqa.opensuse.org/opensuse/qatests/qa_syslinux.sh");
 	sendkey "ctrl-l";
 	script_sudo("sh -x qa_syslinux.sh");
 }

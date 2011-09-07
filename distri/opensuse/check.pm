@@ -24,7 +24,7 @@ sub check() {
 	autotest::runtestdir("$scriptdir/consoletest.d", \&::checkfunc);
 	autotest::runtestdir("$scriptdir/x11test.d", \&::checkfunc);
 
-	my $overall=(::is_ok($results->{xterm}) or ::is_ok($results->{firefox}));
+	my $overall=(::is_ok($results->{xterm}) or ::is_ok($results->{sshxterm}) or ::is_ok($results->{firefox}));
 	for my $test (qw(automaticconfiguration booted zypper_in zypper_up yast2_lan isosize)) {
 		next if($test eq "automaticconfiguration" && ($ENV{UPGRADE}||$ENV{LIVETEST}));
 		$overall=0 unless ::is_ok $results->{$test};

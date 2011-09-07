@@ -21,7 +21,7 @@ sub addonproduct()
 			sendkey $cmd{"next"}; waitidle; # Specify URL (default)
 			sendautotype($url);
 			sendkey $cmd{"next"}; waitidle;
-			sendkey "alt-i"; waitidle; # confirm import (trust) key
+			sendkey "alt-i";sendkey "alt-t"; waitidle; # confirm import (trust) key
 		}
 		sendkey $cmd{"next"}; waitidle; # done
 	}
@@ -90,8 +90,11 @@ sub run()
 	sendkey "alt-u"; # confirm
 	sleep 20;
 	sendkey "alt-d"; # details
-	local $ENV{SCREENSHOTINTERVAL}=5;
-	waitinststage("splashscreen|booted", 5600); # time for install
+	{
+		local $ENV{SCREENSHOTINTERVAL}=5;
+		waitinststage("splashscreen|booted|check-and-install-the-updates", 5600); # time for install
+		sendkey "alt-n"; # 12.1-Build0221+ asks about installing package-updates
+	}
 	waitidle 100;
       }
 }

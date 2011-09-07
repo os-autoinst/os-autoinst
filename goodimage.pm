@@ -160,6 +160,7 @@ e759e01febb94d9f3f7ae44499c28c52 performinstallation-upgrade0900
 f0419ce657e98dcc5020cb18388f458c performinstallation-sled11sp2-0090
 3ecf550c356918c106c96cab860dcf1c performinstallation-sled11sp2-0226-addon
 a7c60d22ae73f52b06a45fea10f2a9ff dvd-net-the-system-will-reboot-now
+eb5deb52c16044ddaeed3c40f6033309 dvd-net-check-and-install-the-updates-12.1-0221
 58fa2751a39e795b872614bdb657bacc rebootnow
 b28b4c8babb004a696d18875ab95c934 rebootnow
 a13a2535f81e9980cb87e30d99231177 rebootnow
@@ -193,6 +194,11 @@ c7359502d8f01b302520f149d3e06daf automaticconfiguration-kde0834
 84cc54b236f1f24697e25b82681c2b9b automaticconfiguration-kde1048
 11885b8ea0e79a0f2341ad1cfb4b1b45 automaticconfiguration-gnome0834
 116bfc0fe08d13193874a901d1490cc2 automaticconfiguration-gnome0925
+d286d6a7113fb86c1f0dda4ef80078d6 automaticconfiguration-gnome-12.1-0132
+4c0c64fe90bb388cd7bcde013b06212d automaticconfiguration-gnome-12.1-0193
+72231d03a879c2567094528186c73381 automaticconfiguration-kde-12.1-0215
+1dd951c83f7072e9650b8eb41a4e8ef1 automaticconfiguration-12.1-0193
+7b6b827fed89a0ba0d5275ae1a4abc92 automaticconfiguration-12.1-0250-addon
 0db6d0f55610ce984acd4426d1753eb8 users
 cc752e0fd5b766ca9f2d07ee3c3566c4 booted-kdestartscreen
 17d05a3d07d24a9f081eea706f4551b8 booted-kdm-11.3
@@ -229,6 +235,7 @@ bff7185022f9fea00e12c8fbb52b29b8 booted-GNOME-11.3-dvd
 fbbe32ffb2144130af4dc66674646d61 booted-GNOME-1000
 612eecffdc1bfcaf2b065ede3f3052a5 booted-GNOME-1016
 9468f7f86c39a7887a26f72685f5c0c9 booted-GNOME-1096
+63279ad86729050e883604a86b81d904 booted-GNOME-12.1-0132
 fda08967ffb1c2dbe6cc6015246b7608 booted-GNOME3-fallback-0032
 a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
 68cadea0ed4cc94bc3752e059f715d84 booted-LXDE-11.3
@@ -236,9 +243,12 @@ e8984c6bbac39ae3514a52cf9bc61ddc booted-LXDE-0951-32
 e977b8787aa5b3cf50bccd4fa5a511a6 booted-LXDE-0951-64
 508f4c506c58c9ffca3ed47d94b559f4 booted-LXDE-0959
 7bb01af1976c906c586673f12b5c8d7a booted-LXDE-1068
+4abdf828f6603a9eaaec30a91dfeb19f booted-LXDE-12.1-0132
 c2fc1822dceac430822194e210d34a6e booted-XFCE-11.3
 7ef5b6f89e9c24065f0879740fb89669 booted-XFCE-0914
 e5fea2098020b0e2d28089aa0d55c706 booted-XFCE-1071
+f6a075b41a53879fc9e62be8f91781bd booted-XFCE-12.1-0190
+5fd24157b9072a86b2414424cf61544e booted-XFCE-12.1-0240
 6abf93224b5d3e9e0a0404e20788093a booted-icewm
 b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
 8cb5446f29cb6fe0eedfb136b9812eab booted-KDE-UNSTABLE-4.5.77
