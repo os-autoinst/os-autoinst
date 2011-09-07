@@ -32,6 +32,8 @@ sub consoletestrunfunc
 }
 
 
+autotest::runtestdir("$scriptdir/consoletest.d", undef);
+autotest::runtestdir("$scriptdir/x11test.d", undef);
 autotest::runtestdir("$scriptdir/consoletest.d", \&consoletestrunfunc);
 
 

@@ -12,14 +12,19 @@ sub runtest
 	}
 	my $test=$name->new();
 	return unless $test->is_applicable;
-	if(open(my $fd, ">currentstep")) { # to track progress
-		print $fd "$script\n$name\n";
-		close $fd;
+	if (defined $testfunc) {
+		if(open(my $fd, ">currentstep")) { # to track progress
+			print $fd "$script\n$name\n";
+			close $fd;
+		}
+		diag "starting $name $script";
+		my $ret=&$testfunc($test);
+		diag "finished $name";
+		return $ret;
 	}
-	diag "starting $name $script";
-	my $ret=&$testfunc($test);
-	diag "finished $name";
-	return $ret;
+	else {
+		diag "scheduling $name $script";
+	}
 }
 
 sub runtestlist($&)
