@@ -5,6 +5,13 @@ use Time::HiRes qw(sleep);
 
 sub run()
 {
+	if($ENV{ZDUP} || $ENV{WDUP}) {
+		qemusend "eject -f ide1-cd0";
+		qemusend "system_reset";
+		sleep 10;
+		sendkey "ret"; # boot
+		return;
+	}
 
 if($ENV{MEMTEST}) { # special
 	# only run this one
@@ -24,6 +31,10 @@ if(!$ENV{LIVETEST}) {
 	if($ENV{PROMO}) {
 		# has extra GNOME-Live and KDE-Live menu entries
 		for(1..2) {sendkey "down";}
+	}
+} else {
+	if($ENV{PROMO}) {
+		for(1..2) {sendkey "down";} # select KDE Live
 	}
 }
 
