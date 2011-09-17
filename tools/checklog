@@ -25,12 +25,13 @@ sub printresult($)
 	if(defined($results{$key})) {print "$key: $results{$key}\n"}
 }
 while(<>) {
-	if(/stage=([0-9a-zA-Z_.-]*) ([0-9a-f]+)/) {
+	if(/^randomenv (\w+)=(.*)/) {$ENV{$1}=$2}
+	if(/^stage=([0-9a-zA-Z_.-]*) ([0-9a-f]+)/) {
 		$stageseen{$1}=1;
 		$md5seen{$2}=1;
 	}
-	if(/md5=([0-9a-f]+)/) {$md5seen{$1}=1}
-	if(/standstill detected/) {$results{standstill}="fail";}
+	if(/^md5=([0-9a-f]+)/) {$md5seen{$1}=1}
+	if(/^standstill detected/) {$results{standstill}="fail";}
 	if(/^iso_size=(\d+)/) {$results{isosize}=checksize($1);}
 }
 
