@@ -50,6 +50,8 @@ sub run()
 	logcurrentenv(qw"BIGTEST MOZILLATEST UPGRADE USBBOOT LIVETEST ADDONURL DESKTOP BTRFS LVM");
 	setrandomenv if($ENV{RANDOMENV} && $0!~m/checklog/);
 	$ENV{DESKTOP}||="kde";
+	autotest::runtestdir("$scriptdir/consoletest.d", undef);
+	autotest::runtestdir("$scriptdir/x11test.d", undef);
 }
 
 1;
