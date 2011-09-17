@@ -9,7 +9,10 @@ sub is_applicable
 
 sub run()
 {
-	sleep 11; # time to load kernel+initrd
+	my $self=shift;
+	sleep 10; # time to load kernel+initrd
+	$self->take_screenshot;
+	sleep 1;
 	sendkey "esc";
 }
 

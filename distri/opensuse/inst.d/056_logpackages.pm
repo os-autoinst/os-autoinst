@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
-use base "basetest";
+use base "installstep";
 use bmwqemu;
 
 sub is_applicable()

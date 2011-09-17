@@ -3,11 +3,23 @@ use base "basetest";
 use bmwqemu;
 
 our %valueranges=(
-	LVM=>[0,1], 
-	USEIMAGES=>[0,1],
-	DESKTOP=>[qw(kde gnome xfce lxde)],
-	ROOTFS=>[qw(ext3 xfs jfs btrfs reiserfs)],
+#	LVM=>[0,1], 
+	NOIMAGES=>[0,1],
+#	SYSTEMD=>[0,1],
+#	BTRFS=>[0,1],
+#	DESKTOP=>[qw(kde gnome xfce lxde)],
+#	ROOTFS=>[qw(ext3 xfs jfs btrfs reiserfs)],
 );
+
+sub logcurrentenv(@)
+{
+	foreach my $k (@_) {
+		my $e=$ENV{$k};
+		next unless defined $e;
+		diag("randomenv $k=$e");
+		diag("usingenv $k=$e");
+	}
+}
 
 sub setrandomenv()
 {
@@ -17,7 +29,7 @@ sub setrandomenv()
 		my @range=@{$valueranges{$k}};
 		my $rand=int(rand(scalar @range));
 		$ENV{$k}=$range[$rand];
-		diag "randomenv $k=$ENV{$k}";
+		logcurrentenv($k);
 	}
 }
 
@@ -34,7 +46,10 @@ sub run()
 			$ENV{DESKTOP}=lc($1);
 		}
 	}
-	setrandomenv if($ENV{RANDOMENV});
+	# dump other important ENV:
+	logcurrentenv(qw"BIGTEST MOZILLATEST UPGRADE USBBOOT LIVETEST ADDONURL DESKTOP BTRFS LVM");
+	setrandomenv if($ENV{RANDOMENV} && $0!~m/checklog/);
 	$ENV{DESKTOP}||="kde";
 }
 
+1;
