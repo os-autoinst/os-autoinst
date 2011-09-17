@@ -18,15 +18,18 @@ sub consoletestrunfunc
 	if($testcount++) {
 		clear_console; # clear screen to make screen content independent from previous tests
 	}
-	diag "starting $class";
 	$test->run();
 	sleep 2;
 	$test->take_screenshot;
-	diag "finished $class";
 }
 
 $ENV{DESKTOP}||="gnome";
 
+if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
+	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", undef);
+}
+autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/consoletest.d", undef);
+autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/x11test.d", undef);
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
 	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
 } else {
