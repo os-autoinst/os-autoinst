@@ -10,11 +10,18 @@ sub is_applicable()
 sub run()
 {
 	my $self=shift;
+	$ENV{ZDUPREPOS}||="http://$ENV{SUSEMIRROR}/repo/oss/";
 	sendkey "ctrl-l";
 	script_sudo("killall gpk-update-icon packagekitd");
-	script_sudo("zypper modifyrepo --all --disable");
-	script_sudo("zypper addrepo http://$ENV{SUSEMIRROR}/repo/oss/ newoss");
-	script_sudo("zypper dup -l");
+	if(!$ENV{TUMBLEWEED}) {
+		script_sudo("zypper modifyrepo --all --disable");
+	}
+	my $nr=1;
+	foreach my $r (split(/\+/, $ENV{ZDUPREPOS})) {
+		script_sudo("zypper addrepo $r repo$nr");
+		$nr++;
+	}
+	script_sudo("zypper --gpg-auto-import-keys dup -l");
 	$self->take_screenshot;
 	#for(1..20) { sendkeyw "3"; # ignore unresolvable
 	#}
@@ -24,7 +31,7 @@ sub run()
 	}
 	$self->take_screenshot;
 	sendautotype("y\n"); # confirm
-	local $ENV{SCREENSHOTINTERVAL}=5;
+	local $ENV{SCREENSHOTINTERVAL}=2.5;
 	for(1..12) {
 		sleep 60;
 		sendkey "shift"; # prevent console screensaver

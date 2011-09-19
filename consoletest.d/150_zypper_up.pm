@@ -4,7 +4,7 @@ sub run()
 {
 	my $self=shift;
 	script_sudo("killall gpk-update-icon packagekitd");
-	if(!$ENV{NET}) {
+	if(!$ENV{NET} && !$ENV{TUMBLEWEED}) {
 		# non-NET installs have only milestone repo, which might be incompatible.
 		script_sudo("zypper ar http://$ENV{SUSEMIRROR}/repo/oss Factory");
 	}
