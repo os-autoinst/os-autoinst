@@ -8,7 +8,7 @@ use autotest;
 if(!$ENV{NICEVIDEO}) {
 # init
 # log into text console
-sendkey "ctrl-alt-f2";
+sendkey "ctrl-alt-f4";
 sleep 2;
 sendautotype "$username\n";
 sleep 2;

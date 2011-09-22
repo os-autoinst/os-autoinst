@@ -17,7 +17,7 @@ sub run()
 		sleep 2;
 		sendkey "ret"; # confirm 
 	} else {
-		sendkey "ctrl-alt-f2"; sleep 2; # goto console so that gnome does not catch CAD
+		sendkey "ctrl-alt-f4"; sleep 2; # goto console so that gnome does not catch CAD
 		sendkey "ctrl-alt-delete"; # reboot
 	}
 }
