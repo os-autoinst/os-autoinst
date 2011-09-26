@@ -5,6 +5,7 @@ use bmwqemu;
 our %valueranges=(
 #	LVM=>[0,1], 
 	NOIMAGES=>[0,1],
+	REBOOTAFTERINSTALL=>[0,1],
 #	SYSTEMD=>[0,1],
 #	BTRFS=>[0,1],
 #	DESKTOP=>[qw(kde gnome xfce lxde)],
@@ -47,7 +48,7 @@ sub run()
 		}
 	}
 	# dump other important ENV:
-	logcurrentenv(qw"BIGTEST MOZILLATEST UPGRADE USBBOOT LIVETEST ADDONURL DESKTOP BTRFS LVM");
+	logcurrentenv(qw"ADDONURL BIGTEST BTRFS DESKTOP LIVETEST LVM MOZILLATEST NOINSTALL REBOOTAFTERINSTALL UPGRADE USBBOOT TUMBLEWEED WDUP ZDUP ZDUPREPOS");
 	setrandomenv if($ENV{RANDOMENV} && $0!~m/checklog/);
 	$ENV{DESKTOP}||="kde";
 	autotest::runtestdir("$scriptdir/consoletest.d", undef);
