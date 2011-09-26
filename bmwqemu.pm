@@ -520,12 +520,13 @@ sub waitinststage($;$$)
 	return 0;
 }
 
-sub waitstillimage($;$)
+sub waitstillimage(;$$)
 {
 	my $stilltime=shift||7;
 	my $timeout=shift||30;
 	my $starttime=time;
 	my @recentmd5; # fifo
+	diag "start waitstillimage($stilltime,$timeout)";
 	while(time-$starttime<$timeout) {
 		my $mylastname = $lastname;
 		sleep 1;
@@ -533,9 +534,13 @@ sub waitstillimage($;$)
 		push(@recentmd5, $md5);
 		if(@recentmd5>$stilltime) {
 			my $e=shift @recentmd5;
-			return 1 if($e eq $md5);
+			if($e eq $md5) {
+				diag "detected same image for $stilltime seconds";
+				return 1;
+			}
 		}
 	}
+	diag "waitstillimage timed out after $timeout";
 	return 0;
 }
 

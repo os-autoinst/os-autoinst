@@ -7,7 +7,7 @@ sub run()
 {
 	my $self=shift;
 	# user setup
-	waitinststage "usersettings";
+	waitstillimage();
 	waitidle; sleep 3;
 	sendautotype($realname);
 	sendkey "tab";

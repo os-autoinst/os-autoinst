@@ -5,7 +5,7 @@ use bmwqemu;
 
 sub run()
 {
-	waitinststage "disk";
+	waitstillimage();
 	sleep 2;
 	sendkey $cmd{"next"};
 }

@@ -6,8 +6,7 @@ use bmwqemu;
 sub run()
 {
 	# overview-generation
-	waitinststage "installationoverview";
-	sleep 5;
+	waitstillimage();
 	waitidle 10;
 }
 

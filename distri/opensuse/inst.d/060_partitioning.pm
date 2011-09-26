@@ -65,7 +65,7 @@ sub setraidlevel($)
 }
 
 
-waitinststage "disk";
+waitstillimage();
 if(defined($ENV{RAIDLEVEL})) {
 if(1) {
 # create partitioning

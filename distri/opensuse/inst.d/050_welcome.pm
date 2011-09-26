@@ -6,7 +6,7 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
-	waitinststage("welcome", 290);
+	waitstillimage(12, 290);
 
 	# animated cursor wastes disk space, so it is moved to bottom right corner
 	mousemove_raw(0x7fff,0x7fff); 

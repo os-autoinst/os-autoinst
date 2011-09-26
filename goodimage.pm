@@ -39,6 +39,7 @@ bdcf5eae30d70c3fea49ec7db97969e2 instfail
 
 # first entry is for NET, second for KDE, third for GNOME, 4th for GNOME/577:
 %md5inststage=qw(
+8e1be30ee3d2229ae6b8248e5b05802e blackscreen
 2b99e9973a6d0fc8d5e5beb74f088b16 bootloader-grub-11.0
 232cb27cbf4dafe0fc49900865b5548c bootloader-grub
 f74242b1f62bdbc7e3d6f060ceab7e0a bootloader-grub0620
@@ -222,6 +223,7 @@ c89bec8d3c0a63cf63c30f895055531f booted-KDE-0900-64
 3c2ec8e7a473f1f9c1c110408647760d booted-KDE-1050-SUSE-greeting
 41a9788e998c672abd711ff4653f8877 booted-KDE-1089
 32e7d63c3b1a80a212e24fca44d857fa booted-KDE-1089
+86ce1353aab058b0e76b2f5ef18ad369 booted-KDE-12.1-0271
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
 bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME

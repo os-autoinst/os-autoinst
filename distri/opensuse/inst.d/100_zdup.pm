@@ -36,7 +36,7 @@ sub run()
 		sleep 60;
 		sendkey "shift"; # prevent console screensaver
 	}
-	waitinststage("xxxzypperfinishedxxx", 5000); # wait for standstill
+	waitinststage("blackscreen", 5000); # wait for screensaver to blank console
 }
 
 1;

@@ -12,7 +12,7 @@ sub run()
 	my $self=shift;
 	sleep 10; # time to load kernel+initrd
 	$self->take_screenshot;
-	sleep 1;
+	sleep 2;
 	sendkey "esc";
 }
 

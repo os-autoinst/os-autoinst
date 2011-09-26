@@ -13,11 +13,9 @@ sub run()
 {
 	my $self=shift;
 	# autoconf phase
-	waitinststage "systemanalysis";
 	# includes downloads, so waitidle is bad.
-	waitgoodimage(($ENV{UPGRADE}?120:25));
-	# TODO waitstillimage(10)
-	waitidle 29;
+	waitstillimage(12,120);
+	#waitidle 29;
 	# Installation Mode = new Installation
 	if($ENV{UPGRADE}) {
 		sendkey "alt-u";
