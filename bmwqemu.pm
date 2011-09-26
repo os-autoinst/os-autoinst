@@ -25,7 +25,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $qemubin $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
 &diag &fileContent &qemusend_nolog &qemusend &sendkey &sendkeyw &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
-&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &clear_console &set_std_hash_rects);
+&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &clear_console &set_std_hash_rects);
 
 
 our $debug=1;
@@ -520,6 +520,24 @@ sub waitinststage($;$$)
 	return 0;
 }
 
+sub waitstillimage($;$)
+{
+	my $stilltime=shift||7;
+	my $timeout=shift||30;
+	my $starttime=time;
+	my @recentmd5; # fifo
+	while(time-$starttime<$timeout) {
+		my $mylastname = $lastname;
+		sleep 1;
+		my $md5=Digest::MD5::md5(fileContent($mylastname));
+		push(@recentmd5, $md5);
+		if(@recentmd5>$stilltime) {
+			my $e=shift @recentmd5;
+			return 1 if($e eq $md5);
+		}
+	}
+	return 0;
+}
 
 sub handlemuxcon($)
 { my $conn=shift;
