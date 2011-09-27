@@ -6,9 +6,10 @@ my $init=1;
 alarm (7200+($ENV{UPGRADE}?3600:0)); # worst case timeout
 
 # init part
+init_backend("qemu");
 if($init) {
 	if(!qemualive) {
-		do "inst/startqemu.pm" or die $@;
+		startvm or die $@;
 	}
 }
 open_management_console;

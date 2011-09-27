@@ -14,18 +14,18 @@ use threads::shared;
 use POSIX; 
 our $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
 my $goodimageseen :shared = 0;
-my $endreadingcon :shared = 0;
 my $lastname :shared = 0;
 my $lastinststage :shared = "";
 my $lastknowninststage :shared = "";
 my $prestandstillwarning :shared = 0;
 my $timeoutcounter :shared = 0;
+my $backend;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $qemubin $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
 &diag &fileContent &qemusend_nolog &qemusend &sendkey &sendkeyw &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
-&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &open_management_console &close_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &clear_console &set_std_hash_rects);
+&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &init_backend &startvm &open_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &clear_console &set_std_hash_rects);
 
 
 our $debug=1;
@@ -43,7 +43,6 @@ our $testresults="testresults";
 our $serialdev="ttyS0";
 our $serialfile="serial0";
 $ENV{QEMUPORT}||=15222;
-our $managementcon;
 our $logfd;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
@@ -128,7 +127,8 @@ sub fileContent($) {my($fn)=@_;
 
 sub qemusend_nolog($)
 {
-	print $managementcon shift(@_)."\n";
+	if($backend) { $backend->send(@_); }
+	else {warn "no backend"}
 }
 sub qemusend($)
 {
@@ -224,8 +224,6 @@ our %md5badlist=qw();
 our %md5goodlist;
 our %md5inststage;
 do "goodimage.pm"; # fill above vars
-my $readconthread;
-my $conmuxthread;
 
 sub set_hash_rects
 { 
@@ -544,67 +542,25 @@ sub waitstillimage(;$$)
 	return 0;
 }
 
-sub handlemuxcon($)
-{ my $conn=shift;
-	while(<$conn>) {
-		chomp;
-		qemusend $_;
-	}
+sub init_backend($)
+{
+	my $name=shift;
+	require "backend_$name.pm";
+	$backend="backend_$name"->new();
+
+	open($logfd, ">>", "currentautoinst-log.txt");
+	# set unbuffered so that sendkey lines from main thread will be written
+	my $oldfh=select($logfd); $|=1; select($oldfh);
 }
 
-# accept connections and forward to management console
-sub conmuxloop
+sub startvm()
 {
-	my $listen_sock=IO::Socket::INET->new(
-		Listen    => 1,
-	#	LocalAddr => 'localhost',
-		LocalPort => $ENV{QEMUPORT}+1,
-		Proto     => 'tcp',
-		ReUseAddr => 1,
-	);
-
-	while(my $conn=$listen_sock->accept()) {
-		# launch one thread per connection
-		my $thr=threads->create(\&handlemuxcon, $conn);
-		$thr->detach();
-	}
-}
-
-# read all output from management console and forward it to STDOUT
-sub readconloop
-{
-	$|=1;
-	while(<$managementcon>) {
-		print $_;
-		last if($endreadingcon);
-	}
-	diag "exiting management console read loop";
-	unlink $qemupidfilename;
-	alarm 3; # kill all extra threads soon
+	$backend->start_vm();
 }
 
 sub open_management_console()
 {
-	open($logfd, ">>", "currentautoinst-log.txt");
-	# set unbuffered so that sendkey lines from main thread will be written
-	my $oldfh=select($logfd); $|=1; select($oldfh);
-
-	$managementcon=IO::Socket::INET->new("localhost:$ENV{QEMUPORT}") or mydie "error opening management console: $!";
-	$endreadingcon=0;
-	select($managementcon); $|=1; select($oldfh); # autoflush
-	$conmuxthread=threads->create(\&conmuxloop); # allow external qemu input
-	$conmuxthread->detach();
-	$readconthread=threads->create(\&readconloop); # without this, qemu will block
-	$readconthread->detach();
-	qemusend "cont"; # start VM execution
-	$managementcon;
-}
-
-sub close_management_console()
-{
-	$endreadingcon=1;
-	qemusend "";
-	close $managementcon;
+	$backend->open_management();
 }
 
 # start console application
