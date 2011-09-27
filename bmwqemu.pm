@@ -55,6 +55,7 @@ my @extrahashrects; share(@extrahashrects);
 our @keyhistory;
 our %cmd=qw(
 next alt-n
+xnext alt-n
 install alt-i
 finish alt-f
 accept alt-a
@@ -78,7 +79,6 @@ otherrootpw alt-s
 change alt-c
 software s
 );
-
 
 $ENV{INSTLANG}||="en_US";
 if($ENV{INSTLANG} eq "de_DE") {

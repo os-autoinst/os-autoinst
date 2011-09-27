@@ -37,7 +37,9 @@ sub run()
 	# hack: button on summary screen is labeled Upgrade instead of Install
 	$cmd{install}="alt-u"; 
 	$cmd{software}="p"; # select "Packages" in change_software step
-	$ENV{DOCRUN}=1; # to show conflicts
+	if($ENV{VIDEOMODE} ne "text") {
+		$ENV{DOCRUN}=1; # to show conflicts
+	}
 }
 
 1;

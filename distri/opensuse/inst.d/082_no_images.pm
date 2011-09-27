@@ -13,7 +13,8 @@ sub run()
 {
 	sendkey $cmd{change};	# Change
 	sleep 3;
-	sendkey 'i';            # Images
+	my $images=($ENV{VIDEOMODE} eq "text")?"alt-i":"i";
+	sendkey $images;        # Images
 	sleep 10;
 }
 

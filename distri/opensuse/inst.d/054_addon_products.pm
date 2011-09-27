@@ -12,6 +12,7 @@ sub is_applicable()
 sub run()
 {
 	my $self=shift;
+	if($ENV{VIDEOMODE} && $ENV{VIDEOMODE} eq "text") {$cmd{xnext}="alt-x"}
 	if(!$ENV{NET} && !$ENV{DUD}) {
 		sendkeyw $cmd{"next"}; # use network
 		sendkeyw "alt-o"; # OK DHCP network
@@ -20,7 +21,7 @@ sub run()
 	$repo++ if $ENV{DUD};
 	foreach my $url (split(/\+/, $ENV{ADDONURL})) {
 		if($repo++) {sendkeyw "alt-a"; } # Add another
-		sendkeyw $cmd{"next"}; # Specify URL (default)
+		sendkeyw $cmd{"xnext"}; # Specify URL (default)
 		sendautotype($url);
 		sendkeyw $cmd{"next"};
 		sendkey "alt-i";sendkeyw "alt-t"; # confirm import (trust) key

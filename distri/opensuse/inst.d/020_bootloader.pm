@@ -43,6 +43,12 @@ if($ENV{RES1024}) { # default is 800x600
 	sendkey "f3";
 	sendkey "down";
 	sendkey "ret";
+} elsif($ENV{VIDEOMODE} eq "text") {
+	sendkey "f3";
+	for(1..2) {
+		sendkey "up";
+	}
+	sendkey "ret";
 }
 
 sendautotype("nohz=off "); # NOHZ caused errors with 2.6.26
