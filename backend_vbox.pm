@@ -2,9 +2,11 @@
 package backend_vbox;
 use strict;
 
+our $vmname="12.1Beta";
+
 sub vbox_controlvm
 {
-	system(qw"VBoxManage controlvm 12.1Beta", @_);
+	system(qw"VBoxManage controlvm", $vmname, @_);
 }
 
 # keymap relates to qemu/monitor.c
@@ -69,7 +71,7 @@ sub mouse_move($)
 }
 sub eject($)
 {
-	warn "TODO: eject";
+	system(qq'VBoxManage storageattach $vmname --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium emptydrive');
 }
 
 sub send($)
@@ -92,8 +94,14 @@ sub open_management()
 
 sub start_vm
 {
+	my $self=shift;
 	# TODO: assemble VM with ISO and disks similar to startqemu.pm
-	system("VBoxManage startvm 12.1Beta");
+	# attach iso as DVD:
+	system("VBoxManage", "storageattach", $self->{vmname}, "--storagectl", "IDE Controller", qw"--port 1 --device 0 --type dvddrive --medium", $ENV{ISO});
+	# pipe serial console output to file:
+	system("VBoxManage", "modifyvm", $self->{vmname}, "--uartmode1", "file", "serial0");
+	system("VBoxManage", "modifyvm", $self->{vmname}, "--uart1", "0x3f8", 4);
+	system(qw"VBoxManage startvm", $self->{vmname});
 	my $pid=`pidof VirtualBox`; chomp($pid);
 	$bmwqemu::qemupid=$pid;
 #	return 1;
@@ -103,7 +111,7 @@ sub start_vm
 sub new()
 {
 	my $class=shift;
-	my $self={class=>$class};
+	my $self={class=>$class, vmname=>$vmname};
 	$self=bless $self, $class;
 	return $self;
 }
