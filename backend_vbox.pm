@@ -73,6 +73,9 @@ sub eject($)
 {
 	system(qq'VBoxManage storageattach $vmname --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium emptydrive');
 }
+sub mouse_button($) {warn "TODO: mouse_button"}
+sub wavcapture($) {warn "TODO: wavcapture"}
+sub stopcapture($) {warn "TODO: stopcapture"}
 
 sub send($)
 {
