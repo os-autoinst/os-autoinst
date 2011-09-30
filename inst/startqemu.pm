@@ -4,6 +4,11 @@ use bmwqemu;
 my $basedir="raid";
 my $qemuimg="/usr/bin/kvm-img";
 if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
+my $qemubin="/usr/bin/kvm";
+if(!-x $qemubin) {$qemubin=~s/kvm/qemu-kvm/}
+if(!-x $qemubin) {$qemubin=~s/-kvm//}
+if(!-x $qemubin) {die "no Qemu/KVM found"}
+
 my $iso=$ENV{ISO};
 $ENV{HDDMODEL}||="virtio";
 $ENV{NICMODEL}||="virtio";

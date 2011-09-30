@@ -23,7 +23,7 @@ my $backend;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
-@EXPORT = qw($realname $username $password $qemubin $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
+@EXPORT = qw($realname $username $password $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
 &diag &fileContent &qemusend_nolog &qemusend &sendkey &sendkeyw &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
 &timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &init_backend &startvm &open_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &clear_console &set_std_hash_rects);
 
@@ -35,7 +35,6 @@ our $standstillthreshold=530;
 our $realname="Bernhard M. Wiedemann";
 our $username="bernhard";
 our $password="nots3cr3t";
-our $qemubin="/usr/bin/kvm";
 our $qemupid;
 our $gocrbin="/usr/bin/gocr";
 our $qemupidfilename="qemu.pid";
@@ -103,9 +102,6 @@ if($ENV{INSTLANG} eq "fr_FR") {
 }
 
 if(!-x $gocrbin) {$gocrbin=undef}
-if(!-x $qemubin) {$qemubin=~s/kvm/qemu-kvm/}
-if(!-x $qemubin) {$qemubin=~s/-kvm//}
-if(!-x $qemubin) {die "no Qemu/KVM found"}
 if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
 	if($1 ne "http") {die "only http mirror URLs are currently supported but found '$1'."}
 }
