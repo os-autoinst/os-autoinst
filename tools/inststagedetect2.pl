@@ -11,6 +11,7 @@ set_hash_rects(
 	[30,30,100,100], # where most applications pop up
 	[630,30,100,100], # where some applications pop up
 	[0,579,100,10 ], # bottom line (KDE/GNOME bar)
+	[0,750,90,10 ], # bottom line (KDE/GNOME bar) in 1024
 	[412,284,200,200], # center of 1024x768
 	);
 

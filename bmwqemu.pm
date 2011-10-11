@@ -274,6 +274,8 @@ sub inststagedetect($)
 	push(@md5, hashrect($ppm, [230,230, 300,100], "t"));
 	# smaller popup text detector
 	push(@md5, hashrect($ppm, [300,240, 100,100], "t"));
+	# smaller popup text detector on 1024x768
+	push(@md5, hashrect($ppm, [500,320, 100,100], "t"));
 	# use header text for GNOME-installer
 	push(@md5, hashrect($ppm, [0,0, 250,30], "t"));
 	# KDE/NET/DVD detect checks on left
@@ -355,6 +357,8 @@ sub take_screenshot()
 			$prestandstillwarning=($linkcount>$standstillthreshold/2);
 			if($linkcount>$standstillthreshold) { 
 				timeout_screenshot(); sleep 1;
+				my $dir=result_dir;
+				do_take_screenshot("$dir/standstill-1.ppm");sleep 1;
 				mydie "standstill detected. test ended. see $lastname\n"; # above 120s of autoreboot
 			}
 		} else { # new
@@ -616,6 +620,7 @@ sub set_std_hash_rects()
 	[30,30,100,100], # where most applications pop up
 	[630,30,100,100], # where some applications pop up
 	[0,579,100,10 ], # bottom line (KDE/GNOME bar)
+	[0,750,90,10 ], # bottom line (KDE/GNOME bar) in 1024
 	);
 }
 
