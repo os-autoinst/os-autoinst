@@ -24,6 +24,7 @@ sub consoletestrunfunc
 }
 
 $ENV{DESKTOP}||="gnome";
+$ENV{HASLICENSE}=1;
 
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
 	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", undef);
