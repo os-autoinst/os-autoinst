@@ -12,7 +12,7 @@ sub check() {
 	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/consoletest.d", \&::checkfunc);
 	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/x11test.d", \&::checkfunc);
 
-	my $overall=(::is_ok($results->{xterm}) or ::is_ok($results->{firefox}));
+	my $overall=(::is_ok($results->{xterm}) or ::is_ok($results->{firefox}) or ::is_ok($results->{yast2_users}));
 	return $overall;
 }
 
