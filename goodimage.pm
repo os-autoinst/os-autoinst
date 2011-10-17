@@ -44,6 +44,7 @@ bdcf5eae30d70c3fea49ec7db97969e2 instfail
 232cb27cbf4dafe0fc49900865b5548c bootloader-grub
 f74242b1f62bdbc7e3d6f060ceab7e0a bootloader-grub0620
 7037bb735a64f3b5c65e009dbfb59b76 syslinuxbootloader-1044
+7964d6a7dcf973182a1b96287a3550c2 syslinuxbootloader-0314
 33af848897baea7919c430d7adb6d9f2 initializinggnome
 bbe0d620ec01763f2a01993caaed1e88 welcome-11.2
 7ea9ca7bfe7277145920de67c2212a1d welcome
@@ -81,6 +82,7 @@ fa3b644bd9988f3ff4bd2f495d084d86 timezone-net1048-addon
 6732e48f879b54522a349fcc3f96941f timezone-kde-11.3
 52c1983d3e4adba9ad92fb855e5dbb5c timezone-kde0834
 da6ae863e7ad3a7a780f47e91c3585b1 timezone-kde0109
+7f29491b4223c69fdebb365b0b74aad0 timezone-kde0304
 daf74711041a18d4944c8175ba1e2fe9 timezone-gnome0834
 d55bc446162f2ed31f829d4d7659904a timezone-gnome0945
 3ef90c0e56849a0f4c6165466f0a4351 timezone-sled11sp2
@@ -170,6 +172,7 @@ b1c0fa183e9e0a88419e8d714107a0a2 rebootnow-kde0834
 eabf2c66351e8ee185e0a583deb1e8a7 rebootnow-gnome-11.3
 3f3f3284900659cf55362cb9752a004b rebootnow-gnome0834
 093ffbabbe95584a846ccfd1be32bcb0 rebootnow-gnome0948
+3f9ac2cd86436317435a4939d0add6c5 rebootnow-gnome-12.1-0343
 e3f412dc306085ca4d1795f850c81dee bootloader-grub
 6dad21ea36802fca6a7b4dc14db62c0e bootloader-grub0620
 053ed0ae4ad4679aec1c7d696f3697b2 bootloader-grub-xmas
@@ -178,6 +181,8 @@ f2c55e899bd1ab80874ad1e246c8d7ca splashscreen
 07ba75193833b87950d8813b23de7ced splashscreen-11.3
 e02daeeb40da74800a0d30cc5f2b2495 splashscreen-11.4-MS5
 02212340aa913960dae41a2df7d7c35f splashscreen-11.4-RC1
+4a6261f74bce20a82999f3d7c97ae2b7 splashscreen-12.1-Beta
+b79fef99bf0870bef49566d868b878fe splashscreen-12.1-0343
 f3eb544d595ba28240779239c9c1ffdf automaticconfiguration-11.2
 e8fa5eee5c5e45cc081d7679acd42101 automaticconfiguration
 0d2890c3d3fcc06f9cd7ac2d96c3c151 automaticconfiguration
@@ -224,6 +229,10 @@ c89bec8d3c0a63cf63c30f895055531f booted-KDE-0900-64
 41a9788e998c672abd711ff4653f8877 booted-KDE-1089
 32e7d63c3b1a80a212e24fca44d857fa booted-KDE-1089
 86ce1353aab058b0e76b2f5ef18ad369 booted-KDE-12.1-0271
+0beac4505bc5056ebe8b67f7b43b0477 booted-KDE-12.1-0315-miscolor
+xxb8d24e873fbee0b013e006565086fc booted-KDELXDE-12.1-0315
+d48f8941a1ee62ce90dbffe7d6f3d36e booted-KDE-12.1-0330-miscolor
+56f93fabbe1b628df81e20c8896de0ab booted-KDE-12.1-0345-SUSE-greeting
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
 bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
@@ -246,6 +255,7 @@ e977b8787aa5b3cf50bccd4fa5a511a6 booted-LXDE-0951-64
 508f4c506c58c9ffca3ed47d94b559f4 booted-LXDE-0959
 7bb01af1976c906c586673f12b5c8d7a booted-LXDE-1068
 4abdf828f6603a9eaaec30a91dfeb19f booted-LXDE-12.1-0132
+e9d5c31414e4488e7644bcf6c84db6f9 booted-LXDE-12.1-0343
 c2fc1822dceac430822194e210d34a6e booted-XFCE-11.3
 7ef5b6f89e9c24065f0879740fb89669 booted-XFCE-0914
 e5fea2098020b0e2d28089aa0d55c706 booted-XFCE-1071
@@ -278,6 +288,7 @@ f661dc2bac9ad963accbc7f633a4c550 sled-11-syslinux-bootloader
 9dd970d5084fa2dcf1bf2a3947240501 debian-popconconf
 caee43e45a35e9c4c7f4872a6575bde6 debian-grubinstall
 87c3e0695f195a4f845f57d61ff801c7 debian-booted-gdm
+74dd0438b7f56f3e1c96ec6818a79367 debian-booted-gdm
 
 eac344f0ef7a6201c9d0a65b5ceefec4 fedora-installationcomplete
 ddb3976501b9f8b1fb62182551edd64f fedora-postreboot

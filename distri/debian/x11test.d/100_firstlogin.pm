@@ -9,7 +9,7 @@ sub run()
 	sendkey "ret"; # use default user
 	waitidle;
 	sendautotype "$password\n";
-	waitidle(100); # time to load desktop
+	waitstillimage(15,100); # time to load desktop
 }
 
 1;
