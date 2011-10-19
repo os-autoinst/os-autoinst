@@ -1,0 +1,26 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Getopt::Long;
+use FindBin;
+use lib "$FindBin::Bin/..";
+use bmwqemu;
+
+my %options=();
+my @options=qw(t v c);
+GetOptions(\%options, @options);
+
+my $ref=shift;
+
+foreach my $img(@ARGV) {
+	my($x,$y) = bmwqemu::checkrefimgs($img, $ref, defined $options{t}?'t':'');
+	my $result=" did not match";
+	if(defined $x) {$result=": ${x},${y}"}
+	if(defined $options{v}) {
+		next if defined $x;
+	}
+	elsif(!defined $options{c}) {
+		next unless defined $x;
+	}
+	print "$img$result\n";
+}
