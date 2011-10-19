@@ -377,6 +377,9 @@ sub checkrefimgs($$$)
 	my ($screenimg,$refimg,$flags) = @_;
 	my $screenppm=ppm->new(fileContent($screenimg));
 	my $refppm=ppm->new(fileContent($refimg));
+	if(!$screenppm || !$refppm) {
+		return undef;
+	}
 	if($flags=~m/t/) {
 		# black/white => drop most background
 		$screenppm->threshold(0x80);
