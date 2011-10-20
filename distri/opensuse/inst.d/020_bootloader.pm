@@ -5,6 +5,10 @@ use Time::HiRes qw(sleep);
 
 sub run()
 {
+	waitinststage("syslinuxbootloader-loaded",20);
+	if($ENV{QEMUVGA} && $ENV{QEMUVGA} ne "cirrus") {
+		sleep 5;
+	}
 	if($ENV{ZDUP} || $ENV{WDUP}) {
 		qemusend "eject -f ide1-cd0";
 		qemusend "system_reset";

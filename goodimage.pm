@@ -45,6 +45,7 @@ bdcf5eae30d70c3fea49ec7db97969e2 instfail
 f74242b1f62bdbc7e3d6f060ceab7e0a bootloader-grub0620
 7037bb735a64f3b5c65e009dbfb59b76 syslinuxbootloader-1044
 7964d6a7dcf973182a1b96287a3550c2 syslinuxbootloader-0314
+a3aa18ef5e5dbf9e553105aade7faf52 syslinuxbootloader-loaded-12.1
 33af848897baea7919c430d7adb6d9f2 initializinggnome
 bbe0d620ec01763f2a01993caaed1e88 welcome-11.2
 7ea9ca7bfe7277145920de67c2212a1d welcome
@@ -173,6 +174,7 @@ eabf2c66351e8ee185e0a583deb1e8a7 rebootnow-gnome-11.3
 3f3f3284900659cf55362cb9752a004b rebootnow-gnome0834
 093ffbabbe95584a846ccfd1be32bcb0 rebootnow-gnome0948
 3f9ac2cd86436317435a4939d0add6c5 rebootnow-gnome-12.1-0343
+8f98e640a06ba5d643fb6fe24a6506f9 rebootnow-kde-12.1-0378
 e3f412dc306085ca4d1795f850c81dee bootloader-grub
 6dad21ea36802fca6a7b4dc14db62c0e bootloader-grub0620
 053ed0ae4ad4679aec1c7d696f3697b2 bootloader-grub-xmas
@@ -233,6 +235,7 @@ c89bec8d3c0a63cf63c30f895055531f booted-KDE-0900-64
 xxb8d24e873fbee0b013e006565086fc booted-KDELXDE-12.1-0315
 d48f8941a1ee62ce90dbffe7d6f3d36e booted-KDE-12.1-0330-miscolor
 56f93fabbe1b628df81e20c8896de0ab booted-KDE-12.1-0345-SUSE-greeting
+7645590f9543ba8747b8153689b18c47 booted-KDE-12.1-0379-SUSE-greeting
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
 bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
@@ -248,6 +251,7 @@ fbbe32ffb2144130af4dc66674646d61 booted-GNOME-1000
 9468f7f86c39a7887a26f72685f5c0c9 booted-GNOME-1096
 63279ad86729050e883604a86b81d904 booted-GNOME-12.1-0132
 fda08967ffb1c2dbe6cc6015246b7608 booted-GNOME3-fallback-0032
+a3edc953654f9781d858fba4a8c325d0 booted-GNOME3-fallback-0379
 a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
 68cadea0ed4cc94bc3752e059f715d84 booted-LXDE-11.3
 e8984c6bbac39ae3514a52cf9bc61ddc booted-LXDE-0951-32
@@ -255,12 +259,13 @@ e977b8787aa5b3cf50bccd4fa5a511a6 booted-LXDE-0951-64
 508f4c506c58c9ffca3ed47d94b559f4 booted-LXDE-0959
 7bb01af1976c906c586673f12b5c8d7a booted-LXDE-1068
 4abdf828f6603a9eaaec30a91dfeb19f booted-LXDE-12.1-0132
-e9d5c31414e4488e7644bcf6c84db6f9 booted-LXDE-12.1-0343
+03982729c1daa45e37beceec412c52b3 booted-LXDE-12.1-0378
 c2fc1822dceac430822194e210d34a6e booted-XFCE-11.3
 7ef5b6f89e9c24065f0879740fb89669 booted-XFCE-0914
 e5fea2098020b0e2d28089aa0d55c706 booted-XFCE-1071
 f6a075b41a53879fc9e62be8f91781bd booted-XFCE-12.1-0190
 5fd24157b9072a86b2414424cf61544e booted-XFCE-12.1-0240
+ddd56b52ba7bc29b3baf83580623953c booted-XFCE-12.1-0371
 6abf93224b5d3e9e0a0404e20788093a booted-icewm
 b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
 8cb5446f29cb6fe0eedfb136b9812eab booted-KDE-UNSTABLE-4.5.77
