@@ -8,6 +8,7 @@ alarm (7200+($ENV{UPGRADE}?3600:0)); # worst case timeout
 # init part
 init_backend("qemu");
 if($init) {
+	open(my $fd, ">os-autoinst.pid"); print $fd "$$\n"; close $fd;
 	if(!qemualive) {
 		startvm or die $@;
 	}
