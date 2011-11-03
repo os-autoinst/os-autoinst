@@ -38,4 +38,14 @@ sub checklist()
 	)}
 }
 
+
+sub ocr_checklist()
+{
+        [
+
+                {screenshot=>2, x=>104, y=>201, xs=>380, ys=>150, pattern=>"Hello", result=>"OK"}
+        ]
+}
+
+
 1;

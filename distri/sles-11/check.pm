@@ -5,6 +5,7 @@ use bmwqemu;
 use autotest;
 
 sub check() {
+	$ENV{DESKTOP}||="gnome";
 	my $results=\%::results;
 #	autotest::runtest("$scriptdir/distri/$ENV{DISTRI}/inst.d/010_initenv.pm",sub{my $test=shift;$test->run;});
 

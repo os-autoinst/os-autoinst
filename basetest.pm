@@ -1,5 +1,6 @@
 package basetest;
 use bmwqemu;
+use ocr;
 use Time::HiRes;
 
 sub new()
@@ -49,14 +50,17 @@ sub stop_audiocapture
 
 sub checklist
 {
-	#die "you need to override this method";
 	return {}
 }
 
 sub wav_checklist
 {
-	#die "you need to override this method";
 	return {}
+}
+
+sub ocr_checklist
+{
+	return []
 }
 
 sub check(%)
@@ -75,7 +79,8 @@ sub check(%)
 	my @wavdumps=<$path/$testname-*.wav>;
 	my $checklist=$self->checklist();
 	my $wav_checklist=$self->wav_checklist();
-	if(!keys %$checklist && !@screenshots && (!@wavdumps || !keys %$wav_checklist)) { return "not-autochecked" }
+	my $ocr_checklist=$self->ocr_checklist();
+	if(!keys %$checklist && !@screenshots && (!@wavdumps || !keys %$wav_checklist) && !@$ocr_checklist) { return "not-autochecked" }
 	my $checkval = '';
 	foreach my $h (keys(%$checklist)) {
 		if($hashes->{$h}) {
@@ -109,6 +114,33 @@ sub check(%)
 			push(@testreturn, "unk") if !$matched;
 		}
 	}
+	my @ocrreturn = ();
+	foreach my $screenimg (@screenshots) {
+		if(!@$ocr_checklist) {
+			#	push(@ocrreturn, "na");
+		}
+		else {
+			$screenimg=~m/-(\d+)\.ppm$/ or die "invalid screenshot name";
+			my $screenshotnr=$1;
+			my $data=fileContent($screenimg);
+			my $matched;
+			foreach my $entry (@$ocr_checklist) {
+				next if($entry->{screenshot} != $screenshotnr);
+				$matched=0;
+				my @ocrrect=($entry->{x}, $entry->{y}, $entry->{xs}, $entry->{ys});
+				my $ocr=ocr::get_ocr(\$data, "", \@ocrrect);
+				print STDERR "\nOCR OUT: $ocr\n";
+				if($ocr=~m/$entry->{pattern}/) {
+					my $result=$entry->{result};
+					push(@ocrreturn, lc($result));
+					$matched=1;
+					last;
+				}
+			}
+			if(!defined($matched)) {push(@ocrreturn, "na")}
+			elsif(!$matched) { push(@ocrreturn, "unk")}
+		}
+	}
 	my @wavreturn = ();
 	foreach my $audiofile (@wavdumps) {
 		my $aid = $audiofile;
@@ -129,7 +161,8 @@ sub check(%)
 	my $result_string;
 	if(@testreturn) {$result_string .= ' ('.join(',',@testreturn).')';}
 	if(@wavreturn) {$result_string .= ' ['.join(',',@wavreturn).']';}
-	my @returnval = (@testreturn, @wavreturn, $checkval);
+	if(@ocrreturn) {$result_string .= ' {'.join(',',@ocrreturn).'}';}
+	my @returnval = (@testreturn, @ocrreturn, @wavreturn, $checkval);
 	return 'fail'.$result_string if(grep/fail/,@returnval);
 	return 'OK'.$result_string if(grep/ok/,@returnval);
 	return 'unknown' if(keys %$checklist || grep/unk/,@returnval); # none of our known results matched
