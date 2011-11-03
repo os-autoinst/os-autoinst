@@ -11,6 +11,11 @@ scriptdir=$(dirname $(dirname $0))
 export ISO=`$scriptdir/tools/absolutize $iso`
 export PERLLIB=$scriptdir
 
+# Load the user's configured environment from cwd
+if [ ! -f "env.sh" ]; then
+	echo "Couldn't find env.sh (read INSTALL, user setup)"
+	exit 1
+fi
 . env.sh
 echo testing $ISO
 # cleanup
