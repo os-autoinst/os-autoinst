@@ -1,6 +1,16 @@
 #!/usr/bin/perl -w
+#
+# Start up the VM and start feeding it the distribution test script
+# specified in the DISTRI environment variable.
+#
+
 use strict;
 use bmwqemu;
+
+# Sanity checks
+die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI};
+die "No scripts in $scriptdir/distri/$ENV{DISTRI}" if ! -e "$scriptdir/distri/$ENV{DISTRI}";
+die "ISO environment variable not set" if !defined $ENV{ISO};
 
 my $init=1;
 alarm (7200+($ENV{UPGRADE}?3600:0)); # worst case timeout
