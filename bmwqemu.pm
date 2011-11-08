@@ -29,7 +29,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 
 
 our $debug=1;
-our $idlethreshold=($ENV{IDLETHESHOLD}||18)*$clock_ticks/100; # % load max for being considered idle
+our $idlethreshold=($ENV{IDLETHRESHOLD}||$ENV{IDLETHESHOLD}||18)*$clock_ticks/100; # % load max for being considered idle
 our $timesidleneeded=2;
 our $standstillthreshold=530;
 our $realname="Bernhard M. Wiedemann";
@@ -453,6 +453,7 @@ sub waitserial($;$)
 	for my $n (1..$timeout) {
 		my $str=`tail $serialfile`;
 		if($str=~m/$regexp/) {diag "found $regexp"; return 1;}
+		if($prestandstillwarning) {return 2}
 		sleep 1;
 	}
 	return 0;
