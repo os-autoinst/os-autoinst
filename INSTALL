@@ -36,6 +36,7 @@ TODO
 
 
 == more Linux setup ==
+cpan Algorithm::Line::Bresenham
 modprobe kvm-intel || modprobe kvm-amd
 chgrp kvm /dev/kvm ; chmod g+rw /dev/kvm # maybe redundant
 useradd -m USERNAME -G kvm

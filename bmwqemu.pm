@@ -6,6 +6,7 @@ use warnings;
 use Time::HiRes qw(sleep gettimeofday);
 use Digest::MD5;
 use IO::Socket;
+use Algorithm::Line::Bresenham qw(line);
 use Exporter;
 use ppm;
 use ocr;
@@ -24,7 +25,7 @@ my $backend;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
-&diag &fileContent &qemusend_nolog &qemusend &sendkey &sendkeyw &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &qemualive &result_dir 
+&diag &fileContent &qemusend_nolog &qemusend &sendkey &sendkeyw &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &set_mousebutton &clickimage &qemualive &result_dir
 &timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &init_backend &startvm &open_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &clear_console &set_std_hash_rects);
 
 
@@ -185,21 +186,45 @@ sub autotype($)
 	return $result;
 }
 
-sub mousemove_raw($$)
+sub mousemove_raw_nosleep($$)
 {
 	qemusend "mouse_move @_";
+}
+
+sub mousemove_raw($$)
+{
+	&mousemove_raw_nosleep;
 	sleep 0.5;
 }
 
+our $mouse_buttons = 0;
+sub set_mousebutton($$)
+{
+	my $button=shift;
+	my $bstatus=shift;
+	if($bstatus) {
+		$mouse_buttons|=$button;
+	}
+	else {
+		$mouse_buttons&=~$button;
+	}
+	qemusend "mouse_button $mouse_buttons";
+}
+
+our @mouse_position = (0,0);
 # send mouse move via emulated touch screen
 # in: x,y coords in pixels
-sub mousemove($$)
-{ my(@coord)=@_;
+sub mousemove($$;$)
+{
+	my(@coord)=@_;
+	my $sleep=$coord[2]||0.2;
+	@mouse_position = @coord;
 	my @size=(800,600);
 	my $maxtouch=0x7fff;
 	# transform to touchscreen coords (0..$maxtouch)
 	for my $i (0..1) {$coord[$i]=int($coord[$i]*$maxtouch/$size[$i])}
-	mousemove_raw($coord[0], $coord[1]);
+	mousemove_raw_nosleep($coord[0], $coord[1]);
+	sleep($sleep);
 }
 
 # send mouse click
@@ -209,9 +234,35 @@ sub mouseclick(;$$)
 {
 	my $button=shift||1;
 	my $time=shift||0.15;
-	qemusend "mouse_button $button";
+	set_mousebutton($button,1);
 	sleep $time;
-	qemusend "mouse_button 0";
+	set_mousebutton($button,0);
+}
+
+sub mousebuttonaction(;$$)
+{
+	my($button,$bstatus)=@_;
+	$button||= "l";
+	$bstatus||="click";
+	my $ibutton = 0;
+	$ibutton|=0b001 if($button=~m/l/);
+	$ibutton|=0b010 if($button=~m/r/);
+	$ibutton|=0b100 if($button=~m/m/);
+	diag "Performing mouse button action";
+	if($bstatus eq "click") {
+		mouseclick($ibutton,0.15);
+	}
+	elsif($bstatus eq "doubleclick") {
+		mouseclick($ibutton,0.15);
+		sleep 0.1;
+		mouseclick($ibutton,0.15);
+	}
+	elsif($bstatus eq "down") {
+		set_mousebutton($ibutton,1);
+	}
+	elsif($bstatus eq "up") {
+		set_mousebutton($ibutton,0);
+	}
 }
 
 my $n=0;
@@ -354,6 +405,7 @@ sub take_screenshot()
 			if($linkcount>$standstillthreshold) { 
 				timeout_screenshot(); sleep 1;
 				my $dir=result_dir;
+				sendkey "alt-sysrq-w";
 				do_take_screenshot("$dir/standstill-1.ppm");sleep 1;
 				mydie "standstill detected. test ended. see $lastname\n"; # above 120s of autoreboot
 			}
@@ -407,7 +459,9 @@ sub waitimage($;$) {
 	my ($reflist,$timeout) = @_;
 	$timeout = 60 unless defined $timeout;
 	diag "Waiting for <$reflist.ppm> in screenshot. timeout=$timeout";
+	$reflist=~s/\.ppm$//;
 	my @refimgs=<$scriptdir/waitimgs/$reflist.ppm>;
+	diag "WARNING: No refimgs with name '$reflist' found!" unless(@refimgs);
 	my ($lastmd5,$thismd5) = (0,0);
 	for(my $i=0;$i<=$timeout;$i+=2) {
 		# prevent reading while screendump is not finished
@@ -417,9 +471,13 @@ sub waitimage($;$) {
 		# image is equal with previous one
 		unless($lastmd5 eq $thismd5) {
 			foreach my $refimg (@refimgs) {
-				if(defined checkrefimgs($mylastname,$refimg,'t')) {
+				diag "Checking $refimg against $mylastname";
+				my @a=checkrefimgs($mylastname,$refimg,'t');
+				if(defined $a[0]) {
 					diag "Found $refimg in $mylastname";
-					return 1;
+					$refimg=~s/^.*waitimgs\/(.*)$/$1/;
+					push(@a, $refimg);
+					return \@a;
 				}
 			}
 		}
@@ -427,7 +485,49 @@ sub waitimage($;$) {
 	}
 	timeout_screenshot();
 	diag "Waiting for images $reflist timed out!";
-	return 0;
+	return undef;
+}
+
+sub clickimage($;$$$$) {
+	my ($reflist,$button,$bstatus,$flags,$timeout) = @_;
+	$flags||="h";
+	$timeout||=60;
+	my $waitres = waitimage("click/$reflist",$timeout);
+	if(defined $waitres) {
+		diag "Got absolute refimg coordinates: $waitres->[0]x$waitres->[1]";
+		$waitres->[2]=~m/-(-?\d+)-(-?\d+)\.ppm$/;
+		my @relcoor = ($1,$2);
+		#my @relcoor = ($waitres[2],$waitres[2]);
+		#$relcoor[0]=~s/^.*\d-(-?\d+)--?\d+.ppm/$1/;
+		#$relcoor[1]=~s/^.*\d--?\d+-(-?\d+).ppm/$1/;
+		diag "Got relative action coordinates: $relcoor[0]x$relcoor[1]";
+		my @abscoor;
+		for my $i (0..1) { $abscoor[$i] = $waitres->[$i] + $relcoor[$i]; }
+		diag "Got absolute action coordinates: $abscoor[0]x$abscoor[1]";
+		# slide
+		if($flags=~m/s/) {
+			diag "Sliding mouse to $abscoor[0]x$abscoor[1]";
+			for my $pos (line($mouse_position[1],$mouse_position[0] => $abscoor[1],$abscoor[0])) {
+				mousemove($pos->[1],$pos->[0],0.005);
+			}
+		}
+		else {
+			diag "Set mouse position: $abscoor[0]x$abscoor[1]";
+			mousemove($abscoor[0],$abscoor[1]);
+		}
+		sleep(0.25);
+		mousebuttonaction($button, $bstatus);
+		sleep(0.25);
+		# hide cursor
+		if($flags=~m/h/) {
+			mousemove(800,600);
+		}
+		return @abscoor;
+	}
+	else {
+		diag "Skipping click action!";
+		return undef;
+	}
 }
 
 sub qemualive()
