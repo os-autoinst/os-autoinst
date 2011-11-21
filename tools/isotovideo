@@ -7,6 +7,8 @@ if test -z "$iso" ; then
 fi
 isodir=`pwd`
 scriptdir=$(dirname $(dirname $0))
+logfile=currentautoinst-log.txt
+
 # make absolute path
 export ISO=`$scriptdir/tools/absolutize $iso`
 export PERLLIB=$scriptdir
@@ -21,26 +23,30 @@ echo testing $ISO
 # cleanup
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f qemuscreenshot/*.ppm
-date > currentautoinst-log.txt
+
+# start
+date > ${logfile}
 if test -n "$SUSEMIRROR"; then
-	curl -s $SUSEMIRROR/repo/oss/media.1/build >> currentautoinst-log.txt
+	curl -s $SUSEMIRROR/repo/oss/media.1/build >> ${logfile}
 else
-	echo "No build id collected" >> currentautoinst-log.txt
+	echo "No build id collected" >> ${logfile}
 fi
 
 $scriptdir/start.pl
 
 name=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media1?//;print' $ISO)
 mkdir -p video
+echo "Recording to video/$name" >> ${logfile}
 if test -e /usr/bin/ffmpeg2theora ; then
-echo $scriptdir/tools/ppmtompg qemuscreenshot video/$name
-$scriptdir/tools/ppmtompg qemuscreenshot video/$name
+	echo $scriptdir/tools/ppmtompg qemuscreenshot video/$name
+	$scriptdir/tools/ppmtompg qemuscreenshot video/$name
 else
 	umlffmpeg . video/$name
 fi
 
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
-cat serial0 >> currentautoinst-log.txt
-$scriptdir/tools/checklog currentautoinst-log.txt | tee -a currentautoinst-log.txt
+echo "QEMU finished, running final checks" >> ${logfile}
+cat serial0 >> ${logfile}
+$scriptdir/tools/checklog ${logfile} | tee -a ${logfile}
 # return success if video was created:
 test -e video/$name.ogv
