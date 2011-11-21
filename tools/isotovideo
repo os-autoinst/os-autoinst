@@ -22,7 +22,12 @@ echo testing $ISO
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f qemuscreenshot/*.ppm
 date > currentautoinst-log.txt
-curl -s $SUSEMIRROR/repo/oss/media.1/build >> currentautoinst-log.txt
+if test -n "$SUSEMIRROR"; then
+	curl -s $SUSEMIRROR/repo/oss/media.1/build >> currentautoinst-log.txt
+else
+	echo "No build id collected" >> currentautoinst-log.txt
+fi
+
 $scriptdir/start.pl
 
 name=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media1?//;print' $ISO)
