@@ -25,7 +25,7 @@ test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f qemuscreenshot/*.ppm
 
 # start
-date > ${logfile}
+date "+%s%n%Y-%m-%d %H:%M:%S" > ${logfile}
 if test -n "$SUSEMIRROR"; then
 	curl -s $SUSEMIRROR/repo/oss/media.1/build >> ${logfile}
 else
