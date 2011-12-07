@@ -129,6 +129,9 @@ sub check(%)
 				$matched=0;
 				my @ocrrect=($entry->{x}, $entry->{y}, $entry->{xs}, $entry->{ys});
 				my $ocr=ocr::get_ocr(\$data, "", \@ocrrect);
+				open(OCRFILE, ">$path/$testname-$entry->{screenshot}.txt");
+				print OCRFILE $ocr;
+				close(OCRFILE);
 				print STDERR "\nOCR OUT: $ocr\n";
 				if($ocr=~m/$entry->{pattern}/) {
 					my $result=$entry->{result};
@@ -165,7 +168,7 @@ sub check(%)
 	my @returnval = (@testreturn, @ocrreturn, @wavreturn, $checkval);
 	return 'fail'.$result_string if(grep/fail/,@returnval);
 	return 'OK'.$result_string if(grep/ok/,@returnval);
-	return 'unknown' if(keys %$checklist || grep/unk/,@returnval); # none of our known results matched
+	return 'unknown'.$result_string if(keys %$checklist || grep/unk/,@returnval); # none of our known results matched
 	return 'not-autochecked';
 }
 
