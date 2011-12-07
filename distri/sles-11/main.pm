@@ -23,6 +23,7 @@ sub consoletestrunfunc
 	$test->take_screenshot;
 }
 
+$ENV{NOAUTOLOGIN}=1;
 $ENV{DESKTOP}||="gnome";
 $ENV{HASLICENSE}=1;
 

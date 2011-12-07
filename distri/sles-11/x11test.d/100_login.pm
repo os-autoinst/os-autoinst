@@ -4,6 +4,7 @@ use bmwqemu;
 
 sub run()
 {
+	sendkey "ctrl-alt-f7"; sleep 4;
 	sendautotype("$username\n");
 	waitidle;
 	sendpassword();

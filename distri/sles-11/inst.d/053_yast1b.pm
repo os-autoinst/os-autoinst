@@ -17,7 +17,11 @@ sub addonproduct()
 			sendautotype($url);
 			sendkey $cmd{"next"}; waitidle;
 			if($ENV{DISTRI}=~m/^sle/i) {
+				waitstillimage(12,30);
+				sendkey "alt-o"; # close Beta warning (becomes disagree with license without warning - compensated by alt-y below)
+				sleep 2;
 				sendkey "alt-y"; # accept Add-On's license
+				sleep 2;
 				sendkey $cmd{"next"};
 			}
 
@@ -85,6 +89,7 @@ sub run()
 	sleep 60;
 	sendkey "alt-a"; # Accept
 	sleep 2;
+	for(1..3){sendkeyw "alt-a"} # Accept licenses
 	sendkey "alt-o"; # cOntinue
 	waitidle;
 	sendkey "alt-u"; # Update if available

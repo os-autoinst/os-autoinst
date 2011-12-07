@@ -20,6 +20,7 @@ sub run()
 		sendautotype "linux $args";
 	}
 	sendkey "ret";
+	qemusend "boot_set c"; # boot from HDD next time
 }
 
 1;

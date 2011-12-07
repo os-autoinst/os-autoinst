@@ -3,13 +3,13 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return $ENV{DESKTOP} eq "xfce";
+	return $ENV{DESKTOP} eq "xfce" || $ENV{NOAUTOLOGIN};
 }
 
 sub run()
 {
 	my $self=shift;
-	my $ok=waitinststage "xdm-loginscreen", 80;
+	my $ok=waitinststage "dm-loginscreen", 80;
 	if($ok) {
 		waitidle;
 

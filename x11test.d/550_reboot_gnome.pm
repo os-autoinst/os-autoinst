@@ -16,6 +16,9 @@ sub run()
 		sendkey "down"; # reboot
 		sleep 2;
 		sendkey "ret"; # confirm 
+		sleep 2;
+		sendpassword;
+		sendkey "ret";
 	} else {
 		sendkey "ctrl-alt-f4"; sleep 2; # goto console so that gnome does not catch CAD
 		sendkey "ctrl-alt-delete"; # reboot

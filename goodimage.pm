@@ -268,6 +268,7 @@ f6a075b41a53879fc9e62be8f91781bd booted-XFCE-12.1-0190
 ddd56b52ba7bc29b3baf83580623953c booted-XFCE-12.1-0371
 6abf93224b5d3e9e0a0404e20788093a booted-icewm
 b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
+5c5ceaa523e4f841e81549db609cea19 booted-gdm-loginscreen
 8cb5446f29cb6fe0eedfb136b9812eab booted-KDE-UNSTABLE-4.5.77
 21b2fded43dbd6637fae5f79f50f01ca bootloader-grub-KDE-UNSTABLE-4.5.77
 1f366890c2b7e44a878d0f3d6f80cef1 failed-to-detect-CD-rebooting-in-120-seconds
