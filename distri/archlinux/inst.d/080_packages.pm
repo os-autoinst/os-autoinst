@@ -14,9 +14,11 @@ sub run()
 	sleep 1;
 	sendkey "ret"; # base pkg group  ok
 	sleep 1;
-	for (1..5) {sendkey "c";}
-	sleep 1;
-	sendkey "spc"; # select curl
+	if($ENV{NETINST}) {
+		for (1..5) {sendkey "c";}
+		sleep 1;
+		sendkey "spc"; # select curl
+	}
 	sleep 1;
 	$self->take_screenshot;
 	sleep 2;

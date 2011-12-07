@@ -21,7 +21,6 @@ sub run()
 	$self->take_screenshot;
 	sleep 1;
 	sendkey "ret"; # close info box
-	local $ENV{SCREENSHOTINTERVAL}=0.5; # just to be sure...
 }
 
 1;

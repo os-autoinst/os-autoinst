@@ -18,7 +18,7 @@ sub run()
 	script_run("pacman -Qs > /dev/$serialdev");
 	script_run("tar cjf /tmp/logs.tar.bz2 /var/log");
 	my $ver=`cat testname`; chomp($ver);
-	script_run("curl --form testname=$ver --form upload=@/tmp/logs.tar.bz2 10.0.2.2/cgi-bin/uploadlog");
+	script_run("unset http_proxy ; curl --form testname=$ver --form upload=@/tmp/logs.tar.bz2 10.0.2.2/cgi-bin/uploadlog");
 }
 
 sub checklist()
