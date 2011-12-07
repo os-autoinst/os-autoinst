@@ -48,7 +48,10 @@ share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
 our $testedversion=$ENV{ISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.iso$//; $testedversion=~s{^([^.]+?)(?:-Media1?)?$}{$1};
 if(!$ENV{DISTRI}) {
-	if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi|FreeBSD)-/) {$ENV{DISTRI}=lc($1)}
+	if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi|FreeBSD|archlinux)-/) {$ENV{DISTRI}=lc($1)}
+}
+if(defined($ENV{DISTRI}) && $ENV{DISTRI} eq 'archlinux') {
+	$ENV{HDDMODEL}="ide";
 }
 my @ocrrect; share(@ocrrect);
 my @extrahashrects; share(@extrahashrects);
@@ -518,7 +521,7 @@ sub clickimage($;$$$$) {
 		sleep(0.25);
 		mousebuttonaction($button, $bstatus);
 		sleep(0.25);
-		# hide cursor
+		# cursor in ninja mode
 		if($flags=~m/h/) {
 			mousemove(800,600);
 		}

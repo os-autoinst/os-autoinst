@@ -35,7 +35,7 @@ while(<>) {
 	if(/^iso_size=(\d+)/) {$results{isosize}=checksize($1);}
 }
 
-sub is_ok($) { my $x=shift; $x=~m/^OK|not-autochecked/ }
+sub is_ok($) { my $x=shift; $x=~m/^OK/ }
 
 sub checkfunc
 {
