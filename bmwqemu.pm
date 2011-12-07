@@ -6,7 +6,7 @@ use warnings;
 use Time::HiRes qw(sleep gettimeofday);
 use Digest::MD5;
 use IO::Socket;
-use Algorithm::Line::Bresenham qw(line);
+eval {require Algorithm::Line::Bresenham;};
 use Exporter;
 use ppm;
 use ocr;
@@ -510,7 +510,7 @@ sub clickimage($;$$$$) {
 		# slide
 		if($flags=~m/s/) {
 			diag "Sliding mouse to $abscoor[0]x$abscoor[1]";
-			for my $pos (line($mouse_position[1],$mouse_position[0] => $abscoor[1],$abscoor[0])) {
+			for my $pos (Algorithm::Line::Bresenham::line($mouse_position[1],$mouse_position[0] => $abscoor[1],$abscoor[0])) {
 				mousemove($pos->[1],$pos->[0],0.005);
 			}
 		}
