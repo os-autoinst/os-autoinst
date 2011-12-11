@@ -73,9 +73,16 @@ sub eject($)
 {
 	system(qq'VBoxManage storageattach $vmname --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium emptydrive');
 }
-sub mouse_button($) {warn "TODO: mouse_button"}
-sub wavcapture($) {warn "TODO: wavcapture"}
-sub stopcapture($) {warn "TODO: stopcapture"}
+sub mouse_button($) {warn "TODO: mouse_button @_"}
+sub wavcapture($) {
+	my $self=shift;
+	my $wavfilename=shift;
+	system("$bmwqemu::scriptdir/tools/pawav.pl $wavfilename &");
+}
+
+sub stopcapture($) {
+	system("killall", "parec");
+}
 
 sub send($)
 {
@@ -106,6 +113,7 @@ sub start_vm
 	system("VBoxManage", "modifyvm", $self->{vmname}, "--uart1", "0x3f8", 4);
 	system(qw"VBoxManage startvm", $self->{vmname});
 	my $pid=`pidof VirtualBox`; chomp($pid);
+	$pid=~s/ .*//; # use first pid, in case GUI was open
 	$bmwqemu::qemupid=$pid;
 #	return 1;
 	return(($?>>8)==0);
