@@ -161,7 +161,7 @@ sub check(%)
 			push(@wavreturn, "na");
 		}
 	}
-	my $result_string;
+	my $result_string = '';
 	if(@testreturn) {$result_string .= ' ('.join(',',@testreturn).')';}
 	if(@wavreturn) {$result_string .= ' ['.join(',',@wavreturn).']';}
 	if(@ocrreturn) {$result_string .= ' {'.join(',',@ocrreturn).'}';}
