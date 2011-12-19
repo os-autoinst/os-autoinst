@@ -7,6 +7,8 @@ use autotest;
 sub check() {
 	my $results=\%::results;
 
+	$ENV{DESKTOP}="gnome";
+	$ENV{NOAUTOLOGIN}=1;
 	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&::checkfunc);
 #	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/consoletest.d", \&::checkfunc);
 	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/x11test.d", \&::checkfunc);

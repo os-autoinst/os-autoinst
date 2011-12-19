@@ -7,6 +7,10 @@ sub run()
 	x11_start_program("firefox");
 	if($ENV{UPGRADE}) { sendkey("alt-d");waitidle; } # dont check for updated plugins
 	$self->take_screenshot;
+	sendkey "alt-h"; sleep 2;	# Help
+	sendkey "a"; sleep 2;		# About
+	$self->take_screenshot;
+	sendkey "alt-f4"; sleep 2;	# close About
 	sendkey "alt-f4"; sleep 2;
 	sendkey "ret"; # confirm "save&quit"
 }
@@ -37,6 +41,8 @@ sub checklist()
 		1dcc80ad1d47b0826b2680e284683da8 OK
 		110a2d383b878cec9c46fce9565d1fbc OK
 		50a753aba5dbd394c57ee3be605939e8 OK
+		6e16132669c3450a2ebaad6d623c30b3 OK
+		70178b1e12d817001862a0c331da157b OK
 		614838262da0d1976e84aba2e4636f01 fail
 		0ca35889f8b2ff0eff07304f65fdeb79 fail
 		c7bcf2e6976800803da351d4e6108fdb fail

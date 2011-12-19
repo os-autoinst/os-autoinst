@@ -26,7 +26,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
 &diag &fileContent &qemusend_nolog &qemusend &sendkey &sendkeyw &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &set_mousebutton &clickimage &qemualive &result_dir
-&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &init_backend &startvm &open_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &clear_console &set_std_hash_rects);
+&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &init_backend &startvm &open_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console &set_std_hash_rects);
 
 
 our $debug=1;
@@ -50,6 +50,7 @@ our $testedversion=$ENV{ISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.i
 if(!$ENV{DISTRI}) {
 	if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi|FreeBSD|archlinux)-/) {$ENV{DISTRI}=lc($1)}
 }
+foreach my $part (split("-", $testedversion)) {$ENV{uc($part)}=1}
 if(defined($ENV{DISTRI}) && $ENV{DISTRI} eq 'archlinux') {
 	$ENV{HDDMODEL}="ide";
 }
@@ -699,13 +700,31 @@ sub script_sudo_logout()
 { $sudos=0 }
 
 
-sub x11_start_program($)
+sub x11_start_program($;$)
 { my $program=shift;
-	sendkey "alt-f2"; sleep 3;
+	my $options=shift||{};
+	sendkey "alt-f2"; sleep 4;
 	sendautotype $program; sleep 1;
+	if($options->{terminal}) {sendkey "alt-t";sleep 3;}
 	sendkey "ret";
 	waitidle;
 	sleep 1;
+}
+
+sub ensure_installed
+{
+	my @pkglist=@_;
+	#pkcon refresh # once
+	#pkcon install @pkglist
+	if($ENV{OPENSUSE}) {
+		x11_start_program("xdg-su -c 'zypper -n in @pkglist'"); # SUSE-specific
+	} elsif($ENV{DEBIAN}) {
+		x11_start_program("su -c 'aptitude -y install @pkglist'", {terminal=>1}); # SUSE-specific
+	} else {
+		mydie "TODO: implement package install for your distri $ENV{DISTRI}";
+	}
+	if($password) { sendpassword; sendkeyw "ret"; }
+	sleep 10; # wait for install
 }
 
 sub clear_console()

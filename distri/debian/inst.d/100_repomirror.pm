@@ -2,12 +2,18 @@ use base "basetest";
 use strict;
 use bmwqemu;
 
+sub is_applicable
+{
+	if($::install_after_partitioning) {return $ENV{NETINST}}
+	else {return !$ENV{NETINST}}
+}
+
 sub run()
 {
 	my $self=shift;
 	{
 		local $ENV{SCREENSHOTINTERVAL}=5;
-		waitstillimage(12, 600);
+		waitstillimage(25, 600);
 	}
 	sendautotype "g\n"; # Configure the package manager (country=Germany)
 	$self->take_screenshot; sleep 2;

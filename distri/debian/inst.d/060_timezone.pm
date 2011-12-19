@@ -4,7 +4,10 @@ use bmwqemu;
 
 sub run()
 {
-	waitidle;
+	my $self=shift;
+	waitstillimage(15,60);
+	#waitidle;
+	$self->take_screenshot;sleep 1;
 	sendkey "ret"; # timezone
 }
 

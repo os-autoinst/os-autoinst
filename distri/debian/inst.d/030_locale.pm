@@ -4,7 +4,9 @@ use bmwqemu;
 
 sub run()
 {
-	waitidle(10); # boot up
+	my $self=shift;
+	waitstillimage(7,20); # boot up
+	$self->take_screenshot; sleep 1;
 	sendkey "ret"; # lang
 	sendkey "ret"; # country
 	sendkey "ret"; # keymap

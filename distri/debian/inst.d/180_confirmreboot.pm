@@ -4,7 +4,10 @@ use bmwqemu;
 
 sub run()
 {
-	waitidle;
+	my $self=shift;
+	waitidle(100);
+	waitstillimage;
+	$self->take_screenshot; sleep 1;
 	sendkey "ret"; # confirm reboot
 }
 

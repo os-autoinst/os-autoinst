@@ -11,6 +11,8 @@ sub installrunfunc
 	$test->take_screenshot;
 }
 
+$ENV{DESKTOP}="gnome";
+$ENV{NOAUTOLOGIN}=1;
 autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", undef);
 autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/x11test.d", undef);
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
