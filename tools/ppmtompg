@@ -15,6 +15,7 @@ for my $f (<$in/*.ppm>) {
 	my $s=-s $f;
 	if($s>$biggest){$biggest=$s; $biggestf=$f}
 }
+die "no screenshots found" unless $biggest;
 my $n=0;
 for my $f (<$in/*.ppm>) {
 	if($n==0) { $f=$biggestf; } # work around ffmpeg2theora using first frame size for whole video
