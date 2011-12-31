@@ -1,0 +1,1 @@
+../../debian/x11test.d/550_reboot_gnome.pm

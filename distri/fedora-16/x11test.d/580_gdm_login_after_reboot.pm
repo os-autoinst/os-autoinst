@@ -1,0 +1,1 @@
+../../debian/x11test.d/580_gdm_login_after_reboot.pm
