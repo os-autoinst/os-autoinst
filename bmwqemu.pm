@@ -719,12 +719,14 @@ sub ensure_installed
 	if($ENV{OPENSUSE}) {
 		x11_start_program("xdg-su -c 'zypper -n in @pkglist'"); # SUSE-specific
 	} elsif($ENV{DEBIAN}) {
-		x11_start_program("su -c 'aptitude -y install @pkglist'", {terminal=>1}); # SUSE-specific
+		x11_start_program("su -c 'aptitude -y install @pkglist'", {terminal=>1});
+	} elsif($ENV{FEDORA}) {
+		x11_start_program("su -c 'yum -y install @pkglist'", {terminal=>1});
 	} else {
 		mydie "TODO: implement package install for your distri $ENV{DISTRI}";
 	}
 	if($password) { sendpassword; sendkeyw "ret"; }
-	sleep 10; # wait for install
+	waitstillimage(6,90); # wait for install
 }
 
 sub clear_console()

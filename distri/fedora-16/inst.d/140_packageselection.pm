@@ -11,10 +11,14 @@ sub run()
 		sendkey "tab"; # select main repo
 		for my $n (1..2) {
 			sendkey "alt-m"; sleep 2; # modify repo
+			sendkey "alt-m"; # uncheck mirror list
+			sendkey "alt-u"; # select URL
 			if($n==1) {
-				sendkey "alt-m"; # uncheck mirror list
-				sendkey "alt-u"; # select URL
 				sendautotype $ENV{MIRROR}; # example: http://mirror.fraunhofer.de/download.fedora.redhat.com/fedora/linux/releases/16/Fedora/i386/os/
+			} else {
+				my $u=$ENV{MIRROR};
+				$u=~s{/releases/(\d+)/Fedora/([0-9a-z_-]+)/os/}{/updates/$1/$2/};
+				sendautotype $u;
 			}
 			sendkey "alt-p"; sleep 2; # enable proxy checkbox
 			sendkey "alt-r"; # select proxy URL field

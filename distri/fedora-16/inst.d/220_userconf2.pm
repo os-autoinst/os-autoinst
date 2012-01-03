@@ -5,6 +5,7 @@ use bmwqemu;
 sub run()
 {
 	waitidle;
+	waitstillimage;
 	# creating non-root user here
 	sendautotype "$realname\t";
 	sendautotype "$username\t";
