@@ -459,9 +459,10 @@ sub decodewav($)
 	return $dtmf;
 }
 
-sub waitimage($;$) {
-	my ($reflist,$timeout) = @_;
+sub waitimage($;$$) {
+	my ($reflist,$timeout,$flags) = @_;
 	$timeout = 60 unless defined $timeout;
+	$flags = 't' unless defined $flags;
 	diag "Waiting for <$reflist.ppm> in screenshot. timeout=$timeout";
 	$reflist=~s/\.ppm$//;
 	my @refimgs=<$scriptdir/waitimgs/$reflist.ppm>;
@@ -476,7 +477,7 @@ sub waitimage($;$) {
 		unless($lastmd5 eq $thismd5) {
 			foreach my $refimg (@refimgs) {
 				diag "Checking $refimg against $mylastname";
-				my @a=checkrefimgs($mylastname,$refimg,'t');
+				my @a=checkrefimgs($mylastname,$refimg,$flags);
 				if(defined $a[0]) {
 					diag "Found $refimg in $mylastname";
 					$refimg=~s/^.*waitimgs\/(.*)$/$1/;
