@@ -5,6 +5,7 @@ sub run()
 {
 	my $self=shift;
 	script_sudo('/etc/init.d/sshd restart'); # will do nothing if it is already running
+	script_sudo('insserv -r SuSEfirewall2_setup ; insserv -r SuSEfirewall2_init ; insserv sshd');
 	$self->take_screenshot;
 	sendkey("ctrl-l");
 	script_run('echo $?');
