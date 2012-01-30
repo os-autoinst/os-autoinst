@@ -13,15 +13,19 @@ sub run()
 	$ENV{ZDUPREPOS}||="http://$ENV{SUSEMIRROR}/repo/oss/";
 	sendkey "ctrl-l";
 	script_sudo("killall gpk-update-icon packagekitd");
-	if(!$ENV{TUMBLEWEED}) {
-		script_sudo("zypper modifyrepo --all --disable");
+	script_sudo("zypper modifyrepo --all --disable");
+	if($ENV{TUMBLEWEED}) {
+		script_sudo("zypper ar --refresh http://widehat.opensuse.org/distribution/openSUSE-current/repo/oss/ 'openSUSE Current OSS'");
+		script_sudo("zypper ar --refresh http://widehat.opensuse.org/distribution/openSUSE-current/repo/non-oss/ 'openSUSE Current non-OSS'");
+		script_sudo("zypper ar --refresh http://widehat.opensuse.org/update/openSUSE-current/ 'openSUSE Current Update'");
 	}
 	my $nr=1;
 	foreach my $r (split(/\+/, $ENV{ZDUPREPOS})) {
 		script_sudo("zypper addrepo $r repo$nr");
 		$nr++;
 	}
-	script_sudo("zypper --gpg-auto-import-keys dup -l");
+	script_sudo("zypper --gpg-auto-import-keys refresh");
+	script_sudo("zypper dup -l");
 	$self->take_screenshot;
 	#for(1..20) { sendkeyw "3"; # ignore unresolvable
 	#}
@@ -29,6 +33,7 @@ sub run()
 		sendkey "2"; # ignore unresolvable
 		sendkeyw "ret";
 	}
+	sendautotype("1\n"); # some conflicts can not be ignored
 	$self->take_screenshot;
 	sendautotype("y\n"); # confirm
 	local $ENV{SCREENSHOTINTERVAL}=2.5;
@@ -36,7 +41,7 @@ sub run()
 		sleep 60;
 		sendkey "shift"; # prevent console screensaver
 	}
-	waitinststage("blackscreen", 5000); # wait for screensaver to blank console
+	waitstillimage(60, 5000); # wait for upgrade to finish
 }
 
 1;
