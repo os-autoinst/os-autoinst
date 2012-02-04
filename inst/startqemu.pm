@@ -62,7 +62,7 @@ if(!qemualive) {
 			@cdrom=();
 		}
 	}
-	system("sync"); sleep 5;
+	sleep 5;
 
 	$qemupid=fork();
 	die "fork failed" if(!defined($qemupid));
