@@ -12,6 +12,8 @@ sub run()
 	sleep 1;
 	sendautotype ":q\n";
 	sleep 1;
+	sendkey "end"; # select sda
+	sleep 1;
 	sendkey "ret"; # select device
 	sleep 8;
 	$self->take_screenshot;

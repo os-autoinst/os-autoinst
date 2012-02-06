@@ -10,6 +10,8 @@ sub run()
 	sleep 1;
 	sendkey "ret"; # auto prepare ok
 	sleep 1;
+	sendkey "end"; # select sda
+	sleep 1;
 	sendkey "ret"; # size boot part ok
 	sleep 1;
 	sendkey "ret"; # size swap part ok

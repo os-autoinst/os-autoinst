@@ -10,6 +10,8 @@ sub run()
 #	$self->take_screenshot;
 	script_run('df');
 	script_run('free');
+	script_run('ip a');
+	script_run('cat /proc/mounts');
 	script_run('pacman -Q linux');
 	script_run("ls -l /etc/ntp*");
 	$self->take_screenshot;
