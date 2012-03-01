@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+exec_prefix="@prefix@"
+exec "@libdir@/@PACKAGE@/tools/isotovideo"

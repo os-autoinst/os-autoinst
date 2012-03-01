@@ -1,0 +1,15 @@
+# autotools
+aclocal.m4
+autom4te.cache/
+m4/
+missing
+install-sh
+config.status
+config.log
+configure
+Makefile
+Makefile.in
+depcomp
+.deps/
+*.tar.gz
+*.tar.xz
