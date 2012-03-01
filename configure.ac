@@ -17,27 +17,6 @@ AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([1.11 foreign dist-xz])
 AM_SILENT_RULES([yes])
 
-# ===========================
-# Find required base packages
-# ===========================
-PKG_PROG_PKG_CONFIG([0.24])
-
-# ==================
-# Check dependencies
-# ==================
-AC_CHECK_PROG([KVM],[qemu-kvm],[yes])
-AS_IF([test "x$KVM" != "xyes"], [
-	AC_MSG_ERROR([Please install qemu-kvm before installing.])
-])
-AC_CHECK_PROG([PERL],[perl],[yes])
-AS_IF([test "x$PERL" != "xyes"], [
-	AC_MSG_ERROR([Please install perl before installing.])
-])
-# TODO:
-#  Add checks for Time::HiRes and Algorithm::Line::Bresenham
-
-PKG_CHECK_MODULES([IMAGEMAGICK],[ImageMagick])
-
 AC_CONFIG_FILES([
 	Makefile
 	bin/isotovideo

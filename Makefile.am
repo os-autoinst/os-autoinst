@@ -13,7 +13,7 @@ packagestate_DATA_FOLDERS = \
 	testimgs \
 	audio
 
-pkgdata_DATA = \
+pkglibexec_DATA = \
 	backend_qemu.pm \
 	backend_vbox.pm \
 	basenoupdate.pm \
@@ -26,7 +26,7 @@ pkgdata_DATA = \
 	ppm.pm \
 	start.pl
 
-pkdata_FOLDERS = \
+pkglibexec_FOLDERS = \
 	consoletest.d \
 	distri \
 	tools \
@@ -40,7 +40,7 @@ pkdata_FOLDERS = \
 bin_SCRIPTS = bin/isotovideo
 
 EXTRA_DIST = autogen.sh bin/isotovideo.in \
-	$(doc_DATA) $(pkgdata_DATA) $(packagestate_DATA_FOLDERS) $(pkdata_FOLDERS)
+	$(doc_DATA) $(pkglibexec_DATA) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
 
 CLEANFILES = $(bin_SCRIPTS)
 
@@ -50,16 +50,16 @@ install-data-local:
 		cp -r $(top_srcdir)/$$i "$(DESTDIR)/$(packagestatedir)" ; \
 	done
 	mkdir -p "$(DESTDIR)/$(pkgdatadir)" ; \
-	for i in $(pkdata_FOLDERS) ; do \
-		cp -r $(top_srcdir)/$$i "$(DESTDIR)/$(pkgdatadir)" ; \
+	for i in $(pkglibexec_FOLDERS) ; do \
+		cp -r $(top_srcdir)/$$i "$(DESTDIR)/$(pkglibexecdir)" ; \
 	done
 
 uninstall-local:
 	for i in $(packagestate_DATA_FOLDERS) ; do \
 		rm -rf "$(DESTDIR)/$(packagestatedir)/$$i" ; \
 	done
-	for i in $(pkdata_FOLDERS) ; do \
-		 rm -rf "$(DESTDIR)/$(pkgdatadir)/$$i" ; \
+	for i in $(pkglibexec_FOLDERS) ; do \
+		 rm -rf "$(DESTDIR)/$(pkglibexecdir)/$$i" ; \
 	done
 
 dist-hook:
