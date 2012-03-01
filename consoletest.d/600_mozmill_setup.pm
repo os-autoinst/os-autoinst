@@ -13,7 +13,8 @@ sub run()
 	$self->take_screenshot;
 	sendkey "ctrl-l";
 	#script_sudo("pip install mozmill mercurial");
-	script_sudo("pip install mozmill==1.5.3 mercurial");
+	script_sudo("pip install mozmill mercurial");
+	#script_sudo("pip install mozmill==1.5.3 mercurial");
 	sleep 5; waitidle(50);
 	$self->take_screenshot;
 	sendkey "ctrl-l";
@@ -21,8 +22,9 @@ sub run()
 	script_run("wget -q openqa.opensuse.org/opensuse/qatests/qa_mozmill_setup.sh");
 	local $bmwqemu::timesidleneeded=3;
 	script_run("sh -x qa_mozmill_setup.sh");
-	sleep 5;
+	sleep 9;
 	waitidle(90);
+	waitserial("qa_mozmill_setup.sh done", 120);
 }
 
 sub checklist()

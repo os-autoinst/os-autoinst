@@ -26,6 +26,7 @@ sub next_resultname($)
 sub take_screenshot()
 {
 	my $self=shift;
+	qemusend "info blockstats"; # test code
 	my $filename=$self->next_resultname("ppm");
 	bmwqemu::do_take_screenshot($filename);
 	sleep(0.1);

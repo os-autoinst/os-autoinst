@@ -10,7 +10,8 @@ sub run()
 {
 	my $self=shift;
 	x11_start_program("evolution");
-	$self->take_screenshot;
+	if($ENV{UPGRADE}) { sendkey("alt-f4");waitidle; } # close mail format change notifier
+	$self->take_screenshot;sleep 1;
 	sendkey "ctrl-q"; # really quit (alt-f4 just backgrounds)
 	sendkey "alt-f4"; 
 	waitidle;

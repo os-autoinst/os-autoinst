@@ -66,6 +66,10 @@ sub setraidlevel($)
 
 
 waitstillimage();
+if($ENV{TOGGLEHOME} && !$ENV{LIVECD}) {
+	my $homekey=(($ENV{VIDEOMODE} && $ENV{VIDEOMODE} eq "text")?"alt-p":"alt-h");
+	sendkey $homekey;
+}
 if(defined($ENV{RAIDLEVEL})) {
 if(1) {
 # create partitioning

@@ -20,6 +20,7 @@ sub run()
 	}
 	waitidle;
 	sendkey $cmd{"next"};
+	sleep 2;sendkey "alt-f"; # continue on incomplete lang warning
 }
 
 1;

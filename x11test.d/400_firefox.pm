@@ -21,6 +21,10 @@ sub run()
 		sendkey "ctrl-w"; sleep 1;
 	}
 	$self->take_screenshot;
+	sendkey "alt-h"; sleep 2;	# Help
+	sendkey "a"; sleep 2;		# About
+	$self->take_screenshot;
+	sendkey "alt-f4"; sleep 2;	# close About
 	sendkey "alt-f4"; sleep 2;
 	sendkey "ret"; # confirm "save&quit"
 }

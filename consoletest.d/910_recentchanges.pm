@@ -9,8 +9,8 @@ sub is_applicable()
 sub run()
 {
 	my $self=shift;
-	script_run("cd /tmp ; wget -q openqa.opensuse.org/opensuse/tools/recentchanges.pl");
-	script_sudo("perl recentchanges.pl > /dev/ttyS0");
+	script_run("cd /tmp ; wget -q openqa.opensuse.org/opensuse/tools/recentchanges2.pl");
+	script_sudo("rpm -qa | perl recentchanges2.pl > /dev/ttyS0");
 	waitidle(100);
 }
 

@@ -14,7 +14,9 @@ sub run()
 	my $self=shift;
 	if($ENV{VIDEOMODE} && $ENV{VIDEOMODE} eq "text") {$cmd{xnext}="alt-x"}
 	if(!$ENV{NET} && !$ENV{DUD}) {
-		sendkeyw $cmd{"next"}; # use network
+		waitstillimage();
+		sendkey $cmd{"next"}; # use network
+		waitstillimage(20);
 		sendkeyw "alt-o"; # OK DHCP network
 	}
 	my $repo=0;

@@ -16,7 +16,8 @@ sub run()
 	sendkey "ctrl-alt-delete";
 	sleep 20;
 	$self->take_screenshot;
-	waitidle(60);
+	waitidle(90);
+	waitstillimage(12,60);
 }
 
 sub checklist()

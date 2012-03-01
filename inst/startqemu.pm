@@ -13,6 +13,7 @@ my $iso=$ENV{ISO};
 $ENV{HDDMODEL}||="virtio";
 $ENV{NICMODEL}||="virtio";
 $ENV{QEMUVGA}||="cirrus";
+$ENV{QEMUCPUS}||=1;
 $ENV{NUMDISKS}||=1;
 if(defined($ENV{RAIDLEVEL})) {$ENV{NUMDISKS}=4}
 my @cdrom=("-cdrom", $iso);
@@ -41,7 +42,8 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	# use qemu snapshot/cow feature to work on old image without writing it
 	unlink "$basedir/l1";
 	unlink "$basedir/1";
-	system($qemuimg, "create", "-b", $file, "-f", "qcow2", "$basedir/l1");
+	#system($qemuimg, "create", "-b", $file, "-f", "qcow2", "$basedir/l1");
+	system(qw"cp -a", $file, "$basedir/l1"); # reduce disk IO later
 }
 
 if(!qemualive) {
@@ -58,6 +60,7 @@ if(!qemualive) {
 			}
 		}
 		if($ENV{USBBOOT}) {
+			$ENV{NUMDISKS}=2;
 			system("dd", "if=$iso", "of=$basedir/l1", "bs=1M", "conv=notrunc");
 			@cdrom=();
 		}
@@ -80,7 +83,8 @@ if(!qemualive) {
 		}
 		if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
 		push(@params, "-usb", "-usbdevice", "tablet");
-	#	push(@params, "-smp", "4");
+		push(@params, "-smp", $ENV{QEMUCPUS});
+		print "starting: $qemubin ".join(" ", @params)."\n";
 		exec($qemubin, @params);
 		die "exec $qemubin failed";
 	}

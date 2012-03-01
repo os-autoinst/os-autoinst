@@ -46,6 +46,8 @@ f74242b1f62bdbc7e3d6f060ceab7e0a bootloader-grub0620
 7037bb735a64f3b5c65e009dbfb59b76 syslinuxbootloader-1044
 7964d6a7dcf973182a1b96287a3550c2 syslinuxbootloader-0314
 a3aa18ef5e5dbf9e553105aade7faf52 syslinuxbootloader-loaded-12.1
+25d04330d7a617cd4fbbef86398dc1db syslinuxbootloader-12.2MS1
+849ef4f324a4791640af509c5cb6f4c1 syslinuxbootloader-12.2MS3
 33af848897baea7919c430d7adb6d9f2 initializinggnome
 bbe0d620ec01763f2a01993caaed1e88 welcome-11.2
 7ea9ca7bfe7277145920de67c2212a1d welcome
@@ -84,6 +86,7 @@ fa3b644bd9988f3ff4bd2f495d084d86 timezone-net1048-addon
 52c1983d3e4adba9ad92fb855e5dbb5c timezone-kde0834
 da6ae863e7ad3a7a780f47e91c3585b1 timezone-kde0109
 7f29491b4223c69fdebb365b0b74aad0 timezone-kde0304
+6e777c8261efed43fe4ead613109e71b timezone-kde-12.1
 daf74711041a18d4944c8175ba1e2fe9 timezone-gnome0834
 d55bc446162f2ed31f829d4d7659904a timezone-gnome0945
 3ef90c0e56849a0f4c6165466f0a4351 timezone-sled11sp2
@@ -236,6 +239,7 @@ xxb8d24e873fbee0b013e006565086fc booted-KDELXDE-12.1-0315
 d48f8941a1ee62ce90dbffe7d6f3d36e booted-KDE-12.1-0330-miscolor
 56f93fabbe1b628df81e20c8896de0ab booted-KDE-12.1-0345-SUSE-greeting
 7645590f9543ba8747b8153689b18c47 booted-KDE-12.1-0379-SUSE-greeting
+47724cd7fc017eb068bfe3cfa25f96d9 booted-KDE-12.1
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
 bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
@@ -266,6 +270,7 @@ e5fea2098020b0e2d28089aa0d55c706 booted-XFCE-1071
 f6a075b41a53879fc9e62be8f91781bd booted-XFCE-12.1-0190
 5fd24157b9072a86b2414424cf61544e booted-XFCE-12.1-0240
 ddd56b52ba7bc29b3baf83580623953c booted-XFCE-12.1-0371
+44e9f54694abf7bdb47d930986051140 booted-XFCE-12.1-0025
 6abf93224b5d3e9e0a0404e20788093a booted-icewm
 b5e0c02ca60da90a22b82a031bf2c79d booted-xdm-loginscreen
 5c5ceaa523e4f841e81549db609cea19 booted-gdm-loginscreen
@@ -295,6 +300,7 @@ f661dc2bac9ad963accbc7f633a4c550 sled-11-syslinux-bootloader
 caee43e45a35e9c4c7f4872a6575bde6 debian-grubinstall
 87c3e0695f195a4f845f57d61ff801c7 debian-booted-gdm
 74dd0438b7f56f3e1c96ec6818a79367 debian-booted-gdm
+20ecafeea891b2d6dedf7b5a793100fb debian-booted-gdm
 
 eac344f0ef7a6201c9d0a65b5ceefec4 fedora-installationcomplete
 ddb3976501b9f8b1fb62182551edd64f fedora-postreboot

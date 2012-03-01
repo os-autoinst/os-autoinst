@@ -31,7 +31,7 @@ if(!$ENV{LIVECD}) {
 			sendkey "alt-o";
 		}
 		local $ENV{SCREENSHOTINTERVAL}=5;
-		waitinststage "bootloader|splashscreen|automaticconfiguration", 3000;
+		waitinststage "bootloader|splashscreen|automaticconfiguration|booted", 3000;
 	}
 	set_ocr_rect();
 	if(waitinststage "bootloader", 1) {
@@ -39,6 +39,8 @@ if(!$ENV{LIVECD}) {
 	}
 	qemusend "eject ide1-cd0";
 	sleep 3;
+	# workaround key trust bug http://openqa.opensuse.org/viewimg/opensuse/testresults/openSUSE-NET-i586-Build0002-lxde/timeout-05.png
+	for(1..4){sendkey "alt-t"} sleep 10;
 } else {
 	set_ocr_rect(245,440,530,100);
 	# LiveCD needs confirmation for reboot
@@ -49,8 +51,8 @@ if(!$ENV{LIVECD}) {
 	set_ocr_rect();
 	sendkey $cmd{"rebootnow"};
 	# no grub visible on proper first boot because of kexec
-#	if(0 && !waitinststage "bootloader") {
-	if(1 || !waitinststage "bootloader") {
+	if(0 && !waitinststage "bootloader") {
+#	if(1 || !waitinststage "bootloader") {
 		sleep 11; # give some time for going down but not for booting up much
 		# workaround:
 		# force eject+reboot as it often fails in qemu/kvm
@@ -71,6 +73,12 @@ if(!$ENV{GNOME}) {
 	set_ocr_rect(240,256,530,100);
 	waitinststage "users|booted", 180;
 	set_ocr_rect();
+	my $data=getcurrentscreenshot();
+        my $ocr=ocr::get_ocr(\$data, "-l 200", [250,100,600,500]);
+        if($ocr=~m/Installation of package .* failed/i) {
+		sendkey "alt-d"; # see details of failure
+		alarm 3; # end here as we can not continue
+	}
 } else {
 	sleep 50; # time for fast-forward
 }

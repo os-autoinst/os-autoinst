@@ -48,6 +48,8 @@ sleep 2;
 waitidle;
 
 }
-do "inst/x11test.pm" or die $@;
+if($ENV{DESKTOP}!~/textmode|minimalx/) {
+	do "inst/x11test.pm" or die $@;
+}
 
 1;

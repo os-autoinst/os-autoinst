@@ -10,6 +10,7 @@ our %valueranges=(
 #	BTRFS=>[0,1],
 #	DESKTOP=>[qw(kde gnome xfce lxde)],
 #	ROOTFS=>[qw(ext3 xfs jfs btrfs reiserfs)],
+#	VIDEOMODE=>["","text"],
 );
 
 sub logcurrentenv(@)

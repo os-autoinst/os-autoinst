@@ -15,7 +15,10 @@ export PERLLIB=$scriptdir
 
 # Load the user's configured environment from cwd
 if [ ! -f "env.sh" ]; then
-	echo "Couldn't find env.sh (read INSTALL, user setup)"
+	echo "You need a env.sh file in the working directory"
+	echo "Copying the sample file..."
+	cp -a $scriptdir/env.sh.sample env.sh
+	echo "now please edit env.sh"
 	exit 1
 fi
 . env.sh

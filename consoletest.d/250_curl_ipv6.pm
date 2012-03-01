@@ -1,6 +1,11 @@
 use base "basetest";
 use bmwqemu;
 # test for bug https://bugzilla.novell.com/show_bug.cgi?id=598574
+sub is_applicable()
+{
+	return ($ENV{BIGTEST});
+}
+
 sub run()
 {
 	my $self=shift;

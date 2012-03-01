@@ -3,7 +3,7 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return($ENV{NOAUTOLOGIN} || ($ENV{DESKTOP} eq "xfce"));
+	return $ENV{NOAUTOLOGIN} || $ENV{XDMUSED};
 }
 
 sub run()

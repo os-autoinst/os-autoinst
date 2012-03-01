@@ -12,7 +12,7 @@ sub run()
 	if($ENV{DESKTOP} eq "lxde") {
 		x11_start_program("lxpanelctl menu"); # or Super_L or Windows key
 	} elsif($ENV{DESKTOP} eq "xfce") {
-		mouse_move(0,0);
+		mousemove_raw(0,0);
 		sleep 1;
 		sendkey "ctrl-esc";	# open menu
 		sleep 1;
@@ -21,6 +21,7 @@ sub run()
 		sendkey "alt-f1"; # open main menu
 	}
 	sleep 2;
+	sleep 10 if $ENV{NICEVIDEO};
 	$self->take_screenshot;
 	sendkey "esc"; 
 	waitidle;

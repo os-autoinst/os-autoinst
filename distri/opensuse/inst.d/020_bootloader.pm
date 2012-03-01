@@ -3,9 +3,11 @@ use strict;
 use bmwqemu;
 use Time::HiRes qw(sleep);
 
+# hint: press shift-f10 trice for highest debug level
 sub run()
 {
-	waitinststage("syslinuxbootloader-loaded",20);
+	waitinststage("syslinuxbootloader",15);
+	waitinststage("syslinuxbootloader-loaded",5);
 	if($ENV{QEMUVGA} && $ENV{QEMUVGA} ne "cirrus") {
 		sleep 5;
 	}
@@ -60,15 +62,18 @@ if(!$ENV{NICEVIDEO}) {
 	sleep 15; sendautotype("console=ttyS0 "); # to get crash dumps as text
 	sleep 15; sendautotype("console=tty "); # to get crash dumps as text
 	my $e=$ENV{EXTRABOOTPARAMS};
+#	if($ENV{RAIDLEVEL}) {$e="linuxrc=trace"}
 	if($e) {sleep 10;sendautotype("$e ");}
-	sleep 10; # workaround slow gfxboot drawing 662991
+	sleep 15; # workaround slow gfxboot drawing 662991
 }
 #sendautotype("kiwidebug=1 ");
 
 # set HTTP-source to not use factory-snapshot
 if($ENV{NETBOOT}) {
 	sendkey "f4";
+	sleep 4;
 	sendkey "ret";
+	sleep 4;
 	my $mirroraddr="";
 	my $mirrorpath="/factory";
 	if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~m{^([a-zA-Z0-9.-]*)(/.*)$}) {
@@ -82,7 +87,10 @@ if($ENV{NETBOOT}) {
 	sendkey "tab";
 	# change dir
 	# leave /repo/oss/ (10 chars)
+	if($ENV{FULLURL}) {for(1..10) { sendkey "backspace"}
+	} else {
 	for(1..10) { sendkey "left"; }
+	}
 	for(1..22) { sendkey "backspace"; }
 	sendautotype($mirrorpath);
 
@@ -103,8 +111,11 @@ if($ENV{NETBOOT}) {
 		# add boot parameters
 		# ZYPP... enables proxy caching
 	}
-	sendautotype("ZYPP_ARIA2C=0 ZYPP_MULTICURL=0 "); sleep 2;
+	#sendautotype("ZYPP_ARIA2C=0 "); sleep 9;
+	#sendautotype("ZYPP_MULTICURL=0 "); sleep 2;
 }
+
+#if($ENV{BTRFS}) {sleep 9; sendautotype("squash=0 loadimage=0 ");sleep 21} # workaround 697671
 
 
 # set language last so that above typing will not depend on keyboard layout
@@ -182,6 +193,7 @@ zu_ZA
 	if($n && $n !=$en_us) {
 		$n-=$en_us;
 		sendkey "f2";
+		sleep 6; # drawing is slow
 		for(1..abs($n)) {
 			sendkey ($n<0?"up":"down");
 		}
@@ -189,6 +201,32 @@ zu_ZA
 		sendkey "ret";
 	}
 }
+
+if($ENV{ISO}=~m/i586/) {
+#	sendautotype("info=");sleep 4; sendautotype("http://zq1.de/i "); sleep 15; sendautotype("insecure=1 "); sleep 15;
+}
+if(0 && $ENV{RAIDLEVEL}) {
+	# workaround bnc#711724
+	$ENV{ADDONURL}="http://download.opensuse.org/repositories/home:/snwint/openSUSE_Factory/"; #TODO: drop
+	$ENV{DUD}="dud=http://zq1.de/bl10";
+	sendautotype("$ENV{DUD} ");sleep 20;
+	sendautotype("insecure=1 ");sleep 20;
+}
+
+if($ENV{LIVETEST} && $ENV{LIVEOBSWORKAROUND}) {
+	sendkey("1");   # runlevel 1
+	sendkey("ret"); # boot
+	sleep(40);
+	sendautotype("
+ls -ld /tmp
+chmod 1777 /tmp
+init 5
+exit
+");
+
+}
+
+qemusend "boot_set c"; # boot from HDD next time
 
 # boot
 sendkey "ret";

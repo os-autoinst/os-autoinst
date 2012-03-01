@@ -41,7 +41,15 @@ sub run()
 		sleep 60;
 		sendkey "shift"; # prevent console screensaver
 	}
+	for(1..12) {
+		waitstillimage(60,66) || sendkey "shift"; # prevent console screensaver
+	}
 	waitstillimage(60, 5000); # wait for upgrade to finish
+
+	$self->take_screenshot; sleep 2;
+	sendkey "ctrl-alt-f4"; sleep 3;
+
+	sendautotype "n\n"; # don't view notifications
 }
 
 1;

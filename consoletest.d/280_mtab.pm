@@ -4,7 +4,7 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
-	script_run('test $(wc -l /etc/mtab | cut -d\  -f1) -gt 6 && echo OK || echo fail');
+	script_run('test -L /etc/mtab && echo OK || echo fail');
 	$self->take_screenshot;
 	script_run('cat /etc/mtab');
 }
@@ -19,10 +19,12 @@ sub checklist()
 		479aeddcdb29e1a9dbe7ef3d5ee92e7b OK
 		5ac14aad117458115b5da48a2dd64215 OK
 		beaa2e18f8b4766ab846a8b24f118dab OK
+		bccf62fc7c54a948bdffa04ca8f49a76 OK
 		d0ee40ffd898fa4821bd100ed45a00f4 fail
 		80bfbe29fe73f77040576b4795f0eba0 fail
 		2e16afd5680f7ddd2da3568fc354d1bb fail
 		5f94b366fe64daee095975294af8734c fail
+		1728ba8196f6a98be822f0e608aac4d3 fail
 	)}
 }
 
