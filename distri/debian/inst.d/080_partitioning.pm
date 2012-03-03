@@ -7,6 +7,7 @@ sub run()
 {
 	my $self=shift;
 	waitidle;
+	waitstillimage;
 	sendkey "ret"; # partitioning = guided whole disk
 	x; sendkey "ret"; # select first disk
 	x; sendkey "ret"; # all files in one part

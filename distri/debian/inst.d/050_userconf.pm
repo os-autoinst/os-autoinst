@@ -5,7 +5,7 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
-	waitstillimage(12,90);
+	waitstillimage(15,90);
 	$self->take_screenshot;
 	sendautotype "$password\n"; # root PW
 	sendautotype "$password\n"; # root PW

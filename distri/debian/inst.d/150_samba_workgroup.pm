@@ -7,7 +7,7 @@ sub run()
 	my $self=shift;
 	# speed up main install video
 	local $ENV{SCREENSHOTINTERVAL}=5;
-	waitstillimage(20,3600);
+	waitstillimage(25,3600);
 	$self->take_screenshot; sleep 2;
 	sendkey "ret"; # default workgroup
 }
