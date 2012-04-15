@@ -48,4 +48,18 @@ git clone http://www3.zq1.de/bernhard/git/autoinst.git/ autoinst
 cp -a env.sh.sample env.sh
 edit env.sh # see comments there ; adjust or drop HTTPPROXY and SUSEMIRROR lines
 
+
+==VirtualBox Setup==
+Install VirtualBox either from your distribution's DVD or 
+From http://software.opensuse.org/package/virtualbox
+After installation of VirtualBox do this
+insmod vboxdrv
+usermod -A vboxusers $USERNAME
+Log out and in and you are done
+
+===Setting up OS-autoinst for VirtualBox===
+Edit start.pl:
+Change the value of init_backend("qemu") to init_backend("vbox")
+and create a Virtual Machine named "osautoinst" with at least 8GB of HDD
+
 for usage see README

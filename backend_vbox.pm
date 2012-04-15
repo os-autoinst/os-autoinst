@@ -2,7 +2,7 @@
 package backend_vbox;
 use strict;
 
-our $vmname="12.1Beta";
+our $vmname="osautoinst";
 
 sub vbox_controlvm
 {
