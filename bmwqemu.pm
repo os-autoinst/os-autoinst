@@ -26,7 +26,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
 &diag &fileContent &qemusend_nolog &qemusend &sendkey &sendkeyw &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &set_mousebutton &clickimage &qemualive &result_dir
-&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &init_backend &startvm &open_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console &set_std_hash_rects);
+&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &init_backend &startvm &open_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console &set_std_hash_rects &getcurrentscreenshot);
 
 
 our $debug=1;
@@ -426,6 +426,12 @@ sub take_screenshot()
 	#print STDERR $filename,"\n";
 	do_take_screenshot($filename);
 	$lastname=$filename;
+}
+
+sub getcurrentscreenshot()
+{
+	sleep 0.4; # time for qemu to write the file
+	return fileContent($lastname);
 }
 
 sub checkrefimgs($$$)
