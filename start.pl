@@ -28,8 +28,14 @@ my $size=-s $ENV{ISO}; diag("iso_size=$size");
 qemusend_nolog(fileContent("$ENV{HOME}/.autotestvncpw")||"");
 do "inst/screenshot.pm" or die $@;
 
-if(!$ENV{DISTRI}) { die "DISTRI environment variable not set. unknown OS?" }
-do "$scriptdir/distri/$ENV{DISTRI}/main.pm" or die $@;
+# If we want to run just some tests from our own
+# case folder just don't bother with scriptdir and DISTRI.
+if(!$ENV{CASEDIR}) {
+	if(!$ENV{DISTRI}) { die "DISTRI environment variable not set. unknown OS?" }
+	do "$scriptdir/distri/$ENV{DISTRI}/main.pm" or die $@;
+} else {
+	do "$ENV{CASEDIR}/main.pm" or die $@
+}
 
 
 for(1..6000) { # time to let install work
