@@ -139,8 +139,14 @@ sendkey $cmd{"accept"};
 waitidle 4;
 sleep 2;
 } elsif($ENV{LVM}) {
-	sendkey "alt-l"; # enable LVM-based proposal
-	waitidle;
+	sendkeyw "alt-l"; # enable LVM-based proposal
+	if($ENV{ENCRYPT}) {
+		sendkeyw "alt-y";
+		sendpassword;
+		sendkey "tab";
+		sendpassword;
+		sendkeyw "ret";
+	}
 } elsif($ENV{BTRFS}) {
 	sendkey "alt-u";  # Use btrfs
 }
