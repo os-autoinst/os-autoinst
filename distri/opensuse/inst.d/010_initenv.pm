@@ -7,6 +7,7 @@ our %valueranges=(
 	NOIMAGES=>[0,1],
 	REBOOTAFTERINSTALL=>[0,1],
 #	SYSTEMD=>[0,1],
+	SYSVINIT=>[0,1],
 #	BTRFS=>[0,1],
 #	DESKTOP=>[qw(kde gnome xfce lxde)],
 #	ROOTFS=>[qw(ext3 xfs jfs btrfs reiserfs)],
