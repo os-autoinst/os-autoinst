@@ -13,7 +13,7 @@ packagestate_DATA_FOLDERS = \
 	testimgs \
 	audio
 
-pkglibexec_DATA = \
+pkglibexec_SCRIPTS = \
 	backend_qemu.pm \
 	backend_vbox.pm \
 	basenoupdate.pm \
@@ -40,7 +40,7 @@ pkglibexec_FOLDERS = \
 bin_SCRIPTS = bin/isotovideo
 
 EXTRA_DIST = autogen.sh bin/isotovideo.in \
-	$(doc_DATA) $(pkglibexec_DATA) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
+	$(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
 
 CLEANFILES = $(bin_SCRIPTS)
 
