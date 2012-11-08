@@ -8,8 +8,10 @@ use strict;
 use bmwqemu;
 
 # Sanity checks
-die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI};
-die "No scripts in $scriptdir/distri/$ENV{DISTRI}" if ! -e "$scriptdir/distri/$ENV{DISTRI}";
+if(!$ENV{CASEDIR}) {
+	die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI};
+	die "No scripts in $scriptdir/distri/$ENV{DISTRI}" if ! -e "$scriptdir/distri/$ENV{DISTRI}";
+}
 die "ISO environment variable not set" if !defined $ENV{ISO};
 
 my $init=1;
