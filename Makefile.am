@@ -14,6 +14,7 @@ packagestate_DATA_FOLDERS = \
 	audio
 
 pkglibexec_SCRIPTS = \
+	autotest.pm \
 	backend_qemu.pm \
 	backend_vbox.pm \
 	basenoupdate.pm \
