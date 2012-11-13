@@ -28,12 +28,12 @@ $ENV{DESKTOP}||="gnome";
 $ENV{HASLICENSE}=1;
 
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
-	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", undef);
+	autotest::runtestdir("$ENV{CASEDIR}/inst.d", undef);
 }
-autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/consoletest.d", undef);
-autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/x11test.d", undef);
+autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", undef);
+autotest::runtestdir("$ENV{CASEDIR}/x11test.d", undef);
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
-	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
+	autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
 } else {
 }
 
@@ -44,7 +44,7 @@ set_hash_rects(
 	);
 
 sendkey "ctrl-alt-f3"; sleep 3; waitidle; # avoid "reset" being typed into tty2 or 7
-autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/consoletest.d", \&consoletestrunfunc);
-autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/x11test.d", \&installrunfunc);
+autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", \&consoletestrunfunc);
+autotest::runtestdir("$ENV{CASEDIR}/x11test.d", \&installrunfunc);
 
 1;

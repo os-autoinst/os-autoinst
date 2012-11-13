@@ -8,10 +8,8 @@ use strict;
 use bmwqemu;
 
 # Sanity checks
-if(!$ENV{CASEDIR}) {
-	die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI};
-	die "No scripts in $scriptdir/distri/$ENV{DISTRI}" if ! -e "$scriptdir/distri/$ENV{DISTRI}";
-}
+die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI} && !defined $ENV{CASEDIR};
+die "No scripts in $ENV{CASEDIR}" if ! -e "$ENV{CASEDIR}";
 die "ISO environment variable not set" if !defined $ENV{ISO};
 
 my $init=1;
@@ -30,15 +28,8 @@ my $size=-s $ENV{ISO}; diag("iso_size=$size");
 qemusend_nolog(fileContent("$ENV{HOME}/.autotestvncpw")||"");
 do "inst/screenshot.pm" or die $@;
 
-# If we want to run just some tests from our own
-# case folder just don't bother with scriptdir and DISTRI.
-if(!$ENV{CASEDIR}) {
-	if(!$ENV{DISTRI}) { die "DISTRI environment variable not set. unknown OS?" }
-	do "$scriptdir/distri/$ENV{DISTRI}/main.pm" or die $@;
-} else {
-	do "$ENV{CASEDIR}/main.pm" or die $@
-}
-
+# Load the main.pm from the casedir checked by the sanity checks above
+do "$ENV{CASEDIR}/main.pm" or die $@;
 
 for(1..6000) { # time to let install work
 	sleep 1;

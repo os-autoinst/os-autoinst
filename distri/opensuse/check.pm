@@ -18,10 +18,10 @@ sub check() {
 		::printresult $s;
 	}
 
-	autotest::runtest("$scriptdir/distri/$ENV{DISTRI}/inst.d/010_initenv.pm",sub{my $test=shift;$test->run;});
+	autotest::runtest("$ENV{CASEDIR}/inst.d/010_initenv.pm",sub{my $test=shift;$test->run;});
 
 	autotest::runtestdir("$scriptdir/inst.d", \&::checkfunc);
-	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&::checkfunc);
+	autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&::checkfunc);
 	autotest::runtestdir("$scriptdir/consoletest.d", \&::checkfunc);
 	autotest::runtestdir("$scriptdir/x11test.d", \&::checkfunc);
 

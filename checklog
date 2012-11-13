@@ -1,0 +1,54 @@
+#!/usr/bin/perl -w
+use strict;
+use bmwqemu;
+use autotest;
+
+sub checksize($)
+{ my $size=shift;
+	my $i=$ENV{ISO};
+	my $maxsize=737_280_000;
+	if($i=~m/-DVD/) {$maxsize=4_707_319_808}
+	if($i=~m/-DVD-Biarch/) {$maxsize=8_539_996_160}
+	if($size>$maxsize) {return "fail"}
+	if($size>$maxsize*0.995) {return "unknown"}
+	return "OK";
+}
+
+print "\n====\n"; # marker
+
+our %stageseen=();
+our %md5seen=();
+our %results;
+sub printresult($)
+{ my $key=shift;
+	if(defined($results{$key})) {print "$key: $results{$key}\n"}
+}
+while(<>) {
+	if(/^randomenv (\w+)=(.*)/) {$ENV{$1}=$2}
+	if(/^stage=([0-9a-zA-Z_.-]*) ([0-9a-f]+)/) {
+		$stageseen{$1}=1;
+		$md5seen{$2}=1;
+	}
+	if(/^md5=([0-9a-f]+)/) {$md5seen{$1}=1}
+	if(/^standstill detected/) {$results{standstill}="fail";}
+	if(/^iso_size=(\d+)/) {$results{isosize}=checksize($1);}
+}
+
+sub is_ok($) { my $x=shift; $x=~m/^OK/ }
+
+sub checkfunc
+{
+	my($test)=@_;
+	my $class=ref $test;
+	my $result=$test->check(\%md5seen)||"unknown";
+	$results{$class}=$result;
+	printresult $class;
+}
+
+my $overall=autotest::runtest("$ENV{CASEDIR}/check.pm",sub{my $test=shift;$test->check;});
+
+$results{overall}=($overall?"OK":"fail");
+foreach my $k ("standstill", "isosize", "overall") {
+	printresult $k;
+}
+

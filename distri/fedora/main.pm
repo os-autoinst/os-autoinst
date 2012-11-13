@@ -12,7 +12,7 @@ sub installrunfunc
 }
 
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
-	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
+	autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
 } else {
 }
 

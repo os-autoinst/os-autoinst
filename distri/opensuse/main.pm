@@ -17,8 +17,8 @@ if($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
 	$username="linux"; # LiveCD account
 	$password="";
 }
-autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", undef);
-autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
+autotest::runtestdir("$ENV{CASEDIR}/inst.d", undef);
+autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
 
 set_std_hash_rects;
 

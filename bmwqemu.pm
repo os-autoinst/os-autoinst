@@ -50,6 +50,7 @@ our $testedversion=$ENV{ISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.i
 if(!$ENV{DISTRI}) {
 	if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi|FreeBSD|archlinux)-/) {$ENV{DISTRI}=lc($1)}
 }
+$ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}";
 foreach my $part (split("-", $testedversion)) {$ENV{uc($part)}=1}
 if(defined($ENV{DISTRI}) && $ENV{DISTRI} eq 'archlinux') {
 	$ENV{HDDMODEL}="ide";

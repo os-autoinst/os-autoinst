@@ -13,11 +13,11 @@ sub installrunfunc
 
 $serialdev="ttyu0";
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
-	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
+	autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
 } else {
 }
 
-autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/test.d", \&installrunfunc);
+autotest::runtestdir("$ENV{CASEDIR}/test.d", \&installrunfunc);
 
 set_hash_rects(
 	[30,30,100,100], # where most applications pop up

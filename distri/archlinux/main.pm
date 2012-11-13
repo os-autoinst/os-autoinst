@@ -31,10 +31,10 @@ if($ison=~m/archlinux-(netinst)-/) {
 	$ENV{$1}=1; $ENV{NETBOOT}=$ENV{netinst};
 }
 
-autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", undef);
-autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/consoletest.d", undef);
+autotest::runtestdir("$ENV{CASEDIR}/inst.d", undef);
+autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", undef);
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
-	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
+	autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
 } else {
 }
 
@@ -44,7 +44,7 @@ set_hash_rects(
 	[0,579,100,10 ], # bottom line (KDE/GNOME bar)
 	);
 
-autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/consoletest.d", \&consoletestrunfunc);
+autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", \&consoletestrunfunc);
 
 
 1;

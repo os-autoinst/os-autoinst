@@ -12,11 +12,11 @@ sub installrunfunc
 }
 
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
-	autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/inst.d", \&installrunfunc);
+	autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
 } else {
 }
 
-autotest::runtestdir("$scriptdir/distri/$ENV{DISTRI}/x11test.d", \&installrunfunc);
+autotest::runtestdir("$ENV{CASEDIR}/x11test.d", \&installrunfunc);
 
 set_hash_rects(
 	[30,30,100,100], # where most applications pop up
