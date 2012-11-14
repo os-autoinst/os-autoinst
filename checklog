@@ -10,7 +10,7 @@ sub checksize($)
 	if($i=~m/-DVD/) {$maxsize=4_707_319_808}
 	if($i=~m/-DVD-Biarch/) {$maxsize=8_539_996_160}
 	if($size>$maxsize) {return "fail"}
-	if($size>$maxsize*0.995) {return "unknown"}
+	if($size>$maxsize*0.998) {return "unknown"}
 	return "OK";
 }
 
