@@ -58,8 +58,8 @@ usermod -A vboxusers $USERNAME
 Log out and in and you are done
 
 ===Setting up OS-autoinst for VirtualBox===
-Edit start.pl:
-Change the value of init_backend("qemu") to init_backend("vbox")
+add to env.sh:
+export BACKEND=vbox
 and create a Virtual Machine named "osautoinst" with at least 8GB of HDD
 
 for usage see README
