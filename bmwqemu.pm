@@ -661,7 +661,7 @@ sub waitstillimage(;$$)
 sub init_backend($)
 {
 	my $name=shift;
-	require "backend_$name.pm";
+	require "backend/$name.pm";
 	$backend="backend_$name"->new();
 
 	open($logfd, ">>", "currentautoinst-log.txt");
