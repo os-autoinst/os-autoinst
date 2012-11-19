@@ -1,0 +1,1 @@
+../../opensuse/inst.d/200_post_xdup.pm

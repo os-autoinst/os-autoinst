@@ -1,0 +1,1 @@
+../../opensuse/inst.d/080_setup_xdup.pm
