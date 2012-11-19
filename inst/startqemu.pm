@@ -10,11 +10,13 @@ if(!-x $qemubin) {$qemubin=~s/-kvm//}
 if(!-x $qemubin) {die "no Qemu/KVM found"}
 
 my $iso=$ENV{ISO};
+my $sizegb=8;
+if($ENV{BTRFS}) {$sizegb=10}
 $ENV{HDDMODEL}||="virtio";
 $ENV{NICMODEL}||="virtio";
 $ENV{QEMUVGA}||="cirrus";
 $ENV{QEMUCPUS}||=1;
-$ENV{NUMDISKS}||=1;
+$ENV{NUMDISKS}||=2;
 if(defined($ENV{RAIDLEVEL})) {$ENV{NUMDISKS}=4}
 my @cdrom=("-cdrom", $iso);
 
@@ -44,6 +46,9 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	unlink "$basedir/1";
 	#system($qemuimg, "create", "-b", $file, "-f", "qcow2", "$basedir/l1");
 	system(qw"cp -a", $file, "$basedir/l1"); # reduce disk IO later
+	for my $i (2..$ENV{NUMDISKS}) {
+		system($qemuimg, "create" ,"$basedir/$i", $sizegb."G");
+	}
 }
 
 if(!qemualive) {
@@ -55,7 +60,7 @@ if(!qemualive) {
 				symlink("$i.lvm","$basedir/l$i");
 				system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1"); # for LVM
 			} else {
-				system($qemuimg, "create" ,"$basedir/$i", "8G");
+				system($qemuimg, "create" ,"$basedir/$i", $sizegb."G");
 				symlink($i,"$basedir/l$i");
 			}
 		}

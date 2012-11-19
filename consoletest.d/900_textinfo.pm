@@ -9,6 +9,7 @@ sub run()
 	script_run('uname -a');
 #	$self->take_screenshot;
 	script_run('df');
+	sendautotype "/sbin/btrfs filesystem df /\n" if $ENV{BTRFS};
 	script_run('free');
 	script_run('rpm -qa kernel-*');
 	script_run('grep DISPLAYMANAGER /etc/sysconfig/displaymanager');

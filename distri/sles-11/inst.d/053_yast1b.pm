@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
-use base "basetest";
+use base "installstep";
 use bmwqemu;
 
 sub addonproduct()
@@ -13,7 +13,7 @@ sub addonproduct()
 		my $repo=0;
 		foreach my $url (split(/\+/, $ENV{ADDONURL})) {
 			if($repo++) {sendkey "alt-a"; waitidle;} # Add another
-			sendkey $cmd{"next"}; waitidle; # Specify URL (default)
+			sendkey $cmd{"next"}; waitidle; waitstillimage; # Specify URL (default)
 			sendautotype($url);
 			sendkey $cmd{"next"}; waitidle;
 			if($ENV{DISTRI}=~m/^sle/i) {
@@ -89,7 +89,7 @@ sub run()
 	sleep 60;
 	sendkey "alt-a"; # Accept
 	sleep 2;
-	for(1..3){sendkeyw "alt-a"} # Accept licenses
+	for(1..7){sendkeyw "alt-a"} # Accept licenses
 	sendkey "alt-o"; # cOntinue
 	waitidle;
 	sendkey "alt-u"; # Update if available

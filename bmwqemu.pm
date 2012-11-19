@@ -429,6 +429,8 @@ sub take_screenshot()
 				timeout_screenshot(); sleep 1;
 				my $dir=result_dir;
 				sendkey "alt-sysrq-w";
+				sendkey "alt-sysrq-l";
+				sendkey "alt-sysrq-d"; # only available with CONFIG_LOCKDEP
 				do_take_screenshot("$dir/standstill-1.ppm");sleep 1;
 				mydie "standstill detected. test ended. see $lastname\n"; # above 120s of autoreboot
 			}
@@ -662,7 +664,9 @@ sub waitstillimage(;$$)
 	while(time-$starttime<$timeout) {
 		my $mylastname = $lastname;
 		sleep 1;
-		my $md5=Digest::MD5::md5(fileContent($mylastname));
+		my $data=fileContent($mylastname);
+		next unless $data;
+		my $md5=Digest::MD5::md5($data);
 		push(@recentmd5, $md5);
 		if(@recentmd5>$stilltime) {
 			my $e=shift @recentmd5;

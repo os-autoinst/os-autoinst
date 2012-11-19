@@ -13,3 +13,5 @@ depcomp
 .deps/
 *.tar.gz
 *.tar.xz
+temp
+old

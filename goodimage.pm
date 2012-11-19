@@ -287,8 +287,11 @@ bf033b80603fd2b7014c1dd898df34af sles-11-networktest-upgrade
 
 60185e4110220e2ae56fc2141e37260c sles-11-syslinux-bootloader
 f661dc2bac9ad963accbc7f633a4c550 sled-11-syslinux-bootloader
+f121396fe7fd944ac1f89821124e96fd sles-11-grub-bootloader
 50893b5ca96290b4c41c44d8484ecf76 sles-11-splashscreen
+cad4291b784ef017c028cc19c6d35e00 sles-11-sp2-splashscreen
 04801d7899f4313a2c37a8fb3d6a15e4 sled-11-splashscreen
+460b8710b7312bb8ae59cfb09cb2959f sles-11-secondstage-rootuser
 26ec05e79c88d4a6d78882bafb5018e5 sled-11-secondstage-register
 6cf0ea41fe9a67f111a46c7dfe881485 sle-11-booted-gnome-desktop
 
