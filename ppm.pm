@@ -58,21 +58,57 @@ sub replacerect($$$$)
 	return $self;
 }
 
+our $inline=eval "use Inline C=>q{
+	void thresholdC(SV* s, unsigned char thresholdval)
+	{
+		long i; STRLEN len; unsigned char *c=SvPV(s,len); 
+		for(i=len-1; i>=0; i--)
+			c[i]=((c[i]<thresholdval)? 0 : 0xff);
+	}
+	long addpixels(SV* s, int offset)
+	{
+		long sum=0; long i; STRLEN len; unsigned char *c=SvPV(s,len); 
+		for(i=len-3+offset; i>=0; i-=3)
+			sum += c[i];
+		return sum;
+	}
+}; 1;";
+
 # in-place op: change all values to 0 (if below threshold) or 255 otherwise
 sub threshold($)
 {
 	my $self=shift;
 	my $threshold=shift;
-	my $tc=chr($threshold);
-	$self->{data}=~s/[$tc-\xff]/\xff/g; # white
-	$self->{data}=~s/[\000-\xfe]/\000/g; # black
-#	my @a=unpack("C*", $self->{data});
-#	foreach(@a) {
-#		if($_<$threshold) {$_=0} else {$_=255}
-#	}
-#	$self->{data}=pack("C*", @a);
+	if($inline) {
+		thresholdC($self->{data}, $threshold);
+	} else {
+		my $tc=chr($threshold);
+		$self->{data}=~s/[$tc-\xff]/\xff/g; # white
+		$self->{data}=~s/[\000-\xfe]/\000/g; # black
+	}
 }
 
+# calculate average color values
+# out: (r,g,b) in range 0..1
+sub avgcolor()
+{
+	my $self=shift;
+	my @c=(0,0,0);
+	my $n=0;
+	if($inline) {
+		for my $i (0..2) {
+			$c[$i]=addpixels($self->{data}, $i);
+		}
+	} else {
+		my @d=unpack("C*",$self->{data});
+		foreach my $value (@d) {
+			$c[$n % BPP]+=$value;
+			$n++;
+		}
+	}
+	$n=length($self->{data})*255/3;
+	return map {$_/$n} @c;
+}
 
 # in: needle to search [ppm object]
 # out: (x,y) coords if found, undef otherwise
