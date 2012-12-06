@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
-package backend_vbox;
+
+package backend::vbox;
 use strict;
 
 our $vmname="osautoinst";

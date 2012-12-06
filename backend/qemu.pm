@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
-package backend_qemu;
+
+package backend::qemu;
 use strict;
 use threads;
 use threads::shared;  

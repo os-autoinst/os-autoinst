@@ -662,7 +662,7 @@ sub init_backend($)
 {
 	my $name=shift;
 	require "backend/$name.pm";
-	$backend="backend_$name"->new();
+	$backend="backend::$name"->new();
 
 	open($logfd, ">>", "currentautoinst-log.txt");
 	# set unbuffered so that sendkey lines from main thread will be written
