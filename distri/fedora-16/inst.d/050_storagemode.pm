@@ -5,7 +5,7 @@ use bmwqemu;
 sub run()
 {
 	waitidle;
-	mousemove_raw(0x7fff,0x7fff);
+	mouse_hide;
 	sendkey "alt-n"; # basic storage devs
 	waitidle;
 	sendkey "alt-y"; # re-initialize all

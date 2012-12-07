@@ -9,7 +9,7 @@ sub is_applicable
 sub run()
 {
 	my $self=shift;
-	mousemove_raw(31000, 31000); # move mouse off screen again
+	mouse_hide(1);
 	x11_start_program("xterm");
 	script_run("ssh -XC root\@localhost xterm");
 	sendautotype("yes\n"); sleep 2;

@@ -64,8 +64,7 @@ if(!$ENV{LIVECD}) {
 }
 #if($ENV{RAIDLEVEL} && !$ENV{LIVECD}) { do "$scriptdir/workaround/656536.pm" }
 waitinststage "automaticconfiguration", 70;
-mousemove_raw(0x7fff,0x7fff); # move mouse off screen again
-mousemove_raw(0x7fff,0x7fff); # work around no reaction on first move
+mouse_hide();
 set_std_hash_rects;
 local $ENV{SCREENSHOTINTERVAL}=$ENV{SCREENSHOTINTERVAL}*3;
 if(!$ENV{GNOME}) {

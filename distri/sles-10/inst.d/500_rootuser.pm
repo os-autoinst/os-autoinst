@@ -5,7 +5,7 @@ use bmwqemu;
 sub run()
 { my $self=shift;
 
-        mousemove_raw(31000, 31000); # move mouse off screen again
+	mouse_hide(1);
 	sendautotype "$password\t"; # root PW
 	sendautotype "$password";
 	$self->take_screenshot;

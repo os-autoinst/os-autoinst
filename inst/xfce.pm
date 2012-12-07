@@ -1,6 +1,6 @@
 use bmwqemu;
 
-mousemove_raw(31000, 31000); # move mouse off screen again
+mouse_hide(1);
 waitidle;
 sendkey "tab";
 sendkey "ret";

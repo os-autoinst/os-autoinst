@@ -25,7 +25,7 @@ my $backend;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $qemupid $scriptdir $testresults $serialdev $testedversion %cmd 
-&diag &fileContent &qemusend_nolog &qemusend &sendkey &sendkeyw &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &set_mousebutton &clickimage &qemualive &result_dir
+&diag &fileContent &qemusend_nolog &qemusend &sendkey &sendkeyw &sendautotype &sendpassword &mousemove_raw &mousemove &mouseclick &set_mousebutton &mouse_set &mouse_hide &clickimage &qemualive &result_dir
 &timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &init_backend &startvm &open_management_console &set_hash_rects &set_ocr_rect &get_ocr &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console &set_std_hash_rects &getcurrentscreenshot);
 
 
@@ -269,6 +269,24 @@ sub mousebuttonaction(;$$)
 		set_mousebutton($ibutton,0);
 	}
 }
+
+
+sub mouse_set($$)
+{
+	# absolute
+	my ($mx, $my) = @_;
+	mousemove($mx,$my);
+}
+sub mouse_hide(;$) {
+	my $border_offset = shift || 0;
+	my $x=0x7fff;
+	if($border_offset) {$x=31000}
+	mousemove_raw($x,$x);
+	sleep 0.5;
+	mousemove_raw($x,$x);
+}
+
+
 
 my $n=0;
 my %md5file;

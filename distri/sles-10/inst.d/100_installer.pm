@@ -7,7 +7,7 @@ sub run()
 	$bmwqemu::idlethreshold+=5;
 	# extra wait for slow usb detect
 	waitinststage("installer-language");
-	mousemove_raw(31000, 31000); # move mouse off screen
+	mouse_hide(1);
 	$self->take_screenshot;
 	sendkeyw("alt-n"); # language
 	if(0) { # missing in SLES-10-SP4-GM - but was in RC3

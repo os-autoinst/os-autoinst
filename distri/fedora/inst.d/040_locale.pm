@@ -6,7 +6,7 @@ sub run()
 {
 	sleep 10;
 	waitidle;
-	mousemove_raw(0x7fff,0x7fff);
+	mouse_hide;
 	sendkey "alt-n"; # welcome screen
 	waitidle;
 	sendkey "alt-n"; # lang

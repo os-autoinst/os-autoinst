@@ -12,7 +12,7 @@ sub run()
 	if($ENV{DESKTOP} eq "lxde") {
 		x11_start_program("lxpanelctl menu"); # or Super_L or Windows key
 	} elsif($ENV{DESKTOP} eq "xfce") {
-		mousemove_raw(0,0);
+		mouse_set(0,0);
 		sleep 1;
 		sendkey "ctrl-esc";	# open menu
 		sleep 1;
