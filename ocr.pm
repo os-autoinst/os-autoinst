@@ -6,8 +6,8 @@ use ppm;
 our $gocrbin="/usr/bin/gocr";
 if(!-x $gocrbin) {$gocrbin=undef}
 # input: ref on PPM data
-sub get_ocr($$@)
-{ my $dataref=shift; my $gocrparams=shift||""; my @ocrrect=@{$_[0]};
+sub get_ocr($$@) {
+	my $dataref=shift; my $gocrparams=shift||""; my @ocrrect=@{$_[0]};
 	if(!$gocrbin || !@ocrrect) {return ""}
 	if(@ocrrect!=4) {return " ocr: bad rect"}
 	my $ppm=ppm->new($$dataref);

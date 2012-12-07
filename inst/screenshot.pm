@@ -7,8 +7,8 @@ use threads;
 
 sub screenshotsub
 {
-	while(qemualive() && sleep($ENV{SCREENSHOTINTERVAL}||5)) {
-		bmwqemu::take_screenshot();
+	while(bmwqemu::alive() && sleep($ENV{SCREENSHOTINTERVAL}||5)) {
+		bmwqemu::take_screenshot('q');
 	}
 }
 

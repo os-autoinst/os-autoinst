@@ -3,8 +3,7 @@ use strict;
 use warnings;
 use constant BPP=>3;
 
-sub new($)
-{
+sub new($) {
 	my $classname=shift;
 	my $ppmdata=shift;
 	my $self={};
@@ -14,9 +13,9 @@ sub new($)
 		$self->{data}=$ppmdata->{data};
 		return bless $self,$classname;
 	}
-#	print "$ppmdata\n";
-	my $header=substr($ppmdata,0,30);
-	($self->{xres},$self->{yres})=($header=~m/\AP6\n(\d+) (\d+)\n255\n/);
+	#print "$ppmdata\n";
+	my $header=substr($ppmdata,0,70);
+	($self->{xres},$self->{yres})=($header=~m/\AP6\n(?:#.*\n)?(\d+) (\d+)\n255\n/);
 	if(!$self->{xres}) {return undef} # unsupported format
 	#$self->{header}=$&;
 	$self->{data}=substr($ppmdata,length($&));
@@ -29,8 +28,7 @@ sub new($)
 	return bless $self,$classname;
 }
 
-sub copyrect($$$$)
-{
+sub copyrect($$$$) {
 	my $self=shift;
 	my ($xstart,$ystart,$xsize,$ysize)=@_;
 	if($xstart+$xsize>$self->{xres} || $ystart+$ysize>$self->{yres}) {return}
@@ -47,8 +45,7 @@ sub copyrect($$$$)
 
 # zero out a region of a PPM
 # in-place op
-sub replacerect($$$$)
-{
+sub replacerect($$$$) {
 	my $self=shift;
 	my ($xstart,$ystart,$xsize,$ysize)=@_;
 	my $len=$xsize*BPP;
@@ -158,13 +155,13 @@ our $inline=eval "use Inline C=>q{
 }; 1;";
 
 # in-place op: change all values to 0 (if below threshold) or 255 otherwise
-sub threshold($)
-{
+sub threshold($) {
 	my $self=shift;
 	my $threshold=shift;
 	if($inline) {
 		thresholdC($self->{data}, $threshold);
-	} else {
+	}
+	else {
 		my $tc=chr($threshold);
 		$self->{data}=~s/[$tc-\xff]/\xff/g; # white
 		$self->{data}=~s/[\000-\xfe]/\000/g; # black
@@ -173,8 +170,7 @@ sub threshold($)
 
 # calculate average color values
 # out: (r,g,b) in range 0..1
-sub avgcolor()
-{
+sub avgcolor() {
 	my $self=shift;
 	my @c=(0,0,0);
 	my $n=0;
@@ -182,7 +178,8 @@ sub avgcolor()
 		for my $i (0..2) {
 			$c[$i]=addpixels($self->{data}, $i);
 		}
-	} else {
+	}
+	else {
 		my @d=unpack("C*",$self->{data});
 		foreach my $value (@d) {
 			$c[$n % BPP]+=$value;
@@ -220,8 +217,7 @@ sub getmaxbytediff($)
 # in: needle to search [ppm object]
 # out: (x,y) coords if found, undef otherwise
 # inspired by OCR::Naive
-sub search($;$)
-{
+sub search($;$) {
 	my $self=shift;
 	my $needle=shift;
 	my $maxdiff = shift || 40;
@@ -257,8 +253,7 @@ sub search($;$)
 	return undef;
 }
 
-sub toppm()
-{
+sub toppm() {
 	my $self=shift;
 	return "P6\n$self->{xres} $self->{yres}\n255\n".$self->{data};
 }

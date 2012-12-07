@@ -3,8 +3,8 @@ use strict;
 use bmwqemu;
 use autotest;
 
-sub checksize($)
-{ my $size=shift;
+sub checksize($) {
+	my $size=shift;
 	my $i=$ENV{ISO};
 	my $maxsize=737_280_000;
 	if($i=~m/-DVD/) {$maxsize=4_707_319_808}
@@ -20,7 +20,8 @@ our %stageseen=();
 our %md5seen=();
 our %results;
 sub printresult($)
-{ my $key=shift;
+{
+	my $key=shift;
 	if(defined($results{$key})) {print "$key: $results{$key}\n"}
 }
 while(<>) {
@@ -36,8 +37,7 @@ while(<>) {
 
 sub is_ok($) { my $x=shift; $x=~m/^OK/ }
 
-sub checkfunc
-{
+sub checkfunc {
 	my($test)=@_;
 	my $class=ref $test;
 	my $result=$test->check(\%md5seen)||"unknown";

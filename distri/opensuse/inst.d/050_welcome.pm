@@ -18,6 +18,7 @@ sub run()
 		sendkey $cmd{"accept"}; # accept license
 	}
 	waitidle;
+	$self->take_screenshot; sleep 1;
 	sendkey $cmd{"next"};
 	sleep 2;sendkey "alt-f"; # continue on incomplete lang warning
 }

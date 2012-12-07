@@ -3,69 +3,59 @@ use bmwqemu;
 use ocr;
 use Time::HiRes;
 
-sub new()
-{
+sub new() {
 	my $class=shift;
 	my $self={class=>$class};
 	return bless $self, $class;
 }
 
-sub is_applicable()
-{
+sub is_applicable() {
 	return 1;
 }
 
-sub next_resultname($)
-{ my($self,$type)=@_;
+sub next_resultname($) {
+	my($self,$type)=@_;
 	my $count=++$self->{$type."_count"};
 	my $path=result_dir;
 	my $testname=ref($self);
 	return "$path/$testname-$count.$type";
 }
 
-sub take_screenshot()
-{
+sub take_screenshot() {
 	my $self=shift;
-	qemusend "info blockstats"; # test code
 	my $filename=$self->next_resultname("ppm");
 	bmwqemu::do_take_screenshot($filename);
 	sleep(0.1);
 	# TODO analyze_screenshot $filename;
 }
 
-sub start_audiocapture
-{
+sub start_audiocapture {
 	my $self=shift;
 	my $filename=$self->next_resultname("wav");
 	bmwqemu::do_start_audiocapture($filename);
 	sleep(0.1);
 }
 
-sub stop_audiocapture
-{
+sub stop_audiocapture {
 	my $self=shift;
 	my $index = shift || 0;
 	bmwqemu::do_stop_audiocapture($index);
 	sleep(0.1);
 }
 
-sub checklist
-{
+sub checklist {
 	return {}
 }
 
-sub wav_checklist
-{
+sub wav_checklist {
 	return {}
 }
 
-sub ocr_checklist
-{
+sub ocr_checklist {
 	return []
 }
 
-sub check(%)
-{
+sub check(%) {
 	my $self=shift;
 	my $hashes=shift;
 	my $path=result_dir;
@@ -102,7 +92,7 @@ sub check(%)
 			my $matched=0;
 			foreach my $refimg (@refimgs) {
 				#my $t=[Time::HiRes::gettimeofday()];
-				my $c=bmwqemu::checkrefimgs($screenimg,$refimg,'t');
+				my $c=bmwqemu::checkrefimgs($screenimg,$refimg,'d');
 				#print "$refimg: ".Time::HiRes::tv_interval($t)."\n";
 				if(defined $c) {
 					my $result=$refimg;

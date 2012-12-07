@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 use strict;
-use bmwqemu;
 my $basedir="raid";
 my $qemuimg="/usr/bin/kvm-img";
 if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
@@ -48,55 +47,54 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	system(qw"cp -a", $file, "$basedir/l1"); # reduce disk IO later
 	for my $i (2..$ENV{NUMDISKS}) {
 		system($qemuimg, "create" ,"$basedir/$i", $sizegb."G");
+		symlink($i,"$basedir/l$i");
 	}
 }
 
-if(!qemualive) {
-	if(!$ENV{KEEPHDDS}) {
-		# fresh HDDs
-		for my $i (1..4) {
-			unlink("$basedir/l$i");
-			if(-e "$basedir/$i.lvm") {
-				symlink("$i.lvm","$basedir/l$i");
-				system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1"); # for LVM
-			} else {
-				system($qemuimg, "create" ,"$basedir/$i", $sizegb."G");
-				symlink($i,"$basedir/l$i");
-			}
-		}
-		if($ENV{USBBOOT}) {
-			$ENV{NUMDISKS}=2;
-			system("dd", "if=$iso", "of=$basedir/l1", "bs=1M", "conv=notrunc");
-			@cdrom=();
+if(!$ENV{KEEPHDDS}) {
+	# fresh HDDs
+	for my $i (1..4) {
+		unlink("$basedir/l$i");
+		if(-e "$basedir/$i.lvm") {
+			symlink("$i.lvm","$basedir/l$i");
+			system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1"); # for LVM
+		} else {
+			system($qemuimg, "create" ,"$basedir/$i", $sizegb."G");
+			symlink($i,"$basedir/l$i");
 		}
 	}
-	sleep 5;
-
-	$qemupid=fork();
-	die "fork failed" if(!defined($qemupid));
-	if($qemupid==0) {
-		my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
-		for my $i (1..$ENV{NUMDISKS}) {
-			my $boot="";#$i==1?",boot=on":""; # workaround bnc#696890
-			push(@params, "-drive", "file=$basedir/l$i,if=$ENV{HDDMODEL}$boot");
-		}
-		push(@params, "-boot", "dc", @cdrom) if($iso);
-		if($ENV{VNC}) {
-			if($ENV{VNC}!~/:/) {$ENV{VNC}=":$ENV{VNC}"}
-			push(@params, "-vnc", $ENV{VNC});
-			push(@params, "-k", $ENV{VNCKB}) if($ENV{VNCKB});
-		}
-		if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
-		push(@params, "-usb", "-usbdevice", "tablet");
-		push(@params, "-smp", $ENV{QEMUCPUS});
-		print "starting: $qemubin ".join(" ", @params)."\n";
-		exec($qemubin, @params);
-		die "exec $qemubin failed";
+	if($ENV{USBBOOT}) {
+		$ENV{NUMDISKS}=2;
+		system("dd", "if=$iso", "of=$basedir/l1", "bs=1M", "conv=notrunc");
+		@cdrom=();
 	}
-	open(my $pidf, ">", $bmwqemu::qemupidfilename) or die "can not write $bmwqemu::qemupidfilename";
-	print $pidf $qemupid,"\n";
-	close $pidf;
-	sleep 6; # time to let qemu start
 }
+sleep 5;
+
+$self->{'pid'}=fork();
+die "fork failed" if(!defined($self->{'pid'}));
+if($self->{'pid'}==0) {
+	my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
+	for my $i (1..$ENV{NUMDISKS}) {
+		my $boot="";#$i==1?",boot=on":""; # workaround bnc#696890
+		push(@params, "-drive", "file=$basedir/l$i,if=$ENV{HDDMODEL}$boot");
+	}
+	push(@params, "-boot", "dc", @cdrom) if($iso);
+	if($ENV{VNC}) {
+		if($ENV{VNC}!~/:/) {$ENV{VNC}=":$ENV{VNC}"}
+		push(@params, "-vnc", $ENV{VNC});
+		push(@params, "-k", $ENV{VNCKB}) if($ENV{VNCKB});
+	}
+	if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
+	push(@params, "-usb", "-usbdevice", "tablet");
+	push(@params, "-smp", $ENV{QEMUCPUS});
+	print "starting: $qemubin ".join(" ", @params)."\n";
+	exec($qemubin, @params);
+	die "exec $qemubin failed";
+}
+open(my $pidf, ">", $self->{'pidfilename'}) or die "can not write ".$self->{'pidfilename'};
+print $pidf $self->{'pid'},"\n";
+close $pidf;
+sleep 6; # time to let qemu start
 
 1;

@@ -3,129 +3,134 @@
 package backend::vbox;
 use strict;
 
-our $vmname="osautoinst";
+#use FindBin;
+#use lib "$FindBin::Bin/backend";
+#use lib "$FindBin::Bin/backend/helper";
+#use lib "$FindBin::Bin/helper";
+use base ('backend::helper::scancodes', 'backend::baseclass');
 
-sub vbox_controlvm
-{
-	system(qw"VBoxManage controlvm", $vmname, @_);
+our $scriptdir = $bmwqemu::scriptdir || '.';
+
+sub init() {
+	my $self = shift;
+	$self->{'vmname'} = 'osautoinst';
+	$self->{'pid'} = undef;
+	$self->scancodes::init();
 }
 
-# keymap relates to qemu/monitor.c
-my @keymap=split(/ /,"? esc 1 2 3 4 5 6 7 8 9 0 minus equal backspace tab q w e r t y u i o p bracket_left bracket_right ret ctrl a s d f g h j k l semicolon apostrophe grave_accent shift backslash z x c v b n m comma dot slash shift_r asterisk alt spc caps_lock f1 f2 f3 f4 f5 f6 f7 f8 f9 f10 num_lock scroll_lock kp_7 kp_8 kp_9 kp_subtract kp_4 kp_5 kp_6 kp_add kp_1 kp_2 kp_3 kp_0 kp_decimal sysrq ? < f11 f12");
-my %keymap=();
-my %keymaprev=(
-0x9d, "ctrl_r",
-0xb7, "print",
-0xb8, "alt_r",
-0xc7, "home",
-0xc9, "pgup",
-0xd1, "pgdn",
-0xcf, "end",
-0xcb, "left",
-0xc8, "up",
-0xd0, "down",
-0xcd, "right",
-0xd2, "insert",
-0xd3, "delete",
-0xdd, "menu",
-);
-{
-	my $n=0;
-	foreach my $k (@keymap) {$keymap{$k}=$n++;}
-	foreach my $k (keys %keymaprev) {$keymap{$keymaprev{$k}}=$k}
+
+# scancode virt method overwrite
+
+sub keycode_down($) {
+        my $self = shift;
+	my $key = shift;
+	my $keycode = $self->{'keymaps'}->{'vbox'}->{$key};
+	return ($keycode);
 }
 
-sub sendkey($)
-{
-	my $self=shift;
-	my $key=shift;
-	my @codes=();
-	foreach my $part (reverse split("-", $key)) {
-		my $keycode=$keymap{$part};
-		if(!$keycode) {print "unknown key $part\n"}
-		my $keycodeup=sprintf("%02x", $keycode^0x80);
-		$keycode=sprintf("%02x", $keycode);
-		unshift(@codes, $keycode);
-		push(@codes, $keycodeup);
-	}
-	print STDOUT "sendkey($key) => @codes\n";
-	vbox_controlvm("keyboardputscancode", @codes);
+sub keycode_up($) {
+        my $self = shift;
+	my $key = shift;
+	my $keycode_up = $self->{'keymaps'}->{'vbox'}->{$key} ^ 0x80;
+	return ($keycode_up);
 }
 
-sub screendump($)
-{
-	my $self=shift;
-	my $filename=shift;
-	my $r=int(rand(1e9));
-	my $tmp="/tmp/vbox-$r.png";
-	vbox_controlvm("screenshotpng", $tmp);
+sub raw_keyboard_io($) {
+        my $self = shift;
+	my $data = shift;
+	my @codes = map(sprintf("0x%02x", $_), @$data);
+	$self->raw_vbox_controlvm("keyboardputscancode", @codes);
+}
+
+# scancode virt method overwrite end
+
+
+# baseclass virt method overwrite
+
+sub screendump($) {
+	my $self = shift;
+	my $filename = shift;
+	my $r = int(rand(1e9));
+	my $tmp = "/tmp/vbox-$r.png";
+	$self->raw_vbox_controlvm("screenshotpng", $tmp);
 	system("convert", $tmp, $filename);
 	unlink $tmp;
 }
 
-sub system_reset() { vbox_controlvm("reset"); }
-sub system_powerdown() { vbox_controlvm("acpipowerbutton"); }
-sub quit() { vbox_controlvm("poweroff"); }
-sub mouse_move($)
-{
-	warn "TODO: mouse_move"; # not too bad because cursor does not appear on screenshots
-}
-sub eject($)
-{
-	system(qq'VBoxManage storageattach $vmname --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium emptydrive');
-}
-sub mouse_button($) {warn "TODO: mouse_button @_"}
-sub wavcapture($) {
-	my $self=shift;
-	my $wavfilename=shift;
-	system("$bmwqemu::scriptdir/tools/pawav.pl $wavfilename &");
-}
-
-sub stopcapture($) {
-	system("killall", "parec");
-}
-
-sub send($)
-{
-	my $self=shift;
-	my $line=shift;
-	print STDOUT "send($line)\n";
-	$line=~s/^(\w+)\s*//;
-	my $cmd=$1;
-	if($cmd) {
-		$self->$cmd($line);
-	} else {
-		warn "unknown cmd in $line";
+sub power($) {
+	# parameters:
+	# acpi, reset, off
+	my $self = shift;
+	my $action = shift;
+	if ($action eq 'acpi') {
+		$self->raw_vbox_controlvm("acpipowerbutton");
+	}
+	elsif ($action eq 'reset') {
+		$self->raw_vbox_controlvm("reset");
+	}
+	elsif ($action eq 'off') {
+		$self->raw_vbox_controlvm("poweroff");
 	}
 }
 
-sub open_management()
-{
+#sub mouse_move($) { ( move / set)
+#	# TODO ( move / set)
+#	# not too bad because cursor does not appear on screenshot
+#}
+
+#sub mouse_button($) {
+#	# TODO
+#}
+
+sub insert_cd($) {
+	my $self = shift;
+	my $iso = shift;
+	system(qq'VBoxManage storageattach '.$self->{vmname}.' --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium '.$iso);
 }
 
-sub start_vm
-{
-	my $self=shift;
+sub eject_cd($) {
+	my $self = shift;
+	system(qq'VBoxManage storageattach '.$self->{'vmname'}.' --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium emptydrive');
+}
+
+sub start_audiocapture($) {
+	my $self = shift;
+	my $wavfilename = shift;
+	system("$scriptdir/tools/pawav.pl $wavfilename &");
+}
+
+sub stop_audiocapture($) {
+	system("killall", "parec");
+}
+
+sub raw_alive($) {
+	my $self = shift;
+	return 0 unless $self->{'pid'};
+	return kill(0, $self->{'pid'});
+}
+
+sub do_start_vm {
+	my $self = shift;
 	# TODO: assemble VM with ISO and disks similar to startqemu.pm
 	# attach iso as DVD:
-	system("VBoxManage", "storageattach", $self->{vmname}, "--storagectl", "IDE Controller", qw"--port 1 --device 0 --type dvddrive --medium", $ENV{ISO});
+	$self->insert_cd($ENV{ISO});
 	# pipe serial console output to file:
 	system("VBoxManage", "modifyvm", $self->{vmname}, "--uartmode1", "file", "serial0");
 	system("VBoxManage", "modifyvm", $self->{vmname}, "--uart1", "0x3f8", 4);
-	system(qw"VBoxManage startvm", $self->{vmname});
+	system("VBoxManage", "startvm", $self->{vmname});
 	my $pid=`pidof VirtualBox`; chomp($pid);
 	$pid=~s/ .*//; # use first pid, in case GUI was open
-	$bmwqemu::qemupid=$pid;
-#	return 1;
+	$self->{'pid'} = $pid;
+	#return 1;
 	return(($?>>8)==0);
 }
 
-sub new()
-{
-	my $class=shift;
-	my $self={class=>$class, vmname=>$vmname};
-	$self=bless $self, $class;
-	return $self;
+# baseclass virt method overwrite end
+
+
+sub raw_vbox_controlvm($) {
+	my $self = shift;
+	system("VBoxManage", "controlvm", $self->{'vmname'}, @_);
 }
 
 1;

@@ -20,18 +20,18 @@ $ENV{BACKEND}||="qemu";
 init_backend($ENV{BACKEND});
 if($init) {
 	open(my $fd, ">os-autoinst.pid"); print $fd "$$\n"; close $fd;
-	if(!qemualive) {
-		startvm or die $@;
+	if(!bmwqemu::alive) {
+		start_vm or die $@;
 	}
 }
-open_management_console;
 my $size=-s $ENV{ISO}; diag("iso_size=$size");
-qemusend_nolog(fileContent("$ENV{HOME}/.autotestvncpw")||"");
 do "inst/screenshot.pm" or die $@;
 
 # Load the main.pm from the casedir checked by the sanity checks above
 do "$ENV{CASEDIR}/main.pm" or die $@;
 
+# this is only for still getting screenshots while
+# all testscripts would have been already run
 for(1..6000) { # time to let install work
 	sleep 1;
 }
