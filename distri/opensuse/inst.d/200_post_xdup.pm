@@ -9,6 +9,8 @@ sub is_applicable()
 
 sub run()
 {
+	# make sure we are on a text console (workaround restart-X11 bug)
+	sendkey "ctrl-alt-f4";
 	# reboot after dup
 	sendkey "ctrl-alt-delete";
 	script_sudo_logout;

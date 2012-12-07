@@ -3,6 +3,7 @@ use bmwqemu;
 
 sub is_applicable()
 {
+	return 0; # disabled as sikuli does not install atm
 	return $ENV{DESKTOP} eq "kde" && !$ENV{TUMBLEWEED} && !$ENV{NICEVIDEO};
 }
 

@@ -17,7 +17,9 @@ sub run()
 	#sendkey "right"; sendkey "down"; sendkey "down";
 	sendkeyw "alt-i"; # Resize
 	sendkey "alt-u"; # Custom
-	sendautotype "1.5G\n";
+	sendautotype "1.5G";
+	sleep 2;
+	sendkeyw "ret";
 	# add /usr
 	sendkey $cmd{addpart};
 	waitidle 4;
@@ -27,9 +29,9 @@ sub run()
 		sendkey "backspace";
 	}
 	sendautotype("4.5G");
-	sendkey $cmd{"next"};
+	sendkeyw $cmd{"next"};
 	sendkey "alt-m"; # Mount Point
-	sendautotype("/usr\b"); # Backspace to break bad completion
+	sendautotype("/usr\b"); # Backspace to break bad completion to /usr/local
 	sendkey $cmd{"finish"};
 	sendkeyw $cmd{"accept"};
 }

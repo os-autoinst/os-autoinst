@@ -3,7 +3,7 @@ use base "installstep";
 use bmwqemu;
 
 sub run()
-{
+{ my $self=shift;
 if(!$ENV{LIVECD}) {
 	set_ocr_rect(255,420,530,115);
 	{
@@ -32,6 +32,10 @@ if(!$ENV{LIVECD}) {
 		}
 		local $ENV{SCREENSHOTINTERVAL}=5;
 		waitinststage "bootloader|splashscreen|automaticconfiguration|booted", 3000;
+		if($ENV{UPGRADE}) {
+			sendkey "alt-n"; # ignore repos dialog
+			waitstillimage(6,60);
+		}
 	}
 	set_ocr_rect();
 	if(waitinststage "bootloader", 1) {
@@ -40,7 +44,12 @@ if(!$ENV{LIVECD}) {
 	qemusend "eject ide1-cd0";
 	sleep 3;
 	# workaround key trust bug http://openqa.opensuse.org/viewimg/opensuse/testresults/openSUSE-NET-i586-Build0002-lxde/timeout-05.png
-	for(1..4){sendkey "alt-t"} sleep 10;
+	#for(1..4){sendkey "alt-t"} sleep 10;
+	if($ENV{ENCRYPT}) {
+		waitstillimage(11,180);
+		sendpassword(); # enter PW at boot
+		sendkey "ret";
+	}
 } else {
 	set_ocr_rect(245,440,530,100);
 	# LiveCD needs confirmation for reboot
@@ -63,7 +72,7 @@ if(!$ENV{LIVECD}) {
 	}
 }
 #if($ENV{RAIDLEVEL} && !$ENV{LIVECD}) { do "$scriptdir/workaround/656536.pm" }
-waitinststage "automaticconfiguration", 70;
+#waitinststage "automaticconfiguration", 70;
 mouse_hide();
 set_std_hash_rects;
 local $ENV{SCREENSHOTINTERVAL}=$ENV{SCREENSHOTINTERVAL}*3;
@@ -74,9 +83,17 @@ if(!$ENV{GNOME}) {
 	set_ocr_rect();
 	my $data=getcurrentscreenshot();
         my $ocr=ocr::get_ocr(\$data, "-l 200", [250,100,600,500]);
-        if($ocr=~m/Installation of package .* failed/i) {
-		sendkey "alt-d"; # see details of failure
-		alarm 3; # end here as we can not continue
+	diag "post-install-ocr: $ocr";
+        if($ocr=~m/Installation of package .* failed/i or waitimage("install-failed", 1)) {
+		sendkeyw "alt-d"; # see details of failure
+		if(1) { # ignore
+			$self->take_screenshot; sleep 2;
+			sendkeyw "alt-i";
+			sendkey "ret";
+			waitstillimage(50,900);
+		} else {		
+			alarm 3; # end here as we can not continue
+		}
 	}
 } else {
 	sleep 50; # time for fast-forward

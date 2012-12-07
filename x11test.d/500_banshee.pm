@@ -30,7 +30,7 @@ sub ocr_checklist()
 {
         [
 
-                {screenshot=>1, x=>8, y=>150, xs=>140, ys=>380, pattern=>"(?si:ying.*Vide.s.*Fav.rites.*Unwatched)", result=>"OK"}
+                {screenshot=>1, x=>8, y=>150, xs=>140, ys=>380, pattern=>"(?si:Vide.s.*Fav.rites.*Unwatched)", result=>"OK"}
         ]
 }
 

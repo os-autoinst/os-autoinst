@@ -12,11 +12,12 @@ sub run()
 	x11_start_program("amarok /usr/share/sounds/alsa/test.wav");
 	waitidle;
 	$self->take_screenshot;
-	sendkey "alt-f4"; sleep 3; # mp3 popup
+	sendkey "alt-f4"; sleep 3; # amazon store country popup
 	$self->take_screenshot;
-	sendkey "alt-f4"; sleep 3; # close kwallet popup
+	sendkey "alt-d"; sendkeyw "alt-n"; # mp3 popup
+#	sendkey "alt-f4"; sleep 3; # close kwallet popup
 	$self->take_screenshot;
-	sendkey "alt-f4"; sleep 9; # close another popup
+	sendkeyw "alt-y"; # use music path as collection folder
 	$self->take_screenshot;
 	sendkey "ctrl-q"; # really quit (alt-f4 just backgrounds)
 	sleep 2; waitidle;

@@ -6,7 +6,7 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
-	waitstillimage(12, 290);
+	waitstillimage(22, 290);
 
 	# animated cursor wastes disk space, so it is moved to bottom right corner
 	mouse_hide;

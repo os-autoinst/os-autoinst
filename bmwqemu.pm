@@ -46,10 +46,12 @@ $ENV{QEMUPORT}||=15222;
 our $logfd;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
-our $testedversion=$ENV{ISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.iso$//; $testedversion=~s{^([^.]+?)(?:-Media1?)?$}{$1};
-if(!$ENV{DISTRI}) {
-	if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi|FreeBSD|archlinux)-/) {$ENV{DISTRI}=lc($1)}
-}
+our $testedversion;
+#print STDERR "ISO=$ENV{ISO}";
+  $testedversion=$ENV{ISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.iso$//; $testedversion=~s{^([^.]+?)(?:-Media1?)?$}{$1};
+  if(!$ENV{DISTRI}) {
+    if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi|FreeBSD|archlinux)-/) {$ENV{DISTRI}=lc($1)}
+  }
 $ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
 foreach my $part (split("-", $testedversion)) {$ENV{uc($part)}=1}
 if(defined($ENV{DISTRI}) && $ENV{DISTRI} eq 'archlinux') {
@@ -733,7 +735,7 @@ sub script_sudo_logout()
 sub x11_start_program($;$)
 { my $program=shift;
 	my $options=shift||{};
-	sendkey "alt-f2"; sleep 4;
+	sendkey "alt-f2"; sleep 9;
 	sendautotype $program; sleep 1;
 	if($options->{terminal}) {sendkey "alt-t";sleep 3;}
 	sendkey "ret";

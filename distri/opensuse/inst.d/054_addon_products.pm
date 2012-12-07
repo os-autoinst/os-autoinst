@@ -15,6 +15,7 @@ sub run()
 	if($ENV{VIDEOMODE} && $ENV{VIDEOMODE} eq "text") {$cmd{xnext}="alt-x"}
 	if(!$ENV{NET} && !$ENV{DUD}) {
 		waitstillimage();
+		sleep 5; # try
 		sendkey $cmd{"next"}; # use network
 		waitstillimage(20);
 		sendkeyw "alt-o"; # OK DHCP network
@@ -26,7 +27,9 @@ sub run()
 		sendkeyw $cmd{"xnext"}; # Specify URL (default)
 		sendautotype($url);
 		sendkeyw $cmd{"next"};
-		sendkey "alt-i";sendkeyw "alt-t"; # confirm import (trust) key
+		if($ENV{ADDONURL}!~m{/update/}) { # update is already trusted, so would trigger "delete"
+			sendkey "alt-i";sendkeyw "alt-t"; # confirm import (trust) key
+		}
 	}
 	$self->take_screenshot;
 	sendkeyw $cmd{"next"}; # done

@@ -19,6 +19,7 @@ sub runtest
 		}
 		diag "starting $name $script";
 		my $ret=&$testfunc($test);
+		sleep 1;
 		diag "finished $name";
 		return $ret;
 	}

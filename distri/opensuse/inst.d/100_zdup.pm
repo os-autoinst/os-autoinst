@@ -13,12 +13,21 @@ sub run()
 	$ENV{ZDUPREPOS}||="http://$ENV{SUSEMIRROR}/repo/oss/";
 	sendkey "ctrl-l";
 	script_sudo("killall gpk-update-icon packagekitd");
-	script_sudo("zypper modifyrepo --all --disable");
+  unless($ENV{EVERGREEN}) {
+  	script_sudo("zypper modifyrepo --all --disable");
+  }
 	if($ENV{TUMBLEWEED}) {
 		script_sudo("zypper ar --refresh http://widehat.opensuse.org/distribution/openSUSE-current/repo/oss/ 'openSUSE Current OSS'");
 		script_sudo("zypper ar --refresh http://widehat.opensuse.org/distribution/openSUSE-current/repo/non-oss/ 'openSUSE Current non-OSS'");
 		script_sudo("zypper ar --refresh http://widehat.opensuse.org/update/openSUSE-current/ 'openSUSE Current Update'");
 	}
+  if($ENV{EVERGREEN}) {
+    script_sudo("mkdir /etc/zypp/vendors.d");
+    sendautotype("sudo dd of=/etc/zypp/vendors.d/evergreen <<EOF
+[main]
+vendors = openSUSE Evergreen,suse,opensuse
+EOF\n");
+  }
 	my $nr=1;
 	foreach my $r (split(/\+/, $ENV{ZDUPREPOS})) {
 		script_sudo("zypper addrepo $r repo$nr");

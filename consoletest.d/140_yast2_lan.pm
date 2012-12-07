@@ -7,6 +7,7 @@ use bmwqemu;
 sub run()
 { my $self=shift;
 script_sudo("/sbin/yast2 lan");
+waitstillimage();
 
 if($ENV{LIVETEST} || $ENV{DISTRI} eq "sled-11") {
 	sendkey "ret";   # confirm networkmanager popup
@@ -50,6 +51,10 @@ sub checklist()
 		2562e77bdce25069258bdb8748c3c302 OK
 		66e4a815edf5460d9975e04a1db70b39 OK
 		b713aaca3ea534257c4ed81529d04c62 OK
+		7300bd5354c5a6fa1afbe898acbf9fe0 OK
+		645d750e368d3d843b51e33ccbcc0922 OK
+		5660b88237419b9c34efe4bfc6de960f OK
+		2211a4356673d79819671bb9ae36cba0 OK
 		9b1e290f49eac89a827d488114d9309c fail
 		cbcdd79e992fb5a8be0c834616eeeb40 fail
 	)}

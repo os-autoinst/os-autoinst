@@ -1,5 +1,9 @@
 use base "basetest";
 use bmwqemu;
+
+sub is_applicable()
+{ 0 }
+
 sub run()
 {
 	my $self=shift;

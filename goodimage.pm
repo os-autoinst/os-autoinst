@@ -48,6 +48,7 @@ f74242b1f62bdbc7e3d6f060ceab7e0a bootloader-grub0620
 a3aa18ef5e5dbf9e553105aade7faf52 syslinuxbootloader-loaded-12.1
 25d04330d7a617cd4fbbef86398dc1db syslinuxbootloader-12.2MS1
 849ef4f324a4791640af509c5cb6f4c1 syslinuxbootloader-12.2MS3
+56b9eb4f1196d43002154796ec7fa203 syslinuxbootloader-12.2Beta
 33af848897baea7919c430d7adb6d9f2 initializinggnome
 bbe0d620ec01763f2a01993caaed1e88 welcome-11.2
 7ea9ca7bfe7277145920de67c2212a1d welcome
@@ -178,6 +179,8 @@ eabf2c66351e8ee185e0a583deb1e8a7 rebootnow-gnome-11.3
 093ffbabbe95584a846ccfd1be32bcb0 rebootnow-gnome0948
 3f9ac2cd86436317435a4939d0add6c5 rebootnow-gnome-12.1-0343
 8f98e640a06ba5d643fb6fe24a6506f9 rebootnow-kde-12.1-0378
+603439a36364e34617a57109cdc98412 rebootnow-gnome-12.2-0415
+d6e380618411e50d2d8d411ead51ff78 rebootnow-kde-12.2-0415
 e3f412dc306085ca4d1795f850c81dee bootloader-grub
 6dad21ea36802fca6a7b4dc14db62c0e bootloader-grub0620
 053ed0ae4ad4679aec1c7d696f3697b2 bootloader-grub-xmas
@@ -240,6 +243,9 @@ d48f8941a1ee62ce90dbffe7d6f3d36e booted-KDE-12.1-0330-miscolor
 56f93fabbe1b628df81e20c8896de0ab booted-KDE-12.1-0345-SUSE-greeting
 7645590f9543ba8747b8153689b18c47 booted-KDE-12.1-0379-SUSE-greeting
 47724cd7fc017eb068bfe3cfa25f96d9 booted-KDE-12.1
+33c2daa54de877fa73be53a9cc77c806 booted-KDE-12.2-Beta2
+6019175367dc911c5a19aabc79688aca booted-KDE-12.2-RC2-SUSE-greeting
+1517ba8c56133545a53e6b5841f4b8e4 booted-KDE-12.2-RC2
 9f1754bb42b4b638f7d009e797b19035 booted-GNOME
 bde1599d19187dc77d7d21c76c15a5d4 booted-GNOME
 6bb907cafda230995d3fa5e7a9322e68 booted-GNOME
@@ -256,6 +262,7 @@ fbbe32ffb2144130af4dc66674646d61 booted-GNOME-1000
 63279ad86729050e883604a86b81d904 booted-GNOME-12.1-0132
 fda08967ffb1c2dbe6cc6015246b7608 booted-GNOME3-fallback-0032
 a3edc953654f9781d858fba4a8c325d0 booted-GNOME3-fallback-0379
+2e343179aac30b4b987a9885302a8cb4 booted-GNOME3-12.2-RC2
 a0b5487f8dd6017239b13fe6f6431ddb booted-LXDE-11.3-dvd
 68cadea0ed4cc94bc3752e059f715d84 booted-LXDE-11.3
 e8984c6bbac39ae3514a52cf9bc61ddc booted-LXDE-0951-32

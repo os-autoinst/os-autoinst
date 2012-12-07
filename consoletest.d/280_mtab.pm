@@ -20,6 +20,8 @@ sub checklist()
 		5ac14aad117458115b5da48a2dd64215 OK
 		beaa2e18f8b4766ab846a8b24f118dab OK
 		bccf62fc7c54a948bdffa04ca8f49a76 OK
+		ca2491e41e1ad528075d8ac76640b15a OK
+		5b5e1f5551b7f7aa7034e69867e13cce OK
 		d0ee40ffd898fa4821bd100ed45a00f4 fail
 		80bfbe29fe73f77040576b4795f0eba0 fail
 		2e16afd5680f7ddd2da3568fc354d1bb fail

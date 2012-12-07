@@ -19,6 +19,15 @@ sub run()
 		return;
 	}
 
+if($ENV{MEDIACHECK}) { # special
+	# only run this one
+	for(1..3) {
+		sendkey "down";
+	}
+	sleep 3;
+	sendkey "ret";
+  return;
+}
 if($ENV{MEMTEST}) { # special
 	# only run this one
 	for(1..6) {
@@ -51,13 +60,14 @@ if($ENV{RES1024}) { # default is 800x600
 	sendkey "ret";
 } elsif($ENV{VIDEOMODE} eq "text") {
 	sendkey "f3";
-	for(1..2) {
+	for(1..4) {
 		sendkey "up";
 	}
 	sendkey "ret";
 }
 
-sendautotype("nohz=off "); # NOHZ caused errors with 2.6.26
+#sendautotype("nohz=off "); # NOHZ caused errors with 2.6.26
+#sendautotype("nomodeset "); # coolo said, 12.3-MS0 kernel/kms broken with cirrus/vesa #fixed 2012-11-06
 if(!$ENV{NICEVIDEO}) {
 	sleep 15; sendautotype("console=ttyS0 "); # to get crash dumps as text
 	sleep 15; sendautotype("console=tty "); # to get crash dumps as text

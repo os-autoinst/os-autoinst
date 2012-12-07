@@ -16,6 +16,7 @@ sub check() {
 		foreach(keys(%::stageseen)) {if(m/$s/){$found=1;last;}}
 		$results->{$s}=($found?"OK":"unknown");
 		::printresult $s;
+		return 1 if ::is_ok($results->{mediacheck});
 	}
 
 	autotest::runtest("$ENV{CASEDIR}/inst.d/010_initenv.pm",sub{my $test=shift;$test->run;});
@@ -26,6 +27,7 @@ sub check() {
 	autotest::runtestdir("$scriptdir/x11test.d", \&::checkfunc);
 
 	my $overall=(::is_ok($results->{xterm}) or ::is_ok($results->{sshxterm}) or ::is_ok($results->{firefox}));
+	if($ENV{TEXTMODE}) {$overall=1}
 	for my $test (qw(zypper_in yast2_lan isosize)) {
 		next if($test eq "automaticconfiguration" && ($ENV{UPGRADE}||$ENV{LIVETEST}));
 		$overall=0 unless ::is_ok $results->{$test};

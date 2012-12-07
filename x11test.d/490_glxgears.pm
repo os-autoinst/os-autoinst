@@ -9,9 +9,11 @@ sub is_applicable
 sub run()
 {
 	my $self=shift;
+	ensure_installed("Mesa-demo-x");
 	x11_start_program("glxgears");
 	$self->take_screenshot;
-	sendkey "q";
+	sendkeyw "alt-f4";
+	sendkey "ret";
 	sleep 5; # time to close
 }
 

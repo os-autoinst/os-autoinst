@@ -86,7 +86,7 @@ sendkey "right"; # unfold disks
 sendkey "down"; # select first disk
 for (1..4) {
 	addpart(100, 3); # boot
-	addpart(3300, 3); # root
+	addpart(5300, 3); # root
 	addpart(300, 3); # swap
 	# select next disk
 	sendkey "shift-tab";
