@@ -224,7 +224,7 @@ sub search($;$)
 {
 	my $self=shift;
 	my $needle=shift;
-	my $maxdiff = shift || 0;
+	my $maxdiff = shift || 40;
 	my $xneedle=$needle->{xres};
 	my $xhay=$self->{xres};
 	if($inline) {

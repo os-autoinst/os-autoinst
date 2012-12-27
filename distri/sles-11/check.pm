@@ -14,7 +14,7 @@ sub check() {
 	autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", \&::checkfunc);
 	autotest::runtestdir("$ENV{CASEDIR}/x11test.d", \&::checkfunc);
 
-	my $overall=::is_ok($results->{curl_ipv6}) && (::is_ok($results->{xterm}) || ::is_ok($results->{firefox}) || ::is_ok($results->{yast2_users}));
+	my $overall=::is_ok($results->{sshd}) && (::is_ok($results->{xterm}) || ::is_ok($results->{firefox}) || ::is_ok($results->{yast2_users}));
 	return $overall;
 }
 

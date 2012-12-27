@@ -4,7 +4,13 @@ use bmwqemu;
 
 sub run()
 {
-	waitinststage("syslinux-bootloader", 30); # wait anim
+	unless($ENV{'HW'}) {
+		waitinststage("syslinux-bootloader", 30); # wait anim
+	}
+	else {
+		waitcolor('green', 160, 0.35, 0.60);
+		sleep 15;
+	}
 
 	if($ENV{ZDUP} || $ENV{WDUP}) {
 		qemusend "eject -f ide1-cd0";
@@ -31,6 +37,11 @@ sub run()
 	}
 	sendkey "ret";
 	qemusend "boot_set c"; # boot from HDD next time
+	if($ENV{'HW'}) {
+		# give grub time to start loading kernel
+		sleep 40;
+	}
+	waitimage('bootloader-loadkernel', 130, 'ds');
 }
 
 1;
