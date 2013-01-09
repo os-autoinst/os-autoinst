@@ -5,7 +5,7 @@ sub run()
 	my $self=shift;
 	script_run("zypper lr -d > /dev/$serialdev");
 	script_sudo("killall gpk-update-icon kpackagekitsmarticon packagekitd");
-	script_sudo("zypper ar http://download.opensuse.org/repositories/Virtualization:/Cloud:/EC2/openSUSE_Factory/Virtualization:Cloud:EC2.repo"); # for suse-ami-tools
+	script_sudo("zypper ar http://download.opensuse.org/repositories/Cloud:/EC2/openSUSE_Factory/Cloud:EC2.repo"); # for suse-ami-tools
 	script_sudo("zypper --gpg-auto-import-keys -n in screen rsync gvim suse-ami-tools");
 	waitstillimage(12,90);
 	script_run('echo $?');
