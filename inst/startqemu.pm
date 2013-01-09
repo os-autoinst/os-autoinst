@@ -47,7 +47,6 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	system(qw"cp -a", $file, "$basedir/l1"); # reduce disk IO later
 	for my $i (2..$ENV{NUMDISKS}) {
 		system($qemuimg, "create" ,"$basedir/$i", $sizegb."G");
-		symlink($i,"$basedir/l$i");
 	}
 }
 
@@ -71,6 +70,12 @@ if(!$ENV{KEEPHDDS}) {
 }
 sleep 5;
 
+
+for my $i (1..4) { # create missing symlinks
+	next if -e "$basedir/l$i";
+	next unless -e "$basedir/$i";
+	symlink($i,"$basedir/l$i");
+}
 $self->{'pid'}=fork();
 die "fork failed" if(!defined($self->{'pid'}));
 if($self->{'pid'}==0) {
