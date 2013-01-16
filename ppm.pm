@@ -3,6 +3,22 @@ use strict;
 use warnings;
 use constant BPP=>3;
 
+use File::Basename;
+
+my $libdir = dirname(__FILE__);
+
+BEGIN {
+	my $libdir = dirname(__FILE__);
+	unshift(@INC, "$libdir/ppmclibs");
+}
+
+unless(-e "$libdir/ppmclibs/tinycv.so" and -e "$libdir/ppmclibs/tinycv.pm") {
+	$|=1;
+	print "Building PPM C-libraries...\n";
+	system("cd $libdir/ppmclibs ; make");
+}
+our $clibs = eval{ require tinycv; };
+
 sub new($) {
 	my $classname=shift;
 	my $ppmdata=shift;
@@ -252,6 +268,23 @@ sub search($;$) {
 	}
 	return undef;
 }
+
+sub search_fuzzy($;$) {
+	my $self = shift;
+	my $needle = shift;
+	my $algorithm = shift||'surf';
+	my $pos;
+	if($algorithm eq 'surf') {
+		$pos = tinycv::search_SURF($self->toppm(), $needle->toppm());
+	}
+	# if match pos is (x, y, x, y)
+	# first point is upper left, second is bottom right
+	if(scalar(@$pos) ge 2) {
+		return ($pos->[0], $pos->[1]); # (x, y)
+	}
+	return undef;
+}
+
 
 sub toppm() {
 	my $self=shift;
