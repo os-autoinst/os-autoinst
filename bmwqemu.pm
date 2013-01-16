@@ -15,13 +15,14 @@ use threads;
 use threads::shared;
 use POSIX; 
 use Term::ANSIColor;
+use Data::Dump "dump";
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $testedversion %cmd
-&diag &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
+&diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
 &timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &waitcolor &init_backend &start_vm &set_hash_rects &set_ocr_rect &get_ocr
-&script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console &set_std_hash_rects &getcurrentscreenshot &power);
+&script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console &set_std_hash_rects &getcurrentscreenshot &power &mydie);
 
 
 # shared vars
@@ -235,6 +236,13 @@ sub fctinfo {
 	print STDERR colored("::: $fname: @fparams", 'yellow')."\n";
 }
 
+sub modstart {
+	my @text = @_;
+	$logfd && print $logfd "||| @text\n";
+	return unless $debug;
+	print STDERR colored("||| @text", 'bold')."\n";
+}
+
 sub fileContent($) {
 	my($fn)=@_;
 	open(my $fd, $fn) or return undef;
@@ -309,7 +317,7 @@ sub start_vm() {
 	$backend->start_vm();
 }
 
-sub mydie($) {
+sub mydie {
 	fctlog('mydie', "@_");
 	$backend->stop_vm();
 	close $logfd;
@@ -571,14 +579,14 @@ sub take_screenshot(;$) {
 			$statstr .= "statuser=$statuser ";
 			$statstr .= "statsystem=$statsystem ";
 		}
-		if (defined $data) {
+		if (defined $data and length($data) gt 0) {
 			@lastavgcolor = ppm->new($data)->avgcolor();
 		}
 		my $filevar = "file=".basename($lastname)." ";
 		my $laststgvar = ($ENV{HW})?"laststage=$lastinststage ":'';
 		my $md5var = ($ENV{HW})?'':"md5=$md5 ";
 		my $avgvar = "avgcolor=".join(',', map(sprintf("%.3f", $_), @lastavgcolor));
-		diag($filevar.$md5var.$laststgvar.$statstr.$avgvar);
+		diag($md5var.$filevar.$laststgvar.$statstr.$avgvar);
 
 		if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
 
@@ -809,25 +817,21 @@ sub waitimage($;$$) {
 }
 
 sub waitcolor($;$$$) {
-	my $color = shift; # red green blue
+	# [[red_min,red_max], [green_min,green_max], [blue_min,blue_max]]
+	# eg: [undef, [0.2, 0.7], [0,0.1]]
+	my $rgb_minmax = shift;
 	my $timeout = shift || 30;
-	my $minimum = shift || 0.5;
-	my $maximum = shift || 1;
 	my $starttime = time;
-	fctlog('waitcolor', "color=$color", "timeout=$timeout", "min=".($minimum*100)."%", "max=".($maximum*100)."%");
-	my %color_map = ('red' => 0, 'green' => 1, 'blue' => 2);
-	my $color_int = $color_map{$color};
+	fctlog('waitcolor', "rgb=".dump(@$rgb_minmax), "timeout=$timeout");
 	while(time-$starttime<$timeout) {
-		if (
-			defined $lastavgcolor[$color_int] and $minimum le $lastavgcolor[$color_int] and $lastavgcolor[$color_int] le $maximum
-		) {
-			fctres('waitcolor', "detected ".sprintf("%.3f", ($lastavgcolor[$color_int] * 100))."% $color");
+		if (check_color(\@lastavgcolor, $rgb_minmax)) {
+			fctres('waitcolor', "detected ".dump(@lastavgcolor));
 			return 1;
 		}
 		sleep 1;
 	}
 	timeout_screenshot();
-	fctres('waitcolor', "$color timed out after $timeout");
+	fctres('waitcolor', "rgb ".dump(@$rgb_minmax)." timed out after $timeout");
 	return 0;
 }
 
