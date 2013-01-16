@@ -407,6 +407,19 @@ sub raw_ilo_request($) {
 
 sub start_serial_grab() {
 	my $self = shift;
+
+	# kill all dd's on the same tty
+	my $ddpidlist = `pidof dd`;
+	if (defined $ddpidlist and $ddpidlist ne "") {
+		my @pids = split(" ", $ddpidlist);
+		foreach my $pid (@pids) {
+			my $ddtty = readlink("/proc/$pid/fd/0");
+			if ($ddtty eq $self->{'hardware'}->{'serial'}) {
+				kill(15, int($pid));
+			}
+		}
+	}
+
 	my $pid = fork();
 	if ($pid == 0) {
 		exec("dd", "if=".$self->{'hardware'}->{'serial'}, "of=".$bmwqemu::serialfile, "bs=1");
