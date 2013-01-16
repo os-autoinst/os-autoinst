@@ -264,7 +264,7 @@ sub sendkey($) {
 		push(@codes, $self->keycode_up($part));
 	}
 	my @codes_print = map(sprintf("0x%02X", $_), @codes);
-	print STDOUT "sendkey($key) => @codes_print\n";
+	#print STDOUT "sendkey($key) => @codes_print\n";
 	$self->raw_keyboard_io(\@codes);
 }
 
