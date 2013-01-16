@@ -168,9 +168,7 @@ sub insert_cd($) {
 	my $self = shift;
 	my $iso = shift;
 	if ($self->{'hardware'}->{'cdrom'} eq 'ilo') {
-		#FIXME: Ugly hack
-		$iso =~ s#/home/geekotest/opensuse/factory/iso##;
-		$iso =~ s#/opensuse/factory/iso##;
+		$iso =~ s#.*/iso/#/#;
 		#TODO: move this url to some config
 		my $isourl = 'http://autoinst.qa.suse.de:8080' . $iso;
 		my $ilo_xml = '<RIB_INFO MODE="write">'.
