@@ -17,10 +17,10 @@ sub runtest
 			print $fd "$script\n$name\n";
 			close $fd;
 		}
-		diag "starting $name $script";
+		modstart "starting $name $script";
 		my $ret=&$testfunc($test);
 		sleep 1;
-		diag "finished $name";
+		diag "||| finished $name";
 		return $ret;
 	}
 	else {
