@@ -662,7 +662,11 @@ sub checkrefimgs($$$) {
 		$screenppm->threshold(0x80);
 		$refppm->threshold(0x80);
 	}
-	if ($flags=~m/d/) {
+	if ($flags=~m/f/) {
+		# perform vector-based fuzzy matching using opencv
+		return $screenppm->search_fuzzy($refppm);
+	}
+	elsif ($flags=~m/d/) {
 		# allow difference of 40 per byte
 		return $screenppm->search($refppm, 40);
 	}

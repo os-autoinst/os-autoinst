@@ -84,7 +84,7 @@ sub check(%) {
 		my $prefix = $screenimg;
 		$prefix=~s{.*/$testname-(\d+)\.ppm}{$testname-$1};
 		#my $filename = $prefix.'.ppm';
-		my @refimgs=<$scriptdir/testimgs/$prefix-*-*.ppm>;
+		my @refimgs=<$scriptdir/testimgs/$prefix-*-*-*.ppm>;
 		if(!@refimgs) {
 			push(@testreturn, "na");
 		}
@@ -92,11 +92,26 @@ sub check(%) {
 			my $matched=0;
 			foreach my $refimg (@refimgs) {
 				#my $t=[Time::HiRes::gettimeofday()];
-				my $c=bmwqemu::checkrefimgs($screenimg,$refimg,'d');
+				my $match = $refimg;
+				$match=~s/.*-(.*)\.ppm/$1/;
+				my $flags = '';
+				if ($match eq 'strict') {$flags = ''}
+				elsif ($match eq 'diff') {$flags = 'd'}
+				elsif ($match eq 'fuzzy') {$flags = 'f'}
+				elsif ($match eq 'hwfuzzy') {
+					if(defined $ENV{'HW'} && $ENV{'HW'}) {
+						$flags = 'f';
+					}
+					else {
+						$flags = 'd';
+					}
+				}
+				my $c=bmwqemu::checkrefimgs($screenimg,$refimg,$flags);
 				#print "$refimg: ".Time::HiRes::tv_interval($t)."\n";
 				if(defined $c) {
 					my $result=$refimg;
-					$result=~s/.*-(.*)\.ppm/$1/;
+					$result=~s/.*-(.*)-.*\.ppm/$1/;
+					print STDERR "   $prefix: $match => $result\n";
 					push(@testreturn, (($result eq 'good')?'ok':'fail'));
 					$matched=1;
 					last;
