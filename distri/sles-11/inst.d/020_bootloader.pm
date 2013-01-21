@@ -31,6 +31,9 @@ sub run()
 		my $args="initrd=initrd,08000600.spl splash=silent vga=0x314";
 		$args.=" console=ttyS0,115200 console=tty"; # to get crash dumps as text
 		$args.=" loglevel=9"; # more debug output
+		if($ENV{AUTOYAST}) {
+			$args.=" netsetup=dhcp,all autoyast=$ENV{AUTOYAST}";
+		}
 		if(0 && $ENV{RAIDLEVEL}) {
 			$args.=" dud=ftp://metcalf.suse.de/dud/bl insecure=1";
 		}
