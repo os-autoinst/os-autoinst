@@ -1,4 +1,4 @@
-use base "installstep";
+use base "autoinstallstep";
 use strict;
 use bmwqemu;
 
