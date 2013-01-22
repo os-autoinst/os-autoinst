@@ -45,6 +45,8 @@ sub checkfunc {
 	printresult $class;
 }
 
+$ENV{'checklog_working'} = 1;
+
 my $overall=autotest::runtest("$ENV{CASEDIR}/check.pm",sub{my $test=shift;$test->check;});
 
 $results{overall}=($overall?"OK":"fail");

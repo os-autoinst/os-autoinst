@@ -19,7 +19,9 @@ sub runtest
 		}
 		modstart "starting $name $script";
 		my $ret=&$testfunc($test);
-		sleep 1;
+		unless(defined $ENV{'checklog_working'} && $ENV{'checklog_working'}) {
+			sleep 1;
+		}
 		diag "||| finished $name";
 		return $ret;
 	}
