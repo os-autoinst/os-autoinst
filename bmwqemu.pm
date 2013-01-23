@@ -352,6 +352,11 @@ sub qemusend($) {&backend_send;} # deprecated
 # runtime keyboard/mouse io functions
 
 ## keyboard
+=head2 sendkey
+
+sendkey($qemu_key_name)
+
+=cut
 sub sendkey($) {
 	my $key=shift;
 	fctlog('sendkey', "key=$key");
@@ -361,11 +366,25 @@ sub sendkey($) {
 	sleep(0.25);
 }
 
+=head2 sendkeyw
+
+sendkeyw($qemu_key_name)
+
+L</sendkey> then L</waitidle>
+
+=cut
 sub sendkeyw($) {
 	sendkey(shift);
 	waitidle();
 }
 
+=head2 sendautotype
+
+sendautotype($string)
+
+send a string of characters, mapping them to appropriate key names as necessary
+
+=cut
 sub sendautotype($) {
 	my $string=shift;
 	fctlog('sendautotype', "string='$string'");
@@ -438,6 +457,14 @@ sub x11_start_program($;$) {
 	sleep 1;
 }
 
+=head2 script_run
+
+script_run($program, [$wait_seconds])
+
+Run $program (by assuming the console prompt and typing it).
+Wait for idle before  and after.
+
+=cut
 sub script_run($;$) {
 	# start console application
 	my $name=shift;
@@ -448,6 +475,14 @@ sub script_run($;$) {
 	sleep 3;
 }
 
+=head2 script_sudo
+
+script_sudo($program, [$wait_seconds])
+
+Run $program. Handle the sudo timeout and send password when appropriate.
+
+$wait_seconds
+=cut
 sub script_sudo($;$) {
 	my ($prog,$wait)=@_;
 	sendautotype("sudo $prog\n");
@@ -461,8 +496,12 @@ sub script_sudo($;$) {
 	waitidle($wait);
 }
 
+=head2 script_sudo_logout
+
+Reset so that the next sudo will send password
+
+=cut
 sub script_sudo_logout() {
-	# reset so that next sudo will send password
 	$sudos=0
 }
 
@@ -752,6 +791,13 @@ sub decodewav($) {
 
 # wait functions
 
+=head2 waitstillimage
+
+waitstillimage([$stilltime_sec [, $timeout_sec [, $maxdiff_bytes]]])
+
+Wait until the screen stops changing
+
+=cut
 sub waitstillimage(;$$$) {
 	my $stilltime=shift||7;
 	my $timeout=shift||30;
@@ -822,9 +868,15 @@ sub waitimage($;$$) {
 	return undef;
 }
 
-sub waitcolor($;$$$) {
-	# [[red_min,red_max], [green_min,green_max], [blue_min,blue_max]]
-	# eg: [undef, [0.2, 0.7], [0,0.1]]
+=head2 waitcolor
+
+waitcolor($rgb_minmax [, $timeout_sec])
+
+$rgb_minmax is 	[[red_min,red_max], [green_min,green_max], [blue_min,blue_max]]
+eg: [undef, [0.2, 0.7], [0,0.1]]
+
+=cut
+sub waitcolor($;$) {
 	my $rgb_minmax = shift;
 	my $timeout = shift || 30;
 	my $starttime = time;
@@ -841,6 +893,16 @@ sub waitcolor($;$$$) {
 	return 0;
 }
 
+=head2 waitserial
+
+waitserial($regex [, $timeout_sec])
+
+Wait for a message to appear on serial output.
+You could have sent it there earlier with
+
+C<script_run("echo Hello World E<gt> /dev/$serialdev");>
+
+=cut
 sub waitserial($;$) {
 	# wait for a message to appear on serial output
 	my $regexp=shift;
@@ -856,6 +918,13 @@ sub waitserial($;$) {
 	return 0;
 }
 
+=head2 waitidle
+
+waitidle([$timeout_sec])
+
+Wait until the system becomes idle (as configured by IDLETHESHOLD in env.sh)
+
+=cut
 sub waitidle(;$) {
 	my $timeout=shift||19;
 	my $prev;

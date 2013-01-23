@@ -4,12 +4,27 @@ use ocr;
 use Time::HiRes;
 use JSON;
 
+
 sub new() {
 	my $class=shift;
 	my $self={class=>$class};
 	return bless $self, $class;
 }
 
+=head1 Methods
+
+=head2 run
+
+Body of the test to be implemented by child classes.
+This code is run during test.
+
+=head2 is_applicable
+
+Return false if the test should be skipped.
+
+Can eg. check ENV{BIGTEST}, ENV{LIVETEST}
+
+=cut
 sub is_applicable() {
 	return 1;
 }
@@ -22,6 +37,11 @@ sub next_resultname($) {
 	return "$path/$testname-$count.$type";
 }
 
+=head2 take_screenshot
+
+Can be called from C<run> to have screenshots in addition to the one taken via distri/opensuse/main.pm:installrunfunc after run finishes
+
+=cut
 sub take_screenshot() {
 	my $self=shift;
 	my $filename=$self->next_resultname("ppm");
@@ -44,18 +64,53 @@ sub stop_audiocapture {
 	sleep(0.1);
 }
 
+=head2 checklist
+
+Return a hashref mapping the digests of screenshots to "OK" or "fail"
+
+=cut
 sub checklist {
 	return {}
 }
 
+=head2 wav_checklist
+
+Return a hashref mapping a DTMF decoding to "OK" 
+everything else defaults to "fail"
+
+=cut
 sub wav_checklist {
 	return {}
 }
 
+=head2 ocr_checklist
+
+Optical Character Recognition matching.
+
+Return a listref containing hashrefs like this:
+
+  {
+    screenshot=>2,		# nr of screenshot for the test to OCR
+    x=>104, y=>201,		# position
+    xs=>380, ys=>150,		# size
+    pattern=>"H ?ello",		# regex to match the OCR result
+
+    result=>"OK"		# or "fail"
+  }
+
+=cut
 sub ocr_checklist {
 	return []
 }
 
+=head2 check($hashes) [protected]
+
+After C<run> is done, evaluate the screen dumps according to checklists.
+
+Return a string "STATUS DESCRIPTION"
+where STATUS is one of: OK fail unknown not-autochecked
+
+=cut
 sub check(%) {
 	my $self=shift;
 	my $hashes=shift;
