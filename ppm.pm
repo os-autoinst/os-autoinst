@@ -272,10 +272,13 @@ sub search($;$) {
 sub search_fuzzy($;$) {
 	my $self = shift;
 	my $needle = shift;
-	my $algorithm = shift||'surf';
+	my $algorithm = shift||'template';
 	my $pos;
 	if($algorithm eq 'surf') {
 		$pos = tinycv::search_SURF($self->toppm(), $needle->toppm());
+	}
+	elsif($algorithm eq 'template') {
+		$pos = tinycv::search_TEMPLATE($self->toppm(), $needle->toppm());
 	}
 	# if match pos is (x, y, x, y)
 	# first point is upper left, second is bottom right
