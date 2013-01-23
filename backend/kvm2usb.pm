@@ -420,6 +420,8 @@ sub start_serial_grab() {
 
 	my $pid = fork();
 	if ($pid == 0) {
+		# ensure 115200 baud
+		system('stty', '-F', $self->{'hardware'}->{'serial'}, '-echo', '-echoprt', '115200');
 		exec("dd", "if=".$self->{'hardware'}->{'serial'}, "of=".$bmwqemu::serialfile, "bs=1");
 		die "exec failed $!";
 	} else {
