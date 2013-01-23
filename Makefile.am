@@ -20,8 +20,6 @@ packagestate_DATA_FOLDERS = \
 
 pkglibexec_SCRIPTS = \
 	autotest.pm \
-	backend_qemu.pm \
-	backend_vbox.pm \
 	basenoupdate.pm \
 	basetest.pm \
 	bmwqemu.pm \
