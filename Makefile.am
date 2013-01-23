@@ -3,8 +3,13 @@ doc_DATA = \
 	INSTALL \
 	COPYING \
 	env.sh.sample \
+	doc/basetest.html \
+	doc/bmwqemu.html \
 	doc/debian-install-workflow.txt \
 	doc/fedora-installation.txt
+
+doc/%.html: %.pm
+	pod2html $< > $@
 
 packagestatedir = $(localstatedir)/lib/os-autoinst
 
