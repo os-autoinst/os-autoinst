@@ -27,7 +27,13 @@ sub run()
 		sendkey "esc";
 		sleep 1;
 		sendkey "ret";
-		sleep 3;
+		sleep 25;
+		if($ENV{HW}) {
+			for(1..10) {
+				sendkey "backspace";
+				sleep 1;
+			}
+		}
 		my $args="initrd=initrd,08000600.spl splash=silent vga=0x314";
 		$args.=" console=ttyS0,115200 console=tty"; # to get crash dumps as text
 		$args.=" loglevel=9"; # more debug output
@@ -37,7 +43,6 @@ sub run()
 		if(0 && $ENV{RAIDLEVEL}) {
 			$args.=" dud=ftp://metcalf.suse.de/dud/bl insecure=1";
 		}
-		sleep 15;
 		sendautotype "linux $args";
 	}
 	sendkey "ret";
