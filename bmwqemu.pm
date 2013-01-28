@@ -264,8 +264,10 @@ sub hashrect($$$) {
 }
 
 sub result_dir() {
-	mkdir $testresults;
-	mkdir "$testresults/$testedversion";
+	if(dirname(__FILE__) ne ".") {
+		mkdir $testresults;
+		mkdir "$testresults/$testedversion";
+	}
 	return "$testresults/$testedversion"
 }
 

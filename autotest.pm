@@ -13,16 +13,23 @@ sub runtest
 	my $test=$name->new();
 	return unless $test->is_applicable;
 	if (defined $testfunc) {
-		if(open(my $fd, ">currentstep")) { # to track progress
-			print $fd "$script\n$name\n";
-			close $fd;
-		}
-		modstart "starting $name $script";
-		my $ret=&$testfunc($test);
+		my $ret;
 		unless(defined $ENV{'checklog_working'} && $ENV{'checklog_working'}) {
+			if(open(my $fd, ">currentstep")) { # to track progress
+				print $fd "$script\n$name\n";
+				close $fd;
+			}
+			modstart "starting $name $script";
+			$ret=&$testfunc($test);
 			sleep 1;
+			diag "||| finished $name";
 		}
-		diag "||| finished $name";
+		else {
+			modstart "checking $name $script";
+			$ret=&$testfunc($test);
+			diag "";
+		}
+
 		return $ret;
 	}
 	else {
