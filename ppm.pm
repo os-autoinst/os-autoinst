@@ -243,7 +243,7 @@ sub search($;$) {
 		my $pos = searchC($self->{data}, $needle->{data}, $self->{xres}, $needle->{xres}, $maxdiff);
 		if ($pos ne -1) {
 			my($x,$y)=($pos % $xhay, int($pos/$xhay));
-			return($x,$y);
+			return [$x, $y, $needle->{xres}, $needle->{yres}];
 		}
 	}
 	else {
@@ -263,7 +263,7 @@ sub search($;$) {
 		if($self->{data}=~m/$regexp/ps) {
 			my $pos=length(${^PREMATCH})/BPP;
 			my($x,$y)=($pos % $xhay, int($pos/$xhay));
-			return($x,$y);
+			return [$x, $y, $needle->{xres}, $needle->{yres}];
 		}
 	}
 	return undef;
@@ -283,7 +283,7 @@ sub search_fuzzy($;$) {
 	# if match pos is (x, y, x, y)
 	# first point is upper left, second is bottom right
 	if(scalar(@$pos) ge 2) {
-		return ($pos->[0], $pos->[1]); # (x, y)
+		return [$pos->[0], $pos->[1], $needle->{xres}, $needle->{yres}]; # (x, y, rxres, ryres)
 	}
 	return undef;
 }

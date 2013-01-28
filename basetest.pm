@@ -2,6 +2,7 @@ package basetest;
 use bmwqemu;
 use ocr;
 use Time::HiRes;
+use JSON;
 
 sub new() {
 	my $class=shift;
@@ -71,27 +72,39 @@ sub check(%) {
 	my $checklist=$self->checklist();
 	my $wav_checklist=$self->wav_checklist();
 	my $ocr_checklist=$self->ocr_checklist();
-	if(!keys %$checklist && !@screenshots && (!@wavdumps || !keys %$wav_checklist) && !@$ocr_checklist) { return "not-autochecked" }
-	my $checkval = '';
-	foreach my $h (keys(%$checklist)) {
-		if($hashes->{$h}) {
-			$checkval = lc $checklist->{$h};
-			last;
+
+	#if(!keys %$checklist && !@screenshots && (!@wavdumps || !keys %$wav_checklist) && !@$ocr_checklist) { return "not-autochecked" } #FIXME: return properly
+
+	# MD5 Check
+	my $md5_result = 'na';
+	if(keys %$checklist) {
+		$md5_result = 'unk';
+		foreach my $h (keys(%$checklist)) {
+			if($hashes->{$h}) {
+				$checkval = lc $checklist->{$h};
+				last;
+			}
 		}
 	}
-	my @testreturn = ();
+
+	# Screenshot Check
+	my @screenshot_results = ();
 	foreach my $screenimg (@screenshots) {
 		my $prefix = $screenimg;
 		$prefix=~s{.*/$testname-(\d+)\.ppm}{$testname-$1};
-		#my $filename = $prefix.'.ppm';
 		my @refimgs=<$scriptdir/testimgs/$prefix-*-*-*.ppm>;
+		$screenimg=~m/-(\d+)\.ppm$/ or die "invalid screenshot name";
+		my $screenshotnr = $1;
+
+		my $screenshot_result = {'refimg_result' => 'unk', 'ocr_result' => 'na'};
+
+		# Reference Image Check
 		if(!@refimgs) {
 			push(@testreturn, "na");
+			$screenshot_result->{refimg_result} = 'na';
 		}
 		else {
-			my $matched=0;
 			foreach my $refimg (@refimgs) {
-				#my $t=[Time::HiRes::gettimeofday()];
 				my $match = $refimg;
 				$match=~s/.*-(.*)\.ppm/$1/;
 				my $flags = '';
@@ -106,50 +119,49 @@ sub check(%) {
 						$flags = 'd';
 					}
 				}
-				my $c=bmwqemu::checkrefimgs($screenimg,$refimg,$flags);
-				#print "$refimg: ".Time::HiRes::tv_interval($t)."\n";
-				if(defined $c) {
-					my $result=$refimg;
+				my $c = bmwqemu::checkrefimgs($screenimg,$refimg,$flags);
+				if($c) {
+					my ($result, $refimg_id) = ($refimg, $refimg);
 					$result=~s/.*-(.*)-.*\.ppm/$1/;
-					print STDERR "   $prefix: $match => $result\n";
-					push(@testreturn, (($result eq 'good')?'ok':'fail'));
-					$matched=1;
+					$refimg_id=~s/.*-([0-9]*)-.*-.*\.ppm/$1/;
+					$screenshot_result->{refimg_result} = (($result eq 'good')?'ok':'fail');
+					$screenshot_result->{refimg} = {
+						'id' => int($refimg_id),
+						'match' => [@$c[0], @$c[1]],
+						'size' => [@$c[2], @$c[3]]
+					};
 					last;
 				}
 			}
-			push(@testreturn, "unk") if !$matched;
 		}
-	}
-	my @ocrreturn = ();
-	foreach my $screenimg (@screenshots) {
-		if(!@$ocr_checklist) {
-			#	push(@ocrreturn, "na");
-		}
-		else {
-			$screenimg=~m/-(\d+)\.ppm$/ or die "invalid screenshot name";
-			my $screenshotnr=$1;
-			my $data=fileContent($screenimg);
-			my $matched;
+
+		# OCR Check
+		if(@$ocr_checklist) {
+			my $data = fileContent($screenimg);
 			foreach my $entry (@$ocr_checklist) {
 				next if($entry->{screenshot} != $screenshotnr);
-				$matched=0;
-				my @ocrrect=($entry->{x}, $entry->{y}, $entry->{xs}, $entry->{ys});
-				my $ocr=ocr::get_ocr(\$data, "", \@ocrrect);
+				my @ocrrect = ($entry->{x}, $entry->{y}, $entry->{xs}, $entry->{ys});
+				my $ocr = ocr::get_ocr(\$data, "", \@ocrrect);
 				open(OCRFILE, ">$path/$testname-$entry->{screenshot}.txt");
 				print OCRFILE $ocr;
 				close(OCRFILE);
 				print STDERR "\nOCR OUT: $ocr\n";
 				if($ocr=~m/$entry->{pattern}/) {
-					my $result=$entry->{result};
-					push(@ocrreturn, lc($result));
-					$matched=1;
+					my $result = $entry->{result};
+					$screenshot_result->{ocr_result} = lc($result);
 					last;
 				}
+				else {
+					$screenshot_result->{ocr_result} = 'unk';
+				}
 			}
-			if(!defined($matched)) {push(@ocrreturn, "na")}
-			elsif(!$matched) { push(@ocrreturn, "unk")}
 		}
+
+		push(@screenshot_results, $screenshot_result);
+
 	}
+
+	# Audio Check
 	my @wavreturn = ();
 	foreach my $audiofile (@wavdumps) {
 		my $aid = $audiofile;
@@ -167,15 +179,25 @@ sub check(%) {
 			push(@wavreturn, "na");
 		}
 	}
-	my $result_string = '';
-	if(@testreturn) {$result_string .= ' ('.join(',',@testreturn).')';}
-	if(@wavreturn) {$result_string .= ' ['.join(',',@wavreturn).']';}
-	if(@ocrreturn) {$result_string .= ' {'.join(',',@ocrreturn).'}';}
-	my @returnval = (@testreturn, @ocrreturn, @wavreturn, $checkval);
-	return 'fail'.$result_string if(grep/fail/,@returnval);
-	return 'OK'.$result_string if(grep/ok/,@returnval);
-	return 'unknown'.$result_string if(keys %$checklist || grep/unk/,@returnval); # none of our known results matched
-	return 'not-autochecked';
+
+	my @refimg_results = map($_->{refimg_result}, @screenshot_results);
+	my @ocr_results = map($_->{ocr_result}, @screenshot_results);
+	my @returnval = (@refimg_results, @ocr_results, @wavreturn, $md5_result);
+
+	my $module_result = 'na';
+	if(grep/fail/,@returnval) { $module_result = 'fail' }
+	elsif(grep/ok/,@returnval) { $module_result = 'ok' }
+	elsif(keys %$checklist || grep/unk/,@returnval) { $module_result = 'unk' } # none of our known results matched
+
+	my $return_result = {
+		'name' => $testname,
+		'result' => $module_result,
+		'md5_result' => $md5_result,
+		'screenshots' => [@screenshot_results],
+		'audiodumps' => [@wavreturn]
+	};
+	print STDERR '--- '.JSON::to_json($return_result)."\n";
+	return $return_result;
 }
 
 1;

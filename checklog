@@ -2,6 +2,7 @@
 use strict;
 use bmwqemu;
 use autotest;
+use JSON qw( to_json );
 
 sub checksize($) {
 	my $size=shift;
@@ -10,20 +11,30 @@ sub checksize($) {
 	if($i=~m/-DVD/) {$maxsize=4_707_319_808}
 	if($i=~m/-DVD-Biarch/) {$maxsize=8_539_996_160}
 	if($size>$maxsize) {return "fail"}
-	if($size>$maxsize*0.998) {return "unknown"}
-	return "OK";
+	if($size>$maxsize*0.998) {return "unk"}
+	return "ok";
 }
 
-print "\n====\n"; # marker
+my $testresult_dir = result_dir;
+$testresult_dir=~s/\.ogv.*//;
+if(!-e $testresult_dir) {
+	my $dir = `cd ../.. ; pwd`;
+	chomp($dir);
+	$testresult_dir = "$dir/$testresult_dir";
+}
 
+$ENV{'checklog_working'} = 1;
 our %stageseen=();
 our %md5seen=();
 our %results;
-sub printresult($)
-{
+our $testmodules = [];
+
+
+sub printresult($) {
 	my $key=shift;
 	if(defined($results{$key})) {print "$key: $results{$key}\n"}
 }
+
 while(<>) {
 	if(/^randomenv (\w+)=(.*)/) {$ENV{$1}=$2}
 	if(/^stage=([0-9a-zA-Z_.-]*) ([0-9a-f]+)/) {
@@ -35,22 +46,32 @@ while(<>) {
 	if(/^iso_size=(\d+)/) {$results{isosize}=checksize($1);}
 }
 
-sub is_ok($) { my $x=shift; $x=~m/^OK/ }
+sub is_ok($) { my $x=shift; $x=~m/^ok/ }
 
 sub checkfunc {
 	my($test)=@_;
 	my $class=ref $test;
 	my $result=$test->check(\%md5seen)||"unknown";
-	$results{$class}=$result;
+	push(@$testmodules, $result);
+	$results{$class} = $result->{result};
 	printresult $class;
 }
 
-$ENV{'checklog_working'} = 1;
+print "\n====\n"; # marker
 
 my $overall=autotest::runtest("$ENV{CASEDIR}/check.pm",sub{my $test=shift;$test->check;});
+$results{overall}=($overall?"ok":"fail");
 
-$results{overall}=($overall?"OK":"fail");
+my $json_result = {'testmodules' => $testmodules};
+
 foreach my $k ("standstill", "isosize", "overall") {
+	if(defined($results{$k})) {
+		$json_result->{$k} = $results{$k};
+	}
 	printresult $k;
 }
 
+# Write JSON result
+open(my $fd, ">", "$testresult_dir/results.json") or die "can not write results";
+print $fd to_json($json_result, { pretty => 1 });
+close($fd);
