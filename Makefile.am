@@ -19,6 +19,7 @@ packagestate_DATA_FOLDERS = \
 	audio
 
 pkglibexec_SCRIPTS = \
+	autoinstallstep.pm \
 	autotest.pm \
 	backend/baseclass.pm \
 	backend/helper/scancodes.pm \
