@@ -41,7 +41,7 @@ AC_SUBST([PERL_CFLAGS])
 # ================
 # Check for openCV
 # ================
-PKG_CHECK_MODULES([OPENCV], [opencv])
+PKG_CHECK_MODULES([OPENCV], [opencv >= 2.4])
 
 AC_CONFIG_FILES([
 	Makefile
