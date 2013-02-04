@@ -1,3 +1,5 @@
+ACLOCAL_AMFLAGS = -I m4
+
 doc_DATA = \
 	README \
 	INSTALL \
@@ -10,6 +12,17 @@ doc_DATA = \
 
 doc/%.html: %.pm
 	pod2html $< > $@
+
+lib_LTLIBRARIES = libtinycv.la
+libtinycv_la_SOURCES = \
+	ppmclibs/tinycv.cc \
+	ppmclibs/tinycv.h \
+	ppmclibs/tinycv_wrap.cxx
+libtinycv_la_LDFLAGS = -no-undefined
+libtinycv_la_CXXFLAGS = \
+	$(OPENCV_CFLAGS) \
+	$(PERL_CFLAGS)
+libtinycv_la_LIBADD = $(OPENCV_LIBS)
 
 packagestatedir = $(localstatedir)/lib/os-autoinst
 
@@ -49,10 +62,16 @@ pkglibexec_FOLDERS = \
 
 bin_SCRIPTS = bin/isotovideo
 
-EXTRA_DIST = autogen.sh bin/isotovideo.in \
-	$(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
+EXTRA_DIST = \
+	autogen.sh \
+	bin/isotovideo.in \
+	ppmclibs/tinycv.i \
+	$(libtinycv_la_SOURCES) $(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
 
 CLEANFILES = $(bin_SCRIPTS)
+
+ppmclibs/tinycv_wrap.cxx: ppmclibs/tinycv.i
+	$(SWIG) -c++ $(AM_CPPFLAGS) -perl5 -o $@ $<
 
 install-data-local:
 	mkdir -p "$(DESTDIR)/$(packagestatedir)" ; \
@@ -91,3 +110,4 @@ distclean-local: clean-local
 clean-local:
 	rm -rf *.tar.*
 	rm -rf doc/basetest.html doc/bmwqemu.html
+	rm -rf ppmclibs/tinycv_wrap.cxx
