@@ -10,6 +10,7 @@ doc_DATA = \
 	doc/debian-install-workflow.txt \
 	doc/fedora-installation.txt
 
+if WITH_OPENCV
 lib_LTLIBRARIES = libtinycv.la
 libtinycv_la_SOURCES = \
 	ppmclibs/tinycv.cc \
@@ -20,6 +21,11 @@ libtinycv_la_CXXFLAGS = \
 	$(OPENCV_CFLAGS) \
 	$(PERL_CFLAGS)
 libtinycv_la_LIBADD = $(OPENCV_LIBS)
+
+ppmcexecdir = $(pkglibexecdir)/ppmclibs
+ppmcexec_SCRIPTS = \
+	ppmclibs/tinycv.pm
+endif
 
 packagestatedir = $(localstatedir)/lib/os-autoinst
 
@@ -39,10 +45,6 @@ backendhelpexecdir = $(pkglibexecdir)/backend/helper
 backendhelpexec_SCRIPTS = \
 	backend/helper/scancodes.pm
 
-ppmcexecdir = $(pkglibexecdir)/ppmclibs
-ppmcexec_SCRIPTS = \
-	ppmclibs/tinycv.pm
-
 pkglibexec_SCRIPTS = \
 	autoinstallstep.pm \
 	autotest.pm \
@@ -53,7 +55,6 @@ pkglibexec_SCRIPTS = \
 	httpnotifyconf.pm \
 	installstep.pm \
 	ocr.pm \
-	ppmclibs/tinycv.pm \
 	ppm.pm \
 	start.pl
 
