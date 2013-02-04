@@ -10,9 +10,6 @@ doc_DATA = \
 	doc/debian-install-workflow.txt \
 	doc/fedora-installation.txt
 
-doc/%.html: %.pm
-	pod2html $< > $@
-
 lib_LTLIBRARIES = libtinycv.la
 libtinycv_la_SOURCES = \
 	ppmclibs/tinycv.cc \
@@ -31,14 +28,24 @@ packagestate_DATA_FOLDERS = \
 	testimgs \
 	audio
 
+backendexecdir = $(pkglibexecdir)/backend
+backendexec_SCRIPTS = \
+	backend/baseclass.pm \
+	backend/kvm2usb.pm \
+	backend/qemu.pm \
+	backend/vbox.pm
+
+backendhelpexecdir = $(pkglibexecdir)/backend/helper
+backendhelpexec_SCRIPTS = \
+	backend/helper/scancodes.pm
+
+ppmcexecdir = $(pkglibexecdir)/ppmclibs
+ppmcexec_SCRIPTS = \
+	ppmclibs/tinycv.pm
+
 pkglibexec_SCRIPTS = \
 	autoinstallstep.pm \
 	autotest.pm \
-	backend/baseclass.pm \
-	backend/helper/scancodes.pm \
-	backend/kvm2usb.pm \
-	backend/qemu.pm \
-	backend/vbox.pm \
 	basenoupdate.pm \
 	basetest.pm \
 	bmwqemu.pm \
@@ -46,6 +53,7 @@ pkglibexec_SCRIPTS = \
 	httpnotifyconf.pm \
 	installstep.pm \
 	ocr.pm \
+	ppmclibs/tinycv.pm \
 	ppm.pm \
 	start.pl
 
@@ -66,9 +74,15 @@ EXTRA_DIST = \
 	autogen.sh \
 	bin/isotovideo.in \
 	ppmclibs/tinycv.i \
+	$(ppmcexec_SCRIPTS) $(backendhelpexec_SCRIPTS) $(backendexec_SCRIPTS) \
 	$(libtinycv_la_SOURCES) $(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
 
 CLEANFILES = $(bin_SCRIPTS)
+
+doc/%.html: %.pm
+	pod2html $< > $@
+
+ppmclibs/tinycv.pm: ppmclibs/tinycv.i ppmclibs/tinycv_wrap.cxx
 
 ppmclibs/tinycv_wrap.cxx: ppmclibs/tinycv.i
 	$(SWIG) -c++ $(AM_CPPFLAGS) -perl5 -o $@ $<
@@ -88,7 +102,7 @@ uninstall-local:
 		rm -rf "$(DESTDIR)/$(packagestatedir)/$$i" ; \
 	done
 	for i in $(pkglibexec_FOLDERS) ; do \
-		 rm -rf "$(DESTDIR)/$(pkglibexecdir)/$$i" ; \
+		rm -rf "$(DESTDIR)/$(pkglibexecdir)/$$i" ; \
 	done
 
 dist-hook:
