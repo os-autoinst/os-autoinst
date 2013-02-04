@@ -1,3 +1,5 @@
+ACLOCAL_AMFLAGS = -I m4
+
 doc_DATA = \
 	README \
 	INSTALL \
@@ -8,8 +10,16 @@ doc_DATA = \
 	doc/debian-install-workflow.txt \
 	doc/fedora-installation.txt
 
-doc/%.html: %.pm
-	pod2html $< > $@
+lib_LTLIBRARIES = libtinycv.la
+libtinycv_la_SOURCES = \
+	ppmclibs/tinycv.cc \
+	ppmclibs/tinycv.h \
+	ppmclibs/tinycv_wrap.cxx
+libtinycv_la_LDFLAGS = -no-undefined
+libtinycv_la_CXXFLAGS = \
+	$(OPENCV_CFLAGS) \
+	$(PERL_CFLAGS)
+libtinycv_la_LIBADD = $(OPENCV_LIBS)
 
 packagestatedir = $(localstatedir)/lib/os-autoinst
 
@@ -18,10 +28,24 @@ packagestate_DATA_FOLDERS = \
 	testimgs \
 	audio
 
+backendexecdir = $(pkglibexecdir)/backend
+backendexec_SCRIPTS = \
+	backend/baseclass.pm \
+	backend/kvm2usb.pm \
+	backend/qemu.pm \
+	backend/vbox.pm
+
+backendhelpexecdir = $(pkglibexecdir)/backend/helper
+backendhelpexec_SCRIPTS = \
+	backend/helper/scancodes.pm
+
+ppmcexecdir = $(pkglibexecdir)/ppmclibs
+ppmcexec_SCRIPTS = \
+	ppmclibs/tinycv.pm
+
 pkglibexec_SCRIPTS = \
+	autoinstallstep.pm \
 	autotest.pm \
-	backend_qemu.pm \
-	backend_vbox.pm \
 	basenoupdate.pm \
 	basetest.pm \
 	bmwqemu.pm \
@@ -29,6 +53,7 @@ pkglibexec_SCRIPTS = \
 	httpnotifyconf.pm \
 	installstep.pm \
 	ocr.pm \
+	ppmclibs/tinycv.pm \
 	ppm.pm \
 	start.pl
 
@@ -45,10 +70,22 @@ pkglibexec_FOLDERS = \
 
 bin_SCRIPTS = bin/isotovideo
 
-EXTRA_DIST = autogen.sh bin/isotovideo.in \
-	$(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
+EXTRA_DIST = \
+	autogen.sh \
+	bin/isotovideo.in \
+	ppmclibs/tinycv.i \
+	$(ppmcexec_SCRIPTS) $(backendhelpexec_SCRIPTS) $(backendexec_SCRIPTS) \
+	$(libtinycv_la_SOURCES) $(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
 
 CLEANFILES = $(bin_SCRIPTS)
+
+doc/%.html: %.pm
+	pod2html $< > $@
+
+ppmclibs/tinycv.pm: ppmclibs/tinycv.i ppmclibs/tinycv_wrap.cxx
+
+ppmclibs/tinycv_wrap.cxx: ppmclibs/tinycv.i
+	$(SWIG) -c++ $(AM_CPPFLAGS) -perl5 -o $@ $<
 
 install-data-local:
 	mkdir -p "$(DESTDIR)/$(packagestatedir)" ; \
@@ -65,7 +102,7 @@ uninstall-local:
 		rm -rf "$(DESTDIR)/$(packagestatedir)/$$i" ; \
 	done
 	for i in $(pkglibexec_FOLDERS) ; do \
-		 rm -rf "$(DESTDIR)/$(pkglibexecdir)/$$i" ; \
+		rm -rf "$(DESTDIR)/$(pkglibexecdir)/$$i" ; \
 	done
 
 dist-hook:
@@ -86,3 +123,5 @@ distclean-local: clean-local
 
 clean-local:
 	rm -rf *.tar.*
+	rm -rf doc/basetest.html doc/bmwqemu.html
+	rm -rf ppmclibs/tinycv_wrap.cxx
