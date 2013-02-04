@@ -12,11 +12,6 @@ BEGIN {
 	unshift(@INC, "$libdir/ppmclibs");
 }
 
-unless(-e "$libdir/ppmclibs/tinycv.so" and -e "$libdir/ppmclibs/tinycv.pm") {
-	$|=1;
-	print "Building PPM C-libraries...\n";
-	system("cd $libdir/ppmclibs ; make");
-}
 our $clibs = eval{ require tinycv; };
 
 sub new($) {
