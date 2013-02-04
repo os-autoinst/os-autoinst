@@ -1,4 +1,7 @@
 # autotools
+doc/basetest.html
+doc/bmwqemu.html
+*.tmp
 aclocal.m4
 autom4te.cache/
 m4/

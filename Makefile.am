@@ -90,3 +90,4 @@ distclean-local: clean-local
 
 clean-local:
 	rm -rf *.tar.*
+	rm -rf doc/basetest.html doc/bmwqemu.html
