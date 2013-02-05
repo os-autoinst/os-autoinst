@@ -14,8 +14,8 @@ if WITH_OPENCV
 lib_LTLIBRARIES = libtinycv.la
 libtinycv_la_SOURCES = \
 	ppmclibs/tinycv.cc \
-	ppmclibs/tinycv.h \
-	ppmclibs/tinycv_wrap.cxx
+	ppmclibs/tinycv.h
+nodist_libtinycv_la_SOURCES = ppmclibs/tinycv_wrap.cxx
 libtinycv_la_LDFLAGS = -no-undefined
 libtinycv_la_CXXFLAGS = \
 	$(OPENCV_CFLAGS) \
@@ -75,18 +75,25 @@ EXTRA_DIST = \
 	autogen.sh \
 	bin/isotovideo.in \
 	ppmclibs/tinycv.i \
-	$(ppmcexec_SCRIPTS) $(backendhelpexec_SCRIPTS) $(backendexec_SCRIPTS) \
-	$(libtinycv_la_SOURCES) $(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
+	$(backendhelpexec_SCRIPTS) $(backendexec_SCRIPTS) \
+	$(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
 
-CLEANFILES = $(bin_SCRIPTS)
+CLEANFILES = \
+	$(bin_SCRIPTS) \
+	$(ppmcexec_SCRIPTS) \
+	ppmclibs/tinycv_wrap.cxx \
+	doc/basetest.html \
+	doc/bmwqemu.html
 
 doc/%.html: %.pm
 	pod2html $< > $@
 
+if WITH_OPENCV
 ppmclibs/tinycv.pm: ppmclibs/tinycv.i ppmclibs/tinycv_wrap.cxx
 
 ppmclibs/tinycv_wrap.cxx: ppmclibs/tinycv.i
 	$(SWIG) -c++ $(AM_CPPFLAGS) -perl5 -o $@ $<
+endif
 
 install-data-local:
 	mkdir -p "$(DESTDIR)/$(packagestatedir)" ; \
@@ -119,10 +126,9 @@ dist-hook:
 	else \
 		echo A git clone is required to generate a ChangeLog >&2; \
 	fi
+	rm -rf `find $(distdir) -name .gitignore`
 
 distclean-local: clean-local
 
 clean-local:
-	rm -rf *.tar.*
-	rm -rf doc/basetest.html doc/bmwqemu.html
-	rm -rf ppmclibs/tinycv_wrap.cxx
+	-rm -rf *.tar.*
