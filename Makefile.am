@@ -96,11 +96,11 @@ ppmclibs/tinycv_wrap.cxx: ppmclibs/tinycv.i
 endif
 
 install-data-local:
-	mkdir -p "$(DESTDIR)/$(packagestatedir)" ; \
+	$(MKDIR_P) $(DESTDIR)/$(packagestatedir) ; \
 	for i in $(packagestate_DATA_FOLDERS) ; do \
 		cp -r $(top_srcdir)/$$i "$(DESTDIR)/$(packagestatedir)" ; \
 	done
-	mkdir -p "$(DESTDIR)/$(pkgdatadir)" ; \
+	$(MKDIR_P) "$(DESTDIR)/$(pkgdatadir)" ; \
 	for i in $(pkglibexec_FOLDERS) ; do \
 		cp -r $(top_srcdir)/$$i "$(DESTDIR)/$(pkglibexecdir)" ; \
 	done

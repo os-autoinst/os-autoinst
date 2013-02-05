@@ -22,6 +22,7 @@ AM_SILENT_RULES([yes])
 # ===============
 AC_PROG_CXX
 AC_PROG_LIBTOOL
+AC_PROG_MKDIR_P
 PKG_PROG_PKG_CONFIG([0.20])
 
 # =======================
