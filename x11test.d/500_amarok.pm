@@ -9,6 +9,7 @@ sub is_applicable()
 sub run()
 {
 	my $self=shift;
+	ensure_installed("amarok");
 	x11_start_program("amarok /usr/share/sounds/alsa/test.wav");
 	waitidle;
 	$self->take_screenshot;

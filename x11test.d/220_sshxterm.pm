@@ -12,7 +12,7 @@ sub run()
 	mouse_hide(1);
 	x11_start_program("xterm");
 	script_run("ssh -XC root\@localhost xterm");
-	sendautotype("yes\n"); sleep 2;
+	sendautotype("yes\n"); waitidle(6);
 	sendautotype("$password\n");
 	sleep 2;
 	for(1..13) { sendkey "ret" }

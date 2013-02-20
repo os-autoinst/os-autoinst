@@ -32,6 +32,7 @@ sub check() {
 		next if($test eq "automaticconfiguration" && ($ENV{UPGRADE}||$ENV{LIVETEST}));
 		$overall=0 unless ::is_ok $results->{$test};
 	}
+	if(::is_ok $results->{mediacheck}) { return $results->{mediacheck} }
 	return $overall;
 }
 

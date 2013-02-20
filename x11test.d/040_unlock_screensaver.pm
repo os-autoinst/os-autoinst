@@ -3,15 +3,17 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return 0; # breaks 12.3 as there is no more sysvinit bnc#802467
-	return $ENV{SYSVINIT};
+	return $ENV{DESKTOP} =~m/gnome|kde/;
 }
 
 sub run()
 {
 	my $self=shift;
-	script_sudo("zypper -n rm systemd-sysvinit");
-	sendkey "ret";
+	# log in
+  sendkey "backspace"; sleep 5;
+  sendkey "ret"; sleep 5;
+	sendautotype $password."\n";
+	waitidle;
 }
 
 sub checklist()

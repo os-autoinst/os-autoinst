@@ -1,5 +1,6 @@
 use base "basetest";
 use bmwqemu;
+# http://mozmill-crowd.blargon7.com/#/functional/reports
 
 sub is_applicable()
 {

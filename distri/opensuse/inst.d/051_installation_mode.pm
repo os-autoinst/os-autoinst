@@ -23,6 +23,9 @@ sub run()
 	if($ENV{ADDONURL}) {
 		sendkey "alt-c"; # Include Add-On Products
 	}
+	if($ENV{AUTOCONF}) {
+		sendkey "alt-s"; # toggle automatic configuration
+	}
 	$self->take_screenshot;
 	sendkeyw $cmd{"next"};
 }
