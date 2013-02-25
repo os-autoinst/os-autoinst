@@ -34,6 +34,8 @@ if($ison=~m/openSUSE-(DVD|NET|KDE|GNOME|LXDE|XFCE)/) {
 	}
 }
 
+if(!-e $ENV{UEFI}.'/bios.bin') {die "'$ENV{UEFI}' should point to a directory with an uefi bios image"}
+
 system(qw"/bin/mkdir -p", $basedir);
 
 if($ENV{UPGRADE} && !$ENV{LIVECD}) {
@@ -91,6 +93,7 @@ if($self->{'pid'}==0) {
 		push(@params, "-k", $ENV{VNCKB}) if($ENV{VNCKB});
 	}
 	if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
+	if($ENV{UEFI}) { push(@params, "-L", $ENV{UEFI}); }
 	push(@params, "-usb", "-usbdevice", "tablet");
 	push(@params, "-smp", $ENV{QEMUCPUS});
 	print "starting: $qemubin ".join(" ", @params)."\n";
