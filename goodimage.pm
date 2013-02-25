@@ -43,6 +43,7 @@ bdcf5eae30d70c3fea49ec7db97969e2 instfail
 2b99e9973a6d0fc8d5e5beb74f088b16 bootloader-grub-11.0
 232cb27cbf4dafe0fc49900865b5548c bootloader-grub
 f74242b1f62bdbc7e3d6f060ceab7e0a bootloader-grub0620
+88fde8fe07e0371ea8618c508701034c bootloader-grub2-12.3
 7037bb735a64f3b5c65e009dbfb59b76 syslinuxbootloader-1044
 7964d6a7dcf973182a1b96287a3550c2 syslinuxbootloader-0314
 a3aa18ef5e5dbf9e553105aade7faf52 syslinuxbootloader-loaded-12.1
