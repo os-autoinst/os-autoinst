@@ -1,0 +1,22 @@
+For testing UEFI boot you need an UEFI firmware which is available in OBS as an
+rpm package.
+
+zypper ar -f \
+ http://download.opensuse.org/repositories/home:/jejb1:/UEFI/openSUSE_12.1 \
+ home:jejb1:UEFI
+
+zypper in OVMF
+
+This package contains /usr/share/qemu-ovmf/bios/bios.bin which replaces the
+bios /usr/share/qemu-kvm/bios.bin from the kvm package. All the other files in
+/usr/share/qemu-kvm/ are still needed.
+
+So prepare a new directory where you create symlinks to all the needed
+files. Choose your preferred path instead of /tmp/uefi.
+
+ mkdir /tmp/uefi
+ cd /tmp/uefi
+ ln -s /usr/share/qemu-kvm/* .
+ ln -sf /usr/share/qemu-ovmf/bios/bios.bin .
+
+Now set UEFI=/tmp/uefi in you env.sh and watch your system booting UEFI.
