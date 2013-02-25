@@ -3,6 +3,11 @@ use strict;
 use bmwqemu;
 use Time::HiRes qw(sleep);
 
+sub is_applicable()
+{
+  return !$ENV{UEFI};
+}
+
 # hint: press shift-f10 trice for highest debug level
 sub run()
 {
