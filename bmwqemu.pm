@@ -132,7 +132,7 @@ our %md5goodlist = qw();
 our %md5badlist = qw();
 our %md5inststage = qw();
 do "goodimage.pm"; # fill above vars
-my %goodsizes=(1440015=>1, 2359312=>1, 864015=>1);
+my %goodsizes=(1440015=>1, 1437615=>1, 2359312=>1, 864015=>1);
 # set good-foo vars end
 
 ## some var checks
