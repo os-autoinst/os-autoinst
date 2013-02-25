@@ -1,4 +1,4 @@
-For testing UEFI boot you need an UEFI firmware which is available in OBS as an
+For testing UEFI boot you need an UEFI firmware which is available in OBS as a
 rpm package.
 
 zypper ar -f \
