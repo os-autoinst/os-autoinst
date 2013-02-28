@@ -26,14 +26,16 @@ sub keycode_down($) {
         my $self = shift;
 	my $key = shift;
 	my $keycode = $self->{'keymaps'}->{'vbox'}->{$key};
+	if($keycode>=0x80) {return (0xe0, $keycode ^ 0x80);}
 	return ($keycode);
 }
 
 sub keycode_up($) {
         my $self = shift;
 	my $key = shift;
-	my $keycode_up = $self->{'keymaps'}->{'vbox'}->{$key} ^ 0x80;
-	return ($keycode_up);
+	my $keycode = $self->{'keymaps'}->{'vbox'}->{$key};
+	if($keycode>=0x80) {return (0xe0, $keycode);}
+	return ($keycode ^ 0x80);
 }
 
 sub raw_keyboard_io($) {
