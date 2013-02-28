@@ -2,6 +2,7 @@
 
 package backend::vbox;
 use strict;
+use Cwd 'abs_path';
 
 #use FindBin;
 #use lib "$FindBin::Bin/backend";
@@ -15,7 +16,7 @@ sub init() {
 	my $self = shift;
 	$self->{'vmname'} = 'osautoinst';
 	$self->{'pid'} = undef;
-	$self->scancodes::init();
+	$self->backend::helper::scancodes::init();
 }
 
 
@@ -38,7 +39,7 @@ sub keycode_up($) {
 sub raw_keyboard_io($) {
         my $self = shift;
 	my $data = shift;
-	my @codes = map(sprintf("0x%02x", $_), @$data);
+	my @codes = map(sprintf("%02x", $_), @$data);
 	$self->raw_vbox_controlvm("keyboardputscancode", @codes);
 }
 
@@ -115,7 +116,7 @@ sub do_start_vm {
 	# attach iso as DVD:
 	$self->insert_cd($ENV{ISO});
 	# pipe serial console output to file:
-	system("VBoxManage", "modifyvm", $self->{vmname}, "--uartmode1", "file", "serial0");
+	system("VBoxManage", "modifyvm", $self->{vmname}, "--uartmode1", "file", abs_path("serial0"));
 	system("VBoxManage", "modifyvm", $self->{vmname}, "--uart1", "0x3f8", 4);
 	system("VBoxManage", "startvm", $self->{vmname});
 	my $pid=`pidof VirtualBox`; chomp($pid);

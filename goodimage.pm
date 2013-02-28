@@ -51,6 +51,7 @@ a3aa18ef5e5dbf9e553105aade7faf52 syslinuxbootloader-loaded-12.1
 56b9eb4f1196d43002154796ec7fa203 syslinuxbootloader-12.2Beta
 da3c5a7c3a53cedcadd1604296b28d73 syslinuxbootloader-12.3RC1
 e9f109f901aa9e13c85e419d4923724d syslinuxbootloader-12.3RC1-livecddarkgray
+0ee1d1cf5d3e349934de179d88a54611 syslinuxbootloader-12.3RC2-vbox
 33af848897baea7919c430d7adb6d9f2 initializinggnome
 bbe0d620ec01763f2a01993caaed1e88 welcome-11.2
 7ea9ca7bfe7277145920de67c2212a1d welcome
