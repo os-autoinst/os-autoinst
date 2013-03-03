@@ -132,7 +132,7 @@ our %md5goodlist = qw();
 our %md5badlist = qw();
 our %md5inststage = qw();
 do "goodimage.pm"; # fill above vars
-my %goodsizes=(1440015=>1, 1437615=>1, 2359312=>1, 864015=>1);
+my %goodsizes=(1440015=>1, 1437615=>1, 2359312=>1, 864015=>1, 3686416=>1);
 # set good-foo vars end
 
 ## some var checks
@@ -746,6 +746,8 @@ sub inststagedetect($) {
 	push(@md5, hashrect($ppm, [500,320, 100,100], "t"));
 	# use header text for GNOME-installer
 	push(@md5, hashrect($ppm, [0,0, 250,30], "t"));
+	# left side for 12.3-grub2 logo
+	push(@md5, hashrect($ppm, [100,100, 100,300], ""));
 	# KDE/NET/DVD detect checks on left
 	push(@md5, hashrect($ppm, [27,128,13,200], "rct"));
 
