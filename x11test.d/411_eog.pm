@@ -14,7 +14,7 @@ sub is_applicable
 sub run()
 {
     my $self=shift;
-    x11_start_program("eog /usr/share/wallpapers/xfce/default.wallpaper");
+    x11_start_program("eog /usr/share/wallpapers/openSUSEdefault/contents/images/1280x1024.jpg");
     sleep 2;
     $self->take_screenshot; sleep 2;
     sendkey "alt-f4"; sleep 2;
