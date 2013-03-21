@@ -7,7 +7,6 @@ use strict;
 #use lib "$FindBin::Bin/backend";
 use JSON qw( decode_json );
 use POSIX ":sys_wait_h"; # for WNOHANG in waitpid()
-use Net::SNMP;
 use IO::Socket::SSL;
 use constant { SCHAR_MAX => 127, SCHAR_MIN => -127 };
 use base ('backend::helper::scancodes', 'backend::baseclass');
@@ -324,6 +323,7 @@ sub raw_power_snmp($) {
 	my $power = shift;
 	my $newvalue = ($power eq 'on')?$self->{'hardware'}->{'power'}->{'snmp'}->{'on_value'}:$self->{'hardware'}->{'power'}->{'snmp'}->{'off_value'};
 	my $ports = $self->{'hardware'}->{'power'}->{'snmp'}->{'ports'};
+	require Net::SNMP;
 	my ($session, $error) = Net::SNMP->session(
 		-hostname => $self->{'hardware'}->{'power'}->{'snmp'}->{'host'},
 		-community => $self->{'hardware'}->{'power'}->{'snmp'}->{'community'}
@@ -335,7 +335,7 @@ sub raw_power_snmp($) {
 		my $result = $session->set_request(
 			-varbindlist => [
 				$self->{'hardware'}->{'power'}->{'snmp'}->{'base_mib'}.$power_port,
-				INTEGER,
+				Net::SNMP::INTEGER(),
 				$newvalue
 			]
 		);
