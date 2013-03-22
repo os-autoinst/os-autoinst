@@ -81,8 +81,8 @@ if(!$ENV{GNOME}) {
 	set_ocr_rect(240,256,530,100);
 	waitinststage "users|booted", 180;
 	set_ocr_rect();
-	my $data=getcurrentscreenshot();
-        my $ocr=ocr::get_ocr(\$data, "-l 200", [250,100,600,500]);
+	my $img=getcurrentscreenshot();
+        my $ocr=ocr::get_ocr($img, "-l 200", [250,100,600,500]);
 	diag "post-install-ocr: $ocr";
         if($ocr=~m/Installation of package .* failed/i or waitimage("install-failed", 1)) {
 		sendkeyw "alt-d"; # see details of failure
