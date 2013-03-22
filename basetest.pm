@@ -192,11 +192,11 @@ sub check(%) {
 
 		# OCR Check
 		if(@$ocr_checklist) {
-			my $data = fileContent($screenimg);
+			my $img = tinycv::read($screenimg);
 			foreach my $entry (@$ocr_checklist) {
 				next if($entry->{screenshot} != $screenshotnr);
 				my @ocrrect = ($entry->{x}, $entry->{y}, $entry->{xs}, $entry->{ys});
-				my $ocr = ocr::get_ocr(\$data, "", \@ocrrect);
+				my $ocr = ocr::get_ocr($img, "", \@ocrrect);
 				open(OCRFILE, ">$path/$testname-$entry->{screenshot}.txt");
 				print OCRFILE $ocr;
 				close(OCRFILE);
