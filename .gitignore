@@ -2,7 +2,6 @@
 doc/basetest.html
 doc/bmwqemu.html
 ppmclibs/tinycv_wrap.cxx
-ppmclibs/tinycv.pm
 *.tmp
 aclocal.m4
 autom4te.cache/
@@ -30,3 +29,4 @@ depcomp
 temp
 old
 _Inline
+*~

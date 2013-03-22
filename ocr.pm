@@ -1,23 +1,20 @@
 package ocr;
 use strict;
 use warnings;
-use ppm;
+use cv;
 
 our $gocrbin="/usr/bin/gocr";
 if(!-x $gocrbin) {$gocrbin=undef}
-# input: ref on PPM data
+# input: image ref
 sub get_ocr($$@) {
-	my $dataref=shift; my $gocrparams=shift||""; my @ocrrect=@{$_[0]};
+	my $ppm=shift; my $gocrparams=shift||""; my @ocrrect=@{$_[0]};
 	if(!$gocrbin || !@ocrrect) {return ""}
 	if(@ocrrect!=4) {return " ocr: bad rect"}
-	my $ppm=ppm->new($$dataref);
 	return unless $ppm;
 	my $ppm2=$ppm->copyrect(@ocrrect);
 	if(!$ppm2) {return ""}
 	my $tempname="/dev/shm/$$-".time.rand(10000).".ppm";
-	open(my $tempfile, ">", $tempname) or return " ocr error writing $tempname";
-	print $tempfile $ppm2->toppm;
-	close $tempfile;
+	$ppm2->write($tempname) or return " ocr error writing $tempname";
 	# init DB file:
 	if(!-e "db/db.lst") {
 		mkdir "db";
