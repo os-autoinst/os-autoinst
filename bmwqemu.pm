@@ -122,6 +122,9 @@ if($ENV{INSTLANG} eq "de_DE") {
 	$cmd{"change"}="alt-n";
 	$cmd{"software"}="w";
 }
+if($ENV{INSTLANG} eq "es_ES") {
+	$cmd{"next"}="alt-i";
+}
 if($ENV{INSTLANG} eq "fr_FR") {
 	$cmd{"next"}="alt-s";
 }
