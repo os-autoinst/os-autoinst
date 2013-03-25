@@ -68,6 +68,7 @@ if(!$ENV{DISTRI}) {
 }
 $ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
 foreach my $part (split("-", $testedversion)) {$ENV{uc($part)}=1}
+$ENV{LIVECD}=$ENV{LIVE};
 
 ## env vars
 $ENV{QEMUPORT}||=15222;

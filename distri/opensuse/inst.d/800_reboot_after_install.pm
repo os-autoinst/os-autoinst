@@ -4,6 +4,9 @@ use bmwqemu;
 # first boot is special - could have used kexec and has second stage configuration
 sub is_applicable()
 {
+	return 0 if $ENV{LIVETEST};
+	return 0 if $ENV{NICEVIDEO};
+	return 1 if $ENV{DESKTOP} eq "kde" && !$ENV{UPGRADE}; # FIXME workaround https://bugzilla.novell.com/show_bug.cgi?id=804143
 	return $ENV{REBOOTAFTERINSTALL} && !$ENV{UPGRADE};
 }
 
