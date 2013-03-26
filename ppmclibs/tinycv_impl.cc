@@ -292,10 +292,10 @@ std::string str2md5(const char* str, int length) {
     return out;
 }
 
-static vector<uchar> convert_to_ppm(Image *s, int &header_length)
+static vector<uchar> convert_to_ppm(const Mat &s, int &header_length)
 {
   vector<uchar> buf;
-  if (!imencode(".ppm", s->img, buf)) {
+  if (!imencode(".ppm", s, buf)) {
     fprintf(stderr, "convert_to_ppm failed\n");
     header_length = 0;
     return buf;
@@ -316,7 +316,7 @@ static vector<uchar> convert_to_ppm(Image *s, int &header_length)
 std::string image_checksum(Image *s)
 {
   int header_length;
-  vector<uchar> buf = convert_to_ppm(s, header_length);
+  vector<uchar> buf = convert_to_ppm(s->img, header_length);
 
   const char *cbuf = reinterpret_cast<const char*> (&buf[0]);
   return str2md5(cbuf + header_length, buf.size() - header_length);
@@ -359,7 +359,7 @@ Image *image_copyrect(Image *s, long x, long y, long width, long height)
 void image_threshold(Image *s, int level)
 {
   int header_length;
-  vector<uchar> buf = convert_to_ppm(s, header_length);
+  vector<uchar> buf = convert_to_ppm(s->img, header_length);
 
   vector<uchar>::iterator it = buf.begin() + header_length;
   for (; it != buf.end(); ++it) {
@@ -369,46 +369,30 @@ void image_threshold(Image *s, int level)
 }
 
 // return 0 if raw difference is larger than maxdiff (on abs() of channel)
-int image_differ(Image *a, Image *b, unsigned char maxdiff)
+bool image_differ(Image *a, Image *b, unsigned char maxdiff)
 {
-  printf("image_differ\n");
-  // TODO
-  // for(i=alen-1; i>=0; i--) {
-  //   if (abs(ca[i] - cb[i]) > maxdiff)
-  //     return 0;
+  cv::Mat diff = abs(a->img - b->img);
 
-  return 1;
+  int header_length;
+  vector<uchar> buf = convert_to_ppm(diff, header_length);
+
+  vector<uchar>::iterator it = buf.begin() + header_length;
+  for (; it != buf.end(); ++it) {
+    if (*it > maxdiff) return true;
+  }
+
+  return false;
 }
 
 vector<float> image_avgcolor(Image *s)
 {
-  printf("image_avgcolor\n");
-  // TODO
-// # calculate average color values
-// # out: (r,g,b) in range 0..1
-// sub avgcolor() {
-// 	my $self=shift;
-// 	my @c=(0,0,0);
-// 	my $n=0;
-// 	if($inline) {
-// 		for my $i (0..2) {
-// 			$c[$i]=addpixels($self->{data}, $i);
-// 		}
-// 	}
-// 	else {
-// 		my @d=unpack("C*",$self->{data});
-// 		foreach my $value (@d) {
-// 			$c[$n % BPP]+=$value;
-// 			$n++;
-// 		}
-// 	}
-// 	$n=length($self->{data})*255/3;
-// 	return map {$_/$n} @c;
-// }
+  Scalar t = mean(s->img);
+
   vector<float> f;
-  f.push_back((rand() % 255) / 255.);
-  f.push_back((rand() % 255) / 255.);
-  f.push_back((rand() % 255) / 255.);
+  f.push_back(t[2] / 255.0); // Red
+  f.push_back(t[1] / 255.0); // Green
+  f.push_back(t[0] / 255.0); // Blue
+
   return f;
 }
 
