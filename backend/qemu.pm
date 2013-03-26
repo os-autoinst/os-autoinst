@@ -57,9 +57,13 @@ sub mouse_hide(;$) {
 	}
 }
 
-sub screendump($) {
-	my ($self, $filename) = @_;
-	$self->send("screendump $filename");
+sub screendump() {
+	my $self = shift;
+	my $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.ppm', OPEN => 0 );
+	$self->send("screendump $tmp");
+	my $ret = tinycv::read($tmp);
+	unlink $tmp;
+	return $ret;
 }
 
 sub raw_alive($) {
