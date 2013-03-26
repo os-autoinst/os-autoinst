@@ -236,7 +236,6 @@ std::vector<int> search_TEMPLATE(std::string str_scene, std::string str_object) 
 
 void image_destroy(Image *s)
 {
-  //printf("destroy\n");
   delete(s);
 }
 
@@ -245,7 +244,7 @@ Image *image_read(const char *filename)
   Image *image = new Image;
   image->img = imread(filename, CV_LOAD_IMAGE_COLOR);
   if (!image->img.data) {
-    std::cout << "Could not open image" << filename << std::endl;
+    //std::cout << "Could not open image " << filename << std::endl;
     return 0L;
   }
   return image;
@@ -253,7 +252,6 @@ Image *image_read(const char *filename)
 
 bool image_write(Image *s, const char *filename)
 {
-  printf("image_write");
   imwrite(filename, s->img);
   return true;
 }
@@ -292,7 +290,7 @@ std::string str2md5(const char* str, int length) {
     return out;
 }
 
-static vector<uchar> convert_to_ppm(const Mat &s, int &header_length)
+static std::vector<uchar> convert_to_ppm(const Mat &s, int &header_length)
 {
   vector<uchar> buf;
   if (!imencode(".ppm", s, buf)) {
@@ -394,7 +392,7 @@ bool image_differ(Image *a, Image *b, unsigned char maxdiff)
   return false;
 }
 
-vector<float> image_avgcolor(Image *s)
+srd::vector<float> image_avgcolor(Image *s)
 {
   Scalar t = mean(s->img);
 

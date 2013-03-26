@@ -593,11 +593,7 @@ sub power($) {
 
 # runtime information gathering functions
 
-sub do_take_screenshot(;$) {
-	my $flags = shift || '';
-	unless($flags=~m/q/) {
-		fctlog('screendump', "filename=$filename");
-	}
+sub do_take_screenshot() {
 	return $backend->screendump();
 }
 
@@ -605,7 +601,7 @@ sub timeout_screenshot() {
 	my $n = ++$timeoutcounter;
 	my $dir=result_dir;
 	my $n2=sprintf("%02i",$n);
-	my $img = $do_take_screenshot();
+	my $img = do_take_screenshot();
 	$img->write("$dir/timeout-$n2.png");
 	return $img;
 }
@@ -655,7 +651,7 @@ sub take_screenshot(;$) {
 				sendkey "alt-sysrq-w";
 				sendkey "alt-sysrq-l";
 				sendkey "alt-sysrq-d"; # only available with CONFIG_LOCKDEP
-				do_take_screenshot("$dir/standstill-1.ppm", $flags);sleep 1;
+				$backend->screendump()->write("$dir/standstill-1.png");sleep 1;
 				mydie "standstill detected. test ended. see $lastname\n"; # above 120s of autoreboot
 			}
 		}
@@ -669,8 +665,11 @@ sub take_screenshot(;$) {
 		if(($framecounter++ < 10) && $img->xres()<800) {unlink($lastname)}
 	}
 	my $t=[gettimeofday()];
-	my $img = do_take_screenshot($flags);
+	my $img = do_take_screenshot();
 	my $filename=$path.sprintf("%i.%06i.png", $t->[0], $t->[1]);
+        unless($flags=~m/q/) {
+                fctlog('screendump', "filename=$filename");
+        }
 	#print STDERR $filename,"\n";
 	$img->write($filename);
 	$lastname=$filename;

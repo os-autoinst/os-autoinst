@@ -36,7 +36,7 @@ else
 	echo "No build id collected" >> ${logfile}
 fi
 
-$scriptdir/start.pl || exit 1;
+perl $scriptdir/start.pl || exit 1;
 
 name=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media1?//;print' $ISO)
 mkdir -p video
