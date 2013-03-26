@@ -97,6 +97,12 @@ std::vector<int> search_TEMPLATE(std::string str_scene, std::string str_object) 
 	}
 }
 
+void image_destroy(Image *s)
+{
+  //printf("destroy\n");
+  delete(s);
+}
+
 Image *image_read(const char *filename)
 {
   Image *image = new Image;
@@ -237,7 +243,7 @@ int image_differ(Image *a, Image *b, unsigned char maxdiff)
   return 1;
 }
 
-float image_avgcolor(Image *s)
+vector<float> image_avgcolor(Image *s)
 {
   printf("image_avgcolor\n");
   // TODO
@@ -262,7 +268,11 @@ float image_avgcolor(Image *s)
 // 	$n=length($self->{data})*255/3;
 // 	return map {$_/$n} @c;
 // }
-  return 0;
+  vector<float> f;
+  f.push_back((rand() % 255) / 255.);
+  f.push_back((rand() % 255) / 255.);
+  f.push_back((rand() % 255) / 255.);
+  return f;
 }
 
 	// STRLEN slen; unsigned char *cs=SvPV(svs,slen);
