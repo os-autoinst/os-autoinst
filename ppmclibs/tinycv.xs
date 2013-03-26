@@ -79,12 +79,13 @@ void threshold(tinycv::Image self, int level)
   CODE:
     image_threshold(self, level);
 
-float avgcolor(tinycv::Image self)
-  CODE:
-    RETVAL = image_avgcolor(self);
-
-  OUTPUT:
-    RETVAL
+void avgcolor(tinycv::Image self)
+  PPCODE:
+    std::vector<float> res = image_avgcolor(self);
+    EXTEND(SP, 3);
+    PUSHs(sv_2mortal(newSVnv(res[0])));
+    PUSHs(sv_2mortal(newSVnv(res[1])));
+    PUSHs(sv_2mortal(newSVnv(res[2])));
  
 void search(tinycv::Image self, tinycv::Image needle, int maxdiff)
   PPCODE:
@@ -103,3 +104,7 @@ void search_fuzzy(tinycv::Image self, tinycv::Image needle)
     for (; it != ret.end(); ++it) { 
       PUSHs(sv_2mortal(newSViv(*it)));
     }
+
+void DESTROY(tinycv::Image self)
+  CODE:
+    image_destroy(self);

@@ -3,6 +3,7 @@
 
 // opaque type to seperate perl from opencv
 struct Image;
+void image_destroy(Image *s);
 Image *image_read(const char *filename);
 bool image_write(Image *s, const char *filename);
 
@@ -18,5 +19,5 @@ long image_yres(Image *s);
 void image_replacerect(Image *s, long x, long y, long width, long height);
 Image *image_copyrect(Image *s, long x, long y, long width, long height);
 void image_threshold(Image *s, int level);
-float image_avgcolor(Image *s);
+std::vector<float> image_avgcolor(Image *s);
 int image_differ(Image *a, Image *b, unsigned char maxdiff);
