@@ -24,6 +24,6 @@ BEGIN {
   unshift(@INC, "$libdir/ppmclibs/blib/lib");
 }
 
-use tinycv;
+eval{ require tinycv; };
 
 1;

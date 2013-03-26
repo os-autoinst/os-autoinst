@@ -31,7 +31,8 @@ bool write(tinycv::Image self, const char *file)
 
 const char *checksum(tinycv::Image self)
   CODE:
-    RETVAL = image_checksum(self).c_str();
+    std::string ret = image_checksum(self);
+    RETVAL = ret.c_str();
 
   OUTPUT:
     RETVAL
