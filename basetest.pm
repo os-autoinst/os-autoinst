@@ -44,8 +44,8 @@ Can be called from C<run> to have screenshots in addition to the one taken via d
 =cut
 sub take_screenshot() {
 	my $self=shift;
-	my $filename=$self->next_resultname("ppm");
-	bmwqemu::do_take_screenshot($filename);
+	my $filename=$self->next_resultname("png");
+	bmwqemu::do_take_screenshot()->write($filename);
 	sleep(0.1);
 	# TODO analyze_screenshot $filename;
 }

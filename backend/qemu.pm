@@ -4,7 +4,8 @@ package backend::qemu;
 use strict;
 use base ('backend::baseclass');
 use threads;
-
+require File::Temp;
+use File::Temp ();
 
 sub init() {
 	my $self = shift;
@@ -61,7 +62,11 @@ sub screendump() {
 	my $self = shift;
 	my $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.ppm', OPEN => 0 );
 	$self->send("screendump $tmp");
-	my $ret = tinycv::read($tmp);
+	my $ret;
+        while (!$ret) { 
+          $ret = tinycv::read($tmp);
+          sleep(0.1) unless (defined $ret);
+        }
 	unlink $tmp;
 	return $ret;
 }
