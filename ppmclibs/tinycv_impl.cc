@@ -350,6 +350,10 @@ void image_replacerect(Image *s, long x, long y, long width, long height)
 /* copies the given range into a new image */
 Image *image_copyrect(Image *s, long x, long y, long width, long height)
 {
+  // avoid an exception
+  if ( y+height > s->img.rows || x+width > s->img.cols )
+    return 0;
+
   Image *n = new Image;
   n->img = Mat(s->img, Range(y, y+height), Range(x,x+width));
   return n;
@@ -371,6 +375,12 @@ void image_threshold(Image *s, int level)
 // return 0 if raw difference is larger than maxdiff (on abs() of channel)
 bool image_differ(Image *a, Image *b, unsigned char maxdiff)
 {
+  if (a->img.rows != b->img.rows)
+    return true;
+
+  if (a->img.cols != b->img.cols)
+    return true;
+
   cv::Mat diff = abs(a->img - b->img);
 
   int header_length;
@@ -396,79 +406,73 @@ vector<float> image_avgcolor(Image *s)
   return f;
 }
 
-	// STRLEN slen; unsigned char *cs=SvPV(svs,slen);
-	// 	STRLEN rlen; unsigned char *cr=SvPV(svr,rlen);
-	// 	// divide by 3 because of 3 byte per pix
-	// 	// substract 1 to be able to add color-byte offset by hand
-	// 	long slen_pix = slen / 3;
-	// 	long rlen_pix = rlen / 3;
-	// 	long newlineoffset = svsxlen - svrxlen;
-	// 	long svrxlen_check = rlen_pix - 1;
-	// 	long i, my_i, j, remaining_sline;
-	// 	long byteoffset_s, byteoffset_r;
-	// 	long rs, bs, gs, rr, br, gr;
-	// 	for(i=0; i<slen_pix; i++) {
-	// 		remaining_sline = (svsxlen - (i % svsxlen));
-	// 		if ( remaining_sline < svrxlen ) {
-	// 			// a refimg line would not fit
-	// 			// into remaining selfimg line
-	// 			// jump to next line
-	// 			i += remaining_sline - 1; // ugly but faster
-	// 			continue;
-	// 		}
-	// 		// refimg does fit in remaining img check?
-	// 		my_i = i;
-	// 		for(j=0; j<rlen_pix; j++) {
-	// 			if (j > 0 && j % svrxlen == 0) {
-	// 				// we have reached end of a line in refimg
-	// 				// pos 0 in refimg does not mean end of line
-	// 				my_i += newlineoffset;
-	// 			}
-	// 			if (my_i >= slen_pix)
-	// 				break;
+// in: needle to search
+// out: (x,y) coords if found, undef otherwise
+// inspired by OCR::Naive
+std::vector<int> image_search(Image *s, Image *needle, int maxdiff)
+{
+  /*
+  int header_length;
+  vector<uchar> buf = convert_to_ppm(s->img, header_length);
 
-	// 			byteoffset_s = (my_i+j)*3;
-	// 			byteoffset_r = j*3;
-	// 			if (
-	// 				abs(cs[byteoffset_s+0] - cr[byteoffset_r+0]) > maxdiff ||
-	// 				abs(cs[byteoffset_s+1] - cr[byteoffset_r+1]) > maxdiff ||
-	// 				abs(cs[byteoffset_s+2] - cr[byteoffset_r+2]) > maxdiff
-	// 			) {
-	// 				//printf(\"x: %d\\n\", (my_i+j) % svsxlen);
-	// 				//printf(\"y: %d\\n\", (my_i+j) / svsxlen);
-	// 				//printf(\"byte_offset: %d\\n\", byteoffset_s);
-	// 				//printf(\"s: %x - r: %x\\n\", cs[byteoffset_s+0], cr[byteoffset_r+0]);
-	// 				//printf(\"break\\n\\n\\n\");
-	// 				break;
-	// 			}
-	// 			if (j == svrxlen_check) {
-	// 				// last iteration - refimg processed without break
-	// 				// return i which is startpos of match (in pixels)
-	// 				return i;
-	// 			}
-	// 		}
-	// 	}
-	// 	return -1;
+  vector<uchar>::iterator it = buf.begin() + header_length;
 
-// # in: needle to search [ppm object]
-// # out: (x,y) coords if found, undef otherwise
-// # inspired by OCR::Naive
-// sub search($;$) {
-// 	my $self=shift;
-// 	my $needle=shift;
-// 	my $maxdiff = shift || 40;
-// 	my $xneedle=$needle->{xres};
-// 	my $xhay=$self->{xres};
-	
-
-// 	my $pos = searchC($self->{data}, $needle->{data}, $self->{xres}, $needle->{xres}, $maxdiff);
-
-// 	if ($pos ne -1) {
-// 	  my($x,$y)=($pos % $xhay, int($pos/$xhay));
-// 	  return [$x, $y, $needle->{xres}, $needle->{yres}];
-// 	}
-// 	return undef;
-// }
+  // divide by 3 because of 3 byte per pix
+  // substract 1 to be able to add color-byte offset by hand
+  long svsxlen = s->img.cols;
+  long svrxlen = needle->img.cols;
+  long slen_pix = s->img.cols * s->img.rows;
+  long rlen_pix = needle->img.cols * needle->img.rows;
+  long newlineoffset = svsxlen - svrxlen;
+  long svrxlen_check = rlen_pix - 1;
+  long i, my_i, j, remaining_sline;
+  long byteoffset_s, byteoffset_r;
+  long rs, bs, gs, rr, br, gr;
+  for(i=0; i<slen_pix; i++) {
+    remaining_sline = (svsxlen - (i % svsxlen));
+    if ( remaining_sline < svrxlen ) {
+      // a refimg line would not fit
+      // into remaining selfimg line
+      // jump to next line
+      i += remaining_sline - 1; // ugly but faster
+      continue;
+    }
+    // refimg does fit in remaining img check?
+    my_i = i;
+    for(j=0; j<rlen_pix; j++) {
+      if (j > 0 && j % svrxlen == 0) {
+	// we have reached end of a line in refimg
+	// pos 0 in refimg does not mean end of line
+	my_i += newlineoffset;
+      }
+      if (my_i >= slen_pix)
+	break;
+      
+      byteoffset_s = (my_i+j)*3;
+      byteoffset_r = j*3;
+      if (
+	  abs(cs[byteoffset_s+0] - cr[byteoffset_r+0]) > maxdiff ||
+	  abs(cs[byteoffset_s+1] - cr[byteoffset_r+1]) > maxdiff ||
+	  abs(cs[byteoffset_s+2] - cr[byteoffset_r+2]) > maxdiff
+	  ) {
+	//printf(\"x: %d\\n\", (my_i+j) % svsxlen);
+	//printf(\"y: %d\\n\", (my_i+j) / svsxlen);
+	//printf(\"byte_offset: %d\\n\", byteoffset_s);
+	//printf(\"s: %x - r: %x\\n\", cs[byteoffset_s+0], cr[byteoffset_r+0]);
+	//printf(\"break\\n\\n\\n\");
+	break;
+      }
+      if (j == svrxlen_check) {
+	// last iteration - refimg processed without break
+	// return i which is startpos of match (in pixels)
+	return i;
+      }
+    }
+  }
+  return -1;*/
+  std::vector<int> ret;
+  return ret;
+}
 
 //  search_fuzzy($;$) {
 // 	my $self = shift;
@@ -488,14 +492,6 @@ vector<float> image_avgcolor(Image *s)
 // 	}
 // 	return undef;
 // }
-
-std::vector<int> image_search(Image *s, Image *needle, int maxdiff)
-{
-  printf("image_search\n");
-  std::vector<int> ret;
-  return ret;
-}
-
 std::vector<int> image_search_fuzzy(Image *s, Image *needle)
 {
   printf("image_search_fuzzy\n");

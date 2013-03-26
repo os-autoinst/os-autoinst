@@ -79,7 +79,7 @@ sub mouse_set($) {notimplemented} # absolute
 sub mouse_button($) {notimplemented} # params: (left/(middle)/right, 0/1)
 sub mouse_hide(;$) {notimplemented}
 
-sub screendump($) {notimplemented}
+sub screendump() {notimplemented}
 
 sub raw_alive($) {notimplemented}
 sub screenactive($) {notimplemented} # not really important atm
