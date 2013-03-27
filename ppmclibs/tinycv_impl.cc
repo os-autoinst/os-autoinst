@@ -366,7 +366,9 @@ Image *image_scale(Image *a, long width, long height)
   printf("image_scale\n");
 
   Image *n = new Image;
-  n->img = Mat::zeros(width, height, a->img.type());
+  n->img = Mat(height, width, a->img.type());
+  resize(a->img, n->img, n->img.size());
+
   return n;
 }
 
