@@ -14,10 +14,11 @@
 
 #define DEBUG 0
 
+#define VERY_DIFF 0.0
+#define VERY_SIM 1000000.0
+
+
 using namespace cv;
-
-
-double getPSNR(const Mat& I1, const Mat& I2);
 
 
 struct Image {
@@ -179,64 +180,83 @@ std::vector<int> search_SURF(std::string str_scene, std::string str_object) {
 
 }
 
-std::vector<int> search_TEMPLATE(std::string str_scene, std::string str_object) {
-	cvSetErrMode(CV_ErrModeParent);
-	cvRedirectError(MyErrorHandler);
+std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double &similarity) {
+  cvSetErrMode(CV_ErrModeParent);
+  cvRedirectError(MyErrorHandler);
 
-	std::vector<char> data_scene = str2vec(str_scene);
-	std::vector<char> data_object = str2vec(str_object);
+  if (scene->img.empty() || object->img.empty() ) {
+    std::cerr << "Error reading images. Scene or object is empty." << std::endl;
+    throw(std::exception());
+  }
 
-	Mat img_scene =  imdecode(Mat(data_scene),  CV_LOAD_IMAGE_COLOR );
-	Mat img_object = imdecode(Mat(data_object), CV_LOAD_IMAGE_COLOR );
+  // Calculate size of result matrix and create it If scene is W x H
+  // and object is w x h, res is (W - w + 1) x ( H - h + 1)
+  int res_width  = scene->img.cols - object->img.cols + 1;
+  int res_height = scene->img.rows - object->img.rows + 1;
+  Mat res = Mat::zeros(res_height, res_width, CV_32FC1);
 
-	if( !img_object.data || !img_scene.data ) {
-		std::cerr<< "Error reading images" << std::endl;
-		throw(std::exception());
-	}
+  // Perform the matching. Info about algorythm:
+  // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
+  // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
+  matchTemplate(scene->img, object->img, res, CV_TM_CCOEFF_NORMED);
 
-	// Calculate size of result matrix and create it
-	int res_width  = img_scene.cols - img_object.cols + 1;
-	int res_height = img_scene.rows - img_object.rows + 1;
-	Mat res = Mat::zeros(res_height, res_width, CV_32FC1);
+  // Localizing the best math with minMaxLoc
+  double minval, maxval;
+  Point  minloc, maxloc;
+  minMaxLoc(res, &minval, &maxval, &minloc, &maxloc, Mat());
 
-	// Perform the matching
-	// infos about algorythms: http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
-	matchTemplate(img_scene, img_object, res, CV_TM_CCOEFF_NORMED);
+#if DEBUG
+  Mat s = scene->img;
+  rectangle(s, Point(maxloc.x, maxloc.y),
+	    Point(maxloc.x + object->img.cols, maxloc.y + object->img.rows),
+	    CV_RGB(255,0,0), 3);
+  imwrite("debug.ppm", scene->img);
+#endif
 
-	// Get minimum and maximum values from result matrix
-	double minval, maxval;
-	Point  minloc, maxloc;
-	minMaxLoc(res, &minval, &maxval, &minloc, &maxloc, Mat());
+  std::vector<int> outvec(4);
+  outvec[0] = int(maxloc.x);
+  outvec[1] = int(maxloc.y);
+  outvec[2] = int(maxloc.x + object->img.cols);
+  outvec[3] = int(maxloc.y + object->img.rows);
 
-	#if DEBUG
-	Mat res_out;
-	normalize( res, res_out, 0, 255, NORM_MINMAX, -1, Mat() );
-	if(res.cols == 1 && res.rows == 1) {
-		float dataval = res.at<float>(0,0);
-		res_out.at<float>(0,0) = dataval * 255;
-	}
-	res_out.convertTo(res_out, CV_8UC1);
-	imwrite("result.ppm", res_out);
-	#endif
+  similarity = maxval;
 
-	// Check if we have a match
-	if(maxval > 0.9) {
-		#if DEBUG
-		rectangle(img_scene, Point(maxloc.x, maxloc.y), Point(maxloc.x + img_object.cols, maxloc.y + img_object.rows), CV_RGB(255,0,0), 3);
-		imwrite("debug.ppm", img_scene);
-		#endif
-		std::vector<int> outvec(4);
-		outvec[0] = int(maxloc.x);
-		outvec[1] = int(maxloc.y);
-		outvec[2] = int(maxloc.x + img_object.cols);
-		outvec[3] = int(maxloc.y + img_object.rows);
-		return outvec;
-	}
-	else {
-		std::vector<int> outvec(0);
-		return outvec;
-	}
+  return outvec;
 }
+
+
+// Use Peak signal-to-noise ratio to check the similarity between two
+// images.
+//
+// This method calculate the mean square error, but returns a measure
+// in dB units. If the images are the same, it return 0.0, and if the
+// images are the same but with different compression ration (or noise
+// when the input is from analog video), the range is between 30 and
+// 50. Maybe higher is the quality is bad. 
+//
+// Source (C&P):
+// http://docs.opencv.org/doc/tutorials/highgui/video-input-psnr-ssim/video-input-psnr-ssim.html
+
+double getPSNR(const Mat& I1, const Mat& I2)
+{
+  Mat s1;
+  absdiff(I1, I2, s1);       // |I1 - I2|
+  s1.convertTo(s1, CV_32F);  // cannot make a square on 8 bits
+  s1 = s1.mul(s1);           // |I1 - I2|^2
+
+  Scalar s = sum(s1);        // sum elements per channel
+
+  double sse = s.val[0] + s.val[1] + s.val[2]; // sum channels
+
+  if( sse <= 1e-10) // for small values return zero
+    return VERY_SIM;
+  else {
+    double mse  = sse / (double)(I1.channels() * I1.total());
+    double psnr = 10.0 * log10((255 * 255) / mse);
+    return psnr;
+  }
+}
+
 
 void image_destroy(Image *s)
 {
@@ -408,97 +428,9 @@ std::vector<float> image_avgcolor(Image *s)
   return f;
 }
 
-// in: needle to search
-// out: (x,y) coords if found, undef otherwise
-// inspired by OCR::Naive
-std::vector<int> image_search(Image *s, Image *needle, int maxdiff)
+std::vector<int> image_search(Image *s, Image *needle, double &similarity)
 {
-  /*
-  int header_length;
-  vector<uchar> buf = convert_to_ppm(s->img, header_length);
-
-  vector<uchar>::iterator it = buf.begin() + header_length;
-
-  // divide by 3 because of 3 byte per pix
-  // substract 1 to be able to add color-byte offset by hand
-  long svsxlen = s->img.cols;
-  long svrxlen = needle->img.cols;
-  long slen_pix = s->img.cols * s->img.rows;
-  long rlen_pix = needle->img.cols * needle->img.rows;
-  long newlineoffset = svsxlen - svrxlen;
-  long svrxlen_check = rlen_pix - 1;
-  long i, my_i, j, remaining_sline;
-  long byteoffset_s, byteoffset_r;
-  long rs, bs, gs, rr, br, gr;
-  for(i=0; i<slen_pix; i++) {
-    remaining_sline = (svsxlen - (i % svsxlen));
-    if ( remaining_sline < svrxlen ) {
-      // a refimg line would not fit
-      // into remaining selfimg line
-      // jump to next line
-      i += remaining_sline - 1; // ugly but faster
-      continue;
-    }
-    // refimg does fit in remaining img check?
-    my_i = i;
-    for(j=0; j<rlen_pix; j++) {
-      if (j > 0 && j % svrxlen == 0) {
-	// we have reached end of a line in refimg
-	// pos 0 in refimg does not mean end of line
-	my_i += newlineoffset;
-      }
-      if (my_i >= slen_pix)
-	break;
-      
-      byteoffset_s = (my_i+j)*3;
-      byteoffset_r = j*3;
-      if (
-	  abs(cs[byteoffset_s+0] - cr[byteoffset_r+0]) > maxdiff ||
-	  abs(cs[byteoffset_s+1] - cr[byteoffset_r+1]) > maxdiff ||
-	  abs(cs[byteoffset_s+2] - cr[byteoffset_r+2]) > maxdiff
-	  ) {
-	//printf(\"x: %d\\n\", (my_i+j) % svsxlen);
-	//printf(\"y: %d\\n\", (my_i+j) / svsxlen);
-	//printf(\"byte_offset: %d\\n\", byteoffset_s);
-	//printf(\"s: %x - r: %x\\n\", cs[byteoffset_s+0], cr[byteoffset_r+0]);
-	//printf(\"break\\n\\n\\n\");
-	break;
-      }
-      if (j == svrxlen_check) {
-	// last iteration - refimg processed without break
-	// return i which is startpos of match (in pixels)
-	return i;
-      }
-    }
-  }
-  return -1;*/
-  std::vector<int> ret;
-  return ret;
-}
-
-//  search_fuzzy($;$) {
-// 	my $self = shift;
-// 	my $needle = shift;
-// 	my $algorithm = shift||'template';
-// 	my $pos;
-// 	if($algorithm eq 'surf') {
-// 		$pos = tinycv::search_SURF($self, $needle);
-// 	}
-// 	elsif($algorithm eq 'template') {
-// 		$pos = tinycv::search_TEMPLATE($self, $needle);
-// 	}
-// 	# if match pos is (x, y, x, y)
-// 	# first point is upper left, second is bottom right
-// 	if(scalar(@$pos) ge 2) {
-// 		return [$pos->[0], $pos->[1], $needle->{xres}, $needle->{yres}]; # (x, y, rxres, ryres)
-// 	}
-// 	return undef;
-// }
-std::vector<int> image_search_fuzzy(Image *s, Image *needle)
-{
-  printf("image_search_fuzzy\n");
-  std::vector<int> ret;
-  return ret;
+  return search_TEMPLATE(s, needle, similarity);
 }
 
 
@@ -511,10 +443,6 @@ Image *image_scale(Image *a, long width, long height)
   return n;
 }
 
-
-#define VERY_DIFF 0.0
-#define VERY_SIM 1000000.0
-
 double image_similarity(Image *a, Image*b)
 {
   if (a->img.rows != b->img.rows)
@@ -524,37 +452,4 @@ double image_similarity(Image *a, Image*b)
     return VERY_DIFF;
 
   return getPSNR(a->img, b->img);
-}
-
-
-// Use Peak signal-to-noise ratio to check the similarity between two
-// images.
-//
-// This method calculate the mean square error, but returns a measure
-// in dB units. If the images are the same, it return 0.0, and if the
-// images are the same but with different compression ration (or noise
-// when the input is from analog video), the range is between 30 and
-// 50. Maybe higher is the quality is bad. 
-//
-// Source (C&P):
-// http://docs.opencv.org/doc/tutorials/highgui/video-input-psnr-ssim/video-input-psnr-ssim.html
-
-double getPSNR(const Mat& I1, const Mat& I2)
-{
-  Mat s1;
-  absdiff(I1, I2, s1);       // |I1 - I2|
-  s1.convertTo(s1, CV_32F);  // cannot make a square on 8 bits
-  s1 = s1.mul(s1);           // |I1 - I2|^2
-
-  Scalar s = sum(s1);        // sum elements per channel
-
-  double sse = s.val[0] + s.val[1] + s.val[2]; // sum channels
-
-  if( sse <= 1e-10) // for small values return zero
-    return VERY_SIM;
-  else {
-    double mse  = sse / (double)(I1.channels() * I1.total());
-    double psnr = 10.0 * log10((255 * 255) / mse);
-    return psnr;
-  }
 }
