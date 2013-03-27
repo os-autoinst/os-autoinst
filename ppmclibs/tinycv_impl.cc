@@ -505,7 +505,7 @@ std::vector<int> image_search_fuzzy(Image *s, Image *needle)
 Image *image_scale(Image *a, long width, long height)
 {
   Image *n = new Image;
-  n->img = Mat(width, height, a->img.type());
+  n->img = Mat(height, width, a->img.type());
   resize(a->img, n->img, n->img.size());
 
   return n;
