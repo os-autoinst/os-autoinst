@@ -375,7 +375,8 @@ Image *image_scale(Image *a, long width, long height)
 }
 
 
-#define VERY_DIFF 100000.0
+#define VERY_DIFF 0.0
+#define VERY_SIM 1000000.0
 
 double image_similarity(Image *a, Image*b)
 {
@@ -413,7 +414,7 @@ double getPSNR(const Mat& I1, const Mat& I2)
   double sse = s.val[0] + s.val[1] + s.val[2]; // sum channels
 
   if( sse <= 1e-10) // for small values return zero
-    return 0;
+    return VERY_SIM;
   else {
     double mse  = sse / (double)(I1.channels() * I1.total());
     double psnr = 10.0 * log10((255 * 255) / mse);
