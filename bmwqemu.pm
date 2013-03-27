@@ -33,7 +33,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 # shared vars
 
 my $goodimageseen :shared = 0;
-my $lastname :shared = 0;
+my $lastscreenshot :shared = 0;
 my $prestandstillwarning :shared = 0;
 my $timeoutcounter :shared = 0;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
@@ -248,9 +248,7 @@ sub result_dir() {
 }
 
 sub getcurrentscreenshot() {
-	my $mylastname = $lastname;
-	sleep 0.4; # time to write the file
-	return tinycv::read($mylastname);
+        return $lastscreenshot;
 }
 
 sub check_color($$) {
@@ -636,7 +634,6 @@ sub take_screenshot(;$) {
 	if($md5file{$md5}) { # old
 		symlink(basename($md5file{$md5}->[0]), $filename);
 		my $linkcount=$md5file{$md5}->[1]++;
-		#my $linkcount=(stat($lastname))[3]; # relies on FS
 		$prestandstillwarning=($linkcount>$standstillthreshold/2);
 		if($linkcount>$standstillthreshold) {
 			timeout_screenshot(); sleep 1;
@@ -655,7 +652,7 @@ sub take_screenshot(;$) {
 		my $ocr=get_ocr($img);
 		if($ocr) { diag "ocr: $ocr" }
 	}
-	$lastname = $filename;
+	$lastscreenshot = $img;
 }
 
 sub do_start_audiocapture($) {
@@ -757,9 +754,7 @@ sub waitstillimage(;$$$) {
 	my @recentimages; # fifo
 	fctlog('waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level");
 	while(time-$starttime<$timeout) {
-		my $mylastname = $lastname;
-		sleep 1;
-		my $img=tinycv::read($mylastname);
+	        my $img=$lastscreenshot;
 		next unless $img; # this must stay to get only valid imgs to fifo
 		push(@recentimages, $mylastname);
 		if(@recentimages  > $stilltime) {
@@ -787,9 +782,7 @@ sub waitimage($;$$) {
 	my ($lastmd5,$thismd5) = (0,0);
 	for(my $i=0;$i<=$timeout;$i+=2) {
 		# prevent reading while screendump is not finished
-		my $mylastname = $lastname;
-		sleep 2;
-		$thismd5 = tinycv::read($mylastname)->checksum();
+		$thismd5 = $lastscreenshot->checksum();
 		# image is equal with previous one
 		unless($lastmd5 eq $thismd5) {
 			foreach my $refimg (@refimgs) {
@@ -925,6 +918,8 @@ sub waitinststage($;$$) {
 	if($prestandstillwarning) { sleep 3 }
 	for my $n (1..$timeout) {
 	  sleep 1;
+	  my $ret = needle::match('bootmenu');
+	  $ppm->search($ret);
 	}
 	timeout_screenshot() if($timeout>1);
 	die 'not now';

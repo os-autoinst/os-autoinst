@@ -7,12 +7,11 @@ use Data::Dumper;
 use JSON;
 use File::Basename;
 
-my %needles;
+our %needles;
 
 sub new($) {
     my $classname=shift;
     my $jsonfile=shift;
-    print "NEW $jsonfile\n";
     local $/;
     open( my $fh, '<', $jsonfile ) || return undef;
     my $perl_scalar = decode_json( <$fh> );
@@ -34,8 +33,13 @@ sub new($) {
     return $self;
 }
 
-sub copyrect($$$$) {
+sub glob($) {
     my $self=shift;
+    if (!$self->{img}) {
+	my $img = tinycv::read($self->{png});
+	$self->{img} = $img->copyrect($self->{xpos}, $self->{ypos}, $self->{width}, $self->{height});
+    }
+    return $self->{img};
 }
 
 sub wanted_($) {
@@ -48,7 +52,16 @@ sub wanted_($) {
 
 sub init($) {
     my $dirname=shift;
-    find( \&wanted_, $dirname );    
+    find( { no_chdir => 1, wanted => \&wanted_ }, $dirname );
+}
+
+sub match($) {
+    my $substring = shift;
+    my @ret;
+    for my $key (grep(/$substring/, keys %needles)) {
+	push(@ret, $needles{$key});
+    }
+    return \@ret;
 }
 
 1;
