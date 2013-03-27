@@ -150,7 +150,7 @@ sub readconloop($) {
 	$|=1;
 	my $conn = $self->{'managementcon'};
 	while(<$conn>) {
-		print $_;
+		# print $_;
 	}
 	bmwqemu::diag("exiting management console read loop");
 	unlink($self->{'pidfilename'});
