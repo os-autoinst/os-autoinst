@@ -11,6 +11,7 @@ eval {require Algorithm::Line::Bresenham;};
 use Exporter;
 use ocr;
 use cv;
+use needle;
 use threads;
 use threads::shared;
 use POSIX; 
@@ -141,6 +142,8 @@ if($ENV{INSTLANG} eq "fr_FR") {
 	$cmd{"next"}="alt-s";
 }
 ## keyboard cmd vars end
+
+needle::init("$scriptdir/distri/$ENV{DISTRI}/needles");
 
 ## some var checks
 if(!-x $gocrbin) {$gocrbin=undef}
