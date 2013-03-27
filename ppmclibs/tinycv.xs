@@ -106,6 +106,23 @@ void search_fuzzy(tinycv::Image self, tinycv::Image needle)
       PUSHs(sv_2mortal(newSViv(*it)));
     }
 
+
+tinycv::Image scale(tinycv::Image self, long width, long height)
+  CODE:
+    RETVAL = image_scale(self, width, height);
+
+  OUTPUT:
+    RETVAL
+
+
+double similarity(tinycv::Image self, tinycv::Image other)
+  CODE:
+    RETVAL = image_similarity(self, other);
+   
+  OUTPUT:
+    RETVAL
+
+
 void DESTROY(tinycv::Image self)
   CODE:
     image_destroy(self);
