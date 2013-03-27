@@ -6,6 +6,7 @@ use base ('backend::baseclass');
 use threads;
 require File::Temp;
 use File::Temp ();
+use Time::HiRes "sleep";
 
 sub init() {
 	my $self = shift;
@@ -63,9 +64,22 @@ sub screendump() {
 	my $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.ppm', OPEN => 0 );
 	$self->send("screendump $tmp");
 	my $ret;
-        while (!$ret) { 
+        while (!defined $ret) {
+	  sleep(0.1);
+	  my $fs = -s $tmp;
+	  next if ($fs < 70);
+	  my $header;
+	  next if (!open(PPM, $tmp));
+	  if (read(PPM, $header, 70) < 70) {
+	    close(PPM);
+	    next;
+	  }
+	  close(PPM);
+	  my ($xres,$yres) = ($header=~m/\AP6\n(?:#.*\n)?(\d+) (\d+)\n255\n/);
+	  next if(!$xres);
+	  my $d=$xres*$yres*3+length($&);
+	  next if ($fs != $d);
           $ret = tinycv::read($tmp);
-          sleep(0.1) unless (defined $ret);
         }
 	unlink $tmp;
 	return $ret;
