@@ -526,7 +526,7 @@ double image_similarity(Image *a, Image*b)
 }
 
 
-// Use Peak signal-to-noise ratio to check the similarity between to
+// Use Peak signal-to-noise ratio to check the similarity between two
 // images.
 //
 // This method calculate the mean square error, but returns a measure
