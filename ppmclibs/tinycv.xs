@@ -88,19 +88,23 @@ void avgcolor(tinycv::Image self)
     PUSHs(sv_2mortal(newSVnv(res[1])));
     PUSHs(sv_2mortal(newSVnv(res[2])));
  
-void search(tinycv::Image self, tinycv::Image needle, int maxdiff)
-  PPCODE:
-    std::vector<int> ret = image_search(self, needle, maxdiff);
-    EXTEND(SP, ret.size());
-    std::vector<int>::const_iterator it = ret.begin();
-    for (; it != ret.end(); ++it) { 
-      PUSHs(sv_2mortal(newSViv(*it)));
-    }
+# void search(tinycv::Image self, tinycv::Image needle, int maxdiff)
+#   PPCODE:
+#     std::vector<int> ret = image_search(self, needle, maxdiff);
+#     EXTEND(SP, ret.size());
+#     std::vector<int>::const_iterator it = ret.begin();
+#     for (; it != ret.end(); ++it) { 
+#       PUSHs(sv_2mortal(newSViv(*it)));
+#     }
 
-void search_fuzzy(tinycv::Image self, tinycv::Image needle)
+void search(tinycv::Image self, tinycv::Image needle)
   PPCODE:
-    std::vector<int> ret = image_search_fuzzy(self, needle);
-    EXTEND(SP, ret.size());
+    double similarity = 0;
+    std::vector<int> ret = image_search(self, needle, similarity);
+    EXTEND(SP, ret.size() + 1);
+
+    PUSHs(sv_2mortal(newSVnv(similarity)));
+
     std::vector<int>::const_iterator it = ret.begin();
     for (; it != ret.end(); ++it) { 
       PUSHs(sv_2mortal(newSViv(*it)));
