@@ -1,0 +1,54 @@
+package needle;
+
+use strict;
+use warnings;
+use File::Find;
+use Data::Dumper;
+use JSON;
+use File::Basename;
+
+my %needles;
+
+sub new($) {
+    my $classname=shift;
+    my $jsonfile=shift;
+    print "NEW $jsonfile\n";
+    local $/;
+    open( my $fh, '<', $jsonfile ) || return undef;
+    my $perl_scalar = decode_json( <$fh> );
+    close($fh);
+    my $self = { xpos => $$perl_scalar{'xpos'},
+		 ypos => $$perl_scalar{'ypos'},
+		 width => $$perl_scalar{'ypos'},
+		 height => $$perl_scalar{'height'},
+		 match => $$perl_scalar{'match'},
+		 processing_flags => $$perl_scalar{'processing_flags'},
+		 max_delta => $$perl_scalar{'max_delta'}
+    };
+    $jsonfile =~ s,\.json$,.png,;
+    $self->{png} = $jsonfile;
+    $self->{img} = undef;
+    $self->{name} = basename($jsonfile, '.png');
+    
+    $self = bless $self, $classname;
+    return $self;
+}
+
+sub copyrect($$$$) {
+    my $self=shift;
+}
+
+sub wanted_($) {
+    return unless (m/.json$/);
+    my $needle = needle->new($File::Find::name);
+    if ($needle) {
+	$needles{$needle->{name}} = $needle;
+    }
+}
+
+sub init($) {
+    my $dirname=shift;
+    find( \&wanted_, $dirname );    
+}
+
+1;
