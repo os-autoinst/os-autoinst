@@ -594,7 +594,8 @@ sub power($) {
 # runtime information gathering functions
 
 sub do_take_screenshot() {
-	return $backend->screendump();
+        my $ret = $backend->screendump();
+	return $ret->scale(800, 600);
 }
 
 sub timeout_screenshot() {
@@ -651,7 +652,7 @@ sub take_screenshot(;$) {
 				sendkey "alt-sysrq-w";
 				sendkey "alt-sysrq-l";
 				sendkey "alt-sysrq-d"; # only available with CONFIG_LOCKDEP
-				$backend->screendump()->write("$dir/standstill-1.png");sleep 1;
+				do_take_screenshot()->write("$dir/standstill-1.png");sleep 1;
 				mydie "standstill detected. test ended. see $lastname\n"; # above 120s of autoreboot
 			}
 		}
@@ -803,7 +804,7 @@ sub decodewav($) {
 
 =head2 waitstillimage
 
-waitstillimage([$stilltime_sec [, $timeout_sec [, $maxdiff_bytes]]])
+waitstillimage([$stilltime_sec [, $timeout_sec [, $similarity_level]]])
 
 Wait until the screen stops changing
 
@@ -811,10 +812,10 @@ Wait until the screen stops changing
 sub waitstillimage(;$$$) {
 	my $stilltime=shift||7;
 	my $timeout=shift||30;
-	my $maxdiff=shift||20;
+	my $similarity_level=shift||48;
 	my $starttime=time;
 	my @recentimages; # fifo
-	fctlog('waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "maxdiff=$maxdiff");
+	fctlog('waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level");
 	while(time-$starttime<$timeout) {
 		my $mylastname = $lastname;
 		sleep 1;
@@ -823,7 +824,7 @@ sub waitstillimage(;$$$) {
 		push(@recentimages, $mylastname);
 		if(@recentimages  > $stilltime) {
 			my $e = shift @recentimages;
-			if ($img->differ(tinycv::read($e), $maxdiff)) {
+			if ($img->similarity(tinycv::read($e)) > $similarity_level) {
 				fctres('waitstillimage', "detected same image for $stilltime seconds");
 				return 1;
 			}
