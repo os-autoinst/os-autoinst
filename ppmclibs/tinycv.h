@@ -21,3 +21,6 @@ Image *image_copyrect(Image *s, long x, long y, long width, long height);
 void image_threshold(Image *s, int level);
 std::vector<float> image_avgcolor(Image *s);
 bool image_differ(Image *a, Image *b, unsigned char maxdiff);
+
+Image *image_scale(Image *a, long width, long height);
+double image_similarity(Image *a, Image*b);

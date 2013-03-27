@@ -392,7 +392,7 @@ bool image_differ(Image *a, Image *b, unsigned char maxdiff)
   return false;
 }
 
-srd::vector<float> image_avgcolor(Image *s)
+std::vector<float> image_avgcolor(Image *s)
 {
   Scalar t = mean(s->img);
 
@@ -495,4 +495,21 @@ std::vector<int> image_search_fuzzy(Image *s, Image *needle)
   printf("image_search_fuzzy\n");
   std::vector<int> ret;
   return ret;
+}
+
+
+Image *image_scale(Image *a, long width, long height)
+{
+  printf("image_scale\n");
+
+  Image *n = new Image;
+  n->img = Mat::zeros(width, height, a->img.type());
+  return n;
+}
+
+
+double image_similarity(Image *a, Image*b)
+{
+  printf("image_similarity\n");
+  return 1.0;
 }
