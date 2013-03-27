@@ -26,7 +26,7 @@ echo testing $ISO
 # cleanup
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f backend.run
-rm -f qemuscreenshot/*.ppm
+rm -f qemuscreenshot/*.png
 
 # start
 date "+%s%n%Y-%m-%d %H:%M:%S" > ${logfile}
