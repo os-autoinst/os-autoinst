@@ -132,7 +132,7 @@ Image *image_read(const char *filename)
   Image *image = new Image;
   image->img = imread(filename, CV_LOAD_IMAGE_COLOR);
   if (!image->img.data) {
-    //std::cout << "Could not open image " << filename << std::endl;
+    std::cerr << "Could not open image " << filename << std::endl;
     return 0L;
   }
   return image;
@@ -140,7 +140,10 @@ Image *image_read(const char *filename)
 
 bool image_write(Image *s, const char *filename)
 {
-  imwrite(filename, s->img);
+  if (!imwrite(filename, s->img)) {
+    std::cerr << "Could not write image " << filename << std::endl;
+    return false;
+  }
   return true;
 }
 

@@ -580,7 +580,11 @@ sub power($) {
 
 sub do_take_screenshot() {
         my $ret = $backend->screendump();
-	return $ret->scale(800, 600);
+	if ($ret->xres() > 800) {
+	  return $ret->scale(800, 600);
+	} else {
+	  return $ret;
+	}
 }
 
 sub timeout_screenshot() {
@@ -596,72 +600,76 @@ sub take_screenshot(;$) {
 	my $flags = shift || '';
 	my $path="qemuscreenshot/";
 	mkdir $path;
-	if($lastname && -e $lastname) { # processing previous image, because saving takes time
-		# symlinking identical files saves space
-	        my $img = tinycv::read($lastname);
-		# TODO detect bad needles
 
-		my($statuser, $statsystem) = $backend->cpu_stat();
-		my $statstr = '';
-		if ($statuser) {
-			for($statuser,$statsystem) {$_/=$clock_ticks}
-			$statstr .= "statuser=$statuser ";
-			$statstr .= "statsystem=$statsystem ";
-		}
-		if ($img->xres() > 0) {
-			@lastavgcolor = $img->avgcolor();
-		}
-		#my $filevar = "file=".basename($lastname)." ";
-		#my $laststgvar = ($ENV{HW})?"laststage=$lastinststage ":'';
-		#my $md5var = ($ENV{HW})?'':"md5=$md5 ";
-		#my $avgvar = "avgcolor=".join(',', map(sprintf("%.3f", $_), @lastavgcolor));
-		#diag($md5var.$filevar.$laststgvar.$statstr.$avgvar);
-
-		# TODO detect always good needles?
-		#if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
-
-		my $md5;
-		# ignore bottom 15 lines (blinking cursor, animated mouse-pointer)
-		if ($img->xres() == 800 && $img->yres() == 600) {
-		  # bogus check but we only care for md5sum
-		  my $img2 = $img->copy();
-		  $img2->replacerect(0, 585, 800, 15);
-		  $md5 = $img2->checksum();
-		} else {
-		  $md5 = $img->checksum();
-		}
-		if($md5file{$md5}) { # old
-			unlink($lastname); # warning: will break if FS does not support symlinking
-			symlink(basename($md5file{$md5}->[0]), $lastname);
-			my $linkcount=$md5file{$md5}->[1]++;
-			$prestandstillwarning=($linkcount>$standstillthreshold/2);
-			if($linkcount>$standstillthreshold) {
-				timeout_screenshot(); sleep 1;
-				my $dir=result_dir;
-				sendkey "alt-sysrq-w";
-				sendkey "alt-sysrq-l";
-				sendkey "alt-sysrq-d"; # only available with CONFIG_LOCKDEP
-				do_take_screenshot()->write("$dir/standstill-1.png");sleep 1;
-				mydie "standstill detected. test ended. see $lastname\n"; # above 120s of autoreboot
-			}
-		}
-		else { # new
-			$md5file{$md5}=[$lastname,1];
-			my $ocr=get_ocr($img);
-			if($ocr) { diag "ocr: $ocr" }
-		}
-		# strip first 10 screenshots, if they are too small (was that related to some ffmpeg issues?)
-		if(($framecounter++ < 10) && $img->xres()<800) {unlink($lastname)}
-	}
 	my $t=[gettimeofday()];
 	my $img = do_take_screenshot();
+
+	# strip first 10 screenshots, if they are too small (was that related to some ffmpeg issues?)
+	if(($framecounter++ < 10) && $img->xres()<800) { return; }
+
+	# TODO detect bad needles
+
 	my $filename=$path.sprintf("%i.%06i.png", $t->[0], $t->[1]);
         unless($flags=~m/q/) {
                 fctlog('screendump', "filename=$filename");
         }
+
 	print STDERR $filename,"\n";
-	$img->write($filename) || die "write $filename";
-	$lastname=$filename;
+
+	my($statuser, $statsystem) = $backend->cpu_stat();
+	my $statstr = '';
+	if ($statuser) {
+		for($statuser,$statsystem) {$_/=$clock_ticks}
+		$statstr .= "statuser=$statuser ";
+		$statstr .= "statsystem=$statsystem ";
+	}
+	if ($img->xres() > 0) {
+		@lastavgcolor = $img->avgcolor();
+	}
+	#my $filevar = "file=".basename($lastname)." ";
+	#my $laststgvar = ($ENV{HW})?"laststage=$lastinststage ":'';
+	#my $md5var = ($ENV{HW})?'':"md5=$md5 ";
+	#my $avgvar = "avgcolor=".join(',', map(sprintf("%.3f", $_), @lastavgcolor));
+	#diag($md5var.$filevar.$laststgvar.$statstr.$avgvar);
+
+	# TODO detect always good needles?
+	#if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
+
+	# hardlinking identical files saves space
+
+	my $md5;
+	# ignore bottom 15 lines (blinking cursor, animated mouse-pointer)
+	if ($img->xres() == 800 && $img->yres() == 600) {
+		# bogus check but we only care for md5sum
+		my $img2 = $img->copy();
+		$img2->replacerect(0, 585, 800, 15);
+		$md5 = $img2->checksum();
+	} else {
+		$md5 = $img->checksum();
+	}
+	if($md5file{$md5}) { # old
+		symlink(basename($md5file{$md5}->[0]), $filename);
+		my $linkcount=$md5file{$md5}->[1]++;
+		#my $linkcount=(stat($lastname))[3]; # relies on FS
+		$prestandstillwarning=($linkcount>$standstillthreshold/2);
+		if($linkcount>$standstillthreshold) {
+			timeout_screenshot(); sleep 1;
+			my $dir=result_dir;
+			sendkey "alt-sysrq-w";
+			sendkey "alt-sysrq-l";
+			sendkey "alt-sysrq-d"; # only available with CONFIG_LOCKDEP
+			do_take_screenshot()->write("$dir/standstill-1.png");sleep 1;
+			mydie "standstill detected. test ended. see $filename\n"; # above 120s of autoreboot
+		}
+	}
+	else { # new
+		$img->write($filename) || die "write $filename";
+
+		$md5file{$md5}=[$filename,1];
+		my $ocr=get_ocr($img);
+		if($ocr) { diag "ocr: $ocr" }
+	}
+	$lastname = $filename;
 }
 
 sub do_start_audiocapture($) {
@@ -947,3 +955,8 @@ sub waitinststage($;$$) {
 
 
 1;
+
+# Local Variables:
+# tab-width: 8
+# cperl-indent-level: 8
+# End:
