@@ -21,17 +21,18 @@ use Carp::Always;
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $testedversion %cmd
-&diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
-&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &waitcolor &init_backend &start_vm &set_hash_rects &set_ocr_rect &get_ocr
-&script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console &set_std_hash_rects &getcurrentscreenshot &power &mydie);
+&diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey 
+&sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
+&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &waitcolor 
+&init_backend &start_vm &set_ocr_rect &get_ocr
+&script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
+&getcurrentscreenshot &power &mydie);
 
 
 # shared vars
 
 my $goodimageseen :shared = 0;
 my $lastname :shared = 0;
-my $lastinststage :shared = "";
-my $lastknowninststage :shared = "";
 my $prestandstillwarning :shared = 0;
 my $timeoutcounter :shared = 0;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
@@ -132,14 +133,6 @@ if($ENV{INSTLANG} eq "fr_FR") {
 }
 ## keyboard cmd vars end
 
-## set good-foo vars
-our %md5goodlist = qw();
-our %md5badlist = qw();
-our %md5inststage = qw();
-do "goodimage.pm"; # fill above vars
-my %goodsizes=(1440015=>1, 1437615=>1, 2359312=>1, 864015=>1, 3686416=>1);
-# set good-foo vars end
-
 ## some var checks
 if(!-x $gocrbin) {$gocrbin=undef}
 if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
@@ -191,20 +184,6 @@ for my $c ("A".."Z") {$charmap{$c}="shift-\L$c"}
 
 sub set_ocr_rect {@ocrrect=@_;}
 
-sub set_hash_rects {
-	# sharing nested structure does not work, so turn arrayref into string
-	@extrahashrects = map {join(",", @$_)} @_;
-}
-
-sub set_std_hash_rects() {
-	set_hash_rects(
-		[30,30,100,100], # where most applications pop up
-		[630,30,100,100], # where some applications pop up
-		[0,579,100,10 ], # bottom line (KDE/GNOME bar)
-		[0,750,90,10 ], # bottom line (KDE/GNOME bar) in 1024
-	);
-}
-
 # global/shared var set functions end
 
 
@@ -255,17 +234,6 @@ sub fileContent($) {
 	my $result=<$fd>;
 	close($fd);
 	return $result;
-}
-
-sub hashrect($$$) {
-	my ($ppm,$rect,$flags)=@_;
-	my $ppm2=$ppm->copyrect(@$rect);
-	my @result;
-	return unless $ppm2;
-	if($flags=~m/r/) {$ppm2->replacerect(0,137,13,15);} # mask out text
-	if($flags=~m/c/) {push(@result, [$ppm2->checksum(),$rect,$flags])} # extra coloured version hash
-	if($flags=~m/t/) {$ppm2->threshold(0x80);} # black/white => drop most background
-	return (@result,[$ppm2->checksum(),$rect,$flags]);
 }
 
 sub result_dir() {
@@ -614,8 +582,8 @@ sub take_screenshot(;$) {
 	if($lastname && -e $lastname) { # processing previous image, because saving takes time
 		# hardlinking identical files saves space
 	        my $img = tinycv::read($lastname);
-		my $md5= $img->checksum();
-		if($md5badlist{$md5}) {diag "error condition detected. test failed. see $lastname"; sleep 1; mydie "bad image seen"}
+		# TODO detect bad needles
+
 		my($statuser, $statsystem) = $backend->cpu_stat();
 		my $statstr = '';
 		if ($statuser) {
@@ -626,20 +594,24 @@ sub take_screenshot(;$) {
 		if ($img->xres() > 0) {
 			@lastavgcolor = $img->avgcolor();
 		}
-		my $filevar = "file=".basename($lastname)." ";
-		my $laststgvar = ($ENV{HW})?"laststage=$lastinststage ":'';
-		my $md5var = ($ENV{HW})?'':"md5=$md5 ";
-		my $avgvar = "avgcolor=".join(',', map(sprintf("%.3f", $_), @lastavgcolor));
-		diag($md5var.$filevar.$laststgvar.$statstr.$avgvar);
+		#my $filevar = "file=".basename($lastname)." ";
+		#my $laststgvar = ($ENV{HW})?"laststage=$lastinststage ":'';
+		#my $md5var = ($ENV{HW})?'':"md5=$md5 ";
+		#my $avgvar = "avgcolor=".join(',', map(sprintf("%.3f", $_), @lastavgcolor));
+		#diag($md5var.$filevar.$laststgvar.$statstr.$avgvar);
 
-		if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
+		# TODO detect always good needles?
+		#if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
 
+		my $md5;
 		# ignore bottom 15 lines (blinking cursor, animated mouse-pointer)
 		if ($img->xres() == 800 && $img->yres() == 600) {
 		  # bogus check but we only care for md5sum
 		  my $img2 = $img->copy();
 		  $img2->replacerect(0, 585, 800, 15);
 		  $md5 = $img2->checksum();
+		} else {
+		  $md5 = $img->checksum();
 		}
 		if($md5file{$md5}) { # old
 			unlink($lastname); # warning: will break if FS does not support symlinking
@@ -660,7 +632,6 @@ sub take_screenshot(;$) {
 			$md5file{$md5}=[$lastname,1];
 			my $ocr=get_ocr($img);
 			if($ocr) { diag "ocr: $ocr" }
-			inststagedetect($img);
 		}
 		# strip first 10 screenshots, if they are too small (was that related to some ffmpeg issues?)
 		if(($framecounter++ < 10) && $img->xres()<800) {unlink($lastname)}
@@ -671,8 +642,8 @@ sub take_screenshot(;$) {
         unless($flags=~m/q/) {
                 fctlog('screendump', "filename=$filename");
         }
-	#print STDERR $filename,"\n";
-	$img->write($filename);
+	print STDERR $filename,"\n";
+	$img->write($filename) || die "write $filename";
 	$lastname=$filename;
 }
 
@@ -738,48 +709,6 @@ sub get_ocr($) {
 	$ocr=~s/nstaII/nstall/g;
 	$ocr=~s/l(install|Remaining)/($1/g;
 	return " ocr='$ocr'";
-}
-
-sub inststagedetect($) {
-	# input: tinycv object
-	my $ppm=shift;
-	return unless $ppm->xres() > 0;
-	my @md5=();
-	# use several relevant non-text parts of the screen to look them up
-	# WARNING: some break when background/theme changes (%md5inststage needs updating)
-	# popup text detector
-	push(@md5, hashrect($ppm, [230,230, 300,100], "t"));
-	# smaller popup text detector
-	push(@md5, hashrect($ppm, [300,240, 100,100], "t"));
-	# smaller popup text detector on 1024x768
-	push(@md5, hashrect($ppm, [500,320, 100,100], "t"));
-	# use header text for GNOME-installer
-	push(@md5, hashrect($ppm, [0,0, 250,30], "t"));
-	# left side for 12.3-grub2 logo
-	push(@md5, hashrect($ppm, [100,100, 100,300], ""));
-	# KDE/NET/DVD detect checks on left
-	push(@md5, hashrect($ppm, [27,128,13,200], "rct"));
-
-	foreach my $rect (@extrahashrects) {
-		next unless $rect;
-		my @r=split(",", $rect);
-		push(@md5, hashrect($ppm, \@r, ""));
-	}
-
-	my $found=0;
-	foreach my $md5e (@md5) {
-		my($md5,$rect,$flags)=@$md5e;
-		my $currentinststage=$md5inststage{$md5}||"";
-		unless($ENV{'HW'}) {
-			# useless due to analog VGA
-			diag "stage=$currentinststage $md5 ".join(",",@$rect)." $flags";
-		}
-		next if $found;
-		if($currentinststage) { $lastknowninststage=$lastinststage=$currentinststage }
-		if($currentinststage){$found=1}; # stop on first match - so must put most specific tests first
-	}
-	if($found) {return}
-	$lastinststage="unknown";
 }
 
 sub decodewav($) {
@@ -981,18 +910,13 @@ sub waitinststage($;$$) {
 	my $timeout=shift||30;
 	my $extradelay=shift||3;
 	fctlog('waitinststage', "stage=$stage", "timeout=$timeout", "extradelay=$extradelay");
+
 	if($prestandstillwarning) { sleep 3 }
 	for my $n (1..$timeout) {
-		if($lastinststage=~m/$stage/) {fctres('waitinststage', "detected stage=$stage ... continuing execution"); sleep $extradelay; return 1;}
-		if($prestandstillwarning) {
-			timeout_screenshot();
-			diag "WARNING: waited too long for stage=$stage";
-			$prestandstillwarning=0;
-			return 2;
-		}
-		sleep 1;
+	  sleep 1;
 	}
 	timeout_screenshot() if($timeout>1);
+	die 'not now';
 	fctres('waitinststage', "stage=$stage timed out after $timeout");
 	return 0;
 }

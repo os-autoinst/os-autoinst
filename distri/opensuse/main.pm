@@ -22,8 +22,6 @@ $ENV{TOGGLEHOME}=1;
 autotest::runtestdir("$ENV{CASEDIR}/inst.d", undef);
 autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
 
-set_std_hash_rects;
-
 if(my $d=$ENV{DESKTOP}) {
 	do "inst/\L$d.pm" or diag $@;
 }
