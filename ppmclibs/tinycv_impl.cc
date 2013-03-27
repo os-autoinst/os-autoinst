@@ -14,6 +14,10 @@
 
 using namespace cv;
 
+
+double getPSNR(const Mat& I1, const Mat& I2);
+
+
 struct Image {
   cv::Mat img;
 };
@@ -363,8 +367,6 @@ std::vector<int> image_search_fuzzy(Image *s, Image *needle)
 
 Image *image_scale(Image *a, long width, long height)
 {
-  printf("image_scale\n");
-
   Image *n = new Image;
   n->img = Mat(height, width, a->img.type());
   resize(a->img, n->img, n->img.size());
@@ -373,8 +375,48 @@ Image *image_scale(Image *a, long width, long height)
 }
 
 
+#define VERY_DIFF 100000.0
+
 double image_similarity(Image *a, Image*b)
 {
-  printf("image_similarity\n");
-  return 1.0;
+  if (a->img.rows != b->img.rows)
+    return VERY_DIFF;
+
+  if (a->img.cols != b->img.cols)
+    return VERY_DIFF;
+
+  return getPSNR(a->img, b->img);
+}
+
+
+// Use Peak signal-to-noise ratio to check the similarity between two
+// images.
+//
+// This method calculate the mean square error, but returns a measure
+// in dB units. If the images are the same, it return 0.0, and if the
+// images are the same but with different compression ration (or noise
+// when the input is from analog video), the range is between 30 and
+// 50. Maybe higher is the quality is bad. 
+//
+// Source (C&P):
+// http://docs.opencv.org/doc/tutorials/highgui/video-input-psnr-ssim/video-input-psnr-ssim.html
+
+double getPSNR(const Mat& I1, const Mat& I2)
+{
+  Mat s1;
+  absdiff(I1, I2, s1);       // |I1 - I2|
+  s1.convertTo(s1, CV_32F);  // cannot make a square on 8 bits
+  s1 = s1.mul(s1);           // |I1 - I2|^2
+
+  Scalar s = sum(s1);        // sum elements per channel
+
+  double sse = s.val[0] + s.val[1] + s.val[2]; // sum channels
+
+  if( sse <= 1e-10) // for small values return zero
+    return 0;
+  else {
+    double mse  = sse / (double)(I1.channels() * I1.total());
+    double psnr = 10.0 * log10((255 * 255) / mse);
+    return psnr;
+  }
 }
