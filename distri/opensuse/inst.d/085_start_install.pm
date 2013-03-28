@@ -13,7 +13,7 @@ sub run()
 	# confirm
 	$self->take_screenshot;
 	sendkey $cmd{install};
-	waitinststage "performinstallation";
+        waitforneedle("inst-packageinstallationstarted");
 	if(!$ENV{LIVECD} && !$ENV{NICEVIDEO}) {
 		sleep 5; # view installation details
 		sendkey $cmd{instdetails};
