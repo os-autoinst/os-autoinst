@@ -65,7 +65,7 @@ sub screendump() {
 	$self->send("screendump $tmp");
 	my $ret;
         while (!defined $ret) {
-	  sleep(0.1);
+	  sleep(0.02);
 	  my $fs = -s $tmp;
 	  next if ($fs < 70);
 	  my $header;
