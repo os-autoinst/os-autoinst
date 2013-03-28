@@ -109,7 +109,6 @@ tinycv::Image scale(tinycv::Image self, long width, long height)
   OUTPUT:
     RETVAL
 
-
 double similarity(tinycv::Image self, tinycv::Image other)
   CODE:
     RETVAL = image_similarity(self, other);
