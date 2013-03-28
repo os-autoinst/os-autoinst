@@ -25,7 +25,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $testedversion %cmd
 &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey 
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
-&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &waitcolor 
+&timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
 &init_backend &start_vm &set_ocr_rect &get_ocr
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie);
@@ -581,9 +581,7 @@ sub timeout_screenshot() {
 	my $n = ++$timeoutcounter;
 	my $dir=result_dir;
 	my $n2=sprintf("%02i",$n);
-	my $img = do_take_screenshot();
-	$img->write("$dir/timeout-$n2.png");
-	return $img;
+	current_screenshot()->write("$dir/timeout-$n2.png");
 }
 
 sub take_screenshot(;$) {
@@ -604,7 +602,7 @@ sub take_screenshot(;$) {
                 fctlog('screendump', "filename=$filename");
         }
 
-	print STDERR $filename,"\n";
+	#print STDERR $filename,"\n";
 
 	my($statuser, $statsystem) = $backend->cpu_stat();
 	my $statstr = '';
@@ -902,20 +900,7 @@ sub waitidle(;$) {
 	return 0;
 }
 
-sub waitgoodimage(;$) {
-	my $timeout=shift||10;
-	$goodimageseen=0;
-	fctlog('waitgoodimage', "timeout=$timeout");
-	for my $n (1..$timeout) {
-		if($goodimageseen) {fctres('waitgoodimage', "seen good image... continuing execution"); return 1;}
-		sleep 1;
-	}
-	timeout_screenshot();
-	fctres('waitgoodimage', "timed out after $timeout");
-	return 0;
-}
-
-sub waitinststage($;$$) {
+sub waitinststage_OLD($;$$) {
 	my $stage=shift;
 	my $timeout=shift||30;
 	my $extradelay=shift||3;
@@ -924,8 +909,7 @@ sub waitinststage($;$$) {
 	if($prestandstillwarning) { sleep 3 }
 	for my $n (1..$timeout) {
 	  sleep 1;
-	  # get the array reference to all matching needles
-	  my $ret = needle::match('bootmenu');
+	  my $ret = needle::match($stage);
 	  if (getcurrentscreenshot()->search($ret)) {
 		  sleep $extradelay;
 		  return 1;
@@ -936,6 +920,25 @@ sub waitinststage($;$$) {
 	fctres('waitinststage', "stage=$stage timed out after $timeout");
 	return 0;
 }
+
+sub waitforneedle($;$) {
+	my $mustmatch=shift;
+	my $timeout=shift||30;
+	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
+	# get the array reference to all matching needles
+	my $ret = needle::match($mustmatch);
+	for my $n (1..$timeout) {
+		if (getcurrentscreenshot()->search($ret)) {
+			return 1;
+		}
+		sleep 1;
+	}
+	fctres('waitforneedle', "match=$mustmatch timed out after $timeout");
+	my $t = time();
+	getcurrentscreenshot()->write(result_dir() . "/$mustmatch-$t.png");
+	return 0;
+}
+
 
 #FIXME: new wait functions
 # waitscreenactive - ($backend->screenactive())

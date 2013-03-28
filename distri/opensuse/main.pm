@@ -11,7 +11,12 @@ sub installrunfunc
 	$test->take_screenshot;
 }
 
-waitinststage "bootloader",12; # wait for welcome animation to finish
+# wait for qemu to start
+while (!getcurrentscreenshot()) {
+	sleep 1;
+}
+
+waitforneedle "inst-bootmenu",12; # wait for welcome animation to finish
 
 if($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
 	$username="linux"; # LiveCD account

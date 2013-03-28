@@ -22,13 +22,14 @@ sub new($) {
 		 height => $$perl_scalar{'height'},
 		 match => $$perl_scalar{'match'} / 100.,
 		 processing_flags => $$perl_scalar{'processing_flags'},
-		 max_delta => $$perl_scalar{'max_delta'}
+		 max_offset => $$perl_scalar{'max_offset'},
+		 matches => $$perl_scalar{'matches'}
     };
     $jsonfile =~ s,\.json$,.png,;
     $self->{png} = $jsonfile;
     $self->{img} = undef;
     $self->{name} = basename($jsonfile, '.png');
-    
+
     $self = bless $self, $classname;
     return $self;
 }
