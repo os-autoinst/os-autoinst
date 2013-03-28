@@ -21,7 +21,7 @@ sub search_($$) {
 
     my ($sim, $xmatch, $ymatch, $d1, $d2) = $self->search_needle($needle->glob());
     printf "MATCH(%.2f): $xmatch $ymatch\n", $sim;
-    if ($sim > 0.9) {
+    if ($sim >= $needle->{match}) {
 	return 1;
     }
     return 0;

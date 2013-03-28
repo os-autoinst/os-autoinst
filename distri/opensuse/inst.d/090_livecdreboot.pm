@@ -74,7 +74,6 @@ if(!$ENV{LIVECD}) {
 #if($ENV{RAIDLEVEL} && !$ENV{LIVECD}) { do "$scriptdir/workaround/656536.pm" }
 #waitinststage "automaticconfiguration", 70;
 mouse_hide();
-set_std_hash_rects;
 local $ENV{SCREENSHOTINTERVAL}=$ENV{SCREENSHOTINTERVAL}*3;
 if(!$ENV{GNOME}) {
 	# read sub-stages of automaticconfiguration 

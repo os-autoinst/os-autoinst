@@ -349,7 +349,7 @@ std::string image_checksum(Image *s)
 
 Image *image_copy(Image *s)
 {
-  Image *ni = new Image;
+  Image *ni = new Image();
   s->img.copyTo(ni->img);
   return ni;
 }
@@ -376,11 +376,14 @@ void image_replacerect(Image *s, long x, long y, long width, long height)
 Image *image_copyrect(Image *s, long x, long y, long width, long height)
 {
   // avoid an exception
-  if ( y+height > s->img.rows || x+width > s->img.cols )
+  if ( y+height > s->img.rows || x+width > s->img.cols ) {
+    printf("copyrect: out of range\n");
     return 0;
+  }
 
   Image *n = new Image;
-  n->img = Mat(s->img, Range(y, y+height), Range(x,x+width));
+  Mat tmp = Mat(s->img, Range(y, y+height), Range(x,x+width));
+  n->img = tmp.clone();
   return n;
 }
 

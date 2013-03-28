@@ -14,6 +14,7 @@ use cv;
 use needle;
 use threads;
 use threads::shared;
+use Thread::Queue;
 use POSIX; 
 use Term::ANSIColor;
 use Data::Dump "dump";
@@ -33,7 +34,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 # shared vars
 
 my $goodimageseen :shared = 0;
-my $lastscreenshot :shared = 0;
+my $screenshotQueue = Thread::Queue->new();
 my $prestandstillwarning :shared = 0;
 my $timeoutcounter :shared = 0;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
@@ -247,8 +248,13 @@ sub result_dir() {
 	return "$testresults/$testedversion"
 }
 
+our $lastscreenshot;
 sub getcurrentscreenshot() {
-        return $lastscreenshot;
+	if ($screenshotQueue->pending()) {
+		# unfortunately passing objects between threads is almost impossible
+		$lastscreenshot = tinycv::read($screenshotQueue->dequeue());
+	}
+	return $lastscreenshot;
 }
 
 sub check_color($$) {
@@ -647,12 +653,11 @@ sub take_screenshot(;$) {
 	}
 	else { # new
 		$img->write($filename) || die "write $filename";
-
+		$screenshotQueue->enqueue($filename);
 		$md5file{$md5}=[$filename,1];
 		my $ocr=get_ocr($img);
 		if($ocr) { diag "ocr: $ocr" }
 	}
-	$lastscreenshot = $img;
 }
 
 sub do_start_audiocapture($) {
@@ -754,12 +759,12 @@ sub waitstillimage(;$$$) {
 	my @recentimages; # fifo
 	fctlog('waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level");
 	while(time-$starttime<$timeout) {
-	        my $img=$lastscreenshot;
+	        my $img=getcurrentscreenshot();
 		next unless $img; # this must stay to get only valid imgs to fifo
-		push(@recentimages, $mylastname);
+		push(@recentimages, $img);
 		if(@recentimages  > $stilltime) {
 			my $e = shift @recentimages;
-			if ($img->similarity(tinycv::read($e)) > $similarity_level) {
+			if ($img->similarity($e) > $similarity_level) {
 				fctres('waitstillimage', "detected same image for $stilltime seconds");
 				return 1;
 			}
@@ -782,27 +787,28 @@ sub waitimage($;$$) {
 	my ($lastmd5,$thismd5) = (0,0);
 	for(my $i=0;$i<=$timeout;$i+=2) {
 		# prevent reading while screendump is not finished
-		$thismd5 = $lastscreenshot->checksum();
+		$thismd5 = getcurrentscreenshot()->checksum();
 		# image is equal with previous one
 		unless($lastmd5 eq $thismd5) {
 			foreach my $refimg (@refimgs) {
 				my $refimg_print = basename($refimg);
-				my $mylastname_print = basename($mylastname);
-				fctinfo('waitimage', "checking $refimg_print against $mylastname_print");
-				my @a=checkrefimgs($mylastname,$refimg,$flags);
-				if($flags=~m/s/) {
-					if (!defined $a[0]) {
-						fctres('waitimage', "$refimg_print disappeared in $mylastname_print");
-						$refimg=~s/^.*waitimgs\/(.*)$/$1/;
-						return 1;
-					}
-				}
-				elsif(defined $a[0]) {
-					fctres('waitimage', "found $refimg_print in $mylastname_print");
-					$refimg=~s/^.*waitimgs\/(.*)$/$1/;
-					push(@a, $refimg);
-					return \@a;
-				}
+				die 'not yet ported';
+				#my $mylastname_print = basename($mylastname);
+				#fctinfo('waitimage', "checking $refimg_print against $mylastname_print");
+				#my @a=checkrefimgs($mylastname,$refimg,$flags);
+				#if($flags=~m/s/) {
+				#	if (!defined $a[0]) {
+				#		fctres('waitimage', "$refimg_print disappeared in $mylastname_print");
+				#		$refimg=~s/^.*waitimgs\/(.*)$/$1/;
+				#		return 1;
+				#	}
+				#}
+				#elsif(defined $a[0]) {
+				#	fctres('waitimage', "found $refimg_print in $mylastname_print");
+				#	$refimg=~s/^.*waitimgs\/(.*)$/$1/;
+				#	push(@a, $refimg);
+				#	return \@a;
+				#}
 			}
 		}
 		$lastmd5 = $thismd5;
@@ -918,8 +924,12 @@ sub waitinststage($;$$) {
 	if($prestandstillwarning) { sleep 3 }
 	for my $n (1..$timeout) {
 	  sleep 1;
+	  # get the array reference to all matching needles
 	  my $ret = needle::match('bootmenu');
-	  $ppm->search($ret);
+	  if (getcurrentscreenshot()->search($ret)) {
+		  sleep $extradelay;
+		  return 1;
+	  }
 	}
 	timeout_screenshot() if($timeout>1);
 	die 'not now';

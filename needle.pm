@@ -18,9 +18,9 @@ sub new($) {
     close($fh);
     my $self = { xpos => $$perl_scalar{'xpos'},
 		 ypos => $$perl_scalar{'ypos'},
-		 width => $$perl_scalar{'ypos'},
+		 width => $$perl_scalar{'width'},
 		 height => $$perl_scalar{'height'},
-		 match => $$perl_scalar{'match'},
+		 match => $$perl_scalar{'match'} / 100.,
 		 processing_flags => $$perl_scalar{'processing_flags'},
 		 max_delta => $$perl_scalar{'max_delta'}
     };
