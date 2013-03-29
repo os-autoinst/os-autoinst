@@ -6,21 +6,22 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
-	waitstillimage(22, 290);
+	waitforneedle("inst-welcome", 150);
 
 	# animated cursor wastes disk space, so it is moved to bottom right corner
 	mouse_hide;
-	$self->take_screenshot;
-	sendkey "alt-o"; # beta warning
+	#sendkey "alt-o"; # beta warning
+	#  TODO make the beta warning check more clever
 	waitidle;
 	# license+lang
 	if($ENV{HASLICENSE}) {
 		sendkey $cmd{"accept"}; # accept license
 	}
-	waitidle;
-	$self->take_screenshot; sleep 1;
+	waitforneedle("languagepicked", 2);
 	sendkey $cmd{"next"};
-	sleep 2;sendkey "alt-f"; # continue on incomplete lang warning
+	if (waitforneedle("langincomplete", 1)) {
+	    sendkey "alt-f";
+        }
 }
 
 1;

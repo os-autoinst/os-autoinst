@@ -1,2 +1,2 @@
 #!/bin/sh
-for f in inst/* consoletest.d/*pm x11test.d/*.pm distri/opensuse/inst.d/*.pm bmwqemu.pm start.pl tools/inststagedetect.pl ; do perl -c $f ; done
+for f in backend/* inst/* consoletest.d/*pm x11test.d/*.pm distri/opensuse/inst.d/*.pm bmwqemu.pm start.pl tools/inststagedetect.pl ; do perl -c $f ; done

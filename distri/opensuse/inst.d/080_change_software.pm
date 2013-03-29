@@ -21,7 +21,7 @@ sub ocrconflict()
 sub run()
 {
 	my $self=shift;
-	if($ENV{DOCRUN} || waitimage("software-conflict-*",9) || ocrconflict) {
+	if($ENV{DOCRUN} || waitforneedle("software-conflict",1) || ocrconflict) {
 		$cmd{software}="alt-s" if $ENV{VIDEOMODE} eq "text";
 		sendkey $cmd{change};	# Change
 		sendkey $cmd{software};	# Software

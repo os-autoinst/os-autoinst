@@ -8,22 +8,23 @@ use JSON;
 use File::Basename;
 
 our %needles;
+our %goods;
 
 sub new($) {
     my $classname=shift;
     my $jsonfile=shift;
     local $/;
     open( my $fh, '<', $jsonfile ) || return undef;
-    my $perl_scalar = decode_json( <$fh> );
+    my $perl_scalar = decode_json( <$fh> ) || die "broken json $jsonfile";
     close($fh);
     my $self = { xpos => $$perl_scalar{'xpos'},
 		 ypos => $$perl_scalar{'ypos'},
 		 width => $$perl_scalar{'width'},
 		 height => $$perl_scalar{'height'},
-		 match => $$perl_scalar{'match'} / 100.,
+		 match => ($$perl_scalar{'match'} || 100) / 100.,
 		 processing_flags => $$perl_scalar{'processing_flags'},
 		 max_offset => $$perl_scalar{'max_offset'},
-		 matches => $$perl_scalar{'matches'}
+		 good => $$perl_scalar{'good'} 
     };
     $jsonfile =~ s,\.json$,.png,;
     $self->{png} = $jsonfile;
@@ -31,6 +32,10 @@ sub new($) {
     $self->{name} = basename($jsonfile, '.png');
 
     $self = bless $self, $classname;
+    for my $g (@{$self->{good}}) {
+      $goods{$g} ||= [];
+      push(@{$goods{$g}}, $self);
+    }
     return $self;
 }
 
@@ -56,13 +61,9 @@ sub init($) {
     find( { no_chdir => 1, wanted => \&wanted_ }, $dirname );
 }
 
-sub match($) {
-    my $substring = shift;
-    my @ret;
-    for my $key (grep(/$substring/, keys %needles)) {
-	push(@ret, $needles{$key});
-    }
-    return \@ret;
+sub good($) {
+    my $g = shift;
+    return $goods{$g};
 }
 
 1;

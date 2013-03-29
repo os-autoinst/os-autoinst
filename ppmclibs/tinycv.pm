@@ -20,8 +20,8 @@ sub search_($$) {
     my $needle = shift;
 
     my ($sim, $xmatch, $ymatch, $d1, $d2) = $self->search_needle($needle->get_image());
-    printf "MATCH(%.2f): $xmatch $ymatch\n", $sim;
-    if ($sim >= $needle->{match} - 0.05) {
+    printf "MATCH(%s:%.2f): $xmatch $ymatch\n", $needle->{name}, $sim;
+    if ($sim >= $needle->{match} - 0.005) {
 	return 1;
     }
     return 0;
@@ -30,6 +30,7 @@ sub search_($$) {
 sub search($) {
     my $self = shift;
     my $needle = shift;
+    return 0 unless $needle;
     if (ref($needle) eq "ARRAY") {
 	for my $n (@$needle) {
 	    return 1 if ($self->search_($n));
@@ -39,4 +40,17 @@ sub search($) {
     }
 }
 
+sub write_optimized($$) {
+	my $self = shift;
+	my $filename = shift;
+	$self->write($filename);
+	# TODO make a thread for running optipng one after the other (Thread::Queue)
+	system("optipng", "-quiet", $filename);
+}
+
 1;
+
+# Local Variables:
+# tab-width: 8
+# cperl-indent-level: 8
+# End:

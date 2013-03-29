@@ -60,7 +60,7 @@ if($ENV{RES1024}) { # default is 800x600
 	sendkey "down";
 	waitforneedle("inst-resolutiondetected");
 	sendkey "ret";
-} elsif($ENV{VIDEOMODE} eq "text") {
+} elsif(checkEnv('VIDEOMODE', "text")) {
 	sendkey "f3";
 	for(1..2) {
 		sendkey "up";

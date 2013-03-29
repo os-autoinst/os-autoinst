@@ -6,7 +6,6 @@ use bmwqemu;
 sub run()
 {
 	waitstillimage();
-	sleep 2;
 	sendkey $cmd{"next"};
 }
 
