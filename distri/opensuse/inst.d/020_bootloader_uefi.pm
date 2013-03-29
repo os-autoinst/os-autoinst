@@ -11,7 +11,7 @@ sub is_applicable()
 # hint: press shift-f10 trice for highest debug level
 sub run()
 {
-	waitinststage("bootloader-grub2",15);
+	waitforneedle("bootloader-grub2",15);
 	if($ENV{QEMUVGA} && $ENV{QEMUVGA} ne "cirrus") {
 		sleep 5;
 	}

@@ -28,7 +28,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
 &init_backend &start_vm &set_ocr_rect &get_ocr
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
-&getcurrentscreenshot &power &mydie);
+&getcurrentscreenshot &power &mydie &checkEnv &waitinststage);
 
 
 # shared vars
@@ -144,7 +144,7 @@ if($ENV{INSTLANG} eq "fr_FR") {
 }
 ## keyboard cmd vars end
 
-needle::init("$scriptdir/distri/$ENV{DISTRI}/needles");
+needle::init("$scriptdir/distri/$ENV{DISTRI}/needles") if ($scriptdir && $ENV{DISTRI});
 
 ## some var checks
 if(!-x $gocrbin) {$gocrbin=undef}
@@ -240,6 +240,13 @@ sub modstart {
 	print STDERR colored("||| @text", 'bold')."\n";
 }
 
+sub checkEnv($$) {
+	my $var = shift;
+	my $val = shift;
+	return 1 if (defined $ENV{$var} && $ENV{$var} eq $val);
+        return 0;
+}
+
 sub fileContent($) {
 	my($fn)=@_;
 	open(my $fd, $fn) or return undef;
@@ -259,10 +266,14 @@ sub result_dir() {
 
 our $lastscreenshot;
 sub getcurrentscreenshot() {
-	if ($screenshotQueue->pending()) {
+        my $filename;
+	# using a queue to get the latest is most likely the least efficient solution,
+        # but we need to check the current screenshot not to miss things
+	while ($screenshotQueue->pending()) {
 		# unfortunately passing objects between threads is almost impossible
-		$lastscreenshot = tinycv::read($screenshotQueue->dequeue());
+		$filename = $screenshotQueue->dequeue();
 	}
+	$lastscreenshot = tinycv::read($filename) if $filename;
 	return $lastscreenshot;
 }
 
@@ -352,7 +363,7 @@ sub sendkey($) {
 	$backend->sendkey($key);
 	my @t=gettimeofday();
 	push(@keyhistory, [$t[0]*1000000+$t[1], $key]);
-	sleep(0.15);
+	sleep(0.1);
 }
 
 =head2 sendkeyw
@@ -598,7 +609,7 @@ sub timeout_screenshot() {
 	my $n = ++$timeoutcounter;
 	my $dir=result_dir;
 	my $n2=sprintf("%02i",$n);
-	current_screenshot()->write("$dir/timeout-$n2.png");
+	getcurrentscreenshot()->write_optimized("$dir/timeout-$n2.png");
 }
 
 sub take_screenshot(;$) {
@@ -662,7 +673,7 @@ sub take_screenshot(;$) {
 			sendkey "alt-sysrq-w";
 			sendkey "alt-sysrq-l";
 			sendkey "alt-sysrq-d"; # only available with CONFIG_LOCKDEP
-			do_take_screenshot()->write("$dir/standstill-1.png");sleep 1;
+			do_take_screenshot()->write_optimized("$dir/standstill-1.png");sleep 1;
 			mydie "standstill detected. test ended. see $filename\n"; # above 120s of autoreboot
 		}
 	}
@@ -671,7 +682,7 @@ sub take_screenshot(;$) {
 		$screenshotQueue->enqueue($filename);
 		$md5file{$md5}=[$filename,1];
 		my $ocr=get_ocr($img);
-		if($ocr) { diag "ocr: $ocr" }
+		#if($ocr) { diag "ocr: $ocr" }
 	}
 }
 
@@ -917,25 +928,11 @@ sub waitidle(;$) {
 	return 0;
 }
 
-sub waitinststage_OLD($;$$) {
-	my $stage=shift;
-	my $timeout=shift||30;
-	my $extradelay=shift||3;
-	fctlog('waitinststage', "stage=$stage", "timeout=$timeout", "extradelay=$extradelay");
-
-	if($prestandstillwarning) { sleep 3 }
-	for my $n (1..$timeout) {
-	  sleep 1;
-	  my $ret = needle::match($stage);
-	  if (getcurrentscreenshot()->search($ret)) {
-		  sleep $extradelay;
-		  return 1;
-	  }
-	}
-	timeout_screenshot() if($timeout>1);
-	die 'not now';
-	fctres('waitinststage', "stage=$stage timed out after $timeout");
-	return 0;
+sub waitinststage($;$$) {
+        my $stage = shift;
+	my $timeout = shift||30;
+	my $extra = shift;
+	return waitforneedle($stage, $timeout, $extra);
 }
 
 sub waitforneedle($;$) {
@@ -943,16 +940,26 @@ sub waitforneedle($;$) {
 	my $timeout=shift||30;
 	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
 	# get the array reference to all matching needles
-	my $ret = needle::match($mustmatch);
+	my $ret = needle::good($mustmatch);
+	if (!$ret) {
+		printf "NO goods for $mustmatch\n";
+	}
 	for my $n (1..$timeout) {
-		if (getcurrentscreenshot()->search($ret)) {
+		my $img = getcurrentscreenshot();
+		if ($img->search($ret)) {
+			my $t = time();
+			$img->write(result_dir() . "/match-$mustmatch-$t.png");
 			return 1;
 		}
 		sleep 1;
 	}
 	fctres('waitforneedle', "match=$mustmatch timed out after $timeout");
 	my $t = time();
-	getcurrentscreenshot()->write(result_dir() . "/$mustmatch-$t.png");
+	getcurrentscreenshot()->write_optimized(result_dir() . "/$mustmatch-$t.png");
+	open(J, ">", result_dir() . "/$mustmatch-$t.json");
+	
+	print J JSON->new->pretty->encode( { xpos => 0, ypos => 0, width => 800, height => 600, good => [ $mustmatch ]});
+	close(J);
 	return 0;
 }
 

@@ -11,17 +11,25 @@ sub is_applicable()
 
 sub run()
 { my $self=shift;
-	waitidle;
+	waitforneedle("before-package-selection");
 	#sendkey "ctrl-alt-shift-x"; sleep 3;
-	sendkey "ctrl-alt-f2"; sleep 3;
+	sendkey "ctrl-alt-f2";
+	waitforneedle("inst-console");
 	sendautotype "(cat .timestamp ; echo .packages.initrd: ; cat .packages.initrd)>/dev/$serialdev\n";
 	sendautotype "(echo .packages.root: ; cat .packages.root)>/dev/$serialdev\n";
+	waitforneedle("inst-packagestyped", 150);
 	sendautotype "ls -lR /update\n";
 	$self->take_screenshot;
 	waitidle;
 	#sendkey "ctrl-d"; sleep 3;
-	my $instcon=($ENV{VIDEOMODE} eq "text")?1:7;
-	sendkey "ctrl-alt-f$instcon"; sleep 3;
+        if (checkEnv('VIDEOMODE', 'text')) {
+          sendkey "ctrl-alt-f1";
+          waitforneedle("inst-clean-f1", 3);
+        } else {
+	  sendkey "ctrl-alt-f7";
+          waitforneedle("inst-returned-to-yast", 150);
+        }
+
 }
 
 1;
