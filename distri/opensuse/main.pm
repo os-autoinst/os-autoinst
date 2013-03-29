@@ -22,7 +22,7 @@ if($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
 	$username="linux"; # LiveCD account
 	$password="";
 }
-if($ENV{DESKTOP} eq "minimalx") {$ENV{XDMUSED}=1}
+if(checkEnv('DESKTOP', "minimalx")) {$ENV{XDMUSED}=1}
 $ENV{TOGGLEHOME}=1;
 autotest::runtestdir("$ENV{CASEDIR}/inst.d", undef);
 autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);

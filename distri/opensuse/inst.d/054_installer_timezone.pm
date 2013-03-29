@@ -5,8 +5,7 @@ use bmwqemu;
 
 sub run()
 {
-	waitforneedle("inst-timezone");
-	waitidle;
+	waitforneedle("inst-timezone", 125) || die 'no timezone';
 	sendkey $cmd{"next"};
 }
 

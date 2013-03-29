@@ -33,7 +33,7 @@ echo kvm-intel >> /etc/modules
     zypper ar http://packman.inode.at/suse/$(. /etc/os-release; echo $VERSION_ID)/ packman
     # Data::Dump
     zypper ar http://download.opensuse.org/repositories/devel:/languages:/perl/$(. /etc/os-release; echo ${NAME}_${VERSION_ID})/ perl
-    zypper install git-core kvm gocr ffmpeg2theora perl-JSON v4l-tools perl-Net-SNMP perl-Data-Dump perl-Inline make gcc gcc-c++ opencv-devel
+    zypper install git-core kvm gocr ffmpeg2theora perl-JSON v4l-tools perl-Net-SNMP perl-Data-Dump perl-Inline make gcc gcc-c++ opencv-devel optipng
 
     usermod -A kvm $USER
 

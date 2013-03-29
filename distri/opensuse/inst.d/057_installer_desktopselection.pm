@@ -12,7 +12,7 @@ sub is_applicable()
 sub run()
 {
 	my %desktopkeys=(kde=>"k", gnome=>"g", xfce=>"x", lxde=>"l", minimalx=>"m", "textmode"=>"i");
-	waitstillimage();
+	waitforneedle("desktop-selection", 30);
 	my $d=$ENV{DESKTOP};
 	diag "selecting desktop=$d";
 	$ENV{uc($d)}=1;
@@ -21,12 +21,13 @@ sub run()
 		# KDE is default
 	} elsif($d eq "gnome") {
 		sendkey $key;
+		waitforneedle("gnome-selected", 3);
 	} else { # lower selection level
 		sendkey "alt-o"; #TODO translate
-		sleep 2;
+		waitforneedle("other-desktop", 3);
 		sendkey $key;
+		sleep 3; # needles for else cases missing
 	}
-	sleep 3; # to make selection visible
 	sendkey $cmd{"next"};
 	# ending at partition layout screen
 }

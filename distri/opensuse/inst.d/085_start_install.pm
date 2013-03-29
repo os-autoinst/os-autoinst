@@ -8,14 +8,24 @@ sub run()
 	my $self=shift;
 	# start install
 	sendkey $cmd{install};
-	sleep 2;
-	waitidle 5;
+	waitforneedle("startinstall");
 	# confirm
 	$self->take_screenshot;
 	sendkey $cmd{install};
         waitforneedle("inst-packageinstallationstarted");
 	if(!$ENV{LIVECD} && !$ENV{NICEVIDEO}) {
-		sleep 5; # view installation details
+		if ($ENV{DVD} && !$ENV{NOIMAGES}) {
+			if (checkEnv('DESKTOP', 'kde')) {
+				waitforneedle('kde-imagesused', 10);
+			} elsif (checkEnv('DESKTOP', 'gnome')) {
+				waitforneedle('gnome-imagesused', 10);
+			} else {
+				waitforneedle('x11-imagesused', 10);
+			}
+		} else {
+			sleep 5;
+		}
+		# view installation details
 		sendkey $cmd{instdetails};
 	}
 }

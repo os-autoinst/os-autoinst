@@ -6,7 +6,9 @@ use bmwqemu;
 sub run()
 {
 	# overview-generation
-	waitstillimage();
+	# this is almost impossible to check for real
+	waitforneedle("inst-overview", 10);
+	# preserve it for the video
 	waitidle 10;
 }
 

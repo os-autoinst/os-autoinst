@@ -7,7 +7,9 @@ sub run()
 if(!$ENV{LIVECD}) {
 	set_ocr_rect(255,420,530,115);
 	{
-		if($ENV{XDEBUG} && waitinststage("the-system-will-reboot-now", 3000, 1)) {
+		local $ENV{SCREENSHOTINTERVAL}=5;
+		waitforneedle("rebootnow", 600) || die 'first stage problem';
+		if($ENV{XDEBUG} && waitforneedle("the-system-will-reboot-now", 3000)) {
 			sendkey "alt-s";
 			sendkey "ctrl-alt-f2";
 			if(!$ENV{NET}) {
@@ -30,15 +32,13 @@ if(!$ENV{LIVECD}) {
 			sleep 5;
 			sendkey "alt-o";
 		}
-		local $ENV{SCREENSHOTINTERVAL}=5;
-		waitinststage "bootloader|splashscreen|automaticconfiguration|booted", 3000;
 		if($ENV{UPGRADE}) {
 			sendkey "alt-n"; # ignore repos dialog
 			waitstillimage(6,60);
 		}
 	}
 	set_ocr_rect();
-	if(waitinststage "bootloader", 1) {
+	if(waitforneedle("inst-bootmenu", 100)) {
 		sendkey "ret"; # avoid timeout for booting to HDD
 	}
 	qemusend "eject ide1-cd0";
@@ -55,12 +55,12 @@ if(!$ENV{LIVECD}) {
 	# LiveCD needs confirmation for reboot
 	{
 		local $ENV{SCREENSHOTINTERVAL}=5;
-		waitinststage("rebootnow", 1500);
+		waitforneedle("rebootnow", 1500);
 	}
 	set_ocr_rect();
 	sendkey $cmd{"rebootnow"};
 	# no grub visible on proper first boot because of kexec
-	if(0 && !waitinststage "bootloader") {
+	if(0 && !waitforneedle("bootloader")) {
 #	if(1 || !waitinststage "bootloader") {
 		sleep 11; # give some time for going down but not for booting up much
 		# workaround:
@@ -72,31 +72,31 @@ if(!$ENV{LIVECD}) {
 	}
 }
 #if($ENV{RAIDLEVEL} && !$ENV{LIVECD}) { do "$scriptdir/workaround/656536.pm" }
-#waitinststage "automaticconfiguration", 70;
+#waitforneedle "automaticconfiguration", 70;
 mouse_hide();
 local $ENV{SCREENSHOTINTERVAL}=$ENV{SCREENSHOTINTERVAL}*3;
-if(!$ENV{GNOME}) {
-	# read sub-stages of automaticconfiguration 
-	set_ocr_rect(240,256,530,100);
-	waitinststage "users|booted", 180;
-	set_ocr_rect();
-	my $img=getcurrentscreenshot();
-        my $ocr=ocr::get_ocr($img, "-l 200", [250,100,600,500]);
-	diag "post-install-ocr: $ocr";
-        if($ocr=~m/Installation of package .* failed/i or waitimage("install-failed", 1)) {
-		sendkeyw "alt-d"; # see details of failure
-		if(1) { # ignore
-			$self->take_screenshot; sleep 2;
-			sendkeyw "alt-i";
-			sendkey "ret";
-			waitstillimage(50,900);
-		} else {		
-			alarm 3; # end here as we can not continue
-		}
+
+# read sub-stages of automaticconfiguration 
+set_ocr_rect(240,256,530,100);
+# waitforneedle("users-booted", 180);
+set_ocr_rect();
+my $img=getcurrentscreenshot();
+my $ocr=ocr::get_ocr($img, "-l 200", [250,100,600,500]);
+diag "post-install-ocr: $ocr";
+if($ocr=~m/Installation of package .* failed/i or waitforneedle("install-failed", 1)) {
+	sendkeyw "alt-d"; # see details of failure
+	if(1) { # ignore
+		$self->take_screenshot; sleep 2;
+		sendkeyw "alt-i";
+		sendkey "ret";
+		waitstillimage(50,900);
+	} else {		
+		alarm 3; # end here as we can not continue
 	}
-} else {
-	sleep 50; # time for fast-forward
 }
+
+
+waitforneedle('desktop-at-first-boot', 200);
 
 }
 

@@ -183,6 +183,8 @@ std::vector<int> search_SURF(std::string str_scene, std::string str_object) {
 std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double &similarity) {
   cvSetErrMode(CV_ErrModeParent);
   cvRedirectError(MyErrorHandler);
+ 
+  std::vector<int> outvec(4);
 
   if (scene->img.empty() || object->img.empty() ) {
     std::cerr << "Error reading images. Scene or object is empty." << std::endl;
@@ -193,6 +195,14 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double
   // and object is w x h, res is (W - w + 1) x ( H - h + 1)
   int res_width  = scene->img.cols - object->img.cols + 1;
   int res_height = scene->img.rows - object->img.rows + 1;
+  if (res_width <= 0 || res_height <= 0) {
+     similarity = 0;
+     outvec[0] = 0;   
+     outvec[1] = 0;
+     outvec[2] = 0;
+     outvec[3] = 0;
+     return outvec;
+  }
   Mat res = Mat::zeros(res_height, res_width, CV_32FC1);
 
   // Perform the matching. Info about algorythm:
@@ -213,7 +223,6 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double
   imwrite("debug.ppm", scene->img);
 #endif
 
-  std::vector<int> outvec(4);
   outvec[0] = int(maxloc.x);
   outvec[1] = int(maxloc.y);
   outvec[2] = int(maxloc.x + object->img.cols);
