@@ -29,14 +29,6 @@ bool write(tinycv::Image self, const char *file)
   OUTPUT:
     RETVAL
 
-const char *checksum(tinycv::Image self)
-  CODE:
-    std::string ret = image_checksum(self);
-    RETVAL = ret.c_str();
-
-  OUTPUT:
-    RETVAL
-
 tinycv::Image copy(tinycv::Image self)
   CODE:
     RETVAL = image_copy(self);
@@ -66,13 +58,6 @@ tinycv::Image copyrect(tinycv::Image self, long x, long y, long width, long heig
   CODE:
     RETVAL = image_copyrect(self, x, y, width, height);
 
-  OUTPUT:
-    RETVAL
-
-bool differ(tinycv::Image self, tinycv::Image other, unsigned char maxdiff)
-  CODE:
-    RETVAL = image_differ(self, other, maxdiff);
-   
   OUTPUT:
     RETVAL
 
