@@ -21,7 +21,7 @@ sub runtest
 			}
 			modstart "starting $name $script";
 			$ret=&$testfunc($test);
-			sleep 1;
+			#sleep 1;
 			diag "||| finished $name";
 		}
 		else {

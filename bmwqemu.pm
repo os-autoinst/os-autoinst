@@ -356,7 +356,7 @@ sendkey($qemu_key_name)
 =cut
 sub sendkey($) {
 	my $key=shift;
-	fctlog('sendkey', "key=$key");
+	#fctlog('sendkey', "key=$key");
 	$backend->sendkey($key);
 	my @t=gettimeofday();
 	push(@keyhistory, [$t[0]*1000000+$t[1], $key]);

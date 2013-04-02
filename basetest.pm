@@ -64,15 +64,6 @@ sub stop_audiocapture {
 	sleep(0.1);
 }
 
-=head2 checklist
-
-Return a hashref mapping the digests of screenshots to "OK" or "fail"
-
-=cut
-sub checklist {
-	return {}
-}
-
 =head2 wav_checklist
 
 Return a hashref mapping a DTMF decoding to "OK" 
@@ -124,24 +115,12 @@ sub check(%) {
 	my $testname=ref($self);
 	my @screenshots=<$path/$testname-*.ppm>;
 	my @wavdumps=<$path/$testname-*.wav>;
-	my $checklist=$self->checklist();
 	my $wav_checklist=$self->wav_checklist();
 	my $ocr_checklist=$self->ocr_checklist();
 
 	#if(!keys %$checklist && !@screenshots && (!@wavdumps || !keys %$wav_checklist) && !@$ocr_checklist) { return "not-autochecked" } #FIXME: return properly
 
-	# MD5 Check
-	my $md5_result = 'na';
-	if(keys %$checklist) {
-		$md5_result = 'unk';
-		foreach my $h (keys(%$checklist)) {
-			if($hashes->{$h}) {
-				$md5_result = lc $checklist->{$h};
-				last;
-			}
-		}
-	}
-
+	print "CHECK $testname ", @screenshots, "\n";
 	# Screenshot Check
 	my @screenshot_results = ();
 	foreach my $screenimg (@screenshots) {
@@ -175,6 +154,7 @@ sub check(%) {
 					}
 				}
 				my $c = bmwqemu::checkrefimgs($screenimg,$refimg,$flags);
+				print "checkrefimgs $screenimg $refimg $flags $c\n";
 				if($c) {
 					my ($result, $refimg_id) = ($refimg, $refimg);
 					$result=~s/.*-(.*)-.*\.ppm/$1/;
@@ -242,7 +222,7 @@ sub check(%) {
 	my $module_result = 'na';
 	if(grep/fail/,@returnval) { $module_result = 'fail' }
 	elsif(grep/ok/,@returnval) { $module_result = 'ok' }
-	elsif(keys %$checklist || grep/unk/,@returnval) { $module_result = 'unk' } # none of our known results matched
+	elsif(grep/unk/,@returnval) { $module_result = 'unk' } # none of our known results matched
 
 	my $return_result = {
 		'name' => $testname,
