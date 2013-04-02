@@ -74,8 +74,6 @@ if(!$ENV{KEEPHDDS}) {
 		@cdrom=();
 	}
 }
-sleep 5;
-
 
 for my $i (1..4) { # create missing symlinks
 	next if -e "$basedir/l$i";
