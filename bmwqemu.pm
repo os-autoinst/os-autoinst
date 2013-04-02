@@ -247,9 +247,9 @@ sub fileContent($) {
 }
 
 sub result_dir() {
-	if(dirname(__FILE__) ne ".") {
+	unless (-e "$testresults/$testedversion") {
 		mkdir $testresults;
-		mkdir "$testresults/$testedversion";
+		mkdir "$testresults/$testedversion" or die "mkdir $testresults/$testedversion: $!\n";
 	}
 	return "$testresults/$testedversion"
 }
@@ -912,7 +912,8 @@ sub waitforneedle($;$$) {
 	my $t = time();
 	my $cs = getcurrentscreenshot();
 	$cs->write_optimized(result_dir() . "/$mustmatch-$t.png");
-	open(J, ">", result_dir() . "/$mustmatch-$t.json");
+	my $fn = result_dir() . "/$mustmatch-$t.json";
+	open(J, ">", $fn) or die "$fn: $!\n";
 	my $json = { xpos => 0, ypos => 0, width => $cs->xres() , height => $cs->yres() };
 	my @tags = ( $mustmatch );
 	# write out some known env variables

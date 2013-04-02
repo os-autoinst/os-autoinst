@@ -1,5 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
+use File::Path qw/make_path/;
+
 my $basedir="raid";
 my $qemuimg="/usr/bin/kvm-img";
 if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
@@ -36,7 +38,7 @@ if($ison=~m/openSUSE-(DVD|NET|KDE|GNOME|LXDE|XFCE)/) {
 
 if($ENV{UEFI} && !-e $ENV{UEFI}.'/bios.bin') {die "'$ENV{UEFI}' should point to a directory with an uefi bios image"}
 
-system(qw"/bin/mkdir -p", $basedir);
+make_path($basedir);
 
 if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	my $file=$ENV{UPGRADE};
@@ -70,8 +72,6 @@ if(!$ENV{KEEPHDDS}) {
 		@cdrom=();
 	}
 }
-sleep 5;
-
 
 for my $i (1..4) { # create missing symlinks
 	next if -e "$basedir/l$i";
