@@ -292,40 +292,6 @@ bool image_write(Image *s, const char *filename)
   return true;
 }
 
-/* stack overflow license ... */
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <openssl/md5.h>
-
-std::string str2md5(const char* str, int length) {
-    int n;
-    MD5_CTX c;
-    unsigned char digest[16];
-    char out[33];
-
-    MD5_Init(&c);
-
-    while (length > 0) {
-        if (length > 512) {
-            MD5_Update(&c, str, 512);
-        } else {
-            MD5_Update(&c, str, length);
-        }
-        length -= 512;
-        str += 512;
-    }
-
-    MD5_Final(digest, &c);
-
-    for (n = 0; n < 16; ++n) {
-      snprintf(out + n*2, 16*2, 
-	       "%02x", (unsigned int)digest[n]);
-    }
-
-    return out;
-}
-
 static std::vector<uchar> convert_to_ppm(const Mat &s, int &header_length)
 {
   vector<uchar> buf;
@@ -345,15 +311,6 @@ static std::vector<uchar> convert_to_ppm(const Mat &s, int &header_length)
 
   header_length = cbuf - cbuf_start;
   return buf;
-}
-
-std::string image_checksum(Image *s)
-{
-  int header_length;
-  vector<uchar> buf = convert_to_ppm(s->img, header_length);
-
-  const char *cbuf = reinterpret_cast<const char*> (&buf[0]);
-  return str2md5(cbuf + header_length, buf.size() - header_length);
 }
 
 Image *image_copy(Image *s)
@@ -407,28 +364,6 @@ void image_threshold(Image *s, int level)
     *it = (*it < level) ? 0 : 0xff;
   }
   s->img = imdecode(buf, 1);
-}
-
-// return 0 if raw difference is larger than maxdiff (on abs() of channel)
-bool image_differ(Image *a, Image *b, unsigned char maxdiff)
-{
-  if (a->img.rows != b->img.rows)
-    return true;
-
-  if (a->img.cols != b->img.cols)
-    return true;
-
-  cv::Mat diff = abs(a->img - b->img);
-
-  int header_length;
-  vector<uchar> buf = convert_to_ppm(diff, header_length);
-
-  vector<uchar>::iterator it = buf.begin() + header_length;
-  for (; it != buf.end(); ++it) {
-    if (*it > maxdiff) return true;
-  }
-
-  return false;
 }
 
 std::vector<float> image_avgcolor(Image *s)
