@@ -151,7 +151,7 @@ if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
 
 # local vars
 
-my %md5file; # for hardlinking equal screenshots
+my %md5file; # for symlinking identical screenshots
 
 our $backend; #FIXME: make local after adding frontend-api to bmwqemu
 
@@ -613,7 +613,7 @@ sub take_screenshot(;$) {
 	my $path="qemuscreenshot/";
 	mkdir $path;
 	if($lastname && -e $lastname) { # processing previous image, because saving takes time
-		# hardlinking identical files saves space
+		# symlinking identical files saves space
 		my $data=fileContent($lastname);
 		my $md5=Digest::MD5::md5_hex($data);
 		if($md5badlist{$md5}) {diag "error condition detected. test failed. see $lastname"; sleep 1; mydie "bad image seen"}
@@ -638,10 +638,9 @@ sub take_screenshot(;$) {
 		# ignore bottom 15 lines (blinking cursor, animated mouse-pointer)
 		if(length($data)==1440015) {$md5=Digest::MD5::md5(substr($data,15,800*3*(600-15)))}
 		if($md5file{$md5}) { # old
-			unlink($lastname); # warning: will break if FS does not support hardlinking
-			link($md5file{$md5}->[0], $lastname);
+			unlink($lastname); # warning: will break if FS does not support symlinking
+			symlink(basename($md5file{$md5}->[0]), $lastname);
 			my $linkcount=$md5file{$md5}->[1]++;
-			#my $linkcount=(stat($lastname))[3]; # relies on FS
 			$prestandstillwarning=($linkcount>$standstillthreshold/2);
 			if($linkcount>$standstillthreshold) {
 				timeout_screenshot(); sleep 1;

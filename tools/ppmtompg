@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
+use Cwd;
 
 my $in=shift;
 my $out=shift;
@@ -25,6 +26,7 @@ for my $f (<$in/*.ppm>, <$extradir/*.ppm>) {
 	if(0 && -s $f == 864015) { # 720x400 => 800x444 + 2*78 pixel vertical border
 		system(qw"convert -resize 800x600 -border 0x78 -bordercolor purple", $f, $newname);
 	} else {
+		$f=Cwd::abs_path($f) if -l $f;
 		link($f, $newname);
 	}
 }
