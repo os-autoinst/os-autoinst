@@ -80,8 +80,6 @@ if($ENV{AUTO_INST}) {
 	system("/usr/bin/mcopy","-i","$basedir/autoinst.img",$ENV{AUTO_INST},"::/");
 #	system("/usr/bin/mdir","-i","$basedir/autoinst.img");
 }
-sleep 5;
-
 
 for my $i (1..4) { # create missing symlinks
 	next if -e "$basedir/l$i";
