@@ -158,8 +158,6 @@ if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
 
 # local vars
 
-my %md5file; # for symlinking identical screenshots
-
 our $backend; #FIXME: make local after adding frontend-api to bmwqemu
 
 my $framecounter = 0; # screenshot counter
@@ -265,6 +263,8 @@ sub result_dir() {
 }
 
 our $lastscreenshot;
+our $lastscreenshotName;
+our $lastscreenshotCount;
 sub getcurrentscreenshot() {
         my $filename;
 	# using a queue to get the latest is most likely the least efficient solution,
@@ -273,7 +273,12 @@ sub getcurrentscreenshot() {
 		# unfortunately passing objects between threads is almost impossible
 		$filename = $screenshotQueue->dequeue();
 	}
-	$lastscreenshot = tinycv::read($filename) if $filename;
+	if ($filename) {
+		$lastscreenshot = tinycv::read($filename);
+		$lastscreenshotName = $filename;
+		$lastscreenshotCount = 0;
+	}
+
 	return $lastscreenshot;
 }
 
@@ -648,26 +653,14 @@ sub take_screenshot(;$) {
 	#my $avgvar = "avgcolor=".join(',', map(sprintf("%.3f", $_), @lastavgcolor));
 	#diag($md5var.$filevar.$laststgvar.$statstr.$avgvar);
 
-	# TODO detect always good needles?
-	#if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
-
 	# hardlinking identical files saves space
 
-	my $md5;
-	# ignore bottom 15 lines (blinking cursor, animated mouse-pointer)
-	if ($img->xres() == 800 && $img->yres() == 600) {
-		# bogus check but we only care for md5sum
-		my $img2 = $img->copy();
-		$img2->replacerect(0, 585, 800, 15);
-		$md5 = $img2->checksum();
-	} else {
-		$md5 = $img->checksum();
-	}
-	if($md5file{$md5}) { # old
-		symlink(basename($md5file{$md5}->[0]), $filename);
-		my $linkcount=$md5file{$md5}->[1]++;
-		$prestandstillwarning=($linkcount>$standstillthreshold/2);
-		if($linkcount>$standstillthreshold) {
+	# 48 is about the similarity of two screenshots with blinking cursor
+	if($lastscreenshot && $lastscreenshot->similarity($img) > 48) {
+		symlink(basename($lastscreenshotName), $filename);
+		$lastscreenshotCount++;
+		$prestandstillwarning=($lastscreenshotCount>$standstillthreshold/2);
+		if($lastscreenshotCount>$standstillthreshold) {
 			timeout_screenshot(); sleep 1;
 			my $dir=result_dir;
 			sendkey "alt-sysrq-w";
@@ -680,7 +673,9 @@ sub take_screenshot(;$) {
 	else { # new
 		$img->write($filename) || die "write $filename";
 		$screenshotQueue->enqueue($filename);
-		$md5file{$md5}=[$filename,1];
+		$lastscreenshot = $img;
+		$lastscreenshotName = $filename;
+		$lastscreenshotCount = 0;
 		my $ocr=get_ocr($img);
 		#if($ocr) { diag "ocr: $ocr" }
 	}
@@ -807,37 +802,10 @@ sub waitimage($;$$) {
 	my $flags = shift || 'd';
 	my $wact = ($flags=~m/s/)?'disappear':'appear';
 	fctlog('waitimage', "reflist=$reflist", "timeout=$timeout", "flags=$flags");
-	$reflist =~s/\.ppm$//;
-	my @refimgs = <$scriptdir/waitimgs/$reflist.ppm>;
-	diag "WARNING: No refimgs with name '$reflist' found!" unless(@refimgs);
-	my ($lastmd5,$thismd5) = (0,0);
+	diag "WARNING: waitimage is no longer supported\n";
 	for(my $i=0;$i<=$timeout;$i+=2) {
-		# prevent reading while screendump is not finished
-		$thismd5 = getcurrentscreenshot()->checksum();
-		# image is equal with previous one
-		unless($lastmd5 eq $thismd5) {
-			foreach my $refimg (@refimgs) {
-				my $refimg_print = basename($refimg);
-				die 'not yet ported';
-				#my $mylastname_print = basename($mylastname);
-				#fctinfo('waitimage', "checking $refimg_print against $mylastname_print");
-				#my @a=checkrefimgs($mylastname,$refimg,$flags);
-				#if($flags=~m/s/) {
-				#	if (!defined $a[0]) {
-				#		fctres('waitimage', "$refimg_print disappeared in $mylastname_print");
-				#		$refimg=~s/^.*waitimgs\/(.*)$/$1/;
-				#		return 1;
-				#	}
-				#}
-				#elsif(defined $a[0]) {
-				#	fctres('waitimage', "found $refimg_print in $mylastname_print");
-				#	$refimg=~s/^.*waitimgs\/(.*)$/$1/;
-				#	push(@a, $refimg);
-				#	return \@a;
-				#}
-			}
-		}
-		$lastmd5 = $thismd5;
+		getcurrentscreenshot();
+		sleep 1;
 	}
 	timeout_screenshot();
 	fctres('waitimage', "Waiting for images $reflist ($wact) timed out!");
