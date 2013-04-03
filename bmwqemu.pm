@@ -933,7 +933,7 @@ sub waitforneedle($;$$) {
 }
 
 sub checkneedle($;$) {
-	return waitforneedle(@_[0], @_[1], 1);
+	return waitforneedle($_[0], $_[1], 1);
 }
 
 #FIXME: new wait functions
