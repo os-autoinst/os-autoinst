@@ -19,7 +19,7 @@ sub run()
 	}
 	waitforneedle("languagepicked", 2);
 	sendkey $cmd{"next"};
-	if (waitforneedle("langincomplete", 1)) {
+	if (checkneedle("langincomplete", 1)) {
 	    sendkey "alt-f";
         }
 }
