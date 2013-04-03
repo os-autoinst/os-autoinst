@@ -25,19 +25,36 @@ from PIL import Image, ImageTk
 import json
 import optparse
 import sys
+import shutil
 from pprint import pprint
 
 parser = optparse.OptionParser()
+parser.add_option("--new", metavar="NAME", help="create new")
+parser.add_option("--tag", metavar="NAME", action='append', help="add tag")
+
 (options, args) = parser.parse_args()
 
 filename = args[0]
-if not filename.endswith('.json'):
-	print "Error: needs to end in .json"
-	sys.exit(0)
+if options.new:
+	if not filename.endswith('.png'):
+		print "Error: needs to end in .png"
+		sys.exit(0)
 
-png = filename[0:len(filename)-len(".json")]+'.png'
+	png = filename
+	needle = json.loads("""{
+	    "good": [ "FIXME" ], 
+	    "height": 100, "width": 100, 
+	    "xpos": 0, "ypos": 0
+	}""")
+	if options.tag:
+		needle['good'] = options.tag
+else:
+	if not filename.endswith('.json'):
+		print "Error: needs to end in .json"
+		sys.exit(0)
 
-needle = json.load(open(filename))
+	png = filename[0:len(filename)-len(".json")]+'.png'
+	needle = json.load(open(filename))
 
 print json.dumps(needle, sort_keys=True, indent=4)
 
@@ -58,7 +75,7 @@ crop = w.create_rectangle(needle['xpos'],
 		needle['ypos'],
 		needle['xpos'] + needle['width'],
 		needle['ypos'] + needle['height'],
-		outline="blue")
+		outline="yellow")
 
 incr = 5
 
@@ -99,6 +116,7 @@ def move(arg):
 		needle['ypos'] + needle['height'])
 
 def increment(arg):
+	global incr
 	if arg.keysym == 'plus':
 		if incr < 100:
 			incr = incr + 1
@@ -114,6 +132,11 @@ def quit(arg):
 	master.quit()
 
 def save_quit(arg):
+	global filename
+	if options.new:
+		pat = "distri/opensuse/needles/%s.%s"
+		shutil.copyfile(filename, pat%(options.new, 'png'))
+		filename = pat%(options.new, 'json')
 	json.dump(needle, open(filename, 'w'), sort_keys=True, indent=4)
 	print "saved %s"%filename
 	master.quit()
