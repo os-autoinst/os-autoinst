@@ -34,11 +34,25 @@ sub new($) {
     $self->{name} = basename($jsonfile, '.png');
 
     $self = bless $self, $classname;
+    $self->register();
+    return $self;
+}
+
+sub unregister($)
+{
+    my $self = shift;
+    for my $g (@{$self->{tags}}) {
+	@{$tags{$g}} = grep { $_ != $self } @{$tags{$g}};
+    }
+}
+
+sub register($)
+{
+    my $self = shift;
     for my $g (@{$self->{tags}}) {
       $tags{$g} ||= [];
       push(@{$tags{$g}}, $self);
     }
-    return $self;
 }
 
 sub glob($) {
