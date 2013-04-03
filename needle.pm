@@ -8,7 +8,7 @@ use JSON;
 use File::Basename;
 
 our %needles;
-our %goods;
+our %tags;
 
 sub new($) {
     my $classname=shift;
@@ -24,17 +24,18 @@ sub new($) {
 		 match => ($$perl_scalar{'match'} || 100) / 100.,
 		 processing_flags => $$perl_scalar{'processing_flags'},
 		 max_offset => $$perl_scalar{'max_offset'},
-		 good => $$perl_scalar{'good'} 
+		 tags => ($$perl_scalar{'tags'} || [])
     };
+    push (@{$self->{tags}}, @{$$perl_scalar{'good'}}) if $$perl_scalar{'good'};
     $jsonfile =~ s,\.json$,.png,;
     $self->{png} = $jsonfile;
     $self->{img} = undef;
     $self->{name} = basename($jsonfile, '.png');
 
     $self = bless $self, $classname;
-    for my $g (@{$self->{good}}) {
-      $goods{$g} ||= [];
-      push(@{$goods{$g}}, $self);
+    for my $g (@{$self->{tags}}) {
+      $tags{$g} ||= [];
+      push(@{$tags{$g}}, $self);
     }
     return $self;
 }
@@ -61,9 +62,9 @@ sub init($) {
     find( { no_chdir => 1, wanted => \&wanted_ }, $dirname );
 }
 
-sub good($) {
+sub tag($) {
     my $g = shift;
-    return $goods{$g};
+    return $tags{$g};
 }
 
 1;

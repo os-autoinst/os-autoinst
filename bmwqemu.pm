@@ -894,32 +894,40 @@ sub waitforneedle($;$$) {
 	my $check=shift;
 	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
 	# get the array reference to all matching needles
-	my $ret = needle::good($mustmatch);
+	my $ret = needle::tag($mustmatch);
 	if (!$ret) {
 		printf "NO goods for $mustmatch\n";
 	}
 	for my $n (1..$timeout) {
 		my $img = getcurrentscreenshot();
-		if ($img->search($ret)) {
+		my $foundneedle = $img->search($ret);
+		if ($foundneedle) {
 			my $t = time();
 			$img->write(result_dir() . "/match-$mustmatch-$t.png");
-			return 1;
+			return $foundneedle;
 		}
 		sleep 1;
 	}
 	fctres('waitforneedle', "match=$mustmatch timed out after $timeout");
 	my $t = time();
-	getcurrentscreenshot()->write_optimized(result_dir() . "/$mustmatch-$t.png");
+	my $cs = getcurrentscreenshot();
+	$cs->write_optimized(result_dir() . "/$mustmatch-$t.png");
 	open(J, ">", result_dir() . "/$mustmatch-$t.json");
-	
-	print J JSON->new->pretty->encode( { xpos => 0, ypos => 0, width => 800, height => 600, good => [ $mustmatch ]});
+	my $json = { xpos => 0, ypos => 0, width => $cs->xres() , height => $cs->yres() };
+	my @tags = ( $mustmatch );
+	# write out some known env variables
+	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD)) {
+		push(@tags, "ENV-$key-" . $ENV{$key}) if $ENV{$key};
+	}
+	$json->{"tags"} = \@tags;
+	print J JSON->new->pretty->encode( $json );
 	close(J);
 	mydie unless $check;
-	return 0;
+	return undef;
 }
 
 sub checkneedle($;$) {
-	waitforneedle(@_[0], @_[1], 1);
+	return waitforneedle(@_[0], @_[1], 1);
 }
 
 #FIXME: new wait functions
