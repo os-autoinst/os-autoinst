@@ -60,6 +60,12 @@ sub wanted_($) {
 sub init($) {
     my $dirname=shift;
     find( { no_chdir => 1, wanted => \&wanted_ }, $dirname );
+    for my $k (keys %tags) {
+	    print "$k\n";
+	    for my $p (@{$tags{$k}}) {
+		    print "  ", $p->{'name'}, "\n";
+	    }
+    }
 }
 
 sub tag($) {
