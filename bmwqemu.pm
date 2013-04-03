@@ -26,6 +26,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey 
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
 &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
+&checkneedle
 &init_backend &start_vm &set_ocr_rect &get_ocr
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie &checkEnv &waitinststage);
@@ -903,9 +904,10 @@ sub waitinststage($;$$) {
 	return waitforneedle($stage, $timeout, $extra);
 }
 
-sub waitforneedle($;$) {
+sub waitforneedle($;$$) {
 	my $mustmatch=shift;
 	my $timeout=shift||30;
+	my $check=shift;
 	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
 	# get the array reference to all matching needles
 	my $ret = needle::good($mustmatch);
@@ -928,10 +930,13 @@ sub waitforneedle($;$) {
 	
 	print J JSON->new->pretty->encode( { xpos => 0, ypos => 0, width => 800, height => 600, good => [ $mustmatch ]});
 	close(J);
-	mydie;
+	mydie unless $check;
 	return 0;
 }
 
+sub checkneedle($;$) {
+	waitforneedle(@_[0], @_[1], 1);
+}
 
 #FIXME: new wait functions
 # waitscreenactive - ($backend->screenactive())
