@@ -26,6 +26,7 @@ sub new($) {
 		 max_offset => $$perl_scalar{'max_offset'},
 		 tags => ($$perl_scalar{'tags'} || [])
     };
+    # TODO: for compat only. remove when all tests are converted
     push (@{$self->{tags}}, @{$$perl_scalar{'good'}}) if $$perl_scalar{'good'};
     $self->{file} = $jsonfile;
     $jsonfile =~ s,\.json$,.png,;
