@@ -38,7 +38,8 @@ if(!$ENV{LIVECD}) {
 		}
 	}
 	set_ocr_rect();
-	if(waitforneedle("inst-bootmenu", 100)) {
+	waitforneedle("reboot-after-installation", 100);
+	if(checkneedle("inst-bootmenu", 1) || checkneedle("grub2", 1)) {
 		sendkey "ret"; # avoid timeout for booting to HDD
 	}
 	qemusend "eject ide1-cd0";
@@ -83,7 +84,7 @@ set_ocr_rect();
 my $img=getcurrentscreenshot();
 my $ocr=ocr::get_ocr($img, "-l 200", [250,100,600,500]);
 diag "post-install-ocr: $ocr";
-if($ocr=~m/Installation of package .* failed/i or waitforneedle("install-failed", 1)) {
+if($ocr=~m/Installation of package .* failed/i or checkneedle("install-failed", 1)) {
 	sendkeyw "alt-d"; # see details of failure
 	if(1) { # ignore
 		$self->take_screenshot; sleep 2;
