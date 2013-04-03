@@ -216,6 +216,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double
   minMaxLoc(res, &minval, &maxval, &minloc, &maxloc, Mat());
 
 #if DEBUG
+#warning FIXME: modifies original image
   Mat s = scene->img;
   rectangle(s, Point(maxloc.x, maxloc.y),
 	    Point(maxloc.x + object->img.cols, maxloc.y + object->img.rows),
