@@ -39,7 +39,7 @@ if filename.endswith('.png'):
 	png = filename
 	filename = filename[0:len(filename)-len(".png")]+'.json'
 	needle = json.loads("""{
-	    "good": [ "FIXME" ], 
+	    "tags": [ "FIXME" ], 
 	    "height": 100, "width": 100, 
 	    "xpos": 0, "ypos": 0
 	}""")
@@ -52,7 +52,7 @@ else:
 	sys.exit(0)
 
 if options.tag:
-	needle['good'] = options.tag
+	needle['tags'] = options.tag
 
 print json.dumps(needle, sort_keys=True, indent=4)
 

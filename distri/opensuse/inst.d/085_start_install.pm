@@ -14,6 +14,9 @@ sub run()
 	sendkey $cmd{install};
         waitforneedle("inst-packageinstallationstarted");
 	if(!$ENV{LIVECD} && !$ENV{NICEVIDEO}) {
+		sleep 5;
+		# view installation details
+		sendkey $cmd{instdetails};
 		if ($ENV{DVD} && !$ENV{NOIMAGES}) {
 			if (checkEnv('DESKTOP', 'kde')) {
 				waitforneedle('kde-imagesused', 10);
@@ -22,11 +25,7 @@ sub run()
 			} else {
 				waitforneedle('x11-imagesused', 10);
 			}
-		} else {
-			sleep 5;
-		}
-		# view installation details
-		sendkey $cmd{instdetails};
+		} 
 	}
 }
 
