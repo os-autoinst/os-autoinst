@@ -27,6 +27,7 @@ sub new($) {
 		 tags => ($$perl_scalar{'tags'} || [])
     };
     push (@{$self->{tags}}, @{$$perl_scalar{'good'}}) if $$perl_scalar{'good'};
+    $self->{file} = $jsonfile;
     $jsonfile =~ s,\.json$,.png,;
     $self->{png} = $jsonfile;
     $self->{img} = undef;

@@ -65,7 +65,7 @@ if($ENV{RES1024}) { # default is 800x600
 	for(1..2) {
 		sendkey "up";
 	}
-	waitforneedle("inst-textselected");
+	waitforneedle("inst-textselected", 5);
 	sendkey "ret";
 }
 
