@@ -14,7 +14,7 @@ sub run()
 	my $self=shift;
 	# autoconf phase
 	# includes downloads, so waitidle is bad.
-	waitforneedle("inst-instmode", 120);
+	waitforneedle("inst-instmode", 10);
 	#waitidle 29;
 	# Installation Mode = new Installation
 	if($ENV{UPGRADE}) {
