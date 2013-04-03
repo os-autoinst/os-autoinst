@@ -928,6 +928,7 @@ sub waitforneedle($;$) {
 	
 	print J JSON->new->pretty->encode( { xpos => 0, ypos => 0, width => 800, height => 600, good => [ $mustmatch ]});
 	close(J);
+	mydie;
 	return 0;
 }
 
