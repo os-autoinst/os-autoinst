@@ -20,7 +20,6 @@ sub logcurrentenv(@)
 	foreach my $k (@_) {
 		my $e=$ENV{$k};
 		next unless defined $e;
-		diag("randomenv $k=$e");
 		diag("usingenv $k=$e");
 	}
 }
@@ -50,12 +49,18 @@ sub run()
 			$ENV{DESKTOP}=lc($1);
 		}
 	}
-	# dump other important ENV:
-	logcurrentenv(qw"ADDONURL BIGTEST BTRFS DESKTOP HW HWSLOT LIVETEST LVM MOZILLATEST NOINSTALL REBOOTAFTERINSTALL UPGRADE USBBOOT TUMBLEWEED WDUP ZDUP ZDUPREPOS");
 	setrandomenv if($ENV{RANDOMENV} && $0!~m/checklog/);
-	$ENV{DESKTOP}||="kde";
+	unless ($ENV{DESKTOP}) {
+		if (checkEnv("VIDEOMODE", "text")) {
+			$ENV{DESKTOP}="textmode";
+		} else {
+			$ENV{DESKTOP}="kde";
+		}
+	}
 	autotest::runtestdir("$scriptdir/consoletest.d", undef);
 	autotest::runtestdir("$scriptdir/x11test.d", undef);
+	# dump other important ENV:
+	logcurrentenv(qw"ADDONURL BIGTEST BTRFS DESKTOP HW HWSLOT LIVETEST LVM MOZILLATEST NOINSTALL REBOOTAFTERINSTALL UPGRADE USBBOOT TUMBLEWEED WDUP ZDUP ZDUPREPOS TEXTMODE DISTRI");
 }
 
 1;
