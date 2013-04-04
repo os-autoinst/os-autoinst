@@ -902,7 +902,8 @@ sub waitforneedle {
 	my $ret = needle::tag($mustmatch);
 	if (!$ret) {
 		printf "NO goods for $mustmatch\n";
-		$timeout = 1;
+		# give it some time to settle but not too much
+		$timeout = 3;
 	}
 	for my $n (1..$timeout) {
 		my $img = getcurrentscreenshot();
@@ -934,11 +935,11 @@ sub waitforneedle {
 	close(J);
 	diag("wrote $fn");
 	if (!$check && $ENV{'interactive_crop'} && $retried < 3) {
-		system('./crop.py', '--new', $mustmatch.($ENV{'interactive_crop'} || ''), $fn) || mydie;
+		system('./crop.py', '--new', $mustmatch.($ENV{'interactive_crop'} || ''), $fn) == 0 || mydie;
 		# FIXME: kill needle with same file name
 		needle->new($fn);
 		# XXX: recursion!
-		return waitforneedle($mustmatch, $timeout, $check, $retried+1);
+		return waitforneedle($mustmatch, 3, $check, $retried+1);
 	}
 	mydie unless $check;
 	return undef;
