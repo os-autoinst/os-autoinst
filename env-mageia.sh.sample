@@ -1,0 +1,58 @@
+#!/bin/sh
+
+# if you have something slower than Core i7 you might need to increase the IDLETHRESHOLD value... e.g. on my Phenom X4 I have 25 instead of 16
+# TODO: describe how to know that it is too slow or too fast; what breaks
+# value: load percentage
+export IDLETHRESHOLD=16
+
+# default: 0.5 (two screenshots per second)
+export SCREENSHOTINTERVAL=0.5
+
+#export HTTPPROXY=192.168.234.34:3128
+
+# leave empty for http://download.opensuse.org/factory
+#export SUSEMIRROR=http://ftp5.gwdg.de/pub/opensuse/factory
+
+# possible values: 0|1|5|6|10
+#export RAIDLEVEL=6
+# alternatively use Logical Volume Manager
+#export LVM=1
+
+# use random values for undefined testing variables
+#RANDOMENV=1
+
+# ignored for LiveCDs ; possible values: kde|gnome|xfce|lxde|minimalx|textmode
+# Only for openSUSE; ignored for SLE
+#export DESKTOP=gnome
+
+# for testing with UEFI boot give here a directory containing eg. a TianoCore
+# BIOS image file.
+# This can be found in the package OVMF on http://build.opensue.org in the
+# Project home:jejb1:UEFI. More about this on http://www.linux-kvm.org/page/OVMF
+#export UEFI=/usr/share/qemu-ovmf/bios
+
+# if you want to run this mostly for the video
+# Skips some tests that would make the video confusing for newcomers
+#export NICEVIDEO=1
+
+# If you want to use local cases instead of distro based one
+# Use full path, no relative route!
+#export CASEDIR=/some/location/somewhere/
+
+# is this a beta version with extra popup window on welcome screen?
+export BETA=1
+
+# if you want to run tests in parallel, you need to give different ports
+# note that $QEMUPORT+1 is also used
+export QEMUPORT=15222
+
+# which VNC port to use. default is to allow vncviewer $HOSTNAME:99
+export VNC=localhost:99
+# VNC keyboard layout of vncclient machine
+#export VNCKB=de
+
+# DESKTOP=kde
+export DESKTOP=none
+
+export QEMUVGA=std
+#export INSTLANG=de_DE
