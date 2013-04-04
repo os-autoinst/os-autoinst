@@ -69,6 +69,15 @@ sub glob($) {
     return $self->{img};
 }
 
+sub has_tag($$) {
+	my $self = shift;
+	my $tag = shift;
+	for my $t (@{$self->{tags}}) {
+		return 1 if ($t eq $tag);
+	}
+	return 0;
+}
+
 sub wanted_($) {
     return unless (m/.json$/);
     my $needle = needle->new($File::Find::name);
@@ -78,19 +87,32 @@ sub wanted_($) {
 }
 
 sub init($) {
-    my $dirname=shift;
-    find( { no_chdir => 1, wanted => \&wanted_ }, $dirname );
-    for my $k (keys %tags) {
-	    print "$k\n";
-	    for my $p (@{$tags{$k}}) {
-		    print "  ", $p->{'name'}, "\n";
-	    }
-    }
+	my $dirname=shift;
+	find( { no_chdir => 1, wanted => \&wanted_ }, $dirname );
+	#for my $k (keys %tags) {
+	#	print "$k\n";
+	#	for my $p (@{$tags{$k}}) {
+	#		print "  ", $p->{'name'}, "\n";
+	#	}
+	#}
 }
 
-sub tag($) {
-    my $g = shift;
-    return $tags{$g};
+sub tags($) {
+    my @tags = split(/ /, shift);
+    my $first_tag = shift @tags;
+    my $goods = $tags{$first_tag};
+    # go out early if there is nothing to do
+    return $goods if (!$goods || !@tags);
+    my @results;
+    # now check that it contains all the other tags too
+    NEEDLE: for my $n (@$goods) {
+	    for my $t (@tags) {
+		    last NEEDLE if (!$n->has_tag($t));
+	    }
+	    print "adding ", $n->{name}, "\n";
+	    push(@results, $n);
+    }
+    return \@results;
 }
 
 1;

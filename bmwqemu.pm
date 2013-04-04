@@ -895,17 +895,27 @@ sub waitforneedle($;$$$) {
 	my $check=shift;
 	my $retried=shift||0;
 
-	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
 	# get the array reference to all matching needles
-	my $ret = needle::tag($mustmatch);
-	if (!$ret) {
+	my $needles;
+	if (ref($mustmatch) eq "ARRAY") {
+		$needles = $mustmatch;
+		$mustmatch = '';
+		for my $n (@{$needles}) {
+			print "MM $mustmatch ", Dumper($n), "\n";
+			$mustmatch .= $n->{name} . " ";
+		}
+	} elsif ($mustmatch) {
+		$needles = needle::tags($mustmatch);
+	}
+	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
+	if (!$needles) {
 		printf "NO goods for $mustmatch\n";
 		# give it some time to settle but not too much
 		$timeout = 3;
 	}
 	my $img = getcurrentscreenshot();
 	for my $n (1..$timeout) {
-		my $foundneedle = $img->search($ret);
+		my $foundneedle = $img->search($needles);
 		if ($foundneedle) {
 			my $t = time();
 			$img->write(result_dir() . "/match-$mustmatch-$t.png");
@@ -915,7 +925,7 @@ sub waitforneedle($;$$$) {
 		$img = getcurrentscreenshot();
 	}
 	fctres('waitforneedle', "match=$mustmatch timed out after $timeout");
-	for (@{$ret||[]}) {
+	for (@{$needles||[]}) {
 		diag $_->{'file'};
 	}
 	my $t = time();
