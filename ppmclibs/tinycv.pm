@@ -19,7 +19,7 @@ sub search_($$) {
     my $self = shift;
     my $needle = shift;
 
-    my ($sim, $xmatch, $ymatch, $d1, $d2) = $self->search_needle($needle->glob());
+    my ($sim, $xmatch, $ymatch, $d1, $d2) = $self->search_needle($needle->get_image());
     printf "MATCH(%s:%.2f): $xmatch $ymatch\n", $needle->{name}, $sim;
     if ($sim >= $needle->{match} - 0.005) {
 	return 1;

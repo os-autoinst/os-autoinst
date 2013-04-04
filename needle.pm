@@ -61,7 +61,7 @@ sub register($)
     }
 }
 
-sub glob($) {
+sub get_image($) {
     my $self=shift;
     if (!$self->{img}) {
 	my $img = tinycv::read($self->{png});
