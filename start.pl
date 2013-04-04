@@ -38,4 +38,6 @@ require "$ENV{CASEDIR}/main.pm";
 # all testscripts would have been already run
 sleep 10;
 
+stop_vm();
+
 diag "done";

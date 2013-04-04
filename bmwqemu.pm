@@ -27,7 +27,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
 &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
 &checkneedle &goandclick
-&init_backend &start_vm &set_ocr_rect &get_ocr
+&init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie &checkEnv &waitinststage);
 
@@ -323,6 +323,10 @@ sub init_backend($) {
 
 sub start_vm() {
 	$backend->start_vm();
+}
+
+sub stop_vm() {
+	$backend->stop_vm();
 }
 
 sub mydie {
