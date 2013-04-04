@@ -3,6 +3,7 @@ package needle;
 use strict;
 use warnings;
 use File::Find;
+use File::Spec;
 use Data::Dumper;
 use JSON;
 use File::Basename;
@@ -28,10 +29,13 @@ sub new($) {
     };
     push (@{$self->{tags}}, @{$$perl_scalar{'good'}}) if $$perl_scalar{'good'};
     $self->{file} = $jsonfile;
-    $jsonfile =~ s,\.json$,.png,;
-    $self->{png} = $jsonfile;
+    $self->{name} = basename($jsonfile, '.json');
+    my $png = $self->{png} || $self->{name} . ".png";
+    $self->{png} = File::Spec->catpath('', dirname($jsonfile), $png);
+    if (! -s $self->{png}) {
+      die "Can't find $self->{png}";
+    }
     $self->{img} = undef;
-    $self->{name} = basename($jsonfile, '.png');
 
     $self = bless $self, $classname;
     $self->register();
