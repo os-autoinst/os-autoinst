@@ -5,27 +5,9 @@ use bmwqemu;
 sub run()
 {
 	waitidle(10);
-	waitstillimage(10,20);
+	waitstillimage(60,290);
 
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        
-	sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        
-	sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
+        sendkey "shift-tab"; # skip media check
 	sendkey "ret";
 
 
