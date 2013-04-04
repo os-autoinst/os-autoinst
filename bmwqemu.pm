@@ -935,11 +935,17 @@ sub waitforneedle {
 	close(J);
 	diag("wrote $fn");
 	if (!$check && $ENV{'interactive_crop'} && $retried < 3) {
-		system("$scriptdir/crop.py", '--new', $mustmatch.($ENV{'interactive_crop'} || ''), $fn) == 0 || mydie;
+		my $newname = $mustmatch.($ENV{'interactive_crop'} || '');
+		system("$scriptdir/crop.py", '--new', $newname, $fn) == 0 || mydie;
 		# FIXME: kill needle with same file name
-		needle->new($fn);
-		# XXX: recursion!
-		return waitforneedle($mustmatch, 3, $check, $retried+1);
+		$fn = sprintf("%s/needles/%s.json", $ENV{'CASEDIR'}, $newname)
+		if (-e $fn);
+		{
+			diag("reading new needle $fn");
+			needle->new($fn) || mydie "$!\n";
+			# XXX: recursion!
+			return waitforneedle($mustmatch, 3, $check, $retried+1);
+		}
 	}
 	mydie unless $check;
 	return undef;
