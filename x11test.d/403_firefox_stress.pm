@@ -41,12 +41,4 @@ sub run()
 	sendkey "ret"; # confirm "save&quit"
 }
 
-sub checklist()
-{
-	# return hashref:
-	# firefox disabled icons (back, forw, stop) differ by one bit between 32/64 arch
-	return {qw(
-	)}
-}
-
 1;

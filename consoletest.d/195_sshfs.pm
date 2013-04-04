@@ -16,11 +16,4 @@ sub run()
 	script_run('cd /tmp');
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

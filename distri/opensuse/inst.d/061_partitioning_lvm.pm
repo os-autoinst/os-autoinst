@@ -19,11 +19,4 @@ sub run()
 	}
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

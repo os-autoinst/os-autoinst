@@ -20,15 +20,4 @@ sub run()
 	script_run("rpm -q gvim");
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-		4c4c6b74c7f5e4a8960ca2688ce632e3 OK
-		686d803db805e8b62bbdb2e5989b931d OK
-		94486d3be6a1fd544c79c1f08fe1367b OK
-		5d69de12ad17f758d886762a4f3f9e5b OK
-	)}
-}
-
 1;

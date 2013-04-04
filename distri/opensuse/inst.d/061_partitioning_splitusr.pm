@@ -36,11 +36,4 @@ sub run()
 	sendkeyw $cmd{"accept"};
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

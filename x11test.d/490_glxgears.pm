@@ -17,11 +17,4 @@ sub run()
 	sleep 5; # time to close
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

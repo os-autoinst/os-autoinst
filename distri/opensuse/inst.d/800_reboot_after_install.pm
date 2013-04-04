@@ -24,11 +24,4 @@ sub run()
 	waitstillimage(12,60);
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

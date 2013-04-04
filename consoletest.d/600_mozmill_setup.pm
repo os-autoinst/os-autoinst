@@ -28,11 +28,4 @@ sub run()
 	waitserial("qa_mozmill_setup.sh done", 120);
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

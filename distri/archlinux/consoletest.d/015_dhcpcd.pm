@@ -13,11 +13,4 @@ sub run()
 	script_run "echo 'Server = http://ftp5.gwdg.de/pub/linux/archlinux/\$repo/os/\$arch' >> /etc/pacman.d/mirrorlist";
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

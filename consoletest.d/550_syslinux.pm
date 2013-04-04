@@ -15,11 +15,4 @@ sub run()
 	script_sudo("sh -x qa_syslinux.sh");
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

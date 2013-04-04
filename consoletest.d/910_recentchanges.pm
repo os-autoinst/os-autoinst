@@ -14,11 +14,4 @@ sub run()
 	waitidle(100);
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

@@ -13,8 +13,4 @@ sub run()
 	waitidle;
 }
 
-#sub checklist()
-#{
-#}
-
 1;
