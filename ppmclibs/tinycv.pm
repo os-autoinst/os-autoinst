@@ -22,18 +22,19 @@ sub search_($$) {
     my ($sim, $xmatch, $ymatch, $d1, $d2) = $self->search_needle($needle->get_image());
     printf "MATCH(%s:%.2f): $xmatch $ymatch\n", $needle->{name}, $sim;
     if ($sim >= $needle->{match} - 0.005) {
-	return 1;
+	return { similarity => $sim, x => $xmatch, y => $ymatch, needle => $needle };
     }
-    return 0;
+    return undef;
 }
 
 sub search($) {
     my $self = shift;
     my $needle = shift;
-    return 0 unless $needle;
+    return undef unless $needle;
     if (ref($needle) eq "ARRAY") {
 	for my $n (@$needle) {
-	    return 1 if ($self->search_($n));
+	    my $ret = $self->search_($n);
+	    return $ret if $ret;
 	}
     } else {
 	return $self->search_($needle);
