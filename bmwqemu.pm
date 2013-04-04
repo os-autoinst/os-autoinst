@@ -919,6 +919,10 @@ sub waitforneedle($;$$$) {
 		if ($foundneedle) {
 			my $t = time();
 			$img->write(result_dir() . "/match-$mustmatch-$t.png");
+			fctres(sprintf("found %s, similarity %.2f @ %d/%d",
+				$foundneedle->{'needle'}->{'name'},
+				$foundneedle->{'similarity'},
+				$foundneedle->{'x'}, $foundneedle->{'y'}));
 			return $foundneedle;
 		}
 		sleep 1;
