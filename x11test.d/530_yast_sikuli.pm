@@ -25,11 +25,4 @@ sub run()
 	script_sudo_logout();
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

@@ -11,11 +11,4 @@ sub run()
 	script_sudo("/sbin/halt");
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

@@ -20,11 +20,4 @@ sub run()
 	waitinststage("splashscreen");
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

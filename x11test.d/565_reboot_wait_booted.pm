@@ -13,11 +13,4 @@ sub run()
 	mouse_hide(1);
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

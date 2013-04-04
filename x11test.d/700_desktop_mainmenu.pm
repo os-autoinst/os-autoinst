@@ -27,13 +27,6 @@ sub run()
 	waitidle;
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 sub ocr_checklist()
 {
         [

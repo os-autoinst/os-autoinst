@@ -7,11 +7,4 @@ sub run()
 	sendautotype "halt\n";
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

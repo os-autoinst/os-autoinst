@@ -12,11 +12,4 @@ sub run()
 	script_run("killall gnome-screensaver");
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

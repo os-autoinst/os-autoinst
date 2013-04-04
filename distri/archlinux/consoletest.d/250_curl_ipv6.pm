@@ -11,16 +11,4 @@ sub run()
 	sleep 2;
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-		a0f2d8b443c6fe1153ca0c5b6692a719 OK
-		cda6b9aa8516cac867b3f3c8ef3d6b7d OK
-		52a165a273962b59d2c72d3ad10a8bdb fail
-		0bdf7328bb37fb32dd6b6975a5656c36 fail
-		fb523ab71ee25f51bab242ba28e0c2f5 fail
-	)}
-}
-
 1;

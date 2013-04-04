@@ -23,11 +23,4 @@ sub run()
 	script_run("unset http_proxy ; curl --form testname=$ver --form upload=@/tmp/logs.tar.bz2 10.0.2.2/cgi-bin/uploadlog");
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

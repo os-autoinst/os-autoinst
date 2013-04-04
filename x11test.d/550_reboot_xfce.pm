@@ -17,11 +17,4 @@ sub run()
 	sendkey "ret"; # confirm 
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

@@ -321,7 +321,7 @@ sub mydie {
 	fctlog('mydie', "@_");
 	$backend->stop_vm();
 	close $logfd;
-	croak $_[0];
+	croak "mydie";
 	exit 1;
 }
 
@@ -935,7 +935,7 @@ sub waitforneedle {
 	close(J);
 	diag("wrote $fn");
 	if (!$check && $ENV{'interactive_crop'} && $retried < 3) {
-		system('./crop.py', '--new', $mustmatch.($ENV{'interactive_crop'} || ''), $fn) == 0 || mydie;
+		system("$scriptdir/crop.py", '--new', $mustmatch.($ENV{'interactive_crop'} || ''), $fn) == 0 || mydie;
 		# FIXME: kill needle with same file name
 		needle->new($fn);
 		# XXX: recursion!
