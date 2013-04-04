@@ -904,13 +904,10 @@ sub waitinststage($;$$) {
 	return waitforneedle($stage, $timeout, $extra);
 }
 
-sub waitforneedle($;$$$);
-
-sub waitforneedle($;$$$) {
-	my $mustmatch=shift;
-	my $timeout=shift||30;
-	my $check=shift;
-	my $retried=shift||0;
+sub _waitforneedle {
+	my %args = @_;
+	my $mustmatch = $args{'mustmatch'};
+	my $timeout = $args{'timeout'} || 30;
 
 	# get the array reference to all matching needles
 	my $needles;
@@ -963,7 +960,9 @@ sub waitforneedle($;$$$) {
 	print J JSON->new->pretty->encode( $json );
 	close(J);
 	diag("wrote $fn");
-	if (!$check && $ENV{'interactive_crop'} && $retried < 3) {
+
+	$args{'retried'} || = 0;
+	if (!$args{'check'} && $ENV{'interactive_crop'} && $args{'retried'} < 3) {
 		my $newname = $mustmatch.($ENV{'interactive_crop'} || '');
 		system("$scriptdir/crop.py", '--new', $newname, $fn) == 0 || mydie;
 		# FIXME: kill needle with same file name
@@ -973,15 +972,19 @@ sub waitforneedle($;$$$) {
 			diag("reading new needle $fn");
 			needle->new($fn) || mydie "$!\n";
 			# XXX: recursion!
-			return waitforneedle($mustmatch, 3, $check, $retried+1);
+			return waitforneedle($mustmatch, 3, $args{'check'}, $args{'retried'}+1);
 		}
 	}
-	mydie unless $check;
+	mydie unless $args{'check'};
 	return undef;
 }
 
+sub waitforneedle($;$) {
+	return _waitforneedle(mustmatch => $_[0], timeout => $_[1]);
+}
+
 sub checkneedle($;$) {
-	return waitforneedle($_[0], $_[1], 1);
+	return _waitforneedle(mustmatch => $_[0], timeout => $_[1], check => 1);
 }
 
 #FIXME: new wait functions
