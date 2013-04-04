@@ -81,12 +81,18 @@ def resize(arg):
 	if arg.keysym == 'Right':
 		if width - needle['xpos'] - needle['width'] >= incr:
 			needle['width'] = needle['width'] + incr
+		elif needle['width'] > incr:
+			needle['xpos'] = needle['xpos'] + incr
+			needle['width'] = needle['width'] - incr
 	elif arg.keysym == 'Left':
 		if needle['width'] > incr:
 			needle['width'] = needle['width'] - incr
 	elif arg.keysym == 'Down':
 		if height - needle['ypos'] - needle['height'] >= incr:
 			needle['height'] = needle['height'] + incr
+		elif needle['height'] > incr:
+			needle['ypos'] = needle['ypos'] + incr
+			needle['height'] = needle['height'] - incr
 	elif arg.keysym == 'Up':
 		if needle['height'] > incr:
 			needle['height'] = needle['height'] - incr
