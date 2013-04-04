@@ -26,7 +26,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey 
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
 &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
-&checkneedle
+&checkneedle &goandclick
 &init_backend &start_vm &set_ocr_rect &get_ocr
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie &checkEnv &waitinststage);
@@ -937,6 +937,15 @@ sub _waitforneedle {
 				$foundneedle->{'needle'}->{'name'},
 				$foundneedle->{'similarity'},
 				$foundneedle->{'x'}, $foundneedle->{'y'}));
+			if ($args{'click'}) {
+				my $rx = 1; # $origx / $img->xres();
+				my $ry = 1; # $origy / $img->yres();
+				my $x = ($foundneedle->{'x'} + $foundneedle->{'needle'}->{'width'}/2)*$rx;
+				my $y = ($foundneedle->{'y'} + $foundneedle->{'needle'}->{'height'}/2)*$ry;
+				diag ("clicking at $x/$y");
+				mouse_set($x, $y);
+				mouse_click($args{'click'}, $args{'clicktime'});
+			}
 			return $foundneedle;
 		}
 		sleep 1;
@@ -961,7 +970,7 @@ sub _waitforneedle {
 	close(J);
 	diag("wrote $fn");
 
-	$args{'retried'} || = 0;
+	$args{'retried'} ||= 0;
 	if (!$args{'check'} && $ENV{'interactive_crop'} && $args{'retried'} < 3) {
 		my $newname = $mustmatch.($ENV{'interactive_crop'} || '');
 		system("$scriptdir/crop.py", '--new', $newname, $fn) == 0 || mydie;
@@ -985,6 +994,14 @@ sub waitforneedle($;$) {
 
 sub checkneedle($;$) {
 	return _waitforneedle(mustmatch => $_[0], timeout => $_[1], check => 1);
+}
+
+# warning: will not work due to https://bugs.launchpad.net/qemu/+bug/752476
+sub goandclick($;$$$) {
+	return _waitforneedle(mustmatch => $_[0],
+		click => ($_[1] || 'left'),
+		timeout => $_[2],
+		clicktime => $_[3]);
 }
 
 #FIXME: new wait functions
