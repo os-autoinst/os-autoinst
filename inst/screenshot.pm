@@ -7,7 +7,7 @@ use threads;
 
 sub screenshotsub
 {
-        my $interval = $ENV{SCREENSHOTINTERVAL}||5;
+        my $interval = $ENV{SCREENSHOTINTERVAL}||.5;
        	while(bmwqemu::alive()) {
 	  my ($s1, $ms1) = gettimeofday();
 	  bmwqemu::take_screenshot('q');
