@@ -36,7 +36,6 @@ require "$ENV{CASEDIR}/main.pm";
 
 # this is only for still getting screenshots while
 # all testscripts would have been already run
-for(1..6000) { # time to let install work
-	sleep 1;
-}
+sleep 10;
 
+diag "done";
