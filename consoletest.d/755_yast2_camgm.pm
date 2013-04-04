@@ -51,11 +51,4 @@ sub run()
 	script_sudo('bash -x imapcert.sh');
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

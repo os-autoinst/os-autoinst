@@ -2,7 +2,6 @@ use ExtUtils::MakeMaker;
 
 my $opencv_libs = `pkg-config --libs opencv`;
 $opencv_libs =~ s,/usr/lib64/lib(\S+)\.so,-l\1,g;
-$opencv_libs .= "-lcrypto";
 
 WriteMakefile(
   NAME => 'tinycv',

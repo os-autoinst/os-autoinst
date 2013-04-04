@@ -10,11 +10,4 @@ sub run()
 	alarm 3 unless waitserial("010_consoletest_setup OK", 10);
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

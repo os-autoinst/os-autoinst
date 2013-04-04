@@ -21,11 +21,4 @@ sub run()
 	sendautotype "echo ret=\$? survived btrfstest\n"; sleep 2;
 }
 
-sub checklist
-{
-	qw{
-		0d5a6c159b30f063a8fcaf27b502c342 OK
-	}
-}
-
 1;

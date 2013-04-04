@@ -16,16 +16,6 @@ sub run()
 	waitidle;
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-		055ef0f7abcff0ebf91f545ce290ef9a OK
-		9b0ed4c97220f047a16252aad1aca253 OK
-		b178bcd5587d55b8fc5aadfd1e18bad0 OK
-	)}
-}
-
 sub ocr_checklist()
 {
         [

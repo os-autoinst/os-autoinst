@@ -28,11 +28,4 @@ sub run()
 	sendkey "esc";
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

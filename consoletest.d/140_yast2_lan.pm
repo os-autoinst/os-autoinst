@@ -41,23 +41,4 @@ script_run('echo $?');
 script_run('hostname');
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-		5660b88237419b9c34efe4bfc6de960f OK
-		643fbda2f009ecef30f0b6d331124380 OK
-		4db03d05d1f653a50e3c0eb2b20bd69a OK
-		2562e77bdce25069258bdb8748c3c302 OK
-		66e4a815edf5460d9975e04a1db70b39 OK
-		b713aaca3ea534257c4ed81529d04c62 OK
-		7300bd5354c5a6fa1afbe898acbf9fe0 OK
-		645d750e368d3d843b51e33ccbcc0922 OK
-		5660b88237419b9c34efe4bfc6de960f OK
-		2211a4356673d79819671bb9ae36cba0 OK
-		9b1e290f49eac89a827d488114d9309c fail
-		cbcdd79e992fb5a8be0c834616eeeb40 fail
-	)}
-}
-
 1;

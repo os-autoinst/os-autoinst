@@ -15,11 +15,4 @@ sub run()
 	script_sudo "/sbin/reboot",3;
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;
