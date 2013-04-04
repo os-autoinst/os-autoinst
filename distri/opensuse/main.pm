@@ -22,13 +22,14 @@ if($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
 	$username="linux"; # LiveCD account
 	$password="";
 }
+
 if(checkEnv('DESKTOP', "minimalx")) {$ENV{XDMUSED}=1}
 $ENV{TOGGLEHOME}=1;
 autotest::runtestdir("$ENV{CASEDIR}/inst.d", undef);
 autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
 
 if(my $d=$ENV{DESKTOP}) {
-	do "inst/\L$d.pm" or diag $@;
+	require "inst/\L$d.pm";
 }
 
 1;

@@ -17,7 +17,6 @@ sub screenshotsub
 	}
 }
 
-sleep 3; # wait until BIOS is gone
 our $screenshotthr = threads->create(\&screenshotsub);
 
 1;
