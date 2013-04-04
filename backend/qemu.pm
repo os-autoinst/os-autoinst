@@ -23,6 +23,7 @@ sub sendkey($) {
 	$self->send("sendkey $key");
 }
 
+# warning: will not work due to https://bugs.launchpad.net/qemu/+bug/752476
 sub mouse_set($$) {
 	my $self = shift;
 	my ($x, $y) = @_;
@@ -34,8 +35,8 @@ sub mouse_set($$) {
 	$self->send("mouse_move $ax $ay");
 }
 
-sub mouse_button($) {
-	my ($self, $button, $bstate);
+sub mouse_button($$$) {
+	my ($self, $button, $bstate) = @_;;
 	$self->{'mousebutton'}->{$button} = $bstate;
 	my $btn_bin = 0;
 	$btn_bin |= 0b001 if($self->{'mousebutton'}->{'left'});
