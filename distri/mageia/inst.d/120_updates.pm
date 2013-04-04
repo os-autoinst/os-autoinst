@@ -5,7 +5,7 @@ use bmwqemu;
 sub run()
 {
 	waitidle(10);
-	waitstillimage(10,20);
+	waitstillimage(30,200);
 
         sendkey "down"; # skip media check
         sendkey "tab"; # skip media check

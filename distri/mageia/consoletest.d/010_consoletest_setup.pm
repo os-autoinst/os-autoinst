@@ -4,7 +4,7 @@ use bmwqemu;
 
 sub run()
 { my $self=shift;
-	waitstillimage(12,1000);
+	waitstillimage(30,1000);
 	sendkey "ctrl-alt-f4";
 	sleep 2;
 	sendautotype "$username\n";
