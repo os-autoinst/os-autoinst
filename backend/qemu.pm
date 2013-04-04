@@ -135,6 +135,8 @@ sub do_start_vm($) {
 
 sub do_stop_vm($) {
 	my $self = shift;
+	$self->send('quit');
+	sleep(0.1);
 	kill(15, $self->{'pid'});
 	unlink($self->{'pidfilename'});
 }
