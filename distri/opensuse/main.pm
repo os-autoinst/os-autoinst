@@ -2,6 +2,7 @@
 use strict;
 use bmwqemu;
 use autotest;
+use needle;
 
 sub installrunfunc
 {
@@ -11,10 +12,25 @@ sub installrunfunc
 	$test->take_screenshot;
 }
 
+sub remove_desktop_needles($)
+{
+	my $desktop = shift;
+	if (!checkEnv("DESKTOP", $desktop)) {
+		for my $n (@{needle::tags("ENV-DESKTOP-$desktop")}) {
+			$n->unregister();
+		}
+	}
+}
+	
 # wait for qemu to start
 while (!getcurrentscreenshot()) {
 	sleep 1;
 }
+
+remove_desktop_needles("lxde");
+remove_desktop_needles("kde");
+remove_desktop_needles("gnome");
+remove_desktop_needles("xfce");
 
 #waitforneedle "inst-bootmenu",12; # wait for welcome animation to finish
 

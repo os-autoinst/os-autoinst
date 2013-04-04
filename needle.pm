@@ -46,6 +46,7 @@ sub new($) {
 sub unregister($)
 {
     my $self = shift;
+    print "unregister $self->{name}\n";
     for my $g (@{$self->{tags}}) {
 	@{$tags{$g}} = grep { $_ != $self } @{$tags{$g}};
     }
@@ -113,6 +114,10 @@ sub tags($) {
 	    push(@results, $n);
     }
     return \@results;
+}
+
+sub all() {
+	return values %needles;
 }
 
 1;
