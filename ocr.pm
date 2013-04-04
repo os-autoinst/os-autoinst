@@ -2,7 +2,6 @@ package ocr;
 use strict;
 use warnings;
 use cv;
-use Carp::Always;
 
 our $gocrbin="/usr/bin/gocr";
 if(!-x $gocrbin) {$gocrbin=undef}
