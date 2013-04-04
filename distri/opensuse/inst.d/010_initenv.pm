@@ -57,6 +57,7 @@ sub run()
 			$ENV{DESKTOP}="kde";
 		}
 	}
+	$ENV{SCREENSHOTINTERVAL}||=.5;
 	autotest::runtestdir("$scriptdir/consoletest.d", undef);
 	autotest::runtestdir("$scriptdir/x11test.d", undef);
 	# dump other important ENV:
