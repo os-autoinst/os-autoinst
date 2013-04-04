@@ -921,8 +921,8 @@ sub waitforneedle {
 		# give it some time to settle but not too much
 		$timeout = 3;
 	}
+	my $img = getcurrentscreenshot();
 	for my $n (1..$timeout) {
-		my $img = getcurrentscreenshot();
 		my $foundneedle = $img->search($ret);
 		if ($foundneedle) {
 			my $t = time();
@@ -930,17 +930,17 @@ sub waitforneedle {
 			return $foundneedle;
 		}
 		sleep 1;
+		$img = getcurrentscreenshot();
 	}
 	fctres('waitforneedle', "match=$mustmatch timed out after $timeout");
 	for (@{$ret||[]}) {
 		diag $_->{'file'};
 	}
 	my $t = time();
-	my $cs = getcurrentscreenshot();
-	$cs->write_optimized(result_dir() . "/$mustmatch-$t.png");
+	$img->write_optimized(result_dir() . "/$mustmatch-$t.png");
 	my $fn = result_dir() . "/$mustmatch-$t.json";
 	open(J, ">", $fn) or die "$fn: $!\n";
-	my $json = { xpos => 0, ypos => 0, width => $cs->xres() , height => $cs->yres() };
+	my $json = { xpos => 0, ypos => 0, width => $img->xres() , height => $img->yres() };
 	my @tags = ( $mustmatch );
 	# write out some known env variables
 	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD)) {
