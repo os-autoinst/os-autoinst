@@ -7,7 +7,7 @@ sub run()
 {
 	my $self=shift;
 	# user setup
-	waitforneedle("inst-usersetup", 3);
+	waitforneedle("inst-usersetup", 5);
 	sendautotype($realname);
 	sendkey "tab";
 	#sleep 1;
