@@ -86,7 +86,7 @@ if($self->{'pid'}==0) {
 	my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
 	for my $i (1..$ENV{NUMDISKS}) {
 		my $boot="";#$i==1?",boot=on":""; # workaround bnc#696890
-		push(@params, "-drive", "file=$basedir/l$i,if=$ENV{HDDMODEL}$boot");
+		push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=$ENV{HDDMODEL}$boot");
 	}
 	push(@params, "-boot", "dc", @cdrom) if($iso);
 	if($ENV{VNC}) {
