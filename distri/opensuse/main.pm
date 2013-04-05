@@ -16,7 +16,8 @@ sub remove_desktop_needles($)
 {
 	my $desktop = shift;
 	if (!checkEnv("DESKTOP", $desktop)) {
-		for my $n (@{needle::tags("ENV-DESKTOP-$desktop")}) {
+		my @a = @{needle::tags("ENV-DESKTOP-$desktop")};
+		for my $n (@a) {
 			$n->unregister();
 		}
 	}
