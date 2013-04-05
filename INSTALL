@@ -29,11 +29,8 @@ echo kvm-intel >> /etc/modules
     # not essential; for audio
     OneClickInstallUI http://multiymp.zq1.de/multimon?base=http://download.opensuse.org/repositories/hamradio/
 
-    # ffmpeg2theora is from Packman
-    zypper ar http://packman.inode.at/suse/$(. /etc/os-release; echo $VERSION_ID)/ packman
-    # Data::Dump
-    zypper ar http://download.opensuse.org/repositories/devel:/languages:/perl/$(. /etc/os-release; echo ${NAME}_${VERSION_ID})/ perl
-    zypper install git-core kvm gocr ffmpeg2theora perl-JSON v4l-tools perl-Net-SNMP perl-Data-Dump perl-Inline perl-Carp-Always make gcc gcc-c++ opencv-devel optipng
+    zypper ar -r http://r.opensu.se/devel:openQA/$(. /etc/os-release; echo $VERSION_ID)/r
+    zypper install git-core kvm gocr png2theora perl-JSON v4l-tools perl-Net-SNMP perl-Data-Dump perl-Inline perl-Carp-Always make gcc gcc-c++ opencv-devel optipng
 
     usermod -G kvm -a $USER
 

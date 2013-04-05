@@ -26,4 +26,4 @@ for i in qemuscreenshot/*.png; do
 done
 
 # Create the movie
-./png2theora movie/file-%010d.png -o video.ogv
+png2theora movie/file-%010d.png -o video.ogv
