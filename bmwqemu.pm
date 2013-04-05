@@ -221,7 +221,7 @@ sub fctlog {
 	my @fparams = @_;
 	$logfd && print $logfd '<<< '.$fname.'('.join(', ', @fparams).")\n";
 	return unless $debug;
-	print STDERR colored('<<< '.$fname.'('.join(', ', @fparams).')', 'bright_blue')."\n";
+	print STDERR colored('<<< '.$fname.'('.join(', ', @fparams).')', 'blue')."\n";
 }
 
 sub fctres {
@@ -367,7 +367,7 @@ sub sendkey($) {
 	$backend->sendkey($key);
 	my @t=gettimeofday();
 	push(@keyhistory, [$t[0]*1000000+$t[1], $key]);
-	sleep(0.25);
+	sleep(0.15);
 }
 
 =head2 sendkeyw
