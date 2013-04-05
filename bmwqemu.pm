@@ -115,6 +115,7 @@ our %cmd=qw(
 	instdetails alt-d
 	rebootnow alt-n
 	otherrootpw alt-s
+	noautologin alt-a
 	change alt-c
 	software s
 	bootloader b
