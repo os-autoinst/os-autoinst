@@ -10,8 +10,8 @@ sub run()
         sendautotype "$password"; # root PW
 
         sendkey "tab"; # skip media check
-        sendautotype "QA Test\t"; # Test user
-        sendautotype "test\t"; # Test user
+        sendautotype "$realname\t"; # Test user
+        sendautotype "$username\t"; # Test user
         sendautotype "$password\t"; # root PW
         sendautotype "$password"; # root PW
 

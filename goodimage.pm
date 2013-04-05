@@ -323,6 +323,7 @@ ddb3976501b9f8b1fb62182551edd64f fedora-postreboot
 22f3a1ddd0f0165d79a26a7aa7a49f15 openindiana-booted-live-148
 
 61b8b01192becf67347ad0420724947e freebsd-install-done
+21ba85f47ef52a354a847678b5cb6820 mageia-language
 );
 
 1;

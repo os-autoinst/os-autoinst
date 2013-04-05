@@ -10,6 +10,22 @@ sub installrunfunc
 	$test->run();
 	$test->take_screenshot;
 }
+my $testcount=0;
+sub consoletestrunfunc
+{
+	my($test)=@_;
+	my $class=ref $test;
+	if($testcount++) {
+		clear_console; # clear screen to make screen content independent from previous tests
+	}
+	$test->run();
+	sleep 2;
+	$test->take_screenshot;
+}
+
+
+autotest::runtestdir("$ENV{CASEDIR}/inst.d", undef);
+autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", undef);
 
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
 	autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
@@ -21,6 +37,8 @@ set_hash_rects(
 	[630,30,100,100], # where some applications pop up
 	[0,579,100,10 ], # bottom line (KDE/GNOME bar)
 	);
+
+autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", \&consoletestrunfunc);
 
 
 1;
