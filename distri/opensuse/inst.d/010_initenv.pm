@@ -10,10 +10,12 @@ our %valueranges=(
 	SYSVINIT=>[0,1],
 	DOCRUN=>[0,1],
 #	BTRFS=>[0,1],
-#	DESKTOP=>[qw(kde gnome xfce lxde)],
+	DESKTOP=>[qw(kde gnome xfce lxde minimalx textmode)],
 #	ROOTFS=>[qw(ext3 xfs jfs btrfs reiserfs)],
-#	VIDEOMODE=>["","text"],
+	VIDEOMODE=>["","text"],
 );
+
+our @can_randomize = qw/NOIMAGES REBOOTAFTERINSTALL SYSVINIT DOCRUN/;
 
 sub logcurrentenv(@)
 {
@@ -26,13 +28,23 @@ sub logcurrentenv(@)
 
 sub setrandomenv()
 {
-	foreach my $k (keys %valueranges) {
+	for my $k (@can_randomize) {
 		next if defined $ENV{$k};
 		next if $k eq "DESKTOP" && $ENV{LIVECD};
 		my @range=@{$valueranges{$k}};
 		my $rand=int(rand(scalar @range));
 		$ENV{$k}=$range[$rand];
 		logcurrentenv($k);
+	}
+}
+
+sub check_env()
+{
+	for my $k (keys %valueranges) {
+		next unless exists $ENV{$k};
+		unless (grep { $ENV{$k} eq $_ } @{$valueranges{$k}} ) {
+			die sprintf("%s must be one of %s\n", $k, join(',', @{$valueranges{$k}}));
+		}
 	}
 }
 
@@ -49,6 +61,7 @@ sub run()
 			$ENV{DESKTOP}=lc($1);
 		}
 	}
+	check_env();
 	setrandomenv if($ENV{RANDOMENV} && $0!~m/checklog/);
 	unless ($ENV{DESKTOP}) {
 		if (checkEnv("VIDEOMODE", "text")) {
