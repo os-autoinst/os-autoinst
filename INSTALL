@@ -32,6 +32,9 @@ echo kvm-intel >> /etc/modules
     zypper ar -r http://r.opensu.se/devel:openQA/$(. /etc/os-release; echo $VERSION_ID)/r
     zypper install git-core kvm gocr png2theora perl-JSON v4l-tools perl-Net-SNMP perl-Data-Dump perl-Inline perl-Carp-Always make gcc gcc-c++ opencv-devel optipng
 
+    # for crop.py
+    zypper install python-tk python-imaging
+
     usermod -G kvm -a $USERNAME || usermod -A kvm $USERNAME
 
 == more Linux setup ==
