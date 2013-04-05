@@ -35,6 +35,15 @@ remove_desktop_needles("xfce");
 remove_desktop_needles("minimalx");
 remove_desktop_needles("textmode");
 
+my @a;
+if (!$ENV{LIVECD}) {
+  @a = @{needle::tags("ENV-LIVECD-1")};
+} else {
+  @a = @{needle::tags("ENV-LIVECD-0")};
+}
+
+for my $n (@a) { $n->unregister(); }
+
 #waitforneedle "inst-bootmenu",12; # wait for welcome animation to finish
 
 if($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
