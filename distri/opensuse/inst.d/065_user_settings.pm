@@ -16,6 +16,10 @@ sub run()
 		sendautotype("$password\t");
 	}
 	waitforneedle("inst-userinfostyped", 5);
+	if($ENV{NOAUTOLOGIN}) {
+		sendkey $cmd{"noautologin"};
+		waitforneedle("autologindisabled", 2);
+	}
 	if($ENV{DOCRUN}) {
 		sendkey $cmd{"otherrootpw"};
 		waitforneedle("rootpwdisabled", 2);
