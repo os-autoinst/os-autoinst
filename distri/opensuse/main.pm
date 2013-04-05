@@ -31,6 +31,8 @@ remove_desktop_needles("lxde");
 remove_desktop_needles("kde");
 remove_desktop_needles("gnome");
 remove_desktop_needles("xfce");
+remove_desktop_needles("minimalx");
+remove_desktop_needles("textmode");
 
 #waitforneedle "inst-bootmenu",12; # wait for welcome animation to finish
 
