@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
-use File::Path qw/make_path/;
+use File::Path qw/mkpath/;
 
 my $basedir="raid";
 my $qemuimg="/usr/bin/kvm-img";
@@ -44,7 +44,7 @@ if($ison=~m/openSUSE-(DVD|NET|KDE|GNOME|LXDE|XFCE)/) {
 
 if($ENV{UEFI} && !-e $ENV{UEFI}.'/bios.bin') {die "'$ENV{UEFI}' should point to a directory with an uefi bios image"}
 
-make_path($basedir);
+mkpath($basedir);
 
 if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	my $file=$ENV{UPGRADE};
