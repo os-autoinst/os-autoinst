@@ -5,10 +5,16 @@ use File::Path qw/mkpath/;
 my $basedir="raid";
 my $qemuimg="/usr/bin/kvm-img";
 if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
-my $qemubin="/usr/bin/kvm";
-if(!-x $qemubin) {$qemubin=~s/kvm/qemu-kvm/}
-if(!-x $qemubin) {$qemubin=~s/-kvm//}
-if(!-x $qemubin) {die "no Qemu/KVM found"}
+
+my $qemubin = $ENV{'QEMU'};
+unless ($qemubin) {
+	for my $bin (map { '/usr/bin/'.$_ } qw/kvm qemu-kvm qemu/) {
+		next unless -x $bin;
+		$qemubin = $bin;
+		last;
+	}
+	die "no Qemu/KVM found\n" unless $qemubin;
+}
 
 my $iso=$ENV{ISO};
 my $sizegb=8;
