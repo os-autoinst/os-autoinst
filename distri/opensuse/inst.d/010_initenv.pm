@@ -6,8 +6,6 @@ our %valueranges=(
 #	LVM=>[0,1], 
 	NOIMAGES=>[0,1],
 	REBOOTAFTERINSTALL=>[0,1],
-#	SYSTEMD=>[0,1],
-	SYSVINIT=>[0,1],
 	DOCRUN=>[0,1],
 #	BTRFS=>[0,1],
 	DESKTOP=>[qw(kde gnome xfce lxde minimalx textmode)],
@@ -15,7 +13,7 @@ our %valueranges=(
 	VIDEOMODE=>["","text"],
 );
 
-our @can_randomize = qw/NOIMAGES REBOOTAFTERINSTALL SYSVINIT DOCRUN/;
+our @can_randomize = qw/NOIMAGES REBOOTAFTERINSTALL DESKTOP VIDEOMODE/;
 
 sub logcurrentenv(@)
 {
@@ -31,6 +29,10 @@ sub setrandomenv()
 	for my $k (@can_randomize) {
 		next if defined $ENV{$k};
 		next if $k eq "DESKTOP" && $ENV{LIVECD};
+		if ($ENV{DOCRUN}) {
+			next if $k eq "VIDEOMODE";
+			next if $k eq "NOIMAGES";
+		}
 		my @range=@{$valueranges{$k}};
 		my $rand=int(rand(scalar @range));
 		$ENV{$k}=$range[$rand];
@@ -88,7 +90,7 @@ sub run()
 	if($ison=~m/Live/i) {$ENV{LIVECD}=1}
 	if($ison=~m/Promo/) {$ENV{PROMO}=1}
 	if($ison=~m/-i[3-6]86-/) {$ENV{QEMUCPU}||="qemu32"}
-	if($ison=~m/openSUSE-.*(DVD|NET|KDE|GNOME|LXDE|XFCE)-/) {
+	if($ison=~m/openSUSE-.*-(DVD|NET|KDE|GNOME|LXDE|XFCE)-/) {
 		$ENV{$1}=1; $ENV{NETBOOT}=$ENV{NET};
 		if($ENV{LIVECD}) {
 			$ENV{DESKTOP}=lc($1);

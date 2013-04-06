@@ -8,7 +8,7 @@ sub run()
 	script_sudo("zypper -n -q in psmisc");
 
 	script_sudo("killall gpk-update-icon kpackagekitsmarticon packagekitd");
-	if(!$ENV{NET} && !$ENV{TUMBLEWEED} && !$ENV{EVERGREEN}) {
+	if(!$ENV{NET} && !$ENV{TUMBLEWEED} && !$ENV{EVERGREEN} && $ENV{SUSEMIRROR}) {
 		# non-NET installs have only milestone repo, which might be incompatible.
 		script_sudo("zypper ar http://$ENV{SUSEMIRROR}/repo/oss Factory");
 	}

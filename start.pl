@@ -33,7 +33,7 @@ if($init) {
 	}
 }
 my $size=-s $ENV{ISO}; diag("iso_size=$size");
-require "inst/screenshot.pm";
+our $screenshotthr = require "inst/screenshot.pm";
 
 require Carp;
 require Carp::Always;
@@ -46,5 +46,7 @@ require "$ENV{CASEDIR}/main.pm";
 sleep 10;
 
 stop_vm();
+
+$screenshotthr->join();
 
 diag "done";
