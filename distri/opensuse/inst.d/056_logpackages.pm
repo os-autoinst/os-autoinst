@@ -24,11 +24,10 @@ sub run()
 	#sendkey "ctrl-d"; sleep 3;
         if (checkEnv('VIDEOMODE', 'text')) {
           sendkey "ctrl-alt-f1";
-          waitforneedle("inst-clean-f1", 3);
         } else {
 	  sendkey "ctrl-alt-f7";
-          waitforneedle("inst-returned-to-yast", 150);
         }
+	waitforneedle("inst-returned-to-yast", 10);
 
 }
 

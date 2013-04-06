@@ -17,6 +17,4 @@ sub screenshotsub
 	}
 }
 
-our $screenshotthr = threads->create(\&screenshotsub);
-
-1;
+threads->create(\&screenshotsub);
