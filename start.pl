@@ -5,6 +5,13 @@
 #
 
 use strict;
+
+BEGIN {
+  my ($wd) = $0 =~ m-(.*)/- ;
+  $wd ||= '.';
+  unshift @INC,  "$wd";
+}
+
 use bmwqemu;
 
 # Sanity checks

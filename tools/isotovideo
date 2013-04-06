@@ -11,7 +11,6 @@ logfile=currentautoinst-log.txt
 
 # make absolute path
 export ISO=`$scriptdir/tools/absolutize $iso`
-export PERLLIB=$scriptdir
 
 # Load the user's configured environment from cwd
 if [ ! -f "env.sh" ]; then
