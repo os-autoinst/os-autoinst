@@ -7,7 +7,9 @@ sub run()
 	sleep 30;
 #	waitidle();
 	waitstillimage(10,100);
-#	waitinststage("mageia-language", 100);
+	mouse_hide();
+	sleep 1;
+	waitgoodimage(10);
 #	avgcolor=0.684,0.714,0.733
 	sendkey "end";
 	sendkey "ret";
