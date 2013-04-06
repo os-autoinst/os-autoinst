@@ -11,11 +11,11 @@ sub is_applicable()
 
 sub run()
 {
-	waitforneedle("inst-using-images", 1);
 	sendkey $cmd{change};	# Change
+	sleep 3;
 	my $images=($ENV{VIDEOMODE} eq "text")?"alt-i":"i";
 	sendkey $images;        # Images
-	waitforneedle("inst-not-using-images", 1);
+	sleep 10;
 }
 
 1;

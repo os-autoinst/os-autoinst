@@ -5,7 +5,7 @@ use autotest;
 
 
 
-if(!$ENV{NICEVIDEO}) {
+if(0 && !$ENV{NICEVIDEO}) {
 # init
 # log into text console
 sendkey "ctrl-alt-f4";
@@ -17,7 +17,6 @@ sleep 3;
 sendautotype "PS1=\$\n"; # set constant shell promt
 sleep 1;
 #sendautotype 'PS1=\$\ '."\n"; # qemu-0.12.4 can not do backslash yet. http://permalink.gmane.org/gmane.comp.emulators.qemu/71856
-
 
 sub consoletestrunfunc
 {
@@ -48,7 +47,7 @@ sleep 2;
 waitidle;
 
 }
-if($ENV{DESKTOP}!~/textmode|minimalx/) {
+if(0 && $ENV{DESKTOP}!~/textmode|minimalx/) {
 	do "inst/x11test.pm" or die $@;
 }
 
