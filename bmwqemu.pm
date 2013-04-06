@@ -903,20 +903,28 @@ sub _waitforneedle {
 		$needles = $mustmatch;
 		$mustmatch = '';
 		for my $n (@{$needles}) {
-			print "MM $mustmatch ", Dumper($n), "\n";
 			$mustmatch .= $n->{name} . " ";
 		}
 	} elsif ($mustmatch) {
-		$needles = needle::tags($mustmatch);
+		$needles = needle::tags($mustmatch) || [];
 	}
 	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
-	if (!$needles) {
+	if (!@$needles) {
 		printf "NO goods for $mustmatch\n";
 		# give it some time to settle but not too much
 		$timeout = 3;
 	}
 	my $img = getcurrentscreenshot();
+	my $oldimg;
 	for my $n (1..$timeout) {
+		if ($oldimg) {
+			sleep 1;
+			$img = getcurrentscreenshot();
+			if ($oldimg == $img) { # no change, no need to search
+				print "no change $n\n";
+				next;
+			}
+		}
 		my $foundneedle = $img->search($needles);
 		if ($foundneedle) {
 			my $t = time();
@@ -936,8 +944,7 @@ sub _waitforneedle {
 			}
 			return $foundneedle;
 		}
-		sleep 1;
-		$img = getcurrentscreenshot();
+		$oldimg = $img;
 	}
 	fctres('waitforneedle', "match=$mustmatch timed out after $timeout");
 	for (@{$needles||[]}) {

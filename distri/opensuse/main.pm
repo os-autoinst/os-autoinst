@@ -12,37 +12,10 @@ sub installrunfunc
 	$test->take_screenshot;
 }
 
-sub remove_desktop_needles($)
-{
-	my $desktop = shift;
-	if (!checkEnv("DESKTOP", $desktop)) {
-		my @a = @{needle::tags("ENV-DESKTOP-$desktop")};
-		for my $n (@a) {
-			$n->unregister();
-		}
-	}
-}
-	
 # wait for qemu to start
 while (!getcurrentscreenshot()) {
 	sleep 1;
 }
-
-remove_desktop_needles("lxde");
-remove_desktop_needles("kde");
-remove_desktop_needles("gnome");
-remove_desktop_needles("xfce");
-remove_desktop_needles("minimalx");
-remove_desktop_needles("textmode");
-
-my @a;
-if (!$ENV{LIVECD}) {
-  @a = @{needle::tags("ENV-LIVECD-1")};
-} else {
-  @a = @{needle::tags("ENV-LIVECD-0")};
-}
-
-for my $n (@a) { $n->unregister(); }
 
 #waitforneedle "inst-bootmenu",12; # wait for welcome animation to finish
 

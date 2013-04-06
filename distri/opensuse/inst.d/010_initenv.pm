@@ -48,11 +48,44 @@ sub check_env()
 	}
 }
 
+sub remove_desktop_needles($)
+{
+	my $desktop = shift;
+        if (!checkEnv("DESKTOP", $desktop)) {
+                my @a = @{needle::tags("ENV-DESKTOP-$desktop")};
+                for my $n (@a) {
+                        $n->unregister();
+                }
+        }
+}
+
+sub cleanup_needles()
+{
+	remove_desktop_needles("lxde");
+	remove_desktop_needles("kde");
+	remove_desktop_needles("gnome");
+	remove_desktop_needles("xfce");
+	remove_desktop_needles("minimalx");
+	remove_desktop_needles("textmode");
+
+	my @a;
+	if (!$ENV{LIVECD}) {
+		print "unregister ENV-LIVECD-1\n";
+		@a = @{needle::tags("ENV-LIVECD-1")};
+	} else {
+		print "unregister ENV-LIVECD-0\n";
+		@a = @{needle::tags("ENV-LIVECD-0")};
+	}
+
+	for my $n (@a) { $n->unregister(); }
+
+}
+
 sub run()
 {
 	my $iso=$ENV{ISO};
 	my $ison=$iso; $ison=~s{.*/}{}; # drop path
-	if($ison=~m/LiveCD/i) {$ENV{LIVECD}=1}
+	if($ison=~m/Live/i) {$ENV{LIVECD}=1}
 	if($ison=~m/Promo/) {$ENV{PROMO}=1}
 	if($ison=~m/-i[3-6]86-/) {$ENV{QEMUCPU}||="qemu32"}
 	if($ison=~m/openSUSE-.*(DVD|NET|KDE|GNOME|LXDE|XFCE)-/) {
@@ -73,6 +106,7 @@ sub run()
 	if (checkEnv('DESKTOP', 'minimalx')) {
 		$ENV{'NOAUTOLOGIN'} = 1;
 	}
+	cleanup_needles();
 	$ENV{SCREENSHOTINTERVAL}||=.5;
 	autotest::runtestdir("$scriptdir/consoletest.d", undef);
 	autotest::runtestdir("$scriptdir/x11test.d", undef);
