@@ -1,4 +1,4 @@
-use base "basetest";
+use base "installstep";
 use strict;
 use bmwqemu;
 

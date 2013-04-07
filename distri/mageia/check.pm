@@ -10,6 +10,7 @@ sub check() {
 
 	$ENV{DESKTOP}="gnome";
 	$ENV{NOAUTOLOGIN}=1;
+#	autotest::runtestdir("$ENV{CASEDIR}/test.d", \&::checkfunc);
 	autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", \&::checkfunc);
 #	autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&::checkfunc);
 #	autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", \&::checkfunc);
