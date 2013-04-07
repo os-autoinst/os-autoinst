@@ -29,6 +29,7 @@ autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", undef);
 
 if(!$ENV{LIVECD} || !$ENV{LIVETEST}) {
 	autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
+#	autotest::runtestdir("$ENV{CASEDIR}/test.d", \&installrunfunc);
 } else {
 }
 

@@ -19,6 +19,7 @@ sub run()
 	sleep 10;
 	sendpassword; 
 	sendkey "ret";
+	sleep 10;
 	script_run("echo 010_consoletest_setup OK > /dev/$serialdev");
 	# it is only a waste of time, if this does not work
 	alarm 3 unless waitserial("010_consoletest_setup OK", 30);
@@ -28,6 +29,9 @@ sub checklist()
 {
 	# return hashref:
 	return {qw(
+		e6e7376c102f29f8b8bec9845107d146 OK
+		2d151f911ab9a69a9fb165b2295546da OK
+		8fb20758ca5a032c6186ba0651effadc OK
 	)}
 }
 

@@ -26,6 +26,8 @@ c39c20d6342e004ede74f3b153d99310 11.3-upgradeable-0900
 027a095adbd45ae80aede067f7e6417f 11.3-upgradeable-0925
 bc32b148e35198bcf7a77f8b8843e2d3 ms6kdelivecdreboot
 85f2d831fc26d971e30d5598abfc5c24 mageia-language
+20548b07251da352855c36bb314e3c13 mageia-usersetup
+2941e796e93e1584cae66dce6d98169b mageia-summary
 );
 
 %md5badlist=qw(
@@ -324,6 +326,7 @@ ddb3976501b9f8b1fb62182551edd64f fedora-postreboot
 22f3a1ddd0f0165d79a26a7aa7a49f15 openindiana-booted-live-148
 
 61b8b01192becf67347ad0420724947e freebsd-install-done
+2d151f911ab9a69a9fb165b2295546da mageia-consolelogin
 );
 
 1;

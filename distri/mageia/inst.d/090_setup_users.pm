@@ -1,11 +1,12 @@
-use base "basetest";
+use base "installstep";
 use strict;
 use bmwqemu;
 
 sub run()
 {
 	waitidle(15000);
-	waitstillimage(60,3600);
+#	waitstillimage(60,3600);
+	waitgoodimage(3600);
         sendautotype "$password\t"; # root PW
         sendautotype "$password"; # root PW
 
