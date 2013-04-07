@@ -136,7 +136,7 @@ sub check(%) {
 		$md5_result = 'unk';
 		foreach my $h (keys(%$checklist)) {
 			if($hashes->{$h}) {
-				$checkval = lc $checklist->{$h};
+				$md5_result = lc $checklist->{$h};
 				last;
 			}
 		}
