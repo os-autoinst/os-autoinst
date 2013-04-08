@@ -389,6 +389,7 @@ Image *image_scale(Image *a, long width, long height)
 {
   Image *n = new Image;
   n->img = Mat(height, width, a->img.type());
+  // TODO: consider not scaling up but centering
   resize(a->img, n->img, n->img.size());
 
   return n;

@@ -50,14 +50,17 @@ sub check_env()
 	}
 }
 
+sub unregister_needle_tags($) {
+	my $tag = shift;
+	my @a = @{needle::tags($tag)};
+	for my $n (@a) { $n->unregister(); }
+}
+
 sub remove_desktop_needles($)
 {
 	my $desktop = shift;
         if (!checkEnv("DESKTOP", $desktop)) {
-                my @a = @{needle::tags("ENV-DESKTOP-$desktop")};
-                for my $n (@a) {
-                        $n->unregister();
-                }
+		unregister_needle_tags("ENV-DESKTOP-$desktop");
         }
 }
 
@@ -70,16 +73,14 @@ sub cleanup_needles()
 	remove_desktop_needles("minimalx");
 	remove_desktop_needles("textmode");
 
-	my @a;
 	if (!$ENV{LIVECD}) {
-		print "unregister ENV-LIVECD-1\n";
-		@a = @{needle::tags("ENV-LIVECD-1")};
+		unregister_needle_tags("ENV-LIVECD-1");
 	} else {
-		print "unregister ENV-LIVECD-0\n";
-		@a = @{needle::tags("ENV-LIVECD-0")};
+		unregister_needle_tags("ENV-LIVECD-0");
 	}
-
-	for my $n (@a) { $n->unregister(); }
+	if (!checkEnv("VIDEOMODE", "text")) {
+		unregister_needle_tags("ENV-VIDEOMODE-text");
+	}
 
 }
 
