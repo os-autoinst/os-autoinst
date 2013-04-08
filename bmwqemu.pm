@@ -609,11 +609,7 @@ sub power($) {
 
 sub do_take_screenshot() {
         my $ret = $backend->screendump();
-	if ($ret->xres() > 800) {
-	  return $ret->scale(800, 600);
-	} else {
-	  return $ret;
-	}
+	return $ret->scale(800, 600);
 }
 
 sub timeout_screenshot() {

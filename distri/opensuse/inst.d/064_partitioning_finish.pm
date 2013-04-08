@@ -7,6 +7,7 @@ sub run()
 {
 	waitstillimage();
 	sendkey $cmd{"next"};
+	waitforneedle("after-paritioning");
 }
 
 1;

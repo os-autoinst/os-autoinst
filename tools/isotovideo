@@ -35,17 +35,24 @@ else
 	echo "No build id collected" >> ${logfile}
 fi
 
-perl $scriptdir/start.pl || exit 1;
+perl $scriptdir/start.pl || exit 1
 
 name=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media1?//;print' $ISO)
 mkdir -p video
 echo "Recording to video/$name" >> ${logfile}
-if test -e /usr/bin/ffmpeg2theora ; then
-	echo $scriptdir/tools/ppmtompg qemuscreenshot video/$name
-	$scriptdir/tools/ppmtompg qemuscreenshot video/$name
-else
-	umlffmpeg . video/$name
-fi
+
+# symlink the PNGs
+C=0
+mkdir movie
+rm -f movie/*.png
+for i in qemuscreenshot/*.png; do
+    ln -sf $(readlink -f $i) movie/file-`printf %010d $C`.png
+    C=$((C+1))
+done
+
+# Create the movie
+png2theora movie/file-%010d.png -o video/$name.ogv
+rm -rf movie
 
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f backend.run
@@ -54,3 +61,4 @@ cat serial0 >> ${logfile}
 $scriptdir/tools/checklog ${logfile} | tee -a ${logfile}
 # return success if video was created:
 test -e video/$name.ogv
+
