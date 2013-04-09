@@ -19,11 +19,11 @@ sub run()
 		sendkey $cmd{instdetails};
 		if ($ENV{DVD} && !$ENV{NOIMAGES}) {
 			if (checkEnv('DESKTOP', 'kde')) {
-				waitforneedle('kde-imagesused', 10);
+				waitforneedle('kde-imagesused', 100);
 			} elsif (checkEnv('DESKTOP', 'gnome')) {
-				waitforneedle('gnome-imagesused', 10);
+				waitforneedle('gnome-imagesused', 100);
 			} else {
-				waitforneedle('x11-imagesused', 10);
+				waitforneedle('x11-imagesused', 100);
 			}
 		} 
 	}
