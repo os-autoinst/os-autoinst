@@ -39,9 +39,9 @@ if filename.endswith('.png'):
 	png = filename
 	filename = filename[0:len(filename)-len(".png")]+'.json'
 	needle = json.loads("""{
-	    "tags": [ "FIXME" ], 
-	    "height": 100, "width": 100, 
-	    "xpos": 0, "ypos": 0
+	    "tags": [ "FIXME" ],
+	    "include": [ { "height": 100, "width": 100,
+	    "xpos": 0, "ypos": 0 } ]
 	}""")
 elif filename.endswith('.json'):
 	png = filename[0:len(filename)-len(".json")]+'.png'
@@ -69,55 +69,107 @@ w.pack()
 
 bg = w.create_image(0, 0, anchor=NW, image=photo)
 
-crop = w.create_rectangle(needle['xpos'],
-		needle['ypos'],
-		needle['xpos'] + needle['width'],
-		needle['ypos'] + needle['height'],
-		outline="yellow")
+rects = []
+for area in needle['include']:
+    rects.append(w.create_rectangle(area['xpos'],
+		    area['ypos'],
+		    area['xpos'] + area['width'],
+		    area['ypos'] + area['height'],
+		    outline="cyan"))
+
+rect = 0
+
+def selectarea():
+    global rects, rect, area
+
+    print "highlighting %d"%rect
+
+    area = needle['include'][rect]
+    for r in range(0, len(rects)):
+	color = "green"
+	if r == rect:
+	    color = "cyan"
+	w.itemconfig(rects[r], outline=color)
+
+selectarea()
 
 incr = 5
 
 def resize(arg):
 	if arg.keysym == 'Right':
-		if width - needle['xpos'] - needle['width'] >= incr:
-			needle['width'] = needle['width'] + incr
-		elif needle['width'] > incr:
-			needle['xpos'] = needle['xpos'] + incr
-			needle['width'] = needle['width'] - incr
+		if width - area['xpos'] - area['width'] >= incr:
+			area['width'] = area['width'] + incr
+		elif area['width'] > incr:
+			area['xpos'] = area['xpos'] + incr
+			area['width'] = area['width'] - incr
 	elif arg.keysym == 'Left':
-		if needle['width'] > incr:
-			needle['width'] = needle['width'] - incr
+		if area['width'] > incr:
+			area['width'] = area['width'] - incr
 	elif arg.keysym == 'Down':
-		if height - needle['ypos'] - needle['height'] >= incr:
-			needle['height'] = needle['height'] + incr
-		elif needle['height'] > incr:
-			needle['ypos'] = needle['ypos'] + incr
-			needle['height'] = needle['height'] - incr
+		if height - area['ypos'] - area['height'] >= incr:
+			area['height'] = area['height'] + incr
+		elif area['height'] > incr:
+			area['ypos'] = area['ypos'] + incr
+			area['height'] = area['height'] - incr
 	elif arg.keysym == 'Up':
-		if needle['height'] > incr:
-			needle['height'] = needle['height'] - incr
+		if area['height'] > incr:
+			area['height'] = area['height'] - incr
 
-	w.coords(crop, needle['xpos'], needle['ypos'],
-		needle['xpos'] + needle['width'],
-		needle['ypos'] + needle['height'])
+	w.coords(rects[rect], area['xpos'], area['ypos'],
+		area['xpos'] + area['width'],
+		area['ypos'] + area['height'])
 
 def move(arg):
 	if arg.keysym == 'Right':
-		if width - needle['xpos'] - needle['width'] >= incr:
-			needle['xpos'] = needle['xpos'] + incr
+		if width - area['xpos'] - area['width'] >= incr:
+			area['xpos'] = area['xpos'] + incr
 	elif arg.keysym == 'Left':
-		if needle['xpos'] >= incr:
-			needle['xpos'] = needle['xpos'] - incr
+		if area['xpos'] >= incr:
+			area['xpos'] = area['xpos'] - incr
 	elif arg.keysym == 'Down':
-		if height - needle['ypos'] - needle['height'] >= incr:
-			needle['ypos'] = needle['ypos'] + incr
+		if height - area['ypos'] - area['height'] >= incr:
+			area['ypos'] = area['ypos'] + incr
 	elif arg.keysym == 'Up':
-		if needle['ypos'] >= incr:
-			needle['ypos'] = needle['ypos'] - incr
+		if area['ypos'] >= incr:
+			area['ypos'] = area['ypos'] - incr
 
-	w.coords(crop, needle['xpos'], needle['ypos'],
-		needle['xpos'] + needle['width'],
-		needle['ypos'] + needle['height'])
+	w.coords(rects[rect], area['xpos'], area['ypos'],
+		area['xpos'] + area['width'],
+		area['ypos'] + area['height'])
+
+def switch(arg):
+	global rect
+	rect = (rect + 1) % len(rects)
+	selectarea()
+
+def addrect(arg):
+	global rect, area, rects, needle
+	rect=len(needle['include'])
+	needle['include'].append({ "height": 100, "width": 100,
+	    "xpos": 0, "ypos": 0 })
+	area = needle['include'][rect]
+	rects.append(w.create_rectangle(area['xpos'],
+		    area['ypos'],
+		    area['xpos'] + area['width'],
+		    area['ypos'] + area['height'],
+		    outline="cyan"))
+
+	selectarea()
+
+def delrect(arg):
+	global rect, area, rects, needle
+	if len(rects) <= 1:
+	    return
+	del needle['include'][rect]
+	w.delete(rects[rect])
+	a = []
+	for r in range(0, len(rects)):
+	    if r == rect:
+		continue
+	    a.append(rects[r])
+	rects = a;
+	rect = rect % len(rects)
+	selectarea()
 
 def increment(arg):
 	global incr
@@ -158,6 +210,9 @@ master.bind('-', increment)
 master.bind('s', save_quit)
 master.bind('q', quit)
 master.bind('<Escape>', quit)
+master.bind('<Tab>', switch)
+master.bind('<Insert>', addrect)
+master.bind('<Delete>', delrect)
 
 print """Use cursor keys to move
 Use shift + cursor keys to resize
