@@ -949,8 +949,8 @@ sub _waitforneedle {
 			if ($args{'click'}) {
 				my $rx = 1; # $origx / $img->xres();
 				my $ry = 1; # $origy / $img->yres();
-				my $x = ($foundneedle->{'x'} + $foundneedle->{'needle'}->{'width'}/2)*$rx;
-				my $y = ($foundneedle->{'y'} + $foundneedle->{'needle'}->{'height'}/2)*$ry;
+				my $x = ($foundneedle->{'x'} + $foundneedle->{'w'}/2)*$rx;
+				my $y = ($foundneedle->{'y'} + $foundneedle->{'h'}/2)*$ry;
 				diag ("clicking at $x/$y");
 				mouse_set($x, $y);
 				mouse_click($args{'click'}, $args{'clicktime'});
@@ -967,7 +967,7 @@ sub _waitforneedle {
 	$img->write_optimized(result_dir() . "/$mustmatch-$t.png");
 	my $fn = result_dir() . "/$mustmatch-$t.json";
 	open(J, ">", $fn) or die "$fn: $!\n";
-	my $json = { xpos => 0, ypos => 0, width => $img->xres() , height => $img->yres() };
+	my $json = { match => [ { xpos => 0, ypos => 0, width => $img->xres() , height => $img->yres() } ] };
 	my @tags = ( $mustmatch );
 	# write out some known env variables
 	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD)) {
