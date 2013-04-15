@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use File::Find;
 use File::Spec;
-use Data::Dumper;
+use Data::Dump;
 use JSON;
 use File::Basename;
 
@@ -16,19 +16,30 @@ sub new($) {
     my $jsonfile=shift;
     local $/;
     open( my $fh, '<', $jsonfile ) || return undef;
-    my $perl_scalar = decode_json( <$fh> ) || die "broken json $jsonfile";
+    my $json = decode_json( <$fh> ) || die "broken json $jsonfile";
     close($fh);
-    my $self = { xpos => $$perl_scalar{'xpos'},
-		 ypos => $$perl_scalar{'ypos'},
-		 width => $$perl_scalar{'width'},
-		 height => $$perl_scalar{'height'},
-		 match => ($$perl_scalar{'match'} || 100) / 100.,
-		 processing_flags => $$perl_scalar{'processing_flags'},
-		 max_offset => $$perl_scalar{'max_offset'},
-		 tags => ($$perl_scalar{'tags'} || [])
+    my $self = {
+	tags => ($json->{'tags'} || [])
     };
-    # TODO: for compat only. remove when all tests are converted
-    push (@{$self->{tags}}, @{$$perl_scalar{'good'}}) if $$perl_scalar{'good'};
+
+    for my $area (@{$json->{'include'}}) {
+	my $a = {};
+	for my $tag (qw/xpos ypos width height max_offset/) {
+	    $a->{$tag} = $area->{$tag} || 0;
+	}
+	for my $tag (qw/processing_flags/) {
+	    $a->{$tag} = $area->{$tag} if $area->{$tag};
+	}
+	$a->{'match'} = ( $area->{'match'} || 100 ) / 100;
+
+	$self->{'include'} ||= [];
+	push @{$self->{'include'}}, $a;
+    }
+    unless ($self->{'include'}) {
+	warn "$jsonfile missing include\n";
+	return undef;
+    }
+
     $self->{file} = $jsonfile;
     $self->{name} = basename($jsonfile, '.json');
     my $png = $self->{png} || $self->{name} . ".png";
@@ -36,7 +47,6 @@ sub new($) {
     if (! -s $self->{png}) {
       die "Can't find $self->{png}";
     }
-    $self->{img} = undef;
 
     $self = bless $self, $classname;
     $self->register();
@@ -61,13 +71,20 @@ sub register($)
     }
 }
 
-sub get_image($) {
+sub get_image($$) {
     my $self=shift;
-    if (!$self->{img}) {
-	my $img = tinycv::read($self->{png});
-	$self->{img} = $img->copyrect($self->{xpos}, $self->{ypos}, $self->{width}, $self->{height});
+    my $area = shift || return undef;
+
+    if (!$area->{'img'}) {
+	my $img = tinycv::read($self->{'png'});
+	$area->{'img'} = $img->copyrect(
+	    $area->{'xpos'},
+	    $area->{'ypos'},
+	    $area->{'width'},
+	    $area->{'height'}
+	);
     }
-    return $self->{img};
+    return $area->{'img'};
 }
 
 sub has_tag($$) {
