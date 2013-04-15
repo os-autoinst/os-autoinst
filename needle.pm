@@ -75,9 +75,17 @@ sub get_image($$) {
     my $self=shift;
     my $area = shift || return undef;
 
+    if (!$self->{'img'}) {
+	$self->{'img'} = tinycv::read($self->{'png'});
+	for my $excl (@{$self->{'exclude'}}) {
+	    $self->{'img'}->replacerect(
+		$excl->{'xpos'}, $excl->{'ypos'},
+		$excl->{'width'}, $excl->{'height'});
+	}
+    }
+
     if (!$area->{'img'}) {
-	my $img = tinycv::read($self->{'png'});
-	$area->{'img'} = $img->copyrect(
+	$area->{'img'} = $self->{'img'}->copyrect(
 	    $area->{'xpos'},
 	    $area->{'ypos'},
 	    $area->{'width'},
