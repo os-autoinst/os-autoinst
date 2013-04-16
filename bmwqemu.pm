@@ -18,6 +18,7 @@ use Thread::Queue;
 use POSIX; 
 use Term::ANSIColor;
 use Data::Dump "dump";
+use Carp;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
