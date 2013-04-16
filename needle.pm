@@ -89,7 +89,6 @@ sub get_image($$) {
 		$a->{'xpos'}, $a->{'ypos'},
 		$a->{'width'}, $a->{'height'});
 	}
-	$self->{'img'}->write('needle.png');
     }
 
     if (!$area->{'img'}) {
