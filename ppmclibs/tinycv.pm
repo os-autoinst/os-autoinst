@@ -21,16 +21,26 @@ sub search_($$) {
     my $needle = shift;
     my ($sim, $xmatch, $ymatch, $d1, $d2);
 
-    for my $area (@{$needle->{'include'}}) {
-	($sim, $xmatch, $ymatch, $d1, $d2) = $self->search_needle($needle->get_image($area));
+    my $img = $self->copy;
+    for my $a (@{$needle->{'area'}}) {
+	next unless $a->{'type'} eq 'exclude';
+	$img->replacerect($a->{'xpos'}, $a->{'ypos'},
+	    $a->{'width'}, $a->{'height'});
+    }
+    my $area;
+    for $area (@{$needle->{'area'}}) {
+	next unless $area->{'type'} eq 'match';
+	my $c = $needle->get_image($area);
+	($sim, $xmatch, $ymatch, $d1, $d2) = $img->search_needle($c);
 	printf "MATCH(%s:%.2f): $xmatch $ymatch\n", $needle->{name}, $sim;
 	if ($sim < $area->{match} - 0.005) {
 	    return undef
 	}
     }
+
     return { similarity => $sim, x => $xmatch, y => $ymatch,
-	    w => $needle->{'include'}->[-1]->{'width'},
-	    h => $needle->{'include'}->[-1]->{'height'},
+	    w => $area->{'width'},
+	    h => $area->{'height'},
 	    needle => $needle };
 }
 

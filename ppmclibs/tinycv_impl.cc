@@ -336,7 +336,7 @@ long image_yres(Image *s)
  */
 void image_replacerect(Image *s, long x, long y, long width, long height)
 {
-  rectangle(s->img, Rect(x, y, width, height), Scalar(0), CV_FILLED);
+  rectangle(s->img, Rect(x, y, width, height), CV_RGB(0, 255, 0), CV_FILLED);
 }
 
 /* copies the given range into a new image */

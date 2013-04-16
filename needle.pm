@@ -22,7 +22,8 @@ sub new($) {
 	tags => ($json->{'tags'} || [])
     };
 
-    for my $area (@{$json->{'include'}}) {
+    my $gotmatch;
+    for my $area (@{$json->{'area'}}) {
 	my $a = {};
 	for my $tag (qw/xpos ypos width height max_offset/) {
 	    $a->{$tag} = $area->{$tag} || 0;
@@ -31,12 +32,17 @@ sub new($) {
 	    $a->{$tag} = $area->{$tag} if $area->{$tag};
 	}
 	$a->{'match'} = ( $area->{'match'} || 100 ) / 100;
+	$a->{'type'} = $area->{'type'} || 'match';
 
-	$self->{'include'} ||= [];
-	push @{$self->{'include'}}, $a;
+	$gotmatch = 1 if $a->{'type'} eq 'match';
+
+	$self->{'area'} ||= [];
+	push @{$self->{'area'}}, $a;
     }
-    unless ($self->{'include'}) {
-	warn "$jsonfile missing include\n";
+
+    # one match is mandatory
+    unless ($gotmatch) {
+	warn "$jsonfile missing match area\n";
 	return undef;
     }
 
@@ -77,11 +83,13 @@ sub get_image($$) {
 
     if (!$self->{'img'}) {
 	$self->{'img'} = tinycv::read($self->{'png'});
-	for my $excl (@{$self->{'exclude'}}) {
+	for my $a (@{$self->{'area'}}) {
+	    next unless $a->{'type'} eq 'exclude';
 	    $self->{'img'}->replacerect(
-		$excl->{'xpos'}, $excl->{'ypos'},
-		$excl->{'width'}, $excl->{'height'});
+		$a->{'xpos'}, $a->{'ypos'},
+		$a->{'width'}, $a->{'height'});
 	}
+	$self->{'img'}->write('needle.png');
     }
 
     if (!$area->{'img'}) {

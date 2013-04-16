@@ -951,7 +951,7 @@ sub _waitforneedle {
 	$img->write_optimized(result_dir() . "/$mustmatch-$t.png");
 	my $fn = result_dir() . "/$mustmatch-$t.json";
 	open(J, ">", $fn) or die "$fn: $!\n";
-	my $json = { match => [ { xpos => 0, ypos => 0, width => $img->xres() , height => $img->yres() } ] };
+	my $json = { area => [ { xpos => 0, ypos => 0, width => $img->xres(), height => $img->yres(), type => 'include' } ] };
 	my @tags = ( $mustmatch );
 	# write out some known env variables
 	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD)) {
@@ -971,7 +971,7 @@ sub _waitforneedle {
 		if (-e $fn);
 		{
 			diag("reading new needle $fn");
-			needle->new($fn) || mydie "$!\n";
+			needle->new($fn) || mydie "$!";
 			# XXX: recursion!
 			return waitforneedle($mustmatch, 3, $args{'check'}, $args{'retried'}+1);
 		}
