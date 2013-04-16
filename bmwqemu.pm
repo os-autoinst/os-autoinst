@@ -614,7 +614,7 @@ sub take_screenshot(;$) {
 
 	# TODO detect bad needles
 
-	my $filename=$path.sprintf("%i.%06i.png", $t->[0], $t->[1]);
+	my $filename=$path.sprintf("%s.%06i.png", POSIX::strftime("%Y%m%d_%H%M%S", gmtime($t->[0])), $t->[1]);
         unless($flags=~m/q/) {
                 fctlog('screendump', "filename=$filename");
         }
