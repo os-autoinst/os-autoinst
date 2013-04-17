@@ -6,7 +6,7 @@ sub run()
 {
 	waitidle(15000);
 #	waitstillimage(60,3600);
-	waitgoodimage(3600);
+	waitgoodimage(1200);
         sendautotype "$password\t"; # root PW
         sendautotype "$password"; # root PW
 
