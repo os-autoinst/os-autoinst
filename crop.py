@@ -213,7 +213,7 @@ def delrect(arg):
 	selectarea()
 
 def changetype(arg):
-	types = ('match', 'exclude', 'ocr')
+	types = ('match', 'exclude', 'ocr', 'include')
 	global rect, area, uiareas, needle
 	area['type'] = types[(types.index(area['type'])+1)%len(types)]
 	uiareas[rect].updatetype(area)
