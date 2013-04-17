@@ -25,9 +25,9 @@ a02a0c21fa17006b92b90850806199d1 newinst-sled11sp2-0036
 c39c20d6342e004ede74f3b153d99310 11.3-upgradeable-0900
 027a095adbd45ae80aede067f7e6417f 11.3-upgradeable-0925
 bc32b148e35198bcf7a77f8b8843e2d3 ms6kdelivecdreboot
-85f2d831fc26d971e30d5598abfc5c24 mageia-language
-20548b07251da352855c36bb314e3c13 mageia-usersetup
-2941e796e93e1584cae66dce6d98169b mageia-summary
+5405fb160403f64dabb4e525cf0cdb29 mageia-language
+2d34b722119b5532884dd338804c7d4f mageia-usersetup
+d9fdc6ec49a5e97e5d1d1ed384c41283 mageia-summary
 );
 
 %md5badlist=qw(
