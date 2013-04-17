@@ -54,7 +54,7 @@ else:
 if options.tag:
 	needle['tags'] = options.tag
 
-print json.dumps(needle, sort_keys=True, indent=4)
+print json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': '))
 
 master = Tk()
 
@@ -231,7 +231,7 @@ def increment(arg):
 
 def quit(arg):
 	print "quit without saving"
-	print json.dumps(needle, sort_keys=True, indent=4)
+	print json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': '))
 	master.quit()
 
 def save_quit(arg):
@@ -240,7 +240,7 @@ def save_quit(arg):
 		pat = "distri/opensuse/needles/%s.%s"
 		shutil.copyfile(png, pat%(options.new, 'png'))
 		filename = pat%(options.new, 'json')
-	json.dump(needle, open(filename, 'w'), sort_keys=True, indent=4)
+	json.dump(needle, open(filename, 'w'), sort_keys=True, indent=4, separators=(',', ': '))
 	print "saved %s"%filename
 	master.quit()
 
