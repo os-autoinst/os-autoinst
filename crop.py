@@ -41,7 +41,7 @@ if filename.endswith('.png'):
 	needle = json.loads("""{
 	    "tags": [ "FIXME" ],
 	    "area": [ { "height": 100, "width": 100,
-	    "xpos": 0, "ypos": 0, "type": "include" } ]
+	    "xpos": 0, "ypos": 0, "type": "match" } ]
 	}""")
 elif filename.endswith('.json'):
 	png = filename[0:len(filename)-len(".json")]+'.png'
@@ -213,7 +213,7 @@ def delrect(arg):
 	selectarea()
 
 def changetype(arg):
-	types = ('match', 'exclude', 'ocr', 'include')
+	types = ('match', 'exclude', 'ocr')
 	global rect, area, uiareas, needle
 	area['type'] = types[(types.index(area['type'])+1)%len(types)]
 	uiareas[rect].updatetype(area)
