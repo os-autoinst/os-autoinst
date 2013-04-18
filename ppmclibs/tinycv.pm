@@ -20,16 +20,22 @@ sub search_($$) {
     my $self = shift;
     my $needle = shift;
     my ($sim, $xmatch, $ymatch, $d1, $d2);
+    my (@exclude, @match, @ocr);
 
     my $img = $self->copy;
+
     for my $a (@{$needle->{'area'}}) {
-	next unless $a->{'type'} eq 'exclude';
+	push @exclude, $a if $a->{'type'} eq 'exclude';
+	push @match, $a if $a->{'type'} eq 'match';
+	push @ocr, $a if $a->{'type'} eq 'ocr';
+    }
+
+    for my $a (@exclude) {
 	$img->replacerect($a->{'xpos'}, $a->{'ypos'},
 	    $a->{'width'}, $a->{'height'});
     }
     my $area;
-    for $area (@{$needle->{'area'}}) {
-	next unless $area->{'type'} eq 'match';
+    for $area (@match) {
 	my $c = $needle->get_image($area);
 	($sim, $xmatch, $ymatch, $d1, $d2) = $img->search_needle($c);
 	printf "MATCH(%s:%.2f): $xmatch $ymatch\n", $needle->{name}, $sim;
@@ -38,10 +44,20 @@ sub search_($$) {
 	}
     }
 
-    return { similarity => $sim, x => $xmatch, y => $ymatch,
-	    w => $area->{'width'},
-	    h => $area->{'height'},
-	    needle => $needle };
+    my $ret = {
+	similarity => $sim, x => $xmatch, y => $ymatch,
+	w => $area->{'width'},
+	h => $area->{'height'},
+	needle => $needle
+    };
+
+    for my $a (@ocr) {
+	$ret->{'ocr'} ||= [];
+	my $ocr = ocr::tesseract($img, $a);
+	push @{$ret->{'ocr'}}, $ocr;
+    }
+
+    return $ret;
 }
 
 sub search($) {
