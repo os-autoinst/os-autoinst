@@ -49,6 +49,13 @@ if(!$ENV{KEEPHDDS} && !$ENV{SKIPTO}) {
 	    symlink($i,"$basedir/l$i") or die "$!\n";
         }
     }
+
+    if($ENV{AUTO_INST}) {
+	unlink("$basedir/autoinst.img");
+	system("/sbin/mkfs.vfat","-C","$basedir/autoinst.img","1440");
+	system("/usr/bin/mcopy","-i","$basedir/autoinst.img",$ENV{AUTO_INST},"::/");
+	#system("/usr/bin/mdir","-i","$basedir/autoinst.img");
+    }
 }
 
 for my $i (1..4) { # create missing symlinks
@@ -130,6 +137,9 @@ if($self->{'pid'}==0) {
 		push @params, '-rtc', POSIX::strftime("base=%Y-%m-%dT%H%M%S", @date);
 	}
 
+	if($ENV{AUTO_INST}) {
+		push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
+	}
 	bmwqemu::diag("starting: ".join(" ", @params));
 
 	exec(@params);
