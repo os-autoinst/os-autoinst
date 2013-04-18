@@ -237,7 +237,10 @@ def quit(arg):
 def save_quit(arg):
 	global filename
 	if options.new:
-		pat = "distri/opensuse/needles/%s.%s"
+		from os import environ
+		if not 'CASEDIR' in environ:
+		    environ['CASEDIR'] = 'distri/opensuse'
+		pat = environ['CASEDIR']+"/needles/%s.%s"
 		shutil.copyfile(png, pat%(options.new, 'png'))
 		filename = pat%(options.new, 'json')
 	json.dump(needle, open(filename, 'w'), sort_keys=True, indent=4, separators=(',', ': '))
