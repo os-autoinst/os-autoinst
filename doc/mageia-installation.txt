@@ -21,6 +21,7 @@ Provided that os-autoinst is in ~test/ and the iso is in ~test/tmp/
   urpmi ffmpeg2theora
   urpmi tigervnc
   urpmi perl-Inline
+  urpmi mtools
 
 ==== Mageia 3 (Optional, for openvc support)
   urpmi opencv-devel
