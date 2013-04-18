@@ -30,4 +30,33 @@ sub get_ocr($$@) {
 	return $ocr;
 }
 
+# input: image ref, area
+# FIXME: pass options
+# FIXME: write C library bindings instead of system()
+sub tesseract($;$$)
+{
+    my $img = shift;
+    my $area = shift;
+    my $imgfn = 'ocr.png';
+    my $txtfn = 'ocr'; # tesseract appends .txt automatically o_O
+    my $txt;
+
+    if ($area) {
+	$img = $img->copyrect($area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'});
+    }
+
+    $img->write($imgfn);
+    if (system('tesseract', $imgfn, $txtfn) == 0) {
+	$txtfn .= '.txt';
+	if (open(my $fh, '<:encoding(UTF-8)', $txtfn)) {
+	    local $/;
+	    $txt = <$fh>;
+	    close $fh;
+	}
+    }
+    unlink $imgfn;
+    unlink $txtfn;
+    return $txt;
+}
+
 1;
