@@ -6,7 +6,7 @@
 export IDLETHRESHOLD=16
 
 # default: 0.5 (two screenshots per second)
-export SCREENSHOTINTERVAL=0.5
+export SCREENSHOTINTERVAL=2.5
 
 #export HTTPPROXY=192.168.234.34:3128
 
@@ -56,3 +56,8 @@ export DESKTOP=none
 
 export QEMUVGA=std
 #export INSTLANG=de_DE
+
+# Use automatic (kickstart) installation.   This will then reference the distrib/mageia/auto_inst.d config.
+#export AUTO_INST="../os-autoinst/distri/mageia/auto_insts/minimal-1/auto_inst.cfg.pl"
+#
+# export KEEPHDDS=1 ; export NOINSTALL=1 
