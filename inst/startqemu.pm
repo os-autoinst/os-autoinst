@@ -74,6 +74,12 @@ if(!$ENV{KEEPHDDS}) {
 		@cdrom=();
 	}
 }
+if($ENV{AUTO_INST}) {
+	unlink("$basedir/autoinst.img");
+	system("/sbin/mkfs.vfat","-C","$basedir/autoinst.img","1440");
+	system("/usr/bin/mcopy","-i","$basedir/autoinst.img",$ENV{AUTO_INST},"::/");
+#	system("/usr/bin/mdir","-i","$basedir/autoinst.img");
+}
 sleep 5;
 
 
@@ -101,6 +107,9 @@ if($self->{'pid'}==0) {
 		if($ENV{VNC}!~/:/) {$ENV{VNC}=":$ENV{VNC}"}
 		push(@params, "-vnc", $ENV{VNC});
 		push(@params, "-k", $ENV{VNCKB}) if($ENV{VNCKB});
+	}
+	if($ENV{AUTO_INST}) {
+		push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
 	}
 	if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
 	if($ENV{UEFI}) { push(@params, "-L", $ENV{UEFI_BIOS_DIR}); }
