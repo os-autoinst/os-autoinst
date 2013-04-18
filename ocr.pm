@@ -13,7 +13,7 @@ sub get_ocr($$@) {
 	return unless $ppm;
 	my $ppm2=$ppm->copyrect(@ocrrect);
 	if(!$ppm2) {return ""}
-	my $tempname="/dev/shm/$$-".time.rand(10000).".ppm";
+	my $tempname="ocr.$$-".time.rand(10000).".ppm";
 	$ppm2->write($tempname) or return " ocr error writing $tempname";
 	# init DB file:
 	if(!-e "db/db.lst") {
