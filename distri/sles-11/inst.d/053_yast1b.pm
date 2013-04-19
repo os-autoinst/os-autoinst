@@ -8,6 +8,10 @@ sub addonproduct()
 	if($ENV{ADDONURL}) {
 		if(!$ENV{NET}) {
 			sendkey $cmd{"next"}; waitidle; # use network
+			if($ENV{MULTINETWORKS}) {
+				sendkeyw $cmd{"next"}; # confirm network device selection
+				sendkeyw "alt-y"; # "Yes use it" - workarounds bug 792985
+			}
 			sendkey "alt-o"; waitidle; # OK DHCP network
 		}
 		my $repo=0;
