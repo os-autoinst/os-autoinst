@@ -1,0 +1,28 @@
+{
+    "area": [
+        {
+            "height": 90,
+            "type": "match",
+            "width": 190,
+            "xpos": 0,
+            "ypos": 0
+        },
+        {
+            "height": 30,
+            "type": "ocr",
+            "width": 110,
+            "xpos": 255,
+            "ypos": 305
+        },
+        {
+            "height": 30,
+            "type": "ocr",
+            "width": 100,
+            "xpos": 240,
+            "ypos": 545
+        }
+    ],
+    "tags": [
+        "FIXME"
+    ]
+}
