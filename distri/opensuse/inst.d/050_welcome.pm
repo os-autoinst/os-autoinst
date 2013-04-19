@@ -11,6 +11,8 @@ sub run()
 	if($ENV{BETA}) {
 		waitforneedle("inst-betawarning", 5);
 		sendkey "ret";
+	} elsif (checkneedle("inst-betawarning", 2)) {
+		mydie("beta warning found in non-beta");
 	}
 
 	# animated cursor wastes disk space, so it is moved to bottom right corner
