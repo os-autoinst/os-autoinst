@@ -12,6 +12,19 @@ if($ENV{DESKTOP}=~/kde/) {
         sendkey "tab"; # skip media check
         sendkey "tab"; # skip media check
         sendkey "tab"; # skip media check
+	sleep 10;
+	sendkey "ret";
+}
+elsif($ENV{DESKTOP}=~/gnome/) {
+	# KDE
+        sendkey "tab"; # skip media check
+	sendkey "right";
+	sleep 2;
+	sendkey "tab";
+	sleep 10;
+	sendkey "tab";
+	sleep 10;
+	sendkey "ret";
 
 } else {
 # Custom
@@ -27,6 +40,8 @@ if($ENV{DESKTOP}=~/kde/) {
 	sendkey "ret";
 	waitstillimage(15,150);
 
+	sleep 500;
+#  THIS FAILS in RC3 right now.
 # Unselect all
 	sleep 2;
 	sendkey "shift-tab";
