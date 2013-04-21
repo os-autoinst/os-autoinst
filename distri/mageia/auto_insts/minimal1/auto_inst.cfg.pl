@@ -65,6 +65,7 @@ $o = {
 			     ],
        'users' => [
 		    {
+		      'pw' => '$2a$08$fq8B.YUdWPHslcz1j0G6hOB8jX5s.z7d5zjV3vTFmHzgTC9NlcAx2',
 		      'icon' => 'default',
 		      'uid' => undef,
 		      'name' => 'bernhard',

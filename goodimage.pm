@@ -27,6 +27,7 @@ c39c20d6342e004ede74f3b153d99310 11.3-upgradeable-0900
 bc32b148e35198bcf7a77f8b8843e2d3 ms6kdelivecdreboot
 5405fb160403f64dabb4e525cf0cdb29 mageia-language
 2d34b722119b5532884dd338804c7d4f mageia-usersetup
+e45ac134df58c4c04f26cd4208b3b3f5 mageia-usersetup1
 d9fdc6ec49a5e97e5d1d1ed384c41283 mageia-summary
 );
 
@@ -327,6 +328,7 @@ ddb3976501b9f8b1fb62182551edd64f fedora-postreboot
 
 61b8b01192becf67347ad0420724947e freebsd-install-done
 2d151f911ab9a69a9fb165b2295546da mageia-consolelogin
+2f0cacf1d6d1534b3d322ed283c63796 mageia-setupusers1
 );
 
 1;
