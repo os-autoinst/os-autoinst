@@ -8,7 +8,7 @@ if(!$ENV{LIVECD}) {
 	set_ocr_rect(255,420,530,115);
 	{
 		local $ENV{SCREENSHOTINTERVAL}=5;
-		waitforneedle("rebootnow", 600) || die 'first stage problem';
+		waitforneedle("rebootnow", 900);
 		if($ENV{XDEBUG} && waitforneedle("the-system-will-reboot-now", 3000)) {
 			sendkey "alt-s";
 			sendkey "ctrl-alt-f2";
