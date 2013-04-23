@@ -938,7 +938,7 @@ sub _waitforneedle {
 			sleep 1;
 			$img = getcurrentscreenshot();
 			if ($oldimg == $img) { # no change, no need to search
-				print "no change $n\n";
+				printf "no change %d\n", $timeout-$n;
 				next;
 			}
 		}
