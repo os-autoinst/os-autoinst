@@ -914,6 +914,10 @@ sub _waitforneedle {
 	my $img = getcurrentscreenshot();
 	my $oldimg;
 	for my $n (1..$timeout) {
+		if (-e "waitneedlefail") {
+			unlink("waitneedlefail");
+			last;
+		}
 		if ($oldimg) {
 			sleep 1;
 			$img = getcurrentscreenshot();
