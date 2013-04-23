@@ -7,6 +7,8 @@ sub run()
 {
 	my $self=shift;
         
+#XXX: multi-needle disabled for now as needle editor cannot cope with that
+if (0) {
         my @tags = (@{needle::tags("inst-welcome")}, @{needle::tags("inst-betawarning")});
         
 	my $ret = waitforneedle(\@tags, 350); # live cds can take quite a long time to boot
@@ -15,6 +17,9 @@ sub run()
             sendkey "ret";
             waitforneedle("inst-welcome", 5);
         }
+} else {
+    waitforneedle("inst-welcome");
+}
 
 #	if($ENV{BETA}) {
 #		waitforneedle("inst-betawarning", 5);
