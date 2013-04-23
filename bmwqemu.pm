@@ -914,9 +914,8 @@ sub _waitforneedle {
 	my $needles;
 	if (ref($mustmatch) eq "ARRAY") {
 		$needles = $mustmatch;
-		$mustmatch = '';
 		for my $n (@{$needles}) {
-			$mustmatch .= $n->{name} . " ";
+			$mustmatch .= $n->{name} . "_";
 		}
 	} elsif ($mustmatch) {
 		$needles = needle::tags($mustmatch) || [];
@@ -968,8 +967,8 @@ sub _waitforneedle {
 		diag $_->{'file'};
 	}
 	my $t = time();
-	$img->write_optimized(result_dir() . "/$mustmatch-$t.png");
-	my $fn = result_dir() . "/$mustmatch-$t.json";
+	$img->write_optimized(result_dir() . "/template-$mustmatch-$t.png");
+	my $fn = result_dir() . "/template-$mustmatch-$t.json";
 	open(J, ">", $fn) or die "$fn: $!\n";
 	my $json = { area => [ { xpos => 0, ypos => 0, width => $img->xres(), height => $img->yres(), type => 'match' } ] };
 	my @tags = ( $mustmatch );
@@ -982,9 +981,44 @@ sub _waitforneedle {
 	close(J);
 	diag("wrote $fn");
 
+	# beware of spaghetti code below
+	my $newname;
+	if ($ENV{'scaledhack'}) {
+		my $needle;
+		for my $t (qw/.1 .2 .3 .4 .5 .6/) {
+			diag("trying to find needle with threshold $t ...");
+			my $foundneedle = $img->search($needles, $t);
+			next unless $foundneedle;
+			fctres(sprintf("found %s, similarity %.2f @ %d/%d",
+					$foundneedle->{'needle'}->{'name'},
+					$foundneedle->{'similarity'},
+					$foundneedle->{'x'}, $foundneedle->{'y'}));
+			$needle = $foundneedle->{'needle'};
+			last;
+		}
+
+		for my $i (1..@{$needles||[]}) {
+			printf "%d - %s\n", $i, $needles->[$i-1]->{'name'};
+		}
+		print "(E)dit, (N)ew, (Q)uit, (C)ontinue\n";
+		my $r = <STDIN>;
+		if ($r =~ /^(\d+)/) {
+			$r = 'e';
+			$needle = $needles->[$1-1];
+		}
+		if ($r =~ /^e/i) {
+			unless ($needle) {
+				$needle = $needles->[0] if $needles;
+				die "no needle\n" unless $needle;
+			}
+		} elsif ($r =~ /^q/i) {
+			$args{'retried'} = 99;
+		}
+	}
+
 	$args{'retried'} ||= 0;
 	if (!$args{'check'} && $ENV{'interactive_crop'} && $args{'retried'} < 3) {
-		my $newname = $mustmatch.($ENV{'interactive_crop'} || '');
+		$newname = $mustmatch.($ENV{'interactive_crop'} || '') unless $newname;
 		system("$scriptdir/crop.py", '--new', $newname, $fn) == 0 || mydie;
 		# FIXME: kill needle with same file name
 		$fn = sprintf("%s/needles/%s.json", $ENV{'CASEDIR'}, $newname)

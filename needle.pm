@@ -25,13 +25,13 @@ sub new($) {
     my $gotmatch;
     for my $area (@{$json->{'area'}}) {
 	my $a = {};
-	for my $tag (qw/xpos ypos width height max_offset/) {
+	for my $tag (qw/xpos ypos width height/) {
 	    $a->{$tag} = $area->{$tag} || 0;
 	}
-	for my $tag (qw/processing_flags/) {
+	for my $tag (qw/processing_flags max_offset/) {
 	    $a->{$tag} = $area->{$tag} if $area->{$tag};
 	}
-	$a->{'match'} = ( $area->{'match'} || 100 ) / 100;
+	$a->{'match'} = $area->{'match'} if $area->{'match'};
 	$a->{'type'} = $area->{'type'} || 'match';
 
 	$gotmatch = 1 if $a->{'type'} eq 'match';
@@ -59,6 +59,26 @@ sub new($) {
     return $self;
 }
 
+sub save($;$)
+{
+    my $self = shift;
+    my $fn = shift || $self->{'file'};
+    my @area;
+    for my $a (@{$self->{'area'}}) {
+	my $aa = {};
+	for my $tag (qw/xpos ypos width height max_offset processing_flags match type/) {
+	    $aa->{$tag} = $a->{$tag} if defined $a->{$tag};
+	}
+	push @area, $aa;
+    }
+    my $json = to_json({ tags => $self->{'tags'},
+	area => \@area,
+    }, {utf8 => 1, pretty => 1});
+    open(my $fh, '>', $fn) || die "can't open $fn for writing: $!\n";
+    print $fh $json;
+    close $fh;
+}
+
 sub unregister($)
 {
     my $self = shift;
@@ -79,7 +99,7 @@ sub register($)
 
 sub get_image($$) {
     my $self=shift;
-    my $area = shift || return undef;
+    my $area = shift;
 
     if (!$self->{'img'}) {
 	$self->{'img'} = tinycv::read($self->{'png'});
@@ -90,6 +110,8 @@ sub get_image($$) {
 		$a->{'width'}, $a->{'height'});
 	}
     }
+
+    return $self->{'img'} unless $area;
 
     if (!$area->{'img'}) {
 	$area->{'img'} = $self->{'img'}->copyrect(
