@@ -6,14 +6,22 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
+        
+        my @tags = (@{needle::tags("inst-welcome")}, @{needle::tags("inst-betawarning")});
+        
+	my $ret = waitforneedle(\@tags, 350); # live cds can take quite a long time to boot
 
-	waitforneedle("inst-welcome", 350); # live cds can take quite a long time to boot
-	if($ENV{BETA}) {
-		waitforneedle("inst-betawarning", 5);
-		sendkey "ret";
-	} elsif (checkneedle("inst-betawarning", 2)) {
-		mydie("beta warning found in non-beta");
-	}
+        if( $ret->{needle}->has_tag("inst-betawarning") ) {
+            sendkey "ret";
+            waitforneedle("inst-welcome", 5);
+        }
+
+#	if($ENV{BETA}) {
+#		waitforneedle("inst-betawarning", 5);
+#		sendkey "ret";
+#	} elsif (checkneedle("inst-betawarning", 2)) {
+#		mydie("beta warning found in non-beta");
+#	}
 
 	# animated cursor wastes disk space, so it is moved to bottom right corner
 	mouse_hide;
