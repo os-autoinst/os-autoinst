@@ -16,13 +16,27 @@ bootstrap tinycv $VERSION;
 package tinycv::Image;
 
 # returns area of last matched
-sub search_($$) {
+sub search_($$;$) {
     my $self = shift;
     my $needle = shift;
+    my $threshold = shift || 0.005;
     my ($sim, $xmatch, $ymatch, $d1, $d2);
     my (@exclude, @match, @ocr);
 
+    return undef unless $needle;
+
     my $img = $self->copy;
+
+    {
+	$needle->get_image();
+	my $x = $needle->{'img'}->xres();
+	my $y = $needle->{'img'}->yres();
+	if ($x != $img->xres() && $y != $img->yres()) {
+	    printf("WARING: needle resolution doesn't match image (%dx%d vs %dx%d). scaling image\n",
+		$x, $y, $img->xres(), $img->yres());
+	    $img = $img->scale($x, $y);
+	}
+    }
 
     for my $a (@{$needle->{'area'}}) {
 	push @exclude, $a if $a->{'type'} eq 'exclude';
@@ -39,7 +53,8 @@ sub search_($$) {
 	my $c = $needle->get_image($area);
 	($sim, $xmatch, $ymatch, $d1, $d2) = $img->search_needle($c);
 	printf "MATCH(%s:%.2f): $xmatch $ymatch\n", $needle->{name}, $sim;
-	if ($sim < $area->{match} - 0.005) {
+	my $m = ($area->{match} || 100) / 100;
+	if ($sim < $m - $threshold) {
 	    return undef
 	}
     }
@@ -60,17 +75,22 @@ sub search_($$) {
     return $ret;
 }
 
-sub search($) {
+sub search($;$) {
     my $self = shift;
     my $needle = shift;
+    my $threshold = shift;
     return undef unless $needle;
     if (ref($needle) eq "ARRAY") {
+	my $ret;
+	# try to match all needles and return the one with the highest similarity
 	for my $n (@$needle) {
-	    my $ret = $self->search_($n);
-	    return $ret if $ret;
+	    my $found = $self->search_($n, $threshold);
+	    next unless $found;
+	    $ret = $found if !$ret || $ret->{'similarity'} < $found->{'similarity'};
 	}
+	return $ret;
     } else {
-	return $self->search_($needle);
+	return $self->search_($needle, $threshold);
     }
 }
 
