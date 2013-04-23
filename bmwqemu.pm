@@ -678,7 +678,7 @@ sub take_screenshot(;$) {
 		$lastscreenshot = $img;
 		$lastscreenshotName = $filename;
 		$lastscreenshotCount = 0;
-		my $ocr=get_ocr($img);
+		#my $ocr=get_ocr($img);
 		#if($ocr) { diag "ocr: $ocr" }
 	}
 }
