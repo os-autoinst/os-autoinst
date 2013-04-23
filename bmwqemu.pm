@@ -1000,6 +1000,7 @@ sub _waitforneedle {
 		for my $i (1..@{$needles||[]}) {
 			printf "%d - %s\n", $i, $needles->[$i-1]->{'name'};
 		}
+		print "note: called from checkneedle()\n" if $args{'check'};
 		print "(E)dit, (N)ew, (Q)uit, (C)ontinue\n";
 		my $r = <STDIN>;
 		if ($r =~ /^(\d+)/) {
