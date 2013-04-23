@@ -1011,6 +1011,7 @@ sub _waitforneedle {
 				$needle = $needles->[0] if $needles;
 				die "no needle\n" unless $needle;
 			}
+			$newname = $needle->{'name'};
 		} elsif ($r =~ /^q/i) {
 			$args{'retried'} = 99;
 		}
