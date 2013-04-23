@@ -1,5 +1,12 @@
 #!/usr/bin/perl -w
 use strict;
+
+BEGIN {
+  my ($wd) = $0 =~ m-(.*)/- ;
+  $wd ||= '.';
+  unshift @INC,  "$wd";
+}
+
 use bmwqemu;
 use autotest;
 use JSON qw( to_json );
@@ -46,7 +53,7 @@ while(<>) {
 	if(/^iso_size=(\d+)/) {$results{isosize}=checksize($1);}
 }
 
-sub is_ok($) { my $x=shift; $x=~m/^ok/ }
+sub is_ok($) { my $x=shift; return unless $x; $x=~m/^ok/ }
 
 sub checkfunc {
 	my($test)=@_;

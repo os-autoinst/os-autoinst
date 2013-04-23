@@ -1,4 +1,5 @@
 package basetest;
+use strict;
 use bmwqemu;
 use ocr;
 use Time::HiRes;
@@ -94,7 +95,7 @@ sub ocr_checklist {
 	return []
 }
 
-=head2 check($hashes) [protected]
+=head2 check() [protected]
 
 After C<run> is done, evaluate the screen dumps according to checklists.
 
@@ -104,7 +105,6 @@ where STATUS is one of: OK fail unknown not-autochecked
 =cut
 sub check(%) {
 	my $self=shift;
-	my $hashes=shift;
 	my $path=result_dir;
 	$path=~s/\.ogv.*//;
 	if(!-e $path) {
@@ -113,7 +113,7 @@ sub check(%) {
 		$path = "$dir/$path";
 	}
 	my $testname=ref($self);
-	my @screenshots=<$path/$testname-*.ppm>;
+	my @screenshots=<$path/$testname-*.png>;
 	my @wavdumps=<$path/$testname-*.wav>;
 	my $wav_checklist=$self->wav_checklist();
 	my $ocr_checklist=$self->ocr_checklist();
@@ -125,22 +125,24 @@ sub check(%) {
 	my @screenshot_results = ();
 	foreach my $screenimg (@screenshots) {
 		my $prefix = $screenimg;
-		$prefix=~s{.*/$testname-(\d+)\.ppm}{$testname-$1};
-		my @refimgs=<$scriptdir/testimgs/$prefix-*-*-*.ppm>;
-		$screenimg=~m/-(\d+)\.ppm$/ or die "invalid screenshot name";
+		$prefix=~s{.*/$testname-(\d+)\.png}{$testname-$1};
+		my $refimg_path = "$scriptdir/testimgs/$prefix-*-*-*.png";
+		print "Searching for refimages: $refimg_path\n";
+		my @refimgs=<$scriptdir/testimgs/$prefix-*-*-*.png>;
+		$screenimg=~m/-(\d+)\.png$/ or die "invalid screenshot name";
 		my $screenshotnr = $1;
 
 		my $screenshot_result = {'refimg_result' => 'unk', 'ocr_result' => 'na'};
 
 		# Reference Image Check
 		if(!@refimgs) {
-			push(@testreturn, "na");
+			#push(@testreturn, "na");
 			$screenshot_result->{refimg_result} = 'na';
 		}
 		else {
 			foreach my $refimg (@refimgs) {
 				my $match = $refimg;
-				$match=~s/.*-(.*)\.ppm/$1/;
+				$match=~s/.*-(.*)\.png/$1/;
 				my $flags = '';
 				if ($match eq 'strict') {$flags = ''}
 				elsif ($match eq 'diff') {$flags = 'd'}
@@ -157,8 +159,8 @@ sub check(%) {
 				print "checkrefimgs $screenimg $refimg $flags $c\n";
 				if($c) {
 					my ($result, $refimg_id) = ($refimg, $refimg);
-					$result=~s/.*-(.*)-.*\.ppm/$1/;
-					$refimg_id=~s/.*-([0-9]*)-.*-.*\.ppm/$1/;
+					$result=~s/.*-(.*)-.*\.png/$1/;
+					$refimg_id=~s/.*-([0-9]*)-.*-.*\.png/$1/;
 					$screenshot_result->{refimg_result} = (($result eq 'good')?'ok':'fail');
 					$screenshot_result->{refimg} = {
 						'id' => int($refimg_id),
@@ -217,9 +219,10 @@ sub check(%) {
 
 	my @refimg_results = map($_->{refimg_result}, @screenshot_results);
 	my @ocr_results = map($_->{ocr_result}, @screenshot_results);
-	my @returnval = (@refimg_results, @ocr_results, @wavreturn, $md5_result);
+	my @returnval = (@refimg_results, @ocr_results, @wavreturn );
 
 	my $module_result = 'na';
+
 	if(grep/fail/,@returnval) { $module_result = 'fail' }
 	elsif(grep/ok/,@returnval) { $module_result = 'ok' }
 	elsif(grep/unk/,@returnval) { $module_result = 'unk' } # none of our known results matched
@@ -227,7 +230,6 @@ sub check(%) {
 	my $return_result = {
 		'name' => $testname,
 		'result' => $module_result,
-		'md5_result' => $md5_result,
 		'screenshots' => [@screenshot_results],
 		'audiodumps' => [@wavreturn]
 	};
