@@ -67,8 +67,13 @@ if($ENV{RES1024}) { # default is 800x600
 
 #sendautotype("nohz=off "); # NOHZ caused errors with 2.6.26
 #sendautotype("nomodeset "); # coolo said, 12.3-MS0 kernel/kms broken with cirrus/vesa #fixed 2012-11-06
-sendautotype("video=800x600-16 ");
-waitforneedle("inst-video800typed", 15);
+
+# https://wiki.archlinux.org/index.php/Kernel_Mode_Setting#Forcing_modes_and_EDID
+sendautotype("vga=791 ");
+sendautotype("video=1024x768-16 ");
+sendautotype("drm_kms_helper.edid_firmware=edid/1024x768.bin");
+# FIXME: re-enable
+#waitforneedle("inst-video800typed", 15);
 if(!$ENV{NICEVIDEO}) {
 	sendautotype("console=ttyS0 "); # to get crash dumps as text
 	sendautotype("console=tty "); # to get crash dumps as text
