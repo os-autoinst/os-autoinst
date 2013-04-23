@@ -137,7 +137,7 @@ def selectarea():
     for r in range(0, len(uiareas)):
 	color = "green"
 	if r == rect:
-	    color = "yellow"
+	    color = "cyan"
 	uiareas[r].setcolor(color)
 
 selectarea()
