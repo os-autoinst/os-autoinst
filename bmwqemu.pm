@@ -1033,10 +1033,14 @@ sub _waitforneedle {
 	if ($run_editor && $args{'retried'} < 3) {
 		$newname = $mustmatch.($ENV{'interactive_crop'} || '') unless $newname;
 		system("$scriptdir/crop.py", '--new', $newname, $fn) == 0 || mydie;
-		# FIXME: kill needle with same file name
 		$fn = sprintf("%s/needles/%s.json", $ENV{'CASEDIR'}, $newname)
 		if (-e $fn);
 		{
+			for my $n (needle->all()) {
+				if ($n->{'file'} eq $fn) {
+					$n->unregister();
+				}
+			}
 			diag("reading new needle $fn");
 			needle->new($fn) || mydie "$!";
 			# XXX: recursion!
