@@ -361,11 +361,11 @@ sendkey($qemu_key_name)
 =cut
 sub sendkey($) {
 	my $key=shift;
-	#fctlog('sendkey', "key=$key");
+	fctlog('sendkey', "key=$key");
 	$backend->sendkey($key);
 	my @t=gettimeofday();
 	push(@keyhistory, [$t[0]*1000000+$t[1], $key]);
-	sleep(0.1);
+	sleep(0.05);
 }
 
 =head2 sendkeyw
@@ -387,14 +387,17 @@ sendautotype($string)
 send a string of characters, mapping them to appropriate key names as necessary
 
 =cut
-sub sendautotype($) {
+sub sendautotype($;$) {
 	my $string=shift;
+	my $maxinterval=shift||15;
 	my $typedchars=0;
 	fctlog('sendautotype', "string='$string'");
-	foreach my $letter (split("", $string)) {
+	my @letters = split("", $string);
+	while (@letters) {
+		my $letter = shift @letters;
 		if($charmap{$letter}) { $letter=$charmap{$letter} }
 		sendkey $letter;
-		if ($typedchars++ >= 5) {
+		if ($typedchars++ >= $maxinterval && @letters > $maxinterval / 3 ) {
 			waitstillimage(1);
 			$typedchars=0;
 		}

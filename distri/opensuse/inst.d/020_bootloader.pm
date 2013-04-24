@@ -70,13 +70,13 @@ if($ENV{RES1024}) { # default is 800x600
 
 # https://wiki.archlinux.org/index.php/Kernel_Mode_Setting#Forcing_modes_and_EDID
 sendautotype("vga=791 ");
-sendautotype("video=1024x768-16 ");
-sendautotype("drm_kms_helper.edid_firmware=edid/1024x768.bin ");
+sendautotype("video=1024x768-16 ", 5);
+sendautotype("drm_kms_helper.edid_firmware=edid/1024x768.bin ", 5);
 # FIXME: re-enable
 #waitforneedle("inst-video800typed", 15);
 if(!$ENV{NICEVIDEO}) {
-	sendautotype("console=ttyS0 "); # to get crash dumps as text
-	sendautotype("console=tty "); # to get crash dumps as text
+	sendautotype("console=ttyS0 ", 5); # to get crash dumps as text
+	sendautotype("console=tty ", 5); # to get crash dumps as text
 	waitforneedle("inst-consolesettingstyped", 30);
 	my $e=$ENV{EXTRABOOTPARAMS};
 #	if($ENV{RAIDLEVEL}) {$e="linuxrc=trace"}
