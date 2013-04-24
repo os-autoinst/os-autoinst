@@ -927,7 +927,7 @@ sub _waitforneedle {
 	}
 	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
 	if (!@$needles) {
-		printf "NO matching needles for $mustmatch\n";
+		diag("NO matching needles for $mustmatch");
 		# give it some time to settle but not too much
 		$timeout = 3;
 	}
@@ -942,7 +942,7 @@ sub _waitforneedle {
 			sleep 1;
 			$img = getcurrentscreenshot();
 			if ($oldimg == $img) { # no change, no need to search
-				printf "no change %d\n", $timeout-$n;
+				diag(sprintf("no change %d", $timeout-$n));
 				next;
 			}
 		}

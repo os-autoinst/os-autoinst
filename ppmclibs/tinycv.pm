@@ -28,48 +28,48 @@ sub search_($$;$) {
     my $img = $self->copy;
 
     {
-	$needle->get_image();
-	my $x = $needle->{'img'}->xres();
-	my $y = $needle->{'img'}->yres();
-	if ($x != $img->xres() && $y != $img->yres()) {
-	    printf("WARING: needle resolution doesn't match image (%dx%d vs %dx%d). scaling image\n",
-		$x, $y, $img->xres(), $img->yres());
-	    $img = $img->scale($x, $y);
-	}
+	    $needle->get_image();
+	    my $x = $needle->{'img'}->xres();
+	    my $y = $needle->{'img'}->yres();
+	    if ($x != $img->xres() && $y != $img->yres()) {
+		    bmwqemu::diag(sprintf("WARING: needle resolution doesn't match image (%dx%d vs %dx%d). scaling image",
+			   $x, $y, $img->xres(), $img->yres()));
+		    $img = $img->scale($x, $y);
+	    }
     }
 
     for my $a (@{$needle->{'area'}}) {
-	push @exclude, $a if $a->{'type'} eq 'exclude';
-	push @match, $a if $a->{'type'} eq 'match';
-	push @ocr, $a if $a->{'type'} eq 'ocr';
+	    push @exclude, $a if $a->{'type'} eq 'exclude';
+	    push @match, $a if $a->{'type'} eq 'match';
+	    push @ocr, $a if $a->{'type'} eq 'ocr';
     }
 
     for my $a (@exclude) {
-	$img->replacerect($a->{'xpos'}, $a->{'ypos'},
-	    $a->{'width'}, $a->{'height'});
+	    $img->replacerect($a->{'xpos'}, $a->{'ypos'},
+			      $a->{'width'}, $a->{'height'});
     }
     my $area;
     for $area (@match) {
-	my $c = $needle->get_image($area);
-	($sim, $xmatch, $ymatch, $d1, $d2) = $img->search_needle($c);
-	printf "MATCH(%s:%.2f): $xmatch $ymatch\n", $needle->{name}, $sim;
-	my $m = ($area->{match} || 100) / 100;
-	if ($sim < $m - $threshold) {
-	    return undef
-	}
+	    my $c = $needle->get_image($area);
+	    ($sim, $xmatch, $ymatch, $d1, $d2) = $img->search_needle($c);
+	    bmwqemu::diag(sprintf("MATCH(%s:%.2f): $xmatch $ymatch", $needle->{name}, $sim));
+	    my $m = ($area->{match} || 100) / 100;
+	    if ($sim < $m - $threshold) {
+		    return undef
+	    }
     }
 
     my $ret = {
-	similarity => $sim, x => $xmatch, y => $ymatch,
-	w => $area->{'width'},
-	h => $area->{'height'},
-	needle => $needle
-    };
+	    similarity => $sim, x => $xmatch, y => $ymatch,
+	    w => $area->{'width'},
+	    h => $area->{'height'},
+	    needle => $needle
+	  };
 
     for my $a (@ocr) {
-	$ret->{'ocr'} ||= [];
-	my $ocr = ocr::tesseract($img, $a);
-	push @{$ret->{'ocr'}}, $ocr;
+	    $ret->{'ocr'} ||= [];
+	    my $ocr = ocr::tesseract($img, $a);
+	    push @{$ret->{'ocr'}}, $ocr;
     }
 
     return $ret;
