@@ -979,6 +979,7 @@ sub _waitforneedle {
 
 	# beware of spaghetti code below
 	my $newname;
+	my $run_editor = 0;
 	if ($ENV{'scaledhack'}) {
 		my $needle;
 		for my $t (qw/.1 .2 .3 .4 .5 .6/) {
@@ -1024,13 +1025,18 @@ sub _waitforneedle {
 			}
 			$newname = $needle->{'name'};
 			$needle->save($fn);
+			$run_editor = 1;
+		} elsif ($r =~ /^n/i) {
+			$run_editor = 1;
 		} elsif ($r =~ /^q/i) {
 			$args{'retried'} = 99;
 		}
+	} elsif (!$args{'check'} && $ENV{'interactive_crop'}) {
+		$run_editor = 1;
 	}
 
 	$args{'retried'} ||= 0;
-	if (!$args{'check'} && $ENV{'interactive_crop'} && $args{'retried'} < 3) {
+	if ($run_editor && $args{'retried'} < 3) {
 		$newname = $mustmatch.($ENV{'interactive_crop'} || '') unless $newname;
 		system("$scriptdir/crop.py", '--new', $newname, $fn) == 0 || mydie;
 		# FIXME: kill needle with same file name
