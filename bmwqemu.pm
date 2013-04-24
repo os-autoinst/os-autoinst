@@ -649,8 +649,8 @@ sub take_screenshot(;$) {
 
 	# hardlinking identical files saves space
 
-	# 48 is about the similarity of two screenshots with blinking cursor
-	if($lastscreenshot && $lastscreenshot->similarity($img) > 48) {
+	# 47 is about the similarity of two screenshots with blinking cursor
+	if($lastscreenshot && $lastscreenshot->similarity($img) > 47) {
 		symlink(basename($lastscreenshotName), $filename);
 		$lastscreenshotCount++;
 		$prestandstillwarning=($lastscreenshotCount>$standstillthreshold/2);
@@ -769,7 +769,7 @@ Wait until the screen stops changing
 sub waitstillimage(;$$$) {
 	my $stilltime=shift||7;
 	my $timeout=shift||30;
-	my $similarity_level=shift||48;
+	my $similarity_level=shift||47;
 	my $starttime=time;
 	fctlog('waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level");
         my $lastchangetime=time;	
@@ -777,7 +777,6 @@ sub waitstillimage(;$$$) {
 	while(time-$starttime<$timeout) {
 	        my $img=getcurrentscreenshot();
 		my $sim = $img->similarity($lastchangeimg);
-		print "SIM $sim\n";
 		if ($sim < $similarity_level) {
 			# a change
 			$lastchangetime=time;
@@ -919,7 +918,7 @@ sub _waitforneedle {
 	}
 	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
 	if (!@$needles) {
-		printf "NO goods for $mustmatch\n";
+		printf "NO matching needles for $mustmatch\n";
 		# give it some time to settle but not too much
 		$timeout = 3;
 	}
