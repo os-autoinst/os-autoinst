@@ -60,3 +60,41 @@ File format:
       STRING, ...
    ]
 }
+
+
+== using needles in tests ==
+
+=== waitforneedle ===
+
+Tests can wait for a needle to appear by calling 'waitforneedle'. It
+takes the name of a tag or an array of needles as first argument.
+The second argument is an optional timeout. The function repeatedly
+takes screenshots until a matching needle is found. For a match a
+hash ref consisting of the following items is returned:
+
+{
+	similarity => $sim, # similarity percentage, fraction 0..1
+	x => INTEGER, # area of the match
+	y => INTEGER,
+	w => INTEGER,
+	h => INTEGER,
+	needle => $needle # reference ot matched needle
+}
+
+If no match is found waitforneedle calls die()
+
+=== checkneedle ===
+
+same as waitforneedle but doesn't die
+
+=== goandclick ===
+
+similar to waitforneedle but clicks into area that is defined last
+in the needle. takes one up to four arguments:
+1. needle tag or array of needles
+2. mouse button
+3. timeout
+4. time to hold the mouse button down
+
+NOTE: this function currently does not work due to bugs in qemu:
+https://bugs.launchpad.net/qemu/+bug/752476
