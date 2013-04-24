@@ -4,6 +4,8 @@
 #include <exception>
 #include <cerrno>
 
+#include <algorithm>    // std::min
+
 #include "opencv2/core/core.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/calib3d/calib3d.hpp"
@@ -271,12 +273,19 @@ std::vector<int> image_search(Image *s, Image *needle, double &similarity)
 }
 
 
-Image *image_scale(Image *a, long width, long height)
+Image *image_scale(Image *a, int width, int height)
 {
   Image *n = new Image;
-  n->img = Mat(height, width, a->img.type());
-  // TODO: consider not scaling up but centering
-  resize(a->img, n->img, n->img.size());
+
+  /* first scale down in case */
+  if (a->img.rows > height || a->img.cols > width) {
+    n->img = Mat(height, width, a->img.type());
+    resize(a->img, n->img, n->img.size());
+  } else if (n->img.rows < height || n->img.cols < width) {
+    n->img = Mat::zeros(height, width, a->img.type());
+    a->img.copyTo(n->img(Rect(0, 0, a->img.cols, a->img.rows)));
+  } else 
+    n->img = a->img;
 
   return n;
 }
