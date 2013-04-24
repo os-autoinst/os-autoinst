@@ -62,7 +62,7 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 
 if(!$ENV{KEEPHDDS}) {
 	# fresh HDDs
-	for my $i (1..4) {
+	for my $i (1..$ENV{NUMDISKS}) {
 		unlink("$basedir/l$i");
 		if(-e "$basedir/$i.lvm") {
 			symlink("$i.lvm","$basedir/l$i");
