@@ -33,7 +33,7 @@ sub search_($$;$) {
 	    my $y = $needle->{'img'}->yres();
 	    if ($x != $img->xres() && $y != $img->yres()) {
 		    bmwqemu::diag(sprintf("WARING: needle resolution doesn't match image (%dx%d vs %dx%d). scaling image",
-			   $x, $y, $img->xres(), $img->yres()));
+					  $x, $y, $img->xres(), $img->yres()));
 		    $img = $img->scale($x, $y);
 	    }
     }
