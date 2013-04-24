@@ -71,7 +71,7 @@ if($ENV{RES1024}) { # default is 800x600
 # https://wiki.archlinux.org/index.php/Kernel_Mode_Setting#Forcing_modes_and_EDID
 sendautotype("vga=791 ");
 sendautotype("video=1024x768-16 ");
-sendautotype("drm_kms_helper.edid_firmware=edid/1024x768.bin");
+sendautotype("drm_kms_helper.edid_firmware=edid/1024x768.bin ");
 # FIXME: re-enable
 #waitforneedle("inst-video800typed", 15);
 if(!$ENV{NICEVIDEO}) {
