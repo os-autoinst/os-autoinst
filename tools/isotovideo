@@ -13,7 +13,7 @@ logfile=currentautoinst-log.txt
 export ISO=`$scriptdir/tools/absolutize $iso`
 
 # Load the user's configured environment from cwd
-if [ ! -f "env.sh" ]; then
+if [ ! -e "env.sh" ]; then
 	echo "You need a env.sh file in the working directory"
 	echo "Copying the sample file..."
 	cp -a $scriptdir/env.sh.sample env.sh
@@ -35,7 +35,7 @@ else
 	echo "No build id collected" >> ${logfile}
 fi
 
-perl $scriptdir/start.pl || exit 1
+perl $scriptdir/start.pl # || exit 1
 
 name=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media1?//;print' $ISO)
 mkdir -p video
