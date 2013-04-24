@@ -26,6 +26,7 @@ import json
 import optparse
 import sys
 import shutil
+from os.path import basename
 from pprint import pprint
 
 parser = optparse.OptionParser()
@@ -57,6 +58,7 @@ if options.tag:
 print json.dumps(needle, sort_keys=True, indent=4, separators=(',', ': '))
 
 master = Tk()
+master.title(basename(filename)[0:len(filename)-len(".json")])
 
 image = Image.open(png)
 photo = ImageTk.PhotoImage(image)
