@@ -365,7 +365,7 @@ sub sendkey($) {
 	$backend->sendkey($key);
 	my @t=gettimeofday();
 	push(@keyhistory, [$t[0]*1000000+$t[1], $key]);
-	sleep(0.15);
+	sleep(0.1);
 }
 
 =head2 sendkeyw
@@ -389,11 +389,17 @@ send a string of characters, mapping them to appropriate key names as necessary
 =cut
 sub sendautotype($) {
 	my $string=shift;
+	my $typedchars=0;
 	fctlog('sendautotype', "string='$string'");
 	foreach my $letter (split("", $string)) {
 		if($charmap{$letter}) { $letter=$charmap{$letter} }
 		sendkey $letter;
+		if ($typedchars++ >= 5) {
+			waitstillimage(1);
+			$typedchars=0;
+		}
 	}
+	waitstillimage(1) if ($typedchars > 0);
 }
 
 sub sendpassword() {
@@ -521,7 +527,7 @@ sub ensure_installed {
 		mydie "TODO: implement package install for your distri $ENV{DISTRI}";
 	}
 	if($password) { sendpassword; sendkeyw "ret"; }
-	waitstillimage(6,90); # wait for install
+	waitstillimage(7,90); # wait for install
 }
 
 sub clear_console() {
@@ -762,19 +768,23 @@ sub waitstillimage(;$$$) {
 	my $timeout=shift||30;
 	my $similarity_level=shift||48;
 	my $starttime=time;
-	my @recentimages; # fifo
 	fctlog('waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level");
+        my $lastchangetime=time;	
+        my $lastchangeimg = getcurrentscreenshot();
 	while(time-$starttime<$timeout) {
 	        my $img=getcurrentscreenshot();
-		next unless $img; # this must stay to get only valid imgs to fifo
-		push(@recentimages, $img);
-		if(@recentimages  > $stilltime) {
-			my $e = shift @recentimages;
-			if ($img->similarity($e) > $similarity_level) {
+		my $sim = $img->similarity($lastchangeimg);
+		print "SIM $sim\n";
+		if ($sim < $similarity_level) {
+			# a change
+			$lastchangetime=time;
+			$lastchangeimg=$img;
+		}
+		if (time-$lastchangetime>=$stilltime) {
 				fctres('waitstillimage', "detected same image for $stilltime seconds");
 				return 1;
-			}
 		}
+		sleep(0.5);
 	}
 	timeout_screenshot();
 	fctres('waitstillimage', "waitstillimage timed out after $timeout");
