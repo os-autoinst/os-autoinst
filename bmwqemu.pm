@@ -701,31 +701,6 @@ sub alive() {
 
 # check functions (runtime and result-checks)
 
-sub checkrefimgs($$$) {
-	my ($screenimg, $refimg, $flags) = @_;
-	my $screenppm = tinycv::read($screenimg);
-	my $refppm = tinycv::read($refimg);
-	if (!$screenppm || !$refppm) {
-		return undef;
-	}
-	if ($flags=~m/t/) {
-		# black/white => drop most background
-		$screenppm->threshold(0x80);
-		$refppm->threshold(0x80);
-	}
-	if ($flags=~m/f/) {
-		# perform vector-based fuzzy matching using opencv
-		return $screenppm->search_fuzzy($refppm);
-	}
-	elsif ($flags=~m/d/) {
-		# allow difference of 40 per byte
-		return $screenppm->search($refppm, 40);
-	}
-	else {
-		return $screenppm->search($refppm, 0);
-	}
-}
-
 sub get_ocr($) {
 	# input: tinycv object
 	my $img=shift;
@@ -910,6 +885,7 @@ sub _waitforneedle {
 	my $needles;
 	if (ref($mustmatch) eq "ARRAY") {
 		$needles = $mustmatch;
+		$mustmatch = '';
 		for my $n (@{$needles}) {
 			$mustmatch .= $n->{name} . "_";
 		}

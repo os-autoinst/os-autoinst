@@ -124,51 +124,31 @@ sub check(%) {
 	# Screenshot Check
 	my @screenshot_results = ();
 	foreach my $screenimg (@screenshots) {
+		my $img = tinycv::read($screenimg);
+
 		my $prefix = $screenimg;
 		$prefix=~s{.*/$testname-(\d+)\.png}{$testname-$1};
-		my $refimg_path = "$scriptdir/testimgs/$prefix-*-*-*.png";
-		print "Searching for refimages: $refimg_path\n";
-		my @refimgs=<$scriptdir/testimgs/$prefix-*-*-*.png>;
-		$screenimg=~m/-(\d+)\.png$/ or die "invalid screenshot name";
-		my $screenshotnr = $1;
 
+		my $needles = needle::tags($prefix) || [];
 		my $screenshot_result = {'refimg_result' => 'unk', 'ocr_result' => 'na'};
 
 		# Reference Image Check
-		if(!@refimgs) {
+		if(!@{$needles}) {
+			print "No REF needles for $prefix\n";
 			#push(@testreturn, "na");
 			$screenshot_result->{refimg_result} = 'na';
-		}
-		else {
-			foreach my $refimg (@refimgs) {
-				my $match = $refimg;
-				$match=~s/.*-(.*)\.png/$1/;
-				my $flags = '';
-				if ($match eq 'strict') {$flags = ''}
-				elsif ($match eq 'diff') {$flags = 'd'}
-				elsif ($match eq 'fuzzy') {$flags = 'f'}
-				elsif ($match eq 'hwfuzzy') {
-					if(defined $ENV{'HW'} && $ENV{'HW'}) {
-						$flags = 'f';
-					}
-					else {
-						$flags = 'd';
-					}
-				}
-				my $c = bmwqemu::checkrefimgs($screenimg,$refimg,$flags);
-				print "checkrefimgs $screenimg $refimg $flags $c\n";
-				if($c) {
-					my ($result, $refimg_id) = ($refimg, $refimg);
-					$result=~s/.*-(.*)-.*\.png/$1/;
-					$refimg_id=~s/.*-([0-9]*)-.*-.*\.png/$1/;
-					$screenshot_result->{refimg_result} = (($result eq 'good')?'ok':'fail');
-					$screenshot_result->{refimg} = {
-						'id' => int($refimg_id),
-						'match' => [@$c[0], @$c[1]],
-						'size' => [@$c[2], @$c[3]]
-					};
-					last;
-				}
+		} else {
+			my $foundneedle = $img->search($needles);
+			if($foundneedle) {
+				$screenshot_result->{refimg_result} = 'ok';
+				$screenshot_result->{refimg} = {
+					'id' => $foundneedle->{'needle'}->{'name'},
+					'match' => [$foundneedle->{'x'}, $foundneedle->{'y'}],
+					'size' => [$foundneedle->{'needle'}->xres(), $foundneedle->{'needle'}->yres()]
+				      };
+			} else {
+				# if there are refs and none of them match, then fail
+				$screenshot_result->{refimg_result} = 'fail';
 			}
 		}
 
@@ -176,7 +156,6 @@ sub check(%) {
 		if(@$ocr_checklist) {
 			my $img = tinycv::read($screenimg);
 			foreach my $entry (@$ocr_checklist) {
-				next if($entry->{screenshot} != $screenshotnr);
 				my @ocrrect = ($entry->{x}, $entry->{y}, $entry->{xs}, $entry->{ys});
 				my $ocr = ocr::get_ocr($img, "", \@ocrrect);
 				open(OCRFILE, ">$path/$testname-$entry->{screenshot}.txt");
@@ -238,3 +217,8 @@ sub check(%) {
 }
 
 1;
+
+# Local Variables:
+# tab-width: 8
+# cperl-indent-level: 8
+# End:
