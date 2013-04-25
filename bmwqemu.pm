@@ -366,7 +366,7 @@ sub sendkey($) {
 	$backend->sendkey($key);
 	my @t=gettimeofday();
 	push(@keyhistory, [$t[0]*1000000+$t[1], $key]);
-	sleep(0.05);
+	sleep(0.1);
 }
 
 =head2 sendkeyw
@@ -403,7 +403,7 @@ sub sendautotype($;$) {
 			$typedchars=0;
 		}
 	}
-	waitstillimage(1) if ($typedchars > 0);
+	waitstillimage(1.6) if ($typedchars > 0);
 }
 
 sub sendpassword() {
@@ -752,17 +752,18 @@ sub waitstillimage(;$$$) {
 	my $similarity_level=shift||47;
 	my $starttime=time;
 	fctlog('waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level");
-        my $lastchangetime=time;	
+        my $lastchangetime=[gettimeofday];
         my $lastchangeimg = getcurrentscreenshot();
 	while(time-$starttime<$timeout) {
 	        my $img=getcurrentscreenshot();
 		my $sim = $img->similarity($lastchangeimg);
 		if ($sim < $similarity_level) {
 			# a change
-			$lastchangetime=time;
+			$lastchangetime=[gettimeofday];
 			$lastchangeimg=$img;
 		}
-		if (time-$lastchangetime>=$stilltime) {
+		my $now = [gettimeofday];
+		if (($now->[0] - $lastchangetime->[0])+($now->[1] - $lastchangetime->[1])/1000000.>=$stilltime) {
 				fctres('waitstillimage', "detected same image for $stilltime seconds");
 				return 1;
 		}
@@ -921,15 +922,13 @@ sub _waitforneedle {
 		my $foundneedle = $img->search($needles);
 		if ($foundneedle) {
 			my $t = time();
-			if (!$current_test) {
-				diag("current_test for $mustmatch is not defined");
-				exit(1);
-			}
-			my $name = $current_test->take_screenshot();
-			if (!$foundneedle->{needle}->has_tag($name)) {
+			if ($current_test) {
+			  my $name = $current_test->take_screenshot();
+			  if (!$foundneedle->{needle}->has_tag($name)) {
 				diag(sprintf("add name %s to $foundneedle->{needle}->{name}", $name));
 				push(@{$foundneedle->{needle}->{tags}}, $name);
 				$foundneedle->{needle}->save();
+			  }
 			}
 			fctres(sprintf("found %s, similarity %.2f @ %d/%d",
 				$foundneedle->{'needle'}->{'name'},
@@ -1043,6 +1042,8 @@ sub _waitforneedle {
 			return waitforneedle($mustmatch, 3, $args{'check'}, $args{'retried'}+1);
 		}
 	}
+	
+	$current_test->take_screenshot() if ($current_test);
 	mydie unless $args{'check'};
 	return undef;
 }

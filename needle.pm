@@ -71,9 +71,9 @@ sub save($;$)
 	}
 	push @area, $aa;
     }
-    my $json = to_json({ tags => $self->{'tags'},
+    my $json = JSON->new->pretty->utf8->canonical->encode({ tags => $self->{'tags'},
 	area => \@area,
-    }, {utf8 => 1, pretty => 1});
+    });
     open(my $fh, '>', $fn) || die "can't open $fn for writing: $!\n";
     print $fh $json;
     close $fh;
