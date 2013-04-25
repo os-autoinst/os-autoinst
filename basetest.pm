@@ -4,7 +4,7 @@ use bmwqemu;
 use ocr;
 use Time::HiRes;
 use JSON;
-
+use Data::Dumper;
 
 sub new() {
 	my $class=shift;
@@ -134,17 +134,19 @@ sub check(%) {
 
 		# Reference Image Check
 		if(!@{$needles}) {
-			print "No REF needles for $prefix\n";
+			diag("No REF needles for $prefix");
 			#push(@testreturn, "na");
 			$screenshot_result->{refimg_result} = 'na';
 		} else {
 			my $foundneedle = $img->search($needles);
 			if($foundneedle) {
+				print Dumper($foundneedle);
 				$screenshot_result->{refimg_result} = 'ok';
+				my $need = $foundneedle->{'needle'};
 				$screenshot_result->{refimg} = {
-					'id' => $foundneedle->{'needle'}->{'name'},
+					'id' => $need->{'name'},
 					'match' => [$foundneedle->{'x'}, $foundneedle->{'y'}],
-					'size' => [$foundneedle->{'needle'}->xres(), $foundneedle->{'needle'}->yres()]
+					'size' => [$foundneedle->{'w'}, $foundneedle->{'h'}]
 				      };
 			} else {
 				# if there are refs and none of them match, then fail
