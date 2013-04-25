@@ -26,18 +26,6 @@ sub search_($$;$) {
     return undef unless $needle;
 
     my $img = $self->copy;
-
-    {
-	    $needle->get_image();
-	    my $x = $needle->{'img'}->xres();
-	    my $y = $needle->{'img'}->yres();
-	    if ($x != $img->xres() && $y != $img->yres()) {
-		    bmwqemu::diag(sprintf("WARING: needle resolution doesn't match image (%dx%d vs %dx%d). scaling image",
-					  $x, $y, $img->xres(), $img->yres()));
-		    $img = $img->scale($x, $y);
-	    }
-    }
-
     for my $a (@{$needle->{'area'}}) {
 	    push @exclude, $a if $a->{'type'} eq 'exclude';
 	    push @match, $a if $a->{'type'} eq 'match';

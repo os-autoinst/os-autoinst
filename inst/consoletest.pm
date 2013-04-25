@@ -5,7 +5,7 @@ use autotest;
 
 
 
-if(0 && !$ENV{NICEVIDEO}) {
+if(!$ENV{NICEVIDEO}) {
 # init
 # log into text console
 sendkey "ctrl-alt-f4";
@@ -47,7 +47,7 @@ sleep 2;
 waitidle;
 
 }
-if(0 && $ENV{DESKTOP}!~/textmode|minimalx/) {
+if($ENV{DESKTOP}!~/textmode|minimalx/) {
 	do "inst/x11test.pm" or die $@;
 }
 
