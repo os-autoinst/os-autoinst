@@ -900,6 +900,8 @@ sub _waitforneedle {
 	my $mustmatch = $args{'mustmatch'};
 	my $timeout = $args{'timeout'} || 30;
 
+	$args{'retried'} ||= 0;
+
 	# get the array reference to all matching needles
 	my $needles;
 	if (ref($mustmatch) eq "ARRAY") {
@@ -987,6 +989,7 @@ sub _waitforneedle {
 	my $newname;
 	my $run_editor = 0;
 	if ($ENV{'scaledhack'}) {
+		backend_send("stop");
 		my $needle;
 		for my $t (qw/.1 .2 .3 .4 .5 .6/) {
 			diag("trying to find needle with threshold $t ...");
@@ -1021,15 +1024,19 @@ sub _waitforneedle {
 			$run_editor = 1;
 		} elsif ($r =~ /^q/i) {
 			$args{'retried'} = 99;
+			backend_send("cont");
+		} else {
+			backend_send("cont");
 		}
 	} elsif (!$args{'check'} && $ENV{'interactive_crop'}) {
 		$run_editor = 1;
 	}
 
-	$args{'retried'} ||= 0;
 	if ($run_editor && $args{'retried'} < 3) {
 		$newname = $mustmatch.($ENV{'interactive_crop'} || '') unless $newname;
+		backend_send("stop");
 		system("$scriptdir/crop.py", '--new', $newname, $fn) == 0 || mydie;
+		backend_send("cont");
 		$fn = sprintf("%s/needles/%s.json", $ENV{'CASEDIR'}, $newname)
 		if (-e $fn);
 		{
