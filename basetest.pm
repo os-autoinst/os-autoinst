@@ -9,6 +9,7 @@ use Data::Dumper;
 sub new() {
 	my $class=shift;
 	my $self={class=>$class};
+	$self->{lastscreenshot} = undef;
 	return bless $self, $class;
 }
 
@@ -45,9 +46,16 @@ Can be called from C<run> to have screenshots in addition to the one taken via d
 =cut
 sub take_screenshot() {
 	my $self=shift;
-	my $filename=$self->next_resultname("png");
-	bmwqemu::do_take_screenshot()->write_optimized($filename);
-	sleep(0.1);
+	my $cscreenshot = bmwqemu::do_take_screenshot();
+	if (!$self->{lastscreenshot} || $self->{lastscreenshot}->similarity($cscreenshot) < 48) {
+		my $filename=$self->next_resultname("png");
+		$cscreenshot->write_optimized($filename);
+		$self->{lastscreenshot} = $cscreenshot;
+		sleep(0.1);
+	}
+	my $count=$self->{"png_count"};
+	my $testname=ref($self);
+	return "$testname-$count";
 	# TODO analyze_screenshot $filename;
 }
 
