@@ -103,8 +103,10 @@ sub get_image($$) {
 
     if (!$self->{'img'}) {
 	$self->{'img'} = tinycv::read($self->{'png'});
-	if ($self->{'img'}->xres() != 1024) {
-	  $self->{'img'} = $self->{'img'}->scale(1024, 768);
+	if (!$ENV{'scaledhack'}) {
+	    if ($self->{'img'}->xres() != 1024) {
+		$self->{'img'} = $self->{'img'}->scale(1024, 768);
+	    }
 	}
 
 	for my $a (@{$self->{'area'}}) {
