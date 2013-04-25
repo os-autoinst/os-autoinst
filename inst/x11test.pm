@@ -8,8 +8,11 @@ sub x11testrunfunc
 	my($test)=@_;
 	my $class=ref $test;
 	diag "starting $class";
+	bmwqemu::set_current_test($test);
 	$test->run();
-	sleep 1; $test->take_screenshot;
+	bmwqemu::set_current_test(undef);
+	sleep 1; 
+	$test->take_screenshot;
 	diag "finished $class";
 }
 

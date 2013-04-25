@@ -26,7 +26,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey 
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
 &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
-&checkneedle &goandclick
+&checkneedle &goandclick &set_current_test
 &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie &checkEnv &waitinststage);
@@ -48,6 +48,7 @@ my @extrahashrects; share(@extrahashrects);
 
 # global vars
 
+our $current_test;
 our $logfd;
 
 our $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
@@ -696,6 +697,10 @@ sub alive() {
 	return 0;
 }
 
+sub set_current_test($) {
+	$current_test = shift;	
+}
+
 # runtime information gathering functions end
 
 
@@ -916,7 +921,16 @@ sub _waitforneedle {
 		my $foundneedle = $img->search($needles);
 		if ($foundneedle) {
 			my $t = time();
-			$img->write(result_dir() . "/match-$mustmatch-$t.png");
+			if (!$current_test) {
+				diag("current_test for $mustmatch is not defined");
+				exit(1);
+			}
+			my $name = $current_test->take_screenshot();
+			if (!$foundneedle->{needle}->has_tag($name)) {
+				diag(sprintf("add name %s to $foundneedle->{needle}->{name}", $name));
+				push(@{$foundneedle->{needle}->{tags}}, $name);
+				$foundneedle->{needle}->save();
+			}
 			fctres(sprintf("found %s, similarity %.2f @ %d/%d",
 				$foundneedle->{'needle'}->{'name'},
 				$foundneedle->{'similarity'},
