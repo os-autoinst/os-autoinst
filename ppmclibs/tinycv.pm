@@ -37,20 +37,23 @@ sub search_($$;$) {
 			      $a->{'width'}, $a->{'height'});
     }
     my $area;
-    for $area (@match) {
+
+    my $lastarea;
+    for my $area (@match) {
 	    my $c = $needle->get_image($area);
 	    ($sim, $xmatch, $ymatch, $d1, $d2) = $img->search_needle($c);
 	    bmwqemu::diag(sprintf("MATCH(%s:%.2f): $xmatch $ymatch", $needle->{name}, $sim));
 	    my $m = ($area->{match} || 100) / 100;
 	    if ($sim < $m - $threshold) {
-		    return undef
+		    return undef;
 	    }
+	    $lastarea = $area;
     }
 
     my $ret = {
 	    similarity => $sim, x => $xmatch, y => $ymatch,
-	    w => $area->{'width'},
-	    h => $area->{'height'},
+	    w => $lastarea->{'width'},
+	    h => $lastarea->{'height'},
 	    needle => $needle
 	  };
 
