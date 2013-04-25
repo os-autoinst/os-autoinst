@@ -24,8 +24,9 @@ sub consoletestrunfunc
 	my $class=ref $test;
 	clear_console; # clear screen to make screen content independent from previous tests
 	diag "starting $class";
+	bmwqemu::set_current_test($test);
 	$test->run();
-	sleep 2;
+	bmwqemu::set_current_test(undef);
 	$test->take_screenshot;
 	diag "finished $class";
 }
