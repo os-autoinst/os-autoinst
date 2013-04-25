@@ -148,7 +148,6 @@ sub check(%) {
 		} else {
 			my $foundneedle = $img->search($needles);
 			if($foundneedle) {
-				print Dumper($foundneedle);
 				$screenshot_result->{refimg_result} = 'ok';
 				my $need = $foundneedle->{'needle'};
 				$screenshot_result->{refimg} = {
