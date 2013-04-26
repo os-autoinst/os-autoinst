@@ -31,12 +31,18 @@ sub is_applicable() {
 	return 1;
 }
 
-sub next_resultname($) {
-	my($self,$type)=@_;
-	my $count=++$self->{$type."_count"};
+sub next_resultname($;$) {
+	my $self = shift;
+	my $type = shift;
+	my $name = shift;
 	my $path=result_dir;
 	my $testname=ref($self);
-	return "$path/$testname-$count.$type";
+	if ($name) {
+		return "$path/$testname-$name.$type";
+	} else {
+		my $count=++$self->{$type."_count"};
+		return "$path/$testname-$count.$type";
+	}
 }
 
 =head2 take_screenshot
@@ -44,18 +50,32 @@ sub next_resultname($) {
 Can be called from C<run> to have screenshots in addition to the one taken via distri/opensuse/main.pm:installrunfunc after run finishes
 
 =cut
-sub take_screenshot() {
+sub take_screenshot(;$) {
 	my $self=shift;
+	my $name=shift;
 	my $cscreenshot = bmwqemu::do_take_screenshot();
-	if (!$self->{lastscreenshot} || $self->{lastscreenshot}->similarity($cscreenshot) < 48) {
-		my $filename=$self->next_resultname("png");
+	my $count=$self->{"png_count"}||0;
+	my $testname=ref($self);
+	my $tag;
+	if ($name) {
+		$tag = "test-$testname-$name";
+	} else {
+		$tag = "test-$testname-$count";
+	}
+	if (!$self->{lastscreenshot} || $self->{lastscreenshot}->similarity($cscreenshot) < 50) {
+		my $filename=$self->next_resultname("png", $name);
+		if (!$name) { # fix count
+			$count=$self->{"png_count"};
+			$tag = "test-$testname-$count";
+		}
 		$cscreenshot->write_optimized($filename);
+		open(my $fh, '>', "$filename.json");
+		print $fh encode_json({ "needledir" => needle::get_needle_dir, "tag" => $tag });
+		close $fh;
 		$self->{lastscreenshot} = $cscreenshot;
 		sleep(0.1);
 	}
-	my $count=$self->{"png_count"};
-	my $testname=ref($self);
-	return "$testname-$count";
+	return $tag;
 	# TODO analyze_screenshot $filename;
 }
 
