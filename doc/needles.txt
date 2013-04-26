@@ -1,7 +1,7 @@
 Some packages are required to run crop.py. So for the first time do:
   zypper in python-imaging python-tk
 
-To create needles or to adjust test caes the easiest way is to run start.pl
+To create needles or to adjust test cases the easiest way is to run start.pl
 interactively. Parameters for the installation are stored in environment
 variables. You want to run start.pl in some empty directory with enough free
 space left. Disk images, screenshots etc will be created relative to
