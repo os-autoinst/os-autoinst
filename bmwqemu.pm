@@ -927,12 +927,14 @@ sub _waitforneedle {
 		if ($foundneedle) {
 			my $t = time();
 			if ($current_test) {
-			  my $name = $current_test->take_screenshot($mustmatch);
-			  if (!$foundneedle->{needle}->has_tag($name)) {
+			    my $name = $current_test->take_screenshot($mustmatch);
+			    if (!$foundneedle->{needle}->has_tag($name)) {
 				diag(sprintf("add name %s to $foundneedle->{needle}->{name}", $name));
 				push(@{$foundneedle->{needle}->{tags}}, $name);
-				$foundneedle->{needle}->save();
-			  }
+			    }
+			    my $fn = sprintf("%s/%s-needle.json", result_dir(), $name);
+			    diag("saving as $fn\n");
+			    $foundneedle->{needle}->save($fn);
 			}
 			fctres(sprintf("found %s, similarity %.2f @ %d/%d",
 				$foundneedle->{'needle'}->{'name'},
