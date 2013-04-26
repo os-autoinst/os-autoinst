@@ -390,7 +390,7 @@ send a string of characters, mapping them to appropriate key names as necessary
 =cut
 sub sendautotype($;$) {
 	my $string=shift;
-	my $maxinterval=shift||15;
+	my $maxinterval=shift||25;
 	my $typedchars=0;
 	fctlog('sendautotype', "string='$string'");
 	my @letters = split("", $string);
@@ -398,12 +398,12 @@ sub sendautotype($;$) {
 		my $letter = shift @letters;
 		if($charmap{$letter}) { $letter=$charmap{$letter} }
 		sendkey $letter;
-		if ($typedchars++ >= $maxinterval && @letters > $maxinterval / 3 ) {
-			waitstillimage(1);
+		if ($typedchars++ >= $maxinterval ) {
+			waitstillimage(1.1);
 			$typedchars=0;
 		}
 	}
-	waitstillimage(1.6) if ($typedchars > 0);
+	waitstillimage(1.1) if ($typedchars > 0);
 }
 
 sub sendpassword() {
@@ -757,12 +757,12 @@ sub waitstillimage(;$$$) {
 	while(time-$starttime<$timeout) {
 	        my $img=getcurrentscreenshot();
 		my $sim = $img->similarity($lastchangeimg);
+		my $now = [gettimeofday];
 		if ($sim < $similarity_level) {
 			# a change
-			$lastchangetime=[gettimeofday];
+			$lastchangetime=$now;
 			$lastchangeimg=$img;
 		}
-		my $now = [gettimeofday];
 		if (($now->[0] - $lastchangetime->[0])+($now->[1] - $lastchangetime->[1])/1000000.>=$stilltime) {
 				fctres('waitstillimage', "detected same image for $stilltime seconds");
 				return 1;
@@ -923,7 +923,7 @@ sub _waitforneedle {
 		if ($foundneedle) {
 			my $t = time();
 			if ($current_test) {
-			  my $name = $current_test->take_screenshot();
+			  my $name = $current_test->take_screenshot($mustmatch);
 			  if (!$foundneedle->{needle}->has_tag($name)) {
 				diag(sprintf("add name %s to $foundneedle->{needle}->{name}", $name));
 				push(@{$foundneedle->{needle}->{tags}}, $name);
@@ -1042,7 +1042,7 @@ sub _waitforneedle {
 			return waitforneedle($mustmatch, 3, $args{'check'}, $args{'retried'}+1);
 		}
 	}
-	
+
 	$current_test->take_screenshot() if ($current_test);
 	mydie unless $args{'check'};
 	return undef;

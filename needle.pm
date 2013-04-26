@@ -71,9 +71,12 @@ sub save($;$)
 	}
 	push @area, $aa;
     }
-    my $json = JSON->new->pretty->utf8->canonical->encode({ tags => $self->{'tags'},
+    my $json = JSON->new->pretty->utf8->canonical->encode(
+      {
+	tags => [sort(@{$self->{'tags'}})],
 	area => \@area,
-    });
+      }
+    );
     open(my $fh, '>', $fn) || die "can't open $fn for writing: $!\n";
     print $fh $json;
     close $fh;
@@ -141,9 +144,15 @@ sub wanted_($) {
     }
 }
 
+our $needledir;
+
+sub get_needle_dir {
+  return $needledir;
+}
+
 sub init($) {
-	my $dirname=shift;
-	find( { no_chdir => 1, wanted => \&wanted_ }, $dirname );
+	$needledir=shift;
+	find( { no_chdir => 1, wanted => \&wanted_ }, $needledir );
 	#for my $k (keys %tags) {
 	#	print "$k\n";
 	#	for my $p (@{$tags{$k}}) {
@@ -175,3 +184,8 @@ sub all() {
 }
 
 1;
+
+# Local Variables:
+# tab-width: 8
+# cperl-indent-level: 8
+# End:
