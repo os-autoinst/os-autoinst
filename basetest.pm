@@ -37,10 +37,10 @@ sub next_resultname($;$) {
 	my $name = shift;
 	my $path=result_dir;
 	my $testname=ref($self);
+	my $count=++$self->{$type."_count"};
 	if ($name) {
-		return "$path/$testname-$name.$type";
+		return "$path/$testname-$count.$name.$type";
 	} else {
-		my $count=++$self->{$type."_count"};
 		return "$path/$testname-$count.$type";
 	}
 }
