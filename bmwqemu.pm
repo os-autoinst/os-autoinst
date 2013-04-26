@@ -1005,22 +1005,7 @@ sub _waitforneedle {
 				$needle = $needles->[0] if $needles;
 				die "no needle\n" unless $needle;
 			}
-			my $x = $needle->{'img'}->xres();
-			my $y = $needle->{'img'}->yres();
-			# scale needle coordinates to screenshot size
-			# XXX: this modifies the needle object in memory but we don't care for now
-			if ($x != $img->xres() && $y != $img->yres()) {
-				my $xs = $img->xres() / $x;
-				my $ys = $img->yres() / $y;
-				for my $a (@{$needle->{'area'}}) {
-					$a->{'xpos'} = int($a->{'xpos'} * $xs);
-					$a->{'width'} = int($a->{'width'} * $xs);
-					$a->{'ypos'} = int($a->{'ypos'} * $ys);
-					$a->{'height'} = int($a->{'height'} * $ys);
-				}
-			}
 			$newname = $needle->{'name'};
-			$needle->save($fn);
 			$run_editor = 1;
 		} elsif ($r =~ /^n/i) {
 			$run_editor = 1;
