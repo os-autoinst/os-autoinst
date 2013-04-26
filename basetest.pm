@@ -154,15 +154,21 @@ sub check(%) {
 	foreach my $screenimg (@screenshots) {
 		my $img = tinycv::read($screenimg);
 
-		my $prefix = $screenimg;
-		$prefix=~s{.*/$testname-(\d+)\.png}{$testname-$1};
+		my $tag = $screenimg;
+		$tag=~s{.*/$testname-(\d+)\.png}{$testname-$1};
+		# that much about guessing, now try to open the json
+		if (-s "$screenimg.json") {
+			open(J, "$screenimg.json");
+			my $j = decode_json(<J>);
+			$tag = $j->{tag};
+		}
 
-		my $needles = needle::tags($prefix) || [];
+		my $needles = needle::tags($tag) || [];
 		my $screenshot_result = {'refimg_result' => 'unk', 'ocr_result' => 'na'};
 
 		# Reference Image Check
 		if(!@{$needles}) {
-			diag("No REF needles for $prefix");
+			diag("No REF needles for $tag");
 			#push(@testreturn, "na");
 			$screenshot_result->{refimg_result} = 'na';
 		} else {
