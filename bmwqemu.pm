@@ -276,6 +276,13 @@ sub getcurrentscreenshot() {
 		# unfortunately passing objects between threads is almost impossible
 		$filename = $screenshotQueue->dequeue();
 	}
+
+	# if this is the first screenshot, be sure that we have something to return
+	if (!$lastscreenshot && !$filename) {
+	        # blocking call
+		$filename = $screenshotQueue->dequeue();
+	}
+
 	if ($filename) {
 		$lastscreenshot = tinycv::read($filename);
 		$lastscreenshotName = $filename;
