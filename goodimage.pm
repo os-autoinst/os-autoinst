@@ -25,10 +25,6 @@ a02a0c21fa17006b92b90850806199d1 newinst-sled11sp2-0036
 c39c20d6342e004ede74f3b153d99310 11.3-upgradeable-0900
 027a095adbd45ae80aede067f7e6417f 11.3-upgradeable-0925
 bc32b148e35198bcf7a77f8b8843e2d3 ms6kdelivecdreboot
-5405fb160403f64dabb4e525cf0cdb29 mageia-language
-2d34b722119b5532884dd338804c7d4f mageia-usersetup
-e45ac134df58c4c04f26cd4208b3b3f5 mageia-usersetup1
-d9fdc6ec49a5e97e5d1d1ed384c41283 mageia-summary
 );
 
 %md5badlist=qw(
@@ -329,6 +325,10 @@ ddb3976501b9f8b1fb62182551edd64f fedora-postreboot
 61b8b01192becf67347ad0420724947e freebsd-install-done
 2d151f911ab9a69a9fb165b2295546da mageia-consolelogin
 2f0cacf1d6d1534b3d322ed283c63796 mageia-setupusers1
+69d434880f17f1ac4f235213270cc276 mageia-summary
+113df5741b0b0ada99863de79e1e7568 mageia-newlvm
+3c7f875351e5b971ca7039c1929e7a0e mageia-custom-packages
+efd28b280d23b61023429b5233c0e36f mageia-pick-desktop
 );
 
 1;

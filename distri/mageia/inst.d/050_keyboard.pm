@@ -5,11 +5,11 @@ use bmwqemu;
 sub run()
 {
 	waitstillimage(5,20);
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-	sendkey "ret";
+        sendkey "tab"; # highlight keyboard list, leave default
+        sendkey "tab"; # more
+        sendkey "tab"; # help
+        sendkey "tab"; # next button
+	sendkey "ret"; # push next button
 
 
 }

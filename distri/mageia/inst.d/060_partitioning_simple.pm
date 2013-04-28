@@ -6,71 +6,37 @@ sub run()
 {
 	waitstillimage(3,20);
 if($ENV{PART}=~/lvm/) {
-  sendkey "tab";
+  sendkey "tab"; # select disk drive
+  sleep 1;
+  sendkey "tab"; # select partitioning solution
+  sleep 1;
+  sendkey "down"; # select custom
+  sleep 1;
+  sendkey "tab"; # select help
+  sleep 1;
+  sendkey "tab"; # select next
+  sleep 1;
+  sendkey "ret"; # push next
   sleep 1;
   sendkey "tab";
   sleep 1;
-  sendkey "down";
+  sendkey "tab"; # select empty disk
   sleep 1;
-  sendkey "tab";
+  sendkey "ret"; # open menu on empty disk
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # tab past details text (odd that's even tabbable)
   sleep 1;
-  sendkey "ret";
+  sendkey "tab"; # tab to create
   sleep 1;
-  sendkey "tab";
+  sendkey "ret"; # push create
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # start sector
   sleep 1;
-  sendkey "ret";
+  sendkey "tab"; # size
   sleep 1;
-  sendkey "tab";
+  sendkey "pgup"; # scroll down
   sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "ret";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "pgup";
-  sleep 1;
-  sendkey "pgdn";
-  sleep 1;
-  sendkey "pgdn";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "ret";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "ret";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "ret";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "pgup";
-  sleep 1;
-  sendkey "pgup";
+  sendkey "pgdn"; # scroll bigger, twice
   sleep 1;
   sendkey "pgdn";
   sleep 1;
@@ -78,39 +44,79 @@ if($ENV{PART}=~/lvm/) {
   sleep 1;
   sendkey "pgdn";
   sleep 1;
+  sendkey "tab"; # select FS type (default)
+  sleep 1;
+  sendkey "tab"; # select mount point (/)
+  sleep 1;
+  sendkey "tab"; # select blank  - TODO
+  sleep 1;
+  sendkey "tab"; # select encrypted 
+  sleep 1;
+  sendkey "tab"; # select cancel 
+  sleep 1;                       
+  sendkey "tab"; # select OK
+  sleep 1;
+  sendkey "ret"; # push OK
+  sleep 1;
+  sendkey "tab"; # select empty space
+  sleep 1;
+  sendkey "ret"; # open menu
+  sleep 1;
+  sendkey "tab"; # details
+  sleep 1;
+  sendkey "tab"; # create
+  sleep 1;
+  sendkey "ret"; # push create
+  sleep 1;
+  sendkey "tab"; # select start
+  sleep 1;
+  sendkey "tab"; # select size
+  sleep 1;
+  sendkey "home"; # zero size
+  sleep 1;
+  sendkey "pgdn"; # inrease size 6 times
+  sleep 1;
   sendkey "pgdn";
   sleep 1;
-  sendkey "tab";
+  sendkey "pgdn";
   sleep 1;
   sendkey "pgdn";
   sleep 1;
-  sendkey "up";
+  sendkey "pgdn";
   sleep 1;
-  sendkey "tab";
+  sendkey "pgdn";
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select fileystem type
   sleep 1;
-  sendkey "tab";
+  sendkey "end"; # go to bottom of list
   sleep 1;
-  sendkey "ret";
+  sendkey "up"; # go up to LVM
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select encryption
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # cancel
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # ok
   sleep 1;
-  sendkey "tab";
+  sendkey "ret"; # push ok
   sleep 1;
-  sendkey "ret";
+  sendkey "tab"; # empty space
   sleep 1;
-  sendkey "ret";
+  sendkey "tab"; # details
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # resize
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # add to lvm
   sleep 1;
-  sendkey "ret";
+  sendkey "ret"; # push add to lvm
+  sleep 1;
+  sendkey "ret"; # write partition table to disk
+  sleep 1;
+  waitinststage("mageia-newlvm", 9000);
+  sendkey "ret"; # accept default name
+  # diag("Handing over for manual testing");
+#   sleep 9000;
+  sendkey "shift-tab"; # switch to disk tabs
   sleep 1;
   sendkey "shift-tab";
   sleep 1;
@@ -118,125 +124,120 @@ if($ENV{PART}=~/lvm/) {
   sleep 1;
   sendkey "shift-tab";
   sleep 1;
-  sendkey "shift-tab";
+  sendkey "left"; # select volume group
   sleep 1;
-  sendkey "left";
+  sendkey "tab"; # select empty space
   sleep 1;
-  sendkey "tab";
+  sendkey "ret"; # activate empty space menu
   sleep 1;
-  sendkey "ret";
+  sendkey "tab"; # details
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # create
   sleep 1;
-  sendkey "tab";
+  sendkey "ret"; # push create button
   sleep 1;
-  sendkey "ret";
+  sendkey "tab";  # select size
   sleep 1;
-  sendkey "tab";
+  sendkey "home"; # zero size
   sleep 1;
-  sendkey "pgup";
+  sendkey "pgdn"; # increment size
   sleep 1;
-  sendkey "pgup";
+  sendkey "tab"; # select FS type (it will be swap by default)
   sleep 1;
-  sendkey "pgup";
+  sendkey "tab"; # select logical volume name
   sleep 1;
-  sendkey "pgup";
+  sendkey "tab"; # select BLANK - TODO
   sleep 1;
-  sendkey "pgup";
+  sendkey "tab"; # select encrypted
   sleep 1;
-  sendkey "pgdn";
+  sendkey "tab"; # select cancel
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select OK
   sleep 1;
-  sendkey "tab";
+  sendkey "ret"; # push OK
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select blank
   sleep 1;
-  sendkey "tab";
+  sendkey "ret"; # activate menu
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select details
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select create button
   sleep 1;
-  sendkey "ret";
+  sendkey "ret"; # push button
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select size
   sleep 1;
-  sendkey "ret";
+  sendkey "end"; # use remaining space
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select FS type
   sleep 1;
-  sendkey "tab";
+  sendkey "home"; # start at top of list (swap)
   sleep 1;
-  sendkey "ret";
+  sendkey "down"; # Brtfs
   sleep 1;
-  sendkey "tab";
+  sendkey "down"; # native
   sleep 1;
-  sendkey "pgdn";
+  sendkey "down"; # ext3
   sleep 1;
-  sendkey "tab";
+  sendkey "down"; # ext4
   sleep 1;
-  sendkey "pgup";
+  sendkey "down"; # reiserFS
+# BUG, cannot use XFS for /usr
+#  sleep 1;
+#  sendkey "down"; # XFS
+  #JFS
+  #FAT32
+  #NTFS-3G
+  #NTFS
+  #Encrypted
+  #LVM
+  #Linux Raid
   sleep 1;
-  sendkey "down";
+  sendkey "tab"; # select mount point (default is /usr)
   sleep 1;
-  sendkey "down";
+  sendkey "tab"; # select BLANK - TOOD
   sleep 1;
-  sendkey "down";
+  sendkey "tab"; # select LVM name
   sleep 1;
-  sendkey "down";
+  sendkey "tab"; # select BLANK - TOOD
   sleep 1;
-  sendkey "down";
+  sendkey "tab"; # select encrypted
   sleep 1;
-  sendkey "down";
+  sendkey "tab"; # select cancel
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select OK
   sleep 1;
-  sendkey "tab";
+  sendkey "ret"; # Push OK, after creating /usr
+  sleep 10;
+  sendkey "tab"; # select details
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select mount point
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select resize
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select delete
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select clear all
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select auto-allocate
   sleep 1;
-  sendkey "ret";
+  sendkey "tab"; # select toggle expert mode
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select help
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select more
   sleep 1;
-  sendkey "tab";
+  sendkey "tab"; # select done
   sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "tab";
-  sleep 1;
-  sendkey "ret";
-sleep 100;
+  sendkey "ret"; # push done
 
 } else { 
         sendkey "tab"; # skip media check
         sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-	sendkey "ret";
+        sendkey "tab"; # help
+        sendkey "tab"; # next button
+	sendkey "ret"; # push next
 }
 
 }
