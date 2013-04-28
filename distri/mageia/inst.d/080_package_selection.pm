@@ -28,23 +28,31 @@ elsif($ENV{DESKTOP}=~/gnome/) {
 
 } else {
 # Custom
-	sendkey "tab";
-	sendkey "right";
-	sleep 2;
-	sendkey "right";
-	sleep 2;
-	sendkey "tab";
-	sleep 10;
-	sendkey "tab";
-	sleep 10;
-	sendkey "ret";
-	waitstillimage(15,150);
 
-	sleep 500;
-#  THIS FAILS in RC3 right now.
-# Unselect all
-	sleep 2;
+#selecting kde, gnome, or custom.  This does not show up in all cases.  Maybe due to small root fs
+# TODO. detect if this screen is here or not
+	waitstillimage(15,150);
+        if (waitinststage("mageia-pick-desktop", 10)) {
+         	sendkey "tab";
+         	sleep 2;
+         	sendkey "right";
+         	sleep 2;
+         	sendkey "right";
+         	sleep 2;
+         	sendkey "tab";
+         	sleep 10;
+         	sendkey "tab";
+         	sleep 10;
+         	sendkey "ret";
+         	waitstillimage(15,150);
+        }
+
+        waitinststage("mageia-custom-packages",300);
+	# Unselect all
+	sendkey "tab";
+	sleep 1;
 	sendkey "shift-tab";
+	sleep 1;
 	sendkey "shift-tab";
 	sleep 2;
 	sendkey "ret";

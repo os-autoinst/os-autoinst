@@ -7,7 +7,7 @@ sub run()
 	waitidle(15000);
 #	waitstillimage(60,3600);
 	mouse_hide();
-	waitintstage ("mageia-setupusers1",300);
+	waitinststage ("mageia-setupusers1",300);
 #	waitgoodimage(1200);
         sendautotype "$password\t"; # root PW
 	sleep 1;

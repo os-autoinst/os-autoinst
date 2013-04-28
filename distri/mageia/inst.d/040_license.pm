@@ -6,12 +6,12 @@ sub run()
 {
 #	waitstillimage(50,100);
 	waitidle(5);
-        sendkey "up";
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-        sendkey "tab"; # skip media check
-	sendkey "ret";
+        sendkey "up";  # select "Accept"
+        sendkey "tab"; # highlight release notes
+        sendkey "tab"; # highlight help
+        sendkey "tab"; # highlight quit
+        sendkey "tab"; # highlight next
+	sendkey "ret"; # push next button
 
 
 }
