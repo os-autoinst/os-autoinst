@@ -71,10 +71,21 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double
   }
   Mat res = Mat::zeros(res_height, res_width, CV_32FC1);
 
+  Mat gray_scene;
+  cvtColor(scene->img, gray_scene, CV_RGB2GRAY);
+  GaussianBlur(gray_scene, gray_scene, Size(5, 5), 0, 0);
+  // blur(gray_scene, gray_scene, Size(7, 7), Point(-1, -1));
+
+  Mat gray_object;
+  cvtColor(object->img, gray_object, CV_RGB2GRAY);
+  GaussianBlur(gray_object, gray_object, Size(5, 5), 0, 0);
+  // blur(gray_object, gray_object, Size(7, 7), Point(-1, -1));
+
   // Perform the matching. Info about algorithm:
   // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
   // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
-  matchTemplate(scene->img, object->img, res, CV_TM_CCOEFF_NORMED);
+  // matchTemplate(scene->img, object->img, res, CV_TM_CCOEFF_NORMED);
+  matchTemplate(gray_scene, gray_object, res, CV_TM_CCOEFF_NORMED);
 
   // Localizing the best math with minMaxLoc
   double minval, maxval;
@@ -82,12 +93,11 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double
   minMaxLoc(res, &minval, &maxval, &minloc, &maxloc, Mat());
 
 #if DEBUG
-#warning FIXME: modifies original image
-  Mat s = scene->img;
+  Mat s = gray_scene; // scene->img.clone();
   rectangle(s, Point(maxloc.x, maxloc.y),
 	    Point(maxloc.x + object->img.cols, maxloc.y + object->img.rows),
 	    CV_RGB(255,0,0), 3);
-  imwrite("debug.ppm", scene->img);
+  imwrite("debug.png", gray_scene); //scene->img);
 #endif
 
   outvec[0] = int(maxloc.x);
