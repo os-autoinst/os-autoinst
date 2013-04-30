@@ -35,17 +35,19 @@ sub run()
 {
   if(!$ENV{LIVECD}) {
 	# autoconf phase
-	waitinststage "systemanalysis";
-	# includes downloads, so waitidle is bad.
-	waitgoodimage(($ENV{UPGRADE}?120:25));
-	# TODO waitstillimage(10)
-	waitidle 29;
+        # waitforneedle("systemanalysis", 10);
+	waitforneedle("instmode", 15);
+
 	# Installation Mode = new Installation
 	if($ENV{UPGRADE}) {
 		sendkey "alt-u";
+		# TODO
+		# waitforneedle("addonproduct-included", 3);
 	}
 	if($ENV{ADDONURL}) {
 		sendkey "alt-c"; # Include Add-On Products
+		# TODO
+		# waitforneedle("autoconf-deselected", 3);
 	}
 	sendkey $cmd{"next"};
 	waitidle(29);

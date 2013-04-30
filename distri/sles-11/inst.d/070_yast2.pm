@@ -53,17 +53,20 @@ if($ENV{DOCRUN}) {
 	sendkey $cmd{change};	# Change
 	sleep 2;
 	sendkey $cmd{software};	# Software
-	waitidle;
+	# waitidle;
 	for(1..3) {
+   	        sleep 1;
 		sendkey "down";
 	}
-	sleep 4;
-	sendkey $cmd{accept}; # Accept
-	sleep 2;
-	sendkey "alt-o"; # cOntinue
-	waitidle;
+	sleep 1;
+	sendkey "alt-o"; # OK
+	sleep 1;
+        # TODO check if there is a lincese dialog here
+        sendkey $cmd{accept}; # agfa-fonts license
+	sleep 1;
 }
-sendkey $cmd{accept}; # agfa-fonts license
+# TODO check if there is a lincese dialog here
+# sendkey $cmd{accept}; # agfa-fonts license
 sleep 2;
 waitidle;
 }
