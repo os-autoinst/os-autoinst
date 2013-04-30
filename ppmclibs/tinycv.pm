@@ -3,6 +3,8 @@ package tinycv;
 use strict;
 use warnings;
 
+use bmwqemu;
+
 require Exporter;
 require DynaLoader;
 
