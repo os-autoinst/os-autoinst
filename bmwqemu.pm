@@ -10,27 +10,32 @@ use File::Basename;
 eval {require Algorithm::Line::Bresenham;};
 use Exporter;
 use ocr;
-use ppm;
+use cv;
+use needle;
 use threads;
 use threads::shared;
+use Thread::Queue;
 use POSIX; 
 use Term::ANSIColor;
 use Data::Dump "dump";
+use Carp;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
 @EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $testedversion %cmd
-&diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
-&timeout_screenshot &waitidle &waitserial &waitgoodimage &waitimage &waitinststage &waitstillimage &waitcolor &init_backend &start_vm &set_hash_rects &set_ocr_rect &get_ocr
-&script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console &set_std_hash_rects &getcurrentscreenshot &power &mydie);
+&diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey 
+&sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
+&timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
+&checkneedle &goandclick &set_current_test
+&init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr
+&script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
+&getcurrentscreenshot &power &mydie &checkEnv &waitinststage);
 
 
 # shared vars
 
 my $goodimageseen :shared = 0;
-my $lastname :shared = 0;
-my $lastinststage :shared = "";
-my $lastknowninststage :shared = "";
+my $screenshotQueue = Thread::Queue->new();
 my $prestandstillwarning :shared = 0;
 my $timeoutcounter :shared = 0;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
@@ -43,6 +48,7 @@ my @extrahashrects; share(@extrahashrects);
 
 # global vars
 
+our $current_test;
 our $logfd;
 
 our $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
@@ -102,6 +108,7 @@ our %cmd=qw(
 	instdetails alt-d
 	rebootnow alt-n
 	otherrootpw alt-s
+	noautologin alt-a
 	change alt-c
 	software s
 );
@@ -131,13 +138,7 @@ if($ENV{INSTLANG} eq "fr_FR") {
 }
 ## keyboard cmd vars end
 
-## set good-foo vars
-our %md5goodlist = qw();
-our %md5badlist = qw();
-our %md5inststage = qw();
-do "goodimage.pm"; # fill above vars
-my %goodsizes=(1440015=>1, 1437615=>1, 2359312=>1, 864015=>1, 3686416=>1);
-# set good-foo vars end
+needle::init("$scriptdir/distri/$ENV{DISTRI}/needles") if ($scriptdir && $ENV{DISTRI});
 
 ## some var checks
 if(!-x $gocrbin) {$gocrbin=undef}
@@ -150,8 +151,6 @@ if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
 
 
 # local vars
-
-my %md5file; # for symlinking identical screenshots
 
 our $backend; #FIXME: make local after adding frontend-api to bmwqemu
 
@@ -190,20 +189,6 @@ for my $c ("A".."Z") {$charmap{$c}="shift-\L$c"}
 
 sub set_ocr_rect {@ocrrect=@_;}
 
-sub set_hash_rects {
-	# sharing nested structure does not work, so turn arrayref into string
-	@extrahashrects = map {join(",", @$_)} @_;
-}
-
-sub set_std_hash_rects() {
-	set_hash_rects(
-		[30,30,100,100], # where most applications pop up
-		[630,30,100,100], # where some applications pop up
-		[0,579,100,10 ], # bottom line (KDE/GNOME bar)
-		[0,750,90,10 ], # bottom line (KDE/GNOME bar) in 1024
-	);
-}
-
 # global/shared var set functions end
 
 
@@ -221,7 +206,7 @@ sub fctlog {
 	my @fparams = @_;
 	$logfd && print $logfd '<<< '.$fname.'('.join(', ', @fparams).")\n";
 	return unless $debug;
-	print STDERR colored('<<< '.$fname.'('.join(', ', @fparams).')', 'bright_blue')."\n";
+	print STDERR colored('<<< '.$fname.'('.join(', ', @fparams).')', 'blue')."\n";
 }
 
 sub fctres {
@@ -247,6 +232,13 @@ sub modstart {
 	print STDERR colored("||| @text", 'bold')."\n";
 }
 
+sub checkEnv($$) {
+	my $var = shift;
+	my $val = shift;
+	return 1 if (defined $ENV{$var} && $ENV{$var} eq $val);
+        return 0;
+}
+
 sub fileContent($) {
 	my($fn)=@_;
 	open(my $fd, $fn) or return undef;
@@ -256,29 +248,39 @@ sub fileContent($) {
 	return $result;
 }
 
-sub hashrect($$$) {
-	my ($ppm,$rect,$flags)=@_;
-	my $ppm2=$ppm->copyrect(@$rect);
-	my @result;
-	return unless $ppm2;
-	if($flags=~m/r/) {$ppm2->replacerect(0,137,13,15);} # mask out text
-	if($flags=~m/c/) {push(@result, [Digest::MD5::md5_hex($ppm2->{data}),$rect,$flags])} # extra coloured version hash
-	if($flags=~m/t/) {$ppm2->threshold(0x80);} # black/white => drop most background
-	return (@result,[Digest::MD5::md5_hex($ppm2->{data}),$rect,$flags]);
-}
-
 sub result_dir() {
-	if(dirname(__FILE__) ne ".") {
+	unless (-e "$testresults/$testedversion") {
 		mkdir $testresults;
-		mkdir "$testresults/$testedversion";
+		mkdir "$testresults/$testedversion" or die "mkdir $testresults/$testedversion: $!\n";
 	}
 	return "$testresults/$testedversion"
 }
 
+our $lastscreenshot;
+our $lastscreenshotName;
+our $lastscreenshotCount;
 sub getcurrentscreenshot() {
-	my $mylastname = $lastname;
-	sleep 0.4; # time to write the file
-	return fileContent($mylastname);
+        my $filename;
+	# using a queue to get the latest is most likely the least efficient solution,
+        # but we need to check the current screenshot not to miss things
+	while ($screenshotQueue->pending()) {
+		# unfortunately passing objects between threads is almost impossible
+		$filename = $screenshotQueue->dequeue();
+	}
+
+	# if this is the first screenshot, be sure that we have something to return
+	if (!$lastscreenshot && !$filename) {
+	        # blocking call
+		$filename = $screenshotQueue->dequeue();
+	}
+
+	if ($filename) {
+		$lastscreenshot = tinycv::read($filename);
+		$lastscreenshotName = $filename;
+		$lastscreenshotCount = 0;
+	}
+
+	return $lastscreenshot;
 }
 
 sub check_color($$) {
@@ -323,11 +325,15 @@ sub start_vm() {
 	$backend->start_vm();
 }
 
+sub stop_vm() {
+	$backend->stop_vm();
+}
+
 sub mydie {
 	fctlog('mydie', "@_");
 	$backend->stop_vm();
 	close $logfd;
-	sleep 1;
+	eval 'croak "mydie"; ';
 	exit 1;
 }
 
@@ -367,7 +373,7 @@ sub sendkey($) {
 	$backend->sendkey($key);
 	my @t=gettimeofday();
 	push(@keyhistory, [$t[0]*1000000+$t[1], $key]);
-	sleep(0.25);
+	sleep(0.1);
 }
 
 =head2 sendkeyw
@@ -389,13 +395,22 @@ sendautotype($string)
 send a string of characters, mapping them to appropriate key names as necessary
 
 =cut
-sub sendautotype($) {
+sub sendautotype($;$) {
 	my $string=shift;
+	my $maxinterval=shift||25;
+	my $typedchars=0;
 	fctlog('sendautotype', "string='$string'");
-	foreach my $letter (split("", $string)) {
+	my @letters = split("", $string);
+	while (@letters) {
+		my $letter = shift @letters;
 		if($charmap{$letter}) { $letter=$charmap{$letter} }
 		sendkey $letter;
+		if ($typedchars++ >= $maxinterval ) {
+			waitstillimage(1.1);
+			$typedchars=0;
+		}
 	}
+	waitstillimage(1.1) if ($typedchars > 0);
 }
 
 sub sendpassword() {
@@ -523,7 +538,7 @@ sub ensure_installed {
 		mydie "TODO: implement package install for your distri $ENV{DISTRI}";
 	}
 	if($password) { sendpassword; sendkeyw "ret"; }
-	waitstillimage(6,90); # wait for install
+	waitstillimage(7,90); # wait for install
 }
 
 sub clear_console() {
@@ -592,80 +607,80 @@ sub power($) {
 
 # runtime information gathering functions
 
-sub do_take_screenshot($;$) {
-	my $filename = shift;
-	my $flags = shift || '';
-	unless($flags=~m/q/) {
-		fctlog('screendump', "filename=$filename");
-	}
-	$backend->screendump($filename);
+sub do_take_screenshot() {
+        my $ret = $backend->screendump();
+	return $ret->scale(1024, 768);
 }
 
 sub timeout_screenshot() {
 	my $n = ++$timeoutcounter;
 	my $dir=result_dir;
 	my $n2=sprintf("%02i",$n);
-	do_take_screenshot("$dir/timeout-$n2.ppm");
+	getcurrentscreenshot()->write_optimized("$dir/timeout-$n2.png");
 }
 
 sub take_screenshot(;$) {
 	my $flags = shift || '';
 	my $path="qemuscreenshot/";
 	mkdir $path;
-	if($lastname && -e $lastname) { # processing previous image, because saving takes time
-		# symlinking identical files saves space
-		my $data=fileContent($lastname);
-		my $md5=Digest::MD5::md5_hex($data);
-		if($md5badlist{$md5}) {diag "error condition detected. test failed. see $lastname"; sleep 1; mydie "bad image seen"}
-		my($statuser, $statsystem) = $backend->cpu_stat();
-		my $statstr = '';
-		if ($statuser) {
-			for($statuser,$statsystem) {$_/=$clock_ticks}
-			$statstr .= "statuser=$statuser ";
-			$statstr .= "statsystem=$statsystem ";
-		}
-		if (defined $data and length($data) gt 0) {
-			@lastavgcolor = ppm->new($data)->avgcolor();
-		}
-		my $filevar = "file=".basename($lastname)." ";
-		my $laststgvar = ($ENV{HW})?"laststage=$lastinststage ":'';
-		my $md5var = ($ENV{HW})?'':"md5=$md5 ";
-		my $avgvar = "avgcolor=".join(',', map(sprintf("%.3f", $_), @lastavgcolor));
-		diag($md5var.$filevar.$laststgvar.$statstr.$avgvar);
 
-		if($md5goodlist{$md5}) {$goodimageseen=1; diag "good image"}
-
-		# ignore bottom 15 lines (blinking cursor, animated mouse-pointer)
-		if(length($data)==1440015) {$md5=Digest::MD5::md5(substr($data,15,800*3*(600-15)))}
-		if($md5file{$md5}) { # old
-			unlink($lastname); # warning: will break if FS does not support symlinking
-			symlink(basename($md5file{$md5}->[0]), $lastname);
-			my $linkcount=$md5file{$md5}->[1]++;
-			$prestandstillwarning=($linkcount>$standstillthreshold/2);
-			if($linkcount>$standstillthreshold) {
-				timeout_screenshot(); sleep 1;
-				my $dir=result_dir;
-				sendkey "alt-sysrq-w";
-				sendkey "alt-sysrq-l";
-				sendkey "alt-sysrq-d"; # only available with CONFIG_LOCKDEP
-				do_take_screenshot("$dir/standstill-1.ppm", $flags);sleep 1;
-				mydie "standstill detected. test ended. see $lastname\n"; # above 120s of autoreboot
-			}
-		}
-		else { # new
-			$md5file{$md5}=[$lastname,1];
-			my $ocr=get_ocr(\$data);
-			if($ocr) { diag "ocr: $ocr" }
-			inststagedetect(\$data);
-		}
-		# strip first 10 screenshots, if they are too small (was that related to some ffmpeg issues?)
-		if(($framecounter++ < 10) && length($data)<800*600*3) {unlink($lastname)}
-	}
 	my $t=[gettimeofday()];
-	my $filename=$path.sprintf("%i.%06i.ppm", $t->[0], $t->[1]);
+	my $img = do_take_screenshot();
+
+	# strip first 10 screenshots, if they are too small (was that related to some ffmpeg issues?)
+	if(($framecounter++ < 10) && $img->xres()<800) { return; }
+
+	# TODO detect bad needles
+
+	my $filename=$path.sprintf("%s.%06i.png", POSIX::strftime("%Y%m%d_%H%M%S", gmtime($t->[0])), $t->[1]);
+        unless($flags=~m/q/) {
+                fctlog('screendump', "filename=$filename");
+        }
+
 	#print STDERR $filename,"\n";
-	do_take_screenshot($filename, $flags);
-	$lastname=$filename;
+
+	my($statuser, $statsystem) = $backend->cpu_stat();
+	my $statstr = '';
+	if ($statuser) {
+		for($statuser,$statsystem) {$_/=$clock_ticks}
+		$statstr .= "statuser=$statuser ";
+		$statstr .= "statsystem=$statsystem ";
+	}
+	if ($img->xres() > 0) {
+		@lastavgcolor = $img->avgcolor();
+	}
+	#my $filevar = "file=".basename($lastname)." ";
+	#my $laststgvar = ($ENV{HW})?"laststage=$lastinststage ":'';
+	#my $md5var = ($ENV{HW})?'':"md5=$md5 ";
+	#my $avgvar = "avgcolor=".join(',', map(sprintf("%.3f", $_), @lastavgcolor));
+	#diag($md5var.$filevar.$laststgvar.$statstr.$avgvar);
+
+	# hardlinking identical files saves space
+
+	# 47 is about the similarity of two screenshots with blinking cursor
+	if($lastscreenshot && $lastscreenshot->similarity($img) > 47) {
+		symlink(basename($lastscreenshotName), $filename);
+		$lastscreenshotCount++;
+		$prestandstillwarning=($lastscreenshotCount>$standstillthreshold/2);
+		if($lastscreenshotCount>$standstillthreshold) {
+			timeout_screenshot(); sleep 1;
+			my $dir=result_dir;
+			sendkey "alt-sysrq-w";
+			sendkey "alt-sysrq-l";
+			sendkey "alt-sysrq-d"; # only available with CONFIG_LOCKDEP
+			do_take_screenshot()->write_optimized("$dir/standstill-1.png");sleep 1;
+			mydie "standstill detected. test ended. see $filename\n"; # above 120s of autoreboot
+		}
+	}
+	else { # new
+		$img->write($filename) || die "write $filename";
+		$screenshotQueue->enqueue($filename);
+		$lastscreenshot = $img;
+		$lastscreenshotName = $filename;
+		$lastscreenshotCount = 0;
+		#my $ocr=get_ocr($img);
+		#if($ocr) { diag "ocr: $ocr" }
+	}
 }
 
 sub do_start_audiocapture($) {
@@ -689,40 +704,19 @@ sub alive() {
 	return 0;
 }
 
+sub set_current_test($) {
+	$current_test = shift;	
+}
+
 # runtime information gathering functions end
 
 
 # check functions (runtime and result-checks)
 
-sub checkrefimgs($$$) {
-	my ($screenimg, $refimg, $flags) = @_;
-	my $screenppm = ppm->new(fileContent($screenimg));
-	my $refppm = ppm->new(fileContent($refimg));
-	if (!$screenppm || !$refppm) {
-		return undef;
-	}
-	if ($flags=~m/t/) {
-		# black/white => drop most background
-		$screenppm->threshold(0x80);
-		$refppm->threshold(0x80);
-	}
-	if ($flags=~m/f/) {
-		# perform vector-based fuzzy matching using opencv
-		return $screenppm->search_fuzzy($refppm);
-	}
-	elsif ($flags=~m/d/) {
-		# allow difference of 40 per byte
-		return $screenppm->search($refppm, 40);
-	}
-	else {
-		return $screenppm->search($refppm, 0);
-	}
-}
-
 sub get_ocr($) {
-	# input: ref on PPM data
-	my $dataref=shift;
-	my $ocr=ocr::get_ocr($dataref, "-m 2 -s 6", \@ocrrect);
+	# input: tinycv object
+	my $img=shift;
+	my $ocr=ocr::get_ocr($img, "-m 2 -s 6", \@ocrrect);
 	if(!$ocr) {return ""}
 	$ocr=~s/^[_ \t\n]+//;
 	$ocr=~s/\n/ --- /g;
@@ -730,50 +724,6 @@ sub get_ocr($) {
 	$ocr=~s/nstaII/nstall/g;
 	$ocr=~s/l(install|Remaining)/($1/g;
 	return " ocr='$ocr'";
-}
-
-sub inststagedetect($) {
-	# input: ref on PPM data
-	my $dataref=shift;
-	return if !$goodsizes{length($$dataref)}; # only work on images of 800x600 and 1024x768
-	my $ppm=ppm->new($$dataref);
-	return unless $ppm;
-	my @md5=();
-	# use several relevant non-text parts of the screen to look them up
-	# WARNING: some break when background/theme changes (%md5inststage needs updating)
-	# popup text detector
-	push(@md5, hashrect($ppm, [230,230, 300,100], "t"));
-	# smaller popup text detector
-	push(@md5, hashrect($ppm, [300,240, 100,100], "t"));
-	# smaller popup text detector on 1024x768
-	push(@md5, hashrect($ppm, [500,320, 100,100], "t"));
-	# use header text for GNOME-installer
-	push(@md5, hashrect($ppm, [0,0, 250,30], "t"));
-	# left side for 12.3-grub2 logo
-	push(@md5, hashrect($ppm, [100,100, 100,300], ""));
-	# KDE/NET/DVD detect checks on left
-	push(@md5, hashrect($ppm, [27,128,13,200], "rct"));
-
-	foreach my $rect (@extrahashrects) {
-		next unless $rect;
-		my @r=split(",", $rect);
-		push(@md5, hashrect($ppm, \@r, ""));
-	}
-
-	my $found=0;
-	foreach my $md5e (@md5) {
-		my($md5,$rect,$flags)=@$md5e;
-		my $currentinststage=$md5inststage{$md5}||"";
-		unless($ENV{'HW'}) {
-			# useless due to analog VGA
-			diag "stage=$currentinststage $md5 ".join(",",@$rect)." $flags";
-		}
-		next if $found;
-		if($currentinststage) { $lastknowninststage=$lastinststage=$currentinststage }
-		if($currentinststage){$found=1}; # stop on first match - so must put most specific tests first
-	}
-	if($found) {return}
-	$lastinststage="unknown";
 }
 
 sub decodewav($) {
@@ -798,7 +748,7 @@ sub decodewav($) {
 
 =head2 waitstillimage
 
-waitstillimage([$stilltime_sec [, $timeout_sec [, $maxdiff_bytes]]])
+waitstillimage([$stilltime_sec [, $timeout_sec [, $similarity_level]]])
 
 Wait until the screen stops changing
 
@@ -806,23 +756,25 @@ Wait until the screen stops changing
 sub waitstillimage(;$$$) {
 	my $stilltime=shift||7;
 	my $timeout=shift||30;
-	my $maxdiff=shift||20;
+	my $similarity_level=shift||47;
 	my $starttime=time;
-	my @recentimages; # fifo
-	fctlog('waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "maxdiff=$maxdiff");
+	fctlog('waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level");
+        my $lastchangetime=[gettimeofday];
+        my $lastchangeimg = getcurrentscreenshot();
 	while(time-$starttime<$timeout) {
-		my $mylastname = $lastname;
-		sleep 1;
-		my $data=fileContent($mylastname);
-		next unless $data; # this must stay to get only valid imgs to fifo
-		push(@recentimages, $mylastname);
-		if(@recentimages  > $stilltime) {
-			my $e = shift @recentimages;
-			if (ppm->new($data)->maxbytediff(ppm->new(fileContent($e)), $maxdiff)) {
+	        my $img=getcurrentscreenshot();
+		my $sim = $img->similarity($lastchangeimg);
+		my $now = [gettimeofday];
+		if ($sim < $similarity_level) {
+			# a change
+			$lastchangetime=$now;
+			$lastchangeimg=$img;
+		}
+		if (($now->[0] - $lastchangetime->[0])+($now->[1] - $lastchangetime->[1])/1000000.>=$stilltime) {
 				fctres('waitstillimage', "detected same image for $stilltime seconds");
 				return 1;
-			}
 		}
+		sleep(0.5);
 	}
 	timeout_screenshot();
 	fctres('waitstillimage', "waitstillimage timed out after $timeout");
@@ -835,38 +787,10 @@ sub waitimage($;$$) {
 	my $flags = shift || 'd';
 	my $wact = ($flags=~m/s/)?'disappear':'appear';
 	fctlog('waitimage', "reflist=$reflist", "timeout=$timeout", "flags=$flags");
-	$reflist =~s/\.ppm$//;
-	my @refimgs = <$scriptdir/waitimgs/$reflist.ppm>;
-	diag "WARNING: No refimgs with name '$reflist' found!" unless(@refimgs);
-	my ($lastmd5,$thismd5) = (0,0);
+	diag "WARNING: waitimage is no longer supported\n";
 	for(my $i=0;$i<=$timeout;$i+=2) {
-		# prevent reading while screendump is not finished
-		my $mylastname = $lastname;
-		sleep 2;
-		$thismd5 = Digest::MD5::md5_hex(fileContent($mylastname));
-		# image is equal with previous one
-		unless($lastmd5 eq $thismd5) {
-			foreach my $refimg (@refimgs) {
-				my $refimg_print = basename($refimg);
-				my $mylastname_print = basename($mylastname);
-				fctinfo('waitimage', "checking $refimg_print against $mylastname_print");
-				my @a=checkrefimgs($mylastname,$refimg,$flags);
-				if($flags=~m/s/) {
-					if (!defined $a[0]) {
-						fctres('waitimage', "$refimg_print disappeared in $mylastname_print");
-						$refimg=~s/^.*waitimgs\/(.*)$/$1/;
-						return 1;
-					}
-				}
-				elsif(defined $a[0]) {
-					fctres('waitimage', "found $refimg_print in $mylastname_print");
-					$refimg=~s/^.*waitimgs\/(.*)$/$1/;
-					push(@a, $refimg);
-					return \@a;
-				}
-			}
-		}
-		$lastmd5 = $thismd5;
+		getcurrentscreenshot();
+		sleep 1;
 	}
 	timeout_screenshot();
 	fctres('waitimage', "Waiting for images $reflist ($wact) timed out!");
@@ -934,6 +858,7 @@ sub waitidle(;$) {
 	my $timeout=shift||19;
 	my $prev;
 	fctlog('waitidle', "timeout=$timeout");
+	return 0;
 	my $timesidle=0;
 	for my $n (1..$timeout) {
 		my($stat, $systemstat) = $backend->cpu_stat();
@@ -957,38 +882,178 @@ sub waitidle(;$) {
 	return 0;
 }
 
-sub waitgoodimage(;$) {
-	my $timeout=shift||10;
-	$goodimageseen=0;
-	fctlog('waitgoodimage', "timeout=$timeout");
-	for my $n (1..$timeout) {
-		if($goodimageseen) {fctres('waitgoodimage', "seen good image... continuing execution"); return 1;}
-		sleep 1;
-	}
-	timeout_screenshot();
-	fctres('waitgoodimage', "timed out after $timeout");
-	return 0;
+sub waitinststage($;$$) {
+        my $stage = shift;
+	my $timeout = shift||30;
+	my $extra = shift;
+	return waitforneedle($stage, $timeout, $extra);
 }
 
-sub waitinststage($;$$) {
-	my $stage=shift;
-	my $timeout=shift||30;
-	my $extradelay=shift||3;
-	fctlog('waitinststage', "stage=$stage", "timeout=$timeout", "extradelay=$extradelay");
-	if($prestandstillwarning) { sleep 3 }
-	for my $n (1..$timeout) {
-		if($lastinststage=~m/$stage/) {fctres('waitinststage', "detected stage=$stage ... continuing execution"); sleep $extradelay; return 1;}
-		if($prestandstillwarning) {
-			timeout_screenshot();
-			diag "WARNING: waited too long for stage=$stage";
-			$prestandstillwarning=0;
-			return 2;
+sub _waitforneedle {
+	my %args = @_;
+	my $mustmatch = $args{'mustmatch'};
+	my $timeout = $args{'timeout'} || 30;
+
+	# get the array reference to all matching needles
+	my $needles;
+	if (ref($mustmatch) eq "ARRAY") {
+		$needles = $mustmatch;
+		$mustmatch = '';
+		for my $n (@{$needles}) {
+			$mustmatch .= $n->{name} . "_";
 		}
-		sleep 1;
+	} elsif ($mustmatch) {
+		$needles = needle::tags($mustmatch) || [];
 	}
-	timeout_screenshot() if($timeout>1);
-	fctres('waitinststage', "stage=$stage timed out after $timeout");
-	return 0;
+	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
+	if (!@$needles) {
+		diag("NO matching needles for $mustmatch");
+		# give it some time to settle but not too much
+		$timeout = 3;
+	}
+	my $img = getcurrentscreenshot();
+	my $oldimg;
+	for my $n (1..$timeout) {
+		if (-e "waitneedlefail") {
+			unlink("waitneedlefail");
+			last;
+		}
+		if ($oldimg) {
+			sleep 1;
+			$img = getcurrentscreenshot();
+			if ($oldimg == $img) { # no change, no need to search
+				diag(sprintf("no change %d", $timeout-$n));
+				next;
+			}
+		}
+		my $foundneedle = $img->search($needles);
+		if ($foundneedle) {
+			my $t = time();
+			if ($current_test) {
+			  my $name = $current_test->take_screenshot($mustmatch);
+			  if (!$foundneedle->{needle}->has_tag($name)) {
+				diag(sprintf("add name %s to $foundneedle->{needle}->{name}", $name));
+				push(@{$foundneedle->{needle}->{tags}}, $name);
+				$foundneedle->{needle}->save();
+			  }
+			}
+			fctres(sprintf("found %s, similarity %.2f @ %d/%d",
+				$foundneedle->{'needle'}->{'name'},
+				$foundneedle->{'similarity'},
+				$foundneedle->{'x'}, $foundneedle->{'y'}));
+			if ($args{'click'}) {
+				my $rx = 1; # $origx / $img->xres();
+				my $ry = 1; # $origy / $img->yres();
+				my $x = ($foundneedle->{'x'} + $foundneedle->{'w'}/2)*$rx;
+				my $y = ($foundneedle->{'y'} + $foundneedle->{'h'}/2)*$ry;
+				diag ("clicking at $x/$y");
+				mouse_set($x, $y);
+				mouse_click($args{'click'}, $args{'clicktime'});
+			}
+			return $foundneedle;
+		}
+		$oldimg = $img;
+	}
+	fctres('waitforneedle', "match=$mustmatch timed out after $timeout");
+	for (@{$needles||[]}) {
+		diag $_->{'file'};
+	}
+	my $t = time();
+	$img->write_optimized(result_dir() . "/template-$mustmatch-$t.png");
+	my $fn = result_dir() . "/template-$mustmatch-$t.json";
+	open(J, ">", $fn) or die "$fn: $!\n";
+	my $json = { area => [ { xpos => 0, ypos => 0, width => $img->xres(), height => $img->yres(), type => 'match' } ] };
+	my @tags = ( $mustmatch );
+	# write out some known env variables
+	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD)) {
+		push(@tags, "ENV-$key-" . $ENV{$key}) if $ENV{$key};
+	}
+	$json->{"tags"} = \@tags;
+	print J JSON->new->pretty->encode( $json );
+	close(J);
+	diag("wrote $fn");
+
+	# beware of spaghetti code below
+	my $newname;
+	my $run_editor = 0;
+	if ($ENV{'scaledhack'}) {
+		my $needle;
+		for my $t (qw/.1 .2 .3 .4 .5 .6/) {
+			diag("trying to find needle with threshold $t ...");
+			my $foundneedle = $img->search($needles, $t);
+			next unless $foundneedle;
+			fctres(sprintf("found %s, similarity %.2f @ %d/%d",
+					$foundneedle->{'needle'}->{'name'},
+					$foundneedle->{'similarity'},
+					$foundneedle->{'x'}, $foundneedle->{'y'}));
+			$needle = $foundneedle->{'needle'};
+			last;
+		}
+
+		for my $i (1..@{$needles||[]}) {
+			printf "%d - %s\n", $i, $needles->[$i-1]->{'name'};
+		}
+		print "note: called from checkneedle()\n" if $args{'check'};
+		print "(E)dit, (N)ew, (Q)uit, (C)ontinue\n";
+		my $r = <STDIN>;
+		if ($r =~ /^(\d+)/) {
+			$r = 'e';
+			$needle = $needles->[$1-1];
+		}
+		if ($r =~ /^e/i) {
+			unless ($needle) {
+				$needle = $needles->[0] if $needles;
+				die "no needle\n" unless $needle;
+			}
+			$newname = $needle->{'name'};
+			$run_editor = 1;
+		} elsif ($r =~ /^n/i) {
+			$run_editor = 1;
+		} elsif ($r =~ /^q/i) {
+			$args{'retried'} = 99;
+		}
+	} elsif (!$args{'check'} && $ENV{'interactive_crop'}) {
+		$run_editor = 1;
+	}
+
+	$args{'retried'} ||= 0;
+	if ($run_editor && $args{'retried'} < 3) {
+		$newname = $mustmatch.($ENV{'interactive_crop'} || '') unless $newname;
+		system("$scriptdir/crop.py", '--new', $newname, $fn) == 0 || mydie;
+		$fn = sprintf("%s/needles/%s.json", $ENV{'CASEDIR'}, $newname)
+		if (-e $fn);
+		{
+			for my $n (needle->all()) {
+				if ($n->{'file'} eq $fn) {
+					$n->unregister();
+				}
+			}
+			diag("reading new needle $fn");
+			needle->new($fn) || mydie "$!";
+			# XXX: recursion!
+			return waitforneedle($mustmatch, 3, $args{'check'}, $args{'retried'}+1);
+		}
+	}
+
+	$current_test->take_screenshot() if ($current_test);
+	mydie unless $args{'check'};
+	return undef;
+}
+
+sub waitforneedle($;$) {
+	return _waitforneedle(mustmatch => $_[0], timeout => $_[1]);
+}
+
+sub checkneedle($;$) {
+	return _waitforneedle(mustmatch => $_[0], timeout => $_[1], check => 1);
+}
+
+# warning: will not work due to https://bugs.launchpad.net/qemu/+bug/752476
+sub goandclick($;$$$) {
+	return _waitforneedle(mustmatch => $_[0],
+		click => ($_[1] || 'left'),
+		timeout => $_[2],
+		clicktime => $_[3]);
 }
 
 #FIXME: new wait functions
@@ -1000,3 +1065,8 @@ sub waitinststage($;$$) {
 
 
 1;
+
+# Local Variables:
+# tab-width: 8
+# cperl-indent-level: 8
+# End:

@@ -14,11 +14,4 @@ sub run()
 	sendkey "ctrl-c";
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

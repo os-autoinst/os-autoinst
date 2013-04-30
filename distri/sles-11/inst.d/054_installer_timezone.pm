@@ -5,7 +5,7 @@ use bmwqemu;
 
 sub run()
 {
-	waitinststage("timezone");
+	waitforneedle("timezone");
 	waitidle; sleep 9; # extra for NTP sync
 	sendkey $cmd{"next"};
 }

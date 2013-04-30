@@ -1,5 +1,12 @@
 #!/usr/bin/perl -w
 use strict;
+
+BEGIN {
+  my ($wd) = $0 =~ m-(.*)/- ;
+  $wd ||= '.';
+  unshift @INC,  "$wd";
+}
+
 use bmwqemu;
 use autotest;
 use JSON qw( to_json );
@@ -11,7 +18,6 @@ sub checksize($) {
 	if($i=~m/-DVD/) {$maxsize=4_700_372_992}
 	if($i=~m/-DVD-Biarch/) {$maxsize=8_539_996_160}
 	if($size>$maxsize) {return "fail"}
-	if($size>$maxsize*0.998) {return "unk"}
 	return "ok";
 }
 
@@ -46,7 +52,7 @@ while(<>) {
 	if(/^iso_size=(\d+)/) {$results{isosize}=checksize($1);}
 }
 
-sub is_ok($) { my $x=shift; $x=~m/^ok/ }
+sub is_ok($) { my $x=shift; return unless $x; $x=~m/^ok/ }
 
 sub checkfunc {
 	my($test)=@_;

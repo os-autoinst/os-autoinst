@@ -11,11 +11,7 @@ sub is_applicable()
 # hint: press shift-f10 trice for highest debug level
 sub run()
 {
-	waitinststage("syslinuxbootloader",15);
-	waitinststage("syslinuxbootloader-loaded",5);
-	if($ENV{QEMUVGA} && $ENV{QEMUVGA} ne "cirrus") {
-		sleep 5;
-	}
+	waitforneedle("inst-bootmenu", 15);
 	if($ENV{ZDUP} || $ENV{WDUP}) {
 		qemusend "eject -f ide1-cd0";
 		qemusend "system_reset";
@@ -29,7 +25,7 @@ if($ENV{MEDIACHECK}) { # special
 	for(1..3) {
 		sendkey "down";
 	}
-	sleep 3;
+	waitforneedle("inst-onmediacheck", 3);
 	sendkey "ret";
   return;
 }
@@ -38,7 +34,7 @@ if($ENV{MEMTEST}) { # special
 	for(1..6) {
 		sendkey "down";
 	}
-	sleep 3;
+	waitforneedle("inst-onmemtest", 3);
 	sendkey "ret";
 	sleep 6000;
 	exit 0; # done
@@ -48,10 +44,6 @@ if(!$ENV{LIVETEST}) {
 	# installation (instead of HDDboot on non-live)
 	# installation (instead of live):
 	sendkey "down";
-	if($ENV{PROMO}) {
-		# has extra GNOME-Live and KDE-Live menu entries
-		for(1..2) {sendkey "down";}
-	}
 } else {
 	if($ENV{PROMO}) {
 		for(1..2) {sendkey "down";} # select KDE Live
@@ -62,34 +54,42 @@ if(!$ENV{LIVETEST}) {
 if($ENV{RES1024}) { # default is 800x600
 	sendkey "f3";
 	sendkey "down";
+	waitforneedle("inst-resolutiondetected");
 	sendkey "ret";
-} elsif($ENV{VIDEOMODE} eq "text") {
+} elsif(checkEnv('VIDEOMODE', "text")) {
 	sendkey "f3";
 	for(1..2) {
 		sendkey "up";
 	}
+	waitforneedle("inst-textselected", 5);
 	sendkey "ret";
 }
 
 #sendautotype("nohz=off "); # NOHZ caused errors with 2.6.26
 #sendautotype("nomodeset "); # coolo said, 12.3-MS0 kernel/kms broken with cirrus/vesa #fixed 2012-11-06
-sleep 15; sendautotype("video=800x600-16 ");
+
+# https://wiki.archlinux.org/index.php/Kernel_Mode_Setting#Forcing_modes_and_EDID
+sendautotype("vga=791 ");
+sendautotype("video=1024x768-16 ", 13);
+sendautotype("drm_kms_helper.edid_firmware=edid/1024x768.bin ", 13);
+# FIXME: re-enable
+#waitforneedle("inst-video800typed", 13);
 if(!$ENV{NICEVIDEO}) {
-	sleep 15; sendautotype("console=ttyS0 "); # to get crash dumps as text
-	sleep 15; sendautotype("console=tty "); # to get crash dumps as text
+	sendautotype("console=ttyS0 ", 13); # to get crash dumps as text
+	sendautotype("console=tty ", 13); # to get crash dumps as text
+	waitforneedle("inst-consolesettingstyped", 30);
 	my $e=$ENV{EXTRABOOTPARAMS};
 #	if($ENV{RAIDLEVEL}) {$e="linuxrc=trace"}
-	if($e) {sleep 10;sendautotype("$e ");}
-	sleep 15; # workaround slow gfxboot drawing 662991
+	if($e) { sendautotype("$e ", 13); sleep 10;}
 }
 #sendautotype("kiwidebug=1 ");
 
 # set HTTP-source to not use factory-snapshot
 if($ENV{NETBOOT}) {
 	sendkey "f4";
-	sleep 4;
+	waitforneedle("inst-instsourcemenu", 4);
 	sendkey "ret";
-	sleep 4;
+	waitforneedle("inst-instsourcedialog", 4);
 	my $mirroraddr="";
 	my $mirrorpath="/factory";
 	if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~m{^([a-zA-Z0-9.-]*)(/.*)$}) {
@@ -110,7 +110,7 @@ if($ENV{NETBOOT}) {
 	for(1..22) { sendkey "backspace"; }
 	sendautotype($mirrorpath);
 
-        sleep(2);
+	waitforneedle("inst-mirror_is_setup", 2);
 	sendkey "ret";
 
 	# HTTP-proxy
@@ -122,7 +122,7 @@ if($ENV{NETBOOT}) {
 		}
 		sendkey "ret";
 		sendautotype("$proxyhost\t$proxyport\n");
-		sleep(1.5);
+		waitforneedle("inst-proxy_is_setup", 2);
 
 		# add boot parameters
 		# ZYPP... enables proxy caching
@@ -209,10 +209,11 @@ zu_ZA
 	if($n && $n !=$en_us) {
 		$n-=$en_us;
 		sendkey "f2";
-		sleep 6; # drawing is slow
+		waitforneedle("inst-languagemenu", 6);
 		for(1..abs($n)) {
 			sendkey ($n<0?"up":"down");
 		}
+		# TODO: add needles for some often tested
 		sleep 2;
 		sendkey "ret";
 	}
@@ -225,7 +226,7 @@ if($ENV{ISO}=~m/i586/) {
 		if($ENV{AUTOYAST}) {
 			$args.=" netsetup=dhcp,all autoyast=$ENV{AUTOYAST} ";
 		}
-    sendautotype $args;
+	sendautotype $args;
 if(0 && $ENV{RAIDLEVEL}) {
 	# workaround bnc#711724
 	$ENV{ADDONURL}="http://download.opensuse.org/repositories/home:/snwint/openSUSE_Factory/"; #TODO: drop

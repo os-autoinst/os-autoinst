@@ -8,11 +8,4 @@ sub run()
 	sleep 4;
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

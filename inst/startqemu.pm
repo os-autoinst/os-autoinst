@@ -1,12 +1,20 @@
 #!/usr/bin/perl -w
 use strict;
+use File::Path qw/mkpath/;
+
 my $basedir="raid";
 my $qemuimg="/usr/bin/kvm-img";
 if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
-my $qemubin="/usr/bin/kvm";
-if(!-x $qemubin) {$qemubin=~s/kvm/qemu-kvm/}
-if(!-x $qemubin) {$qemubin=~s/-kvm//}
-if(!-x $qemubin) {die "no Qemu/KVM found"}
+
+my $qemubin = $ENV{'QEMU'};
+unless ($qemubin) {
+	for my $bin (map { '/usr/bin/'.$_ } qw/kvm qemu-kvm qemu/) {
+		next unless -x $bin;
+		$qemubin = $bin;
+		last;
+	}
+	die "no Qemu/KVM found\n" unless $qemubin;
+}
 
 my $iso=$ENV{ISO};
 my $sizegb=8;
@@ -23,7 +31,7 @@ $ENV{QEMU_AUDIO_DRV}="wav";
 $ENV{QEMU_WAV_PATH}="/dev/null";
 
 my $ison=$iso; $ison=~s{.*/}{}; # drop path
-if($ison=~m/LiveCD/i) {$ENV{LIVECD}=1}
+if($ison=~m/Live/i) {$ENV{LIVECD}=1}
 if($ison=~m/Promo/) {$ENV{PROMO}=1}
 if($ison=~m/-i[3-6]86-/) {$ENV{QEMUCPU}||="qemu32"}
 if($ison=~m/openSUSE-Smeegol/) {$ENV{DESKTOP}||="gnome"}
@@ -36,7 +44,7 @@ if($ison=~m/openSUSE-(DVD|NET|KDE|GNOME|LXDE|XFCE)/) {
 
 if($ENV{UEFI} && !-e $ENV{UEFI}.'/bios.bin') {die "'$ENV{UEFI}' should point to a directory with an uefi bios image"}
 
-system(qw"/bin/mkdir -p", $basedir);
+mkpath($basedir);
 
 if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	my $file=$ENV{UPGRADE};
@@ -54,7 +62,7 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 
 if(!$ENV{KEEPHDDS}) {
 	# fresh HDDs
-	for my $i (1..4) {
+	for my $i (1..$ENV{NUMDISKS}) {
 		unlink("$basedir/l$i");
 		if(-e "$basedir/$i.lvm") {
 			symlink("$i.lvm","$basedir/l$i");
@@ -70,8 +78,6 @@ if(!$ENV{KEEPHDDS}) {
 		@cdrom=();
 	}
 }
-sleep 5;
-
 
 for my $i (1..4) { # create missing symlinks
 	next if -e "$basedir/l$i";
@@ -84,7 +90,7 @@ if($self->{'pid'}==0) {
 	my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
 	for my $i (1..$ENV{NUMDISKS}) {
 		my $boot="";#$i==1?",boot=on":""; # workaround bnc#696890
-		push(@params, "-drive", "file=$basedir/l$i,if=$ENV{HDDMODEL}$boot");
+		push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=$ENV{HDDMODEL}$boot");
 	}
 	push(@params, "-boot", "dc", @cdrom) if($iso);
 	if($ENV{VNC}) {

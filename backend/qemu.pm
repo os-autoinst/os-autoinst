@@ -4,7 +4,9 @@ package backend::qemu;
 use strict;
 use base ('backend::baseclass');
 use threads;
-
+require File::Temp;
+use File::Temp ();
+use Time::HiRes "sleep";
 
 sub init() {
 	my $self = shift;
@@ -21,6 +23,7 @@ sub sendkey($) {
 	$self->send("sendkey $key");
 }
 
+# warning: will not work due to https://bugs.launchpad.net/qemu/+bug/752476
 sub mouse_set($$) {
 	my $self = shift;
 	my ($x, $y) = @_;
@@ -32,8 +35,8 @@ sub mouse_set($$) {
 	$self->send("mouse_move $ax $ay");
 }
 
-sub mouse_button($) {
-	my ($self, $button, $bstate);
+sub mouse_button($$$) {
+	my ($self, $button, $bstate) = @_;;
 	$self->{'mousebutton'}->{$button} = $bstate;
 	my $btn_bin = 0;
 	$btn_bin |= 0b001 if($self->{'mousebutton'}->{'left'});
@@ -57,9 +60,30 @@ sub mouse_hide(;$) {
 	}
 }
 
-sub screendump($) {
-	my ($self, $filename) = @_;
-	$self->send("screendump $filename");
+sub screendump() {
+	my $self = shift;
+	my $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.ppm', OPEN => 0 );
+	$self->send("screendump $tmp");
+	my $ret;
+        while (!defined $ret) {
+	  sleep(0.02);
+	  my $fs = -s $tmp;
+	  next if ($fs < 70);
+	  my $header;
+	  next if (!open(PPM, $tmp));
+	  if (read(PPM, $header, 70) < 70) {
+	    close(PPM);
+	    next;
+	  }
+	  close(PPM);
+	  my ($xres,$yres) = ($header=~m/\AP6\n(?:#.*\n)?(\d+) (\d+)\n255\n/);
+	  next if(!$xres);
+	  my $d=$xres*$yres*3+length($&);
+	  next if ($fs != $d);
+          $ret = tinycv::read($tmp);
+        }
+	unlink $tmp;
+	return $ret;
 }
 
 sub raw_alive($) {
@@ -112,6 +136,8 @@ sub do_start_vm($) {
 
 sub do_stop_vm($) {
 	my $self = shift;
+	$self->send('quit');
+	sleep(0.1);
 	kill(15, $self->{'pid'});
 	unlink($self->{'pidfilename'});
 }
@@ -127,7 +153,7 @@ sub readconloop($) {
 	$|=1;
 	my $conn = $self->{'managementcon'};
 	while(<$conn>) {
-		print $_;
+		# print $_;
 	}
 	bmwqemu::diag("exiting management console read loop");
 	unlink($self->{'pidfilename'});

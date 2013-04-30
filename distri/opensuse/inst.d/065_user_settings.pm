@@ -7,24 +7,27 @@ sub run()
 {
 	my $self=shift;
 	# user setup
-	waitstillimage();
-	waitidle; sleep 3;
+	waitforneedle("inst-usersetup", 5);
 	sendautotype($realname);
 	sendkey "tab";
 	#sleep 1;
 	sendkey "tab";
 	for(1..2) {
 		sendautotype("$password\t");
-		#sleep 1;
+	}
+	waitforneedle("inst-userinfostyped", 5);
+	if($ENV{NOAUTOLOGIN}) {
+		sendkey $cmd{"noautologin"};
+		waitforneedle("autologindisabled", 2);
 	}
 	if($ENV{DOCRUN}) {
 		sendkey $cmd{"otherrootpw"};
+		waitforneedle("rootpwdisabled", 2);
 	}
 	# done user setup
-	$self->take_screenshot;
 	sendkey $cmd{"next"};
 	# loading cracklib
-	waitidle 6;
+	waitforneedle("inst-userpasswdtoosimple", 6);
 	# PW too easy (cracklib)
 	$self->take_screenshot;
 	sendkey "ret";

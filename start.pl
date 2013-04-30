@@ -5,6 +5,13 @@
 #
 
 use strict;
+
+BEGIN {
+  my ($wd) = $0 =~ m-(.*)/- ;
+  $wd ||= '.';
+  unshift @INC,  "$wd";
+}
+
 use bmwqemu;
 
 # Sanity checks
@@ -22,17 +29,24 @@ if($init) {
 	open(my $fd, ">os-autoinst.pid"); print $fd "$$\n"; close $fd;
 	if(!bmwqemu::alive) {
 		start_vm or die $@;
+		sleep 3; # wait until BIOS is gone
 	}
 }
 my $size=-s $ENV{ISO}; diag("iso_size=$size");
-do "inst/screenshot.pm" or die $@;
+our $screenshotthr = require "inst/screenshot.pm";
+
+require Carp;
+require Carp::Always;
 
 # Load the main.pm from the casedir checked by the sanity checks above
-do "$ENV{CASEDIR}/main.pm" or die $@;
+require "$ENV{CASEDIR}/main.pm";
 
 # this is only for still getting screenshots while
 # all testscripts would have been already run
-for(1..6000) { # time to let install work
-	sleep 1;
-}
+sleep 10;
 
+stop_vm();
+
+$screenshotthr->join();
+
+diag "done";

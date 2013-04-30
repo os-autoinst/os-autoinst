@@ -2,30 +2,37 @@
 use strict;
 use bmwqemu;
 use autotest;
+use needle;
 
 sub installrunfunc
 {
 	my($test)=@_;
 	my $class=ref $test;
+	bmwqemu::set_current_test($test);
 	$test->run();
+	bmwqemu::set_current_test(undef);
 	$test->take_screenshot;
 }
 
-waitinststage "bootloader",12; # wait for welcome animation to finish
+# wait for qemu to start
+while (!getcurrentscreenshot()) {
+	sleep 1;
+}
+
+#waitforneedle "inst-bootmenu",12; # wait for welcome animation to finish
 
 if($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
 	$username="linux"; # LiveCD account
 	$password="";
 }
-if($ENV{DESKTOP} eq "minimalx") {$ENV{XDMUSED}=1}
+
+if(checkEnv('DESKTOP', "minimalx")) {$ENV{XDMUSED}=1}
 $ENV{TOGGLEHOME}=1;
 autotest::runtestdir("$ENV{CASEDIR}/inst.d", undef);
 autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
 
-set_std_hash_rects;
-
 if(my $d=$ENV{DESKTOP}) {
-	do "inst/\L$d.pm" or diag $@;
+	require "inst/\L$d.pm";
 }
 
 1;

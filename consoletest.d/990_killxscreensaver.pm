@@ -12,11 +12,4 @@ sub run()
 	script_run("killall xscreensaver");
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

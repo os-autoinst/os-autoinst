@@ -64,21 +64,21 @@ sub setraidlevel($)
 	}
 }
 
-
-waitstillimage();
+waitforneedle('partioning', 40);
 if($ENV{TOGGLEHOME} && !$ENV{LIVECD}) {
 	my $homekey=(($ENV{VIDEOMODE} && $ENV{VIDEOMODE} eq "text")?"alt-p":"alt-h");
 	sendkey $homekey;
+	waitforneedle("disabledhome", 3);
 }
 if(defined($ENV{RAIDLEVEL})) {
 if(1) {
 # create partitioning
 sendkey $cmd{createpartsetup};
-waitidle 3;
+waitforneedle('createpartsetup', 3);
 # user defined
 sendkey $cmd{custompart};
 sendkey $cmd{"next"};
-waitidle 9;
+waitforneedle('custompart', 9);
 
 sendkey "tab";
 sendkey "down"; # select disks
@@ -136,10 +136,10 @@ waitidle 3;
 
 # done
 sendkey $cmd{"accept"};
-waitidle 4;
-sleep 2;
+waitforneedle('acceptedpartioning', 6);
 } elsif($ENV{BTRFS}) {
 	sendkey "alt-u";  # Use btrfs
+	waitforneedle('usebtrfs', 3);
 }
 }
 

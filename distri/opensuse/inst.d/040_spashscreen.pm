@@ -9,10 +9,11 @@ sub is_applicable
 
 sub run()
 {
+	# TODO: what is this all about?
+	return;
 	my $self=shift;
-	sleep 10; # time to load kernel+initrd
-	$self->take_screenshot;
-	sleep 2;
+	# time to load kernel+initrd
+	waitforneedle("inst-splashscreen", 12);
 	sendkey "esc";
 }
 

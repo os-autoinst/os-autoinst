@@ -50,14 +50,14 @@ sub raw_keyboard_io($) {
 
 # baseclass virt method overwrite
 
-sub screendump($) {
+sub screendump() {
 	my $self = shift;
-	my $filename = shift;
-	my $r = int(rand(1e9));
-	my $tmp = "/tmp/vbox-$r.png";
+	my $tmp = mktemp( $template );
+	$tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.png', OPEN => 0 );
 	$self->raw_vbox_controlvm("screenshotpng", $tmp);
-	system("convert", $tmp, $filename);
+	my $ret = tinycv::read($tmp);
 	unlink $tmp;
+	return $ret;
 }
 
 sub power($) {

@@ -18,15 +18,15 @@ sendautotype "PS1=\$\n"; # set constant shell promt
 sleep 1;
 #sendautotype 'PS1=\$\ '."\n"; # qemu-0.12.4 can not do backslash yet. http://permalink.gmane.org/gmane.comp.emulators.qemu/71856
 
-
 sub consoletestrunfunc
 {
 	my($test)=@_;
 	my $class=ref $test;
 	clear_console; # clear screen to make screen content independent from previous tests
 	diag "starting $class";
+	bmwqemu::set_current_test($test);
 	$test->run();
-	sleep 2;
+	bmwqemu::set_current_test(undef);
 	$test->take_screenshot;
 	diag "finished $class";
 }

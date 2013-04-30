@@ -25,11 +25,4 @@ sub run()
 	sendkey "alt-d"; sleep 2; # Discard
 }
 
-sub checklist()
-{
-	# return hashref:
-	return {qw(
-	)}
-}
-
 1;

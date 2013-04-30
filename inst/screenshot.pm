@@ -1,18 +1,20 @@
 #!/usr/bin/perl -w
 use strict;
 use warnings;
-use Time::HiRes "sleep";
+use Time::HiRes qw( sleep gettimeofday );
 use bmwqemu;
 use threads;
 
 sub screenshotsub
 {
-	while(bmwqemu::alive() && sleep($ENV{SCREENSHOTINTERVAL}||5)) {
-		bmwqemu::take_screenshot('q');
+        my $interval = $ENV{SCREENSHOTINTERVAL}||.5;
+       	while(bmwqemu::alive()) {
+	  my ($s1, $ms1) = gettimeofday();
+	  bmwqemu::take_screenshot('q');
+	  my ($s2, $ms2) = gettimeofday();
+	  my $rest = $interval - ($s2-$s1) - ($ms2-$ms1)/1e6;
+	  sleep($rest) if ($rest > 0);
 	}
 }
 
-sleep 3; # wait until BIOS is gone
-our $screenshotthr = threads->create(\&screenshotsub);
-
-1;
+threads->create(\&screenshotsub);

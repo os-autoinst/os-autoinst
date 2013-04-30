@@ -11,8 +11,8 @@ sub is_applicable()
 
 sub ocrconflict()
 {
-	my $data=getcurrentscreenshot();
-	my $ocr=ocr::get_ocr(\$data, "-l 200", [250,100,700,600]);
+	my $img=getcurrentscreenshot();
+	my $ocr=ocr::get_ocr($img, "-l 200", [250,100,700,600]);
 	return 1 if($ocr=~m/can.*solve/i);
 	return 1 if($ocr=~m/dependencies automatically/i);
 	return 0;
@@ -21,7 +21,7 @@ sub ocrconflict()
 sub run()
 {
 	my $self=shift;
-	if($ENV{DOCRUN} || waitimage("software-conflict-*",9) || ocrconflict) {
+	if($ENV{DOCRUN} || checkneedle("software-conflict",1) || ocrconflict) {
 		$cmd{software}="alt-s" if $ENV{VIDEOMODE} eq "text";
 		sendkey $cmd{change};	# Change
 		sendkey $cmd{software};	# Software

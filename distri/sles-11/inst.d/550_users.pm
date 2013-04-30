@@ -14,6 +14,7 @@ sub run()
         #sendkey "alt-a"; # automatic login
 	$self->take_screenshot;
         sendkeyw "alt-n";
+        sleep 1;
         sendkeyw "alt-y"; # confirm weak PW
 }
 
