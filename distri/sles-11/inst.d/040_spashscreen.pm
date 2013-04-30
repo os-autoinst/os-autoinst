@@ -5,12 +5,8 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
-	waitinststage("splashscreen",90);
-	$self->take_screenshot;
-	sleep 2;
+	waitforneedle("splashscreen", 12);
 	sendkey "esc";
-	sleep 15;
-	waitidle;
 }
 
 1;
