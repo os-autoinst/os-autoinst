@@ -71,7 +71,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double
   }
   Mat res = Mat::zeros(res_height, res_width, CV_32FC1);
 
-  // Perform the matching. Info about algorythm:
+  // Perform the matching. Info about algorithm:
   // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
   // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
   matchTemplate(scene->img, object->img, res, CV_TM_CCOEFF_NORMED);
