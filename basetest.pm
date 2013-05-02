@@ -10,6 +10,9 @@ sub new() {
 	my $class=shift;
 	my $self={class=>$class};
 	$self->{lastscreenshot} = undef;
+	$self->{details} = [];
+	$self->{result} = undef;
+	$self->{running} = 0;
 	return bless $self, $class;
 }
 
@@ -29,6 +32,91 @@ Can eg. check ENV{BIGTEST}, ENV{LIVETEST}
 =cut
 sub is_applicable() {
 	return 1;
+}
+
+sub record_screenmatch($$)
+{
+	my $self = shift;
+	my $img = shift;
+	my $foundneedle = shift;
+
+	my $count = ++$self->{"test_count"};
+	my $testname = ref($self);
+
+	my $result = {
+		needle => $foundneedle->{'needle'}->{'name'},
+		matcharea => [
+			{
+				x => $foundneedle->{'x'},
+				y => $foundneedle->{'y'},
+				w => $foundneedle->{'w'},
+				h => $foundneedle->{'h'},
+				similarity => $foundneedle->{'similarity'},
+			},
+		],
+		screenshot => sprintf("%s-%d.png", $testname, $count),
+		result => 'ok',
+	};
+	
+	my $fn = join('/', result_dir(), $result->{'screenshot'});
+	$img->write($fn);
+
+	$self->{result} ||= 'ok';
+	
+	push @{$self->{'details'}}, $result;
+}
+
+sub record_screenfail($$)
+{
+	my $self = shift;
+	my $img = shift;
+	my $needles = shift;
+
+	my $count = ++$self->{"test_count"};
+	my $testname = ref($self);
+
+	my $result = {
+		needles => [ map { $_->{'name'} } @$needles ],
+		screenshot => sprintf("%s-%d.png", $testname, $count),
+		result => 'fail',
+	};
+	
+	my $fn = join('/', result_dir(), $result->{'screenshot'});
+	$img->write($fn);
+
+	$self->{result} ||= 'fail';
+	
+	push @{$self->{'details'}}, $result;
+}
+
+sub details($)
+{
+	my $self = shift;
+	return $self->{'details'};
+}
+
+sub result($)
+{
+	my $self = shift;
+	return $self->{result}||'na';
+}
+
+sub start()
+{
+	my $self = shift;
+	$self->{running} = 1;
+}
+
+sub done()
+{
+	my $self = shift;
+	$self->{running} = 0;
+}
+
+sub fail_if_running()
+{
+	my $self = shift;
+	$self->{result} = 'fail' if $self->{'result'};
 }
 
 sub next_resultname($;$) {
@@ -132,6 +220,7 @@ where STATUS is one of: OK fail unknown not-autochecked
 
 =cut
 sub check(%) {
+	die("FIXME");
 	my $self=shift;
 	my $path=result_dir;
 	$path=~s/\.ogv.*//;

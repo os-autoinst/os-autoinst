@@ -13,11 +13,15 @@ BEGIN {
 }
 
 use bmwqemu;
+use needle;
+use autotest;
 
 # Sanity checks
 die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI} && !defined $ENV{CASEDIR};
 die "No scripts in $ENV{CASEDIR}" if ! -e "$ENV{CASEDIR}";
 die "ISO environment variable not set" if !defined $ENV{ISO};
+
+needle::init("$scriptdir/distri/$ENV{DISTRI}/needles") if ($scriptdir && $ENV{DISTRI});
 
 my $init=1;
 alarm (7200+($ENV{UPGRADE}?3600:0)); # worst case timeout
@@ -38,15 +42,28 @@ our $screenshotthr = require "inst/screenshot.pm";
 require Carp;
 require Carp::Always;
 
-# Load the main.pm from the casedir checked by the sanity checks above
-require "$ENV{CASEDIR}/main.pm";
-
-# this is only for still getting screenshots while
-# all testscripts would have been already run
-sleep 10;
+my $r = 0;
+eval {
+	# Load the main.pm from the casedir checked by the sanity checks above
+	require "$ENV{CASEDIR}/main.pm";
+};
+if ($@) {
+	warn $@;
+	$r = 1;
+} else {
+	# this is only for still getting screenshots while
+	# all testscripts would have been already run
+	sleep 10;
+}
 
 stop_vm();
 
 $screenshotthr->join();
 
-diag "done";
+# Write JSON result
+autotest::save_results();
+
+diag "done" unless $r;
+diag "FAIL" if $r;
+
+exit $r;

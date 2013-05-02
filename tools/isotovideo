@@ -58,7 +58,6 @@ test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f backend.run
 echo "QEMU finished, running final checks" >> ${logfile}
 cat serial0 >> ${logfile}
-$scriptdir/tools/checklog ${logfile} | tee -a ${logfile}
 # return success if video was created:
 test -e video/$name.ogv
 
