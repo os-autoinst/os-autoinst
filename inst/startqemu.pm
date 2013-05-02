@@ -120,6 +120,7 @@ if($self->{'pid'}==0) {
 	if($ENV{MULTINET}) {push(@params, qw"-net nic,vlan=1,model=virtio,macaddr=52:54:00:12:34:57 -net none,vlan=1")}
 	push(@params, "-usb", "-usbdevice", "tablet");
 	push(@params, "-smp", $ENV{QEMUCPUS});
+	push(@params, "-enable-kvm");
 	if(-e "/usr/bin/eatmydata") { unshift(@params, "/usr/bin/eatmydata") }
 	bmwqemu::diag("starting: ".join(" ", @params));
 	exec(@params);
