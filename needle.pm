@@ -152,7 +152,7 @@ sub get_needle_dir {
 
 sub init($) {
 	$needledir=shift;
-	find( { no_chdir => 1, wanted => \&wanted_ }, $needledir );
+	find( { no_chdir => 1, wanted => \&wanted_, follow => 1 }, $needledir );
 	#for my $k (keys %tags) {
 	#	print "$k\n";
 	#	for my $p (@{$tags{$k}}) {
