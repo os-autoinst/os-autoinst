@@ -71,6 +71,12 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double
   }
   Mat res = Mat::zeros(res_height, res_width, CV_32FC1);
 
+  // TODO remove the old mode
+#define OLD 0
+#if OLD
+  Mat gray_scene = scene->img;
+  Mat gray_object = object->img;
+#else
   Mat gray_scene;
   cvtColor(scene->img, gray_scene, CV_RGB2GRAY);
   GaussianBlur(gray_scene, gray_scene, Size(5, 5), 0, 0);
@@ -80,6 +86,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double
   cvtColor(object->img, gray_object, CV_RGB2GRAY);
   GaussianBlur(gray_object, gray_object, Size(5, 5), 0, 0);
   // blur(gray_object, gray_object, Size(7, 7), Point(-1, -1));
+#endif
 
   // Perform the matching. Info about algorithm:
   // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
