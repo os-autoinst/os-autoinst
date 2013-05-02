@@ -99,12 +99,12 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   minMaxLoc(res, &minval, &maxval, &minloc, &maxloc, Mat());
 
 #if DEBUG
-  Mat s = gray_scene->img.clone();
+  Mat s = gray_scene.clone();
   rectangle(s, Point(maxloc.x, maxloc.y),
 	    Point(maxloc.x + object->img.cols, maxloc.y + object->img.rows),
 	    CV_RGB(255,0,0), 1);
   imwrite("debug-scene.png", gray_scene);
-  imwrite("debug-object.png", gray_object);
+  imwrite("debug-object.png", gray_crop_object);
 #endif
 
   outvec[0] = int(maxloc.x);
