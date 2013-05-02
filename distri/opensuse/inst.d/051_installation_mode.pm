@@ -13,7 +13,8 @@ sub run()
 {
 	my $self=shift;
 	# autoconf phase
-	waitforneedle("inst-instmode", 30);
+        # includes downloads, so waitidle is bad.
+	waitforneedle("inst-instmode", 120);
 	# Installation Mode = new Installation
 	if($ENV{UPGRADE}) {
 		sendkey "alt-u";
@@ -21,14 +22,14 @@ sub run()
 	}
 	if($ENV{ADDONURL}) {
 		sendkey "alt-c"; # Include Add-On Products
-		waitforneedle("addonproduct-included", 3);
+		waitforneedle("addonproduct-included", 10);
 	}
 	if($ENV{AUTOCONF}) {
 		sendkey "alt-s"; # toggle automatic configuration
-		waitforneedle("autoconf-deselected", 3);
+		waitforneedle("autoconf-deselected", 10);
 	}
 	sendkeyw $cmd{"next"};
-	waitforneedle("inst-timezone", 20) || die 'no timezone';
+	waitforneedle("inst-timezone", 30) || die 'no timezone';
 
 }
 

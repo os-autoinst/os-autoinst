@@ -39,7 +39,6 @@ my $screenshotQueue = Thread::Queue->new();
 my $prestandstillwarning :shared = 0;
 my $timeoutcounter :shared = 0;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
-my @lastavgcolor = (0,0,0); share(@lastavgcolor);
 my @ocrrect; share(@ocrrect);
 my @extrahashrects; share(@extrahashrects);
 
@@ -406,10 +405,12 @@ sub sendautotype($;$) {
 		if($charmap{$letter}) { $letter=$charmap{$letter} }
 		sendkey $letter;
 		if ($typedchars++ >= $maxinterval ) {
+			waitidle();
 			waitstillimage(1.1);
 			$typedchars=0;
 		}
 	}
+	waitidle();
 	waitstillimage(1.1) if ($typedchars > 0);
 }
 
@@ -646,13 +647,9 @@ sub take_screenshot(;$) {
 		$statstr .= "statuser=$statuser ";
 		$statstr .= "statsystem=$statsystem ";
 	}
-	if ($img->xres() > 0) {
-		@lastavgcolor = $img->avgcolor();
-	}
 	#my $filevar = "file=".basename($lastname)." ";
 	#my $laststgvar = ($ENV{HW})?"laststage=$lastinststage ":'';
 	#my $md5var = ($ENV{HW})?'':"md5=$md5 ";
-	#my $avgvar = "avgcolor=".join(',', map(sprintf("%.3f", $_), @lastavgcolor));
 	#diag($md5var.$filevar.$laststgvar.$statstr.$avgvar);
 
 	# hardlinking identical files saves space
@@ -811,6 +808,7 @@ sub waitcolor($;$) {
 	my $starttime = time;
 	fctlog('waitcolor', "rgb=".dump(@$rgb_minmax), "timeout=$timeout");
 	while(time-$starttime<$timeout) {
+                my @lastavgcolor = getcurrentscreenshot()->avgcolor();
 		if (check_color(\@lastavgcolor, $rgb_minmax)) {
 			fctres('waitcolor', "detected ".dump(@lastavgcolor));
 			return 1;
