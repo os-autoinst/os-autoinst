@@ -42,8 +42,12 @@ sub search_($$;$) {
 
     my $lastarea;
     for my $area (@match) {
-	    my $c = $needle->get_image($area);
-	    ($sim, $xmatch, $ymatch, $d1, $d2) = $img->search_needle($c);
+	    ($sim, $xmatch, $ymatch, $d1, $d2) = $img->search_needle(
+		$needle->get_image(),
+		$area->{'xpos'},
+		$area->{'ypos'},
+		$area->{'width'},
+		$area->{'height'});
 	    bmwqemu::diag(sprintf("MATCH(%s:%.2f): $xmatch $ymatch", $needle->{name}, $sim));
 	    my $m = ($area->{match} || 100) / 100;
 	    if ($sim < $m - $threshold) {
