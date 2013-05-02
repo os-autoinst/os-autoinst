@@ -16,17 +16,19 @@ my @pngs = <${ndir}/*.png>;
 
 
 foreach my $json (@jsons) {
+    my $bnjson = basename($json, ".json");
     $needle = needle->new($json);
     foreach my $png (@pngs) {
+	my $bnpng = basename($png, ".png");
 	$img = tinycv::read($png);
 	$res = $img->search($needle);
 	if ($res) {
-	    if (basename($json) ne basename($png)) {
-		print "Needle ambiguity: [Needle] " . basename($json) . " - [Image] " . basename($png) . " [" . $res->{"similarity"} . "]\n";
+	    if ($bnjson ne $bnpng) {
+		print "Needle ambiguity: [Needle] " . $bnjson . " - [Image] " . $bnpng . " [" . $res->{"similarity"} . "]\n";
 	    }
 	} else {
-	    if (basename($json) eq basename($png)) {
-		print "Needle do not match himself: [Needle] " . basename($json) . " - [Image] " . basename($png) . "\n";
+	    if ($bnjson eq $bnpng) {
+		print "Needle do not match himself: [Needle] " . $bnjson . " - [Image] " . $bnpng . "\n";
 	    }
 	}
     }
