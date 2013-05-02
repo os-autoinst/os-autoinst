@@ -11,6 +11,8 @@ use bmwqemu;
 use autotest;
 use JSON qw( to_json );
 
+die "don't call this anymore!";
+
 sub checksize($) {
 	my $size=shift;
 	my $i=$ENV{ISO};
@@ -28,6 +30,9 @@ if(!-e $testresult_dir) {
 	chomp($dir);
 	$testresult_dir = "$dir/$testresult_dir";
 }
+
+print "needles at $testresult_dir\n";
+needle::init($testresult_dir);
 
 $ENV{'checklog_working'} = 1;
 our %stageseen=();

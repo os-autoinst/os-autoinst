@@ -158,6 +158,7 @@ sub readconloop($) {
 	bmwqemu::diag("exiting management console read loop");
 	unlink($self->{'pidfilename'});
 	bmwqemu::diag("ALARM: qemu virtual machine quit! - exiting...");
+	# FIXME: this leads to unclean exit
 	alarm 3; # kill all extra threads soon
 }
 

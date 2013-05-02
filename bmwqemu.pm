@@ -146,8 +146,6 @@ if($ENV{INSTLANG} eq "fr_FR") {
 }
 ## keyboard cmd vars end
 
-needle::init("$scriptdir/distri/$ENV{DISTRI}/needles") if ($scriptdir && $ENV{DISTRI});
-
 ## some var checks
 if(!-x $gocrbin) {$gocrbin=undef}
 if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
@@ -339,10 +337,9 @@ sub stop_vm() {
 
 sub mydie {
 	fctlog('mydie', "@_");
-	$backend->stop_vm();
+#	$backend->stop_vm();
 	close $logfd;
-	eval 'croak "mydie"; ';
-	exit 1;
+	croak "mydie";
 }
 
 sub backend_send_nolog($) {
@@ -937,17 +934,7 @@ sub _waitforneedle {
 		}
 		my $foundneedle = $img->search($needles);
 		if ($foundneedle) {
-			my $t = time();
-			if ($current_test) {
-			    my $name = $current_test->take_screenshot($mustmatch);
-			    if (!$foundneedle->{needle}->has_tag($name)) {
-				diag(sprintf("add name %s to $foundneedle->{needle}->{name}", $name));
-				push(@{$foundneedle->{needle}->{tags}}, $name);
-			    }
-			    my $fn = sprintf("%s/%s-needle.json", result_dir(), $name);
-			    diag("saving as $fn\n");
-			    $foundneedle->{needle}->save($fn);
-			}
+			$current_test->record_screenmatch($img, $foundneedle);
 			fctres(sprintf("found %s, similarity %.2f @ %d/%d",
 				$foundneedle->{'needle'}->{'name'},
 				$foundneedle->{'similarity'},
@@ -1051,9 +1038,10 @@ sub _waitforneedle {
 			return waitforneedle($mustmatch, 3, $args{'check'}, $args{'retried'}+1);
 		}
 	}
-
-	$current_test->take_screenshot() if ($current_test);
-	mydie unless $args{'check'};
+	unless ($args{'check'}) {
+		$current_test->record_screenfail($img, $needles);
+		mydie;
+	}
 	return undef;
 }
 

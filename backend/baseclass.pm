@@ -32,6 +32,7 @@ sub start_vm($) {
 
 sub stop_vm($) {
 	my $self = shift;
+	return unless $self->{'started'};
 	unlink('backend.run');
 	$self->do_stop_vm();
 	$self->{'started'} = 0;

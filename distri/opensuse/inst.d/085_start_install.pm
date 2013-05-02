@@ -13,7 +13,7 @@ sub run()
 	$self->take_screenshot;
 	sendkey $cmd{install};
         waitforneedle("inst-packageinstallationstarted");
-	if(!$ENV{LIVECD} && !$ENV{NICEVIDEO}) {
+	if(!$ENV{LIVECD} && !$ENV{NICEVIDEO} && !checkEnv('VIDEOMODE', 'text')) {
 		sleep 5;
 		# view installation details
 		sendkey $cmd{instdetails};
@@ -22,7 +22,7 @@ sub run()
 				waitforneedle('kde-imagesused', 100);
 			} elsif (checkEnv('DESKTOP', 'gnome')) {
 				waitforneedle('gnome-imagesused', 100);
-			} else {
+			} elsif (!checkEnv("DESKTOP", "textmode")) {
 				waitforneedle('x11-imagesused', 100);
 			}
 		} 
