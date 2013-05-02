@@ -46,9 +46,9 @@ std::vector<char> str2vec(std::string str_in) {
 	return out;
 }
 
-std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double &similarity) {
-  cvSetErrMode(CV_ErrModeParent);
-  cvRedirectError(MyErrorHandler);
+std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x, long y, long width, long height, double &similarity) {
+  // cvSetErrMode(CV_ErrModeParent);
+  // cvRedirectError(MyErrorHandler);
  
   std::vector<int> outvec(4);
 
@@ -59,8 +59,8 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double
 
   // Calculate size of result matrix and create it If scene is W x H
   // and object is w x h, res is (W - w + 1) x ( H - h + 1)
-  int res_width  = scene->img.cols - object->img.cols + 1;
-  int res_height = scene->img.rows - object->img.rows + 1;
+  int res_width  = scene->img.cols - width + 1; // object->img.cols + 1;
+  int res_height = scene->img.rows - height + 1; // object->img.rows + 1;
   if (res_width <= 0 || res_height <= 0) {
      similarity = 0;
      outvec[0] = 0;   
@@ -75,24 +75,23 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double
 #define OLD 0
 #if OLD
   Mat gray_scene = scene->img;
-  Mat gray_object = object->img;
+  Mat gray_crop_object = image_copyrect(object, x, y, width, height);
 #else
   Mat gray_scene;
   cvtColor(scene->img, gray_scene, CV_RGB2GRAY);
   GaussianBlur(gray_scene, gray_scene, Size(5, 5), 0, 0);
-  // blur(gray_scene, gray_scene, Size(7, 7), Point(-1, -1));
 
-  Mat gray_object;
-  cvtColor(object->img, gray_object, CV_RGB2GRAY);
-  GaussianBlur(gray_object, gray_object, Size(5, 5), 0, 0);
-  // blur(gray_object, gray_object, Size(7, 7), Point(-1, -1));
+  Mat gray_crop_object;
+  cvtColor(object->img, gray_crop_object, CV_RGB2GRAY);
+  GaussianBlur(gray_crop_object, gray_crop_object, Size(5, 5), 0, 0);
+  gray_crop_object = Mat(gray_crop_object, Range(y, y+height), Range(x,x+width));
 #endif
 
   // Perform the matching. Info about algorithm:
   // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
   // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
   // matchTemplate(scene->img, object->img, res, CV_TM_CCOEFF_NORMED);
-  matchTemplate(gray_scene, gray_object, res, CV_TM_CCOEFF_NORMED);
+  matchTemplate(gray_scene, gray_crop_object, res, CV_TM_CCOEFF_NORMED);
 
   // Localizing the best math with minMaxLoc
   double minval, maxval;
@@ -100,7 +99,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, double
   minMaxLoc(res, &minval, &maxval, &minloc, &maxloc, Mat());
 
 #if DEBUG
-  Mat s = gray_scene; // scene->img.clone();
+  Mat s = gray_scene->img.clone();
   rectangle(s, Point(maxloc.x, maxloc.y),
 	    Point(maxloc.x + object->img.cols, maxloc.y + object->img.rows),
 	    CV_RGB(255,0,0), 1);
@@ -285,9 +284,9 @@ std::vector<float> image_avgcolor(Image *s)
   return f;
 }
 
-std::vector<int> image_search(Image *s, Image *needle, double &similarity)
+std::vector<int> image_search(Image *s, Image *needle, long x, long y, long width, long height, double &similarity)
 {
-  return search_TEMPLATE(s, needle, similarity);
+  return search_TEMPLATE(s, needle, x, y, width, height, similarity);
 }
 
 
