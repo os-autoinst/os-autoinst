@@ -49,7 +49,7 @@ sub search_($$;$) {
 		$area->{'width'},
 		$area->{'height'});
 	    bmwqemu::diag(sprintf("MATCH(%s:%.2f): $xmatch $ymatch", $needle->{name}, $sim));
-	    my $m = ($area->{match} || 100) / 100;
+	    my $m = ($area->{match} || 95) / 100;
 	    if ($sim < $m - $threshold) {
 		    return undef;
 	    }
