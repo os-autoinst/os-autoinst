@@ -405,13 +405,11 @@ sub sendautotype($;$) {
 		if($charmap{$letter}) { $letter=$charmap{$letter} }
 		sendkey $letter;
 		if ($typedchars++ >= $maxinterval ) {
-			waitidle();
-			waitstillimage(1.1);
+			waitstillimage(1.6);
 			$typedchars=0;
 		}
 	}
-	waitidle();
-	waitstillimage(1.1) if ($typedchars > 0);
+	waitstillimage(1.6) if ($typedchars > 0);
 }
 
 sub sendpassword() {
@@ -640,18 +638,6 @@ sub take_screenshot(;$) {
 
 	#print STDERR $filename,"\n";
 
-	my($statuser, $statsystem) = $backend->cpu_stat();
-	my $statstr = '';
-	if ($statuser) {
-		for($statuser,$statsystem) {$_/=$clock_ticks}
-		$statstr .= "statuser=$statuser ";
-		$statstr .= "statsystem=$statsystem ";
-	}
-	#my $filevar = "file=".basename($lastname)." ";
-	#my $laststgvar = ($ENV{HW})?"laststage=$lastinststage ":'';
-	#my $md5var = ($ENV{HW})?'':"md5=$md5 ";
-	#diag($md5var.$filevar.$laststgvar.$statstr.$avgvar);
-
 	# hardlinking identical files saves space
 
 	# 47 is about the similarity of two screenshots with blinking cursor
@@ -702,8 +688,20 @@ sub alive() {
 }
 
 sub set_current_test($) {
-	$current_test = shift;	
+	$current_test = shift;
 }
+
+sub get_cpu_stat() {
+	my($statuser, $statsystem) = $backend->cpu_stat();
+	my $statstr = '';
+	if ($statuser) {
+		for($statuser,$statsystem) {$_/=$clock_ticks}
+		$statstr .= "statuser=$statuser ";
+		$statstr .= "statsystem=$statsystem ";
+	}
+	return $statstr;
+}
+
 
 # runtime information gathering functions end
 
@@ -856,7 +854,6 @@ sub waitidle(;$) {
 	my $timeout=shift||19;
 	my $prev;
 	fctlog('waitidle', "timeout=$timeout");
-	return 0;
 	my $timesidle=0;
 	for my $n (1..$timeout) {
 		my($stat, $systemstat) = $backend->cpu_stat();
@@ -865,6 +862,7 @@ sub waitidle(;$) {
 		$stat += $systemstat;
 		if($prev) {
 			my $diff = $stat - $prev;
+			diag("waitidle $timesidle d=$diff");
 			if($diff<$idlethreshold) {
 				if(++$timesidle > $timesidleneeded) { # idle for $x sec
 				#if($diff<2000000) # idle for one sec
@@ -916,11 +914,12 @@ sub _waitforneedle {
 			unlink("waitneedlefail");
 			last;
 		}
+		my $statstr = get_cpu_stat();
 		if ($oldimg) {
 			sleep 1;
 			$img = getcurrentscreenshot();
 			if ($oldimg == $img) { # no change, no need to search
-				diag(sprintf("no change %d", $timeout-$n));
+				diag(sprintf("no change %d $statstr", $timeout-$n));
 				next;
 			}
 		}
@@ -950,6 +949,7 @@ sub _waitforneedle {
 			}
 			return $foundneedle;
 		}
+		diag("STAT $statstr");
 		$oldimg = $img;
 	}
 	fctres('waitforneedle', "match=$mustmatch timed out after $timeout");

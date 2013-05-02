@@ -102,6 +102,7 @@ if($self->{'pid'}==0) {
 	if($ENV{UEFI}) { push(@params, "-L", $ENV{UEFI}); }
 	push(@params, "-usb", "-usbdevice", "tablet");
 	push(@params, "-smp", $ENV{QEMUCPUS});
+	push(@params, "-enable-kvm");
 	print "starting: $qemubin ".join(" ", @params)."\n";
 	exec($qemubin, @params);
 	die "exec $qemubin failed";
