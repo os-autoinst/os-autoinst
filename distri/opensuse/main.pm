@@ -8,9 +8,7 @@ sub installrunfunc
 {
 	my($test)=@_;
 	my $class=ref $test;
-	bmwqemu::set_current_test($test);
 	$test->run();
-	bmwqemu::set_current_test(undef);
 	$test->take_screenshot;
 }
 

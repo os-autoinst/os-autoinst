@@ -37,6 +37,7 @@ sub runtest
 			$running = $test;
 			$test->start();
 			save_results();
+			bmwqemu::set_current_test($test);
 			eval {
 				$ret=&$testfunc($test);
 			};
@@ -48,6 +49,7 @@ sub runtest
 				die "test $name died: $@\n";
 			}
 			$test->done();
+			bmwqemu::set_current_test(undef);
 			save_results();
 			#sleep 1;
 			diag "||| finished $name";
