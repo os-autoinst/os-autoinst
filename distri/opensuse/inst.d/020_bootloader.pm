@@ -74,8 +74,8 @@ sendautotype("video=1024x768-16 ", 13);
 sendautotype("drm_kms_helper.edid_firmware=edid/1024x768.bin ", 7);
 waitforneedle("inst-video-typed", 13);
 if(!$ENV{NICEVIDEO}) {
-	sendautotype("console=ttyS0 ", 13); # to get crash dumps as text
-	sendautotype("console=tty ", 13); # to get crash dumps as text
+	sendautotype("console=ttyS0 ", 7); # to get crash dumps as text
+	sendautotype("console=tty ", 7); # to get crash dumps as text
 	waitforneedle("inst-consolesettingstyped", 30);
 	my $e=$ENV{EXTRABOOTPARAMS};
 #	if($ENV{RAIDLEVEL}) {$e="linuxrc=trace"}

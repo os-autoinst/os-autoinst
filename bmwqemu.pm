@@ -55,7 +55,7 @@ our $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
 our $debug=1;
 our $idlethreshold=($ENV{IDLETHRESHOLD}||$ENV{IDLETHESHOLD}||18)*$clock_ticks/100; # % load max for being considered idle
 our $timesidleneeded=2;
-our $standstillthreshold=530;
+our $standstillthreshold=930;
 
 our $realname="Bernhard M. Wiedemann";
 our $username="bernhard";

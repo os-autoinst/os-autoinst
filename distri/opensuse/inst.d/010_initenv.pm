@@ -94,6 +94,10 @@ sub run()
 	if($ison=~m/openSUSE-.*-(DVD|NET|KDE|GNOME|LXDE|XFCE)-/) {
 		$ENV{$1}=1; $ENV{NETBOOT}=$ENV{NET};
 		if($ENV{LIVECD}) {
+			my $ndesktop=lc($1);
+			if (defined $ENV{DESKTOP} && $ENV{DESKTOP} ne $ndesktop) {
+				die "You can't test DESKTOP $ENV{DESKTOP} on $ison";
+			}
 			$ENV{DESKTOP}=lc($1);
 		}
 	}
