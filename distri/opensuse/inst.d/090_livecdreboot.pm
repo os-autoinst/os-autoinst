@@ -104,7 +104,14 @@ if ($ENV{'NOAUTOLOGIN'}) {
 	sendkey("ret");
 }
 
-waitforneedle('desktop-at-first-boot', 200);
+my $match = waitforneedle('desktop-at-first-boot', 200);
+die 'no match?' unless $match;
+if (checkEnv('DESKTOP', 'gnome')) {
+  $match->{needle}->has_tag('GNOME') || die 'desktop is not gnome';
+} 
+if (checkEnv('DESKTOP', 'kde')) {
+  $match->{needle}->has_tag('KDE') || die 'desktop is not kde';
+}
 
 }
 
