@@ -880,6 +880,8 @@ sub _waitforneedle {
 	my $mustmatch = $args{'mustmatch'};
 	my $timeout = $args{'timeout'} || 30;
 
+	die "current_test undefined" unless $current_test;
+
 	$args{'retried'} ||= 0;
 
 	# get the array reference to all matching needles
