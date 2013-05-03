@@ -18,9 +18,11 @@ sub runtest
 		$test = $tests{$name};
 		return unless $test->is_applicable;
 	} else {
-		{
-			eval "package $name;
-			require \$script;" or (diag("error on $script: $@") and return);
+		eval "package $name; require \$script;";
+		if ($@) {
+			my $msg = "error on $script: $@";
+			diag($msg);
+			die $msg;
 		}
 		$test=$name->new($category);
 		$tests{$name} = $test;
