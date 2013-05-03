@@ -3,7 +3,6 @@ use strict;
 use bmwqemu;
 
 # wait until ready
-waitinststage "KDE", 200;
 mouse_hide(1);
 waitidle 100;
 sleep 10;
