@@ -152,33 +152,31 @@ sub next_resultname($;$) {
 Can be called from C<run> to have screenshots in addition to the one taken via distri/opensuse/main.pm:installrunfunc after run finishes
 
 =cut
-sub take_screenshot(;$) {
-	my $self=shift;
-	my $name=shift;
-	my $cscreenshot = bmwqemu::do_take_screenshot();
-	my $count=$self->{"png_count"}||0;
-	my $testname=ref($self);
-	my $tag;
+sub take_screenshot(;$)
+{
+	my $self = shift;
+	my $name = shift;
+
+	my $count = ++$self->{"test_count"};
+	my $testname = ref($self);
+
+	my $img = bmwqemu::do_take_screenshot();
+
+	my $result = {
+		screenshot => sprintf("%s-%d.png", $testname, $count),
+		result => 'ok',
+	};
+
+	my $fn = join('/', result_dir(), $result->{'screenshot'});
+	$img->write($fn);
+
+	push @{$self->{'details'}}, $result;
+
 	if ($name) {
-		$tag = "test-$testname-$name";
+		return "test-$testname-$name";
 	} else {
-		$tag = "test-$testname-$count";
+		return "test-$testname-$count";
 	}
-	if (!$self->{lastscreenshot} || $self->{lastscreenshot}->similarity($cscreenshot) < 50) {
-		my $filename=$self->next_resultname("png", $name);
-		if (!$name) { # fix count
-			$count=$self->{"png_count"};
-			$tag = "test-$testname-$count";
-		}
-		$cscreenshot->write_optimized($filename);
-		open(my $fh, '>', "$filename.json");
-		print $fh encode_json({ "needledir" => needle::get_needle_dir, "tag" => $tag });
-		close $fh;
-		$self->{lastscreenshot} = $cscreenshot;
-		sleep(0.1);
-	}
-	return $tag;
-	# TODO analyze_screenshot $filename;
 }
 
 sub start_audiocapture {
