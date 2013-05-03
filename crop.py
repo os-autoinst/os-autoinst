@@ -126,6 +126,9 @@ class UiArea:
 
 
 for area in needle['area']:
+    # make sure we have ints
+    for s in ('xpos', 'ypos', 'width', 'height'):
+	area[s] = int(area[s])
     uiareas.append(UiArea(w, area))
 
 rect = 0
