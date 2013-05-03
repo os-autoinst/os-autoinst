@@ -10,9 +10,10 @@ our $running;   # currently running test or undef
 sub runtest
 {
 	my($script,$testfunc)=@_;
-	my $name=$script;
+	return unless $script =~ /.*\/(\w+)\.d\/\d+_(.+)\.pm$/;
+	my $category=$1;
+	my $name=$2;
 	my $test;
-	$name=~s{.*/}{}; $name=~s{^\d+_}{}; $name=~s/\.pm$//;
 	if (exists $tests{$name}) {
 		$test = $tests{$name};
 	} else {
@@ -20,7 +21,7 @@ sub runtest
 			eval "package $name;
 			require \$script;" or (diag("error on $script: $@") and return);
 		}
-		$test=$name->new();
+		$test=$name->new($category);
 		push @testorder, $test;
 		$tests{$name} = $test;
 	}
@@ -81,11 +82,7 @@ sub results()
 {
 	my $results = [];
 	for my $t (@testorder) {
-		push @$results, {
-			'name' => ref $t,
-			'details' => $t->details(),
-			'result' => $t->result(),
-		};
+		push @$results, $t->json();
 	}
 	return $results;
 }
