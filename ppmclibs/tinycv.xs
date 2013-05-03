@@ -101,6 +101,13 @@ double similarity(tinycv::Image self, tinycv::Image other)
   OUTPUT:
     RETVAL
 
+tinycv::Image absdiff(tinycv::Image self, tinycv::Image other)
+  CODE:
+    RETVAL = image_absdiff(self, other);
+
+  OUTPUT:
+    RETVAL
+
 
 void DESTROY(tinycv::Image self)
   CODE:
