@@ -1,6 +1,5 @@
 use bmwqemu;
 
-waitinststage "LXDE";
 mouse_hide(1);
 waitidle;
 sleep 5;
