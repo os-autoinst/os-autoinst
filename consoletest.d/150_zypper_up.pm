@@ -25,7 +25,7 @@ sub run()
 	checkneedle("rpm-q-libzypp", 5);
 	sendkey "ctrl-l"; # clear screen to see that second update does not do any more
 	script_run("zypper -n -q patch", 0);
-	checkneedle("zypper-patch-3", 500);
+	checkneedle("zypper-patch-3", 30);
 	script_run('echo $?');
 	script_run('exit');
 }

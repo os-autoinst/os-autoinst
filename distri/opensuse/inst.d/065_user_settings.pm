@@ -18,11 +18,11 @@ sub run()
 	waitforneedle("inst-userinfostyped", 5);
 	if($ENV{NOAUTOLOGIN}) {
 		sendkey $cmd{"noautologin"};
-		waitforneedle("autologindisabled", 2);
+		waitforneedle("autologindisabled", 5);
 	}
 	if($ENV{DOCRUN}) {
 		sendkey $cmd{"otherrootpw"};
-		waitforneedle("rootpwdisabled", 2);
+		waitforneedle("rootpwdisabled", 5);
 	}
 	# done user setup
 	sendkey $cmd{"next"};
