@@ -615,9 +615,7 @@ sub do_take_screenshot() {
 
 sub timeout_screenshot() {
 	my $n = ++$timeoutcounter;
-	my $dir=result_dir;
-	my $n2=sprintf("%02i",$n);
-	getcurrentscreenshot()->write_optimized("$dir/timeout-$n2.png");
+	$current_test->take_screenshot(sprintf("timeout-%02i", $n));
 }
 
 sub take_screenshot(;$) {
