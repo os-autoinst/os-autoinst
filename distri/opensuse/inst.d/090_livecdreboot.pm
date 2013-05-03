@@ -87,7 +87,7 @@ diag "post-install-ocr: $ocr";
 if($ocr=~m/Installation of package .* failed/i or checkneedle("install-failed", 1)) {
 	sendkeyw "alt-d"; # see details of failure
 	if(1) { # ignore
-		$self->take_screenshot; sleep 2;
+		$self->check_screen; sleep 2;
 		sendkeyw "alt-i";
 		sendkey "ret";
 		waitstillimage(50,900);

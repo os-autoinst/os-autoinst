@@ -17,7 +17,7 @@ sub run()
 	for(1..13) { sendkey "ret" }
 	sendautotype("echo If you can see this text xterm is working.\n");
 	sleep 2;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-f4"; sleep 2;
 }
 

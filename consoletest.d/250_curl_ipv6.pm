@@ -11,7 +11,7 @@ sub run()
 	my $self=shift;
 	script_run('curl www3.zq1.de/test.txt');
 	sleep 2;
-	$self->take_screenshot;
+	$self->check_screen;
 	script_run('rpm -q curl libcurl4');
 	sleep 2;
 }

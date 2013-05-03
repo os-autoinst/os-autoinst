@@ -13,7 +13,7 @@ sub run()
 	waitidle;
 	sendautotype "\t";
 	sleep 1;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendautotype "\n";
 	waitinststage("splashscreen", 40);
 }

@@ -22,7 +22,7 @@ sub run()
 	}
 	sleep 2;
 	sleep 10 if $ENV{NICEVIDEO};
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "esc"; 
 	waitidle;
 }

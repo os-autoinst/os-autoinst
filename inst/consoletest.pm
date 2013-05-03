@@ -27,7 +27,7 @@ sub consoletestrunfunc
 	bmwqemu::set_current_test($test);
 	$test->run();
 	bmwqemu::set_current_test(undef);
-	$test->take_screenshot;
+	$test->check_screen;
 	diag "finished $class";
 }
 

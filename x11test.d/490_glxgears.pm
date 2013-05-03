@@ -11,7 +11,7 @@ sub run()
 	my $self=shift;
 	ensure_installed("Mesa-demo-x");
 	x11_start_program("glxgears");
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkeyw "alt-f4";
 	sendkey "ret";
 	sleep 5; # time to close

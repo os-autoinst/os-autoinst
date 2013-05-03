@@ -24,7 +24,7 @@ sub run()
 		sleep 4;
 	}
 	waitstillimage;
-	$self->take_screenshot;
+	$self->check_screen;
 	#sendkey "ctrl-d"; sleep 3;
 	my $instcon=($ENV{VIDEOMODE} eq "text")?1:7;
 	sendkey "ctrl-alt-f$instcon"; sleep 3;

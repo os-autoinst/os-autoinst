@@ -19,9 +19,9 @@ sub run()
 	sendkey "2";
 	sendkey "ctrl-z"; # undo produces "12" instead of "1"
 	sleep 3;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-f4"; sleep 2;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-d"; sleep 2; # Discard
 }
 

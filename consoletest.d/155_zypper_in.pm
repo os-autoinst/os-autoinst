@@ -9,7 +9,7 @@ sub run()
 	script_sudo("zypper --gpg-auto-import-keys -n in screen rsync gvim suse-ami-tools");
 	waitstillimage(12,90);
 	script_run('echo $?');
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "ctrl-l"; # clear screen to see that second update does not do any more
 	my $pkgname=(($ENV{DISTRI}=~/fedora/)?"vim-X11":"gvim");
 	script_sudo("rpm -e $pkgname");

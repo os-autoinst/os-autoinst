@@ -10,7 +10,7 @@ sub run()
 {
 	my $self=shift;
 	x11_start_program("dolphin");
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-f4"; sleep 2;
 }
 

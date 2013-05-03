@@ -11,11 +11,11 @@ sub run()
 	my $self=shift;
 	sendkey "ctrl-alt-delete"; # shutdown
 	waitidle;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "ret"; # confirm shutdown
 	if(!$ENV{GNOME2}) {
 		sleep 3;
-		$self->take_screenshot;
+		$self->check_screen;
 		sendkey "ctrl-alt-f1";
 		sleep 3;
 		qemusend "system_powerdown"; # shutdown

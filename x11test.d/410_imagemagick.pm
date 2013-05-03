@@ -16,7 +16,7 @@ sub run()
 	script_run("ls;display *.png");
 	for(1..3){
 		sendkey "spc"; sleep 3;
-		$self->take_screenshot;
+		$self->check_screen;
 	}
 	sendkey "alt-f4"; # close display
 	sendkey "alt-f4"; # close xterm

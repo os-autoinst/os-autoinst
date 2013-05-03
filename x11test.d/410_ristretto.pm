@@ -16,7 +16,7 @@ sub run()
     my $self=shift;
     x11_start_program("ristretto /usr/share/wallpapers/xfce/default.wallpaper");
     sendkey "ctrl-m"; sleep 2;
-    $self->take_screenshot;
+    $self->check_screen;
     sendkey "alt-f4"; sleep 2;
 }
 
