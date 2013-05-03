@@ -3,7 +3,6 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
-	die "OK";
 	script_run("zypper lr -d > /dev/$serialdev");
 	script_sudo("killall gpk-update-icon kpackagekitsmarticon packagekitd");
 	script_sudo("zypper ar http://download.opensuse.org/repositories/Cloud:/EC2/openSUSE_Factory/Cloud:EC2.repo"); # for suse-ami-tools
