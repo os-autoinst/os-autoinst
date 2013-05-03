@@ -6,13 +6,15 @@ use Time::HiRes;
 use JSON;
 use Data::Dumper;
 
-sub new() {
+sub new(;$) {
 	my $class=shift;
+	my $category = shift || 'unknown';
 	my $self={class=>$class};
 	$self->{lastscreenshot} = undef;
 	$self->{details} = [];
 	$self->{result} = undef;
 	$self->{running} = 0;
+	$self->{category} = $category;
 	return bless $self, $class;
 }
 
@@ -117,6 +119,17 @@ sub fail_if_running()
 {
 	my $self = shift;
 	$self->{result} = 'fail' if $self->{'result'};
+}
+
+sub json()
+{
+	my $self = shift;
+	return {
+		'name' => ref $self,
+		'details' => $self->details(),
+		'result' => $self->result(),
+		'category' => $self->{'category'},
+	};
 }
 
 sub next_resultname($;$) {
