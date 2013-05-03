@@ -97,7 +97,7 @@ if($ocr=~m/Installation of package .* failed/i or checkneedle("install-failed", 
 }
 
 if ($ENV{'NOAUTOLOGIN'}) {
-	waitforneedle('displaymanager', 60);
+	waitforneedle('displaymanager', 200);
 	sendautotype($username);
 	sendkey("ret");
 	sendautotype("$password");
