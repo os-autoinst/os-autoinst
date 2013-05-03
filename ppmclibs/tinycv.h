@@ -23,4 +23,6 @@ std::vector<float> image_avgcolor(Image *s);
 bool image_differ(Image *a, Image *b, unsigned char maxdiff);
 
 Image *image_scale(Image *a, int width, int height);
-double image_similarity(Image *a, Image*b);
+double image_similarity(Image *a, Image *b);
+
+Image *image_absdiff(Image *a, Image*b);
