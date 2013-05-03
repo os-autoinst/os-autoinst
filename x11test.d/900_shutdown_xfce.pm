@@ -15,7 +15,7 @@ sub run()
 	waitidle;
 	sendautotype "\t\t"; # select shutdown
 	sleep 1;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendautotype "\n";
 	waitinststage("splashscreen");
 }

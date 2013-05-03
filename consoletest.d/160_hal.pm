@@ -15,11 +15,11 @@ sub run()
 	local $bmwqemu::timesidleneeded=4;
 	script_sudo("zypper -n -q in hal");
 	waitidle(60);
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey("ctrl-l"); # clear screen
 	script_sudo("/etc/init.d/haldaemon status");
 	sleep 3;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey("ctrl-l"); # clear screen
 	script_sudo("/sbin/insserv haldaemon");
 }

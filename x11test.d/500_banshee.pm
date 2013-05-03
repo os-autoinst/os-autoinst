@@ -10,7 +10,7 @@ sub run()
 {
 	my $self=shift;
 	x11_start_program("banshee");
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "ctrl-q"; # really quit (alt-f4 just backgrounds)
 	sendkey "alt-f4"; 
 	waitidle;

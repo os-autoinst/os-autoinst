@@ -17,10 +17,10 @@ sub run()
 	script_sudo("zypper -n --gpg-auto-import-keys in sikuli yast2-ycp-ui-bindings-devel ; echo sikuli installed > /dev/ttyS0");
 	waitserial("sikuli installed", 200);
 	script_run("cd /tmp;curl openqa.opensuse.org/opensuse/qatests/ykuli.tar | tar x ; cd ykuli");
-	$self->take_screenshot;
+	$self->check_screen;
 	script_run("./run_ykuli.sh ; echo yastsikuli finished > /dev/ttyS0");
 	waitserial("yastsikuli finished", 680);
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-f4";
 	script_sudo_logout();
 }

@@ -11,13 +11,14 @@ sub run()
 	my $self=shift;
 	x11_start_program("oowriter");
 	sleep 2; waitidle; # extra wait because oo sometimes appears to be idle during start
-	$self->take_screenshot;
+	$self->check_screen;
 	sendautotype("Hello World!");
 	sleep 2;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-f4"; sleep 2;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-w"; # Close _without saving
+	$self->check_screen;
 	sendkey "alt-d"; sleep 2; # Discard
 }
 

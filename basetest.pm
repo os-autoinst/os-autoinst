@@ -179,6 +179,28 @@ sub take_screenshot(;$)
 	}
 }
 
+=head2 check_screen
+check needle with a tag that consists of current test name and
+counter. Convenience function around checkneedle
+=cut
+sub check_screen(;$)
+{
+	my $self = shift;
+	my $name = shift;
+	my $testname = ref($self);
+	my $tag;
+
+	my $count = ++$self->{"test_count"};
+
+	if ($name) {
+		$tag = "test-$testname-$name";
+	} else {
+		$tag = "test-$testname-$count";
+	}
+
+	return bmwqemu::checkneedle($tag)
+}
+
 sub start_audiocapture {
 	my $self=shift;
 	my $filename=$self->next_resultname("wav");

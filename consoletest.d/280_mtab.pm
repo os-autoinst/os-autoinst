@@ -5,7 +5,7 @@ sub run()
 {
 	my $self=shift;
 	script_run('test -L /etc/mtab && echo OK || echo fail');
-	$self->take_screenshot;
+	$self->check_screen;
 	script_run('cat /etc/mtab');
 }
 

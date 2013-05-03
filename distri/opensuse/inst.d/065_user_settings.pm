@@ -29,7 +29,7 @@ sub run()
 	# loading cracklib
 	waitforneedle("inst-userpasswdtoosimple", 6);
 	# PW too easy (cracklib)
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "ret";
 	#sleep 1;
 	# PW too easy (only chars)
@@ -40,7 +40,7 @@ sub run()
 			sendautotype("$password\t");
 			sleep 1;
 		}
-		$self->take_screenshot;
+		$self->check_screen;
 		sendkey $cmd{"next"};
 		# loading cracklib
 		waitidle 6;

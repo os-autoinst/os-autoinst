@@ -6,7 +6,7 @@ sub run()
 	my $self=shift;
 	script_sudo("zypper -n in alsa-utils");
 	script_run('cd /tmp;wget openqa.opensuse.org/opensuse/audio/bar.wav');
-	$self->take_screenshot;
+	$self->check_screen;
 	$self->start_audiocapture;
 	script_run("aplay bar.wav ; echo aplay_finished > /dev/$serialdev");
 	waitserial('aplay_finished');

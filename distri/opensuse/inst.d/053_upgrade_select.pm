@@ -15,10 +15,10 @@ sub run()
 	sendkeyw "alt-c"; # "Cancel" on warning popup (11.1->11.3)
 	sendkeyw "alt-s"; # "Show All Partitions"
 
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkeyw $cmd{"next"};
 	# repos
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkeyw $cmd{"next"};
 	# might need to resolve conflicts here
 	if($ENV{UPGRADE}=~m/11\.1/) {

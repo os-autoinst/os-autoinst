@@ -12,7 +12,7 @@ sub run
   my $self=shift;
   sleep 40;
   waitidle(200);
-  $self->take_screenshot; sleep 2;
+  $self->check_screen; sleep 2;
   exit 0; # end test
 }
 

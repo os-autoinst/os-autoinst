@@ -35,7 +35,7 @@ EOF\n");
 	}
 	script_sudo("zypper --gpg-auto-import-keys refresh");
 	script_sudo("zypper dup -l");
-	$self->take_screenshot;
+	$self->check_screen;
 	#for(1..20) { sendkeyw "3"; # ignore unresolvable
 	#}
 	for(1..20) {
@@ -43,7 +43,7 @@ EOF\n");
 		sendkeyw "ret";
 	}
 	sendautotype("1\n"); # some conflicts can not be ignored
-	$self->take_screenshot;
+	$self->check_screen;
 	sendautotype("y\n"); # confirm
 	local $ENV{SCREENSHOTINTERVAL}=2.5;
 	for(1..12) {
@@ -55,7 +55,7 @@ EOF\n");
 	}
 	waitstillimage(60, 5000); # wait for upgrade to finish
 
-	$self->take_screenshot; sleep 2;
+	$self->check_screen; sleep 2;
 	sendkey "ctrl-alt-f4"; sleep 3;
 
 	sendautotype "n\n"; # don't view notifications

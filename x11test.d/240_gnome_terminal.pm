@@ -21,7 +21,7 @@ sub run()
     for(1..13) { sendkey "ret" }
     sendautotype("echo If you can see this text gnome-terminal is working.\n");
     sleep 2;
-    $self->take_screenshot; sleep 2;
+    $self->check_screen; sleep 2;
     sendkey "alt-f4"; sleep 2;
 }
 

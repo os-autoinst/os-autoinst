@@ -16,7 +16,7 @@ sub run()
     my $self=shift;
     x11_start_program('notify-send --expire-time=10 Test');
     sleep 2;
-    $self->take_screenshot;
+    $self->check_screen;
     sleep 10;
 }
 

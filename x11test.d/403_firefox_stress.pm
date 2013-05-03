@@ -24,19 +24,19 @@ sub run()
 {
 	my $self=shift;
 	x11_start_program("firefox");
-	$self->take_screenshot;
+	$self->check_screen;
 	foreach my $site (@sites) {
 		open_tab($site);
-		if($site=~m/openqa/) {$self->take_screenshot;}
+		if($site=~m/openqa/) {$self->check_screen;}
 	}
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-f4"; sleep 2;
 	sendkey "ret"; # confirm "save&quit"
 	waitidle;
 
 	# re-open to see how long it takes to open all tabs together
 	x11_start_program("firefox");
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-f4"; sleep 2;
 	sendkey "ret"; # confirm "save&quit"
 }

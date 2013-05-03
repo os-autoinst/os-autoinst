@@ -13,15 +13,15 @@ sub run()
 	my $self=shift;
 	script_sudo("/sbin/yast2 bootloader");
 	sleep 3;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-o"; # OK => Close # might just close warning on livecd
 	sleep 2;
 	sendkey "alt-o"; # OK => Close
 	waitidle;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "ctrl-l";
 	script_run('echo $?');
-	$self->take_screenshot;
+	$self->check_screen;
 	script_run('rpm -q hwinfo');
 }
 

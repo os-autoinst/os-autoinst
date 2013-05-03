@@ -13,7 +13,7 @@ sub run()
 	script_run("cd /tmp ; wget -q openqa.opensuse.org/opensuse/qatests/qa_ntp.pl");
 	script_sudo("perl qa_ntp.pl");
 	waitidle(90);
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey("ctrl-l"); # clear screen
 	script_run('echo sntp returned $?');
 }

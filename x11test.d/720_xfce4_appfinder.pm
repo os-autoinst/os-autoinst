@@ -18,9 +18,9 @@ sub run()
     sleep 2;
     sendkey "down";
     sendautotype "about\n";
-    $self->take_screenshot;
+    $self->check_screen;
     sendkeyw "ret";
-    $self->take_screenshot;
+    $self->check_screen;
     sendkey "alt-f4"; sleep 2;
 }
 

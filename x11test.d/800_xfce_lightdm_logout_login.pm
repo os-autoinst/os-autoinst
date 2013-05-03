@@ -17,7 +17,7 @@ sub run()
     x11_start_program("xfce4-session-logout");
     sendkey "alt-l";
     sleep 10;
-    $self->take_screenshot;
+    $self->check_screen;
     sendpassword;
     sendkey "ret";
     sleep 10;

@@ -19,7 +19,7 @@ sub run()
     sendkey "alt+f1"; sleep 2;
     for (1..8) {
         sendkey "down"; sleep 1;
-        $self->take_screenshot; sleep 1;
+        $self->check_screen; sleep 1;
     }
     sendkey "esc";
 }
