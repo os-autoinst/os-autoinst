@@ -198,7 +198,7 @@ sub check_screen(;$)
 		$tag = "test-$testname-$count";
 	}
 
-	return bmwqemu::checkneedle($tag)
+	return bmwqemu::checkneedle($tag, 1)
 }
 
 sub start_audiocapture {
