@@ -17,11 +17,14 @@ bootstrap tinycv $VERSION;
 
 package tinycv::Image;
 
-# returns area of last matched
+# returns area of last matched or undef if not found.
+# caution here: if candidate is True, will return a tuple:
+#   (undef, absdiff(area_image, area_needle))
 sub search_($$;$) {
     my $self = shift;
     my $needle = shift;
     my $threshold = shift || 0.005;
+    my $candidate = shift;
     my ($sim, $xmatch, $ymatch, $d1, $d2);
     my (@exclude, @match, @ocr);
 
@@ -36,14 +39,14 @@ sub search_($$;$) {
 
     for my $a (@exclude) {
 	    $img->replacerect($a->{'xpos'}, $a->{'ypos'},
-			      $a->{'width'}, $a->{'height'});
+			     $a->{'width'}, $a->{'height'});
     }
     my $area;
 
     my $lastarea;
     for my $area (@match) {
 	    ($sim, $xmatch, $ymatch, $d1, $d2) = $img->search_needle(
-		$needle->get_image(),
+		$needle->get_image,
 		$area->{'xpos'},
 		$area->{'ypos'},
 		$area->{'width'},
@@ -51,7 +54,13 @@ sub search_($$;$) {
 	    bmwqemu::diag(sprintf("MATCH(%s:%.2f): $xmatch $ymatch", $needle->{name}, $sim));
 	    my $m = ($area->{match} || 95) / 100;
 	    if ($sim < $m - $threshold) {
-		    return undef;
+		    my $diff;
+		    if ($candidate) {
+			my $needle_img = $needle->get_image($area);
+			my $area_img = $img->copyrect($xmatch, $ymatch, $area->{'width'}, $area->{'height'});
+			$diff = $area_img->absdiff($needle_img);
+		    }
+		    return (undef, $diff);
 	    }
 	    $lastarea = $area;
     }
@@ -76,18 +85,19 @@ sub search($;$) {
     my $self = shift;
     my $needle = shift;
     my $threshold = shift;
+    my $candidate = shift;
     return undef unless $needle;
     if (ref($needle) eq "ARRAY") {
 	my $ret;
 	# try to match all needles and return the one with the highest similarity
 	for my $n (@$needle) {
-	    my $found = $self->search_($n, $threshold);
+	    my $found = $self->search_($n, $threshold, $candidate);
 	    next unless $found;
 	    $ret = $found if !$ret || $ret->{'similarity'} < $found->{'similarity'};
 	}
 	return $ret;
     } else {
-	return $self->search_($needle, $threshold);
+	return $self->search_($needle, $threshold, $candidate);
     }
 }
 
