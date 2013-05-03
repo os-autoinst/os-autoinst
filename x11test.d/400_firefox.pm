@@ -6,7 +6,7 @@ sub run()
 	my $self=shift;
 	mouse_hide(1);
 	x11_start_program("firefox");
-	$self->take_screenshot;
+	$self->check_screen;
 	if($ENV{UPGRADE}) { sendkey("alt-d");waitidle; } # dont check for updated plugins
 	if($ENV{DESKTOP}=~/xfce|lxde/i) {
 		sendkey "ret"; # confirm default browser setting popup
@@ -20,10 +20,10 @@ sub run()
 		sendkey "ret"; waitidle;
 		sendkey "ctrl-w"; sleep 1;
 	}
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-h"; sleep 2;	# Help
 	sendkey "a"; sleep 2;		# About
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-f4"; sleep 2;	# close About
 	sendkey "alt-f4"; sleep 2;
 	sendkey "ret"; # confirm "save&quit"

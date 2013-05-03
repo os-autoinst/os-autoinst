@@ -17,10 +17,10 @@ sub run()
         waitserial("imroot", 5) || die "Root prompt not there";
 	script_run("zypper -n patch -l && echo 'worked' > /dev/$serialdev");
         waitserial("worked", 700) || die "zypper failed";
-        $self->take_screenshot("first_run"); 
+        $self->check_screen("first_run"); 
 	script_run("zypper -n patch -l && echo 'worked' > /dev/$serialdev"); # first one might only have installed "update-test-affects-package-manager"
 	waitserial("worked", 700) || die "zypper failed";
-        $self->take_screenshot("second_run");
+        $self->check_screen("second_run");
 	script_run("rpm -q libzypp zypper", 0);
 	checkneedle("rpm-q-libzypp", 5);
 	sendkey "ctrl-l"; # clear screen to see that second update does not do any more

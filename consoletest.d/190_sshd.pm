@@ -9,7 +9,7 @@ sub run()
 	script_sudo('systemctl disable SuSEfirewall2');
 	script_sudo('/sbin/chkconfig -a sshd');
 	script_sudo('/etc/init.d/sshd restart'); # will do nothing if it is already running
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey("ctrl-l");
 	script_run('echo $?');
 	script_sudo('/etc/init.d/sshd status');

@@ -7,7 +7,7 @@ sub run()
 {
 	my $self=shift;
 	script_run('uname -a');
-#	$self->take_screenshot;
+#	$self->check_screen;
 	script_run('df');
 	sendautotype "/sbin/btrfs filesystem df /\n" if $ENV{BTRFS};
 	script_run('free');
@@ -16,7 +16,7 @@ sub run()
 	script_run('grep DEFAULT /etc/sysconfig/windowmanager');
 	script_run("ls -l /etc/ntp*");
 	script_run("du /var/log/messages");
-	$self->take_screenshot;
+	$self->check_screen;
 	local $ENV{SCREENSHOTINTERVAL}=3; # uninteresting stuff for automatic processing:
 	script_run("ps ax > /dev/$serialdev");
 	script_run("systemctl --no-pager --full > /dev/$serialdev");

@@ -13,7 +13,7 @@ sub run()
 	x11_start_program("firefox http://openqa.opensuse.org/opensuse/audio/bar.oga");
 	sleep 3;
 	$self->stop_audiocapture;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-f4"; sleep 2;
 	sendkeyw "ret"; # confirm "save&quit"
 }

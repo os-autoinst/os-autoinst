@@ -19,7 +19,7 @@ sub run()
     sendkey "shift-tab";
     sendkey "home";
     sendkey "down";
-    $self->take_screenshot;
+    $self->check_screen;
     sendkey "alt-f4"; sleep 2;
 }
 

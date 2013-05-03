@@ -21,7 +21,7 @@ sub run()
 		sendkey "shift"; # avoid blank/screensaver
 		last if waitserial("mozmill testrun finished", 120);
 	}
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkey "alt-f4";
 }
 

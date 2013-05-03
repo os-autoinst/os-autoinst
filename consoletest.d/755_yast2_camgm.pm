@@ -33,7 +33,7 @@ sub run()
 		sendkey "down";
 		sendkey "down";
 		sendkeyw "ret"; # Export as Common Server Certificate
-		$self->take_screenshot(); sleep 1;
+		$self->check_screen(); sleep 1;
 		sendkey "alt-o"; # hostname warning - might or might not be needed
 		sendkeyw "alt-p"; # select PW field
 		sendautotype $password;

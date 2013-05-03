@@ -30,7 +30,7 @@ sub run()
 			sendkey "down";
 		}
 		sleep 4;
-		$self->take_screenshot;
+		$self->check_screen;
 		sendkey $cmd{accept}; # Accept
 		sleep 2;
 		sendkey "alt-o"; # cOntinue

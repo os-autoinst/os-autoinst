@@ -18,7 +18,7 @@ sub run()
 	qemusend "eject ide1-cd0";
 	sendkey "ctrl-alt-delete";
 	sleep 20;
-	$self->take_screenshot;
+	$self->check_screen;
 	waitidle(90);
 	waitstillimage(12,60);
 }

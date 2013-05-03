@@ -31,7 +31,7 @@ sub run()
 			sendkey "alt-i";sendkeyw "alt-t"; # confirm import (trust) key
 		}
 	}
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkeyw $cmd{"next"}; # done
 }
 

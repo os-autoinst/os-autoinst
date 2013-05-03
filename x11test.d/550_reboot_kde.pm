@@ -14,7 +14,7 @@ sub run()
 	waitidle(15);
 	sendautotype "\t\t";
 	sleep 1;
-	$self->take_screenshot;
+	$self->check_screen;
 	sendautotype "\n";
 }
 

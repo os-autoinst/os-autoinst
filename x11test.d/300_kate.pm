@@ -18,7 +18,7 @@ sub run()
     x11_start_program("kate");
     sendautotype("If you can see this text kate is working.\n");
     sleep 2;
-    $self->take_screenshot; sleep 2;
+    $self->check_screen; sleep 2;
     sendkey "ctrl-q"; sleep 2;
     sendkey "alt-d"; sleep 2; # discard
 }

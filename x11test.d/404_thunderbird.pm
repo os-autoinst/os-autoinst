@@ -11,7 +11,7 @@ sub run()
 	my $self=shift;
 	ensure_installed("thunderbird");
 	x11_start_program("thunderbird");
-	$self->take_screenshot;
+	$self->check_screen;
 	sendkeyw "alt-f4";	# close wizzard
 	sendkeyw "alt-f4";	# close prog
 }

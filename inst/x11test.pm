@@ -12,7 +12,7 @@ sub x11testrunfunc
 	$test->run();
 	bmwqemu::set_current_test(undef);
 	sleep 1; 
-	$test->take_screenshot;
+	$test->check_screen;
 	diag "finished $class";
 }
 
