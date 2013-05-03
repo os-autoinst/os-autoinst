@@ -154,8 +154,6 @@ our $backend; #FIXME: make local after adding frontend-api to bmwqemu
 my $framecounter = 0; # screenshot counter
 
 ## sudo stuff
-my $sudotimeout=298; # 5 mins
-my $lastsudotime;
 my $sudos=0;
 ## sudo stuff end
 
@@ -501,13 +499,10 @@ $wait_seconds
 sub script_sudo($;$) {
 	my ($prog,$wait)=@_;
 	sendautotype("sudo $prog\n");
-	if(!$lastsudotime||$lastsudotime+$sudotimeout<time()) {$sudos=0}
-	if($password && !$sudos++) {
-		waitidle();
+	if (checkneedle("sudo-passwordprompt", 3)) {
 		sendpassword;
 		sendkey "ret";
 	}
-	$lastsudotime=time();
 	waitidle($wait);
 }
 
@@ -903,8 +898,6 @@ sub _waitforneedle {
 	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
 	if (!@$needles) {
 		diag("NO matching needles for $mustmatch");
-		# give it some time to settle but not too much
-		$timeout = 3;
 	}
 	my $img = getcurrentscreenshot();
 	my $oldimg;
