@@ -16,16 +16,18 @@ sub runtest
 	my $test;
 	if (exists $tests{$name}) {
 		$test = $tests{$name};
+		return unless $test->is_applicable;
 	} else {
 		{
 			eval "package $name;
 			require \$script;" or (diag("error on $script: $@") and return);
 		}
 		$test=$name->new($category);
-		push @testorder, $test;
 		$tests{$name} = $test;
+
+		return unless $test->is_applicable;
+		push @testorder, $test;
 	}
-	return unless $test->is_applicable;
 	if (defined $testfunc) {
 		my $ret;
 		unless(defined $ENV{'checklog_working'} && $ENV{'checklog_working'}) {
