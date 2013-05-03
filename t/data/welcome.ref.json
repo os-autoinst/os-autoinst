@@ -1,14 +1,25 @@
 {
     "area": [
         {
-            "height": 190,
+            "height": 125,
             "type": "match",
-            "width": 420,
+            "width": 353,
+            "xpos": 253,
+            "ypos": 5
+        },
+        {
+            "height": 50,
+            "type": "match",
+            "width": 145,
             "xpos": 260,
-            "ypos": 10
+            "ypos": 225
         }
     ],
     "tags": [
-        "FIXME"
+        "inst-welcome",
+        "languagepicked",
+        "test-welcome-inst-welcome",
+        "test-welcome-inst-welcome_inst-betawarning_",
+        "test-welcome-languagepicked"
     ]
 }
