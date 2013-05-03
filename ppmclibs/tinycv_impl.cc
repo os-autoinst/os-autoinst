@@ -317,3 +317,15 @@ double image_similarity(Image *a, Image*b)
 
   return getPSNR(a->img, b->img);
 }
+
+
+Image *image_absdiff(Image *a, Image *b)
+{
+  Image *n = new Image;
+
+  Mat t;
+  absdiff(a->img, b->img, t);
+  n->img = t;
+
+  return n;
+}
