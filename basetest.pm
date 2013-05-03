@@ -113,6 +113,7 @@ sub done()
 {
 	my $self = shift;
 	$self->{running} = 0;
+	$self->{result} ||= 'unk';
 }
 
 sub fail_if_running()
