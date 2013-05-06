@@ -36,11 +36,12 @@ sub is_applicable() {
 	return 1;
 }
 
-sub record_screenmatch($$)
+sub record_screenmatch($$;$)
 {
 	my $self = shift;
 	my $img = shift;
 	my $foundneedle = shift;
+	my $tags = shift || [];
 
 	my $count = ++$self->{"test_count"};
 	my $testname = ref($self);
@@ -56,6 +57,7 @@ sub record_screenmatch($$)
 				similarity => $foundneedle->{'similarity'},
 			},
 		],
+		tags => [ @$tags ], # make a copy
 		screenshot => sprintf("%s-%d.png", $testname, $count),
 		result => 'ok',
 	};
@@ -68,25 +70,30 @@ sub record_screenmatch($$)
 	push @{$self->{'details'}}, $result;
 }
 
-sub record_screenfail($$)
+sub record_screenfail($@)
 {
 	my $self = shift;
-	my $img = shift;
-	my $needles = shift;
+	my %args = @_;
+	my $img = $args{'img'};
+	my $needles = $args{'needles'} || [];
+	my $tags = $args{'tags'} || [];
+	my $status = $args{'result'} || 'fail';
+	my $overall = $args{'overall'}; # whether and how to set global test result
 
 	my $count = ++$self->{"test_count"};
 	my $testname = ref($self);
 
 	my $result = {
 		needles => [ map { $_->{'name'} } @$needles ],
+		tags => [ @$tags ], # make a copy
 		screenshot => sprintf("%s-%d.png", $testname, $count),
-		result => 'fail',
+		result => $status,
 	};
 	
 	my $fn = join('/', result_dir(), $result->{'screenshot'});
 	$img->write($fn);
 
-	$self->{result} ||= 'fail';
+	$self->{result} ||= $overall if $overall;
 	
 	push @{$self->{'details'}}, $result;
 }
