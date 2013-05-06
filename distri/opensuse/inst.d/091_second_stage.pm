@@ -4,6 +4,7 @@ use base "installstep";
 use bmwqemu;
 
 sub run() {
+	my $self=shift;
 	#if($ENV{RAIDLEVEL} && !$ENV{LIVECD}) { do "$scriptdir/workaround/656536.pm" }
 	#waitforneedle "automaticconfiguration", 70;
 	mouse_hide();
@@ -39,3 +40,5 @@ sub run() {
 	my $match = waitforneedle('desktop-at-first-boot', 200);
 	die 'no match?' unless $match;
 }
+
+1;
