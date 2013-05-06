@@ -41,23 +41,15 @@ sub record_screenmatch($$;$)
 {
 	my $self = shift;
 	my $img = shift;
-	my $foundneedle = shift;
+	my $needle = shift;
 	my $tags = shift || [];
 
 	my $count = ++$self->{"test_count"};
 	my $testname = ref($self);
 
 	my $result = {
-		needle => $foundneedle->{'needle'}->{'name'},
-		matcharea => [
-			{
-				x => $foundneedle->{'x'},
-				y => $foundneedle->{'y'},
-				w => $foundneedle->{'w'},
-				h => $foundneedle->{'h'},
-				similarity => $foundneedle->{'similarity'},
-			},
-		],
+		needle => $needle->{'needle'}->{'name'},
+		area => $needle->{'area'},
 		tags => [ @$tags ], # make a copy
 		screenshot => sprintf("%s-%d.png", $testname, $count),
 		result => 'ok',
@@ -84,8 +76,25 @@ sub record_screenfail($@)
 	my $count = ++$self->{"test_count"};
 	my $testname = ref($self);
 
+	my $candidates;
+	my $diffcount = 0;
+	for my $cand (@{$needles||[]}) {
+		my $h = { 'name' => $cand->{'needle'}->{'name'}, 'area' => [] };
+		for my $a (@{$cand->{'area'}}) {
+			my $na = {};
+			for my $i (qw/x y w h similarity result/) {
+				$na->{$i} = $a->{$i};
+			}
+			my $imgname = sprintf("%s-%d-diff%d.png", $testname, $count, $diffcount++);
+			$a->{'diff'}->write(join('/', result_dir(), $imgname));
+			$na->{'diff'} = $imgname;
+			push @{$h->{'area'}}, $na;
+		}
+		push @$candidates, $h;
+	}
+
 	my $result = {
-		needles => [ map { $_->{'name'} } @$needles ],
+		needles => $candidates,
 		tags => [ @$tags ], # make a copy
 		screenshot => sprintf("%s-%d.png", $testname, $count),
 		result => $status,
