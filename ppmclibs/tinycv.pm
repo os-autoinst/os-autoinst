@@ -17,14 +17,20 @@ bootstrap tinycv $VERSION;
 
 package tinycv::Image;
 
-# returns area of last matched or undef if not found.
-# caution here: if candidate is True, will return a tuple:
-#   (undef, absdiff(area_image, area_needle))
-sub search_($$;$) {
+# returns hash with match hinformation
+# {
+#   ok => INT(1,0), # 1 if all areas matched
+#   area = [
+#     { x => INT, y => INT, w => INT, h => INT,
+#       similarity => FLOAT,
+#       result = STRING('ok', 'fail'),
+#     }
+#   ]
+# }
+sub search_($$) {
     my $self = shift;
     my $needle = shift;
     my $threshold = shift || 0.005;
-    my $candidate = shift;
     my ($sim, $xmatch, $ymatch, $d1, $d2);
     my (@exclude, @match, @ocr);
 
@@ -41,9 +47,9 @@ sub search_($$;$) {
 	    $img->replacerect($a->{'xpos'}, $a->{'ypos'},
 			     $a->{'width'}, $a->{'height'});
     }
-    my $area;
 
-    my $lastarea;
+    my $ret = { ok => 1, needle => $needle, area => [] };
+
     for my $area (@match) {
 	    ($sim, $xmatch, $ymatch, $d1, $d2) = $img->search_needle(
 		$needle->get_image,
@@ -52,52 +58,76 @@ sub search_($$;$) {
 		$area->{'width'},
 		$area->{'height'});
 	    bmwqemu::diag(sprintf("MATCH(%s:%.2f): $xmatch $ymatch", $needle->{name}, $sim));
+
+	    my $ma = {
+		    similarity => $sim, x => $xmatch, y => $ymatch,
+		    w => $area->{'width'},
+		    h => $area->{'height'},
+		    result => 'ok',
+		  };
+
 	    my $m = ($area->{match} || 95) / 100;
 	    if ($sim < $m - $threshold) {
-		    my $diff;
-		    if ($candidate) {
-			my $needle_img = $needle->get_image($area);
-			my $area_img = $img->copyrect($xmatch, $ymatch, $area->{'width'}, $area->{'height'});
-			$diff = $area_img->absdiff($needle_img);
-		    }
-		    return (undef, $diff);
+		    my $needle_img = $needle->get_image($area);
+		    my $area_img = $img->copyrect($xmatch, $ymatch, $area->{'width'}, $area->{'height'});
+		    $ma->{'diff'} = $area_img->absdiff($needle_img);
+		    $ma->{'result'} = 'fail';
+		    $ret->{'ok'} = 0;
 	    }
-	    $lastarea = $area;
+	    push @{$ret->{'area'}}, $ma;
     }
 
-    my $ret = {
-	    similarity => $sim, x => $xmatch, y => $ymatch,
-	    w => $lastarea->{'width'},
-	    h => $lastarea->{'height'},
-	    needle => $needle
-	  };
-
-    for my $a (@ocr) {
-	    $ret->{'ocr'} ||= [];
-	    my $ocr = ocr::tesseract($img, $a);
-	    push @{$ret->{'ocr'}}, $ocr;
+    if ($ret->{'ok'}) {
+	for my $a (@ocr) {
+		$ret->{'ocr'} ||= [];
+		my $ocr = ocr::tesseract($img, $a);
+		push @{$ret->{'ocr'}}, $ocr;
+	}
     }
 
     return $ret;
 }
 
+# in scalar context return found info or undef
+# in array context returns array with two elements. First element is best match
+# or undefined, second element are candidates that did not match.
 sub search($;$) {
     my $self = shift;
     my $needle = shift;
     my $threshold = shift;
-    my $candidate = shift;
     return undef unless $needle;
     if (ref($needle) eq "ARRAY") {
-	my $ret;
+	my $candidates;
+	my $best;
 	# try to match all needles and return the one with the highest similarity
 	for my $n (@$needle) {
-	    my $found = $self->search_($n, $threshold, $candidate);
+	    my $found = $self->search_($n, $threshold);
 	    next unless $found;
-	    $ret = $found if !$ret || $ret->{'similarity'} < $found->{'similarity'};
+	    if ($found->{'ok'}) {
+		if (!$best) {
+		    $best = $found;
+		} elsif ($best->{'similarity'} < $found->{'similarity'}) {
+		    push @$candidates, $best;
+		    $best = $found;
+		}
+	    } else {
+		push @$candidates, $found;
+	    }
 	}
-	return $ret;
+	if (wantarray) {
+	    return ($best, $candidates);
+	} else {
+	    return $best;
+	}
     } else {
-	return $self->search_($needle, $threshold, $candidate);
+	my $found = $self->search_($needle, $threshold);
+	return undef unless $found;
+	if (wantarray) {
+	    return ($found, undef) if ($found->{'ok'});
+	    return (undef, [ $found ]);
+	}
+	return undef unless $found->{'ok'};
+	return $found;
     }
 }
 

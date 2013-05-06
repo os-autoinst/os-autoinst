@@ -882,7 +882,8 @@ sub waitinststage($;$$) {
         my $stage = shift;
 	my $timeout = shift||30;
 	my $extra = shift;
-	return waitforneedle($stage, $timeout, $extra);
+	die "FIXME: what is extra?\n" if $extra;
+	return waitforneedle($stage, $timeout);
 }
 
 sub _waitforneedle {
@@ -915,6 +916,7 @@ sub _waitforneedle {
 	}
 	my $img = getcurrentscreenshot();
 	my $oldimg;
+	my $failed_candidates;
 	for my $n (1..$timeout) {
 		if (-e "waitneedlefail") {
 			unlink("waitneedlefail");
@@ -929,18 +931,20 @@ sub _waitforneedle {
 				next;
 			}
 		}
-		my $foundneedle = $img->search($needles);
+		my $foundneedle;
+		($foundneedle, $failed_candidates) = $img->search($needles);
 		if ($foundneedle) {
 			$current_test->record_screenmatch($img, $foundneedle, \@tags);
+			my $lastarea = $foundneedle->{'area'}->[-1];
 			fctres(sprintf("found %s, similarity %.2f @ %d/%d",
 				$foundneedle->{'needle'}->{'name'},
-				$foundneedle->{'similarity'},
-				$foundneedle->{'x'}, $foundneedle->{'y'}));
+				$lastarea->{'similarity'},
+				$lastarea->{'x'}, $lastarea->{'y'}));
 			if ($args{'click'}) {
 				my $rx = 1; # $origx / $img->xres();
 				my $ry = 1; # $origy / $img->yres();
-				my $x = ($foundneedle->{'x'} + $foundneedle->{'w'}/2)*$rx;
-				my $y = ($foundneedle->{'y'} + $foundneedle->{'h'}/2)*$ry;
+				my $x = ($lastarea->{'x'} + $lastarea->{'w'}/2)*$rx;
+				my $y = ($lastarea->{'y'} + $lastarea->{'h'}/2)*$ry;
 				diag ("clicking at $x/$y");
 				mouse_set($x, $y);
 				mouse_click($args{'click'}, $args{'clicktime'});
@@ -974,15 +978,12 @@ sub _waitforneedle {
 	if ($ENV{'scaledhack'}) {
 		backend_send("stop");
 		my $needle;
-		for my $t (qw/.1 .2 .3 .4 .5 .6/) {
-			diag("trying to find needle with threshold $t ...");
-			my $foundneedle = $img->search($needles, $t);
-			next unless $foundneedle;
-			fctres(sprintf("found %s, similarity %.2f @ %d/%d",
-					$foundneedle->{'needle'}->{'name'},
-					$foundneedle->{'similarity'},
-					$foundneedle->{'x'}, $foundneedle->{'y'}));
-			$needle = $foundneedle->{'needle'};
+		for my $cand (@{$failed_candidates||[]}) {
+			fctres(sprintf("candidate %s, similarity %.2f @ %d/%d",
+					$cand->{'needle'}->{'name'},
+					$cand->{'similarity'},
+					$cand->{'x'}, $cand->{'y'}));
+			$needle = $cand->{'needle'};
 			last;
 		}
 
@@ -1031,12 +1032,13 @@ sub _waitforneedle {
 			diag("reading new needle $fn");
 			needle->new($fn) || mydie "$!";
 			# XXX: recursion!
-			return waitforneedle($mustmatch, 3, $checkneedle, $args{'retried'}+1);
+			return _waitforneedle(mustmatch => $mustmatch, timeout => 3, check => $checkneedle, retried => $args{'retried'}+1);
 		}
 	}
+
 	$current_test->record_screenfail(
 		img => $img,
-		needles => $needles,
+		needles => $failed_candidates,
 		tags => \@tags,
 		result => $checkneedle?'unk':'fail',
 		overall => $checkneedle?undef:'fail'
