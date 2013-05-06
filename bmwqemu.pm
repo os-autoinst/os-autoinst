@@ -889,6 +889,7 @@ sub _waitforneedle {
 	my %args = @_;
 	my $mustmatch = $args{'mustmatch'};
 	my $timeout = $args{'timeout'} || 30;
+	my $checkneedle = $args{'check'};
 
 	die "current_test undefined" unless $current_test;
 
@@ -896,14 +897,17 @@ sub _waitforneedle {
 
 	# get the array reference to all matching needles
 	my $needles;
+	my @tags;
 	if (ref($mustmatch) eq "ARRAY") {
 		$needles = $mustmatch;
 		$mustmatch = '';
 		for my $n (@{$needles}) {
 			$mustmatch .= $n->{name} . "_";
 		}
+		@tags = map { $_->{'name'} } @$needles;
 	} elsif ($mustmatch) {
 		$needles = needle::tags($mustmatch) || [];
+		@tags = ($mustmatch);
 	}
 	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
 	if (!@$needles) {
@@ -927,7 +931,7 @@ sub _waitforneedle {
 		}
 		my $foundneedle = $img->search($needles);
 		if ($foundneedle) {
-			$current_test->record_screenmatch($img, $foundneedle);
+			$current_test->record_screenmatch($img, $foundneedle, \@tags);
 			fctres(sprintf("found %s, similarity %.2f @ %d/%d",
 				$foundneedle->{'needle'}->{'name'},
 				$foundneedle->{'similarity'},
@@ -955,7 +959,6 @@ sub _waitforneedle {
 	my $fn = result_dir() . "/template-$mustmatch-$t.json";
 	open(J, ">", $fn) or die "$fn: $!\n";
 	my $json = { area => [ { xpos => 0, ypos => 0, width => $img->xres(), height => $img->yres(), type => 'match' } ] };
-	my @tags = ( $mustmatch );
 	# write out some known env variables
 	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD)) {
 		push(@tags, "ENV-$key-" . $ENV{$key}) if $ENV{$key};
@@ -986,7 +989,7 @@ sub _waitforneedle {
 		for my $i (1..@{$needles||[]}) {
 			printf "%d - %s\n", $i, $needles->[$i-1]->{'name'};
 		}
-		print "note: called from checkneedle()\n" if $args{'check'};
+		print "note: called from checkneedle()\n" if $checkneedle;
 		print "(E)dit, (N)ew, (Q)uit, (C)ontinue\n";
 		my $r = <STDIN>;
 		if ($r =~ /^(\d+)/) {
@@ -1008,7 +1011,7 @@ sub _waitforneedle {
 		} else {
 			backend_send("cont");
 		}
-	} elsif (!$args{'check'} && $ENV{'interactive_crop'}) {
+	} elsif (!$checkneedle && $ENV{'interactive_crop'}) {
 		$run_editor = 1;
 	}
 
@@ -1028,11 +1031,17 @@ sub _waitforneedle {
 			diag("reading new needle $fn");
 			needle->new($fn) || mydie "$!";
 			# XXX: recursion!
-			return waitforneedle($mustmatch, 3, $args{'check'}, $args{'retried'}+1);
+			return waitforneedle($mustmatch, 3, $checkneedle, $args{'retried'}+1);
 		}
 	}
+	$current_test->record_screenfail(
+		img => $img,
+		needles => $needles,
+		tags => \@tags,
+		result => $checkneedle?'unk':'fail',
+		overall => $checkneedle?undef:'fail'
+	);
 	unless ($args{'check'}) {
-		$current_test->record_screenfail($img, $needles);
 		mydie;
 	}
 	return undef;
