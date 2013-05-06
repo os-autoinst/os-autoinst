@@ -2,13 +2,13 @@ use strict;
 use base "installstep";
 use bmwqemu;
 
-sub run()
-{ my $self=shift;
-if(!$ENV{LIVECD}) {
-	set_ocr_rect(255,420,530,115);
+sub run() { 
+	my $self=shift;
 	{
 		local $ENV{SCREENSHOTINTERVAL}=5;
-		waitforneedle("rebootnow", 900);
+		waitforneedle("rebootnow", 1500);
+	}
+	if(!$ENV{LIVECD}) {
 		if($ENV{XDEBUG} && waitforneedle("the-system-will-reboot-now", 3000)) {
 			sendkey "alt-s";
 			sendkey "ctrl-alt-f2";
@@ -36,77 +36,32 @@ if(!$ENV{LIVECD}) {
 			sendkey "alt-n"; # ignore repos dialog
 			waitstillimage(6,60);
 		}
+		waitforneedle("reboot-after-installation", 100);
+		if(checkneedle("inst-bootmenu", 1) || checkneedle("grub2", 1)) {
+			sendkey "ret"; # avoid timeout for booting to HDD
+		}
+		qemusend "eject ide1-cd0";
+		sleep 3;
+		if($ENV{ENCRYPT}) {
+			waitstillimage(11,180);
+			sendpassword(); # enter PW at boot
+			sendkey "ret";
+		}
+	} else {
+		# LiveCD needs confirmation for reboot
+		sendkey $cmd{"rebootnow"};
+		# no grub visible on proper first boot because of kexec
+		if(0 && !waitforneedle("bootloader")) {
+			#	if(1 || !waitinststage "bootloader") {
+			sleep 11; # give some time for going down but not for booting up much
+			# workaround:
+			# force eject+reboot as it often fails in qemu/kvm
+			qemusend "eject -f ide1-cd0";
+			sleep 1;
+			# hard reset (same as physical reset button on PC)
+			qemusend "system_reset";
+		}
 	}
-	set_ocr_rect();
-	waitforneedle("reboot-after-installation", 100);
-	if(checkneedle("inst-bootmenu", 1) || checkneedle("grub2", 1)) {
-		sendkey "ret"; # avoid timeout for booting to HDD
-	}
-	qemusend "eject ide1-cd0";
-	sleep 3;
-	# workaround key trust bug http://openqa.opensuse.org/viewimg/opensuse/testresults/openSUSE-NET-i586-Build0002-lxde/timeout-05.png
-	#for(1..4){sendkey "alt-t"} sleep 10;
-	if($ENV{ENCRYPT}) {
-		waitstillimage(11,180);
-		sendpassword(); # enter PW at boot
-		sendkey "ret";
-	}
-} else {
-	set_ocr_rect(245,440,530,100);
-	# LiveCD needs confirmation for reboot
-	{
-		local $ENV{SCREENSHOTINTERVAL}=5;
-		waitforneedle("rebootnow", 1500);
-	}
-	set_ocr_rect();
-	sendkey $cmd{"rebootnow"};
-	# no grub visible on proper first boot because of kexec
-	if(0 && !waitforneedle("bootloader")) {
-#	if(1 || !waitinststage "bootloader") {
-		sleep 11; # give some time for going down but not for booting up much
-		# workaround:
-		# force eject+reboot as it often fails in qemu/kvm
-		qemusend "eject -f ide1-cd0";
-		sleep 1;
-		# hard reset (same as physical reset button on PC)
-		qemusend "system_reset";
-	}
-}
-#if($ENV{RAIDLEVEL} && !$ENV{LIVECD}) { do "$scriptdir/workaround/656536.pm" }
-#waitforneedle "automaticconfiguration", 70;
-mouse_hide();
-local $ENV{SCREENSHOTINTERVAL}=$ENV{SCREENSHOTINTERVAL}*3;
-
-# read sub-stages of automaticconfiguration 
-set_ocr_rect(240,256,530,100);
-# waitforneedle("users-booted", 180);
-set_ocr_rect();
-my $img=getcurrentscreenshot();
-my $ocr=ocr::get_ocr($img, "-l 200", [250,100,600,500]);
-diag "post-install-ocr: $ocr";
-if($ocr=~m/Installation of package .* failed/i or checkneedle("install-failed", 1)) {
-	sendkeyw "alt-d"; # see details of failure
-	if(1) { # ignore
-		$self->check_screen; sleep 2;
-		sendkeyw "alt-i";
-		sendkey "ret";
-		waitstillimage(50,900);
-	} else {		
-		alarm 3; # end here as we can not continue
-	}
-}
-
-if ($ENV{'NOAUTOLOGIN'}) {
-	waitforneedle('displaymanager', 200);
-	sendautotype($username);
-	sendkey("ret");
-	sendautotype("$password");
-	sendkey("ret");
-}
-
-my $match = waitforneedle('desktop-at-first-boot', 200);
-die 'no match?' unless $match;
-
 }
 
 1;
