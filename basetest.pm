@@ -104,9 +104,10 @@ sub details($)
 	return $self->{'details'};
 }
 
-sub result($)
+sub result($;$)
 {
 	my $self = shift;
+	$self->{result} = shift if @_;
 	return $self->{result}||'na';
 }
 

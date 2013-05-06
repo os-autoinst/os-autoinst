@@ -2,6 +2,8 @@ use strict;
 use base "basetest";
 use bmwqemu;
 
+# FIXME: this is not actually a test. move to main.pm?
+
 our %valueranges=(
 #	LVM=>[0,1], 
 	NOIMAGES=>[0,1],
@@ -86,6 +88,7 @@ sub cleanup_needles()
 
 sub run()
 {
+	my $self = shift;
 	my $iso=$ENV{ISO};
 	my $ison=$iso; $ison=~s{.*/}{}; # drop path
 	if($ison=~m/Live/i) {$ENV{LIVECD}=1}
@@ -119,6 +122,8 @@ sub run()
 	autotest::runtestdir("$scriptdir/x11test.d", undef);
 	# dump other important ENV:
 	logcurrentenv(qw"ADDONURL BIGTEST BTRFS DESKTOP HW HWSLOT LIVETEST LVM MOZILLATEST NOINSTALL REBOOTAFTERINSTALL UPGRADE USBBOOT TUMBLEWEED WDUP ZDUP ZDUPREPOS TEXTMODE DISTRI NOAUTOLOGIN");
+
+	$self->result('na');
 }
 
 1;
