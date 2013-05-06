@@ -15,6 +15,7 @@ sub new(;$) {
 	$self->{result} = undef;
 	$self->{running} = 0;
 	$self->{category} = $category;
+	$self->{test_count} = 0;
 	return bless $self, $class;
 }
 
@@ -122,6 +123,9 @@ sub done()
 	my $self = shift;
 	$self->{running} = 0;
 	$self->{result} ||= 'unk';
+	unless ($self->{"test_count"}) {
+		$self->take_screenshot();
+	}
 }
 
 sub fail_if_running()
@@ -163,7 +167,7 @@ Can be called from C<run> to have screenshots in addition to the one taken via d
 sub take_screenshot(;$)
 {
 	my $self = shift;
-	my $name = shift;
+	my $name = shift; # unused, for compat
 
 	my $count = ++$self->{"test_count"};
 	my $testname = ref($self);

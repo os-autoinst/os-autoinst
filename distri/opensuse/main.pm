@@ -9,7 +9,6 @@ sub installrunfunc
 	my($test)=@_;
 	my $class=ref $test;
 	$test->run();
-	$test->take_screenshot;
 }
 
 $ENV{SUSEMIRROR} ||= "download.opensuse.org/factory";
