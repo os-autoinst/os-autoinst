@@ -171,7 +171,7 @@ sub take_screenshot(;$)
 
 	my $result = {
 		screenshot => sprintf("%s-%d.png", $testname, $count),
-		result => 'ok',
+		result => 'unk',
 	};
 
 	my $fn = join('/', result_dir(), $result->{'screenshot'});
