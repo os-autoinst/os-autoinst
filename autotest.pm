@@ -42,6 +42,7 @@ sub runtest
 				$ret=&$testfunc($test);
 			};
 			if ($@) {
+				warn "test $name died: $@\n";
 				$test->fail_if_running();
 				$running = undef;
 				save_results();
