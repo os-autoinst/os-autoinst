@@ -50,18 +50,46 @@ sub record_screenmatch($$;$)
 
 	my $result = {
 		needle => $needle->{'needle'}->{'name'},
-		area => $needle->{'area'},
+		area => $self->_extract_candidates($needle),
 		tags => [ @$tags ], # make a copy
 		screenshot => sprintf("%s-%d.png", $testname, $count),
 		result => 'ok',
 	};
-	
+
 	my $fn = join('/', result_dir(), $result->{'screenshot'});
 	$img->write($fn);
 
 	$self->{result} ||= 'ok';
-	
+
 	push @{$self->{'details'}}, $result;
+}
+
+sub _extract_candidates($$)
+{
+	my $self = shift;
+	my $cand = shift;
+
+	my $testname = ref($self);
+	my $count = $self->{"test_count"};
+
+	my $candidates;
+	my $diffcount = 0;
+
+	my $h = { 'name' => $cand->{'needle'}->{'name'}, 'area' => [] };
+	for my $a (@{$cand->{'area'}}) {
+		my $na = {};
+		for my $i (qw/x y w h similarity result/) {
+			$na->{$i} = $a->{$i};
+		}
+		my $imgname = sprintf("%s-%d-diff%d.png", $testname, $count, $diffcount++);
+		if ($a->{'diff'}) {
+			$a->{'diff'}->write(join('/', result_dir(), $imgname));
+			$na->{'diff'} = $imgname;
+		}
+		push @{$h->{'area'}}, $na;
+	}
+
+	return $h;
 }
 
 sub record_screenfail($@)
@@ -78,22 +106,8 @@ sub record_screenfail($@)
 	my $testname = ref($self);
 
 	my $candidates;
-	my $diffcount = 0;
 	for my $cand (@{$needles||[]}) {
-		my $h = { 'name' => $cand->{'needle'}->{'name'}, 'area' => [] };
-		for my $a (@{$cand->{'area'}}) {
-			my $na = {};
-			for my $i (qw/x y w h similarity result/) {
-				$na->{$i} = $a->{$i};
-			}
-			my $imgname = sprintf("%s-%d-diff%d.png", $testname, $count, $diffcount++);
-			if ($a->{'diff'}) {
-				$a->{'diff'}->write(join('/', result_dir(), $imgname));
-				$na->{'diff'} = $imgname;
-			}
-			push @{$h->{'area'}}, $na;
-		}
-		push @$candidates, $h;
+		push @$candidates, $self->_extract_candidates($cand);
 	}
 
 	my $result = {
@@ -103,12 +117,12 @@ sub record_screenfail($@)
 
 	$result->{'needles'} = $candidates if $candidates;
 	$result->{'tags'} = [ @$tags ] if $tags; # make a copy
-	
+
 	my $fn = join('/', result_dir(), $result->{'screenshot'});
 	$img->write($fn);
 
 	$self->{result} ||= $overall if $overall;
-	
+
 	push @{$self->{'details'}}, $result;
 }
 
