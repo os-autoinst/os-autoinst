@@ -95,10 +95,12 @@ sub raw_alive($) {
 sub start_audiocapture($) {
 	my ($self, $filename) = @_;
 	$self->send("wavcapture $filename 44100 16 1");
+	sleep(0.1);
 }
 sub stop_audiocapture($) {
 	my ($self, $index) = @_;
 	$self->send("stopcapture $index");
+	sleep(0.1);
 }
 
 sub power($) {
