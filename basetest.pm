@@ -16,6 +16,7 @@ sub new(;$) {
 	$self->{running} = 0;
 	$self->{category} = $category;
 	$self->{test_count} = 0;
+	$self->{wav_fn} = undef;
 	return bless $self, $class;
 }
 
@@ -161,7 +162,7 @@ sub next_resultname($;$) {
 	my $name = shift;
 	my $path=result_dir;
 	my $testname=ref($self);
-	my $count=++$self->{$type."_count"};
+	my $count=++$self->{"test_count"};
 	if ($name) {
 		return "$path/$testname-$count.$name.$type";
 	} else {
@@ -223,28 +224,56 @@ sub check_screen(;$)
 	return bmwqemu::checkneedle($tag, 1)
 }
 
-sub start_audiocapture {
-	my $self=shift;
-	my $filename=$self->next_resultname("wav");
-	bmwqemu::do_start_audiocapture($filename);
-	sleep(0.1);
+sub start_audiocapture()
+{
+	my $self = shift;
+	my $fn = $self->next_resultname("wav");
+	die "audio capture already in progress. Stop it first!\n" if ($self->{'wav_fn'});
+	# TODO: we only support one capture atm
+	$self->{'wav_fn'} = $fn;
+	bmwqemu::do_start_audiocapture($fn);
 }
 
-sub stop_audiocapture {
+sub stop_audiocapture()
+{
 	my $self=shift;
-	my $index = shift || 0;
-	bmwqemu::do_stop_audiocapture($index);
-	sleep(0.1);
+	# XXX: if this function is supposed to support more than one
+	# capture at a time the capture index has to be determined
+	# from the recorded filename as the test doesn't know the
+	# index. We can find out the index for the capture by asking
+	# qemu "info capture"
+	bmwqemu::do_stop_audiocapture(0);
+
+	my $result = {
+		audio => $self->{'wav_fn'},
+		result => 'unk',
+	};
+
+	push @{$self->{'details'}}, $result;
+
+	return $result;
 }
 
-=head2 wav_checklist
-
-Return a hashref mapping a DTMF decoding to "OK" 
-everything else defaults to "fail"
-
+=head2 check_DTMF
+stop audio capture and compare DTMF decoded result with reference
 =cut
-sub wav_checklist {
-	return {}
+sub check_DTMF($)
+{
+	my $self = shift;
+	my $ref = shift;
+
+	my $result = $self->stop_audiocapture();
+	$result->{'reference_text'} = $ref;
+
+	my $decoded_text = bmwqemu::decodewav($result->{'wav_fn'});
+	if((uc $ref) eq $decoded_text) {
+		$result->{'result'} = 'ok';
+	} else {
+		$result->{'result'} = 'fail';
+	}
+	$result->{'decoded_text'} = $decoded_text;
+
+	$self->{result} ||= $result->{'result'};
 }
 
 =head2 ocr_checklist

@@ -10,15 +10,7 @@ sub run()
 	$self->start_audiocapture;
 	script_run("aplay bar.wav ; echo aplay_finished > /dev/$serialdev");
 	waitserial('aplay_finished');
-	$self->stop_audiocapture;
-}
-
-sub wav_checklist()
-{
-	# return hashref:
-	return {
-		1=>'123A456B789C*0#D'
-	};
+	$self->check_DTMF('123A456B789C*0#D');
 }
 
 1;
