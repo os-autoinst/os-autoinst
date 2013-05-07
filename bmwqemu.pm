@@ -1067,11 +1067,13 @@ sub goandclick($;$$$) {
 
 sub makesnapshot($) {
     my $sname = shift;
+    diag("Creating a VM snapshot $sname");
     $backend->do_savevm($sname);
 }
 
 sub loadsnapshot($) {
     my $sname = shift;
+    diag("Loading a VM snapshot $sname");
     $backend->do_loadvm($sname);
 }
 
