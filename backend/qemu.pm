@@ -144,6 +144,28 @@ sub do_stop_vm($) {
 	unlink($self->{'pidfilename'});
 }
 
+sub do_snapshot($) {
+	my ($self, $filename) = @_;
+	$self->send("snapshot_blkdev virtio0 $filename qcow2");
+}
+
+sub do_savevm($) {
+	my ($self, $vmname) = @_;
+	$self->send("savevm $vmname");
+}
+
+sub do_loadvm($) {
+	my ($self, $vmname) = @_;
+	$self->send("loadvm $vmname");
+	$self->send("stop");
+	$self->send("cont");
+}
+
+sub do_delvm($) {
+	my ($self, $vmname) = @_;
+	$self->send("delvm $vmname");
+}
+
 # baseclass virt method overwrite end
 
 
