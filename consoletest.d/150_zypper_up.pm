@@ -15,6 +15,8 @@ sub run()
 	script_sudo("bash", 0); # become root
         script_run("echo 'imroot' > /dev/$serialdev");
         waitserial("imroot", 5) || die "Root prompt not there";
+	script_run("grep -l cd:/// /etc/zypp/repos.d/* | xargs rm -v");
+	$self->take_screenshot("cdreporemoved");
 	script_run("zypper -n patch -l && echo 'worked' > /dev/$serialdev");
         waitserial("worked", 700) || die "zypper failed";
         $self->check_screen("first_run"); 
