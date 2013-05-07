@@ -48,9 +48,10 @@ sub record_screenmatch($$;$)
 	my $count = ++$self->{"test_count"};
 	my $testname = ref($self);
 
+	my $h = $self->_extract_candidates($needle);
 	my $result = {
-		needle => $needle->{'needle'}->{'name'},
-		area => $self->_extract_candidates($needle),
+		needle => $h->{'name'},
+		area => $h->{'area'},
 		tags => [ @$tags ], # make a copy
 		screenshot => sprintf("%s-%d.png", $testname, $count),
 		result => 'ok',
