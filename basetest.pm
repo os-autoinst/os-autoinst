@@ -87,8 +87,10 @@ sub record_screenfail($@)
 				$na->{$i} = $a->{$i};
 			}
 			my $imgname = sprintf("%s-%d-diff%d.png", $testname, $count, $diffcount++);
-			$a->{'diff'}->write(join('/', result_dir(), $imgname));
-			$na->{'diff'} = $imgname;
+			if ($a->{'diff'}) {
+				$a->{'diff'}->write(join('/', result_dir(), $imgname));
+				$na->{'diff'} = $imgname;
+			}
 			push @{$h->{'area'}}, $na;
 		}
 		push @$candidates, $h;
