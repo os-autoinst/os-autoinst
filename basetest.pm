@@ -94,11 +94,12 @@ sub record_screenfail($@)
 	}
 
 	my $result = {
-		needles => $candidates,
-		tags => [ @$tags ], # make a copy
 		screenshot => sprintf("%s-%d.png", $testname, $count),
 		result => $status,
 	};
+
+	$result->{'needles'} = $candidates if $candidates;
+	$result->{'tags'} = [ @$tags ] if $tags; # make a copy
 	
 	my $fn = join('/', result_dir(), $result->{'screenshot'});
 	$img->write($fn);
