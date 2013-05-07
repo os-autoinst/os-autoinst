@@ -160,13 +160,12 @@ sub next_resultname($;$) {
 	my $self = shift;
 	my $type = shift;
 	my $name = shift;
-	my $path=result_dir;
 	my $testname=ref($self);
 	my $count=++$self->{"test_count"};
 	if ($name) {
-		return "$path/$testname-$count.$name.$type";
+		return "$testname-$count.$name.$type";
 	} else {
-		return "$path/$testname-$count.$type";
+		return "$testname-$count.$type";
 	}
 }
 
@@ -231,7 +230,7 @@ sub start_audiocapture()
 	die "audio capture already in progress. Stop it first!\n" if ($self->{'wav_fn'});
 	# TODO: we only support one capture atm
 	$self->{'wav_fn'} = $fn;
-	bmwqemu::do_start_audiocapture($fn);
+	bmwqemu::do_start_audiocapture(join('/', result_dir(), $fn));
 }
 
 sub stop_audiocapture()
