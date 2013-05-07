@@ -1056,12 +1056,12 @@ sub goandclick($;$$$) {
 }
 
 sub makesnapshot($) {
-    $sname = shift;
+    my $sname = shift;
     $backend->do_savevm($sname);
 }
 
 sub loadsnapshot($) {
-    $sname = shift;
+    my $sname = shift;
     $backend->do_loadvm($sname);
 }
 
