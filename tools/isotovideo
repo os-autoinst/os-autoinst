@@ -51,7 +51,7 @@ for i in qemuscreenshot/*.png; do
 done
 
 # Create the movie
-png2theora movie/file-%010d.png -o video/$name.ogv > ${logfile} 2>&1
+png2theora movie/file-%010d.png -o video/$name.ogv >> ${logfile} 2>&1
 rm -rf movie
 
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
