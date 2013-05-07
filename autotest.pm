@@ -1,6 +1,7 @@
 package autotest;
 use strict;
 use bmwqemu;
+use needle;
 use JSON;
 
 our %tests;     # scheduled or run tests
@@ -101,6 +102,7 @@ sub save_results()
 	my $fn = shift || result_dir()."/results.json";
 	open(my $fd, ">", $fn) or die "can not write results";
 	print $fd to_json({
+		'needledir' => needle::get_needle_dir(),
 		'running' => $running?ref($running):'',
 		'testmodules' => results()
 		}, { pretty => 1 });
