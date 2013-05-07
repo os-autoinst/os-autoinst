@@ -58,7 +58,7 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	#system($qemuimg, "create", "-b", $file, "-f", "qcow2", "$basedir/l1");
 	system(qw"cp -a", $file, "$basedir/l1"); # reduce disk IO later
 	for my $i (2..$ENV{NUMDISKS}) {
-		system($qemuimg, "create" ,"$basedir/$i", $sizegb."G");
+		system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $sizegb."G");
 	}
 }
 
@@ -70,7 +70,7 @@ if(!$ENV{KEEPHDDS}) {
 			symlink("$i.lvm","$basedir/l$i");
 			system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1"); # for LVM
 		} else {
-			system($qemuimg, "create" ,"$basedir/$i", $sizegb."G");
+			system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $sizegb."G");
 			symlink($i,"$basedir/l$i");
 		}
 	}
