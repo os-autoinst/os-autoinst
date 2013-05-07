@@ -1055,6 +1055,16 @@ sub goandclick($;$$$) {
 		clicktime => $_[3]);
 }
 
+sub makesnapshot($) {
+    $sname = shift;
+    $backend->do_savevm($sname);
+}
+
+sub loadsnapshot($) {
+    $sname = shift;
+    $backend->do_loadvm($sname);
+}
+
 #FIXME: new wait functions
 # waitscreenactive - ($backend->screenactive())
 # wait-time - like sleep but prints info to log
