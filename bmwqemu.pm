@@ -945,10 +945,6 @@ sub _waitforneedle {
 		$oldimg = $img;
 	}
 
-	if ($checkneedle) {
-	    return undef;
-	}
-
 	fctres('waitforneedle', "match=$mustmatch timed out after $timeout");
 	for (@{$needles||[]}) {
 		diag $_->{'file'};
