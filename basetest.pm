@@ -79,9 +79,10 @@ sub _extract_candidates($$)
 	my $h = { 'name' => $cand->{'needle'}->{'name'}, 'area' => [] };
 	for my $a (@{$cand->{'area'}}) {
 		my $na = {};
-		for my $i (qw/x y w h similarity result/) {
+		for my $i (qw/x y w h result/) {
 			$na->{$i} = $a->{$i};
 		}
+		$na->{'similarity'} = int($a->{'similarity'}*100);
 		my $imgname = sprintf("%s-%d-diff%d.png", $testname, $count, $diffcount++);
 		if ($a->{'diff'}) {
 			$a->{'diff'}->write(join('/', result_dir(), $imgname));
