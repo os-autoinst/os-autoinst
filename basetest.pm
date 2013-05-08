@@ -48,7 +48,7 @@ sub record_screenmatch($$;$)
 	my $count = ++$self->{"test_count"};
 	my $testname = ref($self);
 
-	my $h = $self->_extract_candidates($needle);
+	my $h = $self->_serialize_match($needle);
 	my $result = {
 		needle => $h->{'name'},
 		area => $h->{'area'},
@@ -65,7 +65,10 @@ sub record_screenmatch($$;$)
 	push @{$self->{'details'}}, $result;
 }
 
-sub _extract_candidates($$)
+=head2
+serialize a match result from needle::search
+=cut
+sub _serialize_match($$)
 {
 	my $self = shift;
 	my $cand = shift;
@@ -76,15 +79,17 @@ sub _extract_candidates($$)
 	my $candidates;
 	my $diffcount = 0;
 
-	my $h = { 'name' => $cand->{'needle'}->{'name'}, 'area' => [] };
+	my $name = $cand->{'needle'}->{'name'};
+
+	my $h = { 'name' => $name, 'area' => [] };
 	for my $a (@{$cand->{'area'}}) {
 		my $na = {};
 		for my $i (qw/x y w h result/) {
 			$na->{$i} = $a->{$i};
 		}
 		$na->{'similarity'} = int($a->{'similarity'}*100);
-		my $imgname = sprintf("%s-%d-diff%d.png", $testname, $count, $diffcount++);
 		if ($a->{'diff'}) {
+			my $imgname = sprintf("%s-%d-%s-diff%d.png", $testname, $count, $name, $diffcount++);
 			$a->{'diff'}->write(join('/', result_dir(), $imgname));
 			$na->{'diff'} = $imgname;
 		}
@@ -109,7 +114,7 @@ sub record_screenfail($@)
 
 	my $candidates;
 	for my $cand (@{$needles||[]}) {
-		push @$candidates, $self->_extract_candidates($cand);
+		push @$candidates, $self->_serialize_match($cand);
 	}
 
 	my $result = {
