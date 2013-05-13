@@ -972,7 +972,7 @@ sub _waitforneedle {
 		for my $cand (@{$failed_candidates||[]}) {
 			fctres(sprintf("candidate %s, similarity %.2f @ %d/%d",
 					$cand->{'needle'}->{'name'},
-					$cand->{'similarity'},
+					$cand->{'error'},
 					$cand->{'x'}, $cand->{'y'}));
 			$needle = $cand->{'needle'};
 			last;
