@@ -393,18 +393,26 @@ sub sendkeyw($) {
 
 =head2 sendautotype
 
-sendautotype($string)
+sendautotype($string, [$keyboardbuffersize])
 
 send a string of characters, mapping them to appropriate key names as necessary
 
 =cut
-sub sendautotype($) {
+
+sub sendautotype($;$) {
 	my $string=shift;
+	my $maxinterval=shift||13;
+	my $typedchars=0;
 	fctlog('sendautotype', "string='$string'");
 	foreach my $letter (split("", $string)) {
 		if($charmap{$letter}) { $letter=$charmap{$letter} }
 		sendkey $letter;
+		if ($typedchars++ >= $maxinterval ) {
+			waitstillimage(1.6);
+			$typedchars=0;
+		}
 	}
+	waitstillimage(1.6) if ($typedchars > 0);
 }
 
 sub sendpassword() {
