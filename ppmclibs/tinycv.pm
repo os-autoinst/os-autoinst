@@ -17,6 +17,20 @@ bootstrap tinycv $VERSION;
 
 package tinycv::Image;
 
+
+sub mean_square_error($)
+{
+    my $areas = shift;
+    my $mse = 0.0;
+    my $err;
+
+    for my $area (@$areas) {
+	$err = 1 - $area->{"similarity"};
+	$mse += $err * $err;
+    }
+    return $mse / scalar @$areas;
+}
+
 # returns hash with match hinformation
 # {
 #   ok => INT(1,0), # 1 if all areas matched
@@ -80,6 +94,8 @@ sub search_($$) {
 	    push @{$ret->{'area'}}, $ma;
     }
 
+    $ret->{'error'} = mean_square_error($ret->{'area'});
+
     if ($ret->{'ok'}) {
 	for my $a (@ocr) {
 		$ret->{'ocr'} ||= [];
@@ -109,7 +125,7 @@ sub search($;$) {
 	    if ($found->{'ok'}) {
 		if (!$best) {
 		    $best = $found;
-		} elsif ($best->{'similarity'} < $found->{'similarity'}) {
+		} elsif ($best->{'error'} > $found->{'error'}) {
 		    push @$candidates, $best;
 		    $best = $found;
 		}
