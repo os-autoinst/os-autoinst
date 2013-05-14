@@ -51,11 +51,9 @@ pkglibexec_SCRIPTS = \
 	basenoupdate.pm \
 	basetest.pm \
 	bmwqemu.pm \
-	goodimage.pm \
 	httpnotifyconf.pm \
 	installstep.pm \
 	ocr.pm \
-	ppm.pm \
 	start.pl
 
 pkglibexec_FOLDERS = \
