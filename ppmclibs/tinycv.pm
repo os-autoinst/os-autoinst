@@ -18,7 +18,8 @@ bootstrap tinycv $VERSION;
 package tinycv::Image;
 
 
-sub mean_square_error {
+sub mean_square_error($)
+{
     my $areas = shift;
     my $mse = 0.0;
     my $err;
