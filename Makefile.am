@@ -31,8 +31,6 @@ doc_DATA = \
 packagestatedir = $(localstatedir)/lib/os-autoinst
 
 packagestate_DATA_FOLDERS = \
-	waitimgs \
-	testimgs \
 	audio
 
 backendexecdir = $(pkglibexecdir)/backend
