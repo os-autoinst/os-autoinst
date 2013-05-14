@@ -9,7 +9,10 @@ use ExtUtils::testlib;
 use File::Basename;
 
 BEGIN {
+	use Config;
+	my $vendorlib = $Config{installvendorlib};
 	my $libdir = dirname(__FILE__);
+	return if ($libdir eq "/usr/lib/os-autoinst");
 	my @s = stat("$libdir/ppmclibs/blib/lib/tinycv.pm");
 	unless(@s && -e "$libdir/ppmclibs/tinycv.pm" && $s[7] == (stat(_))[7]) {
 		$|=1;
