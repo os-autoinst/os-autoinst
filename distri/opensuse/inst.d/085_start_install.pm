@@ -10,7 +10,7 @@ sub run()
 	sendkey $cmd{install};
 	waitforneedle("startinstall");
 	# confirm
-	$self->check_screen;
+	$self->take_screenshot;
 	sendkey $cmd{install};
         waitforneedle("inst-packageinstallationstarted");
 	if(!$ENV{LIVECD} && !$ENV{NICEVIDEO} && !checkEnv('VIDEOMODE', 'text')) {
