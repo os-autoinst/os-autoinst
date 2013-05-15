@@ -20,7 +20,7 @@ sub run() {
 	if($ocr=~m/Installation of package .* failed/i or checkneedle("install-failed", 1)) {
 		sendkeyw "alt-d"; # see details of failure
 		if(1) { # ignore
-			$self->check_screen; sleep 2;
+			$self->take_screenshot; sleep 2;
 			sendkeyw "alt-i";
 			sendkey "ret";
 			waitstillimage(50,900);
@@ -37,8 +37,21 @@ sub run() {
 		sendkey("ret");
 	}
 
-	my $match = waitforneedle('desktop-at-first-boot', 200);
-	die 'no match?' unless $match;
+
+	# Check for errors during the second stage
+	my @tags = (@{needle::tags("desktop-at-first-boot")}, @{needle::tags("install-failed")});
+	my $cont = 0;
+	while (!$cont) {
+	    my $ret = waitforneedle(\@tags, 200);
+	    if( $ret->{needle}->has_tag("install-failed") ) {
+		$self->take_screenshot; sleep 2;
+		sendkey "ret";
+	    } else {
+		$cont = 1;
+	    }
+	}
+
+	die "some errors?" if $cont;
 }
 
 1;
