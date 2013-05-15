@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+if [ ! -d pool ]; then
+	echo "pool dir does not exist!\n"
+	exit 1
+fi
+rm -rf pool/[0-9]*
+num=${1:-4}
+for ((i=1;i<=$num;++i)); do
+	mkdir pool/$i
+	ln -s ../../config/env.sh pool/$i
+done
