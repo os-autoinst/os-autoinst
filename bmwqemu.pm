@@ -507,13 +507,12 @@ Run $program. Handle the sudo timeout and send password when appropriate.
 $wait_seconds
 =cut
 sub script_sudo($;$) {
-	my ($prog,$wait)=@_;
+        my $prog = shift;
 	sendautotype("sudo $prog\n");
 	if (checkneedle("sudo-passwordprompt", 2)) {
 		sendpassword;
 		sendkey "ret";
 	}
-	waitidle($wait);
 }
 
 =head2 script_sudo_logout
