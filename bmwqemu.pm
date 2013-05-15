@@ -29,7 +29,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &checkneedle &goandclick &set_current_test
 &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
-&getcurrentscreenshot &power &mydie &checkEnv &waitinststage);
+&getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot);
 
 
 # shared vars
@@ -1069,7 +1069,7 @@ sub makesnapshot($) {
 sub loadsnapshot($) {
     my $sname = shift;
     diag("Loading a VM snapshot $sname");
-    $backend->do_loadvm($sname);
+    $backend->do_loadvm($sname); sleep(10);
 }
 
 #FIXME: new wait functions
