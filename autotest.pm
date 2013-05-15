@@ -8,6 +8,17 @@ our %tests;     # scheduled or run tests
 our @testorder; # for keeping them in order
 our $running;   # currently running test or undef
 
+# all so ugly ...
+$SIG{ALRM} = sub {
+	if ($running) {
+		$running->fail_if_running();
+		$running = undef;
+	}
+	save_results();
+	stop_vm();
+	die "die due to SIGALARM\n";
+};
+
 sub runtest
 {
 	my($script,$testfunc)=@_;

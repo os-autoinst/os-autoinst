@@ -26,7 +26,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey 
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
 &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
-&checkneedle &goandclick &set_current_test
+&checkneedle &goandclick &set_current_test $stop_waitforneedle
 &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot);
@@ -41,6 +41,8 @@ my $timeoutcounter :shared = 0;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 my @ocrrect; share(@ocrrect);
 my @extrahashrects; share(@extrahashrects);
+
+our $stop_waitforneedle :shared;
 
 # shared vars end
 
@@ -912,8 +914,8 @@ sub _waitforneedle {
 	my $oldimg;
 	my $failed_candidates;
 	for my $n (1..$timeout) {
-		if (-e "waitneedlefail") {
-			unlink("waitneedlefail");
+		if ($stop_waitforneedle) {
+			$stop_waitforneedle = 0;
 			last;
 		}
 		my $statstr = get_cpu_stat();
