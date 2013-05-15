@@ -19,7 +19,7 @@ sub run()
 	sendautotype "(echo .packages.root: ; cat .packages.root)>/dev/$serialdev\n";
 	waitforneedle("inst-packagestyped", 150);
 	sendautotype "ls -lR /update\n";
-	$self->check_screen;
+	$self->take_screenshot;
 	waitidle;
 	#sendkey "ctrl-d"; sleep 3;
         if (checkEnv('VIDEOMODE', 'text')) {
