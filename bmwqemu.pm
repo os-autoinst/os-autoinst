@@ -723,6 +723,10 @@ sub get_ocr($) {
 sub decodewav($) {
 	# FIXME: move to multimonNG (multimon fork)
 	my $wavfile = shift;
+	unless ($wavfile) {
+		warn "missing file name";
+		return undef;
+	}
 	my $dtmf = '';
 	my $mm = "multimon -a DTMF -t wav $wavfile";
 	open M, "$mm |" || return 1;
