@@ -5,6 +5,7 @@
 #
 
 use strict;
+use threads;
 
 BEGIN {
   my ($wd) = $0 =~ m-(.*)/- ;
@@ -15,6 +16,7 @@ BEGIN {
 use bmwqemu;
 use needle;
 use autotest;
+use bmwrpc;
 
 # Sanity checks
 die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI} && !defined $ENV{CASEDIR};
@@ -29,6 +31,20 @@ alarm (7200+($ENV{UPGRADE}?3600:0)); # worst case timeout
 # init part
 $ENV{BACKEND}||="qemu";
 init_backend($ENV{BACKEND});
+
+
+sub rpc()
+{
+	use JSON::RPC::Server::Daemon;
+	print "start rpc\n";
+	JSON::RPC::Server::Daemon->new(LocalPort => $ENV{'QEMUPORT'}+2)
+                                 ->dispatch({'/jsonrpc/API' => 'bmwrpc'})
+                                 ->handle();
+}
+
+my $rpcthr=threads->create(\&rpc);
+$rpcthr->detach();
+
 if($init) {
 	open(my $fd, ">os-autoinst.pid"); print $fd "$$\n"; close $fd;
 	if(!bmwqemu::alive) {
