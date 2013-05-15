@@ -9,7 +9,7 @@ sub run()
         
         my @tags = (@{needle::tags("inst-welcome")}, @{needle::tags("inst-betawarning")});
         
-	my $ret = waitforneedle(\@tags, 350); # live cds can take quite a long time to boot
+	my $ret = waitforneedle(\@tags, 50); # live cds can take quite a long time to boot
 
         if( $ret->{needle}->has_tag("inst-betawarning") ) {
             sendkey "ret";
