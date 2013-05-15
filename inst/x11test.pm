@@ -14,6 +14,6 @@ sub x11testrunfunc
 	diag "finished $class";
 }
 
-autotest::runtestdir("$scriptdir/x11test.d", \&x11testrunfunc);
+autotest::runtestdir("$ENV{CASEDIR}/x11test.d", \&x11testrunfunc);
 
 1;
