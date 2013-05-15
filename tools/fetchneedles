@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+cd /var/lib/os-autoinst/needles
+if [ ! -d .git ]; then
+	git clone git://github.com/openSUSE-Team/os-autoinst-needles.git .
+else
+	git fetch
+	git rebase origin/master
+fi
