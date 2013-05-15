@@ -53,6 +53,8 @@ pkglibexec_SCRIPTS = \
 	httpnotifyconf.pm \
 	installstep.pm \
 	ocr.pm \
+	cv.pm \
+	needle.pm \
 	start.pl
 
 pkglibexec_FOLDERS = \
