@@ -51,7 +51,7 @@ sub run() {
 	    }
 	}
 
-	die "some errors?" if $cont;
+	mydie if $cont;
 }
 
 1;
