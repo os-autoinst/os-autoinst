@@ -150,12 +150,8 @@ logcurrentenv(qw"ADDONURL BIGTEST BTRFS DESKTOP HW HWSLOT LIVETEST LVM MOZILLATE
 
 # XXX: needed for ui to know list of tests in advance
 autotest::runtestdir("$ENV{CASEDIR}/inst.d", undef);
-autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", undef);
-autotest::runtestdir("$ENV{CASEDIR}/x11test.d", undef);
 
 autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
-autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", \&installrunfunc);
-autotest::runtestdir("$ENV{CASEDIR}/x11test.d", \&installrunfunc);
 
 if(my $d=$ENV{DESKTOP}) {
 	require "inst/\L$d.pm";
