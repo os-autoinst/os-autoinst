@@ -160,7 +160,7 @@ if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
 
 # local vars
 
-our $backend; #FIXME: make local after adding frontend-api to bmwqemu
+our $backend : shared; #FIXME: make local after adding frontend-api to bmwqemu
 
 my $framecounter = 0; # screenshot counter
 
@@ -328,11 +328,24 @@ sub init_backend($) {
 }
 
 sub start_vm() {
+	return unless $backend;
 	$backend->start_vm();
 }
 
-sub stop_vm() {
+sub stop_vm()
+{
+	return unless $backend;
 	$backend->stop_vm();
+}
+
+sub freeze_vm()
+{
+	backend_send("stop");
+}
+
+sub cont_vm()
+{
+	backend_send("cont");
 }
 
 sub mydie {
@@ -981,7 +994,7 @@ sub _waitforneedle {
 	my $newname;
 	my $run_editor = 0;
 	if ($ENV{'scaledhack'}) {
-		backend_send("stop");
+		freeze_vm();
 		my $needle;
 		for my $cand (@{$failed_candidates||[]}) {
 			fctres(sprintf("candidate %s, similarity %.2f @ %d/%d",
@@ -1023,7 +1036,7 @@ sub _waitforneedle {
 
 	if ($run_editor && $args{'retried'} < 3) {
 		$newname = $mustmatch.($ENV{'interactive_crop'} || '') unless $newname;
-		backend_send("stop");
+		freeze_vm();
 		system("$scriptdir/crop.py", '--new', $newname, $fn) == 0 || mydie;
 		backend_send("cont");
 		$fn = sprintf("%s/needles/%s.json", $ENV{'CASEDIR'}, $newname)
