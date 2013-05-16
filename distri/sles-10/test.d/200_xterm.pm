@@ -1,1 +1,1 @@
-../../../x11test.d//200_xterm.pm
+../../opensuse/x11test.d/200_xterm.pm

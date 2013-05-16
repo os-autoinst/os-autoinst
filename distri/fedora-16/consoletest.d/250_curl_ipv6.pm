@@ -1,1 +1,1 @@
-../../../consoletest.d/250_curl_ipv6.pm
+../../opensuse/consoletest.d/250_curl_ipv6.pm

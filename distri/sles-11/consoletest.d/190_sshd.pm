@@ -1,1 +1,1 @@
-../../../consoletest.d/190_sshd.pm
+../../opensuse/consoletest.d/190_sshd.pm

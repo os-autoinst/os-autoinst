@@ -1,1 +1,1 @@
-../../../consoletest.d/900_textinfo.pm
+../../opensuse/consoletest.d/900_textinfo.pm
