@@ -4,13 +4,14 @@ package backend::qemu;
 use strict;
 use base ('backend::baseclass');
 use threads;
+use threads::shared;
 require File::Temp;
 use File::Temp ();
 use Time::HiRes "sleep";
 
 sub init() {
 	my $self = shift;
-	$self->{'mousebutton'} = {'left' => 0, 'right' => 0, 'middle' => 0};
+	$self->{'mousebutton'} = shared_clone({'left' => 0, 'right' => 0, 'middle' => 0});
 	$self->{'pid'} = undef;
 	$self->{'pidfilename'} = 'qemu.pid';
 }
@@ -171,51 +172,101 @@ sub do_delvm($) {
 
 # management console
 
-sub readconloop($) {
-	# read all output from management console and forward it to STDOUT
-	my $self = shift;
-	$|=1;
-	my $conn = $self->{'managementcon'};
-	while(<$conn>) {
-		# print $_;
-	}
-	bmwqemu::diag("exiting management console read loop");
-	unlink($self->{'pidfilename'});
-	bmwqemu::diag("ALARM: qemu virtual machine quit! - exiting...");
-	# FIXME: this leads to unclean exit
-	alarm 3; # kill all extra threads soon
-}
-
 sub open_management($) {
 	my $self=shift;
-	my $managementcon=IO::Socket::INET->new("localhost:$ENV{QEMUPORT}") or bmwqemu::mydie("error opening management console: $!");
-	$self->{managementcon}=$managementcon;
-	my $oldfh=select($managementcon); $|=1; select($oldfh); # autoflush
-	$self->{readconthread}=threads->create(\&readconloop, $self); # without this, qemu will block
-	$self->{readconthread}->detach();
+	my $mgmtcon = 
+	$self->{mgmt} = backend::qemu::mgmt->new();
+	$self->{mgmt}->start();
 	$self->send("cont"); # start VM execution
-	$managementcon;
 }
 
 
 sub close_con($) {
 	my $self=shift;
-	close($self->{managementcon});
-	$self->send("");
+	$self->{mgmt}->stop();
 }
 
 sub send($) {
 	my $self = shift;
 	my $cmdstr = shift;
-	my $m = $self->{managementcon};
-	print $m $cmdstr."\n";
+	$self->{mgmt}->send($cmdstr);
 }
 
 # management console end
 
+package backend::qemu::mgmt;
+
+use threads;
+use threads::shared;
+
+sub new {
+	my $class = shift;
+	my $self :shared = bless(shared_clone({class=>$class}), $class);
+	$self->{cmdqueue} = Thread::Queue->new();
+	return $self;
+}
+
+sub start
+{
+	my $self = shift;
+	my $addr = "localhost:$ENV{QEMUPORT}";
+	my $tid = shared_clone(threads->create(\&_run, $addr, $self->{cmdqueue}));
+	$self->{runthread} = $tid;
+}
+
+sub stop
+{
+	my $self = shift;
+	my $cmd = shift;
+
+	$self->{cmdqueue}->enqueue(undef);
+
+	print "waiting for mgmt console thread to quit...\n";
+	$self->{runthread}->join();
+}
 
 
+sub send
+{
+	my $self = shift;
+	my $cmd = shift;
 
+	#print "enqueue <$cmd>\n";
+	$self->{cmdqueue}->enqueue($cmd);
+}
 
+sub _readconloop($) {
+	# read all output from management console and forward it to STDOUT
+	my $socket = shift;
+	$|=1;
+	while(<$socket>) {
+		# print $_;
+	}
+	bmwqemu::diag("exiting management console read loop");
+	bmwqemu::diag("ALARM: qemu virtual machine quit! - exiting...");
+	# XXX
+	alarm 3; # kill all extra threads soon
+}
+
+sub _run
+{
+	my $addr = shift;
+	my $cmdqueue = shift;
+	my $socket = IO::Socket::INET->new($addr);
+	
+	printf "started mgmt loop with thread id %d\n", threads->tid();
+
+	my $oldfh = select($socket); $|=1; select($oldfh); # autoflush
+	my $readthread = threads->create(\&_readconloop, $socket); # without this, qemu will block
+
+	my $cmdstr;
+	while (defined($cmdstr = $cmdqueue->dequeue())) {
+		#printf "sending $cmdstr\n";
+		print $socket "$cmdstr\n";
+	}
+
+	$readthread->kill('SIGTERM')->detach();
+	print "management thread exit\n";
+}
 
 1;

@@ -37,9 +37,10 @@ sub rpc()
 {
 	use JSON::RPC::Server::Daemon;
 	print "start rpc\n";
-	JSON::RPC::Server::Daemon->new(LocalPort => $ENV{'QEMUPORT'}+2)
-                                 ->dispatch({'/jsonrpc/API' => 'bmwrpc'})
-                                 ->handle();
+	my $port = $ENV{'QEMUPORT'}+2;
+	JSON::RPC::Server::Daemon->new(ReuseAddr => 1, LocalPort => $port)
+		->dispatch({'/jsonrpc/API' => 'bmwrpc'})
+		->handle();
 }
 
 my $rpcthr=threads->create(\&rpc);

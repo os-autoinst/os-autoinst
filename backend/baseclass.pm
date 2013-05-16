@@ -4,13 +4,13 @@
 package backend::baseclass;
 use strict;
 use threads;
+use threads::shared;
 use Carp;
 use JSON qw( to_json );
 
 sub new {
 	my $class = shift;
-	my $self = {class=>$class};
-	$self = bless $self, $class;
+	my $self :shared = bless(shared_clone({ class => $class }), $class);
 	$self->init();
 	$self->{'started'} = 0;
 	return $self;
@@ -202,8 +202,8 @@ sub conmuxloop($) {
 
 sub start_conmuxloop() {
 	my $self=shift;
-	$self->{conmuxthread}=threads->create(\&conmuxloop, $self); # allow external qemu input
-	$self->{conmuxthread}->detach();
+	my $thr = threads->create(\&conmuxloop, $self); # allow external qemu input
+	$thr->detach();
 }
 
 # end connection multiplexer
