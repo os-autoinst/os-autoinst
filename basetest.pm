@@ -133,6 +133,14 @@ sub record_screenfail($@)
 	push @{$self->{'details'}}, $result;
 }
 
+# for interactive mode
+sub remove_last_result()
+{
+	my $self = shift;
+	--$self->{"test_count"};
+	pop @{$self->{'details'}};
+}
+
 sub details($)
 {
 	my $self = shift;
