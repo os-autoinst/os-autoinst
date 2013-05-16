@@ -245,7 +245,7 @@ sub _readconloop($) {
 	bmwqemu::diag("exiting management console read loop");
 	bmwqemu::diag("ALARM: qemu virtual machine quit! - exiting...");
 	# XXX
-	alarm 3; # kill all extra threads soon
+	kill("SIGALRM", $$); # kill all extra threads soon
 }
 
 sub _run

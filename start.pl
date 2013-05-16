@@ -35,17 +35,22 @@ $ENV{BACKEND}||="qemu";
 init_backend($ENV{BACKEND});
 
 # all so ugly ...
-$SIG{ALRM} = sub {
-	print "got SIGALRM\n";
+sub signalhandler
+{
+	my $sig = shift;
+	print "got $sig\n";
 	if ($autotest::running) {
 		$autotest::running->fail_if_running();
 		$autotest::running = undef;
 	}
 	bmwqemu::save_results();
 	stop_vm();
-	print STDERR "die due to SIGALARM\n";
 	exit(1);
 };
+
+$SIG{ALRM} = \&signalhandler;
+$SIG{TERM} = \&signalhandler;
+$SIG{HUP} = \&signalhandler;
 
 sub rpc()
 {
