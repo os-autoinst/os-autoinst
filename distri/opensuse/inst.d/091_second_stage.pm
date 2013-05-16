@@ -45,9 +45,8 @@ sub run() {
 	    my $ret = waitforneedle(\@tags, 200);
 	    if( $ret->{needle}->has_tag("install-failed") ) {
 		$self->take_screenshot; sleep 2;
-		sendkey "ret";
-	    } else {
 		$cont = 1;
+		sendkey "ret";
 	    }
 	}
 
