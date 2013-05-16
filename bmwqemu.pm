@@ -19,6 +19,7 @@ use POSIX;
 use Term::ANSIColor;
 use Data::Dump "dump";
 use Carp;
+use JSON;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
@@ -27,7 +28,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
 &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
 &checkneedle &goandclick &set_current_test $stop_waitforneedle
-&init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr
+&init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot);
 
@@ -50,6 +51,8 @@ our $stop_waitforneedle :shared;
 # global vars
 
 our $current_test;
+our $testmodules = [];
+
 our $logfd;
 
 our $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
@@ -1086,6 +1089,22 @@ sub loadsnapshot($) {
     diag("Loading a VM snapshot $sname");
     $backend->do_loadvm($sname); sleep(10);
 }
+
+# dump all info in one big file. Alternatively each test could write
+# one file and we collect only the overall status.
+sub save_results(;$$)
+{
+	$testmodules = shift if @_;
+	my $fn = shift || result_dir()."/results.json";
+	open(my $fd, ">", $fn) or die "can not write results";
+	print $fd to_json({
+		'needledir' => needle::get_needle_dir(),
+		'running' => $current_test?ref($current_test):'',
+		'testmodules' => $testmodules,
+		}, { pretty => 1 });
+	close($fd);
+}
+
 
 #FIXME: new wait functions
 # waitscreenactive - ($backend->screenactive())

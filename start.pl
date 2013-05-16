@@ -23,6 +23,8 @@ die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI} 
 die "No scripts in $ENV{CASEDIR}" if ! -e "$ENV{CASEDIR}";
 die "ISO environment variable not set" if !defined $ENV{ISO};
 
+bmwqemu::save_results();
+
 needle::init("$scriptdir/distri/$ENV{DISTRI}/needles") if ($scriptdir && $ENV{DISTRI});
 
 my $init=1;
@@ -39,7 +41,7 @@ $SIG{ALRM} = sub {
 		$autotest::running->fail_if_running();
 		$autotest::running = undef;
 	}
-	autotest::save_results();
+	bmwqemu::save_results();
 	stop_vm();
 	print STDERR "die due to SIGALARM\n";
 	exit(1);
@@ -90,7 +92,7 @@ stop_vm();
 $screenshotthr->join();
 
 # Write JSON result
-autotest::save_results();
+bmwqemu::save_results();
 
 diag "done" unless $r;
 diag "FAIL" if $r;

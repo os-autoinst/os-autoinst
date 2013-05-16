@@ -1,8 +1,6 @@
 package autotest;
 use strict;
 use bmwqemu;
-use needle;
-use JSON;
 
 our %tests;     # scheduled or run tests
 our @testorder; # for keeping them in order
@@ -35,24 +33,23 @@ sub runtest
 		my $ret;
 		unless(defined $ENV{'checklog_working'} && $ENV{'checklog_working'}) {
 			modstart "starting $name $script";
-			$running = $test;
-			$test->start();
-			save_results();
 			bmwqemu::set_current_test($test);
+			$test->start();
+			bmwqemu::save_results(results());
 			eval {
 				$ret=&$testfunc($test);
 			};
 			if ($@) {
 				warn "test $name died: $@\n";
 				$test->fail_if_running();
-				$running = undef;
-				save_results();
+				bmwqemu::set_current_test(undef);
+				bmwqemu::save_results(results());
 				stop_vm();
 				die "test $name died: $@\n";
 			}
 			$test->done();
 			bmwqemu::set_current_test(undef);
-			save_results();
+			bmwqemu::save_results(results());
 			#sleep 1;
 			diag "||| finished $name";
 		}
@@ -75,7 +72,7 @@ sub runtestlist($&)
 	foreach my $script (@$tests) {
 		runtest($script,$testfunc);
 	}
-	$running = undef;
+	bmwqemu::set_current_test(undef);
 }
 
 sub runtestdir($&)
@@ -83,7 +80,7 @@ sub runtestdir($&)
 	foreach my $script (<$dir/*.pm>) {
 		runtest($script,$testfunc);
 	}
-	$running = undef;
+	bmwqemu::set_current_test(undef);
 }
 
 sub results()
@@ -93,20 +90,6 @@ sub results()
 		push @$results, $t->json();
 	}
 	return $results;
-}
-
-# dump all info in one big file. Alternatively each test could write
-# one file and we collect only the overall status.
-sub save_results()
-{
-	my $fn = shift || result_dir()."/results.json";
-	open(my $fd, ">", $fn) or die "can not write results";
-	print $fd to_json({
-		'needledir' => needle::get_needle_dir(),
-		'running' => $running?ref($running):'',
-		'testmodules' => results()
-		}, { pretty => 1 });
-	close($fd);
 }
 
 1;
