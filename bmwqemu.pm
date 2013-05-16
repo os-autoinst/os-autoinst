@@ -27,10 +27,12 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey 
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
 &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
-&checkneedle &goandclick &set_current_test $stop_waitforneedle
+&checkneedle &goandclick &set_current_test
 &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
-&getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot);
+&getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot
+$stop_waitforneedle &interactive_mode &needle_template &waiting_for_new_needle &interactive_lock
+);
 
 
 # shared vars
@@ -43,7 +45,11 @@ share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 my @ocrrect; share(@ocrrect);
 my @extrahashrects; share(@extrahashrects);
 
-our $stop_waitforneedle :shared;
+our $interactive_lock : shared; # lock for cond variable. protects waiting_for_new_needle and needle_template
+our $stop_waitforneedle : shared;
+our $interactive_mode : shared;
+our $needle_template : shared; # set if waitforneedle failed
+our $waiting_for_new_needle : shared;
 
 # shared vars end
 
@@ -907,6 +913,36 @@ sub waitinststage($;$$) {
 	return waitforneedle($stage, $timeout);
 }
 
+sub save_needle_template($$$)
+{
+	my ($img, $mustmatch, $tags) = @_;
+
+	my $t = POSIX::strftime("%Y%m%d_%H%M%S", gmtime());
+
+	my $imgfn  = result_dir() . "/template-$mustmatch-$t.png";
+	my $jsonfn = result_dir() . "/template-$mustmatch-$t.json";
+
+	my $template = {
+		area => [ {
+			xpos => 0, ypos => 0,
+			width => $img->xres(),
+			height => $img->yres(),
+			type => 'match' }
+		],
+		tags => [ @$tags ],
+	       };
+
+	$img->write_optimized($imgfn);
+
+	open(my $fd, ">", $jsonfn) or die "$jsonfn: $!\n";
+	print $fd JSON->new->pretty->encode( $template );
+	close($fd);
+
+	diag("wrote $jsonfn");
+
+	return shared_clone({ img => $jsonfn, needle => $jsonfn, name => $mustmatch });
+}
+
 sub _waitforneedle {
 	my %args = @_;
 	my $mustmatch = $args{'mustmatch'};
@@ -979,19 +1015,65 @@ sub _waitforneedle {
 	for (@{$needles||[]}) {
 		diag $_->{'file'};
 	}
-	my $t = time();
-	$img->write_optimized(result_dir() . "/template-$mustmatch-$t.png");
-	my $fn = result_dir() . "/template-$mustmatch-$t.json";
-	open(J, ">", $fn) or die "$fn: $!\n";
-	my $json = { area => [ { xpos => 0, ypos => 0, width => $img->xres(), height => $img->yres(), type => 'match' } ] };
-	# write out some known env variables
+
+	# add some known env variables
 	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD)) {
 		push(@tags, "ENV-$key-" . $ENV{$key}) if $ENV{$key};
 	}
-	$json->{"tags"} = \@tags;
-	print J JSON->new->pretty->encode( $json );
-	close(J);
-	diag("wrote $fn");
+
+
+	lock($interactive_lock);
+	$needle_template = save_needle_template($img, $mustmatch, \@tags);
+
+	if ($interactive_mode) {
+		lock($interactive_lock);
+		print "interactive mode entered\n";
+		freeze_vm();
+
+		$needle_template->{name} .= '-'.$interactive_mode;
+
+		$current_test->record_screenfail(
+			img => $img,
+			needles => $failed_candidates,
+			tags => \@tags,
+			result => $checkneedle?'unk':'fail',
+			overall => $checkneedle?undef:'fail'
+		);
+
+		$waiting_for_new_needle = sprintf("%s/needles/%s-%s.json",
+				$ENV{'CASEDIR'}, $mustmatch, $interactive_mode);
+
+		save_results();
+
+		print "waiting for signal\n";
+		cond_wait($interactive_lock);
+		print "got signal\n";
+
+		$current_test->remove_last_result();
+
+		if ($waiting_for_new_needle && ref $waiting_for_new_needle eq 'HASH') {
+			for my $n (needle->all()) {
+				if ($n->{'name'} eq $waiting_for_new_needle) {
+					$n->unregister();
+				}
+			}
+			diag("creating new needle ".$waiting_for_new_needle->{'name'});
+			my $pngfn = join('/', needle::get_needle_dir(), $waiting_for_new_needle->{'name'}.'.png');
+			$img->write_optimized($pngfn);
+			# create copy of the hash in order to not
+			# use the the shared hash
+			my $data = {%{$waiting_for_new_needle}};
+			my $n = needle->new($data) || mydie "creating needle failed: $!";
+			$n->save();
+			$waiting_for_new_needle = undef;
+			save_results();
+			cont_vm();
+			return _waitforneedle(mustmatch => $mustmatch, timeout => 3, check => $checkneedle, retried => $args{'retried'}+1);
+		}
+		$waiting_for_new_needle = undef;
+		save_results();
+		cont_vm();
+	}
 
 	# beware of spaghetti code below
 	my $newname;
@@ -1040,10 +1122,10 @@ sub _waitforneedle {
 	if ($run_editor && $args{'retried'} < 3) {
 		$newname = $mustmatch.($ENV{'interactive_crop'} || '') unless $newname;
 		freeze_vm();
-		system("$scriptdir/crop.py", '--new', $newname, $fn) == 0 || mydie;
+		system("$scriptdir/crop.py", '--new', $newname, $needle_template->{'needle'}) == 0 || mydie;
 		backend_send("cont");
-		$fn = sprintf("%s/needles/%s.json", $ENV{'CASEDIR'}, $newname)
-		if (-e $fn);
+		my $fn = sprintf("%s/needles/%s.json", $ENV{'CASEDIR'}, $newname);
+		if (-e $fn)
 		{
 			for my $n (needle->all()) {
 				if ($n->{'file'} eq $fn) {
@@ -1065,7 +1147,7 @@ sub _waitforneedle {
 		overall => $checkneedle?undef:'fail'
 	);
 	unless ($args{'check'}) {
-		mydie;
+		mydie "needle(s) '$mustmatch' not found";
 	}
 	return undef;
 }
@@ -1109,6 +1191,7 @@ sub save_results(;$$)
 		'needledir' => needle::get_needle_dir(),
 		'running' => $current_test?ref($current_test):'',
 		'testmodules' => $testmodules,
+		'needinput' => $waiting_for_new_needle?1:0,
 		}, { pretty => 1 });
 	close($fd);
 }

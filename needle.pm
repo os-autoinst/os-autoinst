@@ -10,14 +10,22 @@ use File::Basename;
 
 our %needles;
 our %tags;
+our $needledir;
 
-sub new($) {
+sub new($;$) {
     my $classname=shift;
-    my $jsonfile=shift;
-    local $/;
-    open( my $fh, '<', $jsonfile ) || return undef;
-    my $json = decode_json( <$fh> ) || die "broken json $jsonfile";
-    close($fh);
+    my $jsonfile = shift;
+
+    my $json;
+    if (ref $jsonfile eq 'HASH') {
+      $json = $jsonfile;
+      $jsonfile = join('/', $needledir, $json->{'name'}.'.json');
+    } else {
+      local $/;
+      open( my $fh, '<', $jsonfile ) || return undef;
+      $json = decode_json( <$fh> ) || die "broken json $jsonfile";
+      close($fh);
+    }
     my $self = {
 	tags => ($json->{'tags'} || [])
     };
@@ -143,8 +151,6 @@ sub wanted_($) {
 	$needles{$needle->{name}} = $needle;
     }
 }
-
-our $needledir;
 
 sub get_needle_dir {
   return $needledir;
