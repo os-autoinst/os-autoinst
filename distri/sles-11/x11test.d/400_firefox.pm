@@ -1,1 +1,1 @@
-../../../x11test.d/400_firefox.pm
+../../opensuse/x11test.d/400_firefox.pm

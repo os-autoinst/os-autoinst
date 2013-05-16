@@ -1,1 +1,1 @@
-../../../x11test.d/510_evolution.pm
+../../opensuse/x11test.d/510_evolution.pm
