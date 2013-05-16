@@ -7,6 +7,15 @@ my $port = ($ENV{QEMUPORT} || 15222) + 2;
 
 my $url = "http://tanana.suse.de:$port/jsonrpc/API";
 
-$client->prepare($url, ['stop_waitforneedle', 'quit', 'stop_vm']);
+my %cmds = map { $_ => 0 } ('stop_waitforneedle', 'quit', 'stop_vm', 'freeze_vm', 'cont_vm');
+$client->prepare($url, [keys %cmds]);
+for my $cmd (@ARGV) {
+	unless (exists $cmds{$cmd}) {
+		warn "invalid command $cmd";
+		next;
+	}
 #print $client->stop_waitforneedle(), "\n";
-$client->stop_vm();
+	eval {
+		$client->$cmd();
+	}
+}
