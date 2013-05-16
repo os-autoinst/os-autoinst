@@ -1,1 +1,1 @@
-../../../consoletest.d/550_syslinux.pm
+../../opensuse/consoletest.d/550_syslinux.pm

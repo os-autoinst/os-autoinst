@@ -1,1 +1,1 @@
-../../../x11test.d/485_nautilus.pm
+../../opensuse/x11test.d/485_nautilus.pm

@@ -1,1 +1,1 @@
-../../../consoletest.d/910_recentchanges.pm
+../../opensuse/consoletest.d/910_recentchanges.pm
