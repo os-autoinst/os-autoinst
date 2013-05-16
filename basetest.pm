@@ -287,7 +287,7 @@ sub check_DTMF($)
 	my $result = $self->stop_audiocapture();
 	$result->{'reference_text'} = $ref;
 
-	my $decoded_text = bmwqemu::decodewav($result->{'audio'}->{'wav_fn'});
+	my $decoded_text = bmwqemu::decodewav(join('/', result_dir(), $result->{'audio'}));
 	if($decoded_text && (uc $ref) eq $decoded_text) {
 		$result->{'result'} = 'ok';
 	} else {
