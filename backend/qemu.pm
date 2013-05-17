@@ -143,6 +143,7 @@ sub do_stop_vm($) {
 	sleep(0.1);
 	kill(15, $self->{'pid'});
 	unlink($self->{'pidfilename'});
+	$self->close_con();
 }
 
 sub do_snapshot($) {
@@ -245,6 +246,7 @@ sub _readconloop($) {
 	bmwqemu::diag("exiting management console read loop");
 	bmwqemu::diag("ALARM: qemu virtual machine quit! - exiting...");
 	# XXX
+	# TODO: set flag on graceful exit to avoid this kill
 	kill("SIGALRM", $$); # kill all extra threads soon
 }
 
