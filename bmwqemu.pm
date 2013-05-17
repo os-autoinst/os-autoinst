@@ -1188,6 +1188,7 @@ sub save_results(;$$)
 	my $fn = shift || result_dir()."/results.json";
 	open(my $fd, ">", $fn) or die "can not write results";
 	print $fd to_json({
+		'jsonrpc' => $ENV{'QEMUPORT'}+2,
 		'needledir' => needle::get_needle_dir(),
 		'running' => $current_test?ref($current_test):'',
 		'testmodules' => $testmodules,
