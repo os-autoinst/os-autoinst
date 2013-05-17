@@ -58,13 +58,11 @@ pkglibexec_SCRIPTS = \
 	start.pl
 
 pkglibexec_FOLDERS = \
-	consoletest.d \
 	distri \
 	tools \
 	inst \
 	inst.d \
-	workaround \
-	x11test.d
+	workaround
 
 # sort the above out so it is not done directory wise
 
