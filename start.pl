@@ -92,14 +92,16 @@ if ($@) {
 	sleep 10;
 }
 
+diag "done" unless $r;
+diag "FAIL" if $r;
+
+$SIG{ALRM} = 'IGNORE'; # ignore ALRM so the readthread doesn't kill us here
+
 stop_vm();
 
 $screenshotthr->join();
 
 # Write JSON result
 bmwqemu::save_results();
-
-diag "done" unless $r;
-diag "FAIL" if $r;
 
 exit $r;
