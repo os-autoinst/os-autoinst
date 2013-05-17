@@ -52,9 +52,11 @@ pkglibexec_SCRIPTS = \
 	bmwqemu.pm \
 	httpnotifyconf.pm \
 	installstep.pm \
+	bmwrpc.pm \
 	ocr.pm \
 	cv.pm \
 	needle.pm \
+	rpc.pl \
 	start.pl
 
 pkglibexec_FOLDERS = \
