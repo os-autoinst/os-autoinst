@@ -70,13 +70,6 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
      return outvec;
   }
   Mat res = Mat::zeros(res_height, res_width, CV_32FC1);
-
-  // TODO remove the old mode
-#define OLD 0
-#if OLD
-  Mat gray_scene = scene->img;
-  Mat gray_crop_object = image_copyrect(object, x, y, width, height);
-#else
   Mat gray_scene;
   cvtColor(scene->img, gray_scene, CV_RGB2GRAY);
   GaussianBlur(gray_scene, gray_scene, Size(5, 5), 0, 0);
@@ -84,8 +77,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   Mat gray_crop_object;
   cvtColor(object->img, gray_crop_object, CV_RGB2GRAY);
   GaussianBlur(gray_crop_object, gray_crop_object, Size(5, 5), 0, 0);
-  gray_crop_object = Mat(gray_crop_object, Range(y, y+height), Range(x,x+width));
-#endif
+  //gray_crop_object = Mat(gray_crop_object, Range(y, y+height), Range(x,x+width));
 
   // Perform the matching. Info about algorithm:
   // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
