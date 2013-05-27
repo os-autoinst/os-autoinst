@@ -19,7 +19,7 @@ sub run()
 	script_sudo("rpm -e  gvim"); # extra space to have different result images than for zypper_in test
 	script_run("rpm -q gvim");
 	# make sure we go out of here
-	waitforneedle('test-yast2_i-3', 1);
+	waitforneedle('test-yast2_i-gvim-not-installed', 1);
 }
 
 1;
