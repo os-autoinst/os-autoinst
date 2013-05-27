@@ -35,3 +35,9 @@ $img1 = tinycv::read("data/welcome.test.png");
 $needle = needle->new("data/welcome.ref.json");
 $res = $img1->search($needle);
 ok(defined $res, "match with different art");
+
+$img1 = tinycv::read("data/kde.test.png");
+$needle = needle->new("data/kde.ref.json");
+$res = $img1->search($needle);
+ok(!defined $res, "no match with different art");
+

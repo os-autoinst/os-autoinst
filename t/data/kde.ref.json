@@ -1,0 +1,25 @@
+{
+   "area" : [
+      {
+         "height" : 765,
+         "match" : 96,
+         "type" : "match",
+         "width" : 1020,
+         "xpos" : 0,
+         "ypos" : 0
+      },
+      {
+         "height" : 35,
+         "type" : "exclude",
+         "width" : 75,
+         "xpos" : 945,
+         "ypos" : 730
+      }
+   ],
+   "tags" : [
+      "ENV-DESKTOP-kde",
+      "KDE",
+      "desktop-at-first-boot",
+      "reboot-after-installation"
+   ]
+}
