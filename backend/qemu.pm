@@ -139,11 +139,11 @@ sub do_start_vm($) {
 
 sub do_stop_vm($) {
 	my $self = shift;
+	$self->close_con();
 	$self->send('quit');
 	sleep(0.1);
 	kill(15, $self->{'pid'});
 	unlink($self->{'pidfilename'});
-	$self->close_con();
 }
 
 sub do_snapshot($) {
@@ -255,7 +255,7 @@ sub _run
 	my $addr = shift;
 	my $cmdqueue = shift;
 	my $socket = IO::Socket::INET->new($addr);
-	
+
 	printf "started mgmt loop with thread id %d\n", threads->tid();
 
 	my $oldfh = select($socket); $|=1; select($oldfh); # autoflush

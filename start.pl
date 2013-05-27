@@ -30,27 +30,31 @@ needle::init("$scriptdir/distri/$ENV{DISTRI}/needles") if ($scriptdir && $ENV{DI
 my $init=1;
 alarm (7200+($ENV{UPGRADE}?3600:0)); # worst case timeout
 
-# init part
-$ENV{BACKEND}||="qemu";
-init_backend($ENV{BACKEND});
-
 # all so ugly ...
 sub signalhandler
 {
+	# do not start a race about the results between the threads
+
 	my $sig = shift;
 	print "got $sig\n";
 	if ($autotest::running) {
 		$autotest::running->fail_if_running();
 		$autotest::running = undef;
 	}
-	bmwqemu::save_results();
-	stop_vm();
+	if (threads->tid() == 0) {
+	  bmwqemu::save_results();
+	  stop_vm();
+	}
 	exit(1);
 };
 
 $SIG{ALRM} = \&signalhandler;
 $SIG{TERM} = \&signalhandler;
 $SIG{HUP} = \&signalhandler;
+
+# init part
+$ENV{BACKEND}||="qemu";
+init_backend($ENV{BACKEND});
 
 sub rpc()
 {
