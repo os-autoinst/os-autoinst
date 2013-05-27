@@ -7,7 +7,7 @@ sub run()
 {
 	# overview-generation
 	# this is almost impossible to check for real
-	waitforneedle("inst-overview", 10);
+	waitforneedle("inst-overview", 15);
 	# preserve it for the video
 	waitidle 10;
 }
