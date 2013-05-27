@@ -16,6 +16,7 @@ sub new(;$) {
 	$self->{running} = 0;
 	$self->{category} = $category;
 	$self->{test_count} = 0;
+        $self->{screen_count} = 0;
 	$self->{wav_fn} = undef;
 	return bless $self, $class;
 }
@@ -243,11 +244,10 @@ sub check_screen(;$)
 	my $testname = ref($self);
 	my $tag;
 
-	my $count = ++$self->{"test_count"};
-
 	if ($name) {
 		$tag = "test-$testname-$name";
 	} else {
+                my $count = ++$self->{"screen_count"};
 		$tag = "test-$testname-$count";
 	}
 
