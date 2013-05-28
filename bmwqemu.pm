@@ -1192,6 +1192,7 @@ sub save_results(;$$)
 		'needledir' => needle::get_needle_dir(),
 		'running' => $current_test?ref($current_test):'',
 		'testmodules' => $testmodules,
+		'interactive' => $interactive_mode?1:0,
 		'needinput' => $waiting_for_new_needle?1:0,
 		}, { pretty => 1 });
 	close($fd);
