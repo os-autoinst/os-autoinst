@@ -36,9 +36,16 @@ sub loadtest($)
 }
 
 sub runalltests {
-	for my $t (@testorder) {
-		$t->runtest;
+    my $firsttest=$ENV{SKIPTO} || $testorder[0]->{fullname};
+    my $vmloaded=0;
+
+    for my $t (@testorder) {
+	if (!$vmloaded && $t->{fullname} eq $firsttest) {
+	    loadsnapshot($firsttest) if $ENV{SKIPTO};
+	    $vmloaded = 1;
 	}
+	$t->runtest if $vmloaded;
+    }
 }
 
 sub loadtestdir($) {
