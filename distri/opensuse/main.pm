@@ -4,13 +4,6 @@ use bmwqemu;
 use autotest;
 use needle;
 
-sub installrunfunc
-{
-	my($test)=@_;
-	my $class=ref $test;
-	$test->run();
-}
-
 our %valueranges=(
 #	LVM=>[0,1],
 	NOIMAGES=>[0,1],
@@ -148,15 +141,13 @@ $ENV{SCREENSHOTINTERVAL}||=.5;
 # dump other important ENV:
 logcurrentenv(qw"ADDONURL BIGTEST BTRFS DESKTOP HW HWSLOT LIVETEST LVM MOZILLATEST NOINSTALL REBOOTAFTERINSTALL UPGRADE USBBOOT TUMBLEWEED WDUP ZDUP ZDUPREPOS TEXTMODE DISTRI NOAUTOLOGIN");
 
-# XXX: needed for ui to know list of tests in advance
-autotest::runtestdir("$ENV{CASEDIR}/inst.d", undef);
-autotest::runtestdir("$ENV{CASEDIR}/consoletest.d", undef);
-autotest::runtestdir("$ENV{CASEDIR}/x11test.d", undef);
-
-autotest::runtestdir("$ENV{CASEDIR}/inst.d", \&installrunfunc);
-
-if(my $d=$ENV{DESKTOP}) {
-	require "inst/\L$d.pm";
+# load the tests in the right order
+autotest::loadtestdir("$ENV{CASEDIR}/inst.d");
+if(!$ENV{NICEVIDEO}) {
+	autotest::loadtestdir("$ENV{CASEDIR}/consoletest.d");
+}
+if($ENV{DESKTOP}!~/textmode|minimalx/) {
+	autotest::loadtestdir("$ENV{CASEDIR}/x11test.d");
 }
 
 1;

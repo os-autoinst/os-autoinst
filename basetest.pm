@@ -67,7 +67,9 @@ sub record_screenmatch($$;$)
 }
 
 =head2
+
 serialize a match result from needle::search
+
 =cut
 sub _serialize_match($$)
 {
@@ -175,6 +177,41 @@ sub fail_if_running()
 {
 	my $self = shift;
 	$self->{result} = 'fail' if $self->{'result'};
+}
+
+sub runtest($$) {
+	my $self = shift;
+
+	my $ret;
+	my $name = ref($self);
+	modstart "starting $name $self->{script}";
+	bmwqemu::set_current_test($self);
+	$self->start();
+	bmwqemu::save_results(autotest::results());
+	eval {
+		if ($self->{'category'} eq 'consoltest') {
+			# clear screen to make screen content independent from previous tests
+			clear_console;
+		}
+		$self->run();
+		if ($self->{'category'} ne 'inst') {
+			$self->check_screen;
+		}
+	};
+	if ($@) {
+		warn "test $name died: $@\n";
+		$self->fail_if_running();
+		bmwqemu::set_current_test(undef);
+		bmwqemu::save_results(autotest::results());
+		stop_vm();
+		die "test $name died: $@\n";
+	}
+	$self->done();
+	bmwqemu::set_current_test(undef);
+	bmwqemu::save_results(autotest::results());
+	#sleep 1;
+	diag "||| finished $name";
+	return $ret;
 }
 
 sub json()
