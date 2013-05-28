@@ -45,7 +45,15 @@ sub runalltests {
 	    $vmloaded = 1;
 	}
 	if ($vmloaded) {
-	    $t->runtest;
+          my $name = ref($t);
+          modstart "starting $name $t->{script}";
+          $t->start();
+          bmwqemu::save_results(results());
+	  # avoid erasing the good vm snapshot
+	  if (!checkEnv('SKIPTO', $t->{'fullname'})) {
+            $t->makesnapshot($t->{'fullname'});
+          }
+	  $t->runtest;
 	} else {
 	    diag "skiping $t->{fullname}";
 	    $t->skip_if_not_running;

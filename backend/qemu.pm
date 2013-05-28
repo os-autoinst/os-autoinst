@@ -195,7 +195,7 @@ sub send($) {
 	while ($self->{mgmt}->{rspqueue}->dequeue_nb()) { };
 	$self->{mgmt}->send($cmdstr);
 	# QEMU return a line with the command. Remove from the queue.
-	$self->{mgmt}->{rspqueue}->dequeue();
+	$self->{mgmt}->{rspqueue}->dequeue() if ($cmdstr ne 'quit');
 }
 
 sub _wait($) {
