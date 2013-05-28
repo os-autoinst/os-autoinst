@@ -6,9 +6,9 @@ our %tests;     # scheduled or run tests
 our @testorder; # for keeping them in order
 our $running;   # currently running test or undef
 
-sub runtest
+sub loadtest($)
 {
-	my($script,$testfunc)=@_;
+	my $script = shift;
 	return unless $script =~ /.*\/(\w+)\.d\/\d+_(.+)\.pm$/;
 	my $category=$1;
 	my $name=$2;
@@ -24,63 +24,26 @@ sub runtest
 			die $msg;
 		}
 		$test=$name->new($category);
+		$test->{script} = $script;
 		$tests{$name} = $test;
 
 		return unless $test->is_applicable;
 		push @testorder, $test;
 	}
-	if (defined $testfunc) {
-		my $ret;
-		unless(defined $ENV{'checklog_working'} && $ENV{'checklog_working'}) {
-			modstart "starting $name $script";
-			bmwqemu::set_current_test($test);
-			$test->start();
-			bmwqemu::save_results(results());
-			eval {
-				$ret=&$testfunc($test);
-			};
-			if ($@) {
-				warn "test $name died: $@\n";
-				$test->fail_if_running();
-				bmwqemu::set_current_test(undef);
-				bmwqemu::save_results(results());
-				stop_vm();
-				die "test $name died: $@\n";
-			}
-			$test->done();
-			bmwqemu::set_current_test(undef);
-			bmwqemu::save_results(results());
-			#sleep 1;
-			diag "||| finished $name";
-		}
-		else {
-			modstart "checking $name $script";
-			$ret=&$testfunc($test);
-			diag "";
-		}
+	diag "scheduling $name $script";
+}
 
-		return $ret;
-	}
-	else {
-		diag "scheduling $name $script";
+sub runalltests {
+	for my $t (@testorder) {
+		$t->runtest;
 	}
 }
 
-sub runtestlist($&)
-{
-	my($tests,$testfunc)=@_;
-	foreach my $script (@$tests) {
-		runtest($script,$testfunc);
-	}
-	bmwqemu::set_current_test(undef);
-}
-
-sub runtestdir($&)
-{ my($dir,$testfunc)=@_;
+sub loadtestdir($) {
+	my $dir = shift;
 	foreach my $script (<$dir/*.pm>) {
-		runtest($script,$testfunc);
+		loadtest($script);
 	}
-	bmwqemu::set_current_test(undef);
 }
 
 sub results()
@@ -93,3 +56,8 @@ sub results()
 }
 
 1;
+
+# Local Variables:
+# tab-width: 8
+# cperl-indent-level: 8
+# End:
