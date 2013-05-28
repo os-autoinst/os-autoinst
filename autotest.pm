@@ -47,6 +47,7 @@ sub runalltests {
 	if ($vmloaded) {
 	    $t->runtest;
 	} else {
+	    diag "skiping $t->{fullname}";
 	    $t->skip_if_not_running;
 	}
     }
