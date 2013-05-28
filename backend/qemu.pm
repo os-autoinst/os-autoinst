@@ -154,11 +154,13 @@ sub do_snapshot($) {
 sub do_savevm($) {
 	my ($self, $vmname) = @_;
 	$self->send("savevm $vmname");
+	$self->_wait();
 }
 
 sub do_loadvm($) {
 	my ($self, $vmname) = @_;
 	$self->send("loadvm $vmname");
+	$self->_wait();
 	$self->send("stop");
 	$self->send("cont");
 }
@@ -190,7 +192,18 @@ sub close_con($) {
 sub send($) {
 	my $self = shift;
 	my $cmdstr = shift;
+	while ($self->{mgmt}->{rspqueue}->dequeue_nb()) { };
 	$self->{mgmt}->send($cmdstr);
+	# QEMU return a line with the command. Remove from the queue.
+	$self->{mgmt}->{rspqueue}->dequeue();
+}
+
+sub _wait($) {
+    my $self = shift;
+    $self->send("help");
+    # print "Waiting output from rspqueue ...\n";
+    $self->{mgmt}->{rspqueue}->dequeue();
+    # print "Response from rspqueue ...\n$result\n";
 }
 
 # management console end
@@ -204,6 +217,7 @@ sub new {
 	my $class = shift;
 	my $self :shared = bless(shared_clone({class=>$class}), $class);
 	$self->{cmdqueue} = Thread::Queue->new();
+	$self->{rspqueue} = Thread::Queue->new();
 	return $self;
 }
 
@@ -211,7 +225,7 @@ sub start
 {
 	my $self = shift;
 	my $addr = "localhost:$ENV{QEMUPORT}";
-	my $tid = shared_clone(threads->create(\&_run, $addr, $self->{cmdqueue}));
+	my $tid = shared_clone(threads->create(\&_run, $addr, $self->{cmdqueue}, $self->{rspqueue}));
 	$self->{runthread} = $tid;
 }
 
@@ -236,12 +250,15 @@ sub send
 	$self->{cmdqueue}->enqueue($cmd);
 }
 
-sub _readconloop($) {
+sub _readconloop($$) {
 	# read all output from management console and forward it to STDOUT
 	my $socket = shift;
+	my $rspqueue = shift;
 	$|=1;
 	while(<$socket>) {
 		# print $_;
+	    chomp;
+	    $rspqueue->enqueue($_);
 	}
 	bmwqemu::diag("exiting management console read loop");
 	bmwqemu::diag("ALARM: qemu virtual machine quit! - exiting...");
@@ -254,12 +271,13 @@ sub _run
 {
 	my $addr = shift;
 	my $cmdqueue = shift;
+	my $rspqueue = shift;
 	my $socket = IO::Socket::INET->new($addr);
 
 	printf "started mgmt loop with thread id %d\n", threads->tid();
 
 	my $oldfh = select($socket); $|=1; select($oldfh); # autoflush
-	my $readthread = threads->create(\&_readconloop, $socket); # without this, qemu will block
+	my $readthread = threads->create(\&_readconloop, $socket, $rspqueue); # without this, qemu will block
 
 	my $cmdstr;
 	while (defined($cmdstr = $cmdqueue->dequeue())) {
