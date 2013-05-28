@@ -51,9 +51,16 @@ sub runalltests {
           bmwqemu::save_results(results());
 	  # avoid erasing the good vm snapshot
 	  if (!checkEnv('SKIPTO', $t->{'fullname'})) {
-            $t->makesnapshot($t->{'fullname'});
+            bmwqemu::makesnapshot($t->{'fullname'});
           }
-	  $t->runtest;
+	  eval { $t->runtest; };
+          if ($@) {
+		if ($t->{category} eq 'inst') {
+			stop_vm();
+			die $@;
+		}
+		bmwqemu::loadsnapshot($t->{'fullname'});
+          }
 	} else {
 	    diag "skiping $t->{fullname}";
 	    $t->skip_if_not_running;

@@ -172,18 +172,21 @@ sub done()
 	unless ($self->{"test_count"}) {
 		$self->take_screenshot();
 	}
+	bmwqemu::set_current_test(undef);
 }
 
 sub fail_if_running()
 {
 	my $self = shift;
 	$self->{result} = 'fail' if $self->{'result'};
+        bmwqemu::set_current_test(undef);
 }
 
 sub skip_if_not_running()
 {
 	my $self = shift;
 	$self->{result} = 'skip' if !$self->{'result'};
+	bmwqemu::set_current_test(undef);
 }
 
 sub runtest($$) {
@@ -204,13 +207,10 @@ sub runtest($$) {
 	if ($@) {
 		warn "test $name died: $@\n";
 		$self->fail_if_running();
-		bmwqemu::set_current_test(undef);
 		bmwqemu::save_results(autotest::results());
-		stop_vm();
 		die "test $name died: $@\n";
 	}
 	$self->done();
-	bmwqemu::set_current_test(undef);
 	bmwqemu::save_results(autotest::results());
 	#sleep 1;
 	diag "||| finished $name";
