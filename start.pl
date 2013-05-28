@@ -17,6 +17,7 @@ use bmwqemu;
 use needle;
 use autotest;
 use bmwrpc;
+use Data::Dumper;
 
 # Sanity checks
 die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI} && !defined $ENV{CASEDIR};
@@ -86,6 +87,7 @@ my $r = 0;
 eval {
 	# Load the main.pm from the casedir checked by the sanity checks above
 	require "$ENV{CASEDIR}/main.pm";
+	autotest::runalltests();
 };
 if ($@) {
 	warn $@;
