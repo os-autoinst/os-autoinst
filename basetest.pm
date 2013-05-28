@@ -161,6 +161,7 @@ sub start()
 {
 	my $self = shift;
 	$self->{running} = 1;
+	bmwqemu::set_current_test($self);
 }
 
 sub done()
@@ -190,16 +191,11 @@ sub runtest($$) {
 
 	my $ret;
 	my $name = ref($self);
-	modstart "starting $name $self->{script}";
-	bmwqemu::set_current_test($self);
-	$self->start();
-	bmwqemu::save_results(autotest::results());
 	eval {
 		if ($self->{'category'} eq 'consoletest') {
 			# clear screen to make screen content independent from previous tests
 			clear_console;
 		}
-		makesnapshot($self->{'fullname'});
 		$self->run();
 		if ($self->{'category'} ne 'inst') {
 			$self->check_screen;
