@@ -60,7 +60,7 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	}
 }
 
-if(!$ENV{KEEPHDDS}) {
+if(!$ENV{KEEPHDDS} && !$ENV{SKIPTO}) {
 	# fresh HDDs
 	for my $i (1..$ENV{NUMDISKS}) {
 		unlink("$basedir/l$i");
