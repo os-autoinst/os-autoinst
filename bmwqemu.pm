@@ -336,6 +336,7 @@ sub stop_vm()
 {
 	return unless $backend;
 	$backend->stop_vm();
+        close $logfd;
 }
 
 sub freeze_vm()
@@ -351,7 +352,6 @@ sub cont_vm()
 sub mydie {
 	fctlog('mydie', "@_");
 #	$backend->stop_vm();
-	close $logfd;
 	croak "mydie";
 }
 
