@@ -179,6 +179,12 @@ sub fail_if_running()
 	$self->{result} = 'fail' if $self->{'result'};
 }
 
+sub skip_if_not_running()
+{
+	my $self = shift;
+	$self->{result} = 'skip' if !$self->{'result'};
+}
+
 sub runtest($$) {
 	my $self = shift;
 
