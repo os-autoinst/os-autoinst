@@ -44,7 +44,11 @@ sub runalltests {
 	    loadsnapshot($firsttest) if $ENV{SKIPTO};
 	    $vmloaded = 1;
 	}
-	$t->runtest if $vmloaded;
+	if ($vmloaded) {
+	    $t->runtest;
+	} else {
+	    $t->skip_if_not_running;
+	}
     }
 }
 
