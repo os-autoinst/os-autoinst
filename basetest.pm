@@ -189,7 +189,7 @@ sub runtest($$) {
 	$self->start();
 	bmwqemu::save_results(autotest::results());
 	eval {
-		if ($self->{'category'} eq 'consoltest') {
+		if ($self->{'category'} eq 'consoletest') {
 			# clear screen to make screen content independent from previous tests
 			clear_console;
 		}
