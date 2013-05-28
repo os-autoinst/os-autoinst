@@ -193,6 +193,7 @@ sub runtest($$) {
 			# clear screen to make screen content independent from previous tests
 			clear_console;
 		}
+		makesnapshot($self->{'fullname'});
 		$self->run();
 		if ($self->{'category'} ne 'inst') {
 			$self->check_screen;

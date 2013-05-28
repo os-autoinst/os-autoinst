@@ -13,8 +13,9 @@ sub loadtest($)
 	my $category=$1;
 	my $name=$2;
 	my $test;
-	if (exists $tests{$name}) {
-		$test = $tests{$name};
+	my $fullname="$category-$name";
+	if (exists $tests{$fullname}) {
+		$test = $tests{$fullname};
 		return unless $test->is_applicable;
 	} else {
 		eval "package $name; require \$script;";
@@ -25,7 +26,8 @@ sub loadtest($)
 		}
 		$test=$name->new($category);
 		$test->{script} = $script;
-		$tests{$name} = $test;
+		$test->{fullname} = $fullname;
+		$tests{$fullname} = $test;
 
 		return unless $test->is_applicable;
 		push @testorder, $test;
