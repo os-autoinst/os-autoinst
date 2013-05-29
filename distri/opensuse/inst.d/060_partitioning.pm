@@ -66,7 +66,7 @@ sub setraidlevel($)
 
 waitforneedle('partioning', 40);
 if($ENV{TOGGLEHOME} && !$ENV{LIVECD}) {
-	my $homekey=(($ENV{VIDEOMODE} && $ENV{VIDEOMODE} eq "text")?"alt-p":"alt-h");
+	my $homekey=checkEnv('VIDEOMODE', "text")?"alt-p":"alt-h";
 	sendkey $homekey;
 	waitforneedle("disabledhome", 3);
 }

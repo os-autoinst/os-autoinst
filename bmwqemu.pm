@@ -533,7 +533,7 @@ $wait_seconds
 sub script_sudo($;$) {
         my $prog = shift;
 	sendautotype("sudo $prog\n");
-	if (checkneedle("sudo-passwordprompt", 2)) {
+	if (checkneedle("sudo-passwordprompt", 3)) {
 		sendpassword;
 		sendkey "ret";
 	}
