@@ -20,9 +20,10 @@ sub run()
 	sendkey "ctrl-z"; # undo produces "12" instead of "1"
 	sleep 3;
 	$self->check_screen;
-	sendkey "alt-f4"; sleep 2;
-	$self->check_screen;
-	sendkey "alt-d"; sleep 2; # Discard
+	sendkey "alt-f4";
+	waitforneedle('oomath-prompt', 5);
+	sendkey "alt-w"; # Without saving
+	waitforneedle('oomath-gone');
 }
 
 1;
