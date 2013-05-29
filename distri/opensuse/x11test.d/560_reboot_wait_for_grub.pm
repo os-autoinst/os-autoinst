@@ -9,7 +9,7 @@ sub is_applicable()
 sub run()
 {
 	my $self=shift;
-	waitforneedle( "bootloader", 30); # wait until reboot
+	waitforneedle( "bootloader", 100); # wait until reboot
 }
 
 1;

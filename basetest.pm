@@ -195,13 +195,29 @@ sub runtest($$) {
 	my $ret;
 	my $name = ref($self);
 	eval {
+		my $previmg;
+		if ($self->{'category'} eq 'x11test') {
+			$previmg = bmwqemu::getcurrentscreenshot();
+		}
+
 		if ($self->{'category'} eq 'consoletest') {
 			# clear screen to make screen content independent from previous tests
 			clear_console;
 		}
+
+
 		$self->run();
 		if ($self->{'category'} ne 'inst') {
 			$self->check_screen;
+		}
+		if ($self->{'category'} eq 'x11test') {
+			my $currentimg = bmwqemu::getcurrentscreenshot();
+			my $sim = $currentimg->similarity($previmg);
+			diag "SIM $name $sim\n";
+			if ($sim < 49) {
+				$self->take_screenshot();
+				die "not similiar enough\n";
+			}
 		}
 	};
 	if ($@) {
