@@ -16,17 +16,8 @@ sub run()
 	sleep 2;
 	$self->check_screen;
 	sendkey "alt-f4"; sleep 2;
-	$self->check_screen;
-	sendkey "alt-d"; sleep 2; # Discard
+	waitforneedle("ooffice-save-prompt", 8);
+	sendkey "alt-w"; sleep 2; # *W*ithout saving
 }
-
-sub ocr_checklist()
-{
-        [
-
-                {screenshot=>2, x=>104, y=>201, xs=>380, ys=>150, pattern=>"H ?ello", result=>"OK"}
-        ]
-}
-
 
 1;
