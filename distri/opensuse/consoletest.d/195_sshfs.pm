@@ -17,7 +17,7 @@ sub run()
 	script_run("rpm -e gvim");
 	script_run('cd /tmp');
 	# become user again
-	script_run('exit')
+	script_run('exit');
 }
 
 1;
