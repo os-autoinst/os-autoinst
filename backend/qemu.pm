@@ -98,6 +98,7 @@ sub start_audiocapture($) {
 	$self->send("wavcapture $filename 44100 16 1");
 	sleep(0.1);
 }
+
 sub stop_audiocapture($) {
 	my ($self, $index) = @_;
 	$self->send("stopcapture $index");
@@ -139,8 +140,8 @@ sub do_start_vm($) {
 
 sub do_stop_vm($) {
 	my $self = shift;
-	$self->close_con();
 	$self->send('quit');
+	$self->close_con();
 	sleep(0.1);
 	kill(15, $self->{'pid'});
 	unlink($self->{'pidfilename'});
@@ -177,8 +178,7 @@ sub do_delvm($) {
 
 sub open_management($) {
 	my $self=shift;
-	my $mgmtcon = 
-	$self->{mgmt} = backend::qemu::mgmt->new();
+	my $mgmtcon = $self->{mgmt} = backend::qemu::mgmt->new();
 	$self->{mgmt}->start();
 	$self->send("cont"); # start VM execution
 }
@@ -187,6 +187,7 @@ sub open_management($) {
 sub close_con($) {
 	my $self=shift;
 	$self->{mgmt}->stop();
+	$self->{mgmt} = undef;
 }
 
 sub send($) {
@@ -236,8 +237,10 @@ sub stop
 
 	$self->{cmdqueue}->enqueue(undef);
 
-	print "waiting for mgmt console thread to quit...\n";
+	print " waiting for console read thread to quit...\n";
 	$self->{runthread}->join();
+	print "done\n";
+	$self->{runthread} = undef;
 }
 
 
@@ -256,9 +259,9 @@ sub _readconloop($$) {
 	my $rspqueue = shift;
 	$|=1;
 	while(<$socket>) {
-		# print $_;
-	    chomp;
-	    $rspqueue->enqueue($_);
+	  #print $_;
+	  chomp;
+	  $rspqueue->enqueue($_);
 	}
 	bmwqemu::diag("exiting management console read loop");
 	bmwqemu::diag("ALARM: qemu virtual machine quit! - exiting...");
@@ -284,8 +287,8 @@ sub _run
 		#printf "sending $cmdstr\n";
 		print $socket "$cmdstr\n";
 	}
-
-	$readthread->kill('SIGTERM')->detach();
+	close($socket);
+	$readthread->join();
 	print "management thread exit\n";
 }
 
