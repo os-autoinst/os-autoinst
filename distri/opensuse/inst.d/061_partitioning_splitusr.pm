@@ -32,7 +32,9 @@ sub run()
 	sendkeyw $cmd{"next"};
 	sendkey "alt-m"; # Mount Point
 	sendautotype("/usr\b"); # Backspace to break bad completion to /usr/local
+	waitforneedle("partition-splitusr-submitted-usr", 3);
 	sendkey $cmd{"finish"};
+	waitforneedle("partition-splitusr-finished", 3);
 	sendkeyw $cmd{"accept"};
 }
 
