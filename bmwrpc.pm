@@ -47,20 +47,16 @@ sub get_needle_template : Str
 	return JSON->new->pretty->encode( $bmwqemu::needle_template );
 }
 
-# pass needle structure, must include name tag to save under that name
+# first parameter is the name
+# second parameter is the needle structure (as a real hash)
 sub save_needle($) : Public(data)
 {
 	my ($self, $args) = @_;
-	my $json;
-	eval {
-		$json = decode_json( $args->[0] );
-	};
-	bmwqemu::diag("got invalid json") if "$@";
-	if ($json) {
-		$json->{'name'} =~ s/[^a-zA-Z0-9]/_/g;
-	}
+	my $new_needle = $args->[1];
+	$new_needle->{"name"} = $args->[0];
+	$new_needle->{'name'} =~ s/[^a-zA-Z0-9]/_/g;
 	lock($bmwqemu::interactive_lock);
-	$bmwqemu::waiting_for_new_needle = shared_clone($json);
+	$bmwqemu::waiting_for_new_needle = shared_clone($new_needle);
 	cond_signal($bmwqemu::interactive_lock);
 	return 1;
 }
