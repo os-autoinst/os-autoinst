@@ -9,6 +9,8 @@ sub run()
         
         my @tags = (@{needle::tags("inst-welcome")}, @{needle::tags("inst-betawarning")});
         
+	# we can't just wait for the needle as the beta popup may appear delayed and we're doomed
+	waitidle(350);
 	my $ret = waitforneedle(\@tags, 350); # live cds can take quite a long time to boot
 
         if( $ret->{needle}->has_tag("inst-betawarning") ) {
@@ -26,7 +28,6 @@ sub run()
 	# animated cursor wastes disk space, so it is moved to bottom right corner
 	mouse_hide;
 	#sendkey "alt-o"; # beta warning
-	#  TODO make the beta warning check more clever
 	waitidle;
 	# license+lang
 	if($ENV{HASLICENSE}) {
