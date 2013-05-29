@@ -21,7 +21,7 @@ sub run()
 	$self->check_screen;
 	sendkey "ctrl-l";
 	script_run('echo $?');
-	$self->check_screen;
+	waitforneedle("exited-bootloader", 2);
 	script_run('rpm -q hwinfo');
 }
 
