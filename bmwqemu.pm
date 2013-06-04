@@ -127,6 +127,7 @@ our %cmd=qw(
 	noautologin alt-a
 	change alt-c
 	software s
+	bootloader b
 );
 
 if($ENV{INSTLANG} eq "de_DE") {
