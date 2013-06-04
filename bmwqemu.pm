@@ -104,6 +104,7 @@ our %cmd=qw(
 	otherrootpw alt-s
 	change alt-c
 	software s
+	bootloader b
 );
 
 if($ENV{INSTLANG} eq "de_DE") {
