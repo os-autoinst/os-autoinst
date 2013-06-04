@@ -11,7 +11,7 @@ sub is_applicable()
 
 sub run()
 {
-	my %desktopkeys=(kde=>"k", gnome=>"g", xfce=>"x", lxde=>"l", minimalx=>"m", "textmode"=>"i");
+	my %desktopkeys=(kde=>"k", gnome=>"g", xfce=>"x", lxde=>"l", minimalx=>"m", textmode=>"i");
 	waitstillimage();
 	my $d=$ENV{DESKTOP};
 	diag "selecting desktop=$d";
