@@ -47,13 +47,9 @@ if(!$ENV{LIVETEST}) {
 
 # 1024x768
 if($ENV{RES1024}) { # default is 800x600
-        sendautotype("video=1024x768-16 ");
+    sendautotype("video=1024x768-16 ");
 } elsif(checkEnv('VIDEOMODE', "text")) {
-	#sendkey "f3";
-	#for(1..2) {
-	#	sendkey "up";
-	#}
-	#sendkey "ret";
+    sendautotype("textmode=1 ");
 }
 
 #sendautotype("nohz=off "); # NOHZ caused errors with 2.6.26
@@ -64,6 +60,7 @@ sendautotype("vga=791 ");
 sendautotype("video=1024x768-16 ");
 sendautotype("drm_kms_helper.edid_firmware=edid/1024x768.bin ");
 waitforneedle("inst-video-typed-grub2", 13);
+
 if(!$ENV{NICEVIDEO}) {
 	sleep 15; sendautotype("console=ttyS0 "); # to get crash dumps as text
 	sleep 15; sendautotype("console=tty "); # to get crash dumps as text
