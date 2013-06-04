@@ -78,7 +78,13 @@ our $serialfile="serial0";
 our $gocrbin="/usr/bin/gocr";
 
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
-our $testedversion=$ENV{ISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.iso$//; $testedversion=~s{-Media1?$}{};
+our $testedversion=$ENV{NAME};
+unless ($testedversion) {
+	$testedversion=$ENV{ISO}||"";
+	$testedversion=~s{.*/}{};
+	$testedversion=~s/\.iso$//;
+	$testedversion=~s{-Media1?$}{};
+}
 if(!$ENV{DISTRI}) {
 	if($testedversion=~m/^(debian|openSUSE|Fedora|Mageia|SLE[SD]-1\d|oi|FreeBSD|archlinux)-/) {$ENV{DISTRI}=lc($1)}
 }
