@@ -35,7 +35,17 @@ else
 	echo "No build id collected" >> ${logfile}
 fi
 
-perl $scriptdir/start.pl # || exit 1
+osautoinstpid=
+termhandler()
+{
+	if [ -n "$osautoinstpid" ]; then
+		kill $osautoinstpid
+	fi
+}
+trap termhandler EXIT
+perl $scriptdir/start.pl&
+osautoinstpid=$!
+wait $!
 
 [ -n "$NAME" ] || NAME=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media1?//;print' $ISO)
 mkdir -p video
