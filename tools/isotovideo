@@ -36,13 +36,13 @@ else
 fi
 
 osautoinstpid=
-termhandler()
+exithandler()
 {
 	if [ -n "$osautoinstpid" ]; then
 		kill $osautoinstpid
 	fi
 }
-trap termhandler EXIT
+trap exithandler EXIT
 perl $scriptdir/start.pl&
 osautoinstpid=$!
 wait $!
