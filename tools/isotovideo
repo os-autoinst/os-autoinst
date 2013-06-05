@@ -7,7 +7,7 @@ if test -z "$iso" ; then
 fi
 isodir=`pwd`
 scriptdir=$(dirname $(dirname $0))
-logfile=currentautoinst-log.txt
+logfile=autoinst-log.txt
 
 # make absolute path
 export ISO=`$scriptdir/tools/absolutize $iso`
@@ -39,7 +39,7 @@ perl $scriptdir/start.pl # || exit 1
 
 [ -n "$NAME" ] || NAME=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media1?//;print' $ISO)
 mkdir -p video
-echo "Recording to video/$NAME" >> ${logfile}
+echo "Recording to testresults/$NAME/video.ogv" >> ${logfile}
 
 # symlink the PNGs
 C=0
@@ -51,13 +51,13 @@ for i in qemuscreenshot/*.png; do
 done
 
 # Create the movie
-png2theora movie/file-%010d.png -o video/$NAME.ogv >> ${logfile} 2>&1
+png2theora movie/file-%010d.png -o testresults/$NAME/video.ogv >> ${logfile} 2>&1
 rm -rf movie
 
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f backend.run
 echo "QEMU finished, running final checks" >> ${logfile}
-cat serial0 >> ${logfile}
+cp serial0 testresults/$name/serial0.txt
 # return success if video was created:
-test -e video/$NAME.ogv
+test -e testresults/$NAME/video.ogv
 
