@@ -1192,7 +1192,9 @@ sub save_results(;$$)
 {
 	$testmodules = shift if @_;
 	my $fn = shift || result_dir()."/results.json";
-	open(my $fd, ">", $fn) or die "can not write results";
+	open(my $fd, ">", $fn) or die "can not write results.json: $!\n";
+	fcntl($fd, F_SETLKW, pack('ssqql', F_WRLCK, 0, 0, 0, $$)) or die "cannot lock results.json: $!\n";
+	truncate($fd, 0) or die "cannot truncate results.json: $!\n";
 	print $fd to_json({
 		'jsonrpc' => $ENV{'QEMUPORT'}+2,
 		'needledir' => needle::get_needle_dir(),
