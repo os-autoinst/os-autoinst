@@ -16,13 +16,14 @@ BEGIN {
 use bmwqemu;
 use needle;
 use autotest;
-use bmwrpc;
 use Data::Dumper;
 
 # Sanity checks
 die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI} && !defined $ENV{CASEDIR};
 die "No scripts in $ENV{CASEDIR}" if ! -e "$ENV{CASEDIR}";
 die "ISO environment variable not set" if !defined $ENV{ISO};
+
+bmwqemu::clean_control_files();
 
 bmwqemu::save_results();
 
@@ -37,7 +38,7 @@ sub signalhandler
 	# do not start a race about the results between the threads
 
 	my $sig = shift;
-	print "got $sig\n";
+	diag("$$: got $sig");
 	if ($autotest::running) {
 		$autotest::running->fail_if_running();
 		$autotest::running = undef;
@@ -57,19 +58,6 @@ $SIG{HUP} = \&signalhandler;
 $ENV{BACKEND}||="qemu";
 init_backend($ENV{BACKEND});
 
-sub rpc()
-{
-	use JSON::RPC::Server::Daemon;
-	print "start rpc\n";
-	my $port = $ENV{'QEMUPORT'}+2;
-	JSON::RPC::Server::Daemon->new(ReuseAddr => 1, LocalPort => $port)
-		->dispatch({'/jsonrpc/API' => 'bmwrpc'})
-		->handle();
-}
-
-my $rpcthr=threads->create(\&rpc);
-$rpcthr->detach();
-
 if($init) {
 	open(my $fd, ">os-autoinst.pid"); print $fd "$$\n"; close $fd;
 	if(!bmwqemu::alive) {
@@ -77,6 +65,7 @@ if($init) {
 		sleep 3; # wait until BIOS is gone
 	}
 }
+
 my $size=-s $ENV{ISO}; diag("iso_size=$size");
 our $screenshotthr = require "inst/screenshot.pm";
 
