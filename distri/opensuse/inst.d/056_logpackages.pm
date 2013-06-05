@@ -27,7 +27,7 @@ sub run()
         } else {
 	  sendkey "ctrl-alt-f7";
         }
-	waitforneedle("inst-returned-to-yast", 10);
+	waitforneedle("inst-returned-to-yast", 15);
 
 }
 
