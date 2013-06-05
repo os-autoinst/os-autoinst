@@ -1195,6 +1195,7 @@ sub save_results(;$$)
 		'testmodules' => $testmodules,
 		'interactive' => $interactive_mode?1:0,
 		'needinput' => $waiting_for_new_needle?1:0,
+		'workerid' => ($ENV{'WORKERID'}||0),
 		}, { pretty => 1 });
 	close($fd);
 }
