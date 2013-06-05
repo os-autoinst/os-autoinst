@@ -93,7 +93,6 @@ sub save($;$)
 sub unregister($)
 {
     my $self = shift;
-    print "unregister $self->{name}\n";
     for my $g (@{$self->{tags}}) {
 	@{$tags{$g}} = grep { $_ != $self } @{$tags{$g}};
     }
