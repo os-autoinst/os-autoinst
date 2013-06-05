@@ -103,7 +103,7 @@ if($self->{'pid'}==0) {
 	push(@params, "-usb", "-usbdevice", "tablet");
 	push(@params, "-smp", $ENV{QEMUCPUS});
 	push(@params, "-enable-kvm");
-	print "starting: $qemubin ".join(" ", @params)."\n";
+	bmwqemu::diag("starting: $qemubin ".join(" ", @params));
 	exec($qemubin, @params);
 	die "exec $qemubin failed";
 }
