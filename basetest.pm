@@ -291,7 +291,7 @@ sub take_screenshot(;$)
 
 =head2 check_screen
 check needle with a tag that consists of current test name and
-counter. Convenience function around checkneedle
+counter. Convenience function around waitforneedle
 =cut
 sub check_screen(;$)
 {
@@ -307,7 +307,7 @@ sub check_screen(;$)
 		$tag = "test-$testname-$count";
 	}
 
-	return bmwqemu::checkneedle($tag, 1)
+	return bmwqemu::waitforneedle($tag, 3)
 }
 
 sub start_audiocapture()
