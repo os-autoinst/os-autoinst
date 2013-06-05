@@ -27,7 +27,7 @@ sendautotype($hostname);
 sendkey("tab");
 for(1..15){sendkey("backspace")}
 sendautotype($domain);
-sleep 3;
+sleep 5;
 $self->check_screen;
 sendkey("alt-o"); # confirm possible network manager warning
 sendkey("alt-o"); # OK=>Save&Exit
