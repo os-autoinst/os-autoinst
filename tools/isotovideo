@@ -43,12 +43,13 @@ exithandler()
 	fi
 }
 trap exithandler EXIT
-perl $scriptdir/start.pl&
+perl $scriptdir/start.pl 2>stderr.txt &
 osautoinstpid=$!
 wait $!
 
 [ -n "$NAME" ] || NAME=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media1?//;print' $ISO)
 mkdir -p video
+echo "Encoding ..."
 echo "Recording to testresults/$NAME/video.ogv" >> ${logfile}
 
 # symlink the PNGs
@@ -67,6 +68,8 @@ rm -rf movie
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f backend.run
 echo "QEMU finished, running final checks" >> ${logfile}
+echo "+++ STDERR +++" >> ${logfile}
+cat stderr.txt >> ${logfile}
 cp serial0 testresults/$name/serial0.txt
 # return success if video was created:
 test -e testresults/$NAME/video.ogv
