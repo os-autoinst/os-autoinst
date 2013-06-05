@@ -63,7 +63,7 @@ our $logfd;
 
 our $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
 
-our $debug=1;
+our $debug=-t 0; # enable debug only when started from a tty
 our $idlethreshold=($ENV{IDLETHRESHOLD}||$ENV{IDLETHESHOLD}||18)*$clock_ticks/100; # % load max for being considered idle
 our $timesidleneeded=2;
 our $standstillthreshold=930;
