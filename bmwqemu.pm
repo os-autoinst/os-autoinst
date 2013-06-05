@@ -329,7 +329,7 @@ sub init_backend($) {
 	my $name=shift;
 	require "backend/$name.pm";
 	$backend="backend::$name"->new();
-	open($logfd, ">>", "currentautoinst-log.txt");
+	open($logfd, ">>", "autoinst-log.txt");
 	# set unbuffered so that sendkey lines from main thread will be written
 	my $oldfh=select($logfd); $|=1; select($oldfh);
 }
