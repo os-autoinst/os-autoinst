@@ -31,7 +31,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot
-$stop_waitforneedle &interactive_mode &needle_template &waiting_for_new_needle &interactive_lock
+&interactive_mode &needle_template &waiting_for_new_needle &interactive_lock
 );
 
 
@@ -46,13 +46,18 @@ my @ocrrect; share(@ocrrect);
 my @extrahashrects; share(@extrahashrects);
 
 our $interactive_lock : shared; # lock for cond variable. protects waiting_for_new_needle and needle_template
-our $stop_waitforneedle : shared;
 our $interactive_mode : shared;
 our $needle_template : shared; # set if waitforneedle failed
 our $waiting_for_new_needle : shared;
 
 # shared vars end
 
+# list of files that are used to control the behavior
+our %control_files = (
+	"reload_needles_and_retry" => "reload_needles_and_retry",
+	"interactive_mode"         => "interactive_mode",
+	"stop_waitforneedle"       => "stop_waitforneedle",
+);
 
 # global vars
 
@@ -63,7 +68,7 @@ our $logfd;
 
 our $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
 
-our $debug=-t 0; # enable debug only when started from a tty
+our $debug=-t 1; # enable debug only when started from a tty
 our $idlethreshold=($ENV{IDLETHRESHOLD}||$ENV{IDLETHESHOLD}||18)*$clock_ticks/100; # % load max for being considered idle
 our $timesidleneeded=2;
 our $standstillthreshold=930;
@@ -973,8 +978,11 @@ sub _waitforneedle {
 	my $oldimg;
 	my $failed_candidates;
 	for my $n (1..$timeout) {
-		if ($stop_waitforneedle) {
-			$stop_waitforneedle = 0;
+		if (-e $control_files{"interactive_mode"}) {
+			lock($interactive_lock);
+			$interactive_mode = 1;
+		}
+		if (-e $control_files{"stop_waitforneedle"}) {
 			last;
 		}
 		my $statstr = get_cpu_stat();
@@ -1022,14 +1030,17 @@ sub _waitforneedle {
 
 
 	lock($interactive_lock);
+	if (-e $control_files{"interactive_mode"}) {
+		$interactive_mode = 1;
+	} else {
+		$interactive_mode = 0;
+	}
 	$needle_template = save_needle_template($img, $mustmatch, \@tags);
 
 	if ($interactive_mode) {
 		lock($interactive_lock);
 		print "interactive mode entered\n";
 		freeze_vm();
-
-		$needle_template->{name} .= '-'.$interactive_mode;
 
 		$current_test->record_screenfail(
 			img => $img,
@@ -1039,31 +1050,28 @@ sub _waitforneedle {
 			overall => $checkneedle?undef:'fail'
 		);
 
-		$waiting_for_new_needle = sprintf("%s/needles/%s-%s.json",
-				$ENV{'CASEDIR'}, $mustmatch, $interactive_mode);
+		$waiting_for_new_needle = 1;
 
 		save_results();
 
-		print "waiting for signal\n";
-		cond_wait($interactive_lock);
-		print "got signal\n";
+		diag ("$$: waiting for continuation");
+		while(-e $control_files{'stop_waitforneedle'}) {
+			if (-e $control_files{'reload_needles_and_retry'}) {
+				unlink($control_files{'stop_waitforneedle'});
+				last;
+			}
+			sleep 1;
+		}
+		diag ("continuing");
 
 		$current_test->remove_last_result();
 
-		if ($waiting_for_new_needle && ref $waiting_for_new_needle eq 'HASH') {
+		if (-e $control_files{'reload_needles_and_retry'}) {
+			unlink($control_files{'reload_needles_and_retry'});
 			for my $n (needle->all()) {
-				if ($n->{'name'} eq $waiting_for_new_needle) {
-					$n->unregister();
-				}
+				$n->unregister();
 			}
-			diag("creating new needle ".$waiting_for_new_needle->{'name'});
-			my $pngfn = join('/', needle::get_needle_dir(), $waiting_for_new_needle->{'name'}.'.png');
-			$img->write_optimized($pngfn);
-			# create copy of the hash in order to not
-			# use the the shared hash
-			my $data = {%{$waiting_for_new_needle}};
-			my $n = needle->new($data) || mydie "creating needle failed: $!";
-			$n->save();
+			needle::init();
 			$waiting_for_new_needle = undef;
 			save_results();
 			cont_vm();
@@ -1073,6 +1081,8 @@ sub _waitforneedle {
 		save_results();
 		cont_vm();
 	}
+	unlink($control_files{'stop_waitforneedle'}) if -e $control_files{'stop_waitforneedle'};
+	unlink($control_files{'reload_needles_and_retry'}) if -e $control_files{'reload_needles_and_retry'};
 
 	# beware of spaghetti code below
 	my $newname;
@@ -1189,7 +1199,6 @@ sub save_results(;$$)
 	fcntl($fd, F_SETLKW, pack('ssqql', F_WRLCK, 0, 0, 0, $$)) or die "cannot lock results.json: $!\n";
 	truncate($fd, 0) or die "cannot truncate results.json: $!\n";
 	print $fd to_json({
-		'jsonrpc' => $ENV{'QEMUPORT'}+2,
 		'needledir' => needle::get_needle_dir(),
 		'running' => $current_test?ref($current_test):'',
 		'testmodules' => $testmodules,
@@ -1208,6 +1217,12 @@ sub save_results(;$$)
 
 # wait functions end
 
+sub clean_control_files
+{
+	for my $file (values %control_files) {
+		unlink($file);
+	}
+}
 
 1;
 
