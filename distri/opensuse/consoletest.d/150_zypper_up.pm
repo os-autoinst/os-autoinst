@@ -32,4 +32,8 @@ sub run()
 	script_run('exit');
 }
 
+sub test_class() {
+  return basetest::IMPORTANT_TEST;
+}
+
 1;

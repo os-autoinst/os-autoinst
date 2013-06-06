@@ -24,4 +24,8 @@ sub run()
 	alarm 3 unless waitserial("010_consoletest_setup OK", 10);
 }
 
+sub test_class() {
+  return basetest::FATAL_IMPORTANT_TEST;
+}
+
 1;
