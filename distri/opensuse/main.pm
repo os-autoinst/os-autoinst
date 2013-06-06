@@ -86,26 +86,6 @@ sub cleanup_needles()
 
 }
 
-# XXX: get rid of this here
-sub magicisofoo()
-{
-	my $iso=$ENV{ISO};
-	my $ison=$iso; $ison=~s{.*/}{}; # drop path
-	if($ison=~m/Live/i) {$ENV{LIVECD}=1}
-	if($ison=~m/Promo/) {$ENV{PROMO}=1}
-	if($ison=~m/-i[3-6]86-/) {$ENV{QEMUCPU}||="qemu32"}
-	if($ison=~m/openSUSE-.*-(DVD|NET|KDE|GNOME|LXDE|XFCE)-/) {
-		$ENV{$1}=1; $ENV{NETBOOT}=$ENV{NET};
-		if($ENV{LIVECD}) {
-			my $ndesktop=lc($1);
-			if (defined $ENV{DESKTOP} && $ENV{DESKTOP} ne $ndesktop) {
-				die "You can't test DESKTOP $ENV{DESKTOP} on $ison";
-			}
-			$ENV{DESKTOP}=lc($1);
-		}
-	}
-}
-
 # wait for qemu to start
 while (!getcurrentscreenshot()) {
 	sleep 1;
@@ -119,8 +99,6 @@ if($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
 }
 
 $ENV{TOGGLEHOME}=1;
-
-magicisofoo();
 
 check_env();
 setrandomenv if($ENV{RANDOMENV} && $0!~m/checklog/);

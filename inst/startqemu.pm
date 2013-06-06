@@ -30,18 +30,6 @@ my @cdrom=("-cdrom", $iso);
 $ENV{QEMU_AUDIO_DRV}="wav";
 $ENV{QEMU_WAV_PATH}="/dev/null";
 
-my $ison=$iso; $ison=~s{.*/}{}; # drop path
-if($ison=~m/Live/i) {$ENV{LIVECD}=1}
-if($ison=~m/Promo/) {$ENV{PROMO}=1}
-if($ison=~m/-i[3-6]86-/) {$ENV{QEMUCPU}||="qemu32"}
-if($ison=~m/openSUSE-Smeegol/) {$ENV{DESKTOP}||="gnome"}
-if($ison=~m/openSUSE-(DVD|NET|KDE|GNOME|LXDE|XFCE)/) {
-	$ENV{$1}=1; $ENV{NETBOOT}=$ENV{NET};
-	if($ENV{LIVECD}) {
-		$ENV{DESKTOP}=lc($1);
-	}
-}
-
 if($ENV{UEFI} && !-e $ENV{UEFI}.'/bios.bin') {die "'$ENV{UEFI}' should point to a directory with an uefi bios image"}
 
 mkpath($basedir);
