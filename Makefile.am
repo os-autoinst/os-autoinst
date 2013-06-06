@@ -52,7 +52,7 @@ pkglibexec_SCRIPTS = \
 	bmwqemu.pm \
 	httpnotifyconf.pm \
 	installstep.pm \
-	bmwrpc.pm \
+	serverstep.pm \
 	ocr.pm \
 	cv.pm \
 	needle.pm \
