@@ -1,6 +1,7 @@
 package autotest;
 use strict;
 use bmwqemu;
+use basetest;
 
 our %tests;     # scheduled or run tests
 our @testorder; # for keeping them in order
@@ -40,6 +41,8 @@ sub runalltests {
     my $vmloaded=0;
 
     for my $t (@testorder) {
+	    my $tclass = $t->test_class();
+
 	if (!$vmloaded && $t->{fullname} eq $firsttest) {
 	    loadsnapshot($firsttest) if $ENV{SKIPTO};
 	    $vmloaded = 1;
@@ -50,17 +53,26 @@ sub runalltests {
           $t->start();
           bmwqemu::save_results(results());
 	  # avoid erasing the good vm snapshot
-	  if (!checkEnv('SKIPTO', $t->{'fullname'})) {
-            bmwqemu::makesnapshot($t->{'fullname'});
+	  if (!checkEnv('SKIPTO', $t->{'fullname'}) && $ENV{MAKETESTSNAPSHOTS}) {
+		  bmwqemu::makesnapshot($t->{'fullname'});
           }
+
 	  eval { $t->runtest; };
           if ($@) {
-		if ($t->{category} eq 'inst') {
-			stop_vm();
-			die $@;
-		}
-		bmwqemu::loadsnapshot($t->{'fullname'});
-          }
+		  diag "test $name($tclass) failed\n";
+		  if ($tclass == basetest::FATAL_TEST ||
+			$tclass == basetest::FATAL_IMPORTANT_TEST) {
+			  stop_vm();
+			  die $@;
+		  } else {
+			  loadsnapshot('lastgood');
+		  }
+          } else {
+		  if ($tclass == basetest::IMPORTANT_TEST ||
+			$tclass == basetest::FATAL_IMPORTANT_TEST) {
+			  bmwqemu::makesnapshot('lastgood');
+		  }
+	  }
 	} else {
 	    diag "skiping $t->{fullname}";
 	    $t->skip_if_not_running;

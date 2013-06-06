@@ -39,6 +39,34 @@ sub is_applicable() {
 	return 1;
 }
 
+use constant {
+	NORMAL_TEST => 0,
+        FATAL_TEST => 1,
+        IMPORTANT_TEST => 2,
+	FATAL_IMPORTANT_TEST => 3
+};
+
+=head2 test_class
+
+Return one of
+
+  NORMAL_TEST - rollback to 'lastgood' snapshot if failed
+  FATAL_TEST - whole test suite is in danger if this fails
+  IMPORTANT_TEST - after this test succeeds, update 'lastgood'
+  FATAL_IMPORTANT_TEST - a combination of the above 2
+
+default is obviously NORMAL_TEST, installation tests are FATAL_TEST by default
+
+=cut
+sub test_class($) {
+	my $self = shift;
+	if ($self->{category} eq 'inst') {
+		return FATAL_TEST;
+	} else {
+		return NORMAL_TEST;
+	}
+}
+
 sub record_screenmatch($$;$)
 {
 	my $self = shift;
