@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
-pool="${1:-/var/cache/openqa/pool}"
+num=${1:-4}
+pool="${2:-/var/cache/openqa/pool}"
 if [ ! -w "$pool" ]; then
 	echo "can't write $pool! (got root?)\n"
 	exit 1
 fi
-num=${1:-4}
 uid=`stat -c %u "$pool"`
 for ((i=1;i<=$num;++i)); do
 	install -d -o "$uid"  "$pool/$i"
