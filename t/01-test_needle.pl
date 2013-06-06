@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w -I..
 
 use strict;
-use Test::Simple tests => 9;
+use Test::Simple tests => 11;
 
 use needle;
 use cv;
@@ -40,4 +40,9 @@ $img1 = tinycv::read("data/kde.test.png");
 $needle = needle->new("data/kde.ref.json");
 $res = $img1->search($needle);
 ok(!defined $res, "no match with different art");
+
+$img1 = tinycv::read("data/console.test.png");
+$needle = needle->new("data/console.ref.json");
+$res = $img1->search($needle);
+ok(!defined $res, "no match different console screenshots");
 
