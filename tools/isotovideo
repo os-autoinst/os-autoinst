@@ -80,7 +80,7 @@ if [ ! -t 0 ]; then
 	echo "+++ STDERR +++" >> ${logfile}
 	cat stderr.txt >> ${logfile}
 fi
-cp serial0 testresults/$name/serial0.txt
+cp serial0 testresults/$NAME/serial0.txt
 # return success if video was created:
 test -e testresults/$NAME/video.ogv
 
