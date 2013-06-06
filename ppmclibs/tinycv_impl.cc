@@ -71,11 +71,11 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   }
   Mat res = Mat::zeros(res_height, res_width, CV_32FC1);
   Mat gray_scene;
-  cvtColor(scene->img, gray_scene, CV_RGB2GRAY);
+  cvtColor(scene->img, gray_scene, CV_8U);
   GaussianBlur(gray_scene, gray_scene, Size(5, 5), 0, 0);
 
   Mat gray_crop_object;
-  cvtColor(object->img, gray_crop_object, CV_RGB2GRAY);
+  cvtColor(object->img, gray_crop_object, CV_8U);
   GaussianBlur(gray_crop_object, gray_crop_object, Size(5, 5), 0, 0);
   gray_crop_object = Mat(gray_crop_object, Range(y, y+height), Range(x,x+width));
 

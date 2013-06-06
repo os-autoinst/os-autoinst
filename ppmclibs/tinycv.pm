@@ -80,7 +80,12 @@ sub search_($$) {
 		    result => 'ok',
 		  };
 
-	    my $m = ($area->{match} || 95) / 100;
+	    # A 96.9% match is ok for console tests. Please, if you
+	    # change this number consider change also the test
+	    # 01-test_needle and the console tests (for example, using
+	    # more smaller areas)
+
+	    my $m = ($area->{match} || 96.6) / 100;
 	    if ($sim < 1) {
 		    my $needle_img = $needle->get_image($area);
 		    my $area_img = $img->copyrect($xmatch, $ymatch, $area->{'width'}, $area->{'height'});
