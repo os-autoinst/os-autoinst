@@ -134,6 +134,7 @@ sub cpu_stat($) {
 sub do_start_vm($) {
 	my $self = shift;
 	eval bmwqemu::fileContent("$bmwqemu::scriptdir/inst/startqemu.pm");
+	die "startqemu failed: $@" if $@;
 	$self->open_management();
 	$self->send(bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw")||"");
 }
@@ -277,7 +278,7 @@ sub _run
 	my $rspqueue = shift;
 	my $socket = IO::Socket::INET->new($addr);
 
-	printf "started mgmt loop with thread id %d\n", threads->tid();
+	bmwqemu::diag "started mgmt loop with thread id " . threads->tid();
 
 	my $oldfh = select($socket); $|=1; select($oldfh); # autoflush
 	my $readthread = threads->create(\&_readconloop, $socket, $rspqueue); # without this, qemu will block
@@ -289,7 +290,7 @@ sub _run
 	}
 	close($socket);
 	$readthread->join();
-	print "management thread exit\n";
+	bmwqemu::diag("management thread exit");
 }
 
 1;
