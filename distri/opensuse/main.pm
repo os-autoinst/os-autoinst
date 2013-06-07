@@ -83,7 +83,7 @@ sub cleanup_needles()
 	if (!checkEnv("VIDEOMODE", "text")) {
 		unregister_needle_tags("ENV-VIDEOMODE-text");
 	}
-	if ($ENV{INSTLANG} && $ENV{INSTLANG} ne "en_US")) {
+	if ($ENV{INSTLANG} && $ENV{INSTLANG} ne "en_US") {
 		unregister_needle_tags("ENV-INSTLANG-en_US");
 	} else { # english default
 		unregister_needle_tags("ENV-INSTLANG-de");
