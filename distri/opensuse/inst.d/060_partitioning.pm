@@ -68,7 +68,7 @@ waitforneedle('partioning', 40);
 if($ENV{TOGGLEHOME} && !$ENV{LIVECD}) {
 	my $homekey=checkEnv('VIDEOMODE', "text")?"alt-p":"alt-h";
 	sendkey $homekey;
-	waitforneedle("disabledhome", 3);
+	waitforneedle("disabledhome", 10);
 }
 if(defined($ENV{RAIDLEVEL})) {
 if(1) {
