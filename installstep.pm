@@ -9,7 +9,7 @@ sub is_applicable()
 }
 
 sub test_class($) {
-	return FATAL_TEST;
+	return basetest::FATAL_TEST;
 }
 
 1;
