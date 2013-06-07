@@ -44,7 +44,6 @@ exithandler()
 }
 if [ -t 0 ]; then
 	> stderr.txt
-	echo "stdout is a tty"
 	exec 7> >(tee stderr.txt)
 else
 	exec 7>stderr.txt
@@ -76,10 +75,9 @@ test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f backend.run
 echo "QEMU finished, running final checks" >> ${logfile}
 
-if [ ! -t 0 ]; then
-	echo "+++ STDERR +++" >> ${logfile}
-	cat stderr.txt >> ${logfile}
-fi
+echo "+++ STDERR +++" >> ${logfile}
+cat stderr.txt >> ${logfile}
+
 cp serial0 testresults/$NAME/serial0.txt
 # return success if video was created:
 test -e testresults/$NAME/video.ogv
