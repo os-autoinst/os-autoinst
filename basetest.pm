@@ -59,12 +59,7 @@ default is obviously NORMAL_TEST, installation tests are FATAL_TEST by default
 
 =cut
 sub test_class($) {
-	my $self = shift;
-	if ($self->{category} eq 'inst') {
-		return FATAL_TEST;
-	} else {
-		return NORMAL_TEST;
-	}
+	return NORMAL_TEST;
 }
 
 sub record_screenmatch($$;$)
