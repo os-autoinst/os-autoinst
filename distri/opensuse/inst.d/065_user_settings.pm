@@ -38,7 +38,7 @@ sub run()
 			sendautotype("$password\t");
 			sleep 1;
 		}
-		$self->check_screen;
+		waitforneedle("rootpassword-typed", 3);
 		sendkey $cmd{"next"};
 		# loading cracklib
 		waitidle 6;
