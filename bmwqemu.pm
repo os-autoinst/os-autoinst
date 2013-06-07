@@ -1199,7 +1199,7 @@ sub save_results(;$$)
 	fcntl($fd, F_SETLKW, pack('ssqql', F_WRLCK, 0, 0, 0, $$)) or die "cannot lock results.json: $!\n";
 	truncate($fd, 0) or die "cannot truncate results.json: $!\n";
 	print $fd to_json({
-		'needledir' => needle::get_needle_dir(),
+		'distribution' => $ENV{'DISTRI'},
 		'running' => $current_test?ref($current_test):'',
 		'testmodules' => $testmodules,
 		'interactive' => $interactive_mode?1:0,
