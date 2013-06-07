@@ -18,7 +18,7 @@ sub run()
 	sleep 2;
 	sendkey "alt-o"; # OK => Close
 	waitidle;
-	$self->check_screen;
+	$self->take_screenshot;
 	sendkey "ctrl-l";
 	script_run('echo $?');
 	waitforneedle("exited-bootloader", 2);
