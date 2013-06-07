@@ -169,7 +169,9 @@ sub tags($) {
     my $first_tag = shift @tags;
     my $goods = $tags{$first_tag};
     # go out early if there is nothing to do
-    return $goods if (!$goods || !@tags);
+    if (!$goods || !@tags) {
+      return $goods || [];
+    }
     my @results;
     # now check that it contains all the other tags too
     NEEDLE: for my $n (@$goods) {
