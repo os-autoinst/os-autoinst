@@ -151,10 +151,6 @@ sub wanted_($) {
     }
 }
 
-sub get_needle_dir {
-  return $needledir;
-}
-
 sub init(;$) {
 	$needledir = shift if @_;
 	%needles = ();
