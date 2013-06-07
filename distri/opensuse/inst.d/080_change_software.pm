@@ -30,7 +30,7 @@ sub run()
 			sendkey "down";
 		}
 		sleep 4;
-		$self->check_screen;
+		$self->check_screen("toaccept");
 		sendkey $cmd{accept}; # Accept
 		sleep 2;
 		sendkey "alt-o"; # cOntinue
