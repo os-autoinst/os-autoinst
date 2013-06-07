@@ -8,4 +8,8 @@ sub is_applicable()
 	return $self->SUPER::is_applicable && !$ENV{NOINSTALL} && !$ENV{LIVETEST};
 }
 
+sub test_class($) {
+	return FATAL_TEST;
+}
+
 1;
