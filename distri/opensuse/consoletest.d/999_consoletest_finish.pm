@@ -15,4 +15,9 @@ sub run() {
 	waitidle;
 }
 
+sub test_class($) {
+        return basetest::FATAL_IMPORTANT_TEST;
+}
+
+
 1;
