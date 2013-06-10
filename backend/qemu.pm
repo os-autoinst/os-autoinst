@@ -203,9 +203,9 @@ sub send($) {
 sub _wait($) {
     my $self = shift;
     $self->send("help");
-    # print "Waiting output from rspqueue ...\n";
-    $self->{mgmt}->{rspqueue}->dequeue();
-    # print "Response from rspqueue ...\n$result\n";
+    bmwqemu::diag "Waiting output from rspqueue ...";
+    my $result = $self->{mgmt}->{rspqueue}->dequeue();
+    bmwqemu::diag "Response from rspqueue ...\n$result";
 }
 
 # management console end

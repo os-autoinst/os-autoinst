@@ -86,12 +86,11 @@ sub cleanup_needles()
 	if ($ENV{INSTLANG} && $ENV{INSTLANG} ne "en_US") {
 		unregister_needle_tags("ENV-INSTLANG-en_US");
 	} else { # english default
-		unregister_needle_tags("ENV-INSTLANG-de");
+		unregister_needle_tags("ENV-INSTLANG-de_DE");
 	}
 
 }
 
-$ENV{SUSEMIRROR} ||= "download.opensuse.org/factory";
 # wait for qemu to start
 while (!getcurrentscreenshot()) {
 	sleep 1;
@@ -120,6 +119,9 @@ if (checkEnv('DESKTOP', 'minimalx')) {
 	$ENV{'NOAUTOLOGIN'} = 1;
 	$ENV{XDMUSED} = 1;
 }
+
+$ENV{SUSEMIRROR} ||= "download.opensuse.org/factory";
+
 cleanup_needles();
 $ENV{SCREENSHOTINTERVAL}||=.5;
 # dump other important ENV:
