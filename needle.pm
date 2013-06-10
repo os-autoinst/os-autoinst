@@ -93,6 +93,7 @@ sub save($;$)
 sub unregister($)
 {
     my $self = shift;
+    bmwqemu::diag("unregister $self->{name}");
     for my $g (@{$self->{tags}}) {
 	@{$tags{$g}} = grep { $_ != $self } @{$tags{$g}};
     }
