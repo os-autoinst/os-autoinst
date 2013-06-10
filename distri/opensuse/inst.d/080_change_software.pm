@@ -1,3 +1,6 @@
+# XXX what is this test meant to be about?
+# workaround for software conflicts?
+#
 #!/usr/bin/perl -w
 use strict;
 use base "installstep";
@@ -6,6 +9,7 @@ use bmwqemu;
 sub is_applicable()
 {
 	my $self=shift;
+	return 0; # FIXME
 	return $self->SUPER::is_applicable && !$ENV{LIVECD};
 }
 
