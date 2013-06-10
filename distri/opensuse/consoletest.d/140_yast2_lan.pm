@@ -40,5 +40,10 @@ sendkey("ctrl-l"); # clear screen
 script_run('echo $?');
 script_run('hostname');
 }
+ 
+sub test_class() {
+  return basetest::IMPORTANT_TEST;
+}
 
 1;
+
