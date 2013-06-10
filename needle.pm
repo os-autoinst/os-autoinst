@@ -176,7 +176,7 @@ sub tags($) {
     # now check that it contains all the other tags too
     NEEDLE: for my $n (@$goods) {
 	    for my $t (@tags) {
-		    last NEEDLE if (!$n->has_tag($t));
+		   next NEEDLE if (!$n->has_tag($t));
 	    }
 	    print "adding ", $n->{name}, "\n";
 	    push(@results, $n);
