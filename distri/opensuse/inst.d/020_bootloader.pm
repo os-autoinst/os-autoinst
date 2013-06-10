@@ -20,15 +20,6 @@ sub run()
 		return;
 	}
 
-if($ENV{MEDIACHECK}) { # special
-	# only run this one
-	for(1..3) {
-		sendkey "down";
-	}
-	waitforneedle("inst-onmediacheck", 3);
-	sendkey "ret";
-  return;
-}
 if($ENV{MEMTEST}) { # special
 	# only run this one
 	for(1..6) {
@@ -44,6 +35,12 @@ if(!$ENV{LIVETEST}) {
 	# installation (instead of HDDboot on non-live)
 	# installation (instead of live):
 	sendkey "down";
+	if($ENV{MEDIACHECK}) {
+		sendkey "down"; # rescue
+		sendkey "down"; # media check
+		waitforneedle("inst-onmediacheck", 3);
+	}
+
 } else {
 	if($ENV{PROMO}) {
 		for(1..2) {sendkey "down";} # select KDE Live
