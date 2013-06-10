@@ -253,4 +253,8 @@ qemusend "boot_set c"; # boot from HDD next time
 sendkey "ret";
 }
 
+sub test_class($) {
+	return basetest::FATAL_TEST;
+}
+
 1;
