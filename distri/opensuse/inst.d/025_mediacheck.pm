@@ -10,10 +10,12 @@ sub is_applicable()
 sub run
 {
   my $self=shift;
-  sleep 40;
-  waitidle(200);
-  $self->check_screen; sleep 2;
-  exit 0; # end test
+  waitforneedle("mediacheck-ok", 300);
+  sendkey "ret";
+}
+
+sub test_class($) {
+	return basetest::FATAL_TEST;
 }
 
 1;
