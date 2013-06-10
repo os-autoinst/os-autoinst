@@ -13,7 +13,7 @@
 
 #include "tinycv.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define VERY_DIFF 0.0
 #define VERY_SIM 1000000.0
@@ -70,20 +70,19 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
      return outvec;
   }
   Mat res = Mat::zeros(res_height, res_width, CV_32FC1);
-  Mat gray_scene;
-  cvtColor(scene->img, gray_scene, CV_8U);
-  GaussianBlur(gray_scene, gray_scene, Size(5, 5), 0, 0);
+  Mat byte_scene;
+  cvtColor(scene->img, byte_scene, CV_8U);
+  GaussianBlur(byte_scene, byte_scene, Size(5, 5), 0, 0);
 
-  Mat gray_crop_object;
-  cvtColor(object->img, gray_crop_object, CV_8U);
-  GaussianBlur(gray_crop_object, gray_crop_object, Size(5, 5), 0, 0);
-  gray_crop_object = Mat(gray_crop_object, Range(y, y+height), Range(x,x+width));
+  Mat byte_crop_object;
+  cvtColor(object->img, byte_crop_object, CV_8U);
+  GaussianBlur(byte_crop_object, byte_crop_object, Size(5, 5), 0, 0);
+  byte_crop_object = Mat(byte_crop_object, Range(y, y+height), Range(x,x+width));
 
   // Perform the matching. Info about algorithm:
   // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
   // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
-  // matchTemplate(scene->img, object->img, res, CV_TM_CCOEFF_NORMED);
-  matchTemplate(gray_scene, gray_crop_object, res, CV_TM_CCOEFF_NORMED);
+  matchTemplate(byte_scene, byte_crop_object, res, CV_TM_CCOEFF_NORMED);
 
   // Localizing the best math with minMaxLoc
   double minval, maxval;
@@ -91,12 +90,12 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   minMaxLoc(res, &minval, &maxval, &minloc, &maxloc, Mat());
 
 #if DEBUG
-  Mat s = gray_scene.clone();
+  Mat s = byte_scene.clone();
   rectangle(s, Point(maxloc.x, maxloc.y),
 	    Point(maxloc.x + object->img.cols, maxloc.y + object->img.rows),
 	    CV_RGB(255,0,0), 1);
-  imwrite("debug-scene.png", gray_scene);
-  imwrite("debug-object.png", gray_crop_object);
+  imwrite("debug-scene.png", byte_scene);
+  imwrite("debug-object.png", byte_crop_object);
 #endif
 
   outvec[0] = int(maxloc.x);
