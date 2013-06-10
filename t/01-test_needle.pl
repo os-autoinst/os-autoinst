@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w -I..
 
 use strict;
-use Test::Simple tests => 11;
+use Test::Simple tests => 12;
 
 use needle;
 use cv;
@@ -46,3 +46,7 @@ $needle = needle->new("data/console.ref.json");
 $res = $img1->search($needle);
 ok(!defined $res, "no match different console screenshots");
 
+$img1 = tinycv::read("data/font-kerning.test.png");
+$needle = needle->new("data/font-kerning.ref.json");
+$res = $img1->search($needle);
+ok(defined $res, "match when the font kerning change");
