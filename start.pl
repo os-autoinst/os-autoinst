@@ -66,7 +66,6 @@ if($init) {
 	}
 }
 
-my $size=-s $ENV{ISO}; diag("iso_size=$size");
 our $screenshotthr = require "inst/screenshot.pm";
 
 require Carp;
