@@ -13,7 +13,7 @@
 
 #include "tinycv.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define VERY_DIFF 0.0
 #define VERY_SIM 1000000.0
