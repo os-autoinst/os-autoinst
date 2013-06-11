@@ -18,10 +18,7 @@ sub run()
 	sleep 4;
 	qemusend "eject ide1-cd0";
 	sendkey "ctrl-alt-delete";
-	sleep 20;
-	$self->check_screen;
-	waitidle(90);
-	waitstillimage(12,60);
+	waitforneedle("reboot_after_install", 100);
 }
 
 1;
