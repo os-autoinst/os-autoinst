@@ -33,8 +33,8 @@ sub run()
 	script_run('exit');
 }
 
-sub test_class() {
-  return basetest::IMPORTANT_TEST;
+sub test_flags() {
+	return {'milestone' => 1};
 }
 
 1;

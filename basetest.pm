@@ -39,27 +39,20 @@ sub is_applicable() {
 	return 1;
 }
 
-use constant {
-	NORMAL_TEST => 0,
-        FATAL_TEST => 1,
-        IMPORTANT_TEST => 2,
-	FATAL_IMPORTANT_TEST => 3
-};
+=head2 test_flags
 
-=head2 test_class
+Return a hash of flags that are either there or not
 
-Return one of
+  without anything - rollback to 'lastgood' snapshot if failed
+  'fatal' - whole test suite is in danger if this fails
+  'milestone' - after this test succeeds, update 'lastgood'
+  'important' - if this fails, set the overall state to 'fail'
 
-  NORMAL_TEST - rollback to 'lastgood' snapshot if failed
-  FATAL_TEST - whole test suite is in danger if this fails
-  IMPORTANT_TEST - after this test succeeds, update 'lastgood'
-  FATAL_IMPORTANT_TEST - a combination of the above 2
-
-default is obviously NORMAL_TEST, installation tests are FATAL_TEST by default
+default is obviously no flags, installation tests are 'fatal' by default
 
 =cut
-sub test_class($) {
-	return NORMAL_TEST;
+sub test_flags($) {
+	return {};
 }
 
 sub record_screenmatch($$;$)
@@ -228,10 +221,9 @@ sub runtest($$) {
 			clear_console;
 		}
 
-
 		$self->run();
 		if ($self->{'category'} ne 'inst') {
-			$self->check_screen;
+			$self->take_screenshot();
 		}
 		if ($self->{'category'} eq 'x11test') {
 			my $currentimg = bmwqemu::getcurrentscreenshot();
@@ -252,7 +244,7 @@ sub runtest($$) {
 	$self->done();
 	bmwqemu::save_results(autotest::results());
 	#sleep 1;
-	diag "||| finished $name";
+	diag "||| finished $name " . $self->{category};
 	return $ret;
 }
 
@@ -264,6 +256,7 @@ sub json()
 		'details' => $self->details(),
 		'result' => $self->result(),
 		'category' => $self->{'category'},
+		'flags' => $self->test_flags(),
 	};
 }
 

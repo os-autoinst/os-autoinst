@@ -41,7 +41,7 @@ sub runalltests {
     my $vmloaded=0;
 
     for my $t (@testorder) {
-	    my $tclass = $t->test_class();
+	my $flags = $t->test_flags();
 
 	if (!$vmloaded && $t->{fullname} eq $firsttest) {
 	    loadsnapshot($firsttest) if $ENV{SKIPTO};
@@ -59,17 +59,15 @@ sub runalltests {
 
 	  eval { $t->runtest; };
           if ($@) {
-		  diag "test $name($tclass) failed\n";
-		  if ($tclass == basetest::FATAL_TEST ||
-			$tclass == basetest::FATAL_IMPORTANT_TEST) {
+		  diag "test $name failed\n";
+		  if ($flags->{'fatal'}) {
 			  stop_vm();
 			  die $@;
 		  } else {
 			  loadsnapshot('lastgood');
 		  }
           } else {
-		  if ($tclass == basetest::IMPORTANT_TEST ||
-			$tclass == basetest::FATAL_IMPORTANT_TEST) {
+		  if ($flags->{'milestone'}) {
 			  bmwqemu::makesnapshot('lastgood');
 		  }
 	  }

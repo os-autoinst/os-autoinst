@@ -95,6 +95,9 @@ stop_vm();
 
 $screenshotthr->join();
 
+# mark it as no longer working
+delete $ENV{WORKERID};
+
 # Write JSON result
 bmwqemu::save_results();
 
