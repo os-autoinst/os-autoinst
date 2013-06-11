@@ -120,7 +120,7 @@ if (checkEnv('DESKTOP', 'minimalx')) {
 	$ENV{XDMUSED} = 1;
 }
 
-$ENV{SUSEMIRROR} ||= "http://download.opensuse.org/factory";
+$ENV{SUSEMIRROR} ||= "download.opensuse.org/factory";
 
 cleanup_needles();
 $ENV{SCREENSHOTINTERVAL}||=.5;
