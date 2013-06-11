@@ -97,6 +97,7 @@ $ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
 $ENV{LIVECD}=$ENV{LIVE};
 
 ## env vars
+$ENV{UEFI_BIOS_DIR}||='/usr/share/qemu-ovmf/bios-ms';
 $ENV{QEMUPORT}||=15222;
 $ENV{INSTLANG}||="en_US";
 $ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};

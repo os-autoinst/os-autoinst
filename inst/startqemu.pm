@@ -30,7 +30,9 @@ my @cdrom=("-cdrom", $iso);
 $ENV{QEMU_AUDIO_DRV}="wav";
 $ENV{QEMU_WAV_PATH}="/dev/null";
 
-if($ENV{UEFI} && !-e $ENV{UEFI}.'/bios.bin') {die "'$ENV{UEFI}' should point to a directory with an uefi bios image"}
+if ($ENV{UEFI} && !-e $ENV{UEFI_BIOS_DIR}.'/bios.bin') {
+	die "'$ENV{UEFI_BIOS_DIR}/bios.bin' missing, check UEFI_BIOS_DIR\n";
+}
 
 mkpath($basedir);
 
@@ -103,7 +105,7 @@ if($self->{'pid'}==0) {
 		push(@params, "-k", $ENV{VNCKB}) if($ENV{VNCKB});
 	}
 	if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
-	if($ENV{UEFI}) { push(@params, "-L", $ENV{UEFI}); }
+	if($ENV{UEFI}) { push(@params, "-L", $ENV{UEFI_BIOS_DIR}); }
 	push(@params, "-usb", "-usbdevice", "tablet");
 	push(@params, "-smp", $ENV{QEMUCPUS});
 	push(@params, "-enable-kvm");
