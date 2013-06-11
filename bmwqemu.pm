@@ -27,7 +27,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey 
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
 &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
-&checkneedle &goandclick &set_current_test
+&checkneedle &goandclick &set_current_test &become_root
 &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot
@@ -556,6 +556,13 @@ Reset so that the next sudo will send password
 =cut
 sub script_sudo_logout() {
 	$sudos=0
+}
+
+sub become_root() {
+     script_sudo("bash", 0); # become root
+     script_run("echo 'imroot' > /dev/$serialdev");
+     waitserial("imroot", 5) || die "Root prompt not there";
+     script_run("cd /tmp");
 }
 
 sub ensure_installed {

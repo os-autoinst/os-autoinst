@@ -2,6 +2,8 @@ use base "basetest";
 use bmwqemu;
 
 sub run() {
+	my $self=shift;
+
 	# cleanup
 	script_sudo_logout;
 	sleep 2;
