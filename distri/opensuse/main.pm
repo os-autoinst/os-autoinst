@@ -11,6 +11,7 @@ sub installrunfunc
 	$test->take_screenshot;
 }
 
+$ENV{SUSEMIRROR} ||= "download.opensuse.org/factory";
 waitinststage "bootloader",12; # wait for welcome animation to finish
 
 if($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
