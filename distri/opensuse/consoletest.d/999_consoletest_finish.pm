@@ -15,8 +15,8 @@ sub run() {
 	waitidle;
 }
 
-sub test_class($) {
-        return basetest::FATAL_IMPORTANT_TEST;
+sub test_flags() {
+        return {'milestone' => 1, 'fatal' => 1, 'important' => 1};
 }
 
 

@@ -41,8 +41,8 @@ script_run('echo $?');
 script_run('hostname');
 }
  
-sub test_class() {
-  return basetest::IMPORTANT_TEST;
+sub test_flags() {
+  return { 'important' => 1 };
 }
 
 1;

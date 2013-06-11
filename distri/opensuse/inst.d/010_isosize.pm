@@ -20,8 +20,8 @@ sub run
 	$self->result($result);
 }
 
-sub test_class($) {
-	return basetest::FATAL_TEST;
+sub test_flags() {
+        return {'important' => 1};
 }
 
 1;
