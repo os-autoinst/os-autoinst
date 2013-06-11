@@ -14,6 +14,7 @@ sub run()
 	my $pkgname=(($ENV{DISTRI}=~/fedora/)?"vim-X11":"gvim");
 	script_sudo("rpm -e $pkgname");
 	script_run("rpm -q $pkgname");
+	$self->check_screen;
 }
 
 1;

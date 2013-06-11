@@ -23,7 +23,7 @@ sub run()
     waitidle(5);
     die if waitserial(".*Syntax error.*", 2);    
 
-    $self->take_screenshot;
+    $self->check_screen;
 }
 
 1;

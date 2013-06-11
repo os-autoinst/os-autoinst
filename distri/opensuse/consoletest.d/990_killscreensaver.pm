@@ -10,6 +10,7 @@ sub run()
 {
 	my $self=shift;
 	script_run("killall gnome-screensaver");
+	$self->check_screen;
 }
 
 1;
