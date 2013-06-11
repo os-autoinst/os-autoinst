@@ -10,8 +10,9 @@ sub run()
 {
 	my $self=shift;
 	script_run("cd /tmp ; wget -q openqa.opensuse.org/opensuse/tools/recentchanges2.pl");
-	script_sudo("rpm -qa | perl recentchanges2.pl > /dev/ttyS0");
-	waitidle(100);
+	script_run("rpm -qa | perl recentchanges2.pl > /dev/ttyS0");
+	script_run("echo 'recentchanges_ok' >  /dev/ttyS0");
+	waitserial('recentchanges_ok', 200);
 }
 
 1;

@@ -7,6 +7,7 @@ sub run()
 	script_run('test -L /etc/mtab && echo OK || echo fail');
 	waitforneedle("test-mtab-1", 3);
 	script_run('cat /etc/mtab');
+	$self->take_screenshot;
 }
 
 1;

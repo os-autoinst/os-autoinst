@@ -23,6 +23,7 @@ sub run()
 	script_run('echo $?');
 	waitforneedle("exited-bootloader", 2);
 	script_run('rpm -q hwinfo');
+	$self->take_screenshot;
 }
 
 1;

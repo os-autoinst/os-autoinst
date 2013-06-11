@@ -222,16 +222,16 @@ sub runtest($$) {
 		}
 
 		$self->run();
-		if ($self->{'category'} ne 'inst') {
-			$self->take_screenshot();
-		}
+
 		if ($self->{'category'} eq 'x11test') {
 			my $currentimg = bmwqemu::getcurrentscreenshot();
 			my $sim = $currentimg->similarity($previmg);
-			diag "SIM $name $sim\n";
+			diag "SIM $name $sim";
 			if ($sim < 49) {
-				$self->take_screenshot();
-				die "not similiar enough\n";
+				$self->record_screenfail( img => $currentimg, 
+							  result => 'fail',
+							  overall => 'fail');
+				$self->{result} = 'fail';
 			}
 		}
 	};

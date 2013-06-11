@@ -16,6 +16,7 @@ sub run()
 	$self->check_screen;
 	sendkey("ctrl-l"); # clear screen
 	script_run('echo sntp returned $?');
+	$self->check_screen;
 }
 
 1;

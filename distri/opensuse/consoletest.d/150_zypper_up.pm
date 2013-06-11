@@ -31,6 +31,7 @@ sub run()
 	checkneedle("zypper-patch-3", 30);
 	script_run('echo $?');
 	script_run('exit');
+	$self->check_screen;
 }
 
 sub test_flags() {
