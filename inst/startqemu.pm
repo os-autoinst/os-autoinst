@@ -25,7 +25,6 @@ $ENV{QEMUVGA}||="cirrus";
 $ENV{QEMUCPUS}||=1;
 $ENV{NUMDISKS}||=2;
 if(defined($ENV{RAIDLEVEL})) {$ENV{NUMDISKS}=4}
-my @cdrom=("-cdrom", $iso);
 
 $ENV{QEMU_AUDIO_DRV}="wav";
 $ENV{QEMU_WAV_PATH}="/dev/null";
@@ -62,13 +61,6 @@ if(!$ENV{KEEPHDDS} && !$ENV{SKIPTO}) {
 			symlink($i,"$basedir/l$i");
 		}
 	}
-	if($ENV{USBBOOT}) {
-	    $ENV{NUMDISKS}=2;
-	    # system("dd", "if=$iso", "of=$basedir/l1", "bs=1M", "conv=notrunc");
-	    unlink "$basedir/l1";
-	    symlink($iso, "$basedir/l1");
-	    @cdrom=();
-	}
 }
 
 for my $i (1..4) { # create missing symlinks
@@ -81,18 +73,19 @@ die "fork failed" if(!defined($self->{'pid'}));
 if($self->{'pid'}==0) {
 	my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
 
-	if ($iso && @cdrom) {
-	    push(@params, @cdrom);
-	} elsif ($iso && $ENV{USBBOOT}) {
-	    push(@params, "-drive", "if=none,id=usbstick,file=$basedir/l1,snapshot=on");
-	    push(@params, "-device", "usb-ehci,id=ehci");
-	    push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,bootindex=1");
-	    push(@params, "-device", "piix3-usb-uhci,id=usb");
-	    push(@params, "-device", "usb-tablet,bus=usb.0");
+	if ($iso) {
+	    if ($ENV{USBBOOT}) {
+		push(@params, "-drive", "if=none,id=usbstick,file=$iso,snapshot=on");
+		push(@params, "-device", "usb-ehci,id=ehci");
+		push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,bootindex=1");
+		push(@params, "-device", "piix3-usb-uhci,id=usb");
+		push(@params, "-device", "usb-tablet,bus=usb.0");
+	    } else {
+		push(@params, "-cdrom", $iso);
+	    }
 	}
 
-	my $start_disk = ($ENV{USBBOOT} ? 2 : 1);
-	for my $i ($start_disk..$ENV{NUMDISKS}) {
+	for my $i (1..$ENV{NUMDISKS}) {
 		my $boot="";#$i==1?",boot=on":""; # workaround bnc#696890
 		push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=$ENV{HDDMODEL}$boot");
 	}
