@@ -13,6 +13,7 @@ sub run() {
 	sendkey "backspace"; # deactivate blanking
 	sleep 2;
 	waitidle;
+	$self->check_screen();
 }
 
 sub test_flags() {
