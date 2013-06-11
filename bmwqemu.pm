@@ -94,7 +94,6 @@ if(!$ENV{DISTRI}) {
 	if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi|FreeBSD|archlinux)-/) {$ENV{DISTRI}=lc($1)}
 }
 $ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
-foreach my $part (split("-", $testedversion)) {$ENV{uc($part)}=1}
 $ENV{LIVECD}=$ENV{LIVE};
 
 ## env vars
