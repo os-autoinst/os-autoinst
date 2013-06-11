@@ -13,6 +13,7 @@ sub run()
 	sendkey("ctrl-l");
 	script_run('echo $?');
 	script_sudo('/etc/init.d/sshd status');
+	$self->check_screen;
 }
 
 1;

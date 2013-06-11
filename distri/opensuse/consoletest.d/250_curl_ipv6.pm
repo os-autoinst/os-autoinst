@@ -14,6 +14,7 @@ sub run()
 	$self->check_screen;
 	script_run('rpm -q curl libcurl4');
 	sleep 2;
+	$self->check_screen;
 }
 
 1;

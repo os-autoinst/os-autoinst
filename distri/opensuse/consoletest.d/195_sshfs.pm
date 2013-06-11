@@ -18,6 +18,7 @@ sub run()
 	script_run('cd /tmp');
 	# become user again
 	script_run('exit');
+	$self->check_screen;
 }
 
 1;

@@ -10,6 +10,7 @@ sub run()
 {
 	my $self=shift;
 	script_run("killall xscreensaver");
+	$self->check_screen;
 }
 
 1;
