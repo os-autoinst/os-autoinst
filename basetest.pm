@@ -147,7 +147,7 @@ sub record_screenfail($@)
 	my $fn = join('/', result_dir(), $result->{'screenshot'});
 	$img->write($fn);
 
-	$self->{result} ||= $overall if $overall;
+	$self->{result} = $overall if $overall;
 
 	push @{$self->{'details'}}, $result;
 }
@@ -370,12 +370,13 @@ sub check_DTMF($)
 	my $decoded_text = bmwqemu::decodewav($result->{'audio'});
 	if($decoded_text && (uc $ref) eq $decoded_text) {
 		$result->{'result'} = 'ok';
+		$self->{result} ||= $result->{'result'};
 	} else {
 		$result->{'result'} = 'fail';
+		$self->{result} = $result->{'result'};
 	}
 	$result->{'decoded_text'} = $decoded_text;
 
-	$self->{result} ||= $result->{'result'};
 }
 
 =head2 ocr_checklist
