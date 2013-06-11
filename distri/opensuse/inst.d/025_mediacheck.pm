@@ -14,8 +14,8 @@ sub run
   sendkey "ret";
 }
 
-sub test_class($) {
-	return basetest::FATAL_TEST;
+sub test_flags() {
+        return {'fatal' => 1};
 }
 
 1;

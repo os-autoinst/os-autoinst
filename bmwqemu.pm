@@ -1198,14 +1198,27 @@ sub save_results(;$$)
 	open(my $fd, ">", $fn) or die "can not write results.json: $!\n";
 	fcntl($fd, F_SETLKW, pack('ssqql', F_WRLCK, 0, 0, 0, $$)) or die "cannot lock results.json: $!\n";
 	truncate($fd, 0) or die "cannot truncate results.json: $!\n";
-	print $fd to_json({
-		'distribution' => $ENV{'DISTRI'},
-		'running' => $current_test?ref($current_test):'',
-		'testmodules' => $testmodules,
-		'interactive' => $interactive_mode?1:0,
-		'needinput' => $waiting_for_new_needle?1:0,
-		'workerid' => ($ENV{'WORKERID'}||0),
-		}, { pretty => 1 });
+	my $result = { 'distribution' => $ENV{'DISTRI'},
+		       'testmodules' => $testmodules,
+	       };
+	if ($ENV{'WORKERID'}) {
+		$result->{workerid} = $ENV{WORKERID};
+		$result->{interactive} = $interactive_mode?1:0;
+		$result->{needinput} = $waiting_for_new_needle?1:0;
+		$result->{running} = $current_test?ref($current_test):'';
+	} else {
+		for my $tr (@$testmodules) {
+			if (defined $tr->{flags}->{important}) {
+				if ($tr->{result} eq "ok") {
+					$result->{overall} |= 'ok';
+				} else {
+					$result->{overall} = 'fail';
+				}
+			}
+		}
+	}
+
+	print $fd to_json($result, { pretty => 1 });
 	close($fd);
 }
 
