@@ -36,7 +36,9 @@ if($ison=~m/openSUSE-(DVD|NET|KDE|GNOME|LXDE|XFCE)/) {
 	}
 }
 
-if($ENV{UEFI} && !-e $ENV{UEFI}.'/bios.bin') {die "'$ENV{UEFI}' should point to a directory with an uefi bios image"}
+if ($ENV{UEFI} && !-e $ENV{UEFI_BIOS_DIR}.'/bios.bin') {
+	die "'$ENV{UEFI_BIOS_DIR}/bios.bin' missing, check UEFI_BIOS_DIR\n";
+}
 
 mkpath($basedir);
 
@@ -95,7 +97,7 @@ if($self->{'pid'}==0) {
 		push(@params, "-k", $ENV{VNCKB}) if($ENV{VNCKB});
 	}
 	if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
-	if($ENV{UEFI}) { push(@params, "-L", $ENV{UEFI}); }
+	if($ENV{UEFI}) { push(@params, "-L", $ENV{UEFI_BIOS_DIR}); }
 	if($ENV{MULTINET}) {push(@params, qw"-net nic,vlan=1,model=virtio,macaddr=52:54:00:12:34:57 -net none,vlan=1")}
 	push(@params, "-usb", "-usbdevice", "tablet");
 	push(@params, "-smp", $ENV{QEMUCPUS});
