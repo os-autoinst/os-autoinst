@@ -94,7 +94,6 @@ if(!$ENV{DISTRI}) {
 	if($testedversion=~m/^(debian|openSUSE|Fedora|Mageia|SLE[SD]-1\d|oi|FreeBSD|archlinux)-/) {$ENV{DISTRI}=lc($1)}
 }
 $ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
-$ENV{LIVECD}=$ENV{LIVE};
 
 ## env vars
 $ENV{UEFI_BIOS_DIR}||='/usr/share/qemu-ovmf/bios-ms';
