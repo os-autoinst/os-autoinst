@@ -177,7 +177,7 @@ if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
 
 # local vars
 
-our $backend : shared; #FIXME: make local after adding frontend-api to bmwqemu
+our $backend;  #FIXME: make local after adding frontend-api to bmwqemu
 
 my $framecounter = 0; # screenshot counter
 

@@ -68,10 +68,11 @@ for my $i (1..4) { # create missing symlinks
 	next unless -e "$basedir/$i";
 	symlink($i,"$basedir/l$i");
 }
+
 $self->{'pid'}=fork();
 die "fork failed" if(!defined($self->{'pid'}));
 if($self->{'pid'}==0) {
-	my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
+	my @params=(qw(-m 1024 -net user -qmp), "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
 
 	if ($iso) {
 	    if ($ENV{USBBOOT}) {
