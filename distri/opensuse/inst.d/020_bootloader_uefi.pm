@@ -109,4 +109,8 @@ sendkey "f10";
 
 }
 
+sub test_flags() {
+	return {'fatal' => 1};
+}
+
 1;
