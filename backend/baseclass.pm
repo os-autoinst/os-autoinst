@@ -10,7 +10,7 @@ use JSON qw( to_json );
 
 sub new {
 	my $class = shift;
-	my $self :shared = bless(shared_clone({ class => $class }), $class);
+	my $self = bless({ class => $class }, $class);
 	$self->init();
 	$self->{'started'} = 0;
 	return $self;
@@ -46,7 +46,6 @@ sub alive($) {
 		}
 		else {
 			bmwqemu::diag("ALARM: backend.run got deleted! - exiting...");
-			$self->stop_vm();
 			alarm 3;
 		}
 	}

@@ -8,12 +8,21 @@ use threads::shared;
 require File::Temp;
 use File::Temp ();
 use Time::HiRes "sleep";
+use IO::Select;
+use IO::Socket::UNIX qw( SOCK_STREAM );
+use IO::Handle;
+use Data::Dumper;
+use JSON;
+require Carp;
+use Fcntl;
 
 sub init() {
 	my $self = shift;
 	$self->{'mousebutton'} = shared_clone({'left' => 0, 'right' => 0, 'middle' => 0});
 	$self->{'pid'} = undef;
 	$self->{'pidfilename'} = 'qemu.pid';
+	STDERR->autoflush(1);
+	STDOUT->autoflush(1);
 }
 
 
@@ -21,7 +30,8 @@ sub init() {
 
 sub sendkey($) {
 	my ($self, $key) = @_;
-	$self->send("sendkey $key");
+	my $keys = [ map { { 'type' => 'qcode', 'data' => $_ } } split('-', $key) ];
+	$self->send({"execute" => "send-key", "arguments" => { 'keys' => $keys }});
 }
 
 # warning: will not work due to https://bugs.launchpad.net/qemu/+bug/752476
@@ -64,27 +74,10 @@ sub mouse_hide(;$) {
 sub screendump() {
 	my $self = shift;
 	my $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.ppm', OPEN => 0 );
-	$self->send("screendump $tmp");
-	my $ret;
-        while (!defined $ret) {
-	  sleep(0.02);
-	  my $fs = -s $tmp;
-	  next if ($fs < 70);
-	  my $header;
-	  next if (!open(PPM, $tmp));
-	  if (read(PPM, $header, 70) < 70) {
-	    close(PPM);
-	    next;
-	  }
-	  close(PPM);
-	  my ($xres,$yres) = ($header=~m/\AP6\n(?:#.*\n)?(\d+) (\d+)\n255\n/);
-	  next if(!$xres);
-	  my $d=$xres*$yres*3+length($&);
-	  next if ($fs != $d);
-          $ret = tinycv::read($tmp);
-        }
+	my $rsp = $self->send({'execute' => 'screendump', 'arguments' => { 'filename' => "$tmp"} });
+        my $img = tinycv::read($tmp);
 	unlink $tmp;
-	return $ret;
+	return $img;
 }
 
 sub raw_alive($) {
@@ -121,7 +114,7 @@ sub power($) {
 
 sub eject_cd(;$) {
 	my $self = shift;
-	$self->send("eject -f ide1-cd0");
+	$self->send({"execute" => "eject", "arguments" => { "device" => "ide1-cd0" }});
 }
 
 sub cpu_stat($) {
@@ -136,12 +129,14 @@ sub do_start_vm($) {
 	eval bmwqemu::fileContent("$bmwqemu::scriptdir/inst/startqemu.pm");
 	die "startqemu failed: $@" if $@;
 	$self->open_management();
-	$self->send(bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw")||"");
+	my $cnt = bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw");	
+	if ($cnt) {
+	   $self->send($cnt);
+        }
 }
 
 sub do_stop_vm($) {
 	my $self = shift;
-	$self->send('quit');
 	$self->close_con();
 	sleep(0.1);
 	kill(15, $self->{'pid'});
@@ -155,14 +150,14 @@ sub do_snapshot($) {
 
 sub do_savevm($) {
 	my ($self, $vmname) = @_;
-	$self->send("savevm $vmname");
-	$self->_wait();
+	my $rsp = $self->send("savevm $vmname");
+	print "SAVED $vmname $rsp\n";
 }
 
 sub do_loadvm($) {
 	my ($self, $vmname) = @_;
-	$self->send("loadvm $vmname");
-	$self->_wait();
+	my $rsp = $self->send("loadvm $vmname");
+	print "LOAD $vmname $rsp\n";
 	$self->send("stop");
 	$self->send("cont");
 }
@@ -194,18 +189,34 @@ sub close_con($) {
 sub send($) {
 	my $self = shift;
 	my $cmdstr = shift;
-	while ($self->{mgmt}->{rspqueue}->dequeue_nb()) { };
-	$self->{mgmt}->send($cmdstr);
-	# QEMU return a line with the command. Remove from the queue.
-	$self->{mgmt}->{rspqueue}->dequeue() if ($cmdstr ne 'quit');
+	my $rsp = $self->{mgmt}->send($cmdstr);
+        $rsp = JSON::decode_json($rsp);
+        if ($rsp->{rsp}->{error}) {
+	  Carp::carp "er";
+	  die JSON::to_json($rsp);
+        }
+        return $rsp->{rsp}->{return};
 }
 
-sub _wait($) {
-    my $self = shift;
-    $self->send("help");
-    bmwqemu::diag "Waiting output from rspqueue ...";
-    my $result = $self->{mgmt}->{rspqueue}->dequeue();
-    bmwqemu::diag "Response from rspqueue ...\n$result";
+sub _read_json($) {
+	my $socket = shift;
+
+	my $rsp = '';
+	my $s = IO::Select->new();
+	$s->add($socket);
+
+	my $hash;
+	# make sure we read the answer completely
+	while (!$hash) {
+		my $qbuffer;
+		$s->can_read(0.5);
+		my $bytes = sysread($socket, $qbuffer, 1000);
+		if (!$bytes) { return undef; }
+		$rsp .= $qbuffer;
+		$hash = eval { JSON::decode_json($rsp); };
+	}
+	#print "read json " . JSON::to_json($hash);
+	return $hash;
 }
 
 # management console end
@@ -215,19 +226,30 @@ package backend::qemu::mgmt;
 use threads;
 use threads::shared;
 
+my $qemu_lock :shared;
+
 sub new {
 	my $class = shift;
-	my $self :shared = bless(shared_clone({class=>$class}), $class);
-	$self->{cmdqueue} = Thread::Queue->new();
-	$self->{rspqueue} = Thread::Queue->new();
+	my $self = bless({class=>$class}, $class);
 	return $self;
 }
 
 sub start
 {
 	my $self = shift;
-	my $addr = "localhost:$ENV{QEMUPORT}";
-	my $tid = shared_clone(threads->create(\&_run, $addr, $self->{cmdqueue}, $self->{rspqueue}));
+
+	my $p1, my $p2;
+	pipe($p1, $p2)     or die "pipe: $!";
+	$self->{from_parent} = $p1;
+	$self->{to_child} = $p2;
+
+        $p1 = undef;
+	$p2 = undef;
+        pipe($p1, $p2)     or die "pipe: $!";
+        $self->{to_parent} = $p2;
+        $self->{from_child} = $p1;
+
+	my $tid = shared_clone(threads->create(\&_run, fileno($self->{from_parent}), fileno($self->{to_parent})));
 	$self->{runthread} = $tid;
 }
 
@@ -236,61 +258,256 @@ sub stop
 	my $self = shift;
 	my $cmd = shift;
 
-	$self->{cmdqueue}->enqueue(undef);
+	return unless ($self->{runthread});
+	
+	$self->send('quit');
 
 	print " waiting for console read thread to quit...\n";
 	$self->{runthread}->join();
 	print "done\n";
 	$self->{runthread} = undef;
+	close($self->{to_child});
+	$self->{to_child} = undef;
+	close($self->{from_child});
+	$self->{from_child} = undef;
 }
 
+sub translate_cmd($)
+{
+        my $cmd = shift;
+	for my $knowncmd (qw(quit stop cont)) {
+	  if ($cmd eq $knowncmd) {
+	    return { "execute" => $cmd };
+	  }
+	}
+	return {"hmp" => $cmd};
+}
 
 sub send
 {
 	my $self = shift;
 	my $cmd = shift;
 
-	#print "enqueue <$cmd>\n";
-	$self->{cmdqueue}->enqueue($cmd);
+	lock($qemu_lock);
+
+	if (!ref($cmd)) {
+	  $cmd = translate_cmd($cmd);
+	}
+	my $json = JSON::encode_json($cmd);
+
+	print "SENT to child $json " . $self->{to_child} . " " . threads->tid() . "\n";
+	my $wb = syswrite($self->{to_child}, $json);
+	die "syswrite failed $!" unless ($wb == length($json));
+	my $rsp = '';
+	while (1) {
+	   my $buffer;
+	   print STDERR "before read from_child\n";
+	   my $bytes = sysread($self->{from_child}, $buffer, 1000);
+	   print STDERR "from_child got $bytes\n";
+	   return undef unless ($bytes);
+	   $rsp .= $buffer;
+	   my $hash = eval { JSON::decode_json($rsp); };
+	   if ($hash) { print STDERR "RSP $rsp\n"; last; }
+	}
+
+	# unfortunately when qemu prompts back after screendump the image is 
+	# not yet ready and while it isn't, we shouldn't send new commands to qemu
+	if ($cmd->{execute} && $cmd->{execute} eq "screendump") {
+		wait_for_img($cmd->{arguments}->{filename});
+        }
+	return $rsp;
 }
 
-sub _readconloop($$) {
-	# read all output from management console and forward it to STDOUT
-	my $socket = shift;
-	my $rspqueue = shift;
-	$|=1;
-	while(<$socket>) {
-	  #print $_;
-	  chomp;
-	  $rspqueue->enqueue($_);
+sub wait_for_img($)
+{
+       my $tmp = shift;
+
+       my $ret;
+       while (!defined $ret) {
+         sleep(0.1);
+         my $fs = -s $tmp;
+         next if ($fs < 70);
+         my $header;
+         next if (!open(PPM, $tmp));
+         if (read(PPM, $header, 70) < 70) {
+           close(PPM);
+           next;
+         }
+         close(PPM);
+         my ($xres,$yres) = ($header=~m/\AP6\n(?:#.*\n)?(\d+) (\d+)\n255\n/);
+         next if(!$xres);
+         my $d=$xres*$yres*3+length($&);
+         next if ($fs != $d);
+	 return;
+      }
+
+}
+
+sub _read_hmp($) {
+	my $hmpsocket = shift;
+
+	my $rsp = '';
+	my $s = IO::Select->new();
+	$s->add($hmpsocket);
+
+	while (my @ready = $s->can_read(0.5)) {
+		my $buffer;
+		my $bytes = sysread($hmpsocket, $buffer, 1000);
+		last unless ($bytes);
+		$rsp .= $buffer;
+		my @rsp2 = unpack("C*", $rsp);
+		my $line = '';
+		for my $c (@rsp2) {
+			if ($c == 13) {
+				# skip
+			} elsif ($c == 10) {
+				$line .= "\n";
+			} elsif ($c == 27) {
+				$line .= "^";
+			} elsif ($c < 32) {
+				$line .= "C$c ";
+			} else {
+				$line .= chr($c);
+			}
+		}
+		# remove nop
+		$line =~ s/\^\[K//g;
+		# remove "cursor back"
+		while ($line =~ m/.\^\[D/) {
+			$line =~ s/.\^\[D//;
+		}
+		if ($line =~ m/\n\(qemu\) *$/) {
+			$line =~ s/\n\(qemu\) *$//;
+			return $line;
+		}
 	}
-	bmwqemu::diag("exiting management console read loop");
-	bmwqemu::diag("ALARM: qemu virtual machine quit! - exiting...");
-	# XXX
-	# TODO: set flag on graceful exit to avoid this
-	alarm(3) # kill all extra threads soon
 }
 
 sub _run
 {
-	my $addr = shift;
-	my $cmdqueue = shift;
-	my $rspqueue = shift;
-	my $socket = IO::Socket::INET->new($addr);
+	my $cmdpipe = shift;
+        my $rsppipe = shift;
+
+	my $io = IO::Handle->new();
+	$io->fdopen($cmdpipe, "r") || die "r fdopen $!";
+	$cmdpipe = $io;
+
+	$io = IO::Handle->new();
+        $io->fdopen($rsppipe, "w") || die "w fdopen $!";
+        $rsppipe = $io;
+	$rsppipe->autoflush(1);
+
+	my $hmpsocket = IO::Socket::UNIX->new(
+		Type => IO::Socket::UNIX::SOCK_STREAM,
+		Peer => "hmp_socket",
+		Blocking => 0
+	      ) or die "can't open hmp";
+
+	$hmpsocket->autoflush(1);
+	binmode $hmpsocket;
+	my $flags = fcntl($hmpsocket, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
+        $flags = fcntl($hmpsocket, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
+
+	my $qmpsocket = IO::Socket::UNIX->new(
+		Type => IO::Socket::UNIX::SOCK_STREAM,
+		Peer => "qmp_socket",
+		Blocking => 0
+	      ) or die "can't open qmp";
+
+	$qmpsocket->autoflush(1);
+	binmode $qmpsocket;
+	$flags = fcntl($qmpsocket, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
+        $flags = fcntl($qmpsocket, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
+
+	# retrieve welcome
+	my $line = _read_hmp($hmpsocket);
+	print "WELCOME $line\n";
+
+	my $init = backend::qemu::_read_json($qmpsocket);
+	syswrite($qmpsocket, '{"execute": "qmp_capabilities"}');
+	my $hash = backend::qemu::_read_json($qmpsocket);
+	if (0) {
+		syswrite($qmpsocket, "{'execute': 'query-commands'}");
+		$hash = backend::qemu::_read_json($qmpsocket);
+		die "no commands!" unless ($hash);
+		print "COMMANDS " . JSON::to_json($hash, { pretty => 1 }) .  "\n";
+	}
 
 	bmwqemu::diag "started mgmt loop with thread id " . threads->tid();
 
-	my $oldfh = select($socket); $|=1; select($oldfh); # autoflush
-	my $readthread = threads->create(\&_readconloop, $socket, $rspqueue); # without this, qemu will block
+	my $s = IO::Select->new();
+	$s->add($qmpsocket);
+	$s->add($hmpsocket);
+	$s->add($cmdpipe);
 
-	my $cmdstr;
-	while (defined($cmdstr = $cmdqueue->dequeue())) {
-		#printf "sending $cmdstr\n";
-		print $socket "$cmdstr\n";
+      SELECT: while (my @ready = $s->can_read) {
+		for my $fh (@ready) {
+			my $buffer;
+
+			if ($fh == $qmpsocket) {
+				my $hash = backend::qemu::_read_json($qmpsocket);
+				if (!$hash) { last SELECT; }
+				if ($hash->{event}) {
+					print STDERR "EVENT " . JSON::to_json($hash) . "\n";
+				} else {
+					print STDERR "WARNING: read qmp " . JSON::to_json($hash) . "\n";
+				}
+				#syswrite($rsppipe, $buffer);
+
+			} elsif ($fh == $hmpsocket) {
+				my $bytes = sysread($fh, $buffer, 1000);
+				if (!$bytes) { last SELECT; }
+				print STDERR "WARNING: read hmp $bytes - $buffer\n";
+				#syswrite($rsppipe, $buffer);
+
+			} elsif ($fh == $cmdpipe) {
+				my $cmd = backend::qemu::_read_json($cmdpipe);
+				#print STDERR "cmd ". JSON::to_json($cmd) . "\n";
+
+				if ($cmd->{hmp}) {
+					my $wb = syswrite($hmpsocket, "$cmd->{hmp}\n");
+					#print STDERR "wrote HMP $wb $cmd->{hmp}\n";
+					die "syswrite failed $!" unless ($wb == length($cmd->{hmp}) + 1);
+
+					my $line = _read_hmp($hmpsocket);
+					print $rsppipe JSON::to_json({"hmp" => $cmd->{hmp}, 
+								      "rsp" => { "return" => $line} });
+				} else {
+
+					my $line = JSON::to_json($cmd);
+					my $wb = syswrite($qmpsocket, $line);
+					die "syswrite failed $!" unless ($wb == length($line));
+					#print STDERR "wrote $wb\n";
+					my $hash;
+					while (!$hash) {
+						$hash = backend::qemu::_read_json($qmpsocket);
+						if ($hash->{event}) {
+							print STDERR "EVENT " . JSON::to_json($hash) . "\n";
+							# ignore
+							$hash = undef;
+						}
+					}
+					#print STDERR "got " . JSON::to_json({"qmp" => $cmd, "rsp" => $hash}) . "\n";
+					last SELECT unless ($hash);
+					print $rsppipe JSON::to_json({"qmp" => $cmd, "rsp" => $hash});
+				}
+			} else {
+				print STDERR "huh!\n";
+			}
+		}
 	}
-	close($socket);
-	$readthread->join();
+
+	close($qmpsocket);
+	close($hmpsocket);
+	close($cmdpipe);
+	close($rsppipe);
+
 	bmwqemu::diag("management thread exit");
 }
 
 1;
+
+# Local Variables:
+# tab-width: 8
+# cperl-indent-level: 8
+# End:
