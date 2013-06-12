@@ -19,7 +19,7 @@ unless ($qemubin) {
 my $iso=$ENV{ISO};
 my $sizegb=8;
 if($ENV{BTRFS}) {$sizegb=10}
-$ENV{HDDMODEL}||="virtio";
+$ENV{HDDMODEL}||="virtio-blk";
 $ENV{NICMODEL}||="virtio";
 $ENV{QEMUVGA}||="cirrus";
 $ENV{QEMUCPUS}||=1;
@@ -77,9 +77,7 @@ if($self->{'pid'}==0) {
 	    if ($ENV{USBBOOT}) {
 		push(@params, "-drive", "if=none,id=usbstick,file=$iso,snapshot=on");
 		push(@params, "-device", "usb-ehci,id=ehci");
-		push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,bootindex=1");
-		push(@params, "-device", "piix3-usb-uhci,id=usb");
-		push(@params, "-device", "usb-tablet,bus=usb.0");
+		push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb,bootindex=1");
 	    } else {
 		push(@params, "-cdrom", $iso);
 	    }
@@ -93,10 +91,11 @@ if($self->{'pid'}==0) {
 
 	for my $i (1..$ENV{NUMDISKS}) {
 		my $boot="";#$i==1?",boot=on":""; # workaround bnc#696890
-		push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=$ENV{HDDMODEL}$boot");
+		push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd$i");
+		push(@params, "-device", "$ENV{HDDMODEL},drive=hd$i");
 	}
 
-	push(@params, "-boot", "dc");
+	push(@params, "-boot", "once=d,menu=on");
 
 	if($ENV{VNC}) {
 		if($ENV{VNC}!~/:/) {$ENV{VNC}=":$ENV{VNC}"}
