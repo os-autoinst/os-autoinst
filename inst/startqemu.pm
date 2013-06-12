@@ -85,6 +85,12 @@ if($self->{'pid'}==0) {
 	    }
 	}
 
+	if ($ENV{LAPTOP}) {
+	    for my $f (<$ENV{LAPTOP}/*.bin>) {
+		push @params, '-smbios', "file=$f";
+	    }
+	}
+
 	for my $i (1..$ENV{NUMDISKS}) {
 		my $boot="";#$i==1?",boot=on":""; # workaround bnc#696890
 		push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=$ENV{HDDMODEL}$boot");
