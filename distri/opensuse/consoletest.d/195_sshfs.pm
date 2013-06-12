@@ -3,7 +3,7 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
-	script_sudo("bash");
+	become_root();
 	script_run("killall gpk-update-icon kpackagekitsmarticon packagekitd");
 	script_run("zypper -n in sshfs");
 	waitstillimage(12,90);
