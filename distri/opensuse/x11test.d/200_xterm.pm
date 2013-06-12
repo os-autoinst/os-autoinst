@@ -18,7 +18,7 @@ sub run()
 	sendautotype("echo If you can see this text xterm is working.\n");
 	sleep 2;
 	$self->check_screen;
-	sendkey "alt-f4"; sleep 2;
+	sendkey "alt-f4";
 }
 
 1;
