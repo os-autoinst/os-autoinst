@@ -76,6 +76,13 @@ $ENV{QEMUPORT}||=15222;
 $ENV{INSTLANG}||="en_US";
 $ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
 if(defined($ENV{DISTRI}) && $ENV{DISTRI} eq 'archlinux') {$ENV{HDDMODEL}="ide";}
+
+if ($ENV{LAPTOP}) {
+    $ENV{LAPTOP} = 'dell_e6330' if $ENV{LAPTOP} eq '1';
+    die "no dmi data for '$ENV{LAPTOP}'\n" unless -d "$scriptdir/dmidata/$ENV{LAPTOP}";
+    $ENV{LAPTOP} = "$scriptdir/dmidata/$ENV{LAPTOP}";
+}
+
 ## env vars end
 
 ## keyboard cmd vars
