@@ -1223,12 +1223,13 @@ sub save_results(;$$)
 		for my $tr (@$testmodules) {
 			if (defined $tr->{flags}->{important}) {
 				if ($tr->{result} eq "ok") {
-					$result->{overall} |= 'ok';
+					$result->{overall} ||= 'ok';
 				} else {
 					$result->{overall} = 'fail';
 				}
 			}
 		}
+		$result->{overall} ||= 'fail';
 	}
 
 	print $fd to_json($result, { pretty => 1 });
