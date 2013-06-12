@@ -57,6 +57,12 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
     throw(std::exception());
   }
 
+  // avoid an exception
+  if ( x < 0 || y < 0 || y+height > scene->img.rows || x+width > scene->img.cols ) {
+    std::cerr << "ERROR - search: out of range\n" << std::endl;
+    return outvec;
+  }
+
   // Calculate size of result matrix and create it If scene is W x H
   // and object is w x h, res is (W - w + 1) x ( H - h + 1)
   int res_width  = scene->img.cols - width + 1; // object->img.cols + 1;
@@ -77,7 +83,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   Mat byte_crop_object;
   cvtColor(object->img, byte_crop_object, CV_8U);
   GaussianBlur(byte_crop_object, byte_crop_object, Size(5, 5), 0, 0);
-  byte_crop_object = Mat(byte_crop_object, Range(y, y+height), Range(x,x+width));
+  byte_crop_object = Mat(byte_crop_object, Range(y, y+height), Range(x, x+width));
 
   // Perform the matching. Info about algorithm:
   // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
@@ -232,6 +238,12 @@ long image_yres(Image *s)
  */
 void image_replacerect(Image *s, long x, long y, long width, long height)
 {
+  // avoid an exception
+  if ( x < 0 || y < 0 || y+height > s->img.rows || x+width > s->img.cols ) {
+    std::cerr << "ERROR - replacerect: out of range\n" << std::endl;
+    return;
+  }
+
   rectangle(s->img, Rect(x, y, width, height), CV_RGB(0, 255, 0), CV_FILLED);
 }
 
@@ -239,8 +251,8 @@ void image_replacerect(Image *s, long x, long y, long width, long height)
 Image *image_copyrect(Image *s, long x, long y, long width, long height)
 {
   // avoid an exception
-  if ( y+height > s->img.rows || x+width > s->img.cols ) {
-    printf("copyrect: out of range\n");
+  if ( x < 0 || y < 0 || y+height > s->img.rows || x+width > s->img.cols ) {
+    std::cerr << "ERROR - copyrect: out of range\n" << std::endl;
     return 0;
   }
 
