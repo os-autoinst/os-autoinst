@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 num=${1:-4}
-pool="${2:-/var/cache/openqa/pool}"
+pool="${2:-/var/lib/openqa/pool}"
 if [ ! -w "$pool" ]; then
 	echo "can't write $pool! (got root?)\n"
 	exit 1
