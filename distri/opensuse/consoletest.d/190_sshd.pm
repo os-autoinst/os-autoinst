@@ -16,4 +16,8 @@ sub run()
 	$self->check_screen;
 }
 
+sub test_flags() {
+   return {'milestone' => 1};
+}
+
 1;
