@@ -205,6 +205,26 @@ sub skip_if_not_running()
 	bmwqemu::set_current_test(undef);
 }
 
+sub waitforprevimg($$;$) {
+	my $self = shift;
+	my $previmg = shift;
+	my $timeout = shift || 5;
+	
+        my $name = ref($self);
+        my $currentimg;
+
+	for(my $i=0;$i<=$timeout;$i+=1) {
+	   $currentimg = bmwqemu::getcurrentscreenshot();
+           my $sim = $currentimg->similarity($previmg);
+           diag "$i: SIM $name $sim";
+           if ($sim >= 49) {
+              return undef;
+           }
+	   sleep 1;
+	}
+	return $currentimg;
+}
+
 sub runtest($$) {
 	my $self = shift;
 
@@ -224,10 +244,8 @@ sub runtest($$) {
 		$self->run();
 
 		if ($self->{'category'} eq 'x11test') {
-			my $currentimg = bmwqemu::getcurrentscreenshot();
-			my $sim = $currentimg->similarity($previmg);
-			diag "SIM $name $sim";
-			if ($sim < 49) {
+			my $currentimg = $self->waitforprevimg($previmg);
+			if ($currentimg) {
 				$self->record_screenfail( img => $currentimg, 
 							  result => 'fail',
 							  overall => 'fail');
