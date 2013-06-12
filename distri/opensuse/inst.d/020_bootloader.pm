@@ -248,8 +248,6 @@ exit
 
 }
 
-qemusend "boot_set c"; # boot from HDD next time
-
 # boot
 sendkey "ret";
 }
