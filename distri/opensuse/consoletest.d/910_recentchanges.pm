@@ -3,7 +3,7 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return 1;
+	return 0;
 }
 
 sub run()
