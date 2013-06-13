@@ -211,13 +211,15 @@ sub _read_json($) {
 	# make sure we read the answer completely
 	while (!$hash) {
 		my $qbuffer;
-		next if (!$s->can_read(0.5));
-		my $bytes = sysread($socket, $qbuffer, 1000);
-		if (!$bytes) { return undef; }
+		my @res = $s->can_read(0.5);
+		if (!@res) { Carp::carp; next; }
+		my $bytes = sysread($socket, $qbuffer, 1);
+		if (!$bytes) { print STDERR "sysread failed: $!\n"; return undef; }
 		$rsp .= $qbuffer;
+		if ($rsp !~ m/\n/) { next; }
 		$hash = eval { JSON::decode_json($rsp); };
 	}
-	#print "read json " . JSON::to_json($hash);
+	print STDERR "read json " . JSON::to_json($hash) . "\n";
 	return $hash;
 }
 
@@ -299,8 +301,8 @@ sub send
 	lock($qemu_lock);
 
 	print STDERR "SENT to child $json " . threads->tid() . "\n";
-	my $wb = syswrite($self->{to_child}, $json);
-	die "syswrite failed $!" unless ($wb == length($json));
+	my $wb = syswrite($self->{to_child}, "$json\n");
+	die "syswrite failed $!" unless ($wb == length($json) + 1);
 	my $rsp = '';
 	while (1) {
 	   my $buffer;
@@ -427,10 +429,10 @@ sub _run
 	print "WELCOME $line\n";
 
 	my $init = backend::qemu::_read_json($qmpsocket);
-	syswrite($qmpsocket, '{"execute": "qmp_capabilities"}');
+	syswrite($qmpsocket, "{'execute': 'qmp_capabilities'}\n");
 	my $hash = backend::qemu::_read_json($qmpsocket);
 	if (0) {
-		syswrite($qmpsocket, "{'execute': 'query-commands'}");
+		syswrite($qmpsocket, "{'execute': 'query-commands'}\n");
 		$hash = backend::qemu::_read_json($qmpsocket);
 		die "no commands!" unless ($hash);
 		print "COMMANDS " . JSON::to_json($hash, { pretty => 1 }) .  "\n";
@@ -448,13 +450,16 @@ sub _run
 			my $buffer;
 
 			if ($fh == $qmpsocket) {
-				my $hash = backend::qemu::_read_json($qmpsocket);
-				if (!$hash) { print STDERR "read json failed: $!\n"; last SELECT; }
-				if ($hash->{event}) {
-					print STDERR "EVENT " . JSON::to_json($hash) . "\n";
-				} else {
-					print STDERR "WARNING: read qmp " . JSON::to_json($hash) . "\n";
-				}
+				my $bytes = sysread($fh, $buffer, 1000);
+				if (!$bytes) { print STDERR "read QMP failed: $!\n"; last SELECT; }
+				
+				#my $hash = backend::qemu::_read_json($qmpsocket);
+				#if (!$hash) { print STDERR "read json failed: $!\n"; last SELECT; }
+				#if ($hash->{event}) {
+				#	print STDERR "EVENT " . JSON::to_json($hash) . "\n";
+				#} else {
+					print STDERR "WARNING: read qmp $bytes - $buffer\n";
+				#}
 				#syswrite($rsppipe, $buffer);
 
 			} elsif ($fh == $hmpsocket) {
@@ -478,8 +483,8 @@ sub _run
 				} else {
 
 					my $line = JSON::to_json($cmd);
-					my $wb = syswrite($qmpsocket, $line);
-					die "syswrite failed $!" unless ($wb == length($line));
+					my $wb = syswrite($qmpsocket, "$line\n");
+					die "syswrite failed $!" unless ($wb == length($line) + 1);
 					#print STDERR "wrote $wb\n";
 					my $hash;
 					while (!$hash) {
