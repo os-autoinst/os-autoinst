@@ -151,13 +151,13 @@ sub do_snapshot($) {
 sub do_savevm($) {
 	my ($self, $vmname) = @_;
 	my $rsp = $self->send("savevm $vmname");
-	print "SAVED $vmname $rsp\n";
+	print STDERR "SAVED $vmname $rsp\n";
 }
 
 sub do_loadvm($) {
 	my ($self, $vmname) = @_;
 	my $rsp = $self->send("loadvm $vmname");
-	print "LOAD $vmname $rsp\n";
+	print STDERR "LOAD $vmname $rsp\n";
 	$self->send("stop");
 	$self->send("cont");
 }
@@ -262,9 +262,9 @@ sub stop
 	
 	$self->send('quit');
 
-	print " waiting for console read thread to quit...\n";
+	print STDERR " waiting for console read thread to quit...\n";
 	$self->{runthread}->join();
-	print "done\n";
+	print STDERR "done\n";
 	$self->{runthread} = undef;
 	close($self->{to_child});
 	$self->{to_child} = undef;
@@ -295,15 +295,15 @@ sub send
 	}
 	my $json = JSON::encode_json($cmd);
 
-	print "SENT to child $json " . $self->{to_child} . " " . threads->tid() . "\n";
+	print STDERR "SENT to child $json " . $self->{to_child} . " " . threads->tid() . "\n";
 	my $wb = syswrite($self->{to_child}, $json);
 	die "syswrite failed $!" unless ($wb == length($json));
 	my $rsp = '';
 	while (1) {
 	   my $buffer;
-	   print STDERR "before read from_child\n";
+	   #print STDERR "before read from_child\n";
 	   my $bytes = sysread($self->{from_child}, $buffer, 1000);
-	   print STDERR "from_child got $bytes\n";
+	   #print STDERR "from_child got $bytes\n";
 	   return undef unless ($bytes);
 	   $rsp .= $buffer;
 	   my $hash = eval { JSON::decode_json($rsp); };
@@ -350,7 +350,7 @@ sub _read_hmp($) {
 	my $s = IO::Select->new();
 	$s->add($hmpsocket);
 
-	while (my @ready = $s->can_read(0.5)) {
+	while (my @ready = $s->can_read) {
 		my $buffer;
 		my $bytes = sysread($hmpsocket, $buffer, 1000);
 		last unless ($bytes);
