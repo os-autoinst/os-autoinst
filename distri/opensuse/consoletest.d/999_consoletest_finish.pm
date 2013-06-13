@@ -10,10 +10,14 @@ sub run() {
 	sendkey "ctrl-d"; # logout
 	sleep 2;
 
-	sendkey "ctrl-alt-f7"; # go back to X11
-	sleep 2;
-	sendkey "backspace"; # deactivate blanking
-	sleep 2;
+	if (checkEnv("DESKTOP", "textmode")) {
+	    sendkey "ctrl-alt-f1"; # go back to first console
+	} else {
+	    sendkey "ctrl-alt-f7"; # go back to X11
+	    sleep 2;
+	    sendkey "backspace"; # deactivate blanking
+	    sleep 2;
+	}
 	waitidle;
 	$self->check_screen();
 }
