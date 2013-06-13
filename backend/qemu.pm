@@ -197,7 +197,7 @@ sub send($) {
 		die JSON::to_json($rsp);
 	}
 	print STDERR "backend::send $cmdstr -> $rspt\n";
-        return $rsp->{return};
+        return $rsp->{rsp}->{return};
 }
 
 sub _read_json($) {
