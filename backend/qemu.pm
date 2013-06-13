@@ -211,7 +211,7 @@ sub _read_json($) {
 	# make sure we read the answer completely
 	while (!$hash) {
 		my $qbuffer;
-		$s->can_read(0.5);
+		next if (!$s->can_read(0.5));
 		my $bytes = sysread($socket, $qbuffer, 1000);
 		if (!$bytes) { return undef; }
 		$rsp .= $qbuffer;
