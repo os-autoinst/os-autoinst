@@ -26,7 +26,7 @@ sub start_vm($) {
 	close $runf;
 	bmwqemu::diag("+++BACKEND_JSON: $json");
 	$self->do_start_vm();
-	$self->start_conmuxloop();
+#	$self->start_conmuxloop();
 	$self->{'started'} = 1;
 }
 
@@ -62,7 +62,7 @@ sub get_info($) {
 	return {
 		'backend' => $self->{'class'},
 		'backend_info' => $self->get_backend_info(),
-		'management_port' => $ENV{QEMUPORT}+1
+#		'management_port' => $ENV{QEMUPORT}+1
 	};
 }
 
