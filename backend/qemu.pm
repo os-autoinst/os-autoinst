@@ -189,12 +189,14 @@ sub close_con($) {
 sub send($) {
 	my $self = shift;
 	my $cmdstr = shift;
-	my $rsp = $self->{mgmt}->send($cmdstr);
-        $rsp = JSON::decode_json($rsp);
+	print STDERR "backend::send -> $cmdstr\n";
+	my $rspt = $self->{mgmt}->send($cmdstr);
+        my $rsp = JSON::decode_json($rspt);
         if ($rsp->{rsp}->{error}) {
-	  Carp::carp "er";
-	  die JSON::to_json($rsp);
-        }
+		Carp::carp "er";
+		die JSON::to_json($rsp);
+	}
+	print STDERR "backend::send $cmdstr -> $rspt\n";
         return $rsp->{return};
 }
 
@@ -288,14 +290,15 @@ sub send
 	my $self = shift;
 	my $cmd = shift;
 
-	lock($qemu_lock);
-
 	if (!ref($cmd)) {
 	  $cmd = translate_cmd($cmd);
 	}
 	my $json = JSON::encode_json($cmd);
 
-	print STDERR "SENT to child $json " . $self->{to_child} . " " . threads->tid() . "\n";
+	print STDERR "locking QEMU: $json\n";
+	lock($qemu_lock);
+
+	print STDERR "SENT to child $json " . threads->tid() . "\n";
 	my $wb = syswrite($self->{to_child}, $json);
 	die "syswrite failed $!" unless ($wb == length($json));
 	my $rsp = '';
@@ -446,7 +449,7 @@ sub _run
 
 			if ($fh == $qmpsocket) {
 				my $hash = backend::qemu::_read_json($qmpsocket);
-				if (!$hash) { last SELECT; }
+				if (!$hash) { print STDERR "read json failed: $!\n"; last SELECT; }
 				if ($hash->{event}) {
 					print STDERR "EVENT " . JSON::to_json($hash) . "\n";
 				} else {
@@ -456,7 +459,7 @@ sub _run
 
 			} elsif ($fh == $hmpsocket) {
 				my $bytes = sysread($fh, $buffer, 1000);
-				if (!$bytes) { last SELECT; }
+				if (!$bytes) { print STDERR "read HMP failed: $!\n"; last SELECT; }
 				print STDERR "WARNING: read hmp $bytes - $buffer\n";
 				#syswrite($rsppipe, $buffer);
 
@@ -488,7 +491,10 @@ sub _run
 						}
 					}
 					#print STDERR "got " . JSON::to_json({"qmp" => $cmd, "rsp" => $hash}) . "\n";
-					last SELECT unless ($hash);
+					if (!$hash) {
+						print STDERR "no json from QMP: $!\n";
+						last SELECT;
+					}
 					print $rsppipe JSON::to_json({"qmp" => $cmd, "rsp" => $hash});
 				}
 			} else {
