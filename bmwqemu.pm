@@ -31,7 +31,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot
-&interactive_mode &needle_template &waiting_for_new_needle &interactive_lock
+&interactive_mode &needle_template &waiting_for_new_needle
 );
 
 
@@ -45,10 +45,9 @@ share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 my @ocrrect; share(@ocrrect);
 my @extrahashrects; share(@extrahashrects);
 
-our $interactive_lock : shared; # lock for cond variable. protects waiting_for_new_needle and needle_template
-our $interactive_mode : shared;
-our $needle_template : shared; # set if waitforneedle failed
-our $waiting_for_new_needle : shared;
+our $interactive_mode;
+our $needle_template;
+our $waiting_for_new_needle;
 
 # shared vars end
 
@@ -992,7 +991,6 @@ sub _waitforneedle {
 	my $failed_candidates;
 	for my $n (1..$timeout) {
 		if (-e $control_files{"interactive_mode"}) {
-			lock($interactive_lock);
 			$interactive_mode = 1;
 		}
 		if (-e $control_files{"stop_waitforneedle"}) {
@@ -1042,7 +1040,6 @@ sub _waitforneedle {
 	}
 
 
-	lock($interactive_lock);
 	if (-e $control_files{"interactive_mode"}) {
 		$interactive_mode = 1;
 	} else {
@@ -1051,7 +1048,6 @@ sub _waitforneedle {
 	$needle_template = save_needle_template($img, $mustmatch, \@tags);
 
 	if ($interactive_mode) {
-		lock($interactive_lock);
 		print "interactive mode entered\n";
 		freeze_vm();
 
