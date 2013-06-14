@@ -26,6 +26,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $testedversion %cmd
 &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey 
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
+&wait_encrypt_prompt
 &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
 &checkneedle &goandclick &set_current_test &become_root
 &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
@@ -454,7 +455,6 @@ sub sendpassword() {
 }
 ## keyboard end
 
-
 ## mouse
 sub mouse_move_nosleep($$) {
 	my ($mdx, $mdy) = @_;
@@ -501,6 +501,16 @@ sub mouse_hide(;$) {
 
 
 ## helpers
+sub wait_encrypt_prompt()
+{
+    if($ENV{ENCRYPT}) {
+	waitforneedle("encrypted-disk-password-prompt");
+	sendpassword(); # enter PW at boot
+	sendkey "ret";
+    }
+}
+
+
 sub x11_start_program($;$) {
 	my $program=shift;
 	my $options=shift||{};
