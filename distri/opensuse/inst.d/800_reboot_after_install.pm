@@ -17,6 +17,8 @@ sub run()
 	sleep 4;
 	qemusend "eject ide1-cd0";
 	sendkey "ctrl-alt-delete";
+
+	wait_encrypt_prompt;
 	waitforneedle("reboot_after_install", 100);
 }
 

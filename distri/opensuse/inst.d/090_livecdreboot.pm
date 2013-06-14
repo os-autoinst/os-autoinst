@@ -44,11 +44,7 @@ sub run() {
 		}
 		qemusend "eject ide1-cd0";
 		sleep 3;
-		if($ENV{ENCRYPT}) {
-			waitstillimage(11,180);
-			sendpassword(); # enter PW at boot
-			sendkey "ret";
-		}
+		wait_encrypt_prompt;
 	} else {
 		# LiveCD needs confirmation for reboot
 		sendkey $cmd{"rebootnow"};
