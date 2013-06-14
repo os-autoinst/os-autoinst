@@ -12,6 +12,7 @@ sub run()
 {
 	my $self=shift;
 	script_sudo("/sbin/yast2 bootloader");
+	sendkey "ctrl-l"; # redraw in case kernel painted on us
 	sleep 3;
 	$self->check_screen;
 	sendkey "alt-o"; # OK => Close # might just close warning on livecd
