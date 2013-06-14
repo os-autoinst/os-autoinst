@@ -85,23 +85,23 @@ if($self->{'pid'}==0) {
 	    }
 	}
 
-	if ($iso) {
-	    if ($ENV{USBBOOT}) {
-		push(@params, "-drive", "if=none,id=usbstick,file=$iso,snapshot=on");
-		push(@params, "-device", "usb-ehci,id=ehci");
-		push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb,bootindex=1");
-	    } else {
-		push(@params, "-cdrom", $iso);
-	    }
-	}
-
 	for my $i (1..$ENV{NUMDISKS}) {
 		my $boot="";#$i==1?",boot=on":""; # workaround bnc#696890
 		push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd$i");
 		push(@params, "-device", "$ENV{HDDMODEL},drive=hd$i");
 	}
 
-	push(@params, "-boot", "once=d,menu=on");
+	if ($iso) {
+	    if ($ENV{USBBOOT}) {
+		push(@params, "-drive", "if=none,id=usbstick,file=$iso,snapshot=on");
+		push(@params, "-device", "usb-ehci,id=ehci");
+		push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb");
+	    } else {
+		push(@params, "-cdrom", $iso);
+	    }
+	}
+
+	push(@params, "-boot", "once=d,menu=on,splash-time=5000");
 
 	if($ENV{VNC}) {
 		if($ENV{VNC}!~/:/) {$ENV{VNC}=":$ENV{VNC}"}
