@@ -3,17 +3,6 @@ use base "installstep";
 use bmwqemu;
 
 
-sub change_usb_boot_order() {
-    if ($ENV{USBBOOT}) {
-	qemusend "drive_del usbstick";
-	qemusend "device_del devusb";
-        qemusend "drive_add 0 if=none,id=usbstick,file=$ENV{ISO},snapshot=on";
-	qemusend "device_add usb-storage,bus=ehci.0,drive=usbstick,id=devusb";
-	qemusend "system_reset";
-    }
-}
-
-
 sub run() { 
 	my $self=shift;
 	{
@@ -48,8 +37,6 @@ sub run() {
 			sendkey "alt-n"; # ignore repos dialog
 			waitstillimage(6,60);
 		}
-
-		if ($ENV{USBBOOT}) { change_usb_boot_order; }
 
 		waitforneedle("reboot-after-installation", 100);
 		if(checkneedle("inst-bootmenu", 1) || checkneedle("grub2", 1)) {
