@@ -7,7 +7,7 @@ use threads;
 use threads::shared;
 require File::Temp;
 use File::Temp ();
-use Time::HiRes "sleep";
+use Time::HiRes qw(sleep gettimeofday);
 use IO::Select;
 use IO::Socket::UNIX qw( SOCK_STREAM );
 use IO::Handle;
@@ -73,7 +73,8 @@ sub mouse_hide(;$) {
 
 sub screendump() {
 	my $self = shift;
-	my $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.ppm', OPEN => 0 );
+	my ($seconds, $microseconds) = gettimeofday;
+	my $tmp = "ppm.$seconds.$microseconds.ppm";
 	my $rsp = $self->send({'execute' => 'screendump', 'arguments' => { 'filename' => "$tmp"} });
         my $img = tinycv::read($tmp);
 	unlink $tmp;
@@ -182,6 +183,7 @@ sub open_management($) {
 
 sub close_con($) {
 	my $self=shift;
+        return unless ($self->{mgmt});
 	$self->{mgmt}->stop();
 	$self->{mgmt} = undef;
 }
@@ -189,14 +191,14 @@ sub close_con($) {
 sub send($) {
 	my $self = shift;
 	my $cmdstr = shift;
-	print STDERR "backend::send -> $cmdstr\n";
+	#print STDERR "backend::send -> $cmdstr\n";
 	my $rspt = $self->{mgmt}->send($cmdstr);
         my $rsp = JSON::decode_json($rspt);
         if ($rsp->{rsp}->{error}) {
 		Carp::carp "er";
 		die JSON::to_json($rsp);
 	}
-	print STDERR "backend::send $cmdstr -> $rspt\n";
+	#print STDERR "backend::send $cmdstr -> $rspt\n";
         return $rsp->{rsp}->{return};
 }
 
@@ -212,14 +214,14 @@ sub _read_json($) {
 	while (!$hash) {
 		my $qbuffer;
 		my @res = $s->can_read(0.5);
-		if (!@res) { Carp::carp; next; }
+		if (!@res) { next; }
 		my $bytes = sysread($socket, $qbuffer, 1);
 		if (!$bytes) { print STDERR "sysread failed: $!\n"; return undef; }
 		$rsp .= $qbuffer;
 		if ($rsp !~ m/\n/) { next; }
 		$hash = eval { JSON::decode_json($rsp); };
 	}
-	print STDERR "read json " . JSON::to_json($hash) . "\n";
+	#print STDERR "read json " . JSON::to_json($hash) . "\n";
 	return $hash;
 }
 
@@ -297,10 +299,10 @@ sub send
 	}
 	my $json = JSON::encode_json($cmd);
 
-	print STDERR "locking QEMU: $json\n";
+	#print STDERR "locking QEMU: $json\n";
 	lock($qemu_lock);
 
-	print STDERR "SENT to child $json " . threads->tid() . "\n";
+	#print STDERR "SENT to child $json " . threads->tid() . "\n";
 	my $wb = syswrite($self->{to_child}, "$json\n");
 	die "syswrite failed $!" unless ($wb == length($json) + 1);
 	my $rsp = '';
