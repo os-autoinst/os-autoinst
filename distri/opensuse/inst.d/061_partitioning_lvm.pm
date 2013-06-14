@@ -12,11 +12,13 @@ sub run()
 	sendkeyw "alt-l"; # enable LVM-based proposal
 	if($ENV{ENCRYPT}) {
 		sendkeyw "alt-y";
+		waitforneedle("inst-encrypt-password-prompt");
 		sendpassword;
 		sendkey "tab";
 		sendpassword;
 		sendkeyw "ret";
 	}
+	$self->take_screenshot;
 }
 
 1;

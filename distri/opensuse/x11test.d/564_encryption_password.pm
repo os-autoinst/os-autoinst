@@ -9,8 +9,7 @@ sub is_applicable()
 
 sub run()
 {
-	sendpassword();
-	sendkey "ret";
+	wait_encrypt_prompt;
 }
 
 1;
