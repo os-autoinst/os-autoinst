@@ -11,7 +11,7 @@ sub run()
 	$self->check_screen;
 	sendkey("ctrl-l");
 	script_run('echo $?');
-	script_sudo('rcsshd status');
+	script_run('rcsshd status');
 	$self->check_screen;
 }
 
