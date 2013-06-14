@@ -11,6 +11,15 @@ sub is_applicable()
 # hint: press shift-f10 trice for highest debug level
 sub run()
 {
+    if ($ENV{USBBOOT}) {
+	waitforneedle("boot-menu", 1);
+	sendkey "f12";
+	waitforneedle("boot-menu-usb", 4);
+	for (1..$ENV{NUMDISKS}) {
+	    sendkey(2 + $ENV{NUMDISKS} + 1);
+	}
+    }
+
 	waitforneedle("bootloader-grub2",15);
 	if($ENV{QEMUVGA} && $ENV{QEMUVGA} ne "cirrus") {
 		sleep 5;

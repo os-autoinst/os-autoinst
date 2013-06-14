@@ -74,16 +74,6 @@ die "fork failed" if(!defined($self->{'pid'}));
 if($self->{'pid'}==0) {
 	my @params=(qw(-m 1024 -net user -qmp), "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
 
-	if ($iso) {
-	    if ($ENV{USBBOOT}) {
-		push(@params, "-drive", "if=none,id=usbstick,file=$iso,snapshot=on");
-		push(@params, "-device", "usb-ehci,id=ehci");
-		push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb,bootindex=1");
-	    } else {
-		push(@params, "-cdrom", $iso);
-	    }
-	}
-
 	if ($ENV{LAPTOP}) {
 	    for my $f (<$ENV{LAPTOP}/*.bin>) {
 		push @params, '-smbios', "file=$f";
@@ -96,7 +86,17 @@ if($self->{'pid'}==0) {
 		push(@params, "-device", "$ENV{HDDMODEL},drive=hd$i");
 	}
 
-	push(@params, "-boot", "once=d,menu=on");
+	if ($iso) {
+	    if ($ENV{USBBOOT}) {
+		push(@params, "-drive", "if=none,id=usbstick,file=$iso,snapshot=on");
+		push(@params, "-device", "usb-ehci,id=ehci");
+		push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb");
+	    } else {
+		push(@params, "-cdrom", $iso);
+	    }
+	}
+
+	push(@params, "-boot", "once=d,menu=on,splash-time=5000");
 
 	if($ENV{VNC}) {
 		if($ENV{VNC}!~/:/) {$ENV{VNC}=":$ENV{VNC}"}
