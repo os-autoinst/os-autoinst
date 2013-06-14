@@ -17,6 +17,13 @@ sub run() {
 	    sleep 2;
 	    sendkey "backspace"; # deactivate blanking
 	    sleep 2;
+	    if (checkneedle("screenlock")) {
+		if (checkEnv("DESKTOP", "gnome")) {
+		    sendkey "esc";
+		    sendpassword;
+		    sendkey "ret";
+		}
+	    }
 	}
 	waitidle;
 	$self->check_screen();
