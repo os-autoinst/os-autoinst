@@ -10,25 +10,25 @@ sub addpart($$)
 {
     my ($size,$type)=@_;
     sendkey $cmd{addpart};
-    waitidle 4;
+    waitidle 5;
     sendkey $cmd{"next"};
-    waitidle 3;
+    waitidle 5;
     for (1..10) {
 	sendkey "backspace";
     }
     sendautotype($size."mb");
-    waitidle 3;
+    waitidle 5;
     sendkey $cmd{"next"};
-    waitidle 3;
+    waitidle 5;
     sendkey $cmd{"donotformat"};
-    waitidle 3;
+    waitidle 5;
     sendkey "tab";
-    waitidle 3;
+    waitidle 5;
     for (1..$type) {
-	waitidle 3;
+	waitidle 5;
 	sendkey "down";
     }
-    waitidle 3;
+    waitidle 5;
     sendkey $cmd{finish};
 }
 
@@ -95,8 +95,11 @@ sub run()
 	waitidle 5;
 
 	for (1..4) {
+	    waitidle 5;
 	    addpart(100, 3); # boot
+	    waitidle 5;
 	    addpart(5300, 3); # root
+	    waitidle 5;
 	    addpart(300, 3); # swap
 	    waitforneedle('raid-partition', 5);
 	    # select next disk
