@@ -85,7 +85,7 @@ for my $i (1..4) { # create missing symlinks
 $self->{'pid'}=fork();
 die "fork failed" if(!defined($self->{'pid'}));
 if($self->{'pid'}==0) {
-	my @params=(qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
+	my @params=($qemubin, qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
 	if ($ENV{LAPTOP}) {
 	    for my $f (<$ENV{LAPTOP}/*.bin>) {
 		push @params, '-smbios', "file=$f";
@@ -107,8 +107,9 @@ if($self->{'pid'}==0) {
 	if($ENV{MULTINET}) {push(@params, qw"-net nic,vlan=1,model=virtio,macaddr=52:54:00:12:34:57 -net none,vlan=1")}
 	push(@params, "-usb", "-usbdevice", "tablet");
 	push(@params, "-smp", $ENV{QEMUCPUS});
-	bmwqemu::diag("starting: $qemubin ".join(" ", @params));
-	exec($qemubin, @params);
+	if(-e "/usr/bin/eatmydata") { unshift(@params, "/usr/bin/eatmydata") }
+	bmwqemu::diag("starting: ".join(" ", @params));
+	exec(@params);
 	die "exec $qemubin failed";
 }
 open(my $pidf, ">", $self->{'pidfilename'}) or die "can not write ".$self->{'pidfilename'};
