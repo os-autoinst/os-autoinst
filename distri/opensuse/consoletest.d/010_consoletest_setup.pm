@@ -9,7 +9,7 @@ sub run()
 	# init
 	# log into text console
 	sendkey "ctrl-alt-f4";
-	sleep 2;
+	waitforneedle("text-login", 10);
 	sendautotype "$username\n";
 	sleep 2;
 	sendpassword; sendautotype "\n";
