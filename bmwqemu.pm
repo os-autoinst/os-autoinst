@@ -74,8 +74,8 @@ our $timesidleneeded=2;
 our $standstillthreshold=930;
 
 our $realname="Bernhard M. Wiedemann";
-our $username="bernhard";
-our $password="nots3cr3t";
+our $username=$ENV{LIVETEST} ? "root" : "bernhard";
+our $password=$ENV{LIVETEST} ? "" : "nots3cr3t";
 
 our $testresults="testresults";
 our $serialdev="ttyS0"; #FIXME: also backend
