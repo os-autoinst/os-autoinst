@@ -35,7 +35,7 @@ echo kvm-intel >> /etc/modules
     # for crop.py
     zypper install python-tk python-imaging
 
-    usermod -G kvm -a $USER
+    usermod -G kvm -a $USERNAME || usermod -A kvm $USERNAME
 
 == more Linux setup ==
 
@@ -58,7 +58,7 @@ Install VirtualBox either from your distribution's DVD or
 From http://software.opensuse.org/package/virtualbox
 After installation of VirtualBox do this
 insmod vboxdrv
-usermod -A vboxusers $USERNAME
+usermod -G vboxusers -a $USERNAME || usermod -A vboxusers $USERNAME
 Log out and in and you are done
 
 ===Setting up OS-autoinst for VirtualBox===
