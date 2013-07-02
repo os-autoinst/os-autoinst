@@ -23,27 +23,24 @@ sub run()
 		return;
 	}
 
-if($ENV{MEDIACHECK}) { # special
-	# only run this one
-	for(1..2) {
+	if($ENV{MEDIACHECK}) { # special
+	    # only run this one
+	    for(1..2) {
 		sendkey "down";
+	    }
+	    sleep 3;
+	    sendkey "ret";
+	    return;
 	}
-	sleep 3;
-	sendkey "ret";
-  return;
-}
 # assume bios+grub+anim already waited in start.sh
-if(!$ENV{LIVETEST}) {
-        # in grub2 it's tricky to set the screen resolution
-        sendkey "e";
-        for(1..4) {sendkey "down";}
+# in grub2 it's tricky to set the screen resolution
+	sendkey "e";
+	for(1..4) {sendkey "down";}
         sendkey "end";
         sendkey "spc";
-} else {
-	if($ENV{PROMO}) {
-		for(1..2) {sendkey "down";} # select KDE Live
-	}
-}
+	# if($ENV{PROMO}) {
+	#     for(1..2) {sendkey "down";} # select KDE Live
+	# }
 
 # 1024x768
 if($ENV{RES1024}) { # default is 800x600
@@ -101,8 +98,6 @@ exit
 ");
 
 }
-
-qemusend "boot_set c"; # boot from HDD next time
 
 # boot
 sendkey "f10";
