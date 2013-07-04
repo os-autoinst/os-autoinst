@@ -57,6 +57,7 @@ pkglibexec_SCRIPTS = \
 	cv.pm \
 	needle.pm \
 	rpc.pl \
+	crop.py \
 	start.pl
 
 pkglibexec_FOLDERS = \
