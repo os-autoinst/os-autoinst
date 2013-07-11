@@ -22,6 +22,7 @@ sub run()
 	$self->take_screenshot;
 	sendkey "alt-f4"; sleep 2;
 	$self->take_screenshot;
+	sendkey "alt-w"; # Close _without saving
 	sendkey "alt-d"; sleep 2; # Discard
 }
 
