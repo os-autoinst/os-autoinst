@@ -12,11 +12,12 @@ sub run
 	my $self = shift;
 	my $iso = $ENV{ISO};
 	my $size = -s $iso;
-	diag("iso_size=$size");
 	my $result = 'ok';
-	if( $size > $ENV{ISO_MAXSIZE}) {
+	my $max = $ENV{ISO_MAXSIZE};
+	if( $size > $max) {
 		$result = 'fail';
 	}
+	diag("check if actual iso size $size fits $max: $result");
 	$self->result($result);
 }
 
