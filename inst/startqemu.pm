@@ -17,8 +17,7 @@ unless ($qemubin) {
 }
 
 my $iso=$ENV{ISO};
-my $sizegb=8;
-if($ENV{BTRFS}) {$sizegb=10}
+my $sizegb=10;
 $ENV{HDDMODEL}||="virtio-blk";
 $ENV{NICMODEL}||="virtio";
 $ENV{QEMUVGA}||="cirrus";
