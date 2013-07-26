@@ -333,6 +333,12 @@ sub wait_for_img($)
        while (!defined $ret) {
          sleep(0.1);
          my $fs = -s $tmp;
+         # if qemu did not even start writing out
+         # after 0.1s, it's most likely dead. In case
+         # this is not true on slow machines, we may
+         # need to scale this - because sleeping longer
+         # doesn't make sense
+         return unless ($fs);
          next if ($fs < 70);
          my $header;
          next if (!open(PPM, $tmp));
