@@ -304,6 +304,7 @@ sub take_screenshot(;$)
 	my $count = ++$self->{"test_count"};
 	my $testname = ref($self);
 
+	# XXX: is there a reason for not using getcurrentscreenshot()?
 	my $img = bmwqemu::do_take_screenshot();
 
 	my $result = {

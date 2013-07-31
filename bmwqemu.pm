@@ -35,12 +35,15 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &interactive_mode &needle_template &waiting_for_new_needle
 );
 
+sub sendkey($);
+sub mydie;
 
 # shared vars
 
 my $goodimageseen :shared = 0;
 my $screenshotQueue = Thread::Queue->new();
 my $prestandstillwarning :shared = 0;
+my $numunchangedscreenshots :shared = 0;
 my $timeoutcounter :shared = 0;
 share($ENV{SCREENSHOTINTERVAL}); # to adjust at runtime
 my @ocrrect; share(@ocrrect);
@@ -71,7 +74,7 @@ our $clock_ticks = POSIX::sysconf( &POSIX::_SC_CLK_TCK );
 our $debug=-t 1; # enable debug only when started from a tty
 our $idlethreshold=($ENV{IDLETHRESHOLD}||$ENV{IDLETHESHOLD}||18)*$clock_ticks/100; # % load max for being considered idle
 our $timesidleneeded=2;
-our $standstillthreshold=930;
+our $standstillthreshold=600;
 
 our $realname="Bernhard M. Wiedemann";
 our $username=$ENV{LIVETEST} ? "root" : "bernhard";
@@ -282,7 +285,6 @@ sub result_dir() {
 
 our $lastscreenshot;
 our $lastscreenshotName;
-our $lastscreenshotCount;
 sub getcurrentscreenshot() {
         my $filename;
 	# using a queue to get the latest is most likely the least efficient solution,
@@ -301,7 +303,20 @@ sub getcurrentscreenshot() {
 	if ($filename) {
 		$lastscreenshot = tinycv::read($filename);
 		$lastscreenshotName = $filename;
-		$lastscreenshotCount = 0;
+	} else {
+		$prestandstillwarning=($numunchangedscreenshots>$standstillthreshold/2);
+		if($numunchangedscreenshots>$standstillthreshold) {
+			diag "STANDSTILL";
+			$current_test->record_screenfail(
+				img => $lastscreenshot,
+				result => 'fail',
+				overall => 'fail'
+			);
+			sendkey "alt-sysrq-w";
+			sendkey "alt-sysrq-l";
+			sendkey "alt-sysrq-d"; # only available with CONFIG_LOCKDEP
+			mydie "standstill detected. test ended"; # above 120s of autoreboot
+		}
 	}
 
 	return $lastscreenshot;
@@ -692,24 +707,13 @@ sub take_screenshot(;$) {
 	# 47 is about the similarity of two screenshots with blinking cursor
 	if($lastscreenshot && $lastscreenshot->similarity($img) > 47) {
 		symlink(basename($lastscreenshotName), $filename);
-		$lastscreenshotCount++;
-		$prestandstillwarning=($lastscreenshotCount>$standstillthreshold/2);
-		if($lastscreenshotCount>$standstillthreshold) {
-			timeout_screenshot(); sleep 1;
-			my $dir=result_dir;
-			sendkey "alt-sysrq-w";
-			sendkey "alt-sysrq-l";
-			sendkey "alt-sysrq-d"; # only available with CONFIG_LOCKDEP
-			do_take_screenshot()->write_optimized("$dir/standstill-1.png");sleep 1;
-			mydie "standstill detected. test ended. see $filename\n"; # above 120s of autoreboot
-		}
-	}
-	else { # new
+		$numunchangedscreenshots++;
+	} else { # new
 		$img->write($filename) || die "write $filename";
 		$screenshotQueue->enqueue($filename);
 		$lastscreenshot = $img;
 		$lastscreenshotName = $filename;
-		$lastscreenshotCount = 0;
+		$numunchangedscreenshots = 0;
 		#my $ocr=get_ocr($img);
 		#if($ocr) { diag "ocr: $ocr" }
 	}
