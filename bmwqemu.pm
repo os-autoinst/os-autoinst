@@ -285,7 +285,8 @@ sub result_dir() {
 
 our $lastscreenshot;
 our $lastscreenshotName;
-sub getcurrentscreenshot() {
+sub getcurrentscreenshot(;$) {
+	my $undef_on_standstill = shift;
         my $filename;
 	# using a queue to get the latest is most likely the least efficient solution,
         # but we need to check the current screenshot not to miss things
@@ -307,6 +308,8 @@ sub getcurrentscreenshot() {
 		$prestandstillwarning=($numunchangedscreenshots>$standstillthreshold/2);
 		if($numunchangedscreenshots>$standstillthreshold) {
 			diag "STANDSTILL";
+			return undef if $undef_on_standstill;
+
 			$current_test->record_screenfail(
 				img => $lastscreenshot,
 				result => 'fail',
@@ -1016,7 +1019,11 @@ sub _waitforneedle {
 		my $statstr = get_cpu_stat();
 		if ($oldimg) {
 			sleep 1;
-			$img = getcurrentscreenshot();
+			$img = getcurrentscreenshot(1);
+			unless ($img) { # standstill. Save fail needle.
+				$img = $oldimg;
+				last;
+			}
 			if ($oldimg == $img) { # no change, no need to search
 				diag(sprintf("no change %d $statstr", $timeout-$n));
 				next;
