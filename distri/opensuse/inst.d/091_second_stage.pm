@@ -53,4 +53,8 @@ sub run() {
 	mydie if $err;
 }
 
+sub test_flags() {
+        return {'important' => 1};
+}
+
 1;
