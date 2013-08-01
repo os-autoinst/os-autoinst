@@ -315,7 +315,7 @@ sub send
 	   $rsp .= $buffer;
 	   my $hash = eval { JSON::decode_json($rsp); };
 	   if ($hash) {
-		   print STDERR "RSP $rsp\n";
+#		   print STDERR "RSP $rsp\n";
 		   last;
 	   }
 	}
