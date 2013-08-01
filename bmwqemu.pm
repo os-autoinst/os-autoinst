@@ -949,6 +949,8 @@ sub save_needle_template($$$)
 
 	my $t = POSIX::strftime("%Y%m%d_%H%M%S", gmtime());
 
+        # limit the filename
+        $mustmatch = substr $mustmatch, 0, 30;
 	my $imgfn  = result_dir() . "/template-$mustmatch-$t.png";
 	my $jsonfn = result_dir() . "/template-$mustmatch-$t.json";
 
