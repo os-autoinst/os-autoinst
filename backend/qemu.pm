@@ -314,7 +314,10 @@ sub send
 	   return undef unless ($bytes);
 	   $rsp .= $buffer;
 	   my $hash = eval { JSON::decode_json($rsp); };
-	   if ($hash) { print STDERR "RSP $rsp\n"; last; }
+	   if ($hash) {
+		   print STDERR "RSP $rsp\n";
+		   last;
+	   }
 	}
 
 	# unfortunately when qemu prompts back after screendump the image is 
