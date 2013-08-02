@@ -1251,6 +1251,9 @@ sub save_results(;$$)
 		}
 		$result->{overall} ||= 'fail';
 	}
+	if ($backend) {
+		$result->{backend} = $backend->get_info();
+	}
 
 	print $fd to_json($result, { pretty => 1 });
 	close($fd);
