@@ -24,7 +24,6 @@ sub start_vm($) {
 	open(my $runf, ">", 'backend.run') or die "can not write 'backend.run'";
 	print $runf "$json\n";
 	close $runf;
-	bmwqemu::diag("+++BACKEND_JSON: $json");
 	$self->do_start_vm();
 #	$self->start_conmuxloop();
 	$self->{'started'} = 1;
