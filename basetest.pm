@@ -100,7 +100,7 @@ sub _serialize_match($$)
 
 	my $name = $cand->{'needle'}->{'name'};
 
-	my $h = { 'name' => $name, 'area' => [] };
+	my $h = { 'name' => $name, 'error' => $cand->{'error'}, 'area' => [] };
 	for my $a (@{$cand->{'area'}}) {
 		my $na = {};
 		for my $i (qw/x y w h result/) {
