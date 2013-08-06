@@ -71,14 +71,13 @@ PERL_MODULE = ppmclibs/blib/arch/auto/tinycv/tinycv.so
 
 ppmclibs/Makefile: ppmclibs/Makefile.PL
 	cd ppmclibs && \
-	$(PERL) Makefile.PL \
-	CCFLAGS="-I../.. $(CPPFLAGS) $(CFLAGS)" LDDLFLAGS=$(LDDLFLAGS)
+	$(PERL) Makefile.PL OPTIMIZE="$(CXXFLAGS)"
 
 $(PERL_MODULE): ppmclibs/Makefile
 	$(MAKE) -C ppmclibs
 
 install-exec-local: $(PERL_MODULE)
-	$(MAKE) -C ppmclibs install DESTDIR="$(DESTDIR)" INSTALLDIRS=vendor
+	$(MAKE) -C ppmclibs install DESTDIR="$(DESTDIR)" INSTALLDIRS="$(INSTALLDIRS)"
 
 all-local: $(PERL_MODULE)
 
