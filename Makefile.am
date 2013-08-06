@@ -10,24 +10,6 @@ doc_DATA = \
 	doc/debian-install-workflow.txt \
 	doc/fedora-installation.txt
 
-#lib_LTLIBRARIES = libtinycv.la
-#libtinycv_la_SOURCES = \
-#	ppmclibs/tinycv_impl.cc \
-#	ppmclibs/tinycv.h
-#nodist_libtinycv_la_SOURCES = ppmclibs/tinycv.cc
-#libtinycv_la_LDFLAGS = -no-undefined
-#libtinycv_la_CXXFLAGS = \
-#	$(OPENCV_CFLAGS) \
-#	$(PERL_CFLAGS)
-#libtinycv_la_LIBADD = $(OPENCV_LIBS)
-#
-#ppmcexecdir = $(pkglibexecdir)/ppmclibs
-#ppmcexec_SCRIPTS = \
-#	ppmclibs/tinycv.pm
-#
-#ppmclibs/tinycv.cc: ppmclibs/tinycv.xs
-#	xsubpp $< > $@
-
 packagestatedir = $(localstatedir)/lib/os-autoinst
 
 packagestate_DATA_FOLDERS = \
@@ -85,14 +67,23 @@ CLEANFILES = \
 	doc/basetest.html \
 	doc/bmwqemu.html
 
+PERL_MODULE = ppmclibs/blib/arch/auto/tinycv/tinycv.so
+
+ppmclibs/Makefile: ppmclibs/Makefile.PL
+	cd ppmclibs && \
+	$(PERL) Makefile.PL \
+	CCFLAGS="-I../.. $(CPPFLAGS) $(CFLAGS)" LDDLFLAGS=$(LDDLFLAGS)
+
+$(PERL_MODULE): ppmclibs/Makefile
+	$(MAKE) -C ppmclibs
+
+install-exec-local: $(PERL_MODULE)
+	$(MAKE) -C ppmclibs install DESTDIR="$(DESTDIR)" INSTALLDIRS=vendor
+
+all-local: $(PERL_MODULE)
+
 doc/%.html: %.pm
 	pod2html $< > $@
-
-# XXX do this properly somehow
-all-local:
-	@cd ppmclibs; test -e Makefile -a Makefile -nt Makefile.PL || \
-		perl Makefile.PL INSTALLDIRS=vendor OPTIMIZE="$(CXXFLAGS)";
-	$(MAKE) -C ppmclibs
 
 install-data-local:
 	$(MKDIR_P) $(DESTDIR)/$(packagestatedir) ; \
@@ -103,7 +94,6 @@ install-data-local:
 	for i in $(pkglibexec_FOLDERS) ; do \
 		cp -r $(top_srcdir)/$$i "$(DESTDIR)/$(pkglibexecdir)" ; \
 	done
-	$(MAKE) -C ppmclibs pure_install DESTDIR="$(DESTDIR)" # XXX
 
 uninstall-local:
 	for i in $(packagestate_DATA_FOLDERS) ; do \
@@ -131,5 +121,5 @@ dist-hook:
 distclean-local: clean-local
 
 clean-local:
-	$(MAKE) -C ppmclibs clean
+	@if test -e ppmclibs/Makefile; then $(MAKE) -C ppmclibs distclean; fi
 	-rm -rf *.tar.*
