@@ -1065,6 +1065,10 @@ sub _waitforneedle {
 
 	if (-e $control_files{"interactive_mode"}) {
 		$interactive_mode = 1;
+		if(! -e $control_files{'stop_waitforneedle'}) {
+			open(my $fd, '>', $control_files{'stop_waitforneedle'});
+			close $fd;
+		}
 	} else {
 		$interactive_mode = 0;
 	}
