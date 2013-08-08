@@ -120,7 +120,7 @@ if($self->{'pid'}==0) {
 	push(@params, "-enable-kvm");
 
 	if (open(my $cmdfd, '>', 'runqemu')) {
-		print $cmdfd "#!/bin/bash";
+		print $cmdfd "#!/bin/bash\n";
 		my @args = map { s,\\,\\\\,g; s,\$,\\\$,g; s,\",\\\",g; s,\`,\\\`,g; "\"$_\"" } @params;
 		printf $cmdfd "%s \\\n  %s\n", $qemubin, join(" \\\n  ", @args);
 		close $cmdfd;
