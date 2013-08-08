@@ -77,7 +77,7 @@ $(PERL_MODULE): ppmclibs/Makefile
 	$(MAKE) -C ppmclibs
 
 install-exec-local: $(PERL_MODULE)
-	$(MAKE) -C ppmclibs install DESTDIR="$(DESTDIR)" INSTALLDIRS="$(INSTALLDIRS)"
+	$(MAKE) -C ppmclibs pure_install DESTDIR="$(DESTDIR)" INSTALLDIRS="$(INSTALLDIRS)"
 
 all-local: $(PERL_MODULE)
 
