@@ -53,11 +53,11 @@ if(!$ENV{KEEPHDDS} && !$ENV{SKIPTO}) {
 	for my $i (1..4) {
 		unlink("$basedir/l$i");
 		if(-e "$basedir/$i.lvm") {
-			symlink("$i.lvm","$basedir/l$i");
-			system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1"); # for LVM
+			symlink("$i.lvm","$basedir/l$i") or die "$!\n";
+			die "$!\n" unless system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1") == 0; # for LVM
 		} else {
-			system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $sizegb."G");
-			symlink($i,"$basedir/l$i");
+			die "$!\n" unless system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $sizegb."G") == 0;
+			symlink($i,"$basedir/l$i") or die "$!\n";
 		}
 	}
 }
@@ -65,7 +65,7 @@ if(!$ENV{KEEPHDDS} && !$ENV{SKIPTO}) {
 for my $i (1..4) { # create missing symlinks
 	next if -e "$basedir/l$i";
 	next unless -e "$basedir/$i";
-	symlink($i,"$basedir/l$i");
+	symlink($i,"$basedir/l$i") or die "$!\n";
 }
 
 $self->{'pid'}=fork();
