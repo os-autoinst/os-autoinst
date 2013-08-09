@@ -404,6 +404,8 @@ sub _run
 	my $cmdpipe = shift;
         my $rsppipe = shift;
 
+	$SIG{__DIE__} = sub { alarm 3 };
+
 	my $io = IO::Handle->new();
 	$io->fdopen($cmdpipe, "r") || die "r fdopen $!";
 	$cmdpipe = $io;
