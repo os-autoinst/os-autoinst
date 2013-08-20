@@ -1,4 +1,4 @@
-use base "basetest";
+use base "installstep";
 use bmwqemu;
 # run all application tests after an extra reboot
 # first boot is special - could have used kexec and has second stage configuration
