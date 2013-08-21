@@ -28,7 +28,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
 &wait_encrypt_prompt
 &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor 
-&checkneedle &goandclick &set_current_test &become_root
+&checkneedle &goandclick &set_current_test &become_root &upload_logs
 &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot
@@ -590,6 +590,23 @@ sub become_root() {
      script_run("echo 'imroot' > /dev/$serialdev");
      waitserial("imroot", 5) || die "Root prompt not there";
      script_run("cd /tmp");
+}
+
+=head2 upload_logs
+upload log file to openqa host
+=cut
+sub upload_logs($)
+{
+	my $file = shift;
+	my $cmd = "curl --form testname=$testedversion";
+	my $host = $ENV{OPENQA_HOSTNAME};
+	if ($host) {
+		$cmd .= " --resolve $host:80:10.0.2.2";
+	} else {
+		$host = '10.0.2.2';
+	}
+	$cmd .= " --form upload=\@$file $host/cgi-bin/uploadlog";
+	script_run($cmd);
 }
 
 sub ensure_installed {
