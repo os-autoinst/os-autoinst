@@ -1,8 +1,15 @@
 #!/bin/bash
 set -e
+if [ -w / ]; then
+	echo "running as root, re-exec as wwwrun ..."
+	exec sudo -u wwwrun "$0" "$@"
+	exit 1
+fi
 cd /var/lib/os-autoinst/needles
 if [ ! -d .git ]; then
 	git clone git://github.com/openSUSE-Team/os-autoinst-needles.git .
+	git config user.email "openqa@suse.de"
+	git config user.name "openQA web UI"
 else
 	git fetch
 	git rebase origin/master
