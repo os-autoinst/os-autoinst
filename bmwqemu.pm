@@ -33,6 +33,7 @@ our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console 
 &getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot
 &interactive_mode &needle_template &waiting_for_new_needle
+$post_fail_hook_running
 );
 
 sub sendkey($);
@@ -52,6 +53,7 @@ my @extrahashrects; share(@extrahashrects);
 our $interactive_mode;
 our $needle_template;
 our $waiting_for_new_needle;
+our $post_fail_hook_running;
 
 # shared vars end
 
@@ -304,7 +306,7 @@ sub getcurrentscreenshot(;$) {
 	if ($filename) {
 		$lastscreenshot = tinycv::read($filename);
 		$lastscreenshotName = $filename;
-	} else {
+	} elsif (!$post_fail_hook_running) {
 		$prestandstillwarning=($numunchangedscreenshots>$standstillthreshold/2);
 		if($numunchangedscreenshots>$standstillthreshold) {
 			diag "STANDSTILL";
@@ -1026,7 +1028,7 @@ sub _waitforneedle {
 	my $img = getcurrentscreenshot();
 	my $oldimg;
 	my $failed_candidates;
-	for my $n (1..$timeout) {
+	for (my $n = 0; $n < $timeout; $n++) {
 		if (-e $control_files{"interactive_mode"}) {
 			$interactive_mode = 1;
 		}
@@ -1037,11 +1039,13 @@ sub _waitforneedle {
 		if ($oldimg) {
 			sleep 1;
 			$img = getcurrentscreenshot(1);
-			unless ($img) { # standstill. Save fail needle.
+			if (!$img) { # standstill. Save fail needle.
 				$img = $oldimg;
-				last;
-			}
-			if ($oldimg == $img) { # no change, no need to search
+				# not using last here so we search the
+				# standstill image too, in case we
+				# are in the post fail hook
+				$n = $timeout;
+			} elsif ($oldimg == $img) { # no change, no need to search
 				diag(sprintf("no change %d $statstr", $timeout-$n));
 				next;
 			}

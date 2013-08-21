@@ -55,6 +55,14 @@ sub test_flags($) {
 	return {};
 }
 
+=head2 post_fail_hook
+
+Function is run after test has failed to e.g. recover log files
+
+=cut
+sub post_fail_hook() {
+}
+
 sub record_screenmatch($$;$)
 {
 	my $self = shift;
@@ -255,6 +263,10 @@ sub runtest($$) {
 	};
 	if ($@) {
 		warn "test $name died: $@\n";
+		$bmwqemu::post_fail_hook_running = 1;
+		eval { $self->post_fail_hook; };
+		diag "post_fail_hook failed: $@\n" if $@;
+		$bmwqemu::post_fail_hook_running = 0;
 		$self->fail_if_running();
 		bmwqemu::save_results(autotest::results());
 		die "test $name died: $@\n";
