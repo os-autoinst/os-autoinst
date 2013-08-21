@@ -23,8 +23,7 @@ sub run()
 	script_run("rpm -qa > /dev/$serialdev");
 	script_sudo("rpm -qaV > /dev/$serialdev");
 	script_sudo("tar cjf /tmp/logs.tar.bz2 /var/log");
-	my $name=ref($self);
-	script_run("curl --form testname=$name --form upload=@/tmp/logs.tar.bz2 10.0.2.2/cgi-bin/uploadlog");
+	upload_logs("/tmp/logs.tar.bz2");
 	script_run("echo 'textinfo_ok' >  /dev/ttyS0");
 	waitserial('textinfo_ok', 5);
 
