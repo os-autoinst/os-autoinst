@@ -1028,7 +1028,7 @@ sub _waitforneedle {
 	my $img = getcurrentscreenshot();
 	my $oldimg;
 	my $failed_candidates;
-	for (my $n = 1; $n < $timeout; $n++) {
+	for (my $n = 0; $n < $timeout; $n++) {
 		if (-e $control_files{"interactive_mode"}) {
 			$interactive_mode = 1;
 		}
