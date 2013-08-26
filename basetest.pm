@@ -18,6 +18,7 @@ sub new(;$) {
 	$self->{test_count} = 0;
         $self->{screen_count} = 0;
 	$self->{wav_fn} = undef;
+	$self->{dents} = 0;
 	return bless $self, $class;
 }
 
@@ -287,6 +288,7 @@ sub json()
 		'result' => $self->result(),
 		'category' => $self->{'category'},
 		'flags' => $self->test_flags(),
+		'dents' => $self->{'dents'},
 	};
 }
 
