@@ -39,10 +39,9 @@ sub run() {
 
 
 	# Check for errors during the second stage
-	my @tags = (@{needle::tags("desktop-at-first-boot")}, @{needle::tags("install-failed")});
 	my $err = 0;
 	while (1) {
-	    my $ret = waitforneedle(\@tags, 200);
+	    my $ret = waitforneedle([qw/desktop-at-first-boot install-failed/], 200);
 	    last if $ret->{needle}->has_tag("desktop-at-first-boot");
 	    $self->take_screenshot;
 	    sleep 2;
