@@ -7,11 +7,9 @@ sub run()
 {
 	my $self=shift;
         
-        my @tags = (@{needle::tags("inst-welcome")}, @{needle::tags("inst-betawarning")});
-        
 	# we can't just wait for the needle as the beta popup may appear delayed and we're doomed
 	waitidle(350);
-	my $ret = waitforneedle(\@tags, 350); # live cds can take quite a long time to boot
+	my $ret = waitforneedle([qw/inst-welcome inst-betawarning/], 350); # live cds can take quite a long time to boot
 
         if( $ret->{needle}->has_tag("inst-betawarning") ) {
             sendkey "ret";

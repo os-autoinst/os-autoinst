@@ -1011,9 +1011,19 @@ sub _waitforneedle {
 	my $needles;
 	my @tags;
 	if (ref($mustmatch) eq "ARRAY") {
-		$needles = $mustmatch;
+		my @a = @$mustmatch;
 		$mustmatch = '';
-		for my $n (@{$needles}) {
+		while (my $n = shift @a) {
+			if (ref($n) eq '') {
+				$n = needle::tags($n);
+				push @a, @$n if $n;
+				next;
+			}
+			unless (ref($n) eq 'needle' && $n->{name}) {
+				warn "invalid needle passed <". ref($n)."> ".dump($n);
+				next;
+			}
+			push @$needles, $n;
 			$mustmatch .= $n->{name} . "_";
 		}
 		@tags = map { $_->{'name'} } @$needles;
