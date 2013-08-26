@@ -1267,6 +1267,7 @@ sub save_results(;$$)
 	truncate($fd, 0) or die "cannot truncate results.json: $!\n";
 	my $result = { 'distribution' => $ENV{'DISTRI'},
 		       'testmodules' => $testmodules,
+		       'dents' => 0,
 	       };
 	if ($ENV{'WORKERID'}) {
 		$result->{workerid} = $ENV{WORKERID};
@@ -1282,6 +1283,7 @@ sub save_results(;$$)
 					$result->{overall} = 'fail';
 				}
 			}
+			$result->{dents}++ if $tr->{dents};
 		}
 		$result->{overall} ||= 'fail';
 	}

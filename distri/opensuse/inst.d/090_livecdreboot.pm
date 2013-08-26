@@ -12,6 +12,8 @@ sub run() {
 		my $ret = waitforneedle(\@tags, 350); # live cds can take quite a long time to boot
 
 		last unless ($ret->{needle}->has_tag("yast-error-ntp"));
+		++$self->{dents};
+		diag "ntp popup caused dent";
 		sendkey "ret";
 		pop @tags;
 	}
