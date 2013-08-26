@@ -5,10 +5,17 @@ use bmwqemu;
 
 sub run() { 
 	my $self=shift;
-	{
-		local $ENV{SCREENSHOTINTERVAL}=5;
-		waitforneedle("rebootnow", 1500);
+
+	# workaround for yast popups
+	my @tags = qw/rebootnow yast-error-ntp/;
+	while (1) {
+		my $ret = waitforneedle(\@tags, 350); # live cds can take quite a long time to boot
+
+		last unless ($ret->{needle}->has_tag("yast-error-ntp"));
+		sendkey "ret";
+		pop @tags;
 	}
+
 	if($ENV{LIVECD}) {
 		# LiveCD needs confirmation for reboot
 		sendkey $cmd{"rebootnow"};
