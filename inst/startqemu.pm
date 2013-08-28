@@ -104,6 +104,7 @@ if($self->{'pid'}==0) {
 
 	if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
 	if($ENV{UEFI}) { push(@params, "-L", $ENV{UEFI_BIOS_DIR}); }
+	if($ENV{MULTINET}) {push(@params, qw"-net nic,vlan=1,model=virtio,macaddr=52:54:00:12:34:57 -net none,vlan=1")}
 	push(@params, "-usb", "-usbdevice", "tablet");
 	push(@params, "-smp", $ENV{QEMUCPUS});
 	push(@params, "-enable-kvm");
@@ -124,8 +125,12 @@ if($self->{'pid'}==0) {
 
 	push @params, '-qmp',  "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-S";
 
-	bmwqemu::diag("starting: $qemubin ".join(" ", @params));
-	exec($qemubin, @params);
+	unshift(@params, $qemubin);
+	unshift(@params, "/usr/bin/eatmydata") if (-e "/usr/bin/eatmydata");
+
+	bmwqemu::diag("starting: ".join(" ", @params));
+
+	exec(@params);
 	die "exec $qemubin failed";
 }
 open(my $pidf, ">", $self->{'pidfilename'}) or die "can not write ".$self->{'pidfilename'};
