@@ -37,6 +37,10 @@ sub run()
 	sendkey "e";
 	for(1..4) {sendkey "down";}
         sendkey "end";
+	if($ENV{NETBOOT} && $ENV{SUSEMIRROR}) {
+		for(1..49) { sendkey "backspace"; }
+		sendautotype($ENV{SUSEMIRROR});
+	}
         sendkey "spc";
 	# if($ENV{PROMO}) {
 	#     for(1..2) {sendkey "down";} # select KDE Live
