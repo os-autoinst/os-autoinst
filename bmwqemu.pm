@@ -101,7 +101,7 @@ if(!$ENV{DISTRI}) {
 $ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
 
 ## env vars
-$ENV{UEFI_BIOS_DIR}||='/usr/share/qemu-ovmf/bios-ms';
+$ENV{UEFI_BIOS}||='/usr/share/qemu/ovmf-x86_64-ms.bin';
 $ENV{QEMUPORT}||=15222;
 $ENV{INSTLANG}||="en_US";
 $ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
