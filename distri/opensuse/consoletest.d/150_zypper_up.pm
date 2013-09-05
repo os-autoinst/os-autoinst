@@ -12,7 +12,11 @@ sub run()
 	script_run("killall gpk-update-icon kpackagekitsmarticon packagekitd");
 	if(!$ENV{NET} && !$ENV{TUMBLEWEED} && !$ENV{EVERGREEN} && $ENV{SUSEMIRROR}) {
 		# non-NET installs have only milestone repo, which might be incompatible.
-		script_run("zypper ar http://$ENV{SUSEMIRROR}/repo/oss Factory");
+		my $repourl = $ENV{SUSEMIRROR};
+		unless ($ENV{FULLURL}) {
+		    $repourl = "http://$repourl/repo/oss";
+		};
+		script_run("zypper ar $repourl Factory");
 	}
 	script_run("zypper -n patch -l && echo 'worked' > /dev/$serialdev");
         waitserial("worked", 700) || die "zypper failed";
