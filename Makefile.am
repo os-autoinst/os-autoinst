@@ -47,6 +47,7 @@ pkglibexec_FOLDERS = \
 	tools \
 	inst \
 	inst.d \
+	dmidata \
 	workaround
 
 # sort the above out so it is not done directory wise
