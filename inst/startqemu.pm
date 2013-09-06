@@ -8,7 +8,7 @@ if(!-e $qemuimg) {$qemuimg="/usr/bin/qemu-img"}
 
 my $qemubin = $ENV{'QEMU'};
 unless ($qemubin) {
-	for my $bin (map { '/usr/bin/'.$_ } qw/kvm qemu-kvm qemu/) {
+	for my $bin (map { '/usr/bin/'.$_ } qw/kvm qemu-kvm qemu qemu-system-x86_64/) {
 		next unless -x $bin;
 		$qemubin = $bin;
 		last;
