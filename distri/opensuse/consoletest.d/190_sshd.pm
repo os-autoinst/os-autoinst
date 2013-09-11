@@ -12,6 +12,7 @@ sub run()
 	sendkey("ctrl-l");
 	script_run('echo $?');
 	script_run('rcsshd status');
+	script_run('exit');
 	$self->check_screen;
 }
 
