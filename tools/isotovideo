@@ -29,11 +29,6 @@ rm -f qemuscreenshot/*.png
 
 # start
 date "+%s%n%Y-%m-%d %H:%M:%S" > ${logfile}
-if test -n "$SUSEMIRROR"; then
-	curl -s $SUSEMIRROR/repo/oss/media.1/build >> ${logfile}
-else
-	echo "No build id collected" >> ${logfile}
-fi
 
 osautoinstpid=
 exithandler()
