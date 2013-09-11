@@ -49,22 +49,15 @@ osautoinstpid=$!
 wait $!
 
 [ -n "$NAME" ] || NAME=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media1?//;print' $ISO)
-mkdir -p video
-echo "Encoding ..."
-echo "Recording to testresults/$NAME/video.ogv" >> ${logfile}
+if [ -e "qemuscreenshot/shot-0000000001.png" ]; then
+	mkdir -p video
+	echo "Recording to testresults/$NAME/video.ogv" | tee ${logfile}
 
-# symlink the PNGs
-C=0
-mkdir movie
-rm -f movie/*.png
-for i in qemuscreenshot/*.png; do
-    ln -sf $(readlink -f $i) movie/file-`printf %010d $C`.png
-    C=$((C+1))
-done
-
-# Create the movie
-png2theora movie/file-%010d.png -o testresults/$NAME/video.ogv >> ${logfile} 2>&1
-rm -rf movie
+	# Create the movie
+	png2theora qemuscreenshot/shot-%010d.png -o testresults/$NAME/video.ogv >> ${logfile} 2>&1
+else
+	echo "No screenshots found => no video" | tee ${logfile}
+fi
 
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f backend.run
