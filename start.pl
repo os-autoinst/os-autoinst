@@ -46,6 +46,8 @@ sub signalhandler
 	if (threads->tid() == 0) {
 	  bmwqemu::save_results();
 	  stop_vm();
+	} else {
+		diag "bug!? signal not received in main thread";
 	}
 	exit(1);
 };
