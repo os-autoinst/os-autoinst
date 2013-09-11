@@ -83,6 +83,7 @@ our $username=$ENV{LIVETEST} ? "root" : "bernhard";
 our $password=$ENV{LIVETEST} ? "" : "nots3cr3t";
 
 our $testresults="testresults";
+our $screenshotpath="qemuscreenshot";
 our $serialdev="ttyS0"; #FIXME: also backend
 our $serialfile="serial0";
 our $gocrbin="/usr/bin/gocr";
@@ -367,6 +368,7 @@ sub init_backend($) {
 
 sub start_vm() {
 	return unless $backend;
+	mkdir $screenshotpath unless -d $screenshotpath;
 	$backend->start_vm();
 }
 
@@ -706,18 +708,12 @@ sub timeout_screenshot() {
 
 sub take_screenshot(;$) {
 	my $flags = shift || '';
-	my $path="qemuscreenshot/";
-	mkdir $path;
 
-	my $t=[gettimeofday()];
 	my $img = do_take_screenshot();
 
-	# strip first 10 screenshots, if they are too small (was that related to some ffmpeg issues?)
-	if(($framecounter++ < 10) && $img->xres()<800) { return; }
+	$framecounter++;
 
-	# TODO detect bad needles
-
-	my $filename=$path.sprintf("%s.%06i.png", POSIX::strftime("%Y%m%d_%H%M%S", gmtime($t->[0])), $t->[1]);
+	my $filename=$screenshotpath.sprintf("/shot-%010d.png", $framecounter);
         unless($flags=~m/q/) {
                 fctlog('screendump', "filename=$filename");
         }
