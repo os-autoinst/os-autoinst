@@ -103,8 +103,6 @@ if($ENV{LIVETEST} && ($ENV{LIVECD} || $ENV{PROMO})) {
 	$password="";
 }
 
-$ENV{TOGGLEHOME}=1;
-
 check_env();
 setrandomenv if($ENV{RANDOMENV});
 
