@@ -13,8 +13,8 @@ sub run()
 	sendkey "ret";
 	waitforneedle('sshfs-accepted', 3);
 	script_run('cd mnt/tmp');
-	script_run("zypper -n in gvim");
-	script_run("rpm -e gvim");
+	script_run("zypper -n in ksh");
+	script_run("rpm -e ksh");
 	script_run('cd /tmp');
 	# become user again
 	script_run('exit');
