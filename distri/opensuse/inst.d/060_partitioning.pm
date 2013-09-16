@@ -73,6 +73,8 @@ sub setraidlevel($)
 sub run()
 {
     waitforneedle('partioning', 40);
+
+    # XXX: why is that here?
     if($ENV{TOGGLEHOME} && !$ENV{LIVECD}) {
 	my $homekey=checkEnv('VIDEOMODE', "text")?"alt-p":"alt-h";
 	sendkey $homekey;
