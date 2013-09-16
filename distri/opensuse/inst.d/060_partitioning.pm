@@ -72,6 +72,14 @@ sub setraidlevel($)
 # Entry test code
 sub run()
 {
+    # XXX beta1
+    waitforneedle('131beta1-btrfs-popup', 40);
+    if ($ENV{BTRFS}) {
+	sendkey "alt-y";
+    } else {
+	sendkey "alt-n";
+    }
+    # XXX beta1
     waitforneedle('partioning', 40);
     if($ENV{TOGGLEHOME} && !$ENV{LIVECD}) {
 	my $homekey=checkEnv('VIDEOMODE', "text")?"alt-p":"alt-h";
@@ -148,7 +156,8 @@ sub run()
 	sendkey $cmd{"accept"};
 	waitforneedle('acceptedpartioning', 6);
     } elsif ($ENV{BTRFS}) {
-	sendkey "alt-u";  # Use btrfs
+	# due to popup in beta1 we don't need to press alt-u
+	#sendkey "alt-u";  # Use btrfs
 	waitforneedle('usebtrfs', 3);
     }
 }
