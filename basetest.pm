@@ -289,6 +289,7 @@ sub json()
 		'category' => $self->{'category'},
 		'flags' => $self->test_flags(),
 		'dents' => $self->{'dents'},
+		'script' => $self->{'script'}||undef,
 	};
 }
 
