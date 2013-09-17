@@ -8,6 +8,7 @@ sub is_applicable()
 	return 0 if $ENV{LIVETEST};
 	return 0 if $ENV{NICEVIDEO};
 	#return 1 if $ENV{DESKTOP} eq "kde" && !$ENV{UPGRADE}; # FIXME workaround https://bugzilla.novell.com/show_bug.cgi?id=804143
+#	return 1 if $ENV{DESKTOP} eq "gnome" && !$ENV{UPGRADE}; # FIXME
 	return $self->SUPER::is_applicable && $ENV{REBOOTAFTERINSTALL} && !$ENV{UPGRADE};
 }
 
