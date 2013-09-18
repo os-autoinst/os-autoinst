@@ -18,4 +18,7 @@ sub run()
 	mouse_hide(1);
 }
 
+sub test_flags() {
+        return {'milestone' => 1, 'fatal' => 1};
+}
 1;
