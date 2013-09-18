@@ -51,12 +51,12 @@ wait $!
 [ -n "$NAME" ] || NAME=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media1?//;print' $ISO)
 if [ -e "qemuscreenshot/shot-0000000001.png" ]; then
 	mkdir -p video
-	echo "Recording to testresults/$NAME/video.ogv" | tee ${logfile}
+	echo "Recording to testresults/$NAME/video.ogv" | tee -a ${logfile}
 
 	# Create the movie
 	png2theora qemuscreenshot/shot-%010d.png -o testresults/$NAME/video.ogv >> ${logfile} 2>&1
 else
-	echo "No screenshots found => no video" | tee ${logfile}
+	echo "No screenshots found => no video" | tee -a ${logfile}
 fi
 
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
