@@ -617,11 +617,11 @@ sub ensure_installed {
 	my @pkglist=@_;
 	#pkcon refresh # once
 	#pkcon install @pkglist
-	if($ENV{OPENSUSE}) {
+	if(checkEnv('DISTRI', 'opensuse')) {
 		x11_start_program("xdg-su -c 'zypper -n in @pkglist'"); # SUSE-specific
-	} elsif($ENV{DEBIAN}) {
+	} elsif(checkEnv('DISTRI', 'debian')) {
 		x11_start_program("su -c 'aptitude -y install @pkglist'", {terminal=>1});
-	} elsif($ENV{FEDORA}) {
+	} elsif(checkEnv('DISTRI', 'fedora')) {
 		x11_start_program("su -c 'yum -y install @pkglist'", {terminal=>1});
 	} else {
 		mydie "TODO: implement package install for your distri $ENV{DISTRI}";
