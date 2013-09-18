@@ -8,6 +8,7 @@ sub run()
 	script_run("zypper -n in sshfs");
 	waitstillimage(12,90);
 	script_run('cd /var/tmp ; mkdir mnt ; sshfs localhost:/ mnt');
+	waitforneedle("accept-ssh-host-key", 3);
 	sendautotype("yes\n"); # trust ssh host key
 	sendpassword;
 	sendkey "ret";
