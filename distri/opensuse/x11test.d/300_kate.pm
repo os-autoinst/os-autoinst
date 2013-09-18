@@ -16,10 +16,12 @@ sub run()
     my $self=shift;
     ensure_installed("kate");
     x11_start_program("kate");
+    $self->check_screen;
     sendautotype("If you can see this text kate is working.\n");
     sleep 2;
-    $self->check_screen; sleep 2;
+    $self->check_screen;
     sendkey "ctrl-q"; sleep 2;
+    $self->check_screen;
     sendkey "alt-d"; sleep 2; # discard
 }
 
