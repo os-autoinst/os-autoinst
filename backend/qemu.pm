@@ -148,7 +148,7 @@ sub do_savevm($) {
 	my ($self, $vmname) = @_;
 	my $rsp = $self->send("savevm $vmname");
 	print STDERR "SAVED $vmname $rsp\n";
-	die unless ($rsp eq "savewm $vmname");
+	die unless ($rsp eq "savevm $vmname");
 }
 
 sub do_loadvm($) {
