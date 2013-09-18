@@ -12,8 +12,7 @@ sub run()
 	sendkey "ctrl-alt-delete"; # shutdown
 	waitidle;
 	sendautotype "\t";
-	sleep 1;
-	$self->check_screen;
+	waitforneedle("kde-turn-off-selected", 2);
 	sendautotype "\n";
 	waitinststage("splashscreen", 40);
 }
