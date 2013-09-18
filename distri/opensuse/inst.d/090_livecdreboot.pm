@@ -9,7 +9,7 @@ sub run() {
 	# workaround for yast popups
 	my @tags = qw/rebootnow yast-error-ntp/;
 	while (1) {
-		my $ret = waitforneedle(\@tags, 350); # live cds can take quite a long time to boot
+		my $ret = waitforneedle(\@tags, 950); # NET isos are slow to install
 
 		last unless ($ret->{needle}->has_tag("yast-error-ntp"));
 		++$self->{dents};
