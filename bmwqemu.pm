@@ -1251,7 +1251,8 @@ sub makesnapshot($) {
 sub loadsnapshot($) {
     my $sname = shift;
     diag("Loading a VM snapshot $sname");
-    $backend->do_loadvm($sname); sleep(10);
+    $backend->do_loadvm($sname); 
+    sleep(10);
 }
 
 # dump all info in one big file. Alternatively each test could write

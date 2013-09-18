@@ -144,23 +144,22 @@ sub do_stop_vm($) {
 	unlink($self->{'pidfilename'});
 }
 
-sub do_snapshot($) {
-	my ($self, $filename) = @_;
-	$self->send("snapshot_blkdev virtio0 $filename qcow2");
-}
-
 sub do_savevm($) {
 	my ($self, $vmname) = @_;
 	my $rsp = $self->send("savevm $vmname");
 	print STDERR "SAVED $vmname $rsp\n";
+	die unless ($rsp eq "savewm $vmname");
 }
 
 sub do_loadvm($) {
 	my ($self, $vmname) = @_;
 	my $rsp = $self->send("loadvm $vmname");
-	print STDERR "LOAD $vmname $rsp\n";
-	$self->send("stop");
-	$self->send("cont");
+	print STDERR "LOAD $vmname '$rsp'\n";
+	die unless ($rsp eq "loadvm $vmname");
+	$rsp = $self->send("stop");
+	print STDERR "stop $rsp\n";
+	$rsp = $self->send("cont");
+	print STDERR "cont $rsp\n";
 }
 
 sub do_delvm($) {
