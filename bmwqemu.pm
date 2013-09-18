@@ -808,6 +808,7 @@ sub decodewav($) {
 		$b =~ tr/0-9*#ABCD//csd; # Allow 0-9 * # A B C D
 		$dtmf .= $b;
 	}
+	close(M);
 	return $dtmf;
 }
 
