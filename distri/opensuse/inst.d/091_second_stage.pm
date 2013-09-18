@@ -50,6 +50,10 @@ sub run() {
 	}
 
 	mydie if $err;
+
+	if (checkEnv('DESKTOP', 'kde')) {
+		sendkey "esc";
+	}
 }
 
 sub test_flags() {
