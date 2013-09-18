@@ -7,9 +7,10 @@ sub run()
 {
 	my $self=shift;
         
+	waitforneedle([qw/inst-welcome inst-betawarning/], 500); # live cds can take quite a long time to boot
 	# we can't just wait for the needle as the beta popup may appear delayed and we're doomed
-	waitidle(350);
-	my $ret = waitforneedle([qw/inst-welcome inst-betawarning/], 350); # live cds can take quite a long time to boot
+	waitidle(5);
+	my $ret = waitforneedle([qw/inst-welcome inst-betawarning/], 3);
 
         if( $ret->{needle}->has_tag("inst-betawarning") ) {
             sendkey "ret";
