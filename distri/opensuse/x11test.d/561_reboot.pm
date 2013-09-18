@@ -10,6 +10,12 @@ sub run()
 {
 	my $self=shift;
 	waitforneedle( "bootloader", 100); # wait until reboot
+	if ($ENV{ENCRYPT}) {
+	  wait_encrypt_prompt;
+	}
+
+	waitinststage "booted", 150; # wait until booted again
+	mouse_hide(1);
 }
 
 1;
