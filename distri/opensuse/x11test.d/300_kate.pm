@@ -17,6 +17,9 @@ sub run()
     ensure_installed("kate");
     x11_start_program("kate");
     $self->check_screen;
+    # close welcome screen
+    sendkey 'alt-c';
+    sleep 2;
     sendautotype("If you can see this text kate is working.\n");
     sleep 2;
     $self->check_screen;
