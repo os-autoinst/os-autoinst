@@ -20,6 +20,7 @@ sub run() {
 	    if (checkneedle("screenlock")) {
 		if (checkEnv("DESKTOP", "gnome")) {
 		    sendkey "esc";
+		    sleep 1;
 		}
 		sendpassword;
 		sendkey "ret";
