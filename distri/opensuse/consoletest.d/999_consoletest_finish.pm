@@ -33,6 +33,7 @@ sub run() {
 		    sendkey 'alt-c';
 		    sleep 30;
 	    }
+	    mouse_hide(1);
 	}
 	waitidle;
 	$self->check_screen();
