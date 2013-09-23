@@ -29,8 +29,9 @@ sub run() {
 	    # workaround for bug 834165. Apper should not try to
 	    # refresh repos when the console is not active:
 	    if (checkneedle("apper-refresh-popup-bnc834165")) {
-		    sendkey 'alt-c';
 		    ++$self->{dents};
+		    sendkey 'alt-c';
+		    sleep 30;
 	    }
 	}
 	waitidle;
