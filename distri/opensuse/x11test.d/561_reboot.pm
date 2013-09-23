@@ -14,7 +14,7 @@ sub run()
 	  wait_encrypt_prompt;
 	}
 
-	waitinststage "booted", 150; # wait until booted again
+	waitinststage "reboot-after-installation", 150; # wait until booted again
 	mouse_hide(1);
 }
 
