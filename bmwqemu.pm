@@ -724,7 +724,7 @@ sub take_screenshot(;$) {
 
 	# 47 is about the similarity of two screenshots with blinking cursor
 	if($lastscreenshot && $lastscreenshot->similarity($img) > 47) {
-		symlink(basename($lastscreenshotName), $filename);
+		symlink(basename($lastscreenshotName), $filename) || die "failed to create $filename symlink: $!\n";
 		$numunchangedscreenshots++;
 	} else { # new
 		$img->write($filename) || die "write $filename";
