@@ -16,6 +16,8 @@ use JSON;
 require Carp;
 use Fcntl;
 
+my $MAGIC_PIPE_CLOSE_STRING = 'xxxQUITxxx';
+
 sub init() {
 	my $self = shift;
 	$self->{'mousebutton'} = shared_clone({'left' => 0, 'right' => 0, 'middle' => 0});
@@ -314,6 +316,10 @@ sub send
 	   my $bytes = sysread($self->{from_child}, $buffer, 1000);
 	   #print STDERR "from_child got $bytes\n";
 	   return undef unless ($bytes);
+	   if (!$rsp && $buffer eq $MAGIC_PIPE_CLOSE_STRING) {
+		   print STDERR "got quit from management thread\n";
+		   return undef;
+	   }
 	   $rsp .= $buffer;
 	   my $hash = eval { JSON::decode_json($rsp); };
 	   if ($hash) {
@@ -530,6 +536,8 @@ sub _run
 	close($qmpsocket) || die "close $!\n";
 	close($hmpsocket) || die "close $!\n";
 	close($cmdpipe) || die "close $!\n";
+	# XXX: perl does not really close the fd here due to threads!?
+	print $rsppipe $MAGIC_PIPE_CLOSE_STRING;
 	close($rsppipe) || die "close $!\n";
 
 	bmwqemu::diag("management thread exit");
