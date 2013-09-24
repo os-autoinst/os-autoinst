@@ -44,6 +44,8 @@ sub signalhandler
 		$autotest::running = undef;
 	}
 	if (threads->tid() == 0) {
+	  # mark it as no longer working
+	  delete $ENV{WORKERID};
 	  bmwqemu::save_results();
 	  stop_vm();
 	} else {
