@@ -140,6 +140,7 @@ sub do_stop_vm($) {
 	my $self = shift;
 	$self->close_con();
 	sleep(0.1);
+	printf STDERR "killing %d\n", $self->{'pid'};
 	kill(15, $self->{'pid'});
 	unlink($self->{'pidfilename'});
 }
@@ -253,6 +254,8 @@ sub start
         pipe($p1, $p2)     or die "pipe: $!";
         $self->{to_parent} = $p2;
         $self->{from_child} = $p1;
+
+	printf STDERR "$$: to_child %d, from_child %d\n", fileno($self->{to_child}), fileno($self->{from_child});
 
 	my $tid = shared_clone(threads->create(\&_run, fileno($self->{from_parent}), fileno($self->{to_parent})));
 	$self->{runthread} = $tid;
@@ -403,6 +406,8 @@ sub _run
 	my $cmdpipe = shift;
         my $rsppipe = shift;
 
+	print STDERR "$$: cmdpipe $cmdpipe, rsppipe $rsppipe\n";
+
 	$SIG{__DIE__} = sub { alarm 3 };
 
 	my $io = IO::Handle->new();
@@ -435,6 +440,8 @@ sub _run
 	binmode $qmpsocket;
 	$flags = fcntl($qmpsocket, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
         $flags = fcntl($qmpsocket, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
+
+	printf STDERR "$$: hmpsocket %d, qmpsocket %d\n", fileno($hmpsocket), fileno($qmpsocket);
 
 	# retrieve welcome
 	my $line = _read_hmp($hmpsocket);
@@ -520,10 +527,10 @@ sub _run
 		}
 	}
 
-	close($qmpsocket);
-	close($hmpsocket);
-	close($cmdpipe);
-	close($rsppipe);
+	close($qmpsocket) || die "close $!\n";
+	close($hmpsocket) || die "close $!\n";
+	close($cmdpipe) || die "close $!\n";
+	close($rsppipe) || die "close $!\n";
 
 	bmwqemu::diag("management thread exit");
 }
