@@ -33,7 +33,7 @@ date "+%s%n%Y-%m-%d %H:%M:%S" > ${logfile}
 osautoinstpid=
 exithandler()
 {
-	echo "isotovideo exit handler" >&2
+	echo "isotovideo exit handler $osautoinstpid" >&2
 	if [ -n "$osautoinstpid" ]; then
 		kill $osautoinstpid
 	fi
@@ -49,6 +49,7 @@ perl $scriptdir/start.pl 2>&7 &
 osautoinstpid=$!
 wait $!
 echo "start.pl exited with status $?"
+unset osautoinstpid
 
 [ -n "$NAME" ] || NAME=$(perl -e '$_=shift;s{.*/}{};s/\.iso$//;s/-Media1?//;print' $ISO)
 if [ -e "qemuscreenshot/shot-0000000001.png" ]; then
