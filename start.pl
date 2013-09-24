@@ -47,7 +47,7 @@ sub signalhandler
 	  bmwqemu::save_results();
 	  stop_vm();
 	} else {
-		diag "bug!? signal not received in main thread";
+		print STDERR "bug!? signal not received in main thread\n";
 	}
 	exit(1);
 };
