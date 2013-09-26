@@ -73,11 +73,12 @@ sub setraidlevel($)
 sub run()
 {
     # XXX beta1
-    waitforneedle('131beta1-btrfs-popup', 40);
-    if ($ENV{BTRFS}) {
-	sendkey "alt-y";
-    } else {
-	sendkey "alt-n";
+    if (checkneedle('131beta1-btrfs-popup', 40)) {
+      if ($ENV{BTRFS}) {
+	  sendkey "alt-y";
+      } else {
+	  sendkey "alt-n";
+      }
     }
     # XXX beta1
     waitforneedle('partioning', 40);
