@@ -16,6 +16,7 @@ sub run()
 	sendautotype("$password\n");
 	sleep 2;
 	for(1..13) { sendkey "ret" }
+	sendautotype "PS1=\"# \"\n";
 	sendautotype("echo If you can see this text, ssh-X-forwarding  is working.\n");
 	sleep 2;
 	$self->check_screen;
