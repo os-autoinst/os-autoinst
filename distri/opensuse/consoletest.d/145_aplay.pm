@@ -9,6 +9,7 @@ sub run()
 	$self->check_screen;
 	$self->start_audiocapture;
 	script_run("aplay bar.wav ; echo aplay_finished > /dev/$serialdev");
+	$self->take_screenshot;
 	waitserial('aplay_finished');
 	$self->check_DTMF('123A456B789C*0#D');
 }
