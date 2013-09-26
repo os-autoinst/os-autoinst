@@ -243,6 +243,7 @@ sub runtest($$) {
 		my $previmg;
 		if ($self->{'category'} eq 'x11test') {
 			$previmg = bmwqemu::getcurrentscreenshot();
+			$self->register_screenshot($previmg);
 		}
 
 		if ($self->{'category'} eq 'consoletest') {
@@ -316,11 +317,27 @@ sub take_screenshot(;$)
 	my $self = shift;
 	my $name = shift; # unused, for compat
 
-	my $count = ++$self->{"test_count"};
-	my $testname = ref($self);
-
 	# XXX: is there a reason for not using getcurrentscreenshot()?
 	my $img = bmwqemu::do_take_screenshot();
+
+	$self->register_screenshot($img);
+
+	my $testname = ref($self);
+	if ($name) {
+		return "test-$testname-$name";
+	} else {
+		my $count = $self->{'test_count'};
+		return "test-$testname-$count";
+	}
+}
+
+sub register_screenshot($)
+{
+	my $self = shift;
+	my $img = shift;
+
+	my $count = ++$self->{"test_count"};
+	my $testname = ref($self);
 
 	my $result = {
 		screenshot => sprintf("%s-%d.png", $testname, $count),
@@ -332,11 +349,7 @@ sub take_screenshot(;$)
 
 	push @{$self->{'details'}}, $result;
 
-	if ($name) {
-		return "test-$testname-$name";
-	} else {
-		return "test-$testname-$count";
-	}
+	return $result;
 }
 
 =head2 check_screen
