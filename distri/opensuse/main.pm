@@ -3,6 +3,7 @@ use strict;
 use bmwqemu;
 use autotest;
 use needle;
+use File::Find;
 
 our %valueranges=(
 #	LVM=>[0,1],
@@ -125,13 +126,31 @@ $ENV{SCREENSHOTINTERVAL}||=.5;
 # dump other important ENV:
 logcurrentenv(qw"ADDONURL BIGTEST BTRFS DESKTOP HW HWSLOT LIVETEST LVM MOZILLATEST NOINSTALL REBOOTAFTERINSTALL UPGRADE USBBOOT TUMBLEWEED WDUP ZDUP ZDUPREPOS TEXTMODE DISTRI NOAUTOLOGIN QEMUCPU QEMUCPUS RAIDLEVEL ENCRYPT INSTLANG QEMUVGA DOCRUN UEFI DVD GNOME KDE ISO ISO_MAXSIZE LIVECD NETBOOT NICEVIDEO NOIMAGES PROMO QEMUVGA SPLITUSR VIDEOMODE");
 
-# load the tests in the right order
-autotest::loadtestdir("$ENV{CASEDIR}/inst.d");
-if(!$ENV{NICEVIDEO}) {
-	autotest::loadtestdir("$ENV{CASEDIR}/consoletest.d");
+sub _wanted()
+{
+	autotest::loadtestdir("$File::Find::name") if -d;	
 }
-if($ENV{DESKTOP}!~/textmode|minimalx/) {
-	autotest::loadtestdir("$ENV{CASEDIR}/x11test.d");
+
+# load the tests in the right order
+if($ENV{REGRESSION}){
+	if($ENV{KEEPHDDS}){
+		autotest::loadtestdir("$ENV{CASEDIR}/login.d");
+	} else {
+		autotest::loadtestdir("$ENV{CASEDIR}/inst.d");
+	}
+
+	if($ENV{DESKTOP}=~/gnome/) {
+		find(\&_wanted,"$ENV{CASEDIR}/x11regression.d");
+	}
+
+} else {
+	autotest::loadtestdir("$ENV{CASEDIR}/inst.d");
+	if(!$ENV{NICEVIDEO}) {
+		autotest::loadtestdir("$ENV{CASEDIR}/consoletest.d");
+}
+	if($ENV{DESKTOP}!~/textmode|minimalx/) {
+		autotest::loadtestdir("$ENV{CASEDIR}/x11test.d");
+	}
 }
 
 1;
