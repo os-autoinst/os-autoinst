@@ -30,10 +30,9 @@ sub install_pkg()
 	sleep 2;
         sendautotype("rpm -qa @packages\n");
         waitidle;sleep 2;
-        waitforneedle ("pidgin-pkg-removed",10); #make sure pkgs installed
+        waitforneedle ("pidgin-pkg-removed",10); #make sure pkgs removed.
         waitidle;sleep 2;
         sendkey "alt-f4";sleep 2; #close xterm
-
 }
 
 sub run()
