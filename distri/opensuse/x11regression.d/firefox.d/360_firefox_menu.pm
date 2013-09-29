@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
 
 ##################################################
-# Written by:    Xudong Zhang <xdzhang@suse.com>
-# Case:        1248989
+# Written by:   Xudong Zhang <xdzhang@suse.com>
+# Case:     1248944
 ##################################################
 
 use strict;
@@ -20,17 +20,22 @@ sub run()
         sendkey "ret"; # confirm default browser setting popup
         waitidle;
     }
-    
-    sendkey "ctrl-l"; sleep 1;
-    sendautotype "http://www.baidu.com\n"; sleep 3;
-    checkneedle("firefox_page-baidu",3);
-    sendkey "ctrl-l"; sleep 1;
-    sendautotype "https://en.mail.qq.com\n"; sleep 3;
-    checkneedle("firefox_page-qqmail",3);
-    sendkey "ctrl-l"; sleep 1;
-    sendautotype "ftp://download.nvidia.com/novell\n"; sleep 3;
-    checkneedle("firefox_page-ftpnvidia",3);
-        
+    sendkey "alt-e"; sleep 2;
+    checkneedle("firefox_menu-edit",3);
+    sendkey "alt-v"; sleep 2;
+    checkneedle("firefox_menu-view",3);
+    for(1..2) {     #select the "Character Encoding" menu
+        sendkey "up"; sleep 1;
+    }
+    for(1..2) {     #select "Auto-Detect" then "Chinese"
+        sendkey "right"; sleep 1;
+    }
+    checkneedle("firefox_menu-submenu",3);
+    for(1..3) {     #dismiss all opened menus one by one
+        sendkey "esc"; sleep 1;
+    }
+    waitforneedle("start-firefox",3);
+
     sendkey "alt-f4"; sleep 2;
     sendkey "ret"; sleep 2; # confirm "save&quit"
 }

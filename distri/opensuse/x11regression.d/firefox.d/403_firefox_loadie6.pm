@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
 
 ##################################################
-# Written by:	Xudong Zhang <xdzhang@suse.com>
-# Case:		1248988
+# Written by:    Xudong Zhang <xdzhang@suse.com>
+# Case:        1248988
 ##################################################
 
 use strict;
@@ -15,34 +15,34 @@ my $ie7url="https://svn.provo.novell.com/svn/opsqa/trunk/tests/qa_test_firefox/q
 
 sub run()
 {
-	my $self=shift;
-	mouse_hide();
-	x11_start_program("firefox");
-	waitforneedle("test-firefox-1",5);
-	if($ENV{UPGRADE}) { sendkey("alt-d");waitidle; } # dont check for updated plugins
-	if($ENV{DESKTOP}=~/xfce|lxde/i) {
-		sendkey "ret"; # confirm default browser setting popup
-		waitidle;
-	}
+    my $self=shift;
+    mouse_hide();
+    x11_start_program("firefox");
+    waitforneedle("start-firefox",5);
+    if($ENV{UPGRADE}) { sendkey("alt-d");waitidle; } # dont check for updated plugins
+    if($ENV{DESKTOP}=~/xfce|lxde/i) {
+        sendkey "ret"; # confirm default browser setting popup
+        waitidle;
+    }
 
 #install a firefox addon
-	sendkey "ctrl-l"; sleep 1;
-	sendautotype $addon."\n"; sleep 18;		#download addon need a long time
-	checkneedle("firefox_addon-unmht",8);		#wait for the install button
-	sendkey "ret"; sleep 1;				#install
+    sendkey "ctrl-l"; sleep 1;
+    sendautotype $addon."\n"; sleep 18;        #download addon need a long time
+    checkneedle("firefox_addon-unmht",8);        #wait for the install button
+    sendkey "ret"; sleep 1;                #install
 #open ie6 mht file
-	sendkey "alt-e"; sleep 1;
-	sendkey "alt"; sleep 1;
-	sendkey "ctrl-l"; sleep 1;
-	sendautotype $ie6url."\n"; sleep 18;		#the file is too large, need time
-	checkneedle("firefox_page-ie6",8);
+    sendkey "alt-e"; sleep 1;
+    sendkey "alt"; sleep 1;
+    sendkey "ctrl-l"; sleep 1;
+    sendautotype $ie6url."\n"; sleep 18;        #the file is too large, need time
+    checkneedle("firefox_page-ie6",15);
 #open ie7 file (IIS)
-	sendkey "ctrl-l"; sleep 1;
-	sendautotype $ie7url."\n"; sleep 12;
-	checkneedle("firefox_page-ie7",8);
-		
-	sendkey "alt-f4"; sleep 2;
-	sendkey "ret"; sleep 2; # confirm "save&quit"
+    sendkey "ctrl-l"; sleep 1;
+    sendautotype $ie7url."\n"; sleep 12;
+    checkneedle("firefox_page-ie7",8);
+        
+    sendkey "alt-f4"; sleep 2;
+    sendkey "ret"; sleep 2; # confirm "save&quit"
 }
 
 1;

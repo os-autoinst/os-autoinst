@@ -2,7 +2,8 @@
 
 ##################################################
 # Written by:    Xudong Zhang <xdzhang@suse.com>
-# Case:        1248975
+# Case:        1248971
+# Description:    open new window and open link in new window
 ##################################################
 
 use strict;
@@ -20,27 +21,19 @@ sub run()
         sendkey "ret"; # confirm default browser setting popup
         waitidle;
     }
-
-    my @sites=('www.baidu.com', 'www.novell.com', 'www.google.com');
-
-    for my $site (@sites) {
-        sendkey "ctrl-l"; sleep 1;
-        sendautotype $site."\n"; sleep 5;
-        $site=~s{\.com}{};
-        $site=~s{.*\.}{};
-        checkneedle("firefox_page-".$site,5);
-    }
     
-    sendkey "alt-left"; sleep 2;
-    sendkey "alt-left"; sleep 3;
-    checkneedle("firefox_page-baidu",5);
-    sendkey "alt-right"; sleep 3;
-    checkneedle("firefox_page-novell",5);
-    sendkey "f5"; sleep 3;
-    checkneedle("firefox_page-novell",5);
+    sendkey "ctrl-n"; sleep 5;
+    checkneedle("start-firefox",5);
+    sendkey "ctrl-w"; sleep 1;
     
+    sendkey "shift-tab"; sleep 1;
+    sendkey "shift-ret"; sleep 5;
+    checkneedle("firefox_page-novell",5);
+    sendkey "ctrl-w"; sleep 1;
+        
     sendkey "alt-f4"; sleep 2;
     sendkey "ret"; sleep 2; # confirm "save&quit"
 }
 
 1;
+

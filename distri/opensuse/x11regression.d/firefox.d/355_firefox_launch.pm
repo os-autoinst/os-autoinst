@@ -1,8 +1,10 @@
 #!/usr/bin/perl -w
 
 ##################################################
-# Written by:    Xudong Zhang <xdzhang@suse.com>
-# Case:        1248989
+# Written by:   Xudong Zhang <xdzhang@suse.com>
+# Case:         1248965
+# Description:  Launch firefox, click "know your right" quit and relaunch 
+# This case is available only when you run firefox the first time
 ##################################################
 
 use strict;
@@ -20,17 +22,12 @@ sub run()
         sendkey "ret"; # confirm default browser setting popup
         waitidle;
     }
-    
-    sendkey "ctrl-l"; sleep 1;
-    sendautotype "http://www.baidu.com\n"; sleep 3;
-    checkneedle("firefox_page-baidu",3);
-    sendkey "ctrl-l"; sleep 1;
-    sendautotype "https://en.mail.qq.com\n"; sleep 3;
-    checkneedle("firefox_page-qqmail",3);
-    sendkey "ctrl-l"; sleep 1;
-    sendautotype "ftp://download.nvidia.com/novell\n"; sleep 3;
-    checkneedle("firefox_page-ftpnvidia",3);
-        
+
+    checkneedle("firefox_know-rights",3);
+    sendkey "alt-k"; sleep 1;       #click know your rights
+    checkneedle("firefox_about-rights",3);
+    sendkey "ctrl-w"; sleep 1;
+
     sendkey "alt-f4"; sleep 2;
     sendkey "ret"; sleep 2; # confirm "save&quit"
 }
