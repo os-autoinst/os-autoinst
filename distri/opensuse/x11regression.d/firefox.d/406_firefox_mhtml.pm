@@ -1,8 +1,9 @@
 #!/usr/bin/perl -w
 
 ###########################################################
-# Test Case:	1248949
+# Test Case:	1248949, 1248951
 # Case Summary: Firefox: MHTML load IE 7 files from local disk in Firefox
+# Case Summary: Firefox: MHTML load IE 6 files from web server in Firefox
 # Written by:	wnereiz@github
 ###########################################################
 
@@ -55,7 +56,13 @@ sub run()
     sendautotype "google\n"; # find the directory www.gnu.org and enter
     sleep 5;
     sendkey "tab";
-    checkneedle("test-firefox_mhtml-2",5);
+    checkneedle("test-firefox_mhtml-2",5); sleep 2;
+
+    # Open remote mhtml address
+    sendkey "alt-d"; sleep 1;
+    sendautotype "http://www.fileformat.info/format/mime-html/sample/9c96b3d179f84b98b35d4c8c2ec13e04/google.mht\n";
+    sleep 10;
+    checkneedle("test-firefox_mthml-3",5); sleep 2;
     
     # Restore and close
 
