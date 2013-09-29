@@ -6,6 +6,11 @@
 # Written by:	wnereiz@github
 ###########################################################
 
+# Needle Tags:
+# test-firefox-1
+# test-firefox-openfile-1
+# test-firefox_mhtml-1, test-firefox_mhtml-2
+
 use strict;
 use base "basetest";
 use bmwqemu;
@@ -34,7 +39,7 @@ sub run()
     # Install UnMHT extension
     sendkey "ctrl-shift-a"; sleep 5; # Add-ons Manager
     sendkey "alt-d"; sleep 2;
-    sendautotype "https://addons.mozilla.org/firefox/downloads/latest/8051/addon-8051-latest.xpi\n"; sleep 12; # Install the extension 
+    sendautotype "https://addons.mozilla.org/firefox/downloads/latest/8051/addon-8051-latest.xpi\n"; sleep 15; # Install the extension 
     checkneedle("test-firefox_mhtml-1",5);
     sendkey "ret"; sleep 2;
     sendkey "ctrl-w";

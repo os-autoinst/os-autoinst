@@ -6,6 +6,11 @@
 # Written by:	wnereiz@github
 ###########################################################
 
+# Needle Tags:
+# test-firefox-1
+# test-firefox-openfile-1
+# test-firefox_lcoalpage-1 
+
 use strict;
 use base "basetest";
 use bmwqemu;

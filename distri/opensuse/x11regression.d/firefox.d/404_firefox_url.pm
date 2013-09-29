@@ -6,6 +6,12 @@
 # Written by:	wnereiz@github
 ###########################################################
 
+# Needle Tags:
+# test-firefox-1
+# test-firefox_url-novell-1, test-firefox_url-novell-2
+# test-firefox_url-wikipedia-1, test-firefox_url-wikipedia-2 
+# test-firefox_url-googlemaps-1, test-firefox_url-googlemaps-2
+
 use strict;
 use base "basetest";
 use bmwqemu;
