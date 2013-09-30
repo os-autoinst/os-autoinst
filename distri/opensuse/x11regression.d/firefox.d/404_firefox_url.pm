@@ -7,7 +7,7 @@
 ###########################################################
 
 # Needle Tags:
-# test-firefox-1
+# firefox-open
 # test-firefox_url-novell-1, test-firefox_url-novell-2
 # test-firefox_url-wikipedia-1, test-firefox_url-wikipedia-2 
 # test-firefox_url-googlemaps-1, test-firefox_url-googlemaps-2
@@ -21,12 +21,13 @@ sub run()
     my $self=shift;
     mouse_hide();
     x11_start_program("firefox");
-    waitforneedle("test-firefox-1",5);
+    waitforneedle("firefox-open",5);
     if($ENV{UPGRADE}) { sendkey("alt-d");waitidle; } # Don't check for updated plugins
     if($ENV{DESKTOP}=~/xfce|lxde/i) {
         sendkey "ret"; # Confirm default browser setting popup
         waitidle;
     }
+    sendkey "alt-f10"; # Maximize
 
     # Open the following URL's in firefox and navigate a few links on each site.
 
@@ -64,8 +65,10 @@ sub run()
     checkneedle("test-firefox_url-googlemaps-2",5);
 
     # Restore and close firefox
-    sendkey "ctrl-w"; # close the only tab (exit firefox)
-    sendkey "ret"; sleep 2; # confirm "save&quit"
+    sendkey "alt-f4"; sleep 1; # Exit firefox
+    sendkey "ret"; # Confirm "save&quit"
+    x11_start_program("rm -rf .mozilla"); # Clear profile directory
+    sleep 2;
 
 }
 
