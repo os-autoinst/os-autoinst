@@ -8,7 +8,7 @@
 ###########################################################
 
 # Needle Tags:
-# test-firefox-1
+# firefox-open
 # test-firefox-openfile-1
 # test-firefox_mhtml-1, test-firefox_mhtml-2
 
@@ -21,21 +21,19 @@ sub run()
     my $self=shift;
     mouse_hide();
 
-    # Backup firefox profiles
-    x11_start_program("cp -r .mozilla mozilla-backup");
-
     # Download a mhtml file to the local machine.
     x11_start_program("wget http://www.fileformat.info/format/mime-html/sample/9c96b3d179f84b98b35d4c8c2ec13e04/download -O google.mht");
     sleep 6;
 
     # Launch firefox
     x11_start_program("firefox");
-    waitforneedle("test-firefox-1",5);
+    waitforneedle("firefox-open",5);
     if($ENV{UPGRADE}) { sendkey("alt-d");waitidle; } # Don't check for updated plugins
     if($ENV{DESKTOP}=~/xfce|lxde/i) {
         sendkey "ret"; # Confirm default browser setting popup
         waitidle;
     }
+    sendkey "alt-f10"; # Maximize
 
     # Install UnMHT extension
     sendkey "ctrl-shift-a"; sleep 5; # Add-ons Manager
@@ -69,8 +67,7 @@ sub run()
     ###############################################################
     # There are too many trouble to restore the original status.
     # (See the codes below, they have been commented out)
-    # So we simply remove the profiles (~/.mozill/) and copy back
-    # the original ones.
+    # So we simply remove the profiles (~/.mozilla/).
     ###############################################################
 
     # Remove the UnMHT extension
@@ -100,11 +97,11 @@ sub run()
     # sendautotype "rm -f ~/.mozilla/firefox/*.default/prefs.js\n"; sleep 1; # Remove prefs.js to avoid browser remember default folder used by "Open File" window
     # sendkey "ctrl-d"; # Exit xterm
 
-    sendkey "ctrl-w"; # Close the only tab (exit)
-    sendkey "ret"; sleep 2; # confirm "save&quit"
-
-    x11_start_program("rm -rf .mozilla;mv mozilla-backup .mozilla"); # Restore original profiles
+    sendkey "alt-f4"; sleep 1; # Exit firefox
+    sendkey "ret"; # confirm "save&quit"
+    x11_start_program("rm -rf .mozilla"); # Clear profile directory
     x11_start_program("rm -rf google.mht\n"); sleep 1; # Remove .mht file
+    sleep 2;
      
 }   
 

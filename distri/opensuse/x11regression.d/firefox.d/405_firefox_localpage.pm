@@ -7,7 +7,7 @@
 ###########################################################
 
 # Needle Tags:
-# test-firefox-1
+# firefox-open
 # test-firefox-openfile-1
 # test-firefox_lcoalpage-1 
 
@@ -26,12 +26,14 @@ sub run()
 
     # Launch firefox
     x11_start_program("firefox");
-    waitforneedle("test-firefox-1",5);
+    waitforneedle("firefox-open",5);
     if($ENV{UPGRADE}) { sendkey("alt-d");waitidle; } # Don't check for updated plugins
     if($ENV{DESKTOP}=~/xfce|lxde/i) {
         sendkey "ret"; # Confirm default browser setting popup
         waitidle;
     }
+
+    sendkey "alt-f10"; # Maximize
 
     # Open static html page
     sendkey "ctrl-o"; sleep 1; #"Open File" window
@@ -48,12 +50,11 @@ sub run()
     checkneedle("test-firefox_lcoalpage-1",5);
     
     # Restore and close
-    sendkey "ctrl-w"; # Close the only tab (exit)
-    sendkey "ret"; sleep 2; # confirm "save&quit"
-    x11_start_program("xterm"); sleep 2;
-    sendautotype "rm -rf ~/www.gnu.org\n"; sleep 1; # Remove www.gnu.org directory
-    sendautotype "rm -f ~/.mozilla/firefox/*.default/prefs.js\n"; sleep 1; # Remove prefs.js to avoid browser remember default folder used by "Open File" window
-    sendkey "ctrl-d"; # Exit xterm
+    sendkey "alt-f4"; sleep 1; # Exit firefox
+    sendkey "ret"; # Confirm "save&quit"
+    x11_start_program("rm -rf .mozilla\n");  # Clear profile directory
+    x11_start_program("rm -rf www.gnu.org\n"); # Remove www.gnu.org directory
+    sleep 2;
 
 }
 

@@ -7,7 +7,7 @@
 ###########################################################
 
 # Needle Tags:
-# test-firefox-1
+# firefox-open
 # firefox_pre-general
 # test-firefox_tab-1, test-firefox_tab-2, test-firefox_tab-3
 # test-firefox_tab-4, test-firefox_tab-5
@@ -26,12 +26,13 @@ sub run()
 
     # Launch firefox
     x11_start_program("firefox");
-    waitforneedle("test-firefox-1",5);
+    waitforneedle("firefox-open",5);
     if($ENV{UPGRADE}) { sendkey("alt-d");waitidle; } # Don't check for updated plugins
     if($ENV{DESKTOP}=~/xfce|lxde/i) {
         sendkey "ret"; # Confirm default browser setting popup
         waitidle;
     }
+    sendkey "alt-f10"; # Maximize
 
     # Opening a new Tabbed Browser.
     sendkey "alt-f"; sendkey "ret"; # Open a new tab by menu
@@ -76,9 +77,10 @@ sub run()
     sendkey "esc"; # Restore
 
     # Restore and close firefox
-    sendkey "ctrl-w";
-	sendkey "ret"; # confirm "save&quit"
-    sleep 2; 
+    sendkey "alt-f4"; sleep 1; # Exit firefox
+	sendkey "ret"; # Confirm "save&quit"
+    x11_start_program("rm -rf .mozilla"); # Clear profile directory
+    sleep 2;
      
 }   
 
