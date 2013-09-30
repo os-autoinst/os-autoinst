@@ -55,7 +55,7 @@ sub run()
     sendkey "tab"; sleep 1;
     sendkey "tab"; sleep 1;            #switch to extension column of add-ons
     sendkey "down"; sleep 1;
-    checkneedle("firefox_addons-savemode",3);
+    checkneedle("firefox_addons-safemode",3);
 #recover all changes--switch addons page to default column
     sendkey "up"; sleep 1;
     sendkey "ctrl-w"; sleep 1;        #close the firefox addons tab

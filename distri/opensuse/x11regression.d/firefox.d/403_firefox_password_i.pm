@@ -32,7 +32,7 @@ sub run()
     sendkey "alt-r"; sleep 1;        #remember password
     sendkey "r"; sleep 1;
 #clear recent history otherwise gmail will login automatically
-    sendkey "ctrl-shift-delete"; sleep 1;
+    sendkey "ctrl-shift-delete"; sleep 2;
     sendkey "shift-tab"; sleep 1;        #select clear now
     sendkey "ret"; sleep 1;
 #login mail.google.com again to check the password

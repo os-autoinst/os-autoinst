@@ -35,7 +35,7 @@ sub run()
     sendkey "alt"; sleep 1;
     sendkey "ctrl-l"; sleep 1;
     sendautotype $ie6url."\n"; sleep 18;        #the file is too large, need time
-    checkneedle("firefox_page-ie6",15);
+    checkneedle("firefox_page-ie6",20);
 #open ie7 file (IIS)
     sendkey "ctrl-l"; sleep 1;
     sendautotype $ie7url."\n"; sleep 12;
