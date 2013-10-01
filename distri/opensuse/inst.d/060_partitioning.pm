@@ -72,15 +72,6 @@ sub setraidlevel($)
 # Entry test code
 sub run()
 {
-    # XXX beta1
-    if (checkneedle('131beta1-btrfs-popup', 40)) {
-      if ($ENV{BTRFS}) {
-	  sendkey "alt-y";
-      } else {
-	  sendkey "alt-n";
-      }
-    }
-    # XXX beta1
     waitforneedle('partioning', 40);
 
     # XXX: why is that here?
@@ -159,8 +150,7 @@ sub run()
 	sendkey $cmd{"accept"};
 	waitforneedle('acceptedpartioning', 6);
     } elsif ($ENV{BTRFS}) {
-	# due to popup in beta1 we don't need to press alt-u
-	#sendkey "alt-u";  # Use btrfs
+	sendkey "alt-u";  # Use btrfs
 	waitforneedle('usebtrfs', 3);
     }
 }
