@@ -1086,7 +1086,7 @@ sub _waitforneedle {
 	}
 
 	# add some known env variables
-	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD UEFI NETBOOT)) {
+	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD UEFI NETBOOT PROMO)) {
 		push(@tags, "ENV-$key-" . $ENV{$key}) if $ENV{$key};
 	}
 
