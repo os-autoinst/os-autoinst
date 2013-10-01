@@ -127,11 +127,13 @@ logcurrentenv(qw"ADDONURL BIGTEST BTRFS DESKTOP HW HWSLOT LIVETEST LVM MOZILLATE
 
 # load the tests in the right order
 autotest::loadtestdir("$ENV{CASEDIR}/inst.d");
-if(!$ENV{NICEVIDEO}) {
-	autotest::loadtestdir("$ENV{CASEDIR}/consoletest.d");
-}
-if($ENV{DESKTOP}!~/textmode|minimalx/) {
-	autotest::loadtestdir("$ENV{CASEDIR}/x11test.d");
+if(!$ENV{'INSTALLONLY'}) {
+  if(!$ENV{NICEVIDEO}) {
+	  autotest::loadtestdir("$ENV{CASEDIR}/consoletest.d");
+  }
+  if($ENV{DESKTOP}!~/textmode|minimalx/) {
+	  autotest::loadtestdir("$ENV{CASEDIR}/x11test.d");
+  }
 }
 
 1;
