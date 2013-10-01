@@ -17,7 +17,7 @@ unless ($qemubin) {
 }
 
 my $iso=$ENV{ISO};
-my $sizegb=10;
+$ENV{HDDSIZEGB}||=10;
 $ENV{HDDMODEL}||="virtio-blk";
 $ENV{NICMODEL}||="virtio";
 $ENV{QEMUVGA}||="cirrus";
@@ -44,7 +44,7 @@ if($ENV{UPGRADE} && !$ENV{LIVECD}) {
 	#system($qemuimg, "create", "-b", $file, "-f", "qcow2", "$basedir/l1");
 	system(qw"cp -a", $file, "$basedir/l1"); # reduce disk IO later
 	for my $i (2..$ENV{NUMDISKS}) {
-		system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $sizegb."G");
+		system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $ENV{HDDSIZEGB}."G");
 	}
 }
 
@@ -56,7 +56,7 @@ if(!$ENV{KEEPHDDS} && !$ENV{SKIPTO}) {
 			symlink("$i.lvm","$basedir/l$i") or die "$!\n";
 			die "$!\n" unless system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1") == 0; # for LVM
 		} else {
-			die "$!\n" unless system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $sizegb."G") == 0;
+			die "$!\n" unless system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $ENV{HDDSIZEGB}."G") == 0;
 			symlink($i,"$basedir/l$i") or die "$!\n";
 		}
 	}
