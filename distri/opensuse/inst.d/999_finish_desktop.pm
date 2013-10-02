@@ -12,7 +12,13 @@ sub run()
 {
 	my $self = shift;
 
-	waitforneedle("desktop-at-first-boot", 60);
+	# live may take ages to boot
+	waitforneedle("desktop-at-first-boot", 300);
+
+	## duplicated from second stage, combine!
+	if (checkEnv('DESKTOP', 'kde')) {
+		sendkey "esc";
+	}
 }
 
 sub test_flags() {
