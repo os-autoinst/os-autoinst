@@ -66,6 +66,8 @@ sub setraidlevel($)
     for($entry{$level}..$entry{10}) {
 	sendkey "tab";
     }
+    # skip RAID name input
+    sendkey "tab";
 }
 
 
