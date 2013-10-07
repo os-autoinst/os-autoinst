@@ -129,6 +129,11 @@ sub do_start_vm {
 	return(($?>>8)==0);
 }
 
+sub do_stop_vm() {
+	my $self = shift;
+	$self->power("off")
+}
+
 # baseclass virt method overwrite end
 
 
