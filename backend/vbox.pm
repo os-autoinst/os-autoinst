@@ -3,6 +3,7 @@
 package backend::vbox;
 use strict;
 use Cwd 'abs_path';
+use File::Temp;
 
 #use FindBin;
 #use lib "$FindBin::Bin/backend";
@@ -52,8 +53,7 @@ sub raw_keyboard_io($) {
 
 sub screendump() {
 	my $self = shift;
-	my $tmp = mktemp( $template );
-	$tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.png', OPEN => 0 );
+	my $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.png', OPEN => 0 );
 	$self->raw_vbox_controlvm("screenshotpng", $tmp);
 	my $ret = tinycv::read($tmp);
 	unlink $tmp;
