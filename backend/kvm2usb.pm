@@ -204,6 +204,10 @@ sub power($) {
 	my $self = shift;
 	my $action = shift;
 	if ($self->{'hardware'}->{'power'}->{'type'} eq 'ilo') {
+		if ($action eq 'reset') {
+			$self->power('on');
+			sleep 1;
+		}
 		$self->raw_power_ilo($action);
 	}
 	elsif ($self->{'hardware'}->{'power'}->{'type'} eq 'snmp') {
@@ -244,9 +248,6 @@ sub do_start_vm {
 	$self->raw_set_capture_params();
 	print STDOUT "Inserting CD: $ENV{ISO}\n";
 	$self->insert_cd($ENV{ISO});
-	sleep(1);
-	print STDOUT "Power on $ENV{'HWSLOT'}\n";
-	$self->power('on');
 	sleep(1);
 	print STDOUT "Power reset $ENV{'HWSLOT'}\n";
 	$self->power('reset');
