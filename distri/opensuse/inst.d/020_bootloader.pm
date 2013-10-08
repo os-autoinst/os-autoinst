@@ -13,6 +13,10 @@ sub is_applicable()
 # hint: press shift-f10 trice for highest debug level
 sub run()
 {
+    if($ENV{IPXE}) {
+        sleep 60;
+        return;
+    }
     if ($ENV{USBBOOT}) {
 	waitforneedle("boot-menu", 1);
 	sendkey "f12";
