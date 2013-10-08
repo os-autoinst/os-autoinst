@@ -216,6 +216,11 @@ sub power($) {
 			$self->raw_power_snmp($action);
 		}
 	}
+	elsif ($self->{'hardware'}->{'power'}->{'type'} eq 'usbnetpower') {
+		$action=~s/reset/cycle/;
+		if($action eq "acpi") {warn "unsupported $action power action"}
+		system("usbnetpower8800", $action);
+	}
 	else {
 		warn "Unsupported power type: $self->{'hardware'}->{'power'}->{'type'}";
 	}

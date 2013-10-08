@@ -38,5 +38,32 @@
 			"disks": 2,
 			"comment": "Currently no soundcard."
 		}
+	},
+	"vaio": {
+		"video": "/dev/video0",
+		"ctldev": "/dev/vga2usb0",
+		"serial": "/dev/ttyS0",
+		"sound": "null",
+		"cdrom": "ipxe",
+		"disks": ["/dev/sda"],
+		"power": {
+			"type": "usbnetpower"
+		},
+		"grab_params": {
+			"hshift": -17,
+			"vshift": -4,
+			"gain": 170,
+			"offset": 31,
+			"phase": 28
+		},
+		"info": {
+			"vendor": "Sony",
+			"name": "Vaio",
+			"cpu": "Pentium 4 2.8GHz, HT",
+			"cpu_cores": 2,
+			"memory": 1536,
+			"disks": 1,
+			"comment": "Currently no soundcard+serial."
+		}
 	}
 }
