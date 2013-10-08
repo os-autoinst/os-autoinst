@@ -8,16 +8,16 @@ my @filenames=qw/newfile newpl.pl/;
 
 sub is_applicable()
 {
-	return $ENV{DESKTOP}=~/kde|gnome/;
+        return $ENV{DESKTOP}=~/kde|gnome/;
 }
 
 sub run()
 {
-	my $self=shift;
+        my $self=shift;
         # Create a file.
         foreach (@filenames) {
-		x11_start_program("touch $_"); 
-		sleep 2; 
+                x11_start_program("touch $_"); 
+                sleep 2; 
         };
         waitidle;
 }
