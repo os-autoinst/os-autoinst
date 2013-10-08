@@ -11,6 +11,10 @@ sub is_applicable()
 # hint: press shift-f10 trice for highest debug level
 sub run()
 {
+	if($ENV{IPXE}) {
+		sleep 60;
+		return;
+	}
 	waitinststage("syslinuxbootloader",15);
 	waitinststage("syslinuxbootloader-loaded",5);
 	if($ENV{QEMUVGA} && $ENV{QEMUVGA} ne "cirrus") {
