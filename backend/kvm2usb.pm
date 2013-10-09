@@ -1,5 +1,14 @@
 #!/usr/bin/perl -w
 
+# this module provides a testing backend using the Epiphan kvm2usb device
+# to capture VGA from another physical machine and PS2/USB keyboard
+# to send keystrokes for automated actions
+# with some power switch integration
+
+# needs EDID uploaded once to the kvm2usb using
+# cd epiphan_sdk-3.28.0.0009/epiphan/samples/v2u_edid && make &&
+# build/release/v2u_edid /PATHTO/os-autoinst/backend/extras/edid_1024x768.edid
+
 package backend::kvm2usb;
 use strict;
 
