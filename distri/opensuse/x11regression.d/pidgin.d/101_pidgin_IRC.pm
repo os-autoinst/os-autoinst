@@ -29,7 +29,7 @@ sub run()
         sendkey "ret"; sleep 2;
         sendkey "alt-u"; sleep 1;
         sendautotype("$CHANNELNAME");sleep 2;
-        sendkey "alt-a"; 
+        sendkey "alt-a";
         waitidle; sleep 10;
         # Should create IRC account
         $self->check_screen;
@@ -42,7 +42,7 @@ sub run()
         # input "#"
         sendkey "shift-3"; sleep 2;
         sendautotype("sledtesting");sleep 2;
-        sendkey "alt-j";  
+        sendkey "alt-j";
         waitidle; sleep 10;
         # Should open sledtesting channel
         $self->check_screen;
@@ -56,7 +56,7 @@ sub run()
         waitidle; sleep 2;
         # Should not have any account
         $self->check_screen;
-        
+
         # Exit
         sendkey "alt-c"; sleep 2;
         sendkey "ctrl-q"; sleep 2;

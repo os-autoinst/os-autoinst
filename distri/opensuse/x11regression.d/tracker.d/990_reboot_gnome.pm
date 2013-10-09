@@ -15,7 +15,7 @@ sub run()
                 sleep 2;
                 sendkey "down"; # reboot
                 sleep 2;
-                sendkey "ret"; # confirm 
+                sendkey "ret"; # confirm
                 sleep 2;
                 sendpassword;
                 sendkey "ret";

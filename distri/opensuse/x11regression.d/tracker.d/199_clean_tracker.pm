@@ -15,10 +15,10 @@ sub run()
         my $self=shift;
         # Delete a file.
         foreach (@filenames) {
-                x11_start_program("rm -rf $_"); 
-                sleep 2; 
+                x11_start_program("rm -rf $_");
+                sleep 2;
         };
-        waitidle; 
+        waitidle;
 }
 
 1;

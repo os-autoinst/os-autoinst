@@ -13,7 +13,7 @@ sub run()
 {
         my $self=shift;
         x11_start_program("tracker-preferences");
-        sleep 2; waitidle; 
+        sleep 2; waitidle;
         $self->check_screen;
         sendkey "alt-f4"; sleep 2;
         #$self->check_screen;

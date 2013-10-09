@@ -38,7 +38,7 @@ sub run()
         sendautotype("com");sleep 2;
         sendkey "alt-p"; sleep 1;
         sendautotype("$PASSWD");sleep 2;
-        sendkey "alt-a"; 
+        sendkey "alt-a";
         waitidle; sleep 15;
         # Should create AIM account 1
         $self->check_screen;
@@ -54,7 +54,7 @@ sub run()
         sendautotype("com");sleep 2;
         sendkey "alt-p"; sleep 1;
         sendautotype("$PASSWD");sleep 2;
-        sendkey "alt-a"; 
+        sendkey "alt-a";
         waitidle; sleep 15;
         # Should have AIM accounts 1 and 2
         $self->check_screen;
@@ -91,7 +91,7 @@ sub run()
         waitidle; sleep 2;
         # Should not have any account
         $self->check_screen;
-        
+
         # Exit
         sendkey "alt-c"; sleep 2;
         sendkey "ctrl-q"; sleep 2;

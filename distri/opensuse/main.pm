@@ -128,7 +128,7 @@ logcurrentenv(qw"ADDONURL BIGTEST BTRFS DESKTOP HW HWSLOT LIVETEST LVM MOZILLATE
 
 sub _wanted()
 {
-    autotest::loadtestdir("$File::Find::name") if -d;    
+    autotest::loadtestdir("$File::Find::name") if -d;
 }
 
 # load the tests in the right order

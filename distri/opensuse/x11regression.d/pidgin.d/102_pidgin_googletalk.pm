@@ -32,7 +32,7 @@ sub run()
         sendautotype("$USERNAME");sleep 2;
         sendkey "alt-p"; sleep 1;
         sendautotype("$PASSWD");sleep 2;
-        sendkey "alt-a"; 
+        sendkey "alt-a";
         waitidle; sleep 15;
         # Should create GoogleTalk account
         $self->check_screen;
@@ -40,7 +40,7 @@ sub run()
         # Close account manager
         sendkey "ctrl-a"; sleep 2;
         sendkey "alt-c"; sleep 2;
- 
+
         # Open a chat
         sendkey "tab"; sleep 2;
         sendkey "down"; sleep 2;
@@ -62,7 +62,7 @@ sub run()
         waitidle; sleep 2;
         # Should not have any account
         $self->check_screen;
-        
+
         # Exit
         sendkey "alt-c"; sleep 2;
         sendkey "ctrl-q"; sleep 2;
