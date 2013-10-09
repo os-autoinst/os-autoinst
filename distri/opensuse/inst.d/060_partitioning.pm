@@ -13,6 +13,8 @@ sub addpart($$)
     waitidle 5;
     sendkey $cmd{"next"};
     waitidle 5;
+    # the input point at the head of the lineedit, move it to the end
+    if($ENV{GNOME}) { sendkey "end" }
     for (1..10) {
 	sendkey "backspace";
     }
@@ -40,7 +42,12 @@ sub addraid($;$)
 	for(1..$step) {
 	    sendkey "ctrl-down";
 	}
-	sendkey "spc";
+	# in GNOME Live case, press space will direct added this item
+	if($ENV{GNOME}) {
+	    sendkey "ctrl-spc";
+        } else {
+	    sendkey "spc";
+        }
     }
     # add
     sendkey $cmd{"add"};
@@ -49,7 +56,16 @@ sub addraid($;$)
     waitidle 3;
     # chunk size selection
     if($chunksize) {
-	sendautotype("\t$chunksize");
+	# workaround for gnomelive with chunksize 64kb
+	if($ENV{GNOME}) {
+	    sendkey "alt-c";
+	    sendkey "home";
+	    for (1..4) {
+	        sendkey "down";
+	    }
+        } else {
+	    sendautotype("\t$chunksize");
+	}
     }
     sendkey $cmd{"next"};
     waitidle 3;
@@ -94,7 +110,12 @@ sub run()
 
 	sendkey "tab";
 	sendkey "down"; # select disks
-	sendkey "right"; # unfold disks
+	# seems GNOME tree list didn't eat right arrow key
+	if($ENV{GNOME}) {
+	    sendkey "spc"; # unfold disks
+        } else {
+	    sendkey "right"; # unfold disks
+	}
 	sendkey "down"; # select first disk
 	waitidle 5;
 
@@ -109,6 +130,10 @@ sub run()
 	    # select next disk
 	    sendkey "shift-tab";
 	    sendkey "shift-tab";
+	    # walk through sub-tree
+	    if($ENV{GNOME}) {
+	        for (1..3) { sendkey "down" }
+	    }
 	    sendkey "down";
 	}
 
@@ -119,8 +144,15 @@ sub run()
 	if(!defined($ENV{RAIDLEVEL})) { $ENV{RAIDLEVEL}=6 }
 	setraidlevel($ENV{RAIDLEVEL});
 	sendkey "down"; # start at second partition (i.e. sda2)
+	# in this case, press down key doesn't move to next one but itself
+	if($ENV{GNOME}) { sendkey "down" }
 	addraid(3,6);
-	sendkey $cmd{"finish"};
+	# workaround for gnomelive, double alt-f available in same page
+	if($ENV{GNOME}) {
+	    sendkey "spc";
+        } else {
+	    sendkey $cmd{"finish"};
+	}
 	waitidle 3;
 
 	# select RAID add
@@ -134,6 +166,11 @@ sub run()
 	    sendkey "down";
 	}
 	sendkey $cmd{"finish"};
+	# workaround for gnomelive, double alt-f available in same page
+	if($ENV{GNOME}) {
+            sendkey $cmd{"finish"};
+	    sendkey "spc";
+        }
 	waitidle 3;
 
         # select RAID add
