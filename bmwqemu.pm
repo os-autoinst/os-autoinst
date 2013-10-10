@@ -827,7 +827,7 @@ Wait until the screen stops changing
 sub waitstillimage(;$$$) {
 	my $stilltime=shift||7;
 	my $timeout=shift||30;
-	my $similarity_level=shift||47;
+	my $similarity_level=shift||($ENV{HW}?44:47);
 	my $starttime=time;
 	fctlog('waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level");
         my $lastchangetime=[gettimeofday];
