@@ -278,6 +278,22 @@ sub do_stop_vm {
 	$self->{'isalive'} = 0;
 }
 
+sub stop {
+	print STDOUT "stop=NOP\n"
+}
+sub cont {
+	print STDOUT "cont=NOP\n"
+}
+sub do_savevm($) {
+	print STDOUT "do_savevm=NOP\n"
+}
+sub do_loadvm($) {
+	print STDOUT "do_loadvm=NOP\n"
+}
+sub do_delvm($) {
+	print STDOUT "do_delvm=NOP\n"
+}
+
 # baseclass virt method overwrite end
 
 
