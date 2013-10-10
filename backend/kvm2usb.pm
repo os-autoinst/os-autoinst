@@ -17,6 +17,7 @@ use strict;
 use JSON qw( decode_json );
 use POSIX ":sys_wait_h"; # for WNOHANG in waitpid()
 use IO::Socket::SSL;
+use File::Temp;
 use constant { SCHAR_MAX => 127, SCHAR_MIN => -127 };
 use base ('backend::helper::scancodes', 'backend::baseclass');
 
@@ -133,18 +134,24 @@ sub mouse_hide(;$) {
 
 sub screendump($) {
 	my $self=shift;
-	my $filename=shift;
+	my $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.ppm', OPEN => 0 );
 	# streamer -q -c /dev/video0 -o out.ppm
 	my $pid = fork();
 	if ($pid == 0) {
 		open(STDERR, ">/dev/null");
-		exec('streamer', '-q', '-c', $self->{'hardware'}->{'video'}, '-o', $filename) or die;
+		exec('streamer', '-q', '-c', $self->{'hardware'}->{'video'}, '-o', $tmp) or die;
 	}
 	else {
 		waitpid($pid, 0);
 		$self->{'isscreenactive'} = (($? >> 8) == 0);
-		return $self->{'isscreenactive'};
+		if($self->{'isscreenactive'}) {
+			my $ret = tinycv::read($tmp);
+			unlink $tmp;
+			return $ret;
+		}
+		unlink $tmp;
 	}
+	return undef;
 }
 
 sub start_audiocapture($) {
