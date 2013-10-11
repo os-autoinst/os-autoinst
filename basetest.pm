@@ -83,6 +83,11 @@ sub record_screenmatch($$;$)
 		result => 'ok',
 	};
 
+	if ($h->{'name'} =~ /bnc\d{4}/) {
+		$result->{dent} = 1;
+		$self->{dents}++;
+	}
+
 	my $fn = join('/', result_dir(), $result->{'screenshot'});
 	$img->write($fn);
 
