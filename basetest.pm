@@ -245,12 +245,6 @@ sub runtest($$) {
 	my $ret;
 	my $name = ref($self);
 	eval {
-		my $previmg;
-		if ($self->{'category'} eq 'x11test') {
-			$previmg = bmwqemu::getcurrentscreenshot();
-			$self->register_screenshot($previmg);
-		}
-
 		if ($self->{'category'} eq 'consoletest') {
 			# clear screen to make screen content independent from previous tests
 			clear_console;
@@ -259,13 +253,7 @@ sub runtest($$) {
 		$self->run();
 
 		if ($self->{'category'} eq 'x11test') {
-			my $currentimg = $self->waitforprevimg($previmg);
-			if ($currentimg) {
-				$self->record_screenfail( img => $currentimg, 
-							  result => 'fail',
-							  overall => 'fail');
-				$self->{result} = 'fail';
-			}
+			waitforneedle('test-consoletest_finish-1');
 		}
 	};
 	if ($@) {
