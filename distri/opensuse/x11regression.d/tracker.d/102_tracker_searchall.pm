@@ -13,7 +13,7 @@ sub run()
 {
         my $self=shift;
         x11_start_program("tracker-needle");
-        sleep 2; waitidle; 
+        sleep 2; waitidle;
         $self->check_screen;
         sendautotype("newfile");
         sleep 2; waitstillimage;

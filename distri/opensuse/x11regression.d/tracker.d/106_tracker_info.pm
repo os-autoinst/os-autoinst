@@ -13,7 +13,7 @@ sub run()
 {
         my $self=shift;
         x11_start_program("xterm");
-        sleep 2; waitidle; 
+        sleep 2; waitidle;
         $self->check_screen;
         sendautotype("cd\n");
         sendautotype("tracker-info newpl.pl\n");

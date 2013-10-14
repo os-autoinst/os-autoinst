@@ -53,7 +53,7 @@ sub install_pkg()
         sendkey "o";
         waitidle;sleep 2;
         waitforneedle ("pidgin-showoff",10); #enable show offline
-        sendkey "o"; 
+        sendkey "o";
 
         sendkey "ctrl-q"; sleep 2;
 }

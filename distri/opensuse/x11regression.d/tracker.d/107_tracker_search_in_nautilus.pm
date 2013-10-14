@@ -13,7 +13,7 @@ sub run()
 {
         my $self=shift;
         x11_start_program("nautilus");
-        sleep 2; waitidle; 
+        sleep 2; waitidle;
         $self->check_screen;
         sendkey "ctrl-f";
         sleep 2;
@@ -22,7 +22,7 @@ sub run()
         sleep 2;waitidle;
         $self->check_screen;  # should open file newfile
         sendautotype("Hello world.\n");
-        sleep 2; 
+        sleep 2;
         sendkey "ctrl-s";
         sleep 2; waitstillimage;
         $self->check_screen;
