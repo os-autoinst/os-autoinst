@@ -33,7 +33,7 @@ sub run()
 
     # http://www.novell.com
     sendkey "alt-d"; sleep 1;
-    sendautotype "https://www.novell.com\n"; sleep 20;
+    sendautotype "https://www.novell.com\n"; sleep 25;
     checkneedle("test-firefox_url-novell-1",5);
 
     # Switch to communities and enter the link

@@ -32,10 +32,11 @@ sub run()
         sendkey "ret"; # Confirm default browser setting popup
         waitidle;
     }
-    sendkey "alt-f10"; # Maximize
+    sendkey "alt-f10"; sleep 1;     # Maximize
 
     # Opening a new Tabbed Browser.
-    sendkey "alt-f"; sendkey "ret"; # Open a new tab by menu
+    sendkey "alt-f"; sleep 1;
+    sendkey "ret"; sleep 1;         # Open a new tab by menu
     sendkey "ctrl-t"; # Open a new tab by hotkey
     sleep 2;
     checkneedle("test-firefox_tab-1",5); sleep 2;
@@ -47,10 +48,10 @@ sub run()
     sendautotype "news"; sendkey "esc"; sleep 1; # Find News link
     sendkey "menu"; sleep 1; # Use keyboard to simulate right click the link
     sendkey "down"; sendkey "ret"; # "Open link in the New Tab"
-    sleep 10;
-    sendkey "alt-2"; # Switch to the new opened tab
+    sleep 6;
+    sendkey "alt-2"; sleep 5;       # Switch to the new opened tab
     checkneedle("test-firefox_tab-2",5);
-    sendkey "ctrl-w"; # Restore to one tab (Home Page)
+    sendkey "ctrl-w"; sleep 1;       # Restore to one tab (Home Page)
 
     # Test secure sites
     sendkey "ctrl-t"; sleep 1;
@@ -66,15 +67,15 @@ sub run()
     sendkey "ctrl-w"; sendkey "ctrl-w"; # Restore to one tab (Home Page)
 
     # Confirm default settings
-    sendkey "alt-e";
-    sendkey "n"; # Open Preferences
+    sendkey "alt-e"; sleep 1;
+    sendkey "n"; sleep 1;               # Open Preferences
 	checkneedle("firefox_pre-general",5);
     sleep 5;
     sendkey "right"; sleep 2; # Switch to the "Tabs" tab
     checkneedle("test-firefox_tab-5",5); sleep 2;
 
-    sendkey "left";
-    sendkey "esc"; # Restore
+    sendkey "left"; sleep 1;
+    sendkey "esc"; sleep 1;     # Restore
 
     # Restore and close firefox
     sendkey "alt-f4"; sleep 1; # Exit firefox
