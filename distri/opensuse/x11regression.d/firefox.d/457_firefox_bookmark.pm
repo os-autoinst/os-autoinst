@@ -56,6 +56,7 @@ sub run()
   sendkey "alt-f4"; sleep 5;
   waitforneedle("bookmark-closed-after",3);
 
+## close firefox
   sendkey "alt-f4"; sleep 1;
   sendkey "ret";  
 }
