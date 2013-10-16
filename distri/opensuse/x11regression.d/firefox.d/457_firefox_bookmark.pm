@@ -1,4 +1,4 @@
-# by xjin
+# auther xjin
 use base "basetest";
 use bmwqemu;
 
