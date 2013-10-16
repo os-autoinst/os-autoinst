@@ -54,8 +54,10 @@ sub run()
 # close the bookmark lib page and then close firefox
   sendkey "alt-tab"; sleep 2;
   sendkey "alt-f4"; sleep 5;
-  waitforneedle("bookmark-closed-after",3)
-  
+  waitforneedle("bookmark-closed-after",3);
+
+  sendkey "alt-f4"; sleep 1;
+  sendkey "ret";  
 }
 
 1;
