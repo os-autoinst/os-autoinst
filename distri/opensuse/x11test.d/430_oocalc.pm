@@ -18,7 +18,7 @@ sub run()
 	$self->check_screen;
 	sendkey "alt-f4"; sleep 2;
 	$self->check_screen;
-	sendkey "alt-d"; sleep 2; # Discard
+	sendkey "alt-w"; sleep 2; # _w_ithout saving
 }
 
 sub ocr_checklist()

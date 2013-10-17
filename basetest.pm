@@ -83,6 +83,11 @@ sub record_screenmatch($$;$)
 		result => 'ok',
 	};
 
+	if ($h->{'name'} =~ /bnc\d{4}/) {
+		$result->{dent} = 1;
+		$self->{dents}++;
+	}
+
 	my $fn = join('/', result_dir(), $result->{'screenshot'});
 	$img->write($fn);
 
@@ -240,11 +245,6 @@ sub runtest($$) {
 	my $ret;
 	my $name = ref($self);
 	eval {
-		my $previmg;
-		if ($self->{'category'} eq 'x11test') {
-			$previmg = bmwqemu::getcurrentscreenshot();
-		}
-
 		if ($self->{'category'} eq 'consoletest') {
 			# clear screen to make screen content independent from previous tests
 			clear_console;
@@ -253,13 +253,7 @@ sub runtest($$) {
 		$self->run();
 
 		if ($self->{'category'} eq 'x11test') {
-			my $currentimg = $self->waitforprevimg($previmg);
-			if ($currentimg) {
-				$self->record_screenfail( img => $currentimg, 
-							  result => 'fail',
-							  overall => 'fail');
-				$self->{result} = 'fail';
-			}
+			waitforneedle('test-consoletest_finish-1');
 		}
 	};
 	if ($@) {
@@ -316,11 +310,27 @@ sub take_screenshot(;$)
 	my $self = shift;
 	my $name = shift; # unused, for compat
 
-	my $count = ++$self->{"test_count"};
-	my $testname = ref($self);
-
 	# XXX: is there a reason for not using getcurrentscreenshot()?
 	my $img = bmwqemu::do_take_screenshot();
+
+	$self->register_screenshot($img);
+
+	my $testname = ref($self);
+	if ($name) {
+		return "test-$testname-$name";
+	} else {
+		my $count = $self->{'test_count'};
+		return "test-$testname-$count";
+	}
+}
+
+sub register_screenshot($)
+{
+	my $self = shift;
+	my $img = shift;
+
+	my $count = ++$self->{"test_count"};
+	my $testname = ref($self);
 
 	my $result = {
 		screenshot => sprintf("%s-%d.png", $testname, $count),
@@ -332,11 +342,7 @@ sub take_screenshot(;$)
 
 	push @{$self->{'details'}}, $result;
 
-	if ($name) {
-		return "test-$testname-$name";
-	} else {
-		return "test-$testname-$count";
-	}
+	return $result;
 }
 
 =head2 check_screen

@@ -1,1 +1,0 @@
-../../opensuse/x11test.d/403_firefox_stress.pm

@@ -3,6 +3,7 @@
 package backend::vbox;
 use strict;
 use Cwd 'abs_path';
+use File::Temp;
 
 #use FindBin;
 #use lib "$FindBin::Bin/backend";
@@ -52,8 +53,7 @@ sub raw_keyboard_io($) {
 
 sub screendump() {
 	my $self = shift;
-	my $tmp = mktemp( $template );
-	$tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.png', OPEN => 0 );
+	my $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.png', OPEN => 0 );
 	$self->raw_vbox_controlvm("screenshotpng", $tmp);
 	my $ret = tinycv::read($tmp);
 	unlink $tmp;
@@ -135,6 +135,37 @@ sub do_start_vm {
 sub raw_vbox_controlvm($) {
 	my $self = shift;
 	system("VBoxManage", "controlvm", $self->{'vmname'}, @_);
+}
+
+sub raw_vbox_snapshot($) {
+	my $self = shift;
+	print STDOUT "vbox_snapshot @_\n";
+	system("VBoxManage", "snapshot", $self->{'vmname'}, @_);
+}
+
+sub stop {
+	my $self = shift;
+	$self->raw_vbox_controlvm("pause");
+}
+
+sub cont {
+	my $self = shift;
+	$self->raw_vbox_controlvm("resume");
+}
+
+sub do_savevm($) {
+	my ($self, $vmname) = @_;
+	$self->raw_vbox_snapshot("take", $vmname, "--live");
+}
+
+sub do_loadvm($) {
+	my ($self, $vmname) = @_;
+	$self->raw_vbox_snapshot("restore", $vmname);
+}
+
+sub do_delvm($) {
+	my ($self, $vmname) = @_;
+	$self->raw_vbox_snapshot("delete", $vmname);
 }
 
 1;
