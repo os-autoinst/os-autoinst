@@ -3,7 +3,10 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return $ENV{DESKTOP} eq "gnome" && !$ENV{LIVECD};
+	# return $ENV{DESKTOP} eq "gnome" && !$ENV{LIVECD};
+	
+	# banshee doesn't installed by default in openSUSE 13.1 GNOME
+	return 0;
 }
 
 sub run()
