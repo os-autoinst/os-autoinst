@@ -41,14 +41,14 @@ sub install_pkg()
         waitidle;sleep 2;
         waitforneedle ("pidgin-pkg-installed",10); #make sure pkgs installed
         waitidle;sleep 2;
-        sendkey "alt-f4";sleep 2; #close xterm
+        #sendkey "alt-f4";sleep 2; #close xterm
 
         # Enable the showoffline
-        x11_start_program("pidgin");
+        sendautotype("pidgin\n");       # enable the pidgin
         waitidle; sleep 2;
 
-        sendkey "alt-c"; sleep 2;
-        x11_start_program("pidgin");
+        sendkey "alt-c";
+        waitidle; sleep 5;
         sendkey "alt-b"; sleep 2;
         sendkey "o";
         waitidle;sleep 2;
@@ -56,6 +56,7 @@ sub install_pkg()
         sendkey "o";
 
         sendkey "ctrl-q"; sleep 2;
+        sendkey "alt-f4";sleep 2; #close xterm
 }
 
 sub run()
