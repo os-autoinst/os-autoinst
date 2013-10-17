@@ -59,6 +59,9 @@ sub runalltests {
 
 	  eval { $t->runtest; };
           if ($@) {
+                  # Do some cleaning after case fail.
+                  # Like don't find a needle.
+                  $t->post_failure;
 		  diag "test $name failed\n";
 		  if ($flags->{'fatal'}) {
 			  stop_vm();
