@@ -28,7 +28,7 @@ sub run()
     sendkey "ctrl-a"; sleep 1;          #select all
     sendkey "delete"; sleep 1;          #delete all
     checkneedle("firefox_history-empty",3);     #confirm all history removed
-    sendkey "alt-f4"; sleep 1;          #close the "history"
+    sendkey "alt-f4"; sleep 12;
 
     my @topsite=('www.yahoo.com', 'www.amazon.com', 'www.ebay.com', 'slashdot.org', 'www.wikipedia.org', 'www.flickr.com', 'www.facebook.com', 'www.youtube.com', 'ftp://ftp.novell.com');
 
