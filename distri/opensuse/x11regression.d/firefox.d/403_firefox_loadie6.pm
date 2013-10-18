@@ -9,7 +9,7 @@ use strict;
 use base "basetest";
 use bmwqemu;
 
-my $addon="https://addons.mozilla.org/firefox/downloads/latest/8051/addon-8051-latest.xpi?src=dp-btn-primary";
+my $addon="https://addons.mozilla.org/firefox/downloads/latest/8051";
 my $ie6url="https://svn.provo.novell.com/svn/opsqa/trunk/tests/qa_test_firefox/qa_test_firefox/test_source/NOVELL%20Worldwide.mht";
 my $ie7url="https://svn.provo.novell.com/svn/opsqa/trunk/tests/qa_test_firefox/qa_test_firefox/test_source/ie7test_page.mhtml";
 
@@ -34,12 +34,13 @@ sub run()
     sendkey "alt-e"; sleep 1;
     sendkey "alt"; sleep 1;
     sendkey "ctrl-l"; sleep 1;
-    sendautotype $ie6url."\n"; sleep 18;        #the file is too large, need time
+    sendautotype $ie6url."\n"; sleep 25;        #the file need a long time to load
     checkneedle("firefox_page-ie6",20);
+    sleep 3;
 #open ie7 file (IIS)
     sendkey "ctrl-l"; sleep 1;
     sendautotype $ie7url."\n"; sleep 12;
-    checkneedle("firefox_page-ie7",8);
+    checkneedle("firefox_page-ie7",10);
         
     sendkey "alt-f4"; sleep 2;
     sendkey "ret"; sleep 2; # confirm "save&quit"

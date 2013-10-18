@@ -28,6 +28,7 @@ sub run()
     checkneedle("firefox_contentmenu-arrow",5);
     sendkey "i"; sleep 2;
     checkneedle("firefox_pageinfo",5);      #the page info of opensuse.org
+    sleep 2;
     sendkey "alt-f4"; sleep 1;          #close the page info window
     sendkey "shift-f10"; sleep 1;
     sendkey "esc"; sleep 1;             #show that esc key can dismiss the menu 
