@@ -40,6 +40,17 @@ sub is_applicable() {
 	return 1;
 }
 
+=head2 post_failure
+
+Do some cleaning after case die. 
+e.g. don't find a match need after waitforneedle().
+Need to be implemented in child classed if necessary.
+
+=cut
+sub post_failure() {
+	return 1;
+}
+
 =head2 test_flags
 
 Return a hash of flags that are either there or not
