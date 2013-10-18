@@ -1,5 +1,14 @@
 #!/usr/bin/perl -w
 
+# this module provides a testing backend using the Epiphan kvm2usb device
+# to capture VGA from another physical machine and PS2/USB keyboard
+# to send keystrokes for automated actions
+# with some power switch integration
+
+# needs EDID uploaded once to the kvm2usb using
+# cd epiphan_sdk-3.28.0.0009/epiphan/samples/v2u_edid && make &&
+# build/release/v2u_edid /PATHTO/os-autoinst/backend/extras/edid_1024x768.edid
+
 package backend::kvm2usb;
 use strict;
 
@@ -8,6 +17,7 @@ use strict;
 use JSON qw( decode_json );
 use POSIX ":sys_wait_h"; # for WNOHANG in waitpid()
 use IO::Socket::SSL;
+use File::Temp;
 use constant { SCHAR_MAX => 127, SCHAR_MIN => -127 };
 use base ('backend::helper::scancodes', 'backend::baseclass');
 
@@ -124,18 +134,24 @@ sub mouse_hide(;$) {
 
 sub screendump($) {
 	my $self=shift;
-	my $filename=shift;
+	my $tmp = File::Temp->new( UNLINK => 0, SUFFIX => '.ppm', OPEN => 0 );
 	# streamer -q -c /dev/video0 -o out.ppm
 	my $pid = fork();
 	if ($pid == 0) {
 		open(STDERR, ">/dev/null");
-		exec('streamer', '-q', '-c', $self->{'hardware'}->{'video'}, '-o', $filename) or die;
+		exec('streamer', '-q', '-c', $self->{'hardware'}->{'video'}, '-o', $tmp) or die;
 	}
 	else {
 		waitpid($pid, 0);
 		$self->{'isscreenactive'} = (($? >> 8) == 0);
-		return $self->{'isscreenactive'};
+		if($self->{'isscreenactive'}) {
+			my $ret = tinycv::read($tmp);
+			unlink $tmp;
+			return $ret;
+		}
+		unlink $tmp;
 	}
+	return undef;
 }
 
 sub start_audiocapture($) {
@@ -204,6 +220,10 @@ sub power($) {
 	my $self = shift;
 	my $action = shift;
 	if ($self->{'hardware'}->{'power'}->{'type'} eq 'ilo') {
+		if ($action eq 'reset') {
+			$self->power('on');
+			sleep 1;
+		}
 		$self->raw_power_ilo($action);
 	}
 	elsif ($self->{'hardware'}->{'power'}->{'type'} eq 'snmp') {
@@ -215,6 +235,11 @@ sub power($) {
 		else {
 			$self->raw_power_snmp($action);
 		}
+	}
+	elsif ($self->{'hardware'}->{'power'}->{'type'} eq 'usbnetpower') {
+		$action=~s/reset/cycle/;
+		if($action eq "acpi") {warn "unsupported $action power action"}
+		system("usbnetpower8800", $action);
 	}
 	else {
 		warn "Unsupported power type: $self->{'hardware'}->{'power'}->{'type'}";
@@ -240,9 +265,6 @@ sub do_start_vm {
 	print STDOUT "Inserting CD: $ENV{ISO}\n";
 	$self->insert_cd($ENV{ISO});
 	sleep(1);
-	print STDOUT "Power on $ENV{'HWSLOT'}\n";
-	$self->power('on');
-	sleep(1);
 	print STDOUT "Power reset $ENV{'HWSLOT'}\n";
 	$self->power('reset');
 	sleep(5);
@@ -254,6 +276,22 @@ sub do_stop_vm {
 	my $self = shift;
 	$self->stop_serial_grab();
 	$self->{'isalive'} = 0;
+}
+
+sub stop {
+	print STDOUT "stop=NOP\n"
+}
+sub cont {
+	print STDOUT "cont=NOP\n"
+}
+sub do_savevm($) {
+	print STDOUT "do_savevm=NOP\n"
+}
+sub do_loadvm($) {
+	print STDOUT "do_loadvm=NOP\n"
+}
+sub do_delvm($) {
+	print STDOUT "do_delvm=NOP\n"
 }
 
 # baseclass virt method overwrite end
