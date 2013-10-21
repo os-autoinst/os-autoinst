@@ -2,8 +2,8 @@ use base "basetest";
 use strict;
 use bmwqemu;
 
-# test tomboy first run
-# testcase 1248872
+# test tomboy: already running
+# testcase 1248878
 
 # this function decides if the test shall run
 sub is_applicable
@@ -15,17 +15,17 @@ sub is_applicable
 sub run()
 {
     my $self=shift;
-    mouse_hide();
+    # open tomboy
     x11_start_program("tomboy note");
-    sleep 1;
-    # open the menu
-    sendkey "alt-f12"; sleep 2;
-    checkneedle("tomboy_menu",5);
-    #$self->take_screenshot; 
-    sleep 2;
-    sendkey "esc"; sleep 3;
-    sendkey "alt-f4"; sleep 7;
     waitidle;
+    $self->check_screen; sleep 2;
+    sendkey "alt-f4"; sleep 2;
+
+    # open again
+    x11_start_program("tomboy note");
+    waitidle;
+    $self->check_screen; sleep 2;
+    sendkey "alt-f4"; sleep 2;
 }
 
 1;
