@@ -2,7 +2,7 @@ use base "basetest";
 use strict;
 use bmwqemu;
 
-# test tomboy: print
+# test tomboy: Print
 # testcase 1248880
 
 # this function decides if the test shall run

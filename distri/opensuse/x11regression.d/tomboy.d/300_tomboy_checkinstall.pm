@@ -2,7 +2,7 @@ use base "basetest";
 use strict;
 use bmwqemu;
 
-# install tomboy
+# Install tomboy
 
 # this function decides if the test shall run
 sub is_applicable

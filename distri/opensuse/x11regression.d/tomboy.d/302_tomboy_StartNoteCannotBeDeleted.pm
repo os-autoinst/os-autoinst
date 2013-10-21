@@ -2,7 +2,7 @@ use base "basetest";
 use strict;
 use bmwqemu;
 
-# test tomboy: start note cannot be deleted
+# test tomboy: Start note cannot be deleted
 # testcase 1248873
 
 # this function decides if the test shall run

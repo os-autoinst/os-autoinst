@@ -2,7 +2,7 @@ use base "basetest";
 use strict;
 use bmwqemu;
 
-# test tomboy: already running
+# test tomboy: Already running
 # testcase 1248878
 
 # this function decides if the test shall run

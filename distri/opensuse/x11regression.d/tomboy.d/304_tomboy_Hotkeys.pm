@@ -2,7 +2,7 @@ use base "basetest";
 use strict;
 use bmwqemu;
 
-# test tomboy: Hotkeys
+# Test tomboy: Hotkeys
 # testcase 1248875
 
 # this function decides if the test shall run
