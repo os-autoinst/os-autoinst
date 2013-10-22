@@ -27,8 +27,8 @@ sub run()
     sendkey "ctrl-w"; sleep 1;
     
     sendkey "shift-tab"; sleep 1;
-    sendkey "shift-ret"; sleep 5;
-    checkneedle("firefox_page-novell",5);
+    sendkey "shift-ret"; sleep 6;
+    checkneedle("firefox_page-opensuse-sponsors",5);
     sendkey "ctrl-w"; sleep 1;
         
     sendkey "alt-f4"; sleep 2;
