@@ -3,8 +3,8 @@ use bmwqemu;
 
 sub run()
 {
-	my $self=shift;
-if($ENV{ISO}=~m/i586/) {
+    my $self=shift;
+    if($ENV{ISO}=~m/i586/) {
 	script_sudo("zypper ref; echo zypper_ref_finished > /dev/$serialdev");
 	waitserial('zypper_ref_finished');
 	script_run("clear");
@@ -25,7 +25,7 @@ if($ENV{ISO}=~m/i586/) {
 	script_run($my_script);
 	waitserial('glibc_finished');
 	$self->check_screen;
-}
+    }
 }
 
 1;
