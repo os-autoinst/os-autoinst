@@ -4,6 +4,7 @@ use bmwqemu;
 use ocr;
 use Time::HiRes;
 use JSON;
+use POSIX;
 use Data::Dumper;
 
 sub new(;$) {
@@ -252,6 +253,7 @@ sub waitforprevimg($$;$) {
 
 sub runtest($$) {
 	my $self = shift;
+	my $starttime = time;
 
 	my $ret;
 	my $name = ref($self);
@@ -280,7 +282,8 @@ sub runtest($$) {
 	$self->done();
 	bmwqemu::save_results(autotest::results());
 	#sleep 1;
-	diag "||| finished $name " . $self->{category};
+	diag sprintf("||| finished %s %s at %s (%d s)", $name,
+		$self->{category}, POSIX::strftime("%F %T", gmtime), time-$starttime);
 	return $ret;
 }
 

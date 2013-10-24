@@ -257,7 +257,7 @@ sub fctinfo {
 
 sub modstart {
 	my @text = @_;
-	$logfd && print $logfd "||| @text\n";
+	$logfd && printf $logfd "\n||| %s at %s\n", join(' ', @text), POSIX::strftime("%F %T", gmtime);
 	return unless $debug;
 	print STDERR colored("||| @text", 'bold')."\n";
 }
