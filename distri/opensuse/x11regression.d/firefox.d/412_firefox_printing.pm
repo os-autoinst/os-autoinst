@@ -29,7 +29,7 @@
 # XML Test                          N (Link is not available anymore, we should find a new test page)
 # Web Sites Test                    N (Top web pages are always changing, we should find a new test page)
 # HTML 4.0 TESTS                    N (www.w3.org pages are always changing, we should find a new test page)
-# Images Test                       N (Will test separately)
+# Images Test                       > Test separately in 413_firefox_printing_images.pm
 # Lists Test                        *
 # Tables Test                       *
 # Characters Test                   *
@@ -123,7 +123,7 @@ sub run()
             sendautotype "1-2"; sleep 1;
         }
 
-        # Print key
+        # Print
         sendkey "alt-p"; sleep 5;
 
         # Some restore work for each test
@@ -152,10 +152,9 @@ sub run()
     }
     
     # Restore and close firefox
-    x11_start_program("killall -9 firefox"); # Exit firefox
+    x11_start_program("killall -9 firefox evince"); # Exit firefox. Kill evince at the same time if they are still there.
     x11_start_program("rm -rf .mozilla"); # Clear profile directory
     x11_start_program("rm *.pdf"); # Remove all printed pdf files
-    x11_start_program("killall -9 evince"); # Exit evince if it is still there
     sleep 1;
 }   
 
