@@ -15,9 +15,11 @@ sub run()
             waitidle;
             sendkey "ctrl-alt-delete"; # reboot
             waitforneedle 'logoutdialog', 15;
-            sendautotype "\t\t";
+            sendkey "tab";
+            sendkey "tab";
             sleep 1;
-            sendautotype "\n";
+            $self->take_screenshot;
+            sendkey "ret"; # confirm
         }
 
         # 550_reboot_xfce
@@ -29,7 +31,8 @@ sub run()
             #waitidle;
             sendkey "tab"; # reboot
             sleep 1;
-            sendkey "ret"; # confirm 
+            $self->take_screenshot;
+            sendkey "ret"; # confirm
         }
 
         # 550_reboot_lxde
