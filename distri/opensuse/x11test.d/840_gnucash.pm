@@ -12,10 +12,13 @@ sub run()
   sendkey "spc";
   sendkey "alt-o";
   sendkey "spc";
-  sendkey "f1"; # open Help
-  sleep 2;
+  waitidle;
   $self->check_screen;
-  sendkey "alt-f4"; # Exit
+  sendkey "alt-f4"; # Leave tutorial window
+  sleep 2;
+  # Leave tips windows for GNOME case
+  if($ENV{GNOME}) { sendkey "alt-c"; sleep 2; }
+  sendkey "ctrl-q"; # Exit
 }
 
 1;
