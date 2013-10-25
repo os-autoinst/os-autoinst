@@ -23,7 +23,6 @@ sub run()
 	sendkey "alt-f4";
 	waitforneedle('oomath-prompt', 5);
 	sendkey "alt-w"; # Without saving
-	waitforneedle('oomath-gone');
 }
 
 1;

@@ -827,7 +827,7 @@ Wait until the screen stops changing
 sub waitstillimage(;$$$) {
 	my $stilltime=shift||7;
 	my $timeout=shift||30;
-	my $similarity_level=shift||47;
+	my $similarity_level=shift||($ENV{HW}?44:47);
 	my $starttime=time;
 	fctlog('waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level");
         my $lastchangetime=[gettimeofday];
@@ -1087,7 +1087,7 @@ sub _waitforneedle {
 	}
 
 	# add some known env variables
-	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD UEFI NETBOOT)) {
+	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD UEFI NETBOOT PROMO)) {
 		push(@tags, "ENV-$key-" . $ENV{$key}) if $ENV{$key};
 	}
 

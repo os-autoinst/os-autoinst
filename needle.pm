@@ -23,7 +23,7 @@ sub new($;$) {
     } else {
       local $/;
       open( my $fh, '<', $jsonfile ) || return undef;
-      $json = decode_json( <$fh> ) || die "broken json $jsonfile";
+      eval {$json = decode_json( <$fh> )} || die "broken json $jsonfile: $@";
       close($fh);
     }
     my $self = {

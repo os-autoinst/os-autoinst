@@ -7,14 +7,14 @@ my @packages=qw/pidgin pidgin-otr/;
 
 sub is_applicable()
 {
-	return $ENV{DESKTOP}=~/kde|gnome/;
+        return $ENV{DESKTOP}=~/kde|gnome/;
 }
 
 sub install_pkg()
 {
-	my $self=shift;
+        my $self=shift;
 
-	x11_start_program("xterm");
+        x11_start_program("xterm");
         sendautotype("rpm -qa @packages\n");
         waitidle;sleep 5;
 
@@ -22,12 +22,12 @@ sub install_pkg()
         sendautotype("xdg-su -c 'rpm -e @packages'\n");
         waitidle;sleep 3;
         if ($password){
-        	sendpassword;
+                sendpassword;
                 sendkeyw "ret";
         }
         waitidle; sleep 10;
         sendautotype("clear\n");
-	sleep 2;
+        sleep 2;
         sendautotype("rpm -qa @packages\n");
         waitidle;sleep 2;
         waitforneedle ("pidgin-pkg-removed",10); #make sure pkgs removed.
@@ -37,7 +37,7 @@ sub install_pkg()
 
 sub run()
 {
-	my $self=shift;
+        my $self=shift;
         install_pkg;
 }
 

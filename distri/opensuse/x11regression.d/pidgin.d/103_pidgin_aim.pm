@@ -12,21 +12,21 @@ my $PASSWD="opensuse";
 
 sub is_applicable()
 {
-	return $ENV{DESKTOP}=~/kde|gnome/;
+        return $ENV{DESKTOP}=~/kde|gnome/;
 }
 
 sub run()
 {
-	my $self=shift;
-	x11_start_program("pidgin");
-	waitidle; sleep 2;
+        my $self=shift;
+        x11_start_program("pidgin");
+        waitidle; sleep 2;
         # Create account
         sendkey "alt-a"; sleep 2;
-	# Choose Protocol "AIM",which is by default
+        # Choose Protocol "AIM",which is by default
         #sendkey "spc";
         #sleep 2;
         #foreach(1..$AIM){
-	#	sendkey "down";
+        #        sendkey "down";
         #        sleep 1;
         #}
         #sendkey "ret"; sleep 2;
@@ -38,10 +38,10 @@ sub run()
         sendautotype("com");sleep 2;
         sendkey "alt-p"; sleep 1;
         sendautotype("$PASSWD");sleep 2;
-	sendkey "alt-a"; 
+        sendkey "alt-a";
         waitidle; sleep 15;
-	# Should create AIM account 1
-	$self->check_screen;
+        # Should create AIM account 1
+        $self->check_screen;
 
         # Create another account
         sendkey "ctrl-a"; sleep 2;
@@ -54,47 +54,47 @@ sub run()
         sendautotype("com");sleep 2;
         sendkey "alt-p"; sleep 1;
         sendautotype("$PASSWD");sleep 2;
-	sendkey "alt-a"; 
+        sendkey "alt-a";
         waitidle; sleep 15;
-	# Should have AIM accounts 1 and 2
-	$self->check_screen;
+        # Should have AIM accounts 1 and 2
+        $self->check_screen;
 
 
-	# Close account manager
-	sendkey "ctrl-a"; sleep 2;
-	sendkey "alt-c"; sleep 2;
-	# Open a chat
-	sendkey "tab"; sleep 2;
-	sendkey "down"; sleep 2;
-	sendkey "ret"; sleep 2;
+        # Close account manager
+        sendkey "ctrl-a"; sleep 2;
+        sendkey "alt-c"; sleep 2;
+        # Open a chat
+        sendkey "tab"; sleep 2;
+        sendkey "down"; sleep 2;
+        sendkey "ret"; sleep 2;
         sendautotype("hello world!\n");sleep 2;
         waitidle; sleep 10;
-	# Should see "hello world!" in screen.
-	$self->check_screen;
+        # Should see "hello world!" in screen.
+        $self->check_screen;
 
         # Cleaning
         # Close the conversation
-	sendkey "ctrl-w"; sleep 2;
+        sendkey "ctrl-w"; sleep 2;
         # Remove one account
-	sendkey "ctrl-a"; sleep 2;
-	sendkey "right"; sleep 2;
-	sendkey "ret"; sleep 2;
-	sendkey "alt-d"; sleep 2;
-	sendkey "alt-d";
+        sendkey "ctrl-a"; sleep 2;
+        sendkey "right"; sleep 2;
+        sendkey "ret"; sleep 2;
+        sendkey "alt-d"; sleep 2;
+        sendkey "alt-d";
         waitidle; sleep 2;
         # Remove the other account
-	sendkey "ctrl-a"; sleep 2;
-	sendkey "right"; sleep 2;
-	sendkey "ret"; sleep 2;
-	sendkey "alt-d"; sleep 2;
-	sendkey "alt-d";
+        sendkey "ctrl-a"; sleep 2;
+        sendkey "right"; sleep 2;
+        sendkey "ret"; sleep 2;
+        sendkey "alt-d"; sleep 2;
+        sendkey "alt-d";
         waitidle; sleep 2;
-	# Should not have any account
-	$self->check_screen;
-	
+        # Should not have any account
+        $self->check_screen;
+
         # Exit
-	sendkey "alt-c"; sleep 2;
-	sendkey "ctrl-q"; sleep 2;
+        sendkey "alt-c"; sleep 2;
+        sendkey "ctrl-q"; sleep 2;
 }
 
 
