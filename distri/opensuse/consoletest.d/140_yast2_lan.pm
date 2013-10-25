@@ -10,7 +10,7 @@ sub run()
   script_sudo("/sbin/yast2 lan");
   waitstillimage();
   
-  if($ENV{LIVETEST} || $ENV{DISTRI} eq "sled-11") {
+  if($ENV{LIVETEST} || $ENV{DISTRI} eq "sled-11" || $ENV{LAPTOP}) {
     sendkey "ret";   # confirm networkmanager popup
     sleep 1;
     sendkey "alt-t"; # traditional ifup
