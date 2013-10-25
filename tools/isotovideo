@@ -28,7 +28,7 @@ rm -f backend.run
 rm -f qemuscreenshot/*.png
 
 # start
-date "+%s%n%Y-%m-%d %H:%M:%S" > ${logfile}
+TZ=UTC date "+%s%n%Y-%m-%d %H:%M:%S" > ${logfile}
 
 osautoinstpid=
 exithandler()
