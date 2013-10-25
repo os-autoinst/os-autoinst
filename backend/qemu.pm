@@ -12,6 +12,7 @@ use IO::Select;
 use IO::Socket::UNIX qw( SOCK_STREAM );
 use IO::Handle;
 use Data::Dumper;
+use POSIX qw/strftime/;
 use JSON;
 require Carp;
 use Fcntl;
@@ -540,7 +541,7 @@ sub _run
 	print $rsppipe $MAGIC_PIPE_CLOSE_STRING;
 	close($rsppipe) || die "close $!\n";
 
-	bmwqemu::diag("management thread exit");
+	bmwqemu::diag("management thread exit at ".strftime("%F %T", gmtime));
 }
 
 1;
