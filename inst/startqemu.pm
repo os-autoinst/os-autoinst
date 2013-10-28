@@ -124,6 +124,8 @@ if($self->{'pid'}==0) {
 	}
 
 	push @params, '-qmp',  "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-S";
+	my $port = $ENV{QEMUPORT}+1;
+	push @params, "-monitor", "telnet:127.0.0.1:$port,server,nowait";
 
 	unshift(@params, $qemubin);
 	unshift(@params, "/usr/bin/eatmydata") if (-e "/usr/bin/eatmydata");
