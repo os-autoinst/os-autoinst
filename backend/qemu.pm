@@ -553,7 +553,7 @@ sub _run
 	print $rsppipe $MAGIC_PIPE_CLOSE_STRING;
 	close($rsppipe) || die "close $!\n";
 
-	bmwqemu::diag("management thread exit at ".strftime("%F %T", gmtime));
+	bmwqemu::diag("management thread exit at ".POSIX::strftime("%F %T", gmtime));
 }
 
 1;
