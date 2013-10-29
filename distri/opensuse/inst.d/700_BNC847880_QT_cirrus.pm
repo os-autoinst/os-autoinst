@@ -13,9 +13,10 @@ sub run()
 {
     my $self=shift;
     x11_start_program("xterm");
-    sendautotype('echo "export QT_GRAPHICSSYSTEM=native" >> /etc/profile.d/desktop-data.sh\n');
+    become_root();
+    sendautotype('echo "QT_GRAPHICSSYSTEM=native" >> /etc/environment\n');
+    $self->take_screenshot();
     sendautotype("exit\n");
-    waitforneedle("BNC847880-xterm", 5);
 }
 
 1;
