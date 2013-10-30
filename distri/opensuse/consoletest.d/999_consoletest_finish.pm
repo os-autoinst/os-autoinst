@@ -7,8 +7,16 @@ sub run() {
 	# cleanup
 	script_sudo_logout;
 	sleep 2;
+	sendautotype "loginctl --no-pager\n";
+	sleep 2;
+	$self->take_screenshot();
+
+	sendkey "ctrl-c";
+	sleep 1;
 	sendkey "ctrl-d"; # logout
 	sleep 2;
+
+	$self->take_screenshot();
 
 	if (checkEnv("DESKTOP", "textmode")) {
 	    sendkey "ctrl-alt-f1"; # go back to first console
