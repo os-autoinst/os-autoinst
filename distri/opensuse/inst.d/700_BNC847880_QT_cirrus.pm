@@ -16,9 +16,9 @@ sub run()
     x11_start_program("xterm");
     become_root();
     sendautotype("echo QT_GRAPHICSSYSTEM=native >> /etc/environment\n");
+    sendautotype("exit\n");
+    sendautotype("exit\n");
     $self->take_screenshot();
-    sendautotype("exit\n");
-    sendautotype("exit\n");
 }
 
 1;
