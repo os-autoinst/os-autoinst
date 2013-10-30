@@ -1,5 +1,14 @@
 use base "basetest";
 use bmwqemu;
+
+sub is_applicable()
+{
+	my $self = shift;
+	# in live we don't have a password for root so ssh doesn't
+	# work anyways
+	$self->SUPER::is_applicable && !$ENV{LIVETEST};
+}
+
 sub run()
 {
 	my $self=shift;
