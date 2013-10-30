@@ -18,7 +18,7 @@ sub run()
 	script_run("rpm -e xdelta");
 	script_run('cd /tmp');
 	# we need to umount that otherwise root is considered logged in!
-	script_run("umount /var/tmp/mnt")
+	script_run("umount /var/tmp/mnt");
 	# become user again
 	script_run('exit');
 	$self->check_screen;
