@@ -20,7 +20,7 @@ sub run()
 	}
 	$self->take_screenshot;
 	script_run("zypper patch -l && echo 'worked' > /dev/$serialdev");
-        $self->check_screen("confirm");
+        waitforneedle("test-zypper_up-confirm");
 	sendautotype "y\n";
         waitserial("worked", 700) || die "zypper failed";
 	script_run("zypper patch -l && echo 'worked' > /dev/$serialdev"); # first one might only have installed "update-test-affects-package-manager"
