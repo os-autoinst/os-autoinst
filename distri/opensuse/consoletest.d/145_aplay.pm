@@ -4,8 +4,7 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
-	script_sudo("zypper -n in alsa-utils; echo aplay_installed > /dev/$serialdev");
-	waitserial('aplay_installed', 600);
+	script_sudo("zypper -n in alsa-utils");
 	script_run("cd /tmp;wget openqa.opensuse.org/opensuse/audio/bar.wav");
 	$self->check_screen;
 	script_run('clear');
