@@ -18,6 +18,7 @@ sub run()
     sendautotype("echo QT_GRAPHICSSYSTEM=native >> /etc/environment\n");
     $self->take_screenshot();
     sendautotype("exit\n");
+    sendautotype("exit\n");
 }
 
 1;
