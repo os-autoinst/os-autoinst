@@ -6,7 +6,8 @@ use bmwqemu;
 
 sub is_applicable()
 {
-    return 1 if $ENV{DESKTOP} eq "kde";
+    my $self = shift;
+    return $self->SUPER::is_applicable && $ENV{DESKTOP} eq "kde";
 }
 
 sub run()
