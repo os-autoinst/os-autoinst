@@ -4,6 +4,8 @@ use bmwqemu;
 sub run()
 {
 	my $self=shift;
+	script_run("killall gpk-update-icon kpackagekitsmarticon packagekitd");
+	sleep 2;
 	script_sudo("zypper -n in alsa-utils");
 	script_run("cd /tmp;wget openqa.opensuse.org/opensuse/audio/bar.wav");
 	$self->check_screen;
