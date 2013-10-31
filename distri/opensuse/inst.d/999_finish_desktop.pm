@@ -31,6 +31,8 @@ sub run()
 	if (checkEnv('DESKTOP', 'kde')) {
 		sendkey "esc";
 	}
+
+	$self->take_screenshot();
 }
 
 sub test_flags() {
