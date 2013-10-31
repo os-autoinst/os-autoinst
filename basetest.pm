@@ -258,14 +258,16 @@ sub runtest($$) {
 	my $ret;
 	my $name = ref($self);
 	eval {
-		if ($self->{'category'} eq 'consoletest') {
+		# FIXME: there should be a test class that handles this
+		if ($self->{'category'} eq 'consoletest' && $name ne 'consoletest_setup') {
 			# clear screen to make screen content independent from previous tests
 			clear_console;
 		}
 
 		$self->run();
 
-		if ($self->{'category'} eq 'x11test') {
+		# FIXME: there should be a test class that handles this
+		if ($self->{'category'} eq 'x11test' && $name ne 'shutdown') {
 			waitforneedle('test-consoletest_finish-1');
 		}
 	};
