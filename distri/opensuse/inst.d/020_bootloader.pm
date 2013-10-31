@@ -59,10 +59,10 @@ if(!$ENV{LIVETEST}) {
 } else {
 	if ($ENV{PROMO}) {
 		if(checkEnv("DESKTOP", "gnome")) {
-			sendkey "down";
+			sendkey "down" unless $ENV{OSP_SPECIAL};
 			sendkey "down";
 		} elsif(checkEnv("DESKTOP", "kde")) {
-			sendkey "down";
+			sendkey "down" unless $ENV{OSP_SPECIAL};
 			sendkey "down";
 			sendkey "down";
 		} else {
