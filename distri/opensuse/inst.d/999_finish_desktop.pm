@@ -30,9 +30,9 @@ sub run()
 	## duplicated from second stage, combine!
 	if (checkEnv('DESKTOP', 'kde')) {
 		sendkey "esc";
+		sleep 2;
+		$self->take_screenshot();
 	}
-
-	$self->take_screenshot();
 }
 
 sub test_flags() {
