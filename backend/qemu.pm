@@ -321,7 +321,7 @@ sub send
 	   my $buffer;
 	   #print STDERR "before read from_child\n";
 	   unless ($s->can_read(60)) {
-		bmwqemu::diag "ERROR: 60 seconds no reply to send '".pp($cmd)."'";
+		bmwqemu::diag "ERROR: 60 seconds no reply to send '".Data::Dump::pp($cmd)."'";
 		return undef;
 	   }
 	   my $bytes = sysread($self->{from_child}, $buffer, 1000);
