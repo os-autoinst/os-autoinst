@@ -38,14 +38,12 @@ sub signalhandler
 	# do not start a race about the results between the threads
 
 	my $sig = shift;
-	diag("$$: got $sig");
+	diag("signalhandler $$: got $sig");
 	if ($autotest::running) {
 		$autotest::running->fail_if_running();
 		$autotest::running = undef;
 	}
 	if (threads->tid() == 0) {
-	  # mark it as no longer working
-	  delete $ENV{WORKERID};
 	  bmwqemu::save_results();
 	  stop_vm();
 	} else {
