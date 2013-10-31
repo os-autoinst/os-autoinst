@@ -64,7 +64,7 @@ sub run()
 }
 
 sub test_flags() {
-        return {'milestone' => 1, 'fatal' => 1};
+        return { 'milestone' => 1 };
 }
 1;
 
