@@ -56,8 +56,12 @@ if(!$ENV{KEEPHDDS} && !$ENV{SKIPTO}) {
 			symlink("$i.lvm","$basedir/l$i") or die "$!\n";
 			die "$!\n" unless system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1") == 0; # for LVM
 		} else {
+		    if($ENV{DUALBOOT} || $ENV{UPDATE}) {
+	      		die "$!\n" unless system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", "-b", $ENV{HDDPATH}) == 0;
+		    } else {
 			die "$!\n" unless system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $ENV{HDDSIZEGB}."G") == 0;
-			symlink($i,"$basedir/l$i") or die "$!\n";
+		    }
+		    symlink($i,"$basedir/l$i") or die "$!\n";
 		}
 	}
 }
