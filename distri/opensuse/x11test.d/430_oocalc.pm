@@ -4,7 +4,7 @@ use bmwqemu;
 sub is_applicable()
 {
 	return 0 if $ENV{NICEVIDEO};
-	return $ENV{DESKTOP}=~/kde|gnome/;
+	return $ENV{DESKTOP}=~/kde|gnome/ && !$ENV{LIVECD};
 }
 
 sub run()
