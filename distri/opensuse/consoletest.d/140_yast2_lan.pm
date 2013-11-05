@@ -10,6 +10,8 @@ sub run()
   script_sudo("/sbin/yast2 lan");
   waitstillimage();
   
+  # FIXME: add waitforneedle here
+  $self->take_screenshot;
   if($ENV{LIVETEST} || $ENV{DISTRI} eq "sled-11" || $ENV{LAPTOP}) {
     sendkey "ret";   # confirm networkmanager popup
     sleep 1;
