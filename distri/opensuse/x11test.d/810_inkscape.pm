@@ -3,7 +3,11 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return $ENV{GNOME} && !$ENV{LIVECD};
+	if ($ENV{GNOME} && $ENV{LIVECD}) {
+		return 0;
+	} else {
+		return 1;
+	}
 }
 
 sub run()
