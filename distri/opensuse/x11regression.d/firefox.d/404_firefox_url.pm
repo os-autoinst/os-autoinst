@@ -21,7 +21,7 @@ sub run()
     my $self=shift;
     mouse_hide();
     x11_start_program("firefox");
-    waitforneedle("firefox-open",5);
+    waitforneedle("start-firefox",5);
     if($ENV{UPGRADE}) { sendkey("alt-d");waitidle; } # Don't check for updated plugins
     if($ENV{DESKTOP}=~/xfce|lxde/i) {
         sendkey "ret"; # Confirm default browser setting popup
