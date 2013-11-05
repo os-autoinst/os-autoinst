@@ -88,7 +88,7 @@ sub run()
     x11_start_program("rm -rf .mozilla"); # Clear profile directory
     x11_start_program("rm -rf .config/evolution"); # Clear evolution profile directory
     sleep 2;
-     
-}   
+
+}
 
 1;

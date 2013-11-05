@@ -89,7 +89,7 @@ sub run()
     sendkey "d"; sleep 1; #Delete
     sendkey "alt-s"; sendkey "delete"; sleep 1; #Cancel searched
     checkneedle("test-firefox_bookmarks-delete",5);
- 
+
     #Edit bookmark proerties
     sendkey "ctrl-shift-o"; sleep 2;
     checkneedle("test-firefox_bookmarks-edit01",5);
@@ -112,6 +112,6 @@ sub run()
     x11_start_program("killall -9 firefox"); # Exit firefox
     x11_start_program("rm -rf .mozilla"); # Clear profile directory
     sleep 2;
-}   
+}
 
 1;

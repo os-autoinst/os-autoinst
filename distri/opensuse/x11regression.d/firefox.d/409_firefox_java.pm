@@ -75,7 +75,7 @@ sub run()
     x11_start_program("killall -9 firefox"); # Exit firefox
     x11_start_program("rm -rf .mozilla"); # Clear profile directory
     sleep 2;
-     
-}   
+
+}
 
 1;

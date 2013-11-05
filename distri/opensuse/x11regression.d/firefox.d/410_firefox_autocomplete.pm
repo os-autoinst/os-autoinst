@@ -34,7 +34,7 @@ sub run()
     sendkey "f6";
     sendautotype "debugtheweb.com/test/passwordautocomplete.asp\n"; sleep 4;
     checkneedle("firefox_autocomplete-testpage",5);
- 
+
     sendkey "tab"; sendkey "tab"; sleep 1; # Focus to Username input field
     sendautotype "suse-test";
     sendkey "tab"; sleep 1; # Password field
@@ -60,6 +60,6 @@ sub run()
     x11_start_program("killall -9 firefox"); # Exit firefox
     x11_start_program("rm -rf .mozilla"); # Clear profile directory
     sleep 2;
-}   
+}
 
 1;

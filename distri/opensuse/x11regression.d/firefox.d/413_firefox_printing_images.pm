@@ -78,12 +78,12 @@ sub run()
         sendkey "esc"; sleep 1;
         sendkey "alt-f4"; sleep 1; # Close evince
     }
-    
+
     # Restore and close firefox
     x11_start_program("killall -9 firefox evince"); # Exit firefox. Kill evince at the same time in case of it still there.
     x11_start_program("rm -rf .mozilla"); # Clear profile directory
     x11_start_program("rm *.pdf"); # Remove all printed pdf files
     sleep 1;
-}   
+}
 
 1;
