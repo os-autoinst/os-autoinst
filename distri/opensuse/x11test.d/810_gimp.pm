@@ -4,11 +4,7 @@ use bmwqemu;
 sub is_applicable()
 {
 	return 0 if $ENV{NICEVIDEO};
-	if ($ENV{KDE} && $ENV{LIVECD}) {
-		return 0;
-	} else {
-		return 1;
-	}
+	return !($ENV{KDE} && $ENV{LIVECD});
 }
 
 sub run()
