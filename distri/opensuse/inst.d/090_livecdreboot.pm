@@ -55,13 +55,13 @@ sub run() {
 # 2nd stage automatic configuration. And then ere is also
 # reboot_after_install from 800_reboot_after_install.pm
 # should waitforneedle wait for all three at the same time and then have only checkneedle afterwards?
+	wait_encrypt_prompt;
 	waitforneedle("reboot-after-installation", 100);
 	if(checkneedle("inst-bootmenu", 1) || checkneedle("grub2", 1)) {
 		sendkey "ret"; # avoid timeout for booting to HDD
 	}
 	qemusend "eject ide1-cd0";
 	sleep 3;
-	wait_encrypt_prompt;
 }
 
 1;
