@@ -2,7 +2,7 @@ use base "basetest";
 use strict;
 use bmwqemu;
 
-# test tomboy: Start note cannot be deleted
+# test tomboy: start note cannot be deleted
 # testcase 1248873
 
 # this function decides if the test shall run
@@ -21,10 +21,10 @@ sub run()
     sendkey "tab"; sleep 2;
     sendkey "down"; sleep 2;
     sendkey "down"; sleep 2;
-    sendkey "ret"; 
-    sleep 2; waitidle;
+    sendkey "ret"; sleep 2; 
+    waitidle;
     checkneedle("tomboy_delete_0",5); # to see if the delete buttom is avaiable
-    #$self->take_screenshot; sleep 2;
+    sleep 2;
 
     # press the delete button
     sendkey "alt-t"; sleep 2;
@@ -33,7 +33,8 @@ sub run()
     sendkey "right"; sleep 2;
     sendkey "right"; sleep 2;
     sendkey "ret"; sleep 2;
-    sendkey "ret"; sleep 2; waitstillimage;
+    sendkey "ret"; sleep 2; 
+    waitstillimage;
     #sendkey "alt-d"; #FIXME
     sendkey "alt-c"; #FIXME
     sendkey "ctrl-w"; #FIXME It's really awkward that the start note can be deleted in this test version, so I just cancel the delete process here, and close start note page manually.

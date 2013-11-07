@@ -2,7 +2,7 @@ use base "basetest";
 use strict;
 use bmwqemu;
 
-# test tomboy: Open
+# test tomboy: open
 # testcase 1248874
 
 # this function decides if the test shall run
@@ -20,7 +20,6 @@ sub run()
     sendkey "alt-f11"; sleep 2;
     sendkey "ctrl-home"; sleep 2;
     sendautotype "Rename_"; sleep 1;
-    #$self->take_screenshot; sleep 2;
     sendkey "ctrl-w"; 
     waitidle;
     

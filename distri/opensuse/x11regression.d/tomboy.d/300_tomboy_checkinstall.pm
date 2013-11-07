@@ -2,7 +2,7 @@ use base "basetest";
 use strict;
 use bmwqemu;
 
-# Install tomboy
+# install tomboy
 
 # this function decides if the test shall run
 sub is_applicable
@@ -15,10 +15,10 @@ sub run()
 {
     my $self=shift;
     mouse_hide();
-    waitidle;
-    ensure_installed("tomboy");
     sleep 60;
     waitidle;
+    ensure_installed("tomboy");
+    sendkey "ret";
     sleep 90;
     sendkey "esc"; sleep 5;
     waitidle;

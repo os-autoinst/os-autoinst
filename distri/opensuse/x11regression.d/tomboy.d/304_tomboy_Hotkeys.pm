@@ -2,7 +2,7 @@ use base "basetest";
 use strict;
 use bmwqemu;
 
-# Test tomboy: Hotkeys
+# test tomboy: Hotkeys
 # testcase 1248875
 
 # this function decides if the test shall run
@@ -40,8 +40,8 @@ sub run()
     sendkey "ret"; sleep 2;
     waitstillimage;
     sendpassword(); sleep 2;
-    sendkey "ret";
-    sleep 20; waitidle;
+    sendkey "ret"; sleep 20; 
+    waitidle;
     x11_start_program("tomboy note");
 
     # test hotkeys
@@ -67,7 +67,7 @@ sub run()
     sendkey "ret"; sleep 3;
     sendkey "alt-d"; sleep 2;
 
-    sendkey "alt-f9";
+    sendkey "alt-f9"; sleep 2;
     sendautotype "sssss\n"; sleep 1;
     $self->check_screen; sleep 1;
     sendkey "ctrl-a"; sleep 1;
