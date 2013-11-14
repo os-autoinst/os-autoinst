@@ -4,6 +4,13 @@ use base "basenoupdate";
 use bmwqemu;
 
 
+sub is_applicable()
+{
+    my $self=shift;
+    return $self->SUPER::is_applicable && !$ENV{UPGRADE};
+}
+
+
 # add a new primary partition
 #   $type == 3 => 0xFD Linux RAID
 sub addpart($$)
