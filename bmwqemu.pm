@@ -79,8 +79,8 @@ our $timesidleneeded=2;
 our $standstillthreshold=600;
 
 our $realname="Bernhard M. Wiedemann";
-our $username=$ENV{LIVETEST} ? "root" : "bernhard";
-our $password=$ENV{LIVETEST} ? "" : "nots3cr3t";
+our $username=$ENV{LIVETEST} ? "root" : $ENV{UPGRADE} ? "openqa" : "bernhard";
+our $password=$ENV{LIVETEST} ? "" : $ENV{UPGRADE} ? "openqa" : "nots3cr3t";
 
 our $testresults="testresults";
 our $screenshotpath="qemuscreenshot";
@@ -122,8 +122,11 @@ our %cmd=qw(
 	next alt-n
 	xnext alt-n
 	install alt-i
+	update alt-u
 	finish alt-f
 	accept alt-a
+	ok alt-o
+	continue alt-o
 	createpartsetup alt-c
 	custompart alt-c
 	addpart alt-d
@@ -144,6 +147,7 @@ our %cmd=qw(
 	noautologin alt-a
 	change alt-c
 	software s
+	package p
 	bootloader b
 );
 
