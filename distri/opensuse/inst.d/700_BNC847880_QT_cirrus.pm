@@ -7,7 +7,7 @@ use bmwqemu;
 sub is_applicable()
 {
     my $self = shift;
-    return $self->SUPER::is_applicable && $ENV{DESKTOP} eq "kde";
+    return $self->SUPER::is_applicable && $ENV{DESKTOP} eq "kde" && !$ENV{DUALBOOT};
 }
 
 sub run()

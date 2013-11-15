@@ -4,8 +4,7 @@ use bmwqemu;
 # first boot is special - could have used kexec and has second stage configuration
 sub is_applicable()
 {
-	return 0 if $ENV{LIVETEST};
-	return 0 if $ENV{NICEVIDEO};
+	return 0 if $ENV{LIVETEST} || $ENV{NICEVIDEO} || $ENV{DUALBOOT};
         # Only because of kde/qt has a rendering error on i586 in qemu (bnc#847880).
 	# Also check 700_BNC847880_QT_cirrus.pm
 	return 1 if $ENV{DESKTOP} eq "kde";
