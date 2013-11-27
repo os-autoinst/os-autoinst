@@ -17,8 +17,10 @@ sub run()
 		sendkey "tab";
 		sendpassword;
 		sendkeyw "ret";
+		waitforneedle("partition-cryptlvm-summary", 3);
+	} else {
+		waitforneedle("partition-lvm-summary", 3);
 	}
-	$self->take_screenshot;
 }
 
 1;

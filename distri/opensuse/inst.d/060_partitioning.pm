@@ -4,6 +4,13 @@ use base "basenoupdate";
 use bmwqemu;
 
 
+sub is_applicable()
+{
+    my $self=shift;
+    return $self->SUPER::is_applicable && !$ENV{UPGRADE};
+}
+
+
 # add a new primary partition
 #   $type == 3 => 0xFD Linux RAID
 sub addpart($$)
@@ -90,7 +97,11 @@ sub setraidlevel($)
 # Entry test code
 sub run()
 {
-    waitforneedle('partioning', 40);
+    waitforneedle('partitioning', 40);
+
+    if($ENV{DUALBOOT}) {
+	waitforneedle('partitioning-windows', 40);
+    }
 
     # XXX: why is that here?
     if($ENV{TOGGLEHOME} && !$ENV{LIVECD}) {
@@ -187,7 +198,7 @@ sub run()
 
         # done
 	sendkey $cmd{"accept"};
-	waitforneedle('acceptedpartioning', 6);
+	waitforneedle('acceptedpartitioning', 6);
     } elsif ($ENV{BTRFS}) {
 	sendkey "alt-u";  # Use btrfs
 	waitforneedle('usebtrfs', 3);

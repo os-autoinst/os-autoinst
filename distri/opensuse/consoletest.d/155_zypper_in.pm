@@ -5,7 +5,7 @@ sub run()
 	my $self=shift;
 	become_root();
 	script_run("zypper lr -d > /dev/$serialdev");
-	script_run("killall gpk-update-icon packagekitd");
+	script_run("killall gpk-update-icon kpackagekitsmarticon packagekitd");
 	#script_run("zypper ar http://download.opensuse.org/repositories/Cloud:/EC2/openSUSE_Factory/Cloud:EC2.repo"); # for suse-ami-tools
 	script_run("zypper --gpg-auto-import-keys -n in screen rsync xdelta suse-ami-tools");
 	waitstillimage(12,90);

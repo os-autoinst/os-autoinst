@@ -79,8 +79,8 @@ our $timesidleneeded=2;
 our $standstillthreshold=600;
 
 our $realname="Bernhard M. Wiedemann";
-our $username=$ENV{LIVETEST} ? "root" : "bernhard";
-our $password=$ENV{LIVETEST} ? "" : "nots3cr3t";
+our $username=$ENV{LIVETEST} ? "root" : $ENV{UPGRADE} ? "openqa" : "bernhard";
+our $password=$ENV{LIVETEST} ? "" : $ENV{UPGRADE} ? "openqa" : "nots3cr3t";
 
 our $testresults="testresults";
 our $screenshotpath="qemuscreenshot";
@@ -122,8 +122,11 @@ our %cmd=qw(
 	next alt-n
 	xnext alt-n
 	install alt-i
+	update alt-u
 	finish alt-f
 	accept alt-a
+	ok alt-o
+	continue alt-o
 	createpartsetup alt-c
 	custompart alt-c
 	addpart alt-d
@@ -144,6 +147,7 @@ our %cmd=qw(
 	noautologin alt-a
 	change alt-c
 	software s
+	package p
 	bootloader b
 );
 
@@ -257,7 +261,7 @@ sub fctinfo {
 
 sub modstart {
 	my @text = @_;
-	$logfd && print $logfd "||| @text\n";
+	$logfd && printf $logfd "\n||| %s at %s\n", join(' ', @text), POSIX::strftime("%F %T", gmtime);
 	return unless $debug;
 	print STDERR colored("||| @text", 'bold')."\n";
 }
@@ -1087,7 +1091,7 @@ sub _waitforneedle {
 	}
 
 	# add some known env variables
-	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD UEFI NETBOOT PROMO)) {
+	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD LIVETEST UEFI NETBOOT PROMO FLAVOR)) {
 		push(@tags, "ENV-$key-" . $ENV{$key}) if $ENV{$key};
 	}
 

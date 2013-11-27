@@ -34,32 +34,21 @@ if ($ENV{UEFI} && !-e $ENV{UEFI_BIOS}) {
 
 mkpath($basedir);
 
-if($ENV{UPGRADE} && !$ENV{LIVECD}) {
-	my $file=$ENV{UPGRADE};
-	if(!-e $file) {die "'$ENV{UPGRADE}' should be old img.gz"}
-	$ENV{KEEPHDDS}=1;
-	# use qemu snapshot/cow feature to work on old image without writing it
-	unlink "$basedir/l1";
-	unlink "$basedir/1";
-	#system($qemuimg, "create", "-b", $file, "-f", "qcow2", "$basedir/l1");
-	system(qw"cp -a", $file, "$basedir/l1"); # reduce disk IO later
-	for my $i (2..$ENV{NUMDISKS}) {
-		system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $ENV{HDDSIZEGB}."G");
-	}
-}
-
 if(!$ENV{KEEPHDDS} && !$ENV{SKIPTO}) {
-	# fresh HDDs
-	for my $i (1..$ENV{NUMDISKS}) {
-		unlink("$basedir/l$i");
-		if(-e "$basedir/$i.lvm") {
-			symlink("$i.lvm","$basedir/l$i") or die "$!\n";
-			die "$!\n" unless system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1") == 0; # for LVM
-		} else {
-			die "$!\n" unless system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $ENV{HDDSIZEGB}."G") == 0;
-			symlink($i,"$basedir/l$i") or die "$!\n";
-		}
-	}
+    # fresh HDDs
+    for my $i (1..$ENV{NUMDISKS}) {
+	unlink("$basedir/l$i");
+	if(-e "$basedir/$i.lvm") {
+	    symlink("$i.lvm","$basedir/l$i") or die "$!\n";
+	    die "$!\n" unless system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1") == 0; # for LVM
+	} elsif(($ENV{UPGRADE} || $ENV{DUALBOOT}) && $i == 1) {
+            die "$!\n" unless system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", "-b", $ENV{HDDPATH}) == 0;
+	    symlink($i,"$basedir/l$i") or die "$!\n";
+	} else {
+	    die "$!\n" unless system($qemuimg, "create" ,"$basedir/$i", "-f", "qcow2", $ENV{HDDSIZEGB}."G") == 0;
+	    symlink($i,"$basedir/l$i") or die "$!\n";
+        }
+    }
 }
 
 for my $i (1..4) { # create missing symlinks
@@ -76,7 +65,7 @@ if($self->{'pid'}==0) {
 	       "-serial", "file:serial0",
 	       "-soundhw", "ac97",
 	       "-vga", $ENV{QEMUVGA}
-       );
+	);
 
 	if ($ENV{LAPTOP}) {
 	    for my $f (<$ENV{LAPTOP}/*.bin>) {
@@ -87,7 +76,8 @@ if($self->{'pid'}==0) {
 	for my $i (1..$ENV{NUMDISKS}) {
 		my $boot="";#$i==1?",boot=on":""; # workaround bnc#696890
 		push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd$i");
-		push(@params, "-device", "$ENV{HDDMODEL},drive=hd$i");
+		push(@params, "-device", "$ENV{HDDMODEL},drive=hd$i".(
+			 $ENV{HDDMODEL} =~ /ide-hd/ ? ",bus=ide.@{[$i-1]}" : ''));
 	}
 
 	if ($iso) {
@@ -104,7 +94,7 @@ if($self->{'pid'}==0) {
 
 	if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
 	if($ENV{UEFI}) { push(@params, "-bios", $ENV{UEFI_BIOS}); }
-	if($ENV{MULTINET}) {push(@params, qw"-net nic,vlan=1,model=virtio,macaddr=52:54:00:12:34:57 -net none,vlan=1")}
+	if($ENV{MULTINET}) {push(@params, qw"-net nic,vlan=1,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:57 -net none,vlan=1")}
 	push(@params, "-usb", "-usbdevice", "tablet");
 	push(@params, "-smp", $ENV{QEMUCPUS});
 	push(@params, "-enable-kvm");
@@ -124,6 +114,8 @@ if($self->{'pid'}==0) {
 	}
 
 	push @params, '-qmp',  "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-S";
+	my $port = $ENV{QEMUPORT}+1;
+	push @params, "-monitor", "telnet:127.0.0.1:$port,server,nowait";
 
 	unshift(@params, $qemubin);
 	unshift(@params, "/usr/bin/eatmydata") if (-e "/usr/bin/eatmydata");

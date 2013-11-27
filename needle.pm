@@ -23,8 +23,12 @@ sub new($;$) {
     } else {
       local $/;
       open( my $fh, '<', $jsonfile ) || return undef;
-      eval {$json = decode_json( <$fh> )} || die "broken json $jsonfile: $@";
+      eval {$json = decode_json( <$fh> )};
       close($fh);
+      if (!$json || $@) {
+	      warn "broken json $jsonfile: $@";
+	      return undef;
+      }
     }
     my $self = {
 	tags => ($json->{'tags'} || [])
@@ -59,7 +63,8 @@ sub new($;$) {
     my $png = $self->{png} || $self->{name} . ".png";
     $self->{png} = File::Spec->catpath('', dirname($jsonfile), $png);
     if (! -s $self->{png}) {
-      die "Can't find $self->{png}";
+      warn "Can't find $self->{png}";
+      return undef;
     }
 
     $self = bless $self, $classname;

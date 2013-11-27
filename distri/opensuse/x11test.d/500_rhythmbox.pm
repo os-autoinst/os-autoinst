@@ -3,16 +3,16 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return !$ENV{LIVECD};
+	return $ENV{DESKTOP} eq "gnome" && !$ENV{LIVECD};
 }
 
 sub run()
 {
 	my $self=shift;
-	ensure_installed("inkscape");
-	x11_start_program("inkscape");
+	x11_start_program("rhythmbox");
 	$self->check_screen;
-	sendkey "alt-f4"; # Exit
+	sendkey "alt-f4"; 
+	waitidle;
 }
 
 1;

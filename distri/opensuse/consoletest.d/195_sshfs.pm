@@ -1,5 +1,14 @@
 use base "basetest";
 use bmwqemu;
+
+sub is_applicable()
+{
+	my $self = shift;
+	# in live we don't have a password for root so ssh doesn't
+	# work anyways
+	$self->SUPER::is_applicable && !$ENV{LIVETEST};
+}
+
 sub run()
 {
 	my $self=shift;
@@ -17,6 +26,8 @@ sub run()
 	script_run("zypper -n in xdelta");
 	script_run("rpm -e xdelta");
 	script_run('cd /tmp');
+	# we need to umount that otherwise root is considered logged in!
+	script_run("umount /var/tmp/mnt");
 	# become user again
 	script_run('exit');
 	$self->check_screen;

@@ -57,8 +57,17 @@ if(!$ENV{LIVETEST}) {
 	}
 
 } else {
-	if($ENV{PROMO}) {
-		for(1..2) {sendkey "down";} # select KDE Live
+	if ($ENV{PROMO}) {
+		if(checkEnv("DESKTOP", "gnome")) {
+			sendkey "down" unless $ENV{OSP_SPECIAL};
+			sendkey "down";
+		} elsif(checkEnv("DESKTOP", "kde")) {
+			sendkey "down" unless $ENV{OSP_SPECIAL};
+			sendkey "down";
+			sendkey "down";
+		} else {
+			die "unsupported desktop $ENV{DESKTOP}\n";
+		}
 	}
 }
 

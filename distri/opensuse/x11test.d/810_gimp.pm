@@ -3,7 +3,8 @@ use bmwqemu;
 
 sub is_applicable()
 {
-	return !$ENV{NICEVIDEO};
+	return 0 if $ENV{NICEVIDEO};
+	return !($ENV{KDE} && $ENV{LIVECD});
 }
 
 sub run()

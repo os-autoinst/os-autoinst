@@ -9,7 +9,7 @@ sub run() {
 	# workaround for yast popups
 	my @tags = qw/rebootnow yast-error-ntp/;
 	while (1) {
-		my $ret = waitforneedle(\@tags, 950); # NET isos are slow to install
+		my $ret = waitforneedle(\@tags, 1500); # NET isos and UPGRADE are slow to install
 
 		last unless ($ret->{needle}->has_tag("yast-error-ntp"));
 		++$self->{dents};
@@ -54,13 +54,14 @@ sub run() {
 # meaning of this needle is unclear. It's used in grub as well as
 # 2nd stage automatic configuration. And then ere is also
 # reboot_after_install from 800_reboot_after_install.pm
-#	waitforneedle("reboot-after-installation", 100);
-#	if(checkneedle("inst-bootmenu", 1) || checkneedle("grub2", 1)) {
-#		sendkey "ret"; # avoid timeout for booting to HDD
-#	}
+# should waitforneedle wait for all three at the same time and then have only checkneedle afterwards?
+	wait_encrypt_prompt;
+	waitforneedle("reboot-after-installation", 100);
+	if(checkneedle("inst-bootmenu", 1) || checkneedle("grub2", 1)) {
+		sendkey "ret"; # avoid timeout for booting to HDD
+	}
 	qemusend "eject ide1-cd0";
 	sleep 3;
-	wait_encrypt_prompt;
 }
 
 1;

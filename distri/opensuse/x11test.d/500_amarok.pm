@@ -10,13 +10,11 @@ sub run()
 {
 	my $self=shift;
 	ensure_installed("amarok");
-	x11_start_program("amarok /usr/share/sounds/alsa/test.wav");
-	waitidle;
-	$self->check_screen;
-	sendkey "alt-f4"; sleep 3; # amazon store country popup
-	$self->check_screen;
-	sendkey "alt-d"; sendkeyw "alt-n"; # mp3 popup
-#	sendkey "alt-f4"; sleep 3; # close kwallet popup
+	$self->start_audiocapture;
+	x11_start_program("amarok http://openqa.opensuse.org/opensuse/audio/bar.oga");
+	sleep 3;
+	$self->check_DTMF('123A456B789C*0#D');
+	sleep 2;
 	$self->check_screen;
 	sendkeyw "alt-y"; # use music path as collection folder
 	$self->check_screen;

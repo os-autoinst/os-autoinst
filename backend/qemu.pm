@@ -11,7 +11,8 @@ use Time::HiRes qw(sleep gettimeofday);
 use IO::Select;
 use IO::Socket::UNIX qw( SOCK_STREAM );
 use IO::Handle;
-use Data::Dumper;
+use Data::Dump qw/pp/;
+use POSIX qw/strftime/;
 use JSON;
 require Carp;
 use Fcntl;
@@ -214,9 +215,11 @@ sub _read_json($) {
 	my $hash;
 	# make sure we read the answer completely
 	while (!$hash) {
+		my @res = $s->can_read(60);
+		unless (@res) {
+			die "ERROR: timeout reading JSON reply\n";
+		}
 		my $qbuffer;
-		my @res = $s->can_read(0.5);
-		if (!@res) { next; }
 		my $bytes = sysread($socket, $qbuffer, 1);
 		if (!$bytes) { print STDERR "sysread failed: $!\n"; return undef; }
 		$rsp .= $qbuffer;
@@ -310,9 +313,17 @@ sub send
 	my $wb = syswrite($self->{to_child}, "$json\n");
 	die "syswrite failed $!" unless ($wb == length($json) + 1);
 	my $rsp = '';
+
+	my $s = IO::Select->new();
+	$s->add($self->{from_child});
+
 	while (1) {
 	   my $buffer;
 	   #print STDERR "before read from_child\n";
+	   unless ($s->can_read(60)) {
+		bmwqemu::diag "ERROR: 60 seconds no reply to send '".Data::Dump::pp($cmd)."'";
+		return undef;
+	   }
 	   my $bytes = sysread($self->{from_child}, $buffer, 1000);
 	   #print STDERR "from_child got $bytes\n";
 	   return undef unless ($bytes);
@@ -374,7 +385,7 @@ sub _read_hmp($) {
 	my $s = IO::Select->new();
 	$s->add($hmpsocket);
 
-	while (my @ready = $s->can_read) {
+	while (my @ready = $s->can_read(60)) {
 		my $buffer;
 		my $bytes = sysread($hmpsocket, $buffer, 1000);
 		last unless ($bytes);
@@ -405,6 +416,8 @@ sub _read_hmp($) {
 			return $line;
 		}
 	}
+
+	die "ERROR: timeout reading hmp socket\n";
 }
 
 sub _run
@@ -540,7 +553,7 @@ sub _run
 	print $rsppipe $MAGIC_PIPE_CLOSE_STRING;
 	close($rsppipe) || die "close $!\n";
 
-	bmwqemu::diag("management thread exit");
+	bmwqemu::diag("management thread exit at ".POSIX::strftime("%F %T", gmtime));
 }
 
 1;

@@ -146,10 +146,10 @@ if($ENV{REGRESSION}){
 } else {
     autotest::loadtestdir("$ENV{CASEDIR}/inst.d");
     if(!$ENV{'INSTALLONLY'}) {
-        if(!$ENV{NICEVIDEO}) {
+        if(!$ENV{NICEVIDEO} && !$ENV{DUALBOOT}) {
             autotest::loadtestdir("$ENV{CASEDIR}/consoletest.d");
         }
-        if($ENV{DESKTOP}!~/textmode|minimalx/) {
+        if($ENV{DESKTOP}!~/textmode|minimalx/ && !$ENV{DUALBOOT}) {
             autotest::loadtestdir("$ENV{CASEDIR}/x11test.d");
         }
     }

@@ -32,6 +32,17 @@ sub run()
 	    sendkey "ret";
 	    return;
 	}
+	if ($ENV{PROMO}) {
+		if(checkEnv("DESKTOP", "gnome")) {
+			sendkey "down" unless $ENV{OSP_SPECIAL};
+			sendkey "down";
+		} elsif(checkEnv("DESKTOP", "kde")) {
+			# KDE is first entry for OSP image
+			sendkey "down" unless $ENV{OSP_SPECIAL};
+		} else {
+			die "unsupported desktop $ENV{DESKTOP}\n";
+		}
+	}
 # assume bios+grub+anim already waited in start.sh
 # in grub2 it's tricky to set the screen resolution
 	sendkey "e";
