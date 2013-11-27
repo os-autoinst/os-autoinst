@@ -23,8 +23,8 @@ sub run()
     }
 
     sendkey "alt-h"; sleep 1;
-    sendkey "h"; sleep 4;
-    checkneedle("firefox_help-help",6);
+    sendkey "h"; sleep 6;
+    checkneedle("firefox_help-help",8);
     sendkey "ctrl-w"; sleep 1;        #close the firefox help tab
     sendkey "alt-h"; sleep 1;
     sendkey "t"; sleep 1;
@@ -32,30 +32,30 @@ sub run()
     sendkey "ctrl-w"; sleep 1;        #close the firefox troubleshooting tab
     sendkey "alt-h"; sleep 1;
     sendkey "s"; sleep 6;
-    checkneedle("firefox_help-feedback",3);
+    checkneedle("firefox_help-feedback",8);
     sendkey "ctrl-w"; sleep 1;        #close the firefox submit feedback tab
 #test firefox--report web forgery
     sendkey "alt-h"; sleep 1;
     sendkey "f"; sleep 6;
-    checkneedle("firefox_help-forgery",3);    #need to close tab cause if open in current tab
+    checkneedle("firefox_help-forgery",5);    #need to close tab cause if open in current tab
 #test firefox--about firefox
     sendkey "alt-h"; sleep 1;
     sendkey "a"; sleep 1;
-    checkneedle("firefox_help-about",3);
+    checkneedle("firefox_help-about",5);
     sendkey "alt-f4"; sleep 1;        #close the firefox about dialog
 #test firefox help--restart with addons disable
     sendkey "alt-h"; sleep 1;
     sendkey "r"; sleep 2;
-    checkneedle("firefox_restart-addons-disable",3);
+    checkneedle("firefox_restart-addons-disable",5);
     sendkey "ret"; sleep 3;
     checkneedle("firefox_safemode",3);
     sendkey "ret"; sleep 4;
-    checkneedle("firefox_help-forgery",3);    #open last site before close
+    checkneedle("firefox_help-forgery",5);    #will open last closed website
     sendkey "ctrl-shift-a"; sleep 3;
     sendkey "tab"; sleep 1;
     sendkey "tab"; sleep 1;            #switch to extension column of add-ons
     sendkey "down"; sleep 1;
-    checkneedle("firefox_addons-savemode",3);
+    checkneedle("firefox_addons-safemode",5);
 #recover all changes--switch addons page to default column
     sendkey "up"; sleep 1;
     sendkey "ctrl-w"; sleep 1;        #close the firefox addons tab

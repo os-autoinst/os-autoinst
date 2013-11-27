@@ -32,34 +32,38 @@ sub run()
     sendkey "alt-r"; sleep 1;        #remember password
     sendkey "r"; sleep 1;
 #clear recent history otherwise gmail will login automatically
-    sendkey "ctrl-shift-delete"; sleep 1;
+    sendkey "ctrl-shift-delete"; sleep 2;
     sendkey "shift-tab"; sleep 1;        #select clear now
     sendkey "ret"; sleep 1;
 #login mail.google.com again to check the password
     sendkey "ctrl-l"; sleep 2;
-    sendautotype "mail.google.com\n"; sleep 4;
-    checkneedle("firefox_page-gmail3",3);
+    sendautotype "mail.google.com\n"; sleep 5;
+    checkneedle("firefox_page-gmail3",5);
 
 #recover all the changes
-    sendkey "alt-e"; sleep 1;
-    sendkey "n"; sleep 1;
-    for(1..3) {            #select the "Security" tab of Preference
-        sendkey "left"; sleep 1;
-    }
-    sendkey "alt-p"; sleep 1;
-    sendkey "alt-a"; sleep 1;
-    sendkey "y"; sleep 1;
-    sendkey "alt-c"; sleep 1;
-    sendkey "esc"; sleep 1;            #close the Preference
-    sendkey "alt-e"; sleep 1;
-    sendkey "n"; sleep 1;
-    for(1..3) {                #switch the tab from "Security" to "General" 
-        sendkey "right"; sleep 1;
-    }
-    sendkey "esc"; sleep 1;
+#    sendkey "alt-e"; sleep 1;
+#    sendkey "n"; sleep 1;
+#    for(1..3) {            #select the "Security" tab of Preference
+#        sendkey "left"; sleep 1;
+#    }
+#    sendkey "alt-p"; sleep 1;
+#    sendkey "alt-a"; sleep 1;
+#    sendkey "y"; sleep 1;
+#    sendkey "alt-c"; sleep 1;
+#    sendkey "esc"; sleep 1;            #close the Preference
+#    sendkey "alt-e"; sleep 1;
+#    sendkey "n"; sleep 1;
+#    for(1..3) {                #switch the tab from "Security" to "General" 
+#        sendkey "right"; sleep 1;
+#    }
+#    sendkey "esc"; sleep 1;
         
     sendkey "alt-f4"; sleep 2;
     sendkey "ret"; sleep 2; # confirm "save&quit"
+
+    sendkey "alt-f2"; sleep 2;
+    sendautotype "rm -rf .mozilla\n"; sleep 2;
+    sendkey "ret"; sleep 5;
 }
 
 1;
