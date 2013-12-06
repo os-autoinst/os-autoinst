@@ -120,6 +120,14 @@ if($self->{'pid'}==0) {
 	unshift(@params, $qemubin);
 	unshift(@params, "/usr/bin/eatmydata") if (-e "/usr/bin/eatmydata");
 
+	# easter egg can be quite annoying, move to January next year ...
+	my @date = gmtime;
+	if ($date[4] == 11) {
+		$date[4]=0;
+		$date[5]++;
+		push @params, '-rtc', POSIX::strftime("base=%Y-%m-%dT%H%M%S", @date);
+	}
+
 	bmwqemu::diag("starting: ".join(" ", @params));
 
 	exec(@params);
