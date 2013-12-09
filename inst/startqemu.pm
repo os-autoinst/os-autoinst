@@ -85,7 +85,7 @@ for my $i (1..4) { # create missing symlinks
 $self->{'pid'}=fork();
 die "fork failed" if(!defined($self->{'pid'}));
 if($self->{'pid'}==0) {
-	my @params=($qemubin, qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
+	my @params=($qemubin, qw(-machine accel=kvm,kernel_irqchip=on -m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
 	if ($ENV{LAPTOP}) {
 	    for my $f (<$ENV{LAPTOP}/*.bin>) {
 		push @params, '-smbios', "file=$f";
