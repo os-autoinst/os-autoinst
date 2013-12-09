@@ -72,7 +72,8 @@ if($self->{'pid'}==0) {
 	       "-serial", "file:serial0",
 	       "-soundhw", "ac97",
 	       "-global", "isa-fdc.driveA=",
-	       "-vga", $ENV{QEMUVGA}
+	       "-vga", $ENV{QEMUVGA},
+	       "-machine", "accel=kvm,kernel_irqchip=on"
 	);
 
 	if ($ENV{LAPTOP}) {
