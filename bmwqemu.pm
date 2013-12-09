@@ -64,7 +64,7 @@ our $gocrbin="/usr/bin/gocr";
 our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
 our $testedversion=$ENV{ISO}||""; $testedversion=~s{.*/}{};$testedversion=~s/\.iso$//; $testedversion=~s{-Media1?$}{};
 if(!$ENV{DISTRI}) {
-	if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi|FreeBSD|archlinux)-/) {$ENV{DISTRI}=lc($1)}
+	if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi|FreeBSD|archlinux|Mageia)-/) {$ENV{DISTRI}=lc($1)}
 }
 $ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
 foreach my $part (split("-", $testedversion)) {$ENV{uc($part)}=1}
