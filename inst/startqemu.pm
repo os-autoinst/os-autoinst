@@ -120,11 +120,12 @@ if($self->{'pid'}==0) {
 	unshift(@params, $qemubin);
 	unshift(@params, "/usr/bin/eatmydata") if (-e "/usr/bin/eatmydata");
 
-	# easter egg can be quite annoying, move to January next year ...
+	# easter egg can be quite annoying and happens in December
+	# and January. February next year ...
 	my @date = gmtime;
-	if ($date[4] == 11) {
-		$date[4]=0;
-		$date[5]++;
+	if ($date[4] == 0 || $date[4] == 11) {
+		$date[5]++ if $date[4] == 11;
+		$date[4]=1;
 		push @params, '-rtc', POSIX::strftime("base=%Y-%m-%dT%H%M%S", @date);
 	}
 
