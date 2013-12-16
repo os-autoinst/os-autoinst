@@ -68,7 +68,7 @@ if($ENV{RES1024}) { # default is 800x600
 #sendautotype("nomodeset "); # coolo said, 12.3-MS0 kernel/kms broken with cirrus/vesa #fixed 2012-11-06
 
 # https://wiki.archlinux.org/index.php/Kernel_Mode_Setting#Forcing_modes_and_EDID
-sendautotype("vga=791 ");
+#sendautotype("vga=791 "); # it might breaks console
 sendautotype("video=1024x768-16 ");
 sendautotype("drm_kms_helper.edid_firmware=edid/1024x768.bin ");
 waitforneedle("inst-video-typed-grub2", 13);
