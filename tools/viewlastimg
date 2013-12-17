@@ -1,5 +1,0 @@
-#!/bin/sh
-img=qemuscreenshot/`ls qemuscreenshot|tail -1`
-#md5sum $img
-display $img
-
