@@ -161,6 +161,7 @@ sub init(;$) {
 	$needledir = shift if @_;
 	%needles = ();
 	%tags = ();
+	bmwqemu::diag("init needles from $needledir");
 	find( { no_chdir => 1, wanted => \&wanted_, follow => 1 }, $needledir );
 	bmwqemu::diag(sprintf("loaded %d needles", scalar keys %needles));
 	#for my $k (keys %tags) {

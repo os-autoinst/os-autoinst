@@ -27,7 +27,7 @@ bmwqemu::clean_control_files();
 
 bmwqemu::save_results();
 
-needle::init("$scriptdir/distri/$ENV{DISTRI}/needles") if ($scriptdir && $ENV{DISTRI});
+needle::init("$ENV{CASEDIR}/needles/");
 
 my $init=1;
 alarm (7200+($ENV{UPGRADE}?3600:0)); # worst case timeout

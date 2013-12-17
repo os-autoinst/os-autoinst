@@ -96,16 +96,26 @@ unless ($testedversion) {
 	$testedversion=~s/\.iso$//;
 	$testedversion=~s{-Media1?$}{};
 }
-if(!$ENV{DISTRI}) {
-	if($testedversion=~m/^(debian|openSUSE|Fedora|SLE[SD]-1\d|oi|FreeBSD|archlinux)-/) {$ENV{DISTRI}=lc($1)}
+
+die "DISTRI undefined\n" unless $ENV{DISTRI};
+
+unless ($ENV{CASEDIR}) {
+	my @dirs = ("$scriptdir/distri/$ENV{DISTRI}");
+	unshift @dirs, $dirs[-1]."-".$ENV{VERSION} if ($ENV{VERSION});
+	for my $d (@dirs) {
+		if (-d $d) {
+			$ENV{CASEDIR} = $d;
+			last;
+		}
+	}
+	die "can't determine test directory for $ENV{DISTRI}\n" unless $ENV{CASEDIR};
 }
-$ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
 
 ## env vars
 $ENV{UEFI_BIOS}||='/usr/share/qemu/ovmf-x86_64-ms.bin';
 $ENV{QEMUPORT}||=15222;
 $ENV{INSTLANG}||="en_US";
-$ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
+
 if(defined($ENV{DISTRI}) && $ENV{DISTRI} eq 'archlinux') {$ENV{HDDMODEL}="ide";}
 
 if ($ENV{LAPTOP}) {
