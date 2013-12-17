@@ -1,16 +1,28 @@
 #!/bin/bash
 set -e
+dir="/var/lib/os-autoinst/tests/opensuse"
 if [ -w / ]; then
+	if [ ! -e "$dir" ]; then
+		 mkdir -p "$dir"
+		 chown wwwrun:www "$dir"
+	fi
 	echo "running as root, re-exec as wwwrun ..."
 	exec sudo -u wwwrun "$0" "$@"
 	exit 1
 fi
-cd /var/lib/os-autoinst/needles
+cd "$dir"
 if [ ! -d .git ]; then
-	git clone git://github.com/openSUSE-Team/os-autoinst-needles.git .
+	git clone git://github.com/openSUSE-Team/os-autoinst-distri-opensuse.git .
+	git config user.email "openqa@suse.de"
+	git config user.name "openQA web UI"
+	git clone git://github.com/openSUSE-Team/os-autoinst-needles-opensuse.git needles
+	cd needles
 	git config user.email "openqa@suse.de"
 	git config user.name "openQA web UI"
 else
+	git fetch
+	git rebase origin/master
+	cd needles
 	git fetch
 	git rebase origin/master
 fi
