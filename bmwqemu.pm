@@ -1279,6 +1279,7 @@ sub save_results(;$$)
 	fcntl($fd, F_SETLKW, pack('ssqql', F_WRLCK, 0, 0, 0, $$)) or die "cannot lock results.json: $!\n";
 	truncate($fd, 0) or die "cannot truncate results.json: $!\n";
 	my $result = { 'distribution' => $ENV{'DISTRI'},
+		       'version' => $ENV{'VERSION'}||'',
 		       'testmodules' => $testmodules,
 		       'dents' => 0,
 	       };
