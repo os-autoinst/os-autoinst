@@ -1,6 +1,10 @@
 about:
-The OS-autoinst project aims at providing a means to run fully automated tests. Especially to run tests of basic and low-level operating system components such as bootloader, kernel, installer and upgrade, which can not easily and safely be tested with other automated testing frameworks.
-However, it can just as well be used to test firefox and openoffice operation on top of a newly installed OS.
+The OS-autoinst project aims at providing a means to run fully automated tests.
+Especially to run tests of basic and low-level operating system components such
+as bootloader, kernel, installer and upgrade, which can not easily and safely
+be tested with other automated testing frameworks. However, it can just as well
+be used to test firefox and openoffice operation on top of a newly installed
+OS.
 
 
 for setup see INSTALL
@@ -15,19 +19,7 @@ so make sure that you have at least 8GB of space there.
 
 you can watch what it is doing by calling either
 vncviewer localhost:99
-or
-tools/viewlastimg
-
-
-to inject qemu commands for extra testing you can
-echo sendkey ctrl-alt-f1 | netcat localhost 15223
-
-
 
 
 If you want to contribute to this project, please clone and send git-pull requests via
-http://gitorious.org/os-autoinst/
-
-alternatively send patches or git pull requests for the current version
-to <bernhard+osautoinst lsmod de>
-
+https://github.com/openSUSE-Team/os-autoinst

@@ -1,69 +1,10 @@
-== Notes ==
+FIXME
 
-- to test 64-bit guests, you need a 64-bit host kernel
-- for hardware-accelleration (you really want that) you need a modern CPU. check with
-grep --color=auto -e vmx -e svm /proc/cpuinfo 
-- it is possible to test two isos at the same time by using two different working directories with different env.sh config files. especially the QEMUPORT and VNC values must be unique
+in addition to this repo you also need to clone test cases and needles:
 
+$ mkdir distri
+$ cd distri
+$ git clone git@github.com:openSUSE-Team/os-autoinst-distri-opensuse.git opensuse
+$ cd opensuse
+$ git clone git@github.com:openSUSE-Team/os-autoinst-needles-opensuse.git needles
 
-== Debian/lenny setup ==
-
-as root:
-echo "deb    http://ftp.de.debian.org/debian/  squeeze          main" > /etc/apt/sources.list.d/squeeze.list
-
-cat >>/etc/apt/preferences <<EOF
-Package: *
-Pin: release o=Debian,a=testing
-Pin-Priority: 40
-EOF
-
-aptitude update
-
-aptitude install git-core kvm/testing ffmpeg2theora/testing gocr/testing multimon sox
-
-echo kvm-intel >> /etc/modules
-
-
-== openSUSE setup ==
-
-    # not essential; for audio
-    OneClickInstallUI http://multiymp.zq1.de/multimon?base=http://download.opensuse.org/repositories/hamradio/
-
-    zypper ar -r http://r.opensu.se/devel:openQA/$(. /etc/os-release; echo $VERSION_ID)/r
-    zypper install git-core kvm gocr png2theora perl-JSON v4l-tools perl-Net-SNMP perl-Data-Dump perl-Inline perl-Carp-Always make gcc gcc-c++ opencv-devel optipng
-
-    # for crop.py
-    zypper install python-tk python-imaging
-
-    usermod -G kvm -a $USERNAME || usermod -A kvm $USERNAME
-
-== more Linux setup ==
-
-modprobe kvm-intel || modprobe kvm-amd
-chgrp kvm /dev/kvm ; chmod g+rw /dev/kvm # maybe redundant
-# optionally use a new user; just to keep things separate
-useradd -m USERNAME -G kvm
-passwd USERNAME # and/or add ~USERNAME/.ssh/authorized_keys
-
-
-== user setup ==
-
-git clone http://www3.zq1.de/bernhard/git/autoinst.git/ autoinst
-cp -a env.sh.sample env.sh
-edit env.sh # see comments there ; adjust or drop HTTPPROXY and SUSEMIRROR lines
-
-
-==VirtualBox Setup==
-Install VirtualBox either from your distribution's DVD or 
-From http://software.opensuse.org/package/virtualbox
-After installation of VirtualBox do this
-insmod vboxdrv
-usermod -G vboxusers -a $USERNAME || usermod -A vboxusers $USERNAME
-Log out and in and you are done
-
-===Setting up OS-autoinst for VirtualBox===
-add to env.sh:
-export BACKEND=vbox
-and create a Virtual Machine named "osautoinst" with at least 8GB of HDD
-
-for usage see README
