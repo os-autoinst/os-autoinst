@@ -1,1 +1,0 @@
-../../sles-11/consoletest.d/250_curl_ipv6.pm

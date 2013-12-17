@@ -1,1 +1,0 @@
-../../sles-11/inst.d/090_install.pm

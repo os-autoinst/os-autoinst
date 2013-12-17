@@ -1,1 +1,0 @@
-../../opensuse/consoletest.d/550_syslinux.pm

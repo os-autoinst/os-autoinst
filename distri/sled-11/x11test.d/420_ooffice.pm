@@ -1,1 +1,0 @@
-../../opensuse/x11test.d/420_ooffice.pm

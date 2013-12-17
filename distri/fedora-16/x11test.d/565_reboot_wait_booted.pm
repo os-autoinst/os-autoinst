@@ -1,1 +1,0 @@
-../../debian/x11test.d/565_reboot_wait_booted.pm

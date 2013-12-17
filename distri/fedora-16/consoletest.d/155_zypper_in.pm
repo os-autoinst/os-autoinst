@@ -1,1 +1,0 @@
-../../opensuse/consoletest.d/155_zypper_in.pm

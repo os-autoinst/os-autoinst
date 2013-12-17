@@ -1,1 +1,0 @@
-../../opensuse/inst.d/045_hw_clear_disks.pm

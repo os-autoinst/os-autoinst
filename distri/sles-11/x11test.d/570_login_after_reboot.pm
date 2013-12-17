@@ -1,1 +1,0 @@
-../../opensuse/x11test.d/570_xfce_login_after_reboot.pm

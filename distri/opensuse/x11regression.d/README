@@ -1,3 +1,0 @@
-The needles are corresponding to openSuSE-Factory-build0659.
-Enable the flag "REGRESSION" in makefile to active the cases in x11regression.
-Enable the flag "KEEPHDDS" in makefile if using a pre-installed vm hard disk.

@@ -1,1 +1,0 @@
-../../sles-11/inst.d/050_welcome.pm

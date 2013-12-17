@@ -1,1 +1,0 @@
-../../opensuse/x11test.d/900_shutdown_gnome.pm

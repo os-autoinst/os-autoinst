@@ -1,1 +1,0 @@
-../../sles-11/inst.d/056_logpackages.pm

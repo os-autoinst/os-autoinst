@@ -1,1 +1,0 @@
-../../sles-11/consoletest.d/190_sshd.pm

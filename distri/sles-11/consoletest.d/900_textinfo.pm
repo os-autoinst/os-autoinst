@@ -1,1 +1,0 @@
-../../opensuse/consoletest.d/900_textinfo.pm
