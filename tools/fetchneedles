@@ -1,28 +1,47 @@
 #!/bin/bash
-set -e
-dir="/var/lib/os-autoinst/tests/opensuse"
+set -xe
+: ${giturl:="git://github.com/openSUSE-Team/os-autoinst-%s-%s.git"}
+: ${email:="openqa@suse.de"}
+: ${linkdir:="/usr/lib/os-autoinst/distri"}
+
+dists=("$@")
+if [ -z "$dists" ]; then
+	dists=("opensuse")
+fi
+dir="/var/lib/os-autoinst/tests"
 if [ -w / ]; then
-	if [ ! -e "$dir" ]; then
-		 mkdir -p "$dir"
-		 chown wwwrun:www "$dir"
-	fi
+	for dist in "${dists[@]}"; do
+		if [ ! -e "$dir/$dist" ]; then
+			mkdir -p "$dir/$dist"
+			chown wwwrun:www "$dir/$dist"
+		fi
+		if [ -e "$linkdir/$dist" ]; then
+			if [ ! -L "$linkdir/$dist" ]; then
+				echo "Warning: $linkdir/$dist is not a link"
+			fi
+		else
+			ln -s "$dir/$dist" "$linkdir/$dist"
+		fi
+	done
 	echo "running as root, re-exec as wwwrun ..."
-	exec sudo -u wwwrun "$0" "$@"
+	exec sudo -u wwwrun env giturl="$giturl" email="$email" linkdir="$linkdir" "$0" "$@"
 	exit 1
 fi
-cd "$dir"
-if [ ! -d .git ]; then
-	git clone git://github.com/openSUSE-Team/os-autoinst-distri-opensuse.git .
-	git config user.email "openqa@suse.de"
-	git config user.name "openQA web UI"
-	git clone git://github.com/openSUSE-Team/os-autoinst-needles-opensuse.git needles
-	cd needles
-	git config user.email "openqa@suse.de"
-	git config user.name "openQA web UI"
-else
-	git fetch
-	git rebase origin/master
-	cd needles
-	git fetch
-	git rebase origin/master
-fi
+for dist in "${dists[@]}"; do
+	cd "$dir/$dist"
+	if [ ! -d .git ]; then
+		git clone `printf "$giturl" distri "$dist"` .
+		git config user.email "$email"
+		git config user.name "openQA web UI"
+		git clone `printf "$giturl" needles "$dist"` needles
+		cd needles
+		git config user.email "$email"
+		git config user.name "openQA web UI"
+	else
+		git fetch
+		git rebase origin/master
+		cd needles
+		git fetch
+		git rebase origin/master
+	fi
+done
