@@ -8,3 +8,9 @@ $ git clone git@github.com:openSUSE-Team/os-autoinst-distri-opensuse.git opensus
 $ cd opensuse
 $ git clone git@github.com:openSUSE-Team/os-autoinst-needles-opensuse.git needles
 
+== use of git repo with with openQA
+
+to use os-autoinst with openQA it needs to be "installed". Placing a
+symlink to /usr/lib/os-autoinst that points to the git checkout
+should work. To make tests and needles writable don't touch distri/
+and use tools/fetchneedles instead to set it up.
