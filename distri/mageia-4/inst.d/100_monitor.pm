@@ -7,7 +7,7 @@ sub run()
         mouse_set(10,10);
         mouse_hide(1);
         sleep 1;
-	if($ENV{DESKTOP}=~/kde/) {
+	unless($ENV{DESKTOP}=~/none/) {
 	waitidle(30);
 	waitstillimage(30,200);
 

@@ -25,7 +25,8 @@ sub consoletestrunfunc
 
 my $waitfactor = 1;
 set_hash_rects(
-	[210,40,570,510]
+	[210,40,570,510],
+	[225,70,500,17]
 	);
 autotest::runtestdir("$ENV{CASEDIR}/inst.d", undef);
 
