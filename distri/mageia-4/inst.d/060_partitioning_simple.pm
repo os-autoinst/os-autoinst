@@ -4,11 +4,14 @@ use bmwqemu;
 
 sub run()
 {
- mouse_set(10,10);
- mouse_hide(1);
- sleep 1;
- waitidle(10);
-	waitstillimage(20,2000);
+  mouse_set(10,10);
+  mouse_hide(1);
+  sleep 1;
+  mouse_hide(0);
+  mouse_set(500,444);
+  # mouse_click('left',0.15);
+  waitidle(10);
+  waitstillimage(20,2000);
 if($ENV{PART}=~/lvm/) {
   sendkey "tab"; # select disk drive
   sleep 1;
@@ -19,9 +22,26 @@ if($ENV{PART}=~/lvm/) {
   sendkey "tab"; # select help
   sleep 1;
   sendkey "tab"; # select next
-  sleep 1;
+  sleep 10;
   sendkey "ret"; # push next
-  sleep 1;
+  sleep 10;
+  if (waitinststage('mageia4-bug1',6)) {
+  sendkey "ret"; # push next
+  sleep 10;
+  sendkey "tab"; # select disk drive
+  sleep 10;
+  sendkey "tab"; # select partitioning solution
+  sleep 10;
+  sendkey "down"; # select custom
+  sleep 10;
+  sendkey "tab"; # select help
+  sleep 10;
+  sendkey "tab"; # select next
+  sleep 10;
+  sendkey "ret"; # push next
+  sleep 10;
+  print "Bug 1 occured";
+  }
   sendkey "tab";
   sleep 1;
   sendkey "tab"; # select empty disk
@@ -116,7 +136,14 @@ if($ENV{PART}=~/lvm/) {
   sleep 1;
   sendkey "ret"; # write partition table to disk
   sleep 1;
-  waitinststage("mageia-newlvm", 9000);
+
+  mouse_set(10,10);
+  mouse_hide(1);
+  waitinststage("mageia4-newlvm", 9000);
+  sleep 1;
+  mouse_hide(0);
+  mouse_set(500,444);
+
   sendkey "ret"; # accept default name
   # diag("Handing over for manual testing");
 #   sleep 9000;

@@ -4,7 +4,7 @@ use bmwqemu;
 
 sub run()
 {
-	waitidle(50);
+	waitidle(2000);
 	waitstillimage(60,3600);
 	mouse_hide();
 	waitinststage ("mageia4-setupusers1",100);

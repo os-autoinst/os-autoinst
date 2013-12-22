@@ -4,10 +4,13 @@ use bmwqemu;
 
 sub run()
 { my $self=shift;
+	waitidle(120);
+	sleep 10;
+	waitidle(30);
 	if($ENV{DESKTOP}=~/none/) {
 		waitinststage("mageia4-text-console",3000);
         } else {
-		waitstillimage(120,1000);
+		waitstillimage(20,1000);
 		sendkey "ctrl-alt-f4";
 	}
 	sleep 2;
