@@ -44,12 +44,13 @@ and that you have your hypervisor setup, see above:
 1.  Download os-autoinst, using git:
     `git clone git://github.com/nelg/os-autoinst.git`
 2.  Compile:
+
 ```bash
   ./autogen.sh
   ./configure --with-opencv
   make
-
 ```
+
 3.  Download, or place a copy of Mageia-3-beta4-x86_64-DVD.iso or simular into ~test/tmp
     `cd ~/tmp
     wget ..`
