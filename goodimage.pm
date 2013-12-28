@@ -348,6 +348,7 @@ d64e2ffa328c45f2b33d740e931aa3d9 mageia4-text-console
 c05077ef96b1993e45ded3febd264d51 mageia4-setupusers-pic
 bc83a4b1df0654646a5719c28244bbc9 mageia4-setupusers-pic1
 6d3e97092f2c9730cfc546606aadaf51 mageia4-setupusers-nopic
+1c35ad8b47da9853889b70cdf8710bda mageia4-setupusers-nopic1
 273d89248191067776fb67e3587dfd2f mageia4-summary
 90168957eb1062ba01db4536826cc003 mageia4-summary1
 519659174c08cbb687499223c97ec5c9 mageia4-newlvm
