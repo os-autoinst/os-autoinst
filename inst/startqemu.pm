@@ -74,6 +74,12 @@ if(!$ENV{KEEPHDDS}) {
 		@cdrom=();
 	}
 }
+if($ENV{AUTO_INST}) {
+	unlink("$basedir/autoinst.img");
+	system("/sbin/mkfs.vfat","-C","$basedir/autoinst.img","1440");
+	system("/usr/bin/mcopy","-i","$basedir/autoinst.img",$ENV{AUTO_INST},"::/");
+#	system("/usr/bin/mdir","-i","$basedir/autoinst.img");
+}
 sleep 5;
 
 
@@ -85,7 +91,7 @@ for my $i (1..4) { # create missing symlinks
 $self->{'pid'}=fork();
 die "fork failed" if(!defined($self->{'pid'}));
 if($self->{'pid'}==0) {
-	my @params=($qemubin, qw(-m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
+	my @params=($qemubin, qw(-machine accel=kvm,kernel_irqchip=on -m 1024 -net user -monitor), "tcp:127.0.0.1:$ENV{QEMUPORT},server,nowait", "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-vga", $ENV{QEMUVGA}, "-S");
 	if ($ENV{LAPTOP}) {
 	    for my $f (<$ENV{LAPTOP}/*.bin>) {
 		push @params, '-smbios', "file=$f";
@@ -101,6 +107,9 @@ if($self->{'pid'}==0) {
 		if($ENV{VNC}!~/:/) {$ENV{VNC}=":$ENV{VNC}"}
 		push(@params, "-vnc", $ENV{VNC});
 		push(@params, "-k", $ENV{VNCKB}) if($ENV{VNCKB});
+	}
+	if($ENV{AUTO_INST}) {
+		push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
 	}
 	if($ENV{QEMUCPU}) { push(@params, "-cpu", $ENV{QEMUCPU}); }
 	if($ENV{UEFI}) { push(@params, "-L", $ENV{UEFI_BIOS_DIR}); }
