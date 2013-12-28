@@ -40,47 +40,35 @@ This instructions assumes you are going to use a user on your system called test
 and that you have your hypervisor setup, see above:
 
 0.  Switch to your test user:
-
-    su - test
-
+    `su - test`
 1.  Download os-autoinst, using git:
-
-    git clone git://github.com/nelg/os-autoinst.git
-
+    `git clone git://github.com/nelg/os-autoinst.git`
 2.  Compile
-
-    ./autogen.sh
+    `./autogen.sh
     ./configure --with-opencv
-    make
-
+    make`
 3.  Download, or place a copy of Mageia-3-beta4-x86_64-DVD.iso or simular into ~test/tmp
-
-    cd ~/tmp
-    wget ..
-
+    `cd ~/tmp
+    wget ..`
 4.  Ensure you have at least 8gb free disk space.
-
-    df -h
-
+    `df -h`
 5.  Copy the enviroment file to ~/tmp
-
-    cd ~/tmp
+    `cd ~/tmp
     cp ~/os-autoinst/env-mageia3.sh.sample env.sh
-    vi env.sh (See comments within file)
+    vi env.sh` (See comments within file)
 
 6.  Run the test
-
-    ../os-autoinst/tools/isotovideo Mageia-3-beta4-x86_64-DVD.iso
+    `../os-autoinst/tools/isotovideo Mageia-3-beta4-x86_64-DVD.iso`
 
 ## watching the test
 To watch the test, use
-  vncviewer -PreferredEncoding=raw localhost:99
+  `vncviewer -PreferredEncoding=raw localhost:99`
 
 Note, the -PreferredEncoding=raw flag is really important.  Without this, your CPU usage will rocket up and the waitidle tests will generally fail, which will tend to cause the automated install to not work very well.
 
 
 To watch after the test has run, use:
-  mplayer video/Mageia-3-beta4-x86_64-DVD.ogv
+  `mplayer video/Mageia-3-beta4-x86_64-DVD.ogv`
 You can step through individual frames after pausing it, using the . key.
 
 ## Editing the tests
