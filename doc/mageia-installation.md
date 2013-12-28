@@ -5,8 +5,8 @@ The automated installer here has been tested for Mageia 3 and Mageia 4,
 with more work going into Mageia 4.
 
 
-= For this to work on Mageia 2/3
-== KVM
+# For this to work on Mageia 2/3
+## KVM
 
 Ensure that libvirtd is running, and that you have hardware support for libvirtd.
 Set the permissions on /dev/kvm for the user you are running the test under, for example:
@@ -18,7 +18,7 @@ Set the permissions on /dev/kvm for the user you are running the test under, for
 
 Provided that os-autoinst is in ~test/ and the iso is in ~test/tmp/
 
-=== Required RPMs
+### Required RPMs
   urpmi swig perl-Data-Dump
   urpmi perl-devel
   urpmi ffmpeg2theora
@@ -26,11 +26,11 @@ Provided that os-autoinst is in ~test/ and the iso is in ~test/tmp/
   urpmi perl-Inline
   urpmi mtools
 
-==== Mageia 3 (Optional, for openvc support)
+#### Mageia 3 (Optional, for openvc support)
   urpmi opencv-devel
   urpmi lib64opencv_nonfree
 
-== env
+## env
 This instructions assumes you are going to use a user on your system called test,
 and that you have your hypervisor setup, see above:
 
@@ -54,7 +54,7 @@ and that you have your hypervisor setup, see above:
 6.  Run the test
   ../os-autoinst/tools/isotovideo Mageia-3-beta4-x86_64-DVD.iso
 
-== watching the test
+## watching the test
 To watch the test, use
   vncviewer -PreferredEncoding=raw localhost:99
 
@@ -65,12 +65,13 @@ To watch after the test has run, use:
   mplayer video/Mageia-3-beta4-x86_64-DVD.ogv
 You can step through individual frames after pausing it, using the . key.
 
-== Editing the tests
+## Editing the tests
 Tests can be edited by editing ~/os-autoinst/distri/mageia/inst.d/
 Also, general behavour of the tests can be changed by editing env.sh, where the tests support it.  Currently, read the source to find out.
 
+- - -
 
-= Testing Mageia 4
+# Testing Mageia 4
 This is currently capable of installing Mageia 4 from Mageia-4-RC-x86_64-DVD.iso,
 with the following variations, as set in env.sh
 
@@ -90,6 +91,7 @@ If your computer is powerful enough, you can run muliple install tests at the
 same time.  
 
 To get stated with testing Mageia4, do the following:
+```bash
   su - test
   git clone git://github.com/nelg/os-autoinst.git
   cd os-autoinst; ./autogen.sh; ./configure --with-opencv; make; cd ..
@@ -99,18 +101,24 @@ To get stated with testing Mageia4, do the following:
   rsync / wget Mageia ISO.
   ln Mageia-4-RC-x86_64-DVD.iso ~/tmp/test1/
   ln Mageia-4-RC-x86_64-DVD.iso ~/tmp/test2/
+```
 
 Window 1
+```bash
   cd ~/tmp/test1/
   ~/os-autoinst/tools/isotovideo Mageia-4-RC-x86_64-DVD.iso
-
+```
 Window 2
+```bash
   cd ~/tmp/test1/
   ~/os-autoinst/tools/isotovideo Mageia-4-RC-x86_64-DVD.iso
+```
 
 Viewing (careful with your mouse):
+```bash
   vncviewer -PreferredEncoding=raw localhost:98
   vncviewer -PreferredEncoding=raw localhost:99
+```
 
 Screenshot viewing (preferred):
   Turn on previews and use dolphin to view ~/tmp/test1/qemuscreenshot and ~/tmp/test2/qemuscreenshot
