@@ -43,7 +43,7 @@ and that you have your hypervisor setup, see above:
     `su - test`
 1.  Download os-autoinst, using git:
     `git clone git://github.com/nelg/os-autoinst.git`
-2.  Compile
+2.  Compile:
 ```bash
     ./autogen.sh
     ./configure --with-opencv
