@@ -47,7 +47,8 @@ and that you have your hypervisor setup, see above:
     ```bash
     ./autogen.sh
     ./configure --with-opencv
-    make```
+    make
+    ```
 3.  Download, or place a copy of Mageia-3-beta4-x86_64-DVD.iso or simular into ~test/tmp
     `cd ~/tmp
     wget ..`
@@ -57,7 +58,9 @@ and that you have your hypervisor setup, see above:
     ```bash
     cd ~/tmp
     cp ~/os-autoinst/env-mageia3.sh.sample env.sh
-    vi env.sh``` (See comments within file)
+    vi env.sh
+    ``` 
+    (See comments within file)
 
 6.  Run the test
     `../os-autoinst/tools/isotovideo Mageia-3-beta4-x86_64-DVD.iso`
