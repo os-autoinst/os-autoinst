@@ -339,18 +339,21 @@ f0bca6df514a3d0da9f4545180c44e4d mageia-setupusers1
 184dcac51036ef10d9c0761e2708f326 mageia3-summary
 a1c49e18aa78a27adbfc2c5ac8785090 mageia4-lang
 3fea2633c7e4cc5450f12b4fd0c30d9d mageia4-pick-desktop
-445657a661a4e67de4d64e7f836cb61c mageia4-custom-packages
+60fbd84f6488403d64eabd54a124d33d mageia4-custom-packages
 95cf3c48eebd174b26f339fe8bc2fe23 mageia4-custom-packages1
 a91ba8e78bc8c786248e975ea009e017 mageia4-custom-packages2
 431d4f402a483aa3a4e802a621045a35 mageia4-supplementary-media
-3489f1fb89783944d09b1362a7f08662 mageia4-summary-nographics
+d96b7c98df61495af68879bfd541de20 mageia4-summary-nographics
 d64e2ffa328c45f2b33d740e931aa3d9 mageia4-text-console
-bc83a4b1df0654646a5719c28244bbc9 mageia4-setupusers1
+c05077ef96b1993e45ded3febd264d51 mageia4-setupusers-pic
+bc83a4b1df0654646a5719c28244bbc9 mageia4-setupusers-pic1
+6d3e97092f2c9730cfc546606aadaf51 mageia4-setupusers-nopic
 273d89248191067776fb67e3587dfd2f mageia4-summary
 90168957eb1062ba01db4536826cc003 mageia4-summary1
 519659174c08cbb687499223c97ec5c9 mageia4-newlvm
 5f0017d8b239b4a56265c16423eed796 mageia4-bug1
 );
-
+# bc83a4b1df0654646a5719c28244bbc9 mageia4-setupusers-pic
+# a3c6d7d74f9befa09e8d2dad9347ef8b mageia4-setupusers
 # 20b3220e5ac3fa575b490e2895e9041c mageia4-summary-nographics
 1;
