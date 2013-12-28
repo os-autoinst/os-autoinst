@@ -8,7 +8,7 @@ sub run()
 	waitstillimage(60,3600);
 	mouse_hide();
 	my $pic = 1;
-	if (waitinststage('mageia4-setupusers-nopic',10)) {
+	if (waitinststage('mageia4-setupusers-nopic',10) ||waitinststage('mageia4-setupusers-nopic1',10) ) {
 	$pic = 0;
 	$ENV{DESKTOP} = 'none';
 	print "No user picture, as no desktop installed";
