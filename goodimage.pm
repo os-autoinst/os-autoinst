@@ -25,12 +25,6 @@ a02a0c21fa17006b92b90850806199d1 newinst-sled11sp2-0036
 c39c20d6342e004ede74f3b153d99310 11.3-upgradeable-0900
 027a095adbd45ae80aede067f7e6417f 11.3-upgradeable-0925
 bc32b148e35198bcf7a77f8b8843e2d3 ms6kdelivecdreboot
-7df708a486c959b24340a928205c9a26 mageia-language1
-5405fb160403f64dabb4e525cf0cdb29 mageia-language
-2d34b722119b5532884dd338804c7d4f mageia-usersetup
-e45ac134df58c4c04f26cd4208b3b3f5 mageia-usersetup1
-d9fdc6ec49a5e97e5d1d1ed384c41283 mageia-summary
-e40a2d550957696ade4b98778ac366b9 mageia-summary1
 );
 
 %md5badlist=qw(
@@ -329,12 +323,38 @@ ddb3976501b9f8b1fb62182551edd64f fedora-postreboot
 22f3a1ddd0f0165d79a26a7aa7a49f15 openindiana-booted-live-148
 
 61b8b01192becf67347ad0420724947e freebsd-install-done
-2d151f911ab9a69a9fb165b2295546da mageia-consolelogin
-2f0cacf1d6d1534b3d322ed283c63796 mageia-setupusers1
-69d434880f17f1ac4f235213270cc276 mageia-summary
+
+c15ab2e5bd5117ce4dba52ba00df63c3 mageia3-lang
+2dba1022b0109caf8daa42faf36b15f4 mageia3-license
+391f6b7ff27e03efa8eb0d62a7500944 mageia3-keyboard
+3f375fc119ad66b8e24bca42f8bbbe18 mageia3-partitions
+db756f167c1d754941c4798fdfa03c34 mageia3-media
+37905bb5d6d56380b2be47fd96a69fd8 mageia3-media1
+b7920fa83fe477758fc2625002d9df4f mageia3-desktop-selection
 113df5741b0b0ada99863de79e1e7568 mageia-newlvm
 3c7f875351e5b971ca7039c1929e7a0e mageia-custom-packages
 efd28b280d23b61023429b5233c0e36f mageia-pick-desktop
+f0bca6df514a3d0da9f4545180c44e4d mageia-setupusers1
+995f01f32e5029f1e261781cfdc8e6c0 mageia-setupusers
+184dcac51036ef10d9c0761e2708f326 mageia3-summary
+a1c49e18aa78a27adbfc2c5ac8785090 mageia4-lang
+3fea2633c7e4cc5450f12b4fd0c30d9d mageia4-pick-desktop
+60fbd84f6488403d64eabd54a124d33d mageia4-custom-packages
+95cf3c48eebd174b26f339fe8bc2fe23 mageia4-custom-packages1
+a91ba8e78bc8c786248e975ea009e017 mageia4-custom-packages2
+431d4f402a483aa3a4e802a621045a35 mageia4-supplementary-media
+d96b7c98df61495af68879bfd541de20 mageia4-summary-nographics
+d64e2ffa328c45f2b33d740e931aa3d9 mageia4-text-console
+c05077ef96b1993e45ded3febd264d51 mageia4-setupusers-pic
+bc83a4b1df0654646a5719c28244bbc9 mageia4-setupusers-pic1
+6d3e97092f2c9730cfc546606aadaf51 mageia4-setupusers-nopic
+1c35ad8b47da9853889b70cdf8710bda mageia4-setupusers-nopic1
+273d89248191067776fb67e3587dfd2f mageia4-summary
+90168957eb1062ba01db4536826cc003 mageia4-summary1
+519659174c08cbb687499223c97ec5c9 mageia4-newlvm
+5f0017d8b239b4a56265c16423eed796 mageia4-bug1
 );
-
+# bc83a4b1df0654646a5719c28244bbc9 mageia4-setupusers-pic
+# a3c6d7d74f9befa09e8d2dad9347ef8b mageia4-setupusers
+# 20b3220e5ac3fa575b490e2895e9041c mageia4-summary-nographics
 1;
