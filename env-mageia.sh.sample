@@ -8,39 +8,9 @@ export IDLETHRESHOLD=16
 # default: 0.5 (two screenshots per second)
 export SCREENSHOTINTERVAL=2.5
 
-#export HTTPPROXY=192.168.234.34:3128
-
-# leave empty for http://download.opensuse.org/factory
-#export SUSEMIRROR=http://ftp5.gwdg.de/pub/opensuse/factory
-
-# possible values: 0|1|5|6|10
-#export RAIDLEVEL=6
-# alternatively use Logical Volume Manager
-#export LVM=1
-
-# use random values for undefined testing variables
-#RANDOMENV=1
-
-# ignored for LiveCDs ; possible values: kde|gnome|xfce|lxde|minimalx|textmode
-# Only for openSUSE; ignored for SLE
-#export DESKTOP=gnome
-
-# for testing with UEFI boot give here a directory containing eg. a TianoCore
-# BIOS image file.
-# This can be found in the package OVMF on http://build.opensue.org in the
-# Project home:jejb1:UEFI. More about this on http://www.linux-kvm.org/page/OVMF
-#export UEFI=/usr/share/qemu-ovmf/bios
-
-# if you want to run this mostly for the video
-# Skips some tests that would make the video confusing for newcomers
-#export NICEVIDEO=1
-
 # If you want to use local cases instead of distro based one
 # Use full path, no relative route!
-#export CASEDIR=/some/location/somewhere/
-
-# is this a beta version with extra popup window on welcome screen?
-export BETA=1
+export CASEDIR=/home/test/os-autoinst/distri/mageia-3
 
 # if you want to run tests in parallel, you need to give different ports
 # note that $QEMUPORT+1 is also used
@@ -55,13 +25,12 @@ export VNC=localhost:99
 export DESKTOP=none
 # export DESKTOP=gnome
 
-
 # export PART=lvm
+# export PART=default
 
 export QEMUVGA=std
-#export INSTLANG=de_DE
 
 # Use automatic (kickstart) installation.   This will then reference the distrib/mageia/auto_inst.d config.
-#export AUTO_INST="../os-autoinst/distri/mageia/auto_insts/minimal-1/auto_inst.cfg.pl"
-#
-# export KEEPHDDS=1 ; export NOINSTALL=1 
+# export AUTO_INST="../os-autoinst/distri/mageia3/auto_insts/minimal-1/auto_inst.cfg.pl"
+# export KEEPHDDS=1
+# export NOINSTALL=1 
