@@ -71,10 +71,18 @@ foreach my $part (split("-", $testedversion)) {$ENV{uc($part)}=1}
 $ENV{LIVECD}=$ENV{LIVE};
 
 ## env vars
+$ENV{UEFI_BIOS_DIR}||='/usr/share/qemu-ovmf/bios-ms';
 $ENV{QEMUPORT}||=15222;
 $ENV{INSTLANG}||="en_US";
 $ENV{CASEDIR}||="$scriptdir/distri/$ENV{DISTRI}" if $ENV{DISTRI};
 if(defined($ENV{DISTRI}) && $ENV{DISTRI} eq 'archlinux') {$ENV{HDDMODEL}="ide";}
+
+if ($ENV{LAPTOP}) {
+    $ENV{LAPTOP} = 'dell_e6330' if $ENV{LAPTOP} eq '1';
+    die "no dmi data for '$ENV{LAPTOP}'\n" unless -d "$scriptdir/dmidata/$ENV{LAPTOP}";
+    $ENV{LAPTOP} = "$scriptdir/dmidata/$ENV{LAPTOP}";
+}
+
 ## env vars end
 
 ## keyboard cmd vars
@@ -104,6 +112,7 @@ our %cmd=qw(
 	otherrootpw alt-s
 	change alt-c
 	software s
+	bootloader b
 );
 
 if($ENV{INSTLANG} eq "de_DE") {
@@ -221,7 +230,7 @@ sub fctlog {
 	my @fparams = @_;
 	$logfd && print $logfd '<<< '.$fname.'('.join(', ', @fparams).")\n";
 	return unless $debug;
-	print STDERR colored('<<< '.$fname.'('.join(', ', @fparams).')', 'bright_blue')."\n";
+	print STDERR colored('<<< '.$fname.'('.join(', ', @fparams).')', 'blue')."\n";
 }
 
 sub fctres {
@@ -367,7 +376,7 @@ sub sendkey($) {
 	$backend->sendkey($key);
 	my @t=gettimeofday();
 	push(@keyhistory, [$t[0]*1000000+$t[1], $key]);
-	sleep(0.25);
+	sleep(0.15);
 }
 
 =head2 sendkeyw
@@ -384,18 +393,26 @@ sub sendkeyw($) {
 
 =head2 sendautotype
 
-sendautotype($string)
+sendautotype($string, [$keyboardbuffersize])
 
 send a string of characters, mapping them to appropriate key names as necessary
 
 =cut
-sub sendautotype($) {
+
+sub sendautotype($;$) {
 	my $string=shift;
+	my $maxinterval=shift||13;
+	my $typedchars=0;
 	fctlog('sendautotype', "string='$string'");
 	foreach my $letter (split("", $string)) {
 		if($charmap{$letter}) { $letter=$charmap{$letter} }
 		sendkey $letter;
+		if ($typedchars++ >= $maxinterval ) {
+			waitstillimage(1.6);
+			$typedchars=0;
+		}
 	}
+	waitstillimage(1.6) if ($typedchars > 0);
 }
 
 sub sendpassword() {

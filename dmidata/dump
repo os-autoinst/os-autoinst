@@ -1,0 +1,4 @@
+#!/bin/bash
+for i in 1 2 3; do
+	dmidecode -t $i -u | grep $'^\t\t[^"]' | xargs -n1 |  perl -lne 'printf "%c", hex($_)' > smbios_type_$i.bin
+done

@@ -35,7 +35,7 @@ echo kvm-intel >> /etc/modules
     zypper ar http://download.opensuse.org/repositories/devel:/languages:/perl/$(. /etc/os-release; echo ${NAME}_${VERSION_ID})/ perl
     zypper install git-core kvm gocr ffmpeg2theora perl-JSON v4l-tools perl-Net-SNMP perl-Data-Dump perl-Inline make gcc gcc-c++ opencv-devel swig
 
-    usermod -A kvm $USER
+    usermod -G kvm -a $USERNAME || usermod -A kvm $USERNAME
 
 == more Linux setup ==
 
@@ -58,7 +58,7 @@ Install VirtualBox either from your distribution's DVD or
 From http://software.opensuse.org/package/virtualbox
 After installation of VirtualBox do this
 insmod vboxdrv
-usermod -A vboxusers $USERNAME
+usermod -G vboxusers -a $USERNAME || usermod -A vboxusers $USERNAME
 Log out and in and you are done
 
 ===Setting up OS-autoinst for VirtualBox===
