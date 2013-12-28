@@ -1,0 +1,50 @@
+The automated installer here has been tested for Mageia 3 and Mageia 4,
+with more work going into Mageia 4.
+
+It is currently capable of installing Mageia 4 from Mageia-4-RC-x86_64-DVD.iso,
+with the following variations:
+
+KDE, Gnome or no desktop
+LVM or non-LVM based partitioning.
+
+
+At the time of writing, the is a bug in the installer that sometimes will
+cause the installer to mis-align, in which case the test will fail, as it
+can't match what it expects to find. 
+
+Currently it relies or recogonising certian parts of the install screen,
+using md5sum's.  This is unreliable, but needed because things in the installer
+change depending on factors like disk size, and the automated installer
+needs to push the right buttons.
+
+The final output will always have the word fail in it.  To check, look at the video,
+and see if serail0 file ends up with "010_consoletest_setup OK" in it.
+
+If your computer is powerful enough, you can run muliple install tests at the 
+same time.  
+
+
+To get stated with testing Mageia4, do the following:
+  git clone git://github.com/nelg/os-autoinst.git
+  mkdir -p ~/tmp/test{1..2}
+  cp os-autoinst/doc/env.sh-mageia4-sample1 ~/tmp/test1/env.sh 
+  cp os-autoinst/doc/env.sh-mageia4-sample2 ~/tmp/test2/env.sh 
+  ln Mageia-4-RC-x86_64-DVD.iso ~/tmp/test1/
+  ln Mageia-4-RC-x86_64-DVD.iso ~/tmp/test2/
+
+Window 1
+  cd ~/tmp/test1/
+  ../os-autoinst/tools/isotovideo Mageia-4-RC-x86_64-DVD.iso
+
+Window 2
+  cd ~/tmp/test1/
+  ../os-autoinst/tools/isotovideo Mageia-4-RC-x86_64-DVD.iso
+
+Viewing (careful with your mouse):
+  vncviewer :5998
+  vncviewer :5999
+
+Screenshot viewing (preferred):
+  Turn on previews and use dolphin to view ~/tmp/test1/qemuscreenshot and ~/tmp/test2/qemuscreenshot
+
+
