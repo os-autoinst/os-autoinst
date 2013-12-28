@@ -11,14 +11,17 @@ with more work going into Mageia 4.
 Ensure that libvirtd is running, and that you have hardware support for libvirtd.
 Set the permissions on /dev/kvm for the user you are running the test under, for example:
 
+```bash
   setfacl -m "user:test:rw" /dev/kvm
   su - test
   cd tmp
   ../os-autoinst/tools/isotovideo Mageia-3-beta4-x86_64-DVD.iso
+```
 
 Provided that os-autoinst is in ~test/ and the iso is in ~test/tmp/
 
 ### Required RPMs
+```bash
   urpmi swig perl-Data-Dump
   urpmi perl-devel
   urpmi ffmpeg2theora
@@ -26,33 +29,35 @@ Provided that os-autoinst is in ~test/ and the iso is in ~test/tmp/
   urpmi perl-Inline
   urpmi mtools
 
+```
 #### Mageia 3 (Optional, for openvc support)
+```bash
   urpmi opencv-devel
   urpmi lib64opencv_nonfree
-
+```
 ## env
 This instructions assumes you are going to use a user on your system called test,
 and that you have your hypervisor setup, see above:
 
 0.  Switch to your test user:
-  su - test
+	su - test
 1.  Download os-autoinst, using git:
-  git clone git://github.com/nelg/os-autoinst.git
+	git clone git://github.com/nelg/os-autoinst.git
 2.  Compile
-  ./autogen.sh
-  ./configure --with-opencv
-  make
+	./autogen.sh
+	./configure --with-opencv
+	make
 3.  Download, or place a copy of Mageia-3-beta4-x86_64-DVD.iso or simular into ~test/tmp
-  cd ~/tmp
-  wget ..
+	cd ~/tmp
+	wget ..
 4.  Ensure you have at least 8gb free disk space.
-  df -h
+	df -h
 5.  Copy the enviroment file to ~/tmp
-  cd ~/tmp
-  cp ~/os-autoinst/env-mageia3.sh.sample env.sh
-  vi env.sh (See comments within file)
+	cd ~/tmp
+	cp ~/os-autoinst/env-mageia3.sh.sample env.sh
+	vi env.sh (See comments within file)
 6.  Run the test
-  ../os-autoinst/tools/isotovideo Mageia-3-beta4-x86_64-DVD.iso
+	../os-autoinst/tools/isotovideo Mageia-3-beta4-x86_64-DVD.iso
 
 ## watching the test
 To watch the test, use
