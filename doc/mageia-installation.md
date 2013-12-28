@@ -40,23 +40,36 @@ This instructions assumes you are going to use a user on your system called test
 and that you have your hypervisor setup, see above:
 
 0.  Switch to your test user:
+
     su - test
+
 1.  Download os-autoinst, using git:
+
     git clone git://github.com/nelg/os-autoinst.git
+
 2.  Compile
+
     ./autogen.sh
     ./configure --with-opencv
     make
+
 3.  Download, or place a copy of Mageia-3-beta4-x86_64-DVD.iso or simular into ~test/tmp
+
     cd ~/tmp
     wget ..
+
 4.  Ensure you have at least 8gb free disk space.
+
     df -h
+
 5.  Copy the enviroment file to ~/tmp
+
     cd ~/tmp
     cp ~/os-autoinst/env-mageia3.sh.sample env.sh
     vi env.sh (See comments within file)
+
 6.  Run the test
+
     ../os-autoinst/tools/isotovideo Mageia-3-beta4-x86_64-DVD.iso
 
 ## watching the test
