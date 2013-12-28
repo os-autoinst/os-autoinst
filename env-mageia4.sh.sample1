@@ -21,12 +21,12 @@ export VNC=localhost:98
 # VNC keyboard layout of vncclient machine
 #export VNCKB=de
 
-#export DESKTOP=kde
+export DESKTOP=kde
 # export DESKTOP=none
-export DESKTOP=gnome
+# export DESKTOP=gnome
 
-export PART=lvm
-#export PART=default
+#export PART=lvm
+export PART=default
 
 export QEMUVGA=std
 

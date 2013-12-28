@@ -39,7 +39,8 @@ and that you have your hypervisor setup, see above:
 1.  Download os-autoinst, using git:
   git clone git://github.com/nelg/os-autoinst.git
 2.  Compile
-  ./configure
+  ./autogen.sh
+  ./configure --with-opencv
   make
 3.  Download, or place a copy of Mageia-3-beta4-x86_64-DVD.iso or simular into ~test/tmp
   cd ~/tmp
@@ -89,22 +90,23 @@ If your computer is powerful enough, you can run muliple install tests at the
 same time.  
 
 To get stated with testing Mageia4, do the following:
+  su - test
   git clone git://github.com/nelg/os-autoinst.git
-  cd os-autoinst; ./configure; make; cd ..
+  cd os-autoinst; ./autogen.sh; ./configure --with-opencv; make; cd ..
   mkdir -p ~/tmp/test{1..2}
-  cp os-autoinst/env-mageia4.sh.sample1 ~/tmp/test1/env.sh 
-  cp os-autoinst/env-mageia4.sh.sample2 ~/tmp/test2/env.sh 
+  cp ~/os-autoinst/env-mageia4.sh.sample1 ~/tmp/test1/env.sh 
+  cp ~/os-autoinst/env-mageia4.sh.sample2 ~/tmp/test2/env.sh 
   rsync / wget Mageia ISO.
   ln Mageia-4-RC-x86_64-DVD.iso ~/tmp/test1/
   ln Mageia-4-RC-x86_64-DVD.iso ~/tmp/test2/
 
 Window 1
   cd ~/tmp/test1/
-  ../os-autoinst/tools/isotovideo Mageia-4-RC-x86_64-DVD.iso
+  ~/os-autoinst/tools/isotovideo Mageia-4-RC-x86_64-DVD.iso
 
 Window 2
   cd ~/tmp/test1/
-  ../os-autoinst/tools/isotovideo Mageia-4-RC-x86_64-DVD.iso
+  ~/os-autoinst/tools/isotovideo Mageia-4-RC-x86_64-DVD.iso
 
 Viewing (careful with your mouse):
   vncviewer -PreferredEncoding=raw localhost:98
