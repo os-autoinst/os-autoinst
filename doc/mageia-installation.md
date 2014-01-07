@@ -80,7 +80,7 @@ You can step through individual frames after pausing it, using the . key.
 
 ## Editing the tests
 Tests can be edited by editing ~/os-autoinst/distri/mageia/inst.d/
-Also, general behavour of the tests can be changed by editing env.sh, where the tests support it.  Currently, read the source to find out.
+Also, general behaviour of the tests can be changed by editing env.sh, where the tests support it.  Currently, read the source to find out.
 
 - - -
 
@@ -90,17 +90,17 @@ with the following variations, as set in env.sh
 
 KDE, Gnome or no desktop, LVM or non-LVM based partitioning.
 
-At 28 Dec 2013, the is a bug in the installer that sometimes will
+At 28 Dec 2013, there is a bug in the installer that sometimes will
 cause the installer to mis-align, in which case the test will fail, as it
 can't match what it expects to find. 
 
-Currently it relies or recogonising certian parts of the install screen,
+Currently it relies on recognising certain parts of the install screen,
 using md5sum's.  This is unreliable, but needed because things in the installer
 change depending on factors like disk size, and the automated installer
 needs to push the right buttons. The final output will always have the word fail in it. 
 To check, look at the video, and see if serail0 file ends up with "010_consoletest_setup OK" in it.
 
-If your computer is powerful enough, you can run muliple install tests at the 
+If your computer is powerful enough, you can run multiple install tests at the 
 same time.  
 
 To get stated with testing Mageia4, do the following:
