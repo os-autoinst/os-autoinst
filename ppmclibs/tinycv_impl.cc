@@ -303,6 +303,7 @@ Image *image_scale(Image *a, int width, int height)
     resize(a->img, n->img, n->img.size());
   } else if (n->img.rows < height || n->img.cols < width) {
     n->img = Mat::zeros(height, width, a->img.type());
+    n->img = cv::Scalar(120,120,120);
     a->img.copyTo(n->img(Rect(0, 0, a->img.cols, a->img.rows)));
   } else 
     n->img = a->img;
