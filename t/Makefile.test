@@ -1,6 +1,0 @@
-all:
-
-test:
-	@for i in *-test_*.pl; do echo "$$i ..."; ./$$i; done
-
-.PHONY: all test

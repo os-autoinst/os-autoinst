@@ -3,6 +3,11 @@
 use strict;
 use Test::Simple tests => 12;
 
+BEGIN {
+	$ENV{DISTRI} = "unicorn";
+	$ENV{CASEDIR} = "/var/lib/empty";
+}
+
 use needle;
 use cv;
 use Data::Dump;

@@ -37,6 +37,7 @@ PKG_CHECK_MODULES([OPENCV], [opencv >= 2.4])
 
 AC_CONFIG_FILES([
 	Makefile
+	t/Makefile
 	bin/isotovideo
 ])
 AC_OUTPUT
