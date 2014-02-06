@@ -1,13 +1,14 @@
-use base "basetest";
+use base "installstep";
 use bmwqemu;
 # run all application tests after an extra reboot
 # first boot is special - could have used kexec and has second stage configuration
 sub is_applicable()
 {
+        my $self=shift;
 	return 0 if $ENV{LIVETEST};
 	return 0 if $ENV{NICEVIDEO};
-	return 1 if $ENV{DESKTOP} eq "kde" && !$ENV{UPGRADE}; # FIXME workaround https://bugzilla.novell.com/show_bug.cgi?id=804143
-	return $ENV{REBOOTAFTERINSTALL} && !$ENV{UPGRADE};
+	#return 1 if $ENV{DESKTOP} eq "kde" && !$ENV{UPGRADE}; # FIXME workaround https://bugzilla.novell.com/show_bug.cgi?id=804143
+	return $self->SUPER::is_applicable && $ENV{REBOOTAFTERINSTALL} && !$ENV{UPGRADE};
 }
 
 sub run()
