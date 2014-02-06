@@ -64,6 +64,7 @@ if($self->{'pid'}==0) {
 	       '-net', 'user', "-net", "nic,model=$ENV{NICMODEL},macaddr=52:54:00:12:34:56",
 	       "-serial", "file:serial0",
 	       "-soundhw", "ac97",
+	       "-global", "isa-fdc.driveA=",
 	       "-vga", $ENV{QEMUVGA}
 	);
 
