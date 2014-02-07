@@ -13,7 +13,7 @@ sub run()
 {
 	my $self=shift;
 	if($ENV{VIDEOMODE} && $ENV{VIDEOMODE} eq "text") {$cmd{xnext}="alt-x"}
-	if(!$ENV{NET} && !$ENV{DUD}) {
+	if(!$ENV{NET} && !$ENV{DUD} && !$ENV{IPXE}) {
 		waitstillimage();
 		sleep 5; # try
 		sendkey $cmd{"next"}; # use network
@@ -27,7 +27,7 @@ sub run()
 		sendkeyw $cmd{"xnext"}; # Specify URL (default)
 		sendautotype($url);
 		sendkeyw $cmd{"next"};
-		if($ENV{ADDONURL}!~m{/update/}) { # update is already trusted, so would trigger "delete"
+		if(($url!~m{/update/}) or ($url=~/-test/)) { # update is already trusted, so would trigger "delete"
 			sendkey "alt-i";sendkeyw "alt-t"; # confirm import (trust) key
 		}
 	}
