@@ -1026,6 +1026,7 @@ sub _waitforneedle {
 		$mustmatch = '';
 		while (my $n = shift @a) {
 			if (ref($n) eq '') {
+				push @tags, split(/ /, $n);
 				$n = needle::tags($n);
 				push @a, @$n if $n;
 				next;
@@ -1036,12 +1037,18 @@ sub _waitforneedle {
 			}
 			push @$needles, $n;
 			$mustmatch .= $n->{name} . "_";
+			push @tags, $n->{name};
 		}
-		@tags = map { $_->{'name'} } @$needles;
 	} elsif ($mustmatch) {
 		$needles = needle::tags($mustmatch) || [];
 		@tags = ($mustmatch);
 	}
+
+	{ # remove duplicates
+		my %h =  map { $_ => 1 } @tags;
+		@tags = sort keys %h;
+	}
+
 	fctlog('waitforneedle', "'$mustmatch'", "timeout=$timeout");
 	if (!@$needles) {
 		diag("NO matching needles for $mustmatch");
@@ -1100,9 +1107,10 @@ sub _waitforneedle {
 		diag $_->{'file'};
 	}
 
+	my @save_tags = @tags;
 	# add some known env variables
 	for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD LIVETEST UEFI NETBOOT PROMO FLAVOR)) {
-		push(@tags, "ENV-$key-" . $ENV{$key}) if $ENV{$key};
+		push(@save_tags, "ENV-$key-" . $ENV{$key}) if $ENV{$key};
 	}
 
 
@@ -1115,7 +1123,7 @@ sub _waitforneedle {
 	} else {
 		$interactive_mode = 0;
 	}
-	$needle_template = save_needle_template($img, $mustmatch, \@tags);
+	$needle_template = save_needle_template($img, $mustmatch, \@save_tags);
 
 	if ($interactive_mode) {
 		print "interactive mode entered\n";
@@ -1124,7 +1132,7 @@ sub _waitforneedle {
 		$current_test->record_screenfail(
 			img => $img,
 			needles => $failed_candidates,
-			tags => \@tags,
+			tags => \@save_tags,
 			result => $checkneedle?'unk':'fail',
 			overall => $checkneedle?undef:'fail'
 		);
@@ -1154,7 +1162,7 @@ sub _waitforneedle {
 			$waiting_for_new_needle = undef;
 			save_results();
 			cont_vm();
-			return _waitforneedle(mustmatch => $mustmatch, timeout => 3, check => $checkneedle, retried => $args{'retried'}+1);
+			return _waitforneedle(mustmatch => \@tags, timeout => 3, check => $checkneedle, retried => $args{'retried'}+1);
 		}
 		$waiting_for_new_needle = undef;
 		save_results();
@@ -1223,14 +1231,14 @@ sub _waitforneedle {
 			diag("reading new needle $fn");
 			needle->new($fn) || mydie "$!";
 			# XXX: recursion!
-			return _waitforneedle(mustmatch => $mustmatch, timeout => 3, check => $checkneedle, retried => $args{'retried'}+1);
+			return _waitforneedle(mustmatch => \@tags, timeout => 3, check => $checkneedle, retried => $args{'retried'}+1);
 		}
 	}
 
 	$current_test->record_screenfail(
 		img => $img,
 		needles => $failed_candidates,
-		tags => \@tags,
+		tags => \@save_tags,
 		result => $checkneedle?'unk':'fail',
 		overall => $checkneedle?undef:'fail'
 	);
