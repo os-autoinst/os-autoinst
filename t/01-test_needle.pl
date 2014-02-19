@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w -I..
 
 use strict;
-use Test::Simple tests => 12;
+use Test::More tests => 16;
 
 BEGIN {
 	$ENV{DISTRI} = "unicorn";
@@ -55,3 +55,27 @@ $img1 = tinycv::read("data/font-kerning.test.png");
 $needle = needle->new("data/font-kerning.ref.json");
 $res = $img1->search($needle);
 ok(defined $res, "match when the font kerning change");
+
+needle::init("data");
+my @alltags = sort keys %needle::tags;
+
+my @needles = @{needle::tags('FIXME')||[]};
+is(@needles, 2, "two needles found");
+for my $n (@needles) {
+	$n->unregister();
+}
+
+@needles = @{needle::tags('FIXME')||[]};
+is(@needles, 0, "no needles after unregister");
+
+for my $n (needle::all()) {
+	$n->unregister();
+}
+
+is_deeply(\%needle::tags, {}, "no tags registered");
+
+for my $n (needle::all()) {
+	$n->register();
+}
+
+is_deeply(\@alltags, [sort keys %needle::tags], "all tags restored");

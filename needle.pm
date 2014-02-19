@@ -101,6 +101,7 @@ sub unregister($)
     bmwqemu::diag("unregister $self->{name}");
     for my $g (@{$self->{tags}}) {
 	@{$tags{$g}} = grep { $_ != $self } @{$tags{$g}};
+	delete $tags{$g} unless (@{$tags{$g}});
     }
 }
 
