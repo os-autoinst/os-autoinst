@@ -28,6 +28,7 @@ sendkey("tab");
 for(1..15){sendkey("backspace")}
 sendautotype($domain);
 sleep 3;
+sendkeyw "alt-n"; # don't change hostname via DHCP
 $self->take_screenshot;
 sendkey("alt-o"); # confirm possible network manager warning
 sendkey("alt-o"); # OK=>Save&Exit
