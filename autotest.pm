@@ -3,6 +3,8 @@ use strict;
 use bmwqemu;
 use basetest;
 
+use File::Spec;
+
 our %tests;     # scheduled or run tests
 our @testorder; # for keeping them in order
 our $running;   # currently running test or undef
@@ -26,7 +28,7 @@ sub loadtest($)
 			die $msg;
 		}
 		$test=$name->new($category);
-		$test->{script} = $script;
+		$test->{script} = File::Spec->abs2rel($script, $ENV{CASEDIR});
 		$test->{fullname} = $fullname;
 		$tests{$fullname} = $test;
 
