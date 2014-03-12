@@ -22,4 +22,4 @@ vncviewer localhost:99
 
 
 If you want to contribute to this project, please clone and send git-pull requests via
-https://github.com/openSUSE-Team/os-autoinst
+https://github.com/os-autoinst/os-autoinst
