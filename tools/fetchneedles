@@ -1,6 +1,6 @@
 #!/bin/bash
 set -xe
-: ${giturl:="git://github.com/openSUSE-Team/os-autoinst-%s-%s.git"}
+: ${giturl:="git://github.com/os-autoinst/os-autoinst-%s-%s.git"}
 : ${email:="openqa@suse.de"}
 : ${linkdir:="/usr/lib/os-autoinst/distri"}
 
