@@ -929,6 +929,7 @@ sub waitserial($;$) {
 		if($prestandstillwarning) {return 2}
 		sleep 1;
 	}
+	timeout_screenshot();
 	fctres('waitserial', "$regexp timed out after $timeout");
 	return 0;
 }
