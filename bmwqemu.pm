@@ -623,7 +623,13 @@ sub upload_logs($)
 	} else {
 		$host = '10.0.2.2';
 	}
-	$cmd .= " --form upload=\@$file $host/cgi-bin/uploadlog";
+	$cmd .= " --form upload=\@$file ";
+	if (defined $ENV{TEST_ID}) {
+	   my $basename = basename($file);
+	   $cmd .= "$host/tests/$ENV{TEST_ID}/uploadlog/$basename";
+	} else {
+	   $cmd .= "$host/cgi-bin/uploadlog";
+	}
 	script_run($cmd);
 }
 
