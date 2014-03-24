@@ -14,7 +14,7 @@ use strict;
 
 #use FindBin;
 #use lib "$FindBin::Bin/backend";
-use JSON qw( decode_json );
+use YAML;
 use POSIX ":sys_wait_h"; # for WNOHANG in waitpid()
 use IO::Socket::SSL;
 use File::Temp;
@@ -25,10 +25,7 @@ our $scriptdir = $bmwqemu::scriptdir || '.';
 
 sub init() {
 	my $self = shift;
-	local $/;
-	open(JF, "<", "$scriptdir/hardware.json") or die "Error reading $scriptdir/hardware.json";
-	$self->{'hardware'} = decode_json(<JF>)->{$ENV{'HWSLOT'}};
-	close(JF);
+	$self->{'hardware'} = YAML::LoadFile("/etc/os-autoinst/kvm2usb.yml")->{$ENV{'HWSLOT'}};
 	unless(defined $self->{'hardware'}) {
 		die "Error: Hardware slot '".$ENV{'HWSLOT'}."' is not defined!\n";
 	}

@@ -1,0 +1,74 @@
+# Hardware configuration file for the kvm2usb backend of os-autoinst
+#
+# The HWSLOT's are configured in this file.
+#
+# There are different configs for some hardware interactions:
+#
+# ctldev: kvm2usb control device
+# serial: serial device connected to testsystem
+# video: video device of the kvm2usb device
+# disks: array of disks to purge after booting into the installer
+#        and before doing anything else (this prevents
+#        unpredictable reactions of the last test)
+# cdrom:
+#	ilo: use HP iLO for CD emulation
+#   ipxe: not implemented (here)
+# sound: soundcard to listen for audio on aplay tests
+# grab_params: kvm2usb VGA properties
+# power:
+#   type:
+#     ilo: use HP iLO for power switching
+#     usbnetpower: use usbnetpower for power switching
+#     snmp: use snmp for powerswitching
+#   snmp: snmp settings (when using snmp for power switching)
+#     (host, community, base_mib, on_value, off_value, ports)
+#       ports is an array, appended to the base_mib.
+#       when switching, all ports in array are switched
+# ilo: HP iLO properties (host, user, pass)
+# info: some info for the webUI
+#   (name, vendor, memory, cpu, cpu_cores, disks, comment)
+#     memory in MB, disks = number of disks
+
+ix64ph1020:
+  ctldev: /dev/vga2usb0
+  serial: /dev/ttyS0
+  video: /dev/video0
+  disks: [/dev/cciss/c0d0, /dev/cciss/c0d1]
+  cdrom: ilo
+  sound: 'null'
+  grab_params: {gain: 170, hshift: -17, offset: 31, phase: 28, vshift: -4}
+  power:
+    type: ilo
+    snmp:
+      host: qaps11nue.qa.suse.de
+      community: qanet
+      base_mib: 1.3.6.1.4.1.318.1.1.12.3.3.1.1.4.
+      on_value: 1
+      off_value: 2
+      ports: ['1', '2']
+  ilo: {host: ix64mm1020.qa.suse.de, pass: susetesting, user: root}
+  info:
+    name: ProLiant DL 385 G2
+    vendor: HP
+    memory: 4096
+    cpu: AMD Opteron
+    cpu_cores: 4
+    disks: 2
+    comment: Currently no soundcard.
+vaio:
+  ctldev: /dev/vga2usb0
+  serial: /dev/ttyS0
+  video: /dev/video0
+  disks: [/dev/sda]
+  cdrom: ipxe
+  sound: 'null'
+  grab_params: {gain: 170, hshift: -17, offset: 31, phase: 28, vshift: -4}
+  power: {type: usbnetpower}
+  info:
+    name: Vaio
+    vendor: Sony
+    memory: 1536
+    cpu: 'Pentium 4 2.8GHz, HT'
+    cpu_cores: 2
+    disks: 1
+    comment: Currently no soundcard+serial.
