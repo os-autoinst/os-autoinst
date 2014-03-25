@@ -39,7 +39,6 @@ pkglibexec_SCRIPTS = \
 	ocr.pm \
 	cv.pm \
 	needle.pm \
-	rpc.pl \
 	crop.py \
 	start.pl
 
