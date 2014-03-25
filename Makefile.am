@@ -94,6 +94,7 @@ install-data-local:
 	for i in $(pkglibexec_FOLDERS) ; do \
 		cp -r $(top_srcdir)/$$i "$(DESTDIR)/$(pkglibexecdir)" ; \
 	done
+	install -D -m 644 $(top_srcdir)/etc/os-autoinst/kvm2usb.yml "$(DESTDIR)/etc/os-autoinst/kvm2usb.yml"
 
 uninstall-local:
 	for i in $(packagestate_DATA_FOLDERS) ; do \
