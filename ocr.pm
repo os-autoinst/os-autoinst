@@ -1,7 +1,6 @@
 package ocr;
 use strict;
 use warnings;
-use cv;
 
 our $gocrbin="/usr/bin/gocr";
 if(!-x $gocrbin) {$gocrbin=undef}

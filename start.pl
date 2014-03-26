@@ -18,6 +18,8 @@ use needle;
 use autotest;
 use Data::Dumper;
 
+bmwqemu::init();
+
 # Sanity checks
 die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI} && !defined $ENV{CASEDIR};
 die "No scripts in $ENV{CASEDIR}" if ! -e "$ENV{CASEDIR}";

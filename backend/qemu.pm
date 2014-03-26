@@ -16,6 +16,7 @@ use POSIX qw/strftime/;
 use JSON;
 require Carp;
 use Fcntl;
+use bmwqemu qw(fileContent diag);
 
 my $MAGIC_PIPE_CLOSE_STRING = 'xxxQUITxxx';
 
@@ -130,7 +131,8 @@ sub cpu_stat($) {
 
 sub do_start_vm($) {
 	my $self = shift;
-	eval bmwqemu::fileContent("$bmwqemu::scriptdir/inst/startqemu.pm");
+        require 'inst/startqemu.pm';
+	startqemu::run($self);
 	die "startqemu failed: $@" if $@;
 	$self->open_management();
 	my $cnt = bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw");	
@@ -248,7 +250,7 @@ sub new {
 sub start
 {
 	my $self = shift;
-
+	
 	my $p1, my $p2;
 	pipe($p1, $p2)     or die "pipe: $!";
 	$self->{from_parent} = $p1;
@@ -272,7 +274,7 @@ sub stop
 	my $cmd = shift;
 
 	return unless ($self->{runthread});
-	
+
 	$self->send('quit');
 
 	print STDERR " waiting for console read thread to quit...\n";
@@ -321,8 +323,8 @@ sub send
 	   my $buffer;
 	   #print STDERR "before read from_child\n";
 	   unless ($s->can_read(60)) {
-		bmwqemu::diag "ERROR: 60 seconds no reply to send '".Data::Dump::pp($cmd)."'";
-		return undef;
+		   bmwqemu::diag "ERROR: 60 seconds no reply to send '".Data::Dump::pp($cmd)."'";
+		   return undef;
 	   }
 	   my $bytes = sysread($self->{from_child}, $buffer, 1000);
 	   #print STDERR "from_child got $bytes\n";
@@ -349,33 +351,32 @@ sub send
 
 sub wait_for_img($)
 {
-       my $tmp = shift;
+	my $tmp = shift;
 
-       my $ret;
-       while (!defined $ret) {
-         sleep(0.1);
-         my $fs = -s $tmp;
-         # if qemu did not even start writing out
-         # after 0.1s, it's most likely dead. In case
-         # this is not true on slow machines, we may
-         # need to scale this - because sleeping longer
-         # doesn't make sense
-         return unless ($fs);
-         next if ($fs < 70);
-         my $header;
-         next if (!open(PPM, $tmp));
-         if (read(PPM, $header, 70) < 70) {
-           close(PPM);
-           next;
-         }
-         close(PPM);
-         my ($xres,$yres) = ($header=~m/\AP6\n(?:#.*\n)?(\d+) (\d+)\n255\n/);
-         next if(!$xres);
-         my $d=$xres*$yres*3+length($&);
-         next if ($fs != $d);
-	 return;
-      }
-
+	my $ret;
+	while (!defined $ret) {
+		sleep(0.1);
+		my $fs = -s $tmp;
+		# if qemu did not even start writing out
+		# after 0.1s, it's most likely dead. In case
+		# this is not true on slow machines, we may
+		# need to scale this - because sleeping longer
+		# doesn't make sense
+		return unless ($fs);
+		next if ($fs < 70);
+		my $header;
+		next if (!open(PPM, $tmp));
+		if (read(PPM, $header, 70) < 70) {
+			close(PPM);
+			next;
+		}
+		close(PPM);
+		my ($xres,$yres) = ($header=~m/\AP6\n(?:#.*\n)?(\d+) (\d+)\n255\n/);
+		next if(!$xres);
+		my $d=$xres*$yres*3+length($&);
+		next if ($fs != $d);
+		return;
+	}
 }
 
 sub _read_hmp($) {

@@ -8,7 +8,7 @@ use ExtUtils::testlib;
 
 use File::Basename;
 
-BEGIN {
+sub init() {
 	use Config;
 	my $vendorlib = $Config{installvendorlib};
 	my $libdir = dirname(__FILE__);
@@ -24,8 +24,8 @@ BEGIN {
 
 	unshift(@INC, "$libdir/ppmclibs/blib/arch");
 	unshift(@INC, "$libdir/ppmclibs/blib/lib");
-}
 
-require tinycv;
+	require tinycv;
+}
 
 1;
