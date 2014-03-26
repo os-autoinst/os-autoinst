@@ -7,7 +7,7 @@ use Time::HiRes qw(sleep gettimeofday);
 use Digest::MD5;
 use IO::Socket;
 use File::Basename;
-eval {require Algorithm::Line::Bresenham;};
+# eval {require Algorithm::Line::Bresenham;};
 use Exporter;
 use ocr;
 use cv;
