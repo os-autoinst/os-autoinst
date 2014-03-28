@@ -7,6 +7,8 @@ use File::Basename;
 use needle;
 use cv;
 
+cv::init();
+
 my ($res, $needle, $img);
 
 my $ndir = $ARGV[0] || ".";

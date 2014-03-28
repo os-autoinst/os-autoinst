@@ -12,6 +12,8 @@ use needle;
 use cv;
 use Data::Dump;
 
+cv::init();
+
 my ($res, $needle, $img1, $cand);
 
 $img1 = tinycv::read("data/bootmenu.test.png");

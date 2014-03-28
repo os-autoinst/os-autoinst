@@ -4,14 +4,13 @@ package backend::vbox;
 use strict;
 use Cwd 'abs_path';
 use File::Temp;
+use bmwqemu qw ($scriptdir);
 
 #use FindBin;
 #use lib "$FindBin::Bin/backend";
 #use lib "$FindBin::Bin/backend/helper";
 #use lib "$FindBin::Bin/helper";
 use base ('backend::helper::scancodes', 'backend::baseclass');
-
-our $scriptdir = $bmwqemu::scriptdir || '.';
 
 sub init() {
 	my $self = shift;
@@ -99,6 +98,7 @@ sub eject_cd($) {
 sub start_audiocapture($) {
 	my $self = shift;
 	my $wavfilename = shift;
+	my $scriptdir = $bmwqemu::scriptdir || '.';
 	system("$scriptdir/tools/pawav.pl $wavfilename &");
 }
 

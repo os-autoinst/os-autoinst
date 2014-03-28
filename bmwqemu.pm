@@ -23,7 +23,7 @@ use JSON;
 
 our ($VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS);
 @ISA = qw(Exporter);
-@EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $testedversion %cmd
+@EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $serialfile $testedversion %cmd
 &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey 
 &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
 &wait_encrypt_prompt
@@ -88,109 +88,153 @@ our $serialdev="ttyS0"; #FIXME: also backend
 our $serialfile="serial0";
 our $gocrbin="/usr/bin/gocr";
 
-our $scriptdir=$0; $scriptdir=~s{/[^/]+$}{};
-our $testedversion=$ENV{NAME};
-unless ($testedversion) {
-	$testedversion=$ENV{ISO}||"";
-	$testedversion=~s{.*/}{};
-	$testedversion=~s/\.iso$//;
-	$testedversion=~s{-Media1?$}{};
-}
+our $scriptdir=$0;
+$scriptdir=~s{/[^/]+$}{};
 
-die "DISTRI undefined\n" unless $ENV{DISTRI};
+our $testedversion;
+our @keyhistory;
+our %cmd;
 
-unless ($ENV{CASEDIR}) {
-	my @dirs = ("$scriptdir/distri/$ENV{DISTRI}");
-	unshift @dirs, $dirs[-1]."-".$ENV{VERSION} if ($ENV{VERSION});
-	for my $d (@dirs) {
-		if (-d $d) {
-			$ENV{CASEDIR} = $d;
-			last;
+our %charmap;
+
+sub init {
+
+	cv::init();
+
+	our $testedversion=$ENV{NAME};
+	unless ($testedversion) {
+		$testedversion=$ENV{ISO}||"";
+		$testedversion=~s{.*/}{};
+		$testedversion=~s/\.iso$//;
+		$testedversion=~s{-Media1?$}{};
+	}
+
+	die "DISTRI undefined\n" unless $ENV{DISTRI};
+
+	unless ($ENV{CASEDIR}) {
+		my @dirs = ("$scriptdir/distri/$ENV{DISTRI}");
+		unshift @dirs, $dirs[-1]."-".$ENV{VERSION} if ($ENV{VERSION});
+		for my $d (@dirs) {
+			if (-d $d) {
+				$ENV{CASEDIR} = $d;
+				last;
+			}
+		}
+		die "can't determine test directory for $ENV{DISTRI}\n" unless $ENV{CASEDIR};
+	}
+
+	## env vars
+	$ENV{UEFI_BIOS}||='/usr/share/qemu/ovmf-x86_64-ms.bin';
+	$ENV{QEMUPORT}||=15222;
+	$ENV{INSTLANG}||="en_US";
+
+	if (defined($ENV{DISTRI}) && $ENV{DISTRI} eq 'archlinux') {
+		$ENV{HDDMODEL}="ide";
+	}
+
+	if ($ENV{LAPTOP}) {
+		$ENV{LAPTOP} = 'dell_e6330' if $ENV{LAPTOP} eq '1';
+		die "no dmi data for '$ENV{LAPTOP}'\n" unless -d "$scriptdir/dmidata/$ENV{LAPTOP}";
+		$ENV{LAPTOP} = "$scriptdir/dmidata/$ENV{LAPTOP}";
+	}
+
+	## env vars end
+
+	## keyboard cmd vars
+	%cmd=qw(
+			   next alt-n
+			   xnext alt-n
+			   install alt-i
+			   update alt-u
+			   finish alt-f
+			   accept alt-a
+			   ok alt-o
+			   continue alt-o
+			   createpartsetup alt-c
+			   custompart alt-c
+			   addpart alt-d
+			   donotformat alt-d
+			   addraid alt-i
+			   add alt-a
+			   raid0 alt-0
+			   raid1 alt-1
+			   raid5 alt-5
+			   raid6 alt-6
+			   raid10 alt-i
+			   mountpoint alt-m
+			   filesystem alt-s
+			   acceptlicense alt-a
+			   instdetails alt-d
+			   rebootnow alt-n
+			   otherrootpw alt-s
+			   noautologin alt-a
+			   change alt-c
+			   software s
+			   package p
+			   bootloader b
+		 );
+
+	if ($ENV{INSTLANG} eq "de_DE") {
+		$cmd{"next"}="alt-w";
+		$cmd{"createpartsetup"}="alt-e";
+		$cmd{"custompart"}="alt-b";
+		$cmd{"addpart"}="alt-h";
+		$cmd{"finish"}="alt-b";
+		$cmd{"accept"}="alt-r";
+		$cmd{"donotformat"}="alt-n";
+		$cmd{"add"}="alt-h";
+		#	$cmd{"raid6"}="alt-d"; 11.2 only
+		$cmd{"raid10"}="alt-r";
+		$cmd{"mountpoint"}="alt-e";
+		$cmd{"rebootnow"}="alt-j";
+		$cmd{"otherrootpw"}="alt-e";
+		$cmd{"change"}="alt-n";
+		$cmd{"software"}="w";
+	}
+	if ($ENV{INSTLANG} eq "es_ES") {
+		$cmd{"next"}="alt-i";
+	}
+	if ($ENV{INSTLANG} eq "fr_FR") {
+		$cmd{"next"}="alt-s";
+	}
+	## keyboard cmd vars end
+
+	## some var checks
+	if (!-x $gocrbin) {
+		$gocrbin=undef;
+	}
+	if ($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
+		if ($1 ne "http") {
+			die "only http mirror URLs are currently supported but found '$1'.";
 		}
 	}
-	die "can't determine test directory for $ENV{DISTRI}\n" unless $ENV{CASEDIR};
+
+	## charmap (like L => shift+l)
+	%charmap=(
+		","=>"comma", "."=>"dot", "/"=>"slash", "="=>"equal", "-"=>"minus", "*"=>"asterisk",
+		"["=>"bracket_left", "]"=>"bracket_right",
+		"{"=>"shift-bracket_left", "}"=>"shift-bracket_right",
+		"\\"=>"backslash", "|"=>"shift-backslash",
+		";"=>"semicolon", ":"=>"shift-semicolon",
+		"'"=>"apostrophe", '"'=>"shift-apostrophe",
+		"`"=>"grave_accent", "~"=>"shift-grave_accent",
+		"<"=>"shift-comma", ">"=>"shift-dot",
+		"+"=>"shift-equal", "_"=>"shift-minus", '?'=>"shift-slash",
+		"\t"=>"tab", "\n"=>"ret", " "=>"spc", "\b"=>"backspace", "\e"=>"esc"
+	      );
+	for my $c ("A".."Z") {
+		$charmap{$c}="shift-\L$c";
+	}
+	{
+		my $n=0;
+		for my $c (')','!','@','#','$','%','^','&','*','(') {
+			$charmap{$c}="shift-".($n++);
+		}
+	}
+	## charmap end
+
 }
 
-## env vars
-$ENV{UEFI_BIOS}||='/usr/share/qemu/ovmf-x86_64-ms.bin';
-$ENV{QEMUPORT}||=15222;
-$ENV{INSTLANG}||="en_US";
-
-if(defined($ENV{DISTRI}) && $ENV{DISTRI} eq 'archlinux') {$ENV{HDDMODEL}="ide";}
-
-if ($ENV{LAPTOP}) {
-    $ENV{LAPTOP} = 'dell_e6330' if $ENV{LAPTOP} eq '1';
-    die "no dmi data for '$ENV{LAPTOP}'\n" unless -d "$scriptdir/dmidata/$ENV{LAPTOP}";
-    $ENV{LAPTOP} = "$scriptdir/dmidata/$ENV{LAPTOP}";
-}
-
-## env vars end
-
-## keyboard cmd vars
-our @keyhistory;
-our %cmd=qw(
-	next alt-n
-	xnext alt-n
-	install alt-i
-	update alt-u
-	finish alt-f
-	accept alt-a
-	ok alt-o
-	continue alt-o
-	createpartsetup alt-c
-	custompart alt-c
-	addpart alt-d
-	donotformat alt-d
-	addraid alt-i
-	add alt-a
-	raid0 alt-0
-	raid1 alt-1
-	raid5 alt-5
-	raid6 alt-6
-	raid10 alt-i
-	mountpoint alt-m
-	filesystem alt-s
-	acceptlicense alt-a
-	instdetails alt-d
-	rebootnow alt-n
-	otherrootpw alt-s
-	noautologin alt-a
-	change alt-c
-	software s
-	package p
-	bootloader b
-);
-
-if($ENV{INSTLANG} eq "de_DE") {
-	$cmd{"next"}="alt-w";
-	$cmd{"createpartsetup"}="alt-e";
-	$cmd{"custompart"}="alt-b";
-	$cmd{"addpart"}="alt-h";
-	$cmd{"finish"}="alt-b";
-	$cmd{"accept"}="alt-r";
-	$cmd{"donotformat"}="alt-n";
-	$cmd{"add"}="alt-h";
-#	$cmd{"raid6"}="alt-d"; 11.2 only
-	$cmd{"raid10"}="alt-r";
-	$cmd{"mountpoint"}="alt-e";
-	$cmd{"rebootnow"}="alt-j";
-	$cmd{"otherrootpw"}="alt-e";
-	$cmd{"change"}="alt-n";
-	$cmd{"software"}="w";
-}
-if($ENV{INSTLANG} eq "es_ES") {
-	$cmd{"next"}="alt-i";
-}
-if($ENV{INSTLANG} eq "fr_FR") {
-	$cmd{"next"}="alt-s";
-}
-## keyboard cmd vars end
-
-## some var checks
-if(!-x $gocrbin) {$gocrbin=undef}
-if($ENV{SUSEMIRROR} && $ENV{SUSEMIRROR}=~s{^(\w+)://}{}) { # strip & check proto
-	if($1 ne "http") {die "only http mirror URLs are currently supported but found '$1'."}
-}
 ## some var checks end
 
 # global vars end
@@ -205,26 +249,6 @@ my $framecounter = 0; # screenshot counter
 ## sudo stuff
 my $sudos=0;
 ## sudo stuff end
-
-## charmap (like L => shift+l)
-my %charmap=(
-	","=>"comma", "."=>"dot", "/"=>"slash", "="=>"equal", "-"=>"minus", "*"=>"asterisk",
-	"["=>"bracket_left", "]"=>"bracket_right",
-	"{"=>"shift-bracket_left", "}"=>"shift-bracket_right",
-	"\\"=>"backslash", "|"=>"shift-backslash",
-	";"=>"semicolon", ":"=>"shift-semicolon",
-	"'"=>"apostrophe", '"'=>"shift-apostrophe",
-	"`"=>"grave_accent", "~"=>"shift-grave_accent",
-	"<"=>"shift-comma", ">"=>"shift-dot",
-	"+"=>"shift-equal", "_"=>"shift-minus", '?'=>"shift-slash",
-	"\t"=>"tab", "\n"=>"ret", " "=>"spc", "\b"=>"backspace", "\e"=>"esc"
-);
-for my $c ("A".."Z") {$charmap{$c}="shift-\L$c"}
-{
-	my $n=0;
-	for my $c (')','!','@','#','$','%','^','&','*','(') {$charmap{$c}="shift-".($n++)}
-}
-## charmap end
 
 # local vars end
 
@@ -798,19 +822,6 @@ sub get_cpu_stat() {
 
 
 # check functions (runtime and result-checks)
-
-sub get_ocr($) {
-	# input: tinycv object
-	my $img=shift;
-	my $ocr=ocr::get_ocr($img, "-m 2 -s 6", \@ocrrect);
-	if(!$ocr) {return ""}
-	$ocr=~s/^[_ \t\n]+//;
-	$ocr=~s/\n/ --- /g;
-	# correct common mis-readings:
-	$ocr=~s/nstaII/nstall/g;
-	$ocr=~s/l(install|Remaining)/($1/g;
-	return " ocr='$ocr'";
-}
 
 sub decodewav($) {
 	# FIXME: move to multimonNG (multimon fork)

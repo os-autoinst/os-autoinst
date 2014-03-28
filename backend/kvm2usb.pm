@@ -21,7 +21,7 @@ use File::Temp;
 use constant { SCHAR_MAX => 127, SCHAR_MIN => -127 };
 use base ('backend::helper::scancodes', 'backend::baseclass');
 
-our $scriptdir = $bmwqemu::scriptdir || '.';
+use bmwqemu qw(diag $serialfile);
 
 sub init() {
 	my $self = shift;
@@ -94,9 +94,8 @@ sub raw_mouse_io($) {
 
 # baseclass virt method overwrite
 
-sub mouse_move($) {
-	my $self = shift;
-	my ($dx, $dy) = @_;
+sub mouse_move($$) {
+	my ($self, $dx, $dy) = @_;
 	while ($dx ne 0 or $dy ne 0) {
 		my $dx_jump = $dx>SCHAR_MAX ? SCHAR_MAX : ($dx<SCHAR_MIN ? SCHAR_MIN : $dx);
 		my $dy_jump = $dy>SCHAR_MAX ? SCHAR_MAX : ($dy<SCHAR_MIN ? SCHAR_MIN : $dy);
@@ -106,9 +105,8 @@ sub mouse_move($) {
 	}
 }
 
-sub mouse_set($) {
-	my $self = shift;
-	my ($x, $y) = @_;
+sub mouse_set($$) {
+	my ($self, $x, $y) = @_;
 	# let's see how far this will work...
 	# ... assuming bottom right is 0x0 + 512x384
 	# set cursor to 0x0
