@@ -24,8 +24,6 @@ sub init() {
 
 	unshift(@INC, "$libdir/ppmclibs/blib/arch");
 	unshift(@INC, "$libdir/ppmclibs/blib/lib");
-
-	require tinycv;
 }
 
 1;

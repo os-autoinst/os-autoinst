@@ -13,6 +13,7 @@ use cv;
 use ocr;
 
 cv::init();
+require tinycv;
 
 my ($res, $needle, $img1);
 

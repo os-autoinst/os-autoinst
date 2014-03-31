@@ -100,6 +100,7 @@ our %charmap;
 sub init {
 
 	cv::init();
+	require tinycv;
 
 	our $testedversion=$ENV{NAME};
 	unless ($testedversion) {
