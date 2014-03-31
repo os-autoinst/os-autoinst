@@ -4,9 +4,12 @@ use warnings;
 use Time::HiRes qw( sleep gettimeofday );
 use bmwqemu;
 use threads;
+use cv;
 
 sub screenshotsub
 {
+	# cv::init called from bmwqemu
+	require tinycv;
         my $interval = $ENV{SCREENSHOTINTERVAL}||.5;
        	while(bmwqemu::alive()) {
 	  my ($s1, $ms1) = gettimeofday();

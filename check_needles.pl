@@ -8,6 +8,7 @@ use needle;
 use cv;
 
 cv::init();
+require tinycv;
 
 my ($res, $needle, $img);
 

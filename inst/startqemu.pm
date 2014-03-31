@@ -1,6 +1,5 @@
 #!/usr/bin/perl -w
 use strict;
-use File::Path qw/mkpath/;
 
 package startqemu;
 
@@ -42,6 +41,7 @@ sub run($) {
     die "'$ENV{UEFI_BIOS}' missing, check UEFI_BIOS\n";
   }
 
+  use File::Path qw/mkpath/;
   mkpath($basedir);
 
   if (!$ENV{KEEPHDDS} && !$ENV{SKIPTO}) {

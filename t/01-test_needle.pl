@@ -13,6 +13,7 @@ use cv;
 use Data::Dump;
 
 cv::init();
+require tinycv;
 
 my ($res, $needle, $img1, $cand);
 
