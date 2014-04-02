@@ -19,6 +19,7 @@ use Fcntl;
 use bmwqemu qw(fileContent diag);
 
 my $MAGIC_PIPE_CLOSE_STRING = 'xxxQUITxxx';
+my $iscrashedfile = 'backend.crashed';
 
 sub init() {
 	my $self = shift;
@@ -134,6 +135,8 @@ sub do_start_vm($) {
         require 'inst/startqemu.pm';
 	startqemu::run($self);
 	die "startqemu failed: $@" if $@;
+	# remove backend.crashed
+	unlink($iscrashedfile) if -e $iscrashedfile;
 	$self->open_management();
 	my $cnt = bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw");	
 	if ($cnt) {
@@ -219,6 +222,11 @@ sub _read_json($) {
 	while (!$hash) {
 		my @res = $s->can_read(60);
 		unless (@res) {
+	                unless(-e $iscrashedfile) {
+		                open(my $backend_type, ">", $iscrashedfile) or die "can not write '$iscrashedfile'";
+			        print $backend_type "qemu\n";
+			        close $backend_type;
+		        }
 			die "ERROR: timeout reading JSON reply\n";
 		}
 		my $qbuffer;
@@ -323,6 +331,11 @@ sub send
 	   my $buffer;
 	   #print STDERR "before read from_child\n";
 	   unless ($s->can_read(60)) {
+	           unless(-e $iscrashedfile) {
+		           open(my $backend_type, ">", $iscrashedfile) or die "can not write '$iscrashedfile'";
+			   print $backend_type "qemu\n";
+			   close $backend_type;
+		   }
 		   bmwqemu::diag "ERROR: 60 seconds no reply to send '".Data::Dump::pp($cmd)."'";
 		   return undef;
 	   }
@@ -418,6 +431,11 @@ sub _read_hmp($) {
 		}
 	}
 
+	unless(-e $iscrashedfile) {
+	        open(my $backend_type, ">", $iscrashedfile) or die "can not write '$iscrashedfile'";
+	        print $backend_type "qemu\n";
+	        close $backend_type;
+	}
 	die "ERROR: timeout reading hmp socket\n";
 }
 
