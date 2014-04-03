@@ -326,8 +326,8 @@ sub raw_set_capture_params($) {
     my $gain    = shift || $confp->{'gain'};                                                                                                                 # value 0,255
     my $offset  = shift || $confp->{'offset'};                                                                                                               # value 0,63
     my $phase   = shift || $confp->{'phase'};                                                                                                                # value 0,31
-                                                                                                                                                             # 0,0 seems to mean auto - but fixed seems to work better...
-                                                                                                                                                             # change flags: hshift: 0x0001, phase: 0x0002, offset/gain: 0x0004, vshift: 0x0008
+    # 0,0 seems to mean auto - but fixed seems to work better...
+    # change flags: hshift: 0x0001, phase: 0x0002, offset/gain: 0x0004, vshift: 0x0008
     my $sendstr = pack( "LlCCCCCCCCllLL", 0x0001 | 0x0002 | 0x0004 | 0x0008, $h, $phase, $gain, $gain, $gain, $offset, $offset, $offset, 0, $v, 0, 0, 0 );
     open( my $fd, "+>", $self->{'hardware'}->{'ctldev'} ) or die $!;
     ioctl( $fd, 0x40205608, $sendstr ) or print "Error: setting capture parameters via '" . $self->{'hardware'}->{'ctldev'} . "' failed!\n";

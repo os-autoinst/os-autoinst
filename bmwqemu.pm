@@ -1017,7 +1017,7 @@ sub waitidle(;$) {
             diag("waitidle $timesidle d=$diff");
             if ( $diff < $idlethreshold ) {
                 if ( ++$timesidle > $timesidleneeded ) {    # idle for $x sec
-                                                            #if($diff<2000000) # idle for one sec
+                    #if($diff<2000000) # idle for one sec
                     fctres( 'waitidle', "idle detected" );
                     return 1;
                 }

@@ -114,8 +114,8 @@ sub raw_alive($) {
 sub do_start_vm {
     my $self = shift;
     $self->raw_vbox_controlvm("poweroff");    # stop if running
-                                              # TODO: assemble VM with ISO and disks similar to startqemu.pm
-                                              # attach iso as DVD:
+    # TODO: assemble VM with ISO and disks similar to startqemu.pm
+    # attach iso as DVD:
     $self->insert_cd( $ENV{ISO} );
 
     # pipe serial console output to file:
