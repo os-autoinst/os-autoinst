@@ -2,13 +2,12 @@ package NET_inst_mirror;
 use base "basetest";
 use bmwqemu;
 
-sub is_applicable()
-{
-	return !$ENV{ISO} || $ENV{ISO}=~m/-NET-/;
+sub is_applicable() {
+    return !$ENV{ISO} || $ENV{ISO} =~ m/-NET-/;
 }
 
-sub run()
-{
+sub run() {
 }
 
 1;
+# vim: set sw=4 et:
