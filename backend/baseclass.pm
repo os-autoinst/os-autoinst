@@ -220,3 +220,5 @@ sub start_conmuxloop() {
 # end connection multiplexer
 
 1;
+
+# vim: set sw=4 et:

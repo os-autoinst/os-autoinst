@@ -110,3 +110,5 @@ delete $ENV{WORKERID};
 bmwqemu::save_results();
 
 exit $r;
+
+# vim: set sw=4 et:

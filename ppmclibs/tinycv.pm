@@ -171,3 +171,4 @@ sub write_optimized($$) {
 # tab-width: 8
 # cperl-indent-level: 8
 # End:
+# vim: set sw=4 et:

@@ -8,3 +8,5 @@ sub is_applicable() {
 }
 
 1;
+
+# vim: set sw=4 et:

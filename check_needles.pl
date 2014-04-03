@@ -36,3 +36,5 @@ foreach my $json (@jsons) {
         }
     }
 }
+
+# vim: set sw=4 et:
