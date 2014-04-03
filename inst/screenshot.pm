@@ -26,3 +26,4 @@ sub screenshotsub {
 }
 
 threads->create( \&screenshotsub );
+# vim: set sw=4 et:

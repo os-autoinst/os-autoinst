@@ -82,3 +82,4 @@ for my $n ( needle::all() ) {
 }
 
 is_deeply( \@alltags, [ sort keys %needle::tags ], "all tags restored" );
+# vim: set sw=4 et:

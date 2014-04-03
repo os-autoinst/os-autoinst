@@ -34,3 +34,4 @@ for my $a ( @{ $res->{'needle'}->{'area'} } ) {
 }
 
 ok( $ocr =~ /Memory Test.*Video Mode/s, "multiple OCR regions" );
+# vim: set sw=4 et:
