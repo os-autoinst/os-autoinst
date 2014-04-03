@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 TIDY_ARGS="-b -l=0"
 
@@ -16,6 +16,17 @@ find . -name '*.p[lm]' -exec perltidy $TIDY_ARGS \{\} \;
 
 find tools/absolutize -exec perltidy $TIDY_ARGS \{\} \;
 
-find -name '*.bak' -delete
+if test "$1"  = '--check'; then
+  find . -name "*.bak" | while read file; do 
+    if ! diff -u $file ${file/.bak/}; then
+       echo "RUN tools/tidy script before checkin"
+       exit 1
+    fi
+  done
+  # propate subshell exit status
+  exit $?
+else
+  find -name '*.bak' -delete
+fi
 
 # vim: set ts=4 sw=4 sts=4 et:

@@ -1,0 +1,6 @@
+language: perl
+install:
+  - cpanm -nq Perl::Tidy
+script:
+  - ./tools/tidy --check
+
