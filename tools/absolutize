@@ -1,8 +1,8 @@
 #!/usr/bin/perl
-$_=shift;
-unless(m{^/}) {
-	$currDir = `pwd`;
-	chomp $currDir;
-	$_="$currDir/$_";
+$_ = shift;
+unless (m{^/}) {
+    $currDir = `pwd`;
+    chomp $currDir;
+    $_ = "$currDir/$_";
 }
 print;

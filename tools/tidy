@@ -14,7 +14,7 @@ cd "$ROOT_DIR"
 
 find . -name '*.p[lm]' -exec perltidy $TIDY_ARGS \{\} \;
 
-find tools/{absolutize} -exec perltidy $TIDY_ARGS \{\} \;
+find tools/absolutize -exec perltidy $TIDY_ARGS \{\} \;
 
 find -name '*.bak' -delete
 
