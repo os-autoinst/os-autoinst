@@ -1,0 +1,32 @@
+#!/bin/bash
+
+TIDY_ARGS="-b -l=0 -fws -fbl"
+
+if ! which perltidy > /dev/null 2>&1; then
+    echo "No perltidy found, install it first!"
+    exit 1
+fi
+
+ROOT_DIR="$0"
+ROOT_DIR="`dirname "$ROOT_DIR"`" # Get rid of script
+ROOT_DIR="`dirname "$ROOT_DIR"`" # Get to the git root
+cd "$ROOT_DIR"
+
+find . -name '*.p[lm]' -exec perltidy $TIDY_ARGS \{\} \;
+
+find tools/absolutize -exec perltidy $TIDY_ARGS \{\} \;
+
+if test "$1"  = '--check'; then
+    find . -name "*.bak" | while read file; do
+    if ! diff -u $file ${file/.bak/}; then
+        echo "RUN tools/tidy script before checkin"
+        exit 1
+    fi
+    done
+    # propate subshell exit status
+    exit $?
+else
+    find -name '*.bak' -delete
+fi
+
+# vim: set ts=4 sw=4 sts=4 et:
