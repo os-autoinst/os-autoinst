@@ -98,6 +98,9 @@ sub record_screenmatch($$;$) {
         result     => 'ok',
     };
 
+    # Hack to make it obvious that some test passed by applying a hack
+    # (such as clicking away some error popup). Those hacks are indicated by a
+    # needle containing "bnc" in its name
     if ( $h->{'name'} =~ /bnc\d{4}/ ) {
         $result->{dent} = 1;
         $self->{dents}++;
