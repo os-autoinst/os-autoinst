@@ -5,6 +5,8 @@ use warnings;
 
 use bmwqemu qw(diag);
 
+use File::Basename;
+
 require Exporter;
 require DynaLoader;
 
@@ -156,9 +158,24 @@ sub search($;$) {
     }
 }
 
+sub write_with_thumbnail($$) {
+    my $self     = shift;
+    my $filename = shift;
+
+    $self->write($filename);
+
+    my $thumb = $self->scale( $self->xres() * 120 / $self->yres(), 120 );
+    my $dir = File::Basename::dirname($filename) . "/.thumbs";
+    my $base = File::Basename::basename($filename);
+
+    mkdir($dir);
+    $thumb->write("$dir/$base");
+}
+
 sub write_optimized($$) {
     my $self     = shift;
     my $filename = shift;
+
     $self->write($filename);
 
     # TODO make a thread for running optipng one after the other (Thread::Queue)

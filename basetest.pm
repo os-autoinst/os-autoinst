@@ -104,7 +104,7 @@ sub record_screenmatch($$;$) {
     }
 
     my $fn = join( '/', result_dir(), $result->{'screenshot'} );
-    $img->write($fn);
+    $img->write_with_thumbnail($fn);
 
     $self->{result} ||= 'ok';
 
@@ -173,7 +173,7 @@ sub record_screenfail($@) {
     $result->{'tags'}    = [@$tags]    if $tags;         # make a copy
 
     my $fn = join( '/', result_dir(), $result->{'screenshot'} );
-    $img->write($fn);
+    $img->write_with_thumbnail($fn);
 
     $self->{result} = $overall if $overall;
 
@@ -350,7 +350,7 @@ sub register_screenshot($) {
     };
 
     my $fn = join( '/', result_dir(), $result->{'screenshot'} );
-    $img->write($fn);
+    $img->write_with_thumbnail($fn);
 
     push @{ $self->{'details'} }, $result;
 
