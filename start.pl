@@ -23,7 +23,6 @@ bmwqemu::init();
 # Sanity checks
 die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI} && !defined $ENV{CASEDIR};
 die "No scripts in $ENV{CASEDIR}"                      if !-e "$ENV{CASEDIR}";
-die "ISO environment variable not set"                 if !defined $ENV{ISO};
 
 bmwqemu::clean_control_files();
 
