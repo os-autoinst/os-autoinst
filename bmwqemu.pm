@@ -1198,7 +1198,7 @@ sub _waitforneedle {
             needles => $failed_candidates,
             tags    => \@save_tags,
             result  => $checkneedle ? 'unk' : 'fail',
-            overall => $checkneedle ? undef : 'fail'
+            # do not set overall here as the result will be removed later
         );
 
         $waiting_for_new_needle = 1;
