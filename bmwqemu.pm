@@ -1365,14 +1365,17 @@ sub save_results(;$$) {
         $result->{running}     = $current_test ? ref($current_test) : '';
     }
     else {
-        for my $tr (@$testmodules) {
-            if ( defined $tr->{flags}->{important} ) {
-                if ( $tr->{result} eq "ok" ) {
-                    $result->{overall} ||= 'ok';
-                }
-                else {
-                    $result->{overall} = 'fail';
-                }
+        # if there are any important module only consider the
+        # results of those.
+        my @modules = grep { $_->{flags}->{important} } @$testmodules;
+        # no important ones? => use all.
+        @modules = @$testmodules unless @modules;
+        for my $tr (@modules) {
+            if ( $tr->{result} eq "ok" ) {
+                $result->{overall} ||= 'ok';
+            }
+            else {
+                $result->{overall} = 'fail';
             }
             $result->{dents}++ if $tr->{dents};
         }
