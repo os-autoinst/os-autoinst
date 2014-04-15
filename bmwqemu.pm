@@ -1083,11 +1083,10 @@ sub _waitforneedle {
     $args{'retried'} ||= 0;
 
     # get the array reference to all matching needles
-    my $needles;
+    my $needles = [];
     my @tags;
     if ( ref($mustmatch) eq "ARRAY" ) {
         my @a = @$mustmatch;
-        $mustmatch = '';
         while ( my $n = shift @a ) {
             if ( ref($n) eq '' ) {
                 push @tags, split( / /, $n );
@@ -1100,7 +1099,6 @@ sub _waitforneedle {
                 next;
             }
             push @$needles, $n;
-            $mustmatch .= $n->{name} . "_";
             push @tags, $n->{name};
         }
     }
@@ -1113,6 +1111,7 @@ sub _waitforneedle {
         my %h = map { $_ => 1 } @tags;
         @tags = sort keys %h;
     }
+    $mustmatch = join('_', @tags);
 
     fctlog( 'waitforneedle', "'$mustmatch'", "timeout=$timeout" );
     if ( !@$needles ) {
