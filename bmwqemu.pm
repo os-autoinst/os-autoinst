@@ -814,6 +814,12 @@ sub take_screenshot(;$) {
         $lastscreenshot          = $img;
         $lastscreenshotName      = $filename;
         $numunchangedscreenshots = 0;
+        unless(symlink(basename($filename), $screenshotpath.'/tmp.png')) {
+            # try to unlink file and try again
+            unlink($screenshotpath.'/tmp.png');
+            symlink(basename($filename), $screenshotpath.'/tmp.png');
+        }
+        rename($screenshotpath.'/tmp.png', $screenshotpath.'/last.png');
 
         #my $ocr=get_ocr($img);
         #if($ocr) { diag "ocr: $ocr" }
