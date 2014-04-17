@@ -90,6 +90,9 @@ sub runalltests {
 
 sub loadtestdir($) {
     my $dir = shift;
+    $dir =~ s/^\Q$ENV{CASEDIR}\E\/?//; # legacy where absolute path is specified
+    $dir = join('/', $ENV{CASEDIR}, $dir); # always load from casedir
+    die "$dir does not exist!\n" unless -d $dir;
     foreach my $script (<$dir/*.pm>) {
         loadtest($script);
     }

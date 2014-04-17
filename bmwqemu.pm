@@ -814,6 +814,12 @@ sub take_screenshot(;$) {
         $lastscreenshot          = $img;
         $lastscreenshotName      = $filename;
         $numunchangedscreenshots = 0;
+        unless(symlink(basename($filename), $screenshotpath.'/tmp.png')) {
+            # try to unlink file and try again
+            unlink($screenshotpath.'/tmp.png');
+            symlink(basename($filename), $screenshotpath.'/tmp.png');
+        }
+        rename($screenshotpath.'/tmp.png', $screenshotpath.'/last.png');
 
         #my $ocr=get_ocr($img);
         #if($ocr) { diag "ocr: $ocr" }
@@ -1083,11 +1089,10 @@ sub _waitforneedle {
     $args{'retried'} ||= 0;
 
     # get the array reference to all matching needles
-    my $needles;
+    my $needles = [];
     my @tags;
     if ( ref($mustmatch) eq "ARRAY" ) {
         my @a = @$mustmatch;
-        $mustmatch = '';
         while ( my $n = shift @a ) {
             if ( ref($n) eq '' ) {
                 push @tags, split( / /, $n );
@@ -1100,7 +1105,6 @@ sub _waitforneedle {
                 next;
             }
             push @$needles, $n;
-            $mustmatch .= $n->{name} . "_";
             push @tags, $n->{name};
         }
     }
@@ -1113,6 +1117,7 @@ sub _waitforneedle {
         my %h = map { $_ => 1 } @tags;
         @tags = sort keys %h;
     }
+    $mustmatch = join('_', @tags);
 
     fctlog( 'waitforneedle', "'$mustmatch'", "timeout=$timeout" );
     if ( !@$needles ) {
@@ -1199,7 +1204,7 @@ sub _waitforneedle {
             needles => $failed_candidates,
             tags    => \@save_tags,
             result  => $checkneedle ? 'unk' : 'fail',
-            overall => $checkneedle ? undef : 'fail'
+            # do not set overall here as the result will be removed later
         );
 
         $waiting_for_new_needle = 1;
@@ -1366,14 +1371,17 @@ sub save_results(;$$) {
         $result->{running}     = $current_test ? ref($current_test) : '';
     }
     else {
-        for my $tr (@$testmodules) {
-            if ( defined $tr->{flags}->{important} ) {
-                if ( $tr->{result} eq "ok" ) {
-                    $result->{overall} ||= 'ok';
-                }
-                else {
-                    $result->{overall} = 'fail';
-                }
+        # if there are any important module only consider the
+        # results of those.
+        my @modules = grep { $_->{flags}->{important} } @$testmodules;
+        # no important ones? => use all.
+        @modules = @$testmodules unless @modules;
+        for my $tr (@modules) {
+            if ( $tr->{result} eq "ok" ) {
+                $result->{overall} ||= 'ok';
+            }
+            else {
+                $result->{overall} = 'fail';
             }
             $result->{dents}++ if $tr->{dents};
         }
