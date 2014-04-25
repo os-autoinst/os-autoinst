@@ -13,7 +13,7 @@ if [ -w / ]; then
 	for dist in "${dists[@]}"; do
 		if [ ! -e "$dir/$dist" ]; then
 			mkdir -p "$dir/$dist"
-			chown wwwrun:www "$dir/$dist"
+			chown geekotest:www "$dir/$dist"
 		fi
 		if [ -e "$linkdir/$dist" ]; then
 			if [ ! -L "$linkdir/$dist" ]; then
@@ -23,8 +23,8 @@ if [ -w / ]; then
 			ln -s "$dir/$dist" "$linkdir/$dist"
 		fi
 	done
-	echo "running as root, re-exec as wwwrun ..."
-	exec sudo -u wwwrun env giturl="$giturl" email="$email" linkdir="$linkdir" "$0" "$@"
+	echo "running as root, re-exec as geekotest ..."
+	exec sudo -u geekotest env giturl="$giturl" email="$email" linkdir="$linkdir" "$0" "${saved_args[@]}" "$@"
 	exit 1
 fi
 for dist in "${dists[@]}"; do
