@@ -11,6 +11,7 @@ use File::Basename;
 our %needles;
 our %tags;
 our $needledir;
+our $cleanuphandler;
 
 sub new($;$) {
     my $classname = shift;
@@ -161,6 +162,9 @@ sub init(;$) {
     #		print "  ", $p->{'name'}, "\n";
     #	}
     #}
+    if ($cleanuphandler) {
+        &$cleanuphandler();
+    }
 }
 
 sub tags($) {
