@@ -28,8 +28,6 @@ bmwqemu::clean_control_files();
 
 bmwqemu::save_results();
 
-needle::init("$ENV{CASEDIR}/needles/");
-
 my $init = 1;
 alarm( 7200 + ( $ENV{UPGRADE} ? 3600 : 0 ) );    # worst case timeout
 
@@ -81,6 +79,9 @@ my $r = 0;
 eval {
     # Load the main.pm from the casedir checked by the sanity checks above
     require "$ENV{CASEDIR}/main.pm";
+
+    needle::init();
+
     autotest::runalltests();
 };
 if ($@) {
