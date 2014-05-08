@@ -533,33 +533,21 @@ sub sendpassword() {
 ## keyboard end
 
 ## mouse
-sub mouse_move_nosleep($$) {
-    my ( $mdx, $mdy ) = @_;
+sub mouse_move($$;$) {
+    my $mdx = shift;
+    my $mdy = shift;
+    my $sleep = shift || 0;
     fctlog( 'mouse_move', "delta_x=$mdx", "delta_y=$mdy" );
     $backend->mouse_move( $mdx, $mdy );
+    sleep $sleep;
 }
 
-sub mouse_set_nosleep($$) {
-    my ( $mx, $my ) = @_;
+sub mouse_set($$;$) {
+    my $mdx = shift;
+    my $mdy = shift;
+    my $sleep = shift || 0;
     fctlog( 'mouse_set', "x=$mx", "y=$my" );
     $backend->mouse_set( $mx, $my );
-}
-
-sub mouse_move($$) {
-
-    # relative
-    # FIXME: backend value abstraction
-    my ( $mdx, $mdy ) = @_;
-    mouse_move_nosleep( $mdx, $mdy );
-    sleep 0.5;
-}
-
-sub mouse_set($$) {
-
-    # absolute
-    my ( $mx, $my ) = @_;
-    mouse_set_nosleep( $mx, $my );
-    sleep 0.5;
 }
 
 sub mouse_click(;$$) {
