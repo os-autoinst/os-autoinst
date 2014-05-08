@@ -26,7 +26,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
 @ISA    = qw(Exporter);
 @EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $serialfile $testedversion %cmd
   &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
-  &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
+  &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
   &wait_encrypt_prompt
   &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor
   &checkneedle &goandclick &set_current_test &become_root &upload_logs
@@ -501,19 +501,19 @@ sub send_key($;$) {
     waitidle if $wait;
 }
 
-=head2 sendautotype
+=head2 type_string
 
-sendautotype($string)
+type_string($string)
 
 send a string of characters, mapping them to appropriate key names as necessary
 
 =cut
 
-sub sendautotype($;$) {
+sub type_string($;$) {
     my $string      = shift;
     my $maxinterval = shift || 25;
     my $typedchars  = 0;
-    fctlog( 'sendautotype', "string='$string'" );
+    fctlog( 'type_string', "string='$string'" );
     my @letters = split( "", $string );
     while (@letters) {
         my $letter = shift @letters;
@@ -528,7 +528,7 @@ sub sendautotype($;$) {
 }
 
 sub sendpassword() {
-    sendautotype($password);
+    type_string $password;
 }
 ## keyboard end
 
@@ -592,7 +592,7 @@ sub x11_start_program($;$) {
     my $options = shift || {};
     send_key "alt-f2";
     sleep 4;
-    sendautotype $program;
+    type_string $program;
     sleep 1;
     if ( $options->{terminal} ) { send_key "alt-t"; sleep 3; }
     send_key "ret";
@@ -615,7 +615,7 @@ sub script_run($;$) {
     my $name = shift;
     my $wait = shift || 9;
     waitidle();
-    sendautotype("$name\n");
+    type_string "$name\n";
     waitidle($wait);
     sleep 3;
 }
@@ -632,7 +632,7 @@ $wait_seconds
 sub script_sudo($;$) {
     my $prog = shift;
     my $wait = shift || 2;
-    sendautotype("sudo $prog\n");
+    type_string "sudo $prog\n";
     if ( checkneedle( "sudo-passwordprompt", 3 ) ) {
         sendpassword;
         send_key "ret";
@@ -706,7 +706,7 @@ sub clear_console() {
     send_key "ctrl-c";
     sleep 1;
     send_key "ctrl-c";
-    sendautotype "reset\n";
+    type_string "reset\n";
     sleep 2;
 }
 ## helpers end

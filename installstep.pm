@@ -20,11 +20,11 @@ sub post_fail_hook() {
         send_key "ctrl-alt-f2";
         waitforneedle("inst-console");
         if ( !$ENV{NET} ) {
-            sendautotype "dhcpcd eth0\n";
-            sendautotype "ifconfig -a\n";
-            sendautotype "cat /etc/resolv.conf\n";
+            type_string "dhcpcd eth0\n";
+            type_string "ifconfig -a\n";
+            type_string "cat /etc/resolv.conf\n";
         }
-        sendautotype "save_y2logs /tmp/y2logs.tar.bz2\n";
+        type_string "save_y2logs /tmp/y2logs.tar.bz2\n";
         upload_logs "/tmp/y2logs.tar.bz2";
         $self->take_screenshot();
     }
