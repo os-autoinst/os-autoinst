@@ -256,7 +256,7 @@ sub keycode_up($) {
 
 # virtual methods end
 
-sub sendkey($) {
+sub send_key($) {
     my $self  = shift;
     my $key   = shift;
     my @codes = ();
@@ -266,7 +266,7 @@ sub sendkey($) {
     }
     my @codes_print = map( sprintf( "0x%02X", $_ ), @codes );
 
-    #print STDOUT "sendkey($key) => @codes_print\n";
+    #print STDOUT "send_key($key) => @codes_print\n";
     $self->raw_keyboard_io( \@codes );
 }
 
