@@ -45,7 +45,7 @@ sub is_applicable() {
 =head2 post_failure
 
 Do some cleaning after case die. 
-e.g. don't find a match need after waitforneedle().
+e.g. don't find a match need after assert_screen().
 Need to be implemented in child classed if necessary.
 
 =cut
@@ -267,7 +267,7 @@ sub runtest($$) {
 
         # FIXME: there should be a test class that handles this
         if ( $self->{'category'} eq 'x11test' && $name ne 'shutdown' ) {
-            waitforneedle('test-consoletest_finish-1');
+            assert_screen('test-consoletest_finish-1');
         }
     };
     if ($@) {
@@ -362,7 +362,7 @@ sub register_screenshot($) {
 
 =head2 check_screen
 check needle with a tag that consists of current test name and
-counter. Convenience function around waitforneedle
+counter. Convenience function around assert_screen
 =cut
 
 sub check_screen(;$) {
@@ -379,7 +379,7 @@ sub check_screen(;$) {
         $tag = "test-$testname-$count";
     }
 
-    return bmwqemu::waitforneedle( $tag, 3 );
+    return bmwqemu::assert_screen( $tag, 3 );
 }
 
 sub start_audiocapture() {

@@ -28,7 +28,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
   &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
   &wait_encrypt_prompt
-  &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor
+  &timeout_screenshot &waitidle &waitserial &waitimage &assert_screen &waitstillimage &waitcolor
   &checkneedle &goandclick &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
@@ -569,7 +569,7 @@ sub mouse_hide(;$) {
 ## helpers
 sub wait_encrypt_prompt() {
     if ( $ENV{ENCRYPT} ) {
-        waitforneedle("encrypted-disk-password-prompt");
+        assert_screen("encrypted-disk-password-prompt");
         sendpassword();    # enter PW at boot
         send_key "ret";
     }
@@ -1018,7 +1018,7 @@ sub waitinststage($;$$) {
     my $timeout = shift || 30;
     my $extra   = shift;
     die "FIXME: what is extra?\n" if $extra;
-    return waitforneedle( $stage, $timeout );
+    return assert_screen( $stage, $timeout );
 }
 
 sub save_needle_template($$$) {
@@ -1055,7 +1055,7 @@ sub save_needle_template($$$) {
     return shared_clone( { img => $jsonfn, needle => $jsonfn, name => $mustmatch } );
 }
 
-sub _waitforneedle {
+sub _assert_screen {
     my %args        = @_;
     my $mustmatch   = $args{'mustmatch'};
     my $timeout     = $args{'timeout'} || 30;
@@ -1096,7 +1096,7 @@ sub _waitforneedle {
     }
     $mustmatch = join('_', @tags);
 
-    fctlog( 'waitforneedle', "'$mustmatch'", "timeout=$timeout" );
+    fctlog( 'assert_screen', "'$mustmatch'", "timeout=$timeout" );
     if ( !@$needles ) {
         diag("NO matching needles for $mustmatch");
     }
@@ -1148,7 +1148,7 @@ sub _waitforneedle {
         $oldimg = $img;
     }
 
-    fctres( 'waitforneedle', "match=$mustmatch timed out after $timeout" );
+    fctres( 'assert_screen', "match=$mustmatch timed out after $timeout" );
     for ( @{ $needles || [] } ) {
         diag $_->{'file'};
     }
@@ -1209,7 +1209,7 @@ sub _waitforneedle {
             $waiting_for_new_needle = undef;
             save_results();
             cont_vm();
-            return _waitforneedle( mustmatch => \@tags, timeout => 3, check => $checkneedle, retried => $args{'retried'} + 1 );
+            return _assert_screen( mustmatch => \@tags, timeout => 3, check => $checkneedle, retried => $args{'retried'} + 1 );
         }
         $waiting_for_new_needle = undef;
         save_results();
@@ -1279,7 +1279,7 @@ sub _waitforneedle {
             needle->new($fn) || mydie "$!";
 
             # XXX: recursion!
-            return _waitforneedle( mustmatch => \@tags, timeout => 3, check => $checkneedle, retried => $args{'retried'} + 1 );
+            return _assert_screen( mustmatch => \@tags, timeout => 3, check => $checkneedle, retried => $args{'retried'} + 1 );
         }
     }
 
@@ -1296,23 +1296,23 @@ sub _waitforneedle {
     return undef;
 }
 
-sub waitforneedle($;$) {
-    return _waitforneedle( mustmatch => $_[0], timeout => $_[1] );
+sub assert_screen($;$) {
+    return _assert_screen( mustmatch => $_[0], timeout => $_[1] );
 }
 
 sub checkneedle($;$) {
-    return _waitforneedle( mustmatch => $_[0], timeout => $_[1], check => 1 );
+    return _assert_screen( mustmatch => $_[0], timeout => $_[1], check => 1 );
 }
 
 # warning: will not work due to https://bugs.launchpad.net/qemu/+bug/752476
-sub goandclick($;$$$) {
-    return _waitforneedle(
-        mustmatch => $_[0],
-        click     => ( $_[1] || 'left' ),
-        timeout   => $_[2],
-        clicktime => $_[3]
-    );
-}
+# sub goandclick($;$$$) {
+#     return _assert_screen(
+#         mustmatch => $_[0],
+#         click     => ( $_[1] || 'left' ),
+#         timeout   => $_[2],
+#         clicktime => $_[3]
+#     );
+# }
 
 sub makesnapshot($) {
     my $sname = shift;
