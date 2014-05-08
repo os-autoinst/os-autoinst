@@ -37,7 +37,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   $post_fail_hook_running
 );
 
-sub send_key($);
+sub send_key($;$);
 sub mydie;
 
 # shared vars
@@ -498,7 +498,7 @@ sub send_key($;$) {
     my @t = gettimeofday();
     push( @keyhistory, [ $t[0] * 1000000 + $t[1], $key ] );
     sleep(0.1);
-    waitidle if $wait;
+    waitidle() if $wait;
 }
 
 =head2 type_string
@@ -543,8 +543,8 @@ sub mouse_move($$;$) {
 }
 
 sub mouse_set($$;$) {
-    my $mdx = shift;
-    my $mdy = shift;
+    my $mx = shift;
+    my $my = shift;
     my $sleep = shift || 0;
     fctlog( 'mouse_set', "x=$mx", "y=$my" );
     $backend->mouse_set( $mx, $my );
