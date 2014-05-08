@@ -25,8 +25,8 @@ use JSON;
 our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
 @ISA    = qw(Exporter);
 @EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $serialfile $testedversion %cmd
-  &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &sendkey
-  &sendkeyw &sendautotype &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
+  &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
+  &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
   &wait_encrypt_prompt
   &timeout_screenshot &waitidle &waitserial &waitimage &waitforneedle &waitstillimage &waitcolor
   &checkneedle &goandclick &set_current_test &become_root &upload_logs
@@ -37,7 +37,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   $post_fail_hook_running
 );
 
-sub sendkey($);
+sub send_key($);
 sub mydie;
 
 # shared vars
@@ -380,9 +380,9 @@ sub getcurrentscreenshot(;$) {
                 result  => 'fail',
                 overall => 'fail'
             );
-            sendkey "alt-sysrq-w";
-            sendkey "alt-sysrq-l";
-            sendkey "alt-sysrq-d";                      # only available with CONFIG_LOCKDEP
+            send_key "alt-sysrq-w";
+            send_key "alt-sysrq-l";
+            send_key "alt-sysrq-d";                      # only available with CONFIG_LOCKDEP
             mydie "standstill detected. test ended";    # above 120s of autoreboot
         }
     }
@@ -423,7 +423,7 @@ sub init_backend($) {
     $backend = "backend::$name"->new();
     open( $logfd, ">>", "autoinst-log.txt" );
 
-    # set unbuffered so that sendkey lines from main thread will be written
+    # set unbuffered so that send_key lines from main thread will be written
     my $oldfh = select($logfd);
     $| = 1;
     select($oldfh);
@@ -483,53 +483,42 @@ sub qemusend($)       { &backend_send; }          # deprecated
 
 ## keyboard
 
-=head2 sendkey
+=head2 send_key
 
-sendkey($qemu_key_name)
+send_key($qemu_key_name[, $waitidle])
 
 =cut
 
-sub sendkey($) {
+sub send_key($;$) {
     my $key = shift;
-    fctlog( 'sendkey', "key=$key" );
-    eval { $backend->sendkey($key); };
-    print STDERR "Error sendkey key=$key\n" if ($@);
+    my $wait = shift || 0;
+    fctlog( 'send_key', "key=$key" );
+    eval { $backend->send_key($key); };
+    print STDERR "Error send_key key=$key\n" if ($@);
     my @t = gettimeofday();
     push( @keyhistory, [ $t[0] * 1000000 + $t[1], $key ] );
     sleep(0.1);
+    waitidle if $wait;
 }
 
-=head2 sendkeyw
+=head2 type_string
 
-sendkeyw($qemu_key_name)
-
-L</sendkey> then L</waitidle>
-
-=cut
-
-sub sendkeyw($) {
-    sendkey(shift);
-    waitidle();
-}
-
-=head2 sendautotype
-
-sendautotype($string)
+type_string($string)
 
 send a string of characters, mapping them to appropriate key names as necessary
 
 =cut
 
-sub sendautotype($;$) {
+sub type_string($;$) {
     my $string      = shift;
     my $maxinterval = shift || 25;
     my $typedchars  = 0;
-    fctlog( 'sendautotype', "string='$string'" );
+    fctlog( 'type_string', "string='$string'" );
     my @letters = split( "", $string );
     while (@letters) {
         my $letter = shift @letters;
         if ( $charmap{$letter} ) { $letter = $charmap{$letter} }
-        sendkey $letter;
+        send_key $letter;
         if ( $typedchars++ >= $maxinterval ) {
             waitstillimage(1.6);
             $typedchars = 0;
@@ -539,38 +528,26 @@ sub sendautotype($;$) {
 }
 
 sub sendpassword() {
-    sendautotype($password);
+    type_string $password;
 }
 ## keyboard end
 
 ## mouse
-sub mouse_move_nosleep($$) {
-    my ( $mdx, $mdy ) = @_;
+sub mouse_move($$;$) {
+    my $mdx = shift;
+    my $mdy = shift;
+    my $sleep = shift || 0;
     fctlog( 'mouse_move', "delta_x=$mdx", "delta_y=$mdy" );
     $backend->mouse_move( $mdx, $mdy );
+    sleep $sleep;
 }
 
-sub mouse_set_nosleep($$) {
-    my ( $mx, $my ) = @_;
+sub mouse_set($$;$) {
+    my $mdx = shift;
+    my $mdy = shift;
+    my $sleep = shift || 0;
     fctlog( 'mouse_set', "x=$mx", "y=$my" );
     $backend->mouse_set( $mx, $my );
-}
-
-sub mouse_move($$) {
-
-    # relative
-    # FIXME: backend value abstraction
-    my ( $mdx, $mdy ) = @_;
-    mouse_move_nosleep( $mdx, $mdy );
-    sleep 0.5;
-}
-
-sub mouse_set($$) {
-
-    # absolute
-    my ( $mx, $my ) = @_;
-    mouse_set_nosleep( $mx, $my );
-    sleep 0.5;
 }
 
 sub mouse_click(;$$) {
@@ -594,19 +571,19 @@ sub wait_encrypt_prompt() {
     if ( $ENV{ENCRYPT} ) {
         waitforneedle("encrypted-disk-password-prompt");
         sendpassword();    # enter PW at boot
-        sendkey "ret";
+        send_key "ret";
     }
 }
 
 sub x11_start_program($;$) {
     my $program = shift;
     my $options = shift || {};
-    sendkey "alt-f2";
+    send_key "alt-f2";
     sleep 4;
-    sendautotype $program;
+    type_string $program;
     sleep 1;
-    if ( $options->{terminal} ) { sendkey "alt-t"; sleep 3; }
-    sendkey "ret";
+    if ( $options->{terminal} ) { send_key "alt-t"; sleep 3; }
+    send_key "ret";
     waitidle();
     sleep 1;
 }
@@ -626,7 +603,7 @@ sub script_run($;$) {
     my $name = shift;
     my $wait = shift || 9;
     waitidle();
-    sendautotype("$name\n");
+    type_string "$name\n";
     waitidle($wait);
     sleep 3;
 }
@@ -643,10 +620,10 @@ $wait_seconds
 sub script_sudo($;$) {
     my $prog = shift;
     my $wait = shift || 2;
-    sendautotype("sudo $prog\n");
+    type_string "sudo $prog\n";
     if ( checkneedle( "sudo-passwordprompt", 3 ) ) {
         sendpassword;
-        sendkey "ret";
+        send_key "ret";
     }
 }
 
@@ -709,15 +686,15 @@ sub ensure_installed {
     else {
         mydie "TODO: implement package install for your distri $ENV{DISTRI}";
     }
-    if ($password) { sendpassword; sendkeyw "ret"; }
+    if ($password) { sendpassword; send_key("ret", 1); }
     waitstillimage( 7, 90 );                                       # wait for install
 }
 
 sub clear_console() {
-    sendkey "ctrl-c";
+    send_key "ctrl-c";
     sleep 1;
-    sendkey "ctrl-c";
-    sendautotype "reset\n";
+    send_key "ctrl-c";
+    type_string "reset\n";
     sleep 2;
 }
 ## helpers end

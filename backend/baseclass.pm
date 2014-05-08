@@ -73,7 +73,7 @@ sub notimplemented() { carp "backend method not implemented" }
 
 sub init() { notimplemented }
 
-sub sendkey($) { notimplemented }
+sub send_key($) { notimplemented }
 
 sub mouse_move($)   { notimplemented }    # relative
 sub mouse_set($)    { notimplemented }    # absolute

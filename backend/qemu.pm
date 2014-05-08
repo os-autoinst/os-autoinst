@@ -32,7 +32,7 @@ sub init() {
 
 # baseclass virt method overwrite
 
-sub sendkey($) {
+sub send_key($) {
     my ( $self, $key ) = @_;
     my $keys = [ map { { 'type' => 'qcode', 'data' => $_ } } split( '-', $key ) ];
     $self->send( { "execute" => "send-key", "arguments" => { 'keys' => $keys } } );
