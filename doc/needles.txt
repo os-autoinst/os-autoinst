@@ -83,7 +83,7 @@ hash ref consisting of the following items is returned:
 
 If no match is found assert_screen calls die()
 
-=== checkneedle ===
+=== check_screen ===
 
 same as assert_screen but doesn't die
 
