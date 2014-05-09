@@ -360,28 +360,6 @@ sub register_screenshot($) {
     return $result;
 }
 
-=head2 check_screen
-check needle with a tag that consists of current test name and
-counter. Convenience function around assert_screen
-=cut
-
-sub check_screen(;$) {
-    my $self     = shift;
-    my $name     = shift;
-    my $testname = ref($self);
-    my $tag;
-
-    if ($name) {
-        $tag = "test-$testname-$name";
-    }
-    else {
-        my $count = ++$self->{"screen_count"};
-        $tag = "test-$testname-$count";
-    }
-
-    return bmwqemu::assert_screen( $tag, 3 );
-}
-
 sub start_audiocapture() {
     my $self = shift;
     my $fn   = $self->next_resultname("wav");
