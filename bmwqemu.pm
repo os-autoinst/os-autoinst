@@ -29,7 +29,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
   &wait_encrypt_prompt
   &timeout_screenshot &waitidle &waitserial &waitimage &assert_screen &waitstillimage &waitcolor
-  &checkneedle &goandclick &set_current_test &become_root &upload_logs
+  &check_screen &goandclick &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
   &getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot
@@ -38,6 +38,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
 );
 
 sub send_key($;$);
+sub check_screen($;$);
 sub mydie;
 
 # shared vars
@@ -621,7 +622,7 @@ sub script_sudo($;$) {
     my $prog = shift;
     my $wait = shift || 2;
     type_string "sudo $prog\n";
-    if ( checkneedle( "sudo-passwordprompt", 3 ) ) {
+    if ( check_screen "sudo-passwordprompt", 3 ) {
         sendpassword;
         send_key "ret";
     }
@@ -1056,10 +1057,10 @@ sub save_needle_template($$$) {
 }
 
 sub _assert_screen {
-    my %args        = @_;
-    my $mustmatch   = $args{'mustmatch'};
-    my $timeout     = $args{'timeout'} || 30;
-    my $checkneedle = $args{'check'};
+    my %args         = @_;
+    my $mustmatch    = $args{'mustmatch'};
+    my $timeout      = $args{'timeout'} || 30;
+    my $check_screen = $args{'check'};
 
     die "current_test undefined" unless $current_test;
 
@@ -1180,7 +1181,7 @@ sub _assert_screen {
             img     => $img,
             needles => $failed_candidates,
             tags    => \@save_tags,
-            result  => $checkneedle ? 'unk' : 'fail',
+            result  => $check_screen ? 'unk' : 'fail',
             # do not set overall here as the result will be removed later
         );
 
@@ -1209,7 +1210,7 @@ sub _assert_screen {
             $waiting_for_new_needle = undef;
             save_results();
             cont_vm();
-            return _assert_screen( mustmatch => \@tags, timeout => 3, check => $checkneedle, retried => $args{'retried'} + 1 );
+            return _assert_screen( mustmatch => \@tags, timeout => 3, check => $check_screen, retried => $args{'retried'} + 1 );
         }
         $waiting_for_new_needle = undef;
         save_results();
@@ -1233,7 +1234,7 @@ sub _assert_screen {
         for my $i ( 1 .. @{ $needles || [] } ) {
             printf "%d - %s\n", $i, $needles->[ $i - 1 ]->{'name'};
         }
-        print "note: called from checkneedle()\n" if $checkneedle;
+        print "note: called from check_screen()\n" if $check_screen;
         print "(E)dit, (N)ew, (Q)uit, (C)ontinue\n";
         my $r = <STDIN>;
         if ( $r =~ /^(\d+)/ ) {
@@ -1259,7 +1260,7 @@ sub _assert_screen {
             backend_send("cont");
         }
     }
-    elsif ( !$checkneedle && $ENV{'interactive_crop'} ) {
+    elsif ( !$check_screen && $ENV{'interactive_crop'} ) {
         $run_editor = 1;
     }
 
@@ -1279,7 +1280,7 @@ sub _assert_screen {
             needle->new($fn) || mydie "$!";
 
             # XXX: recursion!
-            return _assert_screen( mustmatch => \@tags, timeout => 3, check => $checkneedle, retried => $args{'retried'} + 1 );
+            return _assert_screen( mustmatch => \@tags, timeout => 3, check => $check_screen, retried => $args{'retried'} + 1 );
         }
     }
 
@@ -1287,8 +1288,8 @@ sub _assert_screen {
         img     => $img,
         needles => $failed_candidates,
         tags    => \@save_tags,
-        result  => $checkneedle ? 'unk' : 'fail',
-        overall => $checkneedle ? undef : 'fail'
+        result  => $check_screen ? 'unk' : 'fail',
+        overall => $check_screen ? undef : 'fail'
     );
     unless ( $args{'check'} ) {
         mydie "needle(s) '$mustmatch' not found";
@@ -1300,7 +1301,7 @@ sub assert_screen($;$) {
     return _assert_screen( mustmatch => $_[0], timeout => $_[1] );
 }
 
-sub checkneedle($;$) {
+sub check_screen($;$) {
     return _assert_screen( mustmatch => $_[0], timeout => $_[1], check => 1 );
 }
 
