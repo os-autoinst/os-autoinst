@@ -18,7 +18,7 @@ sub post_fail_hook() {
     my @tags = ( @{ needle::tags("yast-still-running") }, @{ needle::tags("linuxrc-install-fail") } );
     if ( checkneedle( \@tags, 5 ) ) {
         send_key "ctrl-alt-f2";
-        waitforneedle("inst-console");
+        assert_screen("inst-console");
         if ( !$ENV{NET} ) {
             type_string "dhcpcd eth0\n";
             type_string "ifconfig -a\n";

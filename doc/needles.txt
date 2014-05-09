@@ -64,9 +64,9 @@ File format:
 
 == using needles in tests ==
 
-=== waitforneedle ===
+=== assert_screen ===
 
-Tests can wait for a needle to appear by calling 'waitforneedle'. It
+Tests can wait for a needle to appear by calling 'assert_screen'. It
 takes the name of a tag or an array of needles as first argument.
 The second argument is an optional timeout. The function repeatedly
 takes screenshots until a matching needle is found. For a match a
@@ -81,15 +81,15 @@ hash ref consisting of the following items is returned:
 	needle => $needle # reference ot matched needle
 }
 
-If no match is found waitforneedle calls die()
+If no match is found assert_screen calls die()
 
 === checkneedle ===
 
-same as waitforneedle but doesn't die
+same as assert_screen but doesn't die
 
 === goandclick ===
 
-similar to waitforneedle but clicks into area that is defined last
+similar to assert_screen but clicks into area that is defined last
 in the needle. takes one up to four arguments:
 1. needle tag or array of needles
 2. mouse button
