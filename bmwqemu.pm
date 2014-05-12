@@ -28,7 +28,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
   &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
   &wait_encrypt_prompt
-  &timeout_screenshot &waitidle &waitserial &waitimage &assert_screen &waitstillimage
+  &timeout_screenshot &waitidle &waitserial &assert_screen &waitstillimage
   &check_screen &goandclick &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
@@ -675,49 +675,6 @@ sub clear_console() {
 }
 ## helpers end
 
-#TODO: convert to new bmwqemu
-#sub clickimage($;$$$$) {
-#	my ($reflist,$button,$bstatus,$flags,$timeout) = @_;
-#	$flags||="h";
-#	$timeout||=60;
-#	my $waitres = waitimage("click/$reflist",$timeout);
-#	if(defined $waitres) {
-#		diag "Got absolute refimg coordinates: $waitres->[0]x$waitres->[1]";
-#		$waitres->[2]=~m/-(-?\d+)-(-?\d+)\.ppm$/;
-#		my @relcoor = ($1,$2);
-#		#my @relcoor = ($waitres[2],$waitres[2]);
-#		#$relcoor[0]=~s/^.*\d-(-?\d+)--?\d+.ppm/$1/;
-#		#$relcoor[1]=~s/^.*\d--?\d+-(-?\d+).ppm/$1/;
-#		diag "Got relative action coordinates: $relcoor[0]x$relcoor[1]";
-#		my @abscoor;
-#		for my $i (0..1) { $abscoor[$i] = $waitres->[$i] + $relcoor[$i]; }
-#		diag "Got absolute action coordinates: $abscoor[0]x$abscoor[1]";
-#		# slide
-#		if($flags=~m/s/) {
-#			diag "Sliding mouse to $abscoor[0]x$abscoor[1]";
-#			for my $pos (Algorithm::Line::Bresenham::line($mouse_position[1],$mouse_position[0] => $abscoor[1],$abscoor[0])) {
-#				mousemove($pos->[1],$pos->[0],0.005);
-#			}
-#		}
-#		else {
-#			diag "Set mouse position: $abscoor[0]x$abscoor[1]";
-#			mousemove($abscoor[0],$abscoor[1]);
-#		}
-#		sleep(0.25);
-#		mousebuttonaction($button, $bstatus);
-#		sleep(0.25);
-#		# cursor in ninja mode
-#		if($flags=~m/h/) {
-#			mousemove(800,600);
-#		}
-#		return @abscoor;
-#	}
-#	else {
-#		diag "Skipping click action!";
-#		return undef;
-#	}
-#}
-
 sub power($) {
 
     # params: (on), off, acpi, reset
@@ -880,22 +837,6 @@ sub waitstillimage(;$$$) {
     timeout_screenshot();
     fctres( 'waitstillimage', "waitstillimage timed out after $timeout" );
     return 0;
-}
-
-sub waitimage($;$$) {
-    my $reflist = shift;
-    my $timeout = shift || 60;
-    my $flags   = shift || 'd';
-    my $wact    = ( $flags =~ m/s/ ) ? 'disappear' : 'appear';
-    fctlog( 'waitimage', "reflist=$reflist", "timeout=$timeout", "flags=$flags" );
-    diag "WARNING: waitimage is no longer supported\n";
-    for ( my $i = 0 ; $i <= $timeout ; $i += 2 ) {
-        getcurrentscreenshot();
-        sleep 1;
-    }
-    timeout_screenshot();
-    fctres( 'waitimage', "Waiting for images $reflist ($wact) timed out!" );
-    return undef;
 }
 
 
