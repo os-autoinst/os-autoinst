@@ -28,7 +28,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
   &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
   &wait_encrypt_prompt
-  &timeout_screenshot &waitidle &waitserial &waitimage &assert_screen &waitstillimage &waitcolor
+  &timeout_screenshot &waitidle &waitserial &waitimage &assert_screen &waitstillimage
   &check_screen &goandclick &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
@@ -389,29 +389,6 @@ sub getcurrentscreenshot(;$) {
     }
 
     return $lastscreenshot;
-}
-
-sub check_color($$) {
-    my $color = shift;
-    my $range = shift;
-    my $n     = 0;
-    foreach my $r (@$range) {
-        my $c = $color->[ $n++ ];
-        next unless defined $r;
-        return 0 unless $r->[0] <= $c && $c <= $r->[1];
-    }
-    return 1;
-}
-
-# TODO: move to a separate tests file:
-sub test_check_color() {
-    my $c = [ 0.1, 0.6, 0.2 ];
-    die 1 unless check_color( $c, [] );                                          # all zero ranges match
-    die 2 unless check_color( $c, [ undef, [ 0.2, 0.7 ], undef ] );              # just match green
-    die 3 unless check_color( $c, [ [ 0, 0.4 ], [ 0.4, 0.7 ], [ 0, 0.4 ] ] );    # all three must match
-    die 4 if check_color( $c, [ [ 0.3, 0.4 ], [ 0.2, 0.7 ], [ 0, 0.4 ] ] );      # red too low
-    die 5 if check_color( $c, [ undef, [ 0.7, 0.9 ], [ 0, 0.4 ] ] );             # green too low
-    die 6 if check_color( $c, [ undef, [ 0.4, 0.9 ], [ 0, 0.1 ] ] );             # blue too high
 }
 
 # util and helper functions end
@@ -921,32 +898,6 @@ sub waitimage($;$$) {
     return undef;
 }
 
-=head2 waitcolor
-
-waitcolor($rgb_minmax [, $timeout_sec])
-
-$rgb_minmax is 	[[red_min,red_max], [green_min,green_max], [blue_min,blue_max]]
-eg: [undef, [0.2, 0.7], [0,0.1]]
-
-=cut
-
-sub waitcolor($;$) {
-    my $rgb_minmax = shift;
-    my $timeout    = shift || 30;
-    my $starttime  = time;
-    fctlog( 'waitcolor', "rgb=" . dump(@$rgb_minmax), "timeout=$timeout" );
-    while ( time - $starttime < $timeout ) {
-        my @lastavgcolor = getcurrentscreenshot()->avgcolor();
-        if ( check_color( \@lastavgcolor, $rgb_minmax ) ) {
-            fctres( 'waitcolor', "detected " . dump(@lastavgcolor) );
-            return 1;
-        }
-        sleep 1;
-    }
-    timeout_screenshot();
-    fctres( 'waitcolor', "rgb " . dump(@$rgb_minmax) . " timed out after $timeout" );
-    return 0;
-}
 
 =head2 waitserial
 
