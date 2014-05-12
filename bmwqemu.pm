@@ -32,7 +32,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   &check_screen &goandclick &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
-  &getcurrentscreenshot &power &mydie &checkEnv &makesnapshot &loadsnapshot
+  &getcurrentscreenshot &power &mydie &checkEnv &make_snapshot &load_snapshot
   &interactive_mode &needle_template &waiting_for_new_needle
   $post_fail_hook_running
 );
@@ -1197,13 +1197,13 @@ sub check_screen($;$) {
 #     );
 # }
 
-sub makesnapshot($) {
+sub make_snapshot($) {
     my $sname = shift;
     diag("Creating a VM snapshot $sname");
     $backend->do_savevm($sname);
 }
 
-sub loadsnapshot($) {
+sub load_snapshot($) {
     my $sname = shift;
     diag("Loading a VM snapshot $sname");
     $backend->do_loadvm($sname);
