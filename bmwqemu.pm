@@ -32,7 +32,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   &check_screen &goandclick &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
-  &getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot
+  &getcurrentscreenshot &power &mydie &checkEnv &makesnapshot &loadsnapshot
   &interactive_mode &needle_template &waiting_for_new_needle
   $post_fail_hook_running
 );
@@ -902,14 +902,6 @@ sub waitidle(;$) {
     }
     fctres( 'waitidle', "timed out after $timeout" );
     return 0;
-}
-
-sub waitinststage($;$$) {
-    my $stage   = shift;
-    my $timeout = shift || 30;
-    my $extra   = shift;
-    die "FIXME: what is extra?\n" if $extra;
-    return assert_screen( $stage, $timeout );
 }
 
 sub save_needle_template($$$) {
