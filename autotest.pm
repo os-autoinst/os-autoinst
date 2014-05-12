@@ -46,7 +46,7 @@ sub runalltests {
         my $flags = $t->test_flags();
 
         if ( !$vmloaded && $t->{fullname} eq $firsttest ) {
-            loadsnapshot($firsttest) if $ENV{SKIPTO};
+            load_snapshot($firsttest) if $ENV{SKIPTO};
             $vmloaded = 1;
         }
         if ($vmloaded) {
@@ -57,7 +57,7 @@ sub runalltests {
 
             # avoid erasing the good vm snapshot
             if ( !checkEnv( 'SKIPTO', $t->{'fullname'} ) && $ENV{MAKETESTSNAPSHOTS} ) {
-                bmwqemu::makesnapshot( $t->{'fullname'} );
+                bmwqemu::make_snapshot( $t->{'fullname'} );
             }
 
             eval { $t->runtest; };
@@ -72,12 +72,12 @@ sub runalltests {
                     die $@;
                 }
                 else {
-                    loadsnapshot('lastgood');
+                    load_snapshot('lastgood');
                 }
             }
             else {
                 if ( $flags->{'milestone'} ) {
-                    bmwqemu::makesnapshot('lastgood');
+                    bmwqemu::make_snapshot('lastgood');
                 }
             }
         }

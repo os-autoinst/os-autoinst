@@ -28,11 +28,11 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
   &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
   &wait_encrypt_prompt
-  &timeout_screenshot &waitidle &waitserial &waitimage &assert_screen &waitstillimage &waitcolor
+  &timeout_screenshot &waitidle &waitserial &assert_screen &waitstillimage
   &check_screen &goandclick &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
-  &getcurrentscreenshot &power &mydie &checkEnv &waitinststage &makesnapshot &loadsnapshot
+  &getcurrentscreenshot &power &mydie &checkEnv &make_snapshot &load_snapshot
   &interactive_mode &needle_template &waiting_for_new_needle
   $post_fail_hook_running
 );
@@ -391,29 +391,6 @@ sub getcurrentscreenshot(;$) {
     return $lastscreenshot;
 }
 
-sub check_color($$) {
-    my $color = shift;
-    my $range = shift;
-    my $n     = 0;
-    foreach my $r (@$range) {
-        my $c = $color->[ $n++ ];
-        next unless defined $r;
-        return 0 unless $r->[0] <= $c && $c <= $r->[1];
-    }
-    return 1;
-}
-
-# TODO: move to a separate tests file:
-sub test_check_color() {
-    my $c = [ 0.1, 0.6, 0.2 ];
-    die 1 unless check_color( $c, [] );                                          # all zero ranges match
-    die 2 unless check_color( $c, [ undef, [ 0.2, 0.7 ], undef ] );              # just match green
-    die 3 unless check_color( $c, [ [ 0, 0.4 ], [ 0.4, 0.7 ], [ 0, 0.4 ] ] );    # all three must match
-    die 4 if check_color( $c, [ [ 0.3, 0.4 ], [ 0.2, 0.7 ], [ 0, 0.4 ] ] );      # red too low
-    die 5 if check_color( $c, [ undef, [ 0.7, 0.9 ], [ 0, 0.4 ] ] );             # green too low
-    die 6 if check_color( $c, [ undef, [ 0.4, 0.9 ], [ 0, 0.1 ] ] );             # blue too high
-}
-
 # util and helper functions end
 
 # backend management
@@ -698,49 +675,6 @@ sub clear_console() {
 }
 ## helpers end
 
-#TODO: convert to new bmwqemu
-#sub clickimage($;$$$$) {
-#	my ($reflist,$button,$bstatus,$flags,$timeout) = @_;
-#	$flags||="h";
-#	$timeout||=60;
-#	my $waitres = waitimage("click/$reflist",$timeout);
-#	if(defined $waitres) {
-#		diag "Got absolute refimg coordinates: $waitres->[0]x$waitres->[1]";
-#		$waitres->[2]=~m/-(-?\d+)-(-?\d+)\.ppm$/;
-#		my @relcoor = ($1,$2);
-#		#my @relcoor = ($waitres[2],$waitres[2]);
-#		#$relcoor[0]=~s/^.*\d-(-?\d+)--?\d+.ppm/$1/;
-#		#$relcoor[1]=~s/^.*\d--?\d+-(-?\d+).ppm/$1/;
-#		diag "Got relative action coordinates: $relcoor[0]x$relcoor[1]";
-#		my @abscoor;
-#		for my $i (0..1) { $abscoor[$i] = $waitres->[$i] + $relcoor[$i]; }
-#		diag "Got absolute action coordinates: $abscoor[0]x$abscoor[1]";
-#		# slide
-#		if($flags=~m/s/) {
-#			diag "Sliding mouse to $abscoor[0]x$abscoor[1]";
-#			for my $pos (Algorithm::Line::Bresenham::line($mouse_position[1],$mouse_position[0] => $abscoor[1],$abscoor[0])) {
-#				mousemove($pos->[1],$pos->[0],0.005);
-#			}
-#		}
-#		else {
-#			diag "Set mouse position: $abscoor[0]x$abscoor[1]";
-#			mousemove($abscoor[0],$abscoor[1]);
-#		}
-#		sleep(0.25);
-#		mousebuttonaction($button, $bstatus);
-#		sleep(0.25);
-#		# cursor in ninja mode
-#		if($flags=~m/h/) {
-#			mousemove(800,600);
-#		}
-#		return @abscoor;
-#	}
-#	else {
-#		diag "Skipping click action!";
-#		return undef;
-#	}
-#}
-
 sub power($) {
 
     # params: (on), off, acpi, reset
@@ -905,48 +839,6 @@ sub waitstillimage(;$$$) {
     return 0;
 }
 
-sub waitimage($;$$) {
-    my $reflist = shift;
-    my $timeout = shift || 60;
-    my $flags   = shift || 'd';
-    my $wact    = ( $flags =~ m/s/ ) ? 'disappear' : 'appear';
-    fctlog( 'waitimage', "reflist=$reflist", "timeout=$timeout", "flags=$flags" );
-    diag "WARNING: waitimage is no longer supported\n";
-    for ( my $i = 0 ; $i <= $timeout ; $i += 2 ) {
-        getcurrentscreenshot();
-        sleep 1;
-    }
-    timeout_screenshot();
-    fctres( 'waitimage', "Waiting for images $reflist ($wact) timed out!" );
-    return undef;
-}
-
-=head2 waitcolor
-
-waitcolor($rgb_minmax [, $timeout_sec])
-
-$rgb_minmax is 	[[red_min,red_max], [green_min,green_max], [blue_min,blue_max]]
-eg: [undef, [0.2, 0.7], [0,0.1]]
-
-=cut
-
-sub waitcolor($;$) {
-    my $rgb_minmax = shift;
-    my $timeout    = shift || 30;
-    my $starttime  = time;
-    fctlog( 'waitcolor', "rgb=" . dump(@$rgb_minmax), "timeout=$timeout" );
-    while ( time - $starttime < $timeout ) {
-        my @lastavgcolor = getcurrentscreenshot()->avgcolor();
-        if ( check_color( \@lastavgcolor, $rgb_minmax ) ) {
-            fctres( 'waitcolor', "detected " . dump(@lastavgcolor) );
-            return 1;
-        }
-        sleep 1;
-    }
-    timeout_screenshot();
-    fctres( 'waitcolor', "rgb " . dump(@$rgb_minmax) . " timed out after $timeout" );
-    return 0;
-}
 
 =head2 waitserial
 
@@ -1010,14 +902,6 @@ sub waitidle(;$) {
     }
     fctres( 'waitidle', "timed out after $timeout" );
     return 0;
-}
-
-sub waitinststage($;$$) {
-    my $stage   = shift;
-    my $timeout = shift || 30;
-    my $extra   = shift;
-    die "FIXME: what is extra?\n" if $extra;
-    return assert_screen( $stage, $timeout );
 }
 
 sub save_needle_template($$$) {
@@ -1313,13 +1197,13 @@ sub check_screen($;$) {
 #     );
 # }
 
-sub makesnapshot($) {
+sub make_snapshot($) {
     my $sname = shift;
     diag("Creating a VM snapshot $sname");
     $backend->do_savevm($sname);
 }
 
-sub loadsnapshot($) {
+sub load_snapshot($) {
     my $sname = shift;
     diag("Loading a VM snapshot $sname");
     $backend->do_loadvm($sname);
