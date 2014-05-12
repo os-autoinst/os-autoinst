@@ -580,13 +580,11 @@ sub x11_start_program($;$) {
     my $program = shift;
     my $options = shift || {};
     send_key "alt-f2";
-    sleep 4;
+    assert_screen("desktop-runner", 4);
     type_string $program;
-    sleep 1;
     if ( $options->{terminal} ) { send_key "alt-t"; sleep 3; }
     send_key "ret";
     waitidle();
-    sleep 1;
 }
 
 =head2 script_run
