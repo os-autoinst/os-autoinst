@@ -34,7 +34,7 @@ This code is run during test.
 
 Return false if the test should be skipped.
 
-Can eg. check ENV{BIGTEST}, ENV{LIVETEST}
+Can eg. check vars{BIGTEST}, vars{LIVETEST}
 
 =cut
 

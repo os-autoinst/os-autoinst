@@ -8,15 +8,6 @@ isodir=`pwd`
 scriptdir=$(dirname $(dirname $0))
 logfile=autoinst-log.txt
 
-# Load the user's configured environment from cwd
-if [ ! -e "env.sh" ]; then
-	echo "You need a env.sh file in the working directory"
-	echo "Copying the sample file..."
-	cp -a $scriptdir/env.sh.sample env.sh
-	echo "now please edit env.sh"
-	exit 1
-fi
-. env.sh
 echo testing $NAME
 # cleanup
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid

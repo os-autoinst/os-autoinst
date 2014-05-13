@@ -116,7 +116,7 @@ sub do_start_vm {
     $self->raw_vbox_controlvm("poweroff");    # stop if running
     # TODO: assemble VM with ISO and disks similar to startqemu.pm
     # attach iso as DVD:
-    $self->insert_cd( $ENV{ISO} );
+    $self->insert_cd( $bmwqemu::vars{ISO} );
 
     # pipe serial console output to file:
     system( "VBoxManage", "modifyvm", $self->{vmname}, "--uartmode1", "file",  abs_path("serial0") );

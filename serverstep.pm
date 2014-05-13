@@ -4,7 +4,7 @@ use base "basetest";
 # Use this class for server tests
 sub is_applicable() {
     my $self = shift;
-    return $self->SUPER::is_applicable && !$ENV{NOINSTALL} && !$ENV{LIVETEST} && ( $ENV{DESKTOP} eq "textmode" );
+    return $self->SUPER::is_applicable && !$bmwqemu::vars{NOINSTALL} && !$bmwqemu::vars{LIVETEST} && ( $bmwqemu::vars{DESKTOP} eq "textmode" );
 }
 
 1;
