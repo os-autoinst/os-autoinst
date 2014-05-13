@@ -6,7 +6,7 @@ use bmwqemu;
 # using this as base class means only run when an install is needed
 sub is_applicable() {
     my $self = shift;
-    return $self->SUPER::is_applicable && !$ENV{NOINSTALL} && !$ENV{LIVETEST};
+    return $self->SUPER::is_applicable && !$bmwqemu::envs->{NOINSTALL} && !$bmwqemu::envs->{LIVETEST};
 }
 
 sub test_flags() {
@@ -19,7 +19,7 @@ sub post_fail_hook() {
     if ( check_screen \@tags, 5 ) {
         send_key "ctrl-alt-f2";
         assert_screen "inst-console";
-        if ( !$ENV{NET} ) {
+        if ( !$bmwqemu::envs->{NET} ) {
             type_string "dhcpcd eth0\n";
             type_string "ifconfig -a\n";
             type_string "cat /etc/resolv.conf\n";

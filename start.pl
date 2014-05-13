@@ -20,16 +20,18 @@ use Data::Dumper;
 
 bmwqemu::init();
 
+my $envs = bmwqemu::load_envs();
+
 # Sanity checks
-die "DISTRI environment variable not set. unknown OS?" if !defined $ENV{DISTRI} && !defined $ENV{CASEDIR};
-die "No scripts in $ENV{CASEDIR}"                      if !-e "$ENV{CASEDIR}";
+die "DISTRI environment variable not set. unknown OS?" if !defined $envs->{DISTRI} && !defined $envs->{CASEDIR};
+die "No scripts in $envs->{CASEDIR}"                      if !-e "$envs->{CASEDIR}";
 
 bmwqemu::clean_control_files();
 
 bmwqemu::save_results();
 
 my $init = 1;
-alarm( 7200 + ( $ENV{UPGRADE} ? 3600 : 0 ) );    # worst case timeout
+alarm( 7200 + ( $envs->{UPGRADE} ? 3600 : 0 ) );    # worst case timeout
 
 # all so ugly ...
 sub signalhandler {
@@ -57,8 +59,9 @@ $SIG{TERM} = \&signalhandler;
 $SIG{HUP}  = \&signalhandler;
 
 # init part
-$ENV{BACKEND} ||= "qemu";
-init_backend( $ENV{BACKEND} );
+$envs->{BACKEND} ||= "qemu";
+bmwqemu::save_envs($envs);
+init_backend( $envs->{BACKEND} );
 
 if ($init) {
     open( my $fd, ">os-autoinst.pid" );
@@ -78,7 +81,7 @@ require Carp::Always;
 my $r = 0;
 eval {
     # Load the main.pm from the casedir checked by the sanity checks above
-    require "$ENV{CASEDIR}/main.pm";
+    require "$envs->{CASEDIR}/main.pm";
 
     needle::init();
 

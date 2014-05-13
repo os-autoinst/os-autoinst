@@ -4,8 +4,8 @@ use strict;
 use Test::Simple tests => 2;
 
 BEGIN {
-    $ENV{DISTRI}  = "unicorn";
-    $ENV{CASEDIR} = "/var/lib/empty";
+    $bmwqemu::envs->{DISTRI}  = "unicorn";
+    $bmwqemu::envs->{CASEDIR} = "/var/lib/empty";
 }
 
 use needle;

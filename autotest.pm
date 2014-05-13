@@ -28,7 +28,7 @@ sub loadtest($) {
             die $msg;
         }
         $test = $name->new($category);
-        $test->{script}   = File::Spec->abs2rel( $script, $ENV{CASEDIR} );
+        $test->{script}   = File::Spec->abs2rel( $script, $bmwqemu::envs->{CASEDIR} );
         $test->{fullname} = $fullname;
         $tests{$fullname} = $test;
 
@@ -39,14 +39,14 @@ sub loadtest($) {
 }
 
 sub runalltests {
-    my $firsttest = $ENV{SKIPTO} || $testorder[0]->{fullname};
+    my $firsttest = $bmwqemu::envs->{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded = 0;
 
     for my $t (@testorder) {
         my $flags = $t->test_flags();
 
         if ( !$vmloaded && $t->{fullname} eq $firsttest ) {
-            load_snapshot($firsttest) if $ENV{SKIPTO};
+            load_snapshot($firsttest) if $bmwqemu::envs->{SKIPTO};
             $vmloaded = 1;
         }
         if ($vmloaded) {
@@ -56,7 +56,7 @@ sub runalltests {
             bmwqemu::save_results( results() );
 
             # avoid erasing the good vm snapshot
-            if ( !checkEnv( 'SKIPTO', $t->{'fullname'} ) && $ENV{MAKETESTSNAPSHOTS} ) {
+            if ( !checkEnv( 'SKIPTO', $t->{'fullname'} ) && $bmwqemu::envs->{MAKETESTSNAPSHOTS} ) {
                 bmwqemu::make_snapshot( $t->{'fullname'} );
             }
 
@@ -90,8 +90,8 @@ sub runalltests {
 
 sub loadtestdir($) {
     my $dir = shift;
-    $dir =~ s/^\Q$ENV{CASEDIR}\E\/?//; # legacy where absolute path is specified
-    $dir = join('/', $ENV{CASEDIR}, $dir); # always load from casedir
+    $dir =~ s/^\Q$bmwqemu::envs->{CASEDIR}\E\/?//; # legacy where absolute path is specified
+    $dir = join('/', $bmwqemu::envs->{CASEDIR}, $dir); # always load from casedir
     die "$dir does not exist!\n" unless -d $dir;
     foreach my $script (<$dir/*.pm>) {
         loadtest($script);

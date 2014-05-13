@@ -3,7 +3,7 @@ use base "basetest";
 use bmwqemu;
 
 sub is_applicable() {
-    return !$ENV{ISO} || $ENV{ISO} =~ m/-NET-/;
+    return !$bmwqemu::envs->{ISO} || $bmwqemu::envs->{ISO} =~ m/-NET-/;
 }
 
 sub run() {
