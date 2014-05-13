@@ -71,7 +71,7 @@ and that you have your hypervisor setup, see above:
 To watch the test, use
   `vncviewer -PreferredEncoding=raw localhost:99`
 
-Note, the -PreferredEncoding=raw flag is really important.  Without this, your CPU usage will rocket up and the waitidle tests will generally fail, which will tend to cause the automated install to not work very well.
+Note, the -PreferredEncoding=raw flag is really important.  Without this, your CPU usage will rocket up and the wait_idle tests will generally fail, which will tend to cause the automated install to not work very well.
 
 
 To watch after the test has run, use:

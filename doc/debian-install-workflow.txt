@@ -3,12 +3,12 @@ using http://cdimage.debian.org/cdimage/daily-builds/daily/arch-latest/i386/iso-
 
 ret # install
 
-sleep 4/waitidle
+sleep 4/wait_idle
 ret # lang
 ret # country
 ret # keymap
 
-sleep 20 ; waitidle # DHCP...
+sleep 20 ; wait_idle # DHCP...
 ret # hostname
 zq1.de\n # domainname
 
@@ -21,7 +21,7 @@ nots3cr3t\n
 
 ret # timezone
 
-waitidle # loading module
+wait_idle # loading module
 ret # partitioning = guided whole disk
 ret # select first disk
 ret # all files in one part
@@ -36,7 +36,7 @@ http://192.168.234.34:3128/\n # proxy # colons problematic with qemu<0.13
 
 wait popcon
 ret # no popcon
-sleep 5; waitidle
+sleep 5; wait_idle
 
 ret # package selection = system+desktop
 
@@ -44,7 +44,7 @@ long wait # more download + install + config (~2000)
 
 ret # grub in MBR
 
-waitidle
+wait_idle
 ret # confirm reboot after install done
 
 wait # rebooting

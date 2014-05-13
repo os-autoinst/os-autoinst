@@ -28,7 +28,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
   &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
   &wait_encrypt_prompt
-  &timeout_screenshot &waitidle &waitserial &assert_screen &waitstillimage
+  &timeout_screenshot &waitidle &wait_idle &wait_serial &assert_screen &waitstillimage
   &check_screen &goandclick &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
@@ -463,7 +463,7 @@ sub qemusend($)       { &backend_send; }          # deprecated
 
 =head2 send_key
 
-send_key($qemu_key_name[, $waitidle])
+send_key($qemu_key_name[, $wait_idle])
 
 =cut
 
@@ -476,7 +476,7 @@ sub send_key($;$) {
     my @t = gettimeofday();
     push( @keyhistory, [ $t[0] * 1000000 + $t[1], $key ] );
     sleep(0.1);
-    waitidle() if $wait;
+    wait_idle() if $wait;
 }
 
 =head2 type_string
@@ -561,7 +561,7 @@ sub x11_start_program($;$) {
     type_string $program;
     if ( $options->{terminal} ) { send_key "alt-t"; sleep 3; }
     send_key "ret";
-    waitidle();
+    wait_idle();
 }
 
 =head2 script_run
@@ -578,9 +578,9 @@ sub script_run($;$) {
     # start console application
     my $name = shift;
     my $wait = shift || 9;
-    waitidle();
+    wait_idle();
     type_string "$name\n";
-    waitidle($wait);
+    wait_idle($wait);
     sleep 3;
 }
 
@@ -616,7 +616,7 @@ sub script_sudo_logout() {
 sub become_root() {
     script_sudo( "bash", 0 );    # become root
     script_run("echo 'imroot' > /dev/$serialdev");
-    waitserial( "imroot", 5 ) || die "Root prompt not there";
+    wait_serial( "imroot", 5 ) || die "Root prompt not there";
     script_run("cd /tmp");
 }
 
@@ -840,9 +840,9 @@ sub waitstillimage(;$$$) {
 }
 
 
-=head2 waitserial
+=head2 wait_serial
 
-waitserial($regex [, $timeout_sec])
+wait_serial($regex [, $timeout_sec])
 
 Wait for a message to appear on serial output.
 You could have sent it there earlier with
@@ -851,35 +851,40 @@ C<script_run("echo Hello World E<gt> /dev/$serialdev");>
 
 =cut
 
-sub waitserial($;$) {
+sub wait_serial($;$) {
 
     # wait for a message to appear on serial output
     my $regexp = shift;
     my $timeout = shift || 90;    # seconds
-    fctlog( 'waitserial', "regex=$regexp", "timeout=$timeout" );
+    fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
     for my $n ( 1 .. $timeout ) {
         my $str = `tail $serialfile`;
-        if ( $str =~ m/$regexp/ ) { fctres( 'waitserial', "found $regexp" ); return 1; }
+        if ( $str =~ m/$regexp/ ) { fctres( 'wait_serial', "found $regexp" ); return 1; }
         if ($prestandstillwarning) { return 2 }
         sleep 1;
     }
     timeout_screenshot();
-    fctres( 'waitserial', "$regexp timed out after $timeout" );
+    fctres( 'wait_serial', "$regexp timed out after $timeout" );
     return 0;
 }
 
-=head2 waitidle
+=head2 wait_idle
 
-waitidle([$timeout_sec])
+wait_idle([$timeout_sec])
 
 Wait until the system becomes idle (as configured by IDLETHESHOLD in env.sh)
 
 =cut
 
 sub waitidle(;$) {
+    fctlog( 'waitidle', "WARNING. waitidle is deprecated, use wait_idle" );
+    wait_idle(@_);
+}
+
+sub wait_idle(;$) {
     my $timeout = shift || 19;
     my $prev;
-    fctlog( 'waitidle', "timeout=$timeout" );
+    fctlog( 'wait_idle', "timeout=$timeout" );
     my $timesidle = 0;
     for my $n ( 1 .. $timeout ) {
         my ( $stat, $systemstat ) = $backend->cpu_stat();
@@ -888,11 +893,11 @@ sub waitidle(;$) {
         $stat += $systemstat;
         if ($prev) {
             my $diff = $stat - $prev;
-            diag("waitidle $timesidle d=$diff");
+            diag("wait_idle $timesidle d=$diff");
             if ( $diff < $idlethreshold ) {
                 if ( ++$timesidle > $timesidleneeded ) {    # idle for $x sec
                     #if($diff<2000000) # idle for one sec
-                    fctres( 'waitidle', "idle detected" );
+                    fctres( 'wait_idle', "idle detected" );
                     return 1;
                 }
             }
@@ -900,7 +905,7 @@ sub waitidle(;$) {
         }
         $prev = $stat;
     }
-    fctres( 'waitidle', "timed out after $timeout" );
+    fctres( 'wait_idle', "timed out after $timeout" );
     return 0;
 }
 
