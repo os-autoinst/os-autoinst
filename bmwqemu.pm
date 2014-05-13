@@ -28,7 +28,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
   &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
   &wait_encrypt_prompt
-  &timeout_screenshot &wait_idle &waitserial &assert_screen &waitstillimage
+  &timeout_screenshot &wait_idle &wait_serial &assert_screen &waitstillimage
   &check_screen &goandclick &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
@@ -616,7 +616,7 @@ sub script_sudo_logout() {
 sub become_root() {
     script_sudo( "bash", 0 );    # become root
     script_run("echo 'imroot' > /dev/$serialdev");
-    waitserial( "imroot", 5 ) || die "Root prompt not there";
+    wait_serial( "imroot", 5 ) || die "Root prompt not there";
     script_run("cd /tmp");
 }
 
@@ -840,9 +840,9 @@ sub waitstillimage(;$$$) {
 }
 
 
-=head2 waitserial
+=head2 wait_serial
 
-waitserial($regex [, $timeout_sec])
+wait_serial($regex [, $timeout_sec])
 
 Wait for a message to appear on serial output.
 You could have sent it there earlier with
@@ -851,20 +851,20 @@ C<script_run("echo Hello World E<gt> /dev/$serialdev");>
 
 =cut
 
-sub waitserial($;$) {
+sub wait_serial($;$) {
 
     # wait for a message to appear on serial output
     my $regexp = shift;
     my $timeout = shift || 90;    # seconds
-    fctlog( 'waitserial', "regex=$regexp", "timeout=$timeout" );
+    fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
     for my $n ( 1 .. $timeout ) {
         my $str = `tail $serialfile`;
-        if ( $str =~ m/$regexp/ ) { fctres( 'waitserial', "found $regexp" ); return 1; }
+        if ( $str =~ m/$regexp/ ) { fctres( 'wait_serial', "found $regexp" ); return 1; }
         if ($prestandstillwarning) { return 2 }
         sleep 1;
     }
     timeout_screenshot();
-    fctres( 'waitserial', "$regexp timed out after $timeout" );
+    fctres( 'wait_serial', "$regexp timed out after $timeout" );
     return 0;
 }
 
