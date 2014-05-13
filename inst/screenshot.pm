@@ -10,7 +10,7 @@ sub screenshotsub {
 
     # cv::init called from bmwqemu
     require tinycv;
-    my $interval = $ENV{SCREENSHOTINTERVAL} || .5;
+    my $interval = $bmwqemu::vars{SCREENSHOTINTERVAL} || .5;
     while ( bmwqemu::alive() ) {
         my ( $s1, $ms1 ) = gettimeofday();
         bmwqemu::take_screenshot('q');

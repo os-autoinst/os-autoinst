@@ -150,7 +150,7 @@ sub wanted_($) {
 
 sub init(;$) {
     $needledir = shift if @_;
-    $needledir ||= "$ENV{CASEDIR}/needles/";
+    $needledir ||= "$bmwqemu::vars{CASEDIR}/needles/";
     %needles   = ();
     %tags      = ();
     bmwqemu::diag("init needles from $needledir");

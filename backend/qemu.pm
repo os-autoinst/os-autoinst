@@ -16,7 +16,7 @@ use POSIX qw/strftime/;
 use JSON;
 require Carp;
 use Fcntl;
-use bmwqemu qw(fileContent diag);
+use bmwqemu qw(fileContent diag save_vars);
 
 my $MAGIC_PIPE_CLOSE_STRING = 'xxxQUITxxx';
 my $iscrashedfile           = 'backend.crashed';
@@ -135,8 +135,9 @@ sub cpu_stat($) {
 sub do_start_vm($) {
     my $self = shift;
     require 'inst/startqemu.pm';
-    startqemu::run($self);
+    startqemu::run($self, \%bmwqemu::vars);
     die "startqemu failed: $@" if $@;
+	bmwqemu::save_vars(); # update variables
 
     # remove backend.crashed
     unlink($iscrashedfile) if -e $iscrashedfile;
