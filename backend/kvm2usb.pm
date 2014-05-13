@@ -25,9 +25,9 @@ use bmwqemu qw(diag $serialfile);
 
 sub init() {
     my $self = shift;
-    $self->{'hardware'} = YAML::LoadFile("/etc/os-autoinst/kvm2usb.yml")->{ $ENV{'HWSLOT'} };
+    $self->{'hardware'} = YAML::LoadFile("/etc/os-autoinst/kvm2usb.yml")->{ $bmwqemu::envs->{'HWSLOT'} };
     unless ( defined $self->{'hardware'} ) {
-        die "Error: Hardware slot '" . $ENV{'HWSLOT'} . "' is not defined!\n";
+        die "Error: Hardware slot '" . $bmwqemu::envs->{'HWSLOT'} . "' is not defined!\n";
     }
     $self->{'isalive'}        = 0;
     $self->{'isscreenactive'} = 0;
@@ -249,7 +249,7 @@ sub raw_alive($) {
 sub get_backend_info($) {
     my $self = shift;
     return {
-        'hwslot'  => $ENV{'HWSLOT'},
+        'hwslot'  => $bmwqemu::envs->{'HWSLOT'},
         'hw_info' => $self->{'hardware'}->{'info'}
     };
 }
@@ -257,10 +257,10 @@ sub get_backend_info($) {
 sub do_start_vm {
     my $self = shift;
     $self->raw_set_capture_params();
-    print STDOUT "Inserting CD: $ENV{ISO}\n";
-    $self->insert_cd( $ENV{ISO} );
+    print STDOUT "Inserting CD: $bmwqemu::envs->{ISO}\n";
+    $self->insert_cd( $bmwqemu::envs->{ISO} );
     sleep(1);
-    print STDOUT "Power reset $ENV{'HWSLOT'}\n";
+    print STDOUT "Power reset $bmwqemu::envs->{'HWSLOT'}\n";
     $self->power('reset');
     sleep(5);
     $self->start_serial_grab();

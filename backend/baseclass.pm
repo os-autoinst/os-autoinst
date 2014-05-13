@@ -62,7 +62,7 @@ sub get_info($) {
         'backend'      => $self->{'class'},
         'backend_info' => $self->get_backend_info(),
 
-        #		'management_port' => $ENV{QEMUPORT}+1
+        #		'management_port' => $bmwqemu::envs->{QEMUPORT}+1
     };
 }
 
@@ -198,7 +198,7 @@ sub conmuxloop($) {
         Listen => 1,
 
         #	LocalAddr => 'localhost',
-        LocalPort => $ENV{QEMUPORT} + 1,
+        LocalPort => $bmwqemu::envs->{QEMUPORT} + 1,
         Proto     => 'tcp',
         ReUseAddr => 1,
     );

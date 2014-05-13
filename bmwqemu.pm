@@ -24,8 +24,8 @@ use JSON;
 
 our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
 @ISA    = qw(Exporter);
-@EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $serialfile $testedversion %cmd
-  &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
+@EXPORT = qw($envs $realname $username $password $scriptdir $testresults $serialdev $serialfile $testedversion %cmd
+  &load_envs &save_envs &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
   &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
   &wait_encrypt_prompt
   &timeout_screenshot &waitidle &waitserial &assert_screen &waitstillimage
@@ -48,7 +48,6 @@ my $screenshotQueue                  = Thread::Queue->new();
 my $prestandstillwarning : shared    = 0;
 my $numunchangedscreenshots : shared = 0;
 my $timeoutcounter : shared          = 0;
-share( $ENV{SCREENSHOTINTERVAL} );    # to adjust at runtime
 my @ocrrect;
 share(@ocrrect);
 my @extrahashrects;
@@ -78,13 +77,44 @@ our $logfd;
 our $clock_ticks = POSIX::sysconf(&POSIX::_SC_CLK_TCK);
 
 our $debug               = -t 1;                                                                        # enable debug only when started from a tty
-our $idlethreshold       = ( $ENV{IDLETHRESHOLD} || $ENV{IDLETHESHOLD} || 18 ) * $clock_ticks / 100;    # % load max for being considered idle
 our $timesidleneeded     = 2;
 our $standstillthreshold = 600;
 
+sub load_envs() {
+	my $fn = "vars.json";
+	my $ret;
+	local $/;
+	open(my $fh, '<', $fn) or return 0;
+	eval {$ret = decode_json(<$fh>);};
+	warn "openQA didn't write proper vars.json" if $@;
+	close($fh);
+	return $ret;
+}
+
+our $envs = load_envs();
+
+sub save_envs($) {
+	my $envs_tmp = shift;
+	return unless $envs_tmp;
+
+	my $fn = "vars.json";
+	unlink "vars.json" if -e "vars.json";
+	open( my $fd, ">", $fn ) or die "can not write vars.json: $!\n";
+	fcntl( $fd, F_SETLKW, pack( 'ssqql', F_WRLCK, 0, 0, 0, $$ ) ) or die "cannot lock vars.json: $!\n";
+	truncate( $fd, 0 ) or die "cannot truncate vars.json: $!\n";
+
+	print $fd to_json( $envs_tmp, { pretty => 1 } );
+	close($fd);
+
+	$envs = load_envs();
+}
+
+share( $envs->{SCREENSHOTINTERVAL} );    # to adjust at runtime
+our $idlethreshold       = ( $envs->{IDLETHRESHOLD} || $envs->{IDLETHESHOLD} || 18 ) * $clock_ticks / 100;    # % load max for being considered idle
+
 our $realname = "Bernhard M. Wiedemann";
-our $username = $ENV{LIVETEST} ? "root" : $ENV{UPGRADE} ? "openqa" : "bernhard";
-our $password = $ENV{LIVETEST} ? "" : $ENV{UPGRADE} ? "openqa" : "nots3cr3t";
+our $username = $envs->{LIVETEST} ? "root" : $envs->{UPGRADE} ? "openqa" : "bernhard";
+our $password = $envs->{LIVETEST} ? "" : $envs->{UPGRADE} ? "openqa" : "nots3cr3t";
 
 our $testresults    = "testresults";
 our $screenshotpath = "qemuscreenshot";
@@ -106,41 +136,41 @@ sub init {
     cv::init();
     require tinycv;
 
-    our $testedversion = $ENV{NAME};
+    our $testedversion = $envs->{NAME};
     unless ($testedversion) {
-        $testedversion = $ENV{ISO} || "";
+        $testedversion = $envs->{ISO} || "";
         $testedversion =~ s{.*/}{};
         $testedversion =~ s/\.iso$//;
         $testedversion =~ s{-Media1?$}{};
     }
 
-    die "DISTRI undefined\n" unless $ENV{DISTRI};
+    die "DISTRI undefined\n" unless $envs->{DISTRI};
 
-    unless ( $ENV{CASEDIR} ) {
-        my @dirs = ("$scriptdir/distri/$ENV{DISTRI}");
-        unshift @dirs, $dirs[-1] . "-" . $ENV{VERSION} if ( $ENV{VERSION} );
+    unless ( $envs->{CASEDIR} ) {
+        my @dirs = ("$scriptdir/distri/$envs->{DISTRI}");
+        unshift @dirs, $dirs[-1] . "-" . $envs->{VERSION} if ( $envs->{VERSION} );
         for my $d (@dirs) {
             if ( -d $d ) {
-                $ENV{CASEDIR} = $d;
+                $envs->{CASEDIR} = $d;
                 last;
             }
         }
-        die "can't determine test directory for $ENV{DISTRI}\n" unless $ENV{CASEDIR};
+        die "can't determine test directory for $envs->{DISTRI}\n" unless $envs->{CASEDIR};
     }
 
     ## env vars
-    $ENV{UEFI_BIOS} ||= '/usr/share/qemu/ovmf-x86_64-ms.bin';
-    $ENV{QEMUPORT}  ||= 15222;
-    $ENV{INSTLANG}  ||= "en_US";
+    $envs->{UEFI_BIOS} ||= '/usr/share/qemu/ovmf-x86_64-ms.bin';
+    $envs->{QEMUPORT}  ||= 15222;
+    $envs->{INSTLANG}  ||= "en_US";
 
-    if ( defined( $ENV{DISTRI} ) && $ENV{DISTRI} eq 'archlinux' ) {
-        $ENV{HDDMODEL} = "ide";
+    if ( defined( $envs->{DISTRI} ) && $envs->{DISTRI} eq 'archlinux' ) {
+        $envs->{HDDMODEL} = "ide";
     }
 
-    if ( $ENV{LAPTOP} ) {
-        $ENV{LAPTOP} = 'dell_e6330' if $ENV{LAPTOP} eq '1';
-        die "no dmi data for '$ENV{LAPTOP}'\n" unless -d "$scriptdir/dmidata/$ENV{LAPTOP}";
-        $ENV{LAPTOP} = "$scriptdir/dmidata/$ENV{LAPTOP}";
+    if ( $envs->{LAPTOP} ) {
+        $envs->{LAPTOP} = 'dell_e6330' if $envs->{LAPTOP} eq '1';
+        die "no dmi data for '$envs->{LAPTOP}'\n" unless -d "$scriptdir/dmidata/$envs->{LAPTOP}";
+        $envs->{LAPTOP} = "$scriptdir/dmidata/$envs->{LAPTOP}";
     }
 
     ## env vars end
@@ -179,7 +209,7 @@ sub init {
       bootloader b
     );
 
-    if ( $ENV{INSTLANG} eq "de_DE" ) {
+    if ( $envs->{INSTLANG} eq "de_DE" ) {
         $cmd{"next"}            = "alt-w";
         $cmd{"createpartsetup"} = "alt-e";
         $cmd{"custompart"}      = "alt-b";
@@ -197,10 +227,10 @@ sub init {
         $cmd{"change"}      = "alt-n";
         $cmd{"software"}    = "w";
     }
-    if ( $ENV{INSTLANG} eq "es_ES" ) {
+    if ( $envs->{INSTLANG} eq "es_ES" ) {
         $cmd{"next"} = "alt-i";
     }
-    if ( $ENV{INSTLANG} eq "fr_FR" ) {
+    if ( $envs->{INSTLANG} eq "fr_FR" ) {
         $cmd{"next"} = "alt-s";
     }
     ## keyboard cmd vars end
@@ -209,7 +239,7 @@ sub init {
     if ( !-x $gocrbin ) {
         $gocrbin = undef;
     }
-    if ( $ENV{SUSEMIRROR} && $ENV{SUSEMIRROR} =~ s{^(\w+)://}{} ) {    # strip & check proto
+    if ( $envs->{SUSEMIRROR} && $envs->{SUSEMIRROR} =~ s{^(\w+)://}{} ) {    # strip & check proto
         if ( $1 ne "http" ) {
             die "only http mirror URLs are currently supported but found '$1'.";
         }
@@ -323,7 +353,7 @@ sub modstart {
 sub checkEnv($$) {
     my $var = shift;
     my $val = shift;
-    return 1 if ( defined $ENV{$var} && $ENV{$var} eq $val );
+    return 1 if ( defined $envs->{$var} && $envs->{$var} eq $val );
     return 0;
 }
 
@@ -546,7 +576,7 @@ sub mouse_hide(;$) {
 
 ## helpers
 sub wait_encrypt_prompt() {
-    if ( $ENV{ENCRYPT} ) {
+    if ( $envs->{ENCRYPT} ) {
         assert_screen("encrypted-disk-password-prompt");
         sendpassword();    # enter PW at boot
         send_key "ret";
@@ -627,7 +657,7 @@ upload log file to openqa host
 sub upload_logs($) {
     my $file = shift;
     my $cmd  = "curl --form testname=$testedversion";
-    my $host = $ENV{OPENQA_HOSTNAME};
+    my $host = $envs->{OPENQA_HOSTNAME};
     if ($host) {
         $cmd .= " --resolve $host:80:10.0.2.2";
     }
@@ -635,9 +665,9 @@ sub upload_logs($) {
         $host = '10.0.2.2';
     }
     $cmd .= " --form upload=\@$file ";
-    if ( defined $ENV{TEST_ID} ) {
+    if ( defined $envs->{TEST_ID} ) {
         my $basename = basename($file);
-        $cmd .= "$host/tests/$ENV{TEST_ID}/uploadlog/$basename";
+        $cmd .= "$host/tests/$envs->{TEST_ID}/uploadlog/$basename";
     }
     else {
         $cmd .= "$host/cgi-bin/uploadlog";
@@ -660,7 +690,7 @@ sub ensure_installed {
         x11_start_program( "su -c 'yum -y install @pkglist'", { terminal => 1 } );
     }
     else {
-        mydie "TODO: implement package install for your distri $ENV{DISTRI}";
+        mydie "TODO: implement package install for your distri $envs->{DISTRI}";
     }
     if ($password) { sendpassword; send_key("ret", 1); }
     waitstillimage( 7, 90 );                                       # wait for install
@@ -813,7 +843,7 @@ Wait until the screen stops changing
 sub waitstillimage(;$$$) {
     my $stilltime        = shift || 7;
     my $timeout          = shift || 30;
-    my $similarity_level = shift || ( $ENV{HW} ? 44 : 47 );
+    my $similarity_level = shift || ( $envs->{HW} ? 44 : 47 );
     my $starttime = time;
     fctlog( 'waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level" );
     my $lastchangetime = [gettimeofday];
@@ -1040,7 +1070,7 @@ sub _assert_screen {
 
     # add some known env variables
     for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD LIVETEST UEFI NETBOOT PROMO FLAVOR)) {
-        push( @save_tags, "ENV-$key-" . $ENV{$key} ) if $ENV{$key};
+        push( @save_tags, "ENV-$key-" . $envs->{$key} ) if $envs->{$key};
     }
 
     if ( -e $control_files{"interactive_mode"} ) {
@@ -1104,7 +1134,7 @@ sub _assert_screen {
     # beware of spaghetti code below
     my $newname;
     my $run_editor = 0;
-    if ( $ENV{'scaledhack'} ) {
+    if ( $envs->{'scaledhack'} ) {
         freeze_vm();
         my $needle;
         for my $cand ( @{ $failed_candidates || [] } ) {
@@ -1142,16 +1172,16 @@ sub _assert_screen {
             backend_send("cont");
         }
     }
-    elsif ( !$check_screen && $ENV{'interactive_crop'} ) {
+    elsif ( !$check_screen && $envs->{'interactive_crop'} ) {
         $run_editor = 1;
     }
 
     if ( $run_editor && $args{'retried'} < 3 ) {
-        $newname = $mustmatch . ( $ENV{'interactive_crop'} || '' ) unless $newname;
+        $newname = $mustmatch . ( $envs->{'interactive_crop'} || '' ) unless $newname;
         freeze_vm();
         system( "$scriptdir/crop.py", '--new', $newname, $needle_template->{'needle'} ) == 0 || mydie;
         backend_send("cont");
-        my $fn = sprintf( "%s/needles/%s.json", $ENV{'CASEDIR'}, $newname );
+        my $fn = sprintf( "%s/needles/%s.json", $envs->{'CASEDIR'}, $newname );
         if ( -e $fn ) {
             for my $n ( needle->all() ) {
                 if ( $n->{'file'} eq $fn ) {
@@ -1219,8 +1249,8 @@ sub save_results(;$$) {
     fcntl( $fd, F_SETLKW, pack( 'ssqql', F_WRLCK, 0, 0, 0, $$ ) ) or die "cannot lock results.json: $!\n";
     truncate( $fd, 0 ) or die "cannot truncate results.json: $!\n";
     my $result = {
-        'distribution' => $ENV{'DISTRI'},
-        'version'      => $ENV{'VERSION'} || '',
+        'distribution' => $envs->{'DISTRI'},
+        'version'      => $envs->{'VERSION'} || '',
         'testmodules'  => $testmodules,
         'dents'        => 0,
     };
