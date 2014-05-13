@@ -28,7 +28,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
   &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
   &wait_encrypt_prompt
-  &timeout_screenshot &wait_idle &wait_serial &assert_screen &waitstillimage
+  &timeout_screenshot &waitidle &wait_idle &wait_serial &assert_screen &waitstillimage
   &check_screen &goandclick &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
@@ -875,6 +875,11 @@ wait_idle([$timeout_sec])
 Wait until the system becomes idle (as configured by IDLETHESHOLD in env.sh)
 
 =cut
+
+sub waitidle(;$) {
+    fctlog( 'waitidle', "WARNING. waitidle is deprecated, use wait_idle" );
+    wait_idle(@_);
+}
 
 sub wait_idle(;$) {
     my $timeout = shift || 19;
