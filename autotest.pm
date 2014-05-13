@@ -56,7 +56,7 @@ sub runalltests {
             bmwqemu::save_results( results() );
 
             # avoid erasing the good vm snapshot
-            if ( !check_env( 'SKIPTO', $t->{'fullname'} ) && $bmwqemu::vars{MAKETESTSNAPSHOTS} ) {
+            if ( !check_var( 'SKIPTO', $t->{'fullname'} ) && $bmwqemu::vars{MAKETESTSNAPSHOTS} ) {
                 bmwqemu::make_snapshot( $t->{'fullname'} );
             }
 
