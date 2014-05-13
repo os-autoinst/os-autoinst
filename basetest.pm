@@ -390,11 +390,11 @@ sub stop_audiocapture() {
     return $result;
 }
 
-=head2 check_DTMF
+=head2 assert_DTMF
 stop audio capture and compare DTMF decoded result with reference
 =cut
 
-sub check_DTMF($) {
+sub assert_DTMF($) {
     my $self = shift;
     my $ref  = shift;
 
