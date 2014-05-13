@@ -678,7 +678,28 @@ sub ensure_installed {
     #pkcon refresh # once
     #pkcon install @pkglist
     if ( check_var( 'DISTRI', 'opensuse' ) ) {
-        x11_start_program("xdg-su -c 'zypper -n in @pkglist'");    # SUSE-specific
+        x11_start_program("xterm");
+        assert_screen('xterm-started');
+        type_string("pkcon install @pkglist\n");
+        my @tags = qw/PolicyKit pkcon-proceed-prompt pkcon-succeeded/;
+        while (1) {
+            my $ret = assert_screen \@tags, 10;
+            if ( $ret->{needle}->has_tag('Policykit') ) {
+                sendpassword;
+                send_key( "ret", 1 );
+                @tags = grep { $_ ne 'Policykit' } @tags;
+                next;
+            }
+            if ( $ret->{needle}->has_tag('pkcon-proceed-prompt') ) {
+                send_key("y");
+                @tags = grep { $_ ne 'pkcon-proceed-prompt' } @tags;
+                next;
+            }
+            if ( $ret->{needle}->has_tag('pkcon-succeeded') ) {
+                send_key("alt-f4");    # close xterm
+                return;
+            }
+        }
     }
     elsif ( check_var( 'DISTRI', 'debian' ) ) {
         x11_start_program( "su -c 'aptitude -y install @pkglist'", { terminal => 1 } );
@@ -690,7 +711,7 @@ sub ensure_installed {
         mydie "TODO: implement package install for your distri $vars{DISTRI}";
     }
     if ($password) { sendpassword; send_key("ret", 1); }
-    waitstillimage( 7, 90 );                                       # wait for install
+    waitstillimage( 7, 90 );    # wait for install
 }
 
 sub clear_console() {
