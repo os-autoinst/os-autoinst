@@ -85,7 +85,8 @@ sub run($$) {
         my @params = ( '-m', '1024', '-net', 'user', "-net", "nic,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga", $vars->{QEMUVGA}, "-machine", "accel=kvm,kernel_irqchip=on" );
 
         if ( $vars->{LAPTOP} ) {
-            for my $f (<$vars->{LAPTOP}/*.bin>) {
+            my $laptop_path = $vars->{LAPTOP};
+            for my $f (<$laptop_path/*.bin>) {
                 push @params, '-smbios', "file=$f";
             }
         }

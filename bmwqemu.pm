@@ -168,7 +168,7 @@ sub init {
         $vars{LAPTOP} = "$scriptdir/dmidata/$vars{LAPTOP}";
     }
 
-	save_vars();
+    save_vars();
 
     ## env vars end
 

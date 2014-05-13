@@ -137,7 +137,7 @@ sub do_start_vm($) {
     require 'inst/startqemu.pm';
     startqemu::run($self, \%bmwqemu::vars);
     die "startqemu failed: $@" if $@;
-	bmwqemu::save_vars(); # update variables
+    bmwqemu::save_vars(); # update variables
 
     # remove backend.crashed
     unlink($iscrashedfile) if -e $iscrashedfile;
