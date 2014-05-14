@@ -127,9 +127,12 @@ our %cmd;
 our %charmap;
 
 sub init {
+    open( $logfd, ">>", "autoinst-log.txt" );
 
-    cv::init();
-    require tinycv;
+    # set unbuffered so that send_key lines from main thread will be written
+    my $oldfh = select($logfd);
+    $| = 1;
+    select($oldfh);
 
     our $testedversion = $vars{NAME};
     unless ($testedversion) {
@@ -138,6 +141,11 @@ sub init {
         $testedversion =~ s/\.iso$//;
         $testedversion =~ s{-Media1?$}{};
     }
+
+    result_dir(); # init testresults dir
+
+    cv::init();
+    require tinycv;
 
     die "DISTRI undefined\n" unless $vars{DISTRI};
 
@@ -434,12 +442,6 @@ sub init_backend($) {
     my $name = shift;
     require "backend/$name.pm";
     $backend = "backend::$name"->new();
-    open( $logfd, ">>", "autoinst-log.txt" );
-
-    # set unbuffered so that send_key lines from main thread will be written
-    my $oldfh = select($logfd);
-    $| = 1;
-    select($oldfh);
 }
 
 sub start_vm() {
