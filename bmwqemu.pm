@@ -154,7 +154,12 @@ sub init {
     }
 
     ## env vars
-    $vars{UEFI_BIOS} ||= '/usr/share/qemu/ovmf-x86_64-ms.bin';
+    $vars{UEFI_BIOS} ||= 'ovmf-x86_64-ms.bin';
+    if ($vars{UEFI_BIOS} =~ /\/|\.\./) {
+        die "invalid characters in UEFI_BIOS\n";
+    }
+    $vars{UEFI_BIOS} = '/usr/share/qemu/'.$vars{UEFI_BIOS};
+
     $vars{QEMUPORT}  ||= 15222;
     $vars{INSTLANG}  ||= "en_US";
 
@@ -163,6 +168,9 @@ sub init {
     }
 
     if ( $vars{LAPTOP} ) {
+        if ($vars{LAPTOP} =~ /\/|\.\./) {
+            die "invalid characters in LAPTOP\n";
+        }
         $vars{LAPTOP} = 'dell_e6330' if $vars{LAPTOP} eq '1';
         die "no dmi data for '$vars{LAPTOP}'\n" unless -d "$scriptdir/dmidata/$vars{LAPTOP}";
         $vars{LAPTOP} = "$scriptdir/dmidata/$vars{LAPTOP}";
