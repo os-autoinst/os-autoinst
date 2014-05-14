@@ -15,12 +15,13 @@ sub test_flags() {
 
 sub post_fail_hook() {
     my $self = shift;
-    my @tags = ( @{ needle::tags("yast-still-running") }, @{ needle::tags("linuxrc-install-fail") } );
+    my @tags = qw/yast-still-running linuxrc-install-fail/;
     if ( check_screen \@tags, 5 ) {
         send_key "ctrl-alt-f2";
         assert_screen "inst-console";
         if ( !$bmwqemu::vars{NET} ) {
-            type_string "dhcpcd eth0\n";
+            type_string "cd /proc/sys/net/ipv4/conf\n";
+            type_string "for i in *[0-9]; do echo BOOTPROTO=dhcp > /etc/sysconfig/network/ifcf-\$i; wicked ifup \$i; done\n";
             type_string "ifconfig -a\n";
             type_string "cat /etc/resolv.conf\n";
         }
