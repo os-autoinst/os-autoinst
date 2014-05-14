@@ -55,7 +55,6 @@ echo "QEMU finished, running final checks" >> ${logfile}
 echo "+++ STDERR +++" >> ${logfile}
 cat stderr.txt >> ${logfile}
 
-cp serial0 testresults/$NAME/serial0.txt
 # return success if video was created:
 test -e testresults/$NAME/video.ogv
 
