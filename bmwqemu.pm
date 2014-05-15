@@ -694,7 +694,7 @@ sub ensure_installed {
         type_string("pkcon install @pkglist\n");
         my @tags = qw/Policykit PolicyKit-behind-window pkcon-proceed-prompt pkcon-succeeded/;
         while (1) {
-            my $ret = assert_screen(\@tags, 10);
+            my $ret = assert_screen(\@tags, 80);
             if ( $ret->{needle}->has_tag('Policykit') ) {
                 sendpassword;
                 send_key( "ret", 1 );
