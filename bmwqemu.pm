@@ -91,7 +91,7 @@ sub load_vars() {
     return $ret;
 }
 
-our %vars = %{load_vars()};
+our %vars;
 
 sub save_vars() {
     my $fn = "vars.json";
@@ -134,6 +134,7 @@ sub init {
     $| = 1;
     select($oldfh);
 
+    %vars = %{load_vars()};
     our $testedversion = $vars{NAME};
     unless ($testedversion) {
         $testedversion = $vars{ISO} || "";
@@ -772,8 +773,8 @@ sub take_screenshot(;$) {
 
     # hardlinking identical files saves space
 
-    # 47 is about the similarity of two screenshots with blinking cursor
-    if ( $lastscreenshot && $lastscreenshot->similarity($img) > 47 ) {
+    # 54 is based on t/data/user-settings-*
+    if ( $lastscreenshot && $lastscreenshot->similarity($img) > 54 ) {
         symlink( basename($lastscreenshotName), $filename ) || die "failed to create $filename symlink: $!\n";
         $numunchangedscreenshots++;
     }
