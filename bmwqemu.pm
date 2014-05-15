@@ -692,7 +692,7 @@ sub ensure_installed {
         x11_start_program("xterm");
         assert_screen('xterm-started');
         type_string("pkcon install @pkglist\n");
-        my @tags = qw/Policykit PolicyKit-behind-window pkcon-proceed-prompt pkcon-succeeded/;
+        my @tags = qw/Policykit Policykit-behind-window pkcon-proceed-prompt pkcon-succeeded/;
         while (1) {
             my $ret = assert_screen(\@tags, 80);
             if ( $ret->{needle}->has_tag('Policykit') ) {
