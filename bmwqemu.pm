@@ -702,6 +702,7 @@ sub ensure_installed {
             }
             if ( $ret->{needle}->has_tag('pkcon-proceed-prompt') ) {
                 send_key("y");
+                send_key("ret");
                 @tags = grep { $_ ne 'pkcon-proceed-prompt' } @tags;
                 next;
             }
