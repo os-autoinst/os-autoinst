@@ -88,4 +88,10 @@ for my $n ( needle::all() ) {
 }
 
 is_deeply( \@alltags, [ sort keys %needle::tags ], "all tags restored" );
+
+$img1 = tinycv::read("data/user_settings-1.png");
+my $img2 = tinycv::read("data/user_settings-2.png");
+ok( $img1->similarity($img2) > 53, "similarity is too small" );
+
+
 # vim: set sw=4 et:
