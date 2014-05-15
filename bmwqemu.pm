@@ -127,9 +127,12 @@ our %cmd;
 our %charmap;
 
 sub init {
+    open( $logfd, ">>", "autoinst-log.txt" );
 
-    cv::init();
-    require tinycv;
+    # set unbuffered so that send_key lines from main thread will be written
+    my $oldfh = select($logfd);
+    $| = 1;
+    select($oldfh);
 
     our $testedversion = $vars{NAME};
     unless ($testedversion) {
@@ -138,6 +141,11 @@ sub init {
         $testedversion =~ s/\.iso$//;
         $testedversion =~ s{-Media1?$}{};
     }
+
+    result_dir(); # init testresults dir
+
+    cv::init();
+    require tinycv;
 
     die "DISTRI undefined\n" unless $vars{DISTRI};
 
@@ -154,7 +162,12 @@ sub init {
     }
 
     ## env vars
-    $vars{UEFI_BIOS} ||= '/usr/share/qemu/ovmf-x86_64-ms.bin';
+    $vars{UEFI_BIOS} ||= 'ovmf-x86_64-ms.bin';
+    if ($vars{UEFI_BIOS} =~ /\/|\.\./) {
+        die "invalid characters in UEFI_BIOS\n";
+    }
+    $vars{UEFI_BIOS} = '/usr/share/qemu/'.$vars{UEFI_BIOS};
+
     $vars{QEMUPORT}  ||= 15222;
     $vars{INSTLANG}  ||= "en_US";
 
@@ -163,6 +176,9 @@ sub init {
     }
 
     if ( $vars{LAPTOP} ) {
+        if ($vars{LAPTOP} =~ /\/|\.\./) {
+            die "invalid characters in LAPTOP\n";
+        }
         $vars{LAPTOP} = 'dell_e6330' if $vars{LAPTOP} eq '1';
         die "no dmi data for '$vars{LAPTOP}'\n" unless -d "$scriptdir/dmidata/$vars{LAPTOP}";
         $vars{LAPTOP} = "$scriptdir/dmidata/$vars{LAPTOP}";
@@ -426,12 +442,6 @@ sub init_backend($) {
     my $name = shift;
     require "backend/$name.pm";
     $backend = "backend::$name"->new();
-    open( $logfd, ">>", "autoinst-log.txt" );
-
-    # set unbuffered so that send_key lines from main thread will be written
-    my $oldfh = select($logfd);
-    $| = 1;
-    select($oldfh);
 }
 
 sub start_vm() {
