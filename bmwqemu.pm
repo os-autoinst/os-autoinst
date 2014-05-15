@@ -696,8 +696,7 @@ sub ensure_installed {
         while (1) {
             my $ret = assert_screen(\@tags, 10);
             if ( $ret->{needle}->has_tag('Policykit') ) {
-                sendpassword;
-                send_key( "ret", 1 );
+                if ($password) { sendpassword; send_key("ret", 1); }
                 @tags = grep { $_ ne 'Policykit' } @tags;
                 next;
             }
@@ -715,14 +714,15 @@ sub ensure_installed {
     }
     elsif ( check_var( 'DISTRI', 'debian' ) ) {
         x11_start_program( "su -c 'aptitude -y install @pkglist'", { terminal => 1 } );
+        if ($password) { sendpassword; send_key("ret", 1); }
     }
     elsif ( check_var( 'DISTRI', 'fedora' ) ) {
         x11_start_program( "su -c 'yum -y install @pkglist'", { terminal => 1 } );
+        if ($password) { sendpassword; send_key("ret", 1); }
     }
     else {
         mydie "TODO: implement package install for your distri $vars{DISTRI}";
     }
-    if ($password) { sendpassword; send_key("ret", 1); }
     waitstillimage( 7, 90 );    # wait for install
 }
 
