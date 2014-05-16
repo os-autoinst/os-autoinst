@@ -704,6 +704,7 @@ sub ensure_installed {
             }
             if ( $ret->{needle}->has_tag('Policykit-behind-window') ) {
                 send_key("alt-tab");
+                sleep 3;
                 next;
             }
             if ( $ret->{needle}->has_tag('pkcon-proceed-prompt') ) {
