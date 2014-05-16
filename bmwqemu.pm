@@ -685,6 +685,13 @@ sub upload_logs($) {
 
 sub ensure_installed {
     my @pkglist = @_;
+    my $timeout = $pkglist[-1] if $pkglist[-1] =~ /^[0-9]+$/;
+    if ($timeout) {
+        pop @pkglist;
+    }
+    else {
+        $timeout = 80;
+    }
 
     #pkcon refresh # once
     #pkcon install @pkglist
@@ -694,7 +701,7 @@ sub ensure_installed {
         type_string("pkcon install @pkglist\n");
         my @tags = qw/Policykit Policykit-behind-window pkcon-proceed-prompt pkcon-succeeded/;
         while (1) {
-            my $ret = assert_screen(\@tags, 80);
+            my $ret = assert_screen(\@tags, $timeout);
             if ( $ret->{needle}->has_tag('Policykit') ) {
                 sendpassword;
                 send_key( "ret", 1 );
