@@ -325,8 +325,7 @@ sub take_screenshot(;$) {
     my $self = shift;
     my $name = shift;    # unused, for compat
 
-    # XXX: is there a reason for not using getcurrentscreenshot()?
-    my $img = bmwqemu::do_take_screenshot();
+    my $img = getcurrentscreenshot();
 
     $self->register_screenshot($img);
 
