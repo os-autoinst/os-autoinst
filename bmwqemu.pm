@@ -35,6 +35,7 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
   &getcurrentscreenshot &power &mydie &check_var &make_snapshot &load_snapshot
   &interactive_mode &needle_template &waiting_for_new_needle
   $post_fail_hook_running
+  &save_screenshot
 );
 
 sub send_key($;$);
@@ -760,9 +761,13 @@ sub power($) {
 
 # runtime information gathering functions
 
-sub do_take_screenshot() {
+sub _get_scaled_screenshot() {
     my $ret = $backend->screendump();
     return $ret->scale( 1024, 768 );
+}
+
+sub save_screenshot {
+    $current_test->take_screenshot;
 }
 
 sub timeout_screenshot() {
@@ -770,10 +775,11 @@ sub timeout_screenshot() {
     $current_test->take_screenshot( sprintf( "timeout-%02i", $n ) );
 }
 
-sub take_screenshot(;$) {
+# to be called from screenshot thread
+sub enqueue_screenshot(;$) {
     my $flags = shift || '';
 
-    my $img = do_take_screenshot();
+    my $img = _get_scaled_screenshot();
 
     $framecounter++;
 

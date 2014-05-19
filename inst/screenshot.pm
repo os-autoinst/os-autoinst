@@ -13,7 +13,7 @@ sub screenshotsub {
     my $interval = $bmwqemu::vars{SCREENSHOTINTERVAL} || .5;
     while ( bmwqemu::alive() ) {
         my ( $s1, $ms1 ) = gettimeofday();
-        bmwqemu::take_screenshot('q');
+        bmwqemu::enqueue_screenshot('q');
         my ( $s2, $ms2 ) = gettimeofday();
         my $rest = $interval - ( $s2 - $s1 ) - ( $ms2 - $ms1 ) / 1e6;
         sleep($rest) if ( $rest > 0 );
