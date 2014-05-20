@@ -21,7 +21,7 @@ sub post_fail_hook() {
         assert_screen "inst-console";
         if ( !$bmwqemu::vars{NET} ) {
             type_string "cd /proc/sys/net/ipv4/conf\n";
-            type_string "for i in *[0-9]; do echo BOOTPROTO=dhcp > /etc/sysconfig/network/ifcf-\$i; wicked ifup \$i; done\n";
+            type_string "for i in *[0-9]; do echo BOOTPROTO=dhcp > /etc/sysconfig/network/ifcfg-\$i; wicked --debug all ifup \$i; done\n";
             type_string "ifconfig -a\n";
             type_string "cat /etc/resolv.conf\n";
         }
