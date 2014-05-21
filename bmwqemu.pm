@@ -254,6 +254,11 @@ sub init {
     if ( !-x $gocrbin ) {
         $gocrbin = undef;
     }
+    if ( $vars{SUSEMIRROR} && $vars{SUSEMIRROR} =~ s{^(\w+)://}{} ) {    # strip & check proto
+        if ( $1 ne "http" ) {
+            die "only http mirror URLs are currently supported but found '$1'.";
+        }
+    }
 
     ## charmap (like L => shift+l)
     %charmap = (
