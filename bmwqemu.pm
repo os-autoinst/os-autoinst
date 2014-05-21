@@ -686,8 +686,9 @@ sub upload_logs($) {
 
 sub ensure_installed {
     my @pkglist = @_;
-    my $timeout = $pkglist[-1] if $pkglist[-1] =~ /^[0-9]+$/;
-    if ($timeout) {
+    my $timeout;
+    if ( $pkglist[-1] =~ /^[0-9]+$/ ) {
+        $timeout = $pkglist[-1];
         pop @pkglist;
     }
     else {
