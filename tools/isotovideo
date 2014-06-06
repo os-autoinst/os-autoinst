@@ -26,7 +26,7 @@ exithandler()
 	fi
 }
 if [ -t 0 ]; then
-	> stderr.txt
+	2> stderr.txt
 	exec 7> >(tee stderr.txt)
 else
 	exec 7>stderr.txt
