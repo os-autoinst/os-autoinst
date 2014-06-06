@@ -38,10 +38,6 @@ sub run($$) {
     $ENV{QEMU_AUDIO_DRV} = "wav";
     $ENV{QEMU_WAV_PATH}  = "/dev/null";
 
-    if ( $vars->{UEFI} && !-e $vars->{UEFI_BIOS} ) {
-        die "'$vars->{UEFI_BIOS}' missing, check UEFI_BIOS\n";
-    }
-
     use File::Path qw/mkpath/;
     mkpath($basedir);
 
@@ -85,7 +81,7 @@ sub run($$) {
         my @params = ( '-m', '1024', '-net', 'user', "-net", "nic,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga", $vars->{QEMUVGA}, "-machine", "accel=kvm,kernel_irqchip=on" );
 
         if ( $vars->{LAPTOP} ) {
-            my $laptop_path = $vars->{LAPTOP};
+            my $laptop_path = "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
             for my $f (<$laptop_path/*.bin>) {
                 push @params, '-smbios', "file=$f";
             }
@@ -114,7 +110,7 @@ sub run($$) {
             push( @params, "-cpu", $vars->{QEMUCPU} );
         }
         if ( $vars->{UEFI} ) {
-            push( @params, "-bios", $vars->{UEFI_BIOS} );
+            push( @params, "-bios", '/usr/share/qemu/'.$vars->{UEFI_BIOS} );
         }
         if ( $vars->{MULTINET} ) {
             no warnings 'qw';

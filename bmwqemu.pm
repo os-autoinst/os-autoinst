@@ -168,7 +168,9 @@ sub init {
     if ($vars{UEFI_BIOS} =~ /\/|\.\./) {
         die "invalid characters in UEFI_BIOS\n";
     }
-    $vars{UEFI_BIOS} = '/usr/share/qemu/'.$vars{UEFI_BIOS};
+    if ( $vars{UEFI} && !-e '/usr/share/qemu/'.$vars{UEFI_BIOS} ) {
+        die "'$vars{UEFI_BIOS}' missing, check UEFI_BIOS\n";
+    }
 
     $vars{QEMUPORT}  ||= 15222;
     $vars{INSTLANG}  ||= "en_US";
@@ -183,7 +185,6 @@ sub init {
         }
         $vars{LAPTOP} = 'dell_e6330' if $vars{LAPTOP} eq '1';
         die "no dmi data for '$vars{LAPTOP}'\n" unless -d "$scriptdir/dmidata/$vars{LAPTOP}";
-        $vars{LAPTOP} = "$scriptdir/dmidata/$vars{LAPTOP}";
     }
 
     save_vars();
