@@ -796,7 +796,7 @@ sub enqueue_screenshot(;$) {
 
     # 54 is based on t/data/user-settings-*
     if ( $lastscreenshot && $lastscreenshot->similarity($img) > 54 ) {
-        symlink( basename($lastscreenshotName), $filename ) || die "failed to create $filename symlink: $!\n";
+        symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
         $numunchangedscreenshots++;
     }
     else {    # new
