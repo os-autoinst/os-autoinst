@@ -12,7 +12,7 @@ use IO::Select;
 use IO::Socket::UNIX qw( SOCK_STREAM );
 use IO::Handle;
 use Data::Dump qw/pp/;
-use POSIX qw/strftime/;
+use POSIX qw/strftime :sys_wait_h/;
 use JSON;
 require Carp;
 use Fcntl;
@@ -152,8 +152,26 @@ sub do_stop_vm($) {
     my $self = shift;
     $self->close_con();
     sleep(0.1);
-    printf STDERR "killing %d\n", $self->{'pid'};
-    kill( 15, $self->{'pid'} );
+    waitpid($self->{pid}, WNOHANG);
+    my $n;
+    for (my $i = 0; $i < 3; ++$i) {
+        # dead meanwhile?
+        $n = kill(0, $self->{'pid'});
+        last if ($n == 0);
+        printf STDERR "sending TERM to %d\n", $self->{'pid'};
+        $n = kill( "TERM", $self->{'pid'} );
+        last if ($n == 0); # we're done when qemu is gone
+        sleep 1;
+        waitpid($self->{pid}, WNOHANG);
+    }
+    if ($n != 0) {
+        printf STDERR "sending KILL to %d\n", $self->{'pid'};
+        $n = kill( "KILL", $self->{'pid'} );
+        sleep 1;
+        waitpid($self->{pid}, WNOHANG);
+        $n = kill(0, $self->{'pid'});
+        warn "ERROR: qemu still not dead. wtf?" if $n;
+    }
     unlink( $self->{'pidfilename'} );
 }
 

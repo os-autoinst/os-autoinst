@@ -21,7 +21,7 @@ sub loadtest($) {
         return unless $test->is_applicable;
     }
     else {
-        eval "package $name; require \$script;";
+        eval "package $name; use lib \$bmwqemu::vars{CASEDIR}.'/lib'; require \$script;";
         if ($@) {
             my $msg = "error on $script: $@";
             diag($msg);

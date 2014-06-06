@@ -168,7 +168,9 @@ sub init {
     if ($vars{UEFI_BIOS} =~ /\/|\.\./) {
         die "invalid characters in UEFI_BIOS\n";
     }
-    $vars{UEFI_BIOS} = '/usr/share/qemu/'.$vars{UEFI_BIOS};
+    if ( $vars{UEFI} && !-e '/usr/share/qemu/'.$vars{UEFI_BIOS} ) {
+        die "'$vars{UEFI_BIOS}' missing, check UEFI_BIOS\n";
+    }
 
     $vars{QEMUPORT}  ||= 15222;
     $vars{INSTLANG}  ||= "en_US";
@@ -183,7 +185,6 @@ sub init {
         }
         $vars{LAPTOP} = 'dell_e6330' if $vars{LAPTOP} eq '1';
         die "no dmi data for '$vars{LAPTOP}'\n" unless -d "$scriptdir/dmidata/$vars{LAPTOP}";
-        $vars{LAPTOP} = "$scriptdir/dmidata/$vars{LAPTOP}";
     }
 
     save_vars();
@@ -795,7 +796,7 @@ sub enqueue_screenshot(;$) {
 
     # 54 is based on t/data/user-settings-*
     if ( $lastscreenshot && $lastscreenshot->similarity($img) > 54 ) {
-        symlink( basename($lastscreenshotName), $filename ) || die "failed to create $filename symlink: $!\n";
+        symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
         $numunchangedscreenshots++;
     }
     else {    # new
