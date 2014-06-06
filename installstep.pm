@@ -1,3 +1,5 @@
+#TODO: delete as soon as all openqa hosts have the new test cases deployed
+
 package installstep;
 use base "basetest";
 
