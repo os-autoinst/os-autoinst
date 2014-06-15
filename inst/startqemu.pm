@@ -86,18 +86,18 @@ sub run($$) {
         my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga", $vars->{QEMUVGA}, "-machine", "accel=kvm,kernel_irqchip=on" );
 
         if ( $vars->{NICTYPE} eq "user" ) {
-            push (@params, '-netdev', 'user,id=qanet0');
+            push( @params, '-netdev', 'user,id=qanet0');
         }
         elsif ( $vars->{NICTYPE} eq "tap" ) {
             if (!$vars->{TAPDEV}) {
                 die "TAPDEV variable is required for NICTYPE==tap\n";
             }
-            push (@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
+            push( @params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
         }
         else {
             die "uknown NICTYPE $vars->{NICTYPE}\n";
         }
-        push (@params, '-device', "$vars->{NICMODEL},netdev=qanet0,mac=$vars->{NICMAC}");
+        push( @params, '-device', "$vars->{NICMODEL},netdev=qanet0,mac=$vars->{NICMAC}");
 
         if ( $vars->{LAPTOP} ) {
             my $laptop_path = "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
