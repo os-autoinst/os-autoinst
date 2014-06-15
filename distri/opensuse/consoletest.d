@@ -1,0 +1,1 @@
+../../consoletest.d
