@@ -228,6 +228,7 @@ sub diag($) {
 sub fctlog {
 	my $fname = shift;
 	my @fparams = @_;
+	updatelinenumber();
 	$logfd && print $logfd '<<< '.$fname.'('.join(', ', @fparams).")\n";
 	return unless $debug;
 	print STDERR colored('<<< '.$fname.'('.join(', ', @fparams).')', 'blue')."\n";
@@ -263,6 +264,24 @@ sub fileContent($) {
 	my $result=<$fd>;
 	close($fd);
 	return $result;
+}
+
+sub setFileContent($$) {my($fn,$data)=@_;
+	open(my $fc, ">", $fn) or return undef;
+	print $fc $data;
+	close($fc);
+}
+
+sub updatelinenumber() {
+	my $out="";
+	for my $i (1..10) {
+		my($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i);
+		last unless $filename;
+		next unless $filename =~ m{/distri/};
+		$out = "$filename\n$package\n$line\n$subroutine\n";
+		last;
+	}
+	setFileContent("currentline", $out);
 }
 
 sub hashrect($$$) {
