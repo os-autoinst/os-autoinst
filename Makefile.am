@@ -34,7 +34,6 @@ pkglibexec_SCRIPTS = \
 	basetest.pm \
 	bmwqemu.pm \
 	httpnotifyconf.pm \
-	installstep.pm \
 	serverstep.pm \
 	ocr.pm \
 	cv.pm \
