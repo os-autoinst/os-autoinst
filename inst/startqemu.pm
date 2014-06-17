@@ -25,12 +25,17 @@ sub run($$) {
     }
 
     my $iso = $vars->{ISO};
+    # disk settings
+    $vars->{NUMDISKS}  ||= 2;
     $vars->{HDDSIZEGB} ||= 10;
     $vars->{HDDMODEL}  ||= "virtio-blk";
-    $vars->{NICMODEL}  ||= "virtio";
+    # network settings
+    $vars->{NICMODEL}  ||= "virtio-net";
+    $vars->{NICTYPE}   ||= "user";
+    $vars->{NICMAC}    ||= "52:54:00:12:34:56";
+    # misc
     $vars->{QEMUVGA}   ||= "cirrus";
     $vars->{QEMUCPUS}  ||= 1;
-    $vars->{NUMDISKS}  ||= 2;
     if ( defined( $vars->{RAIDLEVEL} ) ) {
         $vars->{NUMDISKS} = 4;
     }
@@ -78,7 +83,21 @@ sub run($$) {
     $backend->{'pid'} = fork();
     die "fork failed" if ( !defined( $backend->{'pid'} ) );
     if ( $backend->{'pid'} == 0 ) {
-        my @params = ( '-m', '1024', '-net', 'user', "-net", "nic,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:56", "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga", $vars->{QEMUVGA}, "-machine", "accel=kvm,kernel_irqchip=on" );
+        my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga", $vars->{QEMUVGA}, "-machine", "accel=kvm,kernel_irqchip=on" );
+
+        if ( $vars->{NICTYPE} eq "user" ) {
+            push( @params, '-netdev', 'user,id=qanet0');
+        }
+        elsif ( $vars->{NICTYPE} eq "tap" ) {
+            if (!$vars->{TAPDEV}) {
+                die "TAPDEV variable is required for NICTYPE==tap\n";
+            }
+            push( @params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
+        }
+        else {
+            die "uknown NICTYPE $vars->{NICTYPE}\n";
+        }
+        push( @params, '-device', "$vars->{NICMODEL},netdev=qanet0,mac=$vars->{NICMAC}");
 
         if ( $vars->{LAPTOP} ) {
             my $laptop_path = "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
@@ -104,6 +123,9 @@ sub run($$) {
                 push( @params, "-device", "usb-ehci,id=ehci" );
                 push( @params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb" );
             }
+            elsif ( $vars->{PXEBOOT} ) {
+                push( @params, "-boot", "n");
+            }
             else {
                 push( @params, "-cdrom", $iso );
             }
@@ -118,6 +140,9 @@ sub run($$) {
             push( @params, "-bios", '/usr/share/qemu/'.$vars->{UEFI_BIOS} );
         }
         if ( $vars->{MULTINET} ) {
+            if ( $vars->{NICTYPE} eq "tap" ) {
+                die "MULTINET is not supported with NICTYPE==tap\n";
+            }
             no warnings 'qw';
             push( @params, qw"-net nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57 -net none,vlan=1" );
         }
