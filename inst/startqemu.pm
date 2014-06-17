@@ -87,6 +87,11 @@ sub run($$) {
             }
         }
 
+        if ( $vars->{HDDMODEL} =~ /virtio-scsi.*/ ) {
+            # scsi devices need SCSI controller, then change to scsi-hd device
+            push( @params, "-device", "$vars->{HDDMODEL},id=scsi" );
+            $vars->{HDDMODEL} = "scsi-hd";
+        }
         for my $i ( 1 .. $vars->{NUMDISKS} ) {
             my $boot = "";    #$i==1?",boot=on":""; # workaround bnc#696890
             push( @params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd$i" );
