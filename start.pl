@@ -65,6 +65,17 @@ if ($init) {
     open( my $fd, ">os-autoinst.pid" );
     print $fd "$$\n";
     close $fd;
+
+    # run prestart test code before VM is started
+    if (-f "$bmwqemu::vars{CASEDIR}/prestart.pm") {
+        diag "running prestart step";
+        eval {require "$bmwqemu::vars{CASEDIR}/prestart.pm";};
+        if ($@) {
+            diag "prestart step FAIL:";
+            die $@;
+        }
+    }
+
     if ( !bmwqemu::alive ) {
         start_vm or die $@;
         sleep 3;    # wait until BIOS is gone
