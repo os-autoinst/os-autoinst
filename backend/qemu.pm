@@ -21,6 +21,16 @@ use bmwqemu qw(fileContent diag save_vars);
 my $MAGIC_PIPE_CLOSE_STRING = 'xxxQUITxxx';
 my $iscrashedfile           = 'backend.crashed';
 
+sub write_crash_file {
+    if (open(my $fh, ">", $iscrashedfile )) {
+        print $fh "qemu\n";
+        close $fh;
+    }
+    else {
+        warn "cannot write '$iscrashedfile'";
+    }
+}
+
 sub init() {
     my $self = shift;
     $self->{'mousebutton'} = shared_clone( { 'left' => 0, 'right' => 0, 'middle' => 0 } );
@@ -222,8 +232,10 @@ sub send($) {
 
     #print STDERR "backend::send -> $cmdstr\n";
     my $rspt = $self->{mgmt}->send($cmdstr);
+    write_crash_file unless $rspt;
     my $rsp  = JSON::decode_json($rspt);
     if ( $rsp->{rsp}->{error} ) {
+        write_crash_file;
         Carp::carp "er";
         die JSON::to_json($rsp);
     }
@@ -245,11 +257,7 @@ sub _read_json($) {
     while ( !$hash ) {
         my @res = $s->can_read(60);
         unless (@res) {
-            unless ( -e $iscrashedfile ) {
-                open( my $backend_type, ">", $iscrashedfile ) or die "can not write '$iscrashedfile'";
-                print $backend_type "qemu\n";
-                close $backend_type;
-            }
+            write_crash_file;
             die "ERROR: timeout reading JSON reply\n";
         }
         my $qbuffer;
@@ -352,11 +360,6 @@ sub send {
 
         #print STDERR "before read from_child\n";
         unless ( $s->can_read(60) ) {
-            unless ( -e $iscrashedfile ) {
-                open( my $backend_type, ">", $iscrashedfile ) or die "can not write '$iscrashedfile'";
-                print $backend_type "qemu\n";
-                close $backend_type;
-            }
             bmwqemu::diag "ERROR: 60 seconds no reply to send '" . Data::Dump::pp($cmd) . "'";
             return undef;
         }
@@ -461,11 +464,7 @@ sub _read_hmp($) {
         }
     }
 
-    unless ( -e $iscrashedfile ) {
-        open( my $backend_type, ">", $iscrashedfile ) or die "can not write '$iscrashedfile'";
-        print $backend_type "qemu\n";
-        close $backend_type;
-    }
+    backend::qemu::write_crash_file;
     die "ERROR: timeout reading hmp socket\n";
 }
 
