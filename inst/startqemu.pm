@@ -149,6 +149,7 @@ sub run($$) {
         push( @params, "-usb", "-usbdevice", "tablet" );
         push( @params, "-smp", $vars->{QEMUCPUS} );
         push( @params, "-enable-kvm" );
+        push( @params, "-no-shutdown" );
 
         if ( open( my $cmdfd, '>', 'runqemu' ) ) {
             print $cmdfd "#!/bin/bash\n";
