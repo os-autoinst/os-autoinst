@@ -685,6 +685,7 @@ sub upload_logs($) {
     script_run($cmd);
 }
 
+# TODO: move to distro repo
 sub ensure_installed {
     my @pkglist = @_;
     my $timeout;
@@ -698,7 +699,7 @@ sub ensure_installed {
 
     #pkcon refresh # once
     #pkcon install @pkglist
-    if ( check_var( 'DISTRI', 'opensuse' ) ) {
+    if ( check_var( 'DISTRI', 'opensuse' ) || check_var( 'DISTRI', 'sle' ) ) {
         x11_start_program("xterm");
         assert_screen('xterm-started');
         type_string("pkcon install @pkglist\n");
