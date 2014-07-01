@@ -938,15 +938,19 @@ sub wait_serial($;$) {
     my $regexp = shift;
     my $timeout = shift || 90;    # seconds
     fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
+    my $res;
     for my $n ( 1 .. $timeout ) {
         my $str = `tail $serialfile`;
-        if ( $str =~ m/$regexp/ ) { fctres( 'wait_serial', "found $regexp" ); return 1; }
-        if ($prestandstillwarning) { return 2 }
+        if ( $str =~ m/$regexp/ ) {
+            $res = 'ok';
+            last;
+        }
         sleep 1;
     }
-    timeout_screenshot();
-    fctres( 'wait_serial', "$regexp timed out after $timeout" );
-    return 0;
+    $res ||= 'fail';
+    $current_test->record_serialresult( $regexp, $res );
+    fctres( 'wait_serial', "$regexp: $res" );
+    return $res eq 'ok';
 }
 
 =head2 wait_idle
