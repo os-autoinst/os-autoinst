@@ -315,6 +315,17 @@ sub next_resultname($;$) {
     }
 }
 
+sub record_serialresult {
+    my ($self, $ref, $res) = @_;
+
+    my $result = $self->register_screenshot();
+
+    $result->{'reference_text'} = $ref;
+    $result->{'result'} = $res;
+
+    return $result;
+}
+
 =head2 take_screenshot
 
 Can be called from C<run> to have screenshots in addition to the one taken via distri/opensuse/main.pm:installrunfunc after run finishes
@@ -325,9 +336,7 @@ sub take_screenshot(;$) {
     my $self = shift;
     my $name = shift;    # unused, for compat
 
-    my $img = getcurrentscreenshot();
-
-    $self->register_screenshot($img);
+    $self->register_screenshot();
 
     my $testname = ref($self);
     if ($name) {
@@ -342,6 +351,8 @@ sub take_screenshot(;$) {
 sub register_screenshot($) {
     my $self = shift;
     my $img  = shift;
+
+    $img //= getcurrentscreenshot();
 
     my $count    = ++$self->{"test_count"};
     my $testname = ref($self);

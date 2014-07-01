@@ -685,6 +685,7 @@ sub upload_logs($) {
     script_run($cmd);
 }
 
+# TODO: move to distro repo
 sub ensure_installed {
     my @pkglist = @_;
     my $timeout;
@@ -698,7 +699,7 @@ sub ensure_installed {
 
     #pkcon refresh # once
     #pkcon install @pkglist
-    if ( check_var( 'DISTRI', 'opensuse' ) ) {
+    if ( check_var( 'DISTRI', 'opensuse' ) || check_var( 'DISTRI', 'sle' ) ) {
         x11_start_program("xterm");
         assert_screen('xterm-started');
         type_string("pkcon install @pkglist\n");
@@ -938,15 +939,19 @@ sub wait_serial($;$) {
     my $regexp = shift;
     my $timeout = shift || 90;    # seconds
     fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
+    my $res;
     for my $n ( 1 .. $timeout ) {
         my $str = `tail $serialfile`;
-        if ( $str =~ m/$regexp/ ) { fctres( 'wait_serial', "found $regexp" ); return 1; }
-        if ($prestandstillwarning) { return 2 }
+        if ( $str =~ m/$regexp/ ) {
+            $res = 'ok';
+            last;
+        }
         sleep 1;
     }
-    timeout_screenshot();
-    fctres( 'wait_serial', "$regexp timed out after $timeout" );
-    return 0;
+    $res ||= 'fail';
+    $current_test->record_serialresult( $regexp, $res );
+    fctres( 'wait_serial', "$regexp: $res" );
+    return $res eq 'ok';
 }
 
 =head2 wait_idle
