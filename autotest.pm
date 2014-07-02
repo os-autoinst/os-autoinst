@@ -71,7 +71,7 @@ sub runalltests {
                     stop_vm();
                     die $@;
                 }
-                else {
+                elsif (!$flags->{'norollback'} ) {
                     load_snapshot('lastgood');
                 }
             }
