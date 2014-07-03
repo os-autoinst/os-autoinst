@@ -122,7 +122,6 @@ our $scriptdir = $0;
 $scriptdir =~ s{/[^/]+$}{};
 
 our $testedversion;
-our @keyhistory;
 our %cmd;
 
 our %charmap;
@@ -331,7 +330,7 @@ sub set_ocr_rect { @ocrrect = @_; }
 
 sub diag($) {
     $logfd && print $logfd "@_\n";
-    return unless $debug;
+    #    return unless $debug;
     print STDERR "@_\n";
 }
 
@@ -510,12 +509,10 @@ send_key($qemu_key_name[, $wait_idle])
 sub send_key($;$) {
     my $key = shift;
     my $wait = shift || 0;
-    fctlog( 'send_key', "key=$key" );
+    #fctlog( 'send_key', "key=$key" );
     eval { $backend->send_key($key); };
     print STDERR "Error send_key key=$key\n" if ($@);
-    my @t = gettimeofday();
-    push( @keyhistory, [ $t[0] * 1000000 + $t[1], $key ] );
-    sleep(0.1);
+    #sleep(0.1);
     wait_idle() if $wait;
 }
 
@@ -529,14 +526,14 @@ send a string of characters, mapping them to appropriate key names as necessary
 
 sub type_string($;$) {
     my $string      = shift;
-    my $maxinterval = shift || 25;
+    my $maxinterval = shift || 250;
     my $typedchars  = 0;
     fctlog( 'type_string', "string='$string'" );
     my @letters = split( "", $string );
     while (@letters) {
         my $letter = shift @letters;
         if ( $charmap{$letter} ) { $letter = $charmap{$letter} }
-        send_key $letter;
+        send_key $letter, 0;
         if ( $typedchars++ >= $maxinterval ) {
             waitstillimage(1.6);
             $typedchars = 0;
