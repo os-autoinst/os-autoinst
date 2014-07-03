@@ -111,6 +111,16 @@ $SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
 stop_vm();
 
+# run postrun test code after VM is stopped
+if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
+    diag "running postrun step";
+    eval {require "$bmwqemu::vars{CASEDIR}/postrun.pm";};
+    if ($@) {
+        diag "postrun step FAIL:";
+        warn $@;
+    }
+}
+
 # mark it as no longer working
 delete $ENV{WORKERID};
 
