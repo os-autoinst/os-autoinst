@@ -16,7 +16,8 @@ use POSIX qw/strftime :sys_wait_h/;
 use JSON;
 require Carp;
 use Fcntl;
-use bmwqemu qw(fileContent diag save_vars);
+use bmwqemu qw(fileContent diag save_vars diag);
+use backend::VNC;
 
 my $MAGIC_PIPE_CLOSE_STRING = 'xxxQUITxxx';
 my $iscrashedfile           = 'backend.crashed';
@@ -39,6 +40,8 @@ sub init() {
     STDERR->autoflush(1);
     STDOUT->autoflush(1);
 }
+
+use Benchmark qw(:all);
 
 # baseclass virt method overwrite
 
@@ -74,22 +77,23 @@ sub mouse_button($$$) {
 sub mouse_hide(;$) {
     my $self = shift;
     my $border_offset = shift || 0;
-    unless ($border_offset) {
-        $self->send("mouse_move 0x7fff 0x7fff");
-        sleep 1;
 
-        # work around no reaction first time
-        $self->send("mouse_move 0x7fff 0x7fff");
-    }
-    else {
-        # not completely in the corner to not trigger hover actions
-        $self->send("mouse_move 0x7000 0x7000");
-    }
+    $self->{vnc}->capture();
+    bmwqemu::diag("width " . $self->{vnc}->width);
+    my $xpos = $self->{vnc}->width - 1;
+    my $ypos = $self->{vnc}->height - 1;
+
+    $xpos -= $border_offset;
+    $ypos -= $border_offset;
+
+    print STDERR "mouse_move $xpos, $ypos\n";
+    $self->{vnc}->mouse_move_to($xpos, $ypos);
 }
 
 sub screendump() {
     my $self = shift;
     my ( $seconds, $microseconds ) = gettimeofday;
+    #$self->{vnc}->capture();
     my $tmp = "ppm.$seconds.$microseconds.ppm";
     my $rsp = $self->send( { 'execute' => 'screendump', 'arguments' => { 'filename' => "$tmp" } } );
     my $img = tinycv::read($tmp);
@@ -156,6 +160,8 @@ sub do_start_vm($) {
     if ($cnt) {
         $self->send($cnt);
     }
+    $self->{vnc} = backend::VNC->new({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC}});
+    $self->{vnc}->login;
 }
 
 sub do_stop_vm($) {
