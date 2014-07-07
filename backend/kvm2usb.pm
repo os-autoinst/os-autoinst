@@ -35,6 +35,11 @@ sub init() {
     $self->backend::helper::scancodes::init();
 }
 
+sub post_start_hook($) {
+    my $self = shift; # ignored in base
+    inst::screenshot::start_screenshot_thread($self);
+}
+
 # scancode virt method overwrite
 
 sub keycode_down($) {

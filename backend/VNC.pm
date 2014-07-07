@@ -323,19 +323,6 @@ sub _server_initialization {
     }
 }
 
-sub capture {
-    my $self   = shift;
-    my $socket = $self->socket;
-
-    $self->_send_update_request();
-    while (1) {
-        my $message_type = $self->_receive_message();
-        last unless defined $message_type;
-    }
-
-    return $self->_framebuffer;
-}
-
 sub _send_key_event {
     my ( $self, $down_flag, $key ) = @_;
 
@@ -393,7 +380,7 @@ sub send_pointer_event {
     );
 }
 
-sub _send_update_request {
+sub send_update_request {
     my $self = shift;
 
     # frame buffer update request
@@ -412,15 +399,10 @@ sub _send_update_request {
     );
 }
 
-sub _receive_message {
+sub receive_message {
     my $self = shift;
 
     my $socket = $self->socket;
-
-    my $s = IO::Select->new();
-    $s->add($socket);
-
-    return undef unless ($s->can_read(0.1));
 
     $socket->read( my $message_type, 1 ) || die 'unexpected end of data';
     $message_type = unpack( 'C', $message_type );
@@ -548,204 +530,6 @@ sub mouse_right_click {
 
 __END__
 
-=head1 NAME
-
-Net::VNC - A simple VNC client
-
-=head1 SYNOPSIS
-    
-  use Net::VNC;
-
-  my $vnc = Net::VNC->new({hostname => $hostname, password => $password});
-  $vnc->depth(24);
-  $vnc->login;
-
-  print $vnc->name . ": " . $vnc->width . ' x ' . $vnc->height . "\n";
-
-  my $image = $vnc->capture;
-  $image->save("out.png");
-
-=head1 DESCRIPTION
-
-Virtual Network Computing (VNC) is a desktop sharing system which uses
-the RFB (Remote FrameBuffer) protocol to remotely control another
-computer. This module acts as a VNC client and communicates to a VNC
-server using the RFB protocol, allowing you to capture the screen of
-the remote computer.
-
-This module dies upon connection errors (with a timeout of 15 seconds)
-and protocol errors.
-
-This implementation is based largely on the RFB Protocol
-Specification, L<http://www.realvnc.com/docs/rfbproto.pdf>.  That
-document has an error in the DES encryption description, which is
-clarified via L<http://www.vidarholen.net/contents/junk/vnc.html>.
-
-=head1 METHODS
-
-=head2 new
-
-The constructor. Given a hostname and a password returns a L<Net::VNC> object:
-
-  my $vnc = Net::VNC->new({hostname => $hostname, password => $password});
-
-Optionally, you can also specify a port, which defaults to 5900. For ARD
-(Apple Remote Desktop) authentication you must also specify a username.
-You must also install Crypt::GCrypt::MPI and Crypt::Random.
-
-=head2 login
-
-Logs into the remote computer:
-
-  $vnc->login;
-
-=head2 name
-
-Returns the name of the remote computer:
-
-  print $vnc->name . ": " . $vnc->width . ' x ' . $vnc->height . "\n";
-
-=head2 width
-
-Returns the width of the remote screen:
-
-  print $vnc->name . ": " . $vnc->width . ' x ' . $vnc->height . "\n";
-
-=head2 height
-
-Returns the height of the remote screen:
-
-  print $vnc->name . ": " . $vnc->width . ' x ' . $vnc->height . "\n";
-
-=head2 capture
-
-Captures the screen of the remote computer, returning an L<Image::Imlib2> object:
-
-  my $image = $vnc->capture;
-  $image->save("out.png");
-
-You may call capture() multiple times.  Each time, the C<$image>
-buffer is overwritten with the updated screen.  So, to create a
-series of ten screen shots:
-
-  for my $n (1..10) {
-    my $filename = sprintf 'snapshot%02d.png', $n++;
-    $vnc->capture()->save($filename);
-    print "Wrote $filename\n";
-  }
-
-=head2 depth
-
-Specify the bit depth for the screen.  The supported choices are 24,
-16 or 8.  If unspecified, the server's default value is used.  This
-property should be set before the call to login().
-
-=head2 save_bandwidth
-
-Accepts a boolean, defaults to false.  Specifies whether to use more
-CPU-intensive algorithms to compress the VNC datastream.  LAN or
-localhost connections may prefer to leave this false.  This property
-should be set before the call to login().
-
-=head2 list_encodings
-
-Returns a list of encoding number/encoding name pairs.  This can be used as a class method like so:
-
-   my %encodings = Net::VNC->list_encodings();
-
-=head2 send_key_event_down
-
-Send a key down event. The keys are the same as the
-corresponding ASCII value. Other common keys:
-
-  BackSpace 0xff08
-  Tab 0xff09
-  Return or Enter 0xff0d
-  Escape 0xff1b
-  Insert 0xff63
-  Delete 0xffff
-  Home 0xff50
-  End 0xff57
-  Page Up 0xff55
-  Page Down 0xff56
-  Left 0xff51
-  Up 0xff52
-  Right 0xff53
-  Down 0xff54
-  F1 0xffbe
-  F2 0xffbf
-  F3 0xffc0
-  F4 0xffc1
-  ... ...
-  F12 0xffc9
-  Shift (left) 0xffe1
-  Shift (right) 0xffe2
-  Control (left) 0xffe3
-  Control (right) 0xffe4
-  Meta (left) 0xffe7
-  Meta (right) 0xffe8
-  Alt (left) 0xffe9
-  Alt (right) 0xffea
-
-  $vnc->send_key_event_down('A');
-
-=head2 send_key_event_up
-
-Send a key up event:
-
-  $vnc->send_key_event_up('A');
-
-=head2 send_key_event
-
-Send a key down event followed by a key up event:
-
-  $vnc->send_key_event('A');
-
-=head2 send_key_event_string
-
-Send key events for every character in a string:
-
-  $vnc->send_key_event_string('Hello');
-
-=head2 send_pointer_event( $button_mask, $x, $y )
-
-Send pointer event (usually a mouse). This is used to move the pointer or
-make clicks or drags.
-
-It is easier to call the C<mouse_move> or <mouse_click> methods instead.
-
-=head2 mouse_move_to($x, $y)
-
-Send the pointer to the given position. The cursor instantly jumps there
-instead of smoothly moving to there.
-
-=head2 mouse_click
-
-Click on current pointer position.
-
-=head2 mouse_right_click
-
-Right-click on current pointer position.
-
-=head1 BUGS AND LIMITATIONS
-
-=head2 Bit depth
-
-We do not yet support 8-bit true-colour mode, which is commonly
-supported by servers but is rarely employed by clients.
-
-=head2 Byte order
-
-We have currently tested this package against servers with the same
-byte order as the client.  This might break with a little-endian
-server/big-endian client or vice versa.  We're working on tests for
-those latter cases.  Testing and patching help would be appreciated.
-
-=head2 Efficiency
-
-We've implemented a subset of the data compression algorithms
-supported by most VNC servers.  We hope to add more of the
-high-compression transfer encodings in the future.
 
 =head1 AUTHORS
 
@@ -764,4 +548,7 @@ Copyright (C) 2006, Leon Brocard
 
 This module is free software; you can redistribute it or modify it
 under the same terms as Perl itself.
+
+Copyright (C) 2014, Stephan Kulow (coolo@suse.de) 
+adapted to be purely useful for qemu/openqa
  

@@ -26,8 +26,13 @@ sub start_vm($) {
     close $runf;
     $self->do_start_vm();
 
-    #	$self->start_conmuxloop();
     $self->{'started'} = 1;
+
+    $self->post_start_hook();
+}
+
+sub post_start_hook($) {
+    my $self = shift; # ignored in base
 }
 
 sub stop_vm($) {
@@ -179,45 +184,6 @@ sub send($) {
 }
 
 # to be deprecated qemu layer end
-
-# start connection multiplexer
-sub handlemuxcon($) {
-    my $self = shift;
-    my $conn = shift;
-    while (<$conn>) {
-        chomp;
-        $self->send($_);
-    }
-}
-
-sub conmuxloop($) {
-
-    # accept connections and forward to management console
-    my $self        = shift;
-    my $listen_sock = IO::Socket::INET->new(
-        Listen => 1,
-
-        #	LocalAddr => 'localhost',
-        LocalPort => $bmwqemu::vars{QEMUPORT} + 1,
-        Proto     => 'tcp',
-        ReUseAddr => 1,
-    );
-
-    while ( my $conn = $listen_sock->accept() ) {
-
-        # launch one thread per connection
-        my $thr = threads->create( \&handlemuxcon, $self, $conn );
-        $thr->detach();
-    }
-}
-
-sub start_conmuxloop() {
-    my $self = shift;
-    my $thr = threads->create( \&conmuxloop, $self );    # allow external qemu input
-    $thr->detach();
-}
-
-# end connection multiplexer
 
 1;
 # vim: set sw=4 et:
