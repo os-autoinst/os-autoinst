@@ -82,13 +82,13 @@ sub search_($$) {
         # more smaller areas)
 
         my $m = ( $area->{match} || 96.6 ) / 100;
-        if ( $sim < 1 ) {
-            my $needle_img = $needle->get_image($area);
-            if ($needle_img) {
-                my $area_img = $img->copyrect( $xmatch, $ymatch, $area->{'width'}, $area->{'height'} );
-                $ma->{'diff'} = $area_img->absdiff($needle_img);
-            }
-        }
+        #if ( $sim < 1 ) {
+        #    my $needle_img = $needle->get_image($area);
+        #    if ($needle_img) {
+        #        my $area_img = $img->copyrect( $xmatch, $ymatch, $area->{'width'}, $area->{'height'} );
+        #        $ma->{'diff'} = $area_img->absdiff($needle_img);
+        #    }
+        #}
 
         if ( $sim < $m - $threshold ) {
             $ma->{'result'} = 'fail';
