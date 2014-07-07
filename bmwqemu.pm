@@ -134,7 +134,7 @@ sub init {
     $| = 1;
     select($oldfh);
 
-    %vars = %{load_vars()};
+    %vars = %{load_vars() || {}};
     our $testedversion = $vars{NAME};
     unless ($testedversion) {
         $testedversion = $vars{ISO} || "";
