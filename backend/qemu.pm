@@ -78,26 +78,17 @@ sub mouse_hide(;$) {
     my $self = shift;
     my $border_offset = shift || 0;
 
-    $self->{vnc}->capture();
-    bmwqemu::diag("width " . $self->{vnc}->width);
-    my $xpos = $self->{vnc}->width - 1;
-    my $ypos = $self->{vnc}->height - 1;
-
-    $xpos -= $border_offset;
-    $ypos -= $border_offset;
-
-    print STDERR "mouse_move $xpos, $ypos\n";
-    $self->{vnc}->mouse_move_to($xpos, $ypos);
+    $self->send({ 'VNC' => "mouse_hide", 'arguments' => { 'border_offset' => $border_offset } } );
 }
 
 sub screendump() {
     my $self = shift;
-    my ( $seconds, $microseconds ) = gettimeofday;
-    #$self->{vnc}->capture();
-    my $tmp = "ppm.$seconds.$microseconds.ppm";
-    my $rsp = $self->send( { 'execute' => 'screendump', 'arguments' => { 'filename' => "$tmp" } } );
-    my $img = tinycv::read($tmp);
-    unlink $tmp;
+
+    # now just to test vnc
+    my $rsp = $self->send( { 'VNC' => 'capture' } );
+    my $img = tinycv::read($rsp->{filename});
+    unlink($rsp->{filename});
+
     return $img;
 }
 
@@ -160,8 +151,7 @@ sub do_start_vm($) {
     if ($cnt) {
         $self->send($cnt);
     }
-    $self->{vnc} = backend::VNC->new({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC}});
-    $self->{vnc}->login;
+
 }
 
 sub do_stop_vm($) {
@@ -193,19 +183,19 @@ sub do_stop_vm($) {
 
 sub do_savevm($) {
     my ( $self, $vmname ) = @_;
-    my $rsp = $self->send("savevm $vmname");
+    my $rsp = $self->send("savevm $vmname")->{return};
     print STDERR "SAVED $vmname $rsp\n";
     die unless ( $rsp eq "savevm $vmname" );
 }
 
 sub do_loadvm($) {
     my ( $self, $vmname ) = @_;
-    my $rsp = $self->send("loadvm $vmname");
+    my $rsp = $self->send("loadvm $vmname")->{return};
     print STDERR "LOAD $vmname '$rsp'\n";
     die unless ( $rsp eq "loadvm $vmname" );
-    $rsp = $self->send("stop");
+    $rsp = $self->send("stop")->{return};
     print STDERR "stop $rsp\n";
-    $rsp = $self->send("cont");
+    $rsp = $self->send("cont")->{return};
     print STDERR "cont $rsp\n";
 }
 
@@ -247,7 +237,7 @@ sub send($) {
     }
 
     #print STDERR "backend::send $cmdstr -> $rspt\n";
-    return $rsp->{rsp}->{return};
+    return $rsp->{rsp};
 }
 
 sub _read_json($) {
@@ -308,8 +298,9 @@ sub start {
     $self->{from_child} = $p1;
 
     printf STDERR "$$: to_child %d, from_child %d\n", fileno( $self->{to_child} ), fileno( $self->{from_child} );
+    printf STDERR "$$: VNC %d\n", $bmwqemu::vars{VNC};
 
-    my $tid = shared_clone( threads->create( \&_run, fileno( $self->{from_parent} ), fileno( $self->{to_parent} ) ) );
+    my $tid = shared_clone( threads->create( \&_run, fileno( $self->{from_parent} ), fileno( $self->{to_parent} ), $bmwqemu::vars{VNC} ) );
     $self->{runthread} = $tid;
 }
 
@@ -386,42 +377,7 @@ sub send {
         }
     }
 
-    # unfortunately when qemu prompts back after screendump the image is
-    # not yet ready and while it isn't, we shouldn't send new commands to qemu
-    if ( $cmd->{execute} && $cmd->{execute} eq "screendump" ) {
-        wait_for_img( $cmd->{arguments}->{filename} );
-    }
     return $rsp;
-}
-
-sub wait_for_img($) {
-    my $tmp = shift;
-
-    my $ret;
-    while ( !defined $ret ) {
-        sleep(0.1);
-        my $fs = -s $tmp;
-
-        # if qemu did not even start writing out
-        # after 0.1s, it's most likely dead. In case
-        # this is not true on slow machines, we may
-        # need to scale this - because sleeping longer
-        # doesn't make sense
-        return unless ($fs);
-        next if ( $fs < 70 );
-        my $header;
-        next if ( !open( PPM, $tmp ) );
-        if ( read( PPM, $header, 70 ) < 70 ) {
-            close(PPM);
-            next;
-        }
-        close(PPM);
-        my ( $xres, $yres ) = ( $header =~ m/\AP6\n(?:#.*\n)?(\d+) (\d+)\n255\n/ );
-        next if ( !$xres );
-        my $d = $xres * $yres * 3 + length($&);
-        next if ( $fs != $d );
-        return;
-    }
 }
 
 sub _read_hmp($) {
@@ -474,13 +430,81 @@ sub _read_hmp($) {
     die "ERROR: timeout reading hmp socket\n";
 }
 
+# only valid in management thread
+our $vnc;
+
+use Time::HiRes qw(gettimeofday);
+
+# runs in the thread to deserialize VNC commands
+sub handle_vnc_command($) {
+
+    my $cmd = shift;
+
+    #print STDERR "VNC ". JSON::to_json($cmd) . "\n";
+
+    if ($cmd->{VNC} eq 'capture') {
+        my $img = $vnc->capture();
+        my ( $seconds, $microseconds ) = gettimeofday;
+        my $filename = "vnc.$seconds.$microseconds.png";
+
+        $img->write($filename);
+        return {'filename' => $filename};
+    }
+
+    if ($cmd->{VNC} eq 'mouse_hide') {
+        my $xpos = $vnc->width - 1;
+        my $ypos = $vnc->height - 1;
+
+        my $border_offset = int($cmd->{params}->{border_offset});
+        $xpos -= $border_offset;
+        $ypos -= $border_offset;
+
+        print STDERR "mouse_move $xpos, $ypos\n";
+        $vnc->mouse_move_to($xpos, $ypos);
+        return {};
+    }
+
+    die "unsupport VNC command " . $cmd->{VNC};
+}
+
+our $qmpsocket;
+
+# runs in the thread to bounce QMP
+sub handle_qmp_command($) {
+
+    my $cmd = shift;
+
+    my $line = JSON::to_json($cmd);
+    my $wb = syswrite( $qmpsocket, "$line\n" );
+    die "syswrite failed $!" unless ( $wb == length($line) + 1 );
+
+    #print STDERR "wrote $wb\n";
+    my $hash;
+    while ( !$hash ) {
+        $hash = backend::qemu::_read_json($qmpsocket);
+        if ( $hash->{event} ) {
+            print STDERR "EVENT " . JSON::to_json($hash) . "\n";
+
+            # ignore
+            $hash = undef;
+        }
+    }
+
+    return $hash;
+}
+
+
 sub _run {
     my $cmdpipe = shift;
     my $rsppipe = shift;
+    my $vncport = shift;
 
-    print STDERR "$$: cmdpipe $cmdpipe, rsppipe $rsppipe\n";
+    print STDERR "$$: cmdpipe $cmdpipe, rsppipe $rsppipe, VNC $vncport\n";
 
     $SIG{__DIE__} = sub { alarm 3 };
+
+    $vnc = backend::VNC->new({hostname => 'localhost', port => 5900 + $vncport});
+    $vnc->login;
 
     my $io = IO::Handle->new();
     $io->fdopen( $cmdpipe, "r" ) || die "r fdopen $!";
@@ -502,7 +526,7 @@ sub _run {
     my $flags = fcntl( $hmpsocket, Fcntl::F_GETFL, 0 ) or die "can't getfl(): $!\n";
     $flags = fcntl( $hmpsocket, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
 
-    my $qmpsocket = IO::Socket::UNIX->new(
+    $qmpsocket = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
         Peer     => "qmp_socket",
         Blocking => 0
@@ -582,29 +606,18 @@ sub _run {
                         }
                     );
                 }
-                else {
+                elsif ( $cmd->{VNC} ) {
+                    my $rsp = handle_vnc_command($cmd);
+                    print $rsppipe JSON::to_json( { "VNC" => $cmd, "rsp" => $rsp } );
+                }
+                else { # qmp
 
-                    my $line = JSON::to_json($cmd);
-                    my $wb = syswrite( $qmpsocket, "$line\n" );
-                    die "syswrite failed $!" unless ( $wb == length($line) + 1 );
-
-                    #print STDERR "wrote $wb\n";
-                    my $hash;
-                    while ( !$hash ) {
-                        $hash = backend::qemu::_read_json($qmpsocket);
-                        if ( $hash->{event} ) {
-                            print STDERR "EVENT " . JSON::to_json($hash) . "\n";
-
-                            # ignore
-                            $hash = undef;
-                        }
-                    }
-
-                    #print STDERR "got " . JSON::to_json({"qmp" => $cmd, "rsp" => $hash}) . "\n";
+                    my $hash = handle_qmp_command($cmd);
                     if ( !$hash ) {
                         print STDERR "no json from QMP: $!\n";
                         last SELECT;
                     }
+
                     print $rsppipe JSON::to_json( { "qmp" => $cmd, "rsp" => $hash } );
                 }
             }

@@ -13,6 +13,13 @@ MODULE = tinycv     PACKAGE = tinycv
 
 PROTOTYPES: ENABLE
 
+tinycv::Image new(long width, long height)
+  CODE:
+    RETVAL = image_new(width, height);
+
+  OUTPUT:
+    RETVAL
+
 tinycv::Image read(const char *file)
   CODE:
     RETVAL = image_read(file);
@@ -60,6 +67,16 @@ tinycv::Image copyrect(tinycv::Image self, long x, long y, long width, long heig
 
   OUTPUT:
     RETVAL
+
+void map_raw_data(tinycv::Image self, unsigned char *data)
+  CODE:
+    image_map_raw_data(self, data);
+
+
+void blend(tinycv::Image self, tinycv::Image source, long x, long y)
+  CODE:
+    image_blend_image(self, source, x, y);
+
 
 void threshold(tinycv::Image self, int level)
   CODE:

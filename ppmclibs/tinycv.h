@@ -4,6 +4,7 @@
 // opaque type to seperate perl from opencv
 struct Image;
 void image_destroy(Image *s);
+Image *image_new(long width, long height);
 Image *image_read(const char *filename);
 bool image_write(Image *s, const char *filename);
 
@@ -26,3 +27,10 @@ Image *image_scale(Image *a, int width, int height);
 double image_similarity(Image *a, Image *b);
 
 Image *image_absdiff(Image *a, Image*b);
+
+// this is for VNC support - get RGB tripels out of 32bit data for already set
+// width and height
+void image_map_raw_data(Image *a, const unsigned char *data);
+
+// copy the s image into a at x,y
+void image_blend_image(Image *a, Image *s, long x, long y);

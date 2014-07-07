@@ -9,9 +9,8 @@ use bmwqemu qw(diag);
 
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
-      hide_cursor server_endian
-      _pixinfo _colourmap _framebuffer _cursordata _rfb_version
-      _bpp _true_colour _big_endian _image_format
+      server_endian  _pixinfo _colourmap _framebuffer _rfb_version
+      _bpp _true_colour _big_endian
       )
 );
 our $VERSION = '0.40';
@@ -33,38 +32,6 @@ my %supported_depths = (
         green_shift => 8,
         blue_shift  => 0,
     },
-    '16' => {
-        bpp         => 16,
-        true_colour => 1,
-        red_max     => 31,
-        green_max   => 31,
-        blue_max    => 31,
-        red_shift   => 10,
-        green_shift => 5,
-        blue_shift  => 0,
-    },
-    '8' => {
-        bpp         => 8,
-        true_colour => 0,
-        red_max     => 255,
-        green_max   => 255,
-        blue_max    => 255,
-        red_shift   => 16,
-        green_shift => 8,
-        blue_shift  => 0,
-    },
-
-    # Unused right now, but supportable
-    '8t' => {
-        bpp         => 8,
-        true_colour => 1,    #!!!
-        red_max     => 7,
-        green_max   => 7,
-        blue_max    => 3,
-        red_shift   => 0,
-        green_shift => 3,
-        blue_shift  => 6,
-    },
 );
 
 my @encodings = (
@@ -76,82 +43,10 @@ my @encodings = (
         supported => 1,
     },
     {
-        num       => 1,
-        name      => 'CopyRect',
-        supported => 1,
-    },
-    {
-        num       => 2,
-        name      => 'RRE',
-        supported => 1,
-    },
-    {
-        num       => 4,
-        name      => 'CoRRE',
-        supported => 1,
-    },
-    {
-        num       => 5,
-        name      => 'Hextile',
-        supported => 1,
-        bandwidth => 1,
-    },
-    {
-        num       => 16,
-        name      => 'ZRLE',
-        supported => 0,
-        bandwidth => 1,
-    },
-    {
-        num       => -239,
-        name      => 'Cursor',
-        supported => 1,
-        cursor    => 1,
-    },
-    {
         num       => -223,
         name      => 'DesktopSize',
         supported => 1,
-    },
-
-    # Learned about these from cvs://cotvnc.sf.net/cotvnc/Source/rfbproto.h
-    # None of them are currently used
-    map( {
-            {
-                num       => -256 + $_,
-                name      => 'CompressLevel' . $_,
-                supported => 0,
-                compress  => 1,
-            }
-        } 0 .. 9 ),
-    {
-        num       => -240,
-        name      => 'XCursor',
-        supported => 0,
-        cursor    => 1,
-    },
-    {
-        num       => -224,
-        name      => 'LastRect',
-        supported => 0,
-    },
-    map( {
-            {
-                num       => -32 + $_,
-                name      => 'QualityLevel' . $_,
-                supported => 0,
-                quality   => 1,
-            }
-        } 0 .. 9 ),
-
-    # Learned about this one from pyvnc2swf/rfb.py, but I don't understand where it comes from
-    # It doesn't seem to be documented in CotVNC or VNC 4.1.1 source code
-    {
-        num       => -232,
-        name      => 'CursorPos',
-        supported => 1,
-        cursor    => 1,
-    },
+    }
 );
 
 sub list_encodings {
@@ -232,7 +127,7 @@ sub _handshake_security {
           || die 'unexpected end of data';
         $number_of_security_types = unpack( 'C', $number_of_security_types );
 
-        bmwqemu::diag "types: $number_of_security_types";
+        #bmwqemu::diag "types: $number_of_security_types";
 
         if ( $number_of_security_types == 0 ) {
             die 'Error authenticating';
@@ -265,54 +160,7 @@ sub _handshake_security {
         $security_type = unpack( 'N', $security_type );
     }
 
-    if ( !$security_type ) {
-
-        die 'Connection failed';
-
-    }
-    elsif ( $security_type == 2 ) {
-
-        # DES-encrypted challenge/response
-
-        if ( $self->_rfb_version ge '003.007' ) {
-            $socket->print( pack( 'C', 2 ) );
-        }
-
-        $socket->read( my $challenge, 16 ) || die 'unexpected end of data';
-
-        #    bmwqemu::diag "chal: " . unpack('h*', $challenge) . "\n";
-
-        # the RFB protocol only uses the first 8 characters of a password
-        my $key = substr( $self->password, 0, 8 );
-        $key = '' if ( !defined $key );
-        $key .= pack( 'C', 0 ) until ( length($key) % 8 ) == 0;
-
-        my $realkey;
-
-        #    bmwqemu::diag unpack('b*', $key);
-        foreach my $byte ( split //, $key ) {
-            $realkey .= pack( 'b8', scalar reverse unpack( 'b8', $byte ) );
-        }
-
-        #    bmwqemu::diag unpack('b*', $realkey);
-
-        my $cipher = Crypt::DES->new($realkey);
-        my $response;
-        my $i = 0;
-        while ( $i < 16 ) {
-            my $word = substr( $challenge, $i, 8 );
-
-            #        bmwqemu::diag "$i: " . length($word);
-            $response .= $cipher->encrypt($word);
-            $i += 8;
-        }
-
-        #    bmwqemu::diag "resp: " . unpack('h*', $response) . "\n";
-
-        $socket->print($response);
-
-    }
-    elsif ( $security_type == 1 ) {
+    if ( $security_type == 1 ) {
 
         # No authorization needed!
         if ( $self->_rfb_version ge '003.007' ) {
@@ -320,89 +168,8 @@ sub _handshake_security {
         }
 
     }
-    elsif ( $security_type == 30 ) {
-
-        require Crypt::GCrypt::MPI;
-        require Crypt::Random;
-
-        # ARD - Apple Remote Desktop - authentication
-        $socket->print( pack( 'C', 30 ) );    # use ARD
-        $socket->read( my $gen, 2 ) || die 'unexpected end of data';
-        $socket->read( my $len, 2 ) || die 'unexpected end of data';
-        my $keylen = $self->_bin_int($len);
-        $socket->read( my $mod,  $keylen ) || die 'unexpected end of data';
-        $socket->read( my $resp, $keylen ) || die 'unexpected end of data';
-
-        my $genmpi = Crypt::GCrypt::MPI::new(
-            secure => 0,
-            value  => $self->_bin_int($gen),
-            format => Crypt::GCrypt::MPI::FMT_USG()
-        );
-        my $modmpi = Crypt::GCrypt::MPI::new(
-            secure => 0,
-            value  => $mod,
-            format => Crypt::GCrypt::MPI::FMT_USG()
-        );
-        my $respmpi = Crypt::GCrypt::MPI::new(
-            secure => 0,
-            value  => $resp,
-            format => Crypt::GCrypt::MPI::FMT_USG()
-        );
-        my $privmpi = $self->_mpi_randomize($keylen);
-
-        my $pubmpi = $genmpi->copy()->powm( $privmpi, $modmpi );
-        my $keympi = $respmpi->copy()->powm( $privmpi, $modmpi );
-        my $pub = $self->_mpi_2_bytes( $pubmpi, $keylen );
-        my $key = $self->_mpi_2_bytes( $keympi, $keylen );
-        my $md5 = Crypt::GCrypt->new( type => 'digest', algorithm => 'md5' );
-        $md5->write($key);
-        my $shared  = $md5->read();
-        my $passlen = length( $self->password ) + 1;
-        my $userlen = length( $self->username ) + 1;
-        $passlen = 64 if ( $passlen > 64 );
-        my $passpad = 64 - $passlen;
-        $userlen = 64 if ( $userlen > 64 );
-        my $userpad = 64 - $userlen;
-        my $up      = Crypt::Random::makerandom_octet(
-            Length   => $userpad,
-            Strength => 1
-        );
-        my $pp = Crypt::Random::makerandom_octet(
-            Length   => $passpad,
-            Strength => 1
-        );
-        my $userpass = pack "a*xa*a*xa*", $self->username, $up,$self->password, $pp;
-        my $aes = Crypt::GCrypt->new(
-            type      => 'cipher',
-            algorithm => 'aes',
-            mode      => 'ecb'
-        );
-        $aes->start('encrypting');
-        $aes->setkey($shared);
-        my $cyptxt = $aes->encrypt($userpass);
-        $cyptxt .= $aes->finish;
-        $socket->write( $cyptxt, 128 );  # appears to be only writing 16 bytes
-        $socket->write( $pub, $keylen ); # appears to be only writing 16 bytes
-        $socket->read( my $security_result, 4 )
-          || die 'unexpected end of data';
-        $security_result = $self->_bin_int($security_result);
-
-        if ( $security_result == 1 ) {
-            $socket->read( my $len, 4 ) || die 'unexpected end of data';
-            $socket->read( my $msg, $self->_bin_int($len) )
-              || die 'unexpected end of data';
-            die "VNC Authentication Failed: $msg";
-        }
-        elsif ( $security_result == 2 ) {
-
-            # too many
-            die "VNC Authentication Failed - too many tries";
-        }
-    }
     else {
-
-        die "no supported vnc authentication mechanism";
-
+        die 'qemu wants security, but we have no password';
     }
 
     # the RFB protocol always returns a result for type 2,
@@ -420,29 +187,6 @@ sub _handshake_security {
     elsif ( !$socket->connected ) {
         die 'login failed';
     }
-}
-
-sub _mpi_randomize {
-    my ( $self, $l ) = @_;
-    my $bits  = int( $l / 8 ) * 8;
-    my $bytes = int( $bits / 8 );
-    my $r= Crypt::Random::makerandom_octet( Length => $bytes, Strength => 1 );
-    my @ra = unpack( "C*", $r );
-    my $mpi = Crypt::GCrypt::MPI::new( secure => 0, value => 0 );
-    my $tfs = Crypt::GCrypt::MPI::new( secure => 0, value => 256 );
-    for ( my $i = 0; $i < $bytes; $i++ ) {
-        $mpi = $mpi->mul($tfs);
-        my $n = $ra[$i];
-        $mpi = $mpi->add(Crypt::GCrypt::MPI::new( secure => 0, value => $n ) );
-    }
-    return $mpi;
-}
-
-sub _mpi_2_bytes {
-    my ( $self, $mpi, $sz ) = @_;
-    my $s   = $mpi->print( Crypt::GCrypt::MPI::FMT_USG() );
-    my $pad = $sz - length($s);
-    return pack( "x[$pad]a*", $s );
 }
 
 sub _bin_int {
@@ -471,13 +215,14 @@ sub _server_initialization {
     $socket->read( my $server_init, 24 ) || die 'unexpected end of data';
 
     my ( $framebuffer_width, $framebuffer_height, $bits_per_pixel, $depth,$big_endian_flag, $true_colour_flag, %pixinfo, $name_length );
-    (   $framebuffer_width,  $framebuffer_height,   $bits_per_pixel,$depth,              $big_endian_flag,      $true_colour_flag,$pixinfo{red_max},   $pixinfo{green_max},   $pixinfo{blue_max},$pixinfo{red_shift}, $pixinfo{green_shift}, $pixinfo{blue_shift},$name_length) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
+    # the following line is due to tidy ;(
+    ( $framebuffer_width,$framebuffer_height,$bits_per_pixel,$depth,$big_endian_flag,$true_colour_flag,$pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max},$pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift},$name_length) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
 
-    bmwqemu::diag "FW $framebuffer_width x $framebuffer_height";
+    #bmwqemu::diag "FW $framebuffer_width x $framebuffer_height";
 
-    bmwqemu::diag "$bits_per_pixel bpp / depth $depth / $big_endian_flag be / $true_colour_flag tc / $pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max} / $pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift}";
+    #bmwqemu::diag "$bits_per_pixel bpp / depth $depth / $big_endian_flag be / $true_colour_flag tc / $pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max} / $pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift}";
 
-    bmwqemu::diag $name_length;
+    #bmwqemu::diag $name_length;
 
     if ( !$self->depth ) {
 
@@ -558,10 +303,6 @@ sub _server_initialization {
     if ( !$self->save_bandwidth ) {
         @encs = grep { !$_->{bandwidth} } @encs;
     }
-    if ( $self->hide_cursor ) {
-        @encs = grep { !$_->{cursor} } @encs;
-    }
-
     $socket->print(
         pack(
             'CCn',
@@ -586,38 +327,13 @@ sub capture {
     my $self   = shift;
     my $socket = $self->socket;
 
-    $self->{need_update} = 1;
     $self->_send_update_request();
-    while ( ( my $message_type = $self->_receive_message() ) == 0 ) {
-        bmwqemu::diag "MT $message_type\n";
-        last unless ($self->{need_update});
+    while (1) {
+        my $message_type = $self->_receive_message();
+        last unless defined $message_type;
     }
 
-    return $self->_image_plus_cursor;
-}
-
-sub _image_plus_cursor {
-    my $self = shift;
-
-    my $image  = $self->_framebuffer;
-    my $cursor = $self->_cursordata;
-    if (  !$self->hide_cursor
-        && $cursor
-        && $cursor->{image}
-        && defined $cursor->{x} )
-    {
-
-        #$cursor->{image}->save('cursor.png'); # temporary -- debugging
-        $image= $image->clone(); # make a duplicate so we can overlay the cursor
-        $image->blend(
-            $cursor->{image},
-            1,                 # don't modify destination alpha
-            0, 0, $cursor->{width}, $cursor->{height},    # source dimensions
-            $cursor->{x}, $cursor->{y}, $cursor->{width},
-            $cursor->{height},    # destination dimensions
-        );
-    }
-    return $image;
+    return $self->_framebuffer;
 }
 
 sub _send_key_event {
@@ -700,10 +416,16 @@ sub _receive_message {
     my $self = shift;
 
     my $socket = $self->socket;
+
+    my $s = IO::Select->new();
+    $s->add($socket);
+
+    return undef unless ($s->can_read(0.1));
+
     $socket->read( my $message_type, 1 ) || die 'unexpected end of data';
     $message_type = unpack( 'C', $message_type );
 
-    bmwqemu::diag("RM $message_type");
+    #bmwqemu::diag("RM $message_type");
 
     # This result is unused.  It's meaning is different for the different methods
     my $result=
@@ -722,11 +444,9 @@ sub _receive_update {
 
     my $image = $self->_framebuffer;
     if ( !$image ) {
-        #        $self->_framebuffer( $image
-        #                = Image::Imlib2->new( $self->width, $self->height ) );
-        if ( $self->_image_format ) {
-            $image->image_set_format( $self->_image_format );
-        }
+        $image = tinycv::new( $self->width, $self->height );
+        $self->_framebuffer($image);
+
         # We're going to be splatting pixels, so make sure every pixel is opaque
         #$image->set_colour( 0, 0, 0, 255 );
         #$image->fill_rectangle( 0, 0, $self->width, $self->height );
@@ -736,25 +456,11 @@ sub _receive_update {
     my $hlen = $socket->read( my $header, 3 ) || die 'unexpected end of data';
     my $number_of_rectangles = unpack( 'xn', $header );
 
-    bmwqemu::diag "NOR $hlen - $number_of_rectangles";
+    #bmwqemu::diag "NOR $hlen - $number_of_rectangles";
 
     my $depth = $self->depth;
 
     my $big_endian = $self->_big_endian;
-    my $read_and_set_colour=
-      $depth == 24
-      ? (
-        $big_endian
-        ? \&_read_and_set_colour_24_be
-        : \&_read_and_set_colour_24_le
-      )
-      : $depth == 16 ? (
-        $big_endian
-        ? \&_read_and_set_colour_16_be
-        : \&_read_and_set_colour_16_le
-      )
-      : $depth == 8 ? \&_read_and_set_colour_8
-      :               die 'unsupported depth';
 
     foreach ( 1 .. $number_of_rectangles ) {
         $socket->read( my $data, 12 ) || die 'unexpected end of data';
@@ -763,213 +469,23 @@ sub _receive_update {
         # unsigned -> signed conversion
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
 
-        bmwqemu::diag "$x,$y $w x $h $encoding_type";
+        #bmwqemu::diag "$x,$y $w x $h $encoding_type";
 
         ### Raw encoding ###
         if ( $encoding_type == 0 ) {
 
-            $self->{need_update} = 0;
-            if ( $depth == 24 && $AM_BIG_ENDIAN == $self->_big_endian ){
+            # Performance boost: splat raw pixels into the image
+            $socket->read( my $data, $w * $h * 4 );
 
-                # Performance boost: splat raw pixels into the image
-                $socket->read( my $data, $w * $h * 4 );
-                #                my $raw = Image::Imlib2->new_using_data( $w, $h, $data );
-                #                $raw->has_alpha(0);
-                #                $image->blend( $raw, 0, 0, 0, $w, $h, $x, $y, $w, $h );
-
-            }
-            else {
-
-                for my $py ( $y .. $y + $h - 1 ) {
-                    for my $px ( $x .. $x + $w - 1 ) {
-                        $self->$read_and_set_colour();
-                        #$image->draw_point( $px, $py );
-                    }
-                }
-
-            }
-
-            ### CopyRect encooding ###
-        }
-        elsif ( $encoding_type == 1 ) {
-
-            $socket->read( my $srcpos, 4 ) || die 'unexpected end of data';
-            my ( $srcx, $srcy ) = unpack 'nn', $srcpos;
-
-            #my $copy = $image->crop( $srcx, $srcy, $w, $h );
-            #$image->blend( $copy, 0, 0, 0, $w, $h, $x, $y, $w, $h );
-
-            ### RRE and CoRRE encodings ###
-        }
-        elsif ( $encoding_type == 2 || $encoding_type == 4 ) {
-
-            $socket->read( my $num_sub_rects, 4 )
-              || die 'unexpected end of data';
-            $num_sub_rects = unpack 'N', $num_sub_rects;
-
-            $self->$read_and_set_colour();
-            #$image->fill_rectangle( $x, $y, $w, $h );
-
-            # RRE is U16, CoRRE is U8
-            my $geombytes = $encoding_type == 2 ? 8      : 4;
-            my $format    = $encoding_type == 2 ? 'nnnn' : 'CCCC';
-
-            for my $i ( 1 .. $num_sub_rects ) {
-
-                $self->$read_and_set_colour();
-                $socket->read( my $subrect, $geombytes )
-                  || die 'unexpected end of data';
-                my ( $sx, $sy, $sw, $sh ) = unpack $format, $subrect;
-                $image->fill_rectangle( $x + $sx, $y + $sy, $sw, $sh );
-
-            }
-
-            ### Hextile encoding ###
-        }
-        elsif ( $encoding_type == 5 ) {
-
-            my $maxx = $x + $w;
-            my $maxy = $y + $h;
-            my $background;
-            my $foreground;
-
-            # Step over 16x16 tiles in the target rectangle
-            for ( my $ry = $y; $ry < $maxy; $ry += 16 ) {
-                my $rh = $maxy - $ry > 16 ? 16 : $maxy - $ry;
-                for ( my $rx = $x; $rx < $maxx; $rx += 16 ) {
-                    my $rw = $maxx - $rx > 16 ? 16 : $maxx - $rx;
-                    $socket->read( my $mask, 1 )
-                      || die 'unexpected end of data';
-                    $mask = unpack 'C', $mask;
-
-                    if ( $mask & 0x1 ) {    # Raw tile
-                        for my $py ( $ry .. $ry + $rh - 1 ) {
-                            for my $px ( $rx .. $rx + $rw - 1 ) {
-                                $self->$read_and_set_colour();
-                                $image->draw_point( $px, $py );
-                            }
-                        }
-
-                    }
-                    else {
-
-                        if ( $mask & 0x2 ) {    # background set
-                            $background = $self->$read_and_set_colour();
-                        }
-                        if ( $mask & 0x4 ) {    # foreground set
-                            $foreground = $self->$read_and_set_colour();
-                        }
-                        if ( $mask & 0x8 ) {    # has subrects
-
-                            $socket->read( my $nsubrects, 1 )
-                              || die 'unexpected end of data';
-                            $nsubrects = unpack 'C', $nsubrects;
-
-                            if ( !$mask & 0x10 ) {    # use foreground colour
-                                $image->set_colour( @{$foreground} );
-                            }
-                            for my $i ( 1 .. $nsubrects ) {
-                                if ( $mask & 0x10 ) { # use per-subrect colour
-                                    $self->$read_and_set_colour();
-                                }
-                                $socket->read( my $pos, 1 )
-                                  || die 'unexpected end of data';
-                                $pos = unpack 'C', $pos;
-                                $socket->read( my $size, 1 )
-                                  || die 'unexpected end of data';
-                                $size = unpack 'C', $size;
-                                my $sx = $pos >> 4;
-                                my $sy = $pos & 0xff;
-                                my $sw = 1 + ( $size >> 4 );
-                                my $sh = 1 + ( $size & 0xff );
-                                $image->fill_rectangle( $rx + $sx, $ry + $sy,$sw, $sh );
-                            }
-
-                        }
-                        else {    # no subrects
-                            $image->set_colour( @{$background} );
-                            $image->fill_rectangle( $rx, $ry, $rw, $rh );
-                        }
-                    }
-                }
-            }
-
-            ### Cursor ###
-        }
-        elsif ( $encoding_type == -239 ) {
-
-            # realvnc 3.3 sends empty cursor messages, so skip
-            next unless $w || $h;
-
-            my $cursordata = $self->_cursordata;
-            if ( !$cursordata ) {
-                $self->_cursordata( $cursordata = {} );
-            }
-            #            $cursordata->{image}    = Image::Imlib2->new( $w, $h );
-            $cursordata->{hotspotx} = $x;
-            $cursordata->{hotspoty} = $y;
-            $cursordata->{width}    = $w;
-            $cursordata->{height}   = $h;
-
-            my $cursor = $cursordata->{image}
-              || die "Failed to create cursor buffer $w x $h";
-            $cursor->has_alpha(1);
-
-            my @pixbuf;
-            for my $i ( 1 .. $w * $h ) {
-                push @pixbuf, $self->$read_and_set_colour();
-            }
-            my $masksize    = int( ( $w + 7 ) / 8 ) * $h;
-            my $maskrowsize = int( ( $w + 7 ) / 8 ) * 8;
-            $socket->read( my $mask, $masksize )
-              || die 'unexpected end of data';
-            $mask = unpack 'B*', $mask;
-
-            #print "masksize: $masksize\n";
-            #print "maskrowsize: $maskrowsize\n";
-            #print "mask: $mask\n";
-
-            #open my $fh, '>', $ENV{HOME}.'/Desktop/cursor.txt';
-            $cursor->will_blend(0);
-            for my $cy ( 0 .. $h - 1 ) {
-                for my $cx ( 0 .. $w - 1 ) {
-                    my $pixel = shift @pixbuf;
-                    $pixel || die 'not enough pixels';
-                    if ( !substr( $mask, $cx + $cy * $maskrowsize, 1 ) ) {
-                        @{$pixel} = ( 0, 0, 0, 0 );
-                    }
-
-                    #print "$cx, $cy: @$pixel\n";
-                    #print $fh "$cx, $cy: @$pixel\n";
-                    $cursor->set_colour( @{$pixel} );
-                    $cursor->draw_point( $cx, $cy );
-                }
-            }
-            $cursor->will_blend(1);
-
-            #$cursor->save('vnccursor.png');
-            #print "wrote cursor\n";
-
-            ### CursorPos ###
-        }
-        elsif ( $encoding_type == -232 ) {
-
-            my $cursordata = $self->_cursordata;
-            if ( !$cursordata ) {
-                $self->_cursordata( $cursordata = {} );
-            }
-            $cursordata->{x} = $x;
-            $cursordata->{y} = $y;
-
-            #print "Cursor pos: $x, $y\n";
-
+            my $img = tinycv::new($w, $h);
+            $img->map_raw_data($data);
+            $image->blend($img, $x, $y);
         }
         elsif ( $encoding_type == -223 ) {
             $self->width($w);
             $self->height($h);
-            # $image->resize...
-        }
-        elsif ( $encoding_type == 255 ) { # MSG_QEMU
+            $image = tinycv::new( $self->width, $self->height );
+            $self->_framebuffer($image);
         }
         else {
             die 'unsupported update encoding ' . $encoding_type;
@@ -979,134 +495,11 @@ sub _receive_update {
     return $number_of_rectangles;
 }
 
-sub _read_and_set_colour_8 {
-    my $self = shift;
-
-    $self->socket->read( my $pixel, 1 ) || die 'unexpected end of data';
-
-    my $colours = $self->_colourmap;
-    my $index   = unpack( 'C', $pixel );
-    my $colour  = $colours->[$index];
-    my @colour  = ( $colour->{r}, $colour->{g}, $colour->{b}, 255 );
-    $self->_framebuffer->set_colour(@colour);
-
-    return \@colour;
-}
-
-sub _read_and_set_colour_16_le {
-    my $self = shift;
-
-    $self->socket->read( my $pixel, 2 ) || die 'unexpected end of data';
-    my $colour = unpack 'v', $pixel;
-    my @colour = (( $colour >> 10 & 31 ) << 3,( $colour >> 5 & 31 ) << 3,( $colour & 31 ) << 3, 255);
-    $self->_framebuffer->set_colour(@colour);
-
-    return \@colour;
-}
-
-sub _read_and_set_colour_16_be {
-    my $self = shift;
-
-    $self->socket->read( my $pixel, 2 ) || die 'unexpected end of data';
-    my $colour = unpack 'n', $pixel;
-    my @colour = (( $colour >> 10 & 31 ) << 3,( $colour >> 5 & 31 ) << 3,( $colour & 31 ) << 3, 255);
-    $self->_framebuffer->set_colour(@colour);
-
-    return \@colour;
-}
-
-sub _read_and_set_colour_24_le {
-    my $self = shift;
-
-    $self->socket->read( my $pixel, 4 ) || die 'unexpected end of data';
-    my $colour = unpack 'V', $pixel;
-    my @colour= ( $colour >> 16 & 255, $colour >> 8 & 255, $colour & 255, 255, );
-    $self->_framebuffer->set_colour(@colour);
-
-    return \@colour;
-}
-
-sub _read_and_set_colour_24_be {
-    my $self = shift;
-
-    $self->socket->read( my $pixel, 4 ) || die 'unexpected end of data';
-    my $colour = unpack 'N', $pixel;
-    my @colour= ( $colour >> 16 & 255, $colour >> 8 & 255, $colour & 255, 255, );
-    $self->_framebuffer->set_colour(@colour);
-
-    return \@colour;
-}
-
-# The following is the full version that supports all 8, 16, and 32
-# bpp and arbitrary pixel formats.  This version is only used when one
-# of the faster functions declared above cannot be used due to
-# specific VNC settings.
-
-sub _read_and_set_colour {
-    my $self  = shift;
-    my $pixel = shift;
-
-    my $colours         = $self->_colourmap;
-    my $bytes_per_pixel = $self->_bpp / 8;
-    if ( !$pixel ) {
-        $self->socket->read( $pixel, $bytes_per_pixel )
-          || die 'unexpected end of data';
-    }
-    my @colour;
-    if ($colours) {    # indexed colour, depth is 8
-        my $index = unpack( 'C', $pixel );
-        my $colour = $colours->[$index];
-        @colour = ( $colour->{r}, $colour->{g}, $colour->{b}, 255 );
-    }
-    else {           # true colour, depth is 24 or 16
-        my $pixinfo = $self->_pixinfo;
-        my $format=
-            $bytes_per_pixel == 4 ? ( $self->_big_endian ? 'N' : 'V' )
-          : $bytes_per_pixel == 2 ? ( $self->_big_endian ? 'n' : 'v' )
-          :                         die 'Unsupported bits-per-pixel value';
-        my $colour = unpack $format, $pixel;
-        my $r = $colour >> $pixinfo->{red_shift} & $pixinfo->{red_max};
-        my $g = $colour >> $pixinfo->{green_shift} & $pixinfo->{green_max};
-        my $b = $colour >> $pixinfo->{blue_shift} & $pixinfo->{blue_max};
-        if ( $bytes_per_pixel == 4 ) {
-            @colour = ( $r, $g, $b, 255 );
-        }
-        else {
-            @colour = ($r * 255 / $pixinfo->{red_max},$g * 255 / $pixinfo->{green_max},$b * 255 / $pixinfo->{blue_max}, 255);
-        }
-    }
-    $self->_framebuffer->set_colour(@colour);
-    return \@colour;
-}
-
 sub _receive_colour_map {
     my $self = shift;
 
-    # set colour map entries
-    my $socket = $self->socket;
-    $socket->read( my $padding,      1 ) || die 'unexpected end of data';
-    $socket->read( my $first_colour, 2 ) || die 'unexpected end of data';
-    $first_colour = unpack( 'n', $first_colour );
-    $socket->read( my $number_of_colours, 2 ) || die 'unexpected end of data';
-    $number_of_colours = unpack( 'n', $number_of_colours );
+    die 'we do not support color maps';
 
-    #    warn "colours: $first_colour.. ($number_of_colours)";
-
-    my @colours;
-    foreach my $i ( $first_colour .. $first_colour + $number_of_colours - 1 ){
-        $socket->read( my $r, 2 ) || die 'unexpected end of data';
-        $r = unpack( 'n', $r );
-        $socket->read( my $g, 2 ) || die 'unexpected end of data';
-        $g = unpack( 'n', $g );
-        $socket->read( my $b, 2 ) || die 'unexpected end of data';
-        $b = unpack( 'n', $b );
-
-        #        warn "$i $r/$g/$b";
-
-        # The 8-bit colours are in the top byte of each field
-        $colours[$i] = { r => $r >> 8, g => $g >> 8, b => $b >> 8 };
-    }
-    $self->_colourmap( \@colours );
     return 1;
 }
 
@@ -1135,37 +528,20 @@ sub _receive_cut_text {
 sub mouse_move_to {
     my ( $self, $x, $y ) = @_;
     $self->send_pointer_event( 0, $x, $y );
-
-    my $cursordata = $self->_cursordata;
-    if ( !$cursordata ) {
-        $self->_cursordata( $cursordata = {} );
-    }
-    $cursordata->{x} = $x;
-    $cursordata->{y} = $y;
 }
 
 sub mouse_click {
-    my ($self) = @_;
+    my ($self, $x, $y ) = @_;
 
-    my $cursordata = $self->_cursordata;
-    if ( !$cursordata ) {
-        $self->_cursordata( $cursordata = { x => 0, y => 0 } );
-    }
-
-    $self->send_pointer_event( 1, $cursordata->{x}, $cursordata->{y} );
-    $self->send_pointer_event( 0, $cursordata->{x}, $cursordata->{y} );
+    $self->send_pointer_event( 1, $x, $y );
+    $self->send_pointer_event( 0, $x, $y );
 }
 
 sub mouse_right_click {
-    my ($self) = @_;
+    my ($self, $x, $y ) = @_;
 
-    my $cursordata = $self->_cursordata;
-    if ( !$cursordata ) {
-        $self->_cursordata( $cursordata = { x => 0, y => 0 } );
-    }
-
-    $self->send_pointer_event( 4, $cursordata->{x}, $cursordata->{y} );
-    $self->send_pointer_event( 0, $cursordata->{x}, $cursordata->{y} );
+    $self->send_pointer_event( 4, $x, $y );
+    $self->send_pointer_event( 0, $x, $y );
 }
 
 1;
