@@ -153,6 +153,13 @@ void image_destroy(Image *s)
   delete(s);
 }
 
+Image *image_new(long width, long height)
+{
+  Image *image = new Image;
+  image->img = Mat::zeros(height, width, CV_8UC3);
+  return image;
+}
+
 Image *image_read(const char *filename)
 {
   Image *image = new Image;

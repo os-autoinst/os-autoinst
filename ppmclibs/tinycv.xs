@@ -13,6 +13,13 @@ MODULE = tinycv     PACKAGE = tinycv
 
 PROTOTYPES: ENABLE
 
+tinycv::Image new(long width, long height)
+  CODE:
+    RETVAL = image_new(width, height);
+
+  OUTPUT:
+    RETVAL
+
 tinycv::Image read(const char *file)
   CODE:
     RETVAL = image_read(file);

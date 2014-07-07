@@ -4,6 +4,7 @@
 // opaque type to seperate perl from opencv
 struct Image;
 void image_destroy(Image *s);
+Image *image_new(long width, long height);
 Image *image_read(const char *filename);
 bool image_write(Image *s, const char *filename);
 
