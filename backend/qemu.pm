@@ -443,25 +443,25 @@ sub handle_vnc_command($) {
     #print STDERR "VNC ". JSON::to_json($cmd) . "\n";
 
     if ($cmd->{VNC} eq 'capture') {
-      my $img = $vnc->capture();
-      my ( $seconds, $microseconds ) = gettimeofday;
-      my $filename = "vnc.$seconds.$microseconds.png";
+        my $img = $vnc->capture();
+        my ( $seconds, $microseconds ) = gettimeofday;
+        my $filename = "vnc.$seconds.$microseconds.png";
 
-      $img->write($filename);
-      return {'filename' => $filename};
+        $img->write($filename);
+        return {'filename' => $filename};
     }
 
     if ($cmd->{VNC} eq 'mouse_hide') {
-      my $xpos = $vnc->width - 1;
-      my $ypos = $vnc->height - 1;
+        my $xpos = $vnc->width - 1;
+        my $ypos = $vnc->height - 1;
 
-      my $border_offset = int($cmd->{params}->{border_offset});
-      $xpos -= $border_offset;
-      $ypos -= $border_offset;
+        my $border_offset = int($cmd->{params}->{border_offset});
+        $xpos -= $border_offset;
+        $ypos -= $border_offset;
 
-      print STDERR "mouse_move $xpos, $ypos\n";
-      $vnc->mouse_move_to($xpos, $ypos);
-      return {};
+        print STDERR "mouse_move $xpos, $ypos\n";
+        $vnc->mouse_move_to($xpos, $ypos);
+        return {};
     }
 
     die "unsupport VNC command " . $cmd->{VNC};

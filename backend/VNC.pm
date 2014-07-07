@@ -167,8 +167,9 @@ sub _handshake_security {
             $socket->print( pack( 'C', 1 ) );
         }
 
-    } else {
-      die 'qemu wants security, but we have no password';
+    }
+    else {
+        die 'qemu wants security, but we have no password';
     }
 
     # the RFB protocol always returns a result for type 2,
@@ -327,9 +328,9 @@ sub capture {
     my $socket = $self->socket;
 
     $self->_send_update_request();
-    while ( 1 ) {
-      my $message_type = $self->_receive_message();
-      last unless defined $message_type;
+    while (1) {
+        my $message_type = $self->_receive_message();
+        last unless defined $message_type;
     }
 
     return $self->_framebuffer;
@@ -473,18 +474,18 @@ sub _receive_update {
         ### Raw encoding ###
         if ( $encoding_type == 0 ) {
 
-	  # Performance boost: splat raw pixels into the image
-	  $socket->read( my $data, $w * $h * 4 );
+            # Performance boost: splat raw pixels into the image
+            $socket->read( my $data, $w * $h * 4 );
 
-	  my $img = tinycv::new($w, $h);
-	  $img->map_raw_data($data);
-	  $image->blend($img, $x, $y);
+            my $img = tinycv::new($w, $h);
+            $img->map_raw_data($data);
+            $image->blend($img, $x, $y);
         }
         elsif ( $encoding_type == -223 ) {
-	  $self->width($w);
-	  $self->height($h);
-	  $image = tinycv::new( $self->width, $self->height );
-	  $self->_framebuffer($image);
+            $self->width($w);
+            $self->height($h);
+            $image = tinycv::new( $self->width, $self->height );
+            $self->_framebuffer($image);
         }
         else {
             die 'unsupported update encoding ' . $encoding_type;
