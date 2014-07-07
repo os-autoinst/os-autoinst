@@ -3,6 +3,7 @@
 #include <iostream>
 #include <exception>
 #include <cerrno>
+#include <sys/time.h>
 
 #include <algorithm>    // std::min
 
@@ -49,7 +50,10 @@ std::vector<char> str2vec(std::string str_in) {
 std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x, long y, long width, long height, double &similarity) {
   // cvSetErrMode(CV_ErrModeParent);
   // cvRedirectError(MyErrorHandler);
- 
+
+  struct timeval tv1, tv2;
+  gettimeofday(&tv1, 0);
+
   std::vector<int> outvec(4);
 
   if (scene->img.empty() || object->img.empty() ) {
@@ -111,6 +115,8 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
 
   similarity = maxval;
 
+  gettimeofday(&tv2, 0);
+  printf("search_template %ld\n", (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000);
   return outvec;
 }
 

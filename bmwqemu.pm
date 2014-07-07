@@ -411,7 +411,7 @@ sub getcurrentscreenshot(;$) {
         $filename = $screenshotQueue->dequeue();
     }
 
-    if ($filename) {
+    if ($filename && $lastscreenshotName ne $filename ) {
         $lastscreenshot     = tinycv::read($filename);
         $lastscreenshotName = $filename;
     }
@@ -1105,6 +1105,7 @@ sub _assert_screen {
                 mouse_set( $x, $y );
                 mouse_click( $args{'click'}, $args{'clicktime'} );
             }
+
             return $foundneedle;
         }
         diag("STAT $statstr");
