@@ -83,15 +83,12 @@ sub mouse_hide(;$) {
 
 sub screendump() {
     my $self = shift;
-    my ( $seconds, $microseconds ) = gettimeofday;
-
-    my $tmp = "ppm.$seconds.$microseconds.ppm";
-    my $rsp = $self->send( { 'execute' => 'screendump', 'arguments' => { 'filename' => "$tmp" } } );
-    my $img = tinycv::read($tmp);
-    unlink $tmp;
 
     # now just to test vnc
-    $self->send( { 'VNC' => 'capture' } );
+    my $rsp = $self->send( { 'VNC' => 'capture' } );
+    my $img = tinycv::read($rsp->{filename});
+    unlink($rsp->{filename});
+
     return $img;
 }
 
@@ -186,19 +183,19 @@ sub do_stop_vm($) {
 
 sub do_savevm($) {
     my ( $self, $vmname ) = @_;
-    my $rsp = $self->send("savevm $vmname");
+    my $rsp = $self->send("savevm $vmname")->{return};
     print STDERR "SAVED $vmname $rsp\n";
     die unless ( $rsp eq "savevm $vmname" );
 }
 
 sub do_loadvm($) {
     my ( $self, $vmname ) = @_;
-    my $rsp = $self->send("loadvm $vmname");
+    my $rsp = $self->send("loadvm $vmname")->{return};
     print STDERR "LOAD $vmname '$rsp'\n";
     die unless ( $rsp eq "loadvm $vmname" );
-    $rsp = $self->send("stop");
+    $rsp = $self->send("stop")->{return};
     print STDERR "stop $rsp\n";
-    $rsp = $self->send("cont");
+    $rsp = $self->send("cont")->{return};
     print STDERR "cont $rsp\n";
 }
 
@@ -240,7 +237,7 @@ sub send($) {
     }
 
     #print STDERR "backend::send $cmdstr -> $rspt\n";
-    return $rsp->{rsp}->{return};
+    return $rsp->{rsp};
 }
 
 sub _read_json($) {
@@ -380,42 +377,7 @@ sub send {
         }
     }
 
-    # unfortunately when qemu prompts back after screendump the image is
-    # not yet ready and while it isn't, we shouldn't send new commands to qemu
-    if ( $cmd->{execute} && $cmd->{execute} eq "screendump" ) {
-        wait_for_img( $cmd->{arguments}->{filename} );
-    }
     return $rsp;
-}
-
-sub wait_for_img($) {
-    my $tmp = shift;
-
-    my $ret;
-    while ( !defined $ret ) {
-        sleep(0.1);
-        my $fs = -s $tmp;
-
-        # if qemu did not even start writing out
-        # after 0.1s, it's most likely dead. In case
-        # this is not true on slow machines, we may
-        # need to scale this - because sleeping longer
-        # doesn't make sense
-        return unless ($fs);
-        next if ( $fs < 70 );
-        my $header;
-        next if ( !open( PPM, $tmp ) );
-        if ( read( PPM, $header, 70 ) < 70 ) {
-            close(PPM);
-            next;
-        }
-        close(PPM);
-        my ( $xres, $yres ) = ( $header =~ m/\AP6\n(?:#.*\n)?(\d+) (\d+)\n255\n/ );
-        next if ( !$xres );
-        my $d = $xres * $yres * 3 + length($&);
-        next if ( $fs != $d );
-        return;
-    }
 }
 
 sub _read_hmp($) {
@@ -471,6 +433,8 @@ sub _read_hmp($) {
 # only valid in management thread
 our $vnc;
 
+use Time::HiRes qw(gettimeofday);
+
 # runs in the thread to deserialize VNC commands
 sub handle_vnc_command($) {
 
@@ -478,10 +442,29 @@ sub handle_vnc_command($) {
 
     #print STDERR "VNC ". JSON::to_json($cmd) . "\n";
 
-    $vnc->capture();
+    if ($cmd->{VNC} eq 'capture') {
+      my $img = $vnc->capture();
+      my ( $seconds, $microseconds ) = gettimeofday;
+      my $filename = "vnc.$seconds.$microseconds.png";
 
-    # TODO: dummy
-    return {};
+      $img->write($filename);
+      return {'filename' => $filename};
+    }
+
+    if ($cmd->{VNC} eq 'mouse_hide') {
+      my $xpos = $vnc->width - 1;
+      my $ypos = $vnc->height - 1;
+
+      my $border_offset = int($cmd->{params}->{border_offset});
+      $xpos -= $border_offset;
+      $ypos -= $border_offset;
+
+      print STDERR "mouse_move $xpos, $ypos\n";
+      $vnc->mouse_move_to($xpos, $ypos);
+      return {};
+    }
+
+    die "unsupport VNC command " . $cmd->{VNC};
 }
 
 our $qmpsocket;
