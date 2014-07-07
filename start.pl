@@ -71,8 +71,6 @@ if ($init) {
     }
 }
 
-our $screenshotthr = require "inst/screenshot.pm";
-
 require Carp;
 require Carp::Always;
 
@@ -101,8 +99,6 @@ diag "FAIL" if $r;
 $SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
 stop_vm();
-
-$screenshotthr->join();
 
 # mark it as no longer working
 delete $ENV{WORKERID};

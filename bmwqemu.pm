@@ -658,7 +658,9 @@ sub become_root() {
 }
 
 =head2 upload_logs
+
 upload log file to openqa host
+
 =cut
 
 sub upload_logs($) {
@@ -761,11 +763,6 @@ sub power($) {
 
 # runtime information gathering functions
 
-sub _get_scaled_screenshot() {
-    my $ret = $backend->screendump();
-    return $ret->scale( 1024, 768 );
-}
-
 sub save_screenshot {
     $current_test->take_screenshot;
 }
@@ -775,22 +772,17 @@ sub timeout_screenshot() {
     $current_test->take_screenshot( sprintf( "timeout-%02i", $n ) );
 }
 
-# to be called from screenshot thread
-sub enqueue_screenshot(;$) {
-    my $flags = shift || '';
-
-    my $img = _get_scaled_screenshot();
+# to be called from thread
+sub enqueue_screenshot($) {
+    my $img = shift;
 
     $framecounter++;
 
     my $filename = $screenshotpath . sprintf( "/shot-%010d.png", $framecounter );
-    unless ( $flags =~ m/q/ ) {
-        fctlog( 'screendump', "filename=$filename" );
-    }
 
     #print STDERR $filename,"\n";
 
-    # hardlinking identical files saves space
+    # linking identical files saves space
 
     # 54 is based on t/data/user-settings-*
     if ( $lastscreenshot && $lastscreenshot->similarity($img) > 54 ) {

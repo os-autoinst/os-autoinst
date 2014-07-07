@@ -18,6 +18,7 @@ require Carp;
 use Fcntl;
 use bmwqemu qw(fileContent diag save_vars diag);
 use backend::VNC;
+use inst::screenshot;
 
 my $MAGIC_PIPE_CLOSE_STRING = 'xxxQUITxxx';
 my $iscrashedfile           = 'backend.crashed';
@@ -151,7 +152,11 @@ sub do_start_vm($) {
     if ($cnt) {
         $self->send($cnt);
     }
+}
 
+sub post_start_hook($) {
+    my $self = shift; # ignored in base
+    inst::screenshot::start_screenshot_thread($self);
 }
 
 sub do_stop_vm($) {
