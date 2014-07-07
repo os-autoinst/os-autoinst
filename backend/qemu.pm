@@ -18,7 +18,6 @@ require Carp;
 use Fcntl;
 use bmwqemu qw(fileContent diag save_vars diag);
 use backend::VNC;
-use inst::screenshot;
 
 my $MAGIC_PIPE_CLOSE_STRING = 'xxxQUITxxx';
 my $iscrashedfile           = 'backend.crashed';
@@ -82,17 +81,6 @@ sub mouse_hide(;$) {
     $self->send({ 'VNC' => "mouse_hide", 'arguments' => { 'border_offset' => $border_offset } } );
 }
 
-sub screendump() {
-    my $self = shift;
-
-    # now just to test vnc
-    my $rsp = $self->send( { 'VNC' => 'capture' } );
-    my $img = tinycv::read($rsp->{filename});
-    unlink($rsp->{filename});
-
-    return $img;
-}
-
 sub raw_alive($) {
     my $self = shift;
     return 0 unless $self->{'pid'};
@@ -152,11 +140,6 @@ sub do_start_vm($) {
     if ($cnt) {
         $self->send($cnt);
     }
-}
-
-sub post_start_hook($) {
-    my $self = shift; # ignored in base
-    inst::screenshot::start_screenshot_thread($self);
 }
 
 sub do_stop_vm($) {
@@ -498,7 +481,6 @@ sub handle_qmp_command($) {
     return $hash;
 }
 
-
 sub _run {
     my $cmdpipe = shift;
     my $rsppipe = shift;
@@ -564,8 +546,28 @@ sub _run {
     $s->add($qmpsocket);
     $s->add($hmpsocket);
     $s->add($cmdpipe);
+    $s->add($vnc->socket);
 
-  SELECT: while ( my @ready = $s->can_read ) {
+    $vnc->send_update_request;
+    my ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
+    my $interval = $bmwqemu::vars{SCREENSHOTINTERVAL} || .5;
+
+  SELECT: while (1) {
+        my ( $s2, $ms2 ) = gettimeofday();
+        my $rest = $interval - ( $s2 - $screenshot_sec ) - ( $ms2 - $screenshot_msec ) / 1e6;
+
+        my @ready = $s->can_read($rest);
+        $vnc->send_update_request;
+
+        ( $s2, $ms2 ) = gettimeofday();
+        $rest = $interval - ( $s2 - $screenshot_sec ) - ( $ms2 - $screenshot_msec ) / 1e6;
+
+        if ($vnc->_framebuffer && $rest < 0.1 ) {
+            bmwqemu::enqueue_screenshot($vnc->_framebuffer->scale( 1024, 768 ));
+            ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
+            $vnc->send_update_request;
+        }
+
         for my $fh (@ready) {
             my $buffer;
 
@@ -625,6 +627,10 @@ sub _run {
 
                     print $rsppipe JSON::to_json( { "qmp" => $cmd, "rsp" => $hash } );
                 }
+            }
+            elsif ( $fh == $vnc->socket) {
+                $vnc->receive_message();
+                #$vnc->send_update_request;
             }
             else {
                 print STDERR "huh!\n";
