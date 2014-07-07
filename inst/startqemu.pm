@@ -194,7 +194,7 @@ sub run($$) {
     open( my $pidf, ">", $backend->{'pidfilename'} ) or die "can not write " . $backend->{'pidfilename'};
     print $pidf $backend->{'pid'}, "\n";
     close $pidf;
-    sleep 6;    # time to let qemu start
+    sleep 3;    # time to let qemu start
 
 }
 

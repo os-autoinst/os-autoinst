@@ -11,7 +11,7 @@ __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       hide_cursor server_endian
       _pixinfo _colourmap _framebuffer _cursordata _rfb_version
-      _bpp _true_colour _big_endian _image_format
+      _bpp _true_colour _big_endian
       )
 );
 our $VERSION = '0.40';
@@ -78,22 +78,18 @@ my @encodings = (
     {
         num       => 1,
         name      => 'CopyRect',
-        supported => 1,
     },
     {
         num       => 2,
         name      => 'RRE',
-        supported => 1,
     },
     {
         num       => 4,
         name      => 'CoRRE',
-        supported => 1,
     },
     {
         num       => 5,
         name      => 'Hextile',
-        supported => 1,
         bandwidth => 1,
     },
     {
@@ -586,11 +582,9 @@ sub capture {
     my $self   = shift;
     my $socket = $self->socket;
 
-    $self->{need_update} = 1;
     $self->_send_update_request();
-    while ( ( my $message_type = $self->_receive_message() ) == 0 ) {
+    while ( ( my $message_type = $self->_receive_message() ) ) {
         bmwqemu::diag "MT $message_type\n";
-        last unless ($self->{need_update});
     }
 
     return $self->_image_plus_cursor;
@@ -700,6 +694,12 @@ sub _receive_message {
     my $self = shift;
 
     my $socket = $self->socket;
+
+    my $s = IO::Select->new();
+    $s->add( $socket );
+
+    return undef unless ($s->can_read(0.1));
+
     $socket->read( my $message_type, 1 ) || die 'unexpected end of data';
     $message_type = unpack( 'C', $message_type );
 
@@ -722,11 +722,9 @@ sub _receive_update {
 
     my $image = $self->_framebuffer;
     if ( !$image ) {
-        #        $self->_framebuffer( $image
-        #                = Image::Imlib2->new( $self->width, $self->height ) );
-        if ( $self->_image_format ) {
-            $image->image_set_format( $self->_image_format );
-        }
+      $image = tinycv::new( $self->width, $self->height );
+      $self->_framebuffer( $image );
+
         # We're going to be splatting pixels, so make sure every pixel is opaque
         #$image->set_colour( 0, 0, 0, 255 );
         #$image->fill_rectangle( 0, 0, $self->width, $self->height );
@@ -768,7 +766,6 @@ sub _receive_update {
         ### Raw encoding ###
         if ( $encoding_type == 0 ) {
 
-            $self->{need_update} = 0;
             if ( $depth == 24 && $AM_BIG_ENDIAN == $self->_big_endian ){
 
                 # Performance boost: splat raw pixels into the image
@@ -788,114 +785,8 @@ sub _receive_update {
                 }
 
             }
-
-            ### CopyRect encooding ###
         }
-        elsif ( $encoding_type == 1 ) {
-
-            $socket->read( my $srcpos, 4 ) || die 'unexpected end of data';
-            my ( $srcx, $srcy ) = unpack 'nn', $srcpos;
-
-            #my $copy = $image->crop( $srcx, $srcy, $w, $h );
-            #$image->blend( $copy, 0, 0, 0, $w, $h, $x, $y, $w, $h );
-
-            ### RRE and CoRRE encodings ###
-        }
-        elsif ( $encoding_type == 2 || $encoding_type == 4 ) {
-
-            $socket->read( my $num_sub_rects, 4 )
-              || die 'unexpected end of data';
-            $num_sub_rects = unpack 'N', $num_sub_rects;
-
-            $self->$read_and_set_colour();
-            #$image->fill_rectangle( $x, $y, $w, $h );
-
-            # RRE is U16, CoRRE is U8
-            my $geombytes = $encoding_type == 2 ? 8      : 4;
-            my $format    = $encoding_type == 2 ? 'nnnn' : 'CCCC';
-
-            for my $i ( 1 .. $num_sub_rects ) {
-
-                $self->$read_and_set_colour();
-                $socket->read( my $subrect, $geombytes )
-                  || die 'unexpected end of data';
-                my ( $sx, $sy, $sw, $sh ) = unpack $format, $subrect;
-                $image->fill_rectangle( $x + $sx, $y + $sy, $sw, $sh );
-
-            }
-
-            ### Hextile encoding ###
-        }
-        elsif ( $encoding_type == 5 ) {
-
-            my $maxx = $x + $w;
-            my $maxy = $y + $h;
-            my $background;
-            my $foreground;
-
-            # Step over 16x16 tiles in the target rectangle
-            for ( my $ry = $y; $ry < $maxy; $ry += 16 ) {
-                my $rh = $maxy - $ry > 16 ? 16 : $maxy - $ry;
-                for ( my $rx = $x; $rx < $maxx; $rx += 16 ) {
-                    my $rw = $maxx - $rx > 16 ? 16 : $maxx - $rx;
-                    $socket->read( my $mask, 1 )
-                      || die 'unexpected end of data';
-                    $mask = unpack 'C', $mask;
-
-                    if ( $mask & 0x1 ) {    # Raw tile
-                        for my $py ( $ry .. $ry + $rh - 1 ) {
-                            for my $px ( $rx .. $rx + $rw - 1 ) {
-                                $self->$read_and_set_colour();
-                                $image->draw_point( $px, $py );
-                            }
-                        }
-
-                    }
-                    else {
-
-                        if ( $mask & 0x2 ) {    # background set
-                            $background = $self->$read_and_set_colour();
-                        }
-                        if ( $mask & 0x4 ) {    # foreground set
-                            $foreground = $self->$read_and_set_colour();
-                        }
-                        if ( $mask & 0x8 ) {    # has subrects
-
-                            $socket->read( my $nsubrects, 1 )
-                              || die 'unexpected end of data';
-                            $nsubrects = unpack 'C', $nsubrects;
-
-                            if ( !$mask & 0x10 ) {    # use foreground colour
-                                $image->set_colour( @{$foreground} );
-                            }
-                            for my $i ( 1 .. $nsubrects ) {
-                                if ( $mask & 0x10 ) { # use per-subrect colour
-                                    $self->$read_and_set_colour();
-                                }
-                                $socket->read( my $pos, 1 )
-                                  || die 'unexpected end of data';
-                                $pos = unpack 'C', $pos;
-                                $socket->read( my $size, 1 )
-                                  || die 'unexpected end of data';
-                                $size = unpack 'C', $size;
-                                my $sx = $pos >> 4;
-                                my $sy = $pos & 0xff;
-                                my $sw = 1 + ( $size >> 4 );
-                                my $sh = 1 + ( $size & 0xff );
-                                $image->fill_rectangle( $rx + $sx, $ry + $sy,$sw, $sh );
-                            }
-
-                        }
-                        else {    # no subrects
-                            $image->set_colour( @{$background} );
-                            $image->fill_rectangle( $rx, $ry, $rw, $rh );
-                        }
-                    }
-                }
-            }
-
-            ### Cursor ###
-        }
+	### Cursor ###
         elsif ( $encoding_type == -239 ) {
 
             # realvnc 3.3 sends empty cursor messages, so skip
