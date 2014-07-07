@@ -340,3 +340,25 @@ Image *image_absdiff(Image *a, Image *b)
 
   return n;
 }
+
+void image_map_raw_data(Image *a, const unsigned char *data)
+{
+  for (int y = 0; y < a->img.rows; y++) {
+    for (int x = 0; x < a->img.cols; x++) {
+      unsigned char red = *data++;
+      unsigned char blue = *data++;
+      unsigned char green = *data++;
+      data++; // 4th ignored
+      a->img.at<cv::Vec3b>(y, x)[0] = red;
+      a->img.at<cv::Vec3b>(y, x)[1] = blue;      
+      a->img.at<cv::Vec3b>(y, x)[2] = green;
+    }
+  }
+}
+
+// copy the s image into a at x,y
+void image_blend_image(Image *a, Image *s, long x, long y)
+{
+  cv::Rect roi( cv::Point( x, y ), s->img.size() );
+  s->img.copyTo( a->img( roi ) );
+}

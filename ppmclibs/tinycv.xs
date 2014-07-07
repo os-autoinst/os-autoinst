@@ -68,6 +68,16 @@ tinycv::Image copyrect(tinycv::Image self, long x, long y, long width, long heig
   OUTPUT:
     RETVAL
 
+void map_raw_data(tinycv::Image self, unsigned char *data)
+  CODE:
+    image_map_raw_data(self, data);
+
+
+void blend(tinycv::Image self, tinycv::Image source, long x, long y)
+  CODE:
+    image_blend_image(self, source, x, y);
+
+
 void threshold(tinycv::Image self, int level)
   CODE:
     image_threshold(self, level);
