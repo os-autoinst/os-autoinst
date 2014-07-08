@@ -109,8 +109,8 @@ share( $vars{SCREENSHOTINTERVAL} );    # to adjust at runtime
 our $idlethreshold       = ( $vars{IDLETHRESHOLD} || $vars{IDLETHESHOLD} || 18 ) * $clock_ticks / 100;    # % load max for being considered idle
 
 our $realname = "Bernhard M. Wiedemann";
-our $username = $vars{LIVETEST} ? "root" : $vars{UPGRADE} ? "openqa" : "bernhard";
-our $password = $vars{LIVETEST} ? "" : $vars{UPGRADE} ? "openqa" : "nots3cr3t";
+our $username;
+our $password;
 
 our $testresults    = "testresults";
 our $screenshotpath = "qemuscreenshot";
@@ -142,6 +142,19 @@ sub init {
         $testedversion =~ s/\.iso$//;
         $testedversion =~ s{-Media1?$}{};
     }
+
+    # defaults for username and password
+    if ($vars{LIVETEST}) {
+        $username = "root";
+        $password = '';
+    }
+    else {
+        $username = "bernhard";
+        $password = "nots3cr3t";
+    }
+
+    $username = $vars{USERNAME} if $vars{USERNAME};
+    $password = $vars{PASSWORD} if defined $vars{PASSWORD};
 
     result_dir(); # init testresults dir
 
