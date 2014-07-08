@@ -21,6 +21,7 @@ backendexec_SCRIPTS = \
 	backend/baseclass.pm \
 	backend/kvm2usb.pm \
 	backend/qemu.pm \
+	backend/VNC.pm \
 	backend/vbox.pm
 
 backendhelpexecdir = $(pkglibexecdir)/backend/helper
