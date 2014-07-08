@@ -267,7 +267,7 @@ sub runtest($$) {
 
         # FIXME: there should be a test class that handles this
         if ( $self->{'category'} eq 'x11test' && $name ne 'shutdown' ) {
-            assert_screen('test-consoletest_finish-1');
+            assert_screen('generic-desktop');
         }
     };
     if ($@) {
