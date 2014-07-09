@@ -524,7 +524,7 @@ sub send_key($;$) {
     my $wait = shift || 0;
     fctlog( 'send_key', "key=$key" );
     eval { $backend->send_key($key); };
-    print STDERR "Error send_key key=$key\n" if ($@);
+    mydie "Error send_key key=$key\n" if ($@);
     #sleep(0.1);
     wait_idle() if $wait;
 }
