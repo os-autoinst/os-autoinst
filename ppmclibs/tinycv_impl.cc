@@ -76,8 +76,10 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   int scene_width = scene_bottom_x - scene_x;
   int scene_height = scene_bottom_y - scene_y;
 
-  Mat scene_roi = scene->img(Rect(scene_x, scene_y, scene_width, scene_height));
-  Mat object_roi = object->img(Rect(x, y, width, height));
+  // Mat scene_roi = scene->img(Rect(scene_x, scene_y, scene_width, scene_height));
+  // Mat object_roi = object->img(Rect(x, y, width, height));
+  Mat scene_roi(scene->img, Rect(scene_x, scene_y, scene_width, scene_height));
+  Mat object_roi(object->img, Rect(x, y, width, height));
 
   // Calculate size of result matrix and create it. If scene is W x H
   // and object is w x h, res is (W - w + 1) x ( H - h + 1)
@@ -107,18 +109,18 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
   matchTemplate(byte_scene_roi, byte_object_roi, result, CV_TM_CCOEFF_NORMED);
 
-  // Localizing the best math with minMaxLoc
+  // Localizing the best match with minMaxLoc
   double minval, maxval;
   Point  minloc, maxloc;
   minMaxLoc(result, &minval, &maxval, &minloc, &maxloc, Mat());
 
 #if DEBUG
-  Mat s = byte_scene.clone();
+  Mat s = byte_scene_roi.clone();
   rectangle(s, Point(maxloc.x, maxloc.y),
 	    Point(maxloc.x + object->img.cols, maxloc.y + object->img.rows),
 	    CV_RGB(255,0,0), 1);
-  imwrite("debug-scene.png", byte_scene);
-  imwrite("debug-object.png", byte_crop_object);
+  imwrite("debug-scene.png", byte_scene_roi);
+  imwrite("debug-object.png", byte_object_roi);
 #endif
 
   outvec[0] = int(maxloc.x);
@@ -129,7 +131,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   similarity = maxval;
 
   gettimeofday(&tv2, 0);
-  printf("search_template %ld\n", (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000);
+  printf("search_template %ld ms\n", (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000);
   return outvec;
 }
 
