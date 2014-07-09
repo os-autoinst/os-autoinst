@@ -51,27 +51,16 @@ sub send_key($) {
     $self->send( { "execute" => "send-key", "arguments" => { 'keys' => $keys } } );
 }
 
-# warning: will not work due to https://bugs.launchpad.net/qemu/+bug/752476
 sub mouse_set($$) {
     my $self = shift;
     my ( $x, $y ) = @_;
 
-    # ... assuming size of screen is 800x600
-    # (FIXME: size from last screenshot?)
-    my ( $rx, $ry ) = ( 800, 600 );
-    my $ax = int( $x / $rx * 0x7fff );
-    my $ay = int( $y / $ry * 0x7fff );
-    $self->send("mouse_move $ax $ay");
+    $self->send({ 'VNC' => "mouse_set", 'arguments' => { 'x' => $x, 'y' => $y } } );
 }
 
 sub mouse_button($$$) {
     my ( $self, $button, $bstate ) = @_;
-    $self->{'mousebutton'}->{$button} = $bstate;
-    my $btn_bin = 0;
-    $btn_bin |= 0b001 if ( $self->{'mousebutton'}->{'left'} );
-    $btn_bin |= 0b010 if ( $self->{'mousebutton'}->{'right'} );
-    $btn_bin |= 0b100 if ( $self->{'mousebutton'}->{'middle'} );
-    $self->send("mouse_button $btn_bin");
+    $self->send({ 'VNC' => "mouse_button", 'arguments' => { 'button' => $button, 'bstate' => $bstate } } );
 }
 
 sub mouse_hide(;$) {
@@ -172,19 +161,19 @@ sub do_stop_vm($) {
 sub do_savevm($) {
     my ( $self, $vmname ) = @_;
     my $rsp = $self->send("savevm $vmname")->{return};
-    print STDERR "SAVED $vmname $rsp\n";
+    bmwqemu::diag "SAVED $vmname $rsp";
     die unless ( $rsp eq "savevm $vmname" );
 }
 
 sub do_loadvm($) {
     my ( $self, $vmname ) = @_;
     my $rsp = $self->send("loadvm $vmname")->{return};
-    print STDERR "LOAD $vmname '$rsp'\n";
+    bmwqemu::diag "LOAD $vmname '$rsp'\n";
     die unless ( $rsp eq "loadvm $vmname" );
     $rsp = $self->send("stop")->{return};
-    print STDERR "stop $rsp\n";
+    bmwqemu::diag "stop $rsp\n";
     $rsp = $self->send("cont")->{return};
-    print STDERR "cont $rsp\n";
+    bmwqemu::diag "cont $rsp\n";
 }
 
 sub do_delvm($) {
@@ -246,7 +235,7 @@ sub _read_json($) {
         }
         my $qbuffer;
         my $bytes = sysread( $socket, $qbuffer, 1 );
-        if ( !$bytes ) { print STDERR "sysread failed: $!\n"; return undef; }
+        if ( !$bytes ) { bmwqemu::diag("sysread failed: $!"); return undef; }
         $rsp .= $qbuffer;
         if ( $rsp !~ m/\n/ ) { next; }
         $hash = eval { JSON::decode_json($rsp); };
@@ -285,8 +274,8 @@ sub start {
     $self->{to_parent}  = $p2;
     $self->{from_child} = $p1;
 
-    printf STDERR "$$: to_child %d, from_child %d\n", fileno( $self->{to_child} ), fileno( $self->{from_child} );
-    printf STDERR "$$: VNC %d\n", $bmwqemu::vars{VNC};
+    #printf STDERR "$$: to_child %d, from_child %d\n", fileno( $self->{to_child} ), fileno( $self->{from_child} );
+    #printf STDERR "$$: VNC %d\n", $bmwqemu::vars{VNC};
 
     my $tid = shared_clone( threads->create( \&_run, fileno( $self->{from_parent} ), fileno( $self->{to_parent} ), $bmwqemu::vars{VNC} ) );
     $self->{runthread} = $tid;
@@ -300,9 +289,9 @@ sub stop {
 
     $self->send('quit');
 
-    print STDERR " waiting for console read thread to quit...\n";
+    bmwqemu::diag " waiting for console read thread to quit...";
     $self->{runthread}->join();
-    print STDERR "done\n";
+    bmwqemu::diag "done";
     $self->{runthread} = undef;
     close( $self->{to_child} );
     $self->{to_child} = undef;
@@ -353,7 +342,7 @@ sub send {
         #print STDERR "from_child got $bytes\n";
         return undef unless ($bytes);
         if ( !$rsp && $buffer eq $MAGIC_PIPE_CLOSE_STRING ) {
-            print STDERR "got quit from management thread\n";
+            bmwqemu::diag "got quit from management thread";
             return undef;
         }
         $rsp .= $buffer;
@@ -420,6 +409,8 @@ sub _read_hmp($) {
 
 # only valid in management thread
 our $vnc;
+my $mouse_xpos = 0;
+my $mouse_ypos = 0;
 
 use Time::HiRes qw(gettimeofday);
 
@@ -428,7 +419,7 @@ sub handle_vnc_command($) {
 
     my $cmd = shift;
 
-    #print STDERR "VNC ". JSON::to_json($cmd) . "\n";
+    bmwqemu::diag "VNC ". JSON::to_json($cmd);
 
     if ($cmd->{VNC} eq 'capture') {
         my $img = $vnc->capture();
@@ -440,19 +431,48 @@ sub handle_vnc_command($) {
     }
 
     if ($cmd->{VNC} eq 'mouse_hide') {
-        my $xpos = $vnc->width - 1;
-        my $ypos = $vnc->height - 1;
+        $mouse_xpos = $vnc->width - 1;
+        $mouse_ypos = $vnc->height - 1;
 
-        my $border_offset = int($cmd->{params}->{border_offset});
-        $xpos -= $border_offset;
-        $ypos -= $border_offset;
+        my $border_offset = int($cmd->{arguments}->{border_offset});
+        $mouse_xpos -= $border_offset;
+        $mouse_ypos -= $border_offset;
 
-        print STDERR "mouse_move $xpos, $ypos\n";
-        $vnc->mouse_move_to($xpos, $ypos);
+        bmwqemu::diag "mouse_move $mouse_xpos, $mouse_ypos";
+        $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
         return {};
     }
 
-    die "unsupport VNC command " . $cmd->{VNC};
+    if ($cmd->{VNC} eq 'mouse_set') {
+        # TODO: for framebuffers larger than 1024x768, we need to upscale
+        $mouse_xpos = int($cmd->{arguments}->{x});
+        $mouse_ypos = int($cmd->{arguments}->{y});
+
+        bmwqemu::diag "mouse_move $mouse_xpos, $mouse_ypos";
+        $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
+        return {};
+    }
+
+    if ($cmd->{VNC} eq 'mouse_button') {
+        my $button = $cmd->{arguments}->{button};
+        my $bstate = $cmd->{arguments}->{bstate};
+
+        my $mask = 0;
+        if ($button eq 'left') {
+            $mask = $bstate;
+        }
+        elsif ($button eq 'right') {
+            $mask = $bstate << 2;
+        }
+        elsif ($button eq 'middle') {
+            $mask = $bstate << 1;
+        }
+        bmwqemu::diag "pointer_event $mask $mouse_xpos, $mouse_ypos";
+        $vnc->send_pointer_event( $mask, $mouse_xpos, $mouse_ypos );
+        return {};
+    }
+
+    die "unsupported VNC command " . $cmd->{VNC};
 }
 
 our $qmpsocket;
@@ -629,7 +649,11 @@ sub _run {
                 }
             }
             elsif ( $fh == $vnc->socket) {
-                $vnc->receive_message();
+                eval {$vnc->receive_message();};
+                if ($@) {
+                    bmwqemu::diag "VNC failed $@";
+                    last SELECT;
+                }
                 #$vnc->send_update_request;
             }
             else {
@@ -638,6 +662,7 @@ sub _run {
         }
     }
 
+    close($vnc->socket);
     close($qmpsocket) || die "close $!\n";
     close($hmpsocket) || die "close $!\n";
     close($cmdpipe)   || die "close $!\n";

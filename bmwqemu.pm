@@ -26,10 +26,10 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
 @ISA    = qw(Exporter);
 @EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $serialfile $testedversion %cmd %vars
   &save_vars &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
-  &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &clickimage &result_dir
+  &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &result_dir
   &wait_encrypt_prompt
   &timeout_screenshot &waitidle &wait_idle &wait_serial &assert_screen &waitstillimage
-  &check_screen &goandclick &set_current_test &become_root &upload_logs
+  &check_screen &assert_and_click &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
   &getcurrentscreenshot &power &mydie &check_var &make_snapshot &load_snapshot
@@ -403,7 +403,7 @@ sub result_dir() {
 }
 
 our $lastscreenshot;
-our $lastscreenshotName;
+our $lastscreenshotName = '';
 
 sub getcurrentscreenshot(;$) {
     my $undef_on_standstill = shift;
@@ -561,19 +561,9 @@ sub sendpassword() {
 ## keyboard end
 
 ## mouse
-sub mouse_move($$;$) {
-    my $mdx = shift;
-    my $mdy = shift;
-    my $sleep = shift || 0;
-    fctlog( 'mouse_move', "delta_x=$mdx", "delta_y=$mdy" );
-    $backend->mouse_move( $mdx, $mdy );
-    sleep $sleep;
-}
-
-sub mouse_set($$;$) {
+sub mouse_set($$) {
     my $mx = shift;
     my $my = shift;
-    my $sleep = shift || 0;
     fctlog( 'mouse_set', "x=$mx", "y=$my" );
     $backend->mouse_set( $mx, $my );
 }
@@ -1109,16 +1099,6 @@ sub _assert_screen {
             $current_test->record_screenmatch( $img, $foundneedle, \@tags );
             my $lastarea = $foundneedle->{'area'}->[-1];
             fctres( sprintf( "found %s, similarity %.2f @ %d/%d", $foundneedle->{'needle'}->{'name'}, $lastarea->{'similarity'}, $lastarea->{'x'}, $lastarea->{'y'} ) );
-            if ( $args{'click'} ) {
-                my $rx = 1;                                                   # $origx / $img->xres();
-                my $ry = 1;                                                   # $origy / $img->yres();
-                my $x  = ( $lastarea->{'x'} + $lastarea->{'w'} / 2 ) * $rx;
-                my $y  = ( $lastarea->{'y'} + $lastarea->{'h'} / 2 ) * $ry;
-                diag("clicking at $x/$y");
-                mouse_set( $x, $y );
-                mouse_click( $args{'click'}, $args{'clicktime'} );
-            }
-
             return $foundneedle;
         }
         diag("STAT $statstr");
@@ -1281,15 +1261,21 @@ sub check_screen($;$) {
     return _assert_screen( mustmatch => $_[0], timeout => $_[1], check => 1 );
 }
 
-# warning: will not work due to https://bugs.launchpad.net/qemu/+bug/752476
-# sub goandclick($;$$$) {
-#     return _assert_screen(
-#         mustmatch => $_[0],
-#         click     => ( $_[1] || 'left' ),
-#         timeout   => $_[2],
-#         clicktime => $_[3]
-#     );
-# }
+sub assert_and_click($;$$$) {
+    my $foundneedle = _assert_screen(
+        mustmatch => $_[0],
+        timeout   => $_[2]
+    );
+    # foundneedle has to be set, or the assert is buggy :)
+    my $lastarea = $foundneedle->{'area'}->[-1];
+    my $rx = 1;                                                   # $origx / $img->xres();
+    my $ry = 1;                                                   # $origy / $img->yres();
+    my $x  = int(( $lastarea->{'x'} + $lastarea->{'w'} / 2 ) * $rx);
+    my $y  = int(( $lastarea->{'y'} + $lastarea->{'h'} / 2 ) * $ry);
+    diag("clicking at $x/$y");
+    mouse_set( $x, $y );
+    mouse_click( $_[1], $_[3] );
+}
 
 sub make_snapshot($) {
     my $sname = shift;
