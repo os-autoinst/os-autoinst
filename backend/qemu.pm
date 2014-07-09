@@ -56,22 +56,11 @@ sub mouse_set($$) {
     my ( $x, $y ) = @_;
 
     $self->send({ 'VNC' => "mouse_set", 'arguments' => { 'x' => $x, 'y' => $y } } );
-    # ... assuming size of screen is 800x600
-    # (FIXME: size from last screenshot?)
-    my ( $rx, $ry ) = ( 800, 600 );
-    my $ax = int( $x / $rx * 0x7fff );
-    my $ay = int( $y / $ry * 0x7fff );
-    $self->send("mouse_move $ax $ay");
 }
 
 sub mouse_button($$$) {
     my ( $self, $button, $bstate ) = @_;
-    $self->{'mousebutton'}->{$button} = $bstate;
-    my $btn_bin = 0;
-    $btn_bin |= 0b001 if ( $self->{'mousebutton'}->{'left'} );
-    $btn_bin |= 0b010 if ( $self->{'mousebutton'}->{'right'} );
-    $btn_bin |= 0b100 if ( $self->{'mousebutton'}->{'middle'} );
-    $self->send("mouse_button $btn_bin");
+    $self->send({ 'VNC' => "mouse_button", 'arguments' => { 'button' => $button, 'bstate' => $bstate } } );
 }
 
 sub mouse_hide(;$) {
@@ -420,6 +409,8 @@ sub _read_hmp($) {
 
 # only valid in management thread
 our $vnc;
+my $mouse_xpos = 0;
+my $mouse_ypos = 0;
 
 use Time::HiRes qw(gettimeofday);
 
@@ -440,19 +431,48 @@ sub handle_vnc_command($) {
     }
 
     if ($cmd->{VNC} eq 'mouse_hide') {
-        my $xpos = $vnc->width - 1;
-        my $ypos = $vnc->height - 1;
+        $mouse_xpos = $vnc->width - 1;
+        $mouse_ypos = $vnc->height - 1;
 
-        my $border_offset = int($cmd->{params}->{border_offset});
-        $xpos -= $border_offset;
-        $ypos -= $border_offset;
+        my $border_offset = int($cmd->{arguments}->{border_offset});
+        $mouse_xpos -= $border_offset;
+        $mouse_ypos -= $border_offset;
 
-        bmwqemu::diag "mouse_move $xpos, $ypos";
-        $vnc->mouse_move_to($xpos, $ypos);
+        bmwqemu::diag "mouse_move $mouse_xpos, $mouse_ypos";
+        $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
         return {};
     }
 
-    die "unsupport VNC command " . $cmd->{VNC};
+    if ($cmd->{VNC} eq 'mouse_set') {
+        # TODO: for framebuffers larger than 1024x768, we need to upscale
+        $mouse_xpos = int($cmd->{arguments}->{x});
+        $mouse_ypos = int($cmd->{arguments}->{y});
+
+        bmwqemu::diag "mouse_move $mouse_xpos, $mouse_ypos";
+        $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
+        return {};
+    }
+
+    if ($cmd->{VNC} eq 'mouse_button') {
+        my $button = $cmd->{arguments}->{button};
+        my $bstate = $cmd->{arguments}->{bstate};
+
+        my $mask = 0;
+        if ($button eq 'left') {
+            $mask = $bstate;
+        }
+        elsif ($button eq 'right') {
+            $mask = $bstate << 2;
+        }
+        elsif ($button eq 'middle') {
+            $mask = $bstate << 1;
+        }
+        bmwqemu::diag "pointer_event $mask $mouse_xpos, $mouse_ypos";
+        $vnc->send_pointer_event( $mask, $mouse_xpos, $mouse_ypos );
+        return {};
+    }
+
+    die "unsupported VNC command " . $cmd->{VNC};
 }
 
 our $qmpsocket;
@@ -629,7 +649,11 @@ sub _run {
                 }
             }
             elsif ( $fh == $vnc->socket) {
-                $vnc->receive_message();
+                eval {$vnc->receive_message();};
+                if ($@) {
+                    bmwqemu::diag "VNC failed $@";
+                    last SELECT;
+                }
                 #$vnc->send_update_request;
             }
             else {
@@ -638,6 +662,7 @@ sub _run {
         }
     }
 
+    close($vnc->socket);
     close($qmpsocket) || die "close $!\n";
     close($hmpsocket) || die "close $!\n";
     close($cmdpipe)   || die "close $!\n";
