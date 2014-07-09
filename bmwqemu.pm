@@ -343,7 +343,7 @@ sub set_ocr_rect { @ocrrect = @_; }
 
 sub diag($) {
     $logfd && print $logfd "@_\n";
-    #    return unless $debug;
+    return unless $debug;
     print STDERR "@_\n";
 }
 
@@ -522,9 +522,9 @@ send_key($qemu_key_name[, $wait_idle])
 sub send_key($;$) {
     my $key = shift;
     my $wait = shift || 0;
-    #fctlog( 'send_key', "key=$key" );
+    fctlog( 'send_key', "key=$key" );
     eval { $backend->send_key($key); };
-    print STDERR "Error send_key key=$key\n" if ($@);
+    mydie "Error send_key key=$key\n" if ($@);
     #sleep(0.1);
     wait_idle() if $wait;
 }
