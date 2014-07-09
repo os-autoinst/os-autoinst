@@ -9,7 +9,7 @@ use bmwqemu qw(diag);
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       server_endian  _pixinfo _colourmap _framebuffer _rfb_version
-      _bpp _true_colour _big_endian
+      _bpp _true_colour _big_endian absolute
       )
 );
 our $VERSION = '0.40';
@@ -45,7 +45,12 @@ my @encodings = (
         num       => -223,
         name      => 'DesktopSize',
         supported => 1,
-    }
+    },
+    {
+        num       => -257,
+        name      => 'VNC_ENCODING_POINTER_TYPE_CHANGE',
+        supported => 1,
+    },
 );
 
 sub list_encodings {
@@ -250,6 +255,7 @@ sub _server_initialization {
             $pixinfo{$key} = $supported_depths{ $self->depth }->{$key};
         }
     }
+    $self->absolute(0);
 
     if ( !$self->width ) {
         $self->width($framebuffer_width);
@@ -367,6 +373,7 @@ sub send_key_event_string {
 
 sub send_pointer_event {
     my ( $self, $button_mask, $x, $y ) = @_;
+    bmwqemu::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
 
     $self->socket->print(
         pack(
@@ -467,6 +474,10 @@ sub _receive_update {
             $self->height($h);
             $image = tinycv::new( $self->width, $self->height );
             $self->_framebuffer($image);
+        }
+        elsif ( $encoding_type == -257 ) {
+            bmwqemu::diag("pointer type $x $y $w $h $encoding_type");
+            $self->absolute($x);
         }
         else {
             die 'unsupported update encoding ' . $encoding_type;
