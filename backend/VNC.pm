@@ -2,7 +2,6 @@ package backend::VNC;
 use strict;
 use warnings;
 use base qw(Class::Accessor::Fast);
-use Crypt::DES;
 use IO::Socket::INET;
 use bytes;
 use bmwqemu qw(diag);
