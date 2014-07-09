@@ -67,11 +67,25 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
     return outvec;
   }
 
-  // Calculate size of result matrix and create it If scene is W x H
+  // Optimization -- Search close to the original area working with ROI
+  int margin = 50;  // Initial margin in pixels.  Alternative: use % of needle area
+  int scene_x = std::max(0, int(x-margin));
+  int scene_y = std::max(0, int(y-margin));
+  int scene_bottom_x = std::min(scene->img.cols, int(x+width+margin));
+  int scene_bottom_y = std::min(scene->img.rows, int(y+height+margin));
+  int scene_width = scene_bottom_x - scene_x;
+  int scene_height = scene_bottom_y - scene_y;
+
+  // Mat scene_roi = scene->img(Rect(scene_x, scene_y, scene_width, scene_height));
+  // Mat object_roi = object->img(Rect(x, y, width, height));
+  Mat scene_roi(scene->img, Rect(scene_x, scene_y, scene_width, scene_height));
+  Mat object_roi(object->img, Rect(x, y, width, height));
+
+  // Calculate size of result matrix and create it. If scene is W x H
   // and object is w x h, res is (W - w + 1) x ( H - h + 1)
-  int res_width  = scene->img.cols - width + 1; // object->img.cols + 1;
-  int res_height = scene->img.rows - height + 1; // object->img.rows + 1;
-  if (res_width <= 0 || res_height <= 0) {
+  int result_width  = scene_roi.cols - width + 1; // object->img.cols + 1;
+  int result_height = scene_roi.rows - height + 1; // object->img.rows + 1;
+  if (result_width <= 0 || result_height <= 0) {
      similarity = 0;
      outvec[0] = 0;   
      outvec[1] = 0;
@@ -79,33 +93,34 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
      outvec[3] = 0;
      return outvec;
   }
-  Mat res = Mat::zeros(res_height, res_width, CV_32FC1);
-  Mat byte_scene;
-  cvtColor(scene->img, byte_scene, CV_8U);
-  GaussianBlur(byte_scene, byte_scene, Size(5, 5), 0, 0);
 
-  Mat byte_crop_object;
-  cvtColor(object->img, byte_crop_object, CV_8U);
-  GaussianBlur(byte_crop_object, byte_crop_object, Size(5, 5), 0, 0);
-  byte_crop_object = Mat(byte_crop_object, Range(y, y+height), Range(x, x+width));
+  Mat result = Mat::zeros(result_height, result_width, CV_32FC1);
+
+  Mat byte_scene_roi;
+  cvtColor(scene_roi, byte_scene_roi, CV_8U);
+  GaussianBlur(byte_scene_roi, byte_scene_roi, Size(5, 5), 0, 0);
+
+  Mat byte_object_roi;
+  cvtColor(object_roi, byte_object_roi, CV_8U);
+  GaussianBlur(byte_object_roi, byte_object_roi, Size(5, 5), 0, 0);
 
   // Perform the matching. Info about algorithm:
   // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
   // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
-  matchTemplate(byte_scene, byte_crop_object, res, CV_TM_CCOEFF_NORMED);
+  matchTemplate(byte_scene_roi, byte_object_roi, result, CV_TM_CCOEFF_NORMED);
 
-  // Localizing the best math with minMaxLoc
+  // Localizing the best match with minMaxLoc
   double minval, maxval;
   Point  minloc, maxloc;
-  minMaxLoc(res, &minval, &maxval, &minloc, &maxloc, Mat());
+  minMaxLoc(result, &minval, &maxval, &minloc, &maxloc, Mat());
 
 #if DEBUG
-  Mat s = byte_scene.clone();
+  Mat s = byte_scene_roi.clone();
   rectangle(s, Point(maxloc.x, maxloc.y),
 	    Point(maxloc.x + object->img.cols, maxloc.y + object->img.rows),
 	    CV_RGB(255,0,0), 1);
-  imwrite("debug-scene.png", byte_scene);
-  imwrite("debug-object.png", byte_crop_object);
+  imwrite("debug-scene.png", byte_scene_roi);
+  imwrite("debug-object.png", byte_object_roi);
 #endif
 
   outvec[0] = int(maxloc.x);
@@ -116,7 +131,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   similarity = maxval;
 
   gettimeofday(&tv2, 0);
-  printf("search_template %ld\n", (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000);
+  printf("search_template %ld ms\n", (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000);
   return outvec;
 }
 
