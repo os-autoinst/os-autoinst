@@ -363,11 +363,60 @@ sub send_key_event {
     $self->send_key_event_up($key);
 }
 
-sub send_key_event_string {
-    my ( $self, $string ) = @_;
-    foreach my $key ( map {ord} split //, $string ) {
-        warn $key;
-        $self->send_key_event($key);
+my $keymap = {
+    'esc' => 0xff1b,
+    'down' => 0xff54,
+    'right' => 0xff53,
+    'up' => 0xff52,
+    'left' => 0xff51,
+    'equal' => ord('='),
+    'spc' => ord(' '),
+    'minus' => ord('-'),
+    'shift' => 0xffe1,
+    'ctrl' => 0xffe3, # left, right is e4
+    'meta' => 0xffe7, # left, right is e8
+    'alt' => 0xffe9, # left one, right is ea
+    'f1' => 0xffbe,
+    'f2' => 0xffbf,
+    'f3' => 0xffc0,
+    'f4' => 0xffc1,
+    'f5' => 0xffc2,
+    'f6' => 0xffc3,
+    'f7' => 0xffc4,
+    'f8' => 0xffc5,
+    'f9' => 0xffc6,
+    'f10' => 0xffc7,
+    'f11' => 0xffc8,
+    'f12' => 0xffc9,
+    'ret' => 0xff0d,
+    'tab' => 0xff09,
+    'backspace' => 0xff08,
+};
+
+sub send_mapped_key {
+    my ($self, $keys) = @_;
+    my @events;
+    bmwqemu::diag "send_mapped_key '$keys'";
+    for my $key (split('-', $keys)) {
+        if (length($key) == 1) {
+            $key = ord($key);
+        }
+        elsif (defined($keymap->{$key})) {
+            $key = $keymap->{$key};
+        }
+        else {
+            die "No map for '$key'";
+            $key = ord('X');
+        }
+        push(@events, $key);
+    }
+    for my $key (@events) {
+        bmwqemu::diag "send_key_event_down $key";
+        $self->send_key_event_down($key);
+    }
+    for my $key (@events) {
+        bmwqemu::diag "send_key_event_up $key";
+        $self->send_key_event_up($key);
     }
 }
 

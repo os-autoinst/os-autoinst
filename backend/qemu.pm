@@ -47,8 +47,12 @@ use Benchmark qw(:all);
 
 sub send_key($) {
     my ( $self, $key ) = @_;
-    my $keys = [ map { { 'type' => 'qcode', 'data' => $_ } } split( '-', $key ) ];
-    $self->send( { "execute" => "send-key", "arguments" => { 'keys' => $keys } } );
+    $self->send({ 'VNC' => "send_key", 'arguments' => { 'key' => $key } });
+}
+
+sub type_string($$) {
+    my ( $self, $text, $max_interval ) = @_;
+    $self->send({ 'VNC' => "type_string", 'arguments' => { 'text' => $text, 'max_interval' => $max_interval } });
 }
 
 sub mouse_set($$) {
@@ -419,6 +423,70 @@ my $mouse_ypos = 0;
 
 use Time::HiRes qw(gettimeofday);
 
+# see http://en.wikipedia.org/wiki/IBM_PC_keyboard
+our  %charmap = (
+    # minus is special as it splits key combinations
+    "-"  => "minus",
+    # first line of US layout
+    "~"  => "shift-`",
+    "!"  => "shift-1",
+    "@"  => "shift-2",
+    "#"  => "shift-3",
+    "\$"  => "shift-4",
+    "%"  => "shift-5",
+    "^"  => "shift-6",
+    "&"  => "shift-7",
+    "*"  => "shift-8",
+    "("  => "shift-9",
+    ")"  => "shift-0",
+    "_"  => "shift-minus",
+    "+"  => "shift-=",
+
+    # second line
+    "{"  => "shift-[",
+    "}"  => "shift-]",
+    "|"  => "shift-\\",
+
+    # third line
+    ":"  => "shift-;",
+    '"'  => "shift-'",
+
+    # fourth line
+    "<"  => "shift-,",
+    ">"  => "shift-.",
+    '?'  => "shift-/",
+
+    "\t" => "tab",
+    "\n" => "ret",
+);
+
+sub type_string($$) {
+    my ($text, $maxinterval) = @_;
+    my $typedchars  = 0;
+    my @letters = split( "", $text );
+    for my $letter (@letters) {
+        $letter = $charmap{$letter} || $letter;
+        $vnc->send_mapped_key($letter);
+        my ( $s1, $ms1 ) = gettimeofday;
+        $vnc->send_update_request;
+        my $s = IO::Select->new();
+        $s->add($vnc->socket);
+        # it happens that the screen does not change, so we need to have a timeout
+        if ($s->can_read(.2)) {
+            $vnc->receive_message();
+        }
+        if ( $typedchars++ >= $maxinterval ) {
+            bmwqemu::diag "sleep";
+            while ($s->can_read(.2)) {
+                $vnc->receive_message();
+                my ( $s2, $ms2 ) = gettimeofday;
+                last if ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6 > 1.8;
+            }
+            $typedchars = 0;
+        }
+    }
+}
+
 # runs in the thread to deserialize VNC commands
 sub handle_vnc_command($) {
 
@@ -474,6 +542,17 @@ sub handle_vnc_command($) {
         }
         bmwqemu::diag "pointer_event $mask $mouse_xpos, $mouse_ypos";
         $vnc->send_pointer_event( $mask, $mouse_xpos, $mouse_ypos );
+        return {};
+    }
+
+    if ($cmd->{VNC} eq 'send_key') {
+        $vnc->send_mapped_key($cmd->{arguments}->{key});
+        $vnc->send_update_request;
+        return {};
+    }
+
+    if ($cmd->{VNC} eq 'type_string') {
+        type_string($cmd->{arguments}->{text}, $cmd->{arguments}->{max_interval});
         return {};
     }
 
@@ -654,7 +733,7 @@ sub _run {
                 }
             }
             elsif ( $fh == $vnc->socket) {
-                eval {$vnc->receive_message();};
+                eval { $vnc->receive_message(); };
                 if ($@) {
                     bmwqemu::diag "VNC failed $@";
                     last SELECT;

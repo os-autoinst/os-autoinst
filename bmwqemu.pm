@@ -525,7 +525,6 @@ sub send_key($;$) {
     fctlog( 'send_key', "key=$key" );
     eval { $backend->send_key($key); };
     mydie "Error send_key key=$key\n" if ($@);
-    sleep(0.1);
     wait_idle() if $wait;
 }
 
@@ -540,19 +539,24 @@ send a string of characters, mapping them to appropriate key names as necessary
 sub type_string($;$) {
     my $string      = shift;
     my $maxinterval = shift || 250;
-    my $typedchars  = 0;
     fctlog( 'type_string', "string='$string'" );
-    my @letters = split( "", $string );
-    while (@letters) {
-        my $letter = shift @letters;
-        if ( $charmap{$letter} ) { $letter = $charmap{$letter} }
-        send_key $letter, 0;
-        if ( $typedchars++ >= $maxinterval ) {
-            waitstillimage(1.6);
-            $typedchars = 0;
-        }
+    if ($backend->can('type_string')) {
+        $backend->type_string($string, $maxinterval);
     }
-    waitstillimage(1.6) if ( $typedchars > 0 );
+    else {
+        my $typedchars  = 0;
+        my @letters = split( "", $string );
+        while (@letters) {
+            my $letter = shift @letters;
+            if ( $charmap{$letter} ) { $letter = $charmap{$letter} }
+            send_key $letter, 0;
+            if ( $typedchars++ >= $maxinterval ) {
+                waitstillimage(1.6);
+                $typedchars = 0;
+            }
+        }
+        waitstillimage(1.6) if ( $typedchars > 0 );
+    }
 }
 
 sub sendpassword() {
