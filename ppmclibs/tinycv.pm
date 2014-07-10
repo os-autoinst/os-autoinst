@@ -64,7 +64,7 @@ sub search_($$) {
     my $ret = { ok => 1, needle => $needle, area => [] };
 
     for my $area (@match) {
-        ( $sim, $xmatch, $ymatch, $d1, $d2 ) = $img->search_needle( $needle->get_image, $area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'} );
+        ( $sim, $xmatch, $ymatch, $d1, $d2 ) = $img->search_needle( $needle->get_image, $area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'}, $area->{'margin'} );
         bmwqemu::diag( sprintf( "MATCH(%s:%.2f): $xmatch $ymatch", $needle->{name}, $sim ) );
 
         my $ma = {
@@ -81,7 +81,7 @@ sub search_($$) {
         # 01-test_needle and the console tests (for example, using
         # more smaller areas)
 
-        my $m = ( $area->{match} || 96.6 ) / 100;
+        my $m = ( $area->{'match'} || 96.6 ) / 100;
         #if ( $sim < 1 ) {
         #    my $needle_img = $needle->get_image($area);
         #    if ($needle_img) {

@@ -8,7 +8,7 @@ Image *image_new(long width, long height);
 Image *image_read(const char *filename);
 bool image_write(Image *s, const char *filename);
 
-std::vector<int> image_search(Image *s, Image *needle, long x, long y, long width, long height, double &similarity);
+std::vector<int> image_search(Image *s, Image *needle, long x, long y, long width, long height, long margin, double &similarity);
 // std::vector<int> image_search_fuzzy(Image *s, Image *needle);
 
 std::string image_checksum(Image *s);
