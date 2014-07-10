@@ -68,7 +68,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   }
 
   // Optimization -- Search close to the original area working with ROI
-  int margin = 50;  // Initial margin in pixels.  Alternative: use % of needle area
+  int margin = 150;  // Initial margin in pixels.  Alternative: use % of needle area
   int scene_x = std::max(0, int(x-margin));
   int scene_y = std::max(0, int(y-margin));
   int scene_bottom_x = std::min(scene->img.cols, int(x+width+margin));
