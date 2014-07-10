@@ -63,11 +63,16 @@ sub mouse_button($$$) {
     $self->send({ 'VNC' => "mouse_button", 'arguments' => { 'button' => $button, 'bstate' => $bstate } } );
 }
 
+sub mouse_hide(;$);
 sub mouse_hide(;$) {
     my $self = shift;
     my $border_offset = shift || 0;
 
-    $self->send({ 'VNC' => "mouse_hide", 'arguments' => { 'border_offset' => $border_offset } } );
+    my $rsp = $self->send({ 'VNC' => "mouse_hide", 'arguments' => { 'border_offset' => $border_offset } } );
+    if ($rsp->{absolute} eq '0') {
+        sleep 1;
+        return $self->mouse_hide($border_offset);
+    }
 }
 
 sub raw_alive($) {
@@ -203,7 +208,7 @@ sub send($) {
     my $self   = shift;
     my $cmdstr = shift;
 
-    #print STDERR "backend::send -> $cmdstr\n";
+    #bmwqemu::diag "backend::send -> $cmdstr";
     my $rspt = $self->{mgmt}->send($cmdstr);
     write_crash_file unless $rspt;
     my $rsp  = JSON::decode_json($rspt);
@@ -213,7 +218,7 @@ sub send($) {
         die JSON::to_json($rsp);
     }
 
-    #print STDERR "backend::send $cmdstr -> $rspt\n";
+    bmwqemu::diag "backend::send $cmdstr -> $rspt";
     return $rsp->{rsp};
 }
 
@@ -440,7 +445,7 @@ sub handle_vnc_command($) {
 
         bmwqemu::diag "mouse_move $mouse_xpos, $mouse_ypos";
         $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
-        return {};
+        return { 'absolute' => $vnc->absolute };
     }
 
     if ($cmd->{VNC} eq 'mouse_set') {
@@ -582,7 +587,7 @@ sub _run {
         ( $s2, $ms2 ) = gettimeofday();
         $rest = $interval - ( $s2 - $screenshot_sec ) - ( $ms2 - $screenshot_msec ) / 1e6;
 
-        if ($vnc->_framebuffer && $rest < 0.1 ) {
+        if ($vnc->_framebuffer && $rest < 0.05 ) {
             bmwqemu::enqueue_screenshot($vnc->_framebuffer->scale( 1024, 768 ));
             ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
             $vnc->send_update_request;
