@@ -45,6 +45,7 @@ sub new($;$) {
         }
         $a->{'match'} = $area->{'match'} if $area->{'match'};
         $a->{'type'} = $area->{'type'} || 'match';
+        $a->{'margin'} = $area->{'margin'} || 50;
 
         $gotmatch = 1 if $a->{'type'} eq 'match';
 
@@ -78,7 +79,7 @@ sub save($;$) {
     my @area;
     for my $a ( @{ $self->{'area'} } ) {
         my $aa = {};
-        for my $tag (qw/xpos ypos width height max_offset processing_flags match type/) {
+        for my $tag (qw/xpos ypos width height max_offset processing_flags match type margin/) {
             $aa->{$tag} = $a->{$tag} if defined $a->{$tag};
         }
         push @area, $aa;

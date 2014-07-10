@@ -47,7 +47,7 @@ std::vector<char> str2vec(std::string str_in) {
 	return out;
 }
 
-std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x, long y, long width, long height, double &similarity) {
+std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x, long y, long width, long height, long margin, double &similarity) {
   // cvSetErrMode(CV_ErrModeParent);
   // cvRedirectError(MyErrorHandler);
 
@@ -68,7 +68,6 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   }
 
   // Optimization -- Search close to the original area working with ROI
-  int margin = 150;  // Initial margin in pixels.  Alternative: use % of needle area
   int scene_x = std::max(0, int(x-margin));
   int scene_y = std::max(0, int(y-margin));
   int scene_bottom_x = std::min(scene->img.cols, int(x+width+margin));
@@ -315,9 +314,9 @@ std::vector<float> image_avgcolor(Image *s)
   return f;
 }
 
-std::vector<int> image_search(Image *s, Image *needle, long x, long y, long width, long height, double &similarity)
+std::vector<int> image_search(Image *s, Image *needle, long x, long y, long width, long height, long margin, double &similarity)
 {
-  return search_TEMPLATE(s, needle, x, y, width, height, similarity);
+  return search_TEMPLATE(s, needle, x, y, width, height, margin, similarity);
 }
 
 

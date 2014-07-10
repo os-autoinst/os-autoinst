@@ -90,10 +90,10 @@ void avgcolor(tinycv::Image self)
     PUSHs(sv_2mortal(newSVnv(res[1])));
     PUSHs(sv_2mortal(newSVnv(res[2])));
  
-void search_needle(tinycv::Image self, tinycv::Image needle, long x, long y, long width, long height)
+void search_needle(tinycv::Image self, tinycv::Image needle, long x, long y, long width, long height, long margin)
   PPCODE:
     double similarity = 0;
-    std::vector<int> ret = image_search(self, needle, x, y, width, height, similarity);
+    std::vector<int> ret = image_search(self, needle, x, y, width, height, margin, similarity);
     EXTEND(SP, ret.size() + 1);
 
     PUSHs(sv_2mortal(newSVnv(similarity)));

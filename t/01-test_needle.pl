@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w -I..
 
 use strict;
-use Test::More tests => 16;
+use Test::More tests => 21;
 
 BEGIN {
     $bmwqemu::vars{DISTRI}  = "unicorn";
@@ -65,11 +65,26 @@ $needle = needle->new("data/instdetails.ref.json");
 $res    = $img1->search($needle);
 ok( !defined $res, "no match different perform installation tabs" );
 
+# Check that if the margin is missing from JSON, is set in the hash
+$img1   = tinycv::read("data/uefi.test.png");
+$needle = needle->new("data/uefi.ref.json");
+ok( $needle->{area}->[0]->{margin} == 50, "search margin have the default value");
+$res    = $img1->search($needle);
+ok( !defined $res, "no found a match for an small margin" );
+
+# Check that if the margin is set in JSON, is set in the hash
+$img1   = tinycv::read("data/uefi.test.png");
+$needle = needle->new("data/uefi-margin.ref.json");
+ok( $needle->{area}->[0]->{margin} == 100, "search margin have the defined value");
+$res    = $img1->search($needle);
+ok( defined $res, "found match for a large margin" );
+
+
 needle::init("data");
 my @alltags = sort keys %needle::tags;
 
 my @needles = @{ needle::tags('FIXME') || [] };
-is( @needles, 2, "two needles found" );
+is( @needles, 4, "four needles found" );
 for my $n (@needles) {
     $n->unregister();
 }
