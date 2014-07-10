@@ -460,31 +460,38 @@ our  %charmap = (
     "\n" => "ret",
 );
 
+sub wait_for_screen_stall($) {
+   my $s = shift;
+   bmwqemu::diag "sleep";
+   my ( $s1, $ms1 ) = gettimeofday;
+   while ($s->can_read(.1)) {
+     $vnc->receive_message();
+     my ( $s2, $ms2 ) = gettimeofday; 
+     last if ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6 > 1.8;
+   }
+}
+
 sub type_string($$) {
     my ($text, $maxinterval) = @_;
     my $typedchars  = 0;
     my @letters = split( "", $text );
+    my $s = IO::Select->new();
+    $s->add($vnc->socket);
+
     for my $letter (@letters) {
         $letter = $charmap{$letter} || $letter;
         $vnc->send_mapped_key($letter);
-        my ( $s1, $ms1 ) = gettimeofday;
         $vnc->send_update_request;
-        my $s = IO::Select->new();
-        $s->add($vnc->socket);
         # it happens that the screen does not change, so we need to have a timeout
         if ($s->can_read(.2)) {
             $vnc->receive_message();
         }
         if ( $typedchars++ >= $maxinterval ) {
-            bmwqemu::diag "sleep";
-            while ($s->can_read(.2)) {
-                $vnc->receive_message();
-                my ( $s2, $ms2 ) = gettimeofday;
-                last if ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6 > 1.8;
-            }
+	    wait_for_screen_stall($s);
             $typedchars = 0;
         }
     }
+    wait_for_screen_stall($s);
 }
 
 # runs in the thread to deserialize VNC commands
