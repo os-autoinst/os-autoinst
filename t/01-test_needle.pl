@@ -68,7 +68,8 @@ ok( !defined $res, "no match different perform installation tabs" );
 # Check that if the margin is missing from JSON, is set in the hash
 $img1   = tinycv::read("data/uefi.test.png");
 $needle = needle->new("data/uefi.ref.json");
-ok( $needle->{area}->[0]->{margin} == 50, "search margin have the default value");
+ok( $needle->{area}->[0]->{margin} == 300, "search margin have the default value");
+$needle->{area}->[0]->{margin} = 50;
 $res    = $img1->search($needle);
 ok( !defined $res, "no found a match for an small margin" );
 
