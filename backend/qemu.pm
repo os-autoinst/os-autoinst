@@ -52,6 +52,7 @@ sub send_key($) {
 
 sub type_string($$) {
     my ( $self, $text, $max_interval ) = @_;
+    return unless ($text);
     $self->send({ 'VNC' => "type_string", 'arguments' => { 'text' => $text, 'max_interval' => $max_interval } });
 }
 
@@ -420,6 +421,7 @@ sub _read_hmp($) {
 our $vnc;
 my $mouse_xpos = 0;
 my $mouse_ypos = 0;
+my ( $screenshot_sec, $screenshot_msec );
 
 use Time::HiRes qw(gettimeofday);
 
@@ -461,19 +463,28 @@ our  %charmap = (
 );
 
 sub wait_for_screen_stall($) {
-   my $s = shift;
-   bmwqemu::diag "sleep";
-   my ( $s1, $ms1 ) = gettimeofday;
-   while ($s->can_read(.1)) {
-     $vnc->receive_message();
-     my ( $s2, $ms2 ) = gettimeofday; 
-     last if ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6 > 1.8;
-   }
+    my $s = shift;
+    bmwqemu::diag "sleep";
+    $vnc->send_update_request;
+    my ( $s1, $ms1 ) = gettimeofday;
+    while ($s->can_read(.15)) {
+        bmwqemu::diag "receive";
+        $vnc->receive_message();
+        bmwqemu::diag "update";
+        $vnc->send_update_request;
+        my ( $s2, $ms2 ) = gettimeofday;
+        my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
+        bmwqemu::diag "diff $diff";
+        # we can't wait longer - in password prompts there is no screen update
+        last if ($diff > 2);
+    }
+    my ( $s2, $ms2 ) = gettimeofday;
+    my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
+    bmwqemu::diag "done $diff";
 }
 
 sub type_string($$) {
-    my ($text, $maxinterval) = @_;
-    my $typedchars  = 0;
+    my ($text) = @_;
     my @letters = split( "", $text );
     my $s = IO::Select->new();
     $s->add($vnc->socket);
@@ -481,17 +492,9 @@ sub type_string($$) {
     for my $letter (@letters) {
         $letter = $charmap{$letter} || $letter;
         $vnc->send_mapped_key($letter);
-        $vnc->send_update_request;
-        # it happens that the screen does not change, so we need to have a timeout
-        if ($s->can_read(.2)) {
-            $vnc->receive_message();
-        }
-        if ( $typedchars++ >= $maxinterval ) {
-	    wait_for_screen_stall($s);
-            $typedchars = 0;
-        }
+        wait_for_screen_stall($s);
     }
-    wait_for_screen_stall($s);
+    enqueue_screenshot();
 }
 
 # runs in the thread to deserialize VNC commands
@@ -554,7 +557,9 @@ sub handle_vnc_command($) {
 
     if ($cmd->{VNC} eq 'send_key') {
         $vnc->send_mapped_key($cmd->{arguments}->{key});
-        $vnc->send_update_request;
+        my $s = IO::Select->new();
+        $s->add($vnc->socket);
+        wait_for_screen_stall($s);
         return {};
     }
 
@@ -590,6 +595,12 @@ sub handle_qmp_command($) {
     }
 
     return $hash;
+}
+
+sub enqueue_screenshot() {
+    bmwqemu::enqueue_screenshot($vnc->_framebuffer->scale( 1024, 768 ));
+    ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
+    $vnc->send_update_request;
 }
 
 sub _run {
@@ -660,7 +671,7 @@ sub _run {
     $s->add($vnc->socket);
 
     $vnc->send_update_request;
-    my ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
+    ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
     my $interval = $bmwqemu::vars{SCREENSHOTINTERVAL} || .5;
 
   SELECT: while (1) {
@@ -674,9 +685,7 @@ sub _run {
         $rest = $interval - ( $s2 - $screenshot_sec ) - ( $ms2 - $screenshot_msec ) / 1e6;
 
         if ($vnc->_framebuffer && $rest < 0.05 ) {
-            bmwqemu::enqueue_screenshot($vnc->_framebuffer->scale( 1024, 768 ));
-            ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
-            $vnc->send_update_request;
+            enqueue_screenshot();
         }
 
         for my $fh (@ready) {
