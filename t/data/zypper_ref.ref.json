@@ -1,0 +1,16 @@
+{
+  "area": [
+    {
+      "margin": 300,
+      "type": "match",
+      "height": 48,
+      "ypos": 416,
+      "width": 308,
+      "xpos": 0
+    }
+  ],
+  "tags": [
+    "zypper_ref",
+    "ENV-INSTLANG-en_US"
+  ]
+}

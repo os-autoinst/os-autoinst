@@ -45,7 +45,7 @@ sub new($;$) {
         }
         $a->{'match'} = $area->{'match'} if $area->{'match'};
         $a->{'type'} = $area->{'type'} || 'match';
-        $a->{'margin'} = $area->{'margin'} || 50;
+        $a->{'margin'} = $area->{'margin'} || 300;
 
         $gotmatch = 1 if $a->{'type'} eq 'match';
 
