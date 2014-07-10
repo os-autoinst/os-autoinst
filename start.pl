@@ -65,6 +65,17 @@ if ($init) {
     open( my $fd, ">os-autoinst.pid" );
     print $fd "$$\n";
     close $fd;
+
+    # run prestart test code before VM is started
+    if (-f "$bmwqemu::vars{CASEDIR}/prestart.pm") {
+        diag "running prestart step";
+        eval {require "$bmwqemu::vars{CASEDIR}/prestart.pm";};
+        if ($@) {
+            diag "prestart step FAIL:";
+            die $@;
+        }
+    }
+
     if ( !bmwqemu::alive ) {
         start_vm or die $@;
         sleep 3;    # wait until BIOS is gone
@@ -99,6 +110,16 @@ diag "FAIL" if $r;
 $SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
 stop_vm();
+
+# run postrun test code after VM is stopped
+if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
+    diag "running postrun step";
+    eval {require "$bmwqemu::vars{CASEDIR}/postrun.pm";};
+    if ($@) {
+        diag "postrun step FAIL:";
+        warn $@;
+    }
+}
 
 # mark it as no longer working
 delete $ENV{WORKERID};
