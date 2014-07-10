@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w -I..
 
 use strict;
-use Test::More tests => 22;
+use Test::More tests => 24;
 
 BEGIN {
     $bmwqemu::vars{DISTRI}  = "unicorn";
@@ -79,6 +79,12 @@ ok( $needle->{area}->[0]->{margin} == 100, "search margin have the defined value
 $res    = $img1->search($needle);
 ok( defined $res, "found match for a large margin" );
 ok( $res->{area}->[0]->{x} == 378 && $res->{area}->[0]->{y} == 221, "mach area coordinates" );
+
+$img1   = tinycv::read("data/zypper_ref.test.png");
+$needle = needle->new("data/zypper_ref.ref.json");
+ok( $needle->{area}->[0]->{margin} == 300, "search margin have the default value");
+$res    = $img1->search($needle);
+ok( defined $res, "found a match for 300 margin" );
 
 needle::init("data");
 my @alltags = sort keys %needle::tags;
