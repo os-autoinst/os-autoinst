@@ -122,10 +122,10 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   imwrite("debug-object.png", byte_object_roi);
 #endif
 
-  outvec[0] = int(maxloc.x);
-  outvec[1] = int(maxloc.y);
-  outvec[2] = int(maxloc.x + object->img.cols);
-  outvec[3] = int(maxloc.y + object->img.rows);
+  outvec[0] = int(maxloc.x + scene_x);
+  outvec[1] = int(maxloc.y + scene_y);
+  outvec[2] = int(maxloc.x + scene_x + object->img.cols);
+  outvec[3] = int(maxloc.y + scene_y + object->img.rows);
 
   similarity = maxval;
 

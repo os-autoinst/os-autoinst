@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w -I..
 
 use strict;
-use Test::More tests => 21;
+use Test::More tests => 22;
 
 BEGIN {
     $bmwqemu::vars{DISTRI}  = "unicorn";
@@ -10,7 +10,7 @@ BEGIN {
 
 use needle;
 use cv;
-use Data::Dump;
+use Data::Dumper;
 
 cv::init();
 require tinycv;
@@ -78,7 +78,7 @@ $needle = needle->new("data/uefi-margin.ref.json");
 ok( $needle->{area}->[0]->{margin} == 100, "search margin have the defined value");
 $res    = $img1->search($needle);
 ok( defined $res, "found match for a large margin" );
-
+ok( $res->{area}->[0]->{x} == 378 && $res->{area}->[0]->{y} == 221, "mach area coordinates" );
 
 needle::init("data");
 my @alltags = sort keys %needle::tags;
