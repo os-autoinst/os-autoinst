@@ -391,6 +391,12 @@ my $keymap = {
     'ret' => 0xff0d,
     'tab' => 0xff09,
     'backspace' => 0xff08,
+    'end' => 0xff57,
+    'delete' => 0xffff,
+    'home' => 0xff50,
+    'insert' => 0xff63,
+    'pgup' => 0xff55,
+    'pgdn' => 0xff56,
 };
 
 sub send_mapped_key {
