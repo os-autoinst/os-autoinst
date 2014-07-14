@@ -41,10 +41,11 @@ sub mean_square_error($) {
 #     }
 #   ]
 # }
-sub search_($$) {
-    my $self      = shift;
-    my $needle    = shift;
-    my $threshold = shift || 0.005;
+sub search_($$$) {
+    my $self         = shift;
+    my $needle       = shift;
+    my $threshold    = shift || 0.005;
+    my $search_ratio = shift || 0.0;
     my ( $sim, $xmatch, $ymatch, $d1, $d2 );
     my ( @exclude, @match, @ocr );
 
@@ -64,8 +65,9 @@ sub search_($$) {
     my $ret = { ok => 1, needle => $needle, area => [] };
 
     for my $area (@match) {
-        ( $sim, $xmatch, $ymatch, $d1, $d2 ) = $img->search_needle( $needle->get_image, $area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'}, $area->{'margin'} );
-        bmwqemu::diag( sprintf( "MATCH(%s:%.2f): $xmatch $ymatch", $needle->{name}, $sim ) );
+        my $margin = int($area->{'margin'} + $search_ratio * (1024 - $area->{'margin'}));
+        ( $sim, $xmatch, $ymatch, $d1, $d2 ) = $img->search_needle( $needle->get_image, $area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'}, $margin );
+        bmwqemu::diag( sprintf( "MATCH(%s:%.2f): $xmatch $ymatch [m:$margin]", $needle->{name}, $sim ) );
 
         my $ma = {
             similarity => $sim,
@@ -113,10 +115,11 @@ sub search_($$) {
 # in scalar context return found info or undef
 # in array context returns array with two elements. First element is best match
 # or undefined, second element are candidates that did not match.
-sub search($;$) {
-    my $self      = shift;
-    my $needle    = shift;
-    my $threshold = shift;
+sub search($;$$) {
+    my $self         = shift;
+    my $needle       = shift;
+    my $threshold    = shift;
+    my $search_ratio = shift;
     return undef unless $needle;
     if ( ref($needle) eq "ARRAY" ) {
         my $candidates;
@@ -124,7 +127,7 @@ sub search($;$) {
 
         # try to match all needles and return the one with the highest similarity
         for my $n (@$needle) {
-            my $found = $self->search_( $n, $threshold );
+            my $found = $self->search_( $n, $threshold, $search_ratio );
             next unless $found;
             if ( $found->{'ok'} ) {
                 if ( !$best ) {
@@ -147,7 +150,7 @@ sub search($;$) {
         }
     }
     else {
-        my $found = $self->search_( $needle, $threshold );
+        my $found = $self->search_( $needle, $threshold, $search_ratio );
         return undef unless $found;
         if (wantarray) {
             return ( $found, undef ) if ( $found->{'ok'} );
