@@ -461,14 +461,14 @@ our  %charmap = (
 );
 
 sub wait_for_screen_stall($) {
-   my $s = shift;
-   bmwqemu::diag "sleep";
-   my ( $s1, $ms1 ) = gettimeofday;
-   while ($s->can_read(.1)) {
-     $vnc->receive_message();
-     my ( $s2, $ms2 ) = gettimeofday; 
-     last if ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6 > 1.8;
-   }
+    my $s = shift;
+    bmwqemu::diag "sleep";
+    my ( $s1, $ms1 ) = gettimeofday;
+    while ($s->can_read(.1)) {
+        $vnc->receive_message();
+        my ( $s2, $ms2 ) = gettimeofday;
+        last if ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6 > 1.8;
+    }
 }
 
 sub type_string($$) {
@@ -487,7 +487,7 @@ sub type_string($$) {
             $vnc->receive_message();
         }
         if ( $typedchars++ >= $maxinterval ) {
-	    wait_for_screen_stall($s);
+            wait_for_screen_stall($s);
             $typedchars = 0;
         }
     }

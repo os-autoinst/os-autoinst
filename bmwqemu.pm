@@ -1075,6 +1075,9 @@ sub _assert_screen {
     my $oldimg;
     my $failed_candidates;
     for ( my $n = 0 ; $n < $timeout ; $n++ ) {
+        # This ratio is used to increase linearly the search area.
+        my $search_ratio =  1.0 - ($timeout - $n) / ($timeout);
+
         if ( -e $control_files{"interactive_mode"} ) {
             $interactive_mode = 1;
         }
@@ -1099,7 +1102,7 @@ sub _assert_screen {
             }
         }
         my $foundneedle;
-        ( $foundneedle, $failed_candidates ) = $img->search($needles);
+        ( $foundneedle, $failed_candidates ) = $img->search($needles, $search_ratio);
         if ($foundneedle) {
             $current_test->record_screenmatch( $img, $foundneedle, \@tags );
             my $lastarea = $foundneedle->{'area'}->[-1];
