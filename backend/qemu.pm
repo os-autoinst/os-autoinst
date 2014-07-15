@@ -73,10 +73,12 @@ sub mouse_hide(;$) {
     my $self = shift;
     my $border_offset = shift || 0;
 
-    my $rsp = $self->send({ 'VNC' => "mouse_hide", 'arguments' => { 'border_offset' => $border_offset } } );
-    if ($rsp->{absolute} eq '0') {
+    my $counter = 0;
+    while ( $counter < 10 ) {
+        my $rsp = $self->send({ 'VNC' => "mouse_hide", 'arguments' => { 'border_offset' => $border_offset } } );
+        last if $rsp->{absolute} ne '0';
         sleep 1;
-        return $self->mouse_hide($border_offset);
+        $counter++;
     }
 }
 
