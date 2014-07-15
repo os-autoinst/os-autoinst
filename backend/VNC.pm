@@ -5,6 +5,7 @@ use base qw(Class::Accessor::Fast);
 use IO::Socket::INET;
 use bytes;
 use bmwqemu qw(diag);
+use Time::HiRes qw( usleep );
 
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
@@ -420,6 +421,7 @@ sub send_mapped_key {
         bmwqemu::diag "send_key_event_down $key";
         $self->send_key_event_down($key);
     }
+    usleep(50); # just a brief moment
     for my $key (@events) {
         bmwqemu::diag "send_key_event_up $key";
         $self->send_key_event_up($key);
