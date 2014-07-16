@@ -946,7 +946,13 @@ sub wait_serial($;$$) {
         sleep 1;
     }
     if ($expect_not_found) {
-        $res ||= 'ok';
+        if (defined $res) {
+            $res = 'fail';
+        }
+        else {
+            $res ||= 'ok';
+
+        }
     }
     else {
         $res ||= 'fail';
