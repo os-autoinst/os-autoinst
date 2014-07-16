@@ -929,7 +929,7 @@ C<script_run("echo Hello World E<gt> /dev/$serialdev");>
 
 =cut
 
-sub wait_serial($;$;$) {
+sub wait_serial($;$$) {
 
     # wait for a message to appear on serial output
     my $regexp = shift;
