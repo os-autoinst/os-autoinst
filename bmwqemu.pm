@@ -920,7 +920,7 @@ sub waitstillimage(;$$$) {
 
 =head2 wait_serial
 
-wait_serial($regex [, $timeout_sec])
+wait_serial($regex [[, $timeout_sec], $expect_not_found])
 
 Wait for a message to appear on serial output.
 You could have sent it there earlier with
@@ -929,11 +929,12 @@ C<script_run("echo Hello World E<gt> /dev/$serialdev");>
 
 =cut
 
-sub wait_serial($;$) {
+sub wait_serial($;$$) {
 
     # wait for a message to appear on serial output
     my $regexp = shift;
     my $timeout = shift || 90;    # seconds
+    my $expect_not_found = shift || 0;    # expected can not found the term in serial output
     fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
     my $res;
     for my $n ( 1 .. $timeout ) {
@@ -944,7 +945,12 @@ sub wait_serial($;$) {
         }
         sleep 1;
     }
-    $res ||= 'fail';
+    if ($expect_not_found) {
+        $res ||= 'ok';
+    }
+    else {
+        $res ||= 'fail';
+    }
     $current_test->record_serialresult( $regexp, $res );
     fctres( 'wait_serial', "$regexp: $res" );
     return $res eq 'ok';
