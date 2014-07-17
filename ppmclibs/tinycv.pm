@@ -41,7 +41,7 @@ sub mean_square_error($) {
 #     }
 #   ]
 # }
-sub search_($$$) {
+sub search_($;$$) {
     my $self         = shift;
     my $needle       = shift;
     my $threshold    = shift || 0.005;

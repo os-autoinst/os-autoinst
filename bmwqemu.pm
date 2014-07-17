@@ -1114,7 +1114,7 @@ sub _assert_screen {
             }
         }
         my $foundneedle;
-        ( $foundneedle, $failed_candidates ) = $img->search($needles, $search_ratio);
+        ( $foundneedle, $failed_candidates ) = $img->search($needles, 0, $search_ratio);
         if ($foundneedle) {
             $current_test->record_screenmatch( $img, $foundneedle, \@tags );
             my $lastarea = $foundneedle->{'area'}->[-1];
