@@ -472,6 +472,7 @@ sub wait_for_screen_stall($) {
     while ($s->can_read(.15)) {
         bmwqemu::diag "receive";
         $vnc->receive_message();
+        enqueue_screenshot();
         bmwqemu::diag "update";
         $vnc->send_update_request;
         my ( $s2, $ms2 ) = gettimeofday;
@@ -483,6 +484,7 @@ sub wait_for_screen_stall($) {
     my ( $s2, $ms2 ) = gettimeofday;
     my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
     bmwqemu::diag "done $diff";
+    enqueue_screenshot();
 }
 
 sub type_string($$) {
@@ -496,7 +498,6 @@ sub type_string($$) {
         $vnc->send_mapped_key($letter);
         wait_for_screen_stall($s);
     }
-    enqueue_screenshot();
 }
 
 # runs in the thread to deserialize VNC commands
@@ -599,7 +600,17 @@ sub handle_qmp_command($) {
     return $hash;
 }
 
+sub screenshot_interval() {
+    return $bmwqemu::vars{SCREENSHOTINTERVAL} || .5;
+}
+
 sub enqueue_screenshot() {
+    return unless $vnc->_framebuffer;
+    my ( $s2, $ms2 ) = gettimeofday();
+    my $rest = screenshot_interval() - ( $s2 - $screenshot_sec ) - ( $ms2 - $screenshot_msec ) / 1e6;
+
+    # don't overdo it
+    return unless $rest < 0.05;
     bmwqemu::enqueue_screenshot($vnc->_framebuffer->scale( 1024, 768 ));
     ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
     $vnc->send_update_request;
@@ -674,7 +685,7 @@ sub _run {
 
     $vnc->send_update_request;
     ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
-    my $interval = $bmwqemu::vars{SCREENSHOTINTERVAL} || .5;
+    my $interval = screenshot_interval();
 
   SELECT: while (1) {
         my ( $s2, $ms2 ) = gettimeofday();
@@ -683,12 +694,7 @@ sub _run {
         my @ready = $s->can_read($rest);
         $vnc->send_update_request;
 
-        ( $s2, $ms2 ) = gettimeofday();
-        $rest = $interval - ( $s2 - $screenshot_sec ) - ( $ms2 - $screenshot_msec ) / 1e6;
-
-        if ($vnc->_framebuffer && $rest < 0.05 ) {
-            enqueue_screenshot();
-        }
+        enqueue_screenshot();
 
         for my $fh (@ready) {
             my $buffer;
@@ -756,7 +762,8 @@ sub _run {
                     bmwqemu::diag "VNC failed $@";
                     last SELECT;
                 }
-                #$vnc->send_update_request;
+                enqueue_screenshot();
+                $vnc->send_update_request;
             }
             else {
                 print STDERR "huh!\n";
