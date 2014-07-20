@@ -443,12 +443,14 @@ sub send_pointer_event {
     );
 }
 
-sub send_update_request {
+sub send_update_request(;$) {
     my $self = shift;
+    my $force_update = shift;
 
     # frame buffer update request
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
+    $incremental = 0 if ($force_update);
     $socket->print(
         pack(
             'CCnnnn',
@@ -514,7 +516,7 @@ sub _receive_update {
         # unsigned -> signed conversion
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
 
-        #bmwqemu::diag "$x,$y $w x $h $encoding_type";
+        #bmwqemu::diag "$x,$y $w x $h";
 
         ### Raw encoding ###
         if ( $encoding_type == 0 ) {

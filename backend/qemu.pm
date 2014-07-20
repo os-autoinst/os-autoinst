@@ -424,6 +424,7 @@ our $vnc;
 my $mouse_xpos = 0;
 my $mouse_ypos = 0;
 my ( $screenshot_sec, $screenshot_msec );
+my $last_full_update = 0;
 
 use Time::HiRes qw(gettimeofday);
 
@@ -466,18 +467,15 @@ our  %charmap = (
 
 sub wait_for_screen_stall($) {
     my $s = shift;
-    bmwqemu::diag "sleep";
     $vnc->send_update_request;
     my ( $s1, $ms1 ) = gettimeofday;
     while ($s->can_read(.15)) {
-        bmwqemu::diag "receive";
         $vnc->receive_message();
         enqueue_screenshot();
-        bmwqemu::diag "update";
         $vnc->send_update_request;
         my ( $s2, $ms2 ) = gettimeofday;
         my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
-        bmwqemu::diag "diff $diff";
+	#bmwqemu::diag "diff $diff";
         # we can't wait longer - in password prompts there is no screen update
         last if ($diff > 2);
     }
@@ -613,7 +611,14 @@ sub enqueue_screenshot() {
     return unless $rest < 0.05;
     bmwqemu::enqueue_screenshot($vnc->_framebuffer->scale( 1024, 768 ));
     ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
-    $vnc->send_update_request;
+    #bmwqemu::diag "enqueue_screenshot $screenshot_sec, $screenshot_msec";
+    if ( $screenshot_sec - $last_full_update > 5 ) {
+        $vnc->send_update_request(1);
+        $last_full_update = $screenshot_sec;
+    }
+    else {
+        $vnc->send_update_request(1);
+    }
 }
 
 sub _run {
@@ -763,7 +768,7 @@ sub _run {
                     last SELECT;
                 }
                 enqueue_screenshot();
-                $vnc->send_update_request;
+                #$vnc->send_update_request;
             }
             else {
                 print STDERR "huh!\n";
