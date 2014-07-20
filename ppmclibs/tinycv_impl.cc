@@ -158,13 +158,11 @@ double getPSNR(const Mat& I1, const Mat& I2)
 
   double sse = s.val[0] + s.val[1] + s.val[2]; // sum channels
 
-  if( sse <= 1e-10) // for small values return zero
+  double mse  = sse / (double)(I1.channels() * I1.total());
+  if (!mse) {
     return VERY_SIM;
-  else {
-    double mse  = sse / (double)(I1.channels() * I1.total());
-    double psnr = 10.0 * log10((255 * 255) / mse);
-    return psnr;
   }
+  return 10.0 * log10((255 * 255) / mse);
 }
 
 
