@@ -475,7 +475,7 @@ sub wait_for_screen_stall($) {
         $vnc->send_update_request;
         my ( $s2, $ms2 ) = gettimeofday;
         my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
-	#bmwqemu::diag "diff $diff";
+        #bmwqemu::diag "diff $diff";
         # we can't wait longer - in password prompts there is no screen update
         last if ($diff > 2);
     }
@@ -617,7 +617,7 @@ sub enqueue_screenshot() {
         $last_full_update = $screenshot_sec;
     }
     else {
-        $vnc->send_update_request(1);
+        $vnc->send_update_request();
     }
 }
 
@@ -768,7 +768,6 @@ sub _run {
                     last SELECT;
                 }
                 enqueue_screenshot();
-                #$vnc->send_update_request;
             }
             else {
                 print STDERR "huh!\n";
