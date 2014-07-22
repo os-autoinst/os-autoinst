@@ -270,7 +270,7 @@ sub runtest($$) {
             assert_screen('generic-desktop');
         }
     };
-    if ($@) {
+    if ($@ || $self->{'result'} eq 'fail' ) {
         warn "test $name died: $@\n";
         $bmwqemu::post_fail_hook_running = 1;
         eval { $self->post_fail_hook; };
