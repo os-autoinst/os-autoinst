@@ -463,6 +463,7 @@ our  %charmap = (
 
     "\t" => "tab",
     "\n" => "ret",
+    "\b" => "backspace",
 );
 
 sub wait_for_screen_stall($) {
