@@ -322,6 +322,12 @@ sub record_serialresult {
 
     $result->{'reference_text'} = $ref;
     $result->{'result'} = $res;
+    if ( $result->{'result'} eq 'fail' ) {
+        $self->{result} = $result->{'result'};
+    }
+    else {
+        $self->{result} ||= $result->{'result'};
+    }
 
     return $result;
 }
