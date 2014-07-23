@@ -6,6 +6,7 @@ use IO::Socket::INET;
 use bytes;
 use bmwqemu qw(diag);
 use Time::HiRes qw( usleep );
+use Carp;
 
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
@@ -69,7 +70,7 @@ sub login {
         PeerAddr => $hostname || 'localhost',
         PeerPort => $port     || '5900',
         Proto    => 'tcp',
-    ) || die "Error connecting to $hostname: $@";
+    ) || Carp::carp "Error connecting to $hostname: $@";
     $socket->timeout(15);
     $self->socket($socket);
 
@@ -451,6 +452,7 @@ sub send_update_request(;$) {
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
     $incremental = 0 if ($force_update);
+    #bmwqemu::diag "send_update_request $incremental";
     $socket->print(
         pack(
             'CCnnnn',
@@ -516,7 +518,7 @@ sub _receive_update {
         # unsigned -> signed conversion
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
 
-        #bmwqemu::diag "$x,$y $w x $h";
+        bmwqemu::diag "UP $x,$y $w x $h";
 
         ### Raw encoding ###
         if ( $encoding_type == 0 ) {

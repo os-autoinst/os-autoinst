@@ -228,8 +228,8 @@ sub start_qemu($) {
         bmwqemu::diag( "starting: " . join( " ", @params ) );
 
         # redirect qemu's output to the parent pipe
-        open(STDOUT, ">&=$writer");
-        open(STDERR, ">&=$writer");
+        open(STDOUT, ">&", $writer) || die "can't dup stdout: $!";
+        open(STDERR, ">&", $writer) || die "can't dup stderr: $!";
         close($reader);
         exec(@params);
         die "exec $qemubin failed";
@@ -419,6 +419,7 @@ sub send($) {
     #bmwqemu::diag "backend::send -> $cmdstr";
     my $rspt = $self->{mgmt}->send($cmdstr);
     write_crash_file unless $rspt;
+    bmwqemu::diag "backend::send -> $cmdstr -> '$rspt'";
     my $rsp  = JSON::decode_json($rspt);
     if ( $rsp->{rsp}->{error} ) {
         write_crash_file;
@@ -627,6 +628,7 @@ my $mouse_xpos = 0;
 my $mouse_ypos = 0;
 my ( $screenshot_sec, $screenshot_msec );
 my $last_full_update = 0;
+my $qemupipe;
 
 use Time::HiRes qw(gettimeofday);
 
@@ -672,15 +674,24 @@ sub wait_for_screen_stall($) {
     my $s = shift;
     $vnc->send_update_request;
     my ( $s1, $ms1 ) = gettimeofday;
-    while ($s->can_read(.15)) {
-        $vnc->receive_message();
-        enqueue_screenshot();
-        $vnc->send_update_request;
-        my ( $s2, $ms2 ) = gettimeofday;
-        my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
-        #bmwqemu::diag "diff $diff";
-        # we can't wait longer - in password prompts there is no screen update
-        last if ($diff > 2);
+    while (1) {
+        my @ready = $s->can_read(.15);
+        last unless @ready;
+        for my $fh (@ready) {
+            if ($fh == $qemupipe) {
+                read_qemupipe();
+            }
+            else {
+                $vnc->receive_message();
+                enqueue_screenshot();
+                $vnc->send_update_request;
+            }
+            my ( $s2, $ms2 ) = gettimeofday;
+            my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
+            #bmwqemu::diag "diff $diff";
+            # we can't wait longer - in password prompts there is no screen update
+            last if ($diff > 2);
+        }
     }
     my ( $s2, $ms2 ) = gettimeofday;
     my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
@@ -693,6 +704,8 @@ sub type_string($$) {
     my @letters = split( "", $text );
     my $s = IO::Select->new();
     $s->add($vnc->socket);
+    $s->add($qemupipe);
+
 
     for my $letter (@letters) {
         $letter = $charmap{$letter} || $letter;
@@ -815,7 +828,7 @@ sub enqueue_screenshot() {
     bmwqemu::enqueue_screenshot($vnc->_framebuffer->scale( 1024, 768 ));
     ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
     #bmwqemu::diag "enqueue_screenshot $screenshot_sec, $screenshot_msec";
-    if ( $screenshot_sec - $last_full_update > 5 ) {
+    if ( $screenshot_sec - $last_full_update > 5000 ) {
         $vnc->send_update_request(1);
         $last_full_update = $screenshot_sec;
     }
@@ -824,11 +837,20 @@ sub enqueue_screenshot() {
     }
 }
 
+sub read_qemupipe() {
+    my $buffer;
+    my $bytes = sysread( $qemupipe, $buffer, 1000 );
+    chomp $buffer;
+    for my $line (split(/\n/, $buffer)) {
+        bmwqemu::diag "QEMU: $line";
+    }
+}
+
 sub _run {
     my $cmdpipe = shift;
     my $rsppipe = shift;
     my $vncport = shift;
-    my $qemupipe = shift;
+    $qemupipe = shift;
 
     print STDERR "$$: cmdpipe $cmdpipe, rsppipe $rsppipe, VNC $vncport QEMU $qemupipe\n";
 
@@ -874,6 +896,8 @@ sub _run {
 
     printf STDERR "$$: hmpsocket %d, qmpsocket %d\n", fileno($hmpsocket), fileno($qmpsocket);
 
+    fcntl( $qemupipe, Fcntl::F_SETFL, Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
+
     # retrieve welcome
     my $line = _read_hmp($hmpsocket);
     print "WELCOME $line\n";
@@ -906,7 +930,7 @@ sub _run {
         my $rest = $interval - ( $s2 - $screenshot_sec ) - ( $ms2 - $screenshot_msec ) / 1e6;
 
         my @ready = $s->can_read($rest);
-        $vnc->send_update_request;
+        #$vnc->send_update_request;
 
         enqueue_screenshot();
 
@@ -979,9 +1003,7 @@ sub _run {
                 enqueue_screenshot();
             }
             elsif ( $fh == $qemupipe) {
-                my $bytes = sysread( $qemupipe, $buffer, 1000 );
-                chomp $buffer;
-                bmwqemu::diag "QEMU: $buffer\n" if ($buffer);
+                read_qemupipe();
             }
             else {
                 print STDERR "huh!\n";
