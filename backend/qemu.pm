@@ -418,13 +418,15 @@ sub send($) {
 
     #bmwqemu::diag "backend::send -> $cmdstr";
     my $rspt = $self->{mgmt}->send($cmdstr);
-    write_crash_file unless $rspt;
-    bmwqemu::diag "backend::send -> $cmdstr -> '$rspt'";
+    if (!$rspt) {
+        write_crash_file;
+        Carp::confess "no answer from mgmt thread";
+    }
+    #bmwqemu::diag "backend::send -> $cmdstr -> '$rspt'";
     my $rsp  = JSON::decode_json($rspt);
     if ( $rsp->{rsp}->{error} ) {
         write_crash_file;
-        Carp::carp "er";
-        die JSON::to_json($rsp);
+        Carp::croak JSON::to_json($rsp);
     }
 
     bmwqemu::diag "backend::send $cmdstr -> $rspt";
@@ -627,7 +629,6 @@ our $vnc;
 my $mouse_xpos = 0;
 my $mouse_ypos = 0;
 my ( $screenshot_sec, $screenshot_msec );
-my $last_full_update = 0;
 my $qemupipe;
 
 use Time::HiRes qw(gettimeofday);
@@ -675,7 +676,7 @@ sub wait_for_screen_stall($) {
     $vnc->send_update_request;
     my ( $s1, $ms1 ) = gettimeofday;
     while (1) {
-        my @ready = $s->can_read(.15);
+        my @ready = $s->can_read(.1);
         last unless @ready;
         for my $fh (@ready) {
             if ($fh == $qemupipe) {
@@ -686,12 +687,12 @@ sub wait_for_screen_stall($) {
                 enqueue_screenshot();
                 $vnc->send_update_request;
             }
-            my ( $s2, $ms2 ) = gettimeofday;
-            my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
-            #bmwqemu::diag "diff $diff";
-            # we can't wait longer - in password prompts there is no screen update
-            last if ($diff > 2);
         }
+        my ( $s2, $ms2 ) = gettimeofday;
+        my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
+        #bmwqemu::diag "diff $diff";
+        # we can't wait longer - in password prompts there is no screen update
+        last if ($diff > .8);
     }
     my ( $s2, $ms2 ) = gettimeofday;
     my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
@@ -828,13 +829,7 @@ sub enqueue_screenshot() {
     bmwqemu::enqueue_screenshot($vnc->_framebuffer->scale( 1024, 768 ));
     ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
     #bmwqemu::diag "enqueue_screenshot $screenshot_sec, $screenshot_msec";
-    if ( $screenshot_sec - $last_full_update > 5000 ) {
-        $vnc->send_update_request(1);
-        $last_full_update = $screenshot_sec;
-    }
-    else {
-        $vnc->send_update_request();
-    }
+    $vnc->send_update_request();
 }
 
 sub read_qemupipe() {
@@ -943,14 +938,15 @@ sub _run {
 
             if ( $fh == $qmpsocket ) {
                 my $bytes = sysread( $fh, $buffer, 1000 );
-                if ( !$bytes ) { print STDERR "read QMP failed: $!\n"; last SELECT; }
+                if ( !$bytes ) { bmwqemu::diag "read QMP failed: $!"; last SELECT; }
 
                 #my $hash = backend::qemu::_read_json($qmpsocket);
                 #if (!$hash) { print STDERR "read json failed: $!\n"; last SELECT; }
                 #if ($hash->{event}) {
                 #	print STDERR "EVENT " . JSON::to_json($hash) . "\n";
                 #} else {
-                print STDERR "WARNING: read qmp $bytes - $buffer\n";
+                chomp $buffer;
+                bmwqemu::diag "Read qmp $bytes - $buffer";
 
                 #}
                 #syswrite($rsppipe, $buffer);
@@ -958,7 +954,7 @@ sub _run {
             }
             elsif ( $fh == $hmpsocket ) {
                 my $bytes = sysread( $fh, $buffer, 1000 );
-                if ( !$bytes ) { print STDERR "read HMP failed: $!\n"; last SELECT; }
+                if ( !$bytes ) { bmwqemu::diag "read HMP failed: $!"; last SELECT; }
                 print STDERR "WARNING: read hmp $bytes - $buffer\n";
 
                 #syswrite($rsppipe, $buffer);
