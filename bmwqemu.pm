@@ -672,23 +672,23 @@ upload log file to openqa host
 
 sub upload_logs($) {
     my $file = shift;
-    my $cmd  = "curl --form testname=$testedversion";
+    type_string("curl --form testname=$testedversion");
     my $host = $vars{OPENQA_HOSTNAME};
     if ($host) {
-        $cmd .= " --resolve $host:80:10.0.2.2";
+        type_string(" --resolve $host:80:10.0.2.2");
     }
     else {
         $host = '10.0.2.2';
     }
-    $cmd .= " --form upload=\@$file ";
+    type_string(" --form upload=\@$file ");
     if ( defined $vars{TEST_ID} ) {
         my $basename = basename($file);
-        $cmd .= "$host/tests/$vars{TEST_ID}/uploadlog/$basename";
+        type_string("$host/tests/$vars{TEST_ID}/uploadlog/$basename");
     }
     else {
-        $cmd .= "$host/cgi-bin/uploadlog";
+        type_string("$host/cgi-bin/uploadlog");
     }
-    script_run($cmd);
+    send_key 'ret';
 }
 
 # TODO: move to distro repo
