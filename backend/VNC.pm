@@ -471,7 +471,10 @@ sub receive_message {
 
     my $socket = $self->socket;
 
-    $socket->read( my $message_type, 1 ) || die 'unexpected end of data';
+    $socket->blocking(0);
+    my $ret = $socket->read( my $message_type, 1 );
+    $socket->blocking(1);
+    return undef unless $ret;
     $message_type = unpack( 'C', $message_type );
 
     #bmwqemu::diag("RM $message_type");
