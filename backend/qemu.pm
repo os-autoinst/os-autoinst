@@ -930,8 +930,12 @@ sub _run {
         my $rest = $interval - ( $s2 - $screenshot_sec ) - ( $ms2 - $screenshot_msec ) / 1e6;
 
         my @ready = $s->can_read($rest);
-        #$vnc->send_update_request;
-
+        # vnc is non-blocking so just try
+        eval { $vnc->receive_message(); };
+        if ($@) {
+            bmwqemu::diag "VNC failed $@";
+            last SELECT;
+        }
         enqueue_screenshot();
 
         for my $fh (@ready) {
@@ -995,12 +999,7 @@ sub _run {
                 }
             }
             elsif ( $fh == $vnc->socket) {
-                eval { $vnc->receive_message(); };
-                if ($@) {
-                    bmwqemu::diag "VNC failed $@";
-                    last SELECT;
-                }
-                enqueue_screenshot();
+                # already checked
             }
             elsif ( $fh == $qemupipe) {
                 read_qemupipe();
