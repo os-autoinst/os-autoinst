@@ -399,6 +399,7 @@ my $keymap = {
     'insert' => 0xff63,
     'pgup' => 0xff55,
     'pgdn' => 0xff56,
+    'sysrq' => 0xff15,
 };
 
 sub send_mapped_key {
@@ -419,12 +420,12 @@ sub send_mapped_key {
         push(@events, $key);
     }
     for my $key (@events) {
-        bmwqemu::diag "send_key_event_down $key";
+        #bmwqemu::diag "send_key_event_down $key";
         $self->send_key_event_down($key);
     }
     usleep(50); # just a brief moment
     for my $key (@events) {
-        bmwqemu::diag "send_key_event_up $key";
+        #bmwqemu::diag "send_key_event_up $key";
         $self->send_key_event_up($key);
     }
 }
@@ -521,7 +522,7 @@ sub _receive_update {
         # unsigned -> signed conversion
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
 
-        bmwqemu::diag "UP $x,$y $w x $h";
+        #bmwqemu::diag "UP $x,$y $w x $h";
 
         ### Raw encoding ###
         if ( $encoding_type == 0 ) {
