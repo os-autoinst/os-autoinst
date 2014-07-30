@@ -910,8 +910,6 @@ sub _run {
     bmwqemu::diag "started mgmt loop with thread id " . threads->tid();
 
     my $s = IO::Select->new();
-    $s->add($qmpsocket);
-    $s->add($hmpsocket);
     $s->add($cmdpipe);
     $s->add($vnc->socket);
     $s->add($qemupipe);
@@ -936,31 +934,7 @@ sub _run {
         for my $fh (@ready) {
             my $buffer;
 
-            if ( $fh == $qmpsocket ) {
-                my $bytes = sysread( $fh, $buffer, 1000 );
-                if ( !$bytes ) { bmwqemu::diag "read QMP failed: $!"; last SELECT; }
-
-                #my $hash = backend::qemu::_read_json($qmpsocket);
-                #if (!$hash) { print STDERR "read json failed: $!\n"; last SELECT; }
-                #if ($hash->{event}) {
-                #	print STDERR "EVENT " . JSON::to_json($hash) . "\n";
-                #} else {
-                chomp $buffer;
-                bmwqemu::diag "Read qmp $bytes - $buffer";
-
-                #}
-                #syswrite($rsppipe, $buffer);
-
-            }
-            elsif ( $fh == $hmpsocket ) {
-                my $bytes = sysread( $fh, $buffer, 1000 );
-                if ( !$bytes ) { bmwqemu::diag "read HMP failed: $!"; last SELECT; }
-                print STDERR "WARNING: read hmp $bytes - $buffer\n";
-
-                #syswrite($rsppipe, $buffer);
-
-            }
-            elsif ( $fh == $cmdpipe ) {
+            if ( $fh == $cmdpipe ) {
                 my $cmd = backend::qemu::_read_json($cmdpipe);
 
                 #print STDERR "cmd ". JSON::to_json($cmd) . "\n";
