@@ -839,6 +839,7 @@ sub read_qemupipe() {
     for my $line (split(/\n/, $buffer)) {
         bmwqemu::diag "QEMU: $line";
     }
+    return $bytes;
 }
 
 sub _run {
@@ -972,7 +973,7 @@ sub _run {
                 # already checked
             }
             elsif ( $fh == $qemupipe) {
-                read_qemupipe();
+                last SELECT unless read_qemupipe();
             }
             else {
                 print STDERR "huh!\n";
