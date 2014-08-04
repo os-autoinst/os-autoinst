@@ -78,8 +78,7 @@ sub start_qemu($) {
         $vars->{NUMDISKS} = 4;
     }
 
-    $ENV{QEMU_AUDIO_DRV} = "wav";
-    $ENV{QEMU_WAV_PATH}  = "/dev/null";
+    $ENV{QEMU_AUDIO_DRV} = "none";
 
     use File::Path qw/mkpath/;
     mkpath($basedir);
