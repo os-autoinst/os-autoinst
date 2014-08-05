@@ -629,6 +629,11 @@ my $mouse_xpos = 0;
 my $mouse_ypos = 0;
 my ( $screenshot_sec, $screenshot_msec );
 my $qemupipe;
+my $cmdpipe;
+my $rsppipe;
+my $vncport;
+my $hmpsocket;
+
 
 use Time::HiRes qw(gettimeofday);
 
@@ -841,20 +846,58 @@ sub read_qemupipe() {
     return $bytes;
 }
 
+sub close_pipes() {
+    close($vnc->socket) if ($vnc->socket);
+
+    # one last word?
+    fcntl( $qemupipe, Fcntl::F_SETFL, Fcntl::O_NONBLOCK );
+    read_qemupipe();
+    close($qemupipe);
+    $qemupipe = undef;
+
+    if ($cmdpipe) {
+        close($cmdpipe)   || die "close $!\n";
+        $cmdpipe = undef;
+    }
+
+    if ($qmpsocket) {
+        close($qmpsocket) || die "close $!\n";
+        $qmpsocket = undef;
+    }
+    if ($hmpsocket) {
+        close($hmpsocket) || die "close $!\n";
+        $hmpsocket = undef;
+    }
+
+    return unless $rsppipe;
+
+    # XXX: perl does not really close the fd here due to threads!?
+    print $rsppipe $MAGIC_PIPE_CLOSE_STRING;
+    close($rsppipe) || die "close $!\n";
+}
+
 sub _run {
-    my $cmdpipe = shift;
-    my $rsppipe = shift;
-    my $vncport = shift;
+    $cmdpipe = shift;
+    $rsppipe = shift;
+    $vncport = shift;
     $qemupipe = shift;
 
     print STDERR "$$: cmdpipe $cmdpipe, rsppipe $rsppipe, VNC $vncport QEMU $qemupipe\n";
 
     $SIG{__DIE__} = sub { alarm 3 };
 
-    $vnc = backend::VNC->new({hostname => 'localhost', port => 5900 + $vncport});
-    $vnc->login;
-
     my $io = IO::Handle->new();
+    $io->fdopen( $qemupipe, "r" ) || die "r fdopen $!";
+    $qemupipe = $io;
+
+    $vnc = backend::VNC->new({hostname => 'localhost', port => 5900 + $vncport});
+    eval { $vnc->login; };
+    if ($@) {
+        close_pipes();
+        die $@;
+    }
+
+    $io = IO::Handle->new();
     $io->fdopen( $cmdpipe, "r" ) || die "r fdopen $!";
     $cmdpipe = $io;
 
@@ -863,11 +906,7 @@ sub _run {
     $rsppipe = $io;
     $rsppipe->autoflush(1);
 
-    $io = IO::Handle->new();
-    $io->fdopen( $qemupipe, "r" ) || die "r fdopen $!";
-    $qemupipe = $io;
-
-    my $hmpsocket = IO::Socket::UNIX->new(
+    $hmpsocket = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
         Peer     => "hmp_socket",
         Blocking => 0
@@ -980,14 +1019,7 @@ sub _run {
         }
     }
 
-    close($vnc->socket);
-    close($qmpsocket) || die "close $!\n";
-    close($hmpsocket) || die "close $!\n";
-    close($cmdpipe)   || die "close $!\n";
-
-    # XXX: perl does not really close the fd here due to threads!?
-    print $rsppipe $MAGIC_PIPE_CLOSE_STRING;
-    close($rsppipe) || die "close $!\n";
+    close_pipes();
 
     bmwqemu::diag( "management thread exit at " . POSIX::strftime( "%F %T", gmtime ) );
 }

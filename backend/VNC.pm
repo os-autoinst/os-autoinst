@@ -70,7 +70,7 @@ sub login {
         PeerAddr => $hostname || 'localhost',
         PeerPort => $port     || '5900',
         Proto    => 'tcp',
-    ) || Carp::carp "Error connecting to $hostname: $@";
+    ) || Carp::confess "Error connecting to $hostname: $@";
     $socket->timeout(15);
     $self->socket($socket);
 
