@@ -161,15 +161,17 @@ sub start_qemu($) {
                 push( @params, "-device", "usb-ehci,id=ehci" );
                 push( @params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb" );
             }
-            elsif ( $vars->{PXEBOOT} ) {
-                push( @params, "-boot", "n");
-            }
             else {
                 push( @params, "-cdrom", $iso );
             }
         }
 
-        push( @params, "-boot", "once=d,menu=on,splash-time=5000" );
+        if ( $vars->{PXEBOOT} ) {
+            push( @params, "-boot", "n");
+        }
+        else {
+            push( @params, "-boot", "once=d,menu=on,splash-time=5000" );
+        }
 
         if ( $vars->{QEMUCPU} ) {
             push( @params, "-cpu", $vars->{QEMUCPU} );
