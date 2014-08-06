@@ -22,7 +22,7 @@ bmwqemu::init();
 
 # Sanity checks
 die "DISTRI environment variable not set. unknown OS?" if !defined $bmwqemu::vars{DISTRI} && !defined $bmwqemu::vars{CASEDIR};
-die "No scripts in $bmwqemu::vars{CASEDIR}"                      if !-e "$bmwqemu::vars{CASEDIR}";
+die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
 
 bmwqemu::clean_control_files();
 
