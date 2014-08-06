@@ -2,6 +2,7 @@ package needle;
 
 use strict;
 use warnings;
+use Cwd;
 use File::Find;
 use File::Spec;
 use Data::Dump;
@@ -152,6 +153,7 @@ sub wanted_($) {
 sub init(;$) {
     $needledir = shift if @_;
     $needledir ||= "$bmwqemu::vars{CASEDIR}/needles/";
+    $needledir = Cwd::realpath($needledir);
     %needles   = ();
     %tags      = ();
     bmwqemu::diag("init needles from $needledir");
