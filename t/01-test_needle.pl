@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w -I..
 
 use strict;
-use Test::More tests => 24;
+use Test::More tests => 26;
 
 BEGIN {
     $bmwqemu::vars{DISTRI}  = "unicorn";
@@ -68,8 +68,7 @@ ok( !defined $res, "no match different perform installation tabs" );
 # Check that if the margin is missing from JSON, is set in the hash
 $img1   = tinycv::read("data/uefi.test.png");
 $needle = needle->new("data/uefi.ref.json");
-ok( $needle->{area}->[0]->{margin} == 300, "search margin have the default value");
-$needle->{area}->[0]->{margin} = 50;
+ok( $needle->{area}->[0]->{margin} == 50, "search margin have the default value");
 $res    = $img1->search($needle);
 ok( !defined $res, "no found a match for an small margin" );
 
@@ -80,6 +79,19 @@ ok( $needle->{area}->[0]->{margin} == 100, "search margin have the defined value
 $res    = $img1->search($needle);
 ok( defined $res, "found match for a large margin" );
 ok( $res->{area}->[0]->{x} == 378 && $res->{area}->[0]->{y} == 221, "mach area coordinates" );
+
+# This test fails in internal SLE system
+$img1   = tinycv::read("data/glibc_i686.test.png");
+$needle = needle->new("data/glibc_i686.ref.json");
+$res    = $img1->search($needle);
+ok( !defined $res, "no found a match for an small margin" );
+# We emulate assert_screen "needle", 3;
+my $timeout = 3;
+for ( my $n = 0 ; $n < $timeout ; $n++ ) {
+    my $search_ratio =  1.0 - ($timeout - $n) / ($timeout);
+    $res = $img1->search($needle, 0, $search_ratio);
+}
+ok( defined $res, "found match after timeout" );
 
 $img1   = tinycv::read("data/zypper_ref.test.png");
 $needle = needle->new("data/zypper_ref.ref.json");

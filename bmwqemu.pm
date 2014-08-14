@@ -1111,10 +1111,10 @@ sub _assert_screen {
                 # are in the post fail hook
                 $n = $timeout;
             }
-            elsif ( $oldimg == $img ) {    # no change, no need to search
-                diag( sprintf( "no change %d $statstr", $timeout - $n ) );
-                next;
-            }
+            # elsif ( $oldimg == $img ) {    # no change, no need to search
+            #     diag( sprintf( "no change %d $statstr", $timeout - $n ) );
+            #     next;
+            # }
         }
         my $foundneedle;
         ( $foundneedle, $failed_candidates ) = $img->search($needles, 0, $search_ratio);

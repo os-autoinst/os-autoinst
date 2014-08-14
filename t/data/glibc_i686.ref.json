@@ -1,0 +1,21 @@
+{
+  "tags": [
+    "test-glib_i686-1"
+  ],
+  "area": [
+    {
+      "ypos": 94,
+      "height": 20,
+      "type": "match",
+      "width": 306,
+      "xpos": 1
+    },
+    {
+      "type": "match",
+      "width": 361,
+      "xpos": 1,
+      "height": 31,
+      "ypos": 2
+    }
+  ]
+}
