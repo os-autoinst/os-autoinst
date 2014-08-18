@@ -31,11 +31,9 @@ backendhelpexec_SCRIPTS = \
 pkglibexec_SCRIPTS = \
 	autoinstallstep.pm \
 	autotest.pm \
-	basenoupdate.pm \
 	basetest.pm \
 	bmwqemu.pm \
 	httpnotifyconf.pm \
-	serverstep.pm \
 	ocr.pm \
 	cv.pm \
 	needle.pm \
