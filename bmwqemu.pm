@@ -597,11 +597,12 @@ sub wait_encrypt_prompt() {
     }
 }
 
-sub x11_start_program($;$) {
+sub x11_start_program($;$$) {
     my $program = shift;
+    my $timeout = shift || 4;
     my $options = shift || {};
     send_key "alt-f2";
-    assert_screen("desktop-runner", 4);
+    assert_screen("desktop-runner", $timeout);
     type_string $program;
     if ( $options->{terminal} ) { send_key "alt-t"; sleep 3; }
     send_key "ret";
@@ -737,10 +738,10 @@ sub ensure_installed {
         }
     }
     elsif ( check_var( 'DISTRI', 'debian' ) ) {
-        x11_start_program( "su -c 'aptitude -y install @pkglist'", { terminal => 1 } );
+        x11_start_program( "su -c 'aptitude -y install @pkglist'", 4, { terminal => 1 } );
     }
     elsif ( check_var( 'DISTRI', 'fedora' ) ) {
-        x11_start_program( "su -c 'yum -y install @pkglist'", { terminal => 1 } );
+        x11_start_program( "su -c 'yum -y install @pkglist'", 4, { terminal => 1 } );
     }
     else {
         mydie "TODO: implement package install for your distri $vars{DISTRI}";
