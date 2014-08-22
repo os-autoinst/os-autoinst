@@ -1,0 +1,51 @@
+os-autoinst
+===========
+:author: openSUSE Team at SUSE
+:toc:
+
+The OS-autoinst project aims at providing a means to run fully
+automated tests.  Especially to run tests of basic and low-level
+operating system components such as bootloader, kernel, installer and
+upgrade, which can not easily and safely be tested with other
+automated testing frameworks.  However, it can just as well be used to
+test firefox and openoffice operation on top of a newly installed OS.
+
+os-autoinst can be executed alone, but is currently designed to be
+executed together with openQA, the web user interface that allows to
+run more than one os-autoinst instance at the same time.
+
+Getting started
+---------------
+
+To install os-autoinst, you can see link:INSTALL.asciidoc[INSTALL]
+
+To execute an instance of os-autoinst, we need to create file named
+vars.json, that we use to store the values of the different variables
+that will configure and drive the behavior of the application.
+
+There are some variables used by os-autoinst itself and other that are
+used by the tests.  A minimal vars.json file can be:
+
+[source, javascript]
+-------------------------------------------------------------------
+{
+   "DISTRI" :      "opensuse",
+   "CASEDIR" :     "/full/path/for/tests",
+   "NAME" :        "test-name",
+   "ISO" :         "/full/path/for/iso",
+   "VNC" :         "91",
+   "BACKEND" :     "qemu",
+   "DESKTOP" :     "kde"
+}
+-------------------------------------------------------------------
+
+Now we can launch the application with:
+
+$ ../os-autoinst/start.pl
+
+and we can use VNC to connect to the QEMU instance:
+
+$ vncviewer localhost:91 -ViewOnly -Shared
+
+If you want to contribute to this project, please clone and send
+git-pull requests via https://github.com/os-autoinst/os-autoinst
