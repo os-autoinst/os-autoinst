@@ -130,7 +130,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   similarity = maxval;
 
   gettimeofday(&tv2, 0);
-  printf("search_template %ld ms\n", (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000);
+//  printf("search_template %ld ms\n", (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000);
   return outvec;
 }
 
