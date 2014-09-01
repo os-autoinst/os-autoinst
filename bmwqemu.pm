@@ -1089,10 +1089,11 @@ sub _assert_screen {
     }
     my $img = getcurrentscreenshot();
     my $oldimg;
+    my $old_search_ratio = 0;
     my $failed_candidates;
     for ( my $n = 0 ; $n < $timeout ; $n++ ) {
-        # This ratio is used to increase linearly the search area.
-        my $search_ratio =  1.0 - ($timeout - $n) / ($timeout);
+        my $search_ratio = 0.02;
+        $search_ratio = 1 if ($n % 6 == 0) || ($n == $timeout - 1);
 
         if ( -e $control_files{"interactive_mode"} ) {
             $interactive_mode = 1;
@@ -1112,10 +1113,10 @@ sub _assert_screen {
                 # are in the post fail hook
                 $n = $timeout;
             }
-            # elsif ( $oldimg == $img ) {    # no change, no need to search
-            #     diag( sprintf( "no change %d $statstr", $timeout - $n ) );
-            #     next;
-            # }
+            elsif ( $oldimg == $img && $search_ratio <= $old_search_ratio) {    # no change, no need to search
+                 diag( sprintf( "no change %d $statstr", $timeout - $n ) );
+                 next;
+            }
         }
         my $foundneedle;
         ( $foundneedle, $failed_candidates ) = $img->search($needles, 0, $search_ratio);
@@ -1127,6 +1128,7 @@ sub _assert_screen {
         }
         diag("STAT $statstr");
         $oldimg = $img;
+        $old_search_ratio = $search_ratio;
     }
 
     fctres( 'assert_screen', "match=$mustmatch timed out after $timeout" );
