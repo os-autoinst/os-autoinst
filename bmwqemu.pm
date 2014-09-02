@@ -1114,8 +1114,8 @@ sub _assert_screen {
                 $n = $timeout;
             }
             elsif ( $oldimg == $img && $search_ratio <= $old_search_ratio) {    # no change, no need to search
-                 diag( sprintf( "no change %d $statstr", $timeout - $n ) );
-                 next;
+                diag( sprintf( "no change %d $statstr", $timeout - $n ) );
+                next;
             }
         }
         my $foundneedle;
