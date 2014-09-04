@@ -1093,7 +1093,7 @@ sub _assert_screen {
     my $failed_candidates;
     for ( my $n = 0 ; $n < $timeout ; $n++ ) {
         my $search_ratio = 0.02;
-        $search_ratio = 1 if ($n % 6 == 0) || ($n == $timeout - 1);
+        $search_ratio = 1 if ($n % 6 == 5) || ($n == $timeout - 1);
 
         if ( -e $control_files{"interactive_mode"} ) {
             $interactive_mode = 1;
