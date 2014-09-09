@@ -26,10 +26,10 @@ our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
 @ISA    = qw(Exporter);
 @EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $serialfile $testedversion %cmd %vars
   &save_vars &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
-  &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_hide &result_dir
+  &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_dclick &mouse_hide &result_dir
   &wait_encrypt_prompt
   &timeout_screenshot &waitidle &wait_idle &wait_serial &assert_screen &waitstillimage
-  &check_screen &assert_and_click &set_current_test &become_root &upload_logs
+  &check_screen &assert_and_click &assert_and_dclick &set_current_test &become_root &upload_logs
   &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
   &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
   &getcurrentscreenshot &power &mydie &check_var &make_snapshot &load_snapshot
@@ -576,6 +576,19 @@ sub mouse_click(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.15;
     fctlog( 'mouse_click', "button=$button", "cursor_down=$time" );
+    $backend->mouse_button( $button, 1 );
+    sleep $time;
+    $backend->mouse_button( $button, 0 );
+}
+
+sub mouse_dclick(;$$) {
+    my $button = shift || 'left';
+    my $time   = shift || 0.10;
+    fctlog( 'mouse_dclick', "button=$button", "cursor_down=$time" );
+    $backend->mouse_button( $button, 1 );
+    sleep $time;
+    $backend->mouse_button( $button, 0 );
+    sleep $time;
     $backend->mouse_button( $button, 1 );
     sleep $time;
     $backend->mouse_button( $button, 0 );
@@ -1285,11 +1298,13 @@ sub check_screen($;$) {
     return _assert_screen( mustmatch => $_[0], timeout => $_[1], check => 1 );
 }
 
-sub assert_and_click($;$$$) {
+sub assert_and_click($;$$$$) {
     my $foundneedle = _assert_screen(
         mustmatch => $_[0],
         timeout   => $_[2]
     );
+    my $dclick = $_[4] || 0;
+
     # foundneedle has to be set, or the assert is buggy :)
     my $lastarea = $foundneedle->{'area'}->[-1];
     my $rx = 1;                                                   # $origx / $img->xres();
@@ -1298,7 +1313,16 @@ sub assert_and_click($;$$$) {
     my $y  = int(( $lastarea->{'y'} + $lastarea->{'h'} / 2 ) * $ry);
     diag("clicking at $x/$y");
     mouse_set( $x, $y );
-    mouse_click( $_[1], $_[3] );
+    if ($dclick) {
+        mouse_dclick( $_[1], $_[3] );
+    }
+    else {
+        mouse_click( $_[1], $_[3] );
+    }
+}
+
+sub assert_and_dclick($;$$$) {
+    assert_and_click($_[0], $_[1], $_[2], $_[3], 1);
 }
 
 sub make_snapshot($) {
