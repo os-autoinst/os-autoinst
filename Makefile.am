@@ -2,8 +2,8 @@ ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = t
 
 doc_DATA = \
-	README \
-	INSTALL \
+	README.asciidoc \
+	INSTALL.asciidoc \
 	COPYING \
 	env.sh.sample \
 	doc/basetest.html \
