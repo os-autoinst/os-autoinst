@@ -612,7 +612,7 @@ sub wait_encrypt_prompt() {
 
 sub x11_start_program($;$$) {
     my $program = shift;
-    my $timeout = shift || 4;
+    my $timeout = shift || 6;
     my $options = shift || {};
     send_key "alt-f2";
     assert_screen("desktop-runner", $timeout);
