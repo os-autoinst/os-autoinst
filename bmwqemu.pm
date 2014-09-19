@@ -659,6 +659,7 @@ sub script_sudo($;$) {
         sendpassword;
         send_key "ret";
     }
+    wait_idle($wait);
 }
 
 =head2 script_sudo_logout
