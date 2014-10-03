@@ -618,8 +618,16 @@ sub x11_start_program($;$$) {
     assert_screen("desktop-runner", $timeout);
     type_string $program;
     if ( $options->{terminal} ) { send_key "alt-t"; sleep 3; }
-    send_key "ret";
-    wait_idle();
+    send_key "ret", 1;
+    # make sure desktop runner executed and closed when have had valid value
+    # exec x11_start_program( $program, $timeout, { valid => 1 } );
+    if ( $options->{valid} ) {
+        # check 3 times
+        foreach my $i ( 1..3 ) {
+            last unless check_screen "desktop-runner-border", 2;
+            send_key "ret", 1;
+        }
+    }
 }
 
 =head2 script_run
