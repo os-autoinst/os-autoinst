@@ -1161,7 +1161,7 @@ sub _assert_screen {
     my @save_tags = @tags;
 
     # add some known env variables
-    for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD LIVETEST UEFI NETBOOT PROMO FLAVOR)) {
+    for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD LIVETEST OFW UEFI NETBOOT PROMO FLAVOR)) {
         push( @save_tags, "ENV-$key-" . $vars{$key} ) if $vars{$key};
     }
 

@@ -54,7 +54,7 @@ sub start_qemu($) {
 
     my $qemubin = $ENV{'QEMU'};
     unless ($qemubin) {
-        for my $bin ( map { '/usr/bin/' . $_ } qw/kvm qemu-kvm qemu qemu-system-x86_64/ ) {
+        for my $bin ( map { '/usr/bin/' . $_ } qw/kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64/ ) {
             next unless -x $bin;
             $qemubin = $bin;
             last;
@@ -72,7 +72,12 @@ sub start_qemu($) {
     $vars->{NICTYPE}   ||= "user";
     $vars->{NICMAC}    ||= "52:54:00:12:34:56";
     # misc
-    $vars->{QEMUVGA}   ||= "cirrus";
+    if (!$vars->{OFW}) {
+        $vars->{QEMUVGA} ||= "cirrus";
+    }
+    else {
+        $vars->{QEMUVGA} ||= "std";
+    }
     $vars->{QEMUCPUS}  ||= 1;
     if ( defined( $vars->{RAIDLEVEL} ) ) {
         $vars->{NUMDISKS} = 4;
