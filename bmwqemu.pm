@@ -114,7 +114,8 @@ our $password;
 
 our $testresults    = "testresults";
 our $screenshotpath = "qemuscreenshot";
-our $serialdev      = "ttyS0";                                                                          #FIXME: also backend
+our $serialdev;                                                                          #FIXME: also backend
+
 our $serialfile     = "serial0";
 our $gocrbin        = "/usr/bin/gocr";
 
@@ -155,7 +156,10 @@ sub init {
 
     $username = $vars{USERNAME} if $vars{USERNAME};
     $password = $vars{PASSWORD} if defined $vars{PASSWORD};
-
+    $serialdev = "ttyS0";
+    if ( $vars{OFW} ) {
+        $serialdev = "hvc0";
+    }
     result_dir(); # init testresults dir
 
     cv::init();
