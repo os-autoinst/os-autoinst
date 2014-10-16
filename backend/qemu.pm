@@ -64,7 +64,7 @@ sub start_qemu($) {
 
     my $iso = $vars->{ISO};
     # disk settings
-    $vars->{NUMDISKS}  ||= 2;
+    $vars->{NUMDISKS}  ||= 1;
     $vars->{HDDSIZEGB} ||= 10;
     $vars->{HDDMODEL}  ||= "virtio-blk";
     # network settings
@@ -126,7 +126,13 @@ sub start_qemu($) {
     $self->{'pid'} = fork();
     die "fork failed" if ( !defined( $self->{'pid'} ) );
     if ( $self->{'pid'} == 0 ) {
-        my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga", $vars->{QEMUVGA}, "-machine", "accel=kvm,kernel_irqchip=on" );
+        my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga", $vars->{QEMUVGA});
+
+        my $qemu_machine = '';
+        if ( $vars->{QEMUMACHINE} ) {
+            $qemu_machine = sprintf("type=%s,", $vars->{QEMUMACHINE});
+        }
+        push( @params, "-machine", "${qemu_machine}accel=kvm,kernel_irqchip=on"  );
 
         if ( $vars->{NICTYPE} eq "user" ) {
             push( @params, '-netdev', 'user,id=qanet0');
