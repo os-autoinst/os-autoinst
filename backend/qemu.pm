@@ -64,7 +64,7 @@ sub start_qemu($) {
 
     my $iso = $vars->{ISO};
     # disk settings
-    $vars->{NUMDISKS}  ||= 2;
+    $vars->{NUMDISKS}  ||= 1;
     $vars->{HDDSIZEGB} ||= 10;
     $vars->{HDDMODEL}  ||= "virtio-blk";
     # network settings
