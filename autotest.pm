@@ -11,7 +11,7 @@ our $running;      # currently running test or undef
 
 sub loadtest($) {
     my $script = shift;
-    return unless $script =~ /.*\/(\w+)\.d\/\d+_(.+)\.pm$/;
+    return unless $script =~ /.*\/(\w+)\/(.+)\.pm$/;
     my $category = $1;
     my $name     = $2;
     my $test;
