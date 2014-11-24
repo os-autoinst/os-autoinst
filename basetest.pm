@@ -1,11 +1,12 @@
 package basetest;
 use strict;
-use bmwqemu;
+use bmwqemu ();
 use ocr;
 use Time::HiRes;
 use JSON;
 use POSIX;
 use Data::Dumper;
+use testapi;
 
 sub new(;$) {
     my $class    = shift;
@@ -106,7 +107,7 @@ sub record_screenmatch($$;$) {
         $self->{dents}++;
     }
 
-    my $fn = join( '/', result_dir(), $result->{'screenshot'} );
+    my $fn = join( '/', bmwqemu::result_dir(), $result->{'screenshot'} );
     $img->write_with_thumbnail($fn);
 
     $self->{result} ||= 'ok';
@@ -141,7 +142,7 @@ sub _serialize_match($$) {
         $na->{'similarity'} = int( $a->{'similarity'} * 100 );
         if ( $a->{'diff'} ) {
             my $imgname = sprintf( "%s-%d-%s-diff%d.png", $testname, $count, $name, $diffcount++ );
-            $a->{'diff'}->write( join( '/', result_dir(), $imgname ) );
+            $a->{'diff'}->write( join( '/', bmwqemu::result_dir(), $imgname ) );
             $na->{'diff'} = $imgname;
         }
         push @{ $h->{'area'} }, $na;
@@ -175,7 +176,7 @@ sub record_screenfail($@) {
     $result->{'needles'} = $candidates if $candidates;
     $result->{'tags'}    = [@$tags]    if $tags;         # make a copy
 
-    my $fn = join( '/', result_dir(), $result->{'screenshot'} );
+    my $fn = join( '/', bmwqemu::result_dir(), $result->{'screenshot'} );
     $img->write_with_thumbnail($fn);
 
     $self->{result} = $overall if $overall;
@@ -240,7 +241,7 @@ sub waitforprevimg($$;$) {
     for ( my $i = 0 ; $i <= $timeout ; $i += 1 ) {
         $currentimg = bmwqemu::getcurrentscreenshot();
         my $sim = $currentimg->similarity($previmg);
-        diag "$i: SIM $name $sim";
+        bmwqemu::diag "$i: SIM $name $sim";
         if ( $sim >= 49 ) {
             return undef;
         }
@@ -260,7 +261,7 @@ sub runtest($$) {
         if ( $self->{'category'} eq 'consoletest' && $name ne 'consoletest_setup' ) {
 
             # clear screen to make screen content independent from previous tests
-            clear_console;
+            testapi::clear_console;
         }
 
         $self->run();
@@ -274,7 +275,7 @@ sub runtest($$) {
         warn "test $name died: $@\n";
         $bmwqemu::post_fail_hook_running = 1;
         eval { $self->post_fail_hook; };
-        diag "post_fail_hook failed: $@\n" if $@;
+        bmwqemu::diag "post_fail_hook failed: $@\n" if $@;
         $bmwqemu::post_fail_hook_running = 0;
         $self->fail_if_running();
         bmwqemu::save_results( autotest::results() );
@@ -284,7 +285,7 @@ sub runtest($$) {
     bmwqemu::save_results( autotest::results() );
 
     #sleep 1;
-    diag sprintf( "||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime( "%F %T", gmtime ), time - $starttime );
+    bmwqemu::diag(sprintf( "||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime( "%F %T", gmtime ), time - $starttime ));
     return $ret;
 }
 
@@ -358,7 +359,7 @@ sub register_screenshot($) {
     my $self = shift;
     my $img  = shift;
 
-    $img //= getcurrentscreenshot();
+    $img //= bmwqemu::getcurrentscreenshot();
 
     my $count    = ++$self->{"test_count"};
     my $testname = ref($self);
@@ -368,7 +369,7 @@ sub register_screenshot($) {
         result     => 'unk',
     };
 
-    my $fn = join( '/', result_dir(), $result->{'screenshot'} );
+    my $fn = join( '/', bmwqemu::result_dir(), $result->{'screenshot'} );
     $img->write_with_thumbnail($fn);
 
     push @{ $self->{'details'} }, $result;
@@ -383,7 +384,7 @@ sub start_audiocapture() {
 
     # TODO: we only support one capture atm
     $self->{'wav_fn'} = $fn;
-    bmwqemu::do_start_audiocapture( join( '/', result_dir(), $fn ) );
+    bmwqemu::do_start_audiocapture( join( '/', bmwqemu::result_dir(), $fn ) );
 }
 
 sub stop_audiocapture() {
@@ -417,7 +418,7 @@ sub assert_DTMF($) {
     my $result = $self->stop_audiocapture();
     $result->{'reference_text'} = $ref;
 
-    my $decoded_text = bmwqemu::decodewav( join( '/', result_dir(), $result->{'audio'} ) );
+    my $decoded_text = bmwqemu::decodewav( join( '/', bmwqemu::result_dir(), $result->{'audio'} ) );
     if ( $decoded_text && ( uc $ref ) eq $decoded_text ) {
         $result->{'result'} = 'ok';
         $self->{result} ||= $result->{'result'};
@@ -463,7 +464,7 @@ where STATUS is one of: OK fail unknown not-autochecked
 sub check(%) {
     die("FIXME");
     my $self = shift;
-    my $path = result_dir;
+    my $path = bmwqemu::result_dir;
     $path =~ s/\.ogv.*//;
     if ( !-e $path ) {
         my $dir = `cd ../.. ; pwd ..`;
@@ -500,7 +501,7 @@ sub check(%) {
 
         # Reference Image Check
         if ( !@{$needles} ) {
-            diag("No REF needles for $tag");
+            bmwqemu::diag("No REF needles for $tag");
 
             #push(@testreturn, "na");
             $screenshot_result->{refimg_result} = 'na';
@@ -584,6 +585,20 @@ sub check(%) {
     };
     print STDERR '--- ' . JSON::to_json($return_result) . "\n";
     return $return_result;
+}
+
+sub standstill_detected($) {
+    my ($lastscreenshot) = @_;
+
+    $bmwqemu::current_test->record_screenfail(
+        img     => $lastscreenshot,
+        result  => 'fail',
+        overall => 'fail'
+    );
+
+    testapi::send_key("alt-sysrq-w");
+    testapi::send_key("alt-sysrq-l");
+    testapi::send_key("alt-sysrq-d");                      # only available with CONFIG_LOCKDEP
 }
 
 1;

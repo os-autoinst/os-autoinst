@@ -13,7 +13,7 @@ BEGIN {
     unshift @INC, "$wd";
 }
 
-use bmwqemu;
+use bmwqemu qw(diag);
 use needle;
 use autotest;
 use Data::Dumper;
@@ -44,7 +44,7 @@ sub signalhandler {
     }
     if ( threads->tid() == 0 ) {
         bmwqemu::save_results();
-        stop_vm();
+        bmwqemu::stop_vm();
     }
     else {
         print STDERR "bug!? signal not received in main thread\n";
@@ -58,7 +58,7 @@ $SIG{HUP}  = \&signalhandler;
 
 # init part
 $bmwqemu::vars{BACKEND} ||= "qemu";
-init_backend( $bmwqemu::vars{BACKEND} );
+bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
 bmwqemu::save_vars();
 
 if ($init) {
@@ -77,7 +77,7 @@ if ($init) {
     }
 
     if ( !bmwqemu::alive ) {
-        start_vm or die $@;
+        bmwqemu::start_vm or die $@;
         sleep 3;    # wait until BIOS is gone
     }
 }
@@ -109,7 +109,7 @@ diag "FAIL" if $r;
 
 $SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
-stop_vm();
+bmwqemu::stop_vm();
 
 # run postrun test code after VM is stopped
 if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {

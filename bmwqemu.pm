@@ -9,7 +9,6 @@ use IO::Socket;
 use File::Basename;
 
 # eval {require Algorithm::Line::Bresenham;};
-use Exporter;
 use ocr;
 use cv;
 use needle;
@@ -22,24 +21,12 @@ use Data::Dump "dump";
 use Carp;
 use JSON;
 
-our ( $VERSION, @ISA, @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
-@ISA    = qw(Exporter);
-@EXPORT = qw($realname $username $password $scriptdir $testresults $serialdev $serialfile $testedversion %cmd %vars
-  &save_vars &diag &modstart &fileContent &qemusend_nolog &qemusend &backend_send_nolog &backend_send &send_key
-  &type_string &sendpassword &mouse_move &mouse_set &mouse_click &mouse_dclick &mouse_hide &result_dir
-  &wait_encrypt_prompt
-  &timeout_screenshot &waitidle &wait_idle &wait_serial &assert_screen &waitstillimage
-  &check_screen &assert_and_click &assert_and_dclick &set_current_test &become_root &upload_logs
-  &init_backend &start_vm &stop_vm &set_ocr_rect &get_ocr save_results;
-  &script_run &script_sudo &script_sudo_logout &x11_start_program &ensure_installed &clear_console
-  &getcurrentscreenshot &power &mydie &check_var &make_snapshot &load_snapshot
-  &interactive_mode &needle_template &waiting_for_new_needle
-  $post_fail_hook_running
-  &save_screenshot
-);
+use base 'Exporter';
+use Exporter;
 
-sub send_key($;$);
-sub check_screen($;$);
+our $VERSION;
+our @EXPORT = qw(diag fileContent save_vars);
+
 sub mydie;
 
 # shared vars
@@ -108,13 +95,8 @@ sub save_vars() {
 share( $vars{SCREENSHOTINTERVAL} );    # to adjust at runtime
 our $idlethreshold       = ( $vars{IDLETHRESHOLD} || $vars{IDLETHESHOLD} || 18 ) * $clock_ticks / 100;    # % load max for being considered idle
 
-our $realname = "Bernhard M. Wiedemann";
-our $username;
-our $password;
-
 our $testresults    = "testresults";
 our $screenshotpath = "qemuscreenshot";
-our $serialdev;                                                                          #FIXME: also backend
 
 our $serialfile     = "serial0";
 our $gocrbin        = "/usr/bin/gocr";
@@ -123,9 +105,6 @@ our $scriptdir = $0;
 $scriptdir =~ s{/[^/]+$}{};
 
 our $testedversion;
-our %cmd;
-
-our %charmap;
 
 sub init {
     open( $logfd, ">>", "autoinst-log.txt" );
@@ -144,22 +123,6 @@ sub init {
         $testedversion =~ s{-Media1?$}{};
     }
 
-    # defaults for username and password
-    if ($vars{LIVETEST}) {
-        $username = "root";
-        $password = '';
-    }
-    else {
-        $username = "bernhard";
-        $password = "nots3cr3t";
-    }
-
-    $username = $vars{USERNAME} if $vars{USERNAME};
-    $password = $vars{PASSWORD} if defined $vars{PASSWORD};
-    $serialdev = "ttyS0";
-    if ( $vars{OFW} ) {
-        $serialdev = "hvc0";
-    }
     result_dir(); # init testresults dir
 
     cv::init();
@@ -188,6 +151,8 @@ sub init {
         die "'$vars{UEFI_BIOS}' missing, check UEFI_BIOS\n";
     }
 
+    testapi::init();
+
     $vars{QEMUPORT}  ||= 15222;
     $vars{INSTLANG}  ||= "en_US";
 
@@ -207,66 +172,6 @@ sub init {
 
     ## env vars end
 
-    ## keyboard cmd vars
-    %cmd = qw(
-      next alt-n
-      xnext alt-n
-      install alt-i
-      update alt-u
-      finish alt-f
-      accept alt-a
-      ok alt-o
-      continue alt-o
-      createpartsetup alt-c
-      custompart alt-c
-      addpart alt-d
-      donotformat alt-d
-      addraid alt-i
-      add alt-a
-      raid0 alt-0
-      raid1 alt-1
-      raid5 alt-5
-      raid6 alt-6
-      raid10 alt-i
-      mountpoint alt-m
-      filesystem alt-s
-      acceptlicense alt-a
-      instdetails alt-d
-      rebootnow alt-n
-      otherrootpw alt-s
-      noautologin alt-a
-      change alt-c
-      software s
-      package p
-      bootloader b
-    );
-
-    if ( $vars{INSTLANG} eq "de_DE" ) {
-        $cmd{"next"}            = "alt-w";
-        $cmd{"createpartsetup"} = "alt-e";
-        $cmd{"custompart"}      = "alt-b";
-        $cmd{"addpart"}         = "alt-h";
-        $cmd{"finish"}          = "alt-b";
-        $cmd{"accept"}          = "alt-r";
-        $cmd{"donotformat"}     = "alt-n";
-        $cmd{"add"}             = "alt-h";
-
-        #	$cmd{"raid6"}="alt-d"; 11.2 only
-        $cmd{"raid10"}      = "alt-r";
-        $cmd{"mountpoint"}  = "alt-e";
-        $cmd{"rebootnow"}   = "alt-j";
-        $cmd{"otherrootpw"} = "alt-e";
-        $cmd{"change"}      = "alt-n";
-        $cmd{"software"}    = "w";
-    }
-    if ( $vars{INSTLANG} eq "es_ES" ) {
-        $cmd{"next"} = "alt-i";
-    }
-    if ( $vars{INSTLANG} eq "fr_FR" ) {
-        $cmd{"next"} = "alt-s";
-    }
-    ## keyboard cmd vars end
-
     ## some var checks
     if ( !-x $gocrbin ) {
         $gocrbin = undef;
@@ -276,48 +181,6 @@ sub init {
             die "only http mirror URLs are currently supported but found '$1'.";
         }
     }
-
-    ## charmap (like L => shift+l)
-    %charmap = (
-        ","  => "comma",
-        "."  => "dot",
-        "/"  => "slash",
-        "="  => "equal",
-        "-"  => "minus",
-        "*"  => "asterisk",
-        "["  => "bracket_left",
-        "]"  => "bracket_right",
-        "{"  => "shift-bracket_left",
-        "}"  => "shift-bracket_right",
-        "\\" => "backslash",
-        "|"  => "shift-backslash",
-        ";"  => "semicolon",
-        ":"  => "shift-semicolon",
-        "'"  => "apostrophe",
-        '"'  => "shift-apostrophe",
-        "`"  => "grave_accent",
-        "~"  => "shift-grave_accent",
-        "<"  => "shift-comma",
-        ">"  => "shift-dot",
-        "+"  => "shift-equal",
-        "_"  => "shift-minus",
-        '?'  => "shift-slash",
-        "\t" => "tab",
-        "\n" => "ret",
-        " "  => "spc",
-        "\b" => "backspace",
-        "\e" => "esc"
-    );
-    for my $c ( "A" .. "Z" ) {
-        $charmap{$c} = "shift-\L$c";
-    }
-    {
-        my $n = 0;
-        for my $c ( ')', '!', '@', '#', '$', '%', '^', '&', '*', '(' ) {
-            $charmap{$c} = "shift-" . ( $n++ );
-        }
-    }
-    ## charmap end
 
 }
 
@@ -330,10 +193,6 @@ sub init {
 our $backend;    #FIXME: make local after adding frontend-api to bmwqemu
 
 my $framecounter = 0;    # screenshot counter
-
-## sudo stuff
-my $sudos = 0;
-## sudo stuff end
 
 # local vars end
 
@@ -380,13 +239,6 @@ sub modstart {
     $logfd && printf $logfd "\n||| %s at %s\n", join( ' ', @text ), POSIX::strftime( "%F %T", gmtime );
     return unless $debug;
     print STDERR colored( "||| @text", 'bold' ) . "\n";
-}
-
-sub check_var($$) {
-    my $var = shift;
-    my $val = shift;
-    return 1 if ( defined $vars{$var} && $vars{$var} eq $val );
-    return 0;
 }
 
 sub fileContent($) {
@@ -438,14 +290,7 @@ sub getcurrentscreenshot(;$) {
             diag "STANDSTILL";
             return undef if $undef_on_standstill;
 
-            $current_test->record_screenfail(
-                img     => $lastscreenshot,
-                result  => 'fail',
-                overall => 'fail'
-            );
-            send_key "alt-sysrq-w";
-            send_key "alt-sysrq-l";
-            send_key "alt-sysrq-d";                      # only available with CONFIG_LOCKDEP
+            $current_test->standstill_detected($lastscreenshot);
             mydie "standstill detected. test ended";    # above 120s of autoreboot
         }
     }
@@ -488,322 +333,6 @@ sub mydie {
 
     #	$backend->stop_vm();
     croak "mydie";
-}
-
-sub backend_send_nolog($) {
-
-    # should not be used if possible
-    if ($backend) {
-        $backend->send(@_);
-    }
-    else {
-        warn "no backend";
-    }
-}
-
-sub backend_send($) {
-
-    # should not be used if possible
-    fctlog( 'backend_send', join( ',', @_ ) );
-    &backend_send_nolog;
-}
-
-sub qemusend_nolog($) { &backend_send_nolog; }    # deprecated
-sub qemusend($)       { &backend_send; }          # deprecated
-
-# backend management end
-
-# runtime keyboard/mouse io functions
-
-## keyboard
-
-=head2 send_key
-
-send_key($qemu_key_name[, $wait_idle])
-
-=cut
-
-sub send_key($;$) {
-    my $key = shift;
-    my $wait = shift || 0;
-    fctlog( 'send_key', "key=$key" );
-    eval { $backend->send_key($key); };
-    mydie "Error send_key key=$key\n" if ($@);
-    wait_idle() if $wait;
-}
-
-=head2 type_string
-
-type_string($string)
-
-send a string of characters, mapping them to appropriate key names as necessary
-
-=cut
-
-sub type_string($;$) {
-    my $string      = shift;
-    my $maxinterval = shift || 250;
-    fctlog( 'type_string', "string='$string'" );
-    if ($backend->can('type_string')) {
-        $backend->type_string($string, $maxinterval);
-    }
-    else {
-        my $typedchars  = 0;
-        my @letters = split( "", $string );
-        while (@letters) {
-            my $letter = shift @letters;
-            if ( $charmap{$letter} ) { $letter = $charmap{$letter} }
-            send_key $letter, 0;
-            if ( $typedchars++ >= $maxinterval ) {
-                waitstillimage(1.6);
-                $typedchars = 0;
-            }
-        }
-        waitstillimage(1.6) if ( $typedchars > 0 );
-    }
-}
-
-sub sendpassword() {
-    type_string $password;
-}
-## keyboard end
-
-## mouse
-sub mouse_set($$) {
-    my $mx = shift;
-    my $my = shift;
-    fctlog( 'mouse_set', "x=$mx", "y=$my" );
-    $backend->mouse_set( $mx, $my );
-}
-
-sub mouse_click(;$$) {
-    my $button = shift || 'left';
-    my $time   = shift || 0.15;
-    fctlog( 'mouse_click', "button=$button", "cursor_down=$time" );
-    $backend->mouse_button( $button, 1 );
-    sleep $time;
-    $backend->mouse_button( $button, 0 );
-}
-
-sub mouse_dclick(;$$) {
-    my $button = shift || 'left';
-    my $time   = shift || 0.10;
-    fctlog( 'mouse_dclick', "button=$button", "cursor_down=$time" );
-    $backend->mouse_button( $button, 1 );
-    sleep $time;
-    $backend->mouse_button( $button, 0 );
-    sleep $time;
-    $backend->mouse_button( $button, 1 );
-    sleep $time;
-    $backend->mouse_button( $button, 0 );
-}
-
-sub mouse_hide(;$) {
-    my $border_offset = shift || 0;
-    fctlog( 'mouse_hide', "border_offset=$border_offset" );
-    $backend->mouse_hide($border_offset);
-}
-## mouse end
-
-## helpers
-sub wait_encrypt_prompt() {
-    if ( $vars{ENCRYPT} ) {
-        assert_screen("encrypted-disk-password-prompt");
-        sendpassword();    # enter PW at boot
-        send_key "ret";
-    }
-}
-
-sub x11_start_program($;$$) {
-    my $program = shift;
-    my $timeout = shift || 6;
-    my $options = shift || {};
-    send_key "alt-f2";
-    assert_screen("desktop-runner", $timeout);
-    type_string $program;
-    if ( $options->{terminal} ) { send_key "alt-t"; sleep 3; }
-    send_key "ret", 1;
-    # make sure desktop runner executed and closed when have had valid value
-    # exec x11_start_program( $program, $timeout, { valid => 1 } );
-    if ( $options->{valid} ) {
-        # check 3 times
-        foreach my $i ( 1..3 ) {
-            last unless check_screen "desktop-runner-border", 2;
-            send_key "ret", 1;
-        }
-    }
-}
-
-=head2 script_run
-
-script_run($program, [$wait_seconds])
-
-Run $program (by assuming the console prompt and typing it).
-Wait for idle before  and after.
-
-=cut
-
-sub script_run($;$) {
-
-    # start console application
-    my $name = shift;
-    my $wait = shift || 9;
-    wait_idle();
-    type_string "$name\n";
-    wait_idle($wait);
-    sleep 3;
-}
-
-=head2 script_sudo
-
-script_sudo($program, [$wait_seconds])
-
-Run $program. Handle the sudo timeout and send password when appropriate.
-
-$wait_seconds
-=cut
-
-sub script_sudo($;$) {
-    my $prog = shift;
-    my $wait = shift || 2;
-    type_string "sudo $prog\n";
-    if ( check_screen "sudo-passwordprompt", 3 ) {
-        sendpassword;
-        send_key "ret";
-    }
-    wait_idle($wait);
-}
-
-=head2 script_sudo_logout
-
-Reset so that the next sudo will send password
-
-=cut
-
-sub script_sudo_logout() {
-    $sudos = 0;
-}
-
-sub become_root() {
-    script_sudo( "bash", 0 );    # become root
-    script_run("echo 'imroot' > /dev/$serialdev");
-    wait_serial( "imroot", 5 ) || die "Root prompt not there";
-    script_run("cd /tmp");
-}
-
-=head2 upload_logs
-
-upload log file to openqa host
-
-=cut
-
-sub upload_logs($) {
-    my $file = shift;
-    type_string("curl --form testname=$testedversion");
-    my $host = $vars{OPENQA_HOSTNAME};
-    if ($host) {
-        type_string(" --resolve $host:80:10.0.2.2");
-    }
-    else {
-        $host = '10.0.2.2';
-    }
-    type_string(" --form upload=\@$file ");
-    if ( defined $vars{TEST_ID} ) {
-        my $basename = basename($file);
-        type_string("$host/tests/$vars{TEST_ID}/uploadlog/$basename");
-    }
-    else {
-        type_string("$host/cgi-bin/uploadlog");
-    }
-    send_key 'ret';
-}
-
-# TODO: move to distro repo
-sub ensure_installed {
-    my @pkglist = @_;
-    my $timeout;
-    if ( $pkglist[-1] =~ /^[0-9]+$/ ) {
-        $timeout = $pkglist[-1];
-        pop @pkglist;
-    }
-    else {
-        $timeout = 80;
-    }
-
-    #pkcon refresh # once
-    #pkcon install @pkglist
-    if ( check_var( 'DISTRI', 'opensuse' ) || check_var( 'DISTRI', 'sle' ) ) {
-        x11_start_program("xterm");
-        assert_screen('xterm-started');
-        type_string("pkcon install @pkglist\n");
-        my @tags = qw/Policykit Policykit-behind-window pkcon-proceed-prompt pkcon-succeeded/;
-        while (1) {
-            my $ret = assert_screen(\@tags, $timeout);
-            if ( $ret->{needle}->has_tag('Policykit') ) {
-                sendpassword;
-                send_key( "ret", 1 );
-                @tags = grep { $_ ne 'Policykit' } @tags;
-                @tags = grep { $_ ne 'Policykit-behind-window' } @tags;
-                next;
-            }
-            if ( $ret->{needle}->has_tag('Policykit-behind-window') ) {
-                send_key("alt-tab");
-                sleep 3;
-                next;
-            }
-            if ( $ret->{needle}->has_tag('pkcon-proceed-prompt') ) {
-                send_key("y");
-                send_key("ret");
-                @tags = grep { $_ ne 'pkcon-proceed-prompt' } @tags;
-                next;
-            }
-            if ( $ret->{needle}->has_tag('pkcon-succeeded') ) {
-                send_key("alt-f4");    # close xterm
-                return;
-            }
-        }
-    }
-    elsif ( check_var( 'DISTRI', 'debian' ) ) {
-        x11_start_program( "su -c 'aptitude -y install @pkglist'", 4, { terminal => 1 } );
-    }
-    elsif ( check_var( 'DISTRI', 'fedora' ) ) {
-        x11_start_program( "su -c 'yum -y install @pkglist'", 4, { terminal => 1 } );
-    }
-    else {
-        mydie "TODO: implement package install for your distri $vars{DISTRI}";
-    }
-    if ($password) { sendpassword; send_key("ret", 1); }
-    waitstillimage( 7, 90 );    # wait for install
-}
-
-sub clear_console() {
-    send_key "ctrl-c";
-    sleep 1;
-    send_key "ctrl-c";
-    type_string "reset\n";
-    sleep 2;
-}
-## helpers end
-
-sub power($) {
-
-    # params: (on), off, acpi, reset
-    my $action = shift;
-    fctlog( 'power', "action=$action" );
-    $backend->power($action);
-}
-
-# runtime keyboard/mouse io functions end
-
-# runtime information gathering functions
-
-sub save_screenshot {
-    $current_test->take_screenshot;
-}
-
-sub timeout_screenshot() {
-    my $n = ++$timeoutcounter;
-    $current_test->take_screenshot( sprintf( "timeout-%02i", $n ) );
 }
 
 # to be called from thread
@@ -918,10 +447,10 @@ Wait until the screen stops changing
 
 =cut
 
-sub waitstillimage(;$$$) {
-    my $stilltime        = shift || 7;
-    my $timeout          = shift || 30;
-    my $similarity_level = shift || ( $vars{HW} ? 44 : 47 );
+sub waitstillimage($$$) {
+
+    my ($stilltime, $timeout, $similarity_level) = @_;
+
     my $starttime = time;
     fctlog( 'waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level" );
     my $lastchangetime = [gettimeofday];
@@ -948,9 +477,9 @@ sub waitstillimage(;$$$) {
 }
 
 
-=head2 wait_serial
+=head2 _wait_serial
 
-wait_serial($regex [[, $timeout_sec], $expect_not_found])
+_wait_serial($regex, $timeout_sec, $expect_not_found)
 
 Wait for a message to appear on serial output.
 You could have sent it there earlier with
@@ -959,12 +488,10 @@ C<script_run("echo Hello World E<gt> /dev/$serialdev");>
 
 =cut
 
-sub wait_serial($;$$) {
+sub _wait_serial($$$) {
 
     # wait for a message to appear on serial output
-    my $regexp = shift;
-    my $timeout = shift || 90;    # seconds
-    my $expect_not_found = shift || 0;    # expected can not found the term in serial output
+    my ($regexp, $timeout, $expect_not_found) = ($@);
     fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
     my $res;
     for my $n ( 1 .. $timeout ) {
@@ -992,21 +519,14 @@ sub wait_serial($;$$) {
     return $res eq 'ok';
 }
 
-=head2 wait_idle
+=head2 _wait_idle
 
-wait_idle([$timeout_sec])
-
-Wait until the system becomes idle (as configured by IDLETHESHOLD in env.sh)
+Wait until the system becomes idle
 
 =cut
 
-sub waitidle(;$) {
-    fctlog( 'waitidle', "WARNING. waitidle is deprecated, use wait_idle" );
-    wait_idle(@_);
-}
-
-sub wait_idle(;$) {
-    my $timeout = shift || 19;
+sub _wait_idle($) {
+    my $timeout = shift;
     my $prev;
     fctlog( 'wait_idle', "timeout=$timeout" );
     my $timesidle = 0;
@@ -1303,41 +823,6 @@ sub _assert_screen {
         mydie "needle(s) '$mustmatch' not found";
     }
     return undef;
-}
-
-sub assert_screen($;$) {
-    return _assert_screen( mustmatch => $_[0], timeout => $_[1] );
-}
-
-sub check_screen($;$) {
-    return _assert_screen( mustmatch => $_[0], timeout => $_[1], check => 1 );
-}
-
-sub assert_and_click($;$$$$) {
-    my $foundneedle = _assert_screen(
-        mustmatch => $_[0],
-        timeout   => $_[2]
-    );
-    my $dclick = $_[4] || 0;
-
-    # foundneedle has to be set, or the assert is buggy :)
-    my $lastarea = $foundneedle->{'area'}->[-1];
-    my $rx = 1;                                                   # $origx / $img->xres();
-    my $ry = 1;                                                   # $origy / $img->yres();
-    my $x  = int(( $lastarea->{'x'} + $lastarea->{'w'} / 2 ) * $rx);
-    my $y  = int(( $lastarea->{'y'} + $lastarea->{'h'} / 2 ) * $ry);
-    diag("clicking at $x/$y");
-    mouse_set( $x, $y );
-    if ($dclick) {
-        mouse_dclick( $_[1], $_[3] );
-    }
-    else {
-        mouse_click( $_[1], $_[3] );
-    }
-}
-
-sub assert_and_dclick($;$$$) {
-    assert_and_click($_[0], $_[1], $_[2], $_[3], 1);
 }
 
 sub make_snapshot($) {
