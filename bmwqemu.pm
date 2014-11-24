@@ -439,20 +439,20 @@ sub decodewav($) {
 
 # wait functions
 
-=head2 waitstillimage
+=head2 wait_still_screen
 
-waitstillimage([$stilltime_sec [, $timeout_sec [, $similarity_level]]])
+wait_still_screen($stilltime_sec, $timeout_sec, $similarity_level)
 
 Wait until the screen stops changing
 
 =cut
 
-sub waitstillimage($$$) {
+sub wait_still_screen($$$) {
 
     my ($stilltime, $timeout, $similarity_level) = @_;
 
     my $starttime = time;
-    fctlog( 'waitstillimage', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level" );
+    fctlog( 'wait_still_screen', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level" );
     my $lastchangetime = [gettimeofday];
     my $lastchangeimg  = getcurrentscreenshot();
     while ( time - $starttime < $timeout ) {
@@ -466,20 +466,20 @@ sub waitstillimage($$$) {
             $lastchangeimg  = $img;
         }
         if ( ( $now->[0] - $lastchangetime->[0] ) + ( $now->[1] - $lastchangetime->[1] ) / 1000000. >= $stilltime ) {
-            fctres( 'waitstillimage', "detected same image for $stilltime seconds" );
+            fctres( 'wait_still_screen', "detected same image for $stilltime seconds" );
             return 1;
         }
         sleep(0.5);
     }
     timeout_screenshot();
-    fctres( 'waitstillimage', "waitstillimage timed out after $timeout" );
+    fctres( 'wait_still_screen', "wait_still_screen timed out after $timeout" );
     return 0;
 }
 
 
-=head2 _wait_serial
+=head2 wait_serial
 
-_wait_serial($regex, $timeout_sec, $expect_not_found)
+wait_serial($regex, $timeout_sec, $expect_not_found)
 
 Wait for a message to appear on serial output.
 You could have sent it there earlier with
@@ -488,10 +488,10 @@ C<script_run("echo Hello World E<gt> /dev/$serialdev");>
 
 =cut
 
-sub _wait_serial($$$) {
+sub wait_serial($$$) {
 
     # wait for a message to appear on serial output
-    my ($regexp, $timeout, $expect_not_found) = ($@);
+    my ($regexp, $timeout, $expect_not_found) = @_;
     fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
     my $res;
     for my $n ( 1 .. $timeout ) {
@@ -588,7 +588,7 @@ sub save_needle_template($$$) {
     return shared_clone( { img => $jsonfn, needle => $jsonfn, name => $mustmatch } );
 }
 
-sub _assert_screen {
+sub assert_screen {
     my %args         = @_;
     my $mustmatch    = $args{'mustmatch'};
     my $timeout      = $args{'timeout'} || 30;
@@ -738,7 +738,7 @@ sub _assert_screen {
             $waiting_for_new_needle = undef;
             save_results();
             cont_vm();
-            return _assert_screen( mustmatch => \@tags, timeout => 3, check => $check_screen, retried => $args{'retried'} + 1 );
+            return assert_screen( mustmatch => \@tags, timeout => 3, check => $check_screen, retried => $args{'retried'} + 1 );
         }
         $waiting_for_new_needle = undef;
         save_results();
@@ -808,7 +808,7 @@ sub _assert_screen {
             needle->new($fn) || mydie "$!";
 
             # XXX: recursion!
-            return _assert_screen( mustmatch => \@tags, timeout => 3, check => $check_screen, retried => $args{'retried'} + 1 );
+            return assert_screen( mustmatch => \@tags, timeout => 3, check => $check_screen, retried => $args{'retried'} + 1 );
         }
     }
 

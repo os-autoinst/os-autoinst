@@ -10,7 +10,7 @@ our ( @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
 @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string assert_screen
   upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
   script_sudo wait_serial save_screenshot backend_send assert_and_click mouse_hide
-  type_password wait_encrypt_prompt get_var check_var set_var become_root);
+  type_password wait_encrypt_prompt get_var check_var set_var become_root x11_start_program);
 
 our %cmd;
 
@@ -147,15 +147,15 @@ sub init() {
 
 
 sub assert_screen($;$) {
-    return bmwqemu::_assert_screen( mustmatch => $_[0], timeout => $_[1] );
+    return bmwqemu::assert_screen( mustmatch => $_[0], timeout => $_[1] );
 }
 
 sub check_screen($;$) {
-    return bmwqemu::_assert_screen( mustmatch => $_[0], timeout => $_[1], check => 1 );
+    return bmwqemu::assert_screen( mustmatch => $_[0], timeout => $_[1], check => 1 );
 }
 
 sub assert_and_click($;$$$$) {
-    my $foundneedle = _assert_screen(
+    my $foundneedle = bmwqemu::assert_screen(
         mustmatch => $_[0],
         timeout   => $_[2]
     );
@@ -212,7 +212,7 @@ sub wait_serial($;$$) {
     my $timeout = shift || 90;    # seconds
     my $expect_not_found = shift || 0;    # expected can not found the term in serial output
 
-    bmwqemu::_wait_serial($regexp, $timeout, $expect_not_found);
+    bmwqemu::wait_serial($regexp, $timeout, $expect_not_found);
 }
 
 sub become_root() {
@@ -320,7 +320,7 @@ sub wait_still_screen(;$$$) {
     my $timeout          = shift || 30;
     my $similarity_level = shift || ( get_var('HW') ? 44 : 47 );
 
-    bmwqemu::watistillimage($stilltime, $timeout, $similarity_level);
+    bmwqemu::wait_still_screen($stilltime, $timeout, $similarity_level);
 }
 
 sub clear_console() {
@@ -343,13 +343,13 @@ sub set_var($$) {
 
 sub check_var($$) {
     my ($var, $val) = @_;
-    return 1 if ( defined $vars{$var} && $vars{$var} eq $val );
+    return 1 if ( defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val );
     return 0;
 }
 
 ## helpers
 sub wait_encrypt_prompt() {
-    if ( $vars{ENCRYPT} ) {
+    if ( $bmwqemu::vars{ENCRYPT} ) {
         assert_screen("encrypted-disk-password-prompt");
         type_password();    # enter PW at boot
         send_key "ret";
