@@ -46,7 +46,7 @@ sub runalltests {
         my $flags = $t->test_flags();
 
         if ( !$vmloaded && $t->{fullname} eq $firsttest ) {
-            load_snapshot($firsttest) if $bmwqemu::vars{SKIPTO};
+            bmwqemu::load_snapshot($firsttest) if $bmwqemu::vars{SKIPTO};
             $vmloaded = 1;
         }
         if ($vmloaded) {
@@ -72,7 +72,7 @@ sub runalltests {
                     die $@;
                 }
                 elsif (!$flags->{'norollback'} ) {
-                    load_snapshot('lastgood');
+                    bmwqemu::load_snapshot('lastgood');
                 }
             }
             else {
