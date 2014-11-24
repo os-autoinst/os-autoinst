@@ -68,7 +68,7 @@ sub runalltests {
                 $t->post_failure;
                 bmwqemu::diag "test $name failed: $@\n";
                 if ( $flags->{'fatal'} ) {
-                    stop_vm();
+                    bmwqemu::stop_vm();
                     die $@;
                 }
                 elsif (!$flags->{'norollback'} ) {
