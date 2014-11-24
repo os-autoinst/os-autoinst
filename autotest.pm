@@ -24,7 +24,7 @@ sub loadtest($) {
         eval "package $name; use lib \$bmwqemu::vars{CASEDIR}.'/lib'; require \$script;";
         if ($@) {
             my $msg = "error on $script: $@";
-            diag($msg);
+            bmwqemu::diag($msg);
             die $msg;
         }
         $test = $name->new($category);
@@ -35,7 +35,7 @@ sub loadtest($) {
         return unless $test->is_applicable;
         push @testorder, $test;
     }
-    diag "scheduling $name $script";
+    bmwqemu::diag "scheduling $name $script";
 }
 
 sub runalltests {
@@ -51,12 +51,12 @@ sub runalltests {
         }
         if ($vmloaded) {
             my $name = ref($t);
-            modstart "starting $name $t->{script}";
+            bmwqemu::modstart "starting $name $t->{script}";
             $t->start();
             bmwqemu::save_results( results() );
 
             # avoid erasing the good vm snapshot
-            if ( !check_var( 'SKIPTO', $t->{'fullname'} ) && $bmwqemu::vars{MAKETESTSNAPSHOTS} ) {
+            if ( ( $bmwqemu::vars{'SKIPTO'} || '') ne $t->{'fullname'} && $bmwqemu::vars{MAKETESTSNAPSHOTS} ) {
                 bmwqemu::make_snapshot( $t->{'fullname'} );
             }
 
@@ -66,7 +66,7 @@ sub runalltests {
                 # Do some cleaning after case fail.
                 # Like don't find a needle.
                 $t->post_failure;
-                diag "test $name failed: $@\n";
+                bmwqemu::diag "test $name failed: $@\n";
                 if ( $flags->{'fatal'} ) {
                     stop_vm();
                     die $@;
@@ -82,7 +82,7 @@ sub runalltests {
             }
         }
         else {
-            diag "skiping $t->{fullname}";
+            bmwqemu::diag "skiping $t->{fullname}";
             $t->skip_if_not_running;
         }
     }
