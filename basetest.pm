@@ -6,7 +6,7 @@ use Time::HiRes;
 use JSON;
 use POSIX;
 use Data::Dumper;
-use testapi;
+use testapi qw(send_key type_string type_password assert_screen check_screen $password check_var get_var);
 
 sub new(;$) {
     my $class    = shift;
@@ -205,6 +205,7 @@ sub result($;$) {
 sub start() {
     my $self = shift;
     $self->{running} = 1;
+    $self->init_cmd;
     bmwqemu::set_current_test($self);
 }
 
@@ -408,7 +409,9 @@ sub stop_audiocapture() {
 }
 
 =head2 assert_DTMF
+
 stop audio capture and compare DTMF decoded result with reference
+
 =cut
 
 sub assert_DTMF($) {
@@ -452,139 +455,25 @@ sub ocr_checklist {
     return [];
 }
 
-=head2 check() [protected]
+sub x11_start_program($$$) {
+    my ($program, $timeout, $options) = @_;
+    bmwqemu::mydie("TODO: implement x11 start for your distri " . get_var('DISTRI'));
+}
 
-After C<run> is done, evaluate the screen dumps according to checklists.
+sub ensure_installed {
+    my @pkglist = @_;
 
-Return a string "STATUS DESCRIPTION"
-where STATUS is one of: OK fail unknown not-autochecked
-
-=cut
-
-sub check(%) {
-    die("FIXME");
-    my $self = shift;
-    my $path = bmwqemu::result_dir;
-    $path =~ s/\.ogv.*//;
-    if ( !-e $path ) {
-        my $dir = `cd ../.. ; pwd ..`;
-        chomp($dir);
-        $path = "$dir/$path";
+    if ( check_var( 'DISTRI', 'debian' ) ) {
+        testapi::x11_start_program( "su -c 'aptitude -y install @pkglist'", 4, { terminal => 1 } );
     }
-    my $testname      = ref($self);
-    my @screenshots   = <$path/$testname-*.png>;
-    my @wavdumps      = <$path/$testname-*.wav>;
-    my $wav_checklist = $self->wav_checklist();
-    my $ocr_checklist = $self->ocr_checklist();
-
-    #if(!keys %$checklist && !@screenshots && (!@wavdumps || !keys %$wav_checklist) && !@$ocr_checklist) { return "not-autochecked" } #FIXME: return properly
-
-    print "CHECK $testname ", @screenshots, "\n";
-
-    # Screenshot Check
-    my @screenshot_results = ();
-    foreach my $screenimg (@screenshots) {
-        my $img = tinycv::read($screenimg);
-
-        my $tag = $screenimg;
-        $tag =~ s{.*/$testname-(\d+)\.png}{$testname-$1};
-
-        # that much about guessing, now try to open the json
-        if ( -s "$screenimg.json" ) {
-            open( J, "$screenimg.json" );
-            my $j = decode_json(<J>);
-            $tag = $j->{tag};
-        }
-
-        my $needles = needle::tags($tag) || [];
-        my $screenshot_result = { 'refimg_result' => 'unk', 'ocr_result' => 'na' };
-
-        # Reference Image Check
-        if ( !@{$needles} ) {
-            bmwqemu::diag("No REF needles for $tag");
-
-            #push(@testreturn, "na");
-            $screenshot_result->{refimg_result} = 'na';
-        }
-        else {
-            my $foundneedle = $img->search($needles);
-            if ($foundneedle) {
-                $screenshot_result->{refimg_result} = 'ok';
-                my $need = $foundneedle->{'needle'};
-                $screenshot_result->{refimg} = {
-                    'id'    => $need->{'name'},
-                    'match' => [ $foundneedle->{'x'}, $foundneedle->{'y'} ],
-                    'size'  => [ $foundneedle->{'w'}, $foundneedle->{'h'} ]
-                };
-            }
-            else {
-                # if there are refs and none of them match, then fail
-                $screenshot_result->{refimg_result} = 'fail';
-            }
-        }
-
-        # OCR Check
-        if (@$ocr_checklist) {
-            my $img = tinycv::read($screenimg);
-            foreach my $entry (@$ocr_checklist) {
-                my @ocrrect = ( $entry->{x}, $entry->{y}, $entry->{xs}, $entry->{ys} );
-                my $ocr = ocr::get_ocr( $img, "", \@ocrrect );
-                open( OCRFILE, ">$path/$testname-$entry->{screenshot}.txt" );
-                print OCRFILE $ocr;
-                close(OCRFILE);
-                print STDERR "\nOCR OUT: $ocr\n";
-                if ( $ocr =~ m/$entry->{pattern}/ ) {
-                    my $result = $entry->{result};
-                    $screenshot_result->{ocr_result} = lc($result);
-                    last;
-                }
-                else {
-                    $screenshot_result->{ocr_result} = 'unk';
-                }
-            }
-        }
-
-        push( @screenshot_results, $screenshot_result );
-
+    elsif ( check_var( 'DISTRI', 'fedora' ) ) {
+        testapi::x11_start_program( "su -c 'yum -y install @pkglist'", 4, { terminal => 1 } );
     }
-
-    # Audio Check
-    my @wavreturn = ();
-    foreach my $audiofile (@wavdumps) {
-        my $aid = $audiofile;
-        $aid =~ s{.*/$testname-(\d+)\.wav}{$1};
-        if ( defined $wav_checklist->{$aid} ) {
-            my $decoded_text = bmwqemu::decodewav($audiofile);
-            if ( ( uc $wav_checklist->{$aid} ) eq $decoded_text ) {
-                push( @wavreturn, "ok" );
-            }
-            else {
-                push( @wavreturn, "fail" );
-            }
-        }
-        else {
-            push( @wavreturn, "na" );
-        }
+    else {
+        bmwqemu::mydie("TODO: implement package install for your distri " . get_var('DISTRI'));
     }
-
-    my @refimg_results = map( $_->{refimg_result}, @screenshot_results );
-    my @ocr_results    = map( $_->{ocr_result},    @screenshot_results );
-    my @returnval = ( @refimg_results, @ocr_results, @wavreturn );
-
-    my $module_result = 'na';
-
-    if ( grep /fail/, @returnval ) { $module_result = 'fail' }
-    elsif ( grep /ok/,  @returnval ) { $module_result = 'ok' }
-    elsif ( grep /unk/, @returnval ) { $module_result = 'unk' }    # none of our known results matched
-
-    my $return_result = {
-        'name'        => $testname,
-        'result'      => $module_result,
-        'screenshots' => [@screenshot_results],
-        'audiodumps'  => [@wavreturn]
-    };
-    print STDERR '--- ' . JSON::to_json($return_result) . "\n";
-    return $return_result;
+    if ($password) { type_password; send_key("ret", 1); }
+    wait_still_screen( 7, 90 );    # wait for install
 }
 
 sub standstill_detected($) {
@@ -599,6 +488,10 @@ sub standstill_detected($) {
     testapi::send_key("alt-sysrq-w");
     testapi::send_key("alt-sysrq-l");
     testapi::send_key("alt-sysrq-d");                      # only available with CONFIG_LOCKDEP
+}
+
+sub init_cmd() {
+    # no cmds on default distri
 }
 
 1;
