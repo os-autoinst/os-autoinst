@@ -21,6 +21,8 @@ sub new(;$) {
     $self->{screen_count}   = 0;
     $self->{wav_fn}         = undef;
     $self->{dents}          = 0;
+    $self->{post_fail_hook_running} = 0;
+
     return bless $self, $class;
 }
 
@@ -251,6 +253,18 @@ sub waitforprevimg($$;$) {
     return $currentimg;
 }
 
+sub pre_run_hook {
+    my ($self) = @_;
+
+    # you should overload that in test classes
+}
+
+sub post_run_hook {
+    my ($self) = @_;
+
+    # you should overload that in test classes
+}
+
 sub runtest($$) {
     my $self      = shift;
     my $starttime = time;
@@ -258,26 +272,16 @@ sub runtest($$) {
     my $ret;
     my $name = ref($self);
     eval {
-        # FIXME: there should be a test class that handles this
-        if ( $self->{'category'} eq 'console' && $name ne 'consoletest_setup' ) {
-
-            # clear screen to make screen content independent from previous tests
-            testapi::clear_console;
-        }
-
+        $self->pre_run_hook();
         $self->run();
-
-        # FIXME: there should be a test class that handles this
-        if ( $self->{'category'} eq 'x11' && $name ne 'shutdown' ) {
-            assert_screen('generic-desktop');
-        }
+        $self->post_run_hook();
     };
     if ($@ || $self->{'result'} eq 'fail' ) {
         warn "test $name died: $@\n";
-        $bmwqemu::post_fail_hook_running = 1;
+        $self->{post_fail_hook_running} = 1;
         eval { $self->post_fail_hook; };
         bmwqemu::diag "post_fail_hook failed: $@\n" if $@;
-        $bmwqemu::post_fail_hook_running = 0;
+        $self->{post_fail_hook_running} = 0;
         $self->fail_if_running();
         bmwqemu::save_results( autotest::results() );
         die "test $name died: $@\n";

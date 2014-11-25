@@ -44,7 +44,6 @@ share(@extrahashrects);
 our $interactive_mode;
 our $needle_template;
 our $waiting_for_new_needle;
-our $post_fail_hook_running;
 
 # shared vars end
 
@@ -284,7 +283,7 @@ sub getcurrentscreenshot(;$) {
         $lastscreenshot     = tinycv::read($filename);
         $lastscreenshotName = $filename;
     }
-    elsif ( !$post_fail_hook_running ) {
+    elsif ( !$current_test->{post_fail_hook_running} ) {
         $prestandstillwarning = ( $numunchangedscreenshots > $standstillthreshold / 2 );
         if ( $numunchangedscreenshots > $standstillthreshold ) {
             diag "STANDSTILL";
