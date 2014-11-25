@@ -10,7 +10,7 @@ our ( @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
 @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string assert_screen
   upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
   script_sudo wait_serial save_screenshot backend_send assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
-  type_password wait_encrypt_prompt get_var check_var set_var become_root x11_start_program ensure_installed);
+  type_password get_var check_var set_var become_root x11_start_program ensure_installed);
 
 our %cmd;
 
@@ -348,13 +348,6 @@ sub check_var($$) {
 }
 
 ## helpers
-sub wait_encrypt_prompt() {
-    if ( $bmwqemu::vars{ENCRYPT} ) {
-        assert_screen("encrypted-disk-password-prompt");
-        type_password();    # enter PW at boot
-        send_key "ret";
-    }
-}
 
 sub x11_start_program($;$$) {
     my $program = shift;
