@@ -259,7 +259,7 @@ sub runtest($$) {
     my $name = ref($self);
     eval {
         # FIXME: there should be a test class that handles this
-        if ( $self->{'category'} eq 'consoletest' && $name ne 'consoletest_setup' ) {
+        if ( $self->{'category'} eq 'console' && $name ne 'consoletest_setup' ) {
 
             # clear screen to make screen content independent from previous tests
             testapi::clear_console;
@@ -268,7 +268,7 @@ sub runtest($$) {
         $self->run();
 
         # FIXME: there should be a test class that handles this
-        if ( $self->{'category'} eq 'x11test' && $name ne 'shutdown' ) {
+        if ( $self->{'category'} eq 'x11' && $name ne 'shutdown' ) {
             assert_screen('generic-desktop');
         }
     };
