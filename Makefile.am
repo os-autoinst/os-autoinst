@@ -33,6 +33,7 @@ pkglibexec_SCRIPTS = \
 	autotest.pm \
 	basetest.pm \
 	bmwqemu.pm \
+	testapi.pm \
 	httpnotifyconf.pm \
 	ocr.pm \
 	cv.pm \
