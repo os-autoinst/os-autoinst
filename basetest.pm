@@ -6,7 +6,7 @@ use Time::HiRes;
 use JSON;
 use POSIX;
 use Data::Dumper;
-use testapi;
+use testapi qw(send_key type_string type_password assert_screen check_screen $password check_var get_var);
 
 sub new(;$) {
     my $class    = shift;
@@ -409,7 +409,9 @@ sub stop_audiocapture() {
 }
 
 =head2 assert_DTMF
+
 stop audio capture and compare DTMF decoded result with reference
+
 =cut
 
 sub assert_DTMF($) {
@@ -453,75 +455,19 @@ sub ocr_checklist {
     return [];
 }
 
-# this needs to move to the distribution
 sub x11_start_program($$$) {
     my ($program, $timeout, $options) = @_;
-    send_key "alt-f2";
-    assert_screen("desktop-runner", $timeout);
-    type_string $program;
-    if ( $options->{terminal} ) { send_key "alt-t"; sleep 3; }
-    send_key "ret", 1;
-    # make sure desktop runner executed and closed when have had valid value
-    # exec x11_start_program( $program, $timeout, { valid => 1 } );
-    if ( $options->{valid} ) {
-        # check 3 times
-        foreach my $i ( 1..3 ) {
-            last unless check_screen "desktop-runner-border", 2;
-            send_key "ret", 1;
-        }
-    }
+    bmwqemu::mydie("TODO: implement x11 start for your distri " . get_var('DISTRI'));
 }
 
-# this needs to move to the distribution
 sub ensure_installed {
     my @pkglist = @_;
-    my $timeout;
-    if ( $pkglist[-1] =~ /^[0-9]+$/ ) {
-        $timeout = $pkglist[-1];
-        pop @pkglist;
-    }
-    else {
-        $timeout = 80;
-    }
 
-    #pkcon refresh # once
-    #pkcon install @pkglist
-    if ( check_var( 'DISTRI', 'opensuse' ) || check_var( 'DISTRI', 'sle' ) ) {
-        x11_start_program("xterm");
-        assert_screen('xterm-started');
-        type_string("pkcon install @pkglist\n");
-        my @tags = qw/Policykit Policykit-behind-window pkcon-proceed-prompt pkcon-succeeded/;
-        while (1) {
-            my $ret = assert_screen(\@tags, $timeout);
-            if ( $ret->{needle}->has_tag('Policykit') ) {
-                type_password;
-                send_key( "ret", 1 );
-                @tags = grep { $_ ne 'Policykit' } @tags;
-                @tags = grep { $_ ne 'Policykit-behind-window' } @tags;
-                next;
-            }
-            if ( $ret->{needle}->has_tag('Policykit-behind-window') ) {
-                send_key("alt-tab");
-                sleep 3;
-                next;
-            }
-            if ( $ret->{needle}->has_tag('pkcon-proceed-prompt') ) {
-                send_key("y");
-                send_key("ret");
-                @tags = grep { $_ ne 'pkcon-proceed-prompt' } @tags;
-                next;
-            }
-            if ( $ret->{needle}->has_tag('pkcon-succeeded') ) {
-                send_key("alt-f4");    # close xterm
-                return;
-            }
-        }
-    }
-    elsif ( check_var( 'DISTRI', 'debian' ) ) {
-        x11_start_program( "su -c 'aptitude -y install @pkglist'", 4, { terminal => 1 } );
+    if ( check_var( 'DISTRI', 'debian' ) ) {
+        testapi::x11_start_program( "su -c 'aptitude -y install @pkglist'", 4, { terminal => 1 } );
     }
     elsif ( check_var( 'DISTRI', 'fedora' ) ) {
-        x11_start_program( "su -c 'yum -y install @pkglist'", 4, { terminal => 1 } );
+        testapi::x11_start_program( "su -c 'yum -y install @pkglist'", 4, { terminal => 1 } );
     }
     else {
         bmwqemu::mydie("TODO: implement package install for your distri " . get_var('DISTRI'));
@@ -544,67 +490,8 @@ sub standstill_detected($) {
     testapi::send_key("alt-sysrq-d");                      # only available with CONFIG_LOCKDEP
 }
 
-# this needs to move to the distribution
 sub init_cmd() {
-    ## keyboard cmd vars
-    %testapi::cmd = qw(
-      next alt-n
-      xnext alt-n
-      install alt-i
-      update alt-u
-      finish alt-f
-      accept alt-a
-      ok alt-o
-      continue alt-o
-      createpartsetup alt-c
-      custompart alt-c
-      addpart alt-d
-      donotformat alt-d
-      addraid alt-i
-      add alt-a
-      raid0 alt-0
-      raid1 alt-1
-      raid5 alt-5
-      raid6 alt-6
-      raid10 alt-i
-      mountpoint alt-m
-      filesystem alt-s
-      acceptlicense alt-a
-      instdetails alt-d
-      rebootnow alt-n
-      otherrootpw alt-s
-      noautologin alt-a
-      change alt-c
-      software s
-      package p
-      bootloader b
-    );
-
-    if ( check_var('INSTLANG', "de_DE") ) {
-        $testapi::cmd{"next"}            = "alt-w";
-        $testapi::cmd{"createpartsetup"} = "alt-e";
-        $testapi::cmd{"custompart"}      = "alt-b";
-        $testapi::cmd{"addpart"}         = "alt-h";
-        $testapi::cmd{"finish"}          = "alt-b";
-        $testapi::cmd{"accept"}          = "alt-r";
-        $testapi::cmd{"donotformat"}     = "alt-n";
-        $testapi::cmd{"add"}             = "alt-h";
-
-        #	$testapi::cmd{"raid6"}="alt-d"; 11.2 only
-        $testapi::cmd{"raid10"}      = "alt-r";
-        $testapi::cmd{"mountpoint"}  = "alt-e";
-        $testapi::cmd{"rebootnow"}   = "alt-j";
-        $testapi::cmd{"otherrootpw"} = "alt-e";
-        $testapi::cmd{"change"}      = "alt-n";
-        $testapi::cmd{"software"}    = "w";
-    }
-    if ( check_var('INSTLANG', "es_ES") ) {
-        $testapi::cmd{"next"} = "alt-i";
-    }
-    if ( check_var('INSTLANG', "fr_FR") ) {
-        $testapi::cmd{"next"} = "alt-s";
-    }
-    ## keyboard cmd vars end
+    # no cmds on default distri
 }
 
 1;

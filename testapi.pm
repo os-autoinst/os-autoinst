@@ -72,7 +72,6 @@ sub init_charmap() {
 }
 
 sub init() {
-    init_cmd();
     init_charmap();
 
     $serialdev = "ttyS0";
