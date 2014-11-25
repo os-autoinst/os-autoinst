@@ -205,6 +205,7 @@ sub result($;$) {
 sub start() {
     my $self = shift;
     $self->{running} = 1;
+    $self->init_cmd;
     bmwqemu::set_current_test($self);
 }
 
@@ -452,139 +453,81 @@ sub ocr_checklist {
     return [];
 }
 
-=head2 check() [protected]
-
-After C<run> is done, evaluate the screen dumps according to checklists.
-
-Return a string "STATUS DESCRIPTION"
-where STATUS is one of: OK fail unknown not-autochecked
-
-=cut
-
-sub check(%) {
-    die("FIXME");
-    my $self = shift;
-    my $path = bmwqemu::result_dir;
-    $path =~ s/\.ogv.*//;
-    if ( !-e $path ) {
-        my $dir = `cd ../.. ; pwd ..`;
-        chomp($dir);
-        $path = "$dir/$path";
-    }
-    my $testname      = ref($self);
-    my @screenshots   = <$path/$testname-*.png>;
-    my @wavdumps      = <$path/$testname-*.wav>;
-    my $wav_checklist = $self->wav_checklist();
-    my $ocr_checklist = $self->ocr_checklist();
-
-    #if(!keys %$checklist && !@screenshots && (!@wavdumps || !keys %$wav_checklist) && !@$ocr_checklist) { return "not-autochecked" } #FIXME: return properly
-
-    print "CHECK $testname ", @screenshots, "\n";
-
-    # Screenshot Check
-    my @screenshot_results = ();
-    foreach my $screenimg (@screenshots) {
-        my $img = tinycv::read($screenimg);
-
-        my $tag = $screenimg;
-        $tag =~ s{.*/$testname-(\d+)\.png}{$testname-$1};
-
-        # that much about guessing, now try to open the json
-        if ( -s "$screenimg.json" ) {
-            open( J, "$screenimg.json" );
-            my $j = decode_json(<J>);
-            $tag = $j->{tag};
-        }
-
-        my $needles = needle::tags($tag) || [];
-        my $screenshot_result = { 'refimg_result' => 'unk', 'ocr_result' => 'na' };
-
-        # Reference Image Check
-        if ( !@{$needles} ) {
-            bmwqemu::diag("No REF needles for $tag");
-
-            #push(@testreturn, "na");
-            $screenshot_result->{refimg_result} = 'na';
-        }
-        else {
-            my $foundneedle = $img->search($needles);
-            if ($foundneedle) {
-                $screenshot_result->{refimg_result} = 'ok';
-                my $need = $foundneedle->{'needle'};
-                $screenshot_result->{refimg} = {
-                    'id'    => $need->{'name'},
-                    'match' => [ $foundneedle->{'x'}, $foundneedle->{'y'} ],
-                    'size'  => [ $foundneedle->{'w'}, $foundneedle->{'h'} ]
-                };
-            }
-            else {
-                # if there are refs and none of them match, then fail
-                $screenshot_result->{refimg_result} = 'fail';
-            }
-        }
-
-        # OCR Check
-        if (@$ocr_checklist) {
-            my $img = tinycv::read($screenimg);
-            foreach my $entry (@$ocr_checklist) {
-                my @ocrrect = ( $entry->{x}, $entry->{y}, $entry->{xs}, $entry->{ys} );
-                my $ocr = ocr::get_ocr( $img, "", \@ocrrect );
-                open( OCRFILE, ">$path/$testname-$entry->{screenshot}.txt" );
-                print OCRFILE $ocr;
-                close(OCRFILE);
-                print STDERR "\nOCR OUT: $ocr\n";
-                if ( $ocr =~ m/$entry->{pattern}/ ) {
-                    my $result = $entry->{result};
-                    $screenshot_result->{ocr_result} = lc($result);
-                    last;
-                }
-                else {
-                    $screenshot_result->{ocr_result} = 'unk';
-                }
-            }
-        }
-
-        push( @screenshot_results, $screenshot_result );
-
-    }
-
-    # Audio Check
-    my @wavreturn = ();
-    foreach my $audiofile (@wavdumps) {
-        my $aid = $audiofile;
-        $aid =~ s{.*/$testname-(\d+)\.wav}{$1};
-        if ( defined $wav_checklist->{$aid} ) {
-            my $decoded_text = bmwqemu::decodewav($audiofile);
-            if ( ( uc $wav_checklist->{$aid} ) eq $decoded_text ) {
-                push( @wavreturn, "ok" );
-            }
-            else {
-                push( @wavreturn, "fail" );
-            }
-        }
-        else {
-            push( @wavreturn, "na" );
+# this needs to move to the distribution
+sub x11_start_program($$$) {
+    my ($program, $timeout, $options) = @_;
+    send_key "alt-f2";
+    assert_screen("desktop-runner", $timeout);
+    type_string $program;
+    if ( $options->{terminal} ) { send_key "alt-t"; sleep 3; }
+    send_key "ret", 1;
+    # make sure desktop runner executed and closed when have had valid value
+    # exec x11_start_program( $program, $timeout, { valid => 1 } );
+    if ( $options->{valid} ) {
+        # check 3 times
+        foreach my $i ( 1..3 ) {
+            last unless check_screen "desktop-runner-border", 2;
+            send_key "ret", 1;
         }
     }
+}
 
-    my @refimg_results = map( $_->{refimg_result}, @screenshot_results );
-    my @ocr_results    = map( $_->{ocr_result},    @screenshot_results );
-    my @returnval = ( @refimg_results, @ocr_results, @wavreturn );
+# this needs to move to the distribution
+sub ensure_installed {
+    my @pkglist = @_;
+    my $timeout;
+    if ( $pkglist[-1] =~ /^[0-9]+$/ ) {
+        $timeout = $pkglist[-1];
+        pop @pkglist;
+    }
+    else {
+        $timeout = 80;
+    }
 
-    my $module_result = 'na';
-
-    if ( grep /fail/, @returnval ) { $module_result = 'fail' }
-    elsif ( grep /ok/,  @returnval ) { $module_result = 'ok' }
-    elsif ( grep /unk/, @returnval ) { $module_result = 'unk' }    # none of our known results matched
-
-    my $return_result = {
-        'name'        => $testname,
-        'result'      => $module_result,
-        'screenshots' => [@screenshot_results],
-        'audiodumps'  => [@wavreturn]
-    };
-    print STDERR '--- ' . JSON::to_json($return_result) . "\n";
-    return $return_result;
+    #pkcon refresh # once
+    #pkcon install @pkglist
+    if ( check_var( 'DISTRI', 'opensuse' ) || check_var( 'DISTRI', 'sle' ) ) {
+        x11_start_program("xterm");
+        assert_screen('xterm-started');
+        type_string("pkcon install @pkglist\n");
+        my @tags = qw/Policykit Policykit-behind-window pkcon-proceed-prompt pkcon-succeeded/;
+        while (1) {
+            my $ret = assert_screen(\@tags, $timeout);
+            if ( $ret->{needle}->has_tag('Policykit') ) {
+                type_password;
+                send_key( "ret", 1 );
+                @tags = grep { $_ ne 'Policykit' } @tags;
+                @tags = grep { $_ ne 'Policykit-behind-window' } @tags;
+                next;
+            }
+            if ( $ret->{needle}->has_tag('Policykit-behind-window') ) {
+                send_key("alt-tab");
+                sleep 3;
+                next;
+            }
+            if ( $ret->{needle}->has_tag('pkcon-proceed-prompt') ) {
+                send_key("y");
+                send_key("ret");
+                @tags = grep { $_ ne 'pkcon-proceed-prompt' } @tags;
+                next;
+            }
+            if ( $ret->{needle}->has_tag('pkcon-succeeded') ) {
+                send_key("alt-f4");    # close xterm
+                return;
+            }
+        }
+    }
+    elsif ( check_var( 'DISTRI', 'debian' ) ) {
+        x11_start_program( "su -c 'aptitude -y install @pkglist'", 4, { terminal => 1 } );
+    }
+    elsif ( check_var( 'DISTRI', 'fedora' ) ) {
+        x11_start_program( "su -c 'yum -y install @pkglist'", 4, { terminal => 1 } );
+    }
+    else {
+        bmwqemu::mydie("TODO: implement package install for your distri " . get_var('DISTRI'));
+    }
+    if ($password) { type_password; send_key("ret", 1); }
+    wait_still_screen( 7, 90 );    # wait for install
 }
 
 sub standstill_detected($) {
@@ -599,6 +542,69 @@ sub standstill_detected($) {
     testapi::send_key("alt-sysrq-w");
     testapi::send_key("alt-sysrq-l");
     testapi::send_key("alt-sysrq-d");                      # only available with CONFIG_LOCKDEP
+}
+
+# this needs to move to the distribution
+sub init_cmd() {
+    ## keyboard cmd vars
+    %testapi::cmd = qw(
+      next alt-n
+      xnext alt-n
+      install alt-i
+      update alt-u
+      finish alt-f
+      accept alt-a
+      ok alt-o
+      continue alt-o
+      createpartsetup alt-c
+      custompart alt-c
+      addpart alt-d
+      donotformat alt-d
+      addraid alt-i
+      add alt-a
+      raid0 alt-0
+      raid1 alt-1
+      raid5 alt-5
+      raid6 alt-6
+      raid10 alt-i
+      mountpoint alt-m
+      filesystem alt-s
+      acceptlicense alt-a
+      instdetails alt-d
+      rebootnow alt-n
+      otherrootpw alt-s
+      noautologin alt-a
+      change alt-c
+      software s
+      package p
+      bootloader b
+    );
+
+    if ( check_var('INSTLANG', "de_DE") ) {
+        $testapi::cmd{"next"}            = "alt-w";
+        $testapi::cmd{"createpartsetup"} = "alt-e";
+        $testapi::cmd{"custompart"}      = "alt-b";
+        $testapi::cmd{"addpart"}         = "alt-h";
+        $testapi::cmd{"finish"}          = "alt-b";
+        $testapi::cmd{"accept"}          = "alt-r";
+        $testapi::cmd{"donotformat"}     = "alt-n";
+        $testapi::cmd{"add"}             = "alt-h";
+
+        #	$testapi::cmd{"raid6"}="alt-d"; 11.2 only
+        $testapi::cmd{"raid10"}      = "alt-r";
+        $testapi::cmd{"mountpoint"}  = "alt-e";
+        $testapi::cmd{"rebootnow"}   = "alt-j";
+        $testapi::cmd{"otherrootpw"} = "alt-e";
+        $testapi::cmd{"change"}      = "alt-n";
+        $testapi::cmd{"software"}    = "w";
+    }
+    if ( check_var('INSTLANG', "es_ES") ) {
+        $testapi::cmd{"next"} = "alt-i";
+    }
+    if ( check_var('INSTLANG', "fr_FR") ) {
+        $testapi::cmd{"next"} = "alt-s";
+    }
+    ## keyboard cmd vars end
 }
 
 1;

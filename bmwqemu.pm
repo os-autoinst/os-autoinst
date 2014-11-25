@@ -519,13 +519,13 @@ sub wait_serial($$$) {
     return $res eq 'ok';
 }
 
-=head2 _wait_idle
+=head2 wait_idle
 
 Wait until the system becomes idle
 
 =cut
 
-sub _wait_idle($) {
+sub wait_idle($) {
     my $timeout = shift;
     my $prev;
     fctlog( 'wait_idle', "timeout=$timeout" );

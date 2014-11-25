@@ -27,69 +27,6 @@ sub check_screen($;$);
 sub type_string($;$);
 sub type_password;
 
-sub init_cmd() {
-    ## keyboard cmd vars
-    %cmd = qw(
-      next alt-n
-      xnext alt-n
-      install alt-i
-      update alt-u
-      finish alt-f
-      accept alt-a
-      ok alt-o
-      continue alt-o
-      createpartsetup alt-c
-      custompart alt-c
-      addpart alt-d
-      donotformat alt-d
-      addraid alt-i
-      add alt-a
-      raid0 alt-0
-      raid1 alt-1
-      raid5 alt-5
-      raid6 alt-6
-      raid10 alt-i
-      mountpoint alt-m
-      filesystem alt-s
-      acceptlicense alt-a
-      instdetails alt-d
-      rebootnow alt-n
-      otherrootpw alt-s
-      noautologin alt-a
-      change alt-c
-      software s
-      package p
-      bootloader b
-    );
-
-    if ( check_var('INSTLANG', "de_DE") ) {
-        $cmd{"next"}            = "alt-w";
-        $cmd{"createpartsetup"} = "alt-e";
-        $cmd{"custompart"}      = "alt-b";
-        $cmd{"addpart"}         = "alt-h";
-        $cmd{"finish"}          = "alt-b";
-        $cmd{"accept"}          = "alt-r";
-        $cmd{"donotformat"}     = "alt-n";
-        $cmd{"add"}             = "alt-h";
-
-        #	$cmd{"raid6"}="alt-d"; 11.2 only
-        $cmd{"raid10"}      = "alt-r";
-        $cmd{"mountpoint"}  = "alt-e";
-        $cmd{"rebootnow"}   = "alt-j";
-        $cmd{"otherrootpw"} = "alt-e";
-        $cmd{"change"}      = "alt-n";
-        $cmd{"software"}    = "w";
-    }
-    if ( check_var('INSTLANG', "es_ES") ) {
-        $cmd{"next"} = "alt-i";
-    }
-    if ( check_var('INSTLANG', "fr_FR") ) {
-        $cmd{"next"} = "alt-s";
-    }
-    ## keyboard cmd vars end
-}
-
-
 sub init_charmap() {
     ## charmap (like L => shift+l)
     %charmap = (
@@ -191,7 +128,7 @@ Wait until the system becomes idle (as configured by IDLETHESHOLD in env.sh)
 
 sub wait_idle(;$) {
     my $timeout = shift || 19;
-    bmwqemu::_wait_idle($timeout);
+    bmwqemu::wait_idle($timeout);
 }
 
 =head2 wait_serial
@@ -249,62 +186,8 @@ sub upload_logs($) {
     send_key 'ret';
 }
 
-# TODO: move to distro repo
 sub ensure_installed {
-    my @pkglist = @_;
-    my $timeout;
-    if ( $pkglist[-1] =~ /^[0-9]+$/ ) {
-        $timeout = $pkglist[-1];
-        pop @pkglist;
-    }
-    else {
-        $timeout = 80;
-    }
-
-    #pkcon refresh # once
-    #pkcon install @pkglist
-    if ( check_var( 'DISTRI', 'opensuse' ) || check_var( 'DISTRI', 'sle' ) ) {
-        x11_start_program("xterm");
-        assert_screen('xterm-started');
-        type_string("pkcon install @pkglist\n");
-        my @tags = qw/Policykit Policykit-behind-window pkcon-proceed-prompt pkcon-succeeded/;
-        while (1) {
-            my $ret = assert_screen(\@tags, $timeout);
-            if ( $ret->{needle}->has_tag('Policykit') ) {
-                type_password;
-                send_key( "ret", 1 );
-                @tags = grep { $_ ne 'Policykit' } @tags;
-                @tags = grep { $_ ne 'Policykit-behind-window' } @tags;
-                next;
-            }
-            if ( $ret->{needle}->has_tag('Policykit-behind-window') ) {
-                send_key("alt-tab");
-                sleep 3;
-                next;
-            }
-            if ( $ret->{needle}->has_tag('pkcon-proceed-prompt') ) {
-                send_key("y");
-                send_key("ret");
-                @tags = grep { $_ ne 'pkcon-proceed-prompt' } @tags;
-                next;
-            }
-            if ( $ret->{needle}->has_tag('pkcon-succeeded') ) {
-                send_key("alt-f4");    # close xterm
-                return;
-            }
-        }
-    }
-    elsif ( check_var( 'DISTRI', 'debian' ) ) {
-        x11_start_program( "su -c 'aptitude -y install @pkglist'", 4, { terminal => 1 } );
-    }
-    elsif ( check_var( 'DISTRI', 'fedora' ) ) {
-        x11_start_program( "su -c 'yum -y install @pkglist'", 4, { terminal => 1 } );
-    }
-    else {
-        bmwqemu::mydie("TODO: implement package install for your distri " . get_var('DISTRI'));
-    }
-    if ($password) { type_password; send_key("ret", 1); }
-    wait_still_screen( 7, 90 );    # wait for install
+    return $bmwqemu::current_test->ensure_installed(@_);
 }
 
 =head2 wait_still_screen
@@ -320,7 +203,7 @@ sub wait_still_screen(;$$$) {
     my $timeout          = shift || 30;
     my $similarity_level = shift || ( get_var('HW') ? 44 : 47 );
 
-    bmwqemu::wait_still_screen($stilltime, $timeout, $similarity_level);
+    return bmwqemu::wait_still_screen($stilltime, $timeout, $similarity_level);
 }
 
 sub clear_console() {
@@ -357,23 +240,10 @@ sub wait_encrypt_prompt() {
 }
 
 sub x11_start_program($;$$) {
-    my $program = shift;
-    my $timeout = shift || 6;
-    my $options = shift || {};
-    send_key "alt-f2";
-    assert_screen("desktop-runner", $timeout);
-    type_string $program;
-    if ( $options->{terminal} ) { send_key "alt-t"; sleep 3; }
-    send_key "ret", 1;
-    # make sure desktop runner executed and closed when have had valid value
-    # exec x11_start_program( $program, $timeout, { valid => 1 } );
-    if ( $options->{valid} ) {
-        # check 3 times
-        foreach my $i ( 1..3 ) {
-            last unless check_screen "desktop-runner-border", 2;
-            send_key "ret", 1;
-        }
-    }
+    my ($program, $timeout, $options) = @_;
+    $timeout ||= 6;
+    $options ||= {};
+    return $bmwqemu::current_test->x11_start_program($program, $timeout, $options);
 }
 
 =head2 script_run
