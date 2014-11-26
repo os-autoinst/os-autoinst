@@ -1,6 +1,9 @@
 # Glen Ogilvie - nelg@mageia.org
 # December 2013
 
+
+======= NOTE THAT THIS DOCUMENT IS OUTDATED AND REFERS TO V1 =========
+
 The automated installer here has been tested for Mageia 3 and Mageia 4,
 with more work going into Mageia 4.
 

@@ -121,7 +121,7 @@ sub assert_and_dclick($;$$$) {
 
 wait_idle([$timeout_sec])
 
-Wait until the system becomes idle (as configured by IDLETHESHOLD in env.sh)
+Wait until the system becomes idle (as configured by IDLETHESHOLD)
 
 =cut
 
