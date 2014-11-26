@@ -114,6 +114,8 @@ diag "FAIL" if $r;
 $SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
 bmwqemu::stop_vm();
+$ct->kill('SIGTERM');
+$ct->join();
 
 # run postrun test code after VM is stopped
 if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
