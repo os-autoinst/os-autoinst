@@ -56,6 +56,10 @@ $SIG{ALRM} = \&signalhandler;
 $SIG{TERM} = \&signalhandler;
 $SIG{HUP}  = \&signalhandler;
 
+use commands;
+
+my $ct = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
+
 # init part
 $bmwqemu::vars{BACKEND} ||= "qemu";
 bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );

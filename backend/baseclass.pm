@@ -65,9 +65,7 @@ sub get_info($) {
     my $self = shift;
     return {
         'backend'      => $self->{'class'},
-        'backend_info' => $self->get_backend_info(),
-
-        #		'management_port' => $bmwqemu::vars{QEMUPORT}+1
+        'backend_info' => $self->get_backend_info()
     };
 }
 
