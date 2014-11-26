@@ -5,7 +5,6 @@ doc_DATA = \
 	README.asciidoc \
 	INSTALL.asciidoc \
 	COPYING \
-	env.sh.sample \
 	doc/basetest.html \
 	doc/bmwqemu.html \
 	doc/debian-install-workflow.txt \

@@ -219,7 +219,7 @@ sub start_qemu($) {
         }
 
         push @params, '-qmp', "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-S";
-        my $port = $vars->{QEMUPORT} + 1;
+        my $port = $vars->{QEMUPORT};
         push @params, "-monitor", "telnet:127.0.0.1:$port,server,nowait";
 
         unshift( @params, $qemubin );

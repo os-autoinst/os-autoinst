@@ -7,6 +7,7 @@ use Time::HiRes qw(sleep gettimeofday);
 use Digest::MD5;
 use IO::Socket;
 use File::Basename;
+use File::Path qw(remove_tree);
 
 # eval {require Algorithm::Line::Bresenham;};
 use ocr;
@@ -92,7 +93,6 @@ sub save_vars() {
 }
 
 share( $vars{SCREENSHOTINTERVAL} );    # to adjust at runtime
-our $idlethreshold       = ( $vars{IDLETHRESHOLD} || $vars{IDLETHESHOLD} || 18 ) * $clock_ticks / 100;    # % load max for being considered idle
 
 our $testresults    = "testresults";
 our $screenshotpath = "qemuscreenshot";
@@ -152,8 +152,10 @@ sub init {
 
     testapi::init();
 
+    # defaults
     $vars{QEMUPORT}  ||= 15222;
     $vars{INSTLANG}  ||= "en_US";
+    $vars{IDLETHRESHOLD} ||= 18;
 
     if ( defined( $vars{DISTRI} ) && $vars{DISTRI} eq 'archlinux' ) {
         $vars{HDDMODEL} = "ide";
@@ -309,7 +311,11 @@ sub init_backend($) {
 
 sub start_vm() {
     return unless $backend;
-    mkdir $screenshotpath unless -d $screenshotpath;
+
+    # remove old screenshots
+    remove_tree($screenshotpath);
+    mkdir $screenshotpath;
+
     $backend->start_vm();
 }
 
@@ -529,6 +535,7 @@ sub wait_idle($) {
     my $prev;
     fctlog( 'wait_idle', "timeout=$timeout" );
     my $timesidle = 0;
+    my $idlethreshold  = $vars{IDLETHRESHOLD};
     for my $n ( 1 .. $timeout ) {
         my ( $stat, $systemstat ) = $backend->cpu_stat();
         sleep 1;    # sleep before skip to timeout when having no data (hw)

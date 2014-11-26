@@ -56,6 +56,10 @@ $SIG{ALRM} = \&signalhandler;
 $SIG{TERM} = \&signalhandler;
 $SIG{HUP}  = \&signalhandler;
 
+use commands;
+
+my $ct = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
+
 # init part
 $bmwqemu::vars{BACKEND} ||= "qemu";
 bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
@@ -110,6 +114,8 @@ diag "FAIL" if $r;
 $SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
 bmwqemu::stop_vm();
+$ct->kill('SIGTERM');
+$ct->join();
 
 # run postrun test code after VM is stopped
 if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {

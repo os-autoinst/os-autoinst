@@ -52,10 +52,22 @@ passwd USERNAME # and/or add ~USERNAME/.ssh/authorized_keys
 
 == user setup ==
 
-git clone http://www3.zq1.de/bernhard/git/autoinst.git/ autoinst
-cp -a env.sh.sample env.sh
-edit env.sh # see comments there ; adjust or drop HTTPPROXY and SUSEMIRROR lines
+git clone https://github.com/os-autoinst/os-autoinst.git
+create a vars.json containing e.g.
 
+  {
+    "TEST" : "minimalx",
+    "DISTRI" : "opensuse",
+    "CASEDIR" : "/var/lib/os-autoinst/tests/opensuse",
+    "ISO" : "/var/lib/openqa/factory/iso/openSUSE-13.2-DVD-x86_64.iso",
+    "QEMUPORT" : 20000
+  }
+
+The important part is ISO, DISTRI and CASEDIR (the main.pm of CASEDIR needs to drive the distribution). TEST and other variables
+are for the test cases to work on.
+
+QEMUPORT is not necessary and defaults to 15222 - note that you should leave room between 2 instances, but if you plan 
+to use os-autoinst in production, you better use openQA to control that
 
 ==VirtualBox Setup==
 Install VirtualBox either from your distribution's DVD or 

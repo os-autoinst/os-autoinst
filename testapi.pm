@@ -121,7 +121,7 @@ sub assert_and_dclick($;$$$) {
 
 wait_idle([$timeout_sec])
 
-Wait until the system becomes idle (as configured by IDLETHESHOLD in env.sh)
+Wait until the system becomes idle (as configured by IDLETHESHOLD)
 
 =cut
 
@@ -166,23 +166,11 @@ upload log file to openqa host
 
 sub upload_logs($) {
     my $file = shift;
-    type_string("curl --form testname=$bmwqemu::testedversion");
-    my $host = get_var('OPENQA_HOSTNAME');
-    if ($host) {
-        type_string(" --resolve $host:80:10.0.2.2");
-    }
-    else {
-        $host = '10.0.2.2';
-    }
-    type_string(" --form upload=\@$file ");
-    if ( defined get_var('TEST_ID') ) {
-        my $basename = basename($file);
-        type_string("$host/tests/" . get_var('TEST_ID') . "/uploadlog/$basename");
-    }
-    else {
-        type_string("$host/cgi-bin/uploadlog");
-    }
-    send_key 'ret';
+    my $host = "10.0.2.2:" . (get_var('QEMUPORT') + 1);
+    type_string("curl --form upload=\@$file ");
+    my $basename = basename($file);
+    type_string("$host/uploadlog/$basename\n");
+    wait_idle();
 }
 
 sub ensure_installed {
