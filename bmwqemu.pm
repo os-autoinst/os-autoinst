@@ -7,6 +7,7 @@ use Time::HiRes qw(sleep gettimeofday);
 use Digest::MD5;
 use IO::Socket;
 use File::Basename;
+use File::Path qw(remove_tree);
 
 # eval {require Algorithm::Line::Bresenham;};
 use ocr;
@@ -309,7 +310,11 @@ sub init_backend($) {
 
 sub start_vm() {
     return unless $backend;
-    mkdir $screenshotpath unless -d $screenshotpath;
+
+    # remove old screenshots
+    remove_tree($screenshotpath);
+    mkdir $screenshotpath;
+
     $backend->start_vm();
 }
 

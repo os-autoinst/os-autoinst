@@ -4,7 +4,6 @@ if test -z "$NAME" ; then
 	echo "\$NAME must be set!" >&2
 	exit 1
 fi
-isodir=`pwd`
 scriptdir=$(dirname $(dirname $0))
 logfile=autoinst-log.txt
 
@@ -12,7 +11,6 @@ echo testing $NAME
 # cleanup
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f backend.run
-rm -f qemuscreenshot/*.png
 
 # start
 TZ=UTC date "+%s%n%Y-%m-%d %H:%M:%S" > ${logfile}
