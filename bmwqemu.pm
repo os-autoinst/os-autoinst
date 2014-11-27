@@ -8,6 +8,7 @@ use Digest::MD5;
 use IO::Socket;
 use File::Basename;
 use File::Path qw(remove_tree);
+use File::Copy qw(cp);
 
 # eval {require Algorithm::Line::Bresenham;};
 use ocr;
@@ -98,6 +99,7 @@ share( $vars{SCREENSHOTINTERVAL} );    # to adjust at runtime
 
 our $testresults    = "testresults";
 our $screenshotpath = "qemuscreenshot";
+our $liveresultpath;
 
 our $serialfile     = "serial0";
 our $gocrbin        = "/usr/bin/gocr";
@@ -108,14 +110,14 @@ our $scriptdir;
 our $testedversion;
 
 sub init {
-    open( $logfd, ">>", "autoinst-log.txt" );
-
+    %vars = %{load_vars() || {}};
+    $liveresultpath = "$testresults/$vars{NAME}";
+    open( $logfd, ">>", "$liveresultpath/autoinst-log.txt" );
     # set unbuffered so that send_key lines from main thread will be written
     my $oldfh = select($logfd);
     $| = 1;
     select($oldfh);
 
-    %vars = %{load_vars() || {}};
     our $testedversion = $vars{NAME};
     unless ($testedversion) {
         $testedversion = $vars{ISO} || "";
@@ -367,16 +369,19 @@ sub enqueue_screenshot($) {
     }
     else {    # new
         $img->write($filename) || die "write $filename";
+        # copy new one to shared directory, remove old one and change symlink
+        cp($filename, $liveresultpath);
+        unlink($liveresultpath .'/'. basename($lastscreenshotName)) if $lastscreenshot;
         $screenshotQueue->enqueue($filename);
         $lastscreenshot          = $img;
         $lastscreenshotName      = $filename;
         $numunchangedscreenshots = 0;
-        unless(symlink(basename($filename), $screenshotpath.'/tmp.png')) {
+        unless(symlink(basename($filename), $liveresultpath.'/tmp.png')) {
             # try to unlink file and try again
-            unlink($screenshotpath.'/tmp.png');
-            symlink(basename($filename), $screenshotpath.'/tmp.png');
+            unlink($liveresultpath.'/tmp.png');
+            symlink(basename($filename), $liveresultpath.'/tmp.png');
         }
-        rename($screenshotpath.'/tmp.png', $screenshotpath.'/last.png');
+        rename($liveresultpath.'/tmp.png', $liveresultpath.'/last.png');
 
         #my $ocr=get_ocr($img);
         #if($ocr) { diag "ocr: $ocr" }
