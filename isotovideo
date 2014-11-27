@@ -8,9 +8,13 @@ use strict;
 use threads;
 
 BEGIN {
+    # the following line is modified during make install
+    my $installprefix = undef;
+
     my ($wd) = $0 =~ m-(.*)/-;
     $wd ||= '.';
-    unshift @INC, "$wd";
+    $installprefix ||= $wd;
+    unshift @INC, "$installprefix";
 }
 
 use bmwqemu qw(diag);

@@ -39,8 +39,12 @@ pkglibexec_SCRIPTS = \
 	ocr.pm \
 	cv.pm \
 	needle.pm \
-	crop.py \
-	start.pl
+	crop.py
+
+bin_SCRIPTS = isotovideo
+
+install-exec-hook:
+	sed -i -e "s,my \$$installprefix.*,my \$$installprefix = '$(pkglibexecdir)';," $(DESTDIR)$(bindir)/isotovideo
 
 pkglibexec_FOLDERS = \
 	distri \
@@ -51,8 +55,6 @@ pkglibexec_FOLDERS = \
 
 # sort the above out so it is not done directory wise
 
-bin_SCRIPTS = bin/isotovideo
-
 pkglibexec_PROGRAMS = videoencoder
 
 videoencoder_SOURCES = videoencoder.cpp
@@ -61,7 +63,6 @@ videoencoder_LDADD = $(OPENCV_LIBS) $(THEORAENC_LIBS) -lm
 
 EXTRA_DIST = \
 	autogen.sh \
-	bin/isotovideo.in \
 	ppmclibs/tinycv.i \
 	$(backendhelpexec_SCRIPTS) $(backendexec_SCRIPTS) \
 	$(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
