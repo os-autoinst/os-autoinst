@@ -102,8 +102,8 @@ our $screenshotpath = "qemuscreenshot";
 our $serialfile     = "serial0";
 our $gocrbin        = "/usr/bin/gocr";
 
-our $scriptdir = $0;
-$scriptdir =~ s{/[^/]+$}{};
+# set from isotovideo during initialization
+our $scriptdir;
 
 our $testedversion;
 
