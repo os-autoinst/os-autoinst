@@ -36,23 +36,10 @@ wait $!
 echo "start.pl exited with status $?"
 unset osautoinstpid
 
-if [ -e "qemuscreenshot/shot-0000000001.png" ]; then
-	mkdir -p video
-	echo "Recording to testresults/$NAME/video.ogv" | tee -a ${logfile}
-
-	# Create the movie
-	png2theora qemuscreenshot/shot-%010d.png -o testresults/$NAME/video.ogv >> ${logfile} 2>&1
-else
-	echo "No screenshots found => no video" | tee -a ${logfile}
-fi
-
 test -e qemu.pid && kill `cat qemu.pid` 2>/dev/null && rm -f qemu.pid
 rm -f backend.run
 echo "QEMU finished, running final checks" >> ${logfile}
 
 echo "+++ STDERR +++" >> ${logfile}
 cat stderr.txt >> ${logfile}
-
-# return success if video was created:
-test -e testresults/$NAME/video.ogv
 

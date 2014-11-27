@@ -53,6 +53,12 @@ pkglibexec_FOLDERS = \
 
 bin_SCRIPTS = bin/isotovideo
 
+pkglibexec_PROGRAMS = videoencoder
+
+videoencoder_SOURCES = videoencoder.cpp
+videoencoder_CFLAGS = -Wall -W $(OPENCV_CFLAGS)
+videoencoder_LDADD = $(OPENCV_LIBS) $(THEORAENC_LIBS) -lm
+
 EXTRA_DIST = \
 	autogen.sh \
 	bin/isotovideo.in \
