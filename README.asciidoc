@@ -41,7 +41,7 @@ used by the tests.  A minimal vars.json file can be:
 
 Now we can launch the application with:
 
-$ ../os-autoinst/start.pl
+$ ../os-autoinst/isotovideo
 
 and we can use VNC to connect to the QEMU instance:
 

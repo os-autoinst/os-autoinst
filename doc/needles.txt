@@ -1,11 +1,11 @@
 Some packages are required to run crop.py. So for the first time do:
   zypper in python-imaging python-tk
 
-To create needles or to adjust test cases the easiest way is to run start.pl
+To create needles or to adjust test cases the easiest way is to run isotovideo
 interactively. Parameters for the installation are stored in environment
-variables. You want to run start.pl in some empty directory with enough free
+variables. You want to run isotovideo in some empty directory with enough free
 space left. Disk images, screenshots etc will be created relative to
-the directory start.pl is called from.
+the directory isotovideo is called from.
 
 Most important environment variables:
 - DISTRI: specifies which subdirectory of 'distri' should be used
@@ -26,10 +26,10 @@ For development/debugging you also want
   regions of the needle to the new resolution.
 
 
-Example how to run start.pl:
+Example how to run isotovideo:
 $ mkdir /space/openqa
 $ cd /space/openqa/
-$ DISTRI=opensuse ISO=/path/to/dvd.iso DESKTOP=gnome interactive_crop=1 scaledhack=1 /path/to/start.pl
+$ DISTRI=opensuse ISO=/path/to/dvd.iso DESKTOP=gnome interactive_crop=1 scaledhack=1 /path/to/isotovideo
 
 crop.py can be used to interactively edit needles. It takes a json
 file or a png as argument.
