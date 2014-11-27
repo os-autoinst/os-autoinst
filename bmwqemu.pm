@@ -68,6 +68,8 @@ our $debug               = -t 1;                                                
 our $timesidleneeded     = 2;
 our $standstillthreshold = 600;
 
+our $encoder_pipe;
+
 sub load_vars() {
     my $fn = "vars.json";
     my $ret;
@@ -316,12 +318,15 @@ sub start_vm() {
     remove_tree($screenshotpath);
     mkdir $screenshotpath;
 
+    my $cwd = Cwd::getcwd();
+    open($encoder_pipe, "|nice $scriptdir/videoencoder $cwd/video.ogv") || die "can't call $scriptdir/videoencoder";
     $backend->start_vm();
 }
 
 sub stop_vm() {
     return unless $backend;
     $backend->stop_vm();
+    close($encoder_pipe);
     close $logfd;
 }
 
@@ -355,7 +360,7 @@ sub enqueue_screenshot($) {
     # 54 is based on t/data/user-settings-*
     my $sim = 0;
     $sim = $lastscreenshot->similarity($img) if $lastscreenshot;
-    #diag "similarity is $sim";
+    diag "similarity is $sim";
     if ( $sim > 54 ) {
         symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
         $numunchangedscreenshots++;
@@ -376,6 +381,13 @@ sub enqueue_screenshot($) {
         #my $ocr=get_ocr($img);
         #if($ocr) { diag "ocr: $ocr" }
     }
+    if ( $sim > 35 ) { # we ignore smaller differences
+        print $encoder_pipe "R\n";
+    }
+    else {
+        print $encoder_pipe "E $lastscreenshotName\n";
+    }
+    $encoder_pipe->flush();
 }
 
 sub do_start_audiocapture($) {
