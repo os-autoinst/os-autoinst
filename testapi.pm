@@ -2,12 +2,11 @@ package testapi;
 
 use base Exporter;
 use Exporter;
+use strict;
 
 use File::Basename qw(basename);
 
-our ( @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
-
-@EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string assert_screen
+our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string assert_screen
   upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
   script_sudo wait_serial save_screenshot backend_send assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed autoinst_url);
@@ -15,6 +14,8 @@ our ( @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
 our %cmd;
 
 our %charmap;
+
+our $distri;
 
 our $realname = "Bernhard M. Wiedemann";
 our $username;
@@ -81,6 +82,10 @@ sub init() {
 
 }
 
+sub set_distribution($) {
+    ($distri) = @_;
+    $distri->init();
+}
 
 sub assert_screen($;$) {
     return bmwqemu::assert_screen( mustmatch => $_[0], timeout => $_[1] );
@@ -152,7 +157,7 @@ sub wait_serial($;$$) {
 }
 
 sub become_root() {
-    return $bmwqemu::current_test->basetest::become_root;
+    return $distri->become_root;
 }
 
 =head2 upload_logs
@@ -171,7 +176,7 @@ sub upload_logs($) {
 }
 
 sub ensure_installed {
-    return $bmwqemu::current_test->basetest::ensure_installed(@_);
+    return $distri->ensure_installed(@_);
 }
 
 =head2 wait_still_screen
@@ -218,7 +223,7 @@ sub check_var($$) {
 
 sub x11_start_program($;$$) {
     my ($program, $timeout, $options) = @_;
-    return $bmwqemu::current_test->basetest::x11_start_program($program, $timeout, $options);
+    return $distri->x11_start_program($program, $timeout, $options);
 }
 
 =head2 script_run
@@ -232,9 +237,9 @@ Wait for idle before  and after.
 
 sub script_run($;$) {
 
-  my ($name, $wait) = @_;
+    my ($name, $wait) = @_;
 
-  return $bmwqemu::current_test->basetest::script_run($name, $wait);
+    return $distri->script_run($name, $wait);
 }
 
 =head2 script_sudo
@@ -250,7 +255,7 @@ $wait_seconds
 sub script_sudo($;$) {
     my ($prog, $wait) = @_;
 
-    return $bmwqemu::current_test->basetest::script_run($name, $wait);
+    return $distri->script_sudo($prog, $wait);
 }
 
 sub power($) {
@@ -266,12 +271,7 @@ sub power($) {
 # runtime information gathering functions
 
 sub save_screenshot {
-    $bmwqemu::current_test->basetest::take_screenshot;
-}
-
-sub timeout_screenshot() {
-    my $n = ++$timeoutcounter;
-    $bmwqemu::current_test->basetest::take_screenshot( sprintf( "timeout-%02i", $n ) );
+    $bmwqemu::current_test->take_screenshot;
 }
 
 sub _backend_send_nolog($) {
@@ -394,8 +394,8 @@ returns the base URL to contact the local os-autoinst service
 =cut
 
 sub autoinst_url() {
-  # move to backend?
-  return "http://10.0.2.2:" . (get_var("QEMUPORT")+1));
+    # move to backend?
+    return "http://10.0.2.2:" . (get_var("QEMUPORT")+1);
 }
 
 ## helpers end

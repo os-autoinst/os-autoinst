@@ -6,7 +6,7 @@ use Time::HiRes;
 use JSON;
 use POSIX;
 use Data::Dumper;
-use testapi qw(send_key type_string type_password assert_screen check_screen $password check_var get_var);
+use testapi ();
 
 sub new(;$) {
     my $class    = shift;
@@ -207,7 +207,6 @@ sub result($;$) {
 sub start() {
     my $self = shift;
     $self->{running} = 1;
-    $self->init_cmd;
     bmwqemu::set_current_test($self);
 }
 
@@ -459,80 +458,6 @@ sub ocr_checklist {
     return [];
 }
 
-sub x11_start_program($$$) {
-  my ($program, $timeout, $options) = @_;
-  $timeout ||= 6;
-  $options ||= {};
-
-  bmwqemu::mydie("TODO: implement x11 start for your distri " . get_var('DISTRI'));
-}
-
-sub ensure_installed {
-    my @pkglist = @_;
-
-    if ( check_var( 'DISTRI', 'debian' ) ) {
-        testapi::x11_start_program( "su -c 'aptitude -y install @pkglist'", 4, { terminal => 1 } );
-    }
-    elsif ( check_var( 'DISTRI', 'fedora' ) ) {
-        testapi::x11_start_program( "su -c 'yum -y install @pkglist'", 4, { terminal => 1 } );
-    }
-    else {
-        bmwqemu::mydie("TODO: implement package install for your distri " . get_var('DISTRI'));
-    }
-    if ($password) { type_password; send_key("ret", 1); }
-    wait_still_screen( 7, 90 );    # wait for install
-}
-
-sub become_root() {
-    my ($self) = @_;
-
-    testapi::script_sudo( "bash", 0 );    # become root
-    testapi::script_run("echo 'imroot' > /dev/$serialdev");
-    testapi::wait_serial( "imroot", 5 ) || die "Root prompt not there";
-    testapi::script_run("cd /tmp");
-}
-
-=head2 script_run
-
-script_run($program, [$wait_seconds])
-
-Run $program (by assuming the console prompt and typing it).
-Wait for idle before  and after.
-
-=cut
-
-sub script_run($;$) {
-
-    # start console application
-    my ($self, $name, $wait) = @_;
-
-    testapi::wait_idle();
-
-    testapi::type_string "$name\n";
-    testapi::wait_idle($wait);
-}
-
-=head2 script_sudo
-
-script_sudo($program, $wait_seconds)
-
-Run $program. Handle the sudo timeout and send password when appropriate.
-
-$wait_seconds
-
-=cut
-
-sub script_sudo($$) {
-    my ($self, $prog, $wait) = @_;
-
-    testapi::type_string "sudo $prog\n";
-    if ( testapi::check_screen "sudo-passwordprompt", 3 ) {
-        testapi::type_password;
-        testapi::send_key "ret";
-    }
-    testapi::wait_idle($wait);
-}
-
 sub standstill_detected($) {
     my ($self, $lastscreenshot) = @_;
 
@@ -545,10 +470,6 @@ sub standstill_detected($) {
     testapi::send_key("alt-sysrq-w");
     testapi::send_key("alt-sysrq-l");
     testapi::send_key("alt-sysrq-d");                      # only available with CONFIG_LOCKDEP
-}
-
-sub init_cmd() {
-    # no cmds on default distri
 }
 
 1;

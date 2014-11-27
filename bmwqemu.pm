@@ -444,6 +444,11 @@ sub decodewav($) {
 
 # wait functions
 
+sub timeout_screenshot() {
+    my $n = ++$timeoutcounter;
+    $bmwqemu::current_test->basetest::take_screenshot( sprintf( "timeout-%02i", $n ) );
+}
+
 =head2 wait_still_screen
 
 wait_still_screen($stilltime_sec, $timeout_sec, $similarity_level)
