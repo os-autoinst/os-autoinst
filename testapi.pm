@@ -2,19 +2,20 @@ package testapi;
 
 use base Exporter;
 use Exporter;
+use strict;
 
 use File::Basename qw(basename);
 
-our ( @EXPORT, @EXPORT_OK, %EXPORT_TAGS );
-
-@EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string assert_screen
+our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string assert_screen
   upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
   script_sudo wait_serial save_screenshot backend_send assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
-  type_password get_var check_var set_var become_root x11_start_program ensure_installed);
+  type_password get_var check_var set_var become_root x11_start_program ensure_installed autoinst_url);
 
 our %cmd;
 
 our %charmap;
+
+our $distri;
 
 our $realname = "Bernhard M. Wiedemann";
 our $username;
@@ -81,6 +82,10 @@ sub init() {
 
 }
 
+sub set_distribution($) {
+    ($distri) = @_;
+    $distri->init();
+}
 
 sub assert_screen($;$) {
     return bmwqemu::assert_screen( mustmatch => $_[0], timeout => $_[1] );
@@ -152,10 +157,7 @@ sub wait_serial($;$$) {
 }
 
 sub become_root() {
-    script_sudo( "bash", 0 );    # become root
-    script_run("echo 'imroot' > /dev/$serialdev");
-    wait_serial( "imroot", 5 ) || die "Root prompt not there";
-    script_run("cd /tmp");
+    return $distri->become_root;
 }
 
 =head2 upload_logs
@@ -174,7 +176,7 @@ sub upload_logs($) {
 }
 
 sub ensure_installed {
-    return $bmwqemu::current_test->ensure_installed(@_);
+    return $distri->ensure_installed(@_);
 }
 
 =head2 wait_still_screen
@@ -221,9 +223,7 @@ sub check_var($$) {
 
 sub x11_start_program($;$$) {
     my ($program, $timeout, $options) = @_;
-    $timeout ||= 6;
-    $options ||= {};
-    return $bmwqemu::current_test->x11_start_program($program, $timeout, $options);
+    return $distri->x11_start_program($program, $timeout, $options);
 }
 
 =head2 script_run
@@ -237,13 +237,9 @@ Wait for idle before  and after.
 
 sub script_run($;$) {
 
-    # start console application
-    my $name = shift;
-    my $wait = shift || 9;
-    wait_idle();
-    type_string "$name\n";
-    wait_idle($wait);
-    sleep 3;
+    my ($name, $wait) = @_;
+
+    return $distri->script_run($name, $wait);
 }
 
 =head2 script_sudo
@@ -253,17 +249,13 @@ script_sudo($program, [$wait_seconds])
 Run $program. Handle the sudo timeout and send password when appropriate.
 
 $wait_seconds
+
 =cut
 
 sub script_sudo($;$) {
-    my $prog = shift;
-    my $wait = shift || 2;
-    type_string "sudo $prog\n";
-    if ( check_screen "sudo-passwordprompt", 3 ) {
-        type_password;
-        send_key "ret";
-    }
-    wait_idle($wait);
+    my ($prog, $wait) = @_;
+
+    return $distri->script_sudo($prog, $wait);
 }
 
 sub power($) {
@@ -280,11 +272,6 @@ sub power($) {
 
 sub save_screenshot {
     $bmwqemu::current_test->take_screenshot;
-}
-
-sub timeout_screenshot() {
-    my $n = ++$timeoutcounter;
-    $bmwqemu::current_test->take_screenshot( sprintf( "timeout-%02i", $n ) );
 }
 
 sub _backend_send_nolog($) {
@@ -399,6 +386,17 @@ sub mouse_hide(;$) {
     $bmwqemu::backend->mouse_hide($border_offset);
 }
 ## mouse end
+
+=head autoinst_url
+
+returns the base URL to contact the local os-autoinst service
+
+=cut
+
+sub autoinst_url() {
+    # move to backend?
+    return "http://10.0.2.2:" . (get_var("QEMUPORT")+1);
+}
 
 ## helpers end
 

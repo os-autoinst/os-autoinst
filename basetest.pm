@@ -6,7 +6,7 @@ use Time::HiRes;
 use JSON;
 use POSIX;
 use Data::Dumper;
-use testapi qw(send_key type_string type_password assert_screen check_screen $password check_var get_var);
+use testapi ();
 
 sub new(;$) {
     my $class    = shift;
@@ -207,7 +207,6 @@ sub result($;$) {
 sub start() {
     my $self = shift;
     $self->{running} = 1;
-    $self->init_cmd;
     bmwqemu::set_current_test($self);
 }
 
@@ -459,31 +458,10 @@ sub ocr_checklist {
     return [];
 }
 
-sub x11_start_program($$$) {
-    my ($program, $timeout, $options) = @_;
-    bmwqemu::mydie("TODO: implement x11 start for your distri " . get_var('DISTRI'));
-}
-
-sub ensure_installed {
-    my @pkglist = @_;
-
-    if ( check_var( 'DISTRI', 'debian' ) ) {
-        testapi::x11_start_program( "su -c 'aptitude -y install @pkglist'", 4, { terminal => 1 } );
-    }
-    elsif ( check_var( 'DISTRI', 'fedora' ) ) {
-        testapi::x11_start_program( "su -c 'yum -y install @pkglist'", 4, { terminal => 1 } );
-    }
-    else {
-        bmwqemu::mydie("TODO: implement package install for your distri " . get_var('DISTRI'));
-    }
-    if ($password) { type_password; send_key("ret", 1); }
-    wait_still_screen( 7, 90 );    # wait for install
-}
-
 sub standstill_detected($) {
-    my ($lastscreenshot) = @_;
+    my ($self, $lastscreenshot) = @_;
 
-    $bmwqemu::current_test->record_screenfail(
+    $self->record_screenfail(
         img     => $lastscreenshot,
         result  => 'fail',
         overall => 'fail'
@@ -492,10 +470,6 @@ sub standstill_detected($) {
     testapi::send_key("alt-sysrq-w");
     testapi::send_key("alt-sysrq-l");
     testapi::send_key("alt-sysrq-d");                      # only available with CONFIG_LOCKDEP
-}
-
-sub init_cmd() {
-    # no cmds on default distri
 }
 
 1;
