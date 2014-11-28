@@ -108,7 +108,7 @@ sub assert_and_click($;$$$$) {
     my $ry = 1;                                                   # $origy / $img->yres();
     my $x  = int(( $lastarea->{'x'} + $lastarea->{'w'} / 2 ) * $rx);
     my $y  = int(( $lastarea->{'y'} + $lastarea->{'h'} / 2 ) * $ry);
-    diag("clicking at $x/$y");
+    bmwqemu::diag("clicking at $x/$y");
     mouse_set( $x, $y );
     if ($dclick) {
         mouse_dclick( $_[1], $_[3] );
