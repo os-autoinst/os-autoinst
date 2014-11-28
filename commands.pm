@@ -125,6 +125,17 @@ sub test_file {
     local $/ = undef; # slurp mode
     my $data = <$fd>;
     close($fd);
+
+    my $filetype;
+
+    if ($file =~ m/\.([^\.]+)$/) {
+        my $ext = $1;
+        $filetype = $self->app->types->type($ext);
+    }
+
+    $filetype ||= "application/octet-stream";
+    $self->res->headers->content_type($filetype);
+
     return $self->render(data => $data);
 }
 
@@ -139,6 +150,9 @@ sub run_daemon {
     get '/data/#filename' => \&test_file;
 
     post '/uploadlog/#filename' => \&upload_log;
+
+    # not known by default mojolicious
+    app->types->type(oga => 'audio/ogg');
 
     my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://*:$port"]);
 

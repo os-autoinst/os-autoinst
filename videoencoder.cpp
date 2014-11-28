@@ -293,7 +293,7 @@ main (int argc, char *argv[])
   while (fgets (line, PATH_MAX + 8, stdin))
     {
       line[strlen (line) - 1] = 0;
-      printf ("I got '%s'\n", line);
+      //printf ("I got '%s'\n", line);
 
       if (line[0] == 'E')
 	{

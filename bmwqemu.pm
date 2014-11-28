@@ -362,7 +362,7 @@ sub enqueue_screenshot($) {
     # 54 is based on t/data/user-settings-*
     my $sim = 0;
     $sim = $lastscreenshot->similarity($img) if $lastscreenshot;
-    diag "similarity is $sim";
+    #diag "similarity is $sim";
     if ( $sim > 54 ) {
         symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
         $numunchangedscreenshots++;
