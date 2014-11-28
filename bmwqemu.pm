@@ -386,7 +386,7 @@ sub enqueue_screenshot($) {
         #my $ocr=get_ocr($img);
         #if($ocr) { diag "ocr: $ocr" }
     }
-    if ( $sim > 35 ) { # we ignore smaller differences
+    if ( $sim > 50 ) { # we ignore smaller differences
         print $encoder_pipe "R\n";
     }
     else {
