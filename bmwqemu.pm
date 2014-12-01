@@ -217,14 +217,6 @@ sub diag($) {
     print STDERR "@_\n";
 }
 
-sub fctlog {
-    my $fname   = shift;
-    my @fparams = @_;
-    $logfd && print $logfd '<<< ' . $fname . '(' . join( ', ', @fparams ) . ")\n";
-    return unless $debug;
-    print STDERR colored( '<<< ' . $fname . '(' . join( ', ', @fparams ) . ')', 'blue' ) . "\n";
-}
-
 sub fctres {
     my $fname   = shift;
     my @fparams = @_;
@@ -248,6 +240,33 @@ sub modstart {
     print STDERR colored( "||| @text", 'bold' ) . "\n";
 }
 
+use autotest qw($current_test);
+sub current_test() {
+    return $autotest::current_test;
+}
+
+sub update_line_number() {
+    return unless current_test;
+    my $out="";
+    my $ending = quotemeta(current_test->{script});
+    for my $i (1..10) {
+        my($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i);
+        last unless $filename;
+        next unless $filename =~ m/$ending$/;
+        print "Debug: $filename:$line called $subroutine\n";
+        last;
+    }
+}
+
+sub fctlog {
+    my $fname   = shift;
+    my @fparams = @_;
+    update_line_number();
+    $logfd && print $logfd '<<< ' . $fname . '(' . join( ', ', @fparams ) . ")\n";
+    return unless $debug;
+    print STDERR colored( '<<< ' . $fname . '(' . join( ', ', @fparams ) . ')', 'blue' ) . "\n";
+}
+
 sub fileContent($) {
     my ($fn) = @_;
     open( my $fd, $fn ) or return undef;
@@ -255,11 +274,6 @@ sub fileContent($) {
     my $result = <$fd>;
     close($fd);
     return $result;
-}
-
-use autotest qw($current_test);
-sub current_test() {
-    return $autotest::current_test;
 }
 
 sub result_dir() {
@@ -477,7 +491,6 @@ sub wait_still_screen($$$) {
     my ($stilltime, $timeout, $similarity_level) = @_;
 
     my $starttime = time;
-    fctlog( 'wait_still_screen', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level" );
     my $lastchangetime = [gettimeofday];
     my $lastchangeimg  = getcurrentscreenshot();
     while ( time - $starttime < $timeout ) {
@@ -544,7 +557,6 @@ sub wait_serial($$$) {
 
     # wait for a message to appear on serial output
     my ($regexp, $timeout, $expect_not_found) = @_;
-    fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
     my $res;
     my $str;
     for my $n ( 1 .. $timeout ) {
@@ -584,7 +596,6 @@ Wait until the system becomes idle
 sub wait_idle($) {
     my $timeout = shift;
     my $prev;
-    fctlog( 'wait_idle', "timeout=$timeout" );
     my $timesidle = 0;
     my $idlethreshold  = $vars{IDLETHRESHOLD};
     for my $n ( 1 .. $timeout ) {
@@ -686,7 +697,6 @@ sub assert_screen {
     }
     $mustmatch = join('_', @tags);
 
-    fctlog( 'assert_screen', "'$mustmatch'", "timeout=$timeout" );
     if ( !@$needles ) {
         diag("NO matching needles for $mustmatch");
     }
