@@ -22,6 +22,7 @@ sub new(;$) {
     $self->{wav_fn}         = undef;
     $self->{dents}          = 0;
     $self->{post_fail_hook_running} = 0;
+    $self->{timeoutcounter} = 0;
 
     return bless $self, $class;
 }
@@ -81,6 +82,7 @@ Function is run after test has failed to e.g. recover log files
 =cut
 
 sub post_fail_hook() {
+    return 1;
 }
 
 sub record_screenmatch($$;$) {
@@ -207,7 +209,8 @@ sub result($;$) {
 sub start() {
     my $self = shift;
     $self->{running} = 1;
-    bmwqemu::set_current_test($self);
+    bmwqemu::set_serial_offset();
+    autotest::set_current_test($self);
 }
 
 sub done() {
@@ -217,19 +220,28 @@ sub done() {
     unless ( $self->{"test_count"} ) {
         $self->take_screenshot();
     }
-    bmwqemu::set_current_test(undef);
+    autotest::set_current_test(undef);
 }
 
 sub fail_if_running() {
     my $self = shift;
     $self->{result} = 'fail' if $self->{'result'};
-    bmwqemu::set_current_test(undef);
+    autotest::set_current_test(undef);
 }
 
 sub skip_if_not_running() {
-    my $self = shift;
+    my ($self) = @_;
+
     $self->{result} = 'skip' if !$self->{'result'};
-    bmwqemu::set_current_test(undef);
+    autotest::set_current_test(undef);
+}
+
+
+sub timeout_screenshot() {
+    my ($self) = @_;
+
+    my $n = ++$self->{timeoutcounter};
+    $self->take_screenshot( sprintf( "timeout-%02i", $n ) );
 }
 
 sub waitforprevimg($$;$) {
@@ -275,6 +287,8 @@ sub runtest($$) {
         $self->run();
         $self->post_run_hook();
     };
+    $self->{'result'} ||= 'unk';
+
     if ($@ || $self->{'result'} eq 'fail' ) {
         warn "test $name died: $@\n";
         $self->{post_fail_hook_running} = 1;

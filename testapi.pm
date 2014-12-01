@@ -6,10 +6,12 @@ use strict;
 
 use File::Basename qw(basename);
 
-our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string assert_screen
-  upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
-  script_sudo wait_serial save_screenshot backend_send assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
-  type_password get_var check_var set_var become_root x11_start_program ensure_installed autoinst_url);
+our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string
+  assert_screen upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
+  script_sudo wait_serial save_screenshot backend_send
+  assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
+  type_password get_var check_var set_var become_root x11_start_program ensure_installed
+  autoinst_url script_output validate_script_output);
 
 our %cmd;
 
@@ -87,6 +89,10 @@ sub set_distribution($) {
     $distri->init();
 }
 
+sub save_screenshot {
+    $autotest::current_test->take_screenshot;
+}
+
 sub assert_screen($;$) {
     return bmwqemu::assert_screen( mustmatch => $_[0], timeout => $_[1] );
 }
@@ -153,8 +159,14 @@ sub wait_serial($;$$) {
     my $timeout = shift || 90;    # seconds
     my $expect_not_found = shift || 0;    # expected can not found the term in serial output
 
-    bmwqemu::wait_serial($regexp, $timeout, $expect_not_found);
+    return bmwqemu::wait_serial($regexp, $timeout, $expect_not_found);
 }
+
+=head2 become_root
+
+open a root shell. the implementation is distribution specific, openSUSE calls su -c bash and chdirs to /tmp
+
+=cut
 
 sub become_root() {
     return $distri->become_root;
@@ -269,10 +281,6 @@ sub power($) {
 # runtime keyboard/mouse io functions end
 
 # runtime information gathering functions
-
-sub save_screenshot {
-    $bmwqemu::current_test->take_screenshot;
-}
 
 sub _backend_send_nolog($) {
 
@@ -396,6 +404,64 @@ returns the base URL to contact the local os-autoinst service
 sub autoinst_url() {
     # move to backend?
     return "http://10.0.2.2:" . (get_var("QEMUPORT")+1);
+}
+
+=head script_output
+
+script_output($script, [$wait])
+
+fetches the script through HTTP into the VM and execs it with bash -xe and directs
+stdout (*not* stderr!) to the serial console and returns the output *if* the script
+exists with 0. Otherwise the test is set to failed.
+
+The default timeout for the script is 10 seconds. If you need more, pass a 2nd parameter
+
+=cut
+
+sub script_output($;$) {
+    my $wait;
+    ($commands::current_test_script, $wait) = @_;
+    $wait ||= 10;
+
+    type_string "curl -f -v " . autoinst_url . "/current_script > /tmp/script.sh && echo \"curl-$?\" > /dev/$serialdev\n";
+    wait_serial('curl-0', 2) || die "script couldn't be downloaded";
+    send_key "ctrl-l";
+    type_string "cat /tmp/script.sh\n";
+    save_screenshot;
+
+    type_string "/bin/bash -ex /tmp/script.sh > /dev/$serialdev; echo \"SCRIPT_FINISHED-$?\" > /dev/$serialdev\n";
+    my $output = wait_serial('SCRIPT_FINISHED-0', $wait) or die "script failed";
+
+    # strip the internal exit catcher
+    $output =~ s,SCRIPT_FINISHED-0.*,,;
+    return $output;
+}
+
+=head validate_script_output
+
+validate_script_output($script, $code, [$wait])
+
+wrapper around script_output, that runs a callback on the output. Use it as
+
+validate_script_output "cat /etc/hosts", sub { m/127.*localhost/ }
+
+=cut
+
+sub validate_script_output($&;$) {
+    my ($script, $code, $wait) = @_;
+    $wait ||= 10;
+
+    my $output = script_output($script);
+    return unless $code;
+    my $res = 'ok';
+
+    # set $_ so the callbacks can be simpler code
+    $_ = $output;
+    if (!$code->()) {
+        $res = 'fail';
+    }
+    # abusing the function
+    $autotest::current_test->record_serialresult($output, $res);
 }
 
 ## helpers end

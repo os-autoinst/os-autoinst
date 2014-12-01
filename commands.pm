@@ -145,6 +145,13 @@ sub test_file {
     return $self->render(data => $data);
 }
 
+our $current_test_script :shared;
+
+sub current_script {
+    my ($self) = @_;
+    return $self->render(data => $current_test_script);
+}
+
 sub live_log {
     my ($self) = @_;
 
@@ -181,12 +188,19 @@ sub run_daemon {
     # we allow only localhost or openQA
     under \&check_authorized;
 
+    # for access all data as CPIO archive
     get '/data' => \&test_data;
 
+    # to access a single file within the data directory
     get '/data/#filename' => \&test_file;
 
+    # uploading log files from tests
     post '/uploadlog/#filename' => \&upload_log;
 
+    # to get the current bash script out of the test
+    get '/current_script' => \&current_script;
+
+    # to access autoinst-log.txt from openQA
     get '/live_log' => \&live_log;
 
     # not known by default mojolicious
@@ -199,7 +213,6 @@ sub run_daemon {
     my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://*:$port"]);
 
     $daemon->run;
-
 }
 
 sub start_server($) {

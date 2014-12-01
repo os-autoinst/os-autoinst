@@ -37,7 +37,7 @@ my $goodimageseen : shared           = 0;
 my $screenshotQueue                  = Thread::Queue->new();
 my $prestandstillwarning : shared    = 0;
 my $numunchangedscreenshots : shared = 0;
-my $timeoutcounter : shared          = 0;
+
 my @ocrrect;
 share(@ocrrect);
 my @extrahashrects;
@@ -58,7 +58,6 @@ our %control_files = (
 
 # global vars
 
-our $current_test;
 our $testmodules = [];
 
 our $logfd;
@@ -102,6 +101,7 @@ our $screenshotpath = "qemuscreenshot";
 our $liveresultpath;
 
 our $serialfile     = "serial0";
+our $serial_offset  = 0;
 our $gocrbin        = "/usr/bin/gocr";
 
 # set from isotovideo during initialization
@@ -257,6 +257,11 @@ sub fileContent($) {
     return $result;
 }
 
+use autotest qw($current_test);
+sub current_test() {
+    return $autotest::current_test;
+}
+
 sub result_dir() {
     unless ( -e "$testresults/$testedversion" ) {
         mkdir $testresults;
@@ -291,13 +296,13 @@ sub getcurrentscreenshot(;$) {
         $lastscreenshot     = tinycv::read($filename);
         $lastscreenshotName = $filename;
     }
-    elsif ( !$current_test->{post_fail_hook_running} ) {
+    elsif ( !current_test->{post_fail_hook_running} ) {
         $prestandstillwarning = ( $numunchangedscreenshots > $standstillthreshold / 2 );
         if ( $numunchangedscreenshots > $standstillthreshold ) {
             diag "STANDSTILL";
             return undef if $undef_on_standstill;
 
-            $current_test->standstill_detected($lastscreenshot);
+            current_test->standstill_detected($lastscreenshot);
             mydie "standstill detected. test ended";    # above 120s of autoreboot
         }
     }
@@ -335,11 +340,11 @@ sub stop_vm() {
 }
 
 sub freeze_vm() {
-    backend_send("stop");
+    $backend->send("stop");
 }
 
 sub cont_vm() {
-    backend_send("cont");
+    $backend->send("cont");
 }
 
 sub mydie {
@@ -419,10 +424,6 @@ sub alive() {
     return 0;
 }
 
-sub set_current_test($) {
-    $current_test = shift;
-}
-
 sub get_cpu_stat() {
     my ( $statuser, $statsystem ) = $backend->cpu_stat();
     my $statstr = '';
@@ -463,11 +464,6 @@ sub decodewav($) {
 
 # wait functions
 
-sub timeout_screenshot() {
-    my $n = ++$timeoutcounter;
-    $bmwqemu::current_test->basetest::take_screenshot( sprintf( "timeout-%02i", $n ) );
-}
-
 =head2 wait_still_screen
 
 wait_still_screen($stilltime_sec, $timeout_sec, $similarity_level)
@@ -500,11 +496,38 @@ sub wait_still_screen($$$) {
         }
         sleep(0.5);
     }
-    timeout_screenshot();
+    current_test->timeout_screenshot();
     fctres( 'wait_still_screen', "wait_still_screen timed out after $timeout" );
     return 0;
 }
 
+=head2 set_serial_offset
+
+Determines the starting offset within the serial file - so that we do not check the
+previous test's serial output. Call this before you start doing something new
+
+=cut
+
+sub set_serial_offset() {
+    $serial_offset = -s $serialfile;
+}
+
+
+=head2 serial_text
+
+Returns the output on the serial device since the last call to set_serial_offset
+
+=cut
+
+sub serial_text() {
+
+    open(SERIAL, $serialfile) || die "can't open $serialfile";
+    seek(SERIAL, $serial_offset, 0);
+    local $/;
+    my $data = <SERIAL>;
+    close(SERIAL);
+    return $data;
+}
 
 =head2 wait_serial
 
@@ -523,8 +546,9 @@ sub wait_serial($$$) {
     my ($regexp, $timeout, $expect_not_found) = @_;
     fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
     my $res;
+    my $str;
     for my $n ( 1 .. $timeout ) {
-        my $str = `tail $serialfile`;
+        $str = serial_text();
         if ( $str =~ m/$regexp/ ) {
             $res = 'ok';
             last;
@@ -543,9 +567,12 @@ sub wait_serial($$$) {
     else {
         $res ||= 'fail';
     }
-    $current_test->record_serialresult( $regexp, $res );
+    set_serial_offset();
+
+    current_test->record_serialresult( $regexp, $res );
     fctres( 'wait_serial', "$regexp: $res" );
-    return $res eq 'ok';
+    return $str if ($res eq "ok");
+    return undef; # false
 }
 
 =head2 wait_idle
@@ -624,7 +651,7 @@ sub assert_screen {
     my $timeout      = $args{'timeout'} || 30;
     my $check_screen = $args{'check'};
 
-    die "current_test undefined" unless $current_test;
+    die "current_test undefined" unless current_test;
 
     $args{'retried'} ||= 0;
 
@@ -697,7 +724,7 @@ sub assert_screen {
         my $foundneedle;
         ( $foundneedle, $failed_candidates ) = $img->search($needles, 0, $search_ratio);
         if ($foundneedle) {
-            $current_test->record_screenmatch( $img, $foundneedle, \@tags );
+            current_test->record_screenmatch( $img, $foundneedle, \@tags );
             my $lastarea = $foundneedle->{'area'}->[-1];
             fctres( sprintf( "found %s, similarity %.2f @ %d/%d", $foundneedle->{'needle'}->{'name'}, $lastarea->{'similarity'}, $lastarea->{'x'}, $lastarea->{'y'} ) );
             return $foundneedle;
@@ -735,7 +762,7 @@ sub assert_screen {
         print "interactive mode entered\n";
         freeze_vm();
 
-        $current_test->record_screenfail(
+        current_test->record_screenfail(
             img     => $img,
             needles => $failed_candidates,
             tags    => \@save_tags,
@@ -757,7 +784,7 @@ sub assert_screen {
         }
         diag("continuing");
 
-        $current_test->remove_last_result();
+        current_test->remove_last_result();
 
         if ( -e $control_files{'reload_needles_and_retry'} ) {
             unlink( $control_files{'reload_needles_and_retry'} );
@@ -812,10 +839,10 @@ sub assert_screen {
         }
         elsif ( $r =~ /^q/i ) {
             $args{'retried'} = 99;
-            backend_send("cont");
+            $backend->send('cont');
         }
         else {
-            backend_send("cont");
+            $backend->send("cont");
         }
     }
     elsif ( !$check_screen && $vars{'interactive_crop'} ) {
@@ -826,7 +853,7 @@ sub assert_screen {
         $newname = $mustmatch . ( $vars{'interactive_crop'} || '' ) unless $newname;
         freeze_vm();
         system( "$scriptdir/crop.py", '--new', $newname, $needle_template->{'needle'} ) == 0 || mydie;
-        backend_send("cont");
+        $backend->send("cont");
         my $fn = sprintf( "%s/needles/%s.json", $vars{'CASEDIR'}, $newname );
         if ( -e $fn ) {
             for my $n ( needle->all() ) {
@@ -842,7 +869,7 @@ sub assert_screen {
         }
     }
 
-    $current_test->record_screenfail(
+    current_test->record_screenfail(
         img     => $img,
         needles => $failed_candidates,
         tags    => \@save_tags,
@@ -886,7 +913,7 @@ sub save_results(;$$) {
         $result->{workerid}    = $ENV{WORKERID};
         $result->{interactive} = $interactive_mode ? 1 : 0;
         $result->{needinput}   = $waiting_for_new_needle ? 1 : 0;
-        $result->{running}     = $current_test ? ref($current_test) : '';
+        $result->{running}     = current_test ? ref(current_test) : '';
     }
     else {
         # if there are any important module only consider the
