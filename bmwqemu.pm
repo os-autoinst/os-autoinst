@@ -111,6 +111,7 @@ our $testedversion;
 
 sub init {
     %vars = %{load_vars() || {}};
+    $vars{NAME} ||= 'noname';
     $liveresultpath = "$testresults/$vars{NAME}";
     open( $logfd, ">>", "$liveresultpath/autoinst-log.txt" );
     # set unbuffered so that send_key lines from main thread will be written
@@ -158,6 +159,7 @@ sub init {
 
     # defaults
     $vars{QEMUPORT}  ||= 15222;
+    $vars{VNC}       ||= 90;
     $vars{INSTLANG}  ||= "en_US";
     $vars{IDLETHRESHOLD} ||= 18;
 

@@ -9,10 +9,16 @@ use Mojo::IOLoop;
 use Mojo::Server::Daemon;
 
 use File::Basename;
+use Data::Dump;
 
 # make sure only our local VMs access
-sub check_localhost {
+sub check_authorized {
     my ($self) = @_;
+
+    # allow remote access if they set a password and use it
+    return 1 if ($bmwqemu::vars{'CONNECT_PASSWORD'}
+        && $self->param('connect_password')
+        && $bmwqemu::vars{'CONNECT_PASSWORD'} eq $self->param('connect_password'));
 
     my $ip    = $self->tx->remote_address;
     $self->app->log->debug("Request from $ip.");
@@ -172,8 +178,8 @@ sub live_log {
 sub run_daemon {
     my ($port) = @_;
 
-    # we forbid everyone from !localhost, even for GETs
-    under \&check_localhost;
+    # we allow only localhost or openQA
+    under \&check_authorized;
 
     get '/data' => \&test_data;
 
@@ -185,6 +191,10 @@ sub run_daemon {
 
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');
+
+    # it's unlikely that we will ever use cookies, but we need a secret to shut up mojo
+    my $secret = $bmwqemu::vars{'CONNECT_PASSWORD'} || 'notsosecret';
+    app->secrets([$secret]);
 
     my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://*:$port"]);
 
