@@ -38,6 +38,12 @@ sub loadtest($) {
     bmwqemu::diag "scheduling $name $script";
 }
 
+our $current_test;
+
+sub set_current_test($) {
+    ($current_test) = @_;
+}
+
 sub runalltests {
     my $firsttest = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded = 0;
