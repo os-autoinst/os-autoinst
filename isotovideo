@@ -73,7 +73,7 @@ bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
 bmwqemu::save_vars();
 
 if ($init) {
-    open( my $fd, ">os-autoinst.pid" );
+    open( my $fd, '>', "$bmwqemu::liveresultpath/os-autoinst.pid" );
     print $fd "$$\n";
     close $fd;
 
