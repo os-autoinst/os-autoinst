@@ -3,7 +3,6 @@ package testapi;
 use base Exporter;
 use Exporter;
 use strict;
-
 use File::Basename qw(basename);
 
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string
@@ -94,18 +93,28 @@ sub save_screenshot {
 }
 
 sub assert_screen($;$) {
+    bmwqemu::fctlog( 'assert_screen', "mustmatch=" . $_[0], "timeout=" . $_[1] );
     return bmwqemu::assert_screen( mustmatch => $_[0], timeout => $_[1] );
 }
 
 sub check_screen($;$) {
+    bmwqemu::fctlog( 'check_screen', "mustmatch=" . $_[0], "timeout=" . $_[1] );
     return bmwqemu::assert_screen( mustmatch => $_[0], timeout => $_[1], check => 1 );
 }
+
+=head2 assert_and_click
+
+assert_and_click($mustmatch,[$button],[$timeout],[$click_time],[$dclick]);
+
+=cut
 
 sub assert_and_click($;$$$$) {
     my $foundneedle = bmwqemu::assert_screen(
         mustmatch => $_[0],
         timeout   => $_[2]
     );
+    bmwqemu::fctlog( 'assert_and_click', "mustmatch=" . $_[0], "button=" . $_[1], "timeout=" . $_[2] );
+
     my $dclick = $_[4] || 0;
 
     # foundneedle has to be set, or the assert is buggy :)
@@ -138,6 +147,8 @@ Wait until the system becomes idle (as configured by IDLETHESHOLD)
 
 sub wait_idle(;$) {
     my $timeout = shift || 19;
+    bmwqemu::fctlog( 'wait_idle', "timeout=$timeout" );
+
     bmwqemu::wait_idle($timeout);
 }
 
@@ -159,6 +170,7 @@ sub wait_serial($;$$) {
     my $timeout = shift || 90;    # seconds
     my $expect_not_found = shift || 0;    # expected can not found the term in serial output
 
+    fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
     return bmwqemu::wait_serial($regexp, $timeout, $expect_not_found);
 }
 
@@ -181,6 +193,8 @@ upload log file to openqa host
 sub upload_logs($) {
     my $file = shift;
     my $host = "10.0.2.2:" . (get_var('QEMUPORT') + 1);
+
+    bmwqemu::fctlog( 'upload_logs', "file=$file");
     type_string("curl --form upload=\@$file ");
     my $basename = basename($file);
     type_string("$host/uploadlog/$basename\n");
@@ -204,10 +218,12 @@ sub wait_still_screen(;$$$) {
     my $timeout          = shift || 30;
     my $similarity_level = shift || ( get_var('HW') ? 44 : 47 );
 
+    bmwqemu::fctlog( 'wait_still_screen', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level" );
     return bmwqemu::wait_still_screen($stilltime, $timeout, $similarity_level);
 }
 
 sub clear_console() {
+    bmwqemu::fctlog('clear_console');
     send_key "ctrl-c";
     sleep 1;
     send_key "ctrl-c";
@@ -235,6 +251,7 @@ sub check_var($$) {
 
 sub x11_start_program($;$$) {
     my ($program, $timeout, $options) = @_;
+    bmwqemu::fctlog( 'x11_start_program', "timeout=$timeout", "options" . $options);
     return $distri->x11_start_program($program, $timeout, $options);
 }
 
@@ -251,6 +268,7 @@ sub script_run($;$) {
 
     my ($name, $wait) = @_;
 
+    bmwqemu::fctlog( 'script_run', "name=$name", "wait=" . $wait);
     return $distri->script_run($name, $wait);
 }
 
@@ -265,16 +283,17 @@ $wait_seconds
 =cut
 
 sub script_sudo($;$) {
-    my ($prog, $wait) = @_;
+    my ($name, $wait) = @_;
 
-    return $distri->script_sudo($prog, $wait);
+    bmwqemu::fctlog( 'script_sudo', "name=$name", "wait=" . $wait);
+    return $distri->script_sudo($name, $wait);
 }
 
 sub power($) {
 
     # params: (on), off, acpi, reset
     my $action = shift;
-    fctlog( 'power', "action=$action" );
+    bmwqemu::fctlog( 'power', "action=$action" );
     $bmwqemu::backend->power($action);
 }
 
@@ -296,7 +315,7 @@ sub _backend_send_nolog($) {
 sub backend_send($) {
 
     # should not be used if possible
-    fctlog( 'backend_send', join( ',', @_ ) );
+    bmwqemu::fctlog( 'backend_send', join( ',', @_ ) );
     &_backend_send_nolog;
 }
 
