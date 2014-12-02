@@ -8,7 +8,7 @@ dists=("$@")
 if [ -z "$dists" ]; then
 	dists=("opensuse")
 fi
-dir="/var/lib/os-autoinst/tests"
+dir="/var/lib/openqa/tests"
 if [ -w / ]; then
 	for dist in "${dists[@]}"; do
 		if [ ! -e "$dir/$dist" ]; then
