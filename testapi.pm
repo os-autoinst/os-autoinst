@@ -170,7 +170,7 @@ sub wait_serial($;$$) {
     my $timeout = shift || 90;    # seconds
     my $expect_not_found = shift || 0;    # expected can not found the term in serial output
 
-    fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
+    bmwqemu::fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
     return bmwqemu::wait_serial($regexp, $timeout, $expect_not_found);
 }
 
