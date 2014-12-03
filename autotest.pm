@@ -69,9 +69,6 @@ sub runalltests {
             eval { $t->runtest; };
             if ($@) {
 
-                # Do some cleaning after case fail.
-                # Like don't find a needle.
-                $t->post_failure;
                 bmwqemu::diag "test $name failed: $@\n";
                 if ( $flags->{'fatal'} ) {
                     bmwqemu::stop_vm();
