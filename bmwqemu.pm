@@ -19,7 +19,7 @@ use threads::shared;
 use Thread::Queue;
 use POSIX;
 use Term::ANSIColor;
-use Data::Dump "dump";
+use Data::Dump qw(dump dd);
 use Carp;
 use JSON;
 
@@ -262,9 +262,22 @@ sub fctlog {
     my $fname   = shift;
     my @fparams = @_;
     update_line_number();
-    $logfd && print $logfd '<<< ' . $fname . '(' . join( ', ', @fparams ) . ")\n";
+    my $params = '';
+    for my $p (@fparams) {
+        if (ref($p) eq 'ARRAY') {
+            if (defined $p->[1]) {
+                $p = $p->[0] . "=" . dump($p->[1]);
+            }
+            else {
+                $p = $p->[0] . "=undef";
+            }
+        }
+        $params .= ", " . $p;
+    }
+    $params =~ s/^, //;
+    $logfd && print $logfd '<<< ' . $fname . "($params)\n";
     return unless $debug;
-    print STDERR colored( '<<< ' . $fname . '(' . join( ', ', @fparams ) . ')', 'blue' ) . "\n";
+    print STDERR colored( '<<< ' . $fname . "($params)", 'blue' ) . "\n";
 }
 
 sub fileContent($) {

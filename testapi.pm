@@ -93,12 +93,12 @@ sub save_screenshot {
 }
 
 sub assert_screen($;$) {
-    bmwqemu::fctlog( 'assert_screen', "mustmatch=" . $_[0], "timeout=" . $_[1] );
+    bmwqemu::fctlog( 'assert_screen', ["mustmatch", $_[0]], ["timeout", $_[1]] );
     return bmwqemu::assert_screen( mustmatch => $_[0], timeout => $_[1] );
 }
 
 sub check_screen($;$) {
-    bmwqemu::fctlog( 'check_screen', "mustmatch=" . $_[0], "timeout=" . $_[1] );
+    bmwqemu::fctlog( 'check_screen', ["mustmatch", $_[0]], ["timeout", $_[1]] );
     return bmwqemu::assert_screen( mustmatch => $_[0], timeout => $_[1], check => 1 );
 }
 
@@ -113,7 +113,7 @@ sub assert_and_click($;$$$$) {
         mustmatch => $_[0],
         timeout   => $_[2]
     );
-    bmwqemu::fctlog( 'assert_and_click', "mustmatch=" . $_[0], "button=" . $_[1], "timeout=" . $_[2] );
+    bmwqemu::fctlog( 'assert_and_click', ["mustmatch", $_[0]], ["button", $_[1]], ["timeout", $_[2]] );
 
     my $dclick = $_[4] || 0;
 
@@ -147,7 +147,7 @@ Wait until the system becomes idle (as configured by IDLETHESHOLD)
 
 sub wait_idle(;$) {
     my $timeout = shift || 19;
-    bmwqemu::fctlog( 'wait_idle', "timeout=$timeout" );
+    bmwqemu::fctlog( 'wait_idle', ["timeout", $timeout] );
 
     bmwqemu::wait_idle($timeout);
 }
@@ -170,7 +170,7 @@ sub wait_serial($;$$) {
     my $timeout = shift || 90;    # seconds
     my $expect_not_found = shift || 0;    # expected can not found the term in serial output
 
-    bmwqemu::fctlog( 'wait_serial', "regex=$regexp", "timeout=$timeout" );
+    bmwqemu::fctlog( 'wait_serial', ["regex", $regexp], ["timeout", $timeout] );
     return bmwqemu::wait_serial($regexp, $timeout, $expect_not_found);
 }
 
@@ -194,7 +194,7 @@ sub upload_logs($) {
     my $file = shift;
     my $host = "10.0.2.2:" . (get_var('QEMUPORT') + 1);
 
-    bmwqemu::fctlog( 'upload_logs', "file=$file");
+    bmwqemu::fctlog( 'upload_logs', ["file", $file]);
     type_string("curl --form upload=\@$file ");
     my $basename = basename($file);
     type_string("$host/uploadlog/$basename\n");
@@ -218,7 +218,7 @@ sub wait_still_screen(;$$$) {
     my $timeout          = shift || 30;
     my $similarity_level = shift || ( get_var('HW') ? 44 : 47 );
 
-    bmwqemu::fctlog( 'wait_still_screen', "stilltime=$stilltime", "timeout=$timeout", "simlvl=$similarity_level" );
+    bmwqemu::fctlog( 'wait_still_screen', ["stilltime", $stilltime], ["timeout", $timeout], ["simlvl", $similarity_level] );
     return bmwqemu::wait_still_screen($stilltime, $timeout, $similarity_level);
 }
 
@@ -251,7 +251,7 @@ sub check_var($$) {
 
 sub x11_start_program($;$$) {
     my ($program, $timeout, $options) = @_;
-    bmwqemu::fctlog( 'x11_start_program', "timeout=$timeout", "options" . $options);
+    bmwqemu::fctlog( 'x11_start_program', ["timeout", $timeout], ["options", $options]);
     return $distri->x11_start_program($program, $timeout, $options);
 }
 
@@ -268,7 +268,7 @@ sub script_run($;$) {
 
     my ($name, $wait) = @_;
 
-    bmwqemu::fctlog( 'script_run', "name=$name", "wait=" . $wait);
+    bmwqemu::fctlog( 'script_run', ["name", $name], ["wait", $wait]);
     return $distri->script_run($name, $wait);
 }
 
@@ -285,7 +285,7 @@ $wait_seconds
 sub script_sudo($;$) {
     my ($name, $wait) = @_;
 
-    bmwqemu::fctlog( 'script_sudo', "name=$name", "wait=" . $wait);
+    bmwqemu::fctlog( 'script_sudo', ["name", $name], ["wait" . $wait]);
     return $distri->script_sudo($name, $wait);
 }
 
@@ -293,7 +293,7 @@ sub power($) {
 
     # params: (on), off, acpi, reset
     my $action = shift;
-    bmwqemu::fctlog( 'power', "action=$action" );
+    bmwqemu::fctlog( 'power', ["action", $action] );
     $bmwqemu::backend->power($action);
 }
 
@@ -334,7 +334,7 @@ send_key($qemu_key_name[, $wait_idle])
 sub send_key($;$) {
     my $key = shift;
     my $wait = shift || 0;
-    bmwqemu::fctlog( 'send_key', "key=$key" );
+    bmwqemu::fctlog( 'send_key', ["key", $key] );
     eval { $bmwqemu::backend->send_key($key); };
     bmwqemu::mydie("Error send_key key=$key: $@\n") if ($@);
     wait_idle() if $wait;
@@ -351,7 +351,7 @@ send a string of characters, mapping them to appropriate key names as necessary
 sub type_string($;$) {
     my $string      = shift;
     my $maxinterval = shift || 250;
-    bmwqemu::fctlog( 'type_string', "string='$string'" );
+    bmwqemu::fctlog( 'type_string', ["string", "'$string'"] );
     if ($bmwqemu::backend->can('type_string')) {
         $bmwqemu::backend->type_string($string, $maxinterval);
     }
@@ -381,14 +381,14 @@ sub type_password() {
 sub mouse_set($$) {
     my $mx = shift;
     my $my = shift;
-    bmwqemu::fctlog( 'mouse_set', "x=$mx", "y=$my" );
+    bmwqemu::fctlog( 'mouse_set', ["x", $mx], ["y", $my] );
     $bmwqemu::backend->mouse_set( $mx, $my );
 }
 
 sub mouse_click(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.15;
-    bmwqemu::fctlog( 'mouse_click', "button=$button", "cursor_down=$time" );
+    bmwqemu::fctlog( 'mouse_click', ["button", $button], ["cursor_down", $time] );
     $bmwqemu::backend->mouse_button( $button, 1 );
     sleep $time;
     $bmwqemu::backend->mouse_button( $button, 0 );
@@ -397,7 +397,7 @@ sub mouse_click(;$$) {
 sub mouse_dclick(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.10;
-    bmwqemu::fctlog( 'mouse_dclick', "button=$button", "cursor_down=$time" );
+    bmwqemu::fctlog( 'mouse_dclick', ["button", $button], ["cursor_down",  $time] );
     $bmwqemu::backend->mouse_button( $button, 1 );
     sleep $time;
     $bmwqemu::backend->mouse_button( $button, 0 );
@@ -409,7 +409,7 @@ sub mouse_dclick(;$$) {
 
 sub mouse_hide(;$) {
     my $border_offset = shift || 0;
-    bmwqemu::fctlog( 'mouse_hide', "border_offset=$border_offset" );
+    bmwqemu::fctlog( 'mouse_hide', ["border_offset", $border_offset] );
     $bmwqemu::backend->mouse_hide($border_offset);
 }
 ## mouse end
