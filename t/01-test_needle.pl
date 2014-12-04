@@ -1,7 +1,11 @@
 #!/usr/bin/perl -w -I..
 
 use strict;
-use Test::More tests => 26;
+use Test::More tests => 37;
+
+# optional but very useful
+eval 'use Test::More::Color';
+eval 'use Test::More::Color "foreground"';
 
 BEGIN {
     $bmwqemu::vars{DISTRI}  = "unicorn";
@@ -10,7 +14,7 @@ BEGIN {
 
 use needle;
 use cv;
-use Data::Dumper;
+use Data::Dump qw(dd pp);
 
 cv::init();
 require tinycv;
@@ -39,10 +43,11 @@ ok( !defined $res, "no match" );
 ok( !defined $res, "no match in array context" );
 ok( defined $cand && ref $cand eq 'ARRAY', "candidates must be array" );
 
-$img1   = tinycv::read("data/welcome.test.png");
-$needle = needle->new("data/welcome.ref.json");
-$res    = $img1->search($needle);
-ok( defined $res, "match with different art" );
+# this test is just asking too much as the screens are very different (SSIM of 87%!)
+#$img1   = tinycv::read("data/welcome.test.png");
+#$needle = needle->new("data/welcome.ref.json");
+#$res    = $img1->search($needle);
+#ok( defined $res, "match with different art" );
 
 $img1   = tinycv::read("data/kde.test.png");
 $needle = needle->new("data/kde.ref.json");
@@ -127,5 +132,75 @@ $img1 = tinycv::read("data/user_settings-1.png");
 my $img2 = tinycv::read("data/user_settings-2.png");
 ok( $img1->similarity($img2) > 53, "similarity is too small" );
 
+$img1 = tinycv::read("data/screenlock.test.png");
+$needle = needle->new("data/screenlock.ref.json");
+$res    = $img1->search($needle);
+
+ok( defined $res, "match screenlock" );
+
+$img1 = tinycv::read("data/desktop-at-first-boot-kde-without-greeter-20140926.test.png");
+$needle = needle->new("data/desktop-at-first-boot-kde-without-greeter-20140926.json");
+$res    = $img1->search($needle);
+ok( !defined $res, "KDE clearly not ready" );
+
+$img1 = tinycv::read("data/yast2_lan-hostname-tab-20140630.test.png");
+$needle = needle->new("data/yast2_lan-hostname-tab-20140630.json");
+$res    = $img1->search($needle);
+
+ok( defined $res, "hostname is different" );
+
+$img1 = tinycv::read("data/desktop_mainmenu-gnomesled-sles12.test.png");
+$needle = needle->new("data/desktop_mainmenu-gnomesled-sles12.json");
+$res    = $img1->search($needle);
+
+ok( !defined $res, "the mixer has a hover effect");
+
+$img1 = tinycv::read("data/inst-video-typed-sles12b9.test.png");
+$needle = needle->new("data/inst-video-typed-sles12b9.json");
+$res    = $img1->search($needle);
+
+ok( !defined $res, "the contrast is just too different");
+
+$img1 = tinycv::read("data/xterm-started-20141204.test.png");
+$needle = needle->new("data/xterm-started-20141204.json");
+$res    = $img1->search($needle, 0, 0.7);
+
+ok( defined $res, "xterm basically the same");
+
+$img1 = tinycv::read("data/pkcon-proceed-prompt-20141205.test.png");
+$needle = needle->new("data/pkcon-proceed-prompt-20141205.json");
+$res    = $img1->search($needle, 0, 0.7);
+
+ok( defined $res, "the prompt is the same to the human eye");
+
+$img1 = tinycv::read("data/displaymanager-sle12.test.png");
+$needle = needle->new("data/displaymanager-sle12.json");
+$res    = $img1->search($needle);
+
+ok( !defined $res, "the headline is completely different");
+
+$img1 = tinycv::read("data/inst-rescuesystem-20141027.test.png");
+$needle = needle->new("data/inst-rescuesystem-20141027.json");
+$res    = $img1->search($needle);
+
+ok( !defined $res, "different text");
+
+$img1 = tinycv::read("data/inst-welcome-20140902.test.png");
+$needle = needle->new("data/inst-welcome-20140902.json");
+$res    = $img1->search($needle);
+
+ok( defined $res, "match welcome");
+
+$img1 = tinycv::read("data/confirmlicense-sle12.test.png");
+$needle = needle->new("data/confirmlicense-sle12.json");
+$res    = $img1->search($needle);
+
+ok( defined $res, "license to confirm");
+
+$img1 = tinycv::read("data/desktop-runner-20140523.test.png");
+$needle = needle->new("data/desktop-runner-20140523.json");
+$res    = $img1->search($needle);
+
+ok( defined $res, "just some dark shade");
 
 # vim: set sw=4 et:

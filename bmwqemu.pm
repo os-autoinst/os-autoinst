@@ -223,7 +223,7 @@ sub print_possibly_colored($;$) {
     if (($direct_output && !$istty ) || !$direct_output) {
         $logfd && print $logfd "$text\n";
     }
-    if ($istty) {
+    if ($istty || !$logfd) {
         if ($color) {
             print STDERR colored( $text, $color ) . "\n";
         }

@@ -37,6 +37,56 @@ inline Point2f normalize_aspect(Point2f in, Point2f x, Point2f y) {
 	return out;
 }
 
+/* the purpose of this function is to calculate the error between two images
+  (scene area and object) ignoring slight colour changes */
+double enhancedMSE(const Mat& _I1, const Mat& _I2) {
+  Mat I1 = _I1;
+  I1.convertTo(I1, CV_8UC1);
+  Mat I2 = _I2;
+  I2.convertTo(I2, CV_8UC1);
+
+  assert(I1.channels() == 1);
+  assert(I2.channels() == 1);
+
+  double sse = 0;
+  
+  for (int j = 0; j < I1.rows; j++)
+    {
+      // get the address of row j
+      const uchar* I1_data = I1.ptr<const uchar>(j);
+      const uchar* I2_data = I2.ptr<const uchar>(j);
+       
+      for (int i = 0; i < I1.cols; i++)
+        {
+	  // reduce the colours to 16 before checking the diff
+	  if (abs(I1_data[i] - I2_data[i]) < 16)
+	    continue; // += 0
+	  double t1 = round(I1_data[i] / 16.);
+	  double t2 = round(I2_data[i] / 16.);
+	  double diff = (t1 - t2) * 16;
+	  sse += diff * diff;
+        }
+    }
+  
+  double total = I1.total();
+  double mse = sse / total;
+
+#if DEBUG
+  char f[200];
+  sprintf(f, "debug-%lf-scene.png", mse);
+  imwrite(f, I1);
+  sprintf(f, "debug-%lf-object.png", mse);
+  imwrite(f, I2);
+
+  Mat s1;
+  absdiff(I1, I2, s1);
+  sprintf(f, "debug-%lf-diff.png", mse);
+  imwrite(f, s1);
+#endif
+  
+  return mse;
+}
+
 int MyErrorHandler(int status, const char* func_name, const char* err_msg, const char* file_name, int line, void*) {
 	// suppress error msg's
 	return 0;
@@ -47,6 +97,7 @@ std::vector<char> str2vec(std::string str_in) {
 	return out;
 }
 
+/* we find the object in the scene and return the x,y and the error of the match */
 std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x, long y, long width, long height, long margin, double &similarity) {
   // cvSetErrMode(CV_ErrModeParent);
   // cvRedirectError(MyErrorHandler);
@@ -54,7 +105,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   struct timeval tv1, tv2;
   gettimeofday(&tv1, 0);
 
-  std::vector<int> outvec(4);
+  std::vector<int> outvec(2);
 
   if (scene->img.empty() || object->img.empty() ) {
     std::cerr << "Error reading images. Scene or object is empty." << std::endl;
@@ -66,7 +117,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
     std::cerr << "ERROR - search: out of range\n" << std::endl;
     return outvec;
   }
-
+  
   // Optimization -- Search close to the original area working with ROI
   int scene_x = std::max(0, int(x-margin));
   int scene_y = std::max(0, int(y-margin));
@@ -75,65 +126,74 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   int scene_width = scene_bottom_x - scene_x;
   int scene_height = scene_bottom_y - scene_y;
 
+  Mat scene_copy = scene->img.clone();
+  Mat object_copy = object->img.clone();
+
+  // blur the whole image to avoid differences depending on where the object is
+  GaussianBlur(scene_copy, scene_copy, Size(3, 3), 0, 0);
+  GaussianBlur(object_copy, object_copy, Size(3, 3), 0, 0);
+  
+  cvtColor(scene_copy, scene_copy, CV_BGR2GRAY );
+  cvtColor(object_copy, object_copy, CV_BGR2GRAY );
+  
   // Mat scene_roi = scene->img(Rect(scene_x, scene_y, scene_width, scene_height));
   // Mat object_roi = object->img(Rect(x, y, width, height));
-  Mat scene_roi(scene->img, Rect(scene_x, scene_y, scene_width, scene_height));
-  Mat object_roi(object->img, Rect(x, y, width, height));
+  Mat scene_roi(scene_copy, Rect(scene_x, scene_y, scene_width, scene_height));
+  Mat object_roi(object_copy, Rect(x, y, width, height));
 
   // Calculate size of result matrix and create it. If scene is W x H
   // and object is w x h, res is (W - w + 1) x ( H - h + 1)
   int result_width  = scene_roi.cols - width + 1; // object->img.cols + 1;
   int result_height = scene_roi.rows - height + 1; // object->img.rows + 1;
   if (result_width <= 0 || result_height <= 0) {
-     similarity = 0;
-     outvec[0] = 0;   
-     outvec[1] = 0;
-     outvec[2] = 0;
-     outvec[3] = 0;
-     return outvec;
-  }
+    similarity = 0;
+    outvec[0] = 0;
+    outvec[1] = 0;
+    std::cerr << "ERROR2 - search: out of range\n" << std::endl;
+    return outvec;
+ }
 
   Mat result = Mat::zeros(result_height, result_width, CV_32FC1);
-
-  Mat byte_scene_roi;
-  cvtColor(scene_roi, byte_scene_roi, CV_8U);
-  GaussianBlur(byte_scene_roi, byte_scene_roi, Size(5, 5), 0, 0);
-
-  Mat byte_object_roi;
-  cvtColor(object_roi, byte_object_roi, CV_8U);
-  GaussianBlur(byte_object_roi, byte_object_roi, Size(5, 5), 0, 0);
 
   // Perform the matching. Info about algorithm:
   // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
   // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
-  matchTemplate(byte_scene_roi, byte_object_roi, result, CV_TM_CCOEFF_NORMED);
-
+  matchTemplate(scene_roi, object_roi, result, CV_TM_SQDIFF_NORMED);
+    
   // Localizing the best match with minMaxLoc
   double minval, maxval;
   Point  minloc, maxloc;
   minMaxLoc(result, &minval, &maxval, &minloc, &maxloc, Mat());
+  
+  outvec[0] = int(minloc.x + scene_x);
+  outvec[1] = int(minloc.y + scene_y);
 
-#if DEBUG
-  Mat s = byte_scene_roi.clone();
-  rectangle(s, Point(maxloc.x, maxloc.y),
-	    Point(maxloc.x + object->img.cols, maxloc.y + object->img.rows),
-	    CV_RGB(255,0,0), 1);
-  imwrite("debug-scene.png", byte_scene_roi);
-  imwrite("debug-object.png", byte_object_roi);
-#endif
+  double mse = 10000;
 
-  outvec[0] = int(maxloc.x + scene_x);
-  outvec[1] = int(maxloc.y + scene_y);
-  outvec[2] = int(maxloc.x + scene_x + object->img.cols);
-  outvec[3] = int(maxloc.y + scene_y + object->img.rows);
+  // detect the MSE at the given location
+  Mat scene_best(scene_copy, Rect(outvec[0], outvec[1], width, height));
 
-  similarity = maxval;
+  mse = enhancedMSE(scene_best, object_roi);
+  
+  /* our callers expect a "how well does it match between 0-1", where 0.96 is defined as 
+     good enough. So we need to map this a bit to avoid breaking all the rest */
+  // mse = 10 => 1
+  // mse = 40 => .9
+  similarity = .9 + (40 - mse) / 300;
+  if (similarity < 0)
+    similarity = 0;
+  if (similarity > 1)
+    similarity = 1;
 
   gettimeofday(&tv2, 0);
-//  printf("search_template %ld ms\n", (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000);
+  long tdiff = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
+  std::cerr << "search_template "
+	    <<  tdiff << " ms"
+	    << " MSE " << mse
+	    << " sim:" << similarity
+	    << " minval:" << int(minval * 1000 + 0.5) << std::endl;
   return outvec;
 }
-
 
 // Use Peak signal-to-noise ratio to check the similarity between two
 // images.
@@ -158,13 +218,12 @@ double getPSNR(const Mat& I1, const Mat& I2)
 
   double sse = s.val[0] + s.val[1] + s.val[2]; // sum channels
 
-  double mse  = sse / (double)(I1.channels() * I1.total());
+  double mse = sse / (double)(I1.channels() * I1.total());
   if (!mse) {
     return VERY_SIM;
   }
   return 10.0 * log10((255 * 255) / mse);
 }
-
 
 void image_destroy(Image *s)
 {
