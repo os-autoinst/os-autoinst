@@ -64,7 +64,8 @@ our $logfd;
 
 our $clock_ticks = POSIX::sysconf(&POSIX::_SC_CLK_TCK);
 
-our $debug               = -t 1;                                                                        # enable debug only when started from a tty
+our $istty;
+our $direct_output;
 our $timesidleneeded     = 2;
 our $standstillthreshold = 600;
 
@@ -113,11 +114,16 @@ sub init {
     %vars = %{load_vars() || {}};
     $vars{NAME} ||= 'noname';
     $liveresultpath = "$testresults/$vars{NAME}";
-    open( $logfd, ">>", "$liveresultpath/autoinst-log.txt" );
-    # set unbuffered so that send_key lines from main thread will be written
-    my $oldfh = select($logfd);
-    $| = 1;
-    select($oldfh);
+    if ($direct_output) {
+        open( $logfd, '>&STDERR');
+    }
+    else {
+        open( $logfd, ">>", "$liveresultpath/autoinst-log.txt" );
+        # set unbuffered so that send_key lines from main thread will be written
+        my $oldfh = select($logfd);
+        $| = 1;
+        select($oldfh);
+    }
 
     our $testedversion = $vars{NAME};
     unless ($testedversion) {
@@ -211,33 +217,42 @@ sub set_ocr_rect { @ocrrect = @_; }
 
 # util and helper functions
 
+sub print_possibly_colored($;$) {
+    my ($text, $color) = @_;
+
+    if (($direct_output && !$istty ) || !$direct_output) {
+        $logfd && print $logfd "$text\n";
+    }
+    if ($istty) {
+        if ($color) {
+            print STDERR colored( $text, $color ) . "\n";
+        }
+        else {
+            print STDERR "$text\n";
+        }
+    }
+}
+
 sub diag($) {
-    $logfd && print $logfd "@_\n";
-    return unless $debug;
-    print STDERR "@_\n";
+    print_possibly_colored "@_";
 }
 
 sub fctres {
     my $fname   = shift;
     my @fparams = @_;
-    $logfd && print $logfd ">>> $fname: @fparams\n";
-    return unless $debug;
-    print STDERR colored( ">>> $fname: @fparams", 'green' ) . "\n";
+    print_possibly_colored ">>> $fname: @fparams", 'green';
 }
 
 sub fctinfo {
     my $fname   = shift;
     my @fparams = @_;
-    $logfd && print $logfd "::: $fname: @fparams\n";
-    return unless $debug;
-    print STDERR colored( "::: $fname: @fparams", 'yellow' ) . "\n";
+
+    print_possibly_colored "::: $fname: @fparams", 'yellow';
 }
 
 sub modstart {
-    my @text = @_;
-    $logfd && printf $logfd "\n||| %s at %s\n", join( ' ', @text ), POSIX::strftime( "%F %T", gmtime );
-    return unless $debug;
-    print STDERR colored( "||| @text", 'bold' ) . "\n";
+    my $text = sprintf "\n||| %s at %s", join( ' ', @_ ), POSIX::strftime( "%F %T", gmtime );
+    print_possibly_colored $text, 'bold';
 }
 
 use autotest qw($current_test);
@@ -275,9 +290,8 @@ sub fctlog {
         $params .= ", " . $p;
     }
     $params =~ s/^, //;
-    $logfd && print $logfd '<<< ' . $fname . "($params)\n";
-    return unless $debug;
-    print STDERR colored( '<<< ' . $fname . "($params)", 'blue' ) . "\n";
+
+    print_possibly_colored  '<<< ' . $fname . "($params)", 'blue';
 }
 
 sub fileContent($) {
@@ -363,7 +377,7 @@ sub stop_vm() {
     return unless $backend;
     $backend->stop_vm();
     close($encoder_pipe);
-    close $logfd;
+    close $logfd unless $direct_output;
 }
 
 sub freeze_vm() {
