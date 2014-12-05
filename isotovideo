@@ -23,6 +23,22 @@ use bmwqemu qw(diag);
 use needle;
 use autotest;
 use Data::Dumper;
+use Getopt::Std;
+
+# avoid paranoia
+$Getopt::Std::STANDARD_HELP_VERSION = 1;
+
+sub HELP_MESSAGE() {
+  print "$0 [-d]\n";
+  print "Parses vars.json and tests the given assets/ISOS\n\n";
+  print " -d enables direct output to STDERR instead of autoinst-log.txt\n"
+}
+
+# enable debug default when started from a tty
+$bmwqemu::istty = -t 1;
+our ($opt_d);
+getopts('d');
+$bmwqemu::direct_output = $opt_d;
 
 $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
