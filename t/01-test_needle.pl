@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w -I..
 
 use strict;
-use Test::More tests => 37;
+use Test::More tests => 39;
 
 # optional but very useful
 eval 'use Test::More::Color';
@@ -202,5 +202,17 @@ $needle = needle->new("data/desktop-runner-20140523.json");
 $res    = $img1->search($needle);
 
 ok( defined $res, "just some dark shade");
+
+$img1 = tinycv::read("data/accept-ssh-host-key.test.png");
+$needle = needle->new("data/accept-ssh-host-key.json");
+$res    = $img1->search($needle);
+
+ok( !defined $res, "no match for blinking cursor");
+
+$img1 = tinycv::read("data/xorg_vt-Xorg-20140729.test.png");
+$needle = needle->new("data/xorg_vt-Xorg-20140729.json");
+$res    = $img1->search($needle);
+
+ok( !defined $res, "the y goes into the line");
 
 # vim: set sw=4 et:
