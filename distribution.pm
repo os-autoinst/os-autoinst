@@ -42,7 +42,7 @@ sub become_root() {
     my ($self) = @_;
 
     testapi::script_sudo( "bash", 0 );    # become root
-    testapi::script_run("echo 'imroot' > /dev/$testapi::serialdev");
+    testapi::script_run("test $(id -u) -eq 0 && echo 'imroot' > /dev/$testapi::serialdev");
     testapi::wait_serial( "imroot", 5 ) || die "Root prompt not there";
     testapi::script_run("cd /tmp");
 }
