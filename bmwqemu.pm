@@ -117,11 +117,11 @@ sub init {
     }
     else {
         open( $logfd, ">>", "$liveresultpath/autoinst-log.txt" );
-        # set unbuffered so that send_key lines from main thread will be written
-        my $oldfh = select($logfd);
-        $| = 1;
-        select($oldfh);
     }
+    # set unbuffered so that send_key lines from main thread will be written
+    my $oldfh = select($logfd);
+    $| = 1;
+    select($oldfh);
 
     our $testedversion = $vars{NAME};
     unless ($testedversion) {
@@ -375,7 +375,10 @@ sub stop_vm() {
     return unless $backend;
     $backend->stop_vm();
     close($encoder_pipe);
-    close $logfd unless $direct_output;
+    if (!$direct_output) {
+        close $logfd;
+        $logfd = undef;
+    }
 }
 
 sub freeze_vm() {
@@ -393,7 +396,7 @@ sub mydie {
     croak "mydie";
 }
 
-# to be called from thread
+# to be called from backend thread
 sub enqueue_screenshot($) {
     my $img = shift;
 
