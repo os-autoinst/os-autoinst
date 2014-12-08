@@ -40,8 +40,6 @@ my $numunchangedscreenshots : shared = 0;
 
 my @ocrrect;
 share(@ocrrect);
-my @extrahashrects;
-share(@extrahashrects);
 
 our $interactive_mode;
 our $needle_template;
@@ -691,8 +689,6 @@ sub assert_screen {
 
     die "current_test undefined" unless current_test;
 
-    $args{'retried'} ||= 0;
-
     # get the array reference to all matching needles
     my $needles = [];
     my @tags;
@@ -840,71 +836,6 @@ sub assert_screen {
     }
     unlink( $control_files{'stop_waitforneedle'} )       if -e $control_files{'stop_waitforneedle'};
     unlink( $control_files{'reload_needles_and_retry'} ) if -e $control_files{'reload_needles_and_retry'};
-
-    # beware of spaghetti code below
-    my $newname;
-    my $run_editor = 0;
-    if ( $vars{'scaledhack'} ) {
-        freeze_vm();
-        my $needle;
-        for my $cand ( @{ $failed_candidates || [] } ) {
-            fctres( sprintf( "candidate %s, similarity %.2f @ %d/%d", $cand->{'needle'}->{'name'}, $cand->{'area'}->[-1]->{'similarity'}, $cand->{'area'}->[-1]->{'x'}, $cand->{'area'}->[-1]->{'y'} ) );
-            $needle = $cand->{'needle'};
-            last;
-        }
-
-        for my $i ( 1 .. @{ $needles || [] } ) {
-            printf "%d - %s\n", $i, $needles->[ $i - 1 ]->{'name'};
-        }
-        print "note: called from check_screen()\n" if $check_screen;
-        print "(E)dit, (N)ew, (Q)uit, (C)ontinue\n";
-        my $r = <STDIN>;
-        if ( $r =~ /^(\d+)/ ) {
-            $r      = 'e';
-            $needle = $needles->[ $1 - 1 ];
-        }
-        if ( $r =~ /^e/i ) {
-            unless ($needle) {
-                $needle = $needles->[0] if $needles;
-                die "no needle\n" unless $needle;
-            }
-            $newname    = $needle->{'name'};
-            $run_editor = 1;
-        }
-        elsif ( $r =~ /^n/i ) {
-            $run_editor = 1;
-        }
-        elsif ( $r =~ /^q/i ) {
-            $args{'retried'} = 99;
-            $backend->send('cont');
-        }
-        else {
-            $backend->send("cont");
-        }
-    }
-    elsif ( !$check_screen && $vars{'interactive_crop'} ) {
-        $run_editor = 1;
-    }
-
-    if ( $run_editor && $args{'retried'} < 3 ) {
-        $newname = $mustmatch . ( $vars{'interactive_crop'} || '' ) unless $newname;
-        freeze_vm();
-        system( "$scriptdir/crop.py", '--new', $newname, $needle_template->{'needle'} ) == 0 || mydie;
-        $backend->send("cont");
-        my $fn = sprintf( "%s/needles/%s.json", $vars{'CASEDIR'}, $newname );
-        if ( -e $fn ) {
-            for my $n ( needle->all() ) {
-                if ( $n->{'file'} eq $fn ) {
-                    $n->unregister();
-                }
-            }
-            diag("reading new needle $fn");
-            needle->new($fn) || mydie "$!";
-
-            # XXX: recursion!
-            return assert_screen( mustmatch => \@tags, timeout => 3, check => $check_screen, retried => $args{'retried'} + 1 );
-        }
-    }
 
     current_test->record_screenfail(
         img     => $img,
