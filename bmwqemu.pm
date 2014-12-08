@@ -726,13 +726,17 @@ sub assert_screen {
     if ( !@$needles ) {
         diag("NO matching needles for $mustmatch");
     }
+
+    # we keep a collection of mismatched screens
+    my $failed_screens = [];
+
     my $img = getcurrentscreenshot();
     my $oldimg;
     my $old_search_ratio = 0;
     my $failed_candidates;
-    for ( my $n = 0 ; $n < $timeout ; $n++ ) {
+    for ( my $n = $timeout ; $n >= 0; $n-- ) {
         my $search_ratio = 0.02;
-        $search_ratio = 1 if ($n % 6 == 5) || ($n == $timeout - 1);
+        $search_ratio = 1 if ($n % 6 == 5) || ($n == 0);
 
         if ( -e $control_files{"interactive_mode"} ) {
             $interactive_mode = 1;
@@ -750,10 +754,10 @@ sub assert_screen {
                 # not using last here so we search the
                 # standstill image too, in case we
                 # are in the post fail hook
-                $n = $timeout;
+                $n = -1;
             }
             elsif ( $oldimg == $img && $search_ratio <= $old_search_ratio) {    # no change, no need to search
-                diag( sprintf( "no change %d $statstr", $timeout - $n ) );
+                diag( sprintf( "no change %d $statstr", $n ) );
                 next;
             }
         }
@@ -765,7 +769,18 @@ sub assert_screen {
             fctres( sprintf( "found %s, similarity %.2f @ %d/%d", $foundneedle->{'needle'}->{'name'}, $lastarea->{'similarity'}, $lastarea->{'x'}, $lastarea->{'y'} ) );
             return $foundneedle;
         }
-        diag("STAT $statstr");
+
+        # as the images create memory pressure, we only save quite different images
+        # the last screen is handled automatically and the first needle is only interesting
+        # if there are no others
+        my $sim = 29;
+        if ($failed_screens->[-1] && $n > 0) {
+            $sim = $failed_screens->[-1]->[0]->similarity($img);
+        }
+        if ($sim < 30) {
+            push(@$failed_screens, [$img, $failed_candidates, $n, $sim]);
+        }
+        diag("STAT $n $statstr - similarity: $sim");
         $oldimg = $img;
         $old_search_ratio = $search_ratio;
     }
@@ -831,7 +846,7 @@ sub assert_screen {
             $waiting_for_new_needle = undef;
             save_results();
             cont_vm();
-            return assert_screen( mustmatch => \@tags, timeout => 3, check => $check_screen, retried => $args{'retried'} + 1 );
+            return assert_screen( mustmatch => \@tags, timeout => 3, check => $check_screen);
         }
         $waiting_for_new_needle = undef;
         save_results();
@@ -840,17 +855,69 @@ sub assert_screen {
     unlink( $control_files{'stop_waitforneedle'} )       if -e $control_files{'stop_waitforneedle'};
     unlink( $control_files{'reload_needles_and_retry'} ) if -e $control_files{'reload_needles_and_retry'};
 
-    current_test->record_screenfail(
-        img     => $img,
-        needles => $failed_candidates,
-        tags    => \@save_tags,
-        result  => $check_screen ? 'unk' : 'fail',
-        overall => $check_screen ? undef : 'fail'
-    );
+    my $final_mismatch = $failed_screens->[-1];
+    $failed_screens = _reduce_to_biggest_changes($failed_screens, 20);
+    # only append the last mismatch if it's different to the last one in the reduced list
+    my $new_final = $failed_screens->[-1];
+    if ($new_final != $final_mismatch) {
+        my $sim = $new_final->[0]->similarity($final_mismatch->[0]);
+        print "FINAL SIM $sim\n";
+        push(@$failed_screens, $final_mismatch) if ($sim < 50);
+        $final_mismatch = $new_final;
+    }
+
+    for my $l (@$failed_screens) {
+        my ($img, $failed_candidates, $testtime, $similarity) = @$l;
+        print "SAVING $testtime $similarity\n";
+        my $result = $check_screen ? 'unk' : 'fail';
+        $result = 'unk' if ($l != $final_mismatch);
+        current_test->record_screenfail(
+            img     => $img,
+            needles => $failed_candidates,
+            tags    => \@save_tags,
+            result  => $result,
+            overall => $check_screen ? undef : 'fail'
+        );
+    }
+
     unless ( $args{'check'} ) {
         mydie "needle(s) '$mustmatch' not found";
     }
     return undef;
+}
+
+sub _reduce_to_biggest_changes($) {
+    my ($oldarray, $limit) = @_;
+    my @newarray;
+
+    my $n = 1;
+
+    # remove all needles that are don't add un-similarity, i.e.
+    # that have the same similarity to their prev img than the one
+    # following
+    while ($n < scalar(@$oldarray) - 1) {
+        my $prev = $oldarray->[$n-1];
+        my $next = $oldarray->[$n+1];
+        my $sim = $prev->[0]->similarity($next->[0]);
+        if ($sim > $oldarray->[$n]->[3]) { # even more similiar, skip n
+            splice(@$oldarray, $n, 1);
+            $prev->[3] = $sim;
+        }
+        else {
+            $n++;
+        }
+    }
+
+    # sort by similarity
+    for my $l (sort { $a->[3] cmp $b->[3] } @$oldarray) {
+        push(@newarray, $l);
+        last if (scalar(@newarray) >= $limit);
+    }
+
+    # now sort for test time
+    @newarray = sort { $b->[2] cmp $a->[2] } @newarray;
+
+    return \@newarray;
 }
 
 sub make_snapshot($) {
