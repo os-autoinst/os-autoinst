@@ -1,0 +1,37 @@
+{
+  "tags": [
+    "ENV-DESKTOP-gnome",
+    "displaymanager",
+    "reboot-after-installation"
+  ],
+  "area": [
+    {
+      "xpos": 1,
+      "type": "match",
+      "height": 246,
+      "width": 1019,
+      "ypos": 0
+    },
+    {
+      "xpos": 308,
+      "ypos": 277,
+      "width": 388,
+      "height": 94,
+      "type": "match"
+    },
+    {
+      "xpos": 324,
+      "ypos": 460,
+      "width": 132,
+      "height": 27,
+      "type": "match"
+    },
+    {
+      "xpos": 284,
+      "ypos": 568,
+      "width": 405,
+      "height": 166,
+      "type": "match"
+    }
+  ]
+}

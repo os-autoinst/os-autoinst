@@ -1,0 +1,21 @@
+{
+  "tags": [
+    "xterm-started"
+  ],
+  "area": [
+    {
+      "width": 261,
+      "xpos": 0,
+      "ypos": 89,
+      "type": "match",
+      "height": 211
+    },
+    {
+      "width": 39,
+      "ypos": 24,
+      "xpos": 117,
+      "height": 18,
+      "type": "match"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "tags": [
+    "inst-video-typed"
+  ],
+  "area": [
+    {
+      "ypos": 477,
+      "type": "match",
+      "xpos": 150,
+      "height": 23,
+      "width": 519
+    }
+  ]
+}

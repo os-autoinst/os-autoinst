@@ -44,9 +44,9 @@ sub mean_square_error($) {
 sub search_($;$$) {
     my $self         = shift;
     my $needle       = shift;
-    my $threshold    = shift || 0.005;
+    my $threshold    = shift || 0.0;
     my $search_ratio = shift || 0.0;
-    my ( $sim, $xmatch, $ymatch, $d1, $d2 );
+    my ( $sim, $xmatch, $ymatch );
     my ( @exclude, @match, @ocr );
 
     return undef unless $needle;
@@ -66,7 +66,7 @@ sub search_($;$$) {
 
     for my $area (@match) {
         my $margin = int($area->{'margin'} + $search_ratio * (1024 - $area->{'margin'}));
-        ( $sim, $xmatch, $ymatch, $d1, $d2 ) = $img->search_needle( $needle->get_image, $area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'}, $margin );
+        ( $sim, $xmatch, $ymatch ) = $img->search_needle( $needle->get_image, $area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'}, $margin );
         bmwqemu::diag( sprintf( "MATCH(%s:%.2f): $xmatch $ymatch [m:$margin]", $needle->{name}, $sim ) );
 
         my $ma = {
@@ -78,12 +78,12 @@ sub search_($;$$) {
             result     => 'ok',
         };
 
-        # A 96.9% match is ok for console tests. Please, if you
+        # A 96% match is ok for console tests. Please, if you
         # change this number consider change also the test
         # 01-test_needle and the console tests (for example, using
         # more smaller areas)
 
-        my $m = ( $area->{'match'} || 96.6 ) / 100;
+        my $m = ( $area->{'match'} || 96 ) / 100;
         #if ( $sim < 1 ) {
         #    my $needle_img = $needle->get_image($area);
         #    if ($needle_img) {
@@ -121,6 +121,7 @@ sub search($;$$) {
     my $threshold    = shift;
     my $search_ratio = shift;
     return undef unless $needle;
+
     if ( ref($needle) eq "ARRAY" ) {
         my $candidates;
         my $best;
