@@ -40,6 +40,11 @@ our ($opt_d);
 getopts('d');
 $bmwqemu::direct_output = $opt_d;
 
+select(STDERR);
+$| = 1;
+select(STDOUT); # default
+$| = 1;
+
 $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
 

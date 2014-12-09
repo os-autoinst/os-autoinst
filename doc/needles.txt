@@ -16,20 +16,10 @@ Most important environment variables:
 - QEMUPORT: port used for the qemu monitor. Default is 15222. Always
   increase by two as one port higher is a monitor multiplexer.
 
-For development/debugging you also want
-- interactive_crop: specifies the suffix for new needle names and is
-  also the trigger to call the interactive crop editor when a needle
-  is not found. Example: use e.g. '-text' if you are needling text
-  mode.
-- scaledhack: set to 1 if you want to be able to replace screenshots
-  of needles with newly taken screenshots and potentially scale the
-  regions of the needle to the new resolution.
-
-
 Example how to run isotovideo:
 $ mkdir /space/openqa
 $ cd /space/openqa/
-$ DISTRI=opensuse ISO=/path/to/dvd.iso DESKTOP=gnome interactive_crop=1 scaledhack=1 /path/to/isotovideo
+$ DISTRI=opensuse ISO=/path/to/dvd.iso DESKTOP=gnome /path/to/isotovideo
 
 crop.py can be used to interactively edit needles. It takes a json
 file or a png as argument.
