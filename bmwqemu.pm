@@ -890,24 +890,6 @@ sub _reduce_to_biggest_changes($) {
     my ($oldarray, $limit) = @_;
     my @newarray;
 
-    my $n = 1;
-
-    # remove all needles that are don't add un-similarity, i.e.
-    # that have the same similarity to their prev img than the one
-    # following
-    while ($n < scalar(@$oldarray) - 1) {
-        my $prev = $oldarray->[$n-1];
-        my $next = $oldarray->[$n+1];
-        my $sim = $prev->[0]->similarity($next->[0]);
-        if ($sim > $oldarray->[$n]->[3]) { # even more similiar, skip n
-            splice(@$oldarray, $n, 1);
-            $prev->[3] = $sim;
-        }
-        else {
-            $n++;
-        }
-    }
-
     # sort by similarity
     for my $l (sort { $a->[3] cmp $b->[3] } @$oldarray) {
         push(@newarray, $l);
