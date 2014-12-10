@@ -285,7 +285,7 @@ $wait_seconds
 sub script_sudo($;$) {
     my ($name, $wait) = @_;
 
-    bmwqemu::fctlog( 'script_sudo', ["name", $name], ["wait" . $wait]);
+    bmwqemu::fctlog( 'script_sudo', ["name", $name], ["wait", $wait]);
     return $distri->script_sudo($name, $wait);
 }
 
