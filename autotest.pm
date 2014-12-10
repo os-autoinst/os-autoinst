@@ -69,10 +69,10 @@ sub runalltests {
             eval { $t->runtest; };
             if ($@) {
 
-                bmwqemu::diag "test $name failed: $@\n";
+                bmwqemu::diag $@;
                 if ( $flags->{'fatal'} ) {
                     bmwqemu::stop_vm();
-                    die $@;
+                    return 0;
                 }
                 elsif (!$flags->{'norollback'} ) {
                     bmwqemu::load_snapshot('lastgood');
@@ -89,6 +89,7 @@ sub runalltests {
             $t->skip_if_not_running;
         }
     }
+    return 1;
 }
 
 sub loadtestdir($) {
