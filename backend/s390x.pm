@@ -15,7 +15,9 @@ use Data::Dumper qw(Dumper);
 
 use Carp qw(confess cluck carp);
 
-sub init($) {
+use English;
+
+sub init() {
     my $self = shift;
 
     ## TODO make this configurable in vars.json
@@ -28,7 +30,7 @@ sub init($) {
     
 }
 
-sub pump_3270_script($$) {
+sub pump_3270_script() {
     my ($self, $command) = @_;
 
     $self->{in}  .= $command . "\n";
@@ -53,25 +55,51 @@ sub pump_3270_script($$) {
 }
 
 sub expect_3270() {
-    my ($self, $command, $result_match, $status_3270_match, $status_command_match) = @_;
+    my ($self, $command, %arg) = @_;
 
-    if (!defined $status_command_match) { $status_command_match = "ok" } ;
+    if (!exists $arg{status_command_match}) { $arg{status_command_match} = "ok" } ;
 
     confess "status_command_match must be 'ok' or 'error'" 
-	unless (($status_command_match eq "ok") || ($status_command_match eq "error"));
+	unless (($arg{status_command_match} eq "ok") || ($arg{status_command_match} eq "error"));
 
     my $result = $self->pump_3270_script($command);
 
-    cluck "expected command exit status $status_command_match, got $result->{status_command}" 
-    	if $result->{status_command} ne $status_command_match;
-
-    cluck "expected 3270 status $status_3270_match, got $result->{status_3270}"
-    	unless defined $status_3270_match && $result->{status_3270} =~ $status_3270_match;
-
-    if (defined $result_match && $result->{command_output} =~ $result_match) { 
-	cluck "expected command output '$result_match', got '$result->{command_output}'";
+    if ($result->{status_command} ne $arg{status_command_match}) {
+	cluck "expected command exit status $arg{status_command_match}, got $result->{status_command}";
     };
 
+    if (exists $arg{status_3270_match} && ! $result->{status_3270} =~ $arg{status_3270_match}) {
+	cluck "expected 3270 status $arg{status_3270_match}, got $result->{status_3270}";
+    };
+
+    if (exists $arg{result_filter}) { $arg{result_filter}($result->{command_output})  };
+
+    if (exists $arg{result_match} && ! $result->{command_output} =~ $arg{result_match}) { 
+	cluck "expected command output '$arg{result_match}', got '$result->{command_output}'";
+    };
+
+    $result;
+}
+
+sub strip_data() {
+    $_[0] =~ s/^data: //mg;
+    $_[0] =~ s/^ +\n//mg;
+}
+
+sub sequence_3270() {
+    my ($self, @commands) = @_;
+
+    
+    foreach my $command (@commands) {
+	say $command;
+	say @commands;
+	$self->pump_3270_script($command);
+    }
+
+    $self->pump_3270_script("Wait(InputField)");
+    $self->pump_3270_script("Snap");
+    my $result = $self->expect_3270("Snap(Ascii)", result_filter => \&strip_data );
+    $result;
 }
 
 sub do_start_vm($) {
@@ -91,30 +119,39 @@ sub do_start_vm($) {
     # TODO: should we use this?  Toggle(AidWait,clear)\n
 
     # 
-    $self->expect_3270("Connect($self->{zVMhost})", undef, "C\\($self->{zVMhost}\\)");
-    $self->pump_3270_script("Wait(InputField)");
-    $self->pump_3270_script("Snap");
+    $self->expect_3270("Connect($self->{zVMhost})",
+		       status_3270_match => "C($self->{zVMhost})");
 
-    $self->expect_3270("Snap(Ascii)", "Fill in your USERID and PASSWORD and press ENTER");
+    $self->expect_3270("Wait(InputField)");
+    $self->expect_3270("Snap");
 
-    $self->pump_3270_script("String($self->{guest_user})");
-    $self->pump_3270_script("String($self->{guest_login})");
-    $self->pump_3270_script("ENTER");
-    $self->pump_3270_script("Wait(InputField)");
-    $self->pump_3270_script("Snap");
+    $self->expect_3270("Snap(Ascii)",
+		       result_match => "Fill in your USERID and PASSWORD and press ENTER",
+		       result_filter => \&strip_data);
 
-    my $r = $self->pump_3270_script("Snap(Ascii)"); # instead wait for "LOGON AT"
+    $self->expect_3270("String($self->{guest_user})");
+    $self->expect_3270("String($self->{guest_login})");
+    $self->expect_3270("ENTER");
+    $self->expect_3270("Wait(InputField)");
+    $self->expect_3270("Snap");
 
-    $r->{command_output} =~ s/^data: //mg;
+    my $r = $self->expect_3270("Snap(Ascii)", result_filter => \&strip_data);
 
-    if ($r->{command_output} =~ "RECONNECTED.*") {
-	cluck "machine $self->{zVMhost} $self->{guest_login} in use ('$`$&').";
-	say $r->{command_output};
+    if ($r->{command_output} =~ /RECONNECT.*/) {
+	cluck "machine $self->{zVMhost} $self->{guest_login} in use ('$&').";
+	sleep 30;
+	die say $r->{command_output};
     } elsif ($r->{command_output} =~ "HCPLGA054E.*") {
-	cluck "machine $self->{zVMhost} $self->{guest_login} in use ('$`$&').";
-	say $r->{command_output};
+	cluck "machine $self->{zVMhost} $self->{guest_login} in use ('$&').";
+	sleep 30;
+	die say $r->{command_output};
     } # else { say $r->{command_output}; }
     ;
+
+    $r = $self->sequence_3270(qw{
+String(ftpboot)
+ENTER 
+});
 
     sleep 30;
 
