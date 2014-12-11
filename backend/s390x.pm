@@ -8,7 +8,8 @@ use base ('backend::baseclass');
 use feature qw/say/;
 
 use IPC::Run qw(start pump finish);
-use IPC::Run::Debug;
+
+use IPC::Run::Debug; # use IPCRUNDEBUG=data in shell environment for trace
 
 use Data::Dumper qw(Dumper);
 
@@ -18,7 +19,7 @@ sub init($) {
     my $self = shift;
 
     ## TODO make this configurable in vars.json
-    ##  $self->{terminal} = qw(s3270); # non-interactive
+    ## $self->{terminal} = [qw(s3270)]; # non-interactive
     $self->{terminal} = [qw(x3270 -script)]; # interactive
 
     $self->{zVMhost}     = "zvm54";
@@ -51,7 +52,7 @@ sub pump_3270_script($$) {
     return $out;
 }
 
-sub expect_3270($$) {
+sub expect_3270() {
     my ($self, $command, $result_match, $status_3270_match, $status_command_match) = @_;
 
     if (!defined $status_command_match) { $status_command_match = "ok" } ;
@@ -93,18 +94,27 @@ sub do_start_vm($) {
     $self->expect_3270("Connect($self->{zVMhost})", undef, "C\\($self->{zVMhost}\\)");
     $self->pump_3270_script("Wait(InputField)");
     $self->pump_3270_script("Snap");
-    $self->pump_3270_script("Snap(Ascii)", "Fill in your USERID and PASSWORD and press ENTER");
+
+    $self->expect_3270("Snap(Ascii)", "Fill in your USERID and PASSWORD and press ENTER");
 
     $self->pump_3270_script("String($self->{guest_user})");
     $self->pump_3270_script("String($self->{guest_login})");
     $self->pump_3270_script("ENTER");
     $self->pump_3270_script("Wait(InputField)");
     $self->pump_3270_script("Snap");
+
     my $r = $self->pump_3270_script("Snap(Ascii)"); # instead wait for "LOGON AT"
-    if ($r->{command_output} =~ "RECONNECTED") {
-	cluck "machine $self->{zVMhost} $self->{guest_login} in use ('RECONNECT').";
+
+    $r->{command_output} =~ s/^data: //mg;
+
+    if ($r->{command_output} =~ "RECONNECTED.*") {
+	cluck "machine $self->{zVMhost} $self->{guest_login} in use ('$`$&').";
 	say $r->{command_output};
-    };
+    } elsif ($r->{command_output} =~ "HCPLGA054E.*") {
+	cluck "machine $self->{zVMhost} $self->{guest_login} in use ('$`$&').";
+	say $r->{command_output};
+    } # else { say $r->{command_output}; }
+    ;
 
     sleep 30;
 
