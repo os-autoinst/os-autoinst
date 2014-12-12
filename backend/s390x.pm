@@ -27,7 +27,7 @@ sub init() {
     $self->{zVMhost}     = "zvm54";
     $self->{guest_user}  = "linux154";
     $self->{guest_login} = "lin390";
-    
+
 }
 
 sub pump_3270_script() {
@@ -59,7 +59,7 @@ sub expect_3270() {
 
     if (!exists $arg{status_command_match}) { $arg{status_command_match} = "ok" } ;
 
-    confess "status_command_match must be 'ok' or 'error'" 
+    confess "status_command_match must be 'ok' or 'error'"
 	unless (($arg{status_command_match} eq "ok") || ($arg{status_command_match} eq "error"));
 
     my $result = $self->pump_3270_script($command);
@@ -76,7 +76,7 @@ sub expect_3270() {
 	$arg{result_filter}($result->{command_output});
     };
 
-    if (exists $arg{result_match} && ! $result->{command_output} ~~ $arg{result_match}) { 
+    if (exists $arg{result_match} && ! $result->{command_output} ~~ $arg{result_match}) {
 	croak "expected command output '$arg{result_match}', got '$result->{command_output}'";
     };
 
@@ -96,7 +96,7 @@ sub strip_data() {
 
 sub grab_more_until_running() {
     my ($self) = @_;
-    
+
     $self->pump_3270_script("Snap");
     my $snap = $self->expect_3270("Snap(Ascii)", result_filter => \&strip_data );
 
@@ -120,7 +120,7 @@ sub grab_more_until_running() {
 sub sequence_3270() {
     my ($self, @commands) = @_;
 
-    
+
     foreach my $command (@commands) {
 	$self->pump_3270_script($command);
     }
@@ -143,7 +143,7 @@ sub nice_3270_status() {
 	    ## host, or if not connected to a host, the letter L. If
 	    ## the keyboard is locked because of an operator error
 	    ## (field overflow, protected field, etc.), the letter E.
-	'screen_formatting', 
+	'screen_formatting',
    	    ## If the screen is formatted, the letter F. If unformatted or
 	    ## in NVT mode, the letter U.
 	'field_protection',
@@ -158,7 +158,7 @@ sub nice_3270_status() {
 	    ## character mode, the letter C. If connected in
 	    ## unnegotiated mode (no BIND active from the host), the
 	    ## letter P. If not connected, the letter N.
-	'model_number',	
+	'model_number',
 	    ## (2-5)
 	'number_of_rows',
 	    ## The current number of rows defined on the screen. The
@@ -198,7 +198,7 @@ sub do_start_vm($) {
     $self ->{ in } = "";
     $self ->{ out} = "";
     $self ->{ err} = "";
-    
+
     $self->{connection} = start (
 	\@{$self->{terminal}},
 	\$self->{in},
@@ -207,7 +207,7 @@ sub do_start_vm($) {
 
     # TODO: should we use this?  Toggle(AidWait,clear)\n
 
-    # 
+    #
     $self->expect_3270("Connect($self->{zVMhost})",
 		       status_3270_match => "C($self->{zVMhost})");
 
@@ -264,7 +264,7 @@ Wait(InputField)
     $s = &nice_3270_status($r->{status_3270});
 
     $cursor_row = $s->{cursor_row};
-    
+
     while ( ($row, my $content) = each($r->{command_output})) {
     	if ($content =~ /DIST\.SUSE\.DE/) {
     	    last;
@@ -273,16 +273,16 @@ Wait(InputField)
 
     my $sequence = ["Home", ("Down") x ($row-$cursor_row), "ENTER", "Wait(InputField)"];
     say "\$sequence=@$sequence";
-    
+
     $r = $self->sequence_3270(@$sequence);
-	
+
     ##############################
     # choose distribution
 
     $s = &nice_3270_status($r->{status_3270});
 
     $cursor_row = $s->{cursor_row};
-    
+
     while ( ($row, my $content) = each($r->{command_output})) {
     	if ($content =~ /SLES-11-SP4-Alpha2/) {
     	    last;
@@ -291,13 +291,13 @@ Wait(InputField)
 
     my $sequence = ["Home", ("Down") x ($row-$cursor_row), "ENTER", "Wait(InputField)"];
     say "\$sequence=@$sequence";
-    
+
     $r = $self->sequence_3270(@$sequence);
 
     ###################################################################
-    
+
     sleep 50;
-    
+
 }
 
 1;
