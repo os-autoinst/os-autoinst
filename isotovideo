@@ -84,6 +84,8 @@ $SIG{ALRM} = \&signalhandler;
 $SIG{TERM} = \&signalhandler;
 $SIG{HUP}  = \&signalhandler;
 
+$ENV{MOJO_MAX_MESSAGE_SIZE} = 107741824;
+
 use commands;
 
 my $ct = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
