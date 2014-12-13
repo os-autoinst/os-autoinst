@@ -379,8 +379,8 @@ sub type_password() {
 
 ## mouse
 sub mouse_set($$) {
-    my $mx = shift;
-    my $my = shift;
+    my ($mx, $my) = @_;
+
     bmwqemu::fctlog( 'mouse_set', ["x", $mx], ["y", $my] );
     $bmwqemu::backend->mouse_set( $mx, $my );
 }

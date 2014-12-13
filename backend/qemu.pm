@@ -766,7 +766,7 @@ sub handle_vnc_command($) {
         $mouse_xpos = int($cmd->{arguments}->{x});
         $mouse_ypos = int($cmd->{arguments}->{y});
 
-        bmwqemu::diag "mouse_move $mouse_xpos, $mouse_ypos";
+        bmwqemu::diag "mouse_set $mouse_xpos, $mouse_ypos";
         $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
         return {};
     }

@@ -114,6 +114,9 @@ if ($init) {
     }
 }
 
+if ($ENV{RUN_VNCVIEWER}) {
+  system("vncviewer -Shared localhost:" . $bmwqemu::vars{VNC} . " -ViewOnly &");
+}
 require Carp;
 require Carp::Always;
 
