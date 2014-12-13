@@ -405,7 +405,6 @@ my $keymap = {
 sub send_mapped_key {
     my ($self, $keys) = @_;
     my @events;
-    bmwqemu::diag "send_mapped_key '$keys'";
     for my $key (split('-', $keys)) {
         if (length($key) == 1) {
             $key = ord($key);

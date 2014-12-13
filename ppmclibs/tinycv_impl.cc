@@ -102,8 +102,10 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   // cvSetErrMode(CV_ErrModeParent);
   // cvRedirectError(MyErrorHandler);
 
+/*
   struct timeval tv1, tv2;
   gettimeofday(&tv1, 0);
+*/
 
   std::vector<int> outvec(2);
 
@@ -185,6 +187,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   if (similarity > 1)
     similarity = 1;
 
+/*
   gettimeofday(&tv2, 0);
   long tdiff = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
   std::cerr << "search_template "
@@ -192,6 +195,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
 	    << " MSE " << mse
 	    << " sim:" << similarity
 	    << " minval:" << int(minval * 1000 + 0.5) << std::endl;
+*/
   return outvec;
 }
 
