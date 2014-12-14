@@ -227,7 +227,4 @@ is( $res->{area}->[-1]->{h}, 12);
 is( $res->{area}->[-1]->{y}, 260);
 is( $res->{area}->[-1]->{x}, 313);
 
-
-
-  
 # vim: set sw=4 et:
