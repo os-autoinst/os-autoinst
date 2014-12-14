@@ -856,14 +856,19 @@ sub assert_screen {
     unlink( $control_files{'reload_needles_and_retry'} ) if -e $control_files{'reload_needles_and_retry'};
 
     my $final_mismatch = $failed_screens->[-1];
-    $failed_screens = _reduce_to_biggest_changes($failed_screens, 20);
-    # only append the last mismatch if it's different to the last one in the reduced list
-    my $new_final = $failed_screens->[-1];
-    if ($new_final != $final_mismatch) {
-        my $sim = $new_final->[0]->similarity($final_mismatch->[0]);
-        print "FINAL SIM $sim\n";
-        push(@$failed_screens, $final_mismatch) if ($sim < 50);
-        $final_mismatch = $new_final;
+    if (!$check_screen) {
+        $failed_screens = _reduce_to_biggest_changes($failed_screens, 20);
+        # only append the last mismatch if it's different to the last one in the reduced list
+        my $new_final = $failed_screens->[-1];
+        if ($new_final != $final_mismatch) {
+            my $sim = $new_final->[0]->similarity($final_mismatch->[0]);
+            print "FINAL SIM $sim\n";
+            push(@$failed_screens, $final_mismatch) if ($sim < 50);
+            $final_mismatch = $new_final;
+        }
+    }
+    else {
+        $failed_screens = [$final_mismatch];
     }
 
     for my $l (@$failed_screens) {

@@ -711,9 +711,9 @@ sub wait_for_screen_stall($) {
         # we can't wait longer - in password prompts there is no screen update
         last if ($diff > .8);
     }
-    my ( $s2, $ms2 ) = gettimeofday;
-    my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
-    bmwqemu::diag "done $diff";
+    #my ( $s2, $ms2 ) = gettimeofday;
+    #my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
+    #bmwqemu::diag "done $diff";
     enqueue_screenshot();
 }
 
@@ -723,7 +723,6 @@ sub type_string($$) {
     my $s = IO::Select->new();
     $s->add($vnc->socket);
     $s->add($qemupipe);
-
 
     for my $letter (@letters) {
         $letter = $charmap{$letter} || $letter;
@@ -766,7 +765,7 @@ sub handle_vnc_command($) {
         $mouse_xpos = int($cmd->{arguments}->{x});
         $mouse_ypos = int($cmd->{arguments}->{y});
 
-        bmwqemu::diag "mouse_move $mouse_xpos, $mouse_ypos";
+        bmwqemu::diag "mouse_set $mouse_xpos, $mouse_ypos";
         $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
         return {};
     }
@@ -791,6 +790,7 @@ sub handle_vnc_command($) {
     }
 
     if ($cmd->{VNC} eq 'send_key') {
+        bmwqemu::diag "send_mapped_key '" . $cmd->{arguments}->{key} . "'";
         $vnc->send_mapped_key($cmd->{arguments}->{key});
         my $s = IO::Select->new();
         $s->add($vnc->socket);

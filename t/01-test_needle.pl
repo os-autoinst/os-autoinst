@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w -I..
 
 use strict;
-use Test::More tests => 39;
+use Test::More tests => 44;
 
 # optional but very useful
 eval 'use Test::More::Color';
@@ -14,7 +14,7 @@ BEGIN {
 
 use needle;
 use cv;
-use Data::Dump qw(dd pp);
+use Data::Dumper;
 
 cv::init();
 require tinycv;
@@ -214,5 +214,17 @@ $needle = needle->new("data/xorg_vt-Xorg-20140729.json");
 $res    = $img1->search($needle);
 
 ok( !defined $res, "the y goes into the line");
+
+$needle = needle->new("data/kde-unselected-20141211.json");
+$img1 = tinycv::read("data/kde-unselected-20141211.test.png");
+$res    = $img1->search($needle);
+
+ok( defined $res, "match kde is not selected");
+
+# make sure the last area is the click area
+is( $res->{area}->[-1]->{w}, 17);
+is( $res->{area}->[-1]->{h}, 12);
+is( $res->{area}->[-1]->{y}, 260);
+is( $res->{area}->[-1]->{x}, 313);
 
 # vim: set sw=4 et:
