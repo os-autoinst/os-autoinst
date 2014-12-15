@@ -89,7 +89,9 @@ sub save_vars() {
     fcntl( $fd, F_SETLKW, pack( 'ssqql', F_WRLCK, 0, 0, 0, $$ ) ) or die "cannot lock vars.json: $!\n";
     truncate( $fd, 0 ) or die "cannot truncate vars.json: $!\n";
 
-    print $fd to_json( \%vars, { pretty => 1 } );
+    # make sure the JSON is sorted
+    my $json = JSON->new->pretty->canonical;
+    print $fd $json->encode( \%vars );
     close($fd);
 }
 
