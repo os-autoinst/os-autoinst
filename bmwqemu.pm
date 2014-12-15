@@ -89,7 +89,9 @@ sub save_vars() {
     fcntl( $fd, F_SETLKW, pack( 'ssqql', F_WRLCK, 0, 0, 0, $$ ) ) or die "cannot lock vars.json: $!\n";
     truncate( $fd, 0 ) or die "cannot truncate vars.json: $!\n";
 
-    print $fd to_json( \%vars, { pretty => 1 } );
+    # make sure the JSON is sorted
+    my $json = JSON->new->pretty->canonical;
+    print $fd $json->encode( \%vars );
     close($fd);
 }
 
@@ -687,8 +689,11 @@ sub save_needle_template($$$) {
 sub assert_screen {
     my %args         = @_;
     my $mustmatch    = $args{'mustmatch'};
-    my $timeout      = $args{'timeout'} || 30;
+    my $timeout      = $args{'timeout'};
     my $check_screen = $args{'check'};
+
+    # 0 is a valid timeout
+    $timeout = 30 unless defined($timeout);
 
     die "current_test undefined" unless current_test;
 
