@@ -24,6 +24,7 @@ sub init() {
     ## $self->{terminal} = [qw(s3270)]; # non-interactive
     $self->{terminal} = [qw(x3270 -script -trace -set screenTrace)]; # interactive
 
+    # TODO: where to get these vars from?
     $self->{zVMhost}     = "zvm54";
     $self->{guest_user}  = "linux154";
     $self->{guest_login} = "lin390";
@@ -49,6 +50,8 @@ sub pump_3270_script() {
 	status_command => $out_array[-1]
     };
 
+    # CLEANME: this belongs to expect_3270, and everybody should use
+    # that, right?
     confess "command >${command}< not 'ok'" if $out->{status_command} ne "ok";
 
     return $out;
@@ -256,6 +259,7 @@ ENTER
 Wait(InputField)
 });
 
+    # CLEANME:  make ftpboot function
     my ($s, $cursor_row, $row);
     ##############################
     # choose server
@@ -294,7 +298,28 @@ Wait(InputField)
 
     $r = $self->sequence_3270(@$sequence);
 
+    ##############################
+    # parmfile editing
+
+    # for now just add the ssh parameter, so we can always connect to
+    # the system under test
+
+    # TODO wait for the editor
+    
+#     $self->sequence_3270(qw(
+# String(INPUT) ENTER
+# String(ssh) ENTER ENTER
+# String(FILE) ENTER
+# ));
+     $self->sequence_3270(qw(
+String(FILE) ENTER
+));
+
+    # Now wait for linuxrc to come up...
+
     ###################################################################
+    # linuxrc
+    
 
     sleep 50;
 
