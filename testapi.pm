@@ -4,10 +4,11 @@ use base Exporter;
 use Exporter;
 use strict;
 use File::Basename qw(basename);
+use Time::HiRes qw(sleep gettimeofday);
 
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string
   assert_screen upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
-  script_sudo wait_serial save_screenshot backend_send
+  script_sudo wait_serial save_screenshot backend_send wait_screen_change
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output);
@@ -481,6 +482,48 @@ sub validate_script_output($&;$) {
     }
     # abusing the function
     $autotest::current_test->record_serialresult($output, $res);
+}
+
+=head wait_screen_change
+
+wait_screen_change($code)
+
+wrapper around code that is supposed to change the screen. This is basically the
+opposite to wait_still_screen. Make sure to put the commands to change the screen
+within the block to avoid races between the action and the screen change
+
+wait_screen_change {
+   send_key 'esc';
+}
+
+=cut
+
+sub wait_screen_change(&@) {
+    my ($callback) = @_;
+
+    bmwqemu::fctlog('wait_screen_change');
+
+    # get the initial screen
+    my $refimg = bmwqemu::getcurrentscreenshot();
+    $callback->() if $callback;
+
+    my $starttime = time;
+    my $timeout = 10;
+    my $similarity_level = 50;
+
+    while ( time - $starttime < $timeout ) {
+        my $img = bmwqemu::getcurrentscreenshot();
+        my $sim = $img->similarity($refimg);
+        print "waiting for screen change: " . (time - $starttime) . " $sim\n";
+        if ( $sim < $similarity_level ) {
+            bmwqemu::fctres( 'wait_screen_change', "screen change seen at " . (time - $starttime) );
+            return 1;
+        }
+        sleep(0.5);
+    }
+    save_screenshot;
+    bmwqemu::fctres( 'wait_screen_change', "timed out" );
+    return 0;
 }
 
 ## helpers end

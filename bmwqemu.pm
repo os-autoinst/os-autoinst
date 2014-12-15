@@ -689,8 +689,11 @@ sub save_needle_template($$$) {
 sub assert_screen {
     my %args         = @_;
     my $mustmatch    = $args{'mustmatch'};
-    my $timeout      = $args{'timeout'} || 30;
+    my $timeout      = $args{'timeout'};
     my $check_screen = $args{'check'};
+
+    # 0 is a valid timeout
+    $timeout = 30 unless defined($timeout);
 
     die "current_test undefined" unless current_test;
 
