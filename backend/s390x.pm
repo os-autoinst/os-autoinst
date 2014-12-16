@@ -20,15 +20,21 @@ use IPC::Run::Debug; # set IPCRUNDEBUG=data in shell environment for trace
 sub init() {
     my $self = shift;
 
-    ## TODO make this configurable in vars.json
-    ## $self->{terminal} = [qw(s3270)]; # non-interactive
-    $self->{terminal} = [qw(x3270 -script -trace -set screenTrace)]; # interactive
+    ## TODO make this configurable in vars.json somehow?  is there a --debug flag?
 
-    # TODO: where to get these vars from?
+    # TODO figure what to do with the traces in non-interactive mode
+    ## $self->{terminal} = [qw(s3270)]; # non-interactive
+    $self->{terminal} = [qw(x3270 -script -trace -set screenTrace -charset us)]; # interactive
+
+    # TODO: where to get these vars from? ==> vars.json
     $self->{zVMhost}     = "zvm54";
     $self->{guest_user}  = "linux154";
     $self->{guest_login} = "lin390";
 
+    # TODO ftp/nfs/hhtp/https
+    # TODO dasd/iSCSI/SCSI
+    # TODO osa/hsi/ctc
+    
 }
 
 sub pump_3270_script() {
