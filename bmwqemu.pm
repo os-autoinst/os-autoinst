@@ -901,13 +901,13 @@ sub _reduce_to_biggest_changes($) {
     my @newarray;
 
     # sort by similarity
-    for my $l (sort { $a->[3] cmp $b->[3] } @$oldarray) {
+    for my $l (sort { $a->[3] <=> $b->[3] } @$oldarray) {
         push(@newarray, $l);
         last if (scalar(@newarray) >= $limit);
     }
 
     # now sort for test time
-    @newarray = sort { $b->[2] cmp $a->[2] } @newarray;
+    @newarray = sort { $b->[2] <=> $a->[2] } @newarray;
 
     return \@newarray;
 }
