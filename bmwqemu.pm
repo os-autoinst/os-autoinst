@@ -64,7 +64,7 @@ our $clock_ticks = POSIX::sysconf(&POSIX::_SC_CLK_TCK);
 
 our $istty;
 our $direct_output;
-our $timesidleneeded     = 2;
+our $timesidleneeded     = 1;
 our $standstillthreshold = 600;
 
 our $encoder_pipe;
@@ -377,7 +377,7 @@ sub stop_vm() {
     return unless $backend;
     $backend->stop_vm();
     close($encoder_pipe);
-    if (!$direct_output) {
+    if (!$direct_output && $logfd) {
         close $logfd;
         $logfd = undef;
     }
@@ -610,6 +610,7 @@ sub wait_serial($$$) {
         $res ||= 'fail';
     }
     set_serial_offset();
+    sleep 1; # wait for one more screenshot
 
     current_test->record_serialresult( $regexp, $res );
     fctres( 'wait_serial', "$regexp: $res" );
@@ -869,7 +870,6 @@ sub assert_screen {
             my $sim = $new_final->[0]->similarity($final_mismatch->[0]);
             print "FINAL SIM $sim\n";
             push(@$failed_screens, $final_mismatch) if ($sim < 50);
-            $final_mismatch = $new_final;
         }
     }
     else {

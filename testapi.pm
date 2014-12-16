@@ -438,22 +438,33 @@ The default timeout for the script is 10 seconds. If you need more, pass a 2nd p
 
 =cut
 
+sub _random_string() {
+    my $string;
+    my @chars = ('a'..'z', 'A'..'Z');
+    $string .= $chars[rand @chars] for 1..4;
+    return $string;
+}
+
 sub script_output($;$) {
     my $wait;
     ($commands::current_test_script, $wait) = @_;
+    $commands::current_test_script .= "\necho SCRIPT_FINISHED\n";
     $wait ||= 10;
 
-    type_string "curl -f -v " . autoinst_url . "/current_script > /tmp/script.sh && echo \"curl-$?\" > /dev/$serialdev\n";
+    my $suffix = _random_string;
+    type_string "curl -f -v " . autoinst_url . "/current_script > /tmp/script$suffix.sh && echo \"curl-$?\" > /dev/$serialdev\n";
     wait_serial('curl-0', 2) || die "script couldn't be downloaded";
     send_key "ctrl-l";
-    type_string "cat /tmp/script.sh\n";
-    save_screenshot;
 
-    type_string "/bin/bash -ex /tmp/script.sh > /dev/$serialdev; echo \"SCRIPT_FINISHED-$?\" > /dev/$serialdev\n";
-    my $output = wait_serial('SCRIPT_FINISHED-0', $wait) or die "script failed";
+    type_string "/bin/bash -ex /tmp/script$suffix.sh > /dev/$serialdev\n";
+    my $output = wait_serial('SCRIPT_FINISHED', $wait) or die "script failed";
 
     # strip the internal exit catcher
-    $output =~ s,SCRIPT_FINISHED-0.*,,;
+    $output =~ s,SCRIPT_FINISHED,,;
+
+    # trim whitespaces
+    $output =~ s/^\s+|\s+$//g;
+
     return $output;
 }
 
