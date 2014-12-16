@@ -1,21 +1,21 @@
 #!/usr/bin/perl -w
 package backend::s390x;
+use base ('backend::baseclass');
+
 use strict;
 use warnings;
+use English;
 
-use base ('backend::baseclass');
+use Data::Dumper qw(Dumper);
+use Carp qw(confess cluck carp croak);
 
 use feature qw/say/;
 
 use IPC::Run qw(start pump finish);
 
-use IPC::Run::Debug; # use IPCRUNDEBUG=data in shell environment for trace
+use IPC::Run::Debug; # set IPCRUNDEBUG=data in shell environment for trace
 
-use Data::Dumper qw(Dumper);
 
-use Carp qw(confess cluck carp croak);
-
-use English;
 
 sub init() {
     my $self = shift;
