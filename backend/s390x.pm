@@ -56,10 +56,6 @@ sub pump_3270_script() {
 	status_command => $out_array[-1]
     };
 
-    # CLEANME: this belongs to expect_3270, and everybody should use
-    # that, right?
-    confess "command >${command}< not 'ok'" if $out->{status_command} ne "ok";
-
     return $out;
 }
 
@@ -68,12 +64,12 @@ sub expect_3270() {
 
     if (!exists $arg{status_command_match}) { $arg{status_command_match} = "ok" } ;
 
-    confess "status_command_match must be 'ok' or 'error'"
-	unless (($arg{status_command_match} eq "ok") || ($arg{status_command_match} eq "error"));
+    confess "status_command_match must be 'ok' or 'error' or 'any'"
+	unless ($arg{status_command_match} ~~ ['ok', 'error', 'any'] ); # TODO: should use grep here?
 
     my $result = $self->pump_3270_script($command);
 
-    if ($result->{status_command} ne $arg{status_command_match}) {
+    if ($arg{status_command_match} ne 'any' and $result->{status_command} ne $arg{status_command_match}) {
 	croak "expected command exit status $arg{status_command_match}, got $result->{status_command}";
     };
 
@@ -89,10 +85,8 @@ sub expect_3270() {
 	croak "expected command output '$arg{result_match}', got '$result->{command_output}'";
     };
 
-
     $result;
 }
-
 sub strip_data() {
     my ($lines) = @_;
 
