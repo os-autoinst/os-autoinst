@@ -490,9 +490,13 @@ sub validate_script_output($&;$) {
     $_ = $output;
     if (!$code->()) {
         $res = 'fail';
+        bmwqemu::diag "output does not pass the code block:\n$output";
     }
     # abusing the function
     $autotest::current_test->record_serialresult($output, $res);
+    if ($res eq 'fail') {
+        die "output not validating";
+    }
 }
 
 =head wait_screen_change
