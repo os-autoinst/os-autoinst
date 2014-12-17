@@ -37,23 +37,51 @@ sub init() {
     
 }
 
-sub pump_3270_script() {
-    my ($self, $command) = @_;
+###################################################################
+# send_3270 "COMMAND" [,  command_status => 'ok' (default) or 'error' or 'any' ]
+
+# send command, collect result, synchronously.
+
+# returns hash
+
+# {
+#    command_status => "ok" or "error"
+#    command_output => @"LINES",    # leading "data: " is stripped off the lines, [] if none.
+#    terminal_status => "s3270 status line, see man s3270",
+# }
+
+
+sub send_3270() {
+    my ($self, $command, %arg) = @_;
+
+    if (!exists $arg{command_status}) { $arg{command_status} = "ok" } ;
+    confess "command_status must be 'ok' or 'error' or 'any', got $arg{command_status}."
+	unless (grep $arg{command_status}, ['ok', 'error', 'any'] );
 
     $self->{in}  .= $command . "\n";
-    $self->{connection}->pump until  $self->{out} =~ /C\($self->{zVMhost}\)/;
+    $self->{connection}->pump until  $self->{out} =~ /^(ok|error)/mg;
 
+    # grab and flush the IPC output.  IPC will only append, so the out
+    # var needs to be flushed.
     my $out_string = $self->{out};
-    $self->{out} = "";		# flush the IPC output, IPC will only append
+    $self->{out} = "";
 
-    # split in three pieces: command status, terminal status and
-    # command output, if any.
+    # split output in three pieces: command status, terminal status
+    # and command output, if any.
     my @out_array = split(/\n/, $out_string);
 
     my $out = {
-	command_output => ($#out_array > 2) ? [@out_array[0..$#out_array-2]] : [],
-	status_3270 => $out_array[-2],
-	status_command => $out_array[-1]
+	command_output => ($#out_array > 1) ? [@out_array[0..$#out_array-2]] : [],
+	terminal_status => $out_array[-2],
+	command_status => $out_array[-1]
+    };
+
+    foreach my $line (@{$out->{command_output}}) {
+	$line =~ s/^data: //;
+    }
+
+    if ($arg{command_status} ne 'any' and $out->{command_status} ne $arg{command_status}) {
+	confess "expected command exit status $arg{command_status}, got $out->{command_status}";
     };
 
     return $out;
