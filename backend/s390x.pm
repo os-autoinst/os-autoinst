@@ -560,9 +560,9 @@ String(FILE) ENTER
     $self->linuxrc_menu("Choose the network protocol", "HTTP");
     $self->linuxrc_menu("Choose the network device", "\QIBM Hipersocket (0.0.7058)\E");
     
-    $self->linuxrc_prompt("Device address for read channel","");
-    $self->linuxrc_prompt("Device address","");
-    $self->linuxrc_prompt("Device address","");
+    $self->linuxrc_prompt("Device address for read channel");
+    $self->linuxrc_prompt("Device address");
+    $self->linuxrc_prompt("Device address");
 
     $self->linuxrc_menu("Enable OSI Layer 2 support", "No");
     $self->linuxrc_menu("Automatic configuration via DHCP", "No");
