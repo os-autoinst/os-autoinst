@@ -366,7 +366,7 @@ sub linuxrc_menu() {
     my ($self, $menu_title, $menu_entry) = @_;
     # get the menu (ends with /^>/)
     my $r = $self->expect_3270(output_delim => qr/^> /);
-    say Dumper $r;
+    ### say Dumper $r;
 
     # newline separate list of strings when interpolating...
     local $" = "\n";
@@ -396,7 +396,7 @@ sub linuxrc_prompt () {
 
     my $r = $self->expect_3270(output_delim => qr/(?:\[.*?\])?> /, timeout => $arg{timeout});
 
-    say Dumper $r;
+    ### say Dumper $r;
 
     # two lines or more
     # [previous repsonse]
@@ -570,7 +570,7 @@ String(FILE) ENTER
 
     # wait for linuxrc to come up...
     $r = $self->expect_3270(output_delim => qr/>>> Linuxrc/, timeout=>20);
-    say Dumper $r;
+    ### say Dumper $r;
 
     $self->linuxrc_menu("Main Menu", "Start Installation");
     $self->linuxrc_menu("Start Installation", "Start Installation or Update");
@@ -615,7 +615,7 @@ String(FILE) ENTER
 	output_delim => qr/Reading Driver Update/,
 	timeout      => 50);
 
-    say Dumper $r;
+    ### say Dumper $r;
     
 
     $self->linuxrc_menu(
@@ -630,7 +630,10 @@ String(FILE) ENTER
 	output_delim => qr/\Q*** Starting YaST2 ***\E/,
 	timeout      => 20);
 
-    say Dumper $r;
+    ### say Dumper $r;
+
+    ###################################################################
+    # now we are ready do connect to vnc and to start the vnc backend...
 
     while (1) { sleep 50; }
 
