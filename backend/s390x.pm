@@ -341,8 +341,69 @@ sub nice_3270_status() {
 
     return $retval;
 }
+###################################################################
+# linuxrc helpers
 
-sub do_start_vm($) {
+sub linuxrc_menu() {
+    my ($self, $menu_title, $menu_entry) = @_;
+    # get the menu (ends with /^>/)
+    my $r = $self->expect_3270(output_delim => qr/^> /);
+    say Dumper $r;
+
+    # newline separate list of strings when interpolating...
+    local $" = "\n";
+
+    if (! grep /^$menu_title/, @$r) {
+	confess "menu does not match expected menu title ${menu_title}\n @${r}";
+    }
+
+    my @match_entry = grep /\) $menu_entry/, @$r;
+
+    if (!@match_entry) {
+	confess "menu does not contain expected menu entry ${menu_entry}:\n@${r}";
+    }
+
+    my ($match_id) = $match_entry[0] =~ /(\d+)\)/;
+
+    my $sequence = ["Clear", "String($match_id)", "ENTER"];
+
+    $self->sequence_3270(@$sequence);
+};
+
+sub linuxrc_prompt () {
+    my ($self, $prompt, %arg) = @_;
+
+    $arg{value}   //= '';
+    $arg{timeout} //= 1;
+
+    my $r = $self->expect_3270(output_delim => qr/(?:\[.*?\])?> /, timeout => $arg{timeout});
+
+    say Dumper $r;
+
+    # two lines or more
+    # [previous repsonse]
+    # PROMPT
+    # [more PROMPT]
+    # [\[EXPECTED_RESPONSE\]]>
+
+    # newline separate list of strings when interpolating...
+    local $" = "\n";
+
+    if (! grep /^$prompt/, @$r[0..(@$r-1)] ) {
+	confess 
+	    "prompt does not match expected prompt (${prompt}) :\n".
+	    "@$r";
+    }
+
+    my $sequence = ["Clear", "String($arg{value})", "ENTER"];
+    push @$sequence, "ENTER" if $arg{value} eq '';
+
+    $self->sequence_3270(@$sequence);
+
+};
+
+###################################################################
+sub do_start_vm() {
     my $self = shift;
     # start console
     $self ->{ in } = "";
