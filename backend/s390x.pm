@@ -155,6 +155,8 @@ sub expect_3270() {
 
 	my $r;
 
+	my $we_had_new_output = 0;
+
 	# grab any pending output
 	if ($self->wait_output()) {
 	    $self->send_3270("Snap");
@@ -173,8 +175,10 @@ sub expect_3270() {
 		@output_area = grep ! /$arg{flush_lines}/, @output_area;
 	    }
 
-	    # enqueue what you found
-	    $self->{raw_expect_queue}->enqueue(@output_area);
+	    if (@output_area > 0) {
+		$self->{raw_expect_queue}->enqueue(@output_area);
+		$we_had_new_output = 1;
+	    }
 
 	    ### say Dumper $self->{raw_expect_queue};
 
@@ -214,7 +218,7 @@ sub expect_3270() {
 	    while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
 		push @$result, $line;
 	    }
-	    return $result;
+	    last;
 	}
 
 	my $line;
@@ -227,16 +231,29 @@ sub expect_3270() {
 
 	# If we matched the 'output_delim', we are done.
 	if (defined $line) {
-	    return $result;
+	    last;
 	}
 
 	# The queue is empty!
 
-	# wait for new output from the host.
-	
+	# If we got so far and we had some output on the screen the
+	# last time, clear the screen so we don't grab the same stuff
+	# again.
+
+	# The maybe better alternative solution to the same problem
+	# would be to remember lines that were not updated since the
+	# last Snap(Ascii) and to thus avoid duplicate lines.
+
+	# for now we live with having a clear screen.
+
+	if ($we_had_new_output) {
+	    $self->send_3270("Clear");
+	}
+
 	### say "===================================================================";
 	### say Dumper %arg;
 
+	# wait for new output from the host.
 	my $elapsed_time = time() - $start_time;
 	if ($elapsed_time > $arg{timeout} 
 	    || !$self->wait_output($arg{timeout} - $elapsed_time)) {
@@ -248,7 +265,8 @@ sub expect_3270() {
 
     };
 
-    confess "can't get here...";
+    say Dumper $result;
+    return $result;
 }
 
 
