@@ -277,14 +277,9 @@ sub sequence_3270() {
 
 
     foreach my $command (@commands) {
-	$self->pump_3270_script($command);
+	$self->send_3270($command);
     }
 
-    $self->pump_3270_script("Wait(InputField)"); # is this the best wait for the host to have settled?
-
-    my $result = $self->grab_more_until_running();
-
-    $result;
 }
 
 
