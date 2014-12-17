@@ -901,7 +901,7 @@ sub _reduce_to_biggest_changes($) {
     my @newarray;
 
     # sort by similarity
-    for my $l (sort { $a->[3] <=> $b->[3] } @$oldarray) {
+    for my $l (sort { $b->[3] <=> $a->[3] } @$oldarray) {
         push(@newarray, $l);
         last if (scalar(@newarray) >= $limit);
     }
