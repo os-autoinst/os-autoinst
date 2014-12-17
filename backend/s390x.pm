@@ -405,7 +405,8 @@ sub linuxrc_prompt () {
 ###################################################################
 sub do_start_vm() {
     my $self = shift;
-    # start console
+
+    # start the local terminal emulator
     $self ->{ in } = "";
     $self ->{ out} = "";
     $self ->{ err} = "";
@@ -416,120 +417,204 @@ sub do_start_vm() {
 	\$self->{out},
 	\$self->{err} );
 
-    # TODO: should we use this?  Toggle(AidWait,clear)\n
+    # general purpose host response
+    my $r;
 
-    #
-    $self->expect_3270("Connect($self->{zVMhost})",
-		       status_3270_match => "C($self->{zVMhost})");
+    ###################################################################
+    # connect to the host
+    $r = $self->send_3270("Connect($self->{zVMhost})");
 
-    $self->expect_3270("Wait(InputField)");
-    $self->expect_3270("Snap");
+    if ($r->{terminal_status} !~ / C\($self->{zVMhost}\) / ) {
+	confess "connect to host >$self->{zVMhost}< failed."
+    }
 
-    $self->expect_3270("Snap(Ascii)",
-		       result_match => "Fill in your USERID and PASSWORD and press ENTER",
-		       result_filter => \&strip_data);
+    $self->send_3270("Wait(InputField)");
 
-    $self->expect_3270("String($self->{guest_user})");
-    $self->expect_3270("String($self->{guest_login})");
-    $self->expect_3270("ENTER");
-    $self->expect_3270("Wait(InputField)");
-    $self->expect_3270("Snap");
+    $r = $self->expect_3270();
 
-    my $r = $self->expect_3270("Snap(Ascii)", result_filter => \&strip_data);
+    if (! grep /Fill in your USERID and PASSWORD and press ENTER/, @$r) {
+	confess "doesn't look like zVM login prompt."
+    };
 
-    if ($r->{command_output} ~~ /RECONNECT.*/) {
-	### for now, pause, to interactively kill the guest!!
-	## TODO:  only do this in debug
-	say "machine $self->{zVMhost} $self->{guest_login} in use ('$&').";
-	$self->pump_3270_script('String("#cp logo")');
-	$self->pump_3270_script('ENTER');
-	$self->pump_3270_script('Wait(Disconnect)');
-	sleep 2;
-	croak "machine $self->{zVMhost} $self->{guest_login} in use ('$&').";
-    } elsif ($r->{command_output} ~~ /HCPLGA054E.*/) {
-	### for now, pause, to interactively kill the guest!!
-	## TODO:  only do this in debug
-	say "machine $self->{zVMhost} $self->{guest_login} in use ('$&').";
-	$self->pump_3270_script('String("#cp logo")');
-	$self->pump_3270_script('ENTER');
-	$self->pump_3270_script('Wait(Disconnect)');
-	sleep 2;
-	croak "machine $self->{zVMhost} $self->{guest_login} in use ('$&').";
-    } # else { say $r->{command_output}; }
-    ;
+    ###################################################################
+    # log in
+    $self->send_3270("String($self->{guest_user})");
+    $self->send_3270("String($self->{guest_login})");
+    $self->send_3270("ENTER");
+    $self->send_3270("Wait(InputField)");
+
+    # Depending on which application is running on the host vm guest,
+    # we get various status lines:
+    $r = $self->expect_3270(buffer_ready => qr/((CP|VM) READ|RUNNING)/);
+
+    # bail out if the host is in use
+    # currently:  KILL THE GUEST
+    # TODO:  think about what to really do in this case.
+    if (grep /RECONNECT.*/, @$r ) {
+	$self->send_3270('String("#cp logo")');
+	$self->send_3270('ENTER');
+	$self->send_3270('Wait(Disconnect)');
+	confess "machine $self->{zVMhost} $self->{guest_login} in use ('$&').";
+    }
+    elsif (grep /HCPLGA054E.*/, @$r) {
+	$self->send_3270('String("#cp logo")');
+	$self->send_3270('ENTER');
+	$self->send_3270('Wait(Disconnect)');
+	confess "machine $self->{zVMhost} $self->{guest_login} was in use ('$&').";
+    };
 
     ###################################################################
     # ftpboot
 
-    $r = $self->sequence_3270(qw{
-String(ftpboot)
-ENTER
-Wait(InputField)
-});
+    $self->sequence_3270(qw{
+        String(ftpboot)
+	ENTER
+	Wait(InputField)
+    });
 
-    # CLEANME:  make ftpboot function
+    # helper vars
     my ($s, $cursor_row, $row);
     ##############################
     # choose server
 
-    # why can't I just call this function?  why do I need & ??
-    $s = &nice_3270_status($r->{status_3270});
+    $r = $self->send_3270("Home");
+    # Why can't I just call this function?  why do I need & ??
+    $s = &nice_3270_status($r->{terminal_status});
 
     $cursor_row = $s->{cursor_row};
 
-    while ( ($row, my $content) = each($r->{command_output})) {
+    $r = $self->expect_3270(clear_buffer => 1, flush_lines => undef, buffer_ready => qr/PF3=QUIT/);
+    ### say Dumper @$r; ##################################
+    while ( ($row, my $content) = each(@$r)) {
     	if ($content =~ /DIST\.SUSE\.DE/) {
     	    last;
     	}
     };
 
     my $sequence = ["Home", ("Down") x ($row-$cursor_row), "ENTER", "Wait(InputField)"];
-    say "\$sequence=@$sequence";
+    ## say "\$sequence=@$sequence";
 
-    $r = $self->sequence_3270(@$sequence);
+    $self->sequence_3270(@$sequence);
 
     ##############################
     # choose distribution
 
-    $s = &nice_3270_status($r->{status_3270});
+    $r = $self->send_3270("Home");
+    $s = &nice_3270_status($r->{terminal_status});
 
     $cursor_row = $s->{cursor_row};
 
-    while ( ($row, my $content) = each($r->{command_output})) {
+    $r = $self->expect_3270(clear_buffer => 1, flush_lines => undef, buffer_ready => qr/PF3=QUIT/);
+    ### say Dumper @$r; ###############################
+    while ( ($row, my $content) = each(@$r)) {
     	if ($content =~ /SLES-11-SP4-Alpha2/) {
     	    last;
     	}
     };
 
-    my $sequence = ["Home", ("Down") x ($row-$cursor_row), "ENTER", "Wait(InputField)"];
-    say "\$sequence=@$sequence";
+    $sequence = ["Home", ("Down") x ($row-$cursor_row), "ENTER", "Wait(InputField)"];
+    ### say "\$sequence=@$sequence";
 
-    $r = $self->sequence_3270(@$sequence);
+    $self->sequence_3270(@$sequence);
 
     ##############################
-    # parmfile editing
+    # edit parmfile
 
-    # for now just add the ssh parameter, so we can always connect to
-    # the system under test
+    $r = $self->expect_3270(buffer_ready => qr/X E D I T/, timeout => 30);
 
-    # TODO wait for the editor
-    
-#     $self->sequence_3270(qw(
-# String(INPUT) ENTER
-# String(ssh) ENTER ENTER
-# String(FILE) ENTER
-# ));
-     $self->sequence_3270(qw(
+    $self->sequence_3270(qw(
+	String(INPUT) ENTER
+    ));
+
+    $r = $self->expect_3270(buffer_ready => qr/Input-mode/);
+    ### say Dumper $r;
+
+    # can't use qw{} because of space in commands...
+    $self->sequence_3270(split /\n/, <<'EO_frickin_boot_parms');
+String("HostIP=10.161.185.154/24 Hostname=s390hsi154.suse.de")
+Newline
+String("Gateway=10.161.185.254 Nameserver=10.160.0.1 Domain=suse.de")
+Newline
+String(ssh)
+Newline
+ENTER
+ENTER
+EO_frickin_boot_parms
+
+    $r = $self->expect_3270(buffer_ready => qr/X E D I T/);
+
+    $self->sequence_3270(qw(
 String(FILE) ENTER
 ));
 
-    # Now wait for linuxrc to come up...
-
     ###################################################################
     # linuxrc
+
+    # wait for linuxrc to come up...
+    $r = $self->expect_3270(output_delim => qr/>>> Linuxrc/, timeout=>20);
+    say Dumper $r;
+
+    $self->linuxrc_menu("Main Menu", "Start Installation");
+    $self->linuxrc_menu("Start Installation", "Start Installation or Update");
+    $self->linuxrc_menu("Choose the source medium", "Network");
+    $self->linuxrc_menu("Choose the network protocol", "HTTP");
+    $self->linuxrc_menu("Choose the network device", "\QIBM Hipersocket (0.0.7058)\E");
+    
+    $self->linuxrc_prompt("Device address for read channel","");
+    $self->linuxrc_prompt("Device address","");
+    $self->linuxrc_prompt("Device address","");
+
+    $self->linuxrc_menu("Enable OSI Layer 2 support", "No");
+    $self->linuxrc_menu("Automatic configuration via DHCP", "No");
+
+    # use values from parmfile
+    $self->linuxrc_prompt("Enter your IPv4 address");
+    $self->linuxrc_prompt("Enter your netmask. For a normal class C network, this is usually 255.255.255.0.");
+    $self->linuxrc_prompt("Enter the IP address of the gateway. Leave empty if you don't need one.");
+    $self->linuxrc_prompt("Enter your search domains, separated by a space",
+	timeout => 10);
+    
+    $self->linuxrc_prompt(
+	"Enter the IP address of your name server. Leave empty if you don't need one",
+	timeout => 10);
+
+
+    $self->linuxrc_prompt("Enter the IP address of the HTTP server",
+			  value => "10.160.0.100");
+    $self->linuxrc_prompt("Enter the directory on the server",
+			  value => "/install/SLP/SLES-11-SP4-Alpha2/s390x/DVD1");
+    
+    $self->linuxrc_menu(
+	"Do you need a username and password to access the HTTP server",
+	"No");
+	
+    $self->linuxrc_menu(
+	"Use a HTTP proxy",
+	"No");
+
+
+    $r = $self->expect_3270(
+	output_delim => qr/Reading Driver Update/,
+	timeout      => 50);
+
+    say Dumper $r;
     
 
-    sleep 50;
+    $self->linuxrc_menu(
+	"Select the display type",
+	"VNC");
+
+    $self->linuxrc_prompt(
+	"Enter your VNC password",
+	value => "FOOBARBAZ");
+
+    $r = $self->expect_3270(
+	output_delim => qr/\Q*** Starting YaST2 ***\E/,
+	timeout      => 20);
+
+    say Dumper $r;
+
+    while (1) { sleep 50; }
 
 }
 
