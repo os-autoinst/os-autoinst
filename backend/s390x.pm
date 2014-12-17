@@ -148,6 +148,26 @@ sub grab_more_until_running() {
 }
 
 
+
+sub wait_output() {
+    my ($self, $timeout) = @_;
+    $timeout //= 0;		# just poll
+    my $r = $self->send_3270("Wait($timeout,Output)", command_status=>'any');
+
+    if ($r->{command_status} eq 'ok') {
+	return 1;
+    }
+    else {
+	return 0 
+	    unless $r->{command_output}[0] ne 'Wait: Timed out';
+	confess "has the s3270 wait timeout failure response changed?\n". Dumper $r;
+    }
+	
+    
+}
+
+###################################################################
+
 sub sequence_3270() {
     my ($self, @commands) = @_;
 
