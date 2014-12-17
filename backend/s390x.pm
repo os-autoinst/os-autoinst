@@ -15,7 +15,7 @@ use IPC::Run qw(start pump finish);
 
 use IPC::Run::Debug; # set IPCRUNDEBUG=data in shell environment for trace
 
-
+use Thread::Queue;
 
 sub init() {
     my $self = shift;
@@ -30,6 +30,10 @@ sub init() {
     $self->{zVMhost}     = "zvm54";
     $self->{guest_user}  = "linux154";
     $self->{guest_login} = "lin390";
+
+
+    $self->{raw_expect_queue} = new Thread::Queue();
+    $self->{cooked_expect_queue} = new Thread::Queue();
 
     # TODO ftp/nfs/hhtp/https
     # TODO dasd/iSCSI/SCSI
