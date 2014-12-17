@@ -87,64 +87,164 @@ sub send_3270() {
     return $out;
 }
 
+###################################################################
+# expect_3270
+#       [, buffer_full => qr/MORE\.\.\./]
+#       [, buffer_ready => qr/RUNNING/ ]
+#       [, output_delim => "one-line NEEDLE"]
+#       [, flush_lines => qr/^ +$/]
+#       [, timeout => 1 ]
+#       [, clear_buffer => 0 ]
+
+# Pretend the 3270 was a serial terminal where you can wait for some
+# specific output to show up.  Return all output up to that match.
+# Save remaining screen content for the next call.
+
+# Assume the screen to be partitioned in three areas:
+#    output (all but the last two lines)
+#    input  (second to last line)
+#    status (last line)
+
+# If no output_delim is given, return as soon as the expected status
+# is reached (expected_status matches).
+
+# If the status line matches 'buffer_full', hit clear to get a re-draw
+# of pending further output, until the status line matches
+# 'buffer_ready'.
+
+# Flush all lines matching 'flush_lines'.
+
+# Return stretch from last expect_3270 call up to & including line
+# matching 'output_delim', as array of lines.
+
+# flush history since last expect_3270 call if(clear_buffer)
+
+# return [] when timed out.
+
 sub expect_3270() {
-    my ($self, $command, %arg) = @_;
+    my ($self, %arg) = @_;
+    ### say Dumper \%arg;
 
-    if (!exists $arg{status_command_match}) { $arg{status_command_match} = "ok" } ;
-
-    confess "status_command_match must be 'ok' or 'error' or 'any'"
-	unless ($arg{status_command_match} ~~ ['ok', 'error', 'any'] ); # TODO: should use grep here?
-
-    my $result = $self->pump_3270_script($command);
-
-    if ($arg{status_command_match} ne 'any' and $result->{status_command} ne $arg{status_command_match}) {
-	croak "expected command exit status $arg{status_command_match}, got $result->{status_command}";
-    };
-
-    if (exists $arg{status_3270_match} && ! $result->{status_3270} ~~ $arg{status_3270_match}) {
-	croak "expected 3270 status $arg{status_3270_match}, got $result->{status_3270}";
-    };
-
-    if (exists $arg{result_filter}) {
-	$arg{result_filter}($result->{command_output});
-    };
-
-    if (exists $arg{result_match} && ! $result->{command_output} ~~ $arg{result_match}) {
-	croak "expected command output '$arg{result_match}', got '$result->{command_output}'";
-    };
-
-    $result;
-}
-sub strip_data() {
-    my ($lines) = @_;
-
-    foreach my $line (@$lines) {
-	$line =~ s/^data: //mg;
-	$line =~ s/^ +\n//mg;
+    $arg{buffer_full}	//= qr/MORE\.\.\./;
+    $arg{buffer_ready}	//= qr/RUNNING/;
+    $arg{timeout}	//= 1;
+    $arg{clear_buffer}	//= 0;
+    $arg{output_delim}  //= undef;
+    if (!exists $arg{flush_lines}) {
+	$arg{flush_lines} = qr/^ +$/;
     }
 
-}
+    ### say Dumper \%arg;
 
-sub grab_more_until_running() {
-    my ($self) = @_;
-
-    $self->pump_3270_script("Snap");
-    my $snap = $self->expect_3270("Snap(Ascii)", result_filter => \&strip_data );
-
-    my $result = $snap->{command_output};
-
-    while (@$result[-1] =~ /MORE\.\.\./) {
-	$self->pump_3270_script("Clear");
-	$self->pump_3270_script("Snap");
-	$snap = $self->expect_3270("Snap(Ascii)", result_filter => \&strip_data );
-
-	splice $result, -1, 1, $snap->{command_output};
+    if ($arg{clear_buffer}) {
+	my $n = $self->{raw_expect_queue}->pending();
+	if ($n) {
+	    $self->{raw_expect_queue}->dequeue_nb($n);
+	}
     }
 
+    my $result = [];
 
-    $snap->{command_output} = $result;
+    my $start_time = time();
 
-    $snap;
+    while (1) {
+
+	my $r;
+
+	# grab any pending output
+	if ($self->wait_output()) {
+	    $self->send_3270("Snap");
+	    $r = $self->send_3270("Snap(Ascii)");
+
+	    # split it according to the screen sections
+	    my $co = $r->{command_output};
+
+	    my @output_area  = @$co[0..@$co-3];
+	    my $input_line   = @$co[-2];
+	    my $status_line  = @$co[-1];
+
+
+	    if (defined $arg{flush_lines}) {
+		### say Dumper $arg{flush_lines};
+		@output_area = grep ! /$arg{flush_lines}/, @output_area;
+	    }
+
+	    # enqueue what you found
+	    $self->{raw_expect_queue}->enqueue(@output_area);
+
+	    ### say Dumper $self->{raw_expect_queue};
+
+	    # if there is MORE..., go and grab it.
+	    if ($status_line =~ $arg{buffer_full}) {
+		$self->send_3270("Clear");
+		next ;
+	    }
+
+	    ### say Dumper \@output_area;
+	    ### say Dumper $input_line;
+	    ### say Dumper $status_line;
+
+	    # If the status line is not buffer_ready, some computation
+	    # is still going on.  Wait for more Output.
+
+	    if ($status_line !~ $arg{buffer_ready}) {
+		# if the timeout is not over, wait for more output
+		my $elapsed_time = time() - $start_time;
+		if ($elapsed_time < $arg{timeout}) {
+		    if ($self->wait_output($arg{timeout} - $elapsed_time)) {
+			next;
+		    }
+		}
+		confess "status line matches neither buffer_ready nor buffer_full:\n>$status_line<";
+	    };
+
+	}
+
+	# No more host output is pending.  The status line matches
+	# buffer_ready.  We have some output in the raw_expect_queue,
+	# possibly from a previous run, btw!
+
+	# If we are looking for an output_delimiter, look for that.
+	if (!defined $arg{output_delim}) {
+	    # no need to wait for something special.  just return what you have...
+	    while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
+		push @$result, $line;
+	    }
+	    return $result;
+	}
+
+	my $line;
+	while ($line = $self->{raw_expect_queue}->dequeue_nb()) {
+	    push @$result, $line;
+	    if (!defined $line || $line =~ $arg{output_delim}) {
+		last;
+	    }
+	}
+
+	# If we matched the 'output_delim', we are done.
+	if (defined $line) {
+	    return $result;
+	}
+
+	# The queue is empty!
+
+	# wait for new output from the host.
+	
+	### say "===================================================================";
+	### say Dumper %arg;
+
+	my $elapsed_time = time() - $start_time;
+	if ($elapsed_time > $arg{timeout} 
+	    || !$self->wait_output($arg{timeout} - $elapsed_time)) {
+	    confess "timed out";
+	}
+	next;
+
+
+
+    };
+
+    confess "can't get here...";
 }
 
 
