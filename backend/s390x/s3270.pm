@@ -79,18 +79,18 @@ sub send_3270() {
     # split output in three pieces: command status, terminal status
     # and command output, if any.
     my @out_array = split(/\n/, $out_string);
-
+    
     my $out = {
-	command_output => ($#out_array > 1) ? [@out_array[0..$#out_array-2]] : [],
-	terminal_status => $out_array[-2],
-	command_status => $out_array[-1]
+	command_status  => pop @out_array,
+	terminal_status => pop @out_array,
+	command_output  => \@out_array,
     };
 
     foreach my $line (@{$out->{command_output}}) {
 	$line =~ s/^data: //;
     }
 
-    if ($arg{command_status} ne 'any' and $out->{command_status} ne $arg{command_status}) {
+    if ($arg{command_status} ne 'any' && $out->{command_status} ne $arg{command_status}) {
 	confess "expected command exit status $arg{command_status}, got $out->{command_status}";
     };
 
@@ -171,9 +171,9 @@ sub expect_3270() {
 	    # split it according to the screen sections
 	    my $co = $r->{command_output};
 
-	    my @output_area  = @$co[0..@$co-3];
-	    my $input_line   = @$co[-2];
-	    my $status_line  = @$co[-1];
+	    my $status_line  = pop @$co;
+	    my $input_line   = pop @$co;
+	    my @output_area  = @$co;
 
 
 	    if (defined $arg{flush_lines}) {
@@ -189,7 +189,7 @@ sub expect_3270() {
 	    ### say Dumper $self->{raw_expect_queue};
 
 	    # if there is MORE..., go and grab it.
-	    if ($status_line =~ $arg{buffer_full}) {
+	    if ($status_line =~ /$arg{buffer_full}/) {
 		$self->send_3270("Clear");
 		next ;
 	    }
@@ -201,7 +201,7 @@ sub expect_3270() {
 	    # If the status line is not buffer_ready, some computation
 	    # is still going on.  Wait for more Output.
 
-	    if ($status_line !~ $arg{buffer_ready}) {
+	    if ($status_line !~ /$arg{buffer_ready}/) {
 		# if the timeout is not over, wait for more output
 		my $elapsed_time = time() - $start_time;
 		if ($elapsed_time < $arg{timeout}) {
@@ -374,11 +374,10 @@ sub _connect_3270() {
 
     my $r = $self->send_3270("Connect($host)");
 
-    local $LIST_SEPARATOR='\n';
     if ($r->{terminal_status} !~ / C\($host\) / ) {
 	confess 
 	    "connect to host >$host< failed.\n".
-	    "@$r";
+	    join("\n", @$r);
     }
 
     $self->send_3270("Wait(InputField)");
@@ -396,6 +395,7 @@ sub _connect_3270() {
 # log in
 sub _login_guest() {
     my ($self, $guest, $password) = @_;
+
 
     $self->send_3270("String($guest)");
     $self->send_3270("String($password)");
