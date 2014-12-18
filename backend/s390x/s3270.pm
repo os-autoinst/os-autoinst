@@ -209,7 +209,15 @@ sub expect_3270() {
 			next;
 		    }
 		}
-		confess "status line matches neither buffer_ready nor buffer_full:\n>$status_line<";
+
+		# flush the buffer for debugging:
+		while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
+		    push @$result, $line;
+		};
+
+		confess "status line matches neither buffer_ready nor buffer_full:\n".
+		    Dumper($result).
+		    $status_line;
 	    };
 
 	}
@@ -263,7 +271,9 @@ sub expect_3270() {
 	my $elapsed_time = time() - $start_time;
 	if ($elapsed_time > $arg{timeout} 
 	    || !$self->wait_output($arg{timeout} - $elapsed_time)) {
-	    confess "timed out";
+	    confess 
+		"timed out.  last output:\n".
+		Dumper($result);
 	}
 	next;
 
@@ -429,9 +439,6 @@ sub login() {
 
 	$r = $self->_login_guest($self->{guest_user}, $self->{guest_login});
 
-	# In this function, the array we output is the screenshot lines:
-	local $LIST_SEPARATOR = "\n";
-
 	# bail out if the host is in use
 	# currently:  KILL THE GUEST
 	# TODO:  think about what to really do in this case.
@@ -439,7 +446,7 @@ sub login() {
 	if (grep /(?:RECONNECT|HCPLGA).*/, @$r ) {
 	    cluck # carp 
 		"machine $self->{zVM_host} $self->{guest_login} is in use:".
-		"@$r\n";
+		join("\n", @$r);
 
 	    if ($count == 0) {
 		die "could not reclaim guest despite hard_shutdown.  this is odd.";
