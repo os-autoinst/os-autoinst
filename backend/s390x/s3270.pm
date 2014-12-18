@@ -412,7 +412,7 @@ sub _login_guest() {
 sub _hard_shutdown_guest() {
     my ($self) = @_;
     
-    $self->send_3270('String("#cp logo")');
+    $self->send_3270('String("#cp logoff")');
     $self->send_3270('ENTER');
     $self->send_3270('Wait(Disconnect)');
 }
