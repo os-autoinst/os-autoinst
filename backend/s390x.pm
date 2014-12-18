@@ -13,26 +13,36 @@ use feature qw/say/;
 
 use backend::s390x::s3270;
 
+# this is evil, so evil:
+# \%bmwqemu::vars;
+
 sub init() {
     my $self = shift;
 
-    ## TODO use vars.json
+    my $vars = \%bmwqemu::vars;
 
-    ## TODO make s3270=> depend on some DEBUG flag or interactive
-    ## flag. hm. maybe $DISPLAY?
-    
-    $self->{s3270} = new backend::s390x::s3270 ({
-	    ## s3270=>[qw(s3270)]; # non-interactive
-	    s3270=>[qw(x3270 -script -trace -set screenTrace -charset us)],
-	    zVM_host=>'zvm54',
-	    guest_user => 'linux154',
-	    guest_login => 'lin390',
-	});
-    
+    confess "ZVMHOST unset in vars.json" unless exists $vars->{ZVM_HOST};
+    confess "ZVM_GUEST unset in vars.json" unless exists $vars->{ZVM_GUEST};
+    confess "ZVM_PASSWORD unset in vars.json" unless exists $vars->{ZVM_PASSWORD};
+
     # TODO ftp/nfs/hhtp/https
     # TODO dasd/iSCSI/SCSI
     # TODO osa/hsi/ctc
-    
+
+
+    ## TODO make s3270=> depend on some DEBUG flag or interactive
+    ## flag. hm. maybe $DISPLAY?
+
+    $self->{vars} = $vars;
+    $self->{s3270} = new backend::s390x::s3270 ({
+	    ## s3270=>[qw(s3270)]; # non-interactive
+	    s3270	=> [qw(x3270 -script -trace -set screenTrace -charset us)],
+	    zVM_host	=> $vars->{ZVM_HOST},
+	    guest_user	=> $vars->{ZVM_GUEST},
+	    guest_login => $vars->{ZVM_PASSWORD},
+	});
+
+
 }
 
 ###################################################################
@@ -84,7 +94,7 @@ sub linuxrc_prompt () {
     local $LIST_SEPARATOR = "\n";
 
     if (! grep /^$prompt/, @$r[0..(@$r-1)] ) {
-	confess 
+	confess
 	    "prompt does not match expected prompt (${prompt}) :\n".
 	    "@$r";
     }
@@ -128,6 +138,11 @@ sub ftpboot_menu () {
     say $r;
 }
 
+
+# For now, we run the testcase from here until we have a vnc connection going.
+# TODO: move the test case to the test cases.
+require backend::s390x::get_to_yast;
+
 ###################################################################
 sub do_start_vm() {
     my $self = shift;
@@ -141,123 +156,9 @@ sub do_start_vm() {
 
     $r = $s3270->login();
 
-    # general purpose host response
+    my $test = new backend::s390x::get_to_yast();
 
-    ###################################################################
-    # TODO:  anything below this line should go to test cases!!
-
-
-    ###################################################################
-    # ftpboot
-
-    $s3270->sequence_3270(qw{
-        String(ftpboot)
-	ENTER
-	Wait(InputField)
-    });
-
-    $r = $self->ftpboot_menu(qr/\QDIST.SUSE.DE\E/);
-    $r = $self->ftpboot_menu(qr/\QSLES-11-SP4-Alpha2\E/);
-
-    ##############################
-    # edit parmfile
-
-    $r = $s3270->expect_3270(buffer_ready => qr/X E D I T/, timeout => 30);
-
-    $s3270->sequence_3270(qw(
-	String(INPUT) ENTER
-    ));
-
-    $r = $s3270->expect_3270(buffer_ready => qr/Input-mode/);
-    ### say Dumper $r;
-
-    # can't use qw{} because of space in commands...
-    $s3270->sequence_3270(split /\n/, <<'EO_frickin_boot_parms');
-String("HostIP=10.161.185.154/24 Hostname=s390hsi154.suse.de")
-Newline
-String("Gateway=10.161.185.254 Nameserver=10.160.0.1 Domain=suse.de")
-Newline
-String("ssh=1")
-Newline
-ENTER
-ENTER
-EO_frickin_boot_parms
-
-    $r = $s3270->expect_3270(buffer_ready => qr/X E D I T/);
-
-    $s3270->sequence_3270(qw(
-String(FILE) ENTER
-));
-
-    ###################################################################
-    # linuxrc
-
-    # wait for linuxrc to come up...
-    $r = $s3270->expect_3270(output_delim => qr/>>> Linuxrc/, timeout=>20);
-    ### say Dumper $r;
-
-    $self->linuxrc_menu("Main Menu", "Start Installation");
-    $self->linuxrc_menu("Start Installation", "Start Installation or Update");
-    $self->linuxrc_menu("Choose the source medium", "Network");
-    $self->linuxrc_menu("Choose the network protocol", "HTTP");
-
-    $self->linuxrc_prompt("Enter your temporary SSH password.", "SSH!554!");
-
-    $self->linuxrc_menu("Choose the network device", "\QIBM Hipersocket (0.0.7058)\E");
-    
-    $self->linuxrc_prompt("Device address for read channel");
-    $self->linuxrc_prompt("Device address");
-    $self->linuxrc_prompt("Device address");
-
-    $self->linuxrc_menu("Enable OSI Layer 2 support", "No");
-    $self->linuxrc_menu("Automatic configuration via DHCP", "No");
-
-    # use values from parmfile
-    $self->linuxrc_prompt("Enter your IPv4 address");
-    $self->linuxrc_prompt("Enter your netmask. For a normal class C network, this is usually 255.255.255.0.");
-    $self->linuxrc_prompt("Enter the IP address of the gateway. Leave empty if you don't need one.");
-    $self->linuxrc_prompt("Enter your search domains, separated by a space",
-	timeout => 10);
-    
-    $self->linuxrc_prompt(
-	"Enter the IP address of your name server. Leave empty if you don't need one",
-	timeout => 10);
-
-
-    $self->linuxrc_prompt("Enter the IP address of the HTTP server",
-			  value => "10.160.0.100");
-    $self->linuxrc_prompt("Enter the directory on the server",
-			  value => "/install/SLP/SLES-11-SP4-Alpha2/s390x/DVD1");
-    
-    $self->linuxrc_menu(
-	"Do you need a username and password to access the HTTP server",
-	"No");
-	
-    $self->linuxrc_menu(
-	"Use a HTTP proxy",
-	"No");
-
-
-    $r = $s3270->expect_3270(
-	output_delim => qr/Reading Driver Update/,
-	timeout      => 50);
-
-    ### say Dumper $r;
-    
-
-    $self->linuxrc_menu(
-	"Select the display type",
-	"VNC");
-
-    $self->linuxrc_prompt(
-	"Enter your VNC password",
-	value => "FOOBARBAZ");
-
-    $r = $s3270->expect_3270(
-	output_delim => qr/\Q*** Starting YaST2 ***\E/,
-	timeout      => 20);
-
-    ### say Dumper $r;
+    $r = $test->backend::s390x::get_to_yast::run();
 
     ###################################################################
     # now we are ready do connect to vnc and to start the vnc backend...

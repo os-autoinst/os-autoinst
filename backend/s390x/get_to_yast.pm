@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
-package backend::s390x;
-use base ('backend::baseclass');
+package backend::s390x::get_to_yast;
+
+use base ("basetest");
 
 use strict;
 use warnings;
@@ -11,29 +12,24 @@ use Carp qw(confess cluck carp croak);
 
 use feature qw/say/;
 
-use backend::s390x::s3270;
+# use backend::s390x::s3270;
 
-sub init() {
-    my $self = shift;
+# THIS IS EVIL.  SO EVIL...
+# need  $bmwqemu::backend
 
-    ## TODO use vars.json
+##use testapi;  # get_var, ...
 
-    ## TODO make s3270=> depend on some DEBUG flag or interactive
-    ## flag. hm. maybe $DISPLAY?
-    
-    $self->{s3270} = new backend::s390x::s3270 ({
-	    ## s3270=>[qw(s3270)]; # non-interactive
-	    s3270=>[qw(x3270 -script -trace -set screenTrace -charset us)],
-	    zVM_host=>'zvm54',
-	    guest_user => 'linux154',
-	    guest_login => 'lin390',
-	});
-    
-    # TODO ftp/nfs/hhtp/https
-    # TODO dasd/iSCSI/SCSI
-    # TODO osa/hsi/ctc
-    
+sub new() {
+    my ($class, @rest) = @_;
+
+    my $self = $class->SUPER::new(@_);
+
+    # THIS IS EVIL
+    $self->{s3270} = $bmwqemu::backend->{s3270};
+
+    return $self;
 }
+
 
 ###################################################################
 # linuxrc helpers
@@ -84,7 +80,7 @@ sub linuxrc_prompt () {
     local $LIST_SEPARATOR = "\n";
 
     if (! grep /^$prompt/, @$r[0..(@$r-1)] ) {
-	confess 
+	confess
 	    "prompt does not match expected prompt (${prompt}) :\n".
 	    "@$r";
     }
@@ -120,33 +116,20 @@ sub ftpboot_menu () {
     };
 
     my $sequence = ["Home", ("Down") x ($row-$cursor_row), "ENTER", "Wait(InputField)"];
-    ## say "\$sequence=@$sequence";
+    ### say "\$sequence=@$sequence";
 
     $self->{s3270}->sequence_3270(@$sequence);
 
     return $r;
-    say $r;
 }
 
 ###################################################################
-sub do_start_vm() {
+sub run() {
     my $self = shift;
-
-    my $s3270 = $self->{s3270};
 
     my $r;
 
-
-    $r = $s3270->start();
-
-    $r = $s3270->login();
-
-    # general purpose host response
-
-    ###################################################################
-    # TODO:  anything below this line should go to test cases!!
-
-
+    my $s3270 = $self->{s3270};
     ###################################################################
     # ftpboot
 
@@ -204,7 +187,7 @@ String(FILE) ENTER
     $self->linuxrc_prompt("Enter your temporary SSH password.", "SSH!554!");
 
     $self->linuxrc_menu("Choose the network device", "\QIBM Hipersocket (0.0.7058)\E");
-    
+
     $self->linuxrc_prompt("Device address for read channel");
     $self->linuxrc_prompt("Device address");
     $self->linuxrc_prompt("Device address");
@@ -218,7 +201,7 @@ String(FILE) ENTER
     $self->linuxrc_prompt("Enter the IP address of the gateway. Leave empty if you don't need one.");
     $self->linuxrc_prompt("Enter your search domains, separated by a space",
 	timeout => 10);
-    
+
     $self->linuxrc_prompt(
 	"Enter the IP address of your name server. Leave empty if you don't need one",
 	timeout => 10);
@@ -228,11 +211,11 @@ String(FILE) ENTER
 			  value => "10.160.0.100");
     $self->linuxrc_prompt("Enter the directory on the server",
 			  value => "/install/SLP/SLES-11-SP4-Alpha2/s390x/DVD1");
-    
+
     $self->linuxrc_menu(
 	"Do you need a username and password to access the HTTP server",
 	"No");
-	
+
     $self->linuxrc_menu(
 	"Use a HTTP proxy",
 	"No");
@@ -243,7 +226,7 @@ String(FILE) ENTER
 	timeout      => 50);
 
     ### say Dumper $r;
-    
+
 
     $self->linuxrc_menu(
 	"Select the display type",
@@ -252,6 +235,10 @@ String(FILE) ENTER
     $self->linuxrc_prompt(
 	"Enter your VNC password",
 	value => "FOOBARBAZ");
+
+    $self->linuxrc_prompt(
+    	"Enter your temporary SSH password",
+    	value => "SSH!554!");
 
     $r = $s3270->expect_3270(
 	output_delim => qr/\Q*** Starting YaST2 ***\E/,
