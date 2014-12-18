@@ -369,7 +369,7 @@ sub linuxrc_menu() {
     ### say Dumper $r;
 
     # newline separate list of strings when interpolating...
-    local $" = "\n";
+    local $LIST_SEPARATOR = "\n";
 
     if (! grep /^$menu_title/, @$r) {
 	confess "menu does not match expected menu title ${menu_title}\n @${r}";
@@ -405,7 +405,7 @@ sub linuxrc_prompt () {
     # [\[EXPECTED_RESPONSE\]]>
 
     # newline separate list of strings when interpolating...
-    local $" = "\n";
+    local $LIST_SEPARATOR = "\n";
 
     if (! grep /^$prompt/, @$r[0..(@$r-1)] ) {
 	confess 
@@ -419,6 +419,87 @@ sub linuxrc_prompt () {
     $self->sequence_3270(@$sequence);
 
 };
+
+###################################################################
+# connect to the host
+sub connect_3270() {
+    my ($self, $host) = @_;
+
+    my $r = $self->send_3270("Connect($host)");
+
+    local $LIST_SEPARATOR='\n';
+    if ($r->{terminal_status} !~ / C\($host\) / ) {
+	confess 
+	    "connect to host >$host< failed.\n".
+	    "@$r";
+    }
+
+    $self->send_3270("Wait(InputField)");
+
+    $r = $self->expect_3270();
+
+    if (! grep /Fill in your USERID and PASSWORD and press ENTER/, @$r) {
+	confess "doesn't look like zVM login prompt."
+    };
+
+    return $r;
+}
+
+###################################################################
+# log in
+sub login_guest() {
+    my ($self, $guest, $password) = @_;
+
+    $self->send_3270("String($guest)");
+    $self->send_3270("String($password)");
+    $self->send_3270("ENTER");
+    $self->send_3270("Wait(InputField)");
+
+    # Depending on which application is running on the host vm guest,
+    # we get various status lines:
+    my $r = $self->expect_3270(buffer_ready => qr/(?:(?:CP|VM) READ|RUNNING)/);
+
+    return $r;
+}
+
+sub hard_shutdown_guest() {
+    my ($self) = @_;
+    
+    $self->send_3270('String("#cp logo")');
+    $self->send_3270('ENTER');
+    $self->send_3270('Wait(Disconnect)');
+}
+
+sub ftpboot_menu () {
+    my ($self, $menu_entry) = @_;
+    # helper vars
+    my ($r, $s, $cursor_row, $row);
+
+    # choose server
+
+    $r = $self->send_3270("Home");
+    # Why can't I just call this function?  why do I need & ??
+    $s = &nice_3270_status($r->{terminal_status});
+
+    $cursor_row = $s->{cursor_row};
+
+    $r = $self->expect_3270(clear_buffer => 1, flush_lines => undef, buffer_ready => qr/PF3=QUIT/);
+    ### say Dumper @$r;
+
+    while ( ($row, my $content) = each(@$r)) {
+    	if ($content =~ $menu_entry) {
+    	    last;
+    	}
+    };
+
+    my $sequence = ["Home", ("Down") x ($row-$cursor_row), "ENTER", "Wait(InputField)"];
+    ## say "\$sequence=@$sequence";
+
+    $self->sequence_3270(@$sequence);
+
+    return $r;
+    say $r;
+}
 
 ###################################################################
 sub do_start_vm() {
@@ -439,47 +520,41 @@ sub do_start_vm() {
     my $r;
 
     ###################################################################
-    # connect to the host
-    $r = $self->send_3270("Connect($self->{zVMhost})");
-
-    if ($r->{terminal_status} !~ / C\($self->{zVMhost}\) / ) {
-	confess "connect to host >$self->{zVMhost}< failed."
-    }
-
-    $self->send_3270("Wait(InputField)");
-
-    $r = $self->expect_3270();
-
-    if (! grep /Fill in your USERID and PASSWORD and press ENTER/, @$r) {
-	confess "doesn't look like zVM login prompt."
-    };
+    # TODO:  anything below this line should go to test cases!!
 
     ###################################################################
-    # log in
-    $self->send_3270("String($self->{guest_user})");
-    $self->send_3270("String($self->{guest_login})");
-    $self->send_3270("ENTER");
-    $self->send_3270("Wait(InputField)");
+    # try to connect exactly twice
+    for (my $count = 0; $count += 1; ) {
 
-    # Depending on which application is running on the host vm guest,
-    # we get various status lines:
-    $r = $self->expect_3270(buffer_ready => qr/((CP|VM) READ|RUNNING)/);
+	$r = $self->connect_3270($self->{zVMhost});
 
-    # bail out if the host is in use
-    # currently:  KILL THE GUEST
-    # TODO:  think about what to really do in this case.
-    if (grep /RECONNECT.*/, @$r ) {
-	$self->send_3270('String("#cp logo")');
-	$self->send_3270('ENTER');
-	$self->send_3270('Wait(Disconnect)');
-	confess "machine $self->{zVMhost} $self->{guest_login} in use ('$&').";
+	$r = $self->login_guest($self->{guest_user}, $self->{guest_login});
+
+	# In this function, the array we output is the screenshot lines:
+	local $LIST_SEPARATOR = "\n";
+
+	# bail out if the host is in use
+	# currently:  KILL THE GUEST
+	# TODO:  think about what to really do in this case.
+
+	if (grep /(?:RECONNECT|HCPLGA).*/, @$r ) {
+	    cluck # carp 
+		"machine $self->{zVMhost} $self->{guest_login} is in use:".
+		"@$r";
+
+	    if ($count >1) {
+		die "could not reclaim guest despite hard_shutdown.  this is odd.";
+	    }
+
+	    # shut down and reconnect
+	    $self->hard_shutdown_guest();
+
+	    next;
+	};
+
+	last;
+	
     }
-    elsif (grep /HCPLGA054E.*/, @$r) {
-	$self->send_3270('String("#cp logo")');
-	$self->send_3270('ENTER');
-	$self->send_3270('Wait(Disconnect)');
-	confess "machine $self->{zVMhost} $self->{guest_login} was in use ('$&').";
-    };
 
     ###################################################################
     # ftpboot
@@ -490,50 +565,8 @@ sub do_start_vm() {
 	Wait(InputField)
     });
 
-    # helper vars
-    my ($s, $cursor_row, $row);
-    ##############################
-    # choose server
-
-    $r = $self->send_3270("Home");
-    # Why can't I just call this function?  why do I need & ??
-    $s = &nice_3270_status($r->{terminal_status});
-
-    $cursor_row = $s->{cursor_row};
-
-    $r = $self->expect_3270(clear_buffer => 1, flush_lines => undef, buffer_ready => qr/PF3=QUIT/);
-    ### say Dumper @$r; ##################################
-    while ( ($row, my $content) = each(@$r)) {
-    	if ($content =~ /DIST\.SUSE\.DE/) {
-    	    last;
-    	}
-    };
-
-    my $sequence = ["Home", ("Down") x ($row-$cursor_row), "ENTER", "Wait(InputField)"];
-    ## say "\$sequence=@$sequence";
-
-    $self->sequence_3270(@$sequence);
-
-    ##############################
-    # choose distribution
-
-    $r = $self->send_3270("Home");
-    $s = &nice_3270_status($r->{terminal_status});
-
-    $cursor_row = $s->{cursor_row};
-
-    $r = $self->expect_3270(clear_buffer => 1, flush_lines => undef, buffer_ready => qr/PF3=QUIT/);
-    ### say Dumper @$r; ###############################
-    while ( ($row, my $content) = each(@$r)) {
-    	if ($content =~ /SLES-11-SP4-Alpha2/) {
-    	    last;
-    	}
-    };
-
-    $sequence = ["Home", ("Down") x ($row-$cursor_row), "ENTER", "Wait(InputField)"];
-    ### say "\$sequence=@$sequence";
-
-    $self->sequence_3270(@$sequence);
+    $r = $self->ftpboot_menu(qr/\QDIST.SUSE.DE\E/);
+    $r = $self->ftpboot_menu(qr/\QSLES-11-SP4-Alpha2\E/);
 
     ##############################
     # edit parmfile
