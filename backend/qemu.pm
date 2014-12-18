@@ -177,6 +177,13 @@ sub start_qemu($) {
             }
         }
 
+        for my $i ( 1 .. 6 ) {  # check for up to 6 ADDON ISOs
+            if ( $vars->{"ISO_$i"} && $vars->{"ADDONS"}) {
+                my $addoniso = $vars->{"ISO_$i"};
+                push( @params, "-drive", "if=ide,id=addon_$i,file=$addoniso,media=cdrom" );
+            }
+        }
+
         if ( $vars->{PXEBOOT} ) {
             push( @params, "-boot", "n");
         }
