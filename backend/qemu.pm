@@ -21,6 +21,7 @@ use backend::VNC;
 
 my $MAGIC_PIPE_CLOSE_STRING = 'xxxQUITxxx';
 my $iscrashedfile           = 'backend.crashed';
+my %last_mouse_coords = ( 'x' => 0, 'y' => 0 );
 
 sub write_crash_file {
     if (open(my $fh, ">", $iscrashedfile )) {
@@ -282,6 +283,12 @@ sub mouse_set($$) {
     my ( $x, $y ) = @_;
 
     $self->send({ 'VNC' => "mouse_set", 'arguments' => { 'x' => $x, 'y' => $y } } );
+    %last_mouse_coords = ( 'x' => $x, 'y' => $y );
+}
+
+sub get_last_mouse_set {
+    my $self = shift;
+    return ($last_mouse_coords{'x'}, $last_mouse_coords{'y'});
 }
 
 sub mouse_button($$$) {
