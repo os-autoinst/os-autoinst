@@ -230,19 +230,37 @@ EO_frickin_boot_parms
 	$self->linuxrc_prompt("Enter your temporary SSH password.",
 			      value => "SSH!554!");
 
-    $self->linuxrc_menu("Choose the network device", "\QIBM Hipersocket (0.0.7058)\E");
+	if ($self->{vars}{NETWORK} eq "HSI_L3") {
+	    $self->linuxrc_menu("Choose the network device",
+				"\QIBM Hipersocket (0.0.7058)\E");
 
-    $self->linuxrc_prompt("Device address for read channel");
-    $self->linuxrc_prompt("Device address");
-    $self->linuxrc_prompt("Device address");
+	    $self->linuxrc_prompt("Device address for read channel");
+	    $self->linuxrc_prompt("Device address");
+	    $self->linuxrc_prompt("Device address");
 
-    $self->linuxrc_menu("Enable OSI Layer 2 support", "No");
-    $self->linuxrc_menu("Automatic configuration via DHCP", "No");
+	    $self->linuxrc_menu("Enable OSI Layer 2 support", "No");
+	    $self->linuxrc_menu("Automatic configuration via DHCP", "No");
 
+	}
+	elsif ($self->{vars}{NETWORK} eq "CTC") {
+	    $self->linuxrc_menu("Choose the network device", "\QIBM parallel CTC Adapter (0.0.0600)\E");
+	    $self->linuxrc_prompt("Device address for read channel");
+	    $self->linuxrc_prompt("Device address for write channel");
+	    $self->linuxrc_menu("Select protocol for this CTC device", "Compatibility mode");
+	    $self->linuxrc_menu("Automatic configuration via DHCP", "No");
+	}
+	else {
+	    confess "unknown network device in vars.json: NETWORK = $self->{vars}{NETWORK}";
+	};
 
 	# use values from parmfile
 	$self->linuxrc_prompt("Enter your IPv4 address");
 
+	if ($self->{vars}{NETWORK} eq "CTC") {
+	    $self->linuxrc_prompt("Enter the IP address of the PLIP partner.",
+				  timeout => 10, # allow for the CTC peer to react
+				  value	  => $self->{vars}{PARMFILE}{Gateway});
+	};
 
 	$self->linuxrc_prompt("Enter your netmask. For a normal class C network, this is usually 255.255.255.0.");
 	$self->linuxrc_prompt("Enter the IP address of the gateway. Leave empty if you don't need one.");
