@@ -256,20 +256,22 @@ EO_frickin_boot_parms
 	# use values from parmfile
 	$self->linuxrc_prompt("Enter your IPv4 address");
 
-	if ($self->{vars}{NETWORK} eq "CTC") {
-	    $self->linuxrc_prompt("Enter the IP address of the PLIP partner.",
+	if ($self->{vars}{NETWORK} eq "HSI_L3") {
+	    $self->linuxrc_prompt("Enter your netmask. For a normal class C network, this is usually 255.255.255.0.",
 				  timeout => 10, # allow for the CTC peer to react
+		);
+	    $self->linuxrc_prompt("Enter the IP address of the gateway. Leave empty if you don't need one.");
+	    $self->linuxrc_prompt("Enter your search domains, separated by a space",
+				  timeout => 10);
+	}
+	elsif ($self->{vars}{NETWORK} eq "CTC") {
+	    $self->linuxrc_prompt("Enter the IP address of the PLIP partner.",
 				  value	  => $self->{vars}{PARMFILE}{Gateway});
-	};
 
-	$self->linuxrc_prompt("Enter your netmask. For a normal class C network, this is usually 255.255.255.0.");
-	$self->linuxrc_prompt("Enter the IP address of the gateway. Leave empty if you don't need one.");
-	$self->linuxrc_prompt("Enter your search domains, separated by a space",
-			      timeout => 10);
+	};
 
 	$self->linuxrc_prompt("Enter the IP address of your name server. Leave empty if you don't need one",
 			      timeout => 10);
-
 
 	$self->linuxrc_prompt("Enter the IP address of the HTTP server",
 			      value => "10.160.0.100");
