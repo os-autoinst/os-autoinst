@@ -266,7 +266,7 @@ sub expect_3270() {
         if ($elapsed_time > $arg{timeout}
             || !$self->wait_output($arg{timeout} - $elapsed_time))
         {
-            confess"timed out.  last output:\n".Dumper($result);
+            confess Dumper(@_)."timed out.  last output:\n".Dumper($result);
         }
         next;
 
