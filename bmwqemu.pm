@@ -337,7 +337,7 @@ sub getcurrentscreenshot(;$) {
         $lastscreenshot     = tinycv::read($filename);
         $lastscreenshotName = $filename;
     }
-    elsif ( !current_test->{post_fail_hook_running} ) {
+    elsif ( !$interactive_mode && !current_test->{post_fail_hook_running} ) {
         $prestandstillwarning = ( $numunchangedscreenshots > $standstillthreshold / 2 );
         if ( $numunchangedscreenshots > $standstillthreshold ) {
             diag "STANDSTILL";
