@@ -119,6 +119,51 @@ sub ftpboot_menu () {
 }
 
 ###################################################################
+require Text::Wrap;
+
+sub hash2parmfile() {
+    my ($parmfile_href) = @_;
+
+    # collect the {key => value, ...}  pairs from the hash into a
+    # space separated string "key=value ..." of assignments, in the
+    # form needed in the parmfile.
+    my @parmentries;
+
+    while (my ($k, $v) = each $parmfile_href) {
+	push @parmentries, "$k=$v";
+    };
+
+    my $parmfile_with_Newline_s = join( " ", @parmentries);
+
+    # Chop this long line up in hunks less than 80 characters wide, to
+    # send them to the host with s3270 "String(...)" commands, with
+    # additional "Newline" commands to add new lines.
+
+    # Creatively use Text::Wrap for this, with 'String("' as line
+    # prefix and '")\n' as line separator.  Actually '")\nNewline\n'
+    # is the line separator :)
+    local $Text::Wrap::separator = "\")\nNewline\n";
+
+    # For the maximum line length for the wrapping, the s3270
+    # 'String("")' command characters in each line don't account for
+    # the parmfile line length.  The X E D I T editor has a line
+    # counter column to the left.
+    local $Text::Wrap::columns = 79 + length('String("') - length("00004 ");
+
+    $parmfile_with_Newline_s =
+	Text::Wrap::wrap('String("', # first line prefix
+			 'String("', # subsequent lines prefix
+			 $parmfile_with_Newline_s);
+
+    # If there is no 'Newline\n' at the end of the parmfile, the last
+    # line was not long enough to split it.  Then add the closing
+    # paren and the Newline now.
+    $parmfile_with_Newline_s .= "\")\nNewline"
+	unless $parmfile_with_Newline_s =~ /Newline\n$/s;
+
+    return $parmfile_with_Newline_s;
+}
+
 sub run() {
     my $self = shift;
 
