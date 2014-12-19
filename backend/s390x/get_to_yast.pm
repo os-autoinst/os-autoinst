@@ -172,6 +172,7 @@ sub run() {
     my $s3270 = $self->{s3270};
     ###################################################################
     # ftpboot
+    eval {
 
     $s3270->sequence_3270(
         qw{
@@ -276,7 +277,11 @@ EO_frickin_boot_parms
         output_delim => qr/\Q*** Starting YaST2 ***\E/,
         timeout      => 20
     );
+    };
 
+    # while developing: cluck.  in real life:  confess!
+    # confess $@ if $@;
+    cluck $@if $@;
     ### say Dumper $r;
 
     ###################################################################
