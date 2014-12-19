@@ -1,0 +1,170 @@
+[[pragmatic-development-environment-on-opensuse]]
+pragmatic development environment on openSUSE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+1.  install openQA package to get all the runtime dependencies
++
+---------------------
+sudo zypper in openQA
+---------------------
+2.  check out os-autoinst
++
+------------------------------------------------
+git clone YOUR-WRITEABLE-COPY-OF/os-autoinst.git
+cd os-autoinst
+------------------------------------------------
+3.  install the BuildRequires, as per the http://build.opensuse.org[spec
+file]
++
+-----------------------------------------------------------------------------------------------------
+sudo zypper in libtheora-devel libpng-devel opencv-devel pkg-config libtool autoconf automake gcc-c++
+-----------------------------------------------------------------------------------------------------
+4.  build the beastie locally
++
+----------------
+autoreconf -f -i
+./configure
+make
+----------------
+5.  get the test cases and the needles.
++
+The needles have to be a subdir of the test cases!
++
+-----------------------------------------------------------------------------
+mkdir distri
+cd distri
+git clone git@github.com:os-autoinst/os-autoinst-distri-opensuse.git opensuse
+cd opensuse
+git clone git@github.com:os-autoinst/os-autoinst-needles-opensuse.git needles
+-----------------------------------------------------------------------------
+6.  create a test dir to run os-autoinst in
++
+--------------------------
+mkdir /tmp/os-autoinst-run
+cd /tmp/os-autoinst-run
+--------------------------
+7.  create a minimal "vars.json" config file
++
+---------------------------------------------------------
+cat <<EOF >vars.json
+{
+    "DISTRI":  "sle",
+    "CASEDIR": "/space/SVN/os-autoinst-distri-opensuse/",
+    "BACKEND": "s390x"
+}
+EOF
+---------------------------------------------------------
+8.  give it a shot
++
+------------------------------
+PATH_TO/os-autoinst/isotovideo
+------------------------------
+9.  hack away :)
+
+[[use-of-git-repo-with-with-openqa]]
+use of git repo with with openQA
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+to use os-autoinst with openQA it needs to be "installed". Placing a
+symlink to /usr/lib/os-autoinst that points to the git checkout should
+work. To make tests and needles writable don't touch distri/ and use
+tools/fetchneedles instead to set it up.
+
+[[outdated-installation]]
+OUTDATED INSTALLATION
+^^^^^^^^^^^^^^^^^^^^^
+
+FIXME
+
+------------------------------------------------------------------------------------------------------------
+as root:
+echo "deb    http://ftp.de.debian.org/debian/  squeeze          main" > /etc/apt/sources.list.d/squeeze.list
+
+cat >>/etc/apt/preferences <<EOF
+Package: *
+Pin: release o=Debian,a=testing
+Pin-Priority: 40
+EOF
+
+aptitude update
+
+aptitude install git-core kvm/testing ffmpeg2theora/testing gocr/testing multimon sox
+
+echo kvm-intel >> /etc/modules
+------------------------------------------------------------------------------------------------------------
+
+[[opensuse-setup]]
+openSUSE setup
+~~~~~~~~~~~~~~
+
+-------------------------------------------------------
+zypper ar -r http://r.opensu.se/devel:openQA/r
+zypper in os-autoinst
+
+usermod -G kvm -a $USERNAME || usermod -A kvm $USERNAME
+-------------------------------------------------------
+
+[[more-linux-setup]]
+more Linux setup
+~~~~~~~~~~~~~~~~
+
+-----------------------------------------------------------
+modprobe kvm-intel || modprobe kvm-amd
+chgrp kvm /dev/kvm ; chmod g+rw /dev/kvm # maybe redundant
+# optionally use a new user; just to keep things separate
+useradd -m USERNAME -G kvm
+passwd USERNAME # and/or add ~USERNAME/.ssh/authorized_keys
+-----------------------------------------------------------
+
+[[user-setup]]
+user setup
+~~~~~~~~~~
+
+git clone https://github.com/os-autoinst/os-autoinst.git create a
+vars.json containing e.g.
+
+---------------------------------------------------------------------
+{
+  "TEST" : "minimalx",
+  "DISTRI" : "opensuse",
+  "CASEDIR" : "/var/lib/os-autoinst/tests/opensuse",
+  "ISO" : "/var/lib/openqa/factory/iso/openSUSE-13.2-DVD-x86_64.iso",
+  "QEMUPORT" : 20000
+}
+---------------------------------------------------------------------
+
+The important part is ISO, DISTRI and CASEDIR (the main.pm of CASEDIR
+needs to drive the distribution). TEST and other variables are for the
+test cases to work on.
+
+QEMUPORT is not necessary and defaults to 15222 - note that you should
+leave room between 2 instances, but if you plan to use os-autoinst in
+production, you better use openQA to control that
+
+[[virtualbox-setup]]
+VirtualBox Setup
+~~~~~~~~~~~~~~~~
+
+Install VirtualBox either from your distribution's DVD or from
+http://software.opensuse.org/package/virtualbox[their homepage]
+
+After installation of VirtualBox do this
+
+-------------------------------------------------------------------
+insmod vboxdrv
+usermod -G vboxusers -a $USERNAME || usermod -A vboxusers $USERNAME
+-------------------------------------------------------------------
+
+Log out and in and you are done
+
+[[setting-up-os-autoinst-for-virtualbox]]
+Setting up OS-autoinst for VirtualBox
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+add to env.sh:
+
+export BACKEND=vbox
+
+and create a Virtual Machine named "osautoinst" with at least 8GB of HDD
+
+for usage see README
