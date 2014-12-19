@@ -64,7 +64,7 @@ sub do_start_vm() {
 
     $r = $s3270->login();
 
-    my $test = new backend::s390x::get_to_yast();
+    my $test = new backend::s390x::get_to_yast($s3270, $self->{vars});
 
     $r = $test->backend::s390x::get_to_yast::run();
 

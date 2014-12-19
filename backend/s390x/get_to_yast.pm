@@ -14,18 +14,15 @@ use feature qw/say/;
 
 # use backend::s390x::s3270;
 
-# THIS IS EVIL.  SO EVIL...
-# need  $bmwqemu::backend
-
 ##use testapi;  # get_var, ...
 
 sub new() {
-    my ($class, @rest) = @_;
+    my ($class, $s3270, $vars, @rest) = @_;
 
-    my $self = $class->SUPER::new(@_);
+    my $self = $class->SUPER::new($class, @rest);
 
-    # THIS IS EVIL
-    $self->{s3270} = $bmwqemu::backend->{s3270};
+    $self->{s3270} = $s3270;
+    $self->{vars} = $vars;
 
     return $self;
 }
