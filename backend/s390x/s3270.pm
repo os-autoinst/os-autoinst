@@ -27,7 +27,7 @@ sub new() {
     my $self = Class::Accessor::new(@_);
 
     $self->{raw_expect_queue} = new Thread::Queue();
-    
+
     return $self;
 }
 
@@ -35,15 +35,11 @@ sub start() {
     my $self = shift;
 
     # start the local terminal emulator
-    $self ->{ in } = "";
-    $self ->{ out} = "";
-    $self ->{ err} = "";
+    $self->{in} = "";
+    $self->{out} = "";
+    $self->{err} = "";
 
-    $self->{connection} = IPC::Run::start (
-	\@{$self->{s3270}},
-	\$self->{in},
-	\$self->{out},
-	\$self->{err} );
+    $self->{connection} = IPC::Run::start(\@{$self->{s3270}},\$self->{in},\$self->{out},\$self->{err} );
 
 }
 
@@ -64,9 +60,9 @@ sub start() {
 sub send_3270() {
     my ($self, $command, %arg) = @_;
 
-    if (!exists $arg{command_status}) { $arg{command_status} = "ok" } ;
+    if (!exists $arg{command_status}) { $arg{command_status} = "ok" }
     confess "command_status must be 'ok' or 'error' or 'any', got $arg{command_status}."
-	unless (grep $arg{command_status}, ['ok', 'error', 'any'] );
+      unless (grep $arg{command_status}, ['ok', 'error', 'any'] );
 
     $self->{in}  .= $command . "\n";
     $self->{connection}->IPC::Run::pump until  $self->{out} =~ /^(ok|error)/mg;
@@ -79,20 +75,20 @@ sub send_3270() {
     # split output in three pieces: command status, terminal status
     # and command output, if any.
     my @out_array = split(/\n/, $out_string);
-    
+
     my $out = {
-	command_status  => pop @out_array,
-	terminal_status => pop @out_array,
-	command_output  => \@out_array,
+        command_status  => pop @out_array,
+        terminal_status => pop @out_array,
+        command_output  => \@out_array,
     };
 
     foreach my $line (@{$out->{command_output}}) {
-	$line =~ s/^data: //;
+        $line =~ s/^data: //;
     }
 
     if ($arg{command_status} ne 'any' && $out->{command_status} ne $arg{command_status}) {
-	confess "expected command exit status $arg{command_status}, got $out->{command_status}";
-    };
+        confess "expected command exit status $arg{command_status}, got $out->{command_status}";
+    }
 
     return $out;
 }
@@ -141,16 +137,16 @@ sub expect_3270() {
     $arg{clear_buffer}	//= 0;
     $arg{output_delim}  //= undef;
     if (!exists $arg{flush_lines}) {
-	$arg{flush_lines} = qr/^ +$/;
+        $arg{flush_lines} = qr/^ +$/;
     }
 
     ### say Dumper \%arg;
 
     if ($arg{clear_buffer}) {
-	my $n = $self->{raw_expect_queue}->pending();
-	if ($n) {
-	    $self->{raw_expect_queue}->dequeue_nb($n);
-	}
+        my $n = $self->{raw_expect_queue}->pending();
+        if ($n) {
+            $self->{raw_expect_queue}->dequeue_nb($n);
+        }
     }
 
     my $result = [];
@@ -159,127 +155,124 @@ sub expect_3270() {
 
     while (1) {
 
-	my $r;
+        my $r;
 
-	my $we_had_new_output = 0;
+        my $we_had_new_output = 0;
 
-	# grab any pending output
-	if ($self->wait_output()) {
-	    $self->send_3270("Snap");
-	    $r = $self->send_3270("Snap(Ascii)");
+        # grab any pending output
+        if ($self->wait_output()) {
+            $self->send_3270("Snap");
+            $r = $self->send_3270("Snap(Ascii)");
 
-	    # split it according to the screen sections
-	    my $co = $r->{command_output};
+            # split it according to the screen sections
+            my $co = $r->{command_output};
 
-	    my $status_line  = pop @$co;
-	    my $input_line   = pop @$co;
-	    my @output_area  = @$co;
+            my $status_line  = pop @$co;
+            my $input_line   = pop @$co;
+            my @output_area  = @$co;
 
 
-	    if (defined $arg{flush_lines}) {
-		### say Dumper $arg{flush_lines};
-		@output_area = grep ! /$arg{flush_lines}/, @output_area;
-	    }
+            if (defined $arg{flush_lines}) {
+                ### say Dumper $arg{flush_lines};
+                @output_area = grep !/$arg{flush_lines}/, @output_area;
+            }
 
-	    if (@output_area > 0) {
-		$self->{raw_expect_queue}->enqueue(@output_area);
-		$we_had_new_output = 1;
-	    }
+            if (@output_area > 0) {
+                $self->{raw_expect_queue}->enqueue(@output_area);
+                $we_had_new_output = 1;
+            }
 
-	    ### say Dumper $self->{raw_expect_queue};
+            ### say Dumper $self->{raw_expect_queue};
 
-	    # if there is MORE..., go and grab it.
-	    if ($status_line =~ /$arg{buffer_full}/) {
-		$self->send_3270("Clear");
-		next ;
-	    }
+            # if there is MORE..., go and grab it.
+            if ($status_line =~ /$arg{buffer_full}/) {
+                $self->send_3270("Clear");
+                next;
+            }
 
-	    ### say Dumper \@output_area;
-	    ### say Dumper $input_line;
-	    ### say Dumper $status_line;
+            ### say Dumper \@output_area;
+            ### say Dumper $input_line;
+            ### say Dumper $status_line;
 
-	    # If the status line is not buffer_ready, some computation
-	    # is still going on.  Wait for more Output.
+            # If the status line is not buffer_ready, some computation
+            # is still going on.  Wait for more Output.
 
-	    if ($status_line !~ /$arg{buffer_ready}/) {
-		# if the timeout is not over, wait for more output
-		my $elapsed_time = time() - $start_time;
-		if ($elapsed_time < $arg{timeout}) {
-		    if ($self->wait_output($arg{timeout} - $elapsed_time)) {
-			next;
-		    }
-		}
+            if ($status_line !~ /$arg{buffer_ready}/) {
+                # if the timeout is not over, wait for more output
+                my $elapsed_time = time() - $start_time;
+                if ($elapsed_time < $arg{timeout}) {
+                    if ($self->wait_output($arg{timeout} - $elapsed_time)) {
+                        next;
+                    }
+                }
 
-		# flush the buffer for debugging:
-		while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
-		    push @$result, $line;
-		};
+                # flush the buffer for debugging:
+                while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
+                    push @$result, $line;
+                }
 
-		confess "status line matches neither buffer_ready nor buffer_full:\n".
-		    Dumper($result).
-		    $status_line;
-	    };
+                confess "status line matches neither buffer_ready nor buffer_full:\n".Dumper($result).$status_line;
+            }
 
-	}
+        }
 
-	# No more host output is pending.  The status line matches
-	# buffer_ready.  We have some output in the raw_expect_queue,
-	# possibly from a previous run, btw!
+        # No more host output is pending.  The status line matches
+        # buffer_ready.  We have some output in the raw_expect_queue,
+        # possibly from a previous run, btw!
 
-	# If we are looking for an output_delimiter, look for that.
-	if (!defined $arg{output_delim}) {
-	    # no need to wait for something special.  just return what you have...
-	    while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
-		push @$result, $line;
-	    }
-	    last;
-	}
+        # If we are looking for an output_delimiter, look for that.
+        if (!defined $arg{output_delim}) {
+            # no need to wait for something special.  just return what you have...
+            while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
+                push @$result, $line;
+            }
+            last;
+        }
 
-	my $line;
-	while ($line = $self->{raw_expect_queue}->dequeue_nb()) {
-	    push @$result, $line;
-	    if (!defined $line || $line =~ $arg{output_delim}) {
-		last;
-	    }
-	}
+        my $line;
+        while ($line = $self->{raw_expect_queue}->dequeue_nb()) {
+            push @$result, $line;
+            if (!defined $line || $line =~ $arg{output_delim}) {
+                last;
+            }
+        }
 
-	# If we matched the 'output_delim', we are done.
-	if (defined $line) {
-	    last;
-	}
+        # If we matched the 'output_delim', we are done.
+        if (defined $line) {
+            last;
+        }
 
-	# The queue is empty!
+        # The queue is empty!
 
-	# If we got so far and we had some output on the screen the
-	# last time, clear the screen so we don't grab the same stuff
-	# again.
+        # If we got so far and we had some output on the screen the
+        # last time, clear the screen so we don't grab the same stuff
+        # again.
 
-	# The maybe better alternative solution to the same problem
-	# would be to remember lines that were not updated since the
-	# last Snap(Ascii) and to thus avoid duplicate lines.
+        # The maybe better alternative solution to the same problem
+        # would be to remember lines that were not updated since the
+        # last Snap(Ascii) and to thus avoid duplicate lines.
 
-	# for now we live with having a clear screen.
+        # for now we live with having a clear screen.
 
-	if ($we_had_new_output) {
-	    $self->send_3270("Clear");
-	}
+        if ($we_had_new_output) {
+            $self->send_3270("Clear");
+        }
 
-	### say "===================================================================";
-	### say Dumper %arg;
+        ### say "===================================================================";
+        ### say Dumper %arg;
 
-	# wait for new output from the host.
-	my $elapsed_time = time() - $start_time;
-	if ($elapsed_time > $arg{timeout} 
-	    || !$self->wait_output($arg{timeout} - $elapsed_time)) {
-	    confess 
-		"timed out.  last output:\n".
-		Dumper($result);
-	}
-	next;
+        # wait for new output from the host.
+        my $elapsed_time = time() - $start_time;
+        if ($elapsed_time > $arg{timeout}
+            || !$self->wait_output($arg{timeout} - $elapsed_time))
+        {
+            confess"timed out.  last output:\n".Dumper($result);
+        }
+        next;
 
 
 
-    };
+    }
 
     say Dumper $result;
     return $result;
@@ -293,15 +286,15 @@ sub wait_output() {
     my $r = $self->send_3270("Wait($timeout,Output)", command_status=>'any');
 
     if ($r->{command_status} eq 'ok') {
-	return 1;
+        return 1;
     }
     else {
-	return 0 
-	    unless $r->{command_output}[0] ne 'Wait: Timed out';
-	confess "has the s3270 wait timeout failure response changed?\n". Dumper $r;
+        return 0
+          unless $r->{command_output}[0] ne 'Wait: Timed out';
+        confess "has the s3270 wait timeout failure response changed?\n". Dumper $r;
     }
-	
-    
+
+
 }
 
 ###################################################################
@@ -311,61 +304,61 @@ sub sequence_3270() {
 
 
     foreach my $command (@commands) {
-	$self->send_3270($command);
+        $self->send_3270($command);
     }
 
 }
 
 
 sub nice_3270_status() {
-    my ($status_string) = @_ ;
+    my ($status_string) = @_;
     my (@raw_status) = split(" ", $status_string);
     my @status_names = (
-	'keyboard_state',
-	    ## If the keyboard is unlocked, the letter U. If the
-	    ## keyboard is locked waiting for a response from the
-	    ## host, or if not connected to a host, the letter L. If
-	    ## the keyboard is locked because of an operator error
-	    ## (field overflow, protected field, etc.), the letter E.
-	'screen_formatting',
-   	    ## If the screen is formatted, the letter F. If unformatted or
-	    ## in NVT mode, the letter U.
-	'field_protection',
-	    ## If the field containing the cursor is protected, the
-	    ## letter P. If unprotected or unformatted, the letter U.
-	'connection_state',
-	    ## If connected to a host, the string
-	    ## C(hostname). Otherwise, the letter N.
-	'emulator_mode',
-	    ## If connected in 3270 mode, the letter I. If connected
-	    ## in NVT line mode, the letter L. If connected in NVT
-	    ## character mode, the letter C. If connected in
-	    ## unnegotiated mode (no BIND active from the host), the
-	    ## letter P. If not connected, the letter N.
-	'model_number',
-	    ## (2-5)
-	'number_of_rows',
-	    ## The current number of rows defined on the screen. The
-	    ## host can request that the emulator use a 24x80 screen,
-	    ## so this number may be smaller than the maximum number
-	    ## of rows possible with the current model.
-	'number_of_columns',
-	    ## The current number of columns defined on the screen,
-	    ## subject to the same difference for rows, above.
-	'cursor_row',
-	    ## The current cursor row (zero-origin).
-	'cursor_column',
-	    ## The current cursor column (zero-origin).
-	'window_id',
-            ## The X window identifier for the main x3270 window, in
-	    ## hexadecimal preceded by 0x. For s3270 and c3270, this
-	    ## is zero.
-	'command_execution_time'
-	    ## The time that it took for the host to respond to the
-	    ## previous commnd, in seconds with milliseconds after the
-	    ## decimal. If the previous command did not require a host
-	    ## response, this is a dash.
-	);
+        'keyboard_state',
+        ## If the keyboard is unlocked, the letter U. If the
+        ## keyboard is locked waiting for a response from the
+        ## host, or if not connected to a host, the letter L. If
+        ## the keyboard is locked because of an operator error
+        ## (field overflow, protected field, etc.), the letter E.
+        'screen_formatting',
+        ## If the screen is formatted, the letter F. If unformatted or
+        ## in NVT mode, the letter U.
+        'field_protection',
+        ## If the field containing the cursor is protected, the
+        ## letter P. If unprotected or unformatted, the letter U.
+        'connection_state',
+        ## If connected to a host, the string
+        ## C(hostname). Otherwise, the letter N.
+        'emulator_mode',
+        ## If connected in 3270 mode, the letter I. If connected
+        ## in NVT line mode, the letter L. If connected in NVT
+        ## character mode, the letter C. If connected in
+        ## unnegotiated mode (no BIND active from the host), the
+        ## letter P. If not connected, the letter N.
+        'model_number',
+        ## (2-5)
+        'number_of_rows',
+        ## The current number of rows defined on the screen. The
+        ## host can request that the emulator use a 24x80 screen,
+        ## so this number may be smaller than the maximum number
+        ## of rows possible with the current model.
+        'number_of_columns',
+        ## The current number of columns defined on the screen,
+        ## subject to the same difference for rows, above.
+        'cursor_row',
+        ## The current cursor row (zero-origin).
+        'cursor_column',
+        ## The current cursor column (zero-origin).
+        'window_id',
+        ## The X window identifier for the main x3270 window, in
+        ## hexadecimal preceded by 0x. For s3270 and c3270, this
+        ## is zero.
+        'command_execution_time'
+          ## The time that it took for the host to respond to the
+          ## previous commnd, in seconds with milliseconds after the
+          ## decimal. If the previous command did not require a host
+          ## response, this is a dash.
+    );
 
     my %nice_status;
     @nice_status{@status_names} = @raw_status;
@@ -385,18 +378,16 @@ sub _connect_3270() {
     my $r = $self->send_3270("Connect($host)");
 
     if ($r->{terminal_status} !~ / C\($host\) / ) {
-	confess 
-	    "connect to host >$host< failed.\n".
-	    join("\n", @$r);
+        confess"connect to host >$host< failed.\n".join("\n", @$r);
     }
 
     $self->send_3270("Wait(InputField)");
 
     $r = $self->expect_3270();
 
-    if (! grep /Fill in your USERID and PASSWORD and press ENTER/, @$r) {
-	confess "doesn't look like zVM login prompt."
-    };
+    if (!grep /Fill in your USERID and PASSWORD and press ENTER/, @$r) {
+        confess "doesn't look like zVM login prompt.";
+    }
 
     return $r;
 }
@@ -421,7 +412,7 @@ sub _login_guest() {
 
 sub _hard_shutdown_guest() {
     my ($self) = @_;
-    
+
     $self->send_3270('String("#cp logoff")');
     $self->send_3270('ENTER');
     $self->send_3270('Wait(Disconnect)');
@@ -435,32 +426,31 @@ sub login() {
     # try to connect exactly twice
     for (my $count = 0; $count += 1; ) {
 
-	$r = $self->_connect_3270($self->{zVM_host});
+        $r = $self->_connect_3270($self->{zVM_host});
 
-	$r = $self->_login_guest($self->{guest_user}, $self->{guest_login});
+        $r = $self->_login_guest($self->{guest_user}, $self->{guest_login});
 
-	# bail out if the host is in use
-	# currently:  KILL THE GUEST
-	# TODO:  think about what to really do in this case.
+        # bail out if the host is in use
+        # currently:  KILL THE GUEST
+        # TODO:  think about what to really do in this case.
 
-	if (grep /(?:RECONNECT|HCPLGA).*/, @$r ) {
-	    cluck # carp 
-		"machine $self->{zVM_host} $self->{guest_login} is in use:".
-		join("\n", @$r);
+        if (grep /(?:RECONNECT|HCPLGA).*/, @$r ) {
+            cluck # carp
+              "machine $self->{zVM_host} $self->{guest_login} is in use:".join("\n", @$r);
 
-	    if ($count == 0) {
-		die "could not reclaim guest despite hard_shutdown.  this is odd.";
-	    };
+            if ($count == 0) {
+                die "could not reclaim guest despite hard_shutdown.  this is odd.";
+            }
 
-	    # shut down and reconnect
-	    cluck "trying hard shutdown...";
-	    $self->_hard_shutdown_guest();
+            # shut down and reconnect
+            cluck "trying hard shutdown...";
+            $self->_hard_shutdown_guest();
 
-	    next;
-	};
+            next;
+        }
 
-	last;
-	
+        last;
+
     }
 }
 1;

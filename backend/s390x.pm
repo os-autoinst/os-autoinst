@@ -34,13 +34,15 @@ sub init() {
     ## flag. hm. maybe $DISPLAY?
 
     $self->{vars} = $vars;
-    $self->{s3270} = new backend::s390x::s3270 ({
-	    ## s3270=>[qw(s3270)]; # non-interactive
-	    s3270	=> [qw(x3270 -script -trace -set screenTrace -charset us)],
-	    zVM_host	=> $vars->{ZVM_HOST},
-	    guest_user	=> $vars->{ZVM_GUEST},
-	    guest_login => $vars->{ZVM_PASSWORD},
-	});
+    $self->{s3270} = new backend::s390x::s3270(
+        {
+            ## s3270=>[qw(s3270)]; # non-interactive
+            s3270	=> [qw(x3270 -script -trace -set screenTrace -charset us)],
+            zVM_host	=> $vars->{ZVM_HOST},
+            guest_user	=> $vars->{ZVM_GUEST},
+            guest_login => $vars->{ZVM_PASSWORD},
+        }
+    );
 
 
 }
@@ -57,14 +59,14 @@ sub linuxrc_menu() {
     # newline separate list of strings when interpolating...
     local $LIST_SEPARATOR = "\n";
 
-    if (! grep /^$menu_title/, @$r) {
-	confess "menu does not match expected menu title ${menu_title}\n @${r}";
+    if (!grep /^$menu_title/, @$r) {
+        confess "menu does not match expected menu title ${menu_title}\n @${r}";
     }
 
     my @match_entry = grep /\) $menu_entry/, @$r;
 
     if (!@match_entry) {
-	confess "menu does not contain expected menu entry ${menu_entry}:\n@${r}";
+        confess "menu does not contain expected menu entry ${menu_entry}:\n@${r}";
     }
 
     my ($match_id) = $match_entry[0] =~ /(\d+)\)/;
@@ -72,7 +74,7 @@ sub linuxrc_menu() {
     my $sequence = ["Clear", "String($match_id)", "ENTER"];
 
     $self->{s3270}->sequence_3270(@$sequence);
-};
+}
 
 # For now, we run the testcase from here until we have a vnc connection going.
 # TODO: move the test case to the test cases.
