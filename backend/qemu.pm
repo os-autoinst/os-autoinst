@@ -654,7 +654,7 @@ sub _read_hmp($) {
 our $vnc;
 my $mouse_xpos = 0;
 my $mouse_ypos = 0;
-my ( $screenshot_sec, $screenshot_msec );
+my ( $screenshot_sec, $screenshot_usec );
 my $qemupipe;
 my $cmdpipe;
 my $rsppipe;
@@ -719,14 +719,14 @@ sub wait_for_screen_stall($) {
                 $vnc->send_update_request;
             }
         }
-        my ( $s2, $ms2 ) = gettimeofday;
-        my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
+        my ( $s2, $usec2 ) = gettimeofday;
+        my $diff = ( $s2 - $s1 ) + ( $usec2 - $ms1 ) / 1e6;
         #bmwqemu::diag "diff $diff";
         # we can't wait longer - in password prompts there is no screen update
         last if ($diff > .8);
     }
-    #my ( $s2, $ms2 ) = gettimeofday;
-    #my $diff = ( $s2 - $s1 ) + ( $ms2 - $ms1 ) / 1e6;
+    #my ( $s2, $usec2 ) = gettimeofday;
+    #my $diff = ( $s2 - $s1 ) + ( $usec2 - $ms1 ) / 1e6;
     #bmwqemu::diag "done $diff";
     enqueue_screenshot();
 }
@@ -852,14 +852,14 @@ sub screenshot_interval() {
 
 sub enqueue_screenshot() {
     return unless $vnc->_framebuffer;
-    my ( $s2, $ms2 ) = gettimeofday();
-    my $rest = screenshot_interval() - ( $s2 - $screenshot_sec ) - ( $ms2 - $screenshot_msec ) / 1e6;
+    my ( $s2, $usec2 ) = gettimeofday();
+    my $rest = screenshot_interval() - ( $s2 - $screenshot_sec ) - ( $usec2 - $screenshot_usec ) / 1e6;
 
     # don't overdo it
     return unless $rest < 0.05;
     bmwqemu::enqueue_screenshot($vnc->_framebuffer->scale( 1024, 768 ));
-    ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
-    #bmwqemu::diag "enqueue_screenshot $screenshot_sec, $screenshot_msec";
+    ( $screenshot_sec, $screenshot_usec ) = gettimeofday();
+    #bmwqemu::diag "enqueue_screenshot $screenshot_sec, $screenshot_usec";
     $vnc->send_update_request();
 }
 
@@ -981,12 +981,12 @@ sub _run {
     $s->add($qemupipe);
 
     $vnc->send_update_request;
-    ( $screenshot_sec, $screenshot_msec ) = gettimeofday();
+    ( $screenshot_sec, $screenshot_usec ) = gettimeofday();
     my $interval = screenshot_interval();
 
   SELECT: while (1) {
-        my ( $s2, $ms2 ) = gettimeofday();
-        my $rest = $interval - ( $s2 - $screenshot_sec ) - ( $ms2 - $screenshot_msec ) / 1e6;
+        my ( $s2, $usec2 ) = gettimeofday();
+        my $rest = $interval - ( $s2 - $screenshot_sec ) - ( $usec2 - $screenshot_usec ) / 1e6;
 
         my @ready = $s->can_read($rest);
         # vnc is non-blocking so just try

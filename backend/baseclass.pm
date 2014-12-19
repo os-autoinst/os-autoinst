@@ -72,9 +72,12 @@ sub get_info($) {
 # new api end
 
 # virtual methods
-sub notimplemented() { carp "backend method not implemented" }
+sub notimplemented() { confess "backend method not implemented" }
 
-sub init() { notimplemented }
+sub init() {
+    # static setup.  don't start the backend yet.
+    notimplemented
+}
 
 sub send_key($) { notimplemented }
 
@@ -100,7 +103,10 @@ sub power($) {
 sub insert_cd($;$) { notimplemented }
 sub eject_cd(;$)   { notimplemented }
 
-sub do_start_vm($) { notimplemented }
+sub do_start_vm($) {
+    # start up the vm
+    notimplemented
+}
 
 sub do_stop_vm($) { notimplemented }
 
