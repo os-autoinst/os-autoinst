@@ -184,40 +184,37 @@ sub run() {
 	$r = $self->ftpboot_menu(qr/\QDIST.SUSE.DE\E/);
 	$r = $self->ftpboot_menu(qr/\QSLES-11-SP4-Alpha2\E/);
 
-    ##############################
-    # edit parmfile
+	##############################
+	# edit parmfile
+	{
+	    $r = $s3270->expect_3270(buffer_ready => qr/X E D I T/, timeout => 30);
 
-    $r = $s3270->expect_3270(buffer_ready => qr/X E D I T/, timeout => 30);
+	    $s3270->sequence_3270( qw{ String(INPUT) ENTER } );
 
-    $s3270->sequence_3270(
-        qw(
-          String(INPUT) ENTER
-          )
-    );
+	    $r = $s3270->expect_3270(buffer_ready => qr/Input-mode/);
+	    ### say Dumper $r;
 
-    $r = $s3270->expect_3270(buffer_ready => qr/Input-mode/);
-    ### say Dumper $r;
+	    my $parmfile_href = $self->{vars}{PARMFILE};
 
-    # can't use qw{} because of space in commands...
-    $s3270->sequence_3270(split /\n/, <<'EO_frickin_boot_parms');
-String("HostIP=10.161.185.154/24 Hostname=s390hsi154.suse.de")
-Newline
-String("Gateway=10.161.185.254 Nameserver=10.160.0.1 Domain=suse.de")
-Newline
+	    $parmfile_href->{ssh}='1';
+
+	    my $parmfile_with_Newline_s = &hash2parmfile($parmfile_href);
+
+	    my $sequence = <<"EO_frickin_boot_parms";
+${parmfile_with_Newline_s}
 String("ssh=1")
 Newline
 ENTER
 ENTER
 EO_frickin_boot_parms
 
-    $r = $s3270->expect_3270(buffer_ready => qr/X E D I T/);
+	    # can't use qw{} because of space in commands...
+	    $s3270->sequence_3270(split /\n/, $sequence);
 
-    $s3270->sequence_3270(
-        qw(
-          String(FILE) ENTER
-          )
-    );
+	    $r = $s3270->expect_3270(buffer_ready => qr/X E D I T/);
 
+	    $s3270->sequence_3270( qw{ String(FILE) ENTER });
+	}
 	###################################################################
 	# linuxrc
 
