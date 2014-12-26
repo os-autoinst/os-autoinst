@@ -385,7 +385,7 @@ sub register_screenshot($) {
 
 sub start_audiocapture() {
     my $self = shift;
-    my $fn   = $self->next_resultname("wav");
+    my $fn   = ref($self)."-captured.wav";
     die "audio capture already in progress. Stop it first!\n" if ( $self->{'wav_fn'} );
 
     # TODO: we only support one capture atm
