@@ -487,7 +487,7 @@ sub validate_script_output($&;$) {
     my ($script, $code, $wait) = @_;
     $wait ||= 10;
 
-    my $output = script_output($script);
+    my $output = script_output($script, $wait);
     return unless $code;
     my $res = 'ok';
 
