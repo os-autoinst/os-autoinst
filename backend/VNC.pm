@@ -521,6 +521,7 @@ sub receive_message {
       : $message_type == 0x39  ? $self->_receive_ikvm_session()
       : $message_type == 0x04  ? $self->_discard_ikvm_message(20)
       : $message_type == 0x16  ? $self->_discard_ikvm_message(1)
+      : $message_type == 0x33  ? $self->_discard_ikvm_message(4)
       : $message_type == 0x37  ? $self->_discard_ikvm_message(2)
       : $message_type == 0x3c  ? $self->_discard_ikvm_message(8)
       :                          die 'unsupported message type received';
