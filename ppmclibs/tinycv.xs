@@ -72,6 +72,9 @@ void map_raw_data(tinycv::Image self, unsigned char *data)
   CODE:
     image_map_raw_data(self, data);
 
+void map_raw_data_rgb555(tinycv::Image self, unsigned char *data)
+  CODE:
+    image_map_raw_data_rgb555(self, data);
 
 void blend(tinycv::Image self, tinycv::Image source, long x, long y)
   CODE:

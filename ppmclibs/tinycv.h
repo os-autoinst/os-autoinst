@@ -32,5 +32,8 @@ Image *image_absdiff(Image *a, Image*b);
 // width and height
 void image_map_raw_data(Image *a, const unsigned char *data);
 
+// this is for IPMI support - RGB555 is 16bits, the rest is like above
+void image_map_raw_data_rgb555(Image *a, const unsigned char *data);
+
 // copy the s image into a at x,y
 void image_blend_image(Image *a, Image *s, long x, long y);

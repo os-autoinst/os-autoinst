@@ -7,11 +7,12 @@ use bytes;
 use bmwqemu qw(diag);
 use Time::HiRes qw( usleep );
 use Carp;
+use tinycv;
 
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       server_endian  _pixinfo _colourmap _framebuffer _rfb_version
-      _bpp _true_colour _big_endian absolute
+      _bpp _true_colour _big_endian absolute ikvm
       )
 );
 our $VERSION = '0.40';
@@ -151,6 +152,7 @@ sub _handshake_security {
 
         my @pref_types = ( 1, 2 );
         @pref_types = ( 30, 1, 2 ) if $self->username;
+        @pref_types = (16) if $self->ikvm;
 
         for my $preferred_type (@pref_types) {
             if ( 0 < grep { $_ == $preferred_type } @security_types ) {
@@ -173,6 +175,29 @@ sub _handshake_security {
             $socket->print( pack( 'C', 1 ) );
         }
 
+    }
+    elsif ( $security_type == 16 ) { # ikvm
+
+        $socket->print( pack( 'C', 16 ) ); # accept
+        $socket->write( pack('Z24', $self->username ) );
+        $socket->write( pack('Z24', $self->password) );
+        $socket->read( my $ikvm_session, 24 ) || die 'unexpected end of data';
+        my @bytes = unpack("C24", $ikvm_session);
+        print "Session info: ";
+        for my $b (@bytes) {
+            printf "%02x ", $b;
+        }
+        print "\n";
+        # examples
+        # af f9 ff bc 50 0d 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
+        # af f9 1f bd 00 06 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
+        # af f9 bf bc 08 03 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
+        $socket->read( my $security_result, 4 ) || die 'Failed to login';
+        $security_result = unpack( 'C', $security_result );
+        print "Security Result: $security_result\n";
+        if ($security_result != 0) {
+            die 'Failed to login';
+        }
     }
     else {
         die 'qemu wants security, but we have no password';
@@ -275,6 +300,13 @@ sub _server_initialization {
     $self->name($name_string);
 
     #    warn $name_string;
+
+    if ($self->ikvm) {
+        $socket->read( my $ikvm_init, 12 ) || die 'unexpected end of data';
+
+        my ( $current_thread, $ikvm_video_enable, $ikvm_km_enable, $ikvm_kick_enable, $v_usb_enable)= unpack 'x4NCCCC', $ikvm_init;
+        print "IKVM specifics: $current_thread $ikvm_video_enable $ikvm_km_enable $ikvm_kick_enable $v_usb_enable\n";
+    }
 
     # setpixelformat
     $socket->print(
@@ -486,6 +518,11 @@ sub receive_message {
       : $message_type == 1     ? $self->_receive_colour_map()
       : $message_type == 2     ? $self->_receive_bell()
       : $message_type == 3     ? $self->_receive_cut_text()
+      : $message_type == 0x39  ? $self->_receive_ikvm_session()
+      : $message_type == 0x04  ? $self->_discard_ikvm_message(20)
+      : $message_type == 0x16  ? $self->_discard_ikvm_message(1)
+      : $message_type == 0x37  ? $self->_discard_ikvm_message(2)
+      : $message_type == 0x3c  ? $self->_discard_ikvm_message(8)
       :                          die 'unsupported message type received';
 
     return $message_type;
@@ -508,7 +545,7 @@ sub _receive_update {
     my $hlen = $socket->read( my $header, 3 ) || die 'unexpected end of data';
     my $number_of_rectangles = unpack( 'xn', $header );
 
-    #bmwqemu::diag "NOR $hlen - $number_of_rectangles";
+    #bmwqemu::diag "NOR $number_of_rectangles";
 
     my $depth = $self->depth;
 
@@ -521,10 +558,10 @@ sub _receive_update {
         # unsigned -> signed conversion
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
 
-        #bmwqemu::diag "UP $x,$y $w x $h";
+        #bmwqemu::diag "UP $x,$y $w x $h $encoding_type";
 
         ### Raw encoding ###
-        if ( $encoding_type == 0 ) {
+        if ( $encoding_type == 0 && !$self->ikvm ) {
 
             # Performance boost: splat raw pixels into the image
             $socket->read( my $data, $w * $h * 4 );
@@ -543,12 +580,77 @@ sub _receive_update {
             bmwqemu::diag("pointer type $x $y $w $h $encoding_type");
             $self->absolute($x);
         }
+        elsif ( $self->ikvm) {
+            $self->_receive_ikvm_encoding($encoding_type, $x, $y, $w, $h);
+        }
         else {
             die 'unsupported update encoding ' . $encoding_type;
         }
     }
 
     return $number_of_rectangles;
+}
+
+sub _discard_ikvm_message {
+    my ($self, $bytes) = @_;
+    # we don't care for the content
+    $self->socket->read(my $dummy, $bytes);
+
+    #   when 0x04
+    #     bytes "front-ground-event", 20
+    #   when 0x16
+    #     bytes "keep-alive-event", 1
+    #   when 0x33
+    #     bytes "video-get-info", 4
+    #   when 0x37
+    #     bytes "mouse-get-info", 2
+    #   when 0x3c
+    #     bytes "get-viewer-lang", 8
+}
+
+sub _receive_ikvm_encoding {
+    my ($self, $encoding_type, $x, $y, $w, $h) = @_;
+
+    my $socket = $self->socket;
+    my $image = $self->_framebuffer;
+
+    # ikvm specific
+    $socket->read(my $aten_data, 8);
+    my ($data_prefix, $data_len) = unpack('NN', $aten_data);
+    #print "P $data_prefix $data_len\n";
+
+    if ($encoding_type == 89) {
+        $socket->read(my $data, $data_len) || die "unexpected end of data";
+        my $img = tinycv::new($w, $h);
+        $img->map_raw_data_rgb555($data);
+        # ikvm doesn't bother sending screen size changes
+        if ($w > $self->width || $x == 0) {
+            $self->width($w);
+            $self->height($h);
+            $image = tinycv::new( $self->width, $self->height );
+            $self->_framebuffer($image);
+        }
+        $image->blend($img, $x, $y);
+    }
+    elsif ( $encoding_type == 0 ) {
+        # ikvm manages to redeclare raw to be something completely different ;(
+        $socket->read(my $data, 10) || die "unexpected end of data";
+        my ($type, $segments, $length) = unpack('CxNN', $data);
+        while ($segments--) {
+            $socket->read(my $data, 6) || die "unexpected end of data";
+            my ($dummy_a, $dummy_b, $y, $x) = unpack('nnCC', $data);
+            $socket->read($data, 512) || die "unexpected end of data";
+            my $img = tinycv::new(16, 16);
+            $img->map_raw_data_rgb555($data);
+            if ($y * 16 + 16 > $self->height) {
+                $img = $img->copyrect(0, 0, 16, $self->height - $y * 16);
+            }
+            if ($x * 16 + 16 > $self->width) {
+                $img = $img->copyrect(0, 0, $img->yres(), $self->width - $x * 16);
+            }
+            $image->blend($img, $x * 16, $y * 16);
+        }
+    }
 }
 
 sub _receive_colour_map {
@@ -564,6 +666,16 @@ sub _receive_bell {
 
     # And discard it...
 
+    return 1;
+}
+
+sub _receive_ikvm_session {
+    my $self = shift;
+
+    $self->socket->read( my $ikvm_session_infos, 264);
+
+    my ($msg1, $msg2, $str) = unpack('NNZ256', $ikvm_session_infos);
+    print "IKVM Session Message: $msg1 $msg2 $str\n";
     return 1;
 }
 

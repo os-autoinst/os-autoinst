@@ -437,6 +437,26 @@ void image_map_raw_data(Image *a, const unsigned char *data)
   }
 }
 
+
+void image_map_raw_data_rgb555(Image *a, const unsigned char *data)
+{
+  for (int y = 0; y < a->img.rows; y++) {
+    for (int x = 0; x < a->img.cols; x++) {
+      long pixel = *data++;
+      pixel += *data++ * 256;
+      unsigned char green = pixel % 32 * 8;
+      pixel = pixel >> 5;
+      unsigned char blue = pixel % 32 * 8;
+      pixel = pixel >> 5;
+      unsigned char red = pixel % 32 * 8;
+      // MSB ignored
+      a->img.at<cv::Vec3b>(y, x)[0] = red;
+      a->img.at<cv::Vec3b>(y, x)[1] = blue;
+      a->img.at<cv::Vec3b>(y, x)[2] = green;
+    }
+  }
+}
+
 // copy the s image into a at x,y
 void image_blend_image(Image *a, Image *s, long x, long y)
 {
