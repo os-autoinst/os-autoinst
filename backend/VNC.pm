@@ -192,6 +192,7 @@ sub _handshake_security {
         # af f9 ff bc 50 0d 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
         # af f9 1f bd 00 06 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
         # af f9 bf bc 08 03 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
+        # af f9 ff bd 40 19 02 00 b0 a4 00 00 84 8c b1 be 00 60 43 40 f0 29 01 00
         $socket->read( my $security_result, 4 ) || die 'Failed to login';
         $security_result = unpack( 'C', $security_result );
         print "Security Result: $security_result\n";
@@ -581,11 +582,11 @@ sub receive_message {
       : $message_type == 2     ? $self->_receive_bell()
       : $message_type == 3     ? $self->_receive_cut_text()
       : $message_type == 0x39  ? $self->_receive_ikvm_session()
-      : $message_type == 0x04  ? $self->_discard_ikvm_message(20)
-      : $message_type == 0x16  ? $self->_discard_ikvm_message(1)
-      : $message_type == 0x33  ? $self->_discard_ikvm_message(4)
-      : $message_type == 0x37  ? $self->_discard_ikvm_message(2)
-      : $message_type == 0x3c  ? $self->_discard_ikvm_message(8)
+      : $message_type == 0x04  ? $self->_discard_ikvm_message($message_type, 20)
+      : $message_type == 0x16  ? $self->_discard_ikvm_message($message_type, 1)
+      : $message_type == 0x33  ? $self->_discard_ikvm_message($message_type, 4)
+      : $message_type == 0x37  ? $self->_discard_ikvm_message($message_type, 2)
+      : $message_type == 0x3c  ? $self->_discard_ikvm_message($message_type, 8)
       :                          die 'unsupported message type received';
 
     return $message_type;
@@ -655,9 +656,10 @@ sub _receive_update {
 }
 
 sub _discard_ikvm_message {
-    my ($self, $bytes) = @_;
+    my ($self, $type, $bytes) = @_;
     # we don't care for the content
     $self->socket->read(my $dummy, $bytes);
+    print "discarding $bytes bytes for message $type\n";
 
     #   when 0x04
     #     bytes "front-ground-event", 20
@@ -680,7 +682,7 @@ sub _receive_ikvm_encoding {
     # ikvm specific
     $socket->read(my $aten_data, 8);
     my ($data_prefix, $data_len) = unpack('NN', $aten_data);
-    #print "P $data_prefix $data_len\n";
+    printf "P $data_prefix $data_len $w $h %d %d\n", $self->width, $self->height;
 
     if ($encoding_type == 89) {
         $socket->read(my $data, $data_len) || die "unexpected end of data";
@@ -702,11 +704,20 @@ sub _receive_ikvm_encoding {
         while ($segments--) {
             $socket->read(my $data, 6) || die "unexpected end of data";
             my ($dummy_a, $dummy_b, $y, $x) = unpack('nnCC', $data);
+            #print "DUMMY $dummy_a $dummy_b $x $y\n";
             $socket->read($data, 512) || die "unexpected end of data";
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
-            if ($y * 16 + 16 > $self->height) {
-                $img = $img->copyrect(0, 0, 16, $self->height - $y * 16);
+	    if ($y * 16 >= $self->height) {
+		    #warn "no point in off-screen updates at " . $y * 16;
+		next;
+	    }
+	    if ($x * 16 >= $self->width) {
+		    #warn "no point in off-screen updates at " . $x * 16;
+		next;
+	    }
+	    if ($y * 16 + 16 > $self->height) {
+		$img = $img->copyrect(0, 0, 16, $self->height - $y * 16);
             }
             if ($x * 16 + 16 > $self->width) {
                 $img = $img->copyrect(0, 0, $img->yres(), $self->width - $x * 16);

@@ -94,8 +94,8 @@ my $ct = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
 
 # init part
 $bmwqemu::vars{BACKEND} ||= "qemu";
-bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
 bmwqemu::save_vars();
+bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
 
 if ($init) {
     open( my $fd, ">os-autoinst.pid" );

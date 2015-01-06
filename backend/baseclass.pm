@@ -6,7 +6,12 @@ use strict;
 use threads;
 use threads::shared;
 use Carp;
+use Carp::Always;
 use JSON qw( to_json );
+use File::Copy qw(cp);
+use File::Basename;
+
+my $framecounter    = 0;    # screenshot counter
 
 sub new {
     my $class = shift;
@@ -16,28 +21,50 @@ sub new {
     return $self;
 }
 
+sub run {
+    my ($self, $cmdpipe, $rsppipe) = @_;
+
+    #$SIG{__DIE__} = sub { alarm 3 };
+
+    my $io = IO::Handle->new();
+    $io->fdopen( $cmdpipe, "r" ) || die "r fdopen $!";
+    $self->{'cmdpipe'} = $io;
+
+    $io = IO::Handle->new();
+    $io->fdopen( $rsppipe, "w" ) || die "w fdopen $!";
+    $rsppipe = $io;
+    $io->autoflush(1);
+    $self->{'rsppipe'} = $io;
+
+    printf STDERR "$$: cmdpipe %d, rsppipe %d\n", fileno($self->{'cmdpipe'}), fileno($self->{'rsppipe'});
+
+    bmwqemu::diag "started mgmt loop with thread id " . threads->tid();
+
+    $self->{'select'} = IO::Select->new();
+    $self->{'select'}->add($self->{'cmdpipe'});
+
+    $self->do_run();
+}
+
 # new api
 
-sub start_vm($) {
-    my $self = shift;
-    my $json = to_json( $self->get_info() );
-    open( my $runf, ">", 'backend.run' ) or die "can not write 'backend.run'";
-    print $runf "$json\n";
-    close $runf;
-    $self->do_start_vm();
+sub start_encoder() {
+    my ($self) = @_;
 
-    $self->{'started'} = 1;
-
-    $self->post_start_hook();
+    my $cwd = Cwd::getcwd();    
+    open($self->{'encoder_pipe'}, "|nice $bmwqemu::scriptdir/videoencoder $cwd/video.ogv") ||
+	die "can't call $bmwqemu::scriptdir/videoencoder";
 }
 
 sub post_start_hook($) {
     my $self = shift; # ignored in base
+    return 0;
 }
 
 sub stop_vm($) {
     my $self = shift;
     return unless $self->{'started'};
+    close($self->{'encoder_pipe'});
     unlink('backend.run');
     $self->do_stop_vm();
     $self->{'started'} = 0;
@@ -57,16 +84,19 @@ sub alive($) {
     return 0;
 }
 
-sub file_alive($) {
-    return ( -e 'backend.run' );
+my $iscrashedfile           = 'backend.crashed';
+sub unlink_crash_file {
+    unlink($iscrashedfile) if -e $iscrashedfile;
 }
 
-sub get_info($) {
-    my $self = shift;
-    return {
-        'backend'      => $self->{'class'},
-        'backend_info' => $self->get_backend_info()
-    };
+sub write_crash_file {
+    if (open(my $fh, ">", $iscrashedfile )) {
+        print $fh "crashed\n";
+        close $fh;
+    }
+    else {
+        warn "cannot write '$iscrashedfile'";
+    }
 }
 
 # new api end
@@ -78,21 +108,6 @@ sub init() {
     # static setup.  don't start the backend yet.
     notimplemented
 }
-
-sub send_key($) { notimplemented }
-
-sub mouse_move($)   { notimplemented }    # relative
-sub mouse_set($)    { notimplemented }    # absolute
-sub mouse_button($) { notimplemented }    # params: (left/(middle)/right, 0/1)
-sub mouse_hide(;$)  { notimplemented }
-
-sub screendump() { notimplemented }
-
-sub raw_alive($)    { notimplemented }
-sub screenactive($) { notimplemented }    # not really important atm
-
-sub start_audiocapture($) { notimplemented }
-sub stop_audiocapture($)  { notimplemented }
 
 sub power($) {
 
@@ -132,60 +147,117 @@ sub cpu_stat($) {
     return undef;
 }
 
-# virtual methods end
+# see http://en.wikipedia.org/wiki/IBM_PC_keyboard
+my  %charmap = (
+    # minus is special as it splits key combinations
+    "-"  => "minus",
+    # first line of US layout
+    "~"  => "shift-`",
+    "!"  => "shift-1",
+    "@"  => "shift-2",
+    "#"  => "shift-3",
+    "\$"  => "shift-4",
+    "%"  => "shift-5",
+    "^"  => "shift-6",
+    "&"  => "shift-7",
+    "*"  => "shift-8",
+    "("  => "shift-9",
+    ")"  => "shift-0",
+    "_"  => "shift-minus",
+    "+"  => "shift-=",
 
-# to be deprecated qemu layer
+    # second line
+    "{"  => "shift-[",
+    "}"  => "shift-]",
+    "|"  => "shift-\\",
 
-sub system_reset() {
-    my $self = shift;
-    $self->power('reset');
+    # third line
+    ":"  => "shift-;",
+    '"'  => "shift-'",
+
+    # fourth line
+    "<"  => "shift-,",
+    ">"  => "shift-.",
+    '?'  => "shift-/",
+
+    "\t" => "tab",
+    "\n" => "ret",
+    "\b" => "backspace",
+);
+
+
+sub map_letter($) {
+    my ($self, $letter) = @_;
+    return $charmap{$letter} if $charmap{$letter};
+    return $letter;
 }
 
-sub system_powerdown() {
-    my $self = shift;
-    $self->power('acpi');
+sub type_string($$) {
+    my ($self, $string, $maxinterval) = @_;
+
+    my $typedchars  = 0;
+    my @letters = split( "", $string );
+    while (@letters) {
+        my $letter = $self->map_letter( shift @letters );
+        send_key $letter, 0;
+        if ( $typedchars++ >= $maxinterval ) {
+            wait_still_screen(1.6);
+            $typedchars = 0;
+        }
+    }
+    wait_still_screen(1.6) if ( $typedchars > 0 );
 }
 
-sub quit() {
-    my $self = shift;
-    $self->power('off');
-}
+our $lastscreenshot;
+our $lastscreenshotName = '';
 
-sub eject() {
-    my $self = shift;
-    $self->eject_cd();
-}
+# to be called from backend thread
+sub _enqueue_screenshot($) {
+    my ($self, $img) = @_;
 
-sub boot_set($) {
-    my $self   = shift;
-    my $device = shift;
+    $framecounter++;
 
-    # this is called too soon so just
-    # don't do this
-    #if ($device eq 'c') {
-    #	$self->eject_cd();
-    #}
-}
+    my $filename = $bmwqemu::screenshotpath . sprintf( "/shot-%010d.png", $framecounter );
 
-sub info($) {
+    #print STDERR $filename,"\n";
 
-    # whatever
-    return;
-}
+    # linking identical files saves space
 
-sub send($) {
-    my $self = shift;
-    my $line = shift;
-    print STDOUT "send($line)\n";
-    $line =~ s/^(\w+)\s*//;
-    my $cmd = $1;
-    if ($cmd) {
-        $self->$cmd($line);
+    # 54 is based on t/data/user-settings-*
+    my $sim = 0;
+    $sim = $lastscreenshot->similarity($img) if $lastscreenshot;
+    #diag "similarity is $sim";
+    if ( $sim > 54 ) {
+        symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
+    }
+    else {    # new
+        $img->write($filename) || die "write $filename";
+        # copy new one to shared directory, remove old one and change symlink
+        cp($filename, $bmwqemu::liveresultpath);
+        unlink($bmwqemu::liveresultpath .'/'. basename($lastscreenshotName)) if $lastscreenshot;
+        $bmwqemu::screenshotQueue->enqueue($filename);
+        $lastscreenshot          = $img;
+        $lastscreenshotName      = $filename;
+        unless(symlink(basename($filename), $bmwqemu::liveresultpath.'/tmp.png')) {
+            # try to unlink file and try again
+            unlink($bmwqemu::liveresultpath.'/tmp.png');
+            symlink(basename($filename), $bmwqemu::liveresultpath.'/tmp.png');
+        }
+        rename($bmwqemu::liveresultpath.'/tmp.png', $bmwqemu::liveresultpath.'/last.png');
+
+        #my $ocr=get_ocr($img);
+        #if($ocr) { diag "ocr: $ocr" }
+    }
+    if ( $sim > 50 ) { # we ignore smaller differences
+        $self->{'encoder_pipe'}->print("R\n");
     }
     else {
-        warn "unknown cmd in $line";
+        $self->{'encoder_pipe'}->print("E $lastscreenshotName\n");
     }
+    $self->{'encoder_pipe'}->flush();
 }
+
+# virtual methods end
 
 # to be deprecated qemu layer end
 

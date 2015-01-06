@@ -6,9 +6,7 @@ use warnings;
 use Time::HiRes qw(sleep gettimeofday);
 use Digest::MD5;
 use IO::Socket;
-use File::Basename;
-use File::Path qw(remove_tree);
-use File::Copy qw(cp);
+use Data::Dumper;
 
 # eval {require Algorithm::Line::Bresenham;};
 use ocr;
@@ -29,14 +27,14 @@ use Exporter;
 our $VERSION;
 our @EXPORT = qw(diag fileContent save_vars);
 
+use backend::driver;
+
 sub mydie;
 
 # shared vars
 
-my $goodimageseen : shared           = 0;
-my $screenshotQueue                  = Thread::Queue->new();
+our $screenshotQueue                  = Thread::Queue->new();
 my $prestandstillwarning : shared    = 0;
-my $numunchangedscreenshots : shared = 0;
 
 my @ocrrect;
 share(@ocrrect);
@@ -44,6 +42,7 @@ share(@ocrrect);
 our $interactive_mode;
 our $needle_template;
 our $waiting_for_new_needle;
+our $screenshotpath = "qemuscreenshot";
 
 # shared vars end
 
@@ -66,8 +65,6 @@ our $istty;
 our $direct_output;
 our $timesidleneeded     = 1;
 our $standstillthreshold = 600;
-
-our $encoder_pipe;
 
 sub load_vars() {
     my $fn = "vars.json";
@@ -98,7 +95,6 @@ sub save_vars() {
 share( $vars{SCREENSHOTINTERVAL} );    # to adjust at runtime
 
 our $testresults    = "testresults";
-our $screenshotpath = "qemuscreenshot";
 our $liveresultpath;
 
 our $serialfile     = "serial0";
@@ -204,8 +200,6 @@ sub init {
 # local vars
 
 our $backend;    #FIXME: make local after adding frontend-api to bmwqemu
-
-my $framecounter = 0;    # screenshot counter
 
 # local vars end
 
@@ -313,6 +307,7 @@ sub result_dir() {
 
 our $lastscreenshot;
 our $lastscreenshotName = '';
+our $lastscreenshotTime;
 
 sub getcurrentscreenshot(;$) {
     my $undef_on_standstill = shift;
@@ -336,8 +331,10 @@ sub getcurrentscreenshot(;$) {
     if ($filename && $lastscreenshotName ne $filename ) {
         $lastscreenshot     = tinycv::read($filename);
         $lastscreenshotName = $filename;
+	$lastscreenshotTime = time;
     }
     elsif ( !$interactive_mode && !current_test->{post_fail_hook_running} ) {
+	my $numunchangedscreenshots = time - $lastscreenshotTime;
         $prestandstillwarning = ( $numunchangedscreenshots > $standstillthreshold / 2 );
         if ( $numunchangedscreenshots > $standstillthreshold ) {
             diag "STANDSTILL";
@@ -357,26 +354,19 @@ sub getcurrentscreenshot(;$) {
 
 sub init_backend($) {
     my $name = shift;
-    require "backend/$name.pm";
-    $backend = "backend::$name"->new();
+    $backend = backend::driver->new($name);
 }
 
 sub start_vm() {
     return unless $backend;
 
-    # remove old screenshots
-    remove_tree($screenshotpath);
-    mkdir $screenshotpath;
-
-    my $cwd = Cwd::getcwd();
-    open($encoder_pipe, "|nice $scriptdir/videoencoder $cwd/video.ogv") || die "can't call $scriptdir/videoencoder";
+    print "start_vm\n";
     $backend->start_vm();
 }
 
 sub stop_vm() {
     return unless $backend;
     $backend->stop_vm();
-    close($encoder_pipe);
     if (!$direct_output && $logfd) {
         close $logfd;
         $logfd = undef;
@@ -396,54 +386,6 @@ sub mydie {
 
     #	$backend->stop_vm();
     croak "mydie";
-}
-
-# to be called from backend thread
-sub enqueue_screenshot($) {
-    my $img = shift;
-
-    $framecounter++;
-
-    my $filename = $screenshotpath . sprintf( "/shot-%010d.png", $framecounter );
-
-    #print STDERR $filename,"\n";
-
-    # linking identical files saves space
-
-    # 54 is based on t/data/user-settings-*
-    my $sim = 0;
-    $sim = $lastscreenshot->similarity($img) if $lastscreenshot;
-    #diag "similarity is $sim";
-    if ( $sim > 54 ) {
-        symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
-        $numunchangedscreenshots++;
-    }
-    else {    # new
-        $img->write($filename) || die "write $filename";
-        # copy new one to shared directory, remove old one and change symlink
-        cp($filename, $liveresultpath);
-        unlink($liveresultpath .'/'. basename($lastscreenshotName)) if $lastscreenshot;
-        $screenshotQueue->enqueue($filename);
-        $lastscreenshot          = $img;
-        $lastscreenshotName      = $filename;
-        $numunchangedscreenshots = 0;
-        unless(symlink(basename($filename), $liveresultpath.'/tmp.png')) {
-            # try to unlink file and try again
-            unlink($liveresultpath.'/tmp.png');
-            symlink(basename($filename), $liveresultpath.'/tmp.png');
-        }
-        rename($liveresultpath.'/tmp.png', $liveresultpath.'/last.png');
-
-        #my $ocr=get_ocr($img);
-        #if($ocr) { diag "ocr: $ocr" }
-    }
-    if ( $sim > 50 ) { # we ignore smaller differences
-        print $encoder_pipe "R\n";
-    }
-    else {
-        print $encoder_pipe "E $lastscreenshotName\n";
-    }
-    $encoder_pipe->flush();
 }
 
 sub do_start_audiocapture($) {
@@ -469,7 +411,7 @@ sub alive() {
 }
 
 sub get_cpu_stat() {
-    my ( $statuser, $statsystem ) = $backend->cpu_stat();
+    my ( $statuser, $statsystem ) = @{$backend->cpu_stat()};
     my $statstr = '';
     if ($statuser) {
         for ( $statuser, $statsystem ) { $_ /= $clock_ticks }
@@ -971,7 +913,6 @@ sub save_results(;$$) {
 }
 
 #FIXME: new wait functions
-# waitscreenactive - ($backend->screenactive())
 # wait-time - like sleep but prints info to log
 # wait-screen-(un)-active to catch reboot of hardware
 
