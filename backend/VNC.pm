@@ -12,7 +12,7 @@ use tinycv;
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       server_endian  _pixinfo _colourmap _framebuffer _rfb_version
-      _bpp _true_colour _big_endian absolute ikvm
+      _bpp _true_colour _big_endian absolute ikvm keymap
       )
 );
 our $VERSION = '0.40';
@@ -370,9 +370,12 @@ sub _send_key_event {
     # defined by the X Window System.
 
     my $socket = $self->socket;
+    my $template = 'CCnN';
+    # for a strange reason ikvm has a lot more padding
+    $template = 'CxCnNx9' if $self->ikvm;
     $socket->print(
         pack(
-            'CCnN',
+            $template,
             4,             # message_type
             $down_flag,    # down-flag
             0,             # padding
@@ -397,7 +400,7 @@ sub send_key_event {
     $self->send_key_event_up($key);
 }
 
-my $keymap = {
+my $keymap_x11 = {
     'esc' => 0xff1b,
     'down' => 0xff54,
     'right' => 0xff53,
@@ -410,18 +413,6 @@ my $keymap = {
     'ctrl' => 0xffe3, # left, right is e4
     'meta' => 0xffe7, # left, right is e8
     'alt' => 0xffe9, # left one, right is ea
-    'f1' => 0xffbe,
-    'f2' => 0xffbf,
-    'f3' => 0xffc0,
-    'f4' => 0xffc1,
-    'f5' => 0xffc2,
-    'f6' => 0xffc3,
-    'f7' => 0xffc4,
-    'f8' => 0xffc5,
-    'f9' => 0xffc6,
-    'f10' => 0xffc7,
-    'f11' => 0xffc8,
-    'f12' => 0xffc9,
     'ret' => 0xff0d,
     'tab' => 0xff09,
     'backspace' => 0xff08,
@@ -434,21 +425,92 @@ my $keymap = {
     'sysrq' => 0xff15,
 };
 
+sub init_x11_keymap {
+    my ($self) = @_;
+
+    return if $self->keymap;
+    $self->keymap($keymap_x11);
+    for my $key (30..255) {
+        $self->keymap->{chr($key)} ||= $key;
+    }
+    for my $key (1..12) {
+        $self->keymap->{"f$key"} = 0xffbd + $key;
+    }
+    for my $key ("a".."z") {
+        my $code = ord($key);
+        $self->keymap->{$key} = $code;
+    }
+}
+
+my $keymap_ikvm = {
+    'ctrl' => 0xe0,
+    'shift' => 0xe1,
+    'alt' => 0xe2,
+    'win' => 0xe3,
+    'caps' => 0x39,
+
+    '0'=> 0x27,
+    '\r'=> 0x28,
+    '\033'=> 0x29,
+    '\x7f'=> 0x2a,
+    'tab' => 0x2b,
+    ' ' => 0x2c,
+    'minus'=> 0x2d,
+    '='=> 0x2e,
+    '['=> 0x2f,
+    ']'=> 0x30,
+    '\\'=> 0x31,
+    ';'=> 0x33,
+    '\''=> 0x34,
+    '`'=> 0x35,
+    ','=> 0x36,
+    '.'=> 0x37,
+    '/'=> 0x38,
+};
+
+sub init_ikvm_keymap {
+    my ($self) = @_;
+
+    return if $self->keymap;
+    $self->keymap($keymap_ikvm);
+    for my $key ("a".."z") {
+        my $code = 0x4 + ord($key) - ord('a');
+        $self->keymap->{$key} = $code;
+        $self->keymap->{uc($key)} = [$self->keymap->{'shift'}, $code];
+    }
+    for my $key ("1".."9") {
+        $self->keymap->{$key} = 0x1e + ord($key) - ord('1');
+    }
+    for my $key (1..12) {
+        $self->keymap->{"f$key"} = 0x3a + $key - 1,;
+    }
+}
+
 sub send_mapped_key {
     my ($self, $keys) = @_;
+
+    if ($self->ikvm) {
+        $self->init_ikvm_keymap;
+    }
+    else {
+        $self->init_x11_keymap;
+    }
+
     my @events;
+
     for my $key (split('-', $keys)) {
-        if (length($key) == 1) {
-            $key = ord($key);
-        }
-        elsif (defined($keymap->{$key})) {
-            $key = $keymap->{$key};
+        if (defined($self->keymap->{$key})) {
+            if (ref($self->keymap->{$key}) eq 'ARRAY') {
+                push(@events, @{$self->keymap->{$key}});
+            }
+            else {
+                push(@events, $self->keymap->{$key});
+            }
+            next;
         }
         else {
             die "No map for '$key'";
-            $key = ord('X');
         }
-        push(@events, $key);
     }
     for my $key (@events) {
         #bmwqemu::diag "send_key_event_down $key";
