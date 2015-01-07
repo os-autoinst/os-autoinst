@@ -66,7 +66,7 @@ sub power($) {
 
 sub eject_cd(;$) {
     my $self = shift;
-    $self->send( { "execute" => "eject", "arguments" => { "device" => "ide1-cd0" } } );
+    $self->handle_qmp_command( { "execute" => "eject", "arguments" => { "device" => "ide1-cd0" } } );
 }
 
 sub cpu_stat($) {
@@ -81,10 +81,8 @@ sub do_start_vm() {
     my $self = shift;
     die "startqemu failed: $@" if $@;
 
-
     # remove backend.crashed
     $self->unlink_crash_file();
-
     $self->start_qemu();
 }
 
@@ -504,7 +502,7 @@ sub wait_for_screen_stall($) {
             }
             else {
                 $vnc->receive_message();
-                $self->enqueue_screenshot();
+                $self->enqueue_screenshot;
                 $vnc->send_update_request;
             }
         }
@@ -517,7 +515,7 @@ sub wait_for_screen_stall($) {
     #my ( $s2, $usec2 ) = gettimeofday;
     #my $diff = ( $s2 - $s1 ) + ( $usec2 - $ms1 ) / 1e6;
     #bmwqemu::diag "done $diff";
-    $self->enqueue_screenshot();
+    $self->enqueue_screenshot;
 }
 
 sub type_string($$) {
@@ -631,22 +629,10 @@ sub handle_qmp_command($) {
     return $hash;
 }
 
-sub screenshot_interval() {
-    return $bmwqemu::vars{SCREENSHOTINTERVAL} || .5;
-}
-
 sub enqueue_screenshot() {
-    my ($self) = @_;
+    my ($self, $image) = @_;
 
-    return unless $vnc->_framebuffer;
-    my ( $s2, $usec2 ) = gettimeofday();
-    my $rest = screenshot_interval() - ( $s2 - $screenshot_sec ) - ( $usec2 - $screenshot_usec ) / 1e6;
-
-    # don't overdo it
-    return unless $rest < 0.05;
-    $self->_enqueue_screenshot($vnc->_framebuffer->scale( 1024, 768 ));
-    ( $screenshot_sec, $screenshot_usec ) = gettimeofday();
-    #bmwqemu::diag "enqueue_screenshot $screenshot_sec, $screenshot_usec";
+    $self->SUPER::enqueue_screenshot($vnc->_framebuffer);
     $vnc->send_update_request();
 }
 
@@ -661,6 +647,7 @@ sub read_qemupipe() {
     return $bytes;
 }
 
+
 sub close_pipes() {
     my ($self) = @_;
 
@@ -672,11 +659,6 @@ sub close_pipes() {
     close($self->{'qemupipe'});
     $self->{'qemupipe'} = undef;
 
-    if ($self->{'cmdpipe'}) {
-        close($self->{'cmdpipe'})   || die "close $!\n";
-        $self->{'cmdpipe'} = undef;
-    }
-
     if ($self->{'qmpsocket'}) {
         close($self->{'qmpsocket'}) || die "close $!\n";
         $self->{'qmpsocket'} = undef;
@@ -685,12 +667,7 @@ sub close_pipes() {
         close($self->{'hmpsocket'}) || die "close $!\n";
         $self->{'hmpsocket'} = undef;
     }
-
-    return unless $self->{'rsppipe'};
-
-    # XXX: perl does not really close the fd here due to threads!?
-    print $self->{'rsppipe'}, $MAGIC_PIPE_CLOSE_STRING;
-    close($self->{'rsppipe'}) || die "close $!\n";
+    $self->SUPER::close_pipes();
 }
 
 sub do_run() {
@@ -703,8 +680,6 @@ sub do_run() {
         my ( $s2, $usec2 ) = gettimeofday();
         my $rest = $interval - ( $s2 - $screenshot_sec ) - ( $usec2 - $screenshot_usec ) / 1e6;
 
-        $rest = $interval; # TODO: aid
-
         my @ready = $self->{'select'}->can_read($rest);
 
         if ($vnc) {
@@ -714,7 +689,7 @@ sub do_run() {
                 bmwqemu::diag "VNC failed $@";
                 last SELECT;
             }
-            $self->enqueue_screenshot();
+            $self->enqueue_screenshot;
         }
 
         for my $fh (@ready) {

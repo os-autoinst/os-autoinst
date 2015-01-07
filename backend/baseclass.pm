@@ -208,12 +208,24 @@ sub type_string($$) {
     wait_still_screen(1.6) if ( $typedchars > 0 );
 }
 
+
+sub screenshot_interval() {
+    return $bmwqemu::vars{SCREENSHOTINTERVAL} || .5;
+}
+
 our $lastscreenshot;
 our $lastscreenshotName = '';
 
-# to be called from backend thread
-sub _enqueue_screenshot($) {
-    my ($self, $img) = @_;
+sub enqueue_screenshot() {
+    my ($self, $image) = @_;
+
+    return unless $image;
+    my ( $s2, $usec2 ) = gettimeofday();
+    my $rest = screenshot_interval() - ( $s2 - $screenshot_sec ) - ( $usec2 - $screenshot_usec ) / 1e6;
+
+    # don't overdo it
+    return unless $rest < 0.05;
+    $image = $image->scale( 1024, 768 );
 
     $framecounter++;
 
@@ -225,18 +237,21 @@ sub _enqueue_screenshot($) {
 
     # 54 is based on t/data/user-settings-*
     my $sim = 0;
-    $sim = $lastscreenshot->similarity($img) if $lastscreenshot;
+    $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
+
+    ( $screenshot_sec, $screenshot_usec ) = gettimeofday();
+
     #diag "similarity is $sim";
     if ( $sim > 54 ) {
         symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
     }
     else {    # new
-        $img->write($filename) || die "write $filename";
+        $image->write($filename) || die "write $filename";
         # copy new one to shared directory, remove old one and change symlink
         cp($filename, $bmwqemu::liveresultpath);
         unlink($bmwqemu::liveresultpath .'/'. basename($lastscreenshotName)) if $lastscreenshot;
         $bmwqemu::screenshotQueue->enqueue($filename);
-        $lastscreenshot          = $img;
+        $lastscreenshot          = $image;
         $lastscreenshotName      = $filename;
         unless(symlink(basename($filename), $bmwqemu::liveresultpath.'/tmp.png')) {
             # try to unlink file and try again
@@ -245,7 +260,7 @@ sub _enqueue_screenshot($) {
         }
         rename($bmwqemu::liveresultpath.'/tmp.png', $bmwqemu::liveresultpath.'/last.png');
 
-        #my $ocr=get_ocr($img);
+        #my $ocr=get_ocr($image);
         #if($ocr) { diag "ocr: $ocr" }
     }
     if ( $sim > 50 ) { # we ignore smaller differences
@@ -257,9 +272,18 @@ sub _enqueue_screenshot($) {
     $self->{'encoder_pipe'}->flush();
 }
 
-# virtual methods end
+sub close_pipes() {
+    if ($self->{'cmdpipe'}) {
+        close($self->{'cmdpipe'})   || die "close $!\n";
+        $self->{'cmdpipe'} = undef;
+    }
 
-# to be deprecated qemu layer end
+    return unless $self->{'rsppipe'};
+
+    # XXX: perl does not really close the fd here due to threads!?
+    print $self->{'rsppipe'}, $MAGIC_PIPE_CLOSE_STRING;
+    close($self->{'rsppipe'}) || die "close $!\n";
+}
 
 1;
 # vim: set sw=4 et:
