@@ -299,9 +299,6 @@ EO_frickin_boot_parms
 	$self->linuxrc_prompt("Enter your VNC password",
 			      value => "FOOBARBAZ");
 
-	$self->linuxrc_prompt("Enter your temporary SSH password",
-			      value => "SSH!554!");
-
 	$r = $s3270->expect_3270(
 	    output_delim => qr/\Q*** Starting YaST2 ***\E/,
 	    timeout      => 20
