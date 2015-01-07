@@ -94,7 +94,7 @@ sub start_vm($) {
     print "remove_tree $bmwqemu::screenshotpath\n";
     remove_tree($bmwqemu::screenshotpath);
     mkdir $bmwqemu::screenshotpath;
-    
+
     $self->start_encoder();
     $self->do_start_vm();
 

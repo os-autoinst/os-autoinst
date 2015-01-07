@@ -331,10 +331,10 @@ sub getcurrentscreenshot(;$) {
     if ($filename && $lastscreenshotName ne $filename ) {
         $lastscreenshot     = tinycv::read($filename);
         $lastscreenshotName = $filename;
-	$lastscreenshotTime = time;
+        $lastscreenshotTime = time;
     }
     elsif ( !$interactive_mode && !current_test->{post_fail_hook_running} ) {
-	my $numunchangedscreenshots = time - $lastscreenshotTime;
+        my $numunchangedscreenshots = time - $lastscreenshotTime;
         $prestandstillwarning = ( $numunchangedscreenshots > $standstillthreshold / 2 );
         if ( $numunchangedscreenshots > $standstillthreshold ) {
             diag "STANDSTILL";
@@ -572,7 +572,7 @@ sub wait_idle($) {
     my $timesidle = 0;
     my $idlethreshold  = $vars{IDLETHRESHOLD};
     for my $n ( 1 .. $timeout ) {
-        my ( $stat, $systemstat ) = $backend->cpu_stat();
+        my ( $stat, $systemstat ) = @{$backend->cpu_stat()};
         sleep 1;    # sleep before skip to timeout when having no data (hw)
         next unless $stat;
         $stat += $systemstat;

@@ -192,8 +192,6 @@ sub start_qemu() {
     }
     bmwqemu::save_vars(); # update variables
 
-    $ENV{QEMU_AUDIO_DRV} = "none";
-
     use File::Path qw/mkpath/;
     mkpath($basedir);
 
@@ -235,6 +233,7 @@ sub start_qemu() {
     $self->{'pid'} = fork();
     die "fork failed" if ( !defined( $self->{'pid'} ) );
     if ( $self->{'pid'} == 0 ) {
+        $ENV{QEMU_AUDIO_DRV} = "none";
         my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga", $vars->{QEMUVGA});
 
         my $qemu_machine = '';
@@ -398,9 +397,7 @@ sub start_qemu() {
     $flags = fcntl( $self->{'qmpsocket'}, Fcntl::F_GETFL, 0 ) or die "can't getfl(): $!\n";
     $flags = fcntl( $self->{'qmpsocket'}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
 
-    STDERR->printf("$$: hmpsocket %d, qmpsocket %d\n", 
-		   fileno($self->{'hmpsocket'}), 
-		   fileno($self->{'qmpsocket'}));
+    STDERR->printf("$$: hmpsocket %d, qmpsocket %d\n",fileno($self->{'hmpsocket'}),fileno($self->{'qmpsocket'}));
 
     fcntl( $self->{'qemupipe'}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
 
@@ -424,7 +421,7 @@ sub start_qemu() {
     }
 
     syswrite( $self->{'hmpsocket'}, "cont\n" );
-    
+
     $self->{'select'}->add($vnc->socket);
     $self->{'select'}->add($self->{'qemupipe'});
 
@@ -539,7 +536,7 @@ sub type_string($$) {
 
 sub send_key($) {
     my ($self, $args) = @_;
-    
+
     bmwqemu::diag "send_mapped_key '" . $args->{key} . "'";
     $vnc->send_mapped_key($args->{key});
     my $s = IO::Select->new();
@@ -548,6 +545,56 @@ sub send_key($) {
     return {};
 }
 
+sub mouse_hide {
+    my ($self, $args) = @_;
+
+    $mouse_xpos = $vnc->width - 1;
+    $mouse_ypos = $vnc->height - 1;
+
+    my $border_offset = int($args->{border_offset});
+    $mouse_xpos -= $border_offset;
+    $mouse_ypos -= $border_offset;
+
+    bmwqemu::diag "mouse_move $mouse_xpos, $mouse_ypos";
+    $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
+    return { 'absolute' => $vnc->absolute };
+
+}
+
+sub mouse_set {
+    my ($self, $args) = @_;
+
+    # TODO: for framebuffers larger than 1024x768, we need to upscale
+    $mouse_xpos = int($args->{x});
+    $mouse_ypos = int($args->{y});
+
+    bmwqemu::diag "mouse_set $mouse_xpos, $mouse_ypos";
+    $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
+    return {};
+}
+
+sub mouse_button {
+    my ($self, $args) = @_;
+
+    my $button = $args->{button};
+    my $bstate = $args->{bstate};
+
+    my $mask = 0;
+    if ($button eq 'left') {
+        $mask = $bstate;
+    }
+    elsif ($button eq 'right') {
+        $mask = $bstate << 2;
+    }
+    elsif ($button eq 'middle') {
+        $mask = $bstate << 1;
+    }
+    bmwqemu::diag "pointer_event $mask $mouse_xpos, $mouse_ypos";
+    $vnc->send_pointer_event( $mask, $mouse_xpos, $mouse_ypos );
+    return {};
+}
+
+
 # runs in the thread to deserialize VNC commands
 sub handle_command($) {
 
@@ -555,62 +602,9 @@ sub handle_command($) {
 
     my $func = $cmd->{'cmd'};
     unless ($self->can($func)) {
-	die "not supported command: $func";
+        die "not supported command: $func";
     }
     return $self->$func($cmd->{'arguments'});
-
-    if ($cmd->{VNC} eq 'capture') {
-        my $img = $vnc->capture();
-        my ( $seconds, $microseconds ) = gettimeofday;
-        my $filename = "vnc.$seconds.$microseconds.png";
-
-        $img->write($filename);
-        return {'filename' => $filename};
-    }
-
-    if ($cmd->{VNC} eq 'mouse_hide') {
-        $mouse_xpos = $vnc->width - 1;
-        $mouse_ypos = $vnc->height - 1;
-
-        my $border_offset = int($cmd->{arguments}->{border_offset});
-        $mouse_xpos -= $border_offset;
-        $mouse_ypos -= $border_offset;
-
-        bmwqemu::diag "mouse_move $mouse_xpos, $mouse_ypos";
-        $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
-        return { 'absolute' => $vnc->absolute };
-    }
-
-    if ($cmd->{VNC} eq 'mouse_set') {
-        # TODO: for framebuffers larger than 1024x768, we need to upscale
-        $mouse_xpos = int($cmd->{arguments}->{x});
-        $mouse_ypos = int($cmd->{arguments}->{y});
-
-        bmwqemu::diag "mouse_set $mouse_xpos, $mouse_ypos";
-        $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
-        return {};
-    }
-
-    if ($cmd->{VNC} eq 'mouse_button') {
-        my $button = $cmd->{arguments}->{button};
-        my $bstate = $cmd->{arguments}->{bstate};
-
-        my $mask = 0;
-        if ($button eq 'left') {
-            $mask = $bstate;
-        }
-        elsif ($button eq 'right') {
-            $mask = $bstate << 2;
-        }
-        elsif ($button eq 'middle') {
-            $mask = $bstate << 1;
-        }
-        bmwqemu::diag "pointer_event $mask $mouse_xpos, $mouse_ypos";
-        $vnc->send_pointer_event( $mask, $mouse_xpos, $mouse_ypos );
-        return {};
-    }
-
-    die "unsupported VNC command " . $cmd->{VNC};
 }
 
 # runs in the thread to bounce QMP
@@ -643,7 +637,7 @@ sub screenshot_interval() {
 
 sub enqueue_screenshot() {
     my ($self) = @_;
-    
+
     return unless $vnc->_framebuffer;
     my ( $s2, $usec2 ) = gettimeofday();
     my $rest = screenshot_interval() - ( $s2 - $screenshot_sec ) - ( $usec2 - $screenshot_usec ) / 1e6;
@@ -732,6 +726,7 @@ sub do_run() {
                 #print STDERR "cmd ". JSON::to_json($cmd) . "\n";
 
                 if ( $cmd->{hmp} ) {
+                    die "HMP is obsolete";
                     my $wb = syswrite( $self->{'hmpsocket'}, "$cmd->{hmp}\n" );
 
                     #print STDERR "wrote HMP $wb $cmd->{hmp}\n";

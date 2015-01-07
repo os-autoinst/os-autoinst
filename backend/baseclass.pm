@@ -51,9 +51,9 @@ sub run {
 sub start_encoder() {
     my ($self) = @_;
 
-    my $cwd = Cwd::getcwd();    
-    open($self->{'encoder_pipe'}, "|nice $bmwqemu::scriptdir/videoencoder $cwd/video.ogv") ||
-	die "can't call $bmwqemu::scriptdir/videoencoder";
+    my $cwd = Cwd::getcwd();
+    open($self->{'encoder_pipe'}, "|nice $bmwqemu::scriptdir/videoencoder $cwd/video.ogv")
+      ||die "can't call $bmwqemu::scriptdir/videoencoder";
 }
 
 sub post_start_hook($) {

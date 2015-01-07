@@ -708,16 +708,16 @@ sub _receive_ikvm_encoding {
             $socket->read($data, 512) || die "unexpected end of data";
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
-	    if ($y * 16 >= $self->height) {
-		    #warn "no point in off-screen updates at " . $y * 16;
-		next;
-	    }
-	    if ($x * 16 >= $self->width) {
-		    #warn "no point in off-screen updates at " . $x * 16;
-		next;
-	    }
-	    if ($y * 16 + 16 > $self->height) {
-		$img = $img->copyrect(0, 0, 16, $self->height - $y * 16);
+            if ($y * 16 >= $self->height) {
+                #warn "no point in off-screen updates at " . $y * 16;
+                next;
+            }
+            if ($x * 16 >= $self->width) {
+                #warn "no point in off-screen updates at " . $x * 16;
+                next;
+            }
+            if ($y * 16 + 16 > $self->height) {
+                $img = $img->copyrect(0, 0, 16, $self->height - $y * 16);
             }
             if ($x * 16 + 16 > $self->width) {
                 $img = $img->copyrect(0, 0, $img->yres(), $self->width - $x * 16);
