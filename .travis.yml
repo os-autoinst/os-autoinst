@@ -3,8 +3,8 @@ before_install:
    - sudo apt-get update
 language: perl
 install:
-  - cpanm -nq Perl::Tidy Data::Dump JSON
-  - sudo apt-get install libopencv-dev libtheora-dev libcv-dev libhighgui-dev libdata-dump-perl libjson-perl tesseract-ocr
+  - cpanm -nq Perl::Tidy
+  - sudo apt-get install libopencv-dev libtheora-dev libcv-dev libhighgui-dev libdata-dump-perl libjson-perl libcarp-always-perl tesseract-ocr
 script:
   - ./tools/tidy --check
   - sh autogen.sh 

@@ -10,8 +10,10 @@ use Carp::Always;
 use JSON qw( to_json );
 use File::Copy qw(cp);
 use File::Basename;
+use Time::HiRes qw(gettimeofday);
 
 my $framecounter    = 0;    # screenshot counter
+my $MAGIC_PIPE_CLOSE_STRING = 'xxxQUITxxx';
 
 sub new {
     my $class = shift;
@@ -210,6 +212,8 @@ sub type_string($$) {
 
 
 sub screenshot_interval() {
+    my ($self) = @_;
+
     return $bmwqemu::vars{SCREENSHOTINTERVAL} || .5;
 }
 
@@ -221,7 +225,7 @@ sub enqueue_screenshot() {
 
     return unless $image;
     my ( $s2, $usec2 ) = gettimeofday();
-    my $rest = screenshot_interval() - ( $s2 - $screenshot_sec ) - ( $usec2 - $screenshot_usec ) / 1e6;
+    my $rest = $self->screenshot_interval() -( $s2 - $self->{'screenshot'}->{'sec'} ) -( $usec2 - $self->{'screenshot'}->{'usec'} ) / 1e6;
 
     # don't overdo it
     return unless $rest < 0.05;
@@ -239,7 +243,7 @@ sub enqueue_screenshot() {
     my $sim = 0;
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
 
-    ( $screenshot_sec, $screenshot_usec ) = gettimeofday();
+    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
 
     #diag "similarity is $sim";
     if ( $sim > 54 ) {
@@ -273,6 +277,8 @@ sub enqueue_screenshot() {
 }
 
 sub close_pipes() {
+    my ($self) = @_;
+
     if ($self->{'cmdpipe'}) {
         close($self->{'cmdpipe'})   || die "close $!\n";
         $self->{'cmdpipe'} = undef;
@@ -281,7 +287,7 @@ sub close_pipes() {
     return unless $self->{'rsppipe'};
 
     # XXX: perl does not really close the fd here due to threads!?
-    print $self->{'rsppipe'}, $MAGIC_PIPE_CLOSE_STRING;
+    $self->{'rsppipe'}->print($MAGIC_PIPE_CLOSE_STRING);
     close($self->{'rsppipe'}) || die "close $!\n";
 }
 
