@@ -169,7 +169,6 @@ sub stop         { notimplemented }
 sub cont         { notimplemented }
 sub do_savevm($) { notimplemented }
 sub do_loadvm($) { notimplemented }
-sub do_delvm($)  { notimplemented }
 
 ## MAY be overwritten:
 

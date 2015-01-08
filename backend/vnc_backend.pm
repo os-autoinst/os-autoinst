@@ -33,7 +33,7 @@ sub check_socket {
 sub close_pipes() {
     my ($self) = @_;
 
-    close($self->{'vnc'}->socket) if ($self->{'vnc'}->socket);
+    close($self->{'vnc'}->socket) if ($self->{'vnc'} && $self->{'vnc'}->socket);
     $self->{'vnc'} = undef;
 
     $self->SUPER::close_pipes();

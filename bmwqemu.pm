@@ -857,13 +857,13 @@ sub _reduce_to_biggest_changes($) {
 sub make_snapshot($) {
     my $sname = shift;
     diag("Creating a VM snapshot $sname");
-    $backend->do_savevm($sname);
+    $backend->do_savevm({'name' => $sname});
 }
 
 sub load_snapshot($) {
     my $sname = shift;
     diag("Loading a VM snapshot $sname");
-    $backend->do_loadvm($sname);
+    $backend->do_loadvm({'name' => $sname});
     sleep(10);
 }
 

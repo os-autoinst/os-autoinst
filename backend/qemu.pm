@@ -39,12 +39,12 @@ sub raw_alive($) {
 
 sub start_audiocapture($) {
     my ( $self, $filename ) = @_;
-    $self->handle_hmp_command("wavcapture $filename 44100 16 1");
+    $self->_send_hmp("wavcapture $filename 44100 16 1");
 }
 
 sub stop_audiocapture($) {
     my ( $self, $index ) = @_;
-    $self->handle_hmp_command("stopcapture $index");
+    $self->_send_hmp("stopcapture $index");
 }
 
 sub power($) {
@@ -52,10 +52,10 @@ sub power($) {
     # parameters: acpi, reset, (on), off
     my ( $self, $action ) = @_;
     if ( $action eq 'acpi' ) {
-        $self->handle_hmp_command("system_powerdown");
+        $self->_send_hmp("system_powerdown");
     }
     elsif ( $action eq 'reset' ) {
-        $self->handle_hmp_command("system_reset");
+        $self->_send_hmp("system_reset");
     }
     elsif ( $action eq 'off' ) {
         $self->handle_qmp_command( { "execute" => "quit" } );
@@ -112,26 +112,24 @@ sub do_stop_vm($) {
 }
 
 sub do_savevm($) {
-    my ( $self, $vmname ) = @_;
-    my $rsp = $self->handle_hmp_command("savevm $vmname")->{return};
+    my ( $self, $args ) = @_;
+    my $vmname = $args->{name};
+    my $rsp = $self->_send_hmp("savevm $vmname");
     bmwqemu::diag "SAVED $vmname $rsp";
     die unless ( $rsp eq "savevm $vmname" );
 }
 
 sub do_loadvm($) {
-    my ( $self, $vmname ) = @_;
-    my $rsp = $self->handle_hmp_command("loadvm $vmname")->{return};
+    my ( $self, $args ) = @_;
+    my $vmname = $args->{name};
+    my $rsp = $self->_send_hmp("loadvm $vmname");
     bmwqemu::diag "LOAD $vmname '$rsp'\n";
     die unless ( $rsp eq "loadvm $vmname" );
-    $rsp = $self->handle_qmp_command({"execute" => "stop"})->{return};
+    $rsp = $self->handle_qmp_command({"execute" => "stop"});
     bmwqemu::diag "stop $rsp\n";
-    $rsp = $self->handle_qmp_command({"execute" => "cont"})->{return};
+    $rsp = $self->handle_qmp_command({"execute" => "cont"});
     bmwqemu::diag "cont $rsp\n";
-}
-
-sub do_delvm($) {
-    my ( $self, $vmname ) = @_;
-    $self->handle_hmp_command("delvm $vmname");
+    return $rsp;
 }
 
 # baseclass virt method overwrite end
@@ -548,11 +546,13 @@ sub read_qemupipe() {
 sub close_pipes() {
     my ($self) = @_;
 
-    # one last word?
-    fcntl( $self->{'qemupipe'}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK );
-    $self->read_qemupipe();
-    close($self->{'qemupipe'});
-    $self->{'qemupipe'} = undef;
+    if ($self->{'qemupipe'}) {
+        # one last word?
+        fcntl( $self->{'qemupipe'}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK );
+        $self->read_qemupipe();
+        close($self->{'qemupipe'});
+        $self->{'qemupipe'} = undef;
+    }
 
     if ($self->{'qmpsocket'}) {
         close($self->{'qmpsocket'}) || die "close $!\n";
@@ -565,7 +565,7 @@ sub close_pipes() {
     $self->SUPER::close_pipes();
 }
 
-sub handle_hmp_command {
+sub _send_hmp {
     my ($self, $hmp) = @_;
 
     my $wb = syswrite( $self->{'hmpsocket'}, "$hmp\n" );
@@ -573,7 +573,13 @@ sub handle_hmp_command {
     #print STDERR "wrote HMP $wb $cmd->{hmp}\n";
     die "syswrite failed $!" unless ( $wb == length($hmp) + 1 );
 
-    my $line = $self->_read_hmp;
+    return $self->_read_hmp;
+}
+
+sub handle_hmp_command {
+    my ($self, $hmp) = @_;
+
+    my $line = $self->_send_hmp($hmp);
     $self->{'rsppipe'}->print(JSON::to_json( { "rsp" => $line }));
 }
 
