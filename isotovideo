@@ -143,14 +143,16 @@ else {
     sleep 10;
 }
 
-diag "done" unless $r;
+diag "isotovideo done" unless $r;
 diag "FAIL" if $r;
 
 $SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
 bmwqemu::stop_vm();
+print "killing commands thread\n";
 $ct->kill('SIGTERM');
 $ct->join();
+print "done joining commands thread\n";
 
 # run postrun test code after VM is stopped
 if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {

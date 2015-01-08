@@ -69,11 +69,11 @@ sub stop {
 
     return unless ( $self->{runthread} );
 
-    $self->send('quit');
+    $self->send_json({'cmd' => 'quit'});
 
     diag " waiting for console read thread to quit...";
     $self->{runthread}->join();
-    diag "done";
+    diag "done joining";
     $self->{runthread} = undef;
     close( $self->{to_child} );
     $self->{to_child} = undef;
@@ -216,6 +216,11 @@ sub _send_json {
     die "syswrite failed $!" unless ( $wb == length($json) + 1 );
 
     my $rsp = _read_json( $self->{from_child} );
+    unless ($rsp) {
+	$self->{runthread}->join();
+	$self->{runthread} = undef;
+	return undef;
+    }
     return $rsp->{'rsp'};
 }
 
@@ -240,6 +245,9 @@ sub _read_json($) {
         my $bytes = sysread( $socket, $qbuffer, 1 );
         if ( !$bytes ) { diag("sysread failed: $!"); return undef; }
         $rsp .= $qbuffer;
+        if ($rsp eq $backend::baseclass::MAGIC_PIPE_CLOSE_STRING) {
+	    return undef;
+        }
         if ( $rsp !~ m/\n/ ) { next; }
         $hash = eval { JSON::decode_json($rsp); };
     }

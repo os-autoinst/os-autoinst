@@ -114,7 +114,7 @@ sub init {
         open( $logfd, '>&STDERR');
     }
     else {
-        open( $logfd, ">>", "$liveresultpath/autoinst-log.txt" );
+        open( $logfd, ">", "$liveresultpath/autoinst-log.txt" );
     }
     # set unbuffered so that send_key lines from main thread will be written
     my $oldfh = select($logfd);

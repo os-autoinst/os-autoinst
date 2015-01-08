@@ -490,7 +490,6 @@ sub wait_for_screen_stall($) {
             else {
                 $vnc->receive_message();
                 $self->enqueue_screenshot;
-                $vnc->send_update_request;
             }
         }
         my ( $s2, $usec2 ) = gettimeofday;

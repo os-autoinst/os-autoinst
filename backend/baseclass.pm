@@ -13,7 +13,7 @@ use File::Basename;
 use Time::HiRes qw(gettimeofday);
 
 my $framecounter    = 0;    # screenshot counter
-my $MAGIC_PIPE_CLOSE_STRING = 'xxxQUITxxx';
+our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
 
 sub new {
     my $class = shift;
@@ -245,7 +245,7 @@ sub enqueue_screenshot() {
 
     ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
 
-    #diag "similarity is $sim";
+    bmwqemu::diag "similarity is $sim";
     if ( $sim > 54 ) {
         symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
     }
