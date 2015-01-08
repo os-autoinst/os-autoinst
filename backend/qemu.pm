@@ -2,7 +2,7 @@
 
 package backend::qemu;
 use strict;
-use base ('backend::baseclass');
+use base ('backend::vnc_backend');
 use threads;
 require File::Temp;
 use File::Temp ();
@@ -39,12 +39,12 @@ sub raw_alive($) {
 
 sub start_audiocapture($) {
     my ( $self, $filename ) = @_;
-    $self->send("wavcapture $filename 44100 16 1");
+    $self->handle_hmp_command("wavcapture $filename 44100 16 1");
 }
 
 sub stop_audiocapture($) {
     my ( $self, $index ) = @_;
-    $self->send("stopcapture $index");
+    $self->handle_hmp_command("stopcapture $index");
 }
 
 sub power($) {
@@ -52,10 +52,10 @@ sub power($) {
     # parameters: acpi, reset, (on), off
     my ( $self, $action ) = @_;
     if ( $action eq 'acpi' ) {
-        $self->send("system_powerdown");
+        $self->handle_hmp_command("system_powerdown");
     }
     elsif ( $action eq 'reset' ) {
-        $self->send("system_reset");
+        $self->handle_hmp_command("system_reset");
     }
     elsif ( $action eq 'off' ) {
         $self->handle_qmp_command( { "execute" => "quit" } );
@@ -87,9 +87,6 @@ sub do_start_vm() {
 sub do_stop_vm($) {
     my $self = shift;
 
-    $self->{mgmt}->stop() if $self->{mgmt};
-    $self->{mgmt} = undef;
-
     sleep(0.1);
     waitpid($self->{pid}, WNOHANG);
     my $n;
@@ -116,17 +113,17 @@ sub do_stop_vm($) {
 
 sub do_savevm($) {
     my ( $self, $vmname ) = @_;
-    my $rsp = $self->send("savevm $vmname")->{return};
+    my $rsp = $self->handle_hmp_command("savevm $vmname")->{return};
     bmwqemu::diag "SAVED $vmname $rsp";
     die unless ( $rsp eq "savevm $vmname" );
 }
 
 sub do_loadvm($) {
     my ( $self, $vmname ) = @_;
-    my $rsp = $self->send("loadvm $vmname")->{return};
+    my $rsp = $self->handle_hmp_command("loadvm $vmname")->{return};
     bmwqemu::diag "LOAD $vmname '$rsp'\n";
     die unless ( $rsp eq "loadvm $vmname" );
-    $rsp = $self->send("stop")->{return};
+    $rsp = $self->handle_qmp_command({"execute" => "stop"})->{return};
     bmwqemu::diag "stop $rsp\n";
     $rsp = $self->handle_qmp_command({"execute" => "cont"})->{return};
     bmwqemu::diag "cont $rsp\n";
@@ -134,15 +131,10 @@ sub do_loadvm($) {
 
 sub do_delvm($) {
     my ( $self, $vmname ) = @_;
-    $self->send("delvm $vmname");
+    $self->handle_hmp_command("delvm $vmname");
 }
 
 # baseclass virt method overwrite end
-
-# only valid in management thread
-our $vnc;
-my $mouse_xpos = 0;
-my $mouse_ypos = 0;
 
 sub start_qemu() {
 
@@ -363,8 +355,8 @@ sub start_qemu() {
     close $pidf;
     sleep 3;    # time to let qemu start
 
-    $vnc = backend::VNC->new({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC} });
-    eval { $vnc->login; };
+    $self->{'vnc'} = backend::VNC->new({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC} });
+    eval { $self->{'vnc'}->login; };
     if ($@) {
         $self->close_pipes();
         die $@;
@@ -417,10 +409,10 @@ sub start_qemu() {
 
     $self->handle_qmp_command({"execute" => "cont"});
 
-    $self->{'select'}->add($vnc->socket);
+    $self->{'select'}->add($self->{'vnc'}->socket);
     $self->{'select'}->add($self->{'qemupipe'});
 
-    $vnc->send_update_request;
+    $self->{'vnc'}->send_update_request;
 }
 
 sub _read_hmp($) {
@@ -478,7 +470,7 @@ use Time::HiRes qw(gettimeofday);
 sub wait_for_screen_stall($) {
     my ($self, $s) = @_;
 
-    $vnc->send_update_request;
+    $self->{'vnc'}->send_update_request;
     my ( $s1, $ms1 ) = gettimeofday;
     while (1) {
         my @ready = $s->can_read(.1);
@@ -488,7 +480,7 @@ sub wait_for_screen_stall($) {
                 $self->read_qemupipe();
             }
             else {
-                $vnc->receive_message();
+                $self->{'vnc'}->receive_message();
                 $self->enqueue_screenshot;
             }
         }
@@ -508,87 +500,14 @@ sub type_string($$) {
     my ($self, $args) = @_;
     my @letters = split( "", $args->{text} );
     my $s = IO::Select->new();
-    $s->add($vnc->socket);
+    $s->add($self->{'vnc'}->socket);
     $s->add($self->{'qemupipe'});
 
     for my $letter (@letters) {
         $letter = $self->map_letter($letter);
-        $vnc->send_mapped_key($letter);
+        $self->{'vnc'}->send_mapped_key($letter);
         $self->wait_for_screen_stall($s);
     }
-}
-
-sub send_key($) {
-    my ($self, $args) = @_;
-
-    bmwqemu::diag "send_mapped_key '" . $args->{key} . "'";
-    $vnc->send_mapped_key($args->{key});
-    my $s = IO::Select->new();
-    $s->add($vnc->socket);
-    $self->wait_for_screen_stall($s);
-    return {};
-}
-
-sub mouse_hide {
-    my ($self, $args) = @_;
-
-    $mouse_xpos = $vnc->width - 1;
-    $mouse_ypos = $vnc->height - 1;
-
-    my $border_offset = int($args->{border_offset});
-    $mouse_xpos -= $border_offset;
-    $mouse_ypos -= $border_offset;
-
-    bmwqemu::diag "mouse_move $mouse_xpos, $mouse_ypos";
-    $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
-    return { 'absolute' => $vnc->absolute };
-
-}
-
-sub mouse_set {
-    my ($self, $args) = @_;
-
-    # TODO: for framebuffers larger than 1024x768, we need to upscale
-    $mouse_xpos = int($args->{x});
-    $mouse_ypos = int($args->{y});
-
-    bmwqemu::diag "mouse_set $mouse_xpos, $mouse_ypos";
-    $vnc->mouse_move_to($mouse_xpos, $mouse_ypos);
-    return {};
-}
-
-sub mouse_button {
-    my ($self, $args) = @_;
-
-    my $button = $args->{button};
-    my $bstate = $args->{bstate};
-
-    my $mask = 0;
-    if ($button eq 'left') {
-        $mask = $bstate;
-    }
-    elsif ($button eq 'right') {
-        $mask = $bstate << 2;
-    }
-    elsif ($button eq 'middle') {
-        $mask = $bstate << 1;
-    }
-    bmwqemu::diag "pointer_event $mask $mouse_xpos, $mouse_ypos";
-    $vnc->send_pointer_event( $mask, $mouse_xpos, $mouse_ypos );
-    return {};
-}
-
-
-# runs in the thread to deserialize VNC commands
-sub handle_command($) {
-
-    my ($self, $cmd) = @_;
-
-    my $func = $cmd->{'cmd'};
-    unless ($self->can($func)) {
-        die "not supported command: $func";
-    }
-    return $self->$func($cmd->{'arguments'});
 }
 
 # runs in the thread to bounce QMP
@@ -615,14 +534,6 @@ sub handle_qmp_command($) {
     return $hash;
 }
 
-sub enqueue_screenshot() {
-    my ($self, $image) = @_;
-
-    return unless ($vnc && $vnc->_framebuffer);
-    $self->SUPER::enqueue_screenshot($vnc->_framebuffer);
-    $vnc->send_update_request();
-}
-
 sub read_qemupipe() {
     my ($self) = @_;
     my $buffer;
@@ -636,9 +547,6 @@ sub read_qemupipe() {
 
 sub close_pipes() {
     my ($self) = @_;
-
-    close($vnc->socket) if ($vnc->socket);
-    $vnc = undef;
 
     # one last word?
     fcntl( $self->{'qemupipe'}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK );
@@ -674,48 +582,11 @@ sub handle_hmp_command {
 sub check_socket {
     my ($self, $fh) = @_;
 
-    if ( $vnc && $fh == $vnc->socket) {
-        # vnc is non-blocking so just try
-        eval { $vnc->receive_message(); };
-        if ($@) {
-            bmwqemu::diag "VNC failed $@";
-            $self->close_pipes();
-        }
-        else {
-            $self->enqueue_screenshot;
-        }
-        return 1;
-    }
-    elsif ( $self->{'qemupipe'} && $fh == $self->{'qemupipe'}) {
+    if ( $self->{'qemupipe'} && $fh == $self->{'qemupipe'}) {
         $self->close_pipes() unless $self->read_qemupipe();
         return 1;
     }
     return $self->SUPER::check_socket($fh);
-}
-
-sub do_run() {
-    my ($self) = @_;
-
-    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
-    my $interval = $self->screenshot_interval();
-
-    while ($self->{'cmdpipe'}) {
-        my ( $s2, $usec2 ) = gettimeofday();
-        my $rest = $interval - ( $s2 - $self->{'screenshot'}->{'sec'} ) - ( $usec2 - $self->{'screenshot'}->{'usec'} ) / 1e6;
-
-        my @ready = $self->{'select'}->can_read($rest);
-
-        $self->enqueue_screenshot;
-
-        for my $fh (@ready) {
-            unless ($self->check_socket($fh)) {
-                $self->close_pipes();
-                die "huh! $fh\n";
-            }
-        }
-    }
-
-    bmwqemu::diag( "management thread exit at " . POSIX::strftime( "%F %T", gmtime ) );
 }
 
 1;

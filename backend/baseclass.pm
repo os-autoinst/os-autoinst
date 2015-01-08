@@ -23,6 +23,18 @@ sub new {
     return $self;
 }
 
+# runs in the thread to deserialize VNC commands
+sub handle_command($) {
+
+    my ($self, $cmd) = @_;
+
+    my $func = $cmd->{'cmd'};
+    unless ($self->can($func)) {
+        die "not supported command: $func";
+    }
+    return $self->$func($cmd->{'arguments'});
+}
+
 sub run {
     my ($self, $cmdpipe, $rsppipe) = @_;
 
@@ -46,6 +58,32 @@ sub run {
     $self->{'select'}->add($self->{'cmdpipe'});
 
     $self->do_run();
+}
+
+# default implementation of do_run
+sub do_run() {
+    my ($self) = @_;
+
+    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
+    my $interval = $self->screenshot_interval();
+
+    while ($self->{'cmdpipe'}) {
+        my ( $s2, $usec2 ) = gettimeofday();
+        my $rest = $interval - ( $s2 - $self->{'screenshot'}->{'sec'} ) - ( $usec2 - $self->{'screenshot'}->{'usec'} ) / 1e6;
+
+        my @ready = $self->{'select'}->can_read($rest);
+
+        $self->enqueue_screenshot;
+
+        for my $fh (@ready) {
+            unless ($self->check_socket($fh)) {
+                $self->close_pipes();
+                die "huh! $fh\n";
+            }
+        }
+    }
+
+    bmwqemu::diag( "management thread exit at " . POSIX::strftime( "%F %T", gmtime ) );
 }
 
 # new api
@@ -295,7 +333,7 @@ sub close_pipes() {
 sub check_socket {
     my ($self, $fh) = @_;
 
-    if ( $fh == $self->{'cmdpipe'} ) {
+    if ( $self->{'cmdpipe'} && $fh == $self->{'cmdpipe'} ) {
         my $cmd = backend::driver::_read_json($self->{'cmdpipe'});
 
         if ( $cmd->{cmd} ) {

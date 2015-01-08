@@ -138,12 +138,6 @@ sub get_info($) {
     };
 }
 
-my %last_mouse_coords = ( 'x' => 0, 'y' => 0 );
-sub get_last_mouse_set {
-    my $self = shift;
-    return ($last_mouse_coords{'x'}, $last_mouse_coords{'y'});
-}
-
 # new api end
 
 sub send_key($) {
@@ -155,13 +149,6 @@ sub type_string($$) {
     my ( $self, $text, $max_interval ) = @_;
     return unless ($text);
     return $self->_send_json({ 'cmd' => "type_string", 'arguments' => { 'text' => $text, 'max_interval' => $max_interval } });
-}
-
-sub mouse_set($$) {
-    my ( $self, $x, $y ) = @_;
-
-    %last_mouse_coords = ( 'x' => $x, 'y' => $y );
-    return $self->_send_json({ 'cmd' => "mouse_set", 'arguments' => { 'x' => $x, 'y' => $y } } );
 }
 
 sub mouse_button($$$) {
