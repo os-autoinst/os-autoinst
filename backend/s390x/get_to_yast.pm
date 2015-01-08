@@ -14,18 +14,15 @@ use feature qw/say/;
 
 # use backend::s390x::s3270;
 
-# THIS IS EVIL.  SO EVIL...
-# need  $bmwqemu::backend
-
 ##use testapi;  # get_var, ...
 
 sub new() {
-    my ($class, @rest) = @_;
+    my ($class, $s3270, $vars, @rest) = @_;
 
-    my $self = $class->SUPER::new(@_);
+    my $self = $class->SUPER::new($class, @rest);
 
-    # THIS IS EVIL
-    $self->{s3270} = $bmwqemu::backend->{s3270};
+    $self->{s3270} = $s3270;
+    $self->{vars} = $vars;
 
     return $self;
 }
@@ -122,126 +119,205 @@ sub ftpboot_menu () {
 }
 
 ###################################################################
+require Text::Wrap;
+
+sub hash2parmfile() {
+    my ($parmfile_href) = @_;
+
+    # collect the {key => value, ...}  pairs from the hash into a
+    # space separated string "key=value ..." of assignments, in the
+    # form needed in the parmfile.
+    my @parmentries;
+
+    while (my ($k, $v) = each $parmfile_href) {
+        push @parmentries, "$k=$v";
+    }
+
+    my $parmfile_with_Newline_s = join( " ", @parmentries);
+
+    # Chop this long line up in hunks less than 80 characters wide, to
+    # send them to the host with s3270 "String(...)" commands, with
+    # additional "Newline" commands to add new lines.
+
+    # Creatively use Text::Wrap for this, with 'String("' as line
+    # prefix and '")\n' as line separator.  Actually '")\nNewline\n'
+    # is the line separator :)
+    local $Text::Wrap::separator = "\")\nNewline\n";
+
+    # For the maximum line length for the wrapping, the s3270
+    # 'String("")' command characters in each line don't account for
+    # the parmfile line length.  The X E D I T editor has a line
+    # counter column to the left.
+    local $Text::Wrap::columns = 79 + length('String("') - length("00004 ");
+
+    $parmfile_with_Newline_s = Text::Wrap::wrap(
+        'String("',             # first line prefix
+        'String("',             # subsequent lines prefix
+        $parmfile_with_Newline_s
+    );
+
+    # If there is no 'Newline\n' at the end of the parmfile, the last
+    # line was not long enough to split it.  Then add the closing
+    # paren and the Newline now.
+    $parmfile_with_Newline_s .= "\")\nNewline"
+      unless $parmfile_with_Newline_s =~ /Newline\n$/s;
+
+    return $parmfile_with_Newline_s;
+}
+
 sub run() {
+#<<< don't perltidy this part:
+# it makes perfect sense to have request and response _above_ each other
     my $self = shift;
 
     my $r;
 
     my $s3270 = $self->{s3270};
-    ###################################################################
-    # ftpboot
+    eval {
+        ###################################################################
+        # ftpboot
 
-    $s3270->sequence_3270(
-        qw{
-          String(ftpboot)
-          ENTER
-          Wait(InputField)
-          }
-    );
+        $s3270->sequence_3270(
+            qw{
+                String(ftpboot)
+                ENTER
+                Wait(InputField)
+              });
 
-    $r = $self->ftpboot_menu(qr/\QDIST.SUSE.DE\E/);
-    $r = $self->ftpboot_menu(qr/\QSLES-11-SP4-Alpha2\E/);
+        $r = $self->ftpboot_menu(qr/\QDIST.SUSE.DE\E/);
+        $r = $self->ftpboot_menu(qr/\QSLES-11-SP4-Alpha2\E/);
 
-    ##############################
-    # edit parmfile
+        ##############################
+        # edit parmfile
+        {
+            $r = $s3270->expect_3270(buffer_ready => qr/X E D I T/, timeout => 30);
 
-    $r = $s3270->expect_3270(buffer_ready => qr/X E D I T/, timeout => 30);
+            $s3270->sequence_3270( qw{ String(INPUT) ENTER } );
 
-    $s3270->sequence_3270(
-        qw(
-          String(INPUT) ENTER
-          )
-    );
+            $r = $s3270->expect_3270(buffer_ready => qr/Input-mode/);
+            ### say Dumper $r;
 
-    $r = $s3270->expect_3270(buffer_ready => qr/Input-mode/);
-    ### say Dumper $r;
+            my $parmfile_href = $self->{vars}{PARMFILE};
 
-    # can't use qw{} because of space in commands...
-    $s3270->sequence_3270(split /\n/, <<'EO_frickin_boot_parms');
-String("HostIP=10.161.185.154/24 Hostname=s390hsi154.suse.de")
-Newline
-String("Gateway=10.161.185.254 Nameserver=10.160.0.1 Domain=suse.de")
-Newline
+            $parmfile_href->{ssh}='1';
+
+            my $parmfile_with_Newline_s = &hash2parmfile($parmfile_href);
+
+            my $sequence = <<"EO_frickin_boot_parms";
+${parmfile_with_Newline_s}
 String("ssh=1")
 Newline
 ENTER
 ENTER
 EO_frickin_boot_parms
 
-    $r = $s3270->expect_3270(buffer_ready => qr/X E D I T/);
+            # can't use qw{} because of space in commands...
+            $s3270->sequence_3270(split /\n/, $sequence);
 
-    $s3270->sequence_3270(
-        qw(
-          String(FILE) ENTER
-          )
-    );
+            $r = $s3270->expect_3270(buffer_ready => qr/X E D I T/);
 
-    ###################################################################
-    # linuxrc
+            $s3270->sequence_3270( qw{ String(FILE) ENTER });
+        }
+        ###################################################################
+        # linuxrc
 
-    # wait for linuxrc to come up...
-    $r = $s3270->expect_3270(output_delim => qr/>>> Linuxrc/, timeout=>20);
-    ### say Dumper $r;
+        # wait for linuxrc to come up...
+        $r = $s3270->expect_3270(output_delim => qr/>>> Linuxrc/, timeout=>20);
+        ### say Dumper $r;
 
-    $self->linuxrc_menu("Main Menu", "Start Installation");
-    $self->linuxrc_menu("Start Installation", "Start Installation or Update");
-    $self->linuxrc_menu("Choose the source medium", "Network");
-    $self->linuxrc_menu("Choose the network protocol", "HTTP");
+        $self->linuxrc_menu("Main Menu", "Start Installation");
+        $self->linuxrc_menu("Start Installation", "Start Installation or Update");
+        $self->linuxrc_menu("Choose the source medium", "Network");
+        $self->linuxrc_menu("Choose the network protocol", "HTTP");
 
-    $self->linuxrc_prompt("Enter your temporary SSH password.", "SSH!554!");
+        $self->linuxrc_prompt("Enter your temporary SSH password.",
+                              value => "SSH!554!");
 
-    $self->linuxrc_menu("Choose the network device", "\QIBM Hipersocket (0.0.7058)\E");
+        if ($self->{vars}{NETWORK} eq "HSI_L3") {
+            $self->linuxrc_menu("Choose the network device",
+                                "\QIBM Hipersocket (0.0.7058)\E");
 
-    $self->linuxrc_prompt("Device address for read channel");
-    $self->linuxrc_prompt("Device address");
-    $self->linuxrc_prompt("Device address");
+            $self->linuxrc_prompt("Device address for read channel");
+            $self->linuxrc_prompt("Device address");
+            $self->linuxrc_prompt("Device address");
 
-    $self->linuxrc_menu("Enable OSI Layer 2 support", "No");
-    $self->linuxrc_menu("Automatic configuration via DHCP", "No");
+            $self->linuxrc_menu("Enable OSI Layer 2 support", "No");
+            $self->linuxrc_menu("Automatic configuration via DHCP", "No");
 
-    # use values from parmfile
-    $self->linuxrc_prompt("Enter your IPv4 address");
-    $self->linuxrc_prompt("Enter your netmask. For a normal class C network, this is usually 255.255.255.0.");
-    $self->linuxrc_prompt("Enter the IP address of the gateway. Leave empty if you don't need one.");
-    $self->linuxrc_prompt("Enter your search domains, separated by a space",timeout => 10);
+        }
+        elsif ($self->{vars}{NETWORK} eq "CTC") {
+            $self->linuxrc_menu("Choose the network device", "\QIBM parallel CTC Adapter (0.0.0600)\E");
+            $self->linuxrc_prompt("Device address for read channel");
+            $self->linuxrc_prompt("Device address for write channel");
+            $self->linuxrc_menu("Select protocol for this CTC device", "Compatibility mode");
+            $self->linuxrc_menu("Automatic configuration via DHCP", "No");
+        }
+        else {
+            confess "unknown network device in vars.json: NETWORK = $self->{vars}{NETWORK}";
+        };
 
-    $self->linuxrc_prompt("Enter the IP address of your name server. Leave empty if you don't need one",timeout => 10);
+        # use values from parmfile
+        $self->linuxrc_prompt("Enter your IPv4 address");
+
+        if ($self->{vars}{NETWORK} eq "HSI_L3") {
+            $self->linuxrc_prompt("Enter your netmask. For a normal class C network, this is usually 255.255.255.0.",
+                                  timeout => 10, # allow for the CTC peer to react
+                );
+            $self->linuxrc_prompt("Enter the IP address of the gateway. Leave empty if you don't need one.");
+            $self->linuxrc_prompt("Enter your search domains, separated by a space",
+                                  timeout => 10);
+        }
+        elsif ($self->{vars}{NETWORK} eq "CTC") {
+            $self->linuxrc_prompt("Enter the IP address of the PLIP partner.",
+                                  value   => $self->{vars}{PARMFILE}{Gateway});
+
+        };
+
+        $self->linuxrc_prompt("Enter the IP address of your name server. Leave empty if you don't need one",
+                              timeout => 10);
+
+        $self->linuxrc_prompt("Enter the IP address of the HTTP server",
+                              value => "10.160.0.100");
+        $self->linuxrc_prompt("Enter the directory on the server",
+                              value => "/install/SLP/SLES-11-SP4-Alpha2/s390x/DVD1");
+
+        $self->linuxrc_menu("Do you need a username and password to access the HTTP server",
+                            "No");
+
+        $self->linuxrc_menu("Use a HTTP proxy",
+                            "No");
 
 
-    $self->linuxrc_prompt("Enter the IP address of the HTTP server",value => "10.160.0.100");
-    $self->linuxrc_prompt("Enter the directory on the server",value => "/install/SLP/SLES-11-SP4-Alpha2/s390x/DVD1");
+        $r = $s3270->expect_3270(
+            output_delim => qr/Reading Driver Update/,
+            timeout      => 50
+            );
 
-    $self->linuxrc_menu("Do you need a username and password to access the HTTP server","No");
-
-    $self->linuxrc_menu("Use a HTTP proxy","No");
-
-
-    $r = $s3270->expect_3270(
-        output_delim => qr/Reading Driver Update/,
-        timeout      => 50
-    );
-
-    ### say Dumper $r;
+        ### say Dumper $r;
 
 
-    $self->linuxrc_menu("Select the display type","VNC");
+        $self->linuxrc_menu("Select the display type",
+                            "VNC");
 
-    $self->linuxrc_prompt("Enter your VNC password",value => "FOOBARBAZ");
+        $self->linuxrc_prompt("Enter your VNC password",
+                              value => "FOOBARBAZ");
 
-    $self->linuxrc_prompt("Enter your temporary SSH password",value => "SSH!554!");
+        $r = $s3270->expect_3270(
+            output_delim => qr/\Q*** Starting YaST2 ***\E/,
+            timeout      => 20
+            );
+    };
 
-    $r = $s3270->expect_3270(
-        output_delim => qr/\Q*** Starting YaST2 ***\E/,
-        timeout      => 20
-    );
-
+    # while developing: cluck.  in real life:  confess!
+    # confess $@ if $@;
+    cluck $@if $@;
     ### say Dumper $r;
 
     ###################################################################
     # now we are ready do connect to vnc and to start the vnc backend...
 
     while (1) { sleep 50; }
-
+#>>> perltidy again from here on
 }
 
 1;

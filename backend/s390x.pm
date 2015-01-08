@@ -47,35 +47,6 @@ sub init() {
 
 }
 
-###################################################################
-# linuxrc helpers
-
-sub linuxrc_menu() {
-    my ($self, $menu_title, $menu_entry) = @_;
-    # get the menu (ends with /^>/)
-    my $r = $self->{s3270}->expect_3270(output_delim => qr/^> /);
-    ### say Dumper $r;
-
-    # newline separate list of strings when interpolating...
-    local $LIST_SEPARATOR = "\n";
-
-    if (!grep /^$menu_title/, @$r) {
-        confess "menu does not match expected menu title ${menu_title}\n @${r}";
-    }
-
-    my @match_entry = grep /\) $menu_entry/, @$r;
-
-    if (!@match_entry) {
-        confess "menu does not contain expected menu entry ${menu_entry}:\n@${r}";
-    }
-
-    my ($match_id) = $match_entry[0] =~ /(\d+)\)/;
-
-    my $sequence = ["Clear", "String($match_id)", "ENTER"];
-
-    $self->{s3270}->sequence_3270(@$sequence);
-}
-
 # For now, we run the testcase from here until we have a vnc connection going.
 # TODO: move the test case to the test cases.
 require backend::s390x::get_to_yast;
@@ -93,7 +64,7 @@ sub do_start_vm() {
 
     $r = $s3270->login();
 
-    my $test = new backend::s390x::get_to_yast();
+    my $test = new backend::s390x::get_to_yast($s3270, $self->{vars});
 
     $r = $test->backend::s390x::get_to_yast::run();
 
