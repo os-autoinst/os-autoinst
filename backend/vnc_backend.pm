@@ -39,6 +39,59 @@ sub close_pipes() {
     $self->SUPER::close_pipes();
 }
 
+use Time::HiRes qw(gettimeofday);
+
+# to be overwritten e.g. in qemu to check stderr
+sub special_socket($) {
+    return 0;
+}
+
+sub wait_for_screen_stall($) {
+    my ($self, $s) = @_;
+
+    $self->{'vnc'}->send_update_request;
+    my ( $s1, $ms1 ) = gettimeofday;
+    while (1) {
+        my @ready = $s->can_read(.1);
+        last unless @ready;
+        for my $fh (@ready) {
+            unless (special_socket($fh)) {
+                $self->{'vnc'}->receive_message();
+                $self->enqueue_screenshot;
+            }
+        }
+        my ( $s2, $usec2 ) = gettimeofday;
+        my $diff = ( $s2 - $s1 ) + ( $usec2 - $ms1 ) / 1e6;
+        #bmwqemu::diag "diff $diff";
+        # we can't wait longer - in password prompts there is no screen update
+        last if ($diff > .8);
+    }
+    #my ( $s2, $usec2 ) = gettimeofday;
+    #my $diff = ( $s2 - $s1 ) + ( $usec2 - $ms1 ) / 1e6;
+    #bmwqemu::diag "done $diff";
+    $self->enqueue_screenshot;
+}
+
+sub select_for_vnc {
+    my ($self) = @_;
+
+    my $s = IO::Select->new();
+    $s->add($self->{'vnc'}->socket);
+    return $s;
+}
+
+sub type_string($$) {
+    my ($self, $args) = @_;
+    my @letters = split( "", $args->{text} );
+
+    my $s = $self->select_for_vnc();
+    for my $letter (@letters) {
+        $letter = $self->map_letter($letter);
+        $self->{'vnc'}->send_mapped_key($letter);
+        $self->wait_for_screen_stall($s);
+    }
+}
+
 sub send_key($) {
     my ($self, $args) = @_;
 

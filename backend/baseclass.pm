@@ -183,7 +183,7 @@ sub cpu_stat($) {
 
     # vm's would return
     # (userstat, systemstat)
-    return undef;
+    return ();
 }
 
 # see http://en.wikipedia.org/wiki/IBM_PC_keyboard

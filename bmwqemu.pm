@@ -411,7 +411,9 @@ sub alive() {
 }
 
 sub get_cpu_stat() {
-    my ( $statuser, $statsystem ) = @{$backend->cpu_stat()};
+    my $cpustats = $backend->cpu_stat();
+    return 'unk' unless $cpustats;
+    my ( $statuser, $statsystem ) = @$cpustats;
     my $statstr = '';
     if ($statuser) {
         for ( $statuser, $statsystem ) { $_ /= $clock_ticks }

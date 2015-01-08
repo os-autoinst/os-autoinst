@@ -463,49 +463,21 @@ sub _read_hmp($) {
     die "ERROR: timeout reading hmp socket\n";
 }
 
-use Time::HiRes qw(gettimeofday);
-
-sub wait_for_screen_stall($) {
-    my ($self, $s) = @_;
-
-    $self->{'vnc'}->send_update_request;
-    my ( $s1, $ms1 ) = gettimeofday;
-    while (1) {
-        my @ready = $s->can_read(.1);
-        last unless @ready;
-        for my $fh (@ready) {
-            if ($fh == $self->{'qemupipe'}) {
-                $self->read_qemupipe();
-            }
-            else {
-                $self->{'vnc'}->receive_message();
-                $self->enqueue_screenshot;
-            }
-        }
-        my ( $s2, $usec2 ) = gettimeofday;
-        my $diff = ( $s2 - $s1 ) + ( $usec2 - $ms1 ) / 1e6;
-        #bmwqemu::diag "diff $diff";
-        # we can't wait longer - in password prompts there is no screen update
-        last if ($diff > .8);
+sub special_socket($) {
+    my ($self, $fh);
+    if ($fh == $self->{'qemupipe'}) {
+        $self->read_qemupipe();
+        return 1;
     }
-    #my ( $s2, $usec2 ) = gettimeofday;
-    #my $diff = ( $s2 - $s1 ) + ( $usec2 - $ms1 ) / 1e6;
-    #bmwqemu::diag "done $diff";
-    $self->enqueue_screenshot;
+    return $self->SUPER::special_socket($fh);
 }
 
-sub type_string($$) {
-    my ($self, $args) = @_;
-    my @letters = split( "", $args->{text} );
-    my $s = IO::Select->new();
-    $s->add($self->{'vnc'}->socket);
-    $s->add($self->{'qemupipe'});
+sub select_for_vnc {
+    my ($self) = @_;
 
-    for my $letter (@letters) {
-        $letter = $self->map_letter($letter);
-        $self->{'vnc'}->send_mapped_key($letter);
-        $self->wait_for_screen_stall($s);
-    }
+    my $s = $self->SUPER::select_for_vnc;
+    $s->add($self->{'qemupipe'});
+    return $s;
 }
 
 # runs in the thread to bounce QMP

@@ -75,6 +75,9 @@ sub login {
     $socket->timeout(15);
     $self->socket($socket);
 
+    $self->width(0);
+    $self->height(0);
+
     eval {
         $self->_handshake_protocol_version();
         $self->_handshake_security();
@@ -285,10 +288,10 @@ sub _server_initialization {
     }
     $self->absolute(0);
 
-    if ( !$self->width ) {
+    if ( !$self->width && !$self->ikvm ) {
         $self->width($framebuffer_width);
     }
-    if ( !$self->height ) {
+    if ( !$self->height && !$self->ikvm ) {
         $self->height($framebuffer_height);
     }
     $self->_pixinfo( \%pixinfo );
@@ -450,8 +453,25 @@ my $keymap_ikvm = {
     'win' => 0xe3,
     'caps' => 0x39,
 
+    'end' => 0x4d,
+    'delete' => 0x4c,
+    'home' => 0x4a,
+    'insert' => 0x49,
+
+    #    {NSPrintScreenFunctionKey, 0x46},
+    # {NSScrollLockFunctionKey, 0x47},
+    # {NSPauseFunctionKey, 0x48},
+
+    'pgup' => 0x4b,
+    'pgdn' => 0x4e,
+
+    'left' => 0x50,
+    'right' => 0x4f,
+    'up' => 0x52,
+    'down' => 0x51,
+
     '0'=> 0x27,
-    '\r'=> 0x28,
+    'ret'=> 0x28,
     '\033'=> 0x29,
     '\x7f'=> 0x2a,
     'tab' => 0x2b,
@@ -682,19 +702,24 @@ sub _receive_ikvm_encoding {
     # ikvm specific
     $socket->read(my $aten_data, 8);
     my ($data_prefix, $data_len) = unpack('NN', $aten_data);
-    printf "P $data_prefix $data_len $w $h %d %d\n", $self->width, $self->height;
+    #printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
 
-    if ($encoding_type == 89) {
+    # ikvm doesn't bother sending screen size changes
+    if ($w != $self->width || $h != $self->height) {
+        if ($w > 60000) { # screen is off - strange protocol
+            $w = 1;
+            $h = 1;
+        }
+        $self->width($w);
+        $self->height($h);
+        $image = tinycv::new( $self->width, $self->height );
+        $self->_framebuffer($image);
+    }
+
+    if ($encoding_type == 89 && $data_len) {
         $socket->read(my $data, $data_len) || die "unexpected end of data";
         my $img = tinycv::new($w, $h);
         $img->map_raw_data_rgb555($data);
-        # ikvm doesn't bother sending screen size changes
-        if ($w > $self->width || $x == 0) {
-            $self->width($w);
-            $self->height($h);
-            $image = tinycv::new( $self->width, $self->height );
-            $self->_framebuffer($image);
-        }
         $image->blend($img, $x, $y);
     }
     elsif ( $encoding_type == 0 ) {
