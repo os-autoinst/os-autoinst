@@ -245,7 +245,7 @@ sub enqueue_screenshot() {
 
     ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
 
-    bmwqemu::diag "similarity is $sim";
+    #bmwqemu::diag "similarity is $sim";
     if ( $sim > 54 ) {
         symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
     }
@@ -289,6 +289,26 @@ sub close_pipes() {
     # XXX: perl does not really close the fd here due to threads!?
     $self->{'rsppipe'}->print($MAGIC_PIPE_CLOSE_STRING);
     close($self->{'rsppipe'}) || die "close $!\n";
+}
+
+# this is called for all sockets ready to read from
+sub check_socket {
+    my ($self, $fh) = @_;
+
+    if ( $fh == $self->{'cmdpipe'} ) {
+        my $cmd = backend::driver::_read_json($self->{'cmdpipe'});
+
+        if ( $cmd->{cmd} ) {
+            my $rsp = $self->handle_command($cmd);
+            $self->{'rsppipe'}->print(JSON::to_json( { "rsp" => $rsp } ));
+            $self->{'rsppipe'}->print("\n");
+        }
+        else {
+            die "no command in " . Dumper($cmd);
+        }
+        return 1;
+    }
+    return 0;
 }
 
 1;

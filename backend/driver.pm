@@ -217,9 +217,9 @@ sub _send_json {
 
     my $rsp = _read_json( $self->{from_child} );
     unless ($rsp) {
-	$self->{runthread}->join();
-	$self->{runthread} = undef;
-	return undef;
+        $self->{runthread}->join();
+        $self->{runthread} = undef;
+        return undef;
     }
     return $rsp->{'rsp'};
 }
@@ -246,7 +246,7 @@ sub _read_json($) {
         if ( !$bytes ) { diag("sysread failed: $!"); return undef; }
         $rsp .= $qbuffer;
         if ($rsp eq $backend::baseclass::MAGIC_PIPE_CLOSE_STRING) {
-	    return undef;
+            return undef;
         }
         if ( $rsp !~ m/\n/ ) { next; }
         $hash = eval { JSON::decode_json($rsp); };

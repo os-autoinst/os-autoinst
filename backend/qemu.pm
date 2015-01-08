@@ -618,6 +618,7 @@ sub handle_qmp_command($) {
 sub enqueue_screenshot() {
     my ($self, $image) = @_;
 
+    return unless ($vnc && $vnc->_framebuffer);
     $self->SUPER::enqueue_screenshot($vnc->_framebuffer);
     $vnc->send_update_request();
 }
@@ -633,11 +634,11 @@ sub read_qemupipe() {
     return $bytes;
 }
 
-
 sub close_pipes() {
     my ($self) = @_;
 
     close($vnc->socket) if ($vnc->socket);
+    $vnc = undef;
 
     # one last word?
     fcntl( $self->{'qemupipe'}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK );
@@ -668,52 +669,51 @@ sub handle_hmp_command {
     $self->{'rsppipe'}->print(JSON::to_json( { "rsp" => $line }));
 }
 
+# this is called for all sockets ready to read from. return 1 if socket
+# detected and -1 if there was an error
+sub check_socket {
+    my ($self, $fh) = @_;
+
+    if ( $vnc && $fh == $vnc->socket) {
+        # vnc is non-blocking so just try
+        eval { $vnc->receive_message(); };
+        if ($@) {
+            bmwqemu::diag "VNC failed $@";
+            $self->close_pipes();
+        }
+        else {
+            $self->enqueue_screenshot;
+        }
+        return 1;
+    }
+    elsif ( $self->{'qemupipe'} && $fh == $self->{'qemupipe'}) {
+        $self->close_pipes() unless $self->read_qemupipe();
+        return 1;
+    }
+    return $self->SUPER::check_socket($fh);
+}
+
 sub do_run() {
     my ($self) = @_;
 
     ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
     my $interval = $self->screenshot_interval();
 
-  SELECT: while (1) {
+    while ($self->{'cmdpipe'}) {
         my ( $s2, $usec2 ) = gettimeofday();
         my $rest = $interval - ( $s2 - $self->{'screenshot'}->{'sec'} ) - ( $usec2 - $self->{'screenshot'}->{'usec'} ) / 1e6;
 
         my @ready = $self->{'select'}->can_read($rest);
 
+        $self->enqueue_screenshot;
+
         for my $fh (@ready) {
-            my $buffer;
-
-            if ( $fh == $self->{'cmdpipe'} ) {
-                my $cmd = backend::driver::_read_json($self->{'cmdpipe'});
-
-                if ( $cmd->{cmd} ) {
-                    my $rsp = $self->handle_command($cmd);
-                    $self->{'rsppipe'}->print(JSON::to_json( { "rsp" => $rsp } ));
-                    $self->{'rsppipe'}->print("\n");
-                }
-                else {
-                    die "no command in " . Dumper($cmd);
-                }
-            }
-            elsif ( $vnc && $fh == $vnc->socket) {
-                # vnc is non-blocking so just try
-                eval { $vnc->receive_message(); };
-                if ($@) {
-                    bmwqemu::diag "VNC failed $@";
-                    last SELECT;
-                }
-                $self->enqueue_screenshot;
-            }
-            elsif ( $self->{'qemupipe'} && $fh == $self->{'qemupipe'}) {
-                last SELECT unless $self->read_qemupipe();
-            }
-            else {
+            unless ($self->check_socket($fh)) {
+                $self->close_pipes();
                 die "huh! $fh\n";
             }
         }
     }
-
-    $self->close_pipes();
 
     bmwqemu::diag( "management thread exit at " . POSIX::strftime( "%F %T", gmtime ) );
 }
