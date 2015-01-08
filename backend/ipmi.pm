@@ -50,7 +50,7 @@ sub do_start_vm() {
 
     # make sure it's on
     system('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'},'-U', $bmwqemu::vars{'IPMI_USER'},'-P', $bmwqemu::vars{'IPMI_PASSWORD'},'chassis', 'power', 'on');
-    sleep(8);
+    sleep(12);
 
     # now give it a warm reboot
     system('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'},'-U', $bmwqemu::vars{'IPMI_USER'},'-P', $bmwqemu::vars{'IPMI_PASSWORD'},'chassis', 'power', 'reset');
