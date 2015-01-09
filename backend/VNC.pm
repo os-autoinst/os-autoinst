@@ -196,6 +196,7 @@ sub _handshake_security {
         # af f9 1f bd 00 06 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
         # af f9 bf bc 08 03 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
         # af f9 ff bd 40 19 02 00 b0 a4 00 00 84 8c b1 be 00 60 43 40 f0 29 01 00
+	# ab f9 1f be 08 13 02 00 e0 a5 00 00 74 a8 82 be 00 00 4b 40 d8 2d 01 00
         $socket->read( my $security_result, 4 ) || die 'Failed to login';
         $security_result = unpack( 'C', $security_result );
         print "Security Result: $security_result\n";

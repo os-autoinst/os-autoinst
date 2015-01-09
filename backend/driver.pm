@@ -223,7 +223,8 @@ sub _read_json($) {
 
     # make sure we read the answer completely
     while ( !$hash ) {
-        my @res = $s->can_read(60);
+	# starting a IPMI host can take a while, so we need to be patient
+        my @res = $s->can_read(300);
         unless (@res) {
             backend::baseclass::write_crash_file();
             confess "ERROR: timeout reading JSON reply: $!\n";
