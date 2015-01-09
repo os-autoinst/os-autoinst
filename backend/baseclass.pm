@@ -6,7 +6,6 @@ use strict;
 use threads;
 use threads::shared;
 use Carp;
-use Carp::Always;
 use JSON qw( to_json );
 use File::Copy qw(cp);
 use File::Basename;
@@ -67,7 +66,7 @@ sub do_run() {
     ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
     my $interval = $self->screenshot_interval();
 
-    while ($self->{'cmdpipe'}) {
+    while ( $self->{'cmdpipe'} ) {
         my ( $s2, $usec2 ) = gettimeofday();
         my $rest = $interval - ( $s2 - $self->{'screenshot'}->{'sec'} ) - ( $usec2 - $self->{'screenshot'}->{'usec'} ) / 1e6;
 
@@ -97,8 +96,17 @@ sub start_encoder() {
 }
 
 sub post_start_hook($) {
-    my $self = shift; # ignored in base
+    my ($self) = @_;
+
+    # ignored by default
     return 0;
+}
+
+sub start_vm($) {
+    my ($self) = @_;
+    $self->{'started'} = 1;
+    $self->start_encoder();
+    $self->do_start_vm();
 }
 
 sub stop_vm($) {
@@ -108,6 +116,8 @@ sub stop_vm($) {
     unlink('backend.run');
     $self->do_stop_vm();
     $self->{'started'} = 0;
+    $self->close_pipes();
+    return {};
 }
 
 sub alive($) {
@@ -326,6 +336,7 @@ sub close_pipes() {
     # XXX: perl does not really close the fd here due to threads!?
     $self->{'rsppipe'}->print($MAGIC_PIPE_CLOSE_STRING);
     close($self->{'rsppipe'}) || die "close $!\n";
+    threads->exit();
 }
 
 # this is called for all sockets ready to read from
@@ -337,8 +348,10 @@ sub check_socket {
 
         if ( $cmd->{cmd} ) {
             my $rsp = $self->handle_command($cmd);
-            $self->{'rsppipe'}->print(JSON::to_json( { "rsp" => $rsp } ));
-            $self->{'rsppipe'}->print("\n");
+            if ($self->{'rsppipe'}) { # the command might have closed it
+                $self->{'rsppipe'}->print(JSON::to_json( { "rsp" => $rsp } ));
+                $self->{'rsppipe'}->print("\n");
+            }
         }
         else {
             die "no command in " . Dumper($cmd);

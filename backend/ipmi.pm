@@ -39,9 +39,29 @@ sub ipmitool($) {
     chomp $stdout;
     chomp $stderr;
 
-    die "$stderr" unless ($ret);
+    die join(' ', @cmd) . ": $stderr" unless ($ret);
     print "IPMI: $stdout\n";
     return $stdout;
+}
+
+sub restart_host() {
+    my ($self) = @_;
+
+    $self->ipmitool("chassis power off");
+    while (1) {
+        my $ret = $self->ipmitool("chassis power status");
+        last if $ret =~ m/is off/;
+        $self->ipmitool("chassis power off");
+        sleep(2);
+    }
+
+    $self->ipmitool("chassis power on");
+    while (1) {
+        my $ret = $self->ipmitool("chassis power status");
+        last if $ret =~ m/is on/;
+        $self->ipmitool("chassis power on");
+        sleep(2);
+    }
 }
 
 sub do_start_vm() {
@@ -49,37 +69,8 @@ sub do_start_vm() {
 
     # remove backend.crashed
     $self->unlink_crash_file();
-    
-    $self->ipmitool("mc reset cold");
-    # now we need to wait for the unit to go away
-    for my $i (1..10) {
-	eval { $self->ipmitool("chassis power status") };
-	last if ($@); # error is good in this case :)
-	sleep(1);
-    }
 
-    # now we need to wait for it to come back
-    while (1) {
-	eval { $self->ipmitool("chassis power status") };
-	last unless ($@);
-	sleep(1);
-    }
-
-    $self->ipmitool("chassis power off");
-    while (1) {
-	my $ret = $self->ipmitool("chassis power status");
-	last if $ret =~ m/off/;
-	$self->ipmitool("chassis power off");
-	sleep(1);
-    }
-
-    $self->ipmitool("chassis power on");
-    while (1) {
-	my $ret = $self->ipmitool("chassis power status");
-	last if $ret =~ m/on/;
-	$self->ipmitool("chassis power on");
-	sleep(1);
-    }
+    $self->restart_host;
 
     $self->{'vnc'}  = backend::VNC->new(
         {
@@ -95,8 +86,6 @@ sub do_start_vm() {
         $self->close_pipes();
         die $@;
     }
-
-    
 
     $self->{'select'}->add($self->{'vnc'}->socket);
     $self->{'vnc'}->send_update_request;

@@ -196,7 +196,7 @@ sub _handshake_security {
         # af f9 1f bd 00 06 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
         # af f9 bf bc 08 03 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
         # af f9 ff bd 40 19 02 00 b0 a4 00 00 84 8c b1 be 00 60 43 40 f0 29 01 00
-	# ab f9 1f be 08 13 02 00 e0 a5 00 00 74 a8 82 be 00 00 4b 40 d8 2d 01 00
+        # ab f9 1f be 08 13 02 00 e0 a5 00 00 74 a8 82 be 00 00 4b 40 d8 2d 01 00
         $socket->read( my $security_result, 4 ) || die 'Failed to login';
         $security_result = unpack( 'C', $security_result );
         print "Security Result: $security_result\n";
@@ -241,7 +241,7 @@ sub _client_initialization {
 
     my $socket = $self->socket;
 
-    $socket->print( pack( 'C', 1 ) );    # share
+    $socket->print( pack( 'C', !$self->ikvm ) );    # share
 }
 
 sub _server_initialization {
@@ -311,6 +311,7 @@ sub _server_initialization {
 
         my ( $current_thread, $ikvm_video_enable, $ikvm_km_enable, $ikvm_kick_enable, $v_usb_enable)= unpack 'x4NCCCC', $ikvm_init;
         print "IKVM specifics: $current_thread $ikvm_video_enable $ikvm_km_enable $ikvm_kick_enable $v_usb_enable\n";
+        return; # the rest is kindly ignored by ikvm anyway
     }
 
     # setpixelformat
@@ -705,16 +706,20 @@ sub _receive_ikvm_encoding {
     my ($data_prefix, $data_len) = unpack('NN', $aten_data);
     #printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
 
+    if ($w > 33000) { # screen is off is signaled by negative numbers
+        $w = 1;
+        $h = 1;
+    }
+
     # ikvm doesn't bother sending screen size changes
     if ($w != $self->width || $h != $self->height) {
-        if ($w > 60000) { # screen is off - strange protocol
-            $w = 1;
-            $h = 1;
-        }
         $self->width($w);
         $self->height($h);
         $image = tinycv::new( $self->width, $self->height );
         $self->_framebuffer($image);
+        # resync mouse
+        $self->socket->print( pack('Cn', 7, 1920));
+        $self->send_update_request(1);
     }
 
     if ($encoding_type == 89 && $data_len) {

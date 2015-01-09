@@ -10,7 +10,6 @@ use strict;
 use threads;
 use threads::shared;
 use Carp;
-use Carp::Always;
 use JSON qw( to_json );
 use Data::Dumper;
 use File::Path qw(remove_tree);
@@ -25,8 +24,6 @@ sub diag($) {
 sub new {
     my ($class, $name) = @_;
     my $self = bless( { class => $class }, $class );
-
-    $self->{'started'} = 0;
 
     require "backend/$name.pm";
     $self->{'backend'} = "backend::$name"->new();
@@ -69,16 +66,18 @@ sub stop {
 
     return unless ( $self->{runthread} );
 
-    $self->send_json({'cmd' => 'quit'});
+    if ($self->{from_child}) {
+      $self->stop_thread();
+      close( $self->{from_child} ) if $self->{from_child};
+      $self->{from_child} = undef;
+    }
 
-    diag " waiting for console read thread to quit...";
-    $self->{runthread}->join();
-    diag "done joining";
-    $self->{runthread} = undef;
-    close( $self->{to_child} );
+    close( $self->{to_child} ) if ($self->{to_child});
     $self->{to_child} = undef;
-    close( $self->{from_child} );
-    $self->{from_child} = undef;
+
+    diag " waiting for thread to quit...";
+    $self->{runthread}->join();
+    $self->{runthread} = undef;
 }
 
 # new api
@@ -95,47 +94,25 @@ sub start_vm($) {
     remove_tree($bmwqemu::screenshotpath);
     mkdir $bmwqemu::screenshotpath;
 
-    $self->start_encoder();
-    $self->do_start_vm();
-
-    $self->{'started'} = 1;
+    $self->_send_json({ 'cmd' => "start_vm"} ) || die "failed to start VM";
 
     $self->post_start_hook();
     return 1;
 }
 
-sub stop_vm($) {
+sub stop_thread($) {
     my $self = shift;
-    return unless $self->{'started'};
     unlink('backend.run');
-    $self->do_stop_vm();
-    $self->{'started'} = 0;
-}
-
-sub alive($) {
-    my $self = shift;
-    if ( $self->{'started'} ) {
-        if ( $self->file_alive() and $self->raw_alive() ) {
-            return 1;
-        }
-        else {
-            diag("ALARM: backend.run got deleted! - exiting...");
-            alarm 3;
-        }
-    }
-    return 0;
-}
-
-sub file_alive($) {
-    return ( -e 'backend.run' );
+    $self->stop_vm();
 }
 
 sub get_info($) {
     my $self = shift;
-    return {
+    $self->{'infos'} ||= {
         'backend'      => $self->{'class'},
         'backend_info' => $self->get_backend_info()
     };
+    return $self->{'infos'};
 }
 
 # new api end
@@ -198,14 +175,15 @@ sub _send_json {
 
     my $json = JSON::encode_json($cmd);
 
-    #print STDERR "SENT to child $json " . threads->tid() . "\n";
+    return undef unless ( $self->{to_child} );
     my $wb = syswrite( $self->{to_child}, "$json\n" );
     die "syswrite failed $!" unless ( $wb == length($json) + 1 );
 
     my $rsp = _read_json( $self->{from_child} );
     unless ($rsp) {
-        $self->{runthread}->join();
-        $self->{runthread} = undef;
+        close($self->{from_child});
+        $self->{from_child} = undef;
+        $self->stop();
         return undef;
     }
     return $rsp->{'rsp'};
@@ -223,7 +201,7 @@ sub _read_json($) {
 
     # make sure we read the answer completely
     while ( !$hash ) {
-	# starting a IPMI host can take a while, so we need to be patient
+        # starting a IPMI host can take a while, so we need to be patient
         my @res = $s->can_read(300);
         unless (@res) {
             backend::baseclass::write_crash_file();
@@ -240,7 +218,7 @@ sub _read_json($) {
         $hash = eval { JSON::decode_json($rsp); };
     }
 
-    print STDERR "read json " . JSON::to_json($hash) . "\n";
+    #print STDERR "read json " . JSON::to_json($hash) . "\n";
     return $hash;
 }
 

@@ -359,14 +359,12 @@ sub init_backend($) {
 
 sub start_vm() {
     return unless $backend;
-
-    print "start_vm\n";
     $backend->start_vm();
 }
 
 sub stop_vm() {
     return unless $backend;
-    $backend->stop_vm();
+    $backend->stop();
     if (!$direct_output && $logfd) {
         close $logfd;
         $logfd = undef;
@@ -374,11 +372,11 @@ sub stop_vm() {
 }
 
 sub freeze_vm() {
-    $backend->send("stop");
+    $backend->stop();
 }
 
 sub cont_vm() {
-    $backend->send("cont");
+    $backend->cont();
 }
 
 sub mydie {

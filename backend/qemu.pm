@@ -14,7 +14,6 @@ use Data::Dumper;
 use POSIX qw/strftime :sys_wait_h/;
 use JSON;
 use Carp;
-use Carp::Always;
 use Fcntl;
 use bmwqemu qw(fileContent diag save_vars diag);
 use backend::VNC;
@@ -75,9 +74,7 @@ sub cpu_stat($) {
 }
 
 sub do_start_vm() {
-    print "do_start_vm\n";
     my $self = shift;
-    die "startqemu failed: $@" if $@;
 
     # remove backend.crashed
     $self->unlink_crash_file();
