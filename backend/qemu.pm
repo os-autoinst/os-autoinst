@@ -77,7 +77,7 @@ sub start_qemu($) {
         $vars->{QEMUVGA} ||= "cirrus";
     }
     else {
-        $vars->{QEMUVGA} ||= "std";
+        $vars->{QEMUVGA} ||= "std -g 1024x768";
     }
     $vars->{QEMUCPUS}  ||= 1;
     if ( defined( $vars->{RAIDLEVEL} ) ) {
