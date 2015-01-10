@@ -12,7 +12,7 @@ use tinycv;
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       server_endian  _pixinfo _colourmap _framebuffer _rfb_version
-      _bpp _true_colour _big_endian absolute ikvm keymap
+      _bpp _true_colour _big_endian absolute ikvm keymap update_required _last_update_request
       )
 );
 our $VERSION = '0.40';
@@ -371,6 +371,8 @@ sub _server_initialization {
 sub _send_key_event {
     my ( $self, $down_flag, $key ) = @_;
 
+    #bmwqemu::diag "_send_key_event $down_flag $key";
+
     # A key press or release. Down-flag is non-zero (true) if the key is now pressed, zero
     # (false) if it is now released. The key itself is specified using the “keysym” values
     # defined by the X Window System.
@@ -535,6 +537,12 @@ sub send_mapped_key {
             die "No map for '$key'";
         }
     }
+
+    if ($self->ikvm && @events == 1) {
+        $self->_send_key_event( 2, $events[0] );
+        return;
+    }
+
     for my $key (@events) {
         #bmwqemu::diag "send_key_event_down $key";
         $self->send_key_event_down($key);
@@ -562,14 +570,21 @@ sub send_pointer_event {
 }
 
 sub send_update_request(;$) {
-    my $self = shift;
-    my $force_update = shift;
+    my ($self, $force_update) = @_;
 
     # frame buffer update request
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
     $incremental = 0 if ($force_update);
-    #bmwqemu::diag "send_update_request $incremental";
+    my $now = time;
+    if (!$self->_last_update_request || $now != $self->_last_update_request) {
+        $self->_last_update_request($now);
+        $self->update_required(1);
+    }
+    #printf "send_update_request $incremental %d\n", $self->update_required;
+    return if ($incremental  && !$self->update_required);
+    #print "sending\n";
+
     $socket->print(
         pack(
             'CCnnnn',
@@ -581,6 +596,7 @@ sub send_update_request(;$) {
             $self->height,
         )
     );
+    $self->update_required(0);
 }
 
 sub receive_message {
@@ -655,12 +671,14 @@ sub _receive_update {
             my $img = tinycv::new($w, $h);
             $img->map_raw_data($data);
             $image->blend($img, $x, $y);
+            $self->update_required(1);
         }
         elsif ( $encoding_type == -223 ) {
             $self->width($w);
             $self->height($h);
             $image = tinycv::new( $self->width, $self->height );
             $self->_framebuffer($image);
+            $self->update_required(1);
         }
         elsif ( $encoding_type == -257 ) {
             bmwqemu::diag("pointer type $x $y $w $h $encoding_type");
@@ -717,9 +735,9 @@ sub _receive_ikvm_encoding {
         $self->height($h);
         $image = tinycv::new( $self->width, $self->height );
         $self->_framebuffer($image);
-        # resync mouse
+        # resync mouse (magic)
         $self->socket->print( pack('Cn', 7, 1920));
-        $self->send_update_request(1);
+        $self->update_required(1);
     }
 
     if ($encoding_type == 89 && $data_len) {
@@ -727,6 +745,7 @@ sub _receive_ikvm_encoding {
         my $img = tinycv::new($w, $h);
         $img->map_raw_data_rgb555($data);
         $image->blend($img, $x, $y);
+        $self->update_required(1);
     }
     elsif ( $encoding_type == 0 ) {
         # ikvm manages to redeclare raw to be something completely different ;(
@@ -735,10 +754,14 @@ sub _receive_ikvm_encoding {
         while ($segments--) {
             $socket->read(my $data, 6) || die "unexpected end of data";
             my ($dummy_a, $dummy_b, $y, $x) = unpack('nnCC', $data);
-            #print "DUMMY $dummy_a $dummy_b $x $y\n";
+            #print "DUMMY $type $dummy_a $dummy_b $x $y ($w $h)\n";
+            $self->update_required(1);
             $socket->read($data, 512) || die "unexpected end of data";
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
+
+            # there is a lot of magic in here as the protocol doesn't seem to make sense - e.g. the +5 offset is not to be explained
+            # by logic
             if ($y * 16 >= $self->height) {
                 #warn "no point in off-screen updates at " . $y * 16;
                 next;
@@ -748,12 +771,17 @@ sub _receive_ikvm_encoding {
                 next;
             }
             if ($y * 16 + 16 > $self->height) {
+                next;
                 $img = $img->copyrect(0, 0, 16, $self->height - $y * 16);
             }
             if ($x * 16 + 16 > $self->width) {
+                next;
                 $img = $img->copyrect(0, 0, $img->yres(), $self->width - $x * 16);
             }
-            $image->blend($img, $x * 16, $y * 16);
+            #printf "blend %d,%d into %dx%d\n", $x * 16 + 5, $y * 16, $image->xres(), $image->yres();
+            next if ($x * 16 + 5 + $img->xres() > $image->xres());
+            next if ($y * 16 + $img->yres() > $image->yres());
+            $image->blend($img, $x * 16 + 5, $y * 16);
         }
     }
 }

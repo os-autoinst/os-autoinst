@@ -64,14 +64,14 @@ sub restart_host() {
     }
 }
 
-sub do_start_vm() {
+sub relogin_vnc() {
     my ($self) = @_;
 
-    # remove backend.crashed
-    $self->unlink_crash_file();
-
-    $self->restart_host;
-
+    if ($self->{'vnc'}) {
+        $self->{'select'}->remove($self->{'vnc'}->socket);
+        close($self->{'vnc'}->socket);
+        sleep(1);
+    }
     $self->{'vnc'}  = backend::VNC->new(
         {
             hostname => $bmwqemu::vars{'IPMI_HOSTNAME'},
@@ -89,6 +89,16 @@ sub do_start_vm() {
 
     $self->{'select'}->add($self->{'vnc'}->socket);
     $self->{'vnc'}->send_update_request;
+}
+
+sub do_start_vm() {
+    my ($self) = @_;
+
+    # remove backend.crashed
+    $self->unlink_crash_file();
+    $self->restart_host;
+    $self->relogin_vnc;
+    return {};
 }
 
 sub do_stop_vm() {

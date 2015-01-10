@@ -79,6 +79,7 @@ sub do_start_vm() {
     # remove backend.crashed
     $self->unlink_crash_file();
     $self->start_qemu();
+    return {};
 }
 
 sub do_stop_vm($) {
@@ -211,11 +212,11 @@ sub start_qemu() {
         symlink( $i, "$basedir/l$i" ) or die "$!\n";
     }
 
+    $ENV{QEMU_AUDIO_DRV} = "none";
     pipe(my $reader, my $writer);
     $self->{'pid'} = fork();
     die "fork failed" if ( !defined( $self->{'pid'} ) );
     if ( $self->{'pid'} == 0 ) {
-        $ENV{QEMU_AUDIO_DRV} = "none";
         my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga", $vars->{QEMUVGA});
 
         my $qemu_machine = '';
@@ -341,7 +342,7 @@ sub start_qemu() {
         open(STDERR, ">&", $writer) || die "can't dup stderr: $!";
         close($reader);
         exec(@params);
-        die "exec $qemubin failed";
+        die "failed to exec qemu";
     }
     close $writer;
     $self->{'qemupipe'} = $reader;

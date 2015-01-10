@@ -66,17 +66,15 @@ sub stop {
 
     return unless ( $self->{runthread} );
 
-    if ($self->{from_child}) {
-      $self->stop_thread();
-      close( $self->{from_child} ) if $self->{from_child};
-      $self->{from_child} = undef;
-    }
+    $self->stop_thread() if $self->{from_child};
+    close( $self->{from_child} ) if $self->{from_child};
+    $self->{from_child} = undef;
 
     close( $self->{to_child} ) if ($self->{to_child});
     $self->{to_child} = undef;
 
-    diag " waiting for thread to quit...";
-    $self->{runthread}->join();
+    diag "waiting for thread to quit...";
+    $self->{runthread}->join() if $self->{runthread};
     $self->{runthread} = undef;
 }
 
