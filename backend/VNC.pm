@@ -744,7 +744,18 @@ sub _receive_ikvm_encoding {
     }
 
     if ($encoding_type == 89 && $data_len) {
-        $socket->read(my $data, $data_len) || die "unexpected end of data";
+        my $required_data = $w * $h * 2;
+        my $data;
+        print "Additional Bytes: ";
+        while ($data_len > $required_data) {
+            $socket->read($data, 1) || die "unexpected end of data";
+            $data_len--;
+            my @bytes = unpack("C", $data);
+            printf "%02x ", $bytes[0];
+        }
+        print "\n";
+
+        $socket->read($data,  $required_data);
         my $img = tinycv::new($w, $h);
         $img->map_raw_data_rgb555($data);
         $image->blend($img, $x, $y);
@@ -763,28 +774,10 @@ sub _receive_ikvm_encoding {
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
 
-            # there is a lot of magic in here as the protocol doesn't seem to make sense - e.g. the +5 offset is not to be explained
-            # by logic
-            if ($y * 16 >= $self->height) {
-                #warn "no point in off-screen updates at " . $y * 16;
-                next;
-            }
-            if ($x * 16 >= $self->width) {
-                #warn "no point in off-screen updates at " . $x * 16;
-                next;
-            }
-            if ($y * 16 + 16 > $self->height) {
-                next;
-                $img = $img->copyrect(0, 0, 16, $self->height - $y * 16);
-            }
-            if ($x * 16 + 16 > $self->width) {
-                next;
-                $img = $img->copyrect(0, 0, $img->yres(), $self->width - $x * 16);
-            }
-            #printf "blend %d,%d into %dx%d\n", $x * 16 + 5, $y * 16, $image->xres(), $image->yres();
-            next if ($x * 16 + 5 + $img->xres() > $image->xres());
+            # we ignore edge updates in odd resolutions
+            next if ($x * 16 + $img->xres() > $image->xres());
             next if ($y * 16 + $img->yres() > $image->yres());
-            $image->blend($img, $x * 16 + 5, $y * 16);
+            $image->blend($img, $x * 16, $y * 16);
         }
     }
 }
