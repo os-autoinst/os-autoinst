@@ -155,13 +155,13 @@ sub AUTOLOAD {
     $cmd =~ s,.*::,,;
 
     unless (ref($args) eq 'HASH') {
-        die "we require a hash as arguments for $cmd";
+        carp "we require a hash as arguments for $cmd";
     }
 
-    #print "AUTOLOAD " . Dumper($self) . "\n";
+    #print "AUTOLOAD " . Dumper($args) . "\n";
 
     no strict 'refs';  # allow symbolic references
-    *$AUTOLOAD = sub { return $self->_send_json({ 'cmd' => $cmd, 'arguments' => $args }); };
+    *$AUTOLOAD = sub { my ($self, $args) = @_; return $self->_send_json({ 'cmd' => $cmd, 'arguments' => $args }); };
     goto &$AUTOLOAD;    # Restart the new routine.
 }
 
@@ -172,6 +172,8 @@ sub _send_json {
     my $cmd  = shift;
 
     my $json = JSON::encode_json($cmd);
+
+    #carp "SEND JSON $json\n";
 
     return undef unless ( $self->{to_child} );
     my $wb = syswrite( $self->{to_child}, "$json\n" );

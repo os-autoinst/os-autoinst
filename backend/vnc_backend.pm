@@ -119,11 +119,6 @@ sub mouse_hide {
 
 }
 
-sub get_last_mouse_set {
-    my $self = shift;
-    return $self->{'mouse'};
-}
-
 sub mouse_set {
     my ($self, $args) = @_;
 

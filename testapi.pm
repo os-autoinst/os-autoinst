@@ -372,7 +372,7 @@ sub mouse_set($$) {
     my ($mx, $my) = @_;
 
     bmwqemu::fctlog( 'mouse_set', ["x", $mx], ["y", $my] );
-    $bmwqemu::backend->mouse_set( $mx, $my );
+    $bmwqemu::backend->mouse_set( { 'x' => $mx, 'y' => $my, 'test' => 17 } );
 }
 
 sub mouse_click(;$$) {

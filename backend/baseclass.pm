@@ -95,6 +95,11 @@ sub start_encoder() {
       ||die "can't call $bmwqemu::scriptdir/videoencoder";
 }
 
+sub get_last_mouse_set {
+    my $self = shift;
+    return $self->{'mouse'};
+}
+
 sub post_start_hook($) {
     my ($self) = @_;
 
@@ -105,6 +110,7 @@ sub post_start_hook($) {
 sub start_vm($) {
     my ($self) = @_;
     $self->{'started'} = 1;
+    $self->{'mouse'} = { 'x' => undef, 'y' => undef };
     $self->start_encoder();
     $self->do_start_vm();
 }
@@ -193,7 +199,7 @@ sub cpu_stat($) {
 
     # vm's would return
     # (userstat, systemstat)
-    return "";
+    return [];
 }
 
 # see http://en.wikipedia.org/wiki/IBM_PC_keyboard

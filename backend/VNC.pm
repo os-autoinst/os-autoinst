@@ -287,7 +287,7 @@ sub _server_initialization {
             $pixinfo{$key} = $supported_depths{ $self->depth }->{$key};
         }
     }
-    $self->absolute(0);
+    $self->absolute($self->ikvm);
 
     if ( !$self->width && !$self->ikvm ) {
         $self->width($framebuffer_width);
@@ -558,9 +558,12 @@ sub send_pointer_event {
     my ( $self, $button_mask, $x, $y ) = @_;
     bmwqemu::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
 
+    my $template = 'CCnn';
+    $template = 'CxCnnx11' if ($self->ikvm);
+
     $self->socket->print(
         pack(
-            'CCnn',
+            $template,
             5,               # message type
             $button_mask,    # button-mask
             $x,              # x-position
