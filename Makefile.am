@@ -18,10 +18,14 @@ packagestate_DATA_FOLDERS = \
 backendexecdir = $(pkglibexecdir)/backend
 backendexec_SCRIPTS = \
 	backend/baseclass.pm \
+	backend/driver.pm \
+	backend/ipmi.pm \
 	backend/kvm2usb.pm \
 	backend/qemu.pm \
+	backend/s390x.pm \
 	backend/VNC.pm \
-	backend/vbox.pm
+	backend/vbox.pm \
+	backend/vnc_backend.pm
 
 backendhelpexecdir = $(pkglibexecdir)/backend/helper
 backendhelpexec_SCRIPTS = \
