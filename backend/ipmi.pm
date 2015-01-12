@@ -107,6 +107,17 @@ sub do_stop_vm() {
     $self->ipmitool("chassis power off");
 }
 
+sub do_savevm($) {
+    my ( $self, $args ) = @_;
+    print "do_savevm ignored\n";
+    return {};
+}
+
+sub do_loadvm($) {
+    my ( $self, $args ) = @_;
+    die "if you need loadvm, you're screwed with IPMI";
+}
+
 1;
 
 # vim: set sw=4 et:
