@@ -174,10 +174,5 @@ sub do_loadvm($) {
     $self->raw_vbox_snapshot( "restore", $vmname );
 }
 
-sub do_delvm($) {
-    my ( $self, $vmname ) = @_;
-    $self->raw_vbox_snapshot( "delete", $vmname );
-}
-
 1;
 # vim: set sw=4 et:

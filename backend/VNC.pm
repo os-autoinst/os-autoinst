@@ -12,7 +12,7 @@ use tinycv;
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       server_endian  _pixinfo _colourmap _framebuffer _rfb_version
-      _bpp _true_colour _big_endian absolute ikvm keymap
+      _bpp _true_colour _big_endian absolute ikvm keymap update_required _last_update_request
       )
 );
 our $VERSION = '0.40';
@@ -74,6 +74,9 @@ sub login {
     ) || Carp::confess "Error connecting to $hostname: $@";
     $socket->timeout(15);
     $self->socket($socket);
+
+    $self->width(0);
+    $self->height(0);
 
     eval {
         $self->_handshake_protocol_version();
@@ -192,6 +195,8 @@ sub _handshake_security {
         # af f9 ff bc 50 0d 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
         # af f9 1f bd 00 06 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
         # af f9 bf bc 08 03 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
+        # af f9 ff bd 40 19 02 00 b0 a4 00 00 84 8c b1 be 00 60 43 40 f0 29 01 00
+        # ab f9 1f be 08 13 02 00 e0 a5 00 00 74 a8 82 be 00 00 4b 40 d8 2d 01 00
         $socket->read( my $security_result, 4 ) || die 'Failed to login';
         $security_result = unpack( 'C', $security_result );
         print "Security Result: $security_result\n";
@@ -236,7 +241,7 @@ sub _client_initialization {
 
     my $socket = $self->socket;
 
-    $socket->print( pack( 'C', 1 ) );    # share
+    $socket->print( pack( 'C', !$self->ikvm ) );    # share
 }
 
 sub _server_initialization {
@@ -282,12 +287,12 @@ sub _server_initialization {
             $pixinfo{$key} = $supported_depths{ $self->depth }->{$key};
         }
     }
-    $self->absolute(0);
+    $self->absolute($self->ikvm);
 
-    if ( !$self->width ) {
+    if ( !$self->width && !$self->ikvm ) {
         $self->width($framebuffer_width);
     }
-    if ( !$self->height ) {
+    if ( !$self->height && !$self->ikvm ) {
         $self->height($framebuffer_height);
     }
     $self->_pixinfo( \%pixinfo );
@@ -306,6 +311,7 @@ sub _server_initialization {
 
         my ( $current_thread, $ikvm_video_enable, $ikvm_km_enable, $ikvm_kick_enable, $v_usb_enable)= unpack 'x4NCCCC', $ikvm_init;
         print "IKVM specifics: $current_thread $ikvm_video_enable $ikvm_km_enable $ikvm_kick_enable $v_usb_enable\n";
+        return; # the rest is kindly ignored by ikvm anyway
     }
 
     # setpixelformat
@@ -364,6 +370,8 @@ sub _server_initialization {
 
 sub _send_key_event {
     my ( $self, $down_flag, $key ) = @_;
+
+    #bmwqemu::diag "_send_key_event $down_flag $key";
 
     # A key press or release. Down-flag is non-zero (true) if the key is now pressed, zero
     # (false) if it is now released. The key itself is specified using the “keysym” values
@@ -449,8 +457,25 @@ my $keymap_ikvm = {
     'win' => 0xe3,
     'caps' => 0x39,
 
+    'end' => 0x4d,
+    'delete' => 0x4c,
+    'home' => 0x4a,
+    'insert' => 0x49,
+
+    #    {NSPrintScreenFunctionKey, 0x46},
+    # {NSScrollLockFunctionKey, 0x47},
+    # {NSPauseFunctionKey, 0x48},
+
+    'pgup' => 0x4b,
+    'pgdn' => 0x4e,
+
+    'left' => 0x50,
+    'right' => 0x4f,
+    'up' => 0x52,
+    'down' => 0x51,
+
     '0'=> 0x27,
-    '\r'=> 0x28,
+    'ret'=> 0x28,
     '\033'=> 0x29,
     '\x7f'=> 0x2a,
     'tab' => 0x2b,
@@ -512,6 +537,12 @@ sub send_mapped_key {
             die "No map for '$key'";
         }
     }
+
+    if ($self->ikvm && @events == 1) {
+        $self->_send_key_event( 2, $events[0] );
+        return;
+    }
+
     for my $key (@events) {
         #bmwqemu::diag "send_key_event_down $key";
         $self->send_key_event_down($key);
@@ -527,9 +558,12 @@ sub send_pointer_event {
     my ( $self, $button_mask, $x, $y ) = @_;
     bmwqemu::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
 
+    my $template = 'CCnn';
+    $template = 'CxCnnx11' if ($self->ikvm);
+
     $self->socket->print(
         pack(
-            'CCnn',
+            $template,
             5,               # message type
             $button_mask,    # button-mask
             $x,              # x-position
@@ -539,14 +573,21 @@ sub send_pointer_event {
 }
 
 sub send_update_request(;$) {
-    my $self = shift;
-    my $force_update = shift;
+    my ($self, $force_update) = @_;
 
     # frame buffer update request
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
     $incremental = 0 if ($force_update);
-    #bmwqemu::diag "send_update_request $incremental";
+    my $now = time;
+    if (!$self->_last_update_request || $now != $self->_last_update_request) {
+        $self->_last_update_request($now);
+        $self->update_required(1);
+    }
+    #printf "send_update_request $incremental %d\n", $self->update_required;
+    return if ($incremental  && !$self->update_required);
+    #print "sending\n";
+
     $socket->print(
         pack(
             'CCnnnn',
@@ -558,6 +599,7 @@ sub send_update_request(;$) {
             $self->height,
         )
     );
+    $self->update_required(0);
 }
 
 sub receive_message {
@@ -581,11 +623,11 @@ sub receive_message {
       : $message_type == 2     ? $self->_receive_bell()
       : $message_type == 3     ? $self->_receive_cut_text()
       : $message_type == 0x39  ? $self->_receive_ikvm_session()
-      : $message_type == 0x04  ? $self->_discard_ikvm_message(20)
-      : $message_type == 0x16  ? $self->_discard_ikvm_message(1)
-      : $message_type == 0x33  ? $self->_discard_ikvm_message(4)
-      : $message_type == 0x37  ? $self->_discard_ikvm_message(2)
-      : $message_type == 0x3c  ? $self->_discard_ikvm_message(8)
+      : $message_type == 0x04  ? $self->_discard_ikvm_message($message_type, 20)
+      : $message_type == 0x16  ? $self->_discard_ikvm_message($message_type, 1)
+      : $message_type == 0x33  ? $self->_discard_ikvm_message($message_type, 4)
+      : $message_type == 0x37  ? $self->_discard_ikvm_message($message_type, 2)
+      : $message_type == 0x3c  ? $self->_discard_ikvm_message($message_type, 8)
       :                          die 'unsupported message type received';
 
     return $message_type;
@@ -632,12 +674,14 @@ sub _receive_update {
             my $img = tinycv::new($w, $h);
             $img->map_raw_data($data);
             $image->blend($img, $x, $y);
+            $self->update_required(1);
         }
         elsif ( $encoding_type == -223 ) {
             $self->width($w);
             $self->height($h);
             $image = tinycv::new( $self->width, $self->height );
             $self->_framebuffer($image);
+            $self->update_required(1);
         }
         elsif ( $encoding_type == -257 ) {
             bmwqemu::diag("pointer type $x $y $w $h $encoding_type");
@@ -655,9 +699,10 @@ sub _receive_update {
 }
 
 sub _discard_ikvm_message {
-    my ($self, $bytes) = @_;
+    my ($self, $type, $bytes) = @_;
     # we don't care for the content
     $self->socket->read(my $dummy, $bytes);
+    print "discarding $bytes bytes for message $type\n";
 
     #   when 0x04
     #     bytes "front-ground-event", 20
@@ -680,20 +725,41 @@ sub _receive_ikvm_encoding {
     # ikvm specific
     $socket->read(my $aten_data, 8);
     my ($data_prefix, $data_len) = unpack('NN', $aten_data);
-    #print "P $data_prefix $data_len\n";
+    #printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
 
-    if ($encoding_type == 89) {
-        $socket->read(my $data, $data_len) || die "unexpected end of data";
+    if ($w > 33000) { # screen is off is signaled by negative numbers
+        $w = 1;
+        $h = 1;
+    }
+
+    # ikvm doesn't bother sending screen size changes
+    if ($w != $self->width || $h != $self->height) {
+        $self->width($w);
+        $self->height($h);
+        $image = tinycv::new( $self->width, $self->height );
+        $self->_framebuffer($image);
+        # resync mouse (magic)
+        $self->socket->print( pack('Cn', 7, 1920));
+        $self->update_required(1);
+    }
+
+    if ($encoding_type == 89 && $data_len) {
+        my $required_data = $w * $h * 2;
+        my $data;
+        print "Additional Bytes: ";
+        while ($data_len > $required_data) {
+            $socket->read($data, 1) || die "unexpected end of data";
+            $data_len--;
+            my @bytes = unpack("C", $data);
+            printf "%02x ", $bytes[0];
+        }
+        print "\n";
+
+        $socket->read($data,  $required_data);
         my $img = tinycv::new($w, $h);
         $img->map_raw_data_rgb555($data);
-        # ikvm doesn't bother sending screen size changes
-        if ($w > $self->width || $x == 0) {
-            $self->width($w);
-            $self->height($h);
-            $image = tinycv::new( $self->width, $self->height );
-            $self->_framebuffer($image);
-        }
         $image->blend($img, $x, $y);
+        $self->update_required(1);
     }
     elsif ( $encoding_type == 0 ) {
         # ikvm manages to redeclare raw to be something completely different ;(
@@ -702,15 +768,15 @@ sub _receive_ikvm_encoding {
         while ($segments--) {
             $socket->read(my $data, 6) || die "unexpected end of data";
             my ($dummy_a, $dummy_b, $y, $x) = unpack('nnCC', $data);
+            #print "DUMMY $type $dummy_a $dummy_b $x $y ($w $h)\n";
+            $self->update_required(1);
             $socket->read($data, 512) || die "unexpected end of data";
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
-            if ($y * 16 + 16 > $self->height) {
-                $img = $img->copyrect(0, 0, 16, $self->height - $y * 16);
-            }
-            if ($x * 16 + 16 > $self->width) {
-                $img = $img->copyrect(0, 0, $img->yres(), $self->width - $x * 16);
-            }
+
+            # we ignore edge updates in odd resolutions
+            next if ($x * 16 + $img->xres() > $image->xres());
+            next if ($y * 16 + $img->yres() > $image->yres());
             $image->blend($img, $x * 16, $y * 16);
         }
     }

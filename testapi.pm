@@ -358,23 +358,7 @@ sub type_string($;$) {
     my $string      = shift;
     my $maxinterval = shift || 250;
     bmwqemu::fctlog( 'type_string', ["string", "'$string'"] );
-    if ($bmwqemu::backend->can('type_string')) {
-        $bmwqemu::backend->type_string($string, $maxinterval);
-    }
-    else {
-        my $typedchars  = 0;
-        my @letters = split( "", $string );
-        while (@letters) {
-            my $letter = shift @letters;
-            if ( $charmap{$letter} ) { $letter = $charmap{$letter} }
-            send_key $letter, 0;
-            if ( $typedchars++ >= $maxinterval ) {
-                wait_still_screen(1.6);
-                $typedchars = 0;
-            }
-        }
-        wait_still_screen(1.6) if ( $typedchars > 0 );
-    }
+    $bmwqemu::backend->type_string($string, $maxinterval);
 }
 
 sub type_password() {
@@ -388,7 +372,7 @@ sub mouse_set($$) {
     my ($mx, $my) = @_;
 
     bmwqemu::fctlog( 'mouse_set', ["x", $mx], ["y", $my] );
-    $bmwqemu::backend->mouse_set( $mx, $my );
+    $bmwqemu::backend->mouse_set( { 'x' => $mx, 'y' => $my, 'test' => 17 } );
 }
 
 sub mouse_click(;$$) {
