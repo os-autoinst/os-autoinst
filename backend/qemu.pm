@@ -164,10 +164,10 @@ sub start_qemu() {
     $vars->{NICMAC}    ||= "52:54:00:12:34:56";
     # misc
     if (!$vars->{OFW}) {
-        $vars->{QEMUVGA} ||= "cirrus";
+        $vars->{QEMUVGA} ||= [ "cirrus" ];
     }
     else {
-        $vars->{QEMUVGA} ||= "std -g 1024x768";
+        $vars->{QEMUVGA} ||= [ 'std', '-g', '1024x768' ];
     }
     $vars->{QEMUCPUS}  ||= 1;
     if ( defined( $vars->{RAIDLEVEL} ) ) {
@@ -217,7 +217,8 @@ sub start_qemu() {
     $self->{'pid'} = fork();
     die "fork failed" if ( !defined( $self->{'pid'} ) );
     if ( $self->{'pid'} == 0 ) {
-        my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga", $vars->{QEMUVGA});
+        my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga" );
+        push(@params, @{$vars->{QEMUVGA}});
 
         my $qemu_machine = '';
         if ( $vars->{QEMUMACHINE} ) {
