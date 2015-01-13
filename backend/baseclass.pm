@@ -81,7 +81,7 @@ sub do_run() {
             }
         }
         # give backends (like VNC) the chance to check their buffer
-        $self->check_socket(undef);
+        $self->check_socket(-1);
     }
 
     bmwqemu::diag( "management thread exit at " . POSIX::strftime( "%F %T", gmtime ) );
