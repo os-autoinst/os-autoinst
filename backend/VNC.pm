@@ -585,7 +585,7 @@ sub send_update_request(;$) {
         $self->update_required(1);
     }
     #printf "send_update_request $incremental %d\n", $self->update_required;
-    return if ($incremental  && !$self->update_required);
+    return if ($self->ikvm && $incremental && !$self->update_required);
     #print "sending\n";
 
     $socket->print(
