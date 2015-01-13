@@ -15,8 +15,9 @@ sub enqueue_screenshot() {
 sub check_socket {
     my ($self, $fh) = @_;
 
-    if ( $self->{'vnc'} && $fh == $self->{'vnc'}->socket) {
-        # vnc is non-blocking so just try
+    if ($self->{'vnc'}) {
+        # vnc is non-blocking so just try and it's important we check this here
+        # because select won't wake us if the message is already read into the buffer
         eval { $self->{'vnc'}->receive_message(); };
         if ($@) {
             bmwqemu::diag "VNC failed $@";
@@ -25,7 +26,10 @@ sub check_socket {
         else {
             $self->enqueue_screenshot;
         }
-        return 1;
+
+        if ( $fh == $self->{'vnc'}->socket ) {
+            return 1;
+        }
     }
     return $self->SUPER::check_socket($fh);
 }
