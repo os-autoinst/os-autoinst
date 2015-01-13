@@ -164,7 +164,7 @@ sub start_qemu() {
     $vars->{NICMAC}    ||= "52:54:00:12:34:56";
     # misc
     if (!$vars->{OFW}) {
-        $vars->{QEMUVGA} ||= [ "cirrus" ];
+        $vars->{QEMUVGA} ||= ["cirrus"];
     }
     else {
         $vars->{QEMUVGA} ||= [ 'std', '-g', '1024x768' ];
