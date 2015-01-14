@@ -25,6 +25,10 @@ sub new {
     $self->{'pid'}         = undef;
     $self->{'pidfilename'} = 'qemu.pid';
 
+    # make sure to set environment variables in the main thread
+    # exec uses the %ENV of the main thread
+    $ENV{'QEMU_AUDIO_DRV'} = "none";
+
     return $self;
 }
 
@@ -212,7 +216,6 @@ sub start_qemu() {
         symlink( $i, "$basedir/l$i" ) or die "$!\n";
     }
 
-    $ENV{QEMU_AUDIO_DRV} = "none";
     pipe(my $reader, my $writer);
     $self->{'pid'} = fork();
     die "fork failed" if ( !defined( $self->{'pid'} ) );
