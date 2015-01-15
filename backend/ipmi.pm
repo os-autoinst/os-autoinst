@@ -98,6 +98,7 @@ sub do_start_vm() {
     $self->unlink_crash_file();
     $self->restart_host;
     $self->relogin_vnc;
+    $self->start_serial_grab();
     return {};
 }
 
@@ -105,6 +106,7 @@ sub do_stop_vm() {
     my ($self) = @_;
 
     $self->ipmitool("chassis power off");
+    $self->stop_serial_grab();
 }
 
 sub do_savevm($) {
@@ -117,6 +119,32 @@ sub do_loadvm($) {
     my ( $self, $args ) = @_;
     die "if you need loadvm, you're screwed with IPMI";
 }
+
+# serial grab
+
+sub start_serial_grab() {
+    my $self = shift;
+    my $pid = fork();
+    if ( $pid == 0 ) {
+        no warnings 'io';
+        close STDIN;
+        open STDOUT, ">", $bmwqemu::serialfile;
+        open STDERR, ">", "/dev/null";
+        exec("ipmitool", "-I", "lanplus", "-H", $bmwqemu::vars{'IPMI_HOSTNAME'}, "-U", $bmwqemu::vars{'IPMI_USER'}, "-P", $bmwqemu::vars{'IPMI_PASSWORD'}, "sol", "activate");
+        die "exec failed $!";
+    }
+    else {
+        $self->{'serialpid'} = $pid;
+    }
+}
+
+sub stop_serial_grab($) {
+    my $self = shift;
+    kill(15, $self->{'serialpid'});
+    waitpid($self->{'serialpid'}, 0);
+}
+
+# serial grab end
 
 1;
 
