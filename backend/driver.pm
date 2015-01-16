@@ -13,6 +13,7 @@ use Carp;
 use JSON qw( to_json );
 use Data::Dumper;
 use File::Path qw(remove_tree);
+use IO::Select;
 
 # TODO: move the whole printing out of bmwqemu
 sub diag($) {

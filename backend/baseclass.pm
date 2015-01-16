@@ -10,6 +10,8 @@ use JSON qw( to_json );
 use File::Copy qw(cp);
 use File::Basename;
 use Time::HiRes qw(gettimeofday);
+use bmwqemu;
+use IO::Select;
 
 my $framecounter    = 0;    # screenshot counter
 our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
