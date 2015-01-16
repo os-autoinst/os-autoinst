@@ -838,7 +838,7 @@ sub assert_screen {
     return undef;
 }
 
-sub _reduce_to_biggest_changes($) {
+sub _reduce_to_biggest_changes($$) {
     my ($oldarray, $limit) = @_;
     my @newarray;
 
