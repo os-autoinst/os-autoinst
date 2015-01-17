@@ -8,10 +8,10 @@ use Time::HiRes qw(sleep gettimeofday);
 
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string
   assert_screen upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
-  script_sudo wait_serial save_screenshot backend_send wait_screen_change
+  script_sudo wait_serial save_screenshot wait_screen_change
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
-  autoinst_url script_output validate_script_output);
+  autoinst_url script_output validate_script_output eject_cd);
 
 our %cmd;
 
