@@ -300,32 +300,18 @@ sub power($) {
     # params: (on), off, acpi, reset
     my $action = shift;
     bmwqemu::fctlog( 'power', ["action", $action] );
-    $bmwqemu::backend->power($action);
+    $bmwqemu::backend->power({'action' => $action});
+}
+
+# eject the cd
+sub eject_cd() {
+    bmwqemu::fctlog('eject_cd');
+    $bmwqemu::backend->eject_cd;
 }
 
 # runtime keyboard/mouse io functions end
 
 # runtime information gathering functions
-
-sub _backend_send_nolog($) {
-
-    # should not be used if possible
-    if ($bmwqemu::backend) {
-        $bmwqemu::backend->send(@_);
-    }
-    else {
-        warn "no backend";
-    }
-}
-
-sub backend_send($) {
-
-    # should not be used if possible
-    bmwqemu::fctlog( 'backend_send', join( ',', @_ ) );
-    &_backend_send_nolog;
-}
-
-# backend management end
 
 # runtime keyboard/mouse io functions
 
