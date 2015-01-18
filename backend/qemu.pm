@@ -34,8 +34,8 @@ sub new {
 
 # baseclass virt method overwrite
 
-sub raw_alive($) {
-    my $self = shift;
+sub raw_alive() {
+    my ($self) = @_;
     return 0 unless $self->{'pid'};
     return kill( 0, $self->{'pid'} );
 }
@@ -86,30 +86,32 @@ sub do_start_vm() {
     return {};
 }
 
+sub kill_qemu($) {
+    my ($pid) = (@_);
+
+    # already gone?
+    my $ret = waitpid($pid, WNOHANG);
+    print STDERR "waitpid for $pid returned $ret\n";
+    return if ($ret == $pid || $ret == -1);
+
+    printf STDERR "sending TERM to qemu pid: %d\n", $pid;
+    kill('TERM', $pid);
+    for my $i (1..5) {
+        sleep 1;
+        $ret = waitpid($pid, WNOHANG);
+        print STDERR "waitpid for $pid returned $ret\n";
+        return if ($ret == $pid);
+    }
+    kill( "KILL", $pid);
+    # now we have to wait
+    waitpid($pid, 0);
+}
+
 sub do_stop_vm($) {
     my $self = shift;
 
-    sleep(0.1);
-    waitpid($self->{pid}, WNOHANG);
-    my $n;
-    for (my $i = 0; $i < 3; ++$i) {
-        # dead meanwhile?
-        $n = kill(0, $self->{'pid'});
-        last if ($n == 0);
-        printf STDERR "sending TERM to %d\n", $self->{'pid'};
-        $n = kill( "TERM", $self->{'pid'} );
-        last if ($n == 0); # we're done when qemu is gone
-        sleep 1;
-        waitpid($self->{pid}, WNOHANG);
-    }
-    if ($n != 0) {
-        printf STDERR "sending KILL to %d\n", $self->{'pid'};
-        $n = kill( "KILL", $self->{'pid'} );
-        sleep 1;
-        waitpid($self->{pid}, WNOHANG);
-        $n = kill(0, $self->{'pid'});
-        warn "ERROR: qemu still not dead. wtf?" if $n;
-    }
+    return unless $self->{'pid'} > 0;
+    kill_qemu($self->{'pid'});
     unlink( $self->{'pidfilename'} );
 }
 
@@ -217,9 +219,10 @@ sub start_qemu() {
     }
 
     pipe(my $reader, my $writer);
-    $self->{'pid'} = fork();
-    die "fork failed" if ( !defined( $self->{'pid'} ) );
-    if ( $self->{'pid'} == 0 ) {
+    my $pid = fork();
+    die "fork failed" unless defined($pid);
+    if ( $pid == 0 ) {
+        $SIG{__DIE__} = undef; # overwrite the default - just exit
         my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga" );
         push(@params, @{$vars->{QEMUVGA}});
 
@@ -348,12 +351,16 @@ sub start_qemu() {
         exec(@params);
         die "failed to exec qemu";
     }
+    else {
+        $self->{'pid'} = $pid;
+    }
     close $writer;
     $self->{'qemupipe'} = $reader;
+    sleep 4;    # time to let qemu start
+    die "failed to start VM" unless $self->raw_alive();
     open( my $pidf, ">", $self->{'pidfilename'} ) or die "can not write " . $self->{'pidfilename'};
     print $pidf $self->{'pid'}, "\n";
     close $pidf;
-    sleep 3;    # time to let qemu start
 
     $self->{'vnc'} = backend::VNC->new({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC} });
     eval { $self->{'vnc'}->login; };
