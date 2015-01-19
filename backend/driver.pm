@@ -74,7 +74,6 @@ sub stop {
     close( $self->{to_child} ) if ($self->{to_child});
     $self->{to_child} = undef;
 
-    diag "waiting for thread to quit...";
     $self->{runthread}->join() if $self->{runthread};
     $self->{runthread} = undef;
 }
@@ -174,9 +173,7 @@ sub _send_json {
 
     my $json = JSON::encode_json($cmd);
 
-    #carp "SEND JSON $json\n";
-
-    return undef unless ( $self->{to_child} );
+    die "no backend running" unless ( $self->{to_child} );
     my $wb = syswrite( $self->{to_child}, "$json\n" );
     die "syswrite failed $!" unless ( $wb == length($json) + 1 );
 
@@ -213,6 +210,7 @@ sub _read_json($) {
         if ( !$bytes ) { diag("sysread failed: $!"); return undef; }
         $rsp .= $qbuffer;
         if ($rsp eq $backend::baseclass::MAGIC_PIPE_CLOSE_STRING) {
+            print "received magic close\n";
             return undef;
         }
         if ( $rsp !~ m/\n/ ) { next; }
