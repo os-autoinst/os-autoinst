@@ -93,6 +93,8 @@ sub start_vm($) {
     mkdir $bmwqemu::screenshotpath;
 
     $self->_send_json({ 'cmd' => "start_vm"} ) || die "failed to start VM";
+    # the backend thread might have added some defaults for the backend
+    bmwqemu::load_vars();
 
     $self->post_start_hook();
     return 1;
