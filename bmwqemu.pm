@@ -66,18 +66,18 @@ our $direct_output;
 our $timesidleneeded     = 1;
 our $standstillthreshold = 600;
 
+our %vars;
+
 sub load_vars() {
     my $fn = "vars.json";
-    my $ret;
+    my $ret = {};
     local $/;
     open(my $fh, '<', $fn) or return 0;
-    eval {$ret = decode_json(<$fh>);};
+    eval { $ret = decode_json(<$fh>); };
     warn "openQA didn't write proper vars.json" if $@;
     close($fh);
-    return $ret;
+    %vars = %{$ret};
 }
-
-our %vars;
 
 sub save_vars() {
     my $fn = "vars.json";
@@ -107,7 +107,7 @@ our $scriptdir;
 our $testedversion;
 
 sub init {
-    %vars = %{load_vars() || {}};
+    load_vars();
     $vars{NAME} ||= 'noname';
     $liveresultpath = "$testresults/$vars{NAME}";
     if ($direct_output) {

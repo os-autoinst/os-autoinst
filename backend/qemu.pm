@@ -356,7 +356,7 @@ sub start_qemu() {
     }
     close $writer;
     $self->{'qemupipe'} = $reader;
-    sleep 4;    # time to let qemu start
+    sleep 2;    # time to let qemu start
     die "failed to start VM" unless $self->raw_alive();
     open( my $pidf, ">", $self->{'pidfilename'} ) or die "can not write " . $self->{'pidfilename'};
     print $pidf $self->{'pid'}, "\n";
