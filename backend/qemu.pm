@@ -356,17 +356,31 @@ sub start_qemu() {
     }
     close $writer;
     $self->{'qemupipe'} = $reader;
-    sleep 2;    # time to let qemu start
-    die "failed to start VM" unless $self->raw_alive();
     open( my $pidf, ">", $self->{'pidfilename'} ) or die "can not write " . $self->{'pidfilename'};
     print $pidf $self->{'pid'}, "\n";
     close $pidf;
 
     $self->{'vnc'} = backend::VNC->new({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC} });
-    eval { $self->{'vnc'}->login; };
-    if ($@) {
-        $self->close_pipes();
-        die $@;
+
+    # the real timeout is the 7 below
+    for my $i (1..10) {
+        eval {
+            # we sure don't want to stop the vm in case this fails
+            local $SIG{'__DIE__'};
+            $self->{'vnc'}->login;
+        };
+        if ($@) {
+            if ($i > 7) {
+                $self->close_pipes();
+                die $@;
+            }
+            else {
+                sleep 1;
+            }
+        }
+        else {
+            last;
+        }
     }
 
     $self->{'hmpsocket'} = IO::Socket::UNIX->new(

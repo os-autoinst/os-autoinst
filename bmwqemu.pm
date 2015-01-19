@@ -879,7 +879,6 @@ sub save_results(;$$) {
         'distribution' => $vars{'DISTRI'},
         'version'      => $vars{'VERSION'} || '',
         'testmodules'  => $testmodules,
-        'dents'        => 0,
     };
     if ( $ENV{'WORKERID'} ) {
         $result->{workerid}    = $ENV{WORKERID};
@@ -900,7 +899,6 @@ sub save_results(;$$) {
             else {
                 $result->{overall} = 'fail';
             }
-            $result->{dents}++ if $tr->{dents};
         }
         $result->{overall} ||= 'fail';
     }
