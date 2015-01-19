@@ -114,7 +114,7 @@ sub assert_and_click($;$$$$) {
         mustmatch => $_[0],
         timeout   => $_[2]
     );
-    my @old_mouse_coords = $bmwqemu::backend->get_last_mouse_set();
+    my $old_mouse_coords = $bmwqemu::backend->get_last_mouse_set();
     bmwqemu::fctlog( 'assert_and_click', ["mustmatch", $_[0]], ["button", $_[1]], ["timeout", $_[2]] );
 
     my $dclick = $_[4] || 0;
@@ -136,7 +136,7 @@ sub assert_and_click($;$$$$) {
     # We can't just move the mouse, or we end up in a click-and-drag situation
     sleep 1;
     # move mouse back to where it was before we clicked
-    mouse_set( $old_mouse_coords[0], $old_mouse_coords[1]);
+    mouse_set( $old_mouse_coords->{'x'}, $old_mouse_coords->{'y'});
 }
 
 sub assert_and_dclick($;$$$) {
@@ -358,7 +358,7 @@ sub mouse_set($$) {
     my ($mx, $my) = @_;
 
     bmwqemu::fctlog( 'mouse_set', ["x", $mx], ["y", $my] );
-    $bmwqemu::backend->mouse_set( { 'x' => $mx, 'y' => $my, 'test' => 17 } );
+    $bmwqemu::backend->mouse_set( { 'x' => $mx, 'y' => $my } );
 }
 
 sub mouse_click(;$$) {
