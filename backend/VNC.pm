@@ -501,7 +501,6 @@ sub init_ikvm_keymap {
     for my $key ("a".."z") {
         my $code = 0x4 + ord($key) - ord('a');
         $self->keymap->{$key} = $code;
-        $self->keymap->{uc($key)} = [$self->keymap->{'shift'}, $code];
     }
     for my $key ("1".."9") {
         $self->keymap->{$key} = 0x1e + ord($key) - ord('1');

@@ -15,8 +15,6 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key ty
 
 our %cmd;
 
-our %charmap;
-
 our $distri;
 
 our $realname = "Bernhard M. Wiedemann";
@@ -30,53 +28,7 @@ sub check_screen($;$);
 sub type_string($;$);
 sub type_password;
 
-sub init_charmap() {
-    ## charmap (like L => shift+l)
-    %charmap = (
-        ","  => "comma",
-        "."  => "dot",
-        "/"  => "slash",
-        "="  => "equal",
-        "-"  => "minus",
-        "*"  => "asterisk",
-        "["  => "bracket_left",
-        "]"  => "bracket_right",
-        "{"  => "shift-bracket_left",
-        "}"  => "shift-bracket_right",
-        "\\" => "backslash",
-        "|"  => "shift-backslash",
-        ";"  => "semicolon",
-        ":"  => "shift-semicolon",
-        "'"  => "apostrophe",
-        '"'  => "shift-apostrophe",
-        "`"  => "grave_accent",
-        "~"  => "shift-grave_accent",
-        "<"  => "shift-comma",
-        ">"  => "shift-dot",
-        "+"  => "shift-equal",
-        "_"  => "shift-minus",
-        '?'  => "shift-slash",
-        "\t" => "tab",
-        "\n" => "ret",
-        " "  => "spc",
-        "\b" => "backspace",
-        "\e" => "esc"
-    );
-    for my $c ( "A" .. "Z" ) {
-        $charmap{$c} = "shift-\L$c";
-    }
-    {
-        my $n = 0;
-        for my $c ( ')', '!', '@', '#', '$', '%', '^', '&', '*', '(' ) {
-            $charmap{$c} = "shift-" . ( $n++ );
-        }
-    }
-    ## charmap end
-}
-
 sub init() {
-    init_charmap();
-
     $serialdev = "ttyS0";
     if ( get_var('OFW') ) {
         $serialdev = "hvc0";
