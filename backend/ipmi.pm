@@ -64,6 +64,15 @@ sub restart_host() {
     }
 }
 
+sub init_charmap() {
+    my ($self) = @_;
+
+    $self->SUPER::init_charmap();
+    for my $c ( "A" .. "Z" ) {
+        $self->{charmap}->{$c} = "shift-\L$c";
+    }
+}
+
 sub relogin_vnc() {
     my ($self) = @_;
 

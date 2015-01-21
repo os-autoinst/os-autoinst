@@ -264,9 +264,6 @@ sub init_charmap($) {
 
         "\e" => "esc"
     };
-    for my $c ( "A" .. "Z" ) {
-        $self->{charmap}->{$c} = "shift-\L$c";
-    }
     ## charmap end
 }
 
