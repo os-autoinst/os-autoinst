@@ -36,12 +36,9 @@
 #include <dirent.h>
 */
 
-#include <png.h>
+#include <cstdio>
 #include <ogg/ogg.h>
 #include "theora/theoraenc.h"
-
-#define PROGRAM_NAME  "png2theora"
-#define PROGRAM_VERSION  "1.1"
 
 const char *option_output;
 
@@ -102,7 +99,7 @@ clamp (int d)
 using namespace cv;
 
 void
-rgb_to_yuv (Mat * png, th_ycbcr_buffer ycbcr)
+rgb_to_yuv (Mat * image, th_ycbcr_buffer ycbcr)
 {
   unsigned int x;
   unsigned int y;
@@ -132,9 +129,9 @@ rgb_to_yuv (Mat * png, th_ycbcr_buffer ycbcr)
     {
       for (x = 0; x < w; x++)
 	{
-	  png_byte b = png->data[png->channels () * (png->cols * y + x) + 0];
-	  png_byte g = png->data[png->channels () * (png->cols * y + x) + 1];
-	  png_byte r = png->data[png->channels () * (png->cols * y + x) + 2];
+	  unsigned char b = image->data[image->channels () * (image->cols * y + x) + 0];
+	  unsigned char g = image->data[image->channels () * (image->cols * y + x) + 1];
+	  unsigned char r = image->data[image->channels () * (image->cols * y + x) + 2];
 
 	  yuv_y[x + y * yuv_w] =
 	    clamp ((65481 * r + 128553 * g + 24966 * b + 4207500) / 255000);

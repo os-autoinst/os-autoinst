@@ -72,7 +72,6 @@ EXTRA_DIST = \
 	$(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
 
 CLEANFILES = \
-	$(bin_SCRIPTS) \
 	$(ppmcexec_SCRIPTS) \
 	ppmclibs/tinycv_wrap.cxx \
 	doc/basetest.html \
