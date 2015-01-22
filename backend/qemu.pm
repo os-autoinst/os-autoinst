@@ -313,7 +313,7 @@ sub start_qemu() {
         }
         push(@params, qw/-device nec-usb-xhci -device usb-tablet/);
         push( @params, "-smp", $vars->{QEMUCPUS} );
-        push( @params, "-enable-kvm" );
+        push( @params, "-enable-kvm" ) unless $vars->{QEMU_NO_KVM};
         push( @params, "-no-shutdown" );
 
         if ( open( my $cmdfd, '>', 'runqemu' ) ) {
