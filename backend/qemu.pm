@@ -151,7 +151,8 @@ sub start_qemu() {
 
     my $qemubin = $ENV{'QEMU'};
     unless ($qemubin) {
-        for my $bin ( map { '/usr/bin/' . $_ } qw/kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64/ ) {
+        my @candidates = $vars->{QEMU}?('qemu-system-'.$vars->{QEMU}):qw/kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64/;
+        for my $bin ( map { '/usr/bin/' . $_ } @candidates ) {
             next unless -x $bin;
             $qemubin = $bin;
             last;
