@@ -299,7 +299,10 @@ sub start_qemu() {
         }
 
         if ( $vars->{UEFI} ) {
-            push( @params, "-bios", '/usr/share/qemu/'.$vars->{UEFI_BIOS} );
+            $vars->{BIOS} = $vars->{UEFI_BIOS};
+        }
+        if ( $vars->{BIOS} ) {
+            push( @params, "-bios", '/usr/share/qemu/'.$vars->{BIOS} );
         }
         if ( $vars->{MULTINET} ) {
             if ( $vars->{NICTYPE} eq "tap" ) {
