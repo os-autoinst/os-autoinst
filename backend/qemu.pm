@@ -285,8 +285,11 @@ sub start_qemu() {
         if ( $vars->{PXEBOOT} ) {
             push( @params, "-boot", "n");
         }
-        else {
+        elsif ( !$vars->{OFW} ) {
             push( @params, "-boot", "once=d,menu=on,splash-time=5000" );
+        }
+        else {
+            push( @params, "-boot", "order=cd" );
         }
 
         if ( $vars->{QEMUCPU} ) {
