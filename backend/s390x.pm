@@ -37,7 +37,7 @@ sub init() {
     $self->{s3270} = new backend::s390x::s3270(
         {
             ## s3270=>[qw(s3270)]; # non-interactive
-            s3270	=> [qw(x3270 -script -trace -set screenTrace -charset us)],
+            s3270	=> [qw(x3270 -script -trace -set screenTrace -charset us -xrm x3270.visualBell:true)],
             zVM_host	=> $vars->{ZVM_HOST},
             guest_user	=> $vars->{ZVM_GUEST},
             guest_login => $vars->{ZVM_PASSWORD},
