@@ -233,11 +233,13 @@ sub start_qemu() {
         $SIG{__DIE__} = undef; # overwrite the default - just exit
         my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", @vgaoptions);
 
-        my $qemu_machine = '';
         if ( $vars->{QEMUMACHINE} ) {
-            $qemu_machine = sprintf("type=%s,", $vars->{QEMUMACHINE});
+            push( @params, "-machine", $vars->{QEMUMACHINE});
         }
-        push( @params, "-machine", "${qemu_machine}accel=kvm,kernel_irqchip=on"  );
+
+        if ( $vars->{QEMUCPU} ) {
+            push( @params, "-cpu", $vars->{QEMUCPU} );
+        }
 
         if ( $vars->{NICTYPE} eq "user" ) {
             push( @params, '-netdev', 'user,id=qanet0');
@@ -296,9 +298,6 @@ sub start_qemu() {
             push( @params, "-boot", "once=d,menu=on,splash-time=5000" );
         }
 
-        if ( $vars->{QEMUCPU} ) {
-            push( @params, "-cpu", $vars->{QEMUCPU} );
-        }
         if ( $vars->{UEFI} ) {
             push( @params, "-bios", '/usr/share/qemu/'.$vars->{UEFI_BIOS} );
         }
