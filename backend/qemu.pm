@@ -311,7 +311,7 @@ sub start_qemu() {
             no warnings 'qw';
             push( @params, qw"-net nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57 -net none,vlan=1" );
         }
-        push( @params, "-usb", "-usbdevice", "tablet" );
+        push(@params, qw/-device nec-usb-xhci -device usb-tablet/);
         push( @params, "-smp", $vars->{QEMUCPUS} );
         push( @params, "-enable-kvm" );
         push( @params, "-no-shutdown" );
