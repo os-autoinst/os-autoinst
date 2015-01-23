@@ -372,11 +372,12 @@ sub stop_vm() {
 }
 
 sub freeze_vm() {
-    $backend->stop();
+    # qemu specific - all other backends will crash
+    $backend->handle_qmp_command({"execute" => "stop"});
 }
 
 sub cont_vm() {
-    $backend->cont();
+    $backend->handle_qmp_command({"execute" => "cont"});
 }
 
 sub mydie {
