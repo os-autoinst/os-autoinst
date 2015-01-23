@@ -91,23 +91,23 @@ sub linuxrc_prompt () {
 sub ftpboot_menu () {
     my ($self, $menu_entry) = @_;
     # helper vars
-    my ($r, $s, $cursor_row, $row);
+    my ($r_screenshot, $r_home_position, $s_home_position, $cursor_row, $row);
 
-    $r = $self->{s3270}->expect_3270(clear_buffer => 1, flush_lines => undef, buffer_ready => qr/PF3=QUIT/);
+    $r_screenshot = $self->{s3270}->expect_3270(clear_buffer => 1, flush_lines => undef, buffer_ready => qr/PF3=QUIT/);
 
     # choose server
 
-    $r = $self->{s3270}->send_3270("Home");
+    $r_home_position = $self->{s3270}->send_3270("Home");
     # Perl question:
     # Why can't I just call this function?  why do I need & ??
     # and why this FQDN?
-    $s = &backend::s390x::s3270::nice_3270_status($r->{terminal_status});
+    $s_home_position = &backend::s390x::s3270::nice_3270_status($r_home_position->{terminal_status});
 
-    $cursor_row = $s->{cursor_row};
+    $cursor_row = $s_home_position->{cursor_row};
 
-    ### say Dumper @$r;
+    ## say Dumper @$r_screenshot;
 
-    while ( ($row, my $content) = each(@$r)) {
+    while ( ($row, my $content) = each(@$r_screenshot)) {
         if ($content =~ $menu_entry) {
             last;
         }
@@ -118,7 +118,7 @@ sub ftpboot_menu () {
 
     $self->{s3270}->sequence_3270(@$sequence);
 
-    return $r;
+    return $r_screenshot;
 }
 
 ###################################################################
