@@ -120,16 +120,23 @@ console_vars = {
         "PARMFILE": {
             "ssh": "1"
         },
-        "DISPLAY_TYPE" : "SSH",
+        "DISPLAY" : {
+            "TYPE" : "SSH",
+        },
     },
     "vnc": {
-        "DISPLAY_TYPE" : "VNC",
+        "DISPLAY": {
+            "TYPE" : "VNC",
+            "PASSWORD": "FOOBARBAZ",
+        },
     },
     "x11": {
         "PARMFILE": {
             "ssh": "1"
         },
-        "DISPLAY_TYPE" : "X11",
+        "DISPLAY": {
+            "TYPE" : "X11",
+        },
     },
 }
 
