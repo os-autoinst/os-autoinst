@@ -9,6 +9,12 @@ use Time::HiRes qw( usleep );
 use Carp;
 use tinycv;
 
+use Crypt::DES;
+
+use Carp qw(confess cluck carp croak);
+use Data::Dumper qw(Dumper);
+use feature qw/say/;
+
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       server_endian  _pixinfo _colourmap _framebuffer _rfb_version
@@ -32,6 +38,16 @@ my %supported_depths = (
         blue_max    => 255,
         red_shift   => 16,
         green_shift => 8,
+        blue_shift  => 0,
+    },
+    '16' => {
+        bpp         => 16,
+        true_colour => 1,
+        red_max     => 31,
+        green_max   => 31,
+        blue_max    => 31,
+        red_shift   => 10,
+        green_shift => 5,
         blue_shift  => 0,
     },
 );
@@ -179,6 +195,64 @@ sub _handshake_security {
         }
 
     }
+    elsif ( $security_type == 2 ) {
+
+        # DES-encrypted challenge/response
+
+        if ( $self->_rfb_version ge '003.007' ) {
+            $socket->print( pack( 'C', 2 ) );
+        }
+
+        # # VNC authentication is to be used and protocol data is to be
+        # # sent unencrypted. The server sends a random 16-byte
+        # # challenge:
+
+        # # No. of bytes Type [Value] Description
+        # # 16 U8 challenge
+
+
+        $socket->read( my $challenge, 16 )
+          || die 'unexpected end of data';
+
+        #    warn "chal: " . unpack('h*', $challenge) . "\n";
+
+        # the RFB protocol only uses the first 8 characters of a password
+        my $key = substr( $self->password, 0, 8 );
+        $key = '' if ( !defined $key );
+        $key .= pack( 'C', 0 ) until ( length($key) % 8 ) == 0;
+
+        my $realkey;
+
+        #    warn unpack('b*', $key);
+        foreach my $byte ( split //, $key ) {
+            $realkey .= pack( 'b8', scalar reverse unpack( 'b8', $byte ) );
+        }
+
+        #    warn unpack('b*', $realkey);
+
+        # # The client encrypts the challenge with DES, using a password
+        # # supplied by the user as the key, and sends the resulting
+        # # 16-byte response:
+        # # No. of bytes Type [Value] Description
+        # # 16 U8 response
+
+        my $cipher = Crypt::DES->new($realkey);
+        my $response;
+        my $i = 0;
+
+        while ( $i < 16 ) {
+            my $word = substr( $challenge, $i, 8 );
+
+            #        warn "$i: " . length($word);
+            $response .= $cipher->encrypt($word);
+            $i += 8;
+        }
+
+        #    warn "resp: " . unpack('h*', $response) . "\n";
+
+        $socket->print($response);
+
+    }
     elsif ( $security_type == 16 ) { # ikvm
 
         $socket->print( pack( 'C', 16 ) ); # accept
@@ -205,7 +279,7 @@ sub _handshake_security {
         }
     }
     else {
-        die 'qemu wants security, but we have no password';
+        die 'VNC Server wants security, but we have no password';
     }
 
     # the RFB protocol always returns a result for type 2,
