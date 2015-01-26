@@ -617,6 +617,7 @@ sub save_needle_template($$$) {
             }
         ],
         tags => [@$tags],
+        properties => [],
     };
 
     $img->write_optimized($imgfn);

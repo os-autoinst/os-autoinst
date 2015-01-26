@@ -83,12 +83,14 @@ sub record_screenmatch($$;$) {
     my $testname = ref($self);
 
     my $h      = $self->_serialize_match($needle);
+    my $properties = $needle->{needle}->{properties} || [];
     my $result = {
         needle     => $h->{'name'},
         area       => $h->{'area'},
         tags       => [@$tags],                                    # make a copy
         screenshot => sprintf( "%s-%d.png", $testname, $count ),
         result     => 'ok',
+        properties => [@$properties],
     };
 
     # Hack to make it obvious that some test passed by applying a hack
