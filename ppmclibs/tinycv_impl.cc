@@ -438,12 +438,19 @@ void image_map_raw_data(Image *a, const unsigned char *data)
 }
 
 
-void image_map_raw_data_rgb555(Image *a, const unsigned char *data)
+void image_map_raw_data_rgb555(Image *a, const unsigned char *data, bool big_endian)
 {
   for (int y = 0; y < a->img.rows; y++) {
     for (int x = 0; x < a->img.cols; x++) {
-      long pixel = *data++;
-      pixel += *data++ * 256;
+      long pixel;
+      if (big_endian) {
+	pixel = *data++ * 256;
+	pixel += *data++;
+      }
+      else {
+	pixel = *data++;
+	pixel += *data++ * 256;
+      };
       unsigned char blue = pixel % 32 * 8;
       pixel = pixel >> 5;
       unsigned char green = pixel % 32 * 8;

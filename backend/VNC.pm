@@ -741,11 +741,23 @@ sub _receive_update {
         ### Raw encoding ###
         if ( $encoding_type == 0 && !$self->ikvm ) {
 
-            # Performance boost: splat raw pixels into the image
-            $socket->read( my $data, $w * $h * 4 );
+            my $bytes_per_pixel = $self->_bpp / 8;
 
+            $socket->read( my $data, $w * $h * $bytes_per_pixel );
+
+            # splat raw pixels into the image
             my $img = tinycv::new($w, $h);
-            $img->map_raw_data($data);
+
+            if ($self->_bpp == 16) {
+                $img->map_raw_data_rgb555($data, TODO_BIG_ENDIAN);
+            }
+            elsif ($self->_bpp == 32) {
+                if (TODO_BIG_ENDIAN) die "32bit big endian unsupported.";
+                $img->map_raw_data($data);
+            }
+            else {
+                die "unknown bpp" . $self->_bpp;
+            }
             $image->blend($img, $x, $y);
             $self->update_required(1);
         }
