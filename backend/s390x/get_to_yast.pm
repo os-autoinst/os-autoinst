@@ -386,17 +386,17 @@ EO_frickin_boot_parms
         ### say Dumper $r;
 
         $self->linuxrc_menu("Select the display type",
-                            $self->{vars}{DISPLAY_TYPE});
+                            $self->{vars}{DISPLAY}{TYPE});
 
-        if ($self->{vars}{DISPLAY_TYPE} eq "VNC") {
+        if ($self->{vars}{DISPLAY}{TYPE} eq "VNC") {
             $self->linuxrc_prompt("Enter your VNC password",
-                                  value => "FOOBARBAZ");
+                                  value => $self->{vars}{DISPLAY}{PASSWORD});
         }
-        elsif ($self->{vars}{DISPLAY_TYPE} eq "X11") {
+        elsif ($self->{vars}{DISPLAY}{TYPE} eq "X11") {
             $self->linuxrc_prompt("Enter the IP address of the host running the X11 server.",
                                   value => "");
         }
-        elsif ($self->{vars}{DISPLAY_TYPE} eq "SSH") {
+        elsif ($self->{vars}{DISPLAY}{TYPE} eq "SSH") {
 
         };
 

@@ -131,9 +131,10 @@ console_vars = {
         },
     },
     "x11": {
-        "PARMFILE": {
-            "ssh": "1"
-        },
+        # FIXME:  ssh -X vs X11
+        # "PARMFILE": {
+        #     "ssh": "1"
+        # },
         "DISPLAY": {
             "TYPE" : "X11",
         },
@@ -198,8 +199,8 @@ def make_vars_json(guest, network_device, instsource, console, distro):
 
     unify(vars_json, {
         "FTPBOOT" : {
-        "HOST"     : "DIST\\.SUSE\\.DE",
-        "DISTRO"   : distro
+            "HOST"     : "DIST\\.SUSE\\.DE",
+            "DISTRO"   : distro
         },
     })
 
