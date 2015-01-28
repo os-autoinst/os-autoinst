@@ -232,7 +232,7 @@ sub expect_3270() {
         my $line;
         while ($line = $self->{raw_expect_queue}->dequeue_nb()) {
             push @$result, $line;
-            if (!defined $line || $line =~ $arg{output_delim}) {
+            if (!defined $line || $line =~ /$arg{output_delim}/) {
                 last;
             }
         }
