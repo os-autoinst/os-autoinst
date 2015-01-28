@@ -418,7 +418,15 @@ sub cp_logoff_disconnect() {
     $self->send_3270('Wait(Disconnect)');
 }
 
-sub login() {
+sub cp_disconnect() {
+    my ($self) = @_;
+
+    $self->send_3270('String("#cp disconnect")');
+    $self->send_3270('ENTER');
+    $self->send_3270('Wait(Disconnect)');
+}
+
+sub connect_and_login() {
     my ($self) = @_;
 
     my $r;

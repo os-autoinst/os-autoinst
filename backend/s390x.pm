@@ -104,28 +104,19 @@ sub do_start_vm() {
 
     $r = $s3270->start();
 
-
-    # debug_vnc:
-    #   "none": nope
-    #   "setup vnc": initialize vnc. #cp disconnect at the end
-    #   "try vncviewer": don't connect and initialize.  Just do the
-    #      vnc connect and go from there.
-    my $debug_vnc = "try vncviewer";
-
-    $r = $s3270->login()
-      unless ($debug_vnc eq "try vncviewer");
+    $r = $s3270->connect_and_login()
+      unless ($self->{vars}{DEBUG_VNC} eq "try vncviewer");
 
     my $test = new backend::s390x::get_to_yast($s3270, $self->{vars});
 
     $r = $test->backend::s390x::get_to_yast::run()
-      unless ($debug_vnc eq "try vncviewer");
+      unless ($self->{vars}{DEBUG_VNC} eq "try vncviewer");
 
     ###################################################################
     # now we are ready do connect to vnc and to start the vnc backend...
     eval {
-        if ($debug_vnc eq "setup vnc") {
-            my $r = $s3270->send_3270('String("#cp disconnect")');
-            $r = $s3270->send_3270("ENTER");
+        if ($self->{vars}{DEBUG_VNC} eq "setup vnc") {
+            my $r = $s3270->cp_disconnect();
             cluck $r;
         }
         else {
@@ -146,8 +137,12 @@ sub do_start_vm() {
 
 sub do_stop_vm() {
     my ($self) = @_;
-
-    $self->{s3270}->cp_logoff_disconnect();
+    if ($self->{vars}{DEBUG_VNC} eq "no") {
+	$self->{s3270}->cp_logoff_disconnect()
+    }
+    else {
+	$self->{s3270}->cp_disconnect()
+    };
 }
 
 sub do_savevm() {
