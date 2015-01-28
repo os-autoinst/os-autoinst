@@ -17,8 +17,8 @@ use feature qw/say/;
 
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
-      server_endian  _pixinfo _colourmap _framebuffer _rfb_version
-      _bpp _true_colour _big_endian absolute ikvm keymap update_required _last_update_request
+      no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version
+      _bpp _true_colour _do_endian_conversion absolute ikvm keymap update_required _last_update_request
       )
 );
 our $VERSION = '0.40';
@@ -26,7 +26,7 @@ our $VERSION = '0.40';
 my $MAX_PROTOCOL_VERSION = 'RFB 003.008' . chr(0x0a);  # Max version supported
 
 # This line comes from perlport.pod
-my $AM_BIG_ENDIAN = unpack( 'h*', pack( 's', 1 ) ) =~ /01/ ? 1 : 0;
+my $client_is_big_endian = unpack( 'h*', pack( 's', 1 ) ) =~ /01/ ? 1 : 0;
 
 # The numbers in the hashes below were acquired from the VNC source code
 my %supported_depths = (
@@ -324,9 +324,9 @@ sub _server_initialization {
     my $socket = $self->socket;
     $socket->read( my $server_init, 24 ) || die 'unexpected end of data';
 
-    my ( $framebuffer_width, $framebuffer_height, $bits_per_pixel, $depth,$big_endian_flag, $true_colour_flag, %pixinfo, $name_length );
+    my ( $framebuffer_width, $framebuffer_height, $bits_per_pixel, $depth,$server_is_big_endian, $true_colour_flag, %pixinfo, $name_length );
     # the following line is due to tidy ;(
-    ( $framebuffer_width,$framebuffer_height,$bits_per_pixel,$depth,$big_endian_flag,$true_colour_flag,$pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max},$pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift},$name_length) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
+    ( $framebuffer_width,$framebuffer_height,$bits_per_pixel,$depth,$server_is_big_endian,$true_colour_flag,$pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max},$pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift},$name_length) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
 
     #bmwqemu::diag "FW $framebuffer_width x $framebuffer_height";
 
@@ -372,7 +372,7 @@ sub _server_initialization {
     $self->_pixinfo( \%pixinfo );
     $self->_bpp( $supported_depths{ $self->depth }->{bpp} );
     $self->_true_colour( $supported_depths{ $self->depth }->{true_colour} );
-    $self->_big_endian($self->server_endian ? $big_endian_flag : $AM_BIG_ENDIAN );
+    $self->_do_endian_conversion($self->no_endian_conversion ? 0 : $server_is_big_endian != $client_is_big_endian );
 
     $socket->read( my $name_string, $name_length )
       || die 'unexpected end of data';
@@ -398,7 +398,7 @@ sub _server_initialization {
             0,    # padding
             $self->_bpp,
             $self->depth,
-            $self->_big_endian,
+            $self->_do_endian_conversion,
             $self->_true_colour,
             $pixinfo{red_max},
             $pixinfo{green_max},
@@ -727,7 +727,7 @@ sub _receive_update {
 
     my $depth = $self->depth;
 
-    my $big_endian = $self->_big_endian;
+    my $do_endian_conversion = $self->_do_endian_conversion;
 
     foreach ( 1 .. $number_of_rectangles ) {
         $socket->read( my $data, 12 ) || die 'unexpected end of data';
@@ -748,12 +748,12 @@ sub _receive_update {
             # splat raw pixels into the image
             my $img = tinycv::new($w, $h);
 
-            if ($self->_bpp == 16) {
-                $img->map_raw_data_rgb555($data, TODO_BIG_ENDIAN);
-            }
-            elsif ($self->_bpp == 32) {
-                if (TODO_BIG_ENDIAN) die "32bit big endian unsupported.";
+            if ($self->_bpp == 32 && !$do_endian_conversion) {
                 $img->map_raw_data($data);
+            }
+            elsif ($self->_bpp == 16 || ($self->_bpp == 32 && $do_endian_conversion)) {
+                my $pi = $self->_pixinfo;
+                $img->map_raw_data_full($data, $do_endian_conversion, $bytes_per_pixel, $pi->{red_max}, $pi->{red_shift}, $pi->{green_max}, $pi->{green_shift}, $pi->{blue_max}, $pi->{blue_shift});
             }
             else {
                 die "unknown bpp" . $self->_bpp;
@@ -951,4 +951,3 @@ under the same terms as Perl itself.
 
 Copyright (C) 2014, Stephan Kulow (coolo@suse.de) 
 adapted to be purely useful for qemu/openqa
- 

@@ -76,6 +76,15 @@ void map_raw_data_rgb555(tinycv::Image self, unsigned char *data, bool big_endia
   CODE:
     image_map_raw_data_rgb555(self, data, big_endian);
 
+void map_raw_data_full(tinycv::Image self, unsigned char *data, bool big_endian, unsigned int bytes_per_pixel, unsigned int red_mask, unsigned int red_shift, unsigned int green_mask, unsigned int green_shift, unsigned int blue_mask, unsigned int blue_shift)
+  CODE:
+    image_map_raw_data_full(self, data,
+			    big_endian,
+			    bytes_per_pixel,
+			    red_mask, red_shift,
+			    green_mask, green_shift,
+			    blue_mask, blue_shift);
+
 void blend(tinycv::Image self, tinycv::Image source, long x, long y)
   CODE:
     image_blend_image(self, source, x, y);
