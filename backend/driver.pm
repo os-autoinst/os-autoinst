@@ -172,8 +172,12 @@ sub AUTOLOAD {
 sub _send_json {
     my $self = shift;
     my $cmd  = shift;
-
-    my $json = JSON::encode_json($cmd);
+    # TODO: make this a class object
+    # allow regular expressions to be automatically converted into
+    # strings, using the Regex::TO_JSON function as defined at the end
+    # of this file.
+    my $JSON = JSON->new()->convert_blessed();
+    my $json = $JSON->encode($cmd);
 
     die "no backend running" unless ( $self->{to_child} );
     my $wb = syswrite( $self->{to_child}, "$json\n" );
@@ -223,6 +227,14 @@ sub _read_json($) {
     return $hash;
 }
 
+###################################################################
+# enable _send_json to send regular expressions
+package Regexp;
+sub TO_JSON {
+  my $regex = shift;
+  $regex = "$regex";
+  return $regex;
+}
 
 1;
 # vim: set sw=4 et:

@@ -85,10 +85,6 @@ sub connect_vnc() {
 }
 
 
-# For now, we run the testcase from here until we have a vnc connection going.
-# TODO: move the test case to the test cases.
-require backend::s390x::get_to_yast;
-
 ###################################################################
 sub do_start_vm() {
     my $self = shift;
@@ -97,39 +93,9 @@ sub do_start_vm() {
 
     $self->setup_3270_console();
 
-    my $s3270 = $self->{s3270};
-
     my $r;
 
-
-    $r = $s3270->start();
-
-    $r = $s3270->connect_and_login()
-      unless ($self->{vars}{DEBUG_VNC} eq "try vncviewer");
-
-    my $test = new backend::s390x::get_to_yast($s3270, $self->{vars});
-
-    $r = $test->backend::s390x::get_to_yast::run()
-      unless ($self->{vars}{DEBUG_VNC} eq "try vncviewer");
-
-    ###################################################################
-    # now we are ready do connect to vnc and to start the vnc backend...
-    eval {
-        if ($self->{vars}{DEBUG_VNC} eq "setup vnc") {
-            my $r = $s3270->cp_disconnect();
-            cluck $r;
-        }
-        else {
-            $self->connect_vnc();
-        }
-    };
-
-    # while developing: cluck.  in real life:  confess!
-    # confess $@ if $@;
-    cluck $@if $@;
-
-    ## also for development only:  just keep going...
-    #while (1) { sleep 50; }
+    $r = $self->{s3270}->start();
 
     return 1;
 
@@ -152,5 +118,25 @@ sub do_savevm() {
 sub do_loadvm() {
     notimplemented;
 }
+
+###################################################################
+## access the non-vnc consoles from the test cases...
+
+## TODO: console multiplexer:
+## sub switch_to_console(console => CONSOLE)
+## redirect all backend commands to CONSOLE from there on, also screen
+## capture from CONSOLE now.
+
+## current hack:
+sub do_console_hack() {
+    my ($self, $wrapped_call) = @_;
+
+    my ($console, $function, $args) = 
+	@$wrapped_call{qw{console function args}};
+
+    my $result = $self->{$console}->$function(@$args);
+    return $result;
+}
+
 
 1;
