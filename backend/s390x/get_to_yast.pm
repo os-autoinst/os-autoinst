@@ -280,7 +280,7 @@ EO_frickin_boot_parms
             $self->linuxrc_prompt("Device address for write channel");
             $self->linuxrc_prompt("Device address for data channel");
 
-            $self->linuxrc_prompt("\QPortname to use. (Enter '+++' to abort).\E");
+            $self->linuxrc_prompt("\QPortname to use\E");
 
             $self->linuxrc_menu("Enable OSI Layer 2 support", "No");
 
@@ -298,7 +298,7 @@ EO_frickin_boot_parms
             $self->linuxrc_prompt("Device address for write channel");
             $self->linuxrc_prompt("Device address for data channel");
 
-            $self->linuxrc_prompt("\QPortname to use. (Enter '+++' to abort).\E");
+            $self->linuxrc_prompt("\QPortname to use\E");
 
             $self->linuxrc_menu("Enable OSI Layer 2 support", "Yes");
             $self->linuxrc_prompt("\QMAC address. (Enter '+++' to abort).\E");
@@ -411,10 +411,6 @@ EO_frickin_boot_parms
     cluck $@if $@;
     ### say Dumper $r;
 
-    ###################################################################
-    # now we are ready do connect to vnc and to start the vnc backend...
-
-    while (1) { sleep 50; }
 #>>> perltidy again from here on
 }
 
