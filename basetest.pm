@@ -134,6 +134,8 @@ sub _serialize_match($$) {
             $na->{$i} = $a->{$i};
         }
         $na->{'similarity'} = int( $a->{'similarity'} * 100 );
+        $na->{'match'} = $a->{'match'} || 96;
+        $na->{'margin'} = $a->{'margin'} || 50;
         if ( $a->{'diff'} ) {
             my $imgname = sprintf( "%s-%d-%s-diff%d.png", $testname, $count, $name, $diffcount++ );
             $a->{'diff'}->write( join( '/', bmwqemu::result_dir(), $imgname ) );

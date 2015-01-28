@@ -614,6 +614,7 @@ sub save_needle_template($$$) {
                 height => $img->yres(),
                 type   => 'match',
                 margin => 50,    # Search margin for the area.
+                match => 96,    # Matches for the needle.
             }
         ],
         tags => [@$tags],
