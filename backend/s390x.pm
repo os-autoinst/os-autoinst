@@ -16,10 +16,8 @@ use backend::s390x::s3270;
 
 use backend::VNC;
 
-# this is evil, so evil:
-# \%bmwqemu::vars;
+use testapi qw{get_var check_var};
 
-# FIXME: what is this needed for?
 sub new {
     my $class = shift;
     my $self = bless( { class => $class }, $class );
@@ -29,13 +27,10 @@ sub new {
 sub setup_3270_console() {
     my $self = shift;
 
-    my $vars = \%bmwqemu::vars;
+    confess "ZVMHOST unset in vars.json" unless get_var("ZVM_HOST", undef);
+    confess "ZVM_GUEST unset in vars.json" unless get_var("ZVM_GUEST", undef);
+    confess "ZVM_PASSWORD unset in vars.json" unless get_var("ZVM_PASSWORD", undef);
 
-    confess "ZVMHOST unset in vars.json" unless exists $vars->{ZVM_HOST};
-    confess "ZVM_GUEST unset in vars.json" unless exists $vars->{ZVM_GUEST};
-    confess "ZVM_PASSWORD unset in vars.json" unless exists $vars->{ZVM_PASSWORD};
-
-    $self->{vars} = $vars;
     $self->{s3270} = new backend::s390x::s3270(
         {
             ## TODO make s3270 depend on some DEBUG flag or interactive
@@ -46,9 +41,9 @@ sub setup_3270_console() {
 
             ## s3270=>[qw(s3270)]; # non-interactive
             s3270	=> [qw(x3270 -script -trace -set screenTrace -charset us -xrm x3270.visualBell:true)],
-            zVM_host	=> $vars->{ZVM_HOST},
-            guest_user	=> $vars->{ZVM_GUEST},
-            guest_login => $vars->{ZVM_PASSWORD},
+            zVM_host	=> get_var("ZVM_HOST"),
+            guest_user	=> get_var("ZVM_GUEST"),
+            guest_login => get_var("ZVM_PASSWORD"),
         }
     );
 
@@ -67,9 +62,9 @@ sub connect_vnc() {
     }
     $self->{'vnc'}  = backend::VNC->new(
         {
-            hostname => $self->{vars}{PARMFILE}{Hostname},
+            hostname => get_var("PARMFILE")->{Hostname},
             port => 5901,
-            password => $self->{vars}{DISPLAY}{PASSWORD},
+            password => get_var("DISPLAY")->{PASSWORD},
             ikvm => 0
         }
     );
@@ -103,7 +98,7 @@ sub do_start_vm() {
 
 sub do_stop_vm() {
     my ($self) = @_;
-    if ($self->{vars}{DEBUG_VNC} eq "no") {
+    if (check_var("DEBUG_VNC", "no")) {
 	$self->{s3270}->cp_logoff_disconnect()
     }
     else {
