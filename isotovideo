@@ -94,6 +94,10 @@ use commands;
 $bmwqemu::vars{BACKEND} ||= "qemu";
 bmwqemu::save_vars();
 bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
+needle::init();
+
+# Load the main.pm from the casedir checked by the sanity checks above
+require "$bmwqemu::vars{CASEDIR}/main.pm";
 
 if ($init) {
     open( my $fd, ">os-autoinst.pid" );
@@ -112,7 +116,6 @@ if ($init) {
 
     if ( !bmwqemu::alive ) {
         bmwqemu::start_vm or die $@;
-        sleep 3;    # wait until BIOS is gone
     }
 }
 
@@ -124,14 +127,7 @@ if ($ENV{RUN_VNCVIEWER}) {
 require Carp;
 
 my $r = 0;
-eval {
-    # Load the main.pm from the casedir checked by the sanity checks above
-    require "$bmwqemu::vars{CASEDIR}/main.pm";
-
-    needle::init();
-
-    autotest::runalltests();
-};
+eval { autotest::runalltests(); };
 if ($@) {
     warn $@;
     $r = 1;
