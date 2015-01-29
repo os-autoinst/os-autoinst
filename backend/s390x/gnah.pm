@@ -23,9 +23,9 @@ sub AUTOLOAD {
 
     $function =~ s,.*::,,;
     my $wrapped_call = {
-	console => $self->{console},
-	function => $function,
-	args => $args,
+        console => $self->{console},
+        function => $function,
+        args => $args,
     };
 
     my $retval = $bmwqemu::backend->do_console_hack($wrapped_call);

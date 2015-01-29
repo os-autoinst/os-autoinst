@@ -99,11 +99,13 @@ sub do_start_vm() {
 sub do_stop_vm() {
     my ($self) = @_;
     if (check_var("DEBUG_VNC", "no")) {
-	$self->{s3270}->cp_logoff_disconnect()
+        $self->{s3270}->cp_logoff_disconnect(
+          );
     }
     else {
-	$self->{s3270}->cp_disconnect()
-    };
+        $self->{s3270}->cp_disconnect(
+          );
+    }
 }
 
 sub do_savevm() {
@@ -126,8 +128,7 @@ sub do_loadvm() {
 sub do_console_hack() {
     my ($self, $wrapped_call) = @_;
 
-    my ($console, $function, $args) = 
-	@$wrapped_call{qw{console function args}};
+    my ($console, $function, $args) =@$wrapped_call{qw{console function args}};
 
     my $result = $self->{$console}->$function(@$args);
     return $result;

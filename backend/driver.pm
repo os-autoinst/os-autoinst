@@ -231,9 +231,9 @@ sub _read_json($) {
 # enable _send_json to send regular expressions
 package Regexp;
 sub TO_JSON {
-  my $regex = shift;
-  $regex = "$regex";
-  return $regex;
+    my $regex = shift;
+    $regex = "$regex";
+    return $regex;
 }
 
 1;
