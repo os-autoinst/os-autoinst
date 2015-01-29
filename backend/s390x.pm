@@ -27,9 +27,9 @@ sub new {
 sub setup_3270_console() {
     my $self = shift;
 
-    confess "ZVMHOST unset in vars.json" unless get_var("ZVM_HOST", undef);
-    confess "ZVM_GUEST unset in vars.json" unless get_var("ZVM_GUEST", undef);
-    confess "ZVM_PASSWORD unset in vars.json" unless get_var("ZVM_PASSWORD", undef);
+    confess "ZVMHOST unset in vars.json" unless get_var("ZVM_HOST");
+    confess "ZVM_GUEST unset in vars.json" unless get_var("ZVM_GUEST");
+    confess "ZVM_PASSWORD unset in vars.json" unless get_var("ZVM_PASSWORD");
 
     $self->{s3270} = new backend::s390x::s3270(
         {
