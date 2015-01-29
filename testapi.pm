@@ -8,14 +8,12 @@ use Time::HiRes qw(sleep gettimeofday);
 
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string
   assert_screen upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
-  script_sudo wait_serial save_screenshot backend_send wait_screen_change
+  script_sudo wait_serial save_screenshot wait_screen_change
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
-  autoinst_url script_output validate_script_output);
+  autoinst_url script_output validate_script_output eject_cd power);
 
 our %cmd;
-
-our %charmap;
 
 our $distri;
 
@@ -30,53 +28,7 @@ sub check_screen($;$);
 sub type_string($;$);
 sub type_password;
 
-sub init_charmap() {
-    ## charmap (like L => shift+l)
-    %charmap = (
-        ","  => "comma",
-        "."  => "dot",
-        "/"  => "slash",
-        "="  => "equal",
-        "-"  => "minus",
-        "*"  => "asterisk",
-        "["  => "bracket_left",
-        "]"  => "bracket_right",
-        "{"  => "shift-bracket_left",
-        "}"  => "shift-bracket_right",
-        "\\" => "backslash",
-        "|"  => "shift-backslash",
-        ";"  => "semicolon",
-        ":"  => "shift-semicolon",
-        "'"  => "apostrophe",
-        '"'  => "shift-apostrophe",
-        "`"  => "grave_accent",
-        "~"  => "shift-grave_accent",
-        "<"  => "shift-comma",
-        ">"  => "shift-dot",
-        "+"  => "shift-equal",
-        "_"  => "shift-minus",
-        '?'  => "shift-slash",
-        "\t" => "tab",
-        "\n" => "ret",
-        " "  => "spc",
-        "\b" => "backspace",
-        "\e" => "esc"
-    );
-    for my $c ( "A" .. "Z" ) {
-        $charmap{$c} = "shift-\L$c";
-    }
-    {
-        my $n = 0;
-        for my $c ( ')', '!', '@', '#', '$', '%', '^', '&', '*', '(' ) {
-            $charmap{$c} = "shift-" . ( $n++ );
-        }
-    }
-    ## charmap end
-}
-
 sub init() {
-    init_charmap();
-
     $serialdev = "ttyS0";
     if ( get_var('OFW') ) {
         $serialdev = "hvc0";
@@ -114,7 +66,7 @@ sub assert_and_click($;$$$$) {
         mustmatch => $_[0],
         timeout   => $_[2]
     );
-    my @old_mouse_coords = $bmwqemu::backend->get_last_mouse_set();
+    my $old_mouse_coords = $bmwqemu::backend->get_last_mouse_set();
     bmwqemu::fctlog( 'assert_and_click', ["mustmatch", $_[0]], ["button", $_[1]], ["timeout", $_[2]] );
 
     my $dclick = $_[4] || 0;
@@ -136,7 +88,7 @@ sub assert_and_click($;$$$$) {
     # We can't just move the mouse, or we end up in a click-and-drag situation
     sleep 1;
     # move mouse back to where it was before we clicked
-    mouse_set( $old_mouse_coords[0], $old_mouse_coords[1]);
+    mouse_set( $old_mouse_coords->{'x'}, $old_mouse_coords->{'y'});
 }
 
 sub assert_and_dclick($;$$$) {
@@ -300,32 +252,18 @@ sub power($) {
     # params: (on), off, acpi, reset
     my $action = shift;
     bmwqemu::fctlog( 'power', ["action", $action] );
-    $bmwqemu::backend->power($action);
+    $bmwqemu::backend->power({'action' => $action});
+}
+
+# eject the cd
+sub eject_cd() {
+    bmwqemu::fctlog('eject_cd');
+    $bmwqemu::backend->eject_cd;
 }
 
 # runtime keyboard/mouse io functions end
 
 # runtime information gathering functions
-
-sub _backend_send_nolog($) {
-
-    # should not be used if possible
-    if ($bmwqemu::backend) {
-        $bmwqemu::backend->send(@_);
-    }
-    else {
-        warn "no backend";
-    }
-}
-
-sub backend_send($) {
-
-    # should not be used if possible
-    bmwqemu::fctlog( 'backend_send', join( ',', @_ ) );
-    &_backend_send_nolog;
-}
-
-# backend management end
 
 # runtime keyboard/mouse io functions
 
@@ -372,7 +310,7 @@ sub mouse_set($$) {
     my ($mx, $my) = @_;
 
     bmwqemu::fctlog( 'mouse_set', ["x", $mx], ["y", $my] );
-    $bmwqemu::backend->mouse_set( { 'x' => $mx, 'y' => $my, 'test' => 17 } );
+    $bmwqemu::backend->mouse_set( { 'x' => $mx, 'y' => $my } );
 }
 
 sub mouse_click(;$$) {

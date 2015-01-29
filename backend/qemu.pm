@@ -34,8 +34,8 @@ sub new {
 
 # baseclass virt method overwrite
 
-sub raw_alive($) {
-    my $self = shift;
+sub raw_alive() {
+    my ($self) = @_;
     return 0 unless $self->{'pid'};
     return kill( 0, $self->{'pid'} );
 }
@@ -86,30 +86,32 @@ sub do_start_vm() {
     return {};
 }
 
+sub kill_qemu($) {
+    my ($pid) = (@_);
+
+    # already gone?
+    my $ret = waitpid($pid, WNOHANG);
+    print STDERR "waitpid for $pid returned $ret\n";
+    return if ($ret == $pid || $ret == -1);
+
+    printf STDERR "sending TERM to qemu pid: %d\n", $pid;
+    kill('TERM', $pid);
+    for my $i (1..5) {
+        sleep 1;
+        $ret = waitpid($pid, WNOHANG);
+        print STDERR "waitpid for $pid returned $ret\n";
+        return if ($ret == $pid);
+    }
+    kill( "KILL", $pid);
+    # now we have to wait
+    waitpid($pid, 0);
+}
+
 sub do_stop_vm($) {
     my $self = shift;
 
-    sleep(0.1);
-    waitpid($self->{pid}, WNOHANG);
-    my $n;
-    for (my $i = 0; $i < 3; ++$i) {
-        # dead meanwhile?
-        $n = kill(0, $self->{'pid'});
-        last if ($n == 0);
-        printf STDERR "sending TERM to %d\n", $self->{'pid'};
-        $n = kill( "TERM", $self->{'pid'} );
-        last if ($n == 0); # we're done when qemu is gone
-        sleep 1;
-        waitpid($self->{pid}, WNOHANG);
-    }
-    if ($n != 0) {
-        printf STDERR "sending KILL to %d\n", $self->{'pid'};
-        $n = kill( "KILL", $self->{'pid'} );
-        sleep 1;
-        waitpid($self->{pid}, WNOHANG);
-        $n = kill(0, $self->{'pid'});
-        warn "ERROR: qemu still not dead. wtf?" if $n;
-    }
+    return unless $self->{'pid'} > 0;
+    kill_qemu($self->{'pid'});
     unlink( $self->{'pidfilename'} );
 }
 
@@ -149,7 +151,8 @@ sub start_qemu() {
 
     my $qemubin = $ENV{'QEMU'};
     unless ($qemubin) {
-        for my $bin ( map { '/usr/bin/' . $_ } qw/kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64/ ) {
+        my @candidates = $vars->{QEMU}?('qemu-system-'.$vars->{QEMU}):qw/kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64/;
+        for my $bin ( map { '/usr/bin/' . $_ } @candidates ) {
             next unless -x $bin;
             $qemubin = $bin;
             last;
@@ -167,12 +170,19 @@ sub start_qemu() {
     $vars->{NICTYPE}   ||= "user";
     $vars->{NICMAC}    ||= "52:54:00:12:34:56";
     # misc
-    if (!$vars->{OFW}) {
-        $vars->{QEMUVGA} ||= ["cirrus"];
+    my @vgaoptions;
+    if ($vars->{ARCH} eq 'aarch64') {
+        push @vgaoptions, '-device', 'VGA';
+    }
+    elsif ($vars->{OFW}) {
+        $vars->{QEMUVGA} ||= "std";
+        push(@vgaoptions, '-g', '1024x768' );
     }
     else {
-        $vars->{QEMUVGA} ||= [ 'std', '-g', '1024x768' ];
+        $vars->{QEMUVGA} ||= "cirrus";
     }
+    push(@vgaoptions, "-vga", $vars->{QEMUVGA}) if $vars->{QEMUVGA};
+
     $vars->{QEMUCPUS}  ||= 1;
     if ( defined( $vars->{RAIDLEVEL} ) ) {
         $vars->{NUMDISKS} = 4;
@@ -217,17 +227,19 @@ sub start_qemu() {
     }
 
     pipe(my $reader, my $writer);
-    $self->{'pid'} = fork();
-    die "fork failed" if ( !defined( $self->{'pid'} ) );
-    if ( $self->{'pid'} == 0 ) {
-        my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga" );
-        push(@params, @{$vars->{QEMUVGA}});
+    my $pid = fork();
+    die "fork failed" unless defined($pid);
+    if ( $pid == 0 ) {
+        $SIG{__DIE__} = undef; # overwrite the default - just exit
+        my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", @vgaoptions);
 
-        my $qemu_machine = '';
         if ( $vars->{QEMUMACHINE} ) {
-            $qemu_machine = sprintf("type=%s,", $vars->{QEMUMACHINE});
+            push( @params, "-machine", $vars->{QEMUMACHINE});
         }
-        push( @params, "-machine", "${qemu_machine}accel=kvm,kernel_irqchip=on"  );
+
+        if ( $vars->{QEMUCPU} ) {
+            push( @params, "-cpu", $vars->{QEMUCPU} );
+        }
 
         if ( $vars->{NICTYPE} eq "user" ) {
             push( @params, '-netdev', 'user,id=qanet0');
@@ -286,11 +298,11 @@ sub start_qemu() {
             push( @params, "-boot", "once=d,menu=on,splash-time=5000" );
         }
 
-        if ( $vars->{QEMUCPU} ) {
-            push( @params, "-cpu", $vars->{QEMUCPU} );
-        }
         if ( $vars->{UEFI} ) {
-            push( @params, "-bios", '/usr/share/qemu/'.$vars->{UEFI_BIOS} );
+            $vars->{BIOS} = $vars->{UEFI_BIOS};
+        }
+        if ( $vars->{BIOS} ) {
+            push( @params, "-bios", '/usr/share/qemu/'.$vars->{BIOS} );
         }
         if ( $vars->{MULTINET} ) {
             if ( $vars->{NICTYPE} eq "tap" ) {
@@ -299,9 +311,9 @@ sub start_qemu() {
             no warnings 'qw';
             push( @params, qw"-net nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57 -net none,vlan=1" );
         }
-        push( @params, "-usb", "-usbdevice", "tablet" );
+        push(@params, qw/-device nec-usb-xhci -device usb-tablet/);
         push( @params, "-smp", $vars->{QEMUCPUS} );
-        push( @params, "-enable-kvm" );
+        push( @params, "-enable-kvm" ) unless $vars->{QEMU_NO_KVM};
         push( @params, "-no-shutdown" );
 
         if ( open( my $cmdfd, '>', 'runqemu' ) ) {
@@ -348,18 +360,36 @@ sub start_qemu() {
         exec(@params);
         die "failed to exec qemu";
     }
+    else {
+        $self->{'pid'} = $pid;
+    }
     close $writer;
     $self->{'qemupipe'} = $reader;
     open( my $pidf, ">", $self->{'pidfilename'} ) or die "can not write " . $self->{'pidfilename'};
     print $pidf $self->{'pid'}, "\n";
     close $pidf;
-    sleep 3;    # time to let qemu start
 
     $self->{'vnc'} = backend::VNC->new({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC} });
-    eval { $self->{'vnc'}->login; };
-    if ($@) {
-        $self->close_pipes();
-        die $@;
+
+    # the real timeout is the 7 below
+    for my $i (1..10) {
+        eval {
+            # we sure don't want to stop the vm in case this fails
+            local $SIG{'__DIE__'};
+            $self->{'vnc'}->login;
+        };
+        if ($@) {
+            if ($i > 7) {
+                $self->close_pipes();
+                die $@;
+            }
+            else {
+                sleep 1;
+            }
+        }
+        else {
+            last;
+        }
     }
 
     $self->{'hmpsocket'} = IO::Socket::UNIX->new(

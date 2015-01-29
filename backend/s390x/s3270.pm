@@ -232,7 +232,7 @@ sub expect_3270() {
         my $line;
         while ($line = $self->{raw_expect_queue}->dequeue_nb()) {
             push @$result, $line;
-            if (!defined $line || $line =~ $arg{output_delim}) {
+            if (!defined $line || $line =~ /$arg{output_delim}/) {
                 last;
             }
         }
@@ -410,7 +410,7 @@ sub _login_guest() {
     return $r;
 }
 
-sub _hard_shutdown_guest() {
+sub cp_logoff_disconnect() {
     my ($self) = @_;
 
     $self->send_3270('String("#cp logoff")');
@@ -418,7 +418,15 @@ sub _hard_shutdown_guest() {
     $self->send_3270('Wait(Disconnect)');
 }
 
-sub login() {
+sub cp_disconnect() {
+    my ($self) = @_;
+
+    $self->send_3270('String("#cp disconnect")');
+    $self->send_3270('ENTER');
+    $self->send_3270('Wait(Disconnect)');
+}
+
+sub connect_and_login() {
     my ($self) = @_;
 
     my $r;
@@ -438,13 +446,13 @@ sub login() {
             cluck # carp
               "machine $self->{zVM_host} $self->{guest_login} is in use:".join("\n", @$r);
 
-            if ($count == 0) {
+            if ($count == 2) {
                 die "could not reclaim guest despite hard_shutdown.  this is odd.";
             }
 
             # shut down and reconnect
             cluck "trying hard shutdown...";
-            $self->_hard_shutdown_guest();
+            $self->cp_logoff_disconnect();
 
             next;
         }
@@ -453,4 +461,5 @@ sub login() {
 
     }
 }
+
 1;

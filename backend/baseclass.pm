@@ -10,14 +10,18 @@ use JSON qw( to_json );
 use File::Copy qw(cp);
 use File::Basename;
 use Time::HiRes qw(gettimeofday);
+use bmwqemu;
+use IO::Select;
 
 my $framecounter    = 0;    # screenshot counter
 our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
 
+# should be a singleton - and only useful in backend thread
+our $backend;
+
 sub new {
     my $class = shift;
     my $self = bless( { class => $class }, $class );
-    $self->init();
     $self->{'started'} = 0;
     return $self;
 }
@@ -34,10 +38,20 @@ sub handle_command($) {
     return $self->$func($cmd->{'arguments'});
 }
 
+sub die_handler {
+    my $msg = shift;
+    print STDERR "DIE $msg\n";
+    $backend->stop_vm();
+    $backend->close_pipes();
+}
+
 sub run {
     my ($self, $cmdpipe, $rsppipe) = @_;
 
-    #$SIG{__DIE__} = sub { alarm 3 };
+    die "there can only be one!" if $backend;
+    $backend = $self;
+
+    $SIG{__DIE__} = \&die_handler;
 
     my $io = IO::Handle->new();
     $io->fdopen( $cmdpipe, "r" ) || die "r fdopen $!";
@@ -111,8 +125,9 @@ sub post_start_hook($) {
 
 sub start_vm($) {
     my ($self) = @_;
-    $self->{'started'} = 1;
     $self->{'mouse'} = { 'x' => undef, 'y' => undef };
+    $self->{'started'} = 1;
+    $self->init_charmap();
     $self->start_encoder();
     $self->do_start_vm();
 }
@@ -124,7 +139,7 @@ sub stop_vm($) {
     unlink('backend.run');
     $self->do_stop_vm();
     $self->{'started'} = 0;
-    $self->close_pipes();
+    $self->close_pipes(); # does not return
     return {};
 }
 
@@ -161,11 +176,6 @@ sub write_crash_file {
 
 # virtual methods
 sub notimplemented() { confess "backend method not implemented" }
-
-sub init() {
-    # static setup.  don't start the backend yet.
-    notimplemented
-}
 
 sub power($) {
 
@@ -204,48 +214,56 @@ sub cpu_stat($) {
     return [];
 }
 
-# see http://en.wikipedia.org/wiki/IBM_PC_keyboard
-my  %charmap = (
-    # minus is special as it splits key combinations
-    "-"  => "minus",
-    # first line of US layout
-    "~"  => "shift-`",
-    "!"  => "shift-1",
-    "@"  => "shift-2",
-    "#"  => "shift-3",
-    "\$"  => "shift-4",
-    "%"  => "shift-5",
-    "^"  => "shift-6",
-    "&"  => "shift-7",
-    "*"  => "shift-8",
-    "("  => "shift-9",
-    ")"  => "shift-0",
-    "_"  => "shift-minus",
-    "+"  => "shift-=",
+sub init_charmap($) {
 
-    # second line
-    "{"  => "shift-[",
-    "}"  => "shift-]",
-    "|"  => "shift-\\",
+    my ($self) = (@_);
 
-    # third line
-    ":"  => "shift-;",
-    '"'  => "shift-'",
+    ## charmap (like L => shift+l)
+    # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
+    $self->{charmap} = {
+        # minus is special as it splits key combinations
+        "-"  => "minus",
+        # first line of US layout
+        "~"  => "shift-`",
+        "!"  => "shift-1",
+        "@"  => "shift-2",
+        "#"  => "shift-3",
+        "\$"  => "shift-4",
+        "%"  => "shift-5",
+        "^"  => "shift-6",
+        "&"  => "shift-7",
+        "*"  => "shift-8",
+        "("  => "shift-9",
+        ")"  => "shift-0",
+        "_"  => "shift-minus",
+        "+"  => "shift-=",
 
-    # fourth line
-    "<"  => "shift-,",
-    ">"  => "shift-.",
-    '?'  => "shift-/",
+        # second line
+        "{"  => "shift-[",
+        "}"  => "shift-]",
+        "|"  => "shift-\\",
 
-    "\t" => "tab",
-    "\n" => "ret",
-    "\b" => "backspace",
-);
+        # third line
+        ":"  => "shift-;",
+        '"'  => "shift-'",
 
+        # fourth line
+        "<"  => "shift-,",
+        ">"  => "shift-.",
+        '?'  => "shift-/",
+
+        "\t" => "tab",
+        "\n" => "ret",
+        "\b" => "backspace",
+
+        "\e" => "esc"
+    };
+    ## charmap end
+}
 
 sub map_letter($) {
     my ($self, $letter) = @_;
-    return $charmap{$letter} if $charmap{$letter};
+    return $self->{charmap}->{$letter} if $self->{charmap}->{$letter};
     return $letter;
 }
 
@@ -253,16 +271,14 @@ sub type_string($$) {
     my ($self, $string, $maxinterval) = @_;
 
     my $typedchars  = 0;
-    my @letters = split( "", $string );
-    while (@letters) {
-        my $letter = $self->map_letter( shift @letters );
-        send_key $letter, 0;
+    for my $letter (split( "", $string )) {
+        send_key $self->map_letter($letter), 1;
         if ( $typedchars++ >= $maxinterval ) {
-            wait_still_screen(1.6);
+            sleep 2;
             $typedchars = 0;
         }
     }
-    wait_still_screen(1.6) if ( $typedchars > 0 );
+    sleep 2 if ( $typedchars > 0 );
 }
 
 
@@ -342,6 +358,7 @@ sub close_pipes() {
     return unless $self->{'rsppipe'};
 
     # XXX: perl does not really close the fd here due to threads!?
+    print "sending magic and exit\n";
     $self->{'rsppipe'}->print($MAGIC_PIPE_CLOSE_STRING);
     close($self->{'rsppipe'}) || die "close $!\n";
     threads->exit();

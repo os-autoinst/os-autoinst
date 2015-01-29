@@ -66,18 +66,18 @@ our $direct_output;
 our $timesidleneeded     = 1;
 our $standstillthreshold = 600;
 
+our %vars;
+
 sub load_vars() {
     my $fn = "vars.json";
-    my $ret;
+    my $ret = {};
     local $/;
     open(my $fh, '<', $fn) or return 0;
-    eval {$ret = decode_json(<$fh>);};
+    eval { $ret = decode_json(<$fh>); };
     warn "openQA didn't write proper vars.json" if $@;
     close($fh);
-    return $ret;
+    %vars = %{$ret};
 }
-
-our %vars;
 
 sub save_vars() {
     my $fn = "vars.json";
@@ -107,7 +107,7 @@ our $scriptdir;
 our $testedversion;
 
 sub init {
-    %vars = %{load_vars() || {}};
+    load_vars();
     $vars{NAME} ||= 'noname';
     $liveresultpath = "$testresults/$vars{NAME}";
     if ($direct_output) {
@@ -372,11 +372,12 @@ sub stop_vm() {
 }
 
 sub freeze_vm() {
-    $backend->stop();
+    # qemu specific - all other backends will crash
+    $backend->handle_qmp_command({"execute" => "stop"});
 }
 
 sub cont_vm() {
-    $backend->cont();
+    $backend->handle_qmp_command({"execute" => "cont"});
 }
 
 sub mydie {
@@ -616,6 +617,7 @@ sub save_needle_template($$$) {
             }
         ],
         tags => [@$tags],
+        properties => [],
     };
 
     $img->write_optimized($imgfn);
@@ -838,7 +840,7 @@ sub assert_screen {
     return undef;
 }
 
-sub _reduce_to_biggest_changes($) {
+sub _reduce_to_biggest_changes($$) {
     my ($oldarray, $limit) = @_;
     my @newarray;
 
@@ -879,7 +881,6 @@ sub save_results(;$$) {
         'distribution' => $vars{'DISTRI'},
         'version'      => $vars{'VERSION'} || '',
         'testmodules'  => $testmodules,
-        'dents'        => 0,
     };
     if ( $ENV{'WORKERID'} ) {
         $result->{workerid}    = $ENV{WORKERID};
@@ -900,7 +901,6 @@ sub save_results(;$$) {
             else {
                 $result->{overall} = 'fail';
             }
-            $result->{dents}++ if $tr->{dents};
         }
         $result->{overall} ||= 'fail';
     }

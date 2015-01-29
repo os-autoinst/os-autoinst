@@ -83,13 +83,25 @@ sub record_screenmatch($$;$) {
     my $testname = ref($self);
 
     my $h      = $self->_serialize_match($needle);
+    my $properties = $needle->{needle}->{properties} || [];
     my $result = {
         needle     => $h->{'name'},
         area       => $h->{'area'},
         tags       => [@$tags],                                    # make a copy
         screenshot => sprintf( "%s-%d.png", $testname, $count ),
         result     => 'ok',
+        properties => [@$properties],
     };
+
+    # When found the needle had workaround property
+    # mark the result as dent and increase the dents
+    for my $property (@$properties) {
+        if ($property eq 'workaround') {
+            $result->{dent} = 1;
+            $self->{dents}++;
+            bmwqemu::diag "found workaround property in $h->{'name'}";
+        }
+    }
 
     # Hack to make it obvious that some test passed by applying a hack
     # (such as clicking away some error popup). Those hacks are indicated by a

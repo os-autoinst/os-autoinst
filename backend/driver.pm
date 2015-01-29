@@ -13,6 +13,7 @@ use Carp;
 use JSON qw( to_json );
 use Data::Dumper;
 use File::Path qw(remove_tree);
+use IO::Select;
 
 # TODO: move the whole printing out of bmwqemu
 sub diag($) {
@@ -73,7 +74,6 @@ sub stop {
     close( $self->{to_child} ) if ($self->{to_child});
     $self->{to_child} = undef;
 
-    diag "waiting for thread to quit...";
     $self->{runthread}->join() if $self->{runthread};
     $self->{runthread} = undef;
 }
@@ -93,6 +93,8 @@ sub start_vm($) {
     mkdir $bmwqemu::screenshotpath;
 
     $self->_send_json({ 'cmd' => "start_vm"} ) || die "failed to start VM";
+    # the backend thread might have added some defaults for the backend
+    bmwqemu::load_vars();
 
     $self->post_start_hook();
     return 1;
@@ -170,12 +172,14 @@ sub AUTOLOAD {
 sub _send_json {
     my $self = shift;
     my $cmd  = shift;
+    # TODO: make this a class object
+    # allow regular expressions to be automatically converted into
+    # strings, using the Regex::TO_JSON function as defined at the end
+    # of this file.
+    my $JSON = JSON->new()->convert_blessed();
+    my $json = $JSON->encode($cmd);
 
-    my $json = JSON::encode_json($cmd);
-
-    #carp "SEND JSON $json\n";
-
-    return undef unless ( $self->{to_child} );
+    die "no backend running" unless ( $self->{to_child} );
     my $wb = syswrite( $self->{to_child}, "$json\n" );
     die "syswrite failed $!" unless ( $wb == length($json) + 1 );
 
@@ -212,6 +216,7 @@ sub _read_json($) {
         if ( !$bytes ) { diag("sysread failed: $!"); return undef; }
         $rsp .= $qbuffer;
         if ($rsp eq $backend::baseclass::MAGIC_PIPE_CLOSE_STRING) {
+            print "received magic close\n";
             return undef;
         }
         if ( $rsp !~ m/\n/ ) { next; }
@@ -222,6 +227,19 @@ sub _read_json($) {
     return $hash;
 }
 
+###################################################################
+# enable _send_json to send regular expressions
+#<<< perltidy off
+# this has to be on two lines so other tools don't believe this file
+# exports package Regexp
+package
+Regexp;
+#>>> perltidy on
+sub TO_JSON {
+    my $regex = shift;
+    $regex = "$regex";
+    return $regex;
+}
 
 1;
 # vim: set sw=4 et:

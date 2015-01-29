@@ -34,6 +34,7 @@ sub new($;$) {
         }
     }
     my $self = { tags => ( $json->{'tags'} || [] ) };
+    $self->{'properties'} = $json->{'properties'} || [];
 
     my $gotmatch;
     for my $area ( @{ $json->{'area'} } ) {
@@ -89,6 +90,7 @@ sub save($;$) {
         {
             tags => [ sort( @{ $self->{'tags'} } ) ],
             area => \@area,
+            properties => [ sort( @{ $self->{'properties'} } ) ],
         }
     );
     open( my $fh, '>', $fn ) || die "can't open $fn for writing: $!\n";

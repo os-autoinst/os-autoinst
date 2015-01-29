@@ -26,13 +26,12 @@ sub new {
     return $self;
 }
 
-use Time::HiRes qw(gettimeofday);
-
 sub ipmi_cmdline() {
     my ($self) = @_;
 
     return ('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'},'-U', $bmwqemu::vars{'IPMI_USER'},'-P', $bmwqemu::vars{'IPMI_PASSWORD'});
 }
+
 
 sub ipmitool($) {
     my ($self, $cmd) = @_;
@@ -67,6 +66,15 @@ sub restart_host() {
         last if $ret =~ m/is on/;
         $self->ipmitool("chassis power on");
         sleep(2);
+    }
+}
+
+sub init_charmap() {
+    my ($self) = @_;
+
+    $self->SUPER::init_charmap();
+    for my $c ( "A" .. "Z" ) {
+        $self->{charmap}->{$c} = "shift-\L$c";
     }
 }
 
