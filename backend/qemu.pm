@@ -164,7 +164,14 @@ sub start_qemu() {
     # disk settings
     $vars->{NUMDISKS}  ||= 1;
     $vars->{HDDSIZEGB} ||= 10;
-    $vars->{HDDMODEL}  ||= "virtio-blk";
+    if ($vars->{ARCH} eq 'aarch64') {
+        # virto-blk is an alias to virtio-blk-pci but we have virtio-mmio on
+        # aarch64
+        $vars->{HDDMODEL}  ||= "virtio-blk-device";
+    }
+    else {
+        $vars->{HDDMODEL}  ||= "virtio-blk";
+    }
     # network settings
     $vars->{NICMODEL}  ||= "virtio-net";
     $vars->{NICTYPE}   ||= "user";
