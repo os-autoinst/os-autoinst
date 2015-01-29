@@ -26,10 +26,18 @@ sub new {
     return $self;
 }
 
+use Time::HiRes qw(gettimeofday);
+
+sub ipmi_cmdline() {
+    my ($self) = @_;
+
+    return ('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'},'-U', $bmwqemu::vars{'IPMI_USER'},'-P', $bmwqemu::vars{'IPMI_PASSWORD'});
+}
+
 sub ipmitool($) {
     my ($self, $cmd) = @_;
 
-    my @cmd = ('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'},'-U', $bmwqemu::vars{'IPMI_USER'},'-P', $bmwqemu::vars{'IPMI_PASSWORD'});
+    my @cmd = $self->ipmi_cmdline();
     push(@cmd, split(/ /, $cmd));
 
     my ($stdin, $stdout, $stderr, $ret);
@@ -102,10 +110,10 @@ sub do_start_vm() {
     my ($self) = @_;
 
     # remove backend.crashed
-    $self->unlink_crash_file();
+    $self->unlink_crash_file;
     $self->restart_host;
     $self->relogin_vnc;
-    $self->start_serial_grab();
+    $self->start_serial_grab;
     return {};
 }
 
@@ -133,11 +141,17 @@ sub start_serial_grab() {
     my $self = shift;
     my $pid = fork();
     if ( $pid == 0 ) {
-        no warnings 'io';
-        close STDIN;
-        open STDOUT, ">", $bmwqemu::serialfile;
-        open STDERR, ">", "/dev/null";
-        exec("ipmitool", "-I", "lanplus", "-H", $bmwqemu::vars{'IPMI_HOSTNAME'}, "-U", $bmwqemu::vars{'IPMI_USER'}, "-P", $bmwqemu::vars{'IPMI_PASSWORD'}, "sol", "activate");
+        my @cmd = $self->ipmi_cmdline();
+        push(@cmd, ("-I", "lanplus", "sol", "activate"));
+        #unshift(@cmd, ("setsid", "-w"));
+        print join(" ", @cmd);
+
+        open( my $serial, '>', $bmwqemu::serialfile ) || die "can't open $bmwqemu::serialfile";
+        open(STDOUT, ">&", $serial) || die "can't dup stdout: $!";
+        open(STDERR, ">&", $serial) || die "can't dup stderr: $!";
+        open( my $zero, '<', '/dev/zero');
+        open(STDIN, ">&", $zero);
+        exec(@cmd);
         die "exec failed $!";
     }
     else {
@@ -147,7 +161,8 @@ sub start_serial_grab() {
 
 sub stop_serial_grab($) {
     my $self = shift;
-    kill(15, $self->{'serialpid'});
+    return unless $self->{'serialpid'};
+    kill("TERM", $self->{'serialpid'});
     waitpid($self->{'serialpid'}, 0);
 }
 
