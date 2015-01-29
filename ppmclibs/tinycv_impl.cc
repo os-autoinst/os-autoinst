@@ -442,7 +442,8 @@ void image_map_raw_data_rgb555(Image *a, const unsigned char *data)
 {
   for (int y = 0; y < a->img.rows; y++) {
     for (int x = 0; x < a->img.cols; x++) {
-      long pixel;
+      long pixel = *data++;
+      pixel += *data++ * 256;
       unsigned char blue = pixel % 32 * 8;
       pixel = pixel >> 5;
       unsigned char green = pixel % 32 * 8;
@@ -494,6 +495,10 @@ void image_map_raw_data_full(Image* a, unsigned char *data,
 	  data += 4;
 	}
       }
+      else {
+	// just fail miserably for unsupported bytes per pixel
+	abort();
+      };
       unsigned char blue  = (pixel >> blue_shift  & blue_mask ) * blue_skale;
       unsigned char green = (pixel >> green_shift & green_mask) * green_skale;
       unsigned char red   = (pixel >> red_shift   & red_mask  ) * red_skale;
