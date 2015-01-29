@@ -229,7 +229,12 @@ sub _read_json($) {
 
 ###################################################################
 # enable _send_json to send regular expressions
-package Regexp;
+#<<< perltidy off
+# this has to be on two lines so other tools don't believe this file
+# exports package Regexp
+package
+Regexp;
+#>>> perltidy on
 sub TO_JSON {
     my $regex = shift;
     $regex = "$regex";

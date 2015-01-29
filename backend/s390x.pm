@@ -99,12 +99,10 @@ sub do_start_vm() {
 sub do_stop_vm() {
     my ($self) = @_;
     if (check_var("DEBUG_VNC", "no")) {
-        $self->{s3270}->cp_logoff_disconnect(
-          );
+        $self->{s3270}->cp_logoff_disconnect();
     }
     else {
-        $self->{s3270}->cp_disconnect(
-          );
+        $self->{s3270}->cp_disconnect();
     }
 }
 
