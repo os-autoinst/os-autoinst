@@ -151,7 +151,8 @@ sub start_qemu() {
 
     my $qemubin = $ENV{'QEMU'};
     unless ($qemubin) {
-        for my $bin ( map { '/usr/bin/' . $_ } qw/kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64/ ) {
+        my @candidates = $vars->{QEMU}?('qemu-system-'.$vars->{QEMU}):qw/kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64/;
+        for my $bin ( map { '/usr/bin/' . $_ } @candidates ) {
             next unless -x $bin;
             $qemubin = $bin;
             last;
@@ -169,12 +170,19 @@ sub start_qemu() {
     $vars->{NICTYPE}   ||= "user";
     $vars->{NICMAC}    ||= "52:54:00:12:34:56";
     # misc
-    if (!$vars->{OFW}) {
-        $vars->{QEMUVGA} ||= ["cirrus"];
+    my @vgaoptions;
+    if ($vars->{ARCH} eq 'aarch64') {
+        push @vgaoptions, '-device', 'VGA';
+    }
+    elsif ($vars->{OFW}) {
+        $vars->{QEMUVGA} ||= "std";
+        push(@vgaoptions, '-g', '1024x768' );
     }
     else {
-        $vars->{QEMUVGA} ||= [ 'std', '-g', '1024x768' ];
+        $vars->{QEMUVGA} ||= "cirrus";
     }
+    push(@vgaoptions, "-vga", $vars->{QEMUVGA}) if $vars->{QEMUVGA};
+
     $vars->{QEMUCPUS}  ||= 1;
     if ( defined( $vars->{RAIDLEVEL} ) ) {
         $vars->{NUMDISKS} = 4;
@@ -223,14 +231,15 @@ sub start_qemu() {
     die "fork failed" unless defined($pid);
     if ( $pid == 0 ) {
         $SIG{__DIE__} = undef; # overwrite the default - just exit
-        my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", "-vga" );
-        push(@params, @{$vars->{QEMUVGA}});
+        my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", @vgaoptions);
 
-        my $qemu_machine = '';
         if ( $vars->{QEMUMACHINE} ) {
-            $qemu_machine = sprintf("type=%s,", $vars->{QEMUMACHINE});
+            push( @params, "-machine", $vars->{QEMUMACHINE});
         }
-        push( @params, "-machine", "${qemu_machine}accel=kvm,kernel_irqchip=on"  );
+
+        if ( $vars->{QEMUCPU} ) {
+            push( @params, "-cpu", $vars->{QEMUCPU} );
+        }
 
         if ( $vars->{NICTYPE} eq "user" ) {
             push( @params, '-netdev', 'user,id=qanet0');
@@ -289,11 +298,11 @@ sub start_qemu() {
             push( @params, "-boot", "once=d,menu=on,splash-time=5000" );
         }
 
-        if ( $vars->{QEMUCPU} ) {
-            push( @params, "-cpu", $vars->{QEMUCPU} );
-        }
         if ( $vars->{UEFI} ) {
-            push( @params, "-bios", '/usr/share/qemu/'.$vars->{UEFI_BIOS} );
+            $vars->{BIOS} = $vars->{UEFI_BIOS};
+        }
+        if ( $vars->{BIOS} ) {
+            push( @params, "-bios", '/usr/share/qemu/'.$vars->{BIOS} );
         }
         if ( $vars->{MULTINET} ) {
             if ( $vars->{NICTYPE} eq "tap" ) {
@@ -302,9 +311,9 @@ sub start_qemu() {
             no warnings 'qw';
             push( @params, qw"-net nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57 -net none,vlan=1" );
         }
-        push( @params, "-usb", "-usbdevice", "tablet" );
+        push(@params, qw/-device nec-usb-xhci -device usb-tablet/);
         push( @params, "-smp", $vars->{QEMUCPUS} );
-        push( @params, "-enable-kvm" );
+        push( @params, "-enable-kvm" ) unless $vars->{QEMU_NO_KVM};
         push( @params, "-no-shutdown" );
 
         if ( open( my $cmdfd, '>', 'runqemu' ) ) {
