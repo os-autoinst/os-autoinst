@@ -311,6 +311,10 @@ sub start_qemu() {
                 push( @params, "-device", "usb-ehci,id=ehci" );
                 push( @params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb" );
             }
+            elsif ($vars->{CDMODEL}) {
+                push(@params, '-drive', "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
+                push(@params, '-device', "$vars->{CDMODEL},drive=cd0");
+            }
             else {
                 push( @params, "-cdrom", $iso );
             }
