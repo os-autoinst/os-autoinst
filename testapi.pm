@@ -8,7 +8,7 @@ use Time::HiRes qw(sleep gettimeofday);
 
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string
   assert_screen upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
-  script_sudo wait_serial save_screenshot wait_screen_change
+  script_sudo wait_serial save_screenshot wait_screen_change record_soft_failure
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output eject_cd power);
@@ -43,6 +43,11 @@ sub set_distribution($) {
 
 sub save_screenshot {
     $autotest::current_test->take_screenshot;
+}
+
+sub record_soft_failure {
+    bmwqemu::fctlog('record_soft_failure');
+    $autotest::current_test->{dents}++;
 }
 
 sub assert_screen($;$) {
