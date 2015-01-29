@@ -72,9 +72,9 @@ void map_raw_data(tinycv::Image self, unsigned char *data)
   CODE:
     image_map_raw_data(self, data);
 
-void map_raw_data_rgb555(tinycv::Image self, unsigned char *data, bool big_endian)
+void map_raw_data_rgb555(tinycv::Image self, unsigned char *data)
   CODE:
-    image_map_raw_data_rgb555(self, data, big_endian);
+    image_map_raw_data_rgb555(self, data);
 
 void map_raw_data_full(tinycv::Image self, unsigned char *data, bool big_endian, unsigned int bytes_per_pixel, unsigned int red_mask, unsigned int red_shift, unsigned int green_mask, unsigned int green_shift, unsigned int blue_mask, unsigned int blue_shift)
   CODE:
