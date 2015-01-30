@@ -114,6 +114,12 @@ def get_network_parms(guest, network_device):
 
     return network_parms
 
+import socket
+# unreadable one-liner variant of a simple function that isn't needed after this, from stackoverflow...
+my_ip = [(s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1),
+          s.connect(('<broadcast>', 0)),
+          s.getsockname()[0],
+          s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][2]
 
 console_vars = {
     "ssh": {
@@ -131,14 +137,15 @@ console_vars = {
         },
     },
     "x11": {
-        # FIXME:  ssh -X vs X11
-        # "PARMFILE": {
-        #     "ssh": "1"
-        # },
         "DISPLAY": {
             "TYPE" : "X11",
+            # run a local X server with screen 1 open to the world, like this:
+            # Xvnc -ac -SecurityTypes=none :1
+            "HOST"   : my_ip,
+            "SCREEN" : "1",
         },
     },
+    # FIXME:  add ssh -X vs X11
 }
 
 instsrc_vars = {
