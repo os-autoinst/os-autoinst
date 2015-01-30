@@ -15,6 +15,8 @@ sub new() {
     return $self;
 }
 
+use feature qw/say/;
+
 sub AUTOLOAD {
     my $self = shift;
     my $args = \@_;
@@ -28,9 +30,13 @@ sub AUTOLOAD {
         args => $args,
     };
 
-    my $retval = $bmwqemu::backend->do_console_hack($wrapped_call);
+    my $wrapped_retval = $bmwqemu::backend->do_console_hack($wrapped_call);
 
-    return $retval;
+    if (exists $wrapped_retval->{exception}) {
+        die $wrapped_retval->{exception};
+    }
+
+    return $wrapped_retval->{result};
 
 }
 

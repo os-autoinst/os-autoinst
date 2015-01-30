@@ -128,8 +128,24 @@ sub do_console_hack() {
 
     my ($console, $function, $args) =@$wrapped_call{qw{console function args}};
 
-    my $result = $self->{$console}->$function(@$args);
-    return $result;
+    my $wrapped_result = {};
+
+    eval {
+        # do not die in here, i.e. ignore backend::baseclass::die_handler.
+        # have the initiative to actually die on the server side instead.
+        local $SIG{__DIE__} = 'DEFAULT';
+        $wrapped_result->{result} = $self->{$console}->$function(@$args);
+    };
+
+    if ($@) {
+        $wrapped_result->{exception} = $@;
+    }
+
+    if ($@) {
+        cluck "do_console_hack: exception caught in the backend thread\n$@\n";
+    }
+
+    return $wrapped_result;
 }
 
 
