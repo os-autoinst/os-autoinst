@@ -161,7 +161,6 @@ instsrc_vars = {
             "PROTOCOL": "HTTP",
             # dist.suse.de
             "HOST":     "10.160.0.100",
-            
         },
     },
     "https": None,
@@ -170,7 +169,6 @@ instsrc_vars = {
             "PROTOCOL": "NFS",
             # dist.suse.de
             "HOST":     "10.160.0.100",
-            
         },
     },
     "smb": None,
@@ -188,13 +186,14 @@ def make_vars_json(guest, network_device, instsource, console, distro):
         "ZVM_HOST"	: "zvm54",
 
         # DEBUG:
-        #   "wait before yast"  sets startshell=1 and pauses os-autoinst just before it connects to YaST.
+        #   "wait before yast":  sets startshell=1 and pauses os-autoinst
+        #      just before it connects to YaST.
         #
         #   "keep zVM guest": #cp disconnect at the end instead of #cp logoff
         #   "try vncviewer": don't connect and initialize.  Just do the
         #      vnc connect and go from there.
-        "DEBUG"         : ["wait before yast"],
-        
+        "DEBUG"         : ["keep zVM guest"],
+
         "ZVM_GUEST"     : "linux{guest}".format(guest=guest),
         "ZVM_PASSWORD"	: "lin390",
 
