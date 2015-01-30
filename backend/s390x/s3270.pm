@@ -267,14 +267,13 @@ sub expect_3270() {
         if ($elapsed_time > $arg{timeout}
             || !$self->wait_output($arg{timeout} - $elapsed_time))
         {
-            confess Dumper(@_)."timed out.  last output:\n".Dumper($result);
+            confess "expect_3270: timed out.\n"."  waiting for ${\Dumper \%arg}\n"."  last output:\n".Dumper($result);
         }
         next;
 
-
-
     }
 
+    # tracing output
     say Dumper $result;
     return $result;
 }
