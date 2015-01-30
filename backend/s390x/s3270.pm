@@ -26,13 +26,14 @@ sub new() {
 
     my $self = Class::Accessor::new(@_);
 
-    $self->{raw_expect_queue} = new Thread::Queue();
-
     return $self;
 }
 
 sub start() {
     my $self = shift;
+
+    # prepare the communication queue
+    $self->{raw_expect_queue} = new Thread::Queue();
 
     # start the local terminal emulator
     $self->{in} = "";
