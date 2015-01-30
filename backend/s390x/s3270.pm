@@ -134,7 +134,7 @@ sub expect_3270() {
 
     $arg{buffer_full}	//= qr/MORE\.\.\./;
     $arg{buffer_ready}	//= qr/RUNNING/;
-    $arg{timeout}	//= 3;
+    $arg{timeout}	//= 7;
     $arg{clear_buffer}	//= 0;
     $arg{output_delim}  //= undef;
     if (!exists $arg{flush_lines}) {
