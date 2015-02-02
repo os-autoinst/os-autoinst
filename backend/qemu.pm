@@ -287,7 +287,12 @@ sub start_qemu() {
                 push( @params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb" );
             }
             else {
-                push( @params, "-cdrom", $iso );
+		if ($vars->{ARCH} eq 'aarch64') {
+			push(@params, '-drive', "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
+			push(@params, '-device', 'virtio-blk-device,drive=cd0');
+		} else {
+			push( @params, "-cdrom", $iso );
+		}
             }
         }
 
