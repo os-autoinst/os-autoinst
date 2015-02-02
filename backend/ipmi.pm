@@ -151,7 +151,7 @@ sub start_serial_grab() {
         open(STDERR, ">&", $serial) || die "can't dup stderr: $!";
         open( my $zero, '<', '/dev/zero');
         open(STDIN, ">&", $zero);
-        exec(@cmd);
+        exec("script", "-efqc", "@cmd");
         die "exec failed $!";
     }
     else {
