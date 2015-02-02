@@ -164,7 +164,14 @@ sub start_qemu() {
     # disk settings
     $vars->{NUMDISKS}  ||= 1;
     $vars->{HDDSIZEGB} ||= 10;
-    $vars->{HDDMODEL}  ||= "virtio-blk";
+    if ($vars->{ARCH} eq 'aarch64') {
+        # virto-blk is an alias to virtio-blk-pci but we have virtio-mmio on
+        # aarch64
+        $vars->{HDDMODEL}  ||= "virtio-blk-device";
+    }
+    else {
+        $vars->{HDDMODEL}  ||= "virtio-blk";
+    }
     # network settings
     $vars->{NICMODEL}  ||= "virtio-net";
     $vars->{NICTYPE}   ||= "user";
@@ -280,7 +287,12 @@ sub start_qemu() {
                 push( @params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb" );
             }
             else {
-                push( @params, "-cdrom", $iso );
+		if ($vars->{ARCH} eq 'aarch64') {
+			push(@params, '-drive', "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
+			push(@params, '-device', 'virtio-blk-device,drive=cd0');
+		} else {
+			push( @params, "-cdrom", $iso );
+		}
             }
         }
 
