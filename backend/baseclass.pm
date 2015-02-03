@@ -406,7 +406,7 @@ sub proxy_console_call() {
     eval {
         # Do not die in here.
         # Move the decision to actually die to the server side instead.
-	# For this ignore backend::baseclass::die_handler.
+        # For this ignore backend::baseclass::die_handler.
         local $SIG{__DIE__} = 'DEFAULT';
         $wrapped_result->{result} = $self->{$console}->$function(@$args);
     };
