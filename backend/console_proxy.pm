@@ -4,7 +4,7 @@
 # like s3270->... or vnc->... or ssh->... from the tests in the main
 # thread.
 
-package gnah;
+package console_proxy;
 use Data::Dumper qw(Dumper);
 
 sub new() {

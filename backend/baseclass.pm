@@ -13,6 +13,8 @@ use Time::HiRes qw(gettimeofday);
 use bmwqemu;
 use IO::Select;
 
+use Carp qw{cluck carp confess};
+
 my $framecounter    = 0;    # screenshot counter
 our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
 
