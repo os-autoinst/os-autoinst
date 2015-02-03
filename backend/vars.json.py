@@ -186,7 +186,7 @@ def make_vars_json(guest, network_device, instsource, console, distro):
         "ZVM_HOST"	: "zvm54",
 
         "DEBUG"         : [
-            "wait before yast",
+            # "wait before yast",
             #    sets startshell=1 and pauses os-autoinst
             #    just before it connects to YaST.
             "keep zVM guest",
@@ -202,10 +202,20 @@ def make_vars_json(guest, network_device, instsource, console, distro):
         "NETWORK"       : network_device,
 
         "PARMFILE" : {
+            # nameserver
             "Nameserver" : "10.160.0.1",
             "Domain"	 : "suse.de",
             # *ALLWAYS* enable ssh in our tests
             "ssh"        : "1",
+            # inject a DUD...
+            #"dud": "http://w3.suse.de/~snwint/bnc_913888.dud",
+            #"dud": "nfs://10.160.0.111/real-home/snwint/Export/bnc_913888.dud",
+            # linuxrclog
+            "linuxrc.log":"/dev/console",
+            #startshell=1 linuxrc.log=/dev/console
+            #install=http://10.160.0.100/install/SLP/SLES-11-SP4-Alpha3/s390x/DVD1
+            #InstNetDev=osa OSAInterface=qdio OSAMedium=eth
+
         }
     }
 
