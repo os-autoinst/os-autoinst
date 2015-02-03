@@ -413,7 +413,7 @@ sub proxy_console_call() {
 
     if ($@) {
         $wrapped_result->{exception} = $@;
-        cluck "do_console_hack: exception caught in the backend thread\n$@\n";
+        # cluck "proxy_console_call: exception caught in the backend thread\n$@\n";
     }
 
     return $wrapped_result;
