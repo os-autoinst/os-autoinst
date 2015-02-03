@@ -30,7 +30,7 @@ sub AUTOLOAD {
         args => $args,
     };
 
-    my $wrapped_retval = $bmwqemu::backend->do_console_hack($wrapped_call);
+    my $wrapped_retval = $bmwqemu::backend->proxy_console_call($wrapped_call);
 
     if (exists $wrapped_retval->{exception}) {
         die $wrapped_retval->{exception};
