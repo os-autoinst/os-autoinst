@@ -661,6 +661,7 @@ sub send_update_request(;$) {
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
     $incremental = 0 if ($force_update);
+    # limit update requests to once a second, the resolution of time()
     my $now = time;
     if (!$self->_last_update_request || $now != $self->_last_update_request) {
         $self->_last_update_request($now);
