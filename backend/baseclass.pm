@@ -88,7 +88,10 @@ sub do_run() {
 
         my @ready = $self->{'select'}->can_read($rest);
 
-        $self->enqueue_screenshot;
+	## HACK: don't create an infinite backlog of screenshots
+	if ($rest > 0) {
+	    $self->enqueue_screenshot;
+	}
 
         for my $fh (@ready) {
             unless ($self->check_socket($fh)) {

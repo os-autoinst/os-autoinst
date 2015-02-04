@@ -53,8 +53,7 @@ sub setup_3270_console() {
 # vnc specific stuff
 
 sub connect_vnc() {
-    my ($self) = @_;
-
+    my ($self) = shift;
     if ($self->{'vnc'}) {
         $self->{'select'}->remove($self->{'vnc'}->socket);
         close($self->{'vnc'}->socket);

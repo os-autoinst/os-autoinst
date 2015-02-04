@@ -5,7 +5,8 @@ use base ('backend::baseclass');
 sub enqueue_screenshot() {
     my ($self, $image) = @_;
 
-    return unless ($self->{'vnc'} && $self->{'vnc'}->_framebuffer);
+    return unless $self->{'vnc'};
+    return unless $self->{'vnc'}->_framebuffer;
     $self->SUPER::enqueue_screenshot($self->{'vnc'}->_framebuffer);
     $self->{'vnc'}->send_update_request();
 }
@@ -18,15 +19,21 @@ sub check_socket {
     if ($self->{'vnc'}) {
         # vnc is non-blocking so just try and it's important we check this here
         # because select won't wake us if the message is already read into the buffer
-        eval { $self->{'vnc'}->receive_message(); };
+
+	# only enqueue a screenshot if there is something to see
+	my $received_vnc_message;
+        eval {
+	    # returns undef if vnc had nothing ot say
+	    $received_vnc_message = $self->{'vnc'}->receive_message();
+	};
         if ($@) {
             bmwqemu::diag "VNC failed $@";
             $self->close_pipes();
-        }
-        else {
-            $self->enqueue_screenshot;
-        }
-
+        };
+	if (defined $received_vnc_message) {
+	    say "check_scoket: received_vnc_message: $received_vnc_message";
+	    $self->enqueue_screenshot;
+	};
         if ( $fh == $self->{'vnc'}->socket ) {
             return 1;
         }
@@ -60,8 +67,9 @@ sub wait_for_screen_stall($) {
         last unless @ready;
         for my $fh (@ready) {
             unless (special_socket($fh)) {
-                $self->{'vnc'}->receive_message();
-                $self->enqueue_screenshot;
+                if (defined $self->{'vnc'}->receive_message()) {
+		    $self->enqueue_screenshot;
+		}
             }
         }
         my ( $s2, $usec2 ) = gettimeofday;
