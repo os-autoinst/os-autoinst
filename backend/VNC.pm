@@ -324,9 +324,18 @@ sub _server_initialization {
     my $socket = $self->socket;
     $socket->read( my $server_init, 24 ) || die 'unexpected end of data';
 
-    my ( $framebuffer_width, $framebuffer_height, $bits_per_pixel, $depth,$server_is_big_endian, $true_colour_flag, %pixinfo, $name_length );
-    # the following line is due to tidy ;(
-    ( $framebuffer_width,$framebuffer_height,$bits_per_pixel,$depth,$server_is_big_endian,$true_colour_flag,$pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max},$pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift},$name_length) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
+    #<<< tidy off
+    my ( $framebuffer_width, $framebuffer_height,
+	 $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
+	 %pixinfo,
+	 $name_length );
+    ( $framebuffer_width,  $framebuffer_height,
+      $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
+      $pixinfo{red_max},   $pixinfo{green_max},   $pixinfo{blue_max},
+      $pixinfo{red_shift}, $pixinfo{green_shift}, $pixinfo{blue_shift},
+      $name_length 
+    ) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
+    #>>> tidy on
 
     #bmwqemu::diag "FW $framebuffer_width x $framebuffer_height";
 
