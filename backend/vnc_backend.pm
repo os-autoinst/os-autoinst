@@ -12,6 +12,11 @@ sub enqueue_screenshot() {
     return unless $self->{'vnc'};
     return unless $self->{'vnc'}->_framebuffer;
     $self->SUPER::enqueue_screenshot($self->{'vnc'}->_framebuffer);
+}
+
+sub request_screenshot() {
+    my ($self) = @_;
+    return unless $self->{'vnc'};
     $self->{'vnc'}->send_update_request();
 }
 

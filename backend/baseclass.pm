@@ -75,21 +75,42 @@ sub run {
     $self->do_run();
 }
 
+sub reset_timer() {
+    my ($self) = @_;
+    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
+}
+
+sub elapsed_time() {
+    my ($self) = @_;
+    my ( $sec, $usec ) = gettimeofday();
+    return ( $sec - $self->{'screenshot'}->{'sec'} ) - ( $usec - $self->{'screenshot'}->{'usec'} ) / 1e6;
+}
+
+###################################################################
 # default implementation of do_run
+# this is a command loop.
+# it does two things:
+# - check if there is any incoming communications on any of the
+#   $self->{sockets} and deal with that.
+# - trigger a screenshot every $self->screenshot_interval() seconds
+
+sub request_screenshot() { notimplemented; }
 sub do_run() {
     my ($self) = @_;
 
-    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
+    $self->reset_timer();
     my $interval = $self->screenshot_interval();
 
     while ( $self->{'cmdpipe'} ) {
-        my ( $s2, $usec2 ) = gettimeofday();
-        my $rest = $interval - ( $s2 - $self->{'screenshot'}->{'sec'} ) - ( $usec2 - $self->{'screenshot'}->{'usec'} ) / 1e6;
+
+        my $rest = $interval - $self->elapsed_time();
+
+        if ($rest < 0) {
+            $self->request_screenshot();
+            $self->reset_timer();
+        }
 
         my @ready = $self->{'select'}->can_read($rest);
-
-	# happens in check_socket, if something is available at all...
-	# $self->enqueue_screenshot;
 
         for my $fh (@ready) {
             unless ($self->check_socket($fh)) {
