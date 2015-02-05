@@ -161,7 +161,7 @@ sub start_serial_grab() {
 sub stop_serial_grab($) {
     my $self = shift;
     return unless $self->{'serialpid'};
-    `pkill -P $self->{'serialpid'}`;
+    system("pkill", "-P", $self->{'serialpid'});
     kill("TERM", $self->{'serialpid'});
     waitpid($self->{'serialpid'}, 0);
 }
