@@ -110,6 +110,21 @@ sub init {
     remove_tree(result_dir);
     mkdir result_dir;
 
+    {
+        # DEBUG in vars.json can be a single value or a list (array) of values.
+        # it's turned into a hash which should be tested using exists, like so:
+        # if (exists get_var("DEBUG")->{flag}) { ... }
+        # this allows to give a combination of flags
+        my %DEBUG_SET;
+        if (exists $vars{DEBUG}) {
+            my $DEBUG = \$vars{DEBUG};
+            if (ref $DEBUG eq "SCALAR") {
+                $DEBUG = [$$DEBUG];
+            }
+            @DEBUG_SET{@$$DEBUG} = ();
+        }
+        $vars{DEBUG} = \%DEBUG_SET;
+    };
     if ($direct_output) {
         open( $logfd, '>&STDERR');
     }

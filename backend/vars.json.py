@@ -180,12 +180,16 @@ def make_vars_json(guest, network_device, instsource, console, distro):
         "BACKEND"	: "s390x",
         "ZVM_HOST"	: "zvm54",
 
-        # debug_vnc:
-        #   "no": nope
-        #   "setup vnc": initialize vnc. #cp disconnect at the end
-        #   "try vncviewer": don't connect and initialize.  Just do the
-        #      vnc connect and go from there.
-        "DEBUG_VNC"     : "no",
+        "DEBUG"         : [
+            "wait after linuxrc",
+            #    pauses os-autoinst just before it connects to YaST, rigth after linuxrc.
+            #    also see PARMFILE: startshell
+            "keep zVM guest",
+            #    do #cp disconnect at the end instead of #cp logoff
+            # "try vncviewer",
+            #    don't connect and initialize.  Just do the vnc connect and
+            #    go from there.
+        ],
 
         "ZVM_GUEST"     : "linux{guest}".format(guest=guest),
         "ZVM_PASSWORD"	: "lin390",
