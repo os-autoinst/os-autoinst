@@ -786,7 +786,7 @@ sub _receive_update {
 
             my $bytes_per_pixel = $self->_bpp / 8;
 
-            $socket->read( my $data, $w * $h * $bytes_per_pixel );
+            $socket->read( my $data, $w * $h * $bytes_per_pixel )  || die 'unexpected end of data';
 
             # splat raw pixels into the image
             my $img = tinycv::new($w, $h);
