@@ -13,6 +13,9 @@ use Time::HiRes qw(gettimeofday);
 use bmwqemu;
 use IO::Select;
 
+use Carp qw{cluck carp confess};
+use Data::Dumper;
+
 my $framecounter    = 0;    # screenshot counter
 our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
 
@@ -73,20 +76,42 @@ sub run {
     $self->do_run();
 }
 
+sub reset_timer() {
+    my ($self) = @_;
+    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
+}
+
+sub elapsed_time() {
+    my ($self) = @_;
+    my ( $sec, $usec ) = gettimeofday();
+    return ( $sec - $self->{'screenshot'}->{'sec'} ) - ( $usec - $self->{'screenshot'}->{'usec'} ) / 1e6;
+}
+
+###################################################################
 # default implementation of do_run
+# this is a command loop.
+# it does two things:
+# - check if there is any incoming communications on any of the
+#   $self->{sockets} and deal with that.
+# - trigger a screenshot every $self->screenshot_interval() seconds
+
+sub request_screenshot() { notimplemented; }
 sub do_run() {
     my ($self) = @_;
 
-    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
+    $self->reset_timer();
     my $interval = $self->screenshot_interval();
 
     while ( $self->{'cmdpipe'} ) {
-        my ( $s2, $usec2 ) = gettimeofday();
-        my $rest = $interval - ( $s2 - $self->{'screenshot'}->{'sec'} ) - ( $usec2 - $self->{'screenshot'}->{'usec'} ) / 1e6;
+
+        my $rest = $interval - $self->elapsed_time();
+
+        if ($rest < 0) {
+            $self->request_screenshot();
+            $self->reset_timer();
+        }
 
         my @ready = $self->{'select'}->can_read($rest);
-
-        $self->enqueue_screenshot;
 
         for my $fh (@ready) {
             unless ($self->check_socket($fh)) {
@@ -94,7 +119,9 @@ sub do_run() {
                 die "huh! $fh\n";
             }
         }
-        # give backends (like VNC) the chance to check their buffer
+
+        # Give backends (like VNC) the chance to check their buffer.
+        # (this is overloaded).
         $self->check_socket(-1);
     }
 
@@ -295,11 +322,14 @@ sub enqueue_screenshot() {
     my ($self, $image) = @_;
 
     return unless $image;
-    my ( $s2, $usec2 ) = gettimeofday();
-    my $rest = $self->screenshot_interval() -( $s2 - $self->{'screenshot'}->{'sec'} ) -( $usec2 - $self->{'screenshot'}->{'usec'} ) / 1e6;
 
+    # FIXME: is this still needed?
     # don't overdo it
+    my $interval = $self->screenshot_interval();
+    my $rest = $interval - $self->elapsed_time();
     return unless $rest < 0.05;
+    $self->reset_timer();
+
     $image = $image->scale( 1024, 768 );
 
     $framecounter++;
@@ -308,15 +338,12 @@ sub enqueue_screenshot() {
 
     #print STDERR $filename,"\n";
 
-    # linking identical files saves space
-
-    # 54 is based on t/data/user-settings-*
+    # link identical files to save space
     my $sim = 0;
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
 
-    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
-
     #bmwqemu::diag "similarity is $sim";
+    # 54 is based on t/data/user-settings-*
     if ( $sim > 54 ) {
         symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
     }
@@ -385,6 +412,38 @@ sub check_socket {
     }
     return 0;
 }
+
+###################################################################
+## API to access other consoles from the test case thread
+
+## TODO: console multiplexer:
+## sub switch_to_console(console => CONSOLE)
+## redirect all backend commands to CONSOLE from there on, also screen
+## capture from CONSOLE now.
+
+sub proxy_console_call() {
+    my ($self, $wrapped_call) = @_;
+
+    my ($console, $function, $args) = @$wrapped_call{qw{console function args}};
+
+    my $wrapped_result = {};
+
+    eval {
+        # Do not die in here.
+        # Move the decision to actually die to the server side instead.
+        # For this ignore backend::baseclass::die_handler.
+        local $SIG{__DIE__} = 'DEFAULT';
+        $wrapped_result->{result} = $self->{$console}->$function(@$args);
+    };
+
+    if ($@) {
+        $wrapped_result->{exception} = $@;
+        # cluck "proxy_console_call: exception caught in the backend thread\n$@\n";
+    }
+
+    return $wrapped_result;
+}
+
 
 1;
 # vim: set sw=4 et:

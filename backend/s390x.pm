@@ -53,8 +53,7 @@ sub setup_3270_console() {
 # vnc specific stuff
 
 sub connect_vnc() {
-    my ($self) = @_;
-
+    my ($self) = shift;
     if ($self->{'vnc'}) {
         $self->{'select'}->remove($self->{'vnc'}->socket);
         close($self->{'vnc'}->socket);
@@ -98,11 +97,11 @@ sub do_start_vm() {
 
 sub do_stop_vm() {
     my ($self) = @_;
-    if (check_var("DEBUG_VNC", "no")) {
-        $self->{s3270}->cp_logoff_disconnect();
+    if (exists get_var("DEBUG")->{"keep zVM guest"}) {
+        $self->{s3270}->cp_disconnect();
     }
     else {
-        $self->{s3270}->cp_disconnect();
+        $self->{s3270}->cp_logoff_disconnect();
     }
 }
 
@@ -112,24 +111,6 @@ sub do_savevm() {
 
 sub do_loadvm() {
     notimplemented;
-}
-
-###################################################################
-## access the non-vnc consoles from the test cases...
-
-## TODO: console multiplexer:
-## sub switch_to_console(console => CONSOLE)
-## redirect all backend commands to CONSOLE from there on, also screen
-## capture from CONSOLE now.
-
-## current hack:
-sub do_console_hack() {
-    my ($self, $wrapped_call) = @_;
-
-    my ($console, $function, $args) =@$wrapped_call{qw{console function args}};
-
-    my $result = $self->{$console}->$function(@$args);
-    return $result;
 }
 
 

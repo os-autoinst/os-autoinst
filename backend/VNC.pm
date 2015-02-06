@@ -87,7 +87,7 @@ sub login {
         PeerAddr => $hostname || 'localhost',
         PeerPort => $port     || '5900',
         Proto    => 'tcp',
-    ) || Carp::confess "Error connecting to $hostname: $@";
+    ) || Carp::confess "Error connecting to $hostname (@_):\n $@";
     $socket->timeout(15);
     $self->socket($socket);
 
@@ -324,9 +324,18 @@ sub _server_initialization {
     my $socket = $self->socket;
     $socket->read( my $server_init, 24 ) || die 'unexpected end of data';
 
-    my ( $framebuffer_width, $framebuffer_height, $bits_per_pixel, $depth,$server_is_big_endian, $true_colour_flag, %pixinfo, $name_length );
-    # the following line is due to tidy ;(
-    ( $framebuffer_width,$framebuffer_height,$bits_per_pixel,$depth,$server_is_big_endian,$true_colour_flag,$pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max},$pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift},$name_length) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
+    #<<< tidy off
+    my ( $framebuffer_width, $framebuffer_height,
+	 $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
+	 %pixinfo,
+	 $name_length );
+    ( $framebuffer_width,  $framebuffer_height,
+      $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
+      $pixinfo{red_max},   $pixinfo{green_max},   $pixinfo{blue_max},
+      $pixinfo{red_shift}, $pixinfo{green_shift}, $pixinfo{blue_shift},
+      $name_length 
+    ) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
+    #>>> tidy on
 
     #bmwqemu::diag "FW $framebuffer_width x $framebuffer_height";
 
@@ -645,65 +654,99 @@ sub send_pointer_event {
     );
 }
 
-sub send_update_request(;$) {
-    my ($self, $force_update) = @_;
+use POSIX qw(:errno_h);
+{
+    my $EAGAIN_counter = 0;
+    my $UNDEF_counter = 0;
+    my $REQUESTS_BEFORE_RESPONSE_counter = 0;
 
-    # frame buffer update request
-    my $socket = $self->socket;
-    my $incremental = $self->_framebuffer ? 1 : 0;
-    $incremental = 0 if ($force_update);
-    my $now = time;
-    if (!$self->_last_update_request || $now != $self->_last_update_request) {
-        $self->_last_update_request($now);
-        $self->update_required(1);
+    sub send_update_request(;$) {
+        my ($self, $force_update) = @_;
+
+        die "socket closed" if $REQUESTS_BEFORE_RESPONSE_counter > 7;
+        ++$REQUESTS_BEFORE_RESPONSE_counter;
+
+        # frame buffer update request
+        my $socket = $self->socket;
+        my $incremental = $self->_framebuffer ? 1 : 0;
+        $incremental = 0 if ($force_update);
+        # limit update requests to once a second, the resolution of time()
+        my $now = time;
+        if (!$self->_last_update_request || $now != $self->_last_update_request) {
+            $self->_last_update_request($now);
+            $self->update_required(1);
+        }
+        return if ($self->ikvm && $incremental && !$self->update_required);
+
+        my $print_retval = $socket->print(
+            pack(
+                'CCnnnn',
+                3,               # message_type
+                $incremental,    # incremental
+                0,               # x
+                0,               # y
+                $self->width,
+                $self->height,
+            )
+        );
+        $self->update_required(0);
     }
     #printf "send_update_request $incremental %d\n", $self->update_required;
-    return if ($self->ikvm && $incremental && !$self->update_required);
     #print "sending\n";
 
-    $socket->print(
-        pack(
-            'CCnnnn',
-            3,               # message_type
-            $incremental,    # incremental
-            0,               # x
-            0,               # y
-            $self->width,
-            $self->height,
-        )
-    );
-    $self->update_required(0);
-}
+    sub receive_message {
+        my $self = shift;
 
-sub receive_message {
-    my $self = shift;
 
-    my $socket = $self->socket;
+        my $socket = $self->socket;
 
-    $socket->blocking(0);
-    my $ret = $socket->read( my $message_type, 1 );
-    $socket->blocking(1);
-    return undef unless $ret;
-    $message_type = unpack( 'C', $message_type );
+        $socket->blocking(0);
+        my $ret = $socket->read( my $message_type, 1 );
+        $socket->blocking(1);
 
-    #bmwqemu::diag("RM $message_type");
+        if ($! == EAGAIN) {
+            die "socket closed" if $EAGAIN_counter > 7;
+            ++$EAGAIN_counter;
+            return undef;
+        }
+        else {
+            $EAGAIN_counter = 0;
+        }
 
-    # This result is unused.  It's meaning is different for the different methods
-    my $result=
-        !defined $message_type ? die 'bad message type received'
-      : $message_type == 0     ? $self->_receive_update()
-      : $message_type == 1     ? $self->_receive_colour_map()
-      : $message_type == 2     ? $self->_receive_bell()
-      : $message_type == 3     ? $self->_receive_cut_text()
-      : $message_type == 0x39  ? $self->_receive_ikvm_session()
-      : $message_type == 0x04  ? $self->_discard_ikvm_message($message_type, 20)
-      : $message_type == 0x16  ? $self->_discard_ikvm_message($message_type, 1)
-      : $message_type == 0x33  ? $self->_discard_ikvm_message($message_type, 4)
-      : $message_type == 0x37  ? $self->_discard_ikvm_message($message_type, 2)
-      : $message_type == 0x3c  ? $self->_discard_ikvm_message($message_type, 8)
-      :                          die 'unsupported message type received';
+        if (defined $ret) {
+            $UNDEF_counter = 0;
+        }
+        else {
+            die "socket closed" if $UNDEF_counter > 7;
+            ++$UNDEF_counter;
+            return undef;
+        }
 
-    return $message_type;
+        die "socket closed" unless $ret > 0;
+
+        $REQUESTS_BEFORE_RESPONSE_counter = 0;
+
+        $message_type = unpack( 'C', $message_type );
+
+        #bmwqemu::diag("RM $message_type");
+
+        # This result is unused.  It's meaning is different for the different methods
+        my $result=
+            !defined $message_type ? die 'bad message type received'
+          : $message_type == 0     ? $self->_receive_update()
+          : $message_type == 1     ? $self->_receive_colour_map()
+          : $message_type == 2     ? $self->_receive_bell()
+          : $message_type == 3     ? $self->_receive_cut_text()
+          : $message_type == 0x39  ? $self->_receive_ikvm_session()
+          : $message_type == 0x04  ? $self->_discard_ikvm_message($message_type, 20)
+          : $message_type == 0x16  ? $self->_discard_ikvm_message($message_type, 1)
+          : $message_type == 0x33  ? $self->_discard_ikvm_message($message_type, 4)
+          : $message_type == 0x37  ? $self->_discard_ikvm_message($message_type, 2)
+          : $message_type == 0x3c  ? $self->_discard_ikvm_message($message_type, 8)
+          :                          die 'unsupported message type received';
+
+        return $message_type;
+    }
 }
 
 sub _receive_update {
@@ -743,7 +786,7 @@ sub _receive_update {
 
             my $bytes_per_pixel = $self->_bpp / 8;
 
-            $socket->read( my $data, $w * $h * $bytes_per_pixel );
+            $socket->read( my $data, $w * $h * $bytes_per_pixel )  || die 'unexpected end of data';
 
             # splat raw pixels into the image
             my $img = tinycv::new($w, $h);
