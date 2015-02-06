@@ -139,7 +139,7 @@ insthost_vars = {
         },
         "FTPBOOT" : {
             "COMMAND"  : "ftpboot",
-            "HOST"     : "DIST\\.SUSE\\.DE",
+            "HOST"     : "DIST.SUSE.DE",
         }
     },
     # to use this, restrict on FTP, run a local tftpd with anonymous access.
@@ -244,16 +244,16 @@ def make_vars_json(insthost, guest, network_device, instsource, console, distro)
         "NETWORK"       : network_device,
 
         "PARMFILE" : {
-            "manual": "1",
             # nameserver
             "Nameserver" : "10.160.0.1",
             "Domain"	 : "suse.de",
-            # *ALLWAYS* enable ssh in our tests
-            "ssh"        : "1",
+            # *ALLWAYS* enable sshd in our tests
+            "sshd"        : "1",
             "sshpassword": "SSH!554!",
             # inject a DUD.  only works in manual=0 unattended mode!
             #"dud": "http://w3.suse.de/~snwint/bnc_913888.dud",
             # "startshell":"1".
+            "manual": "0",
             #"dud": "nfs://10.160.0.111:/real-home/snwint/Export/bnc_913888.dud",
             #"dud": "ftp://{host}/bnc_913888/bnc_913888.dud".format(host=my_ip),
             #"linuxrc.log":"/dev/console",
