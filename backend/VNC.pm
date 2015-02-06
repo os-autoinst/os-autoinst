@@ -654,8 +654,17 @@ sub send_pointer_event {
     );
 }
 
+use POSIX qw(:errno_h);
+{
+    my $EAGAIN_counter = 0;
+    my $UNDEF_counter = 0;
+    my $REQUESTS_BEFORE_RESPONSE_counter = 0;
+
 sub send_update_request(;$) {
     my ($self, $force_update) = @_;
+
+    die "socket closed" if $REQUESTS_BEFORE_RESPONSE_counter > 7;
+    ++$REQUESTS_BEFORE_RESPONSE_counter;
 
     # frame buffer update request
     my $socket = $self->socket;
@@ -693,7 +702,29 @@ sub receive_message {
     $socket->blocking(0);
     my $ret = $socket->read( my $message_type, 1 );
     $socket->blocking(1);
-    return undef unless $ret;
+
+    if ($! == EAGAIN) {
+	die "socket closed" if $EAGAIN_counter > 7;
+	++$EAGAIN_counter;
+	return undef;
+    }
+    else {
+	$EAGAIN_counter = 0;
+    }
+
+    if (defined $ret) {
+	$UNDEF_counter = 0;
+    }
+    else {
+	die "socket closed" if $UNDEF_counter > 7;
+	++$UNDEF_counter;
+	return undef;
+    }
+
+    die "socket closed" unless $ret > 0;
+
+    $REQUESTS_BEFORE_RESPONSE_counter = 0;
+
     $message_type = unpack( 'C', $message_type );
 
     #bmwqemu::diag("RM $message_type");
@@ -714,6 +745,7 @@ sub receive_message {
       :                          die 'unsupported message type received';
 
     return $message_type;
+}
 }
 
 sub _receive_update {
