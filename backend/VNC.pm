@@ -728,7 +728,7 @@ use POSIX qw(:errno_h);
 
         $message_type = unpack( 'C', $message_type );
 
-    #bmwqemu::diag("RM $message_type");
+        #bmwqemu::diag("RM $message_type");
 
         # This result is unused.  It's meaning is different for the different methods
         my $result=
