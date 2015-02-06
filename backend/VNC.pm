@@ -660,92 +660,93 @@ use POSIX qw(:errno_h);
     my $UNDEF_counter = 0;
     my $REQUESTS_BEFORE_RESPONSE_counter = 0;
 
-sub send_update_request(;$) {
-    my ($self, $force_update) = @_;
+    sub send_update_request(;$) {
+        my ($self, $force_update) = @_;
 
-    die "socket closed" if $REQUESTS_BEFORE_RESPONSE_counter > 7;
-    ++$REQUESTS_BEFORE_RESPONSE_counter;
+        die "socket closed" if $REQUESTS_BEFORE_RESPONSE_counter > 7;
+        ++$REQUESTS_BEFORE_RESPONSE_counter;
 
-    # frame buffer update request
-    my $socket = $self->socket;
-    my $incremental = $self->_framebuffer ? 1 : 0;
-    $incremental = 0 if ($force_update);
-    # limit update requests to once a second, the resolution of time()
-    my $now = time;
-    if (!$self->_last_update_request || $now != $self->_last_update_request) {
-        $self->_last_update_request($now);
-        $self->update_required(1);
+        # frame buffer update request
+        my $socket = $self->socket;
+        my $incremental = $self->_framebuffer ? 1 : 0;
+        $incremental = 0 if ($force_update);
+        # limit update requests to once a second, the resolution of time()
+        my $now = time;
+        if (!$self->_last_update_request || $now != $self->_last_update_request) {
+            $self->_last_update_request($now);
+            $self->update_required(1);
+        }
+        return if ($self->ikvm && $incremental && !$self->update_required);
+
+        my $print_retval = $socket->print(
+            pack(
+                'CCnnnn',
+                3,               # message_type
+                $incremental,    # incremental
+                0,               # x
+                0,               # y
+                $self->width,
+                $self->height,
+            )
+        );
+        $self->update_required(0);
     }
     #printf "send_update_request $incremental %d\n", $self->update_required;
-    return if ($self->ikvm && $incremental && !$self->update_required);
     #print "sending\n";
 
-    $socket->print(
-        pack(
-            'CCnnnn',
-            3,               # message_type
-            $incremental,    # incremental
-            0,               # x
-            0,               # y
-            $self->width,
-            $self->height,
-        )
-    );
-    $self->update_required(0);
-}
+    sub receive_message {
+        my $self = shift;
 
-sub receive_message {
-    my $self = shift;
 
-    my $socket = $self->socket;
+        my $socket = $self->socket;
 
-    $socket->blocking(0);
-    my $ret = $socket->read( my $message_type, 1 );
-    $socket->blocking(1);
+        $socket->blocking(0);
+        my $ret = $socket->read( my $message_type, 1 );
+        $socket->blocking(1);
 
-    if ($! == EAGAIN) {
-	die "socket closed" if $EAGAIN_counter > 7;
-	++$EAGAIN_counter;
-	return undef;
-    }
-    else {
-	$EAGAIN_counter = 0;
-    }
+        if ($! == EAGAIN) {
+            die "socket closed" if $EAGAIN_counter > 7;
+            ++$EAGAIN_counter;
+            return undef;
+        }
+        else {
+            $EAGAIN_counter = 0;
+        }
 
-    if (defined $ret) {
-	$UNDEF_counter = 0;
-    }
-    else {
-	die "socket closed" if $UNDEF_counter > 7;
-	++$UNDEF_counter;
-	return undef;
-    }
+        if (defined $ret) {
+            $UNDEF_counter = 0;
+        }
+        else {
+            die "socket closed" if $UNDEF_counter > 7;
+            ++$UNDEF_counter;
+            return undef;
+        }
 
-    die "socket closed" unless $ret > 0;
+        die "socket closed" unless $ret > 0;
 
-    $REQUESTS_BEFORE_RESPONSE_counter = 0;
+        $REQUESTS_BEFORE_RESPONSE_counter = 0;
 
-    $message_type = unpack( 'C', $message_type );
+        $message_type = unpack( 'C', $message_type );
 
     #bmwqemu::diag("RM $message_type");
 
-    # This result is unused.  It's meaning is different for the different methods
-    my $result=
-        !defined $message_type ? die 'bad message type received'
-      : $message_type == 0     ? $self->_receive_update()
-      : $message_type == 1     ? $self->_receive_colour_map()
-      : $message_type == 2     ? $self->_receive_bell()
-      : $message_type == 3     ? $self->_receive_cut_text()
-      : $message_type == 0x39  ? $self->_receive_ikvm_session()
-      : $message_type == 0x04  ? $self->_discard_ikvm_message($message_type, 20)
-      : $message_type == 0x16  ? $self->_discard_ikvm_message($message_type, 1)
-      : $message_type == 0x33  ? $self->_discard_ikvm_message($message_type, 4)
-      : $message_type == 0x37  ? $self->_discard_ikvm_message($message_type, 2)
-      : $message_type == 0x3c  ? $self->_discard_ikvm_message($message_type, 8)
-      :                          die 'unsupported message type received';
+        # This result is unused.  It's meaning is different for the different methods
+        my $result=
+            !defined $message_type ? die 'bad message type received'
+          : $message_type == 0     ? $self->_receive_update()
+          : $message_type == 1     ? $self->_receive_colour_map()
+          : $message_type == 2     ? $self->_receive_bell()
+          : $message_type == 3     ? $self->_receive_cut_text()
+          : $message_type == 0x39  ? $self->_receive_ikvm_session()
+          : $message_type == 0x04  ? $self->_discard_ikvm_message($message_type, 20)
+          : $message_type == 0x16  ? $self->_discard_ikvm_message($message_type, 1)
+          : $message_type == 0x33  ? $self->_discard_ikvm_message($message_type, 4)
+          : $message_type == 0x37  ? $self->_discard_ikvm_message($message_type, 2)
+          : $message_type == 0x3c  ? $self->_discard_ikvm_message($message_type, 8)
+          :                          die 'unsupported message type received';
 
-    return $message_type;
-}
+        return $message_type;
+    }
 }
 
 sub _receive_update {
