@@ -14,6 +14,7 @@ use bmwqemu;
 use IO::Select;
 
 use Carp qw{cluck carp confess};
+use Data::Dumper;
 
 my $framecounter    = 0;    # screenshot counter
 our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
@@ -118,7 +119,9 @@ sub do_run() {
                 die "huh! $fh\n";
             }
         }
-        # give backends (like VNC) the chance to check their buffer
+
+        # Give backends (like VNC) the chance to check their buffer.
+        # (this is overloaded).
         $self->check_socket(-1);
     }
 
@@ -319,11 +322,14 @@ sub enqueue_screenshot() {
     my ($self, $image) = @_;
 
     return unless $image;
-    my ( $s2, $usec2 ) = gettimeofday();
-    my $rest = $self->screenshot_interval() -( $s2 - $self->{'screenshot'}->{'sec'} ) -( $usec2 - $self->{'screenshot'}->{'usec'} ) / 1e6;
 
+    # FIXME: is this still needed?
     # don't overdo it
+    my $interval = $self->screenshot_interval();
+    my $rest = $interval - $self->elapsed_time();
     return unless $rest < 0.05;
+    $self->reset_timer();
+
     $image = $image->scale( 1024, 768 );
 
     $framecounter++;
@@ -332,15 +338,12 @@ sub enqueue_screenshot() {
 
     #print STDERR $filename,"\n";
 
-    # linking identical files saves space
-
-    # 54 is based on t/data/user-settings-*
+    # link identical files to save space
     my $sim = 0;
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
 
-    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
-
     #bmwqemu::diag "similarity is $sim";
+    # 54 is based on t/data/user-settings-*
     if ( $sim > 54 ) {
         symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
     }
