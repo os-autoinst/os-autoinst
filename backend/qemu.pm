@@ -165,6 +165,10 @@ sub start_qemu() {
     $vars->{NUMDISKS}  ||= 1;
     $vars->{HDDSIZEGB} ||= 10;
     $vars->{HDDMODEL}  ||= "virtio-blk";
+    if ($vars->{MULTIPATH}) {
+        $vars->{HDDMODEL} = "virtio-scsi-pci";
+        $vars->{PATHCNT} ||= 2;
+    }
     # network settings
     $vars->{NICMODEL}  ||= "virtio-net";
     $vars->{NICTYPE}   ||= "user";
@@ -264,13 +268,27 @@ sub start_qemu() {
 
         if ( $vars->{HDDMODEL} =~ /virtio-scsi.*/ ) {
             # scsi devices need SCSI controller, then change to scsi-hd device
-            push( @params, "-device", "$vars->{HDDMODEL},id=scsi" );
+            push( @params, "-device", "$vars->{HDDMODEL},id=scsi0" );
+            if ($vars->{MULTIPATH}) {
+                # add the second HBA
+                push( @params, "-device", "$vars->{HDDMODEL},id=scsi1" );
+            }
             $vars->{HDDMODEL} = "scsi-hd";
         }
         for my $i ( 1 .. $vars->{NUMDISKS} ) {
             my $boot = "";    #$i==1?",boot=on":""; # workaround bnc#696890
-            push( @params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd$i" );
-            push( @params, "-device", "$vars->{HDDMODEL},drive=hd$i" . ( $vars->{HDDMODEL} =~ /ide-hd/ ? ",bus=ide.@{[$i-1]}" : '' ) );
+            if ($vars->{MULTIPATH}) {
+                for my $c ( 1 .. $vars->{PATHCNT} ) {
+                    # pathname is a .. d
+                    my $pathname = chr(96 + $c);
+                    push( @params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd${i}${pathname},serial=mpath$i" );
+                    push( @params, "-device", "$vars->{HDDMODEL},drive=hd${i}${pathname},bus=scsi" . ($c % 2 ? "1" : "0") . ".0" );
+                }
+            }
+            else {
+                push( @params, "-device", "$vars->{HDDMODEL},drive=hd$i" . ( $vars->{HDDMODEL} =~ /ide-hd/ ? ",bus=ide.@{[$i-1]}" : '' ) );
+                push( @params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd$i" );
+            }
         }
 
         if ($iso) {
