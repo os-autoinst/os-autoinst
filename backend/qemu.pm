@@ -231,7 +231,7 @@ sub start_qemu() {
     die "fork failed" unless defined($pid);
     if ( $pid == 0 ) {
         $SIG{__DIE__} = undef; # overwrite the default - just exit
-        my @params = ( '-m', '1024', "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", @vgaoptions);
+        my @params = ( "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", @vgaoptions);
 
         if ( $vars->{QEMUMACHINE} ) {
             push( @params, "-machine", $vars->{QEMUMACHINE});
@@ -239,6 +239,13 @@ sub start_qemu() {
 
         if ( $vars->{QEMUCPU} ) {
             push( @params, "-cpu", $vars->{QEMUCPU} );
+        }
+        
+        if ( $vars->{QEMURAM} ) {
+            push ( @params, '-m', $vars->{QEMURAM} );
+        }
+        else {
+            push ( @params, '-m', '1024' );
         }
 
         if ( $vars->{NICTYPE} eq "user" ) {
