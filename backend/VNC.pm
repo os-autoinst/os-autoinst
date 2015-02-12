@@ -9,10 +9,16 @@ use Time::HiRes qw( usleep );
 use Carp;
 use tinycv;
 
+use Crypt::DES;
+
+use Carp qw(confess cluck carp croak);
+use Data::Dumper qw(Dumper);
+use feature qw/say/;
+
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
-      server_endian  _pixinfo _colourmap _framebuffer _rfb_version
-      _bpp _true_colour _big_endian absolute ikvm keymap update_required _last_update_request
+      no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version
+      _bpp _true_colour _do_endian_conversion absolute ikvm keymap update_required _last_update_request
       )
 );
 our $VERSION = '0.40';
@@ -20,7 +26,7 @@ our $VERSION = '0.40';
 my $MAX_PROTOCOL_VERSION = 'RFB 003.008' . chr(0x0a);  # Max version supported
 
 # This line comes from perlport.pod
-my $AM_BIG_ENDIAN = unpack( 'h*', pack( 's', 1 ) ) =~ /01/ ? 1 : 0;
+my $client_is_big_endian = unpack( 'h*', pack( 's', 1 ) ) =~ /01/ ? 1 : 0;
 
 # The numbers in the hashes below were acquired from the VNC source code
 my %supported_depths = (
@@ -32,6 +38,16 @@ my %supported_depths = (
         blue_max    => 255,
         red_shift   => 16,
         green_shift => 8,
+        blue_shift  => 0,
+    },
+    '16' => {
+        bpp         => 16,
+        true_colour => 1,
+        red_max     => 31,
+        green_max   => 31,
+        blue_max    => 31,
+        red_shift   => 10,
+        green_shift => 5,
         blue_shift  => 0,
     },
 );
@@ -179,6 +195,64 @@ sub _handshake_security {
         }
 
     }
+    elsif ( $security_type == 2 ) {
+
+        # DES-encrypted challenge/response
+
+        if ( $self->_rfb_version ge '003.007' ) {
+            $socket->print( pack( 'C', 2 ) );
+        }
+
+        # # VNC authentication is to be used and protocol data is to be
+        # # sent unencrypted. The server sends a random 16-byte
+        # # challenge:
+
+        # # No. of bytes Type [Value] Description
+        # # 16 U8 challenge
+
+
+        $socket->read( my $challenge, 16 )
+          || die 'unexpected end of data';
+
+        #    warn "chal: " . unpack('h*', $challenge) . "\n";
+
+        # the RFB protocol only uses the first 8 characters of a password
+        my $key = substr( $self->password, 0, 8 );
+        $key = '' if ( !defined $key );
+        $key .= pack( 'C', 0 ) until ( length($key) % 8 ) == 0;
+
+        my $realkey;
+
+        #    warn unpack('b*', $key);
+        foreach my $byte ( split //, $key ) {
+            $realkey .= pack( 'b8', scalar reverse unpack( 'b8', $byte ) );
+        }
+
+        #    warn unpack('b*', $realkey);
+
+        # # The client encrypts the challenge with DES, using a password
+        # # supplied by the user as the key, and sends the resulting
+        # # 16-byte response:
+        # # No. of bytes Type [Value] Description
+        # # 16 U8 response
+
+        my $cipher = Crypt::DES->new($realkey);
+        my $response;
+        my $i = 0;
+
+        while ( $i < 16 ) {
+            my $word = substr( $challenge, $i, 8 );
+
+            #        warn "$i: " . length($word);
+            $response .= $cipher->encrypt($word);
+            $i += 8;
+        }
+
+        #    warn "resp: " . unpack('h*', $response) . "\n";
+
+        $socket->print($response);
+
+    }
     elsif ( $security_type == 16 ) { # ikvm
 
         $socket->print( pack( 'C', 16 ) ); # accept
@@ -205,7 +279,7 @@ sub _handshake_security {
         }
     }
     else {
-        die 'qemu wants security, but we have no password';
+        die 'VNC Server wants security, but we have no password';
     }
 
     # the RFB protocol always returns a result for type 2,
@@ -250,9 +324,9 @@ sub _server_initialization {
     my $socket = $self->socket;
     $socket->read( my $server_init, 24 ) || die 'unexpected end of data';
 
-    my ( $framebuffer_width, $framebuffer_height, $bits_per_pixel, $depth,$big_endian_flag, $true_colour_flag, %pixinfo, $name_length );
+    my ( $framebuffer_width, $framebuffer_height, $bits_per_pixel, $depth,$server_is_big_endian, $true_colour_flag, %pixinfo, $name_length );
     # the following line is due to tidy ;(
-    ( $framebuffer_width,$framebuffer_height,$bits_per_pixel,$depth,$big_endian_flag,$true_colour_flag,$pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max},$pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift},$name_length) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
+    ( $framebuffer_width,$framebuffer_height,$bits_per_pixel,$depth,$server_is_big_endian,$true_colour_flag,$pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max},$pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift},$name_length) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
 
     #bmwqemu::diag "FW $framebuffer_width x $framebuffer_height";
 
@@ -298,7 +372,7 @@ sub _server_initialization {
     $self->_pixinfo( \%pixinfo );
     $self->_bpp( $supported_depths{ $self->depth }->{bpp} );
     $self->_true_colour( $supported_depths{ $self->depth }->{true_colour} );
-    $self->_big_endian($self->server_endian ? $big_endian_flag : $AM_BIG_ENDIAN );
+    $self->_do_endian_conversion($self->no_endian_conversion ? 0 : $server_is_big_endian != $client_is_big_endian );
 
     $socket->read( my $name_string, $name_length )
       || die 'unexpected end of data';
@@ -324,7 +398,7 @@ sub _server_initialization {
             0,    # padding
             $self->_bpp,
             $self->depth,
-            $self->_big_endian,
+            $self->_do_endian_conversion,
             $self->_true_colour,
             $pixinfo{red_max},
             $pixinfo{green_max},
@@ -653,7 +727,7 @@ sub _receive_update {
 
     my $depth = $self->depth;
 
-    my $big_endian = $self->_big_endian;
+    my $do_endian_conversion = $self->_do_endian_conversion;
 
     foreach ( 1 .. $number_of_rectangles ) {
         $socket->read( my $data, 12 ) || die 'unexpected end of data';
@@ -667,11 +741,23 @@ sub _receive_update {
         ### Raw encoding ###
         if ( $encoding_type == 0 && !$self->ikvm ) {
 
-            # Performance boost: splat raw pixels into the image
-            $socket->read( my $data, $w * $h * 4 );
+            my $bytes_per_pixel = $self->_bpp / 8;
 
+            $socket->read( my $data, $w * $h * $bytes_per_pixel );
+
+            # splat raw pixels into the image
             my $img = tinycv::new($w, $h);
-            $img->map_raw_data($data);
+
+            if ($self->_bpp == 32 && !$do_endian_conversion) {
+                $img->map_raw_data($data);
+            }
+            elsif ($self->_bpp == 16 || ($self->_bpp == 32 && $do_endian_conversion)) {
+                my $pi = $self->_pixinfo;
+                $img->map_raw_data_full($data, $do_endian_conversion, $bytes_per_pixel, $pi->{red_max}, $pi->{red_shift}, $pi->{green_max}, $pi->{green_shift}, $pi->{blue_max}, $pi->{blue_shift});
+            }
+            else {
+                die "unknown bpp" . $self->_bpp;
+            }
             $image->blend($img, $x, $y);
             $self->update_required(1);
         }
@@ -865,4 +951,3 @@ under the same terms as Perl itself.
 
 Copyright (C) 2014, Stephan Kulow (coolo@suse.de) 
 adapted to be purely useful for qemu/openqa
- 

@@ -1,6 +1,7 @@
 Carp
 Carp::Always
 Config
+Crypt::Des
 Cwd
 Data::Dump
 Data::Dumper

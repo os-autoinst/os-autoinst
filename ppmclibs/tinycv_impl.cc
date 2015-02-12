@@ -457,6 +457,58 @@ void image_map_raw_data_rgb555(Image *a, const unsigned char *data)
   }
 }
 
+void image_map_raw_data_full(Image* a, unsigned char *data,
+			     bool do_endian_conversion,
+			     unsigned int bytes_per_pixel,
+			     unsigned int red_mask,   unsigned int red_shift,
+			     unsigned int green_mask, unsigned int green_shift,
+			     unsigned int blue_mask,  unsigned int blue_shift)
+{
+  unsigned char blue_skale  = 256 / (blue_mask  + 1);
+  unsigned char green_skale = 256 / (green_mask + 1);
+  unsigned char red_skale   = 256 / (red_mask   + 1);
+  for (int y = 0; y < a->img.rows; y++) {
+    for (int x = 0; x < a->img.cols; x++) {
+      long pixel;
+      if (bytes_per_pixel == 2) {
+	if (do_endian_conversion) {
+	  pixel = *data++ * 256;
+	  pixel += *data++;
+	}
+	else {
+	  pixel = *data++;
+	  pixel += *data++ * 256;
+	};
+      }
+      else if (bytes_per_pixel == 4) {
+	if (do_endian_conversion) {
+	  pixel = *data++;
+	  pixel <<=8;
+	  pixel |= *data++;
+	  pixel <<=8;
+	  pixel |= *data++;
+	  pixel <<=8;
+	  pixel |= *data++;
+	}
+	else {
+	  pixel = *(long*)data;
+	  data += 4;
+	}
+      }
+      else {
+	// just fail miserably for unsupported bytes per pixel
+	abort();
+      };
+      unsigned char blue  = (pixel >> blue_shift  & blue_mask ) * blue_skale;
+      unsigned char green = (pixel >> green_shift & green_mask) * green_skale;
+      unsigned char red   = (pixel >> red_shift   & red_mask  ) * red_skale;
+      // MSB ignored
+      a->img.at<cv::Vec3b>(y, x)[0] = blue;
+      a->img.at<cv::Vec3b>(y, x)[1] = green;
+      a->img.at<cv::Vec3b>(y, x)[2] = red;
+    }
+  }
+}
 // copy the s image into a at x,y
 void image_blend_image(Image *a, Image *s, long x, long y)
 {

@@ -26,8 +26,6 @@ sub new {
     return $self;
 }
 
-use Time::HiRes qw(gettimeofday);
-
 sub ipmitool($) {
     my ($self, $cmd) = @_;
 

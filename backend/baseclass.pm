@@ -22,7 +22,6 @@ our $backend;
 sub new {
     my $class = shift;
     my $self = bless( { class => $class }, $class );
-    $self->init();
     $self->{'started'} = 0;
     return $self;
 }
@@ -177,11 +176,6 @@ sub write_crash_file {
 
 # virtual methods
 sub notimplemented() { confess "backend method not implemented" }
-
-sub init() {
-    # static setup.  don't start the backend yet.
-    notimplemented
-}
 
 sub power($) {
 

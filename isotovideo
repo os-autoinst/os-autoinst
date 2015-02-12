@@ -90,14 +90,14 @@ $ENV{MOJO_MAX_MESSAGE_SIZE} = 107741824;
 # about the ongoing run
 use commands;
 
+# Load the main.pm from the casedir checked by the sanity checks above
+require "$bmwqemu::vars{CASEDIR}/main.pm";
+
 # init part
 $bmwqemu::vars{BACKEND} ||= "qemu";
 bmwqemu::save_vars();
 bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
 needle::init();
-
-# Load the main.pm from the casedir checked by the sanity checks above
-require "$bmwqemu::vars{CASEDIR}/main.pm";
 
 if ($init) {
     open( my $fd, ">os-autoinst.pid" );
