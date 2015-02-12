@@ -233,19 +233,14 @@ sub start_qemu() {
         $SIG{__DIE__} = undef; # overwrite the default - just exit
         my @params = ( "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", @vgaoptions);
 
+        push ( @params, '-m', $vars->{QEMURAM} || '1024' );
+
         if ( $vars->{QEMUMACHINE} ) {
             push( @params, "-machine", $vars->{QEMUMACHINE});
         }
 
         if ( $vars->{QEMUCPU} ) {
             push( @params, "-cpu", $vars->{QEMUCPU} );
-        }
-        
-        if ( $vars->{QEMURAM} ) {
-            push ( @params, '-m', $vars->{QEMURAM} );
-        }
-        else {
-            push ( @params, '-m', '1024' );
         }
 
         if ( $vars->{NICTYPE} eq "user" ) {
