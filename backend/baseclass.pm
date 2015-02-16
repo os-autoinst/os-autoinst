@@ -72,20 +72,42 @@ sub run {
     $self->do_run();
 }
 
+sub reset_timer() {
+    my ($self) = @_;
+    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
+}
+
+sub elapsed_time() {
+    my ($self) = @_;
+    my ( $sec, $usec ) = gettimeofday();
+    return ( $sec - $self->{'screenshot'}->{'sec'} ) - ( $usec - $self->{'screenshot'}->{'usec'} ) / 1e6;
+}
+
+###################################################################
 # default implementation of do_run
+# this is a command loop.
+# it does two things:
+# - check if there is any incoming communications on any of the
+#   $self->{sockets} and deal with that.
+# - trigger a screenshot every $self->screenshot_interval() seconds
+
+sub request_screenshot() { notimplemented; }
 sub do_run() {
     my ($self) = @_;
 
-    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
+    $self->reset_timer();
     my $interval = $self->screenshot_interval();
 
     while ( $self->{'cmdpipe'} ) {
-        my ( $s2, $usec2 ) = gettimeofday();
-        my $rest = $interval - ( $s2 - $self->{'screenshot'}->{'sec'} ) - ( $usec2 - $self->{'screenshot'}->{'usec'} ) / 1e6;
+
+        my $rest = $interval - $self->elapsed_time();
+
+        if ($rest < 0) {
+            $self->request_screenshot();
+            $self->reset_timer();
+        }
 
         my @ready = $self->{'select'}->can_read($rest);
-
-        $self->enqueue_screenshot;
 
         for my $fh (@ready) {
             unless ($self->check_socket($fh)) {
@@ -93,7 +115,15 @@ sub do_run() {
                 die "huh! $fh\n";
             }
         }
-        # give backends (like VNC) the chance to check their buffer
+	# If there was some command in the queue, request a
+	# screenshot, even if the time has not elapsed yet.
+	if (@ready) {
+	    $self->request_screenshot();
+	}
+        # Give backends (like VNC) the chance to check their buffer.
+        # (this is overloaded).
+	# FIXME: is this still needed?  Isn't this covered by the
+	# above logic yet?
         $self->check_socket(-1);
     }
 
@@ -295,11 +325,14 @@ sub enqueue_screenshot() {
     my ($self, $image) = @_;
 
     return unless $image;
-    my ( $s2, $usec2 ) = gettimeofday();
-    my $rest = $self->screenshot_interval() -( $s2 - $self->{'screenshot'}->{'sec'} ) -( $usec2 - $self->{'screenshot'}->{'usec'} ) / 1e6;
 
+    # FIXME: is this still needed?
     # don't overdo it
+    my $interval = $self->screenshot_interval();
+    my $rest = $interval - $self->elapsed_time();
     return unless $rest < 0.05;
+    $self->reset_timer();
+
     $image = $image->scale( 1024, 768 );
 
     $framecounter++;
@@ -309,15 +342,12 @@ sub enqueue_screenshot() {
 
     #print STDERR $filename,"\n";
 
-    # linking identical files saves space
-
-    # 54 is based on t/data/user-settings-*
+    # link identical files to save space
     my $sim = 0;
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
 
-    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
-
     #bmwqemu::diag "similarity is $sim";
+    # 54 is based on t/data/user-settings-*
     if ( $sim > 54 ) {
         symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
     }
