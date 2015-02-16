@@ -88,7 +88,7 @@ sub login {
         PeerAddr => $hostname || 'localhost',
         PeerPort => $port     || '5900',
         Proto    => 'tcp',
-    ) || Carp::confess "Error connecting to $hostname: $@";
+    ) || Carp::confess "Error connecting to $hostname (@_):\n $@";
     $socket->timeout(15);
     $socket->sockopt(Socket::TCP_NODELAY, 1);
     $self->socket($socket);
@@ -330,9 +330,18 @@ sub _server_initialization {
     my $socket = $self->socket;
     $socket->read( my $server_init, 24 ) || die 'unexpected end of data';
 
-    my ( $framebuffer_width, $framebuffer_height, $bits_per_pixel, $depth,$server_is_big_endian, $true_colour_flag, %pixinfo, $name_length );
-    # the following line is due to tidy ;(
-    ( $framebuffer_width,$framebuffer_height,$bits_per_pixel,$depth,$server_is_big_endian,$true_colour_flag,$pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max},$pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift},$name_length) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
+    #<<< tidy off
+    my ( $framebuffer_width, $framebuffer_height,
+	 $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
+	 %pixinfo,
+	 $name_length );
+    ( $framebuffer_width,  $framebuffer_height,
+      $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
+      $pixinfo{red_max},   $pixinfo{green_max},   $pixinfo{blue_max},
+      $pixinfo{red_shift}, $pixinfo{green_shift}, $pixinfo{blue_shift},
+      $name_length
+    ) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
+    #>>> tidy on
 
     #bmwqemu::diag "FW $framebuffer_width x $framebuffer_height";
 
@@ -687,9 +696,12 @@ sub send_update_request(;$) {
     );
     $self->update_required(0);
 }
+#printf "send_update_request $incremental %d\n", $self->update_required;
+#print "sending\n";
 
 sub receive_message {
     my $self = shift;
+
 
     my $socket = $self->socket;
 
@@ -698,7 +710,7 @@ sub receive_message {
     $socket->blocking(1);
 
     if ($! == EAGAIN) {
-	my $_EAGAIN_counter = $self->_EAGAIN_counter();
+        my $_EAGAIN_counter = $self->_EAGAIN_counter();
         die "socket closed\n${\Dumper $self}" if $_EAGAIN_counter > 35; ## magic 35
         $self->_EAGAIN_counter($_EAGAIN_counter + 1);
         return undef;
@@ -711,7 +723,7 @@ sub receive_message {
         $self->_UNDEF_counter(0);
     }
     else {
-	my $_UNDEF_counter = $self->_UNDEF_counter();
+        my $_UNDEF_counter = $self->_UNDEF_counter();
         die "socket closed\n${\Dumper $self}" if $_UNDEF_counter > 7; ## magic 7
         $self->_UNDEF_counter($_UNDEF_counter + 1);
         return undef;
