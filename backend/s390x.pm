@@ -16,7 +16,7 @@ use backend::s390x::s3270;
 
 use backend::VNC;
 
-use testapi qw{get_var check_var};
+use testapi qw(get_var check_var);
 
 sub new {
     my $class = shift;

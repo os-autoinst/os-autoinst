@@ -2,10 +2,15 @@ package backend::vnc_backend;
 use strict;
 use base ('backend::baseclass');
 
+use feature qw/say/;
+use Data::Dumper qw(Dumper);
+use Carp qw(confess cluck carp croak);
+
 sub enqueue_screenshot() {
     my ($self, $image) = @_;
 
-    return unless ($self->{'vnc'} && $self->{'vnc'}->_framebuffer);
+    return unless $self->{'vnc'};
+    return unless $self->{'vnc'}->_framebuffer;
     $self->SUPER::enqueue_screenshot($self->{'vnc'}->_framebuffer);
 }
 

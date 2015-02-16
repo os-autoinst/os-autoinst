@@ -12,6 +12,9 @@ use Time::HiRes qw(gettimeofday);
 use bmwqemu;
 use IO::Select;
 
+use Carp qw(cluck carp confess);
+use Data::Dumper;
+
 my $framecounter    = 0;    # screenshot counter
 our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
 
@@ -115,15 +118,15 @@ sub do_run() {
                 die "huh! $fh\n";
             }
         }
-	# If there was some command in the queue, request a
-	# screenshot, even if the time has not elapsed yet.
-	if (@ready) {
-	    $self->request_screenshot();
-	}
+        # If there was some command in the queue, request a
+        # screenshot, even if the time has not elapsed yet.
+        if (@ready) {
+            $self->request_screenshot();
+        }
         # Give backends (like VNC) the chance to check their buffer.
         # (this is overloaded).
-	# FIXME: is this still needed?  Isn't this covered by the
-	# above logic yet?
+        # FIXME: is this still needed?  Isn't this covered by the
+        # above logic yet?
         $self->check_socket(-1);
     }
 
@@ -421,7 +424,7 @@ sub check_socket {
 sub proxy_console_call() {
     my ($self, $wrapped_call) = @_;
 
-    my ($console, $function, $args) = @$wrapped_call{qw{console function args}};
+    my ($console, $function, $args) = @$wrapped_call{qw(console function args)};
 
     my $wrapped_result = {};
 
