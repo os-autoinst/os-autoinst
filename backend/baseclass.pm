@@ -380,5 +380,37 @@ sub check_socket {
     return 0;
 }
 
+###################################################################
+## API to access other consoles from the test case thread
+
+## TODO: console multiplexer:
+## sub switch_to_console(console => CONSOLE)
+## redirect all backend commands to CONSOLE from there on, also screen
+## capture from CONSOLE now.
+
+sub proxy_console_call() {
+    my ($self, $wrapped_call) = @_;
+
+    my ($console, $function, $args) = @$wrapped_call{qw{console function args}};
+
+    my $wrapped_result = {};
+
+    eval {
+        # Do not die in here.
+        # Move the decision to actually die to the server side instead.
+        # For this ignore backend::baseclass::die_handler.
+        local $SIG{__DIE__} = 'DEFAULT';
+        $wrapped_result->{result} = $self->{$console}->$function(@$args);
+    };
+
+    if ($@) {
+        $wrapped_result->{exception} = $@;
+        # cluck "proxy_console_call: exception caught in the backend thread\n$@\n";
+    }
+
+    return $wrapped_result;
+}
+
+
 1;
 # vim: set sw=4 et:
