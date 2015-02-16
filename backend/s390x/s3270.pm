@@ -134,7 +134,7 @@ sub expect_3270() {
 
     $arg{buffer_full}	//= qr/MORE\.\.\./;
     $arg{buffer_ready}	//= qr/RUNNING/;
-    $arg{timeout}	//= 1;
+    $arg{timeout}	//= 7;
     $arg{clear_buffer}	//= 0;
     $arg{output_delim}  //= undef;
     if (!exists $arg{flush_lines}) {
@@ -267,14 +267,13 @@ sub expect_3270() {
         if ($elapsed_time > $arg{timeout}
             || !$self->wait_output($arg{timeout} - $elapsed_time))
         {
-            confess Dumper(@_)."timed out.  last output:\n".Dumper($result);
+            confess "expect_3270: timed out.\n"."  waiting for ${\Dumper \%arg}\n"."  last output:\n".Dumper($result);
         }
         next;
 
-
-
     }
 
+    # tracing output
     say Dumper $result;
     return $result;
 }
@@ -414,9 +413,11 @@ sub _login_guest() {
 sub cp_logoff_disconnect() {
     my ($self) = @_;
 
+    # #cp force logoff immediate ??
     $self->send_3270('String("#cp logoff")');
     $self->send_3270('ENTER');
     $self->send_3270('Wait(Disconnect)');
+
 }
 
 sub cp_disconnect() {
@@ -444,15 +445,18 @@ sub connect_and_login() {
         # TODO:  think about what to really do in this case.
 
         if (grep /(?:RECONNECT|HCPLGA).*/, @$r ) {
-            cluck # carp
-              "machine $self->{zVM_host} $self->{guest_login} is in use:".join("\n", @$r);
+            cluck #
+              "connect_and_login: machine is in use ($self->{zVM_host} $self->{guest_login}):\n" . #
+              join("\n", @$r) . "\n";
 
             if ($count == 2) {
-                die "could not reclaim guest despite hard_shutdown.  this is odd.";
+                die #
+                  "Could not reclaim guest despite hard_shutdown.  this is odd.\n". #
+                  "Is this machine possibly connected on another terminal?\n";
             }
 
             # shut down and reconnect
-            cluck "trying hard shutdown...";
+            carp "trying hard shutdown...\n";
             $self->cp_logoff_disconnect();
 
             next;
