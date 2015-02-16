@@ -25,6 +25,13 @@ sub check_authorized {
 
     return 1 if ($ip eq "127.0.0.1" || $ip eq "::1");
 
+    my $local_ip    = $self->tx->local_address;
+    $self->app->log->debug("Request to $local_ip.");
+
+    # with TAP devices the address is not translated
+    # client 10.0.2.x connects to server 10.0.2.2
+    return 1 if ($local_ip eq "10.0.2.2");
+
     # forbid everyone else
     $self->render(text => "IP $ip is denied", status => 403);
     return undef;
