@@ -19,6 +19,7 @@ __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap update_required _last_update_request
+      _EAGAIN_counter _UNDEF_counter _REQUESTS_BEFORE_RESPONSE_counter
       )
 );
 our $VERSION = '0.40';
@@ -89,10 +90,15 @@ sub login {
         Proto    => 'tcp',
     ) || Carp::confess "Error connecting to $hostname: $@";
     $socket->timeout(15);
+    $socket->sockopt(Socket::TCP_NODELAY, 1);
     $self->socket($socket);
 
     $self->width(0);
     $self->height(0);
+
+    $self->_EAGAIN_counter(0);
+    $self->_UNDEF_counter(0);
+    $self->_REQUESTS_BEFORE_RESPONSE_counter(0);
 
     eval {
         $self->_handshake_protocol_version();
@@ -645,13 +651,20 @@ sub send_pointer_event {
     );
 }
 
+use POSIX qw(:errno_h);
+
 sub send_update_request(;$) {
     my ($self, $force_update) = @_;
+
+    my $_REQUESTS_BEFORE_RESPONSE_counter = $self->_REQUESTS_BEFORE_RESPONSE_counter();
+    die "socket closed\n${\Dumper $self}" if $_REQUESTS_BEFORE_RESPONSE_counter > 7;
+    $self->_REQUESTS_BEFORE_RESPONSE_counter( $_REQUESTS_BEFORE_RESPONSE_counter + 1 );
 
     # frame buffer update request
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
     $incremental = 0 if ($force_update);
+    # limit update requests to once a second, the resolution of time()
     my $now = time;
     if (!$self->_last_update_request || $now != $self->_last_update_request) {
         $self->_last_update_request($now);
@@ -683,7 +696,31 @@ sub receive_message {
     $socket->blocking(0);
     my $ret = $socket->read( my $message_type, 1 );
     $socket->blocking(1);
-    return undef unless $ret;
+
+    if ($! == EAGAIN) {
+	my $_EAGAIN_counter = $self->_EAGAIN_counter();
+        die "socket closed\n${\Dumper $self}" if $_EAGAIN_counter > 35; ## magic 35
+        $self->_EAGAIN_counter($_EAGAIN_counter + 1);
+        return undef;
+    }
+    else {
+        $self->_EAGAIN_counter(0);
+    }
+
+    if (defined $ret) {
+        $self->_UNDEF_counter(0);
+    }
+    else {
+	my $_UNDEF_counter = $self->_UNDEF_counter();
+        die "socket closed\n${\Dumper $self}" if $_UNDEF_counter > 7; ## magic 7
+        $self->_UNDEF_counter($_UNDEF_counter + 1);
+        return undef;
+    }
+
+    die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
+
+    $self->_REQUESTS_BEFORE_RESPONSE_counter(0);
+
     $message_type = unpack( 'C', $message_type );
 
     #bmwqemu::diag("RM $message_type");
@@ -743,7 +780,7 @@ sub _receive_update {
 
             my $bytes_per_pixel = $self->_bpp / 8;
 
-            $socket->read( my $data, $w * $h * $bytes_per_pixel );
+            $socket->read( my $data, $w * $h * $bytes_per_pixel )  || die 'unexpected end of data';
 
             # splat raw pixels into the image
             my $img = tinycv::new($w, $h);
