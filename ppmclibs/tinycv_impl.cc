@@ -102,10 +102,10 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   // cvSetErrMode(CV_ErrModeParent);
   // cvRedirectError(MyErrorHandler);
 
-/*
+#if DEBUG
   struct timeval tv1, tv2;
   gettimeofday(&tv1, 0);
-*/
+#endif
 
   std::vector<int> outvec(2);
 
@@ -179,15 +179,15 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   
   /* our callers expect a "how well does it match between 0-1", where 0.96 is defined as 
      good enough. So we need to map this a bit to avoid breaking all the rest */
-  // mse = 10 => 1
+  // mse = 2 => 1
   // mse = 40 => .9
-  similarity = .9 + (40 - mse) / 300;
+  similarity = .9 + (40 - mse) / 380;
   if (similarity < 0)
     similarity = 0;
   if (similarity > 1)
     similarity = 1;
 
-/*
+#if DEBUG
   gettimeofday(&tv2, 0);
   long tdiff = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
   std::cerr << "search_template "
@@ -195,7 +195,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
 	    << " MSE " << mse
 	    << " sim:" << similarity
 	    << " minval:" << int(minval * 1000 + 0.5) << std::endl;
-*/
+#endif
   return outvec;
 }
 

@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w -I..
 
 use strict;
-use Test::More tests => 44;
+use Test::More tests => 45;
 
 # optional but very useful
 eval 'use Test::More::Color';
@@ -226,5 +226,11 @@ is( $res->{area}->[-1]->{w}, 17);
 is( $res->{area}->[-1]->{h}, 12);
 is( $res->{area}->[-1]->{y}, 260);
 is( $res->{area}->[-1]->{x}, 313);
+
+$img1 = tinycv::read("data/other-desktop-dvd-20140904.test.png");
+$needle = needle->new("data/other-desktop-dvd-20140904.json");
+$res    = $img1->search($needle);
+
+ok( !defined $res, "the hot keys don't match");
 
 # vim: set sw=4 et:
