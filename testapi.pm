@@ -1,3 +1,18 @@
+# Copyright (C) 2015 SUSE Linux Products GmbH
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along
+# with this program; if not, see <http://www.gnu.org/licenses/>.
+
 package testapi;
 
 use base Exporter;
@@ -11,7 +26,8 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key ty
   script_sudo wait_serial save_screenshot wait_screen_change record_soft_failure
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
-  autoinst_url script_output validate_script_output eject_cd power);
+  autoinst_url script_output validate_script_output eject_cd power
+  mutex_create mutex_lock mutex_unlock);
 
 our %cmd;
 
@@ -347,7 +363,7 @@ sub mouse_hide(;$) {
 }
 ## mouse end
 
-=head autoinst_url
+=head2 autoinst_url
 
 returns the base URL to contact the local os-autoinst service
 
@@ -358,7 +374,7 @@ sub autoinst_url() {
     return "http://10.0.2.2:" . (get_var("QEMUPORT")+1);
 }
 
-=head script_output
+=head2 script_output
 
 script_output($script, [$wait])
 
@@ -400,7 +416,7 @@ sub script_output($;$) {
     return $output;
 }
 
-=head validate_script_output
+=head2 validate_script_output
 
 validate_script_output($script, $code, [$wait])
 
@@ -431,7 +447,7 @@ sub validate_script_output($&;$) {
     }
 }
 
-=head wait_screen_change
+=head2 wait_screen_change
 
 wait_screen_change($code)
 
@@ -474,6 +490,43 @@ sub wait_screen_change(&@) {
 }
 
 ## helpers end
+
+## synchronization API
+use constant {
+    MUTEX_CREATE => 'mutex_create',
+    MUTEX_LOCK   => 'mutex_lock',
+    MUTEX_UNLOCK => 'mutex_unlock',
+};
+
+sub mutex_lock($) {
+    my ($name) = @_;
+    return _mutex_call(MUTEX_LOCK, $name);
+}
+
+sub mutex_unlock($) {
+    my ($name) = @_;
+    return _mutex_call(MUTEX_UNLOCK, $name);
+}
+
+sub mutex_create($) {
+    my ($name) = @_;
+    return _mutex_call(MUTEX_CREATE, $name);
+}
+
+sub _mutex_call($$) {
+    my ($action, $name) = @_;
+    # blocking call to worker, worker asks Scheduler for lock
+    bmwqemu::fctlog("Trying mutex action $action on lock $name");
+    my $port = $bmwqemu::vars{'WORKER_PORT'};
+    my $path = "$action/$name";
+    while (1) {
+        my $res = qx(curl -s -o /dev/null -w \"\%{http_code}\" -I http://localhost:$port/$path);
+        last if ($res == 200);
+        bmwqemu::diag("mutex lock unavailable, sleeping 5s");
+        sleep(5);
+    }
+    bmwqemu::fctres("mutex action successful");
+}
 
 1;
 
