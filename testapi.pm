@@ -363,7 +363,7 @@ sub mouse_hide(;$) {
 }
 ## mouse end
 
-=head autoinst_url
+=head2 autoinst_url
 
 returns the base URL to contact the local os-autoinst service
 
@@ -374,7 +374,7 @@ sub autoinst_url() {
     return "http://10.0.2.2:" . (get_var("QEMUPORT")+1);
 }
 
-=head script_output
+=head2 script_output
 
 script_output($script, [$wait])
 
@@ -416,7 +416,7 @@ sub script_output($;$) {
     return $output;
 }
 
-=head validate_script_output
+=head2 validate_script_output
 
 validate_script_output($script, $code, [$wait])
 
@@ -447,7 +447,7 @@ sub validate_script_output($&;$) {
     }
 }
 
-=head wait_screen_change
+=head2 wait_screen_change
 
 wait_screen_change($code)
 
