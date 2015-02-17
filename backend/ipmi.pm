@@ -26,10 +26,17 @@ sub new {
     return $self;
 }
 
+sub ipmi_cmdline() {
+    my ($self) = @_;
+
+    return ('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'},'-U', $bmwqemu::vars{'IPMI_USER'},'-P', $bmwqemu::vars{'IPMI_PASSWORD'});
+}
+
+
 sub ipmitool($) {
     my ($self, $cmd) = @_;
 
-    my @cmd = ('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'},'-U', $bmwqemu::vars{'IPMI_USER'},'-P', $bmwqemu::vars{'IPMI_PASSWORD'});
+    my @cmd = $self->ipmi_cmdline();
     push(@cmd, split(/ /, $cmd));
 
     my ($stdin, $stdout, $stderr, $ret);
@@ -102,9 +109,10 @@ sub do_start_vm() {
     my ($self) = @_;
 
     # remove backend.crashed
-    $self->unlink_crash_file();
+    $self->unlink_crash_file;
     $self->restart_host;
     $self->relogin_vnc;
+    $self->start_serial_grab;
     return {};
 }
 
@@ -112,6 +120,7 @@ sub do_stop_vm() {
     my ($self) = @_;
 
     $self->ipmitool("chassis power off");
+    $self->stop_serial_grab();
 }
 
 sub do_savevm($) {
@@ -124,6 +133,40 @@ sub do_loadvm($) {
     my ( $self, $args ) = @_;
     die "if you need loadvm, you're screwed with IPMI";
 }
+
+# serial grab
+
+sub start_serial_grab() {
+    my $self = shift;
+    my $pid = fork();
+    if ( $pid == 0 ) {
+        my @cmd = $self->ipmi_cmdline();
+        push(@cmd, ("-I", "lanplus", "sol", "activate"));
+        #unshift(@cmd, ("setsid", "-w"));
+        print join(" ", @cmd);
+
+        open( my $serial, '>', $bmwqemu::serialfile ) || die "can't open $bmwqemu::serialfile";
+        open(STDOUT, ">&", $serial) || die "can't dup stdout: $!";
+        open(STDERR, ">&", $serial) || die "can't dup stderr: $!";
+        open( my $zero, '<', '/dev/zero');
+        open(STDIN, ">&", $zero);
+        exec("script", "-efqc", "@cmd");
+        die "exec failed $!";
+    }
+    else {
+        $self->{'serialpid'} = $pid;
+    }
+}
+
+sub stop_serial_grab($) {
+    my $self = shift;
+    return unless $self->{'serialpid'};
+    system("pkill", "-P", $self->{'serialpid'});
+    kill("TERM", $self->{'serialpid'});
+    waitpid($self->{'serialpid'}, 0);
+}
+
+# serial grab end
 
 1;
 
