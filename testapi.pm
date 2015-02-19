@@ -196,7 +196,7 @@ sub clear_console() {
 
 sub get_var($;$) {
     my ($var, $default) = @_;
-    return $bmwqemu::vars{$var} || $default;
+    return $bmwqemu::vars{$var} // $default;
 }
 
 sub set_var($$) {
