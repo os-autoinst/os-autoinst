@@ -121,7 +121,12 @@ sub init {
             if (ref $DEBUG eq "SCALAR") {
                 $DEBUG = [$$DEBUG];
             }
-            @DEBUG_SET{@$$DEBUG} = ();
+            if (ref $$DEBUG eq "ARRAY") {
+                @DEBUG_SET{@$$DEBUG} = ();
+            }
+            elsif (ref $$DEBUG eq "HASH") {
+                %DEBUG_SET = %$$DEBUG;
+            }
         }
         $vars{DEBUG} = \%DEBUG_SET;
     };

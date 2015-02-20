@@ -83,7 +83,7 @@ sub relogin_vnc() {
     my ($self) = @_;
 
     if ($self->{'vnc'}) {
-        $self->{'select'}->remove($self->{'vnc'}->socket);
+        #$self->{'select'}->remove($self->{'vnc'}->socket);
         close($self->{'vnc'}->socket);
         sleep(1);
     }
@@ -102,7 +102,7 @@ sub relogin_vnc() {
         die $@;
     }
 
-    $self->{'select'}->add($self->{'vnc'}->socket);
+    #$self->{'select'}->add($self->{'vnc'}->socket);
     $self->{'vnc'}->send_update_request;
 }
 

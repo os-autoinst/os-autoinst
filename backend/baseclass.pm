@@ -77,6 +77,8 @@ sub run {
 
 sub reset_timer() {
     my ($self) = @_;
+    # FIXME: why so complicated?  gettimeofday() gives a float in
+    # scalar context!
     ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
 }
 
@@ -94,7 +96,11 @@ sub elapsed_time() {
 #   $self->{sockets} and deal with that.
 # - trigger a screenshot every $self->screenshot_interval() seconds
 
-sub request_screenshot() { notimplemented; }
+sub fetch_all_pending_screenshots($;$) {
+    my ($self, $timeout) = @_;
+    notimplemented();
+}
+
 sub do_run() {
     my ($self) = @_;
 
@@ -106,8 +112,9 @@ sub do_run() {
         my $rest = $interval - $self->elapsed_time();
 
         if ($rest < 0) {
-            $self->request_screenshot();
+            $self->fetch_all_pending_screenshots(0);
             $self->reset_timer();
+            $rest = 0;
         }
 
         my @ready = $self->{'select'}->can_read($rest);
@@ -118,16 +125,6 @@ sub do_run() {
                 die "huh! $fh\n";
             }
         }
-        # If there was some command in the queue, request a
-        # screenshot, even if the time has not elapsed yet.
-        if (@ready) {
-            $self->request_screenshot();
-        }
-        # Give backends (like VNC) the chance to check their buffer.
-        # (this is overloaded).
-        # FIXME: is this still needed?  Isn't this covered by the
-        # above logic yet?
-        $self->check_socket(-1);
     }
 
     bmwqemu::diag( "management thread exit at " . POSIX::strftime( "%F %T", gmtime ) );
@@ -329,12 +326,12 @@ sub enqueue_screenshot() {
 
     return unless $image;
 
-    # FIXME: is this still needed?
-    # don't overdo it
-    my $interval = $self->screenshot_interval();
-    my $rest = $interval - $self->elapsed_time();
-    return unless $rest < 0.05;
-    $self->reset_timer();
+    ## FIXME: is this still needed?
+    ## don't overdo it
+    #my $interval = $self->screenshot_interval();
+    #my $rest = $interval - $self->elapsed_time();
+    #return unless $rest < 0.05;
+    #$self->reset_timer();
 
     $image = $image->scale( 1024, 768 );
 
