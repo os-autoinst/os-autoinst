@@ -2,22 +2,27 @@ package backend::vnc_backend;
 use strict;
 use base ('backend::baseclass');
 
+use Time::HiRes qw(usleep gettimeofday);
+
 use feature qw/say/;
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 
-sub enqueue_screenshot() {
-    my ($self, $image) = @_;
+sub fetch_all_pending_screenshots() {
+    my ($self, $timeout, $min_time) = @_;
 
     return unless $self->{'vnc'};
+
+    eval {$self->{'vnc'}->update_framebuffer($timeout, $min_time);};
+
+    if ($@) {
+        bmwqemu::diag "VNC failed $@";
+        $self->close_pipes();
+    }
+
     return unless $self->{'vnc'}->_framebuffer;
-    $self->SUPER::enqueue_screenshot($self->{'vnc'}->_framebuffer);
-}
 
-sub request_screenshot() {
-    my ($self) = @_;
-    return unless $self->{'vnc'};
-    $self->{'vnc'}->send_update_request();
+    $self->enqueue_screenshot($self->{'vnc'}->_framebuffer);
 }
 
 # this is called for all sockets ready to read from. return 1 if socket
@@ -27,27 +32,11 @@ sub check_socket {
 
     if ($self->{'vnc'}) {
         if ( $fh == $self->{'vnc'}->socket ) {
-
-            # vnc is non-blocking so just try and it's important we check this here
-            # because select won't wake us if the message is already read into the buffer
-
-            # only enqueue a screenshot if there is something to see
-            my $received_vnc_message;
-            eval {
-                # returns undef if vnc had nothing ot say
-                $received_vnc_message = $self->{'vnc'}->receive_message();
-            };
-            if ($@) {
-                bmwqemu::diag "VNC failed $@";
-                $self->close_pipes();
-            }
-            if (defined $received_vnc_message) {
-                say "check_socket: received_vnc_message: $received_vnc_message";
-                $self->enqueue_screenshot;
-            }
+            $self->fetch_all_pending_screenshots();
             return 1;
         }
     }
+    # This was not for me.  Try baseclass.
     return $self->SUPER::check_socket($fh);
 }
 
@@ -60,57 +49,21 @@ sub close_pipes() {
     $self->SUPER::close_pipes();
 }
 
-use Time::HiRes qw(gettimeofday);
-
 # to be overwritten e.g. in qemu to check stderr
 sub special_socket($) {
     return 0;
 }
 
-sub wait_for_screen_stall($) {
-    my ($self, $s) = @_;
-
-    $self->{'vnc'}->send_update_request;
-    my ( $s1, $ms1 ) = gettimeofday;
-    while (1) {
-        my @ready = $s->can_read(.1);
-        last unless @ready;
-        for my $fh (@ready) {
-            unless (special_socket($fh)) {
-                if (defined $self->{'vnc'}->receive_message()) {
-                    $self->enqueue_screenshot;
-                }
-            }
-        }
-        my ( $s2, $usec2 ) = gettimeofday;
-        my $diff = ( $s2 - $s1 ) + ( $usec2 - $ms1 ) / 1e6;
-        #bmwqemu::diag "diff $diff";
-        # we can't wait longer - in password prompts there is no screen update
-        last if ($diff > .8);
-    }
-    #my ( $s2, $usec2 ) = gettimeofday;
-    #my $diff = ( $s2 - $s1 ) + ( $usec2 - $ms1 ) / 1e6;
-    #bmwqemu::diag "done $diff";
-    $self->enqueue_screenshot;
-}
-
-sub select_for_vnc {
-    my ($self) = @_;
-
-    my $s = IO::Select->new();
-    $s->add($self->{'vnc'}->socket);
-    return $s;
-}
-
 sub type_string($$) {
     my ($self, $args) = @_;
 
-    my $s = $self->select_for_vnc();
     for my $letter (split( "", $args->{text}) ) {
         $letter = $self->map_letter($letter);
         $self->{'vnc'}->send_mapped_key($letter);
-        $self->wait_for_screen_stall($s);
+        $self->fetch_all_pending_screenshots(.5, .05);
     }
+    $self->fetch_all_pending_screenshots(.2);
+    return {};
 }
 
 sub send_key($) {
@@ -118,9 +71,7 @@ sub send_key($) {
 
     bmwqemu::diag "send_mapped_key '" . $args->{key} . "'";
     $self->{'vnc'}->send_mapped_key($args->{key});
-    my $s = IO::Select->new();
-    $s->add($self->{'vnc'}->socket);
-    $self->wait_for_screen_stall($s);
+    $self->fetch_all_pending_screenshots(.2);
     return {};
 }
 

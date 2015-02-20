@@ -3,9 +3,10 @@ use strict;
 use warnings;
 use base qw(Class::Accessor::Fast);
 use IO::Socket::INET;
+use IO::Select;
 use bytes;
 use bmwqemu qw(diag);
-use Time::HiRes qw( usleep );
+use Time::HiRes qw( usleep gettimeofday );
 use Carp;
 use tinycv;
 
@@ -19,7 +20,8 @@ __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap update_required _last_update_request
-      _EAGAIN_counter _UNDEF_counter _REQUESTS_BEFORE_RESPONSE_counter
+      _EAGAIN_counter _UNDEF_counter _REQUESTS_BEFORE_RESPONSE_timer
+      requests_before_response_timeout
       )
 );
 our $VERSION = '0.40';
@@ -89,8 +91,8 @@ sub login {
         PeerPort => $port     || '5900',
         Proto    => 'tcp',
     ) || Carp::confess "Error connecting to $hostname (@_):\n $@";
-    $socket->timeout(15);
-    $socket->sockopt(Socket::TCP_NODELAY, 1);
+    $socket->timeout(15); # FIXME: is this used for anything but connect?
+    $socket->sockopt(Socket::TCP_NODELAY, 1); # turn off Naegle's algorithm for vnc
     $self->socket($socket);
 
     $self->width(0);
@@ -98,7 +100,8 @@ sub login {
 
     $self->_EAGAIN_counter(0);
     $self->_UNDEF_counter(0);
-    $self->_REQUESTS_BEFORE_RESPONSE_counter(0);
+    $self->_REQUESTS_BEFORE_RESPONSE_timer(gettimeofday);
+    $self->requests_before_response_timeout(20);
 
     eval {
         $self->_handshake_protocol_version();
@@ -494,6 +497,7 @@ sub send_key_event_up {
 sub send_key_event {
     my ( $self, $key ) = @_;
     $self->send_key_event_down($key);
+    usleep(50); # just a brief moment
     $self->send_key_event_up($key);
 }
 
@@ -660,25 +664,72 @@ sub send_pointer_event {
     );
 }
 
+sub _drain_vnc_socket() {
+    my ($self) = @_;
+    my $have_recieved_update = 0;
+    while ( defined( my $message_type = $self->_receive_message() ) ) {
+        $have_recieved_update = 1 if $message_type == 0;
+    }
+    return $have_recieved_update;
+}
+
+sub update_framebuffer() { # fka capture
+    my ($self, $timeout, $min_time) = @_;
+
+    $timeout  //= -1;        # wait up to $timeout
+    $min_time //= $timeout;  # wait at least $min_time
+
+    $self->_send_update_request() unless $timeout < 0;
+
+    if ($timeout <= 0) {
+        $self->_drain_vnc_socket();
+        return;
+    }
+
+    my $update_start_time = gettimeofday;
+    my $select = IO::Select->new();
+    $select->add($self->socket);
+
+    while (1) {
+        my $elapsed = gettimeofday - $update_start_time;
+        my $rest = $timeout - $elapsed;
+        $rest = $min_time if $rest > $min_time;
+        my @ready = $select->can_read($rest);
+
+        my $have_recieved_update = $self->_drain_vnc_socket();
+
+        last if $elapsed > $timeout;
+
+        last if !@ready && $rest == $min_time;
+
+        if ($have_recieved_update) {
+            $self->_send_update_request();
+            # don't select() but sleep() here
+            usleep($min_time);
+        }
+    }
+}
+
 use POSIX qw(:errno_h);
 
-sub send_update_request(;$) {
+sub _send_update_request(;$) {
     my ($self, $force_update) = @_;
 
-    my $_REQUESTS_BEFORE_RESPONSE_counter = $self->_REQUESTS_BEFORE_RESPONSE_counter();
-    die "socket closed\n${\Dumper $self}" if $_REQUESTS_BEFORE_RESPONSE_counter > 7;
-    $self->_REQUESTS_BEFORE_RESPONSE_counter( $_REQUESTS_BEFORE_RESPONSE_counter + 1 );
+    my $_REQUESTS_BEFORE_RESPONSE_timer = $self->_REQUESTS_BEFORE_RESPONSE_timer();
+    die "socket closed (no response after $self->requests_before_response_timeout seconds)\n" ."${\Dumper $self}" if $_REQUESTS_BEFORE_RESPONSE_timer > $self->requests_before_response_timeout + gettimeofday;
 
     # frame buffer update request
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
     $incremental = 0 if ($force_update);
-    # limit update requests to once a second, the resolution of time()
-    my $now = time;
-    if (!$self->_last_update_request || $now != $self->_last_update_request) {
-        $self->_last_update_request($now);
-        $self->update_required(1);
-    }
+
+    ## limit update requests to once a second, the resolution of time()
+    #my $now = time;
+    #if (!$self->_last_update_request || $now != $self->_last_update_request) {
+    #    $self->_last_update_request($now);
+    #    $self->update_required(1);
+    #}
+
     #printf "send_update_request $incremental %d\n", $self->update_required;
     return if ($self->ikvm && $incremental && !$self->update_required);
     #print "sending\n";
@@ -699,7 +750,7 @@ sub send_update_request(;$) {
 #printf "send_update_request $incremental %d\n", $self->update_required;
 #print "sending\n";
 
-sub receive_message {
+sub _receive_message {
     my $self = shift;
 
 
@@ -711,7 +762,7 @@ sub receive_message {
 
     if ($! == EAGAIN) {
         my $_EAGAIN_counter = $self->_EAGAIN_counter();
-        die "socket closed\n${\Dumper $self}" if $_EAGAIN_counter > 35; ## magic 35
+        die "socket broken, too many EAGAIN \n${\Dumper $self}" if $_EAGAIN_counter > 235; ## magic 235
         $self->_EAGAIN_counter($_EAGAIN_counter + 1);
         return undef;
     }
@@ -724,14 +775,15 @@ sub receive_message {
     }
     else {
         my $_UNDEF_counter = $self->_UNDEF_counter();
-        die "socket closed\n${\Dumper $self}" if $_UNDEF_counter > 7; ## magic 7
+        warn "socket read error: $!";
+        die "socket dead, too many read errors \n${\Dumper $self}" if $_UNDEF_counter > 7; ## magic 7
         $self->_UNDEF_counter($_UNDEF_counter + 1);
         return undef;
     }
 
     die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
 
-    $self->_REQUESTS_BEFORE_RESPONSE_counter(0);
+    $self->_REQUESTS_BEFORE_RESPONSE_timer(gettimeofday);
 
     $message_type = unpack( 'C', $message_type );
 
