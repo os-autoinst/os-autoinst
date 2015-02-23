@@ -160,6 +160,18 @@ sub start_qemu() {
         die "no Qemu/KVM found\n" unless $qemubin;
     }
 
+    if ( $vars->{BIOS} && !-e '/usr/share/qemu/'.$vars->{BIOS} ) {
+        die "'$vars->{BIOS}' missing, check BIOS\n";
+    }
+
+    if ( $vars->{LAPTOP} ) {
+        if ($vars->{LAPTOP} =~ /\/|\.\./) {
+            die "invalid characters in LAPTOP\n";
+        }
+        $vars->{LAPTOP} = 'dell_e6330' if $vars->{LAPTOP} eq '1';
+        die "no dmi data for '$vars->{LAPTOP}'\n" unless -d "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
+    }
+
     my $iso = $vars->{ISO};
     # disk settings
     $vars->{NUMDISKS}  ||= 1;
@@ -319,7 +331,9 @@ sub start_qemu() {
         }
 
         if ( $vars->{UEFI} ) {
-            $vars->{BIOS} = $vars->{UEFI_BIOS};
+            # XXX: compat with old deployment
+            $vars->{BIOS} //= $vars->{UEFI_BIOS};
+            $vars->{BIOS} //= 'ovmf-x86_64-ms.bin' if $vars->{ARCH} eq 'x86_64';
         }
         if ( $vars->{BIOS} ) {
             push( @params, "-bios", '/usr/share/qemu/'.$vars->{BIOS} );
