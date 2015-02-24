@@ -454,6 +454,8 @@ sub wait_still_screen($$$) {
 
     my ($stilltime, $timeout, $similarity_level) = @_;
 
+    $timeout = _scale_timeout($timeout);
+
     my $starttime = time;
     my $lastchangetime = [gettimeofday];
     my $lastchangeimg  = getcurrentscreenshot();
@@ -523,6 +525,9 @@ sub wait_serial($$$) {
     my ($regexp, $timeout, $expect_not_found) = @_;
     my $res;
     my $str;
+
+    $timeout = _scale_timeout($timeout);
+
     for my $n ( 1 .. $timeout ) {
         $str = serial_text();
         if ( $str =~ m/$regexp/ ) {
@@ -563,6 +568,9 @@ sub wait_idle($) {
     my $prev;
     my $timesidle = 0;
     my $idlethreshold  = $vars{IDLETHRESHOLD};
+
+    $timeout = _scale_timeout($timeout);
+
     for my $n ( 1 .. $timeout ) {
         my ( $stat, $systemstat ) = @{$backend->cpu_stat()};
         sleep 1;    # sleep before skip to timeout when having no data (hw)
@@ -625,11 +633,10 @@ sub save_needle_template($$$) {
 sub assert_screen {
     my %args         = @_;
     my $mustmatch    = $args{'mustmatch'};
-    my $timeout      = $args{'timeout'};
+    my $timeout      = $args{'timeout'}//30; # 0 is a valid timeout
     my $check_screen = $args{'check'};
 
-    # 0 is a valid timeout
-    $timeout = 30 unless defined($timeout);
+    $timeout = _scale_timeout($timeout);
 
     die "current_test undefined" unless current_test;
 
@@ -913,6 +920,12 @@ sub clean_control_files {
     for my $file ( values %control_files ) {
         unlink($file);
     }
+}
+
+sub _scale_timeout($) {
+    my ($timeout) = @_;
+    return $timeout unless int($vars{'TIMEOUT_SCALE'}//0);
+    return $timeout * $vars{'TIMEOUT_SCALE'};
 }
 
 1;
