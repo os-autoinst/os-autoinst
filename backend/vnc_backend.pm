@@ -32,6 +32,10 @@ sub check_socket {
 
     if ($self->{'vnc'}) {
         if ( $fh == $self->{'vnc'}->socket ) {
+	    # FIXME: polling the VNC socket is not part of the backend
+	    # loop.  So this should be dead code.  Remove if no tests
+	    # die here for a while.
+	    die "this should be dead code.";
             $self->fetch_all_pending_screenshots();
             return 1;
         }
@@ -71,7 +75,7 @@ sub send_key($) {
 
     bmwqemu::diag "send_mapped_key '" . $args->{key} . "'";
     $self->{'vnc'}->send_mapped_key($args->{key});
-    $self->fetch_all_pending_screenshots(.2);
+    $self->fetch_all_pending_screenshots(.5, .05);
     return {};
 }
 

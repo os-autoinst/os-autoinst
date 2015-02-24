@@ -19,7 +19,7 @@ use feature qw/say/;
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version
-      _bpp _true_colour _do_endian_conversion absolute ikvm keymap update_required _last_update_request
+      _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_request
       _EAGAIN_counter _UNDEF_counter _REQUESTS_BEFORE_RESPONSE_timer
       requests_before_response_timeout
       )
@@ -712,32 +712,20 @@ sub update_framebuffer() { # fka capture
 
 use POSIX qw(:errno_h);
 
+# frame buffer update request
 sub _send_update_request(;$) {
-    my ($self, $force_update) = @_;
+    my ($self) = @_;
 
-    my $_REQUESTS_BEFORE_RESPONSE_timer = $self->_REQUESTS_BEFORE_RESPONSE_timer();
-    die "socket closed (no response after $self->requests_before_response_timeout seconds)\n" ."${\Dumper $self}" if $_REQUESTS_BEFORE_RESPONSE_timer > $self->requests_before_response_timeout + gettimeofday;
+    die "socket closed (no response after $self->requests_before_response_timeout seconds)\n" .	"${\Dumper $self}"
+	if $self->_REQUESTS_BEFORE_RESPONSE_timer() > $self->requests_before_response_timeout + gettimeofday;
 
-    # frame buffer update request
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
-    $incremental = 0 if ($force_update);
-
-    ## limit update requests to once a second, the resolution of time()
-    #my $now = time;
-    #if (!$self->_last_update_request || $now != $self->_last_update_request) {
-    #    $self->_last_update_request($now);
-    #    $self->update_required(1);
-    #}
-
-    #printf "send_update_request $incremental %d\n", $self->update_required;
-    return if ($self->ikvm && $incremental && !$self->update_required);
-    #print "sending\n";
 
     $socket->print(
         pack(
             'CCnnnn',
-            3,               # message_type
+            3,               # message_type: frame buffer update request
             $incremental,    # incremental
             0,               # x
             0,               # y
@@ -745,10 +733,7 @@ sub _send_update_request(;$) {
             $self->height,
         )
     );
-    $self->update_required(0);
 }
-#printf "send_update_request $incremental %d\n", $self->update_required;
-#print "sending\n";
 
 sub _receive_message {
     my $self = shift;
@@ -860,14 +845,12 @@ sub _receive_update {
                 die "unknown bpp" . $self->_bpp;
             }
             $image->blend($img, $x, $y);
-            $self->update_required(1);
         }
         elsif ( $encoding_type == -223 ) {
             $self->width($w);
             $self->height($h);
             $image = tinycv::new( $self->width, $self->height );
             $self->_framebuffer($image);
-            $self->update_required(1);
         }
         elsif ( $encoding_type == -257 ) {
             bmwqemu::diag("pointer type $x $y $w $h $encoding_type");
@@ -926,7 +909,6 @@ sub _receive_ikvm_encoding {
         $self->_framebuffer($image);
         # resync mouse (magic)
         $self->socket->print( pack('Cn', 7, 1920));
-        $self->update_required(1);
     }
 
     if ($encoding_type == 89 && $data_len) {
@@ -945,7 +927,6 @@ sub _receive_ikvm_encoding {
         my $img = tinycv::new($w, $h);
         $img->map_raw_data_rgb555($data);
         $image->blend($img, $x, $y);
-        $self->update_required(1);
     }
     elsif ( $encoding_type == 0 ) {
         # ikvm manages to redeclare raw to be something completely different ;(
@@ -955,7 +936,6 @@ sub _receive_ikvm_encoding {
             $socket->read(my $data, 6) || die "unexpected end of data";
             my ($dummy_a, $dummy_b, $y, $x) = unpack('nnCC', $data);
             #print "DUMMY $type $dummy_a $dummy_b $x $y ($w $h)\n";
-            $self->update_required(1);
             $socket->read($data, 512) || die "unexpected end of data";
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
