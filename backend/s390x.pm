@@ -74,7 +74,7 @@ sub connect_vnc() {
     }
 
     #$self->{'select'}->add($self->{'vnc'}->socket);
-    $self->{'vnc'}->send_update_request;
+    $self->{'vnc'}->update_framebuffer;
 
 }
 

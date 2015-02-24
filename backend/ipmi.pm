@@ -103,7 +103,7 @@ sub relogin_vnc() {
     }
 
     #$self->{'select'}->add($self->{'vnc'}->socket);
-    $self->{'vnc'}->send_update_request;
+    $self->{'vnc'}->update_framebuffer;
 }
 
 sub do_start_vm() {
