@@ -29,7 +29,7 @@ sub type_string($;$);
 sub type_password;
 
 sub init() {
-    $serialdev = "ttyS0";
+    $serialdev = get_var('SERIALDEV', "ttyS0");
     if ( get_var('OFW') ) {
         $serialdev = "hvc0";
     }
