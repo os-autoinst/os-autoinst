@@ -82,6 +82,7 @@ sub signalhandler {
 
 $SIG{ALRM} = \&signalhandler;
 $SIG{TERM} = \&signalhandler;
+$SIG{INT}  = \&signalhandler;
 $SIG{HUP}  = \&signalhandler;
 
 $ENV{MOJO_MAX_MESSAGE_SIZE} = 107741824;
