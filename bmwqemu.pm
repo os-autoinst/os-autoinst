@@ -454,6 +454,8 @@ sub wait_still_screen($$$) {
 
     my ($stilltime, $timeout, $similarity_level) = @_;
 
+    $timeout = _scale_timeout($timeout);
+
     my $starttime = time;
     my $lastchangetime = [gettimeofday];
     my $lastchangeimg  = getcurrentscreenshot();
@@ -523,6 +525,9 @@ sub wait_serial($$$) {
     my ($regexp, $timeout, $expect_not_found) = @_;
     my $res;
     my $str;
+
+    $timeout = _scale_timeout($timeout);
+
     for my $n ( 1 .. $timeout ) {
         $str = serial_text();
         if ( $str =~ m/$regexp/ ) {
@@ -563,6 +568,9 @@ sub wait_idle($) {
     my $prev;
     my $timesidle = 0;
     my $idlethreshold  = $vars{IDLETHRESHOLD};
+
+    $timeout = _scale_timeout($timeout);
+
     for my $n ( 1 .. $timeout ) {
         my ( $stat, $systemstat ) = @{$backend->cpu_stat()};
         sleep 1;    # sleep before skip to timeout when having no data (hw)
@@ -625,11 +633,10 @@ sub save_needle_template($$$) {
 sub assert_screen {
     my %args         = @_;
     my $mustmatch    = $args{'mustmatch'};
-    my $timeout      = $args{'timeout'};
+    my $timeout      = $args{'timeout'}//30; # 0 is a valid timeout
     my $check_screen = $args{'check'};
 
-    # 0 is a valid timeout
-    $timeout = 30 unless defined($timeout);
+    $timeout = _scale_timeout($timeout);
 
     die "current_test undefined" unless current_test;
 
@@ -721,6 +728,11 @@ sub assert_screen {
         if ($sim < 30) {
             push(@$failed_screens, [$img, $failed_candidates, $n, $sim]);
         }
+        # clean up every once in a while to avoid excessive memory consumption.
+        # The value here is an arbitrary limit.
+        if (@$failed_screens > 60) {
+            _reduce_to_biggest_changes($failed_screens, 20);
+        }
         diag("STAT $n $statstr - similarity: $sim");
         $oldimg = $img;
         $old_search_ratio = $search_ratio;
@@ -798,7 +810,7 @@ sub assert_screen {
 
     my $final_mismatch = $failed_screens->[-1];
     if (!$check_screen) {
-        $failed_screens = _reduce_to_biggest_changes($failed_screens, 20);
+        _reduce_to_biggest_changes($failed_screens, 20);
         # only append the last mismatch if it's different to the last one in the reduced list
         my $new_final = $failed_screens->[-1];
         if ($new_final != $final_mismatch) {
@@ -832,19 +844,28 @@ sub assert_screen {
 }
 
 sub _reduce_to_biggest_changes($$) {
-    my ($oldarray, $limit) = @_;
-    my @newarray;
+    my ($imglist, $limit) = @_;
 
-    # sort by similarity
-    for my $l (sort { $b->[3] <=> $a->[3] } @$oldarray) {
-        push(@newarray, $l);
-        last if (scalar(@newarray) >= $limit);
-    }
+    return if @$imglist <= $limit;
+
+    diag("shrinking imglist ".$#$imglist);
+    diag("sim ".join(' ', map { sprintf("%4.2f", $_->[3])} @$imglist));
+
+    my $first = shift @$imglist;
+    @$imglist = (sort { $b->[3] <=> $a->[3] } @$imglist)[0..(@$imglist>$limit?$limit-1:$#$imglist)];
+    unshift @$imglist, $first;
+
+    diag("imglist now ".$#$imglist);
 
     # now sort for test time
-    @newarray = sort { $b->[2] <=> $a->[2] } @newarray;
+    @$imglist = sort { $b->[2] <=> $a->[2] } @$imglist;
 
-    return \@newarray;
+    # recalculate similarity
+    for (my $i = 1; $i < @$imglist; ++$i) {
+        $imglist->[$i]->[3] = $imglist->[$i-1]->[0]->similarity($imglist->[$i]->[0]);
+    }
+
+    diag("sim ".join(' ', map { sprintf("%4.2f", $_->[3])} @$imglist));
 }
 
 sub make_snapshot($) {
@@ -913,6 +934,12 @@ sub clean_control_files {
     for my $file ( values %control_files ) {
         unlink($file);
     }
+}
+
+sub _scale_timeout($) {
+    my ($timeout) = @_;
+    return $timeout unless int($vars{'TIMEOUT_SCALE'}//0);
+    return $timeout * $vars{'TIMEOUT_SCALE'};
 }
 
 1;
