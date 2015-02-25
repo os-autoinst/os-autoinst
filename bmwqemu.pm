@@ -687,7 +687,16 @@ sub assert_screen {
         $search_ratio = 1 if ($n % 6 == 5) || ($n == 0);
 
         if ( -e $control_files{"interactive_mode"} ) {
-            $interactive_mode = 1;
+            if (!$interactive_mode) {
+                diag("interactive mode enabled");
+                $interactive_mode = 1;
+                save_results();
+            }
+        }
+        elsif ($interactive_mode) {
+            diag("interactive mode disabled");
+            $interactive_mode = 0;
+            save_results();
         }
         if ( -e $control_files{"stop_waitforneedle"} ) {
             last;
@@ -763,7 +772,6 @@ sub assert_screen {
     $needle_template = save_needle_template( $img, $mustmatch, \@save_tags );
 
     if ($interactive_mode) {
-        print "interactive mode entered\n";
         freeze_vm();
 
         current_test->record_screenfail(
@@ -778,7 +786,7 @@ sub assert_screen {
 
         save_results();
 
-        diag("$$: waiting for continuation");
+        diag("interactive mode waiting for continuation");
         while ( -e $control_files{'stop_waitforneedle'} ) {
             if ( -e $control_files{'reload_needles_and_retry'} ) {
                 unlink( $control_files{'stop_waitforneedle'} );
