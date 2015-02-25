@@ -23,6 +23,8 @@ __PACKAGE__->mk_accessors(
       _EAGAIN_counter _UNDEF_counter _REQUESTS_BEFORE_RESPONSE_timer
       requests_before_response_timeout
       )
+      # FIXME: not needed?
+      # update_request_throttle_seconds _LAST_UPDATE_REQUEST_timer
 );
 our $VERSION = '0.40';
 
@@ -100,8 +102,15 @@ sub login {
 
     $self->_EAGAIN_counter(0);
     $self->_UNDEF_counter(0);
-    $self->_REQUESTS_BEFORE_RESPONSE_timer(gettimeofday);
-    $self->requests_before_response_timeout(20);
+
+    $self->_REQUESTS_BEFORE_RESPONSE_timer(scalar gettimeofday);
+    $self->requests_before_response_timeout(20)
+      unless defined $self->requests_before_response_timeout;
+
+    # FIXME: not needed?
+    # $self->_LAST_UPDATE_REQUEST_timer(0);
+    # $self->update_request_throttle_seconds(0)
+    # 	unless defined $self->update_request_throttle_seconds;
 
     eval {
         $self->_handshake_protocol_version();
@@ -403,6 +412,7 @@ sub _server_initialization {
 
         my ( $current_thread, $ikvm_video_enable, $ikvm_km_enable, $ikvm_kick_enable, $v_usb_enable)= unpack 'x4NCCCC', $ikvm_init;
         print "IKVM specifics: $current_thread $ikvm_video_enable $ikvm_km_enable $ikvm_kick_enable $v_usb_enable\n";
+        die "Can't use keyboard and mouse.  Is another ipmi vnc viewer logged in?" unless $ikvm_km_enable;
         return; # the rest is kindly ignored by ikvm anyway
     }
 
@@ -717,7 +727,17 @@ sub _send_update_request(;$) {
     my ($self) = @_;
 
     die "socket closed (no response after $self->requests_before_response_timeout seconds)\n" .	"${\Dumper $self}"
-	if $self->_REQUESTS_BEFORE_RESPONSE_timer() > $self->requests_before_response_timeout + gettimeofday;
+      if $self->_REQUESTS_BEFORE_RESPONSE_timer() > $self->requests_before_response_timeout + gettimeofday;
+
+    # FIXME: not needed?
+    # my $update_request_wait_time = $self->update_request_throttle_seconds - (scalar gettimeofday - $self->_LAST_UPDATE_REQUEST_timer);
+    # usleep($update_request_wait_time * 1_000_000)
+    # 	if $update_request_wait_time > 0;
+    # $self->_LAST_UPDATE_REQUEST_timer(scalar gettimeofday);
+    #
+    # DEBUGGING
+    # print "VNC = " . Dumper $self;
+    # print "§" . gettimeofday . " - " . $update_request_wait_time ."§\n";
 
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
@@ -768,7 +788,7 @@ sub _receive_message {
 
     die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
 
-    $self->_REQUESTS_BEFORE_RESPONSE_timer(gettimeofday);
+    $self->_REQUESTS_BEFORE_RESPONSE_timer(scalar gettimeofday);
 
     $message_type = unpack( 'C', $message_type );
 

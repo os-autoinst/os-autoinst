@@ -32,10 +32,10 @@ sub check_socket {
 
     if ($self->{'vnc'}) {
         if ( $fh == $self->{'vnc'}->socket ) {
-	    # FIXME: polling the VNC socket is not part of the backend
-	    # loop.  So this should be dead code.  Remove if no tests
-	    # die here for a while.
-	    die "this should be dead code.";
+            # FIXME: polling the VNC socket is not part of the backend
+            # loop.  So this should be dead code.  Remove if no tests
+            # die here for a while.
+            die "this should be dead code.";
             $self->fetch_all_pending_screenshots();
             return 1;
         }
