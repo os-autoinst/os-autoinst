@@ -160,6 +160,18 @@ sub start_qemu() {
         die "no Qemu/KVM found\n" unless $qemubin;
     }
 
+    if ( $vars->{BIOS} && !-e '/usr/share/qemu/'.$vars->{BIOS} ) {
+        die "'$vars->{BIOS}' missing, check BIOS\n";
+    }
+
+    if ( $vars->{LAPTOP} ) {
+        if ($vars->{LAPTOP} =~ /\/|\.\./) {
+            die "invalid characters in LAPTOP\n";
+        }
+        $vars->{LAPTOP} = 'dell_e6330' if $vars->{LAPTOP} eq '1';
+        die "no dmi data for '$vars->{LAPTOP}'\n" unless -d "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
+    }
+
     my $iso = $vars->{ISO};
     # disk settings
     $vars->{NUMDISKS}  ||= 1;
@@ -299,6 +311,10 @@ sub start_qemu() {
                 push( @params, "-device", "usb-ehci,id=ehci" );
                 push( @params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb" );
             }
+            elsif ($vars->{CDMODEL}) {
+                push(@params, '-drive', "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
+                push(@params, '-device', "$vars->{CDMODEL},drive=cd0");
+            }
             else {
                 push( @params, "-cdrom", $iso );
             }
@@ -319,7 +335,9 @@ sub start_qemu() {
         }
 
         if ( $vars->{UEFI} ) {
-            $vars->{BIOS} = $vars->{UEFI_BIOS};
+            # XXX: compat with old deployment
+            $vars->{BIOS} //= $vars->{UEFI_BIOS};
+            $vars->{BIOS} //= 'ovmf-x86_64-ms.bin' if $vars->{ARCH} eq 'x86_64';
         }
         if ( $vars->{BIOS} ) {
             push( @params, "-bios", '/usr/share/qemu/'.$vars->{BIOS} );
@@ -331,7 +349,7 @@ sub start_qemu() {
             no warnings 'qw';
             push( @params, qw"-net nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57 -net none,vlan=1" );
         }
-        push(@params, qw/-device nec-usb-xhci -device usb-tablet/);
+        push(@params, qw/-device usb-ehci -device usb-kbd -device usb-tablet/);
         push( @params, "-smp", $vars->{QEMUCPUS} );
         push( @params, "-enable-kvm" ) unless $vars->{QEMU_NO_KVM};
         push( @params, "-no-shutdown" );

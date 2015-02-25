@@ -148,15 +148,6 @@ sub init {
         die "can't determine test directory for $vars{DISTRI}\n" unless $vars{CASEDIR};
     }
 
-    ## env vars
-    $vars{UEFI_BIOS} ||= 'ovmf-x86_64-ms.bin';
-    if ($vars{UEFI_BIOS} =~ /\/|\.\./) {
-        die "invalid characters in UEFI_BIOS\n";
-    }
-    if ( $vars{UEFI} && !-e '/usr/share/qemu/'.$vars{UEFI_BIOS} ) {
-        die "'$vars{UEFI_BIOS}' missing, check UEFI_BIOS\n";
-    }
-
     testapi::init();
 
     # defaults
@@ -165,16 +156,9 @@ sub init {
     $vars{INSTLANG}  ||= "en_US";
     $vars{IDLETHRESHOLD} ||= 18;
 
+    # FIXME: does not belong here
     if ( defined( $vars{DISTRI} ) && $vars{DISTRI} eq 'archlinux' ) {
         $vars{HDDMODEL} = "ide";
-    }
-
-    if ( $vars{LAPTOP} ) {
-        if ($vars{LAPTOP} =~ /\/|\.\./) {
-            die "invalid characters in LAPTOP\n";
-        }
-        $vars{LAPTOP} = 'dell_e6330' if $vars{LAPTOP} eq '1';
-        die "no dmi data for '$vars{LAPTOP}'\n" unless -d "$scriptdir/dmidata/$vars{LAPTOP}";
     }
 
     save_vars();
