@@ -228,6 +228,13 @@ sub fctinfo {
     print_possibly_colored "::: $fname: @fparams", 'yellow';
 }
 
+sub fctwarn {
+    my $fname   = shift;
+    my @fparams = @_;
+
+    print_possibly_colored "!!! $fname: @fparams", 'red';
+}
+
 sub modstart {
     my $text = sprintf "\n||| %s at %s", join( ' ', @_ ), POSIX::strftime( "%F %T", gmtime );
     print_possibly_colored $text, 'bold';
