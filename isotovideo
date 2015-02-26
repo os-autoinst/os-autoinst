@@ -71,8 +71,10 @@ sub signalhandler {
         $autotest::running = undef;
     }
     if ( threads->tid() == 0 ) {
-        bmwqemu::save_results();
         bmwqemu::stop_vm();
+        # mark it as no longer working
+        delete $ENV{WORKERID};
+        bmwqemu::save_results();
     }
     else {
         print STDERR "bug!? signal not received in main thread\n";
