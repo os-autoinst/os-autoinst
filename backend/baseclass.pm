@@ -134,11 +134,12 @@ sub start_vm($) {
 
 sub stop_vm($) {
     my $self = shift;
-    return unless $self->{'started'};
-    close($self->{'encoder_pipe'});
-    unlink('backend.run');
-    $self->do_stop_vm();
-    $self->{'started'} = 0;
+    if ($self->{'started'}) {
+        close($self->{'encoder_pipe'});
+        unlink('backend.run');
+        $self->do_stop_vm();
+        $self->{'started'} = 0;
+    }
     $self->close_pipes(); # does not return
     return {};
 }
