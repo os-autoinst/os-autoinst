@@ -296,34 +296,29 @@ sub runtest($$) {
         bmwqemu::diag "post_fail_hook failed: $@\n" if $@;
         $self->{post_fail_hook_running} = 0;
         $self->fail_if_running();
-        bmwqemu::save_results( autotest::results() );
         die "test $name died: $@\n";
     }
     $self->done();
-    bmwqemu::save_results( autotest::results() );
 
     #sleep 1;
     bmwqemu::diag(sprintf( "||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime( "%F %T", gmtime ), time - $starttime ));
     return $ret;
 }
 
-sub json() {
-    my $self = shift;
-    return {
-        'name'     => ref $self,
+sub save_test_result() {
+    my ($self) = @_;
+
+    my $result = {
         'details'  => $self->details(),
         'result'   => $self->result(),
-        'category' => $self->{'category'},
-        'flags'    => $self->test_flags(),
         'dents'    => $self->{'dents'},
-        'script'   => $self->{'script'} || undef,
     };
+    my $fn = bmwqemu::result_dir() . sprintf("/result-%s-%s.json", $self->{category}, ref $self);
+    bmwqemu::save_json_file($result, $fn);
 }
 
 sub next_resultname($;$) {
-    my $self     = shift;
-    my $type     = shift;
-    my $name     = shift;
+    my ($self, $type, $name) = @_;
     my $testname = ref($self);
     my $count    = ++$self->{"test_count"};
     if ($name) {

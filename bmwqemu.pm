@@ -56,8 +56,6 @@ our %control_files = (
 
 # global vars
 
-our $testmodules = [];
-
 our $logfd;
 
 our $clock_ticks = POSIX::sysconf(&POSIX::_SC_CLK_TCK);
@@ -96,7 +94,7 @@ sub save_vars() {
 share( $vars{SCREENSHOTINTERVAL} );    # to adjust at runtime
 
 sub result_dir() {
-  return "testresults";
+    return "testresults";
 }
 
 our $serialfile     = "serial0";
@@ -674,13 +672,13 @@ sub assert_screen {
             if (!$interactive_mode) {
                 diag("interactive mode enabled");
                 $interactive_mode = 1;
-                save_results();
+                save_status();
             }
         }
         elsif ($interactive_mode) {
             diag("interactive mode disabled");
             $interactive_mode = 0;
-            save_results();
+            save_status();
         }
         if ( -e $control_files{"stop_waitforneedle"} ) {
             last;
@@ -768,7 +766,7 @@ sub assert_screen {
 
         $waiting_for_new_needle = 1;
 
-        save_results();
+        save_status();
 
         diag("interactive mode waiting for continuation");
         while ( -e $control_files{'stop_waitforneedle'} ) {
@@ -789,12 +787,12 @@ sub assert_screen {
             }
             needle::init();
             $waiting_for_new_needle = undef;
-            save_results();
+            save_status();
             cont_vm();
             return assert_screen( mustmatch => \@tags, timeout => 3, check => $check_screen);
         }
         $waiting_for_new_needle = undef;
-        save_results();
+        save_status();
         cont_vm();
     }
     unlink( $control_files{'stop_waitforneedle'} )       if -e $control_files{'stop_waitforneedle'};
@@ -873,47 +871,24 @@ sub load_snapshot($) {
     sleep(10);
 }
 
-# dump all info in one big file. Alternatively each test could write
-# one file and we collect only the overall status.
-sub save_results(;$$) {
-    $testmodules = shift if @_;
-    my $fn = shift || result_dir . "/results.json";
-    open( my $fd, ">", $fn ) or die "can not write results.json: $!\n";
-    fcntl( $fd, F_SETLKW, pack( 'ssqql', F_WRLCK, 0, 0, 0, $$ ) ) or die "cannot lock results.json: $!\n";
-    truncate( $fd, 0 ) or die "cannot truncate results.json: $!\n";
-    my $result = {
-        'distribution' => $vars{'DISTRI'},
-        'version'      => $vars{'VERSION'} || '',
-        'testmodules'  => $testmodules,
-    };
-    if ( $ENV{'WORKERID'} ) {
-        $result->{workerid}    = $ENV{WORKERID};
-        $result->{interactive} = $interactive_mode ? 1 : 0;
-        $result->{needinput}   = $waiting_for_new_needle ? 1 : 0;
-        $result->{running}     = current_test ? ref(current_test) : '';
-    }
-    else {
-        # if there are any important module only consider the
-        # results of those.
-        my @modules = grep { $_->{flags}->{important} } @$testmodules;
-        # no important ones? => use all.
-        @modules = @$testmodules unless @modules;
-        for my $tr (@modules) {
-            if ( $tr->{result} eq "ok" ) {
-                $result->{overall} ||= 'ok';
-            }
-            else {
-                $result->{overall} = 'fail';
-            }
-        }
-        $result->{overall} ||= 'fail';
-    }
-    if ($backend) {
-        $result->{backend} = $backend->get_info();
-    }
+# store the obj as json into the given filename
+sub save_json_file($$) {
+    my ( $result, $fn) = @_;
 
+    open( my $fd, ">",  "$fn.new") or die "can not write $fn: $!\n";
     print $fd to_json( $result, { pretty => 1 } );
     close($fd);
+    rename("$fn.new", $fn);
+}
+
+sub save_status() {
+    my $result = {};
+    $result->{interactive} = $interactive_mode ? 1 : 0;
+    $result->{needinput}   = $waiting_for_new_needle ? 1 : 0;
+    $result->{running}     = current_test ? ref(current_test) : '';
+    $result->{backend}     = $backend->get_info() if $backend;
+
+    save_json_file($result, result_dir . "/status.json");
 }
 
 #FIXME: new wait functions
