@@ -20,8 +20,7 @@ use strict;
 use warnings;
 
 use base qw/Exporter/;
-our @EXPORT = qw/MUTEX_CREATE MUTEX_LOCK MUTEX_UNLOCK
-  mutex_create mutex_lock mutex_unlock/;
+our @EXPORT = qw/mutex_create mutex_lock mutex_unlock/;
 
 require bmwqemu;
 
