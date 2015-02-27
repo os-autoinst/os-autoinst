@@ -313,7 +313,8 @@ sub save_test_result() {
         'result'   => $self->result(),
         'dents'    => $self->{'dents'},
     };
-    my $fn = bmwqemu::result_dir() . sprintf("/result-%s-%s.json", $self->{category}, ref $self);
+    # be aware that $name has to be unique within one job (also assumed in several other places)
+    my $fn = bmwqemu::result_dir() . sprintf("/result-%s.json", ref $self);
     bmwqemu::save_json_file($result, $fn);
 }
 
