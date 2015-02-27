@@ -159,36 +159,6 @@ sub current_script {
     return $self->render(data => $current_test_script);
 }
 
-sub live_log {
-    my ($self) = @_;
-
-    my $file = $bmwqemu::liveresultpath . "/autoinst-log.txt";
-
-    my $fd;
-    unless (open($fd, '<:raw', $file)) {
-        # ERROR HANDLING
-        $self->render(text => "Can't open $file", status => 404);
-        return;
-    }
-    # only transfer a small portion of the file
-    my $limit = $self->param('limit') || 10000;
-    my $offset = $self->param('offset');
-
-    my $seeked;
-    $seeked = sysseek($fd, $offset, Fcntl::SEEK_SET) if defined $offset;
-
-    # if the seek failed, go to the end
-    sysseek($fd, -$limit, Fcntl::SEEK_END) unless $seeked;
-
-    sysread($fd, my $buf = '', $limit);
-    $offset = sysseek($fd, 0, 1);
-    close($fd);
-
-    $self->res->headers->content_type("text/plain");
-    $self->res->headers->add('X-New-Offset' => $offset);
-    return $self->render(data => $buf);
-}
-
 sub run_daemon {
     my ($port) = @_;
 
@@ -206,9 +176,6 @@ sub run_daemon {
 
     # to get the current bash script out of the test
     get '/current_script' => \&current_script;
-
-    # to access autoinst-log.txt from openQA
-    get '/live_log' => \&live_log;
 
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');
