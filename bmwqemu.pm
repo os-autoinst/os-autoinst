@@ -8,7 +8,6 @@ use Digest::MD5;
 use IO::Socket;
 use Data::Dumper;
 
-# eval {require Algorithm::Line::Bresenham;};
 use ocr;
 use cv;
 use needle;
@@ -20,6 +19,8 @@ use Term::ANSIColor;
 use Data::Dump qw(dump dd);
 use Carp;
 use JSON;
+use File::Path qw(remove_tree);
+
 
 use base 'Exporter';
 use Exporter;
@@ -94,8 +95,9 @@ sub save_vars() {
 
 share( $vars{SCREENSHOTINTERVAL} );    # to adjust at runtime
 
-our $testresults    = "testresults";
-our $liveresultpath;
+sub result_dir() {
+  return "testresults";
+}
 
 our $serialfile     = "serial0";
 our $serial_offset  = 0;
@@ -104,32 +106,22 @@ our $gocrbin        = "/usr/bin/gocr";
 # set from isotovideo during initialization
 our $scriptdir;
 
-our $testedversion;
-
 sub init {
     load_vars();
-    $vars{NAME} ||= 'noname';
-    $liveresultpath = "$testresults/$vars{NAME}";
+
+    remove_tree(result_dir);
+    mkdir result_dir;
+
     if ($direct_output) {
         open( $logfd, '>&STDERR');
     }
     else {
-        open( $logfd, ">", "$liveresultpath/autoinst-log.txt" );
+        open( $logfd, ">", result_dir . "/autoinst-log.txt" );
     }
     # set unbuffered so that send_key lines from main thread will be written
     my $oldfh = select($logfd);
     $| = 1;
     select($oldfh);
-
-    our $testedversion = $vars{NAME};
-    unless ($testedversion) {
-        $testedversion = $vars{ISO} || "";
-        $testedversion =~ s{.*/}{};
-        $testedversion =~ s/\.iso$//;
-        $testedversion =~ s{-Media1?$}{};
-    }
-
-    result_dir(); # init testresults dir
 
     cv::init();
     require tinycv;
@@ -286,14 +278,6 @@ sub fileContent($) {
     my $result = <$fd>;
     close($fd);
     return $result;
-}
-
-sub result_dir() {
-    unless ( -e "$testresults/$testedversion" ) {
-        mkdir $testresults;
-        mkdir "$testresults/$testedversion" or die "mkdir $testresults/$testedversion: $!\n";
-    }
-    return "$testresults/$testedversion";
 }
 
 our $lastscreenshot;
@@ -601,8 +585,8 @@ sub save_needle_template($$$) {
 
     # limit the filename
     $mustmatch = substr $mustmatch, 0, 30;
-    my $imgfn  = result_dir() . "/template-$mustmatch-$t.png";
-    my $jsonfn = result_dir() . "/template-$mustmatch-$t.json";
+    my $imgfn  = result_dir . "/template-$mustmatch-$t.png";
+    my $jsonfn = result_dir . "/template-$mustmatch-$t.json";
 
     my $template = {
         area => [
@@ -893,7 +877,7 @@ sub load_snapshot($) {
 # one file and we collect only the overall status.
 sub save_results(;$$) {
     $testmodules = shift if @_;
-    my $fn = shift || result_dir() . "/results.json";
+    my $fn = shift || result_dir . "/results.json";
     open( my $fd, ">", $fn ) or die "can not write results.json: $!\n";
     fcntl( $fd, F_SETLKW, pack( 'ssqql', F_WRLCK, 0, 0, 0, $$ ) ) or die "cannot lock results.json: $!\n";
     truncate( $fd, 0 ) or die "cannot truncate results.json: $!\n";

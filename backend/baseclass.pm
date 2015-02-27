@@ -324,18 +324,9 @@ sub enqueue_screenshot() {
     else {    # new
         $image->write($filename) || die "write $filename";
         # copy new one to shared directory, remove old one and change symlink
-        cp($filename, $bmwqemu::liveresultpath);
-        unlink($bmwqemu::liveresultpath .'/'. basename($lastscreenshotName)) if $lastscreenshot;
         $bmwqemu::screenshotQueue->enqueue($filename);
         $lastscreenshot          = $image;
         $lastscreenshotName      = $filename;
-        unless(symlink(basename($filename), $bmwqemu::liveresultpath.'/tmp.png')) {
-            # try to unlink file and try again
-            unlink($bmwqemu::liveresultpath.'/tmp.png');
-            symlink(basename($filename), $bmwqemu::liveresultpath.'/tmp.png');
-        }
-        rename($bmwqemu::liveresultpath.'/tmp.png', $bmwqemu::liveresultpath.'/last.png');
-
         #my $ocr=get_ocr($image);
         #if($ocr) { diag "ocr: $ocr" }
     }
