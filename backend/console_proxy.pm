@@ -4,7 +4,7 @@
 # like s3270->... or vnc->... or ssh->... from the tests in the main
 # thread.
 
-package gnah;
+package console_proxy;
 use Data::Dumper qw(Dumper);
 
 sub new() {
@@ -14,6 +14,8 @@ sub new() {
 
     return $self;
 }
+
+use feature qw/say/;
 
 sub AUTOLOAD {
     my $self = shift;
@@ -28,9 +30,13 @@ sub AUTOLOAD {
         args => $args,
     };
 
-    my $retval = $bmwqemu::backend->do_console_hack($wrapped_call);
+    my $wrapped_retval = $bmwqemu::backend->proxy_console_call($wrapped_call);
 
-    return $retval;
+    if (exists $wrapped_retval->{exception}) {
+        die $wrapped_retval->{exception};
+    }
+
+    return $wrapped_retval->{result};
 
 }
 

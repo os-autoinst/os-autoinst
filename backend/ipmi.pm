@@ -83,7 +83,7 @@ sub relogin_vnc() {
     my ($self) = @_;
 
     if ($self->{'vnc'}) {
-        $self->{'select'}->remove($self->{'vnc'}->socket);
+        #$self->{'select'}->remove($self->{'vnc'}->socket);
         close($self->{'vnc'}->socket);
         sleep(1);
     }
@@ -93,7 +93,9 @@ sub relogin_vnc() {
             port => 5900,
             username => $bmwqemu::vars{'IPMI_USER'},
             password => $bmwqemu::vars{'IPMI_PASSWORD'},
-            ikvm => 1
+            ikvm => 1,
+            # FIXME: not needed?
+            # update_request_throttle_seconds => 2,
         }
     );
     eval { $self->{'vnc'}->login; };
@@ -102,8 +104,8 @@ sub relogin_vnc() {
         die $@;
     }
 
-    $self->{'select'}->add($self->{'vnc'}->socket);
-    $self->{'vnc'}->send_update_request;
+    #$self->{'select'}->add($self->{'vnc'}->socket);
+    $self->{'vnc'}->update_framebuffer;
 }
 
 sub do_start_vm() {
