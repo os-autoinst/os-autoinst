@@ -601,7 +601,7 @@ sub save_needle_template($$$) {
         properties => [],
     };
 
-    $img->write_optimized($imgfn);
+    $img->write($imgfn);
 
     open( my $fd, ">", $jsonfn ) or die "$jsonfn: $!\n";
     print $fd JSON->new->pretty->encode($template);
