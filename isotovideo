@@ -54,7 +54,7 @@ die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
 
 bmwqemu::clean_control_files();
 
-bmwqemu::save_results();
+bmwqemu::save_status();
 
 my $init = 1;
 alarm( 7200 + ( $bmwqemu::vars{UPGRADE} ? 3600 : 0 ) );    # worst case timeout
@@ -74,7 +74,7 @@ sub signalhandler {
         bmwqemu::stop_vm();
         # mark it as no longer working
         delete $ENV{WORKERID};
-        bmwqemu::save_results();
+        bmwqemu::save_status();
     }
     else {
         print STDERR "bug!? signal not received in main thread\n";
@@ -166,7 +166,7 @@ if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
 delete $ENV{WORKERID};
 
 # Write JSON result
-bmwqemu::save_results();
+bmwqemu::save_status();
 
 exit $r;
 # vim: set sw=4 et:

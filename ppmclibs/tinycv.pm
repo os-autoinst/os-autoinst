@@ -176,16 +176,6 @@ sub write_with_thumbnail($$) {
     $thumb->write("$dir/$base");
 }
 
-sub write_optimized($$) {
-    my $self     = shift;
-    my $filename = shift;
-
-    $self->write($filename);
-
-    # TODO make a thread for running optipng one after the other (Thread::Queue)
-    system( "optipng", "-quiet", $filename );
-}
-
 1;
 
 # vim: set sw=4 et:

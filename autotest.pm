@@ -42,11 +42,32 @@ our $current_test;
 
 sub set_current_test($) {
     ($current_test) = @_;
+    bmwqemu::save_status();
+}
+
+sub write_test_order() {
+
+    my @result;
+    for my $t (@testorder) {
+        push(
+            @result,
+            {
+                'name'     => ref($t),
+                'category' => $t->{category},
+                'flags'    => $t->test_flags(),
+                'script'   => $t->{script}
+            }
+        );
+    }
+    bmwqemu::save_json_file(\@result, bmwqemu::result_dir . "/test_order.json");
+
 }
 
 sub runalltests {
     my $firsttest = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded = 0;
+
+    write_test_order();
 
     for my $t (@testorder) {
         my $flags = $t->test_flags();
@@ -59,7 +80,6 @@ sub runalltests {
             my $name = ref($t);
             bmwqemu::modstart "starting $name $t->{script}";
             $t->start();
-            bmwqemu::save_results( results() );
 
             # avoid erasing the good vm snapshot
             if ( ( $bmwqemu::vars{'SKIPTO'} || '') ne $t->{'fullname'} && $bmwqemu::vars{MAKETESTSNAPSHOTS} ) {
@@ -67,6 +87,8 @@ sub runalltests {
             }
 
             eval { $t->runtest; };
+            $t->save_test_result();
+
             if ($@) {
 
                 bmwqemu::diag $@;
@@ -100,14 +122,6 @@ sub loadtestdir($) {
     foreach my $script (<$dir/*.pm>) {
         loadtest($script);
     }
-}
-
-sub results() {
-    my $results = [];
-    for my $t (@testorder) {
-        push @$results, $t->json();
-    }
-    return $results;
 }
 
 1;

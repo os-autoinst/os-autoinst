@@ -28,6 +28,7 @@ sub new {
 
     require "backend/$name.pm";
     $self->{'backend'} = "backend::$name"->new();
+    $self->{'backend_name'} = $name;
 
     $self->start();
 
@@ -106,10 +107,10 @@ sub stop_thread($) {
     $self->stop_vm();
 }
 
-sub get_info($) {
-    my $self = shift;
+sub get_info() {
+    my ($self) = @_;
     $self->{'infos'} ||= {
-        'backend'      => $self->{'class'},
+        'backend'      => $self->{'backend_name'},
         'backend_info' => $self->get_backend_info()
     };
     return $self->{'infos'};

@@ -4,7 +4,6 @@
 package backend::baseclass;
 use strict;
 use threads;
-use threads::shared;
 use Carp;
 use JSON qw( to_json );
 use File::Copy qw(cp);
@@ -289,8 +288,8 @@ sub screenshot_interval() {
     return $bmwqemu::vars{SCREENSHOTINTERVAL} || .5;
 }
 
-our $lastscreenshot;
-our $lastscreenshotName = '';
+my $lastscreenshot;
+my $lastscreenshotName;
 
 sub enqueue_screenshot() {
     my ($self, $image) = @_;
@@ -306,6 +305,7 @@ sub enqueue_screenshot() {
     $framecounter++;
 
     my $filename = $bmwqemu::screenshotpath . sprintf( "/shot-%010d.png", $framecounter );
+    my $lastlink = $bmwqemu::screenshotpath . "/last.png";
 
     #print STDERR $filename,"\n";
 
@@ -324,18 +324,11 @@ sub enqueue_screenshot() {
     else {    # new
         $image->write($filename) || die "write $filename";
         # copy new one to shared directory, remove old one and change symlink
-        cp($filename, $bmwqemu::liveresultpath);
-        unlink($bmwqemu::liveresultpath .'/'. basename($lastscreenshotName)) if $lastscreenshot;
         $bmwqemu::screenshotQueue->enqueue($filename);
         $lastscreenshot          = $image;
         $lastscreenshotName      = $filename;
-        unless(symlink(basename($filename), $bmwqemu::liveresultpath.'/tmp.png')) {
-            # try to unlink file and try again
-            unlink($bmwqemu::liveresultpath.'/tmp.png');
-            symlink(basename($filename), $bmwqemu::liveresultpath.'/tmp.png');
-        }
-        rename($bmwqemu::liveresultpath.'/tmp.png', $bmwqemu::liveresultpath.'/last.png');
-
+        unlink($lastlink);
+        symlink(basename($lastscreenshotName), $lastlink);
         #my $ocr=get_ocr($image);
         #if($ocr) { diag "ocr: $ocr" }
     }

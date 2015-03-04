@@ -8,7 +8,6 @@ use Digest::MD5;
 use IO::Socket;
 use Data::Dumper;
 
-# eval {require Algorithm::Line::Bresenham;};
 use ocr;
 use cv;
 use needle;
@@ -20,6 +19,8 @@ use Term::ANSIColor;
 use Data::Dump qw(dump dd);
 use Carp;
 use JSON;
+use File::Path qw(remove_tree);
+
 
 use base 'Exporter';
 use Exporter;
@@ -54,8 +55,6 @@ our %control_files = (
 );
 
 # global vars
-
-our $testmodules = [];
 
 our $logfd;
 
@@ -94,8 +93,9 @@ sub save_vars() {
 
 share( $vars{SCREENSHOTINTERVAL} );    # to adjust at runtime
 
-our $testresults    = "testresults";
-our $liveresultpath;
+sub result_dir() {
+    return "testresults";
+}
 
 our $serialfile     = "serial0";
 our $serial_offset  = 0;
@@ -104,32 +104,22 @@ our $gocrbin        = "/usr/bin/gocr";
 # set from isotovideo during initialization
 our $scriptdir;
 
-our $testedversion;
-
 sub init {
     load_vars();
-    $vars{NAME} ||= 'noname';
-    $liveresultpath = "$testresults/$vars{NAME}";
+
+    remove_tree(result_dir);
+    mkdir result_dir;
+
     if ($direct_output) {
         open( $logfd, '>&STDERR');
     }
     else {
-        open( $logfd, ">", "$liveresultpath/autoinst-log.txt" );
+        open( $logfd, ">", result_dir . "/autoinst-log.txt" );
     }
     # set unbuffered so that send_key lines from main thread will be written
     my $oldfh = select($logfd);
     $| = 1;
     select($oldfh);
-
-    our $testedversion = $vars{NAME};
-    unless ($testedversion) {
-        $testedversion = $vars{ISO} || "";
-        $testedversion =~ s{.*/}{};
-        $testedversion =~ s/\.iso$//;
-        $testedversion =~ s{-Media1?$}{};
-    }
-
-    result_dir(); # init testresults dir
 
     cv::init();
     require tinycv;
@@ -286,14 +276,6 @@ sub fileContent($) {
     my $result = <$fd>;
     close($fd);
     return $result;
-}
-
-sub result_dir() {
-    unless ( -e "$testresults/$testedversion" ) {
-        mkdir $testresults;
-        mkdir "$testresults/$testedversion" or die "mkdir $testresults/$testedversion: $!\n";
-    }
-    return "$testresults/$testedversion";
 }
 
 our $lastscreenshot;
@@ -601,8 +583,8 @@ sub save_needle_template($$$) {
 
     # limit the filename
     $mustmatch = substr $mustmatch, 0, 30;
-    my $imgfn  = result_dir() . "/template-$mustmatch-$t.png";
-    my $jsonfn = result_dir() . "/template-$mustmatch-$t.json";
+    my $imgfn  = result_dir . "/template-$mustmatch-$t.png";
+    my $jsonfn = result_dir . "/template-$mustmatch-$t.json";
 
     my $template = {
         area => [
@@ -619,7 +601,7 @@ sub save_needle_template($$$) {
         properties => [],
     };
 
-    $img->write_optimized($imgfn);
+    $img->write($imgfn);
 
     open( my $fd, ">", $jsonfn ) or die "$jsonfn: $!\n";
     print $fd JSON->new->pretty->encode($template);
@@ -690,13 +672,13 @@ sub assert_screen {
             if (!$interactive_mode) {
                 diag("interactive mode enabled");
                 $interactive_mode = 1;
-                save_results();
+                save_status();
             }
         }
         elsif ($interactive_mode) {
             diag("interactive mode disabled");
             $interactive_mode = 0;
-            save_results();
+            save_status();
         }
         if ( -e $control_files{"stop_waitforneedle"} ) {
             last;
@@ -784,7 +766,7 @@ sub assert_screen {
 
         $waiting_for_new_needle = 1;
 
-        save_results();
+        save_status();
 
         diag("interactive mode waiting for continuation");
         while ( -e $control_files{'stop_waitforneedle'} ) {
@@ -805,12 +787,12 @@ sub assert_screen {
             }
             needle::init();
             $waiting_for_new_needle = undef;
-            save_results();
+            save_status();
             cont_vm();
             return assert_screen( mustmatch => \@tags, timeout => 3, check => $check_screen);
         }
         $waiting_for_new_needle = undef;
-        save_results();
+        save_status();
         cont_vm();
     }
     unlink( $control_files{'stop_waitforneedle'} )       if -e $control_files{'stop_waitforneedle'};
@@ -889,47 +871,24 @@ sub load_snapshot($) {
     sleep(10);
 }
 
-# dump all info in one big file. Alternatively each test could write
-# one file and we collect only the overall status.
-sub save_results(;$$) {
-    $testmodules = shift if @_;
-    my $fn = shift || result_dir() . "/results.json";
-    open( my $fd, ">", $fn ) or die "can not write results.json: $!\n";
-    fcntl( $fd, F_SETLKW, pack( 'ssqql', F_WRLCK, 0, 0, 0, $$ ) ) or die "cannot lock results.json: $!\n";
-    truncate( $fd, 0 ) or die "cannot truncate results.json: $!\n";
-    my $result = {
-        'distribution' => $vars{'DISTRI'},
-        'version'      => $vars{'VERSION'} || '',
-        'testmodules'  => $testmodules,
-    };
-    if ( $ENV{'WORKERID'} ) {
-        $result->{workerid}    = $ENV{WORKERID};
-        $result->{interactive} = $interactive_mode ? 1 : 0;
-        $result->{needinput}   = $waiting_for_new_needle ? 1 : 0;
-        $result->{running}     = current_test ? ref(current_test) : '';
-    }
-    else {
-        # if there are any important module only consider the
-        # results of those.
-        my @modules = grep { $_->{flags}->{important} } @$testmodules;
-        # no important ones? => use all.
-        @modules = @$testmodules unless @modules;
-        for my $tr (@modules) {
-            if ( $tr->{result} eq "ok" ) {
-                $result->{overall} ||= 'ok';
-            }
-            else {
-                $result->{overall} = 'fail';
-            }
-        }
-        $result->{overall} ||= 'fail';
-    }
-    if ($backend) {
-        $result->{backend} = $backend->get_info();
-    }
+# store the obj as json into the given filename
+sub save_json_file($$) {
+    my ( $result, $fn) = @_;
 
+    open( my $fd, ">",  "$fn.new") or die "can not write $fn: $!\n";
     print $fd to_json( $result, { pretty => 1 } );
     close($fd);
+    rename("$fn.new", $fn);
+}
+
+sub save_status() {
+    my $result = {};
+    $result->{interactive} = $interactive_mode ? 1 : 0;
+    $result->{needinput}   = $waiting_for_new_needle ? 1 : 0;
+    $result->{running}     = current_test ? ref(current_test) : '';
+    $result->{backend}     = $backend->get_info() if $backend;
+
+    save_json_file($result, result_dir . "/status.json");
 }
 
 #FIXME: new wait functions
