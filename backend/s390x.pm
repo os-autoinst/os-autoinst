@@ -55,7 +55,7 @@ sub setup_3270_console() {
 sub connect_vnc() {
     my ($self) = shift;
     if ($self->{'vnc'}) {
-        $self->{'select'}->remove($self->{'vnc'}->socket);
+        #$self->{'select'}->remove($self->{'vnc'}->socket);
         close($self->{'vnc'}->socket);
         sleep(1);
     }
@@ -73,8 +73,8 @@ sub connect_vnc() {
         die $@;
     }
 
-    $self->{'select'}->add($self->{'vnc'}->socket);
-    $self->{'vnc'}->send_update_request;
+    #$self->{'select'}->add($self->{'vnc'}->socket);
+    $self->{'vnc'}->update_framebuffer;
 
 }
 
