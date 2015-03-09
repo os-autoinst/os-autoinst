@@ -18,4 +18,4 @@ Which TAP device is used depends on TAPDEV variable which is automatically set t
 i.e. worker1 uses tap0, worker 6 uses tap5. This mode requires system administrator to create
 TAP device for each running worker and to manually prepare any routing or bridging before "tap"
 networking can be used. TAP devices need to be created with proper permissions so VMs can access
-them, e.g. "tunctl -u geekotest -p -t tap0"
+them, e.g. "tunctl -u _openqa-worker -p -t tap0"
