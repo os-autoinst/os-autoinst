@@ -3,6 +3,7 @@ use strict;
 use bmwqemu;
 use basetest;
 
+use File::Basename;
 use File::Spec;
 
 our %tests;        # scheduled or run tests
@@ -10,8 +11,16 @@ our @testorder;    # for keeping them in order
 our $running;      # currently running test or undef
 
 sub loadtest($) {
-    my $script = shift;
-    return unless $script =~ /.*\/(\w+)\/(.+)\.pm$/;
+    my ($script) = @_;
+    my $casedir = $bmwqemu::vars{CASEDIR};
+
+    unless (-f join('/', $casedir, $script) ) {
+        warn "loadtest needs a script below $casedir\n";
+        $script = File::Spec->abs2rel( $script, $bmwqemu::vars{CASEDIR} );
+    }
+    unless ( $script =~ m,.*/(\w+)/([^/]+)\.pm$, ) {
+        die "loadtest needs a script to match \\w+/[^/]+.pm\n";
+    }
     my $category = $1;
     my $name     = $2;
     my $test;
@@ -21,14 +30,20 @@ sub loadtest($) {
         return unless $test->is_applicable;
     }
     else {
-        eval "package $name; use lib \$bmwqemu::vars{CASEDIR}.'/lib'; require \$script;";
+        # perl code generating perl code is overcool
+        my $code = "package $name;";
+        $code .= "use lib '$casedir/lib';";
+        my $basename = dirname($script);
+        $code .= "use lib '$casedir/$basename';";
+        $code .= "require '$casedir/$script';";
+        eval $code;
         if ($@) {
             my $msg = "error on $script: $@";
             bmwqemu::diag($msg);
             die $msg;
         }
         $test = $name->new($category);
-        $test->{script}   = File::Spec->abs2rel( $script, $bmwqemu::vars{CASEDIR} );
+        $test->{script}   = $script;
         $test->{fullname} = $fullname;
         $tests{$fullname} = $test;
 
