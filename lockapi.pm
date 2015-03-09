@@ -23,46 +23,7 @@ use base qw/Exporter/;
 our @EXPORT = qw/mutex_create mutex_lock mutex_unlock/;
 
 require bmwqemu;
-
-use Mojo::UserAgent;
-use Mojo::URL;
-
-# private ua
-my $ua;
-my $url;
-
-sub _init {
-    # init $ua and $url
-    my $host = $bmwqemu::vars{'OPENQA_URL'};
-    my $secret = $bmwqemu::vars{'JOBTOKEN'};
-    return unless $host && $secret;
-
-    if ($host !~ '/') {
-        $url = Mojo::URL->new();
-        $url->host($host);
-        $url->scheme('http');
-    }
-    else {
-        $url = Mojo::URL->new($host);
-    }
-
-    # Relative paths are appended to the existing one
-    $url->path('/api/v1/');
-
-    $ua = Mojo::UserAgent->new;
-
-    # add JOBTOKEN header secret
-    $ua->on(
-        start => sub {
-            my ($ua, $tx) = @_;
-            $tx->req->headers->add('X-API-JobToken' => $secret);
-        }
-    );
-}
-
-sub BEGIN {
-    _init;
-}
+use mmapi qw/api_call/;
 
 sub mutex_lock($) {
     my ($name) = @_;
@@ -81,14 +42,8 @@ sub mutex_create($) {
 
 sub _mutex_call($$) {
     my ($method, $action) = @_;
-    _init unless $ua;
-    bmwqemu::mydie('Missing mandatory options') unless $method && $action && $ua;
-
-    bmwqemu::fctinfo("Trying lock action $action");
-    my $ua_url = $url->clone;
-    $ua_url->path($action);
     while (1) {
-        my $res = $ua->$method($ua_url)->res->code;
+        my $res = api_call($method, $action)->code;
         last if ($res == 200);
         bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
         bmwqemu::diag('mutex lock unavailable, sleeping 5s');
