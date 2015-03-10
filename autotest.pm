@@ -18,7 +18,7 @@ sub loadtest($) {
         warn "loadtest needs a script below $casedir\n";
         $script = File::Spec->abs2rel( $script, $bmwqemu::vars{CASEDIR} );
     }
-    unless ( $script =~ m,.*/(\w+)/([^/]+)\.pm$, ) {
+    unless ( $script =~ m,(\w+)/([^/]+)\.pm$, ) {
         die "loadtest needs a script to match \\w+/[^/]+.pm\n";
     }
     my $category = $1;
