@@ -6,7 +6,6 @@ use warnings;
 use Time::HiRes qw(sleep gettimeofday);
 use Digest::MD5;
 use IO::Socket;
-use Data::Dumper;
 
 use ocr;
 use cv;
@@ -16,7 +15,6 @@ use threads::shared;
 use Thread::Queue;
 use POSIX;
 use Term::ANSIColor;
-use Data::Dump qw(dump dd);
 use Carp;
 use JSON;
 use File::Path qw(remove_tree);

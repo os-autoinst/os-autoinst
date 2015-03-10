@@ -5,7 +5,6 @@ use ocr;
 use Time::HiRes;
 use JSON;
 use POSIX;
-use Data::Dumper;
 use testapi ();
 
 sub new(;$) {

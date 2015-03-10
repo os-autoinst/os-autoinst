@@ -13,7 +13,6 @@ use bmwqemu;
 use IO::Select;
 
 use Carp qw(cluck carp confess);
-use Data::Dumper;
 
 my $framecounter    = 0;    # screenshot counter
 our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
@@ -406,6 +405,7 @@ sub check_socket {
             }
         }
         else {
+            use Data::Dumper;
             die "no command in " . Dumper($cmd);
         }
         return 1;

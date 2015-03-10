@@ -14,7 +14,6 @@ BEGIN {
 
 use needle;
 use cv;
-use Data::Dumper;
 
 cv::init();
 require tinycv;
