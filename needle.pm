@@ -5,7 +5,6 @@ use warnings;
 use Cwd qw/abs_path/;
 use File::Find;
 use File::Spec;
-use Data::Dump;
 use JSON;
 use File::Basename;
 

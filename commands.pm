@@ -9,7 +9,6 @@ use Mojo::IOLoop;
 use Mojo::Server::Daemon;
 
 use File::Basename;
-use Data::Dump;
 
 # make sure only our local VMs access
 sub check_authorized {

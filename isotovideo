@@ -22,7 +22,6 @@ BEGIN {
 use bmwqemu qw(diag);
 use needle;
 use autotest;
-use Data::Dumper;
 use Getopt::Std;
 
 # avoid paranoia

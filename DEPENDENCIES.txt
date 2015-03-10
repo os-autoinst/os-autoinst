@@ -3,7 +3,6 @@ Carp::Always
 Config
 Crypt::Des
 Cwd
-Data::Dump
 Data::Dumper
 Digest::MD5
 DynaLoader

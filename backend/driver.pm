@@ -11,7 +11,6 @@ use threads;
 use threads::shared;
 use Carp;
 use JSON qw( to_json );
-use Data::Dumper;
 use File::Path qw(remove_tree);
 use IO::Select;
 
@@ -160,8 +159,6 @@ sub AUTOLOAD {
     unless (ref($args) eq 'HASH') {
         carp "we require a hash as arguments for $cmd";
     }
-
-    #print "AUTOLOAD " . Dumper($args) . "\n";
 
     no strict 'refs';  # allow symbolic references
     *$AUTOLOAD = sub { my ($self, $args) = @_; return $self->_send_json({ 'cmd' => $cmd, 'arguments' => $args }); };

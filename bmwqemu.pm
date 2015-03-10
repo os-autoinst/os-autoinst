@@ -6,7 +6,6 @@ use warnings;
 use Time::HiRes qw(sleep gettimeofday);
 use Digest::MD5;
 use IO::Socket;
-use Data::Dumper;
 
 use ocr;
 use cv;
@@ -16,10 +15,10 @@ use threads::shared;
 use Thread::Queue;
 use POSIX;
 use Term::ANSIColor;
-use Data::Dump qw(dump dd);
 use Carp;
 use JSON;
 use File::Path qw(remove_tree);
+use Data::Dumper;
 
 
 use base 'Exporter';
@@ -276,7 +275,7 @@ sub fctlog {
     for my $p (@fparams) {
         if (ref($p) eq 'ARRAY') {
             if (defined $p->[1]) {
-                $p = $p->[0] . "=" . dump($p->[1]);
+                $p = $p->[0] . "=" . Dumper($p->[1]);
             }
             else {
                 $p = $p->[0] . "=undef";
@@ -655,7 +654,7 @@ sub assert_screen {
                 next;
             }
             unless ( ref($n) eq 'needle' && $n->{name} ) {
-                warn "invalid needle passed <" . ref($n) . "> " . dump($n);
+                warn "invalid needle passed <" . ref($n) . "> " . Dumper($n);
                 next;
             }
             push @$needles, $n;

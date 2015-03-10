@@ -10,7 +10,6 @@ use Time::HiRes qw(sleep gettimeofday);
 use IO::Select;
 use IO::Socket::UNIX qw( SOCK_STREAM );
 use IO::Handle;
-use Data::Dumper;
 use POSIX qw/strftime :sys_wait_h/;
 use JSON;
 use Carp;
