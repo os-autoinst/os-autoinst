@@ -3,7 +3,6 @@ use strict;
 use warnings;
 use base qw(Class::Accessor::Fast);
 use IO::Socket::INET;
-use IO::Select;
 use bytes;
 use bmwqemu qw(diag);
 use Time::HiRes qw( usleep gettimeofday );
@@ -674,8 +673,11 @@ sub send_pointer_event {
     );
 }
 
-sub _drain_vnc_socket() {
+# drain the VNC socket from all pending incoming messages.  return
+# true if there was a screen update.
+sub update_framebuffer() { # fka capture
     my ($self) = @_;
+    $self->send_update_request();
     my $have_recieved_update = 0;
     while ( defined( my $message_type = $self->_receive_message() ) ) {
         $have_recieved_update = 1 if $message_type == 0;
@@ -683,47 +685,10 @@ sub _drain_vnc_socket() {
     return $have_recieved_update;
 }
 
-sub update_framebuffer() { # fka capture
-    my ($self, $timeout, $min_time) = @_;
-
-    $timeout  //= -1;        # wait up to $timeout
-    $min_time //= $timeout;  # wait at least $min_time
-
-    $self->_send_update_request() unless $timeout < 0;
-
-    if ($timeout <= 0) {
-        $self->_drain_vnc_socket();
-        return;
-    }
-
-    my $update_start_time = gettimeofday;
-    my $select = IO::Select->new();
-    $select->add($self->socket);
-
-    while (1) {
-        my $elapsed = gettimeofday - $update_start_time;
-        my $rest = $timeout - $elapsed;
-        $rest = $min_time if $rest > $min_time;
-        my @ready = $select->can_read($rest);
-
-        my $have_recieved_update = $self->_drain_vnc_socket();
-
-        last if $elapsed > $timeout;
-
-        last if !@ready && $rest == $min_time;
-
-        if ($have_recieved_update) {
-            $self->_send_update_request();
-            # don't select() but sleep() here
-            usleep($min_time);
-        }
-    }
-}
-
 use POSIX qw(:errno_h);
 
 # frame buffer update request
-sub _send_update_request(;$) {
+sub send_update_request(;$) {
     my ($self) = @_;
 
     die "socket closed (no response after $self->requests_before_response_timeout seconds)\n" .	"${\Dumper $self}"

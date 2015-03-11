@@ -143,7 +143,7 @@ sub init {
     cv::init();
     require tinycv;
 
-    die "DISTRI undefined\n" unless $vars{DISTRI};
+    die "DISTRI undefined\n".Dumper(\%vars)."\n" unless $vars{DISTRI};
 
     unless ( $vars{CASEDIR} ) {
         my @dirs = ("$scriptdir/distri/$vars{DISTRI}");
