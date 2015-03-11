@@ -8,36 +8,37 @@ use feature qw/say/;
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 
-sub fetch_all_pending_screenshots() {
-    my ($self, $timeout, $min_time) = @_;
-
+sub request_screen_update($ ) {
+    my ($self) = @_;
     return unless $self->{'vnc'};
+    $self->{vnc}->send_update_request();
+}
 
-    eval {$self->{'vnc'}->update_framebuffer($timeout, $min_time);};
-
-    if ($@) {
-        bmwqemu::diag "VNC failed $@";
-        $self->close_pipes();
-    }
-
+sub capture_screenshot($ ) {
+    my ($self) = @_;
+    return unless $self->{'vnc'};
+    $self->{vnc}->fetch_pending_updates();
     return unless $self->{'vnc'}->_framebuffer;
-
     $self->enqueue_screenshot($self->{'vnc'}->_framebuffer);
 }
 
-# this is called for all sockets ready to read from. return 1 if socket
-# detected and -1 if there was an error
+sub update_framebuffer() { # fka capture
+    my ($self) = @_;
+    $self->request_screen_update();
+    $self->capture_screenshot();
+}
+
+# this is called for all sockets ready to read from. return 1 for success.
 sub check_socket {
     my ($self, $fh) = @_;
 
     if ($self->{'vnc'}) {
         if ( $fh == $self->{'vnc'}->socket ) {
             # FIXME: polling the VNC socket is not part of the backend
-            # loop.  So this should be dead code.  Remove if no tests
-            # die here for a while.
+            # select loop, because IO::Select and read() should not be
+            # mixed, according to the docs.  So this should be dead
+            # code.  Remove once no tests die here for a while.
             die "this should be dead code.";
-            $self->fetch_all_pending_screenshots();
-            return 1;
         }
     }
     # This was not for me.  Try baseclass.
@@ -64,9 +65,8 @@ sub type_string($$) {
     for my $letter (split( "", $args->{text}) ) {
         $letter = $self->map_letter($letter);
         $self->{'vnc'}->send_mapped_key($letter);
-        $self->fetch_all_pending_screenshots(.5, .05);
+        $self->run_capture_loop(undef, .1, .03);
     }
-    $self->fetch_all_pending_screenshots(.2);
     return {};
 }
 
@@ -75,7 +75,7 @@ sub send_key($) {
 
     bmwqemu::diag "send_mapped_key '" . $args->{key} . "'";
     $self->{'vnc'}->send_mapped_key($args->{key});
-    $self->fetch_all_pending_screenshots(.5, .05);
+    $self->run_capture_loop(undef, .1, .03);
     return {};
 }
 

@@ -4,7 +4,7 @@
 package backend::baseclass;
 use strict;
 use threads;
-use Carp;
+use Carp qw(cluck carp confess);
 use JSON qw( to_json );
 use File::Copy qw(cp);
 use File::Basename;
@@ -12,7 +12,8 @@ use Time::HiRes qw(gettimeofday);
 use bmwqemu;
 use IO::Select;
 
-use Carp qw(cluck carp confess);
+use Data::Dumper;
+use feature qw(say);
 
 my $framecounter    = 0;    # screenshot counter
 our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
@@ -46,10 +47,18 @@ sub die_handler {
     $backend->close_pipes();
 }
 
+
+use parent qw(Class::Accessor::Fast);
+__PACKAGE__->mk_accessors(
+    qw(
+      update_request_interval last_update_request
+      screenshot_interval last_screenshot)
+);
+
 sub run {
     my ($self, $cmdpipe, $rsppipe) = @_;
 
-    die "there can only be one!" if $backend;
+    die "there can be only one!" if $backend;
     $backend = $self;
 
     $SIG{__DIE__} = \&die_handler;
@@ -71,62 +80,77 @@ sub run {
     $self->{'select'} = IO::Select->new();
     $self->{'select'}->add($self->{'cmdpipe'});
 
-    $self->do_run();
-}
+    $self->last_update_request("-Inf" + 0);
+    $self->last_screenshot("-Inf" +0);
+    $self->screenshot_interval($bmwqemu::vars{SCREENSHOTINTERVAL} || .5);
+    $self->update_request_interval($self->screenshot_interval());
 
-sub reset_timer() {
-    my ($self) = @_;
-    # FIXME: why so complicated?  gettimeofday() gives a float in
-    # scalar context!
-    ( $self->{'screenshot'}->{'sec'}, $self->{'screenshot'}->{'usec'} ) = gettimeofday();
-}
-
-sub elapsed_time() {
-    my ($self) = @_;
-    my ( $sec, $usec ) = gettimeofday();
-    return ( $sec - $self->{'screenshot'}->{'sec'} ) - ( $usec - $self->{'screenshot'}->{'usec'} ) / 1e6;
-}
-
-###################################################################
-# default implementation of do_run
-# this is a command loop.
-# it does two things:
-# - check if there is any incoming communications on any of the
-#   $self->{sockets} and deal with that.
-# - trigger a screenshot every $self->screenshot_interval() seconds
-
-sub fetch_all_pending_screenshots($;$) {
-    my ($self, $timeout) = @_;
-    notimplemented();
-}
-
-sub do_run() {
-    my ($self) = @_;
-
-    $self->reset_timer();
-    my $interval = $self->screenshot_interval();
-
-    while ( $self->{'cmdpipe'} ) {
-
-        my $rest = $interval - $self->elapsed_time();
-
-        if ($rest < 0) {
-            $self->fetch_all_pending_screenshots(0);
-            $self->reset_timer();
-            $rest = 0;
-        }
-
-        my @ready = $self->{'select'}->can_read($rest);
-
-        for my $fh (@ready) {
-            unless ($self->check_socket($fh)) {
-                $self->close_pipes();
-                die "huh! $fh\n";
-            }
-        }
-    }
+    $self->run_capture_loop($self->{select});
 
     bmwqemu::diag( "management thread exit at " . POSIX::strftime( "%F %T", gmtime ) );
+}
+
+use List::Util qw(min);
+sub run_capture_loop($;$$$$ ) {
+    my ($self, $select, $timeout, $update_request_interval, $screenshot_interval) = @_;
+    my $starttime = gettimeofday;
+    # say Dumper $self;
+    eval {
+        while (1) {
+
+            last if (!$self->{cmdpipe});
+
+            my $now = gettimeofday;
+
+            my $time_to_timeout = "Inf" + 0;
+            if (defined $timeout) {
+                $time_to_timeout = $timeout - ($now - $starttime);
+                #say "time_to_timeout=$time_to_timeout";
+
+                last if $time_to_timeout <= 0;
+            }
+
+            my $time_to_update_request = ($update_request_interval // $self->update_request_interval) - ($now - $self->last_update_request);
+            #say "time_to_update_request=$time_to_update_request";
+
+            if ($time_to_update_request <= 0) {
+                $self->request_screen_update();
+                $self->last_update_request($now);
+                $time_to_update_request = ($update_request_interval // $self->update_request_interval);
+            }
+
+            my $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval) - ($now - $self->last_screenshot);
+            #say "time_to_screenshot=$time_to_screenshot";
+
+            if ($time_to_screenshot <= 0) {
+                $self->capture_screenshot();
+                $self->last_screenshot($now);
+                $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval);
+            }
+
+            my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
+            #say "time_to_next=$time_to_next";
+
+            if (defined $select) {
+                my @ready = $select->can_read($time_to_next);
+
+                for my $fh (@ready) {
+                    unless ($self->check_socket($fh)) {
+                        die "huh! $fh\n";
+                    }
+                }
+            }
+            else {
+                select(undef, undef, undef, $time_to_next);
+                #usleep($time_to_next * 1_000_000);
+            }
+        }
+    };
+
+    if ($@) {
+        bmwqemu::diag "capure loop failed $@";
+        $self->close_pipes();
+    }
 }
 
 # new api
@@ -310,12 +334,6 @@ sub type_string($$) {
     sleep 2 if ( $typedchars > 0 );
 }
 
-
-sub screenshot_interval() {
-    my ($self) = @_;
-
-    return $bmwqemu::vars{SCREENSHOTINTERVAL} || .5;
-}
 
 my $lastscreenshot;
 my $lastscreenshotName;
