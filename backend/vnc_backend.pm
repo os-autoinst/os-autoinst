@@ -17,15 +17,9 @@ sub request_screen_update($ ) {
 sub capture_screenshot($ ) {
     my ($self) = @_;
     return unless $self->{'vnc'};
-    $self->{vnc}->fetch_pending_updates();
+    $self->{vnc}->update_framebuffer();
     return unless $self->{'vnc'}->_framebuffer;
     $self->enqueue_screenshot($self->{'vnc'}->_framebuffer);
-}
-
-sub update_framebuffer() { # fka capture
-    my ($self) = @_;
-    $self->request_screen_update();
-    $self->capture_screenshot();
 }
 
 # this is called for all sockets ready to read from. return 1 for success.
