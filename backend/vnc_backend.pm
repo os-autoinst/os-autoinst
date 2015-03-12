@@ -17,6 +17,14 @@ sub request_screen_update($ ) {
 sub capture_screenshot($ ) {
     my ($self) = @_;
     return unless $self->{'vnc'};
+
+    unless ($self->{'vnc'}->_framebuffer) {
+	# No _framebuffer yet.  First connect?  Tickle vnc server to
+	# get it filled.
+	$self->request_screen_update();
+	usleep(5_000);
+    };
+
     $self->{vnc}->update_framebuffer();
     return unless $self->{'vnc'}->_framebuffer;
     $self->enqueue_screenshot($self->{'vnc'}->_framebuffer);
@@ -56,10 +64,26 @@ sub special_socket($) {
 sub type_string($$) {
     my ($self, $args) = @_;
 
+    # speed limit: 15bps.  VNC has key up and key down over the wire,
+    # not whole key press events.  So with a faster pace, the vnc
+    # server may think of contact bounces for repeating keys.
+    my $seconds_per_keypress = 1/15;
+
+    # further slow down if being asked for.
+    # 250 = magic default from testapi.pm (FIXME: wouldn't undef just do?)
+    if (($args->{max_interval} // 250) < 250) {
+	# according to 	  git grep "type_string.*, *[0-9]"  on
+	#   https://github.com/os-autoinst/os-autoinst-distri-opensuse,
+	# typical max_interval values are
+	#   4ish:  veeery slow
+	#   15ish: slow
+	$seconds_per_keypress = $seconds_per_keypress + .6/sqrt( $args->{max_interval} ) ;
+    }
+
     for my $letter (split( "", $args->{text}) ) {
         $letter = $self->map_letter($letter);
         $self->{'vnc'}->send_mapped_key($letter);
-        $self->run_capture_loop(undef, .1, .03);
+        $self->run_capture_loop(undef, $seconds_per_keypress, $seconds_per_keypress*.9);
     }
     return {};
 }
@@ -69,7 +93,7 @@ sub send_key($) {
 
     bmwqemu::diag "send_mapped_key '" . $args->{key} . "'";
     $self->{'vnc'}->send_mapped_key($args->{key});
-    $self->run_capture_loop(undef, .1, .03);
+    $self->run_capture_loop(undef, .1, .09);
     return {};
 }
 

@@ -291,17 +291,19 @@ sub send_key($;$) {
 
 =head2 type_string
 
-type_string($string)
+type_string($string, [$max_interval])
 
 send a string of characters, mapping them to appropriate key names as necessary
 
+max_interval (1-250) determines the typing speed, the lower the
+max_interval the slower the typing.
 =cut
 
 sub type_string($;$) {
     my $string      = shift;
-    my $maxinterval = shift || 250;
-    bmwqemu::fctlog( 'type_string', ["string", "'$string'"] );
-    $bmwqemu::backend->type_string($string, $maxinterval);
+    my $max_interval = shift || 250;
+    bmwqemu::fctlog( 'type_string', ["string", "'$string'"], ["max_interval", "'$max_interval'"] );
+    $bmwqemu::backend->type_string($string, $max_interval);
 }
 
 sub type_password() {

@@ -476,10 +476,9 @@ sub start_qemu() {
 
     $self->handle_qmp_command({"execute" => "cont"});
 
-    #$self->{'select'}->add($self->{'vnc'}->socket);
     $self->{'select'}->add($self->{'qemupipe'});
 
-    $self->{'vnc'}->update_framebuffer;
+    $self->capture_screenshot();
 }
 
 sub _read_hmp($) {
