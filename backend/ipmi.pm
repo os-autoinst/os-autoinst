@@ -104,8 +104,7 @@ sub relogin_vnc() {
         die $@;
     }
 
-    #$self->{'select'}->add($self->{'vnc'}->socket);
-    $self->{'vnc'}->update_framebuffer;
+    $self->capture_screenshot();
 }
 
 sub do_start_vm() {
