@@ -58,9 +58,12 @@ sub _makecpiohead {
 }
 
 # send test data as cpio archive
-sub test_data {
-    my $self = shift;
-    my $base = $bmwqemu::vars{'CASEDIR'} . "/data/";
+sub _test_data_dir {
+    my ($self, $base) = @_;
+
+    $base .= '/' if $base !~ /\/$/;
+
+    $self->app->log->debug("Request for directory $base.");
 
     return $self->render_not_found unless -d $base;
 
@@ -91,6 +94,52 @@ sub test_data {
     return $self->render(data => $data);
 }
 
+# serve a file from within data directory
+sub _test_data_file {
+    my ($self, $file) = @_;
+
+    $self->app->log->debug("Request for file $file.");
+
+    my $fd;
+    unless (open($fd, '<:raw', $file)) {
+        # ERROR HANDLING
+        $self->render(text => "Can't open $file", status => 404);
+        return;
+    }
+    local $/ = undef; # slurp mode
+    my $data = <$fd>;
+    close($fd);
+
+    my $filetype;
+
+    if ($file =~ m/\.([^\.]+)$/) {
+        my $ext = $1;
+        $filetype = $self->app->types->type($ext);
+    }
+
+    $filetype ||= "application/octet-stream";
+    $self->res->headers->content_type($filetype);
+
+    return $self->render(data => $data);
+}
+
+sub test_data {
+    my ($self) = @_;
+
+    my $path = $bmwqemu::vars{'CASEDIR'} . "/data/";
+    my $relpath = $self->param('relpath');
+    if (defined $relpath) {
+        # do not allow .. in path
+        return $self->render_not_found if $relpath =~ /^(.*\/)*\.\.(\/.*)*$/;
+        $path .= $relpath;
+    }
+
+    return _test_data_dir($self, $path) if -d $path;
+    return _test_data_file($self, $path) if -f $path;
+
+    return $self->render_not_found;
+}
+
 # store the log file in $pooldir/ulogs
 sub upload_log {
     my ($self) = @_;
@@ -119,37 +168,6 @@ sub upload_log {
     return $self->render(text => "OK: $upname\n");
 }
 
-# serve a file from within data directory
-sub test_file {
-    my ($self) = @_;
-
-    my $file = $self->param('filename');
-    $file = $bmwqemu::vars{'CASEDIR'} . "/data/" . $file;
-
-    $self->app->log->debug("Request for $file.");
-
-    my $fd;
-    unless (open($fd, '<:raw', $file)) {
-        # ERROR HANDLING
-        $self->render(text => "Can't open $file", status => 404);
-        return;
-    }
-    local $/ = undef; # slurp mode
-    my $data = <$fd>;
-    close($fd);
-
-    my $filetype;
-
-    if ($file =~ m/\.([^\.]+)$/) {
-        my $ext = $1;
-        $filetype = $self->app->types->type($ext);
-    }
-
-    $filetype ||= "application/octet-stream";
-    $self->res->headers->content_type($filetype);
-
-    return $self->render(data => $data);
-}
 
 our $current_test_script :shared;
 
@@ -167,8 +185,8 @@ sub run_daemon {
     # for access all data as CPIO archive
     get '/data' => \&test_data;
 
-    # to access a single file within the data directory
-    get '/data/#filename' => \&test_file;
+    # to access a single file or a subdirectory
+    get '/data/*relpath' => \&test_data;
 
     # uploading log files from tests
     post '/uploadlog/#filename' => \&upload_log;
