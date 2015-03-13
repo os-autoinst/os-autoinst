@@ -675,9 +675,9 @@ sub send_pointer_event {
 
 # drain the VNC socket from all pending incoming messages.  return
 # true if there was a screen update.
-sub update_framebuffer() { # fka capture
+sub update_framebuffer() { # upstream VNC.pm:  "capture"
     my ($self) = @_;
-    $self->send_update_request();
+
     my $have_recieved_update = 0;
     while ( defined( my $message_type = $self->_receive_message() ) ) {
         $have_recieved_update = 1 if $message_type == 0;

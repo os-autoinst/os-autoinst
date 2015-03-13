@@ -325,6 +325,7 @@ sub type_string($$) {
 
     my $typedchars  = 0;
     for my $letter (split( "", $string )) {
+	# FIXME: is this is dead code?  there ain't no plain send_key, no?
         send_key $self->map_letter($letter), 1;
         if ( $typedchars++ >= $maxinterval ) {
             sleep 2;
