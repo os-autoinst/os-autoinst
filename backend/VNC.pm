@@ -19,11 +19,13 @@ __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_request
-      _EAGAIN_counter _UNDEF_counter _REQUESTS_BEFORE_RESPONSE_timer
-      requests_before_response_timeout
       )
       # FIXME: not needed?
       # update_request_throttle_seconds _LAST_UPDATE_REQUEST_timer
+
+      # FIXME: wrong fix for alive check!
+      #_EAGAIN_counter _UNDEF_counter _REQUESTS_BEFORE_RESPONSE_timer
+      #requests_before_response_timeout
 );
 our $VERSION = '0.40';
 
@@ -99,12 +101,13 @@ sub login {
     $self->width(0);
     $self->height(0);
 
-    $self->_EAGAIN_counter(0);
-    $self->_UNDEF_counter(0);
+    # FIXME: wrong fix for alive check!
+    # $self->_EAGAIN_counter(0);
+    # $self->_UNDEF_counter(0);
 
-    $self->_REQUESTS_BEFORE_RESPONSE_timer(scalar gettimeofday);
-    $self->requests_before_response_timeout(20)
-      unless defined $self->requests_before_response_timeout;
+    # $self->_REQUESTS_BEFORE_RESPONSE_timer(scalar gettimeofday);
+    # $self->requests_before_response_timeout(20)
+    #   unless defined $self->requests_before_response_timeout;
 
     # FIXME: not needed?
     # $self->_LAST_UPDATE_REQUEST_timer(0);
@@ -691,8 +694,9 @@ use POSIX qw(:errno_h);
 sub send_update_request(;$) {
     my ($self) = @_;
 
-    die "socket closed (no response after $self->requests_before_response_timeout seconds)\n" .	"${\Dumper $self}"
-      if $self->_REQUESTS_BEFORE_RESPONSE_timer() > $self->requests_before_response_timeout + gettimeofday;
+    # FIXME: wrong fix for alive check!
+    # die "socket closed (no response after $self->requests_before_response_timeout seconds)\n" .	"${\Dumper $self}"
+    #   if $self->_REQUESTS_BEFORE_RESPONSE_timer() > $self->requests_before_response_timeout + gettimeofday;
 
     # FIXME: not needed?
     # my $update_request_wait_time = $self->update_request_throttle_seconds - (scalar gettimeofday - $self->_LAST_UPDATE_REQUEST_timer);
@@ -730,30 +734,33 @@ sub _receive_message {
     my $ret = $socket->read( my $message_type, 1 );
     $socket->blocking(1);
 
+    # FIXME: wrong fix for alive check!
     if ($! == EAGAIN) {
-        my $_EAGAIN_counter = $self->_EAGAIN_counter();
-        die "socket broken, too many EAGAIN \n${\Dumper $self}" if $_EAGAIN_counter > 235; ## magic 235
-        $self->_EAGAIN_counter($_EAGAIN_counter + 1);
+        #my $_EAGAIN_counter = $self->_EAGAIN_counter();
+        #die "socket broken, too many EAGAIN \n${\Dumper $self}" if $_EAGAIN_counter > 235; ## magic 235
+        #$self->_EAGAIN_counter($_EAGAIN_counter + 1);
         return undef;
     }
     else {
-        $self->_EAGAIN_counter(0);
+        #$self->_EAGAIN_counter(0);
     }
 
+    # FIXME: wrong fix for alive check!
     if (defined $ret) {
-        $self->_UNDEF_counter(0);
+        # $self->_UNDEF_counter(0);
     }
     else {
-        my $_UNDEF_counter = $self->_UNDEF_counter();
-        warn "socket read error: $!";
-        die "socket dead, too many read errors \n${\Dumper $self}" if $_UNDEF_counter > 7; ## magic 7
-        $self->_UNDEF_counter($_UNDEF_counter + 1);
+        #my $_UNDEF_counter = $self->_UNDEF_counter();
+        #warn "socket read error: $!";
+        #die "socket dead, too many read errors \n${\Dumper $self}" if $_UNDEF_counter > 7; ## magic 7
+        #$self->_UNDEF_counter($_UNDEF_counter + 1);
         return undef;
     }
 
     die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
 
-    $self->_REQUESTS_BEFORE_RESPONSE_timer(scalar gettimeofday);
+    # FIXME: wrong fix for alive check!
+    #$self->_REQUESTS_BEFORE_RESPONSE_timer(scalar gettimeofday);
 
     $message_type = unpack( 'C', $message_type );
 
