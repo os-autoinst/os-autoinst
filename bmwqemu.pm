@@ -267,6 +267,11 @@ sub update_line_number() {
     }
 }
 
+# pretty print like Data::Dumper but without the "VAR1 = " prefix
+sub pp {
+    Data::Dumper->new(\@_)->Terse(1)->Dump();
+}
+
 sub fctlog {
     my $fname   = shift;
     my @fparams = @_;
@@ -275,7 +280,7 @@ sub fctlog {
     for my $p (@fparams) {
         if (ref($p) eq 'ARRAY') {
             if (defined $p->[1]) {
-                $p = $p->[0] . "=" . Dumper($p->[1]);
+                $p = $p->[0] . "=" . pp($p->[1]);
             }
             else {
                 $p = $p->[0] . "=undef";

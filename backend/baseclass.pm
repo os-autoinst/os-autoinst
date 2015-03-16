@@ -42,7 +42,8 @@ sub handle_command($) {
 
 sub die_handler {
     my $msg = shift;
-    print STDERR "DIE $msg\n";
+    #print STDERR "DIE $msg\n";
+    cluck "DIE $msg\n";
     $backend->stop_vm();
     $backend->close_pipes();
 }

@@ -89,11 +89,12 @@ sub login {
     my $self     = shift;
     my $hostname = $self->hostname;
     my $port     = $self->port;
+
     my $socket   = IO::Socket::INET->new(
         PeerAddr => $hostname || 'localhost',
         PeerPort => $port     || '5900',
         Proto    => 'tcp',
-    ) || Carp::confess "Error connecting to $hostname (@_):\n $@";
+    ) || Carp::confess "Error connecting to $hostname\n". Dumper($self) ."\n$@";
     $socket->timeout(15); # FIXME: is this used for anything but connect?
     $socket->sockopt(Socket::TCP_NODELAY, 1); # turn off Naegle's algorithm for vnc
     $self->socket($socket);
