@@ -25,7 +25,6 @@ def unify(old_dict, new_dict):
         else:
             old_dict[k] = v
 
-
 from collections import namedtuple
 
 hostname =  lambda _if: (
@@ -49,22 +48,41 @@ devinfo = {
         hostname("ctc"),
         gateway("189"),
         {
-            "ReadChannel" : "0.0.0600",
-            "WriteChannel" : "0.0.0601"
+            "InstNetDev"   : "ctc",
+            "CTCProtocol"  : "0",
+            "Pointopoint"  : gateway("189"),
+            "ReadChannel"  : "0.0.0600",
+            "WriteChannel" : "0.0.0601",
         }),
     "hsi-l2": Devinfo(
         hostip_10_161_if_ip_nm("183","/24"),
         hostname("hsl"),
         gateway("183"),
         {
+            "PortNo": "0",
             "Layer2": "1",
+            "InstNetDev":"osa",
+            "OSAInterface":"qdio",
+            "OSAMedium":"eth",
+            #"Portname": "VSWNL2",
+            #"ReadChannel": "0.0.8000",
+            #"WriteChannel": "0.0.8001",
+            #"DataChannel": "0.0.8002",
         }),
     "hsi-l3": Devinfo(
         hostip_10_161_if_ip_nm("185","/24"),
         hostname("hsi"),
         gateway("185"),
         {
+            "PortNo": "0",
             "Layer2": "0",
+            "InstNetDev":"osa",
+            "OSAInterface":"qdio",
+            "OSAMedium":"eth",
+            "Portname": "trash",
+            "ReadChannel": "0.0.7000",
+            "WriteChannel": "0.0.7001",
+            "DataChannel": "0.0.7002",
         }),
     "iucv": Devinfo(
         hostip_10_161_if_ip_nm("187", ""),
@@ -82,9 +100,9 @@ devinfo = {
             "ReadChannel": "0.0.0800",
             "WriteChannel": "0.0.0801",
             "DataChannel": "0.0.0802",
+            "InstNetDev":"osa",
             "OSAInterface":"qdio",
             "OSAMedium":"eth",
-            "InstNetDev":"osa",
         }),
     "vswitch-l3": Devinfo(
         hostip_10_161_if_ip_nm("157","/20"),
@@ -108,6 +126,12 @@ devinfo = {
         {}),
 }
 
+
+# these are used interchangeably
+devinfo['osa-l2'] = devinfo['vswitch-l2']
+devinfo['osa-l3'] = devinfo['vswitch-l3']
+
+
 def get_network_parms(guest, network_device):
 
     _devinfo = devinfo[network_device]
@@ -124,10 +148,13 @@ def get_network_parms(guest, network_device):
 
     return network_parms
 
+
+zVM_HOST = "zvm54.suse.de"
+
 import socket
 # unreadable one-liner variant of a simple function that isn't needed after this, from stackoverflow...
 my_ip = [(s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1),
-          s.connect(('<broadcast>', 0)),
+          s.connect((zVM_HOST, 0)),
           s.getsockname()[0],
           s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][2]
 
@@ -178,7 +205,11 @@ instsrc_vars = {
             "PROTOCOL": "NFS",
         },
     },
-    "smb": None,
+    "smb": {
+        "INSTSRC": {
+            "PROTOCOL": "SMB",
+        },
+    },
     "tftp": None,
 }
 
@@ -211,8 +242,20 @@ console_vars = {
             "HOST"   : my_ip,
             "SCREEN" : "1",
         },
+        "PARMFILE": {
+            "Display_IP" : "{}:1".format(my_ip)
+        }
     },
-    # FIXME:  add ssh -X vs X11
+    # FIXME:  get ssh -X working
+    #"ssh-X": {
+    #    "PARMFILE": {
+    #        "ssh": "1",
+    #        "sshpassword" : "SSH!554!",
+    #    },
+    #    "DISPLAY" : {
+    #        "TYPE" : "SSH",
+    #    },
+    #},
 }
 
 def make_vars_json(insthost, guest, network_device, instsource, console, distro):
@@ -223,7 +266,7 @@ def make_vars_json(insthost, guest, network_device, instsource, console, distro)
         "CASEDIR"	: "/space/SVN/os-autoinst-distri-opensuse/",
 
         "BACKEND"	: "s390x",
-        "ZVM_HOST"	: "zvm54",
+        "ZVM_HOST"	: zVM_HOST,
 
         "DEBUG"         : [
             "wait after linuxrc",

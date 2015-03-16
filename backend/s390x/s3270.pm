@@ -429,8 +429,8 @@ sub cp_disconnect() {
 }
 
 sub connect_and_login() {
-    my ($self) = @_;
-
+    my ($self, $reconnect_ok) = @_;
+    $reconnect_ok //= 0;
     my $r;
     ###################################################################
     # try to connect exactly twice
@@ -454,6 +454,8 @@ sub connect_and_login() {
                   "Could not reclaim guest despite hard_shutdown.  this is odd.\n". #
                   "Is this machine possibly connected on another terminal?\n";
             }
+
+            last if $reconnect_ok;
 
             # shut down and reconnect
             carp "trying hard shutdown...\n";
