@@ -92,6 +92,28 @@ sub run {
 }
 
 use List::Util qw(min);
+
+=head2 run_capture_loop
+=out
+
+=item select
+IO::Select object that is polled when given
+
+=item timout
+run the loop this long in seconds, indefinitely if undef, or until the
+$self->{cmdpipe} is closed, whichever occurs first.
+
+=item update_request_interval
+space out update polls for this interval in seconds, i.e. update the
+internal buffers this often.
+
+=item screenshot_interval
+space out screen captures for this interval in seconds, i.e. save a
+screenshot from the buffers this often.
+
+=back
+=cut
+
 sub run_capture_loop($;$$$$ ) {
     my ($self, $select, $timeout, $update_request_interval, $screenshot_interval) = @_;
     my $starttime = gettimeofday;

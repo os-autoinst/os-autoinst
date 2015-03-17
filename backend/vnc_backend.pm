@@ -11,6 +11,8 @@ use Carp qw(confess cluck carp croak);
 sub request_screen_update($ ) {
     my ($self) = @_;
     return unless $self->{'vnc'};
+    # drain the VNC socket before polling for a ne update
+    $self->{vnc}->update_framebuffer();
     $self->{vnc}->send_update_request();
 }
 
@@ -95,7 +97,7 @@ sub send_key($) {
     # FIXME the max_interval logic from type_string should go here, no?
     # and really, the screen should be checked for settling after key press...
     $self->{'vnc'}->send_mapped_key($args->{key});
-    $self->run_capture_loop(undef, .1, .09);
+    $self->run_capture_loop(undef, .2, .19);
     return {};
 }
 
