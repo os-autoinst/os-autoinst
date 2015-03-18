@@ -329,6 +329,9 @@ sub start_qemu() {
         if ( $vars->{PXEBOOT} ) {
             push( @params, "-boot", "n");
         }
+        elsif ( $vars->{BOOTFROM} ) {
+            push( @params, "-boot", "order=$vars->{BOOTFROM},menu=on,splash-time=5000" );
+        }
         else {
             push( @params, "-boot", "once=d,menu=on,splash-time=5000" );
         }
