@@ -54,6 +54,15 @@ devinfo = {
             "ReadChannel"  : "0.0.0600",
             "WriteChannel" : "0.0.0601",
         }),
+    "iucv": Devinfo(
+        hostip_10_161_if_ip_nm("187", ""),
+        hostname("icv"),
+        gateway("187"),
+        {
+            "InstNetDev": "iucv",
+            "Pointopoint"  : gateway("187"),
+            "IUCVPeer": "ROUTER01",
+        }),
     "hsi-l2": Devinfo(
         hostip_10_161_if_ip_nm("183","/24"),
         hostname("hsl"),
@@ -84,11 +93,6 @@ devinfo = {
             "WriteChannel": "0.0.7001",
             "DataChannel": "0.0.7002",
         }),
-    "iucv": Devinfo(
-        hostip_10_161_if_ip_nm("187", ""),
-        hostname("icv"),
-        gateway("187"),
-        {}),
     "vswitch-l2": Devinfo(
         hostip_10_161_if_ip_nm("155","/20"),
         hostname("vsl"),
@@ -103,6 +107,9 @@ devinfo = {
             "InstNetDev":"osa",
             "OSAInterface":"qdio",
             "OSAMedium":"eth",
+            # "02:00:00:00:42:{guest:2x}".format(guest=157)
+            # use the default
+            "OSAHWAddr":"",
         }),
     "vswitch-l3": Devinfo(
         hostip_10_161_if_ip_nm("157","/20"),
@@ -119,11 +126,6 @@ devinfo = {
             "OSAMedium":"eth",
             "InstNetDev":"osa",
         }),
-    "iucv": Devinfo(
-        hostip_10_161_if_ip_nm("187",""),
-        hostname("icv"),
-        gateway("187"),
-        {}),
 }
 
 
