@@ -25,7 +25,7 @@ our $serialdev;
 
 sub send_key($;$);
 sub check_screen($;$);
-sub type_string($;$);
+sub type_string($;$$);
 sub type_password;
 
 sub init() {
@@ -291,18 +291,21 @@ sub send_key($;$) {
 
 =head2 type_string
 
-type_string($string, [$max_interval])
+type_string($string, [$max_interval], [$secret])
 
 send a string of characters, mapping them to appropriate key names as necessary
 
 max_interval (1-250) determines the typing speed, the lower the
 max_interval the slower the typing.
+
+secret (bool) suppresses logging of the actual string typed, if set.
 =cut
 
-sub type_string($;$) {
+sub type_string($;$$) {
     my $string      = shift;
     my $max_interval = shift || 250;
-    bmwqemu::fctlog( 'type_string', ["string", "'$string'"], ["max_interval", "'$max_interval'"] );
+    my $log = shift() ? 'SECRET STRING' : $string;
+    bmwqemu::fctlog( 'type_string', ["string", "'$log'"], ["max_interval", "'$max_interval'"] );
     $bmwqemu::backend->type_string($string, $max_interval);
 }
 
