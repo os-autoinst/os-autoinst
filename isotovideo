@@ -124,7 +124,7 @@ if ($init) {
 my $ct = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
 
 if ($ENV{RUN_VNCVIEWER}) {
-  system("vncviewer -Shared localhost:" . $bmwqemu::vars{VNC} . " -ViewOnly &");
+  system("vncviewer -shared localhost:" . $bmwqemu::vars{VNC} . " -viewonly &");
 }
 require Carp;
 

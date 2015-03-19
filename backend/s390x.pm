@@ -39,8 +39,9 @@ sub setup_3270_console() {
             ## Or start in local Xvnc session or Xnest session, and do screen
             ## grabs from there...
 
-            ## s3270=>[qw(s3270)]; # non-interactive
-            s3270	=> [qw(x3270 -script -trace -set screenTrace -charset us -xrm x3270.visualBell:true)],
+            ## s3270=>[qw(s3270 ...)]; # non-interactive
+            s3270	=> [qw(x3270 -script -trace -set screenTrace -charset us -xrm x3270.visualBell:true), '-xrm', 'x3270.traceDir: .'],
+
             zVM_host	=> get_var("ZVM_HOST"),
             guest_user	=> get_var("ZVM_GUEST"),
             guest_login => get_var("ZVM_PASSWORD"),
