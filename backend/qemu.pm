@@ -185,13 +185,18 @@ sub start_qemu() {
     $vars->{NICTYPE}   ||= "user";
     $vars->{NICMAC}    ||= "52:54:00:12:34:56";
     # misc
+    my $arch_supports_boot_order = 1;
+    my $use_usb_kbd;
     my @vgaoptions;
     if ($vars->{ARCH} eq 'aarch64') {
         push @vgaoptions, '-device', 'VGA';
+        $arch_supports_boot_order = 0;
+        $use_usb_kbd = 1;
     }
     elsif ($vars->{OFW}) {
         $vars->{QEMUVGA} ||= "std";
         push(@vgaoptions, '-g', '1024x768' );
+        #$use_usb_kbd = 1; # implicit on ppc
     }
     else {
         $vars->{QEMUVGA} ||= "cirrus";
@@ -326,14 +331,16 @@ sub start_qemu() {
             }
         }
 
-        if ( $vars->{PXEBOOT} ) {
-            push( @params, "-boot", "n");
-        }
-        elsif ( $vars->{BOOTFROM} ) {
-            push( @params, "-boot", "order=$vars->{BOOTFROM},menu=on,splash-time=5000" );
-        }
-        else {
-            push( @params, "-boot", "once=d,menu=on,splash-time=5000" );
+        if ($arch_supports_boot_order) {
+            if ( $vars->{PXEBOOT} ) {
+                push( @params, "-boot", "n");
+            }
+            elsif ( $vars->{BOOTFROM} ) {
+                push( @params, "-boot", "order=$vars->{BOOTFROM},menu=on,splash-time=5000" );
+            }
+            else {
+                push( @params, "-boot", "once=d,menu=on,splash-time=5000" );
+            }
         }
 
         if ( $vars->{UEFI} ) {
@@ -352,6 +359,9 @@ sub start_qemu() {
             push( @params, qw"-net nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57 -net none,vlan=1" );
         }
         push(@params, qw/-device usb-ehci -device usb-tablet/);
+        if ($use_usb_kbd) {
+            push(@params, qw/-device usb-kbd/);
+        }
         push( @params, "-smp", $vars->{QEMUCPUS} );
         push( @params, "-enable-kvm" ) unless $vars->{QEMU_NO_KVM};
         push( @params, "-no-shutdown" );
