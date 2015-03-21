@@ -122,12 +122,6 @@ sub send_key($) {
     return $self->_send_json({ 'cmd' => "send_key", 'arguments' => { 'key' => $key } });
 }
 
-sub type_string($$) {
-    my ( $self, $text, $max_interval ) = @_;
-    return unless ($text);
-    return $self->_send_json({ 'cmd' => "type_string", 'arguments' => { 'text' => $text, 'max_interval' => $max_interval } });
-}
-
 sub mouse_button($$$) {
     my ( $self, $button, $bstate ) = @_;
     return $self->_send_json({ 'cmd' => "mouse_button", 'arguments' => { 'button' => $button, 'bstate' => $bstate } } );
