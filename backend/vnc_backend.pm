@@ -73,13 +73,22 @@ sub type_string($$) {
 
     # further slow down if being asked for.
     # 250 = magic default from testapi.pm (FIXME: wouldn't undef just do?)
+
+    # FIXME: the intended use of max_interval is the bootloader.  The
+    # bootloader prompt drops characters when typing quickly.  This
+    # problem mostly occurs in the bootloader.  Humans notice because
+    # they look at the screen while typing.  So this loop should be
+    # replaced by some true 'looking at the screen while typing',
+    # e.g. waiting for no more screen updates 'in the right area'.
+    # For now, just waiting is good enough: The slow-down only affects
+    # the bootloader sequence.
     if (($args->{max_interval} // 250) < 250) {
         # according to 	  git grep "type_string.*, *[0-9]"  on
         #   https://github.com/os-autoinst/os-autoinst-distri-opensuse,
         # typical max_interval values are
         #   4ish:  veeery slow
         #   15ish: slow
-        $seconds_per_keypress = $seconds_per_keypress + .6/sqrt( $args->{max_interval} );
+        $seconds_per_keypress = $seconds_per_keypress + 1/sqrt( $args->{max_interval} );
     }
 
     for my $letter (split( "", $args->{text}) ) {

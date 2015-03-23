@@ -93,7 +93,7 @@ sub run {
 
 use List::Util qw(min);
 
-=head2 run_capture_loop
+=head2 run_capture_loop(\@select, $timeout, $update_request_interval, $screenshot_interval)
 =out
 
 =item select
@@ -107,9 +107,17 @@ $self->{cmdpipe} is closed, whichever occurs first.
 space out update polls for this interval in seconds, i.e. update the
 internal buffers this often.
 
+If unset, use $self->{update_request_interval}.  For the main capture
+loop $self->{update_request_interval} can be modified while this loop
+is running, e.g. to poll more often for a stretch of time.
+
 =item screenshot_interval
 space out screen captures for this interval in seconds, i.e. save a
 screenshot from the buffers this often.
+
+If unset, use $self->{screenshot_interval}.  For the main capture
+loop, $self->{screenshot_interval} can be modified while this loop is
+running, e.g. to do some fast or slow motion.
 
 =back
 =cut
