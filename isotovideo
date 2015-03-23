@@ -56,7 +56,6 @@ bmwqemu::clean_control_files();
 bmwqemu::save_status();
 
 my $init = 1;
-alarm( 7200 + ( $bmwqemu::vars{UPGRADE} ? 3600 : 0 ) );    # worst case timeout
 
 # all so ugly ...
 sub signalhandler {
