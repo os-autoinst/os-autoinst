@@ -97,8 +97,8 @@ sub runalltests {
             $t->start();
 
             # avoid erasing the good vm snapshot
-            if ( ( $bmwqemu::vars{'SKIPTO'} || '') ne $t->{'fullname'} && $bmwqemu::vars{MAKETESTSNAPSHOTS} ) {
-                bmwqemu::make_snapshot( $t->{'fullname'} );
+            if ( ( $bmwqemu::vars{SKIPTO} || '') ne $t->{fullname} && $bmwqemu::vars{MAKETESTSNAPSHOTS} ) {
+                bmwqemu::make_snapshot( $t->{fullname} );
             }
 
             eval { $t->runtest; };
@@ -107,16 +107,16 @@ sub runalltests {
             if ($@) {
 
                 bmwqemu::diag $@;
-                if ( $flags->{'fatal'} ) {
+                if ( $flags->{fatal} ) {
                     bmwqemu::stop_vm();
                     return 0;
                 }
-                elsif (!$flags->{'norollback'} ) {
+                elsif (!$flags->{norollback} ) {
                     bmwqemu::load_snapshot('lastgood');
                 }
             }
             else {
-                if ( $flags->{'milestone'} ) {
+                if ( $flags->{milestone} ) {
                     bmwqemu::make_snapshot('lastgood');
                 }
             }
