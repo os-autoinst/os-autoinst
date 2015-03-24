@@ -84,8 +84,8 @@ sub record_screenmatch($$;$) {
     my $h      = $self->_serialize_match($needle);
     my $properties = $needle->{needle}->{properties} || [];
     my $result = {
-        needle     => $h->{'name'},
-        area       => $h->{'area'},
+        needle     => $h->{name},
+        area       => $h->{area},
         tags       => [@$tags],                                    # make a copy
         screenshot => sprintf( "%s-%d.png", $testname, $count ),
         result     => 'ok',
@@ -98,24 +98,24 @@ sub record_screenmatch($$;$) {
         if ($property eq 'workaround') {
             $result->{dent} = 1;
             $self->{dents}++;
-            bmwqemu::diag "found workaround property in $h->{'name'}";
+            bmwqemu::diag "found workaround property in $h->{name}";
         }
     }
 
     # Hack to make it obvious that some test passed by applying a hack
     # (such as clicking away some error popup). Those hacks are indicated by a
     # needle containing "bnc" in its name
-    if ( $h->{'name'} =~ /bnc\d{4}/ ) {
+    if ( $h->{name} =~ /bnc\d{4}/ ) {
         $result->{dent} = 1;
         $self->{dents}++;
     }
 
-    my $fn = join( '/', bmwqemu::result_dir(), $result->{'screenshot'} );
+    my $fn = join( '/', bmwqemu::result_dir(), $result->{screenshot} );
     $img->write_with_thumbnail($fn);
 
     $self->{result} ||= 'ok';
 
-    push @{ $self->{'details'} }, $result;
+    push @{ $self->{details} }, $result;
 }
 
 =head2
@@ -134,21 +134,21 @@ sub _serialize_match($$) {
     my $candidates;
     my $diffcount = 0;
 
-    my $name = $cand->{'needle'}->{'name'};
+    my $name = $cand->{needle}->{name};
 
-    my $h = { 'name' => $name, 'error' => $cand->{'error'}, 'area' => [] };
-    for my $a ( @{ $cand->{'area'} } ) {
+    my $h = { name => $name, error => $cand->{error}, area => [] };
+    for my $a ( @{ $cand->{area} } ) {
         my $na = {};
         for my $i (qw/x y w h result/) {
             $na->{$i} = $a->{$i};
         }
-        $na->{'similarity'} = int( $a->{'similarity'} * 100 );
-        if ( $a->{'diff'} ) {
+        $na->{similarity} = int( $a->{similarity} * 100 );
+        if ( $a->{diff} ) {
             my $imgname = sprintf( "%s-%d-%s-diff%d.png", $testname, $count, $name, $diffcount++ );
-            $a->{'diff'}->write( join( '/', bmwqemu::result_dir(), $imgname ) );
-            $na->{'diff'} = $imgname;
+            $a->{diff}->write( join( '/', bmwqemu::result_dir(), $imgname ) );
+            $na->{diff} = $imgname;
         }
-        push @{ $h->{'area'} }, $na;
+        push @{ $h->{area} }, $na;
     }
 
     return $h;
@@ -157,11 +157,11 @@ sub _serialize_match($$) {
 sub record_screenfail($@) {
     my $self    = shift;
     my %args    = @_;
-    my $img     = $args{'img'};
-    my $needles = $args{'needles'} || [];
-    my $tags    = $args{'tags'} || [];
-    my $status  = $args{'result'} || 'fail';
-    my $overall = $args{'overall'};            # whether and how to set global test result
+    my $img     = $args{img};
+    my $needles = $args{needles} || [];
+    my $tags    = $args{tags} || [];
+    my $status  = $args{result} || 'fail';
+    my $overall = $args{overall};            # whether and how to set global test result
 
     my $count    = ++$self->{"test_count"};
     my $testname = ref($self);
@@ -176,27 +176,27 @@ sub record_screenfail($@) {
         result     => $status,
     };
 
-    $result->{'needles'} = $candidates if $candidates;
-    $result->{'tags'}    = [@$tags]    if $tags;         # make a copy
+    $result->{needles} = $candidates if $candidates;
+    $result->{tags}    = [@$tags]    if $tags;         # make a copy
 
-    my $fn = join( '/', bmwqemu::result_dir(), $result->{'screenshot'} );
+    my $fn = join( '/', bmwqemu::result_dir(), $result->{screenshot} );
     $img->write_with_thumbnail($fn);
 
     $self->{result} = $overall if $overall;
 
-    push @{ $self->{'details'} }, $result;
+    push @{ $self->{details} }, $result;
 }
 
 # for interactive mode
 sub remove_last_result() {
     my $self = shift;
     --$self->{"test_count"};
-    pop @{ $self->{'details'} };
+    pop @{ $self->{details} };
 }
 
 sub details($) {
     my $self = shift;
-    return $self->{'details'};
+    return $self->{details};
 }
 
 sub result($;$) {
@@ -224,14 +224,14 @@ sub done() {
 
 sub fail_if_running() {
     my $self = shift;
-    $self->{result} = 'fail' if $self->{'result'};
+    $self->{result} = 'fail' if $self->{result};
     autotest::set_current_test(undef);
 }
 
 sub skip_if_not_running() {
     my ($self) = @_;
 
-    $self->{result} = 'skip' if !$self->{'result'};
+    $self->{result} = 'skip' if !$self->{result};
     autotest::set_current_test(undef);
 }
 
@@ -286,9 +286,9 @@ sub runtest($$) {
         $self->run();
         $self->post_run_hook();
     };
-    $self->{'result'} ||= 'unk';
+    $self->{result} ||= 'unk';
 
-    if ($@ || $self->{'result'} eq 'fail' ) {
+    if ($@ || $self->{result} eq 'fail' ) {
         warn "test $name died: $@\n";
         $self->{post_fail_hook_running} = 1;
         eval { $self->post_fail_hook; };
@@ -310,7 +310,7 @@ sub save_test_result() {
     my $result = {
         'details'  => $self->details(),
         'result'   => $self->result(),
-        'dents'    => $self->{'dents'},
+        'dents'    => $self->{dents},
     };
     # be aware that $name has to be unique within one job (also assumed in several other places)
     my $fn = bmwqemu::result_dir() . sprintf("/result-%s.json", ref $self);
@@ -334,13 +334,13 @@ sub record_serialresult {
 
     my $result = $self->register_screenshot();
 
-    $result->{'reference_text'} = $ref;
-    $result->{'result'} = $res;
-    if ( $result->{'result'} eq 'fail' ) {
-        $self->{result} = $result->{'result'};
+    $result->{reference_text} = $ref;
+    $result->{result} = $res;
+    if ( $result->{result} eq 'fail' ) {
+        $self->{result} = $result->{result};
     }
     else {
-        $self->{result} ||= $result->{'result'};
+        $self->{result} ||= $result->{result};
     }
 
     return $result;
@@ -363,7 +363,7 @@ sub take_screenshot(;$) {
         return "test-$testname-$name";
     }
     else {
-        my $count = $self->{'test_count'};
+        my $count = $self->{test_count};
         return "test-$testname-$count";
     }
 }
@@ -382,10 +382,10 @@ sub register_screenshot($) {
         result     => 'unk',
     };
 
-    my $fn = join( '/', bmwqemu::result_dir(), $result->{'screenshot'} );
+    my $fn = join( '/', bmwqemu::result_dir(), $result->{screenshot} );
     $img->write_with_thumbnail($fn);
 
-    push @{ $self->{'details'} }, $result;
+    push @{ $self->{details} }, $result;
 
     return $result;
 }
@@ -393,10 +393,10 @@ sub register_screenshot($) {
 sub start_audiocapture() {
     my $self = shift;
     my $fn   = ref($self)."-captured.wav";
-    die "audio capture already in progress. Stop it first!\n" if ( $self->{'wav_fn'} );
+    die "audio capture already in progress. Stop it first!\n" if ( $self->{wav_fn} );
 
     # TODO: we only support one capture atm
-    $self->{'wav_fn'} = $fn;
+    $self->{wav_fn} = $fn;
     bmwqemu::do_start_audiocapture( join( '/', bmwqemu::result_dir(), $fn ) );
 }
 
@@ -411,11 +411,11 @@ sub stop_audiocapture() {
     bmwqemu::do_stop_audiocapture(0);
 
     my $result = {
-        audio  => $self->{'wav_fn'},
+        audio  => $self->{wav_fn},
         result => 'unk',
     };
 
-    push @{ $self->{'details'} }, $result;
+    push @{ $self->{details} }, $result;
 
     return $result;
 }
@@ -431,18 +431,18 @@ sub assert_DTMF($) {
     my $ref  = shift;
 
     my $result = $self->stop_audiocapture();
-    $result->{'reference_text'} = $ref;
+    $result->{reference_text} = $ref;
 
-    my $decoded_text = bmwqemu::decodewav( join( '/', bmwqemu::result_dir(), $result->{'audio'} ) );
+    my $decoded_text = bmwqemu::decodewav( join( '/', bmwqemu::result_dir(), $result->{audio} ) );
     if ( $decoded_text && ( uc $ref ) eq $decoded_text ) {
-        $result->{'result'} = 'ok';
-        $self->{result} ||= $result->{'result'};
+        $result->{result} = 'ok';
+        $self->{result} ||= $result->{result};
     }
     else {
-        $result->{'result'} = 'fail';
-        $self->{result} = $result->{'result'};
+        $result->{result} = 'fail';
+        $self->{result} = $result->{result};
     }
-    $result->{'decoded_text'} = $decoded_text;
+    $result->{decoded_text} = $decoded_text;
 
 }
 

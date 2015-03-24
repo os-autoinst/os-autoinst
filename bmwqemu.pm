@@ -791,6 +791,7 @@ sub assert_screen {
         $waiting_for_new_needle = 1;
 
         save_status();
+        current_test->save_test_result();
 
         diag("interactive mode waiting for continuation");
         while ( -e $control_files{'stop_waitforneedle'} ) {
