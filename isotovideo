@@ -53,8 +53,6 @@ die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
 
 bmwqemu::clean_control_files();
 
-bmwqemu::save_status();
-
 my $init = 1;
 
 # all so ugly ...
