@@ -390,7 +390,7 @@ sub script_output($;$) {
     wait_serial('curl-0', 2) || die "script couldn't be downloaded";
     send_key "ctrl-l";
 
-    type_string "/bin/bash -ex /tmp/script$suffix.sh > /dev/$serialdev\n";
+    type_string "/bin/bash -ex /tmp/script$suffix.sh | tee /dev/$serialdev\n";
     my $output = wait_serial('SCRIPT_FINISHED', $wait) or die "script failed";
 
     # strip the internal exit catcher
