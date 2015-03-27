@@ -23,9 +23,15 @@ backendexec_SCRIPTS = \
 	backend/kvm2usb.pm \
 	backend/qemu.pm \
 	backend/s390x.pm \
+	backend/console_proxy.pm \
 	backend/VNC.pm \
 	backend/vbox.pm \
 	backend/vnc_backend.pm
+
+backendexecs390xdir = $(pkglibexecdir)/backend/s390x
+backendexecs390x_SCRIPTS = \
+	backend/s390x/s3270.pm \
+	backend/s390x/vars.json.py
 
 backendhelpexecdir = $(pkglibexecdir)/backend/helper
 backendhelpexec_SCRIPTS = \
