@@ -153,8 +153,9 @@ sub wanted_($) {
 
 sub init(;$) {
     $needledir = shift if @_;
-    $needledir ||= "$bmwqemu::vars{CASEDIR}/needles/";
-    $needledir = abs_path($needledir);
+    $needledir //= "$bmwqemu::vars{CASEDIR}/needles/";
+    $needledir = abs_path($needledir) // die "needledir not found: $needledir (check vars.json?)";
+
     %needles   = ();
     %tags      = ();
     bmwqemu::diag("init needles from $needledir");

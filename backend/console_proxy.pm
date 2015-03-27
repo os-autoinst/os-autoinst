@@ -18,26 +18,33 @@ sub new() {
 use feature qw/say/;
 
 sub AUTOLOAD {
-    my $self = shift;
-    my $args = \@_;
 
     my $function = our $AUTOLOAD;
 
     $function =~ s,.*::,,;
-    my $wrapped_call = {
-        console => $self->{console},
-        function => $function,
-        args => $args,
+
+    #<<< perltidy, this _is_ tidy...
+    no strict 'refs';  # allow symbolic references
+    *$AUTOLOAD = sub {
+	my $self = shift;
+	my $args = \@_;
+	my $wrapped_call = {
+			    console => $self->{console},
+			    function => $function,
+			    args => $args,
+			   };
+
+	my $wrapped_retval = $bmwqemu::backend->proxy_console_call($wrapped_call);
+
+	if (exists $wrapped_retval->{exception}) {
+	    die $wrapped_retval->{exception};
+	}
+
+	return $wrapped_retval->{result};
     };
+    #<<< turn perltidy back on
 
-    my $wrapped_retval = $bmwqemu::backend->proxy_console_call($wrapped_call);
-
-    if (exists $wrapped_retval->{exception}) {
-        die $wrapped_retval->{exception};
-    }
-
-    return $wrapped_retval->{result};
-
+    goto &$AUTOLOAD;
 }
 
 1;
