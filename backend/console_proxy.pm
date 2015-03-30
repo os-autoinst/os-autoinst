@@ -1,6 +1,6 @@
-# This is the direct companion to backend::s390x::do_console_hack()
+# This is the direct companion to backend::proxy_console_call()
 #
-# "gnah" is a proxy object for calls to specific terminal functions
+# "console_proxy" is a proxy object for calls to specific terminal functions
 # like s3270->... or vnc->... or ssh->... from the tests in the main
 # thread.
 
