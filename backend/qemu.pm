@@ -474,11 +474,9 @@ sub start_qemu() {
     print "WELCOME $line\n";
 
     my $init = backend::driver::_read_json($self->{qmpsocket});
-    syswrite( $self->{qmpsocket}, "{execute': 'qmp_capabilities}\n" );
-    my $hash = backend::driver::_read_json($self->{qmpsocket});
+    my $hash = $self->handle_qmp_command({"execute" => "qmp_capabilities"});
     if (0) {
-        syswrite( $self->{qmpsocket}, "{execute': 'query-commands}\n" );
-        $hash = backend::driver::_read_json($self->{qmpsocket});
+        $hash = $self->handle_qmp_command({"execute" => "query-commands"});
         die "no commands!" unless ($hash);
         print "COMMANDS " . JSON::to_json( $hash, { pretty => 1 } ) . "\n";
     }
