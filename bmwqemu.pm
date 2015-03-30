@@ -270,7 +270,9 @@ sub update_line_number() {
 # pretty print like Data::Dumper but without the "VAR1 = " prefix
 sub pp {
     # FTR, I actually hate Data::Dumper.
-    chomp(my $value_with_trailing_newline = Data::Dumper->new(\@_)->Terse(1)->Dump());
+    my $value_with_trailing_newline = Data::Dumper->new(\@_)->Terse(1)->Dump();
+    chomp($value_with_trailing_newline);
+    return $value_with_trailing_newline;
 }
 
 sub log_call {
