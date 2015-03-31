@@ -170,6 +170,20 @@ sub ensure_installed {
     return $distri->ensure_installed(@_);
 }
 
+
+=head2 upload_image
+
+mark hdd image for uploading
+
+=cut
+
+sub upload_image($$;$) {
+    my ($hdd_num, $name, $public) = @_;
+    $bmwqemu::backend->do_upload_image({'hdd_num' => $hdd_num, 'name' => $name, 'dir' => $public ? 'assets_public' : 'assets_private'});
+}
+
+
+
 =head2 wait_still_screen
 
 wait_still_screen([$stilltime_sec [, $timeout_sec [, $similarity_level]]])

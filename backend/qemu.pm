@@ -136,6 +136,23 @@ sub do_loadvm($) {
     return $rsp;
 }
 
+sub do_upload_image() {
+    my ( $self, $args ) = @_;
+    my $hdd_num = $args->{hdd_num};
+    my $name = $args->{name};
+    my $img_dir = $args->{dir};
+    if ( -f "raid/l$hdd_num" ) {
+        bmwqemu::diag "preparing hdd $hdd_num for upload as $name\n";
+        mkpath($img_dir);
+        unlink("$img_dir/$name");
+        symlink("../raid/l$hdd_num", "$img_dir/$name");
+    }
+    else {
+        bmwqemu::diag "do_upload_image: hdd $hdd_num does not exist\n";
+    }
+}
+
+
 # baseclass virt method overwrite end
 
 sub start_qemu() {

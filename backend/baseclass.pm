@@ -281,6 +281,7 @@ sub stop         { notimplemented }
 sub cont         { notimplemented }
 sub do_savevm($) { notimplemented }
 sub do_loadvm($) { notimplemented }
+sub do_upload_image($) { notimplemented }
 
 ## MAY be overwritten:
 

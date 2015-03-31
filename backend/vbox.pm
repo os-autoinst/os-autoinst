@@ -174,5 +174,10 @@ sub do_loadvm($) {
     $self->raw_vbox_snapshot( "restore", $vmname );
 }
 
+sub do_upload_image($) {
+    my ($self) = @_;
+    print "do_upload_image ignored\n";
+}
+
 1;
 # vim: set sw=4 et:
