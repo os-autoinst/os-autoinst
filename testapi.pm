@@ -6,6 +6,8 @@ use strict;
 use File::Basename qw(basename);
 use Time::HiRes qw(sleep gettimeofday);
 
+require bmwqemu;
+
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string
   assert_screen upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
   script_sudo wait_serial save_screenshot wait_screen_change record_soft_failure
@@ -25,7 +27,7 @@ our $serialdev;
 
 sub send_key($;$);
 sub check_screen($;$);
-sub type_string($;$);
+sub type_string;
 sub type_password;
 
 sub init() {
@@ -291,23 +293,48 @@ sub send_key($;$) {
 
 =head2 type_string
 
-type_string($string, [$max_interval])
+type_string($string [ , max_interval => <num> ] [, secret => 1 ] )
 
 send a string of characters, mapping them to appropriate key names as necessary
 
+you can pass optional paramters with following keys:
+
 max_interval (1-250) determines the typing speed, the lower the
 max_interval the slower the typing.
+
+secret (bool) suppresses logging of the actual string typed.
+
 =cut
 
-sub type_string($;$) {
-    my $string      = shift;
-    my $max_interval = shift || 250;
-    bmwqemu::fctlog( 'type_string', ["string", "'$string'"], ["max_interval", "'$max_interval'"] );
-    $bmwqemu::backend->type_string($string, $max_interval);
+sub type_string {
+    # special argument handling for backward compat
+    my $string = shift;
+    my %args;
+    if (@_ == 1) { # backward compat
+        %args = ( max_interval => $_[0] );
+    }
+    else {
+        %args = @_;
+    }
+    my $log = $args{secret} ? 'SECRET STRING' : $string;
+    my $max_interval = $args{max_interval} // 250;
+    bmwqemu::fctlog( 'type_string', ["string", "'$log'"], ["max_interval", "'$max_interval'"] );
+    $bmwqemu::backend->type_string( { 'text' => $string, 'max_interval' => $max_interval } );
 }
 
-sub type_password() {
-    type_string $password;
+=head2 type_password
+
+type_password([$password])
+
+A convience wrappar around type_string, which doesn't log the string and uses $testapi::password
+if no string is given
+
+=cut
+
+sub type_password {
+    my ($string) = @_;
+    $string //= $password;
+    type_string $string, secret => 1;
 }
 
 ## keyboard end
