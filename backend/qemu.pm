@@ -109,8 +109,9 @@ sub kill_qemu($) {
 sub do_stop_vm($) {
     my $self = shift;
 
-    return unless $self->{'pid'} > 0;
+    return unless $self->{'pid'};
     kill_qemu($self->{'pid'});
+    $self->{'pid'} = undef;
     unlink( $self->{'pidfilename'} );
 }
 
@@ -598,6 +599,8 @@ sub read_qemupipe() {
 
 sub close_pipes() {
     my ($self) = @_;
+
+    $self->do_stop_vm();
 
     if ($self->{'qemupipe'}) {
         # one last word?
