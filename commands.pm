@@ -140,8 +140,8 @@ sub test_data {
     return $self->render_not_found;
 }
 
-# store the log file in $pooldir/ulogs
-sub upload_log {
+# store the file in $pooldir/$target
+sub upload_file {
     my ($self) = @_;
 
     if ($self->req->is_limit_exceeded) {
@@ -156,14 +156,16 @@ sub upload_log {
         return $self->render(message => 'upload file content missing', status => 400);
     }
 
+    my $target = $self->param('target');
+
     # global assumption cwd == pooldir
-    if (!-d 'ulogs') {
-        mkdir("ulogs") or die "$!";
+    if (!-d $target) {
+        mkdir($target) or die "$!";
     }
 
     my $upname = basename($self->param('filename'));
 
-    $upload->move_to("ulogs/$upname");
+    $upload->move_to("$target/$upname");
 
     return $self->render(text => "OK: $upname\n");
 }
@@ -189,7 +191,10 @@ sub run_daemon {
     get '/data/*relpath' => \&test_data;
 
     # uploading log files from tests
-    post '/uploadlog/#filename' => \&upload_log;
+    post '/uploadlog/#filename' => {target => 'ulogs'} => [target => [qw(ulogs)]] => \&upload_file;
+
+    # uploading assets
+    post '/upload_asset/#filename' => {target => 'assets_private'} => [target => [qw(assets_private assets_public)]] => \&upload_file;
 
     # to get the current bash script out of the test
     get '/current_script' => \&current_script;
