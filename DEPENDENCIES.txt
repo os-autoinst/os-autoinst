@@ -26,6 +26,7 @@ POSIX
 Term::ANSIColor
 Test::More
 Test::Simple
+Test::Compile
 Thread::Queue
 Time::HiRes
 YAML
