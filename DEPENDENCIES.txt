@@ -8,6 +8,7 @@ Digest::MD5
 DynaLoader
 Exporter
 ExtUtils::testlib
+ExtUtils::MakeMaker
 Fcntl
 File::Basename
 File::Find
@@ -34,3 +35,6 @@ strict
 threads
 threads::shared
 warnings
+Mojo::UserAgent
+Mojolicious::Lite
+Mojo::URL
