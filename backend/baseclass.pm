@@ -94,16 +94,20 @@ sub run {
 use List::Util qw(min);
 
 =head2 run_capture_loop(\@select, $timeout, $update_request_interval, $screenshot_interval)
+
 =out
 
 =item select
+
 IO::Select object that is polled when given
 
 =item timout
+
 run the loop this long in seconds, indefinitely if undef, or until the
 $self->{cmdpipe} is closed, whichever occurs first.
 
 =item update_request_interval
+
 space out update polls for this interval in seconds, i.e. update the
 internal buffers this often.
 
@@ -112,6 +116,7 @@ loop $self->{update_request_interval} can be modified while this loop
 is running, e.g. to poll more often for a stretch of time.
 
 =item screenshot_interval
+
 space out screen captures for this interval in seconds, i.e. save a
 screenshot from the buffers this often.
 
@@ -120,6 +125,7 @@ loop, $self->{screenshot_interval} can be modified while this loop is
 running, e.g. to do some fast or slow motion.
 
 =back
+
 =cut
 
 sub run_capture_loop($;$$$$ ) {
@@ -484,7 +490,7 @@ sub proxy_console_call() {
     };
 
     if ($@) {
-        $wrapped_result->{exception} = $@;
+        $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $@);
         # cluck "proxy_console_call: exception caught in the backend thread\n$@\n";
     }
 

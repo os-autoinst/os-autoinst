@@ -31,6 +31,7 @@ sub loadtest($) {
     }
     else {
         # perl code generating perl code is overcool
+        # FIXME turn this into a proper eval instead of a generated string
         my $code = "package $name;";
         $code .= "use lib '$casedir/lib';";
         my $basename = dirname($script);

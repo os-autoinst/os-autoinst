@@ -74,14 +74,15 @@ deprecated: assert_and_dclick($mustmatch,[$button],[$timeout],[$click_time]);
 
 sub assert_and_click($;$$$$) {
     my ($mustmatch, $button, $timeout, $clicktime, $dclick) = @_;
+
+    $dclick //= 0;
+
     my $foundneedle = bmwqemu::assert_screen(
         mustmatch => $mustmatch,
         timeout   => $timeout
     );
     my $old_mouse_coords = $bmwqemu::backend->get_last_mouse_set();
     bmwqemu::log_call( 'assert_and_click', mustmatch => $mustmatch, button => $button, timeout => $timeout );
-
-    my $dclick //= 0;
 
     # foundneedle has to be set, or the assert is buggy :)
     my $lastarea = $foundneedle->{'area'}->[-1];

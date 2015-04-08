@@ -71,6 +71,8 @@ sub load_vars() {
     my $ret = {};
     local $/;
     open(my $fh, '<', $fn) or return 0;
+    # FIXME: allow for comments in the initial input json, like
+    # JSON->new->relaxed->decode_json
     eval { $ret = decode_json(<$fh>); };
     warn "openQA didn't write proper vars.json" if $@;
     close($fh);
