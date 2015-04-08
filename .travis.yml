@@ -11,5 +11,6 @@ script:
   - ./tools/tidy --check
   - sh autogen.sh 
   - ./configure
-  - make && make check
+  - make
+  - prove -r
 
