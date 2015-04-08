@@ -1,13 +1,14 @@
 Carp
 Carp::Always
 Config
-Crypt::Des
+Crypt::DES
 Cwd
 Data::Dumper
 Digest::MD5
 DynaLoader
 Exporter
 ExtUtils::testlib
+ExtUtils::MakeMaker
 Fcntl
 File::Basename
 File::Find
@@ -25,6 +26,7 @@ POSIX
 Term::ANSIColor
 Test::More
 Test::Simple
+Test::Compile
 Thread::Queue
 Time::HiRes
 YAML
@@ -34,3 +36,7 @@ strict
 threads
 threads::shared
 warnings
+Mojo::UserAgent
+Mojolicious::Lite
+Mojo::URL
+Perl::Tidy
