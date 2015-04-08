@@ -39,3 +39,4 @@ warnings
 Mojo::UserAgent
 Mojolicious::Lite
 Mojo::URL
+Perl::Tidy
