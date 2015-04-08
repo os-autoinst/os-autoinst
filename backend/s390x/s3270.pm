@@ -23,9 +23,7 @@ use Thread::Queue;
 
 
 sub new() {
-
     my $self = Class::Accessor::new(@_);
-
     return $self;
 }
 
@@ -44,6 +42,11 @@ sub start() {
 
 }
 
+sub finish() {
+    my $self = shift;
+    IPC::Run::finish($self->{connection});
+}
+
 ###################################################################
 # send_3270 "COMMAND" [,  command_status => 'ok' (default) or 'error' or 'any' ]
 
@@ -60,8 +63,10 @@ sub start() {
 
 sub send_3270() {
     my ($self, $command, %arg) = @_;
-
-    if (!exists $arg{command_status}) { $arg{command_status} = "ok" }
+    $command //= '';
+    if (!exists $arg{command_status}) {
+        $arg{command_status} = "ok";
+    }
     confess "command_status must be 'ok' or 'error' or 'any', got $arg{command_status}."
       unless (grep $arg{command_status}, ['ok', 'error', 'any'] );
 
@@ -128,6 +133,16 @@ sub send_3270() {
 
 # return [] when timed out.
 
+## FIXME FIXME FIXME redesign with three goals
+##
+##   1. only clear the screen when it's full, not all the time, thus
+##      cope with new incremental input in addition to something that
+##      is already captured.
+##
+##   2. don't block screenshots (see vnc_backend.pm type_string)
+##
+##   3. get something like expect_3270 for ssh sessions, too: no
+##      status line, no input line, no MORE...
 sub expect_3270() {
     my ($self, %arg) = @_;
     ### say Dumper \%arg;
@@ -187,6 +202,14 @@ sub expect_3270() {
 
             # if there is MORE..., go and grab it.
             if ($status_line =~ /$arg{buffer_full}/) {
+                # # FIXME: we could capture_screenshot here to ensure
+                # # no screen content is lost in the video.  It is
+                # # a hacky work around until this loop is properly
+                # # integrated with the baseclass run_capture_loop
+                # # alas this won't work because $self has no
+                # # capture_screenshot --- as $self deosn't know the X
+                # # display / VNC to capture from (yet).
+                # $self->capture_screenshot();
                 $self->send_3270("Clear");
                 next;
             }
@@ -249,13 +272,21 @@ sub expect_3270() {
         # last time, clear the screen so we don't grab the same stuff
         # again.
 
-        # The maybe better alternative solution to the same problem
+        # FIXME: The better alternative solution to the same problem
         # would be to remember lines that were not updated since the
         # last Snap(Ascii) and to thus avoid duplicate lines.
 
-        # for now we live with having a clear screen.
+        # For now we have to live with having a clear screen.
 
         if ($we_had_new_output) {
+            # # FIXME: we could capture_screenshot here to ensure
+            # # no screen content is lost in the video.  It is
+            # # a hacky work around until this loop is properly
+            # # integrated with the baseclass run_capture_loop
+            # # alas this won't work because $self has no
+            # # capture_screenshot --- as $self deosn't know the X
+            # # display / VNC to capture from (yet).
+            # $self->capture_screenshot();
             $self->send_3270("Clear");
         }
 
@@ -312,6 +343,7 @@ sub sequence_3270() {
 
 sub nice_3270_status() {
     my ($status_string) = @_;
+    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($status_string);
     my (@raw_status) = split(" ", $status_string);
     my @status_names = (
         'keyboard_state',
@@ -353,11 +385,11 @@ sub nice_3270_status() {
         ## The X window identifier for the main x3270 window, in
         ## hexadecimal preceded by 0x. For s3270 and c3270, this
         ## is zero.
-        'command_execution_time'
-          ## The time that it took for the host to respond to the
-          ## previous commnd, in seconds with milliseconds after the
-          ## decimal. If the previous command did not require a host
-          ## response, this is a dash.
+        'command_execution_time',
+        ## The time that it took for the host to respond to the
+        ## previous commnd, in seconds with milliseconds after the
+        ## decimal. If the previous command did not require a host
+        ## response, this is a dash.
     );
 
     my %nice_status;
@@ -428,8 +460,14 @@ sub cp_disconnect() {
     $self->send_3270('Wait(Disconnect)');
 }
 
+sub DESTROY {
+    my $self = shift;
+    IPC::Run::finish($self->{connection});
+}
+
 sub connect_and_login() {
     my ($self, $reconnect_ok) = @_;
+    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp(\@_);
     $reconnect_ok //= 0;
     my $r;
     ###################################################################
@@ -445,7 +483,7 @@ sub connect_and_login() {
         # TODO:  think about what to really do in this case.
 
         if (grep /(?:RECONNECT|HCPLGA).*/, @$r ) {
-            cluck #
+            carp #
               "connect_and_login: machine is in use ($self->{zVM_host} $self->{guest_login}):\n" . #
               join("\n", @$r) . "\n";
 
