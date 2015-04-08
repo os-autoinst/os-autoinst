@@ -215,11 +215,14 @@ instsrc_vars = {
     "tftp": None,
 }
 
+sshpassword = "SSH!554!"
+Xvnc_DISPLAY = 91
+
 console_vars = {
     "ssh": {
         "PARMFILE": {
             "ssh": "1",
-            "sshpassword" : "SSH!554!",
+            "sshpassword" : sshpassword,
         },
         "DISPLAY" : {
             "TYPE" : "SSH",
@@ -239,25 +242,27 @@ console_vars = {
     "x11": {
         "DISPLAY": {
             "TYPE" : "X11",
-            # run a local X server with screen 1 open to the world, like this:
-            # Xvnc -ac -SecurityTypes=none :1
+            # run a local X server with it's screen  open to the world, like this:
+            # Xvnc -ac -SecurityTypes=none :77
             "HOST"   : my_ip,
-            "SCREEN" : "1",
+            "SCREEN" : Xvnc_DISPLAY,
         },
         "PARMFILE": {
-            "Display_IP" : "{}:1".format(my_ip)
+            "Display_IP" : "{}:{}".format(my_ip, Xvnc_DISPLAY),
+            # http://bugzilla.suse.com/show_bug.cgi?id=920635
+            "Y2FULLSCREEN": "1",
         }
     },
     # FIXME:  get ssh -X working
-    #"ssh-X": {
-    #    "PARMFILE": {
-    #        "ssh": "1",
-    #        "sshpassword" : "SSH!554!",
-    #    },
-    #    "DISPLAY" : {
-    #        "TYPE" : "SSH",
-    #    },
-    #},
+    "ssh-X": {
+       "PARMFILE": {
+           "ssh": "1",
+           "sshpassword" : sshpassword,
+       },
+       "DISPLAY" : {
+           "TYPE" : "SSH-X",
+       },
+    },
 }
 
 def make_vars_json(insthost, guest, network_device, instsource, console, distro):
@@ -282,7 +287,10 @@ def make_vars_json(insthost, guest, network_device, instsource, console, distro)
         ],
 
         "BETA": "1",
-
+        # $vars{VNC} is the *local* Xvnc $DISPLAY and vnc display id.
+        # connect to it locally, where isotovideo runs, to watch
+        # isotovideo do it's work.
+        "VNC": Xvnc_DISPLAY,
         "ZVM_GUEST"     : "linux{guest}".format(guest=guest),
         "ZVM_PASSWORD"	: "lin390",
 
@@ -292,9 +300,9 @@ def make_vars_json(insthost, guest, network_device, instsource, console, distro)
             # nameserver
             "Nameserver" : "10.160.0.1",
             "Domain"	 : "suse.de",
-            # *ALLWAYS* enable sshd in our tests
+            # *ALLWAYS* enable sshd 'backdoor' in our tests
             "sshd"        : "1",
-            "sshpassword": "SSH!554!",
+            "sshpassword": sshpassword,
             # inject a DUD.  only works in manual=0 unattended mode!
             #"dud": "http://w3.suse.de/~snwint/bnc_913888.dud",
             # "startshell":"1".
