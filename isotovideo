@@ -27,7 +27,7 @@ use Getopt::Std;
 # avoid paranoia
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
 
-sub HELP_MESSAGE() {
+sub HELP_MESSAGE {
   print "$0 [-d]\n";
   print "Parses vars.json and tests the given assets/ISOS\n\n";
   print " -d enables direct output to STDERR instead of autoinst-log.txt\n"
@@ -90,7 +90,7 @@ $ENV{MOJO_MAX_MESSAGE_SIZE} = 107741824;
 use commands;
 
 # Load the main.pm from the casedir checked by the sanity checks above
-require "$bmwqemu::vars{CASEDIR}/main.pm";
+require $bmwqemu::vars{CASEDIR}."/main.pm";
 
 # init part
 $bmwqemu::vars{BACKEND} ||= "qemu";
@@ -106,7 +106,7 @@ if ($init) {
     # run prestart test code before VM is started
     if (-f "$bmwqemu::vars{CASEDIR}/prestart.pm") {
         diag "running prestart step";
-        eval {require "$bmwqemu::vars{CASEDIR}/prestart.pm";};
+        eval {require $bmwqemu::vars{CASEDIR}."/prestart.pm";};
         if ($@) {
             diag "prestart step FAIL:";
             die $@;
