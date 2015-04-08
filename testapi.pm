@@ -13,7 +13,9 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key ty
   script_sudo wait_serial save_screenshot wait_screen_change record_soft_failure
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
-  autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image );
+  autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image 
+  activate_console select_console console deactivate_console
+);
 
 our %cmd;
 
@@ -541,6 +543,138 @@ sub wait_screen_change(&@) {
 }
 
 ## helpers end
+
+=head1 multi console support
+
+All testapi commands that interact with the system under test do that
+through a console.  C<send_key>, C<type_string> type into a console.
+C<assert_screen> 'looks' at a console, C<assert_and_click> looks at
+and clicks on a console.
+
+Most backends support several consoles in some way.  These consoles
+then have names as defined by the backend.
+
+The qemu backend has a "ctrl-alt-2" console and a "ctrl-alt-1" console by
+default.  They are 'just there' as soon as Linux is started.
+
+The s390x backend has a s3270 console which is 'just there' when
+turning on the zVM guest, or TODO a snipl console when connecting to
+an LPAR.  Additional consoles need to be activated explicitly, like an
+ssh console, an ssh-X console a VNC console.
+
+
+Consoles can be selected for interaction with the with the system
+under test.  One of them is 'selected' by default, as defined by the
+backend.
+
+The backends predefine the following consoles:
+
+  testapi_console | qemu                    | s390x
+  ================|=========================|===================
+  bootloader      | ctrl-alt-1 or           | s3270 [,snipl]
+  installation    | ctrl-alt-1 [ctrl-alt-7] | [ssh, ssh+X, remote-x11, VNC]
+  console         | ctrl-alt-2              | [ssh, s3270, snipl]
+  errorlog        | ctrl-alt-9              | s3270 [snipl]
+
+Consoles in brackets need to be activated explicitly
+(activate_console).  Some backend consoles allow for multiple distinct
+instances, like several distinct ssh connections ot the same system
+under test.  On the other hand, the same backend console instance
+(like s3270 to some zVM guest) may provide several testapi consoles.
+
+Note: The consoles just provide bare access.  Architecture specific
+additional steps to access the console (login, etc), have to be done
+from the tests!
+
+# FIXME terminology console vs terminal
+
+=out
+
+=item C<select_console("testapi_console")>
+
+Select the named console for further testapi interaction (send_text,
+send_key, wait_screen_change, ...)
+
+=item C<activate_console("testapi_console" [, optional console parameters...])>
+
+Activate and select a console that is not automatically activated.
+
+The console parameters are backend specific.
+
+=item C<deactivate_console("testapi_console")>
+
+Deactivate, i.e. disconnect, 'turn off' a console, free local
+ressources associated with it.  The system under test can deactivate
+consoles.  It is a fatal ('die ...') error to give commands to
+deactivated consoles.
+
+It is a fatal ('die ...') error to give commands to inactive consoles.
+
+=item C<console("testapi_console")->$console_command(@console_command_args)>
+
+Some consoles have special commands beyond C<type_string>, C<assert_screen>
+
+Such commands can be accessed using this API.
+
+C<console("bootloader")>, C<console("errorlog")>, ... returns a proxy
+object for the specific console which can then be directly accessed.
+
+This is also usefull for typing/interacting 'in the background',
+without turning the video away from the currently selected console.
+
+Note: C<assert_screen()> and friends look at the currently selected
+console (select_console), no matter which console you send commands to
+here.
+
+=back
+
+=cut
+
+
+require backend::console_proxy;
+
+my %testapi_console_proxies;
+
+sub activate_console($$;@) {
+    my ($testapi_console, $backend_console, @backend_args) = @_;
+
+    die "activate_console: console $testapi_console is already active" if exists $testapi_console_proxies{$testapi_console};
+
+    bmwqemu::log_call( 'activate_console', testapi_console => $testapi_console, backend_console => $backend_console, backend_args => \@backend_args );
+    $bmwqemu::backend->activate_console( { testapi_console => $testapi_console, backend_console => $backend_console, backend_args => \@backend_args } );
+    # now the backend knows which console the testapi means with $testapi_console ("bootloader", "vnc", ...)
+    $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
+}
+
+sub select_console($) {
+    my ($testapi_console) = @_;
+    die "select_console: console $testapi_console is not activated" unless exists $testapi_console_proxies{$testapi_console};
+    bmwqemu::log_call( 'select_console', testapi_console => $testapi_console );
+    $bmwqemu::backend->select_console( { testapi_console => $testapi_console } );
+}
+
+sub deactivate_console($) {
+    my ($testapi_console) = @_;
+    unless (exists $testapi_console_proxies{$testapi_console}) {
+        warn "deactivate_console: console $testapi_console is not activated";
+        return;
+    }
+    bmwqemu::log_call( 'deactivate_console', testapi_console => $testapi_console );
+    $bmwqemu::backend->deactivate_console( { testapi_console => $testapi_console } );
+    delete $testapi_console_proxies{$testapi_console};
+}
+
+sub console($) {
+    my ($testapi_console) = @_;
+    bmwqemu::log_call( 'console', testapi_console => $testapi_console );
+    if (exists $testapi_console_proxies{$testapi_console}) {
+        return $testapi_console_proxies{$testapi_console};
+    }
+    else {
+        die "console $testapi_console is not activated.";
+    }
+}
+
 
 1;
 

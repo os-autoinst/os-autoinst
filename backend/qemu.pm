@@ -437,28 +437,9 @@ sub start_qemu() {
     print $pidf $self->{pid}, "\n";
     close $pidf;
 
-    $self->{vnc} = backend::VNC->new({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC} });
+    #local $Devel::Trace::TRACE = 1;
 
-    # the real timeout is the 7 below
-    for my $i (1..10) {
-        eval {
-            # we sure don't want to stop the vm in case this fails
-            local $SIG{__DIE__};
-            $self->{vnc}->login;
-        };
-        if ($@) {
-            if ($i > 7) {
-                $self->close_pipes();
-                die $@;
-            }
-            else {
-                sleep 1;
-            }
-        }
-        else {
-            last;
-        }
-    }
+    $self->connect_vnc({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC} });
 
     $self->{hmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
@@ -503,11 +484,10 @@ sub start_qemu() {
         $self->send($cnt);
     }
 
+    print "Start CPU";
     $self->handle_qmp_command({"execute" => "cont"});
 
     $self->{select}->add($self->{qemupipe});
-
-    $self->capture_screenshot();
 }
 
 sub _read_hmp($) {
@@ -583,6 +563,7 @@ sub handle_qmp_command($) {
     my ($self, $cmd) = @_;
 
     my $line = JSON::to_json($cmd);
+    # CORE::say "handle_qmp_command: " . bmwqemu::pp($line);
     my $wb = syswrite( $self->{qmpsocket}, "$line\n" );
     die "syswrite failed $!" unless ( $wb == length($line) + 1 );
 
@@ -592,7 +573,6 @@ sub handle_qmp_command($) {
         $hash = backend::driver::_read_json($self->{qmpsocket});
         if ( $hash->{event} ) {
             print STDERR "EVENT " . JSON::to_json($hash) . "\n";
-
             # ignore
             $hash = undef;
         }

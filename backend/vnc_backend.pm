@@ -8,6 +8,40 @@ use feature qw/say/;
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 
+sub connect_vnc($$) {
+    my ($self, $args) = @_;
+    if ($self->{vnc}) {
+        close($self->{vnc}->socket);
+        sleep(1);
+    }
+
+    $self->{vnc} = backend::VNC->new($args);
+    # try to log in; this may fail a few times
+    for my $i (1..10) {
+        my @connection_error;
+        eval {
+            local $SIG{__DIE__};
+            $self->{vnc}->login();
+        };
+        if ($@) {
+            push @connection_error, $@;
+            if ($i > 7) {
+                $self->close_pipes();
+                die join("\n", @connection_error);
+            }
+            else {
+                sleep 1;
+            }
+        }
+        else {
+            last;
+        }
+    }
+
+    $self->capture_screenshot();
+    return $self->{vnc};
+}
+
 sub request_screen_update($ ) {
     my ($self) = @_;
     return unless $self->{vnc};

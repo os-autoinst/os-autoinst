@@ -7,6 +7,8 @@
 use strict;
 use threads;
 
+local $Devel::Trace::TRACE = 0;
+
 our $installprefix;
 
 BEGIN {
