@@ -384,7 +384,7 @@ sub mydie {
     croak "mydie";
 }
 
-sub do_start_audiocapture($) {
+sub do_start_audiocapture {
     my $filename = shift;
     fctlog( 'start_audiocapture', $filename );
     $backend->start_audiocapture($filename);

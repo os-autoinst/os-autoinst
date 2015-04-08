@@ -25,9 +25,6 @@ AC_PROG_LIBTOOL
 AC_PROG_MKDIR_P
 PKG_PROG_PKG_CONFIG([0.20])
 
-AC_CHECK_PROG([PERL], [perl], [/usr/bin/perl], [
-        AC_MSG_ERROR([Cannot find perl])
-])
 AC_MSG_CHECKING([perl CFLAGS])
 PERL_CFLAGS=`perl -MExtUtils::Embed -e ccopts`
 AC_MSG_RESULT([$PERL_CFLAGS])

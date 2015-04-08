@@ -19,29 +19,31 @@ use warnings;
 use Test::Compile;
 use Cwd;
 
-my $workdir;
-
 BEGIN {
     if (getcwd =~ /\/t$/) {
-        $workdir = '..';
+        # not really using it, but we need the init to be called before the chdir
+        use FindBin;
+        chdir("..");
     }
-    else {
-        $workdir = '.';
-    }
-    unshift @INC, $workdir;
+    unshift @INC, ".";
 }
 
-my $test = Test::Compile->new();
-$test->verbose(0);
+use cv;
+cv::init;
 
-my @files = $test->all_pm_files($workdir);
+my $test = Test::Compile->new();
+#$test->verbose(0);
+
+my @files = $test->all_pm_files(".");
+
 for my $file (@files) {
     #TODO: ./autoinstallstep.pm is missing installstep dependency
     next if ($file =~ /autoinstallstep.pm/);
+    $file =~ s,^\./,,;
     $test->ok($test->pm_file_compiles($file), "Compile test for $file");
 }
 
-@files = ($workdir . '/isotovideo', $test->all_pl_files($workdir));
+@files = ( 'isotovideo', $test->all_pl_files("."));
 for my $file (@files) {
     $test->ok($test->pl_file_compiles($file), "Compile test for $file");
 }

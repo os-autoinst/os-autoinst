@@ -6,10 +6,11 @@ before_install:
   - sudo apt-get update
 install:
   - cpanm -nq `cat DEPENDENCIES.txt`
-  - sudo apt-get install libopencv-dev libtheora-dev libcv-dev libhighgui-dev libdata-dump-perl libjson-perl libcarp-always-perl tesseract-ocr
+  - sudo apt-get install libopencv-dev libtheora-dev libcv-dev libhighgui-dev tesseract-ocr
 script:
+  - find . -type f | xargs -n1 sed -i -e 's,#!/usr/bin/perl,#!/usr/bin/env perl,'
   - ./tools/tidy --check
   - sh autogen.sh 
   - ./configure
-  - make && make check
+  - make && make check VERBOSE=1
 

@@ -89,7 +89,7 @@ PERL_MODULE = ppmclibs/blib/arch/auto/tinycv/tinycv.so
 
 ppmclibs/Makefile: ppmclibs/Makefile.PL
 	cd ppmclibs && \
-	$(PERL) Makefile.PL OPTIMIZE="$(CXXFLAGS)"
+	perl Makefile.PL OPTIMIZE="$(CXXFLAGS)"
 
 $(PERL_MODULE): ppmclibs/Makefile
 	$(MAKE) -C ppmclibs

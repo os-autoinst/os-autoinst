@@ -1,7 +1,12 @@
-#!/usr/bin/perl -w -I..
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 use Test::More tests => 6;
+
+BEGIN {
+    unshift @INC, '..';
+}
 
 require bmwqemu;
 require t::test_driver;

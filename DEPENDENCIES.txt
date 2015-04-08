@@ -1,5 +1,6 @@
 Carp
 Carp::Always
+Class::Accessor::Fast
 Config
 Crypt::DES
 Cwd
@@ -7,8 +8,8 @@ Data::Dumper
 Digest::MD5
 DynaLoader
 Exporter
-ExtUtils::testlib
 ExtUtils::MakeMaker
+ExtUtils::testlib
 Fcntl
 File::Basename
 File::Find
@@ -20,13 +21,18 @@ IO::Select
 IO::Socket
 IO::Socket::SSL
 IO::Socket::UNIX
+IPC::Run::Debug
 JSON
+Mojo::URL
+Mojo::UserAgent
+Mojolicious::Lite
 Net::SNMP
 POSIX
+Perl::Tidy
 Term::ANSIColor
+Test::Compile
 Test::More
 Test::Simple
-Test::Compile
 Thread::Queue
 Time::HiRes
 YAML
@@ -36,7 +42,3 @@ strict
 threads
 threads::shared
 warnings
-Mojo::UserAgent
-Mojolicious::Lite
-Mojo::URL
-Perl::Tidy

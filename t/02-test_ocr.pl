@@ -1,9 +1,11 @@
-#!/usr/bin/perl -w -I..
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 use Test::Simple tests => 2;
 
 BEGIN {
+    unshift @INC, '..';
     $bmwqemu::vars{DISTRI}  = "unicorn";
     $bmwqemu::vars{CASEDIR} = "/var/lib/empty";
 }

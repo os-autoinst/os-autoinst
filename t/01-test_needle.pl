@@ -1,6 +1,7 @@
-#!/usr/bin/perl -w -I..
+#!/usr/bin/perl
 
 use strict;
+use warnings;
 use Test::More tests => 45;
 
 # optional but very useful
@@ -8,6 +9,7 @@ eval 'use Test::More::Color';
 eval 'use Test::More::Color "foreground"';
 
 BEGIN {
+    unshift @INC, '..';
     $bmwqemu::vars{DISTRI}  = "unicorn";
     $bmwqemu::vars{CASEDIR} = "/var/lib/empty";
 }
