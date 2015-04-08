@@ -21,7 +21,7 @@ use File::Temp;
 use constant { SCHAR_MAX => 127, SCHAR_MIN => -127 };
 use base ( 'backend::helper::scancodes', 'backend::baseclass' );
 
-use bmwqemu qw(diag $serialfile);
+use bmwqemu qw(diag);
 
 sub init() {
     my $self = shift;

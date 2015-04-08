@@ -4,7 +4,7 @@ package backend::vbox;
 use strict;
 use Cwd 'abs_path';
 use File::Temp;
-use bmwqemu qw ($scriptdir);
+use bmwqemu;
 
 #use FindBin;
 #use lib "$FindBin::Bin/backend";
