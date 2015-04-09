@@ -82,29 +82,16 @@ sub init_charmap() {
 sub relogin_vnc() {
     my ($self) = @_;
 
-    if ($self->{'vnc'}) {
-        #$self->{'select'}->remove($self->{'vnc'}->socket);
-        close($self->{'vnc'}->socket);
-        sleep(1);
-    }
-    $self->{'vnc'}  = backend::VNC->new(
+    $self->connect_vnc(
         {
             hostname => $bmwqemu::vars{'IPMI_HOSTNAME'},
             port => 5900,
             username => $bmwqemu::vars{'IPMI_USER'},
             password => $bmwqemu::vars{'IPMI_PASSWORD'},
             ikvm => 1,
-            # FIXME: not needed?
-            # update_request_throttle_seconds => 2,
         }
-    );
-    eval { $self->{'vnc'}->login; };
-    if ($@) {
-        $self->close_pipes();
-        die $@;
-    }
+      )
 
-    $self->capture_screenshot();
 }
 
 sub do_start_vm() {

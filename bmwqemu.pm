@@ -71,6 +71,8 @@ sub load_vars() {
     my $ret = {};
     local $/;
     open(my $fh, '<', $fn) or return 0;
+    # FIXME: allow for comments in the initial input json, like
+    # JSON->new->relaxed->decode_json
     eval { $ret = decode_json(<$fh>); };
     warn "openQA didn't write proper vars.json" if $@;
     close($fh);
@@ -269,26 +271,20 @@ sub update_line_number() {
 
 # pretty print like Data::Dumper but without the "VAR1 = " prefix
 sub pp {
-    Data::Dumper->new(\@_)->Terse(1)->Dump();
+    # FTR, I actually hate Data::Dumper.
+    my $value_with_trailing_newline = Data::Dumper->new(\@_)->Terse(1)->Dump();
+    chomp($value_with_trailing_newline);
+    return $value_with_trailing_newline;
 }
 
-sub fctlog {
-    my $fname   = shift;
-    my @fparams = @_;
+sub log_call {
+    my $fname = shift;
     update_line_number();
-    my $params = '';
-    for my $p (@fparams) {
-        if (ref($p) eq 'ARRAY') {
-            if (defined $p->[1]) {
-                $p = $p->[0] . "=" . pp($p->[1]);
-            }
-            else {
-                $p = $p->[0] . "=undef";
-            }
-        }
-        $params .= ", " . $p;
+    my @result;
+    while ( my ($key, $value) = splice(@_, 0, 2) ) {
+        push @result, join("=", $key, pp($value));
     }
-    $params =~ s/^, //;
+    my $params = join(", ", @result);
 
     print_possibly_colored  '<<< ' . $fname . "($params)", 'blue';
 }
@@ -378,7 +374,7 @@ sub cont_vm() {
 }
 
 sub mydie {
-    fctlog( 'mydie', "@_" );
+    log_call( 'mydie', cause_of_death => \@_ );
 
     #	$backend->stop_vm();
     croak "mydie";
@@ -386,13 +382,13 @@ sub mydie {
 
 sub do_start_audiocapture {
     my $filename = shift;
-    fctlog( 'start_audiocapture', $filename );
+    log_call( 'start_audiocapture', filename => $filename );
     $backend->start_audiocapture($filename);
 }
 
 sub do_stop_audiocapture($) {
     my $index = shift;
-    fctlog( 'stop_audiocapture', $index );
+    log_call( 'stop_audiocapture', index => $index );
     $backend->stop_audiocapture($index);
 }
 

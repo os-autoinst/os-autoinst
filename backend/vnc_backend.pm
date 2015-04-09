@@ -8,9 +8,43 @@ use feature qw/say/;
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 
+sub connect_vnc($$) {
+    my ($self, $args) = @_;
+    if ($self->{vnc}) {
+        close($self->{vnc}->socket);
+        sleep(1);
+    }
+
+    $self->{vnc} = backend::VNC->new($args);
+    # try to log in; this may fail a few times
+    for my $i (1..10) {
+        my @connection_error;
+        eval {
+            local $SIG{__DIE__};
+            $self->{vnc}->login();
+        };
+        if ($@) {
+            push @connection_error, $@;
+            if ($i > 7) {
+                $self->close_pipes();
+                die join("\n", @connection_error);
+            }
+            else {
+                sleep 1;
+            }
+        }
+        else {
+            last;
+        }
+    }
+
+    $self->capture_screenshot();
+    return $self->{vnc};
+}
+
 sub request_screen_update($ ) {
     my ($self) = @_;
-    return unless $self->{'vnc'};
+    return unless $self->{vnc};
     # drain the VNC socket before polling for a ne update
     $self->{vnc}->update_framebuffer();
     $self->{vnc}->send_update_request();
@@ -18,9 +52,9 @@ sub request_screen_update($ ) {
 
 sub capture_screenshot($ ) {
     my ($self) = @_;
-    return unless $self->{'vnc'};
+    return unless $self->{vnc};
 
-    unless ($self->{'vnc'}->_framebuffer) {
+    unless ($self->{vnc}->_framebuffer) {
         # No _framebuffer yet.  First connect?  Tickle vnc server to
         # get it filled.
         $self->request_screen_update();
@@ -28,16 +62,16 @@ sub capture_screenshot($ ) {
     }
 
     $self->{vnc}->update_framebuffer();
-    return unless $self->{'vnc'}->_framebuffer;
-    $self->enqueue_screenshot($self->{'vnc'}->_framebuffer);
+    return unless $self->{vnc}->_framebuffer;
+    $self->enqueue_screenshot($self->{vnc}->_framebuffer);
 }
 
 # this is called for all sockets ready to read from. return 1 for success.
 sub check_socket {
     my ($self, $fh) = @_;
 
-    if ($self->{'vnc'}) {
-        if ( $fh == $self->{'vnc'}->socket ) {
+    if ($self->{vnc}) {
+        if ( $fh == $self->{vnc}->socket ) {
             # FIXME: polling the VNC socket is not part of the backend
             # select loop, because IO::Select and read() should not be
             # mixed, according to the docs.  So this should be dead
@@ -52,8 +86,8 @@ sub check_socket {
 sub close_pipes() {
     my ($self) = @_;
 
-    close($self->{'vnc'}->socket) if ($self->{'vnc'} && $self->{'vnc'}->socket);
-    $self->{'vnc'} = undef;
+    close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
+    $self->{vnc} = undef;
 
     $self->SUPER::close_pipes();
 }
@@ -93,7 +127,7 @@ sub type_string($$) {
 
     for my $letter (split( "", $args->{text}) ) {
         $letter = $self->map_letter($letter);
-        $self->{'vnc'}->send_mapped_key($letter);
+        $self->{vnc}->send_mapped_key($letter);
         $self->run_capture_loop(undef, $seconds_per_keypress, $seconds_per_keypress*.9);
     }
     return {};
@@ -105,7 +139,7 @@ sub send_key($) {
     bmwqemu::diag "send_mapped_key '" . $args->{key} . "'";
     # FIXME the max_interval logic from type_string should go here, no?
     # and really, the screen should be checked for settling after key press...
-    $self->{'vnc'}->send_mapped_key($args->{key});
+    $self->{vnc}->send_mapped_key($args->{key});
     $self->run_capture_loop(undef, .2, .19);
     return {};
 }
@@ -113,16 +147,16 @@ sub send_key($) {
 sub mouse_hide {
     my ($self, $args) = @_;
 
-    $self->{'mouse'}->{'x'} = $self->{'vnc'}->width - 1;
-    $self->{'mouse'}->{'y'} = $self->{'vnc'}->height - 1;
+    $self->{mouse}->{x} = $self->{vnc}->width - 1;
+    $self->{mouse}->{y} = $self->{vnc}->height - 1;
 
     my $border_offset = int($args->{border_offset});
-    $self->{'mouse'}->{'x'} -= $border_offset;
-    $self->{'mouse'}->{'y'} -= $border_offset;
+    $self->{mouse}->{x} -= $border_offset;
+    $self->{mouse}->{y} -= $border_offset;
 
-    bmwqemu::diag "mouse_move $self->{'mouse'}->{'x'}, $self->{'mouse'}->{'y'}";
-    $self->{'vnc'}->mouse_move_to($self->{'mouse'}->{'x'}, $self->{'mouse'}->{'y'});
-    return { 'absolute' => $self->{'vnc'}->absolute };
+    bmwqemu::diag "mouse_move $self->{mouse}->{x}, $self->{mouse}->{y}";
+    $self->{vnc}->mouse_move_to($self->{mouse}->{x}, $self->{mouse}->{y});
+    return { 'absolute' => $self->{vnc}->absolute };
 
 }
 
@@ -130,11 +164,11 @@ sub mouse_set {
     my ($self, $args) = @_;
 
     # TODO: for framebuffers larger than 1024x768, we need to upscale
-    $self->{'mouse'}->{'x'} = int($args->{x});
-    $self->{'mouse'}->{'y'} = int($args->{y});
+    $self->{mouse}->{x} = int($args->{x});
+    $self->{mouse}->{y} = int($args->{y});
 
-    bmwqemu::diag "mouse_set $self->{'mouse'}->{'x'}, $self->{'mouse'}->{'y'}";
-    $self->{'vnc'}->mouse_move_to($self->{'mouse'}->{'x'}, $self->{'mouse'}->{'y'});
+    bmwqemu::diag "mouse_set $self->{mouse}->{x}, $self->{mouse}->{y}";
+    $self->{vnc}->mouse_move_to($self->{mouse}->{x}, $self->{mouse}->{y});
     return {};
 }
 
@@ -154,8 +188,8 @@ sub mouse_button {
     elsif ($button eq 'middle') {
         $mask = $bstate << 1;
     }
-    bmwqemu::diag "pointer_event $mask $self->{'mouse'}->{'x'}, $self->{'mouse'}->{'y'}";
-    $self->{'vnc'}->send_pointer_event( $mask, $self->{'mouse'}->{'x'}, $self->{'mouse'}->{'y'} );
+    bmwqemu::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
+    $self->{vnc}->send_pointer_event( $mask, $self->{mouse}->{x}, $self->{mouse}->{y} );
     return {};
 }
 

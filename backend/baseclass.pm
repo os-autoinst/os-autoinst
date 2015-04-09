@@ -94,16 +94,20 @@ sub run {
 use List::Util qw(min);
 
 =head2 run_capture_loop(\@select, $timeout, $update_request_interval, $screenshot_interval)
+
 =out
 
 =item select
+
 IO::Select object that is polled when given
 
 =item timout
+
 run the loop this long in seconds, indefinitely if undef, or until the
 $self->{cmdpipe} is closed, whichever occurs first.
 
 =item update_request_interval
+
 space out update polls for this interval in seconds, i.e. update the
 internal buffers this often.
 
@@ -112,6 +116,7 @@ loop $self->{update_request_interval} can be modified while this loop
 is running, e.g. to poll more often for a stretch of time.
 
 =item screenshot_interval
+
 space out screen captures for this interval in seconds, i.e. save a
 screenshot from the buffers this often.
 
@@ -120,6 +125,7 @@ loop, $self->{screenshot_interval} can be modified while this loop is
 running, e.g. to do some fast or slow motion.
 
 =back
+
 =cut
 
 sub run_capture_loop($;$$$$ ) {
@@ -446,6 +452,7 @@ sub check_socket {
 
         if ( $cmd->{cmd} ) {
             my $rsp = $self->handle_command($cmd);
+            #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($rsp);
             if ($self->{'rsppipe'}) { # the command might have closed it
                 $self->{'rsppipe'}->print(JSON::to_json( { "rsp" => $rsp } ));
                 $self->{'rsppipe'}->print("\n");
@@ -461,14 +468,82 @@ sub check_socket {
 }
 
 ###################################################################
-## API to access other consoles from the test case thread
+## access other consoles from the test case thread
 
-## TODO: console multiplexer:
-## sub switch_to_console(console => CONSOLE)
-## redirect all backend commands to CONSOLE from there on, also screen
-## capture from CONSOLE now.
+sub activate_console($$) {
+    my ($self, $args) = @_;
+    my $testapi_console = $args->{testapi_console};
 
-sub proxy_console_call() {
+    if (exists $self->{consoles}->{$testapi_console}) {
+        die "activate_console: console $testapi_console already activated";
+    }
+
+    my $new_console = $self->_new_console($args);
+    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($new_console);
+
+    $self->{consoles}->{$testapi_console} = $new_console;
+    $self->select_console($args);
+
+    return undef;
+}
+sub _new_console($$) {
+    # create and return a new console of class
+    # $args->{backend_console} with parameters $args->{backend_args}.
+    #
+    # return console info on that new console:
+    #
+    # {
+    # 	  args      => the $args it was created with
+    # 	  window_id => x11 window id (for x3270 terminals)
+    # 	  console   => blessed console
+    # }
+    my ($self, $args) = @_;
+    die bmwqemu::pp($self) . "\n". #
+      bmwqemu::pp($args). "\n" . #
+      "overload _new_console in your subclass!";
+}
+
+sub select_console($$) {
+    my ($self, $args) = @_;
+    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($args);
+    my $testapi_console = $args->{testapi_console};
+    unless (exists $self->{consoles}->{$testapi_console}) {
+        die "select_console: console $args->{testapi_console} not activated";
+    }
+    my $selected_console_info = $self->{consoles}->{$testapi_console};
+    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($selected_console_info);
+    $self->_select_console($selected_console_info);
+    $self->{current_console} = $selected_console_info;
+    return undef;
+}
+sub _select_console($$) {
+    my ($self, $args) = @_;
+    # hook in the backend to do whatever is necessary to effectively
+    # switch the console to $args->{testapi_console}
+    die "overload _select_console in your subclass!";
+}
+sub deactivate_console($$) {
+    my ($self, $args) = @_;
+    my $testapi_console = $args->{testapi_console};
+    unless (exists $self->{consoles}->{$testapi_console}) {
+        die "deactivate_console: console $testapi_console not activated";
+    }
+    my $console_info = $self->{consoles}->{$testapi_console};
+    if (defined $self->{current_console} && $self->{current_console} == $console_info) {
+        $self->{current_console} = undef;
+    }
+    $self->_delete_console($console_info);
+    delete $self->{consoles}->{$testapi_console};
+    return undef;
+}
+sub _delete_console($$) {
+    # my ($self, $args) = @_;
+    # tear down the backend console $args->{backend_console} (disconnect, free ressources, etc).
+    die "overload _delete_console in your subclass!";
+}
+###################################################################
+# this is used by backend::console_proxy
+sub proxy_console_call($$) {
     my ($self, $wrapped_call) = @_;
 
     my ($console, $function, $args) = @$wrapped_call{qw(console function args)};
@@ -480,11 +555,11 @@ sub proxy_console_call() {
         # Move the decision to actually die to the server side instead.
         # For this ignore backend::baseclass::die_handler.
         local $SIG{__DIE__} = 'DEFAULT';
-        $wrapped_result->{result} = $self->{$console}->$function(@$args);
+        $wrapped_result->{result} = $self->{consoles}->{$console}->{console}->$function(@$args);
     };
 
     if ($@) {
-        $wrapped_result->{exception} = $@;
+        $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $@);
         # cluck "proxy_console_call: exception caught in the backend thread\n$@\n";
     }
 

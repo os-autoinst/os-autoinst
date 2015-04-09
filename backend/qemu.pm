@@ -21,12 +21,12 @@ sub new {
     my $class = shift;
     my $self = bless( { class => $class }, $class );
 
-    $self->{'pid'}         = undef;
-    $self->{'pidfilename'} = 'qemu.pid';
+    $self->{pid}         = undef;
+    $self->{pidfilename} = 'qemu.pid';
 
     # make sure to set environment variables in the main thread
     # exec uses the %ENV of the main thread
-    $ENV{'QEMU_AUDIO_DRV'} = "none";
+    $ENV{QEMU_AUDIO_DRV} = "none";
 
     return $self;
 }
@@ -35,8 +35,8 @@ sub new {
 
 sub raw_alive() {
     my ($self) = @_;
-    return 0 unless $self->{'pid'};
-    return kill( 0, $self->{'pid'} );
+    return 0 unless $self->{pid};
+    return kill( 0, $self->{pid} );
 }
 
 sub start_audiocapture($) {
@@ -71,7 +71,7 @@ sub eject_cd(;$) {
 
 sub cpu_stat($) {
     my $self = shift;
-    my $stat = bmwqemu::fileContent( "/proc/" . $self->{'pid'} . "/stat" );
+    my $stat = bmwqemu::fileContent( "/proc/" . $self->{pid} . "/stat" );
     my @a    = split( " ", $stat );
     return [ @a[ 13, 14 ] ];
 }
@@ -109,10 +109,10 @@ sub kill_qemu($) {
 sub do_stop_vm($) {
     my $self = shift;
 
-    return unless $self->{'pid'};
-    kill_qemu($self->{'pid'});
-    $self->{'pid'} = undef;
-    unlink( $self->{'pidfilename'} );
+    return unless $self->{pid};
+    kill_qemu($self->{pid});
+    $self->{pid} = undef;
+    unlink( $self->{pidfilename} );
 }
 
 sub do_savevm($) {
@@ -149,7 +149,7 @@ sub start_qemu() {
         $qemuimg = "/usr/bin/qemu-img";
     }
 
-    my $qemubin = $ENV{'QEMU'};
+    my $qemubin = $ENV{QEMU};
     unless ($qemubin) {
         my @candidates = $vars->{QEMU}?('qemu-system-'.$vars->{QEMU}):qw/kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64/;
         for my $bin ( map { '/usr/bin/' . $_ } @candidates ) {
@@ -412,73 +412,52 @@ sub start_qemu() {
         die "failed to exec qemu";
     }
     else {
-        $self->{'pid'} = $pid;
+        $self->{pid} = $pid;
     }
     close $writer;
-    $self->{'qemupipe'} = $reader;
-    open( my $pidf, ">", $self->{'pidfilename'} ) or die "can not write " . $self->{'pidfilename'};
-    print $pidf $self->{'pid'}, "\n";
+    $self->{qemupipe} = $reader;
+    open( my $pidf, ">", $self->{pidfilename} ) or die "can not write " . $self->{pidfilename};
+    print $pidf $self->{pid}, "\n";
     close $pidf;
 
-    $self->{'vnc'} = backend::VNC->new({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC} });
+    #local $Devel::Trace::TRACE = 1;
 
-    # the real timeout is the 7 below
-    for my $i (1..10) {
-        eval {
-            # we sure don't want to stop the vm in case this fails
-            local $SIG{'__DIE__'};
-            $self->{'vnc'}->login;
-        };
-        if ($@) {
-            if ($i > 7) {
-                $self->close_pipes();
-                die $@;
-            }
-            else {
-                sleep 1;
-            }
-        }
-        else {
-            last;
-        }
-    }
+    $self->connect_vnc({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC} });
 
-    $self->{'hmpsocket'} = IO::Socket::UNIX->new(
+    $self->{hmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
         Peer     => "hmp_socket",
         Blocking => 0
     ) or die "can't open hmp";
 
-    $self->{'hmpsocket'}->autoflush(1);
-    binmode $self->{'hmpsocket'};
-    my $flags = fcntl( $self->{'hmpsocket'}, Fcntl::F_GETFL, 0 ) or die "can't getfl(): $!\n";
-    $flags = fcntl( $self->{'hmpsocket'}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
+    $self->{hmpsocket}->autoflush(1);
+    binmode $self->{hmpsocket};
+    my $flags = fcntl( $self->{hmpsocket}, Fcntl::F_GETFL, 0 ) or die "can't getfl(): $!\n";
+    $flags = fcntl( $self->{hmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
 
-    $self->{'qmpsocket'} = IO::Socket::UNIX->new(
+    $self->{qmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
         Peer     => "qmp_socket",
         Blocking => 0
     ) or die "can't open qmp";
 
-    $self->{'qmpsocket'}->autoflush(1);
-    binmode $self->{'qmpsocket'};
-    $flags = fcntl( $self->{'qmpsocket'}, Fcntl::F_GETFL, 0 ) or die "can't getfl(): $!\n";
-    $flags = fcntl( $self->{'qmpsocket'}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
+    $self->{qmpsocket}->autoflush(1);
+    binmode $self->{qmpsocket};
+    $flags = fcntl( $self->{qmpsocket}, Fcntl::F_GETFL, 0 ) or die "can't getfl(): $!\n";
+    $flags = fcntl( $self->{qmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
 
-    STDERR->printf("$$: hmpsocket %d, qmpsocket %d\n",fileno($self->{'hmpsocket'}),fileno($self->{'qmpsocket'}));
+    STDERR->printf("$$: hmpsocket %d, qmpsocket %d\n",fileno($self->{hmpsocket}),fileno($self->{qmpsocket}));
 
-    fcntl( $self->{'qemupipe'}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
+    fcntl( $self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
 
     # retrieve welcome
     my $line = $self->_read_hmp;
     print "WELCOME $line\n";
 
-    my $init = backend::driver::_read_json($self->{'qmpsocket'});
-    syswrite( $self->{'qmpsocket'}, "{'execute': 'qmp_capabilities'}\n" );
-    my $hash = backend::driver::_read_json($self->{'qmpsocket'});
+    my $init = backend::driver::_read_json($self->{qmpsocket});
+    my $hash = $self->handle_qmp_command({"execute" => "qmp_capabilities"});
     if (0) {
-        syswrite( $self->{'qmpsocket'}, "{'execute': 'query-commands'}\n" );
-        $hash = backend::driver::_read_json($self->{'qmpsocket'});
+        $hash = $self->handle_qmp_command({"execute" => "query-commands"});
         die "no commands!" unless ($hash);
         print "COMMANDS " . JSON::to_json( $hash, { pretty => 1 } ) . "\n";
     }
@@ -488,11 +467,10 @@ sub start_qemu() {
         $self->send($cnt);
     }
 
+    print "Start CPU";
     $self->handle_qmp_command({"execute" => "cont"});
 
-    $self->{'select'}->add($self->{'qemupipe'});
-
-    $self->capture_screenshot();
+    $self->{select}->add($self->{qemupipe});
 }
 
 sub _read_hmp($) {
@@ -500,11 +478,11 @@ sub _read_hmp($) {
 
     my $rsp = '';
     my $s   = IO::Select->new();
-    $s->add($self->{'hmpsocket'});
+    $s->add($self->{hmpsocket});
 
     while ( my @ready = $s->can_read(60) ) {
         my $buffer;
-        my $bytes = sysread( $self->{'hmpsocket'}, $buffer, 1000 );
+        my $bytes = sysread( $self->{hmpsocket}, $buffer, 1000 );
         last unless ($bytes);
         $rsp .= $buffer;
         my @rsp2 = unpack( "C*", $rsp );
@@ -547,7 +525,7 @@ sub _read_hmp($) {
 
 sub special_socket($) {
     my ($self, $fh);
-    if ($fh == $self->{'qemupipe'}) {
+    if ($fh == $self->{qemupipe}) {
         $self->read_qemupipe();
         return 1;
     }
@@ -558,7 +536,7 @@ sub select_for_vnc {
     my ($self) = @_;
 
     my $s = $self->SUPER::select_for_vnc;
-    $s->add($self->{'qemupipe'});
+    $s->add($self->{qemupipe});
     return $s;
 }
 
@@ -568,16 +546,16 @@ sub handle_qmp_command($) {
     my ($self, $cmd) = @_;
 
     my $line = JSON::to_json($cmd);
-    my $wb = syswrite( $self->{'qmpsocket'}, "$line\n" );
+    # CORE::say "handle_qmp_command: " . bmwqemu::pp($line);
+    my $wb = syswrite( $self->{qmpsocket}, "$line\n" );
     die "syswrite failed $!" unless ( $wb == length($line) + 1 );
 
     #print STDERR "wrote $wb\n";
     my $hash;
     while ( !$hash ) {
-        $hash = backend::driver::_read_json($self->{'qmpsocket'});
+        $hash = backend::driver::_read_json($self->{qmpsocket});
         if ( $hash->{event} ) {
             print STDERR "EVENT " . JSON::to_json($hash) . "\n";
-
             # ignore
             $hash = undef;
         }
@@ -589,7 +567,7 @@ sub handle_qmp_command($) {
 sub read_qemupipe() {
     my ($self) = @_;
     my $buffer;
-    my $bytes = sysread( $self->{'qemupipe'}, $buffer, 1000 );
+    my $bytes = sysread( $self->{qemupipe}, $buffer, 1000 );
     chomp $buffer;
     for my $line (split(/\n/, $buffer)) {
         bmwqemu::diag "QEMU: $line";
@@ -602,21 +580,21 @@ sub close_pipes() {
 
     $self->do_stop_vm();
 
-    if ($self->{'qemupipe'}) {
+    if ($self->{qemupipe}) {
         # one last word?
-        fcntl( $self->{'qemupipe'}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK );
+        fcntl( $self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK );
         $self->read_qemupipe();
-        close($self->{'qemupipe'});
-        $self->{'qemupipe'} = undef;
+        close($self->{qemupipe});
+        $self->{qemupipe} = undef;
     }
 
-    if ($self->{'qmpsocket'}) {
-        close($self->{'qmpsocket'}) || die "close $!\n";
-        $self->{'qmpsocket'} = undef;
+    if ($self->{qmpsocket}) {
+        close($self->{qmpsocket}) || die "close $!\n";
+        $self->{qmpsocket} = undef;
     }
-    if ($self->{'hmpsocket'}) {
-        close($self->{'hmpsocket'}) || die "close $!\n";
-        $self->{'hmpsocket'} = undef;
+    if ($self->{hmpsocket}) {
+        close($self->{hmpsocket}) || die "close $!\n";
+        $self->{hmpsocket} = undef;
     }
     $self->SUPER::close_pipes();
 }
@@ -624,7 +602,7 @@ sub close_pipes() {
 sub _send_hmp {
     my ($self, $hmp) = @_;
 
-    my $wb = syswrite( $self->{'hmpsocket'}, "$hmp\n" );
+    my $wb = syswrite( $self->{hmpsocket}, "$hmp\n" );
 
     #print STDERR "wrote HMP $wb $cmd->{hmp}\n";
     die "syswrite failed $!" unless ( $wb == length($hmp) + 1 );
@@ -636,7 +614,7 @@ sub handle_hmp_command {
     my ($self, $hmp) = @_;
 
     my $line = $self->_send_hmp($hmp);
-    $self->{'rsppipe'}->print(JSON::to_json( { "rsp" => $line }));
+    $self->{rsppipe}->print(JSON::to_json( { "rsp" => $line }));
 }
 
 # this is called for all sockets ready to read from. return 1 if socket
@@ -644,7 +622,7 @@ sub handle_hmp_command {
 sub check_socket {
     my ($self, $fh) = @_;
 
-    if ( $self->{'qemupipe'} && $fh == $self->{'qemupipe'}) {
+    if ( $self->{qemupipe} && $fh == $self->{qemupipe}) {
         $self->close_pipes() unless $self->read_qemupipe();
         return 1;
     }

@@ -1,10 +1,10 @@
-# This is the direct companion to backend::s390x::do_console_hack()
+# This is the direct companion to backend::proxy_console_call()
 #
-# "gnah" is a proxy object for calls to specific terminal functions
+# "console_proxy" is a proxy object for calls to specific terminal functions
 # like s3270->... or vnc->... or ssh->... from the tests in the main
 # thread.
 
-package console_proxy;
+package backend::console_proxy;
 use Data::Dumper qw(Dumper);
 
 sub new() {
@@ -34,6 +34,7 @@ sub AUTOLOAD {
 			    args => $args,
 			   };
 
+	bmwqemu::log_call($function, wrapped_call => $wrapped_call);
 	my $wrapped_retval = $bmwqemu::backend->proxy_console_call($wrapped_call);
 
 	if (exists $wrapped_retval->{exception}) {
