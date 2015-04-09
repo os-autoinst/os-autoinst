@@ -6,7 +6,7 @@ use testapi ();
 sub new() {
     my ($class) = @_;
 
-    my $self = bless { class => $class };
+    my $self = bless {class => $class};
     return $self, $class;
 }
 
@@ -25,25 +25,25 @@ sub x11_start_program($$$) {
 sub ensure_installed {
     my ($self, @pkglist) = @_;
 
-    if ( testapi::check_var( 'DISTRI', 'debian' ) ) {
-        testapi::x11_start_program( "su -c 'aptitude -y install @pkglist'", 4, { terminal => 1 } );
+    if (testapi::check_var('DISTRI', 'debian')) {
+        testapi::x11_start_program("su -c 'aptitude -y install @pkglist'", 4, {terminal => 1});
     }
-    elsif ( testapi::check_var( 'DISTRI', 'fedora' ) ) {
-        testapi::x11_start_program( "su -c 'yum -y install @pkglist'", 4, { terminal => 1 } );
+    elsif (testapi::check_var('DISTRI', 'fedora')) {
+        testapi::x11_start_program("su -c 'yum -y install @pkglist'", 4, {terminal => 1});
     }
     else {
         bmwqemu::mydie("TODO: implement package install for your distri " . testapi::get_var('DISTRI'));
     }
     if ($testapi::password) { testapi::type_password; testapi::send_key("ret", 1); }
-    wait_still_screen( 7, 90 );    # wait for install
+    wait_still_screen(7, 90);    # wait for install
 }
 
 sub become_root() {
     my ($self) = @_;
 
-    testapi::script_sudo( "bash", 0 );    # become root
+    testapi::script_sudo("bash", 0);    # become root
     testapi::script_run("test $(id -u) -eq 0 && echo 'imroot' > /dev/$testapi::serialdev");
-    testapi::wait_serial( "imroot", 5 ) || die "Root prompt not there";
+    testapi::wait_serial("imroot", 5) || die "Root prompt not there";
     testapi::script_run("cd /tmp");
 }
 
@@ -81,7 +81,7 @@ sub script_sudo($$) {
     my ($self, $prog, $wait) = @_;
 
     testapi::type_string "sudo $prog\n";
-    if ( testapi::check_screen "sudo-passwordprompt", 3 ) {
+    if (testapi::check_screen "sudo-passwordprompt", 3) {
         testapi::type_password;
         testapi::send_key "ret";
     }

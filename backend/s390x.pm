@@ -20,7 +20,7 @@ use testapi qw(get_var check_var);
 
 sub new {
     my $class = shift;
-    my $self = bless( { class => $class }, $class );
+    my $self = bless({class => $class}, $class);
     return $self;
 }
 
@@ -31,7 +31,7 @@ sub new_3270_console() {
     confess "expecting hashref" unless ref $s3270 eq "HASH";
     $s3270->{s3270} = [
         qw(x3270),
-        "-display", ":".get_var("VNC"),
+        "-display", ":" . get_var("VNC"),
         qw(-script -charset us -xrm x3270.visualBell:true -xrm x3270.keypadOn:false
           -set screenTrace -xrm x3270.traceDir:.
           -trace -xrm x3270.traceMonitor:false),
@@ -48,7 +48,7 @@ sub new_3270_console() {
     $status = &backend::s390x::s3270::nice_3270_status($status);
     my $console_info = {
         window_id => $status->{window_id},
-        console => $s3270
+        console   => $s3270
     };
     return $console_info;
 }
@@ -64,31 +64,30 @@ sub _new_console($$) {
         # my () = @console_args;
         $console_info = $self->new_3270_console(
             {
-                zVM_host	=> (get_var("ZVM_HOST") // die "ZVMHOST unset in vars.json"),
-                guest_user	=> (get_var("ZVM_GUEST") // die "ZVM_GUEST unset in vars.json"),
+                zVM_host    => (get_var("ZVM_HOST")     // die "ZVMHOST unset in vars.json"),
+                guest_user  => (get_var("ZVM_GUEST")    // die "ZVM_GUEST unset in vars.json"),
                 guest_login => (get_var("ZVM_PASSWORD") // die "ZVM_PASSWORD unset in vars.json"),
-            }
-        );
+            });
     }
     elsif ($backend_console =~ qr/ssh(-X)?/) {
-        my $host = get_var("PARMFILE")->{Hostname};
+        my $host        = get_var("PARMFILE")->{Hostname};
         my $sshpassword = get_var("PARMFILE")->{sshpassword};
         system("ssh-keygen -R $host -f ./known_hosts");
         # create s3270 console
         $console_info = $self->new_3270_console({});
         # do ssh connect
-        my $s3270 = $console_info->{console};
+        my $s3270      = $console_info->{console};
         my $sshcommand = "TERM=vt100 ssh";
         if ($backend_console eq "ssh-X") {
             my $display = get_var("VNC") || die "VNC unset in vars.json.";
-            $sshcommand =  "DISPLAY=:$display " . $sshcommand. " -X";
+            $sshcommand = "DISPLAY=:$display " . $sshcommand . " -X";
         }
         $sshcommand .= " -o UserKnownHostsFile=./known_hosts -o StrictHostKeyChecking=no root\@$host";
         $s3270->send_3270("Connect(\"-e $sshcommand\")");
         # wait for password prompt...
         while (1) {
             $s3270->send_3270("Snap");
-            my $r = $s3270->send_3270("Snap(Ascii)");
+            my $r  = $s3270->send_3270("Snap(Ascii)");
             my $co = $r->{command_output};
             CORE::say bmwqemu::pp($r);
             CORE::say bmwqemu::pp($co);
@@ -103,11 +102,10 @@ sub _new_console($$) {
         $self->connect_vnc(
             {
                 hostname => get_var("PARMFILE")->{Hostname},
-                port => 5901,
+                port     => 5901,
                 password => get_var("DISPLAY")->{PASSWORD},
-                ikvm => 0,
-            }
-        );
+                ikvm     => 0,
+            });
         $console_info->{console} = $self->{vnc};
     }
     elsif ($backend_console eq "local-Xvnc") {
@@ -118,10 +116,9 @@ sub _new_console($$) {
         $self->connect_vnc(
             {
                 hostname => "localhost",
-                port => 5900 + $display,
-                ikvm => 0
-            }
-        );
+                port     => 5900 + $display,
+                ikvm     => 0
+            });
         $console_info->{console} = $self->{vnc};
         $console_info->{DISPLAY} = $display;
         sleep 1;

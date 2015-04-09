@@ -13,7 +13,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key ty
   script_sudo wait_serial save_screenshot wait_screen_change record_soft_failure
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
-  autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image 
+  autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
   activate_console select_console console deactivate_console
 );
 
@@ -34,7 +34,7 @@ sub type_password;
 
 sub init() {
     $serialdev = get_var('SERIALDEV', "ttyS0");
-    if ( get_var('OFW') ) {
+    if (get_var('OFW')) {
         $serialdev = "hvc0";
     }
     $serialdev = 'ttyS1' if check_var('BACKEND', 'ipmi');
@@ -56,14 +56,14 @@ sub record_soft_failure {
 
 sub assert_screen($;$) {
     my ($mustmatch, $timeout) = @_;
-    bmwqemu::log_call( 'assert_screen', mustmatch => $mustmatch, timeout => $timeout );
-    return bmwqemu::assert_screen( mustmatch => $mustmatch, timeout => $timeout );
+    bmwqemu::log_call('assert_screen', mustmatch => $mustmatch, timeout => $timeout);
+    return bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout);
 }
 
 sub check_screen($;$) {
     my ($mustmatch, $timeout) = @_;
-    bmwqemu::log_call( 'check_screen', mustmatch => $mustmatch, timeout => $timeout );
-    return bmwqemu::assert_screen( mustmatch => $mustmatch, timeout => $timeout, check => 1 );
+    bmwqemu::log_call('check_screen', mustmatch => $mustmatch, timeout => $timeout);
+    return bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout, check => 1);
 }
 
 =head2 assert_and_click, assert_and_dclick
@@ -84,26 +84,26 @@ sub assert_and_click($;$$$$) {
         timeout   => $timeout
     );
     my $old_mouse_coords = $bmwqemu::backend->get_last_mouse_set();
-    bmwqemu::log_call( 'assert_and_click', mustmatch => $mustmatch, button => $button, timeout => $timeout );
+    bmwqemu::log_call('assert_and_click', mustmatch => $mustmatch, button => $button, timeout => $timeout);
 
     # foundneedle has to be set, or the assert is buggy :)
     my $lastarea = $foundneedle->{'area'}->[-1];
-    my $rx = 1;                                                   # $origx / $img->xres();
-    my $ry = 1;                                                   # $origy / $img->yres();
-    my $x  = int(( $lastarea->{'x'} + $lastarea->{'w'} / 2 ) * $rx);
-    my $y  = int(( $lastarea->{'y'} + $lastarea->{'h'} / 2 ) * $ry);
+    my $rx       = 1;                                                      # $origx / $img->xres();
+    my $ry       = 1;                                                      # $origy / $img->yres();
+    my $x        = int(($lastarea->{'x'} + $lastarea->{'w'} / 2) * $rx);
+    my $y        = int(($lastarea->{'y'} + $lastarea->{'h'} / 2) * $ry);
     bmwqemu::diag("clicking at $x/$y");
-    mouse_set( $x, $y );
+    mouse_set($x, $y);
     if ($dclick) {
-        mouse_dclick( $button, $clicktime );
+        mouse_dclick($button, $clicktime);
     }
     else {
-        mouse_click( $button, $clicktime );
+        mouse_click($button, $clicktime);
     }
     # We can't just move the mouse, or we end up in a click-and-drag situation
     sleep 1;
     # move mouse back to where it was before we clicked
-    mouse_set( $old_mouse_coords->{'x'}, $old_mouse_coords->{'y'});
+    mouse_set($old_mouse_coords->{'x'}, $old_mouse_coords->{'y'});
 }
 
 sub assert_and_dclick($;$$$) {
@@ -120,7 +120,7 @@ Wait until the system becomes idle (as configured by IDLETHESHOLD)
 
 sub wait_idle(;$) {
     my $timeout = shift || 19;
-    bmwqemu::log_call( 'wait_idle', timeout => $timeout );
+    bmwqemu::log_call('wait_idle', timeout => $timeout);
 
     bmwqemu::wait_idle($timeout);
 }
@@ -139,11 +139,11 @@ C<script_run("echo Hello World E<gt> /dev/$serialdev");>
 sub wait_serial($;$$) {
 
     # wait for a message to appear on serial output
-    my $regexp = shift;
-    my $timeout = shift || 90;    # seconds
-    my $expect_not_found = shift || 0;    # expected can not found the term in serial output
+    my $regexp           = shift;
+    my $timeout          = shift || 90;    # seconds
+    my $expect_not_found = shift || 0;     # expected can not found the term in serial output
 
-    bmwqemu::log_call( 'wait_serial', regex => $regexp, timeout => $timeout );
+    bmwqemu::log_call('wait_serial', regex => $regexp, timeout => $timeout);
     return bmwqemu::wait_serial($regexp, $timeout, $expect_not_found);
 }
 
@@ -166,7 +166,7 @@ upload log file to openqa host
 sub upload_logs($) {
     my $file = shift;
 
-    bmwqemu::log_call( 'upload_logs', file => $file);
+    bmwqemu::log_call('upload_logs', file => $file);
     type_string("curl --form upload=\@$file ");
     my $basename = basename($file);
     type_string(autoinst_url() . "/uploadlog/$basename\n");
@@ -186,7 +186,7 @@ upload log file to openqa host
 sub upload_asset($;$) {
     my ($file, $public) = @_;
 
-    bmwqemu::fctlog( 'upload_logs', ["file", $file]);
+    bmwqemu::fctlog('upload_logs', ["file", $file]);
     type_string("curl --form upload=\@$file ");
     type_string("--form target=assets_public ") if $public;
     my $basename = basename($file);
@@ -219,9 +219,9 @@ Wait until the screen stops changing
 sub wait_still_screen(;$$$) {
     my $stilltime        = shift || 7;
     my $timeout          = shift || 30;
-    my $similarity_level = shift || ( get_var('HW') ? 44 : 47 );
+    my $similarity_level = shift || (get_var('HW') ? 44 : 47);
 
-    bmwqemu::log_call( 'wait_still_screen', stilltime => $stilltime, timeout => $timeout, simlvl => $similarity_level );
+    bmwqemu::log_call('wait_still_screen', stilltime => $stilltime, timeout => $timeout, simlvl => $similarity_level);
     return bmwqemu::wait_still_screen($stilltime, $timeout, $similarity_level);
 }
 
@@ -246,7 +246,7 @@ sub set_var($$) {
 
 sub check_var($$) {
     my ($var, $val) = @_;
-    return 1 if ( defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val );
+    return 1 if (defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val);
     return 0;
 }
 
@@ -254,7 +254,7 @@ sub check_var($$) {
 
 sub x11_start_program($;$$) {
     my ($program, $timeout, $options) = @_;
-    bmwqemu::log_call( 'x11_start_program', timeout => $timeout, options => $options);
+    bmwqemu::log_call('x11_start_program', timeout => $timeout, options => $options);
     return $distri->x11_start_program($program, $timeout, $options);
 }
 
@@ -271,7 +271,7 @@ sub script_run($;$) {
 
     my ($name, $wait) = @_;
 
-    bmwqemu::log_call( 'script_run', name => $name, wait => $wait);
+    bmwqemu::log_call('script_run', name => $name, wait => $wait);
     return $distri->script_run($name, $wait);
 }
 
@@ -288,7 +288,7 @@ $wait_seconds
 sub script_sudo($;$) {
     my ($name, $wait) = @_;
 
-    bmwqemu::log_call( 'script_sudo', name => $name, wait => $wait);
+    bmwqemu::log_call('script_sudo', name => $name, wait => $wait);
     return $distri->script_sudo($name, $wait);
 }
 
@@ -296,7 +296,7 @@ sub power($) {
 
     # params: (on), off, acpi, reset
     my $action = shift;
-    bmwqemu::log_call( 'power', action => $action );
+    bmwqemu::log_call('power', action => $action);
     $bmwqemu::backend->power({action => $action});
 }
 
@@ -323,7 +323,7 @@ send_key($qemu_key_name[, $wait_idle])
 sub send_key($;$) {
     my $key = shift;
     my $wait = shift || 0;
-    bmwqemu::log_call( 'send_key', key => $key );
+    bmwqemu::log_call('send_key', key => $key);
     eval { $bmwqemu::backend->send_key($key); };
     bmwqemu::mydie("Error send_key key=$key: $@\n") if ($@);
     wait_idle() if $wait;
@@ -348,16 +348,16 @@ sub type_string {
     # special argument handling for backward compat
     my $string = shift;
     my %args;
-    if (@_ == 1) { # backward compat
-        %args = ( max_interval => $_[0] );
+    if (@_ == 1) {    # backward compat
+        %args = (max_interval => $_[0]);
     }
     else {
         %args = @_;
     }
     my $log = $args{secret} ? 'SECRET STRING' : $string;
     my $max_interval = $args{max_interval} // 250;
-    bmwqemu::log_call( 'type_string',  string => $log, max_interval => $max_interval );
-    $bmwqemu::backend->type_string( { 'text' => $string, 'max_interval' => $max_interval } );
+    bmwqemu::log_call('type_string', string => $log, max_interval => $max_interval);
+    $bmwqemu::backend->type_string({'text' => $string, 'max_interval' => $max_interval});
 }
 
 =head2 type_password
@@ -381,37 +381,37 @@ sub type_password {
 sub mouse_set($$) {
     my ($mx, $my) = @_;
 
-    bmwqemu::log_call( 'mouse_set', x => $mx, y => $my );
-    $bmwqemu::backend->mouse_set( { 'x' => $mx, 'y' => $my } );
+    bmwqemu::log_call('mouse_set', x => $mx, y => $my);
+    $bmwqemu::backend->mouse_set({'x' => $mx, 'y' => $my});
 }
 
 sub mouse_click(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.15;
-    bmwqemu::log_call( 'mouse_click', button => $button, cursor_down => $time );
-    $bmwqemu::backend->mouse_button( $button, 1 );
+    bmwqemu::log_call('mouse_click', button => $button, cursor_down => $time);
+    $bmwqemu::backend->mouse_button($button, 1);
     # FIXME sleep resolution = 1s, use usleep
     sleep $time;
-    $bmwqemu::backend->mouse_button( $button, 0 );
+    $bmwqemu::backend->mouse_button($button, 0);
 }
 
 sub mouse_dclick(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.10;
-    bmwqemu::log_call( 'mouse_dclick', button => $button, cursor_down => $time );
-    $bmwqemu::backend->mouse_button( $button, 1 );
+    bmwqemu::log_call('mouse_dclick', button => $button, cursor_down => $time);
+    $bmwqemu::backend->mouse_button($button, 1);
     # FIXME sleep resolution = 1s, use usleep
     sleep $time;
-    $bmwqemu::backend->mouse_button( $button, 0 );
+    $bmwqemu::backend->mouse_button($button, 0);
     sleep $time;
-    $bmwqemu::backend->mouse_button( $button, 1 );
+    $bmwqemu::backend->mouse_button($button, 1);
     sleep $time;
-    $bmwqemu::backend->mouse_button( $button, 0 );
+    $bmwqemu::backend->mouse_button($button, 0);
 }
 
 sub mouse_hide(;$) {
     my $border_offset = shift || 0;
-    bmwqemu::log_call( 'mouse_hide', border_offset => $border_offset );
+    bmwqemu::log_call('mouse_hide', border_offset => $border_offset);
     $bmwqemu::backend->mouse_hide($border_offset);
 }
 ## mouse end
@@ -424,7 +424,7 @@ returns the base URL to contact the local os-autoinst service
 
 sub autoinst_url() {
     # move to backend?
-    return "http://10.0.2.2:" . (get_var("QEMUPORT")+1);
+    return "http://10.0.2.2:" . (get_var("QEMUPORT") + 1);
 }
 
 =head2 script_output
@@ -441,8 +441,8 @@ The default timeout for the script is 10 seconds. If you need more, pass a 2nd p
 
 sub _random_string() {
     my $string;
-    my @chars = ('a'..'z', 'A'..'Z');
-    $string .= $chars[rand @chars] for 1..4;
+    my @chars = ('a' .. 'z', 'A' .. 'Z');
+    $string .= $chars[rand @chars] for 1 .. 4;
     return $string;
 }
 
@@ -523,22 +523,22 @@ sub wait_screen_change(&@) {
     my $refimg = bmwqemu::getcurrentscreenshot();
     $callback->() if $callback;
 
-    my $starttime = time;
-    my $timeout = 10;
+    my $starttime        = time;
+    my $timeout          = 10;
     my $similarity_level = 50;
 
-    while ( time - $starttime < $timeout ) {
+    while (time - $starttime < $timeout) {
         my $img = bmwqemu::getcurrentscreenshot();
         my $sim = $img->similarity($refimg);
         print "waiting for screen change: " . (time - $starttime) . " $sim\n";
-        if ( $sim < $similarity_level ) {
-            bmwqemu::fctres( 'wait_screen_change', "screen change seen at " . (time - $starttime) );
+        if ($sim < $similarity_level) {
+            bmwqemu::fctres('wait_screen_change', "screen change seen at " . (time - $starttime));
             return 1;
         }
         sleep(0.5);
     }
     save_screenshot;
-    bmwqemu::fctres( 'wait_screen_change', "timed out" );
+    bmwqemu::fctres('wait_screen_change', "timed out");
     return 0;
 }
 
@@ -640,8 +640,8 @@ sub activate_console($$;@) {
 
     die "activate_console: console $testapi_console is already active" if exists $testapi_console_proxies{$testapi_console};
 
-    bmwqemu::log_call( 'activate_console', testapi_console => $testapi_console, backend_console => $backend_console, backend_args => \@backend_args );
-    $bmwqemu::backend->activate_console( { testapi_console => $testapi_console, backend_console => $backend_console, backend_args => \@backend_args } );
+    bmwqemu::log_call('activate_console', testapi_console => $testapi_console, backend_console => $backend_console, backend_args => \@backend_args);
+    $bmwqemu::backend->activate_console({testapi_console => $testapi_console, backend_console => $backend_console, backend_args => \@backend_args});
     # now the backend knows which console the testapi means with $testapi_console ("bootloader", "vnc", ...)
     $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
 }
@@ -649,8 +649,8 @@ sub activate_console($$;@) {
 sub select_console($) {
     my ($testapi_console) = @_;
     die "select_console: console $testapi_console is not activated" unless exists $testapi_console_proxies{$testapi_console};
-    bmwqemu::log_call( 'select_console', testapi_console => $testapi_console );
-    $bmwqemu::backend->select_console( { testapi_console => $testapi_console } );
+    bmwqemu::log_call('select_console', testapi_console => $testapi_console);
+    $bmwqemu::backend->select_console({testapi_console => $testapi_console});
 }
 
 sub deactivate_console($) {
@@ -659,14 +659,14 @@ sub deactivate_console($) {
         warn "deactivate_console: console $testapi_console is not activated";
         return;
     }
-    bmwqemu::log_call( 'deactivate_console', testapi_console => $testapi_console );
-    $bmwqemu::backend->deactivate_console( { testapi_console => $testapi_console } );
+    bmwqemu::log_call('deactivate_console', testapi_console => $testapi_console);
+    $bmwqemu::backend->deactivate_console({testapi_console => $testapi_console});
     delete $testapi_console_proxies{$testapi_console};
 }
 
 sub console($) {
     my ($testapi_console) = @_;
-    bmwqemu::log_call( 'console', testapi_console => $testapi_console );
+    bmwqemu::log_call('console', testapi_console => $testapi_console);
     if (exists $testapi_console_proxies{$testapi_console}) {
         return $testapi_console_proxies{$testapi_console};
     }

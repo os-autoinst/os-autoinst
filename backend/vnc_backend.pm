@@ -17,7 +17,7 @@ sub connect_vnc($$) {
 
     $self->{vnc} = backend::VNC->new($args);
     # try to log in; this may fail a few times
-    for my $i (1..10) {
+    for my $i (1 .. 10) {
         my @connection_error;
         eval {
             local $SIG{__DIE__};
@@ -71,7 +71,7 @@ sub check_socket {
     my ($self, $fh) = @_;
 
     if ($self->{vnc}) {
-        if ( $fh == $self->{vnc}->socket ) {
+        if ($fh == $self->{vnc}->socket) {
             # FIXME: polling the VNC socket is not part of the backend
             # select loop, because IO::Select and read() should not be
             # mixed, according to the docs.  So this should be dead
@@ -103,7 +103,7 @@ sub type_string($$) {
     # speed limit: 15bps.  VNC has key up and key down over the wire,
     # not whole key press events.  So with a faster pace, the vnc
     # server may think of contact bounces for repeating keys.
-    my $seconds_per_keypress = 1/15;
+    my $seconds_per_keypress = 1 / 15;
 
     # further slow down if being asked for.
     # 250 = magic default from testapi.pm (FIXME: wouldn't undef just do?)
@@ -122,13 +122,13 @@ sub type_string($$) {
         # typical max_interval values are
         #   4ish:  veeery slow
         #   15ish: slow
-        $seconds_per_keypress = $seconds_per_keypress + 1/sqrt( $args->{max_interval} );
+        $seconds_per_keypress = $seconds_per_keypress + 1 / sqrt($args->{max_interval});
     }
 
-    for my $letter (split( "", $args->{text}) ) {
+    for my $letter (split("", $args->{text})) {
         $letter = $self->map_letter($letter);
         $self->{vnc}->send_mapped_key($letter);
-        $self->run_capture_loop(undef, $seconds_per_keypress, $seconds_per_keypress*.9);
+        $self->run_capture_loop(undef, $seconds_per_keypress, $seconds_per_keypress * .9);
     }
     return {};
 }
@@ -156,7 +156,7 @@ sub mouse_hide {
 
     bmwqemu::diag "mouse_move $self->{mouse}->{x}, $self->{mouse}->{y}";
     $self->{vnc}->mouse_move_to($self->{mouse}->{x}, $self->{mouse}->{y});
-    return { 'absolute' => $self->{vnc}->absolute };
+    return {'absolute' => $self->{vnc}->absolute};
 
 }
 
@@ -189,7 +189,7 @@ sub mouse_button {
         $mask = $bstate << 1;
     }
     bmwqemu::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
-    $self->{vnc}->send_pointer_event( $mask, $self->{mouse}->{x}, $self->{mouse}->{y} );
+    $self->{vnc}->send_pointer_event($mask, $self->{mouse}->{x}, $self->{mouse}->{y});
     return {};
 }
 

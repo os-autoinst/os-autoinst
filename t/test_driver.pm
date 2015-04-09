@@ -14,7 +14,7 @@ sub new {
 
 sub type_string {
     my ($self, $args) = @_;
-    push(@{ $self->{cmds} }, 'type_string', $args);
+    push(@{$self->{cmds}}, 'type_string', $args);
 }
 
 1;

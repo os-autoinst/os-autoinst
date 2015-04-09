@@ -19,7 +19,7 @@ use backend::VNC;
 
 sub new {
     my $class = shift;
-    my $self = bless( { class => $class }, $class );
+    my $self = bless({class => $class}, $class);
 
     $self->{pid}         = undef;
     $self->{pidfilename} = 'qemu.pid';
@@ -36,44 +36,44 @@ sub new {
 sub raw_alive() {
     my ($self) = @_;
     return 0 unless $self->{pid};
-    return kill( 0, $self->{pid} );
+    return kill(0, $self->{pid});
 }
 
 sub start_audiocapture($) {
-    my ( $self, $filename ) = @_;
+    my ($self, $filename) = @_;
     $self->_send_hmp("wavcapture $filename 44100 16 1");
 }
 
 sub stop_audiocapture($) {
-    my ( $self, $index ) = @_;
+    my ($self, $index) = @_;
     $self->_send_hmp("stopcapture $index");
 }
 
 sub power($) {
 
     # parameters: acpi, reset, (on), off
-    my ( $self, $action ) = @_;
-    if ( $action eq 'acpi' ) {
+    my ($self, $action) = @_;
+    if ($action eq 'acpi') {
         $self->_send_hmp("system_powerdown");
     }
-    elsif ( $action eq 'reset' ) {
+    elsif ($action eq 'reset') {
         $self->_send_hmp("system_reset");
     }
-    elsif ( $action eq 'off' ) {
-        $self->handle_qmp_command( { "execute" => "quit" } );
+    elsif ($action eq 'off') {
+        $self->handle_qmp_command({"execute" => "quit"});
     }
 }
 
 sub eject_cd(;$) {
     my $self = shift;
-    $self->handle_qmp_command( { "execute" => "eject", "arguments" => { "device" => "ide1-cd0" } } );
+    $self->handle_qmp_command({"execute" => "eject", "arguments" => {"device" => "ide1-cd0"}});
 }
 
 sub cpu_stat($) {
     my $self = shift;
-    my $stat = bmwqemu::fileContent( "/proc/" . $self->{pid} . "/stat" );
-    my @a    = split( " ", $stat );
-    return [ @a[ 13, 14 ] ];
+    my $stat = bmwqemu::fileContent("/proc/" . $self->{pid} . "/stat");
+    my @a    = split(" ", $stat);
+    return [@a[13, 14]];
 }
 
 sub do_start_vm() {
@@ -95,13 +95,13 @@ sub kill_qemu($) {
 
     printf STDERR "sending TERM to qemu pid: %d\n", $pid;
     kill('TERM', $pid);
-    for my $i (1..5) {
+    for my $i (1 .. 5) {
         sleep 1;
         $ret = waitpid($pid, WNOHANG);
         print STDERR "waitpid for $pid returned $ret\n";
         return if ($ret == $pid);
     }
-    kill( "KILL", $pid);
+    kill("KILL", $pid);
     # now we have to wait
     waitpid($pid, 0);
 }
@@ -112,23 +112,23 @@ sub do_stop_vm($) {
     return unless $self->{pid};
     kill_qemu($self->{pid});
     $self->{pid} = undef;
-    unlink( $self->{pidfilename} );
+    unlink($self->{pidfilename});
 }
 
 sub do_savevm($) {
-    my ( $self, $args ) = @_;
+    my ($self, $args) = @_;
     my $vmname = $args->{name};
-    my $rsp = $self->_send_hmp("savevm $vmname");
+    my $rsp    = $self->_send_hmp("savevm $vmname");
     bmwqemu::diag "SAVED $vmname $rsp";
-    die unless ( $rsp eq "savevm $vmname" );
+    die unless ($rsp eq "savevm $vmname");
 }
 
 sub do_loadvm($) {
-    my ( $self, $args ) = @_;
+    my ($self, $args) = @_;
     my $vmname = $args->{name};
-    my $rsp = $self->_send_hmp("loadvm $vmname");
+    my $rsp    = $self->_send_hmp("loadvm $vmname");
     bmwqemu::diag "LOAD $vmname '$rsp'\n";
-    die unless ( $rsp eq "loadvm $vmname" );
+    die unless ($rsp eq "loadvm $vmname");
     $rsp = $self->handle_qmp_command({"execute" => "stop"});
     bmwqemu::diag "stop $rsp\n";
     $rsp = $self->handle_qmp_command({"execute" => "cont"});
@@ -137,11 +137,11 @@ sub do_loadvm($) {
 }
 
 sub do_upload_image() {
-    my ( $self, $args ) = @_;
+    my ($self, $args) = @_;
     my $hdd_num = $args->{hdd_num};
-    my $name = $args->{name};
+    my $name    = $args->{name};
     my $img_dir = $args->{dir};
-    if ( -f "raid/l$hdd_num" ) {
+    if (-f "raid/l$hdd_num") {
         bmwqemu::diag "preparing hdd $hdd_num for upload as $name\n";
         mkpath($img_dir);
         unlink("$img_dir/$name");
@@ -162,14 +162,14 @@ sub start_qemu() {
 
     my $basedir = "raid";
     my $qemuimg = "/usr/bin/kvm-img";
-    if ( !-e $qemuimg ) {
+    if (!-e $qemuimg) {
         $qemuimg = "/usr/bin/qemu-img";
     }
 
     my $qemubin = $ENV{QEMU};
     unless ($qemubin) {
-        my @candidates = $vars->{QEMU}?('qemu-system-'.$vars->{QEMU}):qw/kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64/;
-        for my $bin ( map { '/usr/bin/' . $_ } @candidates ) {
+        my @candidates = $vars->{QEMU} ? ('qemu-system-' . $vars->{QEMU}) : qw/kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64/;
+        for my $bin (map { '/usr/bin/' . $_ } @candidates) {
             next unless -x $bin;
             $qemubin = $bin;
             last;
@@ -177,11 +177,11 @@ sub start_qemu() {
         die "no Qemu/KVM found\n" unless $qemubin;
     }
 
-    if ( $vars->{BIOS} && !-e '/usr/share/qemu/'.$vars->{BIOS} ) {
+    if ($vars->{BIOS} && !-e '/usr/share/qemu/' . $vars->{BIOS}) {
         die "'$vars->{BIOS}' missing, check BIOS\n";
     }
 
-    if ( $vars->{LAPTOP} ) {
+    if ($vars->{LAPTOP}) {
         if ($vars->{LAPTOP} =~ /\/|\.\./) {
             die "invalid characters in LAPTOP\n";
         }
@@ -199,9 +199,9 @@ sub start_qemu() {
         $vars->{PATHCNT} ||= 2;
     }
     # network settings
-    $vars->{NICMODEL}  ||= "virtio-net";
-    $vars->{NICTYPE}   ||= "user";
-    $vars->{NICMAC}    ||= "52:54:00:12:34:56";
+    $vars->{NICMODEL} ||= "virtio-net";
+    $vars->{NICTYPE}  ||= "user";
+    $vars->{NICMAC}   ||= "52:54:00:12:34:56";
     # misc
     my $arch_supports_boot_order = 1;
     my $use_usb_kbd;
@@ -209,11 +209,11 @@ sub start_qemu() {
     if ($vars->{ARCH} eq 'aarch64') {
         push @vgaoptions, '-device', 'VGA';
         $arch_supports_boot_order = 0;
-        $use_usb_kbd = 1;
+        $use_usb_kbd              = 1;
     }
     elsif ($vars->{OFW}) {
         $vars->{QEMUVGA} ||= "std";
-        push(@vgaoptions, '-g', '1024x768' );
+        push(@vgaoptions, '-g', '1024x768');
         #$use_usb_kbd = 1; # implicit on ppc
     }
     else {
@@ -221,205 +221,205 @@ sub start_qemu() {
     }
     push(@vgaoptions, "-vga", $vars->{QEMUVGA}) if $vars->{QEMUVGA};
 
-    $vars->{QEMUCPUS}  ||= 1;
-    if ( defined( $vars->{RAIDLEVEL} ) ) {
+    $vars->{QEMUCPUS} ||= 1;
+    if (defined($vars->{RAIDLEVEL})) {
         $vars->{NUMDISKS} = 4;
     }
-    bmwqemu::save_vars(); # update variables
+    bmwqemu::save_vars();    # update variables
 
     use File::Path qw/mkpath/;
     mkpath($basedir);
 
-    if ( !$vars->{KEEPHDDS} && !$vars->{SKIPTO} ) {
+    if (!$vars->{KEEPHDDS} && !$vars->{SKIPTO}) {
 
         # fresh HDDs
-        for my $i ( 1 .. $vars->{NUMDISKS} ) {
+        for my $i (1 .. $vars->{NUMDISKS}) {
             unlink("$basedir/l$i");
-            if ( -e "$basedir/$i.lvm" ) {
-                symlink( "$i.lvm", "$basedir/l$i" ) or die "$!\n";
-                die "$!\n" unless system( "/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1" ) == 0;    # for LVM
+            if (-e "$basedir/$i.lvm") {
+                symlink("$i.lvm", "$basedir/l$i") or die "$!\n";
+                die "$!\n" unless system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1") == 0;    # for LVM
             }
-            elsif ( $vars->{"HDD_$i"} ) {
-                die "$!\n" unless system( $qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"} ) == 0;
-                symlink( $i, "$basedir/l$i" ) or die "$!\n";
+            elsif ($vars->{"HDD_$i"}) {
+                die "$!\n" unless system($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"}) == 0;
+                symlink($i, "$basedir/l$i") or die "$!\n";
             }
             else {
-                die "$!\n" unless system( $qemuimg, "create", "$basedir/$i", "-f", "qcow2", $vars->{HDDSIZEGB} . "G" ) == 0;
-                symlink( $i, "$basedir/l$i" ) or die "$!\n";
+                die "$!\n" unless system($qemuimg, "create", "$basedir/$i", "-f", "qcow2", $vars->{HDDSIZEGB} . "G") == 0;
+                symlink($i, "$basedir/l$i") or die "$!\n";
             }
         }
 
-        if ( $vars->{AUTO_INST} ) {
+        if ($vars->{AUTO_INST}) {
             unlink("$basedir/autoinst.img");
-            system( "/sbin/mkfs.vfat", "-C", "$basedir/autoinst.img", "1440" );
-            system( "/usr/bin/mcopy", "-i", "$basedir/autoinst.img", $vars->{AUTO_INST}, "::/" );
+            system("/sbin/mkfs.vfat", "-C", "$basedir/autoinst.img", "1440");
+            system("/usr/bin/mcopy", "-i", "$basedir/autoinst.img", $vars->{AUTO_INST}, "::/");
 
             #system("/usr/bin/mdir","-i","$basedir/autoinst.img");
         }
     }
 
-    for my $i ( 1 .. 4 ) {    # create missing symlinks
+    for my $i (1 .. 4) {    # create missing symlinks
         next if -e "$basedir/l$i";
         next unless -e "$basedir/$i";
-        symlink( $i, "$basedir/l$i" ) or die "$!\n";
+        symlink($i, "$basedir/l$i") or die "$!\n";
     }
 
     pipe(my $reader, my $writer);
     my $pid = fork();
     die "fork failed" unless defined($pid);
-    if ( $pid == 0 ) {
-        $SIG{__DIE__} = undef; # overwrite the default - just exit
-        my @params = ( "-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", @vgaoptions);
+    if ($pid == 0) {
+        $SIG{__DIE__} = undef;    # overwrite the default - just exit
+        my @params = ("-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", @vgaoptions);
 
-        push( @params, '-m', $vars->{QEMURAM} || '1024' );
+        push(@params, '-m', $vars->{QEMURAM} || '1024');
 
-        if ( $vars->{QEMUMACHINE} ) {
-            push( @params, "-machine", $vars->{QEMUMACHINE});
+        if ($vars->{QEMUMACHINE}) {
+            push(@params, "-machine", $vars->{QEMUMACHINE});
         }
 
-        if ( $vars->{QEMUCPU} ) {
-            push( @params, "-cpu", $vars->{QEMUCPU} );
+        if ($vars->{QEMUCPU}) {
+            push(@params, "-cpu", $vars->{QEMUCPU});
         }
 
-        if ( $vars->{NICTYPE} eq "user" ) {
-            push( @params, '-netdev', 'user,id=qanet0');
+        if ($vars->{NICTYPE} eq "user") {
+            push(@params, '-netdev', 'user,id=qanet0');
         }
-        elsif ( $vars->{NICTYPE} eq "tap" ) {
+        elsif ($vars->{NICTYPE} eq "tap") {
             if (!$vars->{TAPDEV}) {
                 die "TAPDEV variable is required for NICTYPE==tap\n";
             }
-            push( @params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
+            push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
         }
         else {
             die "uknown NICTYPE $vars->{NICTYPE}\n";
         }
-        push( @params, '-device', "$vars->{NICMODEL},netdev=qanet0,mac=$vars->{NICMAC}");
+        push(@params, '-device', "$vars->{NICMODEL},netdev=qanet0,mac=$vars->{NICMAC}");
 
-        if ( $vars->{LAPTOP} ) {
+        if ($vars->{LAPTOP}) {
             my $laptop_path = "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
             for my $f (<$laptop_path/*.bin>) {
                 push @params, '-smbios', "file=$f";
             }
         }
 
-        if ( $vars->{HDDMODEL} =~ /virtio-scsi.*/ ) {
+        if ($vars->{HDDMODEL} =~ /virtio-scsi.*/) {
             # scsi devices need SCSI controller, then change to scsi-hd device
-            push( @params, "-device", "$vars->{HDDMODEL},id=scsi0" );
+            push(@params, "-device", "$vars->{HDDMODEL},id=scsi0");
             if ($vars->{MULTIPATH}) {
                 # add the second HBA
-                push( @params, "-device", "$vars->{HDDMODEL},id=scsi1" );
+                push(@params, "-device", "$vars->{HDDMODEL},id=scsi1");
             }
             $vars->{HDDMODEL} = "scsi-hd";
         }
-        for my $i ( 1 .. $vars->{NUMDISKS} ) {
+        for my $i (1 .. $vars->{NUMDISKS}) {
             my $boot = "";    #$i==1?",boot=on":""; # workaround bnc#696890
             if ($vars->{MULTIPATH}) {
-                for my $c ( 1 .. $vars->{PATHCNT} ) {
+                for my $c (1 .. $vars->{PATHCNT}) {
                     # pathname is a .. d
                     my $pathname = chr(96 + $c);
-                    push( @params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd${i}${pathname},serial=mpath$i" );
-                    push( @params, "-device", "$vars->{HDDMODEL},drive=hd${i}${pathname},bus=scsi" . ($c % 2 ? "1" : "0") . ".0" );
+                    push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd${i}${pathname},serial=mpath$i");
+                    push(@params, "-device", "$vars->{HDDMODEL},drive=hd${i}${pathname},bus=scsi" . ($c % 2 ? "1" : "0") . ".0");
                 }
             }
             else {
-                push( @params, "-device", "$vars->{HDDMODEL},drive=hd$i" . ( $vars->{HDDMODEL} =~ /ide-hd/ ? ",bus=ide.@{[$i-1]}" : '' ) );
-                push( @params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd$i" );
+                push(@params, "-device", "$vars->{HDDMODEL},drive=hd$i" . ($vars->{HDDMODEL} =~ /ide-hd/ ? ",bus=ide.@{[$i-1]}" : ''));
+                push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd$i");
             }
         }
 
         if ($iso) {
-            if ( $vars->{USBBOOT} ) {
-                push( @params, "-drive",  "if=none,id=usbstick,file=$iso,snapshot=on" );
-                push( @params, "-device", "usb-ehci,id=ehci" );
-                push( @params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb" );
+            if ($vars->{USBBOOT}) {
+                push(@params, "-drive",  "if=none,id=usbstick,file=$iso,snapshot=on");
+                push(@params, "-device", "usb-ehci,id=ehci");
+                push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb");
             }
             elsif ($vars->{CDMODEL}) {
-                push(@params, '-drive', "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
+                push(@params, '-drive',  "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
                 push(@params, '-device', "$vars->{CDMODEL},drive=cd0");
             }
             else {
-                push( @params, "-cdrom", $iso );
+                push(@params, "-cdrom", $iso);
             }
         }
 
-        for my $i ( 1 .. 6 ) {  # check for up to 6 ADDON ISOs
-            if ( $vars->{"ISO_$i"} && $vars->{"ADDONS"}) {
+        for my $i (1 .. 6) {    # check for up to 6 ADDON ISOs
+            if ($vars->{"ISO_$i"} && $vars->{"ADDONS"}) {
                 my $addoniso = $vars->{"ISO_$i"};
-                push( @params, "-drive", "if=scsi,id=addon_$i,file=$addoniso,media=cdrom" );
+                push(@params, "-drive", "if=scsi,id=addon_$i,file=$addoniso,media=cdrom");
             }
         }
 
         if ($arch_supports_boot_order) {
-            if ( $vars->{PXEBOOT} ) {
-                push( @params, "-boot", "n");
+            if ($vars->{PXEBOOT}) {
+                push(@params, "-boot", "n");
             }
-            elsif ( $vars->{BOOTFROM} ) {
-                push( @params, "-boot", "order=$vars->{BOOTFROM},menu=on,splash-time=5000" );
+            elsif ($vars->{BOOTFROM}) {
+                push(@params, "-boot", "order=$vars->{BOOTFROM},menu=on,splash-time=5000");
             }
             else {
-                push( @params, "-boot", "once=d,menu=on,splash-time=5000" );
+                push(@params, "-boot", "once=d,menu=on,splash-time=5000");
             }
         }
 
-        if ( $vars->{UEFI} ) {
+        if ($vars->{UEFI}) {
             # XXX: compat with old deployment
             $vars->{BIOS} //= $vars->{UEFI_BIOS};
             $vars->{BIOS} //= 'ovmf-x86_64-ms.bin' if $vars->{ARCH} eq 'x86_64';
         }
-        if ( $vars->{BIOS} ) {
-            push( @params, "-bios", '/usr/share/qemu/'.$vars->{BIOS} );
+        if ($vars->{BIOS}) {
+            push(@params, "-bios", '/usr/share/qemu/' . $vars->{BIOS});
         }
-        if ( $vars->{MULTINET} ) {
-            if ( $vars->{NICTYPE} eq "tap" ) {
+        if ($vars->{MULTINET}) {
+            if ($vars->{NICTYPE} eq "tap") {
                 die "MULTINET is not supported with NICTYPE==tap\n";
             }
             no warnings 'qw';
-            push( @params, qw"-net nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57 -net none,vlan=1" );
+            push(@params, qw"-net nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57 -net none,vlan=1");
         }
         push(@params, qw/-device usb-ehci -device usb-tablet/);
         if ($use_usb_kbd) {
             push(@params, qw/-device usb-kbd/);
         }
-        push( @params, "-smp", $vars->{QEMUCPUS} );
-        push( @params, "-enable-kvm" ) unless $vars->{QEMU_NO_KVM};
-        push( @params, "-no-shutdown" );
+        push(@params, "-smp", $vars->{QEMUCPUS});
+        push(@params, "-enable-kvm") unless $vars->{QEMU_NO_KVM};
+        push(@params, "-no-shutdown");
 
-        if ( open( my $cmdfd, '>', 'runqemu' ) ) {
+        if (open(my $cmdfd, '>', 'runqemu')) {
             print $cmdfd "#!/bin/bash\n";
             my @args = map { s,\\,\\\\,g; s,\$,\\\$,g; s,\",\\\",g; s,\`,\\\`,g; "\"$_\"" } @params;
-            printf $cmdfd "%s \\\n  %s \\\n  \"\$@\"\n", $qemubin, join( " \\\n  ", @args );
+            printf $cmdfd "%s \\\n  %s \\\n  \"\$@\"\n", $qemubin, join(" \\\n  ", @args);
             close $cmdfd;
             chmod 0755, 'runqemu';
         }
 
-        if ( $vars->{VNC} ) {
-            if ( $vars->{VNC} !~ /:/ ) {
+        if ($vars->{VNC}) {
+            if ($vars->{VNC} !~ /:/) {
                 $vars->{VNC} = ":$vars->{VNC}";
             }
-            push( @params, "-vnc", "$vars->{VNC},share=force-shared" );
-            push( @params, "-k", $vars->{VNCKB} ) if ( $vars->{VNCKB} );
+            push(@params, "-vnc", "$vars->{VNC},share=force-shared");
+            push(@params, "-k", $vars->{VNCKB}) if ($vars->{VNCKB});
         }
 
         push @params, '-qmp', "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-S";
         my $port = $vars->{QEMUPORT};
         push @params, "-monitor", "telnet:127.0.0.1:$port,server,nowait";
 
-        unshift( @params, $qemubin );
-        unshift( @params, "/usr/bin/eatmydata" ) if ( -e "/usr/bin/eatmydata" );
+        unshift(@params, $qemubin);
+        unshift(@params, "/usr/bin/eatmydata") if (-e "/usr/bin/eatmydata");
 
         # easter egg can be quite annoying and happens in December
         # and January. February next year ...
         my @date = gmtime;
-        if ( $date[4] == 0 || $date[4] == 11 ) {
+        if ($date[4] == 0 || $date[4] == 11) {
             $date[5]++ if $date[4] == 11;
             $date[4] = 1;
-            push @params, '-rtc', POSIX::strftime( "base=%Y-%m-%dT%H%M%S", @date );
+            push @params, '-rtc', POSIX::strftime("base=%Y-%m-%dT%H%M%S", @date);
         }
 
-        if ( $vars->{AUTO_INST} ) {
-            push( @params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy" );
+        if ($vars->{AUTO_INST}) {
+            push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
         }
-        bmwqemu::diag( "starting: " . join( " ", @params ) );
+        bmwqemu::diag("starting: " . join(" ", @params));
 
         # redirect qemu's output to the parent pipe
         open(STDOUT, ">&", $writer) || die "can't dup stdout: $!";
@@ -433,13 +433,13 @@ sub start_qemu() {
     }
     close $writer;
     $self->{qemupipe} = $reader;
-    open( my $pidf, ">", $self->{pidfilename} ) or die "can not write " . $self->{pidfilename};
+    open(my $pidf, ">", $self->{pidfilename}) or die "can not write " . $self->{pidfilename};
     print $pidf $self->{pid}, "\n";
     close $pidf;
 
     #local $Devel::Trace::TRACE = 1;
 
-    $self->connect_vnc({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC} });
+    $self->connect_vnc({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC}});
 
     $self->{hmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
@@ -449,8 +449,8 @@ sub start_qemu() {
 
     $self->{hmpsocket}->autoflush(1);
     binmode $self->{hmpsocket};
-    my $flags = fcntl( $self->{hmpsocket}, Fcntl::F_GETFL, 0 ) or die "can't getfl(): $!\n";
-    $flags = fcntl( $self->{hmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
+    my $flags = fcntl($self->{hmpsocket}, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
+    $flags = fcntl($self->{hmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
     $self->{qmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
@@ -460,12 +460,12 @@ sub start_qemu() {
 
     $self->{qmpsocket}->autoflush(1);
     binmode $self->{qmpsocket};
-    $flags = fcntl( $self->{qmpsocket}, Fcntl::F_GETFL, 0 ) or die "can't getfl(): $!\n";
-    $flags = fcntl( $self->{qmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
+    $flags = fcntl($self->{qmpsocket}, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
+    $flags = fcntl($self->{qmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
-    STDERR->printf("$$: hmpsocket %d, qmpsocket %d\n",fileno($self->{hmpsocket}),fileno($self->{qmpsocket}));
+    STDERR->printf("$$: hmpsocket %d, qmpsocket %d\n", fileno($self->{hmpsocket}), fileno($self->{qmpsocket}));
 
-    fcntl( $self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK ) or die "can't setfl(): $!\n";
+    fcntl($self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
     # retrieve welcome
     my $line = $self->_read_hmp;
@@ -476,7 +476,7 @@ sub start_qemu() {
     if (0) {
         $hash = $self->handle_qmp_command({"execute" => "query-commands"});
         die "no commands!" unless ($hash);
-        print "COMMANDS " . JSON::to_json( $hash, { pretty => 1 } ) . "\n";
+        print "COMMANDS " . JSON::to_json($hash, {pretty => 1}) . "\n";
     }
 
     my $cnt = bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw");
@@ -497,25 +497,25 @@ sub _read_hmp($) {
     my $s   = IO::Select->new();
     $s->add($self->{hmpsocket});
 
-    while ( my @ready = $s->can_read(60) ) {
+    while (my @ready = $s->can_read(60)) {
         my $buffer;
-        my $bytes = sysread( $self->{hmpsocket}, $buffer, 1000 );
+        my $bytes = sysread($self->{hmpsocket}, $buffer, 1000);
         last unless ($bytes);
         $rsp .= $buffer;
-        my @rsp2 = unpack( "C*", $rsp );
+        my @rsp2 = unpack("C*", $rsp);
         my $line = '';
         for my $c (@rsp2) {
-            if ( $c == 13 ) {
+            if ($c == 13) {
 
                 # skip
             }
-            elsif ( $c == 10 ) {
+            elsif ($c == 10) {
                 $line .= "\n";
             }
-            elsif ( $c == 27 ) {
+            elsif ($c == 27) {
                 $line .= "^";
             }
-            elsif ( $c < 32 ) {
+            elsif ($c < 32) {
                 $line .= "C$c ";
             }
             else {
@@ -527,10 +527,10 @@ sub _read_hmp($) {
         $line =~ s/\^\[K//g;
 
         # remove "cursor back"
-        while ( $line =~ m/.\^\[D/ ) {
+        while ($line =~ m/.\^\[D/) {
             $line =~ s/.\^\[D//;
         }
-        if ( $line =~ m/\n\(qemu\) *$/ ) {
+        if ($line =~ m/\n\(qemu\) *$/) {
             $line =~ s/\n\(qemu\) *$//;
             return $line;
         }
@@ -564,14 +564,14 @@ sub handle_qmp_command($) {
 
     my $line = JSON::to_json($cmd);
     # CORE::say "handle_qmp_command: " . bmwqemu::pp($line);
-    my $wb = syswrite( $self->{qmpsocket}, "$line\n" );
-    die "syswrite failed $!" unless ( $wb == length($line) + 1 );
+    my $wb = syswrite($self->{qmpsocket}, "$line\n");
+    die "syswrite failed $!" unless ($wb == length($line) + 1);
 
     #print STDERR "wrote $wb\n";
     my $hash;
-    while ( !$hash ) {
+    while (!$hash) {
         $hash = backend::driver::_read_json($self->{qmpsocket});
-        if ( $hash->{event} ) {
+        if ($hash->{event}) {
             print STDERR "EVENT " . JSON::to_json($hash) . "\n";
             # ignore
             $hash = undef;
@@ -584,7 +584,7 @@ sub handle_qmp_command($) {
 sub read_qemupipe() {
     my ($self) = @_;
     my $buffer;
-    my $bytes = sysread( $self->{qemupipe}, $buffer, 1000 );
+    my $bytes = sysread($self->{qemupipe}, $buffer, 1000);
     chomp $buffer;
     for my $line (split(/\n/, $buffer)) {
         bmwqemu::diag "QEMU: $line";
@@ -599,7 +599,7 @@ sub close_pipes() {
 
     if ($self->{qemupipe}) {
         # one last word?
-        fcntl( $self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK );
+        fcntl($self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK);
         $self->read_qemupipe();
         close($self->{qemupipe});
         $self->{qemupipe} = undef;
@@ -619,10 +619,10 @@ sub close_pipes() {
 sub _send_hmp {
     my ($self, $hmp) = @_;
 
-    my $wb = syswrite( $self->{hmpsocket}, "$hmp\n" );
+    my $wb = syswrite($self->{hmpsocket}, "$hmp\n");
 
     #print STDERR "wrote HMP $wb $cmd->{hmp}\n";
-    die "syswrite failed $!" unless ( $wb == length($hmp) + 1 );
+    die "syswrite failed $!" unless ($wb == length($hmp) + 1);
 
     return $self->_read_hmp;
 }
@@ -631,7 +631,7 @@ sub handle_hmp_command {
     my ($self, $hmp) = @_;
 
     my $line = $self->_send_hmp($hmp);
-    $self->{rsppipe}->print(JSON::to_json( { "rsp" => $line }));
+    $self->{rsppipe}->print(JSON::to_json({"rsp" => $line}));
 }
 
 # this is called for all sockets ready to read from. return 1 if socket
@@ -639,7 +639,7 @@ sub handle_hmp_command {
 sub check_socket {
     my ($self, $fh) = @_;
 
-    if ( $self->{qemupipe} && $fh == $self->{qemupipe}) {
+    if ($self->{qemupipe} && $fh == $self->{qemupipe}) {
         $self->close_pipes() unless $self->read_qemupipe();
         return 1;
     }
