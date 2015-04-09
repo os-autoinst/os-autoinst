@@ -10,7 +10,7 @@ use Data::Dumper qw(Dumper);
 sub new() {
     my ($class, $console) = @_;
 
-    my $self = bless( { class => $class, console => $console }, $class );
+    my $self = bless({class => $class, console => $console}, $class);
 
     return $self;
 }

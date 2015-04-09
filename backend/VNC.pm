@@ -29,10 +29,10 @@ __PACKAGE__->mk_accessors(
 );
 our $VERSION = '0.40';
 
-my $MAX_PROTOCOL_VERSION = 'RFB 003.008' . chr(0x0a);  # Max version supported
+my $MAX_PROTOCOL_VERSION = 'RFB 003.008' . chr(0x0a);    # Max version supported
 
 # This line comes from perlport.pod
-my $client_is_big_endian = unpack( 'h*', pack( 's', 1 ) ) =~ /01/ ? 1 : 0;
+my $client_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
 
 # The numbers in the hashes below were acquired from the VNC source code
 my %supported_depths = (
@@ -90,13 +90,13 @@ sub login {
     my $hostname = $self->hostname;
     my $port     = $self->port;
 
-    my $socket   = IO::Socket::INET->new(
+    my $socket = IO::Socket::INET->new(
         PeerAddr => $hostname || 'localhost',
         PeerPort => $port     || '5900',
         Proto    => 'tcp',
-    ) || Carp::confess "Error connecting to $hostname\n". Dumper($self) ."\n$@";
-    $socket->timeout(15); # FIXME: is this used for anything but connect?
-    $socket->sockopt(Socket::TCP_NODELAY, 1); # turn off Naegle's algorithm for vnc
+    ) || Carp::confess "Error connecting to $hostname\n" . Dumper($self) . "\n$@";
+    $socket->timeout(15);    # FIXME: is this used for anything but connect?
+    $socket->sockopt(Socket::TCP_NODELAY, 1);    # turn off Naegle's algorithm for vnc
     $self->socket($socket);
 
     $self->width(0);
@@ -134,27 +134,27 @@ sub _handshake_protocol_version {
     my $self = shift;
 
     my $socket = $self->socket;
-    $socket->read( my $protocol_version, 12 ) || die 'unexpected end of data';
+    $socket->read(my $protocol_version, 12) || die 'unexpected end of data';
 
     bmwqemu::diag "prot: $protocol_version";
 
     my $protocol_pattern = qr/\A RFB [ ] (\d{3}\.\d{3}) \s* \z/xms;
-    if ( $protocol_version !~ m/$protocol_pattern/xms ) {
+    if ($protocol_version !~ m/$protocol_pattern/xms) {
         die 'Malformed RFB protocol: ' . $protocol_version;
     }
     $self->_rfb_version($1);
 
-    if ( $protocol_version gt $MAX_PROTOCOL_VERSION ) {
+    if ($protocol_version gt $MAX_PROTOCOL_VERSION) {
         $protocol_version = $MAX_PROTOCOL_VERSION;
 
         # Repeat with the changed version
-        if ( $protocol_version !~ m/$protocol_pattern/xms ) {
+        if ($protocol_version !~ m/$protocol_pattern/xms) {
             die 'Malformed RFB protocol';
         }
         $self->_rfb_version($1);
     }
 
-    if ( $self->_rfb_version lt '003.003' ) {
+    if ($self->_rfb_version lt '003.003') {
         die 'RFB protocols earlier than v3.3 are not supported';
     }
 
@@ -169,33 +169,33 @@ sub _handshake_security {
 
     # Retrieve list of security options
     my $security_type;
-    if ( $self->_rfb_version ge '003.007' ) {
-        $socket->read( my $number_of_security_types, 1 )
+    if ($self->_rfb_version ge '003.007') {
+        $socket->read(my $number_of_security_types, 1)
           || die 'unexpected end of data';
-        $number_of_security_types = unpack( 'C', $number_of_security_types );
+        $number_of_security_types = unpack('C', $number_of_security_types);
 
         #bmwqemu::diag "types: $number_of_security_types";
 
-        if ( $number_of_security_types == 0 ) {
+        if ($number_of_security_types == 0) {
             die 'Error authenticating';
         }
 
         my @security_types;
-        foreach ( 1 .. $number_of_security_types ) {
-            $socket->read( my $security_type, 1 )
+        foreach (1 .. $number_of_security_types) {
+            $socket->read(my $security_type, 1)
               || die 'unexpected end of data';
-            $security_type = unpack( 'C', $security_type );
+            $security_type = unpack('C', $security_type);
 
             #        bmwqemu::diag "sec: $security_type";
             push @security_types, $security_type;
         }
 
-        my @pref_types = ( 1, 2 );
-        @pref_types = ( 30, 1, 2 ) if $self->username;
+        my @pref_types = (1, 2);
+        @pref_types = (30, 1, 2) if $self->username;
         @pref_types = (16) if $self->ikvm;
 
         for my $preferred_type (@pref_types) {
-            if ( 0 < grep { $_ == $preferred_type } @security_types ) {
+            if (0 < grep { $_ == $preferred_type } @security_types) {
                 $security_type = $preferred_type;
                 last;
             }
@@ -204,24 +204,24 @@ sub _handshake_security {
     else {
 
         # In RFB 3.3, the server dictates the security type
-        $socket->read( $security_type, 4 ) || die 'unexpected end of data';
-        $security_type = unpack( 'N', $security_type );
+        $socket->read($security_type, 4) || die 'unexpected end of data';
+        $security_type = unpack('N', $security_type);
     }
 
-    if ( $security_type == 1 ) {
+    if ($security_type == 1) {
 
         # No authorization needed!
-        if ( $self->_rfb_version ge '003.007' ) {
-            $socket->print( pack( 'C', 1 ) );
+        if ($self->_rfb_version ge '003.007') {
+            $socket->print(pack('C', 1));
         }
 
     }
-    elsif ( $security_type == 2 ) {
+    elsif ($security_type == 2) {
 
         # DES-encrypted challenge/response
 
-        if ( $self->_rfb_version ge '003.007' ) {
-            $socket->print( pack( 'C', 2 ) );
+        if ($self->_rfb_version ge '003.007') {
+            $socket->print(pack('C', 2));
         }
 
         # # VNC authentication is to be used and protocol data is to be
@@ -232,21 +232,21 @@ sub _handshake_security {
         # # 16 U8 challenge
 
 
-        $socket->read( my $challenge, 16 )
+        $socket->read(my $challenge, 16)
           || die 'unexpected end of data';
 
         #    warn "chal: " . unpack('h*', $challenge) . "\n";
 
         # the RFB protocol only uses the first 8 characters of a password
-        my $key = substr( $self->password, 0, 8 );
-        $key = '' if ( !defined $key );
-        $key .= pack( 'C', 0 ) until ( length($key) % 8 ) == 0;
+        my $key = substr($self->password, 0, 8);
+        $key = '' if (!defined $key);
+        $key .= pack('C', 0) until (length($key) % 8) == 0;
 
         my $realkey;
 
         #    warn unpack('b*', $key);
-        foreach my $byte ( split //, $key ) {
-            $realkey .= pack( 'b8', scalar reverse unpack( 'b8', $byte ) );
+        foreach my $byte (split //, $key) {
+            $realkey .= pack('b8', scalar reverse unpack('b8', $byte));
         }
 
         #    warn unpack('b*', $realkey);
@@ -261,8 +261,8 @@ sub _handshake_security {
         my $response;
         my $i = 0;
 
-        while ( $i < 16 ) {
-            my $word = substr( $challenge, $i, 8 );
+        while ($i < 16) {
+            my $word = substr($challenge, $i, 8);
 
             #        warn "$i: " . length($word);
             $response .= $cipher->encrypt($word);
@@ -274,12 +274,12 @@ sub _handshake_security {
         $socket->print($response);
 
     }
-    elsif ( $security_type == 16 ) { # ikvm
+    elsif ($security_type == 16) {    # ikvm
 
-        $socket->print( pack( 'C', 16 ) ); # accept
-        $socket->write( pack('Z24', $self->username ) );
-        $socket->write( pack('Z24', $self->password) );
-        $socket->read( my $ikvm_session, 24 ) || die 'unexpected end of data';
+        $socket->print(pack('C',   16));                # accept
+        $socket->write(pack('Z24', $self->username));
+        $socket->write(pack('Z24', $self->password));
+        $socket->read(my $ikvm_session, 24) || die 'unexpected end of data';
         my @bytes = unpack("C24", $ikvm_session);
         print "Session info: ";
         for my $b (@bytes) {
@@ -292,8 +292,8 @@ sub _handshake_security {
         # af f9 bf bc 08 03 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
         # af f9 ff bd 40 19 02 00 b0 a4 00 00 84 8c b1 be 00 60 43 40 f0 29 01 00
         # ab f9 1f be 08 13 02 00 e0 a5 00 00 74 a8 82 be 00 00 4b 40 d8 2d 01 00
-        $socket->read( my $security_result, 4 ) || die 'Failed to login';
-        $security_result = unpack( 'C', $security_result );
+        $socket->read(my $security_result, 4) || die 'Failed to login';
+        $security_result = unpack('C', $security_result);
         print "Security Result: $security_result\n";
         if ($security_result != 0) {
             die 'Failed to login';
@@ -305,26 +305,26 @@ sub _handshake_security {
 
     # the RFB protocol always returns a result for type 2,
     # but type 1, only for 003.008 and up
-    if ( ( $self->_rfb_version ge '003.008' && $security_type == 1 )
-        || $security_type == 2 )
+    if (($self->_rfb_version ge '003.008' && $security_type == 1)
+        || $security_type == 2)
     {
-        $socket->read( my $security_result, 4 )
+        $socket->read(my $security_result, 4)
           || die 'unexpected end of data';
-        $security_result = unpack( 'I', $security_result );
+        $security_result = unpack('I', $security_result);
 
         #    bmwqemu::diag $security_result;
         die 'login failed' if $security_result;
     }
-    elsif ( !$socket->connected ) {
+    elsif (!$socket->connected) {
         die 'login failed';
     }
 }
 
 sub _bin_int {
-    my ( $self, $s ) = @_;
-    my @a = unpack( "C*", $s );
+    my ($self, $s) = @_;
+    my @a = unpack("C*", $s);
     my $r = 0;
-    for ( my $i = 0; $i < @a; $i++ ) {
+    for (my $i = 0; $i < @a; $i++) {
         $r = 256 * $r;
         $r += $a[$i];
     }
@@ -336,14 +336,14 @@ sub _client_initialization {
 
     my $socket = $self->socket;
 
-    $socket->print( pack( 'C', !$self->ikvm ) );    # share
+    $socket->print(pack('C', !$self->ikvm));    # share
 }
 
 sub _server_initialization {
     my $self = shift;
 
     my $socket = $self->socket;
-    $socket->read( my $server_init, 24 ) || die 'unexpected end of data';
+    $socket->read(my $server_init, 24) || die 'unexpected end of data';
 
     #<<< tidy off
     my ( $framebuffer_width, $framebuffer_height,
@@ -364,20 +364,19 @@ sub _server_initialization {
 
     #bmwqemu::diag $name_length;
 
-    if ( !$self->depth ) {
+    if (!$self->depth) {
 
         # client did not express a depth preference, so check if the server's preference is OK
-        if ( !$supported_depths{$depth} ) {
+        if (!$supported_depths{$depth}) {
             die 'Unsupported depth ' . $depth;
         }
-        if ( $bits_per_pixel != $supported_depths{$depth}->{bpp} ) {
+        if ($bits_per_pixel != $supported_depths{$depth}->{bpp}) {
             die 'Unsupported bits-per-pixel value ' . $bits_per_pixel;
         }
         if (
-            $true_colour_flag
-            ? !$supported_depths{$depth}->{true_colour}
-            : $supported_depths{$depth}->{true_colour}
-          )
+            $true_colour_flag ?
+            !$supported_depths{$depth}->{true_colour}
+            : $supported_depths{$depth}->{true_colour})
         {
             die 'Unsupported true colour flag';
         }
@@ -386,47 +385,47 @@ sub _server_initialization {
         # Use server's values for *_max and *_shift
 
     }
-    elsif ( $depth != $self->depth ) {
-        for my $key (qw(red_max green_max blue_max red_shift green_shift blue_shift)){
-            $pixinfo{$key} = $supported_depths{ $self->depth }->{$key};
+    elsif ($depth != $self->depth) {
+        for my $key (qw(red_max green_max blue_max red_shift green_shift blue_shift)) {
+            $pixinfo{$key} = $supported_depths{$self->depth}->{$key};
         }
     }
     $self->absolute($self->ikvm);
 
-    if ( !$self->width && !$self->ikvm ) {
+    if (!$self->width && !$self->ikvm) {
         $self->width($framebuffer_width);
     }
-    if ( !$self->height && !$self->ikvm ) {
+    if (!$self->height && !$self->ikvm) {
         $self->height($framebuffer_height);
     }
-    $self->_pixinfo( \%pixinfo );
-    $self->_bpp( $supported_depths{ $self->depth }->{bpp} );
-    $self->_true_colour( $supported_depths{ $self->depth }->{true_colour} );
-    $self->_do_endian_conversion($self->no_endian_conversion ? 0 : $server_is_big_endian != $client_is_big_endian );
+    $self->_pixinfo(\%pixinfo);
+    $self->_bpp($supported_depths{$self->depth}->{bpp});
+    $self->_true_colour($supported_depths{$self->depth}->{true_colour});
+    $self->_do_endian_conversion($self->no_endian_conversion ? 0 : $server_is_big_endian != $client_is_big_endian);
 
-    $socket->read( my $name_string, $name_length )
+    $socket->read(my $name_string, $name_length)
       || die 'unexpected end of data';
     $self->name($name_string);
 
     #    warn $name_string;
 
     if ($self->ikvm) {
-        $socket->read( my $ikvm_init, 12 ) || die 'unexpected end of data';
+        $socket->read(my $ikvm_init, 12) || die 'unexpected end of data';
 
-        my ( $current_thread, $ikvm_video_enable, $ikvm_km_enable, $ikvm_kick_enable, $v_usb_enable)= unpack 'x4NCCCC', $ikvm_init;
+        my ($current_thread, $ikvm_video_enable, $ikvm_km_enable, $ikvm_kick_enable, $v_usb_enable) = unpack 'x4NCCCC', $ikvm_init;
         print "IKVM specifics: $current_thread $ikvm_video_enable $ikvm_km_enable $ikvm_kick_enable $v_usb_enable\n";
         die "Can't use keyboard and mouse.  Is another ipmi vnc viewer logged in?" unless $ikvm_km_enable;
-        return; # the rest is kindly ignored by ikvm anyway
+        return;    # the rest is kindly ignored by ikvm anyway
     }
 
     # setpixelformat
     $socket->print(
         pack(
             'CCCCCCCCnnnCCCCCC',
-            0,    # message_type
-            0,    # padding
-            0,    # padding
-            0,    # padding
+            0,     # message_type
+            0,     # padding
+            0,     # padding
+            0,     # padding
             $self->_bpp,
             $self->depth,
             $self->_do_endian_conversion,
@@ -437,11 +436,10 @@ sub _server_initialization {
             $pixinfo{red_shift},
             $pixinfo{green_shift},
             $pixinfo{blue_shift},
-            0,    # padding
-            0,    # padding
-            0,    # padding
-        )
-    );
+            0,     # padding
+            0,     # padding
+            0,     # padding
+        ));
 
     # set encodings
 
@@ -450,7 +448,7 @@ sub _server_initialization {
     # Prefer the higher-numbered encodings
     @encs = reverse sort { $a->{num} <=> $b->{num} } @encs;
 
-    if ( !$self->save_bandwidth ) {
+    if (!$self->save_bandwidth) {
         @encs = grep { !$_->{bandwidth} } @encs;
     }
     $socket->print(
@@ -459,8 +457,7 @@ sub _server_initialization {
             2,               # message_type
             0,               # padding
             scalar @encs,    # number_of_encodings
-        )
-    );
+        ));
     for my $enc (@encs) {
 
         # Make a big-endian, signed 32-bit value
@@ -474,7 +471,7 @@ sub _server_initialization {
 }
 
 sub _send_key_event {
-    my ( $self, $down_flag, $key ) = @_;
+    my ($self, $down_flag, $key) = @_;
 
     #bmwqemu::diag "_send_key_event $down_flag $key";
 
@@ -482,7 +479,7 @@ sub _send_key_event {
     # (false) if it is now released. The key itself is specified using the “keysym” values
     # defined by the X Window System.
 
-    my $socket = $self->socket;
+    my $socket   = $self->socket;
     my $template = 'CCnN';
     # for a strange reason ikvm has a lot more padding
     $template = 'CxCnNx9' if $self->ikvm;
@@ -493,50 +490,49 @@ sub _send_key_event {
             $down_flag,    # down-flag
             0,             # padding
             $key,          # key
-        )
-    );
+        ));
 }
 
 sub send_key_event_down {
-    my ( $self, $key ) = @_;
-    $self->_send_key_event( 1, $key );
+    my ($self, $key) = @_;
+    $self->_send_key_event(1, $key);
 }
 
 sub send_key_event_up {
-    my ( $self, $key ) = @_;
-    $self->_send_key_event( 0, $key );
+    my ($self, $key) = @_;
+    $self->_send_key_event(0, $key);
 }
 
 sub send_key_event {
-    my ( $self, $key ) = @_;
+    my ($self, $key) = @_;
     $self->send_key_event_down($key);
-    usleep(50); # just a brief moment
+    usleep(50);    # just a brief moment
     $self->send_key_event_up($key);
 }
 
 my $keymap_x11 = {
-    'esc' => 0xff1b,
-    'down' => 0xff54,
-    'right' => 0xff53,
-    'up' => 0xff52,
-    'left' => 0xff51,
-    'equal' => ord('='),
-    'spc' => ord(' '),
-    'minus' => ord('-'),
-    'shift' => 0xffe1,
-    'ctrl' => 0xffe3, # left, right is e4
-    'meta' => 0xffe7, # left, right is e8
-    'alt' => 0xffe9, # left one, right is ea
-    'ret' => 0xff0d,
-    'tab' => 0xff09,
+    'esc'       => 0xff1b,
+    'down'      => 0xff54,
+    'right'     => 0xff53,
+    'up'        => 0xff52,
+    'left'      => 0xff51,
+    'equal'     => ord('='),
+    'spc'       => ord(' '),
+    'minus'     => ord('-'),
+    'shift'     => 0xffe1,
+    'ctrl'      => 0xffe3,     # left, right is e4
+    'meta'      => 0xffe7,     # left, right is e8
+    'alt'       => 0xffe9,     # left one, right is ea
+    'ret'       => 0xff0d,
+    'tab'       => 0xff09,
     'backspace' => 0xff08,
-    'end' => 0xff57,
-    'delete' => 0xffff,
-    'home' => 0xff50,
-    'insert' => 0xff63,
-    'pgup' => 0xff55,
-    'pgdn' => 0xff56,
-    'sysrq' => 0xff15,
+    'end'       => 0xff57,
+    'delete'    => 0xffff,
+    'home'      => 0xff50,
+    'insert'    => 0xff63,
+    'pgup'      => 0xff55,
+    'pgdn'      => 0xff56,
+    'sysrq'     => 0xff15,
 };
 
 sub init_x11_keymap {
@@ -544,28 +540,28 @@ sub init_x11_keymap {
 
     return if $self->keymap;
     $self->keymap($keymap_x11);
-    for my $key (30..255) {
+    for my $key (30 .. 255) {
         $self->keymap->{chr($key)} ||= $key;
     }
-    for my $key (1..12) {
+    for my $key (1 .. 12) {
         $self->keymap->{"f$key"} = 0xffbd + $key;
     }
-    for my $key ("a".."z") {
+    for my $key ("a" .. "z") {
         my $code = ord($key);
         $self->keymap->{$key} = $code;
     }
 }
 
 my $keymap_ikvm = {
-    'ctrl' => 0xe0,
+    'ctrl'  => 0xe0,
     'shift' => 0xe1,
-    'alt' => 0xe2,
-    'win' => 0xe3,
-    'caps' => 0x39,
+    'alt'   => 0xe2,
+    'win'   => 0xe3,
+    'caps'  => 0x39,
 
-    'end' => 0x4d,
+    'end'    => 0x4d,
     'delete' => 0x4c,
-    'home' => 0x4a,
+    'home'   => 0x4a,
     'insert' => 0x49,
 
     #    {NSPrintScreenFunctionKey, 0x46},
@@ -575,28 +571,28 @@ my $keymap_ikvm = {
     'pgup' => 0x4b,
     'pgdn' => 0x4e,
 
-    'left' => 0x50,
+    'left'  => 0x50,
     'right' => 0x4f,
-    'up' => 0x52,
-    'down' => 0x51,
+    'up'    => 0x52,
+    'down'  => 0x51,
 
-    '0'=> 0x27,
-    'ret'=> 0x28,
-    'esc'=> 0x29,
-    '\x7f'=> 0x2a,
-    'tab' => 0x2b,
-    ' ' => 0x2c,
-    'minus'=> 0x2d,
-    '='=> 0x2e,
-    '['=> 0x2f,
-    ']'=> 0x30,
-    '\\'=> 0x31,
-    ';'=> 0x33,
-    '\''=> 0x34,
-    '`'=> 0x35,
-    ','=> 0x36,
-    '.'=> 0x37,
-    '/'=> 0x38,
+    '0'     => 0x27,
+    'ret'   => 0x28,
+    'esc'   => 0x29,
+    '\x7f'  => 0x2a,
+    'tab'   => 0x2b,
+    ' '     => 0x2c,
+    'minus' => 0x2d,
+    '='     => 0x2e,
+    '['     => 0x2f,
+    ']'     => 0x30,
+    '\\'    => 0x31,
+    ';'     => 0x33,
+    '\''    => 0x34,
+    '`'     => 0x35,
+    ','     => 0x36,
+    '.'     => 0x37,
+    '/'     => 0x38,
 };
 
 sub init_ikvm_keymap {
@@ -604,14 +600,14 @@ sub init_ikvm_keymap {
 
     return if $self->keymap;
     $self->keymap($keymap_ikvm);
-    for my $key ("a".."z") {
+    for my $key ("a" .. "z") {
         my $code = 0x4 + ord($key) - ord('a');
         $self->keymap->{$key} = $code;
     }
-    for my $key ("1".."9") {
+    for my $key ("1" .. "9") {
         $self->keymap->{$key} = 0x1e + ord($key) - ord('1');
     }
-    for my $key (1..12) {
+    for my $key (1 .. 12) {
         $self->keymap->{"f$key"} = 0x3a + $key - 1,;
     }
 }
@@ -644,7 +640,7 @@ sub send_mapped_key {
     }
 
     if ($self->ikvm && @events == 1) {
-        $self->_send_key_event( 2, $events[0] );
+        $self->_send_key_event(2, $events[0]);
         return;
     }
 
@@ -652,7 +648,7 @@ sub send_mapped_key {
         #bmwqemu::diag "send_key_event_down $key";
         $self->send_key_event_down($key);
     }
-    usleep(50); # just a brief moment
+    usleep(50);    # just a brief moment
     for my $key (@events) {
         #bmwqemu::diag "send_key_event_up $key";
         $self->send_key_event_up($key);
@@ -660,7 +656,7 @@ sub send_mapped_key {
 }
 
 sub send_pointer_event {
-    my ( $self, $button_mask, $x, $y ) = @_;
+    my ($self, $button_mask, $x, $y) = @_;
     bmwqemu::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
 
     my $template = 'CCnn';
@@ -673,17 +669,16 @@ sub send_pointer_event {
             $button_mask,    # button-mask
             $x,              # x-position
             $y,              # y-position
-        )
-    );
+        ));
 }
 
 # drain the VNC socket from all pending incoming messages.  return
 # true if there was a screen update.
-sub update_framebuffer() { # upstream VNC.pm:  "capture"
+sub update_framebuffer() {    # upstream VNC.pm:  "capture"
     my ($self) = @_;
 
     my $have_recieved_update = 0;
-    while ( defined( my $message_type = $self->_receive_message() ) ) {
+    while (defined(my $message_type = $self->_receive_message())) {
         $have_recieved_update = 1 if $message_type == 0;
     }
     return $have_recieved_update;
@@ -721,8 +716,7 @@ sub send_update_request(;$) {
             0,               # y
             $self->width,
             $self->height,
-        )
-    );
+        ));
 }
 
 sub _receive_message {
@@ -732,7 +726,7 @@ sub _receive_message {
     my $socket = $self->socket;
 
     $socket->blocking(0);
-    my $ret = $socket->read( my $message_type, 1 );
+    my $ret = $socket->read(my $message_type, 1);
     $socket->blocking(1);
 
     # FIXME: wrong fix for alive check!
@@ -763,24 +757,24 @@ sub _receive_message {
     # FIXME: wrong fix for alive check!
     #$self->_REQUESTS_BEFORE_RESPONSE_timer(scalar gettimeofday);
 
-    $message_type = unpack( 'C', $message_type );
+    $message_type = unpack('C', $message_type);
 
     #bmwqemu::diag("RM $message_type");
 
     # This result is unused.  It's meaning is different for the different methods
-    my $result=
-        !defined $message_type ? die 'bad message type received'
+    my $result
+      = !defined $message_type ? die 'bad message type received'
       : $message_type == 0     ? $self->_receive_update()
       : $message_type == 1     ? $self->_receive_colour_map()
       : $message_type == 2     ? $self->_receive_bell()
       : $message_type == 3     ? $self->_receive_cut_text()
       : $message_type == 0x39  ? $self->_receive_ikvm_session()
-      : $message_type == 0x04  ? $self->_discard_ikvm_message($message_type, 20)
-      : $message_type == 0x16  ? $self->_discard_ikvm_message($message_type, 1)
-      : $message_type == 0x33  ? $self->_discard_ikvm_message($message_type, 4)
-      : $message_type == 0x37  ? $self->_discard_ikvm_message($message_type, 2)
-      : $message_type == 0x3c  ? $self->_discard_ikvm_message($message_type, 8)
-      :                          die 'unsupported message type received';
+      : $message_type == 0x04 ? $self->_discard_ikvm_message($message_type, 20)
+      : $message_type == 0x16 ? $self->_discard_ikvm_message($message_type, 1)
+      : $message_type == 0x33 ? $self->_discard_ikvm_message($message_type, 4)
+      : $message_type == 0x37 ? $self->_discard_ikvm_message($message_type, 2)
+      : $message_type == 0x3c ? $self->_discard_ikvm_message($message_type, 8)
+      :                         die 'unsupported message type received';
 
     return $message_type;
 }
@@ -789,8 +783,8 @@ sub _receive_update {
     my $self = shift;
 
     my $image = $self->_framebuffer;
-    if ( !$image ) {
-        $image = tinycv::new( $self->width, $self->height );
+    if (!$image) {
+        $image = tinycv::new($self->width, $self->height);
         $self->_framebuffer($image);
 
         # We're going to be splatting pixels, so make sure every pixel is opaque
@@ -798,9 +792,9 @@ sub _receive_update {
         #$image->fill_rectangle( 0, 0, $self->width, $self->height );
     }
 
-    my $socket = $self->socket;
-    my $hlen = $socket->read( my $header, 3 ) || die 'unexpected end of data';
-    my $number_of_rectangles = unpack( 'xn', $header );
+    my $socket               = $self->socket;
+    my $hlen                 = $socket->read(my $header, 3) || die 'unexpected end of data';
+    my $number_of_rectangles = unpack('xn', $header);
 
     #bmwqemu::diag "NOR $number_of_rectangles";
 
@@ -808,9 +802,9 @@ sub _receive_update {
 
     my $do_endian_conversion = $self->_do_endian_conversion;
 
-    foreach ( 1 .. $number_of_rectangles ) {
-        $socket->read( my $data, 12 ) || die 'unexpected end of data';
-        my ( $x, $y, $w, $h, $encoding_type ) = unpack 'nnnnN', $data;
+    foreach (1 .. $number_of_rectangles) {
+        $socket->read(my $data, 12) || die 'unexpected end of data';
+        my ($x, $y, $w, $h, $encoding_type) = unpack 'nnnnN', $data;
 
         # unsigned -> signed conversion
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
@@ -818,11 +812,11 @@ sub _receive_update {
         #bmwqemu::diag "UP $x,$y $w x $h $encoding_type";
 
         ### Raw encoding ###
-        if ( $encoding_type == 0 && !$self->ikvm ) {
+        if ($encoding_type == 0 && !$self->ikvm) {
 
             my $bytes_per_pixel = $self->_bpp / 8;
 
-            $socket->read( my $data, $w * $h * $bytes_per_pixel )  || die 'unexpected end of data';
+            $socket->read(my $data, $w * $h * $bytes_per_pixel) || die 'unexpected end of data';
 
             # splat raw pixels into the image
             my $img = tinycv::new($w, $h);
@@ -839,17 +833,17 @@ sub _receive_update {
             }
             $image->blend($img, $x, $y);
         }
-        elsif ( $encoding_type == -223 ) {
+        elsif ($encoding_type == -223) {
             $self->width($w);
             $self->height($h);
-            $image = tinycv::new( $self->width, $self->height );
+            $image = tinycv::new($self->width, $self->height);
             $self->_framebuffer($image);
         }
-        elsif ( $encoding_type == -257 ) {
+        elsif ($encoding_type == -257) {
             bmwqemu::diag("pointer type $x $y $w $h $encoding_type");
             $self->absolute($x);
         }
-        elsif ( $self->ikvm) {
+        elsif ($self->ikvm) {
             $self->_receive_ikvm_encoding($encoding_type, $x, $y, $w, $h);
         }
         else {
@@ -882,14 +876,14 @@ sub _receive_ikvm_encoding {
     my ($self, $encoding_type, $x, $y, $w, $h) = @_;
 
     my $socket = $self->socket;
-    my $image = $self->_framebuffer;
+    my $image  = $self->_framebuffer;
 
     # ikvm specific
     $socket->read(my $aten_data, 8);
     my ($data_prefix, $data_len) = unpack('NN', $aten_data);
     #printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
 
-    if ($w > 33000) { # screen is off is signaled by negative numbers
+    if ($w > 33000) {    # screen is off is signaled by negative numbers
         $w = 1;
         $h = 1;
     }
@@ -898,10 +892,10 @@ sub _receive_ikvm_encoding {
     if ($w != $self->width || $h != $self->height) {
         $self->width($w);
         $self->height($h);
-        $image = tinycv::new( $self->width, $self->height );
+        $image = tinycv::new($self->width, $self->height);
         $self->_framebuffer($image);
         # resync mouse (magic)
-        $self->socket->print( pack('Cn', 7, 1920));
+        $self->socket->print(pack('Cn', 7, 1920));
     }
 
     if ($encoding_type == 89 && $data_len) {
@@ -916,12 +910,12 @@ sub _receive_ikvm_encoding {
         }
         print "\n";
 
-        $socket->read($data,  $required_data);
+        $socket->read($data, $required_data);
         my $img = tinycv::new($w, $h);
         $img->map_raw_data_rgb555($data);
         $image->blend($img, $x, $y);
     }
-    elsif ( $encoding_type == 0 ) {
+    elsif ($encoding_type == 0) {
         # ikvm manages to redeclare raw to be something completely different ;(
         $socket->read(my $data, 10) || die "unexpected end of data";
         my ($type, $segments, $length) = unpack('CxNN', $data);
@@ -960,7 +954,7 @@ sub _receive_bell {
 sub _receive_ikvm_session {
     my $self = shift;
 
-    $self->socket->read( my $ikvm_session_infos, 264);
+    $self->socket->read(my $ikvm_session_infos, 264);
 
     my ($msg1, $msg2, $str) = unpack('NNZ256', $ikvm_session_infos);
     print "IKVM Session Message: $msg1 $msg2 $str\n";
@@ -971,9 +965,9 @@ sub _receive_cut_text {
     my $self = shift;
 
     my $socket = $self->socket;
-    $socket->read( my $cut_msg, 7 ) || die 'unexpected end of data';
+    $socket->read(my $cut_msg, 7) || die 'unexpected end of data';
     my $cut_length = unpack 'xxxN', $cut_msg;
-    $socket->read( my $cut_string, $cut_length )
+    $socket->read(my $cut_string, $cut_length)
       || die 'unexpected end of data';
 
     # And discard it...
@@ -982,22 +976,22 @@ sub _receive_cut_text {
 }
 
 sub mouse_move_to {
-    my ( $self, $x, $y ) = @_;
-    $self->send_pointer_event( 0, $x, $y );
+    my ($self, $x, $y) = @_;
+    $self->send_pointer_event(0, $x, $y);
 }
 
 sub mouse_click {
-    my ($self, $x, $y ) = @_;
+    my ($self, $x, $y) = @_;
 
-    $self->send_pointer_event( 1, $x, $y );
-    $self->send_pointer_event( 0, $x, $y );
+    $self->send_pointer_event(1, $x, $y);
+    $self->send_pointer_event(0, $x, $y);
 }
 
 sub mouse_right_click {
-    my ($self, $x, $y ) = @_;
+    my ($self, $x, $y) = @_;
 
-    $self->send_pointer_event( 4, $x, $y );
-    $self->send_pointer_event( 0, $x, $y );
+    $self->send_pointer_event(4, $x, $y);
+    $self->send_pointer_event(0, $x, $y);
 }
 
 1;

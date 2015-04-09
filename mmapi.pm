@@ -34,7 +34,7 @@ my $url;
 
 sub _init {
     # init $ua and $url
-    my $host = $bmwqemu::vars{'OPENQA_URL'};
+    my $host   = $bmwqemu::vars{'OPENQA_URL'};
     my $secret = $bmwqemu::vars{'JOBTOKEN'};
     return unless $host && $secret;
 
@@ -57,8 +57,7 @@ sub _init {
         start => sub {
             my ($ua, $tx) = @_;
             $tx->req->headers->add('X-API-JobToken' => $secret);
-        }
-    );
+        });
 }
 
 sub api_call {

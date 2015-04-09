@@ -22,7 +22,7 @@ use IPC::Run ();
 
 sub new {
     my $class = shift;
-    my $self = bless( { class => $class }, $class );
+    my $self = bless({class => $class}, $class);
     return $self;
 }
 
@@ -31,7 +31,7 @@ use Time::HiRes qw(gettimeofday);
 sub ipmi_cmdline() {
     my ($self) = @_;
 
-    return ('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'},'-U', $bmwqemu::vars{'IPMI_USER'},'-P', $bmwqemu::vars{'IPMI_PASSWORD'});
+    return ('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'}, '-U', $bmwqemu::vars{'IPMI_USER'}, '-P', $bmwqemu::vars{'IPMI_PASSWORD'});
 }
 
 sub ipmitool($) {
@@ -74,7 +74,7 @@ sub init_charmap() {
     my ($self) = @_;
 
     $self->SUPER::init_charmap();
-    for my $c ( "A" .. "Z" ) {
+    for my $c ("A" .. "Z") {
         $self->{charmap}->{$c} = "shift-\L$c";
     }
 }
@@ -87,17 +87,16 @@ sub relogin_vnc() {
         close($self->{'vnc'}->socket);
         sleep(1);
     }
-    $self->{'vnc'}  = backend::VNC->new(
+    $self->{'vnc'} = backend::VNC->new(
         {
             hostname => $bmwqemu::vars{'IPMI_HOSTNAME'},
-            port => 5900,
+            port     => 5900,
             username => $bmwqemu::vars{'IPMI_USER'},
             password => $bmwqemu::vars{'IPMI_PASSWORD'},
-            ikvm => 1,
+            ikvm     => 1,
             # FIXME: not needed?
             # update_request_throttle_seconds => 2,
-        }
-    );
+        });
     eval { $self->{'vnc'}->login; };
     if ($@) {
         $self->close_pipes();
@@ -126,13 +125,13 @@ sub do_stop_vm() {
 }
 
 sub do_savevm($) {
-    my ( $self, $args ) = @_;
+    my ($self, $args) = @_;
     print "do_savevm ignored\n";
     return {};
 }
 
 sub do_loadvm($) {
-    my ( $self, $args ) = @_;
+    my ($self, $args) = @_;
     die "if you need loadvm, you're screwed with IPMI";
 }
 
@@ -140,18 +139,18 @@ sub do_loadvm($) {
 
 sub start_serial_grab() {
     my $self = shift;
-    my $pid = fork();
-    if ( $pid == 0 ) {
+    my $pid  = fork();
+    if ($pid == 0) {
         my @cmd = $self->ipmi_cmdline();
         push(@cmd, ("-I", "lanplus", "sol", "activate"));
         #unshift(@cmd, ("setsid", "-w"));
         print join(" ", @cmd);
 
-        open( my $serial, '>', $bmwqemu::serialfile ) || die "can't open $bmwqemu::serialfile";
-        open(STDOUT, ">&", $serial) || die "can't dup stdout: $!";
-        open(STDERR, ">&", $serial) || die "can't dup stderr: $!";
-        open( my $zero, '<', '/dev/zero');
-        open(STDIN, ">&", $zero);
+        open(my $serial, '>',  $bmwqemu::serialfile) || die "can't open $bmwqemu::serialfile";
+        open(STDOUT,     ">&", $serial)              || die "can't dup stdout: $!";
+        open(STDERR,     ">&", $serial)              || die "can't dup stderr: $!";
+        open(my $zero,   '<',  '/dev/zero');
+        open(STDIN,      ">&", $zero);
         exec("script", "-efqc", "@cmd");
         die "exec failed $!";
     }

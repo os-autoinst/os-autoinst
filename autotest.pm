@@ -14,18 +14,18 @@ sub loadtest($) {
     my ($script) = @_;
     my $casedir = $bmwqemu::vars{CASEDIR};
 
-    unless (-f join('/', $casedir, $script) ) {
+    unless (-f join('/', $casedir, $script)) {
         warn "loadtest needs a script below $casedir\n";
-        $script = File::Spec->abs2rel( $script, $bmwqemu::vars{CASEDIR} );
+        $script = File::Spec->abs2rel($script, $bmwqemu::vars{CASEDIR});
     }
-    unless ( $script =~ m,(\w+)/([^/]+)\.pm$, ) {
+    unless ($script =~ m,(\w+)/([^/]+)\.pm$,) {
         die "loadtest needs a script to match \\w+/[^/]+.pm\n";
     }
     my $category = $1;
     my $name     = $2;
     my $test;
     my $fullname = "$category-$name";
-    if ( exists $tests{$fullname} ) {
+    if (exists $tests{$fullname}) {
         $test = $tests{$fullname};
         return unless $test->is_applicable;
     }
@@ -42,7 +42,7 @@ sub loadtest($) {
             bmwqemu::diag($msg);
             die $msg;
         }
-        $test = $name->new($category);
+        $test             = $name->new($category);
         $test->{script}   = $script;
         $test->{fullname} = $fullname;
         $tests{$fullname} = $test;
@@ -70,9 +70,7 @@ sub write_test_order() {
                 'name'     => ref($t),
                 'category' => $t->{category},
                 'flags'    => $t->test_flags(),
-                'script'   => $t->{script}
-            }
-        );
+                'script'   => $t->{script}});
     }
     bmwqemu::save_json_file(\@result, bmwqemu::result_dir . "/test_order.json");
 
@@ -87,7 +85,7 @@ sub runalltests {
     for my $t (@testorder) {
         my $flags = $t->test_flags();
 
-        if ( !$vmloaded && $t->{fullname} eq $firsttest ) {
+        if (!$vmloaded && $t->{fullname} eq $firsttest) {
             bmwqemu::load_snapshot($firsttest) if $bmwqemu::vars{SKIPTO};
             $vmloaded = 1;
         }
@@ -97,8 +95,8 @@ sub runalltests {
             $t->start();
 
             # avoid erasing the good vm snapshot
-            if ( ( $bmwqemu::vars{SKIPTO} || '') ne $t->{fullname} && $bmwqemu::vars{MAKETESTSNAPSHOTS} ) {
-                bmwqemu::make_snapshot( $t->{fullname} );
+            if (($bmwqemu::vars{SKIPTO} || '') ne $t->{fullname} && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
+                bmwqemu::make_snapshot($t->{fullname});
             }
 
             eval { $t->runtest; };
@@ -107,16 +105,16 @@ sub runalltests {
             if ($@) {
 
                 bmwqemu::diag $@;
-                if ( $flags->{fatal} ) {
+                if ($flags->{fatal}) {
                     bmwqemu::stop_vm();
                     return 0;
                 }
-                elsif (!$flags->{norollback} ) {
+                elsif (!$flags->{norollback}) {
                     bmwqemu::load_snapshot('lastgood');
                 }
             }
             else {
-                if ( $flags->{milestone} ) {
+                if ($flags->{milestone}) {
                     bmwqemu::make_snapshot('lastgood');
                 }
             }
@@ -131,8 +129,8 @@ sub runalltests {
 
 sub loadtestdir($) {
     my $dir = shift;
-    $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//; # legacy where absolute path is specified
-    $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir); # always load from casedir
+    $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
+    $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
     die "$dir does not exist!\n" unless -d $dir;
     foreach my $script (<$dir/*.pm>) {
         loadtest($script);
