@@ -43,7 +43,7 @@ for my $file (@files) {
     $test->ok($test->pm_file_compiles($file), "Compile test for $file");
 }
 
-@files = ( 'isotovideo', $test->all_pl_files("."));
+@files = ('isotovideo', $test->all_pl_files("."));
 for my $file (@files) {
     $test->ok($test->pl_file_compiles($file), "Compile test for $file");
 }

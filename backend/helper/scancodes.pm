@@ -260,14 +260,14 @@ sub send_key($) {
     my $self  = shift;
     my $key   = shift;
     my @codes = ();
-    foreach my $part ( reverse split( "-", $key ) ) {
-        unshift( @codes, $self->keycode_down($part) );
-        push( @codes, $self->keycode_up($part) );
+    foreach my $part (reverse split("-", $key)) {
+        unshift(@codes, $self->keycode_down($part));
+        push(@codes, $self->keycode_up($part));
     }
-    my @codes_print = map( sprintf( "0x%02X", $_ ), @codes );
+    my @codes_print = map(sprintf("0x%02X", $_), @codes);
 
     #print STDOUT "send_key($key) => @codes_print\n";
-    $self->raw_keyboard_io( \@codes );
+    $self->raw_keyboard_io(\@codes);
 }
 
 1;

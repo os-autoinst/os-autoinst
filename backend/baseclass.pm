@@ -15,7 +15,7 @@ use IO::Select;
 use Data::Dumper;
 use feature qw(say);
 
-my $framecounter    = 0;    # screenshot counter
+my $framecounter = 0;    # screenshot counter
 our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
 
 # should be a singleton - and only useful in backend thread
@@ -23,7 +23,7 @@ our $backend;
 
 sub new {
     my $class = shift;
-    my $self = bless( { class => $class }, $class );
+    my $self = bless({class => $class}, $class);
     $self->{'started'} = 0;
     return $self;
 }
@@ -65,11 +65,11 @@ sub run {
     $SIG{__DIE__} = \&die_handler;
 
     my $io = IO::Handle->new();
-    $io->fdopen( $cmdpipe, "r" ) || die "r fdopen $!";
+    $io->fdopen($cmdpipe, "r") || die "r fdopen $!";
     $self->{'cmdpipe'} = $io;
 
     $io = IO::Handle->new();
-    $io->fdopen( $rsppipe, "w" ) || die "w fdopen $!";
+    $io->fdopen($rsppipe, "w") || die "w fdopen $!";
     $rsppipe = $io;
     $io->autoflush(1);
     $self->{'rsppipe'} = $io;
@@ -82,13 +82,13 @@ sub run {
     $self->{'select'}->add($self->{'cmdpipe'});
 
     $self->last_update_request("-Inf" + 0);
-    $self->last_screenshot("-Inf" +0);
+    $self->last_screenshot("-Inf" + 0);
     $self->screenshot_interval($bmwqemu::vars{SCREENSHOTINTERVAL} || .5);
     $self->update_request_interval($self->screenshot_interval());
 
     $self->run_capture_loop($self->{select});
 
-    bmwqemu::diag( "management thread exit at " . POSIX::strftime( "%F %T", gmtime ) );
+    bmwqemu::diag("management thread exit at " . POSIX::strftime("%F %T", gmtime));
 }
 
 use List::Util qw(min);
@@ -191,7 +191,7 @@ sub start_encoder() {
 
     my $cwd = Cwd::getcwd();
     open($self->{'encoder_pipe'}, "|nice $bmwqemu::scriptdir/videoencoder $cwd/video.ogv")
-      ||die "can't call $bmwqemu::scriptdir/videoencoder";
+      || die "can't call $bmwqemu::scriptdir/videoencoder";
 }
 
 sub get_last_mouse_set {
@@ -208,7 +208,7 @@ sub post_start_hook($) {
 
 sub start_vm($) {
     my ($self) = @_;
-    $self->{'mouse'} = { 'x' => undef, 'y' => undef };
+    $self->{'mouse'} = {'x' => undef, 'y' => undef};
     $self->{'started'} = 1;
     $self->init_charmap();
     $self->start_encoder();
@@ -223,14 +223,14 @@ sub stop_vm($) {
         $self->do_stop_vm();
         $self->{'started'} = 0;
     }
-    $self->close_pipes(); # does not return
+    $self->close_pipes();    # does not return
     return {};
 }
 
 sub alive($) {
     my $self = shift;
-    if ( $self->{'started'} ) {
-        if ( $self->file_alive() and $self->raw_alive() ) {
+    if ($self->{'started'}) {
+        if ($self->file_alive() and $self->raw_alive()) {
             return 1;
         }
         else {
@@ -241,13 +241,13 @@ sub alive($) {
     return 0;
 }
 
-my $iscrashedfile           = 'backend.crashed';
+my $iscrashedfile = 'backend.crashed';
 sub unlink_crash_file {
     unlink($iscrashedfile) if -e $iscrashedfile;
 }
 
 sub write_crash_file {
-    if (open(my $fh, ">", $iscrashedfile )) {
+    if (open(my $fh, ">", $iscrashedfile)) {
         print $fh "crashed\n";
         close $fh;
     }
@@ -272,7 +272,7 @@ sub eject_cd(;$)   { notimplemented }
 
 sub do_start_vm($) {
     # start up the vm
-    notimplemented
+    notimplemented;
 }
 
 sub do_stop_vm($) { notimplemented }
@@ -307,13 +307,13 @@ sub init_charmap($) {
     # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
     $self->{charmap} = {
         # minus is special as it splits key combinations
-        "-"  => "minus",
+        "-" => "minus",
         # first line of US layout
         "~"  => "shift-`",
         "!"  => "shift-1",
         "@"  => "shift-2",
         "#"  => "shift-3",
-        "\$"  => "shift-4",
+        "\$" => "shift-4",
         "%"  => "shift-5",
         "^"  => "shift-6",
         "&"  => "shift-7",
@@ -324,18 +324,18 @@ sub init_charmap($) {
         "+"  => "shift-=",
 
         # second line
-        "{"  => "shift-[",
-        "}"  => "shift-]",
-        "|"  => "shift-\\",
+        "{" => "shift-[",
+        "}" => "shift-]",
+        "|" => "shift-\\",
 
         # third line
-        ":"  => "shift-;",
-        '"'  => "shift-'",
+        ":" => "shift-;",
+        '"' => "shift-'",
 
         # fourth line
-        "<"  => "shift-,",
-        ">"  => "shift-.",
-        '?'  => "shift-/",
+        "<" => "shift-,",
+        ">" => "shift-.",
+        '?' => "shift-/",
 
         "\t" => "tab",
         "\n" => "ret",
@@ -355,16 +355,16 @@ sub map_letter($) {
 sub type_string($$) {
     my ($self, $string, $maxinterval) = @_;
 
-    my $typedchars  = 0;
-    for my $letter (split( "", $string )) {
+    my $typedchars = 0;
+    for my $letter (split("", $string)) {
         # FIXME: is this is dead code?  there ain't no plain send_key, no?
         send_key $self->map_letter($letter), 1;
-        if ( $typedchars++ >= $maxinterval ) {
+        if ($typedchars++ >= $maxinterval) {
             sleep 2;
             $typedchars = 0;
         }
     }
-    sleep 2 if ( $typedchars > 0 );
+    sleep 2 if ($typedchars > 0);
 }
 
 
@@ -383,11 +383,11 @@ sub enqueue_screenshot() {
     #return unless $rest < 0.05;
     #$self->reset_timer();
 
-    $image = $image->scale( 1024, 768 );
+    $image = $image->scale(1024, 768);
 
     $framecounter++;
 
-    my $filename = $bmwqemu::screenshotpath . sprintf( "/shot-%010d.png", $framecounter );
+    my $filename = $bmwqemu::screenshotpath . sprintf("/shot-%010d.png", $framecounter);
     my $lastlink = $bmwqemu::screenshotpath . "/last.png";
 
     #print STDERR $filename,"\n";
@@ -398,21 +398,21 @@ sub enqueue_screenshot() {
 
     #bmwqemu::diag "similarity is $sim";
     # 54 is based on t/data/user-settings-*
-    if ( $sim > 54 ) {
-        symlink( basename($lastscreenshotName), $filename ) || warn "failed to create $filename symlink: $!\n";
+    if ($sim > 54) {
+        symlink(basename($lastscreenshotName), $filename) || warn "failed to create $filename symlink: $!\n";
     }
     else {    # new
         $image->write($filename) || die "write $filename";
         # copy new one to shared directory, remove old one and change symlink
         $bmwqemu::screenshotQueue->enqueue($filename);
-        $lastscreenshot          = $image;
-        $lastscreenshotName      = $filename;
+        $lastscreenshot     = $image;
+        $lastscreenshotName = $filename;
         unlink($lastlink);
         symlink(basename($lastscreenshotName), $lastlink);
         #my $ocr=get_ocr($image);
         #if($ocr) { diag "ocr: $ocr" }
     }
-    if ( $sim > 50 ) { # we ignore smaller differences
+    if ($sim > 50) {    # we ignore smaller differences
         $self->{'encoder_pipe'}->print("R\n");
     }
     else {
@@ -425,7 +425,7 @@ sub close_pipes() {
     my ($self) = @_;
 
     if ($self->{'cmdpipe'}) {
-        close($self->{'cmdpipe'})   || die "close $!\n";
+        close($self->{'cmdpipe'}) || die "close $!\n";
         $self->{'cmdpipe'} = undef;
     }
 
@@ -442,13 +442,13 @@ sub close_pipes() {
 sub check_socket {
     my ($self, $fh) = @_;
 
-    if ( $self->{'cmdpipe'} && $fh == $self->{'cmdpipe'} ) {
+    if ($self->{'cmdpipe'} && $fh == $self->{'cmdpipe'}) {
         my $cmd = backend::driver::_read_json($self->{'cmdpipe'});
 
-        if ( $cmd->{cmd} ) {
+        if ($cmd->{cmd}) {
             my $rsp = $self->handle_command($cmd);
-            if ($self->{'rsppipe'}) { # the command might have closed it
-                $self->{'rsppipe'}->print(JSON::to_json( { "rsp" => $rsp } ));
+            if ($self->{'rsppipe'}) {    # the command might have closed it
+                $self->{'rsppipe'}->print(JSON::to_json({"rsp" => $rsp}));
                 $self->{'rsppipe'}->print("\n");
             }
         }

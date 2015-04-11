@@ -17,7 +17,7 @@ use feature qw/say/;
 
 require IPC::Run;
 
-use IPC::Run::Debug; # set IPCRUNDEBUG=data in shell environment for trace
+use IPC::Run::Debug;    # set IPCRUNDEBUG=data in shell environment for trace
 
 use Thread::Queue;
 
@@ -36,11 +36,11 @@ sub start() {
     $self->{raw_expect_queue} = new Thread::Queue();
 
     # start the local terminal emulator
-    $self->{in} = "";
+    $self->{in}  = "";
     $self->{out} = "";
     $self->{err} = "";
 
-    $self->{connection} = IPC::Run::start(\@{$self->{s3270}},\$self->{in},\$self->{out},\$self->{err} );
+    $self->{connection} = IPC::Run::start(\@{$self->{s3270}}, \$self->{in}, \$self->{out}, \$self->{err});
 
 }
 
@@ -63,10 +63,10 @@ sub send_3270() {
 
     if (!exists $arg{command_status}) { $arg{command_status} = "ok" }
     confess "command_status must be 'ok' or 'error' or 'any', got $arg{command_status}."
-      unless (grep $arg{command_status}, ['ok', 'error', 'any'] );
+      unless (grep $arg{command_status}, ['ok', 'error', 'any']);
 
-    $self->{in}  .= $command . "\n";
-    $self->{connection}->IPC::Run::pump until  $self->{out} =~ /^(ok|error)/mg;
+    $self->{in} .= $command . "\n";
+    $self->{connection}->IPC::Run::pump until $self->{out} =~ /^(ok|error)/mg;
 
     # grab and flush the IPC output.  IPC will only append, so the out
     # var needs to be flushed.
@@ -132,11 +132,11 @@ sub expect_3270() {
     my ($self, %arg) = @_;
     ### say Dumper \%arg;
 
-    $arg{buffer_full}	//= qr/MORE\.\.\./;
-    $arg{buffer_ready}	//= qr/RUNNING/;
-    $arg{timeout}	//= 7;
-    $arg{clear_buffer}	//= 0;
-    $arg{output_delim}  //= undef;
+    $arg{buffer_full}  //= qr/MORE\.\.\./;
+    $arg{buffer_ready} //= qr/RUNNING/;
+    $arg{timeout}      //= 7;
+    $arg{clear_buffer} //= 0;
+    $arg{output_delim} //= undef;
     if (!exists $arg{flush_lines}) {
         $arg{flush_lines} = qr/^ +$/;
     }
@@ -168,9 +168,9 @@ sub expect_3270() {
             # split it according to the screen sections
             my $co = $r->{command_output};
 
-            my $status_line  = pop @$co;
-            my $input_line   = pop @$co;
-            my @output_area  = @$co;
+            my $status_line = pop @$co;
+            my $input_line  = pop @$co;
+            my @output_area = @$co;
 
 
             if (defined $arg{flush_lines}) {
@@ -212,7 +212,7 @@ sub expect_3270() {
                     push @$result, $line;
                 }
 
-                confess "status line matches neither buffer_ready nor buffer_full:\n".Dumper($result).$status_line;
+                confess "status line matches neither buffer_ready nor buffer_full:\n" . Dumper($result) . $status_line;
             }
 
         }
@@ -267,7 +267,7 @@ sub expect_3270() {
         if ($elapsed_time > $arg{timeout}
             || !$self->wait_output($arg{timeout} - $elapsed_time))
         {
-            confess "expect_3270: timed out.\n"."  waiting for ${\Dumper \%arg}\n"."  last output:\n".Dumper($result);
+            confess "expect_3270: timed out.\n" . "  waiting for ${\Dumper \%arg}\n" . "  last output:\n" . Dumper($result);
         }
         next;
 
@@ -282,8 +282,8 @@ sub expect_3270() {
 
 sub wait_output() {
     my ($self, $timeout) = @_;
-    $timeout //= 0;		# just poll
-    my $r = $self->send_3270("Wait($timeout,Output)", command_status=>'any');
+    $timeout //= 0;    # just poll
+    my $r = $self->send_3270("Wait($timeout,Output)", command_status => 'any');
 
     if ($r->{command_status} eq 'ok') {
         return 1;
@@ -291,7 +291,7 @@ sub wait_output() {
     else {
         return 0
           unless $r->{command_output}[0] ne 'Wait: Timed out';
-        confess "has the s3270 wait timeout failure response changed?\n". Dumper $r;
+        confess "has the s3270 wait timeout failure response changed?\n" . Dumper $r;
     }
 
 
@@ -312,8 +312,8 @@ sub sequence_3270() {
 
 sub nice_3270_status() {
     my ($status_string) = @_;
-    my (@raw_status) = split(" ", $status_string);
-    my @status_names = (
+    my (@raw_status)    = split(" ", $status_string);
+    my @status_names    = (
         'keyboard_state',
         ## If the keyboard is unlocked, the letter U. If the
         ## keyboard is locked waiting for a response from the
@@ -377,8 +377,8 @@ sub _connect_3270() {
 
     my $r = $self->send_3270("Connect($host)");
 
-    if ($r->{terminal_status} !~ / C\($host\) / ) {
-        confess"connect to host >$host< failed.\n".join("\n", @$r);
+    if ($r->{terminal_status} !~ / C\($host\) /) {
+        confess "connect to host >$host< failed.\n" . join("\n", @$r);
     }
 
     $self->send_3270("Wait(InputField)");
@@ -434,7 +434,7 @@ sub connect_and_login() {
     my $r;
     ###################################################################
     # try to connect exactly twice
-    for (my $count = 0; $count += 1; ) {
+    for (my $count = 0; $count += 1;) {
 
         $r = $self->_connect_3270($self->{zVM_host});
 
@@ -444,14 +444,14 @@ sub connect_and_login() {
         # currently:  KILL THE GUEST
         # TODO:  think about what to really do in this case.
 
-        if (grep /(?:RECONNECT|HCPLGA).*/, @$r ) {
-            cluck #
-              "connect_and_login: machine is in use ($self->{zVM_host} $self->{guest_login}):\n" . #
+        if (grep /(?:RECONNECT|HCPLGA).*/, @$r) {
+            cluck                                                                                     #
+              "connect_and_login: machine is in use ($self->{zVM_host} $self->{guest_login}):\n" .    #
               join("\n", @$r) . "\n";
 
             if ($count == 2) {
-                die #
-                  "Could not reclaim guest despite hard_shutdown.  this is odd.\n". #
+                die                                                                                   #
+                  "Could not reclaim guest despite hard_shutdown.  this is odd.\n" .                  #
                   "Is this machine possibly connected on another terminal?\n";
             }
 

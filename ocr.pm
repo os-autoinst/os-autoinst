@@ -3,29 +3,29 @@ use strict;
 use warnings;
 
 our $gocrbin = "/usr/bin/gocr";
-if ( !-x $gocrbin ) { $gocrbin = undef }
+if (!-x $gocrbin) { $gocrbin = undef }
 
 # input: image ref
 sub get_ocr($$@) {
     my $ppm        = shift;
     my $gocrparams = shift || "";
-    my @ocrrect    = @{ $_[0] };
-    if ( !$gocrbin || !@ocrrect ) { return "" }
-    if ( @ocrrect != 4 ) { return " ocr: bad rect" }
+    my @ocrrect    = @{$_[0]};
+    if (!$gocrbin || !@ocrrect) { return "" }
+    if (@ocrrect != 4) { return " ocr: bad rect" }
     return unless $ppm;
     my $ppm2 = $ppm->copyrect(@ocrrect);
-    if ( !$ppm2 ) { return "" }
+    if (!$ppm2) { return "" }
     my $tempname = "ocr.$$-" . time . rand(10000) . ".ppm";
     $ppm2->write($tempname) or return " ocr error writing $tempname";
 
     # init DB file:
-    if ( !-e "db/db.lst" ) {
+    if (!-e "db/db.lst") {
         mkdir "db";
-        open( my $fd, ">db/db.lst" );
+        open(my $fd, ">db/db.lst");
         close $fd;
     }
 
-    open( my $pipe, "$gocrbin -l 128 -d 0 $gocrparams $tempname |" ) or return "failed to exec $gocrbin: $!";
+    open(my $pipe, "$gocrbin -l 128 -d 0 $gocrparams $tempname |") or return "failed to exec $gocrbin: $!";
     local $/;
     my $ocr = <$pipe>;
     close($pipe);
@@ -44,13 +44,13 @@ sub tesseract($;$$) {
     my $txt;
 
     if ($area) {
-        $img = $img->copyrect( $area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'} );
+        $img = $img->copyrect($area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'});
     }
 
     $img->write($imgfn);
-    if ( system( 'tesseract', $imgfn, $txtfn ) == 0 ) {
+    if (system('tesseract', $imgfn, $txtfn) == 0) {
         $txtfn .= '.txt';
-        if ( open( my $fh, '<:encoding(UTF-8)', $txtfn ) ) {
+        if (open(my $fh, '<:encoding(UTF-8)', $txtfn)) {
             local $/;
             $txt = <$fh>;
             close $fh;

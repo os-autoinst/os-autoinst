@@ -10,18 +10,18 @@ use testapi ();
 sub new(;$) {
     my $class    = shift;
     my $category = shift || 'unknown';
-    my $self     = { class => $class };
-    $self->{lastscreenshot} = undef;
-    $self->{details}        = [];
-    $self->{result}         = undef;
-    $self->{running}        = 0;
-    $self->{category}       = $category;
-    $self->{test_count}     = 0;
-    $self->{screen_count}   = 0;
-    $self->{wav_fn}         = undef;
-    $self->{dents}          = 0;
+    my $self     = {class => $class};
+    $self->{lastscreenshot}         = undef;
+    $self->{details}                = [];
+    $self->{result}                 = undef;
+    $self->{running}                = 0;
+    $self->{category}               = $category;
+    $self->{test_count}             = 0;
+    $self->{screen_count}           = 0;
+    $self->{wav_fn}                 = undef;
+    $self->{dents}                  = 0;
     $self->{post_fail_hook_running} = 0;
-    $self->{timeoutcounter} = 0;
+    $self->{timeoutcounter}         = 0;
 
     return bless $self, $class;
 }
@@ -81,13 +81,13 @@ sub record_screenmatch($$;$) {
     my $count    = ++$self->{"test_count"};
     my $testname = ref($self);
 
-    my $h      = $self->_serialize_match($needle);
+    my $h          = $self->_serialize_match($needle);
     my $properties = $needle->{needle}->{properties} || [];
-    my $result = {
+    my $result     = {
         needle     => $h->{name},
         area       => $h->{area},
-        tags       => [@$tags],                                    # make a copy
-        screenshot => sprintf( "%s-%d.png", $testname, $count ),
+        tags       => [@$tags],                                  # make a copy
+        screenshot => sprintf("%s-%d.png", $testname, $count),
         result     => 'ok',
         properties => [@$properties],
     };
@@ -105,17 +105,17 @@ sub record_screenmatch($$;$) {
     # Hack to make it obvious that some test passed by applying a hack
     # (such as clicking away some error popup). Those hacks are indicated by a
     # needle containing "bnc" in its name
-    if ( $h->{name} =~ /bnc\d{4}/ ) {
+    if ($h->{name} =~ /bnc\d{4}/) {
         $result->{dent} = 1;
         $self->{dents}++;
     }
 
-    my $fn = join( '/', bmwqemu::result_dir(), $result->{screenshot} );
+    my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
     $img->write_with_thumbnail($fn);
 
     $self->{result} ||= 'ok';
 
-    push @{ $self->{details} }, $result;
+    push @{$self->{details}}, $result;
 }
 
 =head2
@@ -136,19 +136,19 @@ sub _serialize_match($$) {
 
     my $name = $cand->{needle}->{name};
 
-    my $h = { name => $name, error => $cand->{error}, area => [] };
-    for my $a ( @{ $cand->{area} } ) {
+    my $h = {name => $name, error => $cand->{error}, area => []};
+    for my $a (@{$cand->{area}}) {
         my $na = {};
         for my $i (qw/x y w h result/) {
             $na->{$i} = $a->{$i};
         }
-        $na->{similarity} = int( $a->{similarity} * 100 );
-        if ( $a->{diff} ) {
-            my $imgname = sprintf( "%s-%d-%s-diff%d.png", $testname, $count, $name, $diffcount++ );
-            $a->{diff}->write( join( '/', bmwqemu::result_dir(), $imgname ) );
+        $na->{similarity} = int($a->{similarity} * 100);
+        if ($a->{diff}) {
+            my $imgname = sprintf("%s-%d-%s-diff%d.png", $testname, $count, $name, $diffcount++);
+            $a->{diff}->write(join('/', bmwqemu::result_dir(), $imgname));
             $na->{diff} = $imgname;
         }
-        push @{ $h->{area} }, $na;
+        push @{$h->{area}}, $na;
     }
 
     return $h;
@@ -167,31 +167,31 @@ sub record_screenfail($@) {
     my $testname = ref($self);
 
     my $candidates;
-    for my $cand ( @{ $needles || [] } ) {
+    for my $cand (@{$needles || []}) {
         push @$candidates, $self->_serialize_match($cand);
     }
 
     my $result = {
-        screenshot => sprintf( "%s-%d.png", $testname, $count ),
+        screenshot => sprintf("%s-%d.png", $testname, $count),
         result     => $status,
     };
 
     $result->{needles} = $candidates if $candidates;
     $result->{tags}    = [@$tags]    if $tags;         # make a copy
 
-    my $fn = join( '/', bmwqemu::result_dir(), $result->{screenshot} );
+    my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
     $img->write_with_thumbnail($fn);
 
     $self->{result} = $overall if $overall;
 
-    push @{ $self->{details} }, $result;
+    push @{$self->{details}}, $result;
 }
 
 # for interactive mode
 sub remove_last_result() {
     my $self = shift;
     --$self->{"test_count"};
-    pop @{ $self->{details} };
+    pop @{$self->{details}};
 }
 
 sub details($) {
@@ -216,7 +216,7 @@ sub done() {
     my $self = shift;
     $self->{running} = 0;
     $self->{result} ||= 'unk';
-    unless ( $self->{"test_count"} ) {
+    unless ($self->{"test_count"}) {
         $self->take_screenshot();
     }
     autotest::set_current_test(undef);
@@ -240,7 +240,7 @@ sub timeout_screenshot() {
     my ($self) = @_;
 
     my $n = ++$self->{timeoutcounter};
-    $self->take_screenshot( sprintf( "timeout-%02i", $n ) );
+    $self->take_screenshot(sprintf("timeout-%02i", $n));
 }
 
 sub waitforprevimg($$;$) {
@@ -251,11 +251,11 @@ sub waitforprevimg($$;$) {
     my $name = ref($self);
     my $currentimg;
 
-    for ( my $i = 0 ; $i <= $timeout ; $i += 1 ) {
+    for (my $i = 0; $i <= $timeout; $i += 1) {
         $currentimg = bmwqemu::getcurrentscreenshot();
         my $sim = $currentimg->similarity($previmg);
         bmwqemu::diag "$i: SIM $name $sim";
-        if ( $sim >= 49 ) {
+        if ($sim >= 49) {
             return undef;
         }
         sleep 1;
@@ -288,7 +288,7 @@ sub runtest($$) {
     };
     $self->{result} ||= 'unk';
 
-    if ($@ || $self->{result} eq 'fail' ) {
+    if ($@ || $self->{result} eq 'fail') {
         warn "test $name died: $@\n";
         $self->{post_fail_hook_running} = 1;
         eval { $self->post_fail_hook; };
@@ -300,7 +300,7 @@ sub runtest($$) {
     $self->done();
 
     #sleep 1;
-    bmwqemu::diag(sprintf( "||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime( "%F %T", gmtime ), time - $starttime ));
+    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime("%F %T", gmtime), time - $starttime));
     return $ret;
 }
 
@@ -308,9 +308,9 @@ sub save_test_result() {
     my ($self) = @_;
 
     my $result = {
-        'details'  => $self->details(),
-        'result'   => $self->result(),
-        'dents'    => $self->{dents},
+        'details' => $self->details(),
+        'result'  => $self->result(),
+        'dents'   => $self->{dents},
     };
     # be aware that $name has to be unique within one job (also assumed in several other places)
     my $fn = bmwqemu::result_dir() . sprintf("/result-%s.json", ref $self);
@@ -335,8 +335,8 @@ sub record_serialresult {
     my $result = $self->register_screenshot();
 
     $result->{reference_text} = $ref;
-    $result->{result} = $res;
-    if ( $result->{result} eq 'fail' ) {
+    $result->{result}         = $res;
+    if ($result->{result} eq 'fail') {
         $self->{result} = $result->{result};
     }
     else {
@@ -378,26 +378,26 @@ sub register_screenshot($) {
     my $testname = ref($self);
 
     my $result = {
-        screenshot => sprintf( "%s-%d.png", $testname, $count ),
+        screenshot => sprintf("%s-%d.png", $testname, $count),
         result     => 'unk',
     };
 
-    my $fn = join( '/', bmwqemu::result_dir(), $result->{screenshot} );
+    my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
     $img->write_with_thumbnail($fn);
 
-    push @{ $self->{details} }, $result;
+    push @{$self->{details}}, $result;
 
     return $result;
 }
 
 sub start_audiocapture() {
     my $self = shift;
-    my $fn   = ref($self)."-captured.wav";
-    die "audio capture already in progress. Stop it first!\n" if ( $self->{wav_fn} );
+    my $fn   = ref($self) . "-captured.wav";
+    die "audio capture already in progress. Stop it first!\n" if ($self->{wav_fn});
 
     # TODO: we only support one capture atm
     $self->{wav_fn} = $fn;
-    bmwqemu::do_start_audiocapture( join( '/', bmwqemu::result_dir(), $fn ) );
+    bmwqemu::do_start_audiocapture(join('/', bmwqemu::result_dir(), $fn));
 }
 
 sub stop_audiocapture() {
@@ -415,7 +415,7 @@ sub stop_audiocapture() {
         result => 'unk',
     };
 
-    push @{ $self->{details} }, $result;
+    push @{$self->{details}}, $result;
 
     return $result;
 }
@@ -433,14 +433,14 @@ sub assert_DTMF($) {
     my $result = $self->stop_audiocapture();
     $result->{reference_text} = $ref;
 
-    my $decoded_text = bmwqemu::decodewav( join( '/', bmwqemu::result_dir(), $result->{audio} ) );
-    if ( $decoded_text && ( uc $ref ) eq $decoded_text ) {
+    my $decoded_text = bmwqemu::decodewav(join('/', bmwqemu::result_dir(), $result->{audio}));
+    if ($decoded_text && (uc $ref) eq $decoded_text) {
         $result->{result} = 'ok';
         $self->{result} ||= $result->{result};
     }
     else {
         $result->{result} = 'fail';
-        $self->{result} = $result->{result};
+        $self->{result}   = $result->{result};
     }
     $result->{decoded_text} = $decoded_text;
 
@@ -478,7 +478,7 @@ sub standstill_detected($) {
 
     testapi::send_key("alt-sysrq-w");
     testapi::send_key("alt-sysrq-l");
-    testapi::send_key("alt-sysrq-d");                      # only available with CONFIG_LOCKDEP
+    testapi::send_key("alt-sysrq-d");    # only available with CONFIG_LOCKDEP
 }
 
 1;

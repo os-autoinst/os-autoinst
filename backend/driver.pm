@@ -23,10 +23,10 @@ sub diag($) {
 
 sub new {
     my ($class, $name) = @_;
-    my $self = bless( { class => $class }, $class );
+    my $self = bless({class => $class}, $class);
 
     require "backend/$name.pm";
-    $self->{'backend'} = "backend::$name"->new();
+    $self->{'backend'}      = "backend::$name"->new();
     $self->{'backend_name'} = $name;
 
     $self->start();
@@ -38,19 +38,19 @@ sub start() {
     my ($self) = @_;
 
     my $p1, my $p2;
-    pipe( $p1, $p2 ) or die "pipe: $!";
+    pipe($p1, $p2) or die "pipe: $!";
     $self->{from_parent} = $p1;
     $self->{to_child}    = $p2;
 
     $p1 = undef;
     $p2 = undef;
-    pipe( $p1, $p2 ) or die "pipe: $!";
+    pipe($p1, $p2) or die "pipe: $!";
     $self->{to_parent}  = $p2;
     $self->{from_child} = $p1;
 
-    printf STDERR "$$: to_child %d, from_child %d\n", fileno( $self->{to_child} ), fileno( $self->{from_child} );
+    printf STDERR "$$: to_child %d, from_child %d\n", fileno($self->{to_child}), fileno($self->{from_child});
 
-    my $tid = shared_clone( threads->create( \&_run, $self->{'backend'}, fileno( $self->{from_parent} ), fileno( $self->{to_parent} ) ) );
+    my $tid = shared_clone(threads->create(\&_run, $self->{'backend'}, fileno($self->{from_parent}), fileno($self->{to_parent})));
     $self->{runthread} = $tid;
 }
 
@@ -65,13 +65,13 @@ sub stop {
     my $self = shift;
     my $cmd  = shift;
 
-    return unless ( $self->{runthread} );
+    return unless ($self->{runthread});
 
     $self->stop_thread() if $self->{from_child};
-    close( $self->{from_child} ) if $self->{from_child};
+    close($self->{from_child}) if $self->{from_child};
     $self->{from_child} = undef;
 
-    close( $self->{to_child} ) if ($self->{to_child});
+    close($self->{to_child}) if ($self->{to_child});
     $self->{to_child} = undef;
 
     $self->{runthread}->join() if $self->{runthread};
@@ -82,8 +82,8 @@ sub stop {
 
 sub start_vm($) {
     my $self = shift;
-    my $json = to_json( $self->get_info() );
-    open( my $runf, ">", 'backend.run' ) or die "can not write 'backend.run'";
+    my $json = to_json($self->get_info());
+    open(my $runf, ">", 'backend.run') or die "can not write 'backend.run'";
     print $runf "$json\n";
     close $runf;
 
@@ -92,7 +92,7 @@ sub start_vm($) {
     remove_tree($bmwqemu::screenshotpath);
     mkdir $bmwqemu::screenshotpath;
 
-    $self->_send_json({ 'cmd' => "start_vm"} ) || die "failed to start VM";
+    $self->_send_json({'cmd' => "start_vm"}) || die "failed to start VM";
     # the backend thread might have added some defaults for the backend
     bmwqemu::load_vars();
 
@@ -110,21 +110,20 @@ sub get_info() {
     my ($self) = @_;
     $self->{'infos'} ||= {
         'backend'      => $self->{'backend_name'},
-        'backend_info' => $self->get_backend_info()
-    };
+        'backend_info' => $self->get_backend_info()};
     return $self->{'infos'};
 }
 
 # new api end
 
 sub send_key($) {
-    my ( $self, $key ) = @_;
-    return $self->_send_json({ 'cmd' => "send_key", 'arguments' => { 'key' => $key } });
+    my ($self, $key) = @_;
+    return $self->_send_json({'cmd' => "send_key", 'arguments' => {'key' => $key}});
 }
 
 sub mouse_button($$$) {
-    my ( $self, $button, $bstate ) = @_;
-    return $self->_send_json({ 'cmd' => "mouse_button", 'arguments' => { 'button' => $button, 'bstate' => $bstate } } );
+    my ($self, $button, $bstate) = @_;
+    return $self->_send_json({'cmd' => "mouse_button", 'arguments' => {'button' => $button, 'bstate' => $bstate}});
 }
 
 sub mouse_hide(;$) {
@@ -134,8 +133,8 @@ sub mouse_hide(;$) {
     # TODO: come up with a better solution - this is qemu specific.
     my $counter = 0;
     my $rsp;
-    while ( $counter < 10 ) {
-        $rsp = $self->_send_json({ 'cmd' => "mouse_hide", 'arguments' => { 'border_offset' => $border_offset } } );
+    while ($counter < 10) {
+        $rsp = $self->_send_json({'cmd' => "mouse_hide", 'arguments' => {'border_offset' => $border_offset}});
         last if $rsp->{absolute} ne '0';
         sleep 1;
         $counter++;
@@ -145,7 +144,7 @@ sub mouse_hide(;$) {
 
 sub AUTOLOAD {
     my ($self, $args) = @_;
-    $args ||= {}; # default
+    $args ||= {};    # default
 
     my $cmd = our $AUTOLOAD;
     $cmd =~ s,.*::,,;
@@ -154,9 +153,9 @@ sub AUTOLOAD {
         carp "we require a hash as arguments for $cmd";
     }
 
-    no strict 'refs';  # allow symbolic references
-    *$AUTOLOAD = sub { my ($self, $args) = @_; return $self->_send_json({ 'cmd' => $cmd, 'arguments' => $args }); };
-    goto &$AUTOLOAD;    # Restart the new routine.
+    no strict 'refs';    # allow symbolic references
+    *$AUTOLOAD = sub { my ($self, $args) = @_; return $self->_send_json({'cmd' => $cmd, 'arguments' => $args}); };
+    goto &$AUTOLOAD;     # Restart the new routine.
 }
 
 # virtual methods end
@@ -171,11 +170,11 @@ sub _send_json {
     my $JSON = JSON->new()->convert_blessed();
     my $json = $JSON->encode($cmd);
 
-    die "no backend running" unless ( $self->{to_child} );
-    my $wb = syswrite( $self->{to_child}, "$json\n" );
-    die "syswrite failed $!" unless ( $wb == length($json) + 1 );
+    die "no backend running" unless ($self->{to_child});
+    my $wb = syswrite($self->{to_child}, "$json\n");
+    die "syswrite failed $!" unless ($wb == length($json) + 1);
 
-    my $rsp = _read_json( $self->{from_child} );
+    my $rsp = _read_json($self->{from_child});
     unless ($rsp) {
         close($self->{from_child});
         $self->{from_child} = undef;
@@ -196,7 +195,7 @@ sub _read_json($) {
     my $hash;
 
     # make sure we read the answer completely
-    while ( !$hash ) {
+    while (!$hash) {
         # starting a IPMI host can take a while, so we need to be patient
         my @res = $s->can_read(300);
         unless (@res) {
@@ -204,14 +203,14 @@ sub _read_json($) {
             confess "ERROR: timeout reading JSON reply: $!\n";
         }
         my $qbuffer;
-        my $bytes = sysread( $socket, $qbuffer, 1 );
-        if ( !$bytes ) { diag("sysread failed: $!"); return undef; }
+        my $bytes = sysread($socket, $qbuffer, 1);
+        if (!$bytes) { diag("sysread failed: $!"); return undef; }
         $rsp .= $qbuffer;
         if ($rsp eq $backend::baseclass::MAGIC_PIPE_CLOSE_STRING) {
             print "received magic close\n";
             return undef;
         }
-        if ( $rsp !~ m/\n/ ) { next; }
+        if ($rsp !~ m/\n/) { next; }
         $hash = eval { JSON::decode_json($rsp); };
     }
 

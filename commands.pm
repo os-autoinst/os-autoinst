@@ -19,12 +19,12 @@ sub check_authorized {
         && $self->param('connect_password')
         && $bmwqemu::vars{'CONNECT_PASSWORD'} eq $self->param('connect_password'));
 
-    my $ip    = $self->tx->remote_address;
+    my $ip = $self->tx->remote_address;
     $self->app->log->debug("Request from $ip.");
 
     return 1 if ($ip eq "127.0.0.1" || $ip eq "::1");
 
-    my $local_ip    = $self->tx->local_address;
+    my $local_ip = $self->tx->local_address;
     $self->app->log->debug("Request to $local_ip.");
 
     # with TAP devices the address is not translated
@@ -44,7 +44,7 @@ sub _makecpiohead {
     #        magic ino
     my $h = "07070100000000";
     # mode                S_IFREG
-    $h .= sprintf("%08x", 0100000 | $s->[2]&0777);
+    $h .= sprintf("%08x", 0100000 | $s->[2] & 0777);
     #      uid     gid     nlink
     $h .= "000000000000000000000001";
     $h .= sprintf("%08x%08x", $s->[9], $s->[7]);
@@ -70,15 +70,15 @@ sub _test_data_dir {
     $self->res->headers->content_type('application/x-cpio');
 
     my $data = '';
-    for my $file (glob $base.'*') {
+    for my $file (glob $base . '*') {
         next unless -f $file;
         my @s = stat _;
         unless (@s) {
             $self->app->log->error("error stating $file: $!");
             next;
         }
-        my $fn = 'data/'.substr($file, length($base));
-        local $/; # enable localized slurp mode
+        my $fn = 'data/' . substr($file, length($base));
+        local $/;    # enable localized slurp mode
         my $fd;
         unless (open($fd, '<:raw', $file)) {
             $self->app->log->error("error reading $file: $!");
@@ -106,7 +106,7 @@ sub _test_data_file {
         $self->render(text => "Can't open $file", status => 404);
         return;
     }
-    local $/ = undef; # slurp mode
+    local $/ = undef;    # slurp mode
     my $data = <$fd>;
     close($fd);
 
@@ -126,7 +126,7 @@ sub _test_data_file {
 sub test_data {
     my ($self) = @_;
 
-    my $path = $bmwqemu::vars{'CASEDIR'} . "/data/";
+    my $path    = $bmwqemu::vars{'CASEDIR'} . "/data/";
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
         # do not allow .. in path
@@ -147,7 +147,7 @@ sub upload_file {
     if ($self->req->is_limit_exceeded) {
         return $self->render(
             message => 'File is too big.',
-            status => 400
+            status  => 400
         );
     }
 
@@ -171,7 +171,7 @@ sub upload_file {
 }
 
 
-our $current_test_script :shared;
+our $current_test_script : shared;
 
 sub current_script {
     my ($self) = @_;
