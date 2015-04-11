@@ -113,5 +113,9 @@ sub do_loadvm() {
     notimplemented;
 }
 
+sub do_upload_image() {
+    notimplemented;
+}
+
 
 1;

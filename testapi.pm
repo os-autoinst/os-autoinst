@@ -13,7 +13,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key ty
   script_sudo wait_serial save_screenshot wait_screen_change record_soft_failure
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
-  autoinst_url script_output validate_script_output eject_cd power);
+  autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image );
 
 our %cmd;
 
@@ -157,18 +157,48 @@ upload log file to openqa host
 
 sub upload_logs($) {
     my $file = shift;
-    my $host = "10.0.2.2:" . (get_var('QEMUPORT') + 1);
 
     bmwqemu::fctlog( 'upload_logs', ["file", $file]);
     type_string("curl --form upload=\@$file ");
     my $basename = basename($file);
-    type_string("$host/uploadlog/$basename\n");
+    type_string(autoinst_url() . "/uploadlog/$basename\n");
     wait_idle();
 }
 
 sub ensure_installed {
     return $distri->ensure_installed(@_);
 }
+
+=head2 upload_asset
+
+upload log file to openqa host
+
+=cut
+
+sub upload_asset($;$) {
+    my ($file, $public) = @_;
+
+    bmwqemu::fctlog( 'upload_logs', ["file", $file]);
+    type_string("curl --form upload=\@$file ");
+    type_string("--form target=assets_public ") if $public;
+    my $basename = basename($file);
+    type_string(autoinst_url() . "upload_asset/$basename\n");
+    wait_idle();
+}
+
+
+=head2 upload_image
+
+mark hdd image for uploading
+
+=cut
+
+sub upload_image($$;$) {
+    my ($hdd_num, $name, $public) = @_;
+    $bmwqemu::backend->do_upload_image({'hdd_num' => $hdd_num, 'name' => $name, 'dir' => $public ? 'assets_public' : 'assets_private'});
+}
+
+
 
 =head2 wait_still_screen
 

@@ -294,6 +294,10 @@ sub do_loadvm($) {
     print STDOUT "do_loadvm=NOP\n";
 }
 
+sub do_upload_image($) {
+    print STDOUT "do_upload_image=NOP\n";
+}
+
 # baseclass virt method overwrite end
 
 sub screenactive($) {

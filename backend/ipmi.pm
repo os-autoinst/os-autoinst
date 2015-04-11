@@ -136,6 +136,12 @@ sub do_loadvm($) {
     die "if you need loadvm, you're screwed with IPMI";
 }
 
+sub do_upload_image($) {
+    my ($self) = @_;
+    print "do_upload_image ignored\n";
+}
+
+
 # serial grab
 
 sub start_serial_grab() {
