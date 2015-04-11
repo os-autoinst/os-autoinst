@@ -35,7 +35,7 @@ sub init() {
     if ( get_var('OFW') ) {
         $serialdev = "hvc0";
     }
-
+    $serialdev = 'ttyS1' if check_var('BACKEND', 'ipmi');
 }
 
 sub set_distribution($) {
