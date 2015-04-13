@@ -2,7 +2,8 @@
 
 use strict;
 use warnings;
-use Test::Simple tests => 2;
+use Test::More;
+use File::Which qw(which);
 
 BEGIN {
     unshift @INC, '..';
@@ -16,6 +17,12 @@ use ocr;
 
 cv::init();
 require tinycv;
+
+unless (which('tesseract')) {
+    plan skip_all => 'No tesseract installed';
+    exit(0);
+}
+plan tests => 2;
 
 my ($res, $needle, $img1);
 
@@ -36,4 +43,6 @@ for my $a (@{$res->{'needle'}->{'area'}}) {
 }
 
 ok($ocr =~ /Memory Test.*Video Mode/s, "multiple OCR regions");
+done_testing();
+
 # vim: set sw=4 et:
