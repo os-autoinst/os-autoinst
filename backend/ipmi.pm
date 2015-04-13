@@ -28,13 +28,13 @@ sub new {
 
 use Time::HiRes qw(gettimeofday);
 
-sub ipmi_cmdline() {
+sub ipmi_cmdline {
     my ($self) = @_;
 
     return ('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'}, '-U', $bmwqemu::vars{'IPMI_USER'}, '-P', $bmwqemu::vars{'IPMI_PASSWORD'});
 }
 
-sub ipmitool($) {
+sub ipmitool {
     my ($self, $cmd) = @_;
 
     my @cmd = $self->ipmi_cmdline();
@@ -50,7 +50,7 @@ sub ipmitool($) {
     return $stdout;
 }
 
-sub restart_host() {
+sub restart_host {
     my ($self) = @_;
 
     $self->ipmitool("chassis power off");
@@ -70,7 +70,7 @@ sub restart_host() {
     }
 }
 
-sub init_charmap() {
+sub init_charmap {
     my ($self) = @_;
 
     $self->SUPER::init_charmap();
@@ -79,7 +79,7 @@ sub init_charmap() {
     }
 }
 
-sub relogin_vnc() {
+sub relogin_vnc {
     my ($self) = @_;
 
     $self->connect_vnc(
@@ -89,8 +89,8 @@ sub relogin_vnc() {
             username => $bmwqemu::vars{'IPMI_USER'},
             password => $bmwqemu::vars{'IPMI_PASSWORD'},
             ikvm     => 1,
-        })
-
+        });
+    1;
 }
 
 sub do_start_vm() {

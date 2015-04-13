@@ -24,7 +24,7 @@ our $backend;
 sub new {
     my $class = shift;
     my $self = bless({class => $class}, $class);
-    $self->{'started'} = 0;
+    $self->{started} = 0;
     return $self;
 }
 
@@ -33,11 +33,11 @@ sub handle_command($) {
 
     my ($self, $cmd) = @_;
 
-    my $func = $cmd->{'cmd'};
+    my $func = $cmd->{cmd};
     unless ($self->can($func)) {
         die "not supported command: $func";
     }
-    return $self->$func($cmd->{'arguments'});
+    return $self->$func($cmd->{arguments});
 }
 
 sub die_handler {
@@ -66,20 +66,20 @@ sub run {
 
     my $io = IO::Handle->new();
     $io->fdopen($cmdpipe, "r") || die "r fdopen $!";
-    $self->{'cmdpipe'} = $io;
+    $self->{cmdpipe} = $io;
 
     $io = IO::Handle->new();
     $io->fdopen($rsppipe, "w") || die "w fdopen $!";
     $rsppipe = $io;
     $io->autoflush(1);
-    $self->{'rsppipe'} = $io;
+    $self->{rsppipe} = $io;
 
-    printf STDERR "$$: cmdpipe %d, rsppipe %d\n", fileno($self->{'cmdpipe'}), fileno($self->{'rsppipe'});
+    printf STDERR "$$: cmdpipe %d, rsppipe %d\n", fileno($self->{cmdpipe}), fileno($self->{rsppipe});
 
     bmwqemu::diag "started mgmt loop with thread id " . threads->tid();
 
-    $self->{'select'} = IO::Select->new();
-    $self->{'select'}->add($self->{'cmdpipe'});
+    $self->{select} = IO::Select->new();
+    $self->{select}->add($self->{cmdpipe});
 
     $self->last_update_request("-Inf" + 0);
     $self->last_screenshot("-Inf" + 0);
@@ -196,13 +196,13 @@ sub start_encoder() {
     my ($self) = @_;
 
     my $cwd = Cwd::getcwd();
-    open($self->{'encoder_pipe'}, "|nice $bmwqemu::scriptdir/videoencoder $cwd/video.ogv")
+    open($self->{encoder_pipe}, "|nice $bmwqemu::scriptdir/videoencoder $cwd/video.ogv")
       || die "can't call $bmwqemu::scriptdir/videoencoder";
 }
 
 sub get_last_mouse_set {
     my $self = shift;
-    return $self->{'mouse'};
+    return $self->{mouse};
 }
 
 sub post_start_hook($) {
@@ -214,8 +214,8 @@ sub post_start_hook($) {
 
 sub start_vm($) {
     my ($self) = @_;
-    $self->{'mouse'} = {'x' => undef, 'y' => undef};
-    $self->{'started'} = 1;
+    $self->{mouse} = {x => undef, y => undef};
+    $self->{started} = 1;
     $self->init_charmap();
     $self->start_encoder();
     $self->do_start_vm();
@@ -223,11 +223,11 @@ sub start_vm($) {
 
 sub stop_vm($) {
     my $self = shift;
-    if ($self->{'started'}) {
-        close($self->{'encoder_pipe'});
+    if ($self->{started}) {
+        close($self->{encoder_pipe});
         unlink('backend.run');
         $self->do_stop_vm();
-        $self->{'started'} = 0;
+        $self->{started} = 0;
     }
     $self->close_pipes();    # does not return
     return {};
@@ -235,7 +235,7 @@ sub stop_vm($) {
 
 sub alive($) {
     my $self = shift;
-    if ($self->{'started'}) {
+    if ($self->{started}) {
         if ($self->file_alive() and $self->raw_alive()) {
             return 1;
         }
@@ -419,28 +419,28 @@ sub enqueue_screenshot() {
         #if($ocr) { diag "ocr: $ocr" }
     }
     if ($sim > 50) {    # we ignore smaller differences
-        $self->{'encoder_pipe'}->print("R\n");
+        $self->{encoder_pipe}->print("R\n");
     }
     else {
-        $self->{'encoder_pipe'}->print("E $lastscreenshotName\n");
+        $self->{encoder_pipe}->print("E $lastscreenshotName\n");
     }
-    $self->{'encoder_pipe'}->flush();
+    $self->{encoder_pipe}->flush();
 }
 
 sub close_pipes() {
     my ($self) = @_;
 
-    if ($self->{'cmdpipe'}) {
-        close($self->{'cmdpipe'}) || die "close $!\n";
-        $self->{'cmdpipe'} = undef;
+    if ($self->{cmdpipe}) {
+        close($self->{cmdpipe}) || die "close $!\n";
+        $self->{cmdpipe} = undef;
     }
 
-    return unless $self->{'rsppipe'};
+    return unless $self->{rsppipe};
 
     # XXX: perl does not really close the fd here due to threads!?
     print "sending magic and exit\n";
-    $self->{'rsppipe'}->print($MAGIC_PIPE_CLOSE_STRING);
-    close($self->{'rsppipe'}) || die "close $!\n";
+    $self->{rsppipe}->print($MAGIC_PIPE_CLOSE_STRING);
+    close($self->{rsppipe}) || die "close $!\n";
     threads->exit();
 }
 
@@ -448,15 +448,15 @@ sub close_pipes() {
 sub check_socket {
     my ($self, $fh) = @_;
 
-    if ($self->{'cmdpipe'} && $fh == $self->{'cmdpipe'}) {
-        my $cmd = backend::driver::_read_json($self->{'cmdpipe'});
+    if ($self->{cmdpipe} && $fh == $self->{cmdpipe}) {
+        my $cmd = backend::driver::_read_json($self->{cmdpipe});
 
         if ($cmd->{cmd}) {
             my $rsp = $self->handle_command($cmd);
             #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($rsp);
-            if ($self->{'rsppipe'}) {    # the command might have closed it
-                $self->{'rsppipe'}->print(JSON::to_json({"rsp" => $rsp}));
-                $self->{'rsppipe'}->print("\n");
+            if ($self->{rsppipe}) {    # the command might have closed it
+                $self->{rsppipe}->print(JSON::to_json({rsp => $rsp}));
+                $self->{rsppipe}->print("\n");
             }
         }
         else {
