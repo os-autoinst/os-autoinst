@@ -17,7 +17,7 @@ cd os-autoinst
 file]
 +
 -----------------------------------------------------------------------------------------------------
-sudo zypper in libtheora-devel libpng-devel opencv-devel pkg-config libtool autoconf automake gcc-c++
+sudo zypper in libtheora-devel opencv-devel pkg-config libtool autoconf automake gcc-c++
 -----------------------------------------------------------------------------------------------------
 4.  build the beastie locally
 +
