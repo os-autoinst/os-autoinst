@@ -16,6 +16,7 @@ File::Find
 File::Path
 File::Spec
 File::Temp
+File::Which
 IO::Handle
 IO::Select
 IO::Socket
