@@ -1,0 +1,19 @@
+#!/usr/bin/perl -w
+# © 2015 SUSE Linux GmbH
+# by Bernhard M. Wiedemann <bwiedemann suse de>
+# Licensed under GPL v2 or later
+
+use strict;
+use subtitle;
+
+# usage: $0 testresults/autoinst-log.txt > video.vtt
+# this uses a log (created with DEVEL_SUBTITLES=1) as source
+# and produces subtitles in the WebVTT standard
+
+subtitle::init_subtitle("/dev/stdout");
+
+while(<>) {
+	subtitle::add_subtitle_line($_);
+}
+
+subtitle::finish_subtitle;

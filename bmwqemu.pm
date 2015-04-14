@@ -10,6 +10,7 @@ use IO::Socket;
 use ocr;
 use cv;
 use needle;
+use subtitle;
 use threads;
 use threads::shared;
 use Thread::Queue;
@@ -188,6 +189,7 @@ sub init {
         }
     }
 
+    subtitle::init_subtitle(result_dir . "/video.vtt");
 }
 
 ## some var checks end
@@ -214,6 +216,7 @@ sub print_possibly_colored($;$) {
     if (($direct_output && !$istty) || !$direct_output) {
         $logfd && print $logfd "$text\n";
     }
+    subtitle::add_subtitle_line($text);
     if ($istty || !$logfd) {
         if ($color) {
             print STDERR colored($text, $color) . "\n";
