@@ -27,6 +27,7 @@ JSON
 Mojo::URL
 Mojo::UserAgent
 Mojolicious::Lite
+MojoX::JSON::RPC
 Net::SNMP
 POSIX
 Perl::Tidy
