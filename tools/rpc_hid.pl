@@ -7,7 +7,6 @@ use MojoX::JSON::RPC::Service;
 use Fcntl;
 
 my $hidfile="/dev/hidg0";
-open(HID, "+<", $hidfile) or die "error opening $hidfile: $!";
 
 my $modifier = {
     'ctrl'    => 0x01,
@@ -94,13 +93,6 @@ sub init_usb_keymap {
 }
 our $keymap = init_usb_keymap();
 
-sub send_A() {
-    my $data = pack("C*", $modifier->{'shift'},0,$keymap->{"a"},0,0,0,0,0);
-    my $releasedata = pack("C*", 0,0,0,0,0,0,0,0);
-    syswrite(HID, $data);
-    syswrite(HID, $releasedata);
-}
-
 sub key_code($) {
     my $key = shift;
     my $mod = 0;
@@ -123,10 +115,12 @@ sub send_key($) {
     my @codes = key_code($_[0]);
     print "@codes\n"; # debug
     my $data = pack("C*", @codes);
+    open(HID, "+<", $hidfile) or die "error opening $hidfile: $!";
     syswrite(HID, $data); # key-press
     foreach(@codes) {$_=0}
     $data = pack("C*", @codes);
     syswrite(HID, $data); # key-release
+    close HID;
 }
 
 sub change_cd($) {
