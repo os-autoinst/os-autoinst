@@ -147,10 +147,17 @@ sub read_serial() {
     return undef;
 }
 
+sub init_usb_gadget()
+{
+    return if(-e "/sys/kernel/config/usb_gadget/usbarmory");
+    system("/usr/local/sbin/usb-gadget-init.sh");
+}
+
 #send_key("shift-a");
 #while(<>) { chomp; send_key($_); }
 
 my $svc = MojoX::JSON::RPC::Service->new;
+$svc->register('init_usb_gadget', \&init_usb_gadget);
 $svc->register('send_key', \&send_key);
 $svc->register('change_cd', \&change_cd);
 $svc->register('read_serial', \&read_serial);

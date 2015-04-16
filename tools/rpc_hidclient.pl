@@ -33,9 +33,11 @@ sub define_RPC_func($)
     eval "sub $name {RPCwrap({method=>'$name', params => [\@_] })}"
 }
 
-for (qw(send_key change_cd read_serial)) {
+for (qw(init_usb_gadget send_key change_cd read_serial)) {
     define_RPC_func($_);
 }
+
+init_usb_gadget();
 
 #change_cd("/mounts/dist/install/openSUSE-13.2-GM/iso/openSUSE-13.2-NET-x86_64.iso");
 #change_cd("/mounts/dist/install/openSUSE-13.2-GM/iso/openSUSE-13.2-NET-i586.iso");
