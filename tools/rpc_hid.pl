@@ -6,7 +6,7 @@ use Mojolicious::Lite;
 use MojoX::JSON::RPC::Service;
 use Fcntl;
 
-my $hidfile="/dev/hidg0";
+my $hidfile = "/dev/hidg0";
 
 my $modifier = {
     'ctrl'    => 0x01,
@@ -20,14 +20,11 @@ my $modifier = {
 };
 
 my $keymap_usb = {
-#    'ctrl'  => 0xe0,
-#    'shift' => 0xe1,
-#    'alt'   => 0xe2,
-    'win'   => 0xe3,
-    'caps_lock' => 0x39,
-
-    'print'  => 0x46,
+    'win'         => 0xe3,
+    'caps_lock'   => 0x39,
+    'print'       => 0x46,
     'scroll_lock' => 0x47,
+
     'pause'  => 0x48,
     'end'    => 0x4d,
     'delete' => 0x4c,
@@ -41,6 +38,7 @@ my $keymap_usb = {
     'right' => 0x4f,
     'up'    => 0x52,
     'down'  => 0x51,
+
     'num_lock'    => 0x53,
     'kp_divide'   => 0x54,
     'kp_multiply' => 0x55,
@@ -54,29 +52,28 @@ my $keymap_usb = {
     'power'       => 0x66,
     'kp_equals'   => 0x67,
 
-    '0'     => 0x27,
-    'ret'   => 0x28,
-    'esc'   => 0x29,
+    '0'         => 0x27,
+    'ret'       => 0x28,
+    'esc'       => 0x29,
     'backspace' => 0x2a,
-    'tab'   => 0x2b,
-    'spc'   => 0x2c,
-    'minus' => 0x2d,
-    '='     => 0x2e,
-    '['     => 0x2f,
-    ']'     => 0x30,
-    '\\'    => 0x31,
-    '#'     => 0x32,
-    ';'     => 0x33,
-    '\''    => 0x34,
-    '`'     => 0x35,
-    ','     => 0x36,
-    '.'     => 0x37,
-    '/'     => 0x38,
+    'tab'       => 0x2b,
+    'spc'       => 0x2c,
+    'minus'     => 0x2d,
+    '='         => 0x2e,
+    '['         => 0x2f,
+    ']'         => 0x30,
+    '\\'        => 0x31,
+    '#'         => 0x32,
+    ';'         => 0x33,
+    '\''        => 0x34,
+    '`'         => 0x35,
+    ','         => 0x36,
+    '.'         => 0x37,
+    '/'         => 0x38,
 };
 
 sub init_usb_keymap {
-    my $keymap;
-    $keymap=$keymap_usb;
+    my $keymap = $keymap_usb;
     for my $key ("a" .. "z") {
         my $code = 0x4 + ord($key) - ord('a');
         $keymap->{$key} = $code;
@@ -94,16 +91,18 @@ sub init_usb_keymap {
 our $keymap = init_usb_keymap();
 
 sub key_code($) {
-    my $key = shift;
-    my $mod = 0;
+    my $key   = shift;
+    my $mod   = 0;
     my @codes = ();
     foreach my $part (split("-", $key)) {
-        if(my $m = $modifier->{$part}) {
+        if (my $m = $modifier->{$part}) {
             $mod |= $m;
-        } elsif((my $code = $keymap->{$part})) {
-            if(@codes>=6) {die "too many keys at a time in $key"}
+        }
+        elsif ((my $code = $keymap->{$part})) {
+            if (@codes >= 6) { die "too many keys at a time in $key" }
             push(@codes, $code);
-        } else {
+        }
+        else {
             die "invalid key $part in $key";
         }
     }
@@ -113,21 +112,21 @@ sub key_code($) {
 
 sub send_key($) {
     my @codes = key_code($_[0]);
-    print "@codes\n"; # debug
+    print "@codes\n";    # debug
     my $data = pack("C*", @codes);
     open(HID, "+<", $hidfile) or die "error opening $hidfile: $!";
-    syswrite(HID, $data); # key-press
-    foreach(@codes) {$_=0}
+    syswrite(HID, $data);    # key-press
+    foreach (@codes) { $_ = 0 }
     $data = pack("C*", @codes);
-    syswrite(HID, $data); # key-release
+    syswrite(HID, $data);    # key-release
     close HID;
 }
 
 sub change_cd($) {
     my $filename = shift;
-    my $b="/sys/kernel/config/usb_gadget/usbarmory";
-    my $c="$b/configs/c.1/mass_storage.usb0";
-    my $f="$b/functions/mass_storage.usb0";
+    my $b        = "/sys/kernel/config/usb_gadget/usbarmory";
+    my $c        = "$b/configs/c.1/mass_storage.usb0";
+    my $f        = "$b/functions/mass_storage.usb0";
     unlink($c);
     open(my $fh, ">", "$f/lun.0/file") or die $!;
     print $fh $filename;
@@ -138,18 +137,17 @@ sub change_cd($) {
 
 sub read_serial() {
     my $dev = "/dev/ttyGS0";
-    open(my $fh, "<", $dev) # FIXME blocking is not good
-        or die "Can't open $dev: $!";
-    my $data=<$fh>;
+    open(my $fh, "<", $dev)    # FIXME blocking is not good
+      or die "Can't open $dev: $!";
+    my $data = <$fh>;
     #my $nr = read($fh, $data, 1);
     close $fh;
-    return $data;# if $nr>0;
+    return $data;
     return undef;
 }
 
-sub init_usb_gadget()
-{
-    return if(-e "/sys/kernel/config/usb_gadget/usbarmory");
+sub init_usb_gadget() {
+    return if (-e "/sys/kernel/config/usb_gadget/usbarmory");
     system("/usr/local/sbin/usb-gadget-init.sh");
 }
 
@@ -158,12 +156,10 @@ sub init_usb_gadget()
 
 my $svc = MojoX::JSON::RPC::Service->new;
 $svc->register('init_usb_gadget', \&init_usb_gadget);
-$svc->register('send_key', \&send_key);
-$svc->register('change_cd', \&change_cd);
-$svc->register('read_serial', \&read_serial);
+$svc->register('send_key',        \&send_key);
+$svc->register('change_cd',       \&change_cd);
+$svc->register('read_serial',     \&read_serial);
 
-plugin 'json_rpc_dispatcher' => {
-    services => { '/jsonrpc' => $svc }
-};
+plugin 'json_rpc_dispatcher' => {services => {'/jsonrpc' => $svc}};
 
 app->start;
