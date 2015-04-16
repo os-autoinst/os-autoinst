@@ -5,6 +5,7 @@ use strict;
 use Mojolicious::Lite;
 use MojoX::JSON::RPC::Service;
 use Fcntl;
+use Time::HiRes "sleep";
 
 my $hidfile = "/dev/hidg0";
 
@@ -120,6 +121,61 @@ sub send_key($) {
     $data = pack("C*", @codes);
     syswrite(HID, $data);    # key-release
     close HID;
+}
+
+our $charmap = {
+    # minus is special as it splits key combinations
+    "-" => "minus",
+    # first line of US layout
+    "~"  => "shift-`",
+    "!"  => "shift-1",
+    "@"  => "shift-2",
+    "#"  => "shift-3",
+    "\$" => "shift-4",
+    "%"  => "shift-5",
+    "^"  => "shift-6",
+    "&"  => "shift-7",
+    "*"  => "shift-8",
+    "("  => "shift-9",
+    ")"  => "shift-0",
+    "_"  => "shift-minus",
+    "+"  => "shift-=",
+
+    # second line
+    "{" => "shift-[",
+    "}" => "shift-]",
+    "|" => "shift-\\",
+
+    # third line
+    ":" => "shift-;",
+    '"' => "shift-'",
+
+    # fourth line
+    "<" => "shift-,",
+    ">" => "shift-.",
+    '?' => "shift-/",
+
+    " "  => "spc",
+    "\t" => "tab",
+    "\n" => "ret",
+    "\b" => "backspace",
+
+    "\e" => "esc"
+};
+## charmap end
+
+sub map_letter($) {
+    my ($letter) = @_;
+    return $charmap->{$letter} if $charmap->{$letter};
+    return $letter;
+}
+
+sub type_string($) {
+    my ($string) = @_;
+    for my $letter (split("", $string)) {
+        send_key map_letter($letter);
+        sleep 0.02;
+    }
 }
 
 sub change_cd($) {

@@ -39,7 +39,7 @@ sub define_RPC_func($) {
     push(@EXPORT, $name);
 }
 
-for (qw(init_usb_gadget send_key change_cd read_serial)) {
+for (qw(init_usb_gadget send_key type_string change_cd read_serial)) {
     define_RPC_func($_);
 }
 
