@@ -1,6 +1,7 @@
 #!/usr/bin/perl -w
 use strict;
 use MojoX::JSON::RPC::Client;
+use Time::HiRes qw(gettimeofday tv_interval);
 
 my $client = MojoX::JSON::RPC::Client->new;
 my $url    = 'http://beagle.d.zq1.de:3000/jsonrpc';
@@ -8,7 +9,9 @@ my $url    = 'http://beagle.d.zq1.de:3000/jsonrpc';
 sub RPCwrap($) {
     my $callobj = shift;
     #$callobj->{id} = 1;
+    my $t = [gettimeofday()];
     my $res = $client->call($url, $callobj);
+    print "time: ".tv_interval($t)."\n";
 
     if($res) {
         if ($res->is_error) { # RPC ERROR
