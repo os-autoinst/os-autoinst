@@ -309,15 +309,16 @@ def update_vars_json(vars_json, insthost, guest, network_device, instsource, con
         "NETWORK"       : network_device,
 
         "DEBUG"         : {
-            #"wait after linuxrc",
+            #"wait after linuxrc": None,
             #    pauses os-autoinst just before it connects to YaST, rigth after linuxrc.
             #    also see PARMFILE: startshell
-            #"keep zVM guest",
+            #"keep zVM guest": None,
             #    do #cp disconnect at the end instead of #cp logoff
-            # "try vncviewer",
+            # "try vncviewer": None,
             #    don't connect and initialize.  Just do the vnc connect and
             #    go from there.
-            "vncviewer" : None,
+            # "vncviewer" : None,
+            #    start local vncviewer
         },
 
         "PARMFILE" : {
