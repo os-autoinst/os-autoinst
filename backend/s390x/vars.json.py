@@ -160,7 +160,7 @@ my_ip = [(s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1),
           s.getsockname()[0],
           s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][2]
 
-insthost_vars = {
+insthost_vars = lambda host, distro: {
     "dist": {
         "INSTSRC": {
             # dist.suse.de
@@ -169,6 +169,7 @@ insthost_vars = {
         "FTPBOOT" : {
             "COMMAND"  : "ftpboot",
             "HOST"     : "DIST.SUSE.DE",
+            "DISTRO"   : distro
         }
     },
     # to use this, restrict on FTP, run a local tftpd with anonymous access.
@@ -181,6 +182,7 @@ insthost_vars = {
         "FTPBOOT" : {
             "COMMAND"  : "frohboot",
             "HOST"     : my_ip,
+            "DISTRO"   : distro
         },
         # We use localhost for debugging purposes.  It will always be
         # unsigned, thus insecure.
@@ -188,37 +190,68 @@ insthost_vars = {
             "insecure": "1",
         },
     },
-}
+    "openqa": {
+        "INSTSRC": {
+            "HOST":     "openqa.suse.de",
+            "PROTOCOL": "FTP",
+        },
+        "FTPBOOT" : {
+            "COMMAND"  : "qaboot",
+            "FTP_SERVER"     : "openqa.suse.de",
+            "PATH_TO_SUSE_INS": distro,
+        },
+    },
+}[host]
 
-instsrc_vars = {
-    "ftp": {
-        "INSTSRC": {
-            "PROTOCOL":"FTP",
+def instsrc_vars(instsource, distro, host):
+    if host == "openqa":
+        def _dist_slp(distro, prefix=""):
+            return "{prefix}/{distro}/".format(
+                distro=distro, prefix=prefix
+            )
+    else:
+        def _dist_slp(distro, prefix=""):
+            return "{prefix}/install/SLP/{distro}/s390x/DVD1".format(
+                distro=distro, prefix=prefix
+            )
+
+    _instsrc_vars = {
+        "ftp": {
+            "INSTSRC": {
+                "DIR_ON_SERVER": _dist_slp(distro),
+            },
         },
-    },
-    "http": {
-        "INSTSRC": {
-            "PROTOCOL": "HTTP",
+        "http": {
+            "INSTSRC": {
+                "DIR_ON_SERVER": _dist_slp(distro),
+            },
         },
-    },
-    "https": None,
-    "nfs": {
-        "INSTSRC": {
-            "PROTOCOL": "NFS",
+        "https": None,
+        "nfs": {
+            "INSTSRC": {
+                "DIR_ON_SERVER": _dist_slp(distro, "/dist"),
+            },
         },
-    },
-    "smb": {
-        "INSTSRC": {
-            "PROTOCOL": "SMB",
+        "smb": {
+            "INSTSRC": {
+                "DIR_ON_SERVER": _dist_slp(distro),
+            },
         },
-    },
-    "tftp": None,
-}
+        "tftp": None,
+    }[instsrc]
+
+    unify(_instsrc_vars, {
+        "INSTSRC": {
+            "PROTOCOL": instsource.upper(),
+            "FTP_USER": "anonymous"
+        },
+    } )
+    return _instsrc_vars
 
 sshpassword = "SSH!554!"
 Xvnc_DISPLAY = 91
 
-console_vars = {
+console_vars = lambda Xvnc_DISPLAY: {
     "ssh": {
         "PARMFILE": {
             "ssh": "1",
@@ -265,36 +298,27 @@ console_vars = {
     },
 }
 
-def make_vars_json(insthost, guest, network_device, instsource, console, distro):
+def update_vars_json(vars_json, insthost, guest, network_device, instsource, console, distro):
 
-    vars_json = {
-
-        "DISTRI"	: "sle",
-        "CASEDIR"	: "/space/SVN/os-autoinst-distri-opensuse/",
-
+    vars_json_basics = {
         "BACKEND"	: "s390x",
         "ZVM_HOST"	: zVM_HOST,
-
-        "DEBUG"         : [
-            "wait after linuxrc",
-            #    pauses os-autoinst just before it connects to YaST, rigth after linuxrc.
-            #    also see PARMFILE: startshell
-            "keep zVM guest",
-            #    do #cp disconnect at the end instead of #cp logoff
-            # "try vncviewer",
-            #    don't connect and initialize.  Just do the vnc connect and
-            #    go from there.
-        ],
-
-        "BETA": "1",
-        # $vars{VNC} is the *local* Xvnc $DISPLAY and vnc display id.
-        # connect to it locally, where isotovideo runs, to watch
-        # isotovideo do it's work.
-        "VNC": Xvnc_DISPLAY,
         "ZVM_GUEST"     : "linux{guest}".format(guest=guest),
         "ZVM_PASSWORD"	: "lin390",
 
         "NETWORK"       : network_device,
+
+        "DEBUG"         : {
+            #"wait after linuxrc",
+            #    pauses os-autoinst just before it connects to YaST, rigth after linuxrc.
+            #    also see PARMFILE: startshell
+            #"keep zVM guest",
+            #    do #cp disconnect at the end instead of #cp logoff
+            # "try vncviewer",
+            #    don't connect and initialize.  Just do the vnc connect and
+            #    go from there.
+            "vncviewer" : None,
+        },
 
         "PARMFILE" : {
             # nameserver
@@ -317,34 +341,18 @@ def make_vars_json(insthost, guest, network_device, instsource, console, distro)
         }
     }
 
+    unify(vars_json, vars_json_basics)
+
     network_vars = get_network_parms(guest, network_device)
 
     unify(vars_json, network_vars)
 
-    unify(vars_json, {
-        "FTPBOOT" : {
-            # host comes from insthost_vars...
-            # "HOST"     : "DIST\\.SUSE\\.DE",
-            "DISTRO"   : distro
-        },
-    })
+    Xvnc_DISPLAY = vars_json['VNC']
+    unify(vars_json, console_vars(Xvnc_DISPLAY)[console])
 
-    unify(vars_json, {
-        "INSTSRC": {
-            "PROTOCOL": instsource.upper(),
-            "DIR_ON_SERVER": "{prefix}/install/SLP/{distro}/s390x/DVD1".format(
-                distro=distro,
-                prefix= "/dist" if instsource == "nfs" else ""
-            ),
-            "FTP_USER": "anonymous"
-        },
-    } )
+    unify(vars_json, instsrc_vars(instsource, distro, insthost))
 
-    unify(vars_json, console_vars[console])
-
-    unify(vars_json, instsrc_vars[instsource])
-
-    unify(vars_json, insthost_vars[insthost])
+    unify(vars_json, insthost_vars(insthost, distro))
 
     vars_json["PARMFILE"]["install"] = "{protocol}://{host}{dir_on_server}".format(
         protocol=instsource.lower(),
@@ -352,9 +360,22 @@ def make_vars_json(insthost, guest, network_device, instsource, console, distro)
         dir_on_server=vars_json["INSTSRC"]["DIR_ON_SERVER"]
         )
 
+    vars_json["CASEDIR"] = "/space/SVN/os-autoinst-distri-opensuse/"
 
     return vars_json
 
+def _default_vars_json():
+    return {
+
+        "DISTRI"	: "sle",
+        "CASEDIR"	: "/space/SVN/os-autoinst-distri-opensuse/",
+
+        "BETA": "1",
+        # $vars{VNC} is the *local* Xvnc $DISPLAY and vnc display id.
+        # connect to it locally, where isotovideo runs, to watch
+        # isotovideo do it's work.
+        "VNC": Xvnc_DISPLAY,
+    }
 
 import json
 from pprint import pprint as pp
@@ -362,8 +383,11 @@ import sys
 if __name__ == "__main__":
     _script, insthost, host, network, instsrc, console, distro = sys.argv
 
-    print(json.dumps( make_vars_json( insthost, host, network, instsrc, console, distro), indent=True ))
+    import os.path
+    if os.path.isfile("vars.json"):
+        with open("vars.json") as f:
+            vars_json = json.load(f, );
+    else:
+        vars_json = _default_vars_json();
 
-    #pp( make_vars_json("155", "hsi-l3", "http", "vnc", "SLES-11-SP4-Alpha2"))
-    #pp( make_vars_json("156", "ctc", "ftp", "X11"))
-    #pp( make_vars_json("157", "vswitch-l3", "http", "vnc"))
+    print(json.dumps( update_vars_json( vars_json, insthost, host, network, instsrc, console, distro), indent=True ))

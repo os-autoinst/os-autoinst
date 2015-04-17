@@ -7,9 +7,10 @@
 use strict;
 use threads;
 
-local $Devel::Trace::TRACE = 0;
+local $Devel::Trace::TRACE;
+$Devel::Trace::TRACE = 0;
 
-our $installprefix;
+my $installprefix; # $bmwqemu::scriptdir
 
 BEGIN {
     # the following line is modified during make install
