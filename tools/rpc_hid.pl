@@ -211,10 +211,9 @@ sub init_usb_gadget() {
 #while(<>) { chomp; send_key($_); }
 
 my $svc = MojoX::JSON::RPC::Service->new;
-$svc->register('init_usb_gadget', \&init_usb_gadget);
-$svc->register('send_key',        \&send_key);
-$svc->register('change_cd',       \&change_cd);
-$svc->register('read_serial',     \&read_serial);
+foreach (qw(init_usb_gadget send_key type_string change_cd read_serial)) {
+    $svc->register($_, \&$_);
+}
 
 plugin 'json_rpc_dispatcher' => {services => {'/jsonrpc' => $svc}};
 
