@@ -154,7 +154,7 @@ sub _new_console($$) {
         # On older Xvnc there is no '-listen tcp' option
         # because that's the default there; need to test Xvnc version
         # and act accordingly.
-        my $Xvnc_listen_option = grep { /-listen/ } qx"Xvnc -help 2>&1" ? "-listen tcp" : "";
+        my $Xvnc_listen_option = (scalar grep { /-listen/ } qx"Xvnc -help 2>&1") ? "-listen tcp" : "";
         $self->{local_X_handle} = IPC::Run::start("Xvnc $display $Xvnc_listen_option -SecurityTypes None -ac");
         # REFACTOR from connect_vnc to new_vnc, which just returns a
         # new vnc connection.  add a DESTROY to VNC which closes the
@@ -214,7 +214,7 @@ sub _select_console() {
     my ($self, $console_info) = @_;
     #local $Devel::Trace::TRACE;
     #$Devel::Trace::TRACE = 1;
-    #CORE::say __FILE__ .':'. __LINE__ .':'.(caller 0)[3];#.':'.bmwqemu::pp($args);
+    #CORE::say __FILE__ .':'. __LINE__ .':'.(caller 0)[3].':'.bmwqemu::pp($args);
 
     my $backend_console = $console_info->{args}->{backend_console};
 
@@ -342,8 +342,8 @@ sub inflate_vars_json {
     my ($self) = @_;
 
     # these need to become parameters in the future, too:
-    my $installation_console          = "ssh-X";    # "x11", "vnc", "ssh"
-    my $installation_network_protocol = "ftp";      # nothing else is implemented so far on openqa.suse.de
+    my $installation_console          = "vnc";    # "x11", "vnc", "ssh-X", "ssh"
+    my $installation_network_protocol = "ftp";    # nothing else is implemented so far on openqa.suse.de
 
     # use external script to inflate vars.json
     my $vars_json_cmd = $bmwqemu::scriptdir . "/backend/s390x/vars.json.py";
