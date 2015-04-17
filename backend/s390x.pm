@@ -150,10 +150,12 @@ sub _new_console($$) {
         my $display = ":" . $display_id;
         # FIXME: do the full monty xauth authentication, with a local
         # XAUTHORITY=./XAuthority file
-        # FIXME: on older Xvnc there is no '-listen tcp' option,
-        # that's the default there; need to test Xvnc version and act
-        # accordingly.
-        $self->{local_X_handle} = IPC::Run::start("Xvnc $display -listen tcp -SecurityTypes None -ac");
+
+        # On older Xvnc there is no '-listen tcp' option
+        # because that's the default there; need to test Xvnc version
+        # and act accordingly.
+        my $Xvnc_listen_option = grep { /-listen/ } qx"Xvnc -help 2>&1" ? "-listen tcp" : "";
+        $self->{local_X_handle} = IPC::Run::start("Xvnc $display $Xvnc_listen_option -SecurityTypes None -ac");
         # REFACTOR from connect_vnc to new_vnc, which just returns a
         # new vnc connection.  add a DESTROY to VNC which closes the
         # socket, if that's needed.  Until then we need to remove this
