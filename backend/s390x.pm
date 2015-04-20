@@ -16,7 +16,7 @@ use backend::s390x::s3270;
 
 use backend::VNC;
 
-use testapi qw(get_var check_var);
+use testapi qw(get_var check_var set_var);
 
 sub new {
     my $class = shift;
@@ -337,23 +337,39 @@ sub do_start_vm() {
 #     "S390_HOST" : "153",
 #     "S390_NETWORK" : "hsi-l3",
 #     "REPO_0" : "SLES-11-SP4-DVD-s390x-Build1050-Media1",
+# when not invoked from the worker (no WORKER_CLASS set), these need
+# to be set, too:
+#     "S390_INSTHOST": "dist",
+#     "S390_INSTSRC": "http",
 # output: a full-featured vars.json suitable for s390 testing
 sub inflate_vars_json {
     my ($self) = @_;
 
-    # these need to become parameters in the future, too:
-    my $installation_console          = "vnc";    # "x11", "vnc", "ssh-X", "ssh"
-    my $installation_network_protocol = "ftp";    # nothing else is implemented so far on openqa.suse.de
+    # these vars have to be set in vars.json:
+    die unless defined get_var('S390_HOST');
+    die unless defined get_var('S390_NETWORK');
+    die unless defined get_var('S390_CONSOLE');
+    die unless defined get_var('REPO_0');
+    # when called from the openqa worker, these two vars are not set
+    # yet:
+    if (defined get_var('WORKER_CLASS')) {
+        die if defined get_var('S390_INSTHOST');
+        die if defined get_var('S390_INSTSRC');
+        set_var("S390_INSTHOST", "openqa");
+        # FIXME: this should become a parameter in the future, too.
+        # only ftp is implemented so far on openqa.suse.de
+        set_var("S390_INSTSRC", "ftp");
+        bmwqemu::save_vars();
+    }
+    else {
+        die unless defined get_var('S390_INSTHOST');
+        die unless defined get_var('S390_INSTSRC');
+    }
 
     # use external script to inflate vars.json
     my $vars_json_cmd = $bmwqemu::scriptdir . "/backend/s390x/vars.json.py";
 
-    # the arguments to the script, in order
-    my ($insthost, $host, $network, $instsrc, $console, $distro) =    #
-      ("openqa", get_var('S390_HOST'), get_var('S390_NETWORK'), $installation_network_protocol, $installation_console, get_var('REPO_0'));
-
-    my $vars = qx($vars_json_cmd $insthost $host $network $instsrc $console $distro > vars.json.$$);
-    die "vars_json transform failed $?" if $?;
+    system("$vars_json_cmd > vars.json.$$") != -1 || die "vars_json transform failed $?";
     system("mv vars.json.$$ vars.json") != -1 || die;
 
     bmwqemu::load_vars();

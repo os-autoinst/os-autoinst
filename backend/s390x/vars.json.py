@@ -238,7 +238,7 @@ def instsrc_vars(instsource, distro, host):
             },
         },
         "tftp": None,
-    }[instsrc]
+    }[instsource]
 
     unify(_instsrc_vars, {
         "INSTSRC": {
@@ -298,7 +298,13 @@ console_vars = lambda Xvnc_DISPLAY: {
     },
 }
 
-def update_vars_json(vars_json, insthost, guest, network_device, instsource, console, distro):
+def update_vars_json(vars_json):
+    insthost       = vars_json["S390_INSTHOST"]
+    guest          = vars_json["S390_HOST"]
+    network_device = vars_json["S390_NETWORK"]
+    instsource     = vars_json["S390_INSTSRC"]
+    console        = vars_json["S390_CONSOLE"]
+    distro         = vars_json["REPO_0"]
 
     vars_json_basics = {
         "BACKEND"	: "s390x",
@@ -310,7 +316,7 @@ def update_vars_json(vars_json, insthost, guest, network_device, instsource, con
 
         "DEBUG"         : {
             #"wait after linuxrc": None,
-            #    pauses os-autoinst just before it connects to YaST, rigth after linuxrc.
+            #    pauses os-autoinst just before it connects to YaST, right after linuxrc.
             #    also see PARMFILE: startshell
             #"keep zVM guest": None,
             #    do #cp disconnect at the end instead of #cp logoff
@@ -335,10 +341,6 @@ def update_vars_json(vars_json, insthost, guest, network_device, instsource, con
             #"dud": "nfs://10.160.0.111:/real-home/snwint/Export/bnc_913888.dud",
             #"dud": "ftp://{host}/bnc_913888/bnc_913888.dud".format(host=my_ip),
             #"linuxrc.log":"/dev/console",
-            ##startshell=1 linuxrc.log=/dev/console
-            ##install=http://10.160.0.100/install/SLP/SLES-11-SP4-Alpha3/s390x/DVD1
-            ##InstNetDev=osa OSAInterface=qdio OSAMedium=eth
-
         }
     }
 
@@ -365,30 +367,14 @@ def update_vars_json(vars_json, insthost, guest, network_device, instsource, con
 
     return vars_json
 
-def _default_vars_json():
-    return {
-
-        "DISTRI"	: "sle",
-        "CASEDIR"	: "/space/SVN/os-autoinst-distri-opensuse/",
-
-        "BETA": "1",
-        # $vars{VNC} is the *local* Xvnc $DISPLAY and vnc display id.
-        # connect to it locally, where isotovideo runs, to watch
-        # isotovideo do it's work.
-        "VNC": Xvnc_DISPLAY,
-    }
-
 import json
 from pprint import pprint as pp
 import sys
 if __name__ == "__main__":
-    _script, insthost, host, network, instsrc, console, distro = sys.argv
+    #_script, insthost, host, network, instsrc, console, distro = sys.argv
 
     import os.path
-    if os.path.isfile("vars.json"):
-        with open("vars.json") as f:
-            vars_json = json.load(f, );
-    else:
-        vars_json = _default_vars_json();
+    with open("vars.json") as f:
+        vars_json = json.load(f);
 
-    print(json.dumps( update_vars_json( vars_json, insthost, host, network, instsrc, console, distro), indent=True ))
+    print(json.dumps( update_vars_json( vars_json ), indent=True ))
