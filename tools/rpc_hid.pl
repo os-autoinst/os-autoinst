@@ -207,6 +207,7 @@ sub init_usb_gadget() {
     system("/usr/local/sbin/usb-gadget-init.sh");
 }
 
+system("/usr/local/bin/updatedns");
 #send_key("shift-a");
 #while(<>) { chomp; send_key($_); }
 
