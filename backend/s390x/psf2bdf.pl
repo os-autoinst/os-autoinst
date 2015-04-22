@@ -72,10 +72,12 @@ for (@ARGV) {
     printf "FONT %s\n", '-psf-';
     printf "SIZE %u 72 72\n", $height;
     printf "FONTBOUNDINGBOX %u %u 0 0\n", $width, $height;
-    
-    printf "STARTPROPERTIES %u\n", 4 + 2 * !!@unicode;
+
+    printf "STARTPROPERTIES %u\n", 6 + 2 * !!@unicode;
     printf "PIXEL_SIZE %u\n", $height;
     printf "POINT_SIZE %u\n", 10 * $height;
+    printf "FONT_ASCENT %u\n", $height;
+    print "FONT_DESCENT 0\n";
     print "RESOLUTION_X 72\n";
     print "RESOLUTION_Y 72\n";
     if (@unicode) {
@@ -88,7 +90,7 @@ for (@ARGV) {
 
     for my $i (0 .. $length-1) {
       printf "STARTCHAR psf%03x\n", $i;
-      if (@{$unicode[$i]}) {
+      if (@unicode && @{$unicode[$i]}) {
         printf "ENCODING %u\n", $unicode[$i][0];
       } else {
         printf "ENCODING -1 %u\n", $i;
