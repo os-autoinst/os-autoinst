@@ -285,9 +285,14 @@ sub start_qemu() {
             push(@params, '-netdev', 'user,id=qanet0');
         }
         elsif ($vars->{NICTYPE} eq "tap") {
-            if (!$vars->{TAPDEV}) {
-                die "TAPDEV variable is required for NICTYPE==tap\n";
-            }
+            # always set proper TAPDEV for os-autoinst when using tap network mode
+            # ensure MAC addresses differ, tap devices may be bridged together
+            # and allow MAC addresses for more than 256 workers (up to 65535)
+            my $instance = $vars->{WORKER_INSTANCE} eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
+            my $workerid = $vars->{WORKER_ID};
+            # use $instance for tap name so it is predicable, network is still configured staticaly
+            $vars->{TAPDEV} //= 'tap' . ($instance - 1);
+            $vars->{NICMAC} = sprintf('52:54:00:12:%02x:%02x', int($workerid / 256), $workerid % 256);
             push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
         }
         else {
