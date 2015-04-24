@@ -21,6 +21,7 @@ use IPC::Run::Debug;    # set IPCRUNDEBUG=data in shell environment for trace
 
 use Thread::Queue;
 
+use Time::HiRes qw(usleep);
 
 sub new() {
     my $self = Class::Accessor::new(@_);
@@ -202,14 +203,13 @@ sub expect_3270() {
 
             # if there is MORE..., go and grab it.
             if ($status_line =~ /$arg{buffer_full}/) {
-                # # FIXME: we could capture_screenshot here to ensure
+                # # FIXME: we capture_screenshot here to ensure
                 # # no screen content is lost in the video.  It is
                 # # a hacky work around until this loop is properly
                 # # integrated with the baseclass run_capture_loop
-                # # alas this won't work because $self has no
-                # # capture_screenshot --- as $self deosn't know the X
-                # # display / VNC to capture from (yet).
-                # $self->capture_screenshot();
+                $self->{vnc_backend}->request_screen_update();
+                usleep(5_000);
+                $self->{vnc_backend}->capture_screenshot();
                 $self->send_3270("Clear");
                 next;
             }
@@ -279,14 +279,13 @@ sub expect_3270() {
         # For now we have to live with having a clear screen.
 
         if ($we_had_new_output) {
-            # # FIXME: we could capture_screenshot here to ensure
+            # # FIXME: we capture_screenshot here to ensure
             # # no screen content is lost in the video.  It is
             # # a hacky work around until this loop is properly
             # # integrated with the baseclass run_capture_loop
-            # # alas this won't work because $self has no
-            # # capture_screenshot --- as $self deosn't know the X
-            # # display / VNC to capture from (yet).
-            # $self->capture_screenshot();
+            $self->{vnc_backend}->request_screen_update();
+            usleep(5_000);
+            $self->{vnc_backend}->capture_screenshot();
             $self->send_3270("Clear");
         }
 
