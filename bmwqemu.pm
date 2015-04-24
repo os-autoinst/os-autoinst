@@ -532,7 +532,7 @@ sub wait_serial($$$) {
     my $str;
 
     $timeout = _scale_timeout($timeout);
-    if (%vars{BACKEND} eq "s390x") {
+    if ($vars{BACKEND} eq "s390x") {
         my $console = testapi::console('bootloader');
         my $r = eval { $console->expect_3270(output_delim => $regexp, timeout => $timeout); };
         unless ($@) {
