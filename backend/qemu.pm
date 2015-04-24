@@ -345,7 +345,9 @@ sub start_qemu() {
         for my $i (1 .. 6) {    # check for up to 6 ADDON ISOs
             if ($vars->{"ISO_$i"} && $vars->{"ADDONS"}) {
                 my $addoniso = $vars->{"ISO_$i"};
-                push(@params, "-drive", "if=scsi,id=addon_$i,file=$addoniso,media=cdrom");
+		my $cdinterface ="if=scsi";
+		if ($vars->{CDMODEL} eq "ide-cd") { $cdinterface = "if=ide"; }
+		push(@params, "-drive", "$cdinterface,id=addon_$i,file=$addoniso,media=cdrom");
             }
         }
 
