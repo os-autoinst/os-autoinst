@@ -45,7 +45,7 @@ sub connect_vnc($$) {
 sub request_screen_update($ ) {
     my ($self) = @_;
     return unless $self->{vnc};
-    # drain the VNC socket before polling for a ne update
+    # drain the VNC socket before polling for a new update
     $self->{vnc}->update_framebuffer();
     $self->{vnc}->send_update_request();
 }
@@ -58,7 +58,12 @@ sub capture_screenshot($ ) {
         # No _framebuffer yet.  First connect?  Tickle vnc server to
         # get it filled.
         $self->request_screen_update();
-        usleep(5_000);
+	# wait long enough, new Xvnc on tumbleweed choked on shorter
+	# waits after first login
+
+	# FIXME: should instead loop update_framebuffer until
+	# _framebuffer in connect_vnc?  works for now.
+        usleep(50_000);
     }
 
     $self->{vnc}->update_framebuffer();
