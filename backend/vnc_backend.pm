@@ -58,11 +58,11 @@ sub capture_screenshot($ ) {
         # No _framebuffer yet.  First connect?  Tickle vnc server to
         # get it filled.
         $self->request_screen_update();
-	# wait long enough, new Xvnc on tumbleweed choked on shorter
-	# waits after first login
+        # wait long enough, new Xvnc on tumbleweed choked on shorter
+        # waits after first login
 
-	# FIXME: should instead loop update_framebuffer until
-	# _framebuffer in connect_vnc?  works for now.
+        # FIXME: should instead loop update_framebuffer until
+        # _framebuffer in connect_vnc?  works for now.
         usleep(50_000);
     }
 

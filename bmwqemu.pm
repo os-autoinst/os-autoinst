@@ -72,9 +72,9 @@ sub load_vars() {
     local $/;
     open(my $fh, '<', $fn) or return 0;
     eval { $ret = JSON->new->relaxed->decode(<$fh>); };
-    die #
-	"parse error in vars.json:\n". #
-	"$@" if $@;
+    die                                  #
+      "parse error in vars.json:\n" .    #
+      "$@" if $@;
     close($fh);
     %vars = %{$ret};
 }
@@ -148,7 +148,7 @@ sub init {
     cv::init();
     require tinycv;
 
-    die "DISTRI undefined\n" . Dumper(\%vars) . "\n" unless $vars{DISTRI};
+    die "DISTRI undefined\n" . pp(\%vars) . "\n" unless $vars{DISTRI};
 
     unless ($vars{CASEDIR}) {
         my @dirs = ("$scriptdir/distri/$vars{DISTRI}");
@@ -528,37 +528,37 @@ sub wait_serial($$$) {
 
     # wait for a message to appear on serial output
     my ($regexp, $timeout, $expect_not_found) = @_;
-    my $res;
+    my $matched = 0;
     my $str;
 
     $timeout = _scale_timeout($timeout);
-
-    for my $n (1 .. $timeout) {
-        $str = serial_text();
-        if ($str =~ m/$regexp/) {
-            $res = 'ok';
-            last;
+    if (%vars{BACKEND} eq "s390x") {
+        my $console = testapi::console('bootloader');
+        my $r = eval { $console->expect_3270(output_delim => $regexp, timeout => $timeout); };
+        unless ($@) {
+            $matched = 1;
         }
-        sleep 1;
-    }
-    if ($expect_not_found) {
-        if (defined $res) {
-            $res = 'fail';
-        }
-        else {
-            $res ||= 'ok';
-
-        }
+        $str = join('\n', @$r);
     }
     else {
-        $res ||= 'fail';
+        for my $n (1 .. $timeout) {
+            $str = serial_text();
+            if ($str =~ m/$regexp/) {
+                $matched = 1;
+                last;
+            }
+            sleep 1;
+        }
+        set_serial_offset();
     }
-    set_serial_offset();
+    if ($expect_not_found) {
+        $matched = !$matched;
+    }
     sleep 1;    # wait for one more screenshot
 
-    current_test->record_serialresult($regexp, $res);
-    fctres('wait_serial', "$regexp: $res");
-    return $str if ($res eq "ok");
+    current_test->record_serialresult($regexp, $matched);
+    fctres('wait_serial', "$regexp: " . ($matched) ? 'ok' : 'fail');
+    return $str if ($matched);
     return undef;    # false
 }
 
@@ -658,7 +658,7 @@ sub assert_screen {
                 next;
             }
             unless (ref($n) eq 'needle' && $n->{name}) {
-                warn "invalid needle passed <" . ref($n) . "> " . Dumper($n);
+                warn "invalid needle passed <" . ref($n) . "> " . pp($n);
                 next;
             }
             push @$needles, $n;
