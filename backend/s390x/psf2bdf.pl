@@ -1,6 +1,7 @@
 #!/usr/bin/env perl
 # Convert PC Screen Font (PSF) font to Glyph Bitmap Distribution Format (BDF).
-# klg, Mar 2015
+# Copyright (c) 2015 Kacper Gutowski
+# The MIT License applies (http://opensource.org/licenses/MIT)
 use strict;
 
 use constant {
