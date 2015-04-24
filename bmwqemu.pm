@@ -62,7 +62,7 @@ our $clock_ticks = POSIX::sysconf(&POSIX::_SC_CLK_TCK);
 our $istty;
 our $direct_output;
 our $timesidleneeded     = 1;
-our $standstillthreshold = 600;
+our $standstillthreshold = _scale_timeout(600);
 
 our %vars;
 
@@ -925,10 +925,9 @@ sub clean_control_files {
     }
 }
 
-sub _scale_timeout($) {
+sub _scale_timeout {
     my ($timeout) = @_;
-    return $timeout unless int($vars{'TIMEOUT_SCALE'} // 0);
-    return $timeout * $vars{'TIMEOUT_SCALE'};
+    return $timeout * ($vars{'TIMEOUT_SCALE'} // 1);
 }
 
 1;
