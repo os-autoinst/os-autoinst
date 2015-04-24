@@ -72,7 +72,9 @@ sub load_vars() {
     local $/;
     open(my $fh, '<', $fn) or return 0;
     eval { $ret = JSON->new->relaxed->decode(<$fh>); };
-    warn "openQA didn't write proper vars.json" if $@;
+    die #
+	"parse error in vars.json:\n". #
+	"$@" if $@;
     close($fh);
     %vars = %{$ret};
 }
