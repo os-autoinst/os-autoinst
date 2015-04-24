@@ -155,7 +155,8 @@ sub _new_console($$) {
         # because that's the default there; need to test Xvnc version
         # and act accordingly.
         my $Xvnc_listen_option = (scalar grep { /-listen/ } qx"Xvnc -help 2>&1") ? "-listen tcp" : "";
-        $self->{local_X_handle} = IPC::Run::start("Xvnc $display $Xvnc_listen_option -SecurityTypes None -ac");
+        $self->{local_X_handle} = IPC::Run::start("Xvnc -depth 16 $Xvnc_listen_option -SecurityTypes None -ac $display");
+
         # REFACTOR from connect_vnc to new_vnc, which just returns a
         # new vnc connection.  add a DESTROY to VNC which closes the
         # socket, if that's needed.  Until then we need to remove this
