@@ -369,8 +369,12 @@ sub inflate_vars_json {
     # use external script to inflate vars.json
     my $vars_json_cmd = $bmwqemu::scriptdir . "/backend/s390x/vars.json.py";
 
-    system("$vars_json_cmd > vars.json.$$") != -1 || die "vars_json transform failed $?";
-    system("mv vars.json.$$ vars.json") != -1 || die;
+    open(VARS, '-|', $vars_json_cmd) // die "can't call $vars_json_cmd";
+    my @vars = <VARS>;
+    close(VARS);
+    open(VARS, ">", "vars.json") || die "can't open vars.json";
+    print VARS join('', @vars);
+    close(VARS);
 
     bmwqemu::load_vars();
     bmwqemu::expand_DEBUG_vars();
