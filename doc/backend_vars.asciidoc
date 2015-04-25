@@ -1,0 +1,75 @@
+Supported variables per backend
+-------------------------------
+
+.IPMI backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+IPMI_HOSTNAME;;;
+IPMI_PASSWORD;;;
+IPMI_USER;;;
+|====================
+
+.KVM2USB backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+HWSLOT;;;
+ISO;;;
+|====================
+
+.QEMU backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+ADDONS;boolean;0;Enables use of ISO_$i variables
+ARCH;x86_64|i686|aarch64|...;depends on tested medium;Architecture of VM.
+AUTO_INST;;;
+BIOS;;;
+BOOTFROM;chars;undef;Influences order of boot devices. See qemu -boot option
+CDMODEL;see qemu -device ?;undef;Storage device for virtualized CD
+HDDMODEL;see qemu -device ?;virtio-blk;Storage device for virtualized HDD.
+HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
+HDD_$i;filename;;Filename of HDD image to be used for VM. Up to 9
+ISO;filename;;Filename of ISO file to be attached to VM
+ISO_$i;filename;;Aditional ISO to be attached to VM. Up to 9
+KEEPHDDS;boolean;;Leave created HDD after test finishes. Useful for debugging tests
+LAPTOP;boolean or filename;0;If 1, loads Dell E6330 DMI. If filename, loads specified DMI
+MULTINET;boolean;0;VM will have two virtual NIC. Can't be used with NICTYPE tap
+MULTIPATH;boolean;0;Add HDD drives as multipath devices. Override HDDMODEL to virtio-scsi-pci
+NICMAC;any MAC address;52:54:00:12:34:56;MAC address to be assigned to virtual network card
+NICMODEL;see qemu -device ?;virtio-net;Network device virtual NIC.
+NICTYPE;user|tap;user;Instruct QEMU to either use user networking or to connect virtual NIC to existin system TAP device
+NUMDISKS;integer;1;Number of disks to be created and attached to VM
+OFW;;;
+PATHCNT;integer;2;Number of paths in MULTIPATH scenario
+PXEBOOT;boolean;0;Boot VM from network
+QEMU;QEMU binary filename;undef;Filename of QEMU binary to use
+QEMUCPU;see qemu -cpu ?;undef;CPU to emulate
+QEMUCPUS;integer;1;Number of CPUs to assign to VM
+QEMUMACHINE;see qemu -machine ?;undef;Machine and chipset to emulate
+QEMUPORT;integer;20002 + worker instance * 10;Port on which QEMU monitor should listen
+QEMURAM;integer;1024;Size of RAM of VM in MiB
+QEMUVGA;see qemu -device ?;cirrus;VGA device to use with VM
+QEMU_NO_KVM;boolean;0;Don't use KVM acceleration.
+RAIDLEVEL;;;
+SKIPTO;name of snapshot;;Restore VM from given snapshot. Needs HDD image with snapshots present. Used for test debugging
+TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used
+UEFI;;;
+UEFI_BIOS;;;
+USBBOOT;boolean;0;Mount ISO as USB disk and boot VM from it
+VNC;integer;worker instance + 90;Display on which VNC server is running. Actual port is 5900 + VNC
+VNCKB;;;
+|====================
+
+.VBOX backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+ISO;;;
+|====================
+
