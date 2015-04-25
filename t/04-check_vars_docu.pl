@@ -28,9 +28,14 @@ use constant {
 };
 use constant VARS_DOC => DOC_DIR . '/backend_vars.asciidoc';
 
+# array of ignored "backends". Write in upper case for successful match
 my @backend_blacklist = qw/BASECLASS/;
-my %backend_renames   = ();
-my %documented_vars   = ();
+# blacklist of vars per backend. These vars will be ignored during vars exploration
+my %var_blacklist = (QEMU => ['WORKER_ID', 'WORKER_INSTANCE']);
+# in case we want to present backend under different name, place it here
+my %backend_renames = ();
+
+my %documented_vars = ();
 my %found_vars;
 my $error_found = 0;
 # ignore errors for now
@@ -92,9 +97,10 @@ EO_HEADER
 $table_header
 EO_BACKEND_HEADER
         for my $var (sort keys %{$found_vars{$backend}}) {
+            next if (grep { /$var/ } @{$var_blacklist{$backend}});
             unless ($documented_vars{$backend}{$var}) {
                 $error_found = 1;
-                $documented_vars{$backend}{$var} = ['', ''];
+                $documented_vars{$backend}{$var} = ['', '', ''];
                 say "missing documentation for backend $backend variable $var, please update backend_vars";
             }
             my @var_docu = @{$documented_vars{$backend}{$var}};
