@@ -129,10 +129,16 @@ sub wait_idle(;$) {
 
 wait_serial($regex [[, $timeout_sec], $expect_not_found])
 
-Wait for a message to appear on serial output.
+Wait for $rexex to appear on serial output.
 You could have sent it there earlier with
 
 C<script_run("echo Hello World E<gt> /dev/$serialdev");>
+
+Returns the string matched or undef if $expect_not_found is false
+(default).
+
+Returns undef or (after tiemout) the string that did _not_ match if
+$expect_not_found is true.
 
 =cut
 

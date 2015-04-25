@@ -138,7 +138,7 @@ sub start_serial_grab() {
         push(@cmd, ("-I", "lanplus", "sol", "activate"));
         #unshift(@cmd, ("setsid", "-w"));
         print join(" ", @cmd);
-
+        # FIXME use 'socat' for this?
         open(my $serial, '>',  $bmwqemu::serialfile) || die "can't open $bmwqemu::serialfile";
         open(STDOUT,     ">&", $serial)              || die "can't dup stdout: $!";
         open(STDERR,     ">&", $serial)              || die "can't dup stderr: $!";
