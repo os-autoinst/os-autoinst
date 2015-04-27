@@ -113,7 +113,7 @@ sub _new_console($$) {
         }
         else {
             $sshcommand = "TERM=xterm " . $sshcommand;
-            my $xterm_vt_cmd = $bmwqemu::scriptdir . "/backend/s390x/xterm_linux_vt.py";
+            my $xterm_vt_cmd = "xterm-console";
             my $window_name  = "ssh:$testapi_console";
             system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$sshcommand' & echo \$!") != -1 ||    #
               die "cant' start xterm on $display (err: $! retval: $?)";
@@ -124,13 +124,14 @@ sub _new_console($$) {
             $console_info->{vnc}       = $self->{consoles}->{worker}->{vnc};
             $console_info->{console}   = $self->{consoles}->{worker}->{vnc};
             $console_info->{DISPLAY}   = $display;
-            # FIXME: need to capture xterm output instead of sleep
+            # FIXME: capture xterm output, wait for "password:" prompt
             # possible tactics:
             # -xrm bind key print-immediate() action to some cryptic unused key combination like ctrl-alt-§
             # -xrm printerCommand: cat  or simply true
-            # xdotool hit ctrl-alt-§ and examine file XTerm-$TIMESTAMP (changing!)
+            # xdotool key ctrl-alt-§ and examine file XTerm-$TIMESTAMP (changing filename!)
             sleep 2;
             die if $sshpassword =~ /'/;
+            #xterm does not accept key events by default, for security reasons, so this won't work:
             #system("DISPLAY=$display xdotool type '$sshpassword' key enter");
             die unless $console_info->{console} == $self->{vnc};
             $self->type_string({text => "$sshpassword\n"});
@@ -215,9 +216,6 @@ sub _new_console($$) {
         # FIXME robustly wait for the window manager
         sleep 2;
 
-        # add the xterm_vt_console.py console font to the Xvnc font path
-        my $xterm_vt_fontpath = $bmwqemu::scriptdir . "/backend/s390x/";
-        system("xset -display $display fp+ $xterm_vt_fontpath");
     }
     elsif ($backend_console eq "remote-window") {
         my ($window_name) = @$console_args;
