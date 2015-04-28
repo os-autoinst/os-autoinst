@@ -135,7 +135,6 @@ sub _new_console($$) {
             #system("DISPLAY=$display xdotool type '$sshpassword' key enter");
             die unless $console_info->{console} == $self->{vnc};
             $self->type_string({text => "$sshpassword\n"});
-            sleep 10;
         }
     }
     elsif ($backend_console eq "remote-vnc") {
