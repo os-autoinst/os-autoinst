@@ -132,7 +132,7 @@ sub send_3270() {
 
 # flush history since last expect_3270 call if(clear_buffer)
 
-# return [] when timed out.
+# Die when timing out
 
 ## FIXME FIXME FIXME redesign with three goals
 ##
