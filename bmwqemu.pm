@@ -556,9 +556,17 @@ sub wait_serial($$$) {
     }
     sleep 1;    # wait for one more screenshot
 
+    # to string, we need to feed string of result to
+    # record_serialresult(), either 'ok' or 'fail'
+    if ($matched) {
+        $matched = 'ok';
+    }
+    else {
+        $matched = 'fail';
+    }
     current_test->record_serialresult($regexp, $matched);
-    fctres('wait_serial', "$regexp: " . ($matched) ? 'ok' : 'fail');
-    return $str if ($matched);
+    fctres('wait_serial', "$regexp: $matched");
+    return $str if ($matched eq "ok");
     return undef;    # false
 }
 
