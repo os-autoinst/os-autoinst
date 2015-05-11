@@ -557,7 +557,7 @@ sub wait_serial($$$) {
                 $matched = $str =~ m/$regexp/;
             }
             if ($matched) {
-                $res = 'ok';
+                $matched = 'ok';
                 last;
             }
             sleep 1;
