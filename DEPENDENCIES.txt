@@ -8,7 +8,6 @@ Data::Dumper
 Digest::MD5
 DynaLoader
 Exporter
-experimental
 ExtUtils::MakeMaker
 ExtUtils::testlib
 Fcntl
