@@ -24,6 +24,9 @@ use Data::Dumper;
 use base 'Exporter';
 use Exporter;
 
+# ~~ in wait_serial for scalar in array matching
+use experimental 'smartmatch';
+
 our $VERSION;
 our @EXPORT = qw(diag fileContent save_vars);
 
@@ -532,6 +535,7 @@ sub wait_serial($$$) {
     my $str;
 
     $timeout = _scale_timeout($timeout);
+
     if ($vars{BACKEND} eq "s390x") {
         my $console = testapi::console('bootloader');
         my $r = eval { $console->expect_3270(output_delim => $regexp, timeout => $timeout); };
@@ -543,8 +547,17 @@ sub wait_serial($$$) {
     else {
         for my $n (1 .. $timeout) {
             $str = serial_text();
-            if ($str =~ m/$regexp/) {
-                $matched = 1;
+            if (ref $regexp eq 'Regexp') {
+                $matched = $str =~ $regexp;
+            }
+            elsif (ref $regexp eq 'ARRAY') {
+                $matched = $str ~~ $regexp;
+            }
+            else {
+                $matched = $str =~ m/$regexp/;
+            }
+            if ($matched) {
+                $matched = 'ok';
                 last;
             }
             sleep 1;
@@ -567,7 +580,7 @@ sub wait_serial($$$) {
     current_test->record_serialresult($regexp, $matched);
     fctres('wait_serial', "$regexp: $matched");
     return $str if ($matched eq "ok");
-    return undef;    # false
+    return;    # false
 }
 
 =head2 wait_idle
