@@ -754,22 +754,27 @@ sub assert_screen {
             return $foundneedle;
         }
 
-        # as the images create memory pressure, we only save quite different images
-        # the last screen is handled automatically and the first needle is only interesting
-        # if there are no others
-        my $sim = 29;
-        if ($failed_screens->[-1] && $n > 0) {
-            $sim = $failed_screens->[-1]->[0]->similarity($img);
+        if ($search_ratio == 1) {
+            # save only failures where the whole screen has been searched
+            # results of partial searching are rather confusing
+
+            # as the images create memory pressure, we only save quite different images
+            # the last screen is handled automatically and the first needle is only interesting
+            # if there are no others
+            my $sim = 29;
+            if ($failed_screens->[-1] && $n > 0) {
+                $sim = $failed_screens->[-1]->[0]->similarity($img);
+            }
+            if ($sim < 30) {
+                push(@$failed_screens, [$img, $failed_candidates, $n, $sim]);
+            }
+            # clean up every once in a while to avoid excessive memory consumption.
+            # The value here is an arbitrary limit.
+            if (@$failed_screens > 60) {
+                _reduce_to_biggest_changes($failed_screens, 20);
+            }
+            diag("STAT $n $statstr - similarity: $sim");
         }
-        if ($sim < 30) {
-            push(@$failed_screens, [$img, $failed_candidates, $n, $sim]);
-        }
-        # clean up every once in a while to avoid excessive memory consumption.
-        # The value here is an arbitrary limit.
-        if (@$failed_screens > 60) {
-            _reduce_to_biggest_changes($failed_screens, 20);
-        }
-        diag("STAT $n $statstr - similarity: $sim");
         $oldimg           = $img;
         $old_search_ratio = $search_ratio;
     }
