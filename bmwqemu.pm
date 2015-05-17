@@ -20,7 +20,6 @@ use JSON;
 use File::Path qw(remove_tree);
 use Data::Dumper;
 
-
 use base 'Exporter';
 use Exporter;
 
@@ -548,15 +547,15 @@ sub wait_serial($$$) {
         }
         for my $n (1 .. $timeout) {
             $str = serial_text();
-            for (@$regexp) {
-                if (ref $regexp eq 'Regexp') {
-                    $matched = $str =~ $_;
+            for my $r (@$regexp) {
+                if (ref $r eq 'Regexp') {
+                    $matched = $str =~ $r;
                 }
                 else {
-                    $matched = $str =~ m/$_/;
+                    $matched = $str =~ m/$r/;
                 }
                 if ($matched) {
-                    $regexp = "$_";
+                    $regexp = "$r";
                     last;
                 }
             }
@@ -578,7 +577,7 @@ sub wait_serial($$$) {
     else {
         $matched = 'fail';
     }
-    current_test->record_serialresult($regexp, $matched);
+    current_test->record_serialresult(pp($regexp), $matched);
     fctres('wait_serial', "$regexp: $matched");
     return $str if ($matched eq "ok");
     return;    # false
