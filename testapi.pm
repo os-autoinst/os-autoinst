@@ -192,11 +192,11 @@ upload log file to openqa host
 sub upload_asset($;$) {
     my ($file, $public) = @_;
 
-    bmwqemu::fctlog('upload_asset', ["file", $file]);
+    bmwqemu::log_call('upload_asset', file => $file);
     type_string("curl --form upload=\@$file ");
     type_string("--form target=assets_public ") if $public;
     my $basename = basename($file);
-    type_string(autoinst_url() . "upload_asset/$basename\n");
+    type_string(autoinst_url() . "/upload_asset/$basename\n");
     wait_idle();
 }
 
