@@ -387,7 +387,12 @@ sub start_qemu() {
         if ($use_usb_kbd) {
             push(@params, qw/-device usb-kbd/);
         }
-        push(@params, "-smp", $vars->{QEMUCPUS});
+        if ($vars->{QEMUTHREADS}) {
+            push(@params, "-smp", $vars->{QEMUCPUS} . ",threads=" . $vars->{QEMUTHREADS});
+        }
+        else {
+            push(@params, "-smp", $vars->{QEMUCPUS});
+        }
         push(@params, "-enable-kvm") unless $vars->{QEMU_NO_KVM};
         push(@params, "-no-shutdown");
 
