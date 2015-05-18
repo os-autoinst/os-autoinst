@@ -14,7 +14,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key ty
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
-  activate_console select_console console deactivate_console
+  activate_console select_console console deactivate_console wait_for_commands
 );
 
 our %cmd;
@@ -310,6 +310,17 @@ sub power($) {
 sub eject_cd() {
     bmwqemu::log_call('eject_cd');
     $bmwqemu::backend->eject_cd;
+}
+
+sub wait_for_commands() {
+    use Data::Dumper;
+    while (1) {
+        print "DEQUEUE\n";
+        my $cmd = $bmwqemu::commandQueue->dequeue();
+        print "DEQUEUED\n";
+        return if ($cmd->{cmd} eq "exit_loop");
+        print "CMD " . Dumper($cmd) . "\n";
+    }
 }
 
 # runtime keyboard/mouse io functions end
