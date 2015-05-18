@@ -7,6 +7,7 @@ use threads::shared;
 use Mojolicious::Lite;
 use Mojo::IOLoop;
 use Mojo::Server::Daemon;
+use Thread::Queue;
 
 use File::Basename;
 
@@ -178,6 +179,18 @@ sub current_script {
     return $self->render(data => $current_test_script);
 }
 
+sub command_assert_screen {
+    my ($self) = @_;
+    $bmwqemu::commandQueue->enqueue({ cmd => "assert_screen" } );
+    return $self->render(text => "ok");
+}
+
+sub command_exit_loop {
+    my ($self) = @_;
+    $bmwqemu::commandQueue->enqueue({ cmd => "exit_loop" } );
+    return $self->render(text => "ok");
+}
+
 sub run_daemon {
     my ($port) = @_;
 
@@ -198,6 +211,9 @@ sub run_daemon {
 
     # to get the current bash script out of the test
     get '/current_script' => \&current_script;
+
+    get '/command/assert_screen' => \&command_assert_screen;
+    get '/command/exit_loop' => \&command_exit_loop;
 
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');

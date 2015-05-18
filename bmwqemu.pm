@@ -33,6 +33,7 @@ sub mydie;
 # shared vars
 
 our $screenshotQueue = Thread::Queue->new();
+our $commandQueue = Thread::Queue->new();
 my $prestandstillwarning : shared = 0;
 
 my @ocrrect;
