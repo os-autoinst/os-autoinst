@@ -158,6 +158,20 @@ sub stop_serial_grab($) {
     system("pkill", "-P", $self->{'serialpid'});
     kill("TERM", $self->{'serialpid'});
     waitpid($self->{'serialpid'}, 0);
+
+    # cleanup: kill orphaned script processes logging into my logfile
+    my $scriptpidlist = `pidof script`;
+    if (defined $scriptpidlist and $scriptpidlist ne "") {
+        my @pids = split(" ", $scriptpidlist);
+        foreach my $pid (@pids) {
+            my $stdoutfile = readlink("/proc/$pid/fd/1");
+            # remove deleted flag
+            $stdoutfile =~ s/ \(deleted\)$//;
+            if ($stdoutfile eq $bmwqemu::serialfile) {
+                kill(15, int($pid));
+            }
+        }
+    }
 }
 
 # serial grab end
