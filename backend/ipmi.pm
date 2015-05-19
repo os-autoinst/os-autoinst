@@ -134,6 +134,7 @@ sub start_serial_grab() {
     my $self = shift;
     my $pid  = fork();
     if ($pid == 0) {
+        setpgrp 0, 0;
         my @cmd = $self->ipmi_cmdline();
         push(@cmd, ("-I", "lanplus", "sol", "activate"));
         #unshift(@cmd, ("setsid", "-w"));
@@ -148,16 +149,15 @@ sub start_serial_grab() {
         die "exec failed $!";
     }
     else {
-        $self->{'serialpid'} = $pid;
+        $self->{serialpid} = $pid;
     }
 }
 
 sub stop_serial_grab($) {
     my $self = shift;
-    return unless $self->{'serialpid'};
-    system("pkill", "-P", $self->{'serialpid'});
-    kill("TERM", $self->{'serialpid'});
-    waitpid($self->{'serialpid'}, 0);
+    return unless $self->{serialpid};
+    kill("-TERM", $self->{serialpid});
+    waitpid($self->{serialpid}, 0);
 }
 
 # serial grab end
