@@ -100,16 +100,6 @@ sub _test_data_file {
 
     $self->app->log->debug("Request for file $file.");
 
-    my $fd;
-    unless (open($fd, '<:raw', $file)) {
-        # ERROR HANDLING
-        $self->render(text => "Can't open $file", status => 404);
-        return;
-    }
-    local $/ = undef;    # slurp mode
-    my $data = <$fd>;
-    close($fd);
-
     my $filetype;
 
     if ($file =~ m/\.([^\.]+)$/) {
@@ -120,7 +110,7 @@ sub _test_data_file {
     $filetype ||= "application/octet-stream";
     $self->res->headers->content_type($filetype);
 
-    return $self->render(data => $data);
+    return $self->reply->asset(Mojo::Asset::File->new(path => $file));
 }
 
 sub test_data {
@@ -135,6 +125,22 @@ sub test_data {
     }
 
     return _test_data_dir($self, $path) if -d $path;
+    return _test_data_file($self, $path) if -f $path;
+
+    return $self->render_not_found;
+}
+
+sub get_asset {
+    my ($self) = @_;
+
+    my $path = join '/', $bmwqemu::vars{'ASSETDIR'}, $self->param('assettype'), $self->param('assetname');
+    my $relpath = $self->param('relpath');
+    if (defined $relpath) {
+        # do not allow .. in path
+        return $self->render_not_found if $relpath =~ /^(.*\/)*\.\.(\/.*)*$/;
+        $path .= '/' . $relpath;
+    }
+
     return _test_data_file($self, $path) if -f $path;
 
     return $self->render_not_found;
@@ -198,6 +204,10 @@ sub run_daemon {
 
     # to get the current bash script out of the test
     get '/current_script' => \&current_script;
+
+    # get asset
+    get '/assets/#assettype/#assetname'          => \&get_asset;
+    get '/assets/#assettype/#assetname/*relpath' => \&get_asset;
 
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');
