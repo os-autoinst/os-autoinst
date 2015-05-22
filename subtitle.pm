@@ -54,10 +54,10 @@ sub add_subtitle_line($) {
     }
     else {
         # filter for interesting parts
-        return unless m/send_key|type_string|assert_screen|check_screen/;
+        return unless m/send_key|type_string|assert_screen|check_screen|wait_serial/;
         # nicify
         s/, (timeout|max_interval)=\w+//;
-        s/\((?:string|key|mustmatch)='(.*)'\)/($1)/;
+        s/\((?:string|key|mustmatch|regex)='(.*)'\)/($1)/;
         s/<<< //;
         s/>>> //;
         s/&/&amp;/g;
