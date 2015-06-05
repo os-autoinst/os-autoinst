@@ -225,6 +225,21 @@ sub start_qemu() {
     if (defined($vars->{RAIDLEVEL})) {
         $vars->{NUMDISKS} = 4;
     }
+
+    if ($vars->{NICTYPE} ne "user") {
+        # ensure MAC addresses differ globally
+        # and allow MAC addresses for more than 256 workers (up to 65535)
+        my $workerid = $vars->{WORKER_ID};
+        $vars->{NICMAC} = sprintf('52:54:00:12:%02x:%02x', int($workerid / 256), $workerid % 256);
+    }
+
+    if ($vars->{NICTYPE} eq "tap") {
+        # always set proper TAPDEV for os-autoinst when using tap network mode
+        my $instance = $vars->{WORKER_INSTANCE} eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
+        # use $instance for tap name so it is predicable, network is still configured staticaly
+        $vars->{TAPDEV} //= 'tap' . ($instance - 1);
+    }
+
     bmwqemu::save_vars();    # update variables
 
     use File::Path qw/mkpath/;
@@ -285,14 +300,6 @@ sub start_qemu() {
             push(@params, '-netdev', 'user,id=qanet0');
         }
         elsif ($vars->{NICTYPE} eq "tap") {
-            # always set proper TAPDEV for os-autoinst when using tap network mode
-            # ensure MAC addresses differ, tap devices may be bridged together
-            # and allow MAC addresses for more than 256 workers (up to 65535)
-            my $instance = $vars->{WORKER_INSTANCE} eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
-            my $workerid = $vars->{WORKER_ID};
-            # use $instance for tap name so it is predicable, network is still configured staticaly
-            $vars->{TAPDEV} //= 'tap' . ($instance - 1);
-            $vars->{NICMAC} = sprintf('52:54:00:12:%02x:%02x', int($workerid / 256), $workerid % 256);
             push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
         }
         else {
@@ -499,6 +506,13 @@ sub start_qemu() {
     my $cnt = bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw");
     if ($cnt) {
         $self->send($cnt);
+    }
+
+    if ($vars->{NICTYPE} eq "tap") {
+        if (-x "/etc/os-autoinst/set_tap_vlan") {
+            system("/etc/os-autoinst/set_tap_vlan", $vars->{TAPDEV}, $vars->{NIC_VLAN}) == 0
+              or die "/etc/os-autoinst/set_tap_vlan  $vars->{TAPDEV} $vars->{NIC_VLAN} failed";
+        }
     }
 
     print "Start CPU";
