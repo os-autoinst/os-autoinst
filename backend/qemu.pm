@@ -279,6 +279,20 @@ sub start_qemu() {
         symlink($i, "$basedir/l$i") or die "$!\n";
     }
 
+    if ($vars->{NICTYPE} eq "vde") {
+        if (system('vde_switch', '-d', '-s', "/tmp/openqa_vde$vars->{NIC_VLAN}.ctl") == 0) {
+            if (system('slirpvde', '-d', '-s', "/tmp/openqa_vde$vars->{NIC_VLAN}.ctl") != 0) {
+                die "Can't start slirpvde -d -s /tmp/openqa_vde$vars->{NIC_VLAN}.ctl";
+            }
+        }
+        else {
+            if (!-d "/tmp/openqa_vde$vars->{NIC_VLAN}.ctl") {
+                die "Can't start vde_switch -d -s /tmp/openqa_vde$vars->{NIC_VLAN}.ctl";
+            }
+            # else vde_switch is already running
+        }
+    }
+
     pipe(my $reader, my $writer);
     my $pid = fork();
     die "fork failed" unless defined($pid);
@@ -301,6 +315,10 @@ sub start_qemu() {
         }
         elsif ($vars->{NICTYPE} eq "tap") {
             push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
+        }
+        elsif ($vars->{NICTYPE} eq "vde") {
+            # use different bridge for each NIC_VLAN
+            push(@params, '-netdev', "vde,id=qanet0,sock=/tmp/openqa_vde$vars->{NIC_VLAN}.ctl");
         }
         else {
             die "uknown NICTYPE $vars->{NICTYPE}\n";
