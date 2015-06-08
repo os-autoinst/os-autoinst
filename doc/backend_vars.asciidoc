@@ -42,7 +42,8 @@ MULTINET;boolean;0;VM will have two virtual NIC. Can't be used with NICTYPE tap
 MULTIPATH;boolean;0;Add HDD drives as multipath devices. Override HDDMODEL to virtio-scsi-pci
 NICMAC;any MAC address;52:54:00:12:34:56;MAC address to be assigned to virtual network card
 NICMODEL;see qemu -device ?;virtio-net;Network device virtual NIC.
-NICTYPE;user|tap;user;Instruct QEMU to either use user networking or to connect virtual NIC to existin system TAP device
+NICTYPE;user|tap|vde;user;Instruct QEMU to either use user networking or to connect virtual NIC to existin system TAP device
+NIC_VLAN;integer;undef;network (vlan) number to which the NIC should be connected, assigned by scheduler to jobs with NICTYPE != user
 NUMDISKS;integer;1;Number of disks to be created and attached to VM
 OFW;;;
 PATHCNT;integer;2;Number of paths in MULTIPATH scenario
