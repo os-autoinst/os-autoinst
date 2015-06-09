@@ -227,6 +227,10 @@ sub start_qemu() {
     }
 
     if ($vars->{NICTYPE} ne "user") {
+        if (!defined $vars->{NICVLAN}) {
+            die "NICVLAN must be specified for NICTYPE other than 'user'";
+        }
+
         # ensure MAC addresses differ globally
         # and allow MAC addresses for more than 256 workers (up to 65535)
         my $workerid = $vars->{WORKER_ID};
