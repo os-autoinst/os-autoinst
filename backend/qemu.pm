@@ -280,14 +280,14 @@ sub start_qemu() {
     }
 
     if ($vars->{NICTYPE} eq "vde") {
-        if (system('vde_switch', '-d', '-s', "/tmp/openqa_vde$vars->{NIC_VLAN}.ctl") == 0) {
-            if (system('slirpvde', '-d', '-s', "/tmp/openqa_vde$vars->{NIC_VLAN}.ctl") != 0) {
-                die "Can't start slirpvde -d -s /tmp/openqa_vde$vars->{NIC_VLAN}.ctl";
+        if (system('vde_switch', '-d', '-s', "/tmp/openqa_vde$vars->{NICVLAN}.ctl") == 0) {
+            if (system('slirpvde', '-d', '-s', "/tmp/openqa_vde$vars->{NICVLAN}.ctl") != 0) {
+                die "Can't start slirpvde -d -s /tmp/openqa_vde$vars->{NICVLAN}.ctl";
             }
         }
         else {
-            if (!-d "/tmp/openqa_vde$vars->{NIC_VLAN}.ctl") {
-                die "Can't start vde_switch -d -s /tmp/openqa_vde$vars->{NIC_VLAN}.ctl";
+            if (!-d "/tmp/openqa_vde$vars->{NICVLAN}.ctl") {
+                die "Can't start vde_switch -d -s /tmp/openqa_vde$vars->{NICVLAN}.ctl";
             }
             # else vde_switch is already running
         }
@@ -317,8 +317,8 @@ sub start_qemu() {
             push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
         }
         elsif ($vars->{NICTYPE} eq "vde") {
-            # use different bridge for each NIC_VLAN
-            push(@params, '-netdev', "vde,id=qanet0,sock=/tmp/openqa_vde$vars->{NIC_VLAN}.ctl");
+            # use different bridge for each NICVLAN
+            push(@params, '-netdev', "vde,id=qanet0,sock=/tmp/openqa_vde$vars->{NICVLAN}.ctl");
         }
         else {
             die "uknown NICTYPE $vars->{NICTYPE}\n";
@@ -528,8 +528,8 @@ sub start_qemu() {
 
     if ($vars->{NICTYPE} eq "tap") {
         if (-x "/etc/os-autoinst/set_tap_vlan") {
-            system("/etc/os-autoinst/set_tap_vlan", $vars->{TAPDEV}, $vars->{NIC_VLAN}) == 0
-              or die "/etc/os-autoinst/set_tap_vlan  $vars->{TAPDEV} $vars->{NIC_VLAN} failed";
+            system("/etc/os-autoinst/set_tap_vlan", $vars->{TAPDEV}, $vars->{NICVLAN}) == 0
+              or die "/etc/os-autoinst/set_tap_vlan  $vars->{TAPDEV} $vars->{NICVLAN} failed";
         }
     }
 
