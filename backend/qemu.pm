@@ -4,7 +4,7 @@ package backend::qemu;
 use strict;
 use base ('backend::vnc_backend');
 use threads;
-require File::Temp;
+use File::Path qw/mkpath/;
 use File::Temp ();
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Select;
@@ -227,7 +227,6 @@ sub start_qemu() {
     }
     bmwqemu::save_vars();    # update variables
 
-    use File::Path qw/mkpath/;
     mkpath($basedir);
 
     if (!$vars->{KEEPHDDS} && !$vars->{SKIPTO}) {
