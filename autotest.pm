@@ -123,6 +123,7 @@ sub runalltests {
         else {
             bmwqemu::diag "skiping $t->{fullname}";
             $t->skip_if_not_running;
+            $t->save_test_result();
         }
     }
     return 1;
