@@ -208,8 +208,7 @@ mark hdd image for uploading
 =cut
 
 sub upload_image($$;$) {
-    my ($hdd_num, $name, $public) = @_;
-    $bmwqemu::backend->do_upload_image({'hdd_num' => $hdd_num, 'name' => $name, 'dir' => $public ? 'assets_public' : 'assets_private'});
+    # TODO: obsolete, remove. now in isotovideo directly
 }
 
 

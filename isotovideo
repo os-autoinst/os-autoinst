@@ -145,6 +145,20 @@ diag "FAIL" if $r;
 
 $SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
+# mark hard disks for upload if test finished
+if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
+    for my $i (1 .. $nd) {
+        my $dir = 'assets_private';
+        my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
+        unless ($name) {
+            $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
+            $dir = 'assets_public';
+        }
+        next unless $name;
+        $bmwqemu::backend->do_upload_image({'hdd_num' => $i, 'name' => $name, 'dir' => $dir });
+    }
+}
+
 bmwqemu::stop_vm();
 print "killing commands thread\n";
 $ct->kill('SIGTERM');
