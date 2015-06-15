@@ -78,6 +78,9 @@ sub write_test_order() {
 }
 
 sub runalltests {
+
+    die "ERROR: no tests loaded" unless @testorder;
+
     my $firsttest = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded = 0;
 
