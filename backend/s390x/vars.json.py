@@ -192,7 +192,7 @@ insthost_vars = lambda host, distro: {
     },
     "openqa": {
         "INSTSRC": {
-            "HOST":     "openqa.suse.de",
+            "HOST":     "openqa",
             "PROTOCOL": "FTP",
         },
         "FTPBOOT" : {
