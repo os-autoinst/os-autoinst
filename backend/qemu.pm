@@ -588,7 +588,7 @@ sub handle_qmp_command($) {
     while (!$hash) {
         $hash = backend::driver::_read_json($self->{qmpsocket});
         if ($hash->{event}) {
-            print STDERR "EVENT " . JSON::to_json($hash) . "\n";
+            bmwqemu::diag "EVENT " . JSON::to_json($hash);
             # ignore
             $hash = undef;
         }
@@ -641,6 +641,12 @@ sub _send_hmp {
     die "syswrite failed $!" unless ($wb == length($hmp) + 1);
 
     return $self->_read_hmp;
+}
+
+sub status {
+    my ($self) = @_;
+    my $ret = $self->handle_qmp_command({"execute" => "query-status"});
+    return $ret->{return}->{status};
 }
 
 sub handle_hmp_command {

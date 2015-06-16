@@ -288,6 +288,7 @@ sub cont               { notimplemented }
 sub do_savevm($)       { notimplemented }
 sub do_loadvm($)       { notimplemented }
 sub do_upload_image($) { notimplemented }
+sub status()           { notimplemented }
 
 ## MAY be overwritten:
 
