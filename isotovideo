@@ -147,15 +147,25 @@ $SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
 # mark hard disks for upload if test finished
 if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
-    for my $i (1 .. $nd) {
-        my $dir = 'assets_private';
-        my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
-        unless ($name) {
-            $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
-            $dir = 'assets_public';
+    eval {
+        my $status = $bmwqemu::backend->status();
+        if ($status ne "shutdown") {
+            diag "ERROR: Machine not shut down when uploading disks!\n";
         }
-        next unless $name;
-        $bmwqemu::backend->do_upload_image({'hdd_num' => $i, 'name' => $name, 'dir' => $dir });
+    };
+    # if status() died the backend was already dead. So some fatal test
+    # probably took it down. Don't upload in that case.
+    unless ($@) {
+        for my $i (1 .. $nd) {
+            my $dir = 'assets_private';
+            my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
+            unless ($name) {
+                $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
+                $dir = 'assets_public';
+            }
+            next unless $name;
+            $bmwqemu::backend->do_upload_image({'hdd_num' => $i, 'name' => $name, 'dir' => $dir });
+        }
     }
 }
 
