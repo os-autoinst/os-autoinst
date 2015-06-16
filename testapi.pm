@@ -14,7 +14,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key ty
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
-  activate_console select_console console deactivate_console
+  activate_console select_console console deactivate_console data_url
 );
 
 our %cmd;
@@ -431,6 +431,29 @@ returns the base URL to contact the local os-autoinst service
 sub autoinst_url() {
     # move to backend?
     return "http://10.0.2.2:" . (get_var("QEMUPORT") + 1);
+}
+
+=head2 data_url
+
+data_url($name)
+
+returns the URL to download data or asset file
+Special values REPO_\d and ASSET_\d points to the asset configured
+in the corresponding variable
+
+=cut
+
+sub data_url($) {
+    my ($name) = @_;
+    if ($name =~ /^REPO_\d$/) {
+        return autoinst_url . "/assets/repo/" . get_var($name);
+    }
+    if ($name =~ /^ASSET_\d$/) {
+        return autoinst_url . "/assets/other/" . get_var($name);
+    }
+    else {
+        return autoinst_url . "/data/$name";
+    }
 }
 
 =head2 script_output
