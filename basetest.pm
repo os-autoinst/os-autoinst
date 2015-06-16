@@ -289,13 +289,14 @@ sub runtest($$) {
     $self->{result} ||= 'unk';
 
     if ($@ || $self->{result} eq 'fail') {
-        warn "test $name died: $@\n";
+        my $msg = "test $name " . (@_ ? ' died :' . @_ : ' failed');
+        warn $msg;
         $self->{post_fail_hook_running} = 1;
         eval { $self->post_fail_hook; };
         bmwqemu::diag "post_fail_hook failed: $@\n" if $@;
         $self->{post_fail_hook_running} = 0;
         $self->fail_if_running();
-        die "test $name died: $@\n";
+        die $msg . "\n";
     }
     $self->done();
 
