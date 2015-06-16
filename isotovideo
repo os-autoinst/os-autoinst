@@ -164,7 +164,7 @@ if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
                 $dir = 'assets_public';
             }
             next unless $name;
-            $bmwqemu::backend->do_upload_image({'hdd_num' => $i, 'name' => $name, 'dir' => $dir });
+            $bmwqemu::backend->do_upload_image({hdd_num => $i, name => $name, dir => $dir });
         }
     }
 }
