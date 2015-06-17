@@ -357,7 +357,7 @@ sub record_testresult($) {
     if ($res eq 'fail') {
         $self->{result} = $res;
     }
-    else {
+    elsif ($res eq 'ok') {
         $self->{result} ||= $res;
     }
 
