@@ -313,6 +313,8 @@ sub save_test_result() {
         'result'  => $self->result(),
         'dents'   => $self->{dents},
     };
+    $result->{extra_test_results} = $self->{extra_test_results} if $self->{extra_test_results};
+
     # be aware that $name has to be unique within one job (also assumed in several other places)
     my $fn = bmwqemu::result_dir() . sprintf("/result-%s.json", ref $self);
     bmwqemu::save_json_file($result, $fn);
@@ -339,6 +341,13 @@ sub record_serialresult {
     $result->{reference_text} = $ref;
 
     return $result;
+}
+
+sub register_extra_test_results {
+    my ($self, $tests) = @_;
+
+    $self->{extra_test_results} //= [];
+    push @{$self->{extra_test_results}}, @$tests;
 }
 
 =head2 record_testresult
