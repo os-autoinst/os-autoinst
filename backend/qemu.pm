@@ -153,7 +153,7 @@ sub do_upload_image() {
             die "$!\n" unless system('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
         }
         elsif ($format eq 'qcow2') {
-            if ($bmwqemu::vars{'MAKETESTSNAPSHOTS'}) {
+            if ($bmwqemu::vars{MAKETESTSNAPSHOTS}) {
                 # including all snapshots is prohibitively big
                 die "$!\n" unless system('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
             }

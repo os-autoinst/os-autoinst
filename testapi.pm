@@ -5,7 +5,6 @@ use Exporter;
 use strict;
 use File::Basename qw(basename);
 use Time::HiRes qw(sleep gettimeofday);
-use Carp;
 
 require bmwqemu;
 
