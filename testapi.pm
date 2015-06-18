@@ -14,7 +14,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key ty
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
-  activate_console select_console console deactivate_console data_url
+  activate_console select_console console deactivate_console data_url assert_shutdown
 );
 
 our %cmd;
@@ -208,8 +208,7 @@ mark hdd image for uploading
 =cut
 
 sub upload_image($$;$) {
-    my ($hdd_num, $name, $public) = @_;
-    $bmwqemu::backend->do_upload_image({'hdd_num' => $hdd_num, 'name' => $name, 'dir' => $public ? 'assets_public' : 'assets_private'});
+    # TODO: obsolete, remove. now in isotovideo directly
 }
 
 
@@ -704,6 +703,22 @@ sub console($) {
     }
 }
 
+sub assert_shutdown(;$) {
+    my ($timeout) = @_;
+    $timeout //= 60;
+    bmwqemu::log_call('assert_shutdown', timeout => $timeout);
+    while ($timeout >= 0) {
+        my $status = $bmwqemu::backend->status() // '';
+        if ($status eq 'shutdown') {
+            $autotest::current_test->take_screenshot('ok');
+            return;
+        }
+        --$timeout;
+        sleep 1 if $timeout >= 0;
+    }
+    $autotest::current_test->take_screenshot('fail');
+    die "Machine didn't shut down!";
+}
 
 1;
 

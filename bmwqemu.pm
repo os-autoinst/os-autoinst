@@ -130,6 +130,10 @@ sub init {
 
     expand_DEBUG_vars();
 
+    # remove directories for asset upload
+    remove_tree("assets_public");
+    remove_tree("assets_private");
+
     remove_tree(result_dir);
     mkdir result_dir;
 

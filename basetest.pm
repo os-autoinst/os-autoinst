@@ -289,13 +289,14 @@ sub runtest($$) {
     $self->{result} ||= 'unk';
 
     if ($@ || $self->{result} eq 'fail') {
-        warn "test $name died: $@\n";
+        my $msg = "test $name " . (@_ ? ' died :' . @_ : ' failed');
+        warn $msg;
         $self->{post_fail_hook_running} = 1;
         eval { $self->post_fail_hook; };
         bmwqemu::diag "post_fail_hook failed: $@\n" if $@;
         $self->{post_fail_hook_running} = 0;
         $self->fail_if_running();
-        die "test $name died: $@\n";
+        die $msg . "\n";
     }
     $self->done();
 
@@ -332,60 +333,76 @@ sub next_resultname($;$) {
 sub record_serialresult {
     my ($self, $ref, $res) = @_;
 
-    my $result = $self->register_screenshot();
+    my $result = $self->record_testresult($res);
+    $self->_result_add_screenshot($result);
 
     $result->{reference_text} = $ref;
-    $result->{result}         = $res;
-    if ($result->{result} eq 'fail') {
-        $self->{result} = $result->{result};
+
+    return $result;
+}
+
+=head2 record_testresult
+
+generic function that adds a test result to results and re-computes overall state
+
+=cut
+
+sub record_testresult($) {
+    my ($self, $res) = @_;
+
+    unless ($res && $res =~ /(ok|unk|fail)/) {
+        $res = 'unk';
     }
-    else {
-        $self->{result} ||= $result->{result};
+
+    if ($res eq 'fail') {
+        $self->{result} = $res;
     }
+    elsif ($res eq 'ok') {
+        $self->{result} ||= $res;
+    }
+
+    my $result = {result => $res,};
+
+    push @{$self->{details}}, $result;
+    ++$self->{"test_count"};
+
+    return $result;
+}
+
+=head2 _result_add_screenshot
+
+internal function to add a screenshot to an existing result structure
+
+=cut
+
+sub _result_add_screenshot($$) {
+    my ($self, $result, $img) = @_;
+
+    $img //= bmwqemu::getcurrentscreenshot();
+
+    my $count    = $self->{"test_count"};
+    my $testname = ref($self);
+
+    $result->{screenshot} = sprintf("%s-%d.png", $testname, $count);
+
+    my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
+    $img->write_with_thumbnail($fn);
 
     return $result;
 }
 
 =head2 take_screenshot
 
-Can be called from C<run> to have screenshots in addition to the one taken via distri/opensuse/main.pm:installrunfunc after run finishes
+add screenshot with 'unk' result
 
 =cut
 
 sub take_screenshot(;$) {
-    my $self = shift;
-    my $name = shift;    # unused, for compat
+    my ($self, $res) = @_;
+    $res ||= 'unk';
 
-    $self->register_screenshot();
-
-    my $testname = ref($self);
-    if ($name) {
-        return "test-$testname-$name";
-    }
-    else {
-        my $count = $self->{test_count};
-        return "test-$testname-$count";
-    }
-}
-
-sub register_screenshot($) {
-    my $self = shift;
-    my $img  = shift;
-
-    $img //= bmwqemu::getcurrentscreenshot();
-
-    my $count    = ++$self->{"test_count"};
-    my $testname = ref($self);
-
-    my $result = {
-        screenshot => sprintf("%s-%d.png", $testname, $count),
-        result     => 'unk',
-    };
-
-    my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
-    $img->write_with_thumbnail($fn);
-
-    push @{$self->{details}}, $result;
+    my $result = $self->record_testresult($res);
+    $self->_result_add_screenshot($result);
 
     return $result;
 }

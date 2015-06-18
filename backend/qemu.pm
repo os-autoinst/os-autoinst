@@ -4,7 +4,7 @@ package backend::qemu;
 use strict;
 use base ('backend::vnc_backend');
 use threads;
-require File::Temp;
+use File::Path qw/mkpath/;
 use File::Temp ();
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Select;
@@ -141,11 +141,26 @@ sub do_upload_image() {
     my $hdd_num = $args->{hdd_num};
     my $name    = $args->{name};
     my $img_dir = $args->{dir};
-    if (-f "raid/l$hdd_num") {
+    $name =~ /\.([[:alnum:]]+)$/;
+    my $format = $1;
+    if (!$format || $format !~ /^(raw|qcow2)$/) {
+        bmwqemu::diag "do_upload_image: only raw and qcow2 formats supported $name $format\n";
+    }
+    elsif (-f "raid/l$hdd_num") {
         bmwqemu::diag "preparing hdd $hdd_num for upload as $name\n";
         mkpath($img_dir);
-        unlink("$img_dir/$name");
-        symlink("../raid/l$hdd_num", "$img_dir/$name");
+        if ($format eq 'raw') {
+            die "$!\n" unless system('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
+        }
+        elsif ($format eq 'qcow2') {
+            if ($bmwqemu::vars{MAKETESTSNAPSHOTS}) {
+                # including all snapshots is prohibitively big
+                die "$!\n" unless system('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
+            }
+            else {
+                symlink("../raid/l$hdd_num", "$img_dir/$name");
+            }
+        }
     }
     else {
         bmwqemu::diag "do_upload_image: hdd $hdd_num does not exist\n";
@@ -246,7 +261,6 @@ sub start_qemu() {
 
     bmwqemu::save_vars();    # update variables
 
-    use File::Path qw/mkpath/;
     mkpath($basedir);
 
     if (!$vars->{KEEPHDDS} && !$vars->{SKIPTO}) {
@@ -625,7 +639,7 @@ sub handle_qmp_command($) {
     while (!$hash) {
         $hash = backend::driver::_read_json($self->{qmpsocket});
         if ($hash->{event}) {
-            print STDERR "EVENT " . JSON::to_json($hash) . "\n";
+            bmwqemu::diag "EVENT " . JSON::to_json($hash);
             # ignore
             $hash = undef;
         }
@@ -678,6 +692,12 @@ sub _send_hmp {
     die "syswrite failed $!" unless ($wb == length($hmp) + 1);
 
     return $self->_read_hmp;
+}
+
+sub status {
+    my ($self) = @_;
+    my $ret = $self->handle_qmp_command({"execute" => "query-status"});
+    return $ret->{return}->{status};
 }
 
 sub handle_hmp_command {

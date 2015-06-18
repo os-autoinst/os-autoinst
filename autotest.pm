@@ -78,6 +78,9 @@ sub write_test_order() {
 }
 
 sub runalltests {
+
+    die "ERROR: no tests loaded" unless @testorder;
+
     my $firsttest = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded = 0;
 
@@ -123,6 +126,7 @@ sub runalltests {
         else {
             bmwqemu::diag "skiping $t->{fullname}";
             $t->skip_if_not_running;
+            $t->save_test_result();
         }
     }
     return 1;

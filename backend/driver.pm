@@ -170,7 +170,7 @@ sub _send_json {
     my $JSON = JSON->new()->convert_blessed();
     my $json = $JSON->encode($cmd);
 
-    die "no backend running" unless ($self->{to_child});
+    croak "no backend running" unless ($self->{to_child});
     my $wb = syswrite($self->{to_child}, "$json\n");
     die "syswrite failed $!" unless ($wb == length($json) + 1);
 
