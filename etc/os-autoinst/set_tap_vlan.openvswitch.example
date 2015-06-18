@@ -1,0 +1,14 @@
+#!/bin/sh
+# connect tap device to given vlan on openvswitch
+# this script is called from os-autoinst
+#
+# /etc/os-autoinst/set_tap_vlan <tap device> <vlan number>
+#
+# installation:
+# copy this script to /etc/os-autoinst/set_tap_vlan
+# make it executable (chmod 755)
+# configure sudo for the command below
+#
+# _openqa-worker ALL = NOPASSWD: /usr/bin/ovs-vsctl set port tap* tag=*
+
+sudo ovs-vsctl set port $1 tag=$2
