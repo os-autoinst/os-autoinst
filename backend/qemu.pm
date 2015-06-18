@@ -217,6 +217,12 @@ sub start_qemu() {
     $vars->{NICMODEL} ||= "virtio-net";
     $vars->{NICTYPE}  ||= "user";
     $vars->{NICMAC}   ||= "52:54:00:12:34:56";
+    if ($vars->{NICTYPE} eq "vde") {
+        $vars->{VDE_SOCKETDIR} ||= '.';
+        # use consistent port. 10 is arbitrary here, just leave room for other
+        # cables in front.
+        $vars->{VDE_PORT} ||= ($vars->{WORKER_ID} // 0) + 10;
+    }
     # misc
     my $arch_supports_boot_order = 1;
     my $use_usb_kbd;
@@ -259,6 +265,13 @@ sub start_qemu() {
         $vars->{TAPDEV} //= 'tap' . ($instance - 1);
     }
 
+    if ($vars->{NICTYPE} eq "vde") {
+        my $vlan = $vars->{NICVLAN} // 0;
+        # XXX: no useful return value from those commands
+        system('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'vlan/create', $vlan) if $vlan;
+        system('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'port/setvlan', $vars->{VDE_PORT}, $vlan);
+    }
+
     bmwqemu::save_vars();    # update variables
 
     mkpath($basedir);
@@ -297,20 +310,6 @@ sub start_qemu() {
         symlink($i, "$basedir/l$i") or die "$!\n";
     }
 
-    if ($vars->{NICTYPE} eq "vde") {
-        if (system('vde_switch', '-d', '-s', "/tmp/openqa_vde$vars->{NICVLAN}.ctl") == 0) {
-            if (system('slirpvde', '-d', '-s', "/tmp/openqa_vde$vars->{NICVLAN}.ctl") != 0) {
-                die "Can't start slirpvde -d -s /tmp/openqa_vde$vars->{NICVLAN}.ctl";
-            }
-        }
-        else {
-            if (!-d "/tmp/openqa_vde$vars->{NICVLAN}.ctl") {
-                die "Can't start vde_switch -d -s /tmp/openqa_vde$vars->{NICVLAN}.ctl";
-            }
-            # else vde_switch is already running
-        }
-    }
-
     pipe(my $reader, my $writer);
     my $pid = fork();
     die "fork failed" unless defined($pid);
@@ -335,11 +334,10 @@ sub start_qemu() {
             push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
         }
         elsif ($vars->{NICTYPE} eq "vde") {
-            # use different bridge for each NICVLAN
-            push(@params, '-netdev', "vde,id=qanet0,sock=/tmp/openqa_vde$vars->{NICVLAN}.ctl");
+            push(@params, '-netdev', "vde,id=qanet0,sock=$vars->{VDE_SOCKETDIR}/vde.ctl,port=$vars->{VDE_PORT}");
         }
         else {
-            die "uknown NICTYPE $vars->{NICTYPE}\n";
+            die "unknown NICTYPE $vars->{NICTYPE}\n";
         }
         push(@params, '-device', "$vars->{NICMODEL},netdev=qanet0,mac=$vars->{NICMAC}");
 
