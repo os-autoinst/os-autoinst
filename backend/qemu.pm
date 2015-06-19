@@ -14,7 +14,7 @@ use POSIX qw/strftime :sys_wait_h/;
 use JSON;
 use Carp;
 use Fcntl;
-use bmwqemu qw(fileContent diag save_vars diag);
+use bmwqemu qw(fileContent diag save_vars);
 use backend::VNC;
 
 sub new {
@@ -248,10 +248,6 @@ sub start_qemu() {
     }
 
     if ($vars->{NICTYPE} ne "user") {
-        if (!defined $vars->{NICVLAN}) {
-            die "NICVLAN must be specified for NICTYPE other than 'user'";
-        }
-
         # ensure MAC addresses differ globally
         # and allow MAC addresses for more than 256 workers (up to 65535)
         my $workerid = $vars->{WORKER_ID};
@@ -544,8 +540,10 @@ sub start_qemu() {
 
     if ($vars->{NICTYPE} eq "tap") {
         if (-x "/etc/os-autoinst/set_tap_vlan") {
-            system("/etc/os-autoinst/set_tap_vlan", $vars->{TAPDEV}, $vars->{NICVLAN}) == 0
-              or die "/etc/os-autoinst/set_tap_vlan  $vars->{TAPDEV} $vars->{NICVLAN} failed";
+            my $vlan = $vars->{NICVLAN} // 0;
+            my @cmd = ("/etc/os-autoinst/set_tap_vlan", $vars->{TAPDEV}, $vlan);
+            system(@cmd) == 0
+              or die join(' ', @cmd) . " failed";
         }
     }
 
