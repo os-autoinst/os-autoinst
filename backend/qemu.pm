@@ -22,6 +22,7 @@ sub new {
     my $self = bless({class => $class}, $class);
 
     $self->{pid}         = undef;
+    $self->{children}    = [];
     $self->{pidfilename} = 'qemu.pid';
 
     # make sure to set environment variables in the main thread
@@ -85,8 +86,9 @@ sub do_start_vm() {
     return {};
 }
 
-sub kill_qemu($) {
-    my ($pid) = (@_);
+sub kill_qemu {
+    my ($self) = (@_);
+    my $pid = $self->{pid};
 
     # already gone?
     my $ret = waitpid($pid, WNOHANG);
@@ -99,18 +101,31 @@ sub kill_qemu($) {
         sleep 1;
         $ret = waitpid($pid, WNOHANG);
         print STDERR "waitpid for $pid returned $ret\n";
-        return if ($ret == $pid);
+        last if ($ret == $pid);
     }
-    kill("KILL", $pid);
-    # now we have to wait
-    waitpid($pid, 0);
+    unless ($ret == $pid) {
+        kill("KILL", $pid);
+        # now we have to wait
+        waitpid($pid, 0);
+    }
+
+    for $pid (@{$self->{children}}) {
+        diag("killing child $pid");
+        kill('TERM', $pid);
+        for my $i (1 .. 5) {
+            $ret = waitpid($pid, WNOHANG);
+            print STDERR "waitpid for $pid returned $ret\n";
+            last if ($ret == $pid);
+            sleep 1;
+        }
+    }
 }
 
 sub do_stop_vm($) {
     my $self = shift;
 
     return unless $self->{pid};
-    kill_qemu($self->{pid});
+    kill_qemu($self);
     $self->{pid} = undef;
     unlink($self->{pidfilename});
 }
@@ -224,9 +239,10 @@ sub start_qemu() {
     $vars->{NICMAC}   ||= "52:54:00:12:34:56";
     if ($vars->{NICTYPE} eq "vde") {
         $vars->{VDE_SOCKETDIR} ||= '.';
-        # use consistent port. 10 is arbitrary here, just leave room for other
-        # cables in front.
-        $vars->{VDE_PORT} ||= ($vars->{WORKER_ID} // 0) + 10;
+        # use consistent port. port 1 is slirpvde so add + 2.
+        # *2 to have another slot for slirpvde. Default number
+        # of ports is 32 so enough for 14 workers per host.
+        $vars->{VDE_PORT} ||= ($vars->{WORKER_ID} // 0) * 2 + 2;
     }
     # misc
     my $arch_supports_boot_order = 1;
@@ -267,16 +283,35 @@ sub start_qemu() {
     }
 
     if ($vars->{NICTYPE} eq "vde") {
+        my $mgmtsocket = $vars->{VDE_SOCKETDIR} . '/vde.mgmt';
+        my $port       = $vars->{VDE_PORT};
+        my $vlan       = $vars->{NICVLAN} // 0;
         # XXX: no useful return value from those commands
-        runcmd('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'port/remove', $vars->{VDE_PORT});
-        runcmd('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'port/create', $vars->{VDE_PORT});
-        if (my $vlan = $vars->{NICVLAN} // 0) {
-            runcmd('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'vlan/create', $vlan);
-            runcmd('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'port/setvlan', $vars->{VDE_PORT}, $vlan);
+        runcmd('vdecmd', '-s', $mgmtsocket, 'port/remove', $port);
+        runcmd('vdecmd', '-s', $mgmtsocket, 'port/create', $port);
+        if ($vlan) {
+            runcmd('vdecmd', '-s', $mgmtsocket, 'vlan/create', $vlan);
+            runcmd('vdecmd', '-s', $mgmtsocket, 'port/setvlan', $port, $vlan);
+        }
+
+        if ($vars->{VDE_USE_SLIRP}) {
+            # TODO: move infrastructure to fork and monitor children to baseclass
+            my $pid = fork();
+            die "fork failed" unless defined($pid);
+
+            my @cmd = ('slirpvde', '--dhcp', '-s', "$vars->{VDE_SOCKETDIR}/vde.ctl", '--port', $port + 1);
+            if ($pid == 0) {
+                $SIG{__DIE__} = undef;    # overwrite the default - just exit
+                exec(@cmd);
+                die "failed to exec slirpvde";
+            }
+            diag join(' ', @cmd) . " started with pid $pid";
+            push @{$self->{children}}, $pid;
+            runcmd('vdecmd', '-s', $mgmtsocket, 'port/setvlan', $port + 1, $vlan) if $vlan;
         }
     }
 
-    bmwqemu::save_vars();    # update variables
+    bmwqemu::save_vars();                 # update variables
 
     mkpath($basedir);
 
