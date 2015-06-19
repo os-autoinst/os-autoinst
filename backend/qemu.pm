@@ -136,6 +136,11 @@ sub do_loadvm($) {
     return $rsp;
 }
 
+sub runcmd {
+    diag "running " . join(' ', @_);
+    return system(@_);
+}
+
 sub do_upload_image() {
     my ($self, $args) = @_;
     my $hdd_num = $args->{hdd_num};
@@ -150,12 +155,12 @@ sub do_upload_image() {
         bmwqemu::diag "preparing hdd $hdd_num for upload as $name\n";
         mkpath($img_dir);
         if ($format eq 'raw') {
-            die "$!\n" unless system('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
+            die "$!\n" unless runcmd('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
         }
         elsif ($format eq 'qcow2') {
             if ($bmwqemu::vars{MAKETESTSNAPSHOTS}) {
                 # including all snapshots is prohibitively big
-                die "$!\n" unless system('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
+                die "$!\n" unless runcmd('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
             }
             else {
                 symlink("../raid/l$hdd_num", "$img_dir/$name");
@@ -279,22 +284,22 @@ sub start_qemu() {
             unlink("$basedir/l$i");
             if (-e "$basedir/$i.lvm") {
                 symlink("$i.lvm", "$basedir/l$i") or die "$!\n";
-                die "$!\n" unless system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1") == 0;    # for LVM
+                die "$!\n" unless runcmd("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1") == 0;    # for LVM
             }
             elsif ($vars->{"HDD_$i"}) {
-                die "$!\n" unless system($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"}) == 0;
+                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"}) == 0;
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
             else {
-                die "$!\n" unless system($qemuimg, "create", "$basedir/$i", "-f", "qcow2", $vars->{HDDSIZEGB} . "G") == 0;
+                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", $vars->{HDDSIZEGB} . "G") == 0;
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
         }
 
         if ($vars->{AUTO_INST}) {
             unlink("$basedir/autoinst.img");
-            system("/sbin/mkfs.vfat", "-C", "$basedir/autoinst.img", "1440");
-            system("/usr/bin/mcopy", "-i", "$basedir/autoinst.img", $vars->{AUTO_INST}, "::/");
+            runcmd("/sbin/mkfs.vfat", "-C", "$basedir/autoinst.img", "1440");
+            runcmd("/usr/bin/mcopy", "-i", "$basedir/autoinst.img", $vars->{AUTO_INST}, "::/");
 
             #system("/usr/bin/mdir","-i","$basedir/autoinst.img");
         }
@@ -542,7 +547,7 @@ sub start_qemu() {
         if (-x "/etc/os-autoinst/set_tap_vlan") {
             my $vlan = $vars->{NICVLAN} // 0;
             my @cmd = ("/etc/os-autoinst/set_tap_vlan", $vars->{TAPDEV}, $vlan);
-            system(@cmd) == 0
+            runcmd(@cmd) == 0
               or die join(' ', @cmd) . " failed";
         }
     }
