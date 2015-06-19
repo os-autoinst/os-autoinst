@@ -64,6 +64,9 @@ TAPDEV;device name;undef;TAP device name to which virtual NIC should be connecte
 UEFI;;;
 UEFI_BIOS;;;
 USBBOOT;boolean;0;Mount ISO as USB disk and boot VM from it
+VDE_PORT;integer;worker instance + 10;number of vde switch port to connect
+VDE_SLIRPPORT;integer;1;port where slirpvde is connected
+VDE_SOCKETDIR;string;.;directory where vde_switch control socket is to be found
 VNC;integer;worker instance + 90;Display on which VNC server is running. Actual port is 5900 + VNC
 VNCKB;;;
 |====================
