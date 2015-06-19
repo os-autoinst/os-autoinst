@@ -267,10 +267,13 @@ sub start_qemu() {
     }
 
     if ($vars->{NICTYPE} eq "vde") {
-        my $vlan = $vars->{NICVLAN} // 0;
         # XXX: no useful return value from those commands
-        system('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'vlan/create', $vlan) if $vlan;
-        system('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'port/setvlan', $vars->{VDE_PORT}, $vlan);
+        runcmd('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'port/remove', $vars->{VDE_PORT});
+        runcmd('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'port/create', $vars->{VDE_PORT});
+        if (my $vlan = $vars->{NICVLAN} // 0) {
+            runcmd('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'vlan/create', $vlan);
+            runcmd('vdecmd', '-s', $vars->{VDE_SOCKETDIR} . '/vde.mgmt', 'port/setvlan', $vars->{VDE_PORT}, $vlan);
+        }
     }
 
     bmwqemu::save_vars();    # update variables
