@@ -236,7 +236,7 @@ sub start_qemu() {
     # network settings
     $vars->{NICMODEL} ||= "virtio-net";
     $vars->{NICTYPE}  ||= "user";
-    $vars->{NICMAC}   ||= "52:54:00:12:34:56";
+    $vars->{NICMAC}   ||= "52:54:00:12:34:56" if $vars->{NICTYPE} eq 'user';
     if ($vars->{NICTYPE} eq "vde") {
         $vars->{VDE_SOCKETDIR} ||= '.';
         # use consistent port. port 1 is slirpvde so add + 2.
@@ -268,14 +268,14 @@ sub start_qemu() {
         $vars->{NUMDISKS} = 4;
     }
 
-    if ($vars->{NICTYPE} ne "user") {
+    if (!$vars->{NICMAC}) {
         # ensure MAC addresses differ globally
         # and allow MAC addresses for more than 256 workers (up to 65535)
         my $workerid = $vars->{WORKER_ID};
         $vars->{NICMAC} = sprintf('52:54:00:12:%02x:%02x', int($workerid / 256), $workerid % 256);
     }
 
-    if ($vars->{NICTYPE} eq "tap") {
+    if ($vars->{NICTYPE} eq "tap" && !defined $vars->{TAPDEV}) {
         # always set proper TAPDEV for os-autoinst when using tap network mode
         my $instance = $vars->{WORKER_INSTANCE} eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
         # use $instance for tap name so it is predicable, network is still configured staticaly
