@@ -289,7 +289,7 @@ sub runtest($$) {
     $self->{result} ||= 'unk';
 
     if ($@ || $self->{result} eq 'fail') {
-        my $msg = "test $name " . (@_ ? ' died :' . @_ : ' failed');
+        my $msg = "test $name " . ($@ ? 'died: ' . $@ : 'failed');
         warn $msg;
         $self->{post_fail_hook_running} = 1;
         eval { $self->post_fail_hook; };
