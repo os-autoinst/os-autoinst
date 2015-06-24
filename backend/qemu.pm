@@ -14,7 +14,7 @@ use POSIX qw/strftime :sys_wait_h/;
 use JSON;
 use Carp;
 use Fcntl;
-use bmwqemu qw(fileContent diag save_vars diag);
+use bmwqemu qw(fileContent diag save_vars);
 use backend::VNC;
 
 sub new {
@@ -22,6 +22,7 @@ sub new {
     my $self = bless({class => $class}, $class);
 
     $self->{pid}         = undef;
+    $self->{children}    = [];
     $self->{pidfilename} = 'qemu.pid';
 
     # make sure to set environment variables in the main thread
@@ -85,8 +86,9 @@ sub do_start_vm() {
     return {};
 }
 
-sub kill_qemu($) {
-    my ($pid) = (@_);
+sub kill_qemu {
+    my ($self) = (@_);
+    my $pid = $self->{pid};
 
     # already gone?
     my $ret = waitpid($pid, WNOHANG);
@@ -99,18 +101,31 @@ sub kill_qemu($) {
         sleep 1;
         $ret = waitpid($pid, WNOHANG);
         print STDERR "waitpid for $pid returned $ret\n";
-        return if ($ret == $pid);
+        last if ($ret == $pid);
     }
-    kill("KILL", $pid);
-    # now we have to wait
-    waitpid($pid, 0);
+    unless ($ret == $pid) {
+        kill("KILL", $pid);
+        # now we have to wait
+        waitpid($pid, 0);
+    }
+
+    for $pid (@{$self->{children}}) {
+        diag("killing child $pid");
+        kill('TERM', $pid);
+        for my $i (1 .. 5) {
+            $ret = waitpid($pid, WNOHANG);
+            print STDERR "waitpid for $pid returned $ret\n";
+            last if ($ret == $pid);
+            sleep 1;
+        }
+    }
 }
 
 sub do_stop_vm($) {
     my $self = shift;
 
     return unless $self->{pid};
-    kill_qemu($self->{pid});
+    kill_qemu($self);
     $self->{pid} = undef;
     unlink($self->{pidfilename});
 }
@@ -136,6 +151,11 @@ sub do_loadvm($) {
     return $rsp;
 }
 
+sub runcmd {
+    diag "running " . join(' ', @_);
+    return system(@_);
+}
+
 sub do_upload_image() {
     my ($self, $args) = @_;
     my $hdd_num = $args->{hdd_num};
@@ -150,12 +170,12 @@ sub do_upload_image() {
         bmwqemu::diag "preparing hdd $hdd_num for upload as $name\n";
         mkpath($img_dir);
         if ($format eq 'raw') {
-            die "$!\n" unless system('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
+            die "$!\n" unless runcmd('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
         }
         elsif ($format eq 'qcow2') {
             if ($bmwqemu::vars{MAKETESTSNAPSHOTS}) {
                 # including all snapshots is prohibitively big
-                die "$!\n" unless system('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
+                die "$!\n" unless runcmd('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
             }
             else {
                 symlink("../raid/l$hdd_num", "$img_dir/$name");
@@ -216,7 +236,14 @@ sub start_qemu() {
     # network settings
     $vars->{NICMODEL} ||= "virtio-net";
     $vars->{NICTYPE}  ||= "user";
-    $vars->{NICMAC}   ||= "52:54:00:12:34:56";
+    $vars->{NICMAC}   ||= "52:54:00:12:34:56" if $vars->{NICTYPE} eq 'user';
+    if ($vars->{NICTYPE} eq "vde") {
+        $vars->{VDE_SOCKETDIR} ||= '.';
+        # use consistent port. port 1 is slirpvde so add + 2.
+        # *2 to have another slot for slirpvde. Default number
+        # of ports is 32 so enough for 14 workers per host.
+        $vars->{VDE_PORT} ||= ($vars->{WORKER_ID} // 0) * 2 + 2;
+    }
     # misc
     my $arch_supports_boot_order = 1;
     my $use_usb_kbd;
@@ -241,25 +268,50 @@ sub start_qemu() {
         $vars->{NUMDISKS} = 4;
     }
 
-    if ($vars->{NICTYPE} ne "user") {
-        if (!defined $vars->{NICVLAN}) {
-            die "NICVLAN must be specified for NICTYPE other than 'user'";
-        }
-
+    if (!$vars->{NICMAC}) {
         # ensure MAC addresses differ globally
         # and allow MAC addresses for more than 256 workers (up to 65535)
         my $workerid = $vars->{WORKER_ID};
         $vars->{NICMAC} = sprintf('52:54:00:12:%02x:%02x', int($workerid / 256), $workerid % 256);
     }
 
-    if ($vars->{NICTYPE} eq "tap") {
+    if ($vars->{NICTYPE} eq "tap" && !defined $vars->{TAPDEV}) {
         # always set proper TAPDEV for os-autoinst when using tap network mode
         my $instance = $vars->{WORKER_INSTANCE} eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
         # use $instance for tap name so it is predicable, network is still configured staticaly
         $vars->{TAPDEV} //= 'tap' . ($instance - 1);
     }
 
-    bmwqemu::save_vars();    # update variables
+    if ($vars->{NICTYPE} eq "vde") {
+        my $mgmtsocket = $vars->{VDE_SOCKETDIR} . '/vde.mgmt';
+        my $port       = $vars->{VDE_PORT};
+        my $vlan       = $vars->{NICVLAN} // 0;
+        # XXX: no useful return value from those commands
+        runcmd('vdecmd', '-s', $mgmtsocket, 'port/remove', $port);
+        runcmd('vdecmd', '-s', $mgmtsocket, 'port/create', $port);
+        if ($vlan) {
+            runcmd('vdecmd', '-s', $mgmtsocket, 'vlan/create', $vlan);
+            runcmd('vdecmd', '-s', $mgmtsocket, 'port/setvlan', $port, $vlan);
+        }
+
+        if ($vars->{VDE_USE_SLIRP}) {
+            # TODO: move infrastructure to fork and monitor children to baseclass
+            my $pid = fork();
+            die "fork failed" unless defined($pid);
+
+            my @cmd = ('slirpvde', '--dhcp', '-s', "$vars->{VDE_SOCKETDIR}/vde.ctl", '--port', $port + 1);
+            if ($pid == 0) {
+                $SIG{__DIE__} = undef;    # overwrite the default - just exit
+                exec(@cmd);
+                die "failed to exec slirpvde";
+            }
+            diag join(' ', @cmd) . " started with pid $pid";
+            push @{$self->{children}}, $pid;
+            runcmd('vdecmd', '-s', $mgmtsocket, 'port/setvlan', $port + 1, $vlan) if $vlan;
+        }
+    }
+
+    bmwqemu::save_vars();                 # update variables
 
     mkpath($basedir);
 
@@ -270,22 +322,22 @@ sub start_qemu() {
             unlink("$basedir/l$i");
             if (-e "$basedir/$i.lvm") {
                 symlink("$i.lvm", "$basedir/l$i") or die "$!\n";
-                die "$!\n" unless system("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1") == 0;    # for LVM
+                die "$!\n" unless runcmd("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1") == 0;    # for LVM
             }
             elsif ($vars->{"HDD_$i"}) {
-                die "$!\n" unless system($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"}) == 0;
+                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"}) == 0;
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
             else {
-                die "$!\n" unless system($qemuimg, "create", "$basedir/$i", "-f", "qcow2", $vars->{HDDSIZEGB} . "G") == 0;
+                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", $vars->{HDDSIZEGB} . "G") == 0;
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
         }
 
         if ($vars->{AUTO_INST}) {
             unlink("$basedir/autoinst.img");
-            system("/sbin/mkfs.vfat", "-C", "$basedir/autoinst.img", "1440");
-            system("/usr/bin/mcopy", "-i", "$basedir/autoinst.img", $vars->{AUTO_INST}, "::/");
+            runcmd("/sbin/mkfs.vfat", "-C", "$basedir/autoinst.img", "1440");
+            runcmd("/usr/bin/mcopy", "-i", "$basedir/autoinst.img", $vars->{AUTO_INST}, "::/");
 
             #system("/usr/bin/mdir","-i","$basedir/autoinst.img");
         }
@@ -295,20 +347,6 @@ sub start_qemu() {
         next if -e "$basedir/l$i";
         next unless -e "$basedir/$i";
         symlink($i, "$basedir/l$i") or die "$!\n";
-    }
-
-    if ($vars->{NICTYPE} eq "vde") {
-        if (system('vde_switch', '-d', '-s', "/tmp/openqa_vde$vars->{NICVLAN}.ctl") == 0) {
-            if (system('slirpvde', '-d', '-s', "/tmp/openqa_vde$vars->{NICVLAN}.ctl") != 0) {
-                die "Can't start slirpvde -d -s /tmp/openqa_vde$vars->{NICVLAN}.ctl";
-            }
-        }
-        else {
-            if (!-d "/tmp/openqa_vde$vars->{NICVLAN}.ctl") {
-                die "Can't start vde_switch -d -s /tmp/openqa_vde$vars->{NICVLAN}.ctl";
-            }
-            # else vde_switch is already running
-        }
     }
 
     pipe(my $reader, my $writer);
@@ -335,11 +373,10 @@ sub start_qemu() {
             push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
         }
         elsif ($vars->{NICTYPE} eq "vde") {
-            # use different bridge for each NICVLAN
-            push(@params, '-netdev', "vde,id=qanet0,sock=/tmp/openqa_vde$vars->{NICVLAN}.ctl");
+            push(@params, '-netdev', "vde,id=qanet0,sock=$vars->{VDE_SOCKETDIR}/vde.ctl,port=$vars->{VDE_PORT}");
         }
         else {
-            die "uknown NICTYPE $vars->{NICTYPE}\n";
+            die "unknown NICTYPE $vars->{NICTYPE}\n";
         }
         push(@params, '-device', "$vars->{NICMODEL},netdev=qanet0,mac=$vars->{NICMAC}");
 
@@ -546,8 +583,10 @@ sub start_qemu() {
 
     if ($vars->{NICTYPE} eq "tap") {
         if (-x "/etc/os-autoinst/set_tap_vlan") {
-            system("/etc/os-autoinst/set_tap_vlan", $vars->{TAPDEV}, $vars->{NICVLAN}) == 0
-              or die "/etc/os-autoinst/set_tap_vlan  $vars->{TAPDEV} $vars->{NICVLAN} failed";
+            my $vlan = $vars->{NICVLAN} // 0;
+            my @cmd = ("/etc/os-autoinst/set_tap_vlan", $vars->{TAPDEV}, $vlan);
+            runcmd(@cmd) == 0
+              or die join(' ', @cmd) . " failed";
         }
     }
 
