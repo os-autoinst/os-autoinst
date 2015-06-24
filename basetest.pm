@@ -291,6 +291,11 @@ sub runtest($$) {
     if ($@ || $self->{result} eq 'fail') {
         my $msg = "test $name " . ($@ ? 'died: ' . $@ : 'failed');
         warn $msg;
+        # add a fail screenshot in case there is none
+        if ($@ && ($self->{details}->[-1]->{result} || '') ne 'fail') {
+            my $result = $self->record_testresult('fail');
+            $self->_result_add_screenshot($result);
+        }
         $self->{post_fail_hook_running} = 1;
         eval { $self->post_fail_hook; };
         bmwqemu::diag "post_fail_hook failed: $@\n" if $@;
