@@ -10,6 +10,7 @@ use File::Copy qw(cp);
 use File::Basename;
 use Time::HiRes qw(gettimeofday);
 use bmwqemu;
+use subtitle;
 use IO::Select;
 
 use Data::Dumper;
@@ -426,6 +427,13 @@ sub enqueue_screenshot() {
         $self->{encoder_pipe}->print("E $lastscreenshotName\n");
     }
     $self->{encoder_pipe}->flush();
+    my $framecountmsg = "wrote screenshot #$framecounter";
+    if ($ENV{DEVEL_SUBTITLES}) {
+        bmwqemu::diag($framecountmsg);
+    }
+    else {
+        subtitle::add_subtitle_line($framecountmsg);
+    }
 }
 
 sub close_pipes() {
