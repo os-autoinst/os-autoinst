@@ -756,7 +756,7 @@ sub parse_junit_log {
 
     upload_logs($file);
 
-    $file =~ s/.*\///;
+    $file = basename($file);
 
     open my $fd, "ulogs/$file" or die "Couldn't open file 'ulogs/$file': $!";
     my $xml = join("", <$fd>);
