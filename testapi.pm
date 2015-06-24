@@ -5,6 +5,7 @@ use Exporter;
 use strict;
 use File::Basename qw(basename);
 use Time::HiRes qw(sleep gettimeofday);
+use Mojo::DOM;
 
 require bmwqemu;
 
@@ -14,7 +15,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key se
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
-  activate_console select_console console deactivate_console data_url assert_shutdown
+  activate_console select_console console deactivate_console data_url assert_shutdown parse_junit_log
 );
 
 our %cmd;
@@ -739,6 +740,84 @@ sub assert_shutdown(;$) {
     }
     $autotest::current_test->take_screenshot('fail');
     die "Machine didn't shut down!";
+}
+
+=head2 parse_junit_log
+
+parse_junit_log("report.xml")
+
+Upload log file from SUT (calls upload_logs internally). The uploaded
+file is then parsed as jUnit format and extra test results are created from it.
+
+=cut
+
+sub parse_junit_log {
+    my ($file) = @_;
+
+    upload_logs($file);
+
+    $file =~ s/.*\///;
+
+    open my $fd, "ulogs/$file" or die "Couldn't open file 'ulogs/$file': $!";
+    my $xml = join("", <$fd>);
+    close $fd;
+
+    my $dom = Mojo::DOM->new($xml);
+
+    my @tests;
+
+    for my $ts ($dom->find('testsuite')->each) {
+        my $ts_category = $ts->{package};
+        $ts_category =~ s/[^A-Za-z0-9._-]/_/g;    # the name is used as part of url so we must strip special characters
+        my $ts_name = $ts_category;
+        $ts_category =~ s/\..*$//;
+        $ts_name =~ s/^[^.]*\.//;
+        $ts_name =~ s/\./_/;
+
+        push @tests,
+          {
+            flags    => {important => 1},
+            category => $ts_category,
+            name     => $ts_name,
+            script   => $autotest::current_test->{script},
+          };
+
+        my $ts_result = 'ok';
+        $ts_result = 'fail' if $ts->{failures} || $ts->{errors};
+
+        my $result = {
+            result  => $ts_result,
+            details => [],
+            dents   => 0,
+        };
+
+        my $num = 1;
+        for my $tc ($ts->children('testcase')->each) {
+            my $tc_result = 'fail';
+            $tc_result = 'ok' if $tc->{status} eq 'success';
+
+            my $details = {result => $tc_result};
+
+            if ($tc->children('system-out')) {
+                my $text_fn = "$ts_category-$ts_name-$num.txt";
+                open my $fd, ">" . bmwqemu::result_dir() . "/$text_fn" or die "Couldn't open file '$text_fn': $!";
+                print $fd "# $tc->{name}\n";
+                print $fd "#\n";
+                for my $out ($tc->children('system-out')->each) {
+                    print $fd $out->text . "\n";
+                }
+                close $fd;
+                $details->{text} = $text_fn;
+            }
+            push @{$result->{details}}, $details;
+            $num++;
+        }
+
+        my $fn = bmwqemu::result_dir() . "/result-$ts_name.json";
+        bmwqemu::save_json_file($result, $fn);
+    }
+
+    $autotest::current_test->register_extra_test_results(\@tests);
 }
 
 1;
