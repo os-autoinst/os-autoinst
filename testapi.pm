@@ -8,7 +8,7 @@ use Time::HiRes qw(sleep gettimeofday);
 
 require bmwqemu;
 
-our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key type_string
+our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key send_key_until_needlematch type_string
   assert_screen upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
   script_sudo wait_serial save_screenshot wait_screen_change record_soft_failure
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
@@ -332,6 +332,27 @@ sub send_key($;$) {
     eval { $bmwqemu::backend->send_key($key); };
     bmwqemu::mydie("Error send_key key=$key: $@\n") if ($@);
     wait_idle() if $wait;
+}
+
+=head2 send_key_until_needlematch
+
+send_key_until_needlematch($tag, $key, [$counter, $timeout])
+
+Send specific key if can not find the matched needle.
+
+=cut
+
+sub send_key_until_needlematch($$;$$) {
+    my ($tag, $key, $counter, $timeout) = @_;
+
+    $counter //= 20;
+    $timeout //= 1;
+    while (!check_screen($tag, $timeout)) {
+        send_key $key;
+        if (!$counter--) {
+            assert_screen $tag, 1;
+        }
+    }
 }
 
 =head2 type_string
