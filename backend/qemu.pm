@@ -169,13 +169,15 @@ sub do_upload_image() {
     elsif (-f "raid/l$hdd_num") {
         bmwqemu::diag "preparing hdd $hdd_num for upload as $name\n";
         mkpath($img_dir);
+        my @cmd = ('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name");
         if ($format eq 'raw') {
-            die "$!\n" unless runcmd('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
+            die "$!\n" unless runcmd(@cmd) == 0;
         }
         elsif ($format eq 'qcow2') {
-            if ($bmwqemu::vars{MAKETESTSNAPSHOTS}) {
-                # including all snapshots is prohibitively big
-                die "$!\n" unless runcmd('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
+            push @cmd, '-c' if $bmwqemu::vars{QEMU_COMPRESS_QCOW2};
+            # including all snapshots is prohibitively big
+            if ($bmwqemu::vars{MAKETESTSNAPSHOTS} || $bmwqemu::vars{QEMU_COMPRESS_QCOW2}) {
+                die "$!\n" unless runcmd(@cmd) == 0;
             }
             else {
                 symlink("../raid/l$hdd_num", "$img_dir/$name");
