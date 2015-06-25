@@ -74,6 +74,11 @@ sub signalhandler {
         # mark it as no longer working
         delete $ENV{WORKERID};
         bmwqemu::save_status();
+        # make sure the currently running test is shown as failed
+        if (my $test = bmwqemu::current_test()) {
+            $test->fail_if_running();
+            $test->save_test_result();
+        }
     }
     else {
         print STDERR "bug!? signal not received in main thread\n";
