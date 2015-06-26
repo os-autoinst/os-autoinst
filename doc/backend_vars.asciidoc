@@ -1,6 +1,14 @@
 Supported variables per backend
 -------------------------------
 
+.Common
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+NOVIDEO;boolean;;don't encode video if set
+|====================
+
 .IPMI backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
