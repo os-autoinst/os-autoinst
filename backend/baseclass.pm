@@ -283,12 +283,12 @@ sub do_start_vm($) {
 
 sub do_stop_vm($) { notimplemented }
 
-sub stop               { notimplemented }
-sub cont               { notimplemented }
-sub do_savevm($)       { notimplemented }
-sub do_loadvm($)       { notimplemented }
-sub do_upload_image($) { notimplemented }
-sub status()           { notimplemented }
+sub stop                 { notimplemented }
+sub cont                 { notimplemented }
+sub do_savevm($)         { notimplemented }
+sub do_loadvm($)         { notimplemented }
+sub do_extract_assets($) { notimplemented }
+sub status()             { notimplemented }
 
 ## MAY be overwritten:
 

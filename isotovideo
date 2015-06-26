@@ -150,35 +150,42 @@ diag "FAIL" if $r;
 
 $SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
-# mark hard disks for upload if test finished
-if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
-    eval {
-        my $status = $bmwqemu::backend->status();
-        if ($status ne "shutdown") {
-            diag "ERROR: Machine not shut down when uploading disks!\n";
-        }
-    };
-    # if status() died the backend was already dead. So some fatal test
-    # probably took it down. Don't upload in that case.
-    unless ($@) {
-        for my $i (1 .. $nd) {
-            my $dir = 'assets_private';
-            my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
-            unless ($name) {
-                $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
-                $dir = 'assets_public';
-            }
-            next unless $name;
-            $bmwqemu::backend->do_upload_image({hdd_num => $i, name => $name, dir => $dir });
-        }
-    }
-}
+my $clean_shutdown;
+eval {
+    my $status = $bmwqemu::backend->status();
+    $clean_shutdown = 1 if $status||'' eq "shutdown";
+};
 
 bmwqemu::stop_vm();
 print "killing commands thread\n";
 $ct->kill('SIGTERM');
 $ct->join();
 print "done joining commands thread\n";
+
+# mark hard disks for upload if test finished
+if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
+    # if status() died the backend was already dead. So some fatal test
+    # probably took it down. Don't upload in that case.
+    my @toextract;
+    for my $i (1 .. $nd) {
+        my $dir = 'assets_private';
+        my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
+        unless ($name) {
+            $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
+            $dir = 'assets_public';
+        }
+        next unless $name;
+        push @toextract, { hdd_num => $i, name => $name, dir => $dir };
+    }
+    if (@toextract && !$clean_shutdown) {
+        diag "ERROR: Machine not shut down when uploading disks!\n";
+    }
+    else {
+        for my $asset (@toextract) {
+            $bmwqemu::backend->extract_assets($asset);
+        }
+    }
+}
 
 # run postrun test code after VM is stopped
 if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {

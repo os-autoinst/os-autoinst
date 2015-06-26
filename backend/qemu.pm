@@ -156,7 +156,7 @@ sub runcmd {
     return system(@_);
 }
 
-sub do_upload_image() {
+sub do_extract_assets() {
     my ($self, $args) = @_;
     my $hdd_num = $args->{hdd_num};
     my $name    = $args->{name};
@@ -164,7 +164,7 @@ sub do_upload_image() {
     $name =~ /\.([[:alnum:]]+)$/;
     my $format = $1;
     if (!$format || $format !~ /^(raw|qcow2)$/) {
-        bmwqemu::diag "do_upload_image: only raw and qcow2 formats supported $name $format\n";
+        bmwqemu::diag "do_extract_assets: only raw and qcow2 formats supported $name $format\n";
     }
     elsif (-f "raid/l$hdd_num") {
         bmwqemu::diag "preparing hdd $hdd_num for upload as $name\n";
@@ -185,7 +185,7 @@ sub do_upload_image() {
         }
     }
     else {
-        bmwqemu::diag "do_upload_image: hdd $hdd_num does not exist\n";
+        bmwqemu::diag "do_extract_assets: hdd $hdd_num does not exist\n";
     }
 }
 
