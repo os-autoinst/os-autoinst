@@ -156,7 +156,7 @@ sub runcmd {
     return system(@_);
 }
 
-sub do_upload_image() {
+sub do_extract_assets() {
     my ($self, $args) = @_;
     my $hdd_num = $args->{hdd_num};
     my $name    = $args->{name};
@@ -164,18 +164,20 @@ sub do_upload_image() {
     $name =~ /\.([[:alnum:]]+)$/;
     my $format = $1;
     if (!$format || $format !~ /^(raw|qcow2)$/) {
-        bmwqemu::diag "do_upload_image: only raw and qcow2 formats supported $name $format\n";
+        bmwqemu::diag "do_extract_assets: only raw and qcow2 formats supported $name $format\n";
     }
     elsif (-f "raid/l$hdd_num") {
         bmwqemu::diag "preparing hdd $hdd_num for upload as $name\n";
         mkpath($img_dir);
+        my @cmd = ('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name");
         if ($format eq 'raw') {
-            die "$!\n" unless runcmd('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
+            die "$!\n" unless runcmd(@cmd) == 0;
         }
         elsif ($format eq 'qcow2') {
-            if ($bmwqemu::vars{MAKETESTSNAPSHOTS}) {
-                # including all snapshots is prohibitively big
-                die "$!\n" unless runcmd('qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name") == 0;
+            push @cmd, '-c' if $bmwqemu::vars{QEMU_COMPRESS_QCOW2};
+            # including all snapshots is prohibitively big
+            if ($bmwqemu::vars{MAKETESTSNAPSHOTS} || $bmwqemu::vars{QEMU_COMPRESS_QCOW2}) {
+                die "$!\n" unless runcmd(@cmd) == 0;
             }
             else {
                 symlink("../raid/l$hdd_num", "$img_dir/$name");
@@ -183,7 +185,7 @@ sub do_upload_image() {
         }
     }
     else {
-        bmwqemu::diag "do_upload_image: hdd $hdd_num does not exist\n";
+        bmwqemu::diag "do_extract_assets: hdd $hdd_num does not exist\n";
     }
 }
 

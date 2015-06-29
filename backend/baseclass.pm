@@ -195,6 +195,8 @@ sub run_capture_loop($;$$$$ ) {
 sub start_encoder() {
     my ($self) = @_;
 
+    return if $bmwqemu::vars{NOVIDEO};
+
     my $cwd = Cwd::getcwd();
     open($self->{encoder_pipe}, "|nice -n 19 $bmwqemu::scriptdir/videoencoder $cwd/video.ogv")
       || die "can't call $bmwqemu::scriptdir/videoencoder";
@@ -224,7 +226,7 @@ sub start_vm($) {
 sub stop_vm($) {
     my $self = shift;
     if ($self->{started}) {
-        close($self->{encoder_pipe});
+        close($self->{encoder_pipe}) if $self->{encoder_pipe};
         unlink('backend.run');
         $self->do_stop_vm();
         $self->{started} = 0;
@@ -283,12 +285,12 @@ sub do_start_vm($) {
 
 sub do_stop_vm($) { notimplemented }
 
-sub stop               { notimplemented }
-sub cont               { notimplemented }
-sub do_savevm($)       { notimplemented }
-sub do_loadvm($)       { notimplemented }
-sub do_upload_image($) { notimplemented }
-sub status()           { notimplemented }
+sub stop                 { notimplemented }
+sub cont                 { notimplemented }
+sub do_savevm($)         { notimplemented }
+sub do_loadvm($)         { notimplemented }
+sub do_extract_assets($) { notimplemented }
+sub status()             { notimplemented }
 
 ## MAY be overwritten:
 
@@ -419,13 +421,15 @@ sub enqueue_screenshot() {
         #my $ocr=get_ocr($image);
         #if($ocr) { diag "ocr: $ocr" }
     }
-    if ($sim > 50) {    # we ignore smaller differences
-        $self->{encoder_pipe}->print("R\n");
+    if ($self->{encoder_pipe}) {
+        if ($sim > 50) {    # we ignore smaller differences
+            $self->{encoder_pipe}->print("R\n");
+        }
+        else {
+            $self->{encoder_pipe}->print("E $lastscreenshotName\n");
+        }
+        $self->{encoder_pipe}->flush();
     }
-    else {
-        $self->{encoder_pipe}->print("E $lastscreenshotName\n");
-    }
-    $self->{encoder_pipe}->flush();
 }
 
 sub close_pipes() {

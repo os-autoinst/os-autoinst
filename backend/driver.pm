@@ -54,6 +54,11 @@ sub start() {
     $self->{runthread} = $tid;
 }
 
+sub extract_assets {
+    my $self = shift;
+    $self->{'backend'}->do_extract_assets(@_);
+}
+
 # this is the backend thread
 sub _run {
     my ($backend, $from_parent, $to_parent) = @_;
