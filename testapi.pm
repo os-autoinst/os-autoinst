@@ -16,7 +16,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key se
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
   activate_console select_console console deactivate_console data_url assert_shutdown parse_junit_log
-  assert_script_run
+  assert_script_run assert_script_sudo
 );
 
 our %cmd;
@@ -314,6 +314,23 @@ sub script_sudo($;$) {
 
     bmwqemu::log_call('script_sudo', name => $name, wait => $wait);
     return $distri->script_sudo($name, $wait);
+}
+
+=head2 assert_script_sudo
+
+assert_script_sudo($command)
+
+run $command via script_sudo and die if it's exit status is not zero.
+The exit status is checked by via magic string on the serial port.
+
+=cut
+
+sub assert_script_sudo {
+    my ($cmd) = @_;
+    my $str = time;
+    script_sudo "$cmd; echo $str-\$?- > /dev/$serialdev";
+    my $ret = wait_serial "$str-\\d+-";
+    die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
 }
 
 sub power($) {
