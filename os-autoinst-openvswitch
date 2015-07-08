@@ -1,0 +1,117 @@
+#!/usr/bin/perl
+package OVS;
+use strict;
+
+use base qw(Net::DBus::Object);
+use Net::DBus::Exporter qw(org.opensuse.os_autoinst.switch);
+
+sub new {
+    my $class   = shift;
+    my $service = shift;
+    my $self    = $class->SUPER::new($service, '/switch');
+    bless $self, $class;
+    $self->init_switch;
+    return $self;
+}
+
+sub init_switch {
+    my $self = shift;
+
+    $self->{BRIDGE} = $ENV{OS_AUTOINST_USE_BRIDGE};
+    $self->{BRIDGE} //= 'br0';
+
+    #the bridge must be already created and configured
+    system('ovs-vsctl', 'br-exists', $self->{BRIDGE}) == 0 or die "OVS bridge '$self->{BRIDGE}' does not exist";
+
+    my $bridge_conf = `ip addr show $self->{BRIDGE}`;
+
+    $self->{MAC} = $1 if $bridge_conf =~ /ether\s+(([0-9a-f]{2}:){5}[0-9a-f]{2})\s/;
+    $self->{IP}  = $1 if $bridge_conf =~ /inet\s+(([0-9]+.){3}[0-9]+\/[0-9]+)\s/;
+
+    die "can't parse bridge local port MAC" unless $self->{MAC};
+    die "can't parse bridge local port IP"  unless $self->{IP};
+
+
+    # the VM have unique MAC that differs in the last 16 bits (see /usr/lib/os-autoinst/backend/qemu.pm)
+    # the IP can conflict across vlans
+    # to allow connection from VM  to host os-autoinst (10.0.2.2), we have to do some IP translation
+    # we use simple scheme:
+    # MAC 52:54:00:12:XX:YY -> IP 10.1.XX.YY
+
+    # br0 has IP 10.0.2.2 and netmask /15 that covers 10.0.0.0 and 10.1.0.0 ranges
+    # this should be also configured permanently in /etc/sysconfig/network
+    die "bridge local port IP is expected to be 10.0.2.2/15" unless $self->{IP} eq '10.0.2.2/15';
+
+    # openflow rules don't survive reboot so they must be installed on each startup
+    for my $rule (
+        # openflow ports:
+        #  LOCAL = br0
+        #  1,2,3 ... tap devices
+
+        # default: normal action
+        'table=0,priority=0,action=normal',
+
+        # reply packets from local port are handled by learned rules in table 1
+        'table=0,priority=1,in_port=LOCAL,actions=resubmit(,1)',
+
+        # arp 10.0.2.2 - learn rule for handling replies, rewrite ARP sender IP to 10.1.x.x range and send to local
+        # the learned rule rewrites ARP target to the original IP and sends the packet to the original port
+        'table=0,priority=100,dl_type=0x0806,nw_dst=10.0.2.2,actions=' .                                                                                                   #
+        'learn(table=1,priority=100,in_port=LOCAL,dl_type=0x0806,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],output:NXM_OF_IN_PORT[]),' .    #
+        'load:0xa010000->NXM_OF_ARP_SPA[],move:NXM_OF_ETH_SRC[0..15]->NXM_OF_ARP_SPA[0..15],' .                                                                            #
+        'local',
+
+        # tcp to $self->{MAC} syn - learn rule for handling replies, rewrite source IP to 10.1.x.x range and send to local
+        # the learned rule rewrites DST to the original IP and sends the packet to the original port
+        "table=0,priority=100,dl_type=0x0800,tcp_flags=+syn-ack,dl_dst=$self->{MAC},actions=" .                                                                          #
+        'learn(table=1,priority=100,in_port=LOCAL,dl_type=0x0800,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_IP_SRC[]->NXM_OF_IP_DST[],output:NXM_OF_IN_PORT[]),' .    #
+        'mod_nw_src:10.1.0.0,move:NXM_OF_ETH_SRC[0..15]->NXM_OF_IP_SRC[0..15],' .                                                                                        #
+        'local',
+
+        # tcp to $self->{MAC} other - rewrite source IP to 10.1.x.x range and send to local
+        "table=0,priority=99,dl_type=0x0800,dl_dst=$self->{MAC},actions=" .                                                                                              #
+        'mod_nw_src:10.1.0.0,move:NXM_OF_ETH_SRC[0..15]->NXM_OF_IP_SRC[0..15],local',
+      )
+    {
+        system('ovs-ofctl', 'add-flow', $self->{BRIDGE}, $rule) == 0 or die "Can't add rule '$rule' to bridge $self->{BRIDGE}";
+    }
+}
+
+
+dbus_method("set_vlan", ["string", "uint32"]);
+sub set_vlan {
+    my $self = shift;
+    my $tap  = shift;
+    my $vlan = shift;
+
+    if ($tap !~ /^tap[0-9]+$/) {
+        print STDERR "'$tap' does not fit the naming scheme\n";
+        return;
+    }
+
+    my $check_bridge = `ovs-vsctl port-to-br $tap`;
+    chomp $check_bridge;
+    if ($check_bridge ne $self->{BRIDGE}) {
+        print STDERR "'$tap' is not connected to bridge '$self->{BRIDGE}'\n";
+        return;
+    }
+
+    # connect tap device to given vlan
+    system('ovs-vsctl', 'set', 'port', $tap, "tag=$vlan");
+}
+
+################################################################################
+package main;
+use strict;
+
+use Net::DBus;
+use Net::DBus::Reactor;
+
+my $bus = Net::DBus->system;
+
+my $service = $bus->export_service("org.opensuse.os_autoinst.switch");
+my $object  = OVS->new($service);
+
+Net::DBus::Reactor->main->run;
+
+exit 0;

@@ -51,7 +51,8 @@ pkglibexec_SCRIPTS = \
 	ocr.pm \
 	cv.pm \
 	needle.pm \
-	crop.py
+	crop.py \
+	os-autoinst-openvswitch
 
 bin_SCRIPTS = isotovideo
 
@@ -77,7 +78,9 @@ EXTRA_DIST = \
 	autogen.sh \
 	ppmclibs/tinycv.i \
 	$(backendhelpexec_SCRIPTS) $(backendexec_SCRIPTS) \
-	$(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS)
+	$(doc_DATA) $(pkglibexec_DATA) $(pkglibexec_SCRIPTS) $(packagestate_DATA_FOLDERS) $(pkglibexec_FOLDERS) \
+	etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf \
+	systemd/os-autoinst-openvswitch.service
 
 CLEANFILES = \
 	$(ppmcexec_SCRIPTS) \
@@ -112,6 +115,8 @@ install-data-local:
 		cp -r $(top_srcdir)/$$i "$(DESTDIR)/$(pkglibexecdir)" ; \
 	done
 	install -D -m 644 $(top_srcdir)/etc/os-autoinst/kvm2usb.yml "$(DESTDIR)/etc/os-autoinst/kvm2usb.yml"
+	install -D -m 644 $(top_srcdir)/etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf "$(DESTDIR)/etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf"
+	install -D -m 644 $(top_srcdir)/systemd/os-autoinst-openvswitch.service "$(DESTDIR)/usr/lib/systemd/system/os-autoinst-openvswitch.service"
 
 uninstall-local:
 	for i in $(packagestate_DATA_FOLDERS) ; do \
