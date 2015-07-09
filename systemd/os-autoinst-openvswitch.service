@@ -3,7 +3,7 @@
 # systemctl start os-autoinst-openvswitch.service
 [Unit]
 Description=os-autoinst openvswitch helper
-Wants=openvswitch.service
+BindsTo=openvswitch.service
 After=openvswitch.service
 Before=openqa-worker.target
 
