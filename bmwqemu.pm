@@ -542,8 +542,8 @@ sub wait_serial($$$) {
         my $r = eval { $console->expect_3270(output_delim => $regexp, timeout => $timeout); };
         unless ($@) {
             $matched = 1;
+            $str = join('\n', @$r);
         }
-        $str = join('\n', @$r);
     }
     else {
         if (ref $regexp ne 'ARRAY') {
