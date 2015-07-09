@@ -36,7 +36,7 @@ if (param()) {
 print hr, br, '<a href="?action=macro&amp;param1=x">xterm</a>', br;
 print qq!<a href="?action=macro&amp;param1=s">setxkbmap</a>!, br;
 print qq!<a href="?action=type_string&amp;param1=echo if you can read this, the demo worked...%0a">demo</a>!, br;
-foreach (qw(alt-f4 right up down)) {
+foreach (qw(alt-f4 right up down ctrl-alt-delete ret)) {
     print qq!<a href="?action=send_key&amp;param1=$_">$_</a> !;
 }
 print end_html;
