@@ -75,14 +75,14 @@ sub post_fail_hook() {
 sub record_screenmatch($$;$) {
     my $self   = shift;
     my $img    = shift;
-    my $needle = shift;
+    my $match  = shift;
     my $tags   = shift || [];
 
     my $count    = ++$self->{"test_count"};
     my $testname = ref($self);
 
-    my $h          = $self->_serialize_match($needle);
-    my $properties = $needle->{needle}->{properties} || [];
+    my $h          = $self->_serialize_match($match);
+    my $properties = $match->{needle}->{properties} || [];
     my $result     = {
         needle     => $h->{name},
         area       => $h->{area},
@@ -92,14 +92,12 @@ sub record_screenmatch($$;$) {
         properties => [@$properties],
     };
 
-    # When found the needle had workaround property
+    # When the needle has the workaround property,
     # mark the result as dent and increase the dents
-    for my $property (@$properties) {
-        if ($property eq 'workaround') {
-            $result->{dent} = 1;
-            $self->{dents}++;
-            bmwqemu::diag "found workaround property in $h->{name}";
-        }
+    if ($match->{'needle'}->has_property('workaround')) {
+        $result->{dent} = 1;
+        $self->{dents}++;
+        bmwqemu::diag "needle '$h->{name}' is a workaround";
     }
 
     # Hack to make it obvious that some test passed by applying a hack
