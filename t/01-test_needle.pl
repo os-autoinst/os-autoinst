@@ -27,10 +27,10 @@ $img1 = tinycv::read("data/bootmenu.test.png");
 $needle = needle->new("data/bootmenu.ref.json");
 
 is($needle->has_tag('inst-bootmenu'), 1, "tag found");
-is($needle->has_tag('foobar'), 0, "tag not found");
+is($needle->has_tag('foobar'),        0, "tag not found");
 
 is($needle->has_property('glossy'), 1, "property found");
-is($needle->has_property('dull'), 0, "property not found");
+is($needle->has_property('dull'),   0, "property not found");
 
 $res = $img1->search($needle);
 

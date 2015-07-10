@@ -72,11 +72,12 @@ sub post_fail_hook() {
     return 1;
 }
 
-sub record_screenmatch($$;$) {
-    my $self   = shift;
-    my $img    = shift;
-    my $match  = shift;
-    my $tags   = shift || [];
+sub record_screenmatch($$;$$) {
+    my $self           = shift;
+    my $img            = shift;
+    my $match          = shift;
+    my $tags           = shift || [];
+    my $failed_needles = shift || [];
 
     my $count    = ++$self->{"test_count"};
     my $testname = ref($self);
@@ -107,6 +108,13 @@ sub record_screenmatch($$;$) {
         $result->{dent} = 1;
         $self->{dents}++;
     }
+
+    # also include the not matched needles
+    my $candidates;
+    for my $cand (@{$failed_needles || []}) {
+        push @$candidates, $self->_serialize_match($cand);
+    }
+    $result->{needles} = $candidates if $candidates;
 
     my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
     $img->write_with_thumbnail($fn);
