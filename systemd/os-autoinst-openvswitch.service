@@ -1,0 +1,17 @@
+# unit description file for os-autoinst openvswitch helper
+# start using e.g.
+# systemctl start os-autoinst-openvswitch.service
+[Unit]
+Description=os-autoinst openvswitch helper
+BindsTo=openvswitch.service
+After=openvswitch.service
+Before=openqa-worker.target
+
+[Service]
+Type=dbus
+BusName=org.opensuse.os_autoinst.switch
+EnvironmentFile=-/etc/sysconfig/os-autoinst-openvswitch
+ExecStart=/usr/lib/os-autoinst/os-autoinst-openvswitch
+
+[Install]
+WantedBy=multi-user.target

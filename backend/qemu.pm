@@ -14,6 +14,7 @@ use POSIX qw/strftime :sys_wait_h/;
 use JSON;
 use Carp;
 use Fcntl;
+use Net::DBus;
 use bmwqemu qw(fileContent diag save_vars);
 use backend::VNC;
 
@@ -584,11 +585,16 @@ sub start_qemu() {
     }
 
     if ($vars->{NICTYPE} eq "tap") {
-        if (-x "/etc/os-autoinst/set_tap_vlan") {
+        eval {
+            my $bus     = Net::DBus->system;
+            my $service = $bus->get_service("org.opensuse.os_autoinst.switch");
+            my $object  = $service->get_object("/switch", "org.opensuse.os_autoinst.switch");
+
             my $vlan = $vars->{NICVLAN} // 0;
-            my @cmd = ("/etc/os-autoinst/set_tap_vlan", $vars->{TAPDEV}, $vlan);
-            runcmd(@cmd) == 0
-              or die join(' ', @cmd) . " failed";
+            $object->set_vlan($vars->{TAPDEV}, $vlan);
+        };
+        if ($@) {
+            print "$@\n";
         }
     }
 
