@@ -65,7 +65,7 @@ sub _test_data_dir {
 
     $self->app->log->debug("Request for directory $base.");
 
-    return $self->render_not_found unless -d $base;
+    return $self->reply->not_found unless -d $base;
 
     $self->res->headers->content_type('application/x-cpio');
 
@@ -120,14 +120,14 @@ sub test_data {
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
         # do not allow .. in path
-        return $self->render_not_found if $relpath =~ /^(.*\/)*\.\.(\/.*)*$/;
+        return $self->reply->not_found if $relpath =~ /^(.*\/)*\.\.(\/.*)*$/;
         $path .= $relpath;
     }
 
     return _test_data_dir($self, $path) if -d $path;
     return _test_data_file($self, $path) if -f $path;
 
-    return $self->render_not_found;
+    return $self->reply->not_found;
 }
 
 sub get_asset {
@@ -137,13 +137,13 @@ sub get_asset {
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
         # do not allow .. in path
-        return $self->render_not_found if $relpath =~ /^(.*\/)*\.\.(\/.*)*$/;
+        return $self->reply->not_found if $relpath =~ /^(.*\/)*\.\.(\/.*)*$/;
         $path .= '/' . $relpath;
     }
 
     return _test_data_file($self, $path) if -f $path;
 
-    return $self->render_not_found;
+    return $self->reply->not_found;
 }
 
 # store the file in $pooldir/$target
