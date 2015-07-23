@@ -478,16 +478,6 @@ sub mouse_hide(;$) {
 }
 ## mouse end
 
-=head2 autoinst_url
-
-returns the base URL to contact the local os-autoinst service
-
-=cut
-
-#This was moved to backend
-#sub autoinst_url() {
-#    return "http://10.0.2.2:" . (get_var("QEMUPORT") + 1);
-#}
 
 =head2 data_url
 
