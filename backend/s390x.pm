@@ -18,6 +18,8 @@ use backend::VNC;
 
 use testapi qw(get_var check_var set_var);
 
+use Net::Address::IP::Local;
+
 sub new {
     my $class = shift;
     my $self = bless({class => $class}, $class);
@@ -455,4 +457,11 @@ sub init_charmap($) {
     };
     ## charmap end
 }
+
+#returns local ip-adress from the worker 
+sub autoinst_url() {
+    my $ip = Net::Address::IP::Local->public_ipv4;
+    return "http://" . $ip . ":" . (get_var("QEMUPORT") + 1);
+}
+        
 1;

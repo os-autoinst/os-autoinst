@@ -766,6 +766,12 @@ sub check_socket {
     return $self->SUPER::check_socket($fh);
 }
 
+# returns base URL to contact local os-autoinst service
+sub autoinst_url() {
+    return "http://10.0.2.2:" . (get_var("QEMUPORT") + 1);
+}
+        
+
 1;
 
 # vim: set sw=4 et:

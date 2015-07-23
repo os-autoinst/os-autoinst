@@ -484,10 +484,10 @@ returns the base URL to contact the local os-autoinst service
 
 =cut
 
-sub autoinst_url() {
-    # move to backend?
-    return "http://10.0.2.2:" . (get_var("QEMUPORT") + 1);
-}
+#This was moved to backend
+#sub autoinst_url() {
+#    return "http://10.0.2.2:" . (get_var("QEMUPORT") + 1);
+#}
 
 =head2 data_url
 
