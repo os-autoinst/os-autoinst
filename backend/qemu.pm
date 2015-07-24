@@ -586,6 +586,9 @@ sub start_qemu() {
 
     if ($vars->{NICTYPE} eq "tap") {
         eval {
+            # do not die on unconfigured service
+            local $SIG{__DIE__};
+
             my $bus     = Net::DBus->system;
             my $service = $bus->get_service("org.opensuse.os_autoinst.switch");
             my $object  = $service->get_object("/switch", "org.opensuse.os_autoinst.switch");
@@ -595,6 +598,7 @@ sub start_qemu() {
         };
         if ($@) {
             print "$@\n";
+            print "WARNING: Can't switch NICVLAN number, independent tests may be running on the same network.\n\n";
         }
     }
 
