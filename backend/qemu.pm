@@ -431,7 +431,7 @@ sub start_qemu() {
         }
 
         for my $i (1 .. 6) {    # check for up to 6 ADDON ISOs
-            if ($vars->{"ISO_$i"} && $vars->{"ADDONS"}) {
+            if ($vars->{"ISO_$i"}) {
                 my $addoniso    = $vars->{"ISO_$i"};
                 my $cdinterface = "if=scsi";
                 if ($vars->{CDMODEL} eq "ide-cd") { $cdinterface = "if=ide"; }
