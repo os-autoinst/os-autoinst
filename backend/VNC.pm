@@ -533,6 +533,7 @@ my $keymap_x11 = {
     'pgup'      => 0xff55,
     'pgdn'      => 0xff56,
     'sysrq'     => 0xff15,
+    'super'     => 0xffeb,     # left, right is ec
 };
 
 sub init_x11_keymap {
@@ -563,6 +564,7 @@ my $keymap_ikvm = {
     'delete' => 0x4c,
     'home'   => 0x4a,
     'insert' => 0x49,
+    'super'  => 0xe3,
 
     #    {NSPrintScreenFunctionKey, 0x46},
     # {NSScrollLockFunctionKey, 0x47},
