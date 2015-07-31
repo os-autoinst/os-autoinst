@@ -564,6 +564,7 @@ my $keymap_ikvm = {
     'delete' => 0x4c,
     'home'   => 0x4a,
     'insert' => 0x49,
+    'super'  => 0xe3,
 
     #    {NSPrintScreenFunctionKey, 0x46},
     # {NSScrollLockFunctionKey, 0x47},
