@@ -33,11 +33,11 @@ $bmwqemu::backend->{cmds} = [];
 
 $testapi::password = 'stupid';
 type_password;
-is_deeply($bmwqemu::backend->{cmds}, ['type_string', {max_interval => 250, text => 'stupid'}]);
+is_deeply($bmwqemu::backend->{cmds}, ['type_string', {max_interval => 100, text => 'stupid'}]);
 $bmwqemu::backend->{cmds} = [];
 
 type_password 'hallo';
-is_deeply($bmwqemu::backend->{cmds}, ['type_string', {max_interval => 250, text => 'hallo'}]);
+is_deeply($bmwqemu::backend->{cmds}, ['type_string', {max_interval => 100, text => 'hallo'}]);
 $bmwqemu::backend->{cmds} = [];
 
 # vim: set sw=4 et:
