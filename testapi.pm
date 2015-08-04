@@ -12,7 +12,7 @@ require bmwqemu;
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key send_key_until_needlematch type_string
   assert_screen upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
   script_sudo wait_serial save_screenshot wait_screen_change record_soft_failure
-  assert_and_click mouse_hide mouse_set mouse_click mouse_dclick
+  assert_and_click mouse_hide mouse_set mouse_click mouse_dclick mouse_tclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
   activate_console select_console console deactivate_console data_url assert_shutdown parse_junit_log
@@ -463,6 +463,23 @@ sub mouse_dclick(;$$) {
     bmwqemu::log_call('mouse_dclick', button => $button, cursor_down => $time);
     $bmwqemu::backend->mouse_button($button, 1);
     # FIXME sleep resolution = 1s, use usleep
+    sleep $time;
+    $bmwqemu::backend->mouse_button($button, 0);
+    sleep $time;
+    $bmwqemu::backend->mouse_button($button, 1);
+    sleep $time;
+    $bmwqemu::backend->mouse_button($button, 0);
+}
+
+sub mouse_tclick(;$$) {
+    my $button = shift || 'left';
+    my $time   = shift || 0.10;
+    bmwqemu::log_call('mouse_tclick', button => $button, cursor_down => $time);
+    $bmwqemu::backend->mouse_button($button, 1);
+    sleep $time;
+    $bmwqemu::backend->mouse_button($button, 0);
+    sleep $time;
+    $bmwqemu::backend->mouse_button($button, 1);
     sleep $time;
     $bmwqemu::backend->mouse_button($button, 0);
     sleep $time;
