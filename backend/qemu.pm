@@ -232,8 +232,10 @@ sub start_qemu() {
     $vars->{NUMDISKS}  ||= 1;
     $vars->{HDDSIZEGB} ||= 10;
     $vars->{HDDMODEL}  ||= "virtio-blk";
+    $vars->{HDDFORMAT} ||= "qcow2";
     if ($vars->{MULTIPATH}) {
-        $vars->{HDDMODEL} = "virtio-scsi-pci";
+        $vars->{HDDMODEL}  = "virtio-scsi-pci";
+        $vars->{HDDFORMAT} = "raw";
         $vars->{PATHCNT} ||= 2;
     }
     # network settings
@@ -332,7 +334,7 @@ sub start_qemu() {
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
             else {
-                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", $vars->{HDDSIZEGB} . "G") == 0;
+                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", "$vars->{HDDFORMAT}", $vars->{HDDSIZEGB} . "G") == 0;
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
         }
@@ -405,7 +407,7 @@ sub start_qemu() {
                 for my $c (1 .. $vars->{PATHCNT}) {
                     # pathname is a .. d
                     my $pathname = chr(96 + $c);
-                    push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd${i}${pathname},serial=mpath$i");
+                    push(@params, "-drive", "file=$basedir/l$i,cache=none,if=none$boot,id=hd${i}${pathname},serial=mpath$i");
                     push(@params, "-device", "$vars->{HDDMODEL},drive=hd${i}${pathname},bus=scsi" . ($c % 2 ? "1" : "0") . ".0");
                 }
             }
