@@ -291,11 +291,11 @@ The exit status is checked by via magic string on the serial port.
 
 =cut
 
-sub assert_script_run {
-    my ($cmd) = @_;
+sub assert_script_run($;$) {
+    my ($cmd, $timeout) = @_;
     my $str = time;
     script_run "$cmd; echo $str-\$?- > /dev/$serialdev";
-    my $ret = wait_serial "$str-\\d+-";
+    my $ret = wait_serial "$str-\\d+-", $timeout;
     die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
 }
 
