@@ -555,7 +555,7 @@ sub script_output($;$) {
     $wait ||= 10;
 
     my $suffix = _random_string;
-    type_string "curl -f -v " . autoinst_url . "/current_script > /tmp/script$suffix.sh && echo \"curl-$?\" > /dev/$serialdev\n";
+    type_string "curl -f -v " . autoinst_url . "/current_script > /tmp/script$suffix.sh && echo \"curl-\$?\" > /dev/$serialdev\n";
     wait_serial('curl-0', 2) || die "script couldn't be downloaded";
     send_key "ctrl-l";
 
