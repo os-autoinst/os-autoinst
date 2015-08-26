@@ -16,7 +16,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key se
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
   activate_console select_console console deactivate_console data_url assert_shutdown parse_junit_log
-  assert_script_run assert_script_sudo
+  assert_script_run assert_script_sudo match_has_tag
 );
 
 our %cmd;
@@ -28,6 +28,8 @@ our $username;
 our $password;
 
 our $serialdev;
+
+our $last_matched_needle;
 
 sub send_key($;$);
 sub check_screen($;$);
@@ -59,13 +61,21 @@ sub record_soft_failure {
 sub assert_screen($;$) {
     my ($mustmatch, $timeout) = @_;
     bmwqemu::log_call('assert_screen', mustmatch => $mustmatch, timeout => $timeout);
-    return bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout);
+    return $last_matched_needle = bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout);
 }
 
 sub check_screen($;$) {
     my ($mustmatch, $timeout) = @_;
     bmwqemu::log_call('check_screen', mustmatch => $mustmatch, timeout => $timeout);
-    return bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout, check => 1);
+    return $last_matched_needle = bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout, check => 1);
+}
+
+sub match_has_tag($) {
+    my ($tag) = @_;
+    if ($last_matched_needle) {
+        return $last_matched_needle->{needle}->has_tag($tag);
+    }
+    return undef;
 }
 
 =head2 assert_and_click, assert_and_dclick
@@ -81,15 +91,15 @@ sub assert_and_click($;$$$$) {
 
     $dclick //= 0;
 
-    my $foundneedle = bmwqemu::assert_screen(
+    $last_matched_needle = bmwqemu::assert_screen(
         mustmatch => $mustmatch,
         timeout   => $timeout
     );
     my $old_mouse_coords = $bmwqemu::backend->get_last_mouse_set();
     bmwqemu::log_call('assert_and_click', mustmatch => $mustmatch, button => $button, timeout => $timeout);
 
-    # foundneedle has to be set, or the assert is buggy :)
-    my $lastarea = $foundneedle->{'area'}->[-1];
+    # last_matched_needle has to be set, or the assert is buggy :)
+    my $lastarea = $last_matched_needle->{'area'}->[-1];
     my $rx       = 1;                                                      # $origx / $img->xres();
     my $ry       = 1;                                                      # $origy / $img->yres();
     my $x        = int(($lastarea->{'x'} + $lastarea->{'w'} / 2) * $rx);

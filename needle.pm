@@ -142,6 +142,15 @@ sub has_tag($$) {
     return 0;
 }
 
+sub has_property($$) {
+    my $self = shift;
+    my $tag  = shift;
+    for my $t (@{$self->{properties}}) {
+        return 1 if ($t eq $tag);
+    }
+    return 0;
+}
+
 sub wanted_($) {
     return unless (m/.json$/);
     my $needle = needle->new($File::Find::name);

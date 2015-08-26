@@ -751,7 +751,7 @@ sub assert_screen {
         my $foundneedle;
         ($foundneedle, $failed_candidates) = $img->search($needles, 0, $search_ratio);
         if ($foundneedle) {
-            current_test->record_screenmatch($img, $foundneedle, \@tags);
+            current_test->record_screenmatch($img, $foundneedle, \@tags, $failed_candidates);
             my $lastarea = $foundneedle->{'area'}->[-1];
             fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{'needle'}->{'name'}, $lastarea->{'similarity'}, $lastarea->{'x'}, $lastarea->{'y'}));
             return $foundneedle;

@@ -28,5 +28,8 @@
     "tags": [
         "inst-bootmenu", 
         "bootloader"
+    ],
+    "properties": [
+        "glossy"
     ]
 }
