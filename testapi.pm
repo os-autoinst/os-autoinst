@@ -873,7 +873,8 @@ sub parse_junit_log {
                 print $fd $out->text . "\n";
             }
             close $fd;
-            $details->{text} = $text_fn;
+            $details->{text}  = $text_fn;
+            $details->{title} = $tc->{name};
 
             push @{$result->{details}}, $details;
             $num++;
