@@ -6,6 +6,7 @@ before_install:
   - sudo apt-get update
 install:
   - sudo apt-get install libdbus-1-dev
+  - cpanm -nq Net::DBus
   - cpanm -nq `cat DEPENDENCIES.txt`
   - sudo apt-get install libopencv-dev libtheora-dev libcv-dev libhighgui-dev tesseract-ocr
 script:
