@@ -16,7 +16,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key se
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
   activate_console select_console console deactivate_console data_url assert_shutdown parse_junit_log
-  assert_script_run assert_script_sudo match_has_tag
+  assert_script_run assert_script_sudo match_has_tag assert_upload_logs
 );
 
 our %cmd;
@@ -189,6 +189,21 @@ sub upload_logs($) {
     my $basename = basename($file);
     type_string(autoinst_url() . "/uploadlog/$basename\n");
     wait_idle();
+}
+
+=head2 assert_upload_logs
+
+upload log file to openqa host and die if it's exit status is not zero.
+The exit status is checked by via magic string on the serial port.
+
+=cut
+
+sub assert_upload_logs($) {
+    my $file = shift;
+
+    my $basename = basename($file);
+    bmwqemu::log_call('assert_upload_logs', file => $file);
+    assert_script_run("curl -f -v --form upload=\@$file " . autoinst_url() . "/uploadlog/$basename", 30);
 }
 
 sub ensure_installed {
