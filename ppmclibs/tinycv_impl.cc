@@ -140,13 +140,16 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   
   // Mat scene_roi = scene->img(Rect(scene_x, scene_y, scene_width, scene_height));
   // Mat object_roi = object->img(Rect(x, y, width, height));
-  Mat scene_roi(scene_copy, Rect(scene_x, scene_y, scene_width, scene_height));
-  Mat object_roi(object_copy, Rect(x, y, width, height));
+
+  // Shrink the region by 1px because the images are blured and the pixels on the border are influenced
+  // by the pixels outside of the region
+  Mat scene_roi(scene_copy, Rect(scene_x + 1, scene_y + 1, scene_width - 2, scene_height - 2));
+  Mat object_roi(object_copy, Rect(x + 1, y + 1, width - 2, height - 2));
 
   // Calculate size of result matrix and create it. If scene is W x H
   // and object is w x h, res is (W - w + 1) x ( H - h + 1)
-  int result_width  = scene_roi.cols - width + 1; // object->img.cols + 1;
-  int result_height = scene_roi.rows - height + 1; // object->img.rows + 1;
+  int result_width  = scene_roi.cols - object_roi.cols + 1; // object->img.cols + 1;
+  int result_height = scene_roi.rows - object_roi.rows + 1; // object->img.rows + 1;
   if (result_width <= 0 || result_height <= 0) {
     similarity = 0;
     outvec[0] = 0;
@@ -173,7 +176,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   double mse = 10000;
 
   // detect the MSE at the given location
-  Mat scene_best(scene_copy, Rect(outvec[0], outvec[1], width, height));
+  Mat scene_best(scene_copy, Rect(outvec[0] + 1, outvec[1] + 1, width - 2, height - 2));
 
   mse = enhancedMSE(scene_best, object_roi);
   
