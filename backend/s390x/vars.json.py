@@ -3,6 +3,7 @@
 # generate vars.json
 
 import collections
+import os
 
 # unify two dictionaries, *updating old_dict*
 def unify(old_dict, new_dict):
@@ -304,7 +305,7 @@ def update_vars_json(vars_json):
     network_device = vars_json["S390_NETWORK"]
     instsource     = vars_json["S390_INSTSRC"]
     console        = vars_json["S390_CONSOLE"]
-    distro         = vars_json["REPO_0"]
+    distro         = os.path.basename(vars_json["ISO"][:-len('.iso')])
 
     vars_json_basics = {
         "BACKEND"	: "s390x",
