@@ -16,7 +16,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key se
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
   activate_console select_console console deactivate_console data_url assert_shutdown parse_junit_log
-  assert_script_run assert_script_sudo match_has_tag
+  assert_script_run assert_script_sudo match_has_tag get_var_array check_var_array
 );
 
 our %cmd;
@@ -265,6 +265,19 @@ sub check_var($$) {
     my ($var, $val) = @_;
     return 1 if (defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val);
     return 0;
+}
+
+sub get_var_array($;$) {
+    my ($var, $default) = @_;
+    my @vars = split(',|;', ($bmwqemu::vars{$var}));
+    return $default if !@vars;
+    return \@vars;
+}
+
+sub check_var_array($$) {
+    my ($var, $val) = @_;
+    my $vars_r = get_var_array($var);
+    return grep { $_ eq $val } @$vars_r;
 }
 
 ## helpers
