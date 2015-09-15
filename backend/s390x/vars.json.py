@@ -249,7 +249,7 @@ def instsrc_vars(instsource, distro, host):
     } )
     return _instsrc_vars
 
-sshpassword = "SSH!554!"
+sshpassword = "nots3cr3t"
 Xvnc_DISPLAY = 91
 
 console_vars = lambda Xvnc_DISPLAY: {
