@@ -393,12 +393,15 @@ sub start_qemu() {
             push(@params, '-netdev', 'user,id=qanet0');
         }
         elsif ($vars->{NICTYPE} eq "tap") {
-            push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
+            $vars->{TAPSCRIPT}   ||= "no";
+            $vars->{TAPSCRIPT_1}   ||= "no";
+            $vars->{TAPSCRIPT_2}   ||= "no";
+	    push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=$vars->{TAPSCRIPT},downscript=no");
             if ($vars->{NICTYPE_1} eq "tap") {
-                push(@params, '-netdev', "tap,id=qanet1,ifname=$vars->{TAPDEV_1},script=no,downscript=no");
+                push(@params, '-netdev', "tap,id=qanet1,ifname=$vars->{TAPDEV_1},script=$vars->{TAPSCRIPT_1},downscript=no");
             }
             if ($vars->{NICTYPE_2} eq "tap") {
-                push(@params, '-netdev', "tap,id=qanet2,ifname=$vars->{TAPDEV_2},script=no,downscript=no");
+                push(@params, '-netdev', "tap,id=qanet2,ifname=$vars->{TAPDEV_2},script=$vars->{TAPSCRIPT_2},downscript=no");
             }
         }
         elsif ($vars->{NICTYPE} eq "vde") {

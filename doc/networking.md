@@ -18,4 +18,12 @@ Which TAP device is used depends on TAPDEV variable which is automatically set t
 i.e. worker1 uses tap0, worker 6 uses tap5. This mode requires system administrator to create
 TAP device for each running worker and to manually prepare any routing or bridging before "tap"
 networking can be used. TAP devices need to be created with proper permissions so VMs can access
-them, e.g. "tunctl -u _openqa-worker -p -t tap0"
+them, e.g. "tunctl -u _openqa-worker -p -t tap0". Up to three TAP devices supported (NICTYPE, NICTYPE_1, NICTYPE_2).
+To change network settings after the VM creation configuration scripts can be used 
+(path to the scripts specified in TAPSCRIPT, TAPSCRIPT_1, TAPSCRIPT_2 variables).
+Sample script to attach TAP device to bridge br0:
+```
+#!/bin/sh
+brctl addif br0 $1
+ip link set $1 up
+```

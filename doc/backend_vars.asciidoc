@@ -76,6 +76,9 @@ SKIPTO;name of snapshot;;Restore VM from given snapshot. Needs HDD image with sn
 TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used
 TAPDEV_1;device name;undef;TAP device name to which the second virtual NIC should be connected. Must be set if NICTYPE_1 is set
 TAPDEV_2;device name;undef;TAP device name to which the third virtual NIC should be connected. Must be set if NICTYPE_2 is set
+TAPSCRIPT;script path;undef;script to configure TAPDEV network interface after VM is started, see qemu -net tap,script option
+TAPSCRIPT_1;script path;undef;script to configure TAPDEV_1 network interface after VM is started, see qemu -net tap,script option
+TAPSCRIPT_2;script path;undef;script to configure TAPDEV_2 network interface after VM is started, see qemu -net tap,script option
 UEFI;;;
 UEFI_BIOS;;;
 USBBOOT;boolean;0;Mount ISO as USB disk and boot VM from it
