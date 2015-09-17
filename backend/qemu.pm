@@ -251,21 +251,21 @@ sub start_qemu() {
     }
     if ($vars->{NICTYPE_1}) {
         if (!$vars->{NICTYPE_1} eq "tap") {
-            die "NICTYPE_1 must be tap"
+            die "NICTYPE_1 must be tap";
         }
         if (!$vars->{TAPDEV_1}) {
-            die "TAPDEV_1 must be set"
+            die "TAPDEV_1 must be set";
         }
-        $vars->{NICMAC_1}   ||= "52:54:01:12:34:56";
+        $vars->{NICMAC_1} ||= "52:54:01:12:34:56";
     }
     if ($vars->{NICTYPE_2}) {
         if (!$vars->{NICTYPE_2} eq "tap") {
-            die "NICTYPE_2 must be tap"
+            die "NICTYPE_2 must be tap";
         }
         if (!$vars->{TAPDEV_2}) {
-            die "TAPDEV_2 must be set"
+            die "TAPDEV_2 must be set";
         }
-        $vars->{NICMAC_2}   ||= "52:54:02:12:34:56";
+        $vars->{NICMAC_2} ||= "52:54:02:12:34:56";
     }
     # misc
     my $arch_supports_boot_order = 1;
@@ -394,9 +394,9 @@ sub start_qemu() {
         }
         elsif ($vars->{NICTYPE} eq "tap") {
             $vars->{TAPSCRIPT}   ||= "no";
-            $vars->{TAPSCRIPT_1}   ||= "no";
-            $vars->{TAPSCRIPT_2}   ||= "no";
-	    push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=$vars->{TAPSCRIPT},downscript=no");
+            $vars->{TAPSCRIPT_1} ||= "no";
+            $vars->{TAPSCRIPT_2} ||= "no";
+            push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=$vars->{TAPSCRIPT},downscript=no");
             if ($vars->{NICTYPE_1} eq "tap") {
                 push(@params, '-netdev', "tap,id=qanet1,ifname=$vars->{TAPDEV_1},script=$vars->{TAPSCRIPT_1},downscript=no");
             }
@@ -412,10 +412,10 @@ sub start_qemu() {
         }
         push(@params, '-device', "$vars->{NICMODEL},netdev=qanet0,mac=$vars->{NICMAC}");
         if ($vars->{TAPDEV_1}) {
-                push(@params, '-device', "$vars->{NICMODEL},netdev=qanet1,mac=$vars->{NICMAC_1}");
+            push(@params, '-device', "$vars->{NICMODEL},netdev=qanet1,mac=$vars->{NICMAC_1}");
         }
         if ($vars->{TAPDEV_2}) {
-                push(@params, '-device', "$vars->{NICMODEL},netdev=qanet2,mac=$vars->{NICMAC_2}");
+            push(@params, '-device', "$vars->{NICMODEL},netdev=qanet2,mac=$vars->{NICMAC_2}");
         }
         if ($vars->{LAPTOP}) {
             my $laptop_path = "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
