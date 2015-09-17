@@ -885,23 +885,28 @@ sub parse_junit_log {
         };
 
         my $num = 1;
-        for my $tc ($ts->children('testcase')->each) {
-            my $tc_result = 'fail';
-            $tc_result = 'ok' if $tc->{status} eq 'success';
+        for my $tc ($ts, $ts->children('testcase')->each) {
+
+            # create extra entry for whole testsuite  if there is any system-out or system-err outside of particular testcase
+            next if ($tc->tag eq 'testsuite' && $tc->children('system-out, system-err')->size == 0);
+
+            my $tc_result = $ts_result;    # use overall testsuite result as fallback
+            $tc_result = 'ok'   if defined $tc->{status} && $tc->{status} eq 'success';
+            $tc_result = 'fail' if defined $tc->{status} && $tc->{status} ne 'success';
 
             my $details = {result => $tc_result};
 
-            if ($tc->children('system-out')) {
-                my $text_fn = "$ts_category-$ts_name-$num.txt";
-                open my $fd, ">" . bmwqemu::result_dir() . "/$text_fn" or die "Couldn't open file '$text_fn': $!";
-                print $fd "# $tc->{name}\n";
-                print $fd "#\n";
-                for my $out ($tc->children('system-out')->each) {
-                    print $fd $out->text . "\n";
-                }
-                close $fd;
-                $details->{text} = $text_fn;
+            my $text_fn = "$ts_category-$ts_name-$num.txt";
+            open my $fd, ">" . bmwqemu::result_dir() . "/$text_fn" or die "Couldn't open file '$text_fn': $!";
+            print $fd "# $tc->{name}\n";
+            for my $out ($tc->children('system-out, system-err, failure')->each) {
+                print $fd "# " . $out->tag . ": \n\n";
+                print $fd $out->text . "\n";
             }
+            close $fd;
+            $details->{text}  = $text_fn;
+            $details->{title} = $tc->{name};
+
             push @{$result->{details}}, $details;
             $num++;
         }
