@@ -296,7 +296,7 @@ sub runtest($$) {
         my $msg = "test $name " . ($@ ? 'died: ' . $@ : 'failed');
         warn $msg;
         # add a fail screenshot in case there is none
-        if ($@ && ($self->{details}->[-1]->{result} || '') ne 'fail') {
+        if ($@ && (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail')) {
             my $result = $self->record_testresult('fail');
             $self->_result_add_screenshot($result);
         }
