@@ -521,6 +521,7 @@ my $keymap_x11 = {
     'minus'     => ord('-'),
     'shift'     => 0xffe1,
     'ctrl'      => 0xffe3,     # left, right is e4
+    'caps'      => 0xffe5,
     'meta'      => 0xffe7,     # left, right is e8
     'alt'       => 0xffe9,     # left one, right is ea
     'ret'       => 0xff0d,
