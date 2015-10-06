@@ -76,6 +76,11 @@ my @encodings = (
         name      => 'VNC_ENCODING_POINTER_TYPE_CHANGE',
         supported => 1,
     },
+    {
+        num       => -261,
+        name      => 'VNC_ENCODING_LED_STATE',
+        supported => 1,
+    },
 );
 
 sub list_encodings {
@@ -845,6 +850,12 @@ sub _receive_update {
         elsif ($encoding_type == -257) {
             bmwqemu::diag("pointer type $x $y $w $h $encoding_type");
             $self->absolute($x);
+        }
+        elsif ($encoding_type == -261) {
+            my $led_data;
+            $socket->read($led_data, 1) || die "unexpected end of data";
+            my @bytes = unpack("C", $led_data);
+            bmwqemu::diag("led state $bytes[0] $w $h $encoding_type");
         }
         elsif ($self->ikvm) {
             $self->_receive_ikvm_encoding($encoding_type, $x, $y, $w, $h);
