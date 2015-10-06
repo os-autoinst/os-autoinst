@@ -122,11 +122,11 @@ sub do_loadvm($) {
     die "if you need loadvm, you're screwed with IPMI";
 }
 
-sub do_upload_image($) {
+sub status($) {
     my ($self) = @_;
-    print "do_upload_image ignored\n";
+    print "status ignored\n";
+    return undef;
 }
-
 
 # serial grab
 

@@ -292,8 +292,9 @@ sub do_loadvm($) {
     print STDOUT "do_loadvm=NOP\n";
 }
 
-sub do_upload_image($) {
+sub status($) {
     print STDOUT "do_upload_image=NOP\n";
+    return undef;
 }
 
 # baseclass virt method overwrite end

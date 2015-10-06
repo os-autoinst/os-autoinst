@@ -435,9 +435,13 @@ sub do_loadvm() {
     notimplemented;
 }
 
-sub do_upload_image() {
-    notimplemented;
+sub status {
+    my ($self) = @_;
+    # FIXME: do something useful here.
+    carp "status not implemented";
+    return undef;
 }
+
 sub init_charmap($) {
     my ($self) = (@_);
 
