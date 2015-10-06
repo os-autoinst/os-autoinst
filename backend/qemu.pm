@@ -470,6 +470,7 @@ sub start_qemu() {
             push(@params, qw"-net nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57 -net none,vlan=1");
         }
         if ($vars->{OFW}) {
+            no warnings 'qw';
             push(@params, qw/-device usb-ehci -device usb-tablet,bus=usb-bus.0/);
         }
         else {
