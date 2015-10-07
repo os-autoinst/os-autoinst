@@ -433,13 +433,12 @@ sub start_qemu() {
             }
         }
 
-        for my $i (1 .. 6) {    # check for up to 6 ADDON ISOs
-            if ($vars->{"ISO_$i"}) {
-                my $addoniso    = $vars->{"ISO_$i"};
-                my $cdinterface = "if=scsi";
-                if ($vars->{CDMODEL} eq "ide-cd") { $cdinterface = "if=ide"; }
-                push(@params, "-drive", "$cdinterface,id=addon_$i,file=$addoniso,media=cdrom");
-            }
+        for my $k (sort grep { /^ISO_\d+$/ } keys %$vars) {
+            my $addoniso = $vars->{$k};
+            my $i        = $k;
+            $i =~ s/^ISO_//;
+            push(@params, '-drive',  "media=cdrom,if=none,id=cd$i,format=raw,file=$addoniso");
+            push(@params, '-device', "$vars->{CDMODEL},drive=cd$i");
         }
 
         if ($arch_supports_boot_order) {
