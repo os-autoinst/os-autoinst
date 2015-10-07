@@ -54,7 +54,8 @@ sub stop_audiocapture($) {
 sub power($) {
 
     # parameters: acpi, reset, (on), off
-    my ($self, $action) = @_;
+    my ($self, $args) = @_;
+    my $action = $args->{action};
     if ($action eq 'acpi') {
         $self->_send_hmp("system_powerdown");
     }
