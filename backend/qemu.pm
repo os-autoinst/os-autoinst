@@ -232,13 +232,14 @@ sub start_qemu() {
     # disk settings
     $vars->{NUMDISKS}  ||= 1;
     $vars->{HDDSIZEGB} ||= 10;
+    $vars->{CDMODEL}   ||= "virtio-scsi-pci";
+    if ($vars->{MULTIPATH}) {
+        $vars->{HDDMODEL}  ||= "virtio-scsi-pci";
+        $vars->{HDDFORMAT} ||= "raw";
+        $vars->{PATHCNT}   ||= 2;
+    }
     $vars->{HDDMODEL}  ||= "virtio-blk";
     $vars->{HDDFORMAT} ||= "qcow2";
-    if ($vars->{MULTIPATH}) {
-        $vars->{HDDMODEL}  = "virtio-scsi-pci";
-        $vars->{HDDFORMAT} = "raw";
-        $vars->{PATHCNT} ||= 2;
-    }
     # network settings
     $vars->{NICMODEL} ||= "virtio-net";
     $vars->{NICTYPE}  ||= "user";
@@ -394,7 +395,7 @@ sub start_qemu() {
         }
 
         if ($vars->{HDDMODEL} =~ /virtio-scsi.*/) {
-            # scsi devices need SCSI controller, then change to scsi-hd device
+            # scsi devices need SCSI controller
             push(@params, "-device", "$vars->{HDDMODEL},id=scsi0");
             if ($vars->{MULTIPATH}) {
                 # add the second HBA
@@ -402,6 +403,7 @@ sub start_qemu() {
             }
             $vars->{HDDMODEL} = "scsi-hd";
         }
+
         for my $i (1 .. $vars->{NUMDISKS}) {
             my $boot = "";    #$i==1?",boot=on":""; # workaround bnc#696890
             if ($vars->{MULTIPATH}) {
@@ -418,18 +420,24 @@ sub start_qemu() {
             }
         }
 
+        if ($vars->{CDMODEL} =~ /virtio-scsi.*/) {
+            # add scsi controller if hdd didn't do it already
+            if ($vars->{CDMODEL} ne $vars->{HDDMODEL}) {
+                push(@params, "-device", "$vars->{CDMODEL},id=scsi0");
+            }
+            $vars->{CDMODEL} = "scsi-cd";
+        }
+
+
         if ($iso) {
             if ($vars->{USBBOOT}) {
                 push(@params, "-drive",  "if=none,id=usbstick,file=$iso,snapshot=on");
                 push(@params, "-device", "usb-ehci,id=ehci");
                 push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb");
             }
-            elsif ($vars->{CDMODEL}) {
+            else {
                 push(@params, '-drive',  "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
                 push(@params, '-device', "$vars->{CDMODEL},drive=cd0");
-            }
-            else {
-                push(@params, "-cdrom", $iso);
             }
         }
 
