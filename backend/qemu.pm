@@ -69,7 +69,7 @@ sub power($) {
 
 sub eject_cd(;$) {
     my $self = shift;
-    $self->handle_qmp_command({"execute" => "eject", "arguments" => {"device" => "ide1-cd0"}});
+    $self->handle_qmp_command({"execute" => "eject", "arguments" => {"device" => "cd0"}});
 }
 
 sub cpu_stat($) {
