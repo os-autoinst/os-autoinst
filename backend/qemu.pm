@@ -436,7 +436,10 @@ sub start_qemu() {
                 push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb");
             }
             else {
-                push(@params, '-drive',  "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
+                push(@params, '-drive', "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
+                # XXX: workaround for OVMF wanting to write NVvars into first FAT partition
+                # we need to replace -bios with proper pflash drive specification
+                $params[-1] .= ',snapshot=on' if $vars->{UEFI};
                 push(@params, '-device', "$vars->{CDMODEL},drive=cd0");
             }
         }
