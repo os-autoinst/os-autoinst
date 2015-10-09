@@ -69,7 +69,7 @@ sub power($) {
 
 sub eject_cd(;$) {
     my $self = shift;
-    $self->handle_qmp_command({"execute" => "eject", "arguments" => {"device" => "ide1-cd0"}});
+    $self->handle_qmp_command({"execute" => "eject", "arguments" => {"device" => "cd0"}});
 }
 
 sub cpu_stat($) {
@@ -232,13 +232,14 @@ sub start_qemu() {
     # disk settings
     $vars->{NUMDISKS}  ||= 1;
     $vars->{HDDSIZEGB} ||= 10;
+    $vars->{CDMODEL}   ||= "virtio-scsi-pci";
+    if ($vars->{MULTIPATH}) {
+        $vars->{HDDMODEL}  ||= "virtio-scsi-pci";
+        $vars->{HDDFORMAT} ||= "raw";
+        $vars->{PATHCNT}   ||= 2;
+    }
     $vars->{HDDMODEL}  ||= "virtio-blk";
     $vars->{HDDFORMAT} ||= "qcow2";
-    if ($vars->{MULTIPATH}) {
-        $vars->{HDDMODEL}  = "virtio-scsi-pci";
-        $vars->{HDDFORMAT} = "raw";
-        $vars->{PATHCNT} ||= 2;
-    }
     # network settings
     $vars->{NICMODEL} ||= "virtio-net";
     $vars->{NICTYPE}  ||= "user";
@@ -394,7 +395,7 @@ sub start_qemu() {
         }
 
         if ($vars->{HDDMODEL} =~ /virtio-scsi.*/) {
-            # scsi devices need SCSI controller, then change to scsi-hd device
+            # scsi devices need SCSI controller
             push(@params, "-device", "$vars->{HDDMODEL},id=scsi0");
             if ($vars->{MULTIPATH}) {
                 # add the second HBA
@@ -402,6 +403,7 @@ sub start_qemu() {
             }
             $vars->{HDDMODEL} = "scsi-hd";
         }
+
         for my $i (1 .. $vars->{NUMDISKS}) {
             my $boot = "";    #$i==1?",boot=on":""; # workaround bnc#696890
             if ($vars->{MULTIPATH}) {
@@ -418,29 +420,36 @@ sub start_qemu() {
             }
         }
 
+        if ($vars->{CDMODEL} =~ /virtio-scsi.*/) {
+            # add scsi controller if hdd didn't do it already
+            if ($vars->{CDMODEL} ne $vars->{HDDMODEL}) {
+                push(@params, "-device", "$vars->{CDMODEL},id=scsi0");
+            }
+            $vars->{CDMODEL} = "scsi-cd";
+        }
+
+
         if ($iso) {
             if ($vars->{USBBOOT}) {
                 push(@params, "-drive",  "if=none,id=usbstick,file=$iso,snapshot=on");
                 push(@params, "-device", "usb-ehci,id=ehci");
                 push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb");
             }
-            elsif ($vars->{CDMODEL}) {
-                push(@params, '-drive',  "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
-                push(@params, '-device', "$vars->{CDMODEL},drive=cd0");
-            }
             else {
-                $vars->{CDINTERFACE} ||= "scsi";
-                my $cdinterface = "if=scsi";
-                if ($vars->{CDINTERFACE} eq "ide-cd") { $cdinterface = "if=ide"; }
-                push(@params, "-drive", "$cdinterface,id=cd0,file=$iso,media=cdrom");
+                push(@params, '-drive', "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
+                # XXX: workaround for OVMF wanting to write NVvars into first FAT partition
+                # we need to replace -bios with proper pflash drive specification
+                $params[-1] .= ',snapshot=on' if $vars->{UEFI};
+                push(@params, '-device', "$vars->{CDMODEL},drive=cd0");
             }
         }
 
-        for my $i (1 .. 6) {    # check for up to 6 ADDON ISOs
-            if ($vars->{"ISO_$i"}) {
-                my $addoniso = $vars->{"ISO_$i"};
-                push(@params, "-drive", "if=scsi,id=addon_$i,file=$addoniso,media=cdrom");
-            }
+        for my $k (sort grep { /^ISO_\d+$/ } keys %$vars) {
+            my $addoniso = $vars->{$k};
+            my $i        = $k;
+            $i =~ s/^ISO_//;
+            push(@params, '-drive',  "media=cdrom,if=none,id=cd$i,format=raw,file=$addoniso");
+            push(@params, '-device', "$vars->{CDMODEL},drive=cd$i");
         }
 
         if ($arch_supports_boot_order) {
