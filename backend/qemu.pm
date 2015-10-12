@@ -240,6 +240,18 @@ sub start_qemu() {
     }
     $vars->{HDDMODEL}  ||= "virtio-blk";
     $vars->{HDDFORMAT} ||= "qcow2";
+
+    # TODO: we shouldn't use HDDMODEL resp CDMODEL to specify the
+    # controller.
+    # XXX: it is undefined if HDDMODEL and CDMODEL would use
+    # different kinds of virtio scsi
+    my $virtio_scsi_controller;
+    for my $var (qw/HDDMODEL CDMODEL/) {
+        if ($vars->{$var} =~ /virtio-scsi.*/) {
+            $virtio_scsi_controller = $vars->{$var};
+            $vars->{$var} = sprintf "scsi-%sd", lc substr $var, 0, 1;;
+        }
+    }
     # network settings
     $vars->{NICMODEL} ||= "virtio-net";
     $vars->{NICTYPE}  ||= "user";
@@ -394,14 +406,13 @@ sub start_qemu() {
             }
         }
 
-        if ($vars->{HDDMODEL} =~ /virtio-scsi.*/) {
+        if ($virtio_scsi_controller) {
             # scsi devices need SCSI controller
-            push(@params, "-device", "$vars->{HDDMODEL},id=scsi0");
+            push(@params, "-device", "$virtio_scsi_controller,id=scsi0");
             if ($vars->{MULTIPATH}) {
                 # add the second HBA
-                push(@params, "-device", "$vars->{HDDMODEL},id=scsi1");
+                push(@params, "-device", "$virtio_scsi_controller,id=scsi1");
             }
-            $vars->{HDDMODEL} = "scsi-hd";
         }
 
         for my $i (1 .. $vars->{NUMDISKS}) {
@@ -418,14 +429,6 @@ sub start_qemu() {
                 push(@params, "-device", "$vars->{HDDMODEL},drive=hd$i" . ($vars->{HDDMODEL} =~ /ide-hd/ ? ",bus=ide.@{[$i-1]}" : ''));
                 push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd$i");
             }
-        }
-
-        if ($vars->{CDMODEL} =~ /virtio-scsi.*/) {
-            # add scsi controller if hdd didn't do it already
-            if ($vars->{CDMODEL} ne $vars->{HDDMODEL}) {
-                push(@params, "-device", "$vars->{CDMODEL},id=scsi0");
-            }
-            $vars->{CDMODEL} = "scsi-cd";
         }
 
 
