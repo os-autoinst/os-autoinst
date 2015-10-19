@@ -240,6 +240,18 @@ sub start_qemu() {
     }
     $vars->{HDDMODEL}  ||= "virtio-blk";
     $vars->{HDDFORMAT} ||= "qcow2";
+
+    # TODO: we shouldn't use HDDMODEL resp CDMODEL to specify the
+    # controller.
+    # XXX: it is undefined if HDDMODEL and CDMODEL would use
+    # different kinds of virtio scsi
+    my $virtio_scsi_controller;
+    for my $var (qw/HDDMODEL CDMODEL/) {
+        if ($vars->{$var} =~ /virtio-scsi.*/) {
+            $virtio_scsi_controller = $vars->{$var};
+            $vars->{$var} = sprintf "scsi-%sd", lc substr $var, 0, 1;
+        }
+    }
     # network settings
     $vars->{NICMODEL} ||= "virtio-net";
     $vars->{NICTYPE}  ||= "user";
@@ -336,7 +348,7 @@ sub start_qemu() {
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
             else {
-                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", "$vars->{HDDFORMAT}", $vars->{HDDSIZEGB} . "G") == 0;
+                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", $vars->{HDDFORMAT}, $vars->{HDDSIZEGB} . "G") == 0;
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
         }
@@ -394,38 +406,29 @@ sub start_qemu() {
             }
         }
 
-        if ($vars->{HDDMODEL} =~ /virtio-scsi.*/) {
+        if ($virtio_scsi_controller) {
             # scsi devices need SCSI controller
-            push(@params, "-device", "$vars->{HDDMODEL},id=scsi0");
+            push(@params, "-device", "$virtio_scsi_controller,id=scsi0");
             if ($vars->{MULTIPATH}) {
                 # add the second HBA
-                push(@params, "-device", "$vars->{HDDMODEL},id=scsi1");
+                push(@params, "-device", "$virtio_scsi_controller,id=scsi1");
             }
-            $vars->{HDDMODEL} = "scsi-hd";
         }
 
         for my $i (1 .. $vars->{NUMDISKS}) {
-            my $boot = "";    #$i==1?",boot=on":""; # workaround bnc#696890
             if ($vars->{MULTIPATH}) {
                 for my $c (1 .. $vars->{PATHCNT}) {
                     # pathname is a .. d
-                    my $pathname = chr(96 + $c);
-                    push(@params, "-drive", "file=$basedir/l$i,cache=none,if=none$boot,id=hd${i}${pathname},serial=mpath$i");
-                    push(@params, "-device", "$vars->{HDDMODEL},drive=hd${i}${pathname},bus=scsi" . ($c % 2 ? "1" : "0") . ".0");
+                    my $bus = sprintf "scsi%d.0", ($c - 1) % 2;    # alternate between scsi0 and scsi1
+                    my $id = sprintf 'hd%d%c', $i, 96 + $c;
+                    push(@params, "-device", "$vars->{HDDMODEL},drive=$id,bus=$bus");
+                    push(@params, "-drive",  "file=$basedir/l$i,cache=none,if=none,id=$id,serial=mpath$i,format=$vars->{HDDFORMAT}");
                 }
             }
             else {
-                push(@params, "-device", "$vars->{HDDMODEL},drive=hd$i" . ($vars->{HDDMODEL} =~ /ide-hd/ ? ",bus=ide.@{[$i-1]}" : ''));
-                push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd$i");
+                push(@params, "-device", "$vars->{HDDMODEL},drive=hd$i");
+                push(@params, "-drive",  "file=$basedir/l$i,cache=unsafe,if=none,id=hd$i,format=$vars->{HDDFORMAT}");
             }
-        }
-
-        if ($vars->{CDMODEL} =~ /virtio-scsi.*/) {
-            # add scsi controller if hdd didn't do it already
-            if ($vars->{CDMODEL} ne $vars->{HDDMODEL}) {
-                push(@params, "-device", "$vars->{CDMODEL},id=scsi0");
-            }
-            $vars->{CDMODEL} = "scsi-cd";
         }
 
 
