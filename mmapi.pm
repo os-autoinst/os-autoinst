@@ -20,7 +20,7 @@ use strict;
 use warnings;
 
 use base qw/Exporter/;
-our @EXPORT = qw/get_children_by_state api_call/;
+our @EXPORT = qw/get_children_by_state get_children get_parents get_job_info wait_for_children api_call/;
 
 require bmwqemu;
 
@@ -61,14 +61,27 @@ sub _init {
 }
 
 sub api_call {
-    my ($method, $action) = @_;
+    my ($method, $action, $params, $expected_codes) = @_;
     _init unless $ua;
     bmwqemu::mydie('Missing mandatory options') unless $method && $action && $ua;
 
-    bmwqemu::fctinfo("Trying mm action $action");
+    #    bmwqemu::fctinfo("Trying mm action $action");
     my $ua_url = $url->clone;
     $ua_url->path($action);
-    return $ua->$method($ua_url)->res;
+    $ua_url->query($params) if $params;
+
+    my $tries = 3;
+    $expected_codes //= {
+        200 => 1,
+        409 => 1,
+    };
+
+    my $res;
+    while ($tries--) {
+        $res = $ua->$method($ua_url)->res;
+        last if $expected_codes->{$res->code};
+    }
+    return $res;
 }
 
 sub get_children_by_state {
@@ -78,6 +91,49 @@ sub get_children_by_state {
         return $res->json('/jobs');
     }
     return;
+}
+
+sub get_children {
+    my $res = api_call('get', 'mm/children');
+
+    if ($res->code == 200) {
+        return $res->json('/jobs');
+    }
+    return;
+}
+
+sub get_parents {
+    my $res = api_call('get', 'mm/parents');
+
+    if ($res->code == 200) {
+        return $res->json('/jobs');
+    }
+    return;
+}
+
+sub get_job_info {
+    my ($target_id) = @_;
+    my $res = api_call('get', "jobs/$target_id");
+
+    if ($res->code == 200) {
+        return $res->json('/job');
+    }
+    return;
+}
+
+sub wait_for_children {
+    while (1) {
+        my $children = get_children();
+        my $n        = 0;
+        for my $state (values %$children) {
+            next if $state eq 'done' or $state eq 'cancelled';
+            $n++;
+        }
+
+        bmwqemu::fctinfo("Waiting for $n jobs to finish");
+        last unless $n;
+        sleep 1;
+    }
 }
 
 1;

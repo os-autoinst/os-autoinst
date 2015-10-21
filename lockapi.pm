@@ -20,36 +20,64 @@ use strict;
 use warnings;
 
 use base qw/Exporter/;
-our @EXPORT = qw/mutex_create mutex_lock mutex_unlock/;
+our @EXPORT = qw/mutex_create mutex_lock mutex_unlock mutex_try_lock/;
 
 require bmwqemu;
 use mmapi qw/api_call/;
 
 sub mutex_lock {
-    my ($name) = @_;
-    return _mutex_call('post', "mutex/$name/lock");
+    my ($name, $where) = @_;
+    $where //= '';
+    bmwqemu::diag("mutex lock '$name'");
+    while (1) {
+        my $res = api_call('post', "mutex/$name/lock", {where => $where})->code;
+        return 1 if ($res == 200);
+
+        bmwqemu::mydie "mutex lock '$name': lock owner already finished" if $res == 410;
+
+        if ($res != 409) {
+            bmwqemu::fctwarn("Unknown return code $res for lock api");
+            return 0;
+        }
+
+        bmwqemu::diag("mutex lock '$name' unavailable, sleeping 5s");
+        sleep(5);
+    }
+}
+
+sub mutex_try_lock {
+    my ($name, $where) = @_;
+    $where //= '';
+    bmwqemu::diag("mutex try lock '$name'");
+    my $res = api_call('post', "mutex/$name/lock", {where => $where})->code;
+    return 1 if ($res == 200);
+
+    die "mutex lock '$name': lock owner already finished" if $res == 410;
+
+    if ($res != 409) {
+        bmwqemu::fctwarn("Unknown return code $res for lock api");
+    }
+    return 0;
 }
 
 sub mutex_unlock {
     my ($name) = @_;
-    return _mutex_call('post', "mutex/$name/unlock");
+
+    bmwqemu::diag("mutex unlock '$name'");
+    my $res = api_call('post', "mutex/$name/unlock")->code;
+    return 1 if ($res == 200);
+    bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
+    return 0;
 }
 
 sub mutex_create {
     my ($name) = @_;
-    return _mutex_call('post', "mutex/$name");
-}
 
-sub _mutex_call {
-    my ($method, $action) = @_;
-    while (1) {
-        my $res = api_call($method, $action)->code;
-        last if ($res == 200);
-        bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
-        bmwqemu::diag('mutex lock unavailable, sleeping 5s');
-        sleep(5);
-    }
-    bmwqemu::fctres("mutex action successful");
+    bmwqemu::diag("mutex create '$name'");
+    my $res = api_call('post', "mutex/$name")->code;
+    return 1 if ($res == 200);
+    bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
+    return 0;
 }
 
 1;
