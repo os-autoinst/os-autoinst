@@ -451,8 +451,7 @@ sub start_qemu() {
             my $addoniso = $vars->{$k};
             my $i        = $k;
             $i =~ s/^ISO_//;
-            push(@params, '-drive',  "media=cdrom,if=none,id=cd$i,format=raw,file=$addoniso");
-            push(@params, '-device', "$vars->{CDMODEL},drive=cd$i");
+            push(@params, '-drive', "media=cdrom,if=scsi,id=cd$i,format=raw,file=$addoniso");
         }
 
         if ($arch_supports_boot_order) {
