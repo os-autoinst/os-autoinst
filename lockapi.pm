@@ -27,10 +27,11 @@ use mmapi qw/api_call/;
 
 sub mutex_lock {
     my ($name, $where) = @_;
-    $where //= '';
     bmwqemu::diag("mutex lock '$name'");
     while (1) {
-        my $res = api_call('post', "mutex/$name/lock", {where => $where})->code;
+        my $param = {action => 'lock'};
+        $param->{where} = $where if $where;
+        my $res = api_call('post', "mutex/$name", $param)->code;
         return 1 if ($res == 200);
 
         bmwqemu::mydie "mutex lock '$name': lock owner already finished" if $res == 410;
@@ -47,9 +48,10 @@ sub mutex_lock {
 
 sub mutex_try_lock {
     my ($name, $where) = @_;
-    $where //= '';
     bmwqemu::diag("mutex try lock '$name'");
-    my $res = api_call('post', "mutex/$name/lock", {where => $where})->code;
+    my $param = {action => 'lock'};
+    $param->{where} = $where if $where;
+    my $res = api_call('post', "mutex/$name", $param)->code;
     return 1 if ($res == 200);
 
     die "mutex lock '$name': lock owner already finished" if $res == 410;
@@ -64,7 +66,7 @@ sub mutex_unlock {
     my ($name) = @_;
 
     bmwqemu::diag("mutex unlock '$name'");
-    my $res = api_call('post', "mutex/$name/unlock")->code;
+    my $res = api_call('post', "mutex/$name", {action => 'unlock'})->code;
     return 1 if ($res == 200);
     bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
     return 0;
@@ -74,7 +76,7 @@ sub mutex_create {
     my ($name) = @_;
 
     bmwqemu::diag("mutex create '$name'");
-    my $res = api_call('post', "mutex/$name")->code;
+    my $res = api_call('post', "mutex", {name => $name})->code;
     return 1 if ($res == 200);
     bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
     return 0;
