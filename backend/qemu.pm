@@ -443,7 +443,7 @@ sub start_qemu() {
                 # XXX: workaround for OVMF wanting to write NVvars into first FAT partition
                 # we need to replace -bios with proper pflash drive specification
                 $params[-1] .= ',snapshot=on' if $vars->{UEFI};
-                push(@params, '-device', "$vars->{CDMODEL},drive=cd0");
+                push(@params, '-device', "$vars->{CDMODEL},drive=cd0,bus=scsi0.0");
             }
         }
 
@@ -452,7 +452,7 @@ sub start_qemu() {
             my $i        = $k;
             $i =~ s/^ISO_//;
             push(@params, '-drive',  "media=cdrom,if=none,id=cd$i,format=raw,file=$addoniso");
-            push(@params, '-device', "$vars->{CDMODEL},drive=cd$i");
+            push(@params, '-device', "$vars->{CDMODEL},drive=cd$i,bus=scsi0.0");
         }
 
         if ($arch_supports_boot_order) {
