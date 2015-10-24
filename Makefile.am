@@ -57,7 +57,8 @@ pkglibexec_SCRIPTS = \
 bin_SCRIPTS = isotovideo
 
 install-exec-hook:
-	sed -i -e "s,\$$installprefix = undef;,\$$installprefix = '$(pkglibexecdir)';," $(DESTDIR)$(bindir)/isotovideo
+	sed -i -e "s,\$$installprefix = undef;,\$$installprefix = '$(pkglibexecdir)';," $(DESTDIR)$(bindir)/isotovideo && \
+	sed -i -e "s,\$$sysdir = undef;,\$$sysdir = '$(pkglibexecdir)';," $(DESTDIR)$(pkglibexecdir)/cv.pm
 
 pkglibexec_FOLDERS = \
 	distri \

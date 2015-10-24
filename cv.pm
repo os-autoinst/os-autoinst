@@ -12,7 +12,10 @@ sub init() {
     use Config;
     my $vendorlib = $Config{installvendorlib};
     my $libdir    = dirname(__FILE__);
-    return if ($libdir eq "/usr/lib/os-autoinst");
+    # undef is substituted with $(pkglibexecdir) in
+    # make install, in the following line. See Makefile.am
+    my $sysdir = undef;
+    return if ($sysdir && $libdir eq $sysdir);
     my @s = stat("$libdir/ppmclibs/blib/lib/tinycv.pm");
     unless (@s && -e "$libdir/ppmclibs/tinycv.pm" && $s[7] == (stat(_))[7]) {
         $| = 1;
