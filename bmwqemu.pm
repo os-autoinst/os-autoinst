@@ -33,6 +33,7 @@ sub mydie;
 # shared vars
 
 our $screenshotQueue = Thread::Queue->new();
+our $default_timeout //= 30;    # assert timeout, 0 is a valid timeout
 my $prestandstillwarning : shared = 0;
 
 my @ocrrect;
@@ -663,7 +664,7 @@ sub save_needle_template($$$) {
 sub assert_screen {
     my %args         = @_;
     my $mustmatch    = $args{'mustmatch'};
-    my $timeout      = $args{'timeout'} // 30;    # 0 is a valid timeout
+    my $timeout      = $args{'timeout'} // $default_timeout;
     my $check_screen = $args{'check'};
 
     $timeout = _scale_timeout($timeout);
