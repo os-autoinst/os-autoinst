@@ -50,8 +50,12 @@ MAKETESTSNAPSHOTS;integer;0;save snapshot for each test in qcow image
 MULTINET;boolean;0;VM will have two virtual NIC. Can't be used with NICTYPE tap
 MULTIPATH;boolean;0;Add HDD drives as multipath devices. Override HDDMODEL to virtio-scsi-pci
 NICMAC;any MAC address;52:54:00:12:34:56;MAC address to be assigned to virtual network card
+NICMAC_1;any MAC address;52:54:01:12:34:56;MAC address to be assigned to virtual network card
+NICMAC_2;any MAC address;52:54:02:12:34:56;MAC address to be assigned to virtual network card
 NICMODEL;see qemu -device ?;virtio-net;Network device virtual NIC.
 NICTYPE;user|tap|vde;user;Instruct QEMU to either use user networking or to connect virtual NIC to existin system TAP device
+NICTYPE_1;tap;unset;Instruct QEMU to add the second NIC to the VM, only TAP device is supported
+NICTYPE_2;tap;unset;Instruct QEMU to add the third NIC to the VM, only TAP device is supported
 NICVLAN;integer;undef;network (vlan) number to which the NIC should be connected, assigned by scheduler to jobs with NICTYPE != user
 NUMDISKS;integer;1;Number of disks to be created and attached to VM
 OFW;;;
@@ -70,6 +74,11 @@ QEMU_NO_KVM;boolean;0;Don't use KVM acceleration.
 RAIDLEVEL;;;
 SKIPTO;name of snapshot;;Restore VM from given snapshot. Needs HDD image with snapshots present. Used for test debugging
 TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used
+TAPDEV_1;device name;undef;TAP device name to which the second virtual NIC should be connected. Must be set if NICTYPE_1 is set
+TAPDEV_2;device name;undef;TAP device name to which the third virtual NIC should be connected. Must be set if NICTYPE_2 is set
+TAPSCRIPT;script path;undef;script to configure TAPDEV network interface after VM is started, see qemu -net tap,script option
+TAPSCRIPT_1;script path;undef;script to configure TAPDEV_1 network interface after VM is started, see qemu -net tap,script option
+TAPSCRIPT_2;script path;undef;script to configure TAPDEV_2 network interface after VM is started, see qemu -net tap,script option
 UEFI;;;
 UEFI_BIOS;;;
 USBBOOT;boolean;0;Mount ISO as USB disk and boot VM from it
