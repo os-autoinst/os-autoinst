@@ -54,7 +54,8 @@ sub stop_audiocapture($) {
 sub power($) {
 
     # parameters: acpi, reset, (on), off
-    my ($self, $action) = @_;
+    my ($self, $args) = @_;
+    my $action = $args->{action};
     if ($action eq 'acpi') {
         $self->_send_hmp("system_powerdown");
     }
@@ -68,7 +69,7 @@ sub power($) {
 
 sub eject_cd(;$) {
     my $self = shift;
-    $self->handle_qmp_command({"execute" => "eject", "arguments" => {"device" => "ide1-cd0"}});
+    $self->handle_qmp_command({"execute" => "eject", "arguments" => {"device" => "cd0"}});
 }
 
 sub cpu_stat($) {
@@ -231,12 +232,25 @@ sub start_qemu() {
     # disk settings
     $vars->{NUMDISKS}  ||= 1;
     $vars->{HDDSIZEGB} ||= 10;
+    $vars->{CDMODEL}   ||= "virtio-scsi-pci";
+    if ($vars->{MULTIPATH}) {
+        $vars->{HDDMODEL}  ||= "virtio-scsi-pci";
+        $vars->{HDDFORMAT} ||= "raw";
+        $vars->{PATHCNT}   ||= 2;
+    }
     $vars->{HDDMODEL}  ||= "virtio-blk";
     $vars->{HDDFORMAT} ||= "qcow2";
-    if ($vars->{MULTIPATH}) {
-        $vars->{HDDMODEL}  = "virtio-scsi-pci";
-        $vars->{HDDFORMAT} = "raw";
-        $vars->{PATHCNT} ||= 2;
+
+    # TODO: we shouldn't use HDDMODEL resp CDMODEL to specify the
+    # controller.
+    # XXX: it is undefined if HDDMODEL and CDMODEL would use
+    # different kinds of virtio scsi
+    my $virtio_scsi_controller;
+    for my $var (qw/HDDMODEL CDMODEL/) {
+        if ($vars->{$var} =~ /virtio-scsi.*/) {
+            $virtio_scsi_controller = $vars->{$var};
+            $vars->{$var} = sprintf "scsi-%sd", lc substr $var, 0, 1;
+        }
     }
     # network settings
     $vars->{NICMODEL} ||= "virtio-net";
@@ -352,7 +366,7 @@ sub start_qemu() {
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
             else {
-                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", "$vars->{HDDFORMAT}", $vars->{HDDSIZEGB} . "G") == 0;
+                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", $vars->{HDDFORMAT}, $vars->{HDDSIZEGB} . "G") == 0;
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
         }
@@ -424,30 +438,31 @@ sub start_qemu() {
             }
         }
 
-        if ($vars->{HDDMODEL} =~ /virtio-scsi.*/) {
-            # scsi devices need SCSI controller, then change to scsi-hd device
-            push(@params, "-device", "$vars->{HDDMODEL},id=scsi0");
+        if ($virtio_scsi_controller) {
+            # scsi devices need SCSI controller
+            push(@params, "-device", "$virtio_scsi_controller,id=scsi0");
             if ($vars->{MULTIPATH}) {
                 # add the second HBA
-                push(@params, "-device", "$vars->{HDDMODEL},id=scsi1");
+                push(@params, "-device", "$virtio_scsi_controller,id=scsi1");
             }
-            $vars->{HDDMODEL} = "scsi-hd";
         }
+
         for my $i (1 .. $vars->{NUMDISKS}) {
-            my $boot = "";    #$i==1?",boot=on":""; # workaround bnc#696890
             if ($vars->{MULTIPATH}) {
                 for my $c (1 .. $vars->{PATHCNT}) {
                     # pathname is a .. d
-                    my $pathname = chr(96 + $c);
-                    push(@params, "-drive", "file=$basedir/l$i,cache=none,if=none$boot,id=hd${i}${pathname},serial=mpath$i");
-                    push(@params, "-device", "$vars->{HDDMODEL},drive=hd${i}${pathname},bus=scsi" . ($c % 2 ? "1" : "0") . ".0");
+                    my $bus = sprintf "scsi%d.0", ($c - 1) % 2;    # alternate between scsi0 and scsi1
+                    my $id = sprintf 'hd%d%c', $i, 96 + $c;
+                    push(@params, "-device", "$vars->{HDDMODEL},drive=$id,bus=$bus");
+                    push(@params, "-drive",  "file=$basedir/l$i,cache=none,if=none,id=$id,serial=mpath$i,format=$vars->{HDDFORMAT}");
                 }
             }
             else {
-                push(@params, "-device", "$vars->{HDDMODEL},drive=hd$i" . ($vars->{HDDMODEL} =~ /ide-hd/ ? ",bus=ide.@{[$i-1]}" : ''));
-                push(@params, "-drive", "file=$basedir/l$i,cache=unsafe,if=none$boot,id=hd$i");
+                push(@params, "-device", "$vars->{HDDMODEL},drive=hd$i");
+                push(@params, "-drive",  "file=$basedir/l$i,cache=unsafe,if=none,id=hd$i,format=$vars->{HDDFORMAT}");
             }
         }
+
 
         if ($iso) {
             if ($vars->{USBBOOT}) {
@@ -455,22 +470,21 @@ sub start_qemu() {
                 push(@params, "-device", "usb-ehci,id=ehci");
                 push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb");
             }
-            elsif ($vars->{CDMODEL}) {
-                push(@params, '-drive',  "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
-                push(@params, '-device', "$vars->{CDMODEL},drive=cd0");
-            }
             else {
-                push(@params, "-cdrom", $iso);
+                push(@params, '-drive', "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
+                # XXX: workaround for OVMF wanting to write NVvars into first FAT partition
+                # we need to replace -bios with proper pflash drive specification
+                $params[-1] .= ',snapshot=on' if $vars->{UEFI};
+                push(@params, '-device', "$vars->{CDMODEL},drive=cd0,bus=scsi0.0");
             }
         }
 
-        for my $i (1 .. 6) {    # check for up to 6 ADDON ISOs
-            if ($vars->{"ISO_$i"}) {
-                my $addoniso    = $vars->{"ISO_$i"};
-                my $cdinterface = "if=scsi";
-                if ($vars->{CDMODEL} eq "ide-cd") { $cdinterface = "if=ide"; }
-                push(@params, "-drive", "$cdinterface,id=addon_$i,file=$addoniso,media=cdrom");
-            }
+        for my $k (sort grep { /^ISO_\d+$/ } keys %$vars) {
+            my $addoniso = $vars->{$k};
+            my $i        = $k;
+            $i =~ s/^ISO_//;
+            push(@params, '-drive',  "media=cdrom,if=none,id=cd$i,format=raw,file=$addoniso");
+            push(@params, '-device', "$vars->{CDMODEL},drive=cd$i,bus=scsi0.0");
         }
 
         if ($arch_supports_boot_order) {
@@ -501,6 +515,7 @@ sub start_qemu() {
             push(@params, qw"-net nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57 -net none,vlan=1");
         }
         if ($vars->{OFW}) {
+            no warnings 'qw';
             push(@params, qw/-device usb-ehci -device usb-tablet,bus=usb-bus.0/);
         }
         else {

@@ -174,9 +174,10 @@ sub do_loadvm($) {
     $self->raw_vbox_snapshot("restore", $vmname);
 }
 
-sub do_upload_image($) {
+sub status($) {
     my ($self) = @_;
-    print "do_upload_image ignored\n";
+    print "status ignored\n";
+    return undef;
 }
 
 1;

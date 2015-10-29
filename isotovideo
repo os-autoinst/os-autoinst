@@ -150,15 +150,11 @@ diag "FAIL" if $r;
 
 $SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
-# query the backend - it has to support status call (only few do)
-sub clean_shutdown() {
-  my $clean_shutdown;
-  eval {
+my $clean_shutdown;
+eval {
     my $status = $bmwqemu::backend->status();
     $clean_shutdown = 1 if $status||'' eq "shutdown";
-  };
-  return $clean_shutdown;
-}
+};
 
 bmwqemu::stop_vm();
 print "killing commands thread\n";
@@ -181,7 +177,7 @@ if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
         next unless $name;
         push @toextract, { hdd_num => $i, name => $name, dir => $dir };
     }
-    if (@toextract && !clean_shutdown()) {
+    if (@toextract && !$clean_shutdown) {
         diag "ERROR: Machine not shut down when uploading disks!\n";
     }
     else {

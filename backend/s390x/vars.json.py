@@ -51,7 +51,6 @@ devinfo = {
         {
             "InstNetDev"   : "ctc",
             "CTCProtocol"  : "0",
-            "Pointopoint"  : gateway("189"),
             "ReadChannel"  : "0.0.0600",
             "WriteChannel" : "0.0.0601",
         }),
@@ -74,10 +73,11 @@ devinfo = {
             "InstNetDev":"osa",
             "OSAInterface":"qdio",
             "OSAMedium":"eth",
-            #"Portname": "VSWNL2",
-            #"ReadChannel": "0.0.8000",
-            #"WriteChannel": "0.0.8001",
-            #"DataChannel": "0.0.8002",
+            "Portname": "VSWNL2",
+            "ReadChannel": "0.0.7100",
+            "WriteChannel": "0.0.7101",
+            "DataChannel": "0.0.7102",
+            "OSAHWAddr":"",
         }),
     "hsi-l3": Devinfo(
         hostip_10_161_if_ip_nm("185","/24"),

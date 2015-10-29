@@ -597,7 +597,7 @@ sub script_output($;$) {
     else {
         type_string "curl -f -v " . autoinst_url . "/current_script > /tmp/script$suffix.sh && echo \"curl-\$?\" > /dev/$serialdev\n";
     }
-    wait_serial('curl-0', 2) || die "script couldn't be downloaded";
+    wait_serial('curl-0') || die "script couldn't be downloaded";
     send_key "ctrl-l";
 
     type_string "/bin/bash -ex /tmp/script$suffix.sh | tee /dev/$serialdev\n";
