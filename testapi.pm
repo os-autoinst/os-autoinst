@@ -336,7 +336,8 @@ $wait_seconds
 =cut
 
 sub script_sudo($;$) {
-    my ($name, $wait) = @_;
+    my $name = shift;
+    my $wait = shift || 2;
 
     bmwqemu::log_call('script_sudo', name => $name, wait => $wait);
     return $distri->script_sudo($name, $wait);
