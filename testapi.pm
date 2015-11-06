@@ -134,7 +134,7 @@ Wait until the system becomes idle (as configured by IDLETHESHOLD)
 =cut
 
 sub wait_idle(;$) {
-    my $timeout = shift || 19;
+    my $timeout = shift || $bmwqemu::idle_timeout;
     bmwqemu::log_call('wait_idle', timeout => $timeout);
 
     bmwqemu::wait_idle($timeout);
@@ -301,7 +301,8 @@ Wait for idle before  and after.
 =cut
 
 sub script_run($;$) {
-    my ($name, $wait) = @_;
+    my $name = shift;
+    my $wait = shift || $bmwqemu::idle_timeout;
 
     bmwqemu::log_call('script_run', name => $name, wait => $wait);
     return $distri->script_run($name, $wait);
