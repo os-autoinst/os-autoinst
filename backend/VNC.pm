@@ -941,9 +941,17 @@ sub _receive_ikvm_encoding {
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
 
-            # we ignore edge updates in odd resolutions
-            next if ($x * 16 + $img->xres() > $image->xres());
-            next if ($y * 16 + $img->yres() > $image->yres());
+            if ($x * 16 + $img->xres() > $image->xres()) {
+                my $nxres = $image->xres() - $x * 16;
+                next if $nxres < 0;
+                $img = $img->copyrect(0, 0, $nxres, $img->yres());
+
+            }
+            if ($y * 16 + $img->yres() > $image->yres()) {
+                my $nyres = $image->yres() - $y * 16;
+                next if $nyres < 0;
+                $img = $img->copyrect(0, 0, $img->xres(), $nyres);
+            }
             $image->blend($img, $x * 16, $y * 16);
         }
     }
