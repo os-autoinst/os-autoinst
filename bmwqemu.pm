@@ -33,6 +33,8 @@ sub mydie;
 # shared vars
 
 our $screenshotQueue = Thread::Queue->new();
+our $default_timeout //= 30;    # assert timeout, 0 is a valid timeout
+our $idle_timeout ||= 19;       # wait_idle 0 makes no sense
 my $prestandstillwarning : shared = 0;
 
 my @ocrrect;
@@ -594,7 +596,7 @@ Wait until the system becomes idle
 =cut
 
 sub wait_idle($) {
-    my $timeout = shift;
+    my $timeout = shift || $idle_timeout;
     my $prev;
     my $timesidle     = 0;
     my $idlethreshold = $vars{IDLETHRESHOLD};
@@ -663,7 +665,7 @@ sub save_needle_template($$$) {
 sub assert_screen {
     my %args         = @_;
     my $mustmatch    = $args{'mustmatch'};
-    my $timeout      = $args{'timeout'} // 30;    # 0 is a valid timeout
+    my $timeout      = $args{'timeout'} // $default_timeout;
     my $check_screen = $args{'check'};
 
     $timeout = _scale_timeout($timeout);

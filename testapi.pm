@@ -59,13 +59,15 @@ sub record_soft_failure {
 }
 
 sub assert_screen($;$) {
-    my ($mustmatch, $timeout) = @_;
+    my $mustmatch = shift;
+    my $timeout = shift // $bmwqemu::default_timeout;
     bmwqemu::log_call('assert_screen', mustmatch => $mustmatch, timeout => $timeout);
     return $last_matched_needle = bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout);
 }
 
 sub check_screen($;$) {
-    my ($mustmatch, $timeout) = @_;
+    my $mustmatch = shift;
+    my $timeout = shift // $bmwqemu::default_timeout;
     bmwqemu::log_call('check_screen', mustmatch => $mustmatch, timeout => $timeout);
     return $last_matched_needle = bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout, check => 1);
 }
@@ -88,6 +90,7 @@ deprecated: assert_and_dclick($mustmatch,[$button],[$timeout],[$click_time]);
 
 sub assert_and_click($;$$$$) {
     my ($mustmatch, $button, $timeout, $clicktime, $dclick) = @_;
+    $timeout //= $bmwqemu::default_timeout;
 
     $dclick //= 0;
 
@@ -131,7 +134,7 @@ Wait until the system becomes idle (as configured by IDLETHESHOLD)
 =cut
 
 sub wait_idle(;$) {
-    my $timeout = shift || 19;
+    my $timeout = shift || $bmwqemu::idle_timeout;
     bmwqemu::log_call('wait_idle', timeout => $timeout);
 
     bmwqemu::wait_idle($timeout);
@@ -298,8 +301,8 @@ Wait for idle before  and after.
 =cut
 
 sub script_run($;$) {
-
-    my ($name, $wait) = @_;
+    my $name = shift;
+    my $wait = shift || $bmwqemu::idle_timeout;
 
     bmwqemu::log_call('script_run', name => $name, wait => $wait);
     return $distri->script_run($name, $wait);
@@ -333,7 +336,8 @@ $wait_seconds
 =cut
 
 sub script_sudo($;$) {
-    my ($name, $wait) = @_;
+    my $name = shift;
+    my $wait = shift || 2;
 
     bmwqemu::log_call('script_sudo', name => $name, wait => $wait);
     return $distri->script_sudo($name, $wait);
