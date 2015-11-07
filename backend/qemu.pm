@@ -287,24 +287,43 @@ sub start_qemu() {
         $vars->{NUMDISKS} = 4;
     }
 
-    if (!$vars->{NICMAC}) {
-        # ensure MAC addresses differ globally
-        # and allow MAC addresses for more than 256 workers (up to 65535)
-        my $workerid = $vars->{WORKER_ID};
-        $vars->{NICMAC} = sprintf('52:54:00:12:%02x:%02x', int($workerid / 256), $workerid % 256);
-    }
+    my @nicmac;
+    my @nicvlan;
+    my @tapdev;
 
-    if ($vars->{NICTYPE} eq "tap" && !defined $vars->{TAPDEV}) {
+    @nicmac  = split /\s*,\s*/, $vars->{NICMAC}  if $vars->{NICMAC};
+    @nicvlan = split /\s*,\s*/, $vars->{NICVLAN} if $vars->{NICVLAN};
+    @tapdev  = split /\s*,\s*/, $vars->{TAPDEV}  if $vars->{TAPDEV};
+
+    my $num_networks = 1;
+    $num_networks = @nicmac  if $num_networks < @nicmac;
+    $num_networks = @nicvlan if $num_networks < @nicvlan;
+    $num_networks = @tapdev  if $num_networks < @tapdev;
+
+    for (my $i = 0; $i < $num_networks; $i++) {
+        # ensure MAC addresses differ globally
+        # and allow MAC addresses for more than 256 workers (up to 16384)
+        my $workerid = $vars->{WORKER_ID};
+        $nicmac[$i] //= sprintf('52:54:00:12:%02x:%02x', int($workerid / 256) + $i * 64, $workerid % 256);
+
         # always set proper TAPDEV for os-autoinst when using tap network mode
         my $instance = $vars->{WORKER_INSTANCE} eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
         # use $instance for tap name so it is predicable, network is still configured staticaly
-        $vars->{TAPDEV} //= 'tap' . ($instance - 1);
+        $tapdev[$i] //= 'tap' . ($instance - 1 + $i * 64);
+
+        $nicvlan[$i] //= 0;
     }
+
+    # put it back to the vars for save_vars()
+    $vars->{NICMAC}  = join ',', @nicmac;
+    $vars->{NICVLAN} = join ',', @nicvlan;
+    $vars->{TAPDEV}  = join ',', @tapdev if $vars->{NICTYPE} eq "tap";
+
 
     if ($vars->{NICTYPE} eq "vde") {
         my $mgmtsocket = $vars->{VDE_SOCKETDIR} . '/vde.mgmt';
         my $port       = $vars->{VDE_PORT};
-        my $vlan       = $vars->{NICVLAN} // 0;
+        my $vlan       = $nicvlan[0];
         # XXX: no useful return value from those commands
         runcmd('vdecmd', '-s', $mgmtsocket, 'port/remove', $port);
         runcmd('vdecmd', '-s', $mgmtsocket, 'port/create', $port);
@@ -385,19 +404,21 @@ sub start_qemu() {
             push(@params, "-cpu", $vars->{QEMUCPU});
         }
 
-        if ($vars->{NICTYPE} eq "user") {
-            push(@params, '-netdev', 'user,id=qanet0');
+        for (my $i = 0; $i < $num_networks; $i++) {
+            if ($vars->{NICTYPE} eq "user") {
+                push(@params, '-netdev', "user,id=qanet$i");
+            }
+            elsif ($vars->{NICTYPE} eq "tap") {
+                push(@params, '-netdev', "tap,id=qanet$i,ifname=$tapdev[$i],script=no,downscript=no");
+            }
+            elsif ($vars->{NICTYPE} eq "vde") {
+                push(@params, '-netdev', "vde,id=qanet0,sock=$vars->{VDE_SOCKETDIR}/vde.ctl,port=$vars->{VDE_PORT}");
+            }
+            else {
+                die "unknown NICTYPE $vars->{NICTYPE}\n";
+            }
+            push(@params, '-device', "$vars->{NICMODEL},netdev=qanet$i,mac=$nicmac[$i]");
         }
-        elsif ($vars->{NICTYPE} eq "tap") {
-            push(@params, '-netdev', "tap,id=qanet0,ifname=$vars->{TAPDEV},script=no,downscript=no");
-        }
-        elsif ($vars->{NICTYPE} eq "vde") {
-            push(@params, '-netdev', "vde,id=qanet0,sock=$vars->{VDE_SOCKETDIR}/vde.ctl,port=$vars->{VDE_PORT}");
-        }
-        else {
-            die "unknown NICTYPE $vars->{NICTYPE}\n";
-        }
-        push(@params, '-device', "$vars->{NICMODEL},netdev=qanet0,mac=$vars->{NICMAC}");
 
         if ($vars->{LAPTOP}) {
             my $laptop_path = "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
@@ -610,8 +631,9 @@ sub start_qemu() {
             my $service = $bus->get_service("org.opensuse.os_autoinst.switch");
             my $object  = $service->get_object("/switch", "org.opensuse.os_autoinst.switch");
 
-            my $vlan = $vars->{NICVLAN} // 0;
-            $object->set_vlan($vars->{TAPDEV}, $vlan);
+            for (my $i = 0; $i < $num_networks; $i++) {
+                $object->set_vlan($tapdev[$i], $nicvlan[$i]);
+            }
         };
         if ($@) {
             print "$@\n";
