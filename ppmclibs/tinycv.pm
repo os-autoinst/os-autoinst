@@ -52,29 +52,29 @@ sub search_($;$$) {
     return undef unless $needle;
 
     my $img = $self->copy;
-    for my $a (@{$needle->{'area'}}) {
-        push @exclude, $a if $a->{'type'} eq 'exclude';
-        push @match,   $a if $a->{'type'} eq 'match';
-        push @ocr,     $a if $a->{'type'} eq 'ocr';
+    for my $a (@{$needle->{area}}) {
+        push @exclude, $a if $a->{type} eq 'exclude';
+        push @match,   $a if $a->{type} eq 'match';
+        push @ocr,     $a if $a->{type} eq 'ocr';
     }
 
     for my $a (@exclude) {
-        $img->replacerect($a->{'xpos'}, $a->{'ypos'}, $a->{'width'}, $a->{'height'});
+        $img->replacerect($a->{xpos}, $a->{ypos}, $a->{width}, $a->{height});
     }
 
     my $ret = {ok => 1, needle => $needle, area => []};
 
     for my $area (@match) {
-        my $margin = int($area->{'margin'} + $search_ratio * (1024 - $area->{'margin'}));
-        ($sim, $xmatch, $ymatch) = $img->search_needle($needle->get_image, $area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'}, $margin);
+        my $margin = int($area->{margin} + $search_ratio * (1024 - $area->{margin}));
+        ($sim, $xmatch, $ymatch) = $img->search_needle($needle->get_image, $area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}, $margin);
         bmwqemu::diag(sprintf("MATCH(%s:%.2f): $xmatch $ymatch [m:$margin]", $needle->{name}, $sim));
 
         my $ma = {
             similarity => $sim,
             x          => $xmatch,
             y          => $ymatch,
-            w          => $area->{'width'},
-            h          => $area->{'height'},
+            w          => $area->{width},
+            h          => $area->{height},
             result     => 'ok',
         };
 
@@ -83,29 +83,29 @@ sub search_($;$$) {
         # 01-test_needle and the console tests (for example, using
         # more smaller areas)
 
-        my $m = ($area->{'match'} || 96) / 100;
+        my $m = ($area->{match} || 96) / 100;
         #if ( $sim < 1 ) {
         #    my $needle_img = $needle->get_image($area);
         #    if ($needle_img) {
-        #        my $area_img = $img->copyrect( $xmatch, $ymatch, $area->{'width'}, $area->{'height'} );
-        #        $ma->{'diff'} = $area_img->absdiff($needle_img);
+        #        my $area_img = $img->copyrect( $xmatch, $ymatch, $area->{width}, $area->{height} );
+        #        $ma->{diff} = $area_img->absdiff($needle_img);
         #    }
         #}
 
         if ($sim < $m - $threshold) {
-            $ma->{'result'} = 'fail';
-            $ret->{'ok'}    = 0;
+            $ma->{result} = 'fail';
+            $ret->{ok}    = 0;
         }
-        push @{$ret->{'area'}}, $ma;
+        push @{$ret->{area}}, $ma;
     }
 
-    $ret->{'error'} = mean_square_error($ret->{'area'});
+    $ret->{error} = mean_square_error($ret->{area});
 
-    if ($ret->{'ok'}) {
+    if ($ret->{ok}) {
         for my $a (@ocr) {
-            $ret->{'ocr'} ||= [];
+            $ret->{ocr} ||= [];
             my $ocr = ocr::tesseract($img, $a);
-            push @{$ret->{'ocr'}}, $ocr;
+            push @{$ret->{ocr}}, $ocr;
         }
     }
 
@@ -123,31 +123,34 @@ sub search($;$$) {
     return undef unless $needle;
 
     if (ref($needle) eq "ARRAY") {
-        my $candidates;
-        my $best;
+        my @candidates;
 
         # try to match all needles and return the one with the highest similarity
         for my $n (@$needle) {
             my $found = $self->search_($n, $threshold, $search_ratio);
-            next unless $found;
-            if ($found->{'ok'}) {
-                if (!$best) {
-                    $best = $found;
-                }
-                elsif ($best->{'error'} > $found->{'error'}) {
-                    push @$candidates, $best;
-                    $best = $found;
-                }
-                else {
-                    push @$candidates, $found;
-                }
-            }
-            else {
-                push @$candidates, $found;
-            }
+            push @candidates, $found if $found;
         }
+
+        # bigger OK is better (0/1)
+        # smaller error is better if not OK (0 perfect, 1 totally off)
+        # the name doesn't matter, but we prefer alphabetic order
+        sub by_error {
+            my $okay = $b->{ok} <=> $a->{ok};
+            return $okay if $okay;
+            my $error = $a->{error} <=> $b->{error};
+            return $error if $error;
+            return $a->{needle}->{name} cmp $b->{needle}->{name};
+        }
+
+        @candidates = sort by_error @candidates;
+        my $best;
+
+        if (@candidates && $candidates[0]->{ok}) {
+            $best = shift @candidates;
+        }
+
         if (wantarray) {
-            return ($best, $candidates);
+            return ($best, \@candidates);
         }
         else {
             return $best;
@@ -157,10 +160,10 @@ sub search($;$$) {
         my $found = $self->search_($needle, $threshold, $search_ratio);
         return undef unless $found;
         if (wantarray) {
-            return ($found, undef) if ($found->{'ok'});
+            return ($found, undef) if ($found->{ok});
             return (undef, [$found]);
         }
-        return undef unless $found->{'ok'};
+        return undef unless $found->{ok};
         return $found;
     }
 }
