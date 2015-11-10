@@ -138,6 +138,9 @@ sub search($;$$) {
                     push @$candidates, $best;
                     $best = $found;
                 }
+                else {
+                    push @$candidates, $found;
+                }
             }
             else {
                 push @$candidates, $found;
