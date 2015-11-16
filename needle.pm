@@ -20,7 +20,7 @@ sub new($;$) {
     my $json;
     if (ref $jsonfile eq 'HASH') {
         $json = $jsonfile;
-        $jsonfile = join('/', $needledir, $json->{'name'} . '.json');
+        $jsonfile = join('/', $needledir, $json->{name} . '.json');
     }
     else {
         local $/;
@@ -32,11 +32,11 @@ sub new($;$) {
             return undef;
         }
     }
-    my $self = {tags => ($json->{'tags'} || [])};
-    $self->{'properties'} = $json->{'properties'} || [];
+    my $self = {tags => ($json->{tags} || [])};
+    $self->{properties} = $json->{properties} || [];
 
     my $gotmatch;
-    for my $area (@{$json->{'area'}}) {
+    for my $area (@{$json->{area}}) {
         my $a = {};
         for my $tag (qw/xpos ypos width height/) {
             $a->{$tag} = $area->{$tag} || 0;
@@ -44,14 +44,14 @@ sub new($;$) {
         for my $tag (qw/processing_flags max_offset/) {
             $a->{$tag} = $area->{$tag} if $area->{$tag};
         }
-        $a->{'match'} = $area->{'match'} if $area->{'match'};
-        $a->{'type'}   = $area->{'type'}   || 'match';
-        $a->{'margin'} = $area->{'margin'} || 50;
+        $a->{match} = $area->{match} if $area->{match};
+        $a->{type}   = $area->{type}   || 'match';
+        $a->{margin} = $area->{margin} || 50;
 
-        $gotmatch = 1 if $a->{'type'} eq 'match';
+        $gotmatch = 1 if $a->{type} eq 'match';
 
-        $self->{'area'} ||= [];
-        push @{$self->{'area'}}, $a;
+        $self->{area} ||= [];
+        push @{$self->{area}}, $a;
     }
 
     # one match is mandatory
@@ -76,9 +76,9 @@ sub new($;$) {
 
 sub save($;$) {
     my $self = shift;
-    my $fn = shift || $self->{'file'};
+    my $fn = shift || $self->{file};
     my @area;
-    for my $a (@{$self->{'area'}}) {
+    for my $a (@{$self->{area}}) {
         my $aa = {};
         for my $tag (qw/xpos ypos width height max_offset processing_flags match type margin/) {
             $aa->{$tag} = $a->{$tag} if defined $a->{$tag};
@@ -87,9 +87,9 @@ sub save($;$) {
     }
     my $json = JSON->new->pretty->utf8->canonical->encode(
         {
-            tags       => [sort(@{$self->{'tags'}})],
+            tags       => [sort(@{$self->{tags}})],
             area       => \@area,
-            properties => [sort(@{$self->{'properties'}})],
+            properties => [sort(@{$self->{properties}})],
         });
     open(my $fh, '>', $fn) || die "can't open $fn for writing: $!\n";
     print $fh $json;
@@ -107,7 +107,13 @@ sub unregister($) {
 
 sub register($) {
     my $self = shift;
+    my %check_dups;
     for my $g (@{$self->{tags}}) {
+        if ($check_dups{$g}) {
+            bmwqemu::diag("$self->{name} contains $g twice");
+            next;
+        }
+        $check_dups{$g} = 1;
         $tags{$g} ||= [];
         push(@{$tags{$g}}, $self);
     }
@@ -117,20 +123,20 @@ sub get_image($$) {
     my $self = shift;
     my $area = shift;
 
-    if (!$self->{'img'}) {
-        $self->{'img'} = tinycv::read($self->{'png'});
-        for my $a (@{$self->{'area'}}) {
-            next unless $a->{'type'} eq 'exclude';
-            $self->{'img'}->replacerect($a->{'xpos'}, $a->{'ypos'}, $a->{'width'}, $a->{'height'});
+    if (!$self->{img}) {
+        $self->{img} = tinycv::read($self->{png});
+        for my $a (@{$self->{area}}) {
+            next unless $a->{type} eq 'exclude';
+            $self->{img}->replacerect($a->{xpos}, $a->{ypos}, $a->{width}, $a->{height});
         }
     }
 
-    return $self->{'img'} unless $area;
+    return $self->{img} unless $area;
 
-    if (!$area->{'img'}) {
-        $area->{'img'} = $self->{'img'}->copyrect($area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'});
+    if (!$area->{img}) {
+        $area->{img} = $self->{img}->copyrect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height});
     }
-    return $area->{'img'};
+    return $area->{img};
 }
 
 sub has_tag($$) {
@@ -173,7 +179,7 @@ sub init(;$) {
     #for my $k (keys %tags) {
     #	print "$k\n";
     #	for my $p (@{$tags{$k}}) {
-    #		print "  ", $p->{'name'}, "\n";
+    #		print "  ", $p->{name}, "\n";
     #	}
     #}
     if ($cleanuphandler) {
