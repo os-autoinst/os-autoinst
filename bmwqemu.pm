@@ -789,13 +789,6 @@ sub assert_screen {
         diag $_->{'file'};
     }
 
-    my @save_tags = @tags;
-
-    # add some known env variables
-    for my $key (qw(VIDEOMODE DESKTOP DISTRI INSTLANG LIVECD LIVETEST OFW UEFI NETBOOT PROMO FLAVOR MULTIPATH)) {
-        push(@save_tags, "ENV-$key-" . $vars{$key}) if $vars{$key};
-    }
-
     if (-e $control_files{"interactive_mode"}) {
         $interactive_mode = 1;
         if (!-e $control_files{'stop_waitforneedle'}) {
@@ -806,7 +799,7 @@ sub assert_screen {
     else {
         $interactive_mode = 0;
     }
-    $needle_template = save_needle_template($img, $mustmatch, \@save_tags);
+    $needle_template = save_needle_template($img, $mustmatch, \@tags);
 
     if ($interactive_mode) {
         freeze_vm();
@@ -814,7 +807,7 @@ sub assert_screen {
         current_test->record_screenfail(
             img     => $img,
             needles => $failed_candidates,
-            tags    => \@save_tags,
+            tags    => \@tags,
             result  => $check_screen ? 'unk' : 'fail',
             # do not set overall here as the result will be removed later
         );
@@ -877,7 +870,7 @@ sub assert_screen {
         current_test->record_screenfail(
             img     => $img,
             needles => $failed_candidates,
-            tags    => \@save_tags,
+            tags    => \@tags,
             result  => $result,
             overall => $check_screen ? undef : 'fail'
         );
