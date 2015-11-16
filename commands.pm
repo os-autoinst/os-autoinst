@@ -33,7 +33,6 @@ sub check_authorized {
 
     # forbid everyone else
     $self->render(text => "IP $ip is denied", status => 403);
-    return undef;
 }
 
 # borrowed from obs with permission from mls@suse.de to license as
@@ -44,7 +43,7 @@ sub _makecpiohead {
     #        magic ino
     my $h = "07070100000000";
     # mode                S_IFREG
-    $h .= sprintf("%08x", 0100000 | $s->[2] & 0777);
+    $h .= sprintf("%08x", oct(100000) | $s->[2] & oct(777));
     #      uid     gid     nlink
     $h .= "000000000000000000000001";
     $h .= sprintf("%08x%08x", $s->[9], $s->[7]);
@@ -221,7 +220,7 @@ sub run_daemon {
     $daemon->run;
 }
 
-sub start_server($) {
+sub start_server {
     my ($port) = @_;
 
     my $thr = threads->create(\&run_daemon, $port);

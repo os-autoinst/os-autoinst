@@ -1,3 +1,4 @@
+use strict;
 use ExtUtils::MakeMaker;
 
 my $opencv_libs = `pkg-config --libs opencv`;

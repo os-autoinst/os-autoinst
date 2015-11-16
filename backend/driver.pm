@@ -15,7 +15,7 @@ use File::Path qw(remove_tree);
 use IO::Select;
 
 # TODO: move the whole printing out of bmwqemu
-sub diag($) {
+sub diag {
     my ($text) = @_;
 
     print "$text\n";
@@ -25,7 +25,7 @@ sub new {
     my ($class, $name) = @_;
     my $self = bless({class => $class}, $class);
 
-    require "backend/$name.pm";
+    require "backend/$name.pm";    ## no critic
     $self->{'backend'}      = "backend::$name"->new();
     $self->{'backend_name'} = $name;
 
@@ -34,7 +34,7 @@ sub new {
     return $self;
 }
 
-sub start() {
+sub start {
     my ($self) = @_;
 
     my $p1, my $p2;
@@ -85,7 +85,7 @@ sub stop {
 
 # new api
 
-sub start_vm($) {
+sub start_vm {
     my $self = shift;
     my $json = to_json($self->get_info());
     open(my $runf, ">", 'backend.run') or die "can not write 'backend.run'";
@@ -105,13 +105,13 @@ sub start_vm($) {
     return 1;
 }
 
-sub stop_thread($) {
+sub stop_thread {
     my $self = shift;
     unlink('backend.run');
     $self->stop_vm();
 }
 
-sub get_info() {
+sub get_info {
     my ($self) = @_;
     $self->{'infos'} ||= {
         'backend'      => $self->{'backend_name'},
@@ -121,17 +121,17 @@ sub get_info() {
 
 # new api end
 
-sub send_key($) {
+sub send_key {
     my ($self, $key) = @_;
     return $self->_send_json({'cmd' => "send_key", 'arguments' => {'key' => $key}});
 }
 
-sub mouse_button($$$) {
+sub mouse_button {
     my ($self, $button, $bstate) = @_;
     return $self->_send_json({'cmd' => "mouse_button", 'arguments' => {'button' => $button, 'bstate' => $bstate}});
 }
 
-sub mouse_hide(;$) {
+sub mouse_hide {
     my ($self, $border_offset) = @_;
     $border_offset ||= 0;
 
@@ -158,7 +158,8 @@ sub AUTOLOAD {
         carp "we require a hash as arguments for $cmd";
     }
 
-    no strict 'refs';    # allow symbolic references
+    # allow symbolic references
+    no strict 'refs';    ## no critic
     *$AUTOLOAD = sub { my ($self, $args) = @_; return $self->_send_json({'cmd' => $cmd, 'arguments' => $args}); };
     goto &$AUTOLOAD;     # Restart the new routine.
 }
@@ -184,13 +185,13 @@ sub _send_json {
         close($self->{from_child});
         $self->{from_child} = undef;
         $self->stop();
-        return undef;
+        return;
     }
     return $rsp->{'rsp'};
 }
 
 # utility function
-sub _read_json($) {
+sub _read_json {
     my ($socket) = @_;
 
     my $rsp = '';
@@ -209,11 +210,11 @@ sub _read_json($) {
         }
         my $qbuffer;
         my $bytes = sysread($socket, $qbuffer, 1);
-        if (!$bytes) { diag("sysread failed: $!"); return undef; }
+        if (!$bytes) { diag("sysread failed: $!"); return; }
         $rsp .= $qbuffer;
         if ($rsp eq $backend::baseclass::MAGIC_PIPE_CLOSE_STRING) {
             print "received magic close\n";
-            return undef;
+            return;
         }
         if ($rsp !~ m/\n/) { next; }
         $hash = eval { JSON::decode_json($rsp); };

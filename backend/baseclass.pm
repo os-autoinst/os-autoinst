@@ -29,7 +29,7 @@ sub new {
 }
 
 # runs in the thread to deserialize VNC commands
-sub handle_command($) {
+sub handle_command {
 
     my ($self, $cmd) = @_;
 
@@ -128,7 +128,7 @@ running, e.g. to do some fast or slow motion.
 
 =cut
 
-sub run_capture_loop($;$$$$ ) {
+sub run_capture_loop {
     my ($self, $select, $timeout, $update_request_interval, $screenshot_interval) = @_;
     my $starttime = gettimeofday;
     # say Dumper $self;
@@ -178,8 +178,10 @@ sub run_capture_loop($;$$$$ ) {
                 }
             }
             else {
-                select(undef, undef, undef, $time_to_next);
-                #usleep($time_to_next * 1_000_000);
+                # "select" used to emulate "sleep"
+                # (coolo) no idea why susanne did this
+                select(undef, undef, undef, $time_to_next);    ## no critic
+                                                               #usleep($time_to_next * 1_000_000);
             }
         }
     };
@@ -192,13 +194,13 @@ sub run_capture_loop($;$$$$ ) {
 
 # new api
 
-sub start_encoder() {
+sub start_encoder {
     my ($self) = @_;
 
     return if $bmwqemu::vars{NOVIDEO};
 
     my $cwd = Cwd::getcwd();
-    open($self->{encoder_pipe}, "|nice -n 19 $bmwqemu::scriptdir/videoencoder $cwd/video.ogv")
+    open($self->{encoder_pipe}, "|-", "nice -n 19 $bmwqemu::scriptdir/videoencoder $cwd/video.ogv")
       || die "can't call $bmwqemu::scriptdir/videoencoder";
 }
 
@@ -207,14 +209,14 @@ sub get_last_mouse_set {
     return $self->{mouse};
 }
 
-sub post_start_hook($) {
+sub post_start_hook {
     my ($self) = @_;
 
     # ignored by default
     return 0;
 }
 
-sub start_vm($) {
+sub start_vm {
     my ($self) = @_;
     $self->{mouse} = {x => undef, y => undef};
     $self->{started} = 1;
@@ -223,7 +225,7 @@ sub start_vm($) {
     $self->do_start_vm();
 }
 
-sub stop_vm($) {
+sub stop_vm {
     my $self = shift;
     if ($self->{started}) {
         close($self->{encoder_pipe}) if $self->{encoder_pipe};
@@ -235,7 +237,7 @@ sub stop_vm($) {
     return {};
 }
 
-sub alive($) {
+sub alive {
     my $self = shift;
     if ($self->{started}) {
         if ($self->file_alive() and $self->raw_alive()) {
@@ -269,46 +271,46 @@ sub write_crash_file {
 # virtual methods
 sub notimplemented() { confess "backend method not implemented" }
 
-sub power($) {
+sub power {
 
     # parameters: acpi, reset, (on), off
     notimplemented;
 }
 
-sub insert_cd($;$) { notimplemented }
-sub eject_cd(;$)   { notimplemented }
+sub insert_cd { notimplemented }
+sub eject_cd  { notimplemented }
 
-sub do_start_vm($) {
+sub do_start_vm {
     # start up the vm
     notimplemented;
 }
 
-sub do_stop_vm($) { notimplemented }
+sub do_stop_vm { notimplemented }
 
-sub stop                 { notimplemented }
-sub cont                 { notimplemented }
-sub do_savevm($)         { notimplemented }
-sub do_loadvm($)         { notimplemented }
-sub do_extract_assets($) { notimplemented }
-sub status()             { notimplemented }
+sub stop              { notimplemented }
+sub cont              { notimplemented }
+sub do_savevm         { notimplemented }
+sub do_loadvm         { notimplemented }
+sub do_extract_assets { notimplemented }
+sub status            { notimplemented }
 
 ## MAY be overwritten:
 
-sub get_backend_info($) {
+sub get_backend_info {
 
     # returns hashref
     my $self = shift;
     return {};
 }
 
-sub cpu_stat($) {
+sub cpu_stat {
 
     # vm's would return
     # (userstat, systemstat)
     return [];
 }
 
-sub init_charmap($) {
+sub init_charmap {
 
     my ($self) = (@_);
 
@@ -359,13 +361,13 @@ sub init_charmap($) {
     ## charmap end
 }
 
-sub map_letter($) {
+sub map_letter {
     my ($self, $letter) = @_;
     return $self->{charmap}->{$letter} if $self->{charmap}->{$letter};
     return $letter;
 }
 
-sub type_string($$) {
+sub type_string {
     my ($self, $string, $maxinterval) = @_;
 
     my $typedchars = 0;
@@ -384,7 +386,7 @@ sub type_string($$) {
 my $lastscreenshot;
 my $lastscreenshotName;
 
-sub enqueue_screenshot() {
+sub enqueue_screenshot {
     my ($self, $image) = @_;
 
     return unless $image;
@@ -436,7 +438,7 @@ sub enqueue_screenshot() {
     }
 }
 
-sub close_pipes() {
+sub close_pipes {
     my ($self) = @_;
 
     if ($self->{cmdpipe}) {
@@ -480,7 +482,7 @@ sub check_socket {
 ###################################################################
 ## access other consoles from the test case thread
 
-sub activate_console($$) {
+sub activate_console {
     my ($self, $args) = @_;
     my $testapi_console = $args->{testapi_console};
 
@@ -494,9 +496,10 @@ sub activate_console($$) {
     $self->{consoles}->{$testapi_console} = $new_console;
     $self->select_console($args);
 
-    return undef;
+    return;
 }
-sub _new_console($$) {
+
+sub _new_console {
     # create and return a new console of class
     # $args->{backend_console} with parameters $args->{backend_args}.
     #
@@ -513,7 +516,7 @@ sub _new_console($$) {
       "overload _new_console in your subclass!";
 }
 
-sub select_console($$) {
+sub select_console {
     my ($self, $args) = @_;
     #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($args);
     my $testapi_console = $args->{testapi_console};
@@ -524,15 +527,16 @@ sub select_console($$) {
     #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($selected_console_info);
     $self->_select_console($selected_console_info);
     $self->{current_console} = $selected_console_info;
-    return undef;
 }
-sub _select_console($$) {
+
+sub _select_console {
     my ($self, $args) = @_;
     # hook in the backend to do whatever is necessary to effectively
     # switch the console to $args->{testapi_console}
     die "overload _select_console in your subclass!";
 }
-sub deactivate_console($$) {
+
+sub deactivate_console {
     my ($self, $args) = @_;
     my $testapi_console = $args->{testapi_console};
     unless (exists $self->{consoles}->{$testapi_console}) {
@@ -544,16 +548,17 @@ sub deactivate_console($$) {
     }
     $self->_delete_console($console_info);
     delete $self->{consoles}->{$testapi_console};
-    return undef;
 }
-sub _delete_console($$) {
+
+sub _delete_console {
     # my ($self, $args) = @_;
     # tear down the backend console $args->{backend_console} (disconnect, free ressources, etc).
     die "overload _delete_console in your subclass!";
 }
+
 ###################################################################
 # this is used by backend::console_proxy
-sub proxy_console_call($$) {
+sub proxy_console_call {
     my ($self, $wrapped_call) = @_;
 
     my ($console, $function, $args) = @$wrapped_call{qw(console function args)};

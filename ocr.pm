@@ -6,7 +6,7 @@ our $gocrbin = "/usr/bin/gocr";
 if (!-x $gocrbin) { $gocrbin = undef }
 
 # input: image ref
-sub get_ocr($$@) {
+sub get_ocr {
     my $ppm        = shift;
     my $gocrparams = shift || "";
     my @ocrrect    = @{$_[0]};
@@ -21,11 +21,11 @@ sub get_ocr($$@) {
     # init DB file:
     if (!-e "db/db.lst") {
         mkdir "db";
-        open(my $fd, ">db/db.lst");
+        open(my $fd, ">", "db/db.lst");
         close $fd;
     }
 
-    open(my $pipe, "$gocrbin -l 128 -d 0 $gocrparams $tempname |") or return "failed to exec $gocrbin: $!";
+    open(my $pipe, '-|', "$gocrbin -l 128 -d 0 $gocrparams $tempname") or return "failed to exec $gocrbin: $!";
     local $/;
     my $ocr = <$pipe>;
     close($pipe);
@@ -36,15 +36,14 @@ sub get_ocr($$@) {
 # input: image ref, area
 # FIXME: pass options
 # FIXME: write C library bindings instead of system()
-sub tesseract($;$$) {
-    my $img   = shift;
-    my $area  = shift;
+sub tesseract {
+    my ($img, $area) = @_;
     my $imgfn = 'ocr.png';
     my $txtfn = 'ocr';       # tesseract appends .txt automatically o_O
     my $txt;
 
     if ($area) {
-        $img = $img->copyrect($area->{'xpos'}, $area->{'ypos'}, $area->{'width'}, $area->{'height'});
+        $img = $img->copyrect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height});
     }
 
     $img->write($imgfn);

@@ -12,29 +12,29 @@ use bmwqemu;
 #use lib "$FindBin::Bin/helper";
 use base ('backend::helper::scancodes', 'backend::baseclass');
 
-sub init() {
-    my $self = shift;
+sub init {
+    my ($self) = @_;
     $self->{'vmname'} = 'osautoinst';
     $self->{'pid'}    = undef;
     $self->backend::helper::scancodes::init();
 }
 
-sub post_start_hook($) {
-    my $self = shift;    # ignored in base
+sub post_start_hook {
+    my ($self) = @_;    # ignored in base
     inst::screenshot::start_screenshot_thread($self);
 }
 
 # scancode virt method overwrite
 
-sub keycode_down($) {
-    my $self    = shift;
-    my $key     = shift;
-    my $keycode = $self->{'keymaps'}->{'vbox'}->{$key};
+sub keycode_down {
+    my ($self, $key) = @_;
+
+    my $keycode = $self->{keymaps}->{vbox}->{$key};
     if ($keycode >= 0x80) { return (0xe0, $keycode ^ 0x80); }
     return ($keycode);
 }
 
-sub keycode_up($) {
+sub keycode_up {
     my $self    = shift;
     my $key     = shift;
     my $keycode = $self->{'keymaps'}->{'vbox'}->{$key};
@@ -42,7 +42,7 @@ sub keycode_up($) {
     return ($keycode ^ 0x80);
 }
 
-sub raw_keyboard_io($) {
+sub raw_keyboard_io {
     my $self  = shift;
     my $data  = shift;
     my @codes = map(sprintf("%02x", $_), @$data);
@@ -53,7 +53,7 @@ sub raw_keyboard_io($) {
 
 # baseclass virt method overwrite
 
-sub screendump() {
+sub screendump {
     my $self = shift;
     my $tmp = File::Temp->new(UNLINK => 0, SUFFIX => '.png', OPEN => 0);
     $self->raw_vbox_controlvm("screenshotpng", $tmp);
@@ -62,7 +62,7 @@ sub screendump() {
     return $ret;
 }
 
-sub power($) {
+sub power {
 
     # parameters:
     # acpi, reset, off
@@ -88,29 +88,29 @@ sub power($) {
 #	# TODO
 #}
 
-sub insert_cd($) {
+sub insert_cd {
     my $self = shift;
     my $iso  = shift;
     system(qq'VBoxManage storageattach ' . $self->{vmname} . ' --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium ' . $iso);
 }
 
-sub eject_cd($) {
+sub eject_cd {
     my $self = shift;
     system(qq'VBoxManage storageattach ' . $self->{'vmname'} . ' --storagectl "IDE Controller" --port 1 --device 0 --type dvddrive --medium emptydrive');
 }
 
-sub start_audiocapture($) {
+sub start_audiocapture {
     my $self        = shift;
     my $wavfilename = shift;
     my $scriptdir   = $bmwqemu::scriptdir || '.';
     system("$scriptdir/tools/pawav.pl $wavfilename &");
 }
 
-sub stop_audiocapture($) {
+sub stop_audiocapture {
     system("killall", "parec");
 }
 
-sub raw_alive($) {
+sub raw_alive {
     my $self = shift;
     return 0 unless $self->{'pid'};
     return kill(0, $self->{'pid'});
@@ -143,12 +143,12 @@ sub do_stop_vm {
 
 # baseclass virt method overwrite end
 
-sub raw_vbox_controlvm($) {
+sub raw_vbox_controlvm {
     my $self = shift;
     system("VBoxManage", "controlvm", $self->{'vmname'}, @_);
 }
 
-sub raw_vbox_snapshot($) {
+sub raw_vbox_snapshot {
     my $self = shift;
     print STDOUT "vbox_snapshot @_\n";
     system("VBoxManage", "snapshot", $self->{'vmname'}, @_);
@@ -164,20 +164,20 @@ sub cont {
     $self->raw_vbox_controlvm("resume");
 }
 
-sub do_savevm($) {
+sub do_savevm {
     my ($self, $vmname) = @_;
     $self->raw_vbox_snapshot("take", $vmname, "--live");
 }
 
-sub do_loadvm($) {
+sub do_loadvm {
     my ($self, $vmname) = @_;
     $self->raw_vbox_snapshot("restore", $vmname);
 }
 
-sub status($) {
+sub status {
     my ($self) = @_;
     print "status ignored\n";
-    return undef;
+    return;
 }
 
 1;

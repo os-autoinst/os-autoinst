@@ -95,33 +95,32 @@ sub do_start_vm() {
     return {};
 }
 
-sub do_stop_vm() {
+sub do_stop_vm {
     my ($self) = @_;
 
     $self->ipmitool("chassis power off");
     $self->stop_serial_grab();
 }
 
-sub do_savevm($) {
+sub do_savevm {
     my ($self, $args) = @_;
     print "do_savevm ignored\n";
     return {};
 }
 
-sub do_loadvm($) {
+sub do_loadvm {
     my ($self, $args) = @_;
     die "if you need loadvm, you're screwed with IPMI";
 }
 
-sub status($) {
+sub status {
     my ($self) = @_;
     print "status ignored\n";
-    return undef;
 }
 
 # serial grab
 
-sub start_serial_grab() {
+sub start_serial_grab {
     my $self = shift;
     my $pid  = fork();
     if ($pid == 0) {
@@ -144,7 +143,7 @@ sub start_serial_grab() {
     }
 }
 
-sub stop_serial_grab($) {
+sub stop_serial_grab {
     my $self = shift;
     return unless $self->{serialpid};
     kill("-TERM", $self->{serialpid});

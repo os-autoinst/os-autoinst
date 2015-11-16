@@ -7,10 +7,10 @@ use JSON;
 use POSIX;
 use testapi ();
 
-sub new(;$) {
-    my $class    = shift;
-    my $category = shift || 'unknown';
-    my $self     = {class => $class};
+sub new {
+    my ($class, $category) = @_;
+    $category ||= 'unknown';
+    my $self = {class => $class};
     $self->{lastscreenshot}         = undef;
     $self->{details}                = [];
     $self->{result}                 = undef;
@@ -41,7 +41,7 @@ Can eg. check vars{BIGTEST}, vars{LIVETEST}
 
 =cut
 
-sub is_applicable() {
+sub is_applicable {
     return 1;
 }
 
@@ -58,7 +58,7 @@ default is obviously no flags, installation tests are 'fatal' by default
 
 =cut
 
-sub test_flags($) {
+sub test_flags {
     return {};
 }
 
@@ -68,18 +68,16 @@ Function is run after test has failed to e.g. recover log files
 
 =cut
 
-sub post_fail_hook() {
+sub post_fail_hook {
     return 1;
 }
 
-sub record_screenmatch($$;$$) {
-    my $self           = shift;
-    my $img            = shift;
-    my $match          = shift;
-    my $tags           = shift || [];
-    my $failed_needles = shift || [];
+sub record_screenmatch {
+    my ($self, $img, $match, $tags, $failed_needles) = @_;
+    $tags           ||= [];
+    $failed_needles ||= [];
 
-    my $count    = ++$self->{"test_count"};
+    my $count    = ++$self->{test_count};
     my $testname = ref($self);
 
     my $h          = $self->_serialize_match($match);
@@ -130,9 +128,8 @@ serialize a match result from needle::search
 
 =cut
 
-sub _serialize_match($$) {
-    my $self = shift;
-    my $cand = shift;
+sub _serialize_match {
+    my ($self, $cand) = @_;
 
     my $testname = ref($self);
     my $count    = $self->{"test_count"};
@@ -160,7 +157,7 @@ sub _serialize_match($$) {
     return $h;
 }
 
-sub record_screenfail($@) {
+sub record_screenfail {
     my $self    = shift;
     my %args    = @_;
     my $img     = $args{img};
@@ -194,25 +191,25 @@ sub record_screenfail($@) {
 }
 
 # for interactive mode
-sub remove_last_result() {
+sub remove_last_result {
     my $self = shift;
-    --$self->{"test_count"};
+    --$self->{test_count};
     pop @{$self->{details}};
 }
 
-sub details($) {
-    my $self = shift;
+sub details {
+    my ($self) = @_;
     return $self->{details};
 }
 
-sub result($;$) {
-    my $self = shift;
-    $self->{result} = shift if @_;
+sub result {
+    my ($self, $result) = @_;
+    $self->{result} = $result if $result;
     return $self->{result} || 'na';
 }
 
 sub start() {
-    my $self = shift;
+    my ($self) = @_;
     $self->{running} = 1;
     bmwqemu::set_serial_offset();
     autotest::set_current_test($self);
@@ -249,10 +246,9 @@ sub timeout_screenshot() {
     $self->take_screenshot(sprintf("timeout-%02i", $n));
 }
 
-sub waitforprevimg($$;$) {
-    my $self    = shift;
-    my $previmg = shift;
-    my $timeout = shift || 5;
+sub waitforprevimg {
+    my ($self, $previmg, $timeout) = @_;
+    $timeout ||= 5;
 
     my $name = ref($self);
     my $currentimg;
@@ -262,7 +258,7 @@ sub waitforprevimg($$;$) {
         my $sim = $currentimg->similarity($previmg);
         bmwqemu::diag "$i: SIM $name $sim";
         if ($sim >= 49) {
-            return undef;
+            return;
         }
         sleep 1;
     }
@@ -281,8 +277,8 @@ sub post_run_hook {
     # you should overload that in test classes
 }
 
-sub runtest($$) {
-    my $self      = shift;
+sub runtest {
+    my ($self) = @_;
     my $starttime = time;
 
     my $ret;
@@ -329,7 +325,7 @@ sub save_test_result() {
     bmwqemu::save_json_file($result, $fn);
 }
 
-sub next_resultname($;$) {
+sub next_resultname {
     my ($self, $type, $name) = @_;
     my $testname = ref($self);
     my $count    = ++$self->{"test_count"};
@@ -365,7 +361,7 @@ generic function that adds a test result to results and re-computes overall stat
 
 =cut
 
-sub record_testresult($) {
+sub record_testresult {
     my ($self, $res) = @_;
 
     unless ($res && $res =~ /(ok|unk|fail)/) {
@@ -393,7 +389,7 @@ internal function to add a screenshot to an existing result structure
 
 =cut
 
-sub _result_add_screenshot($$) {
+sub _result_add_screenshot {
     my ($self, $result, $img) = @_;
 
     $img //= bmwqemu::getcurrentscreenshot();
@@ -415,7 +411,7 @@ add screenshot with 'unk' result
 
 =cut
 
-sub take_screenshot(;$) {
+sub take_screenshot {
     my ($self, $res) = @_;
     $res ||= 'unk';
 
@@ -461,9 +457,8 @@ stop audio capture and compare DTMF decoded result with reference
 
 =cut
 
-sub assert_DTMF($) {
-    my $self = shift;
-    my $ref  = shift;
+sub assert_DTMF {
+    my ($self, $ref) = @_;
 
     my $result = $self->stop_audiocapture();
     $result->{reference_text} = $ref;
@@ -502,7 +497,7 @@ sub ocr_checklist {
     return [];
 }
 
-sub standstill_detected($) {
+sub standstill_detected {
     my ($self, $lastscreenshot) = @_;
 
     $self->record_screenfail(

@@ -695,7 +695,7 @@ sub update_framebuffer() {    # upstream VNC.pm:  "capture"
 use POSIX qw(:errno_h);
 
 # frame buffer update request
-sub send_update_request(;$) {
+sub send_update_request {
     my ($self) = @_;
 
     # FIXME: wrong fix for alive check!
@@ -742,7 +742,7 @@ sub _receive_message {
         #my $_EAGAIN_counter = $self->_EAGAIN_counter();
         #die "socket broken, too many EAGAIN \n${\Dumper $self}" if $_EAGAIN_counter > 235; ## magic 235
         #$self->_EAGAIN_counter($_EAGAIN_counter + 1);
-        return undef;
+        return;
     }
     else {
         #$self->_EAGAIN_counter(0);
@@ -757,7 +757,7 @@ sub _receive_message {
         #warn "socket read error: $!";
         #die "socket dead, too many read errors \n${\Dumper $self}" if $_UNDEF_counter > 7; ## magic 7
         #$self->_UNDEF_counter($_UNDEF_counter + 1);
-        return undef;
+        return;
     }
 
     die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;

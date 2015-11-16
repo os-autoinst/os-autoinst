@@ -37,7 +37,7 @@ sub HELP_MESSAGE {
 }
 
 # enable debug default when started from a tty
-$bmwqemu::istty = -t 1;
+$bmwqemu::istty = -t 1; ## no critic
 our ($opt_d);
 getopts('d');
 $bmwqemu::direct_output = $opt_d;
@@ -107,7 +107,7 @@ bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
 needle::init();
 
 if ($init) {
-    open( my $fd, ">os-autoinst.pid" );
+    open( my $fd, ">", "os-autoinst.pid" );
     print $fd "$$\n";
     close $fd;
 
@@ -190,7 +190,7 @@ if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
 # run postrun test code after VM is stopped
 if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
     diag "running postrun step";
-    eval {require "$bmwqemu::vars{CASEDIR}/postrun.pm";};
+    eval { require "$bmwqemu::vars{CASEDIR}/postrun.pm"; }; ## no critic
     if ($@) {
         diag "postrun step FAIL:";
         warn $@;

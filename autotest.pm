@@ -10,7 +10,7 @@ our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
 our $running;      # currently running test or undef
 
-sub loadtest($) {
+sub loadtest {
     my ($script) = @_;
     my $casedir = $bmwqemu::vars{CASEDIR};
 
@@ -37,7 +37,7 @@ sub loadtest($) {
         my $basename = dirname($script);
         $code .= "use lib '$casedir/$basename';";
         $code .= "require '$casedir/$script';";
-        eval $code;
+        eval $code;    ## no critic
         if ($@) {
             my $msg = "error on $script: $@";
             bmwqemu::diag($msg);
@@ -56,7 +56,7 @@ sub loadtest($) {
 
 our $current_test;
 
-sub set_current_test($) {
+sub set_current_test {
     ($current_test) = @_;
     bmwqemu::save_status();
 }
@@ -132,12 +132,12 @@ sub runalltests {
     return 1;
 }
 
-sub loadtestdir($) {
+sub loadtestdir {
     my $dir = shift;
     $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
     $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
     die "$dir does not exist!\n" unless -d $dir;
-    foreach my $script (<$dir/*.pm>) {
+    foreach my $script (glob "$dir/*.pm") {
         loadtest($script);
     }
 }

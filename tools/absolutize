@@ -1,7 +1,10 @@
 #!/usr/bin/perl
+
+use strict;
+
 $_ = shift;
 unless (m{^/}) {
-    $currDir = `pwd`;
+    my $currDir = `pwd`;
     chomp $currDir;
     $_ = "$currDir/$_";
 }
