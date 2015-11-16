@@ -23,7 +23,7 @@ use base ('backend::helper::scancodes', 'backend::baseclass');
 
 use bmwqemu qw(diag);
 
-sub init() {
+sub init {
     my $self = shift;
     $self->{'hardware'} = YAML::LoadFile("/etc/os-autoinst/kvm2usb.yml")->{$bmwqemu::vars{'HWSLOT'}};
     unless (defined $self->{'hardware'}) {
@@ -35,14 +35,14 @@ sub init() {
     $self->backend::helper::scancodes::init();
 }
 
-sub post_start_hook($) {
+sub post_start_hook {
     my $self = shift;    # ignored in base
     inst::screenshot::start_screenshot_thread($self);
 }
 
 # scancode virt method overwrite
 
-sub keycode_down($) {
+sub keycode_down {
     my $self     = shift;
     my $key      = shift;
     my $scancode = $self->{'keymaps'}->{'kvm2usb'}->{$key};
@@ -54,7 +54,7 @@ sub keycode_down($) {
     return (0x01, $scancode);
 }
 
-sub keycode_up($) {
+sub keycode_up {
     my $self     = shift;
     my $key      = shift;
     my $scancode = $self->{'keymaps'}->{'kvm2usb'}->{$key};
@@ -64,7 +64,7 @@ sub keycode_up($) {
     return (0x02, 0xF0, $scancode);
 }
 
-sub raw_keyboard_io($) {
+sub raw_keyboard_io {
     my $self = shift;
     my $data = shift;
     $self->raw_ps2_io(1, $data);
@@ -72,7 +72,7 @@ sub raw_keyboard_io($) {
 
 # scancode virt method overwrite end
 
-sub raw_mouse_io($) {
+sub raw_mouse_io {
     my $self = shift;
 
     # delta value for cursor movement
@@ -98,7 +98,7 @@ sub raw_mouse_io($) {
 
 # baseclass virt method overwrite
 
-sub mouse_move($$) {
+sub mouse_move {
     my ($self, $dx, $dy) = @_;
     while ($dx ne 0 or $dy ne 0) {
         my $dx_jump = $dx > SCHAR_MAX ? SCHAR_MAX : ($dx < SCHAR_MIN ? SCHAR_MIN : $dx);
@@ -109,7 +109,7 @@ sub mouse_move($$) {
     }
 }
 
-sub mouse_set($$) {
+sub mouse_set {
     my ($self, $x, $y) = @_;
 
     # let's see how far this will work...
@@ -122,7 +122,7 @@ sub mouse_set($$) {
     $self->mouse_move($dx, $dy);
 }
 
-sub mouse_hide(;$) {
+sub mouse_hide {
     my $self = shift;
     my $border_offset = shift || 0;
     $self->mouse_move(2000, 2000);
@@ -133,14 +133,14 @@ sub mouse_hide(;$) {
     }
 }
 
-sub screendump($) {
+sub screendump {
     my $self = shift;
     my $tmp = File::Temp->new(UNLINK => 0, SUFFIX => '.ppm', OPEN => 0);
 
     # streamer -q -c /dev/video0 -o out.ppm
     my $pid = fork();
     if ($pid == 0) {
-        open(STDERR, ">/dev/null");
+        open(STDERR, ">", "/dev/null");
         exec('streamer', '-q', '-c', $self->{'hardware'}->{'video'}, '-o', $tmp) or die;
     }
     else {
@@ -153,10 +153,9 @@ sub screendump($) {
         }
         unlink $tmp;
     }
-    return undef;
 }
 
-sub start_audiocapture($) {
+sub start_audiocapture {
     my $self        = shift;
     my $wavfilename = shift;
     if ($self->{'hardware'}->{'sound'} eq 'null') {
@@ -175,7 +174,7 @@ sub start_audiocapture($) {
     }
 }
 
-sub stop_audiocapture($) {
+sub stop_audiocapture {
     my $self = shift;
     return unless defined $self->{'arecordpid'};
     kill(15, $self->{'arecordpid'});
@@ -183,7 +182,7 @@ sub stop_audiocapture($) {
     waitpid($self->{'arecordpid'}, WNOHANG);
 }
 
-sub insert_cd($) {
+sub insert_cd {
     my $self = shift;
     my $iso  = shift;
     if ($self->{'hardware'}->{'cdrom'} eq 'ilo') {
@@ -201,7 +200,7 @@ sub insert_cd($) {
     }
 }
 
-sub eject_cd() {
+sub eject_cd {
     my $self = shift;
     if ($self->{'hardware'}->{'cdrom'} eq 'ilo') {
         my $ilo_xml = '<RIB_INFO MODE="write">' . '<EJECT_VIRTUAL_MEDIA DEVICE="CDROM" />' . '</RIB_INFO>';
@@ -212,7 +211,7 @@ sub eject_cd() {
     }
 }
 
-sub power($) {
+sub power {
 
     # parameters:
     # acpi, reset, on, off
@@ -245,12 +244,12 @@ sub power($) {
     }
 }
 
-sub raw_alive($) {
+sub raw_alive {
     my $self = shift;
     return $self->{'isalive'};
 }
 
-sub get_backend_info($) {
+sub get_backend_info {
     my $self = shift;
     return {
         'hwslot'  => $bmwqemu::vars{'HWSLOT'},
@@ -284,29 +283,28 @@ sub cont {
     print STDOUT "cont=NOP\n";
 }
 
-sub do_savevm($) {
+sub do_savevm {
     print STDOUT "do_savevm=NOP\n";
 }
 
-sub do_loadvm($) {
+sub do_loadvm {
     print STDOUT "do_loadvm=NOP\n";
 }
 
-sub status($) {
+sub status {
     print STDOUT "do_upload_image=NOP\n";
-    return undef;
 }
 
 # baseclass virt method overwrite end
 
-sub screenactive($) {
+sub screenactive {
     my $self = shift;
     return $self->{'isscreenactive'};
 }
 
 # ioctl
 
-sub raw_ps2_io($) {
+sub raw_ps2_io {
     my $self   = shift;
     my $addr   = shift;    # 1=keyb 2=mouse
     my $data   = shift;
@@ -322,7 +320,7 @@ sub raw_ps2_io($) {
     close($fd);
 }
 
-sub raw_set_capture_params($) {
+sub raw_set_capture_params {
     my $self    = shift;
     my $confp   = $self->{'hardware'}->{'grab_params'};
     my $h       = shift || $confp->{'hshift'};                                                                                                             # value -255,255
@@ -339,7 +337,7 @@ sub raw_set_capture_params($) {
 
 }
 
-sub raw_get_videomode($) {
+sub raw_get_videomode {
     my $self = shift;
     my $vmode_packed = pack('lll', 0, 0, 0);
     open(my $fd, "+>", $self->{'hardware'}->{'ctldev'}) or die $!;
@@ -358,7 +356,7 @@ sub raw_get_videomode($) {
 
 # snmp / bmc
 
-sub raw_power_snmp($) {
+sub raw_power_snmp {
 
     # parameter: on, off
     my $self     = shift;
@@ -381,7 +379,7 @@ sub raw_power_snmp($) {
     $session->close();
 }
 
-sub raw_power_ilo($) {
+sub raw_power_ilo {
     my $self   = shift;
     my $action = shift;
     my $xcmd   = '';
@@ -408,7 +406,7 @@ sub raw_power_ilo($) {
     $self->raw_ilo_request($ilo_xml);
 }
 
-sub raw_ilo_request($) {
+sub raw_ilo_request {
     my $self    = shift;
     my $ilo_xml = shift;
     my $ihost   = $self->{'hardware'}->{'ilo'}->{'host'};
@@ -438,7 +436,7 @@ sub raw_ilo_request($) {
 
 # serial grab
 
-sub start_serial_grab() {
+sub start_serial_grab {
     my $self = shift;
 
     # kill all dd's on the same tty
@@ -466,7 +464,7 @@ sub start_serial_grab() {
     }
 }
 
-sub stop_serial_grab($) {
+sub stop_serial_grab {
     my $self = shift;
     kill(15, $self->{'serialpid'});
     sleep 1;

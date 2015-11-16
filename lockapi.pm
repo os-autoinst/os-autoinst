@@ -25,22 +25,22 @@ our @EXPORT = qw/mutex_create mutex_lock mutex_unlock/;
 require bmwqemu;
 use mmapi qw/api_call/;
 
-sub mutex_lock($) {
+sub mutex_lock {
     my ($name) = @_;
     return _mutex_call('post', "mutex/$name/lock");
 }
 
-sub mutex_unlock($) {
+sub mutex_unlock {
     my ($name) = @_;
     return _mutex_call('post', "mutex/$name/unlock");
 }
 
-sub mutex_create($) {
+sub mutex_create {
     my ($name) = @_;
     return _mutex_call('post', "mutex/$name");
 }
 
-sub _mutex_call($$) {
+sub _mutex_call {
     my ($method, $action) = @_;
     while (1) {
         my $res = api_call($method, $action)->code;

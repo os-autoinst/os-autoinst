@@ -6,8 +6,9 @@
 
 package backend::console_proxy;
 use Data::Dumper qw(Dumper);
+use strict;
 
-sub new() {
+sub new {
     my ($class, $console) = @_;
 
     my $self = bless({class => $class, console => $console}, $class);
@@ -24,7 +25,8 @@ sub AUTOLOAD {
     $function =~ s,.*::,,;
 
     #<<< perltidy, this _is_ tidy...
-    no strict 'refs';  # allow symbolic references
+    # allow symbolic references
+    no strict 'refs'; ## no critic
     *$AUTOLOAD = sub {
 	my $self = shift;
 	my $args = \@_;

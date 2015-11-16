@@ -1,5 +1,3 @@
-$| = 1;
-
 package bmwqemu;
 use strict;
 use warnings;
@@ -29,6 +27,8 @@ our @EXPORT = qw(diag fileContent save_vars);
 use backend::driver;
 
 sub mydie;
+
+$| = 1;
 
 # shared vars
 
@@ -214,7 +214,7 @@ sub set_ocr_rect { @ocrrect = @_; }
 
 # util and helper functions
 
-sub print_possibly_colored($;$) {
+sub print_possibly_colored {
     my ($text, $color) = @_;
 
     if (($direct_output && !$istty) || !$direct_output) {
@@ -230,7 +230,7 @@ sub print_possibly_colored($;$) {
     }
 }
 
-sub diag($) {
+sub diag {
     print_possibly_colored "@_";
 }
 
@@ -297,9 +297,9 @@ sub log_call {
     print_possibly_colored '<<< ' . $fname . "($params)", 'blue';
 }
 
-sub fileContent($) {
+sub fileContent {
     my ($fn) = @_;
-    open(my $fd, $fn) or return undef;
+    open(my $fd, "<", $fn) or return;
     local $/;
     my $result = <$fd>;
     close($fd);
@@ -310,8 +310,8 @@ our $lastscreenshot;
 our $lastscreenshotName = '';
 our $lastscreenshotTime;
 
-sub getcurrentscreenshot(;$) {
-    my $undef_on_standstill = shift;
+sub getcurrentscreenshot {
+    my ($undef_on_standstill) = @_;
     my $filename;
 
     # using a queue to get the latest is most likely the least efficient solution,
@@ -339,7 +339,7 @@ sub getcurrentscreenshot(;$) {
         $prestandstillwarning = ($numunchangedscreenshots > $standstillthreshold / 2);
         if ($numunchangedscreenshots > $standstillthreshold) {
             diag "STANDSTILL";
-            return undef if $undef_on_standstill;
+            return if $undef_on_standstill;
 
             current_test->standstill_detected($lastscreenshot);
             mydie "standstill detected. test ended";    # above 120s of autoreboot
@@ -353,8 +353,8 @@ sub getcurrentscreenshot(;$) {
 
 # backend management
 
-sub init_backend($) {
-    my $name = shift;
+sub init_backend {
+    my ($name) = @_;
     $backend = backend::driver->new($name);
 }
 
@@ -389,13 +389,13 @@ sub mydie {
 }
 
 sub do_start_audiocapture {
-    my $filename = shift;
+    my ($filename) = @_;
     log_call('start_audiocapture', filename => $filename);
     $backend->start_audiocapture($filename);
 }
 
-sub do_stop_audiocapture($) {
-    my $index = shift;
+sub do_stop_audiocapture {
+    my ($index) = @_;
     log_call('stop_audiocapture', index => $index);
     $backend->stop_audiocapture($index);
 }
@@ -427,24 +427,24 @@ sub get_cpu_stat() {
 
 # check functions (runtime and result-checks)
 
-sub decodewav($) {
+sub decodewav {
 
     # FIXME: move to multimonNG (multimon fork)
-    my $wavfile = shift;
+    my ($wavfile) = @_;
     unless ($wavfile) {
         warn "missing file name";
-        return undef;
+        return;
     }
     my $dtmf = '';
     my $mm   = "multimon -a DTMF -t wav $wavfile";
-    open M, "$mm |" || return 1;
-    while (<M>) {
+    open(my $M, '-|', $mm) || return 1;
+    while (<$M>) {
         next unless /^DTMF: .$/;
         my ($a, $b) = split ':';
         $b =~ tr/0-9*#ABCD//csd;    # Allow 0-9 * # A B C D
         $dtmf .= $b;
     }
-    close(M);
+    close($M);
     return $dtmf;
 }
 
@@ -460,7 +460,7 @@ Wait until the screen stops changing
 
 =cut
 
-sub wait_still_screen($$$) {
+sub wait_still_screen {
 
     my ($stilltime, $timeout, $similarity_level) = @_;
 
@@ -497,7 +497,7 @@ previous test's serial output. Call this before you start doing something new
 
 =cut
 
-sub set_serial_offset() {
+sub set_serial_offset {
     $serial_offset = -s $serialfile;
 }
 
@@ -508,13 +508,13 @@ Returns the output on the serial device since the last call to set_serial_offset
 
 =cut
 
-sub serial_text() {
+sub serial_text {
 
-    open(SERIAL, $serialfile) || die "can't open $serialfile";
-    seek(SERIAL, $serial_offset, 0);
+    open(my $SERIAL, "<", $serialfile) || die "can't open $serialfile";
+    seek($SERIAL, $serial_offset, 0);
     local $/;
-    my $data = <SERIAL>;
-    close(SERIAL);
+    my $data = <$SERIAL>;
+    close($SERIAL);
     return $data;
 }
 
@@ -529,7 +529,7 @@ C<script_run("echo Hello World E<gt> /dev/$serialdev");>
 
 =cut
 
-sub wait_serial($$$) {
+sub wait_serial {
 
     # wait for a message to appear on serial output
     my ($regexp, $timeout, $expect_not_found) = @_;
@@ -595,8 +595,9 @@ Wait until the system becomes idle
 
 =cut
 
-sub wait_idle($) {
-    my $timeout = shift || $idle_timeout;
+sub wait_idle {
+    my ($timeout) = @_;
+    $timeout ||= $idle_timeout;
     my $prev;
     my $timesidle     = 0;
     my $idlethreshold = $vars{IDLETHRESHOLD};
@@ -626,7 +627,7 @@ sub wait_idle($) {
     return 0;
 }
 
-sub save_needle_template($$$) {
+sub save_needle_template {
     my ($img, $mustmatch, $tags) = @_;
 
     my $t = POSIX::strftime("%Y%m%d_%H%M%S", gmtime());
@@ -664,9 +665,9 @@ sub save_needle_template($$$) {
 
 sub assert_screen {
     my %args         = @_;
-    my $mustmatch    = $args{'mustmatch'};
-    my $timeout      = $args{'timeout'} // $default_timeout;
-    my $check_screen = $args{'check'};
+    my $mustmatch    = $args{mustmatch};
+    my $timeout      = $args{timeout} // $default_timeout;
+    my $check_screen = $args{check};
 
     $timeout = _scale_timeout($timeout);
 
@@ -754,8 +755,8 @@ sub assert_screen {
         ($foundneedle, $failed_candidates) = $img->search($needles, 0, $search_ratio);
         if ($foundneedle) {
             current_test->record_screenmatch($img, $foundneedle, \@tags, $failed_candidates);
-            my $lastarea = $foundneedle->{'area'}->[-1];
-            fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{'needle'}->{'name'}, $lastarea->{'similarity'}, $lastarea->{'x'}, $lastarea->{'y'}));
+            my $lastarea = $foundneedle->{area}->[-1];
+            fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
             return $foundneedle;
         }
 
@@ -786,13 +787,13 @@ sub assert_screen {
 
     fctres('assert_screen', "match=$mustmatch timed out after $timeout");
     for (@{$needles || []}) {
-        diag $_->{'file'};
+        diag $_->{file};
     }
 
     if (-e $control_files{"interactive_mode"}) {
         $interactive_mode = 1;
-        if (!-e $control_files{'stop_waitforneedle'}) {
-            open(my $fd, '>', $control_files{'stop_waitforneedle'});
+        if (!-e $control_files{stop_waitforneedle}) {
+            open(my $fd, '>', $control_files{stop_waitforneedle});
             close $fd;
         }
     }
@@ -818,9 +819,9 @@ sub assert_screen {
         current_test->save_test_result();
 
         diag("interactive mode waiting for continuation");
-        while (-e $control_files{'stop_waitforneedle'}) {
-            if (-e $control_files{'reload_needles_and_retry'}) {
-                unlink($control_files{'stop_waitforneedle'});
+        while (-e $control_files{stop_waitforneedle}) {
+            if (-e $control_files{reload_needles_and_retry}) {
+                unlink($control_files{stop_waitforneedle});
                 last;
             }
             sleep 1;
@@ -829,8 +830,8 @@ sub assert_screen {
 
         current_test->remove_last_result();
 
-        if (-e $control_files{'reload_needles_and_retry'}) {
-            unlink($control_files{'reload_needles_and_retry'});
+        if (-e $control_files{reload_needles_and_retry}) {
+            unlink($control_files{reload_needles_and_retry});
             for my $n (needle->all()) {
                 $n->unregister();
             }
@@ -844,8 +845,8 @@ sub assert_screen {
         save_status();
         cont_vm();
     }
-    unlink($control_files{'stop_waitforneedle'})       if -e $control_files{'stop_waitforneedle'};
-    unlink($control_files{'reload_needles_and_retry'}) if -e $control_files{'reload_needles_and_retry'};
+    unlink($control_files{stop_waitforneedle})       if -e $control_files{stop_waitforneedle};
+    unlink($control_files{reload_needles_and_retry}) if -e $control_files{reload_needles_and_retry};
 
     my $final_mismatch = $failed_screens->[-1];
     if (!$check_screen) {
@@ -876,13 +877,12 @@ sub assert_screen {
         );
     }
 
-    unless ($args{'check'}) {
+    unless ($args{check}) {
         mydie "needle(s) '$mustmatch' not found";
     }
-    return undef;
 }
 
-sub _reduce_to_biggest_changes($$) {
+sub _reduce_to_biggest_changes {
     my ($imglist, $limit) = @_;
 
     return if @$imglist <= $limit;
@@ -907,21 +907,21 @@ sub _reduce_to_biggest_changes($$) {
     diag("sim " . join(' ', map { sprintf("%4.2f", $_->[3]) } @$imglist));
 }
 
-sub make_snapshot($) {
-    my $sname = shift;
+sub make_snapshot {
+    my ($sname) = @_;
     diag("Creating a VM snapshot $sname");
-    $backend->do_savevm({'name' => $sname});
+    $backend->do_savevm({name => $sname});
 }
 
-sub load_snapshot($) {
-    my $sname = shift;
+sub load_snapshot {
+    my ($sname) = @_;
     diag("Loading a VM snapshot $sname");
-    $backend->do_loadvm({'name' => $sname});
+    $backend->do_loadvm({name => $sname});
     sleep(10);
 }
 
 # store the obj as json into the given filename
-sub save_json_file($$) {
+sub save_json_file {
     my ($result, $fn) = @_;
 
     open(my $fd, ">", "$fn.new") or die "can not write $fn: $!\n";
@@ -930,7 +930,7 @@ sub save_json_file($$) {
     rename("$fn.new", $fn);
 }
 
-sub save_status() {
+sub save_status {
     my $result = {};
     $result->{interactive} = $interactive_mode       ? 1                 : 0;
     $result->{needinput}   = $waiting_for_new_needle ? 1                 : 0;
@@ -954,7 +954,7 @@ sub clean_control_files {
 
 sub _scale_timeout {
     my ($timeout) = @_;
-    return $timeout * ($vars{'TIMEOUT_SCALE'} // 1);
+    return $timeout * ($vars{TIMEOUT_SCALE} // 1);
 }
 
 1;

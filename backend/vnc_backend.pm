@@ -8,7 +8,7 @@ use feature qw/say/;
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 
-sub connect_vnc($$) {
+sub connect_vnc {
     my ($self, $args) = @_;
     if ($self->{vnc}) {
         close($self->{vnc}->socket);
@@ -42,7 +42,7 @@ sub connect_vnc($$) {
     return $self->{vnc};
 }
 
-sub request_screen_update($ ) {
+sub request_screen_update {
     my ($self) = @_;
     return unless $self->{vnc};
     # drain the VNC socket before polling for a new update
@@ -50,7 +50,7 @@ sub request_screen_update($ ) {
     $self->{vnc}->send_update_request();
 }
 
-sub capture_screenshot($ ) {
+sub capture_screenshot {
     my ($self) = @_;
     return unless $self->{vnc};
 
@@ -88,7 +88,7 @@ sub check_socket {
     return $self->SUPER::check_socket($fh);
 }
 
-sub close_pipes() {
+sub close_pipes {
     my ($self) = @_;
 
     close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
@@ -98,11 +98,11 @@ sub close_pipes() {
 }
 
 # to be overwritten e.g. in qemu to check stderr
-sub special_socket($) {
+sub special_socket {
     return 0;
 }
 
-sub type_string($$) {
+sub type_string {
     my ($self, $args) = @_;
 
     # speed limit: 15bps.  VNC has key up and key down over the wire,
@@ -138,7 +138,7 @@ sub type_string($$) {
     return {};
 }
 
-sub send_key($) {
+sub send_key {
     my ($self, $args) = @_;
 
     bmwqemu::diag "send_mapped_key '" . $args->{key} . "'";

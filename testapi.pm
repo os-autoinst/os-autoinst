@@ -31,12 +31,12 @@ our $serialdev;
 
 our $last_matched_needle;
 
-sub send_key($;$);
-sub check_screen($;$);
+sub send_key;
+sub check_screen;
 sub type_string;
 sub type_password;
 
-sub init() {
+sub init {
     $serialdev = get_var('SERIALDEV', "ttyS0");
     if (get_var('OFW')) {
         $serialdev = "hvc0";
@@ -44,7 +44,7 @@ sub init() {
     $serialdev = 'ttyS1' if check_var('BACKEND', 'ipmi');
 }
 
-sub set_distribution($) {
+sub set_distribution {
     ($distri) = @_;
     $distri->init();
 }
@@ -58,26 +58,24 @@ sub record_soft_failure {
     $autotest::current_test->{dents}++;
 }
 
-sub assert_screen($;$) {
-    my $mustmatch = shift;
-    my $timeout = shift // $bmwqemu::default_timeout;
+sub assert_screen {
+    my ($mustmatch, $timeout) = @_;
+    $timeout //= $bmwqemu::default_timeout;
     bmwqemu::log_call('assert_screen', mustmatch => $mustmatch, timeout => $timeout);
     return $last_matched_needle = bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout);
 }
 
-sub check_screen($;$) {
-    my $mustmatch = shift;
-    my $timeout = shift // $bmwqemu::default_timeout;
+sub check_screen {
+    my ($mustmatch, $timeout) = @_;
     bmwqemu::log_call('check_screen', mustmatch => $mustmatch, timeout => $timeout);
     return $last_matched_needle = bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout, check => 1);
 }
 
-sub match_has_tag($) {
+sub match_has_tag {
     my ($tag) = @_;
     if ($last_matched_needle) {
         return $last_matched_needle->{needle}->has_tag($tag);
     }
-    return undef;
 }
 
 =head2 assert_and_click, assert_and_dclick
@@ -88,7 +86,7 @@ deprecated: assert_and_dclick($mustmatch,[$button],[$timeout],[$click_time]);
 
 =cut
 
-sub assert_and_click($;$$$$) {
+sub assert_and_click {
     my ($mustmatch, $button, $timeout, $clicktime, $dclick) = @_;
     $timeout //= $bmwqemu::default_timeout;
 
@@ -121,7 +119,7 @@ sub assert_and_click($;$$$$) {
     mouse_set($old_mouse_coords->{'x'}, $old_mouse_coords->{'y'});
 }
 
-sub assert_and_dclick($;$$$) {
+sub assert_and_dclick {
     assert_and_click($_[0], $_[1], $_[2], $_[3], 1);
 }
 
@@ -133,7 +131,7 @@ Wait until the system becomes idle (as configured by IDLETHESHOLD)
 
 =cut
 
-sub wait_idle(;$) {
+sub wait_idle {
     my $timeout = shift || $bmwqemu::idle_timeout;
     bmwqemu::log_call('wait_idle', timeout => $timeout);
 
@@ -157,7 +155,7 @@ $expect_not_found is true.
 
 =cut
 
-sub wait_serial($;$$) {
+sub wait_serial {
 
     # wait for a message to appear on serial output
     my $regexp           = shift;
@@ -184,8 +182,8 @@ upload log file to openqa host
 
 =cut
 
-sub upload_logs($) {
-    my $file = shift;
+sub upload_logs {
+    my ($file) = @_;
 
     bmwqemu::log_call('upload_logs', file => $file);
     type_string("curl --form upload=\@$file ");
@@ -204,7 +202,7 @@ upload log file to openqa host
 
 =cut
 
-sub upload_asset($;$) {
+sub upload_asset {
     my ($file, $public) = @_;
 
     bmwqemu::log_call('upload_asset', file => $file);
@@ -222,7 +220,7 @@ mark hdd image for uploading
 
 =cut
 
-sub upload_image($$;$) {
+sub upload_image {
     # TODO: obsolete, remove. now in isotovideo directly
 }
 
@@ -236,7 +234,7 @@ Wait until the screen stops changing
 
 =cut
 
-sub wait_still_screen(;$$$) {
+sub wait_still_screen {
     my $stilltime        = shift || 7;
     my $timeout          = shift || 30;
     my $similarity_level = shift || (get_var('HW') ? 44 : 47);
@@ -245,7 +243,7 @@ sub wait_still_screen(;$$$) {
     return bmwqemu::wait_still_screen($stilltime, $timeout, $similarity_level);
 }
 
-sub clear_console() {
+sub clear_console {
     bmwqemu::log_call('clear_console');
     send_key "ctrl-c";
     sleep 1;
@@ -254,30 +252,30 @@ sub clear_console() {
     sleep 2;
 }
 
-sub get_var($;$) {
+sub get_var {
     my ($var, $default) = @_;
     return $bmwqemu::vars{$var} // $default;
 }
 
-sub set_var($$) {
+sub set_var {
     my ($var, $val) = @_;
     $bmwqemu::vars{$var} = $val;
 }
 
-sub check_var($$) {
+sub check_var {
     my ($var, $val) = @_;
     return 1 if (defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val);
     return 0;
 }
 
-sub get_var_array($;$) {
+sub get_var_array {
     my ($var, $default) = @_;
     my @vars = split(',|;', ($bmwqemu::vars{$var}));
     return $default if !@vars;
     return \@vars;
 }
 
-sub check_var_array($$) {
+sub check_var_array {
     my ($var, $val) = @_;
     my $vars_r = get_var_array($var);
     return grep { $_ eq $val } @$vars_r;
@@ -285,7 +283,7 @@ sub check_var_array($$) {
 
 ## helpers
 
-sub x11_start_program($;$$) {
+sub x11_start_program {
     my ($program, $timeout, $options) = @_;
     bmwqemu::log_call('x11_start_program', timeout => $timeout, options => $options);
     return $distri->x11_start_program($program, $timeout, $options);
@@ -300,9 +298,9 @@ Wait for idle before  and after.
 
 =cut
 
-sub script_run($;$) {
-    my $name = shift;
-    my $wait = shift || $bmwqemu::idle_timeout;
+sub script_run {
+    my ($name, $wait) = @_;
+    $wait ||= $bmwqemu::idle_timeout;
 
     bmwqemu::log_call('script_run', name => $name, wait => $wait);
     return $distri->script_run($name, $wait);
@@ -317,7 +315,7 @@ The exit status is checked by via magic string on the serial port.
 
 =cut
 
-sub assert_script_run($;$) {
+sub assert_script_run {
     my ($cmd, $timeout) = @_;
     my $str = time;
     script_run "$cmd; echo $str-\$?- > /dev/$serialdev";
@@ -388,9 +386,9 @@ send_key($qemu_key_name[, $wait_idle])
 
 =cut
 
-sub send_key($;$) {
-    my $key = shift;
-    my $wait = shift || 0;
+sub send_key {
+    my ($key, $wait) = @_;
+    $wait //= 0;
     bmwqemu::log_call('send_key', key => $key);
     eval { $bmwqemu::backend->send_key($key); };
     bmwqemu::mydie("Error send_key key=$key: $@\n") if ($@);
@@ -405,7 +403,7 @@ Send specific key if can not find the matched needle.
 
 =cut
 
-sub send_key_until_needlematch($$;$$) {
+sub send_key_until_needlematch {
     my ($tag, $key, $counter, $timeout) = @_;
 
     $counter //= 20;
@@ -467,14 +465,14 @@ sub type_password {
 ## keyboard end
 
 ## mouse
-sub mouse_set($$) {
+sub mouse_set {
     my ($mx, $my) = @_;
 
     bmwqemu::log_call('mouse_set', x => $mx, y => $my);
     $bmwqemu::backend->mouse_set({'x' => $mx, 'y' => $my});
 }
 
-sub mouse_click(;$$) {
+sub mouse_click {
     my $button = shift || 'left';
     my $time   = shift || 0.15;
     bmwqemu::log_call('mouse_click', button => $button, cursor_down => $time);
@@ -764,7 +762,7 @@ require backend::console_proxy;
 
 my %testapi_console_proxies;
 
-sub activate_console($$;@) {
+sub activate_console {
     my ($testapi_console, $backend_console, @backend_args) = @_;
 
     die "activate_console: console $testapi_console is already active" if exists $testapi_console_proxies{$testapi_console};
@@ -775,14 +773,14 @@ sub activate_console($$;@) {
     $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
 }
 
-sub select_console($) {
+sub select_console {
     my ($testapi_console) = @_;
     die "select_console: console $testapi_console is not activated" unless exists $testapi_console_proxies{$testapi_console};
     bmwqemu::log_call('select_console', testapi_console => $testapi_console);
     $bmwqemu::backend->select_console({testapi_console => $testapi_console});
 }
 
-sub deactivate_console($) {
+sub deactivate_console {
     my ($testapi_console) = @_;
     unless (exists $testapi_console_proxies{$testapi_console}) {
         warn "deactivate_console: console $testapi_console is not activated";
@@ -793,7 +791,7 @@ sub deactivate_console($) {
     delete $testapi_console_proxies{$testapi_console};
 }
 
-sub console($) {
+sub console {
     my ($testapi_console) = @_;
     bmwqemu::log_call('console', testapi_console => $testapi_console);
     if (exists $testapi_console_proxies{$testapi_console}) {
@@ -804,7 +802,7 @@ sub console($) {
     }
 }
 
-sub assert_shutdown(;$) {
+sub assert_shutdown {
     my ($timeout) = @_;
     $timeout //= 60;
     bmwqemu::log_call('assert_shutdown', timeout => $timeout);
@@ -837,7 +835,7 @@ sub parse_junit_log {
 
     $file = basename($file);
 
-    open my $fd, "ulogs/$file" or die "Couldn't open file 'ulogs/$file': $!";
+    open my $fd, "<", "ulogs/$file" or die "Couldn't open file 'ulogs/$file': $!";
     my $xml = join("", <$fd>);
     close $fd;
 
@@ -883,7 +881,7 @@ sub parse_junit_log {
             my $details = {result => $tc_result};
 
             my $text_fn = "$ts_category-$ts_name-$num.txt";
-            open my $fd, ">" . bmwqemu::result_dir() . "/$text_fn" or die "Couldn't open file '$text_fn': $!";
+            open my $fd, ">", bmwqemu::result_dir() . "/$text_fn" or die "Couldn't open file '$text_fn': $!";
             print $fd "# $tc->{name}\n";
             for my $out ($tc->children('system-out, system-err, failure')->each) {
                 print $fd "# " . $out->tag . ": \n\n";

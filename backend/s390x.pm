@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
 package backend::s390x;
 
-use base ('backend::vnc_backend');
-
 use strict;
 use warnings;
 use English;
+
+use base ('backend::vnc_backend');
 
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
@@ -26,7 +26,7 @@ sub new {
 
 ###################################################################
 # create x3270 terminals, -e ssh ones and true 3270 ones.
-sub new_3270_console() {
+sub new_3270_console {
     my ($self, $s3270) = @_;
     confess "expecting hashref" unless ref $s3270 eq "HASH";
     my $display = ":" . (get_var("VNC") // die "VNC unset in vars.json.");
@@ -58,7 +58,7 @@ sub new_3270_console() {
 ###################################################################
 # FIXME the following if (console_type eq ...) cascades could be
 # rewritten using objects.
-sub _new_console($$) {
+sub _new_console {
     my ($self, $args) = @_;
     #CORE::say __FILE__ . ':' . __LINE__ . ':' . (caller 0)[3];    #.':'.bmwqemu::pp($args);
     my ($testapi_console, $backend_console, $console_args) = @$args{qw(testapi_console backend_console backend_args)};
@@ -239,7 +239,7 @@ sub _new_console($$) {
     return $console_info;
 }
 
-sub _select_console() {
+sub _select_console {
     my ($self, $console_info) = @_;
     #local $Devel::Trace::TRACE;
     #$Devel::Trace::TRACE = 1;
@@ -280,7 +280,7 @@ sub _select_console() {
     $self->capture_screenshot();
 }
 
-sub _delete_console($$) {
+sub _delete_console {
     my ($self, $console_info) = @_;
     my $args = $console_info->{args};
     my ($testapi_console, $backend_console) = @$args{qw(testapi_console backend_console)};
@@ -352,7 +352,7 @@ sub send_key {
     return $self->SUPER::send_key($args);
 }
 ###################################################################
-sub do_start_vm() {
+sub do_start_vm {
     my ($self) = @_;
 
     $self->unlink_crash_file();
@@ -398,19 +398,19 @@ sub inflate_vars_json {
     # use external script to inflate vars.json
     my $vars_json_cmd = $bmwqemu::scriptdir . "/backend/s390x/vars.json.py";
 
-    open(VARS, '-|', $vars_json_cmd) // die "can't call $vars_json_cmd";
-    my @vars = <VARS>;
-    close(VARS);
-    open(VARS, ">", "vars.json") || die "can't open vars.json";
-    print VARS join('', @vars);
-    close(VARS);
+    open(my $VARS, '-|', $vars_json_cmd) // die "can't call $vars_json_cmd";
+    my @vars = <$VARS>;
+    close($VARS);
+    open($VARS, ">", "vars.json") || die "can't open vars.json";
+    print $VARS join('', @vars);
+    close($VARS);
 
     bmwqemu::load_vars();
     bmwqemu::expand_DEBUG_vars();
     bmwqemu::save_vars();
 }
 
-sub do_stop_vm() {
+sub do_stop_vm {
     my ($self) = @_;
 
     # first kill all _remote_ consoles except for the remote zVM
@@ -427,22 +427,21 @@ sub do_stop_vm() {
     $self->deactivate_console({testapi_console => "worker"});
 }
 
-sub do_savevm() {
-    notimplemented;
+sub do_savevm {
+    notimplemented();
 }
 
-sub do_loadvm() {
-    notimplemented;
+sub do_loadvm {
+    notimplemented();
 }
 
 sub status {
     my ($self) = @_;
     # FIXME: do something useful here.
     carp "status not implemented";
-    return undef;
 }
 
-sub init_charmap($) {
+sub init_charmap {
     my ($self) = (@_);
 
     ## charmap (like L => shift+l)

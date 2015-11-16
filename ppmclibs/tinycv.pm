@@ -19,9 +19,9 @@ bootstrap tinycv $VERSION;
 
 package tinycv::Image;
 
-sub mean_square_error($) {
-    my $areas = shift;
-    my $mse   = 0.0;
+sub mean_square_error {
+    my ($areas) = @_;
+    my $mse = 0.0;
     my $err;
 
     for my $area (@$areas) {
@@ -41,15 +41,14 @@ sub mean_square_error($) {
 #     }
 #   ]
 # }
-sub search_($;$$) {
-    my $self         = shift;
-    my $needle       = shift;
-    my $threshold    = shift || 0.0;
-    my $search_ratio = shift || 0.0;
+sub search_ {
+    my ($self, $needle, $threshold, $search_ratio) = @_;
+    $threshold    ||= 0.0;
+    $search_ratio ||= 0.0;
     my ($sim,     $xmatch, $ymatch);
     my (@exclude, @match,  @ocr);
 
-    return undef unless $needle;
+    return unless $needle;
 
     my $img = $self->copy;
     for my $a (@{$needle->{area}}) {
@@ -112,15 +111,24 @@ sub search_($;$$) {
     return $ret;
 }
 
+# bigger OK is better (0/1)
+# smaller error is better if not OK (0 perfect, 1 totally off)
+# the name doesn't matter, but we prefer alphabetic order
+sub cmp_by_error_ {
+    my $okay = $b->{ok} <=> $a->{ok};
+    return $okay if $okay;
+    my $error = $a->{error} <=> $b->{error};
+    return $error if $error;
+    return $a->{needle}->{name} cmp $b->{needle}->{name};
+}
+
+
 # in scalar context return found info or undef
 # in array context returns array with two elements. First element is best match
 # or undefined, second element are candidates that did not match.
-sub search($;$$) {
-    my $self         = shift;
-    my $needle       = shift;
-    my $threshold    = shift;
-    my $search_ratio = shift;
-    return undef unless $needle;
+sub search {
+    my ($self, $needle, $threshold, $search_ratio) = @_;
+    return unless $needle;
 
     if (ref($needle) eq "ARRAY") {
         my @candidates;
@@ -131,18 +139,7 @@ sub search($;$$) {
             push @candidates, $found if $found;
         }
 
-        # bigger OK is better (0/1)
-        # smaller error is better if not OK (0 perfect, 1 totally off)
-        # the name doesn't matter, but we prefer alphabetic order
-        sub by_error {
-            my $okay = $b->{ok} <=> $a->{ok};
-            return $okay if $okay;
-            my $error = $a->{error} <=> $b->{error};
-            return $error if $error;
-            return $a->{needle}->{name} cmp $b->{needle}->{name};
-        }
-
-        @candidates = sort by_error @candidates;
+        @candidates = sort cmp_by_error_ @candidates;
         my $best;
 
         if (@candidates && $candidates[0]->{ok}) {
@@ -158,19 +155,18 @@ sub search($;$$) {
     }
     else {
         my $found = $self->search_($needle, $threshold, $search_ratio);
-        return undef unless $found;
+        return unless $found;
         if (wantarray) {
             return ($found, undef) if ($found->{ok});
             return (undef, [$found]);
         }
-        return undef unless $found->{ok};
+        return unless $found->{ok};
         return $found;
     }
 }
 
-sub write_with_thumbnail($$) {
-    my $self     = shift;
-    my $filename = shift;
+sub write_with_thumbnail {
+    my ($self, $filename) = @_;
 
     $self->write($filename);
 

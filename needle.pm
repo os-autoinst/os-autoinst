@@ -13,9 +13,8 @@ our %tags;
 our $needledir;
 our $cleanuphandler;
 
-sub new($;$) {
-    my $classname = shift;
-    my $jsonfile  = shift;
+sub new {
+    my ($classname, $jsonfile) = @_;
 
     my $json;
     if (ref $jsonfile eq 'HASH') {
@@ -24,12 +23,12 @@ sub new($;$) {
     }
     else {
         local $/;
-        open(my $fh, '<', $jsonfile) || return undef;
+        open(my $fh, '<', $jsonfile) || return;
         eval { $json = decode_json(<$fh>) };
         close($fh);
         if (!$json || $@) {
             warn "broken json $jsonfile: $@";
-            return undef;
+            return;
         }
     }
     my $self = {tags => ($json->{tags} || [])};
@@ -57,7 +56,7 @@ sub new($;$) {
     # one match is mandatory
     unless ($gotmatch) {
         warn "$jsonfile missing match area\n";
-        return undef;
+        return;
     }
 
     $self->{file} = $jsonfile;
@@ -66,7 +65,7 @@ sub new($;$) {
     $self->{png} = File::Spec->catpath('', dirname($jsonfile), $png);
     if (!-s $self->{png}) {
         warn "Can't find $self->{png}";
-        return undef;
+        return;
     }
 
     $self = bless $self, $classname;
@@ -74,9 +73,9 @@ sub new($;$) {
     return $self;
 }
 
-sub save($;$) {
-    my $self = shift;
-    my $fn = shift || $self->{file};
+sub save {
+    my ($self, $fn) = @_;
+    $fn ||= $self->{file};
     my @area;
     for my $a (@{$self->{area}}) {
         my $aa = {};
@@ -96,8 +95,8 @@ sub save($;$) {
     close $fh;
 }
 
-sub unregister($) {
-    my $self = shift;
+sub unregister {
+    my ($self) = @_;
     #bmwqemu::diag("unregister $self->{name}");
     for my $g (@{$self->{tags}}) {
         @{$tags{$g}} = grep { $_ != $self } @{$tags{$g}};
@@ -105,8 +104,8 @@ sub unregister($) {
     }
 }
 
-sub register($) {
-    my $self = shift;
+sub register {
+    my ($self) = @_;
     my %check_dups;
     for my $g (@{$self->{tags}}) {
         if ($check_dups{$g}) {
@@ -119,9 +118,8 @@ sub register($) {
     }
 }
 
-sub get_image($$) {
-    my $self = shift;
-    my $area = shift;
+sub get_image {
+    my ($self, $area) = @_;
 
     if (!$self->{img}) {
         $self->{img} = tinycv::read($self->{png});
@@ -139,25 +137,23 @@ sub get_image($$) {
     return $area->{img};
 }
 
-sub has_tag($$) {
-    my $self = shift;
-    my $tag  = shift;
+sub has_tag {
+    my ($self, $tag) = @_;
     for my $t (@{$self->{tags}}) {
         return 1 if ($t eq $tag);
     }
     return 0;
 }
 
-sub has_property($$) {
-    my $self = shift;
-    my $tag  = shift;
+sub has_property {
+    my ($self, $tag) = @_;
     for my $t (@{$self->{properties}}) {
         return 1 if ($t eq $tag);
     }
     return 0;
 }
 
-sub wanted_($) {
+sub wanted_ {
     return unless (m/.json$/);
     my $needle = needle->new($File::Find::name);
     if ($needle) {
@@ -165,7 +161,7 @@ sub wanted_($) {
     }
 }
 
-sub init(;$) {
+sub init {
     $needledir = shift if @_;
     $needledir //= "$bmwqemu::vars{CASEDIR}/needles/";
     $needledir = abs_path($needledir) // die "needledir not found: $needledir (check vars.json?)";
@@ -187,7 +183,7 @@ sub init(;$) {
     }
 }
 
-sub tags($) {
+sub tags {
     my @tags      = split(/ /, shift);
     my $first_tag = shift @tags;
     my $goods     = $tags{$first_tag};
@@ -209,10 +205,11 @@ sub tags($) {
     return \@results;
 }
 
-sub all() {
+sub all {
     return values %needles;
 }
 
 1;
 
 # vim: set sw=4 et:
+

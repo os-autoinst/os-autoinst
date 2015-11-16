@@ -35,23 +35,23 @@ sub new {
 
 # baseclass virt method overwrite
 
-sub raw_alive() {
+sub raw_alive {
     my ($self) = @_;
     return 0 unless $self->{pid};
     return kill(0, $self->{pid});
 }
 
-sub start_audiocapture($) {
+sub start_audiocapture {
     my ($self, $filename) = @_;
     $self->_send_hmp("wavcapture $filename 44100 16 1");
 }
 
-sub stop_audiocapture($) {
+sub stop_audiocapture {
     my ($self, $index) = @_;
     $self->_send_hmp("stopcapture $index");
 }
 
-sub power($) {
+sub power {
 
     # parameters: acpi, reset, (on), off
     my ($self, $args) = @_;
@@ -67,19 +67,19 @@ sub power($) {
     }
 }
 
-sub eject_cd(;$) {
+sub eject_cd {
     my $self = shift;
     $self->handle_qmp_command({"execute" => "eject", "arguments" => {"device" => "cd0"}});
 }
 
-sub cpu_stat($) {
+sub cpu_stat {
     my $self = shift;
     my $stat = bmwqemu::fileContent("/proc/" . $self->{pid} . "/stat");
     my @a    = split(" ", $stat);
     return [@a[13, 14]];
 }
 
-sub do_start_vm() {
+sub do_start_vm {
     my $self = shift;
 
     # remove backend.crashed
@@ -111,7 +111,7 @@ sub kill_qemu {
         waitpid($pid, 0);
     }
 
-    for $pid (@{$self->{children}}) {
+    for my $pid (@{$self->{children}}) {
         diag("killing child $pid");
         kill('TERM', $pid);
         for my $i (1 .. 5) {
@@ -123,7 +123,7 @@ sub kill_qemu {
     }
 }
 
-sub do_stop_vm($) {
+sub do_stop_vm {
     my $self = shift;
 
     return unless $self->{pid};
@@ -132,7 +132,7 @@ sub do_stop_vm($) {
     unlink($self->{pidfilename});
 }
 
-sub do_savevm($) {
+sub do_savevm {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("savevm $vmname");
@@ -140,7 +140,7 @@ sub do_savevm($) {
     die unless ($rsp eq "savevm $vmname");
 }
 
-sub do_loadvm($) {
+sub do_loadvm {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("loadvm $vmname");
@@ -158,7 +158,7 @@ sub runcmd {
     return system(@_);
 }
 
-sub do_extract_assets() {
+sub do_extract_assets {
     my ($self, $args) = @_;
     my $hdd_num = $args->{hdd_num};
     my $name    = $args->{name};
@@ -194,7 +194,7 @@ sub do_extract_assets() {
 
 # baseclass virt method overwrite end
 
-sub start_qemu() {
+sub start_qemu {
 
     my $self = shift;
     my $vars = \%bmwqemu::vars;
@@ -422,7 +422,7 @@ sub start_qemu() {
 
         if ($vars->{LAPTOP}) {
             my $laptop_path = "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
-            for my $f (<$laptop_path/*.bin>) {
+            for my $f (glob "$laptop_path/*.bin") {
                 push @params, '-smbios', "file=$f";
             }
         }
@@ -524,7 +524,14 @@ sub start_qemu() {
 
         if (open(my $cmdfd, '>', 'runqemu')) {
             print $cmdfd "#!/bin/bash\n";
-            my @args = map { s,\\,\\\\,g; s,\$,\\\$,g; s,\",\\\",g; s,\`,\\\`,g; "\"$_\"" } @params;
+            my @args;
+            for my $arg (@params) {
+                $arg =~ s,\\,\\\\,g;
+                $arg =~ s,\$,\\\$,g;
+                $arg =~ s,\",\\\",g;
+                $arg =~ s,\`,\\\`,;
+                push(@args, "\"$arg\"");
+            }
             printf $cmdfd "%s \\\n  %s \\\n  \"\$@\"\n", $qemubin, join(" \\\n  ", @args);
             close $cmdfd;
             chmod 0755, 'runqemu';
@@ -647,7 +654,7 @@ sub start_qemu() {
     $self->{select}->add($self->{qemupipe});
 }
 
-sub _read_hmp($) {
+sub _read_hmp {
     my ($self) = @_;
 
     my $rsp = '';
@@ -697,7 +704,7 @@ sub _read_hmp($) {
     die "ERROR: timeout reading hmp socket\n";
 }
 
-sub special_socket($) {
+sub special_socket {
     my ($self, $fh);
     if ($fh == $self->{qemupipe}) {
         $self->read_qemupipe();
@@ -715,7 +722,7 @@ sub select_for_vnc {
 }
 
 # runs in the thread to bounce QMP
-sub handle_qmp_command($) {
+sub handle_qmp_command {
 
     my ($self, $cmd) = @_;
 
@@ -738,7 +745,7 @@ sub handle_qmp_command($) {
     return $hash;
 }
 
-sub read_qemupipe() {
+sub read_qemupipe {
     my ($self) = @_;
     my $buffer;
     my $bytes = sysread($self->{qemupipe}, $buffer, 1000);
@@ -749,7 +756,7 @@ sub read_qemupipe() {
     return $bytes;
 }
 
-sub close_pipes() {
+sub close_pipes {
     my ($self) = @_;
 
     $self->do_stop_vm();

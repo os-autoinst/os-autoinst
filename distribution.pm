@@ -6,7 +6,7 @@ use testapi ();
 sub new() {
     my ($class) = @_;
 
-    my $self = bless {class => $class};
+    my $self = bless {}, $class;
     return $self, $class;
 }
 

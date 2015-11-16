@@ -2,12 +2,11 @@
 package backend::s390x::s3270;
 
 use base qw(Class::Accessor::Fast);
-
-__PACKAGE__->mk_accessors(qw(zVM_host guest_user guest_login));
-
 use strict;
 use warnings;
 use English;
+
+__PACKAGE__->mk_accessors(qw(zVM_host guest_user guest_login));
 
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);

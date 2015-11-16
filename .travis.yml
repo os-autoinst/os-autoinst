@@ -8,13 +8,14 @@ install:
   - sudo apt-get install libdbus-1-dev
   # waiting for https://rt.cpan.org/Public/Bug/Display.html?id=106808
   - cpanm -nq ExtUtils::MakeMaker@7.04 Net::DBus
-  - cpanm -nq `cat DEPENDENCIES.txt`
+  - cpanm -nq `cat DEPENDENCIES.txt` Perl::Critic
   # force downgrade of eumm again 
   - cpanm -nq ExtUtils::MakeMaker@7.04
   - sudo apt-get install libopencv-dev libtheora-dev libcv-dev libhighgui-dev tesseract-ocr
 script:
   - find . -type f | xargs -n1 sed -i -e 's,#!/usr/bin/perl,#!/usr/bin/env perl,'
   - ./tools/tidy --check
+  - perlcritic --gentle .
   - sh autogen.sh 
   - ./configure
   - make && make check VERBOSE=1

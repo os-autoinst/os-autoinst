@@ -232,7 +232,7 @@ sub init() {
 # virtual methods
 
 # raw io methods to be overwritten by child class
-sub raw_keyboard_io(@) {
+sub raw_keyboard_io {
 
     # parameter: arrayref of the bytes to send one key(-combination)
     #            with all needed keydown/keyup actions
@@ -240,14 +240,14 @@ sub raw_keyboard_io(@) {
     print STDERR "Error: Not Implemented!\n";
 }
 
-sub keycode_down($) {
+sub keycode_down {
 
     # gets key name, returns scancode array
     my $self = shift;
     print STDERR "Error: Not Implemented!\n";
 }
 
-sub keycode_up($) {
+sub keycode_up {
 
     # gets key name, returns scancode array
     my $self = shift;
@@ -256,7 +256,7 @@ sub keycode_up($) {
 
 # virtual methods end
 
-sub send_key($) {
+sub send_key {
     my $self  = shift;
     my $key   = shift;
     my @codes = ();

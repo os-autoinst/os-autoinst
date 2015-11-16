@@ -43,7 +43,7 @@ my $ignore_errors = 1;
 
 my $table_header = 'Variable;Values allowed;Default value;Explanation';
 
-sub say($) {
+sub say {
     my ($text) = @_;
     print STDERR "$text\n";
 }

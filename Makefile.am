@@ -38,7 +38,6 @@ backendhelpexec_SCRIPTS = \
 	backend/helper/scancodes.pm
 
 pkglibexec_SCRIPTS = \
-	autoinstallstep.pm \
 	autotest.pm \
 	basetest.pm \
 	bmwqemu.pm \
@@ -47,7 +46,6 @@ pkglibexec_SCRIPTS = \
 	lockapi.pm \
 	commands.pm \
 	distribution.pm \
-	httpnotifyconf.pm \
 	ocr.pm \
 	cv.pm \
 	needle.pm \

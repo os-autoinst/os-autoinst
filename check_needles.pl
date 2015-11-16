@@ -14,8 +14,8 @@ my ($res, $needle, $img);
 
 my $ndir = $ARGV[0] || ".";
 
-my @jsons = <${ndir}/*.json>;
-my @pngs  = <${ndir}/*.png>;
+my @jsons = glob "${ndir}/*.json";
+my @pngs  = glob "${ndir}/*.png";
 
 foreach my $json (@jsons) {
     my $bnjson = basename($json, ".json");
