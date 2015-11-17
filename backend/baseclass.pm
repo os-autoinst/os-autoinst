@@ -1,8 +1,7 @@
-#!/usr/bin/perl -w
-
 # this is an abstract class
 package backend::baseclass;
 use strict;
+use warnings;
 use threads;
 use Carp qw(cluck carp confess);
 use JSON qw( to_json );
@@ -14,6 +13,8 @@ use IO::Select;
 
 use Data::Dumper;
 use feature qw(say);
+
+require backend::consoles::localXvnc;
 
 my $framecounter = 0;    # screenshot counter
 our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
@@ -61,6 +62,9 @@ sub run {
 
     die "there can be only one!" if $backend;
     $backend = $self;
+
+    # register consoles
+    backend::consoles::localXvnc->new($backend);
 
     $SIG{__DIE__} = \&die_handler;
 
@@ -222,7 +226,7 @@ sub start_vm {
     $self->{started} = 1;
     $self->init_charmap();
     $self->start_encoder();
-    $self->do_start_vm();
+    return $self->do_start_vm();
 }
 
 sub stop_vm {
@@ -299,7 +303,7 @@ sub status            { notimplemented }
 sub get_backend_info {
 
     # returns hashref
-    my $self = shift;
+    my ($self) = @_;
     return {};
 }
 
@@ -312,7 +316,7 @@ sub cpu_stat {
 
 sub init_charmap {
 
-    my ($self) = (@_);
+    my ($self) = @_;
 
     ## charmap (like L => shift+l)
     # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
@@ -511,29 +515,52 @@ sub _new_console {
     # 	  console   => blessed console
     # }
     my ($self, $args) = @_;
-    die bmwqemu::pp($self) . "\n" .    #
-      bmwqemu::pp($args) . "\n" .      #
-      "overload _new_console in your subclass!";
+
+    CORE::say __FILE__ . ':' . __LINE__ . ':' . (caller 0)[3];    #.':'.bmwqemu::pp($args);
+    my ($testapi_console, $backend_console, $console_args) = @$args{qw(testapi_console backend_console backend_args)};
+
+    if (!$self->{console_classes}->{$backend_console}) {
+        die "new_console: console class $backend_console unknown";
+    }
+    my $console_info = $self->{console_classes}->{$backend_console}->activate($testapi_console, $console_args);
+    # TODO: check if this is still needed
+    #$console_info->{args} = $args;
+    return $console_info;
 }
+
+# There can be two vnc backends (local Xvnc or remote vnc) and
+# there can be several terminals on the local Xvnc.
+#
+# switching means: turn to the right vnc and if it's the Xvnc,
+# iconify/deiconify the right x3270 terminal window.
+#
+# FIXME? for now, we just raise the terminal window to the front on
+# the local-Xvnc DISPLAY.
+#
+# should we hide the other windows, somehow?
+#if exists $self->{current_console} ...
+# my $current_window_id = $self->{current_console}->{window_id};
+# if (defined $current_window_id) {
+#     system("DISPLAY=$display xdotool windowminimize --sync $current_window_id") != -1 || die;
+# }
+#-> select
 
 sub select_console {
     my ($self, $args) = @_;
-    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($args);
+    CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($args);
     my $testapi_console = $args->{testapi_console};
+
     unless (exists $self->{consoles}->{$testapi_console}) {
-        die "select_console: console $args->{testapi_console} not activated";
+        die "select_console: console $testapi_console not activated";
     }
     my $selected_console_info = $self->{consoles}->{$testapi_console};
-    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($selected_console_info);
+    CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($selected_console_info);
     $self->_select_console($selected_console_info);
     $self->{current_console} = $selected_console_info;
-}
 
-sub _select_console {
-    my ($self, $args) = @_;
-    # hook in the backend to do whatever is necessary to effectively
-    # switch the console to $args->{testapi_console}
-    die "overload _select_console in your subclass!";
+    # always set vnc to the right one...
+    $self->{vnc} = $selected_console_info->{vnc};
+    $self->capture_screenshot();
 }
 
 sub deactivate_console {

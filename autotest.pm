@@ -15,7 +15,7 @@ sub loadtest {
     my $casedir = $bmwqemu::vars{CASEDIR};
 
     unless (-f join('/', $casedir, $script)) {
-        warn "loadtest needs a script below $casedir\n";
+        warn "loadtest needs a script below $casedir - $script is not\n";
         $script = File::Spec->abs2rel($script, $bmwqemu::vars{CASEDIR});
     }
     unless ($script =~ m,(\w+)/([^/]+)\.pm$,) {

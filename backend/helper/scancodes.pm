@@ -227,6 +227,7 @@ our $keymaps = {
 sub init() {
     my $self = shift;
     $self->{'keymaps'} = $keymaps;
+    return;
 }
 
 # virtual methods

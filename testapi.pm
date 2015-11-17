@@ -698,7 +698,7 @@ an LPAR.  Additional consoles need to be activated explicitly, like an
 ssh console, an ssh-X console a VNC console.
 
 
-Consoles can be selected for interaction with the with the system
+Consoles can be selected for interaction with the system
 under test.  One of them is 'selected' by default, as defined by the
 backend.
 
@@ -754,7 +754,7 @@ Such commands can be accessed using this API.
 C<console("bootloader")>, C<console("errorlog")>, ... returns a proxy
 object for the specific console which can then be directly accessed.
 
-This is also usefull for typing/interacting 'in the background',
+This is also useful for typing/interacting 'in the background',
 without turning the video away from the currently selected console.
 
 Note: C<assert_screen()> and friends look at the currently selected

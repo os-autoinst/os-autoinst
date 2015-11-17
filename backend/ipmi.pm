@@ -31,7 +31,7 @@ use Time::HiRes qw(gettimeofday);
 sub ipmi_cmdline {
     my ($self) = @_;
 
-    return ('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'}, '-U', $bmwqemu::vars{'IPMI_USER'}, '-P', $bmwqemu::vars{'IPMI_PASSWORD'});
+    return ('ipmitool', '-H', $bmwqemu::vars{IPMI_HOSTNAME}, '-U', $bmwqemu::vars{IPMI_USER}, '-P', $bmwqemu::vars{IPMI_PASSWORD});
 }
 
 sub ipmitool {
@@ -55,17 +55,17 @@ sub restart_host {
 
     $self->ipmitool("chassis power off");
     while (1) {
-        my $ret = $self->ipmitool("chassis power status");
+        my $ret = $self->ipmitool('chassis power status');
         last if $ret =~ m/is off/;
-        $self->ipmitool("chassis power off");
+        $self->ipmitool('chassis power off');
         sleep(2);
     }
 
     $self->ipmitool("chassis power on");
     while (1) {
-        my $ret = $self->ipmitool("chassis power status");
+        my $ret = $self->ipmitool('chassis power status');
         last if $ret =~ m/is on/;
-        $self->ipmitool("chassis power on");
+        $self->ipmitool('chassis power on');
         sleep(2);
     }
 }
@@ -75,10 +75,10 @@ sub relogin_vnc {
 
     $self->connect_vnc(
         {
-            hostname => $bmwqemu::vars{'IPMI_HOSTNAME'},
+            hostname => $bmwqemu::vars{IPMI_HOSTNAME},
             port     => 5900,
-            username => $bmwqemu::vars{'IPMI_USER'},
-            password => $bmwqemu::vars{'IPMI_PASSWORD'},
+            username => $bmwqemu::vars{IPMI_USER},
+            password => $bmwqemu::vars{IPMI_PASSWORD},
             ikvm     => 1,
         });
     1;
@@ -89,6 +89,7 @@ sub do_start_vm() {
 
     # remove backend.crashed
     $self->unlink_crash_file;
+    $self->activate_console({testapi_console => "worker", backend_console => "local-Xvnc"});
     $self->restart_host;
     $self->relogin_vnc;
     $self->start_serial_grab;
@@ -100,12 +101,13 @@ sub do_stop_vm {
 
     $self->ipmitool("chassis power off");
     $self->stop_serial_grab();
+    return;
 }
 
 sub do_savevm {
     my ($self, $args) = @_;
     print "do_savevm ignored\n";
-    return {};
+    return;
 }
 
 sub do_loadvm {
@@ -116,6 +118,7 @@ sub do_loadvm {
 sub status {
     my ($self) = @_;
     print "status ignored\n";
+    return;
 }
 
 # serial grab
@@ -126,7 +129,12 @@ sub start_serial_grab {
     if ($pid == 0) {
         setpgrp 0, 0;
         my @cmd = $self->ipmi_cmdline();
-        push(@cmd, ("-I", "lanplus", "sol", "activate"));
+        push(@cmd, ('-I', 'lanplus', 'sol'));
+	my @deactivate = @cmd;
+	push(@deactivate, 'deactivate');
+	push(@cmd, 'activate');
+	my $ret = system(@deactivate);
+	print "deactivate $ret\n";
         #unshift(@cmd, ("setsid", "-w"));
         print join(" ", @cmd);
         # FIXME use 'socat' for this?
@@ -141,13 +149,14 @@ sub start_serial_grab {
     else {
         $self->{serialpid} = $pid;
     }
+    return;
 }
 
 sub stop_serial_grab {
     my $self = shift;
     return unless $self->{serialpid};
     kill("-TERM", $self->{serialpid});
-    waitpid($self->{serialpid}, 0);
+    return waitpid($self->{serialpid}, 0);
 }
 
 # serial grab end

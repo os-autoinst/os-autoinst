@@ -480,7 +480,7 @@ sub connect_and_login() {
         # currently:  KILL THE GUEST
         # TODO:  think about what to really do in this case.
 
-        if (grep /(?:RECONNECT|HCPLGA).*/, @$r) {
+        if (grep { /(?:RECONNECT|HCPLGA).*/ } @$r) {
             carp                                                                                      #
               "connect_and_login: machine is in use ($self->{zVM_host} $self->{guest_login}):\n" .    #
               join("\n", @$r) . "\n";
@@ -503,6 +503,69 @@ sub connect_and_login() {
         last;
 
     }
+}
+
+
+
+###################################################################
+# create x3270 terminals, -e ssh ones and true 3270 ones.
+sub new_3270_console {
+    my ($self, $s3270) = @_;
+    confess "expecting hashref" unless ref $s3270 eq "HASH";
+    my $display = ":" . (get_var("VNC") // die "VNC unset in vars.json.");
+    $s3270->{s3270} = [
+        qw(x3270),
+        "-display", $display,
+        qw(-script -charset us -xrm x3270.visualBell:true -xrm x3270.keypadOn:false
+          -set screenTrace -xrm x3270.traceDir:.
+          -trace -xrm x3270.traceMonitor:false),
+        # Dark arts: ancient terminals (ansi.64, vt100) don't have an
+        # Alt key.  They send Esc + the key instead.  x3270 for
+        # whichever reason can't send the Escape keysym, so we have to
+        # hard code it here (0x1b).
+        '-xrm', 'x3270.keymap.base.nvt:#replace\nAlt<Key>: Key(0x1b) Default()'
+    ];
+    $s3270 = new backend::s390x::s3270($s3270);
+    $s3270->start();
+    my $status = $s3270->send_3270()->{terminal_status};
+    $status = &backend::s390x::s3270::nice_3270_status($status);
+    die "no worker Xvnc??" . bmwqemu::pp($self) unless exists $self->{consoles}->{worker};
+    my $console_info = {
+        window_id => $status->{window_id},
+        console   => $s3270,
+        vnc       => $self->{consoles}->{worker}->{vnc},
+        DISPLAY   => $display,
+    };
+    return $console_info;
+}
+###################################################################
+# FIXME the following if (console_type eq ...) cascades could be
+# rewritten using objects.
+sub _new_console {
+    my ($self, $args) = @_;
+    #CORE::say __FILE__ . ':' . __LINE__ . ':' . (caller 0)[3];    #.':'.bmwqemu::pp($args);
+    my ($testapi_console, $backend_console, $console_args) = @$args{qw(testapi_console backend_console backend_args)};
+    my $console_info = {
+        # vnc => the vnc for this console
+        # window_id => the x11 window id, if applicable
+        # DISPLAY => the x11 DISPLAY, if applicable
+        # console => the console object (backend::s390x::s3270 or backend::VNC)
+    };
+    if ($backend_console eq "s3270") {
+        die "s3270 must be named 'bootloader'" unless $testapi_console eq 'bootloader';
+        # my () = @console_args;
+        $console_info = $self->new_3270_console(
+            {
+                zVM_host    => (get_var("ZVM_HOST")     // die "ZVM_HOST unset in vars.json"),
+                guest_user  => (get_var("ZVM_GUEST")    // die "ZVM_GUEST unset in vars.json"),
+                guest_login => (get_var("ZVM_PASSWORD") // die "ZVM_PASSWORD unset in vars.json"),
+                vnc_backend => $self,
+            });
+    }
+
+    sub select() {
+    my ($self) = @_;
+    $self->_activate_window();
 }
 
 1;
