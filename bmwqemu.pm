@@ -33,8 +33,8 @@ $| = 1;
 # shared vars
 
 our $screenshotQueue = Thread::Queue->new();
-our $default_timeout //= 30;    # assert timeout, 0 is a valid timeout
-our $idle_timeout ||= 19;       # wait_idle 0 makes no sense
+our $default_timeout = 30;                     # assert timeout, 0 is a valid timeout
+our $idle_timeout    = 19;                     # wait_idle 0 makes no sense
 my $prestandstillwarning : shared = 0;
 
 my @ocrrect;
@@ -78,6 +78,7 @@ sub load_vars() {
       "$@" if $@;
     close($fh);
     %vars = %{$ret};
+    return;
 }
 
 sub expand_DEBUG_vars {
@@ -99,6 +100,7 @@ sub expand_DEBUG_vars {
         }
     }
     $vars{DEBUG} = \%DEBUG_SET;
+    return;
 }
 
 sub save_vars() {
@@ -112,6 +114,7 @@ sub save_vars() {
     my $json = JSON->new->pretty->canonical;
     print $fd $json->encode(\%vars);
     close($fd);
+    return;
 }
 
 share($vars{SCREENSHOTINTERVAL});    # to adjust at runtime
@@ -208,7 +211,10 @@ our $backend;    #FIXME: make local after adding frontend-api to bmwqemu
 
 # global/shared var set functions
 
-sub set_ocr_rect { @ocrrect = @_; }
+sub set_ocr_rect {
+    @ocrrect = @_;
+    return;
+}
 
 # global/shared var set functions end
 
@@ -228,16 +234,19 @@ sub print_possibly_colored {
             print STDERR "$text\n";
         }
     }
+    return;
 }
 
 sub diag {
     print_possibly_colored "@_";
+    return;
 }
 
 sub fctres {
     my $fname   = shift;
     my @fparams = @_;
     print_possibly_colored ">>> $fname: @fparams", 'green';
+    return;
 }
 
 sub fctinfo {
@@ -245,6 +254,7 @@ sub fctinfo {
     my @fparams = @_;
 
     print_possibly_colored "::: $fname: @fparams", 'yellow';
+    return;
 }
 
 sub fctwarn {
@@ -252,11 +262,13 @@ sub fctwarn {
     my @fparams = @_;
 
     print_possibly_colored "!!! $fname: @fparams", 'red';
+    return;
 }
 
 sub modstart {
     my $text = sprintf "\n||| %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
     print_possibly_colored $text, 'bold';
+    return;
 }
 
 use autotest qw($current_test);
@@ -275,6 +287,7 @@ sub update_line_number() {
         print "Debug: $filename:$line called $subroutine\n";
         last;
     }
+    return;
 }
 
 # pretty print like Data::Dumper but without the "VAR1 = " prefix
@@ -295,6 +308,7 @@ sub log_call {
     my $params = join(", ", @result);
 
     print_possibly_colored '<<< ' . $fname . "($params)", 'blue';
+    return;
 }
 
 sub fileContent {
@@ -356,29 +370,31 @@ sub getcurrentscreenshot {
 sub init_backend {
     my ($name) = @_;
     $backend = backend::driver->new($name);
+    return $backend;
 }
 
 sub start_vm() {
     return unless $backend;
-    $backend->start_vm();
+    return $backend->start_vm();
 }
 
 sub stop_vm() {
     return unless $backend;
-    $backend->stop();
+    my $ret = $backend->stop();
     if (!$direct_output && $logfd) {
         close $logfd;
         $logfd = undef;
     }
+    return $ret;
 }
 
 sub freeze_vm() {
     # qemu specific - all other backends will crash
-    $backend->handle_qmp_command({"execute" => "stop"});
+    return $backend->handle_qmp_command({"execute" => "stop"});
 }
 
 sub cont_vm() {
-    $backend->handle_qmp_command({"execute" => "cont"});
+    return $backend->handle_qmp_command({"execute" => "cont"});
 }
 
 sub mydie {
@@ -391,13 +407,13 @@ sub mydie {
 sub do_start_audiocapture {
     my ($filename) = @_;
     log_call('start_audiocapture', filename => $filename);
-    $backend->start_audiocapture($filename);
+    return $backend->start_audiocapture($filename);
 }
 
 sub do_stop_audiocapture {
     my ($index) = @_;
     log_call('stop_audiocapture', index => $index);
-    $backend->stop_audiocapture($index);
+    return $backend->stop_audiocapture($index);
 }
 
 sub alive() {
@@ -499,6 +515,7 @@ previous test's serial output. Call this before you start doing something new
 
 sub set_serial_offset {
     $serial_offset = -s $serialfile;
+    return $serial_offset;
 }
 
 
@@ -880,6 +897,7 @@ sub assert_screen {
     unless ($args{check}) {
         mydie "needle(s) '$mustmatch' not found";
     }
+    return;
 }
 
 sub _reduce_to_biggest_changes {
@@ -905,19 +923,19 @@ sub _reduce_to_biggest_changes {
     }
 
     diag("sim " . join(' ', map { sprintf("%4.2f", $_->[3]) } @$imglist));
+    return;
 }
 
 sub make_snapshot {
     my ($sname) = @_;
     diag("Creating a VM snapshot $sname");
-    $backend->do_savevm({name => $sname});
+    return $backend->do_savevm({name => $sname});
 }
 
 sub load_snapshot {
     my ($sname) = @_;
     diag("Loading a VM snapshot $sname");
-    $backend->do_loadvm({name => $sname});
-    sleep(10);
+    return $backend->do_loadvm({name => $sname});
 }
 
 # store the obj as json into the given filename
@@ -927,7 +945,7 @@ sub save_json_file {
     open(my $fd, ">", "$fn.new") or die "can not write $fn: $!\n";
     print $fd to_json($result, {pretty => 1});
     close($fd);
-    rename("$fn.new", $fn);
+    return rename("$fn.new", $fn);
 }
 
 sub save_status {
@@ -937,7 +955,7 @@ sub save_status {
     $result->{running}     = current_test            ? ref(current_test) : '';
     $result->{backend} = $backend->get_info() if $backend;
 
-    save_json_file($result, result_dir . "/status.json");
+    return save_json_file($result, result_dir . "/status.json");
 }
 
 #FIXME: new wait functions
@@ -950,6 +968,7 @@ sub clean_control_files {
     for my $file (values %control_files) {
         unlink($file);
     }
+    return;
 }
 
 sub _scale_timeout {
