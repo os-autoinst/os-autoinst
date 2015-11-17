@@ -3,6 +3,7 @@ package testapi;
 use base Exporter;
 use Exporter;
 use strict;
+use warnings;
 use File::Basename qw(basename);
 use Time::HiRes qw(sleep gettimeofday);
 use Mojo::DOM;
@@ -42,20 +43,22 @@ sub init {
         $serialdev = "hvc0";
     }
     $serialdev = 'ttyS1' if check_var('BACKEND', 'ipmi');
+    return;
 }
 
 sub set_distribution {
     ($distri) = @_;
-    $distri->init();
+    return $distri->init();
 }
 
 sub save_screenshot {
-    $autotest::current_test->take_screenshot;
+    return $autotest::current_test->take_screenshot;
 }
 
 sub record_soft_failure {
     bmwqemu::log_call('record_soft_failure');
     $autotest::current_test->{dents}++;
+    return;
 }
 
 sub assert_screen {
@@ -116,11 +119,12 @@ sub assert_and_click {
     # We can't just move the mouse, or we end up in a click-and-drag situation
     sleep 1;
     # move mouse back to where it was before we clicked
-    mouse_set($old_mouse_coords->{'x'}, $old_mouse_coords->{'y'});
+    return mouse_set($old_mouse_coords->{'x'}, $old_mouse_coords->{'y'});
 }
 
 sub assert_and_dclick {
-    assert_and_click($_[0], $_[1], $_[2], $_[3], 1);
+    my ($mustmatch, $button, $timeout, $clicktime) = @_;
+    return assert_and_click($mustmatch, $button, $timeout, $clicktime, 1);
 }
 
 =head2 wait_idle
@@ -135,7 +139,7 @@ sub wait_idle {
     my $timeout = shift || $bmwqemu::idle_timeout;
     bmwqemu::log_call('wait_idle', timeout => $timeout);
 
-    bmwqemu::wait_idle($timeout);
+    return bmwqemu::wait_idle($timeout);
 }
 
 =head2 wait_serial
@@ -190,6 +194,7 @@ sub upload_logs {
     my $basename = basename($file);
     type_string(autoinst_url() . "/uploadlog/$basename\n");
     wait_idle();
+    return;
 }
 
 sub ensure_installed {
@@ -211,6 +216,7 @@ sub upload_asset {
     my $basename = basename($file);
     type_string(autoinst_url() . "/upload_asset/$basename\n");
     wait_idle();
+    return;
 }
 
 
@@ -250,6 +256,7 @@ sub clear_console {
     send_key "ctrl-c";
     type_string "reset\n";
     sleep 2;
+    return;
 }
 
 sub get_var {
@@ -260,6 +267,7 @@ sub get_var {
 sub set_var {
     my ($var, $val) = @_;
     $bmwqemu::vars{$var} = $val;
+    return;
 }
 
 sub check_var {
@@ -768,16 +776,22 @@ sub activate_console {
     die "activate_console: console $testapi_console is already active" if exists $testapi_console_proxies{$testapi_console};
 
     bmwqemu::log_call('activate_console', testapi_console => $testapi_console, backend_console => $backend_console, backend_args => \@backend_args);
-    $bmwqemu::backend->activate_console({testapi_console => $testapi_console, backend_console => $backend_console, backend_args => \@backend_args});
+    my $ret = $bmwqemu::backend->activate_console(
+        {
+            testapi_console => $testapi_console,
+            backend_console => $backend_console,
+            backend_args    => \@backend_args
+        });
     # now the backend knows which console the testapi means with $testapi_console ("bootloader", "vnc", ...)
     $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
+    return $ret;
 }
 
 sub select_console {
     my ($testapi_console) = @_;
     die "select_console: console $testapi_console is not activated" unless exists $testapi_console_proxies{$testapi_console};
     bmwqemu::log_call('select_console', testapi_console => $testapi_console);
-    $bmwqemu::backend->select_console({testapi_console => $testapi_console});
+    return $bmwqemu::backend->select_console({testapi_console => $testapi_console});
 }
 
 sub deactivate_console {
@@ -787,8 +801,9 @@ sub deactivate_console {
         return;
     }
     bmwqemu::log_call('deactivate_console', testapi_console => $testapi_console);
-    $bmwqemu::backend->deactivate_console({testapi_console => $testapi_console});
+    my $ret = $bmwqemu::backend->deactivate_console({testapi_console => $testapi_console});
     delete $testapi_console_proxies{$testapi_console};
+    return $ret;
 }
 
 sub console {
@@ -797,9 +812,7 @@ sub console {
     if (exists $testapi_console_proxies{$testapi_console}) {
         return $testapi_console_proxies{$testapi_console};
     }
-    else {
-        die "console $testapi_console is not activated.";
-    }
+    die "console $testapi_console is not activated.";
 }
 
 sub assert_shutdown {
@@ -899,7 +912,7 @@ sub parse_junit_log {
         bmwqemu::save_json_file($result, $fn);
     }
 
-    $autotest::current_test->register_extra_test_results(\@tests);
+    return $autotest::current_test->register_extra_test_results(\@tests);
 }
 
 1;

@@ -150,6 +150,7 @@ sub do_loadvm {
     bmwqemu::diag "stop $rsp\n";
     $rsp = $self->handle_qmp_command({"execute" => "cont"});
     bmwqemu::diag "cont $rsp\n";
+    sleep(10);
     return $rsp;
 }
 
