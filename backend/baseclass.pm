@@ -540,8 +540,10 @@ sub select_console {
     $selected_console->select;
 
     $self->{current_console} = $selected_console;
-
-    $self->capture_screenshot();
+    if ($selected_console->{vnc}) {
+	$self->{current_screen} = $selected_console;
+	$self->capture_screenshot();
+    }
 }
 
 sub deactivate_console {

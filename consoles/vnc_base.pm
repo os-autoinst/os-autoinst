@@ -50,7 +50,6 @@ sub connect_vnc {
         }
     }
 
-    $self->capture_screenshot();
     return $self->{vnc};
 }
 
@@ -60,6 +59,7 @@ sub request_screen_update {
     # drain the VNC socket before polling for a new update
     $self->{vnc}->update_framebuffer();
     $self->{vnc}->send_update_request();
+    return;
 }
 
 sub current_screen {
@@ -89,7 +89,7 @@ sub close_pipes {
     close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
     $self->{vnc} = undef;
 
-    $self->SUPER::close_pipes();
+    return $self->SUPER::close_pipes();
 }
 
 sub type_string {
