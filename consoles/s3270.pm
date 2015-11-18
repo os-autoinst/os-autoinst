@@ -541,17 +541,8 @@ sub new_3270_console {
 ###################################################################
 # FIXME the following if (console_type eq ...) cascades could be
 # rewritten using objects.
-sub _new_console {
-    my ($self, $args) = @_;
-    #CORE::say __FILE__ . ':' . __LINE__ . ':' . (caller 0)[3];    #.':'.bmwqemu::pp($args);
-    my ($testapi_console, $backend_console, $console_args) = @$args{qw(testapi_console backend_console backend_args)};
-    my $console_info = {
-        # vnc => the vnc for this console
-        # window_id => the x11 window id, if applicable
-        # DISPLAY => the x11 DISPLAY, if applicable
-        # console => the console object (backend::s390x::s3270 or backend::VNC)
-    };
-    if ($backend_console eq "s3270") {
+sub activate() {
+
         die "s3270 must be named 'bootloader'" unless $testapi_console eq 'bootloader';
         # my () = @console_args;
         $console_info = $self->new_3270_console(
@@ -561,7 +552,6 @@ sub _new_console {
                 guest_login => (get_var("ZVM_PASSWORD") // die "ZVM_PASSWORD unset in vars.json"),
                 vnc_backend => $self,
             });
-    }
 
     sub select() {
     my ($self) = @_;

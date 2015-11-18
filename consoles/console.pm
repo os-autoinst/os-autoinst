@@ -1,4 +1,4 @@
-package backend::consoles::console;
+package consoles::console;
 
 sub new {
     my ($class, $backend) = @_;
@@ -11,14 +11,9 @@ sub new {
 
 sub activate {
     my ($self, $testapi_console, $console_args) = @_;
-    
-    return $console_info = {
-        # vnc => the vnc for this console
-        # window_id => the x11 window id, if applicable
-        # DISPLAY => the x11 DISPLAY, if applicable
-        # console => the console object (backend::s390x::s3270 or backend::VNC)
-    };
 
+    $self->{testapi_console} = $testapi_console;
+    return;
 }
 
 # common way of selecting the console

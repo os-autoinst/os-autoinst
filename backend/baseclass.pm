@@ -14,8 +14,6 @@ use IO::Select;
 use Data::Dumper;
 use feature qw(say);
 
-require backend::consoles::localXvnc;
-
 my $framecounter = 0;    # screenshot counter
 our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
 
@@ -64,7 +62,11 @@ sub run {
     $backend = $self;
 
     # register consoles
-    backend::consoles::localXvnc->new($backend);
+    require consoles::localXvnc;
+    consoles::localXvnc->new($backend);
+
+    require consoles::vnc_base;
+    consoles::vnc_base->new($backend);
 
     $SIG{__DIE__} = \&die_handler;
 
@@ -488,44 +490,24 @@ sub check_socket {
 
 sub activate_console {
     my ($self, $args) = @_;
-    my $testapi_console = $args->{testapi_console};
+    my ($testapi_console, $backend_console, $console_args) = @$args{qw(testapi_console backend_console backend_args)};
 
     if (exists $self->{consoles}->{$testapi_console}) {
         die "activate_console: console $testapi_console already activated";
     }
 
-    my $new_console = $self->_new_console($args);
-    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($new_console);
+    if (!$self->{console_classes}->{$backend_console}) {
+        die "new_console: console class $backend_console unknown";
+    }
+    my $new_console = $self->{console_classes}->{$backend_console};
+    $new_console->activate($testapi_console, $console_args);
+ 
+    CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($new_console);
 
     $self->{consoles}->{$testapi_console} = $new_console;
     $self->select_console($args);
 
     return;
-}
-
-sub _new_console {
-    # create and return a new console of class
-    # $args->{backend_console} with parameters $args->{backend_args}.
-    #
-    # return console info on that new console:
-    #
-    # {
-    # 	  args      => the $args it was created with
-    # 	  window_id => x11 window id (for x3270 terminals)
-    # 	  console   => blessed console
-    # }
-    my ($self, $args) = @_;
-
-    CORE::say __FILE__ . ':' . __LINE__ . ':' . (caller 0)[3];    #.':'.bmwqemu::pp($args);
-    my ($testapi_console, $backend_console, $console_args) = @$args{qw(testapi_console backend_console backend_args)};
-
-    if (!$self->{console_classes}->{$backend_console}) {
-        die "new_console: console class $backend_console unknown";
-    }
-    my $console_info = $self->{console_classes}->{$backend_console}->activate($testapi_console, $console_args);
-    # TODO: check if this is still needed
-    #$console_info->{args} = $args;
-    return $console_info;
 }
 
 # There can be two vnc backends (local Xvnc or remote vnc) and
@@ -553,13 +535,12 @@ sub select_console {
     unless (exists $self->{consoles}->{$testapi_console}) {
         die "select_console: console $testapi_console not activated";
     }
-    my $selected_console_info = $self->{consoles}->{$testapi_console};
-    CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($selected_console_info);
-    $self->_select_console($selected_console_info);
-    $self->{current_console} = $selected_console_info;
+    my $selected_console = $self->{consoles}->{$testapi_console};
+    CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($selected_console);
+    $selected_console->select;
 
-    # always set vnc to the right one...
-    $self->{vnc} = $selected_console_info->{vnc};
+    $self->{current_console} = $selected_console;
+
     $self->capture_screenshot();
 }
 
@@ -581,6 +562,23 @@ sub _delete_console {
     # my ($self, $args) = @_;
     # tear down the backend console $args->{backend_console} (disconnect, free ressources, etc).
     die "overload _delete_console in your subclass!";
+}
+
+sub request_screen_update() {
+    my ($self) = @_;
+
+    # forward to the current VNC console
+    return unless $self->{current_screen};
+    return $self->{current_screen}->request_screen_update();
+}
+
+sub capture_screenshot {
+    my ($self) = @_;
+    return unless $self->{current_screen};
+
+    my $screen = $self->{current_screen}->current_screen();
+    $self->enqueue_screenshot($screen) if $screen;
+    return;
 }
 
 ###################################################################

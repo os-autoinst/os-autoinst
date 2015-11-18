@@ -1,5 +1,5 @@
-package backend::consoles::localXvnc;
-use base 'backend::consoles::console';
+package consoles::localXvnc;
+use base 'consoles::console';
 
 use testapi qw/get_var/;
 

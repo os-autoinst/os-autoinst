@@ -73,6 +73,11 @@ sub restart_host {
 sub relogin_vnc {
     my ($self) = @_;
 
+    if ($self->{vnc}) {
+        close($self->{vnc}->socket);
+        sleep(1);
+    }
+
     $self->connect_vnc(
         {
             hostname => $bmwqemu::vars{IPMI_HOSTNAME},
