@@ -158,23 +158,4 @@ sub status {
     carp "status not implemented";
 }
 
-sub init_charmap {
-    my ($self) = @_;
-
-    ## charmap (like L => shift+l)
-    # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
-    $self->{charmap} = {
-        # minus is special as it splits key combinations
-        "-" => "minus",
-
-        "\t" => "tab",
-        "\n" => "ret",
-        "\b" => "backspace",
-
-        "\e" => "esc"
-    };
-    ## charmap end
-    return;
-}
-
 1;

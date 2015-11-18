@@ -12,6 +12,7 @@ use Carp qw(confess cluck carp croak);
 sub init() {
     my ($self) = @_;
     $self->{name} = 'vnc-base';
+    $self->init_charmap;
 }
 
 sub select() {
@@ -92,6 +93,63 @@ sub close_pipes {
     return $self->SUPER::close_pipes();
 }
 
+sub init_charmap {
+
+    my ($self) = @_;
+
+    ## charmap (like L => shift+l)
+    # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
+    $self->{charmap} = {
+        # minus is special as it splits key combinations
+        "-" => "minus",
+        # first line of US layout
+        "~"  => "shift-`",
+        "!"  => "shift-1",
+        "@"  => "shift-2",
+        "#"  => "shift-3",
+        "\$" => "shift-4",
+        "%"  => "shift-5",
+        "^"  => "shift-6",
+        "&"  => "shift-7",
+        "*"  => "shift-8",
+        "("  => "shift-9",
+        ")"  => "shift-0",
+        "_"  => "shift-minus",
+        "+"  => "shift-=",
+
+        # second line
+        "{" => "shift-[",
+        "}" => "shift-]",
+        "|" => "shift-\\",
+
+        # third line
+        ":" => "shift-;",
+        '"' => "shift-'",
+
+        # fourth line
+        "<" => "shift-,",
+        ">" => "shift-.",
+        '?' => "shift-/",
+
+        "\t" => "tab",
+        "\n" => "ret",
+        "\b" => "backspace",
+
+        "\e" => "esc"
+    };
+    for my $c ("A" .. "Z") {
+        $self->{charmap}->{$c} = "shift-\L$c";
+    }
+
+    ## charmap end
+}
+
+sub map_letter {
+    my ($self, $letter) = @_;
+    return $self->{charmap}->{$letter} if $self->{charmap}->{$letter};
+    return $letter;
+}
+
 sub type_string {
     my ($self, $args) = @_;
 
@@ -123,7 +181,7 @@ sub type_string {
     for my $letter (split("", $args->{text})) {
         $letter = $self->map_letter($letter);
         $self->{vnc}->send_mapped_key($letter);
-        $self->run_capture_loop(undef, $seconds_per_keypress, $seconds_per_keypress * .9);
+        $self->{backend}->run_capture_loop(undef, $seconds_per_keypress, $seconds_per_keypress * .9);
     }
     return {};
 }
@@ -135,7 +193,7 @@ sub send_key {
     # FIXME the max_interval logic from type_string should go here, no?
     # and really, the screen should be checked for settling after key press...
     $self->{vnc}->send_mapped_key($args->{key});
-    $self->run_capture_loop(undef, .2, .19);
+    $self->{backend}->run_capture_loop(undef, .2, .19);
     return {};
 }
 

@@ -26,8 +26,8 @@ sub new {
     my $self = bless({class => $class}, $class);
 
     require "backend/$name.pm";    ## no critic
-    $self->{'backend'}      = "backend::$name"->new();
-    $self->{'backend_name'} = $name;
+    $self->{backend}      = "backend::$name"->new();
+    $self->{backend_name} = $name;
 
     $self->start();
 
@@ -56,7 +56,7 @@ sub start {
 
 sub extract_assets {
     my $self = shift;
-    $self->{'backend'}->do_extract_assets(@_);
+    $self->{backend}->do_extract_assets(@_);
 }
 
 # this is the backend thread
@@ -97,7 +97,7 @@ sub start_vm {
     remove_tree($bmwqemu::screenshotpath);
     mkdir $bmwqemu::screenshotpath;
 
-    $self->_send_json({'cmd' => "start_vm"}) || die "failed to start VM";
+    $self->_send_json({cmd => 'start_vm'}) || die "failed to start VM";
     # the backend thread might have added some defaults for the backend
     bmwqemu::load_vars();
 
@@ -113,22 +113,22 @@ sub stop_thread {
 
 sub get_info {
     my ($self) = @_;
-    $self->{'infos'} ||= {
-        'backend'      => $self->{'backend_name'},
-        'backend_info' => $self->get_backend_info()};
-    return $self->{'infos'};
+    $self->{infos} ||= {
+        backend      => $self->{backend_name},
+        backend_info => $self->get_backend_info()};
+    return $self->{infos};
 }
 
 # new api end
 
 sub send_key {
     my ($self, $key) = @_;
-    return $self->_send_json({'cmd' => "send_key", 'arguments' => {'key' => $key}});
+    return $self->_send_json({cmd => 'send_key', arguments => {key => $key}});
 }
 
 sub mouse_button {
     my ($self, $button, $bstate) = @_;
-    return $self->_send_json({'cmd' => "mouse_button", 'arguments' => {'button' => $button, 'bstate' => $bstate}});
+    return $self->_send_json({cmd => 'mouse_button', arguments => {button => $button, bstate => $bstate}});
 }
 
 sub mouse_hide {
@@ -139,7 +139,7 @@ sub mouse_hide {
     my $counter = 0;
     my $rsp;
     while ($counter < 10) {
-        $rsp = $self->_send_json({'cmd' => "mouse_hide", 'arguments' => {'border_offset' => $border_offset}});
+        $rsp = $self->_send_json({cmd => 'mouse_hide', arguments => {border_offset => $border_offset}});
         last if $rsp->{absolute} ne '0';
         sleep 1;
         $counter++;
@@ -160,7 +160,7 @@ sub AUTOLOAD {
 
     # allow symbolic references
     no strict 'refs';    ## no critic
-    *$AUTOLOAD = sub { my ($self, $args) = @_; return $self->_send_json({'cmd' => $cmd, 'arguments' => $args}); };
+    *$AUTOLOAD = sub { my ($self, $args) = @_; return $self->_send_json({cmd => $cmd, arguments => $args}); };
     goto &$AUTOLOAD;     # Restart the new routine.
 }
 

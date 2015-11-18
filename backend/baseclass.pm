@@ -226,7 +226,6 @@ sub start_vm {
     my ($self) = @_;
     $self->{mouse} = {x => undef, y => undef};
     $self->{started} = 1;
-    $self->init_charmap();
     $self->start_encoder();
     return $self->do_start_vm();
 }
@@ -315,79 +314,6 @@ sub cpu_stat {
     # (userstat, systemstat)
     return [];
 }
-
-sub init_charmap {
-
-    my ($self) = @_;
-
-    ## charmap (like L => shift+l)
-    # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
-    $self->{charmap} = {
-        # minus is special as it splits key combinations
-        "-" => "minus",
-        # first line of US layout
-        "~"  => "shift-`",
-        "!"  => "shift-1",
-        "@"  => "shift-2",
-        "#"  => "shift-3",
-        "\$" => "shift-4",
-        "%"  => "shift-5",
-        "^"  => "shift-6",
-        "&"  => "shift-7",
-        "*"  => "shift-8",
-        "("  => "shift-9",
-        ")"  => "shift-0",
-        "_"  => "shift-minus",
-        "+"  => "shift-=",
-
-        # second line
-        "{" => "shift-[",
-        "}" => "shift-]",
-        "|" => "shift-\\",
-
-        # third line
-        ":" => "shift-;",
-        '"' => "shift-'",
-
-        # fourth line
-        "<" => "shift-,",
-        ">" => "shift-.",
-        '?' => "shift-/",
-
-        "\t" => "tab",
-        "\n" => "ret",
-        "\b" => "backspace",
-
-        "\e" => "esc"
-    };
-    for my $c ("A" .. "Z") {
-        $self->{charmap}->{$c} = "shift-\L$c";
-    }
-
-    ## charmap end
-}
-
-sub map_letter {
-    my ($self, $letter) = @_;
-    return $self->{charmap}->{$letter} if $self->{charmap}->{$letter};
-    return $letter;
-}
-
-sub type_string {
-    my ($self, $string, $maxinterval) = @_;
-
-    my $typedchars = 0;
-    for my $letter (split("", $string)) {
-        # FIXME: is this is dead code?  there ain't no plain send_key, no?
-        send_key $self->map_letter($letter), 1;
-        if ($typedchars++ >= $maxinterval) {
-            sleep 2;
-            $typedchars = 0;
-        }
-    }
-    sleep 2 if ($typedchars > 0);
-}
-
 
 my $lastscreenshot;
 my $lastscreenshotName;
@@ -569,10 +495,42 @@ sub _delete_console {
 sub request_screen_update() {
     my ($self) = @_;
 
+    return $self->bouncer('request_screen_update', undef);
+}
+
+sub bouncer() {
+    my ($self, $call, $args) = @_;
     # forward to the current VNC console
     return unless $self->{current_screen};
-    return $self->{current_screen}->request_screen_update();
+    #CORE::say __FILE__.":".__LINE__.": $call, ".bmwqemu::pp($args);
+    return $self->{current_screen}->$call($args);
 }
+
+sub send_key() {
+    my ($self, $args) = @_;
+    return $self->bouncer('send_key', $args);
+}
+
+sub type_string() {
+    my ($self, $args) = @_;
+    return $self->bouncer('type_string', $args);
+}
+
+sub mouse_set() {
+    my ($self, $args) = @_;
+    return $self->bouncer('mouse_set', $args);
+}
+
+sub mouse_hide() {
+    my ($self, $args) = @_;
+    return $self->bouncer('mouse_hide', $args);
+}
+
+sub mouse_button() {
+    my ($self, $args) = @_;
+    return $self->bouncer('mouse_button', $args);
+}
+
 
 sub capture_screenshot {
     my ($self) = @_;
