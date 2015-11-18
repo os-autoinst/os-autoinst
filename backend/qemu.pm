@@ -291,10 +291,12 @@ sub start_qemu {
     my @nicmac;
     my @nicvlan;
     my @tapdev;
+    my @tapscript;
 
-    @nicmac  = split /\s*,\s*/, $vars->{NICMAC}  if $vars->{NICMAC};
-    @nicvlan = split /\s*,\s*/, $vars->{NICVLAN} if $vars->{NICVLAN};
-    @tapdev  = split /\s*,\s*/, $vars->{TAPDEV}  if $vars->{TAPDEV};
+    @nicmac    = split /\s*,\s*/, $vars->{NICMAC}    if $vars->{NICMAC};
+    @nicvlan   = split /\s*,\s*/, $vars->{NICVLAN}   if $vars->{NICVLAN};
+    @tapdev    = split /\s*,\s*/, $vars->{TAPDEV}    if $vars->{TAPDEV};
+    @tapscript = split /\s*,\s*/, $vars->{TAPSCRIPT} if $vars->{TAPSCRIPT};
 
     my $num_networks = 1;
     $num_networks = @nicmac  if $num_networks < @nicmac;
@@ -314,11 +316,13 @@ sub start_qemu {
 
         $nicvlan[$i] //= 0;
     }
+    push @tapscript, "no" until @tapscript >= $num_networks;    #no TAPSCRIPT by default
 
     # put it back to the vars for save_vars()
-    $vars->{NICMAC}  = join ',', @nicmac;
-    $vars->{NICVLAN} = join ',', @nicvlan;
-    $vars->{TAPDEV}  = join ',', @tapdev if $vars->{NICTYPE} eq "tap";
+    $vars->{NICMAC}    = join ',', @nicmac;
+    $vars->{NICVLAN}   = join ',', @nicvlan;
+    $vars->{TAPDEV}    = join ',', @tapdev if $vars->{NICTYPE} eq "tap";
+    $vars->{TAPSCRIPT} = join ',', @tapscript if $vars->{NICTYPE} eq "tap";
 
 
     if ($vars->{NICTYPE} eq "vde") {
@@ -410,7 +414,7 @@ sub start_qemu {
                 push(@params, '-netdev', "user,id=qanet$i");
             }
             elsif ($vars->{NICTYPE} eq "tap") {
-                push(@params, '-netdev', "tap,id=qanet$i,ifname=$tapdev[$i],script=no,downscript=no");
+                push(@params, '-netdev', "tap,id=qanet$i,ifname=$tapdev[$i],script=$tapscript[$i],downscript=no");
             }
             elsif ($vars->{NICTYPE} eq "vde") {
                 push(@params, '-netdev', "vde,id=qanet0,sock=$vars->{VDE_SOCKETDIR}/vde.ctl,port=$vars->{VDE_PORT}");
