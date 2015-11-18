@@ -198,7 +198,6 @@ sub upload_logs {
     else {
         type_string(autoinst_url() . "/uploadlog/$basename\n");
     }
-    type_string(autoinst_url() . "/uploadlog/$basename\n");
     wait_idle();
     return;
 }
