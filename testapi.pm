@@ -543,6 +543,7 @@ returns the base URL to contact the local os-autoinst service
 sub autoinst_url() {
     # move to backend?
     if (get_var("CONNECT_PASSWORD")) {    #CONNECT_PASSWORD is used in HACLUSTER
+        use Net::Domain;
         my $fqdn = Net::Domain::hostfqdn();
         return "http://$fqdn:" . (get_var("QEMUPORT") + 1);
     }
