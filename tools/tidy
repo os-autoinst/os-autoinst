@@ -32,15 +32,15 @@ find tools/absolutize -print0 | xargs -0 perltidy $TIDY_ARGS
 
 while read file; do
     if ! diff -u ${file%.tdy} $file; then
-	if test -n "$check"; then
-	    echo "RUN tools/tidy script before checkin"
-	    exit 1
-	else
-	    mv -v $file ${file%.tdy}
-	fi
+        if test -n "$check"; then
+            echo "RUN tools/tidy script before checkin"
+            exit 1
+        else
+            mv -v $file ${file%.tdy}
+        fi
     else
-	rm $file
+        rm $file
     fi
 done < <(find . -name "*.tdy")
 
-# vim: set ts=4 sw=4 sts=4 et:
+# vim: set sw=4 et:
