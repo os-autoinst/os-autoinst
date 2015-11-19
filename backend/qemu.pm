@@ -584,12 +584,13 @@ sub start_qemu {
 
     #local $Devel::Trace::TRACE = 1;
 
-    $self->activate_console({testapi_console => "worker",
-			     backend_console => "vnc-base",
-			     backend_args => {hostname => 'localhost',
-					      port => 5900 + $bmwqemu::vars{VNC}
-					  }
-			 });
+    $self->activate_console(
+        {
+            testapi_console => "worker",
+            backend_console => "vnc-base",
+            backend_args    => {
+                hostname => 'localhost',
+                port     => 5900 + $bmwqemu::vars{VNC}}});
 
     $self->{hmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,

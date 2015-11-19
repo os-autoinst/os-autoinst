@@ -554,11 +554,18 @@ sub init_x11_keymap {
         $self->keymap->{"f$key"} = 0xffbd + $key;
     }
     for my $key ("a" .. "z") {
-        my $code = ord($key);
-        $self->keymap->{$key} = $code;
+        $self->keymap->{$key} = ord($key);
+        # shift-H looks strange, but that's how VNC works
+        $self->keymap->{uc $key} = [$keymap_x11->{shift}, ord(uc $key)];
+    }
+    # VNC doesn't use the unshifted values, only prepends a shift key
+    for my $key (keys %{shift_keys()}) {
+        die "no map for $key" unless $keymap_x11->{$key};
+        $self->keymap->{$key} = [$keymap_x11->{shift}, $keymap_x11->{$key}];
     }
 }
 
+# ikvm aka USB: https://www.win.tue.nl/~aeb/linux/kbd/scancodes-14.html
 my $keymap_ikvm = {
     'ctrl'   => 0xe0,
     'shift'  => 0xe1,
@@ -611,6 +618,7 @@ sub init_ikvm_keymap {
     for my $key ("a" .. "z") {
         my $code = 0x4 + ord($key) - ord('a');
         $self->keymap->{$key} = $code;
+        $self->keymap->{uc $key} = [$keymap_ikvm->{shift}, $code];
     }
     for my $key ("1" .. "9") {
         $self->keymap->{$key} = 0x1e + ord($key) - ord('1');
@@ -618,9 +626,48 @@ sub init_ikvm_keymap {
     for my $key (1 .. 12) {
         $self->keymap->{"f$key"} = 0x3a + $key - 1,;
     }
+    my %map = %{shift_keys()};
+    while (my ($key, $shift) = each %map) {
+        die "no map for $key" unless $keymap_ikvm->{$shift};
+        $self->keymap->{$key} = [$keymap_ikvm->{shift}, $keymap_ikvm->{$shift}];
+    }
 }
 
-sub send_mapped_key {
+sub shift_keys {
+
+    # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
+    return {
+        '~' => '`',
+        '!' => '1',
+        '@' => '2',
+        '#' => '3',
+        '$' => '4',
+        '%' => '5',
+        '^' => '6',
+        '&' => '7',
+        '*' => '8',
+        '(' => '9',
+        ')' => '0',
+        '_' => 'minus',
+        '+' => '=',
+
+        # second line
+        '{' => '[',
+        '}' => ']',
+        '|' => '\\',
+
+        # third line
+        ':' => ';',
+        '"' => '\'',
+
+        # fourth line
+        '<' => ',',
+        '>' => '.',
+        '?' => '/',
+    };
+}
+
+sub map_and_send_key {
     my ($self, $keys) = @_;
 
     if ($self->ikvm) {
@@ -633,6 +680,7 @@ sub send_mapped_key {
     my @events;
 
     for my $key (split('-', $keys)) {
+        $key = $self->{charmap}->{$key} || $key;
         if (defined($self->keymap->{$key})) {
             if (ref($self->keymap->{$key}) eq 'ARRAY') {
                 push(@events, @{$self->keymap->{$key}});

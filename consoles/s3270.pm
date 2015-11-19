@@ -543,17 +543,18 @@ sub new_3270_console {
 # rewritten using objects.
 sub activate() {
 
-        die "s3270 must be named 'bootloader'" unless $testapi_console eq 'bootloader';
-        # my () = @console_args;
-        $console_info = $self->new_3270_console(
-            {
-                zVM_host    => (get_var("ZVM_HOST")     // die "ZVM_HOST unset in vars.json"),
-                guest_user  => (get_var("ZVM_GUEST")    // die "ZVM_GUEST unset in vars.json"),
-                guest_login => (get_var("ZVM_PASSWORD") // die "ZVM_PASSWORD unset in vars.json"),
-                vnc_backend => $self,
-            });
+    die "s3270 must be named 'bootloader'" unless $testapi_console eq 'bootloader';
+    # my () = @console_args;
+    $console_info = $self->new_3270_console(
+        {
+            zVM_host    => (get_var("ZVM_HOST")     // die "ZVM_HOST unset in vars.json"),
+            guest_user  => (get_var("ZVM_GUEST")    // die "ZVM_GUEST unset in vars.json"),
+            guest_login => (get_var("ZVM_PASSWORD") // die "ZVM_PASSWORD unset in vars.json"),
+            vnc_backend => $self,
+        });
+}
 
-    sub select() {
+sub select() {
     my ($self) = @_;
     $self->_activate_window();
 }

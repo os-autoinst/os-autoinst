@@ -12,7 +12,6 @@ use Carp qw(confess cluck carp croak);
 sub init() {
     my ($self) = @_;
     $self->{name} = 'vnc-base';
-    $self->init_charmap;
 }
 
 sub select() {
@@ -24,10 +23,16 @@ sub activate() {
     return $self->SUPER::activate($testapi_console, $args);
 }
 
+sub disable() {
+    my ($self) = @_;
+    close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
+    $self->{vnc} = undef;
+}
+
 sub connect_vnc {
     my ($self, $args) = @_;
 
-    CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($args);
+    CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
     # try to log in; this may fail a few times
     for my $i (1 .. 10) {
@@ -39,7 +44,7 @@ sub connect_vnc {
         if ($@) {
             push @connection_error, $@;
             if ($i > 7) {
-                $self->close_pipes();
+                $self->disable();
                 die join("\n", @connection_error);
             }
             else {
@@ -84,72 +89,6 @@ sub current_screen {
     return $self->{vnc}->_framebuffer;
 }
 
-sub close_pipes {
-    my ($self) = @_;
-
-    close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
-    $self->{vnc} = undef;
-
-    return $self->SUPER::close_pipes();
-}
-
-sub init_charmap {
-
-    my ($self) = @_;
-
-    ## charmap (like L => shift+l)
-    # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
-    $self->{charmap} = {
-        # minus is special as it splits key combinations
-        "-" => "minus",
-        # first line of US layout
-        "~"  => "shift-`",
-        "!"  => "shift-1",
-        "@"  => "shift-2",
-        "#"  => "shift-3",
-        "\$" => "shift-4",
-        "%"  => "shift-5",
-        "^"  => "shift-6",
-        "&"  => "shift-7",
-        "*"  => "shift-8",
-        "("  => "shift-9",
-        ")"  => "shift-0",
-        "_"  => "shift-minus",
-        "+"  => "shift-=",
-
-        # second line
-        "{" => "shift-[",
-        "}" => "shift-]",
-        "|" => "shift-\\",
-
-        # third line
-        ":" => "shift-;",
-        '"' => "shift-'",
-
-        # fourth line
-        "<" => "shift-,",
-        ">" => "shift-.",
-        '?' => "shift-/",
-
-        "\t" => "tab",
-        "\n" => "ret",
-        "\b" => "backspace",
-
-        "\e" => "esc"
-    };
-    for my $c ("A" .. "Z") {
-        $self->{charmap}->{$c} = "shift-\L$c";
-    }
-
-    ## charmap end
-}
-
-sub map_letter {
-    my ($self, $letter) = @_;
-    return $self->{charmap}->{$letter} if $self->{charmap}->{$letter};
-    return $letter;
-}
-
 sub type_string {
     my ($self, $args) = @_;
 
@@ -179,8 +118,15 @@ sub type_string {
     }
 
     for my $letter (split("", $args->{text})) {
-        $letter = $self->map_letter($letter);
-        $self->{vnc}->send_mapped_key($letter);
+        my $charmap = {
+            '-'  => 'minus',
+            "\t" => 'tab',
+            "\n" => 'ret',
+            "\b" => 'backspace',
+            "\e" => 'esc'
+        };
+        $letter = $charmap->{$letter} || $letter;
+        $self->{vnc}->map_and_send_key($letter);
         $self->{backend}->run_capture_loop(undef, $seconds_per_keypress, $seconds_per_keypress * .9);
     }
     return {};
@@ -192,7 +138,7 @@ sub send_key {
     bmwqemu::diag "send_mapped_key '" . $args->{key} . "'";
     # FIXME the max_interval logic from type_string should go here, no?
     # and really, the screen should be checked for settling after key press...
-    $self->{vnc}->send_mapped_key($args->{key});
+    $self->{vnc}->map_and_send_key($args->{key});
     $self->{backend}->run_capture_loop(undef, .2, .19);
     return {};
 }

@@ -427,13 +427,13 @@ sub activate_console {
     }
     my $new_console = $self->{console_classes}->{$backend_console};
     $new_console->activate($testapi_console, $console_args);
- 
-    CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($new_console);
+
+    #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($new_console);
 
     $self->{consoles}->{$testapi_console} = $new_console;
     $self->select_console($args);
 
-    return;
+    return $new_console;
 }
 
 # There can be two vnc backends (local Xvnc or remote vnc) and
@@ -455,20 +455,20 @@ sub activate_console {
 
 sub select_console {
     my ($self, $args) = @_;
-    CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($args);
+    #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     my $testapi_console = $args->{testapi_console};
 
     unless (exists $self->{consoles}->{$testapi_console}) {
         die "select_console: console $testapi_console not activated";
     }
     my $selected_console = $self->{consoles}->{$testapi_console};
-    CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($selected_console);
+    #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($selected_console);
     $selected_console->select;
 
     $self->{current_console} = $selected_console;
     if ($selected_console->{vnc}) {
-	$self->{current_screen} = $selected_console;
-	$self->capture_screenshot();
+        $self->{current_screen} = $selected_console;
+        $self->capture_screenshot();
     }
 }
 
