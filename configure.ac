@@ -36,5 +36,6 @@ PKG_CHECK_MODULES([THEORAENC], [theoraenc >= 1.1])
 AC_CONFIG_FILES([
 	Makefile
 	t/Makefile
+	debugviewer/Makefile
 ])
 AC_OUTPUT
