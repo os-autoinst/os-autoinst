@@ -1,4 +1,6 @@
 package consoles::console;
+use strict;
+use warnings;
 
 sub new {
     my ($class, $backend) = @_;
@@ -20,9 +22,11 @@ sub activate {
 
 # common way of selecting the console
 sub _activate_window() {
+    my ($self) = @_;
+
     #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($self->{current_console});
-    my $display       = $console_info->{DISPLAY};
-    my $new_window_id = $console_info->{window_id};
+    my $display       = $self->{DISPLAY};
+    my $new_window_id = $self->{window_id};
     #CORE::say bmwqemu::pp($console_info);
     system("DISPLAY=$display xdotool windowactivate --sync $new_window_id") != -1 || die;
 }

@@ -24,13 +24,18 @@ backendexec_SCRIPTS = \
 	backend/qemu.pm \
 	backend/s390x.pm \
 	backend/console_proxy.pm \
-	backend/VNC.pm \
 	backend/vbox.pm \
-	backend/vnc_backend.pm
+	consoles/VNC.pm \
+	consoles/s3270.pm \
+	consoles/console.pm \
+	consoles/localXvnc.pm \
+	consoles/remoteVnc.pm \
+	consoles/remoteWindow.pm \
+	consoles/ssh.pm \
+	consoles/vnc_base.pm
 
 backendexecs390xdir = $(pkglibexecdir)/backend/s390x
 backendexecs390x_SCRIPTS = \
-	backend/s390x/s3270.pm \
 	backend/s390x/vars.json.py
 
 backendhelpexecdir = $(pkglibexecdir)/backend/helper

@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 sub activate() {
     my ($window_name) = @$console_args;
     # This will only work on a remote X display, i.e. when

@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 sub activate() {
     #elsif ($backend_console eq "remote-vnc") {
     my $hostname = get_var("PARMFILE")->{Hostname};

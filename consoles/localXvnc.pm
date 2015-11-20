@@ -1,5 +1,7 @@
 package consoles::localXvnc;
 use base 'consoles::vnc_base';
+use strict;
+use warnings;
 
 use testapi qw/get_var/;
 
@@ -50,10 +52,12 @@ sub activate() {
 }
 
 sub disable() {
+    my ($self) = @_;
+
     # FIXME shut down more gracefully, some processes may still be
     # open on Xvnc.
-    IPC::Run::signal($self->{local_X_handle}, "TERM");
-    IPC::Run::signal($self->{local_X_handle}, "KILL");
+    IPC::Run::signal($self->{local_X_handle}, 'TERM');
+    IPC::Run::signal($self->{local_X_handle}, 'KILL');
     IPC::Run::finish($self->{local_X_handle});
 }
 

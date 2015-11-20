@@ -126,7 +126,7 @@ sub do_start_vm() {
 sub do_stop_vm {
     my ($self) = @_;
 
-    #$self->ipmitool("chassis power off");
+    $self->ipmitool("chassis power off");
     $self->stop_serial_grab();
     return;
 }

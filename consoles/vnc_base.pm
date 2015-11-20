@@ -1,5 +1,6 @@
 package consoles::vnc_base;
 use strict;
+use warnings;
 use base ('consoles::console');
 
 use consoles::VNC;

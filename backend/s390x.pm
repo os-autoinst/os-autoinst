@@ -5,15 +5,11 @@ use strict;
 use warnings;
 use English;
 
-use base ('backend::vnc_backend');
+use base ('backend::baseclass');
 
 use Carp qw(confess cluck carp croak);
 
 use feature qw/say/;
-
-use backend::s390x::s3270;
-
-use backend::VNC;
 
 use testapi qw(get_var check_var set_var);
 
@@ -95,21 +91,6 @@ sub inflate_vars_json {
     die unless defined get_var('S390_NETWORK');
     die unless defined get_var('S390_CONSOLE');
     die unless defined get_var('REPO_0');
-    # when called from the openqa worker, these two vars are not set
-    # yet:
-    if (defined get_var('WORKER_CLASS')) {
-        die if defined get_var('S390_INSTHOST');
-        die if defined get_var('S390_INSTSRC');
-        set_var("S390_INSTHOST", "openqa");
-        # FIXME: this should become a parameter in the future, too.
-        # only ftp is implemented so far on openqa.suse.de
-        set_var("S390_INSTSRC", "ftp");
-        bmwqemu::save_vars();
-    }
-    else {
-        die unless defined get_var('S390_INSTHOST');
-        die unless defined get_var('S390_INSTSRC');
-    }
 
     # use external script to inflate vars.json
     my $vars_json_cmd = $bmwqemu::scriptdir . "/backend/s390x/vars.json.py";

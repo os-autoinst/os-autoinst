@@ -8,6 +8,7 @@ use bmwqemu qw(diag);
 use Time::HiRes qw( usleep gettimeofday );
 use Carp;
 use tinycv;
+use List::Util qw(min);
 
 use Crypt::DES;
 
@@ -17,16 +18,9 @@ use feature qw/say/;
 
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
-      no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version
+      no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_request
-      )
-      # FIXME: not needed?
-      # update_request_throttle_seconds _LAST_UPDATE_REQUEST_timer
-
-      # FIXME: wrong fix for alive check!
-      #_EAGAIN_counter _UNDEF_counter _REQUESTS_BEFORE_RESPONSE_timer
-      #requests_before_response_timeout
-);
+      ));
 our $VERSION = '0.40';
 
 my $MAX_PROTOCOL_VERSION = 'RFB 003.008' . chr(0x0a);    # Max version supported
@@ -106,19 +100,7 @@ sub login {
 
     $self->width(0);
     $self->height(0);
-
-    # FIXME: wrong fix for alive check!
-    # $self->_EAGAIN_counter(0);
-    # $self->_UNDEF_counter(0);
-
-    # $self->_REQUESTS_BEFORE_RESPONSE_timer(scalar gettimeofday);
-    # $self->requests_before_response_timeout(20)
-    #   unless defined $self->requests_before_response_timeout;
-
-    # FIXME: not needed?
-    # $self->_LAST_UPDATE_REQUEST_timer(0);
-    # $self->update_request_throttle_seconds(0)
-    # 	unless defined $self->update_request_throttle_seconds;
+    $self->screen_on(1);
 
     eval {
         $self->_handshake_protocol_version();
@@ -746,22 +728,10 @@ use POSIX qw(:errno_h);
 sub send_update_request {
     my ($self) = @_;
 
-    # FIXME: wrong fix for alive check!
-    # die "socket closed (no response after $self->requests_before_response_timeout seconds)\n" .	"${\Dumper $self}"
-    #   if $self->_REQUESTS_BEFORE_RESPONSE_timer() > $self->requests_before_response_timeout + gettimeofday;
-
-    # FIXME: not needed?
-    # my $update_request_wait_time = $self->update_request_throttle_seconds - (scalar gettimeofday - $self->_LAST_UPDATE_REQUEST_timer);
-    # usleep($update_request_wait_time * 1_000_000)
-    # 	if $update_request_wait_time > 0;
-    # $self->_LAST_UPDATE_REQUEST_timer(scalar gettimeofday);
-    #
-    # DEBUGGING
-    # print "VNC = " . Dumper $self;
-    # print "§" . gettimeofday . " - " . $update_request_wait_time ."§\n";
-
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
+
+    #printf "send_update_request %dx%d\n", $self->width, $self->height;
 
     $socket->print(
         pack(
@@ -785,33 +755,11 @@ sub _receive_message {
     my $ret = $socket->read(my $message_type, 1);
     $socket->blocking(1);
 
-    # FIXME: wrong fix for alive check!
-    if ($! == EAGAIN) {
-        #my $_EAGAIN_counter = $self->_EAGAIN_counter();
-        #die "socket broken, too many EAGAIN \n${\Dumper $self}" if $_EAGAIN_counter > 235; ## magic 235
-        #$self->_EAGAIN_counter($_EAGAIN_counter + 1);
-        return;
-    }
-    else {
-        #$self->_EAGAIN_counter(0);
-    }
-
-    # FIXME: wrong fix for alive check!
-    if (defined $ret) {
-        # $self->_UNDEF_counter(0);
-    }
-    else {
-        #my $_UNDEF_counter = $self->_UNDEF_counter();
-        #warn "socket read error: $!";
-        #die "socket dead, too many read errors \n${\Dumper $self}" if $_UNDEF_counter > 7; ## magic 7
-        #$self->_UNDEF_counter($_UNDEF_counter + 1);
+    if (!$ret) {
         return;
     }
 
     die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
-
-    # FIXME: wrong fix for alive check!
-    #$self->_REQUESTS_BEFORE_RESPONSE_timer(scalar gettimeofday);
 
     $message_type = unpack('C', $message_type);
 
@@ -838,8 +786,9 @@ sub _receive_message {
 sub _receive_update {
     my $self = shift;
 
+    #printf "receive_update %dx%d\n", $self->width, $self->height;
     my $image = $self->_framebuffer;
-    if (!$image) {
+    if (!$image && $self->width && $self->height) {
         $image = tinycv::new($self->width, $self->height);
         $self->_framebuffer($image);
 
@@ -943,19 +892,27 @@ sub _receive_ikvm_encoding {
     # ikvm specific
     $socket->read(my $aten_data, 8);
     my ($data_prefix, $data_len) = unpack('NN', $aten_data);
-    #printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
+    # printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
 
-    if ($w > 33000) {    # screen is off is signaled by negative numbers
-        $w = 1;
-        $h = 1;
-    }
+    $self->screen_on($w < 33000);    # screen is off is signaled by negative numbers
 
     # ikvm doesn't bother sending screen size changes
     if ($w != $self->width || $h != $self->height) {
-        $self->width($w);
-        $self->height($h);
-        $image = tinycv::new($self->width, $self->height);
-        $self->_framebuffer($image);
+        if ($self->screen_on) {
+            # printf "resizing to $w $h from %dx%d\n", $self->width, $self->height;
+            my $newimg = tinycv::new($w, $h);
+            if ($image) {
+                $image = $image->copyrect(0, 0, min($image->xres(), $w), min($image->yres(), $h));
+                $newimg->blend($image, 0, 0);
+            }
+            $self->width($w);
+            $self->height($h);
+            $image = $newimg;
+            $self->_framebuffer($image);
+        }
+        else {
+            $self->_framebuffer(undef);
+        }
         # resync mouse (magic)
         $self->socket->print(pack('Cn', 7, 1920));
     }
@@ -1000,6 +957,7 @@ sub _receive_ikvm_encoding {
                 next if $nyres < 0;
                 $img = $img->copyrect(0, 0, $img->xres(), $nyres);
             }
+            # printf "blending to %dx%d\n", $x * 16, $y * 16;
             $image->blend($img, $x * 16, $y * 16);
         }
     }

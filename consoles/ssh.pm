@@ -1,3 +1,6 @@
+use strict;
+use warnings;
+
 sub activate() {
     #if ($backend_console =~ qr/ssh(-X)?(-xterm_vt)?/) {
 
