@@ -297,7 +297,7 @@ sub _handshake_security {
     {
         $socket->read(my $security_result, 4)
           || die 'unexpected end of data';
-        $security_result = unpack('I', $security_result);
+        $security_result = unpack('N', $security_result);
 
         #    bmwqemu::diag $security_result;
         die 'login failed' if $security_result;
@@ -668,7 +668,6 @@ sub map_and_send_key {
     my @events;
 
     for my $key (split('-', $keys)) {
-        $key = $self->{charmap}->{$key} || $key;
         if (defined($self->keymap->{$key})) {
             if (ref($self->keymap->{$key}) eq 'ARRAY') {
                 push(@events, @{$self->keymap->{$key}});

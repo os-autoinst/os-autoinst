@@ -28,6 +28,11 @@ sub init() {
     $self->{name} = 's3270';
 }
 
+sub screen() {
+    my ($self) = @_;
+    return $self->{backend}->{consoles}->{worker};
+}
+
 sub start() {
     my $self = shift;
 
@@ -199,7 +204,7 @@ sub expect_3270() {
                 $we_had_new_output = 1;
             }
 
-            ### say Dumper $self->{raw_expect_queue};
+            say Dumper $self->{raw_expect_queue};
 
             # if there is MORE..., go and grab it.
             if ($status_line =~ /$arg{buffer_full}/) {

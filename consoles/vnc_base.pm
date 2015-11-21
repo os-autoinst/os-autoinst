@@ -15,6 +15,11 @@ sub init() {
     $self->{name} = 'vnc-base';
 }
 
+sub screen() {
+    my ($self) = @_;
+    return $self;
+}
+
 sub select() {
 }
 
@@ -120,11 +125,11 @@ sub type_string {
 
     for my $letter (split("", $args->{text})) {
         my $charmap = {
-            q{-}  => 'minus',
-            q{\t} => 'tab',
-            q{\n} => 'ret',
-            q{\b} => 'backspace',
-            q{\e} => 'esc'
+            "-"  => 'minus',
+            "\t" => 'tab',
+            "\n" => 'ret',
+            "\b" => 'backspace',
+            "\e" => 'esc'
         };
         $letter = $charmap->{$letter} || $letter;
         $self->{vnc}->map_and_send_key($letter);

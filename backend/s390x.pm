@@ -29,6 +29,7 @@ sub send_key {
         "ctrl-alt-f7" => "installation",
         "ctrl-alt-f9" => "ctrl-alt-f2",
     };
+    print "SEND_KEY $args->{key}\n";
     if ($args->{key} =~ qr/^ctrl-alt-f(\d+)/i) {
         die "unkown ctrl-alt-fX combination $args->{key}" unless exists $_map->{$args->{key}};
         $self->select_console({testapi_console => $_map->{$args->{key}}});

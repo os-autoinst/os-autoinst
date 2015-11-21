@@ -71,6 +71,15 @@ sub run {
     require consoles::s3270;
     consoles::s3270->new($backend);
 
+    require consoles::sshXtermVt;
+    consoles::sshXtermVt->new($backend);
+
+    require consoles::sshX3270;
+    consoles::sshX3270->new($backend);
+
+    require consoles::remoteVnc;
+    consoles::remoteVnc->new($backend);
+
     $SIG{__DIE__} = \&die_handler;
 
     my $io = IO::Handle->new();
@@ -470,10 +479,8 @@ sub select_console {
     $selected_console->select;
 
     $self->{current_console} = $selected_console;
-    if ($selected_console->{vnc}) {
-        $self->{current_screen} = $selected_console;
-        $self->capture_screenshot();
-    }
+    $self->{current_screen}  = $selected_console->screen;
+    $self->capture_screenshot();
     return $testapi_console;
 }
 
