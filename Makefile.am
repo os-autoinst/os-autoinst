@@ -20,11 +20,9 @@ backendexec_SCRIPTS = \
 	backend/baseclass.pm \
 	backend/driver.pm \
 	backend/ipmi.pm \
-	backend/kvm2usb.pm \
 	backend/qemu.pm \
 	backend/s390x.pm \
 	backend/console_proxy.pm \
-	backend/vbox.pm \
 	consoles/VNC.pm \
 	consoles/s3270.pm \
 	consoles/console.pm \
@@ -37,10 +35,6 @@ backendexec_SCRIPTS = \
 backendexecs390xdir = $(pkglibexecdir)/backend/s390x
 backendexecs390x_SCRIPTS = \
 	backend/s390x/vars.json.py
-
-backendhelpexecdir = $(pkglibexecdir)/backend/helper
-backendhelpexec_SCRIPTS = \
-	backend/helper/scancodes.pm
 
 pkglibexec_SCRIPTS = \
 	autotest.pm \
