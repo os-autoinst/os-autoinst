@@ -14,8 +14,6 @@ install:
   - sudo apt-get install libopencv-dev libtheora-dev libcv-dev libhighgui-dev tesseract-ocr
 script:
   - find . -type f | xargs -n1 sed -i -e 's,#!/usr/bin/perl,#!/usr/bin/env perl,'
-  - ./tools/tidy --check
-  - perlcritic --gentle .
   - sh autogen.sh 
   - ./configure
   - make && make check VERBOSE=1

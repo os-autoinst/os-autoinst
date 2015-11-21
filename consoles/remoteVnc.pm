@@ -2,7 +2,8 @@ use strict;
 use warnings;
 
 sub activate() {
-    #elsif ($backend_console eq "remote-vnc") {
+    my ($self, $testapi_console, $console_args) = @_;
+
     my $hostname = get_var("PARMFILE")->{Hostname};
     my $password = get_var("DISPLAY")->{PASSWORD};
     $self->{vnc} = undef;    # REFACTOR see below
@@ -13,8 +14,6 @@ sub activate() {
             password => $password,
             ikvm     => 0,
         });
-    $console_info->{console} = $self->{vnc};
-    $console_info->{vnc}     = $self->{vnc};
     if (exists get_var("DEBUG")->{vncviewer}) {
 
         # start vncviewer and remember it's pid so it can be killed at exit.
@@ -30,22 +29,22 @@ sub activate() {
         open my $fh, '<', 'vncviewer_pid' or die $!;
         my $vncviewer_pid = do { local $/; <$fh> };
         chomp($vncviewer_pid);
-        $console_info->{vncviewer_pid} = $vncviewer_pid;
+        $self->{vncviewer_pid} = $vncviewer_pid;
         #CORE::say __FILE__ .':'. __LINE__ .':'.(caller 0)[3].':'.bmwqemu::pp($console_info);
     }
 }
 
 sub disable() {
+    my ($self) = @_;
+
     #CORE::say __FILE__ .':'. __LINE__ .':'.(caller 0)[3].':'.bmwqemu::pp($console_info);
-    if (exists $console_info->{vncviewer_pid}) {
-        kill 'KILL', $console_info->{vncviewer_pid};
+    if (exists $self->{vncviewer_pid}) {
+        kill 'KILL', $self->{vncviewer_pid};
     }
-    # FIXME? close remote socket?
-    $console_info->{console} = undef;
-    # FIXME: only do when {vnc} currently is "remote-vnc" (not local-Xvnc)?
-    $self->{vnc} = undef;
 }
 
 # override
 sub select() {
 }
+
+1;

@@ -2,14 +2,17 @@ use strict;
 use warnings;
 
 sub activate() {
+    my ($self, $testapi_console, $console_args) = @_;
+
     #if ($backend_console =~ qr/ssh(-X)?(-xterm_vt)?/) {
 
     my $host        = get_var("PARMFILE")->{Hostname};
     my $sshpassword = get_var("PARMFILE")->{sshpassword};
     system("ssh-keygen -R $host -f ./known_hosts");
-    my $sshcommand = "ssh";
-    my $display_id = get_var("VNC") || die "VNC unset in vars.json.";
-    my $display    = ":" . $display_id;
+    my $sshcommand      = "ssh";
+    my $display_id      = get_var("VNC") || die "VNC unset in vars.json.";
+    my $display         = ":" . $display_id;
+    my $backend_console = 'ssh-X';
     if ($backend_console eq "ssh-X") {
         $sshcommand = "DISPLAY=$display " . $sshcommand . " -X";
     }
@@ -17,7 +20,7 @@ sub activate() {
     my $term_app = ($backend_console =~ qr/-xterm_vt/) ? "xterm" : "x3270";
     if ($term_app eq "x3270") {
         $sshcommand = "TERM=vt100 " . $sshcommand;
-        $console_info = $self->new_3270_console({vnc_backend => $self});
+        my $console_info = $self->new_3270_console({vnc_backend => $self});
         # do ssh connect
         my $s3270 = $console_info->{console};
         $s3270->send_3270("Connect(\"-e $sshcommand\")");
@@ -44,10 +47,10 @@ sub activate() {
         my $window_id = qx"DISPLAY=$display xdotool search --sync --limit 1 $window_name";
         chomp($window_id);
 
-        $console_info->{window_id} = $window_id;
-        $console_info->{vnc}       = $self->{consoles}->{worker}->{vnc};
-        $console_info->{console}   = $self->{consoles}->{worker}->{vnc};
-        $console_info->{DISPLAY}   = $display;
+        $self->{window_id} = $window_id;
+        $self->{vnc}       = $self->{consoles}->{worker}->{vnc};
+        $self->{console}   = $self->{consoles}->{worker}->{vnc};
+        $self->{DISPLAY}   = $display;
         # FIXME: capture xterm output, wait for "password:" prompt
         # possible tactics:
         # -xrm bind key print-immediate() action to some cryptic unused key combination like ctrl-alt-§
@@ -57,19 +60,19 @@ sub activate() {
         die if $sshpassword =~ /'/;
         #xterm does not accept key events by default, for security reasons, so this won't work:
         #system("DISPLAY=$display xdotool type '$sshpassword' key enter");
-        die unless $console_info->{console} == $self->{vnc};
+        die unless $self->{console} == $self->{vnc};
         $self->type_string({text => "$sshpassword\n"});
     }
 }
 
 sub disable() {
-    my $window_id = $console_info->{window_id};
-    my $display   = $self->{consoles}->{worker}->{DISPLAY};
-    system("DISPLAY=$display xdotool windowkill $window_id") != -1 || die;
-    $console_info->{console} = undef;
+    my ($self) = @_;
+    $self->_kill_window();
 }
 
 sub select() {
     my ($self) = @_;
     $self->_activate_window();
 }
+
+1;

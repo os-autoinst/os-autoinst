@@ -1,18 +1,19 @@
-#!/usr/bin/perl -w
-package backend::s390x::s3270;
+package consoles::s3270;
 
-use base qw(Class::Accessor::Fast);
+use base qw(consoles::console);
 use strict;
 use warnings;
-use English;
 
-__PACKAGE__->mk_accessors(qw(zVM_host guest_user guest_login));
+use Class::Accessor "antlers";
+has zVM_host    => (is => "rw");
+has guest_user  => (is => "rw");
+has guest_login => (is => "rw");
 
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 
-use feature qw/say/;
-
+use feature qw(say);
+use testapi qw(get_var);
 
 require IPC::Run;
 
@@ -22,9 +23,9 @@ use Thread::Queue;
 
 use Time::HiRes qw(usleep);
 
-sub new() {
-    my $self = Class::Accessor::new(@_);
-    return $self;
+sub init() {
+    my ($self) = @_;
+    $self->{name} = 's3270';
 }
 
 sub start() {
@@ -206,9 +207,9 @@ sub expect_3270() {
                 # # no screen content is lost in the video.  It is
                 # # a hacky work around until this loop is properly
                 # # integrated with the baseclass run_capture_loop
-                $self->{vnc_backend}->request_screen_update();
+                $self->{backend}->request_screen_update();
                 usleep(5_000);
-                $self->{vnc_backend}->capture_screenshot();
+                $self->{backend}->capture_screenshot();
                 $self->send_3270("Clear");
                 next;
             }
@@ -282,9 +283,9 @@ sub expect_3270() {
             # # no screen content is lost in the video.  It is
             # # a hacky work around until this loop is properly
             # # integrated with the baseclass run_capture_loop
-            $self->{vnc_backend}->request_screen_update();
+            $self->{backend}->request_screen_update();
             usleep(5_000);
-            $self->{vnc_backend}->capture_screenshot();
+            $self->{backend}->capture_screenshot();
             $self->send_3270("Clear");
         }
 
@@ -306,8 +307,6 @@ sub expect_3270() {
     say Dumper $result;
     return $result;
 }
-
-
 
 sub wait_output() {
     my ($self, $timeout) = @_;
@@ -331,16 +330,14 @@ sub wait_output() {
 sub sequence_3270() {
     my ($self, @commands) = @_;
 
-
     foreach my $command (@commands) {
         $self->send_3270($command);
     }
-
 }
 
-
+# map the terminal status of x3270 to a hash
 sub nice_3270_status() {
-    my ($status_string) = @_;
+    my ($self, $status_string) = @_;
     #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($status_string);
     my (@raw_status) = split(" ", $status_string);
     my @status_names = (
@@ -393,10 +390,7 @@ sub nice_3270_status() {
     my %nice_status;
     @nice_status{@status_names} = @raw_status;
 
-    ##return wantarray ? %nice_status : \%nice_status ;
-    my $retval = \%nice_status;
-
-    return $retval;
+    return \%nice_status;
 }
 
 
@@ -426,7 +420,6 @@ sub _connect_3270() {
 # log in
 sub _login_guest() {
     my ($self, $guest, $password) = @_;
-
 
     $self->send_3270("String($guest)");
     $self->send_3270("String($password)");
@@ -459,8 +452,8 @@ sub cp_disconnect() {
 }
 
 sub DESTROY {
-    my $self = shift;
-    IPC::Run::finish($self->{connection});
+    my ($self) = @_;
+    IPC::Run::finish($self->{connection}) if $self->{connection};
 }
 
 sub connect_and_login() {
@@ -510,12 +503,11 @@ sub connect_and_login() {
 ###################################################################
 # create x3270 terminals, -e ssh ones and true 3270 ones.
 sub new_3270_console {
-    my ($self, $s3270) = @_;
-    confess "expecting hashref" unless ref $s3270 eq "HASH";
-    my $display = ":" . (get_var("VNC") // die "VNC unset in vars.json.");
-    $s3270->{s3270} = [
+    my ($self) = @_;
+    $self->{DISPLAY} = ":" . (get_var("VNC") // die "VNC unset in vars.json.");
+    $self->{s3270} = [
         qw(x3270),
-        "-display", $display,
+        "-display", $self->{DISPLAY},
         qw(-script -charset us -xrm x3270.visualBell:true -xrm x3270.keypadOn:false
           -set screenTrace -xrm x3270.traceDir:.
           -trace -xrm x3270.traceMonitor:false),
@@ -525,38 +517,40 @@ sub new_3270_console {
         # hard code it here (0x1b).
         '-xrm', 'x3270.keymap.base.nvt:#replace\nAlt<Key>: Key(0x1b) Default()'
     ];
-    $s3270 = new backend::s390x::s3270($s3270);
-    $s3270->start();
-    my $status = $s3270->send_3270()->{terminal_status};
-    $status = &backend::s390x::s3270::nice_3270_status($status);
-    die "no worker Xvnc??" . bmwqemu::pp($self) unless exists $self->{consoles}->{worker};
-    my $console_info = {
-        window_id => $status->{window_id},
-        console   => $s3270,
-        vnc       => $self->{consoles}->{worker}->{vnc},
-        DISPLAY   => $display,
-    };
-    return $console_info;
+    $self->start();
+    my $status = $self->send_3270()->{terminal_status};
+    $status = $self->nice_3270_status($status);
+
+    $self->{window_id} = $status->{window_id};
+    die "no worker Xvnc??" . bmwqemu::pp($self) unless exists $self->{backend}->{consoles}->{worker};
+    return;
 }
-###################################################################
-# FIXME the following if (console_type eq ...) cascades could be
-# rewritten using objects.
+
 sub activate() {
+    my ($self, $testapi_console, $args) = @_;
 
     die "s3270 must be named 'bootloader'" unless $testapi_console eq 'bootloader';
-    # my () = @console_args;
-    $console_info = $self->new_3270_console(
-        {
-            zVM_host    => (get_var("ZVM_HOST")     // die "ZVM_HOST unset in vars.json"),
-            guest_user  => (get_var("ZVM_GUEST")    // die "ZVM_GUEST unset in vars.json"),
-            guest_login => (get_var("ZVM_PASSWORD") // die "ZVM_PASSWORD unset in vars.json"),
-            vnc_backend => $self,
-        });
+    $self->zVM_host(get_var("ZVM_HOST")        // die "ZVM_HOST unset in vars.json");
+    $self->guest_user(get_var("ZVM_GUEST")     // die "ZVM_GUEST unset in vars.json");
+    $self->guest_login(get_var("ZVM_PASSWORD") // die "ZVM_PASSWORD unset in vars.json");
+    $self->new_3270_console;
+    return;
 }
 
 sub select() {
     my ($self) = @_;
     $self->_activate_window();
+}
+
+sub disable() {
+    my ($self) = @_;
+    if (exists get_var("DEBUG")->{"keep zVM guest"}) {
+        $self->cp_disconnect();
+    }
+    else {
+        $self->cp_logoff_disconnect();
+    }
+    $self->_kill_window();
 }
 
 1;

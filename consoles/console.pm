@@ -31,4 +31,11 @@ sub _activate_window() {
     system("DISPLAY=$display xdotool windowactivate --sync $new_window_id") != -1 || die;
 }
 
+sub _kill_window() {
+    my ($self)    = @_;
+    my $window_id = $self->{window_id};
+    my $display   = $self->{DISPLAY};
+    system("DISPLAY=$display xdotool windowkill $window_id") != -1 || die;
+}
+
 1;

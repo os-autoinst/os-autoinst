@@ -1,5 +1,3 @@
-#!/usr/bin/perl -w
-
 package backend::ipmi;
 use strict;
 use base ('backend::baseclass');
@@ -17,7 +15,6 @@ use JSON;
 require Carp;
 use Fcntl;
 use bmwqemu qw(fileContent diag save_vars diag);
-use IPC::Run ();
 
 sub new {
     my $class = shift;
@@ -128,13 +125,13 @@ sub do_stop_vm {
 
     $self->ipmitool("chassis power off");
     $self->stop_serial_grab();
-    return;
+    return {};
 }
 
 sub do_savevm {
     my ($self, $args) = @_;
     print "do_savevm ignored\n";
-    return;
+    return {};
 }
 
 sub do_loadvm {

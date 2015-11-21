@@ -1,5 +1,3 @@
-#!/usr/bin/perl -w
-
 package backend::qemu;
 use strict;
 use base ('backend::baseclass');

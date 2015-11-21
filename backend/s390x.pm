@@ -1,4 +1,3 @@
-#!/usr/bin/perl -w
 package backend::s390x;
 
 use strict;
@@ -17,32 +16,6 @@ sub new {
     my $class = shift;
     my $self = bless({class => $class}, $class);
     return $self;
-}
-
-
-sub _delete_console {
-    my ($self, $console_info) = @_;
-    my $args = $console_info->{args};
-    my ($testapi_console, $backend_console) = @$args{qw(testapi_console backend_console)};
-    CORE::say __FILE__ . ':' . __LINE__ . ':' . (caller 0)[3] . ':' . bmwqemu::pp($args);
-    #CORE::say __FILE__ .':'. __LINE__ .':'.(caller 0)[3].':'.bmwqemu::pp($console_info);
-    if ($testapi_console eq "bootloader") {
-        if (exists get_var("DEBUG")->{"keep zVM guest"}) {
-            $console_info->{console}->cp_disconnect();
-        }
-        else {
-            $console_info->{console}->cp_logoff_disconnect();
-        }
-        # REFACTOR: DRY (same as in the next two...)
-        my $window_id = $console_info->{window_id};
-        my $display   = $self->{consoles}->{worker}->{DISPLAY};
-        system("DISPLAY=$display xdotool windowkill $window_id") != -1 || die;
-        $console_info->{console} = undef;
-    }
-
-    else {
-        confess "unknown backend console $backend_console";
-    }
 }
 
 # cature send_key events to switch consoles on ctr-alt-fX
@@ -123,14 +96,6 @@ sub do_stop_vm {
     $self->deactivate_console({testapi_console => 'bootloader'});
     $self->deactivate_console({testapi_console => 'worker'});
     return;
-}
-
-sub do_savevm {
-    notimplemented();
-}
-
-sub do_loadvm {
-    notimplemented();
 }
 
 sub status {

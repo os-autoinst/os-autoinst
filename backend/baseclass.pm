@@ -68,6 +68,9 @@ sub run {
     require consoles::vnc_base;
     consoles::vnc_base->new($backend);
 
+    require consoles::s3270;
+    consoles::s3270->new($backend);
+
     $SIG{__DIE__} = \&die_handler;
 
     my $io = IO::Handle->new();
@@ -396,7 +399,7 @@ sub check_socket {
 
         if ($cmd->{cmd}) {
             my $rsp = $self->handle_command($cmd);
-            #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($rsp);
+            #CORE::say __FILE__.":".__LINE__.":" . bmwqemu::pp($cmd) . " : ".bmwqemu::pp($rsp);
             if ($self->{rsppipe}) {    # the command might have closed it
                 $self->{rsppipe}->print(JSON::to_json({rsp => $rsp}));
                 $self->{rsppipe}->print("\n");
@@ -433,7 +436,8 @@ sub activate_console {
     $self->{consoles}->{$testapi_console} = $new_console;
     $self->select_console($args);
 
-    return $new_console;
+    # don't return any complex object - this needs to be transferred through JSON to the test thread
+    return $testapi_console;
 }
 
 # There can be two vnc backends (local Xvnc or remote vnc) and
@@ -470,6 +474,7 @@ sub select_console {
         $self->{current_screen} = $selected_console;
         $self->capture_screenshot();
     }
+    return $testapi_console;
 }
 
 sub deactivate_console {
@@ -482,14 +487,9 @@ sub deactivate_console {
     if (defined $self->{current_console} && $self->{current_console} == $console_info) {
         $self->{current_console} = undef;
     }
-    $self->_delete_console($console_info);
+    $self->{consoles}->{$testapi_console}->disable();
     delete $self->{consoles}->{$testapi_console};
-}
-
-sub _delete_console {
-    # my ($self, $args) = @_;
-    # tear down the backend console $args->{backend_console} (disconnect, free ressources, etc).
-    die "overload _delete_console in your subclass!";
+    return {};
 }
 
 sub request_screen_update() {
@@ -555,7 +555,7 @@ sub proxy_console_call {
         # Move the decision to actually die to the server side instead.
         # For this ignore backend::baseclass::die_handler.
         local $SIG{__DIE__} = 'DEFAULT';
-        $wrapped_result->{result} = $self->{consoles}->{$console}->{console}->$function(@$args);
+        $wrapped_result->{result} = $self->{consoles}->{$console}->$function(@$args);
     };
 
     if ($@) {

@@ -147,6 +147,10 @@ dist-hook:
 
 distclean-local: clean-local
 
+check-local:
+	$(srcdir)/tools/tidy --check
+	perlcritic --gentle $(srcdir)
+
 clean-local:
 	@if test -e ppmclibs/Makefile; then $(MAKE) -C ppmclibs distclean; fi
 	-rm -rf *.tar.*

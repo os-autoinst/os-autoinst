@@ -1,5 +1,3 @@
-#!/usr/bin/perl -w
-
 # this is an abstract class
 package backend::helper::scancodes;
 use strict;

@@ -2,6 +2,7 @@ package consoles::localXvnc;
 use base 'consoles::vnc_base';
 use strict;
 use warnings;
+use IPC::Run ();
 
 use testapi qw/get_var/;
 
@@ -49,19 +50,30 @@ sub activate() {
       || die "couldn't start icewm on $display (err: $! retval: $?)";
     # FIXME robustly wait for the window manager
     sleep 2;
+    return;
 }
 
 sub disable() {
     my ($self) = @_;
+
+    return unless $self->{local_X_handle};
 
     # FIXME shut down more gracefully, some processes may still be
     # open on Xvnc.
     IPC::Run::signal($self->{local_X_handle}, 'TERM');
     IPC::Run::signal($self->{local_X_handle}, 'KILL');
     IPC::Run::finish($self->{local_X_handle});
+    $self->{local_X_handle} = undef;
+    return;
 }
 
 # override
-sub select() { }
+sub select() { return; }
+
+sub DESTROY {
+    my $self = shift;
+    $self->disable();
+    return;
+}
 
 1;

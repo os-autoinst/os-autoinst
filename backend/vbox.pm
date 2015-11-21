@@ -1,5 +1,3 @@
-#!/usr/bin/perl -w
-
 package backend::vbox;
 use strict;
 use Cwd 'abs_path';

@@ -1,5 +1,3 @@
-#!/usr/bin/perl -w
-
 # this class is what everyone else refers to as $bmwqemu::backend and its code runs
 # in the main thread. But its main task is to start a 2nd thread and talk to it over
 # a PIPE (thanks to perl's insane approach to threads).

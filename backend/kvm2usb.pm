@@ -1,5 +1,3 @@
-#!/usr/bin/perl -w
-
 # this module provides a testing backend using the Epiphan kvm2usb device
 # to capture VGA from another physical machine and PS2/USB keyboard
 # to send keystrokes for automated actions
