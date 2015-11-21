@@ -161,94 +161,6 @@ my_ip = [(s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1),
           s.getsockname()[0],
           s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][2]
 
-insthost_vars = lambda host, distro: {
-    "dist": {
-        "INSTSRC": {
-            # dist.suse.de
-            "HOST":     "10.160.0.100",
-        },
-        "FTPBOOT" : {
-            "COMMAND"  : "ftpboot",
-            "HOST"     : "DIST.SUSE.DE",
-            "DISTRO"   : distro
-        }
-    },
-    # to use this, restrict on FTP, run a local tftpd with anonymous access.
-    # use frohboot instead of ftpboot.
-    "localhost": {
-        "INSTSRC": {
-            "PROTOCOL":"FTP",
-            "HOST":     my_ip,
-        },
-        "FTPBOOT" : {
-            "COMMAND"  : "frohboot",
-            "HOST"     : my_ip,
-            "DISTRO"   : distro
-        },
-        # We use localhost for debugging purposes.  It will always be
-        # unsigned, thus insecure.
-        "PARMFILE": {
-            "insecure": "1",
-        },
-    },
-    "openqa": {
-        "INSTSRC": {
-            "HOST":     "openqa",
-            "PROTOCOL": "FTP",
-        },
-        "FTPBOOT" : {
-            "COMMAND"  : "qaboot",
-            "FTP_SERVER"     : "openqa",
-            "PATH_TO_SUSE_INS": distro,
-        },
-    },
-}[host]
-
-def instsrc_vars(instsource, distro, host):
-    if host == "openqa":
-        def _dist_slp(distro, prefix=""):
-            return "{prefix}/{distro}/".format(
-                distro=distro, prefix=prefix
-            )
-    else:
-        def _dist_slp(distro, prefix=""):
-            return "{prefix}/install/SLP/{distro}/s390x/DVD1".format(
-                distro=distro, prefix=prefix
-            )
-
-    _instsrc_vars = {
-        "ftp": {
-            "INSTSRC": {
-                "DIR_ON_SERVER": _dist_slp(distro),
-            },
-        },
-        "http": {
-            "INSTSRC": {
-                "DIR_ON_SERVER": _dist_slp(distro),
-            },
-        },
-        "https": None,
-        "nfs": {
-            "INSTSRC": {
-                "DIR_ON_SERVER": _dist_slp(distro, "/dist"),
-            },
-        },
-        "smb": {
-            "INSTSRC": {
-                "DIR_ON_SERVER": _dist_slp(distro),
-            },
-        },
-        "tftp": None,
-    }[instsource]
-
-    unify(_instsrc_vars, {
-        "INSTSRC": {
-            "PROTOCOL": instsource.upper(),
-            "FTP_USER": "anonymous"
-        },
-    } )
-    return _instsrc_vars
-
 sshpassword = "nots3cr3t"
 Xvnc_DISPLAY = 91
 
@@ -300,7 +212,6 @@ console_vars = lambda Xvnc_DISPLAY: {
 }
 
 def update_vars_json(vars_json):
-    insthost       = vars_json["S390_INSTHOST"]
     guest          = vars_json["S390_HOST"]
     network_device = vars_json["S390_NETWORK"]
     instsource     = vars_json["S390_INSTSRC"]
@@ -339,9 +250,6 @@ def update_vars_json(vars_json):
             #"dud": "http://w3.suse.de/~snwint/bnc_913888.dud",
             # "startshell":"1".
             "manual": "0",
-            #"dud": "nfs://10.160.0.111:/real-home/snwint/Export/bnc_913888.dud",
-            #"dud": "ftp://{host}/bnc_913888/bnc_913888.dud".format(host=my_ip),
-            #"linuxrc.log":"/dev/console",
         }
     }
 
@@ -354,17 +262,23 @@ def update_vars_json(vars_json):
     Xvnc_DISPLAY = vars_json['VNC']
     unify(vars_json, console_vars(Xvnc_DISPLAY)[console])
 
-    unify(vars_json, instsrc_vars(instsource, distro, insthost))
-
-    unify(vars_json, insthost_vars(insthost, distro))
+    vars_json["INSTSRC"] = {
+            "HOST":     "openqa",
+            "PROTOCOL": "FTP",
+            "DIR_ON_SERVER": "/" + vars_json['REPO_8'] + "/",
+            "FTP_USER": "anonymous"
+    }
+    vars_json["FTPBOOT"] =  {
+        "COMMAND"  : "qaboot",
+        "FTP_SERVER"     : "openqa",
+        "PATH_TO_SUSE_INS": vars_json['REPO_8']
+    }
 
     vars_json["PARMFILE"]["install"] = "{protocol}://{host}{dir_on_server}".format(
         protocol=instsource.lower(),
         host=vars_json["INSTSRC"]["HOST"],
         dir_on_server=vars_json["INSTSRC"]["DIR_ON_SERVER"]
         )
-
-    vars_json["CASEDIR"] = "/space/SVN/os-autoinst-distri-opensuse/"
 
     return vars_json
 
