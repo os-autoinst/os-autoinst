@@ -94,7 +94,7 @@ sub record_screenmatch {
 
     # When the needle has the workaround property,
     # mark the result as dent and increase the dents
-    if ($match->{'needle'}->has_property('workaround')) {
+    if ($match->{needle}->has_property('workaround')) {
         $result->{dent} = 1;
         $self->{dents}++;
         bmwqemu::diag "needle '$h->{name}' is a workaround";

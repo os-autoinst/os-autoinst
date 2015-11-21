@@ -68,10 +68,10 @@ sub write_test_order() {
         push(
             @result,
             {
-                'name'     => ref($t),
-                'category' => $t->{category},
-                'flags'    => $t->test_flags(),
-                'script'   => $t->{script}});
+                name     => ref($t),
+                category => $t->{category},
+                flags    => $t->test_flags(),
+                script   => $t->{script}});
     }
     bmwqemu::save_json_file(\@result, bmwqemu::result_dir . "/test_order.json");
 

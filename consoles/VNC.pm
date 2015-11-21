@@ -30,7 +30,7 @@ my $client_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
 
 # The numbers in the hashes below were acquired from the VNC source code
 my %supported_depths = (
-    '24' => {
+    24 => {
         bpp         => 32,
         true_colour => 1,
         red_max     => 255,
@@ -40,7 +40,7 @@ my %supported_depths = (
         green_shift => 8,
         blue_shift  => 0,
     },
-    '16' => {
+    16 => {
         bpp         => 16,
         true_colour => 1,
         red_max     => 31,
@@ -497,6 +497,9 @@ sub send_key_event {
     $self->send_key_event_up($key);
 }
 
+
+## no critic (HashKeyQuotes)
+
 my $keymap_x11 = {
     'esc'       => 0xff1b,
     'down'      => 0xff54,
@@ -523,29 +526,6 @@ my $keymap_x11 = {
     'sysrq'     => 0xff15,
     'super'     => 0xffeb,     # left, right is ec
 };
-
-sub init_x11_keymap {
-    my ($self) = @_;
-
-    return if $self->keymap;
-    $self->keymap($keymap_x11);
-    for my $key (30 .. 255) {
-        $self->keymap->{chr($key)} ||= $key;
-    }
-    for my $key (1 .. 12) {
-        $self->keymap->{"f$key"} = 0xffbd + $key;
-    }
-    for my $key ("a" .. "z") {
-        $self->keymap->{$key} = ord($key);
-        # shift-H looks strange, but that's how VNC works
-        $self->keymap->{uc $key} = [$keymap_x11->{shift}, ord(uc $key)];
-    }
-    # VNC doesn't use the unshifted values, only prepends a shift key
-    for my $key (keys %{shift_keys()}) {
-        die "no map for $key" unless $keymap_x11->{$key};
-        $self->keymap->{$key} = [$keymap_x11->{shift}, $keymap_x11->{$key}];
-    }
-}
 
 # ikvm aka USB: https://www.win.tue.nl/~aeb/linux/kbd/scancodes-14.html
 my $keymap_ikvm = {
@@ -592,29 +572,6 @@ my $keymap_ikvm = {
     '/'         => 0x38,
 };
 
-sub init_ikvm_keymap {
-    my ($self) = @_;
-
-    return if $self->keymap;
-    $self->keymap($keymap_ikvm);
-    for my $key ("a" .. "z") {
-        my $code = 0x4 + ord($key) - ord('a');
-        $self->keymap->{$key} = $code;
-        $self->keymap->{uc $key} = [$keymap_ikvm->{shift}, $code];
-    }
-    for my $key ("1" .. "9") {
-        $self->keymap->{$key} = 0x1e + ord($key) - ord('1');
-    }
-    for my $key (1 .. 12) {
-        $self->keymap->{"f$key"} = 0x3a + $key - 1,;
-    }
-    my %map = %{shift_keys()};
-    while (my ($key, $shift) = each %map) {
-        die "no map for $key" unless $keymap_ikvm->{$shift};
-        $self->keymap->{$key} = [$keymap_ikvm->{shift}, $keymap_ikvm->{$shift}];
-    }
-}
-
 sub shift_keys {
 
     # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
@@ -648,6 +605,55 @@ sub shift_keys {
         '?' => '/',
     };
 }
+
+## use critic
+
+sub init_x11_keymap {
+    my ($self) = @_;
+
+    return if $self->keymap;
+    $self->keymap($keymap_x11);
+    for my $key (30 .. 255) {
+        $self->keymap->{chr($key)} ||= $key;
+    }
+    for my $key (1 .. 12) {
+        $self->keymap->{"f$key"} = 0xffbd + $key;
+    }
+    for my $key ("a" .. "z") {
+        $self->keymap->{$key} = ord($key);
+        # shift-H looks strange, but that's how VNC works
+        $self->keymap->{uc $key} = [$keymap_x11->{shift}, ord(uc $key)];
+    }
+    # VNC doesn't use the unshifted values, only prepends a shift key
+    for my $key (keys %{shift_keys()}) {
+        die "no map for $key" unless $keymap_x11->{$key};
+        $self->keymap->{$key} = [$keymap_x11->{shift}, $keymap_x11->{$key}];
+    }
+}
+
+sub init_ikvm_keymap {
+    my ($self) = @_;
+
+    return if $self->keymap;
+    $self->keymap($keymap_ikvm);
+    for my $key ("a" .. "z") {
+        my $code = 0x4 + ord($key) - ord('a');
+        $self->keymap->{$key} = $code;
+        $self->keymap->{uc $key} = [$keymap_ikvm->{shift}, $code];
+    }
+    for my $key ("1" .. "9") {
+        $self->keymap->{$key} = 0x1e + ord($key) - ord('1');
+    }
+    for my $key (1 .. 12) {
+        $self->keymap->{"f$key"} = 0x3a + $key - 1,;
+    }
+    my %map = %{shift_keys()};
+    while (my ($key, $shift) = each %map) {
+        die "no map for $key" unless $keymap_ikvm->{$shift};
+        $self->keymap->{$key} = [$keymap_ikvm->{shift}, $keymap_ikvm->{$shift}];
+    }
+}
+
 
 sub map_and_send_key {
     my ($self, $keys) = @_;

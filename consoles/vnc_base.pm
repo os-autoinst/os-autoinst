@@ -120,11 +120,11 @@ sub type_string {
 
     for my $letter (split("", $args->{text})) {
         my $charmap = {
-            '-'  => 'minus',
-            "\t" => 'tab',
-            "\n" => 'ret',
-            "\b" => 'backspace',
-            "\e" => 'esc'
+            q{-}  => 'minus',
+            q{\t} => 'tab',
+            q{\n} => 'ret',
+            q{\b} => 'backspace',
+            q{\e} => 'esc'
         };
         $letter = $charmap->{$letter} || $letter;
         $self->{vnc}->map_and_send_key($letter);

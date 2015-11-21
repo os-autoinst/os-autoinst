@@ -33,8 +33,8 @@ $res    = $img1->search($needle);
 ok(defined $res, "ocr match 1");
 
 my $ocr;
-for my $a (@{$res->{'needle'}->{'area'}}) {
-    next unless $a->{'type'} eq 'ocr';
+for my $a (@{$res->{needle}->{area}}) {
+    next unless $a->{type} eq 'ocr';
 
     #    my $ocr=ocr::get_ocr($img1, "-l 0",
     #	    [ $a->{'xpos'}, $a->{'ypos'}, $a->{'width'}, $a->{'height'} ]);

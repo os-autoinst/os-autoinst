@@ -37,10 +37,10 @@ $res = $img1->search($needle);
 ok(defined $res, "match with exclude area");
 
 ($res, $cand) = $img1->search($needle);
-ok(defined $res,                           "match in array context");
-ok($res->{'ok'},                           "match in array context ok == 1");
-ok($res->{'area'}->[-1]->{result} eq 'ok', "match in array context result == ok");
-ok(!defined $cand,                         "candidates must be undefined");
+ok(defined $res,                         "match in array context");
+ok($res->{ok},                           "match in array context ok == 1");
+ok($res->{area}->[-1]->{result} eq 'ok', "match in array context result == ok");
+ok(!defined $cand,                       "candidates must be undefined");
 
 $needle = needle->new("data/bootmenu-fail.ref.json");
 $res    = $img1->search($needle);

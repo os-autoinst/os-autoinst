@@ -143,7 +143,7 @@ distclean-local: clean-local
 
 check-local:
 	$(srcdir)/tools/tidy --check
-	perlcritic --gentle $(srcdir)
+	PERL5LIB=tools/lib/perlcritic perlcritic --gentle --include Perl::Critic::Policy::HashKeyQuote $(srcdir)
 
 clean-local:
 	@if test -e ppmclibs/Makefile; then $(MAKE) -C ppmclibs distclean; fi

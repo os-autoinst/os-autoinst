@@ -48,7 +48,7 @@ sub start {
 
     printf STDERR "$$: to_child %d, from_child %d\n", fileno($self->{to_child}), fileno($self->{from_child});
 
-    my $tid = shared_clone(threads->create(\&_run, $self->{'backend'}, fileno($self->{from_parent}), fileno($self->{to_parent})));
+    my $tid = shared_clone(threads->create(\&_run, $self->{backend}, fileno($self->{from_parent}), fileno($self->{to_parent})));
     $self->{runthread} = $tid;
 }
 
@@ -185,7 +185,7 @@ sub _send_json {
         $self->stop();
         return;
     }
-    return $rsp->{'rsp'};
+    return $rsp->{rsp};
 }
 
 # utility function
