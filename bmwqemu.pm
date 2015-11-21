@@ -707,7 +707,6 @@ sub assert_screen {
                 next;
             }
             push @$needles, $n;
-            push @tags,     $n->{name};
         }
     }
     elsif ($mustmatch) {
