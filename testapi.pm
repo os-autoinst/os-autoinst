@@ -192,7 +192,12 @@ sub upload_logs {
     bmwqemu::log_call('upload_logs', file => $file);
     type_string("curl --form upload=\@$file ");
     my $basename = basename($file);
-    type_string(autoinst_url() . "/uploadlog/$basename\n");
+    if (get_var("CONNECT_PASSWORD")) {
+        type_string("'" . autoinst_url() . "/uploadlog/$basename?connect_password=" . get_var("CONNECT_PASSWORD") . "'\n");
+    }
+    else {
+        type_string(autoinst_url() . "/uploadlog/$basename\n");
+    }
     wait_idle();
     return;
 }
@@ -536,7 +541,14 @@ returns the base URL to contact the local os-autoinst service
 
 sub autoinst_url() {
     # move to backend?
-    return "http://10.0.2.2:" . (get_var("QEMUPORT") + 1);
+    if (get_var("CONNECT_PASSWORD")) {    #CONNECT_PASSWORD is used in HACLUSTER
+        use Net::Domain;
+        my $fqdn = Net::Domain::hostfqdn();
+        return "http://$fqdn:" . (get_var("QEMUPORT") + 1);
+    }
+    else {
+        return "http://10.0.2.2:" . (get_var("QEMUPORT") + 1);
+    }
 }
 
 =head2 data_url
@@ -588,7 +600,12 @@ sub script_output($;$) {
     $wait ||= 10;
 
     my $suffix = _random_string;
-    type_string "curl -f -v " . autoinst_url . "/current_script > /tmp/script$suffix.sh && echo \"curl-\$?\" > /dev/$serialdev\n";
+    if (get_var("CONNECT_PASSWORD")) {
+        type_string "curl -f -v '" . autoinst_url . "/current_script?connect_password=" . get_var("CONNECT_PASSWORD") . "' > /tmp/script$suffix.sh && echo \"curl-$?\" > /dev/$serialdev\n";
+    }
+    else {
+        type_string "curl -f -v " . autoinst_url . "/current_script > /tmp/script$suffix.sh && echo \"curl-\$?\" > /dev/$serialdev\n";
+    }
     wait_serial('curl-0') || die "script couldn't be downloaded";
     send_key "ctrl-l";
 
