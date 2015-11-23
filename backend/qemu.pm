@@ -1,8 +1,6 @@
-#!/usr/bin/perl -w
-
 package backend::qemu;
 use strict;
-use base ('backend::vnc_backend');
+use base ('backend::baseclass');
 use threads;
 use File::Path qw/mkpath/;
 use File::Temp ();
@@ -16,7 +14,6 @@ use Carp;
 use Fcntl;
 use Net::DBus;
 use bmwqemu qw(fileContent diag save_vars);
-use backend::VNC;
 
 sub new {
     my $class = shift;
@@ -308,7 +305,7 @@ sub start_qemu {
         $nicmac[$i] //= sprintf('52:54:00:12:%02x:%02x', int($workerid / 256) + $i * 64, $workerid % 256);
 
         # always set proper TAPDEV for os-autoinst when using tap network mode
-        my $instance = $vars->{WORKER_INSTANCE} eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
+        my $instance = ($vars->{WORKER_INSTANCE} || 'manual') eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
         # use $instance for tap name so it is predicable, network is still configured staticaly
         $tapdev[$i] //= 'tap' . ($instance - 1 + $i * 64);
 
@@ -585,7 +582,13 @@ sub start_qemu {
 
     #local $Devel::Trace::TRACE = 1;
 
-    $self->connect_vnc({hostname => 'localhost', port => 5900 + $bmwqemu::vars{VNC}});
+    $self->activate_console(
+        {
+            testapi_console => "worker",
+            backend_console => "vnc-base",
+            backend_args    => {
+                hostname => 'localhost',
+                port     => 5900 + $bmwqemu::vars{VNC}}});
 
     $self->{hmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
@@ -703,23 +706,6 @@ sub _read_hmp {
 
     backend::baseclass::write_crash_file;
     die "ERROR: timeout reading hmp socket\n";
-}
-
-sub special_socket {
-    my ($self, $fh);
-    if ($fh == $self->{qemupipe}) {
-        $self->read_qemupipe();
-        return 1;
-    }
-    return $self->SUPER::special_socket($fh);
-}
-
-sub select_for_vnc {
-    my ($self) = @_;
-
-    my $s = $self->SUPER::select_for_vnc;
-    $s->add($self->{qemupipe});
-    return $s;
 }
 
 # runs in the thread to bounce QMP

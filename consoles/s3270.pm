@@ -1,18 +1,19 @@
-#!/usr/bin/perl -w
-package backend::s390x::s3270;
+package consoles::s3270;
 
-use base qw(Class::Accessor::Fast);
+use base qw(consoles::console);
 use strict;
 use warnings;
-use English;
 
-__PACKAGE__->mk_accessors(qw(zVM_host guest_user guest_login));
+use Class::Accessor "antlers";
+has zVM_host    => (is => "rw");
+has guest_user  => (is => "rw");
+has guest_login => (is => "rw");
 
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 
-use feature qw/say/;
-
+use feature qw(say);
+use testapi qw(get_var);
 
 require IPC::Run;
 
@@ -22,9 +23,14 @@ use Thread::Queue;
 
 use Time::HiRes qw(usleep);
 
-sub new() {
-    my $self = Class::Accessor::new(@_);
-    return $self;
+sub init() {
+    my ($self) = @_;
+    $self->{name} = 's3270';
+}
+
+sub screen() {
+    my ($self) = @_;
+    return $self->{backend}->{consoles}->{worker};
 }
 
 sub start() {
@@ -198,7 +204,7 @@ sub expect_3270() {
                 $we_had_new_output = 1;
             }
 
-            ### say Dumper $self->{raw_expect_queue};
+            say Dumper $self->{raw_expect_queue};
 
             # if there is MORE..., go and grab it.
             if ($status_line =~ /$arg{buffer_full}/) {
@@ -206,9 +212,9 @@ sub expect_3270() {
                 # # no screen content is lost in the video.  It is
                 # # a hacky work around until this loop is properly
                 # # integrated with the baseclass run_capture_loop
-                $self->{vnc_backend}->request_screen_update();
+                $self->{backend}->request_screen_update();
                 usleep(5_000);
-                $self->{vnc_backend}->capture_screenshot();
+                $self->{backend}->capture_screenshot();
                 $self->send_3270("Clear");
                 next;
             }
@@ -282,9 +288,9 @@ sub expect_3270() {
             # # no screen content is lost in the video.  It is
             # # a hacky work around until this loop is properly
             # # integrated with the baseclass run_capture_loop
-            $self->{vnc_backend}->request_screen_update();
+            $self->{backend}->request_screen_update();
             usleep(5_000);
-            $self->{vnc_backend}->capture_screenshot();
+            $self->{backend}->capture_screenshot();
             $self->send_3270("Clear");
         }
 
@@ -306,8 +312,6 @@ sub expect_3270() {
     say Dumper $result;
     return $result;
 }
-
-
 
 sub wait_output() {
     my ($self, $timeout) = @_;
@@ -331,16 +335,14 @@ sub wait_output() {
 sub sequence_3270() {
     my ($self, @commands) = @_;
 
-
     foreach my $command (@commands) {
         $self->send_3270($command);
     }
-
 }
 
-
+# map the terminal status of x3270 to a hash
 sub nice_3270_status() {
-    my ($status_string) = @_;
+    my ($self, $status_string) = @_;
     #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($status_string);
     my (@raw_status) = split(" ", $status_string);
     my @status_names = (
@@ -393,10 +395,7 @@ sub nice_3270_status() {
     my %nice_status;
     @nice_status{@status_names} = @raw_status;
 
-    ##return wantarray ? %nice_status : \%nice_status ;
-    my $retval = \%nice_status;
-
-    return $retval;
+    return \%nice_status;
 }
 
 
@@ -426,7 +425,6 @@ sub _connect_3270() {
 # log in
 sub _login_guest() {
     my ($self, $guest, $password) = @_;
-
 
     $self->send_3270("String($guest)");
     $self->send_3270("String($password)");
@@ -459,8 +457,8 @@ sub cp_disconnect() {
 }
 
 sub DESTROY {
-    my $self = shift;
-    IPC::Run::finish($self->{connection});
+    my ($self) = @_;
+    IPC::Run::finish($self->{connection}) if $self->{connection};
 }
 
 sub connect_and_login() {
@@ -480,7 +478,7 @@ sub connect_and_login() {
         # currently:  KILL THE GUEST
         # TODO:  think about what to really do in this case.
 
-        if (grep /(?:RECONNECT|HCPLGA).*/, @$r) {
+        if (grep { /(?:RECONNECT|HCPLGA).*/ } @$r) {
             carp                                                                                      #
               "connect_and_login: machine is in use ($self->{zVM_host} $self->{guest_login}):\n" .    #
               join("\n", @$r) . "\n";
@@ -503,6 +501,61 @@ sub connect_and_login() {
         last;
 
     }
+}
+
+
+
+###################################################################
+# create x3270 terminals, -e ssh ones and true 3270 ones.
+sub new_3270_console {
+    my ($self) = @_;
+    $self->{DISPLAY} = ":" . (get_var("VNC") // die "VNC unset in vars.json.");
+    $self->{s3270} = [
+        qw(x3270),
+        "-display", $self->{DISPLAY},
+        qw(-script -charset us -xrm x3270.visualBell:true -xrm x3270.keypadOn:false
+          -set screenTrace -xrm x3270.traceDir:.
+          -trace -xrm x3270.traceMonitor:false),
+        # Dark arts: ancient terminals (ansi.64, vt100) don't have an
+        # Alt key.  They send Esc + the key instead.  x3270 for
+        # whichever reason can't send the Escape keysym, so we have to
+        # hard code it here (0x1b).
+        '-xrm', 'x3270.keymap.base.nvt:#replace\nAlt<Key>: Key(0x1b) Default()'
+    ];
+    $self->start();
+    my $status = $self->send_3270()->{terminal_status};
+    $status = $self->nice_3270_status($status);
+
+    $self->{window_id} = $status->{window_id};
+    die "no worker Xvnc??" . bmwqemu::pp($self) unless exists $self->{backend}->{consoles}->{worker};
+    return;
+}
+
+sub activate() {
+    my ($self, $testapi_console, $args) = @_;
+
+    die "s3270 must be named 'bootloader'" unless $testapi_console eq 'bootloader';
+    $self->zVM_host(get_var("ZVM_HOST")        // die "ZVM_HOST unset in vars.json");
+    $self->guest_user(get_var("ZVM_GUEST")     // die "ZVM_GUEST unset in vars.json");
+    $self->guest_login(get_var("ZVM_PASSWORD") // die "ZVM_PASSWORD unset in vars.json");
+    $self->new_3270_console;
+    return;
+}
+
+sub select() {
+    my ($self) = @_;
+    $self->_activate_window();
+}
+
+sub disable() {
+    my ($self) = @_;
+    if (exists get_var("DEBUG")->{"keep zVM guest"}) {
+        $self->cp_disconnect();
+    }
+    else {
+        $self->cp_logoff_disconnect();
+    }
+    $self->_kill_window();
 }
 
 1;

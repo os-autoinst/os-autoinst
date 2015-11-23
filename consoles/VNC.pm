@@ -1,4 +1,4 @@
-package backend::VNC;
+package consoles::VNC;
 use strict;
 use warnings;
 use base qw(Class::Accessor::Fast);
@@ -8,6 +8,7 @@ use bmwqemu qw(diag);
 use Time::HiRes qw( usleep gettimeofday );
 use Carp;
 use tinycv;
+use List::Util qw(min);
 
 use Crypt::DES;
 
@@ -17,16 +18,9 @@ use feature qw/say/;
 
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
-      no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version
+      no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_request
-      )
-      # FIXME: not needed?
-      # update_request_throttle_seconds _LAST_UPDATE_REQUEST_timer
-
-      # FIXME: wrong fix for alive check!
-      #_EAGAIN_counter _UNDEF_counter _REQUESTS_BEFORE_RESPONSE_timer
-      #requests_before_response_timeout
-);
+      ));
 our $VERSION = '0.40';
 
 my $MAX_PROTOCOL_VERSION = 'RFB 003.008' . chr(0x0a);    # Max version supported
@@ -36,7 +30,7 @@ my $client_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
 
 # The numbers in the hashes below were acquired from the VNC source code
 my %supported_depths = (
-    '24' => {
+    24 => {
         bpp         => 32,
         true_colour => 1,
         red_max     => 255,
@@ -46,7 +40,7 @@ my %supported_depths = (
         green_shift => 8,
         blue_shift  => 0,
     },
-    '16' => {
+    16 => {
         bpp         => 16,
         true_colour => 1,
         red_max     => 31,
@@ -106,19 +100,7 @@ sub login {
 
     $self->width(0);
     $self->height(0);
-
-    # FIXME: wrong fix for alive check!
-    # $self->_EAGAIN_counter(0);
-    # $self->_UNDEF_counter(0);
-
-    # $self->_REQUESTS_BEFORE_RESPONSE_timer(scalar gettimeofday);
-    # $self->requests_before_response_timeout(20)
-    #   unless defined $self->requests_before_response_timeout;
-
-    # FIXME: not needed?
-    # $self->_LAST_UPDATE_REQUEST_timer(0);
-    # $self->update_request_throttle_seconds(0)
-    # 	unless defined $self->update_request_throttle_seconds;
+    $self->screen_on(1);
 
     eval {
         $self->_handshake_protocol_version();
@@ -315,7 +297,7 @@ sub _handshake_security {
     {
         $socket->read(my $security_result, 4)
           || die 'unexpected end of data';
-        $security_result = unpack('I', $security_result);
+        $security_result = unpack('N', $security_result);
 
         #    bmwqemu::diag $security_result;
         die 'login failed' if $security_result;
@@ -515,6 +497,9 @@ sub send_key_event {
     $self->send_key_event_up($key);
 }
 
+
+## no critic (HashKeyQuotes)
+
 my $keymap_x11 = {
     'esc'       => 0xff1b,
     'down'      => 0xff54,
@@ -542,23 +527,7 @@ my $keymap_x11 = {
     'super'     => 0xffeb,     # left, right is ec
 };
 
-sub init_x11_keymap {
-    my ($self) = @_;
-
-    return if $self->keymap;
-    $self->keymap($keymap_x11);
-    for my $key (30 .. 255) {
-        $self->keymap->{chr($key)} ||= $key;
-    }
-    for my $key (1 .. 12) {
-        $self->keymap->{"f$key"} = 0xffbd + $key;
-    }
-    for my $key ("a" .. "z") {
-        my $code = ord($key);
-        $self->keymap->{$key} = $code;
-    }
-}
-
+# ikvm aka USB: https://www.win.tue.nl/~aeb/linux/kbd/scancodes-14.html
 my $keymap_ikvm = {
     'ctrl'   => 0xe0,
     'shift'  => 0xe1,
@@ -603,6 +572,65 @@ my $keymap_ikvm = {
     '/'         => 0x38,
 };
 
+sub shift_keys {
+
+    # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
+    return {
+        '~' => '`',
+        '!' => '1',
+        '@' => '2',
+        '#' => '3',
+        '$' => '4',
+        '%' => '5',
+        '^' => '6',
+        '&' => '7',
+        '*' => '8',
+        '(' => '9',
+        ')' => '0',
+        '_' => 'minus',
+        '+' => '=',
+
+        # second line
+        '{' => '[',
+        '}' => ']',
+        '|' => '\\',
+
+        # third line
+        ':' => ';',
+        '"' => '\'',
+
+        # fourth line
+        '<' => ',',
+        '>' => '.',
+        '?' => '/',
+    };
+}
+
+## use critic
+
+sub init_x11_keymap {
+    my ($self) = @_;
+
+    return if $self->keymap;
+    $self->keymap($keymap_x11);
+    for my $key (30 .. 255) {
+        $self->keymap->{chr($key)} ||= $key;
+    }
+    for my $key (1 .. 12) {
+        $self->keymap->{"f$key"} = 0xffbd + $key;
+    }
+    for my $key ("a" .. "z") {
+        $self->keymap->{$key} = ord($key);
+        # shift-H looks strange, but that's how VNC works
+        $self->keymap->{uc $key} = [$keymap_x11->{shift}, ord(uc $key)];
+    }
+    # VNC doesn't use the unshifted values, only prepends a shift key
+    for my $key (keys %{shift_keys()}) {
+        die "no map for $key" unless $keymap_x11->{$key};
+        $self->keymap->{$key} = [$keymap_x11->{shift}, $keymap_x11->{$key}];
+    }
+}
+
 sub init_ikvm_keymap {
     my ($self) = @_;
 
@@ -611,6 +639,7 @@ sub init_ikvm_keymap {
     for my $key ("a" .. "z") {
         my $code = 0x4 + ord($key) - ord('a');
         $self->keymap->{$key} = $code;
+        $self->keymap->{uc $key} = [$keymap_ikvm->{shift}, $code];
     }
     for my $key ("1" .. "9") {
         $self->keymap->{$key} = 0x1e + ord($key) - ord('1');
@@ -618,9 +647,15 @@ sub init_ikvm_keymap {
     for my $key (1 .. 12) {
         $self->keymap->{"f$key"} = 0x3a + $key - 1,;
     }
+    my %map = %{shift_keys()};
+    while (my ($key, $shift) = each %map) {
+        die "no map for $key" unless $keymap_ikvm->{$shift};
+        $self->keymap->{$key} = [$keymap_ikvm->{shift}, $keymap_ikvm->{$shift}];
+    }
 }
 
-sub send_mapped_key {
+
+sub map_and_send_key {
     my ($self, $keys) = @_;
 
     if ($self->ikvm) {
@@ -698,22 +733,10 @@ use POSIX qw(:errno_h);
 sub send_update_request {
     my ($self) = @_;
 
-    # FIXME: wrong fix for alive check!
-    # die "socket closed (no response after $self->requests_before_response_timeout seconds)\n" .	"${\Dumper $self}"
-    #   if $self->_REQUESTS_BEFORE_RESPONSE_timer() > $self->requests_before_response_timeout + gettimeofday;
-
-    # FIXME: not needed?
-    # my $update_request_wait_time = $self->update_request_throttle_seconds - (scalar gettimeofday - $self->_LAST_UPDATE_REQUEST_timer);
-    # usleep($update_request_wait_time * 1_000_000)
-    # 	if $update_request_wait_time > 0;
-    # $self->_LAST_UPDATE_REQUEST_timer(scalar gettimeofday);
-    #
-    # DEBUGGING
-    # print "VNC = " . Dumper $self;
-    # print "§" . gettimeofday . " - " . $update_request_wait_time ."§\n";
-
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
+
+    #printf "send_update_request %dx%d\n", $self->width, $self->height;
 
     $socket->print(
         pack(
@@ -737,33 +760,11 @@ sub _receive_message {
     my $ret = $socket->read(my $message_type, 1);
     $socket->blocking(1);
 
-    # FIXME: wrong fix for alive check!
-    if ($! == EAGAIN) {
-        #my $_EAGAIN_counter = $self->_EAGAIN_counter();
-        #die "socket broken, too many EAGAIN \n${\Dumper $self}" if $_EAGAIN_counter > 235; ## magic 235
-        #$self->_EAGAIN_counter($_EAGAIN_counter + 1);
-        return;
-    }
-    else {
-        #$self->_EAGAIN_counter(0);
-    }
-
-    # FIXME: wrong fix for alive check!
-    if (defined $ret) {
-        # $self->_UNDEF_counter(0);
-    }
-    else {
-        #my $_UNDEF_counter = $self->_UNDEF_counter();
-        #warn "socket read error: $!";
-        #die "socket dead, too many read errors \n${\Dumper $self}" if $_UNDEF_counter > 7; ## magic 7
-        #$self->_UNDEF_counter($_UNDEF_counter + 1);
+    if (!$ret) {
         return;
     }
 
     die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
-
-    # FIXME: wrong fix for alive check!
-    #$self->_REQUESTS_BEFORE_RESPONSE_timer(scalar gettimeofday);
 
     $message_type = unpack('C', $message_type);
 
@@ -790,8 +791,9 @@ sub _receive_message {
 sub _receive_update {
     my $self = shift;
 
+    #printf "receive_update %dx%d\n", $self->width, $self->height;
     my $image = $self->_framebuffer;
-    if (!$image) {
+    if (!$image && $self->width && $self->height) {
         $image = tinycv::new($self->width, $self->height);
         $self->_framebuffer($image);
 
@@ -895,19 +897,27 @@ sub _receive_ikvm_encoding {
     # ikvm specific
     $socket->read(my $aten_data, 8);
     my ($data_prefix, $data_len) = unpack('NN', $aten_data);
-    #printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
+    # printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
 
-    if ($w > 33000) {    # screen is off is signaled by negative numbers
-        $w = 1;
-        $h = 1;
-    }
+    $self->screen_on($w < 33000);    # screen is off is signaled by negative numbers
 
     # ikvm doesn't bother sending screen size changes
     if ($w != $self->width || $h != $self->height) {
-        $self->width($w);
-        $self->height($h);
-        $image = tinycv::new($self->width, $self->height);
-        $self->_framebuffer($image);
+        if ($self->screen_on) {
+            # printf "resizing to $w $h from %dx%d\n", $self->width, $self->height;
+            my $newimg = tinycv::new($w, $h);
+            if ($image) {
+                $image = $image->copyrect(0, 0, min($image->xres(), $w), min($image->yres(), $h));
+                $newimg->blend($image, 0, 0);
+            }
+            $self->width($w);
+            $self->height($h);
+            $image = $newimg;
+            $self->_framebuffer($image);
+        }
+        else {
+            $self->_framebuffer(undef);
+        }
         # resync mouse (magic)
         $self->socket->print(pack('Cn', 7, 1920));
     }
@@ -952,6 +962,7 @@ sub _receive_ikvm_encoding {
                 next if $nyres < 0;
                 $img = $img->copyrect(0, 0, $img->xres(), $nyres);
             }
+            # printf "blending to %dx%d\n", $x * 16, $y * 16;
             $image->blend($img, $x * 16, $y * 16);
         }
     }

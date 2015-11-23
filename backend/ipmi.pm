@@ -1,8 +1,6 @@
-#!/usr/bin/perl -w
-
 package backend::ipmi;
 use strict;
-use base ('backend::vnc_backend');
+use base ('backend::baseclass');
 use threads;
 use threads::shared;
 require File::Temp;
@@ -17,8 +15,6 @@ use JSON;
 require Carp;
 use Fcntl;
 use bmwqemu qw(fileContent diag save_vars diag);
-use backend::VNC;
-use IPC::Run ();
 
 sub new {
     my $class = shift;
@@ -31,7 +27,7 @@ use Time::HiRes qw(gettimeofday);
 sub ipmi_cmdline {
     my ($self) = @_;
 
-    return ('ipmitool', '-H', $bmwqemu::vars{'IPMI_HOSTNAME'}, '-U', $bmwqemu::vars{'IPMI_USER'}, '-P', $bmwqemu::vars{'IPMI_PASSWORD'});
+    return ('ipmitool', '-H', $bmwqemu::vars{IPMI_HOSTNAME}, '-U', $bmwqemu::vars{IPMI_USER}, '-P', $bmwqemu::vars{IPMI_PASSWORD});
 }
 
 sub ipmitool {
@@ -40,14 +36,24 @@ sub ipmitool {
     my @cmd = $self->ipmi_cmdline();
     push(@cmd, split(/ /, $cmd));
 
-    my ($stdin, $stdout, $stderr, $ret);
-    $ret = IPC::Run::run(\@cmd, \$stdin, \$stdout, \$stderr);
-    chomp $stdout;
-    chomp $stderr;
+    my $tmp = File::Temp->new(SUFFIX => '.stdout', OPEN => 0);
+    $cmd = join(' ', @cmd) . " > $tmp; echo \"DONE-\$?\" >> $tmp\n";
+    $self->{console}->type_string({text => $cmd});
 
-    die join(' ', @cmd) . ": $stderr" unless ($ret);
-    print "IPMI: $stdout\n";
-    return $stdout;
+    my $time = 0;
+    while ($time++ < 10) {
+        sleep(1);
+        open(my $fh, '<', $tmp);
+        my $stdout = join("", <$fh>);
+        close($fh);
+        if ($stdout =~ m/DONE-/) {
+            if ($stdout !~ m/DONE-0/) {
+                die "ipmitool died: $stdout";
+            }
+            return $stdout;
+        }
+    }
+    die "ipmitool did not finish";
 }
 
 sub restart_host {
@@ -55,17 +61,17 @@ sub restart_host {
 
     $self->ipmitool("chassis power off");
     while (1) {
-        my $ret = $self->ipmitool("chassis power status");
-        last if $ret =~ m/is off/;
-        $self->ipmitool("chassis power off");
+        my $stdout = $self->ipmitool('chassis power status');
+        last if $stdout =~ m/is off/;
+        $self->ipmitool('chassis power off');
         sleep(2);
     }
 
     $self->ipmitool("chassis power on");
     while (1) {
-        my $ret = $self->ipmitool("chassis power status");
+        my $ret = $self->ipmitool('chassis power status');
         last if $ret =~ m/is on/;
-        $self->ipmitool("chassis power on");
+        $self->ipmitool('chassis power on');
         sleep(2);
     }
 }
@@ -73,15 +79,23 @@ sub restart_host {
 sub relogin_vnc {
     my ($self) = @_;
 
-    $self->connect_vnc(
+    if ($self->{vnc}) {
+        close($self->{vnc}->socket);
+        sleep(1);
+    }
+
+    $self->activate_console(
         {
-            hostname => $bmwqemu::vars{'IPMI_HOSTNAME'},
-            port     => 5900,
-            username => $bmwqemu::vars{'IPMI_USER'},
-            password => $bmwqemu::vars{'IPMI_PASSWORD'},
-            ikvm     => 1,
-        });
-    1;
+            testapi_console => 'bootloader',
+            backend_console => 'vnc-base',
+            backend_args    => {
+                hostname => $bmwqemu::vars{IPMI_HOSTNAME},
+                port     => 5900,
+                username => $bmwqemu::vars{IPMI_USER},
+                password => $bmwqemu::vars{IPMI_PASSWORD},
+                ikvm     => 1
+            }});
+    return 1;
 }
 
 sub do_start_vm() {
@@ -89,7 +103,18 @@ sub do_start_vm() {
 
     # remove backend.crashed
     $self->unlink_crash_file;
-    $self->restart_host;
+    if (1) {
+        my $console = $self->activate_console({testapi_console => "worker", backend_console => "local-Xvnc"});
+        $self->{console} = $console;
+        my $display     = $console->{DISPLAY};
+        my $window_name = 'IPMI';
+        system("DISPLAY=$display xterm -title '$window_name' -e bash & echo \$!") != -1
+          || die "cant' start xterm on $display (err: $! retval: $?)";
+        sleep(1);
+        my $window_id = qx"DISPLAY=$display xdotool search --sync --limit 1 $window_name";
+        chomp($window_id);
+        $self->restart_host;
+    }
     $self->relogin_vnc;
     $self->start_serial_grab;
     return {};
@@ -100,6 +125,7 @@ sub do_stop_vm {
 
     $self->ipmitool("chassis power off");
     $self->stop_serial_grab();
+    return {};
 }
 
 sub do_savevm {
@@ -116,6 +142,7 @@ sub do_loadvm {
 sub status {
     my ($self) = @_;
     print "status ignored\n";
+    return;
 }
 
 # serial grab
@@ -126,7 +153,12 @@ sub start_serial_grab {
     if ($pid == 0) {
         setpgrp 0, 0;
         my @cmd = $self->ipmi_cmdline();
-        push(@cmd, ("-I", "lanplus", "sol", "activate"));
+        push(@cmd, ('-I', 'lanplus', 'sol'));
+        my @deactivate = @cmd;
+        push(@deactivate, 'deactivate');
+        push(@cmd,        'activate');
+        my $ret = system(@deactivate);
+        print "deactivate $ret\n";
         #unshift(@cmd, ("setsid", "-w"));
         print join(" ", @cmd);
         # FIXME use 'socat' for this?
@@ -141,13 +173,14 @@ sub start_serial_grab {
     else {
         $self->{serialpid} = $pid;
     }
+    return;
 }
 
 sub stop_serial_grab {
     my $self = shift;
     return unless $self->{serialpid};
     kill("-TERM", $self->{serialpid});
-    waitpid($self->{serialpid}, 0);
+    return waitpid($self->{serialpid}, 0);
 }
 
 # serial grab end

@@ -15,9 +15,9 @@ sub check_authorized {
     my ($self) = @_;
 
     # allow remote access if they set a password and use it
-    return 1 if ($bmwqemu::vars{'CONNECT_PASSWORD'}
+    return 1 if ($bmwqemu::vars{CONNECT_PASSWORD}
         && $self->param('connect_password')
-        && $bmwqemu::vars{'CONNECT_PASSWORD'} eq $self->param('connect_password'));
+        && $bmwqemu::vars{CONNECT_PASSWORD} eq $self->param('connect_password'));
 
     my $ip = $self->tx->remote_address;
     $self->app->log->debug("Request from $ip.");
@@ -115,7 +115,7 @@ sub _test_data_file {
 sub test_data {
     my ($self) = @_;
 
-    my $path    = $bmwqemu::vars{'CASEDIR'} . "/data/";
+    my $path    = $bmwqemu::vars{CASEDIR} . "/data/";
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
         # do not allow .. in path
@@ -132,7 +132,7 @@ sub test_data {
 sub get_asset {
     my ($self) = @_;
 
-    my $path = join '/', $bmwqemu::vars{'ASSETDIR'}, $self->param('assettype'), $self->param('assetname');
+    my $path = join '/', $bmwqemu::vars{ASSETDIR}, $self->param('assettype'), $self->param('assetname');
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
         # do not allow .. in path
@@ -212,7 +212,7 @@ sub run_daemon {
     app->types->type(oga => 'audio/ogg');
 
     # it's unlikely that we will ever use cookies, but we need a secret to shut up mojo
-    my $secret = $bmwqemu::vars{'CONNECT_PASSWORD'} || 'notsosecret';
+    my $secret = $bmwqemu::vars{CONNECT_PASSWORD} || 'notsosecret';
     app->secrets([$secret]);
 
     my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://*:$port"]);

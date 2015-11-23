@@ -103,11 +103,11 @@ sub assert_and_click {
     bmwqemu::log_call('assert_and_click', mustmatch => $mustmatch, button => $button, timeout => $timeout);
 
     # last_matched_needle has to be set, or the assert is buggy :)
-    my $lastarea = $last_matched_needle->{'area'}->[-1];
-    my $rx       = 1;                                                      # $origx / $img->xres();
-    my $ry       = 1;                                                      # $origy / $img->yres();
-    my $x        = int(($lastarea->{'x'} + $lastarea->{'w'} / 2) * $rx);
-    my $y        = int(($lastarea->{'y'} + $lastarea->{'h'} / 2) * $ry);
+    my $lastarea = $last_matched_needle->{area}->[-1];
+    my $rx       = 1;                                                  # $origx / $img->xres();
+    my $ry       = 1;                                                  # $origy / $img->yres();
+    my $x        = int(($lastarea->{x} + $lastarea->{w} / 2) * $rx);
+    my $y        = int(($lastarea->{y} + $lastarea->{h} / 2) * $ry);
     bmwqemu::diag("clicking at $x/$y");
     mouse_set($x, $y);
     if ($dclick) {
@@ -119,7 +119,7 @@ sub assert_and_click {
     # We can't just move the mouse, or we end up in a click-and-drag situation
     sleep 1;
     # move mouse back to where it was before we clicked
-    return mouse_set($old_mouse_coords->{'x'}, $old_mouse_coords->{'y'});
+    return mouse_set($old_mouse_coords->{x}, $old_mouse_coords->{y});
 }
 
 sub assert_and_dclick {
@@ -452,7 +452,7 @@ sub type_string {
     my $log = $args{secret} ? 'SECRET STRING' : $string;
     my $max_interval = $args{max_interval} // 250;
     bmwqemu::log_call('type_string', string => $log, max_interval => $max_interval);
-    $bmwqemu::backend->type_string({'text' => $string, 'max_interval' => $max_interval});
+    $bmwqemu::backend->type_string({text => $string, max_interval => $max_interval});
 }
 
 =head2 type_password
@@ -477,7 +477,7 @@ sub mouse_set {
     my ($mx, $my) = @_;
 
     bmwqemu::log_call('mouse_set', x => $mx, y => $my);
-    $bmwqemu::backend->mouse_set({'x' => $mx, 'y' => $my});
+    $bmwqemu::backend->mouse_set({x => $mx, y => $my});
 }
 
 sub mouse_click {
@@ -698,7 +698,7 @@ an LPAR.  Additional consoles need to be activated explicitly, like an
 ssh console, an ssh-X console a VNC console.
 
 
-Consoles can be selected for interaction with the with the system
+Consoles can be selected for interaction with the system
 under test.  One of them is 'selected' by default, as defined by the
 backend.
 
@@ -754,7 +754,7 @@ Such commands can be accessed using this API.
 C<console("bootloader")>, C<console("errorlog")>, ... returns a proxy
 object for the specific console which can then be directly accessed.
 
-This is also usefull for typing/interacting 'in the background',
+This is also useful for typing/interacting 'in the background',
 without turning the video away from the currently selected console.
 
 Note: C<assert_screen()> and friends look at the currently selected

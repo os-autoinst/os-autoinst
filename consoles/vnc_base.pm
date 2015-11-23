@@ -1,21 +1,45 @@
-package backend::vnc_backend;
+package consoles::vnc_base;
 use strict;
-use base ('backend::baseclass');
+use warnings;
+use base ('consoles::console');
 
+use consoles::VNC;
 use Time::HiRes qw(usleep gettimeofday);
 
 use feature qw/say/;
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 
+sub init() {
+    my ($self) = @_;
+    $self->{name} = 'vnc-base';
+}
+
+sub screen() {
+    my ($self) = @_;
+    return $self;
+}
+
+sub select() {
+}
+
+sub activate() {
+    my ($self, $testapi_console, $args) = @_;
+    $self->connect_vnc($args);
+    return $self->SUPER::activate($testapi_console, $args);
+}
+
+sub disable() {
+    my ($self) = @_;
+    close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
+    $self->{vnc} = undef;
+}
+
 sub connect_vnc {
     my ($self, $args) = @_;
-    if ($self->{vnc}) {
-        close($self->{vnc}->socket);
-        sleep(1);
-    }
 
-    $self->{vnc} = backend::VNC->new($args);
+    CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
+    $self->{vnc} = consoles::VNC->new($args);
     # try to log in; this may fail a few times
     for my $i (1 .. 10) {
         my @connection_error;
@@ -26,7 +50,7 @@ sub connect_vnc {
         if ($@) {
             push @connection_error, $@;
             if ($i > 7) {
-                $self->close_pipes();
+                $self->disable();
                 die join("\n", @connection_error);
             }
             else {
@@ -38,7 +62,6 @@ sub connect_vnc {
         }
     }
 
-    $self->capture_screenshot();
     return $self->{vnc};
 }
 
@@ -48,9 +71,10 @@ sub request_screen_update {
     # drain the VNC socket before polling for a new update
     $self->{vnc}->update_framebuffer();
     $self->{vnc}->send_update_request();
+    return;
 }
 
-sub capture_screenshot {
+sub current_screen {
     my ($self) = @_;
     return unless $self->{vnc};
 
@@ -68,38 +92,7 @@ sub capture_screenshot {
 
     $self->{vnc}->update_framebuffer();
     return unless $self->{vnc}->_framebuffer;
-    $self->enqueue_screenshot($self->{vnc}->_framebuffer);
-}
-
-# this is called for all sockets ready to read from. return 1 for success.
-sub check_socket {
-    my ($self, $fh) = @_;
-
-    if ($self->{vnc}) {
-        if ($fh == $self->{vnc}->socket) {
-            # FIXME: polling the VNC socket is not part of the backend
-            # select loop, because IO::Select and read() should not be
-            # mixed, according to the docs.  So this should be dead
-            # code.  Remove once no tests die here for a while.
-            die "this should be dead code.";
-        }
-    }
-    # This was not for me.  Try baseclass.
-    return $self->SUPER::check_socket($fh);
-}
-
-sub close_pipes {
-    my ($self) = @_;
-
-    close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
-    $self->{vnc} = undef;
-
-    $self->SUPER::close_pipes();
-}
-
-# to be overwritten e.g. in qemu to check stderr
-sub special_socket {
-    return 0;
+    return $self->{vnc}->_framebuffer;
 }
 
 sub type_string {
@@ -131,9 +124,16 @@ sub type_string {
     }
 
     for my $letter (split("", $args->{text})) {
-        $letter = $self->map_letter($letter);
-        $self->{vnc}->send_mapped_key($letter);
-        $self->run_capture_loop(undef, $seconds_per_keypress, $seconds_per_keypress * .9);
+        my $charmap = {
+            "-"  => 'minus',
+            "\t" => 'tab',
+            "\n" => 'ret',
+            "\b" => 'backspace',
+            "\e" => 'esc'
+        };
+        $letter = $charmap->{$letter} || $letter;
+        $self->{vnc}->map_and_send_key($letter);
+        $self->{backend}->run_capture_loop(undef, $seconds_per_keypress, $seconds_per_keypress * .9);
     }
     return {};
 }
@@ -144,8 +144,8 @@ sub send_key {
     bmwqemu::diag "send_mapped_key '" . $args->{key} . "'";
     # FIXME the max_interval logic from type_string should go here, no?
     # and really, the screen should be checked for settling after key press...
-    $self->{vnc}->send_mapped_key($args->{key});
-    $self->run_capture_loop(undef, .2, .19);
+    $self->{vnc}->map_and_send_key($args->{key});
+    $self->{backend}->run_capture_loop(undef, .2, .19);
     return {};
 }
 
@@ -161,7 +161,7 @@ sub mouse_hide {
 
     bmwqemu::diag "mouse_move $self->{mouse}->{x}, $self->{mouse}->{y}";
     $self->{vnc}->mouse_move_to($self->{mouse}->{x}, $self->{mouse}->{y});
-    return {'absolute' => $self->{vnc}->absolute};
+    return {absolute => $self->{vnc}->absolute};
 
 }
 

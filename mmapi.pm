@@ -34,8 +34,8 @@ my $url;
 
 sub _init {
     # init $ua and $url
-    my $host   = $bmwqemu::vars{'OPENQA_URL'};
-    my $secret = $bmwqemu::vars{'JOBTOKEN'};
+    my $host   = $bmwqemu::vars{OPENQA_URL};
+    my $secret = $bmwqemu::vars{JOBTOKEN};
     return unless $host && $secret;
 
     if ($host !~ '/') {

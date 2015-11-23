@@ -20,22 +20,21 @@ backendexec_SCRIPTS = \
 	backend/baseclass.pm \
 	backend/driver.pm \
 	backend/ipmi.pm \
-	backend/kvm2usb.pm \
 	backend/qemu.pm \
 	backend/s390x.pm \
 	backend/console_proxy.pm \
-	backend/VNC.pm \
-	backend/vbox.pm \
-	backend/vnc_backend.pm
+	consoles/VNC.pm \
+	consoles/s3270.pm \
+	consoles/console.pm \
+	consoles/localXvnc.pm \
+	consoles/remoteVnc.pm \
+	consoles/remoteWindow.pm \
+	consoles/ssh.pm \
+	consoles/vnc_base.pm
 
 backendexecs390xdir = $(pkglibexecdir)/backend/s390x
 backendexecs390x_SCRIPTS = \
-	backend/s390x/s3270.pm \
 	backend/s390x/vars.json.py
-
-backendhelpexecdir = $(pkglibexecdir)/backend/helper
-backendhelpexec_SCRIPTS = \
-	backend/helper/scancodes.pm
 
 pkglibexec_SCRIPTS = \
 	autotest.pm \
@@ -141,6 +140,10 @@ dist-hook:
 	rm -rf `find $(distdir) -name .gitignore`
 
 distclean-local: clean-local
+
+check-local:
+	$(srcdir)/tools/tidy --check
+	PERL5LIB=tools/lib/perlcritic perlcritic --gentle --include Perl::Critic::Policy::HashKeyQuote $(srcdir)
 
 clean-local:
 	@if test -e ppmclibs/Makefile; then $(MAKE) -C ppmclibs distclean; fi

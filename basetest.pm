@@ -1,5 +1,6 @@
 package basetest;
 use strict;
+use warnings;
 use bmwqemu ();
 use ocr;
 use Time::HiRes;
@@ -93,7 +94,7 @@ sub record_screenmatch {
 
     # When the needle has the workaround property,
     # mark the result as dent and increase the dents
-    if ($match->{'needle'}->has_property('workaround')) {
+    if ($match->{needle}->has_property('workaround')) {
         $result->{dent} = 1;
         $self->{dents}++;
         bmwqemu::diag "needle '$h->{name}' is a workaround";
@@ -120,6 +121,7 @@ sub record_screenmatch {
     $self->{result} ||= 'ok';
 
     push @{$self->{details}}, $result;
+    return $result;
 }
 
 =head2
@@ -188,13 +190,14 @@ sub record_screenfail {
     $self->{result} = $overall if $overall;
 
     push @{$self->{details}}, $result;
+    return $result;
 }
 
 # for interactive mode
 sub remove_last_result {
     my $self = shift;
     --$self->{test_count};
-    pop @{$self->{details}};
+    return pop @{$self->{details}};
 }
 
 sub details {
@@ -269,12 +272,14 @@ sub pre_run_hook {
     my ($self) = @_;
 
     # you should overload that in test classes
+    return;
 }
 
 sub post_run_hook {
     my ($self) = @_;
 
     # you should overload that in test classes
+    return;
 }
 
 sub runtest {
@@ -306,7 +311,7 @@ sub runtest {
     $self->done();
 
     #sleep 1;
-    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime("%F %T", gmtime), time - $starttime));
+    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), time - $starttime));
     return $ret;
 }
 
@@ -314,15 +319,16 @@ sub save_test_result() {
     my ($self) = @_;
 
     my $result = {
-        'details' => $self->details(),
-        'result'  => $self->result(),
-        'dents'   => $self->{dents},
+        details => $self->details(),
+        result  => $self->result(),
+        dents   => $self->{dents},
     };
     $result->{extra_test_results} = $self->{extra_test_results} if $self->{extra_test_results};
 
     # be aware that $name has to be unique within one job (also assumed in several other places)
     my $fn = bmwqemu::result_dir() . sprintf("/result-%s.json", ref $self);
     bmwqemu::save_json_file($result, $fn);
+    return $result;
 }
 
 sub next_resultname {
@@ -353,6 +359,7 @@ sub register_extra_test_results {
 
     $self->{extra_test_results} //= [];
     push @{$self->{extra_test_results}}, @$tests;
+    return;
 }
 
 =head2 record_testresult
@@ -428,7 +435,7 @@ sub start_audiocapture() {
 
     # TODO: we only support one capture atm
     $self->{wav_fn} = $fn;
-    bmwqemu::do_start_audiocapture(join('/', bmwqemu::result_dir(), $fn));
+    return bmwqemu::do_start_audiocapture(join('/', bmwqemu::result_dir(), $fn));
 }
 
 sub stop_audiocapture() {
@@ -463,7 +470,7 @@ sub assert_DTMF {
     my $result = $self->stop_audiocapture();
     $result->{reference_text} = $ref;
 
-    my $decoded_text = bmwqemu::decodewav(join('/', bmwqemu::result_dir(), $result->{audio}));
+    my $decoded_text = bmwqemu::decodewav(join '/', bmwqemu::result_dir(), $result->{audio});
     if ($decoded_text && (uc $ref) eq $decoded_text) {
         $result->{result} = 'ok';
         $self->{result} ||= $result->{result};
@@ -473,7 +480,7 @@ sub assert_DTMF {
         $self->{result}   = $result->{result};
     }
     $result->{decoded_text} = $decoded_text;
-
+    return $decoded_text;
 }
 
 =head2 ocr_checklist
@@ -506,9 +513,10 @@ sub standstill_detected {
         overall => 'fail'
     );
 
-    testapi::send_key("alt-sysrq-w");
-    testapi::send_key("alt-sysrq-l");
-    testapi::send_key("alt-sysrq-d");    # only available with CONFIG_LOCKDEP
+    testapi::send_key('alt-sysrq-w');
+    testapi::send_key('alt-sysrq-l');
+    testapi::send_key('alt-sysrq-d');    # only available with CONFIG_LOCKDEP
+    return;
 }
 
 1;

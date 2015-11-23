@@ -15,7 +15,7 @@ sub loadtest {
     my $casedir = $bmwqemu::vars{CASEDIR};
 
     unless (-f join('/', $casedir, $script)) {
-        warn "loadtest needs a script below $casedir\n";
+        warn "loadtest needs a script below $casedir - $script is not\n";
         $script = File::Spec->abs2rel($script, $bmwqemu::vars{CASEDIR});
     }
     unless ($script =~ m,(\w+)/([^/]+)\.pm$,) {
@@ -68,10 +68,10 @@ sub write_test_order() {
         push(
             @result,
             {
-                'name'     => ref($t),
-                'category' => $t->{category},
-                'flags'    => $t->test_flags(),
-                'script'   => $t->{script}});
+                name     => ref($t),
+                category => $t->{category},
+                flags    => $t->test_flags(),
+                script   => $t->{script}});
     }
     bmwqemu::save_json_file(\@result, bmwqemu::result_dir . "/test_order.json");
 
