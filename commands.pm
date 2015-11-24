@@ -3,6 +3,14 @@ package commands;
 use threads;
 use threads::shared;
 
+use strict;
+use warnings;
+
+BEGIN {
+    # https://github.com/os-autoinst/openQA/issues/450
+    $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
+}
+
 # Automatically enables "strict", "warnings", "utf8" and Perl 5.10 features
 use Mojolicious::Lite;
 use Mojo::IOLoop;
