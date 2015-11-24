@@ -22,15 +22,20 @@ backendexec_SCRIPTS = \
 	backend/ipmi.pm \
 	backend/qemu.pm \
 	backend/s390x.pm \
-	backend/console_proxy.pm \
-	consoles/VNC.pm \
-	consoles/s3270.pm \
+	backend/console_proxy.pm
+
+consolesexecdir = $(pkglibexecdir)/consoles
+consolesexec_SCRIPTS = \
 	consoles/console.pm \
 	consoles/localXvnc.pm \
 	consoles/remoteVnc.pm \
 	consoles/remoteWindow.pm \
+	consoles/s3270.pm \
 	consoles/ssh.pm \
-	consoles/vnc_base.pm
+	consoles/sshX3270.pm \
+	consoles/sshXtermVt.pm \
+	consoles/vnc_base.pm \
+	consoles/VNC.pm
 
 backendexecs390xdir = $(pkglibexecdir)/backend/s390x
 backendexecs390x_SCRIPTS = \
