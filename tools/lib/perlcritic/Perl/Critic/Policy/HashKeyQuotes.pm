@@ -3,8 +3,6 @@ package Perl::Critic::Policy::HashKeyQuotes;
 use strict;
 use warnings;
 
-use Readonly;
-
 use Perl::Critic::Utils qw{ :severities :classification :ppi };
 use base 'Perl::Critic::Policy';
 
