@@ -131,6 +131,10 @@ my $ct = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
 if ($ENV{RUN_VNCVIEWER}) {
   system("vncviewer -shared localhost:" . $bmwqemu::vars{VNC} . " -viewonly &");
 }
+if ($ENV{RUN_DEBUGVIEWER}) {
+  system("$bmwqemu::scriptdir/debugviewer/debugviewer qemuscreenshots/last.png");
+}
+
 require Carp;
 
 my $r = 0;

@@ -177,6 +177,8 @@ sub init {
     $vars{VNC}           ||= 90;
     $vars{INSTLANG}      ||= "en_US";
     $vars{IDLETHRESHOLD} ||= 18;
+    # openQA already sets a random string we can reuse
+    $vars{JOBTOKEN} ||= random_string(10);
 
     # FIXME: does not belong here
     if (defined($vars{DISTRI}) && $vars{DISTRI} eq 'archlinux') {
@@ -973,6 +975,16 @@ sub clean_control_files {
 sub _scale_timeout {
     my ($timeout) = @_;
     return $timeout * ($vars{TIMEOUT_SCALE} // 1);
+}
+
+# just a random string useful for pseudo security or temporary files
+sub random_string {
+    my ($count) = @_;
+    $count //= 4;
+    my $string;
+    my @chars = ('a' .. 'z', 'A' .. 'Z');
+    $string .= $chars[rand @chars] for 1 .. $count;
+    return $string;
 }
 
 1;
