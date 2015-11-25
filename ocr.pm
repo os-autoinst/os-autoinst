@@ -1,6 +1,8 @@
 package ocr;
 use strict;
 use warnings;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 our $gocrbin = "/usr/bin/gocr";
 if (!-x $gocrbin) { $gocrbin = undef }
@@ -47,13 +49,12 @@ sub tesseract {
     }
 
     $img->write($imgfn);
-    if (system('tesseract', $imgfn, $txtfn) == 0) {
-        $txtfn .= '.txt';
-        if (open(my $fh, '<:encoding(UTF-8)', $txtfn)) {
-            local $/;
-            $txt = <$fh>;
-            close $fh;
-        }
+    system('tesseract', $imgfn, $txtfn);
+    $txtfn .= '.txt';
+    if (open(my $fh, '<:encoding(UTF-8)', $txtfn)) {
+        local $/;
+        $txt = <$fh>;
+        close $fh;
     }
     unlink $imgfn;
     unlink $txtfn;

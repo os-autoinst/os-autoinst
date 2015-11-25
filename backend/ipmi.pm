@@ -15,6 +15,8 @@ use JSON;
 require Carp;
 use Fcntl;
 use bmwqemu qw(fileContent diag save_vars diag);
+require IPC::System::Simple;
+use autodie qw(:all);
 
 sub new {
     my $class = shift;
@@ -109,8 +111,7 @@ sub do_start_vm() {
         $self->{console} = $console;
         my $display     = $console->{DISPLAY};
         my $window_name = 'IPMI';
-        system("DISPLAY=$display xterm -title '$window_name' -e bash & echo \$!") != -1
-          || die "cant' start xterm on $display (err: $! retval: $?)";
+        system("DISPLAY=$display xterm -title '$window_name' -e bash & echo \$!");
         sleep(1);
         my $window_id = qx"DISPLAY=$display xdotool search --sync --limit 1 $window_name";
         chomp($window_id);
@@ -158,7 +159,8 @@ sub start_serial_grab {
         my @deactivate = @cmd;
         push(@deactivate, 'deactivate');
         push(@cmd,        'activate');
-        my $ret = system(@deactivate);
+        my $ret;
+        eval { $ret = system(@deactivate) };
         print "deactivate $ret\n";
         #unshift(@cmd, ("setsid", "-w"));
         print join(" ", @cmd);

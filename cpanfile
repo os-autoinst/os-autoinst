@@ -25,6 +25,7 @@ requires 'IO::Socket';
 requires 'IO::Socket::SSL';
 requires 'IO::Socket::UNIX';
 requires 'IPC::Run::Debug';
+requires 'IPC::System::Simple';
 requires 'JSON';
 requires 'Mojo::URL';
 requires 'Mojo::UserAgent';

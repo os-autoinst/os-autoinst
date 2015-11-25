@@ -5,6 +5,8 @@ use warnings;
 use IPC::Run ();
 
 use testapi qw/get_var/;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 sub init() {
     my ($self) = @_;
@@ -41,8 +43,7 @@ sub activate() {
 
     # magic stanza from
     # https://github.com/yast/yast-x11/blob/master/src/tools/testX.c
-    system("ICEWM_PRIVCFG=/etc/icewm/yast2 DISPLAY=$display icewm -c preferences.yast2 -t yast2 &") != -1
-      || die "couldn't start icewm on $display (err: $! retval: $?)";
+    system("ICEWM_PRIVCFG=/etc/icewm/yast2 DISPLAY=$display icewm -c preferences.yast2 -t yast2 &");
     # FIXME robustly wait for the window manager
     sleep 2;
     return;

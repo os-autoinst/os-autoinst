@@ -1,6 +1,8 @@
 package consoles::console;
 use strict;
 use warnings;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 sub new {
     my ($class, $backend) = @_;
@@ -34,7 +36,7 @@ sub _activate_window() {
     my $display       = $self->display;
     my $new_window_id = $self->{window_id};
     #CORE::say bmwqemu::pp($console_info);
-    system("DISPLAY=$display xdotool windowactivate --sync $new_window_id") != -1 || die;
+    system("DISPLAY=$display xdotool windowactivate --sync $new_window_id");
     return;
 }
 
@@ -42,7 +44,7 @@ sub _kill_window() {
     my ($self)    = @_;
     my $window_id = $self->{window_id};
     my $display   = $self->display;
-    system("DISPLAY=$display xdotool windowkill $window_id") != -1 || die;
+    system("DISPLAY=$display xdotool windowkill $window_id");
     return;
 }
 
