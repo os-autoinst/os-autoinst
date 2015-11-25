@@ -34,3 +34,5 @@ compile
 test-driver
 videoencoder
 debugviewer/debugviewer
+t/*.pl.log
+t/*.pl.trs
