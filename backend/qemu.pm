@@ -14,6 +14,8 @@ use Carp;
 use Fcntl;
 use Net::DBus;
 use bmwqemu qw(fileContent diag save_vars);
+require IPC::System::Simple;
+use autodie qw(:all);
 
 sub new {
     my $class = shift;
@@ -171,13 +173,13 @@ sub do_extract_assets {
         mkpath($img_dir);
         my @cmd = ('nice', 'ionice', 'qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name");
         if ($format eq 'raw') {
-            die "$!\n" unless runcmd(@cmd) == 0;
+            runcmd(@cmd);
         }
         elsif ($format eq 'qcow2') {
             push @cmd, '-c' if $bmwqemu::vars{QEMU_COMPRESS_QCOW2};
             # including all snapshots is prohibitively big
             if ($bmwqemu::vars{MAKETESTSNAPSHOTS} || $bmwqemu::vars{QEMU_COMPRESS_QCOW2}) {
-                die "$!\n" unless runcmd(@cmd) == 0;
+                runcmd(@cmd);
             }
             else {
                 symlink("../raid/l$hdd_num", "$img_dir/$name");
@@ -358,14 +360,14 @@ sub start_qemu {
             unlink("$basedir/l$i");
             if (-e "$basedir/$i.lvm") {
                 symlink("$i.lvm", "$basedir/l$i") or die "$!\n";
-                die "$!\n" unless runcmd("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1") == 0;    # for LVM
+                runcmd("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1");    # for LVM
             }
             elsif ($vars->{"HDD_$i"}) {
-                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"}) == 0;
+                runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"});
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
             else {
-                die "$!\n" unless runcmd($qemuimg, "create", "$basedir/$i", "-f", $vars->{HDDFORMAT}, $vars->{HDDSIZEGB} . "G") == 0;
+                runcmd($qemuimg, "create", "$basedir/$i", "-f", $vars->{HDDFORMAT}, $vars->{HDDSIZEGB} . "G");
                 symlink($i, "$basedir/l$i") or die "$!\n";
             }
         }

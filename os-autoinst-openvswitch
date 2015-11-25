@@ -4,6 +4,8 @@ use strict;
 
 use base qw(Net::DBus::Object);
 use Net::DBus::Exporter qw(org.opensuse.os_autoinst.switch);
+require IPC::System::Simple;
+use autodie qw(:all);
 
 sub new {
     my $class   = shift;
@@ -21,7 +23,7 @@ sub init_switch {
     $self->{BRIDGE} //= 'br0';
 
     #the bridge must be already created and configured
-    system('ovs-vsctl', 'br-exists', $self->{BRIDGE}) == 0 or die "OVS bridge '$self->{BRIDGE}' does not exist";
+    system('ovs-vsctl', 'br-exists', $self->{BRIDGE});
 
     my $bridge_conf = `ip addr show $self->{BRIDGE}`;
 
@@ -73,7 +75,7 @@ sub init_switch {
         'mod_nw_src:10.1.0.0,move:NXM_OF_ETH_SRC[0..15]->NXM_OF_IP_SRC[0..15],local',
       )
     {
-        system('ovs-ofctl', 'add-flow', $self->{BRIDGE}, $rule) == 0 or die "Can't add rule '$rule' to bridge $self->{BRIDGE}";
+        system('ovs-ofctl', 'add-flow', $self->{BRIDGE}, $rule);
     }
 }
 

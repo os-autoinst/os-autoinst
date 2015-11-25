@@ -5,6 +5,8 @@ use warnings;
 use IPC::Run ();
 
 use testapi qw/get_var/;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 sub init() {
     my ($self) = @_;
@@ -41,13 +43,12 @@ sub activate() {
     # FIXME proper debugging viewer, also needs to be switched when
     # switching vnc console...
     if (exists get_var("DEBUG")->{vncviewer}) {
-        system("vncviewer -shared $display &") != -1 || warn "couldn't start vncviewer $display (err: $! retval: $?)";
+        system("vncviewer -shared $display &");
     }
 
     # magic stanza from
     # https://github.com/yast/yast-x11/blob/master/src/tools/testX.c
-    system("ICEWM_PRIVCFG=/etc/icewm/yast2 DISPLAY=$display icewm -c preferences.yast2 -t yast2 &") != -1
-      || die "couldn't start icewm on $display (err: $! retval: $?)";
+    system("ICEWM_PRIVCFG=/etc/icewm/yast2 DISPLAY=$display icewm -c preferences.yast2 -t yast2 &");
     # FIXME robustly wait for the window manager
     sleep 2;
     return;

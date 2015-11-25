@@ -46,6 +46,7 @@ requires 'strict';
 requires 'threads';
 requires 'threads::shared';
 requires 'warnings';
+requires 'IPC::System::Simple';
 
 on 'test' => sub {
   requires 'Perl::Critic';

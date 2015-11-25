@@ -3,6 +3,8 @@ use base 'consoles::ssh';
 use strict;
 use warnings;
 use testapi qw/get_var/;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 sub init() {
     my ($self) = @_;
@@ -19,8 +21,10 @@ sub activate() {
     $sshcommand = "TERM=xterm " . $sshcommand;
     my $xterm_vt_cmd = "xterm-console";
     my $window_name  = "ssh:$testapi_console";
-    system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$sshcommand' & echo \$!") != -1 ||    #
-      die "cant' start xterm on $display (err: $! retval: $?)";
+    eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$sshcommand' & echo \$!") };
+    if (my $E = $@) {
+        die "cant' start xterm on $display (err: $! retval: $?)";
+    }
     my $window_id = qx"DISPLAY=$display xdotool search --sync --limit 1 $window_name";
     chomp($window_id);
 
