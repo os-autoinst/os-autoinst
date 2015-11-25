@@ -6,9 +6,7 @@ doc_DATA = \
 	INSTALL.asciidoc \
 	COPYING \
 	doc/basetest.html \
-	doc/bmwqemu.html \
-	doc/debian-install-workflow.txt \
-	doc/fedora-installation.txt
+	doc/bmwqemu.html 
 
 packagestatedir = $(localstatedir)/lib/os-autoinst
 

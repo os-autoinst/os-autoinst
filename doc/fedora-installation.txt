@@ -1,4 +1,0 @@
-wget http://ftp.tu-chemnitz.de/pub/linux/fedora/linux/releases/14/Fedora/i386/iso/Fedora-14-i386-netinst.iso
-
-for workflow see
-grep send distri/fedora/inst.d/*
