@@ -11,11 +11,15 @@ sub init() {
     $self->{name} = 'ssh-xterm_vt';
 }
 
-sub activate() {
-    my ($self, $testapi_console, $console_args) = @_;
+sub activate {
+    my ($self) = @_;
 
-    my $sshcommand = $self->sshCommand(get_var("PARMFILE")->{Hostname});
-    my $worker     = $self->{backend}->{consoles}->{worker};
+    my $testapi_console = $self->{testapi_console};
+    my $ssh_args = $self->{args};
+
+    my $hostname = $ssh_args->{host} || get_var("PARMFILE")->{Hostname};
+    my $password = $ssh_args->{password} || $testapi::password;
+    my $sshcommand = $self->sshCommand($hostname);
     my $display    = $self->display;
 
     $sshcommand = "TERM=xterm " . $sshcommand;
@@ -31,8 +35,9 @@ sub activate() {
     $self->{window_id} = $window_id;
 
     # FIXME: assert_screen('xterm_password');
-    sleep 2;
-    $worker->type_string({text => $testapi::password . "\n"});
+    sleep 3;
+    #my $worker = $self->backend->console('worker');
+    $self->backend->type_string({text => $password . "\n"});
 }
 
 1;

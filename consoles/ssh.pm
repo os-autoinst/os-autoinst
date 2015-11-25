@@ -10,22 +10,21 @@ use autodie qw(:all);
 
 sub screen {
     my ($self) = @_;
-    return $self->{backend}->{consoles}->{worker};
+    return $self->backend->console('worker');
 }
 
-sub sshCommand() {
+sub sshCommand {
     my ($self, $host) = @_;
-    my $sshcommand = "ssh";
 
-    return $sshcommand . " -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root\@$host";
+    return "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root\@$host";
 }
 
-sub disable() {
+sub disable {
     my ($self) = @_;
     return $self->_kill_window();
 }
 
-sub select() {
+sub activate {
     my ($self) = @_;
     return $self->_activate_window();
 }

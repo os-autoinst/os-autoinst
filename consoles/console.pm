@@ -77,7 +77,7 @@ sub _kill_window() {
 sub display() {
     my ($self) = @_;
 
-    return $self->console('worker')->{DISPLAY};
+    return $self->backend->console('worker')->{DISPLAY};
 }
 
 1;

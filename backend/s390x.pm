@@ -26,7 +26,9 @@ sub do_start_vm {
     my ($self) = @_;
 
     $self->unlink_crash_file();
-    $self->activate_console({testapi_console => "worker", backend_console => "local-Xvnc"});
+    my $console = $testapi::distri->add_console('worker', 'local-Xvnc');
+    $console->backend($self);
+    $self->select_console({testapi_console => 'worker'});
     return 1;
 }
 
@@ -43,7 +45,7 @@ sub do_stop_vm {
 
     # now cleanly disconnect from the guest and then kill the local
     # Xvnc
-    $self->deactivate_console({testapi_console => 'bootloader'});
+    $self->deactivate_console({testapi_console => 'sut'});
     $self->deactivate_console({testapi_console => 'worker'});
     return;
 }
