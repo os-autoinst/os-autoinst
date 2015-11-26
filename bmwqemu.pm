@@ -25,6 +25,8 @@ our $VERSION;
 our @EXPORT = qw(diag fileContent save_vars);
 
 use backend::driver;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 sub mydie;
 
@@ -84,7 +86,7 @@ sub load_vars() {
 sub save_vars() {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
-    open(my $fd, ">", $fn) or die "can not write vars.json: $!\n";
+    open(my $fd, ">", $fn);
     fcntl($fd, F_SETLKW, pack('ssqql', F_WRLCK, 0, 0, 0, $$)) or die "cannot lock vars.json: $!\n";
     truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
 
@@ -291,6 +293,7 @@ sub log_call {
 
 sub fileContent {
     my ($fn) = @_;
+    no autodie qw(open);
     open(my $fd, "<", $fn) or return;
     local $/;
     my $result = <$fd>;
@@ -431,7 +434,7 @@ sub decodewav {
     }
     my $dtmf = '';
     my $mm   = "multimon -a DTMF -t wav $wavfile";
-    open(my $M, '-|', $mm) || return 1;
+    open(my $M, '-|', $mm);
     while (<$M>) {
         next unless /^DTMF: .$/;
         my ($a, $b) = split ':';
@@ -505,7 +508,7 @@ Returns the output on the serial device since the last call to set_serial_offset
 
 sub serial_text {
 
-    open(my $SERIAL, "<", $serialfile) || die "can't open $serialfile";
+    open(my $SERIAL, "<", $serialfile);
     seek($SERIAL, $serial_offset, 0);
     local $/;
     my $data = <$SERIAL>;
@@ -649,7 +652,7 @@ sub save_needle_template {
 
     $img->write($imgfn);
 
-    open(my $fd, ">", $jsonfn) or die "$jsonfn: $!\n";
+    open(my $fd, ">", $jsonfn);
     print $fd JSON->new->pretty->encode($template);
     close($fd);
 
@@ -919,7 +922,7 @@ sub load_snapshot {
 sub save_json_file {
     my ($result, $fn) = @_;
 
-    open(my $fd, ">", "$fn.new") or die "can not write $fn: $!\n";
+    open(my $fd, ">", "$fn.new");
     print $fd to_json($result, {pretty => 1});
     close($fd);
     return rename("$fn.new", $fn);
@@ -942,6 +945,7 @@ sub save_status {
 # wait functions end
 
 sub clean_control_files {
+    no autodie qw(unlink);    # control files might not exist
     for my $file (values %control_files) {
         unlink($file);
     }

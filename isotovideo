@@ -27,7 +27,7 @@ use needle;
 use autotest;
 use Getopt::Std;
 require IPC::System::Simple;
-use autodie qw(:system);
+use autodie qw(:all);
 
 # avoid paranoia
 $Getopt::Std::STANDARD_HELP_VERSION = 1;

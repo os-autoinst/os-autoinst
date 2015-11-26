@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use testapi qw/get_var/;
 require IPC::System::Simple;
-use autodie qw(:system);
+use autodie qw(:all);
 
 # no init or activate - this is an abstract class
 

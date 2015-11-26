@@ -3,6 +3,8 @@ package backend::s390x;
 use strict;
 use warnings;
 use English;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 use base ('backend::baseclass');
 

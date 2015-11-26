@@ -7,6 +7,8 @@ use File::Find;
 use File::Spec;
 use JSON;
 use File::Basename;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 our %needles;
 our %tags;
@@ -23,7 +25,9 @@ sub new {
     }
     else {
         local $/;
-        open(my $fh, '<', $jsonfile) || return;
+        # TODO preserving old behaviour, why should failing read be allowed?
+        no autodie qw(open);
+        open(my $fh, '<', $jsonfile);
         eval { $json = decode_json(<$fh>) };
         close($fh);
         if (!$json || $@) {
@@ -90,7 +94,7 @@ sub save {
             area       => \@area,
             properties => [sort(@{$self->{properties}})],
         });
-    open(my $fh, '>', $fn) || die "can't open $fn for writing: $!\n";
+    open(my $fh, '>', $fn);
     print $fh $json;
     close $fh;
 }

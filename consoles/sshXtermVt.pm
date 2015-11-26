@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use testapi qw/get_var/;
 require IPC::System::Simple;
-use autodie qw(:system);
+use autodie qw(:all);
 
 sub init() {
     my ($self) = @_;

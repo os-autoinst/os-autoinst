@@ -2,7 +2,7 @@ package consoles::console;
 use strict;
 use warnings;
 require IPC::System::Simple;
-use autodie qw(:system);
+use autodie qw(:all);
 
 sub new {
     my ($class, $backend) = @_;

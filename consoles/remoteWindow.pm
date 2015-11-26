@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 require IPC::System::Simple;
-use autodie qw(:system);
+use autodie qw(:all);
 
 sub activate() {
     my ($self, $testapi_console, $console_args) = @_;
