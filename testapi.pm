@@ -192,7 +192,7 @@ sub upload_logs {
     bmwqemu::log_call('upload_logs', file => $file);
     type_string("curl --form upload=\@$file ");
     my $basename = basename($file);
-    type_string(autoinst_url() . "/uploadlog/$basename\n");
+    type_string(autoinst_url("/uploadlog/$basename") . "\n");
     wait_idle();
     return;
 }
@@ -214,7 +214,7 @@ sub upload_asset {
     type_string("curl --form upload=\@$file ");
     type_string("--form target=assets_public ") if $public;
     my $basename = basename($file);
-    type_string(autoinst_url() . "/upload_asset/$basename\n");
+    type_string(autoinst_url("/upload_asset/$basename") . "\n");
     wait_idle();
     return;
 }
@@ -530,13 +530,29 @@ sub mouse_hide(;$) {
 
 =head2 autoinst_url
 
-returns the base URL to contact the local os-autoinst service
+returns the base URL to contact the local os-autoinst service. You can also pass
+a path as argument to append it automatically.
 
 =cut
 
-sub autoinst_url() {
-    # move to backend?
-    return "http://10.0.2.2:" . (get_var("QEMUPORT") + 1);
+sub autoinst_url {
+    my ($path, $query) = @_;
+    $path  //= '/';
+    $query //= {};
+
+    # in a kvm instance you reach the VM's host under 10.0.2.2
+    my $qemuhost = '10.0.2.2';
+    my $hostname = get_var('WORKER_HOSTNAME') || $qemuhost;
+
+    # QEMUPORT is historical for the base port of the worker instance
+    my $workerport = get_var("QEMUPORT") + 1;
+
+    my $token       = get_var('JOBTOKEN');
+    my $querystring = join('&', map { "$_=$query->{$_}" } sort keys %$query);
+    my $url         = "http://$hostname:$workerport/$token$path";
+    $url .= "?$querystring" if $querystring;
+
+    return $url;
 }
 
 =head2 data_url
@@ -552,13 +568,13 @@ in the corresponding variable
 sub data_url($) {
     my ($name) = @_;
     if ($name =~ /^REPO_\d$/) {
-        return autoinst_url . "/assets/repo/" . get_var($name);
+        return autoinst_url("/assets/repo/" . get_var($name));
     }
     if ($name =~ /^ASSET_\d$/) {
-        return autoinst_url . "/assets/other/" . get_var($name);
+        return autoinst_url("/assets/other/" . get_var($name));
     }
     else {
-        return autoinst_url . "/data/$name";
+        return autoinst_url("/data/$name");
     }
 }
 
@@ -574,21 +590,14 @@ The default timeout for the script is 10 seconds. If you need more, pass a 2nd p
 
 =cut
 
-sub _random_string() {
-    my $string;
-    my @chars = ('a' .. 'z', 'A' .. 'Z');
-    $string .= $chars[rand @chars] for 1 .. 4;
-    return $string;
-}
-
 sub script_output($;$) {
     my $wait;
     ($commands::current_test_script, $wait) = @_;
     $commands::current_test_script .= "\necho SCRIPT_FINISHED\n";
     $wait ||= 10;
 
-    my $suffix = _random_string;
-    type_string "curl -f -v " . autoinst_url . "/current_script > /tmp/script$suffix.sh && echo \"curl-\$?\" > /dev/$serialdev\n";
+    my $suffix = bmwqemu::random_string();
+    type_string "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh && echo \"curl-\$?\" > /dev/$serialdev\n";
     wait_serial('curl-0') || die "script couldn't be downloaded";
     send_key "ctrl-l";
 

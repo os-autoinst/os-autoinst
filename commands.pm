@@ -18,31 +18,6 @@ use Mojo::Server::Daemon;
 
 use File::Basename;
 
-# make sure only our local VMs access
-sub check_authorized {
-    my ($self) = @_;
-
-    # allow remote access if they set a password and use it
-    return 1 if ($bmwqemu::vars{CONNECT_PASSWORD}
-        && $self->param('connect_password')
-        && $bmwqemu::vars{CONNECT_PASSWORD} eq $self->param('connect_password'));
-
-    my $ip = $self->tx->remote_address;
-    $self->app->log->debug("Request from $ip.");
-
-    return 1 if ($ip eq "127.0.0.1" || $ip eq "::1");
-
-    my $local_ip = $self->tx->local_address;
-    $self->app->log->debug("Request to $local_ip.");
-
-    # with TAP devices the address is not translated
-    # client 10.0.2.x connects to server 10.0.2.2
-    return 1 if ($local_ip eq "10.0.2.2");
-
-    # forbid everyone else
-    $self->render(text => "IP $ip is denied", status => 403);
-}
-
 # borrowed from obs with permission from mls@suse.de to license as
 # GPLv2+
 sub _makecpiohead {
@@ -194,37 +169,40 @@ sub current_script {
 sub run_daemon {
     my ($port) = @_;
 
-    # we allow only localhost or openQA
-    under \&check_authorized;
+    # avoid leaking token
+    app->mode('production');
+
+    my $r          = app->routes;
+    my $token_auth = $r->route("/$bmwqemu::vars{JOBTOKEN}");
 
     # for access all data as CPIO archive
-    get '/data' => \&test_data;
+    $token_auth->get('/data' => \&test_data);
 
     # to access a single file or a subdirectory
-    get '/data/*relpath' => \&test_data;
+    $token_auth->get('/data/*relpath' => \&test_data);
 
     # uploading log files from tests
-    post '/uploadlog/#filename' => {target => 'ulogs'} => [target => [qw(ulogs)]] => \&upload_file;
+    $token_auth->post('/uploadlog/#filename' => {target => 'ulogs'} => [target => [qw(ulogs)]] => \&upload_file);
 
     # uploading assets
-    post '/upload_asset/#filename' => {target => 'assets_private'} => [target => [qw(assets_private assets_public)]] => \&upload_file;
+    $token_auth->post('/upload_asset/#filename' => {target => 'assets_private'} => [target => [qw(assets_private assets_public)]] => \&upload_file);
 
     # to get the current bash script out of the test
-    get '/current_script' => \&current_script;
+    $token_auth->get('/current_script' => \&current_script);
 
     # get asset
-    get '/assets/#assettype/#assetname'          => \&get_asset;
-    get '/assets/#assettype/#assetname/*relpath' => \&get_asset;
+    $token_auth->get('/assets/#assettype/#assetname'          => \&get_asset);
+    $token_auth->get('/assets/#assettype/#assetname/*relpath' => \&get_asset);
 
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');
 
     # it's unlikely that we will ever use cookies, but we need a secret to shut up mojo
-    my $secret = $bmwqemu::vars{CONNECT_PASSWORD} || 'notsosecret';
-    app->secrets([$secret]);
+    app->secrets([$bmwqemu::vars{JOBTOKEN}]);
 
     my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://*:$port"]);
-
+    $daemon->silent;
+    app->log->info("Daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
     $daemon->run;
 }
 

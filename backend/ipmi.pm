@@ -19,6 +19,7 @@ use bmwqemu qw(fileContent diag save_vars diag);
 sub new {
     my $class = shift;
     my $self = bless({class => $class}, $class);
+    die "configure WORKER_HOSTNAME e.g. in workers.ini" unless get_var('WORKER_HOSTNAME');
     return $self;
 }
 
