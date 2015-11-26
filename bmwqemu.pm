@@ -81,28 +81,6 @@ sub load_vars() {
     return;
 }
 
-sub expand_DEBUG_vars {
-    # DEBUG in vars.json can be a single value or a list (array) of values.
-    # it's turned into a hash which should be tested using exists, like so:
-    # if (exists get_var("DEBUG")->{flag}) { ... }
-    # this allows to give a combination of flags
-    my %DEBUG_SET;
-    if (exists $vars{DEBUG}) {
-        my $DEBUG = \$vars{DEBUG};
-        if (ref $DEBUG eq "SCALAR") {
-            $DEBUG = [$$DEBUG];
-        }
-        if (ref $$DEBUG eq "ARRAY") {
-            @DEBUG_SET{@$$DEBUG} = ();
-        }
-        elsif (ref $$DEBUG eq "HASH") {
-            %DEBUG_SET = %$$DEBUG;
-        }
-    }
-    $vars{DEBUG} = \%DEBUG_SET;
-    return;
-}
-
 sub save_vars() {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
@@ -132,8 +110,6 @@ our $scriptdir;
 
 sub init {
     load_vars();
-
-    expand_DEBUG_vars();
 
     # remove directories for asset upload
     remove_tree("assets_public");

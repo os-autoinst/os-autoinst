@@ -132,7 +132,7 @@ if ($ENV{RUN_VNCVIEWER}) {
   system("vncviewer -shared localhost:" . $bmwqemu::vars{VNC} . " -viewonly &");
 }
 if ($ENV{RUN_DEBUGVIEWER}) {
-  system("$bmwqemu::scriptdir/debugviewer/debugviewer qemuscreenshots/last.png");
+  system("$bmwqemu::scriptdir/debugviewer/debugviewer qemuscreenshot/last.png &");
 }
 
 require Carp;
