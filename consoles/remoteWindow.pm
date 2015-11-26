@@ -1,5 +1,7 @@
 use strict;
 use warnings;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 sub activate() {
     my ($self, $testapi_console, $console_args) = @_;
@@ -20,7 +22,7 @@ sub disable() {
     my ($self)    = @_;
     my $window_id = $self->{window_id};
     my $display   = $self->{consoles}->{worker}->{DISPLAY};
-    system("DISPLAY=$display xdotool windowkill $window_id") != -1 || die;
+    system("DISPLAY=$display xdotool windowkill $window_id");
 }
 sub select() {
     my ($self) = @_;

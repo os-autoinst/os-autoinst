@@ -462,7 +462,7 @@ sub activate_console {
 #if exists $self->{current_console} ...
 # my $current_window_id = $self->{current_console}->{window_id};
 # if (defined $current_window_id) {
-#     system("DISPLAY=$display xdotool windowminimize --sync $current_window_id") != -1 || die;
+#     system("DISPLAY=$display xdotool windowminimize --sync $current_window_id");
 # }
 #-> select
 

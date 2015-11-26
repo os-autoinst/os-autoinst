@@ -3,6 +3,8 @@ use base 'consoles::console';
 use strict;
 use warnings;
 use testapi qw/get_var/;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 # no init or activate - this is an abstract class
 
@@ -13,7 +15,6 @@ sub screen {
 
 sub sshCommand() {
     my ($self, $host) = @_;
-    system("ssh-keygen -R $host -f ./known_hosts");
     my $sshcommand = "ssh";
 
     return $sshcommand . " -o UserKnownHostsFile=./known_hosts -o StrictHostKeyChecking=no root\@$host";
