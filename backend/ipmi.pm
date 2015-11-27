@@ -15,6 +15,7 @@ use JSON;
 require Carp;
 use Fcntl;
 use bmwqemu qw(fileContent diag save_vars diag);
+use testapi qw(get_var);
 require IPC::System::Simple;
 use autodie qw(:all);
 
@@ -41,7 +42,7 @@ sub ipmitool {
 
     my $tmp = File::Temp->new(SUFFIX => '.stdout', OPEN => 0);
     $cmd = join(' ', @cmd) . " > $tmp; echo \"DONE-\$?\" >> $tmp\n";
-    $self->{console}->type_string({text => $cmd});
+    $self->{consoles}->{worker}->type_string({text => $cmd});
 
     my $time = 0;
     while ($time++ < 10) {
@@ -106,17 +107,15 @@ sub do_start_vm() {
 
     # remove backend.crashed
     $self->unlink_crash_file;
-    if (1) {
-        my $console = $self->activate_console({testapi_console => "worker", backend_console => "local-Xvnc"});
-        $self->{console} = $console;
-        my $display     = $console->{DISPLAY};
-        my $window_name = 'IPMI';
-        system("DISPLAY=$display xterm -title '$window_name' -e bash & echo \$!");
-        sleep(1);
-        my $window_id = qx"DISPLAY=$display xdotool search --sync --limit 1 $window_name";
-        chomp($window_id);
-        $self->restart_host;
-    }
+    $self->activate_console({testapi_console => "worker", backend_console => "local-Xvnc"});
+    my $console     = $self->{consoles}->{worker};
+    my $display     = $console->{DISPLAY};
+    my $window_name = 'IPMI';
+    system("DISPLAY=$display xterm -title '$window_name' -e bash & echo \$!");
+    sleep(1);
+    my $window_id = qx"DISPLAY=$display xdotool search --sync --limit 1 $window_name";
+    chomp($window_id);
+    $self->restart_host;
     $self->relogin_vnc;
     $self->start_serial_grab;
     return {};
