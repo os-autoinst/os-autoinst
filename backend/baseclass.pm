@@ -10,6 +10,8 @@ use File::Basename;
 use Time::HiRes qw(gettimeofday);
 use bmwqemu;
 use IO::Select;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 use Data::Dumper;
 use feature qw(say);
@@ -218,8 +220,7 @@ sub start_encoder {
     return if $bmwqemu::vars{NOVIDEO};
 
     my $cwd = Cwd::getcwd();
-    open($self->{encoder_pipe}, "|-", "nice -n 19 $bmwqemu::scriptdir/videoencoder $cwd/video.ogv")
-      || die "can't call $bmwqemu::scriptdir/videoencoder";
+    open($self->{encoder_pipe}, "|-", "nice -n 19 $bmwqemu::scriptdir/videoencoder $cwd/video.ogv");
 }
 
 sub get_last_mouse_set {
@@ -246,6 +247,8 @@ sub stop_vm {
     my $self = shift;
     if ($self->{started}) {
         close($self->{encoder_pipe}) if $self->{encoder_pipe};
+        # backend.run might have disappeared already in case of failed builds
+        no autodie qw(unlink);
         unlink('backend.run');
         $self->do_stop_vm();
         $self->{started} = 0;
@@ -274,13 +277,9 @@ sub unlink_crash_file {
 }
 
 sub write_crash_file {
-    if (open(my $fh, ">", $iscrashedfile)) {
-        print $fh "crashed\n";
-        close $fh;
-    }
-    else {
-        warn "cannot write '$iscrashedfile'";
-    }
+    (open(my $fh, ">", $iscrashedfile));
+    print $fh "crashed\n";
+    close $fh;
 }
 
 # new api end
@@ -366,6 +365,7 @@ sub enqueue_screenshot {
         $bmwqemu::screenshotQueue->enqueue($filename);
         $lastscreenshot     = $image;
         $lastscreenshotName = $filename;
+        no autodie qw(unlink);
         unlink($lastlink);
         symlink(basename($lastscreenshotName), $lastlink);
         #my $ocr=get_ocr($image);

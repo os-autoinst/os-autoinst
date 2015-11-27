@@ -21,6 +21,8 @@ use warnings;
 
 use FindBin;
 use File::Find;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 use constant {
     BACKEND_DIR => "$FindBin::Bin/../backend",
@@ -51,7 +53,7 @@ sub say {
 sub read_doc {
     # read and parse old vars doc
     my $docfh;
-    open($docfh, '<', VARS_DOC) or die 'Unable to open ' . VARS_DOC;
+    open($docfh, '<', VARS_DOC);
     my $backend;
     my $reading;
     while (<$docfh>) {
@@ -81,7 +83,7 @@ sub read_doc {
 
 sub write_doc {
     my $docfh;
-    open($docfh, '>', VARS_DOC) or die 'Unable to open ' . VARS_DOC;
+    open($docfh, '>', VARS_DOC);
     print $docfh <<EO_HEADER;
 Supported variables per backend
 -------------------------------
@@ -120,7 +122,10 @@ sub read_backend_pm {
     return if (grep { /$backend/ } @backend_blacklist);
     $backend = $backend_renames{$backend} if $backend_renames{$backend};
     my $fh;
-    open($fh, '<', $File::Find::name) or say 'Unable to open ' . $File::Find::name && return;
+    eval { open($fh, '<', $File::Find::name) };
+    if (my $E = $@) {
+        say 'Unable to open ' . $File::Find::name && return;
+    }
     while (<$fh>) {
         my @vars = /(?:\$bmwqemu::|\$)vars(?:->)?{["']?([^}"']+)["']?}/g;
         for my $var (@vars) {

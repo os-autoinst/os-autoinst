@@ -8,6 +8,7 @@ our $gocrbin = "/usr/bin/gocr";
 if (!-x $gocrbin) { $gocrbin = undef }
 
 # input: image ref
+# TODO get_ocr is nowhere called, also not in opensuse tests or openQA, delete?
 sub get_ocr {
     my $ppm        = shift;
     my $gocrparams = shift || "";
@@ -27,7 +28,7 @@ sub get_ocr {
         close $fd;
     }
 
-    open(my $pipe, '-|', "$gocrbin -l 128 -d 0 $gocrparams $tempname") or return "failed to exec $gocrbin: $!";
+    open(my $pipe, '-|', "$gocrbin -l 128 -d 0 $gocrparams $tempname");
     local $/;
     my $ocr = <$pipe>;
     close($pipe);
@@ -51,11 +52,10 @@ sub tesseract {
     $img->write($imgfn);
     system('tesseract', $imgfn, $txtfn);
     $txtfn .= '.txt';
-    if (open(my $fh, '<:encoding(UTF-8)', $txtfn)) {
-        local $/;
-        $txt = <$fh>;
-        close $fh;
-    }
+    open(my $fh, '<:encoding(UTF-8)', $txtfn);
+    local $/;
+    $txt = <$fh>;
+    close $fh;
     unlink $imgfn;
     unlink $txtfn;
     return $txt;

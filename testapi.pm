@@ -7,6 +7,8 @@ use warnings;
 use File::Basename qw(basename);
 use Time::HiRes qw(sleep gettimeofday);
 use Mojo::DOM;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 require bmwqemu;
 
@@ -857,7 +859,7 @@ sub parse_junit_log {
 
     $file = basename($file);
 
-    open my $fd, "<", "ulogs/$file" or die "Couldn't open file 'ulogs/$file': $!";
+    open my $fd, "<", "ulogs/$file";
     my $xml = join("", <$fd>);
     close $fd;
 
@@ -903,7 +905,7 @@ sub parse_junit_log {
             my $details = {result => $tc_result};
 
             my $text_fn = "$ts_category-$ts_name-$num.txt";
-            open my $fd, ">", bmwqemu::result_dir() . "/$text_fn" or die "Couldn't open file '$text_fn': $!";
+            open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
             print $fd "# $tc->{name}\n";
             for my $out ($tc->children('system-out, system-err, failure')->each) {
                 print $fd "# " . $out->tag . ": \n\n";

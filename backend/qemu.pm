@@ -526,20 +526,19 @@ sub start_qemu {
         push(@params, "-enable-kvm") unless $vars->{QEMU_NO_KVM};
         push(@params, "-no-shutdown");
 
-        if (open(my $cmdfd, '>', 'runqemu')) {
-            print $cmdfd "#!/bin/bash\n";
-            my @args;
-            for my $arg (@params) {
-                $arg =~ s,\\,\\\\,g;
-                $arg =~ s,\$,\\\$,g;
-                $arg =~ s,\",\\\",g;
-                $arg =~ s,\`,\\\`,;
-                push(@args, "\"$arg\"");
-            }
-            printf $cmdfd "%s \\\n  %s \\\n  \"\$@\"\n", $qemubin, join(" \\\n  ", @args);
-            close $cmdfd;
-            chmod 0755, 'runqemu';
+        open(my $cmdfd, '>', 'runqemu');
+        print $cmdfd "#!/bin/bash\n";
+        my @args;
+        for my $arg (@params) {
+            $arg =~ s,\\,\\\\,g;
+            $arg =~ s,\$,\\\$,g;
+            $arg =~ s,\",\\\",g;
+            $arg =~ s,\`,\\\`,;
+            push(@args, "\"$arg\"");
         }
+        printf $cmdfd "%s \\\n  %s \\\n  \"\$@\"\n", $qemubin, join(" \\\n  ", @args);
+        close $cmdfd;
+        chmod 0755, 'runqemu';
 
         if ($vars->{VNC}) {
             if ($vars->{VNC} !~ /:/) {
@@ -571,8 +570,8 @@ sub start_qemu {
         bmwqemu::diag("starting: " . join(" ", @params));
 
         # redirect qemu's output to the parent pipe
-        open(STDOUT, ">&", $writer) || die "can't dup stdout: $!";
-        open(STDERR, ">&", $writer) || die "can't dup stderr: $!";
+        open(STDOUT, ">&", $writer);
+        open(STDERR, ">&", $writer);
         close($reader);
         exec(@params);
         die "failed to exec qemu";
@@ -582,7 +581,7 @@ sub start_qemu {
     }
     close $writer;
     $self->{qemupipe} = $reader;
-    open(my $pidf, ">", $self->{pidfilename}) or die "can not write " . $self->{pidfilename};
+    open(my $pidf, ">", $self->{pidfilename});
     print $pidf $self->{pid}, "\n";
     close $pidf;
 

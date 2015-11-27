@@ -11,6 +11,8 @@ use Carp;
 use JSON qw( to_json );
 use File::Path qw(remove_tree);
 use IO::Select;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 # TODO: move the whole printing out of bmwqemu
 sub diag {
@@ -86,7 +88,7 @@ sub stop {
 sub start_vm {
     my $self = shift;
     my $json = to_json($self->get_info());
-    open(my $runf, ">", 'backend.run') or die "can not write 'backend.run'";
+    open(my $runf, ">", 'backend.run');
     print $runf "$json\n";
     close $runf;
 

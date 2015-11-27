@@ -164,9 +164,9 @@ sub start_serial_grab {
         #unshift(@cmd, ("setsid", "-w"));
         print join(" ", @cmd);
         # FIXME use 'socat' for this?
-        open(my $serial, '>',  $bmwqemu::serialfile) || die "can't open $bmwqemu::serialfile";
-        open(STDOUT,     ">&", $serial)              || die "can't dup stdout: $!";
-        open(STDERR,     ">&", $serial)              || die "can't dup stderr: $!";
+        open(my $serial, '>',  $bmwqemu::serialfile);
+        open(STDOUT,     ">&", $serial);
+        open(STDERR,     ">&", $serial);
         open(my $zero,   '<',  '/dev/zero');
         open(STDIN,      ">&", $zero);
         exec("script", "-efqc", "@cmd");

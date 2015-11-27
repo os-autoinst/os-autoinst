@@ -5,6 +5,8 @@ use threads::shared;
 
 use strict;
 use warnings;
+require IPC::System::Simple;
+use autodie qw(:all);
 
 BEGIN {
     # https://github.com/os-autoinst/openQA/issues/450
@@ -62,7 +64,8 @@ sub _test_data_dir {
         my $fn = 'data/' . substr($file, length($base));
         local $/;    # enable localized slurp mode
         my $fd;
-        unless (open($fd, '<:raw', $file)) {
+        eval { (open($fd, '<:raw', $file)) };
+        if (my $E = $@) {
             $self->app->log->error("error reading $file: $!");
             next;
         }
