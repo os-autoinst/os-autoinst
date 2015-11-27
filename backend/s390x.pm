@@ -43,43 +43,8 @@ sub do_start_vm {
     my ($self) = @_;
 
     $self->unlink_crash_file();
-    $self->inflate_vars_json();
     $self->activate_console({testapi_console => "worker", backend_console => "local-Xvnc"});
     return 1;
-}
-
-# input from the worker in vars.json:
-#     "S390_CONSOLE" : "vnc",
-#     "S390_HOST" : "153",
-#     "S390_NETWORK" : "hsi-l3",
-#     "REPO_0" : "SLES-11-SP4-DVD-s390x-Build1050-Media1",
-# when not invoked from the worker (no WORKER_CLASS set), these need
-# to be set, too:
-#     "S390_INSTHOST": "dist",
-#     "S390_INSTSRC": "http",
-# output: a full-featured vars.json suitable for s390 testing
-sub inflate_vars_json {
-    my ($self) = @_;
-
-    # these vars have to be set in vars.json:
-    die unless defined get_var('S390_HOST');
-    die unless defined get_var('S390_NETWORK');
-    die unless defined get_var('S390_CONSOLE');
-    die unless defined get_var('REPO_0');
-
-    # use external script to inflate vars.json
-    my $vars_json_cmd = $bmwqemu::scriptdir . "/backend/s390x/vars.json.py";
-
-    open(my $VARS, '-|', $vars_json_cmd) // die "can't call $vars_json_cmd";
-    my @vars = <$VARS>;
-    close($VARS);
-    open($VARS, ">", "vars.json") || die "can't open vars.json";
-    print $VARS join('', @vars);
-    close($VARS);
-
-    bmwqemu::load_vars();
-    bmwqemu::expand_DEBUG_vars();
-    bmwqemu::save_vars();
 }
 
 sub do_stop_vm {

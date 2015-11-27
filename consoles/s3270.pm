@@ -549,12 +549,7 @@ sub select() {
 
 sub disable() {
     my ($self) = @_;
-    if (exists get_var("DEBUG")->{"keep zVM guest"}) {
-        $self->cp_disconnect();
-    }
-    else {
-        $self->cp_logoff_disconnect();
-    }
+    $self->cp_logoff_disconnect();
     $self->_kill_window();
 }
 

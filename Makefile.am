@@ -35,10 +35,6 @@ consolesexec_SCRIPTS = \
 	consoles/vnc_base.pm \
 	consoles/VNC.pm
 
-backendexecs390xdir = $(pkglibexecdir)/backend/s390x
-backendexecs390x_SCRIPTS = \
-	backend/s390x/vars.json.py
-
 pkglibexec_SCRIPTS = \
 	autotest.pm \
 	basetest.pm \

@@ -38,11 +38,6 @@ sub activate() {
         });
     $self->{DISPLAY} = $display;
     sleep 1;
-    # FIXME proper debugging viewer, also needs to be switched when
-    # switching vnc console...
-    if (exists get_var("DEBUG")->{vncviewer}) {
-        system("vncviewer -shared $display &") != -1 || warn "couldn't start vncviewer $display (err: $! retval: $?)";
-    }
 
     # magic stanza from
     # https://github.com/yast/yast-x11/blob/master/src/tools/testX.c
