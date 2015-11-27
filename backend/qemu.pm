@@ -15,7 +15,7 @@ use Fcntl;
 use Net::DBus;
 use bmwqemu qw(fileContent diag save_vars);
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie qw(:system);
 
 sub new {
     my $class = shift;

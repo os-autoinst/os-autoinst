@@ -17,7 +17,7 @@ use Fcntl;
 use bmwqemu qw(fileContent diag save_vars diag);
 use testapi qw(get_var);
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie qw(:system);
 
 sub new {
     my $class = shift;
