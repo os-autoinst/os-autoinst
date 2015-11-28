@@ -84,6 +84,7 @@ sub do_start_vm {
     # remove backend.crashed
     $self->unlink_crash_file();
     $self->start_qemu();
+    print "done do-start_vm\n";
     return {};
 }
 
@@ -361,6 +362,7 @@ sub start_qemu {
 
         # fresh HDDs
         for my $i (1 .. $vars->{NUMDISKS}) {
+            no autodie qw(unlink);
             unlink("$basedir/l$i");
             if (-e "$basedir/$i.lvm") {
                 symlink("$i.lvm", "$basedir/l$i") or die "$!\n";
@@ -587,13 +589,14 @@ sub start_qemu {
 
     #local $Devel::Trace::TRACE = 1;
 
-    $self->activate_console(
+    my $vnc = $testapi::distri->init_console(
+        'worker',
+        'vnc-base',
         {
-            testapi_console => "worker",
-            backend_console => "vnc-base",
-            backend_args    => {
-                hostname => 'localhost',
-                port     => 5900 + $bmwqemu::vars{VNC}}});
+            hostname => 'localhost',
+            port     => 5900 + $bmwqemu::vars{VNC}});
+    $vnc->backend($self);
+    $self->select_console({testapi_console => 'worker'});
 
     $self->{hmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
@@ -610,7 +613,7 @@ sub start_qemu {
         Type     => IO::Socket::UNIX::SOCK_STREAM,
         Peer     => "qmp_socket",
         Blocking => 0
-    ) or die "can't open qmp";
+    ) or die "can't open qmp: $!";
 
     $self->{qmpsocket}->autoflush(1);
     binmode $self->{qmpsocket};

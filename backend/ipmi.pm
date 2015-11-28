@@ -42,7 +42,7 @@ sub ipmitool {
 
     my $tmp = File::Temp->new(SUFFIX => '.stdout', OPEN => 0);
     $cmd = join(' ', @cmd) . " > $tmp; echo \"DONE-\$?\" >> $tmp\n";
-    $self->{consoles}->{worker}->type_string({text => $cmd});
+    $self->console('worker')->type_string({text => $cmd});
 
     my $time = 0;
     while ($time++ < 10) {
@@ -107,8 +107,8 @@ sub do_start_vm() {
 
     # remove backend.crashed
     $self->unlink_crash_file;
-    $self->activate_console({testapi_console => "worker", backend_console => "local-Xvnc"});
-    my $console     = $self->{consoles}->{worker};
+    my $console = $testapi::distri->init_console('worker', 'local-Xvnc');
+    $console->activate;
     my $display     = $console->{DISPLAY};
     my $window_name = 'IPMI';
     system("DISPLAY=$display xterm -title '$window_name' -e bash & echo \$!");

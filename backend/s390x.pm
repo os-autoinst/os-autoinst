@@ -21,25 +21,6 @@ sub new {
     return $self;
 }
 
-# cature send_key events to switch consoles on ctr-alt-fX
-sub send_key {
-    my ($self, $args) = @_;
-    my $_map = {
-        "ctrl-alt-f1" => "installation",
-        "ctrl-alt-f2" => "ctrl-alt-f2",
-        "ctrl-alt-f3" => "ctrl-alt-f2",
-        "ctrl-alt-f4" => "ctrl-alt-f2",
-        "ctrl-alt-f7" => "installation",
-        "ctrl-alt-f9" => "ctrl-alt-f2",
-    };
-    print "SEND_KEY $args->{key}\n";
-    if ($args->{key} =~ qr/^ctrl-alt-f(\d+)/i) {
-        die "unkown ctrl-alt-fX combination $args->{key}" unless exists $_map->{$args->{key}};
-        $self->select_console({testapi_console => $_map->{$args->{key}}});
-        return;
-    }
-    return $self->SUPER::send_key($args);
-}
 ###################################################################
 sub do_start_vm {
     my ($self) = @_;

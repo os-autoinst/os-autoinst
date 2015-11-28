@@ -18,7 +18,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key se
   assert_and_click mouse_hide mouse_set mouse_click mouse_dclick mouse_tclick
   type_password get_var check_var set_var become_root x11_start_program ensure_installed
   autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
-  activate_console select_console console deactivate_console data_url assert_shutdown parse_junit_log
+  select_console console deactivate_console data_url assert_shutdown parse_junit_log
   assert_script_run assert_script_sudo match_has_tag get_var_array check_var_array
 );
 
@@ -778,31 +778,20 @@ here.
 
 
 require backend::console_proxy;
-
-my %testapi_console_proxies;
-
-sub activate_console {
-    my ($testapi_console, $backend_console, @backend_args) = @_;
-
-    die "activate_console: console $testapi_console is already active" if exists $testapi_console_proxies{$testapi_console};
-
-    bmwqemu::log_call('activate_console', testapi_console => $testapi_console, backend_console => $backend_console, backend_args => \@backend_args);
-    my $ret = $bmwqemu::backend->activate_console(
-        {
-            testapi_console => $testapi_console,
-            backend_console => $backend_console,
-            backend_args    => \@backend_args
-        });
-    # now the backend knows which console the testapi means with $testapi_console ("bootloader", "vnc", ...)
-    $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
-    return $ret;
-}
+our %testapi_console_proxies;
 
 sub select_console {
     my ($testapi_console) = @_;
-    die "select_console: console $testapi_console is not activated" unless exists $testapi_console_proxies{$testapi_console};
     bmwqemu::log_call('select_console', testapi_console => $testapi_console);
-    return $bmwqemu::backend->select_console({testapi_console => $testapi_console});
+    if (!exists $testapi_console_proxies{$testapi_console}) {
+        $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
+    }
+    my $ret = $bmwqemu::backend->select_console({testapi_console => $testapi_console});
+
+    if ($ret->{activated}) {
+        $testapi::distri->activate_console($testapi_console);
+    }
+    return $testapi_console_proxies{$testapi_console};
 }
 
 sub deactivate_console {

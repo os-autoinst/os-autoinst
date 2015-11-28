@@ -63,25 +63,6 @@ sub run {
     die "there can be only one!" if $backend;
     $backend = $self;
 
-    # register consoles
-    require consoles::localXvnc;
-    consoles::localXvnc->new($backend);
-
-    require consoles::vnc_base;
-    consoles::vnc_base->new($backend);
-
-    require consoles::s3270;
-    consoles::s3270->new($backend);
-
-    require consoles::sshXtermVt;
-    consoles::sshXtermVt->new($backend);
-
-    require consoles::sshX3270;
-    consoles::sshX3270->new($backend);
-
-    require consoles::remoteVnc;
-    consoles::remoteVnc->new($backend);
-
     $SIG{__DIE__} = \&die_handler;
 
     my $io = IO::Handle->new();
@@ -105,6 +86,11 @@ sub run {
     $self->last_screenshot("-Inf" + 0);
     $self->screenshot_interval($bmwqemu::vars{SCREENSHOTINTERVAL} || .5);
     $self->update_request_interval($self->screenshot_interval());
+
+    for my $console (values %{$testapi::distri->{consoles}}) {
+        # tell the consoles who they need to talk to (in this thread)
+        $console->backend($self);
+    }
 
     $self->run_capture_loop($self->{select});
 
@@ -334,13 +320,6 @@ sub enqueue_screenshot {
 
     return unless $image;
 
-    ## FIXME: is this still needed?
-    ## don't overdo it
-    #my $interval = $self->screenshot_interval();
-    #my $rest = $interval - $self->elapsed_time();
-    #return unless $rest < 0.05;
-    #$self->reset_timer();
-
     $image = $image->scale(1024, 768);
 
     $framecounter++;
@@ -426,29 +405,6 @@ sub check_socket {
 ###################################################################
 ## access other consoles from the test case thread
 
-sub activate_console {
-    my ($self, $args) = @_;
-    my ($testapi_console, $backend_console, $console_args) = @$args{qw(testapi_console backend_console backend_args)};
-
-    if (exists $self->{consoles}->{$testapi_console}) {
-        die "activate_console: console $testapi_console already activated";
-    }
-
-    if (!$self->{console_classes}->{$backend_console}) {
-        die "new_console: console class $backend_console unknown";
-    }
-    my $new_console = $self->{console_classes}->{$backend_console};
-    $new_console->activate($testapi_console, $console_args);
-
-    #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($new_console);
-
-    $self->{consoles}->{$testapi_console} = $new_console;
-    $self->select_console($args);
-
-    # don't return any complex object - this needs to be transferred through JSON to the test thread
-    return $testapi_console;
-}
-
 # There can be two vnc backends (local Xvnc or remote vnc) and
 # there can be several terminals on the local Xvnc.
 #
@@ -471,41 +427,45 @@ sub select_console {
     #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     my $testapi_console = $args->{testapi_console};
 
-    unless (exists $self->{consoles}->{$testapi_console}) {
-        die "select_console: console $testapi_console not activated";
-    }
-    my $selected_console = $self->{consoles}->{$testapi_console};
+    my $selected_console = $self->console($testapi_console);
     #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($selected_console);
-    $selected_console->select;
+    my $activated = $selected_console->select;
 
     $self->{current_console} = $selected_console;
     $self->{current_screen}  = $selected_console->screen;
     $self->capture_screenshot();
-    return $testapi_console;
+    return {activated => $activated};
 }
 
 sub deactivate_console {
     my ($self, $args) = @_;
     my $testapi_console = $args->{testapi_console};
-    unless (exists $self->{consoles}->{$testapi_console}) {
-        die "deactivate_console: console $testapi_console not activated";
-    }
-    my $console_info = $self->{consoles}->{$testapi_console};
+
+    my $console_info = $self->console($testapi_console);
     if (defined $self->{current_console} && $self->{current_console} == $console_info) {
         $self->{current_console} = undef;
     }
-    $self->{consoles}->{$testapi_console}->disable();
-    delete $self->{consoles}->{$testapi_console};
+    $console_info->disable();
     return {};
 }
 
-sub request_screen_update() {
+sub request_screen_update {
     my ($self) = @_;
 
     return $self->bouncer('request_screen_update', undef);
 }
 
-sub bouncer() {
+sub console {
+    my ($self, $testapi_console) = @_;
+
+    my $ret = $testapi::distri->{consoles}->{$testapi_console};
+    unless ($ret) {
+        carp "console $testapi_console does not exist";
+    }
+    return $ret;
+}
+
+sub bouncer {
     my ($self, $call, $args) = @_;
     # forward to the current VNC console
     return unless $self->{current_screen};
@@ -562,7 +522,7 @@ sub proxy_console_call {
         # Move the decision to actually die to the server side instead.
         # For this ignore backend::baseclass::die_handler.
         local $SIG{__DIE__} = 'DEFAULT';
-        $wrapped_result->{result} = $self->{consoles}->{$console}->$function(@$args);
+        $wrapped_result->{result} = $console->$function(@$args);
     };
 
     if ($@) {

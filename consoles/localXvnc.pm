@@ -8,18 +8,11 @@ use testapi qw/get_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
 
-sub init() {
-    my ($self) = @_;
-    $self->SUPER::init();
-    # overwrite name
-    $self->{name} = 'local-Xvnc';
-}
-
 sub activate() {
-    my ($self, $testapi_console, $console_args) = @_;
+    my ($self) = @_;
 
     # REFACTOR to have a $self->{localXvnc}
-    die "local-Xvnc must be named 'worker'" unless $testapi_console eq 'worker';
+    die "local-Xvnc must be named 'worker'" unless $self->{testapi_console} eq 'worker';
     ## start Xvnc Server, the local console to do all the work from
     my $display_id = get_var("VNC") || die "VNC unset in vars.json.";
     my $display = ":" . $display_id;
