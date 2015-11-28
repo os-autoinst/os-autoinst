@@ -382,8 +382,6 @@ sub start_qemu {
             unlink("$basedir/autoinst.img");
             runcmd("/sbin/mkfs.vfat", "-C", "$basedir/autoinst.img", "1440");
             runcmd("/usr/bin/mcopy", "-i", "$basedir/autoinst.img", $vars->{AUTO_INST}, "::/");
-
-            #system("/usr/bin/mdir","-i","$basedir/autoinst.img");
         }
     }
 
@@ -587,14 +585,13 @@ sub start_qemu {
     print $pidf $self->{pid}, "\n";
     close $pidf;
 
-    #local $Devel::Trace::TRACE = 1;
-
     my $vnc = $testapi::distri->init_console(
         'worker',
         'vnc-base',
         {
             hostname => 'localhost',
-            port     => 5900 + $bmwqemu::vars{VNC}});
+            port     => 5900 + $bmwqemu::vars{VNC}
+    });
     $vnc->backend($self);
     $self->select_console({testapi_console => 'worker'});
 
@@ -722,11 +719,9 @@ sub handle_qmp_command {
     my ($self, $cmd) = @_;
 
     my $line = JSON::to_json($cmd);
-    # CORE::say "handle_qmp_command: " . bmwqemu::pp($line);
     my $wb = syswrite($self->{qmpsocket}, "$line\n");
     die "syswrite failed $!" unless ($wb == length($line) + 1);
 
-    #print STDERR "wrote $wb\n";
     my $hash;
     while (!$hash) {
         $hash = backend::driver::_read_json($self->{qmpsocket});
@@ -780,7 +775,6 @@ sub _send_hmp {
 
     my $wb = syswrite($self->{hmpsocket}, "$hmp\n");
 
-    #print STDERR "wrote HMP $wb $cmd->{hmp}\n";
     die "syswrite failed $!" unless ($wb == length($hmp) + 1);
 
     return $self->_read_hmp;

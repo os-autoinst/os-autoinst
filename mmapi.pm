@@ -65,7 +65,6 @@ sub api_call {
     _init unless $ua;
     bmwqemu::mydie('Missing mandatory options') unless $method && $action && $ua;
 
-    #    bmwqemu::fctinfo("Trying mm action $action");
     my $ua_url = $url->clone;
     $ua_url->path($action);
     $ua_url->query($params) if $params;

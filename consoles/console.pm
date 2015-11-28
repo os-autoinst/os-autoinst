@@ -53,10 +53,8 @@ sub activate {
 sub _activate_window() {
     my ($self) = @_;
 
-    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($self->{current_console});
     my $display       = $self->display;
     my $new_window_id = $self->{window_id};
-    #CORE::say bmwqemu::pp($console_info);
     system("DISPLAY=$display xdotool windowactivate --sync $new_window_id");
     return;
 }
