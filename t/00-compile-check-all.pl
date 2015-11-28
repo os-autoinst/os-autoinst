@@ -32,7 +32,6 @@ use cv;
 cv::init;
 
 my $test = Test::Compile->new();
-#$test->verbose(0);
 
 my @files = $test->all_pm_files(".");
 

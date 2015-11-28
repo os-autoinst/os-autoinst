@@ -26,7 +26,6 @@ sub activate() {
         $s3270->send_3270("Snap");
         my $r  = $s3270->send_3270("Snap(Ascii)");
         my $co = $r->{command_output};
-        # CORE::say bmwqemu::pp($r);
         CORE::say bmwqemu::pp($co);
         last if grep { /[Pp]assword:/ } @$co;
         die "ssh password prompt timeout" unless $i;

@@ -220,7 +220,6 @@ sub _read_json {
         $hash = eval { JSON::decode_json($rsp); };
     }
 
-    #print STDERR "read json " . JSON::to_json($hash) . "\n";
     return $hash;
 }
 
