@@ -97,7 +97,7 @@ $img1   = tinycv::read("data/glibc_i686.test.png");
 $needle = needle->new("data/glibc_i686.ref.json");
 $res    = $img1->search($needle);
 ok(!defined $res, "no found a match for an small margin");
-# We emulate assert_screen "needle", 3;
+# We emulate 'assert_screen "needle", 3'
 my $timeout = 3;
 for (my $n = 0; $n < $timeout; $n++) {
     my $search_ratio = 1.0 - ($timeout - $n) / ($timeout);

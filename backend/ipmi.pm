@@ -161,7 +161,6 @@ sub start_serial_grab {
         my $ret;
         eval { $ret = system(@deactivate) };
         print "deactivate $ret\n";
-        #unshift(@cmd, ("setsid", "-w"));
         print join(" ", @cmd);
         # FIXME use 'socat' for this?
         open(my $serial, '>',  $bmwqemu::serialfile);

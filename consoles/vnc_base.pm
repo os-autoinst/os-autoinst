@@ -32,7 +32,7 @@ sub connect_vnc {
 
     CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
-    # try to log in; this may fail a few times
+    # try to log in, this may fail a few times
     for my $i (1 .. 10) {
         my @connection_error;
         eval {
