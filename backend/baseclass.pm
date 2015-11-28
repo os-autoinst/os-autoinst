@@ -322,13 +322,6 @@ sub enqueue_screenshot {
 
     return unless $image;
 
-    ## FIXME: is this still needed?
-    ## don't overdo it
-    #my $interval = $self->screenshot_interval();
-    #my $rest = $interval - $self->elapsed_time();
-    #return unless $rest < 0.05;
-    #$self->reset_timer();
-
     $image = $image->scale(1024, 768);
 
     $framecounter++;

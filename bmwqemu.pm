@@ -380,8 +380,6 @@ sub cont_vm() {
 
 sub mydie {
     log_call('mydie', cause_of_death => \@_);
-
-    #	$backend->stop_vm();
     croak "mydie";
 }
 

@@ -275,7 +275,6 @@ sub start_qemu {
     elsif ($vars->{OFW}) {
         $vars->{QEMUVGA} ||= "std";
         push(@vgaoptions, '-g', '1024x768');
-        #$use_usb_kbd = 1; # implicit on ppc
     }
     else {
         $vars->{QEMUVGA} ||= "cirrus";
