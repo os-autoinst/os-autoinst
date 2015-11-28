@@ -277,7 +277,7 @@ sub unlink_crash_file {
 }
 
 sub write_crash_file {
-    (open(my $fh, ">", $iscrashedfile));
+    open(my $fh, ">", $iscrashedfile);
     print $fh "crashed\n";
     close $fh;
 }
