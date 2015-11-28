@@ -121,7 +121,7 @@ use List::Util qw(min);
 
 IO::Select object that is polled when given
 
-=item timout
+=item timeout
 
 run the loop this long in seconds, indefinitely if undef, or until the
 $self->{cmdpipe} is closed, whichever occurs first.
@@ -207,7 +207,7 @@ sub run_capture_loop {
     };
 
     if ($@) {
-        bmwqemu::diag "capure loop failed $@";
+        bmwqemu::diag "capture loop failed $@";
         $self->close_pipes();
     }
 }
