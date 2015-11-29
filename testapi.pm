@@ -131,7 +131,7 @@ sub assert_and_dclick {
 
 =head2 wait_idle
 
-wait_idle([$timeout_sec])
+  wait_idle([$timeout_sec]);
 
 Wait until the system becomes idle (as configured by IDLETHESHOLD)
 
@@ -146,12 +146,12 @@ sub wait_idle {
 
 =head2 wait_serial
 
-wait_serial($regex [[, $timeout_sec], $expect_not_found])
+  wait_serial($regex [[, $timeout_sec], $expect_not_found]);
 
 Wait for $rexex to appear on serial output.
 You could have sent it there earlier with
 
-C<script_run("echo Hello World E<gt> /dev/$serialdev");>
+ script_run("echo Hello World E<gt> /dev/$serialdev");
 
 Returns the string matched or undef if $expect_not_found is false
 (default).
@@ -176,15 +176,19 @@ sub wait_serial {
 
 open a root shell. the implementation is distribution specific, openSUSE calls su -c bash and chdirs to /tmp
 
+ become_root;
+
 =cut
 
-sub become_root() {
+sub become_root {
     return $distri->become_root;
 }
 
 =head2 upload_logs
 
 upload log file to openqa host
+
+ upload_logs '/var/log/messages';
 
 =cut
 
@@ -199,6 +203,14 @@ sub upload_logs {
     return;
 }
 
+=head2 ensure_installed
+
+distribution specific helper to install a package to test
+
+  ensure_installed 'zsh';
+
+=cut
+
 sub ensure_installed {
     return $distri->ensure_installed(@_);
 }
@@ -206,6 +218,15 @@ sub ensure_installed {
 =head2 upload_asset
 
 upload log file to openqa host
+
+you can upload private assets only visible in the openQA
+web interface:
+
+  upload_asset '/tmp/suse.ps';
+
+Or you can upload public assets that will have a fixed filename
+replacing previous assets - useful for external users
+C<upload_asset '/tmp/suse.ps';>
 
 =cut
 
@@ -221,22 +242,9 @@ sub upload_asset {
     return;
 }
 
-
-=head2 upload_image
-
-mark hdd image for uploading
-
-=cut
-
-sub upload_image {
-    # TODO: obsolete, remove. now in isotovideo directly
-}
-
-
-
 =head2 wait_still_screen
 
-wait_still_screen([$stilltime_sec [, $timeout_sec [, $similarity_level]]])
+  wait_still_screen([$stilltime_sec [, $timeout_sec [, $similarity_level]]])
 
 Wait until the screen stops changing
 
@@ -251,7 +259,7 @@ sub wait_still_screen {
     return bmwqemu::wait_still_screen($stilltime, $timeout, $similarity_level);
 }
 
-sub clear_console {
+sub clear_console  {
     bmwqemu::log_call('clear_console');
     send_key "ctrl-c";
     sleep 1;
@@ -261,10 +269,28 @@ sub clear_console {
     return;
 }
 
+=head2 get_var
+
+  get_var($variable [, $default ])
+
+Return content of named openQA variable - or the default given
+as 2nd argument or undef
+
+=cut
+
+
 sub get_var {
     my ($var, $default) = @_;
     return $bmwqemu::vars{$var} // $default;
 }
+
+=head2 set_var
+
+  set_var($variable, $value);
+
+set openQA variable - to be consumed by followup tests
+
+=cut
 
 sub set_var {
     my ($var, $val) = @_;
@@ -272,11 +298,29 @@ sub set_var {
     return;
 }
 
+
+=head2 check_var
+
+  check_var($variable, $value);
+
+boolean function to check if the content of the named variable is the given
+value
+
+=cut
+
 sub check_var {
     my ($var, $val) = @_;
     return 1 if (defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val);
     return 0;
 }
+
+=head2 get_var_array
+
+get_var_array($variable [, $default ]);
+
+Return the given variable as array reference (split by , | or ; )
+
+=cut
 
 sub get_var_array {
     my ($var, $default) = @_;
@@ -285,6 +329,15 @@ sub get_var_array {
     return \@vars;
 }
 
+=head2 check_var_array
+
+  check_var_array($variable, $value);
+
+Boolean function to check if a value list contains a value
+
+ check_var_array('GREETINGS', 'hallo');
+
+=cut
 sub check_var_array {
     my ($var, $val) = @_;
     my $vars_r = get_var_array($var);
@@ -301,7 +354,7 @@ sub x11_start_program {
 
 =head2 script_run
 
-script_run($program, [$wait_seconds])
+  script_run($program, [$wait_seconds]);
 
 Run $program (by assuming the console prompt and typing it).
 Wait for idle before  and after.
@@ -318,7 +371,7 @@ sub script_run {
 
 =head2 assert_script_run
 
-assert_script_run($command)
+  assert_script_run($command);
 
 run $command via script_run and die if it's exit status is not zero.
 The exit status is checked by via magic string on the serial port.
@@ -335,15 +388,15 @@ sub assert_script_run {
 
 =head2 script_sudo
 
-script_sudo($program, [$wait_seconds])
+  script_sudo($program, [$wait_seconds]);
 
 Run $program. Handle the sudo timeout and send password when appropriate.
 
-$wait_seconds
+$wait_seconds defaults to 2 seconds
 
 =cut
 
-sub script_sudo($;$) {
+sub script_sudo {
     my $name = shift;
     my $wait = shift || 2;
 
@@ -353,7 +406,7 @@ sub script_sudo($;$) {
 
 =head2 assert_script_sudo
 
-assert_script_sudo($command)
+  assert_script_sudo($command);
 
 run $command via script_sudo and die if it's exit status is not zero.
 The exit status is checked by via magic string on the serial port.
@@ -368,31 +421,42 @@ sub assert_script_sudo {
     die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
 }
 
-sub power($) {
+=head2 power
+
+  power($action);
+
+Trigger backend specific power action, can be on, off, acpi or reset
+
+  power('off');
+
+=cut
+
+sub power {
 
     # params: (on), off, acpi, reset
-    my $action = shift;
+    my ($action) = @_;
     bmwqemu::log_call('power', action => $action);
     $bmwqemu::backend->power({action => $action});
 }
 
-# eject the cd
-sub eject_cd() {
+=head2 eject_cd
+
+  eject_cd;
+
+if backend supports it, eject the CD
+
+=cut
+
+sub eject_cd {
     bmwqemu::log_call('eject_cd');
     $bmwqemu::backend->eject_cd;
 }
-
-# runtime keyboard/mouse io functions end
-
-# runtime information gathering functions
-
-# runtime keyboard/mouse io functions
 
 ## keyboard
 
 =head2 send_key
 
-send_key($qemu_key_name[, $wait_idle])
+  send_key($qemu_key_name[, $wait_idle]);
 
 =cut
 
@@ -407,7 +471,7 @@ sub send_key {
 
 =head2 send_key_until_needlematch
 
-send_key_until_needlematch($tag, $key, [$counter, $timeout])
+  send_key_until_needlematch($tag, $key, [$counter, $timeout]);
 
 Send specific key if can not find the matched needle.
 
@@ -428,7 +492,7 @@ sub send_key_until_needlematch {
 
 =head2 type_string
 
-type_string($string [ , max_interval => <num> ] [, secret => 1 ] )
+  type_string($string [ , max_interval => <num> ] [, secret => 1 ] );
 
 send a string of characters, mapping them to appropriate key names as necessary
 
@@ -459,7 +523,7 @@ sub type_string {
 
 =head2 type_password
 
-type_password([$password])
+  type_password([$password]);
 
 A convience wrappar around type_string, which doesn't log the string and uses $testapi::password
 if no string is given
@@ -559,7 +623,7 @@ sub autoinst_url {
 
 =head2 data_url
 
-data_url($name)
+  data_url($name);
 
 returns the URL to download data or asset file
 Special values REPO_\d and ASSET_\d points to the asset configured
@@ -648,15 +712,15 @@ sub validate_script_output($&;$) {
 
 =head2 wait_screen_change
 
-wait_screen_change($code)
+  wait_screen_change($code);
 
 wrapper around code that is supposed to change the screen. This is basically the
 opposite to wait_still_screen. Make sure to put the commands to change the screen
 within the block to avoid races between the action and the screen change
 
-wait_screen_change {
-   send_key 'esc';
-}
+  wait_screen_change {
+     send_key 'esc';
+  }
 
 =cut
 
@@ -700,50 +764,37 @@ and clicks on a console.
 Most backends support several consoles in some way.  These consoles
 then have names as defined by the backend.
 
-The qemu backend has a "ctrl-alt-2" console and a "ctrl-alt-1" console by
-default.  They are 'just there' as soon as Linux is started.
+Consoles can be selected for interaction with the system under test.  
+One of them is 'selected' by default, as defined by the backend.
 
-The s390x backend has a s3270 console which is 'just there' when
-turning on the zVM guest, or TODO a snipl console when connecting to
-an LPAR.  Additional consoles need to be activated explicitly, like an
-ssh console, an ssh-X console a VNC console.
+There are no consoles predefined by default, the distribution has
+to add them during initial setup and define actions on what should
+happen when they are selected first by the tests.
 
+E.g. your distribution can give e.g. tty2 and tty4 a name for the
+tests to select
 
-Consoles can be selected for interaction with the system
-under test.  One of them is 'selected' by default, as defined by the
-backend.
-
-The backends predefine the following consoles:
-
-  testapi_console | qemu                    | s390x
-  ================|=========================|===================
-  bootloader      | ctrl-alt-1 or           | s3270 [,snipl]
-  installation    | ctrl-alt-1 [ctrl-alt-7] | [ssh, ssh+X, remote-x11, VNC]
-  console         | ctrl-alt-2              | [ssh, s3270, snipl]
-  errorlog        | ctrl-alt-9              | s3270 [snipl]
-
-Consoles in brackets need to be activated explicitly
-(activate_console).  Some backend consoles allow for multiple distinct
-instances, like several distinct ssh connections ot the same system
-under test.  On the other hand, the same backend console instance
-(like s3270 to some zVM guest) may provide several testapi consoles.
-
-Note: The consoles just provide bare access.  Architecture specific
-additional steps to access the console (login, etc), have to be done
-from the tests!
-
-# FIXME terminology console vs terminal
+  $self->add_console('root-console',  'tty-console', {tty => 2});
+  $self->add_console('user-console',  'tty-console', {tty => 4});
 
 =out
 
-=item C<select_console("testapi_console")>
+=item C<select_console("root-console")>
 
 Select the named console for further testapi interaction (send_text,
 send_key, wait_screen_change, ...)
 
-=item C<activate_console("testapi_console" [, optional console parameters...])>
+If this the first time, a test selects this console, the distribution
+will get a call into activate_console('root-console', $console_obj) to
+make sure to actually log in root. For the backend it's just a tty
+object (in this example) - so it will sure the console is active,
+but to setup the root shell on this console, the distribution needs
+to run test code.
 
-Activate and select a console that is not automatically activated.
+=item C<add_console("console", "console type" [, optional console parameters...])>
+
+You need to do this in your distribution and not in tests. It will not trigger
+any action on the system under test, but only store the parameters.
 
 The console parameters are backend specific.
 
@@ -834,7 +885,7 @@ sub assert_shutdown {
 
 =head2 parse_junit_log
 
-parse_junit_log("report.xml")
+  parse_junit_log("report.xml");
 
 Upload log file from SUT (calls upload_logs internally). The uploaded
 file is then parsed as jUnit format and extra test results are created from it.
