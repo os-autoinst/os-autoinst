@@ -17,7 +17,7 @@ sub sshCommand() {
     my ($self, $host) = @_;
     my $sshcommand = "ssh";
 
-    return $sshcommand . " -o UserKnownHostsFile=./known_hosts -o StrictHostKeyChecking=no root\@$host";
+    return $sshcommand . " -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root\@$host";
 }
 
 sub disable() {

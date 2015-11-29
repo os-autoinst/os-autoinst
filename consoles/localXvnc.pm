@@ -27,7 +27,7 @@ sub activate() {
     # XAUTHORITY=./XAuthority file
 
     # On older Xvnc there is no '-listen tcp' option
-    # because that's the default there; need to test Xvnc version
+    # because that's the default there. need to test Xvnc version
     # and act accordingly.
     my $Xvnc_listen_option = (scalar grep { /-listen/ } qx"Xvnc -help 2>&1") ? "-listen tcp" : "";
     $self->{local_X_handle} = IPC::Run::start("Xvnc -depth 16 $Xvnc_listen_option -SecurityTypes None -ac $display");

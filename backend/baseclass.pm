@@ -43,7 +43,6 @@ sub handle_command {
 
 sub die_handler {
     my $msg = shift;
-    #print STDERR "DIE $msg\n";
     cluck "DIE $msg\n";
     $backend->stop_vm();
     $backend->close_pipes();
@@ -121,7 +120,7 @@ use List::Util qw(min);
 
 IO::Select object that is polled when given
 
-=item timout
+=item timeout
 
 run the loop this long in seconds, indefinitely if undef, or until the
 $self->{cmdpipe} is closed, whichever occurs first.
@@ -151,7 +150,6 @@ running, e.g. to do some fast or slow motion.
 sub run_capture_loop {
     my ($self, $select, $timeout, $update_request_interval, $screenshot_interval) = @_;
     my $starttime = gettimeofday;
-    # say Dumper $self;
     eval {
         while (1) {
 
@@ -162,14 +160,11 @@ sub run_capture_loop {
             my $time_to_timeout = "Inf" + 0;
             if (defined $timeout) {
                 $time_to_timeout = $timeout - ($now - $starttime);
-                #say "time_to_timeout=$time_to_timeout";
 
                 last if $time_to_timeout <= 0;
             }
 
             my $time_to_update_request = ($update_request_interval // $self->update_request_interval) - ($now - $self->last_update_request);
-            #say "time_to_update_request=$time_to_update_request";
-
             if ($time_to_update_request <= 0) {
                 $self->request_screen_update();
                 $self->last_update_request($now);
@@ -177,8 +172,6 @@ sub run_capture_loop {
             }
 
             my $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval) - ($now - $self->last_screenshot);
-            #say "time_to_screenshot=$time_to_screenshot";
-
             if ($time_to_screenshot <= 0) {
                 $self->capture_screenshot();
                 $self->last_screenshot($now);
@@ -186,8 +179,6 @@ sub run_capture_loop {
             }
 
             my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
-            #say "time_to_next=$time_to_next";
-
             if (defined $select) {
                 my @ready = $select->can_read($time_to_next);
 
@@ -201,13 +192,12 @@ sub run_capture_loop {
                 # "select" used to emulate "sleep"
                 # (coolo) no idea why susanne did this
                 select(undef, undef, undef, $time_to_next);    ## no critic
-                                                               #usleep($time_to_next * 1_000_000);
             }
         }
     };
 
     if ($@) {
-        bmwqemu::diag "capure loop failed $@";
+        bmwqemu::diag "capture loop failed $@";
         $self->close_pipes();
     }
 }
@@ -313,14 +303,12 @@ sub status            { notimplemented }
 ## MAY be overwritten:
 
 sub get_backend_info {
-
     # returns hashref
     my ($self) = @_;
     return {};
 }
 
 sub cpu_stat {
-
     # vm's would return
     # (userstat, systemstat)
     return [];
@@ -334,13 +322,6 @@ sub enqueue_screenshot {
 
     return unless $image;
 
-    ## FIXME: is this still needed?
-    ## don't overdo it
-    #my $interval = $self->screenshot_interval();
-    #my $rest = $interval - $self->elapsed_time();
-    #return unless $rest < 0.05;
-    #$self->reset_timer();
-
     $image = $image->scale(1024, 768);
 
     $framecounter++;
@@ -348,13 +329,10 @@ sub enqueue_screenshot {
     my $filename = $bmwqemu::screenshotpath . sprintf("/shot-%010d.png", $framecounter);
     my $lastlink = $bmwqemu::screenshotpath . "/last.png";
 
-    #print STDERR $filename,"\n";
-
     # link identical files to save space
     my $sim = 0;
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
 
-    #bmwqemu::diag "similarity is $sim";
     # 54 is based on t/data/user-settings-*
     if ($sim > 54) {
         symlink(basename($lastscreenshotName), $filename) || warn "failed to create $filename symlink: $!\n";
@@ -368,8 +346,6 @@ sub enqueue_screenshot {
         no autodie qw(unlink);
         unlink($lastlink);
         symlink(basename($lastscreenshotName), $lastlink);
-        #my $ocr=get_ocr($image);
-        #if($ocr) { diag "ocr: $ocr" }
     }
     if ($self->{encoder_pipe}) {
         if ($sim > 50) {    # we ignore smaller differences
@@ -408,7 +384,6 @@ sub check_socket {
 
         if ($cmd->{cmd}) {
             my $rsp = $self->handle_command($cmd);
-            #CORE::say __FILE__.":".__LINE__.":" . bmwqemu::pp($cmd) . " : ".bmwqemu::pp($rsp);
             if ($self->{rsppipe}) {    # the command might have closed it
                 $self->{rsppipe}->print(JSON::to_json({rsp => $rsp}));
                 $self->{rsppipe}->print("\n");
@@ -440,8 +415,6 @@ sub activate_console {
     my $new_console = $self->{console_classes}->{$backend_console};
     $new_console->activate($testapi_console, $console_args);
 
-    #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($new_console);
-
     $self->{consoles}->{$testapi_console} = $new_console;
     $self->select_console($args);
 
@@ -468,14 +441,12 @@ sub activate_console {
 
 sub select_console {
     my ($self, $args) = @_;
-    #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     my $testapi_console = $args->{testapi_console};
 
     unless (exists $self->{consoles}->{$testapi_console}) {
         die "select_console: console $testapi_console not activated";
     }
     my $selected_console = $self->{consoles}->{$testapi_console};
-    #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($selected_console);
     $selected_console->select;
 
     $self->{current_console} = $selected_console;
@@ -509,7 +480,6 @@ sub bouncer() {
     my ($self, $call, $args) = @_;
     # forward to the current VNC console
     return unless $self->{current_screen};
-    #CORE::say __FILE__.":".__LINE__.": $call, ".bmwqemu::pp($args);
     return $self->{current_screen}->$call($args);
 }
 
@@ -567,7 +537,6 @@ sub proxy_console_call {
 
     if ($@) {
         $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $@);
-        # cluck "proxy_console_call: exception caught in the backend thread\n$@\n";
     }
 
     return $wrapped_result;

@@ -309,8 +309,6 @@ sub runtest {
         die $msg . "\n";
     }
     $self->done();
-
-    #sleep 1;
     bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), time - $starttime));
     return $ret;
 }

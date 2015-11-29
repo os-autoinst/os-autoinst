@@ -101,7 +101,6 @@ sub save {
 
 sub unregister {
     my ($self) = @_;
-    #bmwqemu::diag("unregister $self->{name}");
     for my $g (@{$self->{tags}}) {
         @{$tags{$g}} = grep { $_ != $self } @{$tags{$g}};
         delete $tags{$g} unless (@{$tags{$g}});
@@ -176,12 +175,6 @@ sub init {
     find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needledir);
     bmwqemu::diag(sprintf("loaded %d needles", scalar keys %needles));
 
-    #for my $k (keys %tags) {
-    #	print "$k\n";
-    #	for my $p (@{$tags{$k}}) {
-    #		print "  ", $p->{name}, "\n";
-    #	}
-    #}
     if ($cleanuphandler) {
         &$cleanuphandler();
     }
