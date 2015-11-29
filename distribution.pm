@@ -16,7 +16,7 @@ sub init {
     # no cmds on default distri
 }
 
-sub init_console {
+sub add_console {
     my ($self, $testapi_console, $backend_console, $backend_args) = @_;
 
     my %class_names = (

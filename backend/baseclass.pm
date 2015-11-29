@@ -409,7 +409,7 @@ sub select_console {
     my $testapi_console = $args->{testapi_console};
 
     my $selected_console = $self->console($testapi_console);
-    my $activated = $selected_console->select;
+    my $activated        = $selected_console->select;
 
     $self->{current_console} = $selected_console;
     $self->{current_screen}  = $selected_console->screen;

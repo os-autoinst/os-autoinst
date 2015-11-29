@@ -584,13 +584,12 @@ sub start_qemu {
     print $pidf $self->{pid}, "\n";
     close $pidf;
 
-    my $vnc = $testapi::distri->init_console(
+    my $vnc = $testapi::distri->add_console(
         'worker',
         'vnc-base',
         {
             hostname => 'localhost',
-            port     => 5900 + $bmwqemu::vars{VNC}
-    });
+            port     => 5900 + $bmwqemu::vars{VNC}});
     $vnc->backend($self);
     $self->select_console({testapi_console => 'worker'});
 

@@ -107,8 +107,9 @@ sub do_start_vm() {
 
     # remove backend.crashed
     $self->unlink_crash_file;
-    my $console = $testapi::distri->init_console('worker', 'local-Xvnc');
-    $console->activate;
+    my $console = $testapi::distri->add_console('worker', 'local-Xvnc');
+    $console->backend($self);
+    $self->select_console({testapi_console => 'worker'});
     my $display     = $console->{DISPLAY};
     my $window_name = 'IPMI';
     system("DISPLAY=$display xterm -title '$window_name' -e bash & echo \$!");
