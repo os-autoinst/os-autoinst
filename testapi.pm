@@ -259,7 +259,7 @@ sub wait_still_screen {
     return bmwqemu::wait_still_screen($stilltime, $timeout, $similarity_level);
 }
 
-sub clear_console  {
+sub clear_console {
     bmwqemu::log_call('clear_console');
     send_key "ctrl-c";
     sleep 1;

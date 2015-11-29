@@ -56,9 +56,6 @@ sub disable() {
     return;
 }
 
-# override
-sub select() { return; }
-
 sub DESTROY {
     my $self = shift;
     $self->disable();

@@ -88,17 +88,19 @@ sub relogin_vnc {
         sleep(1);
     }
 
-    $self->activate_console(
+    my $vnc = $testapi::distri->add_console(
+        'sut',
+        'vnc-base',
         {
-            testapi_console => 'bootloader',
-            backend_console => 'vnc-base',
-            backend_args    => {
-                hostname => $bmwqemu::vars{IPMI_HOSTNAME},
-                port     => 5900,
-                username => $bmwqemu::vars{IPMI_USER},
-                password => $bmwqemu::vars{IPMI_PASSWORD},
-                ikvm     => 1
-            }});
+            hostname => $bmwqemu::vars{IPMI_HOSTNAME},
+            port     => 5900,
+            username => $bmwqemu::vars{IPMI_USER},
+            password => $bmwqemu::vars{IPMI_PASSWORD},
+            ikvm     => 1
+        });
+    $vnc->backend($self);
+    $self->select_console({testapi_console => 'sut'});
+
     return 1;
 }
 
