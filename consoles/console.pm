@@ -21,6 +21,13 @@ sub init {
     # nothing fancy
 }
 
+# SUT was e.g. rebooted
+sub reset {
+    my ($self) = @_;
+    $self->{activated} = 0;
+    return;
+}
+
 sub screen {
     my ($self) = @_;
     die "screen needs to be implemented in subclasses - $self->{class} does not\n";

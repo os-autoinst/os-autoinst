@@ -417,6 +417,12 @@ sub select_console {
     return {activated => $activated};
 }
 
+sub reset_console {
+    my ($self, $args) = @_;
+    $self->console($args->{testapi_console})->reset;
+    return;
+}
+
 sub deactivate_console {
     my ($self, $args) = @_;
     my $testapi_console = $args->{testapi_console};
@@ -426,7 +432,7 @@ sub deactivate_console {
         $self->{current_console} = undef;
     }
     $console_info->disable();
-    return {};
+    return;
 }
 
 sub request_screen_update {
