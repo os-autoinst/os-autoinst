@@ -12,14 +12,27 @@ use autodie qw(:all);
 
 require bmwqemu;
 
-our @EXPORT = qw($realname $username $password $serialdev %cmd %vars send_key send_key_until_needlematch type_string
-  assert_screen upload_logs check_screen wait_idle wait_still_screen assert_and_dclick script_run
-  script_sudo wait_serial save_screenshot wait_screen_change record_soft_failure
-  assert_and_click mouse_hide mouse_set mouse_click mouse_dclick mouse_tclick
-  type_password get_var check_var set_var become_root x11_start_program ensure_installed
-  autoinst_url script_output validate_script_output eject_cd power upload_asset upload_image
-  select_console console deactivate_console data_url assert_shutdown parse_junit_log
-  assert_script_run assert_script_sudo match_has_tag get_var_array check_var_array
+our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
+
+  get_var check_var set_var get_var_array check_var_array autoinst_url
+
+  send_key send_key_until_needlematch type_string type_password
+
+  assert_screen check_screen assert_and_dclick save_screenshot
+  wait_screen_change assert_and_click mouse_hide mouse_set mouse_click
+  mouse_dclick mouse_tclick match_has_tag
+
+  script_run script_sudo script_output validate_script_output
+  assert_script_run assert_script_sudo
+
+  select_console console deactivate_console reset_consoles
+
+  upload_asset upload_image data_url assert_shutdown parse_junit_log
+  upload_logs
+
+  wait_idle wait_still_screen wait_serial record_soft_failure
+  become_root x11_start_program ensure_installed eject_cd power
+
 );
 
 our %cmd;
@@ -81,6 +94,7 @@ sub match_has_tag {
     if ($last_matched_needle) {
         return $last_matched_needle->{needle}->has_tag($tag);
     }
+    return;
 }
 
 =head2 assert_and_click, assert_and_dclick
@@ -866,6 +880,23 @@ sub console {
         return $testapi_console_proxies{$testapi_console};
     }
     die "console $testapi_console is not activated.";
+}
+
+=head2 reset_consoles
+ 
+  reset_consoles;
+
+will make sure the next select_console will activate the console. This is important
+if you did something to the system that affects the console (e.g. trigger reboot).
+
+=cut
+
+sub reset_consoles {
+    # we iterate through all consoles selected through the API
+    for my $console (keys %testapi_console_proxies) {
+        $bmwqemu::backend->reset_console({testapi_console => $console});
+    }
+    return;
 }
 
 sub assert_shutdown {
