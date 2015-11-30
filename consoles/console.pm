@@ -7,7 +7,6 @@ use autodie qw(:all);
 use Class::Accessor "antlers";
 has backend => (is => "rw");
 
-use Data::Dumper;
 sub new {
     my ($class, $testapi_console, $args) = @_;
     my $self = bless({class => $class}, $class);

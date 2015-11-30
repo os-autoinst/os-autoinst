@@ -84,7 +84,6 @@ sub do_start_vm {
     # remove backend.crashed
     $self->unlink_crash_file();
     $self->start_qemu();
-    print "done do-start_vm\n";
     return {};
 }
 
@@ -585,13 +584,13 @@ sub start_qemu {
     close $pidf;
 
     my $vnc = $testapi::distri->add_console(
-        'worker',
+        'sut',
         'vnc-base',
         {
             hostname => 'localhost',
             port     => 5900 + $bmwqemu::vars{VNC}});
     $vnc->backend($self);
-    $self->select_console({testapi_console => 'worker'});
+    $self->select_console({testapi_console => 'sut'});
 
     $self->{hmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,

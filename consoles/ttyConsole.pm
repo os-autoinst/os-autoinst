@@ -15,7 +15,7 @@ sub trigger_select {
 
 sub screen {
     my ($self) = @_;
-    return $self->backend->console('worker');
+    return $self->backend->console('sut');
 }
 
 1;
