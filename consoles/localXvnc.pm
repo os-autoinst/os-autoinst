@@ -8,18 +8,11 @@ use testapi qw/get_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
 
-sub init() {
-    my ($self) = @_;
-    $self->SUPER::init();
-    # overwrite name
-    $self->{name} = 'local-Xvnc';
-}
-
 sub activate() {
-    my ($self, $testapi_console, $console_args) = @_;
+    my ($self) = @_;
 
     # REFACTOR to have a $self->{localXvnc}
-    die "local-Xvnc must be named 'worker'" unless $testapi_console eq 'worker';
+    die "local-Xvnc must be named 'worker'" unless $self->{testapi_console} eq 'worker';
     ## start Xvnc Server, the local console to do all the work from
     my $display_id = get_var("VNC") || die "VNC unset in vars.json.";
     my $display = ":" . $display_id;
@@ -27,7 +20,7 @@ sub activate() {
     # XAUTHORITY=./XAuthority file
 
     # On older Xvnc there is no '-listen tcp' option
-    # because that's the default there; need to test Xvnc version
+    # because that's the default there. need to test Xvnc version
     # and act accordingly.
     my $Xvnc_listen_option = (scalar grep { /-listen/ } qx"Xvnc -help 2>&1") ? "-listen tcp" : "";
     $self->{local_X_handle} = IPC::Run::start("Xvnc -depth 16 $Xvnc_listen_option -SecurityTypes None -ac $display");
@@ -62,9 +55,6 @@ sub disable() {
     $self->{local_X_handle} = undef;
     return;
 }
-
-# override
-sub select() { return; }
 
 sub DESTROY {
     my $self = shift;

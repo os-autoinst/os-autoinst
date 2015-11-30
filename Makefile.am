@@ -6,7 +6,7 @@ doc_DATA = \
 	INSTALL.asciidoc \
 	COPYING \
 	doc/basetest.html \
-	doc/bmwqemu.html 
+	doc/testapi.html 
 
 packagestatedir = $(localstatedir)/lib/os-autoinst
 
@@ -83,7 +83,7 @@ CLEANFILES = \
 	$(ppmcexec_SCRIPTS) \
 	ppmclibs/tinycv_wrap.cxx \
 	doc/basetest.html \
-	doc/bmwqemu.html
+	doc/testapi.html 
 
 PERL_MODULE = ppmclibs/blib/arch/auto/tinycv/tinycv.so
 

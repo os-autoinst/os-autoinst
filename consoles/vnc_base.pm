@@ -10,23 +10,15 @@ use feature qw/say/;
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 
-sub init() {
-    my ($self) = @_;
-    $self->{name} = 'vnc-base';
-}
-
-sub screen() {
+sub screen {
     my ($self) = @_;
     return $self;
 }
 
-sub select() {
-}
-
-sub activate() {
-    my ($self, $testapi_console, $args) = @_;
-    $self->connect_vnc($args);
-    return $self->SUPER::activate($testapi_console, $args);
+sub activate {
+    my ($self) = @_;
+    $self->connect_vnc($self->{args});
+    return $self->SUPER::activate;
 }
 
 sub disable() {
@@ -40,7 +32,7 @@ sub connect_vnc {
 
     CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
-    # try to log in; this may fail a few times
+    # try to log in, this may fail a few times
     for my $i (1 .. 10) {
         my @connection_error;
         eval {
@@ -145,7 +137,7 @@ sub send_key {
     # FIXME the max_interval logic from type_string should go here, no?
     # and really, the screen should be checked for settling after key press...
     $self->{vnc}->map_and_send_key($args->{key});
-    $self->{backend}->run_capture_loop(undef, .2, .19);
+    $self->backend->run_capture_loop(undef, .2, .19);
     return {};
 }
 

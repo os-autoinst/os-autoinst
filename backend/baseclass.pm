@@ -43,7 +43,6 @@ sub handle_command {
 
 sub die_handler {
     my $msg = shift;
-    #print STDERR "DIE $msg\n";
     cluck "DIE $msg\n";
     $backend->stop_vm();
     $backend->close_pipes();
@@ -62,25 +61,6 @@ sub run {
 
     die "there can be only one!" if $backend;
     $backend = $self;
-
-    # register consoles
-    require consoles::localXvnc;
-    consoles::localXvnc->new($backend);
-
-    require consoles::vnc_base;
-    consoles::vnc_base->new($backend);
-
-    require consoles::s3270;
-    consoles::s3270->new($backend);
-
-    require consoles::sshXtermVt;
-    consoles::sshXtermVt->new($backend);
-
-    require consoles::sshX3270;
-    consoles::sshX3270->new($backend);
-
-    require consoles::remoteVnc;
-    consoles::remoteVnc->new($backend);
 
     $SIG{__DIE__} = \&die_handler;
 
@@ -106,6 +86,11 @@ sub run {
     $self->screenshot_interval($bmwqemu::vars{SCREENSHOTINTERVAL} || .5);
     $self->update_request_interval($self->screenshot_interval());
 
+    for my $console (values %{$testapi::distri->{consoles}}) {
+        # tell the consoles who they need to talk to (in this thread)
+        $console->backend($self);
+    }
+
     $self->run_capture_loop($self->{select});
 
     bmwqemu::diag("management thread exit at " . POSIX::strftime("%F %T", gmtime));
@@ -121,7 +106,7 @@ use List::Util qw(min);
 
 IO::Select object that is polled when given
 
-=item timout
+=item timeout
 
 run the loop this long in seconds, indefinitely if undef, or until the
 $self->{cmdpipe} is closed, whichever occurs first.
@@ -151,7 +136,6 @@ running, e.g. to do some fast or slow motion.
 sub run_capture_loop {
     my ($self, $select, $timeout, $update_request_interval, $screenshot_interval) = @_;
     my $starttime = gettimeofday;
-    # say Dumper $self;
     eval {
         while (1) {
 
@@ -162,14 +146,11 @@ sub run_capture_loop {
             my $time_to_timeout = "Inf" + 0;
             if (defined $timeout) {
                 $time_to_timeout = $timeout - ($now - $starttime);
-                #say "time_to_timeout=$time_to_timeout";
 
                 last if $time_to_timeout <= 0;
             }
 
             my $time_to_update_request = ($update_request_interval // $self->update_request_interval) - ($now - $self->last_update_request);
-            #say "time_to_update_request=$time_to_update_request";
-
             if ($time_to_update_request <= 0) {
                 $self->request_screen_update();
                 $self->last_update_request($now);
@@ -177,8 +158,6 @@ sub run_capture_loop {
             }
 
             my $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval) - ($now - $self->last_screenshot);
-            #say "time_to_screenshot=$time_to_screenshot";
-
             if ($time_to_screenshot <= 0) {
                 $self->capture_screenshot();
                 $self->last_screenshot($now);
@@ -186,8 +165,6 @@ sub run_capture_loop {
             }
 
             my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
-            #say "time_to_next=$time_to_next";
-
             if (defined $select) {
                 my @ready = $select->can_read($time_to_next);
 
@@ -201,13 +178,12 @@ sub run_capture_loop {
                 # "select" used to emulate "sleep"
                 # (coolo) no idea why susanne did this
                 select(undef, undef, undef, $time_to_next);    ## no critic
-                                                               #usleep($time_to_next * 1_000_000);
             }
         }
     };
 
     if ($@) {
-        bmwqemu::diag "capure loop failed $@";
+        bmwqemu::diag "capture loop failed $@";
         $self->close_pipes();
     }
 }
@@ -313,14 +289,12 @@ sub status            { notimplemented }
 ## MAY be overwritten:
 
 sub get_backend_info {
-
     # returns hashref
     my ($self) = @_;
     return {};
 }
 
 sub cpu_stat {
-
     # vm's would return
     # (userstat, systemstat)
     return [];
@@ -334,13 +308,6 @@ sub enqueue_screenshot {
 
     return unless $image;
 
-    ## FIXME: is this still needed?
-    ## don't overdo it
-    #my $interval = $self->screenshot_interval();
-    #my $rest = $interval - $self->elapsed_time();
-    #return unless $rest < 0.05;
-    #$self->reset_timer();
-
     $image = $image->scale(1024, 768);
 
     $framecounter++;
@@ -348,13 +315,10 @@ sub enqueue_screenshot {
     my $filename = $bmwqemu::screenshotpath . sprintf("/shot-%010d.png", $framecounter);
     my $lastlink = $bmwqemu::screenshotpath . "/last.png";
 
-    #print STDERR $filename,"\n";
-
     # link identical files to save space
     my $sim = 0;
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
 
-    #bmwqemu::diag "similarity is $sim";
     # 54 is based on t/data/user-settings-*
     if ($sim > 54) {
         symlink(basename($lastscreenshotName), $filename) || warn "failed to create $filename symlink: $!\n";
@@ -368,8 +332,6 @@ sub enqueue_screenshot {
         no autodie qw(unlink);
         unlink($lastlink);
         symlink(basename($lastscreenshotName), $lastlink);
-        #my $ocr=get_ocr($image);
-        #if($ocr) { diag "ocr: $ocr" }
     }
     if ($self->{encoder_pipe}) {
         if ($sim > 50) {    # we ignore smaller differences
@@ -408,7 +370,6 @@ sub check_socket {
 
         if ($cmd->{cmd}) {
             my $rsp = $self->handle_command($cmd);
-            #CORE::say __FILE__.":".__LINE__.":" . bmwqemu::pp($cmd) . " : ".bmwqemu::pp($rsp);
             if ($self->{rsppipe}) {    # the command might have closed it
                 $self->{rsppipe}->print(JSON::to_json({rsp => $rsp}));
                 $self->{rsppipe}->print("\n");
@@ -425,29 +386,6 @@ sub check_socket {
 
 ###################################################################
 ## access other consoles from the test case thread
-
-sub activate_console {
-    my ($self, $args) = @_;
-    my ($testapi_console, $backend_console, $console_args) = @$args{qw(testapi_console backend_console backend_args)};
-
-    if (exists $self->{consoles}->{$testapi_console}) {
-        die "activate_console: console $testapi_console already activated";
-    }
-
-    if (!$self->{console_classes}->{$backend_console}) {
-        die "new_console: console class $backend_console unknown";
-    }
-    my $new_console = $self->{console_classes}->{$backend_console};
-    $new_console->activate($testapi_console, $console_args);
-
-    #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($new_console);
-
-    $self->{consoles}->{$testapi_console} = $new_console;
-    $self->select_console($args);
-
-    # don't return any complex object - this needs to be transferred through JSON to the test thread
-    return $testapi_console;
-}
 
 # There can be two vnc backends (local Xvnc or remote vnc) and
 # there can be several terminals on the local Xvnc.
@@ -468,48 +406,49 @@ sub activate_console {
 
 sub select_console {
     my ($self, $args) = @_;
-    #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     my $testapi_console = $args->{testapi_console};
 
-    unless (exists $self->{consoles}->{$testapi_console}) {
-        die "select_console: console $testapi_console not activated";
-    }
-    my $selected_console = $self->{consoles}->{$testapi_console};
-    #CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($selected_console);
-    $selected_console->select;
+    my $selected_console = $self->console($testapi_console);
+    my $activated        = $selected_console->select;
 
     $self->{current_console} = $selected_console;
     $self->{current_screen}  = $selected_console->screen;
     $self->capture_screenshot();
-    return $testapi_console;
+    return {activated => $activated};
 }
 
 sub deactivate_console {
     my ($self, $args) = @_;
     my $testapi_console = $args->{testapi_console};
-    unless (exists $self->{consoles}->{$testapi_console}) {
-        die "deactivate_console: console $testapi_console not activated";
-    }
-    my $console_info = $self->{consoles}->{$testapi_console};
+
+    my $console_info = $self->console($testapi_console);
     if (defined $self->{current_console} && $self->{current_console} == $console_info) {
         $self->{current_console} = undef;
     }
-    $self->{consoles}->{$testapi_console}->disable();
-    delete $self->{consoles}->{$testapi_console};
+    $console_info->disable();
     return {};
 }
 
-sub request_screen_update() {
+sub request_screen_update {
     my ($self) = @_;
 
     return $self->bouncer('request_screen_update', undef);
 }
 
-sub bouncer() {
+sub console {
+    my ($self, $testapi_console) = @_;
+
+    my $ret = $testapi::distri->{consoles}->{$testapi_console};
+    unless ($ret) {
+        carp "console $testapi_console does not exist";
+    }
+    return $ret;
+}
+
+sub bouncer {
     my ($self, $call, $args) = @_;
     # forward to the current VNC console
     return unless $self->{current_screen};
-    #CORE::say __FILE__.":".__LINE__.": $call, ".bmwqemu::pp($args);
     return $self->{current_screen}->$call($args);
 }
 
@@ -562,12 +501,11 @@ sub proxy_console_call {
         # Move the decision to actually die to the server side instead.
         # For this ignore backend::baseclass::die_handler.
         local $SIG{__DIE__} = 'DEFAULT';
-        $wrapped_result->{result} = $self->{consoles}->{$console}->$function(@$args);
+        $wrapped_result->{result} = $console->$function(@$args);
     };
 
     if ($@) {
         $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $@);
-        # cluck "proxy_console_call: exception caught in the backend thread\n$@\n";
     }
 
     return $wrapped_result;

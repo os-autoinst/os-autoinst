@@ -1,5 +1,6 @@
 package distribution;
 use strict;
+use warnings;
 
 use testapi ();
 
@@ -7,14 +8,36 @@ sub new() {
     my ($class) = @_;
 
     my $self = bless {}, $class;
+    $self->{consoles} = {};
     return $self, $class;
 }
 
-sub init() {
+sub init {
     # no cmds on default distri
 }
 
-sub x11_start_program($$$) {
+sub add_console {
+    my ($self, $testapi_console, $backend_console, $backend_args) = @_;
+
+    my %class_names = (
+        'tty-console' => 'ttyConsole',
+        'ssh-xterm'   => 'sshXtermVt',
+        'vnc-base'    => 'vnc_base',
+        'local-Xvnc'  => 'localXvnc',
+    );
+    my $required_type = $class_names{$backend_console} || $backend_console;
+    my $location      = "consoles/$required_type.pm";
+    my $class         = "consoles::$required_type";
+
+    require $location;
+
+    my $ret = $class->new($testapi_console, $backend_args);
+    # now the backend knows which console the testapi means with $testapi_console ("bootloader", "vnc", ...)
+    $self->{consoles}->{$testapi_console} = $ret;
+    return $ret;
+}
+
+sub x11_start_program {
     my ($program, $timeout, $options) = @_;
     $timeout ||= 6;
     $options ||= {};
@@ -56,7 +79,7 @@ Wait for idle before  and after.
 
 =cut
 
-sub script_run($;$) {
+sub script_run {
 
     # start console application
     my ($self, $name, $wait) = @_;
@@ -77,7 +100,7 @@ $wait_seconds
 
 =cut
 
-sub script_sudo($$) {
+sub script_sudo {
     my ($self, $prog, $wait) = @_;
 
     testapi::type_string "sudo $prog\n";

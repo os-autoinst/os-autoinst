@@ -343,7 +343,6 @@ sub sequence_3270() {
 # map the terminal status of x3270 to a hash
 sub nice_3270_status() {
     my ($self, $status_string) = @_;
-    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($status_string);
     my (@raw_status) = split(" ", $status_string);
     my @status_names = (
         'keyboard_state',
@@ -463,7 +462,6 @@ sub DESTROY {
 
 sub connect_and_login() {
     my ($self, $reconnect_ok) = @_;
-    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp(\@_);
     $reconnect_ok //= 0;
     my $r;
     ###################################################################

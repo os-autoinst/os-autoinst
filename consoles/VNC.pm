@@ -161,8 +161,6 @@ sub _handshake_security {
           || die 'unexpected end of data';
         $number_of_security_types = unpack('C', $number_of_security_types);
 
-        #bmwqemu::diag "types: $number_of_security_types";
-
         if ($number_of_security_types == 0) {
             die 'Error authenticating';
         }
@@ -173,7 +171,6 @@ sub _handshake_security {
               || die 'unexpected end of data';
             $security_type = unpack('C', $security_type);
 
-            #        bmwqemu::diag "sec: $security_type";
             push @security_types, $security_type;
         }
 
@@ -222,8 +219,6 @@ sub _handshake_security {
         $socket->read(my $challenge, 16)
           || die 'unexpected end of data';
 
-        #    warn "chal: " . unpack('h*', $challenge) . "\n";
-
         # the RFB protocol only uses the first 8 characters of a password
         my $key = substr($self->password, 0, 8);
         $key = '' if (!defined $key);
@@ -231,12 +226,9 @@ sub _handshake_security {
 
         my $realkey;
 
-        #    warn unpack('b*', $key);
         foreach my $byte (split //, $key) {
             $realkey .= pack('b8', scalar reverse unpack('b8', $byte));
         }
-
-        #    warn unpack('b*', $realkey);
 
         # # The client encrypts the challenge with DES, using a password
         # # supplied by the user as the key, and sends the resulting
@@ -251,13 +243,9 @@ sub _handshake_security {
         while ($i < 16) {
             my $word = substr($challenge, $i, 8);
 
-            #        warn "$i: " . length($word);
             $response .= $cipher->encrypt($word);
             $i += 8;
         }
-
-        #    warn "resp: " . unpack('h*', $response) . "\n";
-
         $socket->print($response);
 
     }
@@ -299,7 +287,6 @@ sub _handshake_security {
           || die 'unexpected end of data';
         $security_result = unpack('N', $security_result);
 
-        #    bmwqemu::diag $security_result;
         die 'login failed' if $security_result;
     }
     elsif (!$socket->connected) {
@@ -394,8 +381,6 @@ sub _server_initialization {
       || die 'unexpected end of data';
     $self->name($name_string);
 
-    #    warn $name_string;
-
     if ($self->ikvm) {
         $socket->read(my $ikvm_init, 12) || die 'unexpected end of data';
 
@@ -459,8 +444,6 @@ sub _server_initialization {
 
 sub _send_key_event {
     my ($self, $down_flag, $key) = @_;
-
-    #bmwqemu::diag "_send_key_event $down_flag $key";
 
     # A key press or release. Down-flag is non-zero (true) if the key is now pressed, zero
     # (false) if it is now released. The key itself is specified using the “keysym” values
@@ -688,12 +671,10 @@ sub map_and_send_key {
     }
 
     for my $key (@events) {
-        #bmwqemu::diag "send_key_event_down $key";
         $self->send_key_event_down($key);
     }
     usleep(50);    # just a brief moment
     for my $key (@events) {
-        #bmwqemu::diag "send_key_event_up $key";
         $self->send_key_event_up($key);
     }
 }
@@ -736,8 +717,6 @@ sub send_update_request {
     my $socket = $self->socket;
     my $incremental = $self->_framebuffer ? 1 : 0;
 
-    #printf "send_update_request %dx%d\n", $self->width, $self->height;
-
     $socket->print(
         pack(
             'CCnnnn',
@@ -767,8 +746,6 @@ sub _receive_message {
     die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
 
     $message_type = unpack('C', $message_type);
-
-    #bmwqemu::diag("RM $message_type");
 
     # This result is unused.  It's meaning is different for the different methods
     my $result
@@ -946,7 +923,6 @@ sub _receive_ikvm_encoding {
         while ($segments--) {
             $socket->read(my $data, 6) || die "unexpected end of data";
             my ($dummy_a, $dummy_b, $y, $x) = unpack('nnCC', $data);
-            #print "DUMMY $type $dummy_a $dummy_b $x $y ($w $h)\n";
             $socket->read($data, 512) || die "unexpected end of data";
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
@@ -962,7 +938,6 @@ sub _receive_ikvm_encoding {
                 next if $nyres < 0;
                 $img = $img->copyrect(0, 0, $img->xres(), $nyres);
             }
-            # printf "blending to %dx%d\n", $x * 16, $y * 16;
             $image->blend($img, $x * 16, $y * 16);
         }
     }

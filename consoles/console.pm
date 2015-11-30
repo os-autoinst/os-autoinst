@@ -4,27 +4,47 @@ use warnings;
 require IPC::System::Simple;
 use autodie qw(:all);
 
+use Class::Accessor "antlers";
+has backend => (is => "rw");
+
 sub new {
-    my ($class, $backend) = @_;
+    my ($class, $testapi_console, $args) = @_;
     my $self = bless({class => $class}, $class);
-    $self->{activated} = 0;
-    $self->{backend}   = $backend;
+    $self->{testapi_console} = $testapi_console;
+    $self->{args}            = $args;
+    $self->{activated}       = 0;
     $self->init;
-    $backend->{console_classes}->{$self->{name}} = $self;
     return $self;
+}
+
+sub init {
+    # nothing fancy
 }
 
 sub screen {
     my ($self) = @_;
-    die "screen needs to be implemented in subclasses - $self->{name} does not\n";
+    die "screen needs to be implemented in subclasses - $self->{class} does not\n";
     return;
 }
 
-sub activate {
-    my ($self, $testapi_console, $console_args) = @_;
+# to be overloaded
+sub trigger_select {
+}
 
-    $self->{testapi_console} = $testapi_console;
-    $self->{activated}       = 1;
+sub select {
+    my ($self) = @_;
+    my $activated;
+    if (!$self->{activated}) {
+        $self->activate;
+        $activated = 1;
+    }
+    $self->trigger_select;
+    return $activated;
+}
+
+sub activate {
+    my ($self) = @_;
+    $self->{activated} = 1;
     return;
 }
 
@@ -32,10 +52,8 @@ sub activate {
 sub _activate_window() {
     my ($self) = @_;
 
-    #CORE::say __FILE__.":".__LINE__.":".bmwqemu::pp($self->{current_console});
     my $display       = $self->display;
     my $new_window_id = $self->{window_id};
-    #CORE::say bmwqemu::pp($console_info);
     system("DISPLAY=$display xdotool windowactivate --sync $new_window_id");
     return;
 }
@@ -52,7 +70,7 @@ sub _kill_window() {
 sub display() {
     my ($self) = @_;
 
-    return $self->{backend}->{consoles}->{worker}->{DISPLAY};
+    return $self->console('worker')->{DISPLAY};
 }
 
 1;

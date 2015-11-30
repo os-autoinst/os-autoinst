@@ -42,7 +42,7 @@ sub ipmitool {
 
     my $tmp = File::Temp->new(SUFFIX => '.stdout', OPEN => 0);
     $cmd = join(' ', @cmd) . " > $tmp; echo \"DONE-\$?\" >> $tmp\n";
-    $self->{consoles}->{worker}->type_string({text => $cmd});
+    $self->console('worker')->type_string({text => $cmd});
 
     my $time = 0;
     while ($time++ < 10) {
@@ -88,17 +88,19 @@ sub relogin_vnc {
         sleep(1);
     }
 
-    $self->activate_console(
+    my $vnc = $testapi::distri->add_console(
+        'sut',
+        'vnc-base',
         {
-            testapi_console => 'bootloader',
-            backend_console => 'vnc-base',
-            backend_args    => {
-                hostname => $bmwqemu::vars{IPMI_HOSTNAME},
-                port     => 5900,
-                username => $bmwqemu::vars{IPMI_USER},
-                password => $bmwqemu::vars{IPMI_PASSWORD},
-                ikvm     => 1
-            }});
+            hostname => $bmwqemu::vars{IPMI_HOSTNAME},
+            port     => 5900,
+            username => $bmwqemu::vars{IPMI_USER},
+            password => $bmwqemu::vars{IPMI_PASSWORD},
+            ikvm     => 1
+        });
+    $vnc->backend($self);
+    $self->select_console({testapi_console => 'sut'});
+
     return 1;
 }
 
@@ -107,8 +109,9 @@ sub do_start_vm() {
 
     # remove backend.crashed
     $self->unlink_crash_file;
-    $self->activate_console({testapi_console => "worker", backend_console => "local-Xvnc"});
-    my $console     = $self->{consoles}->{worker};
+    my $console = $testapi::distri->add_console('worker', 'local-Xvnc');
+    $console->backend($self);
+    $self->select_console({testapi_console => 'worker'});
     my $display     = $console->{DISPLAY};
     my $window_name = 'IPMI';
     system("DISPLAY=$display xterm -title '$window_name' -e bash & echo \$!");
@@ -161,7 +164,6 @@ sub start_serial_grab {
         my $ret;
         eval { $ret = system(@deactivate) };
         print "deactivate $ret\n";
-        #unshift(@cmd, ("setsid", "-w"));
         print join(" ", @cmd);
         # FIXME use 'socat' for this?
         open(my $serial, '>',  $bmwqemu::serialfile);
