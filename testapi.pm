@@ -85,7 +85,7 @@ sub match_has_tag {
 
 =head2 assert_and_click, assert_and_dclick
 
-assert_and_click($mustmatch,[$button],[$timeout],[$click_time],[$dclick]);
+  assert_and_click($mustmatch,[$button],[$timeout],[$click_time],[$dclick]);
 
 deprecated: assert_and_dclick($mustmatch,[$button],[$timeout],[$click_time]);
 
@@ -599,11 +599,13 @@ sub mouse_hide(;$) {
 returns the base URL to contact the local os-autoinst service. You can also pass
 a path as argument to append it automatically.
 
+  script_run("curl " . autoinst_url . "/data");
+
 =cut
 
 sub autoinst_url {
     my ($path, $query) = @_;
-    $path  //= '/';
+    $path  //= '';
     $query //= {};
 
     # in a kvm instance you reach the VM's host under 10.0.2.2
