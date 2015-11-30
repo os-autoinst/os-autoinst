@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 51;
+use Test::More;
 
 # optional but very useful
 eval 'use Test::More::Color';                 ## no critic
@@ -257,5 +257,7 @@ is($res->{needle}->{name}, 'login_sddm.ref.perfect', "perfect match should win")
 # one wins
 $res = $img1->search([$imperfect, $workaround], 0.9, 0);
 is($res->{needle}->{name}, 'login_sddm.ref.workaround.imperfect', "workaround match should win");
+
+done_testing();
 
 # vim: set sw=4 et:
