@@ -32,6 +32,7 @@ consolesexec_SCRIPTS = \
 	consoles/ssh.pm \
 	consoles/sshX3270.pm \
 	consoles/sshXtermVt.pm \
+	consoles/ttyConsole.pm \
 	consoles/vnc_base.pm \
 	consoles/VNC.pm
 
