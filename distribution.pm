@@ -22,8 +22,7 @@ sub add_console {
     my %class_names = (
         'tty-console' => 'ttyConsole',
         'ssh-xterm'   => 'sshXtermVt',
-        'vnc-base'    => 'vnc_base',
-        'local-Xvnc'  => 'localXvnc',
+        'vnc-base'    => 'vnc_base'
     );
     my $required_type = $class_names{$backend_console} || $backend_console;
     my $location      = "consoles/$required_type.pm";

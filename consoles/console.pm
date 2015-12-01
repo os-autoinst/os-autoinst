@@ -34,6 +34,13 @@ sub screen {
     return;
 }
 
+# convenince function
+sub sshCommand {
+    my ($self, $host) = @_;
+
+    return "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root\@$host";
+}
+
 # to be overloaded
 sub trigger_select {
 }
@@ -53,31 +60,6 @@ sub activate {
     my ($self) = @_;
     $self->{activated} = 1;
     return;
-}
-
-# common way of selecting the console
-sub _activate_window() {
-    my ($self) = @_;
-
-    my $display       = $self->display;
-    my $new_window_id = $self->{window_id};
-    system("DISPLAY=$display xdotool windowactivate --sync $new_window_id");
-    return;
-}
-
-sub _kill_window() {
-    my ($self)    = @_;
-    my $window_id = $self->{window_id};
-    my $display   = $self->display;
-    system("DISPLAY=$display xdotool windowkill $window_id");
-    return;
-}
-
-# helper function
-sub display() {
-    my ($self) = @_;
-
-    return $self->backend->console('worker')->{DISPLAY};
 }
 
 1;

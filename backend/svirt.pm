@@ -20,9 +20,6 @@ sub do_start_vm() {
 
     # remove backend.crashed
     $self->unlink_crash_file;
-    my $console = $testapi::distri->add_console('worker', 'local-Xvnc');
-    $console->backend($self);
-    $self->select_console({testapi_console => 'worker'});
     return {};
 }
 

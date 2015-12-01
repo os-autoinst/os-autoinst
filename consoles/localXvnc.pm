@@ -7,42 +7,50 @@ use IPC::Run ();
 use testapi qw/get_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
+use Socket;
+use strict;
+use warnings;
 
-sub activate() {
+sub activate {
     my ($self) = @_;
 
-    # REFACTOR to have a $self->{localXvnc}
-    die "local-Xvnc must be named 'worker'" unless $self->{testapi_console} eq 'worker';
-    ## start Xvnc Server, the local console to do all the work from
-    my $display_id = get_var("VNC") || die "VNC unset in vars.json.";
-    my $display = ":" . $display_id;
-    # FIXME: do the full monty xauth authentication, with a local
-    # XAUTHORITY=./XAuthority file
+    # start Xvnc on a random high port and use that port also as $DISPLAY
 
-    # On older Xvnc there is no '-listen tcp' option
-    # because that's the default there. need to test Xvnc version
-    # and act accordingly.
-    my $Xvnc_listen_option = (scalar grep { /-listen/ } qx"Xvnc -help 2>&1") ? "-listen tcp" : "";
-    $self->{local_X_handle} = IPC::Run::start("Xvnc -depth 16 $Xvnc_listen_option -SecurityTypes None -ac $display");
+    my $tcpproto = getprotobyname('tcp');
+    my $s;
+    socket($s, PF_INET, SOCK_STREAM, $tcpproto) || die "socket: $!\n";
+    bind($s, sockaddr_in(0, INADDR_ANY)) || die "bind: $!\n";
+    my ($port) = sockaddr_in(getsockname($s));
+
+    my $display = ":$port";
+    my $pid     = fork();
+    die unless defined $pid;
+    if (!$pid) {
+        listen($s, 1);
+        my $peer;
+        accept($peer, $s);
+        close($s);
+        open(STDIN,  "<&", $peer) || die "can't dup client to stdin";
+        open(STDOUT, ">&", $peer) || die "can't dup client to stdout";
+        close($peer);
+        exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");
+    }
+    close($s);
+    print "$self->{testapi_console} -> $port\n";
 
     $self->connect_vnc(
         {
             hostname => "localhost",
-            port     => 5900 + $display_id,
+            port     => $port,
             ikvm     => 0
         });
     $self->{DISPLAY} = $display;
     sleep 1;
 
-    # magic stanza from
-    # https://github.com/yast/yast-x11/blob/master/src/tools/testX.c
-    system("ICEWM_PRIVCFG=/etc/icewm/yast2 DISPLAY=$display icewm -c preferences.yast2 -t yast2 &");
-    # FIXME robustly wait for the window manager
-    sleep 2;
     return;
 }
 
-sub disable() {
+sub disable {
     my ($self) = @_;
 
     return unless $self->{local_X_handle};
