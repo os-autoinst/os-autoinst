@@ -18,6 +18,18 @@ sub new {
 sub do_start_vm() {
     my ($self) = @_;
 
+    my $ssh = $testapi::distri->add_console(
+        'svirt',
+        'ssh-virtsh',
+        {
+            # FIXME: this needs harmonizing
+            host     => $bmwqemu::vars{VIRSH_HOSTNAME},
+            hostname => $bmwqemu::vars{VIRSH_HOSTNAME},
+            password => $bmwqemu::vars{VIRSH_PASSWORD},
+        });
+    $ssh->backend($self);
+    $self->select_console({testapi_console => 'svirt'});
+
     # remove backend.crashed
     $self->unlink_crash_file;
     return {};

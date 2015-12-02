@@ -22,6 +22,7 @@ sub add_console {
     my %class_names = (
         'tty-console' => 'ttyConsole',
         'ssh-xterm'   => 'sshXtermVt',
+        'ssh-virtsh'  => 'sshVirtsh',
         'vnc-base'    => 'vnc_base'
     );
     my $required_type = $class_names{$backend_console} || $backend_console;

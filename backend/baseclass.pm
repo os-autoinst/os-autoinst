@@ -499,6 +499,7 @@ sub proxy_console_call {
     my ($self, $wrapped_call) = @_;
 
     my ($console, $function, $args) = @$wrapped_call{qw(console function args)};
+    $console = $self->console($console);
 
     my $wrapped_result = {};
 

@@ -50,6 +50,7 @@ sub select {
     my $activated;
     if (!$self->{activated}) {
         $self->activate;
+        $self->{activated} = 1;
         $activated = 1;
     }
     $self->trigger_select;
@@ -58,7 +59,6 @@ sub select {
 
 sub activate {
     my ($self) = @_;
-    $self->{activated} = 1;
     return;
 }
 
