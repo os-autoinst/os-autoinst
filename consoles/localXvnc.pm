@@ -36,7 +36,7 @@ sub activate {
         exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");
     }
     close($s);
-    print "$self->{testapi_console} -> $port\n";
+    #print "$self->{testapi_console} -> $port\n";
 
     $self->connect_vnc(
         {

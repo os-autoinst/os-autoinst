@@ -140,7 +140,7 @@ sub add_interface {
     $interface->setAttribute(type => $type);
     $devices->appendChild($interface);
 
-    for my $key (keys $args) {
+    for my $key (keys %$args) {
         my $elem  = $doc->createElement($key);
         my $value = $args->{$key};
         for my $attr (keys %$value) {
@@ -163,7 +163,7 @@ sub add_disk {
         my $ret  = $chan->exec("qemu-img create $file $size -f qcow2");
         bmwqemu::diag $_ while <$chan>;
         $chan->close();
-        die "qemu-img create failed" if !$ret;
+        die "qemu-img create failed" if $chan->exit_status();
     }
 
     my $doc     = $self->{domainxml};
@@ -197,20 +197,31 @@ sub define_and_start {
     my $instance = $self->instance;
 
     my $doc = $self->{domainxml};
-    my $xml = $doc->toString(2);
 
-    my ($out, $err, $exit) = $self->{ssh}->cmd("cat > /var/lib/libvirt/images/" . $self->name . ".xml", $xml);
-    die "cat failed: $err" if $exit;
+    my $xmlfilename = "/var/lib/libvirt/images/" . $self->name . ".xml";
+    my $chan        = $self->{ssh}->channel();
+    # scp_put is unfortunately unreliable (RT#61771)
+    $chan->exec("cat > $xmlfilename");
+    $chan->write($doc->toString(2));
+    $chan->close();
 
     # shut down possibly running previous test (just to be sure) - ignore errors
-    $self->{ssh}->cmd("virsh destroy " . $self->name);
-    $self->{ssh}->cmd("virsh undefine " . $self->name);
+    $self->{ssh}->channel()->exec("virsh destroy " . $self->name);
+    $self->{ssh}->channel()->exec("virsh undefine " . $self->name);
 
     # define the new domain
-    ($out, $err, $exit) = $self->{ssh}->exec("virsh define /var/lib/libvirt/images/openQA-SUT-$instance.xml");
-    die "virsh failed: $err" if $exit;
-    ($out, $err, $exit) = $self->{ssh}->exec("virsh start openQA-SUT-$instance");
-    die "virsh failed: $err" if $exit;
+    $chan = $self->{ssh}->channel();
+    $chan->exec("virsh define $xmlfilename");
+    bmwqemu::diag $_ while <$chan>;
+    $chan->close();
+    die "virsh define failed" if $chan->exit_status();
+
+    $chan = $self->{ssh}->channel();
+    $chan->exec("virsh start " . $self->name);
+    bmwqemu::diag $_ while <$chan>;
+    $chan->close();
+    die "virsh start failed" if $chan->exit_status();
+
     return;
 
 }
