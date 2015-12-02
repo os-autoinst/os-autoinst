@@ -2,7 +2,7 @@ package backend::svirt;
 use strict;
 use base ('backend::baseclass');
 
-# this is a fake backend to some extend. We do don't start VMs, but provide ssh access
+# this is a fake backend to some extend. We don't start VMs, but provide ssh access
 # to a libvirt running host (KVM for System Z in mind)
 
 use testapi qw/get_var/;

@@ -34,7 +34,7 @@ sub screen {
     return;
 }
 
-# convenince function
+# helper function
 sub sshCommand {
     my ($self, $host) = @_;
 

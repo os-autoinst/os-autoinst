@@ -19,7 +19,7 @@ sub activate {
     my $tcpproto = getprotobyname('tcp');
     my $s;
     socket($s, PF_INET, SOCK_STREAM, $tcpproto) || die "socket: $!\n";
-    bind($s, sockaddr_in(0, INADDR_ANY)) || die "bind: $!\n";
+    bind($s, sockaddr_in(0, INADDR_ANY));
     my ($port) = sockaddr_in(getsockname($s));
 
     my $display = ":$port";
@@ -30,8 +30,8 @@ sub activate {
         my $peer;
         accept($peer, $s);
         close($s);
-        open(STDIN,  "<&", $peer) || die "can't dup client to stdin";
-        open(STDOUT, ">&", $peer) || die "can't dup client to stdout";
+        open(STDIN,  "<&", $peer);
+        open(STDOUT, ">&", $peer);
         close($peer);
         exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");
     }
