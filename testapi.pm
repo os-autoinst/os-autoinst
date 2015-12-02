@@ -25,7 +25,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   script_run script_sudo script_output validate_script_output
   assert_script_run assert_script_sudo
 
-  select_console console deactivate_console reset_consoles
+  select_console select_user_console console deactivate_console reset_consoles
 
   upload_asset upload_image data_url assert_shutdown parse_junit_log
   upload_logs
@@ -859,6 +859,11 @@ sub select_console {
         $testapi::distri->activate_console($testapi_console);
     }
     return $testapi_console_proxies{$testapi_console};
+}
+
+sub select_user_console {
+    bmwqemu::log_call('select_user_console');
+    return $distri->select_user_console;
 }
 
 sub deactivate_console {
