@@ -9,7 +9,7 @@ use testapi qw/get_var/;
 
 sub new {
     my $class = shift;
-    my $self = bless({class => $class}, $class);
+    my $self  = $class->SUPER::new;
     die "configure WORKER_HOSTNAME e.g. in workers.ini" unless get_var('WORKER_HOSTNAME');
     return $self;
 }

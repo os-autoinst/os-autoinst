@@ -16,7 +16,7 @@ use testapi qw(get_var check_var set_var);
 
 sub new {
     my $class = shift;
-    my $self = bless({class => $class}, $class);
+    my $self  = $class->SUPER::new;
     die "configure WORKER_HOSTNAME e.g. in workers.ini" unless get_var('WORKER_HOSTNAME');
     return $self;
 }
@@ -54,6 +54,24 @@ sub status {
     my ($self) = @_;
     # FIXME: do something useful here.
     carp "status not implemented";
+}
+
+sub wait_serial {
+    my ($self, $args) = @_;
+
+    my $regexp  = $args->{regexp};
+    my $timeout = $args->{timeout};
+    my $matched = 0;
+    my $str;
+
+    die 'Unsupported ARRAYREF for s390' if (ref $regexp eq 'ARRAY');
+    my $console = testapi::console('bootloader');
+    my $r = eval { $console->expect_3270(output_delim => $regexp, timeout => $timeout); };
+    unless ($@) {
+        $matched = 1;
+        $str = join('\n', @$r);
+    }
+    return {matched => $matched, string => $str};
 }
 
 1;
