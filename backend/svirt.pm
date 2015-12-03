@@ -46,7 +46,7 @@ sub do_savevm {
 
 sub do_loadvm {
     my ($self, $args) = @_;
-    die "if you need loadvm, you're screwed with IPMI";
+    die "virsh snapshot handling not yet implemented";
 }
 
 sub status {
