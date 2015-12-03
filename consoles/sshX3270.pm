@@ -1,5 +1,5 @@
 package consoles::sshX3270;
-use base qw(consoles::ssh);
+use base qw(consoles::sshVirtsh);
 use strict;
 use warnings;
 use testapi qw/get_var/;
