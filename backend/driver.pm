@@ -7,7 +7,7 @@ package backend::driver;
 use strict;
 use threads;
 use threads::shared;
-use Carp;
+use Carp qw(cluck carp croak confess);
 use JSON qw( to_json );
 use File::Path qw(remove_tree);
 use IO::Select;
@@ -190,12 +190,21 @@ sub _send_json {
     return $rsp->{rsp};
 }
 
+# hash for keeping state
+our $sockets;
+
 # utility function
 sub _read_json {
     my ($socket) = @_;
 
-    my $rsp = '';
-    my $s   = IO::Select->new();
+    my $fd = fileno($socket);
+    if (!exists $sockets->{$fd}) {
+        $sockets->{$fd} = {raw => '', offset => 0};
+    }
+
+    my $socket_info = $sockets->{$fd};
+
+    my $s = IO::Select->new();
     $s->add($socket);
 
     my $hash;
@@ -203,21 +212,50 @@ sub _read_json {
     # make sure we read the answer completely
     while (!$hash) {
         # starting a IPMI host can take a while, so we need to be patient
-        my @res = $s->can_read(300);
-        unless (@res) {
-            backend::baseclass::write_crash_file();
-            confess "ERROR: timeout reading JSON reply: $!\n";
+
+        # the goal here is to find the end of the next valid JSON - and don't
+        # add more data to it. As the backend sends things unasked, we might
+        # run into the next message otherwise
+        while (1) {
+            my $ne = index($socket_info->{raw}, '}', $socket_info->{offset} + 1);
+            if ($ne > 0) {
+                $socket_info->{offset} = $ne;
+                my $rsp = substr($socket_info->{raw}, 0, $ne + 1);
+
+                $hash = eval {
+                    local $SIG{__DIE__} = 'DEFAULT';
+                    JSON::decode_json($rsp);
+                };
+                if ($hash) {
+                    # reset the hunt
+                    $socket_info->{raw} = substr($socket_info->{raw}, $ne + 1, length($socket_info->{raw}));
+                    $socket_info->{offset} = 0;
+                    last;
+                }
+            }
+            else {
+                $socket_info->{offset} = length($socket_info->{raw});
+
+                # wait for next read
+                my @res = $s->can_read(300);
+                unless (@res) {
+                    backend::baseclass::write_crash_file();
+                    confess "ERROR: timeout reading JSON reply: $!\n";
+                }
+
+                my $qbuffer;
+                my $bytes = sysread($socket, $qbuffer, 8000);
+                if (!$bytes) { diag("sysread failed: $!"); return; }
+                $socket_info->{raw} .= $qbuffer;
+
+                if ($socket_info->{raw} eq $backend::baseclass::MAGIC_PIPE_CLOSE_STRING) {
+                    print "received magic close\n";
+                    return;
+                }
+
+                last;
+            }
         }
-        my $qbuffer;
-        my $bytes = sysread($socket, $qbuffer, 1);
-        if (!$bytes) { diag("sysread failed: $!"); return; }
-        $rsp .= $qbuffer;
-        if ($rsp eq $backend::baseclass::MAGIC_PIPE_CLOSE_STRING) {
-            print "received magic close\n";
-            return;
-        }
-        if ($rsp !~ m/\n/) { next; }
-        $hash = eval { JSON::decode_json($rsp); };
     }
 
     return $hash;

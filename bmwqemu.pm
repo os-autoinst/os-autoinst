@@ -65,7 +65,7 @@ our $clock_ticks = POSIX::sysconf(&POSIX::_SC_CLK_TCK);
 our $istty;
 our $direct_output;
 our $timesidleneeded     = 1;
-our $standstillthreshold = _scale_timeout(600);
+our $standstillthreshold = scale_timeout(600);
 
 our %vars;
 
@@ -103,9 +103,7 @@ sub result_dir() {
     return "testresults";
 }
 
-our $serialfile    = "serial0";
-our $serial_offset = 0;
-our $gocrbin       = "/usr/bin/gocr";
+our $gocrbin = "/usr/bin/gocr";
 
 # set from isotovideo during initialization
 our $scriptdir;
@@ -459,7 +457,7 @@ sub wait_still_screen {
 
     my ($stilltime, $timeout, $similarity_level) = @_;
 
-    $timeout = _scale_timeout($timeout);
+    $timeout = scale_timeout($timeout);
 
     my $starttime      = time;
     my $lastchangetime = [gettimeofday];
@@ -485,106 +483,6 @@ sub wait_still_screen {
     return 0;
 }
 
-=head2 set_serial_offset
-
-Determines the starting offset within the serial file - so that we do not check the
-previous test's serial output. Call this before you start doing something new
-
-=cut
-
-sub set_serial_offset {
-    $serial_offset = -s $serialfile;
-    return $serial_offset;
-}
-
-
-=head2 serial_text
-
-Returns the output on the serial device since the last call to set_serial_offset
-
-=cut
-
-sub serial_text {
-
-    open(my $SERIAL, "<", $serialfile);
-    seek($SERIAL, $serial_offset, 0);
-    local $/;
-    my $data = <$SERIAL>;
-    close($SERIAL);
-    return $data;
-}
-
-=head2 wait_serial
-
-wait_serial($regex, $timeout_sec, $expect_not_found)
-
-Wait for a message to appear on serial output.
-You could have sent it there earlier with
-
-C<script_run("echo Hello World E<gt> /dev/$serialdev");>
-
-=cut
-
-sub wait_serial {
-
-    # wait for a message to appear on serial output
-    my ($regexp, $timeout, $expect_not_found) = @_;
-    my $matched = 0;
-    my $str;
-
-    $timeout = _scale_timeout($timeout);
-
-    if ($vars{BACKEND} eq "s390x") {
-        die 'Unsupported ARRAYREF for s390' if (ref $regexp eq 'ARRAY');
-        my $console = testapi::console('bootloader');
-        my $r = eval { $console->expect_3270(output_delim => $regexp, timeout => $timeout); };
-        unless ($@) {
-            $matched = 1;
-            $str = join('\n', @$r);
-        }
-    }
-    else {
-        if (ref $regexp ne 'ARRAY') {
-            $regexp = [$regexp];
-        }
-        for my $n (1 .. $timeout) {
-            $str = serial_text();
-            for my $r (@$regexp) {
-                if (ref $r eq 'Regexp') {
-                    $matched = $str =~ $r;
-                }
-                else {
-                    $matched = $str =~ m/$r/;
-                }
-                if ($matched) {
-                    $regexp = "$r";
-                    last;
-                }
-            }
-            last if ($matched);
-            sleep 1;
-        }
-        set_serial_offset();
-    }
-    if ($expect_not_found) {
-        $matched = !$matched;
-    }
-    sleep 1;    # wait for one more screenshot
-
-    # to string, we need to feed string of result to
-    # record_serialresult(), either 'ok' or 'fail'
-    if ($matched) {
-        $matched = 'ok';
-    }
-    else {
-        $matched = 'fail';
-    }
-    current_test->record_serialresult(pp($regexp), $matched);
-    fctres('wait_serial', "$regexp: $matched");
-    return $str if ($matched eq "ok");
-    return;    # false
-}
-
 =head2 wait_idle
 
 Wait until the system becomes idle
@@ -598,7 +496,7 @@ sub wait_idle {
     my $timesidle     = 0;
     my $idlethreshold = $vars{IDLETHRESHOLD};
 
-    $timeout = _scale_timeout($timeout);
+    $timeout = scale_timeout($timeout);
 
     for my $n (1 .. $timeout) {
         my ($stat, $systemstat) = @{$backend->cpu_stat()};
@@ -665,7 +563,7 @@ sub assert_screen {
     my $timeout      = $args{timeout} // $default_timeout;
     my $check_screen = $args{check};
 
-    $timeout = _scale_timeout($timeout);
+    $timeout = scale_timeout($timeout);
 
     die "current_test undefined" unless current_test;
 
@@ -950,7 +848,7 @@ sub clean_control_files {
     return;
 }
 
-sub _scale_timeout {
+sub scale_timeout {
     my ($timeout) = @_;
     return $timeout * ($vars{TIMEOUT_SCALE} // 1);
 }

@@ -21,9 +21,8 @@ use autodie qw(:all);
 
 sub new {
     my $class = shift;
-    my $self = bless({class => $class}, $class);
     die "configure WORKER_HOSTNAME e.g. in workers.ini" unless get_var('WORKER_HOSTNAME');
-    return $self;
+    return $class->SUPER::new;
 }
 
 use Time::HiRes qw(gettimeofday);
@@ -166,7 +165,7 @@ sub start_serial_grab {
         print "deactivate $ret\n";
         print join(" ", @cmd);
         # FIXME use 'socat' for this?
-        open(my $serial, '>',  $bmwqemu::serialfile);
+        open(my $serial, '>',  $self->{serialfile});
         open(STDOUT,     ">&", $serial);
         open(STDERR,     ">&", $serial);
         open(my $zero,   '<',  '/dev/zero');
