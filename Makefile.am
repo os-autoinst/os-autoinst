@@ -29,8 +29,8 @@ consolesexec_SCRIPTS = \
 	consoles/remoteVnc.pm \
 	consoles/remoteWindow.pm \
 	consoles/s3270.pm \
-	consoles/ssh.pm \
 	consoles/sshX3270.pm \
+	consoles/sshVirtsh.pm \
 	consoles/sshXtermVt.pm \
 	consoles/ttyConsole.pm \
 	consoles/vnc_base.pm \

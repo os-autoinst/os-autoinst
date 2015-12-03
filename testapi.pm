@@ -183,7 +183,28 @@ sub wait_serial {
     my $expect_not_found = shift || 0;     # expected can not found the term in serial output
 
     bmwqemu::log_call('wait_serial', regex => $regexp, timeout => $timeout);
-    return bmwqemu::wait_serial($regexp, $timeout, $expect_not_found);
+    $timeout = bmwqemu::scale_timeout($timeout);
+
+    my $ret = $bmwqemu::backend->wait_serial({regexp => $regexp, timeout => $timeout});
+    my $matched = $ret->{matched};
+
+    if ($expect_not_found) {
+        $matched = !$matched;
+    }
+    sleep 1;                               # wait for one more screenshot
+
+    # to string, we need to feed string of result to
+    # record_serialresult(), either 'ok' or 'fail'
+    if ($matched) {
+        $matched = 'ok';
+    }
+    else {
+        $matched = 'fail';
+    }
+    $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched);
+    bmwqemu::fctres('wait_serial', "$regexp: $matched");
+    return $ret->{string} if ($matched eq "ok");
+    return;    # false
 }
 
 =head2 become_root
@@ -395,8 +416,8 @@ The exit status is checked by via magic string on the serial port.
 sub assert_script_run {
     my ($cmd, $timeout) = @_;
     my $str = time;
-    script_run "$cmd; echo $str-\$?- > /dev/$serialdev";
-    my $ret = wait_serial "$str-\\d+-", $timeout;
+    script_run("$cmd; echo $str-\$?- > /dev/$serialdev");
+    my $ret = wait_serial("$str-\\d+-", $timeout);
     die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
 }
 
@@ -430,8 +451,8 @@ The exit status is checked by via magic string on the serial port.
 sub assert_script_sudo {
     my ($cmd) = @_;
     my $str = time;
-    script_sudo "$cmd; echo $str-\$?- > /dev/$serialdev";
-    my $ret = wait_serial "$str-\\d+-";
+    script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev");
+    my $ret = wait_serial("$str-\\d+-");
     die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
 }
 

@@ -25,7 +25,9 @@ our $backend;
 sub new {
     my $class = shift;
     my $self = bless({class => $class}, $class);
-    $self->{started} = 0;
+    $self->{started}       = 0;
+    $self->{serialfile}    = "serial0";
+    $self->{serial_offset} = 0;
     return $self;
 }
 
@@ -499,6 +501,7 @@ sub proxy_console_call {
     my ($self, $wrapped_call) = @_;
 
     my ($console, $function, $args) = @$wrapped_call{qw(console function args)};
+    $console = $self->console($console);
 
     my $wrapped_result = {};
 
@@ -517,6 +520,71 @@ sub proxy_console_call {
     return $wrapped_result;
 }
 
+=head2 set_serial_offset
+
+Determines the starting offset within the serial file - so that we do not check the
+previous test's serial output. Call this before you start doing something new
+
+=cut
+
+sub set_serial_offset {
+    my ($self, $args) = @_;
+
+    $self->{serial_offset} = -s $self->{serialfile};
+    return $self->{serial_offset};
+}
+
+
+=head2 serial_text
+
+Returns the output on the serial device since the last call to set_serial_offset
+
+=cut
+
+sub serial_text {
+    my ($self) = @_;
+
+    open(my $SERIAL, "<", $self->{serialfile});
+    seek($SERIAL, $self->{serial_offset}, 0);
+    local $/;
+    my $data = <$SERIAL>;
+    close($SERIAL);
+    return $data;
+}
+
+sub wait_serial {
+    my ($self, $args) = @_;
+
+    my $regexp  = $args->{regexp};
+    my $timeout = $args->{timeout};
+    my $matched = 0;
+    my $str;
+
+    if (ref $regexp ne 'ARRAY') {
+        $regexp = [$regexp];
+    }
+    my $initial_time = time;
+    while (time < $initial_time + $timeout) {
+        $str = $self->serial_text();
+        for my $r (@$regexp) {
+            if (ref $r eq 'Regexp') {
+                $matched = $str =~ $r;
+            }
+            else {
+                $matched = $str =~ m/$r/;
+            }
+            if ($matched) {
+                $regexp = "$r";
+                last;
+            }
+        }
+        last if ($matched);
+        # 1 second timeout, .19 froh's magic number :)
+        $self->run_capture_loop(undef, 1, .19);
+    }
+    $self->set_serial_offset();
+    return {matched => $matched, string => $str};
+}
 
 1;
 # vim: set sw=4 et:

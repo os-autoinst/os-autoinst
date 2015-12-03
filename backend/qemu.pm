@@ -19,7 +19,7 @@ use autodie qw(:all);
 
 sub new {
     my $class = shift;
-    my $self = bless({class => $class}, $class);
+    my $self  = $class->SUPER::new;
 
     $self->{pid}         = undef;
     $self->{children}    = [];
