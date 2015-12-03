@@ -595,46 +595,50 @@ sub init_x11_keymap {
     my ($self) = @_;
 
     return if $self->keymap;
-    $self->keymap($keymap_x11);
+    # create a deep copy - we want to reuse it in other instances
+    my %keymap = %$keymap_x11;
+
     for my $key (30 .. 255) {
-        $self->keymap->{chr($key)} ||= $key;
+        $keymap{chr($key)} ||= $key;
     }
     for my $key (1 .. 12) {
-        $self->keymap->{"f$key"} = 0xffbd + $key;
+        $keymap{"f$key"} = 0xffbd + $key;
     }
     for my $key ("a" .. "z") {
-        $self->keymap->{$key} = ord($key);
+        $keymap{$key} = ord($key);
         # shift-H looks strange, but that's how VNC works
-        $self->keymap->{uc $key} = [$keymap_x11->{shift}, ord(uc $key)];
+        $keymap{uc $key} = [$keymap{shift}, ord(uc $key)];
     }
     # VNC doesn't use the unshifted values, only prepends a shift key
     for my $key (keys %{shift_keys()}) {
-        die "no map for $key" unless $keymap_x11->{$key};
-        $self->keymap->{$key} = [$keymap_x11->{shift}, $keymap_x11->{$key}];
+        die "no map for $key" unless $keymap{$key};
+        $keymap{$key} = [$keymap{shift}, $keymap{$key}];
     }
+    $self->keymap(\%keymap);
 }
 
 sub init_ikvm_keymap {
     my ($self) = @_;
 
     return if $self->keymap;
-    $self->keymap($keymap_ikvm);
+    my %keymap = %$keymap_ikvm;
     for my $key ("a" .. "z") {
         my $code = 0x4 + ord($key) - ord('a');
-        $self->keymap->{$key} = $code;
-        $self->keymap->{uc $key} = [$keymap_ikvm->{shift}, $code];
+        $keymap{$key} = $code;
+        $keymap{uc $key} = [$keymap{shift}, $code];
     }
     for my $key ("1" .. "9") {
-        $self->keymap->{$key} = 0x1e + ord($key) - ord('1');
+        $keymap{$key} = 0x1e + ord($key) - ord('1');
     }
     for my $key (1 .. 12) {
-        $self->keymap->{"f$key"} = 0x3a + $key - 1,;
+        $keymap{"f$key"} = 0x3a + $key - 1,;
     }
     my %map = %{shift_keys()};
     while (my ($key, $shift) = each %map) {
-        die "no map for $key" unless $keymap_ikvm->{$shift};
-        $self->keymap->{$key} = [$keymap_ikvm->{shift}, $keymap_ikvm->{$shift}];
+        die "no map for $key" unless $keymap{$shift};
+        $keymap{$key} = [$keymap{shift}, $keymap{$shift}];
     }
+    $self->keymap(\%keymap);
 }
 
 
