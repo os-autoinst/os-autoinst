@@ -15,7 +15,7 @@ sub activate {
     my $testapi_console = $self->{testapi_console};
     my $ssh_args        = $self->{args};
 
-    my $hostname = $ssh_args->{host}     || die('we need a hostname to ssh to');
+    my $hostname = $ssh_args->{hostname} || die('we need a hostname to ssh to');
     my $password = $ssh_args->{password} || $testapi::password;
     my $sshcommand = $self->sshCommand($hostname);
     my $display    = $self->{DISPLAY};

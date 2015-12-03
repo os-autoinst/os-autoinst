@@ -22,8 +22,6 @@ sub do_start_vm() {
         'svirt',
         'ssh-virtsh',
         {
-            # FIXME: this needs harmonizing
-            host     => $bmwqemu::vars{VIRSH_HOSTNAME},
             hostname => $bmwqemu::vars{VIRSH_HOSTNAME},
             password => $bmwqemu::vars{VIRSH_PASSWORD},
         });
