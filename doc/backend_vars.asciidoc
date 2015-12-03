@@ -14,9 +14,9 @@ NOVIDEO;boolean;;don't encode video if set
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-IPMI_HOSTNAME;;;
-IPMI_PASSWORD;;;
-IPMI_USER;;;
+IPMI_HOSTNAME;string;Hostname/IP for IPMI interface;
+IPMI_USER;string;Username for the IPMI interface;
+IPMI_PASSWORD;string;Password for the IPMI interface;
 |====================
 
 .KVM2USB backend
@@ -80,11 +80,12 @@ VNC;integer;worker instance + 90;Display on which VNC server is running. Actual 
 VNCKB;;;
 |====================
 
-.VBOX backend
+.SVIRT backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-ISO;;;
+VIRSH_HOSTNAME;string;SSH Host with virtsh;
+VIRSH_PASSWORD;string;Password for root account on above host;
 |====================
 

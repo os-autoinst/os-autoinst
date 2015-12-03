@@ -214,7 +214,7 @@ sub result {
 sub start() {
     my ($self) = @_;
     $self->{running} = 1;
-    bmwqemu::set_serial_offset();
+    $bmwqemu::backend->set_serial_offset();
     autotest::set_current_test($self);
 }
 

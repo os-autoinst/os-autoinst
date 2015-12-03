@@ -1,16 +1,11 @@
 package consoles::sshX3270;
-use base qw(consoles::ssh);
+use base qw(consoles::localXvnc);
 use strict;
 use warnings;
 use testapi qw/get_var/;
 
-sub init() {
+sub activate {
     my ($self) = @_;
-    $self->{name} = 'ssh-X';
-}
-
-sub activate() {
-    my ($self, $testapi_console, $console_args) = @_;
 
     my $sshcommand  = $self->sshCommand(get_var("PARMFILE")->{Hostname});
     my $display     = $self->{backend}->{consoles}->{worker}->{DISPLAY};

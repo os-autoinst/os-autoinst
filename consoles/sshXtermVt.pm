@@ -1,22 +1,24 @@
 package consoles::sshXtermVt;
-use base 'consoles::ssh';
+use base 'consoles::localXvnc';
 use strict;
 use warnings;
 use testapi qw/get_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
 
-sub init() {
+sub activate {
     my ($self) = @_;
-    $self->{name} = 'ssh-xterm_vt';
-}
 
-sub activate() {
-    my ($self, $testapi_console, $console_args) = @_;
+    # start Xvnc
+    $self->SUPER::activate;
 
-    my $sshcommand = $self->sshCommand(get_var("PARMFILE")->{Hostname});
-    my $worker     = $self->{backend}->{consoles}->{worker};
-    my $display    = $self->display;
+    my $testapi_console = $self->{testapi_console};
+    my $ssh_args        = $self->{args};
+
+    my $hostname = $ssh_args->{hostname} || die('we need a hostname to ssh to');
+    my $password = $ssh_args->{password} || $testapi::password;
+    my $sshcommand = $self->sshCommand($hostname);
+    my $display    = $self->{DISPLAY};
 
     $sshcommand = "TERM=xterm " . $sshcommand;
     my $xterm_vt_cmd = "xterm-console";
@@ -25,14 +27,9 @@ sub activate() {
     if (my $E = $@) {
         die "cant' start xterm on $display (err: $! retval: $?)";
     }
-    my $window_id = qx"DISPLAY=$display xdotool search --sync --limit 1 $window_name";
-    chomp($window_id);
-
-    $self->{window_id} = $window_id;
-
     # FIXME: assert_screen('xterm_password');
-    sleep 2;
-    $worker->type_string({text => $testapi::password . "\n"});
+    sleep 3;
+    $self->type_string({text => $password . "\n"});
 }
 
 1;
