@@ -1,6 +1,6 @@
 package consoles::s3270;
 
-use base qw(consoles::console);
+use base qw(consoles::localXvnc);
 use strict;
 use warnings;
 
@@ -22,16 +22,6 @@ use IPC::Run::Debug;    # set IPCRUNDEBUG=data in shell environment for trace
 use Thread::Queue;
 
 use Time::HiRes qw(usleep);
-
-sub init() {
-    my ($self) = @_;
-    $self->{name} = 's3270';
-}
-
-sub screen() {
-    my ($self) = @_;
-    return $self->{backend}->{consoles}->{worker};
-}
 
 sub start() {
     my $self = shift;
@@ -507,7 +497,6 @@ sub connect_and_login() {
 # create x3270 terminals, -e ssh ones and true 3270 ones.
 sub new_3270_console {
     my ($self) = @_;
-    $self->{DISPLAY} = ":" . (get_var("VNC") // die "VNC unset in vars.json.");
     $self->{s3270} = [
         qw(x3270),
         "-display", $self->{DISPLAY},
@@ -525,24 +514,20 @@ sub new_3270_console {
     $status = $self->nice_3270_status($status);
 
     $self->{window_id} = $status->{window_id};
-    die "no worker Xvnc??" . bmwqemu::pp($self) unless exists $self->{backend}->{consoles}->{worker};
     return;
 }
 
-sub activate() {
-    my ($self, $testapi_console, $args) = @_;
+sub activate {
+    my ($self) = @_;
 
-    die "s3270 must be named 'bootloader'" unless $testapi_console eq 'bootloader';
+    $self->SUPER::activate;
+
     $self->zVM_host(get_var("ZVM_HOST")        // die "ZVM_HOST unset in vars.json");
     $self->guest_user(get_var("ZVM_GUEST")     // die "ZVM_GUEST unset in vars.json");
     $self->guest_login(get_var("ZVM_PASSWORD") // die "ZVM_PASSWORD unset in vars.json");
     $self->new_3270_console;
+    $self->connect_and_login;
     return;
-}
-
-sub select() {
-    my ($self) = @_;
-    $self->_activate_window();
 }
 
 sub disable() {

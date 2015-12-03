@@ -13,6 +13,7 @@ use Carp qw(confess cluck carp croak);
 use feature qw/say/;
 
 use testapi qw(get_var check_var set_var);
+use consoles::s3270;
 
 sub new {
     my $class = shift;
@@ -26,14 +27,18 @@ sub do_start_vm {
     my ($self) = @_;
 
     $self->unlink_crash_file();
-    my $console = $testapi::distri->add_console('worker', 'local-Xvnc');
+    my $console = $testapi::distri->add_console('x3270', 's3270');
     $console->backend($self);
-    $self->select_console({testapi_console => 'worker'});
+    $self->select_console({testapi_console => 'x3270'});
+
     return 1;
 }
 
 sub do_stop_vm {
     my ($self) = @_;
+
+    #FIXME shutdown
+    return 1;
 
     # first kill all _remote_ consoles except for the remote zVM
     # console (which would stop the vm guest)
