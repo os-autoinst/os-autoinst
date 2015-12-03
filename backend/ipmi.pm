@@ -15,14 +15,14 @@ use JSON;
 require Carp;
 use Fcntl;
 use bmwqemu qw(fileContent diag save_vars diag);
-use testapi qw(get_var);
+use testapi qw(get_required_var);
 use IPC::Run ();
 require IPC::System::Simple;
 use autodie qw(:all);
 
 sub new {
     my $class = shift;
-    die "configure WORKER_HOSTNAME e.g. in workers.ini" unless get_var('WORKER_HOSTNAME');
+    get_required_var('WORKER_HOSTNAME');
     return $class->SUPER::new;
 }
 

@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use IPC::Run ();
 
-use testapi qw/get_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
 use Socket;

@@ -13,7 +13,7 @@ use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 
 use feature qw(say);
-use testapi qw(get_var);
+use testapi qw(get_required_var);
 
 require IPC::Run;
 
@@ -522,9 +522,9 @@ sub activate {
 
     $self->SUPER::activate;
 
-    $self->zVM_host(get_var("ZVM_HOST")        // die "ZVM_HOST unset in vars.json");
-    $self->guest_user(get_var("ZVM_GUEST")     // die "ZVM_GUEST unset in vars.json");
-    $self->guest_login(get_var("ZVM_PASSWORD") // die "ZVM_PASSWORD unset in vars.json");
+    $self->zVM_host(get_required_var("ZVM_HOST"));
+    $self->guest_user(get_required_var("ZVM_GUEST"));
+    $self->guest_login(get_required_var("ZVM_PASSWORD"));
     $self->new_3270_console;
     $self->connect_and_login;
     return;
