@@ -69,7 +69,7 @@ sub wait_serial {
     my $str;
 
     die 'Unsupported ARRAYREF for s390' if (ref $regexp eq 'ARRAY');
-    my $console = testapi::console('bootloader');
+    my $console = $testapi::distri->{consoles}->{x3270};
     my $r = eval { $console->expect_3270(output_delim => $regexp, timeout => $timeout); };
     unless ($@) {
         $matched = 1;
