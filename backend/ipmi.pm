@@ -113,10 +113,8 @@ sub do_start_vm() {
     $self->select_console({testapi_console => 'worker'});
     my $display     = $console->{DISPLAY};
     my $window_name = 'IPMI';
-    system("DISPLAY=$display xterm -title '$window_name' -e bash & echo \$!");
+    system("DISPLAY=$display xterm-console -title $window_name -e bash & echo \$!");
     sleep(1);
-    my $window_id = qx"DISPLAY=$display xdotool search --sync --limit 1 $window_name";
-    chomp($window_id);
     $self->restart_host;
     $self->relogin_vnc;
     $self->start_serial_grab;
