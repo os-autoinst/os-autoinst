@@ -236,22 +236,23 @@ sub _read_json {
             else {
                 $socket_info->{offset} = length($socket_info->{raw});
 
+                if ($socket_info->{raw} eq $backend::baseclass::MAGIC_PIPE_CLOSE_STRING) {
+                    print "received magic close\n";
+                    return;
+                }
+
                 # wait for next read
                 my @res = $s->can_read(300);
                 unless (@res) {
+                    my $E = $!;    # save the error
                     backend::baseclass::write_crash_file();
-                    confess "ERROR: timeout reading JSON reply: $!\n";
+                    confess "ERROR: timeout reading JSON reply: $E\n";
                 }
 
                 my $qbuffer;
                 my $bytes = sysread($socket, $qbuffer, 8000);
                 if (!$bytes) { diag("sysread failed: $!"); return; }
                 $socket_info->{raw} .= $qbuffer;
-
-                if ($socket_info->{raw} eq $backend::baseclass::MAGIC_PIPE_CLOSE_STRING) {
-                    print "received magic close\n";
-                    return;
-                }
 
                 last;
             }
