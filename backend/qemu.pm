@@ -658,7 +658,10 @@ sub _read_hmp {
     my $s   = IO::Select->new();
     $s->add($self->{hmpsocket});
 
-    while (my @ready = $s->can_read(60)) {
+    # the timeout is actually pretty insane, but savevm is quite
+    # heavy on IO and after this timeout we die anyway, so if we
+    # waited one minute or 5 doesn't really matter
+    while (my @ready = $s->can_read(300)) {
         my $buffer;
         my $bytes = sysread($self->{hmpsocket}, $buffer, 1000);
         last unless ($bytes);
