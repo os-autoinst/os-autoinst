@@ -16,6 +16,7 @@ require Carp;
 use Fcntl;
 use bmwqemu qw(fileContent diag save_vars diag);
 use testapi qw(get_var);
+use IPC::Run ();
 require IPC::System::Simple;
 use autodie qw(:all);
 
@@ -39,24 +40,14 @@ sub ipmitool {
     my @cmd = $self->ipmi_cmdline();
     push(@cmd, split(/ /, $cmd));
 
-    my $tmp = File::Temp->new(SUFFIX => '.stdout', OPEN => 0);
-    $cmd = join(' ', @cmd) . " > $tmp; echo \"DONE-\$?\" >> $tmp\n";
-    $self->console('worker')->type_string({text => $cmd});
+    my ($stdin, $stdout, $stderr, $ret);
+    $ret = IPC::Run::run(\@cmd, \$stdin, \$stdout, \$stderr);
+    chomp $stdout;
+    chomp $stderr;
 
-    my $time = 0;
-    while ($time++ < 10) {
-        sleep(1);
-        open(my $fh, '<', $tmp);
-        my $stdout = join("", <$fh>);
-        close($fh);
-        if ($stdout =~ m/DONE-/) {
-            if ($stdout !~ m/DONE-0/) {
-                die "ipmitool died: $stdout";
-            }
-            return $stdout;
-        }
-    }
-    die "ipmitool did not finish";
+    die join(' ', @cmd) . ": $stderr" unless ($ret);
+    bmwqemu::diag("IPMI: $stdout");
+    return $stdout;
 }
 
 sub restart_host {
@@ -108,13 +99,6 @@ sub do_start_vm() {
 
     # remove backend.crashed
     $self->unlink_crash_file;
-    my $console = $testapi::distri->add_console('worker', 'local-Xvnc');
-    $console->backend($self);
-    $self->select_console({testapi_console => 'worker'});
-    my $display     = $console->{DISPLAY};
-    my $window_name = 'IPMI';
-    system("DISPLAY=$display xterm-console -title $window_name -e bash & echo \$!");
-    sleep(1);
     $self->restart_host;
     $self->relogin_vnc;
     $self->start_serial_grab;
@@ -149,36 +133,30 @@ sub status {
 # serial grab
 
 sub start_serial_grab {
-    my $self = shift;
-    my $pid  = fork();
-    if ($pid == 0) {
+    my ($self) = @_;
+
+    $self->{serialpid} = fork();
+    if ($self->{serialpid} == 0) {
         setpgrp 0, 0;
-        my @cmd = $self->ipmi_cmdline();
-        push(@cmd, ('-I', 'lanplus', 'sol'));
-        my @deactivate = @cmd;
-        push(@deactivate, 'deactivate');
-        push(@cmd,        'activate');
-        my $ret;
-        eval { $ret = system(@deactivate) };
-        print "deactivate $ret\n";
-        print join(" ", @cmd);
-        # FIXME use 'socat' for this?
         open(my $serial, '>',  $self->{serialfile});
         open(STDOUT,     ">&", $serial);
         open(STDERR,     ">&", $serial);
-        open(my $zero,   '<',  '/dev/zero');
-        open(STDIN,      ">&", $zero);
-        exec("script", "-efqc", "@cmd");
+        my @cmd = ('/usr/sbin/ipmiconsole', '-h', $bmwqemu::vars{IPMI_HOSTNAME}, '-u', $bmwqemu::vars{IPMI_USER}, '-p', $bmwqemu::vars{IPMI_PASSWORD});
+
+        # zypper in dumponlyconsole, check devel:openQA for a patched freeipmi version that doesn't grab the terminal
+        push(@cmd, '--dumponly');
+
+        # our supermicro boards need workarounds to get SOL ;(
+        push(@cmd, qw/-W nochecksumcheck/);
+
+        exec(@cmd);
         die "exec failed $!";
-    }
-    else {
-        $self->{serialpid} = $pid;
     }
     return;
 }
 
 sub stop_serial_grab {
-    my $self = shift;
+    my ($self) = @_;
     return unless $self->{serialpid};
     kill("-TERM", $self->{serialpid});
     return waitpid($self->{serialpid}, 0);
