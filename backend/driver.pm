@@ -244,7 +244,7 @@ sub _read_json {
                 }
 
                 # wait for next read
-                my @res = $s->can_read(300);
+                my @res = $s->can_read;
                 unless (@res) {
                     my $E = $!;    # save the error
                     backend::baseclass::write_crash_file();
