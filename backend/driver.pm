@@ -229,6 +229,8 @@ sub _read_json {
                 if ($hash) {
                     # reset the hunt
                     $socket_info->{raw} = substr($socket_info->{raw}, $ne + 1, length($socket_info->{raw}));
+                    # remove leading whitespace (the trailing of the JSON)
+                    $socket_info->{raw} =~ s/^\s*//;
                     $socket_info->{offset} = 0;
                     last;
                 }
