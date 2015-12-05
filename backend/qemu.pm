@@ -216,8 +216,34 @@ sub start_qemu {
         die "no Qemu/KVM found\n" unless $qemubin;
     }
 
-    if ($vars->{BIOS} && !-e '/usr/share/qemu/' . $vars->{BIOS}) {
+    if ($vars->{UEFI}) {
+        # XXX: compat with old deployment
+        $vars->{BIOS} //= $vars->{UEFI_BIOS};
+    }
+
+    if ($vars->{BIOS} && $vars->{BIOS} !~ /^\//) {
+        # Non-absolute paths are assumed relative to /usr/share/qemu
+        $vars->{BIOS} = '/usr/share/qemu/' . $vars->{BIOS};
+    }
+
+    if ($vars->{BIOS} && !-e $vars->{BIOS}) {
         die "'$vars->{BIOS}' missing, check BIOS\n";
+    }
+
+    if ($vars->{UEFI} && $vars->{ARCH} eq 'x86_64' && !$vars->{BIOS}) {
+        # We have to try and find a firmware for UEFI. These are known
+        # locations for openSUSE and Fedora (respectively).
+        my @known = ('/usr/share/qemu/ovmf-x86_64-ms.bin', '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd');
+        foreach my $firmware (@known) {
+            if (-e $firmware) {
+                $vars->{BIOS} = $firmware;
+                last;
+            }
+        }
+        if (!$vars->{BIOS}) {
+            # We know this won't go well.
+            die "No UEFI firmware can be found! Please specify BIOS or UEFI_BIOS or install an appropriate package";
+        }
     }
 
     if ($vars->{LAPTOP}) {
@@ -490,13 +516,8 @@ sub start_qemu {
             }
         }
 
-        if ($vars->{UEFI}) {
-            # XXX: compat with old deployment
-            $vars->{BIOS} //= $vars->{UEFI_BIOS};
-            $vars->{BIOS} //= 'ovmf-x86_64-ms.bin' if $vars->{ARCH} eq 'x86_64';
-        }
         if ($vars->{BIOS}) {
-            push(@params, "-bios", '/usr/share/qemu/' . $vars->{BIOS});
+            push(@params, "-bios", $vars->{BIOS});
         }
         if ($vars->{MULTINET}) {
             if ($vars->{NICTYPE} eq "tap") {
