@@ -426,25 +426,22 @@ sub take_screenshot {
     return $result;
 }
 
-sub start_audiocapture() {
-    my $self = shift;
-    my $fn   = ref($self) . "-captured.wav";
+sub start_audiocapture {
+    my ($self) = @_;
+    my $fn = ref($self) . "-captured.wav";
     die "audio capture already in progress. Stop it first!\n" if ($self->{wav_fn});
 
-    # TODO: we only support one capture atm
     $self->{wav_fn} = $fn;
-    return bmwqemu::do_start_audiocapture(join('/', bmwqemu::result_dir(), $fn));
+    my $filename = join('/', bmwqemu::result_dir(), 'ulogs', $fn);
+    bmwqemu::log_call('start_audiocapture', filename => $filename);
+    return $bmwqemu::backend->start_audiocapture({filename => $filename});
 }
 
-sub stop_audiocapture() {
-    my $self = shift;
+sub stop_audiocapture {
+    my ($self) = @_;
 
-    # XXX: if this function is supposed to support more than one
-    # capture at a time the capture index has to be determined
-    # from the recorded filename as the test doesn't know the
-    # index. We can find out the index for the capture by asking
-    # qemu "info capture"
-    bmwqemu::do_stop_audiocapture(0);
+    bmwqemu::log_call('stop_audiocapture');
+    $bmwqemu::backend->stop_audiocapture;
 
     my $result = {
         audio  => $self->{wav_fn},
@@ -456,29 +453,34 @@ sub stop_audiocapture() {
     return $result;
 }
 
-=head2 assert_DTMF
-
-stop audio capture and compare DTMF decoded result with reference
-
-=cut
-
-sub assert_DTMF {
-    my ($self, $ref) = @_;
+sub assert_recorded_sound {
+    my ($self, $mustmatch) = @_;
 
     my $result = $self->stop_audiocapture();
-    $result->{reference_text} = $ref;
+    my $wavfile = join('/', bmwqemu::result_dir(), 'ulogs', $result->{audio});
+    # qemuscreenshots has always been a bad name, it just got worse ;/
+    system("/suse/coolo/prod/os-autoinst/snd2png/snd2png $wavfile $result->{audio}.png");
 
-    my $decoded_text = bmwqemu::decodewav(join '/', bmwqemu::result_dir(), $result->{audio});
-    if ($decoded_text && (uc $ref) eq $decoded_text) {
-        $result->{result} = 'ok';
-        $self->{result} ||= $result->{result};
+    my $needles = needle::tags($mustmatch) || [];
+
+    my $img = tinycv::read("$result->{audio}.png");
+    my ($foundneedle, $failed_candidates) = $img->search($needles, 0, 1);
+    if ($foundneedle) {
+        $self->record_screenmatch($img, $foundneedle, [$mustmatch], $failed_candidates);
+        my $lastarea = $foundneedle->{area}->[-1];
+        bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+        return $foundneedle;
     }
-    else {
-        $result->{result} = 'fail';
-        $self->{result}   = $result->{result};
-    }
-    $result->{decoded_text} = $decoded_text;
-    return $decoded_text;
+    bmwqemu::fctres(sprintf("failed to find %s", $mustmatch));
+
+    $self->record_screenfail(
+        img     => $img,
+        needles => $failed_candidates,
+        tags    => [$mustmatch],
+        result  => $result,
+        overall => 'fail'
+    );
+    return;
 }
 
 =head2 ocr_checklist

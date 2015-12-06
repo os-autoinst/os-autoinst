@@ -1,6 +1,6 @@
 # autotools
 doc/basetest.html
-doc/bmwqemu.html
+doc/testapi.html
 ppmclibs/tinycv_wrap.cxx
 *.tmp
 aclocal.m4
@@ -34,5 +34,6 @@ compile
 test-driver
 videoencoder
 debugviewer/debugviewer
+snd2png/snd2png
 t/*.pl.log
 t/*.pl.trs

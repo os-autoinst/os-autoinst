@@ -37,5 +37,6 @@ AC_CONFIG_FILES([
 	Makefile
 	t/Makefile
 	debugviewer/Makefile
+	snd2png/Makefile
 ])
 AC_OUTPUT

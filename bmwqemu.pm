@@ -117,6 +117,7 @@ sub init {
 
     remove_tree(result_dir);
     mkdir result_dir;
+    mkdir join('/', result_dir, 'ulogs');
 
     if ($direct_output) {
         open($logfd, '>&STDERR');
@@ -381,18 +382,6 @@ sub mydie {
     croak "mydie";
 }
 
-sub do_start_audiocapture {
-    my ($filename) = @_;
-    log_call('start_audiocapture', filename => $filename);
-    return $backend->start_audiocapture($filename);
-}
-
-sub do_stop_audiocapture {
-    my ($index) = @_;
-    log_call('stop_audiocapture', index => $index);
-    return $backend->stop_audiocapture($index);
-}
-
 sub alive() {
     if (defined $backend) {
 
@@ -417,31 +406,6 @@ sub get_cpu_stat() {
 }
 
 # runtime information gathering functions end
-
-# check functions (runtime and result-checks)
-
-sub decodewav {
-
-    # FIXME: move to multimonNG (multimon fork)
-    my ($wavfile) = @_;
-    unless ($wavfile) {
-        warn "missing file name";
-        return;
-    }
-    my $dtmf = '';
-    my $mm   = "multimon -a DTMF -t wav $wavfile";
-    open(my $M, '-|', $mm);
-    while (<$M>) {
-        next unless /^DTMF: .$/;
-        my ($a, $b) = split ':';
-        $b =~ tr/0-9*#ABCD//csd;    # Allow 0-9 * # A B C D
-        $dtmf .= $b;
-    }
-    close($M);
-    return $dtmf;
-}
-
-# check functions end
 
 # wait functions
 
