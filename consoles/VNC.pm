@@ -542,6 +542,7 @@ my $keymap_ikvm = {
     'backspace' => 0x2a,
     'tab'       => 0x2b,
     ' '         => 0x2c,
+    'spc'       => 0x2c,
     'minus'     => 0x2d,
     '='         => 0x2e,
     '['         => 0x2f,
