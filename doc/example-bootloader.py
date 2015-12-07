@@ -1,4 +1,5 @@
 import perl
+perl.use("registration")
 
 def run(self):
     print "This python code ran"
@@ -10,6 +11,7 @@ def run(self):
         perl.send_key(2 + perl.get_var("NUMDISKS"))
     perl.assert_screen("inst-bootmenu", 15)
     perl.send_key_until_needlematch('inst-oninstallation', 'down', 10, 5)
+    perl.registration.registration_bootloader_params()
     perl.type_string("qwertyuiopasdfghjkl")
     print "TODO: more code"
     perl.send_key('ret')
