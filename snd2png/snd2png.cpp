@@ -87,6 +87,7 @@ main (int argc, char *argv[])
       sf_close (fIn);
       return 2;
     }
+
   // read the full file
   sf_readf_float (fIn, infile_data, info_in.frames);
   sf_close (fIn);
@@ -104,7 +105,7 @@ main (int argc, char *argv[])
     }
 
   // 10ms per chunk
-  int window_size = info_in.samplerate / 100;
+  int window_size = info_in.samplerate / (1000 / 10);
   // we take two variables to implement a possible overlap
   // it only makes sense for low sample rates
   sf_count_t nDftSamples = window_size;
@@ -164,6 +165,7 @@ main (int argc, char *argv[])
 	}
     }
 
+  // SILENCE, I'll kill you!
   int first_non_silence = 0;
   for (; first_non_silence < times; first_non_silence++)
     {
@@ -179,7 +181,6 @@ main (int argc, char *argv[])
 	break;
     }
 
-
   int scale_factor = 3;
   int height = 768;		// make sure it can be devided by the scale_factor
 
@@ -187,6 +188,9 @@ main (int argc, char *argv[])
   // go too low with the number of frequences to cover
   int freqs = height / scale_factor;
   Mat grayscaleMat (height, 1024, CV_8U, Scalar(255));
+
+  if (last_non_silence - first_non_silence >= grayscaleMat.cols)
+    last_non_silence = grayscaleMat.cols - first_non_silence - 1;
 
   for (int TimePos = first_non_silence; TimePos < last_non_silence; TimePos++)
     {
