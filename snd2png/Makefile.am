@@ -1,0 +1,7 @@
+bin_PROGRAMS = snd2png
+
+snd2png_SOURCES = snd2png.cpp
+
+AM_CPPFLAGS = $(OPENCV_CFLAGS) $(FFTW_CFLAGS) $(SNDFILE_CFLAGS)
+snd2png_LDFLAGS = $(OPENCV_LIBS) $(FFTW_LIBS) $(SNDFILE_LIBS) -lm
+

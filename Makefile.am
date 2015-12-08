@@ -1,5 +1,5 @@
 ACLOCAL_AMFLAGS = -I m4
-SUBDIRS = t debugviewer
+SUBDIRS = t debugviewer snd2png
 
 doc_DATA = \
 	README.asciidoc \

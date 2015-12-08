@@ -32,10 +32,13 @@ AC_SUBST([PERL_CFLAGS])
 
 PKG_CHECK_MODULES([OPENCV], [opencv >= 2.4])
 PKG_CHECK_MODULES([THEORAENC], [theoraenc >= 1.1])
+PKG_CHECK_MODULES([FFTW], [fftw3])
+PKG_CHECK_MODULES([SNDFILE], [sndfile])
 
 AC_CONFIG_FILES([
 	Makefile
 	t/Makefile
 	debugviewer/Makefile
+	snd2png/Makefile
 ])
 AC_OUTPUT

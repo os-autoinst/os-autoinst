@@ -41,13 +41,14 @@ sub raw_alive {
 }
 
 sub start_audiocapture {
-    my ($self, $filename) = @_;
-    $self->_send_hmp("wavcapture $filename 44100 16 1");
+    my ($self, $args) = @_;
+
+    $self->_send_hmp("wavcapture $args->{filename} 44100 16 1");
 }
 
 sub stop_audiocapture {
-    my ($self, $index) = @_;
-    $self->_send_hmp("stopcapture $index");
+    my ($self, $args) = @_;
+    $self->_send_hmp("stopcapture 0");
 }
 
 sub power {
@@ -143,12 +144,9 @@ sub do_loadvm {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("loadvm $vmname");
-    bmwqemu::diag "LOAD $vmname '$rsp'\n";
     die unless ($rsp eq "loadvm $vmname");
     $rsp = $self->handle_qmp_command({"execute" => "stop"});
-    bmwqemu::diag "stop $rsp\n";
     $rsp = $self->handle_qmp_command({"execute" => "cont"});
-    bmwqemu::diag "cont $rsp\n";
     sleep(10);
     return $rsp;
 }
