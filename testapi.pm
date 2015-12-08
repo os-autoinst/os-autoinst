@@ -14,7 +14,7 @@ require bmwqemu;
 
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
-  get_var check_var set_var get_var_array check_var_array autoinst_url
+  get_var get_required_var check_var set_var get_var_array check_var_array autoinst_url
 
   send_key send_key_until_needlematch type_string type_password
 
@@ -317,6 +317,19 @@ as 2nd argument or undef
 sub get_var {
     my ($var, $default) = @_;
     return $bmwqemu::vars{$var} // $default;
+}
+
+=head2 get_required_var
+
+  get_required_var($variable)
+
+Like get_var but without default. Fails when variable can not be retrieved.
+
+=cut
+
+sub get_required_var {
+    my ($var) = @_;
+    return $bmwqemu::vars{$var} // die "Could not retrieve required variable $var";
 }
 
 =head2 set_var

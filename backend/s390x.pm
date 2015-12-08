@@ -12,12 +12,12 @@ use Carp qw(confess cluck carp croak);
 
 use feature qw/say/;
 
-use testapi qw(get_var check_var set_var);
+use testapi qw(get_required_var);
 
 sub new {
     my $class = shift;
     my $self  = $class->SUPER::new;
-    die "configure WORKER_HOSTNAME e.g. in workers.ini" unless get_var('WORKER_HOSTNAME');
+    get_required_var('WORKER_HOSTNAME');
     return $self;
 }
 
