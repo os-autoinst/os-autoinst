@@ -1,7 +1,7 @@
-noinst_PROGRAMS = debugviewer
+bin_PROGRAMS = debugviewer
 
 debugviewer_SOURCES = debugviewer.cpp
 
-AM_CPPFLAGS = $(pkg-config --cflags opencv)
-debugviewer_LDFLAGS = $(shell pkg-config --libs opencv)
+AM_CPPFLAGS = $(OPENCV_CFLAGS)
+debugviewer_LDFLAGS = $(OPENCV_LIBS)
 

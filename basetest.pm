@@ -459,7 +459,7 @@ sub assert_recorded_sound {
     my $result = $self->stop_audiocapture();
     my $wavfile = join('/', bmwqemu::result_dir(), 'ulogs', $result->{audio});
     # qemuscreenshots has always been a bad name, it just got worse ;/
-    system("/suse/coolo/prod/os-autoinst/snd2png/snd2png $wavfile $result->{audio}.png");
+    system("snd2png $wavfile $result->{audio}.png");
 
     my $needles = needle::tags($mustmatch) || [];
 

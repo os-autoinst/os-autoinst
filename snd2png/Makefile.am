@@ -1,7 +1,7 @@
-noinst_PROGRAMS = snd2png
+bin_PROGRAMS = snd2png
 
 snd2png_SOURCES = snd2png.cpp
 
-AM_CPPFLAGS = $(shell pkg-config --cflags opencv)
-snd2png_LDFLAGS = $(shell pkg-config --libs opencv) -lfftw3 -lm -lsndfile 
+AM_CPPFLAGS = $(OPENCV_CFLAGS) $(FFTW_CFLAGS) $(SNDFILE_CFLAGS)
+snd2png_LDFLAGS = $(OPENCV_LIBS) $(FFTW_LIBS) $(SNDFILE_LIBS) -lm
 
