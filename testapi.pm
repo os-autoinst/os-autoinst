@@ -25,6 +25,8 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   script_run script_sudo script_output validate_script_output
   assert_script_run assert_script_sudo
 
+  start_audiocapture assert_recorded_sound
+
   select_console console deactivate_console reset_consoles
 
   upload_asset upload_image data_url assert_shutdown parse_junit_log
@@ -833,7 +835,7 @@ to run test code.
 You need to do this in your distribution and not in tests. It will not trigger
 any action on the system under test, but only store the parameters.
 
-The console parameters are backend specific.
+The console parameters are console specific.
 
 =item C<deactivate_console("testapi_console")>
 
@@ -1023,6 +1025,41 @@ sub parse_junit_log {
     }
 
     return $autotest::current_test->register_extra_test_results(\@tests);
+}
+
+=head2 start_audiocapture
+
+  start_audiocapture;
+
+Tells the backend to record a .wav file of the sound card (only works in qemu atm).
+
+=cut
+
+sub start_audiocapture {
+    my $fn = $autotest::current_test->capture_filename;
+    my $filename = join('/', bmwqemu::result_dir(), $fn);
+    bmwqemu::log_call('start_audiocapture', filename => $filename);
+    return $bmwqemu::backend->start_audiocapture({filename => $filename});
+}
+
+=head2 assert_recorded_sound
+
+  assert_recorded_sound('we-will-rock-you');
+
+Tells the backend to record a .wav file of the sound card (only works in qemu atm).
+
+=cut
+
+sub assert_recorded_sound {
+    my ($mustmatch) = @_;
+
+    my $result = $autotest::current_test->stop_audiocapture();
+    my $wavfile = join('/', bmwqemu::result_dir(), $result->{audio});
+    system("snd2png $wavfile $result->{audio}.png");
+
+    my $img = tinycv::read("$result->{audio}.png");
+
+    return $autotest::current_test->verify_sound_image($img, $mustmatch);
 }
 
 1;

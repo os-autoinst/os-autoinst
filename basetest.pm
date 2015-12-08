@@ -426,15 +426,12 @@ sub take_screenshot {
     return $result;
 }
 
-sub start_audiocapture {
+sub capture_filename {
     my ($self) = @_;
     my $fn = ref($self) . "-captured.wav";
     die "audio capture already in progress. Stop it first!\n" if ($self->{wav_fn});
-
     $self->{wav_fn} = $fn;
-    my $filename = join('/', bmwqemu::result_dir(), 'ulogs', $fn);
-    bmwqemu::log_call('start_audiocapture', filename => $filename);
-    return $bmwqemu::backend->start_audiocapture({filename => $filename});
+    return $fn;
 }
 
 sub stop_audiocapture {
@@ -453,17 +450,11 @@ sub stop_audiocapture {
     return $result;
 }
 
-sub assert_recorded_sound {
-    my ($self, $mustmatch) = @_;
-
-    my $result = $self->stop_audiocapture();
-    my $wavfile = join('/', bmwqemu::result_dir(), 'ulogs', $result->{audio});
-    # qemuscreenshots has always been a bad name, it just got worse ;/
-    system("snd2png $wavfile $result->{audio}.png");
+sub verify_sound_image {
+    my ($self, $img, $mustmatch) = @_;
 
     my $needles = needle::tags($mustmatch) || [];
 
-    my $img = tinycv::read("$result->{audio}.png");
     my ($foundneedle, $failed_candidates) = $img->search($needles, 0, 1);
     if ($foundneedle) {
         $self->record_screenmatch($img, $foundneedle, [$mustmatch], $failed_candidates);
@@ -477,7 +468,7 @@ sub assert_recorded_sound {
         img     => $img,
         needles => $failed_candidates,
         tags    => [$mustmatch],
-        result  => $result,
+        result  => 'fail',
         overall => 'fail'
     );
     return;

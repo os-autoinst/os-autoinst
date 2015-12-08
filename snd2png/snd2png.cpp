@@ -186,7 +186,7 @@ main (int argc, char *argv[])
   // we have to cover 3000 hz and 18 hz is the sitance between D4 and E4, so don't
   // go too low with the number of frequences to cover
   int freqs = height / scale_factor;
-  Mat grayscaleMat (height, 1024, CV_8U);
+  Mat grayscaleMat (height, 1024, CV_8U, Scalar(255));
 
   for (int TimePos = first_non_silence; TimePos < last_non_silence; TimePos++)
     {
