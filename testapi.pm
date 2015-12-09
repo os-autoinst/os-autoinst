@@ -307,17 +307,17 @@ within the block to avoid races between the action and the screen change
 
 =cut
 
-sub wait_screen_change(&@) {
-    my ($callback) = @_;
+sub wait_screen_change(&@;$) {
+    my ($callback, $timeout) = @_;
+    $timeout ||= 10;
 
-    bmwqemu::log_call('wait_screen_change');
+    bmwqemu::log_call('wait_screen_change', timeout => $timeout);
 
     # get the initial screen
     $bmwqemu::backend->set_reference_screenshot;
     $callback->() if $callback;
 
     my $starttime        = time;
-    my $timeout          = 10;
     my $similarity_level = 50;
 
     while (time - $starttime < $timeout) {
