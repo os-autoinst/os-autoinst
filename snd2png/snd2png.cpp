@@ -1,3 +1,4 @@
+
 /*
   snd2png.cpp - idea is from http://snd2fftw.sourceforge.net/, but the code doesn't
   have more similiarity to its grandfather than to a random fftw example
@@ -51,12 +52,12 @@ valueForFreq (double *points, int count, double freq)
 }
 
 double
-max_row_value (double *points, int count, int index)
+max_row_value (double *points, int count)
 {
   double max_value = 0;
   for (sf_count_t i = 0; i < count; i++)
     {
-      double value = points[(index * count * 2 + i) * 2 + 1];
+      double value = points[i * 2 + 1];
       if (value > max_value)
 	max_value = value;
     }
@@ -66,6 +67,11 @@ max_row_value (double *points, int count, int index)
 int
 main (int argc, char *argv[])
 {
+  if (argc < 3) {
+    fprintf (stderr, "Usage: snd2png soundfile imagefile\n");
+    return 1;
+  }
+  
   char *pszInputFile = argv[1];
   char *pszOutputFile = argv[2];
 
@@ -106,9 +112,8 @@ main (int argc, char *argv[])
 
   // 10ms per chunk
   int window_size = info_in.samplerate / (1000 / 10);
-  // we take two variables to implement a possible overlap
-  // it only makes sense for low sample rates
-  sf_count_t nDftSamples = window_size;
+  sf_count_t overlap = window_size / 2;
+  sf_count_t nDftSamples = window_size + overlap * 2;
 
   double *fftw_in = (double *) fftw_malloc (sizeof (double) * nDftSamples);
   if (!fftw_in)
@@ -139,27 +144,30 @@ main (int argc, char *argv[])
       return 2;
     }
 
-  int times = info_in.frames / window_size + 1;
-  double *points =
-    (double *) malloc (sizeof (double) * nDftSamples * times * 2);
-  memset (points, 0, sizeof (double) * nDftSamples * times * 2);
+  int times = info_in.frames / window_size;
+  if (times * window_size + overlap > info_in.frames)
+    times--;
+  
+  double **points =
+    (double **) malloc (sizeof (double*) * times);
   double max_value = 0;
 
-  for (int TimePos = 0; TimePos * window_size + nDftSamples < info_in.frames;
-       TimePos++)
+  for (int TimePos = 0; TimePos < times; TimePos++)
     {
       for (int i = 0; i < nDftSamples; i++)
 	fftw_in[i] = infile_data[TimePos * window_size + i];
 
       fftw_execute (snd_plan);
 
+      points[TimePos] = (double*)malloc(sizeof(double) * nDftSamples);
+      memset (points[TimePos], 0, sizeof (double) * nDftSamples);
       for (sf_count_t i = 0; i < nDftSamples / 2; i++)
 	{
 	  double freq =
 	    (double) i * info_in.samplerate / (double) nDftSamples;
 	  double value = imabs (fftw_out[i]) / 2.0;
-	  points[(TimePos * nDftSamples + i) * 2] = freq;
-	  points[(TimePos * nDftSamples + i) * 2 + 1] = value;
+	  points[TimePos][i * 2] = freq;
+	  points[TimePos][i * 2 + 1] = value;
 	  if (max_value < value)
 	    max_value = value;
 	}
@@ -169,14 +177,14 @@ main (int argc, char *argv[])
   int first_non_silence = 0;
   for (; first_non_silence < times; first_non_silence++)
     {
-      if (max_row_value (points, nDftSamples / 2, first_non_silence) >
+      if (max_row_value (points[first_non_silence], nDftSamples / 2) >
 	  max_value * .1)
 	break;
     }
-  int last_non_silence = times;
+  int last_non_silence = times - 1;
   for (; last_non_silence > 0; last_non_silence--)
     {
-      if (max_row_value (points, nDftSamples / 2, last_non_silence) >
+      if (max_row_value (points[last_non_silence], nDftSamples / 2) >
 	  max_value * .1)
 	break;
     }
@@ -199,13 +207,12 @@ main (int argc, char *argv[])
 	  // https://en.wikipedia.org/wiki/Voice_frequency
 	  double max_freq = 3200.;
 	  double freq = i * max_freq / freqs;
-	  double value =
-	    valueForFreq (points + (TimePos * nDftSamples) * 2,
-			  nDftSamples / 2, freq);
+	  double value = valueForFreq (points[TimePos], nDftSamples / 2, freq);
 	  int scaled = 255 - uchar (255 * value / max_value);
-	  for (int j = 0; j < scale_factor; j++)
-	    grayscaleMat.at < uchar > (height - i * scale_factor + j,
+	  for (int j = 0; j < scale_factor; j++){
+	    grayscaleMat.at < uchar > (height - 1 - i * scale_factor + j,
 				       TimePos - first_non_silence) = scaled;
+	  }
 	}
     }
 
