@@ -608,5 +608,14 @@ sub similiarity_to_reference {
     return {sim => $self->reference_screenshot->similarity($self->last_image)};
 }
 
+sub wait_idle {
+    my ($self, $args) = @_;
+    my $timeout = $args->{timeout};
+
+    bmwqemu::diag("wait_idle sleeping for $timeout seconds");
+    $self->run_capture_loop(undef, $timeout);
+    return;
+}
+
 1;
 # vim: set sw=4 et:

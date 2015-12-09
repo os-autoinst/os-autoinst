@@ -63,6 +63,8 @@ sub init {
     return;
 }
 
+## no critic (ProhibitSubroutinePrototypes)
+
 sub set_distribution {
     ($distri) = @_;
     return $distri->init();
@@ -155,9 +157,21 @@ Wait until the system becomes idle (as configured by IDLETHESHOLD)
 
 sub wait_idle {
     my $timeout = shift || $bmwqemu::idle_timeout;
+    $timeout = bmwqemu::scale_timeout($timeout);
+
     bmwqemu::log_call('wait_idle', timeout => $timeout);
 
-    return bmwqemu::wait_idle($timeout);
+    my $args = {
+        timeout   => $timeout,
+        threshold => get_var('IDLETHRESHOLD', 18)};
+    my $rsp = $bmwqemu::backend->wait_idle($args);
+    if ($rsp->{idle}) {
+        bmwqemu::fctres('wait_idle', "idle detected");
+    }
+    else {
+        bmwqemu::fctres('wait_idle', "timed out after $timeout");
+    }
+    return;
 }
 
 =head2 wait_serial
