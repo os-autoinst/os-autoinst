@@ -19,7 +19,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   send_key send_key_until_needlematch type_string type_password
 
   assert_screen check_screen assert_and_dclick save_screenshot
-  wait_screen_change assert_and_click mouse_hide mouse_set mouse_click
+  assert_and_click mouse_hide mouse_set mouse_click
   mouse_dclick mouse_tclick match_has_tag
 
   script_run script_sudo script_output validate_script_output
@@ -32,7 +32,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   upload_asset upload_image data_url assert_shutdown parse_junit_log
   upload_logs
 
-  wait_idle wait_still_screen wait_serial record_soft_failure
+  wait_idle wait_screen_change wait_still_screen wait_serial record_soft_failure
   become_root x11_start_program ensure_installed eject_cd power
 
 );
@@ -279,9 +279,50 @@ sub upload_asset {
     return;
 }
 
+=head2 wait_screen_change
+
+  wait_screen_change { $code };
+
+wrapper around code that is supposed to change the screen. This is basically the
+opposite to wait_still_screen. Make sure to put the commands to change the screen
+within the block to avoid races between the action and the screen change
+
+  wait_screen_change {
+     send_key 'esc';
+  };
+
+=cut
+
+sub wait_screen_change(&@) {
+    my ($callback) = @_;
+
+    bmwqemu::log_call('wait_screen_change');
+
+    # get the initial screen
+    $bmwqemu::backend->set_reference_screenshot;
+    $callback->() if $callback;
+
+    my $starttime        = time;
+    my $timeout          = 10;
+    my $similarity_level = 50;
+
+    while (time - $starttime < $timeout) {
+        my $sim = $bmwqemu::backend->similiarity_to_reference->{sim};
+        print "waiting for screen change: " . (time - $starttime) . " $sim\n";
+        if ($sim < $similarity_level) {
+            bmwqemu::fctres('wait_screen_change', "screen change seen at " . (time - $starttime));
+            return 1;
+        }
+        sleep(0.5);
+    }
+    save_screenshot;
+    bmwqemu::fctres('wait_screen_change', "timed out");
+    return 0;
+}
+
 =head2 wait_still_screen
 
-  wait_still_screen([$stilltime_sec [, $timeout_sec [, $similarity_level]]])
+  wait_still_screen([$stilltime_sec [, $timeout_sec [, $similarity_level]]]);
 
 Wait until the screen stops changing
 
@@ -293,7 +334,31 @@ sub wait_still_screen {
     my $similarity_level = shift || (get_var('HW') ? 44 : 47);
 
     bmwqemu::log_call('wait_still_screen', stilltime => $stilltime, timeout => $timeout, simlvl => $similarity_level);
-    return bmwqemu::wait_still_screen($stilltime, $timeout, $similarity_level);
+
+    $timeout = bmwqemu::scale_timeout($timeout);
+
+    my $starttime      = time;
+    my $lastchangetime = [gettimeofday];
+    $bmwqemu::backend->set_reference_screenshot;
+
+    while (time - $starttime < $timeout) {
+        my $sim = $bmwqemu::backend->similiarity_to_reference->{sim};
+        my $now = [gettimeofday];
+        if ($sim < $similarity_level) {
+
+            # a change
+            $lastchangetime = $now;
+            $bmwqemu::backend->set_reference_screenshot;
+        }
+        if (($now->[0] - $lastchangetime->[0]) + ($now->[1] - $lastchangetime->[1]) / 1000000. >= $stilltime) {
+            bmwqemu::fctres('wait_still_screen', "detected same image for $stilltime seconds");
+            return 1;
+        }
+        sleep(0.5);
+    }
+    $autotest::current_test->timeout_screenshot();
+    bmwqemu::fctres('wait_still_screen', "wait_still_screen timed out after $timeout");
+    return 0;
 }
 
 sub clear_console {
@@ -431,7 +496,8 @@ The exit status is checked by via magic string on the serial port.
 sub assert_script_run {
     my ($cmd, $timeout) = @_;
     my $str = time;
-    script_run("$cmd; echo $str-\$?- > /dev/$serialdev");
+    # call script_run with idle_timeout 0 so we don't wait twice
+    script_run("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $timeout);
     die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
 }
@@ -760,48 +826,6 @@ sub validate_script_output($&;$) {
     if ($res eq 'fail') {
         die "output not validating";
     }
-}
-
-=head2 wait_screen_change
-
-  wait_screen_change($code);
-
-wrapper around code that is supposed to change the screen. This is basically the
-opposite to wait_still_screen. Make sure to put the commands to change the screen
-within the block to avoid races between the action and the screen change
-
-  wait_screen_change {
-     send_key 'esc';
-  }
-
-=cut
-
-sub wait_screen_change(&@) {
-    my ($callback) = @_;
-
-    bmwqemu::log_call('wait_screen_change');
-
-    # get the initial screen
-    my $refimg = bmwqemu::getcurrentscreenshot();
-    $callback->() if $callback;
-
-    my $starttime        = time;
-    my $timeout          = 10;
-    my $similarity_level = 50;
-
-    while (time - $starttime < $timeout) {
-        my $img = bmwqemu::getcurrentscreenshot();
-        my $sim = $img->similarity($refimg);
-        print "waiting for screen change: " . (time - $starttime) . " $sim\n";
-        if ($sim < $similarity_level) {
-            bmwqemu::fctres('wait_screen_change', "screen change seen at " . (time - $starttime));
-            return 1;
-        }
-        sleep(0.5);
-    }
-    save_screenshot;
-    bmwqemu::fctres('wait_screen_change', "timed out");
-    return 0;
 }
 
 ## helpers end

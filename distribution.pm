@@ -85,8 +85,6 @@ sub script_run {
     # start console application
     my ($self, $name, $wait) = @_;
 
-    testapi::wait_idle();
-
     testapi::type_string "$name\n";
     testapi::wait_idle($wait);
 }

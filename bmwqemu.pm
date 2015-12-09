@@ -411,45 +411,6 @@ sub get_cpu_stat() {
 
 # runtime information gathering functions end
 
-# wait functions
-
-=head2 wait_still_screen
-
-wait_still_screen($stilltime_sec, $timeout_sec, $similarity_level)
-
-Wait until the screen stops changing
-
-=cut
-
-sub wait_still_screen {
-
-    my ($stilltime, $timeout, $similarity_level) = @_;
-
-    $timeout = scale_timeout($timeout);
-
-    my $starttime      = time;
-    my $lastchangetime = [gettimeofday];
-    my $lastchangeimg  = getcurrentscreenshot();
-    while (time - $starttime < $timeout) {
-        my $img = getcurrentscreenshot();
-        my $sim = $img->similarity($lastchangeimg);
-        my $now = [gettimeofday];
-        if ($sim < $similarity_level) {
-
-            # a change
-            $lastchangetime = $now;
-            $lastchangeimg  = $img;
-        }
-        if (($now->[0] - $lastchangetime->[0]) + ($now->[1] - $lastchangetime->[1]) / 1000000. >= $stilltime) {
-            fctres('wait_still_screen', "detected same image for $stilltime seconds");
-            return 1;
-        }
-        sleep(0.5);
-    }
-    current_test->timeout_screenshot();
-    fctres('wait_still_screen', "wait_still_screen timed out after $timeout");
-    return 0;
-}
 
 =head2 wait_idle
 
@@ -592,7 +553,7 @@ sub assert_screen {
             $interactive_mode = 0;
             save_status();
         }
-        if (-e $control_files{"stop_waitforneedle"}) {
+        if (-e $control_files{stop_waitforneedle}) {
             last;
         }
         my $statstr = get_cpu_stat();
