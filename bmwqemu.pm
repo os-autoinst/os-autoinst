@@ -690,18 +690,6 @@ sub _reduce_to_biggest_changes {
     return;
 }
 
-sub make_snapshot {
-    my ($sname) = @_;
-    diag("Creating a VM snapshot $sname");
-    return $backend->do_savevm({name => $sname});
-}
-
-sub load_snapshot {
-    my ($sname) = @_;
-    diag("Loading a VM snapshot $sname");
-    return $backend->do_loadvm({name => $sname});
-}
-
 # store the obj as json into the given filename
 sub save_json_file {
     my ($result, $fn) = @_;
