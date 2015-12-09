@@ -66,7 +66,6 @@ our $clock_ticks = POSIX::sysconf(&POSIX::_SC_CLK_TCK);
 
 our $istty;
 our $direct_output;
-our $timesidleneeded     = 1;
 our $standstillthreshold = scale_timeout(600);
 
 our %vars;
@@ -154,10 +153,9 @@ sub init {
     $testapi::distri = distribution->new unless $testapi::distri;
 
     # defaults
-    $vars{QEMUPORT}      ||= 15222;
-    $vars{VNC}           ||= 90;
-    $vars{INSTLANG}      ||= "en_US";
-    $vars{IDLETHRESHOLD} ||= 18;
+    $vars{QEMUPORT} ||= 15222;
+    $vars{VNC}      ||= 90;
+    $vars{INSTLANG} ||= "en_US";
     # openQA already sets a random string we can reuse
     $vars{JOBTOKEN} ||= random_string(10);
 
@@ -411,84 +409,6 @@ sub get_cpu_stat() {
 
 # runtime information gathering functions end
 
-# wait functions
-
-=head2 wait_still_screen
-
-wait_still_screen($stilltime_sec, $timeout_sec, $similarity_level)
-
-Wait until the screen stops changing
-
-=cut
-
-sub wait_still_screen {
-
-    my ($stilltime, $timeout, $similarity_level) = @_;
-
-    $timeout = scale_timeout($timeout);
-
-    my $starttime      = time;
-    my $lastchangetime = [gettimeofday];
-    my $lastchangeimg  = getcurrentscreenshot();
-    while (time - $starttime < $timeout) {
-        my $img = getcurrentscreenshot();
-        my $sim = $img->similarity($lastchangeimg);
-        my $now = [gettimeofday];
-        if ($sim < $similarity_level) {
-
-            # a change
-            $lastchangetime = $now;
-            $lastchangeimg  = $img;
-        }
-        if (($now->[0] - $lastchangetime->[0]) + ($now->[1] - $lastchangetime->[1]) / 1000000. >= $stilltime) {
-            fctres('wait_still_screen', "detected same image for $stilltime seconds");
-            return 1;
-        }
-        sleep(0.5);
-    }
-    current_test->timeout_screenshot();
-    fctres('wait_still_screen', "wait_still_screen timed out after $timeout");
-    return 0;
-}
-
-=head2 wait_idle
-
-Wait until the system becomes idle
-
-=cut
-
-sub wait_idle {
-    my ($timeout) = @_;
-    $timeout ||= $idle_timeout;
-    my $prev;
-    my $timesidle     = 0;
-    my $idlethreshold = $vars{IDLETHRESHOLD};
-
-    $timeout = scale_timeout($timeout);
-
-    for my $n (1 .. $timeout) {
-        my ($stat, $systemstat) = @{$backend->cpu_stat()};
-        sleep 1;    # sleep before skip to timeout when having no data (hw)
-        next unless $stat;
-        $stat += $systemstat;
-        if ($prev) {
-            my $diff = $stat - $prev;
-            diag("wait_idle $timesidle d=$diff");
-            if ($diff < $idlethreshold) {
-                if (++$timesidle > $timesidleneeded) {    # idle for $x sec
-                                                          #if($diff<2000000) # idle for one sec
-                    fctres('wait_idle', "idle detected");
-                    return 1;
-                }
-            }
-            else { $timesidle = 0 }
-        }
-        $prev = $stat;
-    }
-    fctres('wait_idle', "timed out after $timeout");
-    return 0;
-}
-
 sub save_needle_template {
     my ($img, $mustmatch, $tags) = @_;
 
@@ -592,7 +512,7 @@ sub assert_screen {
             $interactive_mode = 0;
             save_status();
         }
-        if (-e $control_files{"stop_waitforneedle"}) {
+        if (-e $control_files{stop_waitforneedle}) {
             last;
         }
         my $statstr = get_cpu_stat();

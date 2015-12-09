@@ -22,6 +22,14 @@ our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
 # should be a singleton - and only useful in backend thread
 our $backend;
 
+use parent qw(Class::Accessor::Fast);
+__PACKAGE__->mk_accessors(
+    qw(
+      update_request_interval last_update_request
+      screenshot_interval last_screenshot last_image
+      reference_screenshot)
+);
+
 sub new {
     my $class = shift;
     my $self = bless({class => $class}, $class);
@@ -51,12 +59,6 @@ sub die_handler {
 }
 
 
-use parent qw(Class::Accessor::Fast);
-__PACKAGE__->mk_accessors(
-    qw(
-      update_request_interval last_update_request
-      screenshot_interval last_screenshot)
-);
 
 sub run {
     my ($self, $cmdpipe, $rsppipe) = @_;
@@ -302,7 +304,6 @@ sub cpu_stat {
     return [];
 }
 
-my $lastscreenshot;
 my $lastscreenshotName;
 
 sub enqueue_screenshot {
@@ -317,6 +318,8 @@ sub enqueue_screenshot {
     my $filename = $bmwqemu::screenshotpath . sprintf("/shot-%010d.png", $framecounter);
     my $lastlink = $bmwqemu::screenshotpath . "/last.png";
 
+    my $lastscreenshot = $self->last_image;
+
     # link identical files to save space
     my $sim = 0;
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
@@ -329,7 +332,7 @@ sub enqueue_screenshot {
         $image->write($filename) || die "write $filename";
         # copy new one to shared directory, remove old one and change symlink
         $bmwqemu::screenshotQueue->enqueue($filename);
-        $lastscreenshot     = $image;
+        $self->last_image($image);
         $lastscreenshotName = $filename;
         no autodie qw(unlink);
         unlink($lastlink);
@@ -584,6 +587,34 @@ sub wait_serial {
     }
     $self->set_serial_offset();
     return {matched => $matched, string => $str};
+}
+
+# set_reference_screenshot and similiarity_to_reference are necessary to
+# implement wait_still and wait_changed functions in the tests without having
+# to transfer the screenshot into the test thread
+sub set_reference_screenshot {
+    my ($self, $args) = @_;
+
+    $self->reference_screenshot($self->last_image);
+    return;
+}
+
+
+sub similiarity_to_reference {
+    my ($self, $args) = @_;
+    if (!$self->reference_screenshot || !$self->last_image) {
+        return {sim => 10000};
+    }
+    return {sim => $self->reference_screenshot->similarity($self->last_image)};
+}
+
+sub wait_idle {
+    my ($self, $args) = @_;
+    my $timeout = $args->{timeout};
+
+    bmwqemu::diag("wait_idle sleeping for $timeout seconds");
+    $self->run_capture_loop(undef, $timeout);
+    return;
 }
 
 1;
