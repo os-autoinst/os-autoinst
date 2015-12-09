@@ -18,8 +18,8 @@ sub loadtest {
         warn "loadtest needs a script below $casedir - $script is not\n";
         $script = File::Spec->abs2rel($script, $bmwqemu::vars{CASEDIR});
     }
-    unless ($script =~ m,(\w+)/([^/]+)\.pm$,) {
-        die "loadtest needs a script to match \\w+/[^/]+.pm\n";
+    unless ($script =~ m,(\w+)/([^/]+)\.p[my]$,) {
+        die "loadtest needs a script to match \\w+/[^/]+.p[my]\n";
     }
     my $category = $1;
     my $name     = $2;
@@ -36,7 +36,19 @@ sub loadtest {
         $code .= "use lib '$casedir/lib';";
         my $basename = dirname($script);
         $code .= "use lib '$casedir/$basename';";
-        $code .= "require '$casedir/$script';";
+        if ($script =~ m/\.pm$/) {
+            $code .= "require '$casedir/$script';";
+        }
+        elsif ($script =~ m/\.py$/) {
+            $code .= "
+                use base 'basetest';
+                use Inline Python => <<'END_OF_PYTHON_CODE';\n";
+            $code .= `cat $casedir/$script`;
+            $code .= "\nEND_OF_PYTHON_CODE\n";
+        }
+        else {
+            die "impossible codepath";
+        }
         eval $code;    ## no critic
         if ($@) {
             my $msg = "error on $script: $@";
