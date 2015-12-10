@@ -249,25 +249,6 @@ sub timeout_screenshot() {
     $self->take_screenshot(sprintf("timeout-%02i", $n));
 }
 
-sub waitforprevimg {
-    my ($self, $previmg, $timeout) = @_;
-    $timeout ||= 5;
-
-    my $name = ref($self);
-    my $currentimg;
-
-    for (my $i = 0; $i <= $timeout; $i += 1) {
-        $currentimg = bmwqemu::getcurrentscreenshot();
-        my $sim = $currentimg->similarity($previmg);
-        bmwqemu::diag "$i: SIM $name $sim";
-        if ($sim >= 49) {
-            return;
-        }
-        sleep 1;
-    }
-    return $currentimg;
-}
-
 sub pre_run_hook {
     my ($self) = @_;
 
@@ -395,11 +376,12 @@ internal function to add a screenshot to an existing result structure
 =cut
 
 sub _result_add_screenshot {
-    my ($self, $result, $img) = @_;
+    my ($self, $result) = @_;
 
-    $img //= bmwqemu::getcurrentscreenshot();
+    my $img = $bmwqemu::backend->last_screenshot_name->{filename};
+    $img = tinycv::read($img);
 
-    my $count    = $self->{"test_count"};
+    my $count    = $self->{test_count};
     my $testname = ref($self);
 
     $result->{screenshot} = sprintf("%s-%d.png", $testname, $count);

@@ -156,6 +156,19 @@ sub has_property {
     return 0;
 }
 
+sub TO_JSON {
+    my ($self) = @_;
+
+    my $hash = {
+        tags       => $self->{tags},
+        properties => $self->{properties},
+        area       => $self->{area},
+        file       => $self->{file},
+        png        => $self->{png},
+        name       => $self->{name}};
+    return $hash;
+}
+
 sub wanted_ {
     return unless (m/.json$/);
     my $needle = needle->new($File::Find::name);

@@ -26,7 +26,7 @@ use parent qw(Class::Accessor::Fast);
 __PACKAGE__->mk_accessors(
     qw(
       update_request_interval last_update_request
-      screenshot_interval last_screenshot last_image
+      screenshot_interval last_screenshot last_screenshot_name_ last_image
       reference_screenshot)
 );
 
@@ -304,8 +304,6 @@ sub cpu_stat {
     return [];
 }
 
-my $lastscreenshotName;
-
 sub enqueue_screenshot {
     my ($self, $image) = @_;
 
@@ -326,24 +324,23 @@ sub enqueue_screenshot {
 
     # 54 is based on t/data/user-settings-*
     if ($sim > 54) {
-        symlink(basename($lastscreenshotName), $filename) || warn "failed to create $filename symlink: $!\n";
+        symlink(basename($self->last_screenshot_name_), $filename) || warn "failed to create $filename symlink: $!\n";
     }
     else {    # new
         $image->write($filename) || die "write $filename";
-        # copy new one to shared directory, remove old one and change symlink
-        $bmwqemu::screenshotQueue->enqueue($filename);
         $self->last_image($image);
-        $lastscreenshotName = $filename;
+        $self->last_screenshot_name_($filename);
         no autodie qw(unlink);
         unlink($lastlink);
-        symlink(basename($lastscreenshotName), $lastlink);
+        symlink(basename($self->last_screenshot_name_), $lastlink);
     }
     if ($self->{encoder_pipe}) {
         if ($sim > 50) {    # we ignore smaller differences
             $self->{encoder_pipe}->print("R\n");
         }
         else {
-            $self->{encoder_pipe}->print("E $lastscreenshotName\n");
+            my $name = $self->last_screenshot_name_;
+            $self->{encoder_pipe}->print("E $name\n");
         }
         $self->{encoder_pipe}->flush();
     }
@@ -376,8 +373,9 @@ sub check_socket {
         if ($cmd->{cmd}) {
             my $rsp = $self->handle_command($cmd);
             if ($self->{rsppipe}) {    # the command might have closed it
-                $self->{rsppipe}->print(JSON::to_json({rsp => $rsp}));
-                $self->{rsppipe}->print("\n");
+                my $JSON = JSON->new()->convert_blessed();
+                my $json = $JSON->encode({rsp => $rsp});
+                $self->{rsppipe}->print("$json\n");
             }
         }
         else {
@@ -615,6 +613,242 @@ sub wait_idle {
     bmwqemu::diag("wait_idle sleeping for $timeout seconds");
     $self->run_capture_loop(undef, $timeout);
     return;
+}
+
+our $clock_ticks = POSIX::sysconf(&POSIX::_SC_CLK_TCK);
+
+sub get_cpu_stat() {
+    my ($self) = @_;
+
+    my $cpustats = $self->cpu_stat();
+    return 'unk' unless $cpustats;
+    my ($statuser, $statsystem) = @$cpustats;
+    my $statstr = '';
+    if ($statuser) {
+        for ($statuser, $statsystem) { $_ /= $clock_ticks }
+        $statstr .= "statuser=$statuser ";
+        $statstr .= "statsystem=$statsystem ";
+    }
+    return $statstr;
+}
+
+sub save_needle_template {
+    my ($img, $mustmatch, $tags) = @_;
+
+    my $t = POSIX::strftime("%Y%m%d_%H%M%S", gmtime());
+
+    # limit the filename
+    $mustmatch = substr $mustmatch, 0, 30;
+    my $imgfn  = bmwqemu::result_dir() . "/template-$mustmatch-$t.png";
+    my $jsonfn = bmwqemu::result_dir() . "/template-$mustmatch-$t.json";
+
+    my $template = {
+        area => [
+            {
+                xpos   => 0,
+                ypos   => 0,
+                width  => $img->xres(),
+                height => $img->yres(),
+                type   => 'match',
+                margin => 50,             # Search margin for the area.
+            }
+        ],
+        tags       => [@$tags],
+        properties => [],
+    };
+
+    $img->write($imgfn);
+
+    open(my $fd, ">", $jsonfn);
+    print $fd JSON->new->pretty->encode($template);
+    close($fd);
+
+    diag("wrote $jsonfn");
+
+    return {img => $jsonfn, needle => $jsonfn, name => $mustmatch};
+}
+
+sub assert_screen {
+    my ($self, $args) = @_;
+    my $mustmatch    = $args->{mustmatch};
+    my $timeout      = $args->{timeout} // $bmwqemu::default_timeout;
+    my $check_screen = $args->{check};
+
+    # get the array reference to all matching needles
+    my $needles = [];
+    my @tags;
+    if (ref($mustmatch) eq "ARRAY") {
+        my @a = @$mustmatch;
+        while (my $n = shift @a) {
+            if (ref($n) eq '') {
+                push @tags, split(/ /, $n);
+                $n = needle::tags($n);
+                push @a, @$n if $n;
+                next;
+            }
+            unless (ref($n) eq 'needle' && $n->{name}) {
+                warn "invalid needle passed <" . ref($n) . "> " . pp($n);
+                next;
+            }
+            push @$needles, $n;
+        }
+    }
+    elsif ($mustmatch) {
+        $needles = needle::tags($mustmatch) || [];
+        @tags = ($mustmatch);
+    }
+
+    {    # remove duplicates
+        my %h = map { $_ => 1 } @tags;
+        @tags = sort keys %h;
+    }
+    $mustmatch = join('_', @tags);
+
+    if (!@$needles) {
+        diag("NO matching needles for $mustmatch");
+    }
+
+    # we keep a collection of mismatched screens
+    my $failed_screens = [];
+
+    my $img          = $self->last_image;
+    my $img_filename = $self->last_screenshot_name_;
+    my $oldimg;
+    my $oldimg_filename;
+    my $old_search_ratio = 0;
+    my $failed_candidates;
+    for (my $n = $timeout; $n >= 0; $n--) {
+        my $search_ratio = 0.02;
+        $search_ratio = 1 if ($n % 6 == 5) || ($n == 0);
+
+        if ($bmwqemu::stop_waitforneedle) {
+            last;
+        }
+        my $statstr = $self->get_cpu_stat();
+        if ($oldimg) {
+            $self->run_capture_loop(undef, 1);
+            $img          = $self->last_image;
+            $img_filename = $self->last_screenshot_name_;
+            if (!$img) {    # standstill. Save fail needle.
+                $img          = $oldimg;
+                $img_filename = $oldimg_filename;
+                # not using last here so we search the
+                # standstill image too, in case we
+                # are in the post fail hook
+                $n = -1;
+            }
+            elsif ($oldimg == $img && $search_ratio <= $old_search_ratio) {    # no change, no need to search
+                diag(sprintf("no change %d $statstr", $n));
+                next;
+            }
+        }
+        my $foundneedle;
+        ($foundneedle, $failed_candidates) = $img->search($needles, 0, $search_ratio);
+        if ($foundneedle) {
+            return {filename => $img_filename, found => $foundneedle, tags => \@tags, candidates => $failed_candidates};
+        }
+
+        if ($search_ratio == 1) {
+            # save only failures where the whole screen has been searched
+            # results of partial searching are rather confusing
+
+            # as the images create memory pressure, we only save quite different images
+            # the last screen is handled automatically and the first needle is only interesting
+            # if there are no others
+            my $sim = 29;
+            if ($failed_screens->[-1] && $n > 0) {
+                $sim = $failed_screens->[-1]->[0]->similarity($img);
+            }
+            if ($sim < 30) {
+                push(@$failed_screens, [$img, $failed_candidates, $n, $sim, $img_filename]);
+            }
+            # clean up every once in a while to avoid excessive memory consumption.
+            # The value here is an arbitrary limit.
+            if (@$failed_screens > 60) {
+                _reduce_to_biggest_changes($failed_screens, 20);
+            }
+            diag("STAT $n $statstr - similarity: $sim");
+        }
+        $oldimg           = $img;
+        $oldimg_filename  = $img_filename;
+        $old_search_ratio = $search_ratio;
+    }
+
+    bmwqemu::fctres('assert_screen', "match=$mustmatch timed out after $timeout");
+    for (@{$needles || []}) {
+        diag $_->{file};
+    }
+
+    my $needle_template = save_needle_template($img, $mustmatch, \@tags);
+
+    my $final_mismatch = $failed_screens->[-1];
+    if (!$check_screen) {
+        _reduce_to_biggest_changes($failed_screens, 20);
+        # only append the last mismatch if it's different to the last one in the reduced list
+        my $new_final = $failed_screens->[-1];
+        if ($new_final != $final_mismatch) {
+            my $sim = $new_final->[0]->similarity($final_mismatch->[0]);
+            print "FINAL SIM $sim\n";
+            push(@$failed_screens, $final_mismatch) if ($sim < 50);
+        }
+    }
+    else {
+        $failed_screens = [$final_mismatch];
+    }
+
+    my @json_fails;
+    for my $l (@$failed_screens) {
+        my ($img, $failed_candidates, $testtime, $similarity, $filename) = @$l;
+        push(
+            @json_fails,
+            {
+                candidates => $failed_candidates,
+                filename   => $filename
+            });
+    }
+
+    CORE::say bmwqemu::pp(\@json_fails);
+    return {failed_screens => \@json_fails, tags => \@tags};
+}
+
+sub _reduce_to_biggest_changes {
+    my ($imglist, $limit) = @_;
+
+    return if @$imglist <= $limit;
+
+    diag("shrinking imglist " . $#$imglist);
+    diag("sim " . join(' ', map { sprintf("%4.2f", $_->[3]) } @$imglist));
+
+    my $first = shift @$imglist;
+    @$imglist = (sort { $b->[3] <=> $a->[3] } @$imglist)[0 .. (@$imglist > $limit ? $limit - 1 : $#$imglist)];
+    unshift @$imglist, $first;
+
+    diag("imglist now " . $#$imglist);
+
+    # now sort for test time
+    @$imglist = sort { $b->[2] <=> $a->[2] } @$imglist;
+
+    # recalculate similarity
+    for (my $i = 1; $i < @$imglist; ++$i) {
+        $imglist->[$i]->[3] = $imglist->[$i - 1]->[0]->similarity($imglist->[$i]->[0]);
+    }
+
+    diag("sim " . join(' ', map { sprintf("%4.2f", $_->[3]) } @$imglist));
+    return;
+}
+
+sub freeze_vm {
+    # qemu specific - all other backends will crash
+    return $backend->handle_qmp_command({"execute" => "stop"});
+}
+
+sub cont_vm {
+    return $backend->handle_qmp_command({"execute" => "cont"});
+}
+
+sub last_screenshot_name {
+    my ($self, $args) = @_;
+    return {filename => $self->last_screenshot_name_};
 }
 
 1;
