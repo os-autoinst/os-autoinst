@@ -5,7 +5,7 @@ use Exporter;
 use strict;
 use warnings;
 use File::Basename qw(basename);
-use Time::HiRes qw(sleep gettimeofday);
+use Time::HiRes qw(sleep gettimeofday tv_interval);
 use Mojo::DOM;
 require IPC::System::Simple;
 use autodie qw(:all);
@@ -86,41 +86,55 @@ sub _check_or_assert {
 
     die "current_test undefined" unless $autotest::current_test;
 
-    my $rsp = $bmwqemu::backend->assert_screen({mustmatch => $mustmatch, timeout => $timeout});
-    if ($rsp->{found}) {
-        my $foundneedle = $rsp->{found};
-        # convert the needle back to an object
-        $foundneedle->{needle} = needle->new($foundneedle->{needle});
-        my $img = tinycv::read($rsp->{filename});
-        $autotest::current_test->record_screenmatch($img, $foundneedle, $rsp->{tags}, $rsp->{candidates});
-        my $lastarea = $foundneedle->{area}->[-1];
-        bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
-        $last_matched_needle = $foundneedle;
-        return $foundneedle;
+    my $rsp = $bmwqemu::backend->set_tags_to_assert({mustmatch => $mustmatch, timeout => $timeout});
+    my $tags = $rsp->{tags};
+    # we ignore timeout here as the backend might be set into interactive mode and then
+    # the timeout is meaningless
+    while (1) {
+        my ($seconds, $microseconds) = gettimeofday;
+        my $rsp = $bmwqemu::backend->check_asserted_screen;
+        if ($rsp->{found}) {
+            my $foundneedle = $rsp->{found};
+            # convert the needle back to an object
+            $foundneedle->{needle} = needle->new($foundneedle->{needle});
+            my $img = tinycv::read($rsp->{filename});
+            $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
+            my $lastarea = $foundneedle->{area}->[-1];
+            bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+            $last_matched_needle = $foundneedle;
+            return $foundneedle;
+        }
+        if ($rsp->{timeout}) {
+            bmwqemu::fctres('assert_screen', "match=" . join(',', @$tags) . " timed out after $timeout");
+            my $failed_screens = $rsp->{failed_screens};
+            my $final_mismatch = $failed_screens->[-1];
+            if ($check) {
+                # only care for the last one
+                $failed_screens = [$final_mismatch];
+            }
+            for my $l (@$failed_screens) {
+                my $img = tinycv::read($l->{filename});
+                my $result = $check ? 'unk' : 'fail';
+                $result = 'unk' if ($l != $final_mismatch);
+                $autotest::current_test->record_screenfail(
+                    img     => $img,
+                    needles => $l->{candidates},
+                    tags    => $tags,
+                    result  => $result,
+                    overall => $check ? undef : 'fail'
+                );
+            }
+            if (!$check) {
+                bmwqemu::mydie("needle(s) '$mustmatch' not found");
+            }
+            return;
+        }
+        my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
+        # sleep the remains of one second
+        $delta = 1 - $delta;
+        sleep $delta if ($delta > 0);
     }
-    bmwqemu::fctres('assert_screen', "match=$mustmatch timed out after $timeout");
-    my $failed_screens = $rsp->{failed_screens};
-    my $final_mismatch = $failed_screens->[-1];
-    if ($check) {
-        # only care for the last one
-        $failed_screens = [$final_mismatch];
-    }
-    for my $l (@$failed_screens) {
-        my $img = tinycv::read($l->{filename});
-        my $result = $check ? 'unk' : 'fail';
-        $result = 'unk' if ($l != $final_mismatch);
-        $autotest::current_test->record_screenfail(
-            img     => $img,
-            needles => $l->{candidates},
-            tags    => $rsp->{tags},
-            result  => $result,
-            overall => $check ? undef : 'fail'
-        );
-    }
-
-    if (!$check) {
-        bmwqemu::mydie("needle(s) '$mustmatch' not found");
-    }
+    return;    # never reached
 }
 
 sub assert_screen {

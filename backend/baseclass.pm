@@ -7,7 +7,7 @@ use Carp qw(cluck carp confess);
 use JSON qw( to_json );
 use File::Copy qw(cp);
 use File::Basename;
-use Time::HiRes qw(gettimeofday);
+use Time::HiRes qw(gettimeofday tv_interval);
 use bmwqemu;
 use IO::Select;
 require IPC::System::Simple;
@@ -25,10 +25,12 @@ our $backend;
 use parent qw(Class::Accessor::Fast);
 __PACKAGE__->mk_accessors(
     qw(
-      update_request_interval last_update_request
-      screenshot_interval last_screenshot last_screenshot_name_ last_image
-      reference_screenshot)
-);
+      update_request_interval last_update_request screenshot_interval
+      last_screenshot last_screenshot_name_ last_image
+      reference_screenshot
+      assert_screen_tags assert_screen_needles assert_screen_deadline
+      assert_screen_fails assert_screen_last_check
+      ));
 
 sub new {
     my $class = shift;
@@ -57,8 +59,6 @@ sub die_handler {
     $backend->stop_vm();
     $backend->close_pipes();
 }
-
-
 
 sub run {
     my ($self, $cmdpipe, $rsppipe) = @_;
@@ -615,7 +615,7 @@ sub wait_idle {
     return;
 }
 
-sub assert_screen {
+sub set_tags_to_assert {
     my ($self, $args) = @_;
     my $mustmatch = $args->{mustmatch};
     my $timeout = $args->{timeout} // $bmwqemu::default_timeout;
@@ -654,58 +654,24 @@ sub assert_screen {
         diag("NO matching needles for $mustmatch");
     }
 
-    # we keep a collection of mismatched screens
-    my $failed_screens = [];
+    $self->assert_screen_deadline(time + $timeout);
+    $self->assert_screen_fails([]);
+    $self->assert_screen_needles($needles);
+    # store them for needle reload event
+    $self->assert_screen_tags(\@tags);
+    return {tags => \@tags};
+}
 
-    my $img          = $self->last_image;
-    my $img_filename = $self->last_screenshot_name_;
-    my $oldimg;
-    my $old_search_ratio = 0;
-    my $failed_candidates;
-    for (my $n = $timeout; $n >= 0; $n--) {
-        my $search_ratio = 0.02;
-        $search_ratio = 1 if ($n % 6 == 5) || ($n == 0);
+sub _time_to_assert_screen_deadline {
+    my ($self) = @_;
 
-        if ($oldimg) {
-            $self->run_capture_loop(undef, 1);
-            $img          = $self->last_image;
-            $img_filename = $self->last_screenshot_name_;
-            if ($oldimg == $img && $search_ratio <= $old_search_ratio) {    # no change, no need to search
-                diag(sprintf("no change %d", $n));
-                next;
-            }
-        }
-        my $foundneedle;
-        ($foundneedle, $failed_candidates) = $img->search($needles, 0, $search_ratio);
-        if ($foundneedle) {
-            return {filename => $img_filename, found => $foundneedle, tags => \@tags, candidates => $failed_candidates};
-        }
+    return $self->assert_screen_deadline - time;
+}
 
-        if ($search_ratio == 1) {
-            # save only failures where the whole screen has been searched
-            # results of partial searching are rather confusing
+sub _failed_screens_to_json {
+    my ($self) = @_;
 
-            # as the images create memory pressure, we only save quite different images
-            # the last screen is handled automatically and the first needle is only interesting
-            # if there are no others
-            my $sim = 29;
-            if ($failed_screens->[-1] && $n > 0) {
-                $sim = $failed_screens->[-1]->[0]->similarity($img);
-            }
-            if ($sim < 30) {
-                push(@$failed_screens, [$img, $failed_candidates, $n, $sim, $img_filename]);
-            }
-            # clean up every once in a while to avoid excessive memory consumption.
-            # The value here is an arbitrary limit.
-            if (@$failed_screens > 60) {
-                _reduce_to_biggest_changes($failed_screens, 20);
-            }
-        }
-        diag("no match $n");
-        $oldimg           = $img;
-        $old_search_ratio = $search_ratio;
-    }
-
+    my $failed_screens = $self->assert_screen_fails;
     my $final_mismatch = $failed_screens->[-1];
     _reduce_to_biggest_changes($failed_screens, 20);
     # only append the last mismatch if it's different to the last one in the reduced list
@@ -725,7 +691,62 @@ sub assert_screen {
         push(@json_fails, $h);
     }
 
-    return {failed_screens => \@json_fails, tags => \@tags};
+    # free memory
+    $self->assert_screen_fails([]);
+    return {timeout => 1, failed_screens => \@json_fails};
+}
+
+sub check_asserted_screen {
+    my ($self, $args) = @_;
+
+    my $n = $self->_time_to_assert_screen_deadline;
+
+    if ($n < 0) {
+        return $self->_failed_screens_to_json;
+    }
+
+    my $search_ratio = 0.02;
+    $search_ratio = 1 if ($n % 5 == 0);
+
+    my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || ['', 0]};
+
+    my $img          = $self->last_image;
+    my $img_filename = $self->last_screenshot_name_;
+
+    if ($img_filename eq $oldimg && $old_search_ratio >= $search_ratio) {
+        diag("no change $n");
+        return;
+    }
+
+    my ($foundneedle, $failed_candidates) = $self->last_image->search($self->assert_screen_needles, 0, $search_ratio);
+    if ($foundneedle) {
+        return {filename => $img_filename, found => $foundneedle, candidates => $failed_candidates};
+    }
+
+    if ($search_ratio == 1) {
+        # save only failures where the whole screen has been searched
+        # results of partial searching are rather confusing
+
+        # as the images create memory pressure, we only save quite different images
+        # the last screen is handled automatically and the first needle is only interesting
+        # if there are no others
+        my $sim            = 29;
+        my $failed_screens = $self->assert_screen_fails;
+        if ($failed_screens->[-1] && $n > 0) {
+            $sim = $failed_screens->[-1]->[0]->similarity($img);
+        }
+        if ($sim < 30) {
+            push(@$failed_screens, [$img, $failed_candidates, $n, $sim, $img_filename]);
+        }
+        # clean up every once in a while to avoid excessive memory consumption.
+        # The value here is an arbitrary limit.
+        if (@$failed_screens > 60) {
+            _reduce_to_biggest_changes($failed_screens, 20);
+        }
+    }
+    diag("no match $n");
+    $self->assert_screen_last_check([$img_filename, $search_ratio]);
+    return;
 }
 
 sub _reduce_to_biggest_changes {
