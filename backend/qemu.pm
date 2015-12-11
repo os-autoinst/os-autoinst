@@ -844,6 +844,17 @@ sub wait_idle {
     return;
 }
 
+sub freeze_vm {
+    my ($self) = @_;
+    # qemu specific - all other backends will crash
+    return $self->handle_qmp_command({"execute" => "stop"});
+}
+
+sub cont_vm {
+    my ($self) = @_;
+    return $self->handle_qmp_command({"execute" => "cont"});
+}
+
 1;
 
 # vim: set sw=4 et:

@@ -88,9 +88,30 @@ sub _check_or_assert {
 
     my $rsp = $bmwqemu::backend->set_tags_to_assert({mustmatch => $mustmatch, timeout => $timeout});
     my $tags = $rsp->{tags};
+
     # we ignore timeout here as the backend might be set into interactive mode and then
     # the timeout is meaningless
     while (1) {
+        if (-e $bmwqemu::control_files{stop_waitforneedle}) {
+            $bmwqemu::backend->stop_assert_screen;
+            unlink($bmwqemu::control_files{stop_waitforneedle});
+        }
+        if (-e $bmwqemu::control_files{interactive_mode}) {
+            $bmwqemu::backend->interactive_assert_screen({interactive => 1});
+            $bmwqemu::interactive_mode = 1;
+            bmwqemu::save_status();
+        }
+        elsif ($bmwqemu::interactive_mode) {
+            $bmwqemu::backend->interactive_assert_screen({interactive => 0});
+            $bmwqemu::interactive_mode = 0;
+            bmwqemu::save_status();
+        }
+
+        if (-e $bmwqemu::control_files{reload_needles_and_retry}) {
+            $bmwqemu::backend->reload_needles_and_retry;
+            unlink($bmwqemu::control_files{reload_needles_and_retry});
+        }
+
         my ($seconds, $microseconds) = gettimeofday;
         my $rsp = $bmwqemu::backend->check_asserted_screen;
         if ($rsp->{found}) {
@@ -128,6 +149,47 @@ sub _check_or_assert {
                 bmwqemu::mydie("needle(s) '$mustmatch' not found");
             }
             return;
+        }
+        if ($rsp->{waiting_for_needle}) {
+            my $img = tinycv::read($rsp->{filename});
+            $autotest::current_test->record_screenfail(
+                img     => $img,
+                needles => $rsp->{candidates},
+                tags    => $tags,
+                result  => $check ? undef : 'fail',
+                # do not set overall here as the result will be removed later
+            );
+
+            if (!-e $bmwqemu::control_files{stop_waitforneedle}) {
+                open(my $fd, '>', $bmwqemu::control_files{stop_waitforneedle});
+                close $fd;
+            }
+
+            $bmwqemu::waiting_for_new_needle = 1;
+
+            bmwqemu::save_status();
+            $autotest::current_test->save_test_result();
+
+            bmwqemu::diag("interactive mode waiting for continuation");
+            while (-e $bmwqemu::control_files{stop_waitforneedle}) {
+                if (-e $bmwqemu::control_files{reload_needles_and_retry}) {
+                    unlink($bmwqemu::control_files{stop_waitforneedle});
+                    last;
+                }
+                sleep 1;
+            }
+            bmwqemu::diag("continuing");
+
+            $autotest::current_test->remove_last_result();
+
+            my $reload_needles = 0;
+            if (-e $bmwqemu::control_files{reload_needles_and_retry}) {
+                unlink($bmwqemu::control_files{reload_needles_and_retry});
+                $reload_needles = 1;
+            }
+            $bmwqemu::waiting_for_new_needle = 0;
+            bmwqemu::save_status();
+            $bmwqemu::backend->retry_assert_screen({reload_needles => $reload_needles});
         }
         my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
         # sleep the remains of one second

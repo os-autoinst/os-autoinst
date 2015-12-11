@@ -27,7 +27,7 @@ __PACKAGE__->mk_accessors(
     qw(
       update_request_interval last_update_request screenshot_interval
       last_screenshot last_screenshot_name_ last_image
-      reference_screenshot
+      reference_screenshot interactive_mode
       assert_screen_tags assert_screen_needles assert_screen_deadline
       assert_screen_fails assert_screen_last_check
       ));
@@ -620,14 +620,17 @@ sub set_tags_to_assert {
     my $mustmatch = $args->{mustmatch};
     my $timeout = $args->{timeout} // $bmwqemu::default_timeout;
 
+    CORE::say "set_tags " . bmwqemu::pp($args);
     # get the array reference to all matching needles
     my $needles = [];
     my @tags;
     if (ref($mustmatch) eq "ARRAY") {
         my @a = @$mustmatch;
         while (my $n = shift @a) {
+            bmwqemu::diag "AN " . ref($n);
             if (ref($n) eq '') {
                 push @tags, split(/ /, $n);
+                bmwqemu::diag "NT " . ref($n);
                 $n = needle::tags($n);
                 push @a, @$n if $n;
                 next;
@@ -702,6 +705,11 @@ sub check_asserted_screen {
     my $n = $self->_time_to_assert_screen_deadline;
 
     if ($n < 0) {
+        if ($self->interactive_mode) {
+            my ($foundneedle, $failed_candidates) = $self->last_image->search($self->assert_screen_needles, 0, 1);
+            $self->freeze_vm();
+            return {waiting_for_needle => 1, filename => $self->last_screenshot_name_, candidates => $failed_candidates};
+        }
         return $self->_failed_screens_to_json;
     }
 
@@ -770,17 +778,47 @@ sub _reduce_to_biggest_changes {
 }
 
 sub freeze_vm {
-    # qemu specific - all other backends will crash
-    return $backend->handle_qmp_command({"execute" => "stop"});
+    my ($self) = @_;
+    bmwqemu::diag "ignored freeze_vm";
+    return;
 }
 
 sub cont_vm {
-    return $backend->handle_qmp_command({"execute" => "cont"});
+    my ($self) = @_;
+    bmwqemu::diag "ignored cont_vm";
+    return;
 }
 
 sub last_screenshot_name {
     my ($self, $args) = @_;
     return {filename => $self->last_screenshot_name_};
+}
+
+sub interactive_assert_screen {
+    my ($self, $args) = @_;
+    $self->interactive_mode($args->{interactive});
+    return;
+}
+
+sub stop_assert_screen {
+    my ($self, $args) = @_;
+    return;
+}
+
+sub retry_assert_screen {
+    my ($self, $args) = @_;
+
+    CORE::say "retry " . bmwqemu::pp($args);
+    if ($args->{reload_needles}) {
+        for my $n (needle->all()) {
+            $n->unregister();
+        }
+        needle::init();
+    }
+    $self->cont_vm;
+    # short timeout, we're already there
+    $self->set_tags_to_assert({mustmatch => $self->assert_screen_tags, timeout => 5});
+    return;
 }
 
 1;

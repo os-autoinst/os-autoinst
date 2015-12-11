@@ -51,9 +51,9 @@ our $screenshotpath = "qemuscreenshot";
 
 # list of files that are used to control the behavior
 our %control_files = (
-    "reload_needles_and_retry" => "reload_needles_and_retry",
-    "interactive_mode"         => "interactive_mode",
-    "stop_waitforneedle"       => "stop_waitforneedle",
+    reload_needles_and_retry => "reload_needles_and_retry",
+    interactive_mode         => "interactive_mode",
+    stop_waitforneedle       => "stop_waitforneedle",
 );
 
 # global vars
@@ -361,12 +361,6 @@ sub save_status {
 
     return save_json_file($result, result_dir . "/status.json");
 }
-
-#FIXME: new wait functions
-# wait-time - like sleep but prints info to log
-# wait-screen-(un)-active to catch reboot of hardware
-
-# wait functions end
 
 sub clean_control_files {
     no autodie qw(unlink);    # control files might not exist
