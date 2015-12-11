@@ -86,7 +86,7 @@ sub _check_or_assert {
 
     die "current_test undefined" unless $autotest::current_test;
 
-    my $rsp = $bmwqemu::backend->assert_screen({mustmatch => $mustmatch, timeout => $timeout, check => $check});
+    my $rsp = $bmwqemu::backend->assert_screen({mustmatch => $mustmatch, timeout => $timeout});
     if ($rsp->{found}) {
         my $foundneedle = $rsp->{found};
         # convert the needle back to an object
@@ -98,8 +98,13 @@ sub _check_or_assert {
         $last_matched_needle = $foundneedle;
         return $foundneedle;
     }
+    bmwqemu::fctres('assert_screen', "match=$mustmatch timed out after $timeout");
     my $failed_screens = $rsp->{failed_screens};
     my $final_mismatch = $failed_screens->[-1];
+    if ($check) {
+        # only care for the last one
+        $failed_screens = [$final_mismatch];
+    }
     for my $l (@$failed_screens) {
         my $img = tinycv::read($l->{filename});
         my $result = $check ? 'unk' : 'fail';

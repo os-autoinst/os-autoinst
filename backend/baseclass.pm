@@ -615,64 +615,10 @@ sub wait_idle {
     return;
 }
 
-our $clock_ticks = POSIX::sysconf(&POSIX::_SC_CLK_TCK);
-
-sub get_cpu_stat() {
-    my ($self) = @_;
-
-    my $cpustats = $self->cpu_stat();
-    return 'unk' unless $cpustats;
-    my ($statuser, $statsystem) = @$cpustats;
-    my $statstr = '';
-    if ($statuser) {
-        for ($statuser, $statsystem) { $_ /= $clock_ticks }
-        $statstr .= "statuser=$statuser ";
-        $statstr .= "statsystem=$statsystem ";
-    }
-    return $statstr;
-}
-
-sub save_needle_template {
-    my ($img, $mustmatch, $tags) = @_;
-
-    my $t = POSIX::strftime("%Y%m%d_%H%M%S", gmtime());
-
-    # limit the filename
-    $mustmatch = substr $mustmatch, 0, 30;
-    my $imgfn  = bmwqemu::result_dir() . "/template-$mustmatch-$t.png";
-    my $jsonfn = bmwqemu::result_dir() . "/template-$mustmatch-$t.json";
-
-    my $template = {
-        area => [
-            {
-                xpos   => 0,
-                ypos   => 0,
-                width  => $img->xres(),
-                height => $img->yres(),
-                type   => 'match',
-                margin => 50,             # Search margin for the area.
-            }
-        ],
-        tags       => [@$tags],
-        properties => [],
-    };
-
-    $img->write($imgfn);
-
-    open(my $fd, ">", $jsonfn);
-    print $fd JSON->new->pretty->encode($template);
-    close($fd);
-
-    diag("wrote $jsonfn");
-
-    return {img => $jsonfn, needle => $jsonfn, name => $mustmatch};
-}
-
 sub assert_screen {
     my ($self, $args) = @_;
-    my $mustmatch    = $args->{mustmatch};
-    my $timeout      = $args->{timeout} // $bmwqemu::default_timeout;
-    my $check_screen = $args->{check};
+    my $mustmatch = $args->{mustmatch};
+    my $timeout = $args->{timeout} // $bmwqemu::default_timeout;
 
     # get the array reference to all matching needles
     my $needles = [];
@@ -714,31 +660,18 @@ sub assert_screen {
     my $img          = $self->last_image;
     my $img_filename = $self->last_screenshot_name_;
     my $oldimg;
-    my $oldimg_filename;
     my $old_search_ratio = 0;
     my $failed_candidates;
     for (my $n = $timeout; $n >= 0; $n--) {
         my $search_ratio = 0.02;
         $search_ratio = 1 if ($n % 6 == 5) || ($n == 0);
 
-        if ($bmwqemu::stop_waitforneedle) {
-            last;
-        }
-        my $statstr = $self->get_cpu_stat();
         if ($oldimg) {
             $self->run_capture_loop(undef, 1);
             $img          = $self->last_image;
             $img_filename = $self->last_screenshot_name_;
-            if (!$img) {    # standstill. Save fail needle.
-                $img          = $oldimg;
-                $img_filename = $oldimg_filename;
-                # not using last here so we search the
-                # standstill image too, in case we
-                # are in the post fail hook
-                $n = -1;
-            }
-            elsif ($oldimg == $img && $search_ratio <= $old_search_ratio) {    # no change, no need to search
-                diag(sprintf("no change %d $statstr", $n));
+            if ($oldimg == $img && $search_ratio <= $old_search_ratio) {    # no change, no need to search
+                diag(sprintf("no change %d", $n));
                 next;
             }
         }
@@ -767,47 +700,31 @@ sub assert_screen {
             if (@$failed_screens > 60) {
                 _reduce_to_biggest_changes($failed_screens, 20);
             }
-            diag("STAT $n $statstr - similarity: $sim");
         }
+        diag("no match $n");
         $oldimg           = $img;
-        $oldimg_filename  = $img_filename;
         $old_search_ratio = $search_ratio;
     }
 
-    bmwqemu::fctres('assert_screen', "match=$mustmatch timed out after $timeout");
-    for (@{$needles || []}) {
-        diag $_->{file};
-    }
-
-    my $needle_template = save_needle_template($img, $mustmatch, \@tags);
-
     my $final_mismatch = $failed_screens->[-1];
-    if (!$check_screen) {
-        _reduce_to_biggest_changes($failed_screens, 20);
-        # only append the last mismatch if it's different to the last one in the reduced list
-        my $new_final = $failed_screens->[-1];
-        if ($new_final != $final_mismatch) {
-            my $sim = $new_final->[0]->similarity($final_mismatch->[0]);
-            print "FINAL SIM $sim\n";
-            push(@$failed_screens, $final_mismatch) if ($sim < 50);
-        }
-    }
-    else {
-        $failed_screens = [$final_mismatch];
+    _reduce_to_biggest_changes($failed_screens, 20);
+    # only append the last mismatch if it's different to the last one in the reduced list
+    my $new_final = $failed_screens->[-1];
+    if ($new_final != $final_mismatch) {
+        my $sim = $new_final->[0]->similarity($final_mismatch->[0]);
+        push(@$failed_screens, $final_mismatch) if ($sim < 50);
     }
 
     my @json_fails;
     for my $l (@$failed_screens) {
         my ($img, $failed_candidates, $testtime, $similarity, $filename) = @$l;
-        push(
-            @json_fails,
-            {
-                candidates => $failed_candidates,
-                filename   => $filename
-            });
+        my $h = {
+            candidates => $failed_candidates,
+            filename   => $filename
+        };
+        push(@json_fails, $h);
     }
 
-    CORE::say bmwqemu::pp(\@json_fails);
     return {failed_screens => \@json_fails, tags => \@tags};
 }
 
@@ -816,14 +733,9 @@ sub _reduce_to_biggest_changes {
 
     return if @$imglist <= $limit;
 
-    diag("shrinking imglist " . $#$imglist);
-    diag("sim " . join(' ', map { sprintf("%4.2f", $_->[3]) } @$imglist));
-
     my $first = shift @$imglist;
     @$imglist = (sort { $b->[3] <=> $a->[3] } @$imglist)[0 .. (@$imglist > $limit ? $limit - 1 : $#$imglist)];
     unshift @$imglist, $first;
-
-    diag("imglist now " . $#$imglist);
 
     # now sort for test time
     @$imglist = sort { $b->[2] <=> $a->[2] } @$imglist;
@@ -833,7 +745,6 @@ sub _reduce_to_biggest_changes {
         $imglist->[$i]->[3] = $imglist->[$i - 1]->[0]->similarity($imglist->[$i]->[0]);
     }
 
-    diag("sim " . join(' ', map { sprintf("%4.2f", $_->[3]) } @$imglist));
     return;
 }
 
