@@ -26,7 +26,7 @@ use parent qw(Class::Accessor::Fast);
 __PACKAGE__->mk_accessors(
     qw(
       update_request_interval last_update_request screenshot_interval
-      last_screenshot last_screenshot_name_ last_image
+      last_screenshot _last_screenshot_name last_image
       reference_screenshot interactive_mode
       assert_screen_tags assert_screen_needles assert_screen_deadline
       assert_screen_fails assert_screen_last_check
@@ -324,22 +324,22 @@ sub enqueue_screenshot {
 
     # 54 is based on t/data/user-settings-*
     if ($sim > 54) {
-        symlink(basename($self->last_screenshot_name_), $filename) || warn "failed to create $filename symlink: $!\n";
+        symlink(basename($self->_last_screenshot_name), $filename) || warn "failed to create $filename symlink: $!\n";
     }
     else {    # new
         $image->write($filename) || die "write $filename";
         $self->last_image($image);
-        $self->last_screenshot_name_($filename);
+        $self->_last_screenshot_name($filename);
         no autodie qw(unlink);
         unlink($lastlink);
-        symlink(basename($self->last_screenshot_name_), $lastlink);
+        symlink(basename($self->_last_screenshot_name), $lastlink);
     }
     if ($self->{encoder_pipe}) {
         if ($sim > 50) {    # we ignore smaller differences
             $self->{encoder_pipe}->print("R\n");
         }
         else {
-            my $name = $self->last_screenshot_name_;
+            my $name = $self->_last_screenshot_name;
             $self->{encoder_pipe}->print("E $name\n");
         }
         $self->{encoder_pipe}->flush();
@@ -708,7 +708,7 @@ sub check_asserted_screen {
         if ($self->interactive_mode) {
             my ($foundneedle, $failed_candidates) = $self->last_image->search($self->assert_screen_needles, 0, 1);
             $self->freeze_vm();
-            return {waiting_for_needle => 1, filename => $self->last_screenshot_name_, candidates => $failed_candidates};
+            return {waiting_for_needle => 1, filename => $self->_last_screenshot_name, candidates => $failed_candidates};
         }
         return $self->_failed_screens_to_json;
     }
@@ -719,7 +719,7 @@ sub check_asserted_screen {
     my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || ['', 0]};
 
     my $img          = $self->last_image;
-    my $img_filename = $self->last_screenshot_name_;
+    my $img_filename = $self->_last_screenshot_name;
 
     if ($img_filename eq $oldimg && $old_search_ratio >= $search_ratio) {
         diag("no change $n");
@@ -791,7 +791,7 @@ sub cont_vm {
 
 sub last_screenshot_name {
     my ($self, $args) = @_;
-    return {filename => $self->last_screenshot_name_};
+    return {filename => $self->_last_screenshot_name};
 }
 
 sub interactive_assert_screen {
