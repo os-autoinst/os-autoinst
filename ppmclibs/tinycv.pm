@@ -25,7 +25,7 @@ sub mean_square_error {
     my $err;
 
     for my $area (@$areas) {
-        $err = 1 - $area->{"similarity"};
+        $err = 1 - $area->{similarity};
         $mse += $err * $err;
     }
     return $mse / scalar @$areas;
@@ -50,15 +50,18 @@ sub search_ {
 
     return unless $needle;
 
-    my $img = $self->copy;
+    my $img = $self;
     for my $a (@{$needle->{area}}) {
         push @exclude, $a if $a->{type} eq 'exclude';
         push @match,   $a if $a->{type} eq 'match';
         push @ocr,     $a if $a->{type} eq 'ocr';
     }
 
-    for my $a (@exclude) {
-        $img->replacerect($a->{xpos}, $a->{ypos}, $a->{width}, $a->{height});
+    if (@exclude) {
+        $img = $self->copy;
+        for my $a (@exclude) {
+            $img->replacerect($a->{xpos}, $a->{ypos}, $a->{width}, $a->{height});
+        }
     }
 
     my $ret = {ok => 1, needle => $needle, area => []};
@@ -66,7 +69,6 @@ sub search_ {
     for my $area (@match) {
         my $margin = int($area->{margin} + $search_ratio * (1024 - $area->{margin}));
         ($sim, $xmatch, $ymatch) = $img->search_needle($needle->get_image, $area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}, $margin);
-        bmwqemu::diag(sprintf("MATCH(%s:%.2f): $xmatch $ymatch [m:$margin]", $needle->{name}, $sim));
 
         my $ma = {
             similarity => $sim,
@@ -91,6 +93,7 @@ sub search_ {
     }
 
     $ret->{error} = mean_square_error($ret->{area});
+    bmwqemu::diag(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - $ret->{error}));
 
     if ($ret->{ok}) {
         for my $a (@ocr) {

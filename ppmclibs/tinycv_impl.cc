@@ -5,6 +5,7 @@
 #include <cerrno>
 #include <sys/time.h>
 
+#include <vector>
 #include <algorithm>    // std::min
 
 #include "opencv2/core/core.hpp"
@@ -15,16 +16,31 @@
 #include "tinycv.h"
 
 #define DEBUG 0
+#define DEBUG2 0
 
 #define VERY_DIFF 0.0
 #define VERY_SIM 1000000.0
 
 
 using namespace cv;
-
+using namespace std;
 
 struct Image {
   cv::Mat img;
+  mutable cv::Mat _preped;
+
+  cv::Mat prep() const {
+    if (!_preped.empty())
+      return _preped;
+
+    _preped = img.clone();
+
+    // blur the whole image to avoid differences depending on where the object is
+    GaussianBlur(_preped, _preped, Size(3, 3), 0, 0);
+
+    cvtColor(_preped, _preped, CV_BGR2GRAY );
+    return _preped;
+  }
 };
 
 // make box lines eq 0° or 90°
@@ -71,7 +87,7 @@ double enhancedMSE(const Mat& _I1, const Mat& _I2) {
   double total = I1.total();
   double mse = sse / total;
 
-#if DEBUG
+#if DEBUG2
   char f[200];
   sprintf(f, "debug-%lf-scene.png", mse);
   imwrite(f, I1);
@@ -119,7 +135,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
     std::cerr << "ERROR - search: out of range\n" << std::endl;
     return outvec;
   }
-  
+
   // Optimization -- Search close to the original area working with ROI
   int scene_x = std::max(0, int(x-margin));
   int scene_y = std::max(0, int(y-margin));
@@ -128,18 +144,9 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   int scene_width = scene_bottom_x - scene_x;
   int scene_height = scene_bottom_y - scene_y;
 
-  Mat scene_copy = scene->img.clone();
-  Mat object_copy = object->img.clone();
-
-  // blur the whole image to avoid differences depending on where the object is
-  GaussianBlur(scene_copy, scene_copy, Size(3, 3), 0, 0);
-  GaussianBlur(object_copy, object_copy, Size(3, 3), 0, 0);
+  Mat scene_copy = scene->prep();
+  Mat object_copy = object->prep();
   
-  cvtColor(scene_copy, scene_copy, CV_BGR2GRAY );
-  cvtColor(object_copy, object_copy, CV_BGR2GRAY );
-  
-  // Mat scene_roi = scene->img(Rect(scene_x, scene_y, scene_width, scene_height));
-  // Mat object_roi = object->img(Rect(x, y, width, height));
   Mat scene_roi(scene_copy, Rect(scene_x, scene_y, scene_width, scene_height));
   Mat object_roi(object_copy, Rect(x, y, width, height));
 
@@ -160,8 +167,8 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   // Perform the matching. Info about algorithm:
   // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
   // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
-  matchTemplate(scene_roi, object_roi, result, CV_TM_SQDIFF_NORMED);
-    
+  matchTemplate(scene_roi, object_roi, result, CV_TM_SQDIFF);
+
   // Localizing the best match with minMaxLoc
   double minval, maxval;
   Point  minloc, maxloc;
@@ -191,7 +198,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   gettimeofday(&tv2, 0);
   long tdiff = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
   std::cerr << "search_template "
-	    <<  tdiff << " ms"
+	    <<  tdiff << " ms "
 	    << " MSE " << mse
 	    << " sim:" << similarity
 	    << " minval:" << int(minval * 1000 + 0.5) << std::endl;

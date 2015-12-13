@@ -5,7 +5,7 @@ use Exporter;
 use strict;
 use warnings;
 use File::Basename qw(basename);
-use Time::HiRes qw(sleep gettimeofday);
+use Time::HiRes qw(sleep gettimeofday tv_interval);
 use Mojo::DOM;
 require IPC::System::Simple;
 use autodie qw(:all);
@@ -80,17 +80,136 @@ sub record_soft_failure {
     return;
 }
 
+sub _check_or_assert {
+    my ($mustmatch, $timeout, $check) = @_;
+    $timeout = bmwqemu::scale_timeout($timeout);
+
+    die "current_test undefined" unless $autotest::current_test;
+
+    my $rsp = $bmwqemu::backend->set_tags_to_assert({mustmatch => $mustmatch, timeout => $timeout});
+    my $tags = $rsp->{tags};
+
+    # we ignore timeout here as the backend might be set into interactive mode and then
+    # the timeout is meaningless
+    while (1) {
+        if (-e $bmwqemu::control_files{stop_waitforneedle}) {
+            $bmwqemu::backend->stop_assert_screen;
+            unlink($bmwqemu::control_files{stop_waitforneedle});
+        }
+        if (-e $bmwqemu::control_files{interactive_mode}) {
+            $bmwqemu::backend->interactive_assert_screen({interactive => 1});
+            $bmwqemu::interactive_mode = 1;
+            bmwqemu::save_status();
+        }
+        elsif ($bmwqemu::interactive_mode) {
+            $bmwqemu::backend->interactive_assert_screen({interactive => 0});
+            $bmwqemu::interactive_mode = 0;
+            bmwqemu::save_status();
+        }
+
+        if (-e $bmwqemu::control_files{reload_needles_and_retry}) {
+            $bmwqemu::backend->reload_needles_and_retry;
+            unlink($bmwqemu::control_files{reload_needles_and_retry});
+        }
+
+        my ($seconds, $microseconds) = gettimeofday;
+        my $rsp = $bmwqemu::backend->check_asserted_screen;
+        if ($rsp->{found}) {
+            my $foundneedle = $rsp->{found};
+            # convert the needle back to an object
+            $foundneedle->{needle} = needle->new($foundneedle->{needle});
+            my $img = tinycv::read($rsp->{filename});
+            $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
+            my $lastarea = $foundneedle->{area}->[-1];
+            bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+            $last_matched_needle = $foundneedle;
+            return $foundneedle;
+        }
+        if ($rsp->{timeout}) {
+            bmwqemu::fctres('assert_screen', "match=" . join(',', @$tags) . " timed out after $timeout");
+            my $failed_screens = $rsp->{failed_screens};
+            my $final_mismatch = $failed_screens->[-1];
+            if ($check) {
+                # only care for the last one
+                $failed_screens = [$final_mismatch];
+            }
+            for my $l (@$failed_screens) {
+                my $img = tinycv::read($l->{filename});
+                my $result = $check ? 'unk' : 'fail';
+                $result = 'unk' if ($l != $final_mismatch);
+                $autotest::current_test->record_screenfail(
+                    img     => $img,
+                    needles => $l->{candidates},
+                    tags    => $tags,
+                    result  => $result,
+                    overall => $check ? undef : 'fail'
+                );
+            }
+            if (!$check) {
+                bmwqemu::mydie("needle(s) '$mustmatch' not found");
+            }
+            return;
+        }
+        if ($rsp->{waiting_for_needle}) {
+            my $img = tinycv::read($rsp->{filename});
+            $autotest::current_test->record_screenfail(
+                img     => $img,
+                needles => $rsp->{candidates},
+                tags    => $tags,
+                result  => $check ? undef : 'fail',
+                # do not set overall here as the result will be removed later
+            );
+
+            if (!-e $bmwqemu::control_files{stop_waitforneedle}) {
+                open(my $fd, '>', $bmwqemu::control_files{stop_waitforneedle});
+                close $fd;
+            }
+
+            $bmwqemu::waiting_for_new_needle = 1;
+
+            bmwqemu::save_status();
+            $autotest::current_test->save_test_result();
+
+            bmwqemu::diag("interactive mode waiting for continuation");
+            while (-e $bmwqemu::control_files{stop_waitforneedle}) {
+                if (-e $bmwqemu::control_files{reload_needles_and_retry}) {
+                    unlink($bmwqemu::control_files{stop_waitforneedle});
+                    last;
+                }
+                sleep 1;
+            }
+            bmwqemu::diag("continuing");
+
+            $autotest::current_test->remove_last_result();
+
+            my $reload_needles = 0;
+            if (-e $bmwqemu::control_files{reload_needles_and_retry}) {
+                unlink($bmwqemu::control_files{reload_needles_and_retry});
+                $reload_needles = 1;
+            }
+            $bmwqemu::waiting_for_new_needle = 0;
+            bmwqemu::save_status();
+            $bmwqemu::backend->retry_assert_screen({reload_needles => $reload_needles});
+        }
+        my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
+        # sleep the remains of one second
+        $delta = 1 - $delta;
+        sleep $delta if ($delta > 0);
+    }
+    return;    # never reached
+}
+
 sub assert_screen {
     my ($mustmatch, $timeout) = @_;
     $timeout //= $bmwqemu::default_timeout;
     bmwqemu::log_call('assert_screen', mustmatch => $mustmatch, timeout => $timeout);
-    return $last_matched_needle = bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout);
+    return _check_or_assert($mustmatch, $timeout, 0);
 }
 
 sub check_screen {
     my ($mustmatch, $timeout) = @_;
     bmwqemu::log_call('check_screen', mustmatch => $mustmatch, timeout => $timeout);
-    return $last_matched_needle = bmwqemu::assert_screen(mustmatch => $mustmatch, timeout => $timeout, check => 1);
+    return _check_or_assert($mustmatch, $timeout, 1);
 }
 
 sub match_has_tag {
@@ -307,7 +426,7 @@ within the block to avoid races between the action and the screen change
 
 =cut
 
-sub wait_screen_change(&@;$) {
+sub wait_screen_change(&@) {
     my ($callback, $timeout) = @_;
     $timeout ||= 10;
 

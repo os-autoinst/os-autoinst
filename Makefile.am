@@ -8,11 +8,6 @@ doc_DATA = \
 	doc/basetest.html \
 	doc/testapi.html 
 
-packagestatedir = $(localstatedir)/lib/os-autoinst
-
-packagestate_DATA_FOLDERS = \
-	audio
-
 backendexecdir = $(pkglibexecdir)/backend
 backendexec_SCRIPTS = \
 	backend/baseclass.pm \

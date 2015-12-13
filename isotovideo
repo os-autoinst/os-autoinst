@@ -106,8 +106,9 @@ require $bmwqemu::vars{CASEDIR}."/main.pm";
 
 # init part
 bmwqemu::save_vars();
-bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
+# make sure the needles are initialized before the backend thread is started
 needle::init();
+bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
 
 if ($init) {
     open( my $fd, ">", "os-autoinst.pid" );
