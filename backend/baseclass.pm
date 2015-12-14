@@ -702,13 +702,19 @@ sub _failed_screens_to_json {
 sub check_asserted_screen {
     my ($self, $args) = @_;
 
-    my $n = $self->_time_to_assert_screen_deadline;
+    my $img          = $self->last_image;
+    my $img_filename = $self->_last_screenshot_name;
 
+    my $n = $self->_time_to_assert_screen_deadline;
     if ($n < 0) {
+        my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, 1);
         if ($self->interactive_mode) {
-            my ($foundneedle, $failed_candidates) = $self->last_image->search($self->assert_screen_needles, 0, 1);
             $self->freeze_vm();
-            return {waiting_for_needle => 1, filename => $self->_last_screenshot_name, candidates => $failed_candidates};
+            return {waiting_for_needle => 1, filename => $img_filename, candidates => $failed_candidates};
+        }
+        my $failed_screens = $self->assert_screen_fails;
+        if (!@$failed_screens) {
+            push(@$failed_screens, [$img, $failed_candidates, 0, 1000, $img_filename]);
         }
         return $self->_failed_screens_to_json;
     }
@@ -717,9 +723,6 @@ sub check_asserted_screen {
     $search_ratio = 1 if ($n % 5 == 0);
 
     my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || ['', 0]};
-
-    my $img          = $self->last_image;
-    my $img_filename = $self->_last_screenshot_name;
 
     if ($img_filename eq $oldimg && $old_search_ratio >= $search_ratio) {
         diag("no change $n");
