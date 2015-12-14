@@ -620,17 +620,14 @@ sub set_tags_to_assert {
     my $mustmatch = $args->{mustmatch};
     my $timeout = $args->{timeout} // $bmwqemu::default_timeout;
 
-    CORE::say "set_tags " . bmwqemu::pp($args);
     # get the array reference to all matching needles
     my $needles = [];
     my @tags;
     if (ref($mustmatch) eq "ARRAY") {
         my @a = @$mustmatch;
         while (my $n = shift @a) {
-            bmwqemu::diag "AN " . ref($n);
             if (ref($n) eq '') {
                 push @tags, split(/ /, $n);
-                bmwqemu::diag "NT " . ref($n);
                 $n = needle::tags($n);
                 push @a, @$n if $n;
                 next;
@@ -676,12 +673,14 @@ sub _failed_screens_to_json {
 
     my $failed_screens = $self->assert_screen_fails;
     my $final_mismatch = $failed_screens->[-1];
-    _reduce_to_biggest_changes($failed_screens, 20);
-    # only append the last mismatch if it's different to the last one in the reduced list
-    my $new_final = $failed_screens->[-1];
-    if ($new_final != $final_mismatch) {
-        my $sim = $new_final->[0]->similarity($final_mismatch->[0]);
-        push(@$failed_screens, $final_mismatch) if ($sim < 50);
+    if ($final_mismatch) {
+        _reduce_to_biggest_changes($failed_screens, 20);
+        # only append the last mismatch if it's different to the last one in the reduced list
+        my $new_final = $failed_screens->[-1];
+        if ($new_final != $final_mismatch) {
+            my $sim = $new_final->[0]->similarity($final_mismatch->[0]);
+            push(@$failed_screens, $final_mismatch) if ($sim < 50);
+        }
     }
 
     my @json_fails;
@@ -808,7 +807,6 @@ sub stop_assert_screen {
 sub retry_assert_screen {
     my ($self, $args) = @_;
 
-    CORE::say "retry " . bmwqemu::pp($args);
     if ($args->{reload_needles}) {
         for my $n (needle->all()) {
             $n->unregister();
