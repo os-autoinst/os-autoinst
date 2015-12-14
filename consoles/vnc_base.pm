@@ -133,7 +133,6 @@ sub type_string {
 sub send_key {
     my ($self, $args) = @_;
 
-    bmwqemu::diag "send_mapped_key '" . $args->{key} . "'";
     # FIXME the max_interval logic from type_string should go here, no?
     # and really, the screen should be checked for settling after key press...
     $self->{vnc}->map_and_send_key($args->{key});
