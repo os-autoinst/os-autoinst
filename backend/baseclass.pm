@@ -657,6 +657,7 @@ sub set_tags_to_assert {
     $self->assert_screen_deadline(time + $timeout);
     $self->assert_screen_fails([]);
     $self->assert_screen_needles($needles);
+    $self->assert_screen_last_check(undef);
     # store them for needle reload event
     $self->assert_screen_tags(\@tags);
     return {tags => \@tags};
