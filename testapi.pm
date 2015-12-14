@@ -208,6 +208,7 @@ sub assert_screen {
 
 sub check_screen {
     my ($mustmatch, $timeout) = @_;
+    $timeout //= $bmwqemu::default_timeout;
     bmwqemu::log_call('check_screen', mustmatch => $mustmatch, timeout => $timeout);
     return _check_or_assert($mustmatch, $timeout, 1);
 }
