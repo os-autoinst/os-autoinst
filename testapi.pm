@@ -234,10 +234,7 @@ sub assert_and_click {
 
     $dclick //= 0;
 
-    $last_matched_needle = bmwqemu::assert_screen(
-        mustmatch => $mustmatch,
-        timeout   => $timeout
-    );
+    $last_matched_needle = assert_screen($mustmatch, $timeout);
     my $old_mouse_coords = $bmwqemu::backend->get_last_mouse_set();
     bmwqemu::log_call('assert_and_click', mustmatch => $mustmatch, button => $button, timeout => $timeout);
 
