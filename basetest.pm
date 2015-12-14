@@ -134,7 +134,7 @@ sub _serialize_match {
     my ($self, $cand) = @_;
 
     my $testname = ref($self);
-    my $count    = $self->{"test_count"};
+    my $count    = $self->{test_count};
 
     my $candidates;
     my $diffcount = 0;
@@ -168,7 +168,7 @@ sub record_screenfail {
     my $status  = $args{result} || 'fail';
     my $overall = $args{overall};            # whether and how to set global test result
 
-    my $count    = ++$self->{"test_count"};
+    my $count    = ++$self->{test_count};
     my $testname = ref($self);
 
     my $candidates;
@@ -222,7 +222,7 @@ sub done() {
     my $self = shift;
     $self->{running} = 0;
     $self->{result} ||= 'ok';
-    unless ($self->{"test_count"}) {
+    unless ($self->{test_count}) {
         $self->take_screenshot();
     }
     autotest::set_current_test(undef);
@@ -313,7 +313,7 @@ sub save_test_result() {
 sub next_resultname {
     my ($self, $type, $name) = @_;
     my $testname = ref($self);
-    my $count    = ++$self->{"test_count"};
+    my $count    = ++$self->{test_count};
     if ($name) {
         return "$testname-$count.$name.$type";
     }
@@ -364,7 +364,7 @@ sub record_testresult {
     my $result = {result => $res,};
 
     push @{$self->{details}}, $result;
-    ++$self->{"test_count"};
+    ++$self->{test_count};
 
     return $result;
 }
