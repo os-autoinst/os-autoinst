@@ -283,9 +283,15 @@ sub do_start_vm {
 
 sub do_stop_vm { notimplemented }
 
-sub stop              { notimplemented }
-sub cont              { notimplemented }
-sub do_savevm         { notimplemented }
+sub stop { notimplemented }
+sub cont { notimplemented }
+
+sub do_savevm {
+    my ($self, $args) = @_;
+    # we can live with a save VM as long as no one wants it to load
+    bmwqemu::diag "save VM is not implemented";
+    return {};
+}
 sub do_loadvm         { notimplemented }
 sub do_extract_assets { notimplemented }
 sub status            { notimplemented }

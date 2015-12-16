@@ -14,8 +14,9 @@ sub new {
     return $self;
 }
 
+
 # we don't do anything actually
-sub do_start_vm() {
+sub do_start_vm {
     my ($self) = @_;
 
     my $ssh = $testapi::distri->add_console(
@@ -36,11 +37,6 @@ sub do_start_vm() {
 sub do_stop_vm {
     my ($self) = @_;
 
-    return {};
-}
-
-sub do_savevm {
-    my ($self, $args) = @_;
     return {};
 }
 
