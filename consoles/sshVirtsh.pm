@@ -222,6 +222,8 @@ sub define_and_start {
     $chan->close();
     die "virsh start failed" if $chan->exit_status();
 
+    $self->backend->start_serial_grab($self->name);
+
     return;
 
 }
