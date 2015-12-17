@@ -10,7 +10,6 @@
     }
   ],
   "tags": [
-    "zypper_ref",
-    "ENV-INSTLANG-en_US"
+    "zypper_ref"
   ]
 }
