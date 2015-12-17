@@ -109,8 +109,8 @@ sub runalltests {
 
     die "ERROR: no tests loaded" unless @testorder;
 
-    my $firsttest = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
-    my $vmloaded  = 0;
+    my $firsttest           = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
+    my $vmloaded            = 0;
     my $snapshots_supported = $bmwqemu::backend->can_handle({function => 'snapshots'})->{ret};
 
     write_test_order();
