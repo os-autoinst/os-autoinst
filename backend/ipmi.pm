@@ -129,17 +129,6 @@ sub do_stop_vm {
     return {};
 }
 
-sub do_savevm {
-    my ($self, $args) = @_;
-    print "do_savevm ignored\n";
-    return {};
-}
-
-sub do_loadvm {
-    my ($self, $args) = @_;
-    die "if you need loadvm, you're screwed with IPMI";
-}
-
 sub status {
     my ($self) = @_;
     print "status ignored\n";

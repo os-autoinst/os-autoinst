@@ -148,15 +148,24 @@ sub do_stop_vm {
     unlink($self->{pidfilename});
 }
 
-sub do_savevm {
+sub can_handle {
+    my ($self, $args) = @_;
+    if ($args->{function} eq 'snapshots') {
+        return {ret => 1};
+    }
+    return;
+}
+
+sub save_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("savevm $vmname");
     bmwqemu::diag "SAVED $vmname $rsp";
     die unless ($rsp eq "savevm $vmname");
+    return;
 }
 
-sub do_loadvm {
+sub load_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("loadvm $vmname");

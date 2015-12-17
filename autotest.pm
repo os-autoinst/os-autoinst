@@ -96,13 +96,13 @@ sub write_test_order() {
 sub make_snapshot {
     my ($sname) = @_;
     bmwqemu::diag("Creating a VM snapshot $sname");
-    return $bmwqemu::backend->do_savevm({name => $sname});
+    return $bmwqemu::backend->save_snapshot({name => $sname});
 }
 
 sub load_snapshot {
     my ($sname) = @_;
     bmwqemu::diag("Loading a VM snapshot $sname");
-    return $bmwqemu::backend->do_loadvm({name => $sname});
+    return $bmwqemu::backend->load_snapshot({name => $sname});
 }
 
 sub runalltests {
@@ -110,7 +110,8 @@ sub runalltests {
     die "ERROR: no tests loaded" unless @testorder;
 
     my $firsttest = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
-    my $vmloaded = 0;
+    my $vmloaded  = 0;
+    my $snapshots_supported = $bmwqemu::backend->can_handle({function => 'snapshots'})->{ret};
 
     write_test_order();
 
@@ -127,7 +128,7 @@ sub runalltests {
             $t->start();
 
             # avoid erasing the good vm snapshot
-            if (($bmwqemu::vars{SKIPTO} || '') ne $t->{fullname} && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
+            if ($snapshots_supported && ($bmwqemu::vars{SKIPTO} || '') ne $t->{fullname} && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
                 make_snapshot($t->{fullname});
             }
 
@@ -137,7 +138,7 @@ sub runalltests {
             if ($@) {
 
                 bmwqemu::diag $@;
-                if ($flags->{fatal}) {
+                if ($flags->{fatal} || !$snapshots_supported) {
                     bmwqemu::stop_vm();
                     return 0;
                 }
@@ -146,7 +147,7 @@ sub runalltests {
                 }
             }
             else {
-                if ($flags->{milestone}) {
+                if ($snapshots_supported && $flags->{milestone}) {
                     make_snapshot('lastgood');
                 }
             }

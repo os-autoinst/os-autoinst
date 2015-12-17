@@ -310,13 +310,11 @@ sub do_stop_vm { notimplemented }
 sub stop { notimplemented }
 sub cont { notimplemented }
 
-sub do_savevm {
+sub can_handle {
     my ($self, $args) = @_;
-    # we can live with a save VM as long as no one wants it to load
-    bmwqemu::diag "save VM is not implemented";
-    return {};
+    return {};    # sorry, no
 }
-sub do_loadvm         { notimplemented }
+
 sub do_extract_assets { notimplemented }
 sub status            { notimplemented }
 
@@ -750,6 +748,9 @@ sub check_asserted_screen {
         return $self->_failed_screens_to_json;
     }
 
+    if (!$img) {    # no screenshot yet to search on
+        return;
+    }
     my $search_ratio = 0.02;
     $search_ratio = 1 if ($n % 5 == 0);
 
