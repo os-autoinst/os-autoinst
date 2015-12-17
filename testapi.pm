@@ -27,7 +27,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   start_audiocapture assert_recorded_sound
 
-  select_console console deactivate_console reset_consoles
+  select_console console reset_consoles
 
   upload_asset upload_image data_url assert_shutdown parse_junit_log
   upload_logs
@@ -1005,15 +1005,6 @@ any action on the system under test, but only store the parameters.
 
 The console parameters are console specific.
 
-=item C<deactivate_console("testapi_console")>
-
-Deactivate, i.e. disconnect, 'turn off' a console, free local
-ressources associated with it.  The system under test can deactivate
-consoles.  It is a fatal ('die ...') error to give commands to
-deactivated consoles.
-
-It is a fatal ('die ...') error to give commands to inactive consoles.
-
 =item C<console("testapi_console")->$console_command(@console_command_args)>
 
 Some consoles have special commands beyond C<type_string>, C<assert_screen>
@@ -1050,18 +1041,6 @@ sub select_console {
         $testapi::distri->activate_console($testapi_console);
     }
     return $testapi_console_proxies{$testapi_console};
-}
-
-sub deactivate_console {
-    my ($testapi_console) = @_;
-    unless (exists $testapi_console_proxies{$testapi_console}) {
-        warn "deactivate_console: console $testapi_console is not activated";
-        return;
-    }
-    bmwqemu::log_call('deactivate_console', testapi_console => $testapi_console);
-    my $ret = $bmwqemu::backend->deactivate_console({testapi_console => $testapi_console});
-    delete $testapi_console_proxies{$testapi_console};
-    return $ret;
 }
 
 sub console {
