@@ -806,10 +806,12 @@ sub handle_hmp_command {
 # this is called for all sockets ready to read from. return 1 if socket
 # detected and -1 if there was an error
 sub check_socket {
-    my ($self, $fh) = @_;
+    my ($self, $fh, $write) = @_;
 
     if ($self->{qemupipe} && $fh == $self->{qemupipe}) {
-        $self->close_pipes() unless $self->read_qemupipe();
+        if (!$write) {
+            $self->close_pipes() unless $self->read_qemupipe();
+        }
         return 1;
     }
     return $self->SUPER::check_socket($fh);

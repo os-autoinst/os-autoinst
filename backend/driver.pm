@@ -106,9 +106,11 @@ sub start_vm {
 }
 
 sub stop_thread {
-    my $self = shift;
-    unlink('backend.run');
+    my ($self) = @_;
     $self->stop_vm();
+    # remove if still existant
+    unlink('backend.run') if -e 'backend.run';
+    return;
 }
 
 sub get_info {

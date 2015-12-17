@@ -170,13 +170,19 @@ sub run_capture_loop {
 
             my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
             if (defined $select) {
-                my @ready = $select->can_read($time_to_next);
+                my ($read_set, $write_set) = IO::Select->select($select, $select, undef, $time_to_next);
 
-                for my $fh (@ready) {
-                    unless ($self->check_socket($fh)) {
+                for my $fh (@$read_set) {
+                    unless ($self->check_socket($fh, 0)) {
                         die "huh! $fh\n";
                     }
                 }
+                for my $fh (@$write_set) {
+                    unless ($self->check_socket($fh, 1)) {
+                        die "huh! $fh\n";
+                    }
+                }
+
             }
             else {
                 # "select" used to emulate "sleep"
@@ -190,6 +196,7 @@ sub run_capture_loop {
         bmwqemu::diag "capture loop failed $@";
         $self->close_pipes();
     }
+    return;
 }
 
 # new api
@@ -201,10 +208,11 @@ sub start_encoder {
 
     my $cwd = Cwd::getcwd();
     open($self->{encoder_pipe}, "|-", "nice -n 19 $bmwqemu::scriptdir/videoencoder $cwd/video.ogv");
+    return;
 }
 
 sub get_last_mouse_set {
-    my $self = shift;
+    my ($self) = @_;
     return $self->{mouse};
 }
 
@@ -224,7 +232,7 @@ sub start_vm {
 }
 
 sub stop_vm {
-    my $self = shift;
+    my ($self) = @_;
     if ($self->{started}) {
         close($self->{encoder_pipe}) if $self->{encoder_pipe};
         # backend.run might have disappeared already in case of failed builds
@@ -238,7 +246,7 @@ sub stop_vm {
 }
 
 sub alive {
-    my $self = shift;
+    my ($self) = @_;
     if ($self->{started}) {
         if ($self->file_alive() and $self->raw_alive()) {
             return 1;
@@ -283,9 +291,15 @@ sub do_start_vm {
 
 sub do_stop_vm { notimplemented }
 
-sub stop              { notimplemented }
-sub cont              { notimplemented }
-sub do_savevm         { notimplemented }
+sub stop { notimplemented }
+sub cont { notimplemented }
+
+sub do_savevm {
+    my ($self, $args) = @_;
+    # we can live with a save VM as long as no one wants it to load
+    bmwqemu::diag "save VM is not implemented";
+    return {};
+}
 sub do_loadvm         { notimplemented }
 sub do_extract_assets { notimplemented }
 sub status            { notimplemented }
@@ -365,9 +379,10 @@ sub close_pipes {
 
 # this is called for all sockets ready to read from
 sub check_socket {
-    my ($self, $fh) = @_;
+    my ($self, $fh, $write) = @_;
 
     if ($self->{cmdpipe} && $fh == $self->{cmdpipe}) {
+        return 1 if $write;
         my $cmd = backend::driver::_read_json($self->{cmdpipe});
 
         if ($cmd->{cmd}) {
@@ -581,7 +596,7 @@ sub wait_serial {
         }
         last if ($matched);
         # 1 second timeout, .19 froh's magic number :)
-        $self->run_capture_loop(undef, 1, .19);
+        $self->run_capture_loop($self->{select}, 1, .19);
     }
     $self->set_serial_offset();
     return {matched => $matched, string => $str};
@@ -611,7 +626,7 @@ sub wait_idle {
     my $timeout = $args->{timeout};
 
     bmwqemu::diag("wait_idle sleeping for $timeout seconds");
-    $self->run_capture_loop(undef, $timeout);
+    $self->run_capture_loop($self->{select}, $timeout);
     return;
 }
 
