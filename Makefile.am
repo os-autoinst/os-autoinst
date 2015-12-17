@@ -11,11 +11,12 @@ doc_DATA = \
 backendexecdir = $(pkglibexecdir)/backend
 backendexec_SCRIPTS = \
 	backend/baseclass.pm \
+	backend/console_proxy.pm \
 	backend/driver.pm \
 	backend/ipmi.pm \
 	backend/qemu.pm \
 	backend/s390x.pm \
-	backend/console_proxy.pm
+	backend/svirt.pm
 
 consolesexecdir = $(pkglibexecdir)/consoles
 consolesexec_SCRIPTS = \
