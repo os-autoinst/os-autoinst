@@ -106,11 +106,6 @@ sub stop_serial_grab {
     return;
 }
 
-sub do_loadvm {
-    my ($self, $args) = @_;
-    die "virsh snapshot handling not yet implemented";
-}
-
 sub status {
     my ($self) = @_;
     return;
