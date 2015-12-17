@@ -167,7 +167,6 @@ sub init {
     # defaults
     $vars{QEMUPORT} ||= 15222;
     $vars{VNC}      ||= 90;
-    $vars{INSTLANG} ||= "en_US";
     # openQA already sets a random string we can reuse
     $vars{JOBTOKEN} ||= random_string(10);
 
