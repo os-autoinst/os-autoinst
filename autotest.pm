@@ -128,7 +128,7 @@ sub runalltests {
             $t->start();
 
             # avoid erasing the good vm snapshot
-            if ($snapshots_supported && ($bmwqemu::vars{SKIPTO} || '') ne $t->{fullname} && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
+            if ($snapshots_supported && (($bmwqemu::vars{SKIPTO} || '') ne $t->{fullname}) && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
                 make_snapshot($t->{fullname});
             }
 
