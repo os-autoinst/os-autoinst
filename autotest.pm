@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2016 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -116,10 +116,18 @@ sub runalltests {
     write_test_order();
 
     for my $t (@testorder) {
-        my $flags = $t->test_flags();
+        my $flags    = $t->test_flags();
+        my $fullname = $t->{fullname};
 
-        if (!$vmloaded && $t->{fullname} eq $firsttest) {
-            load_snapshot($firsttest) if $bmwqemu::vars{SKIPTO};
+        if (!$vmloaded && $fullname eq $firsttest) {
+            if ($bmwqemu::vars{SKIPTO}) {
+                if ($bmwqemu::vars{TESTDEBUG}) {
+                    load_snapshot('lastgood');
+                }
+                else {
+                    load_snapshot($firsttest);
+                }
+            }
             $vmloaded = 1;
         }
         if ($vmloaded) {
@@ -128,7 +136,7 @@ sub runalltests {
             $t->start();
 
             # avoid erasing the good vm snapshot
-            if ($snapshots_supported && (($bmwqemu::vars{SKIPTO} || '') ne $t->{fullname}) && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
+            if ($snapshots_supported && (($bmwqemu::vars{SKIPTO} || '') ne $fullname) && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
                 make_snapshot($t->{fullname});
             }
 
@@ -136,9 +144,8 @@ sub runalltests {
             $t->save_test_result();
 
             if ($@) {
-
                 bmwqemu::diag $@;
-                if ($flags->{fatal} || !$snapshots_supported) {
+                if ($flags->{fatal} || !$snapshots_supported || $bmwqemu::vars{TESTDEBUG}) {
                     bmwqemu::stop_vm();
                     return 0;
                 }
@@ -147,13 +154,13 @@ sub runalltests {
                 }
             }
             else {
-                if ($snapshots_supported && $flags->{milestone}) {
+                if ($snapshots_supported && ($flags->{milestone} || $bmwqemu::vars{TESTDEBUG})) {
                     make_snapshot('lastgood');
                 }
             }
         }
         else {
-            bmwqemu::diag "skiping $t->{fullname}";
+            bmwqemu::diag "skiping $fullname";
             $t->skip_if_not_running;
             $t->save_test_result();
         }
