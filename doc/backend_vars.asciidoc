@@ -1,12 +1,13 @@
 Supported variables per backend
 -------------------------------
 
-.Common
+.COMMON backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-NOVIDEO;boolean;;don't encode video if set
+NOVIDEO;boolean;0;Do not encode video if set
+SCREENSHOTINTERVAL;;;
 |====================
 
 .IPMI backend
@@ -15,17 +16,8 @@ NOVIDEO;boolean;;don't encode video if set
 |====================
 Variable;Values allowed;Default value;Explanation
 IPMI_HOSTNAME;string;Hostname/IP for IPMI interface;
-IPMI_USER;string;Username for the IPMI interface;
 IPMI_PASSWORD;string;Password for the IPMI interface;
-|====================
-
-.KVM2USB backend
-[grid="rows",format="csv"]
-[options="header",cols="^m,^m,^m,v",separator=";"]
-|====================
-Variable;Values allowed;Default value;Explanation
-HWSLOT;;;
-ISO;;;
+IPMI_USER;string;Username for the IPMI interface;
 |====================
 
 .QEMU backend
@@ -33,12 +25,12 @@ ISO;;;
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-ADDONS;boolean;0;Enables use of ISO_$i variables
 ARCH;x86_64|i686|aarch64|...;depends on tested medium;Architecture of VM.
 AUTO_INST;;;
 BIOS;;;
 BOOTFROM;chars;undef;Influences order of boot devices. See qemu -boot option
 CDMODEL;see qemu -device ?;undef;Storage device for virtualized CD
+HDDFORMAT;;;
 HDDMODEL;see qemu -device ?;virtio-blk;Storage device for virtualized HDD.
 HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
 HDD_$i;filename;;Filename of HDD image to be used for VM. Up to 9
@@ -70,6 +62,7 @@ QEMU_NO_KVM;boolean;0;Don't use KVM acceleration.
 RAIDLEVEL;;;
 SKIPTO;full name of test module;;Restore VM from snapshot and continue by running specified test module. Needs HDD image with snapshots present
 TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used
+TAPSCRIPT;;;
 TESTDEBUG;boolean;0;Enable test debugging: override 'milestone' and 'fatal' test flags to 1. Snapshot are created after each successful test module and each fail aborts test run
 UEFI;;;
 UEFI_BIOS;;;
