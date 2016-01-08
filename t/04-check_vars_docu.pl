@@ -30,12 +30,12 @@ use constant {
 };
 use constant VARS_DOC => DOC_DIR . '/backend_vars.asciidoc';
 
-# array of ignored "backends". Write in upper case for successful match
-my @backend_blacklist = qw/BASECLASS/;
+# array of ignored "backends"
+my @backend_blacklist = qw//;
 # blacklist of vars per backend. These vars will be ignored during vars exploration
 my %var_blacklist = (QEMU => ['WORKER_ID', 'WORKER_INSTANCE']);
 # in case we want to present backend under different name, place it here
-my %backend_renames = ();
+my %backend_renames = (BASECLASS => 'Common');
 
 my %documented_vars = ();
 my %found_vars;
@@ -99,6 +99,8 @@ EO_HEADER
 $table_header
 EO_BACKEND_HEADER
         for my $var (sort keys %{$found_vars{$backend}}) {
+            # skip perl variables i.e. $bmwqemu{$k}
+            next if ($var =~ /^\$[a-zA-Z]/);
             next if (grep { /$var/ } @{$var_blacklist{$backend}});
             unless ($documented_vars{$backend}{$var}) {
                 $error_found = 1;
@@ -118,9 +120,9 @@ EO_BACKEND_FOOTER
 sub read_backend_pm {
     my ($backend) = $_ =~ /^([^\.]+)\.pm/;
     return unless $backend;
+    return if (grep { /$backend/i } @backend_blacklist);
     $backend = uc $backend;
-    return if (grep { /$backend/ } @backend_blacklist);
-    $backend = $backend_renames{$backend} if $backend_renames{$backend};
+    $backend = uc $backend_renames{$backend} if $backend_renames{$backend};
     my $fh;
     eval { open($fh, '<', $File::Find::name) };
     if (my $E = $@) {
