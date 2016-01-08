@@ -405,31 +405,32 @@ sub start_qemu {
 
     mkpath($basedir);
 
-    if (!$vars->{KEEPHDDS} && !$vars->{SKIPTO}) {
+    my $keephdds = $vars->{KEEPHDDS} || $vars->{SKIPTO};
 
-        # fresh HDDs
-        for my $i (1 .. $vars->{NUMDISKS}) {
-            no autodie qw(unlink);
-            unlink("$basedir/l$i");
-            if (-e "$basedir/$i.lvm") {
-                symlink("$i.lvm", "$basedir/l$i") or die "$!\n";
-                runcmd("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1");    # for LVM
-            }
-            elsif ($vars->{"HDD_$i"}) {
-                runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"});
-                symlink($i, "$basedir/l$i") or die "$!\n";
-            }
-            else {
-                runcmd($qemuimg, "create", "$basedir/$i", "-f", $vars->{HDDFORMAT}, $vars->{HDDSIZEGB} . "G");
-                symlink($i, "$basedir/l$i") or die "$!\n";
-            }
+    # fresh HDDs
+    for my $i (1 .. $vars->{NUMDISKS}) {
+        # skip HDD refresh when HDD exists and KEEPHDDS or SKIPTO is set
+        next if ($keephdds && (-e "$basedir/$i.lvm" || -e "$basedir/$i"));
+        no autodie qw(unlink);
+        unlink("$basedir/l$i");
+        if (-e "$basedir/$i.lvm") {
+            symlink("$i.lvm", "$basedir/l$i") or die "$!\n";
+            runcmd("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1");    # for LVM
         }
+        elsif ($vars->{"HDD_$i"}) {
+            runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"});
+            symlink($i, "$basedir/l$i") or die "$!\n";
+        }
+        else {
+            runcmd($qemuimg, "create", "$basedir/$i", "-f", $vars->{HDDFORMAT}, $vars->{HDDSIZEGB} . "G");
+            symlink($i, "$basedir/l$i") or die "$!\n";
+        }
+    }
 
-        if ($vars->{AUTO_INST}) {
-            unlink("$basedir/autoinst.img");
-            runcmd("/sbin/mkfs.vfat", "-C", "$basedir/autoinst.img", "1440");
-            runcmd("/usr/bin/mcopy", "-i", "$basedir/autoinst.img", $vars->{AUTO_INST}, "::/");
-        }
+    if ($vars->{AUTO_INST} && !$keephdds) {
+        unlink("$basedir/autoinst.img");
+        runcmd("/sbin/mkfs.vfat", "-C", "$basedir/autoinst.img", "1440");
+        runcmd("/usr/bin/mcopy", "-i", "$basedir/autoinst.img", $vars->{AUTO_INST}, "::/");
     }
 
     for my $i (1 .. 4) {    # create missing symlinks
