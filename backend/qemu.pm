@@ -248,13 +248,14 @@ sub start_qemu {
         $vars->{UEFI} = 1;
     }
 
-    if ($vars->{BIOS} && $vars->{BIOS} !~ /^\//) {
-        # Non-absolute paths are assumed relative to /usr/share/qemu
-        $vars->{BIOS} = '/usr/share/qemu/' . $vars->{BIOS};
-    }
-
-    if ($vars->{BIOS} && !-e $vars->{BIOS}) {
-        die "'$vars->{BIOS}' missing, check BIOS\n";
+    foreach my $attribute (qw/BIOS KERNEL INITRD/) {
+        if ($vars->{$attribute} && $vars->{$attribute} !~ /^\//) {
+            # Non-absolute paths are assumed relative to /usr/share/qemu
+            $vars->{$attribute} = '/usr/share/qemu/' . $vars->{$attribute};
+        }
+        if ($vars->{$attribute} && !-e $vars->{$attribute}) {
+            die "'$vars->{$attribute}' missing, check $attribute\n";
+        }
     }
 
     if ($vars->{UEFI} && $vars->{ARCH} eq 'x86_64' && !$vars->{BIOS}) {
@@ -551,6 +552,11 @@ sub start_qemu {
         }
         elsif ($vars->{BIOS}) {
             push(@params, "-bios", $vars->{BIOS});
+        }
+        foreach my $attribute (qw/KERNEL INITRD APPEND/) {
+            if ($vars->{$attribute}) {
+                push(@params, "-" . lc($attribute), $vars->{$attribute});
+            }
         }
         if ($vars->{MULTINET}) {
             if ($vars->{NICTYPE} eq "tap") {
