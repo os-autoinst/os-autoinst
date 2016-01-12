@@ -33,7 +33,6 @@ use Data::Dumper;
 use feature qw(say);
 
 my $framecounter = 0;    # screenshot counter
-our $MAGIC_PIPE_CLOSE_STRING = "xxxQUITxxx\n";
 
 # should be a singleton - and only useful in backend thread
 our $backend;
@@ -386,7 +385,7 @@ sub close_pipes {
 
     # XXX: perl does not really close the fd here due to threads!?
     print "sending magic and exit\n";
-    $self->{rsppipe}->print($MAGIC_PIPE_CLOSE_STRING);
+    $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || die "close $!\n";
     threads->exit();
 }
