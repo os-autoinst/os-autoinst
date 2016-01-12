@@ -195,8 +195,8 @@ sub _send_json {
     my $json = $JSON->encode($cmd);
 
     croak "no backend running" unless ($self->{to_child});
-    my $wb = syswrite($self->{to_child}, "$json\n");
-    die "syswrite failed $!" unless ($wb == length($json) + 1);
+    my $wb = syswrite($self->{to_child}, "$json");
+    die "syswrite failed $!" unless ($wb == length($json));
 
     my $rsp = _read_json($self->{from_child});
     unless ($rsp) {
@@ -217,66 +217,43 @@ sub _read_json {
 
     my $fd = fileno($socket);
     if (!exists $sockets->{$fd}) {
-        $sockets->{$fd} = {raw => '', offset => 0};
+        $sockets->{$fd} = JSON->new();
     }
 
-    my $socket_info = $sockets->{$fd};
+    my $JSON = $sockets->{$fd};
 
     my $s = IO::Select->new();
     $s->add($socket);
 
     my $hash;
 
-    # make sure we read the answer completely
-    while (!$hash) {
-        # starting a IPMI host can take a while, so we need to be patient
+    # starting a IPMI host can take a while, so we need to be patient
 
-        # the goal here is to find the end of the next valid JSON - and don't
-        # add more data to it. As the backend sends things unasked, we might
-        # run into the next message otherwise
-        while (1) {
-            my $ne = index($socket_info->{raw}, '}', $socket_info->{offset} + 1);
-            if ($ne > 0) {
-                $socket_info->{offset} = $ne;
-                my $rsp = substr($socket_info->{raw}, 0, $ne + 1);
-
-                $hash = eval {
-                    local $SIG{__DIE__} = 'DEFAULT';
-                    JSON::decode_json($rsp);
-                };
-                if ($hash) {
-                    # reset the hunt
-                    $socket_info->{raw} = substr($socket_info->{raw}, $ne + 1, length($socket_info->{raw}));
-                    # remove leading whitespace (the trailing of the JSON)
-                    $socket_info->{raw} =~ s/^\s*//;
-                    $socket_info->{offset} = 0;
-                    last;
-                }
+    # the goal here is to find the end of the next valid JSON - and don't
+    # add more data to it. As the backend sends things unasked, we might
+    # run into the next message otherwise
+    while (1) {
+        $hash = $JSON->incr_parse();
+        if ($hash) {
+            if ($hash->{QUIT}) {
+                print "received magic close\n";
+                return;
             }
-            else {
-                $socket_info->{offset} = length($socket_info->{raw});
-
-                if ($socket_info->{raw} eq $backend::baseclass::MAGIC_PIPE_CLOSE_STRING) {
-                    print "received magic close\n";
-                    return;
-                }
-
-                # wait for next read
-                my @res = $s->can_read;
-                unless (@res) {
-                    my $E = $!;    # save the error
-                    backend::baseclass::write_crash_file();
-                    confess "ERROR: timeout reading JSON reply: $E\n";
-                }
-
-                my $qbuffer;
-                my $bytes = sysread($socket, $qbuffer, 8000);
-                if (!$bytes) { diag("sysread failed: $!"); return; }
-                $socket_info->{raw} .= $qbuffer;
-
-                last;
-            }
+            return $hash;
         }
+
+        # wait for next read
+        my @res = $s->can_read;
+        unless (@res) {
+            my $E = $!;    # save the error
+            backend::baseclass::write_crash_file();
+            confess "ERROR: timeout reading JSON reply: $E\n";
+        }
+
+        my $qbuffer;
+        my $bytes = sysread($socket, $qbuffer, 8000);
+        if (!$bytes) { diag("sysread failed: $!"); return; }
+        $JSON->incr_parse($qbuffer);
     }
 
     return $hash;
