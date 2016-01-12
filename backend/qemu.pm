@@ -321,7 +321,7 @@ sub start_qemu {
     my $arch_supports_boot_order = 1;
     my $use_usb_kbd;
     my @vgaoptions;
-    if ($vars->{ARCH} eq 'aarch64') {
+    if ($vars->{ARCH} eq 'aarch64' || $vars->{ARCH} eq 'arm') {
         push @vgaoptions, '-device', 'VGA';
         $arch_supports_boot_order = 0;
         $use_usb_kbd              = 1;
