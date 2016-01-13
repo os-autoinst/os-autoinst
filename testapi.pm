@@ -508,16 +508,6 @@ sub wait_still_screen {
     return 0;
 }
 
-sub clear_console {
-    bmwqemu::log_call('clear_console');
-    send_key "ctrl-c";
-    sleep 1;
-    send_key "ctrl-c";
-    type_string "reset\n";
-    sleep 2;
-    return;
-}
-
 =head2 get_var
 
   get_var($variable [, $default ])
