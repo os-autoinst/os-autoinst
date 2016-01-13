@@ -65,6 +65,7 @@ TAPDEV;device name;undef;TAP device name to which virtual NIC should be connecte
 TAPSCRIPT;;;
 TESTDEBUG;boolean;0;Enable test debugging: override 'milestone' and 'fatal' test flags to 1. Snapshot are created after each successful test module and each fail aborts test run
 UEFI;;;
+UEFI_PFLASH;boolean;0;Enable the pflash mode to write the UEFI variables directly into the firmware file instead of NVvars in the EFI system partition
 UEFI_BIOS;;;
 USBBOOT;boolean;0;Mount ISO as USB disk and boot VM from it
 VDE_PORT;integer;worker instance + 10;number of vde switch port to connect

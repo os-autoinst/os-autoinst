@@ -244,6 +244,10 @@ sub start_qemu {
         $vars->{BIOS} //= $vars->{UEFI_BIOS};
     }
 
+    if ($vars->{UEFI_PFLASH}) {
+        $vars->{UEFI} = 1;
+    }
+
     if ($vars->{BIOS} && $vars->{BIOS} !~ /^\//) {
         # Non-absolute paths are assumed relative to /usr/share/qemu
         $vars->{BIOS} = '/usr/share/qemu/' . $vars->{BIOS};
@@ -540,7 +544,12 @@ sub start_qemu {
             }
         }
 
-        if ($vars->{BIOS}) {
+        if ($vars->{UEFI_PFLASH}) {
+            # Convert the firmware file into qcow2 format or savevm would fail
+            runcmd('qemu-img', 'convert', '-O', 'qcow2', $vars->{BIOS}, 'ovmf.bin');
+            push(@params, "-drive", "if=pflash,format=qcow2,file=ovmf.bin");
+        }
+        elsif ($vars->{BIOS}) {
             push(@params, "-bios", $vars->{BIOS});
         }
         if ($vars->{MULTINET}) {
