@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2016 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,9 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
-#
-# Start up the VM and start feeding it the distribution test script
-# specified in the DISTRI environment variable.
 #
 
 use strict;
@@ -68,7 +65,6 @@ $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
 
 # Sanity checks
-die "DISTRI environment variable not set. unknown OS?" if !defined $bmwqemu::vars{DISTRI} && !defined $bmwqemu::vars{CASEDIR};
 die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
 
 bmwqemu::clean_control_files();
@@ -118,6 +114,9 @@ $bmwqemu::vars{BACKEND} ||= "qemu";
 
 # Load the main.pm from the casedir checked by the sanity checks above
 require $bmwqemu::vars{CASEDIR}."/main.pm";
+
+# set a default distribution if the tests don't have one
+$testapi::distri ||= distribution->new;
 
 # init part
 bmwqemu::save_vars();
