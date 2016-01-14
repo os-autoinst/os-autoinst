@@ -65,6 +65,7 @@ $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
 
 # Sanity checks
+die "CASEDIR environment variable not set, unknown test case directory" if !defined $bmwqemu::vars{CASEDIR};
 die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
 
 bmwqemu::clean_control_files();
@@ -112,8 +113,14 @@ use commands;
 
 $bmwqemu::vars{BACKEND} ||= "qemu";
 
-# Load the main.pm from the casedir checked by the sanity checks above
-require $bmwqemu::vars{CASEDIR}."/main.pm";
+# Try to load the main.pm from one of the following in this order:
+#  - product dir
+#  - casedir
+#
+# This allows further structuring the test distribution collections with
+# multiple distributions or flavors in one repository.
+$bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
+require $bmwqemu::vars{PRODUCTDIR} . "/main.pm";
 
 # set a default distribution if the tests don't have one
 $testapi::distri ||= distribution->new;
@@ -121,7 +128,7 @@ $testapi::distri ||= distribution->new;
 # init part
 bmwqemu::save_vars();
 # make sure the needles are initialized before the backend thread is started
-needle::init();
+needle::init($bmwqemu::vars{PRODUCTDIR} . "/needles");
 bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
 
 if ($init) {
