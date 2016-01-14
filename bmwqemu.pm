@@ -161,8 +161,6 @@ sub init {
     }
 
     testapi::init();
-    # set a default distribution if the tests don't have one
-    $testapi::distri = distribution->new unless $testapi::distri;
 
     # defaults
     $vars{QEMUPORT} ||= 15222;

@@ -25,7 +25,7 @@ sub new() {
 
     my $self = bless {}, $class;
     $self->{consoles} = {};
-    return $self, $class;
+    return $self;
 }
 
 sub init {
