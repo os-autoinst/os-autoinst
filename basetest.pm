@@ -296,7 +296,7 @@ sub runtest {
             print $fd "# Test died:\n$@\n";
             close $fd;
             $details->{text}  = $text_fn;
-            $details->{title} = 'DIE';
+            $details->{title} = 'Failed';
             push @{$self->{details}}, $details;
         }
         else {
