@@ -94,16 +94,13 @@ sub record_screenmatch {
     $tags           ||= [];
     $failed_needles ||= [];
 
-    my $count    = ++$self->{test_count};
-    my $testname = ref($self);
-
     my $h          = $self->_serialize_match($match);
     my $properties = $match->{needle}->{properties} || [];
     my $result     = {
         needle     => $h->{name},
         area       => $h->{area},
-        tags       => [@$tags],                                  # make a copy
-        screenshot => sprintf("%s-%d.png", $testname, $count),
+        tags       => [@$tags],                        # make a copy
+        screenshot => $self->next_resultname('png'),
         result     => 'ok',
         properties => [@$properties],
     };
@@ -164,11 +161,6 @@ sub _serialize_match {
             $na->{$i} = $a->{$i};
         }
         $na->{similarity} = int($a->{similarity} * 100);
-        if ($a->{diff}) {
-            my $imgname = sprintf("%s-%d-%s-diff%d.png", $testname, $count, $name, $diffcount++);
-            $a->{diff}->write(join('/', bmwqemu::result_dir(), $imgname));
-            $na->{diff} = $imgname;
-        }
         push @{$h->{area}}, $na;
     }
 
@@ -184,16 +176,13 @@ sub record_screenfail {
     my $status  = $args{result} || 'fail';
     my $overall = $args{overall};            # whether and how to set global test result
 
-    my $count    = ++$self->{test_count};
-    my $testname = ref($self);
-
     my $candidates;
     for my $cand (@{$needles || []}) {
         push @$candidates, $self->_serialize_match($cand);
     }
 
     my $result = {
-        screenshot => sprintf("%s-%d.png", $testname, $count),
+        screenshot => $self->next_resultname('png'),
         result     => $status,
     };
 
@@ -291,13 +280,29 @@ sub runtest {
         $self->post_run_hook();
     };
     if ($@ || ($self->{result} || '') eq 'fail') {
-        my $msg = "test $name " . ($@ ? 'died: ' . $@ : 'failed');
-        warn $msg;
-        # add a fail screenshot in case there is none
-        if ($@ && (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail')) {
-            my $result = $self->record_testresult('fail');
-            $self->_result_add_screenshot($result);
+        my $msg;
+        if ($@) {
+            $self->{result} = 'fail';
+            $msg = "test $name died $@";
+            # add a fail screenshot in case there is none
+            if (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail') {
+                my $result = $self->record_testresult('unk');
+                $self->_result_add_screenshot($result);
+            }
+            my $details = {result => 'fail'};
+
+            my $text_fn = $self->next_resultname('txt');
+            open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
+            print $fd "# Test died:\n$@\n";
+            close $fd;
+            $details->{text}  = $text_fn;
+            $details->{title} = 'DIE';
+            push @{$self->{details}}, $details;
         }
+        else {
+            $msg = "test $name failed";
+        }
+        warn $msg;
         $self->{post_fail_hook_running} = 1;
         eval { $self->post_fail_hook; };
         bmwqemu::diag "post_fail_hook failed: $@\n" if $@;
@@ -339,12 +344,25 @@ sub next_resultname {
 }
 
 sub record_serialresult {
-    my ($self, $ref, $res) = @_;
+    my ($self, $ref, $res, $string) = @_;
 
-    my $result = $self->record_testresult($res);
+    $string //= '';
+
+    # the screenshot is not the fail, it's just for documentation
+    my $result = $self->record_testresult('unk');
     $self->_result_add_screenshot($result);
 
-    $result->{reference_text} = $ref;
+    my $details = {result => $res};
+
+    my $text_fn = $self->next_resultname('txt');
+    open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
+    print $fd "# wait_serial expected: $ref\n\n";
+    print $fd "# Result:\n";
+    print $fd "$string\n";
+    close $fd;
+    $details->{text}  = $text_fn;
+    $details->{title} = 'wait_serial';
+    push @{$self->{details}}, $details;
 
     return $result;
 }
@@ -397,10 +415,7 @@ sub _result_add_screenshot {
     my $img = $bmwqemu::backend->last_screenshot_name->{filename};
     $img = tinycv::read($img);
 
-    my $count    = $self->{test_count};
-    my $testname = ref($self);
-
-    $result->{screenshot} = sprintf("%s-%d.png", $testname, $count);
+    $result->{screenshot} = $self->next_resultname('png');
 
     my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
     $img->write_with_thumbnail($fn);
