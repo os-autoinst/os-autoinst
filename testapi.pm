@@ -350,7 +350,7 @@ sub wait_serial {
     else {
         $matched = 'fail';
     }
-    $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched);
+    $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string});
     bmwqemu::fctres('wait_serial', "$regexp: $matched");
     return $ret->{string} if ($matched eq "ok");
     return;    # false
@@ -959,7 +959,7 @@ sub validate_script_output($&;$) {
         bmwqemu::diag("output does not pass the code block:\n$output");
     }
     # abusing the function
-    $autotest::current_test->record_serialresult($output, $res);
+    $autotest::current_test->record_serialresult($output, $res, $output);
     if ($res eq 'fail') {
         die "output not validating";
     }

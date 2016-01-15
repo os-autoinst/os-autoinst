@@ -144,7 +144,11 @@ sub runalltests {
             $t->save_test_result();
 
             if ($@) {
-                bmwqemu::diag $@;
+                my $msg = $@;
+                if ($msg !~ /^test.*died/) {
+                    # avoid duplicating the message
+                    bmwqemu::diag $msg;
+                }
                 if ($flags->{fatal} || !$snapshots_supported || $bmwqemu::vars{TESTDEBUG}) {
                     bmwqemu::stop_vm();
                     return 0;
