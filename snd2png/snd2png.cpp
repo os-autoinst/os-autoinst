@@ -89,7 +89,7 @@ main (int argc, char *argv[])
 			   info_in.channels);
   if (!infile_data)
     {
-      fprintf (stderr, ERR_NOT_ENOUGH_MEMORY);
+      fputs (ERR_NOT_ENOUGH_MEMORY, stderr);
       sf_close (fIn);
       return 2;
     }
@@ -118,7 +118,7 @@ main (int argc, char *argv[])
   double *fftw_in = (double *) fftw_malloc (sizeof (double) * nDftSamples);
   if (!fftw_in)
     {
-      fprintf (stderr, ERR_NOT_ENOUGH_MEMORY);
+      fputs (ERR_NOT_ENOUGH_MEMORY, stderr);
       return 2;
     }
 
@@ -127,7 +127,7 @@ main (int argc, char *argv[])
     (fftw_complex *) fftw_malloc (sizeof (fftw_complex) * nDftSamples);
   if (!fftw_out)
     {
-      fprintf (stderr, ERR_NOT_ENOUGH_MEMORY);
+      fputs (ERR_NOT_ENOUGH_MEMORY, stderr);
       sf_close (fIn);
       return 2;
     }
