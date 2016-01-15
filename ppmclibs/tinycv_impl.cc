@@ -4,6 +4,7 @@
 #include <exception>
 #include <cerrno>
 #include <sys/time.h>
+#include <stdint.h>
 
 #include <vector>
 #include <algorithm>    // std::min
@@ -30,7 +31,7 @@ struct Image {
   mutable cv::Mat _preped;
 
   cv::Mat prep() const {
-    if (!_preped.empty())
+    if (!_preped.empty() && false)
       return _preped;
 
     _preped = img.clone();
@@ -42,16 +43,6 @@ struct Image {
     return _preped;
   }
 };
-
-// make box lines eq 0° or 90°
-inline Point2f normalize_aspect(Point2f in, Point2f x, Point2f y) {
-	Point2f out(in);
-	out.y += y.y;
-	out.y /= 2;
-	out.x += x.x;
-	out.x /= 2;
-	return out;
-}
 
 /* the purpose of this function is to calculate the error between two images
   (scene area and object) ignoring slight colour changes */
@@ -132,7 +123,7 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
 
   // avoid an exception
   if ( x < 0 || y < 0 || y+height > scene->img.rows || x+width > scene->img.cols ) {
-    std::cerr << "ERROR - search: out of range\n" << std::endl;
+    std::cerr << "ERROR - search: out of range " << y+height << " " << scene->img.rows << " " << x+width  << " " << scene->img.cols << std::endl;
     return outvec;
   }
 
@@ -291,27 +282,6 @@ bool image_write(Image *s, const char *filename)
   return true;
 }
 
-static std::vector<uchar> convert_to_ppm(const Mat &s, int &header_length)
-{
-  vector<uchar> buf;
-  if (!imencode(".ppm", s, buf)) {
-    fprintf(stderr, "convert_to_ppm failed\n");
-    header_length = 0;
-    return buf;
-  }
-  
-  const char *cbuf = reinterpret_cast<const char*> (&buf[0]);
-  const char *cbuf_start = cbuf;
-  // the perl code removed the header before md5, 
-  // so we need to do the same
-  cbuf = strchr(cbuf, '\n') + 1; // "P6\n";
-  cbuf = strchr(cbuf, '\n') + 1; // "800 600\n";
-  cbuf = strchr(cbuf, '\n') + 1; // "255\n";
-
-  header_length = cbuf - cbuf_start;
-  return buf;
-}
-
 Image *image_copy(Image *s)
 {
   Image *ni = new Image();
@@ -359,16 +329,18 @@ Image *image_copyrect(Image *s, long x, long y, long width, long height)
 }
 
 // in-place op: change all values to 0 (if below threshold) or 255 otherwise
-void image_threshold(Image *s, int level)
+void image_threshold(Image *a, int level)
 {
-  int header_length;
-  vector<uchar> buf = convert_to_ppm(s->img, header_length);
-
-  vector<uchar>::iterator it = buf.begin() + header_length;
-  for (; it != buf.end(); ++it) {
-    *it = (*it < level) ? 0 : 0xff;
+  for (int y = 0; y < a->img.rows; y++) {
+    for (int x = 0; x < a->img.cols; x++) {
+      cv::Vec3b farbe = a->img.at<cv::Vec3b>(y, x);
+      if ((farbe[0] + farbe[1] + farbe[2]) / 3 > level)
+	farbe = cv::Vec3b(255, 255, 255);
+      else
+	farbe = cv::Vec3b(0, 0, 0);
+      a->img.at<cv::Vec3b>(y, x) = farbe;
+    }
   }
-  s->img = imdecode(buf, 1);
 }
 
 std::vector<float> image_avgcolor(Image *s)
@@ -445,6 +417,56 @@ void image_map_raw_data(Image *a, const unsigned char *data)
   }
 }
 
+class VNCInfo {
+  bool do_endian_conversion;
+  unsigned int bytes_per_pixel;
+  unsigned int red_mask;
+  unsigned int red_shift;
+  unsigned int green_mask;
+  unsigned int green_shift;
+  unsigned int blue_mask;
+  unsigned int blue_shift;
+
+  // calculated
+  unsigned char blue_skale;
+  unsigned char green_skale;
+  unsigned char red_skale;
+
+public:
+  VNCInfo(bool do_endian_conversion,
+	  unsigned int bytes_per_pixel,
+	  unsigned int red_mask,   unsigned int red_shift,
+	  unsigned int green_mask, unsigned int green_shift,
+	  unsigned int blue_mask,  unsigned int blue_shift)
+  {
+    this->do_endian_conversion = do_endian_conversion;
+    this->bytes_per_pixel = bytes_per_pixel;
+    this->red_mask = red_mask;
+    this->red_shift = red_shift;
+    this->green_mask = green_mask;
+    this->green_shift = green_shift;
+    this->blue_mask = blue_mask;
+    this->blue_shift = blue_shift;
+    this->blue_skale  = 256 / (blue_mask  + 1);
+    this->green_skale = 256 / (green_mask + 1);
+    this->red_skale   = 256 / (red_mask   + 1);
+  }
+
+  cv::Vec3b read_cpixel(unsigned char *data, size_t &offset);
+};
+  
+VNCInfo *image_vncinfo(bool do_endian_conversion,
+		       unsigned int bytes_per_pixel,
+		       unsigned int red_mask,   unsigned int red_shift,
+		       unsigned int green_mask, unsigned int green_shift,
+		       unsigned int blue_mask,  unsigned int blue_shift)
+{
+  return new VNCInfo( do_endian_conversion,
+		      bytes_per_pixel,
+		      red_mask, red_shift,
+		      green_mask, green_shift,
+		      blue_mask, blue_shift);
+}
 
 void image_map_raw_data_rgb555(Image *a, const unsigned char *data)
 {
@@ -465,6 +487,60 @@ void image_map_raw_data_rgb555(Image *a, const unsigned char *data)
   }
 }
 
+static uint16_t read_u16(unsigned char * &data, bool do_endian_conversion ) {
+  uint16_t pixel;
+  if (do_endian_conversion) {
+    pixel = *data++ * 256;
+    pixel += *data++;
+  }
+  else {
+    pixel = *data++;
+    pixel += *data++ * 256;
+  };
+  return pixel;
+}
+
+cv::Scalar read_pixel(unsigned char* &data, bool do_endian_conversion,
+		      unsigned int bytes_per_pixel,
+		      unsigned int red_mask,   unsigned int red_shift,
+		      unsigned int green_mask, unsigned int green_shift,
+		      unsigned int blue_mask,  unsigned int blue_shift)
+{
+  unsigned char blue_skale  = 256 / (blue_mask  + 1);
+  unsigned char green_skale = 256 / (green_mask + 1);
+  unsigned char red_skale   = 256 / (red_mask   + 1);
+
+  long pixel;
+  if (bytes_per_pixel == 2) {
+    pixel = read_u16(data, do_endian_conversion);
+  }
+  else if (bytes_per_pixel == 4) {
+    if (do_endian_conversion) {
+      pixel = *data++;
+      pixel <<=8;
+      pixel |= *data++;
+      pixel <<=8;
+      pixel |= *data++;
+      pixel <<=8;
+      pixel |= *data++;
+    }
+    else {
+      pixel = *(uint32_t*)data;
+      data += 4;
+    }
+  }
+  else {
+    // just fail miserably for unsupported bytes per pixel
+    abort();
+  };
+  
+  
+  unsigned char blue = (pixel >> blue_shift  & blue_mask ) * blue_skale;
+  unsigned char green = (pixel >> green_shift & green_mask) * green_skale;
+  unsigned char red = (pixel >> red_shift   & red_mask  ) * red_skale;
+  return Scalar(blue, green, red);
+}
+
 void image_map_raw_data_full(Image* a, unsigned char *data,
 			     bool do_endian_conversion,
 			     unsigned int bytes_per_pixel,
@@ -472,54 +548,188 @@ void image_map_raw_data_full(Image* a, unsigned char *data,
 			     unsigned int green_mask, unsigned int green_shift,
 			     unsigned int blue_mask,  unsigned int blue_shift)
 {
-  unsigned char blue_skale  = 256 / (blue_mask  + 1);
-  unsigned char green_skale = 256 / (green_mask + 1);
-  unsigned char red_skale   = 256 / (red_mask   + 1);
   for (int y = 0; y < a->img.rows; y++) {
     for (int x = 0; x < a->img.cols; x++) {
-      long pixel;
-      if (bytes_per_pixel == 2) {
-	if (do_endian_conversion) {
-	  pixel = *data++ * 256;
-	  pixel += *data++;
-	}
-	else {
-	  pixel = *data++;
-	  pixel += *data++ * 256;
-	};
-      }
-      else if (bytes_per_pixel == 4) {
-	if (do_endian_conversion) {
-	  pixel = *data++;
-	  pixel <<=8;
-	  pixel |= *data++;
-	  pixel <<=8;
-	  pixel |= *data++;
-	  pixel <<=8;
-	  pixel |= *data++;
-	}
-	else {
-	  pixel = *(long*)data;
-	  data += 4;
-	}
-      }
-      else {
-	// just fail miserably for unsupported bytes per pixel
-	abort();
-      };
-      unsigned char blue  = (pixel >> blue_shift  & blue_mask ) * blue_skale;
-      unsigned char green = (pixel >> green_shift & green_mask) * green_skale;
-      unsigned char red   = (pixel >> red_shift   & red_mask  ) * red_skale;
-      // MSB ignored
-      a->img.at<cv::Vec3b>(y, x)[0] = blue;
-      a->img.at<cv::Vec3b>(y, x)[1] = green;
-      a->img.at<cv::Vec3b>(y, x)[2] = red;
+      cv::Scalar pixel = read_pixel(data, do_endian_conversion, bytes_per_pixel,
+				    red_mask, red_shift,
+				    green_mask, green_shift,
+				    blue_mask, blue_shift);
+      a->img.at<cv::Scalar>(y, x) = pixel;
     }
   }
 }
+
 // copy the s image into a at x,y
 void image_blend_image(Image *a, Image *s, long x, long y)
 {
   cv::Rect roi( cv::Point( x, y ), s->img.size() );
   s->img.copyTo( a->img( roi ) );
+}
+
+void image_map_raw_data_rre(Image* a, long x, long y, long w, long h,
+			    unsigned char *data,
+			    unsigned int num_of_rects,
+			    bool do_endian_conversion,
+			    unsigned int bytes_per_pixel,
+			    unsigned int red_mask,   unsigned int red_shift,
+			    unsigned int green_mask, unsigned int green_shift,
+			    unsigned int blue_mask,  unsigned int blue_shift)
+{
+  cv::Scalar pixel = read_pixel(data, do_endian_conversion, bytes_per_pixel,
+			       red_mask, red_shift,
+			       green_mask, green_shift,
+			       blue_mask, blue_shift);
+  cv::rectangle( a->img, cv::Rect( x, y, w, h), pixel, CV_FILLED );
+  for (unsigned int i = 0; i < num_of_rects; ++i) {
+    pixel = read_pixel(data, do_endian_conversion, bytes_per_pixel,
+		       red_mask, red_shift,
+		       green_mask, green_shift,
+		       blue_mask, blue_shift);
+    uint16_t r_x = read_u16(data, true);
+    uint16_t r_y = read_u16(data, true);
+    uint16_t r_w = read_u16(data, true);
+    uint16_t r_h = read_u16(data, true);
+    cv::rectangle( a->img, cv::Rect( x+r_x, y+r_y, r_w, r_h), pixel, CV_FILLED );
+  }
+}
+
+cv::Vec3b VNCInfo::read_cpixel(unsigned char *data, size_t &offset) {
+  unsigned char red, green, blue;
+  
+  if (bytes_per_pixel == 16) {
+    data += offset;
+    long pixel = read_u16(data, do_endian_conversion);
+    offset += 2;
+    red = (pixel >> red_shift & red_mask  ) * red_skale;
+    green = (pixel >> green_shift & green_mask) * green_skale;
+    blue = (pixel >> blue_shift  & blue_mask ) * blue_skale;
+  } else {
+    blue = data[offset++];
+    green = data[offset++];
+    red = data[offset++];
+  }
+  return cv::Vec3b(blue, green, red);
+}
+
+long image_map_raw_data_zlre(Image* a, long x, long y, long w, long h,
+			     VNCInfo *info,
+			     unsigned char *data,
+			     size_t bytes)
+{
+  /* ZLRE implementation is described pretty straight forward in the RFB 3.8 protocol */
+
+  size_t offset          = 0;
+  int orig_w = w;
+  int orig_x = x;
+  while (h > 0) {
+    w = orig_w;
+    x = orig_x;
+    while (w > 0) {
+      if (offset >= bytes) {
+	fprintf(stderr, "not enough bytes for zlre\n");
+	abort();
+      }
+      unsigned char sub_encoding = data[offset++];
+      int tile_width = w > 64 ? 64 : w;
+      int tile_height = h > 64 ? 64 : h;
+
+      if (sub_encoding == 1) {
+	cv::Vec3b farbe = info->read_cpixel(data, offset);
+	for (int j = 0; j < tile_height; j++) {
+	  for (int i = 0; i < tile_width; i++) {
+	    a->img.at<cv::Vec3b>(y+j, x+i) = farbe;
+	  }
+	}
+      }
+      else if (sub_encoding == 0) {
+	for (int j = 0; j < tile_height; j++) {
+	  for (int i = 0; i < tile_width; i++) {
+	    cv::Vec3b farbe = info->read_cpixel(data, offset);
+	    a->img.at<cv::Vec3b>(y+j, x+i) = farbe;
+	  }
+	}
+      }
+      else if (sub_encoding == 128) {
+	int j = 0, i = 0;
+	while (j < tile_height) {
+	  cv::Vec3b farbe = info->read_cpixel(data, offset);
+	  int length = 1;
+	  /* run length */
+	  while(data[offset]==0xff) {
+	    length+=data[offset++];
+	  }
+	  length+=data[offset++];
+	  while (j<tile_height && length>0) {
+	    a->img.at<cv::Vec3b>(y+j, x+i) = farbe;
+	    length--;
+	    if (++i>=tile_width) {
+	      i=0;
+	      j++;
+	    }
+	  }
+	}
+      } else {
+	int palette_size = sub_encoding;
+	int palette_bpp = 8;
+	if (sub_encoding >= 130) {
+	  palette_size = sub_encoding - 128;
+	} else {
+	  palette_bpp=(sub_encoding>4?4:(sub_encoding>2?2:1));
+	}
+	
+	cv::Vec3b palette[128]; // max size
+	for (int i = 0; i < palette_size; ++i) {
+	  palette[i] = info->read_cpixel(data, offset);
+	}
+	if (palette_bpp == 8) { // unpacked palette
+	  int j = 0, i = 0;
+	  while (j < tile_height) {
+	    int palette_index = data[offset]&0x7f;
+	    cv::Vec3b farbe = palette[palette_index];
+	    int length = 1;
+	    if (data[offset]&0x80) { // run
+	      offset++;
+	      /* run length */
+	      while(data[offset]==0xff) {
+		length+=data[offset++];
+	      }
+	      length+=data[offset];
+	    }
+	    offset++;
+	    while (j<tile_height && length>0) {
+	      a->img.at<cv::Vec3b>(y+j, x+i) = farbe;
+	      length--;
+	      if (++i>=tile_width) {
+		i=0;
+		j++;
+	      }
+	    }
+	  }
+	} else {
+	  int mask = (1<<palette_bpp)-1;
+	  for (int j = 0; j < tile_height; j++) {
+	    int shift=8-palette_bpp;
+	    for (int i = 0; i < tile_width; i++) {
+	      cv::Vec3b farbe = palette[((data[offset])>>shift)&mask];
+	      a->img.at<cv::Vec3b>(y+j, x+i) = farbe;
+	      
+	      shift -= palette_bpp;
+	      if (shift<0) {
+		shift=8-palette_bpp;
+		offset++;
+	      }
+	    }
+	    if (shift<8-palette_bpp)
+	      offset++;
+	  }
+	}
+      }	
+      w -= 64;
+      x += 64;
+    }
+    h -= 64;
+    y += 64;
+  }
+
+  return offset;
 }

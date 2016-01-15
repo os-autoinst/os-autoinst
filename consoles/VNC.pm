@@ -5,12 +5,13 @@ use base qw(Class::Accessor::Fast);
 use IO::Socket::INET;
 use bytes;
 use bmwqemu qw(diag);
-use Time::HiRes qw( usleep gettimeofday );
+use Time::HiRes qw( usleep gettimeofday time );
 use Carp;
 use tinycv;
 use List::Util qw(min);
 
 use Crypt::DES;
+use Compress::Raw::Zlib;
 
 use Carp qw(confess cluck carp croak);
 use Data::Dumper qw(Dumper);
@@ -30,6 +31,16 @@ my $client_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
 
 # The numbers in the hashes below were acquired from the VNC source code
 my %supported_depths = (
+    32 => {                                              # same as 24 actually
+        bpp         => 32,
+        true_colour => 1,
+        red_max     => 255,
+        green_max   => 255,
+        blue_max    => 255,
+        red_shift   => 16,
+        green_shift => 8,
+        blue_shift  => 0,
+    },
     24 => {
         bpp         => 32,
         true_colour => 1,
@@ -60,6 +71,23 @@ my @encodings = (
         name      => 'Raw',
         supported => 1,
     },
+    {
+        num       => 2,
+        name      => 'RRE',
+        supported => 1,
+    },
+    {
+        num       => 6,
+        name      => 'Zlib',
+        supported => 0,        # would be easy though
+    },
+
+    {
+        num       => 16,
+        name      => 'ZRLE',
+        supported => 1,
+    },
+
     {
         num       => -223,
         name      => 'DesktopSize',
@@ -364,7 +392,7 @@ sub _server_initialization {
             $pixinfo{$key} = $supported_depths{$self->depth}->{$key};
         }
     }
-    $self->absolute($self->ikvm);
+    $self->absolute($self->ikvm // 0);
 
     if (!$self->width && !$self->ikvm) {
         $self->width($framebuffer_width);
@@ -803,10 +831,10 @@ sub _receive_update {
 
         #bmwqemu::diag "UP $x,$y $w x $h $encoding_type";
 
+        my $bytes_per_pixel = $self->_bpp / 8;
+
         ### Raw encoding ###
         if ($encoding_type == 0 && !$self->ikvm) {
-
-            my $bytes_per_pixel = $self->_bpp / 8;
 
             $socket->read(my $data, $w * $h * $bytes_per_pixel) || die 'unexpected end of data';
 
@@ -824,6 +852,17 @@ sub _receive_update {
                 die "unknown bpp" . $self->_bpp;
             }
             $image->blend($img, $x, $y);
+        }
+        elsif ($encoding_type == 2) {
+            $socket->read(my $num_sub_rects, 4)
+              || die 'unexpected end of data';
+            $num_sub_rects = unpack 'N', $num_sub_rects;
+            $socket->read(my $data, $bytes_per_pixel + $num_sub_rects * ($bytes_per_pixel + 8));
+            my $pi = $self->_pixinfo;
+            $image->map_raw_data_rre($x, $y, $w, $h, $data, $num_sub_rects, $do_endian_conversion, $bytes_per_pixel, $pi->{red_max}, $pi->{red_shift}, $pi->{green_max}, $pi->{green_shift}, $pi->{blue_max}, $pi->{blue_shift});
+        }
+        elsif ($encoding_type == 16) {
+            $self->_receive_zlre_encoding($x, $y, $w, $h);
         }
         elsif ($encoding_type == -223) {
             $self->width($w);
@@ -868,6 +907,41 @@ sub _discard_ikvm_message {
     #     bytes "mouse-get-info", 2
     #   when 0x3c
     #     bytes "get-viewer-lang", 8
+}
+
+sub _receive_zlre_encoding {
+    my ($self, $x, $y, $w, $h) = @_;
+
+    my $socket = $self->socket;
+    my $image  = $self->_framebuffer;
+
+    my $pi = $self->_pixinfo;
+    my $info = tinycv::new_vncinfo($self->_do_endian_conversion, $self->_bpp, $pi->{red_max}, $pi->{red_shift}, $pi->{green_max}, $pi->{green_shift}, $pi->{blue_max}, $pi->{blue_shift});
+
+    my $stime = time;
+    $socket->read(my $data, 4)
+      or die "short read for length";
+    my ($data_len) = unpack('N', $data);
+    my $read_len = 0;
+    while ($read_len < $data_len) {
+        my $len = read($socket, $data, $data_len - $read_len, $read_len);
+        die "short read for zlre data $read_len - $data_len" unless $len;
+        $read_len += $len;
+    }
+    if (time - $stime > 0.1) {
+        diag sprintf("read $data_len in %fs\n", time - $stime);
+    }
+    # the zlib header is only sent once per session
+    $self->{_inflater} ||= new Compress::Raw::Zlib::Inflate();
+    my $out;
+    my $old_total_out = $self->{_inflater}->total_out;
+    my $status = $self->{_inflater}->inflate($data, $out, 1);
+    if ($status != Z_OK) {
+        die "inflation failed $status";
+    }
+    my $res = $image->map_raw_data_zrle($x, $y, $w, $h, $info, $out, $self->{_inflater}->total_out - $old_total_out);
+    die "not read enough data" unless $old_total_out + $res == $self->{_inflater}->total_out;
+    return $res;
 }
 
 sub _receive_ikvm_encoding {

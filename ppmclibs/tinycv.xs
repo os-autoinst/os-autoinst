@@ -8,6 +8,7 @@
 #include "tinycv.h"
 
 typedef Image *tinycv__Image;
+typedef VNCInfo *tinycv__VNCInfo;
 
 MODULE = tinycv     PACKAGE = tinycv
 
@@ -26,6 +27,17 @@ tinycv::Image read(const char *file)
 
   OUTPUT:
     RETVAL
+
+tinycv::VNCInfo new_vncinfo(bool do_endian_conversion, unsigned int bytes_per_pixel, unsigned int red_mask, unsigned int red_shift, unsigned int green_mask, unsigned int green_shift, unsigned int blue_mask, unsigned int blue_shift)
+   CODE:
+     RETVAL = image_vncinfo(do_endian_conversion,
+                      bytes_per_pixel,
+                      red_mask, red_shift,
+                      green_mask, green_shift,
+                      blue_mask, blue_shift);
+
+   OUTPUT:
+     RETVAL
 
 MODULE = tinycv     PACKAGE = tinycv::Image  PREFIX = Image
 
@@ -76,19 +88,34 @@ void map_raw_data_rgb555(tinycv::Image self, unsigned char *data)
   CODE:
     image_map_raw_data_rgb555(self, data);
 
-void map_raw_data_full(tinycv::Image self, unsigned char *data, bool big_endian, unsigned int bytes_per_pixel, unsigned int red_mask, unsigned int red_shift, unsigned int green_mask, unsigned int green_shift, unsigned int blue_mask, unsigned int blue_shift)
+void map_raw_data_rre(tinycv::Image self, long x, long y, long w, long h, unsigned char *data, unsigned int num_of_rects,  bool do_endian_conversion, unsigned int bytes_per_pixel, unsigned int red_mask,   unsigned int red_shift, unsigned int green_mask, unsigned int green_shift, unsigned int blue_mask,  unsigned int blue_shift)
+  CODE:
+   image_map_raw_data_rre(self, x, y, w, h, data, num_of_rects,
+			  do_endian_conversion,
+			  bytes_per_pixel,
+			  red_mask, red_shift,
+			  green_mask, green_shift,
+			  blue_mask, blue_shift);
+
+void map_raw_data_full(tinycv::Image self, unsigned char *data, bool do_endian_conversion, unsigned int bytes_per_pixel, unsigned int red_mask, unsigned int red_shift, unsigned int green_mask, unsigned int green_shift, unsigned int blue_mask, unsigned int blue_shift)
   CODE:
     image_map_raw_data_full(self, data,
-			    big_endian,
+			    do_endian_conversion,
 			    bytes_per_pixel,
 			    red_mask, red_shift,
 			    green_mask, green_shift,
 			    blue_mask, blue_shift);
 
+long map_raw_data_zrle(tinycv::Image self, long x, long y, long w, long h, tinycv::VNCInfo info, unsigned char *data, size_t len)
+  CODE:
+   RETVAL = image_map_raw_data_zlre(self, x, y, w, h, info, data, len);
+
+  OUTPUT:
+   RETVAL
+   
 void blend(tinycv::Image self, tinycv::Image source, long x, long y)
   CODE:
     image_blend_image(self, source, x, y);
-
 
 void threshold(tinycv::Image self, int level)
   CODE:
@@ -137,7 +164,7 @@ tinycv::Image absdiff(tinycv::Image self, tinycv::Image other)
   OUTPUT:
     RETVAL
 
-
 void DESTROY(tinycv::Image self)
   CODE:
     image_destroy(self);
+
