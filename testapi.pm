@@ -91,7 +91,7 @@ sub save_screenshot {
 }
 
 sub record_soft_failure {
-    bmwqemu::log_call('record_soft_failure');
+    bmwqemu::log_call();
     $autotest::current_test->{dents}++;
     return;
 }
@@ -137,12 +137,12 @@ sub _check_or_assert {
             my $img = tinycv::read($rsp->{filename});
             $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
             my $lastarea = $foundneedle->{area}->[-1];
-            bmwqemu::fctres('check_or_assert_screen', sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+            bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
             $last_matched_needle = $foundneedle;
             return $foundneedle;
         }
         if ($rsp->{timeout}) {
-            bmwqemu::fctres('check_or_assert_screen', "match=" . join(',', @$tags) . " timed out after $timeout");
+            bmwqemu::fctres("match=" . join(',', @$tags) . " timed out after $timeout");
             my $failed_screens = $rsp->{failed_screens};
             my $final_mismatch = $failed_screens->[-1];
             if ($check) {
@@ -218,14 +218,14 @@ sub _check_or_assert {
 sub assert_screen {
     my ($mustmatch, $timeout) = @_;
     $timeout //= $bmwqemu::default_timeout;
-    bmwqemu::log_call('assert_screen', mustmatch => $mustmatch, timeout => $timeout);
+    bmwqemu::log_call(mustmatch => $mustmatch, timeout => $timeout);
     return _check_or_assert($mustmatch, $timeout, 0);
 }
 
 sub check_screen {
     my ($mustmatch, $timeout) = @_;
     $timeout //= $bmwqemu::default_timeout;
-    bmwqemu::log_call('check_screen', mustmatch => $mustmatch, timeout => $timeout);
+    bmwqemu::log_call(mustmatch => $mustmatch, timeout => $timeout);
     return _check_or_assert($mustmatch, $timeout, 1);
 }
 
@@ -253,7 +253,7 @@ sub assert_and_click {
 
     $last_matched_needle = assert_screen($mustmatch, $timeout);
     my $old_mouse_coords = $bmwqemu::backend->get_last_mouse_set();
-    bmwqemu::log_call('assert_and_click', mustmatch => $mustmatch, button => $button, timeout => $timeout);
+    bmwqemu::log_call(mustmatch => $mustmatch, button => $button, timeout => $timeout);
 
     # last_matched_needle has to be set, or the assert is buggy :)
     my $lastarea = $last_matched_needle->{area}->[-1];
@@ -292,17 +292,17 @@ sub wait_idle {
     my $timeout = shift || $bmwqemu::idle_timeout;
     $timeout = bmwqemu::scale_timeout($timeout);
 
-    bmwqemu::log_call('wait_idle', timeout => $timeout);
+    bmwqemu::log_call(timeout => $timeout);
 
     my $args = {
         timeout   => $timeout,
         threshold => get_var('IDLETHRESHOLD', 18)};
     my $rsp = $bmwqemu::backend->wait_idle($args);
     if ($rsp->{idle}) {
-        bmwqemu::fctres('wait_idle', "idle detected");
+        bmwqemu::fctres("idle detected");
     }
     else {
-        bmwqemu::fctres('wait_idle', "timed out after $timeout");
+        bmwqemu::fctres("timed out after $timeout");
     }
     return;
 }
@@ -331,7 +331,7 @@ sub wait_serial {
     my $timeout          = shift || 90;    # seconds
     my $expect_not_found = shift || 0;     # expected can not found the term in serial output
 
-    bmwqemu::log_call('wait_serial', regex => $regexp, timeout => $timeout);
+    bmwqemu::log_call(regex => $regexp, timeout => $timeout);
     $timeout = bmwqemu::scale_timeout($timeout);
 
     my $ret = $bmwqemu::backend->wait_serial({regexp => $regexp, timeout => $timeout});
@@ -351,7 +351,7 @@ sub wait_serial {
         $matched = 'fail';
     }
     $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string});
-    bmwqemu::fctres('wait_serial', "$regexp: $matched");
+    bmwqemu::fctres("$regexp: $matched");
     return $ret->{string} if ($matched eq "ok");
     return;    # false
 }
@@ -379,7 +379,7 @@ upload log file to openqa host
 sub upload_logs {
     my ($file) = @_;
 
-    bmwqemu::log_call('upload_logs', file => $file);
+    bmwqemu::log_call(file => $file);
     type_string("curl --form upload=\@$file ");
     my $basename = basename($file);
     type_string(autoinst_url("/uploadlog/$basename") . "\n");
@@ -417,7 +417,7 @@ C<upload_asset '/tmp/suse.ps';>
 sub upload_asset {
     my ($file, $public) = @_;
 
-    bmwqemu::log_call('upload_asset', file => $file);
+    bmwqemu::log_call(file => $file);
     type_string("curl --form upload=\@$file ");
     type_string("--form target=assets_public ") if $public;
     my $basename = basename($file);
@@ -444,7 +444,7 @@ sub wait_screen_change(&@) {
     my ($callback, $timeout) = @_;
     $timeout ||= 10;
 
-    bmwqemu::log_call('wait_screen_change', timeout => $timeout);
+    bmwqemu::log_call(timeout => $timeout);
 
     # get the initial screen
     $bmwqemu::backend->set_reference_screenshot;
@@ -457,13 +457,13 @@ sub wait_screen_change(&@) {
         my $sim = $bmwqemu::backend->similiarity_to_reference->{sim};
         print "waiting for screen change: " . (time - $starttime) . " $sim\n";
         if ($sim < $similarity_level) {
-            bmwqemu::fctres('wait_screen_change', "screen change seen at " . (time - $starttime));
+            bmwqemu::fctres("screen change seen at " . (time - $starttime));
             return 1;
         }
         sleep(0.5);
     }
     save_screenshot;
-    bmwqemu::fctres('wait_screen_change', "timed out");
+    bmwqemu::fctres("timed out");
     return 0;
 }
 
@@ -480,7 +480,7 @@ sub wait_still_screen {
     my $timeout          = shift || 30;
     my $similarity_level = shift || (get_var('HW') ? 44 : 47);
 
-    bmwqemu::log_call('wait_still_screen', stilltime => $stilltime, timeout => $timeout, simlvl => $similarity_level);
+    bmwqemu::log_call(stilltime => $stilltime, timeout => $timeout, simlvl => $similarity_level);
 
     $timeout = bmwqemu::scale_timeout($timeout);
 
@@ -498,13 +498,13 @@ sub wait_still_screen {
             $bmwqemu::backend->set_reference_screenshot;
         }
         if (($now->[0] - $lastchangetime->[0]) + ($now->[1] - $lastchangetime->[1]) / 1000000. >= $stilltime) {
-            bmwqemu::fctres('wait_still_screen', "detected same image for $stilltime seconds");
+            bmwqemu::fctres("detected same image for $stilltime seconds");
             return 1;
         }
         sleep(0.5);
     }
     $autotest::current_test->timeout_screenshot();
-    bmwqemu::fctres('wait_still_screen', "wait_still_screen timed out after $timeout");
+    bmwqemu::fctres("wait_still_screen timed out after $timeout");
     return 0;
 }
 
@@ -600,7 +600,7 @@ sub check_var_array {
 
 sub x11_start_program {
     my ($program, $timeout, $options) = @_;
-    bmwqemu::log_call('x11_start_program', timeout => $timeout, options => $options);
+    bmwqemu::log_call(timeout => $timeout, options => $options);
     return $distri->x11_start_program($program, $timeout, $options);
 }
 
@@ -617,7 +617,7 @@ sub script_run {
     my ($name, $wait) = @_;
     $wait ||= $bmwqemu::idle_timeout;
 
-    bmwqemu::log_call('script_run', name => $name, wait => $wait);
+    bmwqemu::log_call(name => $name, wait => $wait);
     return $distri->script_run($name, $wait);
 }
 
@@ -653,7 +653,7 @@ sub script_sudo {
     my $name = shift;
     my $wait = shift || 2;
 
-    bmwqemu::log_call('script_sudo', name => $name, wait => $wait);
+    bmwqemu::log_call(name => $name, wait => $wait);
     return $distri->script_sudo($name, $wait);
 }
 
@@ -688,7 +688,7 @@ sub power {
 
     # params: (on), off, acpi, reset
     my ($action) = @_;
-    bmwqemu::log_call('power', action => $action);
+    bmwqemu::log_call(action => $action);
     $bmwqemu::backend->power({action => $action});
 }
 
@@ -701,7 +701,7 @@ if backend supports it, eject the CD
 =cut
 
 sub eject_cd {
-    bmwqemu::log_call('eject_cd');
+    bmwqemu::log_call();
     $bmwqemu::backend->eject_cd;
 }
 
@@ -716,7 +716,7 @@ sub eject_cd {
 sub send_key {
     my ($key, $wait) = @_;
     $wait //= 0;
-    bmwqemu::log_call('send_key', key => $key);
+    bmwqemu::log_call(key => $key);
     eval { $bmwqemu::backend->send_key($key); };
     bmwqemu::mydie("Error send_key key=$key: $@\n") if ($@);
     wait_idle() if $wait;
@@ -770,7 +770,7 @@ sub type_string {
     }
     my $log = $args{secret} ? 'SECRET STRING' : $string;
     my $max_interval = $args{max_interval} // 250;
-    bmwqemu::log_call('type_string', string => $log, max_interval => $max_interval);
+    bmwqemu::log_call(string => $log, max_interval => $max_interval);
     $bmwqemu::backend->type_string({text => $string, max_interval => $max_interval});
 }
 
@@ -795,14 +795,14 @@ sub type_password {
 sub mouse_set {
     my ($mx, $my) = @_;
 
-    bmwqemu::log_call('mouse_set', x => $mx, y => $my);
+    bmwqemu::log_call(x => $mx, y => $my);
     $bmwqemu::backend->mouse_set({x => $mx, y => $my});
 }
 
 sub mouse_click {
     my $button = shift || 'left';
     my $time   = shift || 0.15;
-    bmwqemu::log_call('mouse_click', button => $button, cursor_down => $time);
+    bmwqemu::log_call(button => $button, cursor_down => $time);
     $bmwqemu::backend->mouse_button($button, 1);
     # FIXME sleep resolution = 1s, use usleep
     sleep $time;
@@ -812,7 +812,7 @@ sub mouse_click {
 sub mouse_dclick(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.10;
-    bmwqemu::log_call('mouse_dclick', button => $button, cursor_down => $time);
+    bmwqemu::log_call(button => $button, cursor_down => $time);
     $bmwqemu::backend->mouse_button($button, 1);
     # FIXME sleep resolution = 1s, use usleep
     sleep $time;
@@ -826,7 +826,7 @@ sub mouse_dclick(;$$) {
 sub mouse_tclick(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.10;
-    bmwqemu::log_call('mouse_tclick', button => $button, cursor_down => $time);
+    bmwqemu::log_call(button => $button, cursor_down => $time);
     $bmwqemu::backend->mouse_button($button, 1);
     sleep $time;
     $bmwqemu::backend->mouse_button($button, 0);
@@ -842,7 +842,7 @@ sub mouse_tclick(;$$) {
 
 sub mouse_hide(;$) {
     my $border_offset = shift || 0;
-    bmwqemu::log_call('mouse_hide', border_offset => $border_offset);
+    bmwqemu::log_call(border_offset => $border_offset);
     $bmwqemu::backend->mouse_hide($border_offset);
 }
 ## mouse end
@@ -1037,7 +1037,7 @@ our %testapi_console_proxies;
 
 sub select_console {
     my ($testapi_console) = @_;
-    bmwqemu::log_call('select_console', testapi_console => $testapi_console);
+    bmwqemu::log_call(testapi_console => $testapi_console);
     if (!exists $testapi_console_proxies{$testapi_console}) {
         $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
     }
@@ -1051,7 +1051,7 @@ sub select_console {
 
 sub console {
     my ($testapi_console) = @_;
-    bmwqemu::log_call('console', testapi_console => $testapi_console);
+    bmwqemu::log_call(testapi_console => $testapi_console);
     if (exists $testapi_console_proxies{$testapi_console}) {
         return $testapi_console_proxies{$testapi_console};
     }
@@ -1078,7 +1078,7 @@ sub reset_consoles {
 sub assert_shutdown {
     my ($timeout) = @_;
     $timeout //= 60;
-    bmwqemu::log_call('assert_shutdown', timeout => $timeout);
+    bmwqemu::log_call(timeout => $timeout);
     while ($timeout >= 0) {
         my $status = $bmwqemu::backend->status() // '';
         if ($status eq 'shutdown') {
@@ -1191,7 +1191,7 @@ Tells the backend to record a .wav file of the sound card (only works in qemu at
 sub start_audiocapture {
     my $fn = $autotest::current_test->capture_filename;
     my $filename = join('/', bmwqemu::result_dir(), $fn);
-    bmwqemu::log_call('start_audiocapture', filename => $filename);
+    bmwqemu::log_call(filename => $filename);
     return $bmwqemu::backend->start_audiocapture({filename => $filename});
 }
 
