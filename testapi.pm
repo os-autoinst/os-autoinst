@@ -142,7 +142,7 @@ sub _check_or_assert {
             return $foundneedle;
         }
         if ($rsp->{timeout}) {
-            bmwqemu::fctres('assert_screen', "match=" . join(',', @$tags) . " timed out after $timeout");
+            bmwqemu::fctres('check_or_assert_screen', "match=" . join(',', @$tags) . " timed out after $timeout");
             my $failed_screens = $rsp->{failed_screens};
             my $final_mismatch = $failed_screens->[-1];
             if ($check) {
