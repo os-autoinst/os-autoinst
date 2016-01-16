@@ -137,7 +137,7 @@ sub _check_or_assert {
             my $img = tinycv::read($rsp->{filename});
             $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
             my $lastarea = $foundneedle->{area}->[-1];
-            bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+            bmwqemu::fctres('check_or_assert_screen', sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
             $last_matched_needle = $foundneedle;
             return $foundneedle;
         }
