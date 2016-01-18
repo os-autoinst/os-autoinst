@@ -31,35 +31,18 @@ Image *image_absdiff(Image *a, Image*b);
 class VNCInfo;
 
 VNCInfo *image_vncinfo(bool do_endian_conversion,
+		       bool true_color,
 		       unsigned int bytes_per_pixel,
 		       unsigned int red_mask,   unsigned int red_shift,
 		       unsigned int green_mask, unsigned int green_shift,
 		       unsigned int blue_mask,  unsigned int blue_shift);
+void image_set_vnc_color(VNCInfo *info, unsigned int index, unsigned int red, unsigned int green, unsigned int blue);
 
-// this is for VNC support - get RGB tripels out of 32bit data for already set
-// width and height
-void image_map_raw_data(Image *a, const unsigned char *data);
+// this is for VNC support - RAW encoding
+void image_map_raw_data(Image *a, const unsigned char *data, unsigned int x, unsigned int y, unsigned int width, unsigned int height, VNCInfo *info);
 
 // this is for IPMI support - RGB555 is 16bits, the rest is like above
 void image_map_raw_data_rgb555(Image *a, const unsigned char *data);
-
-// this is for stupidly listening to what the VNC server says support
-void image_map_raw_data_full(Image* a, unsigned char *data,
-			     bool do_endian_conversion,
-			     unsigned int bytes_per_pixel,
-			     unsigned int red_mask,   unsigned int red_shift,
-			     unsigned int green_mask, unsigned int green_shift,
-			     unsigned int blue_mask,  unsigned int blue_shift);
-
-// RRE encoding for VNC
-void image_map_raw_data_rre(Image* a, long x, long y, long w, long h,
-			    unsigned char *data,
-			    unsigned int num_of_rects,
-			    bool do_endian_conversion,
-			    unsigned int bytes_per_pixel,
-			    unsigned int red_mask,   unsigned int red_shift,
-			    unsigned int green_mask, unsigned int green_shift,
-			    unsigned int blue_mask,  unsigned int blue_shift);
 
 // ZLRE encoding for VNC
 long image_map_raw_data_zlre(Image* a, long x, long y, long w, long h,

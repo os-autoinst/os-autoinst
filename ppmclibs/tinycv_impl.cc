@@ -402,23 +402,9 @@ Image *image_absdiff(Image *a, Image *b)
   return n;
 }
 
-void image_map_raw_data(Image *a, const unsigned char *data)
-{
-  for (int y = 0; y < a->img.rows; y++) {
-    for (int x = 0; x < a->img.cols; x++) {
-      unsigned char red = *data++;
-      unsigned char blue = *data++;
-      unsigned char green = *data++;
-      data++; // 4th ignored
-      a->img.at<cv::Vec3b>(y, x)[0] = red;
-      a->img.at<cv::Vec3b>(y, x)[1] = blue;      
-      a->img.at<cv::Vec3b>(y, x)[2] = green;
-    }
-  }
-}
-
 class VNCInfo {
   bool do_endian_conversion;
+  bool true_colour;
   unsigned int bytes_per_pixel;
   unsigned int red_mask;
   unsigned int red_shift;
@@ -432,14 +418,19 @@ class VNCInfo {
   unsigned char green_skale;
   unsigned char red_skale;
 
+  // in case !true_color 
+  cv::Vec3b colourMap[256];
+  
 public:
   VNCInfo(bool do_endian_conversion,
+	  bool true_colour,
 	  unsigned int bytes_per_pixel,
 	  unsigned int red_mask,   unsigned int red_shift,
 	  unsigned int green_mask, unsigned int green_shift,
 	  unsigned int blue_mask,  unsigned int blue_shift)
   {
     this->do_endian_conversion = do_endian_conversion;
+    this->true_colour = true_colour;
     this->bytes_per_pixel = bytes_per_pixel;
     this->red_mask = red_mask;
     this->red_shift = red_shift;
@@ -452,16 +443,29 @@ public:
     this->red_skale   = 256 / (red_mask   + 1);
   }
 
-  cv::Vec3b read_cpixel(unsigned char *data, size_t &offset);
+  cv::Vec3b read_cpixel(const unsigned char *data, size_t &offset);
+  cv::Vec3b read_pixel(const unsigned char* data, size_t &offset);
+  void set_colour(unsigned int index, unsigned int red, unsigned int green, unsigned int blue)
+  {
+    assert(index < 256);
+    colourMap[index] = cv::Vec3b(blue, green, red);
+  }
 };
-  
+
+void image_set_vnc_color(VNCInfo *info, unsigned int index, unsigned int red, unsigned int green, unsigned int blue)
+{
+  info->set_colour(index, red, green, blue);
+}
+
 VNCInfo *image_vncinfo(bool do_endian_conversion,
+		       bool true_colour,
 		       unsigned int bytes_per_pixel,
 		       unsigned int red_mask,   unsigned int red_shift,
 		       unsigned int green_mask, unsigned int green_shift,
 		       unsigned int blue_mask,  unsigned int blue_shift)
 {
   return new VNCInfo( do_endian_conversion,
+		      true_colour,
 		      bytes_per_pixel,
 		      red_mask, red_shift,
 		      green_mask, green_shift,
@@ -487,24 +491,20 @@ void image_map_raw_data_rgb555(Image *a, const unsigned char *data)
   }
 }
 
-static uint16_t read_u16(unsigned char * &data, bool do_endian_conversion ) {
+static uint16_t read_u16(const unsigned char *data, size_t &offset, bool do_endian_conversion ) {
   uint16_t pixel;
   if (do_endian_conversion) {
-    pixel = *data++ * 256;
-    pixel += *data++;
+    pixel = data[offset++] * 256;
+    pixel += data[offset++];
   }
   else {
-    pixel = *data++;
-    pixel += *data++ * 256;
-  };
+    pixel = data[offset++];
+    pixel += data[offset++] * 256;
+  }
   return pixel;
 }
 
-cv::Scalar read_pixel(unsigned char* &data, bool do_endian_conversion,
-		      unsigned int bytes_per_pixel,
-		      unsigned int red_mask,   unsigned int red_shift,
-		      unsigned int green_mask, unsigned int green_shift,
-		      unsigned int blue_mask,  unsigned int blue_shift)
+cv::Vec3b VNCInfo::read_pixel(const unsigned char* data, size_t &offset)
 {
   unsigned char blue_skale  = 256 / (blue_mask  + 1);
   unsigned char green_skale = 256 / (green_mask + 1);
@@ -512,22 +512,27 @@ cv::Scalar read_pixel(unsigned char* &data, bool do_endian_conversion,
 
   long pixel;
   if (bytes_per_pixel == 2) {
-    pixel = read_u16(data, do_endian_conversion);
+    pixel = read_u16(data, offset, do_endian_conversion);
   }
   else if (bytes_per_pixel == 4) {
     if (do_endian_conversion) {
-      pixel = *data++;
+      pixel = data[offset++];
       pixel <<=8;
-      pixel |= *data++;
+      pixel |= data[offset++];
       pixel <<=8;
-      pixel |= *data++;
+      pixel |= data[offset++];
       pixel <<=8;
-      pixel |= *data++;
+      pixel |= data[offset++];
     }
     else {
-      pixel = *(uint32_t*)data;
-      data += 4;
+      pixel = *(uint32_t*)(data+offset);
+      offset += 4;
     }
+  }
+  else if (bytes_per_pixel == 1) {
+    pixel = data[offset++];
+    if (!true_colour) 
+      return colourMap[pixel];
   }
   else {
     // just fail miserably for unsupported bytes per pixel
@@ -538,23 +543,21 @@ cv::Scalar read_pixel(unsigned char* &data, bool do_endian_conversion,
   unsigned char blue = (pixel >> blue_shift  & blue_mask ) * blue_skale;
   unsigned char green = (pixel >> green_shift & green_mask) * green_skale;
   unsigned char red = (pixel >> red_shift   & red_mask  ) * red_skale;
-  return Scalar(blue, green, red);
+  return Vec3b(blue, green, red);
 }
 
-void image_map_raw_data_full(Image* a, unsigned char *data,
-			     bool do_endian_conversion,
-			     unsigned int bytes_per_pixel,
-			     unsigned int red_mask,   unsigned int red_shift,
-			     unsigned int green_mask, unsigned int green_shift,
-			     unsigned int blue_mask,  unsigned int blue_shift)
+void image_map_raw_data(Image* a, const unsigned char *data,
+			unsigned int ox,
+			unsigned int oy,
+			unsigned int width,
+			unsigned int height,
+			VNCInfo *info)
 {
-  for (int y = 0; y < a->img.rows; y++) {
-    for (int x = 0; x < a->img.cols; x++) {
-      cv::Scalar pixel = read_pixel(data, do_endian_conversion, bytes_per_pixel,
-				    red_mask, red_shift,
-				    green_mask, green_shift,
-				    blue_mask, blue_shift);
-      a->img.at<cv::Scalar>(y, x) = pixel;
+  size_t offset = 0;
+  for (unsigned int y = 0; y < height; y++) {
+    for (unsigned int x = 0; x < width; x++) {
+      cv::Vec3b pixel = info->read_pixel(data, offset);
+      a->img.at<cv::Vec3b>(y + oy, x + ox) = pixel;
     }
   }
 }
@@ -566,40 +569,14 @@ void image_blend_image(Image *a, Image *s, long x, long y)
   s->img.copyTo( a->img( roi ) );
 }
 
-void image_map_raw_data_rre(Image* a, long x, long y, long w, long h,
-			    unsigned char *data,
-			    unsigned int num_of_rects,
-			    bool do_endian_conversion,
-			    unsigned int bytes_per_pixel,
-			    unsigned int red_mask,   unsigned int red_shift,
-			    unsigned int green_mask, unsigned int green_shift,
-			    unsigned int blue_mask,  unsigned int blue_shift)
+cv::Vec3b VNCInfo::read_cpixel(const unsigned char *data, size_t &offset)
 {
-  cv::Scalar pixel = read_pixel(data, do_endian_conversion, bytes_per_pixel,
-			       red_mask, red_shift,
-			       green_mask, green_shift,
-			       blue_mask, blue_shift);
-  cv::rectangle( a->img, cv::Rect( x, y, w, h), pixel, CV_FILLED );
-  for (unsigned int i = 0; i < num_of_rects; ++i) {
-    pixel = read_pixel(data, do_endian_conversion, bytes_per_pixel,
-		       red_mask, red_shift,
-		       green_mask, green_shift,
-		       blue_mask, blue_shift);
-    uint16_t r_x = read_u16(data, true);
-    uint16_t r_y = read_u16(data, true);
-    uint16_t r_w = read_u16(data, true);
-    uint16_t r_h = read_u16(data, true);
-    cv::rectangle( a->img, cv::Rect( x+r_x, y+r_y, r_w, r_h), pixel, CV_FILLED );
-  }
-}
-
-cv::Vec3b VNCInfo::read_cpixel(unsigned char *data, size_t &offset) {
   unsigned char red, green, blue;
-  
-  if (bytes_per_pixel == 16) {
-    data += offset;
-    long pixel = read_u16(data, do_endian_conversion);
-    offset += 2;
+
+  if (bytes_per_pixel == 1) {
+    return colourMap[data[offset++]];
+  } else if (bytes_per_pixel == 2) {
+    long pixel = read_u16(data, offset, do_endian_conversion);
     red = (pixel >> red_shift & red_mask  ) * red_skale;
     green = (pixel >> green_shift & green_mask) * green_skale;
     blue = (pixel >> blue_shift  & blue_mask ) * blue_skale;
@@ -618,7 +595,7 @@ long image_map_raw_data_zlre(Image* a, long x, long y, long w, long h,
 {
   /* ZLRE implementation is described pretty straight forward in the RFB 3.8 protocol */
 
-  size_t offset          = 0;
+  size_t offset = 0;
   int orig_w = w;
   int orig_x = x;
   while (h > 0) {
