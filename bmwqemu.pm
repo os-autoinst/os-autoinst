@@ -62,6 +62,7 @@ share(@ocrrect);
 our $interactive_mode;
 our $waiting_for_new_needle;
 our $screenshotpath = "qemuscreenshot";
+our $test_git_hash;
 
 # shared vars end
 
@@ -371,6 +372,7 @@ sub save_status {
     $result->{needinput}   = $waiting_for_new_needle ? 1                 : 0;
     $result->{running}     = current_test            ? ref(current_test) : '';
     $result->{backend} = $backend->get_info() if $backend;
+    $result->{test_git_hash} = $test_git_hash ? $test_git_hash : 'UNKNOWN';
 
     return save_json_file($result, result_dir . "/status.json");
 }
