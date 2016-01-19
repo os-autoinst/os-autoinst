@@ -718,8 +718,7 @@ sub send_key {
     my ($key, $wait) = @_;
     $wait //= 0;
     bmwqemu::log_call('send_key', key => $key);
-    eval { $bmwqemu::backend->send_key($key); };
-    bmwqemu::mydie("Error send_key key=$key: $@\n") if ($@);
+    $bmwqemu::backend->send_key($key);
     wait_idle() if $wait;
 }
 
