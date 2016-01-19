@@ -13,14 +13,17 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
+use strict;
+use warnings;
+
 package OpenQA::Exceptions;
 
 use Exception::Class (
-    OpenQA::Exception::InternalException => {
+    'OpenQA::Exception::InternalException' => {
         description => 'internal errors not for the user'
     },
 
-    OpenQA::Exception::FailedNeedle => {
+    'OpenQA::Exception::FailedNeedle' => {
         description => 'assert_screen failed',
         isa         => 'OpenQA::Exception::InternalException',
         fields      => 'tags',
