@@ -28,17 +28,22 @@ tinycv::Image read(const char *file)
   OUTPUT:
     RETVAL
 
-tinycv::VNCInfo new_vncinfo(bool do_endian_conversion, unsigned int bytes_per_pixel, unsigned int red_mask, unsigned int red_shift, unsigned int green_mask, unsigned int green_shift, unsigned int blue_mask, unsigned int blue_shift)
+tinycv::VNCInfo new_vncinfo(bool do_endian_conversion, bool true_color, unsigned int bytes_per_pixel, unsigned int red_mask, unsigned int red_shift, unsigned int green_mask, unsigned int green_shift, unsigned int blue_mask, unsigned int blue_shift)
    CODE:
      RETVAL = image_vncinfo(do_endian_conversion,
-                      bytes_per_pixel,
-                      red_mask, red_shift,
-                      green_mask, green_shift,
-                      blue_mask, blue_shift);
+			    true_color,
+			    bytes_per_pixel,
+			    red_mask, red_shift,
+			    green_mask, green_shift,
+			    blue_mask, blue_shift);
 
    OUTPUT:
      RETVAL
 
+void set_colour(tinycv::VNCInfo info, unsigned int index, unsigned red, unsigned green, unsigned blue)
+   CODE:
+     image_set_vnc_color(info, index, red, green, blue);
+     
 MODULE = tinycv     PACKAGE = tinycv::Image  PREFIX = Image
 
 bool write(tinycv::Image self, const char *file)
@@ -80,31 +85,13 @@ tinycv::Image copyrect(tinycv::Image self, long x, long y, long width, long heig
   OUTPUT:
     RETVAL
 
-void map_raw_data(tinycv::Image self, unsigned char *data)
+void map_raw_data(tinycv::Image self, unsigned char *data, unsigned int x, unsigned int y, unsigned int w, unsigned h, tinycv::VNCInfo info)
   CODE:
-    image_map_raw_data(self, data);
+    image_map_raw_data(self, data, x, y, w, h, info);
 
 void map_raw_data_rgb555(tinycv::Image self, unsigned char *data)
   CODE:
     image_map_raw_data_rgb555(self, data);
-
-void map_raw_data_rre(tinycv::Image self, long x, long y, long w, long h, unsigned char *data, unsigned int num_of_rects,  bool do_endian_conversion, unsigned int bytes_per_pixel, unsigned int red_mask,   unsigned int red_shift, unsigned int green_mask, unsigned int green_shift, unsigned int blue_mask,  unsigned int blue_shift)
-  CODE:
-   image_map_raw_data_rre(self, x, y, w, h, data, num_of_rects,
-			  do_endian_conversion,
-			  bytes_per_pixel,
-			  red_mask, red_shift,
-			  green_mask, green_shift,
-			  blue_mask, blue_shift);
-
-void map_raw_data_full(tinycv::Image self, unsigned char *data, bool do_endian_conversion, unsigned int bytes_per_pixel, unsigned int red_mask, unsigned int red_shift, unsigned int green_mask, unsigned int green_shift, unsigned int blue_mask, unsigned int blue_shift)
-  CODE:
-    image_map_raw_data_full(self, data,
-			    do_endian_conversion,
-			    bytes_per_pixel,
-			    red_mask, red_shift,
-			    green_mask, green_shift,
-			    blue_mask, blue_shift);
 
 long map_raw_data_zrle(tinycv::Image self, long x, long y, long w, long h, tinycv::VNCInfo info, unsigned char *data, size_t len)
   CODE:
