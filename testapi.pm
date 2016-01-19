@@ -102,8 +102,9 @@ sub _check_or_assert {
 
     die "current_test undefined" unless $autotest::current_test;
 
-    my $rsp = $bmwqemu::backend->set_tags_to_assert({mustmatch => $mustmatch, timeout => $timeout});
-    my $tags = $rsp->{tags};
+    my $rsp    = $bmwqemu::backend->set_tags_to_assert({mustmatch => $mustmatch, timeout => $timeout});
+    my $tags   = $rsp->{tags};
+    my $caller = $check ? 'check_screen' : 'assert_screen';
 
     # we ignore timeout here as the backend might be set into interactive mode and then
     # the timeout is meaningless
@@ -137,12 +138,12 @@ sub _check_or_assert {
             my $img = tinycv::read($rsp->{filename});
             $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
             my $lastarea = $foundneedle->{area}->[-1];
-            bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+            bmwqemu::fctres($caller, sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
             $last_matched_needle = $foundneedle;
             return $foundneedle;
         }
         if ($rsp->{timeout}) {
-            bmwqemu::fctres('assert_screen', "match=" . join(',', @$tags) . " timed out after $timeout");
+            bmwqemu::fctres($caller, "match=" . join(',', @$tags) . " timed out after $timeout");
             my $failed_screens = $rsp->{failed_screens};
             my $final_mismatch = $failed_screens->[-1];
             if ($check) {
