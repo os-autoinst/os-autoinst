@@ -337,7 +337,8 @@ sub stop_vm() {
 }
 
 sub mydie {
-    log_call('mydie', cause_of_death => \@_);
+    my ($cause_of_death) = @_;
+    log_call('mydie', cause_of_death => $cause_of_death);
     croak "mydie";
 }
 
