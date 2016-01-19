@@ -52,7 +52,7 @@ sub AUTOLOAD {
 			    args => $args,
 			   };
 
-	bmwqemu::log_call($function, wrapped_call => $wrapped_call);
+	bmwqemu::log_call(wrapped_call => $wrapped_call);
 	my $wrapped_retval = $bmwqemu::backend->proxy_console_call($wrapped_call);
 
 	if (exists $wrapped_retval->{exception}) {

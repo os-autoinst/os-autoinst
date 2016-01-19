@@ -450,7 +450,7 @@ sub capture_filename {
 sub stop_audiocapture {
     my ($self) = @_;
 
-    bmwqemu::log_call('stop_audiocapture');
+    bmwqemu::log_call();
     $bmwqemu::backend->stop_audiocapture;
 
     my $result = {

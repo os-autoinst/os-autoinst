@@ -35,7 +35,6 @@ HDDMODEL;see qemu -device ?;virtio-blk;Storage device for virtualized HDD.
 HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
 HDD_$i;filename;;Filename of HDD image to be used for VM. Up to 9
 ISO;filename;;Filename of ISO file to be attached to VM
-ISO_$i;filename;;Aditional ISO to be attached to VM. Up to 9
 KEEPHDDS;boolean;;Leave created HDD after test finishes. Useful for debugging tests
 LAPTOP;boolean or filename;0;If 1, loads Dell E6330 DMI. If filename, loads specified DMI
 MAKETESTSNAPSHOTS;boolean;0;Save snapshot for each test module in qcow image
@@ -63,10 +62,9 @@ RAIDLEVEL;;;
 SKIPTO;full name of test module;;Restore VM from snapshot and continue by running specified test module. Needs HDD image with snapshots present
 TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used
 TAPSCRIPT;;;
-TESTDEBUG;boolean;0;Enable test debugging: override 'milestone' and 'fatal' test flags to 1. Snapshot are created after each successful test module and each fail aborts test run
 UEFI;;;
-UEFI_PFLASH;boolean;0;Enable the pflash mode to write the UEFI variables directly into the firmware file instead of NVvars in the EFI system partition
 UEFI_BIOS;;;
+UEFI_PFLASH;boolean;0;Enable the pflash mode to write the UEFI variables directly into the firmware file instead of NVvars in the EFI system partition
 USBBOOT;boolean;0;Mount ISO as USB disk and boot VM from it
 VDE_PORT;integer;worker instance + 10;number of vde switch port to connect
 VDE_SOCKETDIR;string;.;directory where vde_switch control socket is to be found
