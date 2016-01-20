@@ -39,6 +39,7 @@ sub new {
     $self->{dents}                  = 0;
     $self->{post_fail_hook_running} = 0;
     $self->{timeoutcounter}         = 0;
+    $self->{activated_consoles}     = [];
 
     return bless $self, $class;
 }
@@ -527,6 +528,20 @@ sub standstill_detected {
     testapi::send_key('alt-sysrq-w');
     testapi::send_key('alt-sysrq-l');
     testapi::send_key('alt-sysrq-d');    # only available with CONFIG_LOCKDEP
+    return;
+}
+
+# this is called if the test failed and the framework loaded a VM
+# snapshot - all consoles activated in the test's run function loose their
+# state
+sub rollback_activated_consoles {
+    my ($self) = @_;
+    for my $console (@{$self->{activated_consoles}}) {
+        # the backend will only reset its state, and call activate
+        # the next time - the console itself might actually not be
+        # able to activate a 2nd time, but that's up to the console class
+        $bmwqemu::backend->reset_console({testapi_console => $console});
+    }
     return;
 }
 
