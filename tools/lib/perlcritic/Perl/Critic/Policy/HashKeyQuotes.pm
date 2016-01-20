@@ -23,7 +23,7 @@ sub violates {
 
     my $c = $elem->content;
     # special characters
-    return if $c =~ m/[- \/]/;
+    return if $c =~ m/[- \/<>.=_:]/;
 
     my $desc = q{Hash key with quotes};
     my $expl = q{Avoid useless quotes};

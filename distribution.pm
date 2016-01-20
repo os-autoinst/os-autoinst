@@ -59,7 +59,7 @@ sub x11_start_program {
     $timeout ||= 6;
     $options ||= {};
 
-    bmwqemu::mydie("TODO: implement x11 start for your distri " . testapi::get_var('DISTRI'));
+    die "TODO: implement x11_start_program for your distri " . testapi::get_var('DISTRI');
 }
 
 sub ensure_installed {
@@ -72,7 +72,7 @@ sub ensure_installed {
         testapi::x11_start_program("su -c 'yum -y install @pkglist'", 4, {terminal => 1});
     }
     else {
-        bmwqemu::mydie("TODO: implement package install for your distri " . testapi::get_var('DISTRI'));
+        die "TODO: implement 'ensure_installed' for your distri " . testapi::get_var('DISTRI');
     }
     if ($testapi::password) { testapi::type_password; testapi::send_key("ret", 1); }
     wait_still_screen(7, 90);    # wait for install

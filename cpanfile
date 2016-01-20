@@ -8,6 +8,7 @@ requires 'Data::Dumper';
 requires 'Digest::MD5';
 requires 'DynaLoader';
 requires 'Exporter';
+requires 'Exception::Class';
 requires 'ExtUtils::MakeMaker';
 # waiting for https://rt.cpan.org/Public/Bug/Display.html?id=106808
 conflicts 'ExtUtils::MakeMaker', '>= 7.06';;

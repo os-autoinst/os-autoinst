@@ -268,6 +268,17 @@ sub post_run_hook {
     return;
 }
 
+sub run_post_fail {
+    my ($self, $msg) = @_;
+    warn $msg;
+    $self->{post_fail_hook_running} = 1;
+    eval { $self->post_fail_hook; };
+    bmwqemu::diag "post_fail_hook failed: $@\n" if $@;
+    $self->{post_fail_hook_running} = 0;
+    $self->fail_if_running();
+    die $msg . "\n";
+}
+
 sub runtest {
     my ($self) = @_;
     my $starttime = time;
@@ -279,18 +290,19 @@ sub runtest {
         $self->run();
         $self->post_run_hook();
     };
-    if ($@ || ($self->{result} || '') eq 'fail') {
-        my $msg;
-        if ($@) {
-            $self->{result} = 'fail';
-            $msg = "test $name died $@";
-            # add a fail screenshot in case there is none
-            if (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail') {
-                my $result = $self->record_testresult('unk');
-                $self->_result_add_screenshot($result);
-            }
-            my $details = {result => 'fail'};
+    if ($@) {
+        # copy the exception early
+        my $internal = Exception::Class->caught('OpenQA::Exception::InternalException');
 
+        $self->{result} = 'fail';
+        # add a fail screenshot in case there is none
+        if (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail') {
+            my $result = $self->record_testresult('unk');
+            $self->_result_add_screenshot($result);
+        }
+        # show a text result with the die message unless the die was internally generated
+        if (!$internal) {
+            my $details = {result => 'fail'};
             my $text_fn = $self->next_resultname('txt');
             open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
             print $fd "# Test died:\n$@\n";
@@ -298,17 +310,12 @@ sub runtest {
             $details->{text}  = $text_fn;
             $details->{title} = 'Failed';
             push @{$self->{details}}, $details;
+            $self->run_post_fail("test $name died");
         }
-        else {
-            $msg = "test $name failed";
-        }
-        warn $msg;
-        $self->{post_fail_hook_running} = 1;
-        eval { $self->post_fail_hook; };
-        bmwqemu::diag "post_fail_hook failed: $@\n" if $@;
-        $self->{post_fail_hook_running} = 0;
-        $self->fail_if_running();
-        die $msg . "\n";
+    }
+    if (($self->{result} || '') eq 'fail') {
+        # fatal
+        $self->run_post_fail("test $name failed");
     }
     $self->done();
     bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), time - $starttime));

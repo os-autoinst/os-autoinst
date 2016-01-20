@@ -25,6 +25,7 @@ use Time::HiRes qw(sleep gettimeofday tv_interval);
 use Mojo::DOM;
 require IPC::System::Simple;
 use autodie qw(:all);
+use OpenQA::Exceptions;
 
 require bmwqemu;
 
@@ -163,7 +164,7 @@ sub _check_or_assert {
                 );
             }
             if (!$check) {
-                bmwqemu::mydie("needle(s) '$mustmatch' not found");
+                OpenQA::Exception::FailedNeedle->throw(error => "needle(s) '$mustmatch' not found", tags => $mustmatch);
             }
             return;
         }
@@ -718,8 +719,7 @@ sub send_key {
     my ($key, $wait) = @_;
     $wait //= 0;
     bmwqemu::log_call('send_key', key => $key);
-    eval { $bmwqemu::backend->send_key($key); };
-    bmwqemu::mydie("Error send_key key=$key: $@\n") if ($@);
+    $bmwqemu::backend->send_key($key);
     wait_idle() if $wait;
 }
 
