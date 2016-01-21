@@ -215,12 +215,14 @@ our $sockets;
 sub _read_json {
     my ($socket) = @_;
 
-    my $fd = fileno($socket);
-    if (!exists $sockets->{$fd}) {
-        $sockets->{$fd} = JSON->new();
-    }
+    my $JSON = JSON->new();
 
-    my $JSON = $sockets->{$fd};
+    my $fd = fileno($socket);
+    if (exists $sockets->{$fd}) {
+        # start with the trailing text from previous call
+        $JSON->incr_parse($sockets->{$fd});
+        delete $sockets->{$fd};
+    }
 
     my $s = IO::Select->new();
     $s->add($socket);
@@ -235,6 +237,8 @@ sub _read_json {
     while (1) {
         $hash = $JSON->incr_parse();
         if ($hash) {
+            # remember the trailing text
+            $sockets->{$fd} = $JSON->incr_text();
             if ($hash->{QUIT}) {
                 print "received magic close\n";
                 return;
