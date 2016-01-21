@@ -71,13 +71,14 @@ sub loadtest {
 }
 
 our $current_test;
+our $last_milestone;
 
 sub set_current_test {
     ($current_test) = @_;
     bmwqemu::save_status();
 }
 
-sub write_test_order() {
+sub write_test_order {
 
     my @result;
     for my $t (@testorder) {
@@ -154,18 +155,22 @@ sub runalltests {
                     return 0;
                 }
                 elsif (!$flags->{norollback}) {
-                    load_snapshot('lastgood');
+                    if ($last_milestone) {
+                        load_snapshot('lastgood');
+                        $last_milestone->rollback_activated_consoles();
+                    }
                 }
             }
             else {
                 if ($snapshots_supported && ($flags->{milestone} || $bmwqemu::vars{TESTDEBUG})) {
                     make_snapshot('lastgood');
+                    $last_milestone = $t;
                 }
             }
         }
         else {
             bmwqemu::diag "skiping $fullname";
-            $t->skip_if_not_running;
+            $t->skip_if_not_running();
             $t->save_test_result();
         }
     }

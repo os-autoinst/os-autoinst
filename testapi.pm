@@ -1045,6 +1045,10 @@ sub select_console {
     my $ret = $bmwqemu::backend->select_console({testapi_console => $testapi_console});
 
     if ($ret->{activated}) {
+        # we need to store the activated consoles for rollback
+        if ($autotest::last_milestone) {
+            push(@{$autotest::last_milestone->{activated_consoles}}, $testapi_console);
+        }
         $testapi::distri->activate_console($testapi_console);
     }
     return $testapi_console_proxies{$testapi_console};
