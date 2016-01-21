@@ -9,7 +9,7 @@ doc_DATA = \
 	doc/testapi.html 
 
 backendexecdir = $(pkglibexecdir)/backend
-backendexec_SCRIPTS = \
+backendexec_DATA = \
 	backend/baseclass.pm \
 	backend/console_proxy.pm \
 	backend/driver.pm \
@@ -19,7 +19,7 @@ backendexec_SCRIPTS = \
 	backend/svirt.pm
 
 consolesexecdir = $(pkglibexecdir)/consoles
-consolesexec_SCRIPTS = \
+consolesexec_DATA = \
 	consoles/console.pm \
 	consoles/localXvnc.pm \
 	consoles/remoteVnc.pm \
@@ -32,7 +32,13 @@ consolesexec_SCRIPTS = \
 	consoles/vnc_base.pm \
 	consoles/VNC.pm
 
-pkglibexec_SCRIPTS = \
+openqaexecdir = $(pkglibexecdir)/OpenQA
+openqaexec_DATA = \
+	OpenQA/Exceptions.pm
+
+# circumvent automake's test - possibly we really shouldn't install in /usr/lib though
+perlexecdir = $(pkglibexecdir)
+perlexec_DATA = \
 	autotest.pm \
 	basetest.pm \
 	bmwqemu.pm \
@@ -43,7 +49,9 @@ pkglibexec_SCRIPTS = \
 	distribution.pm \
 	ocr.pm \
 	cv.pm \
-	needle.pm \
+	needle.pm
+
+pkglibexec_SCRIPTS = \
 	crop.py \
 	os-autoinst-openvswitch
 
@@ -54,7 +62,6 @@ install-exec-hook:
 	sed -i -e "s,\$$sysdir = undef;,\$$sysdir = '$(pkglibexecdir)';," $(DESTDIR)$(pkglibexecdir)/cv.pm
 
 pkglibexec_FOLDERS = \
-	distri \
 	tools \
 	inst \
 	inst.d \
@@ -108,7 +115,6 @@ install-data-local:
 	for i in $(pkglibexec_FOLDERS) ; do \
 		cp -r $(top_srcdir)/$$i "$(DESTDIR)/$(pkglibexecdir)" ; \
 	done
-	install -D -m 644 $(top_srcdir)/etc/os-autoinst/kvm2usb.yml "$(DESTDIR)/etc/os-autoinst/kvm2usb.yml"
 	install -D -m 644 $(top_srcdir)/etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf "$(DESTDIR)/etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf"
 	install -D -m 644 $(top_srcdir)/systemd/os-autoinst-openvswitch.service "$(DESTDIR)/usr/lib/systemd/system/os-autoinst-openvswitch.service"
 
