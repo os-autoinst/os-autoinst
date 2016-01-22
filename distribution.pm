@@ -78,11 +78,11 @@ sub ensure_installed {
     wait_still_screen(7, 90);    # wait for install
 }
 
-sub become_root() {
+sub become_root {
     my ($self) = @_;
 
     testapi::script_sudo("bash", 0);    # become root
-    testapi::script_run("test $(id -u) -eq 0 && echo 'imroot' > /dev/$testapi::serialdev");
+    testapi::script_run("test $(id -u) -eq 0 && echo 'imroot' > /dev/$testapi::serialdev", 0);
     testapi::wait_serial("imroot", 5) || die "Root prompt not there";
     testapi::script_run("cd /tmp");
 }
@@ -91,8 +91,9 @@ sub become_root() {
 
 script_run($program, [$wait_seconds])
 
-Run $program (by assuming the console prompt and typing it).
-Wait for idle before  and after.
+Run $program (by assuming the console prompt and typing it). After it, echo
+something to serial line and wait for it. To avoid that, use wait_seconds 0
+and wait yourself, e.g. by wait_idle
 
 =cut
 
@@ -101,8 +102,15 @@ sub script_run {
     # start console application
     my ($self, $name, $wait) = @_;
 
-    testapi::type_string "$name\n";
-    testapi::wait_idle($wait);
+    testapi::type_string "$name";
+    if ($wait > 0) {
+        my $str = bmwqemu::random_string(5);
+        testapi::type_string " ; echo $str > /dev/$testapi::serialdev\n";
+        testapi::wait_serial($str);
+    }
+    else {
+        testapi::send_key 'ret';
+    }
 }
 
 =head2 script_sudo
@@ -118,12 +126,21 @@ $wait_seconds
 sub script_sudo {
     my ($self, $prog, $wait) = @_;
 
+    $wait //= 10;
+
+    my $str = bmwqemu::random_string(5);
+    if ($wait > 0) {
+        $prog = "$prog; echo $str > /dev/$testapi::serialdev";
+    }
     testapi::type_string "sudo $prog\n";
     if (testapi::check_screen "sudo-passwordprompt", 3) {
         testapi::type_password;
         testapi::send_key "ret";
     }
-    testapi::wait_idle($wait);
+    if ($wait > 0) {
+        return testapi::wait_serial($str, $wait);
+    }
+    return;
 }
 
 1;
