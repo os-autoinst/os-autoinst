@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2016 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -286,13 +286,21 @@ sub assert_and_dclick {
 
   wait_idle([$timeout_sec]);
 
-Wait until the system becomes idle (as configured by IDLETHESHOLD)
+Wait until the system becomes idle (as configured by IDLETHESHOLD). This
+function only works on qemu backend and will sleep on other backends. As
+such it's wasting a lot of time and should be avoided as such. Take it
+as last resort if there is nothing else you can assert on.
 
 =cut
 
 sub wait_idle {
     my $timeout = shift || $bmwqemu::idle_timeout;
     $timeout = bmwqemu::scale_timeout($timeout);
+
+    # report wait_idle calls while we work on
+    # https://progress.opensuse.org/issues/5830
+    use Carp qw(cluck);
+    cluck "Wait_idle called";
 
     bmwqemu::log_call('wait_idle', timeout => $timeout);
 
@@ -382,11 +390,10 @@ sub upload_logs {
     my ($file) = @_;
 
     bmwqemu::log_call('upload_logs', file => $file);
-    type_string("curl --form upload=\@$file ");
+    my $cmd      = "curl --form upload=\@$file ";
     my $basename = basename($file);
-    type_string(autoinst_url("/uploadlog/$basename") . "\n");
-    wait_idle();
-    return;
+    $cmd .= autoinst_url("/uploadlog/$basename");
+    return assert_script_run($cmd);
 }
 
 =head2 ensure_installed
@@ -420,12 +427,11 @@ sub upload_asset {
     my ($file, $public) = @_;
 
     bmwqemu::log_call('upload_asset', file => $file);
-    type_string("curl --form upload=\@$file ");
-    type_string("--form target=assets_public ") if $public;
+    my $cmd = "curl --form upload=\@$file ";
+    $cmd .= "--form target=assets_public " if $public;
     my $basename = basename($file);
-    type_string(autoinst_url("/upload_asset/$basename") . "\n");
-    wait_idle();
-    return;
+    $cmd .= autoinst_url("/upload_asset/$basename");
+    return assert_script_run($cmd);
 }
 
 =head2 wait_screen_change
@@ -611,13 +617,16 @@ sub x11_start_program {
   script_run($program, [$wait_seconds]);
 
 Run $program (by assuming the console prompt and typing it).
-Wait for idle before  and after.
+
+The wait parameter will (unless 0) wait for the script to finish
+by following the script with an echo to serial line and waiting
+for it. So make sure not to tamper the serial output.
 
 =cut
 
 sub script_run {
     my ($name, $wait) = @_;
-    $wait ||= $bmwqemu::idle_timeout;
+    $wait //= $bmwqemu::default_timeout;
 
     bmwqemu::log_call('script_run', name => $name, wait => $wait);
     return $distri->script_run($name, $wait);
@@ -629,16 +638,18 @@ sub script_run {
 
 run $command via script_run and die if it's exit status is not zero.
 The exit status is checked by via magic string on the serial port.
+So make sure not to tamper the serial output.
 
 =cut
 
 sub assert_script_run {
     my ($cmd, $timeout) = @_;
-    my $str = time;
+    my $str = bmwqemu::random_string(5);
     # call script_run with idle_timeout 0 so we don't wait twice
     script_run("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $timeout);
     die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
+    return;
 }
 
 =head2 script_sudo
@@ -653,7 +664,7 @@ $wait_seconds defaults to 2 seconds
 
 sub script_sudo {
     my $name = shift;
-    my $wait = shift || 2;
+    my $wait = shift // 2;
 
     bmwqemu::log_call('script_sudo', name => $name, wait => $wait);
     return $distri->script_sudo($name, $wait);
@@ -661,18 +672,21 @@ sub script_sudo {
 
 =head2 assert_script_sudo
 
-  assert_script_sudo($command);
+  assert_script_sudo($command[, $wait]);
 
 run $command via script_sudo and die if it's exit status is not zero.
 The exit status is checked by via magic string on the serial port.
+So make sure not to tamper the serial output.
+
+$wait is passed to wait_serial - look there for the default.
 
 =cut
 
 sub assert_script_sudo {
-    my ($cmd) = @_;
-    my $str = time;
-    script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev");
-    my $ret = wait_serial("$str-\\d+-");
+    my ($cmd, $wait) = @_;
+    my $str = bmwqemu::random_string(5);
+    script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
+    my $ret = wait_serial("$str-\\d+-", $wait);
     die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
 }
 
