@@ -738,8 +738,29 @@ sub check_asserted_screen {
     my $img_filename = $self->_last_screenshot_name;
 
     my $n = $self->_time_to_assert_screen_deadline;
+
+    my $search_ratio = 0.02;
+    $search_ratio = 1 if ($n % 5 == 0);
+
+    my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || ['', 0]};
+
     if ($n < 0) {
-        my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, 1);
+        # one last big search
+        $search_ratio = 1;
+    }
+    else {
+        if ($img_filename eq $oldimg && $old_search_ratio >= $search_ratio) {
+            diag("no change $n");
+            return;
+        }
+    }
+
+    my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio);
+    if ($foundneedle) {
+        return {filename => $img_filename, found => $foundneedle, candidates => $failed_candidates};
+    }
+
+    if ($n < 0) {
         if ($self->interactive_mode) {
             $self->freeze_vm();
             return {waiting_for_needle => 1, filename => $img_filename, candidates => $failed_candidates};
@@ -748,21 +769,6 @@ sub check_asserted_screen {
         # store the final mismatch
         push(@$failed_screens, [$img, $failed_candidates, 0, 1000, $img_filename]);
         return $self->_failed_screens_to_json;
-    }
-
-    my $search_ratio = 0.02;
-    $search_ratio = 1 if ($n % 5 == 0);
-
-    my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || ['', 0]};
-
-    if ($img_filename eq $oldimg && $old_search_ratio >= $search_ratio) {
-        diag("no change $n");
-        return;
-    }
-
-    my ($foundneedle, $failed_candidates) = $self->last_image->search($self->assert_screen_needles, 0, $search_ratio);
-    if ($foundneedle) {
-        return {filename => $img_filename, found => $foundneedle, candidates => $failed_candidates};
     }
 
     if ($search_ratio == 1) {
