@@ -84,3 +84,17 @@ VIRSH_HOSTNAME;string;SSH Host with virtsh;
 VIRSH_PASSWORD;string;Password for root account on above host;
 |====================
 
+.PVM backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+MEM;integer;2048;amount of RAM
+LPAR;string;osauto;LPAR name to be created
+NUMDISKS;integer;1;Number of disks
+HDDSIZEGB;integer;15;Disk size in GB
+NICVLAN;integer;1;VLAN to attach to
+VSWITCH;string;VSWITCH0;A virtula switch to connect to
+CPUS;integer;1;Number of CPUS for LPAR
+|====================
+

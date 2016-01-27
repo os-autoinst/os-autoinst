@@ -16,7 +16,8 @@ backendexec_DATA = \
 	backend/ipmi.pm \
 	backend/qemu.pm \
 	backend/s390x.pm \
-	backend/svirt.pm
+	backend/svirt.pm \
+	backend/pvm.pm
 
 consolesexecdir = $(pkglibexecdir)/consoles
 consolesexec_DATA = \
