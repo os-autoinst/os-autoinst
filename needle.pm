@@ -41,10 +41,8 @@ sub new {
     }
     else {
         local $/;
-        # TODO preserving old behaviour, why should failing read be allowed?
-        no autodie qw(open);
         open(my $fh, '<', $jsonfile);
-        eval { $json = decode_json(<$fh>) };
+        $json = decode_json(<$fh>);
         close($fh);
         if (!$json || $@) {
             warn "broken json $jsonfile: $@";
