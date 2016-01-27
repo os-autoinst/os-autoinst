@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2016 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -730,7 +730,11 @@ sub _failed_screens_to_json {
 sub check_asserted_screen {
     my ($self, $args) = @_;
 
-    my $img          = $self->last_image;
+    my $img = $self->last_image;
+    if (!$img) {    # no screenshot yet to search on
+        return;
+    }
+
     my $img_filename = $self->_last_screenshot_name;
 
     my $n = $self->_time_to_assert_screen_deadline;
@@ -741,15 +745,11 @@ sub check_asserted_screen {
             return {waiting_for_needle => 1, filename => $img_filename, candidates => $failed_candidates};
         }
         my $failed_screens = $self->assert_screen_fails;
-        if (!@$failed_screens) {
-            push(@$failed_screens, [$img, $failed_candidates, 0, 1000, $img_filename]);
-        }
+        # store the final mismatch
+        push(@$failed_screens, [$img, $failed_candidates, 0, 1000, $img_filename]);
         return $self->_failed_screens_to_json;
     }
 
-    if (!$img) {    # no screenshot yet to search on
-        return;
-    }
     my $search_ratio = 0.02;
     $search_ratio = 1 if ($n % 5 == 0);
 
@@ -770,7 +770,7 @@ sub check_asserted_screen {
         # results of partial searching are rather confusing
 
         # as the images create memory pressure, we only save quite different images
-        # the last screen is handled automatically and the first needle is only interesting
+        # the last screen is handled automatically and the first screen is only interesting
         # if there are no others
         my $sim            = 29;
         my $failed_screens = $self->assert_screen_fails;
