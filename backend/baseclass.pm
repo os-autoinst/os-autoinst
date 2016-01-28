@@ -101,7 +101,7 @@ sub run {
     $self->{select}->add($self->{cmdpipe});
 
     $self->last_update_request("-Inf" + 0);
-    $self->last_screenshot("-Inf" + 0);
+    $self->last_screenshot(undef);
     $self->screenshot_interval($bmwqemu::vars{SCREENSHOTINTERVAL} || .5);
     $self->update_request_interval($self->screenshot_interval());
 
@@ -155,6 +155,12 @@ running, e.g. to do some fast or slow motion.
 sub run_capture_loop {
     my ($self, $select, $timeout, $update_request_interval, $screenshot_interval) = @_;
     my $starttime = gettimeofday;
+
+    if (!$self->last_screenshot) {
+        my $now = gettimeofday;
+        $self->last_screenshot($now);
+    }
+
     eval {
         while (1) {
 
@@ -176,9 +182,19 @@ sub run_capture_loop {
                 $time_to_update_request = ($update_request_interval // $self->update_request_interval);
             }
 
+            # if we got stalled for a long time, we assume bad hardware and report it
+            if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 10) {
+                bmwqemu::mydie sprintf("There is some problem with your environment, we detected a stall for %d seconds", $now - $self->last_screenshot);
+            }
+
             my $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval) - ($now - $self->last_screenshot);
             if ($time_to_screenshot <= 0) {
+                my $starttime = gettimeofday;
                 $self->capture_screenshot();
+                my $d = gettimeofday - $starttime;
+                if ($d > $self->screenshot_interval) {
+                    bmwqemu::diag sprintf("WARNING: capture_screenshot took %.2f seconds - slow IO?", $d);
+                }
                 $self->last_screenshot($now);
                 $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval);
             }
@@ -186,7 +202,6 @@ sub run_capture_loop {
             my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
             if (defined $select) {
                 my ($read_set, $write_set) = IO::Select->select($select, $select, undef, $time_to_next);
-
                 for my $fh (@$read_set) {
                     unless ($self->check_socket($fh, 0)) {
                         die "huh! $fh\n";
@@ -197,12 +212,9 @@ sub run_capture_loop {
                         die "huh! $fh\n";
                     }
                 }
-
             }
             else {
-                # "select" used to emulate "sleep"
-                # (coolo) no idea why susanne did this
-                select(undef, undef, undef, $time_to_next);    ## no critic
+                sleep($time_to_next);
             }
         }
     };
@@ -755,12 +767,22 @@ sub check_asserted_screen {
         }
     }
 
+    my $starttime = gettimeofday;
+
     my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio);
     if ($foundneedle) {
+        $self->assert_screen_last_check(undef);
         return {filename => $img_filename, found => $foundneedle, candidates => $failed_candidates};
     }
 
+    my $d = gettimeofday - $starttime;
+    if ($d > $self->screenshot_interval) {
+        bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $d);
+    }
+
     if ($n < 0) {
+        # make sure we recheck later
+        $self->assert_screen_last_check(undef);
         if ($self->interactive_mode) {
             $self->freeze_vm();
             return {waiting_for_needle => 1, filename => $img_filename, candidates => $failed_candidates};
