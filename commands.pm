@@ -170,11 +170,18 @@ sub upload_file {
         mkdir($target) or die "$!";
     }
 
-    my $upname = basename($self->param('filename'));
+    my $upname   = $self->param('upname');
+    my $filename = basename($self->param('filename'));
+    # Only renaming the file if upname parameter has posted ie. from upload_logs()
+    # With this it won't renamed the file in case upload_assert and autoyast profile
+    # as those are not called from upload_logs.
+    if ($upname) {
+        $filename = basename($upname);
+    }
 
-    $upload->move_to("$target/$upname");
+    $upload->move_to("$target/$filename");
 
-    return $self->render(text => "OK: $upname\n");
+    return $self->render(text => "OK: $filename\n");
 }
 
 

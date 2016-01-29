@@ -390,8 +390,9 @@ sub upload_logs {
     my ($file) = @_;
 
     bmwqemu::log_call('upload_logs', file => $file);
-    my $cmd      = "curl --form upload=\@$file ";
     my $basename = basename($file);
+    my $upname   = ref($autotest::current_test) . '-' . $basename;
+    my $cmd      = "curl --form upload=\@$file --form upname=$upname ";
     $cmd .= autoinst_url("/uploadlog/$basename");
     return assert_script_run($cmd);
 }
