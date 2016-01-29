@@ -183,7 +183,8 @@ sub run_capture_loop {
             }
 
             # if we got stalled for a long time, we assume bad hardware and report it
-            if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 10) {
+            if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
+                backend::baseclass::write_crash_file();
                 bmwqemu::mydie sprintf("There is some problem with your environment, we detected a stall for %d seconds", $now - $self->last_screenshot);
             }
 
