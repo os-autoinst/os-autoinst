@@ -24,6 +24,12 @@ use JSON;
 use POSIX;
 use testapi ();
 
+# enable strictures and warnings in all tests globaly
+sub import {
+    strict->import;
+    warnings->import;
+}
+
 sub new {
     my ($class, $category) = @_;
     $category ||= 'unknown';
