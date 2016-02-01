@@ -112,10 +112,12 @@ sub start_lpar {
     my $iso_present = qx/pvmctl media list -d VirtualOpticalMedia.media_name --where VirtualOpticalMedia.name=$iso/;
     if ($iso_present !~ /$iso/) {
         #copy over from nfs to VMLibrary
-        my $cmd = "sudo viosvrcmd --id 1 -r -c\" cp $source_iso /var/vio/VMLibrary/$iso\"";
-        runcmd($cmd);
-        $cmd = "sudo viosvrcmd --id 1 -r -c\" chown padmin:staff /var/vio/VMLibrary/$iso\"";
-        runcmd($cmd);
+        my @viocmd = ("sudo viosvrcmd --id 1 -r -c\"cp $source_iso /var/vio/VMLibrary/$iso\"");
+        push(@viocmd, "sudo viosvrcmd --id 1 -r -c\"chown padmin:staff /var/vio/VMLibrary/$iso\"");
+        push(@viocmd, "sudo viosvrcmd --id 1 -c\"chvopt -name $iso -access ro\"");
+        foreach my $viocmd (@viocmd) {
+            runcmd($viocmd);
+        }
     }
     $self->pvmctl('scsi', 'create', 'vopt', $iso);
 
