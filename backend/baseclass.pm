@@ -190,12 +190,7 @@ sub run_capture_loop {
 
             my $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval) - ($now - $self->last_screenshot);
             if ($time_to_screenshot <= 0) {
-                my $starttime = gettimeofday;
                 $self->capture_screenshot();
-                my $d = gettimeofday - $starttime;
-                if ($d > $self->screenshot_interval) {
-                    bmwqemu::diag sprintf("WARNING: capture_screenshot took %.2f seconds - slow IO?", $d);
-                }
                 $self->last_screenshot($now);
                 $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval);
             }
@@ -344,10 +339,22 @@ sub cpu_stat {
     return [];
 }
 
+# helper function to make sure a screenshot is written
+sub write_img {
+    my ($self, $image, $filename) = @_;
+
+    if (!-f $filename) {
+        $image->write($filename) || return;
+    }
+    return $filename;
+}
+
 sub enqueue_screenshot {
     my ($self, $image) = @_;
 
     return unless $image;
+
+    my $starttime = gettimeofday;
 
     $image = $image->scale(1024, 768);
 
@@ -362,18 +369,19 @@ sub enqueue_screenshot {
     my $sim = 0;
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
 
+    my $mt1 = gettimeofday;
+
     # 54 is based on t/data/user-settings-*
-    if ($sim > 54) {
-        symlink(basename($self->_last_screenshot_name), $filename) || warn "failed to create $filename symlink: $!\n";
-    }
-    else {    # new
-        $image->write($filename) || die "write $filename";
+    if ($sim <= 54) {
+        # don't write a new screenshot by default not to waste cycles
+        $self->write_img($image, $filename) || die "write $filename";
         $self->last_image($image);
         $self->_last_screenshot_name($filename);
         no autodie qw(unlink);
         unlink($lastlink);
         symlink(basename($self->_last_screenshot_name), $lastlink);
     }
+
     if ($self->{encoder_pipe}) {
         if ($sim > 50) {    # we ignore smaller differences
             $self->{encoder_pipe}->print("R\n");
@@ -384,6 +392,11 @@ sub enqueue_screenshot {
         }
         $self->{encoder_pipe}->flush();
     }
+    my $d = gettimeofday - $starttime;
+    if ($d > $self->screenshot_interval) {
+        bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds - slow IO? (opencv: %.2f - encoder: %.2f)", $d, $mt1 - $starttime, gettimeofday - $mt1);
+    }
+    return;
 }
 
 sub close_pipes {
@@ -638,7 +651,6 @@ sub set_reference_screenshot {
     return;
 }
 
-
 sub similiarity_to_reference {
     my ($self, $args) = @_;
     if (!$self->reference_screenshot || !$self->last_image) {
@@ -730,8 +742,7 @@ sub _failed_screens_to_json {
         my ($img, $failed_candidates, $testtime, $similarity, $filename) = @$l;
         my $h = {
             candidates => $failed_candidates,
-            filename   => $filename
-        };
+            filename   => $self->write_img($img, $filename)};
         push(@json_fails, $h);
     }
 
@@ -773,7 +784,7 @@ sub check_asserted_screen {
     my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio);
     if ($foundneedle) {
         $self->assert_screen_last_check(undef);
-        return {filename => $img_filename, found => $foundneedle, candidates => $failed_candidates};
+        return {filename => $self->write_img($img, $img_filename), found => $foundneedle, candidates => $failed_candidates};
     }
 
     my $d = gettimeofday - $starttime;
@@ -786,7 +797,7 @@ sub check_asserted_screen {
         $self->assert_screen_last_check(undef);
         if ($self->interactive_mode) {
             $self->freeze_vm();
-            return {waiting_for_needle => 1, filename => $img_filename, candidates => $failed_candidates};
+            return {waiting_for_needle => 1, filename => $self->write_img($img, $img_filename), candidates => $failed_candidates};
         }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
@@ -854,7 +865,7 @@ sub cont_vm {
 
 sub last_screenshot_name {
     my ($self, $args) = @_;
-    return {filename => $self->_last_screenshot_name};
+    return {filename => $self->write_img($self->last_image, $self->_last_screenshot_name)};
 }
 
 sub interactive_assert_screen {

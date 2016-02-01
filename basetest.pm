@@ -421,7 +421,10 @@ sub _result_add_screenshot {
     my ($self, $result) = @_;
 
     my $img = $bmwqemu::backend->last_screenshot_name->{filename};
+    return $result unless $img;
+
     $img = tinycv::read($img);
+    return $result unless $img;
 
     $result->{screenshot} = $self->next_resultname('png');
 
