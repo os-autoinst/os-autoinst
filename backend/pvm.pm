@@ -76,6 +76,21 @@ sub attach_console {
     diag "VNC is $vars->{VNC}";
 }
 
+sub image_exists {
+    my ($img, $size) = @_;
+    #lv already exists?
+    my @cmd;
+    my $pvmctlcmd = "pvmctl lv list -w LogicalVolume.name=$img -d LogicalVolume.name LogicalVolume.capacity -f , --hide-label";
+    my ($name, $capacity) = split(",", qx/$pvmctlcmd/);
+    return 1 if !($name =~ /$img/);
+    if (($img =~ /$name/) && ($size =~ /$capacity/)) {
+        push(@cmd, "sudo viosvrcmd --id 1 -r -c \"dd if=/dev/zero bs=1024 count=1 of=/dev/r$name\"");
+    }
+    else {
+        push(@cmd, "sudo viosvrcmd --id 1 -c\"rmbdsp -sp rootvg -bd $name\"");
+    }
+    runcmd(@cmd);
+}
 sub start_lpar {
     my $self = shift;
     my $vars = \%bmwqemu::vars;
@@ -123,8 +138,9 @@ sub start_lpar {
 
     for my $i (1 .. $vars->{NUMDISKS}) {
         my $name = $vars->{LPAR} . "_" . $i;
-        $self->pvmctl("lv",   "create", $name, $vars->{HDDSIZEGB});
-        $self->pvmctl("scsi", "create", "lv",  $name);
+        my $size = $vars->{HDDSIZEGB};
+        $self->pvmctl("lv", "create", $name, $size) if !image_exists($name, $size);
+        $self->pvmctl("scsi", "create", "lv", $name);
     }
 
     $self->pvmctl("eth", "create", $vars->{NICVLAN}, $vars->{VSWITCH});
@@ -145,15 +161,12 @@ sub start_lpar {
 sub do_stop_vm {
     my $self  = shift;
     my $vars  = \%bmwqemu::vars;
-    my $state = substr(/qx{pvmctl lpar list -i id=$vars->{LPARID} -d LogicalPartition.state}/, 6);
+    my $state = qx{pvmctl lpar list -i id=$vars->{LPARID} -d LogicalPartition.state --hide-label};
     $self->pvmctl("lpar", "power-off") if ($state =~ /running/);
     runcmd("rmvterm", "--id", $vars->{LPARID});
     for my $i (1 .. $vars->{NUMDISKS}) {
         my $disk = $vars->{LPAR} . "_" . $i;
         $self->pvmctl("scsi", "delete", "lv", $disk);
-        #viosvrcmd wraps commands. so need to pass as it is.
-        my $cmd = "sudo viosvrcmd --id 1 -c \"rmbdsp -sp rootvg -bd $disk\"";
-        runcmd($cmd);
     }
     $self->pvmctl("scsi", "delete", "vopt", $vars->{VIOISO});
     $self->pvmctl("lpar", "delete");
