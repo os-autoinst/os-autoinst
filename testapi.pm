@@ -608,7 +608,7 @@ I<Make sure the command does not write to the serial output.>
 =cut
 sub assert_script_run {
     my ($cmd, $timeout) = @_;
-    my $str = bmwqemu::random_string(5);
+    my $str = bmwqemu::hashed_string("ASR$cmd");
     # call script_run with idle_timeout 0 so we don't wait twice
     script_run("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $timeout);
@@ -649,7 +649,7 @@ I<The implementation is distribution specific and not always available.>
 =cut
 sub assert_script_sudo {
     my ($cmd, $wait) = @_;
-    my $str = bmwqemu::random_string(5);
+    my $str = bmwqemu::hashed_string("ASS$cmd");
     script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $wait);
     die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
@@ -669,19 +669,18 @@ The default timeout for the script is 10 seconds. If you need more, pass a 2nd p
 sub script_output($;$) {
     my $wait;
     ($commands::current_test_script, $wait) = @_;
-    $commands::current_test_script .= "\necho SCRIPT_FINISHED\n";
+    my $suffix = bmwqemu::hashed_string("SO$commands::current_test_script");
+    $commands::current_test_script .= "\necho SCRIPT_FINISHED$suffix\n";
     $wait ||= 10;
 
-    my $suffix = bmwqemu::random_string();
-    type_string "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh && echo \"curl-\$?\" > /dev/$serialdev\n";
-    wait_serial('curl-0') || die "script couldn't be downloaded";
-    send_key "ctrl-l";
+    assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh";
+    script_run "clear";
 
     type_string "/bin/bash -ex /tmp/script$suffix.sh | tee /dev/$serialdev\n";
-    my $output = wait_serial('SCRIPT_FINISHED', $wait) or die "script failed";
+    my $output = wait_serial("SCRIPT_FINISHED$suffix", $wait) or die "script failed";
 
     # strip the internal exit catcher
-    $output =~ s,SCRIPT_FINISHED,,;
+    $output =~ s,SCRIPT_FINISHED$suffix,,;
 
     # trim whitespaces
     $output =~ s/^\s+|\s+$//g;

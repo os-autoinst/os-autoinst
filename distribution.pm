@@ -104,7 +104,7 @@ sub script_run {
 
     testapi::type_string "$name";
     if ($wait > 0) {
-        my $str = bmwqemu::random_string(5);
+        my $str = bmwqemu::hashed_string("SR$name$wait");
         testapi::type_string " ; echo $str > /dev/$testapi::serialdev\n";
         testapi::wait_serial($str);
     }
@@ -128,8 +128,9 @@ sub script_sudo {
 
     $wait //= 10;
 
-    my $str = bmwqemu::random_string(5);
+    my $str;
     if ($wait > 0) {
+        $str  = bmwqemu::hashed_string("SS$prog$wait");
         $prog = "$prog; echo $str > /dev/$testapi::serialdev";
     }
     testapi::type_string "sudo $prog\n";
@@ -137,7 +138,7 @@ sub script_sudo {
         testapi::type_password;
         testapi::send_key "ret";
     }
-    if ($wait > 0) {
+    if ($str) {
         return testapi::wait_serial($str, $wait);
     }
     return;

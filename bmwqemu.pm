@@ -45,6 +45,7 @@ require IPC::System::Simple;
 use autodie qw(:all);
 
 use distribution;
+use Digest::MD5 qw(md5_base64);
 
 sub mydie;
 
@@ -397,6 +398,18 @@ sub random_string {
     my @chars = ('a' .. 'z', 'A' .. 'Z');
     $string .= $chars[rand @chars] for 1 .. $count;
     return $string;
+}
+
+# return a short string representing the given string by passing it through
+# the MD5 algorithm and taking the first characters
+sub hashed_string {
+    my ($string, $count) = @_;
+    $count //= 5;
+
+    my $hash = md5_base64($string);
+    # plus sign is problematic in regexps
+    $hash =~ s,\+,_,g;
+    return substr($hash, 0, $count);
 }
 
 1;
