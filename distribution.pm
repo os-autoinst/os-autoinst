@@ -102,6 +102,7 @@ sub script_run {
     # start console application
     my ($self, $name, $wait) = @_;
 
+    die "script must be non-zero" unless $name;
     testapi::type_string "$name";
     if ($wait > 0) {
         my $str = bmwqemu::hashed_string("SR$name$wait");
