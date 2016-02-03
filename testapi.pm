@@ -813,7 +813,7 @@ sub parse_junit_log {
 
     upload_logs($file);
 
-    $file = basename($file);
+    $file = ref($autotest::current_test) . '-' . basename($file);
 
     open my $fd, "<", "ulogs/$file";
     my $xml = join("", <$fd>);
