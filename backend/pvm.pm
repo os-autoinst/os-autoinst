@@ -82,7 +82,7 @@ sub image_exists {
     my @cmd;
     my $pvmctlcmd = "pvmctl lv list -w LogicalVolume.name=$img -d LogicalVolume.name LogicalVolume.capacity -f , --hide-label";
     my ($name, $capacity) = split(",", qx/$pvmctlcmd/);
-    return 1 if !($name =~ /$img/);
+    return if !($name =~ /$img/);
     if (($img =~ /$name/) && ($size =~ /$capacity/)) {
         push(@cmd, "sudo viosvrcmd --id 1 -r -c \"dd if=/dev/zero bs=1024 count=1 of=/dev/r$name\"");
     }
