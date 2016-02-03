@@ -158,11 +158,16 @@ sub start_lpar {
     $self->select_console({testapi_console => 'sut'});
 }
 
+sub status {
+    my ($self) = @_;
+    my $vars  = \%bmwqemu::vars;
+    return qx{pvmctl lpar list -i id=$vars->{LPARID} -d LogicalPartition.state --hide-label};
+}
+
 sub do_stop_vm {
     my $self  = shift;
     my $vars  = \%bmwqemu::vars;
-    my $state = qx{pvmctl lpar list -i id=$vars->{LPARID} -d LogicalPartition.state --hide-label};
-    $self->pvmctl("lpar", "power-off") if ($state =~ /running/);
+    $self->pvmctl("lpar", "power-off") if (status =~ /running/);
     runcmd("rmvterm", "--id", $vars->{LPARID});
     for my $i (1 .. $vars->{NUMDISKS}) {
         my $disk = $vars->{LPAR} . "_" . $i;
