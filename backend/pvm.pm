@@ -147,6 +147,7 @@ sub start_lpar {
     $self->pvmctl("lpar", "power-on");
 
     attach_console;
+    bmwqemu::save_vars();
 
     my $vnc = $testapi::distri->add_console(
         'sut',
