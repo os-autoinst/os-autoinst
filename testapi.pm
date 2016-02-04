@@ -811,9 +811,7 @@ file is then parsed as jUnit format and extra test results are created from it.
 sub parse_junit_log {
     my ($file) = @_;
 
-    upload_logs($file);
-
-    $file = basename($file);
+    $file = upload_logs($file);
 
     open my $fd, "<", "ulogs/$file";
     my $xml = join("", <$fd>);
@@ -986,7 +984,8 @@ sub data_url($) {
 
   upload_logs $file;
 
-Upload C<$file> to OpenQA WebUI as a log file.
+Upload C<$file> to OpenQA WebUI as a log file and
+return the uploaded file name.
 
 =cut
 sub upload_logs {
@@ -997,7 +996,8 @@ sub upload_logs {
     my $upname   = ref($autotest::current_test) . '-' . $basename;
     my $cmd      = "curl --form upload=\@$file --form upname=$upname ";
     $cmd .= autoinst_url("/uploadlog/$basename");
-    return assert_script_run($cmd);
+    assert_script_run($cmd);
+    return $upname;
 }
 
 =head2 upload_asset
