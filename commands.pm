@@ -195,6 +195,10 @@ sub current_script {
 sub run_daemon {
     my ($port) = @_;
 
+    # allow up to 20GB - hdd images
+    $ENV{MOJO_MAX_MESSAGE_SIZE}   = 1024 * 1024 * 1024 * 20;
+    $ENV{MOJO_INACTIVITY_TIMEOUT} = 300;
+
     # avoid leaking token
     app->mode('production');
 
