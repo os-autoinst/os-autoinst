@@ -407,8 +407,9 @@ sub hashed_string {
     $count //= 5;
 
     my $hash = md5_base64($string);
-    # plus sign is problematic in regexps
+    # + and / are problematic in regexps and shell commands
     $hash =~ s,\+,_,g;
+    $hash =~ s,/,~,g;
     return substr($hash, 0, $count);
 }
 
