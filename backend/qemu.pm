@@ -423,11 +423,19 @@ sub start_qemu {
             runcmd("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1");    # for LVM
         }
         elsif ($vars->{"HDD_$i"}) {
-            runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"});
+            # default: same size as the original image
+            my @sizeopt = ();
+            # HDD_$i specific size
+            @sizeopt = ($vars->{"HDDSIZEGB_$i"} . "G") if $vars->{"HDDSIZEGB_$i"};
+            runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"}, @sizeopt);
             symlink($i, "$basedir/l$i") or die "$!\n";
         }
         else {
-            runcmd($qemuimg, "create", "$basedir/$i", "-f", $vars->{HDDFORMAT}, $vars->{HDDSIZEGB} . "G");
+            # default: generic hdd size
+            my @sizeopt = ($vars->{HDDSIZEGB} . "G");
+            # HDD_$i specific size
+            @sizeopt = ($vars->{"HDDSIZEGB_$i"} . "G") if $vars->{"HDDSIZEGB_$i"};
+            runcmd($qemuimg, "create", "$basedir/$i", "-f", $vars->{HDDFORMAT}, @sizeopt);
             symlink($i, "$basedir/l$i") or die "$!\n";
         }
     }
