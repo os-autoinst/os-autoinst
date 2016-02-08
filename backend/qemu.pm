@@ -461,6 +461,10 @@ sub start_qemu {
             push(@params, "-cpu", $vars->{QEMUCPU});
         }
 
+        if ($vars->{QEMU_VIRTIO_RNG}) {
+            push(@params, '-device', 'virtio-rng-pci');
+        }
+
         for (my $i = 0; $i < $num_networks; $i++) {
             if ($vars->{NICTYPE} eq "user") {
                 push(@params, '-netdev', "user,id=qanet$i");
