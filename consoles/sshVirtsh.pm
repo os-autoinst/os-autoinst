@@ -25,7 +25,18 @@ use Net::SSH2;
 use XML::LibXML;
 
 use Class::Accessor "antlers";
-has instance => (is => "rw");
+has instance => (is => "rw", isa => "Num");
+has name     => (is => "rw", isa => "Str");
+
+sub new {
+    my ($class, $testapi_console, $args) = @_;
+    my $self = $class->SUPER::new($testapi_console, $args);
+
+    $self->instance(get_var('VIRSH_INSTANCE', 1));
+    # default name
+    $self->name("openQA-SUT-" . $self->instance);
+    return $self;
+}
 
 sub activate {
     my ($self) = @_;
@@ -38,8 +49,6 @@ sub activate {
     $self->{ssh} = Net::SSH2->new;
     $self->{ssh}->connect($hostname);
     $self->{ssh}->auth_password('root', $password);
-
-    $self->instance(get_var('VIRSH_INSTANCE') || '1');
 
     # start Xvnc
     $self->SUPER::activate;
@@ -242,12 +251,6 @@ sub define_and_start {
 
     return;
 
-}
-
-sub name {
-    my ($self) = @_;
-
-    return "openQA-SUT-" . $self->instance;
 }
 
 1;
