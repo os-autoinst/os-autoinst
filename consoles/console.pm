@@ -54,7 +54,7 @@ sub screen {
 sub sshCommand {
     my ($self, $host) = @_;
 
-    return "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root\@$host";
+    return "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no root\@$host";
 }
 
 # to be overloaded
