@@ -154,7 +154,8 @@ running, e.g. to do some fast or slow motion.
 
 sub run_capture_loop {
     my ($self, $select, $timeout, $update_request_interval, $screenshot_interval) = @_;
-    my $starttime = gettimeofday;
+    my $stall_timeout = 20;             # empiric value
+    my $starttime     = gettimeofday;
 
     if (!$self->last_screenshot) {
         my $now = gettimeofday;
@@ -183,9 +184,8 @@ sub run_capture_loop {
             }
 
             # if we got stalled for a long time, we assume bad hardware and report it
-            if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
-                backend::baseclass::write_crash_file();
-                bmwqemu::mydie sprintf("There is some problem with your environment, we detected a stall for %d seconds", $now - $self->last_screenshot);
+            if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * $stall_timeout) {
+                bmwqemu::diag sprintf("WARNING: There is some problem with your environment, we detected a stall for %d seconds", $now - $self->last_screenshot);
             }
 
             my $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval) - ($now - $self->last_screenshot);
