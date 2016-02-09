@@ -100,39 +100,41 @@ sub define_domain {
     $elem->appendTextNode('1');
     $root->appendChild($elem);
 
-    my $os = $doc->createElement('os');
-    $root->appendChild($os);
+    $self->{os_element} = $doc->createElement('os');
+    $root->appendChild($self->{os_element});
 
     $elem = $doc->createElement('type');
     $elem->appendTextNode('hvm');
-    $os->appendChild($elem);
+    $self->{os_element}->appendChild($elem);
 
     for my $tag (qw(kernel initrd cmdline)) {
         if ($args->{$tag}) {
             $elem = $doc->createElement($tag);
             $elem->appendTextNode($args->{$tag});
-            $os->appendChild($elem);
+            $self->{os_element}->appendChild($elem);
         }
     }
 
-    for my $tag (qw(on_poweroff on_reboot)) {
-        if ($args->{$tag}) {
-            $elem = $doc->createElement($tag);
+    $self->{on_flags} = {};
+
+    for my $tag (qw(poweroff reboot crash lockfailure)) {
+        if ($args->{"on_$tag"}) {
+            $elem = $doc->createElement("on_$tag");
             $elem->appendTextNode($args->{$tag});
             $root->appendChild($elem);
+            $self->{on_flags}->{$tag} = $elem;
         }
     }
 
-    $elem = $doc->createElement('devices');
-    $root->appendChild($elem);
+    $self->{devices_element} = $doc->createElement('devices');
+    $root->appendChild($self->{devices_element});
     return;
 }
 
 sub devices_element {
     my ($self) = @_;
 
-    my $doc = $self->{domainxml};
-    return $doc->getElementsByTagName('domain')->shift->getElementsByTagName('devices')->shift;
+    return $self->{devices_element};
 }
 
 sub add_pty {
@@ -250,7 +252,13 @@ sub define_and_start {
     $self->backend->start_serial_grab($self->name);
 
     return;
+}
 
+sub attach_to_running {
+    my ($self, $name) = @_;
+
+    $self->name($name) if $name;
+    $self->backend->start_serial_grab($self->name);
 }
 
 1;
