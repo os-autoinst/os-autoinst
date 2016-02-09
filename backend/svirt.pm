@@ -17,6 +17,7 @@
 package backend::svirt;
 use strict;
 use base ('backend::baseclass');
+use testapi qw(get_required_var);
 
 use IO::Select;
 
@@ -28,7 +29,8 @@ use testapi qw/get_var/;
 sub new {
     my $class = shift;
     my $self  = $class->SUPER::new;
-    die "configure WORKER_HOSTNAME e.g. in workers.ini" unless get_var('WORKER_HOSTNAME');
+    get_required_var('WORKER_HOSTNAME');
+
     return $self;
 }
 
@@ -44,8 +46,8 @@ sub do_start_vm {
         'svirt',
         'ssh-virtsh',
         {
-            hostname => $bmwqemu::vars{VIRSH_HOSTNAME},
-            password => $bmwqemu::vars{VIRSH_PASSWORD},
+            hostname => get_required_var('VIRSH_HOSTNAME'),
+            password => get_required_var('VIRSH_PASSWORD'),
         });
     $ssh->backend($self);
     $self->select_console({testapi_console => 'svirt'});
@@ -71,8 +73,8 @@ sub start_serial_grab {
     $run_serial_grab = 1;
 
     $self->{serial} = Net::SSH2->new;
-    $self->{serial}->connect($bmwqemu::vars{VIRSH_HOSTNAME});
-    $self->{serial}->auth_password('root', $bmwqemu::vars{VIRSH_PASSWORD});
+    $self->{serial}->connect(get_required_var('VIRSH_HOSTNAME'));
+    $self->{serial}->auth_password('root', get_required_var('VIRSH_PASSWORD'));
     my $chan = $self->{serial}->channel();
     $self->{serial_chan} = $chan;
     $chan->blocking(0);
