@@ -48,7 +48,7 @@ sub activate {
 
     $self->{ssh} = Net::SSH2->new;
     $self->{ssh}->connect($hostname);
-    $self->{ssh}->auth_password('root', $password);
+    $self->{ssh}->auth_keyboard('root', $password);
 
     # start Xvnc
     $self->SUPER::activate;

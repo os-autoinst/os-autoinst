@@ -74,8 +74,9 @@ sub start_serial_grab {
 
     $self->{serial} = Net::SSH2->new;
     $self->{serial}->connect(get_required_var('VIRSH_HOSTNAME'));
-    $self->{serial}->auth_password('root', get_required_var('VIRSH_PASSWORD'));
+    $self->{serial}->auth_keyboard('root', get_required_var('VIRSH_PASSWORD'));
     my $chan = $self->{serial}->channel();
+    die "No channel found" unless $chan;
     $self->{serial_chan} = $chan;
     $chan->blocking(0);
     $chan->pty(1);
