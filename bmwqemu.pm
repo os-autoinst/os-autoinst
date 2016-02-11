@@ -211,18 +211,23 @@ sub set_ocr_rect {
 
 # util and helper functions
 
+sub get_timestamp {
+    my $t = gettimeofday;
+    return sprintf "%s.%04d ", (POSIX::strftime "%H:%M:%S", gmtime($t)), 10000 * ($t - int($t));
+}
+
 sub print_possibly_colored {
     my ($text, $color) = @_;
 
     if (($direct_output && !$istty) || !$direct_output) {
-        $logfd && print $logfd "$text\n";
+        $logfd && print $logfd get_timestamp() . "$text\n";
     }
     if ($istty || !$logfd) {
         if ($color) {
-            print STDERR colored($text, $color) . "\n";
+            print STDERR colored(get_timestamp() . $text, $color) . "\n";
         }
         else {
-            print STDERR "$text\n";
+            print STDERR get_timestamp() . "$text\n";
         }
     }
     return;
@@ -257,7 +262,7 @@ sub fctwarn {
 }
 
 sub modstart {
-    my $text = sprintf "\n||| %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
+    my $text = sprintf "||| %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
     print_possibly_colored $text, 'bold';
     return;
 }
@@ -275,7 +280,7 @@ sub update_line_number {
         my ($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i);
         last unless $filename;
         next unless $filename =~ m/$ending$/;
-        print "Debug: $filename:$line called $subroutine\n";
+        print get_timestamp() . "Debug: $filename:$line called $subroutine\n";
         last;
     }
     return;
