@@ -64,13 +64,11 @@ sub do_stop_vm {
     return {};
 }
 
-my $run_serial_grab;
-
 # open another ssh connection to grab the serial console
 sub start_serial_grab {
     my ($self, $name) = @_;
 
-    $run_serial_grab = 1;
+    $self->stop_serial_grab;
 
     $self->{serial} = Net::SSH2->new;
     $self->{serial}->connect(get_required_var('VIRSH_HOSTNAME'));
@@ -103,6 +101,10 @@ sub check_socket {
 
 sub stop_serial_grab {
     my ($self) = @_;
+
+    if (!$self->{serial}) {
+	return;
+    }
     $self->{select}->remove($self->{serial}->sock);
     $self->{serial}->disconnect;
     $self->{serial} = undef;
