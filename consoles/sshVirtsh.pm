@@ -25,7 +25,20 @@ use Net::SSH2;
 use XML::LibXML;
 
 use Class::Accessor "antlers";
-has instance => (is => "rw");
+has instance => (is => "rw", isa => "Num");
+has name     => (is => "rw", isa => "Str");
+
+sub new {
+    my ($class, $testapi_console, $args) = @_;
+    my $self = $class->SUPER::new($testapi_console, $args);
+
+    $self->instance(get_var('VIRSH_INSTANCE', 1));
+    # default name
+    $self->name("openQA-SUT-" . $self->instance);
+    $self->_init_xml;
+
+    return $self;
+}
 
 sub activate {
     my ($self) = @_;
@@ -37,9 +50,7 @@ sub activate {
 
     $self->{ssh} = Net::SSH2->new;
     $self->{ssh}->connect($hostname);
-    $self->{ssh}->auth_password('root', $password);
-
-    $self->instance(get_var('VIRSH_INSTANCE') || '1');
+    $self->{ssh}->auth_keyboard('root', $password);
 
     # start Xvnc
     $self->SUPER::activate;
@@ -62,7 +73,7 @@ sub activate {
     $self->type_string({text => $password . "\n"});
 }
 
-sub define_domain {
+sub _init_xml {
     my ($self, $args) = @_;
 
     $args ||= {};
@@ -98,39 +109,60 @@ sub define_domain {
     $elem->appendTextNode('hvm');
     $os->appendChild($elem);
 
-    for my $tag (qw(kernel initrd cmdline)) {
-        if ($args->{$tag}) {
-            $elem = $doc->createElement($tag);
-            $elem->appendTextNode($args->{$tag});
-            $os->appendChild($elem);
-        }
-    }
-
-    for my $tag (qw(on_poweroff on_reboot)) {
-        if ($args->{$tag}) {
-            $elem = $doc->createElement($tag);
-            $elem->appendTextNode($args->{$tag});
-            $root->appendChild($elem);
-        }
-    }
-
-    $elem = $doc->createElement('devices');
-    $root->appendChild($elem);
+    $self->{devices_element} = $doc->createElement('devices');
+    $root->appendChild($self->{devices_element});
     return;
 }
 
-sub devices_element {
-    my ($self) = @_;
+# allows to add and remove elements in the domain XML
+#  - add text node:
+#    change_domain_element(funny => guy => 'hello');
+# -  remove node:
+#    change_domain_element(funny => guy => undef);
+# - set attributes:
+#    change_domain_element(funny => guy => { hello => 'world' });
+sub change_domain_element {
+    # we don't know the number of arguments
+    my $self = shift @_;
 
-    my $doc = $self->{domainxml};
-    return $doc->getElementsByTagName('domain')->shift->getElementsByTagName('devices')->shift;
+    my $doc  = $self->{domainxml};
+    my $elem = $doc->getElementsByTagName('domain')->[0];
+
+    while (@_ > 1) {
+        my $parent   = $elem;
+        my $tag_name = shift @_;
+        $elem = $parent->getElementsByTagName($tag_name)->[0];
+        # create it if not existant
+        if (!$elem) {
+            $elem = $doc->createElement($tag_name);
+            $parent->appendChild($elem);
+        }
+    }
+    my $tag = $_[0];
+    if (!$tag) {
+        # for undef delete the node
+        $elem->unbindNode();
+    }
+    else {
+        if (ref($tag) eq 'HASH') {
+            # for hashes set the attributes
+            while (my ($key, $value) = each %$tag) {
+                $elem->setAttribute($key => $value);
+            }
+        }
+        else {
+            $elem->appendTextNode($tag);
+        }
+    }
+
+    return;
 }
 
 sub add_pty {
     my ($self, $args) = @_;
 
     my $doc     = $self->{domainxml};
-    my $devices = $self->devices_element;
+    my $devices = $self->{devices_element};
 
     my $console = $doc->createElement('console');
     $console->setAttribute(type => 'pty');
@@ -149,7 +181,7 @@ sub add_interface {
     my ($self, $args) = @_;
 
     my $doc     = $self->{domainxml};
-    my $devices = $self->devices_element;
+    my $devices = $self->{devices_element};
 
     my $type      = delete $args->{type};
     my $interface = $doc->createElement('interface');
@@ -183,7 +215,7 @@ sub add_disk {
     }
 
     my $doc     = $self->{domainxml};
-    my $devices = $self->devices_element;
+    my $devices = $self->{devices_element};
 
     my $disk = $doc->createElement('disk');
     $disk->setAttribute(type   => 'file');
@@ -241,13 +273,13 @@ sub define_and_start {
     $self->backend->start_serial_grab($self->name);
 
     return;
-
 }
 
-sub name {
-    my ($self) = @_;
+sub attach_to_running {
+    my ($self, $name) = @_;
 
-    return "openQA-SUT-" . $self->instance;
+    $self->name($name) if $name;
+    $self->backend->start_serial_grab($self->name);
 }
 
 1;

@@ -202,11 +202,18 @@ sub run_capture_loop {
                     unless ($self->check_socket($fh, 0)) {
                         die "huh! $fh\n";
                     }
+                    # don't check for further sockets after this one as
+                    # check_socket can have side effects on the sockets
+                    # (e.g. console resets), so better take the next socket
+                    # next time
+                    $write_set = [];
+                    last;
                 }
                 for my $fh (@$write_set) {
                     unless ($self->check_socket($fh, 1)) {
                         die "huh! $fh\n";
                     }
+                    last;
                 }
             }
             else {

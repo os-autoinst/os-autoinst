@@ -17,6 +17,7 @@
 package backend::svirt;
 use strict;
 use base ('backend::baseclass');
+use testapi qw(get_required_var);
 
 use IO::Select;
 
@@ -28,7 +29,8 @@ use testapi qw/get_var/;
 sub new {
     my $class = shift;
     my $self  = $class->SUPER::new;
-    die "configure WORKER_HOSTNAME e.g. in workers.ini" unless get_var('WORKER_HOSTNAME');
+    get_required_var('WORKER_HOSTNAME');
+
     return $self;
 }
 
@@ -44,8 +46,8 @@ sub do_start_vm {
         'svirt',
         'ssh-virtsh',
         {
-            hostname => $bmwqemu::vars{VIRSH_HOSTNAME},
-            password => $bmwqemu::vars{VIRSH_PASSWORD},
+            hostname => get_required_var('VIRSH_HOSTNAME'),
+            password => get_required_var('VIRSH_PASSWORD'),
         });
     $ssh->backend($self);
     $self->select_console({testapi_console => 'svirt'});
@@ -62,18 +64,17 @@ sub do_stop_vm {
     return {};
 }
 
-my $run_serial_grab;
-
 # open another ssh connection to grab the serial console
 sub start_serial_grab {
     my ($self, $name) = @_;
 
-    $run_serial_grab = 1;
+    $self->stop_serial_grab;
 
     $self->{serial} = Net::SSH2->new;
-    $self->{serial}->connect($bmwqemu::vars{VIRSH_HOSTNAME});
-    $self->{serial}->auth_password('root', $bmwqemu::vars{VIRSH_PASSWORD});
+    $self->{serial}->connect(get_required_var('VIRSH_HOSTNAME'));
+    $self->{serial}->auth_keyboard('root', get_required_var('VIRSH_PASSWORD'));
     my $chan = $self->{serial}->channel();
+    die "No channel found" unless $chan;
     $self->{serial_chan} = $chan;
     $chan->blocking(0);
     $chan->pty(1);
@@ -100,6 +101,10 @@ sub check_socket {
 
 sub stop_serial_grab {
     my ($self) = @_;
+
+    if (!$self->{serial}) {
+        return;
+    }
     $self->{select}->remove($self->{serial}->sock);
     $self->{serial}->disconnect;
     $self->{serial} = undef;
