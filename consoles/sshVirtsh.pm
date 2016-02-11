@@ -35,6 +35,8 @@ sub new {
     $self->instance(get_var('VIRSH_INSTANCE', 1));
     # default name
     $self->name("openQA-SUT-" . $self->instance);
+    $self->_init_xml;
+
     return $self;
 }
 
@@ -71,7 +73,7 @@ sub activate {
     $self->type_string({text => $password . "\n"});
 }
 
-sub define_domain {
+sub _init_xml {
     my ($self, $args) = @_;
 
     $args ||= {};
@@ -100,48 +102,67 @@ sub define_domain {
     $elem->appendTextNode('1');
     $root->appendChild($elem);
 
-    $self->{os_element} = $doc->createElement('os');
-    $root->appendChild($self->{os_element});
+    my $os = $doc->createElement('os');
+    $root->appendChild($os);
 
     $elem = $doc->createElement('type');
     $elem->appendTextNode('hvm');
-    $self->{os_element}->appendChild($elem);
-
-    for my $tag (qw(kernel initrd cmdline)) {
-        if ($args->{$tag}) {
-            $elem = $doc->createElement($tag);
-            $elem->appendTextNode($args->{$tag});
-            $self->{os_element}->appendChild($elem);
-        }
-    }
-
-    $self->{on_flags} = {};
-
-    for my $tag (qw(poweroff reboot crash lockfailure)) {
-        if ($args->{"on_$tag"}) {
-            $elem = $doc->createElement("on_$tag");
-            $elem->appendTextNode($args->{$tag});
-            $root->appendChild($elem);
-            $self->{on_flags}->{$tag} = $elem;
-        }
-    }
+    $os->appendChild($elem);
 
     $self->{devices_element} = $doc->createElement('devices');
     $root->appendChild($self->{devices_element});
     return;
 }
 
-sub devices_element {
-    my ($self) = @_;
+# allows to add and remove elements in the domain XML
+#  - add text node:
+#    change_domain_element(funny => guy => 'hello');
+# -  remove node:
+#    change_domain_element(funny => guy => undef);
+# - set attributes:
+#    change_domain_element(funny => guy => { hello => 'world' });
+sub change_domain_element {
+    # we don't know the number of arguments
+    my $self = shift @_;
 
-    return $self->{devices_element};
+    my $doc  = $self->{domainxml};
+    my $elem = $doc->getElementsByTagName('domain')->[0];
+
+    while (@_ > 1) {
+        my $parent   = $elem;
+        my $tag_name = shift @_;
+        $elem = $parent->getElementsByTagName($tag_name)->[0];
+        # create it if not existant
+        if (!$elem) {
+            $elem = $doc->createElement($tag_name);
+            $parent->appendChild($elem);
+        }
+    }
+    my $tag = $_[0];
+    if (!$tag) {
+        # for undef delete the node
+        $elem->unbindNode();
+    }
+    else {
+        if (ref($tag) eq 'HASH') {
+            # for hashes set the attributes
+            while (my ($key, $value) = each %$tag) {
+                $elem->setAttribute($key => $value);
+            }
+        }
+        else {
+            $elem->appendTextNode($tag);
+        }
+    }
+
+    return;
 }
 
 sub add_pty {
     my ($self, $args) = @_;
 
     my $doc     = $self->{domainxml};
-    my $devices = $self->devices_element;
+    my $devices = $self->{devices_element};
 
     my $console = $doc->createElement('console');
     $console->setAttribute(type => 'pty');
@@ -160,7 +181,7 @@ sub add_interface {
     my ($self, $args) = @_;
 
     my $doc     = $self->{domainxml};
-    my $devices = $self->devices_element;
+    my $devices = $self->{devices_element};
 
     my $type      = delete $args->{type};
     my $interface = $doc->createElement('interface');
@@ -194,7 +215,7 @@ sub add_disk {
     }
 
     my $doc     = $self->{domainxml};
-    my $devices = $self->devices_element;
+    my $devices = $self->{devices_element};
 
     my $disk = $doc->createElement('disk');
     $disk->setAttribute(type   => 'file');

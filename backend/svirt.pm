@@ -103,7 +103,7 @@ sub stop_serial_grab {
     my ($self) = @_;
 
     if (!$self->{serial}) {
-	return;
+        return;
     }
     $self->{select}->remove($self->{serial}->sock);
     $self->{serial}->disconnect;
