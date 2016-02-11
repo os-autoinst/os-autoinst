@@ -204,7 +204,9 @@ if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
             $dir = 'assets_public';
         }
         next unless $name;
-        push @toextract, { hdd_num => $i, name => $name, dir => $dir };
+        $name =~ /\.([[:alnum:]]+)$/;
+        my $format = $1;
+        push @toextract, { hdd_num => $i, name => $name, dir => $dir, format => $format };
     }
     if (@toextract && !$clean_shutdown) {
         diag "ERROR: Machine not shut down when uploading disks!\n";

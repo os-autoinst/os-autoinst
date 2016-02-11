@@ -186,15 +186,14 @@ sub do_extract_assets {
     my $hdd_num = $args->{hdd_num};
     my $name    = $args->{name};
     my $img_dir = $args->{dir};
-    $name =~ /\.([[:alnum:]]+)$/;
-    my $format = $1;
+    my $format  = $args->{format};
     if (!$format || $format !~ /^(raw|qcow2)$/) {
         bmwqemu::diag "do_extract_assets: only raw and qcow2 formats supported $name $format\n";
     }
     elsif (-f "raid/l$hdd_num") {
-        bmwqemu::diag "preparing hdd $hdd_num for upload as $name\n";
+        bmwqemu::diag "preparing hdd $hdd_num for upload as $name in $format\n";
         mkpath($img_dir);
-        my @cmd = ('nice', 'ionice', 'qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name");
+        my @cmd = ('nice', 'ionice', 'qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name.$format");
         if ($format eq 'raw') {
             runcmd(@cmd);
         }
@@ -205,7 +204,7 @@ sub do_extract_assets {
                 runcmd(@cmd);
             }
             else {
-                symlink("../raid/l$hdd_num", "$img_dir/$name");
+                symlink("../raid/l$hdd_num", "$img_dir/$name.$format");
             }
         }
     }
