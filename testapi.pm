@@ -111,13 +111,16 @@ sub save_screenshot {
 
 =head2 record_soft_failure
 
-  record_soft_failure
+  record_soft_failure([$reason]);
 
-Current test module result is success, but workarounds were used.
+Record a soft failure on the current test modules result. The result will
+still be counted as a success. Use this to mark where workarounds are applied.
+Takes an optional C<$reason> string which is recorded in the log file.
 
 =cut
 sub record_soft_failure {
-    bmwqemu::log_call('record_soft_failure');
+    my ($reason) = @_;
+    bmwqemu::log_call('record_soft_failure', reason => $reason);
     $autotest::current_test->{dents}++;
     return;
 }

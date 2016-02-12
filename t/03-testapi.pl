@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 6;
+use Test::More tests => 9;
 
 BEGIN {
     unshift @INC, '..';
@@ -39,5 +39,11 @@ $bmwqemu::backend->{cmds} = [];
 type_password 'hallo';
 is_deeply($bmwqemu::backend->{cmds}, ['type_string', {max_interval => 100, text => 'hallo'}]);
 $bmwqemu::backend->{cmds} = [];
+
+is($autotest::current_test->{dents}, undef, 'no soft failures so far');
+record_soft_failure;
+is($autotest::current_test->{dents}, 1, 'soft failure recorded');
+record_soft_failure('workaround for bug#1234');
+is($autotest::current_test->{dents}, 2, 'another');
 
 # vim: set sw=4 et:
