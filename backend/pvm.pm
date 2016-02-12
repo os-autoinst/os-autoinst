@@ -2,19 +2,21 @@ package backend::pvm;
 use strict;
 use base ('backend::baseclass');
 use bmwqemu qw(fileContent diag save_vars);
+use File::Path qw/mkpath/;
 require IPC::System::Simple;
 use autodie qw(:all);
 use File::Basename;
 use Digest::MD5 qw(md5_hex);
 
 sub new {
-    my $class = shift;
-    my $self  = $class->SUPER::new;
-
+    my $class      = shift;
+    my $self       = $class->SUPER::new;
+    my $masterlpar = qx{cat /proc/device-tree/ibm,partition-name};
     $self->{pid}         = undef;
     $self->{children}    = [];
     $self->{pidfilename} = 'pvm.pid';
     $self->{pvmctl}      = '/usr/bin/pvmctl';
+    $self->{masterlpar}  = substr($masterlpar, 0, -1);
     die "pvmctl not found" unless -x $self->{pvmctl};
 
     return $self;
@@ -30,6 +32,45 @@ sub do_start_vm {
 sub runcmd {
     diag "running " . join(' ', @_);
     return system(@_);
+}
+
+sub do_extract_assets {
+    my ($self, $args) = @_;
+    my $vars    = \%bmwqemu::vars;
+    my $hdd_num = $args->{hdd_num};
+    my $name    = $args->{name};
+    my $img_dir = $args->{dir};
+    my $format  = $args->{format};
+    my $disk    = $vars->{"HDD_$hdd_num"};
+    my $lpar    = $self->{masterlpar};
+    my $cmd     = "pvmctl scsi list -w";
+    $cmd = $cmd . " VirtualDisk.name=$disk";
+    $cmd = $cmd . " -d VirtualDisk.udid --hide-label";
+    #attach disk
+    diag "Attaching $disk to $lpar";
+    $self->pvmctl("scsi", "create", "lv", $disk, $lpar);
+
+    my $prefix = "/dev/disk/by-id/scsi-SAIX_VDASD_";
+    my $id     = qx{$cmd};
+    chomp($id);
+    my $device = $prefix . substr($id, 2);
+
+    if (!$format || $format !~ /^raw$/) {
+        diag "do_extract_assets: Image will be saved as raw eitherway";
+    }
+
+    #rescan scsi for newly attached disk
+    qx{sudo rescan-scsi-bus.sh -a};
+    #wait until udev creates a link
+    until (-l $device) {
+        sleep 1;
+    }
+    mkpath($img_dir);
+    runcmd("sudo", "dd", "if=$device", "of=$img_dir/$name.$format", "bs=8096", "conv=sparse");
+
+    #detach disk
+    $self->pvmctl("scsi", "delete", "lv", $disk, $lpar);
+    qx/sudo rescan-scsi-bus.sh -r/;
 }
 
 sub pvmctl {
@@ -49,7 +90,10 @@ sub pvmctl {
         }
     }
     elsif ($type =~ /scsi/) {
-        my ($type, $action, $kind, $file) = @_;
+        my ($type, $action, $kind, $file, $target) = @_;
+        #so far only disks are reatachable to the master LPAR
+        #set it back to default if argument is omited
+        $lpar = $target if $target;
         push(@cmd, "--type", $kind, "--stor-id", $file);
         push(@cmd, "--lpar", "name=" . $lpar);
         push(@cmd, "--vg", "name=rootvg") if ($type =~ /lv/);
@@ -76,6 +120,21 @@ sub attach_console {
     diag "VNC is $vars->{VNC}";
 }
 
+sub image_exists {
+    my ($img, $size) = @_;
+    #lv already exists?
+    my @cmd;
+    my $pvmctlcmd = "pvmctl lv list -w LogicalVolume.name=$img -d LogicalVolume.name LogicalVolume.capacity -f , --hide-label";
+    my ($name, $capacity) = split(",", qx/$pvmctlcmd/);
+    return if !($name =~ /$img/);
+    if (($img =~ /$name/) && ($size =~ /$capacity/)) {
+        push(@cmd, "sudo viosvrcmd --id 1 -r -c \"dd if=/dev/zero bs=1024 count=1 of=/dev/r$name\"");
+    }
+    else {
+        push(@cmd, "sudo viosvrcmd --id 1 -c\"rmbdsp -sp rootvg -bd $name\"");
+    }
+    runcmd(@cmd);
+}
 sub start_lpar {
     my $self = shift;
     my $vars = \%bmwqemu::vars;
@@ -123,14 +182,18 @@ sub start_lpar {
 
     for my $i (1 .. $vars->{NUMDISKS}) {
         my $name = $vars->{LPAR} . "_" . $i;
-        $self->pvmctl("lv",   "create", $name, $vars->{HDDSIZEGB});
-        $self->pvmctl("scsi", "create", "lv",  $name);
+        $vars->{"HDD_$i"} = $name;
+        my $size = $vars->{HDDSIZEGB};
+        $self->pvmctl("lv", "create", $name, $size) if !image_exists($name, $size);
+        $self->pvmctl("scsi", "create", "lv", $name);
     }
 
     $self->pvmctl("eth", "create", $vars->{NICVLAN}, $vars->{VSWITCH});
     $self->pvmctl("lpar", "power-on");
+    bmwqemu::save_vars();
 
     attach_console;
+    bmwqemu::save_vars();
 
     my $vnc = $testapi::distri->add_console(
         'sut',
@@ -142,18 +205,20 @@ sub start_lpar {
     $self->select_console({testapi_console => 'sut'});
 }
 
+sub status {
+    my ($self) = @_;
+    my $vars = \%bmwqemu::vars;
+    return qx{pvmctl lpar list -i id=$vars->{LPARID} -d LogicalPartition.state --hide-label};
+}
+
 sub do_stop_vm {
-    my $self  = shift;
-    my $vars  = \%bmwqemu::vars;
-    my $state = substr(/qx{pvmctl lpar list -i id=$vars->{LPARID} -d LogicalPartition.state}/, 6);
-    $self->pvmctl("lpar", "power-off") if ($state =~ /running/);
+    my $self = shift;
+    my $vars = \%bmwqemu::vars;
+    $self->pvmctl("lpar", "power-off") if (status =~ /running/);
     runcmd("rmvterm", "--id", $vars->{LPARID});
     for my $i (1 .. $vars->{NUMDISKS}) {
         my $disk = $vars->{LPAR} . "_" . $i;
         $self->pvmctl("scsi", "delete", "lv", $disk);
-        #viosvrcmd wraps commands. so need to pass as it is.
-        my $cmd = "sudo viosvrcmd --id 1 -c \"rmbdsp -sp rootvg -bd $disk\"";
-        runcmd($cmd);
     }
     $self->pvmctl("scsi", "delete", "vopt", $vars->{VIOISO});
     $self->pvmctl("lpar", "delete");
