@@ -2,7 +2,8 @@
 
 use strict;
 use warnings;
-use Test::More tests => 9;
+use Test::More tests => 11;
+use Test::Output;
 
 BEGIN {
     unshift @INC, '..';
@@ -41,9 +42,9 @@ is_deeply($bmwqemu::backend->{cmds}, ['type_string', {max_interval => 100, text 
 $bmwqemu::backend->{cmds} = [];
 
 is($autotest::current_test->{dents}, undef, 'no soft failures so far');
-record_soft_failure;
+stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
 is($autotest::current_test->{dents}, 1, 'soft failure recorded');
-record_soft_failure('workaround for bug#1234');
+stderr_like(sub { record_soft_failure('workaround for bug#1234') }, qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason');
 is($autotest::current_test->{dents}, 2, 'another');
 
 # vim: set sw=4 et:
