@@ -673,17 +673,18 @@ sub script_output($;$) {
     my $wait;
     ($commands::current_test_script, $wait) = @_;
     my $suffix = bmwqemu::hashed_string("SO$commands::current_test_script");
-    $commands::current_test_script .= "\necho SCRIPT_FINISHED$suffix\n";
     $wait ||= 10;
 
     assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh";
     script_run "clear";
 
-    type_string "/bin/bash -ex /tmp/script$suffix.sh | tee /dev/$serialdev\n";
-    my $output = wait_serial("SCRIPT_FINISHED$suffix", $wait) or die "script failed";
+    type_string "(/bin/bash -ex /tmp/script$suffix.sh ; echo SCRIPT_FINISHED$suffix-\$?- )| tee /dev/$serialdev\n";
+    my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait) or die "script timeout";
+
+    die "script failed" if $output !~ "SCRIPT_FINISHED$suffix-0-";
 
     # strip the internal exit catcher
-    $output =~ s,SCRIPT_FINISHED$suffix,,;
+    $output =~ s,SCRIPT_FINISHED$suffix-0-,,;
 
     # trim whitespaces
     $output =~ s/^\s+|\s+$//g;
