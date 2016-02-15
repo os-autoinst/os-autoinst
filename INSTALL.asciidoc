@@ -16,9 +16,6 @@ cd os-autoinst
 3.  install the BuildRequires, as per the http://build.opensuse.org[spec
 file]
 +
------------------------------------------------------------------------------------------------------
-sudo zypper in libtheora-devel opencv-devel pkg-config libtool autoconf automake gcc-c++
------------------------------------------------------------------------------------------------------
 4.  build the beastie locally
 +
 ----------------
