@@ -44,7 +44,7 @@ __PACKAGE__->mk_accessors(
       last_screenshot _last_screenshot_name last_image
       reference_screenshot interactive_mode
       assert_screen_tags assert_screen_needles assert_screen_deadline
-      assert_screen_fails assert_screen_last_check
+      assert_screen_fails assert_screen_last_check stall_detected
       ));
 
 sub new {
@@ -184,8 +184,8 @@ sub run_capture_loop {
 
             # if we got stalled for a long time, we assume bad hardware and report it
             if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
-                backend::baseclass::write_crash_file();
-                bmwqemu::mydie sprintf("There is some problem with your environment, we detected a stall for %d seconds", $now - $self->last_screenshot);
+                $self->stall_detected(1);
+                bmwqemu::diag sprintf("WARNING: There is some problem with your environment, we detected a stall for %d seconds", $now - $self->last_screenshot);
             }
 
             my $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval) - ($now - $self->last_screenshot);
@@ -718,6 +718,7 @@ sub set_tags_to_assert {
     $self->assert_screen_fails([]);
     $self->assert_screen_needles($needles);
     $self->assert_screen_last_check(undef);
+    $self->stall_detected(0);
     # store them for needle reload event
     $self->assert_screen_tags(\@tags);
     return {tags => \@tags};
@@ -805,6 +806,10 @@ sub check_asserted_screen {
         if ($self->interactive_mode) {
             $self->freeze_vm();
             return {waiting_for_needle => 1, filename => $self->write_img($img, $img_filename), candidates => $failed_candidates};
+        }
+        if ($self->stall_detected) {
+            backend::baseclass::write_crash_file();
+            bmwqemu::mydie "assert_screen fails, but we detected a timeout in the process, so we abort";
         }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
