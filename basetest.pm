@@ -66,6 +66,12 @@ Can eg. check vars{BIGTEST}, vars{LIVETEST}
 =cut
 
 sub is_applicable {
+    my ($self) = @_;
+    my %excluded = map { $_ => 1 } split(/\s*,\s*/, $bmwqemu::vars{EXCLUDE_MODULES});
+
+    return 0 if $excluded{$self->{class}};
+    return 0 if $excluded{$self->{fullname}};
+
     return 1;
 }
 
