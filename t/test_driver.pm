@@ -28,9 +28,19 @@ sub new {
     return bless $hash, $class;
 }
 
-sub type_string {
+sub _forward {
     my ($self, $args) = @_;
-    push(@{$self->{cmds}}, 'type_string', $args);
+    push(@{$self->{cmds}}, (caller(1))[3], $args);
+}
+
+sub type_string { _forward(@_) }
+sub send_key    { _forward(@_) }
+sub wait_serial {
+    _forward(@_);
+    return {
+        matched => 1,
+        string  => $_[0]->{cmds}->[5]->{regexp} =~ s/\\d\+/0/r,    # the input regex we want to return as found
+    };
 }
 
 1;

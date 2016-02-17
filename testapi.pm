@@ -600,22 +600,25 @@ sub script_run {
 
 =head2 assert_script_run
 
-  assert_script_run($command [, $wait]);
+  assert_script_run($command [, $wait, $fail_message]);
 
 Run C<$command> via C<script_run> and C<die> if its exit status is not zero.
 The exit status is checked by magic string on the serial port.
 See C<script_run> for default timeout.
+C<$fail_message> is returned in the die message if specified.
 
 I<Make sure the command does not write to the serial output.>
 
 =cut
 sub assert_script_run {
-    my ($cmd, $timeout) = @_;
+    my ($cmd, $timeout, $fail_message) = @_;
     my $str = bmwqemu::hashed_string("ASR$cmd");
     # call script_run with idle_timeout 0 so we don't wait twice
     script_run("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $timeout);
-    die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
+    my $die_msg = "command '$cmd' failed";
+    $die_msg .= ": $fail_message" if $fail_message;
+    die $die_msg unless (defined $ret && $ret =~ /$str-0-/);
     return;
 }
 

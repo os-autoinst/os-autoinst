@@ -52,5 +52,6 @@ requires 'warnings';
 on 'test' => sub {
   requires 'Perl::Critic';
   requires 'Test::Output';
+  requires 'Test::Fatal';
 }
 
