@@ -40,7 +40,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   assert_screen check_screen assert_and_dclick save_screenshot
   assert_and_click mouse_hide mouse_set mouse_click
-  mouse_dclick mouse_tclick match_has_tag
+  mouse_dclick mouse_tclick match_has_tag check_act_and_assert_screen
 
   script_run script_sudo script_output validate_script_output
   assert_script_run assert_script_sudo
@@ -263,6 +263,32 @@ sub match_has_tag {
         return $last_matched_needle->{needle}->has_tag($tag);
     }
     return;
+}
+
+=head2 check_act_and_assert_screen
+
+  check_act_and_assert_screen($mustmatch, $check_tag, $opt_action[, $timeout]);
+
+Helper method to check on multiple needles specified in C<$mustmatch> and
+C<$check_tag> and executes C<$opt_action> if C<$check_tag> found. C<$timeout>
+is forwarded to C<assert_screen>.
+
+This method can be used whenever an optional action might be necessary to
+execute before a subsequent C<assert_screen>.
+
+Example:
+
+  check_act_and_assert_screen('clean-desktop', myapp-unsaved-changes => send_key('esc'));
+
+=cut
+sub check_act_and_assert_screen {
+    my ($mustmatch, $check_tag, $opt_action, $timeout) = @_;
+    my $ret = assert_screen([@{$mustmatch}, $check_tag], $timeout);
+    if (match_has_tag($check_tag)) {
+        eval { &$opt_action };
+        $ret = assert_screen($mustmatch, $timeout);
+    }
+    return $ret;
 }
 
 =head2 assert_and_click
