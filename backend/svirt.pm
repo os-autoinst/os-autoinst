@@ -19,6 +19,7 @@ use strict;
 use base ('backend::baseclass');
 use testapi qw(get_required_var);
 
+use Net::SSH2;
 use IO::Select;
 
 # this is a fake backend to some extend. We don't start VMs, but provide ssh access
@@ -47,7 +48,7 @@ sub do_start_vm {
         'ssh-virtsh',
         {
             hostname => get_required_var('VIRSH_HOSTNAME'),
-            password => get_required_var('VIRSH_PASSWORD'),
+            password => get_var('VIRSH_PASSWORD'),
         });
     $ssh->backend($self);
     $self->select_console({testapi_console => 'svirt'});
@@ -64,15 +65,32 @@ sub do_stop_vm {
     return {};
 }
 
+sub new_ssh_connection {
+    my ($self, %args) = @_;
+
+    my $ssh = Net::SSH2->new;
+    $ssh->connect($args{hostname});
+    $args{username} ||= 'root';
+
+    if ($args{password}) {
+        $ssh->auth(username => $args{username}, password => $args{password});
+    }
+    else {
+        # this relies on agent to be set up correctly
+        $ssh->auth_agent($args{username});
+    }
+    die "Failed to login to $args{username}\@$args{hostname}" unless $ssh->auth_ok;
+
+    return $ssh;
+}
+
 # open another ssh connection to grab the serial console
 sub start_serial_grab {
     my ($self, $name) = @_;
 
     $self->stop_serial_grab;
 
-    $self->{serial} = Net::SSH2->new;
-    $self->{serial}->connect(get_required_var('VIRSH_HOSTNAME'));
-    $self->{serial}->auth_keyboard('root', get_required_var('VIRSH_PASSWORD'));
+    $self->{serial} = $self->new_ssh_connection(hostname => get_required_var('VIRSH_HOSTNAME'), password => get_var('VIRSH_PASSWORD'), username => 'root');
     my $chan = $self->{serial}->channel();
     die "No channel found" unless $chan;
     $self->{serial_chan} = $chan;
