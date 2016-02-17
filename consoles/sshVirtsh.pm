@@ -21,7 +21,6 @@ use warnings;
 use testapi qw/get_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
-use Net::SSH2;
 use XML::LibXML;
 
 use Class::Accessor "antlers";
@@ -46,11 +45,9 @@ sub activate {
     my $args = $self->{args};
 
     my $hostname = $args->{hostname} || die('we need a hostname to ssh to');
-    my $password = $args->{password} || $testapi::password;
+    my $password = $args->{password};
 
-    $self->{ssh} = Net::SSH2->new;
-    $self->{ssh}->connect($hostname);
-    $self->{ssh}->auth_keyboard('root', $password);
+    $self->{ssh} = $self->backend->new_ssh_connection(hostname => $hostname, password => $password);
 
     # start Xvnc
     $self->SUPER::activate;
