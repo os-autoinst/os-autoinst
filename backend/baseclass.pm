@@ -251,7 +251,7 @@ sub post_start_hook {
     my ($self) = @_;
 
     # ignored by default
-    return 0;
+    return {};
 }
 
 sub start_vm {
