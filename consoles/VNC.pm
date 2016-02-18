@@ -404,9 +404,11 @@ sub _server_initialization {
     $self->_true_colour($supported_depths{$self->depth}->{true_colour});
     $self->_do_endian_conversion($self->no_endian_conversion ? 0 : $server_is_big_endian != $client_is_big_endian);
 
-    $socket->read(my $name_string, $name_length)
-      || die 'unexpected end of data';
-    $self->name($name_string);
+    if ($name_length) {
+        $socket->read(my $name_string, $name_length)
+          || die 'unexpected end of data';
+        $self->name($name_string);
+    }
 
     if ($self->ikvm) {
         $socket->read(my $ikvm_init, 12) || die 'unexpected end of data';
@@ -832,6 +834,9 @@ sub _receive_update {
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
 
         #bmwqemu::diag "UP $x,$y $w x $h $encoding_type";
+
+        # work around buggy addrlink VNC
+        next if ($w * $h == 0);
 
         my $bytes_per_pixel = $self->_bpp / 8;
 

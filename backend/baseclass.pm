@@ -351,7 +351,9 @@ sub cpu_stat {
 sub write_img {
     my ($self, $image, $filename) = @_;
 
-    if (!-f $filename) {
+    return if (!$image);
+
+    if ($filename && !-f $filename) {
         $image->write($filename) || return;
     }
     return $filename;
