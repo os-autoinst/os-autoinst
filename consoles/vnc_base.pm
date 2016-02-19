@@ -25,6 +25,7 @@ use Time::HiRes qw(usleep gettimeofday);
 use feature qw/say/;
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
+use Try::Tiny;
 
 sub screen {
     my ($self) = @_;
@@ -48,29 +49,33 @@ sub connect_vnc {
 
     CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
+    my $endtime = time + ($args->{connect_timeout} || 10);
+
     # try to log in, this may fail a few times
-    for my $i (1 .. 10) {
+    while (1) {
         my @connection_error;
-        eval {
+        my $vnc = try {
+            print "trying to login\n";
             local $SIG{__DIE__};
             $self->{vnc}->login();
-        };
-        if ($@) {
+            CORE::say __FILE__. ":" . __LINE__ . ":done\n";
+            return $self->{vnc};
+        }
+        catch {
+            print "catched exception $@\n";
             push @connection_error, $@;
-            if ($i > 7) {
+            if (time > $endtime) {
+                printf "%d $endtime\n", time;
                 $self->disable();
                 die join("\n", @connection_error);
             }
-            else {
-                sleep 1;
-            }
-        }
-        else {
-            last;
-        }
+            sleep 1;
+            return;
+        };
+        return $vnc if $vnc;
     }
-
-    return $self->{vnc};
+    # impossible to reach
+    return;
 }
 
 sub request_screen_update {
