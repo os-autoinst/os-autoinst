@@ -193,7 +193,7 @@ sub do_extract_assets {
     elsif (-f "raid/l$hdd_num") {
         bmwqemu::diag "preparing hdd $hdd_num for upload as $name in $format\n";
         mkpath($img_dir);
-        my @cmd = ('nice', 'ionice', 'qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name.$format");
+        my @cmd = ('nice', 'ionice', 'qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name");
         if ($format eq 'raw') {
             runcmd(@cmd);
         }
@@ -204,7 +204,7 @@ sub do_extract_assets {
                 runcmd(@cmd);
             }
             else {
-                symlink("../raid/l$hdd_num", "$img_dir/$name.$format");
+                symlink("../raid/l$hdd_num", "$img_dir/$name");
             }
         }
     }
