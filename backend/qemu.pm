@@ -187,7 +187,7 @@ sub do_extract_assets {
     my $name    = $args->{name};
     my $img_dir = $args->{dir};
     $name =~ /\.([[:alnum:]]+)$/;
-    my $format  = $1;
+    my $format = $1;
     if (!$format || $format !~ /^(raw|qcow2)$/) {
         bmwqemu::diag "do_extract_assets: only raw and qcow2 formats supported $name $format\n";
     }
