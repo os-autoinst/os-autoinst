@@ -20,7 +20,7 @@ use strict;
 use warnings;
 
 use base qw/Exporter/;
-our @EXPORT = qw/mutex_create mutex_lock mutex_unlock mutex_try_lock/;
+our @EXPORT = qw/mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_try_unlock/;
 
 require bmwqemu;
 use mmapi qw/api_call/;
@@ -64,11 +64,34 @@ sub mutex_try_lock {
 
 sub mutex_unlock {
     my ($name) = @_;
-
     bmwqemu::diag("mutex unlock '$name'");
+    while (1) {
+        my $res = api_call('post', "mutex/$name", {action => 'unlock'})->code;
+        if ($res == 200) {
+            return 1;
+        }
+        elsif ($res != 409) {
+            bmwqemu::fctwarn("Unknown return code $res for lock api");
+            return 0;
+        }
+
+        bmwqemu::diag("mutex '$name' unavailable or locked, sleeping 5s");
+        sleep(5);
+    }
+}
+
+sub mutex_try_unlock {
+    my ($name) = @_;
+    bmwqemu::diag("mutex try unlock '$name'");
     my $res = api_call('post', "mutex/$name", {action => 'unlock'})->code;
-    return 1 if ($res == 200);
-    bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
+    if ($res == 200) {
+        return 1;
+    }
+    elsif ($res != 409) {
+        bmwqemu::fctwarn("Unknown return code $res for lock api");
+    }
+
+    bmwqemu::diag("mutex '$name' unavailable or locked");
     return 0;
 }
 
