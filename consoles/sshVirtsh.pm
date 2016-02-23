@@ -203,7 +203,7 @@ sub add_disk {
     my $file = $args->{file} || "/var/lib/libvirt/images/" . $self->name . ".img";
 
     if ($args->{create}) {
-        my $size = $args->{size} || '4G';
+        my $size = $args->{size} || '8G';
         my $chan = $self->{ssh}->channel();
         my $ret  = $chan->exec("qemu-img create $file $size -f qcow2");
         bmwqemu::diag $_ while <$chan>;
