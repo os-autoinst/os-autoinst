@@ -53,5 +53,7 @@ on 'test' => sub {
   requires 'Perl::Critic';
   requires 'Test::Output';
   requires 'Test::Fatal';
+  requires 'Test::Pod';
+  requires 'Pod::Coverage';
 }
 

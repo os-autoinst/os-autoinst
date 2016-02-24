@@ -71,6 +71,10 @@ sub check_screen;
 sub type_string;
 sub type_password;
 
+=head2 init
+
+Used for internal initialization, do not call from tests.
+=cut
 sub init {
     $serialdev = get_var('SERIALDEV', "ttyS0");
     if (get_var('OFW')) {

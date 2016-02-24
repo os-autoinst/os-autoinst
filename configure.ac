@@ -12,7 +12,7 @@ m4_define([autoinst_version],[autoinst_version_major.autoinst_version_minor.auto
 # =============
 # Automake init
 # =============
-AC_INIT([os-autoinst],[autoinst_version],[https://gitorious.org/os-autoinst])
+AC_INIT([os-autoinst],[autoinst_version],[https://github.com/os-autoinst/os-autoinst])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([1.11 foreign dist-xz])
 AM_SILENT_RULES([yes])
