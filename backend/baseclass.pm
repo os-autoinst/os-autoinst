@@ -803,7 +803,7 @@ sub check_asserted_screen {
     if ($n < 0) {
         # make sure we recheck later
         $self->assert_screen_last_check(undef);
-        if ($self->interactive_mode) {
+        if ($self->interactive_mode && -e $bmwqemu::control_files{stop_waitforneedle}) {
             $self->freeze_vm();
             return {waiting_for_needle => 1, filename => $self->write_img($img, $img_filename), candidates => $failed_candidates};
         }
@@ -901,8 +901,11 @@ sub retry_assert_screen {
         needle::init();
     }
     $self->cont_vm;
-    # short timeout, we're already there
-    $self->set_tags_to_assert({mustmatch => $self->assert_screen_tags, timeout => 5});
+    # do not need to retry in 5 seconds but contining SUT if continue_waitforneedle
+    if ($args->{reload_needles}) {
+        # short timeout, we're already there
+        $self->set_tags_to_assert({mustmatch => $self->assert_screen_tags, timeout => 5});
+    }
     return;
 }
 
