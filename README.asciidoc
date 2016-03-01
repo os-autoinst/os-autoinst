@@ -42,6 +42,9 @@ used by the tests.  A minimal vars.json file can be:
 }
 -------------------------------------------------------------------
 
+Be advised that the file vars.json is read and also written by isotovideo so
+make sure to backup handcrafted versions of this file.
+
 Now we can launch the application with:
 
 $ ../os-autoinst/isotovideo
