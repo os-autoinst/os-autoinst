@@ -232,7 +232,7 @@ sub _check_or_assert {
             }
             $bmwqemu::waiting_for_new_needle = 0;
             bmwqemu::save_status();
-            $bmwqemu::backend->retry_assert_screen({reload_needles => $reload_needles});
+            $bmwqemu::backend->retry_assert_screen({reload_needles => $reload_needles, timeout => $timeout});
         }
         my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
         # sleep the remains of one second

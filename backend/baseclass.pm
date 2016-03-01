@@ -900,6 +900,10 @@ sub retry_assert_screen {
         }
         needle::init();
     }
+    # reset timeout otherwise continue wait_forneedle might just fail if stopped too long than timeout
+    if ($args->{timeout}) {
+        $self->assert_screen_deadline(time + $args->{timeout});
+    }
     $self->cont_vm;
     # do not need to retry in 5 seconds but contining SUT if continue_waitforneedle
     if ($args->{reload_needles}) {
