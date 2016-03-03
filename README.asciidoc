@@ -1,5 +1,5 @@
-os-autoinst image:https://api.travis-ci.org/os-autoinst/os-autoinst.svg[link=https://travis-ci.org/os-autoinst/os-autoinst]
-===========================================================================================================================
+os-autoinst image:https://api.travis-ci.org/os-autoinst/os-autoinst.svg?branch=master[link=https://travis-ci.org/os-autoinst/os-autoinst]
+=========================================================================================================================================
 :author: openSUSE Team at SUSE
 :toc:
 
