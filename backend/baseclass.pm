@@ -45,6 +45,7 @@ __PACKAGE__->mk_accessors(
       reference_screenshot interactive_mode
       assert_screen_tags assert_screen_needles assert_screen_deadline
       assert_screen_fails assert_screen_last_check stall_detected
+      reload_needles
       ));
 
 sub new {
@@ -677,8 +678,9 @@ sub wait_idle {
 
 sub set_tags_to_assert {
     my ($self, $args) = @_;
-    my $mustmatch = $args->{mustmatch};
-    my $timeout = $args->{timeout} // $bmwqemu::default_timeout;
+    my $mustmatch     = $args->{mustmatch};
+    my $timeout       = $args->{timeout} // $bmwqemu::default_timeout;
+    my $reloadneedles = $args->{reloadneedles} || 0;
 
     # get the array reference to all matching needles
     my $needles = [];
@@ -719,6 +721,7 @@ sub set_tags_to_assert {
     $self->assert_screen_needles($needles);
     $self->assert_screen_last_check(undef);
     $self->stall_detected(0);
+    $self->reload_needles($reloadneedles);
     # store them for needle reload event
     $self->assert_screen_tags(\@tags);
     return {tags => \@tags};
@@ -790,6 +793,13 @@ sub check_asserted_screen {
     my $starttime = gettimeofday;
 
     my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio);
+
+    # first time in reload_needles_and_retry, get into waiting for continuation directly and did not reload needles
+    if ($self->interactive_mode && -e $bmwqemu::control_files{stop_waitforneedle} && !$self->reload_needles) {
+        $self->freeze_vm();
+        return {waiting_for_needle => 1, filename => $self->write_img($img, $img_filename), candidates => $failed_candidates};
+    }
+
     if ($foundneedle) {
         $self->assert_screen_last_check(undef);
         return {filename => $self->write_img($img, $img_filename), found => $foundneedle, candidates => $failed_candidates};
@@ -803,7 +813,8 @@ sub check_asserted_screen {
     if ($n < 0) {
         # make sure we recheck later
         $self->assert_screen_last_check(undef);
-        if ($self->interactive_mode) {
+        # in reload_needles_and_retry and reloaded candidate needles
+        if ($self->interactive_mode && -e $bmwqemu::control_files{stop_waitforneedle} && $self->reload_needles) {
             $self->freeze_vm();
             return {waiting_for_needle => 1, filename => $self->write_img($img, $img_filename), candidates => $failed_candidates};
         }
@@ -900,9 +911,17 @@ sub retry_assert_screen {
         }
         needle::init();
     }
+    # reset timeout otherwise continue wait_forneedle might just fail if stopped too long than timeout
+    if ($args->{timeout}) {
+        $self->assert_screen_deadline(time + $args->{timeout});
+    }
     $self->cont_vm;
-    # short timeout, we're already there
-    $self->set_tags_to_assert({mustmatch => $self->assert_screen_tags, timeout => 5});
+    # do not need to retry in 5 seconds but contining SUT if continue_waitforneedle
+    if ($args->{reload_needles}) {
+        # short timeout, we're already there
+        $self->set_tags_to_assert({mustmatch => $self->assert_screen_tags, timeout => 5, reloadneedles => 1});
+
+    }
     return;
 }
 

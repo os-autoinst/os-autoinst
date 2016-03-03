@@ -144,7 +144,6 @@ sub _check_or_assert {
     while (1) {
         if (-e $bmwqemu::control_files{stop_waitforneedle}) {
             $bmwqemu::backend->stop_assert_screen;
-            unlink($bmwqemu::control_files{stop_waitforneedle});
         }
         if (-e $bmwqemu::control_files{interactive_mode}) {
             $bmwqemu::backend->interactive_assert_screen({interactive => 1});
@@ -210,11 +209,6 @@ sub _check_or_assert {
                 # do not set overall here as the result will be removed later
             );
 
-            if (!-e $bmwqemu::control_files{stop_waitforneedle}) {
-                open(my $fd, '>', $bmwqemu::control_files{stop_waitforneedle});
-                close $fd;
-            }
-
             $bmwqemu::waiting_for_new_needle = 1;
 
             bmwqemu::save_status();
@@ -223,7 +217,6 @@ sub _check_or_assert {
             bmwqemu::diag("interactive mode waiting for continuation");
             while (-e $bmwqemu::control_files{stop_waitforneedle}) {
                 if (-e $bmwqemu::control_files{reload_needles_and_retry}) {
-                    unlink($bmwqemu::control_files{stop_waitforneedle});
                     last;
                 }
                 sleep 1;
@@ -239,7 +232,7 @@ sub _check_or_assert {
             }
             $bmwqemu::waiting_for_new_needle = 0;
             bmwqemu::save_status();
-            $bmwqemu::backend->retry_assert_screen({reload_needles => $reload_needles});
+            $bmwqemu::backend->retry_assert_screen({reload_needles => $reload_needles, timeout => $timeout});
         }
         my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
         # sleep the remains of one second
