@@ -495,6 +495,11 @@ sub start_qemu {
             }
         }
 
+        if ($vars->{NBF}) {
+            push(@params, '-kernel', '/usr/share/qemu/ipxe.lkrn');
+            push(@params, '-append', "dhcp && sanhook $vars->{NBF}");
+        }
+
         if ($virtio_scsi_controller) {
             # scsi devices need SCSI controller
             push(@params, "-device", "$virtio_scsi_controller,id=scsi0");
