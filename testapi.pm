@@ -862,8 +862,13 @@ sub parse_junit_log {
             next if ($tc->tag eq 'testsuite' && $tc->children('system-out, system-err')->size == 0);
 
             my $tc_result = $ts_result;    # use overall testsuite result as fallback
-            $tc_result = 'ok'   if defined $tc->{status} && $tc->{status} eq 'success';
-            $tc_result = 'fail' if defined $tc->{status} && $tc->{status} ne 'success';
+            if (defined $tc->{status}) {
+                $tc_result = $tc->{status};
+                $tc_result =~ s/^success$/ok/;
+                $tc_result =~ s/^skipped$/missing/;
+                $tc_result =~ s/^error$/unknown/;    # error in the testsuite itself
+                $tc_result =~ s/^failure$/fail/;     # test failed
+            }
 
             my $details = {result => $tc_result};
 
