@@ -61,11 +61,20 @@ This code is run during test.
 
 Return false if the test should be skipped.
 
+By default it check the test name and fullname against comma-separated
+blacklist in EXCLUDE_MODULES variable and returns false if it is found there.
+
 Can eg. check vars{BIGTEST}, vars{LIVETEST}
 
 =cut
 
 sub is_applicable {
+    my ($self) = @_;
+    my %excluded = map { $_ => 1 } split(/\s*,\s*/, $bmwqemu::vars{EXCLUDE_MODULES});
+
+    return 0 if $excluded{$self->{class}};
+    return 0 if $excluded{$self->{fullname}};
+
     return 1;
 }
 
