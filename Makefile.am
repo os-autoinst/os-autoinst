@@ -13,6 +13,7 @@ backendexec_DATA = \
 	backend/baseclass.pm \
 	backend/console_proxy.pm \
 	backend/driver.pm \
+	backend/generalhw.pm \
 	backend/ipmi.pm \
 	backend/qemu.pm \
 	backend/s390x.pm \
