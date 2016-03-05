@@ -666,14 +666,14 @@ fetches the script through HTTP into the VM and execs it with bash -xe and direc
 C<stdout> (I<not> C<stderr>!) to the serial console and returns the output I<if> the script
 exists with 0. Otherwise the test is set to failed.
 
-The default timeout for the script is 10 seconds. If you need more, pass a 2nd parameter
+The default timeout for the script is 30 seconds. If you need more, pass a 2nd parameter
 
 =cut
 sub script_output($;$) {
     my $wait;
     ($commands::current_test_script, $wait) = @_;
     my $suffix = bmwqemu::hashed_string("SO$commands::current_test_script");
-    $wait ||= 10;
+    $wait ||= 30;
 
     assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh";
     script_run "clear";
@@ -703,7 +703,7 @@ Wrapper around script_output, that runs a callback on the output. Use it as
 =cut
 sub validate_script_output($&;$) {
     my ($script, $code, $wait) = @_;
-    $wait ||= 10;
+    $wait ||= 30;
 
     my $output = script_output($script, $wait);
     return unless $code;
