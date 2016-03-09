@@ -566,6 +566,7 @@ void image_map_raw_data(Image* a, const unsigned char *data,
 void image_blend_image(Image *a, Image *s, long x, long y)
 {
   cv::Rect roi( cv::Point( x, y ), s->img.size() );
+  if (s->img.rows == 0 || s->img.cols == 0) return;
   s->img.copyTo( a->img( roi ) );
 }
 
