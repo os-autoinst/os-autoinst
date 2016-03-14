@@ -11,7 +11,7 @@
 #include <math.h>
 #include <sndfile.h>
 #include <fftw3.h>
-#include <cv.h>
+#include <opencv2/opencv.hpp>
 #include <highgui.h>
 
 using namespace cv;
