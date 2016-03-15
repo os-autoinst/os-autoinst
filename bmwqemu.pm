@@ -71,6 +71,7 @@ our %control_files = (
     reload_needles_and_retry => "reload_needles_and_retry",
     interactive_mode         => "interactive_mode",
     stop_waitforneedle       => "stop_waitforneedle",
+    continue_waitforneedle   => "continue_waitforneedle",
 );
 
 # global vars

@@ -216,7 +216,10 @@ sub _check_or_assert {
 
             bmwqemu::diag("interactive mode waiting for continuation");
             while (-e $bmwqemu::control_files{stop_waitforneedle}) {
-                if (-e $bmwqemu::control_files{reload_needles_and_retry}) {
+                if (   -e $bmwqemu::control_files{continue_waitforneedle}
+                    || -e $bmwqemu::control_files{reload_needles_and_retry})
+                {
+                    unlink($bmwqemu::control_files{stop_waitforneedle});
                     last;
                 }
                 sleep 1;
