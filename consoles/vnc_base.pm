@@ -62,7 +62,6 @@ sub connect_vnc {
             return $self->{vnc};
         }
         catch {
-            print "catched exception $@\n";
             push @connection_error, $@;
             if (time > $endtime) {
                 printf "%d $endtime\n", time;
