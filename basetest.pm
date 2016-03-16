@@ -174,7 +174,7 @@ sub _serialize_match {
     my $name = $cand->{needle}->{name};
     my $file = $cand->{needle}->{file};
 
-    my $h = {name => $name, error => $cand->{error}, area => []}, file => $file;
+    my $h = {name => $name, error => $cand->{error}, area => [], file => $file};
     for my $a (@{$cand->{area}}) {
         my $na = {};
         for my $i (qw/x y w h result/) {
