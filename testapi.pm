@@ -77,7 +77,7 @@ Used for internal initialization, do not call from tests.
 =cut
 sub init {
     $serialdev = get_var('SERIALDEV', "ttyS0");
-    if (get_var('OFW')) {
+    if (get_var('OFW') || check_var('BACKEND', 's390x')) {
         $serialdev = "hvc0";
     }
     $serialdev = 'ttyS1' if check_var('BACKEND', 'ipmi');

@@ -41,6 +41,10 @@ sub new {
 sub do_start_vm {
     my ($self) = @_;
 
+    # truncate the serial file
+    open(my $sf, '>', $self->{serialfile});
+    close($sf);
+
     $self->unlink_crash_file();
     my $console = $testapi::distri->add_console('x3270', 's3270');
     $console->backend($self);
@@ -51,6 +55,8 @@ sub do_start_vm {
 
 sub do_stop_vm {
     my ($self) = @_;
+
+    $self->stop_serial_grab;
 
     #FIXME shutdown
     return 1;
@@ -79,19 +85,11 @@ sub status {
 sub wait_serial {
     my ($self, $args) = @_;
 
-    my $regexp  = $args->{regexp};
-    my $timeout = $args->{timeout};
-    my $matched = 0;
-    my $str;
+    # make sure it's activated
+    # if not activated before, this sshs into the machine
+    $self->{consoles}->{iucvconn}->select;
 
-    die 'Unsupported ARRAYREF for s390' if (ref $regexp eq 'ARRAY');
-    my $console = $testapi::distri->{consoles}->{x3270};
-    my $r = eval { $console->expect_3270(output_delim => $regexp, timeout => $timeout); };
-    unless ($@) {
-        $matched = 1;
-        $str = join('\n', @$r);
-    }
-    return {matched => $matched, string => $str};
+    return $self->SUPER::wait_serial($args);
 }
 
 1;
