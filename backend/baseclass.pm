@@ -484,6 +484,17 @@ sub select_console {
     return {activated => $activated};
 }
 
+sub reset_consoles {
+    my ($self, $args) = @_;
+
+    # we iterate through all consoles
+    for my $console (keys %{$testapi::distri->{consoles}}) {
+        #next if ($console eq 'x3270');
+        $self->reset_console({testapi_console => $console});
+    }
+    return;
+}
+
 sub reset_console {
     my ($self, $args) = @_;
     $self->console($args->{testapi_console})->reset;
@@ -982,7 +993,7 @@ sub start_ssh_serial {
 }
 
 sub check_ssh_serial {
-    my ($self) = @_;
+    my ($self, $fh) = @_;
 
     if ($self->{serial} && $self->{serial}->sock == $fh) {
         my $chan = $self->{serial_chan};

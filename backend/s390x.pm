@@ -41,6 +41,10 @@ sub new {
 sub do_start_vm {
     my ($self) = @_;
 
+    # truncate the serial file
+    open(my $sf, '>', $self->{serialfile});
+    close($sf);
+
     $self->unlink_crash_file();
     my $console = $testapi::distri->add_console('x3270', 's3270');
     $console->backend($self);
@@ -76,22 +80,14 @@ sub status {
     carp "status not implemented";
 }
 
-sub wait_serial {
-    my ($self, $args) = @_;
+sub check_socket {
+    my ($self, $fh, $write) = @_;
 
-    my $regexp  = $args->{regexp};
-    my $timeout = $args->{timeout};
-    my $matched = 0;
-    my $str;
-
-    die 'Unsupported ARRAYREF for s390' if (ref $regexp eq 'ARRAY');
-    my $console = $testapi::distri->{consoles}->{x3270};
-    my $r = eval { $console->expect_3270(output_delim => $regexp, timeout => $timeout); };
-    unless ($@) {
-        $matched = 1;
-        $str = join('\n', @$r);
+    if ($self->check_ssh_serial($fh)) {
+        return 1;
     }
-    return {matched => $matched, string => $str};
+
+    return $self->SUPER::check_socket($fh, $write);
 }
 
 1;
