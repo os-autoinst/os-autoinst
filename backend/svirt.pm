@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2016 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,6 @@ use strict;
 use base ('backend::baseclass');
 use testapi qw(get_required_var);
 
-use Net::SSH2;
 use IO::Select;
 
 # this is a fake backend to some extend. We don't start VMs, but provide ssh access
@@ -50,6 +49,7 @@ sub do_start_vm {
             hostname => get_required_var('VIRSH_HOSTNAME'),
             password => get_var('VIRSH_PASSWORD'),
         });
+
     $ssh->backend($self);
     $self->select_console({testapi_console => 'svirt'});
 
@@ -65,53 +65,18 @@ sub do_stop_vm {
     return {};
 }
 
-sub new_ssh_connection {
-    my ($self, %args) = @_;
-
-    my $ssh = Net::SSH2->new;
-    $ssh->connect($args{hostname});
-    $args{username} ||= 'root';
-
-    if ($args{password}) {
-        $ssh->auth(username => $args{username}, password => $args{password});
-    }
-    else {
-        # this relies on agent to be set up correctly
-        $ssh->auth_agent($args{username});
-    }
-    die "Failed to login to $args{username}\@$args{hostname}" unless $ssh->auth_ok;
-
-    return $ssh;
-}
-
 # open another ssh connection to grab the serial console
 sub start_serial_grab {
     my ($self, $name) = @_;
 
-    $self->stop_serial_grab;
-
-    $self->{serial} = $self->new_ssh_connection(hostname => get_required_var('VIRSH_HOSTNAME'), password => get_var('VIRSH_PASSWORD'), username => 'root');
-    my $chan = $self->{serial}->channel();
-    die "No channel found" unless $chan;
-    $self->{serial_chan} = $chan;
-    $chan->blocking(0);
-    $chan->pty(1);
+    my $chan = $self->start_ssh_serial(hostname => get_required_var('VIRSH_HOSTNAME'), password => get_var('VIRSH_PASSWORD'), username => 'root');
     $chan->exec('virsh console ' . $name);
-    $self->{select}->add($self->{serial}->sock);
 }
 
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    if ($self->{serial} && $self->{serial}->sock == $fh) {
-        my $chan = $self->{serial_chan};
-        my $line = <$chan>;
-        if ($line) {
-            print $line;
-            open(my $serial, '>>', $self->{serialfile});
-            print $serial $line;
-            close($serial);
-        }
+    if ($self->check_ssh_serial) {
         return 1;
     }
     return $self->SUPER::check_socket($fh, $write);
@@ -120,12 +85,7 @@ sub check_socket {
 sub stop_serial_grab {
     my ($self) = @_;
 
-    if (!$self->{serial}) {
-        return;
-    }
-    $self->{select}->remove($self->{serial}->sock);
-    $self->{serial}->disconnect;
-    $self->{serial} = undef;
+    $self->stop_ssh_serial;
     return;
 }
 
