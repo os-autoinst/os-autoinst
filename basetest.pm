@@ -121,7 +121,7 @@ sub record_screenmatch {
         screenshot => $self->next_resultname('png'),
         result     => 'ok',
         properties => [@$properties],
-        file       => $h->{file},
+        json       => $h->{json},
     };
 
     # When the needle has the workaround property,
@@ -171,10 +171,10 @@ sub _serialize_match {
     my $candidates;
     my $diffcount = 0;
 
-    my $name = $cand->{needle}->{name};
-    my $file = $cand->{needle}->{file};
+    my $name     = $cand->{needle}->{name};
+    my $jsonfile = $cand->{needle}->{file};
 
-    my $h = {name => $name, error => $cand->{error}, area => [], file => $file};
+    my $h = {name => $name, error => $cand->{error}, area => [], json => $jsonfile};
     for my $a (@{$cand->{area}}) {
         my $na = {};
         for my $i (qw/x y w h result/) {
