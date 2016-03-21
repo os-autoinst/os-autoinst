@@ -35,8 +35,9 @@ sub activate {
     my ($self) = @_;
 
     my $hostname = $self->{args}->{hostname};
+    print "SSH to $hostname\n";
     my $chan = $self->backend->start_ssh_serial(hostname => $hostname, password => $self->{args}->{password}, username => 'root');
-    $chan->exec("iucvconn $hostname hvc0");
+    $chan->exec("iucvconn LINUX156 lnxhvc0");
 }
 
 1;

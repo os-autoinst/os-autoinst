@@ -82,14 +82,24 @@ sub status {
     carp "status not implemented";
 }
 
+sub check_socket {
+    my ($self, $fh, $write) = @_;
+
+    if ($self->check_ssh_serial($fh)) {
+        return 1;
+    }
+    return $self->SUPER::check_socket($fh, $write);
+}
+
 sub wait_serial {
     my ($self, $args) = @_;
 
     # make sure it's activated
     # if not activated before, this sshs into the machine
-    $self->{consoles}->{iucvconn}->select;
+    $testapi::distri->{consoles}->{iucvconn}->select;
 
     return $self->SUPER::wait_serial($args);
 }
+
 
 1;
