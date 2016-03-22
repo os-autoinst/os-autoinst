@@ -56,8 +56,6 @@ sub do_start_vm {
 sub do_stop_vm {
     my ($self) = @_;
 
-    $self->stop_serial_grab;
-
     #FIXME shutdown
     return 1;
 

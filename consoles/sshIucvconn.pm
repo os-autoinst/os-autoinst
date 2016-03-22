@@ -35,9 +35,23 @@ sub activate {
     my ($self) = @_;
 
     my $hostname = $self->{args}->{hostname};
-    print "SSH to $hostname\n";
-    my $chan = $self->backend->start_ssh_serial(hostname => $hostname, password => $self->{args}->{password}, username => 'root');
-    $chan->exec("iucvconn LINUX156 lnxhvc0");
+    my $zvmguest = get_var('ZVM_GUEST');
+
+    # ssh connection to SUT for agetty
+    my $ttychan = $self->backend->start_ssh_serial(hostname => $hostname, password => $self->{args}->{password}, username => 'root');
+    print "SSH to $hostname established\n";
+
+    # start getty to ensure that iucvconn is not killed
+    $ttychan->exec("smart_agetty hvc0");
+    print "getty listening to hvc0\n";
+
+
+    # ssh connection to SUT for iucvconn
+    my $serialchan = $self->backend->start_ssh_serial(hostname => $hostname, password => $self->{args}->{password}, username => 'root');
+
+    # start iucvconn
+    $serialchan->exec("iucvconn $zvmguest lnxhvc0");
+    print "iucvconn to $zvmguest started\n";
 }
 
 1;
