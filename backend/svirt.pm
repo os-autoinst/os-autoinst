@@ -76,7 +76,7 @@ sub start_serial_grab {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    if ($self->check_ssh_serial) {
+    if ($self->check_ssh_serial($fh)) {
         return 1;
     }
     return $self->SUPER::check_socket($fh, $write);

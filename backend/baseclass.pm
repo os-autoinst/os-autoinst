@@ -481,6 +481,7 @@ sub select_console {
     $self->{current_console} = $selected_console;
     $self->{current_screen}  = $selected_console->screen;
     $self->capture_screenshot();
+
     return {activated => $activated};
 }
 
@@ -982,7 +983,7 @@ sub start_ssh_serial {
 }
 
 sub check_ssh_serial {
-    my ($self) = @_;
+    my ($self, $fh) = @_;
 
     if ($self->{serial} && $self->{serial}->sock == $fh) {
         my $chan = $self->{serial_chan};
