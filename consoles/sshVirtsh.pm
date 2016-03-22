@@ -173,6 +173,30 @@ sub add_pty {
     return;
 }
 
+# this is an equivalent of QEMU's '-vnc' option for tests where we watch
+# the system from boot on (e.g. JeOS)
+sub add_vnc {
+    my ($self, $args) = @_;
+
+    my $doc     = $self->{domainxml};
+    my $devices = $self->{devices_element};
+
+    my $graphics = $doc->createElement('graphics');
+    $graphics->setAttribute(type        => 'vnc');
+    $graphics->setAttribute(port        => $args->{port});
+    $graphics->setAttribute(autoport    => 'no');
+    $graphics->setAttribute(listen      => '0.0.0.0');
+    $graphics->setAttribute(sharePolicy => 'force-shared');
+    $devices->appendChild($graphics);
+
+    my $elem = $doc->createElement('listen');
+    $elem->setAttribute(type    => 'address');
+    $elem->setAttribute(address => '0.0.0.0');
+    $graphics->appendChild($elem);
+
+    return;
+}
+
 # network stuff
 sub add_interface {
     my ($self, $args) = @_;
