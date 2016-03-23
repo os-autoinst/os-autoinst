@@ -497,7 +497,7 @@ sub start_qemu {
 
         if ($vars->{NBF}) {
             push(@params, '-kernel', '/usr/share/qemu/ipxe.lkrn');
-            push(@params, '-append', "dhcp && sanhook $vars->{NBF}");
+            push(@params, '-append', "dhcp && sanhook iscsi:$vars->{WORKER_HOSTNAME}::3260:1:$vars->{NBF}");
         }
 
         if ($virtio_scsi_controller) {
