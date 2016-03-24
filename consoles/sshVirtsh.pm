@@ -155,6 +155,19 @@ sub change_domain_element {
     return;
 }
 
+sub add_emulator {
+    my ($self, $args) = @_;
+
+    my $doc     = $self->{domainxml};
+    my $devices = $self->{devices_element};
+
+    my $emulator = $doc->createElement('emulator');
+    $emulator->appendTextNode($args->{emulator});
+    $devices->appendChild($emulator);
+
+    return;
+}
+
 sub add_pty {
     my ($self, $args) = @_;
 
