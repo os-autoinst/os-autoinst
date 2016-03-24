@@ -37,7 +37,7 @@ sub new {
     my $json;
     if (ref $jsonfile eq 'HASH') {
         $json = $jsonfile;
-        $jsonfile = join('/', $needledir, $json->{name} . '.json');
+        $jsonfile = $json->{file} || join('/', $needledir, $json->{name} . '.json');
     }
     else {
         local $/;
