@@ -22,6 +22,10 @@ sub init_switch {
     $self->{BRIDGE} = $ENV{OS_AUTOINST_USE_BRIDGE};
     $self->{BRIDGE} //= 'br0';
 
+    ## coolo and richard terrible hack to make bridge
+    system("/usr/bin/ovs-vsctl add-br $self->{BRIDGE}");
+    system("/usr/sbin/ifup $self->{BRIDGE}");
+
     #the bridge must be already created and configured
     system('ovs-vsctl', 'br-exists', $self->{BRIDGE});
 
@@ -33,6 +37,10 @@ sub init_switch {
     die "can't parse bridge local port MAC" unless $self->{MAC};
     die "can't parse bridge local port IP"  unless $self->{IP};
 
+    ## coolo and richard terrible hack to make tap devices
+    for my $i (0..10) {
+      system("ovs-vsctl add-port $self->{BRIDGE} tap$i tag=999");
+    }
 
     # the VM have unique MAC that differs in the last 16 bits (see /usr/lib/os-autoinst/backend/qemu.pm)
     # the IP can conflict across vlans
@@ -100,6 +108,7 @@ sub set_vlan {
 
     # connect tap device to given vlan
     system('ovs-vsctl', 'set', 'port', $tap, "tag=$vlan");
+    system('ip', 'link', 'set', $tap, 'up');
 }
 
 ################################################################################
