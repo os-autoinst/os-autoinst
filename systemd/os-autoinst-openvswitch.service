@@ -4,7 +4,7 @@
 [Unit]
 Description=os-autoinst openvswitch helper
 BindsTo=openvswitch.service
-After=openvswitch.service
+After=openvswitch.service network.target
 Before=openqa-worker.target
 
 [Service]
