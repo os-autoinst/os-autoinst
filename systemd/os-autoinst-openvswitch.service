@@ -4,7 +4,7 @@
 [Unit]
 Description=os-autoinst openvswitch helper
 BindsTo=openvswitch.service
-After=openvswitch.service
+After=openvswitch.service network.target
 Before=openqa-worker.target
 
 [Service]
@@ -12,7 +12,6 @@ Type=dbus
 BusName=org.opensuse.os_autoinst.switch
 Environment=OS_AUTOINST_USE_BRIDGE=br0
 EnvironmentFile=-/etc/sysconfig/os-autoinst-openvswitch
-ExecStartPre=/usr/sbin/ifup ${OS_AUTOINST_USE_BRIDGE}
 ExecStart=/usr/lib/os-autoinst/os-autoinst-openvswitch
 
 [Install]
