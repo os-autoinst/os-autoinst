@@ -54,4 +54,11 @@ sub activate {
     print "iucvconn to $zvmguest started\n";
 }
 
+sub kill_ssh {
+    my ($self) = @_;
+
+    print "KILL_SSH\n";
+    $self->backend->stop_ssh_serial;
+}
+
 1;

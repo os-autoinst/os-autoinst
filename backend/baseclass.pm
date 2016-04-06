@@ -430,12 +430,20 @@ sub close_pipes {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
+    print "=== WRITE:  " . $write . "\n";
+    print "=== FH:  " . $write . "\n";
+
+    use Data::Dumper;
+    #print "==== SELF: " . Dumper($self) . "\n";
+
     if ($self->{cmdpipe} && $fh == $self->{cmdpipe}) {
         return 1 if $write;
         my $cmd = backend::driver::_read_json($self->{cmdpipe});
 
+        print "==== cmd " . $cmd . "\n";
         if ($cmd->{cmd}) {
             my $rsp = $self->handle_command($cmd);
+            print "==== rsp " . $rsp . "\n";
             if ($self->{rsppipe}) {    # the command might have closed it
                 my $JSON = JSON->new()->convert_blessed();
                 my $json = $JSON->encode({rsp => $rsp});
@@ -485,9 +493,28 @@ sub select_console {
     return {activated => $activated};
 }
 
+sub reset_consoles {
+    my ($self, $args) = @_;
+
+    print "I'm in here\n";
+    # we iterate through all consoles selected through the API
+    for my $console (keys %{$testapi::distri->{consoles}}) {
+        next if ($console eq 'x3270');
+        $self->reset_console({testapi_console => $console});
+        print "===== Console " . $console . " was deactivated\n";
+    }
+    return;
+}
+
 sub reset_console {
     my ($self, $args) = @_;
+    print "==== reset_console ====\n";
+    use Data::Dumper;
+    use feature qw/say/;
+    say Dumper($args);
+    say Dumper($args->{testapi_console});
     $self->console($args->{testapi_console})->reset;
+    print "==== Can i get here? \n";
     return;
 }
 
@@ -985,7 +1012,11 @@ sub start_ssh_serial {
 sub check_ssh_serial {
     my ($self, $fh) = @_;
 
+    # FIXME Debug output for now
+    print "CHECK_SSH_SERIAL $fh\n";
+
     if ($self->{serial} && $self->{serial}->sock == $fh) {
+        print "EOF " . $self->{serial_chan}->eof . "\n";
         my $chan = $self->{serial_chan};
         my $line = <$chan>;
         if ($line) {
@@ -1001,6 +1032,9 @@ sub check_ssh_serial {
 
 sub stop_ssh_serial {
     my ($self) = @_;
+
+    # FIXME Debug output for now
+    print "stop_ssh_serial\n";
 
     if (!$self->{serial}) {
         return;

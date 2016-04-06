@@ -83,9 +83,14 @@ sub status {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
+    print "=== WRITE s390:  " . $write . "\n";
+    print "=== FH s390: " . $fh . "\n";
+
     if ($self->check_ssh_serial($fh)) {
         return 1;
     }
+    print "NO SSH\n";
+
     return $self->SUPER::check_socket($fh, $write);
 }
 

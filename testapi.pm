@@ -1331,10 +1331,8 @@ if you did something to the system that affects the console (e.g. trigger reboot
 
 =cut
 sub reset_consoles {
-    # we iterate through all consoles selected through the API
-    for my $console (keys %testapi_console_proxies) {
-        $bmwqemu::backend->reset_console({testapi_console => $console});
-    }
+    $bmwqemu::backend->reset_consoles;
+
     return;
 }
 
