@@ -93,6 +93,10 @@ void map_raw_data_rgb555(tinycv::Image self, unsigned char *data)
   CODE:
     image_map_raw_data_rgb555(self, data);
 
+void map_raw_data_ast2100(tinycv::Image self, unsigned char *data, size_t len)
+  CODE:
+    image_map_raw_data_ast2100(self, data, len);
+
 long map_raw_data_zrle(tinycv::Image self, long x, long y, long w, long h, tinycv::VNCInfo info, unsigned char *data, size_t len)
   CODE:
    RETVAL = image_map_raw_data_zlre(self, x, y, w, h, info, data, len);
