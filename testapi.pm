@@ -77,7 +77,7 @@ Used for internal initialization, do not call from tests.
 =cut
 sub init {
     $serialdev = get_var('SERIALDEV', "ttyS0");
-    if (get_var('OFW')) {
+    if (get_var('OFW') || check_var('BACKEND', 's390x')) {
         $serialdev = "hvc0";
     }
     $serialdev = 'ttyS1' if check_var('BACKEND', 'ipmi');
@@ -992,6 +992,7 @@ sub data_url($) {
     }
 }
 
+
 =head2 upload_logs
 
   upload_logs $file;
@@ -1330,10 +1331,8 @@ if you did something to the system that affects the console (e.g. trigger reboot
 
 =cut
 sub reset_consoles {
-    # we iterate through all consoles selected through the API
-    for my $console (keys %testapi_console_proxies) {
-        $bmwqemu::backend->reset_console({testapi_console => $console});
-    }
+    $bmwqemu::backend->reset_consoles;
+
     return;
 }
 

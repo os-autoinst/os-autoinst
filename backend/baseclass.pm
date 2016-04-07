@@ -29,7 +29,7 @@ use IO::Select;
 require IPC::System::Simple;
 use autodie qw(:all);
 
-use Data::Dumper;
+use Net::SSH2;
 use feature qw(say);
 
 my $framecounter = 0;    # screenshot counter
@@ -482,6 +482,17 @@ sub select_console {
     $self->{current_screen}  = $selected_console->screen;
     $self->capture_screenshot();
     return {activated => $activated};
+}
+
+sub reset_consoles {
+    my ($self, $args) = @_;
+
+    # we iterate through all consoles
+    for my $console (keys %{$testapi::distri->{consoles}}) {
+        #next if ($console eq 'x3270');
+        $self->reset_console({testapi_console => $console});
+    }
+    return;
 }
 
 sub reset_console {
@@ -942,6 +953,71 @@ sub retry_assert_screen {
         $self->set_tags_to_assert({mustmatch => $self->assert_screen_tags, timeout => 5, reloadneedles => 1});
 
     }
+    return;
+}
+
+# shared between svirt and s390 backend
+sub new_ssh_connection {
+    my ($self, %args) = @_;
+
+    my $ssh = Net::SSH2->new;
+    $ssh->connect($args{hostname});
+    $args{username} ||= 'root';
+
+    if ($args{password}) {
+        $ssh->auth(username => $args{username}, password => $args{password});
+    }
+    else {
+        # this relies on agent to be set up correctly
+        $ssh->auth_agent($args{username});
+    }
+    die "Failed to login to $args{username}\@$args{hostname}" unless $ssh->auth_ok;
+
+    return $ssh;
+}
+
+# open another ssh connection to grab the serial console
+sub start_ssh_serial {
+    my ($self, %args) = @_;
+
+    $self->stop_ssh_serial;
+
+    $self->{serial} = $self->new_ssh_connection(%args);
+    my $chan = $self->{serial}->channel();
+    die "No channel found" unless $chan;
+    $self->{serial_chan} = $chan;
+    $chan->blocking(0);
+    $chan->pty(1);
+    $self->{select}->add($self->{serial}->sock);
+    return $chan;
+}
+
+sub check_ssh_serial {
+    my ($self, $fh) = @_;
+
+    if ($self->{serial} && $self->{serial}->sock == $fh) {
+        my $chan = $self->{serial_chan};
+        my $line = <$chan>;
+        if ($line) {
+            print $line;
+            open(my $serial, '>>', $self->{serialfile});
+            print $serial $line;
+            close($serial);
+        }
+        return 1;
+    }
+    return;
+}
+
+sub stop_ssh_serial {
+    my ($self) = @_;
+
+    if (!$self->{serial}) {
+        return;
+    }
+    $self->{select}->remove($self->{serial}->sock);
+    $self->{serial}->disconnect;
+    $self->{serial} = undef;
     return;
 }
 
