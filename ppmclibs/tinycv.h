@@ -1,3 +1,18 @@
+// Copyright © 2012-2016 SUSE LLC
+//
+// This program is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License along
+// with this program; if not, see <http://www.gnu.org/licenses/>.
+
 #include <string>
 #include <vector>
 
@@ -41,8 +56,10 @@ void image_set_vnc_color(VNCInfo *info, unsigned int index, unsigned int red, un
 // this is for VNC support - RAW encoding
 void image_map_raw_data(Image *a, const unsigned char *data, unsigned int x, unsigned int y, unsigned int width, unsigned int height, VNCInfo *info);
 
-// this is for IPMI support - RGB555 is 16bits, the rest is like above
+// this is for IPMI Supermicro X9 support - RGB555 is 16bits, the rest is like above
 void image_map_raw_data_rgb555(Image *a, const unsigned char *data);
+// this is for IPMI Supermicro X10 support - ast2100 (don't ask)
+void image_map_raw_data_ast2100(Image *a, const unsigned char *data, size_t len);
 
 // ZLRE encoding for VNC
 long image_map_raw_data_zlre(Image* a, long x, long y, long w, long h,

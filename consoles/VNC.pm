@@ -21,7 +21,7 @@ __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_request
-      vncinfo
+      vncinfo old_ikvm
       ));
 our $VERSION = '0.40';
 
@@ -281,8 +281,18 @@ sub _handshake_security {
         $socket->print(pack('C',   16));                # accept
         $socket->write(pack('Z24', $self->username));
         $socket->write(pack('Z24', $self->password));
-        $socket->read(my $ikvm_session, 24) || die 'unexpected end of data';
-        my @bytes = unpack("C24", $ikvm_session);
+        $socket->read(my $num_tunnels, 4);
+
+        $num_tunnels = unpack('N', $num_tunnels);
+        # found in https://github.com/kanaka/noVNC
+        if ($num_tunnels > 0x1000000) {
+            $self->old_ikvm(1);
+        }
+        else {
+            $self->old_ikvm(0);
+        }
+        $socket->read(my $ikvm_session, 20) || die 'unexpected end of data';
+        my @bytes = unpack("C20", $ikvm_session);
         print "Session info: ";
         for my $b (@bytes) {
             printf "%02x ", $b;
@@ -783,7 +793,9 @@ sub _receive_message {
     die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
 
     $message_type = unpack('C', $message_type);
+    #print "receive message $message_type\n";
 
+    #<<< tidy off
     # This result is unused.  It's meaning is different for the different methods
     my $result
       = !defined $message_type ? die 'bad message type received'
@@ -795,10 +807,10 @@ sub _receive_message {
       : $message_type == 0x04 ? $self->_discard_ikvm_message($message_type, 20)
       : $message_type == 0x16 ? $self->_discard_ikvm_message($message_type, 1)
       : $message_type == 0x33 ? $self->_discard_ikvm_message($message_type, 4)
-      : $message_type == 0x37 ? $self->_discard_ikvm_message($message_type, 2)
+      : $message_type == 0x37 ? $self->_discard_ikvm_message($message_type, $self->old_ikvm ? 2 : 3)
       : $message_type == 0x3c ? $self->_discard_ikvm_message($message_type, 8)
       :                         die 'unsupported message type received';
-
+    #<<< tidy on
     return $message_type;
 }
 
@@ -941,7 +953,7 @@ sub _receive_ikvm_encoding {
     # ikvm specific
     $socket->read(my $aten_data, 8);
     my ($data_prefix, $data_len) = unpack('NN', $aten_data);
-    # printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
+    #printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
 
     $self->screen_on($w < 33000);    # screen is off is signaled by negative numbers
 
@@ -1007,6 +1019,29 @@ sub _receive_ikvm_encoding {
             }
             $image->blend($img, $x * 16, $y * 16);
         }
+    } elsif ($encoding_type == 87) {
+        return if $data_len == 0;
+        if ($self->old_ikvm) {
+	   die "we guessed wrong - this is a new board!";
+        }
+	$socket->read(my $data, $data_len);
+	# enforce high quality to simplify our decoder
+	if (substr($data, 0, 4) ne pack('CCn', 11, 11, 444)) {
+	    print "fixing quality\n";
+	    my $template = 'CCCn';
+	    $self->socket->print(
+		pack(
+		    $template,
+		    0x32,               # message type
+		    0, # magic number
+		    11, # highest possible quality
+		    444, # no sub sampling
+		  ));
+      } else {
+	  $image->map_raw_data_ast2100($data, $data_len);
+      }
+    } else {
+	die "unsupported encoding $encoding_type\n";
     }
 }
 
