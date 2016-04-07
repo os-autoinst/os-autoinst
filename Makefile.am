@@ -23,6 +23,7 @@ backendexec_DATA = \
 consolesexecdir = $(pkglibexecdir)/consoles
 consolesexec_DATA = \
 	consoles/console.pm \
+	consoles/icewm.cfg \
 	consoles/localXvnc.pm \
 	consoles/remoteVnc.pm \
 	consoles/remoteWindow.pm \
