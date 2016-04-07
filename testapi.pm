@@ -1043,9 +1043,9 @@ sub upload_asset {
 
 =head2 send_key
 
-  send_key($key [, $wait_idle]);
+  send_key($keys [, $wait_idle]);
 
-Send one C<$key> to SUT keyboard input.
+Send one or more C<$keys> to SUT keyboard input.
 
 Special characters naming:
 
@@ -1055,11 +1055,13 @@ Special characters naming:
 
 =cut
 sub send_key {
-    my ($key, $wait) = @_;
-    $wait //= 0;
-    bmwqemu::log_call('send_key', key => $key);
-    $bmwqemu::backend->send_key($key);
-    wait_idle() if $wait;
+    my @keys = split /\s/, shift;
+    my $wait = shift // 0;
+    for my $key (@keys) {
+        bmwqemu::log_call('send_key', key => $key);
+        $bmwqemu::backend->send_key($key);
+        wait_idle() if $wait;
+    }
 }
 
 =head2 send_key_until_needlematch
