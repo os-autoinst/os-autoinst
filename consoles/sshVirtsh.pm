@@ -36,8 +36,8 @@ sub new {
     $self->instance(get_var('VIRSH_INSTANCE', 1));
     # default name
     $self->name("openQA-SUT-" . $self->instance);
-    $self->vmm_family(get_required_var('VIRSH_VMM_FAMILY'));
-    $self->vmm_type(get_required_var('VIRSH_VMM_TYPE'));
+    $self->vmm_family(get_var('VIRSH_VMM_FAMILY', 'kvm'));
+    $self->vmm_type(get_var('VIRSH_VMM_TYPE', 'hvm'));
     $self->_init_xml();
 
     return $self;
