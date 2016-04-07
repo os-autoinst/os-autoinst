@@ -85,6 +85,8 @@ VNCKB;;;
 Variable;Values allowed;Default value;Explanation
 VIRSH_HOSTNAME;string;SSH Host with virtsh;
 VIRSH_PASSWORD;string;Password for root account on above host;
+VIRSH_VMM_FAMILY;string;Host's hypervisor ('kvm', 'xen');
+VIRSH_VMM_TYPE;string;Host's hypervisor type ('hvm' for full virtualization on 'kvm' and 'xen' families, 'linux' for paravirtualization on 'xen' family);
 |====================
 
 .PVM backend
