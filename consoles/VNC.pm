@@ -978,7 +978,8 @@ sub _receive_ikvm_encoding {
         $self->socket->print(pack('Cn', 7, 1920));
     }
 
-    if ($encoding_type == 89 && $data_len) {
+    if ($encoding_type == 89) {
+        return if $data_len == 0;
         my $required_data = $w * $h * 2;
         my $data;
         print "Additional Bytes: ";
