@@ -197,7 +197,7 @@ sub add_pty {
     my $doc     = $self->{domainxml};
     my $devices = $self->{devices_element};
 
-    my $console = $doc->createElement('console');
+    my $console = $doc->createElement($args->{pty_dev});
     $console->setAttribute(type => 'pty');
     $devices->appendChild($console);
 
@@ -205,17 +205,6 @@ sub add_pty {
     $elem->setAttribute(type => $args->{type});
     $elem->setAttribute(port => $args->{port});
     $console->appendChild($elem);
-
-    if (!($self->vmm_family eq 'xen' && $self->vmm_type eq 'linux')) {
-        my $serial = $doc->createElement('serial');
-        $serial->setAttribute(type => 'pty');
-        $devices->appendChild($serial);
-
-        $elem = $doc->createElement('target');
-        $elem->setAttribute(type => 'isa-serial');
-        $elem->setAttribute(port => $args->{port});
-        $serial->appendChild($elem);
-    }
 
     return;
 }
