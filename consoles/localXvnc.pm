@@ -63,10 +63,7 @@ sub activate {
     sleep 1;
 
     # we need a window manager for fullscreen apps to work
-    # twm in its default config is useless, but SUSE systems have
-    # icewm-lite for yast, so that's a good candidate
-    # TODO: find a twm expert to avoid this SUSE specific dependency
-    system("DISPLAY=$display icewm-lite &");
+    system("DISPLAY=$display icewm -c $bmwqemu::scriptdir/consoles/icewm.cfg &");
 
     return;
 }
