@@ -24,8 +24,10 @@ use autodie qw(:all);
 use XML::LibXML;
 
 use Class::Accessor "antlers";
-has instance => (is => "rw", isa => "Num");
-has name     => (is => "rw", isa => "Str");
+has instance   => (is => "rw", isa => "Num");
+has name       => (is => "rw", isa => "Str");
+has vmm_family => (is => "rw", isa => "Str");
+has vmm_type   => (is => "rw", isa => "Str");
 
 sub new {
     my ($class, $testapi_console, $args) = @_;
@@ -34,7 +36,9 @@ sub new {
     $self->instance(get_var('VIRSH_INSTANCE', 1));
     # default name
     $self->name("openQA-SUT-" . $self->instance);
-    $self->_init_xml;
+    $self->vmm_family(get_var('VIRSH_VMM_FAMILY', 'kvm'));
+    $self->vmm_type(get_var('VIRSH_VMM_TYPE', 'hvm'));
+    $self->_init_xml();
 
     return $self;
 }
@@ -78,7 +82,7 @@ sub _init_xml {
     my $instance = $self->instance;
     my $doc      = $self->{domainxml} = XML::LibXML::Document->new;
     my $root     = $doc->createElement('domain');
-    $root->setAttribute(type => 'kvm');
+    $root->setAttribute(type => $self->vmm_family);
     $doc->setDocumentElement($root);
 
     my $elem;
@@ -103,8 +107,27 @@ sub _init_xml {
     $root->appendChild($os);
 
     $elem = $doc->createElement('type');
-    $elem->appendTextNode('hvm');
+    $elem->appendTextNode($self->vmm_type);
     $os->appendChild($elem);
+
+    if ($self->vmm_family eq 'xen') {
+        if ($self->vmm_type eq 'hvm') {
+            my $features = $doc->createElement('features');
+            $root->appendChild($features);
+
+            $elem = $doc->createElement('acpi');
+            $features->appendChild($elem);
+            $elem = $doc->createElement('apic');
+            $features->appendChild($elem);
+            $elem = $doc->createElement('pae');
+            $features->appendChild($elem);
+        }
+        elsif ($self->vmm_type eq 'linux') {
+            $elem = $doc->createElement('kernel');
+            $elem->appendTextNode('/usr/lib/grub2/x86_64-xen/grub.xen');
+            $os->appendChild($elem);
+        }
+    }
 
     $self->{devices_element} = $doc->createElement('devices');
     $root->appendChild($self->{devices_element});
@@ -182,6 +205,17 @@ sub add_pty {
     $elem->setAttribute(type => $args->{type});
     $elem->setAttribute(port => $args->{port});
     $console->appendChild($elem);
+
+    if (!($self->vmm_family eq 'xen' && $self->vmm_type eq 'linux')) {
+        my $serial = $doc->createElement('serial');
+        $serial->setAttribute(type => 'pty');
+        $devices->appendChild($serial);
+
+        $elem = $doc->createElement('target');
+        $elem->setAttribute(type => 'isa-serial');
+        $elem->setAttribute(port => $args->{port});
+        $serial->appendChild($elem);
+    }
 
     return;
 }
@@ -261,9 +295,25 @@ sub add_disk {
     $elem->setAttribute(type => 'qcow2');
     $disk->appendChild($elem);
 
+    my $dev_type;
+    my $bus_type;
+    if ($self->vmm_family eq 'xen') {
+        if ($self->vmm_type eq 'hvm') {
+            $dev_type = 'hda';
+            $bus_type = 'ide';
+        }
+        elsif ($self->vmm_type eq 'linux') {
+            $dev_type = 'xvda';
+            $bus_type = 'xen';
+        }
+    }
+    elsif ($self->vmm_family eq 'kvm') {
+        $dev_type = 'vda';
+        $bus_type = 'virtio';
+    }
     $elem = $doc->createElement('target');
-    $elem->setAttribute(dev => 'vda');
-    $elem->setAttribute(bus => 'virtio');
+    $elem->setAttribute(dev => $dev_type);
+    $elem->setAttribute(bus => $bus_type);
     $disk->appendChild($elem);
 
     $elem = $doc->createElement('source');
