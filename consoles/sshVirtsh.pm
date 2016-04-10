@@ -197,7 +197,7 @@ sub add_pty {
     my $doc     = $self->{domainxml};
     my $devices = $self->{devices_element};
 
-    my $console = $doc->createElement($args->{pty_dev});
+    my $console = $doc->createElement($args->{pty_dev} || 'console');
     $console->setAttribute(type => 'pty');
     $devices->appendChild($console);
 
