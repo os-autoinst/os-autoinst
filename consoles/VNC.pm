@@ -686,7 +686,7 @@ sub init_ikvm_keymap {
 
 
 sub map_and_send_key {
-    my ($self, $keys) = @_;
+    my ($self, $keys, $down_flag) = @_;
 
     if ($self->ikvm) {
         $self->init_ikvm_keymap;
@@ -717,12 +717,16 @@ sub map_and_send_key {
         return;
     }
 
-    for my $key (@events) {
-        $self->send_key_event_down($key);
+    if (!defined $down_flag || $down_flag == 1) {
+        for my $key (@events) {
+            $self->send_key_event_down($key);
+        }
     }
     usleep(50);    # just a brief moment
-    for my $key (@events) {
-        $self->send_key_event_up($key);
+    if (!defined $down_flag || $down_flag == 0) {
+        for my $key (@events) {
+            $self->send_key_event_up($key);
+        }
     }
 }
 

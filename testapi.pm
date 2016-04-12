@@ -34,6 +34,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   get_var get_required_var check_var set_var get_var_array check_var_array autoinst_url
 
   send_key send_key_until_needlematch type_string type_password
+  hold_key release_key
 
   assert_screen check_screen assert_and_dclick save_screenshot
   assert_and_click mouse_hide mouse_set mouse_click
@@ -1060,6 +1061,32 @@ sub send_key {
     bmwqemu::log_call('send_key', key => $key);
     $bmwqemu::backend->send_key($key);
     wait_idle() if $wait;
+}
+
+=head2 hold_key
+
+  hold_key($key);
+
+Hold one C<$key> until release it
+
+=cut
+sub hold_key {
+    my ($key) = @_;
+    bmwqemu::log_call('hold_key', key => $key);
+    $bmwqemu::backend->hold_key({key => $key});
+}
+
+=head2 release_key
+
+  release_key($key);
+
+Release one C<$key> which is kept holding
+
+=cut
+sub release_key {
+    my $key = shift;
+    bmwqemu::log_call('release_key', key => $key);
+    $bmwqemu::backend->release_key({key => $key});
 }
 
 =head2 send_key_until_needlematch
