@@ -541,6 +541,16 @@ sub send_key() {
     return $self->bouncer('send_key', $args);
 }
 
+sub hold_key() {
+    my ($self, $args) = @_;
+    return $self->bouncer('hold_key', $args);
+}
+
+sub release_key() {
+    my ($self, $args) = @_;
+    return $self->bouncer('release_key', $args);
+}
+
 sub type_string() {
     my ($self, $args) = @_;
     return $self->bouncer('type_string', $args);

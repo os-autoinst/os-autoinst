@@ -160,6 +160,20 @@ sub send_key {
     return {};
 }
 
+sub hold_key {
+    my ($self, $args) = @_;
+    $self->{vnc}->map_and_send_key($args->{key}, 1);
+    $self->backend->run_capture_loop(undef, .2, .19);
+    return {};
+}
+
+sub release_key {
+    my ($self, $args) = @_;
+    $self->{vnc}->map_and_send_key($args->{key}, 0);
+    $self->backend->run_capture_loop(undef, .2, .19);
+    return {};
+}
+
 sub mouse_hide {
     my ($self, $args) = @_;
 
