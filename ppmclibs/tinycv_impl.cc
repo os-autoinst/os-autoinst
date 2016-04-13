@@ -604,9 +604,9 @@ cv::Vec3b VNCInfo::read_cpixel(const unsigned char *data, size_t &offset)
     green = (pixel >> green_shift & green_mask) * green_skale;
     blue = (pixel >> blue_shift  & blue_mask ) * blue_skale;
   } else {
-    blue = data[offset++];
-    green = data[offset++];
     red = data[offset++];
+    green = data[offset++];
+    blue = data[offset++];
   }
   return cv::Vec3b(blue, green, red);
 }
