@@ -971,15 +971,29 @@ sub new_ssh_connection {
     my ($self, %args) = @_;
 
     my $ssh = Net::SSH2->new;
-    $ssh->connect($args{hostname});
-    $args{username} ||= 'root';
 
-    if ($args{password}) {
-        $ssh->auth(username => $args{username}, password => $args{password});
-    }
-    else {
-        # this relies on agent to be set up correctly
-        $ssh->auth_agent($args{username});
+    # Retry 5 times, in case of the guest is not running yet
+    my $counter = 5;
+    while ($counter > 0) {
+        if ($ssh->connect($args{hostname})) {
+            $args{username} ||= 'root';
+
+            if ($args{password}) {
+                $ssh->auth(username => $args{username}, password => $args{password});
+            }
+            else {
+                # this relies on agent to be set up correctly
+                $ssh->auth_agent($args{username});
+            }
+            bmwqemu::diag "Connection to $args{username}\@$args{hostname} established" if $ssh->auth_ok;
+            last;
+        }
+        else {
+            bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}, Retry";
+            sleep(10);
+            $counter--;
+            next;
+        }
     }
     die "Failed to login to $args{username}\@$args{hostname}" unless $ssh->auth_ok;
 
