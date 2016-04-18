@@ -95,12 +95,12 @@ sub _init_xml {
     $root->appendChild($elem);
 
     $elem = $doc->createElement('memory');
-    $elem->appendTextNode('512');
+    $elem->appendTextNode(get_var('QEMURAM', '512'));
     $elem->setAttribute(unit => 'MiB');
     $root->appendChild($elem);
 
     $elem = $doc->createElement('vcpu');
-    $elem->appendTextNode('1');
+    $elem->appendTextNode(get_var('QEMUCPUS', '1'));
     $root->appendChild($elem);
 
     my $os = $doc->createElement('os');
