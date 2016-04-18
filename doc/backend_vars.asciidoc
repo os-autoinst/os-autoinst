@@ -83,6 +83,9 @@ VNCKB;;;
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
+HDDSIZEGB;integer;15;Disk size in GB
+QEMUCPUS;integer;1;Number of CPUs to assign to VM
+QEMURAM;integer;1024;Size of RAM of VM in MiB
 VIRSH_HOSTNAME;string;SSH Host with virtsh;
 VIRSH_PASSWORD;string;Password for root account on above host;
 VIRSH_VMM_FAMILY;string;Host's hypervisor ('kvm', 'xen');
