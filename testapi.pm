@@ -787,8 +787,7 @@ sub assert_shutdown {
     $timeout //= 60;
     bmwqemu::log_call('assert_shutdown', timeout => $timeout);
     while ($timeout >= 0) {
-        my $status = $bmwqemu::backend->status() // '';
-        if ($status eq 'shutdown') {
+        if ($bmwqemu::backend->check_shutdown()) {
             $autotest::current_test->take_screenshot('ok');
             return;
         }

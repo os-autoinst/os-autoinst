@@ -44,8 +44,15 @@ sub disable() {
     $self->{vnc} = undef;
 }
 
+sub get_last_mouse_set {
+    my ($self) = @_;
+    return $self->{mouse};
+}
+
 sub connect_vnc {
     my ($self, $args) = @_;
+
+    $self->{mouse} = {x => undef, y => undef};
 
     CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);

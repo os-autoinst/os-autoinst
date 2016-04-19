@@ -242,10 +242,6 @@ sub start_encoder {
     return;
 }
 
-sub get_last_mouse_set {
-    my ($self) = @_;
-    return $self->{mouse};
-}
 
 sub post_start_hook {
     my ($self) = @_;
@@ -256,7 +252,6 @@ sub post_start_hook {
 
 sub start_vm {
     my ($self) = @_;
-    $self->{mouse} = {x => undef, y => undef};
     $self->{started} = 1;
     $self->start_encoder();
     return $self->do_start_vm();
@@ -571,6 +566,10 @@ sub mouse_button() {
     return $self->bouncer('mouse_button', $args);
 }
 
+sub get_last_mouse_set() {
+    my ($self, $args) = @_;
+    return $self->bouncer('get_last_mouse_set', $args);
+}
 
 sub capture_screenshot {
     my ($self) = @_;
