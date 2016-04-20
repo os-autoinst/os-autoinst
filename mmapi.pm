@@ -20,7 +20,7 @@ use strict;
 use warnings;
 
 use base qw/Exporter/;
-our @EXPORT = qw/get_children_by_state get_children get_parents get_job_info wait_for_children api_call/;
+our @EXPORT = qw/get_children_by_state get_children get_parents get_job_info wait_for_children wait_for_children_to_start api_call/;
 
 require bmwqemu;
 
@@ -130,6 +130,21 @@ sub wait_for_children {
         }
 
         bmwqemu::fctinfo("Waiting for $n jobs to finish");
+        last unless $n;
+        sleep 1;
+    }
+}
+
+sub wait_for_children_to_start {
+    while (1) {
+        my $children = get_children();
+        my $n        = 0;
+        for my $state (values %$children) {
+            next if $state eq 'done' or $state eq 'cancelled' or $state eq 'running';
+            $n++;
+        }
+
+        bmwqemu::fctinfo("Waiting for $n jobs to start");
         last unless $n;
         sleep 1;
     }
