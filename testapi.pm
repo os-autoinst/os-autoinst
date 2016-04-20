@@ -78,11 +78,16 @@ Used for internal initialization, do not call from tests.
 =cut
 sub init {
     $serialdev = get_var('SERIALDEV', "ttyS0");
-    if (   get_var('OFW')
-        || check_var('BACKEND', 's390x')
-        || (check_var('VIRSH_VMM_FAMILY', 'xen') && check_var('VIRSH_VMM_TYPE', 'linux')))
-    {
+    if (get_var('OFW') || check_var('BACKEND', 's390x')) {
         $serialdev = "hvc0";
+    }
+    elsif (check_var('VIRSH_VMM_FAMILY', 'xen') && check_var('VIRSH_VMM_TYPE', 'linux')) {
+        if (check_var('VERSION', '12-SP2')) {
+            $serialdev = "hvc0";
+        }
+        else {
+            $serialdev = "xvc0";
+        }
     }
     $serialdev = 'ttyS1' if check_var('BACKEND', 'ipmi');
     return;
