@@ -129,7 +129,7 @@ sub wait_for_children {
             $n++;
         }
 
-        bmwqemu::fctinfo("Waiting for $n jobs to finish");
+        bmwqemu::diag("Waiting for $n jobs to finish");
         last unless $n;
         sleep 1;
     }
@@ -144,7 +144,7 @@ sub wait_for_children_to_start {
             $n++;
         }
 
-        bmwqemu::fctinfo("Waiting for $n jobs to start");
+        bmwqemu::diag("Waiting for $n jobs to start");
         last unless $n;
         sleep 1;
     }
