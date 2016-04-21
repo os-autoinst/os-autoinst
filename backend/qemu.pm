@@ -589,6 +589,9 @@ sub start_qemu {
             no warnings 'qw';
             push(@params, qw/-device usb-ehci -device usb-tablet,bus=usb-bus.0/);
         }
+        elsif ($vars->{ARCH} eq 'aarch64') {
+            push(@params, qw/-device nec-usb-xhci -device usb-tablet/);
+        }
         else {
             push(@params, qw/-device usb-ehci -device usb-tablet/);
         }
