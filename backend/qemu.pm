@@ -327,7 +327,9 @@ sub start_qemu {
     }
     elsif ($vars->{OFW}) {
         $vars->{QEMUVGA} ||= "std";
+        $vars->{QEMUMACHINE} = "usb=off";
         push(@vgaoptions, '-g', '1024x768');
+        $use_usb_kbd = 1;
     }
     else {
         $vars->{QEMUVGA} ||= "cirrus";
@@ -587,7 +589,7 @@ sub start_qemu {
         }
         if ($vars->{OFW}) {
             no warnings 'qw';
-            push(@params, qw/-device usb-ehci -device usb-tablet,bus=usb-bus.0/);
+            push(@params, qw/-device nec-usb-xhci -device usb-tablet/);
         }
         else {
             push(@params, qw/-device usb-ehci -device usb-tablet/);
