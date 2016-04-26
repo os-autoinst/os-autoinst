@@ -12,7 +12,7 @@ Type=dbus
 BusName=org.opensuse.os_autoinst.switch
 Environment=OS_AUTOINST_USE_BRIDGE=br0
 EnvironmentFile=-/etc/sysconfig/os-autoinst-openvswitch
-ExecStart=/usr/lib/os-autoinst/os-autoinst-openvswitch
+ExecStart=@pkglibexecdir@/os-autoinst-openvswitch
 
 [Install]
 WantedBy=multi-user.target
