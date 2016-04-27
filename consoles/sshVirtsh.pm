@@ -22,6 +22,7 @@ use testapi qw/get_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
 use XML::LibXML;
+use File::Temp qw/tempfile/;
 
 use Class::Accessor "antlers";
 has instance   => (is => "rw", isa => "Num");
@@ -198,13 +199,29 @@ sub add_pty {
     my $devices = $self->{devices_element};
 
     my $console = $doc->createElement($args->{pty_dev} || 'console');
-    $console->setAttribute(type => 'pty');
+    $console->setAttribute(type => $args->{pty_dev_type} || 'pty');
     $devices->appendChild($console);
 
     my $elem = $doc->createElement('target');
-    $elem->setAttribute(type => $args->{type});
-    $elem->setAttribute(port => $args->{port});
+    if ($args->{target_type}) {
+        $elem->setAttribute(type => $args->{target_type});
+    }
+    $elem->setAttribute(port => $args->{target_port});
     $console->appendChild($elem);
+
+    if ($args->{protocol_type}) {
+        my $elem = $doc->createElement('protocol');
+        $elem->setAttribute(type => $args->{protocol_type});
+        $console->appendChild($elem);
+    }
+
+    if ($args->{source}) {
+        my $elem = $doc->createElement('source');
+        $elem->setAttribute(mode    => 'bind');
+        $elem->setAttribute(host    => '0.0.0.0');
+        $elem->setAttribute(service => get_var('VMWARE_SERIAL_PORT'));
+        $console->appendChild($elem);
+    }
 
     return;
 }
@@ -223,6 +240,7 @@ sub add_vnc {
     $graphics->setAttribute(autoport    => 'no');
     $graphics->setAttribute(listen      => '0.0.0.0');
     $graphics->setAttribute(sharePolicy => 'force-shared');
+    $graphics->setAttribute(passwd      => $testapi::password);
     $devices->appendChild($graphics);
 
     my $elem = $doc->createElement('listen');
@@ -286,7 +304,7 @@ sub add_disk {
 
     my $dev_type;
     my $bus_type;
-    if ($self->vmm_family eq 'xen') {
+    if ($self->vmm_family eq 'xen' || $self->vmm_family eq 'vmware') {
         if ($self->vmm_type eq 'hvm') {
             $dev_type = 'hda';
             $bus_type = 'ide';
@@ -315,6 +333,26 @@ sub add_disk {
 sub define_and_start {
     my ($self) = @_;
 
+    my $remote_vmm = "";
+    if ($self->vmm_family eq 'vmware') {
+        my ($fh, $libvirtauthfilename) = tempfile();
+        my $chan = $self->{ssh}->channel();
+
+        # The libvirt esx driver supports connection over HTTP(S) only. When
+        # asked to authenticate we provide the password via 'authfile'.
+        $chan->exec(
+            "cat > $libvirtauthfilename <<__END
+[credentials-vmware]
+username=" . get_var('VMWARE_USERNAME') . "
+password=" . get_var('VMWARE_PASSWORD') . "
+[auth-esx-" . get_var('VMWARE_HOST') . "]
+credentials=vmware
+__END"
+        );
+        $chan->close();
+        $remote_vmm = "-c vpx://" . get_var('VMWARE_USERNAME') . "@" . get_var('VMWARE_HOST') . "/" . get_var('VMWARE_DATACENTER') . "/" . get_var('VMWARE_SERVER') . "/?no_verify=1\\&authfile=$libvirtauthfilename ";
+    }
+
     my $instance = $self->instance;
 
     my $doc = $self->{domainxml};
@@ -327,18 +365,18 @@ sub define_and_start {
     $chan->close();
 
     # shut down possibly running previous test (just to be sure) - ignore errors
-    $self->{ssh}->channel()->exec("virsh destroy " . $self->name);
-    $self->{ssh}->channel()->exec("virsh undefine " . $self->name);
+    $self->{ssh}->channel()->exec("virsh $remote_vmm destroy " . $self->name);
+    $self->{ssh}->channel()->exec("virsh $remote_vmm undefine " . $self->name);
 
     # define the new domain
     $chan = $self->{ssh}->channel();
-    $chan->exec("virsh define $xmlfilename");
+    $chan->exec("virsh $remote_vmm define $xmlfilename");
     bmwqemu::diag $_ while <$chan>;
     $chan->close();
     die "virsh define failed" if $chan->exit_status();
 
     $chan = $self->{ssh}->channel();
-    $chan->exec("virsh start " . $self->name);
+    $chan->exec("virsh $remote_vmm start " . $self->name);
     bmwqemu::diag $_ while <$chan>;
     $chan->close();
     die "virsh start failed" if $chan->exit_status();
