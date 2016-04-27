@@ -281,6 +281,11 @@ sub start_qemu {
         die "no dmi data for '$vars->{LAPTOP}'\n" unless -d "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
     }
 
+    if ($vars->{BOOT_HDD_IMAGE}) {
+        # skip dvd boot menu and boot directly from hdd
+        $vars->{BOOTFROM} //= 'c';
+    }
+
     my $iso = $vars->{ISO};
     # disk settings
     $vars->{NUMDISKS}  ||= 1;
