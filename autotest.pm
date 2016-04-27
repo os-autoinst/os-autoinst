@@ -18,6 +18,8 @@ package autotest;
 use strict;
 use bmwqemu;
 use basetest;
+use Exporter qw/import/;
+our @EXPORT_OK = qw/loadtest $current_test/;
 
 use File::Basename;
 use File::Spec;
