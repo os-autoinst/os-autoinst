@@ -29,6 +29,7 @@ Variable;Values allowed;Default value;Explanation
 ARCH;x86_64|i686|aarch64|...;depends on tested medium;Architecture of VM.
 AUTO_INST;;;
 BIOS;;;
+BOOT_HDD_IMAGE;boolean;;enables boot from HDD_1 (BOOTFROM has higher priority)
 BOOTFROM;chars;undef;Influences order of boot devices. See qemu -boot option
 CDMODEL;see qemu -device ?;undef;Storage device for virtualized CD
 HDDFORMAT;;;
