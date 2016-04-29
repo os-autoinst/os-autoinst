@@ -94,6 +94,7 @@ CLEANFILES = \
 	doc/testapi.html 
 
 PERL_MODULE = ppmclibs/blib/arch/auto/tinycv/tinycv.so
+OPENVSWITCH_SERVICE = systemd/os-autoinst-openvswitch.service
 
 ppmclibs/Makefile: ppmclibs/Makefile.PL
 	cd ppmclibs && \
@@ -101,6 +102,11 @@ ppmclibs/Makefile: ppmclibs/Makefile.PL
 
 $(PERL_MODULE): ppmclibs/Makefile
 	$(MAKE) -C ppmclibs
+
+$(OPENVSWITCH_SERVICE):
+	rm -f $@ $@.tmp
+	sed -e 's,@pkglibexecdir[@],$(pkglibexecdir),g' '$(top_srcdir)/$@.in' > '$(top_srcdir)/$@.tmp'
+	mv '$(top_srcdir)/$@.tmp' '$(top_srcdir)/$@'
 
 install-exec-local: $(PERL_MODULE)
 	$(MAKE) -C ppmclibs pure_install DESTDIR="$(DESTDIR)" INSTALLDIRS="$(INSTALLDIRS)"
@@ -110,7 +116,7 @@ all-local: $(PERL_MODULE)
 doc/%.html: %.pm
 	pod2html $< > $@
 
-install-data-local:
+install-data-local: $(OPENVSWITCH_SERVICE)
 	$(MKDIR_P) $(DESTDIR)/$(packagestatedir) ; \
 	for i in $(packagestate_DATA_FOLDERS) ; do \
 		cp -r $(top_srcdir)/$$i "$(DESTDIR)/$(packagestatedir)" ; \
@@ -120,7 +126,7 @@ install-data-local:
 		cp -r $(top_srcdir)/$$i "$(DESTDIR)/$(pkglibexecdir)" ; \
 	done
 	install -D -m 644 $(top_srcdir)/etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf "$(DESTDIR)/etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf"
-	install -D -m 644 $(top_srcdir)/systemd/os-autoinst-openvswitch.service "$(DESTDIR)/usr/lib/systemd/system/os-autoinst-openvswitch.service"
+	install -D -m 644 "$(top_srcdir)/$(OPENVSWITCH_SERVICE)" "$(DESTDIR)/usr/lib/systemd/system/os-autoinst-openvswitch.service"
 
 uninstall-local:
 	for i in $(packagestate_DATA_FOLDERS) ; do \
