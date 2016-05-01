@@ -26,7 +26,7 @@ foreach my $json (@jsons) {
         $res = $img->search($needle);
         if ($res) {
             if ($bnjson ne $bnpng) {
-                print "Needle ambiguity: [Needle] " . $bnjson . " - [Image] " . $bnpng . " [" . $res->{"similarity"} . "]\n";
+                print "Needle ambiguity: [Needle] " . $bnjson . " - [Image] " . $bnpng . " [" . $res->{similarity} . "]\n";
             }
         }
         else {

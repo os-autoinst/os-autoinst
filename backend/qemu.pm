@@ -79,13 +79,13 @@ sub power {
         $self->_send_hmp("system_reset");
     }
     elsif ($action eq 'off') {
-        $self->handle_qmp_command({"execute" => "quit"});
+        $self->handle_qmp_command({execute => 'quit'});
     }
 }
 
 sub eject_cd {
     my $self = shift;
-    $self->handle_qmp_command({"execute" => "eject", "arguments" => {"device" => "cd0"}});
+    $self->handle_qmp_command({execute => 'eject', arguments => {device => 'cd0'}});
 }
 
 sub cpu_stat {
@@ -170,8 +170,8 @@ sub load_snapshot {
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("loadvm $vmname");
     die unless ($rsp eq "loadvm $vmname");
-    $rsp = $self->handle_qmp_command({"execute" => "stop"});
-    $rsp = $self->handle_qmp_command({"execute" => "cont"});
+    $rsp = $self->handle_qmp_command({execute => 'stop'});
+    $rsp = $self->handle_qmp_command({execute => 'cont'});
     sleep(10);
     return $rsp;
 }
@@ -704,9 +704,9 @@ sub start_qemu {
     print "WELCOME $line\n";
 
     my $init = backend::driver::_read_json($self->{qmpsocket});
-    my $hash = $self->handle_qmp_command({"execute" => "qmp_capabilities"});
+    my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
     if (0) {
-        $hash = $self->handle_qmp_command({"execute" => "query-commands"});
+        $hash = $self->handle_qmp_command({execute => 'query-commands'});
         die "no commands!" unless ($hash);
         print "COMMANDS " . JSON::to_json($hash, {pretty => 1}) . "\n";
     }
@@ -736,7 +736,7 @@ sub start_qemu {
     }
 
     print "Start CPU";
-    $self->handle_qmp_command({"execute" => "cont"});
+    $self->handle_qmp_command({execute => 'cont'});
 
     $self->{select}->add($self->{qemupipe});
 }
@@ -863,7 +863,7 @@ sub _send_hmp {
 
 sub status {
     my ($self) = @_;
-    my $ret = $self->handle_qmp_command({"execute" => "query-status"});
+    my $ret = $self->handle_qmp_command({execute => 'query-status'});
     return $ret->{return}->{status};
 }
 
@@ -871,7 +871,7 @@ sub handle_hmp_command {
     my ($self, $hmp) = @_;
 
     my $line = $self->_send_hmp($hmp);
-    $self->{rsppipe}->print(JSON::to_json({"rsp" => $line}));
+    $self->{rsppipe}->print(JSON::to_json({rsp => $line}));
 }
 
 # this is called for all sockets ready to read from. return 1 if socket
@@ -920,12 +920,12 @@ sub wait_idle {
 sub freeze_vm {
     my ($self) = @_;
     # qemu specific - all other backends will crash
-    return $self->handle_qmp_command({"execute" => "stop"});
+    return $self->handle_qmp_command({execute => 'stop'});
 }
 
 sub cont_vm {
     my ($self) = @_;
-    return $self->handle_qmp_command({"execute" => "cont"});
+    return $self->handle_qmp_command({execute => 'cont'});
 }
 
 1;
