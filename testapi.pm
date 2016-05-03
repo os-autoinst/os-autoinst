@@ -1004,21 +1004,32 @@ sub data_url($) {
 
 =head2 upload_logs
 
-  upload_logs $file;
+  upload_logs($file [, failok => 0 ]);
 
 Upload C<$file> to OpenQA WebUI as a log file and
-return the uploaded file name.
+return the uploaded file name. If failok is not set, a failed upload
+will cause the test to die. Failed uploads happen if the file does not
+exist or is over 20GiB in size, so failok is useful when you just want
+to upload the file if it exists but not mind if it doesn't.
 
 =cut
 sub upload_logs {
-    my ($file) = @_;
+    my $file   = shift;
+    my %args   = @_;
+    my $failok = $args{failok} || 0;
 
     bmwqemu::log_call('upload_logs', file => $file);
     my $basename = basename($file);
     my $upname   = ref($autotest::current_test) . '-' . $basename;
     my $cmd      = "curl --form upload=\@$file --form upname=$upname ";
     $cmd .= autoinst_url("/uploadlog/$basename");
-    assert_script_run($cmd);
+    if ($failok) {
+        # just use script_run so we don't care if the upload fails
+        script_run($cmd);
+    }
+    else {
+        assert_script_run($cmd);
+    }
     return $upname;
 }
 
