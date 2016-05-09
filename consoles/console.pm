@@ -52,9 +52,15 @@ sub screen {
 
 # helper function
 sub sshCommand {
-    my ($self, $host) = @_;
+    my ($self, $host, $gui) = @_;
 
-    return "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no root\@$host";
+    my $sshopts = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no root\@$host";
+
+    if ($gui) {
+        $sshopts = "-X $sshopts";
+    }
+
+    return "ssh $sshopts";
 }
 
 # to be overloaded

@@ -26,7 +26,6 @@ consolesexec_DATA = \
 	consoles/icewm.cfg \
 	consoles/localXvnc.pm \
 	consoles/remoteVnc.pm \
-	consoles/remoteWindow.pm \
 	consoles/s3270.pm \
 	consoles/sshX3270.pm \
 	consoles/sshVirtsh.pm \

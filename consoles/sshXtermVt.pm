@@ -22,6 +22,22 @@ use testapi qw/get_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
 
+
+sub fullscreen {
+    my ($self, $args) = @_;
+
+    my $display     = $self->{DISPLAY};
+    my $window_name = $args->{window_name};
+
+    # search for YaST Window and grab the id
+    my $window_id = qx"DISPLAY=$display xdotool search --sync --limit 1 --name $window_name";
+    $window_id =~ s/\D//g;
+
+    # resize and move window to fit in icewm
+    system("DISPLAY=$display xdotool windowsize $window_id 100% 100%");
+    system("DISPLAY=$display xdotool windowmove $window_id 0 0");
+}
+
 sub activate {
     my ($self) = @_;
 
@@ -30,11 +46,12 @@ sub activate {
 
     my $testapi_console = $self->{testapi_console};
     my $ssh_args        = $self->{args};
+    my $gui             = $self->{args}->{gui};
 
     my $hostname = $ssh_args->{hostname} || die('we need a hostname to ssh to');
     my $password = $ssh_args->{password} || $testapi::password;
-    my $sshcommand = $self->sshCommand($hostname);
-    my $display    = $self->{DISPLAY};
+    my $sshcommand = $self->sshCommand($hostname, $gui);
+    my $display = $self->{DISPLAY};
 
     $sshcommand = "TERM=xterm " . $sshcommand;
     my $xterm_vt_cmd = "xterm-console";
@@ -43,6 +60,7 @@ sub activate {
     if (my $E = $@) {
         die "cant' start xterm on $display (err: $! retval: $?)";
     }
+
     # FIXME: assert_screen('xterm_password');
     sleep 3;
     $self->type_string({text => $password . "\n"});
