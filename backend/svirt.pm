@@ -17,7 +17,7 @@
 package backend::svirt;
 use strict;
 use base ('backend::baseclass');
-use testapi qw(get_required_var);
+use testapi qw(get_required_var check_var);
 
 use IO::Select;
 
@@ -75,6 +75,12 @@ sub start_serial_grab {
         # we have to connect to VM's serial port via TCP which is
         # provided by ESXi server.
         $chan->exec('nc ' . get_var('VMWARE_SERVER') . ' ' . get_var('VMWARE_SERIAL_PORT'));
+    }
+    elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+        # Hyper-V does not support serial console export via TCP, just
+        # windows named pipes (e.g. \\.\pipe\mypipe). Such a named pipe
+        # has to be enabled by a namedpipe-to-TCP on HYPERV_SERVER application.
+        $chan->exec('nc ' . get_var('HYPERV_SERVER') . ' ' . get_var('HYPERV_SERIAL_PORT'));
     }
     else {
         $chan->exec('virsh console ' . $name);
