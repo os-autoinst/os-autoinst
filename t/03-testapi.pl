@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 14;
+use Test::More tests => 12;
 use Test::Output;
 use Test::Fatal;
 
@@ -49,8 +49,7 @@ is($autotest::current_test->{dents}, 1, 'soft failure recorded');
 stderr_like(sub { record_soft_failure('workaround for bug#1234') }, qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason');
 is($autotest::current_test->{dents}, 2, 'another');
 
-# assert_script_run
-{
+subtest 'assert_script_run' => sub {
     use autotest;
     $testapi::serialdev = 'null';
     {
@@ -74,6 +73,6 @@ is($autotest::current_test->{dents}, 2, 'another');
     is(assert_script_run('true'), undef, 'nothing happens on success');
     like(exception { assert_script_run 'false'; }, qr/command.*false.*failed at/, 'dies with standard message');
     like(exception { assert_script_run 'false', 0, 'my custom fail message'; }, qr/command.*false.*failed: my custom fail message at/, 'custom message on die');
-}
+};
 
 # vim: set sw=4 et:
