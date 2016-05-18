@@ -17,7 +17,6 @@
 package backend::qemu;
 use strict;
 use base ('backend::baseclass');
-use threads;
 use File::Path qw/mkpath/;
 use File::Temp ();
 use Time::HiRes qw(sleep gettimeofday);
@@ -41,7 +40,7 @@ sub new {
     $self->{children}    = [];
     $self->{pidfilename} = 'qemu.pid';
 
-    # make sure to set environment variables in the main thread
+    # make sure to set environment variables in the main process
     # exec uses the %ENV of the main thread
     $ENV{QEMU_AUDIO_DRV} = "none";
 

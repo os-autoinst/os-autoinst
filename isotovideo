@@ -17,7 +17,6 @@
 #
 
 use strict;
-use threads;
 
 local $Devel::Trace::TRACE;
 $Devel::Trace::TRACE = 0;
@@ -72,6 +71,8 @@ bmwqemu::clean_control_files();
 
 my $init = 1;
 
+my $cpid;
+
 # all so ugly ...
 sub signalhandler {
 
@@ -83,27 +84,24 @@ sub signalhandler {
         $autotest::running->fail_if_running();
         $autotest::running = undef;
     }
-    if ( threads->tid() == 0 ) {
-        bmwqemu::stop_vm();
-        # mark it as no longer working
-        delete $ENV{WORKERID};
-        bmwqemu::save_status();
-        # make sure the currently running test is shown as failed
-        if (my $test = bmwqemu::current_test()) {
-            $test->fail_if_running();
-            $test->save_test_result();
-        }
+    bmwqemu::stop_vm();
+    # mark it as no longer working
+    delete $ENV{WORKERID};
+    bmwqemu::save_status();
+    # make sure the currently running test is shown as failed
+    if (my $test = bmwqemu::current_test()) {
+        $test->fail_if_running();
+        $test->save_test_result();
     }
-    else {
-        print STDERR "bug!? signal not received in main thread\n";
+    if (defined $cpid) {
+        print "killing commands process\n";
+        kill('SIGTERM', $cpid);
+        waitpid($cpid, 0);
+        print "done joining commands process\n";
     }
     exit(1);
 }
 
-$SIG{ALRM} = \&signalhandler;
-$SIG{TERM} = \&signalhandler;
-$SIG{INT}  = \&signalhandler;
-$SIG{HUP}  = \&signalhandler;
 
 $ENV{MOJO_MAX_MESSAGE_SIZE} = 107741824;
 
@@ -151,7 +149,12 @@ if ($init) {
     }
 }
 
-my $ct = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
+$cpid = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
+
+$SIG{ALRM} = \&signalhandler;
+$SIG{TERM} = \&signalhandler;
+$SIG{INT}  = \&signalhandler;
+$SIG{HUP}  = \&signalhandler;
 
 if ($ENV{RUN_VNCVIEWER}) {
   system("vncviewer -shared localhost:" . $bmwqemu::vars{VNC} . " -viewonly &");
@@ -186,10 +189,10 @@ eval {
 };
 
 bmwqemu::stop_vm();
-print "killing commands thread\n";
-$ct->kill('SIGTERM');
-$ct->join();
-print "done joining commands thread\n";
+print "killing commands process\n";
+kill('SIGTERM', $cpid);
+waitpid($cpid, 0);
+print "done joining commands process\n";
 
 # mark hard disks for upload if test finished
 if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {

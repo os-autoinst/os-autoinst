@@ -15,14 +15,12 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 # this class is what everyone else refers to as $bmwqemu::backend and its code runs
-# in the main thread. But its main task is to start a 2nd thread and talk to it over
-# a PIPE (thanks to perl's insane approach to threads).
-# in that 2nd thread runs the actual backend, derived from backend::baseclass
+# in the main process. But its main task is to start a 2nd process and talk to it over
+# a PIPE
+# in that 2nd process runs the actual backend, derived from backend::baseclass
 
 package backend::driver;
 use strict;
-use threads;
-use threads::shared;
 use Carp qw(cluck carp croak confess);
 use JSON qw( to_json );
 use File::Path qw(remove_tree);
@@ -66,8 +64,16 @@ sub start {
 
     printf STDERR "$$: to_child %d, from_child %d\n", fileno($self->{to_child}), fileno($self->{from_child});
 
-    my $tid = shared_clone(threads->create(\&_run, $self->{backend}, fileno($self->{from_parent}), fileno($self->{to_parent})));
-    $self->{runthread} = $tid;
+    my $pid = fork();
+    die "fork failed" unless defined $pid;
+
+    if ($pid == 0) {
+        _run($self->{backend}, fileno($self->{from_parent}), fileno($self->{to_parent}));
+        exit(0);
+    }
+    else {
+        $self->{backend_pid} = $pid;
+    }
 }
 
 sub extract_assets {
@@ -75,7 +81,7 @@ sub extract_assets {
     $self->{backend}->do_extract_assets(@_);
 }
 
-# this is the backend thread
+# this is the backend process
 sub _run {
     my ($backend, $from_parent, $to_parent) = @_;
 
@@ -86,17 +92,17 @@ sub stop {
     my $self = shift;
     my $cmd  = shift;
 
-    return unless ($self->{runthread});
+    return unless ($self->{backend_pid});
 
-    $self->stop_thread() if $self->{from_child};
+    $self->stop_backend() if $self->{from_child};
     close($self->{from_child}) if $self->{from_child};
     $self->{from_child} = undef;
 
     close($self->{to_child}) if ($self->{to_child});
     $self->{to_child} = undef;
 
-    $self->{runthread}->join() if $self->{runthread};
-    $self->{runthread} = undef;
+    waitpid($self->{backend_pid}, 0) if $self->{backend_pid};
+    $self->{backend_pid} = undef;
 }
 
 # new api
@@ -114,14 +120,14 @@ sub start_vm {
     mkdir $bmwqemu::screenshotpath;
 
     $self->_send_json({cmd => 'start_vm'}) || die "failed to start VM";
-    # the backend thread might have added some defaults for the backend
+    # the backend process might have added some defaults for the backend
     bmwqemu::load_vars();
 
     $self->post_start_hook();
     return 1;
 }
 
-sub stop_thread {
+sub stop_backend {
     my ($self) = @_;
     $self->stop_vm();
     # remove if still existant

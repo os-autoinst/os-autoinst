@@ -24,8 +24,6 @@ use IO::Socket;
 use ocr;
 use cv;
 use needle;
-use threads;
-use threads::shared;
 use Thread::Queue;
 use POSIX;
 use Term::ANSIColor;
@@ -51,20 +49,16 @@ sub mydie;
 
 $| = 1;
 
-# shared vars
 
 our $default_timeout = 30;    # assert timeout, 0 is a valid timeout
 our $idle_timeout    = 19;    # wait_idle 0 makes no sense
-my $prestandstillwarning : shared = 0;
 
 my @ocrrect;
-share(@ocrrect);
 
 our $interactive_mode;
 our $waiting_for_new_needle;
 our $screenshotpath = "qemuscreenshot";
 
-# shared vars end
 
 # list of files that are used to control the behavior
 our %control_files = (
@@ -111,8 +105,6 @@ sub save_vars() {
     close($fd);
     return;
 }
-
-share($vars{SCREENSHOTINTERVAL});    # to adjust at runtime
 
 sub result_dir() {
     return "testresults";
