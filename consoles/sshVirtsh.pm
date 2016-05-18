@@ -355,4 +355,18 @@ sub attach_to_running {
     $self->backend->start_serial_grab($self->name);
 }
 
+# Allow send command to libvirt host and get exit status of command
+# for example:
+# my $ret = $svirt->run_cmd("virsh snapshot-create-as snap1");
+# die "snapshot creation failed" unless $ret == 0;
+sub run_cmd {
+    my ($self, $cmd) = @_;
+
+    my $chan = $self->{ssh}->channel();
+    $chan->exec($cmd);
+    bmwqemu::diag $_ while <$chan>;
+    $chan->close();
+    return $chan->exit_status();
+}
+
 1;
