@@ -45,8 +45,6 @@ requires 'XML::LibXML';
 requires 'base';
 requires 'constant';
 requires 'strict';
-requires 'threads';
-requires 'threads::shared';
 requires 'warnings';
 
 on 'test' => sub {

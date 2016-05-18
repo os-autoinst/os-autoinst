@@ -682,9 +682,12 @@ The default timeout for the script is 30 seconds. If you need more, pass a 2nd p
 
 =cut
 sub script_output($;$) {
-    my $wait;
-    ($commands::current_test_script, $wait) = @_;
-    my $suffix = bmwqemu::hashed_string("SO$commands::current_test_script");
+    my ($current_test_script, $wait) = @_;
+    open my $fh, ">", 'current_script' or die("Could not open file. $!");
+    print $fh $current_test_script;
+    close $fh;
+
+    my $suffix = bmwqemu::hashed_string("SO$current_test_script");
     $wait ||= 30;
 
     assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh";

@@ -18,7 +18,6 @@
 package backend::baseclass;
 use strict;
 use warnings;
-use threads;
 use Carp qw(cluck carp confess);
 use JSON qw( to_json );
 use File::Copy qw(cp);
@@ -34,7 +33,7 @@ use feature qw(say);
 
 my $framecounter = 0;    # screenshot counter
 
-# should be a singleton - and only useful in backend thread
+# should be a singleton - and only useful in backend process
 our $backend;
 
 use parent qw(Class::Accessor::Fast);
@@ -57,7 +56,7 @@ sub new {
     return $self;
 }
 
-# runs in the thread to deserialize VNC commands
+# runs in the backend process to deserialize VNC commands
 sub handle_command {
 
     my ($self, $cmd) = @_;
@@ -96,7 +95,7 @@ sub run {
 
     printf STDERR "$$: cmdpipe %d, rsppipe %d\n", fileno($self->{cmdpipe}), fileno($self->{rsppipe});
 
-    bmwqemu::diag "started mgmt loop with thread id " . threads->tid();
+    bmwqemu::diag "started mgmt loop with pid $$";
 
     $self->{select} = IO::Select->new();
     $self->{select}->add($self->{cmdpipe});
@@ -113,7 +112,7 @@ sub run {
 
     $self->run_capture_loop($self->{select});
 
-    bmwqemu::diag("management thread exit at " . POSIX::strftime("%F %T", gmtime));
+    bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
 }
 
 use List::Util qw(min);
@@ -418,7 +417,7 @@ sub close_pipes {
     print "sending magic and exit\n";
     $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || die "close $!\n";
-    threads->exit();
+    exit(0);
 }
 
 # this is called for all sockets ready to read from
@@ -447,7 +446,7 @@ sub check_socket {
 }
 
 ###################################################################
-## access other consoles from the test case thread
+## access other consoles from the test case process
 
 # There can be two vnc backends (local Xvnc or remote vnc) and
 # there can be several terminals on the local Xvnc.
@@ -673,7 +672,7 @@ sub wait_serial {
 
 # set_reference_screenshot and similiarity_to_reference are necessary to
 # implement wait_still and wait_changed functions in the tests without having
-# to transfer the screenshot into the test thread
+# to transfer the screenshot into the test process
 sub set_reference_screenshot {
     my ($self, $args) = @_;
 

@@ -16,9 +16,6 @@
 
 package commands;
 
-use threads;
-use threads::shared;
-
 use strict;
 use warnings;
 require IPC::System::Simple;
@@ -185,11 +182,9 @@ sub upload_file {
 }
 
 
-our $current_test_script : shared;
-
 sub current_script {
     my ($self) = @_;
-    return $self->render(data => $current_test_script);
+    return $self->reply->asset(Mojo::Asset::File->new(path => 'current_script'));
 }
 
 sub run_daemon {
@@ -239,8 +234,15 @@ sub run_daemon {
 sub start_server {
     my ($port) = @_;
 
-    my $thr = threads->create(\&run_daemon, $port);
-    return $thr;
+    my $pid = fork();
+    die "fork failed" unless defined $pid;
+
+    if ($pid == 0) {
+        run_daemon($port);
+        exit(0);
+    }
+
+    return $pid;
 }
 
 1;

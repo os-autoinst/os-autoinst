@@ -17,8 +17,6 @@
 package backend::ipmi;
 use strict;
 use base ('backend::baseclass');
-use threads;
-use threads::shared;
 require File::Temp;
 use File::Temp ();
 use Time::HiRes qw(sleep gettimeofday);
