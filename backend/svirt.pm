@@ -24,7 +24,7 @@ use IO::Select;
 # this is a fake backend to some extend. We don't start VMs, but provide ssh access
 # to a libvirt running host (KVM for System Z in mind)
 
-use testapi qw/get_var/;
+use testapi qw/get_var check_var/;
 
 sub new {
     my $class = shift;
@@ -65,12 +65,20 @@ sub do_stop_vm {
     return {};
 }
 
-# open another ssh connection to grab the serial console
+# Open another ssh connection to grab the serial console.
 sub start_serial_grab {
     my ($self, $name) = @_;
 
     my $chan = $self->start_ssh_serial(hostname => get_required_var('VIRSH_HOSTNAME'), password => get_var('VIRSH_PASSWORD'), username => 'root');
-    $chan->exec('virsh console ' . $name);
+    if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {
+        # libvirt esx driver does not support `virsh console', so
+        # we have to connect to VM's serial port via TCP which is
+        # provided by ESXi server.
+        $chan->exec('nc ' . get_var('VMWARE_SERVER') . ' ' . get_var('VMWARE_SERIAL_PORT'));
+    }
+    else {
+        $chan->exec('virsh console ' . $name);
+    }
 }
 
 sub check_socket {
