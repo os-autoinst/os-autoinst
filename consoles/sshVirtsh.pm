@@ -34,8 +34,8 @@ sub new {
     my $self = $class->SUPER::new($testapi_console, $args);
 
     $self->instance(get_var('VIRSH_INSTANCE', 1));
-    # default name
-    $self->name("openQA-SUT-" . $self->instance);
+    # default name is openQA-SUT-1
+    $self->name(get_var('VIRSH_GUESTNAME', "openQA-SUT-") . $self->instance);
     $self->vmm_family(get_var('VIRSH_VMM_FAMILY', 'kvm'));
     $self->vmm_type(get_var('VIRSH_VMM_TYPE', 'hvm'));
     $self->_init_xml();
