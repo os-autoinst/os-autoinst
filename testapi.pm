@@ -610,9 +610,13 @@ sub script_run {
 
 =head2 assert_script_run
 
-  assert_script_run($command [, $wait, $fail_message]);
+  assert_script_run($cmd [, timeout => $timeout] [, fail_message => $fail_message]);
 
-Run C<$command> via C<script_run> and C<die> if its exit status is not zero.
+Deprecated mode
+
+  assert_script_run($cmd [, $timeout [, $fail_message]]);
+
+Run C<$cmd> via C<script_run> and C<die> if its exit status is not zero.
 The exit status is checked by magic string on the serial port.
 See C<script_run> for default timeout.
 C<$fail_message> is returned in the die message if specified.
@@ -621,13 +625,23 @@ I<Make sure the command does not write to the serial output.>
 
 =cut
 sub assert_script_run {
-    my ($cmd, $timeout, $fail_message) = @_;
+    my ($cmd) = shift;
+    my %args;
+    if (@_ == 1) {
+        %args = (timeout => $_[0]);
+    }
+    elsif (@_ == 2 && $_[1] ne 'fail_message' && $_[1] ne 'timeout') {
+        %args = (timeout => $_[0], fail_message => $_[1]);
+    }
+    else {
+        %args = @_;
+    }
     my $str = hashed_string("ASR$cmd");
     # call script_run with idle_timeout 0 so we don't wait twice
     script_run("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
-    my $ret = wait_serial("$str-\\d+-", $timeout);
+    my $ret = wait_serial("$str-\\d+-", $args{timeout});
     my $die_msg = "command '$cmd' failed";
-    $die_msg .= ": $fail_message" if $fail_message;
+    $die_msg .= ": $args{fail_message}" if $args{fail_message};
     die $die_msg unless (defined $ret && $ret =~ /$str-0-/);
     return;
 }
