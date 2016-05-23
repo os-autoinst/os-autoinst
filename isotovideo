@@ -118,6 +118,11 @@ $bmwqemu::vars{BACKEND} ||= "qemu";
 # This allows further structuring the test distribution collections with
 # multiple distributions or flavors in one repository.
 $bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
+
+# as we are about to load the test modules store the git hash that has been
+# used. If it is not a git repo fail silently, i.e. store an empty variable
+chomp($bmwqemu::test_git_hash = qx{git rev-parse HEAD});
+
 require $bmwqemu::vars{PRODUCTDIR} . "/main.pm";
 
 # set a default distribution if the tests don't have one
