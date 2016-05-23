@@ -555,7 +555,7 @@ sub wait_serial {
     if ($expect_not_found) {
         $matched = !$matched;
     }
-    sleep 1;                               # wait for one more screenshot
+    bmwqemu::wait_for_one_more_screenshot();
 
     # to string, we need to feed string of result to
     # record_serialresult(), either 'ok' or 'fail'
