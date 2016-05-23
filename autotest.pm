@@ -171,7 +171,7 @@ sub runalltests {
             }
         }
         else {
-            bmwqemu::diag "skiping $fullname";
+            bmwqemu::diag "skipping $fullname";
             $t->skip_if_not_running();
             $t->save_test_result();
         }
