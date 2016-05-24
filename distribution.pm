@@ -103,6 +103,7 @@ sub script_run {
     # start console application
     my ($self, $name, $wait) = @_;
 
+    $wait //= $bmwqemu::default_timeout;
     testapi::type_string "$name";
     if ($wait > 0) {
         my $str = bmwqemu::hashed_string("SR$name$wait");
