@@ -21,6 +21,7 @@ use warnings;
 use testapi qw/get_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
+use File::Which;
 
 
 sub fullscreen {
@@ -54,8 +55,9 @@ sub activate {
     my $display = $self->{DISPLAY};
 
     $sshcommand = "TERM=xterm " . $sshcommand;
-    my $xterm_vt_cmd = "xterm-console";
-    my $window_name  = "ssh:$testapi_console";
+    my $xterm_vt_cmd = which "xterm-console";
+    die "Missing 'xterm-console'" unless $xterm_vt_cmd;
+    my $window_name = "ssh:$testapi_console";
     eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$sshcommand' & echo \$!") };
     if (my $E = $@) {
         die "cant' start xterm on $display (err: $! retval: $?)";
