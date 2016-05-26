@@ -20,11 +20,21 @@ use strict;
 use warnings;
 require IPC::System::Simple;
 use autodie qw(:all);
+use testapi qw(check_var);
 
 # to be overloaded
 sub trigger_select {
     my ($self) = @_;
-    my $key = "ctrl-alt-f" . $self->{args}->{tty};
+    my $key;
+
+    # Special keys like Ctrl-Alt-Fx are not passed to the VM by xfreerdp.
+    # That means switch from graphical to console is not possible on Hyper-V.
+    if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+        $key = "alt-f" . $self->{args}->{tty};
+    }
+    else {
+        $key = "ctrl-alt-f" . $self->{args}->{tty};
+    }
     $self->screen->send_key({key => $key});
     return;
 }

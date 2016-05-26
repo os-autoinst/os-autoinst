@@ -99,6 +99,10 @@ VMWARE_DATACENTER;string;VMware datacenter;
 VMWARE_SERVER;string;ESX server to start VM on;
 VMWARE_DATASTORE;string;VMware datastore;
 VMWARE_SERIAL_PORT;string;TCP port where is VM's serial port stream to be expected on the ESX server;
+HYPERV_USERNAME;string;Administrator account name;
+HYPERV_PASSWORD;string;Password for above account;
+HYPERV_SERVER;string;Windows Server (2008 R2, 2012 R2, or 2016) instance IP address;
+HYPERV_SERIAL_PORT;integer;TCP port where is VM's serial port stream to be expected on the Hyper-V server;
 |====================
 
 .PVM backend
