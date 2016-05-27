@@ -335,7 +335,7 @@ sub define_and_start {
 
     my $remote_vmm = "";
     if ($self->vmm_family eq 'vmware') {
-        my ($fh, $libvirtauthfilename) = tempfile();
+        my ($fh, $libvirtauthfilename) = tempfile(DIR => "/tmp/");
         my $chan = $self->{ssh}->channel();
 
         # The libvirt esx driver supports connection over HTTP(S) only. When
