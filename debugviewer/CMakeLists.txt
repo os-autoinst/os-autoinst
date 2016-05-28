@@ -1,0 +1,5 @@
+project(debugviewer)
+cmake_minimum_required(VERSION 3.3.0)
+add_executable(${PROJECT_NAME} ${PROJECT_NAME}.cpp)
+find_package(OpenCV REQUIRED)
+target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})

@@ -1,0 +1,11 @@
+project(snd2png)
+cmake_minimum_required(VERSION 3.3.0)
+add_executable(${PROJECT_NAME} ${PROJECT_NAME}.cpp)
+find_package(OpenCV REQUIRED)
+include(FindPkgConfig)
+pkg_check_modules(FFTW3 fftw3)
+pkg_check_modules(SNDFILE sndfile)
+target_link_libraries(${PROJECT_NAME} ${FFTW3_LIBRARIES} ${OpenCV_LIBS} ${SNDFILE_LIBRARIES})
+
+enable_testing()
+add_test(test_snd2png test_snd2png)

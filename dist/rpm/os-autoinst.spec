@@ -31,7 +31,7 @@ Source0:        %{name}-%{version}.tar.xz
 %else
 %define opencv_require pkgconfig(opencv)
 %endif
-%define build_requires autoconf automake gcc-c++ libtool pkg-config perl(Module::CPANfile) pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc) make %opencv_require
+%define build_requires ninja gcc-c++ pkg-config perl(Module::CPANfile) pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc) make %opencv_require
 %define requires perl(B::Deparse) perl(Mojolicious) >= 7.92, perl(Mojo::IOLoop::ReadWriteProcess) >= 0.23, perl(Carp::Always) perl(Data::Dump) perl(Data::Dumper) perl(Crypt::DES) perl(JSON) perl(autodie) perl(Class::Accessor::Fast) perl(Exception::Class) perl(File::Touch) perl(File::Which) perl(IO::Socket::INET) perl(IPC::Run::Debug) perl(Net::DBus) perl(Net::SNMP) perl(Net::IP) perl(IPC::System::Simple) perl(Net::SSH2) perl(XML::LibXML) perl(XML::SemanticDiff) perl(JSON::XS) perl(List::MoreUtils) perl(Mojo::IOLoop::ReadWriteProcess) perl(Socket::MsgHdr) perl(Cpanel::JSON::XS) perl(IO::Scalar) perl(Try::Tiny) perl-base
 %define requires_not_needed_in_tests git-core
 # all requirements needed by the tests, do not require on this in the package
@@ -100,17 +100,17 @@ sed  -i 's/ my $thisversion = qx{git.*rev-parse HEAD}.*;/ my $thisversion = "%{v
 # 07-commands: https://progress.opensuse.org/issues/60755
 for i in 07-commands 13-osutils 14-isotovideo 18-qemu-options 18-backend-qemu 99-full-stack; do
     rm t/$i.t
-    sed -i "s/ \?$i\.t//g" Makefile.am
+    sed -i "s/ \?$i\.t//g" Makefile
 done
 
 %build
-mkdir -p m4
-autoreconf -f -i
-%configure --docdir=%{_docdir}/%{name}
-make INSTALLDIRS=vendor %{?_smp_mflags}
+# https://en.opensuse.org/openSUSE:Build_system_recipes#cmake
+%define __builder ninja
+%cmake
+%cmake_build
 
 %install
-%make_install INSTALLDIRS=vendor
+%cmake_install
 # only internal stuff
 rm %{buildroot}/usr/lib/os-autoinst/tools/{tidy,check_coverage,absolutize}
 rm -r %{buildroot}/usr/lib/os-autoinst/tools/lib/perlcritic

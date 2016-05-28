@@ -30,29 +30,3 @@ AC_MSG_CHECKING([perl CFLAGS])
 PERL_CFLAGS=`perl -MExtUtils::Embed -e ccopts`
 AC_MSG_RESULT([$PERL_CFLAGS])
 AC_SUBST([PERL_CFLAGS])
-
-# ================================
-# Find dependencies via pkg-config
-# ================================
-# Use preferably the "opencv4", otherwise fall back to "opencv"
-PKG_CHECK_MODULES(
-	[OPENCV],
-	[opencv4 >= 4.0],
-	[AC_DEFINE([HAVE_OPENCV_4], [1], [Using opencv4 package])],
-	[PKG_CHECK_MODULES(
-		[OPENCV],
-		[opencv >= 2.4],
-		[AC_DEFINE([HAVE_OPENCV], [1], [Using opencv package])]
-	)]
-)
-PKG_CHECK_MODULES([THEORAENC], [theoraenc >= 1.1])
-PKG_CHECK_MODULES([FFTW], [fftw3])
-PKG_CHECK_MODULES([SNDFILE], [sndfile])
-
-AC_CONFIG_FILES([
-	Makefile
-	t/Makefile
-	debugviewer/Makefile
-	snd2png/Makefile
-])
-AC_OUTPUT

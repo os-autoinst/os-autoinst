@@ -1,0 +1,6 @@
+#!/bin/bash
+set -euo pipefail
+dir=$(dirname "$0")
+"$dir"/snd2png "$dir"/aplay-captured.wav test.png
+md5sum test.png > test.png.md5
+diff -u test.png.md5 "$dir"/test.png.md5.original
