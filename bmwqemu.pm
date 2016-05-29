@@ -230,25 +230,26 @@ sub diag {
 }
 
 sub fctres {
-    my $fname   = shift;
-    my @fparams = @_;
-    print_possibly_colored ">>> $fname: @fparams", 'green';
+    my ($text, $fname) = @_;
+
+    $fname //= (caller(1))[3];
+    print_possibly_colored ">>> $fname: $text", 'green';
     return;
 }
 
 sub fctinfo {
-    my $fname   = shift;
-    my @fparams = @_;
+    my ($text, $fname) = @_;
 
-    print_possibly_colored "::: $fname: @fparams", 'yellow';
+    $fname //= (caller(1))[3];
+    print_possibly_colored "::: $fname: $text", 'yellow';
     return;
 }
 
 sub fctwarn {
-    my $fname   = shift;
-    my @fparams = @_;
+    my ($text, $fname) = @_;
 
-    print_possibly_colored "!!! $fname: @fparams", 'red';
+    $fname //= (caller(1))[3];
+    print_possibly_colored "!!! $fname: $text", 'red';
     return;
 }
 
@@ -286,7 +287,7 @@ sub pp {
 }
 
 sub log_call {
-    my $fname = shift;
+    my $fname = (caller(1))[3];
     update_line_number();
     my @result;
     while (my ($key, $value) = splice(@_, 0, 2)) {
@@ -335,7 +336,7 @@ sub stop_vm() {
 
 sub mydie {
     my ($cause_of_death) = @_;
-    log_call('mydie', cause_of_death => $cause_of_death);
+    log_call(cause_of_death => $cause_of_death);
     croak "mydie";
 }
 
