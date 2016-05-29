@@ -105,7 +105,7 @@ sub script_run {
 
     testapi::type_string "$name";
     if ($wait > 0) {
-        my $str = bmwqemu::hashed_string("SR$name$wait");
+        my $str = hashed_string("SR$name$wait");
         testapi::type_string " ; echo $str > /dev/$testapi::serialdev\n";
         testapi::wait_serial($str);
     }
@@ -131,7 +131,7 @@ sub script_sudo {
 
     my $str;
     if ($wait > 0) {
-        $str  = bmwqemu::hashed_string("SS$prog$wait");
+        $str  = hashed_string("SS$prog$wait");
         $prog = "$prog; echo $str > /dev/$testapi::serialdev";
     }
     testapi::type_string "sudo $prog\n";

@@ -26,6 +26,7 @@ use Mojo::DOM;
 require IPC::System::Simple;
 use autodie qw(:all);
 use OpenQA::Exceptions;
+use Digest::MD5 qw(md5_base64);
 
 require bmwqemu;
 
@@ -53,6 +54,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   wait_idle wait_screen_change wait_still_screen wait_serial record_soft_failure
   become_root x11_start_program ensure_installed eject_cd power
 
+  diag hashed_string
 );
 
 our %cmd;
@@ -621,7 +623,7 @@ I<Make sure the command does not write to the serial output.>
 =cut
 sub assert_script_run {
     my ($cmd, $timeout, $fail_message) = @_;
-    my $str = bmwqemu::hashed_string("ASR$cmd");
+    my $str = hashed_string("ASR$cmd");
     # call script_run with idle_timeout 0 so we don't wait twice
     script_run("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $timeout);
@@ -664,7 +666,7 @@ I<The implementation is distribution specific and not always available.>
 =cut
 sub assert_script_sudo {
     my ($cmd, $wait) = @_;
-    my $str = bmwqemu::hashed_string("ASS$cmd");
+    my $str = hashed_string("ASS$cmd");
     script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $wait);
     die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
@@ -687,7 +689,7 @@ sub script_output($;$) {
     print $fh $current_test_script;
     close $fh;
 
-    my $suffix = bmwqemu::hashed_string("SO$current_test_script");
+    my $suffix = hashed_string("SO$current_test_script");
     $wait ||= 30;
 
     assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh";
@@ -1422,6 +1424,34 @@ sub assert_recorded_sound {
     my $img = tinycv::read("$result->{audio}.png");
 
     return $autotest::current_test->verify_sound_image($img, $mustmatch);
+}
+
+=head2 diag
+
+  diag('important message');
+
+Write a diagnostic message to the logfile. In color, if possible.
+=cut
+sub diag {
+    return bmwqemu::diag(@_);
+}
+
+=head2 hashed_string
+
+  hashed_string();
+
+Return a short string representing the given string by passing it through the
+MD5 algorithm and taking the first characters.
+=cut
+sub hashed_string {
+    my ($string, $count) = @_;
+    $count //= 5;
+
+    my $hash = md5_base64($string);
+    # + and / are problematic in regexps and shell commands
+    $hash =~ s,\+,_,g;
+    $hash =~ s,/,~,g;
+    return substr($hash, 0, $count);
 }
 
 1;

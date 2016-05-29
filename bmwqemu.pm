@@ -18,7 +18,6 @@ package bmwqemu;
 use strict;
 use warnings;
 use Time::HiRes qw(sleep gettimeofday);
-use Digest::MD5;
 use IO::Socket;
 
 use ocr;
@@ -43,7 +42,6 @@ require IPC::System::Simple;
 use autodie qw(:all);
 
 use distribution;
-use Digest::MD5 qw(md5_base64);
 
 sub mydie;
 
@@ -388,7 +386,12 @@ sub scale_timeout {
     return $timeout * ($vars{TIMEOUT_SCALE} // 1);
 }
 
-# just a random string useful for pseudo security or temporary files
+=head2 random_string
+
+  random_string([$count]);
+
+Just a random string useful for pseudo security or temporary files.
+=cut
 sub random_string {
     my ($count) = @_;
     $count //= 4;
@@ -398,17 +401,9 @@ sub random_string {
     return $string;
 }
 
-# return a short string representing the given string by passing it through
-# the MD5 algorithm and taking the first characters
 sub hashed_string {
-    my ($string, $count) = @_;
-    $count //= 5;
-
-    my $hash = md5_base64($string);
-    # + and / are problematic in regexps and shell commands
-    $hash =~ s,\+,_,g;
-    $hash =~ s,/,~,g;
-    return substr($hash, 0, $count);
+    fctwarn '@DEPRECATED: Use testapi::hashed_string instead';
+    return testapi::hashed_string(@_);
 }
 
 1;
