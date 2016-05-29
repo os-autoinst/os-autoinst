@@ -411,6 +411,11 @@ sub hashed_string {
     return substr($hash, 0, $count);
 }
 
+sub wait_for_one_more_screenshot {
+    # sleeping for one second should ensure that one more screenshot is taken
+    sleep 1;
+}
+
 1;
 
 # vim: set sw=4 et:

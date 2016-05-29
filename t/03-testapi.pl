@@ -67,9 +67,13 @@ subtest 'assert_script_run' => sub {
     }
     $autotest::current_test = t::test->new();
 
+    use Test::MockModule;
+    my $module = new Test::MockModule('bmwqemu');
+    # just save ourselves some time during testing
+    $module->mock('wait_for_one_more_screenshot', sub { sleep 0; });
+
     require distribution;
     testapi::set_distribution(distribution->new());
-    # TODO these tests call 'wait_serial' internally which causes a delay of 1 second each which is not so nice for testing
     is(assert_script_run('true'), undef, 'nothing happens on success');
     like(exception { assert_script_run 'false'; }, qr/command.*false.*failed at/, 'dies with standard message');
     like(exception { assert_script_run 'false', 0, 'my custom fail message'; }, qr/command.*false.*failed: my custom fail message at/, 'custom message on die');
