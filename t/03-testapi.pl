@@ -49,7 +49,7 @@ is($autotest::current_test->{dents}, 1, 'soft failure recorded');
 stderr_like(sub { record_soft_failure('workaround for bug#1234') }, qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason');
 is($autotest::current_test->{dents}, 2, 'another');
 
-subtest 'assert_script_run' => sub {
+subtest 'script_run' => sub {
     use autotest;
     $testapi::serialdev = 'null';
     {
@@ -77,6 +77,7 @@ subtest 'assert_script_run' => sub {
     is(assert_script_run('true'), undef, 'nothing happens on success');
     like(exception { assert_script_run 'false'; }, qr/command.*false.*failed at/, 'dies with standard message');
     like(exception { assert_script_run 'false', 0, 'my custom fail message'; }, qr/command.*false.*failed: my custom fail message at/, 'custom message on die');
+    is(script_run('true'), '5RBrb-0-', 'script_run with no check of success, returns "hashed_string"');
 };
 
 # vim: set sw=4 et:
