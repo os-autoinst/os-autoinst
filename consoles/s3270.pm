@@ -471,7 +471,7 @@ sub connect_and_login() {
     $reconnect_ok //= 0;
     my $r;
     ###################################################################
-    # try to connect exactly twice
+    # try to connect exactly trice
     for (my $count = 0; $count += 1;) {
 
         $r = $self->_connect_3270($self->{zVM_host});
@@ -488,9 +488,12 @@ sub connect_and_login() {
               join("\n", @$r) . "\n";
 
             if ($count == 2) {
-                die                                                                                   #
-                  "Could not reclaim guest despite hard_shutdown.  this is odd.\n" .                  #
-                  "Is this machine possibly connected on another terminal?\n";
+                carp "Still connected, it's s390, so ... let's wait a bit\n";
+                # arbitrary
+                sleep 7;
+            }
+            elsif ($count == 3) {
+                die "Could not reclaim guest despite hard_shutdown and retrying multiple times. this is odd.\n" . "Is this machine possibly connected on another terminal?\n";
             }
 
             last if $reconnect_ok;
