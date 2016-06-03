@@ -179,19 +179,6 @@ sub change_domain_element {
     return;
 }
 
-sub add_emulator {
-    my ($self, $args) = @_;
-
-    my $doc     = $self->{domainxml};
-    my $devices = $self->{devices_element};
-
-    my $emulator = $doc->createElement('emulator');
-    $emulator->appendTextNode($args->{emulator});
-    $devices->appendChild($emulator);
-
-    return;
-}
-
 sub add_pty {
     my ($self, $args) = @_;
 
@@ -330,6 +317,27 @@ sub add_disk {
     return;
 }
 
+# In list context returns pair ($stdout, $stderr). In void (and scalar)
+# context just logs stdout and stderr, returns nothing.
+sub get_ssh_output {
+    my ($chan) = @_;
+
+    my ($stdout, $errout) = ('', '');
+    while (!$chan->eof) {
+        if (my ($o, $e) = $chan->read2) {
+            $stdout .= $o;
+            $errout .= $e;
+        }
+    }
+    if (wantarray) {
+        return ($stdout, $errout);
+    }
+    else {
+        bmwqemu::diag "Command's stdout:\n$stdout";
+        bmwqemu::diag "Command's stderr:\n$errout";
+    }
+}
+
 sub define_and_start {
     my ($self) = @_;
 
@@ -371,13 +379,15 @@ __END"
     # define the new domain
     $chan = $self->{ssh}->channel();
     $chan->exec("virsh $remote_vmm define $xmlfilename");
-    bmwqemu::diag $_ while <$chan>;
+    $chan->send_eof;
+    get_ssh_output($chan);
     $chan->close();
     die "virsh define failed" if $chan->exit_status();
 
     $chan = $self->{ssh}->channel();
     $chan->exec("virsh $remote_vmm start " . $self->name);
-    bmwqemu::diag $_ while <$chan>;
+    $chan->send_eof;
+    get_ssh_output($chan);
     $chan->close();
     die "virsh start failed" if $chan->exit_status();
 
@@ -393,18 +403,32 @@ sub attach_to_running {
     $self->backend->start_serial_grab($self->name);
 }
 
-# Allow send command to libvirt host and get exit status of command
-# for example:
-# my $ret = $svirt->run_cmd("virsh snapshot-create-as snap1");
-# die "snapshot creation failed" unless $ret == 0;
+# Sends command to libvirt host, logs stdout and stderr of the command,
+# returns exit status.
+#
+# Example:
+#   my $ret = $svirt->run_cmd("virsh snapshot-create-as snap1");
+#   die "snapshot creation failed" unless $ret == 0;
 sub run_cmd {
     my ($self, $cmd) = @_;
 
     my $chan = $self->{ssh}->channel();
     $chan->exec($cmd);
-    bmwqemu::diag $_ while <$chan>;
+    get_ssh_output($chan);
     $chan->close();
     return $chan->exit_status();
+}
+
+# returns stdout of provided command
+sub get_cmd_output {
+    my ($self, $cmd) = @_;
+
+    my $chan = $self->{ssh}->channel();
+    $chan->exec($cmd);
+    my @cmd_output = get_ssh_output($chan);
+    $chan->send_eof;
+    $chan->close();
+    return $cmd_output[0];
 }
 
 1;
