@@ -734,7 +734,7 @@ sub set_tags_to_assert {
     $mustmatch = join('_', @tags);
 
     if (!@$needles) {
-        diag("NO matching needles for $mustmatch");
+        bmwqemu::diag("NO matching needles for $mustmatch");
     }
 
     $self->assert_screen_deadline(time + $timeout);
@@ -806,7 +806,7 @@ sub check_asserted_screen {
     }
     else {
         if ($img_filename eq $oldimg && $old_search_ratio >= $search_ratio) {
-            diag("no change $n");
+            bmwqemu::diag("no change $n");
             return;
         }
     }
@@ -888,7 +888,7 @@ sub check_asserted_screen {
             _reduce_to_biggest_changes($failed_screens, 20);
         }
     }
-    diag("no match $n");
+    bmwqemu::diag("no match $n");
     $self->assert_screen_last_check([$img_filename, $search_ratio]);
     return;
 }

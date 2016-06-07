@@ -35,7 +35,8 @@ use base 'Exporter';
 use Exporter;
 
 our $VERSION;
-our @EXPORT = qw(diag fileContent save_vars);
+our @EXPORT    = qw(fileContent save_vars);
+our @EXPORT_OK = qw(diag);
 
 use backend::driver;
 require IPC::System::Simple;

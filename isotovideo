@@ -33,9 +33,10 @@ BEGIN {
     unshift @INC, "$installprefix";
 }
 
-use bmwqemu qw(diag);
+use bmwqemu;
 use needle;
 use autotest;
+use testapi qw(diag);
 use Getopt::Std;
 require IPC::System::Simple;
 use autodie qw(:all);
