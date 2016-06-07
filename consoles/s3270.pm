@@ -245,8 +245,7 @@ sub expect_3270() {
                 while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
                     push @$result, $line;
                 }
-
-                confess "status line matches neither buffer_ready nor buffer_full:\n" . Dumper($result) . $status_line;
+                warn "status line matches neither buffer_ready nor buffer_full:\n" . Dumper($result) . $status_line;
             }
 
         }
