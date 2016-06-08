@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2016 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -72,7 +72,6 @@ sub finish() {
 #    terminal_status => "s3270 status line, see man s3270",
 # }
 
-
 sub send_3270() {
     my ($self, $command, %arg) = @_;
     $command //= '';
@@ -111,6 +110,18 @@ sub send_3270() {
     return $out;
 }
 
+sub ensure_screen_update {
+    my ($self) = @_;
+    # # TODO we capture_screenshot here to ensure
+    # # no screen content is lost in the video.  It is
+    # # a hacky work around until this loop is properly
+    # # integrated with the baseclass run_capture_loop
+    $self->{backend}->request_screen_update();
+    usleep(5_000);
+    $self->{backend}->capture_screenshot();
+    $self->send_3270("Clear");
+}
+
 ###################################################################
 # expect_3270
 #       [, buffer_full => qr/MORE\.\.\./]
@@ -145,19 +156,12 @@ sub send_3270() {
 
 # Die when timing out
 
-## FIXME FIXME FIXME redesign with three goals
-##
-##   1. only clear the screen when it's full, not all the time, thus
-##      cope with new incremental input in addition to something that
-##      is already captured.
-##
-##   2. don't block screenshots (see vnc_backend.pm type_string)
-##
-##   3. get something like expect_3270 for ssh sessions, too: no
-##      status line, no input line, no MORE...
+## potential point for improvement:
+##  - only clear the screen when it's full, not all the time, thus
+##    cope with new incremental input in addition to something that
+##    is already captured.
 sub expect_3270() {
     my ($self, %arg) = @_;
-    ### say Dumper \%arg;
 
     $arg{buffer_full}  //= qr/MORE\.\.\./;
     $arg{buffer_ready} //= qr/RUNNING/;
@@ -168,21 +172,15 @@ sub expect_3270() {
         $arg{flush_lines} = qr/^ +$/;
     }
 
-    ### say Dumper \%arg;
-
     if ($arg{clear_buffer}) {
         my $n = $self->{raw_expect_queue}->pending();
         if ($n) {
             $self->{raw_expect_queue}->dequeue_nb($n);
         }
     }
-
-    my $result = [];
-
+    my $result     = [];
     my $start_time = time();
-
     while (1) {
-
         my $r;
 
         my $we_had_new_output = 0;
@@ -201,7 +199,6 @@ sub expect_3270() {
 
 
             if (defined $arg{flush_lines}) {
-                ### say Dumper $arg{flush_lines};
                 @output_area = grep !/$arg{flush_lines}/, @output_area;
             }
 
@@ -214,23 +211,9 @@ sub expect_3270() {
 
             # if there is MORE..., go and grab it.
             if ($status_line =~ /$arg{buffer_full}/) {
-                # # FIXME: we capture_screenshot here to ensure
-                # # no screen content is lost in the video.  It is
-                # # a hacky work around until this loop is properly
-                # # integrated with the baseclass run_capture_loop
-                $self->{backend}->request_screen_update();
-                usleep(5_000);
-                $self->{backend}->capture_screenshot();
-                $self->send_3270("Clear");
+                $self->ensure_screen_update();
                 next;
             }
-
-            ### say Dumper \@output_area;
-            ### say Dumper $input_line;
-            ### say Dumper $status_line;
-
-            # If the status line is not buffer_ready, some computation
-            # is still going on.  Wait for more Output.
 
             if ($status_line !~ /$arg{buffer_ready}/) {
                 # if the timeout is not over, wait for more output
@@ -247,12 +230,11 @@ sub expect_3270() {
                 }
                 warn "status line matches neither buffer_ready nor buffer_full:\n" . Dumper($result) . $status_line;
             }
-
         }
 
         # No more host output is pending.  The status line matches
         # buffer_ready.  We have some output in the raw_expect_queue,
-        # possibly from a previous run, btw!
+        # possibly from a previous run
 
         # If we are looking for an output_delimiter, look for that.
         if (!defined $arg{output_delim}) {
@@ -276,31 +258,19 @@ sub expect_3270() {
             last;
         }
 
-        # The queue is empty!
+        # The queue is empty. If we got so far and we had some output on the
+        # screen the last time, clear the screen so we don't grab the same
+        # stuff again.
 
-        # If we got so far and we had some output on the screen the
-        # last time, clear the screen so we don't grab the same stuff
-        # again.
-
-        # FIXME: The better alternative solution to the same problem
+        # TODO The better alternative solution to the same problem
         # would be to remember lines that were not updated since the
         # last Snap(Ascii) and to thus avoid duplicate lines.
 
         # For now we have to live with having a clear screen.
 
         if ($we_had_new_output) {
-            # # FIXME: we capture_screenshot here to ensure
-            # # no screen content is lost in the video.  It is
-            # # a hacky work around until this loop is properly
-            # # integrated with the baseclass run_capture_loop
-            $self->{backend}->request_screen_update();
-            usleep(5_000);
-            $self->{backend}->capture_screenshot();
-            $self->send_3270("Clear");
+            $self->ensure_screen_update();
         }
-
-        ### say "===================================================================";
-        ### say Dumper %arg;
 
         # wait for new output from the host.
         my $elapsed_time = time() - $start_time;
@@ -310,7 +280,6 @@ sub expect_3270() {
             confess "expect_3270: timed out.\n" . "  waiting for ${\Dumper \%arg}\n" . "  last output:\n" . Dumper($result);
         }
         next;
-
     }
 
     # tracing output
@@ -331,8 +300,6 @@ sub wait_output() {
           unless $r->{command_output}[0] ne 'Wait: Timed out';
         confess "has the s3270 wait timeout failure response changed?\n" . Dumper $r;
     }
-
-
 }
 
 ###################################################################
@@ -402,9 +369,6 @@ sub nice_3270_status() {
     return \%nice_status;
 }
 
-
-###################################################################
-# connect to the host
 sub _connect_3270() {
     my ($self, $host) = @_;
 
@@ -425,8 +389,6 @@ sub _connect_3270() {
     return $r;
 }
 
-###################################################################
-# log in
 sub _login_guest() {
     my ($self, $guest, $password) = @_;
 
@@ -479,7 +441,8 @@ sub connect_and_login() {
 
         # bail out if the host is in use
         # currently:  KILL THE GUEST
-        # TODO:  think about what to really do in this case.
+        # this should be fine as s390x guests should be reserved for
+        # os-autoinst use
 
         if (grep { /(?:RECONNECT|HCPLGA).*/ } @$r) {
             carp                                                                                      #
@@ -497,18 +460,13 @@ sub connect_and_login() {
 
             last if $reconnect_ok;
 
-            # shut down and reconnect
-            carp "trying hard shutdown...\n";
+            carp "trying hard shutdown and reconnect...\n";
             $self->cp_logoff_disconnect();
-
             next;
         }
-
         last;
-
     }
 }
-
 
 
 ###################################################################
