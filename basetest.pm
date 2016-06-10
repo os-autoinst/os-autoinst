@@ -322,10 +322,12 @@ sub runtest {
         }
         # show a text result with the die message unless the die was internally generated
         if (!$internal) {
+            my $msg = "# Test died:\n$@\n";
+            bmwqemu::diag($msg);
             my $details = {result => 'fail'};
             my $text_fn = $self->next_resultname('txt');
             open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
-            print $fd "# Test died:\n$@\n";
+            print $fd $msg;
             close $fd;
             $details->{text}  = $text_fn;
             $details->{title} = 'Failed';
