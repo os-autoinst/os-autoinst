@@ -127,7 +127,7 @@ sub ensure_screen_update {
 #       [, buffer_full => qr/MORE\.\.\./]
 #       [, buffer_ready => qr/RUNNING/ ]
 #       [, output_delim => "one-line NEEDLE"]
-#       [, flush_lines => qr/^ +$/]
+#       [, delete_lines => qr/^ +$/]
 #       [, timeout => 1 ]
 #       [, clear_buffer => 0 ]
 
@@ -147,7 +147,7 @@ sub ensure_screen_update {
 # of pending further output, until the status line matches
 # 'buffer_ready'.
 
-# Flush all lines matching 'flush_lines'.
+# Deletes all lines from buffer matching 'delete_lines'.
 
 # Returns stretch from last expect_3270 call up to & including line
 # matching 'output_delim' as array of lines.
@@ -168,9 +168,7 @@ sub expect_3270() {
     $arg{timeout}      //= 7;
     $arg{clear_buffer} //= 0;
     $arg{output_delim} //= undef;
-    if (!exists $arg{flush_lines}) {
-        $arg{flush_lines} = qr/^ +$/;
-    }
+    $arg{delete_lines} //= qr/^ +$/;
 
     if ($arg{clear_buffer}) {
         my $n = $self->{raw_expect_queue}->pending();
@@ -198,8 +196,8 @@ sub expect_3270() {
             my @output_area = @$co;
 
 
-            if (defined $arg{flush_lines}) {
-                @output_area = grep !/$arg{flush_lines}/, @output_area;
+            if (defined $arg{delete_lines}) {
+                @output_area = grep !/$arg{delete_lines}/, @output_area;
             }
 
             if (@output_area > 0) {
