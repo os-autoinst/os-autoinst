@@ -131,35 +131,35 @@ sub ensure_screen_update {
 #       [, timeout => 1 ]
 #       [, clear_buffer => 0 ]
 
-# Pretend the 3270 was a serial terminal where you can wait for some
-# specific output to show up.  Return all output up to that match.
-# Save remaining screen content for the next call.
+# Pretending the 3270 was a serial terminal where you can wait for some
+# specific output to show up. Returns all output up to that match.
+# Saves remaining screen content for the next call.
 
-# Assume the screen to be partitioned in three areas:
+# Assuming the screen to be partitioned in three areas:
 #    output (all but the last two lines)
 #    input  (second to last line)
 #    status (last line)
 
-# If no output_delim is given, return as soon as the expected status
+# If no output_delim is given, returns as soon as the expected status
 # is reached (expected_status matches).
 
-# If the status line matches 'buffer_full', hit clear to get a re-draw
+# If the status line matches 'buffer_full', clear is called to get a re-draw
 # of pending further output, until the status line matches
 # 'buffer_ready'.
 
 # Flush all lines matching 'flush_lines'.
 
-# Return stretch from last expect_3270 call up to & including line
-# matching 'output_delim', as array of lines.
+# Returns stretch from last expect_3270 call up to & including line
+# matching 'output_delim' as array of lines.
 
-# flush history since last expect_3270 call if(clear_buffer)
+# Clears buffer history since last expect_3270 call if(clear_buffer)
 
-# Die when timing out
+# Dies when timing out
 
-## potential point for improvement:
-##  - only clear the screen when it's full, not all the time, thus
-##    cope with new incremental input in addition to something that
-##    is already captured.
+# potential point for improvement:
+#  - only clear the screen when it's full, not all the time, thus
+#    cope with new incremental input in addition to something that
+#    is already captured.
 sub expect_3270() {
     my ($self, %arg) = @_;
 
@@ -230,15 +230,16 @@ sub expect_3270() {
                 }
                 warn "status line matches neither buffer_ready nor buffer_full:\n" . Dumper($result) . $status_line;
             }
+
+            die "status line must match 'buffer_ready'" unless ($status_line =~ /$arg{buffer_ready}/);
         }
 
-        # No more host output is pending.  The status line matches
-        # buffer_ready.  We have some output in the raw_expect_queue,
+        # No more host output is pending. We have some output in the raw_expect_queue,
         # possibly from a previous run
 
-        # If we are looking for an output_delimiter, look for that.
+        # If *not* looking for output_delim, we reached 'buffer_ready' and just return the output buffer
         if (!defined $arg{output_delim}) {
-            # no need to wait for something special.  just return what you have...
+            # no need to wait for something special. We just return what we have...
             while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
                 push @$result, $line;
             }
@@ -279,7 +280,6 @@ sub expect_3270() {
         {
             confess "expect_3270: timed out.\n" . "  waiting for ${\Dumper \%arg}\n" . "  last output:\n" . Dumper($result);
         }
-        next;
     }
 
     # tracing output
@@ -297,7 +297,7 @@ sub wait_output() {
     }
     else {
         return 0
-          unless $r->{command_output}[0] ne 'Wait: Timed out';
+          if $r->{command_output}[0] eq 'Wait: Timed out';
         confess "has the s3270 wait timeout failure response changed?\n" . Dumper $r;
     }
 }
