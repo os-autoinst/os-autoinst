@@ -126,6 +126,7 @@ sub ensure_screen_update {
 # expect_3270
 #       [, buffer_full => qr/MORE\.\.\./]
 #       [, buffer_ready => qr/RUNNING/ ]
+#       [, expected_status => qr/X E D I T/ ]
 #       [, output_delim => "one-line NEEDLE"]
 #       [, delete_lines => qr/^ +$/]
 #       [, timeout => 1 ]
@@ -141,7 +142,7 @@ sub ensure_screen_update {
 #    status (last line)
 
 # If no output_delim is given, returns as soon as the expected status
-# is reached (expected_status matches).
+# is reached ('expected_status' matches).
 
 # If the status line matches 'buffer_full', clear is called to get a re-draw
 # of pending further output, until the status line matches
@@ -163,12 +164,13 @@ sub ensure_screen_update {
 sub expect_3270() {
     my ($self, %arg) = @_;
 
-    $arg{buffer_full}  //= qr/MORE\.\.\./;
-    $arg{buffer_ready} //= qr/RUNNING/;
-    $arg{timeout}      //= 7;
-    $arg{clear_buffer} //= 0;
-    $arg{output_delim} //= undef;
-    $arg{delete_lines} //= qr/^ +$/;
+    $arg{buffer_full}     //= qr/MORE\.\.\./;
+    $arg{buffer_ready}    //= qr/RUNNING/;
+    $arg{expected_status} //= $arg{buffer_ready};
+    $arg{timeout}         //= 7;
+    $arg{clear_buffer}    //= 0;
+    $arg{output_delim}    //= undef;
+    $arg{delete_lines}    //= qr/^ +$/;
 
     if ($arg{clear_buffer}) {
         my $n = $self->{raw_expect_queue}->pending();
@@ -213,7 +215,7 @@ sub expect_3270() {
                 next;
             }
 
-            if ($status_line !~ /$arg{buffer_ready}/) {
+            if ($status_line !~ /$arg{expected_status}/) {
                 # if the timeout is not over, wait for more output
                 my $elapsed_time = time() - $start_time;
                 if ($elapsed_time < $arg{timeout}) {
@@ -226,7 +228,7 @@ sub expect_3270() {
                 while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
                     push @$result, $line;
                 }
-                confess "expect_3270: timed out waiting for 'buffer_ready'.\n" . "  waiting for ${\Dumper \%arg}\n" . "  last output:\n" . Dumper($result) . $status_line;
+                confess "expect_3270: timed out waiting for 'expected_status'.\n" . "  waiting for ${\Dumper \%arg}\n" . "  last output:\n" . Dumper($result) . $status_line;
             }
 
             die "status line must match 'buffer_ready'" unless ($status_line =~ /$arg{buffer_ready}/);
