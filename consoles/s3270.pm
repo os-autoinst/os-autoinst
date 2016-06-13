@@ -226,7 +226,7 @@ sub expect_3270() {
                 while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
                     push @$result, $line;
                 }
-                warn "status line matches neither buffer_ready nor buffer_full:\n" . Dumper($result) . $status_line;
+                confess "expect_3270: timed out waiting for 'buffer_ready'.\n" . "  waiting for ${\Dumper \%arg}\n" . "  last output:\n" . Dumper($result) . $status_line;
             }
 
             die "status line must match 'buffer_ready'" unless ($status_line =~ /$arg{buffer_ready}/);
