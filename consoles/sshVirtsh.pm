@@ -18,7 +18,7 @@ package consoles::sshVirtsh;
 use base 'consoles::sshXtermVt';
 use strict;
 use warnings;
-use testapi qw/get_var/;
+use testapi qw/get_var get_required_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
 use XML::LibXML;
@@ -96,12 +96,12 @@ sub _init_xml {
     $root->appendChild($elem);
 
     $elem = $doc->createElement('memory');
-    $elem->appendTextNode(get_var('QEMURAM', '512'));
+    $elem->appendTextNode(get_required_var('QEMURAM'));
     $elem->setAttribute(unit => 'MiB');
     $root->appendChild($elem);
 
     $elem = $doc->createElement('vcpu');
-    $elem->appendTextNode(get_var('QEMUCPUS', '1'));
+    $elem->appendTextNode(get_required_var('QEMUCPUS'));
     $root->appendChild($elem);
 
     my $os = $doc->createElement('os');

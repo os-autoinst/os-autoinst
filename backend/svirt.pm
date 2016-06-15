@@ -16,7 +16,7 @@
 
 package backend::svirt;
 use strict;
-use base ('backend::baseclass');
+use base ('backend::virt');
 use testapi qw(get_required_var check_var);
 
 use IO::Select;

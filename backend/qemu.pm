@@ -16,7 +16,7 @@
 
 package backend::qemu;
 use strict;
-use base ('backend::baseclass');
+use base ('backend::virt');
 use File::Path qw/mkpath/;
 use File::Temp ();
 use Time::HiRes qw(sleep gettimeofday);
@@ -340,7 +340,6 @@ sub start_qemu {
     }
     push(@vgaoptions, "-vga", $vars->{QEMUVGA}) if $vars->{QEMUVGA};
 
-    $vars->{QEMUCPUS} ||= 1;
     if (defined($vars->{RAIDLEVEL})) {
         $vars->{NUMDISKS} = 4;
     }
@@ -468,7 +467,7 @@ sub start_qemu {
         $SIG{__DIE__} = undef;    # overwrite the default - just exit
         my @params = ("-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", @vgaoptions);
 
-        push(@params, '-m', $vars->{QEMURAM} || '1024');
+        push(@params, '-m', $vars->{QEMURAM});
 
         if ($vars->{QEMUMACHINE}) {
             push(@params, "-machine", $vars->{QEMUMACHINE});
