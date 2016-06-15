@@ -96,7 +96,7 @@ sub _init_xml {
     $root->appendChild($elem);
 
     $elem = $doc->createElement('memory');
-    $elem->appendTextNode(get_var('QEMURAM', '512'));
+    $elem->appendTextNode(get_var('QEMURAM', '1024'));
     $elem->setAttribute(unit => 'MiB');
     $root->appendChild($elem);
 
