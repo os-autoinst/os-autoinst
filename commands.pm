@@ -19,6 +19,7 @@ package commands;
 use strict;
 use warnings;
 require IPC::System::Simple;
+use POSIX qw(_exit);
 use autodie qw(:all);
 
 BEGIN {
@@ -239,7 +240,7 @@ sub start_server {
 
     if ($pid == 0) {
         run_daemon($port);
-        exit(0);
+        _exit(0);
     }
 
     return $pid;

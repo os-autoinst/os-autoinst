@@ -124,6 +124,10 @@ require $bmwqemu::vars{PRODUCTDIR} . "/main.pm";
 # set a default distribution if the tests don't have one
 $testapi::distri ||= distribution->new;
 
+# start the command fork before we get into the backend, the command child
+# is not supposed to talk to the backend directly
+$cpid = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
+
 # init part
 bmwqemu::save_vars();
 # make sure the needles are initialized before the backend thread is started
@@ -149,8 +153,6 @@ if ($init) {
         bmwqemu::start_vm or die $@;
     }
 }
-
-$cpid = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
 
 $SIG{ALRM} = \&signalhandler;
 $SIG{TERM} = \&signalhandler;

@@ -171,6 +171,10 @@ sub mouse_hide {
     return $rsp;
 }
 
+sub DESTROY {
+    # nothing to destroy, but avoid calling AUTOLOAD in shutdown
+}
+
 sub AUTOLOAD {
     my ($self, $args) = @_;
     $args ||= {};    # default
