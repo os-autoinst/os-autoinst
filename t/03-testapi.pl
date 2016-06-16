@@ -75,11 +75,16 @@ subtest 'script_run' => sub {
     require distribution;
     testapi::set_distribution(distribution->new());
     is(assert_script_run('true'), undef, 'nothing happens on success');
+    $bmwqemu::backend->mock_exit_code(1);
     like(exception { assert_script_run 'false', 42; }, qr/command.*false.*failed at/, 'with timeout option (deprecated mode)');
     like(exception { assert_script_run 'false', 0, 'my custom fail message'; }, qr/command.*false.*failed: my custom fail message at/, 'custom message on die (deprecated mode)');
     like(exception { assert_script_run('false', fail_message => 'my custom fail message'); }, qr/command.*false.*failed: my custom fail message at/, 'using named arguments');
     like(exception { assert_script_run('false', timeout => 0, fail_message => 'my custom fail message'); }, qr/command.*false.*failed: my custom fail message at/, 'using two named arguments');
-    is(script_run('true'), '5RBrb-0-', 'script_run with no check of success, returns "hashed_string"');
+    $bmwqemu::backend->mock_exit_code(0);
+    is(script_run('true'), '0', 'script_run with no check of success, returns exit code');
+    $bmwqemu::backend->mock_exit_code(1);
+    is(script_run('false'), '1', 'script_run with no check of success, returns exit code');
+    is(script_run('false', 0), '0', 'script_run with no check of success, returns 0 when not waiting');
 };
 
 # vim: set sw=4 et:
