@@ -124,7 +124,7 @@ void search_needle(tinycv::Image self, tinycv::Image needle, long x, long y, lon
   PPCODE:
     double similarity = 0;
     std::vector<int> ret = image_search(self, needle, x, y, width, height, margin, similarity);
-    EXTEND(SP, ret.size() + 1);
+    EXTEND(SP, SSize_t(ret.size() + 1));
 
     PUSHs(sv_2mortal(newSVnv(similarity)));
 
