@@ -34,6 +34,10 @@ sub new {
 
 use feature qw/say/;
 
+sub DESTROY {
+    # nothing to destroy but avoid AUTOLOAD
+}
+
 sub AUTOLOAD {
 
     my $function = our $AUTOLOAD;

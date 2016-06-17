@@ -23,6 +23,7 @@ use JSON qw( to_json );
 use File::Copy qw(cp);
 use File::Basename;
 use Time::HiRes qw(gettimeofday tv_interval);
+use POSIX qw(_exit);
 use bmwqemu;
 use IO::Select;
 require IPC::System::Simple;
@@ -417,7 +418,7 @@ sub close_pipes {
     print "sending magic and exit\n";
     $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || die "close $!\n";
-    exit(0);
+    _exit(0);
 }
 
 # this is called for all sockets ready to read from
