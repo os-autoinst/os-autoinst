@@ -84,7 +84,7 @@ subtest 'script_run' => sub {
     is(script_run('true'), '0', 'script_run with no check of success, returns exit code');
     $bmwqemu::backend->mock_exit_code(1);
     is(script_run('false'), '1', 'script_run with no check of success, returns exit code');
-    is(script_run('false', 0), '0', 'script_run with no check of success, returns 0 when not waiting');
+    is(script_run('false', 0), undef, 'script_run with no check of success, returns undef when not waiting');
 };
 
 # vim: set sw=4 et:

@@ -109,13 +109,14 @@ sub script_run {
     testapi::type_string "$cmd";
     if ($wait > 0) {
         my $str = testapi::hashed_string("SR$cmd$wait");
-        testapi::type_string " ; echo $str-\$-? > /dev/$testapi::serialdev\n";
+        testapi::type_string " ; echo $str-\$?- > /dev/$testapi::serialdev\n";
         my $res = testapi::wait_serial(qr/$str-\d+-/, $wait);
-        return ($res =~ /$str-(\d+)/)[0];
+        return unless $res;
+        return ($res =~ /$str-(\d+)-/)[0];
     }
     else {
         testapi::send_key 'ret';
-        return 0;
+        return;
     }
 }
 
