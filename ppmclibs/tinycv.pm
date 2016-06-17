@@ -181,7 +181,7 @@ sub write_with_thumbnail {
 
     $self->write($filename);
 
-    my $thumb = $self->scale($self->xres() * 120 / $self->yres(), 120);
+    my $thumb = $self->scale($self->xres() * 45 / $self->yres(), 45);
     my $dir   = File::Basename::dirname($filename) . "/.thumbs";
     my $base  = File::Basename::basename($filename);
 
