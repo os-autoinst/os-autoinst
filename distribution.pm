@@ -92,26 +92,30 @@ sub become_root {
 
 script_run($program, [$wait_seconds])
 
-Run $program (by assuming the console prompt and typing it). After it, echo
-something to serial line and wait for it. To avoid that, use wait_seconds 0
-and wait yourself, e.g. by wait_idle
+Run I<$program> (by assuming the console prompt and typing the command). After that, echo
+hashed command to serial line and wait for it in order to detect execution is finished.
+To avoid waiting, use I<$wait_seconds> 0.
+
+<Returns> exit code received from I<$program>, or 0 in case of C<not> waiting for I<$program>
+to return.
 
 =cut
 
 sub script_run {
-
     # start console application
-    my ($self, $name, $wait) = @_;
-
+    my ($self, $cmd, $wait) = @_;
     $wait //= $bmwqemu::default_timeout;
-    testapi::type_string "$name";
+
+    testapi::type_string "$cmd";
     if ($wait > 0) {
-        my $str = testapi::hashed_string("SR$name$wait");
-        testapi::type_string " ; echo $str > /dev/$testapi::serialdev\n";
-        testapi::wait_serial($str);
+        my $str = testapi::hashed_string("SR$cmd$wait");
+        testapi::type_string " ; echo $str-\$-? > /dev/$testapi::serialdev\n";
+        my $res = testapi::wait_serial(qr/$str-\d+-/, $wait);
+        return ($res =~ /$str-(\d+)/)[0];
     }
     else {
         testapi::send_key 'ret';
+        return 0;
     }
 }
 

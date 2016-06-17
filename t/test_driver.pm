@@ -24,7 +24,8 @@ sub new {
     my $class = shift;
 
     my $hash;
-    $hash->{cmds} = [];
+    $hash->{cmds}      = [];
+    $hash->{exit_code} = 0;
     return bless $hash, $class;
 }
 
@@ -37,10 +38,18 @@ sub type_string { _forward(@_) }
 sub send_key    { _forward(@_) }
 sub wait_serial {
     _forward(@_);
+    my $self = shift;
+    my $r    = $self->{cmds}->[-1]->{regexp} =~ s/\\d\+/$self->{exit_code}/r;
+    $r =~ s/\d\+/$self->{exit_code}/;
     return {
         matched => 1,
-        string  => $_[0]->{cmds}->[5]->{regexp} =~ s/\\d\+/0/r,    # the input regex we want to return as found
+        string  => $r,    # the input regex we want to return as found
     };
+}
+
+sub mock_exit_code {
+    my ($self, $code) = @_;
+    $self->{exit_code} = $code;
 }
 
 1;
