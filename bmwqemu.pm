@@ -125,9 +125,8 @@ sub init {
     $| = 1;
     select($oldfh);
 
-    die "DISTRI undefined\n" . pp(\%vars) . "\n" unless $vars{DISTRI};
-
     unless ($vars{CASEDIR}) {
+        die "DISTRI undefined\n" . pp(\%vars) . "\n" unless $vars{DISTRI};
         my @dirs = ("$scriptdir/distri/$vars{DISTRI}");
         unshift @dirs, $dirs[-1] . "-" . $vars{VERSION} if ($vars{VERSION});
         for my $d (@dirs) {
