@@ -22,9 +22,10 @@
 package backend::driver;
 use strict;
 use Carp qw(cluck carp croak confess);
-use JSON qw( to_json );
+use JSON qw(to_json);
 use File::Path qw(remove_tree);
 use IO::Select;
+use POSIX qw(_exit);
 require IPC::System::Simple;
 use autodie qw(:all);
 
@@ -69,7 +70,7 @@ sub start {
 
     if ($pid == 0) {
         _run($self->{backend}, fileno($self->{from_parent}), fileno($self->{to_parent}));
-        exit(0);
+        _exit(0);
     }
     else {
         $self->{backend_pid} = $pid;
@@ -89,8 +90,7 @@ sub _run {
 }
 
 sub stop {
-    my $self = shift;
-    my $cmd  = shift;
+    my ($self, $cmd) = @_;
 
     return unless ($self->{backend_pid});
 
@@ -195,8 +195,8 @@ sub AUTOLOAD {
 # virtual methods end
 
 sub _send_json {
-    my $self = shift;
-    my $cmd  = shift;
+    my ($self, $cmd) = @_;
+
     # TODO: make this a class object
     # allow regular expressions to be automatically converted into
     # strings, using the Regex::TO_JSON function as defined at the end

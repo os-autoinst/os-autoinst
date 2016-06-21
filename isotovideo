@@ -40,6 +40,7 @@ use testapi qw(diag);
 use Getopt::Std;
 require IPC::System::Simple;
 use autodie qw(:all);
+use POSIX qw(:sys_wait_h _exit);
 
 # avoid paranoia
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
@@ -73,19 +74,24 @@ bmwqemu::clean_control_files();
 my $init = 1;
 
 my $cpid;
+my $backend;
 
 # all so ugly ...
 sub signalhandler {
 
-    # do not start a race about the results between the threads
-
     my $sig = shift;
-    diag("signalhandler $$: got $sig");
+    print STDERR "$$: signalhandler got $sig\n";
     if ($autotest::running) {
-        $autotest::running->fail_if_running();
-        $autotest::running = undef;
+	$autotest::running->fail_if_running();
+	$autotest::running = undef;
     }
-    bmwqemu::stop_vm();
+    if (defined $backend && $backend->{backend_pid}) {
+	print STDERR "killing backend process\n";
+        kill('SIGTERM', $backend->{backend_pid});
+        waitpid($backend->{backend_pid}, 0);
+        print STDERR "done with backend process\n";
+	$backend->{backend_pid} = 0;
+    }
     # mark it as no longer working
     delete $ENV{WORKERID};
     bmwqemu::save_status();
@@ -95,14 +101,32 @@ sub signalhandler {
         $test->save_test_result();
     }
     if (defined $cpid) {
-        print "killing commands process\n";
+        print STDERR "killing commands process\n";
         kill('SIGTERM', $cpid);
         waitpid($cpid, 0);
-        print "done joining commands process\n";
+        print STDERR "done joining commands process\n";
+	$cpid = 0;
     }
-    exit(1);
+    _exit(1);
 }
 
+sub signalhandler_chld {
+
+    my $sig = shift;
+    print  STDERR "$$: signalhandler_chld got $sig\n";
+
+    while ((my $child = waitpid(-1, WNOHANG)) > 0) {
+	if ($child == $cpid) {
+	    print  STDERR "$$: commands webserver died\n";
+	    $cpid = 0;
+	} else {
+	    print  STDERR "$$: backend $child died\n";
+	    $backend->{backend_pid} = 0;
+	    $backend->{to_child} = undef;
+	    $backend->{from_child} = undef;
+	}
+    }
+}
 
 $ENV{MOJO_MAX_MESSAGE_SIZE} = 107741824;
 
@@ -132,7 +156,7 @@ $cpid = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
 bmwqemu::save_vars();
 # make sure the needles are initialized before the backend thread is started
 needle::init($bmwqemu::vars{PRODUCTDIR} . "/needles");
-bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
+$backend = bmwqemu::init_backend( $bmwqemu::vars{BACKEND} );
 
 if ($init) {
     open( my $fd, ">", "os-autoinst.pid" );
@@ -158,6 +182,7 @@ $SIG{ALRM} = \&signalhandler;
 $SIG{TERM} = \&signalhandler;
 $SIG{INT}  = \&signalhandler;
 $SIG{HUP}  = \&signalhandler;
+$SIG{CHLD}  = \&signalhandler_chld;
 
 if ($ENV{RUN_VNCVIEWER}) {
   system("vncviewer -shared localhost:" . $bmwqemu::vars{VNC} . " -viewonly &");
@@ -193,8 +218,10 @@ eval {
 
 bmwqemu::stop_vm();
 print "killing commands process\n";
-kill('SIGTERM', $cpid);
-waitpid($cpid, 0);
+if ($cpid) {
+    kill('SIGTERM', $cpid);
+    waitpid($cpid, 0);
+}
 print "done joining commands process\n";
 
 # mark hard disks for upload if test finished
