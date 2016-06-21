@@ -79,17 +79,17 @@ my $backend;
 # all so ugly ...
 sub signalhandler {
 
-    my $sig = shift;
-    print STDERR "$$: signalhandler got $sig\n";
+    my ($sig) = @_;
+    diag("$$: signalhandler got $sig");
     if ($autotest::running) {
         $autotest::running->fail_if_running();
         $autotest::running = undef;
     }
     if (defined $backend && $backend->{backend_pid}) {
-        print STDERR "killing backend process\n";
+        diag("$$: killing backend process $backend->{backend_pid}");
         kill('SIGTERM', $backend->{backend_pid});
         waitpid($backend->{backend_pid}, 0);
-        print STDERR "done with backend process\n";
+        diag("$$: done with backend process");
         $backend->{backend_pid} = 0;
     }
     # mark it as no longer working
@@ -101,10 +101,10 @@ sub signalhandler {
         $test->save_test_result();
     }
     if (defined $cpid) {
-        print STDERR "killing commands process\n";
+        diag("$$: killing commands process $cpid");
         kill('SIGTERM', $cpid);
         waitpid($cpid, 0);
-        print STDERR "done joining commands process\n";
+        diag("$$: done joining commands process");
         $cpid = 0;
     }
     _exit(1);
@@ -112,16 +112,15 @@ sub signalhandler {
 
 sub signalhandler_chld {
 
-    my $sig = shift;
-    print STDERR "$$: signalhandler_chld got $sig\n";
+    diag("$$: got sigchld");
 
     while ((my $child = waitpid(-1, WNOHANG)) > 0) {
         if ($child == $cpid) {
-            print STDERR "$$: commands webserver died\n";
+            diag("$$: commands webserver died");
             $cpid = 0;
         }
         else {
-            print STDERR "$$: backend $child died\n";
+            diag("$$: backend $child died");
             $backend->{backend_pid} = 0;
             $backend->{to_child}    = undef;
             $backend->{from_child}  = undef;
@@ -218,12 +217,12 @@ eval {
 };
 
 bmwqemu::stop_vm();
-print "killing commands process\n";
+diag "killing commands process";
 if ($cpid) {
     kill('SIGTERM', $cpid);
     waitpid($cpid, 0);
 }
-print "done joining commands process\n";
+diag "done joining commands process";
 
 # mark hard disks for upload if test finished
 if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
