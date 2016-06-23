@@ -157,6 +157,14 @@ distclean-local: clean-local
 check-local:
 	$(srcdir)/tools/tidy --check
 	PERL5LIB=tools/lib/perlcritic:$$PERL5LIB perlcritic --gentle --include Perl::Critic::Policy::HashKeyQuote $(srcdir)
+	$(MAKE) check-doc
+
+.PHONY: check-doc
+check-doc: check-doc-testapi
+
+.PHONY: check-doc-testapi
+check-doc-testapi:
+	[ -z "$$(podspell testapi.pm | spell)" ]
 
 clean-local:
 	@if test -e ppmclibs/Makefile; then $(MAKE) -C ppmclibs distclean; fi

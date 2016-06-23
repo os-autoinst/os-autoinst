@@ -75,13 +75,17 @@ sub check_screen;
 sub type_string;
 sub type_password;
 
+
+=head1 internal
+
 =head2 init
 
 Used for internal initialization, do not call from tests.
 
+=for stopwords xen hvc0 xvc0 ipmi ttyS
 =cut
 sub init {
-    $serialdev = get_var('SERIALDEV', "ttyS0");
+    $serialdev = get_var('SERIALDEV', 'ttyS0');
     if (get_var('OFW') || check_var('BACKEND', 's390x')) {
         $serialdev = "hvc0";
     }
@@ -97,7 +101,7 @@ sub init {
     return;
 }
 
-## no critic (ProhibitSubroutinePrototypes)
+=for stopwords ProhibitSubroutinePrototypes
 
 =head2 set_distribution
 
@@ -108,10 +112,14 @@ Set distribution object.
 You can use distribution object to implement distribution specific helpers.
 
 =cut
+
+## no critic (ProhibitSubroutinePrototypes)
 sub set_distribution {
     ($distri) = @_;
     return $distri->init();
 }
+
+=for stopwords SUT
 
 =head1 video output handling
 
@@ -365,6 +373,8 @@ sub wait_screen_change(&@) {
 
 =head2 wait_still_screen
 
+=for stopwords stilltime
+
   wait_still_screen([$stilltime_sec [, $timeout_sec [, $similarity_level]]]);
 
 Wait until the screen stops changing.
@@ -412,7 +422,7 @@ sub wait_still_screen {
 
   get_var($variable [, $default ])
 
-Returns content of test variable C<$variable> or the C<$default> given as 2nd argument or C<undef>
+Returns content of test variable C<$variable> or the C<$default> given as second argument or C<undef>
 
 =cut
 sub get_var {
@@ -646,15 +656,17 @@ sub assert_script_sudo {
     die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
 }
 
+=for stopwords SUT
+
 =head2 script_output
 
   script_output($script [, $wait])
 
-fetches the script through HTTP into the VM and execs it with bash -xe and directs
+fetches the script through HTTP into the SUT and execs it with C<bash -xe> and directs
 C<stdout> (I<not> C<stderr>!) to the serial console and returns the output I<if> the script
 exists with 0. Otherwise the test is set to failed.
 
-The default timeout for the script is 30 seconds. If you need more, pass a 2nd parameter
+The default timeout for the script is 30 seconds. If you need more, pass a second parameter
 
 =cut
 sub script_output($;$) {
@@ -739,7 +751,7 @@ sub ensure_installed {
     return $distri->ensure_installed(@_);
 }
 
-=head1 miscelanous
+=head1 miscellaneous
 
 =head2 power
 
@@ -799,7 +811,10 @@ sub eject_cd {
     query_isotovideo('backend_eject_cd');
 }
 
+
 =head2 parse_junit_log
+
+=for stopwords jUnit
 
   parse_junit_log("report.xml");
 
@@ -891,9 +906,11 @@ sub parse_junit_log {
 
 =head2 wait_idle
 
+=for stopwords IDLETHRESHOLD qemu
+
   wait_idle([$timeout_sec]);
 
-Wait until the system becomes idle (as configured by IDLETHESHOLD) or timeout.
+Wait until the system becomes idle (as configured by IDLETHRESHOLD) or timeout.
 This function only works on qemu backend and will sleep on other backends. As
 such it's wasting a lot of time and should be avoided as such. Take it
 as last resort if there is nothing else you can assert on.
@@ -930,14 +947,14 @@ sub wait_idle {
 
   autoinst_url([$path, $query]);
 
-returns the base URL to contact the local os-autoinst service
+returns the base URL to contact the local C<os-autoinst> service
 
 Optional C<$path> argument is appended after base url. 
 
 Optional HASHREF C<$query> is converted to URL query and appended
 after path.
 
-Returns constructer URL. Can be used inline:
+Returns constructor URL. Can be used inline:
 
   script_run("curl " . autoinst_url . "/data");
 
@@ -987,12 +1004,14 @@ sub data_url($) {
 
 =head2 upload_logs
 
+=for stopwords GiB failok OpenQA WebUI
+
   upload_logs($file [, failok => 0 ]);
 
 Upload C<$file> to OpenQA WebUI as a log file and
 return the uploaded file name. If failok is not set, a failed upload
 will cause the test to die. Failed uploads happen if the file does not
-exist or is over 20GiB in size, so failok is useful when you just want
+exist or is over 20 GiB in size, so failok is useful when you just want
 to upload the file if it exists but not mind if it doesn't.
 
 =cut
@@ -1121,12 +1140,12 @@ sub send_key_until_needlematch {
 
 send a string of characters, mapping them to appropriate key names as necessary
 
-you can pass optional paramters with following keys:
+you can pass optional parameters with following keys:
 
-C<max_interval => (1-250)> determines the typing speed, the lower the
+C<max_interval (1-250)> determines the typing speed, the lower the
 C<max_interval> the slower the typing.
 
-C<secret => (bool)> suppresses logging of the actual string typed.
+C<secret (bool)> suppresses logging of the actual string typed.
 
 =cut
 sub type_string {
@@ -1149,7 +1168,7 @@ sub type_string {
 
   type_password([$password]);
 
-A convience wrapper around C<type_string>, which doesn't log the string.
+A convenience wrapper around C<type_string>, which doesn't log the string.
 
 Uses C<$testapi::password> if no string is given.
 
@@ -1219,7 +1238,7 @@ sub mouse_dclick(;$$) {
 
   mouse_tclick([$button, $hold_time]);
 
-Same as mouse_click only for tripple click.
+Same as mouse_click only for triple click.
 
 =cut
 sub mouse_tclick(;$$) {
@@ -1254,7 +1273,7 @@ sub mouse_hide(;$) {
 
 =head1 multi console support
 
-All testapi commands that interact with the system under test do that
+All C<testapi> commands that interact with the system under test do that
 through a console.  C<send_key>, C<type_string> type into a console.
 C<assert_screen> 'looks' at a console, C<assert_and_click> looks at
 and clicks on a console.
@@ -1269,7 +1288,7 @@ There are no consoles predefined by default, the distribution has
 to add them during initial setup and define actions on what should
 happen when they are selected first by the tests.
 
-E.g. your distribution can give e.g. tty2 and tty4 a name for the
+E.g. your distribution can give e.g. C<tty2> and C<tty4> a name for the
 tests to select
 
   $self->add_console('root-console',  'tty-console', {tty => 2});
@@ -1294,12 +1313,12 @@ our %testapi_console_proxies;
 
   select_console("root-console")
 
-Select the named console for further testapi interaction (send_text,
+Select the named console for further C<testapi> interaction (send_text,
 send_key, wait_screen_change, ...)
 
 If this the first time, a test selects this console, the distribution
 will get a call into activate_console('root-console', $console_obj) to
-make sure to actually log in root. For the backend it's just a tty
+make sure to actually log in root. For the backend it's just a C<tty>
 object (in this example) - so it will ensure the console is active,
 but to setup the root shell on this console, the distribution needs
 to run test code.
@@ -1370,9 +1389,9 @@ sub reset_consoles {
 
   start_audiocapture;
 
-Tells the backend to record a .wav file of the sound card.
+Tells the backend to record a C<.wav> file of the sound card.
 
-I<Only supported by QEMU backend.>
+I<Only supported by qemu backend.>
 
 =cut
 sub start_audiocapture {
@@ -1386,7 +1405,7 @@ sub start_audiocapture {
 
   assert_recorded_sound('we-will-rock-you');
 
-Tells the backend to record a .wav file of the sound card.
+Tells the backend to record a C<.wav> file of the sound card.
 
 I<Only supported by QEMU backend.>
 
@@ -1402,6 +1421,8 @@ sub assert_recorded_sound {
 
     return $autotest::current_test->verify_sound_image($img, $mustmatch);
 }
+
+=for stopwords diag
 
 =head2 diag
 
