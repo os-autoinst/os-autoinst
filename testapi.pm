@@ -1046,7 +1046,7 @@ sub upload_asset {
 
 =head2 send_key
 
-  send_key($key [, $wait_idle]);
+  send_key($key [, $do_wait]);
 
 Send one C<$key> to SUT keyboard input.
 
@@ -1058,11 +1058,11 @@ Special characters naming:
 
 =cut
 sub send_key {
-    my ($key, $wait) = @_;
-    $wait //= 0;
+    my ($key, $do_wait) = @_;
+    $do_wait //= 0;
     bmwqemu::log_call(key => $key);
     query_isotovideo('backend_send_key', {key => $key});
-    wait_idle() if $wait;
+    wait_idle() if $do_wait;
 }
 
 =head2 hold_key
