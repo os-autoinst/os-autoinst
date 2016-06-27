@@ -17,9 +17,8 @@
 package autotest;
 use strict;
 use bmwqemu;
-use basetest;
 use Exporter qw/import/;
-our @EXPORT_OK = qw/$current_test/;
+our @EXPORT_OK = qw/$current_test query_isotovideo/;
 our @EXPORT    = qw/loadtest/;
 
 use File::Basename;
@@ -74,7 +73,7 @@ sub loadtest {
         return unless $test->is_applicable;
         push @testorder, $test;
     }
-    bmwqemu::diag "scheduling $name $script";
+    bmwqemu::diag("scheduling $name $script");
 }
 
 our $current_test;
@@ -143,7 +142,7 @@ sub start_process {
 
     my $line = <$isotovideo>;
     if (!$line) {
-	_exit(0);
+        _exit(0);
     }
     print "GOT $line\n";
     run_all;
@@ -176,13 +175,28 @@ sub postrun_hook {
     }
 }
 
+sub query_isotovideo {
+    my ($cmd, $args) = @_;
+
+    # deep copy
+    my %json;
+    if ($args) {
+        %json = %$args;
+    }
+    $json{cmd} = $cmd;
+
+    myjsonrpc::send_json($isotovideo, \%json);
+    my $rsp = myjsonrpc::read_json($isotovideo);
+    return $rsp->{ret};
+}
+
 sub runalltests {
 
     die "ERROR: no tests loaded" unless @testorder;
 
     my $firsttest           = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded            = 0;
-    my $snapshots_supported = $bmwqemu::backend->can_handle({function => 'snapshots'})->{ret};
+    my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
 
     write_test_order();
 

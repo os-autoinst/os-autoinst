@@ -28,6 +28,7 @@ use bmwqemu;
 use IO::Select;
 require IPC::System::Simple;
 use autodie qw(:all);
+use myjsonrpc;
 
 use Net::SSH2;
 use feature qw(say);
@@ -242,14 +243,6 @@ sub start_encoder {
     return;
 }
 
-
-sub post_start_hook {
-    my ($self) = @_;
-
-    # ignored by default
-    return {};
-}
-
 sub start_vm {
     my ($self) = @_;
     $self->{started} = 1;
@@ -426,7 +419,7 @@ sub check_socket {
 
     if ($self->{cmdpipe} && $fh == $self->{cmdpipe}) {
         return 1 if $write;
-        my $cmd = backend::driver::_read_json($self->{cmdpipe});
+        my $cmd = myjsonrpc::read_json($self->{cmdpipe});
 
         if ($cmd->{cmd}) {
             my $rsp = $self->handle_command($cmd);

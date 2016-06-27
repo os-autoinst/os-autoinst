@@ -47,6 +47,7 @@ perlexec_DATA = \
 	basetest.pm \
 	bmwqemu.pm \
 	testapi.pm \
+	myjsonrpc.pm \
 	mmapi.pm \
 	lockapi.pm \
 	commands.pm \

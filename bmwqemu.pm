@@ -42,8 +42,6 @@ use backend::driver;
 require IPC::System::Simple;
 use autodie qw(:all);
 
-use distribution;
-
 sub mydie;
 
 $| = 1;

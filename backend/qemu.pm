@@ -701,7 +701,7 @@ sub start_qemu {
     my $line = $self->_read_hmp;
     print "WELCOME $line\n";
 
-    my $init = backend::driver::_read_json($self->{qmpsocket});
+    my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
     if (0) {
         $hash = $self->handle_qmp_command({execute => 'query-commands'});
@@ -803,7 +803,7 @@ sub handle_qmp_command {
 
     my $hash;
     while (!$hash) {
-        $hash = backend::driver::_read_json($self->{qmpsocket});
+        $hash = myjsonrpc::read_json($self->{qmpsocket});
         if ($hash->{event}) {
             bmwqemu::diag "EVENT " . JSON::to_json($hash);
             # ignore

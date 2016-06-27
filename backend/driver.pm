@@ -28,6 +28,7 @@ use IO::Select;
 use POSIX qw(_exit);
 require IPC::System::Simple;
 use autodie qw(:all);
+use myjsonrpc;
 
 # TODO: move the whole printing out of bmwqemu
 sub diag {
@@ -69,11 +70,11 @@ sub start {
     die "fork failed" unless defined $pid;
 
     if ($pid == 0) {
-	$SIG{ALRM} = 'DEFAULT';
-	$SIG{TERM} = 'DEFAULT';
-	$SIG{INT}  = 'DEFAULT';
-	$SIG{HUP}  = 'DEFAULT';
-	$SIG{CHLD} = 'DEFAULT';
+        $SIG{ALRM} = 'DEFAULT';
+        $SIG{TERM} = 'DEFAULT';
+        $SIG{INT}  = 'DEFAULT';
+        $SIG{HUP}  = 'DEFAULT';
+        $SIG{CHLD} = 'DEFAULT';
 
         $self->{backend}->run(fileno($self->{from_parent}), fileno($self->{to_parent}));
         _exit(0);
@@ -122,7 +123,6 @@ sub start_vm {
     # the backend process might have added some defaults for the backend
     bmwqemu::load_vars();
 
-    $self->post_start_hook();
     return 1;
 }
 
@@ -144,16 +144,6 @@ sub get_info {
 
 # new api end
 
-sub send_key {
-    my ($self, $key) = @_;
-    return $self->_send_json({cmd => 'send_key', arguments => {key => $key}});
-}
-
-sub mouse_button {
-    my ($self, $button, $bstate) = @_;
-    return $self->_send_json({cmd => 'mouse_button', arguments => {button => $button, bstate => $bstate}});
-}
-
 sub mouse_hide {
     my ($self, $border_offset) = @_;
     $border_offset ||= 0;
@@ -170,120 +160,21 @@ sub mouse_hide {
     return $rsp;
 }
 
-sub DESTROY {
-    # nothing to destroy, but avoid calling AUTOLOAD in shutdown
-}
-
-sub AUTOLOAD {
-    my ($self, $args) = @_;
-    $args ||= {};    # default
-
-    my $cmd = our $AUTOLOAD;
-    $cmd =~ s,.*::,,;
-
-    unless (ref($args) eq 'HASH') {
-        carp "we require a hash as arguments for $cmd";
-    }
-
-    # allow symbolic references
-    no strict 'refs';    ## no critic
-    *$AUTOLOAD = sub { my ($self, $args) = @_; return $self->_send_json({cmd => $cmd, arguments => $args}); };
-    goto &$AUTOLOAD;     # Restart the new routine.
-}
-
 # virtual methods end
 
 sub _send_json {
     my ($self, $cmd) = @_;
 
-    # TODO: make this a class object
-    # allow regular expressions to be automatically converted into
-    # strings, using the Regex::TO_JSON function as defined at the end
-    # of this file.
-    my $JSON = JSON->new()->convert_blessed();
-    my $json = $JSON->encode($cmd);
-
     croak "no backend running" unless ($self->{to_child});
-    my $wb = syswrite($self->{to_child}, "$json");
-    die "syswrite failed $!" unless ($wb == length($json));
-
-    my $rsp = _read_json($self->{from_child});
-    unless ($rsp) {
+    myjsonrpc::send_json($self->{to_child}, $cmd);
+    my $rsp = myjsonrpc::read_json($self->{from_child});
+    unless (defined $rsp) {
         close($self->{from_child});
         $self->{from_child} = undef;
         $self->stop();
         return;
     }
     return $rsp->{rsp};
-}
-
-# hash for keeping state
-our $sockets;
-
-# utility function
-sub _read_json {
-    my ($socket) = @_;
-
-    my $JSON = JSON->new();
-
-    my $fd = fileno($socket);
-    if (exists $sockets->{$fd}) {
-        # start with the trailing text from previous call
-        $JSON->incr_parse($sockets->{$fd});
-        delete $sockets->{$fd};
-    }
-
-    my $s = IO::Select->new();
-    $s->add($socket);
-
-    my $hash;
-
-    # starting a IPMI host can take a while, so we need to be patient
-
-    # the goal here is to find the end of the next valid JSON - and don't
-    # add more data to it. As the backend sends things unasked, we might
-    # run into the next message otherwise
-    while (1) {
-        $hash = $JSON->incr_parse();
-        if ($hash) {
-            # remember the trailing text
-            $sockets->{$fd} = $JSON->incr_text();
-            if ($hash->{QUIT}) {
-                print "received magic close\n";
-                return;
-            }
-            return $hash;
-        }
-
-        # wait for next read
-        my @res = $s->can_read;
-        unless (@res) {
-            my $E = $!;    # save the error
-            backend::baseclass::write_crash_file();
-            confess "ERROR: timeout reading JSON reply: $E\n";
-        }
-
-        my $qbuffer;
-        my $bytes = sysread($socket, $qbuffer, 8000);
-        if (!$bytes) { diag("sysread failed: $!"); return; }
-        $JSON->incr_parse($qbuffer);
-    }
-
-    return $hash;
-}
-
-###################################################################
-# enable _send_json to send regular expressions
-#<<< perltidy off
-# this has to be on two lines so other tools don't believe this file
-# exports package Regexp
-package
-Regexp;
-#>>> perltidy on
-sub TO_JSON {
-    my $regex = shift;
-    $regex = "$regex";
-    return $regex;
 }
 
 1;

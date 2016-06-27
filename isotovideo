@@ -189,20 +189,28 @@ $testfd->write("GO\n");
 
 my $loop = 1;
 while ($loop) {
+    #diag "SELECT";
     my ($reads, $writes, $exceps) = IO::Select::select($s, undef, $s);
     use Data::Dumper;
-    print "reads " . Dumper($reads);
-    print "writes " . Dumper($writes);
-    print "excep " . Dumper($exceps);
+    #print "reads " . Dumper($reads);
+    #print "writes " . Dumper($writes);
+    #print "excep " . Dumper($exceps);
     for my $r (@$reads) {
-	my $buffer;
-	my $bytes = sysread($r, $buffer, 1000);
-	if (!$bytes) {
-	    print "THERE IS NOTHING TO READ\n";
-	    $loop = 0;
-	    last;
-	}
-	print "READ $buffer\n";
+        my $rsp = myjsonrpc::read_json($r);
+        if (!defined $rsp) {
+            diag "THERE IS NOTHING TO READ\n";
+            $loop = 0;
+            last;
+        }
+        if ($rsp->{cmd} =~ m/^backend_(.*)/) {
+            my $cmd = $1;
+            #diag "CMD $cmd";
+            delete $rsp->{cmd};
+            my $brsp = $bmwqemu::backend->_send_json({cmd => $cmd, arguments => $rsp});
+            #diag "BRSP " . Dumper($brsp);
+            myjsonrpc::send_json($r, {ret => $brsp});
+            #diag "SENT";
+        }
     }
 }
 close $testfd;

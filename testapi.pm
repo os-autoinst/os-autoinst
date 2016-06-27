@@ -22,6 +22,7 @@ use strict;
 use warnings;
 use File::Basename qw(basename);
 use Time::HiRes qw(sleep gettimeofday tv_interval);
+use autotest qw(query_isotovideo);
 use Mojo::DOM;
 require IPC::System::Simple;
 use autodie qw(:all);
@@ -147,18 +148,17 @@ sub _check_or_assert {
 
     die "current_test undefined" unless $autotest::current_test;
 
-    my $rsp = $bmwqemu::backend->set_tags_to_assert({mustmatch => $mustmatch, timeout => $timeout});
-    my $tags = $rsp->{tags};
+    my $tags = query_isotovideo('backend_set_tags_to_assert', {mustmatch => $mustmatch, timeout => $timeout})->{tags};
 
     # we ignore timeout here as the backend might be set into interactive mode and then
     # the timeout is meaningless
     while (1) {
         if (my $reload_needles_and_retry) {
-            $bmwqemu::backend->reload_needles_and_retry;
+            query_isotovideo('backend_reload_needles_and_retry');
         }
 
         my ($seconds, $microseconds) = gettimeofday;
-        my $rsp = $bmwqemu::backend->check_asserted_screen;
+        my $rsp = query_isotovideo('backend_check_asserted_screen');
         if ($rsp->{found}) {
             my $foundneedle = $rsp->{found};
             # convert the needle back to an object
@@ -217,7 +217,7 @@ sub _check_or_assert {
             $bmwqemu::waiting_for_new_needle = 0;
             bmwqemu::save_status();
             my $reload_needles = 0;
-            $bmwqemu::backend->retry_assert_screen({reload_needles => $reload_needles, timeout => $timeout});
+            query_isotovideo('backend_retry_assert_screen', {reload_needles => $reload_needles, timeout => $timeout});
         }
         my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
         # sleep the remains of one second
@@ -295,7 +295,7 @@ sub assert_and_click {
     $dclick //= 0;
 
     $last_matched_needle = assert_screen($mustmatch, $timeout);
-    my $old_mouse_coords = $bmwqemu::backend->get_last_mouse_set();
+    my $old_mouse_coords = query_isotovideo('backend_get_last_mouse_set');
     bmwqemu::log_call(mustmatch => $mustmatch, button => $button, timeout => $timeout);
 
     # last_matched_needle has to be set, or the assert is buggy :)
@@ -354,14 +354,14 @@ sub wait_screen_change(&@) {
     bmwqemu::log_call(timeout => $timeout);
 
     # get the initial screen
-    $bmwqemu::backend->set_reference_screenshot;
+    query_isotovideo('backend_set_reference_screenshot');
     $callback->() if $callback;
 
     my $starttime        = time;
     my $similarity_level = 50;
 
     while (time - $starttime < $timeout) {
-        my $sim = $bmwqemu::backend->similiarity_to_reference->{sim};
+        my $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
         print "waiting for screen change: " . (time - $starttime) . " $sim\n";
         if ($sim < $similarity_level) {
             bmwqemu::fctres("screen change seen at " . (time - $starttime));
@@ -395,16 +395,16 @@ sub wait_still_screen {
 
     my $starttime      = time;
     my $lastchangetime = [gettimeofday];
-    $bmwqemu::backend->set_reference_screenshot;
+    query_isotovideo('backend_set_reference_screenshot');
 
     while (time - $starttime < $timeout) {
-        my $sim = $bmwqemu::backend->similiarity_to_reference->{sim};
+        my $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
         my $now = [gettimeofday];
         if ($sim < $similarity_level) {
 
             # a change
             $lastchangetime = $now;
-            $bmwqemu::backend->set_reference_screenshot;
+            query_isotovideo('backend_set_reference_screenshot');
         }
         if (($now->[0] - $lastchangetime->[0]) + ($now->[1] - $lastchangetime->[1]) / 1000000. >= $stilltime) {
             bmwqemu::fctres("detected same image for $stilltime seconds");
@@ -522,7 +522,7 @@ sub wait_serial {
     bmwqemu::log_call(regex => $regexp, timeout => $timeout);
     $timeout = bmwqemu::scale_timeout($timeout);
 
-    my $ret = $bmwqemu::backend->wait_serial({regexp => $regexp, timeout => $timeout});
+    my $ret = query_isotovideo('backend_wait_serial', {regexp => $regexp, timeout => $timeout});
     my $matched = $ret->{matched};
 
     if ($expect_not_found) {
@@ -764,7 +764,7 @@ sub power {
     # params: (on), off, acpi, reset
     my ($action) = @_;
     bmwqemu::log_call(action => $action);
-    $bmwqemu::backend->power({action => $action});
+    query_isotovideo('backend_power', {action => $action});
 }
 
 =head2 assert_shutdown
@@ -782,7 +782,7 @@ sub assert_shutdown {
     $timeout //= 60;
     bmwqemu::log_call(timeout => $timeout);
     while ($timeout >= 0) {
-        my $status = $bmwqemu::backend->status() // '';
+        my $status = query_isotovideo('backend_status') // '';
         if ($status eq 'shutdown') {
             $autotest::current_test->take_screenshot('ok');
             return;
@@ -803,7 +803,7 @@ if backend supports it, eject the CD
 =cut
 sub eject_cd {
     bmwqemu::log_call();
-    $bmwqemu::backend->eject_cd;
+    query_isotovideo('backend_eject_cd');
 }
 
 =head2 parse_junit_log
@@ -921,7 +921,7 @@ sub wait_idle {
     my $args = {
         timeout   => $timeout,
         threshold => get_var('IDLETHRESHOLD', 18)};
-    my $rsp = $bmwqemu::backend->wait_idle($args);
+    my $rsp = query_isotovideo('backend_wait_idle', $args);
     if ($rsp->{idle}) {
         bmwqemu::fctres("idle detected");
     }
@@ -1068,7 +1068,7 @@ sub send_key {
     my ($key, $wait) = @_;
     $wait //= 0;
     bmwqemu::log_call(key => $key);
-    $bmwqemu::backend->send_key($key);
+    query_isotovideo('backend_send_key', {key => $key});
     wait_idle() if $wait;
 }
 
@@ -1082,7 +1082,7 @@ Hold one C<$key> until release it
 sub hold_key {
     my ($key) = @_;
     bmwqemu::log_call('hold_key', key => $key);
-    $bmwqemu::backend->hold_key({key => $key});
+    query_isotovideo('backend_hold_key', {key => $key});
 }
 
 =head2 release_key
@@ -1095,7 +1095,7 @@ Release one C<$key> which is kept holding
 sub release_key {
     my $key = shift;
     bmwqemu::log_call('release_key', key => $key);
-    $bmwqemu::backend->release_key({key => $key});
+    query_isotovideo('backend_release_key', {key => $key});
 }
 
 =head2 send_key_until_needlematch
@@ -1149,7 +1149,7 @@ sub type_string {
     my $log = $args{secret} ? 'SECRET STRING' : $string;
     my $max_interval = $args{max_interval} // 250;
     bmwqemu::log_call(string => $log, max_interval => $max_interval);
-    $bmwqemu::backend->type_string({text => $string, max_interval => $max_interval});
+    query_isotovideo('backend_type_string', {text => $string, max_interval => $max_interval});
 }
 
 =head2 type_password
@@ -1180,7 +1180,7 @@ sub mouse_set {
     my ($mx, $my) = @_;
 
     bmwqemu::log_call(x => $mx, y => $my);
-    $bmwqemu::backend->mouse_set({x => $mx, y => $my});
+    query_isotovideo('backend_mouse_set', {x => $mx, y => $my});
 }
 
 =head2 mouse_click
@@ -1195,10 +1195,10 @@ sub mouse_click {
     my $button = shift || 'left';
     my $time   = shift || 0.15;
     bmwqemu::log_call(button => $button, cursor_down => $time);
-    $bmwqemu::backend->mouse_button($button, 1);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
     # FIXME sleep resolution = 1s, use usleep
     sleep $time;
-    $bmwqemu::backend->mouse_button($button, 0);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
 }
 
 =head2 mouse_dclick
@@ -1212,14 +1212,14 @@ sub mouse_dclick(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
-    $bmwqemu::backend->mouse_button($button, 1);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
     # FIXME sleep resolution = 1s, use usleep
     sleep $time;
-    $bmwqemu::backend->mouse_button($button, 0);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
     sleep $time;
-    $bmwqemu::backend->mouse_button($button, 1);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
     sleep $time;
-    $bmwqemu::backend->mouse_button($button, 0);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
 }
 
 =head2 mouse_tclick
@@ -1233,17 +1233,17 @@ sub mouse_tclick(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
-    $bmwqemu::backend->mouse_button($button, 1);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
     sleep $time;
-    $bmwqemu::backend->mouse_button($button, 0);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
     sleep $time;
-    $bmwqemu::backend->mouse_button($button, 1);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
     sleep $time;
-    $bmwqemu::backend->mouse_button($button, 0);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
     sleep $time;
-    $bmwqemu::backend->mouse_button($button, 1);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
     sleep $time;
-    $bmwqemu::backend->mouse_button($button, 0);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
 }
 
 =head2 mouse_hide
@@ -1256,7 +1256,7 @@ Hide mouse cursor by moving it out of screen area.
 sub mouse_hide(;$) {
     my $border_offset = shift || 0;
     bmwqemu::log_call(border_offset => $border_offset);
-    $bmwqemu::backend->mouse_hide($border_offset);
+    query_isotovideo('backend_mouse_hide', {offset => $border_offset});
 }
 
 =head1 multi console support
@@ -1318,7 +1318,7 @@ sub select_console {
     if (!exists $testapi_console_proxies{$testapi_console}) {
         $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
     }
-    my $ret = $bmwqemu::backend->select_console({testapi_console => $testapi_console});
+    my $ret = query_isotovideo('backend_select_console', {testapi_console => $testapi_console});
 
     if ($ret->{activated}) {
         # we need to store the activated consoles for rollback
@@ -1367,8 +1367,7 @@ if you did something to the system that affects the console (e.g. trigger reboot
 
 =cut
 sub reset_consoles {
-    $bmwqemu::backend->reset_consoles;
-
+    query_isotovideo('backend_reset_consoles');
     return;
 }
 
@@ -1387,7 +1386,7 @@ sub start_audiocapture {
     my $fn = $autotest::current_test->capture_filename;
     my $filename = join('/', bmwqemu::result_dir(), $fn);
     bmwqemu::log_call(filename => $filename);
-    return $bmwqemu::backend->start_audiocapture({filename => $filename});
+    return query_isotovideo('backend_start_audiocapture', {filename => $filename});
 }
 
 =head2 assert_recorded_sound
