@@ -325,17 +325,6 @@ sub mydie {
     croak "mydie";
 }
 
-sub alive() {
-    if (defined $backend) {
-
-        # backend will kill me when
-        # backend.run has been deleted
-        return $backend->alive();
-    }
-    return 0;
-}
-
-
 # runtime information gathering functions end
 
 

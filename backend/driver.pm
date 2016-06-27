@@ -128,7 +128,7 @@ sub start_vm {
 
 sub stop_backend {
     my ($self) = @_;
-    $self->stop_vm();
+    $self->_send_json({cmd => 'stop_vm'});
     # remove if still existant
     unlink('backend.run') if -e 'backend.run';
     return;
@@ -138,7 +138,7 @@ sub get_info {
     my ($self) = @_;
     $self->{infos} ||= {
         backend      => $self->{backend_name},
-        backend_info => $self->get_backend_info()};
+        backend_info => $self->_send_json({cmd => 'get_backend_info'})};
     return $self->{infos};
 }
 

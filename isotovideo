@@ -167,7 +167,7 @@ open(my $fd, ">", "os-autoinst.pid");
 print $fd "$$\n";
 close $fd;
 
-if (!bmwqemu::alive) {
+if (!$bmwqemu::backend->_send_json({cmd => 'alive'})) {
     bmwqemu::start_vm or die $@;
 }
 

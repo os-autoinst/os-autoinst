@@ -102,13 +102,13 @@ sub write_test_order {
 sub make_snapshot {
     my ($sname) = @_;
     bmwqemu::diag("Creating a VM snapshot $sname");
-    return $bmwqemu::backend->save_snapshot({name => $sname});
+    return query_isotovideo('backend_save_snapshot', {name => $sname});
 }
 
 sub load_snapshot {
     my ($sname) = @_;
     bmwqemu::diag("Loading a VM snapshot $sname");
-    return $bmwqemu::backend->load_snapshot({name => $sname});
+    return query_isotovideo('backend_load_snapshot', {name => $sname});
 }
 
 sub run_all {
