@@ -40,10 +40,6 @@ sub new {
     $self->{children}    = [];
     $self->{pidfilename} = 'qemu.pid';
 
-    # make sure to set environment variables in the main process
-    # exec uses the %ENV of the main thread
-    $ENV{QEMU_AUDIO_DRV} = "none";
-
     return $self;
 }
 
@@ -646,6 +642,9 @@ sub start_qemu {
         }
         bmwqemu::diag("starting: " . join(" ", @params));
 
+        # don't try to talk to the host's PA
+        $ENV{QEMU_AUDIO_DRV} = "none";
+
         # redirect qemu's output to the parent pipe
         open(STDOUT, ">&", $writer);
         open(STDERR, ">&", $writer);
@@ -668,6 +667,7 @@ sub start_qemu {
         {
             hostname => 'localhost',
             port     => 5900 + $bmwqemu::vars{VNC}});
+
     $vnc->backend($self);
     $self->select_console({testapi_console => 'sut'});
 

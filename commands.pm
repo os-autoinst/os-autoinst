@@ -19,6 +19,8 @@ package commands;
 use strict;
 use warnings;
 require IPC::System::Simple;
+use Try::Tiny;
+use Socket;
 use POSIX qw(_exit);
 use autodie qw(:all);
 
@@ -33,6 +35,9 @@ use Mojo::IOLoop;
 use Mojo::Server::Daemon;
 
 use File::Basename;
+
+# a socket opened to isotovideo
+my $isotovideo;
 
 # borrowed from obs with permission from mls@suse.de to license as
 # GPLv2+
@@ -182,7 +187,6 @@ sub upload_file {
     return $self->render(text => "OK: $filename\n");
 }
 
-
 sub current_script {
     my ($self) = @_;
     return $self->reply->asset(Mojo::Asset::File->new(path => 'current_script'));
@@ -229,21 +233,36 @@ sub run_daemon {
     my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://*:$port"]);
     $daemon->silent;
     app->log->info("Daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
-    $daemon->run;
+    try {
+        $daemon->run;
+    }
+    catch {
+        print "failed to run daemon\n";
+        _exit(1);
+    };
 }
 
 sub start_server {
     my ($port) = @_;
 
+    my $child;
+    socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
+      or die "socketpair: $!";
+
+    $child->autoflush(1);
+    $isotovideo->autoflush(1);
+
     my $pid = fork();
     die "fork failed" unless defined $pid;
 
     if ($pid == 0) {
+        close($child);
         run_daemon($port);
         _exit(0);
     }
+    close($isotovideo);
 
-    return $pid;
+    return ($pid, $child);
 }
 
 1;

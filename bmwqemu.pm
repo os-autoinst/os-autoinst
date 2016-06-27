@@ -59,14 +59,6 @@ our $waiting_for_new_needle;
 our $screenshotpath = "qemuscreenshot";
 
 
-# list of files that are used to control the behavior
-our %control_files = (
-    reload_needles_and_retry => "reload_needles_and_retry",
-    interactive_mode         => "interactive_mode",
-    stop_waitforneedle       => "stop_waitforneedle",
-    continue_waitforneedle   => "continue_waitforneedle",
-);
-
 # global vars
 
 our $logfd;
@@ -212,14 +204,14 @@ sub print_possibly_colored {
     my ($text, $color) = @_;
 
     if (($direct_output && !$istty) || !$direct_output) {
-        $logfd && print $logfd get_timestamp() . "$text\n";
+        $logfd && print $logfd get_timestamp() . "$$ $text\n";
     }
     if ($istty || !$logfd) {
         if ($color) {
-            print STDERR colored(get_timestamp() . $text, $color) . "\n";
+            print STDERR colored(get_timestamp() . "$$ " . $text, $color) . "\n";
         }
         else {
-            print STDERR get_timestamp() . "$text\n";
+            print STDERR get_timestamp() . "$$ $text\n";
         }
     }
     return;
@@ -314,12 +306,6 @@ sub fileContent {
 
 # backend management
 
-sub init_backend {
-    my ($name) = @_;
-    $backend = backend::driver->new($name);
-    return $backend;
-}
-
 sub start_vm() {
     return unless $backend;
     return $backend->start_vm();
@@ -373,14 +359,6 @@ sub save_status {
     $result->{backend} = $backend->get_info() if $backend;
 
     return save_json_file($result, result_dir . "/status.json");
-}
-
-sub clean_control_files {
-    no autodie qw(unlink);    # control files might not exist
-    for my $file (values %control_files) {
-        unlink($file);
-    }
-    return;
 }
 
 sub scale_timeout {

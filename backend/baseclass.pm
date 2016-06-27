@@ -414,7 +414,6 @@ sub close_pipes {
 
     return unless $self->{rsppipe};
 
-    # XXX: perl does not really close the fd here due to threads!?
     print "sending magic and exit\n";
     $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || die "close $!\n";
@@ -816,18 +815,7 @@ sub check_asserted_screen {
 
     my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio);
 
-    # get into waitforneedle immediately in case clicked stop_waitforneedle
-    # ie. interactive_mode: ENABLED; timeout: NO; needle has matched: UNKNOWN; stop_waitforneedle: ENABLED
-    if ($self->interactive_mode && -e $bmwqemu::control_files{stop_waitforneedle} && !$self->reload_needles) {
-        $self->freeze_vm();
-        return {waiting_for_needle => 1, filename => $self->write_img($img, $img_filename), candidates => $failed_candidates};
-    }
-
     if ($foundneedle) {
-        # clean up continue_waitforneedle control file if needle has matched
-        if (-e $bmwqemu::control_files{continue_waitforneedle}) {
-            unlink($bmwqemu::control_files{continue_waitforneedle});
-        }
         $self->assert_screen_last_check(undef);
         return {filename => $self->write_img($img, $img_filename), found => $foundneedle, candidates => $failed_candidates};
     }
@@ -841,23 +829,6 @@ sub check_asserted_screen {
         # make sure we recheck later
         $self->assert_screen_last_check(undef);
 
-        # no needle is matched then get into waitforneedle
-        # if continue_waitforneedle control file is exist, do not freeze but continue. in this situation,
-        # stop_waitforneedle will be enabled for sure.
-        if ($self->interactive_mode && !-e $bmwqemu::control_files{continue_waitforneedle}) {
-            # creating stop_waitforneedle control file in case can not find the matched needle and interactive mode is enabled
-            # ie. interactive_mode: ENABLED; timeout: YES; needle has matched: NO; stop_waitforneedle: DISABLED
-            if (!-e $bmwqemu::control_files{stop_waitforneedle}) {
-                if (open(my $f, '>', $bmwqemu::control_files{stop_waitforneedle})) {
-                    close $f;
-                }
-                else {
-                    warn "can't stop waitforneedle: $!";
-                }
-            }
-            $self->freeze_vm();
-            return {waiting_for_needle => 1, filename => $self->write_img($img, $img_filename), candidates => $failed_candidates};
-        }
         if ($self->stall_detected) {
             backend::baseclass::write_crash_file();
             bmwqemu::mydie "assert_screen fails, but we detected a timeout in the process, so we abort";

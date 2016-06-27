@@ -77,6 +77,7 @@ sub type_password;
 =head2 init
 
 Used for internal initialization, do not call from tests.
+
 =cut
 sub init {
     $serialdev = get_var('SERIALDEV', "ttyS0");
@@ -152,23 +153,8 @@ sub _check_or_assert {
     # we ignore timeout here as the backend might be set into interactive mode and then
     # the timeout is meaningless
     while (1) {
-        if (-e $bmwqemu::control_files{stop_waitforneedle}) {
-            $bmwqemu::backend->stop_assert_screen;
-        }
-        if (-e $bmwqemu::control_files{interactive_mode}) {
-            $bmwqemu::backend->interactive_assert_screen({interactive => 1});
-            $bmwqemu::interactive_mode = 1;
-            bmwqemu::save_status();
-        }
-        elsif ($bmwqemu::interactive_mode) {
-            $bmwqemu::backend->interactive_assert_screen({interactive => 0});
-            $bmwqemu::interactive_mode = 0;
-            bmwqemu::save_status();
-        }
-
-        if (-e $bmwqemu::control_files{reload_needles_and_retry}) {
+        if (my $reload_needles_and_retry) {
             $bmwqemu::backend->reload_needles_and_retry;
-            unlink($bmwqemu::control_files{reload_needles_and_retry});
         }
 
         my ($seconds, $microseconds) = gettimeofday;
@@ -224,27 +210,13 @@ sub _check_or_assert {
             bmwqemu::save_status();
             $autotest::current_test->save_test_result();
 
-            bmwqemu::diag("interactive mode waiting for continuation");
-            while (-e $bmwqemu::control_files{stop_waitforneedle}) {
-                if (   -e $bmwqemu::control_files{continue_waitforneedle}
-                    || -e $bmwqemu::control_files{reload_needles_and_retry})
-                {
-                    unlink($bmwqemu::control_files{stop_waitforneedle});
-                    last;
-                }
-                sleep 1;
-            }
             bmwqemu::diag("continuing");
 
             $autotest::current_test->remove_last_result();
 
-            my $reload_needles = 0;
-            if (-e $bmwqemu::control_files{reload_needles_and_retry}) {
-                unlink($bmwqemu::control_files{reload_needles_and_retry});
-                $reload_needles = 1;
-            }
             $bmwqemu::waiting_for_new_needle = 0;
             bmwqemu::save_status();
+            my $reload_needles = 0;
             $bmwqemu::backend->retry_assert_screen({reload_needles => $reload_needles, timeout => $timeout});
         }
         my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);

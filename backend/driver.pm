@@ -69,7 +69,13 @@ sub start {
     die "fork failed" unless defined $pid;
 
     if ($pid == 0) {
-        _run($self->{backend}, fileno($self->{from_parent}), fileno($self->{to_parent}));
+	$SIG{ALRM} = 'DEFAULT';
+	$SIG{TERM} = 'DEFAULT';
+	$SIG{INT}  = 'DEFAULT';
+	$SIG{HUP}  = 'DEFAULT';
+	$SIG{CHLD} = 'DEFAULT';
+
+        $self->{backend}->run(fileno($self->{from_parent}), fileno($self->{to_parent}));
         _exit(0);
     }
     else {
@@ -80,13 +86,6 @@ sub start {
 sub extract_assets {
     my $self = shift;
     $self->{backend}->do_extract_assets(@_);
-}
-
-# this is the backend process
-sub _run {
-    my ($backend, $from_parent, $to_parent) = @_;
-
-    $backend->run($from_parent, $to_parent);
 }
 
 sub stop {
