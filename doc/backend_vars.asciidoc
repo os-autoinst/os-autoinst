@@ -32,6 +32,7 @@ BIOS;;;
 BOOT_HDD_IMAGE;boolean;;enables boot from HDD_1 (BOOTFROM has higher priority)
 BOOTFROM;chars;undef;Influences order of boot devices. See qemu -boot option
 CDMODEL;see qemu -device ?;undef;Storage device for virtualized CD
+FDD;filename;;Can be any FDD image e.g. for win10 https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.118-2/
 HDDFORMAT;;;
 HDDMODEL;see qemu -device ?;virtio-blk;Storage device for virtualized HDD.
 HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
