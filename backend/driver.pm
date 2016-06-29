@@ -109,7 +109,7 @@ sub stop {
 
 sub start_vm {
     my $self = shift;
-    my $json = to_json($self->get_info());
+    my $json = to_json({backend => $self->{backend_name}});
     open(my $runf, ">", 'backend.run');
     print $runf "$json\n";
     close $runf;
@@ -129,14 +129,6 @@ sub stop_backend {
     # remove if still existant
     unlink('backend.run') if -e 'backend.run';
     return;
-}
-
-sub get_info {
-    my ($self) = @_;
-    $self->{infos} ||= {
-        backend      => $self->{backend_name},
-        backend_info => $self->_send_json({cmd => 'get_backend_info'})};
-    return $self->{infos};
 }
 
 # new api end

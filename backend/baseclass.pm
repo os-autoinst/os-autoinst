@@ -323,12 +323,6 @@ sub status            { notimplemented }
 
 ## MAY be overwritten:
 
-sub get_backend_info {
-    # returns hashref
-    my ($self) = @_;
-    return {};
-}
-
 sub cpu_stat {
     # vm's would return
     # (userstat, systemstat)

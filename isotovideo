@@ -135,14 +135,6 @@ sub init_backend {
 
 my $interactive = 0;
 my $current_test_name;
-sub save_status {
-    my $result = {};
-    $result->{interactive} = $interactive;
-    $result->{needinput}   = 0;
-    $result->{running}     = $current_test_name;
-    $result->{backend}     = $bmwqemu::backend->get_info() if $bmwqemu::backend;
-    return bmwqemu::save_json_file($result, bmwqemu::result_dir . "/status.json");
-}
 
 $SIG{ALRM} = \&signalhandler;
 $SIG{TERM} = \&signalhandler;
@@ -227,7 +219,6 @@ while ($loop) {
         if ($rsp->{cmd} eq 'set_current_test') {
             $bmwqemu::backend->_send_json({cmd => 'set_serial_offset'});
             $current_test_name = $rsp->{name};
-            save_status;
             myjsonrpc::send_json($r, {ret => 1});
             next;
         }
@@ -248,7 +239,10 @@ while ($loop) {
 
         ##### HTTP commands
         if ($rsp->{cmd} eq 'status') {
-            myjsonrpc::send_json($r, {tags => $tags, current_test => $current_test_name});
+            my $result = {tags => $tags, running => $current_test_name};
+            $result->{interactive} = $interactive;
+            $result->{needinput}   = 0;
+            myjsonrpc::send_json($r, $result);
             next;
         }
 
@@ -342,9 +336,6 @@ if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
         }
     }
 }
-
-# Write JSON result
-save_status();
 
 exit $r;
 # vim: set sw=4 et:
