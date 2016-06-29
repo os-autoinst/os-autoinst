@@ -192,6 +192,22 @@ sub current_script {
     return $self->reply->asset(Mojo::Asset::File->new(path => 'current_script'));
 }
 
+sub isotovideo_command {
+    my ($self) = @_;
+    my $cmd = $self->param('command');
+    return $self->render_not_found unless grep { $cmd eq $_ } qw/interactive stop_waitforneedle/;
+    myjsonrpc::send_json($isotovideo, {cmd => $cmd, params => $self->req->query_params->to_hash});
+    $self->render(json => myjsonrpc::read_json($isotovideo));
+    return;
+}
+
+sub isotovideo_status {
+    my ($self) = @_;
+    myjsonrpc::send_json($isotovideo, {cmd => 'status'});
+    $self->render(json => myjsonrpc::read_json($isotovideo));
+    return;
+}
+
 sub run_daemon {
     my ($port) = @_;
 
@@ -223,6 +239,9 @@ sub run_daemon {
     # get asset
     $token_auth->get('/assets/#assettype/#assetname'          => \&get_asset);
     $token_auth->get('/assets/#assettype/#assetname/*relpath' => \&get_asset);
+
+    $token_auth->get('/isotovideo/status' => \&isotovideo_status);
+    $token_auth->post('/isotovideo/#command' => \&isotovideo_command);
 
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');

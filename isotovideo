@@ -133,15 +133,14 @@ sub init_backend {
     return $bmwqemu::backend;
 }
 
+my $interactive = 0;
 my $current_test_name;
 sub save_status {
     my $result = {};
-    $result->{interactive} = 0;
+    $result->{interactive} = $interactive;
     $result->{needinput}   = 0;
     $result->{running}     = $current_test_name;
-    cluck "save_status\n";
-    $result->{backend} = $bmwqemu::backend->get_info() if $bmwqemu::backend;
-    diag "got info";
+    $result->{backend}     = $bmwqemu::backend->get_info() if $bmwqemu::backend;
     return bmwqemu::save_json_file($result, bmwqemu::result_dir . "/status.json");
 }
 
@@ -232,7 +231,6 @@ while ($loop) {
             myjsonrpc::send_json($r, {ret => 1});
             next;
         }
-
         if ($rsp->{cmd} eq 'check_screen') {
             my $mustmatch = $rsp->{mustmatch};
             my $timeout   = $rsp->{timeout};
@@ -247,6 +245,26 @@ while ($loop) {
                     }})->{tags};
             next;
         }
+
+        ##### HTTP commands
+        if ($rsp->{cmd} eq 'status') {
+            myjsonrpc::send_json($r, {tags => $tags, current_test => $current_test_name});
+            next;
+        }
+
+        if ($rsp->{cmd} eq 'interactive') {
+            # interactive is boolean
+            $interactive = $rsp->{state} ? 1 : 0;
+            myjsonrpc::send_json($r, {interactive => $interactive});
+            next;
+        }
+
+        if ($rsp->{cmd} eq 'stop_waitforneedle') {
+            $bmwqemu::backend->_send_json({cmd => 'reduce_deadline'});
+            myjsonrpc::send_json($r, {ret => 0});
+            next;
+        }
+
         die "Unknown command $rsp->{cmd}";
     }
 

@@ -747,6 +747,13 @@ sub _time_to_assert_screen_deadline {
     return $self->assert_screen_deadline - time;
 }
 
+sub reduce_deadline {
+    my ($self) = @_;
+
+    $self->assert_screen_deadline(time);
+    return;
+}
+
 sub _failed_screens_to_json {
     my ($self) = @_;
 

@@ -149,7 +149,6 @@ sub _check_or_assert {
     die "current_test undefined" unless $autotest::current_test;
 
     my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, timeout => $timeout, check => $check});
-
     my $tags = $rsp->{tags};
 
     if ($rsp->{found}) {
