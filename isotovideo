@@ -206,14 +206,11 @@ $s->add($cfd);
 # now we have everything, give the tests a go
 $testfd->write("GO\n");
 
-my $loop = 1;
+my $loop    = 1;
+my $timeout = undef;
+my $tags    = undef;
 while ($loop) {
-    #diag "SELECT";
-    my ($reads, $writes, $exceps) = IO::Select::select($s, undef, $s);
-    use Data::Dumper;
-    #print "reads " . Dumper($reads);
-    #print "writes " . Dumper($writes);
-    #print "excep " . Dumper($exceps);
+    my ($reads, $writes, $exceps) = IO::Select::select($s, undef, $s, $timeout);
     for my $r (@$reads) {
         my $rsp = myjsonrpc::read_json($r);
         if (!defined $rsp) {
@@ -237,38 +234,45 @@ while ($loop) {
         }
 
         if ($rsp->{cmd} eq 'check_screen') {
-
             my $mustmatch = $rsp->{mustmatch};
             my $timeout   = $rsp->{timeout};
             my $check     = $rsp->{check};
 
-            my $tags = $bmwqemu::backend->_send_json({cmd => 'set_tags_to_assert',
-						      arguments => {mustmatch => $mustmatch,
-								    timeout => $timeout}})->{tags};
-
-            # we ignore timeout here as the backend might be set into interactive mode and then
-            # the timeout is meaningless
-            while (1) {
-                my ($seconds, $microseconds) = gettimeofday;
-                my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'});
-                # the test needs that information
-                $rsp->{tags} = $tags;
-                if ($rsp->{found}) {
-                    myjsonrpc::send_json($r, {ret => $rsp});
-                    last;
-                }
-                elsif ($rsp->{timeout}) {
-                    myjsonrpc::send_json($r, {ret => $rsp});
-                    last;
-                }
-                my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
-                # sleep the remains of one second
-                $delta = 1 - $delta;
-                sleep $delta if ($delta > 0);
-            }
+            $tags = $bmwqemu::backend->_send_json(
+                {
+                    cmd       => 'set_tags_to_assert',
+                    arguments => {
+                        mustmatch => $mustmatch,
+                        timeout   => $timeout
+                    }})->{tags};
             next;
         }
         die "Unknown command $rsp->{cmd}";
+    }
+
+    if (defined $tags) {
+        my ($seconds, $microseconds) = gettimeofday;
+        my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'});
+        # the test needs that information
+        $rsp->{tags} = $tags;
+        if ($rsp->{found}) {
+            myjsonrpc::send_json($testfd, {ret => $rsp});
+            $tags = $timeout = undef;
+        }
+        elsif ($rsp->{timeout}) {
+            myjsonrpc::send_json($testfd, {ret => $rsp});
+            $tags = $timeout = undef;
+        }
+        else {
+            my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
+            if ($delta > 0) {
+                # sleep the remains of one second
+                $timeout = 1 - $delta;
+            }
+            else {
+                $timeout = 0;
+            }
+        }
     }
 }
 close $testfd;
