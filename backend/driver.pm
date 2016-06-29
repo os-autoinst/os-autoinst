@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-# this class is what everyone else refers to as $bmwqemu::backend and its code runs
+# this class is what presents $backend in isotovideo and its code runs
 # in the main process. But its main task is to start a 2nd process and talk to it over
 # a PIPE
 # in that 2nd process runs the actual backend, derived from backend::baseclass
@@ -120,9 +120,6 @@ sub start_vm {
     mkdir $bmwqemu::screenshotpath;
 
     $self->_send_json({cmd => 'start_vm'}) || die "failed to start VM";
-    # the backend process might have added some defaults for the backend
-    bmwqemu::load_vars();
-
     return 1;
 }
 

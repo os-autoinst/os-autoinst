@@ -107,6 +107,8 @@ our $scriptdir;
 sub init {
     load_vars();
 
+    $bmwqemu::vars{BACKEND} ||= "qemu";
+
     # remove directories for asset upload
     remove_tree("assets_public");
     remove_tree("assets_private");
@@ -142,8 +144,6 @@ sub init {
         }
         die "can't determine test directory for $vars{DISTRI}\n" unless $vars{CASEDIR};
     }
-
-    testapi::init();
 
     # defaults
     $vars{QEMUPORT} ||= 15222;
@@ -304,11 +304,6 @@ sub fileContent {
 
 # backend management
 
-sub start_vm() {
-    return unless $backend;
-    return $backend->start_vm();
-}
-
 sub stop_vm() {
     return unless $backend;
     my $ret = $backend->stop();
@@ -336,16 +331,6 @@ sub save_json_file {
     print $fd to_json($result, {pretty => 1});
     close($fd);
     return rename("$fn.new", $fn);
-}
-
-sub save_status {
-    my $result = {};
-    $result->{interactive} = $interactive_mode       ? 1                 : 0;
-    $result->{needinput}   = $waiting_for_new_needle ? 1                 : 0;
-    $result->{running}     = current_test            ? ref(current_test) : '';
-    $result->{backend} = $backend->get_info() if $backend;
-
-    return save_json_file($result, result_dir . "/status.json");
 }
 
 sub scale_timeout {

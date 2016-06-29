@@ -484,7 +484,7 @@ sub stop_audiocapture {
     my ($self) = @_;
 
     bmwqemu::log_call();
-    $bmwqemu::backend->stop_audiocapture;
+    autotest::query_isotovideo('backend_stop_audiocapture');
 
     my $result = {
         audio  => $self->{wav_fn},
@@ -565,7 +565,7 @@ sub rollback_activated_consoles {
         # the backend will only reset its state, and call activate
         # the next time - the console itself might actually not be
         # able to activate a 2nd time, but that's up to the console class
-        $bmwqemu::backend->reset_console({testapi_console => $console});
+        autotest::query_isotovideo('backend_reset_console', {testapi_console => $console});
     }
     return;
 }

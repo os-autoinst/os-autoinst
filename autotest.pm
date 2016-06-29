@@ -81,7 +81,7 @@ our $last_milestone;
 
 sub set_current_test {
     ($current_test) = @_;
-    bmwqemu::save_status();
+    query_isotovideo('set_current_test', {name => ref($current_test)});
 }
 
 sub write_test_order {
