@@ -240,7 +240,6 @@ sub result {
 sub start() {
     my ($self) = @_;
     $self->{running} = 1;
-    autotest::query_isotovideo('backend_set_serial_offset');
     autotest::set_current_test($self);
 }
 

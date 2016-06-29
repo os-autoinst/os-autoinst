@@ -43,6 +43,7 @@ require IPC::System::Simple;
 use autodie qw(:all);
 use POSIX qw(:sys_wait_h _exit);
 use Carp qw(cluck);
+use Time::HiRes qw(gettimeofday tv_interval sleep);
 
 # avoid paranoia
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
@@ -222,18 +223,49 @@ while ($loop) {
         }
         if ($rsp->{cmd} =~ m/^backend_(.*)/) {
             my $cmd = $1;
-            #diag "CMD $cmd";
             delete $rsp->{cmd};
             my $brsp = $bmwqemu::backend->_send_json({cmd => $cmd, arguments => $rsp});
-            #diag "BRSP " . Dumper($brsp);
             myjsonrpc::send_json($r, {ret => $brsp});
-            #diag "SENT";
             next;
         }
         if ($rsp->{cmd} eq 'set_current_test') {
+            $bmwqemu::backend->_send_json({cmd => 'set_serial_offset'});
             $current_test_name = $rsp->{name};
             save_status;
             myjsonrpc::send_json($r, {ret => 1});
+            next;
+        }
+
+        if ($rsp->{cmd} eq 'check_screen') {
+
+            my $mustmatch = $rsp->{mustmatch};
+            my $timeout   = $rsp->{timeout};
+            my $check     = $rsp->{check};
+
+            my $tags = $bmwqemu::backend->_send_json({cmd => 'set_tags_to_assert',
+						      arguments => {mustmatch => $mustmatch,
+								    timeout => $timeout}})->{tags};
+
+            # we ignore timeout here as the backend might be set into interactive mode and then
+            # the timeout is meaningless
+            while (1) {
+                my ($seconds, $microseconds) = gettimeofday;
+                my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'});
+                # the test needs that information
+                $rsp->{tags} = $tags;
+                if ($rsp->{found}) {
+                    myjsonrpc::send_json($r, {ret => $rsp});
+                    last;
+                }
+                elsif ($rsp->{timeout}) {
+                    myjsonrpc::send_json($r, {ret => $rsp});
+                    last;
+                }
+                my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
+                # sleep the remains of one second
+                $delta = 1 - $delta;
+                sleep $delta if ($delta > 0);
+            }
             next;
         }
         die "Unknown command $rsp->{cmd}";

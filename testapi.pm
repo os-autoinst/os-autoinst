@@ -148,83 +148,49 @@ sub _check_or_assert {
 
     die "current_test undefined" unless $autotest::current_test;
 
-    my $tags = query_isotovideo('backend_set_tags_to_assert', {mustmatch => $mustmatch, timeout => $timeout})->{tags};
+    my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, timeout => $timeout, check => $check});
 
-    # we ignore timeout here as the backend might be set into interactive mode and then
-    # the timeout is meaningless
-    while (1) {
-        if (my $reload_needles_and_retry) {
-            query_isotovideo('backend_reload_needles_and_retry');
-        }
+    my $tags = $rsp->{tags};
 
-        my ($seconds, $microseconds) = gettimeofday;
-        my $rsp = query_isotovideo('backend_check_asserted_screen');
-        if ($rsp->{found}) {
-            my $foundneedle = $rsp->{found};
-            # convert the needle back to an object
-            $foundneedle->{needle} = needle->new($foundneedle->{needle});
-            my $img = tinycv::read($rsp->{filename});
-            $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
-            my $lastarea = $foundneedle->{area}->[-1];
-            bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
-            $last_matched_needle = $foundneedle;
-            return $foundneedle;
+    if ($rsp->{found}) {
+        my $foundneedle = $rsp->{found};
+        # convert the needle back to an object
+        $foundneedle->{needle} = needle->new($foundneedle->{needle});
+        my $img = tinycv::read($rsp->{filename});
+        $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
+        my $lastarea = $foundneedle->{area}->[-1];
+        bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+        $last_matched_needle = $foundneedle;
+        return $foundneedle;
+    }
+    elsif ($rsp->{timeout}) {
+        bmwqemu::fctres("match=" . join(',', @$tags) . " timed out after $timeout");
+        my $failed_screens = $rsp->{failed_screens};
+        my $final_mismatch = $failed_screens->[-1];
+        if ($check) {
+            # only care for the last one
+            $failed_screens = [$final_mismatch];
         }
-        if ($rsp->{timeout}) {
-            bmwqemu::fctres("match=" . join(',', @$tags) . " timed out after $timeout");
-            my $failed_screens = $rsp->{failed_screens};
-            my $final_mismatch = $failed_screens->[-1];
-            if ($check) {
-                # only care for the last one
-                $failed_screens = [$final_mismatch];
-            }
-            for my $l (@$failed_screens) {
-                my $img = tinycv::read($l->{filename});
-                my $result = $check ? 'unk' : 'fail';
-                $result = 'unk' if ($l != $final_mismatch);
-                $autotest::current_test->record_screenfail(
-                    img     => $img,
-                    needles => $l->{candidates},
-                    tags    => $tags,
-                    result  => $result,
-                    overall => $check ? undef : 'fail'
-                );
-            }
-            if (!$check) {
-                OpenQA::Exception::FailedNeedle->throw(error => "needle(s) '$mustmatch' not found", tags => $mustmatch);
-            }
-            return;
-        }
-        if ($rsp->{waiting_for_needle}) {
-            my $img = tinycv::read($rsp->{filename});
+        for my $l (@$failed_screens) {
+            my $img = tinycv::read($l->{filename});
+            my $result = $check ? 'unk' : 'fail';
+            $result = 'unk' if ($l != $final_mismatch);
             $autotest::current_test->record_screenfail(
                 img     => $img,
-                needles => $rsp->{candidates},
+                needles => $l->{candidates},
                 tags    => $tags,
-                result  => $check ? undef : 'fail',
-                # do not set overall here as the result will be removed later
+                result  => $result,
+                overall => $check ? undef : 'fail'
             );
-
-            $bmwqemu::waiting_for_new_needle = 1;
-
-            bmwqemu::save_status();
-            $autotest::current_test->save_test_result();
-
-            bmwqemu::diag("continuing");
-
-            $autotest::current_test->remove_last_result();
-
-            $bmwqemu::waiting_for_new_needle = 0;
-            bmwqemu::save_status();
-            my $reload_needles = 0;
-            query_isotovideo('backend_retry_assert_screen', {reload_needles => $reload_needles, timeout => $timeout});
         }
-        my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
-        # sleep the remains of one second
-        $delta = 1 - $delta;
-        sleep $delta if ($delta > 0);
+        if (!$check) {
+            OpenQA::Exception::FailedNeedle->throw(error => "needle(s) '$mustmatch' not found", tags => $mustmatch);
+        }
     }
-    return;    # never reached
+    else {
+        die "unexpected response " . bmwqemu::pp($rsp);
+    }
+    return;
 }
 
 =head2 assert_screen
