@@ -193,13 +193,22 @@ use IO::Select;
 my $s = IO::Select->new();
 $s->add($testfd);
 $s->add($cfd);
+$s->add($bmwqemu::backend->{from_child});
 
 # now we have everything, give the tests a go
 $testfd->write("GO\n");
 
-my $loop    = 1;
+my $loop = 1;
+
+# timeout for the select (only set for check_screens)
 my $timeout = undef;
-my $tags    = undef;
+
+# marks a running check_screen
+my $tags = undef;
+
+# set to the socket we have to send replies to when the backend is done
+my $backend_requester = undef;
+
 while ($loop) {
     my ($reads, $writes, $exceps) = IO::Select::select($s, undef, $s, $timeout);
     for my $r (@$reads) {
@@ -209,11 +218,17 @@ while ($loop) {
             $loop = 0;
             last;
         }
+        if ($r == $bmwqemu::backend->{from_child}) {
+            myjsonrpc::send_json($backend_requester, {ret => $rsp->{rsp}});
+            $backend_requester = undef;
+            next;
+        }
         if ($rsp->{cmd} =~ m/^backend_(.*)/) {
+            die "we need to implement a backend queue" if $backend_requester;
+            $backend_requester = $r;
             my $cmd = $1;
             delete $rsp->{cmd};
-            my $brsp = $bmwqemu::backend->_send_json({cmd => $cmd, arguments => $rsp});
-            myjsonrpc::send_json($r, {ret => $brsp});
+            myjsonrpc::send_json($bmwqemu::backend->{to_child}, {cmd => $cmd, arguments => $rsp});
             next;
         }
         if ($rsp->{cmd} eq 'set_current_test') {
@@ -248,7 +263,7 @@ while ($loop) {
 
         if ($rsp->{cmd} eq 'interactive') {
             # interactive is boolean
-            $interactive = $rsp->{state} ? 1 : 0;
+            $interactive = $rsp->{params}->{state} ? 1 : 0;
             myjsonrpc::send_json($r, {interactive => $interactive});
             next;
         }
