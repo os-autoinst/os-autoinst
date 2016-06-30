@@ -30,7 +30,7 @@ sub send_json {
     my $JSON = JSON->new()->convert_blessed();
     my $json = $JSON->encode($cmd);
 
-    cluck "$$: send_json $json";
+    #cluck "$$: send_json $json";
     my $wb = syswrite($to_fd, "$json");
     die "syswrite failed $!" unless ($wb == length($json));
     return;
@@ -72,7 +72,7 @@ sub read_json {
                 return;
             }
             use Data::Dumper;
-            bmwqemu::diag("read_json " . Dumper($hash));
+            #bmwqemu::diag("read_json " . Dumper($hash));
             return $hash;
         }
 
@@ -80,7 +80,6 @@ sub read_json {
         my @res = $s->can_read;
         unless (@res) {
             my $E = $!;    # save the error
-            backend::baseclass::write_crash_file();
             confess "ERROR: timeout reading JSON reply: $E\n";
         }
 

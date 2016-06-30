@@ -43,8 +43,7 @@ __PACKAGE__->mk_accessors(
     qw(
       update_request_interval last_update_request screenshot_interval
       last_screenshot _last_screenshot_name last_image
-      reference_screenshot interactive_mode
-      assert_screen_tags assert_screen_needles assert_screen_deadline
+      reference_screenshot assert_screen_tags assert_screen_needles assert_screen_deadline
       assert_screen_fails assert_screen_last_check stall_detected
       reload_needles
       ));
@@ -894,12 +893,6 @@ sub cont_vm {
 sub last_screenshot_name {
     my ($self, $args) = @_;
     return {filename => $self->write_img($self->last_image, $self->_last_screenshot_name)};
-}
-
-sub interactive_assert_screen {
-    my ($self, $args) = @_;
-    $self->interactive_mode($args->{interactive});
-    return;
 }
 
 sub stop_assert_screen {

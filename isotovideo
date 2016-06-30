@@ -273,7 +273,14 @@ while ($loop) {
             myjsonrpc::send_json($r, {ret => 0});
             next;
         }
-
+        if ($rsp->{cmd} eq 'continue_waitforneedle') {
+            next;
+        }
+        if ($rsp->{cmd} eq 'reload_needles') {
+            $bmwqemu::backend->_send_json({cmd => 'reload_needles_and_retry'});
+            myjsonrpc::send_json($r, {ret => 0});
+            next;
+        }
         die "Unknown command $rsp->{cmd}";
     }
 
