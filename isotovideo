@@ -133,9 +133,6 @@ sub init_backend {
     return $bmwqemu::backend;
 }
 
-my $interactive = 0;
-my $current_test_name;
-
 $SIG{ALRM} = \&signalhandler;
 $SIG{TERM} = \&signalhandler;
 $SIG{INT}  = \&signalhandler;
@@ -198,16 +195,56 @@ $s->add($bmwqemu::backend->{from_child});
 # now we have everything, give the tests a go
 $testfd->write("GO\n");
 
+my $interactive = 0;
+my $needinput   = 0;
+
+my $current_test_name;
+
 my $loop = 1;
 
 # timeout for the select (only set for check_screens)
 my $timeout = undef;
 
 # marks a running check_screen
-my $tags = undef;
+our $tags = undef;
 
 # set to the socket we have to send replies to when the backend is done
 my $backend_requester = undef;
+
+sub check_asserted_screen {
+    my ($force_timeout) = @_;
+
+    my ($seconds, $microseconds) = gettimeofday;
+    my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'});
+    # the test needs that information
+    $rsp->{tags} = $tags;
+    if ($rsp->{found}) {
+        myjsonrpc::send_json($testfd, {ret => $rsp});
+        $tags = $timeout = undef;
+    }
+    elsif ($rsp->{timeout}) {
+        if ($interactive && !$force_timeout) {
+            # now get fancy
+            $bmwqemu::backend->_send_json({cmd => 'freeze_vm'});
+            $needinput = 1;
+        }
+        else {
+            myjsonrpc::send_json($testfd, {ret => $rsp});
+            $tags = undef;
+        }
+        $timeout = undef;
+    }
+    else {
+        my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
+        if ($delta > 0) {
+            # sleep the remains of one second
+            $timeout = 1 - $delta;
+        }
+        else {
+            $timeout = 0;
+        }
+    }
+}
 
 while ($loop) {
     my ($reads, $writes, $exceps) = IO::Select::select($s, undef, $s, $timeout);
@@ -256,7 +293,7 @@ while ($loop) {
         if ($rsp->{cmd} eq 'status') {
             my $result = {tags => $tags, running => $current_test_name};
             $result->{interactive} = $interactive;
-            $result->{needinput}   = 0;
+            $result->{needinput}   = $needinput;
             myjsonrpc::send_json($r, $result);
             next;
         }
@@ -274,6 +311,13 @@ while ($loop) {
             next;
         }
         if ($rsp->{cmd} eq 'continue_waitforneedle') {
+            $needinput = 0;
+            $timeout   = .1;
+            # tell backend to retry
+            $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen'});
+            # that's enough for the webui to know
+            myjsonrpc::send_json($r, {ret => 0});
+            check_asserted_screen(1);
             next;
         }
         if ($rsp->{cmd} eq 'reload_needles') {
@@ -284,29 +328,8 @@ while ($loop) {
         die "Unknown command $rsp->{cmd}";
     }
 
-    if (defined $tags) {
-        my ($seconds, $microseconds) = gettimeofday;
-        my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'});
-        # the test needs that information
-        $rsp->{tags} = $tags;
-        if ($rsp->{found}) {
-            myjsonrpc::send_json($testfd, {ret => $rsp});
-            $tags = $timeout = undef;
-        }
-        elsif ($rsp->{timeout}) {
-            myjsonrpc::send_json($testfd, {ret => $rsp});
-            $tags = $timeout = undef;
-        }
-        else {
-            my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
-            if ($delta > 0) {
-                # sleep the remains of one second
-                $timeout = 1 - $delta;
-            }
-            else {
-                $timeout = 0;
-            }
-        }
+    if (defined $tags && !$needinput) {
+        check_asserted_screen;
     }
 }
 close $testfd;

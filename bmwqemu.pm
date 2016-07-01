@@ -52,10 +52,7 @@ our $idle_timeout    = 19;    # wait_idle 0 makes no sense
 
 my @ocrrect;
 
-our $interactive_mode;
-our $waiting_for_new_needle;
 our $screenshotpath = "qemuscreenshot";
-
 
 # global vars
 
