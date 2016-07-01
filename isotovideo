@@ -226,6 +226,8 @@ sub check_asserted_screen {
         if ($interactive && !$force_timeout) {
             # now get fancy
             $bmwqemu::backend->_send_json({cmd => 'freeze_vm'});
+            $rsp->{saveresult} = 1;
+            myjsonrpc::send_json($testfd, {ret => $rsp});
             $needinput = 1;
         }
         else {

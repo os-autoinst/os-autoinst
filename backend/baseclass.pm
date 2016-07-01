@@ -829,7 +829,9 @@ sub check_asserted_screen {
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
         push(@$failed_screens, [$img, $failed_candidates, 0, 1000, $img_filename]);
-        return $self->_failed_screens_to_json;
+        my $hash = $self->_failed_screens_to_json;
+        $hash->{filename} = $self->write_img($img, $img_filename);
+        return $hash;
     }
 
     if ($search_ratio == 1) {
@@ -893,11 +895,6 @@ sub cont_vm {
 sub last_screenshot_name {
     my ($self, $args) = @_;
     return {filename => $self->write_img($self->last_image, $self->_last_screenshot_name)};
-}
-
-sub stop_assert_screen {
-    my ($self, $args) = @_;
-    return;
 }
 
 sub retry_assert_screen {

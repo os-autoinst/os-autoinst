@@ -142,16 +142,27 @@ sub record_soft_failure {
     return;
 }
 
-sub _check_or_assert {
-    my ($mustmatch, $timeout, $check) = @_;
-    $timeout = bmwqemu::scale_timeout($timeout);
+sub _check_backend_response {
+    my ($rsp, $check, $timeout, $mustmatch) = @_;
 
-    die "current_test undefined" unless $autotest::current_test;
-
-    my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, timeout => $timeout, check => $check});
     my $tags = $rsp->{tags};
 
-    if ($rsp->{found}) {
+    if ($rsp->{saveresult}) {
+        my $img = tinycv::read($rsp->{filename});
+        $autotest::current_test->record_screenfail(
+            img     => $img,
+            needles => $rsp->{candidates},
+            tags    => $tags,
+            result  => $check ? undef : 'fail',
+            # do not set overall here as the result will be removed later
+        );
+        $autotest::current_test->save_test_result();
+        # now back into waiting for the backend
+        $rsp = myjsonrpc::read_json($autotest::isotovideo);
+        $rsp->{tags} = $tags;
+        return _check_backend_response($rsp, $check, $timeout, $mustmatch);
+    }
+    elsif ($rsp->{found}) {
         my $foundneedle = $rsp->{found};
         # convert the needle back to an object
         $foundneedle->{needle} = needle->new($foundneedle->{needle});
@@ -190,6 +201,17 @@ sub _check_or_assert {
         die "unexpected response " . bmwqemu::pp($rsp);
     }
     return;
+}
+
+sub _check_or_assert {
+    my ($mustmatch, $timeout, $check) = @_;
+    $timeout = bmwqemu::scale_timeout($timeout);
+
+    die "current_test undefined" unless $autotest::current_test;
+
+    my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, timeout => $timeout, check => $check});
+    # seperate function because it needs to call itself
+    return _check_backend_response($rsp, $check, $timeout, $mustmatch);
 }
 
 =head2 assert_screen
