@@ -603,9 +603,6 @@ sub start_qemu {
         if ($use_usb_kbd) {
             push(@params, qw/-device usb-kbd/);
         }
-        if ($vars->{FDD}) {
-            push(@params, '-drive', "file=$vars->{FDD},index=0,if=floppy");
-        }
         if ($vars->{QEMUTHREADS}) {
             push(@params, "-smp", $vars->{QEMUCPUS} . ",threads=" . $vars->{QEMUTHREADS});
         }
