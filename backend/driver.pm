@@ -76,6 +76,7 @@ sub start {
         $SIG{HUP}  = 'DEFAULT';
         $SIG{CHLD} = 'DEFAULT';
 
+        $0 = "$0: backend";
         $self->{backend}->run(fileno($self->{from_parent}), fileno($self->{to_parent}));
         _exit(0);
     }

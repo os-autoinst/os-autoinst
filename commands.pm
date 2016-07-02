@@ -195,7 +195,7 @@ sub current_script {
 sub isotovideo_command {
     my ($self) = @_;
     my $cmd = $self->param('command');
-    return $self->render_not_found unless grep { $cmd eq $_ } qw/interactive stop_waitforneedle continue_waitforneedle reload_needles/;
+    return $self->reply->not_found unless grep { $cmd eq $_ } qw/interactive stop_waitforneedle continue_waitforneedle reload_needles/;
     myjsonrpc::send_json($isotovideo, {cmd => $cmd, params => $self->req->query_params->to_hash});
     $self->render(json => myjsonrpc::read_json($isotovideo));
     return;
@@ -276,6 +276,7 @@ sub start_server {
 
     if ($pid == 0) {
         close($child);
+        $0 = "$0: commands";
         run_daemon($port);
         _exit(0);
     }

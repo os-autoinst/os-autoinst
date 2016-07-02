@@ -80,21 +80,12 @@ sub signalhandler {
 
     my ($sig) = @_;
     diag("$$: signalhandler got $sig");
-    if ($autotest::running) {
-        $autotest::running->fail_if_running();
-        $autotest::running = undef;
-    }
     if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
         diag("$$: killing backend process $bmwqemu::backend->{backend_pid}");
         kill('SIGTERM', $bmwqemu::backend->{backend_pid});
         waitpid($bmwqemu::backend->{backend_pid}, 0);
         diag("$$: done with backend process");
         $bmwqemu::backend->{backend_pid} = 0;
-    }
-    # make sure the currently running test is shown as failed
-    if (my $test = bmwqemu::current_test()) {
-        $test->fail_if_running();
-        $test->save_test_result();
     }
     if (defined $cpid) {
         diag("$$: killing commands process $cpid");

@@ -28,7 +28,6 @@ use POSIX qw(_exit);
 
 our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
-our $running;      # currently running test or undef
 our $isotovideo;
 
 sub loadtest {
@@ -139,6 +138,7 @@ sub start_process {
     die "cannot fork: $!" unless defined $testpid;
     close $child;
 
+    $0 = "$0: autotest";
     my $line = <$isotovideo>;
     if (!$line) {
         _exit(0);
