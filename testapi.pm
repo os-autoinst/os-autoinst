@@ -158,7 +158,7 @@ sub _check_backend_response {
         );
         $autotest::current_test->save_test_result();
         # now back into waiting for the backend
-        $rsp = myjsonrpc::read_json($autotest::isotovideo);
+        $rsp = myjsonrpc::read_json($autotest::isotovideo)->{ret};
         $rsp->{tags} = $tags;
         return _check_backend_response($rsp, $check, $timeout, $mustmatch);
     }

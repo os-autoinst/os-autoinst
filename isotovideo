@@ -303,19 +303,15 @@ while ($loop) {
             myjsonrpc::send_json($r, {ret => 0});
             next;
         }
-        if ($rsp->{cmd} eq 'continue_waitforneedle') {
+        if ($rsp->{cmd} eq 'continue_waitforneedle' || $rsp->{cmd} eq 'reload_needles') {
             $needinput = 0;
             $timeout   = .1;
+            my $reload = $rsp->{cmd} eq 'reload_needles';
             # tell backend to retry
-            $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen'});
+            $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen', arguments => {reload_needles => $reload}});
             # that's enough for the webui to know
             myjsonrpc::send_json($r, {ret => 0});
             check_asserted_screen(1);
-            next;
-        }
-        if ($rsp->{cmd} eq 'reload_needles') {
-            $bmwqemu::backend->_send_json({cmd => 'reload_needles_and_retry'});
-            myjsonrpc::send_json($r, {ret => 0});
             next;
         }
         die "Unknown command $rsp->{cmd}";
