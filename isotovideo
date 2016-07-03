@@ -80,6 +80,7 @@ sub signalhandler {
 
     my ($sig) = @_;
     diag("$$: signalhandler got $sig");
+    bmwqemu::stop_vm();
     if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
         diag("$$: killing backend process $bmwqemu::backend->{backend_pid}");
         kill('SIGTERM', $bmwqemu::backend->{backend_pid});

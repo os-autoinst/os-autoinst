@@ -32,7 +32,7 @@ sub send_json {
 
     #cluck "$$: send_json $json";
     my $wb = syswrite($to_fd, "$json");
-    die "syswrite failed $!" unless ($wb == length($json));
+    confess "syswrite failed $!" unless ($wb && $wb == length($json));
     return;
 }
 
