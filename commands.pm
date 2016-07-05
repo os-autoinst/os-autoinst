@@ -217,6 +217,7 @@ sub run_daemon {
 
     # avoid leaking token
     app->mode('production');
+    app->log->level('info');
 
     my $r          = app->routes;
     my $token_auth = $r->route("/$bmwqemu::vars{JOBTOKEN}");
