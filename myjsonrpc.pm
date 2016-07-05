@@ -23,14 +23,12 @@ use bmwqemu ();
 sub send_json {
     my ($to_fd, $cmd) = @_;
 
-    # TODO: make this a class object
     # allow regular expressions to be automatically converted into
     # strings, using the Regex::TO_JSON function as defined at the end
     # of this file.
     my $JSON = JSON->new()->convert_blessed();
     my $json = $JSON->encode($cmd);
 
-    #cluck "$$: send_json $json";
     my $wb = syswrite($to_fd, "$json");
     confess "syswrite failed $!" unless ($wb && $wb == length($json));
     return;
@@ -57,8 +55,6 @@ sub read_json {
 
     my $hash;
 
-    # starting a IPMI host can take a while, so we need to be patient
-
     # the goal here is to find the end of the next valid JSON - and don't
     # add more data to it. As the backend sends things unasked, we might
     # run into the next message otherwise
@@ -71,8 +67,6 @@ sub read_json {
                 print "received magic close\n";
                 return;
             }
-            use Data::Dumper;
-            #bmwqemu::diag("read_json " . Dumper($hash));
             return $hash;
         }
 

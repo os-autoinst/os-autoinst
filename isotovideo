@@ -149,9 +149,6 @@ $testapi::distri ||= distribution->new;
 
 testapi::init();
 
-use Data::Dumper;
-print Dumper($testapi::distri);
-
 # init part
 bmwqemu::save_vars();
 
