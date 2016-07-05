@@ -292,6 +292,13 @@ while ($loop) {
         if ($rsp->{cmd} eq 'interactive') {
             # interactive is boolean
             $interactive = $rsp->{params}->{state} ? 1 : 0;
+            if (!$interactive && $needinput) {
+                # need to continue the VM
+                $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen'});
+                $needinput = 0;
+                $timeout   = .1;
+                check_asserted_screen(1);
+            }
             myjsonrpc::send_json($r, {interactive => $interactive});
             next;
         }
