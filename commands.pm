@@ -23,6 +23,7 @@ use Try::Tiny;
 use Socket;
 use POSIX qw(_exit);
 use autodie qw(:all);
+use myjsonrpc;
 
 BEGIN {
     # https://github.com/os-autoinst/openQA/issues/450
@@ -193,19 +194,23 @@ sub current_script {
 }
 
 sub isotovideo_command {
-    my ($self) = @_;
-    my $cmd = $self->param('command');
-    return $self->reply->not_found unless grep { $cmd eq $_ } qw/interactive stop_waitforneedle continue_waitforneedle reload_needles/;
-    myjsonrpc::send_json($isotovideo, {cmd => $cmd, params => $self->req->query_params->to_hash});
-    $self->render(json => myjsonrpc::read_json($isotovideo));
+    # $c is the lite controller - not the package
+    my ($c, $commands) = @_;
+    my $cmd = $c->param('command');
+    return $c->reply->not_found unless grep { $cmd eq $_ } @$commands;
+    myjsonrpc::send_json($isotovideo, {cmd => $cmd, params => $c->req->query_params->to_hash});
+    $c->render(json => myjsonrpc::read_json($isotovideo));
     return;
 }
 
-sub isotovideo_status {
-    my ($self) = @_;
-    myjsonrpc::send_json($isotovideo, {cmd => 'status'});
-    $self->render(json => myjsonrpc::read_json($isotovideo));
-    return;
+sub isotovideo_get {
+    my ($c) = @_;
+    return isotovideo_command($c, [qw/status version/]);
+}
+
+sub isotovideo_post {
+    my ($c) = @_;
+    return isotovideo_command($c, [qw/interactive stop_waitforneedle continue_waitforneedle reload_needles/]);
 }
 
 sub run_daemon {
@@ -241,8 +246,8 @@ sub run_daemon {
     $token_auth->get('/assets/#assettype/#assetname'          => \&get_asset);
     $token_auth->get('/assets/#assettype/#assetname/*relpath' => \&get_asset);
 
-    $token_auth->get('/isotovideo/status' => \&isotovideo_status);
-    $token_auth->post('/isotovideo/#command' => \&isotovideo_command);
+    $token_auth->get('/isotovideo/#command' => \&isotovideo_get);
+    $token_auth->post('/isotovideo/#command' => \&isotovideo_post);
 
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');
