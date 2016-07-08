@@ -22,7 +22,8 @@ use ocr;
 use Time::HiRes;
 use JSON;
 use POSIX;
-use testapi ();
+use testapi  ();
+use autotest ();
 
 # enable strictures and warnings in all tests globaly
 sub import {
@@ -129,7 +130,7 @@ sub record_screenmatch {
     if ($match->{needle}->has_property('workaround')) {
         $result->{dent} = 1;
         $self->{dents}++;
-        bmwqemu::diag "needle '$h->{name}' is a workaround";
+        bmwqemu::diag("needle '$h->{name}' is a workaround");
     }
 
     # Hack to make it obvious that some test passed by applying a hack
@@ -239,7 +240,6 @@ sub result {
 sub start() {
     my ($self) = @_;
     $self->{running} = 1;
-    $bmwqemu::backend->set_serial_offset();
     autotest::set_current_test($self);
 }
 
@@ -293,7 +293,7 @@ sub run_post_fail {
     warn $msg;
     $self->{post_fail_hook_running} = 1;
     eval { $self->post_fail_hook; };
-    bmwqemu::diag "post_fail_hook failed: $@\n" if $@;
+    bmwqemu::diag("post_fail_hook failed: $@") if $@;
     $self->{post_fail_hook_running} = 0;
     $self->fail_if_running();
     die $msg . "\n";
@@ -441,7 +441,7 @@ internal function to add a screenshot to an existing result structure
 sub _result_add_screenshot {
     my ($self, $result) = @_;
 
-    my $img = $bmwqemu::backend->last_screenshot_name->{filename};
+    my $img = autotest::query_isotovideo('backend_last_screenshot_name')->{filename};
     return $result unless $img;
 
     $img = tinycv::read($img);
@@ -483,7 +483,7 @@ sub stop_audiocapture {
     my ($self) = @_;
 
     bmwqemu::log_call();
-    $bmwqemu::backend->stop_audiocapture;
+    autotest::query_isotovideo('backend_stop_audiocapture');
 
     my $result = {
         audio  => $self->{wav_fn},
@@ -564,7 +564,7 @@ sub rollback_activated_consoles {
         # the backend will only reset its state, and call activate
         # the next time - the console itself might actually not be
         # able to activate a 2nd time, but that's up to the console class
-        $bmwqemu::backend->reset_console({testapi_console => $console});
+        autotest::query_isotovideo('backend_reset_console', {testapi_console => $console});
     }
     return;
 }

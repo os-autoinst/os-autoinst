@@ -19,6 +19,8 @@ package commands;
 use strict;
 use warnings;
 require IPC::System::Simple;
+use Try::Tiny;
+use Socket;
 use POSIX qw(_exit);
 use autodie qw(:all);
 
@@ -33,6 +35,9 @@ use Mojo::IOLoop;
 use Mojo::Server::Daemon;
 
 use File::Basename;
+
+# a socket opened to isotovideo
+my $isotovideo;
 
 # borrowed from obs with permission from mls@suse.de to license as
 # GPLv2+
@@ -182,10 +187,25 @@ sub upload_file {
     return $self->render(text => "OK: $filename\n");
 }
 
-
 sub current_script {
     my ($self) = @_;
     return $self->reply->asset(Mojo::Asset::File->new(path => 'current_script'));
+}
+
+sub isotovideo_command {
+    my ($self) = @_;
+    my $cmd = $self->param('command');
+    return $self->reply->not_found unless grep { $cmd eq $_ } qw/interactive stop_waitforneedle continue_waitforneedle reload_needles/;
+    myjsonrpc::send_json($isotovideo, {cmd => $cmd, params => $self->req->query_params->to_hash});
+    $self->render(json => myjsonrpc::read_json($isotovideo));
+    return;
+}
+
+sub isotovideo_status {
+    my ($self) = @_;
+    myjsonrpc::send_json($isotovideo, {cmd => 'status'});
+    $self->render(json => myjsonrpc::read_json($isotovideo));
+    return;
 }
 
 sub run_daemon {
@@ -197,6 +217,7 @@ sub run_daemon {
 
     # avoid leaking token
     app->mode('production');
+    app->log->level('info');
 
     my $r          = app->routes;
     my $token_auth = $r->route("/$bmwqemu::vars{JOBTOKEN}");
@@ -220,6 +241,9 @@ sub run_daemon {
     $token_auth->get('/assets/#assettype/#assetname'          => \&get_asset);
     $token_auth->get('/assets/#assettype/#assetname/*relpath' => \&get_asset);
 
+    $token_auth->get('/isotovideo/status' => \&isotovideo_status);
+    $token_auth->post('/isotovideo/#command' => \&isotovideo_command);
+
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');
 
@@ -229,21 +253,37 @@ sub run_daemon {
     my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://*:$port"]);
     $daemon->silent;
     app->log->info("Daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
-    $daemon->run;
+    try {
+        $daemon->run;
+    }
+    catch {
+        print "failed to run daemon\n";
+        _exit(1);
+    };
 }
 
 sub start_server {
     my ($port) = @_;
 
+    my $child;
+    socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
+      or die "socketpair: $!";
+
+    $child->autoflush(1);
+    $isotovideo->autoflush(1);
+
     my $pid = fork();
     die "fork failed" unless defined $pid;
 
     if ($pid == 0) {
+        close($child);
+        $0 = "$0: commands";
         run_daemon($port);
         _exit(0);
     }
+    close($isotovideo);
 
-    return $pid;
+    return ($pid, $child);
 }
 
 1;

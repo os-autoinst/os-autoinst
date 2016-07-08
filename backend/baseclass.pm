@@ -28,6 +28,7 @@ use bmwqemu;
 use IO::Select;
 require IPC::System::Simple;
 use autodie qw(:all);
+use myjsonrpc;
 
 use Net::SSH2;
 use feature qw(say);
@@ -42,8 +43,7 @@ __PACKAGE__->mk_accessors(
     qw(
       update_request_interval last_update_request screenshot_interval
       last_screenshot _last_screenshot_name last_image
-      reference_screenshot interactive_mode
-      assert_screen_tags assert_screen_needles assert_screen_deadline
+      reference_screenshot assert_screen_tags assert_screen_needles assert_screen_deadline
       assert_screen_fails assert_screen_last_check stall_detected
       reload_needles
       ));
@@ -242,14 +242,6 @@ sub start_encoder {
     return;
 }
 
-
-sub post_start_hook {
-    my ($self) = @_;
-
-    # ignored by default
-    return {};
-}
-
 sub start_vm {
     my ($self) = @_;
     $self->{started} = 1;
@@ -330,12 +322,6 @@ sub status            { notimplemented }
 
 ## MAY be overwritten:
 
-sub get_backend_info {
-    # returns hashref
-    my ($self) = @_;
-    return {};
-}
-
 sub cpu_stat {
     # vm's would return
     # (userstat, systemstat)
@@ -414,7 +400,6 @@ sub close_pipes {
 
     return unless $self->{rsppipe};
 
-    # XXX: perl does not really close the fd here due to threads!?
     print "sending magic and exit\n";
     $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || die "close $!\n";
@@ -427,7 +412,7 @@ sub check_socket {
 
     if ($self->{cmdpipe} && $fh == $self->{cmdpipe}) {
         return 1 if $write;
-        my $cmd = backend::driver::_read_json($self->{cmdpipe});
+        my $cmd = myjsonrpc::read_json($self->{cmdpipe});
 
         if ($cmd->{cmd}) {
             my $rsp = $self->handle_command($cmd);
@@ -755,6 +740,13 @@ sub _time_to_assert_screen_deadline {
     return $self->assert_screen_deadline - time;
 }
 
+sub reduce_deadline {
+    my ($self) = @_;
+
+    $self->assert_screen_deadline(time);
+    return;
+}
+
 sub _failed_screens_to_json {
     my ($self) = @_;
 
@@ -816,18 +808,7 @@ sub check_asserted_screen {
 
     my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio);
 
-    # get into waitforneedle immediately in case clicked stop_waitforneedle
-    # ie. interactive_mode: ENABLED; timeout: NO; needle has matched: UNKNOWN; stop_waitforneedle: ENABLED
-    if ($self->interactive_mode && -e $bmwqemu::control_files{stop_waitforneedle} && !$self->reload_needles) {
-        $self->freeze_vm();
-        return {waiting_for_needle => 1, filename => $self->write_img($img, $img_filename), candidates => $failed_candidates};
-    }
-
     if ($foundneedle) {
-        # clean up continue_waitforneedle control file if needle has matched
-        if (-e $bmwqemu::control_files{continue_waitforneedle}) {
-            unlink($bmwqemu::control_files{continue_waitforneedle});
-        }
         $self->assert_screen_last_check(undef);
         return {filename => $self->write_img($img, $img_filename), found => $foundneedle, candidates => $failed_candidates};
     }
@@ -841,23 +822,6 @@ sub check_asserted_screen {
         # make sure we recheck later
         $self->assert_screen_last_check(undef);
 
-        # no needle is matched then get into waitforneedle
-        # if continue_waitforneedle control file is exist, do not freeze but continue. in this situation,
-        # stop_waitforneedle will be enabled for sure.
-        if ($self->interactive_mode && !-e $bmwqemu::control_files{continue_waitforneedle}) {
-            # creating stop_waitforneedle control file in case can not find the matched needle and interactive mode is enabled
-            # ie. interactive_mode: ENABLED; timeout: YES; needle has matched: NO; stop_waitforneedle: DISABLED
-            if (!-e $bmwqemu::control_files{stop_waitforneedle}) {
-                if (open(my $f, '>', $bmwqemu::control_files{stop_waitforneedle})) {
-                    close $f;
-                }
-                else {
-                    warn "can't stop waitforneedle: $!";
-                }
-            }
-            $self->freeze_vm();
-            return {waiting_for_needle => 1, filename => $self->write_img($img, $img_filename), candidates => $failed_candidates};
-        }
         if ($self->stall_detected) {
             backend::baseclass::write_crash_file();
             bmwqemu::mydie "assert_screen fails, but we detected a timeout in the process, so we abort";
@@ -865,7 +829,9 @@ sub check_asserted_screen {
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
         push(@$failed_screens, [$img, $failed_candidates, 0, 1000, $img_filename]);
-        return $self->_failed_screens_to_json;
+        my $hash = $self->_failed_screens_to_json;
+        $hash->{filename} = $self->write_img($img, $img_filename);
+        return $hash;
     }
 
     if ($search_ratio == 1) {
@@ -929,17 +895,6 @@ sub cont_vm {
 sub last_screenshot_name {
     my ($self, $args) = @_;
     return {filename => $self->write_img($self->last_image, $self->_last_screenshot_name)};
-}
-
-sub interactive_assert_screen {
-    my ($self, $args) = @_;
-    $self->interactive_mode($args->{interactive});
-    return;
-}
-
-sub stop_assert_screen {
-    my ($self, $args) = @_;
-    return;
 }
 
 sub retry_assert_screen {

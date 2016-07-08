@@ -36,12 +36,15 @@ BEGIN {
 use bmwqemu;
 use needle;
 use autotest;
+use commands;
 use testapi qw(diag);
 use Getopt::Std;
 require IPC::System::Simple;
 use autodie qw(:all);
 use Cwd;
 use POSIX qw(:sys_wait_h _exit);
+use Carp qw(cluck);
+use Time::HiRes qw(gettimeofday tv_interval sleep);
 
 # avoid paranoia
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
@@ -70,36 +73,21 @@ bmwqemu::init();
 die "CASEDIR environment variable not set, unknown test case directory" if !defined $bmwqemu::vars{CASEDIR};
 die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
 
-bmwqemu::clean_control_files();
-
-my $init = 1;
-
 my $cpid;
-my $backend;
+my $cfd;
 
 # all so ugly ...
 sub signalhandler {
 
     my ($sig) = @_;
     diag("$$: signalhandler got $sig");
-    if ($autotest::running) {
-        $autotest::running->fail_if_running();
-        $autotest::running = undef;
-    }
-    if (defined $backend && $backend->{backend_pid}) {
-        diag("$$: killing backend process $backend->{backend_pid}");
-        kill('SIGTERM', $backend->{backend_pid});
-        waitpid($backend->{backend_pid}, 0);
+    bmwqemu::stop_vm();
+    if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
+        diag("$$: killing backend process $bmwqemu::backend->{backend_pid}");
+        kill('SIGTERM', $bmwqemu::backend->{backend_pid});
+        waitpid($bmwqemu::backend->{backend_pid}, 0);
         diag("$$: done with backend process");
-        $backend->{backend_pid} = 0;
-    }
-    # mark it as no longer working
-    delete $ENV{WORKERID};
-    bmwqemu::save_status();
-    # make sure the currently running test is shown as failed
-    if (my $test = bmwqemu::current_test()) {
-        $test->fail_if_running();
-        $test->save_test_result();
+        $bmwqemu::backend->{backend_pid} = 0;
     }
     if (defined $cpid) {
         diag("$$: killing commands process $cpid");
@@ -120,22 +108,33 @@ sub signalhandler_chld {
             diag("$$: commands webserver died");
             $cpid = 0;
         }
-        else {
+        if ($bmwqemu::backend->{backend_pid} && $child == $bmwqemu::backend->{backend_pid}) {
             diag("$$: backend $child died");
-            $backend->{backend_pid} = 0;
-            $backend->{to_child}    = undef;
-            $backend->{from_child}  = undef;
+            $bmwqemu::backend->{backend_pid} = 0;
+            $bmwqemu::backend->{to_child}    = undef;
+            $bmwqemu::backend->{from_child}  = undef;
         }
     }
 }
 
-$ENV{MOJO_MAX_MESSAGE_SIZE} = 107741824;
+sub init_backend {
+    my ($name) = @_;
+    $bmwqemu::vars{BACKEND} ||= "qemu";
+    # make sure the needles are initialized before the backend process is started
+    needle::init($bmwqemu::vars{PRODUCTDIR} . "/needles");
+    $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
+    return $bmwqemu::backend;
+}
 
-# start web background server that provides real time information
-# about the ongoing run
-use commands;
+$SIG{ALRM} = \&signalhandler;
+$SIG{TERM} = \&signalhandler;
+$SIG{INT}  = \&signalhandler;
+$SIG{HUP}  = \&signalhandler;
+$SIG{CHLD} = \&signalhandler_chld;
 
-$bmwqemu::vars{BACKEND} ||= "qemu";
+# start the command fork before we get into the backend, the command child
+# is not supposed to talk to the backend directly
+($cpid, $cfd) = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
 
 # Try to load the main.pm from one of the following in this order:
 #  - product dir
@@ -163,41 +162,25 @@ require $bmwqemu::vars{PRODUCTDIR} . "/main.pm";
 # set a default distribution if the tests don't have one
 $testapi::distri ||= distribution->new;
 
-# start the command fork before we get into the backend, the command child
-# is not supposed to talk to the backend directly
-$cpid = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
+testapi::init();
 
 # init part
 bmwqemu::save_vars();
-# make sure the needles are initialized before the backend thread is started
-needle::init($bmwqemu::vars{PRODUCTDIR} . "/needles");
-$backend = bmwqemu::init_backend($bmwqemu::vars{BACKEND});
 
-if ($init) {
-    open(my $fd, ">", "os-autoinst.pid");
-    print $fd "$$\n";
-    close $fd;
+my ($testpid, $testfd) = autotest::start_process();
 
-    # run prestart test code before VM is started
-    if (-f "$bmwqemu::vars{CASEDIR}/prestart.pm") {
-        diag "running prestart step";
-        eval { require $bmwqemu::vars{CASEDIR} . "/prestart.pm"; };
-        if ($@) {
-            diag "prestart step FAIL:";
-            die $@;
-        }
-    }
+init_backend();
 
-    if (!bmwqemu::alive) {
-        bmwqemu::start_vm or die $@;
-    }
+open(my $fd, ">", "os-autoinst.pid");
+print $fd "$$\n";
+close $fd;
+
+if (!$bmwqemu::backend->_send_json({cmd => 'alive'})) {
+    $bmwqemu::backend->start_vm() or die $@;
 }
 
-$SIG{ALRM} = \&signalhandler;
-$SIG{TERM} = \&signalhandler;
-$SIG{INT}  = \&signalhandler;
-$SIG{HUP}  = \&signalhandler;
-$SIG{CHLD} = \&signalhandler_chld;
+# the backend process might have added some defaults for the backend
+bmwqemu::load_vars();
 
 if ($ENV{RUN_VNCVIEWER}) {
     system("vncviewer -shared localhost:" . $bmwqemu::vars{VNC} . " -viewonly &");
@@ -206,24 +189,166 @@ if ($ENV{RUN_DEBUGVIEWER}) {
     system("$bmwqemu::scriptdir/debugviewer/debugviewer qemuscreenshot/last.png &");
 }
 
-require Carp;
+use IO::Select;
+
+my $s = IO::Select->new();
+$s->add($testfd);
+$s->add($cfd);
+$s->add($bmwqemu::backend->{from_child});
+
+# now we have everything, give the tests a go
+$testfd->write("GO\n");
+
+my $interactive = 0;
+my $needinput   = 0;
+
+my $current_test_name;
+
+my $loop = 1;
+
+# timeout for the select (only set for check_screens)
+my $timeout = undef;
+
+# marks a running check_screen
+our $tags = undef;
+
+# set to the socket we have to send replies to when the backend is done
+my $backend_requester = undef;
+
+sub check_asserted_screen {
+    my ($force_timeout) = @_;
+
+    my ($seconds, $microseconds) = gettimeofday;
+    my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'});
+    # the test needs that information
+    $rsp->{tags} = $tags;
+    if ($rsp->{found}) {
+        myjsonrpc::send_json($testfd, {ret => $rsp});
+        $tags = $timeout = undef;
+    }
+    elsif ($rsp->{timeout}) {
+        if ($interactive && !$force_timeout) {
+            # now get fancy
+            $bmwqemu::backend->_send_json({cmd => 'freeze_vm'});
+            $rsp->{saveresult} = 1;
+            myjsonrpc::send_json($testfd, {ret => $rsp});
+            $needinput = 1;
+        }
+        else {
+            myjsonrpc::send_json($testfd, {ret => $rsp});
+            $tags = undef;
+        }
+        $timeout = undef;
+    }
+    else {
+        my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
+        if ($delta > 0) {
+            # sleep the remains of one second
+            $timeout = 1 - $delta;
+        }
+        else {
+            $timeout = 0;
+        }
+    }
+}
+
+while ($loop) {
+    my ($reads, $writes, $exceps) = IO::Select::select($s, undef, $s, $timeout);
+    for my $r (@$reads) {
+        my $rsp = myjsonrpc::read_json($r);
+        if (!defined $rsp) {
+            diag sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($r), fileno($testfd), fileno($cfd));
+            $loop = 0;
+            last;
+        }
+        if ($r == $bmwqemu::backend->{from_child}) {
+            myjsonrpc::send_json($backend_requester, {ret => $rsp->{rsp}});
+            $backend_requester = undef;
+            next;
+        }
+        if ($rsp->{cmd} =~ m/^backend_(.*)/) {
+            die "we need to implement a backend queue" if $backend_requester;
+            $backend_requester = $r;
+            my $cmd = $1;
+            delete $rsp->{cmd};
+            myjsonrpc::send_json($bmwqemu::backend->{to_child}, {cmd => $cmd, arguments => $rsp});
+            next;
+        }
+        if ($rsp->{cmd} eq 'set_current_test') {
+            $bmwqemu::backend->_send_json({cmd => 'set_serial_offset'});
+            $current_test_name = $rsp->{name};
+            myjsonrpc::send_json($r, {ret => 1});
+            next;
+        }
+        if ($rsp->{cmd} eq 'check_screen') {
+            my $mustmatch = $rsp->{mustmatch};
+            my $timeout   = $rsp->{timeout};
+            my $check     = $rsp->{check};
+
+            $tags = $bmwqemu::backend->_send_json(
+                {
+                    cmd       => 'set_tags_to_assert',
+                    arguments => {
+                        mustmatch => $mustmatch,
+                        timeout   => $timeout
+                    }})->{tags};
+            next;
+        }
+
+        ##### HTTP commands
+        if ($rsp->{cmd} eq 'status') {
+            my $result = {tags => $tags, running => $current_test_name};
+            $result->{interactive} = $interactive;
+            $result->{needinput}   = $needinput;
+            myjsonrpc::send_json($r, $result);
+            next;
+        }
+
+        if ($rsp->{cmd} eq 'interactive') {
+            # interactive is boolean
+            $interactive = $rsp->{params}->{state} ? 1 : 0;
+            if (!$interactive && $needinput) {
+                # need to continue the VM
+                $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen'});
+                $needinput = 0;
+                $timeout   = .1;
+                check_asserted_screen(1);
+            }
+            myjsonrpc::send_json($r, {interactive => $interactive});
+            next;
+        }
+
+        if ($rsp->{cmd} eq 'stop_waitforneedle') {
+            $bmwqemu::backend->_send_json({cmd => 'reduce_deadline'});
+            myjsonrpc::send_json($r, {ret => 0});
+            next;
+        }
+        if ($rsp->{cmd} eq 'continue_waitforneedle' || $rsp->{cmd} eq 'reload_needles') {
+            $needinput = 0;
+            $timeout   = .1;
+            my $reload = $rsp->{cmd} eq 'reload_needles';
+            # tell backend to retry
+            $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen', arguments => {reload_needles => $reload}});
+            # that's enough for the webui to know
+            myjsonrpc::send_json($r, {ret => 0});
+            check_asserted_screen(1);
+            next;
+        }
+        die "Unknown command $rsp->{cmd}";
+    }
+
+    if (defined $tags && !$needinput) {
+        check_asserted_screen;
+    }
+}
+close $testfd;
+kill('SIGTERM', $testpid);
+diag "awaiting death of testpid $testpid";
+waitpid($testpid, 0);
 
 my $r = 0;
-eval { autotest::runalltests(); };
-if ($@) {
-    warn $@;
-    $r = 1;
-}
-else {
-    # this is only for still getting screenshots while
-    # all testscripts would have been already run
-    sleep 10;
-}
-
 diag "isotovideo done" unless $r;
 diag "FAIL" if $r;
-
-$SIG{ALRM} = 'IGNORE';    # ignore ALRM so the readthread doesn't kill us here
 
 my $clean_shutdown;
 eval {
@@ -265,22 +390,6 @@ if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
         }
     }
 }
-
-# run postrun test code after VM is stopped
-if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
-    diag "running postrun step";
-    eval { require "$bmwqemu::vars{CASEDIR}/postrun.pm"; };    ## no critic
-    if ($@) {
-        diag "postrun step FAIL:";
-        warn $@;
-    }
-}
-
-# mark it as no longer working
-delete $ENV{WORKERID};
-
-# Write JSON result
-bmwqemu::save_status();
 
 exit $r;
 # vim: set sw=4 et:

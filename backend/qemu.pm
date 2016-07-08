@@ -40,10 +40,6 @@ sub new {
     $self->{children}    = [];
     $self->{pidfilename} = 'qemu.pid';
 
-    # make sure to set environment variables in the main process
-    # exec uses the %ENV of the main thread
-    $ENV{QEMU_AUDIO_DRV} = "none";
-
     return $self;
 }
 
@@ -648,6 +644,9 @@ sub start_qemu {
         }
         bmwqemu::diag("starting: " . join(" ", @params));
 
+        # don't try to talk to the host's PA
+        $ENV{QEMU_AUDIO_DRV} = "none";
+
         # redirect qemu's output to the parent pipe
         open(STDOUT, ">&", $writer);
         open(STDERR, ">&", $writer);
@@ -670,6 +669,7 @@ sub start_qemu {
         {
             hostname => 'localhost',
             port     => 5900 + $bmwqemu::vars{VNC}});
+
     $vnc->backend($self);
     $self->select_console({testapi_console => 'sut'});
 
@@ -703,7 +703,7 @@ sub start_qemu {
     my $line = $self->_read_hmp;
     print "WELCOME $line\n";
 
-    my $init = backend::driver::_read_json($self->{qmpsocket});
+    my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
     if (0) {
         $hash = $self->handle_qmp_command({execute => 'query-commands'});
@@ -805,7 +805,7 @@ sub handle_qmp_command {
 
     my $hash;
     while (!$hash) {
-        $hash = backend::driver::_read_json($self->{qmpsocket});
+        $hash = myjsonrpc::read_json($self->{qmpsocket});
         if ($hash->{event}) {
             bmwqemu::diag "EVENT " . JSON::to_json($hash);
             # ignore

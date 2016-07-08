@@ -42,8 +42,6 @@ use backend::driver;
 require IPC::System::Simple;
 use autodie qw(:all);
 
-use distribution;
-
 sub mydie;
 
 $| = 1;
@@ -54,18 +52,7 @@ our $idle_timeout    = 19;    # wait_idle 0 makes no sense
 
 my @ocrrect;
 
-our $interactive_mode;
-our $waiting_for_new_needle;
 our $screenshotpath = "qemuscreenshot";
-
-
-# list of files that are used to control the behavior
-our %control_files = (
-    reload_needles_and_retry => "reload_needles_and_retry",
-    interactive_mode         => "interactive_mode",
-    stop_waitforneedle       => "stop_waitforneedle",
-    continue_waitforneedle   => "continue_waitforneedle",
-);
 
 # global vars
 
@@ -117,6 +104,8 @@ our $scriptdir;
 sub init {
     load_vars();
 
+    $bmwqemu::vars{BACKEND} ||= "qemu";
+
     # remove directories for asset upload
     remove_tree("assets_public");
     remove_tree("assets_private");
@@ -152,8 +141,6 @@ sub init {
         }
         die "can't determine test directory for $vars{DISTRI}\n" unless $vars{CASEDIR};
     }
-
-    testapi::init();
 
     # defaults
     $vars{QEMUPORT} ||= 15222;
@@ -212,14 +199,14 @@ sub print_possibly_colored {
     my ($text, $color) = @_;
 
     if (($direct_output && !$istty) || !$direct_output) {
-        $logfd && print $logfd get_timestamp() . "$text\n";
+        $logfd && print $logfd get_timestamp() . "$$ $text\n";
     }
     if ($istty || !$logfd) {
         if ($color) {
-            print STDERR colored(get_timestamp() . $text, $color) . "\n";
+            print STDERR colored(get_timestamp() . "$$ " . $text, $color) . "\n";
         }
         else {
-            print STDERR get_timestamp() . "$text\n";
+            print STDERR get_timestamp() . "$$ $text\n";
         }
     }
     return;
@@ -314,17 +301,6 @@ sub fileContent {
 
 # backend management
 
-sub init_backend {
-    my ($name) = @_;
-    $backend = backend::driver->new($name);
-    return $backend;
-}
-
-sub start_vm() {
-    return unless $backend;
-    return $backend->start_vm();
-}
-
 sub stop_vm() {
     return unless $backend;
     my $ret = $backend->stop();
@@ -341,17 +317,6 @@ sub mydie {
     croak "mydie";
 }
 
-sub alive() {
-    if (defined $backend) {
-
-        # backend will kill me when
-        # backend.run has been deleted
-        return $backend->alive();
-    }
-    return 0;
-}
-
-
 # runtime information gathering functions end
 
 
@@ -363,24 +328,6 @@ sub save_json_file {
     print $fd to_json($result, {pretty => 1});
     close($fd);
     return rename("$fn.new", $fn);
-}
-
-sub save_status {
-    my $result = {};
-    $result->{interactive} = $interactive_mode       ? 1                 : 0;
-    $result->{needinput}   = $waiting_for_new_needle ? 1                 : 0;
-    $result->{running}     = current_test            ? ref(current_test) : '';
-    $result->{backend} = $backend->get_info() if $backend;
-
-    return save_json_file($result, result_dir . "/status.json");
-}
-
-sub clean_control_files {
-    no autodie qw(unlink);    # control files might not exist
-    for my $file (values %control_files) {
-        unlink($file);
-    }
-    return;
 }
 
 sub scale_timeout {

@@ -17,16 +17,18 @@
 package autotest;
 use strict;
 use bmwqemu;
-use basetest;
 use Exporter qw/import/;
-our @EXPORT_OK = qw/loadtest $current_test/;
+our @EXPORT_OK = qw/loadtest $current_test query_isotovideo/;
 
 use File::Basename;
 use File::Spec;
+use Socket;
+use IO::Handle;
+use POSIX qw(_exit);
 
 our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
-our $running;      # currently running test or undef
+our $isotovideo;
 
 sub loadtest {
     my ($script) = @_;
@@ -69,7 +71,7 @@ sub loadtest {
         return unless $test->is_applicable;
         push @testorder, $test;
     }
-    bmwqemu::diag "scheduling $name $script";
+    bmwqemu::diag("scheduling $name $script");
 }
 
 our $current_test;
@@ -77,7 +79,7 @@ our $last_milestone;
 
 sub set_current_test {
     ($current_test) = @_;
-    bmwqemu::save_status();
+    query_isotovideo('set_current_test', {name => ref($current_test)});
 }
 
 sub write_test_order {
@@ -93,19 +95,98 @@ sub write_test_order {
                 script   => $t->{script}});
     }
     bmwqemu::save_json_file(\@result, bmwqemu::result_dir . "/test_order.json");
-
 }
 
 sub make_snapshot {
     my ($sname) = @_;
     bmwqemu::diag("Creating a VM snapshot $sname");
-    return $bmwqemu::backend->save_snapshot({name => $sname});
+    return query_isotovideo('backend_save_snapshot', {name => $sname});
 }
 
 sub load_snapshot {
     my ($sname) = @_;
     bmwqemu::diag("Loading a VM snapshot $sname");
-    return $bmwqemu::backend->load_snapshot({name => $sname});
+    return query_isotovideo('backend_load_snapshot', {name => $sname});
+}
+
+sub run_all {
+    my $r = 0;
+    eval { autotest::runalltests(); };
+    if ($@) {
+        warn $@;
+        $r = 1;
+    }
+    close $isotovideo;
+    _exit(0);
+}
+
+sub start_process {
+    my $child;
+
+    socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
+      or die "socketpair: $!";
+
+    $child->autoflush(1);
+    $isotovideo->autoflush(1);
+
+    my $testpid = fork();
+    if ($testpid) {
+        close $isotovideo;
+        return ($testpid, $child);
+    }
+
+    die "cannot fork: $!" unless defined $testpid;
+    close $child;
+
+    $0 = "$0: autotest";
+    my $line = <$isotovideo>;
+    if (!$line) {
+        _exit(0);
+    }
+    print "GOT $line\n";
+    run_all;
+}
+
+
+# TODO: define use case and reintegrate
+sub prestart_hook {
+    # run prestart test code before VM is started
+    if (-f "$bmwqemu::vars{CASEDIR}/prestart.pm") {
+        bmwqemu::diag "running prestart step";
+        eval { require $bmwqemu::vars{CASEDIR} . "/prestart.pm"; };
+        if ($@) {
+            bmwqemu::diag "prestart step FAIL:";
+            die $@;
+        }
+    }
+}
+
+# TODO: define use case and reintegrate
+sub postrun_hook {
+    # run postrun test code after VM is stopped
+    if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
+        bmwqemu::diag "running postrun step";
+        eval { require "$bmwqemu::vars{CASEDIR}/postrun.pm"; };    ## no critic
+        if ($@) {
+            bmwqemu::diag "postrun step FAIL:";
+            warn $@;
+        }
+    }
+}
+
+sub query_isotovideo {
+    my ($cmd, $args) = @_;
+
+    # deep copy
+    my %json;
+    if ($args) {
+        %json = %$args;
+    }
+    $json{cmd} = $cmd;
+
+    myjsonrpc::send_json($isotovideo, \%json);
+    my $rsp = myjsonrpc::read_json($isotovideo);
+    return $rsp->{ret};
 }
 
 sub runalltests {
@@ -114,7 +195,7 @@ sub runalltests {
 
     my $firsttest           = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded            = 0;
-    my $snapshots_supported = $bmwqemu::backend->can_handle({function => 'snapshots'})->{ret};
+    my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
 
     write_test_order();
 
