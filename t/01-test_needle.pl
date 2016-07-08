@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 49;
+use Test::More tests => 51;
 
 # optional but very useful
 eval 'use Test::More::Color';                 ## no critic
@@ -239,5 +239,23 @@ $needle = needle->new("data/other-desktop-dvd-20140904.json");
 $res    = $img1->search($needle);
 
 ok(!defined $res, "the hot keys don't match");
+
+# match comparison tests
+# note it's important that the workaround needle sort alphabetically
+# *AFTER* the imperfect needle, so it doesn't win 'by accident'
+my $perfect    = needle->new("data/login_sddm.ref.perfect.json");
+my $imperfect  = needle->new("data/login_sddm.ref.imperfect.json");
+my $workaround = needle->new("data/login_sddm.ref.workaround.imperfect.json");
+
+# test that a perfect non-workaround match is preferred to imperfect
+# non-workaround and workaround matches
+$img1 = tinycv::read("data/login_sddm.test.png");
+$res = $img1->search([$perfect, $imperfect, $workaround], 0.9, 0);
+is($res->{needle}->{name}, 'login_sddm.ref.perfect', "perfect match should win");
+
+# test that when two equal matches fight and one is a workaround, that
+# one wins
+$res = $img1->search([$imperfect, $workaround], 0.9, 0);
+is($res->{needle}->{name}, 'login_sddm.ref.workaround.imperfect', "workaround match should win");
 
 # vim: set sw=4 et:

@@ -124,12 +124,15 @@ sub search_ {
 
 # bigger OK is better (0/1)
 # smaller error is better if not OK (0 perfect, 1 totally off)
+# if match is equal quality prefer workaround needle to non-workaround
 # the name doesn't matter, but we prefer alphabetic order
-sub cmp_by_error_ {
+sub cmp_by_error_type_ {
     my $okay = $b->{ok} <=> $a->{ok};
     return $okay if $okay;
     my $error = $a->{error} <=> $b->{error};
     return $error if $error;
+    return -1 if ($a->{needle}->has_property('workaround') && !$b->{needle}->has_property('workaround'));
+    return 1  if ($b->{needle}->has_property('workaround') && !$a->{needle}->has_property('workaround'));
     return $a->{needle}->{name} cmp $b->{needle}->{name};
 }
 
@@ -150,7 +153,7 @@ sub search {
             push @candidates, $found if $found;
         }
 
-        @candidates = sort cmp_by_error_ @candidates;
+        @candidates = sort cmp_by_error_type_ @candidates;
         my $best;
 
         if (@candidates && $candidates[0]->{ok}) {
