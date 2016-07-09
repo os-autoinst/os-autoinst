@@ -70,13 +70,11 @@ sub start {
     die "fork failed" unless defined $pid;
 
     if ($pid == 0) {
-        $SIG{ALRM} = 'DEFAULT';
         $SIG{TERM} = 'DEFAULT';
         $SIG{INT}  = 'DEFAULT';
         $SIG{HUP}  = 'DEFAULT';
         $SIG{CHLD} = 'DEFAULT';
-
-        $0 = "$0: backend";
+        $0         = "$0: backend";
         $self->{backend}->run(fileno($self->{from_parent}), fileno($self->{to_parent}));
         _exit(0);
     }

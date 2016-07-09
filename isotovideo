@@ -45,6 +45,7 @@ use testapi qw(diag);
 use Getopt::Std;
 require IPC::System::Simple;
 use autodie qw(:all);
+no autodie qw(kill);
 use Cwd;
 use POSIX qw(:sys_wait_h _exit);
 use Carp qw(cluck);
@@ -80,24 +81,30 @@ die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
 my $cpid;
 my $cfd;
 
+my $loop = 1;
+
 # all so ugly ...
 sub signalhandler {
 
     my ($sig) = @_;
-    diag("$$: signalhandler got $sig");
+    diag("signalhandler got $sig - loop $loop");
+    if ($loop) {
+        $loop = 0;
+        return;
+    }
     bmwqemu::stop_vm();
     if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
-        diag("$$: killing backend process $bmwqemu::backend->{backend_pid}");
+        diag("killing backend process $bmwqemu::backend->{backend_pid}");
         kill('SIGTERM', $bmwqemu::backend->{backend_pid});
         waitpid($bmwqemu::backend->{backend_pid}, 0);
-        diag("$$: done with backend process");
+        diag("done with backend process");
         $bmwqemu::backend->{backend_pid} = 0;
     }
     if (defined $cpid) {
-        diag("$$: killing commands process $cpid");
+        diag("killing commands process $cpid");
         kill('SIGTERM', $cpid);
         waitpid($cpid, 0);
-        diag("$$: done joining commands process");
+        diag("done joining commands process");
         $cpid = 0;
     }
     _exit(1);
@@ -105,19 +112,23 @@ sub signalhandler {
 
 sub signalhandler_chld {
 
-    diag("$$: got sigchld");
+    diag("got sigchld");
 
     while ((my $child = waitpid(-1, WNOHANG)) > 0) {
         if ($child == $cpid) {
-            diag("$$: commands webserver died");
+            diag("commands webserver died");
+            $loop = 0;
             $cpid = 0;
+            next;
         }
         if ($bmwqemu::backend->{backend_pid} && $child == $bmwqemu::backend->{backend_pid}) {
-            diag("$$: backend $child died");
+            diag("backend $child died");
             $bmwqemu::backend->{backend_pid} = 0;
             $bmwqemu::backend->{to_child}    = undef;
             $bmwqemu::backend->{from_child}  = undef;
+            next;
         }
+        diag("unknown child $child died");
     }
 }
 
@@ -142,7 +153,6 @@ sub calculate_git_hash {
     return $test_git_hash;
 }
 
-$SIG{ALRM} = \&signalhandler;
 $SIG{TERM} = \&signalhandler;
 $SIG{INT}  = \&signalhandler;
 $SIG{HUP}  = \&signalhandler;
@@ -215,8 +225,6 @@ my $needinput   = 0;
 
 my $current_test_name;
 
-my $loop = 1;
-
 # timeout for the select (only set for check_screens)
 my $timeout = undef;
 
@@ -263,6 +271,8 @@ sub check_asserted_screen {
     }
 }
 
+my $r = 0;
+
 while ($loop) {
     my ($reads, $writes, $exceps) = IO::Select::select($s, undef, $s, $timeout);
     for my $r (@$reads) {
@@ -289,6 +299,17 @@ while ($loop) {
             $bmwqemu::backend->_send_json({cmd => 'set_serial_offset'});
             $current_test_name = $rsp->{name};
             myjsonrpc::send_json($r, {ret => 1});
+            next;
+        }
+        if ($rsp->{cmd} eq 'tests_done') {
+            $r = $rsp->{ret};
+            close($testfd);
+            $testfd = undef;
+            kill('SIGTERM', $testpid);
+            diag "awaiting death of test process $testpid";
+            my $ret = waitpid($testpid, 0);
+            diag "test process $testpid exited";
+            $loop = 0;
             next;
         }
         if ($rsp->{cmd} eq 'check_screen') {
@@ -358,28 +379,33 @@ while ($loop) {
         check_asserted_screen;
     }
 }
-close $testfd;
-kill('SIGTERM', $testpid);
-diag "awaiting death of testpid $testpid";
-waitpid($testpid, 0);
 
-my $r = 0;
+if ($testfd) {
+    $r = 1;    # unusual shutdown
+    close $testfd;
+    kill('SIGTERM', $testpid);
+    diag "awaiting death of testpid $testpid";
+    my $ret = waitpid($testpid, 0);
+    diag "test process exited: $ret";
+}
+
 diag "isotovideo done" unless $r;
 diag "FAIL" if $r;
 
 my $clean_shutdown;
 eval {
-    my $status = $bmwqemu::backend->status();
+    my $status = $bmwqemu::backend->_send_json({cmd => 'status'});
+    diag "BACKEND STATUS $status\n";
     $clean_shutdown = 1 if $status || '' eq "shutdown";
 };
 
 bmwqemu::stop_vm();
-diag "killing commands process";
 if ($cpid) {
+    diag "killing commands process";
     kill('SIGTERM', $cpid);
-    waitpid($cpid, 0);
+    my $ret = waitpid($cpid, 0);
+    diag "commands process exited: $ret";
 }
-diag "done joining commands process";
 
 # mark hard disks for upload if test finished
 if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
@@ -400,6 +426,7 @@ if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
     }
     if (@toextract && !$clean_shutdown) {
         diag "ERROR: Machine not shut down when uploading disks!\n";
+        $r = 1;
     }
     else {
         for my $asset (@toextract) {
@@ -408,5 +435,6 @@ if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
     }
 }
 
+print "EXIT $r\n";
 exit $r;
 # vim: set sw=4 et:

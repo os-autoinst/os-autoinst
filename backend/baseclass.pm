@@ -271,7 +271,7 @@ sub alive {
         }
         else {
             bmwqemu::diag("ALARM: backend.run got deleted! - exiting...");
-            alarm 3;
+            _exit(1);
         }
     }
     return 0;

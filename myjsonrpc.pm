@@ -19,6 +19,7 @@ use strict;
 use warnings;
 use Carp qw(cluck confess);
 use bmwqemu ();
+use Errno;
 
 sub send_json {
     my ($to_fd, $cmd) = @_;
@@ -64,7 +65,7 @@ sub read_json {
             # remember the trailing text
             $sockets->{$fd} = $JSON->incr_text();
             if ($hash->{QUIT}) {
-                print "received magic close\n";
+                bmwqemu::diag("received magic close");
                 return;
             }
             return $hash;
@@ -74,7 +75,13 @@ sub read_json {
         my @res = $s->can_read;
         unless (@res) {
             my $E = $!;    # save the error
-            confess "ERROR: timeout reading JSON reply: $E\n";
+            unless ($!{EINTR}) {    # EINTR if killed
+                confess "ERROR: timeout reading JSON reply: $E\n";
+            }
+            else {
+                bmwqemu::diag("can_read received kill signal");
+            }
+            return;
         }
 
         my $qbuffer;

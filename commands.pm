@@ -281,6 +281,11 @@ sub start_server {
     die "fork failed" unless defined $pid;
 
     if ($pid == 0) {
+        $SIG{TERM} = 'DEFAULT';
+        $SIG{INT}  = 'DEFAULT';
+        $SIG{HUP}  = 'DEFAULT';
+        $SIG{CHLD} = 'DEFAULT';
+
         close($child);
         $0 = "$0: commands";
         run_daemon($port);
