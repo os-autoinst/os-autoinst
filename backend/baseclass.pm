@@ -400,7 +400,7 @@ sub close_pipes {
 
     return unless $self->{rsppipe};
 
-    print "sending magic and exit\n";
+    bmwqemu::diag "sending magic and exit";
     $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || die "close $!\n";
     _exit(0);

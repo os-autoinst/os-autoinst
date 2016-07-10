@@ -157,6 +157,8 @@ sub _send_json {
     myjsonrpc::send_json($self->{to_child}, $cmd);
     my $rsp = myjsonrpc::read_json($self->{from_child});
     unless (defined $rsp) {
+        # this might have been closed by signal handler
+        no autodie qw(close);
         close($self->{from_child});
         $self->{from_child} = undef;
         $self->stop();
