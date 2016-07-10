@@ -25,6 +25,7 @@ use File::Spec;
 use Socket;
 use IO::Handle;
 use POSIX qw(_exit);
+use cv;
 
 our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
@@ -143,6 +144,9 @@ sub start_process {
     $SIG{INT}  = 'DEFAULT';
     $SIG{HUP}  = 'DEFAULT';
     $SIG{CHLD} = 'DEFAULT';
+
+    cv::init;
+    require tinycv;
 
     $0 = "$0: autotest";
     my $line = <$isotovideo>;

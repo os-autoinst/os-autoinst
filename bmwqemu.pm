@@ -20,9 +20,6 @@ use warnings;
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Socket;
 
-use ocr;
-use cv;
-use needle;
 use Thread::Queue;
 use POSIX;
 use Term::ANSIColor;
@@ -124,9 +121,6 @@ sub init {
     my $oldfh = select($logfd);
     $| = 1;
     select($oldfh);
-
-    cv::init();
-    require tinycv;
 
     die "DISTRI undefined\n" . pp(\%vars) . "\n" unless $vars{DISTRI};
 
