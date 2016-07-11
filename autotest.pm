@@ -154,6 +154,9 @@ sub start_process {
         _exit(0);
     }
     print "GOT $line\n";
+    # the backend process might have added some defaults for the backend
+    bmwqemu::load_vars();
+
     run_all;
 }
 

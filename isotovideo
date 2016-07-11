@@ -224,9 +224,6 @@ if (!$bmwqemu::backend->_send_json({cmd => 'alive'})) {
     $bmwqemu::backend->start_vm();
 }
 
-# the backend process might have added some defaults for the backend
-bmwqemu::load_vars();
-
 if ($ENV{RUN_VNCVIEWER}) {
     system("vncviewer -shared localhost:" . $bmwqemu::vars{VNC} . " -viewonly &");
 }
