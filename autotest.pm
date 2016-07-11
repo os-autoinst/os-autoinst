@@ -25,6 +25,7 @@ use File::Spec;
 use Socket;
 use IO::Handle;
 use POSIX qw(_exit);
+use cv;
 
 our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
@@ -116,6 +117,7 @@ sub run_all {
         warn $@;
         $r = 1;
     }
+    myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', ret => $r});
     close $isotovideo;
     _exit(0);
 }
@@ -137,6 +139,14 @@ sub start_process {
 
     die "cannot fork: $!" unless defined $testpid;
     close $child;
+
+    $SIG{TERM} = 'DEFAULT';
+    $SIG{INT}  = 'DEFAULT';
+    $SIG{HUP}  = 'DEFAULT';
+    $SIG{CHLD} = 'DEFAULT';
+
+    cv::init;
+    require tinycv;
 
     $0 = "$0: autotest";
     my $line = <$isotovideo>;

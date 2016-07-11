@@ -70,13 +70,11 @@ sub start {
     die "fork failed" unless defined $pid;
 
     if ($pid == 0) {
-        $SIG{ALRM} = 'DEFAULT';
         $SIG{TERM} = 'DEFAULT';
         $SIG{INT}  = 'DEFAULT';
         $SIG{HUP}  = 'DEFAULT';
         $SIG{CHLD} = 'DEFAULT';
-
-        $0 = "$0: backend";
+        $0         = "$0: backend";
         $self->{backend}->run(fileno($self->{from_parent}), fileno($self->{to_parent}));
         _exit(0);
     }
@@ -159,6 +157,8 @@ sub _send_json {
     myjsonrpc::send_json($self->{to_child}, $cmd);
     my $rsp = myjsonrpc::read_json($self->{from_child});
     unless (defined $rsp) {
+        # this might have been closed by signal handler
+        no autodie qw(close);
         close($self->{from_child});
         $self->{from_child} = undef;
         $self->stop();

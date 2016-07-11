@@ -173,7 +173,8 @@ sub load_snapshot {
 
 sub runcmd {
     diag "running " . join(' ', @_);
-    return system(@_);
+    local $SIG{CHLD} = 'IGNORE';
+    return CORE::system(@_);
 }
 
 sub do_extract_assets {

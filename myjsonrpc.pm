@@ -19,6 +19,7 @@ use strict;
 use warnings;
 use Carp qw(cluck confess);
 use bmwqemu ();
+use Errno;
 
 sub send_json {
     my ($to_fd, $cmd) = @_;
@@ -29,6 +30,7 @@ sub send_json {
     my $JSON = JSON->new()->convert_blessed();
     my $json = $JSON->encode($cmd);
 
+    bmwqemu::diag("send_json $json");
     my $wb = syswrite($to_fd, "$json");
     confess "syswrite failed $!" unless ($wb && $wb == length($json));
     return;
@@ -64,7 +66,7 @@ sub read_json {
             # remember the trailing text
             $sockets->{$fd} = $JSON->incr_text();
             if ($hash->{QUIT}) {
-                print "received magic close\n";
+                bmwqemu::diag("received magic close");
                 return;
             }
             return $hash;
@@ -74,11 +76,19 @@ sub read_json {
         my @res = $s->can_read;
         unless (@res) {
             my $E = $!;    # save the error
-            confess "ERROR: timeout reading JSON reply: $E\n";
+            unless ($!{EINTR}) {    # EINTR if killed
+                confess "ERROR: timeout reading JSON reply: $E\n";
+            }
+            else {
+                bmwqemu::diag("can_read received kill signal");
+            }
+            close($socket);
+            return;
         }
 
         my $qbuffer;
         my $bytes = sysread($socket, $qbuffer, 8000);
+        bmwqemu::diag("sysread $qbuffer");
         if (!$bytes) { bmwqemu::diag("sysread failed: $!"); return; }
         $JSON->incr_parse($qbuffer);
     }
