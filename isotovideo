@@ -79,9 +79,30 @@ die "CASEDIR environment variable not set, unknown test case directory" if !defi
 die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
 
 my $cpid;
+my $testpid;
 my $cfd;
 
 my $loop = 1;
+
+sub kill_commands {
+    return unless $cpid;
+    if (kill('TERM', $cpid)) {
+        diag "awaiting death of commands process";
+        my $ret = waitpid($cpid, 0);
+        diag "commands process exited: $ret";
+    }
+    $cpid = 0;
+}
+
+sub kill_autotest {
+    return unless $testpid;
+    if (kill('TERM', $testpid)) {
+        diag "awaiting death of testpid $testpid";
+        my $ret = waitpid($testpid, 0);
+        diag "test process exited: $ret";
+    }
+    $testpid = 0;
+}
 
 # all so ugly ...
 sub signalhandler {
@@ -95,18 +116,12 @@ sub signalhandler {
     bmwqemu::stop_vm();
     if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
         diag("killing backend process $bmwqemu::backend->{backend_pid}");
-        kill('SIGTERM', $bmwqemu::backend->{backend_pid});
+        kill('TERM', $bmwqemu::backend->{backend_pid});
         waitpid($bmwqemu::backend->{backend_pid}, 0);
         diag("done with backend process");
         $bmwqemu::backend->{backend_pid} = 0;
     }
-    if (defined $cpid) {
-        diag("killing commands process $cpid");
-        kill('SIGTERM', $cpid);
-        waitpid($cpid, 0);
-        diag("done joining commands process");
-        $cpid = 0;
-    }
+    kill_commands;
     _exit(1);
 }
 
@@ -126,6 +141,13 @@ sub signalhandler_chld {
             $bmwqemu::backend->{backend_pid} = 0;
             $bmwqemu::backend->{to_child}    = undef;
             $bmwqemu::backend->{from_child}  = undef;
+            $loop                            = 0;
+            next;
+        }
+        if ($child == $testpid) {
+            diag("tests died");
+            $testpid = 0;
+            $loop    = 0;
             next;
         }
         diag("unknown child $child died");
@@ -188,7 +210,8 @@ testapi::init();
 # init part
 bmwqemu::save_vars();
 
-my ($testpid, $testfd) = autotest::start_process();
+my $testfd;
+($testpid, $testfd) = autotest::start_process();
 
 init_backend();
 
@@ -197,7 +220,8 @@ print $fd "$$\n";
 close $fd;
 
 if (!$bmwqemu::backend->_send_json({cmd => 'alive'})) {
-    $bmwqemu::backend->start_vm() or die $@;
+    # might throw an exception
+    $bmwqemu::backend->start_vm();
 }
 
 # the backend process might have added some defaults for the backend
@@ -303,12 +327,9 @@ while ($loop) {
         }
         if ($rsp->{cmd} eq 'tests_done') {
             $r = $rsp->{ret};
-            close($testfd);
+            CORE::close($testfd);
             $testfd = undef;
-            kill('SIGTERM', $testpid);
-            diag "awaiting death of test process $testpid";
-            my $ret = waitpid($testpid, 0);
-            diag "test process $testpid exited";
+            kill_autotest;
             $loop = 0;
             next;
         }
@@ -382,11 +403,8 @@ while ($loop) {
 
 if ($testfd) {
     $r = 1;    # unusual shutdown
-    close $testfd;
-    kill('SIGTERM', $testpid);
-    diag "awaiting death of testpid $testpid";
-    my $ret = waitpid($testpid, 0);
-    diag "test process exited: $ret";
+    CORE::close $testfd;
+    kill_autotest;
 }
 
 diag "isotovideo done" unless $r;
@@ -400,12 +418,6 @@ eval {
 };
 
 bmwqemu::stop_vm();
-if ($cpid) {
-    diag "killing commands process";
-    kill('SIGTERM', $cpid);
-    my $ret = waitpid($cpid, 0);
-    diag "commands process exited: $ret";
-}
 
 # mark hard disks for upload if test finished
 if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
@@ -433,6 +445,11 @@ if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
             $bmwqemu::backend->extract_assets($asset);
         }
     }
+}
+
+END {
+    kill_commands;
+    kill_autotest;
 }
 
 print "EXIT $r\n";
