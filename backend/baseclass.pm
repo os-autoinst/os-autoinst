@@ -260,7 +260,7 @@ sub stop_vm {
         $self->{started} = 0;
     }
     $self->close_pipes();    # does not return
-    return {};
+    return;
 }
 
 sub alive {
@@ -314,7 +314,7 @@ sub cont { notimplemented }
 
 sub can_handle {
     my ($self, $args) = @_;
-    return {};    # sorry, no
+    return;    # sorry, no
 }
 
 sub do_extract_assets { notimplemented }
