@@ -862,10 +862,10 @@ sub _send_hmp {
     return $self->_read_hmp;
 }
 
-sub status {
+sub is_shutdown {
     my ($self) = @_;
     my $ret = $self->handle_qmp_command({execute => 'query-status'});
-    return $ret->{return}->{status};
+    return ($ret->{return}->{status} || '') eq 'shutdown';
 }
 
 sub handle_hmp_command {

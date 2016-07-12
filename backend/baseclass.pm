@@ -318,7 +318,10 @@ sub can_handle {
 }
 
 sub do_extract_assets { notimplemented }
-sub status            { notimplemented }
+
+sub is_shutdown {
+    return -1;
+}
 
 ## MAY be overwritten:
 

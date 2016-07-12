@@ -127,10 +127,10 @@ sub do_stop_vm {
     return {};
 }
 
-sub status {
+sub is_shutdown {
     my ($self) = @_;
-    print "status ignored\n";
-    return;
+    my $ret = $self->ipmitool('chassis power status');
+    return $ret =~ m/is off/;
 }
 
 # serial grab

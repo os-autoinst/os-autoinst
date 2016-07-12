@@ -56,9 +56,6 @@ sub do_start_vm {
 sub do_stop_vm {
     my ($self) = @_;
 
-    #FIXME shutdown
-    return 1;
-
     # first kill all _remote_ consoles except for the remote zVM
     # console (which would stop the vm guest)
     my @consoles = keys %{$self->{consoles}};
@@ -67,17 +64,7 @@ sub do_stop_vm {
           unless $console =~ qr/bootloader|worker/;
     }
 
-    # now cleanly disconnect from the guest and then kill the local
-    # Xvnc
-    $self->deactivate_console({testapi_console => 'sut'});
-    $self->deactivate_console({testapi_console => 'worker'});
     return;
-}
-
-sub status {
-    my ($self) = @_;
-    # FIXME: do something useful here.
-    carp "status not implemented";
 }
 
 sub check_socket {

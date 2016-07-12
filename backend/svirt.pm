@@ -103,11 +103,6 @@ sub stop_serial_grab {
     return;
 }
 
-sub status {
-    my ($self) = @_;
-    return;
-}
-
 1;
 
 # vim: set sw=4 et:

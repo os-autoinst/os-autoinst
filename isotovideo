@@ -409,9 +409,8 @@ diag "FAIL" if $r;
 
 my $clean_shutdown;
 eval {
-    my $status = $bmwqemu::backend->_send_json({cmd => 'status'});
-    diag "BACKEND STATUS $status\n";
-    $clean_shutdown = 1 if $status || '' eq "shutdown";
+    $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
+    diag "BACKEND SHUTDOWN $clean_shutdown";
 };
 
 bmwqemu::stop_vm();
@@ -421,8 +420,6 @@ bmwqemu::load_vars();
 
 # mark hard disks for upload if test finished
 if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
-    # if status() died the backend was already dead. So some fatal test
-    # probably took it down. Don't upload in that case.
     my @toextract;
     for my $i (1 .. $nd) {
         my $dir = 'assets_private';
