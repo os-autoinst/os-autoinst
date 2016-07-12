@@ -117,6 +117,7 @@ sub run_all {
         warn $@;
         $r = 1;
     }
+    bmwqemu::save_vars();
     myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', ret => $r});
     close $isotovideo;
     _exit(0);

@@ -416,6 +416,9 @@ eval {
 
 bmwqemu::stop_vm();
 
+# read calculated variables from backend and tests
+bmwqemu::load_vars();
+
 # mark hard disks for upload if test finished
 if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
     # if status() died the backend was already dead. So some fatal test
