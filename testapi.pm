@@ -771,8 +771,12 @@ sub assert_shutdown {
     $timeout //= 60;
     bmwqemu::log_call(timeout => $timeout);
     while ($timeout >= 0) {
-        my $status = query_isotovideo('backend_status') // '';
-        if ($status eq 'shutdown') {
+        my $is_shutdown = query_isotovideo('backend_is_shutdown');
+        if ($is_shutdown < 0) {
+            bmwqemu::diag("Backend does not implement is_shutdown - just sleeping");
+            sleep($timeout);
+        }
+        if ($is_shutdown) {    # -1 counts too
             $autotest::current_test->take_screenshot('ok');
             return;
         }

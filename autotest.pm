@@ -210,6 +210,7 @@ sub runalltests {
     my $firsttest           = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded            = 0;
     my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
+    bmwqemu::diag "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
 
     write_test_order();
 

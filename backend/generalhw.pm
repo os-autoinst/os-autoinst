@@ -118,12 +118,6 @@ sub do_stop_vm {
     return {};
 }
 
-sub status {
-    my ($self) = @_;
-    print "status ignored\n";
-    return;
-}
-
 # serial grab
 
 sub start_serial_grab {
