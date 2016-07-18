@@ -104,6 +104,17 @@ sub kill_autotest {
     $testpid = 0;
 }
 
+sub kill_backend {
+    bmwqemu::stop_vm();
+    if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
+        diag("killing backend process $bmwqemu::backend->{backend_pid}");
+        kill('TERM', $bmwqemu::backend->{backend_pid});
+        waitpid($bmwqemu::backend->{backend_pid}, 0);
+        diag("done with backend process");
+        $bmwqemu::backend->{backend_pid} = 0;
+    }
+}
+
 # all so ugly ...
 sub signalhandler {
 
@@ -113,15 +124,9 @@ sub signalhandler {
         $loop = 0;
         return;
     }
-    bmwqemu::stop_vm();
-    if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
-        diag("killing backend process $bmwqemu::backend->{backend_pid}");
-        kill('TERM', $bmwqemu::backend->{backend_pid});
-        waitpid($bmwqemu::backend->{backend_pid}, 0);
-        diag("done with backend process");
-        $bmwqemu::backend->{backend_pid} = 0;
-    }
+    kill_backend;
     kill_commands;
+    kill_autotest;
     _exit(1);
 }
 
@@ -445,6 +450,7 @@ if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
 }
 
 END {
+    kill_backend;
     kill_commands;
     kill_autotest;
 }
