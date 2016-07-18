@@ -28,7 +28,8 @@ find -name '*.tdy' -delete
 
 find . -name '*.p[lm]' -print0 | xargs -0 perltidy $TIDY_ARGS
 
-find tools/absolutize isotovideo -print0 | xargs -0 perltidy $TIDY_ARGS
+isotovideo=$(ls isotovideo 2>/dev/null)
+find tools/absolutize $isotovideo -print0 | xargs -0 perltidy $TIDY_ARGS
 
 while read file; do
     if ! diff -u ${file%.tdy} $file; then
