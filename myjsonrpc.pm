@@ -80,7 +80,7 @@ sub read_json {
                 confess "ERROR: timeout reading JSON reply: $E\n";
             }
             else {
-                bmwqemu::diag("can_read received kill signal");
+                die("can_read received kill signal");
             }
             close($socket);
             return;
