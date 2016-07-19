@@ -30,7 +30,7 @@ sub send_json {
     my $JSON = JSON->new()->convert_blessed();
     my $json = $JSON->encode($cmd);
 
-    bmwqemu::diag("send_json $json");
+    #bmwqemu::diag("send_json $json");
     my $wb = syswrite($to_fd, "$json");
     confess "syswrite failed $!" unless ($wb && $wb == length($json));
     return;
@@ -88,7 +88,7 @@ sub read_json {
 
         my $qbuffer;
         my $bytes = sysread($socket, $qbuffer, 8000);
-        bmwqemu::diag("sysread $qbuffer");
+        #bmwqemu::diag("sysread $qbuffer");
         if (!$bytes) { bmwqemu::diag("sysread failed: $!"); return; }
         $JSON->incr_parse($qbuffer);
     }
