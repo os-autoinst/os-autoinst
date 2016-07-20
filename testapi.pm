@@ -490,12 +490,14 @@ sub check_var_array {
 
 =head2 wait_serial
 
-  wait_serial($regex or ARRAYREF of $regexes [[, $timeout], $expect_not_found]);
+  wait_serial($regex or ARRAYREF of $regexes [[, $timeout], $expect_fail, $expect_not_found]);
 
 Wait for C<$regex> or anyone of C<$regexes> to appear on serial output.
 
 Returns the string matched or C<undef> if C<$expect_not_found> is false
 (default).
+
+Return 'ok' when matched fail if C<expect_fail>
 
 Returns C<undef> or (after timeout) the string that I<did _not_ match> if
 C<$expect_not_found> is true.
@@ -506,6 +508,7 @@ sub wait_serial {
     # wait for a message to appear on serial output
     my $regexp           = shift;
     my $timeout          = shift || 90;    # seconds
+    my $expect_fail      = shift || 0;     # expect mismatch in serial output
     my $expect_not_found = shift || 0;     # expected can not found the term in serial output
 
     bmwqemu::log_call(regex => $regexp, timeout => $timeout);
@@ -525,7 +528,7 @@ sub wait_serial {
         $matched = 'ok';
     }
     else {
-        $matched = 'fail';
+        $matched = $expect_fail == 1 ? 'ok' : 'fail';
     }
     $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string});
     bmwqemu::fctres("$regexp: $matched");
