@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 12;
+use Test::More;
 use Test::Output;
 use Test::Fatal;
 
@@ -104,5 +104,7 @@ subtest 'script_run' => sub {
     is(script_run('false'), '1', 'script_run with no check of success, returns exit code');
     is(script_run('false', 0), undef, 'script_run with no check of success, returns undef when not waiting');
 };
+
+done_testing();
 
 # vim: set sw=4 et:
