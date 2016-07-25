@@ -482,7 +482,11 @@ sub start_qemu {
 
         for (my $i = 0; $i < $num_networks; $i++) {
             if ($vars->{NICTYPE} eq "user") {
-                push(@params, '-netdev', "user,id=qanet$i");
+                my $nictype_user_options;
+                if ($vars->{NICTYPE_USER_OPTIONS}) {
+                    $nictype_user_options = ',' . $vars->{NICTYPE_USER_OPTIONS};
+                }
+                push(@params, '-netdev', "user,id=qanet$i$nictype_user_options");
             }
             elsif ($vars->{NICTYPE} eq "tap") {
                 push(@params, '-netdev', "tap,id=qanet$i,ifname=$tapdev[$i],script=$tapscript[$i],downscript=$tapdownscript[$i]");
