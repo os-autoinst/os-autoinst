@@ -125,9 +125,12 @@ sub record_screenmatch {
         json       => $h->{json},
     };
 
+    # make sure needle is blessed
+    my $foundneedle = bless $match->{needle}, "needle";
+
     # When the needle has the workaround property,
     # mark the result as dent and increase the dents
-    if ($match->{needle}->has_property('workaround')) {
+    if ($foundneedle->has_property('workaround')) {
         $result->{dent} = 1;
         $self->{dents}++;
         bmwqemu::diag("needle '$h->{name}' is a workaround");
@@ -496,13 +499,14 @@ sub stop_audiocapture {
 }
 
 sub verify_sound_image {
-    my ($self, $img, $mustmatch) = @_;
+    my ($self, $imgpath, $mustmatch) = @_;
 
-    my $needles = needle::tags($mustmatch) || [];
+    my $rsp = autotest::query_isotovideo('backend_verify_image', {imgpath => $imgpath, mustmatch => $mustmatch});
 
-    my ($foundneedle, $failed_candidates) = $img->search($needles, 0, 1);
-    if ($foundneedle) {
-        $self->record_screenmatch($img, $foundneedle, [$mustmatch], $failed_candidates);
+    my $img = tinycv::read($imgpath);
+    if ($rsp->{found}) {
+        my $foundneedle = $rsp->{found};
+        $self->record_screenmatch($img, $foundneedle, [$mustmatch], $rsp->{candidates});
         my $lastarea = $foundneedle->{area}->[-1];
         bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
         return $foundneedle;
@@ -511,7 +515,7 @@ sub verify_sound_image {
 
     $self->record_screenfail(
         img     => $img,
-        needles => $failed_candidates,
+        needles => $rsp->{candidates},
         tags    => [$mustmatch],
         result  => 'fail',
         overall => 'fail'
