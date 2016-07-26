@@ -28,6 +28,7 @@ require IPC::System::Simple;
 use autodie qw(:all);
 use OpenQA::Exceptions;
 use Digest::MD5 qw(md5_base64);
+use Scalar::Util qw(looks_like_number);
 
 require bmwqemu;
 
@@ -784,7 +785,7 @@ sub assert_shutdown {
     bmwqemu::log_call(timeout => $timeout);
     while ($timeout >= 0) {
         my $is_shutdown = query_isotovideo('backend_is_shutdown');
-        if ($is_shutdown < 0) {
+        if (looks_like_number($is_shutdown) && $is_shutdown < 0) {
             bmwqemu::diag("Backend does not implement is_shutdown - just sleeping");
             sleep($timeout);
         }
