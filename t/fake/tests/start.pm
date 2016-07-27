@@ -2,5 +2,5 @@ use strict;
 use warnings;
 use base 'basetest';
 
-sub run {}
+sub run { }
 1;
