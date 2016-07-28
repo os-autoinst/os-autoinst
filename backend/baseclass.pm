@@ -900,6 +900,22 @@ sub last_screenshot_name {
     return {filename => $self->write_img($self->last_image, $self->_last_screenshot_name)};
 }
 
+sub verify_image {
+    my ($self, $args) = @_;
+    my $imgpath   = $args->{imgpath};
+    my $mustmatch = $args->{mustmatch};
+
+    my $img = tinycv::read($imgpath);
+    my $needles = needle::tags($mustmatch) || [];
+
+    my ($foundneedle, $failed_candidates) = $img->search($needles, 0, 1);
+    if ($foundneedle) {
+        return {found => $foundneedle, candidates => $failed_candidates};
+    }
+    return {candidates => $failed_candidates};
+}
+
+
 sub retry_assert_screen {
     my ($self, $args) = @_;
 

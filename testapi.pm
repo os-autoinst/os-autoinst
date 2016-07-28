@@ -1417,9 +1417,9 @@ sub assert_recorded_sound {
     my $wavfile = join('/', bmwqemu::result_dir(), $result->{audio});
     system("snd2png $wavfile $result->{audio}.png");
 
-    my $img = tinycv::read("$result->{audio}.png");
+    my $imgpath = "$result->{audio}.png";
 
-    return $autotest::current_test->verify_sound_image($img, $mustmatch);
+    return $autotest::current_test->verify_sound_image($imgpath, $mustmatch);
 }
 
 =for stopwords diag
