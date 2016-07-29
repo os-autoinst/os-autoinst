@@ -75,6 +75,13 @@ sub start {
         $SIG{HUP}  = 'DEFAULT';
         $SIG{CHLD} = 'DEFAULT';
         $0         = "$0: backend";
+
+        # now initialize opencv
+        require cv;
+
+        cv::init();
+        require tinycv;
+
         $self->{backend}->run(fileno($self->{from_parent}), fileno($self->{to_parent}));
         _exit(0);
     }
