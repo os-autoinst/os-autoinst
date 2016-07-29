@@ -41,6 +41,7 @@ use bmwqemu;
 use needle;
 use autotest;
 use commands;
+use distribution;
 use testapi qw(diag);
 use Getopt::Std;
 require IPC::System::Simple;
