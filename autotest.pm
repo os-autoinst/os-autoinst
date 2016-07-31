@@ -46,33 +46,33 @@ sub loadtest {
     my $name     = $2;
     my $test;
     my $fullname = "$category-$name";
-    if (exists $tests{$fullname}) {
-        $test = $tests{$fullname};
-        return unless $test->is_applicable;
+    # perl code generating perl code is overcool
+    # FIXME turn this into a proper eval instead of a generated string
+    my $code = "package $name;";
+    $code .= "use lib '$casedir/lib';";
+    my $basename = dirname($script);
+    $code .= "use lib '$casedir/$basename';";
+    $code .= "require '$casedir/$script';";
+    eval $code;    ## no critic
+    if ($@) {
+        my $msg = "error on $script: $@";
+        bmwqemu::diag($msg);
+        die $msg;
     }
-    else {
-        # perl code generating perl code is overcool
-        # FIXME turn this into a proper eval instead of a generated string
-        my $code = "package $name;";
-        $code .= "use lib '$casedir/lib';";
-        my $basename = dirname($script);
-        $code .= "use lib '$casedir/$basename';";
-        $code .= "require '$casedir/$script';";
-        eval $code;    ## no critic
-        if ($@) {
-            my $msg = "error on $script: $@";
-            bmwqemu::diag($msg);
-            die $msg;
-        }
-        $test             = $name->new($category);
-        $test->{script}   = $script;
-        $test->{fullname} = $fullname;
-        $tests{$fullname} = $test;
+    $test             = $name->new($category);
+    $test->{script}   = $script;
+    $test->{fullname} = $fullname;
+    my $nr = '';
+    while (exists $tests{$fullname . $nr}) {
+        # to all perl hardcore hackers: fuck off!
+        $nr = $nr eq '' ? 1 : $nr + 1;
+        bmwqemu::diag($fullname . ' already scheduled');
+    }
+    $tests{$fullname . $nr} = $test;
 
-        return unless $test->is_applicable;
-        push @testorder, $test;
-    }
-    bmwqemu::diag("scheduling $name $script");
+    return unless $test->is_applicable;
+    push @testorder, $test;
+    bmwqemu::diag("scheduling $name$nr $script");
 }
 
 our $current_test;
