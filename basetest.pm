@@ -171,6 +171,9 @@ sub _serialize_match {
     my $jsonfile = $cand->{needle}->{file};
 
     my $h = {name => $name, error => $cand->{error}, area => [], json => $jsonfile};
+    if (my $unregistered = $cand->{needle}->{unregistered}) {
+        $h->{unregistered} = $unregistered;
+    }
     for my $a (@{$cand->{area}}) {
         my $na = {};
         for my $i (qw(x y w h result)) {

@@ -28,7 +28,6 @@ use OpenQA::Benchmark::Stopwatch;
 
 our %needles;
 our %tags;
-our %unregistered;
 our $needledir;
 our $cleanuphandler;
 
@@ -138,8 +137,8 @@ sub unregister {
     for my $g (@{$self->{tags}}) {
         @{$tags{$g}} = grep { $_ != $self } @{$tags{$g}};
         delete $tags{$g} unless (@{$tags{$g}});
-        $unregistered{$g}->{$self} = $reason;
     }
+    $self->{unregistered} //= $reason || 'unknown reason';
 }
 
 sub register {
@@ -202,7 +201,7 @@ sub has_property {
 sub TO_JSON {
     my ($self) = @_;
 
-    my %hash = map { $_ => $self->{$_} } qw(tags properties area file png name);
+    my %hash = map { $_ => $self->{$_} } qw(tags properties area file png unregistered name);
     return \%hash;
 }
 
