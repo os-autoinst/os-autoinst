@@ -7,6 +7,9 @@ By default NICTYPE is set to "user" and MULTINET is not set. In this case, each 
 with one network device, QEMU provided DHCP configuration. "User" network mode does have a
 limitation - only TCP and UDP are supported. However no additional configuration is needed.
 
+## options for "user" mode
+If options for "user" mode are required, they can be set in NICTYPE_USER_OPTIONS variable.
+
 ## multiple network devices
 When MULTINET variable is set, only NICTYPE set to "user" is supported. In this case, each VM
 is created with two network devices using "user" network mode.
