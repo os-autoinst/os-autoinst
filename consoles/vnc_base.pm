@@ -183,6 +183,7 @@ sub release_key {
 
 sub mouse_hide {
     my ($self, $args) = @_;
+    $args->{border_offset} //= 0;
 
     $self->{mouse}->{x} = $self->{vnc}->width - 1;
     $self->{mouse}->{y} = $self->{vnc}->height - 1;
@@ -199,6 +200,7 @@ sub mouse_hide {
 
 sub mouse_set {
     my ($self, $args) = @_;
+    return unless ($args->{x} && $args->{y});
 
     # TODO: for framebuffers larger than 1024x768, we need to upscale
     $self->{mouse}->{x} = int($args->{x});
