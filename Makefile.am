@@ -51,6 +51,7 @@ perlexec_DATA = \
 	myjsonrpc.pm \
 	mmapi.pm \
 	lockapi.pm \
+	log.pm \
 	commands.pm \
 	distribution.pm \
 	ocr.pm \

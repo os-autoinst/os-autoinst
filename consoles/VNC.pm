@@ -9,6 +9,7 @@ use Time::HiRes qw( usleep gettimeofday time );
 use Carp;
 use tinycv;
 use List::Util qw(min);
+use log;
 
 use Crypt::DES;
 use Compress::Raw::Zlib;
@@ -153,7 +154,7 @@ sub _handshake_protocol_version {
     my $socket = $self->socket;
     $socket->read(my $protocol_version, 12) || die 'unexpected end of data';
 
-    #bmwqemu::diag "prot: $protocol_version";
+    #log::diag "prot: $protocol_version";
 
     my $protocol_pattern = qr/\A RFB [ ] (\d{3}\.\d{3}) \s* \z/xms;
     if ($protocol_version !~ m/$protocol_pattern/xms) {
@@ -372,11 +373,11 @@ sub _server_initialization {
     ) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
     #>>> tidy on
 
-    #bmwqemu::diag "FW $framebuffer_width x $framebuffer_height";
+    #log::diag "FW $framebuffer_width x $framebuffer_height";
 
-    #bmwqemu::diag "$bits_per_pixel bpp / depth $depth / $server_is_big_endian be / $true_colour_flag tc / $pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max} / $pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift}";
+    #log::diag "$bits_per_pixel bpp / depth $depth / $server_is_big_endian be / $true_colour_flag tc / $pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max} / $pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift}";
 
-    #bmwqemu::diag $name_length;
+    #log::diag $name_length;
 
     if (!$self->depth) {
 
@@ -735,7 +736,7 @@ sub map_and_send_key {
 
 sub send_pointer_event {
     my ($self, $button_mask, $x, $y) = @_;
-    bmwqemu::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
+    log::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
 
     my $template = 'CCnn';
     $template = 'CxCnnx11' if ($self->ikvm);
@@ -885,7 +886,7 @@ sub _receive_update {
     my $hlen                 = $socket->read(my $header, 3) || die 'unexpected end of data';
     my $number_of_rectangles = unpack('xn', $header);
 
-    #bmwqemu::diag "NOR $number_of_rectangles";
+    #log::diag "NOR $number_of_rectangles";
 
     my $depth = $self->depth;
 
@@ -898,7 +899,7 @@ sub _receive_update {
         # unsigned -> signed conversion
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
 
-        #bmwqemu::diag "UP $x,$y $w x $h $encoding_type";
+        #log::diag "UP $x,$y $w x $h $encoding_type";
 
         # work around buggy addrlink VNC
         next if ($w * $h == 0);
@@ -925,14 +926,14 @@ sub _receive_update {
             $self->_framebuffer($image);
         }
         elsif ($encoding_type == -257) {
-            bmwqemu::diag("pointer type $x $y $w $h $encoding_type");
+            log::diag("pointer type $x $y $w $h $encoding_type");
             $self->absolute($x);
         }
         elsif ($encoding_type == -261) {
             my $led_data;
             $socket->read($led_data, 1) || die "unexpected end of data";
             my @bytes = unpack("C", $led_data);
-            bmwqemu::diag("led state $bytes[0] $w $h $encoding_type");
+            log::diag("led state $bytes[0] $w $h $encoding_type");
         }
         elsif ($self->ikvm) {
             $self->_receive_ikvm_encoding($encoding_type, $x, $y, $w, $h);

@@ -73,7 +73,7 @@ sub run_cmd {
     );
     my $chan = $self->{ssh}->channel();
     $chan->exec($cmd);
-    bmwqemu::diag "Command executed: $cmd";
+    log::diag "Command executed: $cmd";
     $chan->close();
     return $chan->exit_status();
 }
@@ -97,7 +97,7 @@ sub save_snapshot {
     my $vmname = "openQA-SUT-" . get_var('VIRSH_INSTANCE', 1);
     $self->run_cmd("virsh snapshot-delete $vmname $snapname");
     my $rsp = $self->run_cmd("virsh snapshot-create-as $vmname $snapname");
-    bmwqemu::diag "SAVED VM \"$vmname\" as \"$snapname\" snapshot, $rsp";
+    log::diag "SAVED VM \"$vmname\" as \"$snapname\" snapshot, $rsp";
     die unless ($rsp == 0);
     return;
 }
@@ -107,7 +107,7 @@ sub load_snapshot {
     my $snapname = $args->{name};
     my $vmname   = "openQA-SUT-" . get_var('VIRSH_INSTANCE', 1);
     my $rsp      = $self->run_cmd("virsh snapshot-revert $vmname $snapname");
-    bmwqemu::diag "LOADED snapshot \"$snapname\" to \"$vmname\", $rsp";
+    log::diag "LOADED snapshot \"$snapname\" to \"$vmname\", $rsp";
     die unless ($rsp == 0);
     return $rsp;
 }

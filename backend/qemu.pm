@@ -31,6 +31,7 @@ use Net::DBus;
 use bmwqemu qw(fileContent diag save_vars);
 require IPC::System::Simple;
 use autodie qw(:all);
+use log;
 
 sub new {
     my $class = shift;
@@ -156,7 +157,7 @@ sub save_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("savevm $vmname");
-    diag "SAVED $vmname $rsp";
+    log::diag "SAVED $vmname $rsp";
     die unless ($rsp eq "savevm $vmname");
     return;
 }
@@ -185,10 +186,10 @@ sub do_extract_assets {
     my $img_dir = $args->{dir};
     my $format  = $args->{format};
     if (!$format || $format !~ /^(raw|qcow2)$/) {
-        bmwqemu::diag "do_extract_assets: only raw and qcow2 formats supported $name $format";
+        log::diag "do_extract_assets: only raw and qcow2 formats supported $name $format";
     }
     elsif (-f "raid/l$hdd_num") {
-        bmwqemu::diag "preparing hdd $hdd_num for upload as $name in $format";
+        log::diag "preparing hdd $hdd_num for upload as $name in $format";
         mkpath($img_dir);
         my @cmd = ('nice', 'ionice', 'qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name");
         if ($format eq 'raw') {
@@ -206,7 +207,7 @@ sub do_extract_assets {
         }
     }
     else {
-        bmwqemu::diag "do_extract_assets: hdd $hdd_num does not exist";
+        log::diag "do_extract_assets: hdd $hdd_num does not exist";
     }
 }
 
@@ -647,7 +648,7 @@ sub start_qemu {
         if ($vars->{AUTO_INST}) {
             push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
         }
-        bmwqemu::diag("starting: " . join(" ", @params));
+        log::diag("starting: " . join(" ", @params));
 
         # don't try to talk to the host's PA
         $ENV{QEMU_AUDIO_DRV} = "none";
@@ -812,7 +813,7 @@ sub handle_qmp_command {
     while (!$hash) {
         $hash = myjsonrpc::read_json($self->{qmpsocket});
         if ($hash->{event}) {
-            bmwqemu::diag "EVENT " . JSON::to_json($hash);
+            log::diag "EVENT " . JSON::to_json($hash);
             # ignore
             $hash = undef;
         }
@@ -827,7 +828,7 @@ sub read_qemupipe {
     my $bytes = sysread($self->{qemupipe}, $buffer, 1000);
     chomp $buffer;
     for my $line (split(/\n/, $buffer)) {
-        bmwqemu::diag "QEMU: $line";
+        log::diag "QEMU: $line";
     }
     return $bytes;
 }
@@ -908,7 +909,7 @@ sub wait_idle {
         $stat += $systemstat;
         if ($prev) {
             my $diff = $stat - $prev;
-            bmwqemu::diag("wait_idle $timesidle d=$diff");
+            log::diag("wait_idle $timesidle d=$diff");
             if ($diff < $idlethreshold) {
                 if (++$timesidle > $timesidleneeded) {    # idle for $x sec
                                                           #if($diff<2000000) # idle for one sec

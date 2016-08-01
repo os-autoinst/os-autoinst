@@ -22,6 +22,7 @@ use warnings;
 use bmwqemu qw(diag);
 
 use File::Basename;
+use log;
 
 require Exporter;
 require DynaLoader;
@@ -68,7 +69,7 @@ sub search_ {
 
     my $needle_image = $needle->get_image;
     unless ($needle_image) {
-        bmwqemu::diag("SKIP($needle->{name}:missing PNG)");
+        log::diag("SKIP($needle->{name}:missing PNG)");
         return;
     }
 
@@ -115,7 +116,7 @@ sub search_ {
     }
 
     $ret->{error} = mean_square_error($ret->{area});
-    bmwqemu::diag(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - $ret->{error}));
+    log::diag(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - $ret->{error}));
 
     if ($ret->{ok}) {
         for my $a (@ocr) {

@@ -25,6 +25,7 @@ use JSON;
 use File::Basename;
 require IPC::System::Simple;
 use autodie qw(:all);
+use log;
 
 our %needles;
 our %tags;
@@ -126,7 +127,7 @@ sub register {
     my %check_dups;
     for my $g (@{$self->{tags}}) {
         if ($check_dups{$g}) {
-            bmwqemu::diag("$self->{name} contains $g twice");
+            log::diag("$self->{name} contains $g twice");
             next;
         }
         $check_dups{$g} = 1;
@@ -198,9 +199,9 @@ sub init {
 
     %needles = ();
     %tags    = ();
-    bmwqemu::diag("init needles from $needledir");
+    log::diag("init needles from $needledir");
     find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needledir);
-    bmwqemu::diag(sprintf("loaded %d needles", scalar keys %needles));
+    log::diag(sprintf("loaded %d needles", scalar keys %needles));
 
     if ($cleanuphandler) {
         &$cleanuphandler();

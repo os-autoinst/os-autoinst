@@ -6,7 +6,6 @@ Supported variables per backend
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-EXCLUDE_MODULES;string;;comma separated names or fullnames of excluded test modules
 NOVIDEO;boolean;0;Do not encode video if set
 SCREENSHOTINTERVAL;;;
 |====================
@@ -21,6 +20,29 @@ IPMI_PASSWORD;string;Password for the IPMI interface;
 IPMI_USER;string;Username for the IPMI interface;
 |====================
 
+.PVM backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+ARCH;;;
+CPUS;integer;1;Number of CPUS for LPAR
+HDDSIZEGB;integer;15;Disk size in GB
+HDD_$hdd_num;;;
+HDD_$i;;;
+ISO;;;
+LPAR;string;osauto;LPAR name to be created
+LPARID;;;
+MEM;integer;2048;amount of RAM
+NIC;;;
+NICVLAN;integer;1;VLAN to attach to
+NUMDISKS;integer;1;Number of disks
+VIOISO;;;
+VNC;;;
+VSWITCH;string;VSWITCH0;A virtula switch to connect to
+WORKER_ID;;;
+|====================
+
 .QEMU backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
@@ -29,15 +51,15 @@ Variable;Values allowed;Default value;Explanation
 ARCH;x86_64|i686|aarch64|...;depends on tested medium;Architecture of VM.
 AUTO_INST;;;
 BIOS;;;
-BOOT_HDD_IMAGE;boolean;;enables boot from HDD_1 (BOOTFROM has higher priority)
 BOOTFROM;chars;undef;Influences order of boot devices. See qemu -boot option
+BOOT_HDD_IMAGE;boolean;;enables boot from HDD_1 (BOOTFROM has higher priority)
 CDMODEL;see qemu -device ?;undef;Storage device for virtualized CD
 HDDFORMAT;;;
 HDDMODEL;see qemu -device ?;virtio-blk;Storage device for virtualized HDD.
 HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
+HDDSIZEGB_$i;;;
 HDD_$i;filename;;Filename of HDD image to be used for VM. Up to 9
 ISO;filename;;Filename of ISO file to be attached to VM
-ISO_$i;filename;;Aditional ISO to be attached to VM. Up to 9
 KEEPHDDS;boolean;;Leave created HDD after test finishes. Useful for debugging tests
 LAPTOP;boolean or filename;0;If 1, loads Dell E6330 DMI. If filename, loads specified DMI
 MAKETESTSNAPSHOTS;boolean;0;Save snapshot for each test module in qcow image
@@ -65,71 +87,29 @@ QEMU_COMPRESS_QCOW2;boolean;0;compress qcow2 images intended for upload
 QEMU_NO_KVM;boolean;0;Don't use KVM acceleration.
 QEMU_VIRTIO_RNG;boolean;0;Enable virtio random number generator
 RAIDLEVEL;;;
+SCSICONTROLLER;;;
 SKIPTO;full name of test module;;Restore VM from snapshot and continue by running specified test module. Needs HDD image with snapshots present
 TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used
+TAPDOWNSCRIPT;;;
 TAPSCRIPT;;;
-TESTDEBUG;boolean;0;Enable test debugging: override 'milestone' and 'fatal' test flags to 1. Snapshot are created after each successful test module and each fail aborts test run
 UEFI;;;
-UEFI_PFLASH;boolean;0;Enable the pflash mode to write the UEFI variables directly into the firmware file instead of NVvars in the EFI system partition
 UEFI_BIOS;;;
+UEFI_PFLASH;boolean;0;Enable the pflash mode to write the UEFI variables directly into the firmware file instead of NVvars in the EFI system partition
 USBBOOT;boolean;0;Mount ISO as USB disk and boot VM from it
 VDE_PORT;integer;worker instance + 10;number of vde switch port to connect
 VDE_SOCKETDIR;string;.;directory where vde_switch control socket is to be found
 VDE_USE_SLIRP;integer;1;whether to start slirpvde
 VNC;integer;worker instance + 90;Display on which VNC server is running. Actual port is 5900 + VNC
 VNCKB;;;
+WORKER_HOSTNAME;;;
 |====================
 
-.SVIRT backend
+.VIRT backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-HDDSIZEGB;integer;15;Disk size in GB
-QEMUCPUS;integer;1;Number of CPUs to assign to VM
-QEMURAM;integer;1024;Size of RAM of VM in MiB
-VIRSH_HOSTNAME;string;SSH Host with virtsh;
-VIRSH_PASSWORD;string;Password for root account on above host;
-VIRSH_VMM_FAMILY;string;Host's hypervisor ('kvm', 'xen');
-VIRSH_VMM_TYPE;string;Host's hypervisor type ('hvm' for full virtualization on 'kvm' and 'xen' families, 'linux' for paravirtualization on 'xen' family);
-VIRSH_GUEST;string;Where to look for VNC server (SUT or VM);
-VIRSH_INSTANCE;integer;VM's instance number on VIRSH_HOSTNAME;
-VMWARE_USERNAME;string;Administrator's username ('@' is '%40');
-VMWARE_PASSWORD;string;Administrator's password;
-VMWARE_HOST;string;VCS server for autentication;
-VMWARE_DATACENTER;string;VMware datacenter;
-VMWARE_SERVER;string;ESX server to start VM on;
-VMWARE_DATASTORE;string;VMware datastore;
-VMWARE_SERIAL_PORT;string;TCP port where is VM's serial port stream to be expected on the ESX server;
-VMWARE_BRIDGE;string;VMware's bridge name (usual default is 'VM Network');
-HYPERV_USERNAME;string;Administrator account name;
-HYPERV_PASSWORD;string;Password for above account;
-HYPERV_SERVER;string;Windows Server (2008 R2, 2012 R2, or 2016) instance IP address;
-HYPERV_SERIAL_PORT;integer;TCP port where is VM's serial port stream to be expected on the Hyper-V server;
+QEMUCPUS;;;
+QEMURAM;;;
 |====================
 
-.PVM backend
-[grid="rows",format="csv"]
-[options="header",cols="^m,^m,^m,v",separator=";"]
-|====================
-Variable;Values allowed;Default value;Explanation
-MEM;integer;2048;amount of RAM
-LPAR;string;osauto;LPAR name to be created
-NUMDISKS;integer;1;Number of disks
-HDDSIZEGB;integer;15;Disk size in GB
-NICVLAN;integer;1;VLAN to attach to
-VSWITCH;string;VSWITCH0;A virtula switch to connect to
-CPUS;integer;1;Number of CPUS for LPAR
-|====================
-
-.GENERAL_HW backend
-[grid="rows",format="csv"]
-[options="header",cols="^m,^m,^m,v",separator=";"]
-|====================
-Variable;Values allowed;Default value;Explanation
-GENERAL_HW_VNC_IP;string;;Hostname of the gadget's network
-GENERAL_HW_CMD_DIR;string;;Directory with allowed CMD scripts
-GENERAL_HW_SOL_CMD;string;;Shell Script to output serial output (in CMD_DIR)
-GENERAL_HW_POWERON_CMD;string;;Shell Command to power on the SUT (in CMD_DIR)
-GENERAL_HW_POWEROFF_CMD;string;;Shell Command to power off the SUT (in CMD_DIR)
-|====================

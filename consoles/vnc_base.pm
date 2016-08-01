@@ -26,6 +26,7 @@ use feature qw/say/;
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 use Try::Tiny;
+use log;
 
 sub screen {
     my ($self) = @_;
@@ -54,7 +55,7 @@ sub connect_vnc {
 
     $self->{mouse} = {x => undef, y => undef};
 
-    CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
+    CORE::say __FILE__. ":" . __LINE__ . ":" . log::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
     my $endtime = time + ($args->{connect_timeout} || 10);
 
@@ -199,7 +200,7 @@ sub _mouse_move {
     $self->{mouse}->{x} = $x;
     $self->{mouse}->{y} = $y;
 
-    bmwqemu::diag "mouse_move $x, $y";
+    log::diag "mouse_move $x, $y";
     $self->{vnc}->mouse_move_to($x, $y);
     return;
 }
@@ -246,7 +247,7 @@ sub mouse_button {
     elsif ($button eq 'middle') {
         $mask = $bstate << 1;
     }
-    bmwqemu::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
+    log::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
     $self->{vnc}->send_pointer_event($mask, $self->{mouse}->{x}, $self->{mouse}->{y});
     return {};
 }

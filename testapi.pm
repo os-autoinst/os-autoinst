@@ -28,6 +28,7 @@ require IPC::System::Simple;
 use autodie qw(:all);
 use OpenQA::Exceptions;
 use Digest::MD5 qw(md5_base64);
+use log;
 
 require bmwqemu;
 
@@ -145,7 +146,7 @@ Takes an optional C<$reason> string which is recorded in the log file.
 =cut
 sub record_soft_failure {
     my ($reason) = @_;
-    bmwqemu::log_call(reason => $reason);
+    log::log_call(reason => $reason);
 
     $autotest::current_test->record_soft_failure_result($reason);
     $autotest::current_test->{dents}++;
@@ -164,12 +165,12 @@ sub _check_backend_response {
         my $img = tinycv::read($rsp->{filename});
         $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
         my $lastarea = $foundneedle->{area}->[-1];
-        bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+        log::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
         $last_matched_needle = $foundneedle;
         return $foundneedle;
     }
     elsif ($rsp->{timeout}) {
-        bmwqemu::fctres("match=" . join(',', @$tags) . " timed out after $timeout");
+        log::fctres("match=" . join(',', @$tags) . " timed out after $timeout");
         my $failed_screens = $rsp->{failed_screens};
         my $final_mismatch = $failed_screens->[-1];
         if ($check) {
@@ -212,7 +213,7 @@ sub _check_backend_response {
         }
     }
     else {
-        die "unexpected response " . bmwqemu::pp($rsp);
+        die "unexpected response " . log::pp($rsp);
     }
     return;
 }
@@ -241,7 +242,7 @@ Returns matched needle or throws C<NeedleFailed> exception if $timeout timeout i
 sub assert_screen {
     my ($mustmatch, $timeout) = @_;
     $timeout //= $bmwqemu::default_timeout;
-    bmwqemu::log_call(mustmatch => $mustmatch, timeout => $timeout);
+    log::log_call(mustmatch => $mustmatch, timeout => $timeout);
     return _check_or_assert($mustmatch, $timeout, 0);
 }
 
@@ -258,7 +259,7 @@ Returns matched needle or C<undef> if timeout is hit. Default timeout is 30s.
 sub check_screen {
     my ($mustmatch, $timeout) = @_;
     $timeout //= $bmwqemu::default_timeout;
-    bmwqemu::log_call(mustmatch => $mustmatch, timeout => $timeout);
+    log::log_call(mustmatch => $mustmatch, timeout => $timeout);
     return _check_or_assert($mustmatch, $timeout, 1);
 }
 
@@ -297,7 +298,7 @@ sub assert_and_click {
 
     $last_matched_needle = assert_screen($mustmatch, $timeout);
     my $old_mouse_coords = query_isotovideo('backend_get_last_mouse_set');
-    bmwqemu::log_call(mustmatch => $mustmatch, button => $button, timeout => $timeout);
+    log::log_call(mustmatch => $mustmatch, button => $button, timeout => $timeout);
 
     # last_matched_needle has to be set, or the assert is buggy :)
     my $lastarea = $last_matched_needle->{area}->[-1];
@@ -305,7 +306,7 @@ sub assert_and_click {
     my $ry       = 1;                                                  # $origy / $img->yres();
     my $x        = int(($lastarea->{x} + $lastarea->{w} / 2) * $rx);
     my $y        = int(($lastarea->{y} + $lastarea->{h} / 2) * $ry);
-    bmwqemu::diag("clicking at $x/$y");
+    log::diag("clicking at $x/$y");
     mouse_set($x, $y);
     if ($dclick) {
         mouse_dclick($button, $clicktime);
@@ -358,7 +359,7 @@ sub wait_screen_change(&@) {
     my ($callback, $timeout) = @_;
     $timeout ||= 10;
 
-    bmwqemu::log_call(timeout => $timeout);
+    log::log_call(timeout => $timeout);
 
     # get the initial screen
     query_isotovideo('backend_set_reference_screenshot');
@@ -371,13 +372,13 @@ sub wait_screen_change(&@) {
         my $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
         print "waiting for screen change: " . (time - $starttime) . " $sim\n";
         if ($sim < $similarity_level) {
-            bmwqemu::fctres("screen change seen at " . (time - $starttime));
+            log::fctres("screen change seen at " . (time - $starttime));
             return 1;
         }
         sleep(0.5);
     }
     save_screenshot;
-    bmwqemu::fctres("timed out");
+    log::fctres("timed out");
     return 0;
 }
 
@@ -398,7 +399,7 @@ sub wait_still_screen {
     my $timeout          = shift || 30;
     my $similarity_level = shift || (get_var('HW') ? 44 : 47);
 
-    bmwqemu::log_call(stilltime => $stilltime, timeout => $timeout, simlvl => $similarity_level);
+    log::log_call(stilltime => $stilltime, timeout => $timeout, simlvl => $similarity_level);
 
     $timeout = bmwqemu::scale_timeout($timeout);
 
@@ -416,13 +417,13 @@ sub wait_still_screen {
             query_isotovideo('backend_set_reference_screenshot');
         }
         if (($now->[0] - $lastchangetime->[0]) + ($now->[1] - $lastchangetime->[1]) / 1000000. >= $stilltime) {
-            bmwqemu::fctres("detected same image for $stilltime seconds");
+            log::fctres("detected same image for $stilltime seconds");
             return 1;
         }
         sleep(0.5);
     }
     $autotest::current_test->timeout_screenshot();
-    bmwqemu::fctres("wait_still_screen timed out after $timeout");
+    log::fctres("wait_still_screen timed out after $timeout");
     return 0;
 }
 
@@ -528,7 +529,7 @@ sub wait_serial {
     my $timeout          = shift || 90;    # seconds
     my $expect_not_found = shift || 0;     # expected can not found the term in serial output
 
-    bmwqemu::log_call(regex => $regexp, timeout => $timeout);
+    log::log_call(regex => $regexp, timeout => $timeout);
     $timeout = bmwqemu::scale_timeout($timeout);
 
     my $ret = query_isotovideo('backend_wait_serial', {regexp => $regexp, timeout => $timeout});
@@ -547,8 +548,8 @@ sub wait_serial {
     else {
         $matched = 'fail';
     }
-    $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string});
-    bmwqemu::fctres("$regexp: $matched");
+    $autotest::current_test->record_serialresult(log::pp($regexp), $matched, $ret->{string});
+    log::fctres("$regexp: $matched");
     return $ret->{string} if ($matched eq "ok");
     return;    # false
 }
@@ -564,7 +565,7 @@ I<The implementation is distribution specific and not always available.>
 =cut
 sub x11_start_program {
     my ($program, $timeout, $options) = @_;
-    bmwqemu::log_call(timeout => $timeout, options => $options);
+    log::log_call(timeout => $timeout, options => $options);
     return $distri->x11_start_program($program, $timeout, $options);
 }
 
@@ -585,7 +586,7 @@ sub script_run {
     my ($name, $wait) = @_;
     $wait //= $bmwqemu::default_timeout;
 
-    bmwqemu::log_call(name => $name, wait => $wait);
+    log::log_call(name => $name, wait => $wait);
     return $distri->script_run($name, $wait);
 }
 
@@ -641,7 +642,7 @@ sub script_sudo {
     my $name = shift;
     my $wait = shift // 2;
 
-    bmwqemu::log_call(name => $name, wait => $wait);
+    log::log_call(name => $name, wait => $wait);
     return $distri->script_sudo($name, $wait);
 }
 
@@ -726,7 +727,7 @@ sub validate_script_output($&;$) {
     $_ = $output;
     if (!$code->()) {
         $res = 'fail';
-        bmwqemu::diag("output does not pass the code block:\n$output");
+        log::diag("output does not pass the code block:\n$output");
     }
     # abusing the function
     $autotest::current_test->record_serialresult($output, $res, $output);
@@ -774,7 +775,7 @@ sub power {
 
     # params: (on), off, acpi, reset
     my ($action) = @_;
-    bmwqemu::log_call(action => $action);
+    log::log_call(action => $action);
     query_isotovideo('backend_power', {action => $action});
 }
 
@@ -791,12 +792,12 @@ Returns C<undef> on success, throws exception on timeout.
 sub assert_shutdown {
     my ($timeout) = @_;
     $timeout //= 60;
-    bmwqemu::log_call(timeout => $timeout);
+    log::log_call(timeout => $timeout);
     $timeout = bmwqemu::scale_timeout($timeout);
     while ($timeout >= 0) {
         my $is_shutdown = query_isotovideo('backend_is_shutdown') || 0;
         if ($is_shutdown < 0) {
-            bmwqemu::diag("Backend does not implement is_shutdown - just sleeping");
+            log::diag("Backend does not implement is_shutdown - just sleeping");
             sleep($timeout);
         }
         if ($is_shutdown) {    # -1 counts too
@@ -818,7 +819,7 @@ if backend supports it, eject the CD
 
 =cut
 sub eject_cd {
-    bmwqemu::log_call();
+    log::log_call();
     query_isotovideo('backend_eject_cd');
 }
 
@@ -937,17 +938,17 @@ sub wait_idle {
     use Carp qw(cluck);
     cluck "Wait_idle called";
 
-    bmwqemu::log_call(timeout => $timeout);
+    log::log_call(timeout => $timeout);
 
     my $args = {
         timeout   => $timeout,
         threshold => get_var('IDLETHRESHOLD', 18)};
     my $rsp = query_isotovideo('backend_wait_idle', $args);
     if ($rsp && $rsp->{idle}) {
-        bmwqemu::fctres("idle detected");
+        log::fctres("idle detected");
     }
     else {
-        bmwqemu::fctres("timed out after $timeout");
+        log::fctres("timed out after $timeout");
     }
     return;
 }
@@ -1031,7 +1032,7 @@ sub upload_logs {
     my %args   = @_;
     my $failok = $args{failok} || 0;
 
-    bmwqemu::log_call(file => $file);
+    log::log_call(file => $file);
     my $basename = basename($file);
     my $upname   = ref($autotest::current_test) . '-' . $basename;
     my $cmd      = "curl --form upload=\@$file --form upname=$upname ";
@@ -1064,7 +1065,7 @@ replacing previous assets - useful for external users:
 sub upload_asset {
     my ($file, $public) = @_;
 
-    bmwqemu::log_call(file => $file);
+    log::log_call(file => $file);
     my $cmd = "curl --form upload=\@$file ";
     $cmd .= "--form target=assets_public " if $public;
     my $basename = basename($file);
@@ -1090,7 +1091,7 @@ Special characters naming:
 sub send_key {
     my ($key, $do_wait) = @_;
     $do_wait //= 0;
-    bmwqemu::log_call(key => $key);
+    log::log_call(key => $key);
     query_isotovideo('backend_send_key', {key => $key});
     wait_idle() if $do_wait;
 }
@@ -1104,7 +1105,7 @@ Hold one C<$key> until release it
 =cut
 sub hold_key {
     my ($key) = @_;
-    bmwqemu::log_call('hold_key', key => $key);
+    log::log_call('hold_key', key => $key);
     query_isotovideo('backend_hold_key', {key => $key});
 }
 
@@ -1117,7 +1118,7 @@ Release one C<$key> which is kept holding
 =cut
 sub release_key {
     my $key = shift;
-    bmwqemu::log_call('release_key', key => $key);
+    log::log_call('release_key', key => $key);
     query_isotovideo('backend_release_key', {key => $key});
 }
 
@@ -1175,7 +1176,7 @@ sub type_string {
     my $log = $args{secret} ? 'SECRET STRING' : $string;
     my $max_interval = $args{max_interval}       // 250;
     my $wait         = $args{wait_screen_change} // 0;
-    bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait);
+    log::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait);
     if ($wait) {
         # split string into an array of pieces of specified size
         # https://stackoverflow.com/questions/372370
@@ -1216,7 +1217,7 @@ Move mouse pointer to given coordinates
 sub mouse_set {
     my ($mx, $my) = @_;
 
-    bmwqemu::log_call(x => $mx, y => $my);
+    log::log_call(x => $mx, y => $my);
     query_isotovideo('backend_mouse_set', {x => $mx, y => $my});
 }
 
@@ -1231,7 +1232,7 @@ Default hold time is 1s
 sub mouse_click {
     my $button = shift || 'left';
     my $time   = shift || 0.15;
-    bmwqemu::log_call(button => $button, cursor_down => $time);
+    log::log_call(button => $button, cursor_down => $time);
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
     # FIXME sleep resolution = 1s, use usleep
     sleep $time;
@@ -1248,7 +1249,7 @@ Same as mouse_click only for double click.
 sub mouse_dclick(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.10;
-    bmwqemu::log_call(button => $button, cursor_down => $time);
+    log::log_call(button => $button, cursor_down => $time);
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
     # FIXME sleep resolution = 1s, use usleep
     sleep $time;
@@ -1269,7 +1270,7 @@ Same as mouse_click only for triple click.
 sub mouse_tclick(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.10;
-    bmwqemu::log_call(button => $button, cursor_down => $time);
+    log::log_call(button => $button, cursor_down => $time);
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
     sleep $time;
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
@@ -1292,7 +1293,7 @@ Hide mouse cursor by moving it out of screen area.
 =cut
 sub mouse_hide(;$) {
     my $border_offset = shift || 0;
-    bmwqemu::log_call(border_offset => $border_offset);
+    log::log_call(border_offset => $border_offset);
     query_isotovideo('backend_mouse_hide', {offset => $border_offset});
 }
 
@@ -1351,7 +1352,7 @@ to run test code.
 =cut
 sub select_console {
     my ($testapi_console) = @_;
-    bmwqemu::log_call(testapi_console => $testapi_console);
+    log::log_call(testapi_console => $testapi_console);
     if (!exists $testapi_console_proxies{$testapi_console}) {
         $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
     }
@@ -1388,7 +1389,7 @@ here.
 =cut
 sub console {
     my ($testapi_console) = @_;
-    bmwqemu::log_call(testapi_console => $testapi_console);
+    log::log_call(testapi_console => $testapi_console);
     if (exists $testapi_console_proxies{$testapi_console}) {
         return $testapi_console_proxies{$testapi_console};
     }
@@ -1422,7 +1423,7 @@ I<Only supported by qemu backend.>
 sub start_audiocapture {
     my $fn = $autotest::current_test->capture_filename;
     my $filename = join('/', bmwqemu::result_dir(), $fn);
-    bmwqemu::log_call(filename => $filename);
+    log::log_call(filename => $filename);
     return query_isotovideo('backend_start_audiocapture', {filename => $filename});
 }
 
@@ -1456,7 +1457,7 @@ sub assert_recorded_sound {
 Write a diagnostic message to the logfile. In color, if possible.
 =cut
 sub diag {
-    return bmwqemu::diag(@_);
+    return log::diag(@_);
 }
 
 =head2 hashed_string

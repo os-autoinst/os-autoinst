@@ -33,6 +33,7 @@ use testapi qw(get_required_var);
 use IPC::Run ();
 require IPC::System::Simple;
 use autodie qw(:all);
+use log;
 
 sub new {
     my $class = shift;
@@ -60,7 +61,7 @@ sub ipmitool {
     chomp $stderr;
 
     die join(' ', @cmd) . ": $stderr" unless ($ret);
-    bmwqemu::diag("IPMI: $stdout");
+    log::diag("IPMI: $stdout");
     return $stdout;
 }
 
