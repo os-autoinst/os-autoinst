@@ -288,26 +288,30 @@ sub start_qemu {
     # disk settings
     $vars->{NUMDISKS}  ||= 1;
     $vars->{HDDSIZEGB} ||= 10;
-    $vars->{CDMODEL}   ||= "virtio-scsi-pci";
+    $vars->{CDMODEL}   ||= "scsi-cd";
     if ($vars->{MULTIPATH}) {
-        $vars->{HDDMODEL}  ||= "virtio-scsi-pci";
+        $vars->{HDDMODEL}  ||= "scsi-hd";
         $vars->{HDDFORMAT} ||= "raw";
         $vars->{PATHCNT}   ||= 2;
     }
     $vars->{HDDMODEL}  ||= "virtio-blk";
     $vars->{HDDFORMAT} ||= "qcow2";
 
-    # TODO: we shouldn't use HDDMODEL resp CDMODEL to specify the
-    # controller.
-    # XXX: it is undefined if HDDMODEL and CDMODEL would use
-    # different kinds of virtio scsi
-    my $virtio_scsi_controller;
+    # Deprecated behaviour: set scsi controller using the value of the HDD or CD Model.
+    # Then set the HDD or CD model to an actual drive type.
     for my $var (qw/HDDMODEL CDMODEL/) {
         if ($vars->{$var} =~ /virtio-scsi.*/) {
-            $virtio_scsi_controller = $vars->{$var};
+            $vars->{SCSICONTROLLER} = $vars->{$var};
             $vars->{$var} = sprintf "scsi-%sd", lc substr $var, 0, 1;
         }
     }
+
+    # New behaviour: create default scsi controller for common scsi devices or use the
+    # controller type specified by the user.
+    if ($vars->{CDMODEL} eq 'scsi-cd' || $vars->{HDDMODEL} eq 'scsi-hd') {
+        $vars->{SCSICONTROLLER} ||= "virtio-scsi-pci";
+    }
+
     # network settings
     $vars->{NICMODEL} ||= "virtio-net";
     $vars->{NICTYPE}  ||= "user";
@@ -512,12 +516,12 @@ sub start_qemu {
             push(@params, '-append', "dhcp && sanhook iscsi:$vars->{WORKER_HOSTNAME}::3260:1:$vars->{NBF}");
         }
 
-        if ($virtio_scsi_controller) {
+        if ($vars->{SCSICONTROLLER}) {
             # scsi devices need SCSI controller
-            push(@params, "-device", "$virtio_scsi_controller,id=scsi0");
+            push(@params, "-device", "$vars->{SCSICONTROLLER},id=scsi0");
             if ($vars->{MULTIPATH}) {
                 # add the second HBA
-                push(@params, "-device", "$virtio_scsi_controller,id=scsi1");
+                push(@params, "-device", "$vars->{SCSICONTROLLER},id=scsi1");
             }
         }
 
