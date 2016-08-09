@@ -311,8 +311,14 @@ sub assert_and_click {
     }
     # We can't just move the mouse, or we end up in a click-and-drag situation
     sleep 1;
-    # move mouse back to where it was before we clicked
-    return mouse_set($old_mouse_coords->{x}, $old_mouse_coords->{y});
+    # move mouse back to where it was before we clicked, or to the 'hidden'
+    # position if it had never been positioned
+    if (defined $old_mouse_coords->{x} && defined $old_mouse_coords->{y}) {
+        return mouse_set($old_mouse_coords->{x}, $old_mouse_coords->{y});
+    }
+    else {
+        return mouse_hide();
+    }
 }
 
 =head2 assert_and_dclick
