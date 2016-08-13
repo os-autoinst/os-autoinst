@@ -188,9 +188,11 @@ sub mouse_hide {
     $self->{mouse}->{x} = $self->{vnc}->width - 1;
     $self->{mouse}->{y} = $self->{vnc}->height - 1;
 
-    my $border_offset = int($args->{border_offset});
-    $self->{mouse}->{x} -= $border_offset;
-    $self->{mouse}->{y} -= $border_offset;
+    if (defined $args->{border_offset}) {
+        my $border_offset = int($args->{border_offset});
+        $self->{mouse}->{x} -= $border_offset;
+        $self->{mouse}->{y} -= $border_offset;
+    }
 
     bmwqemu::diag "mouse_move $self->{mouse}->{x}, $self->{mouse}->{y}";
     $self->{vnc}->mouse_move_to($self->{mouse}->{x}, $self->{mouse}->{y});
