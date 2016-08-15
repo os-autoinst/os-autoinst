@@ -607,7 +607,7 @@ sub assert_script_run {
     if (@_ == 1) {
         %args = (timeout => $_[0]);
     }
-    elsif (@_ == 2 && $_[1] ne 'fail_message' && $_[1] ne 'timeout') {
+    elsif (@_ == 2 && $_[0] ne 'fail_message' && $_[0] ne 'timeout') {
         %args = (timeout => $_[0], fail_message => $_[1]);
     }
     else {
