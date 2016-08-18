@@ -202,7 +202,7 @@ sub mouse_hide {
 
 sub mouse_set {
     my ($self, $args) = @_;
-    return unless ($args->{x} && $args->{y});
+    die "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
 
     # TODO: for framebuffers larger than 1024x768, we need to upscale
     $self->{mouse}->{x} = int($args->{x});
