@@ -422,7 +422,7 @@ sub check_socket {
             if ($self->{rsppipe}) {    # the command might have closed it
                 my $JSON = JSON->new()->convert_blessed();
                 my $json = $JSON->encode({rsp => $rsp});
-                $self->{rsppipe}->print("$json\n");
+                $self->{rsppipe}->print($json);
             }
         }
         else {
