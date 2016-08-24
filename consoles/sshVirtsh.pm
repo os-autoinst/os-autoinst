@@ -280,30 +280,61 @@ sub add_disk {
     my $devices = $self->{devices_element};
 
     my $disk = $doc->createElement('disk');
-    $disk->setAttribute(type   => 'file');
-    $disk->setAttribute(device => 'disk');
+    $disk->setAttribute(type => 'file');
+    if ($args->{cdrom}) {
+        $disk->setAttribute(device => 'cdrom');
+    }
+    else {
+        $disk->setAttribute(device => 'disk');
+    }
     $devices->appendChild($disk);
 
-    my $elem = $doc->createElement('driver');
-    $elem->setAttribute(name => 'qemu');
-    $elem->setAttribute(type => 'qcow2');
-    $disk->appendChild($elem);
+    my $elem;
+
+    # there's no <driver> property on VMware
+    if ($self->vmm_family ne 'vmware') {
+        $elem = $doc->createElement('driver');
+        $elem->setAttribute(name => 'qemu');
+        if ($args->{cdrom}) {
+            $elem->setAttribute(type => 'raw');
+        }
+        else {
+            $elem->setAttribute(type => 'qcow2');
+        }
+        $disk->appendChild($elem);
+    }
 
     my $dev_type;
     my $bus_type;
     if ($self->vmm_family eq 'xen' || $self->vmm_family eq 'vmware') {
         if ($self->vmm_type eq 'hvm') {
-            $dev_type = 'hda';
+            if ($args->{cdrom}) {
+                $dev_type = 'hdb';
+            }
+            else {
+                $dev_type = 'hda';
+            }
             $bus_type = 'ide';
         }
         elsif ($self->vmm_type eq 'linux') {
-            $dev_type = 'xvda';
+            if ($args->{cdrom}) {
+                $dev_type = 'xvdb';
+            }
+            else {
+                $dev_type = 'xvda';
+            }
             $bus_type = 'xen';
         }
     }
     elsif ($self->vmm_family eq 'kvm') {
-        $dev_type = 'vda';
-        $bus_type = 'virtio';
+        if ($args->{cdrom}) {
+            $dev_type = 'hda';
+            $bus_type = 'ide';
+        }
+        else {
+            $dev_type = 'vda';
+            $bus_type = 'virtio';
+        }
     }
     $elem = $doc->createElement('target');
     $elem->setAttribute(dev => $dev_type);
@@ -312,6 +343,15 @@ sub add_disk {
 
     $elem = $doc->createElement('source');
     $elem->setAttribute(file => $file);
+    $disk->appendChild($elem);
+
+    $elem = $doc->createElement('boot');
+    if ($args->{cdrom}) {
+        $elem->setAttribute(order => 2);
+    }
+    else {
+        $elem->setAttribute(order => 1);
+    }
     $disk->appendChild($elem);
 
     return;
