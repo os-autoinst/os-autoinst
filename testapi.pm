@@ -1165,7 +1165,9 @@ sub type_string {
         %args = @_;
     }
     my $log = $args{secret} ? 'SECRET STRING' : $string;
-    my $max_interval = $args{max_interval} // 250;
+    #workaround for unstable type_string behavior on ipmi machine, so type more slowly as VERY_SLOW_TYPING_SPEED setting in lib/utils
+    my $default_max_interval = check_var('BACKEND', 'ipmi') ? 4 : 250;
+    my $max_interval = $args{max_interval} // $default_max_interval;
     bmwqemu::log_call(string => $log, max_interval => $max_interval);
     query_isotovideo('backend_type_string', {text => $string, max_interval => $max_interval});
 }
