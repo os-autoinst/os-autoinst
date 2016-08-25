@@ -634,7 +634,7 @@ sub start_qemu {
             if ($vars->{VNC} !~ /:/) {
                 $vars->{VNC} = ":$vars->{VNC}";
             }
-            push(@params, "-vnc", "$vars->{VNC},share=force-shared");
+            push(@params, "-vnc", "$vars->{VNC},share=force-shared,key-delay-ms=200");
             push(@params, "-k", $vars->{VNCKB}) if ($vars->{VNCKB});
         }
 
