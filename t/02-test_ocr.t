@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Test::More;
 use File::Which qw(which);
+use File::Basename;
 
 BEGIN {
     unshift @INC, '..';
@@ -26,9 +27,10 @@ plan tests => 2;
 
 my ($res, $needle, $img1);
 
-$img1 = tinycv::read("data/bootmenu.test.png");
+my $data_dir = dirname(__FILE__) . '/data/';
+$img1 = tinycv::read($data_dir . "bootmenu.test.png");
 
-$needle = needle->new("data/bootmenu-ocr.ref.json");
+$needle = needle->new($data_dir . "bootmenu-ocr.ref.json");
 $res    = $img1->search($needle);
 ok(defined $res, "ocr match 1");
 
