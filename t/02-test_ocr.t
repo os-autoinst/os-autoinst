@@ -23,7 +23,6 @@ unless (which('tesseract')) {
     plan skip_all => 'No tesseract installed';
     exit(0);
 }
-plan tests => 2;
 
 my ($res, $needle, $img1);
 
@@ -41,6 +40,6 @@ for my $a (@{$res->{needle}->{area}}) {
 }
 
 ok($ocr =~ /Memory Test.*Video Mode/s, "multiple OCR regions");
-done_testing();
+done_testing;
 
 # vim: set sw=4 et:
