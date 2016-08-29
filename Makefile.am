@@ -1,5 +1,6 @@
 ACLOCAL_AMFLAGS = -I m4
 SUBDIRS = t debugviewer snd2png
+COVERAGE_THRESHOLD = 30.1
 
 doc_DATA = \
 	README.asciidoc \
@@ -169,3 +170,26 @@ check-doc-testapi:
 clean-local:
 	@if test -e ppmclibs/Makefile; then $(MAKE) -C ppmclibs distclean; fi
 	-rm -rf *.tar.*
+	-rm -rf t/cover_db/
+
+t/cover_db/: check
+
+.PHONY: coverage-test
+coverage-test: t/cover_db/
+
+.PHONY: coverage
+coverage: coverage-html
+
+.PHONY: coverage-coveralls
+coverage-coveralls: t/cover_db/
+	(cd t && cover ${COVER_OPTS} -report coveralls)
+
+t/cover_db/coverage.html: t/cover_db/
+	(cd t && cover ${COVER_OPTS} -report html)
+
+.PHONY: coverage-html
+coverage-html: t/cover_db/coverage.html
+
+.PHONY: coverage-check
+coverage-check: t/cover_db/coverage.html
+	(cd t && ../tools/check_coverage ${COVERAGE_THRESHOLD})

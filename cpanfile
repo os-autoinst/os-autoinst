@@ -54,5 +54,6 @@ on 'test' => sub {
   requires 'Test::Pod';
   requires 'Test::MockModule';
   requires 'Pod::Coverage';
+  requires 'Devel::Cover';
 }
 
