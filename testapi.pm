@@ -223,8 +223,10 @@ sub _check_or_assert {
 
     die "current_test undefined" unless $autotest::current_test;
 
+    diag("query_isotovideo check_screen");
     my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, timeout => $timeout, check => $check});
     # seperate function because it needs to call itself
+    diag("_check_backend_response");
     return _check_backend_response($rsp, $check, $timeout, $mustmatch);
 }
 
