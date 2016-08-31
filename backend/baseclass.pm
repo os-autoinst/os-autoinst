@@ -1018,5 +1018,23 @@ sub stop_ssh_serial {
     return;
 }
 
+# typical max_interval values are
+#   1/80:  veeery slow
+#   3/50: slow
+#   1: as fast as backend can type
+sub seconds_per_keypress {
+    my ($self, $max_interval) = @_;
+
+    # speed limit: 15bps.  VNC has key up and key down over the wire,
+    # not whole key press events.  So with a faster pace, the vnc
+    # server may think of contact bounces for repeating keys.
+    my $seconds_per_keypress = 1 / 15;
+
+    # further slow down if being asked for
+    if (($max_interval // 1) < 1) {
+        $seconds_per_keypress = $seconds_per_keypress + 1 / sqrt($max_interval * 250);
+    }
+}
+
 1;
 # vim: set sw=4 et:
