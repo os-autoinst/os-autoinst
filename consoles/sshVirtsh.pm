@@ -411,6 +411,18 @@ sub get_ssh_output {
     }
 }
 
+sub suspend {
+    my ($self) = @_;
+    $self->{ssh}->channel()->exec("virsh suspend " . $self->name);
+    bmwqemu::diag "VM " . $self->name . " suspended";
+}
+
+sub resume {
+    my ($self) = @_;
+    $self->{ssh}->channel()->exec("virsh resume " . $self->name);
+    bmwqemu::diag "VM " . $self->name . " resumed";
+}
+
 sub define_and_start {
     my ($self) = @_;
 
