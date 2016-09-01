@@ -257,6 +257,20 @@ sub add_vnc {
     return;
 }
 
+sub add_input {
+    my ($self, $args) = @_;
+
+    my $doc     = $self->{domainxml};
+    my $devices = $self->{devices_element};
+
+    my $input = $doc->createElement('input');
+    $input->setAttribute(type => $args->{type});
+    $input->setAttribute(bus  => $args->{bus});
+    $devices->appendChild($input);
+
+    return;
+}
+
 # network stuff
 sub add_interface {
     my ($self, $args) = @_;
