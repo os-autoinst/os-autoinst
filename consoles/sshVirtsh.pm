@@ -18,7 +18,7 @@ package consoles::sshVirtsh;
 use base 'consoles::sshXtermVt';
 use strict;
 use warnings;
-use testapi qw/get_var get_required_var/;
+use testapi qw/get_var get_required_var check_var set_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
 use XML::LibXML;
@@ -111,27 +111,46 @@ sub _init_xml {
     $elem->appendTextNode($self->vmm_type);
     $os->appendChild($elem);
 
-    if ($self->vmm_family eq 'xen') {
-        if ($self->vmm_type eq 'hvm') {
-            my $features = $doc->createElement('features');
-            $root->appendChild($features);
-
-            $elem = $doc->createElement('acpi');
-            $features->appendChild($elem);
-            $elem = $doc->createElement('apic');
-            $features->appendChild($elem);
+    if (($self->vmm_family eq 'xen' and $self->vmm_type eq 'hvm') or get_var('UEFI')) {
+        my $features = $doc->createElement('features');
+        $root->appendChild($features);
+        $elem = $doc->createElement('acpi');
+        $features->appendChild($elem);
+        $elem = $doc->createElement('apic');
+        $features->appendChild($elem);
+        if ($self->vmm_family eq 'xen' and $self->vmm_type eq 'hvm') {
             $elem = $doc->createElement('pae');
             $features->appendChild($elem);
         }
-        elsif ($self->vmm_type eq 'linux') {
-            $elem = $doc->createElement('kernel');
-            $elem->appendTextNode('/usr/lib/grub2/x86_64-xen/grub.xen');
-            $os->appendChild($elem);
+    }
+
+    if ($self->vmm_family eq 'xen' and $self->vmm_type eq 'linux') {
+        $elem = $doc->createElement('kernel');
+        $elem->appendTextNode('/usr/lib/grub2/x86_64-xen/grub.xen');
+        $os->appendChild($elem);
+    }
+
+    if (get_var('UEFI') and check_var('ARCH', 'x86_64') and !get_var('BIOS')) {
+        # These are known locations for openSUSE and Fedora (respectively).
+        my @known = ('/usr/share/qemu/ovmf-x86_64-ms.bin', '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd');
+        foreach my $firmware (@known) {
+            if (!run_cmd($self, "test -e $firmware")) {
+                set_var('BIOS', $firmware);
+                $elem = $doc->createElement('loader');
+                $elem->appendTextNode($firmware);
+                $os->appendChild($elem);
+                last;
+            }
+        }
+        if (!get_var('BIOS')) {
+            # We know this won't go well.
+            die "No UEFI firmware can be found on hypervisor " . get_var('VIRSH_HOSTNAME') . "\n. Please specify BIOS or UEFI_BIOS or install an appropriate package.";
         }
     }
 
     $self->{devices_element} = $doc->createElement('devices');
     $root->appendChild($self->{devices_element});
+
     return;
 }
 
