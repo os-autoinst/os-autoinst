@@ -82,4 +82,63 @@ sub mutex_create {
     return 0;
 }
 
+## Barriers
+sub barrier_create {
+    my ($name, $tasks) = @_;
+    bmwqemu::mydie('missing barrier name')           unless $name;
+    bmwqemu::mydie('missing number of barrier task') unless $tasks;
+    bmwqemu::diag("barrier create '$name' for $tasks tasks");
+    my $res = api_call('post', 'barrier', {name => $name, tasks => $tasks})->code;
+    return 1 if ($res == 200);
+    bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
+    return 0;
+}
+
+sub _wait_action {
+    my ($name, $where) = @_;
+    my $param;
+    $param->{where} = $where if $where;
+    my $res = api_call('post', "barrier/$name", $param)->code;
+    return 1 if ($res == 200);
+
+    bmwqemu::mydie "barrier_wait '$name': barrier owner already finished" if $res == 410;
+
+    if ($res != 409) {
+        bmwqemu::fctwarn("Unknown return code $res for lock api");
+        return 0;
+    }
+}
+
+# Reason to include this is to be able to unit test _wait_action without blocking
+sub barrier_try_wait {
+    my ($name, $where) = @_;
+    bmwqemu::mydie('missing barrier name') unless $name;
+    bmwqemu::diag("barrier try wait '$name'");
+    return _wait_action($name, $where);
+}
+
+sub barrier_wait {
+    my ($name, $where) = @_;
+    bmwqemu::mydie('missing barrier name') unless $name;
+    bmwqemu::diag("barrier wait '$name'");
+    while (1) {
+        my $res = _wait_action($name, $where);
+        return 1 if $res;
+
+        bmwqemu::diag("barrier '$name' not released, sleeping 5s");
+        sleep(5);
+    }
+}
+
+sub barrier_destroy {
+    my ($name, $where) = @_;
+    bmwqemu::mydie('missing barrier name') unless $name;
+    bmwqemu::diag("barrier destroy '$name'");
+    my $param;
+    $param->{where} = $where if $where;
+    my $res = api_call('delete', "barrier/$name", $param)->code;
+    return 1 if ($res == 200);
+    bmwqemu::fctwarn("Unknown return code $res for lock api");
+}
+
 1;
