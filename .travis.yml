@@ -6,11 +6,12 @@ before_install:
   - sudo apt-get update
 install:
   - sudo apt-get install libdbus-1-dev libssh2-1-dev 
-  - cpanm -nq --installdeps .
+  - cpanm -nq --installdeps --with-feature=coverage .
   - sudo apt-get install libopencv-dev libtheora-dev libcv-dev libhighgui-dev tesseract-ocr libsndfile1-dev libfftw3-dev
 script:
   - find . -type f | xargs -n1 sed -i -e 's,#!/usr/bin/perl,#!/usr/bin/env perl,'
   - sh autogen.sh 
   - ./configure
-  - make && make check VERBOSE=1
-
+    # 'coverage' executes all tests and checks code coverage against threshold
+    # in Makefile.am
+  - make && make coverage-coveralls VERBOSE=1

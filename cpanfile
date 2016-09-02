@@ -54,5 +54,9 @@ on 'test' => sub {
   requires 'Test::Pod';
   requires 'Test::MockModule';
   requires 'Pod::Coverage';
-}
+  requires 'Devel::Cover';
+};
 
+feature 'coverage', 'coverage for travis' => sub {
+  requires 'Devel::Cover::Report::Coveralls';
+};
