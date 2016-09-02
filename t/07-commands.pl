@@ -32,7 +32,7 @@ BEGIN {
 use commands;
 use Mojo::IOLoop::Server;
 use Time::HiRes qw(sleep);
-use Test::More tests => 4;
+use Test::More;
 use POSIX qw(_exit);
 
 our $mojoport = Mojo::IOLoop::Server->generate_port;
@@ -70,7 +70,13 @@ is($ua->get("http://localhost:$mojoport/NEVEREVER")->res->code,          404);
 is($ua->get("http://localhost:$mojoport/isotovideo/version")->res->code, 404);
 my $get = $ua->get("http://localhost:$mojoport/Hallo/isotovideo/version");
 is($get->res->code, 200);
-is_deeply($get->res->json, {VERSION => 'COOL'});
+my $json = $get->res->json;
+# we only care for its existance
+ok(defined $json->{json_cmd_token});
+delete $json->{json_cmd_token};
+is_deeply($json, {VERSION => 'COOL'});
+
+done_testing;
 
 END {
     kill($spid);
