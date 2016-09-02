@@ -1166,10 +1166,11 @@ sub type_string {
     else {
         %args = @_;
     }
-    my $log = $args{secret} ? 'SECRET STRING' : $string;
-    my $max_interval = $args{max_interval} // 250;
+    my $log          = $args{secret} ? 'SECRET STRING' : $string;
+    my $really_slow  = 250.;
+    my $max_interval = $args{max_interval} // $really_slow;
     bmwqemu::log_call(string => $log, max_interval => $max_interval);
-    query_isotovideo('backend_type_string', {text => $string, max_interval => $max_interval});
+    query_isotovideo('backend_type_string', {text => $string, max_interval => $max_interval / $really_slow});
 }
 
 =head2 type_password

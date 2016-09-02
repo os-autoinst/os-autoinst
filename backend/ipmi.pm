@@ -133,6 +133,18 @@ sub is_shutdown {
     return $ret =~ m/is off/;
 }
 
+sub seconds_per_keypress {
+    my ($self, $max_interval) = @_;
+
+    my $ret = $self->SUPER::seconds_per_keypress($max_interval);
+    # speed limit for IPMI not used by default
+    if ($bmwqemu::vars{IPMI_TYPE_LIMIT} && $ret < 1 / 3) {
+        return 1 / 3;
+    }
+
+    return $ret;
+}
+
 # serial grab
 
 sub start_serial_grab {
