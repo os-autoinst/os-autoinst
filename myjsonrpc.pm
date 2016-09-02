@@ -28,12 +28,15 @@ sub send_json {
     # strings, using the Regex::TO_JSON function as defined at the end
     # of this file.
     my $JSON = JSON->new()->convert_blessed();
-    my $json = $JSON->encode($cmd);
+    # deep copy to add a random string
+    my %cmdcopy = %$cmd;
+    $cmdcopy{json_cmd_token} = bmwqemu::random_string(8);
+    my $json = $JSON->encode(\%cmdcopy);
 
     #bmwqemu::diag("send_json $json");
     my $wb = syswrite($to_fd, "$json");
     confess "syswrite failed $!" unless ($wb && $wb == length($json));
-    return;
+    return $cmdcopy{json_cmd_token};
 }
 
 # hash for keeping state
@@ -41,7 +44,7 @@ our $sockets;
 
 # utility function
 sub read_json {
-    my ($socket) = @_;
+    my ($socket, $cmd_token) = @_;
 
     my $JSON = JSON->new();
 
@@ -68,6 +71,9 @@ sub read_json {
             if ($hash->{QUIT}) {
                 bmwqemu::diag("received magic close");
                 return;
+            }
+            if ($cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token) {
+                confess "ERROR: the token does not match - questions and answers not in the right order";
             }
             return $hash;
         }

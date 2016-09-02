@@ -161,8 +161,8 @@ sub _send_json {
     my ($self, $cmd) = @_;
 
     croak "no backend running" unless ($self->{to_child});
-    myjsonrpc::send_json($self->{to_child}, $cmd);
-    my $rsp = myjsonrpc::read_json($self->{from_child});
+    my $token = myjsonrpc::send_json($self->{to_child}, $cmd);
+    my $rsp = myjsonrpc::read_json($self->{from_child}, $token);
     unless (defined $rsp) {
         # this might have been closed by signal handler
         no autodie qw(close);
