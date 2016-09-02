@@ -454,8 +454,8 @@ END {
     kill_backend;
     kill_commands;
     kill_autotest;
+    print "$$: EXIT $r\n";
+    _exit($r);
 }
 
-print "EXIT $r\n";
-exit $r;
 # vim: set sw=4 et:
