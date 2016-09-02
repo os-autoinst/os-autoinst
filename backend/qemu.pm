@@ -203,8 +203,6 @@ sub do_extract_assets {
                 symlink("../raid/l$hdd_num", "$img_dir/$name");
             }
         }
-        chomp(my $sha1 = qx{sha1sum -b $img_dir/$name});
-        bmwqemu::diag "sha1sum $sha1";
     }
     else {
         bmwqemu::diag "do_extract_assets: hdd $hdd_num does not exist";
