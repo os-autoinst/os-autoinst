@@ -155,24 +155,7 @@ sub _check_backend_response {
 
     my $tags = $rsp->{tags};
 
-    if ($rsp->{saveresult}) {
-        my $img = tinycv::read($rsp->{filename});
-        $autotest::current_test->record_screenfail(
-            img     => $img,
-            needles => $rsp->{candidates},
-            tags    => $tags,
-            result  => $check ? undef : 'fail',
-            # do not set overall here as the result will be removed later
-        );
-        $autotest::current_test->save_test_result();
-        # now back into waiting for the backend
-        $rsp = myjsonrpc::read_json($autotest::isotovideo);
-        return unless $rsp;
-        $rsp = $rsp->{ret};
-        $rsp->{tags} = $tags;
-        return _check_backend_response($rsp, $check, $timeout, $mustmatch);
-    }
-    elsif ($rsp->{found}) {
+    if ($rsp->{found}) {
         my $foundneedle = $rsp->{found};
         # convert the needle back to an object
         $foundneedle->{needle} = needle->new($foundneedle->{needle});
@@ -195,16 +178,35 @@ sub _check_backend_response {
             my $img = tinycv::read($l->{filename});
             my $result = $check ? 'unk' : 'fail';
             $result = 'unk' if ($l != $final_mismatch);
-            $autotest::current_test->record_screenfail(
-                img     => $img,
-                needles => $l->{candidates},
-                tags    => $tags,
-                result  => $result,
-                overall => $check ? undef : 'fail'
-            );
+            if ($rsp->{saveresult}) {
+                $autotest::current_test->record_screenfail(
+                    img     => $img,
+                    needles => $l->{candidates},
+                    tags    => $tags,
+                    result  => $result
+                );
+            }
+            else {
+                $autotest::current_test->record_screenfail(
+                    img     => $img,
+                    needles => $l->{candidates},
+                    tags    => $tags,
+                    result  => $result,
+                    overall => $check ? undef : 'fail'
+                );
+            }
         }
-        if (!$check) {
+        if (!$check && !$rsp->{saveresult}) {
             OpenQA::Exception::FailedNeedle->throw(error => "needle(s) '$mustmatch' not found", tags => $mustmatch);
+        }
+        if ($rsp->{saveresult}) {
+            $autotest::current_test->save_test_result();
+            # now back into waiting for the backend
+            $rsp = myjsonrpc::read_json($autotest::isotovideo);
+            return unless $rsp;
+            $rsp = $rsp->{ret};
+            $rsp->{tags} = $tags;
+            return _check_backend_response($rsp, $check, $timeout, $mustmatch);
         }
     }
     else {
