@@ -106,7 +106,6 @@ sub kill_autotest {
 }
 
 sub kill_backend {
-    bmwqemu::stop_vm();
     if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
         diag("killing backend process $bmwqemu::backend->{backend_pid}");
         kill('TERM', $bmwqemu::backend->{backend_pid});
@@ -410,16 +409,17 @@ if ($testfd) {
     kill_autotest;
 }
 
-diag "isotovideo done" unless $r;
-diag "FAIL" if $r;
+diag "isotovideo " . ($r ? 'failed' : 'done');
 
 my $clean_shutdown;
-eval {
-    $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
-    diag "BACKEND SHUTDOWN $clean_shutdown";
-};
-
-bmwqemu::stop_vm();
+if (!$r) {
+    eval {
+        $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
+        diag "BACKEND SHUTDOWN $clean_shutdown";
+    };
+    # don't rely on the backend in a sane state if we failed - just kill it later
+    bmwqemu::stop_vm();
+}
 
 # read calculated variables from backend and tests
 bmwqemu::load_vars();
