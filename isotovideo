@@ -264,7 +264,7 @@ sub check_asserted_screen {
     my ($force_timeout) = @_;
 
     my ($seconds, $microseconds) = gettimeofday;
-    my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'});
+    my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'}) || {};
     # the test needs that information
     $rsp->{tags} = $tags;
     if ($rsp->{found}) {

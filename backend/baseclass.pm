@@ -418,7 +418,7 @@ sub check_socket {
         my $cmd = myjsonrpc::read_json($self->{cmdpipe});
 
         if ($cmd->{cmd}) {
-            my $rsp = {rsp => $self->handle_command($cmd)};
+            my $rsp = {rsp => ($self->handle_command($cmd) // 0)};
             $rsp->{json_cmd_token} = $cmd->{json_cmd_token};
             if ($self->{rsppipe}) {    # the command might have closed it
                 my $JSON = JSON->new()->convert_blessed();
