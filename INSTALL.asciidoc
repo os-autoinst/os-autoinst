@@ -2,11 +2,11 @@
 pragmatic development environment on openSUSE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-1.  install openQA package to get all the runtime dependencies
+1.  install openQA package to get all the runtime dependencies as described in
+the
+https://github.com/os-autoinst/openQA/blob/master/docs/Installing.asciidoc[openQA
+installation guide]
 +
----------------------
-sudo zypper in openQA
----------------------
 2.  check out os-autoinst
 +
 ------------------------------------------------
@@ -16,9 +16,9 @@ cd os-autoinst
 3.  install the BuildRequires, as per the http://build.opensuse.org[spec
 file]
 +
----------------------------------------------------------------------------------------------------------------------
-sudo zypper in libtheora-devel opencv-devel fftw3-devel libsndfile-devel pkg-config libtool autoconf automake gcc-c++
----------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------
+sudo zypper in git-core make libtheora-devel opencv-devel fftw3-devel libsndfile-devel pkg-config libtool autoconf automake gcc-c++
+-----------------------------------------------------------------------------------------------------------------------------------
 4.  build the beastie locally
 +
 ----------------
