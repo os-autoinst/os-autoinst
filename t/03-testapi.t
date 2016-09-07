@@ -36,6 +36,9 @@ $mod->mock(send_json => \&fake_send_json);
 $mod->mock(read_json => \&fake_read_json);
 
 use testapi;
+use basetest;
+*{basetest::_result_add_screenshot} = sub { my ($self, $result) = @_; };
+$autotest::current_test = basetest->new();
 
 type_string 'hallo';
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hallo'}]);
@@ -62,30 +65,13 @@ type_password 'hallo';
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 'hallo'}]);
 $cmds = [];
 
-is($autotest::current_test->{dents}, undef, 'no soft failures so far');
+is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
 is($autotest::current_test->{dents}, 1, 'soft failure recorded');
 stderr_like(sub { record_soft_failure('workaround for bug#1234') }, qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason');
 is($autotest::current_test->{dents}, 2, 'another');
 
 subtest 'script_run' => sub {
-    use autotest;
-    $testapi::serialdev = 'null';
-    {
-        package t::test;
-
-        sub new {
-            my ($class) = @_;
-            my $hash = {script => 'none'};
-            return bless $hash, $class;
-        }
-
-        sub record_serialresult {
-            my ($self) = @_;
-        }
-    }
-    $autotest::current_test = t::test->new();
-
     my $module = new Test::MockModule('bmwqemu');
     # just save ourselves some time during testing
     $module->mock('wait_for_one_more_screenshot', sub { sleep 0; });
