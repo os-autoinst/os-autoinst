@@ -255,7 +255,7 @@ sub run_daemon {
     # it's unlikely that we will ever use cookies, but we need a secret to shut up mojo
     app->secrets([$bmwqemu::vars{JOBTOKEN}]);
 
-    my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://*:$port"]);
+    my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://127.0.0.1:$port", "http://[::1]:$port"]);
     $daemon->silent;
     app->log->info("Daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
     try {
