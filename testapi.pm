@@ -1144,7 +1144,7 @@ sub send_key_until_needlematch {
 
 =head2 type_string
 
-  type_string($string [, max_interval => <num> ] [, secret => 1 ] );
+  type_string($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, secret => 1 ] );
 
 send a string of characters, mapping them to appropriate key names as necessary
 
@@ -1152,6 +1152,9 @@ you can pass optional parameters with following keys:
 
 C<max_interval (1-250)> determines the typing speed, the lower the
 C<max_interval> the slower the typing.
+
+C<wait_screen_change> if set, type only this many characters at a time
+C<wait_screen_change> and wait for the screen to change between sets.
 
 C<secret (bool)> suppresses logging of the actual string typed.
 
@@ -1167,9 +1170,20 @@ sub type_string {
         %args = @_;
     }
     my $log = $args{secret} ? 'SECRET STRING' : $string;
-    my $max_interval = $args{max_interval} // 250;
-    bmwqemu::log_call(string => $log, max_interval => $max_interval);
-    query_isotovideo('backend_type_string', {text => $string, max_interval => $max_interval});
+    my $max_interval = $args{max_interval}       // 250;
+    my $wait         = $args{wait_screen_change} // 0;
+    bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait);
+    if ($wait) {
+        # split string into an array of pieces of specified size
+        # https://stackoverflow.com/questions/372370
+        my @pieces = unpack("(a${wait})*", $string);
+        for my $piece (@pieces) {
+            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); };
+        }
+    }
+    else {
+        query_isotovideo('backend_type_string', {text => $string, max_interval => $max_interval});
+    }
 }
 
 =head2 type_password
