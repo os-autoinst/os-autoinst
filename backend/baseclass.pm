@@ -59,7 +59,6 @@ sub new {
 
 # runs in the backend process to deserialize VNC commands
 sub handle_command {
-
     my ($self, $cmd) = @_;
 
     my $func = $cmd->{cmd};
@@ -76,6 +75,12 @@ sub die_handler {
     $backend->close_pipes();
 }
 
+sub backend_signalhandler {
+    my ($sig) = @_;
+    bmwqemu::diag("backend got $sig");
+    $backend->stop_vm;
+}
+
 sub run {
     my ($self, $cmdpipe, $rsppipe) = @_;
 
@@ -83,6 +88,7 @@ sub run {
     $backend = $self;
 
     $SIG{__DIE__} = \&die_handler;
+    $SIG{TERM}    = \&backend_signalhandler;
 
     my $io = IO::Handle->new();
     $io->fdopen($cmdpipe, "r") || die "r fdopen $!";

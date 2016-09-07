@@ -67,6 +67,9 @@ our ($opt_d);
 getopts('d');
 $bmwqemu::direct_output = $opt_d;
 
+# global exit status
+my $r = 1;
+
 select(STDERR);
 $| = 1;
 select(STDOUT);            # default
@@ -87,9 +90,11 @@ my $loop = 1;
 
 sub kill_commands {
     return unless $cpid;
-    if (kill('TERM', $cpid)) {
+    # create a copy as cpid is overwritten by SIGCHLD
+    my $pid = $cpid;
+    if (kill('TERM', $pid)) {
         diag "awaiting death of commands process";
-        my $ret = waitpid($cpid, 0);
+        my $ret = waitpid($pid, 0);
         diag "commands process exited: $ret";
     }
     $cpid = 0;
@@ -97,9 +102,11 @@ sub kill_commands {
 
 sub kill_autotest {
     return unless $testpid;
-    if (kill('TERM', $testpid)) {
-        diag "awaiting death of testpid $testpid";
-        my $ret = waitpid($testpid, 0);
+    # create a copy as cpid is overwritten by SIGCHLD
+    my $pid = $testpid;
+    if (kill('TERM', $pid)) {
+        diag "awaiting death of testpid $pid";
+        my $ret = waitpid($pid, 0);
         diag "test process exited: $ret";
     }
     $testpid = 0;
@@ -107,15 +114,16 @@ sub kill_autotest {
 
 sub kill_backend {
     if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
-        diag("killing backend process $bmwqemu::backend->{backend_pid}");
-        kill('TERM', $bmwqemu::backend->{backend_pid});
-        waitpid($bmwqemu::backend->{backend_pid}, 0);
+        # save the pid in a scalar - signal handlers will reset it
+        my $bpid = $bmwqemu::backend->{backend_pid};
+        diag "killing backend process $bpid";
+        kill('TERM', $bpid);
+        waitpid($bpid, 0);
         diag("done with backend process");
         $bmwqemu::backend->{backend_pid} = 0;
     }
 }
 
-# all so ugly ...
 sub signalhandler {
 
     my ($sig) = @_;
@@ -297,7 +305,7 @@ sub check_asserted_screen {
     }
 }
 
-my $r = 0;
+$r = 0;
 
 while ($loop) {
     my ($reads, $writes, $exceps) = IO::Select::select($s, undef, $s, $timeout);
