@@ -411,7 +411,7 @@ sub record_soft_failure_result {
     open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
     print $fd "# Soft Failure:\n$reason\n";
     close $fd;
-    $details->{text} = $text_fn;
+    $details->{text}  = $text_fn;
     $details->{title} = 'Soft Failed';
     push @{$self->{details}}, $details;
 

@@ -70,6 +70,9 @@ stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'sof
 is($autotest::current_test->{dents}, 1, 'soft failure recorded');
 stderr_like(sub { record_soft_failure('workaround for bug#1234') }, qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason');
 is($autotest::current_test->{dents}, 2, 'another');
+my $details = $autotest::current_test->{details}[-1];
+is($details->{title}, 'Soft Failed', 'title for soft failure added');
+like($details->{text}, qr/basetest-[0-9]+.*txt/, 'file for soft failure added');
 
 subtest 'script_run' => sub {
     my $module = new Test::MockModule('bmwqemu');
