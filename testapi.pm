@@ -940,7 +940,7 @@ sub wait_idle {
         timeout   => $timeout,
         threshold => get_var('IDLETHRESHOLD', 18)};
     my $rsp = query_isotovideo('backend_wait_idle', $args);
-    if ($rsp->{idle}) {
+    if ($rsp && $rsp->{idle}) {
         bmwqemu::fctres("idle detected");
     }
     else {
