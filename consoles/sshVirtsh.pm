@@ -39,7 +39,6 @@ sub new {
     $self->name("openQA-SUT-" . $self->instance);
     $self->vmm_family(get_var('VIRSH_VMM_FAMILY', 'kvm'));
     $self->vmm_type(get_var('VIRSH_VMM_TYPE', 'hvm'));
-    $self->_init_xml();
 
     return $self;
 }
@@ -73,6 +72,7 @@ sub activate {
     # FIXME: assert_screen('xterm_password');
     sleep 3;
     $self->type_string({text => $password . "\n"});
+    $self->_init_xml();
 }
 
 sub _init_xml {
@@ -298,15 +298,17 @@ sub add_interface {
 sub add_disk {
     my ($self, $args) = @_;
 
-    my $file = $args->{file} || "/var/lib/libvirt/images/" . $self->name . ".img";
+    my $file;
+    if ($self->vmm_family eq 'vmware') {
+        $file = $args->{file} || $self->name . ".vmdk";
+    }
+    else {
+        $file = $args->{file} || "/var/lib/libvirt/images/" . $self->name . ".img";
+    }
 
     if ($args->{create}) {
         my $size = $args->{size} || '4G';
-        my $chan = $self->{ssh}->channel();
-        my $ret  = $chan->exec("qemu-img create $file $size -f qcow2");
-        bmwqemu::diag $_ while <$chan>;
-        $chan->close();
-        die "qemu-img create failed" if $chan->exit_status();
+        run_cmd($self, "qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
     }
 
     my $doc     = $self->{domainxml};
@@ -413,13 +415,13 @@ sub get_ssh_output {
 
 sub suspend {
     my ($self) = @_;
-    $self->{ssh}->channel()->exec("virsh suspend " . $self->name);
+    run_cmd($self, "virsh suspend " . $self->name) && die "Can't suspend VM ";
     bmwqemu::diag "VM " . $self->name . " suspended";
 }
 
 sub resume {
     my ($self) = @_;
-    $self->{ssh}->channel()->exec("virsh resume " . $self->name);
+    run_cmd($self, "virsh resume " . $self->name) && die "Can't resume VM ";
     bmwqemu::diag "VM " . $self->name . " resumed";
 }
 
@@ -429,12 +431,11 @@ sub define_and_start {
     my $remote_vmm = "";
     if ($self->vmm_family eq 'vmware') {
         my ($fh, $libvirtauthfilename) = tempfile(DIR => "/tmp/");
-        my $chan = $self->{ssh}->channel();
 
         # The libvirt esx driver supports connection over HTTP(S) only. When
         # asked to authenticate we provide the password via 'authfile'.
-        $chan->exec(
-            "cat > $libvirtauthfilename <<__END
+        run_cmd(
+            $self, "cat > $libvirtauthfilename <<__END
 [credentials-vmware]
 username=" . get_var('VMWARE_USERNAME') . "
 password=" . get_var('VMWARE_PASSWORD') . "
@@ -458,23 +459,13 @@ __END"
     $chan->close();
 
     # shut down possibly running previous test (just to be sure) - ignore errors
-    $self->{ssh}->channel()->exec("virsh $remote_vmm destroy " . $self->name);
-    $self->{ssh}->channel()->exec("virsh $remote_vmm undefine " . $self->name);
+    # just making sure we continue after the command finished
+    run_cmd($self, "virsh $remote_vmm destroy " . $self->name);
+    run_cmd($self, "virsh $remote_vmm undefine " . $self->name);
 
     # define the new domain
-    $chan = $self->{ssh}->channel();
-    $chan->exec("virsh $remote_vmm define $xmlfilename");
-    $chan->send_eof;
-    get_ssh_output($chan);
-    $chan->close();
-    die "virsh define failed" if $chan->exit_status();
-
-    $chan = $self->{ssh}->channel();
-    $chan->exec("virsh $remote_vmm start " . $self->name);
-    $chan->send_eof;
-    get_ssh_output($chan);
-    $chan->close();
-    die "virsh start failed" if $chan->exit_status();
+    run_cmd($self, "virsh $remote_vmm define $xmlfilename")  && die "virsh define failed";
+    run_cmd($self, "virsh $remote_vmm start " . $self->name) && die "virsh start failed";
 
     $self->backend->start_serial_grab($self->name);
 
