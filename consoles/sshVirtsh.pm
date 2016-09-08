@@ -52,6 +52,11 @@ sub activate {
     my $password = $args->{password};
 
     $self->{ssh} = $self->backend->new_ssh_connection(hostname => $hostname, password => $password);
+    if ($self->vmm_family eq 'vmware') {
+        $self->{sshVMwareServer} = $self->backend->new_ssh_connection(
+            hostname => get_required_var('VMWARE_SERVER'),
+            password => get_required_var('VMWARE_PASSWORD'));
+    }
 
     # start Xvnc
     $self->SUPER::activate;
@@ -308,7 +313,20 @@ sub add_disk {
 
     if ($args->{create}) {
         my $size = $args->{size} || '4G';
-        run_cmd($self, "qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
+        if ($self->vmm_family eq 'vmware') {
+            my $vmware_disk_path = "/vmfs/volumes/" . get_required_var('VMWARE_DATASTORE') . "/openQA";
+            my $chan             = $self->{sshVMwareServer}->channel();
+            # Power VM off, delete it's disk image, and create it again.
+            # Than wait for some time for the VM to *really* turn off.
+            $chan->exec("vmid=\$(vim-cmd vmsvc/getallvms | awk '/ " . $self->name . " / { print \$1 }'); vim-cmd vmsvc/power.getstate \$vmid; vim-cmd vmsvc/power.off \$vmid; vim-cmd vmsvc/power.getstate \$vmid; vmkfstools -v1 -U $vmware_disk_path/" . $self->name . ".vmdk; vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path/" . $self->name . ".vmdk ; sleep 10");
+            $chan->send_eof;
+            get_ssh_output($chan);
+            $chan->close();
+            die "Can't create VMware image" if $chan->exit_status();
+        }
+        else {
+            run_cmd($self, "qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
+        }
     }
 
     my $doc     = $self->{domainxml};
@@ -341,7 +359,7 @@ sub add_disk {
 
     my $dev_type;
     my $bus_type;
-    if ($self->vmm_family eq 'xen' || $self->vmm_family eq 'vmware') {
+    if ($self->vmm_family eq 'xen') {
         if ($self->vmm_type eq 'hvm') {
             if ($args->{cdrom}) {
                 $dev_type = 'hdb';
@@ -361,6 +379,16 @@ sub add_disk {
             $bus_type = 'xen';
         }
     }
+    elsif ($self->vmm_family eq 'vmware') {
+        if ($args->{cdrom}) {
+            $dev_type = 'hdb';
+            $bus_type = 'ide';
+        }
+        else {
+            $dev_type = 'hda';
+            $bus_type = 'ide';
+        }
+    }
     elsif ($self->vmm_family eq 'kvm') {
         if ($args->{cdrom}) {
             $dev_type = 'hda';
@@ -377,7 +405,12 @@ sub add_disk {
     $disk->appendChild($elem);
 
     $elem = $doc->createElement('source');
-    $elem->setAttribute(file => $file);
+    if ($self->vmm_family eq 'vmware') {
+        $elem->setAttribute(file => "[" . get_required_var('VMWARE_DATASTORE') . "] openQA/$file");
+    }
+    else {
+        $elem->setAttribute(file => $file);
+    }
     $disk->appendChild($elem);
 
     $elem = $doc->createElement('boot');
@@ -426,7 +459,7 @@ sub resume {
 }
 
 sub define_and_start {
-    my ($self) = @_;
+    my ($self, $args) = @_;
 
     my $remote_vmm = "";
     if ($self->vmm_family eq 'vmware') {
@@ -437,14 +470,13 @@ sub define_and_start {
         run_cmd(
             $self, "cat > $libvirtauthfilename <<__END
 [credentials-vmware]
-username=" . get_var('VMWARE_USERNAME') . "
-password=" . get_var('VMWARE_PASSWORD') . "
-[auth-esx-" . get_var('VMWARE_HOST') . "]
+username=" . get_required_var('VMWARE_USERNAME') . "
+password=" . get_required_var('VMWARE_PASSWORD') . "
+[auth-esx-" . get_required_var('VMWARE_HOST') . "]
 credentials=vmware
 __END"
         );
-        $chan->close();
-        $remote_vmm = "-c vpx://" . get_var('VMWARE_USERNAME') . "@" . get_var('VMWARE_HOST') . "/" . get_var('VMWARE_DATACENTER') . "/" . get_var('VMWARE_SERVER') . "/?no_verify=1\\&authfile=$libvirtauthfilename ";
+        $remote_vmm = "-c vpx://" . get_required_var('VMWARE_USERNAME') . "@" . get_required_var('VMWARE_HOST') . "/" . get_required_var('VMWARE_DATACENTER') . "/" . get_required_var('VMWARE_SERVER') . "/?no_verify=1\\&authfile=$libvirtauthfilename ";
     }
 
     my $instance = $self->instance;
