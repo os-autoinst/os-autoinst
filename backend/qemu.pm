@@ -105,15 +105,15 @@ sub kill_qemu {
 
     # already gone?
     my $ret = waitpid($pid, WNOHANG);
-    print STDERR "waitpid for $pid returned $ret\n";
+    diag "waitpid for $pid returned $ret";
     return if ($ret == $pid || $ret == -1);
 
-    printf STDERR "sending TERM to qemu pid: %d\n", $pid;
+    diag "sending TERM to qemu pid: $pid";
     kill('TERM', $pid);
     for my $i (1 .. 5) {
         sleep 1;
         $ret = waitpid($pid, WNOHANG);
-        print STDERR "waitpid for $pid returned $ret\n";
+        diag "waitpid for $pid returned $ret";
         last if ($ret == $pid);
     }
     unless ($ret == $pid) {
@@ -127,7 +127,7 @@ sub kill_qemu {
         kill('TERM', $pid);
         for my $i (1 .. 5) {
             $ret = waitpid($pid, WNOHANG);
-            print STDERR "waitpid for $pid returned $ret\n";
+            diag "waitpid for $pid returned $ret";
             last if ($ret == $pid);
             sleep 1;
         }
@@ -155,7 +155,7 @@ sub save_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("savevm $vmname");
-    bmwqemu::diag "SAVED $vmname $rsp";
+    diag "SAVED $vmname $rsp";
     die unless ($rsp eq "savevm $vmname");
     return;
 }
@@ -699,7 +699,7 @@ sub start_qemu {
     $flags = fcntl($self->{qmpsocket}, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
     $flags = fcntl($self->{qmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
-    STDERR->printf("$$: hmpsocket %d, qmpsocket %d\n", fileno($self->{hmpsocket}), fileno($self->{qmpsocket}));
+    diag sprintf("hmpsocket %d, qmpsocket %d", fileno($self->{hmpsocket}), fileno($self->{qmpsocket}));
 
     fcntl($self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
