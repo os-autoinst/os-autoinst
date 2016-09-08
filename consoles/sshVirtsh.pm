@@ -441,8 +441,8 @@ sub get_ssh_output {
         return ($stdout, $errout);
     }
     else {
-        bmwqemu::diag "Command's stdout:\n$stdout";
-        bmwqemu::diag "Command's stderr:\n$errout";
+        bmwqemu::diag "Command's stdout:\n$stdout" if length($stdout);
+        bmwqemu::diag "Command's stderr:\n$errout" if length($errout);
     }
 }
 
@@ -522,6 +522,7 @@ sub run_cmd {
 
     my $chan = $self->{ssh}->channel();
     $chan->exec($cmd);
+    bmwqemu::diag "Command executed: $cmd";
     get_ssh_output($chan);
     $chan->close();
     return $chan->exit_status();
