@@ -32,16 +32,21 @@ sub new {
 }
 
 sub activate {
-    my ($self) = @_;
-
+    my ($self)   = @_;
     my $hostname = $self->{args}->{hostname};
     my $zvmguest = get_var('ZVM_GUEST');
 
     # ssh connection to SUT for agetty
-    my $ttychan = $self->backend->start_ssh_serial(hostname => $hostname, password => $self->{args}->{password}, username => 'root');
+    my $ttyconn = $self->backend->new_ssh_connection(hostname => $hostname, password => $self->{args}->{password}, username => 'root');
 
-    # start getty to ensure that iucvconn is not killed
-    $ttychan->exec("smart_agetty hvc0");
+    # start agetty to ensure that iucvconn is not killed
+    my $chan = $ttyconn->channel;
+
+    $chan->blocking(0);
+    $chan->pty(1);
+
+    $chan->exec("smart_agetty hvc0");
+    $self->{ttyconn} = $ttyconn;
 
     # ssh connection to SUT for iucvconn
     my $serialchan = $self->backend->start_ssh_serial(hostname => $hostname, password => $self->{args}->{password}, username => 'root');
