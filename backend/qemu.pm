@@ -145,7 +145,8 @@ sub do_stop_vm {
 
 sub can_handle {
     my ($self, $args) = @_;
-    if ($args->{function} eq 'snapshots') {
+    my $vars = \%bmwqemu::vars;
+    if ($args->{function} eq 'snapshots' && $vars->{HDDFORMAT} ne 'raw') {
         return {ret => 1};
     }
     return;
