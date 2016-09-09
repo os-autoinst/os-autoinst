@@ -313,6 +313,7 @@ while ($loop) {
         my $rsp = myjsonrpc::read_json($r);
         if (!defined $rsp) {
             diag sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($r), fileno($testfd), fileno($cfd));
+            $r    = 1;
             $loop = 0;
             last;
         }
