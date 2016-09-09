@@ -814,7 +814,7 @@ sub _receive_message {
       : $message_type == 0x37 ? $self->_discard_ikvm_message($message_type, $self->old_ikvm ? 2 : 3)
       : $message_type == 0x3c ? $self->_discard_ikvm_message($message_type, 8)
       :                         die 'unsupported message type received';
-    #<<< tidy on
+    #>>> tidy on
     return $message_type;
 }
 
@@ -1024,29 +1024,32 @@ sub _receive_ikvm_encoding {
             }
             $image->blend($img, $x * 16, $y * 16);
         }
-    } elsif ($encoding_type == 87) {
+    }
+    elsif ($encoding_type == 87) {
         return if $data_len == 0;
         if ($self->old_ikvm) {
-	   die "we guessed wrong - this is a new board!";
+            die "we guessed wrong - this is a new board!";
         }
-	$socket->read(my $data, $data_len);
-	# enforce high quality to simplify our decoder
-	if (substr($data, 0, 4) ne pack('CCn', 11, 11, 444)) {
-	    print "fixing quality\n";
-	    my $template = 'CCCn';
-	    $self->socket->print(
-		pack(
-		    $template,
-		    0x32,               # message type
-		    0, # magic number
-		    11, # highest possible quality
-		    444, # no sub sampling
-		  ));
-      } else {
-	  $image->map_raw_data_ast2100($data, $data_len);
-      }
-    } else {
-	die "unsupported encoding $encoding_type\n";
+        $socket->read(my $data, $data_len);
+        # enforce high quality to simplify our decoder
+        if (substr($data, 0, 4) ne pack('CCn', 11, 11, 444)) {
+            print "fixing quality\n";
+            my $template = 'CCCn';
+            $self->socket->print(
+                pack(
+                    $template,
+                    0x32,    # message type
+                    0,       # magic number
+                    11,      # highest possible quality
+                    444,     # no sub sampling
+                ));
+        }
+        else {
+            $image->map_raw_data_ast2100($data, $data_len);
+        }
+    }
+    else {
+        die "unsupported encoding $encoding_type\n";
     }
 }
 

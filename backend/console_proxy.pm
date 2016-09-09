@@ -43,30 +43,33 @@ sub AUTOLOAD {
 
     $function =~ s,.*::,,;
 
-    #<<< perltidy, this _is_ tidy...
     # allow symbolic references
-    no strict 'refs'; ## no critic
+    no strict 'refs';    ## no critic
     *$AUTOLOAD = sub {
-	my $self = shift;
-	my $args = \@_;
+        my $self = shift;
+        my $args = \@_;
+	#<<< perltidy, this _is_ tidy...
 	my $wrapped_call = {
 			    console => $self->{console},
 			    function => $function,
 			    args => $args,
 			   };
+        #>>>
 
-	bmwqemu::log_call(wrapped_call => $wrapped_call);
-	my $wrapped_retval = autotest::query_isotovideo('backend_proxy_console_call', $wrapped_call);
+        bmwqemu::log_call(wrapped_call => $wrapped_call);
+        my $wrapped_retval = autotest::query_isotovideo('backend_proxy_console_call', $wrapped_call);
 
-	if (exists $wrapped_retval->{exception}) {
-	    die $wrapped_retval->{exception};
-	}
-    # get more screenshots from consoles, especially from x3270 on s390 
-    $autotest::current_test->take_screenshot;
+        if (exists $wrapped_retval->{exception}) {
+            die $wrapped_retval->{exception};
+        }
+        # get more screenshots from consoles, especially from x3270 on s390
+        $autotest::current_test->take_screenshot;
 
-	return $wrapped_retval->{result};
+        # get more screenshots from consoles, especially from x3270 on s390
+        $autotest::current_test->take_screenshot;
+
+        return $wrapped_retval->{result};
     };
-    #<<< turn perltidy back on
 
     goto &$AUTOLOAD;
 }
