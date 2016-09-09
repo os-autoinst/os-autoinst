@@ -46,6 +46,8 @@ sub activate {
     $chan->pty(1);
 
     $chan->exec("smart_agetty hvc0");
+    # Save objects to prevent unexpected closings
+    $self->{ttychan} = $chan;
     $self->{ttyconn} = $ttyconn;
 
     # ssh connection to SUT for iucvconn

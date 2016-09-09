@@ -61,7 +61,6 @@ sub AUTOLOAD {
 	if (exists $wrapped_retval->{exception}) {
 	    die $wrapped_retval->{exception};
 	}
-    
     # get more screenshots from consoles, especially from x3270 on s390 
     $autotest::current_test->take_screenshot;
 
