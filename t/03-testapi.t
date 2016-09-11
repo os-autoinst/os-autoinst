@@ -21,6 +21,7 @@ sub fake_send_json {
     my ($to_fd, $cmd) = @_;
     push(@$cmds, $cmd);
 }
+
 sub fake_read_json {
     my ($fd) = @_;
     my $lcmd = $cmds->[-1];
@@ -30,12 +31,23 @@ sub fake_read_json {
         return {ret => {matched => 1, string => $str}};
     }
     return {};
-
 }
+
 $mod->mock(send_json => \&fake_send_json);
 $mod->mock(read_json => \&fake_read_json);
 
 use testapi;
+
+# we have to mock out wait_screen_change for the type_string tests
+# that use it, as it doesn't work with the fake send_json and read_json
+my $mod2 = new Test::MockModule('testapi');
+
+sub fake_wait_screen_change {
+    my ($callback, $timeout) = @_;
+    $callback->() if $callback;
+}
+
+$mod2->mock(wait_screen_change => \&fake_wait_screen_change);
 
 type_string 'hallo';
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hallo'}]);
@@ -51,6 +63,28 @@ $cmds = [];
 
 type_string 'hallo', secret => 1, max_interval => 10;
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 10, text => 'hallo'}]);
+$cmds = [];
+
+type_string 'hallo', wait_screen_change => 3;
+is_deeply($cmds, [
+    {cmd => 'backend_type_string', max_interval => 250, text => 'hal'},
+    {cmd => 'backend_type_string', max_interval => 250, text => 'lo'},
+]);
+$cmds = [];
+
+type_string 'hallo', wait_screen_change => 2;
+is_deeply($cmds, [
+    {cmd => 'backend_type_string', max_interval => 250, text => 'ha'},
+    {cmd => 'backend_type_string', max_interval => 250, text => 'll'},
+    {cmd => 'backend_type_string', max_interval => 250, text => 'o'},
+]);
+$cmds = [];
+
+type_string 'hallo', wait_screen_change => 3, max_interval => 10;
+is_deeply($cmds, [
+    {cmd => 'backend_type_string', max_interval => 10, text => 'hal'},
+    {cmd => 'backend_type_string', max_interval => 10, text => 'lo'},
+]);
 $cmds = [];
 
 $testapi::password = 'stupid';
