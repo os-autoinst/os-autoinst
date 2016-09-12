@@ -139,7 +139,7 @@ sub _init_xml {
         # These are known locations for openSUSE and Fedora (respectively).
         my @known = ('/usr/share/qemu/ovmf-x86_64-ms.bin', '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd');
         foreach my $firmware (@known) {
-            if (!run_cmd($self, "test -e $firmware")) {
+            if (!$self->run_cmd("test -e $firmware")) {
                 set_var('BIOS', $firmware);
                 $elem = $doc->createElement('loader');
                 $elem->appendTextNode($firmware);
@@ -304,28 +304,35 @@ sub add_disk {
     my ($self, $args) = @_;
 
     my $file;
-    if ($self->vmm_family eq 'vmware') {
-        $file = $args->{file} || $self->name . ".vmdk";
+    if ($args->{cdrom}) {
+        $file = $args->{file};
     }
     else {
-        $file = $args->{file} || "/var/lib/libvirt/images/" . $self->name . ".img";
-    }
-
-    if ($args->{create}) {
-        my $size = $args->{size} || '4G';
-        if ($self->vmm_family eq 'vmware') {
-            my $vmware_disk_path = "/vmfs/volumes/" . get_required_var('VMWARE_DATASTORE') . "/openQA";
-            my $chan             = $self->{sshVMwareServer}->channel();
-            # Power VM off, delete it's disk image, and create it again.
-            # Than wait for some time for the VM to *really* turn off.
-            $chan->exec("vmid=\$(vim-cmd vmsvc/getallvms | awk '/ " . $self->name . " / { print \$1 }'); vim-cmd vmsvc/power.getstate \$vmid; vim-cmd vmsvc/power.off \$vmid; vim-cmd vmsvc/power.getstate \$vmid; vmkfstools -v1 -U $vmware_disk_path/" . $self->name . ".vmdk; vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path/" . $self->name . ".vmdk ; sleep 10");
-            $chan->send_eof;
-            get_ssh_output($chan);
-            $chan->close();
-            die "Can't create VMware image" if $chan->exit_status();
+        $file = $self->name . (($self->vmm_family eq 'vmware') ? ".vmdk" : ".img");
+        if ($args->{create}) {
+            my $size = $args->{size} || '4G';
+            if ($self->vmm_family eq 'vmware') {
+                my $vmware_disk_path = "/vmfs/volumes/" . get_required_var('VMWARE_DATASTORE') . "/openQA/$file";
+                my $chan             = $self->{sshVMwareServer}->channel();
+                # Power VM off, delete it's disk image, and create it again.
+                # Than wait for some time for the VM to *really* turn off.
+                $chan->exec("vmid=\$(vim-cmd vmsvc/getallvms | awk '/ " . $self->name . " / { print \$1 }'); vim-cmd vmsvc/power.getstate \$vmid; vim-cmd vmsvc/power.off \$vmid; vim-cmd vmsvc/power.getstate \$vmid; vmkfstools -v1 -U $vmware_disk_path; vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10");
+                $chan->send_eof;
+                get_ssh_output($chan);
+                $chan->close();
+                die "Can't create VMware image" if $chan->exit_status();
+            }
+            else {
+                $file = "/var/lib/libvirt/images/$file";
+                $self->run_cmd("qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
+            }
         }
         else {
-            run_cmd($self, "qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
+            # Not sure what will be equivalent solution for JeOS on VMware, though
+            if ($self->vmm_family ne 'vmware') {
+                $file = "/var/lib/libvirt/images/$file";
+                $self->run_cmd("qemu-img create $file -f qcow2 -b " . $args->{file}) && die "qemu-img create with basefile failed";
+            }
         }
     }
 
@@ -448,13 +455,13 @@ sub get_ssh_output {
 
 sub suspend {
     my ($self) = @_;
-    run_cmd($self, "virsh suspend " . $self->name) && die "Can't suspend VM ";
+    $self->run_cmd("virsh suspend " . $self->name) && die "Can't suspend VM ";
     bmwqemu::diag "VM " . $self->name . " suspended";
 }
 
 sub resume {
     my ($self) = @_;
-    run_cmd($self, "virsh resume " . $self->name) && die "Can't resume VM ";
+    $self->run_cmd("virsh resume " . $self->name) && die "Can't resume VM ";
     bmwqemu::diag "VM " . $self->name . " resumed";
 }
 
@@ -467,8 +474,8 @@ sub define_and_start {
 
         # The libvirt esx driver supports connection over HTTP(S) only. When
         # asked to authenticate we provide the password via 'authfile'.
-        run_cmd(
-            $self, "cat > $libvirtauthfilename <<__END
+        $self->run_cmd(
+            "cat > $libvirtauthfilename <<__END
 [credentials-vmware]
 username=" . get_required_var('VMWARE_USERNAME') . "
 password=" . get_required_var('VMWARE_PASSWORD') . "
@@ -492,12 +499,12 @@ __END"
 
     # shut down possibly running previous test (just to be sure) - ignore errors
     # just making sure we continue after the command finished
-    run_cmd($self, "virsh $remote_vmm destroy " . $self->name);
-    run_cmd($self, "virsh $remote_vmm undefine " . $self->name);
+    $self->run_cmd("virsh $remote_vmm destroy " . $self->name);
+    $self->run_cmd("virsh $remote_vmm undefine " . $self->name);
 
     # define the new domain
-    run_cmd($self, "virsh $remote_vmm define $xmlfilename")  && die "virsh define failed";
-    run_cmd($self, "virsh $remote_vmm start " . $self->name) && die "virsh start failed";
+    $self->run_cmd("virsh $remote_vmm define $xmlfilename")  && die "virsh define failed";
+    $self->run_cmd("virsh $remote_vmm start " . $self->name) && die "virsh start failed";
 
     $self->backend->start_serial_grab($self->name);
 
