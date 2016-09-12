@@ -263,7 +263,7 @@ sub run_daemon {
         $daemon->run;
     }
     catch {
-        print "failed to run daemon\n";
+        print "failed to run daemon $_\n";
         _exit(1);
     };
 }
