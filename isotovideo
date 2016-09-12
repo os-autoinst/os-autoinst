@@ -417,6 +417,10 @@ while ($loop) {
     }
 }
 
+# don't leave the commands server open - it will no longer react anyway
+# as most of it ends up in the loop above
+kill_commands;
+
 if ($testfd) {
     $r = 1;    # unusual shutdown
     CORE::close $testfd;
