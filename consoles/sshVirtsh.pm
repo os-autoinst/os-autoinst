@@ -18,7 +18,7 @@ package consoles::sshVirtsh;
 use base 'consoles::sshXtermVt';
 use strict;
 use warnings;
-use testapi qw/get_var get_required_var/;
+use testapi qw/get_var get_required_var check_var set_var/;
 require IPC::System::Simple;
 use autodie qw(:all);
 use XML::LibXML;
@@ -39,7 +39,6 @@ sub new {
     $self->name("openQA-SUT-" . $self->instance);
     $self->vmm_family(get_var('VIRSH_VMM_FAMILY', 'kvm'));
     $self->vmm_type(get_var('VIRSH_VMM_TYPE', 'hvm'));
-    $self->_init_xml();
 
     return $self;
 }
@@ -53,6 +52,11 @@ sub activate {
     my $password = $args->{password};
 
     $self->{ssh} = $self->backend->new_ssh_connection(hostname => $hostname, password => $password);
+    if ($self->vmm_family eq 'vmware') {
+        $self->{sshVMwareServer} = $self->backend->new_ssh_connection(
+            hostname => get_required_var('VMWARE_SERVER'),
+            password => get_required_var('VMWARE_PASSWORD'));
+    }
 
     # start Xvnc
     $self->SUPER::activate;
@@ -73,6 +77,7 @@ sub activate {
     # FIXME: assert_screen('xterm_password');
     sleep 3;
     $self->type_string({text => $password . "\n"});
+    $self->_init_xml();
 }
 
 sub _init_xml {
@@ -111,27 +116,46 @@ sub _init_xml {
     $elem->appendTextNode($self->vmm_type);
     $os->appendChild($elem);
 
-    if ($self->vmm_family eq 'xen') {
-        if ($self->vmm_type eq 'hvm') {
-            my $features = $doc->createElement('features');
-            $root->appendChild($features);
-
-            $elem = $doc->createElement('acpi');
-            $features->appendChild($elem);
-            $elem = $doc->createElement('apic');
-            $features->appendChild($elem);
+    if (($self->vmm_family eq 'xen' and $self->vmm_type eq 'hvm') or get_var('UEFI')) {
+        my $features = $doc->createElement('features');
+        $root->appendChild($features);
+        $elem = $doc->createElement('acpi');
+        $features->appendChild($elem);
+        $elem = $doc->createElement('apic');
+        $features->appendChild($elem);
+        if ($self->vmm_family eq 'xen' and $self->vmm_type eq 'hvm') {
             $elem = $doc->createElement('pae');
             $features->appendChild($elem);
         }
-        elsif ($self->vmm_type eq 'linux') {
-            $elem = $doc->createElement('kernel');
-            $elem->appendTextNode('/usr/lib/grub2/x86_64-xen/grub.xen');
-            $os->appendChild($elem);
+    }
+
+    if ($self->vmm_family eq 'xen' and $self->vmm_type eq 'linux') {
+        $elem = $doc->createElement('kernel');
+        $elem->appendTextNode('/usr/lib/grub2/x86_64-xen/grub.xen');
+        $os->appendChild($elem);
+    }
+
+    if (get_var('UEFI') and check_var('ARCH', 'x86_64') and !get_var('BIOS')) {
+        # These are known locations for openSUSE and Fedora (respectively).
+        my @known = ('/usr/share/qemu/ovmf-x86_64-ms.bin', '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd');
+        foreach my $firmware (@known) {
+            if (!$self->run_cmd("test -e $firmware")) {
+                set_var('BIOS', $firmware);
+                $elem = $doc->createElement('loader');
+                $elem->appendTextNode($firmware);
+                $os->appendChild($elem);
+                last;
+            }
+        }
+        if (!get_var('BIOS')) {
+            # We know this won't go well.
+            die "No UEFI firmware can be found on hypervisor " . get_var('VIRSH_HOSTNAME') . "\n. Please specify BIOS or UEFI_BIOS or install an appropriate package.";
         }
     }
 
     $self->{devices_element} = $doc->createElement('devices');
     $root->appendChild($self->{devices_element});
+
     return;
 }
 
@@ -238,6 +262,20 @@ sub add_vnc {
     return;
 }
 
+sub add_input {
+    my ($self, $args) = @_;
+
+    my $doc     = $self->{domainxml};
+    my $devices = $self->{devices_element};
+
+    my $input = $doc->createElement('input');
+    $input->setAttribute(type => $args->{type});
+    $input->setAttribute(bus  => $args->{bus});
+    $devices->appendChild($input);
+
+    return;
+}
+
 # network stuff
 sub add_interface {
     my ($self, $args) = @_;
@@ -265,15 +303,37 @@ sub add_interface {
 sub add_disk {
     my ($self, $args) = @_;
 
-    my $file = $args->{file} || "/var/lib/libvirt/images/" . $self->name . ".img";
-
-    if ($args->{create}) {
-        my $size = $args->{size} || '4G';
-        my $chan = $self->{ssh}->channel();
-        my $ret  = $chan->exec("qemu-img create $file $size -f qcow2");
-        bmwqemu::diag $_ while <$chan>;
-        $chan->close();
-        die "qemu-img create failed" if $chan->exit_status();
+    my $file;
+    if ($args->{cdrom}) {
+        $file = $args->{file};
+    }
+    else {
+        $file = $self->name . (($self->vmm_family eq 'vmware') ? ".vmdk" : ".img");
+        if ($args->{create}) {
+            my $size = $args->{size} || '4G';
+            if ($self->vmm_family eq 'vmware') {
+                my $vmware_disk_path = "/vmfs/volumes/" . get_required_var('VMWARE_DATASTORE') . "/openQA/$file";
+                my $chan             = $self->{sshVMwareServer}->channel();
+                # Power VM off, delete it's disk image, and create it again.
+                # Than wait for some time for the VM to *really* turn off.
+                $chan->exec("vmid=\$(vim-cmd vmsvc/getallvms | awk '/ " . $self->name . " / { print \$1 }'); vim-cmd vmsvc/power.getstate \$vmid; vim-cmd vmsvc/power.off \$vmid; vim-cmd vmsvc/power.getstate \$vmid; vmkfstools -v1 -U $vmware_disk_path; vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10");
+                $chan->send_eof;
+                get_ssh_output($chan);
+                $chan->close();
+                die "Can't create VMware image" if $chan->exit_status();
+            }
+            else {
+                $file = "/var/lib/libvirt/images/$file";
+                $self->run_cmd("qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
+            }
+        }
+        else {
+            # Not sure what will be equivalent solution for JeOS on VMware, though
+            if ($self->vmm_family ne 'vmware') {
+                $file = "/var/lib/libvirt/images/$file";
+                $self->run_cmd("qemu-img create $file -f qcow2 -b " . $args->{file}) && die "qemu-img create with basefile failed";
+            }
+        }
     }
 
     my $doc     = $self->{domainxml};
@@ -306,7 +366,7 @@ sub add_disk {
 
     my $dev_type;
     my $bus_type;
-    if ($self->vmm_family eq 'xen' || $self->vmm_family eq 'vmware') {
+    if ($self->vmm_family eq 'xen') {
         if ($self->vmm_type eq 'hvm') {
             if ($args->{cdrom}) {
                 $dev_type = 'hdb';
@@ -326,6 +386,16 @@ sub add_disk {
             $bus_type = 'xen';
         }
     }
+    elsif ($self->vmm_family eq 'vmware') {
+        if ($args->{cdrom}) {
+            $dev_type = 'hdb';
+            $bus_type = 'ide';
+        }
+        else {
+            $dev_type = 'hda';
+            $bus_type = 'ide';
+        }
+    }
     elsif ($self->vmm_family eq 'kvm') {
         if ($args->{cdrom}) {
             $dev_type = 'hda';
@@ -342,7 +412,12 @@ sub add_disk {
     $disk->appendChild($elem);
 
     $elem = $doc->createElement('source');
-    $elem->setAttribute(file => $file);
+    if ($self->vmm_family eq 'vmware') {
+        $elem->setAttribute(file => "[" . get_required_var('VMWARE_DATASTORE') . "] openQA/$file");
+    }
+    else {
+        $elem->setAttribute(file => $file);
+    }
     $disk->appendChild($elem);
 
     $elem = $doc->createElement('boot');
@@ -373,32 +448,42 @@ sub get_ssh_output {
         return ($stdout, $errout);
     }
     else {
-        bmwqemu::diag "Command's stdout:\n$stdout";
-        bmwqemu::diag "Command's stderr:\n$errout";
+        bmwqemu::diag "Command's stdout:\n$stdout" if length($stdout);
+        bmwqemu::diag "Command's stderr:\n$errout" if length($errout);
     }
 }
 
-sub define_and_start {
+sub suspend {
     my ($self) = @_;
+    $self->run_cmd("virsh suspend " . $self->name) && die "Can't suspend VM ";
+    bmwqemu::diag "VM " . $self->name . " suspended";
+}
+
+sub resume {
+    my ($self) = @_;
+    $self->run_cmd("virsh resume " . $self->name) && die "Can't resume VM ";
+    bmwqemu::diag "VM " . $self->name . " resumed";
+}
+
+sub define_and_start {
+    my ($self, $args) = @_;
 
     my $remote_vmm = "";
     if ($self->vmm_family eq 'vmware') {
         my ($fh, $libvirtauthfilename) = tempfile(DIR => "/tmp/");
-        my $chan = $self->{ssh}->channel();
 
         # The libvirt esx driver supports connection over HTTP(S) only. When
         # asked to authenticate we provide the password via 'authfile'.
-        $chan->exec(
+        $self->run_cmd(
             "cat > $libvirtauthfilename <<__END
 [credentials-vmware]
-username=" . get_var('VMWARE_USERNAME') . "
-password=" . get_var('VMWARE_PASSWORD') . "
-[auth-esx-" . get_var('VMWARE_HOST') . "]
+username=" . get_required_var('VMWARE_USERNAME') . "
+password=" . get_required_var('VMWARE_PASSWORD') . "
+[auth-esx-" . get_required_var('VMWARE_HOST') . "]
 credentials=vmware
 __END"
         );
-        $chan->close();
-        $remote_vmm = "-c vpx://" . get_var('VMWARE_USERNAME') . "@" . get_var('VMWARE_HOST') . "/" . get_var('VMWARE_DATACENTER') . "/" . get_var('VMWARE_SERVER') . "/?no_verify=1\\&authfile=$libvirtauthfilename ";
+        $remote_vmm = "-c vpx://" . get_required_var('VMWARE_USERNAME') . "@" . get_required_var('VMWARE_HOST') . "/" . get_required_var('VMWARE_DATACENTER') . "/" . get_required_var('VMWARE_SERVER') . "/?no_verify=1\\&authfile=$libvirtauthfilename ";
     }
 
     my $instance = $self->instance;
@@ -413,23 +498,13 @@ __END"
     $chan->close();
 
     # shut down possibly running previous test (just to be sure) - ignore errors
-    $self->{ssh}->channel()->exec("virsh $remote_vmm destroy " . $self->name);
-    $self->{ssh}->channel()->exec("virsh $remote_vmm undefine " . $self->name);
+    # just making sure we continue after the command finished
+    $self->run_cmd("virsh $remote_vmm destroy " . $self->name);
+    $self->run_cmd("virsh $remote_vmm undefine " . $self->name);
 
     # define the new domain
-    $chan = $self->{ssh}->channel();
-    $chan->exec("virsh $remote_vmm define $xmlfilename");
-    $chan->send_eof;
-    get_ssh_output($chan);
-    $chan->close();
-    die "virsh define failed" if $chan->exit_status();
-
-    $chan = $self->{ssh}->channel();
-    $chan->exec("virsh $remote_vmm start " . $self->name);
-    $chan->send_eof;
-    get_ssh_output($chan);
-    $chan->close();
-    die "virsh start failed" if $chan->exit_status();
+    $self->run_cmd("virsh $remote_vmm define $xmlfilename")  && die "virsh define failed";
+    $self->run_cmd("virsh $remote_vmm start " . $self->name) && die "virsh start failed";
 
     $self->backend->start_serial_grab($self->name);
 
@@ -454,6 +529,7 @@ sub run_cmd {
 
     my $chan = $self->{ssh}->channel();
     $chan->exec($cmd);
+    bmwqemu::diag "Command executed: $cmd";
     get_ssh_output($chan);
     $chan->close();
     return $chan->exit_status();
