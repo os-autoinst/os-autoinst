@@ -111,15 +111,15 @@ sub load_snapshot {
 }
 
 sub run_all {
-    my $died   = 0;
-    my $passed = 0;
-    eval { $passed = autotest::runalltests(); };
+    my $died      = 0;
+    my $completed = 0;
+    eval { $completed = autotest::runalltests(); };
     if ($@) {
         warn $@;
         $died = 1;    # test execution died
     }
     bmwqemu::save_vars();
-    myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, passed => $passed});
+    myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, completed => $completed});
     close $isotovideo;
     _exit(0);
 }
