@@ -15,6 +15,8 @@ BEGIN {
 use autotest;
 use bmwqemu;
 $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
+# array of messages sent with the fake json_send
+my @sent;
 
 
 like(exception { autotest::runalltests }, qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first');
@@ -30,21 +32,76 @@ sub loadtest {
     stderr_like(sub { autotest::loadtest "tests/$test.pm" }, qr@scheduling $test[0-9]? tests/$test.pm@, \$args);
 }
 
+sub fake_send {
+    my ($target, $msg) = @_;
+    push @sent, $msg;
+}
+
+# find the (first) 'tests_done' message from the @sent array and
+# return the 'died' and 'passed' values
+sub get_tests_done {
+    for my $msg (@sent) {
+        if (ref($msg) eq "HASH" && $msg->{cmd} eq 'tests_done') {
+            return ($msg->{died}, $msg->{passed});
+        }
+    }
+}
+
+my $mock_jsonrpc = new Test::MockModule('myjsonrpc');
+$mock_jsonrpc->mock(send_json => \&fake_send);
+$mock_jsonrpc->mock(read_json => sub { });
+my $mock_bmwqemu = new Test::MockModule('bmwqemu');
+$mock_bmwqemu->mock(save_json_file => sub { });
+my $mock_basetest = new Test::MockModule('basetest');
+$mock_basetest->mock(_result_add_screenshot => sub { });
+# stop run_all from quitting at the end
+my $mock_autotest = new Test::MockModule('autotest', no_auto => 1);
+$mock_autotest->mock(_exit => sub { });
+
+my $died;
+my $passed;
+# we have to define this to *something* so the `close` in run_all
+# doesn't crash us
+$autotest::isotovideo = 'foo';
+autotest::run_all;
+($died, $passed) = get_tests_done;
+is($died, 1, 'run_all with no tests should catch runalltests dying');
+is($passed, 0, 'run_all with no tests should not pass');
+@sent = [];
+
 loadtest 'start';
 loadtest 'next';
 is(keys %autotest::tests, 2);
 loadtest 'start', 'rescheduling same step later';
 is(keys %autotest::tests, 3) || diag explain %autotest::tests;
 
-my $mock_jsonrpc = new Test::MockModule('myjsonrpc');
-$mock_jsonrpc->mock(send_json => sub { });
-$mock_jsonrpc->mock(read_json => sub { });
-my $mock_bmwqemu = new Test::MockModule('bmwqemu');
-$mock_bmwqemu->mock(save_json_file => sub { });
-my $mock_basetest = new Test::MockModule('basetest');
-$mock_basetest->mock(_result_add_screenshot => sub { });
+autotest::run_all;
+($died, $passed) = get_tests_done;
+is($died, 0, 'start+next+start should not die');
+is($passed, 1, 'start+next+start should pass');
+@sent = [];
 
-ok(autotest::runalltests);
+# now let's make the tests fail...but so far none is fatal. We also
+# have to mock query_isotovideo so we think snapshots are supported.
+# we cause the failure by mocking runtest rather than using a test
+# which dies, as runtest does a whole bunch of stuff when the test
+# dies that we may not want to run into here
+$mock_basetest->mock(runtest => sub { die "oh noes!\n"; });
+$mock_autotest->mock(query_isotovideo => sub { return 1; });
+
+autotest::run_all;
+($died, $passed) = get_tests_done;
+is($died, 0, 'non-fatal test failure should not die');
+is($passed, 1, 'non-fatal test failure should pass');
+@sent = [];
+
+# now let's add a fatal test
+loadtest 'fatal';
+autotest::run_all;
+($died, $passed) = get_tests_done;
+is($died, 0, 'fatal test failure should not die');
+is($passed, 0, 'fatal test failure should not pass');
+@sent = [];
 
 done_testing();
 

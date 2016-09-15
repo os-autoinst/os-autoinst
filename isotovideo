@@ -69,6 +69,8 @@ $bmwqemu::direct_output = $opt_d;
 
 # global exit status
 my $r = 1;
+# whether tests 'passed'
+my $passed = 0;
 
 select(STDERR);
 $| = 1;
@@ -342,7 +344,8 @@ while ($loop) {
             next;
         }
         if ($rsp->{cmd} eq 'tests_done') {
-            $r = $rsp->{ret};
+            $r      = $rsp->{died};
+            $passed = $rsp->{passed};
             CORE::close($testfd);
             $testfd = undef;
             kill_autotest;
@@ -442,8 +445,8 @@ if (!$r) {
 # read calculated variables from backend and tests
 bmwqemu::load_vars();
 
-# mark hard disks for upload if test finished
-if (!$r && (my $nd = $bmwqemu::vars{NUMDISKS})) {
+# mark hard disks for upload if test finished and passed
+if (!$r && $passed && (my $nd = $bmwqemu::vars{NUMDISKS})) {
     my @toextract;
     for my $i (1 .. $nd) {
         my $dir = 'assets_private';
