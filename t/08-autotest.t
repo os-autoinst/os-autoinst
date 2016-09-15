@@ -38,11 +38,11 @@ sub fake_send {
 }
 
 # find the (first) 'tests_done' message from the @sent array and
-# return the 'died' and 'passed' values
+# return the 'died' and 'completed' values
 sub get_tests_done {
     for my $msg (@sent) {
         if (ref($msg) eq "HASH" && $msg->{cmd} eq 'tests_done') {
-            return ($msg->{died}, $msg->{passed});
+            return ($msg->{died}, $msg->{completed});
         }
     }
 }
@@ -59,14 +59,14 @@ my $mock_autotest = new Test::MockModule('autotest', no_auto => 1);
 $mock_autotest->mock(_exit => sub { });
 
 my $died;
-my $passed;
+my $completed;
 # we have to define this to *something* so the `close` in run_all
 # doesn't crash us
 $autotest::isotovideo = 'foo';
 autotest::run_all;
-($died, $passed) = get_tests_done;
+($died, $completed) = get_tests_done;
 is($died, 1, 'run_all with no tests should catch runalltests dying');
-is($passed, 0, 'run_all with no tests should not pass');
+is($completed, 0, 'run_all with no tests should not complete');
 @sent = [];
 
 loadtest 'start';
@@ -76,9 +76,9 @@ loadtest 'start', 'rescheduling same step later';
 is(keys %autotest::tests, 3) || diag explain %autotest::tests;
 
 autotest::run_all;
-($died, $passed) = get_tests_done;
+($died, $completed) = get_tests_done;
 is($died, 0, 'start+next+start should not die');
-is($passed, 1, 'start+next+start should pass');
+is($completed, 1, 'start+next+start should complete');
 @sent = [];
 
 # now let's make the tests fail...but so far none is fatal. We also
@@ -90,17 +90,25 @@ $mock_basetest->mock(runtest => sub { die "oh noes!\n"; });
 $mock_autotest->mock(query_isotovideo => sub { return 1; });
 
 autotest::run_all;
-($died, $passed) = get_tests_done;
+($died, $completed) = get_tests_done;
 is($died, 0, 'non-fatal test failure should not die');
-is($passed, 1, 'non-fatal test failure should pass');
+is($completed, 1, 'non-fatal test failure should complete');
+@sent = [];
+
+# now let's add an important test
+loadtest 'important';
+autotest::run_all;
+($died, $completed) = get_tests_done;
+is($died, 0, 'important test failure should not die');
+is($completed, 1, 'important test failure should complete');
 @sent = [];
 
 # now let's add a fatal test
 loadtest 'fatal';
 autotest::run_all;
-($died, $passed) = get_tests_done;
+($died, $completed) = get_tests_done;
 is($died, 0, 'fatal test failure should not die');
-is($passed, 0, 'fatal test failure should not pass');
+is($completed, 0, 'fatal test failure should not complete');
 @sent = [];
 
 done_testing();
