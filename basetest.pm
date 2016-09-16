@@ -399,6 +399,25 @@ sub record_serialresult {
     return $result;
 }
 
+sub record_soft_failure_result {
+    my ($self, $reason) = @_;
+
+    my $result = $self->record_testresult('unk');
+    $self->_result_add_screenshot($result);
+
+    my $details = {result => $result};
+
+    my $text_fn = $self->next_resultname('txt');
+    open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
+    print $fd "# Soft Failure:\n$reason\n";
+    close $fd;
+    $details->{text}  = $text_fn;
+    $details->{title} = 'Soft Failed';
+    push @{$self->{details}}, $details;
+
+    return $result;
+}
+
 sub register_extra_test_results {
     my ($self, $tests) = @_;
 

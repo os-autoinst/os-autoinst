@@ -146,6 +146,8 @@ Takes an optional C<$reason> string which is recorded in the log file.
 sub record_soft_failure {
     my ($reason) = @_;
     bmwqemu::log_call(reason => $reason);
+
+    $autotest::current_test->record_soft_failure_result($reason);
     $autotest::current_test->{dents}++;
     return;
 }
