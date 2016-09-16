@@ -84,4 +84,8 @@ sub activate {
     return;
 }
 
+sub is_serial_terminal {
+    return 0;
+}
+
 1;
