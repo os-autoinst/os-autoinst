@@ -637,6 +637,12 @@ sub start_qemu {
             push(@params, "-k", $vars->{VNCKB}) if ($vars->{VNCKB});
         }
 
+        if ($vars->{VIRTIOCONSOLE}) {
+            push(@params, '-device', 'virtio-serial');
+            push(@params, '-chardev', "socket,path=/tmp/$vars->{VIRTIOCONSOLE},server,nowait,id=$vars->{VIRTIOCONSOLE}");
+            push(@params, '-device', "virtioconsole,chardev=/tmp/$vars->{VIRTIOCONSOLE},name=org.openqa.console.$vars->{VIRTIOCONSOLE}");
+        }
+
         push @params, '-qmp', "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-S";
         my $port = $vars->{QEMUPORT};
         push @params, "-monitor", "telnet:127.0.0.1:$port,server,nowait";
