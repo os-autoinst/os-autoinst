@@ -17,7 +17,7 @@
 package backend::svirt;
 use strict;
 use base ('backend::virt');
-use testapi qw(get_required_var check_var);
+use testapi qw(get_required_var check_var reset_consoles);
 
 use IO::Select;
 
@@ -63,6 +63,57 @@ sub do_stop_vm {
 
     $self->stop_serial_grab;
     return {};
+}
+
+sub run_cmd {
+    my ($self, $cmd) = @_;
+
+    $self->{ssh} = $self->new_ssh_connection(
+        hostname => get_required_var('VIRSH_HOSTNAME'),
+        password => get_var('VIRSH_PASSWORD'),
+        username => 'root'
+    );
+    my $chan = $self->{ssh}->channel();
+    $chan->exec($cmd);
+    bmwqemu::diag "Command executed: $cmd";
+    $chan->close();
+    return $chan->exit_status();
+}
+
+sub can_handle {
+    my ($self, $args) = @_;
+    my $vars = \%bmwqemu::vars;
+    if ($args->{function} eq 'snapshots' && !check_var('HDDFORMAT', 'raw')) {
+        # snapshots via libvirt (or at all?) are supported on KVM and,
+        # perhaps, ESXi only: https://libvirt.org/hvsupport.html
+        if (check_var('VIRSH_VMM_FAMILY', 'kvm')) {
+            return {ret => 1};
+        }
+    }
+    return;
+}
+
+sub save_snapshot {
+    my ($self, $args) = @_;
+    my $snapname = $args->{name};
+    my $vmname = "openQA-SUT-" . get_var('VIRSH_INSTANCE', 1);
+    $self->run_cmd("virsh snapshot-delete $vmname $snapname");
+    my $rsp = $self->run_cmd("virsh snapshot-create-as $vmname $snapname");
+    bmwqemu::diag "SAVED VM \"$vmname\" as \"$snapname\" snapshot, $rsp";
+    die unless ($rsp == 0);
+    return;
+}
+
+sub load_snapshot {
+    my ($self, $args) = @_;
+    my $snapname = $args->{name};
+    my $vmname   = "openQA-SUT-" . get_var('VIRSH_INSTANCE', 1);
+    my $rsp      = $self->run_cmd("virsh snapshot-revert $vmname $snapname");
+    # zKVM (at least) consoles looks hung after snapshot revert, we need to reset consoles
+    reset_consoles;
+    bmwqemu::diag "LOADED snapshot \"$snapname\" to \"$vmname\", $rsp";
+    die unless ($rsp == 0);
+    return $rsp;
 }
 
 # Open another ssh connection to grab the serial console.

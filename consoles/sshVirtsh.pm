@@ -500,7 +500,7 @@ __END"
     # shut down possibly running previous test (just to be sure) - ignore errors
     # just making sure we continue after the command finished
     $self->run_cmd("virsh $remote_vmm destroy " . $self->name);
-    $self->run_cmd("virsh $remote_vmm undefine " . $self->name);
+    $self->run_cmd("virsh $remote_vmm undefine --snapshots-metadata " . $self->name);
 
     # define the new domain
     $self->run_cmd("virsh $remote_vmm define $xmlfilename")  && die "virsh define failed";
