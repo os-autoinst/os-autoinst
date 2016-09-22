@@ -17,14 +17,12 @@
 package backend::svirt;
 use strict;
 use base ('backend::virt');
-use testapi qw(get_required_var check_var reset_consoles);
+use testapi qw(get_var get_required_var check_var);
 
 use IO::Select;
 
 # this is a fake backend to some extend. We don't start VMs, but provide ssh access
 # to a libvirt running host (KVM for System Z in mind)
-
-use testapi qw/get_var check_var/;
 
 sub new {
     my $class = shift;
@@ -109,8 +107,6 @@ sub load_snapshot {
     my $snapname = $args->{name};
     my $vmname   = "openQA-SUT-" . get_var('VIRSH_INSTANCE', 1);
     my $rsp      = $self->run_cmd("virsh snapshot-revert $vmname $snapname");
-    # zKVM (at least) consoles looks hung after snapshot revert, we need to reset consoles
-    reset_consoles;
     bmwqemu::diag "LOADED snapshot \"$snapname\" to \"$vmname\", $rsp";
     die unless ($rsp == 0);
     return $rsp;
