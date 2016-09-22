@@ -637,10 +637,11 @@ sub start_qemu {
             push(@params, "-k", $vars->{VNCKB}) if ($vars->{VNCKB});
         }
 
-        if ($vars->{VIRTIOCONSOLE}) {
+        if ($vars->{VIRTIO_CONSOLE}) {
+            my $vioc = $vars->{VIRTIO_CONSOLE};
             push(@params, '-device', 'virtio-serial');
-            push(@params, '-chardev', "socket,path=/tmp/$vars->{VIRTIOCONSOLE},server,nowait,id=$vars->{VIRTIOCONSOLE}");
-            push(@params, '-device', "virtioconsole,chardev=/tmp/$vars->{VIRTIOCONSOLE},name=org.openqa.console.$vars->{VIRTIOCONSOLE}");
+            push(@params, '-chardev', "socket,path=/tmp/$vioc,server,nowait,id=$vioc");
+            push(@params, '-device', "virtioconsole,chardev=/tmp/$vioc,name=org.openqa.console.$vioc");
         }
 
         push @params, '-qmp', "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-S";
