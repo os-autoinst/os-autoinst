@@ -20,41 +20,19 @@ use strict;
 use warnings;
 
 use base qw/Exporter/;
-our @EXPORT = qw/mutex_create mutex_lock mutex_unlock mutex_try_lock/;
+our @EXPORT = qw/mutex_create mutex_lock mutex_unlock mutex_try_lock barrier_create barrier_wait barrier_try_wait barrier_destroy/;
 
 require bmwqemu;
 use mmapi qw/api_call/;
 
-sub mutex_lock {
+sub _lock_action {
     my ($name, $where) = @_;
-    bmwqemu::diag("mutex lock '$name'");
-    while (1) {
-        my $param = {action => 'lock'};
-        $param->{where} = $where if $where;
-        my $res = api_call('post', "mutex/$name", $param)->code;
-        return 1 if ($res == 200);
-
-        bmwqemu::mydie "mutex lock '$name': lock owner already finished" if $res == 410;
-
-        if ($res != 409) {
-            bmwqemu::fctwarn("Unknown return code $res for lock api");
-            return 0;
-        }
-
-        bmwqemu::diag("mutex lock '$name' unavailable, sleeping 5s");
-        sleep(5);
-    }
-}
-
-sub mutex_try_lock {
-    my ($name, $where) = @_;
-    bmwqemu::diag("mutex try lock '$name'");
     my $param = {action => 'lock'};
     $param->{where} = $where if $where;
     my $res = api_call('post', "mutex/$name", $param)->code;
     return 1 if ($res == 200);
 
-    die "mutex lock '$name': lock owner already finished" if $res == 410;
+    bmwqemu::mydie "mutex lock '$name': lock owner already finished" if $res == 410;
 
     if ($res != 409) {
         bmwqemu::fctwarn("Unknown return code $res for lock api");
@@ -62,9 +40,28 @@ sub mutex_try_lock {
     return 0;
 }
 
+sub mutex_lock {
+    my ($name, $where) = @_;
+    bmwqemu::mydie('missing lock name') unless $name;
+    bmwqemu::diag("mutex lock '$name'");
+    while (1) {
+        my $res = _lock_action($name, $where);
+        return 1 if $res;
+        bmwqemu::diag("mutex lock '$name' unavailable, sleeping 5s");
+        sleep(5);
+    }
+}
+
+sub mutex_try_lock {
+    my ($name, $where) = @_;
+    bmwqemu::mydie('missing lock name') unless $name;
+    bmwqemu::diag("mutex try lock '$name'");
+    return _lock_action($name, $where);
+}
+
 sub mutex_unlock {
     my ($name) = @_;
-
+    bmwqemu::mydie('missing lock name') unless $name;
     bmwqemu::diag("mutex unlock '$name'");
     my $res = api_call('post', "mutex/$name", {action => 'unlock'})->code;
     return 1 if ($res == 200);
@@ -74,12 +71,71 @@ sub mutex_unlock {
 
 sub mutex_create {
     my ($name) = @_;
-
+    bmwqemu::mydie('missing lock name') unless $name;
     bmwqemu::diag("mutex create '$name'");
     my $res = api_call('post', "mutex", {name => $name})->code;
     return 1 if ($res == 200);
     bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
     return 0;
+}
+
+## Barriers
+sub barrier_create {
+    my ($name, $tasks) = @_;
+    bmwqemu::mydie('missing barrier name')           unless $name;
+    bmwqemu::mydie('missing number of barrier task') unless $tasks;
+    bmwqemu::diag("barrier create '$name' for $tasks tasks");
+    my $res = api_call('post', 'barrier', {name => $name, tasks => $tasks})->code;
+    return 1 if ($res == 200);
+    bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
+    return 0;
+}
+
+sub _wait_action {
+    my ($name, $where) = @_;
+    my $param;
+    $param->{where} = $where if $where;
+    my $res = api_call('post', "barrier/$name", $param)->code;
+    return 1 if ($res == 200);
+
+    bmwqemu::mydie "barrier_wait '$name': barrier owner already finished" if $res == 410;
+
+    if ($res != 409) {
+        bmwqemu::fctwarn("Unknown return code $res for lock api");
+        return 0;
+    }
+}
+
+# Reason to include this is to be able to unit test _wait_action without blocking
+sub barrier_try_wait {
+    my ($name, $where) = @_;
+    bmwqemu::mydie('missing barrier name') unless $name;
+    bmwqemu::diag("barrier try wait '$name'");
+    return _wait_action($name, $where);
+}
+
+sub barrier_wait {
+    my ($name, $where) = @_;
+    bmwqemu::mydie('missing barrier name') unless $name;
+    bmwqemu::diag("barrier wait '$name'");
+    while (1) {
+        my $res = _wait_action($name, $where);
+        return 1 if $res;
+
+        bmwqemu::diag("barrier '$name' not released, sleeping 5s");
+        sleep(5);
+    }
+}
+
+sub barrier_destroy {
+    my ($name, $where) = @_;
+    bmwqemu::mydie('missing barrier name') unless $name;
+    bmwqemu::diag("barrier destroy '$name'");
+    my $param;
+    $param->{where} = $where if $where;
+    my $res = api_call('delete', "barrier/$name", $param)->code;
+    return 1 if ($res == 200);
+    bmwqemu::fctwarn("Unknown return code $res for lock api");
 }
 
 1;
