@@ -792,6 +792,7 @@ sub assert_shutdown {
     my ($timeout) = @_;
     $timeout //= 60;
     bmwqemu::log_call(timeout => $timeout);
+    $timeout = bmwqemu::scale_timeout($timeout);
     while ($timeout >= 0) {
         my $is_shutdown = query_isotovideo('backend_is_shutdown') || 0;
         if ($is_shutdown < 0) {
