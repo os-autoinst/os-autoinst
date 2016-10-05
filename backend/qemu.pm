@@ -18,7 +18,6 @@ package backend::qemu;
 use strict;
 use base ('backend::virt');
 use File::Path qw/mkpath/;
-use File::Temp ();
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Select;
 use IO::Socket::UNIX qw( SOCK_STREAM );
@@ -638,10 +637,10 @@ sub start_qemu {
         }
 
         if ($vars->{VIRTIO_CONSOLE}) {
-            my $vioc = $vars->{VIRTIO_CONSOLE};
+            my $id = 'virtio_console';
             push(@params, '-device', 'virtio-serial');
-            push(@params, '-chardev', "socket,path=/tmp/$vioc,server,nowait,id=$vioc");
-            push(@params, '-device', "virtioconsole,chardev=/tmp/$vioc,name=org.openqa.console.$vioc");
+            push(@params, '-chardev', "socket,path=$id,server,nowait,id=$id,logfile=$id.log");
+            push(@params, '-device', "virtconsole,chardev=$id,name=org.openqa.console.$id");
         }
 
         push @params, '-qmp', "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-S";
