@@ -66,6 +66,12 @@ sub search_ {
 
     return unless $needle;
 
+    my $needle_image = $needle->get_image;
+    unless ($needle_image) {
+        bmwqemu::diag("SKIP($needle->{name}:missing PNG)");
+        return;
+    }
+
     my $img = $self;
     for my $a (@{$needle->{area}}) {
         push @exclude, $a if $a->{type} eq 'exclude';
@@ -84,7 +90,7 @@ sub search_ {
 
     for my $area (@match) {
         my $margin = int($area->{margin} + $search_ratio * (1024 - $area->{margin}));
-        ($sim, $xmatch, $ymatch) = $img->search_needle($needle->get_image, $area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}, $margin);
+        ($sim, $xmatch, $ymatch) = $img->search_needle($needle_image, $area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}, $margin);
 
         my $ma = {
             similarity => $sim,
