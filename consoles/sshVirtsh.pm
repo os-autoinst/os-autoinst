@@ -366,43 +366,43 @@ sub add_disk {
 
     my $dev_type;
     my $bus_type;
+    my $dev_id = $args->{dev_id};
     if ($self->vmm_family eq 'xen') {
         if ($self->vmm_type eq 'hvm') {
             if ($args->{cdrom}) {
-                $dev_type = 'hdb';
+                $dev_type = "hd$dev_id";
             }
             else {
-                $dev_type = 'hda';
+                $dev_type = "hd$dev_id";
             }
             $bus_type = 'ide';
         }
         elsif ($self->vmm_type eq 'linux') {
             if ($args->{cdrom}) {
-                $dev_type = 'xvdb';
+                $dev_type = "xvd$dev_id";
             }
             else {
-                $dev_type = 'xvda';
+                $dev_type = "xvd$dev_id";
             }
             $bus_type = 'xen';
         }
     }
     elsif ($self->vmm_family eq 'vmware') {
         if ($args->{cdrom}) {
-            $dev_type = 'hdb';
-            $bus_type = 'ide';
+            $dev_type = "hd$dev_id";
         }
         else {
-            $dev_type = 'hda';
-            $bus_type = 'ide';
+            $dev_type = "hd$dev_id";
         }
+        $bus_type = 'ide';
     }
     elsif ($self->vmm_family eq 'kvm') {
         if ($args->{cdrom}) {
-            $dev_type = 'hda';
+            $dev_type = "hd$dev_id";
             $bus_type = 'ide';
         }
         else {
-            $dev_type = 'vda';
+            $dev_type = "vd$dev_id";
             $bus_type = 'virtio';
         }
     }
@@ -413,21 +413,18 @@ sub add_disk {
 
     $elem = $doc->createElement('source');
     if ($self->vmm_family eq 'vmware') {
-        $elem->setAttribute(file => "[" . get_required_var('VMWARE_DATASTORE') . "] openQA/$file");
+        $elem->setAttribute(file => '[' . get_required_var('VMWARE_DATASTORE') . "] openQA/$file");
     }
     else {
         $elem->setAttribute(file => $file);
     }
     $disk->appendChild($elem);
 
-    $elem = $doc->createElement('boot');
-    if ($args->{cdrom}) {
-        $elem->setAttribute(order => 2);
+    if (my $bootorder = $args->{bootorder}) {
+        $elem = $doc->createElement('boot');
+        $elem->setAttribute(order => $bootorder);
+        $disk->appendChild($elem);
     }
-    else {
-        $elem->setAttribute(order => 1);
-    }
-    $disk->appendChild($elem);
 
     return;
 }
