@@ -666,6 +666,10 @@ sub wait_serial {
     return {matched => $matched, string => $str};
 }
 
+sub assert_terminal {
+    die 'Not implemented for this backend';
+}
+
 # set_reference_screenshot and similiarity_to_reference are necessary to
 # implement wait_still and wait_changed functions in the tests without having
 # to transfer the screenshot into the test process
