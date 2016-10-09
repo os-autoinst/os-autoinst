@@ -76,6 +76,7 @@ main (int argc, char *argv[])
   char *pszOutputFile = argv[2];
 
   SF_INFO info_in;
+  memset(&info_in, 0, sizeof(SF_INFO));
   SNDFILE *fIn = sf_open (pszInputFile, SFM_READ, &info_in);
   if (!fIn)
     {
@@ -115,6 +116,8 @@ main (int argc, char *argv[])
   sf_count_t overlap = window_size / 2;
   sf_count_t nDftSamples = window_size + overlap * 2;
 
+  fprintf(stderr, "snd2png: %ld samples\n", nDftSamples);
+
   double *fftw_in = (double *) fftw_malloc (sizeof (double) * nDftSamples);
   if (!fftw_in)
     {
@@ -144,18 +147,21 @@ main (int argc, char *argv[])
       return 2;
     }
 
-  int times = info_in.frames / window_size;
+  int times = info_in.frames / window_size - 1;
   if (times * window_size + overlap > info_in.frames)
     times--;
   
+  fprintf(stderr, "times %d\n", times);
+
   double **points =
     (double **) malloc (sizeof (double*) * times);
   double max_value = 0;
 
   for (int TimePos = 0; TimePos < times; TimePos++)
     {
-      for (int i = 0; i < nDftSamples; i++)
+      for (int i = 0; i < nDftSamples; i++) {
 	fftw_in[i] = infile_data[TimePos * window_size + i];
+      }
 
       fftw_execute (snd_plan);
 
@@ -172,6 +178,8 @@ main (int argc, char *argv[])
 	    max_value = value;
 	}
     }
+
+  fprintf(stderr, "max value: %lf\n", max_value);
 
   // SILENCE, I'll kill you!
   int first_non_silence = 0;
@@ -200,9 +208,10 @@ main (int argc, char *argv[])
   if (last_non_silence - first_non_silence >= grayscaleMat.cols)
     last_non_silence = grayscaleMat.cols - first_non_silence - 1;
 
+  fprintf(stderr, "silences: %d %d\n", first_non_silence, last_non_silence);
   for (int TimePos = first_non_silence; TimePos < last_non_silence; TimePos++)
     {
-      for (int i = 0; i < freqs; ++i)
+      for (int i = 1; i < freqs; ++i)
 	{
 	  // https://en.wikipedia.org/wiki/Voice_frequency
 	  double max_freq = 3200.;

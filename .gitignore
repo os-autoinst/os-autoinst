@@ -35,5 +35,7 @@ test-driver
 videoencoder
 debugviewer/debugviewer
 snd2png/snd2png
+snd2png/test.pnm
+snd2png/test.pnm.md5
 t/*.pl.log
 t/*.pl.trs

@@ -14,4 +14,4 @@ script:
   - ./configure
     # 'coverage' executes all tests and checks code coverage against threshold
     # in Makefile.am
-  - make && make coverage-coveralls VERBOSE=1
+  - make && make check coverage-coveralls VERBOSE=1
