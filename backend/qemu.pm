@@ -152,6 +152,37 @@ sub can_handle {
     return;
 }
 
+sub save_state {
+
+    my ($self, $args) = @_;
+    my $rsp = 0;
+    my $vmname = $args->{name};
+
+    bmwqemu::diag("Trying to save a QEMU image");
+
+    $rsp = $self->_send_hmp("stop");
+
+    diag "Sucessfully stopped our vm: $rsp";
+    die unless ($rsp eq "stop");
+
+    $rsp    = $self->_send_hmp("migrate_set_speed 4095m");
+    die unless ($rsp eq "migrate_set_speed 4095m");
+    diag "Set up speed to: $rsp" 
+
+    #For compression pixz was suggested, but it might add a new dependency
+    # also it would use multiple CPU's, which might be a problem in production.
+    $rsp    = $self->_send_hmp("migrate \"exec:gzip -c > vmstate.gz\"");
+    die unless ($rsp eq "migrate \"exec:gzip -c > vmstate.gz\"");
+    diag "Saved the machine state $rsp" 
+
+    $rsp    = $self->_send_hmp("cont");
+    die unless ($rsp eq "cont");
+    diag "Allowed the VM to keep running $rsp";
+    
+
+    return;
+}
+
 sub save_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};

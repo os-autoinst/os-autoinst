@@ -53,7 +53,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   upload_logs
 
   wait_idle wait_screen_change wait_still_screen wait_serial record_soft_failure
-  become_root x11_start_program ensure_installed eject_cd power
+  become_root x11_start_program ensure_installed eject_cd power save_state
 
   diag hashed_string
 );
@@ -822,6 +822,19 @@ sub eject_cd {
     query_isotovideo('backend_eject_cd');
 }
 
+=head2 save_state
+
+  save_state;
+
+if backend supports it, save machine state
+
+=cut
+
+sub save_state {
+    bmwqemu::log_call();
+    bmwqemu::diag("Trying to save machine state");
+    query_isotovideo('backend_save_state');
+}
 
 =head2 parse_junit_log
 

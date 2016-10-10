@@ -329,6 +329,10 @@ sub is_shutdown {
     return -1;
 }
 
+sub save_state {
+    notimplemented;
+}
+
 ## MAY be overwritten:
 
 sub cpu_stat {
