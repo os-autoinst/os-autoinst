@@ -181,23 +181,44 @@ sub release_key {
     return {};
 }
 
+sub _mouse_move {
+    my ($self, $x, $y) = @_;
+
+    if ($self->{mouse}->{x} == $x && $self->{mouse}->{y} == $y) {
+        # in case the mouse is moved twice to the same position
+        # (e.g. in case of duplicated mouse_hide), we need to wiggle the
+        # mouse a bit to avoid qemu ignoring the repositioning
+        # because the SUT might have moved the mouse itself and we
+        # need to make sure the mouse is really where expected
+        my $delta = 5;
+        # move it to the left in case the mouse is right
+        $delta = -5 if $x > $self->{vnc}->width / 2;
+        $self->{vnc}->mouse_move_to($x + $delta, $y + $delta);
+    }
+
+    $self->{mouse}->{x} = $x;
+    $self->{mouse}->{y} = $y;
+
+    bmwqemu::diag "mouse_move $x, $y";
+    $self->{vnc}->mouse_move_to($x, $y);
+    return;
+}
+
 sub mouse_hide {
     my ($self, $args) = @_;
     $args->{border_offset} //= 0;
 
-    $self->{mouse}->{x} = $self->{vnc}->width - 1;
-    $self->{mouse}->{y} = $self->{vnc}->height - 1;
+    my $x = $self->{vnc}->width - 1;
+    my $y = $self->{vnc}->height - 1;
 
     if (defined $args->{border_offset}) {
         my $border_offset = int($args->{border_offset});
-        $self->{mouse}->{x} -= $border_offset;
-        $self->{mouse}->{y} -= $border_offset;
+        $x -= $border_offset;
+        $y -= $border_offset;
     }
 
-    bmwqemu::diag "mouse_move $self->{mouse}->{x}, $self->{mouse}->{y}";
-    $self->{vnc}->mouse_move_to($self->{mouse}->{x}, $self->{mouse}->{y});
+    $self->_mouse_move($x, $y);
     return {absolute => $self->{vnc}->absolute};
-
 }
 
 sub mouse_set {
@@ -205,11 +226,7 @@ sub mouse_set {
     die "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
 
     # TODO: for framebuffers larger than 1024x768, we need to upscale
-    $self->{mouse}->{x} = int($args->{x});
-    $self->{mouse}->{y} = int($args->{y});
-
-    bmwqemu::diag "mouse_set $self->{mouse}->{x}, $self->{mouse}->{y}";
-    $self->{vnc}->mouse_move_to($self->{mouse}->{x}, $self->{mouse}->{y});
+    $self->mouse_move(int($args->{x}), int($args->{y}));
     return {};
 }
 
