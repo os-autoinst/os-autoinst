@@ -226,7 +226,7 @@ sub mouse_set {
     die "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
 
     # TODO: for framebuffers larger than 1024x768, we need to upscale
-    $self->mouse_move(int($args->{x}), int($args->{y}));
+    $self->_mouse_move(int($args->{x}), int($args->{y}));
     return {};
 }
 
