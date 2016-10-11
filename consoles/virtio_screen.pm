@@ -1,5 +1,5 @@
 package consoles::virtio_screen;
-use 5.18;
+use 5.018;
 use warnings;
 use autodie;
 
@@ -31,3 +31,5 @@ sub current_screen {
     #       Instead we should use a text terminal viewer in the browser if possible.
     return undef;
 }
+
+1;

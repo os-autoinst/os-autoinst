@@ -7,6 +7,7 @@ use Errno qw(EAGAIN EWOULDBLOCK);
 use Carp qw(cluck);
 use Scalar::Util qw(blessed);
 use Cwd;
+use consoles::virtio_screen ();
 
 use base 'consoles::console';
 
@@ -19,7 +20,7 @@ sub new {
 
 sub screen {
     my $self = shift;
-    die('Not implemented');
+    return $self->{screen};
 }
 
 sub reset {
@@ -27,6 +28,7 @@ sub reset {
     if ($self->{socket_fd} > 0) {
         close($self->{socket_fd});
         $self->{socket_fd} = 0;
+        $self->{screen} = undef;
     }
     return $self->SUPER::reset;
 }
@@ -34,11 +36,6 @@ sub reset {
 sub trigger_select {
     my $self = shift;
     die('Not imlpementd');
-}
-
-sub activate {
-    my $self = shift;
-    $self->{socket_fd} = open_socket;
 }
 
 =head2 $socket_path
@@ -74,6 +71,12 @@ sub open_socket {
         die "Could not connect to virtio-console chardev socket: $!";
     }
     return $fd;
+}
+
+sub activate {
+    my $self = shift;
+    $self->{socket_fd} = open_socket;
+    $self->{screen} = consoles::virtio_screen::->new($self->{socket_fd});
 }
 
 1;
