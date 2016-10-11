@@ -79,6 +79,10 @@ is_deeply($json, {VERSION => 'COOL'});
 done_testing;
 
 END {
-    kill($spid);
-    kill($cpid);
+    return unless $spid;
+    kill TERM => $spid;
+    waitpid($spid, 0);
+    kill TERM => $cpid;
+    waitpid($cpid, 0);
+    wait_for_server($ua);
 }
