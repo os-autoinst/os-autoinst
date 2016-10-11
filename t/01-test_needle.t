@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Try::Tiny;
 use File::Basename;
 
 # optional but very useful
@@ -62,6 +63,16 @@ $img1   = tinycv::read($data_dir . "kde.test.png");
 $needle = needle->new($data_dir . "kde.ref.json");
 $res    = $img1->search($needle);
 ok(!defined $res, "no match with different art");
+
+$res = undef;
+try {
+    $img1 = tinycv::read($data_dir . "kde.ref.png");
+    $needle = needle->new($data_dir . "kde.ref.json");
+    my $needle_nopng = needle->new($data_dir . "console.ref.json");
+    $needle_nopng->{png} .= ".missing.png";
+    $res = $img1->search([$needle_nopng, $needle]);
+};
+ok(defined $res, "skip needles without png");
 
 $img1   = tinycv::read($data_dir . "console.test.png");
 $needle = needle->new($data_dir . "console.ref.json");
