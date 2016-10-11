@@ -553,20 +553,26 @@ sub wait_serial {
     return;    # false
 }
 
-sub assert_terminal {
+sub wait_terminal {
     die 'Expecting at least one argument' unless @_ > 0;
     my $pattern = shift;
     my %named_args = @_;
-    %named_args{pattern} = $pattern;
-    $named_args{timeout} ||= bmwqemu::default_timeout;
+    $named_args{pattern} = $pattern;
+    $named_args{timeout} ||= $bmwqemu::default_timeout;
 
     bmwqemu::log_call(\%named_args);
     
-    my $ret = query_isotovideo('backend_assert_terminal', \%named_args);
+    my $ret = query_isotovideo('backend_wait_terminal', \%named_args);
     my $result = $ret->{matched} ? 'ok' : 'fail';
     $autotest::current_test->record_serialresult(bmwqemu::pp($pattern), $result, $ret->{string});
-    bwmqemu::fctres("$pattern: $matched");
+    bwmqemu::fctres("$pattern: $ret->{matched}");
     return ($ret->{matched}, $ret->{string});
+}
+
+sub assert_terminal {
+    my ($matched, $string) = wait_terminal(@_);
+    die 'Pattern not found on terminal' unless $matched;
+    return $string;
 }
 
 =head2 x11_start_program

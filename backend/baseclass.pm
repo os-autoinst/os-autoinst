@@ -666,7 +666,7 @@ sub wait_serial {
     return {matched => $matched, string => $str};
 }
 
-sub assert_terminal {
+sub wait_terminal {
     die 'Not implemented for this backend';
 }
 
