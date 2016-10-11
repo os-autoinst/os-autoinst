@@ -195,6 +195,11 @@ $SIG{INT}  = \&signalhandler;
 $SIG{HUP}  = \&signalhandler;
 $SIG{CHLD} = \&signalhandler_chld;
 
+# make sure all commands coming from the backend will not be in the
+# developers's locale
+$ENV{LC_ALL} = 'C';
+$ENV{LANG}   = 'C';
+
 # Try to load the main.pm from one of the following in this order:
 #  - product dir
 #  - casedir
@@ -275,10 +280,31 @@ our $tags = undef;
 # set to the socket we have to send replies to when the backend is done
 my $backend_requester = undef;
 
+my ($last_check_seconds, $last_check_microseconds) = gettimeofday;
+sub _calc_check_delta {
+    # an estimate of eternity
+    my $delta = 100;
+    if ($last_check_seconds) {
+        $delta = tv_interval([$last_check_seconds, $last_check_microseconds], [gettimeofday]);
+    }
+    if ($delta > 0) {
+        # sleep the remains of one second
+        $timeout = 1 - $delta;
+        $timeout = 0 if $timeout < 0;
+    }
+    else {
+        $timeout = 0;
+    }
+    return $delta;
+}
+
 sub check_asserted_screen {
     my ($force_timeout) = @_;
 
-    my ($seconds, $microseconds) = gettimeofday;
+    my $delta = _calc_check_delta;
+    # come back later, avoid too often called function
+    return if $timeout > 0.05;
+    ($last_check_seconds, $last_check_microseconds) = gettimeofday;
     my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'}) || {};
     # the test needs that information
     $rsp->{tags} = $tags;
@@ -301,14 +327,7 @@ sub check_asserted_screen {
         $timeout = undef;
     }
     else {
-        my $delta = tv_interval([$seconds, $microseconds], [gettimeofday]);
-        if ($delta > 0) {
-            # sleep the remains of one second
-            $timeout = 1 - $delta;
-        }
-        else {
-            $timeout = 0;
-        }
+        _calc_check_delta;
     }
 }
 
