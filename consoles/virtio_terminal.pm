@@ -11,10 +11,36 @@ use consoles::virtio_screen ();
 
 use base 'consoles::console';
 
+our $VERSION;
+
+=head1 NAME
+
+consoles::virtio_terminal
+
+=head1 SYNOPSIS
+
+Provides functions to allow the testapi to interact with a text only console.
+
+=head1 DESCRIPTION
+
+This console can be requested when the backend (usually QEMU/KVM) and guest OS
+support virtio serial and virtio console. The guest also needs to be in a state
+where it can start a tty on the virtual console. By default openSUSE and SLE
+automatically start agetty when the kernel finds the virtio console device, but
+another OS may require some additional configuration.
+
+It may also be possible to use a transport other than virtio. This code just
+requires a UNIX socket which inputs and outputs terminal ASCII/ANSI codes.
+
+=head1 SUBROUTINES/METHODS
+
+=cut
+
 sub new {
     my ($class, $testapi_console, $args) = @_;
     my $self = $class->SUPER::new($testapi_console, $args);
     $self->{socket_fd} = 0;
+    $self->{socket_path} = cwd() . '/virtio_console';
     return $self;
 }
 
@@ -35,19 +61,19 @@ sub reset {
 
 sub trigger_select {
     my $self = shift;
-    die('Not imlpementd');
+    die 'Not imlpementd';
 }
 
-=head2 $socket_path
+=head2 socket_path
 
-Below is the path to a character device file created by QEMU on the host.
-This file is backed by a console/tty running on the guest assuming it
-runs agetty and the virtio console driver is in the guest's kernel. Any
-data written to the file should be interpretted as user input by the tty
-running in the guest.
+The file system path bound to a UNIX socket which will be used to transfer
+terminal data between the host and guest.
 
 =cut
-my $socket_path = cwd() . '/virtio_console';
+sub socket_path {
+    my ($self) = @_;
+    return $self->{socket_path};
+}
 
 =head2 open_socket
 
