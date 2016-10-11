@@ -800,7 +800,7 @@ sub send_update_request {
     }
 
     my $incremental = $self->_framebuffer ? 1 : 0;
-    $incremental = 1 if $time_since_last_update > 3;
+    $incremental = 0 if $time_since_last_update > 3;
     return $self->_send_frame_buffer(
         {
             incremental => $incremental,
