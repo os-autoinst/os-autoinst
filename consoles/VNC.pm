@@ -20,7 +20,7 @@ use feature qw/say/;
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
-      _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_request
+      _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
       vncinfo old_ikvm
       ));
 our $VERSION = '0.40';
@@ -128,6 +128,8 @@ sub login {
     $self->width(0);
     $self->height(0);
     $self->screen_on(1);
+    # in a land far far before our time
+    $self->_last_update_received(0);
 
     eval {
         $self->_handshake_protocol_version();
@@ -761,28 +763,72 @@ sub update_framebuffer() {    # upstream VNC.pm:  "capture"
 
 use POSIX qw(:errno_h);
 
+sub _send_frame_buffer {
+    my ($self, $args) = @_;
+
+    return $self->socket->print(
+        pack(
+            'CCnnnn',
+            3,    # message_type: frame buffer update request
+            $args->{incremental},
+            $args->{x},
+            $args->{y},
+            $args->{width},
+            $args->{height}));
+}
+
 # frame buffer update request
 sub send_update_request {
     my ($self) = @_;
 
-    my $socket = $self->socket;
-    my $incremental = $self->_framebuffer ? 1 : 0;
+    # after 2 seconds: send forced update
+    # after 3 seconds: force incremental update
+    # after 4 seconds: turn off screen
+    my $time_since_last_update = time - $self->_last_update_received;
 
-    $socket->print(
-        pack(
-            'CCnnnn',
-            3,               # message_type: frame buffer update request
-            $incremental,    # incremental
-            0,               # x
-            0,               # y
-            $self->width,
-            $self->height,
-        ));
+    # if there were no updates, send a forced update request
+    # to get a defined live sign. If that doesn't help, consider
+    # the framebuffer outdated
+    if ($self->_framebuffer) {
+        if ($time_since_last_update > 4) {
+            # return black image - screen turned off
+            $self->_framebuffer(tinycv::new($self->width, $self->height));
+        }
+        elsif ($time_since_last_update > 2) {
+            $self->send_forced_update_request;
+        }
+    }
+
+    my $incremental = $self->_framebuffer ? 1 : 0;
+    $incremental = 1 if $time_since_last_update > 3;
+    return $self->_send_frame_buffer(
+        {
+            incremental => $incremental,
+            x           => 0,
+            y           => 0,
+            width       => $self->width,
+            height      => $self->height
+        });
+}
+
+# to check if VNC connection is still alive
+# just force an update to the upper 16x16 pixels
+# to avoid checking old screens if VNC goes down
+sub send_forced_update_request {
+    my ($self) = @_;
+
+    return $self->_send_frame_buffer(
+        {
+            incremental => 0,
+            x           => 0,
+            y           => 0,
+            width       => 16,
+            height      => 16
+        });
 }
 
 sub _receive_message {
     my $self = shift;
-
 
     my $socket = $self->socket;
 
@@ -819,8 +865,9 @@ sub _receive_message {
 }
 
 sub _receive_update {
-    my $self = shift;
+    my ($self) = @_;
 
+    $self->_last_update_received(time);
     #printf "receive_update %dx%d\n", $self->width, $self->height;
     my $image = $self->_framebuffer;
     if (!$image && $self->width && $self->height) {
