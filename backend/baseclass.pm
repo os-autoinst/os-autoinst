@@ -236,17 +236,32 @@ sub run_capture_loop {
     return;
 }
 
-# new api
+sub write_encoder_frame {
+    my ($self, $frame) = @_;
+
+    open(my $fh, '>>', 'video.log');
+    print $fh "$frame\n";
+    close($fh);
+}
 
 sub start_encoder {
     my ($self) = @_;
 
+    $self->{encoder_pid} = 0;
     return if $bmwqemu::vars{NOVIDEO};
 
+    # create empty file
+    open(my $fh, '>', 'video.log');
+    close($fh);
     my $cwd = Cwd::getcwd();
-    open($self->{encoder_pipe}, "|-", "nice -n 19 $bmwqemu::scriptdir/videoencoder $cwd/video.ogv");
+    $self->{encoder_pid} = fork();
+    if (!$self->{encoder_pid}) {
+        exec('nice', '-n', '19', "$bmwqemu::scriptdir/videoencoder", "$cwd/video.log", "$cwd/video.ogv");
+    }
     return;
 }
+
+# new api
 
 sub start_vm {
     my ($self) = @_;
@@ -258,11 +273,12 @@ sub start_vm {
 sub stop_vm {
     my ($self) = @_;
     if ($self->{started}) {
-        close($self->{encoder_pipe}) if $self->{encoder_pipe};
+        kill(TERM => $self->{encoder_pid}) if $self->{encoder_pid};
         # backend.run might have disappeared already in case of failed builds
         no autodie qw(unlink);
         unlink('backend.run');
         $self->do_stop_vm();
+        waitpid($self->{encoder_pid}, 0);
         $self->{started} = 0;
     }
     $self->close_pipes();    # does not return
@@ -382,15 +398,12 @@ sub enqueue_screenshot {
         symlink(basename($self->_last_screenshot_name), $lastlink);
     }
 
-    if ($self->{encoder_pipe}) {
-        if ($sim > 50) {    # we ignore smaller differences
-            $self->{encoder_pipe}->print("R\n");
-        }
-        else {
-            my $name = $self->_last_screenshot_name;
-            $self->{encoder_pipe}->print("E $name\n");
-        }
-        $self->{encoder_pipe}->flush();
+    if ($sim > 50) {    # we ignore smaller differences
+        $self->write_encoder_frame('R');
+    }
+    else {
+        my $name = $self->_last_screenshot_name;
+        $self->write_encoder_frame("E $name");
     }
     my $d = gettimeofday - $starttime;
     if ($d > $self->screenshot_interval) {
