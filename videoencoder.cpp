@@ -1,5 +1,8 @@
 /* Modified by Stephan Kulow <coolo@suse.de> 2014 to take the PNGs
-  from stdin and use opencv directly */
+   from stdin and use opencv directly */
+/* Modified by Stephan Kulow <coolo@suse.de> 2016 to take the PNGs
+   from external file */
+
 
 /********************************************************************
  *                                                                  *
@@ -36,10 +39,13 @@
 #include <dirent.h>
 */
 
+#include <signal.h>
+#include <unistd.h>
 #include <cstdio>
 #include <ogg/ogg.h>
 #include "theora/theoraenc.h"
 
+const char *option_input;
 const char *option_output;
 
 static FILE *ogg_fp = NULL;
@@ -49,6 +55,8 @@ static ogg_page og;
 
 static th_enc_ctx *td;
 static th_info ti;
+
+int loop = 1;
 
 static int
 theora_write_frame (th_ycbcr_buffer ycbcr, int last)
@@ -144,6 +152,11 @@ rgb_to_yuv (Mat * image, th_ycbcr_buffer ycbcr)
 
 }
 
+void signalHandler( int signum )
+{
+  loop = 0;
+}
+
 
 static int
 ilog (unsigned _v)
@@ -160,13 +173,17 @@ main (int argc, char *argv[])
   th_comment tc;
   int ret;
 
-  if (argc != 2)
+  if (argc != 3)
     {
-      fprintf (stderr, "need output filename - input is read from STDIN\n");
+      fprintf (stderr, "%s: CMDS OUTPUT - reads commands till STDIN is closed\n");
       return 1;
     }
 
-  option_output = argv[1];
+  option_input = argv[1];
+  option_output = argv[2];
+
+  signal(SIGINT, signalHandler);
+  signal(SIGTERM, signalHandler);
 
   ogg_fp = fopen (option_output, "wb");
   if (!ogg_fp)
@@ -287,9 +304,32 @@ main (int argc, char *argv[])
   char line[PATH_MAX + 10];
   int fsls = 0;			// frames since last sync
 
-  while (fgets (line, PATH_MAX + 8, stdin))
+  long cmd_offset = 0;
+  while (1)
     {
-      line[strlen (line) - 1] = 0;
+      FILE *cmd = fopen(option_input, "r");
+      if (fseek(cmd, cmd_offset, SEEK_SET)) {
+	fprintf (stderr, "Can't seek\n");
+	break;
+      }
+      if (!fgets (line, PATH_MAX + 8, cmd)) {
+	if (!loop) // we're done
+	  break;
+	// if there is no new content, take a nap
+	fclose(cmd);
+	sleep(1);
+	continue;
+      }
+      // better don't take half lines
+      if (line[strlen(line) - 1] == '\n') {
+	line[strlen (line) - 1] = 0;
+	cmd_offset = ftell(cmd);
+	fclose(cmd);
+      } else {
+	fclose(cmd);
+	sleep(1);
+	continue;
+      }
       //printf ("I got '%s'\n", line);
 
       if (line[0] == 'E')
@@ -328,9 +368,9 @@ main (int argc, char *argv[])
 	  fflush (ogg_fp);
 	  fsls = 0;
 	}
-      //fprintf(stderr, "%s\n", input_png);
     }
 
+  printf("last frame\n");
   // send last frame
   theora_write_frame (ycbcr, 1);
   th_encode_free (td);
