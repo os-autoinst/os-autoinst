@@ -21,7 +21,7 @@ __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
-      vncinfo old_ikvm
+      _last_update_requested vncinfo old_ikvm
       ));
 our $VERSION = '0.40';
 
@@ -130,6 +130,7 @@ sub login {
     $self->screen_on(1);
     # in a land far far before our time
     $self->_last_update_received(0);
+    $self->_last_update_requested(0);
 
     eval {
         $self->_handshake_protocol_version();
@@ -782,7 +783,6 @@ sub send_update_request {
     my ($self) = @_;
 
     # after 2 seconds: send forced update
-    # after 3 seconds: force incremental update
     # after 4 seconds: turn off screen
     my $time_since_last_update = time - $self->_last_update_received;
 
@@ -790,17 +790,19 @@ sub send_update_request {
     # to get a defined live sign. If that doesn't help, consider
     # the framebuffer outdated
     if ($self->_framebuffer) {
-        if ($time_since_last_update > 4) {
+        if ($self->_last_update_requested - $self->_last_update_received > 2) {
+            $self->_last_update_received(0);
             # return black image - screen turned off
             $self->_framebuffer(tinycv::new($self->width, $self->height));
         }
-        elsif ($time_since_last_update > 2) {
+        if ($time_since_last_update > 2) {
             $self->send_forced_update_request;
         }
     }
 
     my $incremental = $self->_framebuffer ? 1 : 0;
-    $incremental = 0 if $time_since_last_update > 3;
+    # if we have a black screen, we need a full update
+    $incremental = 0 unless $self->_last_update_received;
     return $self->_send_frame_buffer(
         {
             incremental => $incremental,
@@ -817,6 +819,7 @@ sub send_update_request {
 sub send_forced_update_request {
     my ($self) = @_;
 
+    $self->_last_update_requested(time);
     return $self->_send_frame_buffer(
         {
             incremental => 0,
@@ -868,7 +871,6 @@ sub _receive_update {
     my ($self) = @_;
 
     $self->_last_update_received(time);
-    #printf "receive_update %dx%d\n", $self->width, $self->height;
     my $image = $self->_framebuffer;
     if (!$image && $self->width && $self->height) {
         $image = tinycv::new($self->width, $self->height);
