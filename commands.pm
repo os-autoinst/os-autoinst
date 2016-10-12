@@ -255,8 +255,12 @@ sub run_daemon {
     # it's unlikely that we will ever use cookies, but we need a secret to shut up mojo
     app->secrets([$bmwqemu::vars{JOBTOKEN}]);
 
-    # listen to all IPv4 and IPv6 interfaces
-    my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://[::]:$port"]);
+    # listen to all IPv4 and IPv6 interfaces (if ipv6 is supported)
+    my $address = '[::]';
+    if (!IO::Socket::IP->new(Listen => 5, LocalAddr => $address)) {
+        $address = '0.0.0.0';
+    }
+    my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://$address:$port"]);
     $daemon->silent;
     app->log->info("Daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
     try {
