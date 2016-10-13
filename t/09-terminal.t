@@ -2,13 +2,13 @@
 
 use 5.018;
 use warnings;
-use autodie;
 use Carp qw( confess );
 use English qw( -no_match_vars );
 use POSIX qw( :sys_wait_h pause );
 use Socket qw( PF_UNIX SOCK_STREAM sockaddr_un );
+use Time::HiRes qw( usleep );
 
-use Test::More tests => 9;
+use Test::More tests => 7;
 
 BEGIN {
     unshift @INC, '..';
@@ -44,22 +44,38 @@ my $timeout = 5;
 sub try_write {
     my ($fd, $msg) = @_;
 
-    syswrite($fd, $msg)
-      || confess "fake_terminal: Failed to write to socket $ERRNO";
+  WRITE: {
+        my $written = syswrite $fd, $msg;
+        unless ( defined $written ) {
+            if ( $ERRNO{EINTR} ) {
+                next WRITE;
+            }
+            confess "fake_terminal: Failed to write to socket $ERRNO";
+        }
+        if ( $written < length($msg) ) {
+            confess "fake_terminal: Only wrote $written bytes of: $msg";
+        }
+    }
 }
 
 sub try_read {
-    my ($fd, $expected) = shift;
+    my ($fd, $expected) = @_;
     my ($buf, $text);
 
   READ: {
-        sysread($fd, my $buf, length($expected)) || do {
+        my $read = sysread $fd, $buf, length($expected);
+        unless ( defined $read ) {
             if ($ERRNO{EINTR}) {
                 $text .= $buf;
                 next READ;
             }
             confess "fake_terminal: Could not read from socket: $ERRNO";
-        };
+        }
+        if ( $read < length($expected) ) {
+            $text .= $buf;
+            usleep(100);
+            next READ;
+        }
     }
     $text .= $buf;
     # Echo back what we just read like a real terminal
@@ -124,10 +140,11 @@ sub test_terminal_directly {
     is( $scrn->read_until( qr/$user_name_prompt_data$/, $timeout ),
         $login_prompt_data, 'direct: find login prompt' );
     $scrn->type_string( $user_name_data );
+    usleep(100);
     is( $scrn->read_until( qr/$password_prompt_data$/, $timeout ),
         $user_name_data . $password_prompt_data, 'direct: find password prompt' );
     $scrn->type_string( $password_data );
-    is( $scrn->read_until( qr/$first_prompt_data$/, $timeout ),
+    is( $scrn->read_until( $first_prompt_data, $timeout, no_regex => 1 ),
         $password_data . $first_prompt_data, 'direct: find first command prompt' );
     $scrn->type_string( $set_prompt_data );
     is( $scrn->read_until( qr/$normalised_prompt_data$/, $timeout ),
@@ -148,7 +165,7 @@ $SIG{CHLD} = sub {
             is($exit_status, 0, 'Child exit status is zero');
         }
         if ($exited == 0 || $exit_status != 0) {
-            exit 0;
+            exit 1;
         }
     }
 };
@@ -163,3 +180,5 @@ my $pid = fork || do {
 pause;
 
 test_terminal_directly;
+
+pause;

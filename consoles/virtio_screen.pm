@@ -1,9 +1,9 @@
 package consoles::virtio_screen;
 use 5.018;
 use warnings;
-use autodie;
 use English qw( -no_match_vars );
-use Time::HiRes qw( gettimeofday );
+use Time::HiRes qw( gettimeofday usleep );
+# Do not use autodie in this module, it breaks non-blocking sockets
 
 our $VERSION;
 
@@ -27,7 +27,18 @@ sub release_key {
 }
 
 sub type_string {
-    ...
+    my ($self, $msg) = @_;
+    my $fd = $self->{socket_fd};
+
+    bmwqemu::log_call(message => $msg);
+
+    my $written = syswrite $fd, $msg;
+    unless (defined $written) {
+        die "Error writing to virtio terminal: $ERRNO";
+    }
+    if ($written < length($msg)) {
+        die "Was not able to write entire message to virtio terminal. Only $written of $msg";
+    }
 }
 
 =head2 read_until
@@ -51,21 +62,22 @@ Setting $no_regex will cause it to do a plain string search instead using index(
 
 =cut
 sub read_until {
-    my ($self, $re, $timeout) = @_;
+    my ($self, $re, $timeout) = @_[0..2];
     my $fd = $self->{socket_fd};
-    my %nargs = @_;
+    my %nargs = @_[3..$#_];
     my $buflen = $nargs{buffer_size} || 4096;
     my $rbuf = '';
     my $buf = '';
     my $data = $nargs{record_output} ? '' : undef;
     my $sttime = gettimeofday;
     my $loops = 0;
-    my $match = '';
-    my $prematch = '';
+    my ($prematch, $match);
 
-    bmwqemu::log_call(regular_expression => $re, timeout => $timeout);
+    $nargs{regular_expression} = $re;
+    $nargs{timeout} = $timeout;
+    bmwqemu::log_call(%nargs);
 
-  READ: {
+  READ: while(1) {
         $loops++;
         if (gettimeofday() - $sttime >= $timeout) {
             # TODO: Replace a lot of these die calls with vconsole_record_result(<title>, 'fail',...)
@@ -74,18 +86,20 @@ sub read_until {
 
         my $read = sysread($fd, $buf, $buflen);
         unless (defined $read) {
-            if ($!{EAGAIN} || $!{EWOULDBLOCK}) {
+            if ($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK}) {
                 usleep(100);
                 next READ;
             }
-            die "Failed to read from virtio console char device: $!";
+            die "Failed to read from virtio console char device: $ERRNO";
         }
+
         if (length($rbuf) + $read > $buflen) {
             # If there is not enough free space in the ring buffer remove the
             # amount just read minus any free space. TODO: Test it with low buffer size
             $rbuf = substr $rbuf, $read - ($buflen - length($rbuf));
         }
         $rbuf .= $buf;
+
         if ($nargs{no_regex}) {
             my $i = index($rbuf, $re);
             if ($i >= 0) {
@@ -94,16 +108,16 @@ sub read_until {
                 last READ;
             }
         }
-        elsif ($rbuf =~ $re) {
+        elsif ($rbuf =~ m/$re/) {
             # See perf issues: http://bit.ly/2dbGrzo
-            $match = substr $rbuf, $LAST_MATCH_START[0], $LAST_MATCH_END[0] - $LAST_MATCH_START[0];
             $prematch = substr $rbuf, 0, $LAST_MATCH_START[0];
+            $match = substr $rbuf, $LAST_MATCH_START[0], $LAST_MATCH_END[0] - $LAST_MATCH_START[0];
             last READ;
         }
+
         if (defined $data) {
             $data .= $buf;
         }
-        next READ;
     }
 
     my $trailing;
@@ -121,7 +135,7 @@ sub read_until {
     }
 
     my $elapsed = gettimeofday() - $sttime;
-    bmwqemu::fctinfo("Asserted output from SUT in $loops loops & $elapsed seconds: $match");
+    bmwqemu::fctinfo("Matched output from SUT in $loops loops & $elapsed seconds: $match");
 
     return $data;
 }
