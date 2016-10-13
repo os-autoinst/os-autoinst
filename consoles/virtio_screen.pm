@@ -15,7 +15,7 @@ sub new {
 }
 
 sub send_key {
-    ...
+    type_string(@_);
 }
 
 sub hold_key {
