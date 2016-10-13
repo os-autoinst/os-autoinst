@@ -4,6 +4,7 @@ use warnings;
 use autodie;
 use Socket qw(SOCK_NONBLOCK PF_UNIX SOCK_STREAM sockaddr_un);
 use Errno qw(EAGAIN EWOULDBLOCK);
+use English qw( -no_match_vars );
 use Carp qw(cluck);
 use Scalar::Util qw(blessed);
 use Cwd;
@@ -52,7 +53,7 @@ sub screen {
 sub reset {
     my $self = shift;
     if ($self->{socket_fd} > 0) {
-        close($self->{socket_fd});
+        close $self->{socket_fd};
         $self->{socket_fd} = 0;
         $self->{screen} = undef;
     }
@@ -85,24 +86,24 @@ Returns the file descriptor for the open socket, otherwise it dies.
 
 =cut
 sub open_socket {
+    my ($self) = @_;
     my $fd;
-    bmwqemu::log_call(socket_path => $socket_path);
-    unless (-S $socket_path) {
-        die "Could not find $socket_path";
-    }
-    unless (socket($fd, PF_UNIX, SOCK_STREAM|SOCK_NONBLOCK, 0)) {
-        die "Could not create Unix socket: $!";
-    }
-    unless (connect($fd, sockaddr_un($socket_path))) {
-        die "Could not connect to virtio-console chardev socket: $!";
-    }
+    bmwqemu::log_call(socket_path => $self->socket_path);
+
+    (-S $self->socket_path) || die 'Could not find ' . $self->socket_path;
+    socket($fd, PF_UNIX, SOCK_STREAM|SOCK_NONBLOCK, 0)
+        || die 'Could not create Unix socket: ' . $ERRNO;
+    connect($fd, sockaddr_un($self->socket_path))
+        || die 'Could not connect to virtio-console chardev socket: ' . $ERRNO;
+
     return $fd;
 }
 
 sub activate {
     my $self = shift;
-    $self->{socket_fd} = open_socket;
+    $self->{socket_fd} = $self->open_socket;
     $self->{screen} = consoles::virtio_screen::->new($self->{socket_fd});
+    return;
 }
 
 1;
