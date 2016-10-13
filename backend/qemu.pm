@@ -155,32 +155,31 @@ sub can_handle {
 sub save_state {
 
     my ($self, $args) = @_;
-    my $rsp = 0;
+    my $rsp    = 0;
     my $vmname = $args->{name};
 
     bmwqemu::diag("Trying to save a QEMU image");
 
-    $rsp = $self->_send_hmp("stop");
+    $self->freeze_vm;
 
-    diag "Sucessfully stopped our vm: $rsp";
-    die unless ($rsp eq "stop");
+    $rsp = $self->handle_qmp_command(JSON::from_json('{ "execute": "migrate_set_speed", "arguments": { "value": "4095m" } }'));
+    $rsp = $self->handle_qmp_command(JSON::from_json('{ "execute": "migrate", "arguments": { "uri": "exec:gzip -c > vmstate.gz" } }'));
 
-    $rsp    = $self->_send_hmp("migrate_set_speed 4095m");
-    die unless ($rsp eq "migrate_set_speed 4095m");
-    diag "Set up speed to: $rsp" 
+    do {
 
-    #For compression pixz was suggested, but it might add a new dependency
-    # also it would use multiple CPU's, which might be a problem in production.
-    $rsp    = $self->_send_hmp("migrate \"exec:gzip -c > vmstate.gz\"");
-    die unless ($rsp eq "migrate \"exec:gzip -c > vmstate.gz\"");
-    diag "Saved the machine state $rsp" 
+        sleep 0.5;    #We want to wait a decent amount of time, a file of 10GB will be
+                      # migrated in about 40secs with an ssd drive. and no heavy load.
 
-    $rsp    = $self->_send_hmp("cont");
-    die unless ($rsp eq "cont");
-    diag "Allowed the VM to keep running $rsp";
-    
+        $rsp = $self->handle_qmp_command({execute => "query-migrate"});
 
-    return;
+        diag "QEMU MIGRATING BYTES TOTAL:     \t" . $rsp->{return}->{ram}->{total};
+        diag "QEMU MIGRATING BYTES REMAINING:   \t" . $rsp->{return}->{ram}->{remaining};
+
+    } until ($rsp->{return}->{status} eq "completed");
+
+    diag "Migration completed.";
+    $self->cont_vm;
+
 }
 
 sub save_snapshot {
