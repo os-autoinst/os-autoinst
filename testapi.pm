@@ -45,6 +45,8 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   script_run script_sudo script_output validate_script_output
   assert_script_run assert_script_sudo
 
+  wait_terminal assert_terminal
+
   start_audiocapture assert_recorded_sound
 
   select_console console reset_consoles
@@ -560,12 +562,12 @@ sub wait_terminal {
     $named_args{pattern} = $pattern;
     $named_args{timeout} ||= $bmwqemu::default_timeout;
 
-    bmwqemu::log_call(\%named_args);
+    bmwqemu::log_call(%named_args);
     
     my $ret = query_isotovideo('backend_wait_terminal', \%named_args);
     my $result = $ret->{matched} ? 'ok' : 'fail';
     $autotest::current_test->record_serialresult(bmwqemu::pp($pattern), $result, $ret->{string});
-    bwmqemu::fctres("$pattern: $ret->{matched}");
+    bmwqemu::fctres("$pattern: $ret->{matched}");
     return ($ret->{matched}, $ret->{string});
 }
 

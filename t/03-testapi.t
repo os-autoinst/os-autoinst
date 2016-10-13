@@ -25,7 +25,7 @@ sub fake_send_json {
 sub fake_read_json {
     my ($fd) = @_;
     my $lcmd = $cmds->[-1];
-    if ($lcmd->{cmd} eq 'backend_wait_serial') {
+    if ($lcmd->{cmd} eq 'backend_wait_serial' || $lcmd->{cmd} eq 'backend_wait_terminal') {
         my $str = $lcmd->{regexp};
         $str =~ s,\\d\+,$fake_exit,;
         return {ret => {matched => 1, string => $str}};
@@ -97,6 +97,18 @@ $cmds = [];
 
 type_password 'hallo';
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 'hallo'}]);
+$cmds = [];
+
+wait_terminal 'pattern', exclude_match => 1;
+is_deeply($cmds, 
+          [{cmd => 'backend_wait_terminal', pattern => 'pattern', 
+            exclude_match => 1, timeout => 30}], 
+          'wait_terminal matches');
+$cmds = [];
+
+assert_terminal 'zzZZZZzzzZZZ';
+is_deeply($cmds, [{cmd => 'backend_assert_terminal', pattern => 'zzZZZZzzzZZZ', timeout => 30}],
+          'assert_terminal matches');
 $cmds = [];
 
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
