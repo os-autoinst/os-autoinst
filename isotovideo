@@ -196,9 +196,10 @@ $SIG{HUP}  = \&signalhandler;
 $SIG{CHLD} = \&signalhandler_chld;
 
 # make sure all commands coming from the backend will not be in the
-# developers's locale
-$ENV{LC_ALL} = 'C';
-$ENV{LANG}   = 'C';
+# developers's locale - but a defined english one. This is SUSE's
+# default locale
+$ENV{LC_ALL} = 'en_US.UTF-8';
+$ENV{LANG}   = 'en_US.UTF-8';
 
 # Try to load the main.pm from one of the following in this order:
 #  - product dir
