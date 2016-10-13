@@ -939,6 +939,13 @@ sub cont_vm {
     return $self->handle_qmp_command({execute => 'cont'});
 }
 
+sub wait_terminal {
+    my $self = shift;
+    my %nargs = @_;
+
+    $self->{current_screen}->read_until($nargs{pattern}, $nargs{timeout}, %nargs);
+}
+
 1;
 
 # vim: set sw=4 et:
