@@ -72,9 +72,12 @@ against the ring buffer after each read operation.
 If $record_output is set then all data from the socket is stored in a separate string and returned.
 Otherwise just the contents of the ring buffer will be returned. Setting $exclude_match removes the
 matched string from the returned string. Data which was received after a matching set of characters
-is lost (although not completely, as it should be in "$socket_path.log").
+is lost unless data from the socket is being logged to a file.
 
 Setting $no_regex will cause it to do a plain string search using index().
+
+Returns a map reference like { matched => 1, string => 'text from the terminal' } on success
+and { matched => 0, string => 'text from the terminal' } on failure.
 
 =cut
 sub read_until {
@@ -95,9 +98,7 @@ sub read_until {
   READ: while(1) {
         $loops++;
         if (gettimeofday() - $sttime >= $timeout) {
-            # TODO: Return fail to the caller instead of dieing so that the test
-            #       can collect logs or perform a workaround
-            die 'Timeout exceeded on virtio console assert, read: ' . $rbuf;
+            return { matched => 0, string => ($overflow || '') . $rbuf };
         }
 
         my $read = sysread($fd, $buf, $buflen);
@@ -146,7 +147,7 @@ sub read_until {
     if ($nargs{exclude_match}) {
         return $overflow . $prematch;
     }
-    return $overflow . $prematch . $match;
+    return {matched => 1, string => $overflow . $prematch . $match};
 }
 
 sub current_screen {
