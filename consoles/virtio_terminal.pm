@@ -60,11 +60,6 @@ sub reset {
     return $self->SUPER::reset;
 }
 
-sub trigger_select {
-    my $self = shift;
-    die 'Not imlpementd';
-}
-
 =head2 socket_path
 
 The file system path bound to a UNIX socket which will be used to transfer

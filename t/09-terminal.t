@@ -125,7 +125,7 @@ sub fake_terminal {
     # parent to fail as well
     my $tb = Test::More->builder;
     $tb->reset;
-    $tb->expected_tests(3)
+    $tb->expected_tests(3);
 
     try_write( $fd, $login_prompt_data );
     ok( try_read($fd, $user_name_data), 'fake_terminal reads: Entered user name');
