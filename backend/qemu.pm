@@ -943,7 +943,7 @@ sub wait_terminal {
     my $self = shift;
     my %nargs = @_;
 
-    $self->{current_screen}->read_until($nargs{pattern}, $nargs{timeout}, %nargs);
+    return $self->{current_screen}->read_until($nargs{pattern}, $nargs{timeout}, %nargs);
 }
 
 1;
