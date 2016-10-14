@@ -8,7 +8,7 @@ use POSIX qw( :sys_wait_h pause );
 use Socket qw( PF_UNIX SOCK_STREAM sockaddr_un );
 use Time::HiRes qw( usleep );
 
-use Test::More tests => 7;
+use Test::More tests => 11;
 
 BEGIN {
     unshift @INC, '..';
@@ -36,15 +36,25 @@ my $password_data = "$testapi::password\n";
 my $first_prompt_data = "\e[1mlinux-5rw7:~ #\e[0m\e(B";
 my $set_prompt_data = qq/PS1="# "\n/;
 my $normalised_prompt_data = '# ';
+my $US_keyboard_data = <<'FIN.';
+!@\#$%^&*()-_+={}[]|:;"'<>,.?/~`
+abcdefghijklmnopqrstuwxyz
+ABCDEFGHIJKLMNOPQRSTUWXYZ
+0123456789
+FIN.
+my $stop_code_data = 'FIN.';
+my $repeat_sequence_count = 1000;
+my $next_test = 'GOTO NEXT';
 
 # If test keeps timing out, this can be increased or you can add more calls to
 # alarm in fake terminal
 my $timeout = 5;
 
+# Either write $msg to the socket or die
 sub try_write {
     my ($fd, $msg) = @_;
 
-  WRITE: {
+  WRITE: while(1) {
         my $written = syswrite $fd, $msg;
         unless ( defined $written ) {
             if ( $ERRNO{EINTR} ) {
@@ -55,14 +65,33 @@ sub try_write {
         if ( $written < length($msg) ) {
             confess "fake_terminal: Only wrote $written bytes of: $msg";
         }
+        last WRITE;
     }
 }
 
+# Try to write $seq to the socket $repeat number of times with pauses between
+# writes
+sub try_write_sequence {
+    my ($fd, $seq, $repeat, $stop_code) = @_;
+
+    my @pauses = (10, 100, 200, 500, 1000);
+
+    for my $i (1..$repeat) {
+        try_write($fd, $seq);
+        usleep(shift(@pauses) || 1);
+    }
+
+    try_write($fd, $stop_code);
+}
+
+# Try to read $expected data from the socket or die.
+# Once we have read the data, echo it back like a real terminal, unless the
+# message is $next_test which we just use for synchronisation.
 sub try_read {
     my ($fd, $expected) = @_;
     my ($buf, $text);
 
-  READ: {
+  READ: while(1) {
         my $read = sysread $fd, $buf, length($expected);
         unless ( defined $read ) {
             if ($ERRNO{EINTR}) {
@@ -74,12 +103,19 @@ sub try_read {
         if ( $read < length($expected) ) {
             $text .= $buf;
             usleep(100);
-            next READ;
+        } else {
+            last READ;
         }
     }
     $text .= $buf;
-    # Echo back what we just read like a real terminal
-    try_write( $fd, $text );
+
+    if ( $expected ne $next_test ) {
+        try_write( $fd, $text );
+    }
+    elsif ( $text ne $next_test ) {
+        confess 'fake_terminal: Expecting special $next_test message, but got: ' . $text;
+    }
+
     return $text eq $expected;
 }
 
@@ -125,7 +161,7 @@ sub fake_terminal {
     # parent to fail as well
     my $tb = Test::More->builder;
     $tb->reset;
-    $tb->expected_tests(3);
+    $tb->expected_tests(4);
 
     try_write( $fd, $login_prompt_data );
     ok( try_read($fd, $user_name_data), 'fake_terminal reads: Entered user name');
@@ -138,10 +174,25 @@ sub fake_terminal {
 
     try_write( $fd, $normalised_prompt_data );
 
-    #TODO:
-    # - Send 4-8kb of data to test the ring buffer
-    # - Send data in small chunks with pauses between them
-    # - Test timeout
+    # This for loop corresponds to the 'large amount of data tests'
+    for (1..2) {
+        try_read( $fd, $next_test );
+        try_write_sequence( $fd, $US_keyboard_data, $repeat_sequence_count, $stop_code_data );
+    }
+
+    $SIG{ALRM} = sub { fail('fake_terminal timed out first'); };
+    alarm $timeout;
+    try_read( $fd, $next_test );
+    try_write( $fd, $US_keyboard_data );
+    # Keep the socket open while we test the timeout
+    try_read( $fd, $next_test );
+
+    pass('fake_terminal managed to get all the way to the end without timing out!');
+}
+
+sub is_matched {
+    my ($result, $expected, $name) = @_;
+    is_deeply( $result, { matched => 1, string => $expected }, $name );
 }
 
 sub test_terminal_directly {
@@ -150,20 +201,41 @@ sub test_terminal_directly {
     my $scrn = $term->screen;
     ok( defined($scrn), 'Create screen' );
 
-    is( $scrn->read_until( qr/$user_name_prompt_data$/, $timeout ),
-        $login_prompt_data, 'direct: find login prompt' );
+    is_matched( $scrn->read_until( qr/$user_name_prompt_data$/, $timeout ),
+               $login_prompt_data, 'direct: find login prompt' );
     $scrn->type_string( $user_name_data );
 
-    is( $scrn->read_until( qr/$password_prompt_data$/, $timeout ),
+    is_matched( $scrn->read_until( qr/$password_prompt_data$/, $timeout ),
         $user_name_data . $password_prompt_data, 'direct: find password prompt' );
     $scrn->type_string( $password_data );
 
-    is( $scrn->read_until( $first_prompt_data, $timeout, no_regex => 1 ),
+    is_matched( $scrn->read_until( $first_prompt_data, $timeout, no_regex => 1 ),
         $password_data . $first_prompt_data, 'direct: find first command prompt' );
     $scrn->type_string( $set_prompt_data );
 
-    is( $scrn->read_until( qr/$normalised_prompt_data$/, $timeout ),
+    is_matched( $scrn->read_until( qr/$normalised_prompt_data$/, $timeout ),
         $set_prompt_data . $normalised_prompt_data, 'direct: find normalised prompt' );
+
+    # Note that a real terminal would echo this back to us causing the next test to fail
+    # unless we suck up the echo.
+    $scrn->type_string( $next_test );
+
+    my $result = $scrn->read_until( $stop_code_data, $timeout,
+                                       no_regex => 1, buffer_size => 256 );
+    is( length($result->{string}), 256, 'direct: returned data is same length as buffer' );
+    like( $result->{string}, qr/\Q$US_keyboard_data\E$stop_code_data$/,
+          'direct: read a large amount of data with small ring buffer' );
+    $scrn->type_string( $next_test );
+
+    like( $scrn->read_until( qr/$stop_code_data$/, $timeout, record_output => 1)->{string},
+          qr/^(\Q$US_keyboard_data\E){$repeat_sequence_count}$stop_code_data$/,
+          'direct: record a large amount of data' );
+    $scrn->type_string( $next_test );
+
+    is_deeply( $scrn->read_until( 'we timeout', 1 ),
+               { matched => 0, string => $US_keyboard_data },
+               'direct: timeout' );
+    $scrn->type_string( $next_test );
 }
 
 sub test_terminal_through_testapi {
@@ -185,7 +257,9 @@ sub report_on_fake_terminal {
     return 1;
 }
 
-# If child bails out early...
+# If fake terminal bails out early, stop the test.
+# It is possible that SIGCHLD is received because of some status change
+# other than termination, hence the if statement.
 $SIG{CHLD} = sub {
     local ($ERRNO, $CHILD_ERROR);
     if ( waitpid(-1, WNOHANG) > 0 ) {
