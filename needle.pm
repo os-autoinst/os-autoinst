@@ -18,13 +18,14 @@ package needle;
 
 use strict;
 use warnings;
-use Cwd qw/abs_path/;
+use Cwd qw(abs_path);
 use File::Find;
 use File::Spec;
 use JSON;
 use File::Basename;
 require IPC::System::Simple;
 use autodie qw(:all);
+use Time::HiRes qw(time);
 
 our %needles;
 our %tags;
@@ -139,7 +140,9 @@ sub get_image {
     my ($self, $area) = @_;
 
     if (!$self->{img}) {
+        my $start = time;
         $self->{img} = tinycv::read($self->{png});
+        bmwqemu::diag(sprintf("load of $self->{png} took %.2f seconds", time - $start));
         for my $a (@{$self->{area}}) {
             next unless $a->{type} eq 'exclude';
             $self->{img}->replacerect($a->{xpos}, $a->{ypos}, $a->{width}, $a->{height});
