@@ -555,6 +555,43 @@ sub wait_serial {
     return;    # false
 }
 
+=head2 wait_terminal
+
+  wait_terminal($pattern, timeout => 30, expect_not_found => 0, record_output => 0,
+                exclude_match => 0, no_regex => 0);
+
+This function is only valid when the console is set to a text terminal. It waits
+for the terminal to output text which matches $pattern in a similar fasion to
+C<wait_serial>. If no named arguments are provided then it will scan the output of
+the active terminal for the regex C<$pattern> until the global timeout is reached.
+
+If it cannot find the pattern then a serial failure will be recorded. On success
+a pass is recorded and in either case the function returns a tuple containing
+a boolean and a string. The boolean indicates whether the pattern was matched
+and the string will contain some output from the terminal up to and including
+the match.
+
+The named arguments modify this behaviour; setting C<record_output = 1> will ensure
+that all text read from the terminal is return in the string up to the match.
+Setting C<exclude_match = 1> will remove the match from the returned string.
+Setting C<no_regex = 1> will cause C<$pattern> to be treated as plain text and a
+simple search using C<index> will be done instead. C<timeout> and C<expect_not_found>
+are the same as in L<wait_serial>.
+
+  sub find_login {
+    select_console('root-virtio-terminal');
+    my ($matched, $output) = wait_terminal(qr/login: $/);
+  }
+
+It is important to remember that, by default, terminals echo everything you send.
+Unless the echo has been disabled, you should wait for it before sending more input.
+Terminals can also insert ANSI control codes and formatting characters in
+unexpected places causing match failures on text which looks like it should
+otherwise match.
+
+Presently wait_terminal is implemented by L<consoles::virtio_screen::read_until>.
+
+=cut
 sub wait_terminal {
     die 'Expecting at least one argument' unless @_ > 0;
     my $pattern = shift;
@@ -563,18 +600,26 @@ sub wait_terminal {
     $named_args{timeout} ||= $bmwqemu::default_timeout;
 
     bmwqemu::log_call(%named_args);
-    
+
     my $ret = query_isotovideo('backend_wait_terminal', \%named_args);
-    my $result = $ret->{matched} ? 'ok' : 'fail';
+    my $result = ($ret->{matched} xor $named_args{expect_not_found}) ? 'ok' : 'fail';
     $autotest::current_test->record_serialresult(bmwqemu::pp($pattern), $result, $ret->{string});
     bmwqemu::fctres("$pattern: $ret->{matched}");
+    if ($named_args{die_on_fail} && $result eq 'fail') {
+        die 'wait_terminal failed';
+    }
     return ($ret->{matched}, $ret->{string});
 }
 
+=head2 assert_terminal
+
+This function is identical to L<wait_terminal> except that it will cause the
+test to die on failure.
+
+=cut
 sub assert_terminal {
-    my ($matched, $string) = wait_terminal(@_);
-    die 'Pattern not found on terminal' unless $matched;
-    return $string;
+    push @_, die_on_fail => 1;
+    wait_terminal(@_);
 }
 
 =head2 x11_start_program
