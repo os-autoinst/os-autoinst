@@ -107,7 +107,7 @@ is_deeply($cmds,
 $cmds = [];
 
 assert_terminal 'zzZZZZzzzZZZ';
-is_deeply($cmds, [{cmd => 'backend_assert_terminal', pattern => 'zzZZZZzzzZZZ', timeout => 30}],
+is_deeply($cmds, [{cmd => 'backend_wait_terminal', pattern => 'zzZZZZzzzZZZ', timeout => 30}],
           'assert_terminal matches');
 $cmds = [];
 

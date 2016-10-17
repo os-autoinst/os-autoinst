@@ -575,8 +575,8 @@ The named arguments modify this behaviour; setting C<record_output = 1> will ens
 that all text read from the terminal is return in the string up to the match.
 Setting C<exclude_match = 1> will remove the match from the returned string.
 Setting C<no_regex = 1> will cause C<$pattern> to be treated as plain text and a
-simple search using C<index> will be done instead. C<timeout> and C<expect_not_found>
-are the same as in L<wait_serial>.
+simple search using C<index> will be done instead. C<timeout> is the same as in
+L<wait_serial>.
 
   sub find_login {
     select_console('root-virtio-terminal');
@@ -602,12 +602,10 @@ sub wait_terminal {
     bmwqemu::log_call(%named_args);
 
     my $ret = query_isotovideo('backend_wait_terminal', \%named_args);
-    my $result = ($ret->{matched} xor $named_args{expect_not_found}) ? 'ok' : 'fail';
+    my $result = $ret->{matched} ? 'ok' : 'fail';
     $autotest::current_test->record_serialresult(bmwqemu::pp($pattern), $result, $ret->{string});
     bmwqemu::fctres("$pattern: $ret->{matched}");
-    if ($named_args{die_on_fail} && $result eq 'fail') {
-        die 'wait_terminal failed';
-    }
+
     return ($ret->{matched}, $ret->{string});
 }
 
@@ -618,8 +616,9 @@ test to die on failure.
 
 =cut
 sub assert_terminal {
-    push @_, die_on_fail => 1;
-    wait_terminal(@_);
+    my ($matched, $output) = wait_terminal(@_);
+    die 'Could not find pattern in terminal output' unless $matched;
+    return ($matched, $output);
 }
 
 =head2 x11_start_program
