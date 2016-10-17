@@ -172,8 +172,12 @@ sub signalhandler_chld {
 sub init_backend {
     my ($name) = @_;
     $bmwqemu::vars{BACKEND} ||= "qemu";
+    my $dir = getcwd;
     # make sure the needles are initialized before the backend process is started
-    needle::init($bmwqemu::vars{PRODUCTDIR} . "/needles");
+    no autodie qw(system);
+    my $res = system("rsync -avP --delete --exclude=.git $bmwqemu::vars{PRODUCTDIR}/needles/ $dir/needles/");
+    die "Failed to rsync needles: $@" if $res;
+    needle::init("$dir/needles");
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
     return $bmwqemu::backend;
 }
