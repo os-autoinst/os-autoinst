@@ -34,7 +34,16 @@ terminal codes.
 FIN.
 
 sub send_key {
-    die $trying_to_use_keys;
+    my ($self, $nargs) = @_;
+
+    # TODO: Testapi could just use type_string("\n") instead, VNC supports it.
+    if ($nargs->{key} eq 'ret') {
+        $nargs->{text} = "\n";
+        $self->type_string($nargs);
+    }
+    else {
+        die $trying_to_use_keys;
+    }
 }
 
 sub hold_key {
