@@ -941,7 +941,7 @@ sub cont_vm {
 
 sub wait_terminal {
     my $self = shift;
-    my %nargs = @_;
+    my %nargs = %{(shift)};
 
     return $self->{current_screen}->read_until($nargs{pattern}, $nargs{timeout}, %nargs);
 }

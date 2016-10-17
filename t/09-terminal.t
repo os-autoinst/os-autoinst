@@ -212,41 +212,45 @@ sub test_terminal_directly {
     my $scrn = $term->screen;
     ok( defined($scrn), 'Create screen' );
 
+    sub type_string {
+        $scrn->type_string( { text => shift } );
+    }
+
     is_matched( $scrn->read_until( qr/$user_name_prompt_data$/, $timeout ),
                $login_prompt_data, 'direct: find login prompt' );
-    $scrn->type_string( $user_name_data );
+    type_string( $user_name_data );
 
     is_matched( $scrn->read_until( qr/$password_prompt_data$/, $timeout ),
         $user_name_data . $password_prompt_data, 'direct: find password prompt' );
-    $scrn->type_string( $password_data );
+    type_string( $password_data );
 
     is_matched( $scrn->read_until( $first_prompt_data, $timeout, no_regex => 1 ),
         $password_data . $first_prompt_data, 'direct: find first command prompt' );
-    $scrn->type_string( $set_prompt_data );
+    type_string( $set_prompt_data );
 
     is_matched( $scrn->read_until( qr/$normalised_prompt_data$/, $timeout ),
         $set_prompt_data . $normalised_prompt_data, 'direct: find normalised prompt' );
 
     # Note that a real terminal would echo this back to us causing the next test to fail
     # unless we suck up the echo.
-    $scrn->type_string( $next_test );
+    type_string( $next_test );
 
     my $result = $scrn->read_until( $stop_code_data, $timeout,
                                        no_regex => 1, buffer_size => 256 );
     is( length($result->{string}), 256, 'direct: returned data is same length as buffer' );
     like( $result->{string}, qr/\Q$US_keyboard_data\E$stop_code_data$/,
           'direct: read a large amount of data with small ring buffer' );
-    $scrn->type_string( $next_test );
+    type_string( $next_test );
 
     like( $scrn->read_until( qr/$stop_code_data$/, $timeout, record_output => 1)->{string},
           qr/^(\Q$US_keyboard_data\E){$repeat_sequence_count}$stop_code_data$/,
           'direct: record a large amount of data' );
-    $scrn->type_string( $next_test );
+    type_string( $next_test );
 
     is_deeply( $scrn->read_until( 'we timeout', 1 ),
                { matched => 0, string => $US_keyboard_data },
                'direct: timeout' );
-    $scrn->type_string( $next_test );
+    type_string( $next_test );
 }
 
 sub test_terminal_through_testapi {

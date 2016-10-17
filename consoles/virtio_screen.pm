@@ -28,8 +28,9 @@ sub new {
 }
 
 my $trying_to_use_keys = <<'FIN.';
-Use type_string (possibly with an ANSI/XTERM escape sequence), or switch to a
-console which sends key presses, not terminal codes.
+Virtio terminal does not support send_key. Use type_string (possibly with an
+ANSI/XTERM escape sequence), or switch to a console which sends key presses, not
+terminal codes.
 FIN.
 
 sub send_key {
@@ -57,17 +58,17 @@ than entering text. See ANSI, VT100 and XTERM escape codes.
 
 =cut
 sub type_string {
-    my ($self, $msg) = @_;
+    my ($self, $nargs) = @_;
     my $fd = $self->{socket_fd};
 
-    bmwqemu::log_call(message => $msg);
+    bmwqemu::log_call(%$nargs);
 
-    my $written = syswrite $fd, $msg;
+    my $written = syswrite $fd, $nargs->{text};
     unless (defined $written) {
         die "Error writing to virtio terminal: $ERRNO";
     }
-    if ($written < length($msg)) {
-        die "Was not able to write entire message to virtio terminal. Only $written of $msg";
+    if ($written < length($nargs->{text})) {
+        die "Was not able to write entire message to virtio terminal. Only $written of $nargs->{text}";
     }
 }
 
@@ -168,6 +169,11 @@ sub current_screen {
     # TODO: We could generate a bitmap of the terminal text, but I think it would be misleading.
     #       Instead we should use a text terminal viewer in the browser if possible.
     return 0;
+}
+
+sub request_screen_update {
+    # TODO: Forward this request to the previous VNC console
+    return;
 }
 
 1;
