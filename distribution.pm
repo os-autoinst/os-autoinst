@@ -36,13 +36,13 @@ sub add_console {
     my ($self, $testapi_console, $backend_console, $backend_args) = @_;
 
     my %class_names = (
-        'tty-console'  => 'ttyConsole',
-        'ssh-xterm'    => 'sshXtermVt',
-        'ssh-virtsh'   => 'sshVirtsh',
-        'vnc-base'     => 'vnc_base',
-        'local-Xvnc'   => 'localXvnc',
-        'ssh-iucvconn' => 'sshIucvconn',
-        'virtio-terminal'       => 'virtio_terminal'
+        'tty-console'     => 'ttyConsole',
+        'ssh-xterm'       => 'sshXtermVt',
+        'ssh-virtsh'      => 'sshVirtsh',
+        'vnc-base'        => 'vnc_base',
+        'local-Xvnc'      => 'localXvnc',
+        'ssh-iucvconn'    => 'sshIucvconn',
+        'virtio-terminal' => 'virtio_terminal'
     );
     my $required_type = $class_names{$backend_console} || $backend_console;
     my $location      = "consoles/$required_type.pm";

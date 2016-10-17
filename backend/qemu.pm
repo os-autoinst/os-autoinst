@@ -638,9 +638,9 @@ sub start_qemu {
 
         if ($vars->{VIRTIO_CONSOLE}) {
             my $id = 'virtio_console';
-            push(@params, '-device', 'virtio-serial');
+            push(@params, '-device',  'virtio-serial');
             push(@params, '-chardev', "socket,path=$id,server,nowait,id=$id,logfile=$id.log");
-            push(@params, '-device', "virtconsole,chardev=$id,name=org.openqa.console.$id");
+            push(@params, '-device',  "virtconsole,chardev=$id,name=org.openqa.console.$id");
         }
 
         push @params, '-qmp', "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-S";
@@ -940,7 +940,7 @@ sub cont_vm {
 }
 
 sub wait_terminal {
-    my $self = shift;
+    my $self  = shift;
     my %nargs = %{(shift)};
 
     return $self->{current_screen}->read_until($nargs{pattern}, $nargs{timeout}, %nargs);

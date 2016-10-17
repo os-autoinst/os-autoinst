@@ -54,7 +54,7 @@ requires a UNIX socket which inputs and outputs terminal ASCII/ANSI codes.
 sub new {
     my ($class, $testapi_console, $args) = @_;
     my $self = $class->SUPER::new($testapi_console, $args);
-    $self->{socket_fd} = 0;
+    $self->{socket_fd}   = 0;
     $self->{socket_path} = cwd() . '/virtio_console';
     return $self;
 }
@@ -69,7 +69,7 @@ sub reset {
     if ($self->{socket_fd} > 0) {
         close $self->{socket_fd};
         $self->{socket_fd} = 0;
-        $self->{screen} = undef;
+        $self->{screen}    = undef;
     }
     return $self->SUPER::reset;
 }
@@ -100,10 +100,10 @@ sub open_socket {
     bmwqemu::log_call(socket_path => $self->socket_path);
 
     (-S $self->socket_path) || die 'Could not find ' . $self->socket_path;
-    socket($fd, PF_UNIX, SOCK_STREAM|SOCK_NONBLOCK, 0)
-        || die 'Could not create Unix socket: ' . $ERRNO;
+    socket($fd, PF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0)
+      || die 'Could not create Unix socket: ' . $ERRNO;
     connect($fd, sockaddr_un($self->socket_path))
-        || die 'Could not connect to virtio-console chardev socket: ' . $ERRNO;
+      || die 'Could not connect to virtio-console chardev socket: ' . $ERRNO;
 
     return $fd;
 }
@@ -111,7 +111,7 @@ sub open_socket {
 sub activate {
     my $self = shift;
     $self->{socket_fd} = $self->open_socket;
-    $self->{screen} = consoles::virtio_screen::->new($self->{socket_fd});
+    $self->{screen}    = consoles::virtio_screen::->new($self->{socket_fd});
     return;
 }
 

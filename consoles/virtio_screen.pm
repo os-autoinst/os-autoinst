@@ -105,24 +105,24 @@ and { matched => 0, string => 'text from the terminal' } on failure.
 
 =cut
 sub read_until {
-    my ($self, $re, $timeout) = @_[0..2];
-    my $fd = $self->{socket_fd};
-    my %nargs = @_[3..$#_];
-    my $buflen = $nargs{buffer_size} || 4096;
+    my ($self, $re, $timeout) = @_[0 .. 2];
+    my $fd       = $self->{socket_fd};
+    my %nargs    = @_[3 .. $#_];
+    my $buflen   = $nargs{buffer_size} || 4096;
     my $overflow = $nargs{record_output} ? '' : undef;
-    my $sttime = gettimeofday;
+    my $sttime   = gettimeofday;
     my ($rbuf, $buf) = ('', '');
     my $loops = 0;
     my ($prematch, $match);
 
     $nargs{regular_expression} = $re;
-    $nargs{timeout} = $timeout;
+    $nargs{timeout}            = $timeout;
     bmwqemu::log_call(%nargs);
 
-  READ: while(1) {
+  READ: while (1) {
         $loops++;
         if (gettimeofday() - $sttime >= $timeout) {
-            return { matched => 0, string => ($overflow || '') . $rbuf };
+            return {matched => 0, string => ($overflow || '') . $rbuf};
         }
 
         my $read = sysread($fd, $buf, $buflen);
