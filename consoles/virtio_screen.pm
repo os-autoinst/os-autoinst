@@ -17,6 +17,7 @@ use 5.018;
 use warnings;
 use English qw( -no_match_vars );
 use Time::HiRes qw( gettimeofday usleep );
+use integer;
 
 our $VERSION;
 
@@ -91,7 +92,8 @@ sub type_string {
 Monitor the virtio console socket $file_descriptor for a character sequence which matches
 $match_expression. Bytes are read from the socket in up to $buffer_size chunks and each chunk is
 added to a ring buffer which is also up to $buffer_size long. The regular expression is tested
-against the ring buffer after each read operation.
+against the ring buffer after each read operation. Note, the reason we are using a ring
+buffer is to avoid matches failing because the matching text is split between two reads.
 
 If $record_output is set then all data from the socket is stored in a separate string and returned.
 Otherwise just the contents of the ring buffer will be returned. Setting $exclude_match removes the
@@ -125,7 +127,7 @@ sub read_until {
             return {matched => 0, string => ($overflow || '') . $rbuf};
         }
 
-        my $read = sysread($fd, $buf, $buflen);
+        my $read = sysread($fd, $buf, $buflen / 2);
         unless (defined $read) {
             if ($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK}) {
                 usleep(100);
