@@ -643,6 +643,11 @@ sub wait_serial {
     if (ref $regexp ne 'ARRAY') {
         $regexp = [$regexp];
     }
+
+    if ($self->{current_console}->is_serial_terminal) {
+        return $self->{current_screen}->read_until($regexp->[0], $timeout, %$args);
+    }
+
     my $initial_time = time;
     while (time < $initial_time + $timeout) {
         $str = $self->serial_text();
