@@ -255,10 +255,7 @@ sub start_qemu {
     }
 
     if ($vars->{UEFI} && $vars->{ARCH} eq 'x86_64' && !$vars->{BIOS}) {
-        # We have to try and find a firmware for UEFI. These are known
-        # locations for openSUSE and Fedora (respectively).
-        my @known = ('/usr/share/qemu/ovmf-x86_64-ms.bin', '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd');
-        foreach my $firmware (@known) {
+        foreach my $firmware (@bmwqemu::ovmf_locations) {
             if (-e $firmware) {
                 $vars->{BIOS} = $firmware;
                 last;
