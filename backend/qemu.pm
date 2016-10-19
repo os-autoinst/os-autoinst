@@ -152,34 +152,54 @@ sub can_handle {
     return;
 }
 
-sub save_state {
-
+sub save_memory_dump {
     my ($self, $args) = @_;
-    my $rsp    = 0;
-    my $vmname = $args->{name};
+    my $rsp = 0;
 
-    bmwqemu::diag("Trying to save a QEMU image");
+    bmwqemu::diag("Migrating the machine.");
 
-    $self->freeze_vm;
+    mkpath("ulogs");
 
-    $rsp = $self->handle_qmp_command(JSON::from_json('{ "execute": "migrate_set_speed", "arguments": { "value": "4095m" } }'));
-    $rsp = $self->handle_qmp_command(JSON::from_json('{ "execute": "migrate", "arguments": { "uri": "exec:gzip -c > vmstate.gz" } }'));
+    $rsp = $self->handle_qmp_command(
+        {
+            execute   => "migrate",
+            arguments => {
+                uri => sprintf("exec:gzip -c > ulogs/%s-vm-memory-dump.gz", $args->{filename}),
+            }});
+
+    die(sprintf("Migration failed: desc: %s, class: %s, stopped", $rsp->{error}->{desc}, $rsp->{error}->{class})) if ($rsp->{error});
+
 
     do {
 
-        sleep 0.5;    #We want to wait a decent amount of time, a file of 10GB will be
+        sleep 0.5;    #We want to wait a decent amount of time, a file of 1GB will be
                       # migrated in about 40secs with an ssd drive. and no heavy load.
-
         $rsp = $self->handle_qmp_command({execute => "query-migrate"});
 
-        diag "QEMU MIGRATING BYTES TOTAL:     \t" . $rsp->{return}->{ram}->{total};
-        diag "QEMU MIGRATING BYTES REMAINING:   \t" . $rsp->{return}->{ram}->{remaining};
+        diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
+        diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
 
     } until ($rsp->{return}->{status} eq "completed");
 
     diag "Migration completed.";
-    $self->cont_vm;
+    return;
+}
 
+sub save_storage_drives {
+    my ($self, $args) = @_;
+
+    diag "Attemping to extract disk #%d.", $args->{disk};
+
+    $self->do_extract_assets(
+        {
+            hdd_num => $args->{disk},
+            name    => sprintf("%s-%d-vm_disk_file.qcow2", $args->{filename}, $args->{disk}),
+            dir     => "ulogs",
+            format  => "qcow2"
+        });
+
+    diag "Sucessfully extracted disk #%d.", $args->{disk};
+    return;
 }
 
 sub save_snapshot {

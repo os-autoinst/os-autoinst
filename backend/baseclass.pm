@@ -329,7 +329,11 @@ sub is_shutdown {
     return -1;
 }
 
-sub save_state {
+sub save_memory_dump {
+    notimplemented;
+}
+
+sub save_storage_drives {
     notimplemented;
 }
 
