@@ -527,6 +527,7 @@ sub run_cmd {
     $chan->exec($cmd);
     bmwqemu::diag "Command executed: $cmd";
     get_ssh_output($chan);
+    $chan->send_eof;
     $chan->close();
     return $chan->exit_status();
 }

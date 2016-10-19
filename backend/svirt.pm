@@ -74,6 +74,7 @@ sub run_cmd {
     my $chan = $self->{ssh}->channel();
     $chan->exec($cmd);
     bmwqemu::diag "Command executed: $cmd";
+    $chan->send_eof;
     $chan->close();
     return $chan->exit_status();
 }
