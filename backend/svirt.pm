@@ -36,6 +36,9 @@ sub new {
 sub do_start_vm {
     my ($self) = @_;
 
+    my $vars = \%bmwqemu::vars;
+    $vars->{NUMDISKS} ||= 1;
+
     # truncate the serial file
     open(my $sf, '>', $self->{serialfile});
     close($sf);
@@ -52,6 +55,7 @@ sub do_start_vm {
 
     # remove backend.crashed
     $self->unlink_crash_file;
+    bmwqemu::save_vars();    # update variables
     return {};
 }
 
