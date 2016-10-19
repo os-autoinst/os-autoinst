@@ -92,6 +92,13 @@ sub can_handle {
     return;
 }
 
+sub is_shutdown {
+    my ($self) = @_;
+    my $vmname = "openQA-SUT-" . get_var('VIRSH_INSTANCE', 1);
+    my $rsp = $self->run_cmd("! virsh list --state-shutoff | grep -w $vmname");
+    return $rsp;
+}
+
 sub save_snapshot {
     my ($self, $args) = @_;
     my $snapname = $args->{name};
