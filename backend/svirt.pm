@@ -49,7 +49,6 @@ sub do_start_vm {
         });
 
     $ssh->backend($self);
-    $self->select_console({testapi_console => 'svirt'});
 
     # remove backend.crashed
     $self->unlink_crash_file;
