@@ -25,10 +25,13 @@ sub fake_send_json {
 sub fake_read_json {
     my ($fd) = @_;
     my $lcmd = $cmds->[-1];
-    if ($lcmd->{cmd} eq 'backend_wait_serial' || $lcmd->{cmd} eq 'backend_wait_terminal') {
+    if ($lcmd->{cmd} eq 'backend_wait_serial') {
         my $str = $lcmd->{regexp};
         $str =~ s,\\d\+,$fake_exit,;
         return {ret => {matched => 1, string => $str}};
+    }
+    elsif ($lcmd->{cmd} eq 'backend_select_console') {
+        return {ret => {activated => 0}};
     }
     return {};
 }
@@ -51,6 +54,10 @@ sub fake_wait_screen_change {
 }
 
 $mod2->mock(wait_screen_change => \&fake_wait_screen_change);
+
+use backend::console_proxy;
+my $mock_proxy = new Test::MockModule('backend::console_proxy');
+$mock_proxy->mock(is_serial_terminal => sub { return 0; });
 
 type_string 'hallo';
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hallo'}]);
@@ -99,18 +106,6 @@ type_password 'hallo';
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 'hallo'}]);
 $cmds = [];
 
-wait_terminal 'pattern', exclude_match => 1;
-is_deeply($cmds, 
-          [{cmd => 'backend_wait_terminal', pattern => 'pattern', 
-            exclude_match => 1, timeout => 30}], 
-          'wait_terminal matches');
-$cmds = [];
-
-assert_terminal 'zzZZZZzzzZZZ';
-is_deeply($cmds, [{cmd => 'backend_wait_terminal', pattern => 'zzZZZZzzzZZZ', timeout => 30}],
-          'assert_terminal matches');
-$cmds = [];
-
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
 is($autotest::current_test->{dents}, 1, 'soft failure recorded');
@@ -127,6 +122,7 @@ subtest 'script_run' => sub {
 
     require distribution;
     testapi::set_distribution(distribution->new());
+    select_console('a-console');
     is(assert_script_run('true'), undef, 'nothing happens on success');
     $fake_exit = 1;
     like(exception { assert_script_run 'false', 42; }, qr/command.*false.*failed at/, 'with timeout option (deprecated mode)');

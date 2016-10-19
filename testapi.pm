@@ -621,7 +621,11 @@ sub assert_script_run {
     }
     my $str = hashed_string("ASR$cmd");
     # call script_run with idle_timeout 0 so we don't wait twice
-    script_run("$cmd; echo $str-\$?- | tee /dev/$serialdev", 0);
+    if (console()->is_serial_terminal) {
+        script_run("$cmd; echo $str-\$?-", 0);
+    } else {
+        script_run("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
+    }
     my $ret = wait_serial("$str-\\d+-", $args{timeout});
     my $die_msg = "command '$cmd' failed";
     $die_msg .= ": $args{fail_message}" if $args{fail_message};
@@ -637,6 +641,8 @@ Run C<$program> using sudo. Handle the sudo timeout and send password when appro
 C<$wait_seconds> defaults to 2 seconds.
 
 I<The implementation is distribution specific and not always available.>
+
+TODO: Make this compatible with serial terminals
 
 =cut
 sub script_sudo {
@@ -659,11 +665,13 @@ I<Make sure the command does not write to the serial output.>
 
 I<The implementation is distribution specific and not always available.>
 
+TODO: Make this compatible with serial terminals
+
 =cut
 sub assert_script_sudo {
     my ($cmd, $wait) = @_;
     my $str = hashed_string("ASS$cmd");
-    script_sudo("$cmd; echo $str-\$?- | tee /dev/$serialdev", 0);
+    script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $wait);
     die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
 }
@@ -1334,6 +1342,7 @@ I<The implementation is distribution specific and not always available.>
 =cut
 require backend::console_proxy;
 our %testapi_console_proxies;
+our $selected_console;
 
 =head2 select_console
 
@@ -1358,6 +1367,7 @@ sub select_console {
     }
     my $ret = query_isotovideo('backend_select_console', {testapi_console => $testapi_console});
 
+    $selected_console = $testapi_console;
     if ($ret->{activated}) {
         # we need to store the activated consoles for rollback
         if ($autotest::last_milestone) {
@@ -1365,6 +1375,7 @@ sub select_console {
         }
         $testapi::distri->activate_console($testapi_console);
     }
+
     return $testapi_console_proxies{$testapi_console};
 }
 
@@ -1388,7 +1399,7 @@ here.
 
 =cut
 sub console {
-    my ($testapi_console) = @_;
+    my $testapi_console = shift || $selected_console;
     bmwqemu::log_call(testapi_console => $testapi_console);
     if (exists $testapi_console_proxies{$testapi_console}) {
         return $testapi_console_proxies{$testapi_console};
