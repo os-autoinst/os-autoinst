@@ -790,9 +790,10 @@ sub send_update_request {
     # to get a defined live sign. If that doesn't help, consider
     # the framebuffer outdated
     if ($self->_framebuffer) {
-        if ($self->_last_update_requested - $self->_last_update_received > 2) {
+        if ($self->_last_update_requested - $self->_last_update_received > 4) {
             $self->_last_update_received(0);
             # return black image - screen turned off
+            bmwqemu::diag "considering VNC stalled - turning black";
             $self->_framebuffer(tinycv::new($self->width, $self->height));
         }
         if ($time_since_last_update > 2) {
