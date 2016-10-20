@@ -943,6 +943,10 @@ sub wait_terminal {
     my $self  = shift;
     my %nargs = %{(shift)};
 
+    $nargs{do_while_idle} = sub {
+        $self->run_capture_loop(undef, 0.1);
+    };
+
     return $self->{current_screen}->read_until($nargs{pattern}, $nargs{timeout}, %nargs);
 }
 

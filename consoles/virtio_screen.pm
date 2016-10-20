@@ -82,6 +82,12 @@ sub type_string {
     }
 }
 
+sub get_elapsed {
+    no integer;
+    my $start = shift;
+    return gettimeofday() - $start;
+}
+
 =head2 read_until
 
   read_until($self, $match_expression, $timeout, [
@@ -116,6 +122,7 @@ sub read_until {
     my ($rbuf, $buf) = ('', '');
     my $loops = 0;
     my ($prematch, $match);
+    my $do_while_idle = $nargs{do_while_idle} || sub { usleep(100); };
 
     $nargs{regular_expression} = $re;
     $nargs{timeout}            = $timeout;
@@ -123,14 +130,15 @@ sub read_until {
 
   READ: while (1) {
         $loops++;
-        if (gettimeofday() - $sttime >= $timeout) {
+
+        if (get_elapsed($sttime) >= $timeout) {
             return {matched => 0, string => ($overflow || '') . $rbuf};
         }
 
         my $read = sysread($fd, $buf, $buflen / 2);
         unless (defined $read) {
             if ($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK}) {
-                usleep(100);
+                &$do_while_idle();
                 next READ;
             }
             die "Failed to read from virtio console char device: $ERRNO";
@@ -166,7 +174,7 @@ sub read_until {
         }
     }
 
-    my $elapsed = gettimeofday() - $sttime;
+    my $elapsed = get_elapsed($sttime);
     bmwqemu::fctinfo("Matched output from SUT in $loops loops & $elapsed seconds: $match");
 
     $overflow ||= '';
