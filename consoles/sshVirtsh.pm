@@ -359,7 +359,8 @@ sub add_disk {
             $elem->setAttribute(type => 'raw');
         }
         else {
-            $elem->setAttribute(type => 'qcow2');
+            $elem->setAttribute(type  => 'qcow2');
+            $elem->setAttribute(cache => 'unsafe');
         }
         $disk->appendChild($elem);
     }
