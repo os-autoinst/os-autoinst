@@ -20,8 +20,8 @@ use warnings;
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Socket;
 
+use log;
 use Thread::Queue;
-use POSIX;
 use Term::ANSIColor;
 use Carp;
 use JSON;
@@ -53,10 +53,6 @@ our $screenshotpath = "qemuscreenshot";
 
 # global vars
 
-our $logfd;
-
-our $istty;
-our $direct_output;
 our $standstillthreshold = scale_timeout(600);
 
 our %vars;
@@ -111,16 +107,7 @@ sub init {
     mkdir result_dir;
     mkdir join('/', result_dir, 'ulogs');
 
-    if ($direct_output) {
-        open($logfd, '>&STDERR');
-    }
-    else {
-        open($logfd, ">", result_dir . "/autoinst-log.txt");
-    }
-    # set unbuffered so that send_key lines from main thread will be written
-    my $oldfh = select($logfd);
-    $| = 1;
-    select($oldfh);
+    log::init(result_dir);
 
     die "DISTRI undefined\n" . pp(\%vars) . "\n" unless $vars{DISTRI};
 
@@ -184,101 +171,9 @@ sub set_ocr_rect {
 
 # util and helper functions
 
-sub get_timestamp {
-    my $t = gettimeofday;
-    return sprintf "%s.%04d ", (POSIX::strftime "%H:%M:%S", gmtime($t)), 10000 * ($t - int($t));
-}
-
-sub print_possibly_colored {
-    my ($text, $color) = @_;
-
-    if (($direct_output && !$istty) || !$direct_output) {
-        $logfd && print $logfd get_timestamp() . "$$ $text\n";
-    }
-    if ($istty || !$logfd) {
-        if ($color) {
-            print STDERR colored(get_timestamp() . "$$ " . $text, $color) . "\n";
-        }
-        else {
-            print STDERR get_timestamp() . "$$ $text\n";
-        }
-    }
-    return;
-}
-
-sub diag {
-    print_possibly_colored "@_";
-    return;
-}
-
-sub fctres {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    print_possibly_colored ">>> $fname: $text", 'green';
-    return;
-}
-
-sub fctinfo {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    print_possibly_colored "::: $fname: $text", 'yellow';
-    return;
-}
-
-sub fctwarn {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    print_possibly_colored "!!! $fname: $text", 'red';
-    return;
-}
-
-sub modstart {
-    my $text = sprintf "||| %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
-    print_possibly_colored $text, 'bold';
-    return;
-}
-
 use autotest qw($current_test);
 sub current_test() {
     return $autotest::current_test;
-}
-
-sub update_line_number {
-    return unless current_test;
-    my $out    = "";
-    my $ending = quotemeta(current_test->{script});
-    for my $i (1 .. 10) {
-        my ($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i);
-        last unless $filename;
-        next unless $filename =~ m/$ending$/;
-        print get_timestamp() . "Debug: $filename:$line called $subroutine\n";
-        last;
-    }
-    return;
-}
-
-# pretty print like Data::Dumper but without the "VAR1 = " prefix
-sub pp {
-    # FTR, I actually hate Data::Dumper.
-    my $value_with_trailing_newline = Data::Dumper->new(\@_)->Terse(1)->Dump();
-    chomp($value_with_trailing_newline);
-    return $value_with_trailing_newline;
-}
-
-sub log_call {
-    my $fname = (caller(1))[3];
-    update_line_number();
-    my @result;
-    while (my ($key, $value) = splice(@_, 0, 2)) {
-        push @result, join("=", $key, pp($value));
-    }
-    my $params = join(", ", @result);
-
-    print_possibly_colored '<<< ' . $fname . "($params)", 'blue';
-    return;
 }
 
 sub fileContent {
@@ -298,17 +193,8 @@ sub fileContent {
 sub stop_vm() {
     return unless $backend;
     my $ret = $backend->stop();
-    if (!$direct_output && $logfd) {
-        close $logfd;
-        $logfd = undef;
-    }
+    log::shutdown();
     return $ret;
-}
-
-sub mydie {
-    my ($cause_of_death) = @_;
-    log_call(cause_of_death => $cause_of_death);
-    croak "mydie";
 }
 
 # runtime information gathering functions end

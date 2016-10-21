@@ -29,6 +29,7 @@ use IO::Select;
 require IPC::System::Simple;
 use autodie qw(:all);
 use myjsonrpc;
+use log;
 
 use Net::SSH2;
 use feature qw(say);
@@ -77,7 +78,7 @@ sub die_handler {
 
 sub backend_signalhandler {
     my ($sig) = @_;
-    bmwqemu::diag("backend got $sig");
+    log::diag("backend got $sig");
     $backend->stop_vm;
 }
 
@@ -102,7 +103,7 @@ sub run {
 
     printf STDERR "$$: cmdpipe %d, rsppipe %d\n", fileno($self->{cmdpipe}), fileno($self->{rsppipe});
 
-    bmwqemu::diag "started mgmt loop with pid $$";
+    log::diag "started mgmt loop with pid $$";
 
     $self->{select} = IO::Select->new();
     $self->{select}->add($self->{cmdpipe});
@@ -119,7 +120,7 @@ sub run {
 
     $self->run_capture_loop($self->{select});
 
-    bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
+    log::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
 }
 
 use List::Util qw(min);
@@ -192,7 +193,7 @@ sub run_capture_loop {
             # if we got stalled for a long time, we assume bad hardware and report it
             if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
                 $self->stall_detected(1);
-                bmwqemu::diag sprintf("WARNING: There is some problem with your environment, we detected a stall for %d seconds", $now - $self->last_screenshot);
+                log::diag sprintf("WARNING: There is some problem with your environment, we detected a stall for %d seconds", $now - $self->last_screenshot);
             }
 
             my $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval) - ($now - $self->last_screenshot);
@@ -230,7 +231,7 @@ sub run_capture_loop {
     };
 
     if ($@) {
-        bmwqemu::diag "capture loop failed $@";
+        log::diag "capture loop failed $@";
         $self->close_pipes();
     }
     return;
@@ -292,7 +293,7 @@ sub alive {
             return 1;
         }
         else {
-            bmwqemu::diag("ALARM: backend.run got deleted! - exiting...");
+            log::diag("ALARM: backend.run got deleted! - exiting...");
             _exit(1);
         }
     }
@@ -407,7 +408,7 @@ sub enqueue_screenshot {
     }
     my $d = gettimeofday - $starttime;
     if ($d > $self->screenshot_interval) {
-        bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds - slow IO? (opencv: %.2f - encoder: %.2f)", $d, $mt1 - $starttime, gettimeofday - $mt1);
+        log::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds - slow IO? (opencv: %.2f - encoder: %.2f)", $d, $mt1 - $starttime, gettimeofday - $mt1);
     }
     return;
 }
@@ -422,7 +423,7 @@ sub close_pipes {
 
     return unless $self->{rsppipe};
 
-    bmwqemu::diag "sending magic and exit";
+    log::diag "sending magic and exit";
     $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || die "close $!\n";
     _exit(0);
@@ -607,7 +608,7 @@ sub proxy_console_call {
     };
 
     if ($@) {
-        $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $@);
+        $wrapped_result->{exception} = join("\n", log::pp($wrapped_call), $@);
     }
 
     return $wrapped_result;
@@ -701,7 +702,7 @@ sub wait_idle {
     my ($self, $args) = @_;
     my $timeout = $args->{timeout};
 
-    bmwqemu::diag("wait_idle sleeping for $timeout seconds");
+    log::diag("wait_idle sleeping for $timeout seconds");
     $self->run_capture_loop($self->{select}, $timeout);
     return;
 }
@@ -743,7 +744,7 @@ sub set_tags_to_assert {
     $mustmatch = join('_', @tags);
 
     if (!@$needles) {
-        bmwqemu::diag("NO matching needles for $mustmatch");
+        log::diag("NO matching needles for $mustmatch");
     }
 
     $self->assert_screen_deadline(time + $timeout);
@@ -822,7 +823,7 @@ sub check_asserted_screen {
     }
     else {
         if ($img_filename eq $oldimg && $old_search_ratio >= $search_ratio) {
-            bmwqemu::diag("no change $n");
+            log::diag("no change $n");
             return;
         }
     }
@@ -838,7 +839,7 @@ sub check_asserted_screen {
 
     my $d = gettimeofday - $starttime;
     if ($d > $self->screenshot_interval) {
-        bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $d);
+        log::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $d);
     }
 
     if ($n < 0) {
@@ -847,7 +848,7 @@ sub check_asserted_screen {
 
         if ($self->stall_detected) {
             backend::baseclass::write_crash_file();
-            bmwqemu::mydie "assert_screen fails, but we detected a timeout in the process, so we abort";
+            log::mydie "assert_screen fails, but we detected a timeout in the process, so we abort";
         }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
@@ -878,7 +879,7 @@ sub check_asserted_screen {
             _reduce_to_biggest_changes($failed_screens, 20);
         }
     }
-    bmwqemu::diag("no match $n");
+    log::diag("no match $n");
     $self->assert_screen_last_check([$img_filename, $search_ratio]);
     return;
 }
@@ -905,13 +906,13 @@ sub _reduce_to_biggest_changes {
 
 sub freeze_vm {
     my ($self) = @_;
-    bmwqemu::diag "ignored freeze_vm";
+    log::diag "ignored freeze_vm";
     return;
 }
 
 sub cont_vm {
     my ($self) = @_;
-    bmwqemu::diag "ignored cont_vm";
+    log::diag "ignored cont_vm";
     return;
 }
 
@@ -978,11 +979,11 @@ sub new_ssh_connection {
                 # this relies on agent to be set up correctly
                 $ssh->auth_agent($args{username});
             }
-            bmwqemu::diag "Connection to $args{username}\@$args{hostname} established" if $ssh->auth_ok;
+            log::diag "Connection to $args{username}\@$args{hostname} established" if $ssh->auth_ok;
             last;
         }
         else {
-            bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}, Retry";
+            log::diag "Could not connect to $args{username}\@$args{hostname}, Retry";
             sleep(10);
             $counter--;
             next;

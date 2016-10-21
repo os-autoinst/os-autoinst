@@ -19,6 +19,7 @@ use base qw(consoles::localXvnc);
 use strict;
 use warnings;
 use testapi qw/get_var/;
+use log;
 
 sub activate {
     my ($self) = @_;
@@ -37,7 +38,7 @@ sub activate {
         $s3270->send_3270("Snap");
         my $r  = $s3270->send_3270("Snap(Ascii)");
         my $co = $r->{command_output};
-        CORE::say bmwqemu::pp($co);
+        CORE::say log::pp($co);
         last if grep { /[Pp]assword:/ } @$co;
         die "ssh password prompt timeout" unless $i;
         sleep 1;

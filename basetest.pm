@@ -24,6 +24,7 @@ use JSON;
 use POSIX;
 use testapi  ();
 use autotest ();
+use log;
 
 # enable strictures and warnings in all tests globaly
 sub import {
@@ -133,7 +134,7 @@ sub record_screenmatch {
     if ($foundneedle->has_property('workaround')) {
         $result->{dent} = 1;
         $self->{dents}++;
-        bmwqemu::diag("needle '$h->{name}' is a workaround");
+        log::diag("needle '$h->{name}' is a workaround");
     }
 
     # Hack to make it obvious that some test passed by applying a hack
@@ -296,7 +297,7 @@ sub run_post_fail {
     warn $msg;
     $self->{post_fail_hook_running} = 1;
     eval { $self->post_fail_hook; };
-    bmwqemu::diag("post_fail_hook failed: $@") if $@;
+    log::diag("post_fail_hook failed: $@") if $@;
     $self->{post_fail_hook_running} = 0;
     $self->fail_if_running();
     die $msg . "\n";
@@ -326,7 +327,7 @@ sub runtest {
         # show a text result with the die message unless the die was internally generated
         if (!$internal) {
             my $msg = "# Test died:\n$@\n";
-            bmwqemu::diag($msg);
+            log::diag($msg);
             my $details = {result => 'fail'};
             my $text_fn = $self->next_resultname('txt');
             open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
@@ -343,7 +344,7 @@ sub runtest {
         $self->run_post_fail("test $name failed");
     }
     $self->done();
-    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), time - $starttime));
+    log::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), time - $starttime));
     return $ret;
 }
 
@@ -504,7 +505,7 @@ sub capture_filename {
 sub stop_audiocapture {
     my ($self) = @_;
 
-    bmwqemu::log_call();
+    log::log_call();
     autotest::query_isotovideo('backend_stop_audiocapture');
 
     my $result = {
@@ -527,10 +528,10 @@ sub verify_sound_image {
         my $foundneedle = $rsp->{found};
         $self->record_screenmatch($img, $foundneedle, [$mustmatch], $rsp->{candidates});
         my $lastarea = $foundneedle->{area}->[-1];
-        bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+        log::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
         return $foundneedle;
     }
-    bmwqemu::fctres(sprintf("failed to find %s", $mustmatch));
+    log::fctres(sprintf("failed to find %s", $mustmatch));
 
     $self->record_screenfail(
         img     => $img,

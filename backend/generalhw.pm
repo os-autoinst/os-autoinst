@@ -25,6 +25,7 @@ use IPC::Run ();
 require IPC::System::Simple;
 use autodie qw(:all);
 use File::Basename qw(basename);
+use log;
 
 sub new {
     my $class = shift;
@@ -57,7 +58,7 @@ sub run_cmd {
     chomp $stderr;
 
     die $cmd . ": $stderr" unless ($ret);
-    bmwqemu::diag("IPMI: $stdout");
+    log::diag("IPMI: $stdout");
     return $stdout;
 }
 

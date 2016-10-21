@@ -27,6 +27,7 @@ require bmwqemu;
 use Mojo::UserAgent;
 use Mojo::URL;
 use JSON qw/decode_json/;
+use log;
 
 # private ua
 my $ua;
@@ -63,7 +64,7 @@ sub _init {
 sub api_call {
     my ($method, $action, $params, $expected_codes) = @_;
     _init unless $ua;
-    bmwqemu::mydie('Missing mandatory options') unless $method && $action && $ua;
+    log::mydie('Missing mandatory options') unless $method && $action && $ua;
 
     my $ua_url = $url->clone;
     $ua_url->path($action);
@@ -129,7 +130,7 @@ sub wait_for_children {
             $n++;
         }
 
-        bmwqemu::diag("Waiting for $n jobs to finish");
+        log::diag("Waiting for $n jobs to finish");
         last unless $n;
         sleep 1;
     }
@@ -144,7 +145,7 @@ sub wait_for_children_to_start {
             $n++;
         }
 
-        bmwqemu::diag("Waiting for $n jobs to start");
+        log::diag("Waiting for $n jobs to start");
         last unless $n;
         sleep 1;
     }
