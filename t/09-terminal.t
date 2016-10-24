@@ -19,7 +19,7 @@ use POSIX qw( :sys_wait_h pause );
 use Socket qw( PF_UNIX SOCK_STREAM sockaddr_un );
 use Time::HiRes qw( usleep );
 
-use Test::More tests => 11;
+use Test::More tests => 12;
 
 BEGIN {
     unshift @INC, '..';
@@ -48,8 +48,9 @@ my $password_data         = "$testapi::password\n";
 my $first_prompt_data      = "\e[1mlinux-5rw7:~ #\e[0m\e(B";
 my $set_prompt_data        = qq/PS1="# "\n/;
 my $normalised_prompt_data = '# ';
-my $C0_control_code        = "\e!@\cD\n";
-my $C1_control_code        = qq(\e"C\eQ\n);
+my $C0_EOT                 = "\cD\cD";
+my $C0_ETX                 = "\cC";
+my $C1_control_code        = qq(\eQ\n);
 my $US_keyboard_data       = <<'FIN.';
 !@\#$%^&*()-_+={}[]|:;"'<>,.?/~`
 abcdefghijklmnopqrstuwxyz
@@ -69,7 +70,7 @@ sub try_write {
     my ($fd, $msg) = @_;
 
     open(my $logfd, '>>', $log_path);
-    print $logfd "<< $msg";
+    print $logfd $msg;
     close($logfd);
 
   WRITE: while (1) {
@@ -109,17 +110,21 @@ sub try_read {
     my ($fd, $expected) = @_;
     my ($buf, $text);
 
+    open(my $logfd, '>>', $log_path);
+
   READ: while (1) {
         my $read = sysread $fd, $buf, length($expected);
         unless (defined $read) {
             if ($ERRNO{EINTR}) {
                 $text .= $buf;
+                print $logfd $buf;
                 next READ;
             }
             confess "fake_terminal: Could not read from socket: $ERRNO";
         }
         if ($read < length($expected)) {
             $text .= $buf;
+            print $logfd $buf;
             usleep(100);
         }
         else {
@@ -135,10 +140,7 @@ sub try_read {
         confess 'fake_terminal: Expecting special $next_test message, but got: ' . $text;
     }
 
-    open(my $logfd, '>>', $log_path);
-    print $logfd ">> $text";
     close($logfd);
-
     return $text eq $expected;
 }
 
@@ -184,7 +186,7 @@ sub fake_terminal {
     # parent to fail as well
     my $tb = Test::More->builder;
     $tb->reset;
-    $tb->expected_tests(6);
+    $tb->expected_tests(7);
 
     try_write($fd, $login_prompt_data);
     ok(try_read($fd, $user_name_data), 'fake_terminal reads: Entered user name');
@@ -197,8 +199,12 @@ sub fake_terminal {
 
     try_write($fd, $normalised_prompt_data);
 
-    ok(try_read($fd, $C0_control_code), 'fake_terminal reads: C0 EOT control code');
-    ok(try_read($fd, $C1_control_code), 'fake_terminal reads, C1 PU1 control code');
+    ok(try_read($fd, $C0_EOT), 'fake_terminal reads: C0 EOT control code');
+    ok(try_read($fd, $C0_ETX), 'fake_terminal reads: C0 ETX control code');
+    ok(try_read($fd, "\n"), 'fake_terminal reads: ret');
+    try_write($fd, $login_prompt_data);
+
+    alarm $timeout;
 
     # This for loop corresponds to the 'large amount of data tests'
     for (1 .. 2) {
@@ -227,9 +233,9 @@ sub test_terminal_directly {
     my $scrn = $term->screen;
     ok(defined($scrn), 'Create screen');
 
-    sub type_string {
+    local *type_string = sub {
         $scrn->type_string({text => shift});
-    }
+    };
 
     is_matched($scrn->read_until(qr/$user_name_prompt_data$/, $timeout),
                $login_prompt_data, 'direct: find login prompt');
@@ -246,8 +252,12 @@ sub test_terminal_directly {
     is_matched($scrn->read_until(qr/$normalised_prompt_data$/, $timeout),
                $set_prompt_data . $normalised_prompt_data, 'direct: find normalised prompt');
 
-    type_string($C0_control_code);
-    type_string($C1_control_code);
+    $scrn->type_string({text => '', terminate_with => 'EOT'});
+    $scrn->type_string({text => '', terminate_with => 'ETX'});
+    $scrn->send_key({key => 'ret'});
+
+    like($scrn->read_until([qr/.*\: /, qr/7/], $timeout)->{string},
+            qr/.*\Q$login_prompt_data\E/, 'direct: use array of regexs');
 
     # Note that a real terminal would echo this back to us causing the next test to fail
     # unless we suck up the echo.
@@ -271,6 +281,8 @@ sub test_terminal_directly {
     is_deeply($scrn->read_until('we timeout', 1), {matched => 0, string => $US_keyboard_data},
               'direct: timeout');
     type_string($next_test);
+
+    $term->reset;
 }
 
 sub test_terminal_through_testapi {

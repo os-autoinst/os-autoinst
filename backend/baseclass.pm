@@ -568,7 +568,7 @@ sub get_last_mouse_set() {
 
 sub is_serial_terminal {
     my ($self, $args) = @_;
-    return { yesorno => $self->{current_console}->is_serial_terminal };
+    return {yesorno => $self->{current_console}->is_serial_terminal};
 }
 
 sub capture_screenshot {

@@ -34,10 +34,19 @@ ANSI/XTERM escape sequence), or switch to a console which sends key presses, not
 terminal codes.
 FIN.
 
+=head2 send_key
+
+    send_key(key => 'ret');
+
+This is mostly redundant for the time being, use C<type_string> instead. Many testapi
+functions use C<send_key('ret')> however so that particular case has been implemented.
+In the future this could be extended to provide more key name to terminal code
+mappings.
+
+=cut
 sub send_key {
     my ($self, $nargs) = @_;
 
-    # TODO: Testapi could just use type_string("\n") instead, VNC supports it.
     if ($nargs->{key} eq 'ret') {
         $nargs->{text} = "\n";
         $self->type_string($nargs);
@@ -83,11 +92,11 @@ sub type_string {
     my $text = $nargs->{text};
     my $term;
     for ($nargs->{terminate_with} || '') {
-        if (/^ETX$/) { $term = "\cC"; last; } #^C, Ctrl-c, End Of Text
-        if (/^EOT$/) { $term = "\cD\cD"; last; } #^D, Ctrl-d, End Of Transmission
+        if    (/^ETX$/) { $term = "\cC"; }       #^C, Ctrl-c, End Of Text
+        elsif (/^EOT$/) { $term = "\cD\cD"; }    #^D, Ctrl-d, End Of Transmission
     }
 
-    $text .= $term;
+    $text .= $term if defined $term;
     my $written = syswrite $fd, $text;
     unless (defined $written) {
         die "Error writing to virtio terminal: $ERRNO";
@@ -111,7 +120,7 @@ sub normalise_pattern {
 
     if (ref $pattern eq 'ARRAY' && !$no_regex) {
         my $hr = shift @$pattern;
-        if (@$pattern > 1) {
+        if (@$pattern > 0) {
             my $re = qr/($hr)/;
             for my $r (@$pattern) {
                 $re .= qr/|($r)/;
@@ -166,7 +175,7 @@ sub read_until {
 
     my $re = normalise_pattern($pattern, $nargs{no_regex});
 
-    $nargs{pattern} = $pattern;
+    $nargs{pattern} = $re;
     $nargs{timeout} = $timeout;
     bmwqemu::log_call(%nargs);
 

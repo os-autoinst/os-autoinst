@@ -510,9 +510,27 @@ sub check_var_array {
     return grep { $_ eq $val } @$vars_r;
 }
 
+=head2 is_serial_terminal
+
+  is_serial_terminal->{yesorno};
+
+Determines if communication with the guest is being performed purely over a
+serial port. When true, the guest should have a tty attached to a serial port
+and os-autoinst sends commands to it as text. This differs from when a text
+console is selected in the guest, but VNC is being used to simulate keypresses.
+
+When a serial terminal is selected you will not be able to use functions which
+rely on needles. This sub is not exported by default as most tests I<will not
+benefit> from changing their behaviour depending on if communication happens
+over serial or VNC.
+
+For more info see consoles/virtio_console.pm and consoles/virtio_screen.pm.
+
+=cut
 sub is_serial_terminal {
-    state ($ret, $last_seen);
-    if ($selected_console ne $last_seen) {
+    state $ret;
+    state $last_seen = '';
+    if (defined $selected_console && $selected_console ne $last_seen) {
         $last_seen = $selected_console;
         $ret = query_isotovideo('backend_is_serial_terminal', {});
     }
