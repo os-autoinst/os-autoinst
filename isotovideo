@@ -50,7 +50,7 @@ no autodie qw(kill);
 use Cwd;
 use POSIX qw(:sys_wait_h _exit);
 use Carp qw(cluck);
-use Time::HiRes qw(gettimeofday tv_interval sleep);
+use Time::HiRes qw(gettimeofday tv_interval sleep time);
 
 # avoid paranoia
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
@@ -172,12 +172,24 @@ sub signalhandler_chld {
 sub init_backend {
     my ($name) = @_;
     $bmwqemu::vars{BACKEND} ||= "qemu";
-    my $dir = getcwd;
-    # make sure the needles are initialized before the backend process is started
     no autodie qw(system);
-    my $res = system("rsync -avP --delete --exclude=.git $bmwqemu::vars{PRODUCTDIR}/needles/ $dir/needles/");
-    die "Failed to rsync needles: $@" if $res;
-    needle::init("$dir/needles");
+
+    #We want to use the pool directory instead of the
+    # cwd (which would be the worker's directory)
+    # to be able to share the needles between workers
+    my $shared_needle_dir = getcwd() . "/..";
+    my $source_needles = $bmwqemu::vars{SOURCENEEDLES} || $bmwqemu::vars{PRODUCTDIR} . "/needles";
+
+    my $start = time;
+    my $cmd   = sprintf("flock -E 999 %s/needleslock rsync -avP --delete --exclude=.git %s %s/", $shared_needle_dir, $source_needles, $shared_needle_dir);
+    my $res   = system($cmd);
+
+    die "Failed to rsync needles: '$@' " if $res;
+    bmwqemu::diag(sprintf("Rsync: Synchronization of needles directory took %.2f seconds", time - $start));
+
+    bmwqemu::diag "Needle directory is ${shared_needle_dir}/needles";
+    # make sure the needles are initialized before the backend process is started
+    needle::init("${shared_needle_dir}/needles");
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
     return $bmwqemu::backend;
 }
