@@ -566,6 +566,11 @@ sub get_last_mouse_set() {
     return $self->bouncer('get_last_mouse_set', $args);
 }
 
+sub is_serial_terminal {
+    my ($self, $args) = @_;
+    return { yesorno => $self->{current_console}->is_serial_terminal };
+}
+
 sub capture_screenshot {
     my ($self) = @_;
     return unless $self->{current_screen};
@@ -640,12 +645,14 @@ sub wait_serial {
     my $matched = 0;
     my $str;
 
-    if (ref $regexp ne 'ARRAY') {
-        $regexp = [$regexp];
+    if ($self->{current_console}->is_serial_terminal) {
+        #$args->{do_while_idle} = sub { $self->run_capture_loop(undef, 0.1, 1, 10); };
+
+        return $self->{current_screen}->read_until($regexp, $timeout, %$args);
     }
 
-    if ($self->{current_console}->is_serial_terminal) {
-        return $self->{current_screen}->read_until($regexp->[0], $timeout, %$args);
+    if (ref $regexp ne 'ARRAY') {
+        $regexp = [$regexp];
     }
 
     my $initial_time = time;
@@ -669,10 +676,6 @@ sub wait_serial {
     }
     $self->set_serial_offset();
     return {matched => $matched, string => $str};
-}
-
-sub wait_terminal {
-    die 'Not implemented for this backend';
 }
 
 # set_reference_screenshot and similiarity_to_reference are necessary to

@@ -57,14 +57,21 @@ sub release_key {
 
 =head2 type_string
 
-    type_string($self, $message);
+    type_string($self, $message, terminate_with => '');
 
 Writes $message to the socket which the guest's terminal is listening on. Unlike
 VNC based consoles we just send the bytes making up $message not a series of
 keystrokes. This is much faster, but means that special key combinations like
-Ctrl-Alt-Del or SysRq may not be possible. However most terminals do support
+Ctrl-Alt-Del or SysRq[1] may not be possible. However most terminals do support
 many escape sequences for scrolling and performing various actions other
-than entering text. See ANSI, VT100 and XTERM escape codes.
+than entering text. See C0, C1, ANSI, VT100 and XTERM escape codes.
+
+The optional terminate_with argument can be set to EOT (End Of Transmission),
+ETX (End Of Text). Sending EOT should have the same effect as pressing Ctrl-D
+and ETX is the same as pressing Ctrl-C on a terminal. EOT is sent twice, because
+it appeared that sending it once had no effect when used with `cat`.
+
+[1] It appears sending 0x0f will press the SysRq key down on hvc based consoles.
 
 =cut
 sub type_string {
@@ -73,11 +80,19 @@ sub type_string {
 
     bmwqemu::log_call(%$nargs);
 
-    my $written = syswrite $fd, $nargs->{text};
+    my $text = $nargs->{text};
+    my $term;
+    for ($nargs->{terminate_with} || '') {
+        if (/^ETX$/) { $term = "\cC"; last; } #^C, Ctrl-c, End Of Text
+        if (/^EOT$/) { $term = "\cD\cD"; last; } #^D, Ctrl-d, End Of Transmission
+    }
+
+    $text .= $term;
+    my $written = syswrite $fd, $text;
     unless (defined $written) {
         die "Error writing to virtio terminal: $ERRNO";
     }
-    if ($written < length($nargs->{text})) {
+    if ($written < length($text)) {
         die "Was not able to write entire message to virtio terminal. Only $written of $nargs->{text}";
     }
 }
@@ -88,15 +103,40 @@ sub get_elapsed {
     return gettimeofday() - $start;
 }
 
+# If $pattern is an array of regexes combine them into a single one.
+# If $pattern is a single string, wrap it in an array.
+# Otherwise leave as is.
+sub normalise_pattern {
+    my ($pattern, $no_regex) = @_;
+
+    if (ref $pattern eq 'ARRAY' && !$no_regex) {
+        my $hr = shift @$pattern;
+        if (@$pattern > 1) {
+            my $re = qr/($hr)/;
+            for my $r (@$pattern) {
+                $re .= qr/|($r)/;
+            }
+            return $re;
+        }
+        return $hr;
+    }
+
+    if ($no_regex && ref $pattern ne 'ARRAY') {
+        return [$pattern];
+    }
+
+    return $pattern;
+}
+
 =head2 read_until
 
-  read_until($self, $match_expression, $timeout, [
+  read_until($self, $pattern, $timeout, [
                      buffer_size => 4096, record_output => 0, exclude_match => 0,
                      no_regex => 0
   ]);
 
 Monitor the virtio console socket $file_descriptor for a character sequence which matches
-$match_expression. Bytes are read from the socket in up to $buffer_size chunks and each chunk is
+$pattern. Bytes are read from the socket in up to $buffer_size chunks and each chunk is
 added to a ring buffer which is also up to $buffer_size long. The regular expression is tested
 against the ring buffer after each read operation. Note, the reason we are using a ring
 buffer is to avoid matches failing because the matching text is split between two reads.
@@ -113,7 +153,7 @@ and { matched => 0, string => 'text from the terminal' } on failure.
 
 =cut
 sub read_until {
-    my ($self, $re, $timeout) = @_[0 .. 2];
+    my ($self, $pattern, $timeout) = @_[0 .. 2];
     my $fd       = $self->{socket_fd};
     my %nargs    = @_[3 .. $#_];
     my $buflen   = $nargs{buffer_size} || 4096;
@@ -124,8 +164,10 @@ sub read_until {
     my ($prematch, $match);
     my $do_while_idle = $nargs{do_while_idle} || sub { usleep(100); };
 
-    $nargs{regular_expression} = $re;
-    $nargs{timeout}            = $timeout;
+    my $re = normalise_pattern($pattern, $nargs{no_regex});
+
+    $nargs{pattern} = $pattern;
+    $nargs{timeout} = $timeout;
     bmwqemu::log_call(%nargs);
 
   READ: while (1) {
@@ -159,11 +201,13 @@ sub read_until {
 
         # Search ring buffer for a match and exit if we find it
         if ($nargs{no_regex}) {
-            my $i = index($rbuf, $re);
-            if ($i >= 0) {
-                $match = substr $rbuf, $i, length($re);
-                $prematch = substr $rbuf, 0, $i;
-                last READ;
+            for my $p (@$re) {
+                my $i = index($rbuf, $p);
+                if ($i >= 0) {
+                    $match = substr $rbuf, $i, length($p);
+                    $prematch = substr $rbuf, 0, $i;
+                    last READ;
+                }
             }
         }
         elsif ($rbuf =~ m/$re/) {

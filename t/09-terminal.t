@@ -30,6 +30,7 @@ use testapi ();
 
 our $VERSION;
 
+my $log_path = './09-terminal-io.log';
 $testapi::password = 'd*97Jlk/.d';
 my $socket_path       = './virtio_console';
 my $login_prompt_data = <<'FIN.';
@@ -47,15 +48,17 @@ my $password_data         = "$testapi::password\n";
 my $first_prompt_data      = "\e[1mlinux-5rw7:~ #\e[0m\e(B";
 my $set_prompt_data        = qq/PS1="# "\n/;
 my $normalised_prompt_data = '# ';
+my $C0_control_code        = "\e!@\cD\n";
+my $C1_control_code        = qq(\e"C\eQ\n);
 my $US_keyboard_data       = <<'FIN.';
 !@\#$%^&*()-_+={}[]|:;"'<>,.?/~`
 abcdefghijklmnopqrstuwxyz
 ABCDEFGHIJKLMNOPQRSTUWXYZ
 0123456789
 FIN.
-my $stop_code_data        = 'FIN.';
+my $stop_code_data        = "FIN.\n";
 my $repeat_sequence_count = 1000;
-my $next_test             = 'GOTO NEXT';
+my $next_test             = "GOTO NEXT\n";
 
 # If test keeps timing out, this can be increased or you can add more calls to
 # alarm in fake terminal
@@ -64,6 +67,10 @@ my $timeout = 5;
 # Either write $msg to the socket or die
 sub try_write {
     my ($fd, $msg) = @_;
+
+    open(my $logfd, '>>', $log_path);
+    print $logfd "<< $msg";
+    close($logfd);
 
   WRITE: while (1) {
         my $written = syswrite $fd, $msg;
@@ -128,6 +135,10 @@ sub try_read {
         confess 'fake_terminal: Expecting special $next_test message, but got: ' . $text;
     }
 
+    open(my $logfd, '>>', $log_path);
+    print $logfd ">> $text";
+    close($logfd);
+
     return $text eq $expected;
 }
 
@@ -173,7 +184,7 @@ sub fake_terminal {
     # parent to fail as well
     my $tb = Test::More->builder;
     $tb->reset;
-    $tb->expected_tests(4);
+    $tb->expected_tests(6);
 
     try_write($fd, $login_prompt_data);
     ok(try_read($fd, $user_name_data), 'fake_terminal reads: Entered user name');
@@ -185,6 +196,9 @@ sub fake_terminal {
     ok(try_read($fd, $set_prompt_data), 'fake_terminal reads: Normalised bash prompt');
 
     try_write($fd, $normalised_prompt_data);
+
+    ok(try_read($fd, $C0_control_code), 'fake_terminal reads: C0 EOT control code');
+    ok(try_read($fd, $C1_control_code), 'fake_terminal reads, C1 PU1 control code');
 
     # This for loop corresponds to the 'large amount of data tests'
     for (1 .. 2) {
@@ -231,6 +245,9 @@ sub test_terminal_directly {
 
     is_matched($scrn->read_until(qr/$normalised_prompt_data$/, $timeout),
                $set_prompt_data . $normalised_prompt_data, 'direct: find normalised prompt');
+
+    type_string($C0_control_code);
+    type_string($C1_control_code);
 
     # Note that a real terminal would echo this back to us causing the next test to fail
     # unless we suck up the echo.
@@ -284,6 +301,8 @@ $SIG{CHLD} = sub {
         report_on_fake_terminal || exit(1);
     }
 };
+
+unlink $log_path;
 
 my $pid = fork || do {
     fake_terminal($socket_path);

@@ -18,7 +18,7 @@ package testapi;
 
 use base Exporter;
 use Exporter;
-use strict;
+use 5.018;
 use warnings;
 use File::Basename qw(basename);
 use Time::HiRes qw(sleep gettimeofday tv_interval);
@@ -59,6 +59,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   diag hashed_string
 );
+our @EXPORT_OK = qw(is_serial_terminal);
 
 our %cmd;
 
@@ -69,6 +70,7 @@ our $username;
 our $password;
 
 our $serialdev;
+our $selected_console;
 
 our $last_matched_needle;
 
@@ -508,6 +510,15 @@ sub check_var_array {
     return grep { $_ eq $val } @$vars_r;
 }
 
+sub is_serial_terminal {
+    state ($ret, $last_seen);
+    if ($selected_console ne $last_seen) {
+        $last_seen = $selected_console;
+        $ret = query_isotovideo('backend_is_serial_terminal', {});
+    }
+    return $ret->{yesorno};
+}
+
 =head1 script execution helpers
 
 =head2 wait_serial
@@ -529,17 +540,18 @@ sub wait_serial {
     my $regexp           = shift;
     my $timeout          = shift || 90;    # seconds
     my $expect_not_found = shift || 0;     # expected can not found the term in serial output
+    my %nargs = (@_, (regexp => $regexp, timeout => $timeout));
 
-    bmwqemu::log_call(regex => $regexp, timeout => $timeout);
+    bmwqemu::log_call(%nargs);
     $timeout = bmwqemu::scale_timeout($timeout);
 
-    my $ret = query_isotovideo('backend_wait_serial', {regexp => $regexp, timeout => $timeout});
+    my $ret = query_isotovideo('backend_wait_serial', \%nargs);
     my $matched = $ret->{matched};
 
     if ($expect_not_found) {
         $matched = !$matched;
     }
-    bmwqemu::wait_for_one_more_screenshot();
+    bmwqemu::wait_for_one_more_screenshot() unless is_serial_terminal;
 
     # to string, we need to feed string of result to
     # record_serialresult(), either 'ok' or 'fail'
@@ -621,7 +633,7 @@ sub assert_script_run {
     }
     my $str = hashed_string("ASR$cmd");
     # call script_run with idle_timeout 0 so we don't wait twice
-    if (console()->is_serial_terminal) {
+    if (is_serial_terminal) {
         script_run("$cmd; echo $str-\$?-", 0);
     } else {
         script_run("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
@@ -691,17 +703,28 @@ The default timeout for the script is 30 seconds. If you need more, pass a secon
 =cut
 sub script_output($;$) {
     my ($current_test_script, $wait) = @_;
-    open my $fh, ">", 'current_script' or die("Could not open file. $!");
-    print $fh $current_test_script;
-    close $fh;
-
     my $suffix = hashed_string("SO$current_test_script");
-    $wait ||= 30;
 
-    assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh";
-    script_run "clear";
+    if (is_serial_terminal) {
+        my $cat = "cat - > /tmp/script$suffix.sh; echo $suffix-\$?-";
+        type_string($cat . "\n");
+        wait_serial("$cat", undef, 0, no_regex => 1);
+        type_string($current_test_script, terminate_with => 'EOT');
+        wait_serial("$suffix-0-");
+    } else {
+        open my $fh, ">", 'current_script' or die("Could not open file. $!");
+        print $fh $current_test_script;
+        close $fh;
+        assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh";
+        script_run "clear";
+    }
 
-    type_string "(/bin/bash -ex /tmp/script$suffix.sh ; echo SCRIPT_FINISHED$suffix-\$?- )| tee /dev/$serialdev\n";
+    my $run_script = "/bin/bash -ex /tmp/script$suffix.sh ; echo SCRIPT_FINISHED$suffix-\$?-";
+    if (is_serial_terminal) {
+        type_string($run_script . "\n");
+    } else {
+        type_string "($run_script)| tee /dev/$serialdev\n";
+    }
     my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait) or die "script timeout";
 
     die "script failed" if $output !~ "SCRIPT_FINISHED$suffix-0-";
@@ -1182,6 +1205,13 @@ sub type_string {
         %args = @_;
     }
     my $log = $args{secret} ? 'SECRET STRING' : $string;
+
+    if (is_serial_terminal) {
+        bmwqemu::log_call(text => $log, %args);
+        query_isotovideo('backend_type_string', {text => $string, %args});
+        return;
+    }
+
     my $max_interval = $args{max_interval}       // 250;
     my $wait         = $args{wait_screen_change} // 0;
     bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait);
@@ -1342,7 +1372,6 @@ I<The implementation is distribution specific and not always available.>
 =cut
 require backend::console_proxy;
 our %testapi_console_proxies;
-our $selected_console;
 
 =head2 select_console
 

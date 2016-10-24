@@ -110,7 +110,7 @@ sub script_run {
     testapi::type_string "$cmd";
     if ($wait > 0) {
         my $str = testapi::hashed_string("SR$cmd$wait");
-        if (testapi::console->is_serial_terminal) {
+        if (testapi::is_serial_terminal) {
             testapi::type_string " ; echo $str-\$?-\n";
         } else {
             testapi::type_string " ; echo $str-\$?- > /dev/$testapi::serialdev\n";
