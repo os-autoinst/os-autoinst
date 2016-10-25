@@ -188,6 +188,13 @@ sub upload_file {
     return $self->render(text => "OK: $filename\n");
 }
 
+sub get_vars {
+    my ($self) = @_;
+
+    bmwqemu::load_vars();
+    return $self->render(json => {vars => \%bmwqemu::vars});
+}
+
 sub current_script {
     my ($self) = @_;
     return $self->reply->asset(Mojo::Asset::File->new(path => 'current_script'));
@@ -245,6 +252,9 @@ sub run_daemon {
     # get asset
     $token_auth->get('/assets/#assettype/#assetname'          => \&get_asset);
     $token_auth->get('/assets/#assettype/#assetname/*relpath' => \&get_asset);
+
+    # get vars
+    $token_auth->get('/vars' => \&get_vars);
 
     $token_auth->get('/isotovideo/#command' => \&isotovideo_get);
     $token_auth->post('/isotovideo/#command' => \&isotovideo_post);

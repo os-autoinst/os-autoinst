@@ -20,7 +20,7 @@ use strict;
 use warnings;
 
 use base qw/Exporter/;
-our @EXPORT = qw/get_children_by_state get_children get_parents get_job_info wait_for_children wait_for_children_to_start api_call/;
+our @EXPORT = qw/get_children_by_state get_children get_parents get_job_info get_job_autoinst_url get_job_autoinst_vars wait_for_children wait_for_children_to_start api_call/;
 
 require bmwqemu;
 
@@ -116,6 +116,48 @@ sub get_job_info {
 
     if ($res->code == 200) {
         return $res->json('/job');
+    }
+    return;
+}
+
+sub get_job_autoinst_url {
+    my ($target_id) = @_;
+    my $res = api_call('get', "workers");
+
+    if ($res->code == 200) {
+        my $workers = $res->json('/workers');
+        for my $worker (@$workers) {
+            if ($worker->{jobid} && $target_id == $worker->{jobid} && $worker->{host} && $worker->{instance} && $worker->{properties}{JOBTOKEN}) {
+                my $hostname   = $worker->{host};
+                my $token      = $worker->{properties}{JOBTOKEN};
+                my $workerport = $worker->{instance} * 10 + 20002 + 1;    # the same as in openqa/script/worker
+                my $url        = "http://$hostname:$workerport/$token";
+                return $url;
+            }
+        }
+    }
+    else {
+        bmwqemu::diag("get_job_autoinst_url: code: " . $res->code);
+    }
+    return;
+}
+
+sub get_job_autoinst_vars {
+    my ($target_id) = @_;
+
+    my $url = get_job_autoinst_url($target_id);
+    return unless $url;
+
+    # query the os-autoinst webserver of the job specifed by $target_id
+    $url .= '/vars';
+
+    my $ua  = Mojo::UserAgent->new;
+    my $res = $ua->get($url)->res;
+    if ($res->code == 200) {
+        return $res->json('/vars');
+    }
+    else {
+        bmwqemu::diag("get_job_autoinst_vars: code: " . $res->code);
     }
     return;
 }
