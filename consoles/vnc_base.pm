@@ -183,6 +183,7 @@ sub release_key {
 
 sub _mouse_move {
     my ($self, $x, $y) = @_;
+    die "need parameter \$x and \$y" unless (defined $x and defined $y);
 
     if ($self->{mouse}->{x} == $x && $self->{mouse}->{y} == $y) {
         # in case the mouse is moved twice to the same position
