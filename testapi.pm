@@ -743,7 +743,8 @@ sub script_output($;$) {
     } else {
         type_string "($run_script)| tee /dev/$serialdev\n";
     }
-    my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait) or die "script timeout";
+    my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait, 0, record_output => 1)
+      || die "script timeout";
 
     die "script failed" if $output !~ "SCRIPT_FINISHED$suffix-0-";
 
