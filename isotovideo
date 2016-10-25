@@ -141,9 +141,7 @@ sub signalhandler {
 }
 
 sub signalhandler_chld {
-
     diag("got sigchld");
-
     while ((my $child = waitpid(-1, WNOHANG)) > 0) {
         if ($child == $cpid) {
             diag("commands webserver died");
@@ -306,6 +304,7 @@ sub check_asserted_screen {
     # come back later, avoid too often called function
     return if $timeout > 0.05;
     ($last_check_seconds, $last_check_microseconds) = gettimeofday;
+    diag("isotovideo::send_json check_asserted_screen");
     my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'}) || {};
     # the test needs that information
     $rsp->{tags} = $tags;

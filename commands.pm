@@ -263,13 +263,7 @@ sub run_daemon {
     my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://$address:$port"]);
     $daemon->silent;
     app->log->info("Daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
-    try {
-        $daemon->run;
-    }
-    catch {
-        print "failed to run daemon $_\n";
-        _exit(1);
-    };
+    $daemon->run;
 }
 
 sub start_server {

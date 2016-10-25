@@ -44,6 +44,9 @@ sub new {
     require "backend/$name.pm";    ## no critic
     $self->{backend}      = "backend::$name"->new();
     $self->{backend_name} = $name;
+    use Data::Dumper;
+    print(Dumper($self->{backend}) . "\n");
+    print(Dumper($self->{backend_name}) . "\n");
 
     $self->start();
 

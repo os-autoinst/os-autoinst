@@ -183,6 +183,8 @@ sub release_key {
 
 sub _mouse_move {
     my ($self, $x, $y) = @_;
+    $x //= 0;
+    $y //= 0;
 
     if ($self->{mouse}->{x} == $x && $self->{mouse}->{y} == $y) {
         # in case the mouse is moved twice to the same position
