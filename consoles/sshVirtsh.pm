@@ -136,9 +136,7 @@ sub _init_xml {
     }
 
     if (get_var('UEFI') and check_var('ARCH', 'x86_64') and !get_var('BIOS')) {
-        # These are known locations for openSUSE and Fedora (respectively).
-        my @known = ('/usr/share/qemu/ovmf-x86_64-ms.bin', '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd');
-        foreach my $firmware (@known) {
+        foreach my $firmware (@bmwqemu::ovmf_locations) {
             if (!$self->run_cmd("test -e $firmware")) {
                 set_var('BIOS', $firmware);
                 $elem = $doc->createElement('loader');
