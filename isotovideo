@@ -50,7 +50,9 @@ no autodie qw(kill);
 use Cwd;
 use POSIX qw(:sys_wait_h _exit);
 use Carp qw(cluck);
-use Time::HiRes qw(gettimeofday tv_interval sleep);
+use Time::HiRes qw(gettimeofday tv_interval sleep time);
+use File::Spec;
+use File::Path;
 
 # avoid paranoia
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
@@ -172,8 +174,31 @@ sub signalhandler_chld {
 sub init_backend {
     my ($name) = @_;
     $bmwqemu::vars{BACKEND} ||= "qemu";
-    # make sure the needles are initialized before the backend process is started
-    needle::init($bmwqemu::vars{PRODUCTDIR} . "/needles");
+
+    # CACHEDIRECTORY must be defined in workers.ini either global or per worker configuration
+    if ($bmwqemu::vars{CACHEDIRECTORY}) {
+
+        no autodie qw(system);
+
+        my $needles_source = $bmwqemu::vars{PRODUCTDIR} . "/needles";
+        my $shared_cache = File::Spec->catdir($bmwqemu::vars{CACHEDIRECTORY}, $bmwqemu::vars{OPENQA_HOSTNAME}, $bmwqemu::vars{DISTRI});
+        File::Path::make_path($shared_cache);
+
+        my $start = time;
+        #Do an flock to ensure only one worker is trying to synchronize at a time.
+        my $cmd = sprintf("flock -E 999 %s/needleslock rsync -aP --delete --exclude=.git %s %s/", $shared_cache, $needles_source, $shared_cache);
+        my $res = system($cmd);
+
+        die "Failed to rsync needles: '$@' " if $res;
+        bmwqemu::diag(sprintf("Rsync: Synchronization of needles directory took %.2f seconds", time - $start));
+
+        # make sure the needles are initialized
+        needle::init($shared_cache . "/needles");
+    }
+    else {
+        needle::init($bmwqemu::vars{PRODUCTDIR} . "/needles");
+    }
+
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
     return $bmwqemu::backend;
 }
