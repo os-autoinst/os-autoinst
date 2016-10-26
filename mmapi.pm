@@ -20,7 +20,7 @@ use strict;
 use warnings;
 
 use base qw/Exporter/;
-our @EXPORT = qw/get_children_by_state get_children get_parents get_job_info wait_for_children wait_for_children_to_start api_call/;
+our @EXPORT = qw/get_children_by_state get_children get_parents get_job_info get_job_autoinst_url get_job_autoinst_vars wait_for_children wait_for_children_to_start api_call/;
 
 require bmwqemu;
 
@@ -83,6 +83,15 @@ sub api_call {
     return $res;
 }
 
+=head2 get_children_by_state
+
+    my $children = get_children_by_state('done');
+    print $children->[0]
+
+Returns an array ref conaining ids of children in given state.
+
+=cut
+
 sub get_children_by_state {
     my ($state) = @_;
     my $res = api_call('get', 'mm/children/' . $state);
@@ -91,6 +100,15 @@ sub get_children_by_state {
     }
     return;
 }
+
+=head2 get_children
+
+    my $childern = get_children();
+    print keys %$children;
+
+Returns a hash ref conaining { id => state } pair for each child job.
+
+=cut
 
 sub get_children {
     my $res = api_call('get', 'mm/children');
@@ -101,6 +119,15 @@ sub get_children {
     return;
 }
 
+=head2 get_parents
+
+    my $parents = get_parents
+    print $parents->[0]
+
+Returns an array ref conaining ids of parent jobs.
+
+=cut
+
 sub get_parents {
     my $res = api_call('get', 'mm/parents');
 
@@ -109,6 +136,15 @@ sub get_parents {
     }
     return;
 }
+
+=head2 get_job_info
+
+    my $info = get_job_info($target_id);
+    print $info->{settings}->{DESKTOP}
+
+Returns a hash containin job information provided by openQA server.
+
+=cut
 
 sub get_job_info {
     my ($target_id) = @_;
@@ -119,6 +155,74 @@ sub get_job_info {
     }
     return;
 }
+
+=head2 get_job_autoinst_url
+
+    my $url = get_job_autoinst_url($target_id);
+
+Returns url of os-autoinst webserver for job $target_id or C<undef> on failure.
+
+=cut
+
+sub get_job_autoinst_url {
+    my ($target_id) = @_;
+    my $res = api_call('get', "workers");
+
+    if ($res->code == 200) {
+        my $workers = $res->json('/workers');
+        for my $worker (@$workers) {
+            if ($worker->{jobid} && $target_id == $worker->{jobid} && $worker->{host} && $worker->{instance} && $worker->{properties}{JOBTOKEN}) {
+                my $hostname   = $worker->{host};
+                my $token      = $worker->{properties}{JOBTOKEN};
+                my $workerport = $worker->{instance} * 10 + 20002 + 1;    # the same as in openqa/script/worker
+                my $url        = "http://$hostname:$workerport/$token";
+                return $url;
+            }
+        }
+    }
+    else {
+        bmwqemu::diag("get_job_autoinst_url: code: " . $res->code);
+    }
+    return;
+}
+
+=head2 get_job_autoinst_vars
+
+    my $vars = get_job_autoinst_vars($target_id);
+    print $vars->{WORKER_ID};
+
+Returns hash reference containing variables of job $target_id or C<undef> on failure. The variables
+are taken from vars.json file of the corresponding worker.
+
+=cut
+
+sub get_job_autoinst_vars {
+    my ($target_id) = @_;
+
+    my $url = get_job_autoinst_url($target_id);
+    return unless $url;
+
+    # query the os-autoinst webserver of the job specifed by $target_id
+    $url .= '/vars';
+
+    my $ua  = Mojo::UserAgent->new;
+    my $res = $ua->get($url)->res;
+    if ($res->code == 200) {
+        return $res->json('/vars');
+    }
+    else {
+        bmwqemu::diag("get_job_autoinst_vars: code: " . $res->code);
+    }
+    return;
+}
+
+=head2 wait_for_children
+
+    wait_for_children();
+
+Wait while any running or scheduled children exist.
+
+=cut
 
 sub wait_for_children {
     while (1) {
@@ -135,6 +239,13 @@ sub wait_for_children {
     }
 }
 
+=head2 wait_for_children_to_start
+
+    wait_for_children_to_start();
+
+Wait while any scheduled children exist.
+
+=cut
 sub wait_for_children_to_start {
     while (1) {
         my $children = get_children();
