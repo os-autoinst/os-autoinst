@@ -19,7 +19,7 @@ use POSIX qw( :sys_wait_h pause );
 use Socket qw( PF_UNIX SOCK_STREAM sockaddr_un );
 use Time::HiRes qw( usleep );
 
-use Test::More tests => 12;
+use Test::More tests => 13;
 
 BEGIN {
     unshift @INC, '..';
@@ -212,8 +212,11 @@ sub fake_terminal {
         try_write_sequence($fd, $US_keyboard_data, $repeat_sequence_count, $stop_code_data);
     }
 
-    $SIG{ALRM} = sub { fail('fake_terminal timed out first'); };
+    alarm $timeout * 2;
+    try_write($fd, ($US_keyboard_data x 200_000) . $stop_code_data);
+
     alarm $timeout;
+    $SIG{ALRM} = sub { fail('fake_terminal timed out first'); exit(1); };
     try_read($fd, $next_test);
     try_write($fd, $US_keyboard_data);
     # Keep the socket open while we test the timeout
@@ -277,6 +280,9 @@ sub test_terminal_directly {
          qr/^(\Q$US_keyboard_data\E){$repeat_sequence_count}$stop_code_data$/,
          'direct: record a large amount of data');
     type_string($next_test);
+
+    ok($scrn->read_until(qr/$stop_code_data$/, $timeout, record_output => 1)->{matched},
+       'direct: record a huge amount of data');
 
     is_deeply($scrn->read_until('we timeout', 1), {matched => 0, string => $US_keyboard_data},
               'direct: timeout');
