@@ -171,7 +171,7 @@ sub read_until {
     my ($rbuf, $buf) = ('', '');
     my $loops = 0;
     my ($prematch, $match);
-    my $do_while_idle = $nargs{do_while_idle} || sub { usleep(100); };
+    my $do_while_idle = $nargs{do_while_idle};
 
     my $re = normalise_pattern($pattern, $nargs{no_regex});
 
@@ -189,7 +189,7 @@ sub read_until {
         my $read = sysread($fd, $buf, $buflen / 2);
         unless (defined $read) {
             if ($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK}) {
-                &$do_while_idle();
+                &$do_while_idle() if defined $do_while_idle;
                 next READ;
             }
             die "Failed to read from virtio console char device: $ERRNO";
