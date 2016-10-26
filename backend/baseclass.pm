@@ -725,7 +725,7 @@ sub set_tags_to_assert {
                 next;
             }
             unless (ref($n) eq 'needle' && $n->{name}) {
-                warn "invalid needle passed <" . ref($n) . "> " . pp($n);
+                warn "invalid needle passed <" . ref($n) . "> " . bmwqemu::pp($n);
                 next;
             }
             push @$needles, $n;
