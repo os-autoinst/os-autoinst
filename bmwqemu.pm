@@ -57,7 +57,6 @@ our $logfd;
 
 our $istty;
 our $direct_output;
-our $standstillthreshold = scale_timeout(600);
 
 our %vars;
 
