@@ -579,6 +579,11 @@ sub get_last_mouse_set() {
     return $self->bouncer('get_last_mouse_set', $args);
 }
 
+sub is_serial_terminal {
+    my ($self, $args) = @_;
+    return {yesorno => $self->{current_console}->is_serial_terminal};
+}
+
 sub capture_screenshot {
     my ($self) = @_;
     return unless $self->{current_screen};
@@ -653,9 +658,16 @@ sub wait_serial {
     my $matched = 0;
     my $str;
 
+    if ($self->{current_console}->is_serial_terminal) {
+        #$args->{do_while_idle} = sub { $self->run_capture_loop(undef, 0.1, 1, 10); };
+
+        return $self->{current_screen}->read_until($regexp, $timeout, %$args);
+    }
+
     if (ref $regexp ne 'ARRAY') {
         $regexp = [$regexp];
     }
+
     my $initial_time = time;
     while (time < $initial_time + $timeout) {
         $str = $self->serial_text();

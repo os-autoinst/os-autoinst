@@ -36,12 +36,13 @@ sub add_console {
     my ($self, $testapi_console, $backend_console, $backend_args) = @_;
 
     my %class_names = (
-        'tty-console'  => 'ttyConsole',
-        'ssh-xterm'    => 'sshXtermVt',
-        'ssh-virtsh'   => 'sshVirtsh',
-        'vnc-base'     => 'vnc_base',
-        'local-Xvnc'   => 'localXvnc',
-        'ssh-iucvconn' => 'sshIucvconn'
+        'tty-console'     => 'ttyConsole',
+        'ssh-xterm'       => 'sshXtermVt',
+        'ssh-virtsh'      => 'sshVirtsh',
+        'vnc-base'        => 'vnc_base',
+        'local-Xvnc'      => 'localXvnc',
+        'ssh-iucvconn'    => 'sshIucvconn',
+        'virtio-terminal' => 'virtio_terminal'
     );
     my $required_type = $class_names{$backend_console} || $backend_console;
     my $location      = "consoles/$required_type.pm";
@@ -109,7 +110,11 @@ sub script_run {
     testapi::type_string "$cmd";
     if ($wait > 0) {
         my $str = testapi::hashed_string("SR$cmd$wait");
-        testapi::type_string " ; echo $str-\$?- > /dev/$testapi::serialdev\n";
+        if (testapi::is_serial_terminal) {
+            testapi::type_string " ; echo $str-\$?-\n";
+        } else {
+            testapi::type_string " ; echo $str-\$?- > /dev/$testapi::serialdev\n";
+        }
         my $res = testapi::wait_serial(qr/$str-\d+-/, $wait);
         return unless $res;
         return ($res =~ /$str-(\d+)-/)[0];
