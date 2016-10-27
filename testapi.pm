@@ -1199,9 +1199,9 @@ Uses C<$testapi::password> if no string is given.
 
 =cut
 sub type_password {
-    my ($string) = @_;
+    my ($string, %args) = @_;
     $string //= $password;
-    type_string $string, max_interval => 100, secret => 1;
+    type_string $string, secret => 1, max_interval => ($args{max_interval} // 100);
 }
 
 =head1 mouse support
