@@ -729,7 +729,8 @@ sub script_output($;$) {
         wait_serial("$cat", undef, 0, no_regex => 1);
         type_string($current_test_script, terminate_with => 'EOT');
         wait_serial("$suffix-0-");
-    } else {
+    }
+    else {
         open my $fh, ">", 'current_script' or die("Could not open file. $!");
         print $fh $current_test_script;
         close $fh;
@@ -737,11 +738,13 @@ sub script_output($;$) {
         script_run "clear";
     }
 
-    my $run_script = "/bin/bash -ex /tmp/script$suffix.sh ; echo SCRIPT_FINISHED$suffix-\$?-";
+    my $run_script = "/tmp/script$suffix.sh ; echo SCRIPT_FINISHED$suffix-\$?-";
     if (is_serial_terminal) {
-        type_string($run_script . "\n");
-    } else {
-        type_string "($run_script)| tee /dev/$serialdev\n";
+        type_string("bash -e $run_script\n");
+        wait_serial($run_script, undef, 0, no_regex => 1);
+    }
+    else {
+        type_string "(bash -ex $run_script)| tee /dev/$serialdev\n";
     }
     my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait, 0, record_output => 1)
       || die "script timeout";
