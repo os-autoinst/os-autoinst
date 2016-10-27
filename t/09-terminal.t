@@ -63,7 +63,7 @@ my $next_test             = "GOTO NEXT\n";
 
 # If test keeps timing out, this can be increased or you can add more calls to
 # alarm in fake terminal
-my $timeout = 5;
+my $timeout = 10;
 
 # Either write $msg to the socket or die
 sub try_write {
@@ -213,7 +213,7 @@ sub fake_terminal {
     }
 
     alarm $timeout * 2;
-    try_write($fd, ($US_keyboard_data x 200_000) . $stop_code_data);
+    try_write($fd, ($US_keyboard_data x 100_000) . $stop_code_data);
 
     alarm $timeout;
     $SIG{ALRM} = sub { fail('fake_terminal timed out first'); exit(1); };
