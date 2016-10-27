@@ -636,7 +636,7 @@ sub start_qemu {
             push(@params, "-k", $vars->{VNCKB}) if ($vars->{VNCKB});
         }
 
-        if ($vars->{VIRTIO_CONSOLE}) {
+        {
             my $id = 'virtio_console';
             push(@params, '-device',  'virtio-serial');
             push(@params, '-chardev', "socket,path=$id,server,nowait,id=$id,logfile=$id.log");
