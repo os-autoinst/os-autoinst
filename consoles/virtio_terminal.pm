@@ -60,12 +60,12 @@ sub new {
 }
 
 sub screen {
-    my $self = shift;
+    my ($self) = @_;
     return $self->{screen};
 }
 
 sub reset {
-    my $self = shift;
+    my ($self) = @_;
     if ($self->{socket_fd} > 0) {
         close $self->{socket_fd};
         $self->{socket_fd} = 0;
@@ -109,7 +109,7 @@ sub open_socket {
 }
 
 sub activate {
-    my $self = shift;
+    my ($self) = @_;
     $self->{socket_fd} = $self->open_socket;
     $self->{screen}    = consoles::virtio_screen::->new($self->{socket_fd});
     return;

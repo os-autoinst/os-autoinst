@@ -667,8 +667,6 @@ sub wait_serial {
     my $str;
 
     if ($self->{current_console}->is_serial_terminal) {
-        #$args->{do_while_idle} = sub { $self->run_capture_loop(undef, 0.1, 1, 10); };
-
         return $self->{current_screen}->read_until($regexp, $timeout, %$args);
     }
 
