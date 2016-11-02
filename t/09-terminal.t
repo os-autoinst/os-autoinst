@@ -18,8 +18,9 @@ use English qw( -no_match_vars );
 use POSIX qw( :sys_wait_h pause );
 use Socket qw( PF_UNIX SOCK_STREAM sockaddr_un );
 use Time::HiRes qw( usleep );
+use File::Temp qw( tempfile );
 
-use Test::More tests => 12;
+use Test::More;
 
 BEGIN {
     unshift @INC, '..';
@@ -30,7 +31,6 @@ use testapi ();
 
 our $VERSION;
 
-my $log_path = './09-terminal-io.log';
 $testapi::password = 'd*97Jlk/.d';
 my $socket_path       = './virtio_console';
 my $login_prompt_data = <<'FIN.';
@@ -65,26 +65,26 @@ my $next_test             = "GOTO NEXT\n";
 # alarm in fake terminal
 my $timeout = 30;
 
+my ($logfd, $log_path) = tempfile('09-terminalXXXXX', TMPDIR => 1, SUFFIX => '.log');
+
 # Either write $msg to the socket or die
 sub try_write {
     my ($fd, $msg) = @_;
 
-    open(my $logfd, '>>', $log_path);
     print $logfd $msg;
-    close($logfd);
 
-  WRITE: while (1) {
+    while (1) {
         my $written = syswrite $fd, $msg;
         unless (defined $written) {
             if ($ERRNO{EINTR}) {
-                next WRITE;
+                next;
             }
             confess "fake_terminal: Failed to write to socket $ERRNO";
         }
         if ($written < length($msg)) {
             confess "fake_terminal: Only wrote $written bytes of: $msg";
         }
-        last WRITE;
+        last;
     }
 }
 
@@ -110,15 +110,13 @@ sub try_read {
     my ($fd, $expected) = @_;
     my ($buf, $text);
 
-    open(my $logfd, '>>', $log_path);
-
-  READ: while (1) {
+    while (1) {
         my $read = sysread $fd, $buf, length($expected);
         unless (defined $read) {
             if ($ERRNO{EINTR}) {
                 $text .= $buf;
                 print $logfd $buf;
-                next READ;
+                next;
             }
             confess "fake_terminal: Could not read from socket: $ERRNO";
         }
@@ -128,7 +126,7 @@ sub try_read {
             usleep(100);
         }
         else {
-            last READ;
+            last;
         }
     }
     $text .= $buf;
@@ -140,7 +138,6 @@ sub try_read {
         confess 'fake_terminal: Expecting special $next_test message, but got: ' . $text;
     }
 
-    close($logfd);
     return $text eq $expected;
 }
 
@@ -186,7 +183,6 @@ sub fake_terminal {
     # parent to fail as well
     my $tb = Test::More->builder;
     $tb->reset;
-    $tb->expected_tests(7);
 
     try_write($fd, $login_prompt_data);
     ok(try_read($fd, $user_name_data), 'fake_terminal reads: Entered user name');
@@ -223,6 +219,7 @@ sub fake_terminal {
     try_read($fd, $next_test);
 
     pass('fake_terminal managed to get all the way to the end without timing out!');
+    done_testing;
 }
 
 sub is_matched {
@@ -320,8 +317,6 @@ $SIG{CHLD} = sub {
     }
 };
 
-unlink $log_path;
-
 my $pid = fork || do {
     fake_terminal($socket_path);
     exit 0;
@@ -338,3 +333,5 @@ test_terminal_directly;
 $SIG{CHLD} = sub { };
 waitpid($pid, 0);
 report_on_fake_terminal;
+done_testing;
+print "The IO log file is $log_path";

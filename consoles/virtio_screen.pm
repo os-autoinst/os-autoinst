@@ -238,13 +238,10 @@ sub read_until {
 }
 
 sub current_screen {
-    # TODO: We could generate a bitmap of the terminal text, but I think it would be misleading.
-    #       Instead we should use a text terminal viewer in the browser if possible.
     return 0;
 }
 
 sub request_screen_update {
-    # TODO: Forward this request to the previous VNC console
     return;
 }
 

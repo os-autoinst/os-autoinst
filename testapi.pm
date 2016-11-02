@@ -556,9 +556,10 @@ sub wait_serial {
 
     # wait for a message to appear on serial output
     my $regexp           = shift;
-    my $timeout          = shift || 90;                                      # seconds
-    my $expect_not_found = shift || 0;                                       # expected can not found the term in serial output
-    my %nargs            = (@_, (regexp => $regexp, timeout => $timeout));
+    my $timeout          = shift || 90;    # seconds
+    my $expect_not_found = shift || 0;     # expected can not found the term in serial output
+
+    my %nargs = (@_, (regexp => $regexp, timeout => $timeout));
 
     bmwqemu::log_call(%nargs);
     $timeout = bmwqemu::scale_timeout($timeout);
@@ -672,8 +673,6 @@ Run C<$program> using sudo. Handle the sudo timeout and send password when appro
 C<$wait_seconds> defaults to 2 seconds.
 
 I<The implementation is distribution specific and not always available.>
-
-TODO: Make this compatible with serial terminals
 
 =cut
 sub script_sudo {
@@ -1452,7 +1451,8 @@ here.
 
 =cut
 sub console {
-    my $testapi_console = shift || $selected_console;
+    my ($testapi_console) = @_;
+    $testapi_console ||= $selected_console;
     bmwqemu::log_call(testapi_console => $testapi_console);
     if (exists $testapi_console_proxies{$testapi_console}) {
         return $testapi_console_proxies{$testapi_console};
