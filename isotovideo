@@ -193,7 +193,7 @@ sub init_backend {
         bmwqemu::diag(sprintf("Rsync: Synchronization of needles directory took %.2f seconds", time - $start));
 
         # make sure the needles are initialized
-        needle::init($shared_cache . "/needles");
+        needle::init($bmwqemu::vars{PRODUCTDIR} . "/needles", $shared_cache . "/needles");
     }
     else {
         needle::init($bmwqemu::vars{PRODUCTDIR} . "/needles");
