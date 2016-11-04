@@ -699,8 +699,6 @@ I<Make sure the command does not write to the serial output.>
 
 I<The implementation is distribution specific and not always available.>
 
-TODO: Make this compatible with serial terminals
-
 =cut
 sub assert_script_sudo {
     my ($cmd, $wait) = @_;
