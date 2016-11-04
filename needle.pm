@@ -30,6 +30,7 @@ use Time::HiRes qw(time);
 our %needles;
 our %tags;
 our $needledir;
+our $shared_cache;
 our $cleanuphandler;
 
 sub new {
@@ -81,7 +82,13 @@ sub new {
     $self->{file} = $jsonfile;
     $self->{name} = basename($jsonfile, '.json');
     my $png = $self->{png} || $self->{name} . ".png";
-    $self->{png} = File::Spec->catpath('', dirname($jsonfile), $png);
+
+    my $original_needles_dir = dirname($jsonfile);
+    $self->{png} = File::Spec->catpath('', $original_needles_dir, $png);
+
+    # we want to load needles from the cache if it is present
+    $self->{png} =~ s/$original_needles_dir/$shared_cache/ if ($shared_cache);
+
     if (!-s $self->{png}) {
         warn "Can't find $self->{png}";
         return;
@@ -195,7 +202,8 @@ sub wanted_ {
 }
 
 sub init {
-    $needledir = shift if @_;
+    my ($needledir, $shared_cache) = @_;
+
     $needledir //= "$bmwqemu::vars{CASEDIR}/needles/";
     $needledir = abs_path($needledir) // die "needledir not found: $needledir (check vars.json?)";
 
