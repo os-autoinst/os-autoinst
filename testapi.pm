@@ -732,6 +732,7 @@ sub script_output($;$) {
         type_string($cat . "\n");
         wait_serial("$cat", undef, 0, no_regex => 1);
         type_string($current_test_script, terminate_with => 'EOT');
+        type_string('',                   terminate_with => 'EOT');
         wait_serial("$suffix-0-");
     }
     else {
