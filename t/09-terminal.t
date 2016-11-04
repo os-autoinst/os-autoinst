@@ -48,7 +48,7 @@ my $password_data         = "$testapi::password\n";
 my $first_prompt_data      = "\e[1mlinux-5rw7:~ #\e[0m\e(B";
 my $set_prompt_data        = qq/PS1="# "\n/;
 my $normalised_prompt_data = '# ';
-my $C0_EOT                 = "\cD\cD";
+my $C0_EOT                 = "\cD";
 my $C0_ETX                 = "\cC";
 my $C1_control_code        = qq(\eQ\n);
 my $US_keyboard_data       = <<'FIN.';

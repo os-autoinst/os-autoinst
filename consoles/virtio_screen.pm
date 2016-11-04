@@ -77,8 +77,7 @@ than entering text. See C0, C1, ANSI, VT100 and XTERM escape codes.
 
 The optional terminate_with argument can be set to EOT (End Of Transmission),
 ETX (End Of Text). Sending EOT should have the same effect as pressing Ctrl-D
-and ETX is the same as pressing Ctrl-C on a terminal. EOT is sent twice, because
-it appeared that sending it once had no effect when used with `cat`.
+and ETX is the same as pressing Ctrl-C on a terminal.
 
 [1] It appears sending 0x0f will press the SysRq key down on hvc based consoles.
 
@@ -92,8 +91,8 @@ sub type_string {
     my $text = $nargs->{text};
     my $term;
     for ($nargs->{terminate_with} || '') {
-        if    (/^ETX$/) { $term = "\cC"; }       #^C, Ctrl-c, End Of Text
-        elsif (/^EOT$/) { $term = "\cD\cD"; }    #^D, Ctrl-d, End Of Transmission
+        if    (/^ETX$/) { $term = "\cC"; }    #^C, Ctrl-c, End Of Text
+        elsif (/^EOT$/) { $term = "\cD"; }    #^D, Ctrl-d, End Of Transmission
     }
 
     $text .= $term if defined $term;
