@@ -275,9 +275,18 @@ sub start_qemu {
         die "no dmi data for '$vars->{LAPTOP}'\n" unless -d "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
     }
 
+    my $bootfrom = "";    # branch by "disk" or "cdrom", not "c" or "d"
     if ($vars->{BOOT_HDD_IMAGE}) {
         # skip dvd boot menu and boot directly from hdd
         $vars->{BOOTFROM} //= 'c';
+    }
+    if ($vars->{BOOTFROM} eq "d" || $vars->{BOOTFROM} eq "cdrom") {
+        $bootfrom = "cdrom";
+        $vars->{BOOTFROM} = "d";
+    }
+    if ($vars->{BOOTFROM} eq "c" || $vars->{BOOTFROM} eq "disk") {
+        $bootfrom = "disk";
+        $vars->{BOOTFROM} = "c";
     }
 
     my $iso = $vars->{ISO};
@@ -323,6 +332,9 @@ sub start_qemu {
     my $arch_supports_boot_order = 1;
     my $use_usb_kbd;
     my @vgaoptions;
+    if ($vars->{UEFI}) {    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
+        $arch_supports_boot_order = 0;
+    }
     if ($vars->{ARCH} eq 'aarch64' || $vars->{ARCH} eq 'arm') {
         push @vgaoptions, '-device', 'VGA';
         $arch_supports_boot_order = 0;
@@ -524,12 +536,16 @@ sub start_qemu {
                     # pathname is a .. d
                     my $bus = sprintf "scsi%d.0", ($c - 1) % 2;    # alternate between scsi0 and scsi1
                     my $id = sprintf 'hd%d%c', $i, 96 + $c;
-                    push(@params, "-device", "$vars->{HDDMODEL},drive=$id,bus=$bus");
+                    # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
+                    my $bootindex = ($i == 1 && $c == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? ",bootindex=0" : "";
+                    push(@params, "-device", "$vars->{HDDMODEL},drive=$id,bus=$bus" . $bootindex);
                     push(@params, "-drive",  "file=$basedir/l$i,cache=none,if=none,id=$id,serial=mpath$i,format=$vars->{HDDFORMAT}");
                 }
             }
             else {
-                push(@params, "-device", "$vars->{HDDMODEL},drive=hd$i");
+                # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
+                my $bootindex = ($i == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? ",bootindex=0" : "";
+                push(@params, "-device", "$vars->{HDDMODEL},drive=hd$i" . $bootindex);
                 push(@params, "-drive",  "file=$basedir/l$i,cache=unsafe,if=none,id=hd$i,format=$vars->{HDDFORMAT}");
             }
         }
@@ -539,23 +555,34 @@ sub start_qemu {
             if ($vars->{USBBOOT}) {
                 push(@params, "-drive",  "if=none,id=usbstick,file=$iso,snapshot=on");
                 push(@params, "-device", "usb-ehci,id=ehci");
-                push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb");
+                # when USBBOOT is defined on UEFI, it gets ",bootindex=0"
+                my $bootindex = ($vars->{UEFI} && $bootfrom ne "disk") ? ",bootindex=0" : "";
+                push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb" . $bootindex);
             }
             else {
                 push(@params, '-drive', "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
                 # XXX: workaround for OVMF wanting to write NVvars into first FAT partition
                 # we need to replace -bios with proper pflash drive specification
                 $params[-1] .= ',snapshot=on' if $vars->{UEFI};
-                push(@params, '-device', "$vars->{CDMODEL},drive=cd0" . $cdbus);
+                # when booting from cdrom on UEFI, first connected CD gets ",bootindex=0"
+                my $bootindex = ($vars->{UEFI} && $bootfrom eq "cdrom") ? ",bootindex=0" : "";
+                push(@params, '-device', "$vars->{CDMODEL},drive=cd0" . $cdbus . $bootindex);
             }
         }
 
+        my $is_first = 1;
         for my $k (sort grep { /^ISO_\d+$/ } keys %$vars) {
             my $addoniso = $vars->{$k};
             my $i        = $k;
             $i =~ s/^ISO_//;
+            # first connected cdrom gets ",bootindex=0" on UEFI when booting from cdrom and there wasn't `ISO` defined
+            my $bootindex = "";
+            if ($is_first && $vars->{UEFI} && $bootfrom eq "cdrom" && !$iso) {
+                $is_first  = 0;
+                $bootindex = ",bootindex=0";
+            }
             push(@params, '-drive',  "media=cdrom,if=none,id=cd$i,format=raw,file=$addoniso");
-            push(@params, '-device', "$vars->{CDMODEL},drive=cd$i" . $cdbus);
+            push(@params, '-device', "$vars->{CDMODEL},drive=cd$i" . $cdbus . $bootindex);
         }
 
         if ($arch_supports_boot_order) {
