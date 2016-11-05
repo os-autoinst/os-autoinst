@@ -84,10 +84,8 @@ sub new {
     my $png = $self->{png} || $self->{name} . ".png";
 
     my $original_needles_dir = dirname($jsonfile);
-    $self->{png} = File::Spec->catpath('', $original_needles_dir, $png);
-
     # we want to load needles from the cache if it is present
-    $self->{png} =~ s/$original_needles_dir/$shared_cache/ if ($shared_cache);
+    $self->{png} = File::Spec->catpath('', $shared_cache ? $shared_cache : $original_needles_dir, $png);
 
     if (!-s $self->{png}) {
         warn "Can't find $self->{png}";
@@ -202,7 +200,7 @@ sub wanted_ {
 }
 
 sub init {
-    my ($needledir, $shared_cache) = @_;
+    ($needledir, $shared_cache) = @_;
 
     $needledir //= "$bmwqemu::vars{CASEDIR}/needles/";
     $needledir = abs_path($needledir) // die "needledir not found: $needledir (check vars.json?)";
