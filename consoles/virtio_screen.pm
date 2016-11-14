@@ -16,7 +16,7 @@ package consoles::virtio_screen;
 use 5.018;
 use warnings;
 use English qw( -no_match_vars );
-use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC_RAW);
+use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use integer;
 
 our $VERSION;
@@ -106,7 +106,7 @@ sub type_string {
 }
 
 sub thetime {
-    return clock_gettime(CLOCK_MONOTONIC_RAW);
+    return clock_gettime(CLOCK_MONOTONIC);
 }
 
 sub get_elapsed {
