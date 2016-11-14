@@ -15,7 +15,7 @@ use 5.018;
 use warnings;
 use Carp qw( confess );
 use English qw( -no_match_vars );
-use POSIX qw( :sys_wait_h pause );
+use POSIX qw( :sys_wait_h sigprocmask sigsuspend );
 use Socket qw( PF_UNIX SOCK_STREAM sockaddr_un );
 use Time::HiRes qw( usleep );
 use File::Temp qw( tempfile );
@@ -317,21 +317,26 @@ $SIG{CHLD} = sub {
     }
 };
 
+# The virtio_terminal expects the socket to be ready by the time it is activated
+# so wait for fake terminal to create socket and emit SIGCONT. Sigsuspend only
+# returns if a signal is received which has a handler set. We must initially
+# block the signal incase SIGCONT is emitted before we reach sigsuspend.
+$SIG{CONT} = sub { };
+my $blockmask = POSIX::SigSet->new(&POSIX::SIGCONT);
+my $oldmask = POSIX::SigSet->new();
+sigprocmask(POSIX::SIG_BLOCK, $blockmask, $oldmask);
+
 my $pid = fork || do {
     fake_terminal($socket_path);
     exit 0;
 };
 
-# The virtio_terminal expects the socket to be ready by the time it is activated
-# so wait for fake terminal to create socket and emit SIGCONT. Pause only
-# returns if a signal is received which has a handler set.
-$SIG{CONT} = sub { };
-pause;
-
+sigsuspend($oldmask);
 test_terminal_directly;
 
 $SIG{CHLD} = sub { };
 waitpid($pid, 0);
 report_on_fake_terminal;
 done_testing;
-print "The IO log file is $log_path";
+unlink $socket_path;
+say "The IO log file is $log_path";
