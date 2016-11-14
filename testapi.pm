@@ -279,7 +279,7 @@ sub match_has_tag {
 
 =head2 assert_and_click
 
-  assert_and_click($mustmatch, $button, [$timeout], [$click_time], [$dclick]);
+  assert_and_click($mustmatch, [$button], [$timeout], [$click_time], [$dclick]);
 
 Wait for needle with C<$mustmatch> tag to appear on SUT screen. Then click C<$button> in the middle
 of last matched region. If C<$dclick> is set, do double click instead.
