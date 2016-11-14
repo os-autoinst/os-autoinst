@@ -16,7 +16,7 @@ package consoles::virtio_screen;
 use 5.018;
 use warnings;
 use English qw( -no_match_vars );
-use Time::HiRes qw( gettimeofday usleep );
+use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use integer;
 
 our $VERSION;
@@ -105,10 +105,14 @@ sub type_string {
     }
 }
 
+sub thetime {
+    return clock_gettime(CLOCK_MONOTONIC);
+}
+
 sub get_elapsed {
     no integer;
     my $start = shift;
-    return gettimeofday() - $start;
+    return thetime() - $start;
 }
 
 # If $pattern is an array of regexes combine them into a single one.
@@ -166,7 +170,7 @@ sub read_until {
     my %nargs    = @_[3 .. $#_];
     my $buflen   = $nargs{buffer_size} || 4096;
     my $overflow = $nargs{record_output} ? '' : undef;
-    my $sttime   = gettimeofday;
+    my $sttime   = thetime();
     my ($rbuf, $buf) = ('', '');
     my $loops = 0;
     my ($prematch, $match);
