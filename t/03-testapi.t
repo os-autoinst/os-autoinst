@@ -30,13 +30,19 @@ sub fake_read_json {
         $str =~ s,\\d\+,$fake_exit,;
         return {ret => {matched => 1, string => $str}};
     }
+    elsif ($lcmd->{cmd} eq 'backend_select_console') {
+        return {ret => {activated => 0}};
+    }
+    elsif ($lcmd->{cmd} eq 'backend_is_serial_terminal') {
+        return {ret => {yesorno => 0}};
+    }
     return {};
 }
 
 $mod->mock(send_json => \&fake_send_json);
 $mod->mock(read_json => \&fake_read_json);
 
-use testapi;
+use testapi qw(is_serial_terminal :DEFAULT);
 use basetest;
 *{basetest::_result_add_screenshot} = sub { my ($self, $result) = @_; };
 $autotest::current_test = basetest->new();
@@ -112,13 +118,16 @@ my $details = $autotest::current_test->{details}[-1];
 is($details->{title}, 'Soft Failed', 'title for soft failure added');
 like($details->{text}, qr/basetest-[0-9]+.*txt/, 'file for soft failure added');
 
+require distribution;
+testapi::set_distribution(distribution->new());
+select_console('a-console');
+is(is_serial_terminal, 0, 'Not a serial terminal');
+
 subtest 'script_run' => sub {
     my $module = new Test::MockModule('bmwqemu');
     # just save ourselves some time during testing
     $module->mock('wait_for_one_more_screenshot', sub { sleep 0; });
 
-    require distribution;
-    testapi::set_distribution(distribution->new());
     is(assert_script_run('true'), undef, 'nothing happens on success');
     $fake_exit = 1;
     like(exception { assert_script_run 'false', 42; }, qr/command.*false.*failed at/, 'with timeout option (deprecated mode)');

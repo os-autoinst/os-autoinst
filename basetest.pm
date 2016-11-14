@@ -380,9 +380,11 @@ sub record_serialresult {
 
     $string //= '';
 
-    # the screenshot is not the fail, it's just for documentation
     my $result = $self->record_testresult('unk');
-    $self->_result_add_screenshot($result);
+    unless (testapi::is_serial_terminal) {
+        # the screenshot is not the fail, it's just for documentation
+        $self->_result_add_screenshot($result);
+    }
 
     my $details = {result => $res};
 
