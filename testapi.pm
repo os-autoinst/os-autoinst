@@ -55,6 +55,8 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   wait_idle wait_screen_change wait_still_screen wait_serial record_soft_failure
   become_root x11_start_program ensure_installed eject_cd power
 
+  save_memory_dump save_storage_drives freeze_vm
+
   diag hashed_string
 );
 
@@ -393,6 +395,7 @@ Returns true if screen is not changed for given $stilltime (in seconds) or undef
 Default timeout is 30s, default stilltime is 7s.
 
 =cut
+
 sub wait_still_screen {
     my $stilltime        = shift || 7;
     my $timeout          = shift || 30;
@@ -822,6 +825,83 @@ sub eject_cd {
     query_isotovideo('backend_eject_cd');
 }
 
+=head2 save_memory_dump
+
+  save_memory_dump([{ filename => undef, migration_speed => "4096m" }]);
+
+Saves the SUT memory state using C<$filename> as base for the memory dump
+filename,  the default will be the current test's name.
+
+The memory dump can be created at any point, but it's recommended to use it
+within a post fail hook. Different filenames should be provided if the dump is
+being used within the test itself.
+
+I<Currently only qemu backend is supported.>
+
+=cut
+
+sub save_memory_dump {
+    my ($args) = @_;
+    $args->{filename} ||= ref($autotest::current_test);
+
+    bmwqemu::log_call();
+    bmwqemu::diag "If save_memory_dump is called multiple times with the same '\$filename', it will be rewritten." unless ((caller(1))[3]) =~ /post_fail_hook/;
+    bmwqemu::diag("Trying to save machine state");
+
+    query_isotovideo('backend_save_memory_dump', $args);
+}
+
+=head2 save_storage_drives
+
+  save_storage_drives([$filename]);
+
+Saves all of the SUT drives using C<$filename> as part of the final filename,
+the default will be the current test's name. The disk number will be always present.
+
+This method must be called within a post_fail_hook. 
+
+I<Currently only qemu backend is supported.>
+
+=cut
+
+sub save_storage_drives {
+    my $filename ||= ref($autotest::current_test);
+    die "Method should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
+
+    bmwqemu::log_call();
+    bmwqemu::diag("Trying to save machine drives");
+    bmwqemu::load_vars();
+
+    # Right now, we're saving all the disks
+    # sometimes we might not want to. This could be improved.
+    if (my $nd = $bmwqemu::vars{NUMDISKS}) {
+        for my $i (1 .. $nd) {
+            query_isotovideo('backend_save_storage_drives', {disk => $i, filename => $filename});
+        }
+    }
+}
+
+=head2 freeze_vm
+
+  freeze_vm;
+
+If the backend supports it, freeze the vm. This will allow the vm to be
+paused/frozen within the test, but only from the post_fail_hook. So that memory
+and disk dumps can be extracted without any risk of data changing.
+
+Call this method to ensure memory and disk dump refer to the same machine state.
+
+I<Currently only qemu backend is supported.>
+
+=cut
+
+sub freeze_vm {
+    #While it might be a good idea to allow the user to stop the vm within a test
+    #we're not allowing them to do that outside a post_fail_hook.
+    die "Method should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
+    bmwqemu::log_call();
+    query_isotovideo('backend_freeze_vm');
+}
 
 =head2 parse_junit_log
 

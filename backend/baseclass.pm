@@ -345,6 +345,14 @@ sub is_shutdown {
     return -1;
 }
 
+sub save_memory_dump {
+    notimplemented;
+}
+
+sub save_storage_drives {
+    notimplemented;
+}
+
 ## MAY be overwritten:
 
 sub cpu_stat {

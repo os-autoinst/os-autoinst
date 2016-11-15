@@ -1,0 +1,56 @@
+= Memory Dumps
+
+In the case that some test are failing under abnormal
+circumstances, the os-autoinst api offers the possibility to the tester to save
+a memory dump and disk image when certain conditions are met.
+
+IMPORTANT: Currently only the QEMU backend is supported.
+
+== How to use
+
+Three methods are available to the test writer, `freeze_vm`, `save_memory_dump`,
+and `save_storage_drives`
+
+The feature is enabled by calling the aforementioned methods, using
+a https://github.com/os-autoinst/openQA/blob/master/docs/WritingTests.asciidoc#how-to-write-tests[post_fail_hook] and setting the test's flags as fatal. The `save_memory_dump` method can be however
+called at any point within the test.
+
+=== save_memory_dump
+
+The method `save_memory_dump` can be called at any point, but it is recommended
+to use it within a post fail hook. Different filenames should be provided if the
+dump is being used within the test itself (or more than one memory dump is being
+created) if no filename is provided, the test's name will be used.
+
+=== save_storage_drives
+
+The method `save_storage_drives` saves all of the SUT drives using a filename
+provided by the user, if not the current test's name will be used  as part of
+the final filename, the default will be the current test's name. The  disk
+number will be always present.
+
+NOTE: Call this method to ensure memory and disk dump refer to the same machine state.
+
+=== freeze_vm
+
+If it is supported by the backend `freeze_vm` will allow the vm to be
+paused/frozen within the test. So that memory and disk dumps can be extracted
+without any risk of data changing.
+
+NOTE: Call this method to ensure memory and disk dump refer to the same machine state.
+
+== Examples
+
+A very simple way to use this helpful feature is the following:
+
+[source,perl]
+----------------------------------------
+sub post_fail_hook {
+	my $self = shift;
+	freeze_vm;
+	save_memory_dump("my-memory-dump");
+	save_storage_drives("my-disk");
+}
+
+sub test_flags { return { fatal => 1 } }
+----------------------------------------
