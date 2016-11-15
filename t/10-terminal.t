@@ -28,6 +28,7 @@ BEGIN {
 
 use consoles::virtio_terminal;
 use testapi ();
+use bmwqemu ();
 
 our $VERSION;
 
@@ -65,7 +66,12 @@ my $next_test             = "GOTO NEXT\n";
 # alarm in fake terminal
 my $timeout = 30;
 
-my ($logfd, $log_path) = tempfile('09-terminalXXXXX', TMPDIR => 1, SUFFIX => '.log');
+my ($logfd, $log_path) = tempfile('10-terminalXXXXX', TMPDIR => 1, SUFFIX => '.log');
+my ($errfd, $err_path) = tempfile('10-terminal-ERRORXXXXX', TMPDIR => 1, SUFFIX => '.log');
+
+$bmwqemu::direct_output = 0;
+$bmwqemu::logfd         = $errfd;
+$bmwqemu::istty         = 0;
 
 # Either write $msg to the socket or die
 sub try_write {
@@ -228,6 +234,10 @@ sub is_matched {
 }
 
 sub test_terminal_directly {
+    my $errdupfd = tempfile();
+    open STDERR, '>&', $errdupfd;
+    STDERR->autoflush(1);
+
     my $term = consoles::virtio_terminal->new('unit-test-console', []);
     $term->activate;
     my $scrn = $term->screen;
@@ -286,6 +296,11 @@ sub test_terminal_directly {
     type_string($next_test);
 
     $term->reset;
+
+    #say STDERR 'Enable this to check that the unit test fails when something is written to STDERR.';
+    local $RS;
+    seek $errdupfd, 0, 0;
+    is(<$errdupfd>, '', 'No output to STDERR');
 }
 
 sub test_terminal_through_testapi {
@@ -339,4 +354,4 @@ waitpid($pid, 0);
 report_on_fake_terminal;
 done_testing;
 unlink $socket_path;
-say "The IO log file is $log_path";
+say "The IO log file is at $log_path and the error log is $err_path.";
