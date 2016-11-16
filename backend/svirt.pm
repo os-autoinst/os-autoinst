@@ -97,15 +97,15 @@ sub can_handle {
 
 sub is_shutdown {
     my ($self) = @_;
-    my $vmname = "openQA-SUT-" . get_var('VIRSH_INSTANCE', 1);
-    my $rsp = $self->run_cmd("! virsh list --state-shutoff | grep -w $vmname");
+    my $vmname = $self->console('svirt')->name;
+    my $rsp    = $self->run_cmd("! virsh list --state-shutoff | grep -w $vmname");
     return $rsp;
 }
 
 sub save_snapshot {
     my ($self, $args) = @_;
     my $snapname = $args->{name};
-    my $vmname = "openQA-SUT-" . get_var('VIRSH_INSTANCE', 1);
+    my $vmname   = $self->console('svirt')->name;
     $self->run_cmd("virsh snapshot-delete $vmname $snapname");
     my $rsp = $self->run_cmd("virsh snapshot-create-as $vmname $snapname");
     bmwqemu::diag "SAVED VM \"$vmname\" as \"$snapname\" snapshot, $rsp";
@@ -116,7 +116,7 @@ sub save_snapshot {
 sub load_snapshot {
     my ($self, $args) = @_;
     my $snapname = $args->{name};
-    my $vmname   = "openQA-SUT-" . get_var('VIRSH_INSTANCE', 1);
+    my $vmname   = $self->console('svirt')->name;
     my $rsp      = $self->run_cmd("virsh snapshot-revert $vmname $snapname");
     bmwqemu::diag "LOADED snapshot \"$snapname\" to \"$vmname\", $rsp";
     die unless ($rsp == 0);
