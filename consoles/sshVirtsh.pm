@@ -509,6 +509,10 @@ sub attach_to_running {
 
     $self->name($name) if $name;
     $self->backend->start_serial_grab($self->name);
+
+    # Setting SVIRT_KEEP_VM_RUNNING variable prevents destruction of a perhaps valuable VM
+    # outside of openQA. Un-set it on your own in test should the VM be destroyed.
+    set_var('SVIRT_KEEP_VM_RUNNING', 1);
 }
 
 # Sends command to libvirt host, logs stdout and stderr of the command,
