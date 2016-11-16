@@ -293,7 +293,6 @@ sub post_run_hook {
 
 sub run_post_fail {
     my ($self, $msg) = @_;
-    warn $msg;
     $self->{post_fail_hook_running} = 1;
     eval { $self->post_fail_hook; };
     bmwqemu::diag("post_fail_hook failed: $@") if $@;
@@ -325,7 +324,7 @@ sub runtest {
         }
         # show a text result with the die message unless the die was internally generated
         if (!$internal) {
-            my $msg = "# Test died:\n$@\n";
+            my $msg = "# Test died: $@";
             bmwqemu::diag($msg);
             my $details = {result => 'fail'};
             my $text_fn = $self->next_resultname('txt');

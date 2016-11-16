@@ -17,6 +17,7 @@
 package testapi;
 
 use base Exporter;
+use Carp;
 use Exporter;
 use strict;
 use warnings;
@@ -449,7 +450,7 @@ Similar to C<get_var> but without default value and throws exception if variable
 =cut
 sub get_required_var {
     my ($var) = @_;
-    return $bmwqemu::vars{$var} // die "Could not retrieve required variable $var";
+    return $bmwqemu::vars{$var} // croak "Could not retrieve required variable $var";
 }
 
 =head2 set_var
@@ -623,7 +624,7 @@ sub assert_script_run {
     my $ret = wait_serial("$str-\\d+-", $args{timeout});
     my $die_msg = "command '$cmd' failed";
     $die_msg .= ": $args{fail_message}" if $args{fail_message};
-    die $die_msg unless (defined $ret && $ret =~ /$str-0-/);
+    croak $die_msg unless (defined $ret && $ret =~ /$str-0-/);
     return;
 }
 
@@ -663,7 +664,7 @@ sub assert_script_sudo {
     my $str = hashed_string("ASS$cmd");
     script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $wait);
-    die "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
+    croak "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
 }
 
 =for stopwords SUT
@@ -692,9 +693,9 @@ sub script_output($;$) {
     script_run "clear";
 
     type_string "(/bin/bash -ex /tmp/script$suffix.sh ; echo SCRIPT_FINISHED$suffix-\$?- )| tee /dev/$serialdev\n";
-    my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait) or die "script timeout";
+    my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait) or croak "script timeout";
 
-    die "script failed" if $output !~ "SCRIPT_FINISHED$suffix-0-";
+    croak "script failed" if $output !~ "SCRIPT_FINISHED$suffix-0-";
 
     # strip the internal exit catcher
     $output =~ s,SCRIPT_FINISHED$suffix-0-,,;
@@ -731,7 +732,7 @@ sub validate_script_output($&;$) {
     # abusing the function
     $autotest::current_test->record_serialresult($output, $res, $output);
     if ($res eq 'fail') {
-        die "output not validating";
+        croak "output not validating";
     }
 }
 
@@ -807,7 +808,7 @@ sub assert_shutdown {
         sleep 1 if $timeout >= 0;
     }
     $autotest::current_test->take_screenshot('fail');
-    die "Machine didn't shut down!";
+    croak "Machine didn't shut down!";
 }
 
 =head2 eject_cd
@@ -1392,7 +1393,7 @@ sub console {
     if (exists $testapi_console_proxies{$testapi_console}) {
         return $testapi_console_proxies{$testapi_console};
     }
-    die "console $testapi_console is not activated.";
+    confess "console $testapi_console is not activated.";
 }
 
 =head2 reset_consoles
