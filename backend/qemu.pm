@@ -325,18 +325,23 @@ sub start_qemu {
         die "no dmi data for '$vars->{LAPTOP}'\n" unless -d "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
     }
 
-    my $bootfrom = "";    # branch by "disk" or "cdrom", not "c" or "d"
+    my $bootfrom = '';    # branch by "disk" or "cdrom", not "c" or "d"
     if ($vars->{BOOT_HDD_IMAGE}) {
         # skip dvd boot menu and boot directly from hdd
         $vars->{BOOTFROM} //= 'c';
     }
-    if ($vars->{BOOTFROM} eq "d" || $vars->{BOOTFROM} eq "cdrom") {
-        $bootfrom = "cdrom";
-        $vars->{BOOTFROM} = "d";
-    }
-    if ($vars->{BOOTFROM} eq "c" || $vars->{BOOTFROM} eq "disk") {
-        $bootfrom = "disk";
-        $vars->{BOOTFROM} = "c";
+    if (my $bootfrom_var = $vars->{BOOTFROM}) {
+        if ($bootfrom_var eq 'd' || $bootfrom_var eq 'cdrom') {
+            $bootfrom = 'cdrom';
+            $vars->{BOOTFROM} = 'd';
+        }
+        elsif ($bootfrom_var eq 'c' || $bootfrom_var eq 'disk') {
+            $bootfrom = 'disk';
+            $vars->{BOOTFROM} = 'c';
+        }
+        else {
+            die "unknown/unsupported boot order: $bootfrom_var";
+        }
     }
 
     my $iso = $vars->{ISO};
