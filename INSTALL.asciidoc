@@ -13,8 +13,7 @@ installation guide]
 git clone YOUR-WRITEABLE-COPY-OF/os-autoinst.git
 cd os-autoinst
 ------------------------------------------------
-3.  install the BuildRequires, as per the http://build.opensuse.org[spec
-file]
+3.  install the BuildRequires, as per the https://build.opensuse.org/package/show/devel:openQA/os-autoinst[spec file] 
 +
 -----------------------------------------------------------------------------------------------------------------------------------
 sudo zypper in git-core make libtheora-devel opencv-devel fftw3-devel libsndfile-devel pkg-config libtool autoconf automake gcc-c++
@@ -45,15 +44,27 @@ cd /tmp/os-autoinst-run
 --------------------------
 7.  create a minimal "vars.json" config file
 +
+.vars.json
+[source,json]
 ---------------------------------------------------------
-cat <<EOF >vars.json
 {
-    "DISTRI":  "sle",
-    "CASEDIR": "/space/SVN/os-autoinst-distri-opensuse/",
-    "BACKEND": "s390x"
+   "ARCH" : "x86_64",
+   "BACKEND" : "qemu",
+   "CASEDIR" : "/path/to/os-autoinst-distri-opensuse",
+   "DESKTOP" : "gnome",
+   "DISTRI" : "opensuse",
+   "ISO" : "/path/to/openSUSE-Tumbleweed-DVD-x86_64-Snapshot20160715-Media.iso",
+   "PRODUCTDIR" : "/path/to/os-autoinst-distri-opensuse/products/opensuse",
+   "VNC" : 90,
 }
-EOF
 ---------------------------------------------------------
++
+You will need to correct the file paths to point to real locations. Some of
+the variables you can use are listed
+https://github.com/os-autoinst/os-autoinst/blob/master/doc/backend_vars.asciidoc[here].
+Test case specific variables are listed in the distri directories
+e.g. https://github.com/os-autoinst/os-autoinst-distri-opensuse/blob/master/variables[os-autoinst-distri-opensuse/variables].
++
 8.  give it a shot
 +
 ------------------------------
