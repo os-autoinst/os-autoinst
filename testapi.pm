@@ -1129,7 +1129,7 @@ sub upload_logs {
 
 =head2 upload_asset
 
-  upload_asset $file [,$public];
+  upload_asset $file [,$public[,$nocheck]];
 
 Uploads C<$file> as asset to OpenQA WebUI
 
@@ -1141,16 +1141,28 @@ Or you can upload public assets that will have a fixed filename
 replacing previous assets - useful for external users:
 
     upload_asset '/tmp/suse.ps', 1;
+
+If you just want to upload a file and verify that it was uploaded
+correctly on your own (e.g. in svirt console we don't have a serial
+line and can't rely on assert_script_run check), add an optional
+'nocheck' parameter:
+
+    upload_asset '/tmp/suse.ps', 1, 1;
 =cut
 sub upload_asset {
-    my ($file, $public) = @_;
+    my ($file, $public, $nocheck) = @_;
 
     bmwqemu::log_call(file => $file);
     my $cmd = "curl --form upload=\@$file ";
     $cmd .= "--form target=assets_public " if $public;
     my $basename = basename($file);
     $cmd .= autoinst_url("/upload_asset/$basename");
-    return assert_script_run($cmd);
+    if ($nocheck) {
+        type_string("$cmd\n");
+    }
+    else {
+        return assert_script_run($cmd);
+    }
 }
 
 =head1 keyboard support

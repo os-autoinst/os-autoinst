@@ -116,18 +116,15 @@ sub _init_xml {
     $elem->appendTextNode($self->vmm_type);
     $os->appendChild($elem);
 
-    if (($self->vmm_family eq 'xen' and $self->vmm_type eq 'hvm') or get_var('UEFI')) {
-        my $features = $doc->createElement('features');
-        $root->appendChild($features);
-        $elem = $doc->createElement('acpi');
-        $features->appendChild($elem);
-        $elem = $doc->createElement('apic');
-        $features->appendChild($elem);
-        if ($self->vmm_family eq 'xen' and $self->vmm_type eq 'hvm') {
-            $elem = $doc->createElement('pae');
-            $features->appendChild($elem);
-        }
-    }
+    # Following 'features' are required for VM to correctly shutdown
+    my $features = $doc->createElement('features');
+    $root->appendChild($features);
+    $elem = $doc->createElement('acpi');
+    $features->appendChild($elem);
+    $elem = $doc->createElement('apic');
+    $features->appendChild($elem);
+    $elem = $doc->createElement('pae');
+    $features->appendChild($elem);
 
     if ($self->vmm_family eq 'xen' and $self->vmm_type eq 'linux') {
         $elem = $doc->createElement('kernel');
@@ -527,6 +524,7 @@ sub run_cmd {
     $chan->exec($cmd);
     bmwqemu::diag "Command executed: $cmd";
     get_ssh_output($chan);
+    $chan->send_eof;
     $chan->close();
     return $chan->exit_status();
 }

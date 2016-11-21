@@ -36,6 +36,9 @@ sub new {
 sub do_start_vm {
     my ($self) = @_;
 
+    my $vars = \%bmwqemu::vars;
+    $vars->{NUMDISKS} ||= 1;
+
     # truncate the serial file
     open(my $sf, '>', $self->{serialfile});
     close($sf);
@@ -49,10 +52,10 @@ sub do_start_vm {
         });
 
     $ssh->backend($self);
-    $self->select_console({testapi_console => 'svirt'});
 
     # remove backend.crashed
     $self->unlink_crash_file;
+    bmwqemu::save_vars();    # update variables
     return {};
 }
 
@@ -74,6 +77,7 @@ sub run_cmd {
     my $chan = $self->{ssh}->channel();
     $chan->exec($cmd);
     bmwqemu::diag "Command executed: $cmd";
+    $chan->send_eof;
     $chan->close();
     return $chan->exit_status();
 }
@@ -91,10 +95,17 @@ sub can_handle {
     return;
 }
 
+sub is_shutdown {
+    my ($self) = @_;
+    my $vmname = $self->console('svirt')->name;
+    my $rsp    = $self->run_cmd("! virsh dominfo $vmname | grep -w 'shut off'");
+    return $rsp;
+}
+
 sub save_snapshot {
     my ($self, $args) = @_;
     my $snapname = $args->{name};
-    my $vmname = "openQA-SUT-" . get_var('VIRSH_INSTANCE', 1);
+    my $vmname   = $self->console('svirt')->name;
     $self->run_cmd("virsh snapshot-delete $vmname $snapname");
     my $rsp = $self->run_cmd("virsh snapshot-create-as $vmname $snapname");
     bmwqemu::diag "SAVED VM \"$vmname\" as \"$snapname\" snapshot, $rsp";
@@ -105,7 +116,7 @@ sub save_snapshot {
 sub load_snapshot {
     my ($self, $args) = @_;
     my $snapname = $args->{name};
-    my $vmname   = "openQA-SUT-" . get_var('VIRSH_INSTANCE', 1);
+    my $vmname   = $self->console('svirt')->name;
     my $rsp      = $self->run_cmd("virsh snapshot-revert $vmname $snapname");
     bmwqemu::diag "LOADED snapshot \"$snapname\" to \"$vmname\", $rsp";
     die unless ($rsp == 0);

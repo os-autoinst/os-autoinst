@@ -167,7 +167,8 @@ sub upload_file {
         return $self->render(message => 'upload file content missing', status => 400);
     }
 
-    my $target = $self->param('target');
+    # choose 'target' field from curl form, otherwise default 'assets_private'
+    my $target = $self->param('target') || 'assets_private';
 
     # global assumption cwd == pooldir
     if (!-d $target) {
@@ -244,7 +245,7 @@ sub run_daemon {
     $token_auth->post('/uploadlog/#filename' => {target => 'ulogs'} => [target => [qw(ulogs)]] => \&upload_file);
 
     # uploading assets
-    $token_auth->post('/upload_asset/#filename' => {target => 'assets_private'} => [target => [qw(assets_private assets_public)]] => \&upload_file);
+    $token_auth->post('/upload_asset/#filename' => [target => [qw(assets_private assets_public)]] => \&upload_file);
 
     # to get the current bash script out of the test
     $token_auth->get('/current_script' => \&current_script);

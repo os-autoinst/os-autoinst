@@ -496,7 +496,7 @@ if (!$r) {
 bmwqemu::load_vars();
 
 # mark hard disks for upload if test finished
-if (!$r && $completed && (my $nd = $bmwqemu::vars{NUMDISKS})) {
+if (!$r && $completed && (my $nd = $bmwqemu::vars{NUMDISKS}) && ($bmwqemu::vars{BACKEND} eq 'qemu')) {
     my @toextract;
     for my $i (1 .. $nd) {
         my $dir = 'assets_private';
