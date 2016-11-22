@@ -63,6 +63,13 @@ sub do_stop_vm {
     my ($self) = @_;
 
     $self->stop_serial_grab;
+
+    unless (get_var('SVIRT_KEEP_VM_RUNNING')) {
+        my $vmname = $self->console('svirt')->name;
+        bmwqemu::diag "Destroying $vmname virtual machine";
+        $self->run_cmd("virsh destroy $vmname");
+        $self->run_cmd("virsh undefine $vmname");
+    }
     return {};
 }
 
