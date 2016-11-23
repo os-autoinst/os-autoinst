@@ -19,7 +19,7 @@ use autodie;
 use Socket qw(SOCK_NONBLOCK PF_UNIX SOCK_STREAM sockaddr_un);
 use Errno qw(EAGAIN EWOULDBLOCK);
 use English qw( -no_match_vars );
-use Carp qw(cluck);
+use Carp qw(croak);
 use Scalar::Util qw(blessed);
 use Cwd;
 use consoles::virtio_screen ();
@@ -99,11 +99,11 @@ sub open_socket {
     my $fd;
     bmwqemu::log_call(socket_path => $self->socket_path);
 
-    (-S $self->socket_path) || die 'Could not find ' . $self->socket_path;
+    (-S $self->socket_path) || croak 'Could not find ' . $self->socket_path;
     socket($fd, PF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0)
-      || die 'Could not create Unix socket: ' . $ERRNO;
+      || croak 'Could not create Unix socket: ' . $ERRNO;
     connect($fd, sockaddr_un($self->socket_path))
-      || die 'Could not connect to virtio-console chardev socket: ' . $ERRNO;
+      || croak 'Could not connect to virtio-console chardev socket: ' . $ERRNO;
 
     return $fd;
 }

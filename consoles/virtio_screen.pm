@@ -18,6 +18,7 @@ use warnings;
 use English qw( -no_match_vars );
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use integer;
+use Carp qw(croak);
 
 our $VERSION;
 
@@ -52,16 +53,16 @@ sub send_key {
         $self->type_string($nargs);
     }
     else {
-        die $trying_to_use_keys;
+        croak $trying_to_use_keys;
     }
 }
 
 sub hold_key {
-    die $trying_to_use_keys;
+    croak $trying_to_use_keys;
 }
 
 sub release_key {
-    die $trying_to_use_keys;
+    croak $trying_to_use_keys;
 }
 
 =head2 type_string
@@ -98,10 +99,10 @@ sub type_string {
     $text .= $term if defined $term;
     my $written = syswrite $fd, $text;
     unless (defined $written) {
-        die "Error writing to virtio terminal: $ERRNO";
+        croak "Error writing to virtio terminal: $ERRNO";
     }
     if ($written < length($text)) {
-        die "Was not able to write entire message to virtio terminal. Only $written of $nargs->{text}";
+        croak "Was not able to write entire message to virtio terminal. Only $written of $nargs->{text}";
     }
 }
 
@@ -195,7 +196,7 @@ sub read_until {
                 &$do_while_idle() if defined $do_while_idle;
                 next READ;
             }
-            die "Failed to read from virtio console char device: $ERRNO";
+            croak "Failed to read from virtio console char device: $ERRNO";
         }
 
         # If there is not enough free space in the ring buffer; remove an amount

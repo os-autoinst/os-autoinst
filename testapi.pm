@@ -29,6 +29,7 @@ require IPC::System::Simple;
 use autodie qw(:all);
 use OpenQA::Exceptions;
 use Digest::MD5 qw(md5_base64);
+use Carp qw(cluck croak);
 
 require bmwqemu;
 
@@ -734,7 +735,7 @@ sub script_output($;$) {
         wait_serial("$suffix-0-");
     }
     else {
-        open my $fh, ">", 'current_script' or die("Could not open file. $!");
+        open my $fh, ">", 'current_script' or croak("Could not open file. $!");
         print $fh $current_test_script;
         close $fh;
         assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh";
@@ -743,14 +744,14 @@ sub script_output($;$) {
 
     my $run_script = "/tmp/script$suffix.sh ; echo SCRIPT_FINISHED$suffix-\$?-";
     if (is_serial_terminal) {
-        type_string("bash -e $run_script\n");
+        type_string("/bin/bash -e $run_script\n");
         wait_serial($run_script, undef, 0, no_regex => 1);
     }
     else {
-        type_string "(bash -ex $run_script)| tee /dev/$serialdev\n";
+        type_string "(/bin/bash -ex $run_script)| tee /dev/$serialdev\n";
     }
     my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait, 0, record_output => 1)
-      || die "script timeout";
+      || croak "script timeout";
 
     croak "script failed" if $output !~ "SCRIPT_FINISHED$suffix-0-";
 
@@ -1069,7 +1070,6 @@ sub wait_idle {
 
     # report wait_idle calls while we work on
     # https://progress.opensuse.org/issues/5830
-    use Carp qw(cluck);
     cluck "Wait_idle called";
 
     bmwqemu::log_call(timeout => $timeout);
@@ -1549,7 +1549,7 @@ sub console {
     if (exists $testapi_console_proxies{$testapi_console}) {
         return $testapi_console_proxies{$testapi_console};
     }
-    confess "console $testapi_console is not activated.";
+    croak "console $testapi_console is not activated.";
 }
 
 =head2 reset_consoles
