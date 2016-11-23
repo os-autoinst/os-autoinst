@@ -19,7 +19,7 @@ package testapi;
 use base Exporter;
 use Carp;
 use Exporter;
-use strict;
+use 5.018;
 use warnings;
 use File::Basename qw(basename);
 use Time::HiRes qw(sleep gettimeofday tv_interval);
@@ -29,6 +29,7 @@ require IPC::System::Simple;
 use autodie qw(:all);
 use OpenQA::Exceptions;
 use Digest::MD5 qw(md5_base64);
+use Carp qw(cluck croak);
 
 require bmwqemu;
 
@@ -46,6 +47,8 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   script_run script_sudo script_output validate_script_output
   assert_script_run assert_script_sudo
 
+  wait_terminal assert_terminal
+
   start_audiocapture assert_recorded_sound
 
   select_console console reset_consoles
@@ -60,6 +63,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   diag hashed_string
 );
+our @EXPORT_OK = qw(is_serial_terminal);
 
 our %cmd;
 
@@ -70,6 +74,7 @@ our $username;
 our $password;
 
 our $serialdev;
+our $selected_console;
 
 our $last_matched_needle;
 
@@ -510,6 +515,33 @@ sub check_var_array {
     return grep { $_ eq $val } @$vars_r;
 }
 
+=head2 is_serial_terminal
+
+  is_serial_terminal;
+
+Determines if communication with the guest is being performed purely over a
+serial port. When true, the guest should have a tty attached to a serial port
+and os-autoinst sends commands to it as text. This differs from when a text
+console is selected in the guest, but VNC is being used to simulate keypresses.
+
+When a serial terminal is selected you will not be able to use functions which
+rely on needles. This sub is not exported by default as most tests I<will not
+benefit> from changing their behaviour depending on if communication happens
+over serial or VNC.
+
+For more info see consoles/virtio_console.pm and consoles/virtio_screen.pm.
+
+=cut
+sub is_serial_terminal {
+    state $ret;
+    state $last_seen = '';
+    if (defined $selected_console && $selected_console ne $last_seen) {
+        $last_seen = $selected_console;
+        $ret = query_isotovideo('backend_is_serial_terminal', {});
+    }
+    return $ret->{yesorno};
+}
+
 =head1 script execution helpers
 
 =head2 wait_serial
@@ -532,16 +564,18 @@ sub wait_serial {
     my $timeout          = shift || 90;    # seconds
     my $expect_not_found = shift || 0;     # expected can not found the term in serial output
 
-    bmwqemu::log_call(regex => $regexp, timeout => $timeout);
+    my %nargs = (@_, (regexp => $regexp, timeout => $timeout));
+
+    bmwqemu::log_call(%nargs);
     $timeout = bmwqemu::scale_timeout($timeout);
 
-    my $ret = query_isotovideo('backend_wait_serial', {regexp => $regexp, timeout => $timeout});
+    my $ret = query_isotovideo('backend_wait_serial', \%nargs);
     my $matched = $ret->{matched};
 
     if ($expect_not_found) {
         $matched = !$matched;
     }
-    bmwqemu::wait_for_one_more_screenshot();
+    bmwqemu::wait_for_one_more_screenshot() unless is_serial_terminal;
 
     # to string, we need to feed string of result to
     # record_serialresult(), either 'ok' or 'fail'
@@ -623,7 +657,12 @@ sub assert_script_run {
     }
     my $str = hashed_string("ASR$cmd");
     # call script_run with idle_timeout 0 so we don't wait twice
-    script_run("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
+    if (is_serial_terminal) {
+        script_run("$cmd; echo $str-\$?-", 0);
+    }
+    else {
+        script_run("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
+    }
     my $ret = wait_serial("$str-\\d+-", $args{timeout});
     my $die_msg = "command '$cmd' failed";
     $die_msg .= ": $args{fail_message}" if $args{fail_message};
@@ -685,18 +724,34 @@ The default timeout for the script is 30 seconds. If you need more, pass a secon
 =cut
 sub script_output($;$) {
     my ($current_test_script, $wait) = @_;
-    open my $fh, ">", 'current_script' or die("Could not open file. $!");
-    print $fh $current_test_script;
-    close $fh;
-
     my $suffix = hashed_string("SO$current_test_script");
-    $wait ||= 30;
 
-    assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh";
-    script_run "clear";
+    if (is_serial_terminal) {
+        my $cat = "cat - > /tmp/script$suffix.sh; echo $suffix-\$?-";
+        type_string($cat . "\n");
+        wait_serial("$cat", undef, 0, no_regex => 1);
+        type_string($current_test_script, terminate_with => 'EOT');
+        type_string('',                   terminate_with => 'EOT');
+        wait_serial("$suffix-0-");
+    }
+    else {
+        open my $fh, ">", 'current_script' or croak("Could not open file. $!");
+        print $fh $current_test_script;
+        close $fh;
+        assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh";
+        script_run "clear";
+    }
 
-    type_string "(/bin/bash -ex /tmp/script$suffix.sh ; echo SCRIPT_FINISHED$suffix-\$?- )| tee /dev/$serialdev\n";
-    my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait) or croak "script timeout";
+    my $run_script = "/tmp/script$suffix.sh ; echo SCRIPT_FINISHED$suffix-\$?-";
+    if (is_serial_terminal) {
+        type_string("/bin/bash -e $run_script\n");
+        wait_serial($run_script, undef, 0, no_regex => 1);
+    }
+    else {
+        type_string "(/bin/bash -ex $run_script)| tee /dev/$serialdev\n";
+    }
+    my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait, 0, record_output => 1)
+      || croak "script timeout";
 
     croak "script failed" if $output !~ "SCRIPT_FINISHED$suffix-0-";
 
@@ -1015,7 +1070,6 @@ sub wait_idle {
 
     # report wait_idle calls while we work on
     # https://progress.opensuse.org/issues/5830
-    use Carp qw(cluck);
     cluck "Wait_idle called";
 
     bmwqemu::log_call(timeout => $timeout);
@@ -1266,6 +1320,13 @@ sub type_string {
         %args = @_;
     }
     my $log = $args{secret} ? 'SECRET STRING' : $string;
+
+    if (is_serial_terminal) {
+        bmwqemu::log_call(text => $log, %args);
+        query_isotovideo('backend_type_string', {text => $string, %args});
+        return;
+    }
+
     my $max_interval = $args{max_interval}       // 250;
     my $wait         = $args{wait_screen_change} // 0;
     bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait);
@@ -1450,6 +1511,7 @@ sub select_console {
     }
     my $ret = query_isotovideo('backend_select_console', {testapi_console => $testapi_console});
 
+    $selected_console = $testapi_console;
     if ($ret->{activated}) {
         # we need to store the activated consoles for rollback
         if ($autotest::last_milestone) {
@@ -1457,6 +1519,7 @@ sub select_console {
         }
         $testapi::distri->activate_console($testapi_console);
     }
+
     return $testapi_console_proxies{$testapi_console};
 }
 
@@ -1481,11 +1544,12 @@ here.
 =cut
 sub console {
     my ($testapi_console) = @_;
+    $testapi_console ||= $selected_console;
     bmwqemu::log_call(testapi_console => $testapi_console);
     if (exists $testapi_console_proxies{$testapi_console}) {
         return $testapi_console_proxies{$testapi_console};
     }
-    confess "console $testapi_console is not activated.";
+    croak "console $testapi_console is not activated.";
 }
 
 =head2 reset_consoles
