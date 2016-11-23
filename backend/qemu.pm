@@ -206,7 +206,7 @@ sub save_snapshot {
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("savevm $vmname");
     diag "SAVED $vmname $rsp";
-    die unless ($rsp eq "savevm $vmname");
+    die "Could not save snapshot \'$vmname\'" unless ($rsp eq "savevm $vmname");
     return;
 }
 
@@ -214,7 +214,7 @@ sub load_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("loadvm $vmname");
-    die unless ($rsp eq "loadvm $vmname");
+    die "Could not load snapshot \'$vmname\'" unless ($rsp eq "loadvm $vmname");
     $rsp = $self->handle_qmp_command({execute => 'stop'});
     $rsp = $self->handle_qmp_command({execute => 'cont'});
     sleep(10);
@@ -324,18 +324,23 @@ sub start_qemu {
         die "no dmi data for '$vars->{LAPTOP}'\n" unless -d "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
     }
 
-    my $bootfrom = "";    # branch by "disk" or "cdrom", not "c" or "d"
+    my $bootfrom = '';    # branch by "disk" or "cdrom", not "c" or "d"
     if ($vars->{BOOT_HDD_IMAGE}) {
         # skip dvd boot menu and boot directly from hdd
         $vars->{BOOTFROM} //= 'c';
     }
-    if ($vars->{BOOTFROM} eq "d" || $vars->{BOOTFROM} eq "cdrom") {
-        $bootfrom = "cdrom";
-        $vars->{BOOTFROM} = "d";
-    }
-    if ($vars->{BOOTFROM} eq "c" || $vars->{BOOTFROM} eq "disk") {
-        $bootfrom = "disk";
-        $vars->{BOOTFROM} = "c";
+    if (my $bootfrom_var = $vars->{BOOTFROM}) {
+        if ($bootfrom_var eq 'd' || $bootfrom_var eq 'cdrom') {
+            $bootfrom = 'cdrom';
+            $vars->{BOOTFROM} = 'd';
+        }
+        elsif ($bootfrom_var eq 'c' || $bootfrom_var eq 'disk') {
+            $bootfrom = 'disk';
+            $vars->{BOOTFROM} = 'c';
+        }
+        else {
+            die "unknown/unsupported boot order: $bootfrom_var";
+        }
     }
 
     my $iso = $vars->{ISO};
