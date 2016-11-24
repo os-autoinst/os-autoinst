@@ -23,6 +23,7 @@ use Carp qw(croak);
 use Scalar::Util qw(blessed);
 use Cwd;
 use consoles::virtio_screen ();
+use testapi qw(get_var);
 
 use base 'consoles::console';
 
@@ -110,8 +111,13 @@ sub open_socket {
 
 sub activate {
     my ($self) = @_;
-    $self->{socket_fd} = $self->open_socket;
-    $self->{screen}    = consoles::virtio_screen::->new($self->{socket_fd});
+    if (get_var('VIRTIO_CONSOLE')) {
+        $self->{socket_fd} = $self->open_socket;
+        $self->{screen}    = consoles::virtio_screen::->new($self->{socket_fd});
+    }
+    else {
+        croak 'VIRTIO_CONSOLE is not set, so no virtio-serial and virtconsole devices will be available to use with this console.';
+    }
     return;
 }
 
