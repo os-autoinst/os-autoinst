@@ -732,6 +732,7 @@ sub start_qemu {
         if ($vars->{AUTO_INST}) {
             push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
         }
+        bmwqemu::diag(`$qemubin -version`);
         bmwqemu::diag("starting: " . join(" ", @params));
 
         # don't try to talk to the host's PA
