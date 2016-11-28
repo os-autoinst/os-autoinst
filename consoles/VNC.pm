@@ -21,7 +21,7 @@ __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
-      _last_update_requested vncinfo old_ikvm
+      _last_update_requested _vnc_stalled vncinfo old_ikvm
       ));
 our $VERSION = '0.40';
 
@@ -131,6 +131,7 @@ sub login {
     # in a land far far before our time
     $self->_last_update_received(0);
     $self->_last_update_requested(0);
+    $self->_vnc_stalled(0);
 
     eval {
         $self->_handshake_protocol_version();
@@ -790,14 +791,16 @@ sub send_update_request {
     # to get a defined live sign. If that doesn't help, consider
     # the framebuffer outdated
     if ($self->_framebuffer) {
-        if ($self->_last_update_requested - $self->_last_update_received > 4) {
+        if (($self->_vnc_stalled == 1) && ($self->_last_update_requested - $self->_last_update_received > 4)) {
             $self->_last_update_received(0);
             # return black image - screen turned off
             bmwqemu::diag "considering VNC stalled - turning black";
             $self->_framebuffer(tinycv::new($self->width, $self->height));
+            $self->_vnc_stalled(2);
         }
         if ($time_since_last_update > 2) {
             $self->send_forced_update_request;
+            $self->_vnc_stalled(1) unless $self->_vnc_stalled;
         }
     }
 
@@ -843,6 +846,7 @@ sub _receive_message {
     if (!$ret) {
         return;
     }
+    $self->_vnc_stalled(0);
 
     die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
 
@@ -876,10 +880,6 @@ sub _receive_update {
     if (!$image && $self->width && $self->height) {
         $image = tinycv::new($self->width, $self->height);
         $self->_framebuffer($image);
-
-        # We're going to be splatting pixels, so make sure every pixel is opaque
-        #$image->set_colour( 0, 0, 0, 255 );
-        #$image->fill_rectangle( 0, 0, $self->width, $self->height );
     }
 
     my $socket               = $self->socket;
