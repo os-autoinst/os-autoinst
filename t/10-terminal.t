@@ -238,6 +238,8 @@ sub test_terminal_directly {
     open STDERR, '>&', $errdupfd;
     STDERR->autoflush(1);
 
+    testapi::set_var('VIRTIO_CONSOLE', 1);
+
     my $term = consoles::virtio_terminal->new('unit-test-console', []);
     $term->activate;
     my $scrn = $term->screen;
