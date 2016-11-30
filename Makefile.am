@@ -34,6 +34,8 @@ consolesexec_DATA = \
 	consoles/sshIucvconn.pm \
 	consoles/sshXtermVt.pm \
 	consoles/ttyConsole.pm \
+	consoles/virtio_screen.pm \
+	consoles/virtio_terminal.pm \
 	consoles/vnc_base.pm \
 	consoles/VNC.pm
 
