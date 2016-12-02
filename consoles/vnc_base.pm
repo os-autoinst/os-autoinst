@@ -22,7 +22,7 @@ use base ('consoles::console');
 use consoles::VNC;
 use Time::HiRes qw(usleep gettimeofday);
 
-use feature qw/say/;
+use feature qw(say);
 use Data::Dumper qw(Dumper);
 use Carp qw(confess cluck carp croak);
 use Try::Tiny;

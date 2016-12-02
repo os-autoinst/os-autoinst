@@ -18,11 +18,11 @@ package consoles::sshVirtsh;
 use base 'consoles::sshXtermVt';
 use strict;
 use warnings;
-use testapi qw/get_var get_required_var check_var set_var/;
+use testapi qw(get_var get_required_var check_var set_var);
 require IPC::System::Simple;
 use autodie qw(:all);
 use XML::LibXML;
-use File::Temp qw/tempfile/;
+use File::Temp qw(tempfile);
 
 use Class::Accessor "antlers";
 has instance   => (is => "rw", isa => "Num");

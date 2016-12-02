@@ -2,7 +2,7 @@ package backend::pvm;
 use strict;
 use base ('backend::baseclass');
 use bmwqemu qw(fileContent diag save_vars);
-use File::Path qw/mkpath/;
+use File::Path qw(mkpath);
 require IPC::System::Simple;
 use autodie qw(:all);
 use File::Basename;

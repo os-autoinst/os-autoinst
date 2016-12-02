@@ -19,11 +19,11 @@ package lockapi;
 use strict;
 use warnings;
 
-use base qw/Exporter/;
-our @EXPORT = qw/mutex_create mutex_lock mutex_unlock mutex_try_lock barrier_create barrier_wait barrier_try_wait barrier_destroy/;
+use base qw(Exporter);
+our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock barrier_create barrier_wait barrier_try_wait barrier_destroy);
 
 require bmwqemu;
-use mmapi qw/api_call/;
+use mmapi qw(api_call);
 
 sub _lock_action {
     my ($name, $where) = @_;

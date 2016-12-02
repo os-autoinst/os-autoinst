@@ -24,7 +24,7 @@ use IO::Select;
 use IO::Socket::UNIX qw( SOCK_STREAM );
 use IO::Handle;
 use Data::Dumper;
-use POSIX qw/strftime :sys_wait_h/;
+use POSIX qw(strftime :sys_wait_h);
 use JSON;
 require Carp;
 use Fcntl;
@@ -150,7 +150,7 @@ sub start_serial_grab {
         push(@cmd, '--dumponly');
 
         # our supermicro boards need workarounds to get SOL ;(
-        push(@cmd, qw/-W nochecksumcheck/);
+        push(@cmd, qw(-W nochecksumcheck));
 
         exec(@cmd);
         die "exec failed $!";

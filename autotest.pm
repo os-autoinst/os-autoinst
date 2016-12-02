@@ -17,8 +17,8 @@
 package autotest;
 use strict;
 use bmwqemu;
-use Exporter qw/import/;
-our @EXPORT_OK = qw/loadtest $current_test query_isotovideo/;
+use Exporter qw(import);
+our @EXPORT_OK = qw(loadtest $current_test query_isotovideo);
 
 use File::Basename;
 use File::Spec;

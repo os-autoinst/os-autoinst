@@ -15,7 +15,7 @@ use Compress::Raw::Zlib;
 
 use Carp qw(confess cluck carp croak);
 use Data::Dumper qw(Dumper);
-use feature qw/say/;
+use feature qw(say);
 
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
