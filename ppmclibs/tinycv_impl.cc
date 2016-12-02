@@ -33,6 +33,15 @@
 #define DEBUG 0
 #define DEBUG2 0
 
+#if __cplusplus >= 201112L
+// disabled by default
+#define DEBUG_IO 0
+#endif
+
+#if DEBUG_IO
+#include <chrono>
+#endif
+
 #define VERY_DIFF 0.0
 #define VERY_SIM 1000000.0
 
@@ -313,7 +322,15 @@ Image* image_read(const char* filename)
 
 bool image_write(Image* s, const char* filename)
 {
+#if DEBUG_IO
+    auto time_before_write = std::chrono::high_resolution_clock::now();
+#endif
     return imwrite(filename, s->img);
+#if DEBUG_IO
+    auto time_after_write = std::chrono::high_resolution_clock::now();
+    cout << "DEBUG_IO: "
+         << "|filename: " << filename << "|write time: " << chrono::duration_cast<chrono::milliseconds>(time_after_write - time_before_write).count() << endl flush;
+#endif
 }
 
 Image* image_copy(Image* s)
