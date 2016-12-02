@@ -21,14 +21,14 @@ use Carp;
 use Exporter;
 use 5.018;
 use warnings;
-use File::Basename qw(basename);
+use File::Basename 'basename';
 use Time::HiRes qw(sleep gettimeofday tv_interval);
-use autotest qw(query_isotovideo);
+use autotest 'query_isotovideo';
 use Mojo::DOM;
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 use OpenQA::Exceptions;
-use Digest::MD5 qw(md5_base64);
+use Digest::MD5 'md5_base64';
 use Carp qw(cluck croak);
 
 require bmwqemu;

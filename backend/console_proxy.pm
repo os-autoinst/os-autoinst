@@ -31,7 +31,7 @@ sub new {
     return $self;
 }
 
-use feature qw/say/;
+use feature 'say';
 
 sub DESTROY {
     # nothing to destroy but avoid AUTOLOAD

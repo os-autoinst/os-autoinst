@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use Test::More;
-use File::Which qw(which);
+use File::Which 'which';
 use File::Basename;
 
 BEGIN {

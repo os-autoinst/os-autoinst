@@ -19,14 +19,14 @@ package mmapi;
 use strict;
 use warnings;
 
-use base qw/Exporter/;
-our @EXPORT = qw/get_children_by_state get_children get_parents get_job_info get_job_autoinst_url get_job_autoinst_vars wait_for_children wait_for_children_to_start api_call/;
+use base 'Exporter';
+our @EXPORT = qw(get_children_by_state get_children get_parents get_job_info get_job_autoinst_url get_job_autoinst_vars wait_for_children wait_for_children_to_start api_call);
 
 require bmwqemu;
 
 use Mojo::UserAgent;
 use Mojo::URL;
-use JSON qw/decode_json/;
+use JSON 'decode_json';
 
 # private ua
 my $ua;

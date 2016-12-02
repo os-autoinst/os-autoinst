@@ -22,10 +22,11 @@ sub violates {
     my $expl = q{use qw(A B)};
 
     if ($elem =~ m/^\Qqw(\E/) {
-        # ok if there is whitespace too
-        return if $elem =~ /\s/;
         return unless $elem->parent->isa('PPI::Statement::Include');
-        $expl = q{use 'H' for single values and avoid arrays};
+        # ok if there is whitespace too
+        return unless $elem =~ /^qw\(\s*\S+\s*\)$/;
+        return unless $elem->parent->isa('PPI::Statement::Include');
+        $expl = q{use MODULE 'func' for single imports};
     }
     return $self->violation($desc, $expl, $elem);
 }

@@ -18,9 +18,9 @@ package consoles::sshXtermVt;
 use base 'consoles::localXvnc';
 use strict;
 use warnings;
-use testapi qw/get_var/;
+use testapi 'get_var';
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 use File::Which;
 
 

@@ -18,7 +18,7 @@ package ocr;
 use strict;
 use warnings;
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 
 our $gocrbin = "/usr/bin/gocr";
 if (!-x $gocrbin) { $gocrbin = undef }

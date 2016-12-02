@@ -19,8 +19,8 @@ use base 'consoles::console';
 use strict;
 use warnings;
 require IPC::System::Simple;
-use autodie qw(:all);
-use testapi qw(check_var);
+use autodie ':all';
+use testapi 'check_var';
 
 # to be overloaded
 sub trigger_select {

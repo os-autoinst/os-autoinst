@@ -16,20 +16,20 @@
 
 package consoles::s3270;
 
-use base qw(consoles::localXvnc);
+use base 'consoles::localXvnc';
 use strict;
 use warnings;
 
-use Class::Accessor "antlers";
+use Class::Accessor 'antlers';
 has zVM_host    => (is => "rw");
 has guest_user  => (is => "rw");
 has guest_login => (is => "rw");
 
-use Data::Dumper qw(Dumper);
+use Data::Dumper 'Dumper';
 use Carp qw(confess cluck carp croak);
 
-use feature qw(say);
-use testapi qw(get_required_var);
+use feature 'say';
+use testapi 'get_required_var';
 
 require IPC::Run;
 
@@ -37,7 +37,7 @@ use IPC::Run::Debug;    # set IPCRUNDEBUG=data in shell environment for trace
 
 use Thread::Queue;
 
-use Time::HiRes qw(usleep);
+use Time::HiRes 'usleep';
 
 sub start() {
     my $self = shift;

@@ -18,12 +18,12 @@ use warnings;
 use autodie;
 use Socket qw(SOCK_NONBLOCK PF_UNIX SOCK_STREAM sockaddr_un);
 use Errno qw(EAGAIN EWOULDBLOCK);
-use English qw( -no_match_vars );
-use Carp qw(croak);
-use Scalar::Util qw(blessed);
+use English -no_match_vars;
+use Carp 'croak';
+use Scalar::Util 'blessed';
 use Cwd;
 use consoles::virtio_screen ();
-use testapi qw(get_var);
+use testapi 'get_var';
 
 use base 'consoles::console';
 

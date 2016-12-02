@@ -17,14 +17,14 @@
 package autotest;
 use strict;
 use bmwqemu;
-use Exporter qw/import/;
-our @EXPORT_OK = qw/loadtest $current_test query_isotovideo/;
+use Exporter 'import';
+our @EXPORT_OK = qw(loadtest $current_test query_isotovideo);
 
 use File::Basename;
 use File::Spec;
 use Socket;
 use IO::Handle;
-use POSIX qw(_exit);
+use POSIX '_exit';
 use cv;
 
 our %tests;        # scheduled or run tests

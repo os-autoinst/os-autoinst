@@ -13,12 +13,12 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 use 5.018;
 use warnings;
-use Carp qw( confess );
-use English qw( -no_match_vars );
+use Carp 'confess';
+use English -no_match_vars;
 use POSIX qw( :sys_wait_h sigprocmask sigsuspend );
 use Socket qw( PF_UNIX SOCK_STREAM sockaddr_un );
-use Time::HiRes qw( usleep );
-use File::Temp qw( tempfile );
+use Time::HiRes 'usleep';
+use File::Temp 'tempfile';
 
 use Test::More;
 

@@ -15,10 +15,10 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package consoles::sshX3270;
-use base qw(consoles::localXvnc);
+use base 'consoles::localXvnc';
 use strict;
 use warnings;
-use testapi qw/get_var/;
+use testapi 'get_var';
 
 sub activate {
     my ($self) = @_;
