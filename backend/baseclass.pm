@@ -29,9 +29,9 @@ use IO::Select;
 require IPC::System::Simple;
 use autodie ':all';
 use myjsonrpc;
-
 use Net::SSH2;
 use feature 'say';
+use OpenQA::Benchmark::Stopwatch;
 
 my $framecounter = 0;    # screenshot counter
 
@@ -381,18 +381,20 @@ sub enqueue_screenshot {
     return unless $image;
 
     my $starttime = gettimeofday;
+    my $watch     = OpenQA::Benchmark::Stopwatch->new();
+    $watch->start();
 
     $image = $image->scale(1024, 768);
-
+    $watch->lap("scaling");
     $framecounter++;
 
     my $filename = $bmwqemu::screenshotpath . sprintf("/shot-%010d.ppm", $framecounter);
-
     my $lastscreenshot = $self->last_image;
 
     # link identical files to save space
     my $sim = 0;
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
+    $watch->lap("similarity");
 
     my $mt1 = gettimeofday;
 
@@ -409,15 +411,22 @@ sub enqueue_screenshot {
 
     if ($sim > 50) {    # we ignore smaller differences
         $self->write_encoder_frame('R');
+        $watch->lap("write_encoder_frame R");
     }
     else {
         $self->write_img($image, $filename) || die "write $filename";
         $self->write_encoder_frame("E $filename");
+        $watch->lap("write_encoder_frame E");
     }
+    # TODO: Have the stopwatch to be able to handle this calculation. (by ading elapsed - lap)
     my $d = gettimeofday - $starttime;
     if ($d > $self->screenshot_interval) {
         bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds - slow IO? (opencv: %.2f - encoder: %.2f)", $d, $mt1 - $starttime, gettimeofday - $mt1);
     }
+
+    $watch->stop();
+    print "DEBUG_IO: for $filename\n";
+    print $watch->summary();
     return;
 }
 
