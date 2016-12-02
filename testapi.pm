@@ -858,8 +858,12 @@ sub assert_shutdown {
             bmwqemu::diag("Backend does not implement is_shutdown - just sleeping");
             sleep($timeout);
         }
-        if ($is_shutdown) {    # -1 counts too
-            $autotest::current_test->take_screenshot('ok');
+        # -1 counts too
+        if ($is_shutdown) {
+            # With svirt backend the VNC connection is dead, can't take a screenshot
+            unless (check_var('BACKEND', 'svirt')) {
+                $autotest::current_test->take_screenshot('ok');
+            }
             return;
         }
         --$timeout;
