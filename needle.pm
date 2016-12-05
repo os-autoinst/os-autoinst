@@ -202,7 +202,7 @@ sub wanted_ {
 sub init {
     ($needledir, $shared_cache) = @_;
 
-    $needledir //= "$bmwqemu::vars{CASEDIR}/needles/";
+    $needledir //= "$bmwqemu::vars{PRODUCTDIR}/needles/";
     $needledir = abs_path($needledir) // die "needledir not found: $needledir (check vars.json?)";
 
     %needles = ();
