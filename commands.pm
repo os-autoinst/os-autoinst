@@ -213,12 +213,12 @@ sub isotovideo_command {
 
 sub isotovideo_get {
     my ($c) = @_;
-    return isotovideo_command($c, [qw/status version/]);
+    return isotovideo_command($c, [qw(status version)]);
 }
 
 sub isotovideo_post {
     my ($c) = @_;
-    return isotovideo_command($c, [qw/interactive stop_waitforneedle continue_waitforneedle reload_needles/]);
+    return isotovideo_command($c, [qw(interactive stop_waitforneedle continue_waitforneedle reload_needles)]);
 }
 
 sub run_daemon {

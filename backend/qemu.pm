@@ -17,12 +17,12 @@
 package backend::qemu;
 use strict;
 use base ('backend::virt');
-use File::Path qw/mkpath/;
+use File::Path qw(mkpath);
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Select;
 use IO::Socket::UNIX qw( SOCK_STREAM );
 use IO::Handle;
-use POSIX qw/strftime :sys_wait_h/;
+use POSIX qw(strftime :sys_wait_h);
 use JSON;
 use Carp;
 use Fcntl;
@@ -275,7 +275,7 @@ sub start_qemu {
 
     my $qemubin = $ENV{QEMU};
     unless ($qemubin) {
-        my @candidates = $vars->{QEMU} ? ('qemu-system-' . $vars->{QEMU}) : qw/kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64/;
+        my @candidates = $vars->{QEMU} ? ('qemu-system-' . $vars->{QEMU}) : qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64);
         for my $bin (map { '/usr/bin/' . $_ } @candidates) {
             next unless -x $bin;
             $qemubin = $bin;
@@ -293,7 +293,7 @@ sub start_qemu {
         $vars->{UEFI} = 1;
     }
 
-    foreach my $attribute (qw/BIOS KERNEL INITRD/) {
+    foreach my $attribute (qw(BIOS KERNEL INITRD)) {
         if ($vars->{$attribute} && $vars->{$attribute} !~ /^\//) {
             # Non-absolute paths are assumed relative to /usr/share/qemu
             $vars->{$attribute} = '/usr/share/qemu/' . $vars->{$attribute};
@@ -358,7 +358,7 @@ sub start_qemu {
 
     # Deprecated behaviour: set scsi controller using the value of the HDD or CD Model.
     # Then set the HDD or CD model to an actual drive type.
-    for my $var (qw/HDDMODEL CDMODEL/) {
+    for my $var (qw(HDDMODEL CDMODEL)) {
         if ($vars->{$var} =~ /virtio-scsi.*/) {
             $vars->{SCSICONTROLLER} = $vars->{$var};
             $vars->{$var} = sprintf "scsi-%sd", lc substr $var, 0, 1;
@@ -659,7 +659,7 @@ sub start_qemu {
         elsif ($vars->{BIOS}) {
             push(@params, "-bios", $vars->{BIOS});
         }
-        foreach my $attribute (qw/KERNEL INITRD APPEND/) {
+        foreach my $attribute (qw(KERNEL INITRD APPEND)) {
             if ($vars->{$attribute}) {
                 push(@params, "-" . lc($attribute), $vars->{$attribute});
             }
@@ -673,16 +673,16 @@ sub start_qemu {
         }
         if ($vars->{OFW}) {
             no warnings 'qw';
-            push(@params, qw/-device nec-usb-xhci -device usb-tablet/);
+            push(@params, qw(-device nec-usb-xhci -device usb-tablet));
         }
         elsif ($vars->{ARCH} eq 'aarch64') {
-            push(@params, qw/-device nec-usb-xhci -device usb-tablet/);
+            push(@params, qw(-device nec-usb-xhci -device usb-tablet));
         }
         else {
-            push(@params, qw/-device usb-ehci -device usb-tablet/);
+            push(@params, qw(-device usb-ehci -device usb-tablet));
         }
         if ($use_usb_kbd) {
-            push(@params, qw/-device usb-kbd/);
+            push(@params, qw(-device usb-kbd));
         }
         if ($vars->{QEMUTHREADS}) {
             push(@params, "-smp", $vars->{QEMUCPUS} . ",threads=" . $vars->{QEMUTHREADS});

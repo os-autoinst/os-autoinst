@@ -18,7 +18,7 @@ package consoles::remoteVnc;
 use base 'consoles::vnc_base';
 use strict;
 use warnings;
-use testapi qw/get_var/;
+use testapi qw(get_var);
 
 sub init() {
     my ($self) = @_;

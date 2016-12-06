@@ -26,7 +26,7 @@ use base ('backend::baseclass');
 
 use Carp qw(confess cluck carp croak);
 
-use feature qw/say/;
+use feature qw(say);
 
 use testapi qw(get_required_var);
 

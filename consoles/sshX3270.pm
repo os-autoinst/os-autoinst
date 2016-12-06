@@ -18,7 +18,7 @@ package consoles::sshX3270;
 use base qw(consoles::localXvnc);
 use strict;
 use warnings;
-use testapi qw/get_var/;
+use testapi qw(get_var);
 
 sub activate {
     my ($self) = @_;

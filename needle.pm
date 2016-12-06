@@ -57,10 +57,10 @@ sub new {
     my $gotmatch;
     for my $area (@{$json->{area}}) {
         my $a = {};
-        for my $tag (qw/xpos ypos width height/) {
+        for my $tag (qw(xpos ypos width height)) {
             $a->{$tag} = $area->{$tag} || 0;
         }
-        for my $tag (qw/processing_flags max_offset/) {
+        for my $tag (qw(processing_flags max_offset)) {
             $a->{$tag} = $area->{$tag} if $area->{$tag};
         }
         $a->{match} = $area->{match} if $area->{match};
@@ -103,7 +103,7 @@ sub save {
     my @area;
     for my $a (@{$self->{area}}) {
         my $aa = {};
-        for my $tag (qw/xpos ypos width height max_offset processing_flags match type margin/) {
+        for my $tag (qw(xpos ypos width height max_offset processing_flags match type margin)) {
             $aa->{$tag} = $a->{$tag} if defined $a->{$tag};
         }
         push @area, $aa;
