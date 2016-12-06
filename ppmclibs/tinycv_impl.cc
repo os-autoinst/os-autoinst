@@ -267,13 +267,8 @@ Image *image_read(const char *filename)
 bool image_write(Image *s, const char *filename)
 {
   vector<uchar> buf;
-  vector<int> compression_params;
-  compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-  // compression level from 0-9, default is 3 but we go lower/faster
-  // and let openQA run optipng on those we want to save
-  compression_params.push_back(1);
 
-  if (!imencode(".png", s->img, buf, compression_params)) {
+  if (!imencode(".ppm", s->img, buf)) {
     std::cerr << "Could not encode image " << filename << std::endl;
     return false;
   }
