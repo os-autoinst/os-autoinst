@@ -277,10 +277,11 @@ sub runalltests {
 }
 
 sub loadtestdir {
-    my $dir = shift;
+    my ($dir) = @_;
+    die "need argument \$dir" unless $dir;
     $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
     $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
-    die "$dir does not exist!\n" unless -d $dir;
+    die "'$dir' does not exist!\n" unless -d $dir;
     foreach my $script (glob "$dir/*.pm") {
         loadtest($script);
     }
