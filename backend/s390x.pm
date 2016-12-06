@@ -20,15 +20,15 @@ use strict;
 use warnings;
 use English;
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 
-use base ('backend::baseclass');
+use base 'backend::baseclass';
 
 use Carp qw(confess cluck carp croak);
 
-use feature qw/say/;
+use feature 'say';
 
-use testapi qw(get_required_var);
+use testapi 'get_required_var';
 
 sub new {
     my $class = shift;

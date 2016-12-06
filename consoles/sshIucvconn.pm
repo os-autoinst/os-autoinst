@@ -20,9 +20,9 @@ package consoles::sshIucvconn;
 use base 'consoles::console';
 use strict;
 use warnings;
-use testapi qw/get_var/;
+use testapi 'get_var';
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 use XML::LibXML;
 
 sub new {

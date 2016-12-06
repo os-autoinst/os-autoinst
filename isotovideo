@@ -42,14 +42,14 @@ use needle;
 use autotest;
 use commands;
 use distribution;
-use testapi qw(diag);
+use testapi 'diag';
 use Getopt::Std;
 require IPC::System::Simple;
-use autodie qw(:all);
-no autodie qw(kill);
+use autodie ':all';
+no autodie 'kill';
 use Cwd;
 use POSIX qw(:sys_wait_h _exit);
-use Carp qw(cluck);
+use Carp 'cluck';
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use File::Spec;
 use File::Path;
@@ -173,7 +173,7 @@ sub signalhandler_chld {
 
 sub sync_needles_to_cache {
 
-    no autodie qw(system);
+    no autodie 'system';
 
     my $needles_source = $bmwqemu::vars{PRODUCTDIR} . "/needles";
     my $shared_cache = File::Spec->catdir($bmwqemu::vars{CACHEDIRECTORY}, $bmwqemu::vars{OPENQA_HOSTNAME}, $bmwqemu::vars{DISTRI});

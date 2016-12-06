@@ -159,7 +159,7 @@ distclean-local: clean-local
 
 check-local:
 	$(srcdir)/tools/tidy --check
-	PERL5LIB=tools/lib/perlcritic:$$PERL5LIB perlcritic --gentle --include Perl::Critic::Policy::HashKeyQuote $(srcdir)
+	PERL5LIB=tools/lib/perlcritic:$$PERL5LIB perlcritic --gentle --include Perl::Critic::Policy::HashKeyQuote --include Perl::Critic::Policy::ConsistentQuoteLikeWords $(srcdir)
 	$(MAKE) check-doc
 
 .PHONY: check-doc

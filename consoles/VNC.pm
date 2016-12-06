@@ -1,21 +1,21 @@
 package consoles::VNC;
 use strict;
 use warnings;
-use base qw(Class::Accessor::Fast);
+use base 'Class::Accessor::Fast';
 use IO::Socket::INET;
 use bytes;
-use bmwqemu qw(diag);
+use bmwqemu 'diag';
 use Time::HiRes qw( usleep gettimeofday time );
 use Carp;
 use tinycv;
-use List::Util qw(min);
+use List::Util 'min';
 
 use Crypt::DES;
 use Compress::Raw::Zlib;
 
 use Carp qw(confess cluck carp croak);
-use Data::Dumper qw(Dumper);
-use feature qw/say/;
+use Data::Dumper 'Dumper';
+use feature 'say';
 
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
@@ -763,7 +763,7 @@ sub update_framebuffer() {    # upstream VNC.pm:  "capture"
     return $have_recieved_update;
 }
 
-use POSIX qw(:errno_h);
+use POSIX ':errno_h';
 
 sub _send_frame_buffer {
     my ($self, $args) = @_;

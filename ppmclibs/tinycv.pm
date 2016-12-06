@@ -19,7 +19,7 @@ package tinycv;
 use strict;
 use warnings;
 
-use bmwqemu qw(diag);
+use bmwqemu 'diag';
 
 use File::Basename;
 

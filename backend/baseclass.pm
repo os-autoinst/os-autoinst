@@ -19,26 +19,26 @@ package backend::baseclass;
 use strict;
 use warnings;
 use Carp qw(cluck carp confess);
-use JSON qw( to_json );
-use File::Copy qw(cp);
+use JSON 'to_json';
+use File::Copy 'cp';
 use File::Basename;
 use Time::HiRes qw(gettimeofday tv_interval);
-use POSIX qw(_exit);
+use POSIX '_exit';
 use bmwqemu;
 use IO::Select;
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 use myjsonrpc;
 
 use Net::SSH2;
-use feature qw(say);
+use feature 'say';
 
 my $framecounter = 0;    # screenshot counter
 
 # should be a singleton - and only useful in backend process
 our $backend;
 
-use parent qw(Class::Accessor::Fast);
+use parent 'Class::Accessor::Fast';
 __PACKAGE__->mk_accessors(
     qw(
       update_request_interval last_update_request screenshot_interval
@@ -122,7 +122,7 @@ sub run {
     bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
 }
 
-use List::Util qw(min);
+use List::Util 'min';
 
 =head2 run_capture_loop(\@select, $timeout, $update_request_interval, $screenshot_interval)
 
@@ -275,7 +275,7 @@ sub stop_vm {
     if ($self->{started}) {
         kill(TERM => $self->{encoder_pid}) if $self->{encoder_pid};
         # backend.run might have disappeared already in case of failed builds
-        no autodie qw(unlink);
+        no autodie 'unlink';
         unlink('backend.run');
         $self->do_stop_vm();
         waitpid($self->{encoder_pid}, 0);
@@ -401,7 +401,7 @@ sub enqueue_screenshot {
         $self->write_img($image, $filename) || die "write $filename";
         $self->last_image($image);
         $self->_last_screenshot_name($filename);
-        no autodie qw(unlink);
+        no autodie 'unlink';
         unlink($lastlink);
         symlink(basename($self->_last_screenshot_name), $lastlink);
     }

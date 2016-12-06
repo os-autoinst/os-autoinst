@@ -15,10 +15,10 @@
 package consoles::virtio_screen;
 use 5.018;
 use warnings;
-use English qw( -no_match_vars );
+use English -no_match_vars;
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use integer;
-use Carp qw(croak);
+use Carp 'croak';
 
 our $VERSION;
 

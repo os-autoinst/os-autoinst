@@ -22,12 +22,12 @@
 package backend::driver;
 use strict;
 use Carp qw(cluck carp croak confess);
-use JSON qw(to_json);
-use File::Path qw(remove_tree);
+use JSON 'to_json';
+use File::Path 'remove_tree';
 use IO::Select;
-use POSIX qw(_exit);
+use POSIX '_exit';
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 use myjsonrpc;
 
 # TODO: move the whole printing out of bmwqemu
@@ -160,12 +160,12 @@ sub mouse_hide {
 sub _send_json {
     my ($self, $cmd) = @_;
 
-    croak "no backend running" unless ($self->{to_child});
+    croak "no backend running" unless $self->{to_child};
     my $token = myjsonrpc::send_json($self->{to_child}, $cmd);
     my $rsp = myjsonrpc::read_json($self->{from_child}, $token);
     unless (defined $rsp) {
         # this might have been closed by signal handler
-        no autodie qw(close);
+        no autodie 'close';
         close($self->{from_child});
         $self->{from_child} = undef;
         $self->stop();

@@ -22,7 +22,7 @@ use warnings;
 use FindBin;
 use File::Find;
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 
 
 BEGIN {
@@ -31,9 +31,9 @@ BEGIN {
 
 use commands;
 use Mojo::IOLoop::Server;
-use Time::HiRes qw(sleep);
+use Time::HiRes 'sleep';
 use Test::More;
-use POSIX qw(_exit);
+use POSIX '_exit';
 
 our $mojoport = Mojo::IOLoop::Server->generate_port;
 

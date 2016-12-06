@@ -25,7 +25,7 @@ use POSIX;
 use Term::ANSIColor;
 use Carp;
 use JSON;
-use File::Path qw(remove_tree);
+use File::Path 'remove_tree';
 use Data::Dumper;
 
 use base 'Exporter';
@@ -37,7 +37,7 @@ our @EXPORT_OK = qw(diag);
 
 use backend::driver;
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 
 sub mydie;
 
@@ -244,7 +244,7 @@ sub modstart {
     return;
 }
 
-use autotest qw($current_test);
+use autotest '$current_test';
 sub current_test() {
     return $autotest::current_test;
 }
@@ -286,7 +286,7 @@ sub log_call {
 
 sub fileContent {
     my ($fn) = @_;
-    no autodie qw(open);
+    no autodie 'open';
     open(my $fd, "<", $fn) or return;
     local $/;
     my $result = <$fd>;

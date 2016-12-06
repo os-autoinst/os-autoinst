@@ -18,13 +18,13 @@ package consoles::sshVirtsh;
 use base 'consoles::sshXtermVt';
 use strict;
 use warnings;
-use testapi qw/get_var get_required_var check_var set_var/;
+use testapi qw(get_var get_required_var check_var set_var);
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 use XML::LibXML;
-use File::Temp qw/tempfile/;
+use File::Temp 'tempfile';
 
-use Class::Accessor "antlers";
+use Class::Accessor 'antlers';
 has instance   => (is => "rw", isa => "Num");
 has name       => (is => "rw", isa => "Str");
 has vmm_family => (is => "rw", isa => "Str");

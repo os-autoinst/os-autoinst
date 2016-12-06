@@ -18,13 +18,13 @@
 
 package backend::generalhw;
 use strict;
-use base ('backend::baseclass');
-use bmwqemu qw(diag);
+use base 'backend::baseclass';
+use bmwqemu 'diag';
 use testapi qw(get_required_var get_var);
 use IPC::Run ();
 require IPC::System::Simple;
-use autodie qw(:all);
-use File::Basename qw(basename);
+use autodie ':all';
+use File::Basename 'basename';
 
 sub new {
     my $class = shift;

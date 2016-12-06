@@ -17,13 +17,13 @@
 package consoles::vnc_base;
 use strict;
 use warnings;
-use base ('consoles::console');
+use base 'consoles::console';
 
 use consoles::VNC;
 use Time::HiRes qw(usleep gettimeofday);
 
-use feature qw/say/;
-use Data::Dumper qw(Dumper);
+use feature 'say';
+use Data::Dumper 'Dumper';
 use Carp qw(confess cluck carp croak);
 use Try::Tiny;
 

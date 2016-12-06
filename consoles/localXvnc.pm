@@ -21,7 +21,7 @@ use warnings;
 use IPC::Run ();
 
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 use Socket;
 use strict;
 use warnings;

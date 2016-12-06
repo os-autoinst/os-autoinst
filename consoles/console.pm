@@ -18,9 +18,9 @@ package consoles::console;
 use strict;
 use warnings;
 require IPC::System::Simple;
-use autodie qw(:all);
+use autodie ':all';
 
-use Class::Accessor "antlers";
+use Class::Accessor 'antlers';
 has backend => (is => "rw");
 
 sub new {

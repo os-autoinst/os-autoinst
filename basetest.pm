@@ -181,7 +181,7 @@ sub _serialize_match {
     my $h = {name => $name, error => $cand->{error}, area => [], json => $jsonfile};
     for my $a (@{$cand->{area}}) {
         my $na = {};
-        for my $i (qw/x y w h result/) {
+        for my $i (qw(x y w h result)) {
             $na->{$i} = $a->{$i};
         }
         $na->{similarity} = int($a->{similarity} * 100);
