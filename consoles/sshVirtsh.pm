@@ -322,6 +322,10 @@ sub add_disk {
                 $self->run_cmd("qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
             }
         }
+        elsif ($args->{copy}) {
+            $file = "/var/lib/libvirt/images/$file";
+            $self->run_cmd("rsync -av $args->{file} $file") && die 'rsync failed';
+        }
         else {
             # Not sure what will be equivalent solution for JeOS on VMware, though
             if ($self->vmm_family ne 'vmware') {
