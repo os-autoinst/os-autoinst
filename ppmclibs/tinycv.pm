@@ -22,6 +22,7 @@ use warnings;
 use bmwqemu 'diag';
 
 use File::Basename;
+use Math::Complex 'sqrt';
 
 require Exporter;
 require DynaLoader;
@@ -115,7 +116,7 @@ sub search_ {
     }
 
     $ret->{error} = mean_square_error($ret->{area});
-    bmwqemu::diag(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - $ret->{error}));
+    bmwqemu::diag(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - sqrt($ret->{error})));
 
     if ($ret->{ok}) {
         for my $a (@ocr) {
