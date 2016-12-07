@@ -1,5 +1,3 @@
-/* Modified by Stephan Kulow <coolo@suse.de> 2014 to take the PNGs
-   from stdin and use opencv directly */
 /* Modified by Stephan Kulow <coolo@suse.de> 2016 to take the PNGs
    from external file */
 
@@ -21,23 +19,16 @@
   last mod: $Id$
              based on code from Vegard Nossum
 
+Commands can be: E src_image or R:
+  * E src_image will add src_image to the video as a new frame
+  * R will wait until a new command is recieved
+
+This program will wait until it recieves a TERM signal to complete the 
+video.
+
  ********************************************************************/
 
 #define _FILE_OFFSET_BITS 64
-
-/*
-#include <errno.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <time.h>
-#include <math.h>
-#include <libgen.h>
-#include <sys/types.h>
-#include <dirent.h>
-*/
 
 #include <signal.h>
 #include <unistd.h>
@@ -346,6 +337,14 @@ main (int argc, char *argv[])
 	    }
 
 	  rgb_to_yuv (&image, ycbcr);
+
+	std::string new_filename = filename;
+
+	new_filename = new_filename.replace(new_filename.end() - 4, new_filename.end(), ".png");
+
+	imwrite(new_filename, image);
+	unlink(filename);
+	link(new_filename.c_str(), filename); //tried with symlink but somehow the link is broken
 
 	}
       else if (line[0] == 'R')

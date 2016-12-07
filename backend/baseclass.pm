@@ -407,7 +407,6 @@ sub enqueue_screenshot {
         $self->_last_screenshot_name($filename);
 
         if ($want_png) {
-            print "We want the png";
             no autodie 'unlink';
             unlink($lastlink);
             symlink(basename($self->_last_screenshot_name), $lastlink);
