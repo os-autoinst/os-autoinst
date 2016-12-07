@@ -28,6 +28,7 @@ IPMI_USER;string;Username for the IPMI interface;
 Variable;Values allowed;Default value;Explanation
 ARCH;x86_64|i686|aarch64|...;depends on tested medium;Architecture of VM.
 AUTO_INST;;;
+ATACONTROLLER;see qemu -device ?, e. g. for SATA: ich9-ahci;;Controller for ATA devices, needed for connecting disks as SATA.
 BIOS;;;
 BOOT_HDD_IMAGE;boolean;;enables boot from HDD_1 (BOOTFROM has higher priority)
 BOOTFROM;chars;undef;Influences order of boot devices. See qemu -boot option
