@@ -37,7 +37,6 @@ my $framecounter = 0;    # screenshot counter
 
 # should be a singleton - and only useful in backend process
 our $backend;
-our $want_png = 0;
 
 use parent 'Class::Accessor::Fast';
 __PACKAGE__->mk_accessors(
@@ -182,8 +181,6 @@ sub run_capture_loop {
 
                 last if $time_to_timeout <= 0;
             }
-
-            $want_png = (-e bmwqemu::result_dir() . "/live_log") ? 1 : 0;
 
             my $time_to_update_request = ($update_request_interval // $self->update_request_interval) - ($now - $self->last_update_request);
             if ($time_to_update_request <= 0) {
@@ -388,8 +385,7 @@ sub enqueue_screenshot {
     $framecounter++;
 
     my $filename = $bmwqemu::screenshotpath . sprintf("/shot-%010d.ppm", $framecounter);
-    my $lastlink = $bmwqemu::screenshotpath . "/last.png";
-
+    
     my $lastscreenshot = $self->last_image;
 
     # link identical files to save space
@@ -404,13 +400,6 @@ sub enqueue_screenshot {
         $self->write_img($image, $filename) || die "write $filename";
         $self->last_image($image);
         $self->_last_screenshot_name($filename);
-
-        if ($want_png) {
-            no autodie 'unlink';
-            unlink($lastlink);
-            symlink(basename($self->_last_screenshot_name), $lastlink);
-        }
-
     }
 
     if ($sim > 50) {    # we ignore smaller differences
