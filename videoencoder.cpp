@@ -1,3 +1,5 @@
+/* Modified by Stephan Kulow <coolo@suse.de> 2014 to take the PNGs
+   from stdin and use opencv directly */
 /* Modified by Stephan Kulow <coolo@suse.de> 2016 to take the PNGs
    from external file */
 
@@ -164,6 +166,10 @@ main (int argc, char *argv[])
 {
   th_comment tc;
   int ret;
+  bool live_view;
+  struct stat buff;
+  std::string cwd;
+  std::string livelog_file;
 
   if (argc != 3)
     {
@@ -312,55 +318,45 @@ main (int argc, char *argv[])
 	sleep(1);
 	continue;
       }
-      // better don't take half lines
-      if (line[strlen(line) - 1] == '\n') {
-	line[strlen (line) - 1] = 0;
-	cmd_offset = ftell(cmd);
-	fclose(cmd);
-      } else {
-	fclose(cmd);
-	sleep(1);
-	continue;
-      }
-      //printf ("I got '%s'\n", line);
+        // better don't take half lines
+        if (line[strlen(line) - 1] == '\n') {
+                line[strlen (line) - 1] = 0;
+                cmd_offset = ftell(cmd);
+                fclose(cmd);
+        } else {
+                fclose(cmd);
+                sleep(1);
+                continue;
+        }
 
-      if (line[0] == 'E')
-	{
-	  const char *filename = line + 2;
+        if (line[0] == 'E') {
+                const char *filename = line + 2;
+                Mat image;
+                image = imread (filename, CV_LOAD_IMAGE_COLOR);
 
-	  Mat image;
-	  image = imread (filename, CV_LOAD_IMAGE_COLOR);
+                if (!image.data) { //
+                    std::cout << "Could not open or find the image" << std::endl;
+                    return -1;
+                  }
 
-	  if (!image.data)	// Check for invalid input
-	    {
-	      std::cout << "Could not open or find the image" << std::endl;
-	      return -1;
-	    }
+                rgb_to_yuv (&image, ycbcr);
 
-    rgb_to_yuv (&image, ycbcr);
-    
-    struct stat buff;
-    std::string livelog_file = get_current_dir_name();
-    livelog_file += "/live_log";
-    bool live_view = (stat(livelog_file.c_str(), &buff) != -1);
+                cwd = get_current_dir_name();
+                livelog_file = cwd + "/live_log";
+                live_view = (stat(livelog_file.c_str(), &buff) != -1);
 
-    std::cout << "Processing " << filename << std::endl;
-    std::cout << "CWD is " << get_current_dir_name() << std::endl;
-    std::cout << "livelog_file is " << livelog_file.c_str() << std::endl;
-    if(live_view){
-      std::string new_filename = filename;
-      new_filename += ".png";
-      std::cout << "Need more PNG!" << std::endl;
-    // new_filename = new_filename.replace(new_filename.end() - 4, new_filename.end(), ".png");
-      imwrite(new_filename, image);
-      unlink("last.png");
-      symlink(new_filename.c_str(), "last.png"); //tried with symlink but somehow the link is broken
-    }
+                if(live_view){
+                  std::string new_filename = filename;
+                  new_filename = new_filename + ".png";
+                  imwrite(new_filename, image);
+                  unlink("qemuscreenshot/last.png");
+                  symlink(basename(new_filename.c_str()), "qemuscreenshot/last.png"); 
+                }
 
-	}
+        }
       else if (line[0] == 'R')
 	{
-	  // nothing
+	  // Just repeat the last frame
 	}
       else
 	{
