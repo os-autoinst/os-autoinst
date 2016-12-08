@@ -35,6 +35,7 @@ video.
 #include <cstdio>
 #include <ogg/ogg.h>
 #include "theora/theoraenc.h"
+#include <sys/stat.h>
 
 const char *option_input;
 const char *option_output;
@@ -336,15 +337,25 @@ main (int argc, char *argv[])
 	      return -1;
 	    }
 
-	  rgb_to_yuv (&image, ycbcr);
+    rgb_to_yuv (&image, ycbcr);
+    
+    struct stat buff;
+    std::string livelog_file = get_current_dir_name();
+    livelog_file += "/live_log";
+    bool live_view = (stat(livelog_file.c_str(), &buff) != -1);
 
-	std::string new_filename = filename;
-
-	new_filename = new_filename.replace(new_filename.end() - 4, new_filename.end(), ".png");
-
-	imwrite(new_filename, image);
-	unlink(filename);
-	link(new_filename.c_str(), filename); //tried with symlink but somehow the link is broken
+    std::cout << "Processing " << filename << std::endl;
+    std::cout << "CWD is " << get_current_dir_name() << std::endl;
+    std::cout << "livelog_file is " << livelog_file.c_str() << std::endl;
+    if(live_view){
+      std::string new_filename = filename;
+      new_filename += ".png";
+      std::cout << "Need more PNG!" << std::endl;
+    // new_filename = new_filename.replace(new_filename.end() - 4, new_filename.end(), ".png");
+      imwrite(new_filename, image);
+      unlink("last.png");
+      symlink(new_filename.c_str(), "last.png"); //tried with symlink but somehow the link is broken
+    }
 
 	}
       else if (line[0] == 'R')
