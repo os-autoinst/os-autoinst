@@ -114,12 +114,45 @@ int MyErrorHandler(int status, const char* func_name, const char* err_msg, const
 }
 
 std::vector<char> str2vec(std::string str_in) {
-	std::vector<char> out(str_in.data(), str_in.data() + str_in.length());
-	return out;
+  std::vector<char> out(str_in.data(), str_in.data() + str_in.length());
+  return out;
 }
 
+/* we try to the find the best locations - possibly more and will
+   weight in later */
+std::vector<Point> minVec(const Mat &m, double &min) {
+  min = INT_MAX;
+  std::vector<Point> res;
+
+  assert(m.depth() == CV_32F);
+
+  for (int y = 0; y < m.rows; y++) {
+    const float* sptr = m.ptr<float>(y);
+
+    for (int x = 0; x < m.cols; x++) {
+      float diff = min - sptr[x];
+      if (diff > 10) {
+	min = sptr[x];
+	res.clear(); // reset
+	res.push_back(Point(x, y));
+      } else if (fabs(diff) < 10) {
+	res.push_back(Point(x, y));
+      }
+    }
+  }
+  return res;
+}
+
+// Used to sort a list of points to find the closest to the original
+struct SortByClose {
+  SortByClose(int _x, int _y) { orig.x = _x, orig.y = _y; }
+  bool operator() (Point a, Point b) { return cv::norm(orig-a) < cv::norm(orig-b); }
+  Point orig;
+};
+
 /* we find the object in the scene and return the x,y and the error of the match */
-std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x, long y, long width, long height, long margin, double &similarity) {
+std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x, long y,
+				 long width, long height, long margin, double &similarity) {
   // cvSetErrMode(CV_ErrModeParent);
   // cvRedirectError(MyErrorHandler);
 
@@ -129,6 +162,9 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
 #endif
 
   std::vector<int> outvec(2);
+  outvec[0] = 0;
+  outvec[1] = 0;
+  similarity = 0;
 
   if (scene->img.empty() || object->img.empty() ) {
     std::cerr << "Error reading images. Scene or object is empty." << std::endl;
@@ -137,7 +173,8 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
 
   // avoid an exception
   if ( x < 0 || y < 0 || y+height > scene->img.rows || x+width > scene->img.cols ) {
-    std::cerr << "ERROR - search: out of range " << y+height << " " << scene->img.rows << " " << x+width  << " " << scene->img.cols << std::endl;
+    std::cerr << "ERROR - search: out of range " << y+height << " "
+	      << scene->img.rows << " " << x+width  << " " << scene->img.cols << std::endl;
     return outvec;
   }
 
@@ -160,9 +197,6 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   int result_width  = scene_roi.cols - width + 1; // object->img.cols + 1;
   int result_height = scene_roi.rows - height + 1; // object->img.rows + 1;
   if (result_width <= 0 || result_height <= 0) {
-    similarity = 0;
-    outvec[0] = 0;
-    outvec[1] = 0;
     std::cerr << "ERROR2 - search: out of range\n" << std::endl;
     return outvec;
  }
@@ -174,11 +208,16 @@ std::vector<int> search_TEMPLATE(const Image *scene, const Image *object, long x
   // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
   matchTemplate(scene_roi, object_roi, result, CV_TM_SQDIFF);
 
-  // Localizing the best match with minMaxLoc
-  double minval, maxval;
-  Point  minloc, maxloc;
-  minMaxLoc(result, &minval, &maxval, &minloc, &maxloc, Mat());
-  
+  // Localizing the points that are "good" - not necessarly the absolute min
+  double minval;
+  std::vector<Point> mins = minVec(result, minval);
+
+  if (mins.empty())
+    return outvec;
+  // sort it by distance to the original - and take the closest
+  SortByClose s(x, y);
+  sort(mins.begin(), mins.end(), s);
+  Point minloc = mins[0];
   outvec[0] = int(minloc.x + scene_x);
   outvec[1] = int(minloc.y + scene_y);
 
