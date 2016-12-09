@@ -59,6 +59,14 @@ ok(defined $cand && ref $cand eq 'ARRAY', "candidates must be array");
 #$res    = $img1->search($needle);
 #ok( defined $res, "match with different art" );
 
+$img1   = tinycv::read($data_dir . "reclaim_space_delete_btn-20160823.test.png");
+$needle = needle->new($data_dir . "reclaim_space_delete_btn-20160823.ref.json");
+
+$res    = $img1->search($needle, 0, 0);
+is($res->{area}->[0]->{x}, 108, "found area is the original one");
+$res    = $img1->search($needle, 0, 0.9);
+is($res->{area}->[0]->{x}, 108, "found area is the original one too");
+
 $img1   = tinycv::read($data_dir . "kde.test.png");
 $needle = needle->new($data_dir . "kde.ref.json");
 $res    = $img1->search($needle);

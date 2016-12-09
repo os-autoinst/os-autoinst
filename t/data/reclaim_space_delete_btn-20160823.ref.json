@@ -1,0 +1,18 @@
+{
+    "area": [
+        {
+            "height": 16,
+            "type": "match",
+            "width": 41,
+            "xpos": 108,
+            "ypos": 519
+        }
+    ],
+    "properties": [],
+    "tags": [
+        "anaconda_install_destination_reclaim_space_delete_btn",
+        "ENV-DISTRI-fedora",
+        "LANGUAGE-english",
+        "ENV-FLAVOR-server"
+    ]
+}
