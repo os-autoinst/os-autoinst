@@ -726,7 +726,6 @@ sub start_qemu {
         push @params, "-monitor", "telnet:127.0.0.1:$port,server,nowait";
 
         unshift(@params, $qemubin);
-        unshift(@params, "/usr/bin/eatmydata") if (-e "/usr/bin/eatmydata");
 
         if ($vars->{AUTO_INST}) {
             push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
