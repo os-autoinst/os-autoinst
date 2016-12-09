@@ -733,7 +733,7 @@ sub set_tags_to_assert {
     my $timeout       = $args->{timeout} // $bmwqemu::default_timeout;
     my $reloadneedles = $args->{reloadneedles} || 0;
 
-    # free all needle images
+    # free all needle images (https://progress.opensuse.org/issues/15438)
     for my $n (needle->all()) {
         $n->{img} = undef;
     }
