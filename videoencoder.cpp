@@ -33,6 +33,7 @@ video.
 
 #include "theora/theoraenc.h"
 #include <cstdio>
+#include <getopt.h>
 #include <ogg/ogg.h>
 #include <signal.h>
 #include <sys/stat.h>
@@ -145,19 +146,35 @@ static int ilog(unsigned _v)
     return ret;
 }
 
+bool need_last_png() { return !access("live_log", R_OK); }
+
 int main(int argc, char* argv[])
 {
     th_comment tc;
     int ret;
 
-    if (argc != 3) {
-        fprintf(stderr,
-            "%s: CMDS OUTPUT - reads commands till STDIN is closed\n");
-        return 1;
+    bool output_video = true;
+    int opt;
+    while ((opt = getopt(argc, argv, "n")) != -1) {
+        switch (opt) {
+        case 'n':
+            output_video = false;
+            break;
+        default: /* '?' */
+            fprintf(stderr,
+                "%s: [-n] CMDS OUTPUT - reads commands from CMDS until TERMed\n",
+                argv[0]);
+            exit(EXIT_FAILURE);
+        }
     }
 
-    option_input = argv[1];
-    option_output = argv[2];
+    if (optind != argc - 2) {
+        fprintf(stderr, "Expected CMDS and OUTPUT\n");
+        exit(EXIT_FAILURE);
+    }
+
+    option_input = argv[optind];
+    option_output = argv[optind + 1];
 
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
@@ -268,6 +285,10 @@ int main(int argc, char* argv[])
     char line[PATH_MAX + 10];
     int fsls = 0; // frames since last sync
 
+    string last_frame_filename;
+    Mat last_frame_image;
+    bool last_frame_converted = false;
+
     long cmd_offset = 0;
     while (1) {
         FILE* cmd = fopen(option_input, "r");
@@ -295,24 +316,20 @@ int main(int argc, char* argv[])
         }
 
         if (line[0] == 'E') {
-            string filename = line + 2;
-            Mat image;
-            image = imread(filename, CV_LOAD_IMAGE_COLOR);
+            last_frame_filename = line + 2;
+            last_frame_converted = false;
 
-            if (!image.data) {
-                cout << "Could not open or find the image" << endl;
-                return -1;
+            if (output_video || need_last_png()) {
+                last_frame_image = imread(last_frame_filename, CV_LOAD_IMAGE_COLOR);
+
+                if (!last_frame_image.data) {
+                    cout << "Could not open or find the image" << endl;
+                    return -1;
+                }
             }
 
-            rgb_to_yuv(&image, ycbcr);
-
-            if (!access("live_log", R_OK)) {
-                string new_filename = filename + ".png";
-                imwrite(new_filename, image);
-                unlink("qemuscreenshot/last.png");
-                symlink(basename(new_filename.c_str()),
-                    "qemuscreenshot/last.png");
-            }
+            if (output_video)
+                rgb_to_yuv(&last_frame_image, ycbcr);
 
         } else if (line[0] == 'R') {
             // Just repeat the last frame
@@ -320,14 +337,24 @@ int main(int argc, char* argv[])
             fprintf(stderr, "unknown command line: %s\n", line);
         }
 
-        if (theora_write_frame(ycbcr, 0)) {
-            fprintf(stderr, "Encoding error.\n");
-            exit(1);
+        if (!last_frame_converted && need_last_png()) {
+            string new_filename = last_frame_filename + ".png";
+            imwrite(new_filename, last_frame_image);
+            unlink("qemuscreenshot/last.png");
+            symlink(basename(new_filename.c_str()), "qemuscreenshot/last.png");
+            last_frame_converted = true;
         }
 
-        if (++fsls > 10) {
-            fflush(ogg_fp);
-            fsls = 0;
+        if (output_video) {
+            if (theora_write_frame(ycbcr, 0)) {
+                fprintf(stderr, "Encoding error.\n");
+                exit(1);
+            }
+
+            if (++fsls > 10) {
+                fflush(ogg_fp);
+                fsls = 0;
+            }
         }
     }
 
