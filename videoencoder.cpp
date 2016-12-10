@@ -38,6 +38,8 @@ video.
 #include <sys/stat.h>
 #include <unistd.h>
 
+using namespace std;
+
 const char* option_input;
 const char* option_output;
 
@@ -293,20 +295,19 @@ int main(int argc, char* argv[])
         }
 
         if (line[0] == 'E') {
-            const char* filename = line + 2;
+            string filename = line + 2;
             Mat image;
             image = imread(filename, CV_LOAD_IMAGE_COLOR);
 
             if (!image.data) {
-                std::cout << "Could not open or find the image" << std::endl;
+                cout << "Could not open or find the image" << endl;
                 return -1;
             }
 
             rgb_to_yuv(&image, ycbcr);
 
             if (!access("live_log", R_OK)) {
-                std::string new_filename = filename;
-                new_filename = new_filename + ".png";
+                string new_filename = filename + ".png";
                 imwrite(new_filename, image);
                 unlink("qemuscreenshot/last.png");
                 symlink(basename(new_filename.c_str()),

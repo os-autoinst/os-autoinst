@@ -394,10 +394,13 @@ sub enqueue_screenshot {
 
     my $mt1 = gettimeofday;
 
-    # 54 is based on t/data/user-settings-*
+    # we have two different similarity levels - one (slightly higher value, based
+    # t/data/user-settings-*) to determine if it's worth it to recheck needles
+    # and one (slightly lower as less signifant) determining if we write the frame
+    # into the video (and onto disk)
+    # in case the filename has to be returned to the test process as result, it's
+    # written out unconditionally (see write_img)
     if ($sim <= 54) {
-        # don't write a new screenshot by default not to waste cycles
-        $self->write_img($image, $filename) || die "write $filename";
         $self->last_image($image);
         $self->_last_screenshot_name($filename);
     }
@@ -406,8 +409,8 @@ sub enqueue_screenshot {
         $self->write_encoder_frame('R');
     }
     else {
-        my $name = $self->_last_screenshot_name;
-        $self->write_encoder_frame("E $name");
+        $self->write_img($image, $filename) || die "write $filename";
+        $self->write_encoder_frame("E $filename");
     }
     my $d = gettimeofday - $starttime;
     if ($d > $self->screenshot_interval) {
