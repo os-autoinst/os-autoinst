@@ -147,13 +147,10 @@ int main(int argc, char* argv[])
 {
     th_comment tc;
     int ret;
-    bool live_view;
-    struct stat buff;
-    std::string cwd;
-    std::string livelog_file;
 
     if (argc != 3) {
-        fprintf(stderr, "%s: CMDS OUTPUT - reads commands till STDIN is closed\n");
+        fprintf(stderr,
+            "%s: CMDS OUTPUT - reads commands till STDIN is closed\n");
         return 1;
     }
 
@@ -300,23 +297,20 @@ int main(int argc, char* argv[])
             Mat image;
             image = imread(filename, CV_LOAD_IMAGE_COLOR);
 
-            if (!image.data) { //
+            if (!image.data) {
                 std::cout << "Could not open or find the image" << std::endl;
                 return -1;
             }
 
             rgb_to_yuv(&image, ycbcr);
 
-            cwd = get_current_dir_name();
-            livelog_file = cwd + "/live_log";
-            live_view = (stat(livelog_file.c_str(), &buff) != -1);
-
-            if (live_view) {
+            if (!access("live_log", R_OK)) {
                 std::string new_filename = filename;
                 new_filename = new_filename + ".png";
                 imwrite(new_filename, image);
                 unlink("qemuscreenshot/last.png");
-                symlink(basename(new_filename.c_str()), "qemuscreenshot/last.png");
+                symlink(basename(new_filename.c_str()),
+                    "qemuscreenshot/last.png");
             }
 
         } else if (line[0] == 'R') {
