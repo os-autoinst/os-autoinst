@@ -195,3 +195,7 @@ coverage-html: t/cover_db/coverage.html
 .PHONY: coverage-check
 coverage-check: t/cover_db/coverage.html
 	(cd t && ../tools/check_coverage ${COVERAGE_THRESHOLD})
+
+.PHONY: tidy-cpp
+tidy-cpp:
+	clang-format --style=WebKit -i $$(find . -name \*.cc -o -name \*.cpp)
