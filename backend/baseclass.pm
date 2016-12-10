@@ -249,7 +249,6 @@ sub start_encoder {
     my ($self) = @_;
 
     $self->{encoder_pid} = 0;
-    return if $bmwqemu::vars{NOVIDEO};
 
     # create empty file
     open(my $fh, '>', 'video.log');
@@ -257,7 +256,10 @@ sub start_encoder {
     my $cwd = Cwd::getcwd();
     $self->{encoder_pid} = fork();
     if (!$self->{encoder_pid}) {
-        exec('nice', '-n', '19', "$bmwqemu::scriptdir/videoencoder", "$cwd/video.log", "$cwd/video.ogv");
+        my @cmd = qw(nice -n 19);
+        push(@cmd, ("$bmwqemu::scriptdir/videoencoder", "$cwd/video.log", "$cwd/video.ogv"));
+        push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO};
+        exec(@cmd);
     }
     return;
 }
