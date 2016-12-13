@@ -689,6 +689,12 @@ sub start_qemu {
         else {
             push(@params, "-smp", $vars->{QEMUCPUS});
         }
+        if ($vars->{QEMU_NUMA}) {
+            for my $i (0 .. ($vars->{QEMUCPUS} - 1)) {
+                push(@params, '-numa', "node,nodeid=$i");
+            }
+        }
+
         push(@params, "-enable-kvm") unless $vars->{QEMU_NO_KVM};
         push(@params, "-no-shutdown");
 
