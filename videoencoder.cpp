@@ -345,6 +345,8 @@ int main(int argc, char* argv[])
             last_frame_converted = true;
         }
 
+        unlink(last_frame_filename.c_str());
+
         if (output_video) {
             if (theora_write_frame(ycbcr, 0)) {
                 fprintf(stderr, "Encoding error.\n");
