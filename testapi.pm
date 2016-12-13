@@ -744,11 +744,11 @@ sub script_output($;$) {
 
     my $run_script = "/tmp/script$suffix.sh ; echo SCRIPT_FINISHED$suffix-\$?-";
     if (is_serial_terminal) {
-        type_string("/bin/bash -e $run_script\n");
+        type_string("/bin/bash -oe pipefail $run_script\n");
         wait_serial($run_script, undef, 0, no_regex => 1);
     }
     else {
-        type_string "(/bin/bash -ex $run_script)| tee /dev/$serialdev\n";
+        type_string "(/bin/bash -eox pipefail $run_script)| tee /dev/$serialdev\n";
     }
     my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait, 0, record_output => 1)
       || croak "script timeout";
