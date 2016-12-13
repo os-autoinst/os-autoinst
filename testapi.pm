@@ -1317,7 +1317,8 @@ sub type_string {
     # special argument handling for backward compat
     my $string = shift;
     my %args;
-    if (@_ == 1) {    # backward compat
+    wait_still_screen 1, 5;    # wait a second before typing
+    if (@_ == 1) {             # backward compat
         %args = (max_interval => $_[0]);
     }
     else {
@@ -1345,6 +1346,7 @@ sub type_string {
     else {
         query_isotovideo('backend_type_string', {text => $string, max_interval => $max_interval});
     }
+    wait_still_screen 1, 5;    # wait a second after typing
 }
 
 =head2 type_password
