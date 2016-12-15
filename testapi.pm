@@ -860,14 +860,13 @@ sub assert_shutdown {
         }
         # -1 counts too
         if ($is_shutdown) {
-            # With svirt backend the VNC connection is dead, can't take a screenshot
-            unless (check_var('BACKEND', 'svirt')) {
-                $autotest::current_test->take_screenshot('ok');
-            }
+            $autotest::current_test->take_screenshot('ok');
             return;
         }
+        # svirt backend uses SSH in is_shutdown() so it takes around 1 second
+        # to get result anyway - no need to sleep explicitly
+        sleep 1 unless check_var('BACKEND', 'svirt');
         --$timeout;
-        sleep 1 if $timeout >= 0;
     }
     $autotest::current_test->take_screenshot('fail');
     croak "Machine didn't shut down!";
