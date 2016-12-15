@@ -6,7 +6,6 @@ package OpenQA::Benchmark::Stopwatch;
 our $VERSION = '0.05';
 
 use Time::HiRes;
-use Clone 'clone';
 
 =head1 NAME
 
@@ -225,21 +224,24 @@ sub as_data {
     $data{total_time} = $data{stop_time} - $data{start_time};
 
     # Clone the events across and add the stop event.
-    $data{laps} = clone($self->{events});
-    push @{$data{laps}}, {name => '_stop_', time => $data{stop_time}};
+    # $data{laps} = clone($self->{events});
+    my @laps = @{$self->{events}};
+    push @laps, {name => '_stop_', time => $data{stop_time}};
 
     # For each entry in laps calculate the cumulative and the fraction.
     my $running_total = 0;
     my $last_time     = $data{start_time};
-    foreach my $lap (@{$data{laps}}) {
-
-        my $this_time = delete $lap->{time};
-        $lap->{time} = $this_time - $last_time;
+    foreach my $lap (@laps) {
+        my %lapcopy   = %$lap;
+        my $this_time = delete $lapcopy{time};
+        $lapcopy{time} = $this_time - $last_time;
         $last_time = $this_time;
 
-        $running_total += $lap->{time};
-        $lap->{cumulative} = $running_total;
-        $lap->{fraction}   = $lap->{time} / $data{total_time};
+        $running_total += $lapcopy{time};
+        $lapcopy{cumulative} = $running_total;
+        $lapcopy{fraction}   = $lapcopy{time} / $data{total_time};
+
+        push @{$data{laps}}, \%lapcopy;
     }
 
     return \%data;
