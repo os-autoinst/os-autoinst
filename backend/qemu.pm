@@ -584,6 +584,11 @@ sub start_qemu {
             }
         }
 
+        if ($vars->{ATACONTROLLER}) {
+            # SATA devices need SATA controller
+            push(@params, "-device", "$vars->{ATACONTROLLER},id=ahci0");
+        }
+
         for my $i (1 .. $vars->{NUMDISKS}) {
             if ($vars->{MULTIPATH}) {
                 for my $c (1 .. $vars->{PATHCNT}) {
