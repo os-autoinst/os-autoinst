@@ -373,12 +373,6 @@ sub _server_initialization {
     ) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
     #>>> tidy on
 
-    #bmwqemu::diag "FW $framebuffer_width x $framebuffer_height";
-
-    #bmwqemu::diag "$bits_per_pixel bpp / depth $depth / $server_is_big_endian be / $true_colour_flag tc / $pixinfo{red_max},$pixinfo{green_max},$pixinfo{blue_max} / $pixinfo{red_shift},$pixinfo{green_shift},$pixinfo{blue_shift}";
-
-    #bmwqemu::diag $name_length;
-
     if (!$self->depth) {
 
         # client did not express a depth preference, so check if the server's preference is OK
@@ -433,7 +427,9 @@ sub _server_initialization {
         return;    # the rest is kindly ignored by ikvm anyway
     }
 
-    my $info = tinycv::new_vncinfo($self->_do_endian_conversion, $self->_true_colour, $self->_bpp / 8, $pixinfo{red_max}, $pixinfo{red_shift}, $pixinfo{green_max}, $pixinfo{green_shift}, $pixinfo{blue_max}, $pixinfo{blue_shift});
+    my $info = tinycv::new_vncinfo(
+        $self->_do_endian_conversion, $self->_true_colour,   $self->_bpp / 8,    $pixinfo{red_max}, $pixinfo{red_shift},
+        $pixinfo{green_max},          $pixinfo{green_shift}, $pixinfo{blue_max}, $pixinfo{blue_shift});
     $self->vncinfo($info);
 
     # setpixelformat
