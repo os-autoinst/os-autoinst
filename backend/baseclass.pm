@@ -50,9 +50,10 @@ __PACKAGE__->mk_accessors(
 sub new {
     my $class = shift;
     my $self = bless({class => $class}, $class);
-    $self->{started}       = 0;
-    $self->{serialfile}    = "serial0";
-    $self->{serial_offset} = 0;
+    $self->{started}          = 0;
+    $self->{serialfile}       = "serial0";
+    $self->{serial_offset}    = 0;
+    $self->{video_frame_data} = [];
     return $self;
 }
 
@@ -205,6 +206,19 @@ sub run_capture_loop {
             my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
             if (defined $select) {
                 my ($read_set, $write_set) = IO::Select->select($select, $select, undef, $time_to_next);
+                # check the video encoder pipe first, it has the most traffic
+                if (grep { $_ == $self->{encoder_pipe} } @$write_set) {
+                    my $fdata        = shift @{$self->{video_frame_data}};
+                    my $data_written = $self->{encoder_pipe}->syswrite($fdata);
+                    if ($data_written != length($fdata)) {
+                        # put it back into the queue
+                        unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
+                    }
+                    if (!@{$self->{video_frame_data}}) {
+                        $self->{select}->remove($self->{encoder_pipe});
+                    }
+                    #next;
+                }
                 for my $fh (@$read_set) {
                     unless ($self->check_socket($fh, 0)) {
                         die "huh! $fh\n";
@@ -217,7 +231,10 @@ sub run_capture_loop {
                     last;
                 }
                 for my $fh (@$write_set) {
-                    unless ($self->check_socket($fh, 1)) {
+                    if ($fh == $self->{encoder_pipe}) {
+                        # already handled
+                    }
+                    elsif (!$self->check_socket($fh, 1)) {
                         die "huh! $fh\n";
                     }
                     last;
@@ -236,12 +253,6 @@ sub run_capture_loop {
     return;
 }
 
-sub write_encoder_frame {
-    my ($self, $frame) = @_;
-
-
-}
-
 sub start_encoder {
     my ($self) = @_;
 
@@ -250,6 +261,9 @@ sub start_encoder {
     push(@cmd, ("$bmwqemu::scriptdir/videoencoder", "$cwd/video.ogv"));
     push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO};
     open($self->{encoder_pipe}, '|-', @cmd);
+
+    $self->{encoder_pipe}->blocking(0);
+    $self->{select}->add($self->{encoder_pipe});
 
     return;
 }
@@ -270,6 +284,11 @@ sub stop_vm {
         no autodie 'unlink';
         unlink('backend.run');
         $self->do_stop_vm();
+        # flush frames
+        $self->{encoder_pipe}->blocking(1);
+        for my $fdata (@{$self->{video_frame_data}}) {
+            $self->{encoder_pipe}->print($fdata);
+        }
         close($self->{encoder_pipe}) if $self->{encoder_pipe};
         $self->{started} = 0;
     }
@@ -380,15 +399,14 @@ sub enqueue_screenshot {
     }
 
     if ($sim > 50) {    # we ignore smaller differences
-        $self->{encoder_pipe}->print("R\n");
-        $watch->lap("write_encoder_frame R");
+        push(@{$self->{video_frame_data}}, "R\n");
     }
     else {
         my $imgdata = $image->ppm_data;
         $watch->lap("convert ppm data");
-        $self->{encoder_pipe}->print('E ' . length($imgdata) . "\n");
-        $self->{encoder_pipe}->print($imgdata);
-        $watch->lap("write_encoder_frame E");
+        push(@{$self->{video_frame_data}}, 'E ' . length($imgdata) . "\n");
+        push(@{$self->{video_frame_data}}, $imgdata);
+        $self->{select}->add($self->{encoder_pipe});
     }
 
     $watch->stop();
