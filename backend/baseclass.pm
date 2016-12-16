@@ -381,8 +381,7 @@ sub enqueue_screenshot {
 
     return unless $image;
 
-    my $starttime = gettimeofday;
-    my $watch     = OpenQA::Benchmark::Stopwatch->new();
+    my $watch = OpenQA::Benchmark::Stopwatch->new();
     $watch->start();
 
     $image = $image->scale(1024, 768);
@@ -397,11 +396,9 @@ sub enqueue_screenshot {
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
     $watch->lap("similarity");
 
-    my $mt1 = gettimeofday;
-
     # we have two different similarity levels - one (slightly higher value, based
     # t/data/user-settings-*) to determine if it's worth it to recheck needles
-    # and one (slightly lower as less signifant) determining if we write the frame
+    # and one (slightly lower as less significant) determining if we write the frame
     # into the video (and onto disk)
     # in case the filename has to be returned to the test process as result, it's
     # written out unconditionally (see write_img)
@@ -419,17 +416,14 @@ sub enqueue_screenshot {
         $self->write_encoder_frame("E $filename");
         $watch->lap("write_encoder_frame E");
     }
-    # TODO: Have the stopwatch to be able to handle this calculation. (by ading elapsed - lap)
-    my $d = gettimeofday - $starttime;
-    if ($d > $self->screenshot_interval) {
-        my $t_opencv = $mt1 - $starttime;
-        my $t_enc    = gettimeofday - $mt1;
-        bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds - slow IO? (opencv: %.2f - encoder: %.2f)", $d, $t_opencv, $t_enc);
-    }
 
     $watch->stop();
-    print "DEBUG_IO: for $filename\n";
-    print $watch->summary();
+    if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
+        bmwqemu::diag "DEBUG_IO: for $filename\n";
+        bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
+        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
+    }
+
     return;
 }
 
@@ -843,9 +837,9 @@ sub check_asserted_screen {
         return;
     }
 
+    my $watch        = OpenQA::Benchmark::Stopwatch->new();
     my $img_filename = $self->_last_screenshot_name;
-
-    my $n = $self->_time_to_assert_screen_deadline;
+    my $n            = $self->_time_to_assert_screen_deadline;
 
     my $search_ratio = 0.02;
     $search_ratio = 1 if ($n % 5 == 0);
@@ -863,7 +857,7 @@ sub check_asserted_screen {
         }
     }
 
-    my $starttime = gettimeofday;
+    $watch->start();
 
     my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio);
 
@@ -872,9 +866,9 @@ sub check_asserted_screen {
         return {filename => $self->write_img($img, $img_filename), found => $foundneedle, candidates => $failed_candidates};
     }
 
-    my $d = gettimeofday - $starttime;
-    if ($d > $self->screenshot_interval) {
-        bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $d);
+    $watch->stop();
+    if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
+        bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time});
     }
 
     if ($n < 0) {
