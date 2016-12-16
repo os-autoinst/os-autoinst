@@ -1,7 +1,7 @@
 /* Modified by Stephan Kulow <coolo@suse.de> 2014 to take the PNGs
    from stdin and use opencv directly */
 /* Modified by Stephan Kulow <coolo@suse.de> 2016 to take the PNGs
-   from external file */
+   from external file and back */
 
 /********************************************************************
  *                                                                  *
@@ -37,11 +37,11 @@ video.
 #include <ogg/ogg.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 using namespace std;
 
-const char* option_input;
 const char* option_output;
 
 static FILE* ogg_fp = NULL;
@@ -136,8 +136,6 @@ void rgb_to_yuv(Mat* image, th_ycbcr_buffer ycbcr)
     }
 }
 
-void signalHandler(int signum) { loop = 0; }
-
 static int ilog(unsigned _v)
 {
     int ret;
@@ -168,16 +166,12 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (optind != argc - 2) {
+    if (optind != argc - 1) {
         fprintf(stderr, "Expected CMDS and OUTPUT\n");
         exit(EXIT_FAILURE);
     }
 
-    option_input = argv[optind];
-    option_output = argv[optind + 1];
-
-    signal(SIGINT, signalHandler);
-    signal(SIGTERM, signalHandler);
+    option_output = argv[optind];
 
     ogg_fp = fopen(option_output, "wb");
     if (!ogg_fp) {
@@ -285,48 +279,37 @@ int main(int argc, char* argv[])
     char line[PATH_MAX + 10];
     int fsls = 0; // frames since last sync
 
-    string last_frame_filename;
     Mat last_frame_image;
     bool last_frame_converted = false;
 
     long cmd_offset = 0;
-    while (1) {
-        FILE* cmd = fopen(option_input, "r");
-        if (fseek(cmd, cmd_offset, SEEK_SET)) {
-            fprintf(stderr, "Can't seek\n");
-            break;
-        }
-        if (!fgets(line, PATH_MAX + 8, cmd)) {
-            if (!loop) // we're done
-                break;
-            // if there is no new content, take a nap
-            fclose(cmd);
-            sleep(1);
-            continue;
-        }
-        // better don't take half lines
-        if (line[strlen(line) - 1] == '\n') {
-            line[strlen(line) - 1] = 0;
-            cmd_offset = ftell(cmd);
-            fclose(cmd);
-        } else {
-            fclose(cmd);
-            sleep(1);
-            continue;
-        }
+    while (fgets(line, PATH_MAX + 8, stdin)) {
+        line[strlen(line) - 1] = 0;
 
         if (line[0] == 'E') {
-            last_frame_filename = line + 2;
+            int len = 0;
+            if (sscanf(line, "E %d", &len) != 1) {
+                fprintf(stderr, "Can't parse %s\n", line);
+                exit(1);
+            }
+            uchar* buffer = new uchar[len];
+            size_t r = fread(buffer, len, 1, stdin);
+            if (r != 1) {
+                fprintf(stderr, "Unexpected end of data %d\n", r);
+                exit(1);
+            }
             last_frame_converted = false;
 
             if (output_video || need_last_png()) {
-                last_frame_image = imread(last_frame_filename, CV_LOAD_IMAGE_COLOR);
+                vector<uchar> buf(buffer, buffer + len);
+                last_frame_image = imdecode(buf, CV_LOAD_IMAGE_COLOR);
 
                 if (!last_frame_image.data) {
                     cout << "Could not open or find the image" << endl;
                     return -1;
                 }
             }
+            delete[] buffer;
 
             if (output_video)
                 rgb_to_yuv(&last_frame_image, ycbcr);
@@ -338,14 +321,15 @@ int main(int argc, char* argv[])
         }
 
         if (!last_frame_converted && need_last_png()) {
-            string new_filename = last_frame_filename + ".png";
-            imwrite(new_filename, last_frame_image);
+            struct timeval tv;
+            gettimeofday(&tv, 0);
+            char path[PATH_MAX];
+            sprintf(path, "qemuscreenshot/%d.%d.png", tv.tv_sec, tv.tv_usec);
+            imwrite(path, last_frame_image);
             unlink("qemuscreenshot/last.png");
-            symlink(basename(new_filename.c_str()), "qemuscreenshot/last.png");
+            symlink(basename(path), "qemuscreenshot/last.png");
             last_frame_converted = true;
         }
-
-        unlink(last_frame_filename.c_str());
 
         if (output_video) {
             if (theora_write_frame(ycbcr, 0)) {

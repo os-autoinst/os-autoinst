@@ -320,6 +320,14 @@ Image* image_read(const char* filename)
     return image;
 }
 
+Image* image_from_ppm(const unsigned char* data, size_t len)
+{
+    vector<uchar> buf(data, data + len);
+    Image* image = new Image;
+    image->img = imdecode(buf, CV_LOAD_IMAGE_COLOR);
+    return image;
+}
+
 bool image_write(Image* s, const char* filename)
 {
 #if DEBUG_IO
@@ -331,6 +339,11 @@ bool image_write(Image* s, const char* filename)
     cout << "DEBUG_IO: "
          << "|filename: " << filename << "|write time: " << chrono::duration_cast<chrono::milliseconds>(time_after_write - time_before_write).count() << endl flush;
 #endif
+}
+
+void image_ppm(Image* s, vector<uchar>& buf)
+{
+    imencode(".ppm", s->img, buf);
 }
 
 Image* image_copy(Image* s)

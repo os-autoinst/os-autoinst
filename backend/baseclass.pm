@@ -32,8 +32,7 @@ use myjsonrpc;
 use Net::SSH2;
 use feature 'say';
 use OpenQA::Benchmark::Stopwatch;
-
-my $framecounter = 0;    # screenshot counter
+use MIME::Base64 'encode_base64';
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -42,7 +41,7 @@ use parent 'Class::Accessor::Fast';
 __PACKAGE__->mk_accessors(
     qw(
       update_request_interval last_update_request screenshot_interval
-      last_screenshot _last_screenshot_name last_image
+      last_screenshot last_image
       reference_screenshot assert_screen_tags assert_screen_needles assert_screen_deadline
       assert_screen_fails assert_screen_last_check stall_detected
       reload_needles
@@ -51,9 +50,10 @@ __PACKAGE__->mk_accessors(
 sub new {
     my $class = shift;
     my $self = bless({class => $class}, $class);
-    $self->{started}       = 0;
-    $self->{serialfile}    = "serial0";
-    $self->{serial_offset} = 0;
+    $self->{started}          = 0;
+    $self->{serialfile}       = "serial0";
+    $self->{serial_offset}    = 0;
+    $self->{video_frame_data} = [];
     return $self;
 }
 
@@ -206,6 +206,19 @@ sub run_capture_loop {
             my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
             if (defined $select) {
                 my ($read_set, $write_set) = IO::Select->select($select, $select, undef, $time_to_next);
+                # check the video encoder pipe first, it has the most traffic
+                if (grep { $_ == $self->{encoder_pipe} } @$write_set) {
+                    my $fdata        = shift @{$self->{video_frame_data}};
+                    my $data_written = $self->{encoder_pipe}->syswrite($fdata);
+                    if ($data_written != length($fdata)) {
+                        # put it back into the queue
+                        unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
+                    }
+                    if (!@{$self->{video_frame_data}}) {
+                        $self->{select}->remove($self->{encoder_pipe});
+                    }
+                    #next;
+                }
                 for my $fh (@$read_set) {
                     unless ($self->check_socket($fh, 0)) {
                         die "huh! $fh\n";
@@ -218,7 +231,10 @@ sub run_capture_loop {
                     last;
                 }
                 for my $fh (@$write_set) {
-                    unless ($self->check_socket($fh, 1)) {
+                    if ($fh == $self->{encoder_pipe}) {
+                        # already handled
+                    }
+                    elsif (!$self->check_socket($fh, 1)) {
                         die "huh! $fh\n";
                     }
                     last;
@@ -237,30 +253,18 @@ sub run_capture_loop {
     return;
 }
 
-sub write_encoder_frame {
-    my ($self, $frame) = @_;
-
-    open(my $fh, '>>', 'video.log');
-    print $fh "$frame\n";
-    close($fh);
-}
-
 sub start_encoder {
     my ($self) = @_;
 
-    $self->{encoder_pid} = 0;
-
-    # create empty file
-    open(my $fh, '>', 'video.log');
-    close($fh);
     my $cwd = Cwd::getcwd();
-    $self->{encoder_pid} = fork();
-    if (!$self->{encoder_pid}) {
-        my @cmd = qw(nice -n 19);
-        push(@cmd, ("$bmwqemu::scriptdir/videoencoder", "$cwd/video.log", "$cwd/video.ogv"));
-        push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO};
-        exec(@cmd);
-    }
+    my @cmd = qw(nice -n 19);
+    push(@cmd, ("$bmwqemu::scriptdir/videoencoder", "$cwd/video.ogv"));
+    push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO};
+    open($self->{encoder_pipe}, '|-', @cmd);
+
+    $self->{encoder_pipe}->blocking(0);
+    $self->{select}->add($self->{encoder_pipe});
+
     return;
 }
 
@@ -276,12 +280,16 @@ sub start_vm {
 sub stop_vm {
     my ($self) = @_;
     if ($self->{started}) {
-        kill(TERM => $self->{encoder_pid}) if $self->{encoder_pid};
         # backend.run might have disappeared already in case of failed builds
         no autodie 'unlink';
         unlink('backend.run');
         $self->do_stop_vm();
-        waitpid($self->{encoder_pid}, 0);
+        # flush frames
+        $self->{encoder_pipe}->blocking(1);
+        for my $fdata (@{$self->{video_frame_data}}) {
+            $self->{encoder_pipe}->print($fdata);
+        }
+        close($self->{encoder_pipe}) if $self->{encoder_pipe};
         $self->{started} = 0;
     }
     $self->close_pipes();    # does not return
@@ -364,18 +372,6 @@ sub cpu_stat {
     return [];
 }
 
-# helper function to make sure a screenshot is written
-sub write_img {
-    my ($self, $image, $filename) = @_;
-
-    return if (!$image);
-
-    if ($filename && !-f $filename) {
-        $image->write($filename) || return;
-    }
-    return $filename;
-}
-
 sub enqueue_screenshot {
     my ($self, $image) = @_;
 
@@ -386,9 +382,7 @@ sub enqueue_screenshot {
 
     $image = $image->scale(1024, 768);
     $watch->lap("scaling");
-    $framecounter++;
 
-    my $filename = $bmwqemu::screenshotpath . sprintf("/shot-%010d.ppm", $framecounter);
     my $lastscreenshot = $self->last_image;
 
     # link identical files to save space
@@ -399,27 +393,24 @@ sub enqueue_screenshot {
     # we have two different similarity levels - one (slightly higher value, based
     # t/data/user-settings-*) to determine if it's worth it to recheck needles
     # and one (slightly lower as less significant) determining if we write the frame
-    # into the video (and onto disk)
-    # in case the filename has to be returned to the test process as result, it's
-    # written out unconditionally (see write_img)
+    # into the video
     if ($sim <= 54) {
         $self->last_image($image);
-        $self->_last_screenshot_name($filename);
     }
 
     if ($sim > 50) {    # we ignore smaller differences
-        $self->write_encoder_frame('R');
-        $watch->lap("write_encoder_frame R");
+        push(@{$self->{video_frame_data}}, "R\n");
     }
     else {
-        $self->write_img($image, $filename) || die "write $filename";
-        $self->write_encoder_frame("E $filename");
-        $watch->lap("write_encoder_frame E");
+        my $imgdata = $image->ppm_data;
+        $watch->lap("convert ppm data");
+        push(@{$self->{video_frame_data}}, 'E ' . length($imgdata) . "\n");
+        push(@{$self->{video_frame_data}}, $imgdata);
+        $self->{select}->add($self->{encoder_pipe});
     }
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
-        bmwqemu::diag "DEBUG_IO: for $filename\n";
         bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
         bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
     }
@@ -817,10 +808,10 @@ sub _failed_screens_to_json {
 
     my @json_fails;
     for my $l (@$failed_screens) {
-        my ($img, $failed_candidates, $testtime, $similarity, $filename) = @$l;
+        my ($img, $failed_candidates, $testtime, $similarity) = @$l;
         my $h = {
             candidates => $failed_candidates,
-            filename   => $self->write_img($img, $filename)};
+            image      => encode_base64($img->ppm_data)};
         push(@json_fails, $h);
     }
 
@@ -836,22 +827,21 @@ sub check_asserted_screen {
     if (!$img) {    # no screenshot yet to search on
         return;
     }
-
-    my $watch        = OpenQA::Benchmark::Stopwatch->new();
-    my $img_filename = $self->_last_screenshot_name;
-    my $n            = $self->_time_to_assert_screen_deadline;
+    my $watch     = OpenQA::Benchmark::Stopwatch->new();
+    my $timestamp = $self->last_screenshot;
+    my $n         = $self->_time_to_assert_screen_deadline;
 
     my $search_ratio = 0.02;
     $search_ratio = 1 if ($n % 5 == 0);
 
-    my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || ['', 0]};
+    my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || [undef, 0]};
 
     if ($n < 0) {
         # one last big search
         $search_ratio = 1;
     }
     else {
-        if ($img_filename eq $oldimg && $old_search_ratio >= $search_ratio) {
+        if ($oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio) {
             bmwqemu::diag("no change $n");
             return;
         }
@@ -863,7 +853,11 @@ sub check_asserted_screen {
 
     if ($foundneedle) {
         $self->assert_screen_last_check(undef);
-        return {filename => $self->write_img($img, $img_filename), found => $foundneedle, candidates => $failed_candidates};
+        return {
+            image      => encode_base64($img->ppm_data),
+            found      => $foundneedle,
+            candidates => $failed_candidates
+        };
     }
 
     $watch->stop();
@@ -881,9 +875,9 @@ sub check_asserted_screen {
         }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
-        push(@$failed_screens, [$img, $failed_candidates, 0, 1000, $img_filename]);
+        push(@$failed_screens, [$img, $failed_candidates, 0, 1000]);
         my $hash = $self->_failed_screens_to_json;
-        $hash->{filename} = $self->write_img($img, $img_filename);
+        $hash->{image} = encode_base64($img->ppm_data);
         return $hash;
     }
 
@@ -900,7 +894,7 @@ sub check_asserted_screen {
             $sim = $failed_screens->[-1]->[0]->similarity($img);
         }
         if ($sim < 30) {
-            push(@$failed_screens, [$img, $failed_candidates, $n, $sim, $img_filename]);
+            push(@$failed_screens, [$img, $failed_candidates, $n, $sim]);
         }
         # clean up every once in a while to avoid excessive memory consumption.
         # The value here is an arbitrary limit.
@@ -909,7 +903,7 @@ sub check_asserted_screen {
         }
     }
     bmwqemu::diag("no match $n");
-    $self->assert_screen_last_check([$img_filename, $search_ratio]);
+    $self->assert_screen_last_check([$img, $search_ratio]);
     return;
 }
 
@@ -945,9 +939,9 @@ sub cont_vm {
     return;
 }
 
-sub last_screenshot_name {
+sub last_screenshot_data {
     my ($self, $args) = @_;
-    return {filename => $self->write_img($self->last_image, $self->_last_screenshot_name)};
+    return {image => encode_base64($self->last_image->ppm_data)};
 }
 
 sub verify_image {
