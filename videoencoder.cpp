@@ -21,29 +21,23 @@
   last mod: $Id$
              based on code from Vegard Nossum
 
+Commands can be: E src_image or R:
+  * E src_image will add src_image to the video as a new frame
+  * R will wait until a new command is recieved
+
+This program will wait until it recieves a TERM signal to complete the 
+video.
+
  ********************************************************************/
 
 #define _FILE_OFFSET_BITS 64
-
-/*
-#include <errno.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <time.h>
-#include <math.h>
-#include <libgen.h>
-#include <sys/types.h>
-#include <dirent.h>
-*/
 
 #include <signal.h>
 #include <unistd.h>
 #include <cstdio>
 #include <ogg/ogg.h>
 #include "theora/theoraenc.h"
+#include <sys/stat.h>
 
 const char *option_input;
 const char *option_output;
@@ -172,6 +166,10 @@ main (int argc, char *argv[])
 {
   th_comment tc;
   int ret;
+  bool live_view;
+  struct stat buff;
+  std::string cwd;
+  std::string livelog_file;
 
   if (argc != 3)
     {
@@ -320,37 +318,45 @@ main (int argc, char *argv[])
 	sleep(1);
 	continue;
       }
-      // better don't take half lines
-      if (line[strlen(line) - 1] == '\n') {
-	line[strlen (line) - 1] = 0;
-	cmd_offset = ftell(cmd);
-	fclose(cmd);
-      } else {
-	fclose(cmd);
-	sleep(1);
-	continue;
-      }
-      //printf ("I got '%s'\n", line);
+        // better don't take half lines
+        if (line[strlen(line) - 1] == '\n') {
+                line[strlen (line) - 1] = 0;
+                cmd_offset = ftell(cmd);
+                fclose(cmd);
+        } else {
+                fclose(cmd);
+                sleep(1);
+                continue;
+        }
 
-      if (line[0] == 'E')
-	{
-	  const char *filename = line + 2;
+        if (line[0] == 'E') {
+                const char *filename = line + 2;
+                Mat image;
+                image = imread (filename, CV_LOAD_IMAGE_COLOR);
 
-	  Mat image;
-	  image = imread (filename, CV_LOAD_IMAGE_COLOR);
+                if (!image.data) { //
+                    std::cout << "Could not open or find the image" << std::endl;
+                    return -1;
+                  }
 
-	  if (!image.data)	// Check for invalid input
-	    {
-	      std::cout << "Could not open or find the image" << std::endl;
-	      return -1;
-	    }
+                rgb_to_yuv (&image, ycbcr);
 
-	  rgb_to_yuv (&image, ycbcr);
+                cwd = get_current_dir_name();
+                livelog_file = cwd + "/live_log";
+                live_view = (stat(livelog_file.c_str(), &buff) != -1);
 
-	}
+                if(live_view){
+                  std::string new_filename = filename;
+                  new_filename = new_filename + ".png";
+                  imwrite(new_filename, image);
+                  unlink("qemuscreenshot/last.png");
+                  symlink(basename(new_filename.c_str()), "qemuscreenshot/last.png"); 
+                }
+
+        }
       else if (line[0] == 'R')
 	{
-	  // nothing
+	  // Just repeat the last frame
 	}
       else
 	{

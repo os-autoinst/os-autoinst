@@ -385,9 +385,8 @@ sub enqueue_screenshot {
 
     $framecounter++;
 
-    my $filename = $bmwqemu::screenshotpath . sprintf("/shot-%010d.png", $framecounter);
-    my $lastlink = $bmwqemu::screenshotpath . "/last.png";
-
+    my $filename = $bmwqemu::screenshotpath . sprintf("/shot-%010d.ppm", $framecounter);
+    
     my $lastscreenshot = $self->last_image;
 
     # link identical files to save space
@@ -402,9 +401,6 @@ sub enqueue_screenshot {
         $self->write_img($image, $filename) || die "write $filename";
         $self->last_image($image);
         $self->_last_screenshot_name($filename);
-        no autodie 'unlink';
-        unlink($lastlink);
-        symlink(basename($self->_last_screenshot_name), $lastlink);
     }
 
     if ($sim > 50) {    # we ignore smaller differences

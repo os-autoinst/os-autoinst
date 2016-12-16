@@ -266,34 +266,7 @@ Image *image_read(const char *filename)
 
 bool image_write(Image *s, const char *filename)
 {
-  vector<uchar> buf;
-  vector<int> compression_params;
-  compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
-  // compression level from 0-9, default is 3 but we go lower/faster
-  // and let openQA run optipng on those we want to save
-  compression_params.push_back(1);
-
-  if (!imencode(".png", s->img, buf, compression_params)) {
-    std::cerr << "Could not encode image " << filename << std::endl;
-    return false;
-  }
-  string path = filename;
-  string tpath = path + ".tmp";
-  FILE *f = fopen(tpath.c_str(), "wx");
-  if (!f) {
-    std::cerr << "Could not write image " << tpath << std::endl;
-    return false;
-  }
-  if (fwrite(buf.data(), 1, buf.size(), f) != buf.size()) {
-    std::cerr << "Could not write to image " << tpath << std::endl;
-    return false;
-  }
-  fclose(f);
-  if (rename(tpath.c_str(), path.c_str())) {
-    std::cerr << "Could not rename " << tpath << errno << std::endl;
-    return false;
-  }
-  return true;
+	return imwrite(filename, s->img);
 }
 
 Image *image_copy(Image *s)
