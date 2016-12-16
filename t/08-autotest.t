@@ -65,7 +65,7 @@ my $completed;
 $autotest::isotovideo = 'foo';
 autotest::run_all;
 ($died, $completed) = get_tests_done;
-is($died, 1, 'run_all with no tests should catch runalltests dying');
+is($died,      1, 'run_all with no tests should catch runalltests dying');
 is($completed, 0, 'run_all with no tests should not complete');
 @sent = [];
 
@@ -77,7 +77,7 @@ is(keys %autotest::tests, 3) || diag explain %autotest::tests;
 
 autotest::run_all;
 ($died, $completed) = get_tests_done;
-is($died, 0, 'start+next+start should not die');
+is($died,      0, 'start+next+start should not die');
 is($completed, 1, 'start+next+start should complete');
 @sent = [];
 
@@ -86,12 +86,12 @@ is($completed, 1, 'start+next+start should complete');
 # we cause the failure by mocking runtest rather than using a test
 # which dies, as runtest does a whole bunch of stuff when the test
 # dies that we may not want to run into here
-$mock_basetest->mock(runtest => sub { die "oh noes!\n"; });
+$mock_basetest->mock(runtest          => sub { die "oh noes!\n"; });
 $mock_autotest->mock(query_isotovideo => sub { return 1; });
 
 autotest::run_all;
 ($died, $completed) = get_tests_done;
-is($died, 0, 'non-fatal test failure should not die');
+is($died,      0, 'non-fatal test failure should not die');
 is($completed, 1, 'non-fatal test failure should complete');
 @sent = [];
 
@@ -99,7 +99,7 @@ is($completed, 1, 'non-fatal test failure should complete');
 loadtest 'important';
 autotest::run_all;
 ($died, $completed) = get_tests_done;
-is($died, 0, 'important test failure should not die');
+is($died,      0, 'important test failure should not die');
 is($completed, 1, 'important test failure should complete');
 @sent = [];
 
@@ -107,7 +107,7 @@ is($completed, 1, 'important test failure should complete');
 loadtest 'fatal';
 autotest::run_all;
 ($died, $completed) = get_tests_done;
-is($died, 0, 'fatal test failure should not die');
+is($died,      0, 'fatal test failure should not die');
 is($completed, 0, 'fatal test failure should not complete');
 @sent = [];
 

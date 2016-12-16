@@ -144,7 +144,9 @@ sub _init_xml {
         }
         if (!get_var('BIOS')) {
             # We know this won't go well.
-            die "No UEFI firmware can be found on hypervisor " . get_var('VIRSH_HOSTNAME') . "\n. Please specify BIOS or UEFI_BIOS or install an appropriate package.";
+            die "No UEFI firmware can be found on hypervisor "
+              . get_var('VIRSH_HOSTNAME')
+              . "\n. Please specify BIOS or UEFI_BIOS or install an appropriate package.";
         }
     }
 
@@ -311,7 +313,10 @@ sub add_disk {
                 my $chan             = $self->{sshVMwareServer}->channel();
                 # Power VM off, delete it's disk image, and create it again.
                 # Than wait for some time for the VM to *really* turn off.
-                $chan->exec("vmid=\$(vim-cmd vmsvc/getallvms | awk '/ " . $self->name . " / { print \$1 }'); vim-cmd vmsvc/power.getstate \$vmid; vim-cmd vmsvc/power.off \$vmid; vim-cmd vmsvc/power.getstate \$vmid; vmkfstools -v1 -U $vmware_disk_path; vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10");
+                my $name = $self->name;
+                $chan->exec(
+"vmid=\$(vim-cmd vmsvc/getallvms | awk '/ $name / { print \$1 }'); vim-cmd vmsvc/power.getstate \$vmid; vim-cmd vmsvc/power.off \$vmid; vim-cmd vmsvc/power.getstate \$vmid; vmkfstools -v1 -U $vmware_disk_path; vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10"
+                );
                 $chan->send_eof;
                 get_ssh_output($chan);
                 $chan->close();
@@ -480,7 +485,11 @@ password=" . get_required_var('VMWARE_PASSWORD') . "
 credentials=vmware
 __END"
         );
-        $remote_vmm = "-c vpx://" . get_required_var('VMWARE_USERNAME') . "@" . get_required_var('VMWARE_HOST') . "/" . get_required_var('VMWARE_DATACENTER') . "/" . get_required_var('VMWARE_SERVER') . "/?no_verify=1\\&authfile=$libvirtauthfilename ";
+        my $user       = get_required_var('VMWARE_USERNAME');
+        my $host       = get_required_var('VMWARE_HOST');
+        my $datacenter = get_required_var('VMWARE_DATACENTER');
+        my $server     = get_required_var('VMWARE_SERVER');
+        $remote_vmm = "-c vpx://$user@$host/$datacenter/$server/?no_verify=1\\&authfile=$libvirtauthfilename ";
     }
 
     my $instance = $self->instance;

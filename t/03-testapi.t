@@ -75,25 +75,21 @@ is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 10, text => 'ha
 $cmds = [];
 
 type_string 'hallo', wait_screen_change => 3;
-is_deeply($cmds, [
-    {cmd => 'backend_type_string', max_interval => 250, text => 'hal'},
-    {cmd => 'backend_type_string', max_interval => 250, text => 'lo'},
-]);
+is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hal'}, {cmd => 'backend_type_string', max_interval => 250, text => 'lo'},]);
 $cmds = [];
 
 type_string 'hallo', wait_screen_change => 2;
-is_deeply($cmds, [
-    {cmd => 'backend_type_string', max_interval => 250, text => 'ha'},
-    {cmd => 'backend_type_string', max_interval => 250, text => 'll'},
-    {cmd => 'backend_type_string', max_interval => 250, text => 'o'},
-]);
+is_deeply(
+    $cmds,
+    [
+        {cmd => 'backend_type_string', max_interval => 250, text => 'ha'},
+        {cmd => 'backend_type_string', max_interval => 250, text => 'll'},
+        {cmd => 'backend_type_string', max_interval => 250, text => 'o'},
+    ]);
 $cmds = [];
 
 type_string 'hallo', wait_screen_change => 3, max_interval => 10;
-is_deeply($cmds, [
-    {cmd => 'backend_type_string', max_interval => 10, text => 'hal'},
-    {cmd => 'backend_type_string', max_interval => 10, text => 'lo'},
-]);
+is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 10, text => 'hal'}, {cmd => 'backend_type_string', max_interval => 10, text => 'lo'},]);
 $cmds = [];
 
 $testapi::password = 'stupid';
@@ -131,9 +127,21 @@ subtest 'script_run' => sub {
     is(assert_script_run('true'), undef, 'nothing happens on success');
     $fake_exit = 1;
     like(exception { assert_script_run 'false', 42; }, qr/command.*false.*failed at/, 'with timeout option (deprecated mode)');
-    like(exception { assert_script_run 'false', 0, 'my custom fail message'; }, qr/command.*false.*failed: my custom fail message at/, 'custom message on die (deprecated mode)');
-    like(exception { assert_script_run('false', fail_message => 'my custom fail message'); }, qr/command.*false.*failed: my custom fail message at/, 'using named arguments');
-    like(exception { assert_script_run('false', timeout => 0, fail_message => 'my custom fail message'); }, qr/command.*false.*failed: my custom fail message at/, 'using two named arguments');
+    like(
+        exception { assert_script_run 'false', 0, 'my custom fail message'; },
+        qr/command.*false.*failed: my custom fail message at/,
+        'custom message on die (deprecated mode)'
+    );
+    like(
+        exception { assert_script_run('false', fail_message => 'my custom fail message'); },
+        qr/command.*false.*failed: my custom fail message at/,
+        'using named arguments'
+    );
+    like(
+        exception { assert_script_run('false', timeout => 0, fail_message => 'my custom fail message'); },
+        qr/command.*false.*failed: my custom fail message at/,
+        'using two named arguments'
+    );
     $fake_exit = 0;
     is(script_run('true'), '0', 'script_run with no check of success, returns exit code');
     $fake_exit = 1;

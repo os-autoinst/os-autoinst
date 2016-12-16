@@ -192,7 +192,8 @@ sub run_capture_loop {
             # if we got stalled for a long time, we assume bad hardware and report it
             if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
                 $self->stall_detected(1);
-                bmwqemu::diag sprintf("WARNING: There is some problem with your environment, we detected a stall for %d seconds", $now - $self->last_screenshot);
+                my $diff = $now - $self->last_screenshot;
+                bmwqemu::diag "WARNING: There is some problem with your environment, we detected a stall for $diff seconds";
             }
 
             my $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval) - ($now - $self->last_screenshot);
@@ -415,7 +416,9 @@ sub enqueue_screenshot {
     }
     my $d = gettimeofday - $starttime;
     if ($d > $self->screenshot_interval) {
-        bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds - slow IO? (opencv: %.2f - encoder: %.2f)", $d, $mt1 - $starttime, gettimeofday - $mt1);
+        my $t_opencv = $mt1 - $starttime;
+        my $t_enc    = gettimeofday - $mt1;
+        bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds - slow IO? (opencv: %.2f - encoder: %.2f)", $d, $t_opencv, $t_enc);
     }
     return;
 }

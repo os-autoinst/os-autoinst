@@ -228,7 +228,11 @@ sub expect_3270() {
                 while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
                     push @$result, $line;
                 }
-                confess "expect_3270: timed out waiting for 'expected_status'.\n" . "  waiting for ${\Dumper \%arg}\n" . "  last output:\n" . Dumper($result) . $status_line;
+                confess "expect_3270: timed out waiting for 'expected_status'.\n"
+                  . "  waiting for ${\Dumper \%arg}\n"
+                  . "  last output:\n"
+                  . Dumper($result)
+                  . $status_line;
             }
 
             die "status line must match 'buffer_ready'" unless ($status_line =~ /$arg{buffer_ready}/);
@@ -455,7 +459,8 @@ sub connect_and_login() {
                 sleep 7;
             }
             elsif ($count == 3) {
-                die "Could not reclaim guest despite hard_shutdown and retrying multiple times. this is odd.\n" . "Is this machine possibly connected on another terminal?\n";
+                die "Could not reclaim guest despite hard_shutdown and retrying multiple times. this is odd.\n"
+                  . "Is this machine possibly connected on another terminal?\n";
             }
 
             last if $reconnect_ok;

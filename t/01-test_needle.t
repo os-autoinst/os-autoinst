@@ -66,7 +66,7 @@ ok(!defined $res, "no match with different art");
 
 $res = undef;
 try {
-    $img1 = tinycv::read($data_dir . "kde.ref.png");
+    $img1   = tinycv::read($data_dir . "kde.ref.png");
     $needle = needle->new($data_dir . "kde.ref.json");
     my $needle_nopng = needle->new($data_dir . "console.ref.json");
     $needle_nopng->{png} .= ".missing.png";
