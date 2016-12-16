@@ -32,6 +32,7 @@ use myjsonrpc;
 use Net::SSH2;
 use feature 'say';
 use OpenQA::Benchmark::Stopwatch;
+use MIME::Base64 'encode_base64';
 
 my $framecounter = 0;    # screenshot counter
 
@@ -42,7 +43,7 @@ use parent 'Class::Accessor::Fast';
 __PACKAGE__->mk_accessors(
     qw(
       update_request_interval last_update_request screenshot_interval
-      last_screenshot _last_screenshot_name last_image
+      last_screenshot last_image
       reference_screenshot assert_screen_tags assert_screen_needles assert_screen_deadline
       assert_screen_fails assert_screen_last_check stall_detected
       reload_needles
@@ -404,7 +405,6 @@ sub enqueue_screenshot {
     # written out unconditionally (see write_img)
     if ($sim <= 54) {
         $self->last_image($image);
-        $self->_last_screenshot_name($filename);
     }
 
     if ($sim > 50) {    # we ignore smaller differences
@@ -412,8 +412,8 @@ sub enqueue_screenshot {
         $watch->lap("write_encoder_frame R");
     }
     else {
-        $self->write_img($image, $filename) || die "write $filename";
-        $self->write_encoder_frame("E $filename");
+        #$self->write_img($image, $filename) || die "write $filename";
+        #$self->write_encoder_frame("E $filename");
         $watch->lap("write_encoder_frame E");
     }
 
@@ -817,10 +817,10 @@ sub _failed_screens_to_json {
 
     my @json_fails;
     for my $l (@$failed_screens) {
-        my ($img, $failed_candidates, $testtime, $similarity, $filename) = @$l;
+        my ($img, $failed_candidates, $testtime, $similarity) = @$l;
         my $h = {
             candidates => $failed_candidates,
-            filename   => $self->write_img($img, $filename)};
+            image      => encode_base64($img->ppm_data)};
         push(@json_fails, $h);
     }
 
@@ -836,22 +836,21 @@ sub check_asserted_screen {
     if (!$img) {    # no screenshot yet to search on
         return;
     }
-
-    my $watch        = OpenQA::Benchmark::Stopwatch->new();
-    my $img_filename = $self->_last_screenshot_name;
-    my $n            = $self->_time_to_assert_screen_deadline;
+    my $watch     = OpenQA::Benchmark::Stopwatch->new();
+    my $timestamp = $self->last_screenshot;
+    my $n         = $self->_time_to_assert_screen_deadline;
 
     my $search_ratio = 0.02;
     $search_ratio = 1 if ($n % 5 == 0);
 
-    my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || ['', 0]};
+    my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || [undef, 0]};
 
     if ($n < 0) {
         # one last big search
         $search_ratio = 1;
     }
     else {
-        if ($img_filename eq $oldimg && $old_search_ratio >= $search_ratio) {
+        if ($oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio) {
             bmwqemu::diag("no change $n");
             return;
         }
@@ -863,7 +862,11 @@ sub check_asserted_screen {
 
     if ($foundneedle) {
         $self->assert_screen_last_check(undef);
-        return {filename => $self->write_img($img, $img_filename), found => $foundneedle, candidates => $failed_candidates};
+        return {
+            image      => encode_base64($img->ppm_data),
+            found      => $foundneedle,
+            candidates => $failed_candidates
+        };
     }
 
     $watch->stop();
@@ -881,9 +884,9 @@ sub check_asserted_screen {
         }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
-        push(@$failed_screens, [$img, $failed_candidates, 0, 1000, $img_filename]);
+        push(@$failed_screens, [$img, $failed_candidates, 0, 1000]);
         my $hash = $self->_failed_screens_to_json;
-        $hash->{filename} = $self->write_img($img, $img_filename);
+        $hash->{image} = encode_base64($img->ppm_data);
         return $hash;
     }
 
@@ -900,7 +903,7 @@ sub check_asserted_screen {
             $sim = $failed_screens->[-1]->[0]->similarity($img);
         }
         if ($sim < 30) {
-            push(@$failed_screens, [$img, $failed_candidates, $n, $sim, $img_filename]);
+            push(@$failed_screens, [$img, $failed_candidates, $n, $sim]);
         }
         # clean up every once in a while to avoid excessive memory consumption.
         # The value here is an arbitrary limit.
@@ -909,7 +912,7 @@ sub check_asserted_screen {
         }
     }
     bmwqemu::diag("no match $n");
-    $self->assert_screen_last_check([$img_filename, $search_ratio]);
+    $self->assert_screen_last_check([$img, $search_ratio]);
     return;
 }
 
@@ -945,9 +948,9 @@ sub cont_vm {
     return;
 }
 
-sub last_screenshot_name {
+sub last_screenshot_data {
     my ($self, $args) = @_;
-    return {filename => $self->write_img($self->last_image, $self->_last_screenshot_name)};
+    return {image => encode_base64($self->last_image->ppm_data)};
 }
 
 sub verify_image {
