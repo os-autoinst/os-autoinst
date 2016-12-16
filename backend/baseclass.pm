@@ -34,8 +34,6 @@ use feature 'say';
 use OpenQA::Benchmark::Stopwatch;
 use MIME::Base64 'encode_base64';
 
-my $framecounter = 0;    # screenshot counter
-
 # should be a singleton - and only useful in backend process
 our $backend;
 
@@ -241,27 +239,18 @@ sub run_capture_loop {
 sub write_encoder_frame {
     my ($self, $frame) = @_;
 
-    open(my $fh, '>>', 'video.log');
-    print $fh "$frame\n";
-    close($fh);
+
 }
 
 sub start_encoder {
     my ($self) = @_;
 
-    $self->{encoder_pid} = 0;
-
-    # create empty file
-    open(my $fh, '>', 'video.log');
-    close($fh);
     my $cwd = Cwd::getcwd();
-    $self->{encoder_pid} = fork();
-    if (!$self->{encoder_pid}) {
-        my @cmd = qw(nice -n 19);
-        push(@cmd, ("$bmwqemu::scriptdir/videoencoder", "$cwd/video.log", "$cwd/video.ogv"));
-        push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO};
-        exec(@cmd);
-    }
+    my @cmd = qw(nice -n 19);
+    push(@cmd, ("$bmwqemu::scriptdir/videoencoder", "$cwd/video.ogv"));
+    push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO};
+    open($self->{encoder_pipe}, '|-', @cmd);
+
     return;
 }
 
@@ -277,12 +266,11 @@ sub start_vm {
 sub stop_vm {
     my ($self) = @_;
     if ($self->{started}) {
-        kill(TERM => $self->{encoder_pid}) if $self->{encoder_pid};
         # backend.run might have disappeared already in case of failed builds
         no autodie 'unlink';
         unlink('backend.run');
         $self->do_stop_vm();
-        waitpid($self->{encoder_pid}, 0);
+        close($self->{encoder_pipe}) if $self->{encoder_pipe};
         $self->{started} = 0;
     }
     $self->close_pipes();    # does not return
@@ -365,18 +353,6 @@ sub cpu_stat {
     return [];
 }
 
-# helper function to make sure a screenshot is written
-sub write_img {
-    my ($self, $image, $filename) = @_;
-
-    return if (!$image);
-
-    if ($filename && !-f $filename) {
-        $image->write($filename) || return;
-    }
-    return $filename;
-}
-
 sub enqueue_screenshot {
     my ($self, $image) = @_;
 
@@ -387,9 +363,7 @@ sub enqueue_screenshot {
 
     $image = $image->scale(1024, 768);
     $watch->lap("scaling");
-    $framecounter++;
 
-    my $filename = $bmwqemu::screenshotpath . sprintf("/shot-%010d.ppm", $framecounter);
     my $lastscreenshot = $self->last_image;
 
     # link identical files to save space
@@ -400,26 +374,25 @@ sub enqueue_screenshot {
     # we have two different similarity levels - one (slightly higher value, based
     # t/data/user-settings-*) to determine if it's worth it to recheck needles
     # and one (slightly lower as less significant) determining if we write the frame
-    # into the video (and onto disk)
-    # in case the filename has to be returned to the test process as result, it's
-    # written out unconditionally (see write_img)
+    # into the video
     if ($sim <= 54) {
         $self->last_image($image);
     }
 
     if ($sim > 50) {    # we ignore smaller differences
-        $self->write_encoder_frame('R');
+        $self->{encoder_pipe}->print("R\n");
         $watch->lap("write_encoder_frame R");
     }
     else {
-        #$self->write_img($image, $filename) || die "write $filename";
-        #$self->write_encoder_frame("E $filename");
+        my $imgdata = $image->ppm_data;
+        $watch->lap("convert ppm data");
+        $self->{encoder_pipe}->print('E ' . length($imgdata) . "\n");
+        $self->{encoder_pipe}->print($imgdata);
         $watch->lap("write_encoder_frame E");
     }
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
-        bmwqemu::diag "DEBUG_IO: for $filename\n";
         bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
         bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
     }
