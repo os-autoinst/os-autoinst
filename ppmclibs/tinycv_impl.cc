@@ -33,15 +33,6 @@
 #define DEBUG 0
 #define DEBUG2 0
 
-#if __cplusplus >= 201112L
-// disabled by default
-#define DEBUG_IO 0
-#endif
-
-#if DEBUG_IO
-#include <chrono>
-#endif
-
 #define VERY_DIFF 0.0
 #define VERY_SIM 1000000.0
 
@@ -281,19 +272,30 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
 //
 // Source (C&P):
 // http://docs.opencv.org/doc/tutorials/highgui/video-input-psnr-ssim/video-input-psnr-ssim.html
+// (optimized for our needs)
 
 double getPSNR(const Mat& I1, const Mat& I2)
 {
-    Mat s1;
-    absdiff(I1, I2, s1); // |I1 - I2|
-    s1.convertTo(s1, CV_32F); // cannot make a square on 8 bits
-    s1 = s1.mul(s1); // |I1 - I2|^2
+    assert(I2.depth() == CV_8U);
+    assert(I2.channels() == 3);
 
-    Scalar s = sum(s1); // sum elements per channel
+    assert(I1.depth() == CV_8U);
+    assert(I1.channels() == 3);
 
-    double sse = s.val[0] + s.val[1] + s.val[2]; // sum channels
+    double sse = 0;
 
-    double mse = sse / (double)(I1.channels() * I1.total());
+    const uchar* I1_data = I1.data;
+    const uchar* I2_data = I2.data;
+    int index = 0;
+
+    for (int j = 0; j < I1.rows; j++)
+        for (int i = 0; i < I1.cols; i++)
+            for (int ch = 0; ch < 3; ch++, index++) {
+                double diff = abs(I1_data[index] - I2_data[index]);
+                sse += diff * diff;
+            }
+
+    double mse = sse / (double)(3 * I1.total());
     if (!mse) {
         return VERY_SIM;
     }
@@ -330,15 +332,7 @@ Image* image_from_ppm(const unsigned char* data, size_t len)
 
 bool image_write(Image* s, const char* filename)
 {
-#if DEBUG_IO
-    auto time_before_write = std::chrono::high_resolution_clock::now();
-#endif
     return imwrite(filename, s->img);
-#if DEBUG_IO
-    auto time_after_write = std::chrono::high_resolution_clock::now();
-    cout << "DEBUG_IO: "
-         << "|filename: " << filename << "|write time: " << chrono::duration_cast<chrono::milliseconds>(time_after_write - time_before_write).count() << endl flush;
-#endif
 }
 
 void image_ppm(Image* s, vector<uchar>& buf)
