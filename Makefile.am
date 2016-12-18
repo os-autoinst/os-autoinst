@@ -84,7 +84,7 @@ pkglibexec_FOLDERS = \
 pkglibexec_PROGRAMS = videoencoder
 
 videoencoder_SOURCES = videoencoder.cpp
-videoencoder_CFLAGS = -Wall -W $(OPENCV_CFLAGS)
+videoencoder_CFLAGS = -O2 -Wall -W $(OPENCV_CFLAGS)
 videoencoder_LDADD = $(OPENCV_LIBS) $(THEORAENC_LIBS) -lm
 
 EXTRA_DIST = \

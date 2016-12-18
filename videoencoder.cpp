@@ -282,7 +282,6 @@ int main(int argc, char* argv[])
     Mat last_frame_image;
     bool last_frame_converted = false;
 
-    long cmd_offset = 0;
     while (fgets(line, PATH_MAX + 8, stdin)) {
         line[strlen(line) - 1] = 0;
 
@@ -295,7 +294,7 @@ int main(int argc, char* argv[])
             uchar* buffer = new uchar[len];
             size_t r = fread(buffer, len, 1, stdin);
             if (r != 1) {
-                fprintf(stderr, "Unexpected end of data %d\n", r);
+                fprintf(stderr, "Unexpected end of data %ld\n", r);
                 exit(1);
             }
             last_frame_converted = false;
@@ -324,7 +323,7 @@ int main(int argc, char* argv[])
             struct timeval tv;
             gettimeofday(&tv, 0);
             char path[PATH_MAX];
-            sprintf(path, "qemuscreenshot/%d.%d.png", tv.tv_sec, tv.tv_usec);
+            sprintf(path, "qemuscreenshot/%ld.%ld.png", tv.tv_sec, tv.tv_usec);
             imwrite(path, last_frame_image);
             unlink("qemuscreenshot/last.png");
             symlink(basename(path), "qemuscreenshot/last.png");
