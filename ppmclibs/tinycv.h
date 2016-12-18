@@ -22,7 +22,8 @@ void image_destroy(Image *s);
 Image *image_new(long width, long height);
 Image *image_read(const char *filename);
 bool image_write(Image *s, const char *filename);
-void image_ppm(Image *s, std::vector<unsigned char> &buf);
+// returns copy to static buffer
+std::vector<unsigned char> *image_ppm(Image *s);
 Image *image_from_ppm(const unsigned char *data, size_t len);
 
 std::vector<int> image_search(Image *s, Image *needle, long x, long y, long width, long height, long margin, double &similarity);

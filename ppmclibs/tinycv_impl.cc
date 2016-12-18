@@ -335,9 +335,12 @@ bool image_write(Image* s, const char* filename)
     return imwrite(filename, s->img);
 }
 
-void image_ppm(Image* s, vector<uchar>& buf)
+vector<uchar>* image_ppm(Image* s)
 {
+    // reuse memory
+    static vector<uchar> buf;
     imencode(".ppm", s->img, buf);
+    return &buf;
 }
 
 Image* image_copy(Image* s)

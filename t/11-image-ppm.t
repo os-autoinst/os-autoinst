@@ -33,8 +33,6 @@ my $ppm      = $img1->ppm_data();
 like($ppm, qr/^P6\s1024 768\s255/, 'is a ppm');
 my $img2 = tinycv::from_ppm($ppm);
 
-$img1->write('test1.png');
-$img2->write('test2.png');
 is(1000000, $img1->similarity($img2));
 
 done_testing();
