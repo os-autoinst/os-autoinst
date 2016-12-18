@@ -152,7 +152,7 @@ sub type_string {
         };
         $letter = $charmap->{$letter} || $letter;
         $self->{vnc}->map_and_send_key($letter);
-        $self->{backend}->run_capture_loop(undef, $seconds_per_keypress, $seconds_per_keypress * .9);
+        $self->{backend}->run_capture_loop($seconds_per_keypress);
     }
     return {};
 }
@@ -163,21 +163,21 @@ sub send_key {
     # FIXME the max_interval logic from type_string should go here, no?
     # and really, the screen should be checked for settling after key press...
     $self->{vnc}->map_and_send_key($args->{key});
-    $self->backend->run_capture_loop(undef, .2, .19);
+    $self->backend->run_capture_loop(.2);
     return {};
 }
 
 sub hold_key {
     my ($self, $args) = @_;
     $self->{vnc}->map_and_send_key($args->{key}, 1);
-    $self->backend->run_capture_loop(undef, .2, .19);
+    $self->backend->run_capture_loop(.2);
     return {};
 }
 
 sub release_key {
     my ($self, $args) = @_;
     $self->{vnc}->map_and_send_key($args->{key}, 0);
-    $self->backend->run_capture_loop(undef, .2, .19);
+    $self->backend->run_capture_loop(.2);
     return {};
 }
 

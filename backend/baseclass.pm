@@ -110,57 +110,37 @@ sub run {
     $self->last_update_request("-Inf" + 0);
     $self->last_screenshot(undef);
     $self->screenshot_interval($bmwqemu::vars{SCREENSHOTINTERVAL} || .5);
-    $self->update_request_interval($self->screenshot_interval());
+    # query the VNC backend more often than we write out screenshots, so the chances
+    # are high we're not writing out outdated screens
+    $self->update_request_interval($self->screenshot_interval / 2);
 
     for my $console (values %{$testapi::distri->{consoles}}) {
         # tell the consoles who they need to talk to (in this thread)
         $console->backend($self);
     }
 
-    $self->run_capture_loop($self->{select});
+    $self->run_capture_loop;
 
     bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
 }
 
 use List::Util 'min';
 
-=head2 run_capture_loop(\@select, $timeout, $update_request_interval, $screenshot_interval)
+=head2 run_capture_loop($timeout)
 
 =out
-
-=item select
-
-IO::Select object that is polled when given
 
 =item timeout
 
 run the loop this long in seconds, indefinitely if undef, or until the
 $self->{cmdpipe} is closed, whichever occurs first.
 
-=item update_request_interval
-
-space out update polls for this interval in seconds, i.e. update the
-internal buffers this often.
-
-If unset, use $self->{update_request_interval}.  For the main capture
-loop $self->{update_request_interval} can be modified while this loop
-is running, e.g. to poll more often for a stretch of time.
-
-=item screenshot_interval
-
-space out screen captures for this interval in seconds, i.e. save a
-screenshot from the buffers this often.
-
-If unset, use $self->{screenshot_interval}.  For the main capture
-loop, $self->{screenshot_interval} can be modified while this loop is
-running, e.g. to do some fast or slow motion.
-
 =back
 
 =cut
 
 sub run_capture_loop {
-    my ($self, $select, $timeout, $update_request_interval, $screenshot_interval) = @_;
+    my ($self, $timeout) = @_;
     my $starttime = gettimeofday;
 
     if (!$self->last_screenshot) {
@@ -182,11 +162,12 @@ sub run_capture_loop {
                 last if $time_to_timeout <= 0;
             }
 
-            my $time_to_update_request = ($update_request_interval // $self->update_request_interval) - ($now - $self->last_update_request);
+            my $time_to_update_request = $self->update_request_interval - ($now - $self->last_update_request);
             if ($time_to_update_request <= 0) {
                 $self->request_screen_update();
                 $self->last_update_request($now);
-                $time_to_update_request = ($update_request_interval // $self->update_request_interval);
+                # no need to interrupt loop if VNC does not talk to us first
+                $time_to_update_request = $time_to_timeout;
             }
 
             # if we got stalled for a long time, we assume bad hardware and report it
@@ -196,52 +177,46 @@ sub run_capture_loop {
                 bmwqemu::diag "WARNING: There is some problem with your environment, we detected a stall for $diff seconds";
             }
 
-            my $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval) - ($now - $self->last_screenshot);
+            my $time_to_screenshot = $self->screenshot_interval - ($now - $self->last_screenshot);
             if ($time_to_screenshot <= 0) {
                 $self->capture_screenshot();
                 $self->last_screenshot($now);
-                $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval);
+                $time_to_screenshot = $self->screenshot_interval;
             }
 
             my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
-            if (defined $select) {
-                my ($read_set, $write_set) = IO::Select->select($select, $select, undef, $time_to_next);
-                # check the video encoder pipe first, it has the most traffic
-                if (grep { $_ == $self->{encoder_pipe} } @$write_set) {
-                    my $fdata        = shift @{$self->{video_frame_data}};
-                    my $data_written = $self->{encoder_pipe}->syswrite($fdata);
-                    if ($data_written != length($fdata)) {
-                        # put it back into the queue
-                        unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
-                    }
-                    if (!@{$self->{video_frame_data}}) {
-                        $self->{select}->remove($self->{encoder_pipe});
-                    }
-                    #next;
+            my ($read_set, $write_set) = IO::Select->select($self->{select}, $self->{select}, undef, $time_to_next);
+            # check the video encoder pipe first, it has the most traffic
+            if (grep { $_ == $self->{encoder_pipe} } @$write_set) {
+                my $fdata        = shift @{$self->{video_frame_data}};
+                my $data_written = $self->{encoder_pipe}->syswrite($fdata);
+                if ($data_written != length($fdata)) {
+                    # put it back into the queue
+                    unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
                 }
-                for my $fh (@$read_set) {
-                    unless ($self->check_socket($fh, 0)) {
-                        die "huh! $fh\n";
-                    }
-                    # don't check for further sockets after this one as
-                    # check_socket can have side effects on the sockets
-                    # (e.g. console resets), so better take the next socket
-                    # next time
-                    $write_set = [];
-                    last;
-                }
-                for my $fh (@$write_set) {
-                    if ($fh == $self->{encoder_pipe}) {
-                        # already handled
-                    }
-                    elsif (!$self->check_socket($fh, 1)) {
-                        die "huh! $fh\n";
-                    }
-                    last;
+                if (!@{$self->{video_frame_data}}) {
+                    $self->{select}->remove($self->{encoder_pipe});
                 }
             }
-            else {
-                sleep($time_to_next);
+            for my $fh (@$read_set) {
+                unless ($self->check_socket($fh, 0)) {
+                    die "huh! $fh\n";
+                }
+                # don't check for further sockets after this one as
+                # check_socket can have side effects on the sockets
+                # (e.g. console resets), so better take the next socket
+                # next time
+                $write_set = [];
+                last;
+            }
+            for my $fh (@$write_set) {
+                if ($fh == $self->{encoder_pipe}) {
+                    # already handled
+                }
+                elsif (!$self->check_socket($fh, 1)) {
+                    die "huh! $fh\n";
+                }
+                last;
             }
         }
     };
@@ -263,7 +238,6 @@ sub start_encoder {
     open($self->{encoder_pipe}, '|-', @cmd);
 
     $self->{encoder_pipe}->blocking(0);
-    $self->{select}->add($self->{encoder_pipe});
 
     return;
 }
@@ -406,8 +380,8 @@ sub enqueue_screenshot {
         $watch->lap("convert ppm data");
         push(@{$self->{video_frame_data}}, 'E ' . length($imgdata) . "\n");
         push(@{$self->{video_frame_data}}, $imgdata);
-        $self->{select}->add($self->{encoder_pipe});
     }
+    $self->{select}->add($self->{encoder_pipe});
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
@@ -545,42 +519,42 @@ sub bouncer {
     return $self->{current_screen}->$call($args);
 }
 
-sub send_key() {
+sub send_key {
     my ($self, $args) = @_;
     return $self->bouncer('send_key', $args);
 }
 
-sub hold_key() {
+sub hold_key {
     my ($self, $args) = @_;
     return $self->bouncer('hold_key', $args);
 }
 
-sub release_key() {
+sub release_key {
     my ($self, $args) = @_;
     return $self->bouncer('release_key', $args);
 }
 
-sub type_string() {
+sub type_string {
     my ($self, $args) = @_;
     return $self->bouncer('type_string', $args);
 }
 
-sub mouse_set() {
+sub mouse_set {
     my ($self, $args) = @_;
     return $self->bouncer('mouse_set', $args);
 }
 
-sub mouse_hide() {
+sub mouse_hide {
     my ($self, $args) = @_;
     return $self->bouncer('mouse_hide', $args);
 }
 
-sub mouse_button() {
+sub mouse_button {
     my ($self, $args) = @_;
     return $self->bouncer('mouse_button', $args);
 }
 
-sub get_last_mouse_set() {
+sub get_last_mouse_set {
     my ($self, $args) = @_;
     return $self->bouncer('get_last_mouse_set', $args);
 }
@@ -688,8 +662,7 @@ sub wait_serial {
             }
         }
         last if ($matched);
-        # 1 second timeout, .19 froh's magic number :)
-        $self->run_capture_loop($self->{select}, 1, .19);
+        $self->run_capture_loop(1);
     }
     $self->set_serial_offset();
     return {matched => $matched, string => $str};
@@ -718,7 +691,7 @@ sub wait_idle {
     my $timeout = $args->{timeout};
 
     bmwqemu::diag("wait_idle sleeping for $timeout seconds");
-    $self->run_capture_loop($self->{select}, $timeout);
+    $self->run_capture_loop($timeout);
     return;
 }
 
