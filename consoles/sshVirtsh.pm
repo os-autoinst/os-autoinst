@@ -144,9 +144,8 @@ sub _init_xml {
         }
         if (!get_var('BIOS')) {
             # We know this won't go well.
-            die "No UEFI firmware can be found on hypervisor "
-              . get_var('VIRSH_HOSTNAME')
-              . "\n. Please specify BIOS or UEFI_BIOS or install an appropriate package.";
+            my $virsh_hostname = get_var('VIRSH_HOSTNAME', '');
+            die "No UEFI firmware can be found on hypervisor '$virsh_hostname'. Please specify BIOS or UEFI_BIOS or install an appropriate package.";
         }
     }
 
