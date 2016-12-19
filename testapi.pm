@@ -30,6 +30,7 @@ use autodie ':all';
 use OpenQA::Exceptions;
 use Digest::MD5 'md5_base64';
 use Carp qw(cluck croak);
+use MIME::Base64 'decode_base64';
 
 require bmwqemu;
 
@@ -169,7 +170,7 @@ sub _check_backend_response {
         my $foundneedle = $rsp->{found};
         # convert the needle back to an object
         $foundneedle->{needle} = needle->new($foundneedle->{needle});
-        my $img = tinycv::read($rsp->{filename});
+        my $img = tinycv::from_ppm(decode_base64($rsp->{image}));
         $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
         my $lastarea = $foundneedle->{area}->[-1];
         bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
@@ -185,7 +186,7 @@ sub _check_backend_response {
             $failed_screens = [$final_mismatch];
         }
         for my $l (@$failed_screens) {
-            my $img = tinycv::read($l->{filename});
+            my $img = tinycv::from_ppm(decode_base64($l->{image}));
             my $result = $check ? 'unk' : 'fail';
             $result = 'unk' if ($l != $final_mismatch);
             if ($rsp->{saveresult}) {

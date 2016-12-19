@@ -22,11 +22,13 @@ void image_destroy(Image *s);
 Image *image_new(long width, long height);
 Image *image_read(const char *filename);
 bool image_write(Image *s, const char *filename);
+// returns copy to static buffer
+std::vector<unsigned char> *image_ppm(Image *s);
+Image *image_from_ppm(const unsigned char *data, size_t len);
 
 std::vector<int> image_search(Image *s, Image *needle, long x, long y, long width, long height, long margin, double &similarity);
 // std::vector<int> image_search_fuzzy(Image *s, Image *needle);
 
-std::string image_checksum(Image *s);
 Image *image_copy(Image *s);
 
 long image_xres(Image *s);

@@ -24,6 +24,7 @@ use JSON;
 use POSIX;
 use testapi  ();
 use autotest ();
+use MIME::Base64 'decode_base64';
 
 # enable strictures and warnings in all tests globaly
 sub import {
@@ -464,10 +465,10 @@ internal function to add a screenshot to an existing result structure
 sub _result_add_screenshot {
     my ($self, $result) = @_;
 
-    my $img = autotest::query_isotovideo('backend_last_screenshot_name')->{filename};
+    my $img = autotest::query_isotovideo('backend_last_screenshot_data')->{image};
     return $result unless $img;
 
-    $img = tinycv::read($img);
+    $img = tinycv::from_ppm(decode_base64($img));
     return $result unless $img;
 
     $result->{screenshot} = $self->next_resultname('png');
@@ -550,12 +551,11 @@ Optical Character Recognition matching.
 Return a listref containing hashrefs like this:
 
   {
-    screenshot=>2,		# nr of screenshot for the test to OCR
-    x=>104, y=>201,		# position
-    xs=>380, ys=>150,		# size
-    pattern=>"H ?ello",		# regex to match the OCR result
-
-    result=>"OK"		# or "fail"
+    screenshot=>2,      # nr of screenshot for the test to OCR
+    x=>104, y=>201,     # position
+    xs=>380, ys=>150,   # size
+    pattern=>"H ?ello", # regex to match the OCR result
+    result=>"OK"        # or "fail"
   }
 
 =cut

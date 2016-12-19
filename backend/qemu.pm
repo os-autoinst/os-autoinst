@@ -998,7 +998,7 @@ sub wait_idle {
 
     for my $n (1 .. $timeout) {
         my ($stat, $systemstat) = @{$self->cpu_stat()};
-        $self->run_capture_loop(undef, 1, .19);
+        $self->run_capture_loop(1);
         next unless $stat;
         $stat += $systemstat;
         if ($prev) {

@@ -29,11 +29,10 @@ use IO::Select;
 require IPC::System::Simple;
 use autodie ':all';
 use myjsonrpc;
-
 use Net::SSH2;
 use feature 'say';
-
-my $framecounter = 0;    # screenshot counter
+use OpenQA::Benchmark::Stopwatch;
+use MIME::Base64 'encode_base64';
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -42,7 +41,7 @@ use parent 'Class::Accessor::Fast';
 __PACKAGE__->mk_accessors(
     qw(
       update_request_interval last_update_request screenshot_interval
-      last_screenshot _last_screenshot_name last_image
+      last_screenshot last_image
       reference_screenshot assert_screen_tags assert_screen_needles assert_screen_deadline
       assert_screen_fails assert_screen_last_check stall_detected
       reload_needles
@@ -51,9 +50,10 @@ __PACKAGE__->mk_accessors(
 sub new {
     my $class = shift;
     my $self = bless({class => $class}, $class);
-    $self->{started}       = 0;
-    $self->{serialfile}    = "serial0";
-    $self->{serial_offset} = 0;
+    $self->{started}          = 0;
+    $self->{serialfile}       = "serial0";
+    $self->{serial_offset}    = 0;
+    $self->{video_frame_data} = [];
     return $self;
 }
 
@@ -110,57 +110,37 @@ sub run {
     $self->last_update_request("-Inf" + 0);
     $self->last_screenshot(undef);
     $self->screenshot_interval($bmwqemu::vars{SCREENSHOTINTERVAL} || .5);
-    $self->update_request_interval($self->screenshot_interval());
+    # query the VNC backend more often than we write out screenshots, so the chances
+    # are high we're not writing out outdated screens
+    $self->update_request_interval($self->screenshot_interval / 2);
 
     for my $console (values %{$testapi::distri->{consoles}}) {
         # tell the consoles who they need to talk to (in this thread)
         $console->backend($self);
     }
 
-    $self->run_capture_loop($self->{select});
+    $self->run_capture_loop;
 
     bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
 }
 
 use List::Util 'min';
 
-=head2 run_capture_loop(\@select, $timeout, $update_request_interval, $screenshot_interval)
+=head2 run_capture_loop($timeout)
 
 =out
-
-=item select
-
-IO::Select object that is polled when given
 
 =item timeout
 
 run the loop this long in seconds, indefinitely if undef, or until the
 $self->{cmdpipe} is closed, whichever occurs first.
 
-=item update_request_interval
-
-space out update polls for this interval in seconds, i.e. update the
-internal buffers this often.
-
-If unset, use $self->{update_request_interval}.  For the main capture
-loop $self->{update_request_interval} can be modified while this loop
-is running, e.g. to poll more often for a stretch of time.
-
-=item screenshot_interval
-
-space out screen captures for this interval in seconds, i.e. save a
-screenshot from the buffers this often.
-
-If unset, use $self->{screenshot_interval}.  For the main capture
-loop, $self->{screenshot_interval} can be modified while this loop is
-running, e.g. to do some fast or slow motion.
-
 =back
 
 =cut
 
 sub run_capture_loop {
-    my ($self, $select, $timeout, $update_request_interval, $screenshot_interval) = @_;
+    my ($self, $timeout) = @_;
     my $starttime = gettimeofday;
 
     if (!$self->last_screenshot) {
@@ -182,11 +162,12 @@ sub run_capture_loop {
                 last if $time_to_timeout <= 0;
             }
 
-            my $time_to_update_request = ($update_request_interval // $self->update_request_interval) - ($now - $self->last_update_request);
+            my $time_to_update_request = $self->update_request_interval - ($now - $self->last_update_request);
             if ($time_to_update_request <= 0) {
                 $self->request_screen_update();
                 $self->last_update_request($now);
-                $time_to_update_request = ($update_request_interval // $self->update_request_interval);
+                # no need to interrupt loop if VNC does not talk to us first
+                $time_to_update_request = $time_to_timeout;
             }
 
             # if we got stalled for a long time, we assume bad hardware and report it
@@ -196,36 +177,46 @@ sub run_capture_loop {
                 bmwqemu::diag "WARNING: There is some problem with your environment, we detected a stall for $diff seconds";
             }
 
-            my $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval) - ($now - $self->last_screenshot);
+            my $time_to_screenshot = $self->screenshot_interval - ($now - $self->last_screenshot);
             if ($time_to_screenshot <= 0) {
                 $self->capture_screenshot();
                 $self->last_screenshot($now);
-                $time_to_screenshot = ($screenshot_interval // $self->screenshot_interval);
+                $time_to_screenshot = $self->screenshot_interval;
             }
 
             my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
-            if (defined $select) {
-                my ($read_set, $write_set) = IO::Select->select($select, $select, undef, $time_to_next);
-                for my $fh (@$read_set) {
-                    unless ($self->check_socket($fh, 0)) {
-                        die "huh! $fh\n";
-                    }
-                    # don't check for further sockets after this one as
-                    # check_socket can have side effects on the sockets
-                    # (e.g. console resets), so better take the next socket
-                    # next time
-                    $write_set = [];
-                    last;
+            my ($read_set, $write_set) = IO::Select->select($self->{select}, $self->{select}, undef, $time_to_next);
+            # check the video encoder pipe first, it has the most traffic
+            if (grep { $_ == $self->{encoder_pipe} } @$write_set) {
+                my $fdata        = shift @{$self->{video_frame_data}};
+                my $data_written = $self->{encoder_pipe}->syswrite($fdata);
+                if ($data_written != length($fdata)) {
+                    # put it back into the queue
+                    unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
                 }
-                for my $fh (@$write_set) {
-                    unless ($self->check_socket($fh, 1)) {
-                        die "huh! $fh\n";
-                    }
-                    last;
+                if (!@{$self->{video_frame_data}}) {
+                    $self->{select}->remove($self->{encoder_pipe});
                 }
             }
-            else {
-                sleep($time_to_next);
+            for my $fh (@$read_set) {
+                unless ($self->check_socket($fh, 0)) {
+                    die "huh! $fh\n";
+                }
+                # don't check for further sockets after this one as
+                # check_socket can have side effects on the sockets
+                # (e.g. console resets), so better take the next socket
+                # next time
+                $write_set = [];
+                last;
+            }
+            for my $fh (@$write_set) {
+                if ($fh == $self->{encoder_pipe}) {
+                    # already handled
+                }
+                elsif (!$self->check_socket($fh, 1)) {
+                    die "huh! $fh\n";
+                }
+                last;
             }
         }
     };
@@ -237,28 +228,17 @@ sub run_capture_loop {
     return;
 }
 
-sub write_encoder_frame {
-    my ($self, $frame) = @_;
-
-    open(my $fh, '>>', 'video.log');
-    print $fh "$frame\n";
-    close($fh);
-}
-
 sub start_encoder {
     my ($self) = @_;
 
-    $self->{encoder_pid} = 0;
-    return if $bmwqemu::vars{NOVIDEO};
-
-    # create empty file
-    open(my $fh, '>', 'video.log');
-    close($fh);
     my $cwd = Cwd::getcwd();
-    $self->{encoder_pid} = fork();
-    if (!$self->{encoder_pid}) {
-        exec('nice', '-n', '19', "$bmwqemu::scriptdir/videoencoder", "$cwd/video.log", "$cwd/video.ogv");
-    }
+    my @cmd = qw(nice -n 19);
+    push(@cmd, ("$bmwqemu::scriptdir/videoencoder", "$cwd/video.ogv"));
+    push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO};
+    open($self->{encoder_pipe}, '|-', @cmd);
+
+    $self->{encoder_pipe}->blocking(0);
+
     return;
 }
 
@@ -274,12 +254,16 @@ sub start_vm {
 sub stop_vm {
     my ($self) = @_;
     if ($self->{started}) {
-        kill(TERM => $self->{encoder_pid}) if $self->{encoder_pid};
         # backend.run might have disappeared already in case of failed builds
         no autodie 'unlink';
         unlink('backend.run');
         $self->do_stop_vm();
-        waitpid($self->{encoder_pid}, 0);
+        # flush frames
+        $self->{encoder_pipe}->blocking(1);
+        for my $fdata (@{$self->{video_frame_data}}) {
+            $self->{encoder_pipe}->print($fdata);
+        }
+        close($self->{encoder_pipe}) if $self->{encoder_pipe};
         $self->{started} = 0;
     }
     $self->close_pipes();    # does not return
@@ -362,64 +346,49 @@ sub cpu_stat {
     return [];
 }
 
-# helper function to make sure a screenshot is written
-sub write_img {
-    my ($self, $image, $filename) = @_;
-
-    return if (!$image);
-
-    if ($filename && !-f $filename) {
-        $image->write($filename) || return;
-    }
-    return $filename;
-}
-
 sub enqueue_screenshot {
     my ($self, $image) = @_;
 
     return unless $image;
 
-    my $starttime = gettimeofday;
+    my $watch = OpenQA::Benchmark::Stopwatch->new();
+    $watch->start();
 
     $image = $image->scale(1024, 768);
-
-    $framecounter++;
-
-    my $filename = $bmwqemu::screenshotpath . sprintf("/shot-%010d.png", $framecounter);
-    my $lastlink = $bmwqemu::screenshotpath . "/last.png";
+    $watch->lap("scaling");
 
     my $lastscreenshot = $self->last_image;
 
     # link identical files to save space
     my $sim = 0;
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
+    $watch->lap("similarity");
 
-    my $mt1 = gettimeofday;
-
-    # 54 is based on t/data/user-settings-*
+    # we have two different similarity levels - one (slightly higher value, based
+    # t/data/user-settings-*) to determine if it's worth it to recheck needles
+    # and one (slightly lower as less significant) determining if we write the frame
+    # into the video
     if ($sim <= 54) {
-        # don't write a new screenshot by default not to waste cycles
-        $self->write_img($image, $filename) || die "write $filename";
         $self->last_image($image);
-        $self->_last_screenshot_name($filename);
-        no autodie 'unlink';
-        unlink($lastlink);
-        symlink(basename($self->_last_screenshot_name), $lastlink);
     }
 
     if ($sim > 50) {    # we ignore smaller differences
-        $self->write_encoder_frame('R');
+        push(@{$self->{video_frame_data}}, "R\n");
     }
     else {
-        my $name = $self->_last_screenshot_name;
-        $self->write_encoder_frame("E $name");
+        my $imgdata = $image->ppm_data;
+        $watch->lap("convert ppm data");
+        push(@{$self->{video_frame_data}}, 'E ' . length($imgdata) . "\n");
+        push(@{$self->{video_frame_data}}, $imgdata);
     }
-    my $d = gettimeofday - $starttime;
-    if ($d > $self->screenshot_interval) {
-        my $t_opencv = $mt1 - $starttime;
-        my $t_enc    = gettimeofday - $mt1;
-        bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds - slow IO? (opencv: %.2f - encoder: %.2f)", $d, $t_opencv, $t_enc);
+    $self->{select}->add($self->{encoder_pipe});
+
+    $watch->stop();
+    if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
+        bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
+        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
     }
+
     return;
 }
 
@@ -550,42 +519,42 @@ sub bouncer {
     return $self->{current_screen}->$call($args);
 }
 
-sub send_key() {
+sub send_key {
     my ($self, $args) = @_;
     return $self->bouncer('send_key', $args);
 }
 
-sub hold_key() {
+sub hold_key {
     my ($self, $args) = @_;
     return $self->bouncer('hold_key', $args);
 }
 
-sub release_key() {
+sub release_key {
     my ($self, $args) = @_;
     return $self->bouncer('release_key', $args);
 }
 
-sub type_string() {
+sub type_string {
     my ($self, $args) = @_;
     return $self->bouncer('type_string', $args);
 }
 
-sub mouse_set() {
+sub mouse_set {
     my ($self, $args) = @_;
     return $self->bouncer('mouse_set', $args);
 }
 
-sub mouse_hide() {
+sub mouse_hide {
     my ($self, $args) = @_;
     return $self->bouncer('mouse_hide', $args);
 }
 
-sub mouse_button() {
+sub mouse_button {
     my ($self, $args) = @_;
     return $self->bouncer('mouse_button', $args);
 }
 
-sub get_last_mouse_set() {
+sub get_last_mouse_set {
     my ($self, $args) = @_;
     return $self->bouncer('get_last_mouse_set', $args);
 }
@@ -693,8 +662,7 @@ sub wait_serial {
             }
         }
         last if ($matched);
-        # 1 second timeout, .19 froh's magic number :)
-        $self->run_capture_loop($self->{select}, 1, .19);
+        $self->run_capture_loop(1);
     }
     $self->set_serial_offset();
     return {matched => $matched, string => $str};
@@ -723,7 +691,7 @@ sub wait_idle {
     my $timeout = $args->{timeout};
 
     bmwqemu::diag("wait_idle sleeping for $timeout seconds");
-    $self->run_capture_loop($self->{select}, $timeout);
+    $self->run_capture_loop($timeout);
     return;
 }
 
@@ -733,7 +701,7 @@ sub set_tags_to_assert {
     my $timeout       = $args->{timeout} // $bmwqemu::default_timeout;
     my $reloadneedles = $args->{reloadneedles} || 0;
 
-    # free all needle images
+    # free all needle images (https://progress.opensuse.org/issues/15438)
     for my $n (needle->all()) {
         $n->{img} = undef;
     }
@@ -813,10 +781,10 @@ sub _failed_screens_to_json {
 
     my @json_fails;
     for my $l (@$failed_screens) {
-        my ($img, $failed_candidates, $testtime, $similarity, $filename) = @$l;
+        my ($img, $failed_candidates, $testtime, $similarity) = @$l;
         my $h = {
             candidates => $failed_candidates,
-            filename   => $self->write_img($img, $filename)};
+            image      => encode_base64($img->ppm_data)};
         push(@json_fails, $h);
     }
 
@@ -832,39 +800,42 @@ sub check_asserted_screen {
     if (!$img) {    # no screenshot yet to search on
         return;
     }
-
-    my $img_filename = $self->_last_screenshot_name;
-
-    my $n = $self->_time_to_assert_screen_deadline;
+    my $watch     = OpenQA::Benchmark::Stopwatch->new();
+    my $timestamp = $self->last_screenshot;
+    my $n         = $self->_time_to_assert_screen_deadline;
 
     my $search_ratio = 0.02;
     $search_ratio = 1 if ($n % 5 == 0);
 
-    my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || ['', 0]};
+    my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || [undef, 0]};
 
     if ($n < 0) {
         # one last big search
         $search_ratio = 1;
     }
     else {
-        if ($img_filename eq $oldimg && $old_search_ratio >= $search_ratio) {
+        if ($oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio) {
             bmwqemu::diag("no change $n");
             return;
         }
     }
 
-    my $starttime = gettimeofday;
+    $watch->start();
 
     my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio);
 
     if ($foundneedle) {
         $self->assert_screen_last_check(undef);
-        return {filename => $self->write_img($img, $img_filename), found => $foundneedle, candidates => $failed_candidates};
+        return {
+            image      => encode_base64($img->ppm_data),
+            found      => $foundneedle,
+            candidates => $failed_candidates
+        };
     }
 
-    my $d = gettimeofday - $starttime;
-    if ($d > $self->screenshot_interval) {
-        bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $d);
+    $watch->stop();
+    if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
+        bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time});
     }
 
     if ($n < 0) {
@@ -877,9 +848,9 @@ sub check_asserted_screen {
         }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
-        push(@$failed_screens, [$img, $failed_candidates, 0, 1000, $img_filename]);
+        push(@$failed_screens, [$img, $failed_candidates, 0, 1000]);
         my $hash = $self->_failed_screens_to_json;
-        $hash->{filename} = $self->write_img($img, $img_filename);
+        $hash->{image} = encode_base64($img->ppm_data);
         return $hash;
     }
 
@@ -896,7 +867,7 @@ sub check_asserted_screen {
             $sim = $failed_screens->[-1]->[0]->similarity($img);
         }
         if ($sim < 30) {
-            push(@$failed_screens, [$img, $failed_candidates, $n, $sim, $img_filename]);
+            push(@$failed_screens, [$img, $failed_candidates, $n, $sim]);
         }
         # clean up every once in a while to avoid excessive memory consumption.
         # The value here is an arbitrary limit.
@@ -905,7 +876,7 @@ sub check_asserted_screen {
         }
     }
     bmwqemu::diag("no match $n");
-    $self->assert_screen_last_check([$img_filename, $search_ratio]);
+    $self->assert_screen_last_check([$img, $search_ratio]);
     return;
 }
 
@@ -941,9 +912,9 @@ sub cont_vm {
     return;
 }
 
-sub last_screenshot_name {
+sub last_screenshot_data {
     my ($self, $args) = @_;
-    return {filename => $self->write_img($self->last_image, $self->_last_screenshot_name)};
+    return {image => encode_base64($self->last_image->ppm_data)};
 }
 
 sub verify_image {

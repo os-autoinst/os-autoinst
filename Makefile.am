@@ -43,6 +43,10 @@ openqaexecdir = $(pkglibexecdir)/OpenQA
 openqaexec_DATA = \
 	OpenQA/Exceptions.pm
 
+openqaexecbenchdir = $(pkglibexecdir)/OpenQA/Benchmark
+openqaexecbench_DATA = \
+	OpenQA/Benchmark/Stopwatch.pm
+
 # circumvent automake's test - possibly we really shouldn't install in /usr/lib though
 perlexecdir = $(pkglibexecdir)
 perlexec_DATA = \
@@ -80,7 +84,7 @@ pkglibexec_FOLDERS = \
 pkglibexec_PROGRAMS = videoencoder
 
 videoencoder_SOURCES = videoencoder.cpp
-videoencoder_CFLAGS = -Wall -W $(OPENCV_CFLAGS)
+videoencoder_CFLAGS = -O2 -Wall -W $(OPENCV_CFLAGS)
 videoencoder_LDADD = $(OPENCV_LIBS) $(THEORAENC_LIBS) -lm
 
 EXTRA_DIST = \
@@ -195,3 +199,7 @@ coverage-html: t/cover_db/coverage.html
 .PHONY: coverage-check
 coverage-check: t/cover_db/coverage.html
 	(cd t && ../tools/check_coverage ${COVERAGE_THRESHOLD})
+
+.PHONY: tidy-cpp
+tidy-cpp:
+	clang-format --style=WebKit -i $$(find . -name \*.cc -o -name \*.cpp)

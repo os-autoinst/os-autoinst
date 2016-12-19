@@ -28,6 +28,15 @@ tinycv::Image read(const char *file)
   OUTPUT:
     RETVAL
 
+tinycv::Image from_ppm(SV *data)
+  CODE:
+    STRLEN len;
+    register unsigned char *buf = (unsigned char*)SvPV(data, len);
+    RETVAL = image_from_ppm(buf, len);
+
+  OUTPUT:
+    RETVAL
+
 tinycv::VNCInfo new_vncinfo(bool do_endian_conversion, bool true_color, unsigned int bytes_per_pixel, unsigned int red_mask, unsigned int red_shift, unsigned int green_mask, unsigned int green_shift, unsigned int blue_mask, unsigned int blue_shift)
    CODE:
      RETVAL = image_vncinfo(do_endian_conversion,
@@ -49,6 +58,14 @@ MODULE = tinycv     PACKAGE = tinycv::Image  PREFIX = Image
 bool write(tinycv::Image self, const char *file)
   CODE:
     RETVAL = image_write(self, file);
+
+  OUTPUT:
+    RETVAL
+
+SV *ppm_data(tinycv::Image self)
+  CODE:
+    std::vector<unsigned char> *buf = image_ppm(self);
+    RETVAL = newSVpv(reinterpret_cast<const char*>(buf->data()), buf->size());
 
   OUTPUT:
     RETVAL
