@@ -94,8 +94,10 @@ Used for internal initialization, do not call from tests.
 =for stopwords xen hvc0 xvc0 ipmi ttyS
 =cut
 sub init {
-    $serialdev = get_var('SERIALDEV', 'ttyS0');
-    if (get_var('OFW') || check_var('BACKEND', 's390x')) {
+    if (get_var('SERIALDEV')) {
+        $serialdev = get_var('SERIALDEV');
+    }
+    elsif (get_var('OFW') || check_var('BACKEND', 's390x')) {
         $serialdev = "hvc0";
     }
     elsif (check_var('VIRSH_VMM_FAMILY', 'xen') && check_var('VIRSH_VMM_TYPE', 'linux')) {
@@ -105,6 +107,9 @@ sub init {
         else {
             $serialdev = "xvc0";
         }
+    }
+    else {
+        $serialdev = 'ttyS0';
     }
     $serialdev = 'ttyS1' if check_var('BACKEND', 'ipmi');
     return;

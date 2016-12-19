@@ -304,7 +304,7 @@ sub add_disk {
         $file = $args->{file};
     }
     else {
-        $file = $self->name . (($self->vmm_family eq 'vmware') ? ".vmdk" : ".img");
+        $file = $self->name . $args->{dev_id} . (($self->vmm_family eq 'vmware') ? ".vmdk" : ".img");
         if ($args->{create}) {
             my $size = $args->{size} || '4G';
             if ($self->vmm_family eq 'vmware') {
