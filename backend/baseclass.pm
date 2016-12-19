@@ -914,6 +914,7 @@ sub cont_vm {
 
 sub last_screenshot_data {
     my ($self, $args) = @_;
+    return {} unless $self->last_image;
     return {image => encode_base64($self->last_image->ppm_data)};
 }
 
