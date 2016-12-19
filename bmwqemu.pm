@@ -70,9 +70,7 @@ sub load_vars() {
     local $/;
     open(my $fh, '<', $fn) or return 0;
     eval { $ret = JSON->new->relaxed->decode(<$fh>); };
-    die                                  #
-      "parse error in vars.json:\n" .    #
-      "$@" if $@;
+    die "parse error in vars.json:\n$@" if $@;
     close($fh);
     %vars = %{$ret};
     return;
