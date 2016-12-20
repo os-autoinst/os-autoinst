@@ -4,7 +4,6 @@ use warnings;
 package OpenQA::Benchmark::Stopwatch;
 
 our $VERSION = '0.05';
-
 use Time::HiRes;
 
 =head1 NAME
@@ -62,7 +61,8 @@ sub new {
     my $self  = {};
 
     $self->{events} = [];
-    $self->{_time} = sub { Time::HiRes::time() };
+    $self->{_time}  = sub { Time::HiRes::time() };
+    $self->{length} = 26;
 
     return bless $self, $class;
 }
@@ -92,10 +92,11 @@ the summary.
 =cut
 
 sub lap {
-    my $self = shift;
-    my $name = shift;
-    my $time = $self->time;
-
+    my $self        = shift;
+    my $name        = shift;
+    my $time        = $self->time;
+    my $name_lenght = length $name;
+    $self->{length} = $name_lenght if $name_lenght > $self->{length};
     push @{$self->{events}}, {name => $name, time => $time};
     return $self;
 }
@@ -156,10 +157,9 @@ The final entry C<_stop_> is when the stop watch was stopped.
 sub summary {
     my $self          = shift;
     my $out           = '';
-    my $header_format = "%-27.26s %-11s %-15s %s\n";
-    my $result_format = " %-27.26s %-11.3f %-15.3f %.3f%%\n";
+    my $header_format = "%-$self->{length}.$self->{length}s %-11s %-15s %s\n";
+    my $result_format = " %-$self->{length}.$self->{length}s %-11.3f %-15.3f %.3f%%\n";
     my $prev_time     = $self->{start};
-
     push @{$self->{events}}, {name => '_stop_', time => $self->{stop}};
 
     $out .= sprintf $header_format, qw( NAME TIME CUMULATIVE PERCENTAGE);

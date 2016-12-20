@@ -59,7 +59,7 @@ sub mean_square_error {
 #   ]
 # }
 sub search_ {
-    my ($self, $needle, $threshold, $search_ratio) = @_;
+    my ($self, $needle, $threshold, $search_ratio, $stopwatch) = @_;
     $threshold    ||= 0.0;
     $search_ratio ||= 0.0;
     my ($sim,     $xmatch, $ymatch);
@@ -72,6 +72,7 @@ sub search_ {
         bmwqemu::diag("SKIP($needle->{name}:missing PNG)");
         return;
     }
+    $stopwatch->lap("**++ search__: get image") if $stopwatch;
 
     my $img = $self;
     for my $a (@{$needle->{area}}) {
@@ -84,15 +85,17 @@ sub search_ {
         $img = $self->copy;
         for my $a (@exclude) {
             $img->replacerect($a->{xpos}, $a->{ypos}, $a->{width}, $a->{height});
+            $stopwatch->lap("**++-- search__: rectangle replacement") if $stopwatch;
         }
     }
-
+    $stopwatch->lap("**++ search__: areas exclusion") if $stopwatch;
     my $ret = {ok => 1, needle => $needle, area => []};
-
     for my $area (@match) {
         my $margin = int($area->{margin} + $search_ratio * (1024 - $area->{margin}));
+
         ($sim, $xmatch, $ymatch) = $img->search_needle($needle_image, $area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}, $margin);
 
+        $stopwatch->lap("**++ tinycv::search_needle $area->{xpos}x$area->{ypos}x$area->{width}") if $stopwatch;
         my $ma = {
             similarity => $sim,
             x          => $xmatch,
@@ -117,15 +120,15 @@ sub search_ {
 
     $ret->{error} = mean_square_error($ret->{area});
     bmwqemu::diag(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - sqrt($ret->{error})));
-
+    $stopwatch->lap("**++ mean_square_error") if $stopwatch;
     if ($ret->{ok}) {
         for my $a (@ocr) {
             $ret->{ocr} ||= [];
             my $ocr = ocr::tesseract($img, $a);
             push @{$ret->{ocr}}, $ocr;
         }
+        $stopwatch->lap("**++ ocr::tesseract: $needle->{name}") if $stopwatch;
     }
-
     return $ret;
 }
 
@@ -148,16 +151,18 @@ sub cmp_by_error_type_ {
 # in array context returns array with two elements. First element is best match
 # or undefined, second element are candidates that did not match.
 sub search {
-    my ($self, $needle, $threshold, $search_ratio) = @_;
+    my ($self, $needle, $threshold, $search_ratio, $stopwatch) = @_;
     return unless $needle;
+
+    $stopwatch->lap("Searching for needles") if $stopwatch;
 
     if (ref($needle) eq "ARRAY") {
         my @candidates;
-
         # try to match all needles and return the one with the highest similarity
         for my $n (@$needle) {
-            my $found = $self->search_($n, $threshold, $search_ratio);
+            my $found = $self->search_($n, $threshold, $search_ratio, $stopwatch);
             push @candidates, $found if $found;
+            $stopwatch->lap("** search_: $n->{name}") if $stopwatch;
         }
 
         @candidates = sort cmp_by_error_type_ @candidates;
@@ -166,7 +171,6 @@ sub search {
         if (@candidates && $candidates[0]->{ok}) {
             $best = shift @candidates;
         }
-
         if (wantarray) {
             return ($best, \@candidates);
         }
@@ -174,8 +178,10 @@ sub search {
             return $best;
         }
     }
+
     else {
-        my $found = $self->search_($needle, $threshold, $search_ratio);
+        my $found = $self->search_($needle, $threshold, $search_ratio, $stopwatch);
+        $stopwatch->lap("** search_: single needle: $needle->{name}") if $stopwatch;
         return unless $found;
         if (wantarray) {
             return ($found, undef) if ($found->{ok});
