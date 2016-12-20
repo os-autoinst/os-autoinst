@@ -823,7 +823,7 @@ sub check_asserted_screen {
     $watch->start();
     $watch->{debug} = 1;
 
-    my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio, ($watch->{debug}? $watch : undef ));
+    my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio, ($watch->{debug} ? $watch : undef));
     $watch->lap("Needle search") unless $watch->{debug};
     if ($foundneedle) {
         $self->assert_screen_last_check(undef);
