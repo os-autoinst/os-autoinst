@@ -1020,11 +1020,18 @@ sub wait_idle {
 sub freeze_vm {
     my ($self) = @_;
     # qemu specific - all other backends will crash
-    return $self->handle_qmp_command({execute => 'stop'});
+    my $ret = $self->handle_qmp_command({execute => 'stop'});
+    # once we stopped, there is no point in querying VNC
+    if (!defined $self->{_qemu_saved_request_interval}) {
+        $self->{_qemu_saved_request_interval} = $self->update_request_interval;
+        $self->update_request_interval(1000);
+    }
+    return $ret;
 }
 
 sub cont_vm {
     my ($self) = @_;
+    $self->update_request_interval(delete $self->{_qemu_saved_request_interval});
     return $self->handle_qmp_command({execute => 'cont'});
 }
 
