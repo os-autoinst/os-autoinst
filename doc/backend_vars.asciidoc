@@ -63,7 +63,9 @@ QEMURAM;integer;1024;Size of RAM of VM in MiB
 QEMUTHREADS;integer;0;Number of cpu threads used by VM
 QEMUVGA;see qemu -device ?;cirrus;VGA device to use with VM
 QEMU_COMPRESS_QCOW2;boolean;0;compress qcow2 images intended for upload
+QEMU_NO_FDC_SET;boolean;0;Don't disable the floppy drive.
 QEMU_NO_KVM;boolean;0;Don't use KVM acceleration.
+QEMU_NO_TABLET;boolean;0;Don't use USB tablet.
 QEMU_VIRTIO_RNG;boolean;0;Enable virtio random number generator
 QEMU_NUMA;boolean;0;Enable NUMA simulation, requires QEMUCPUS to be greater than one
 RAIDLEVEL;;;

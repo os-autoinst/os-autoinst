@@ -1,0 +1,14 @@
+{
+    "area": [
+        {
+            "height": 15,
+            "type": "match",
+            "width": 150,
+            "xpos": 50,
+            "ypos": 350
+        }
+    ],
+    "tags": [
+        "baudrate"
+    ]
+}

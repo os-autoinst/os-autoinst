@@ -190,6 +190,7 @@ sub run_capture_loop {
             if (grep { $_ == $self->{encoder_pipe} } @$write_set) {
                 my $fdata        = shift @{$self->{video_frame_data}};
                 my $data_written = $self->{encoder_pipe}->syswrite($fdata);
+                die "Encoder not accepting data" unless defined $data_written;
                 if ($data_written != length($fdata)) {
                     # put it back into the queue
                     unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
