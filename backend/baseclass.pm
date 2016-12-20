@@ -821,9 +821,10 @@ sub check_asserted_screen {
     }
 
     $watch->start();
+    $watch->{debug} = 1;
 
-    my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio);
-
+    my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio, ($watch->{debug}? $watch : undef ));
+    $watch->lap("Needle search") unless $watch->{debug};
     if ($foundneedle) {
         $self->assert_screen_last_check(undef);
         return {
@@ -836,6 +837,9 @@ sub check_asserted_screen {
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
         bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time});
+        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
+
+
     }
 
     if ($n < 0) {
