@@ -144,8 +144,6 @@ sub signalhandler {
 
 sub signalhandler_chld {
 
-    diag("got sigchld");
-
     while ((my $child = waitpid(-1, WNOHANG)) > 0) {
         if ($child == $cpid) {
             diag("commands webserver died");
@@ -156,9 +154,7 @@ sub signalhandler_chld {
         if ($bmwqemu::backend->{backend_pid} && $child == $bmwqemu::backend->{backend_pid}) {
             diag("backend $child died");
             $bmwqemu::backend->{backend_pid} = 0;
-            $bmwqemu::backend->{to_child}    = undef;
-            $bmwqemu::backend->{from_child}  = undef;
-            $loop                            = 0;
+            $loop = 0;
             next;
         }
         if ($child == $testpid) {
@@ -489,7 +485,11 @@ if (!$r) {
         diag "BACKEND SHUTDOWN $clean_shutdown";
     };
     # don't rely on the backend in a sane state if we failed - just kill it later
-    bmwqemu::stop_vm();
+    eval { bmwqemu::stop_vm(); };
+    if ($@) {
+        diag "Error during stop_vm: $@";
+        $r = 1;
+    }
 }
 
 # read calculated variables from backend and tests
