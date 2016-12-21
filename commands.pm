@@ -305,6 +305,7 @@ sub start_server {
         close($child);
         $0 = "$0: commands";
         run_daemon($port);
+        Devel::Cover::report() if Devel::Cover->can('report');
         _exit(0);
     }
     close($isotovideo);
