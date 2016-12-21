@@ -7,7 +7,7 @@ before_install:
 install:
   - sudo apt-get install libdbus-1-dev libssh2-1-dev 
   - cpanm -nq --installdeps --with-feature=coverage .
-  - sudo apt-get install libopencv-dev libtheora-dev libcv-dev libhighgui-dev tesseract-ocr libsndfile1-dev libfftw3-dev
+  - sudo apt-get install libopencv-dev libtheora-dev libcv-dev libhighgui-dev tesseract-ocr libsndfile1-dev libfftw3-dev qemu-system
 script:
   - find . -type f | xargs -n1 sed -i -e 's,#!/usr/bin/perl,#!/usr/bin/env perl,'
   - sh autogen.sh 

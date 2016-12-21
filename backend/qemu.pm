@@ -530,8 +530,10 @@ sub start_qemu {
     die "fork failed" unless defined($pid);
     if ($pid == 0) {
         $SIG{__DIE__} = undef;    # overwrite the default - just exit
-        my @params = ("-serial", "file:serial0", "-soundhw", "ac97", "-global", "isa-fdc.driveA=", @vgaoptions);
+        my @params = ("-serial", "file:serial0", "-soundhw", "ac97", @vgaoptions);
 
+        push(@params, "-global", "isa-fdc.driveA=") unless ($vars->{QEMU_NO_FDC_SET});
+        push(@params, @vgaoptions);
         push(@params, '-m', $vars->{QEMURAM});
 
         if ($vars->{QEMUMACHINE}) {
@@ -675,15 +677,17 @@ sub start_qemu {
             }
             push(@params, ('-net', "nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57", '-net', 'none,vlan=1'));
         }
-        if ($vars->{OFW}) {
-            no warnings 'qw';
-            push(@params, qw(-device nec-usb-xhci -device usb-tablet));
-        }
-        elsif ($vars->{ARCH} eq 'aarch64') {
-            push(@params, qw(-device nec-usb-xhci -device usb-tablet));
-        }
-        else {
-            push(@params, qw(-device usb-ehci -device usb-tablet));
+        unless ($vars->{QEMU_NO_TABLET}) {
+            if ($vars->{OFW}) {
+                no warnings 'qw';
+                push(@params, qw(-device nec-usb-xhci -device usb-tablet));
+            }
+            elsif ($vars->{ARCH} eq 'aarch64') {
+                push(@params, qw(-device nec-usb-xhci -device usb-tablet));
+            }
+            else {
+                push(@params, qw(-device usb-ehci -device usb-tablet));
+            }
         }
         if ($use_usb_kbd) {
             push(@params, qw(-device usb-kbd));

@@ -36,8 +36,7 @@ my $test = Test::Compile->new();
 my @files = $test->all_pm_files(".");
 
 for my $file (@files) {
-    #TODO: ./autoinstallstep.pm is missing installstep dependency
-    next if ($file =~ /autoinstallstep.pm/);
+    next if ($file =~ /main.pm/);
     $file =~ s,^\./,,;
     $test->ok($test->pm_file_compiles($file), "Compile test for $file");
 }

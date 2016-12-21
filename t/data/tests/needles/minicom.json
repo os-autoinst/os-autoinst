@@ -1,0 +1,14 @@
+{
+    "area": [
+        {
+            "height": 10,
+            "type": "match",
+            "width": 110,
+            "xpos": 345,
+            "ypos": 385
+        }
+    ],
+    "tags": [
+        "minicom"
+    ]
+}

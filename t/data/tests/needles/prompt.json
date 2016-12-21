@@ -1,0 +1,14 @@
+{
+    "area": [
+        {
+            "height": 15,
+            "type": "match",
+            "width": 30,
+            "xpos": 0,
+            "ypos": 15
+        }
+    ],
+    "tags": [
+        "prompt"
+    ]
+}
