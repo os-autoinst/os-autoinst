@@ -121,6 +121,7 @@ sub run_all {
     bmwqemu::save_vars();
     myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, completed => $completed});
     close $isotovideo;
+    Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
 }
 

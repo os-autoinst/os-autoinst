@@ -406,6 +406,7 @@ sub close_pipes {
     bmwqemu::diag "sending magic and exit";
     $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || die "close $!\n";
+    Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
 }
 
