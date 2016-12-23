@@ -1,17 +1,9 @@
 language: perl
 perl:
   - "5.18-extras"
-before_install:
-  - sudo add-apt-repository -y ppa:kubuntu-ppa/backports
-  - sudo apt-get update
 install:
-  - sudo apt-get install libdbus-1-dev libssh2-1-dev 
-  - cpanm -nq --installdeps --with-feature=coverage .
-  - sudo apt-get install libopencv-dev libtheora-dev libcv-dev libhighgui-dev tesseract-ocr libsndfile1-dev libfftw3-dev qemu-system
+  - SETUP_FOR_TRAVIS=1 sh autogen.sh
 script:
-  - find . -type f | xargs -n1 sed -i -e 's,#!/usr/bin/perl,#!/usr/bin/env perl,'
-  - sh autogen.sh 
-  - ./configure
-    # 'coverage' executes all tests and checks code coverage against threshold
-    # in Makefile.am
+  # 'coverage' executes all tests and checks code coverage against threshold
+  # in Makefile.am
   - make && make check coverage-coveralls VERBOSE=1
