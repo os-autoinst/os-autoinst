@@ -84,15 +84,16 @@ sub check_screen;
 sub type_string;
 sub type_password;
 
-
 =head1 internal
+
+=for stopwords xen hvc0 xvc0 ipmi ttyS
 
 =head2 init
 
 Used for internal initialization, do not call from tests.
 
-=for stopwords xen hvc0 xvc0 ipmi ttyS
 =cut
+
 sub init {
     if (get_var('SERIALDEV')) {
         $serialdev = get_var('SERIALDEV');
@@ -144,6 +145,7 @@ sub set_distribution {
 Saves screenshot of current SUT screen.
 
 =cut
+
 sub save_screenshot {
     return $autotest::current_test->take_screenshot;
 }
@@ -157,6 +159,7 @@ still be counted as a success. Use this to mark where workarounds are applied.
 Takes an optional C<$reason> string which is recorded in the log file.
 
 =cut
+
 sub record_soft_failure {
     my ($reason) = @_;
     bmwqemu::log_call(reason => $reason);
@@ -252,6 +255,7 @@ C<$mustmatch> can be string or C<ARRAYREF> of string (C<['tag1', 'tag2']>).
 Returns matched needle or throws C<NeedleFailed> exception if $timeout timeout is hit. Default timeout is 30s.
 
 =cut
+
 sub assert_screen {
     my ($mustmatch, $timeout) = @_;
     $timeout //= $bmwqemu::default_timeout;
@@ -269,6 +273,7 @@ Check C<assert_screen> for parameters.
 Returns matched needle or C<undef> if timeout is hit. Default timeout is 30s.
 
 =cut
+
 sub check_screen {
     my ($mustmatch, $timeout) = @_;
     $timeout //= $bmwqemu::default_timeout;
@@ -283,6 +288,7 @@ sub check_screen {
 Returns true if last matched needle has C<$tag> else return C<undef>.
 
 =cut
+
 sub match_has_tag {
     my ($tag) = @_;
     if ($last_matched_needle) {
@@ -303,6 +309,7 @@ C<$button> is by default C<'left'>. C<'left'> and C<'right'> is supported.
 Throws C<NeedleFailed> exception if C<$timeout> timeout is hit. Default timeout is 30s.
 
 =cut
+
 sub assert_and_click {
     my ($mustmatch, $button, $timeout, $clicktime, $dclick) = @_;
     $timeout //= $bmwqemu::default_timeout;
@@ -346,6 +353,7 @@ sub assert_and_click {
 Alias for C<assert_and_click> with C<$dclick> set.
 
 =cut
+
 sub assert_and_dclick {
     my ($mustmatch, $button, $timeout, $clicktime) = @_;
     return assert_and_click($mustmatch, $button, $timeout, $clicktime, 1);
@@ -368,6 +376,7 @@ Example:
 Returns true if screen changed or C<undef> on timeout. Default timeout is 10s.
 
 =cut
+
 sub wait_screen_change(&@) {
     my ($callback, $timeout) = @_;
     $timeout ||= 10;
@@ -450,6 +459,7 @@ sub wait_still_screen {
 Returns content of test variable C<$variable> or the C<$default> given as second argument or C<undef>
 
 =cut
+
 sub get_var {
     my ($var, $default) = @_;
     return $bmwqemu::vars{$var} // $default;
@@ -462,6 +472,7 @@ sub get_var {
 Similar to C<get_var> but without default value and throws exception if variable can not be retrieved.
 
 =cut
+
 sub get_required_var {
     my ($var) = @_;
     return $bmwqemu::vars{$var} // croak "Could not retrieve required variable $var";
@@ -474,6 +485,7 @@ sub get_required_var {
 Set test variable C<$variable> to value C<$value>.
 
 =cut
+
 sub set_var {
     my ($var, $val) = @_;
     $bmwqemu::vars{$var} = $val;
@@ -488,6 +500,7 @@ sub set_var {
 Returns true if test variable C<$variable> is equal to C<$value> or returns C<undef>.
 
 =cut
+
 sub check_var {
     my ($var, $val) = @_;
     return 1 if (defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val);
@@ -501,6 +514,7 @@ sub check_var {
 Return the given variable as array reference (split variable value by , | or ; )
 
 =cut
+
 sub get_var_array {
     my ($var, $default) = @_;
     my @vars = split(',|;', ($bmwqemu::vars{$var}));
@@ -515,11 +529,15 @@ sub get_var_array {
 Boolean function to check if a value list contains a value
 
 =cut
+
 sub check_var_array {
     my ($var, $val) = @_;
     my $vars_r = get_var_array($var);
     return grep { $_ eq $val } @$vars_r;
 }
+
+=head1 script execution helpers
+
 
 =head2 is_serial_terminal
 
@@ -538,6 +556,7 @@ over serial or VNC.
 For more info see consoles/virtio_console.pm and consoles/virtio_screen.pm.
 
 =cut
+
 sub is_serial_terminal {
     state $ret;
     state $last_seen = '';
@@ -548,7 +567,6 @@ sub is_serial_terminal {
     return $ret->{yesorno};
 }
 
-=head1 script execution helpers
 
 =head2 wait_serial
 
@@ -563,6 +581,7 @@ Returns C<undef> or (after timeout) the string that I<did _not_ match> if
 C<$expect_not_found> is true.
 
 =cut
+
 sub wait_serial {
 
     # wait for a message to appear on serial output
@@ -606,6 +625,7 @@ Start C<$program> in graphical desktop environment.
 I<The implementation is distribution specific and not always available.>
 
 =cut
+
 sub x11_start_program {
     my ($program, $timeout, $options) = @_;
     bmwqemu::log_call(timeout => $timeout, options => $options);
@@ -625,6 +645,7 @@ for it. Default timeout is 30s.
 I<Make sure the command does not write to the serial output.>
 
 =cut
+
 sub script_run {
     my ($name, $wait) = @_;
     $wait //= $bmwqemu::default_timeout;
@@ -649,6 +670,7 @@ C<$fail_message> is returned in the die message if specified.
 I<Make sure the command does not write to the serial output.>
 
 =cut
+
 sub assert_script_run {
     my ($cmd) = shift;
     my %args;
@@ -686,6 +708,7 @@ C<$wait_seconds> defaults to 2 seconds.
 I<The implementation is distribution specific and not always available.>
 
 =cut
+
 sub script_sudo {
     my $name = shift;
     my $wait = shift // 2;
@@ -707,6 +730,7 @@ I<Make sure the command does not write to the serial output.>
 I<The implementation is distribution specific and not always available.>
 
 =cut
+
 sub assert_script_sudo {
     my ($cmd, $wait) = @_;
     my $str = hashed_string("ASS$cmd");
@@ -728,6 +752,7 @@ exists with 0. Otherwise the test is set to failed.
 The default timeout for the script is 30 seconds. If you need more, pass a second parameter
 
 =cut
+
 sub script_output($;$) {
     my ($current_test_script, $wait) = @_;
     my $suffix = hashed_string("SO$current_test_script");
@@ -779,6 +804,7 @@ Wrapper around script_output, that runs a callback on the output. Use it as
   validate_script_output "cat /etc/hosts", sub { m/127.*localhost/ }
 
 =cut
+
 sub validate_script_output($&;$) {
     my ($script, $code, $wait) = @_;
     $wait ||= 30;
@@ -809,6 +835,7 @@ Open a root shell.
 I<The implementation is distribution specific and not always available.>
 
 =cut
+
 sub become_root {
     return $distri->become_root;
 }
@@ -822,8 +849,431 @@ Helper to install a package to SUT.
 I<The implementation is distribution specific and not always available.>
 
 =cut
+
 sub ensure_installed {
     return $distri->ensure_installed(@_);
+}
+
+=head2 hashed_string
+
+  hashed_string();
+
+Return a short string representing the given string by passing it through the
+MD5 algorithm and taking the first characters.
+
+=cut
+
+sub hashed_string {
+    my ($string, $count) = @_;
+    $count //= 5;
+
+    my $hash = md5_base64($string);
+    # + and / are problematic in regexps and shell commands
+    $hash =~ s,\+,_,g;
+    $hash =~ s,/,~,g;
+    return substr($hash, 0, $count);
+}
+
+=head1 keyboard support
+
+=head2 send_key
+
+  send_key($key [, $do_wait]);
+
+Send one C<$key> to SUT keyboard input.
+
+Special characters naming:
+
+  'esc', 'down', 'right', 'up', 'left', 'equal', 'spc',  'minus', 'shift', 'ctrl'
+  'caps', 'meta', 'alt', 'ret', 'tab', 'backspace', 'end', 'delete', 'home', 'insert'
+  'pgup', 'pgdn', 'sysrq', 'super'
+
+=cut
+
+sub send_key {
+    my ($key, $do_wait) = @_;
+    $do_wait //= 0;
+    bmwqemu::log_call(key => $key);
+    query_isotovideo('backend_send_key', {key => $key});
+    wait_idle() if $do_wait;
+}
+
+=head2 hold_key
+
+  hold_key($key);
+
+Hold one C<$key> until release it
+
+=cut
+
+sub hold_key {
+    my ($key) = @_;
+    bmwqemu::log_call('hold_key', key => $key);
+    query_isotovideo('backend_hold_key', {key => $key});
+}
+
+=head2 release_key
+
+  release_key($key);
+
+Release one C<$key> which is kept holding
+
+=cut
+
+sub release_key {
+    my $key = shift;
+    bmwqemu::log_call('release_key', key => $key);
+    query_isotovideo('backend_release_key', {key => $key});
+}
+
+=head2 send_key_until_needlematch
+
+  send_key_until_needlematch($tag, $key [, $counter, $timeout]);
+
+Send specific key until needle with C<$tag> is not matched or C<$counter> is 0.
+C<$tag> can be string or C<ARRAYREF> (C<['tag1', 'tag2']>)
+Default counter is 20 steps, default timeout is 1s
+
+Throws C<NeedleFailed> exception if needle is not matched until C<$counter> is 0.
+
+=cut
+
+sub send_key_until_needlematch {
+    my ($tag, $key, $counter, $timeout) = @_;
+
+    $counter //= 20;
+    $timeout //= 1;
+    while (!check_screen($tag, $timeout)) {
+        send_key $key;
+        if (!$counter--) {
+            assert_screen $tag, 1;
+        }
+    }
+}
+
+=head2 type_string
+
+  type_string($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, secret => 1 ] );
+
+send a string of characters, mapping them to appropriate key names as necessary
+
+you can pass optional parameters with following keys:
+
+C<max_interval (1-250)> determines the typing speed, the lower the
+C<max_interval> the slower the typing.
+
+C<wait_screen_change> if set, type only this many characters at a time
+C<wait_screen_change> and wait for the screen to change between sets.
+
+C<secret (bool)> suppresses logging of the actual string typed.
+
+=cut
+
+sub type_string {
+    # special argument handling for backward compat
+    my $string = shift;
+    my %args;
+    if (@_ == 1) {    # backward compat
+        %args = (max_interval => $_[0]);
+    }
+    else {
+        %args = @_;
+    }
+    my $log = $args{secret} ? 'SECRET STRING' : $string;
+
+    if (is_serial_terminal) {
+        bmwqemu::log_call(text => $log, %args);
+        query_isotovideo('backend_type_string', {text => $string, %args});
+        return;
+    }
+
+    my $max_interval = $args{max_interval}       // 250;
+    my $wait         = $args{wait_screen_change} // 0;
+    bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait);
+    if ($wait) {
+        # split string into an array of pieces of specified size
+        # https://stackoverflow.com/questions/372370
+        my @pieces = unpack("(a${wait})*", $string);
+        for my $piece (@pieces) {
+            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); };
+        }
+    }
+    else {
+        query_isotovideo('backend_type_string', {text => $string, max_interval => $max_interval});
+    }
+}
+
+=head2 type_password
+
+  type_password([$password]);
+
+A convenience wrapper around C<type_string>, which doesn't log the string.
+
+Uses C<$testapi::password> if no string is given.
+
+=cut
+
+sub type_password {
+    my ($string, %args) = @_;
+    $string //= $password;
+    type_string $string, secret => 1, max_interval => ($args{max_interval} // 100);
+}
+
+=head1 mouse support
+
+=head2 mouse_set
+
+  mouse_set($x, $y);
+
+Move mouse pointer to given coordinates
+
+=cut
+
+sub mouse_set {
+    my ($mx, $my) = @_;
+
+    bmwqemu::log_call(x => $mx, y => $my);
+    query_isotovideo('backend_mouse_set', {x => $mx, y => $my});
+}
+
+=head2 mouse_click
+
+  mouse_click([$button, $hold_time]);
+
+Click mouse C<$button>. Can be C<'left'> or C<'right'>. Set C<$hold_time> to hold button for set time in seconds.
+Default hold time is 1s
+
+=cut
+
+sub mouse_click {
+    my $button = shift || 'left';
+    my $time   = shift || 0.15;
+    bmwqemu::log_call(button => $button, cursor_down => $time);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+    # FIXME sleep resolution = 1s, use usleep
+    sleep $time;
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+}
+
+=head2 mouse_dclick
+
+  mouse_dclick([$button, $hold_time]);
+
+Same as mouse_click only for double click.
+
+=cut
+
+sub mouse_dclick(;$$) {
+    my $button = shift || 'left';
+    my $time   = shift || 0.10;
+    bmwqemu::log_call(button => $button, cursor_down => $time);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+    # FIXME sleep resolution = 1s, use usleep
+    sleep $time;
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    sleep $time;
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+    sleep $time;
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+}
+
+=head2 mouse_tclick
+
+  mouse_tclick([$button, $hold_time]);
+
+Same as mouse_click only for triple click.
+
+=cut
+
+sub mouse_tclick(;$$) {
+    my $button = shift || 'left';
+    my $time   = shift || 0.10;
+    bmwqemu::log_call(button => $button, cursor_down => $time);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+    sleep $time;
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    sleep $time;
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+    sleep $time;
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    sleep $time;
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+    sleep $time;
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+}
+
+=head2 mouse_hide
+
+  mouse_hide([$border_offset]);
+
+Hide mouse cursor by moving it out of screen area.
+
+=cut
+
+sub mouse_hide(;$) {
+    my $border_offset = shift || 0;
+    bmwqemu::log_call(border_offset => $border_offset);
+    query_isotovideo('backend_mouse_hide', {offset => $border_offset});
+}
+
+=head1 multi console support
+
+All C<testapi> commands that interact with the system under test do that
+through a console.  C<send_key>, C<type_string> type into a console.
+C<assert_screen> 'looks' at a console, C<assert_and_click> looks at
+and clicks on a console.
+
+Most backends support several consoles in some way.  These consoles
+then have names as defined by the backend.
+
+Consoles can be selected for interaction with the system under test.  
+One of them is 'selected' by default, as defined by the backend.
+
+There are no consoles predefined by default, the distribution has
+to add them during initial setup and define actions on what should
+happen when they are selected first by the tests.
+
+E.g. your distribution can give e.g. C<tty2> and C<tty4> a name for the
+tests to select
+
+  $self->add_console('root-console',  'tty-console', {tty => 2});
+  $self->add_console('user-console',  'tty-console', {tty => 4});
+
+=head2 add_console
+
+  add_console("console", "console type" [, optional console parameters...])
+
+You need to do this in your distribution and not in tests. It will not trigger
+any action on the system under test, but only store the parameters.
+
+The console parameters are console specific.
+
+I<The implementation is distribution specific and not always available.>
+
+=cut
+
+require backend::console_proxy;
+our %testapi_console_proxies;
+
+=head2 select_console
+
+  select_console("root-console")
+
+Select the named console for further C<testapi> interaction (send_text,
+send_key, wait_screen_change, ...)
+
+If this the first time, a test selects this console, the distribution
+will get a call into activate_console('root-console', $console_obj) to
+make sure to actually log in root. For the backend it's just a C<tty>
+object (in this example) - so it will ensure the console is active,
+but to setup the root shell on this console, the distribution needs
+to run test code.
+
+=cut
+
+sub select_console {
+    my ($testapi_console) = @_;
+    bmwqemu::log_call(testapi_console => $testapi_console);
+    if (!exists $testapi_console_proxies{$testapi_console}) {
+        $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
+    }
+    my $ret = query_isotovideo('backend_select_console', {testapi_console => $testapi_console});
+
+    $selected_console = $testapi_console;
+    if ($ret->{activated}) {
+        # we need to store the activated consoles for rollback
+        if ($autotest::last_milestone) {
+            push(@{$autotest::last_milestone->{activated_consoles}}, $testapi_console);
+        }
+        $testapi::distri->activate_console($testapi_console);
+    }
+
+    return $testapi_console_proxies{$testapi_console};
+}
+
+=head2 console
+
+  console("testapi_console")->$console_command(@console_command_args)
+
+Some consoles have special commands beyond C<type_string>, C<assert_screen>
+
+Such commands can be accessed using this API.
+
+C<console("bootloader")>, C<console("errorlog")>, ... returns a proxy
+object for the specific console which can then be directly accessed.
+
+This is also useful for typing/interacting 'in the background',
+without turning the video away from the currently selected console.
+
+Note: C<assert_screen()> and friends look at the currently selected
+console (select_console), no matter which console you send commands to
+here.
+
+=cut
+
+sub console {
+    my ($testapi_console) = @_;
+    $testapi_console ||= $selected_console;
+    bmwqemu::log_call(testapi_console => $testapi_console);
+    if (exists $testapi_console_proxies{$testapi_console}) {
+        return $testapi_console_proxies{$testapi_console};
+    }
+    croak "console $testapi_console is not activated.";
+}
+
+=head2 reset_consoles
+ 
+  reset_consoles;
+
+will make sure the next select_console will activate the console. This is important
+if you did something to the system that affects the console (e.g. trigger reboot).
+
+=cut
+
+sub reset_consoles {
+    query_isotovideo('backend_reset_consoles');
+    return;
+}
+
+=head1 audio support
+
+=head2 start_audiocapture
+
+  start_audiocapture;
+
+Tells the backend to record a C<.wav> file of the sound card.
+
+I<Only supported by qemu backend.>
+
+=cut
+
+sub start_audiocapture {
+    my $fn = $autotest::current_test->capture_filename;
+    my $filename = join('/', bmwqemu::result_dir(), $fn);
+    bmwqemu::log_call(filename => $filename);
+    return query_isotovideo('backend_start_audiocapture', {filename => $filename});
+}
+
+=head2 assert_recorded_sound
+
+  assert_recorded_sound('we-will-rock-you');
+
+Tells the backend to record a C<.wav> file of the sound card.
+
+I<Only supported by QEMU backend.>
+
+=cut
+
+sub assert_recorded_sound {
+    my ($mustmatch) = @_;
+
+    my $result = $autotest::current_test->stop_audiocapture();
+    my $wavfile = join('/', bmwqemu::result_dir(), $result->{audio});
+    system("snd2png $wavfile $result->{audio}.png");
+
+    my $imgpath = "$result->{audio}.png";
+
+    return $autotest::current_test->verify_sound_image($imgpath, $mustmatch);
 }
 
 =head1 miscellaneous
@@ -835,6 +1285,7 @@ sub ensure_installed {
 Trigger backend specific power action, can be C<'on'>, C<'off'>, C<'acpi'> or C<'reset'>
 
 =cut
+
 sub power {
 
     # params: (on), off, acpi, reset
@@ -853,6 +1304,7 @@ Default timeout is 60s
 Returns C<undef> on success, throws exception on timeout.
 
 =cut
+
 sub assert_shutdown {
     my ($timeout) = @_;
     $timeout //= 60;
@@ -885,6 +1337,7 @@ sub assert_shutdown {
 if backend supports it, eject the CD
 
 =cut
+
 sub eject_cd {
     bmwqemu::log_call();
     query_isotovideo('backend_eject_cd');
@@ -978,6 +1431,7 @@ Upload log file from SUT (calls upload_logs internally). The uploaded
 file is then parsed as jUnit format and extra test results are created from it.
 
 =cut
+
 sub parse_junit_log {
     my ($file) = @_;
 
@@ -1073,6 +1527,7 @@ as last resort if there is nothing else you can assert on.
 Default timeout is 19s.
 
 =cut
+
 sub wait_idle {
     my $timeout = shift || $bmwqemu::idle_timeout;
     $timeout = bmwqemu::scale_timeout($timeout);
@@ -1098,6 +1553,20 @@ sub wait_idle {
 
 =head1 log and data upload and download helpers
 
+=for stopwords diag
+
+=head2 diag
+
+  diag('important message');
+
+Write a diagnostic message to the logfile. In color, if possible.
+
+=cut
+
+sub diag {
+    return bmwqemu::diag(@_);
+}
+
 =head2 autoinst_url
 
   autoinst_url([$path, $query]);
@@ -1114,6 +1583,7 @@ Returns constructor URL. Can be used inline:
   script_run("curl " . autoinst_url . "/data");
 
 =cut
+
 sub autoinst_url {
     my ($path, $query) = @_;
     $path  //= '';
@@ -1143,6 +1613,7 @@ Special values REPO_\d and ASSET_\d points to the asset configured
 in the corresponding variable
 
 =cut
+
 sub data_url($) {
     my ($name) = @_;
     if ($name =~ /^REPO_\d$/) {
@@ -1170,6 +1641,7 @@ exist or is over 20 GiB in size, so failok is useful when you just want
 to upload the file if it exists but not mind if it doesn't.
 
 =cut
+
 sub upload_logs {
     my $file   = shift;
     my %args   = @_;
@@ -1211,7 +1683,9 @@ line and can't rely on assert_script_run check), add an optional
 'nocheck' parameter:
 
     upload_asset '/tmp/suse.ps', 1, 1;
+
 =cut
+
 sub upload_asset {
     my ($file, $public, $nocheck) = @_;
 
@@ -1226,421 +1700,6 @@ sub upload_asset {
     else {
         return assert_script_run($cmd);
     }
-}
-
-=head1 keyboard support
-
-=head2 send_key
-
-  send_key($key [, $do_wait]);
-
-Send one C<$key> to SUT keyboard input.
-
-Special characters naming:
-
-  'esc', 'down', 'right', 'up', 'left', 'equal', 'spc',  'minus', 'shift', 'ctrl'
-  'caps', 'meta', 'alt', 'ret', 'tab', 'backspace', 'end', 'delete', 'home', 'insert'
-  'pgup', 'pgdn', 'sysrq', 'super'
-
-=cut
-sub send_key {
-    my ($key, $do_wait) = @_;
-    $do_wait //= 0;
-    bmwqemu::log_call(key => $key);
-    query_isotovideo('backend_send_key', {key => $key});
-    wait_idle() if $do_wait;
-}
-
-=head2 hold_key
-
-  hold_key($key);
-
-Hold one C<$key> until release it
-
-=cut
-sub hold_key {
-    my ($key) = @_;
-    bmwqemu::log_call('hold_key', key => $key);
-    query_isotovideo('backend_hold_key', {key => $key});
-}
-
-=head2 release_key
-
-  release_key($key);
-
-Release one C<$key> which is kept holding
-
-=cut
-sub release_key {
-    my $key = shift;
-    bmwqemu::log_call('release_key', key => $key);
-    query_isotovideo('backend_release_key', {key => $key});
-}
-
-=head2 send_key_until_needlematch
-
-  send_key_until_needlematch($tag, $key [, $counter, $timeout]);
-
-Send specific key until needle with C<$tag> is not matched or C<$counter> is 0.
-C<$tag> can be string or C<ARRAYREF> (C<['tag1', 'tag2']>)
-Default counter is 20 steps, default timeout is 1s
-
-Throws C<NeedleFailed> exception if needle is not matched until C<$counter> is 0.
-
-=cut
-sub send_key_until_needlematch {
-    my ($tag, $key, $counter, $timeout) = @_;
-
-    $counter //= 20;
-    $timeout //= 1;
-    while (!check_screen($tag, $timeout)) {
-        send_key $key;
-        if (!$counter--) {
-            assert_screen $tag, 1;
-        }
-    }
-}
-
-=head2 type_string
-
-  type_string($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, secret => 1 ] );
-
-send a string of characters, mapping them to appropriate key names as necessary
-
-you can pass optional parameters with following keys:
-
-C<max_interval (1-250)> determines the typing speed, the lower the
-C<max_interval> the slower the typing.
-
-C<wait_screen_change> if set, type only this many characters at a time
-C<wait_screen_change> and wait for the screen to change between sets.
-
-C<secret (bool)> suppresses logging of the actual string typed.
-
-=cut
-sub type_string {
-    # special argument handling for backward compat
-    my $string = shift;
-    my %args;
-    if (@_ == 1) {    # backward compat
-        %args = (max_interval => $_[0]);
-    }
-    else {
-        %args = @_;
-    }
-    my $log = $args{secret} ? 'SECRET STRING' : $string;
-
-    if (is_serial_terminal) {
-        bmwqemu::log_call(text => $log, %args);
-        query_isotovideo('backend_type_string', {text => $string, %args});
-        return;
-    }
-
-    my $max_interval = $args{max_interval}       // 250;
-    my $wait         = $args{wait_screen_change} // 0;
-    bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait);
-    if ($wait) {
-        # split string into an array of pieces of specified size
-        # https://stackoverflow.com/questions/372370
-        my @pieces = unpack("(a${wait})*", $string);
-        for my $piece (@pieces) {
-            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); };
-        }
-    }
-    else {
-        query_isotovideo('backend_type_string', {text => $string, max_interval => $max_interval});
-    }
-}
-
-=head2 type_password
-
-  type_password([$password]);
-
-A convenience wrapper around C<type_string>, which doesn't log the string.
-
-Uses C<$testapi::password> if no string is given.
-
-=cut
-sub type_password {
-    my ($string, %args) = @_;
-    $string //= $password;
-    type_string $string, secret => 1, max_interval => ($args{max_interval} // 100);
-}
-
-=head1 mouse support
-
-=head2 mouse_set
-
-  mouse_set($x, $y);
-
-Move mouse pointer to given coordinates
-
-=cut
-sub mouse_set {
-    my ($mx, $my) = @_;
-
-    bmwqemu::log_call(x => $mx, y => $my);
-    query_isotovideo('backend_mouse_set', {x => $mx, y => $my});
-}
-
-=head2 mouse_click
-
-  mouse_click([$button, $hold_time]);
-
-Click mouse C<$button>. Can be C<'left'> or C<'right'>. Set C<$hold_time> to hold button for set time in seconds.
-Default hold time is 1s
-
-=cut
-sub mouse_click {
-    my $button = shift || 'left';
-    my $time   = shift || 0.15;
-    bmwqemu::log_call(button => $button, cursor_down => $time);
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    # FIXME sleep resolution = 1s, use usleep
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-}
-
-=head2 mouse_dclick
-
-  mouse_dclick([$button, $hold_time]);
-
-Same as mouse_click only for double click.
-
-=cut
-sub mouse_dclick(;$$) {
-    my $button = shift || 'left';
-    my $time   = shift || 0.10;
-    bmwqemu::log_call(button => $button, cursor_down => $time);
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    # FIXME sleep resolution = 1s, use usleep
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-}
-
-=head2 mouse_tclick
-
-  mouse_tclick([$button, $hold_time]);
-
-Same as mouse_click only for triple click.
-
-=cut
-sub mouse_tclick(;$$) {
-    my $button = shift || 'left';
-    my $time   = shift || 0.10;
-    bmwqemu::log_call(button => $button, cursor_down => $time);
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-}
-
-=head2 mouse_hide
-
-  mouse_hide([$border_offset]);
-
-Hide mouse cursor by moving it out of screen area.
-
-=cut
-sub mouse_hide(;$) {
-    my $border_offset = shift || 0;
-    bmwqemu::log_call(border_offset => $border_offset);
-    query_isotovideo('backend_mouse_hide', {offset => $border_offset});
-}
-
-=head1 multi console support
-
-All C<testapi> commands that interact with the system under test do that
-through a console.  C<send_key>, C<type_string> type into a console.
-C<assert_screen> 'looks' at a console, C<assert_and_click> looks at
-and clicks on a console.
-
-Most backends support several consoles in some way.  These consoles
-then have names as defined by the backend.
-
-Consoles can be selected for interaction with the system under test.  
-One of them is 'selected' by default, as defined by the backend.
-
-There are no consoles predefined by default, the distribution has
-to add them during initial setup and define actions on what should
-happen when they are selected first by the tests.
-
-E.g. your distribution can give e.g. C<tty2> and C<tty4> a name for the
-tests to select
-
-  $self->add_console('root-console',  'tty-console', {tty => 2});
-  $self->add_console('user-console',  'tty-console', {tty => 4});
-
-=head2 add_console
-
-  add_console("console", "console type" [, optional console parameters...])
-
-You need to do this in your distribution and not in tests. It will not trigger
-any action on the system under test, but only store the parameters.
-
-The console parameters are console specific.
-
-I<The implementation is distribution specific and not always available.>
-
-=cut
-require backend::console_proxy;
-our %testapi_console_proxies;
-
-=head2 select_console
-
-  select_console("root-console")
-
-Select the named console for further C<testapi> interaction (send_text,
-send_key, wait_screen_change, ...)
-
-If this the first time, a test selects this console, the distribution
-will get a call into activate_console('root-console', $console_obj) to
-make sure to actually log in root. For the backend it's just a C<tty>
-object (in this example) - so it will ensure the console is active,
-but to setup the root shell on this console, the distribution needs
-to run test code.
-
-=cut
-sub select_console {
-    my ($testapi_console) = @_;
-    bmwqemu::log_call(testapi_console => $testapi_console);
-    if (!exists $testapi_console_proxies{$testapi_console}) {
-        $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
-    }
-    my $ret = query_isotovideo('backend_select_console', {testapi_console => $testapi_console});
-
-    $selected_console = $testapi_console;
-    if ($ret->{activated}) {
-        # we need to store the activated consoles for rollback
-        if ($autotest::last_milestone) {
-            push(@{$autotest::last_milestone->{activated_consoles}}, $testapi_console);
-        }
-        $testapi::distri->activate_console($testapi_console);
-    }
-
-    return $testapi_console_proxies{$testapi_console};
-}
-
-=head2 console
-
-  console("testapi_console")->$console_command(@console_command_args)
-
-Some consoles have special commands beyond C<type_string>, C<assert_screen>
-
-Such commands can be accessed using this API.
-
-C<console("bootloader")>, C<console("errorlog")>, ... returns a proxy
-object for the specific console which can then be directly accessed.
-
-This is also useful for typing/interacting 'in the background',
-without turning the video away from the currently selected console.
-
-Note: C<assert_screen()> and friends look at the currently selected
-console (select_console), no matter which console you send commands to
-here.
-
-=cut
-sub console {
-    my ($testapi_console) = @_;
-    $testapi_console ||= $selected_console;
-    bmwqemu::log_call(testapi_console => $testapi_console);
-    if (exists $testapi_console_proxies{$testapi_console}) {
-        return $testapi_console_proxies{$testapi_console};
-    }
-    croak "console $testapi_console is not activated.";
-}
-
-=head2 reset_consoles
- 
-  reset_consoles;
-
-will make sure the next select_console will activate the console. This is important
-if you did something to the system that affects the console (e.g. trigger reboot).
-
-=cut
-sub reset_consoles {
-    query_isotovideo('backend_reset_consoles');
-    return;
-}
-
-=head1 audio support
-
-=head2 start_audiocapture
-
-  start_audiocapture;
-
-Tells the backend to record a C<.wav> file of the sound card.
-
-I<Only supported by qemu backend.>
-
-=cut
-sub start_audiocapture {
-    my $fn = $autotest::current_test->capture_filename;
-    my $filename = join('/', bmwqemu::result_dir(), $fn);
-    bmwqemu::log_call(filename => $filename);
-    return query_isotovideo('backend_start_audiocapture', {filename => $filename});
-}
-
-=head2 assert_recorded_sound
-
-  assert_recorded_sound('we-will-rock-you');
-
-Tells the backend to record a C<.wav> file of the sound card.
-
-I<Only supported by QEMU backend.>
-
-=cut
-sub assert_recorded_sound {
-    my ($mustmatch) = @_;
-
-    my $result = $autotest::current_test->stop_audiocapture();
-    my $wavfile = join('/', bmwqemu::result_dir(), $result->{audio});
-    system("snd2png $wavfile $result->{audio}.png");
-
-    my $imgpath = "$result->{audio}.png";
-
-    return $autotest::current_test->verify_sound_image($imgpath, $mustmatch);
-}
-
-=for stopwords diag
-
-=head2 diag
-
-  diag('important message');
-
-Write a diagnostic message to the logfile. In color, if possible.
-=cut
-sub diag {
-    return bmwqemu::diag(@_);
-}
-
-=head2 hashed_string
-
-  hashed_string();
-
-Return a short string representing the given string by passing it through the
-MD5 algorithm and taking the first characters.
-=cut
-sub hashed_string {
-    my ($string, $count) = @_;
-    $count //= 5;
-
-    my $hash = md5_base64($string);
-    # + and / are problematic in regexps and shell commands
-    $hash =~ s,\+,_,g;
-    $hash =~ s,/,~,g;
-    return substr($hash, 0, $count);
 }
 
 1;
