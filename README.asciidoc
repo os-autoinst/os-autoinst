@@ -73,7 +73,6 @@ you create a pull request but you *should* run the os-autoinst tests locally,
 i.e. call
 ----
 ./autogen.sh
-./configure
 make
 ----
 once to setup your workspace and before every commit
