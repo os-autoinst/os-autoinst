@@ -101,14 +101,6 @@ sub init {
     elsif (get_var('OFW') || check_var('BACKEND', 's390x')) {
         $serialdev = "hvc0";
     }
-    elsif (check_var('VIRSH_VMM_FAMILY', 'xen') && check_var('VIRSH_VMM_TYPE', 'linux')) {
-        if (check_var('VERSION', '12-SP2')) {
-            $serialdev = "hvc0";
-        }
-        else {
-            $serialdev = "xvc0";
-        }
-    }
     else {
         $serialdev = 'ttyS0';
     }
