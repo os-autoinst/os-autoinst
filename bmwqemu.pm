@@ -19,6 +19,7 @@ use strict;
 use warnings;
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Socket;
+use Fcntl ':flock';
 
 use Thread::Queue;
 use POSIX;
@@ -80,7 +81,7 @@ sub save_vars() {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
-    fcntl($fd, F_SETLKW, pack('ssqql', F_WRLCK, 0, 0, 0, $$)) or die "cannot lock vars.json: $!\n";
+    flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
     truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
 
     # make sure the JSON is sorted
