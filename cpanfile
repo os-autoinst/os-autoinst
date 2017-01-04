@@ -47,6 +47,7 @@ requires 'base';
 requires 'constant';
 requires 'strict';
 requires 'warnings';
+requires 'Log::Log4perl';
 
 on 'test' => sub {
   requires 'Perl::Critic';

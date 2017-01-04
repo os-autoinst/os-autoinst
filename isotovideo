@@ -54,6 +54,8 @@ use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use File::Spec;
 use File::Path;
 
+use Log::Log4perl;
+
 # avoid paranoia
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
 
@@ -79,12 +81,17 @@ $| = 1;
 select(STDOUT);            # default
 $| = 1;
 
+
+Log::Log4perl->init($installprefix."/etc/os-autoinst/log4perl.conf");
+my $log = Log::Log4perl->get_logger("openqa.os-autoinst.isotovideo");
+$log->info("Isotovideo logger initialized");
+
 $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
 
 # Sanity checks
-die "CASEDIR environment variable not set, unknown test case directory" if !defined $bmwqemu::vars{CASEDIR};
-die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
+$log->logdie("CASEDIR environment variable not set, unknown test case directory") if !defined $bmwqemu::vars{CASEDIR};
+$log->logdie("No scripts in $bmwqemu::vars{CASEDIR}") if !-e "$bmwqemu::vars{CASEDIR}";
 
 my $cpid;
 my $testpid;
@@ -209,6 +216,7 @@ sub calculate_git_hash {
     diag "git hash of test distribution: $test_git_hash";
     return $test_git_hash;
 }
+
 
 $SIG{TERM} = \&signalhandler;
 $SIG{INT}  = \&signalhandler;

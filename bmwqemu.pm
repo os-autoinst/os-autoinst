@@ -39,6 +39,9 @@ our @EXPORT_OK = qw(diag);
 use backend::driver;
 require IPC::System::Simple;
 use autodie ':all';
+use Log::Log4perl;
+
+our $log = Log::Log4perl->get_logger('openqa.os-autoinst.core');
 
 sub mydie;
 
@@ -65,13 +68,14 @@ our @ovmf_locations = ('/usr/share/qemu/ovmf-x86_64-ms.bin', '/usr/share/edk2.gi
 
 our %vars;
 
+
 sub load_vars() {
     my $fn  = "vars.json";
     my $ret = {};
     local $/;
-    open(my $fh, '<', $fn) or return 0;
+    open(my $fh, '<', $fn) or $log->logdie("Can't open '$fn'");
     eval { $ret = JSON->new->relaxed->decode(<$fh>); };
-    die "parse error in vars.json:\n$@" if $@;
+    $log->logdie("parse error in vars.json: $@") if $@;
     close($fh);
     %vars = %{$ret};
     return;
@@ -81,8 +85,8 @@ sub save_vars() {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
-    flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
-    truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
+    flock($fd, LOCK_EX) or $log->logdie("cannot lock vars.json: $!");
+    truncate($fd, 0) or $log->logdie("cannot truncate vars.json: $!");
 
     # make sure the JSON is sorted
     my $json = JSON->new->pretty->canonical;
@@ -113,19 +117,21 @@ sub init {
     mkdir result_dir;
     mkdir join('/', result_dir, 'ulogs');
 
+
     if ($direct_output) {
         open($logfd, '>&STDERR');
     }
     else {
         open($logfd, ">", result_dir . "/autoinst-log.txt");
     }
+
     # set unbuffered so that send_key lines from main thread will be written
     my $oldfh = select($logfd);
     $| = 1;
     select($oldfh);
 
     unless ($vars{CASEDIR}) {
-        die "DISTRI undefined\n" . pp(\%vars) . "\n" unless $vars{DISTRI};
+        $log->logdie("DISTRI undefined\n" . pp(\%vars) ) unless $vars{DISTRI};
         my @dirs = ("$scriptdir/distri/$vars{DISTRI}");
         unshift @dirs, $dirs[-1] . "-" . $vars{VERSION} if ($vars{VERSION});
         for my $d (@dirs) {
@@ -134,7 +140,7 @@ sub init {
                 last;
             }
         }
-        die "can't determine test directory for $vars{DISTRI}\n" unless $vars{CASEDIR};
+        $log->logdie( "can't determine test directory for $vars{DISTRI}'") unless $vars{CASEDIR};
     }
 
     # defaults
@@ -158,7 +164,7 @@ sub init {
     }
     if ($vars{SUSEMIRROR} && $vars{SUSEMIRROR} =~ s{^(\w+)://}{}) {    # strip & check proto
         if ($1 ne "http") {
-            die "only http mirror URLs are currently supported but found '$1'.";
+            $log->logdie("only http mirror URLs are currently supported but found '$1'");
         }
     }
 
@@ -185,11 +191,6 @@ sub set_ocr_rect {
 
 # util and helper functions
 
-sub get_timestamp {
-    my $t = gettimeofday;
-    return sprintf "%s.%04d ", (POSIX::strftime "%H:%M:%S", gmtime($t)), 10000 * ($t - int($t));
-}
-
 sub print_possibly_colored {
     my ($text, $color) = @_;
 
@@ -208,7 +209,9 @@ sub print_possibly_colored {
 }
 
 sub diag {
-    print_possibly_colored "@_";
+    local $Log::Log4perl::caller_depth =
+      $Log::Log4perl::caller_depth + 1;
+    $log->info(@_);
     return;
 }
 
@@ -216,7 +219,9 @@ sub fctres {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    print_possibly_colored ">>> $fname: $text", 'green';
+    local $Log::Log4perl::caller_depth =
+      $Log::Log4perl::caller_depth + 1;
+    $log->debug(">>> $fname: $text");
     return;
 }
 
@@ -224,21 +229,26 @@ sub fctinfo {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    print_possibly_colored "::: $fname: $text", 'yellow';
+    local $Log::Log4perl::caller_depth =
+          $Log::Log4perl::caller_depth + 1;
+    $log->warn("::: $fname: $text");
     return;
 }
 
 sub fctwarn {
     my ($text, $fname) = @_;
-
     $fname //= (caller(1))[3];
-    print_possibly_colored "!!! $fname: $text", 'red';
+    local $Log::Log4perl::caller_depth =
+      $Log::Log4perl::caller_depth + 1;
+    $log->error("!!! $fname: $text");
     return;
 }
 
 sub modstart {
     my $text = sprintf "||| %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
-    print_possibly_colored $text, 'bold';
+    local $Log::Log4perl::caller_depth =
+      $Log::Log4perl::caller_depth + 1;
+    $log->info($text);
     return;
 }
 
@@ -255,7 +265,7 @@ sub update_line_number {
         my ($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i);
         last unless $filename;
         next unless $filename =~ m/$ending$/;
-        print get_timestamp() . "Debug: $filename:$line called $subroutine\n";
+        fctres("$filename:$line called $subroutine");
         last;
     }
     return;
@@ -278,7 +288,7 @@ sub log_call {
     }
     my $params = join(", ", @result);
 
-    print_possibly_colored '<<< ' . $fname . "($params)", 'blue';
+    fctinfo('<<< ' . $fname . "($params)");
     return;
 }
 
