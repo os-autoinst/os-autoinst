@@ -57,7 +57,8 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   upload_asset upload_image data_url assert_shutdown parse_junit_log
   upload_logs
 
-  wait_idle wait_screen_change wait_still_screen wait_serial record_soft_failure
+  wait_idle wait_screen_change assert_screen_change wait_still_screen wait_serial
+  record_soft_failure
   become_root x11_start_program ensure_installed eject_cd power
 
   save_memory_dump save_storage_drives freeze_vm resume_vm
@@ -353,7 +354,7 @@ sub assert_and_dclick {
 
 =head2 wait_screen_change
 
-  wait_screen_change { CODEREF [,$timeout] };
+  wait_screen_change(CODEREF [,$timeout]);
 
 Wrapper around code that is supposed to change the screen.
 This is the opposite to C<wait_still_screen>. Make sure to put the commands to change the screen
@@ -395,6 +396,24 @@ sub wait_screen_change(&@) {
     bmwqemu::fctres("timed out");
     return 0;
 }
+
+=head2 assert_screen_change
+
+  assert_screen_change(CODEREF [,$timeout]);
+
+Run C<CODEREF> with C<wait_screen_change> but C<die> if screen did not change
+within timeout. Look into C<wait_screen_change> for details.
+
+Example:
+
+  assert_screen_change { send_key 'alt-f4' };
+
+=cut
+
+sub assert_screen_change(&@) {
+    ::wait_screen_change(@_) or die 'assert_screen_change failed to detect a screen change';
+}
+
 
 =head2 wait_still_screen
 
