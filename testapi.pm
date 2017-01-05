@@ -1313,9 +1313,7 @@ sub assert_shutdown {
             $autotest::current_test->take_screenshot('ok');
             return;
         }
-        # svirt backend uses SSH in is_shutdown() so it takes around 1 second
-        # to get result anyway - no need to sleep explicitly
-        sleep 1 unless check_var('BACKEND', 'svirt');
+        sleep 1;
         --$timeout;
     }
     $autotest::current_test->take_screenshot('fail');
