@@ -60,7 +60,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   wait_idle wait_screen_change wait_still_screen wait_serial record_soft_failure
   become_root x11_start_program ensure_installed eject_cd power
 
-  save_memory_dump save_storage_drives freeze_vm
+  save_memory_dump save_storage_drives freeze_vm cont_vm
 
   diag hashed_string
 );
@@ -1411,6 +1411,22 @@ sub freeze_vm {
     die "Method should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
     bmwqemu::log_call();
     query_isotovideo('backend_freeze_vm');
+}
+
+=head2 cont_vm
+
+  cont_vm;
+
+If the backend supports it, continue the vm.
+Call this method to start vm CPU explicitly if DELAYED_START is set.
+
+I<Currently only qemu backend is supported.>
+
+=cut
+
+sub cont_vm {
+    bmwqemu::log_call();
+    query_isotovideo('backend_cont_vm');
 }
 
 =head2 parse_junit_log

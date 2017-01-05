@@ -839,8 +839,13 @@ sub start_qemu {
         }
     }
 
-    print "Start CPU";
-    $self->handle_qmp_command({execute => 'cont'});
+    if ($bmwqemu::vars{DELAYED_START}) {
+        print "DELAYED_START set, not starting CPU, waiting for cont_vm() call\n";
+    }
+    else {
+        print "Start CPU\n";
+        $self->handle_qmp_command({execute => 'cont'});
+    }
 
     $self->{select}->add($self->{qemupipe});
 }
@@ -1035,7 +1040,7 @@ sub freeze_vm {
 
 sub cont_vm {
     my ($self) = @_;
-    $self->update_request_interval(delete $self->{_qemu_saved_request_interval});
+    $self->update_request_interval(delete $self->{_qemu_saved_request_interval}) if $self->{_qemu_saved_request_interval};
     return $self->handle_qmp_command({execute => 'cont'});
 }
 
