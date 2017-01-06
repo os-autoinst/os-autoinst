@@ -840,7 +840,7 @@ sub start_qemu {
     }
 
     if ($bmwqemu::vars{DELAYED_START}) {
-        print "DELAYED_START set, not starting CPU, waiting for cont_vm() call\n";
+        print "DELAYED_START set, not starting CPU, waiting for resume_vm() call\n";
     }
     else {
         print "Start CPU\n";
