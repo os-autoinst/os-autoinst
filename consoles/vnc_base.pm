@@ -56,8 +56,32 @@ sub connect_vnc {
 
     CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
-    $self->{vnc}->login($args->{connect_timeout});
-    return $self->{vnc};
+    my $endtime = time + ($args->{connect_timeout} || 10);
+
+    # try to log in, this may fail a few times
+    while (1) {
+        my @connection_error;
+        my $vnc = try {
+            bmwqemu::fctdbg "trying to login\n";
+            local $SIG{__DIE__};
+            $self->{vnc}->login();
+            CORE::say __FILE__. ":" . __LINE__ . ":done\n";
+            return $self->{vnc};
+        }
+        catch {
+            push @connection_error, $@;
+            if (time > $endtime) {
+                bmwqemu::fctdbg sprintf "%d $endtime\n", time;
+                $self->disable();
+                bmwqemu::logdie join("\n", @connection_error);
+            }
+            sleep 1;
+            return;
+        };
+        return $vnc if $vnc;
+    }
+    # impossible to reach
+    return;
 }
 
 sub request_screen_update {
@@ -164,7 +188,7 @@ sub release_key {
 
 sub _mouse_move {
     my ($self, $x, $y) = @_;
-    die "need parameter \$x and \$y" unless (defined $x and defined $y);
+    bmwqemu::logdie "need parameter \$x and \$y" unless (defined $x and defined $y);
 
     if ($self->{mouse}->{x} == $x && $self->{mouse}->{y} == $y) {
         # in case the mouse is moved twice to the same position
@@ -181,7 +205,7 @@ sub _mouse_move {
     $self->{mouse}->{x} = $x;
     $self->{mouse}->{y} = $y;
 
-    bmwqemu::diag "mouse_move $x, $y";
+    bmwqemu::fctdbg "mouse_move $x, $y";
     $self->{vnc}->mouse_move_to($x, $y);
     return;
 }
@@ -205,7 +229,7 @@ sub mouse_hide {
 
 sub mouse_set {
     my ($self, $args) = @_;
-    die "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
+    bmwqemu::logdie "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
 
     # TODO: for framebuffers larger than 1024x768, we need to upscale
     $self->_mouse_move(int($args->{x}), int($args->{y}));
@@ -228,7 +252,7 @@ sub mouse_button {
     elsif ($button eq 'middle') {
         $mask = $bstate << 1;
     }
-    bmwqemu::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
+    bmwqemu::fctdbg "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
     $self->{vnc}->send_pointer_event($mask, $self->{mouse}->{x}, $self->{mouse}->{y});
     return {};
 }

@@ -82,7 +82,7 @@ select(STDOUT);            # default
 $| = 1;
 
 
-Log::Log4perl->init($installprefix."/etc/os-autoinst/log4perl.conf");
+Log::Log4perl->init($installprefix . "/etc/os-autoinst/log4perl.conf");
 my $log = Log::Log4perl->get_logger("openqa.os-autoinst.isotovideo");
 $log->info("Isotovideo logger initialized");
 
@@ -90,8 +90,8 @@ $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
 
 # Sanity checks
-$log->logdie("CASEDIR environment variable not set, unknown test case directory") if !defined $bmwqemu::vars{CASEDIR};
-$log->logdie("No scripts in $bmwqemu::vars{CASEDIR}") if !-e "$bmwqemu::vars{CASEDIR}";
+bmwqemu::logdie("CASEDIR environment variable not set, unknown test case directory") if !defined $bmwqemu::vars{CASEDIR};
+bmwqemu::logdie("No scripts in $bmwqemu::vars{CASEDIR}") if !-e "$bmwqemu::vars{CASEDIR}";
 
 my $cpid;
 my $testpid;
@@ -153,24 +153,24 @@ sub signalhandler_chld {
 
     while ((my $child = waitpid(-1, WNOHANG)) > 0) {
         if ($child == $cpid) {
-            diag("commands webserver died");
+            bmwqemu::fctwarn("commands webserver died");
             $loop = 0;
             $cpid = 0;
             next;
         }
         if ($bmwqemu::backend->{backend_pid} && $child == $bmwqemu::backend->{backend_pid}) {
-            diag("backend $child died");
+            bmwqemu::fctwarn("backend $child died");
             $bmwqemu::backend->{backend_pid} = 0;
             $loop = 0;
             next;
         }
         if ($child == $testpid) {
-            diag("tests died");
+            bmwqemu::fctwarn("tests died");
             $testpid = 0;
             $loop    = 0;
             next;
         }
-        diag("unknown child $child died");
+        bmwqemu::fcterr("unknown child $child died");
     }
 }
 
@@ -187,7 +187,7 @@ sub sync_needles_to_cache {
     my $cmd = sprintf("flock -E 999 %s/needleslock rsync -aP --delete --exclude=.git %s %s/", $shared_cache, $needles_source, $shared_cache);
     my $res = system($cmd);
 
-    die "Failed to rsync needles: '$@' " if $res;
+    bmwqemu::logdie("Failed to rsync needles: '$@' ") if $res;
     bmwqemu::diag(sprintf("Rsync: Synchronization of needles directory took %.2f seconds", time - $start));
     return $shared_cache;
 }
@@ -213,7 +213,7 @@ sub calculate_git_hash {
     chomp($test_git_hash = qx{git rev-parse HEAD});
     $test_git_hash ||= "UNKNOWN";
     chdir($dir);
-    diag "git hash of test distribution: $test_git_hash";
+    bmwqemu::fctwarn("git hash of test distribution: $test_git_hash");
     return $test_git_hash;
 }
 
@@ -382,7 +382,7 @@ while ($loop) {
     for my $r (@$reads) {
         my $rsp = myjsonrpc::read_json($r);
         if (!defined $rsp) {
-            diag sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($r), fileno($testfd), fileno($cfd));
+            bmwqemu::fctwarn(sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($r), fileno($testfd), fileno($cfd)));
             $r    = 1;
             $loop = 0;
             last;
@@ -393,7 +393,7 @@ while ($loop) {
             next;
         }
         if ($rsp->{cmd} =~ m/^backend_(.*)/) {
-            die "we need to implement a backend queue" if $backend_requester;
+            bmwqemu::fcterr("we need to implement a backend queue") if $backend_requester;
             $backend_requester = $r;
             my $cmd = $1;
             delete $rsp->{cmd};
@@ -475,7 +475,7 @@ while ($loop) {
             check_asserted_screen(1, $no_wait);
             next;
         }
-        die "Unknown command $rsp->{cmd}";
+        bmwqemu::logdie("Unknown command $rsp->{cmd}");
     }
 
     if (defined $tags && !$needinput) {
@@ -493,18 +493,18 @@ if ($testfd) {
     kill_autotest;
 }
 
-diag "isotovideo " . ($r ? 'failed' : 'done');
+bmwqemu::diag("isotovideo " . ($r ? 'failed' : 'done'));
 
 my $clean_shutdown;
 if (!$r) {
     eval {
         $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
-        diag "BACKEND SHUTDOWN $clean_shutdown";
+        bmwqemu::diag("BACKEND SHUTDOWN $clean_shutdown");
     };
     # don't rely on the backend in a sane state if we failed - just kill it later
     eval { bmwqemu::stop_vm(); };
     if ($@) {
-        diag "Error during stop_vm: $@";
+        bmwqemu::fcterr("Error during stop_vm: $@");
         $r = 1;
     }
 }
@@ -528,7 +528,7 @@ if (!$r && $completed && (my $nd = $bmwqemu::vars{NUMDISKS}) && ($bmwqemu::vars{
         push @toextract, {hdd_num => $i, name => $name, dir => $dir, format => $format};
     }
     if (@toextract && !$clean_shutdown) {
-        diag "ERROR: Machine not shut down when uploading disks!\n";
+        bmwqemu::fcterr("ERROR: Machine not shut down when uploading disks!\n");
         $r = 1;
     }
     else {

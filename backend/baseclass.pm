@@ -174,7 +174,7 @@ sub run_capture_loop {
             if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
                 $self->stall_detected(1);
                 my $diff = $now - $self->last_screenshot;
-                bmwqemu::diag "WARNING: There is some problem with your environment, we detected a stall for $diff seconds";
+                bmwqemu::fctwarn("There is some problem with your environment, we detected a stall for $diff seconds");
             }
 
             my $time_to_screenshot = $self->screenshot_interval - ($now - $self->last_screenshot);
@@ -190,7 +190,7 @@ sub run_capture_loop {
             if (grep { $_ == $self->{encoder_pipe} } @$write_set) {
                 my $fdata        = shift @{$self->{video_frame_data}};
                 my $data_written = $self->{encoder_pipe}->syswrite($fdata);
-                die "Encoder not accepting data" unless defined $data_written;
+                bmwqemu::logdie("Encoder not accepting data") unless defined $data_written;
                 if ($data_written != length($fdata)) {
                     # put it back into the queue
                     unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
@@ -278,7 +278,7 @@ sub alive {
             return 1;
         }
         else {
-            bmwqemu::diag("ALARM: backend.run got deleted! - exiting...");
+            bmwqemu::fctwarn("ALARM: backend.run got deleted! - exiting...");
             _exit(1);
         }
     }
@@ -386,8 +386,9 @@ sub enqueue_screenshot {
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
-        bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
-        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
+        my $encoder_warining = sprintf("WARNING: enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
+        bmwqemu::fctwarn($encoder_warining);
+        bmwqemu::fctdbg("\n".$watch->summary());
     }
 
     return;
@@ -397,15 +398,15 @@ sub close_pipes {
     my ($self) = @_;
 
     if ($self->{cmdpipe}) {
-        close($self->{cmdpipe}) || die "close $!\n";
+        close($self->{cmdpipe}) || bmwqemu::logdie("close $!\n");
         $self->{cmdpipe} = undef;
     }
 
     return unless $self->{rsppipe};
 
-    bmwqemu::diag "sending magic and exit";
+    bmwqemu::diag("sending magic and exit");
     $self->{rsppipe}->print('{"QUIT":1}');
-    close($self->{rsppipe}) || die "close $!\n";
+    close($self->{rsppipe}) || bmwqemu::logdie("close $!\n");
     Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
 }
@@ -429,7 +430,7 @@ sub check_socket {
         }
         else {
             use Data::Dumper;
-            die "no command in " . Dumper($cmd);
+            bmwqemu::logdie("no command in " . Dumper($cmd));
         }
         return 1;
     }
@@ -692,7 +693,7 @@ sub wait_idle {
     my ($self, $args) = @_;
     my $timeout = $args->{timeout};
 
-    bmwqemu::diag("wait_idle sleeping for $timeout seconds");
+    bmwqemu::fctdbg("wait_idle sleeping for $timeout seconds");
     $self->run_capture_loop($timeout);
     return;
 }
@@ -721,7 +722,7 @@ sub set_tags_to_assert {
                 next;
             }
             unless (ref($n) eq 'needle' && $n->{name}) {
-                warn "invalid needle passed <" . ref($n) . "> " . bmwqemu::pp($n);
+                bmwqemu::fctwarn("invalid needle passed <" . ref($n) . "> " . bmwqemu::pp($n));
                 next;
             }
             push @$needles, $n;
@@ -739,7 +740,7 @@ sub set_tags_to_assert {
     $mustmatch = join('_', @tags);
 
     if (!@$needles) {
-        bmwqemu::diag("NO matching needles for $mustmatch");
+        bmwqemu::fctwarn("No matching needles for $mustmatch");
     }
 
     $self->assert_screen_deadline(time + $timeout);
@@ -821,7 +822,7 @@ sub check_asserted_screen {
     }
     else {
         if ($oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio) {
-            bmwqemu::diag('no change: ' . time_remaining_str($n));
+            bmwqemu::fctdbg("no change $n");
             return;
         }
     }
@@ -842,10 +843,8 @@ sub check_asserted_screen {
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
-        bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time});
-        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
-
-
+        bmwqemu::fctwarn(sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time}));
+        bmwqemu::fctdbg($watch->summary());
     }
 
     if ($n < 0) {
@@ -854,7 +853,7 @@ sub check_asserted_screen {
 
         if ($self->stall_detected) {
             backend::baseclass::write_crash_file();
-            bmwqemu::mydie "assert_screen fails, but we detected a timeout in the process, so we abort";
+            bmwqemu::logdie("assert_screen fails, but we detected a timeout in the process, so we abort");
         }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
@@ -885,7 +884,7 @@ sub check_asserted_screen {
             _reduce_to_biggest_changes($failed_screens, 20);
         }
     }
-    bmwqemu::diag('no match: ' . time_remaining_str($n));
+    bmwqemu::fctwarn("no match $n");
     $self->assert_screen_last_check([$img, $search_ratio]);
     return;
 }
@@ -912,13 +911,13 @@ sub _reduce_to_biggest_changes {
 
 sub freeze_vm {
     my ($self) = @_;
-    bmwqemu::diag "ignored freeze_vm";
+    bmwqemu::fcterr("ignored freeze_vm");
     return;
 }
 
 sub cont_vm {
     my ($self) = @_;
-    bmwqemu::diag "ignored cont_vm";
+    bmwqemu::fcterr("ignored cont_vm");
     return;
 }
 
@@ -986,17 +985,17 @@ sub new_ssh_connection {
                 # this relies on agent to be set up correctly
                 $ssh->auth_agent($args{username});
             }
-            bmwqemu::diag "Connection to $args{username}\@$args{hostname} established" if $ssh->auth_ok;
+            bmwqemu::fctinfo("Connection to $args{username}\@$args{hostname} established") if $ssh->auth_ok;
             last;
         }
         else {
-            bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}, Retry";
+            bmwqemu::fctwarn("Could not connect to $args{username}\@$args{hostname}, Retry");
             sleep(10);
             $counter--;
             next;
         }
     }
-    die "Failed to login to $args{username}\@$args{hostname}" unless $ssh->auth_ok;
+    bmwqemu::logdie("Failed to login to $args{username}\@$args{hostname}") unless $ssh->auth_ok;
 
     return $ssh;
 }
@@ -1009,7 +1008,7 @@ sub start_ssh_serial {
 
     $self->{serial} = $self->new_ssh_connection(%args);
     my $chan = $self->{serial}->channel();
-    die "No channel found" unless $chan;
+    bmwqemu::logdie("No channel found") unless $chan;
     $self->{serial_chan} = $chan;
     $chan->blocking(0);
     $chan->pty(1);

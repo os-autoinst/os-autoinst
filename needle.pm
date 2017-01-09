@@ -225,7 +225,7 @@ sub init {
     ($needledir, $shared_cache) = @_;
 
     $needledir //= "$bmwqemu::vars{PRODUCTDIR}/needles/";
-    -d $needledir || die "needledir not found: $needledir (check vars.json?)";
+    $needledir = abs_path($needledir) // bmwqemu::logdie("needledir not found: $needledir (check vars.json?)");
 
     %needles = ();
     %tags    = ();

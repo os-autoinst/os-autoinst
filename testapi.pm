@@ -109,7 +109,8 @@ os-autoinst is used in the openQA project.
 
 =head2 init
 
-Used for internal initialization, do not call from tests.
+Sets the C<$serialdev> if the variable is set on the I<vars.json> file, otherwise
+it will try to set it using the C<get_var(BACKEND)> variable.
 
 =cut
 
@@ -147,7 +148,7 @@ sub set_distribution {
 
 =for stopwords SUT
 
-=head1 video output handling
+=head1 Video output handling
 
 =head2 save_screenshot
 
@@ -1642,6 +1643,7 @@ Write a diagnostic message to the logfile. In color, if possible.
 =cut
 
 sub diag {
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
     return bmwqemu::diag(@_);
 }
 

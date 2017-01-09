@@ -28,14 +28,9 @@ use IO::Select;
 use POSIX '_exit';
 require IPC::System::Simple;
 use autodie ':all';
+use bmwqemu qw(:DEFAULT);
 use myjsonrpc;
 
-# TODO: move the whole printing out of bmwqemu
-sub diag {
-    my ($text) = @_;
-
-    print "$text\n";
-}
 
 sub new {
     my ($class, $name) = @_;
@@ -54,20 +49,20 @@ sub start {
     my ($self) = @_;
 
     my $p1, my $p2;
-    pipe($p1, $p2) or die "pipe: $!";
+    pipe($p1, $p2) or bmwqemu::logdie("pipe: $!");
     $self->{from_parent} = $p1;
     $self->{to_child}    = $p2;
 
     $p1 = undef;
     $p2 = undef;
-    pipe($p1, $p2) or die "pipe: $!";
+    pipe($p1, $p2) or bmwqemu::logdie("pipe: $!");
     $self->{to_parent}  = $p2;
     $self->{from_child} = $p1;
 
-    printf STDERR "$$: to_child %d, from_child %d\n", fileno($self->{to_child}), fileno($self->{from_child});
+    bmwqemu::fctwarn sprintf "$$: to_child %d, from_child %d\n", fileno($self->{to_child}), fileno($self->{from_child});
 
     my $pid = fork();
-    die "fork failed" unless defined $pid;
+    bmwqemu::logdie "fork failed" unless defined $pid;
 
     if ($pid == 0) {
         $SIG{TERM} = 'DEFAULT';
@@ -121,11 +116,11 @@ sub start_vm {
     close $runf;
 
     # remove old screenshots
-    print "remove_tree $bmwqemu::screenshotpath\n";
+    bmwqemu::fctdbg "remove_tree $bmwqemu::screenshotpath\n";
     remove_tree($bmwqemu::screenshotpath);
     mkdir $bmwqemu::screenshotpath;
 
-    $self->_send_json({cmd => 'start_vm'}) || die "failed to start VM";
+    $self->_send_json({cmd => 'start_vm'}) || bmwqemu::logdie "failed to start VM";
     return 1;
 }
 

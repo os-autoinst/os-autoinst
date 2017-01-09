@@ -34,14 +34,14 @@ use Exporter;
 
 our $VERSION;
 our @EXPORT    = qw(fileContent save_vars);
-our @EXPORT_OK = qw(diag);
+our @EXPORT_OK = qw(diag fctres fctinfo fctwarn fctdbg fcterr logdie);
 
 use backend::driver;
 require IPC::System::Simple;
 use autodie ':all';
 use Log::Log4perl;
 
-our $log = Log::Log4perl->get_logger('openqa.os-autoinst.core');
+our $log = Log::Log4perl->get_logger('os-autoinst');
 
 sub mydie;
 
@@ -73,9 +73,9 @@ sub load_vars() {
     my $fn  = "vars.json";
     my $ret = {};
     local $/;
-    open(my $fh, '<', $fn) or $log->logdie("Can't open '$fn'");
+    open(my $fh, '<', $fn) or logdie("Can't open '$fn'");
     eval { $ret = JSON->new->relaxed->decode(<$fh>); };
-    $log->logdie("parse error in vars.json: $@") if $@;
+    logdie("parse error in vars.json: $@") if $@;
     close($fh);
     %vars = %{$ret};
     return;
@@ -131,7 +131,7 @@ sub init {
     select($oldfh);
 
     unless ($vars{CASEDIR}) {
-        $log->logdie("DISTRI undefined\n" . pp(\%vars) ) unless $vars{DISTRI};
+        logdie("DISTRI undefined\n" . pp(\%vars)) unless $vars{DISTRI};
         my @dirs = ("$scriptdir/distri/$vars{DISTRI}");
         unshift @dirs, $dirs[-1] . "-" . $vars{VERSION} if ($vars{VERSION});
         for my $d (@dirs) {
@@ -140,7 +140,7 @@ sub init {
                 last;
             }
         }
-        $log->logdie( "can't determine test directory for $vars{DISTRI}'") unless $vars{CASEDIR};
+        logdie("can't determine test directory for $vars{DISTRI}'") unless $vars{CASEDIR};
     }
 
     # defaults
@@ -164,7 +164,7 @@ sub init {
     }
     if ($vars{SUSEMIRROR} && $vars{SUSEMIRROR} =~ s{^(\w+)://}{}) {    # strip & check proto
         if ($1 ne "http") {
-            $log->logdie("only http mirror URLs are currently supported but found '$1'");
+            logdie("only http mirror URLs are currently supported but found '$1'");
         }
     }
 
@@ -208,46 +208,55 @@ sub print_possibly_colored {
     return;
 }
 
+sub logdie {
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+    $log->logdie(@_);
+}
+
 sub diag {
-    local $Log::Log4perl::caller_depth =
-      $Log::Log4perl::caller_depth + 1;
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
     $log->info(@_);
     return;
 }
 
-sub fctres {
-    my ($text, $fname) = @_;
+sub fctdbg {
+    my ($text) = @_;
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+    $log->debug("$text");
+    return;
+}
 
-    $fname //= (caller(1))[3];
-    local $Log::Log4perl::caller_depth =
-      $Log::Log4perl::caller_depth + 1;
-    $log->debug(">>> $fname: $text");
+sub fctres {
+    my ($text) = @_;
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+    $log->info(">>> $text");
     return;
 }
 
 sub fctinfo {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    local $Log::Log4perl::caller_depth =
-          $Log::Log4perl::caller_depth + 1;
-    $log->warn("::: $fname: $text");
+    my ($text) = @_;
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+    $log->info("::: $text");
     return;
 }
 
 sub fctwarn {
-    my ($text, $fname) = @_;
-    $fname //= (caller(1))[3];
-    local $Log::Log4perl::caller_depth =
-      $Log::Log4perl::caller_depth + 1;
-    $log->error("!!! $fname: $text");
+    my ($text) = @_;
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+    $log->warn("!!! $text");
+    return;
+}
+
+sub fcterr {
+    my ($text) = @_;
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+    $log->error("EEE $text");
     return;
 }
 
 sub modstart {
     my $text = sprintf "||| %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
-    local $Log::Log4perl::caller_depth =
-      $Log::Log4perl::caller_depth + 1;
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
     $log->info($text);
     return;
 }
@@ -281,14 +290,19 @@ sub pp {
 
 sub log_call {
     my $fname = (caller(1))[3];
+
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+
     update_line_number();
+
     my @result;
     while (my ($key, $value) = splice(@_, 0, 2)) {
         push @result, join("=", $key, pp($value));
     }
-    my $params = join(", ", @result);
 
+    my $params = join(", ", @result);
     fctinfo('<<< ' . $fname . "($params)");
+
     return;
 }
 

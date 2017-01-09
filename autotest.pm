@@ -36,11 +36,11 @@ sub loadtest {
     my $casedir = $bmwqemu::vars{CASEDIR};
 
     unless (-f join('/', $casedir, $script)) {
-        warn "loadtest needs a script below $casedir - $script is not\n";
+        bmwqemu::fctwarn "loadtest needs a script below $casedir - $script is not\n";
         $script = File::Spec->abs2rel($script, $bmwqemu::vars{CASEDIR});
     }
     unless ($script =~ m,(\w+)/([^/]+)\.pm$,) {
-        die "loadtest needs a script to match \\w+/[^/]+.pm\n";
+        bmwqemu::logdie "loadtest needs a script to match \\w+/[^/]+.pm\n";
     }
     my $category = $1;
     my $name     = $2;
@@ -56,8 +56,7 @@ sub loadtest {
     eval $code;    ## no critic
     if ($@) {
         my $msg = "error on $script: $@";
-        bmwqemu::diag($msg);
-        die $msg;
+        bmwqemu::logdie($msg);
     }
     $test             = $name->new($category);
     $test->{script}   = $script;
@@ -66,13 +65,13 @@ sub loadtest {
     while (exists $tests{$fullname . $nr}) {
         # to all perl hardcore hackers: fuck off!
         $nr = $nr eq '' ? 1 : $nr + 1;
-        bmwqemu::diag($fullname . ' already scheduled');
+        bmwqemu::fctwarn($fullname . ' already scheduled');
     }
     $tests{$fullname . $nr} = $test;
 
     return unless $test->is_applicable;
     push @testorder, $test;
-    bmwqemu::diag("scheduling $name$nr $script");
+    bmwqemu::fctinfo("scheduling $name$nr $script");
 }
 
 our $current_test;
@@ -171,8 +170,7 @@ sub prestart_hook {
         bmwqemu::diag "running prestart step";
         eval { require $bmwqemu::vars{CASEDIR} . "/prestart.pm"; };
         if ($@) {
-            bmwqemu::diag "prestart step FAIL:";
-            die $@;
+            bmwqemu::logdie "prestart step FAIL:" . $@;
         }
     }
 }
@@ -184,8 +182,7 @@ sub postrun_hook {
         bmwqemu::diag "running postrun step";
         eval { require "$bmwqemu::vars{CASEDIR}/postrun.pm"; };    ## no critic
         if ($@) {
-            bmwqemu::diag "postrun step FAIL:";
-            warn $@;
+            bmwqemu::fctwarn "postrun step FAIL:" . $@;
         }
     }
 }
@@ -212,7 +209,7 @@ sub runalltests {
     my $firsttest           = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded            = 0;
     my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
-    bmwqemu::diag "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
+    bmwqemu::fctdbg "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
 
     write_test_order();
 
@@ -269,7 +266,7 @@ sub runalltests {
             }
         }
         else {
-            bmwqemu::diag "skipping $fullname";
+            bmwqemu::fctwarn "skipping $fullname";
             $t->skip_if_not_running();
             $t->save_test_result();
         }
