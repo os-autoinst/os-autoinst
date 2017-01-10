@@ -155,7 +155,7 @@ sub start_process {
     if (!$line) {
         _exit(0);
     }
-    print "GOT $line\n";
+    bmwqemu::fctdbg "GOT $line";
     # the backend process might have added some defaults for the backend
     bmwqemu::load_vars();
 

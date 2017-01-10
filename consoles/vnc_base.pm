@@ -73,7 +73,7 @@ sub connect_vnc {
             if (time > $endtime) {
                 bmwqemu::fctdbg sprintf "%d $endtime\n", time;
                 $self->disable();
-                bmwqemu::logdie join("\n", @connection_error);
+                bmwqemu::logdie(@connection_error);
             }
             sleep 1;
             return;

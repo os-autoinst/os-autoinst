@@ -4,7 +4,7 @@ use warnings;
 use base 'Class::Accessor::Fast';
 use IO::Socket::INET;
 use bytes;
-use bmwqemu 'diag';
+use bmwqemu qw(logdie diag fctdbg fcterr fctwarn);
 use Time::HiRes qw( usleep gettimeofday time );
 use Carp;
 use List::Util 'min';
@@ -159,7 +159,7 @@ sub login {
 
         # clean up so socket can be garbage collected
         $self->socket(undef);
-        die $error;
+        bmwqemu::logdie $error;
     }
 }
 
@@ -167,13 +167,13 @@ sub _handshake_protocol_version {
     my ($self) = @_;
 
     my $socket = $self->socket;
-    $socket->read(my $protocol_version, 12) || die 'unexpected end of data';
+    $socket->read(my $protocol_version, 12) || bmwqemu::logdie 'unexpected end of data';
 
     #bmwqemu::diag "prot: $protocol_version";
 
     my $protocol_pattern = qr/\A RFB [ ] (\d{3}\.\d{3}) \s* \z/xms;
     if ($protocol_version !~ m/$protocol_pattern/xms) {
-        die 'Malformed RFB protocol: ' . $protocol_version;
+        bmwqemu::logdie 'Malformed RFB protocol: ' . $protocol_version;
     }
     $self->_rfb_version($1);
 
@@ -182,13 +182,13 @@ sub _handshake_protocol_version {
 
         # Repeat with the changed version
         if ($protocol_version !~ m/$protocol_pattern/xms) {
-            die 'Malformed RFB protocol';
+            bmwqemu::logdie 'Malformed RFB protocol';
         }
         $self->_rfb_version($1);
     }
 
     if ($self->_rfb_version lt '003.003') {
-        die 'RFB protocols earlier than v3.3 are not supported';
+        bmwqemu::logdie 'RFB protocols earlier than v3.3 are not supported';
     }
 
     # let's use the same version of the protocol, or the max, whichever's lower
@@ -203,19 +203,18 @@ sub _handshake_security {
     # Retrieve list of security options
     my $security_type;
     if ($self->_rfb_version ge '003.007') {
-        my $number_of_security_types = 0;
-        my $r = $socket->read($number_of_security_types, 1);
-        if ($r) {
-            $number_of_security_types = unpack('C', $number_of_security_types);
-        }
+        $socket->read(my $number_of_security_types, 1)
+          || bmwqemu::logdie 'unexpected end of data';
+        $number_of_security_types = unpack('C', $number_of_security_types);
+
         if ($number_of_security_types == 0) {
-            die 'Error authenticating';
+            bmwqemu::logdie 'Error authenticating';
         }
 
         my @security_types;
         foreach (1 .. $number_of_security_types) {
             $socket->read(my $security_type, 1)
-              || die 'unexpected end of data';
+              || bmwqemu::logdie 'unexpected end of data';
             $security_type = unpack('C', $security_type);
 
             push @security_types, $security_type;
@@ -235,7 +234,7 @@ sub _handshake_security {
     else {
 
         # In RFB 3.3, the server dictates the security type
-        $socket->read($security_type, 4) || die 'unexpected end of data';
+        $socket->read($security_type, 4) || bmwqemu::logdie 'unexpected end of data';
         $security_type = unpack('N', $security_type);
     }
 
@@ -264,7 +263,7 @@ sub _handshake_security {
 
 
         $socket->read(my $challenge, 16)
-          || die 'unexpected end of data';
+          || bmwqemu::logdie 'unexpected end of data';
 
         # the RFB protocol only uses the first 8 characters of a password
         my $key = substr($self->password, 0, 8);
@@ -311,7 +310,7 @@ sub _handshake_security {
         else {
             $self->old_ikvm(0);
         }
-        $socket->read(my $ikvm_session, 20) || die 'unexpected end of data';
+        $socket->read(my $ikvm_session, 20) || bmwqemu::logdie 'unexpected end of data';
         my @bytes = unpack("C20", $ikvm_session);
         print "Session info: ";
         for my $b (@bytes) {
@@ -324,15 +323,15 @@ sub _handshake_security {
         # af f9 bf bc 08 03 02 00 20 a3 00 00 84 4c e3 be 00 80 41 40 d0 24 01 00
         # af f9 ff bd 40 19 02 00 b0 a4 00 00 84 8c b1 be 00 60 43 40 f0 29 01 00
         # ab f9 1f be 08 13 02 00 e0 a5 00 00 74 a8 82 be 00 00 4b 40 d8 2d 01 00
-        $socket->read(my $security_result, 4) || die 'Failed to login';
+        $socket->read(my $security_result, 4) || bmwqemu::logdie 'Failed to login';
         $security_result = unpack('C', $security_result);
         print "Security Result: $security_result\n";
         if ($security_result != 0) {
-            die 'Failed to login';
+            bmwqemu::logdie 'Failed to login';
         }
     }
     else {
-        die 'VNC Server wants security, but we have no password';
+        bmwqemu::logdie 'VNC Server wants security, but we have no password';
     }
 
     # the RFB protocol always returns a result for type 2,
@@ -341,13 +340,13 @@ sub _handshake_security {
         || $security_type == 2)
     {
         $socket->read(my $security_result, 4)
-          || die 'unexpected end of data';
+          || bmwqemu::logdie 'unexpected end of data';
         $security_result = unpack('N', $security_result);
 
-        die 'login failed' if $security_result;
+        bmwqemu::logdie 'login failed' if $security_result;
     }
     elsif (!$socket->connected) {
-        die 'login failed';
+        bmwqemu::logdie 'login failed';
     }
 }
 
@@ -374,7 +373,7 @@ sub _server_initialization {
     my $self = shift;
 
     my $socket = $self->socket;
-    $socket->read(my $server_init, 24) || die 'unexpected end of data';
+    $socket->read(my $server_init, 24) || bmwqemu::logdie 'unexpected end of data';
 
     #<<< tidy off
     my ( $framebuffer_width, $framebuffer_height,
@@ -393,17 +392,17 @@ sub _server_initialization {
 
         # client did not express a depth preference, so check if the server's preference is OK
         if (!$supported_depths{$depth}) {
-            die 'Unsupported depth ' . $depth;
+            bmwqemu::logdie 'Unsupported depth ' . $depth;
         }
         if ($bits_per_pixel != $supported_depths{$depth}->{bpp}) {
-            die 'Unsupported bits-per-pixel value ' . $bits_per_pixel;
+            bmwqemu::logdie 'Unsupported bits-per-pixel value ' . $bits_per_pixel;
         }
         if (
             $true_colour_flag ?
             !$supported_depths{$depth}->{true_colour}
             : $supported_depths{$depth}->{true_colour})
         {
-            die 'Unsupported true colour flag';
+            bmwqemu::logdie 'Unsupported true colour flag';
         }
         $self->depth($depth);
 
@@ -430,16 +429,16 @@ sub _server_initialization {
 
     if ($name_length) {
         $socket->read(my $name_string, $name_length)
-          || die 'unexpected end of data';
+          || bmwqemu::logdie 'unexpected end of data';
         $self->name($name_string);
     }
 
     if ($self->ikvm) {
-        $socket->read(my $ikvm_init, 12) || die 'unexpected end of data';
+        $socket->read(my $ikvm_init, 12) || bmwqemu::logdie 'unexpected end of data';
 
         my ($current_thread, $ikvm_video_enable, $ikvm_km_enable, $ikvm_kick_enable, $v_usb_enable) = unpack 'x4NCCCC', $ikvm_init;
         print "IKVM specifics: $current_thread $ikvm_video_enable $ikvm_km_enable $ikvm_kick_enable $v_usb_enable\n";
-        die "Can't use keyboard and mouse.  Is another ipmi vnc viewer logged in?" unless $ikvm_km_enable;
+        bmwqemu::logdie "Can't use keyboard and mouse.  Is another ipmi vnc viewer logged in?" unless $ikvm_km_enable;
         return;    # the rest is kindly ignored by ikvm anyway
     }
 
@@ -670,7 +669,7 @@ sub init_x11_keymap {
     }
     # VNC doesn't use the unshifted values, only prepends a shift key
     for my $key (keys %{shift_keys()}) {
-        die "no map for $key" unless $keymap{$key};
+        bmwqemu::logdie "no map for $key" unless $keymap{$key};
         $keymap{$key} = [$keymap{shift}, $keymap{$key}];
     }
     $self->keymap(\%keymap);
@@ -694,7 +693,7 @@ sub init_ikvm_keymap {
     }
     my %map = %{shift_keys()};
     while (my ($key, $shift) = each %map) {
-        die "no map for $key" unless $keymap{$shift};
+        bmwqemu::logdie "no map for $key" unless $keymap{$shift};
         $keymap{$key} = [$keymap{shift}, $keymap{$shift}];
     }
     $self->keymap(\%keymap);
@@ -724,7 +723,7 @@ sub map_and_send_key {
             next;
         }
         else {
-            die "No map for '$key'";
+            bmwqemu::logdie "No map for '$key'";
         }
     }
 
@@ -860,7 +859,7 @@ sub _receive_message {
     }
     $self->_vnc_stalled(0);
 
-    die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
+    bmwqemu::logdie "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
 
     $message_type = unpack('C', $message_type);
     #print "receive message $message_type\n";
@@ -868,7 +867,7 @@ sub _receive_message {
     #<<< tidy off
     # This result is unused.  It's meaning is different for the different methods
     my $result
-      = !defined $message_type ? die 'bad message type received'
+      = !defined $message_type ? bmwqemu::logdie 'bad message type received'
       : $message_type == 0     ? $self->_receive_update()
       : $message_type == 1     ? $self->_receive_colour_map()
       : $message_type == 2     ? $self->_receive_bell()
@@ -879,7 +878,7 @@ sub _receive_message {
       : $message_type == 0x33 ? $self->_discard_ikvm_message($message_type, 4)
       : $message_type == 0x37 ? $self->_discard_ikvm_message($message_type, $self->old_ikvm ? 2 : 3)
       : $message_type == 0x3c ? $self->_discard_ikvm_message($message_type, 8)
-      :                         die 'unsupported message type received';
+      :                         bmwqemu::logdie 'unsupported message type received';
     #>>> tidy on
     return $message_type;
 }
@@ -895,7 +894,7 @@ sub _receive_update {
     }
 
     my $socket               = $self->socket;
-    my $hlen                 = $socket->read(my $header, 3) || die 'unexpected end of data';
+    my $hlen                 = $socket->read(my $header, 3) || bmwqemu::logdie 'unexpected end of data';
     my $number_of_rectangles = unpack('xn', $header);
 
     #bmwqemu::diag "NOR $number_of_rectangles";
@@ -905,7 +904,7 @@ sub _receive_update {
     my $do_endian_conversion = $self->_do_endian_conversion;
 
     foreach (1 .. $number_of_rectangles) {
-        $socket->read(my $data, 12) || die 'unexpected end of data';
+        $socket->read(my $data, 12) || bmwqemu::logdie 'unexpected end of data';
         my ($x, $y, $w, $h, $encoding_type) = unpack 'nnnnN', $data;
 
         # unsigned -> signed conversion
@@ -921,7 +920,7 @@ sub _receive_update {
         ### Raw encoding ###
         if ($encoding_type == 0 && !$self->ikvm) {
 
-            $socket->read(my $data, $w * $h * $bytes_per_pixel) || die 'unexpected end of data';
+            $socket->read(my $data, $w * $h * $bytes_per_pixel) || bmwqemu::logdie 'unexpected end of data';
 
             # splat raw pixels into the image
             my $img = tinycv::new($w, $h);
@@ -938,20 +937,20 @@ sub _receive_update {
             $self->_framebuffer($image);
         }
         elsif ($encoding_type == -257) {
-            bmwqemu::diag("pointer type $x $y $w $h $encoding_type");
+            bmwqemu::fctdbg("pointer type $x $y $w $h $encoding_type");
             $self->absolute($x);
         }
         elsif ($encoding_type == -261) {
             my $led_data;
-            $socket->read($led_data, 1) || die "unexpected end of data";
+            $socket->read($led_data, 1) || bmwqemu::logdie "unexpected end of data";
             my @bytes = unpack("C", $led_data);
-            bmwqemu::diag("led state $bytes[0] $w $h $encoding_type");
+            bmwqemu::fcterr("led state $bytes[0] $w $h $encoding_type");
         }
         elsif ($self->ikvm) {
             $self->_receive_ikvm_encoding($encoding_type, $x, $y, $w, $h);
         }
         else {
-            die 'unsupported update encoding ' . $encoding_type;
+            bmwqemu::logdie 'unsupported update encoding ' . $encoding_type;
         }
     }
 
@@ -986,16 +985,16 @@ sub _receive_zlre_encoding {
 
     my $stime = time;
     $socket->read(my $data, 4)
-      or die "short read for length";
+      or bmwqemu::logdie "short read for length";
     my ($data_len) = unpack('N', $data);
     my $read_len = 0;
     while ($read_len < $data_len) {
         my $len = read($socket, $data, $data_len - $read_len, $read_len);
-        die "short read for zlre data $read_len - $data_len" unless $len;
+        bmwqemu::logdie "short read for zlre data $read_len - $data_len" unless $len;
         $read_len += $len;
     }
     if (time - $stime > 0.1) {
-        diag sprintf("read $data_len in %fs\n", time - $stime);
+        bmwqemu::fctdbg sprintf("read $data_len in %fs\n", time - $stime);
     }
     # the zlib header is only sent once per session
     $self->{_inflater} ||= new Compress::Raw::Zlib::Inflate();
@@ -1003,10 +1002,10 @@ sub _receive_zlre_encoding {
     my $old_total_out = $self->{_inflater}->total_out;
     my $status = $self->{_inflater}->inflate($data, $out, 1);
     if ($status != Z_OK) {
-        die "inflation failed $status";
+        bmwqemu::logdie "inflation failed $status";
     }
     my $res = $image->map_raw_data_zrle($x, $y, $w, $h, $self->vncinfo, $out, $self->{_inflater}->total_out - $old_total_out);
-    die "not read enough data" unless $old_total_out + $res == $self->{_inflater}->total_out;
+    bmwqemu::logdie "not read enough data" unless $old_total_out + $res == $self->{_inflater}->total_out;
     return $res;
 }
 
@@ -1050,7 +1049,7 @@ sub _receive_ikvm_encoding {
         my $data;
         print "Additional Bytes: ";
         while ($data_len > $required_data) {
-            $socket->read($data, 1) || die "unexpected end of data";
+            $socket->read($data, 1) || bmwqemu::logdie "unexpected end of data";
             $data_len--;
             my @bytes = unpack("C", $data);
             printf "%02x ", $bytes[0];
@@ -1064,12 +1063,12 @@ sub _receive_ikvm_encoding {
     }
     elsif ($encoding_type == 0) {
         # ikvm manages to redeclare raw to be something completely different ;(
-        $socket->read(my $data, 10) || die "unexpected end of data";
+        $socket->read(my $data, 10) || bmwqemu::logdie "unexpected end of data";
         my ($type, $segments, $length) = unpack('CxNN', $data);
         while ($segments--) {
-            $socket->read(my $data, 6) || die "unexpected end of data";
+            $socket->read(my $data, 6) || bmwqemu::logdie "unexpected end of data";
             my ($dummy_a, $dummy_b, $y, $x) = unpack('nnCC', $data);
-            $socket->read($data, 512) || die "unexpected end of data";
+            $socket->read($data, 512) || bmwqemu::logdie "unexpected end of data";
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
 
@@ -1090,7 +1089,7 @@ sub _receive_ikvm_encoding {
     elsif ($encoding_type == 87) {
         return if $data_len == 0;
         if ($self->old_ikvm) {
-            die "we guessed wrong - this is a new board!";
+            bmwqemu::logdie "we guessed wrong - this is a new board!";
         }
         $socket->read(my $data, $data_len);
         # enforce high quality to simplify our decoder
@@ -1111,7 +1110,7 @@ sub _receive_ikvm_encoding {
         }
     }
     else {
-        die "unsupported encoding $encoding_type\n";
+        bmwqemu::logdie "unsupported encoding $encoding_type\n";
     }
 }
 
@@ -1145,7 +1144,7 @@ sub _receive_ikvm_session {
     $self->socket->read(my $ikvm_session_infos, 264);
 
     my ($msg1, $msg2, $str) = unpack('NNZ256', $ikvm_session_infos);
-    print "IKVM Session Message: $msg1 $msg2 $str\n";
+    fctwarn "IKVM Session Message: $msg1 $msg2 $str\n";
     return 1;
 }
 
@@ -1153,10 +1152,10 @@ sub _receive_cut_text {
     my $self = shift;
 
     my $socket = $self->socket;
-    $socket->read(my $cut_msg, 7) || die 'unexpected end of data';
+    $socket->read(my $cut_msg, 7) || bmwqemu::logdie 'unexpected end of data';
     my $cut_length = unpack 'xxxN', $cut_msg;
     $socket->read(my $cut_string, $cut_length)
-      || die 'unexpected end of data';
+      || bmwqemu::logdie 'unexpected end of data';
 
     # And discard it...
 

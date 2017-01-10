@@ -22,6 +22,7 @@ use autodie ':all';
 
 use Class::Accessor 'antlers';
 has backend => (is => "rw");
+use bmwqemu qw(logdie diag fctdbg fcterr fctwarn);
 
 sub new {
     my ($class, $testapi_console, $args) = @_;
@@ -46,7 +47,7 @@ sub reset {
 
 sub screen {
     my ($self) = @_;
-    die "screen needs to be implemented in subclasses - $self->{class} does not\n";
+    bmwqemu::logdie "screen needs to be implemented in subclasses - $self->{class} does not\n";
     return;
 }
 

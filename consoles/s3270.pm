@@ -235,7 +235,7 @@ sub expect_3270() {
                   . $status_line;
             }
 
-            die "status line must match 'buffer_ready'" unless ($status_line =~ /$arg{buffer_ready}/);
+            bmwqemu::logdie "status line must match 'buffer_ready'" unless ($status_line =~ /$arg{buffer_ready}/);
         }
 
         # No more host output is pending. We have some output in the raw_expect_queue,
@@ -459,13 +459,13 @@ sub connect_and_login() {
                 sleep 7;
             }
             elsif ($count == 3) {
-                die "Could not reclaim guest despite hard_shutdown and retrying multiple times. this is odd.\n"
-                  . "Is this machine possibly connected on another terminal?\n";
+                bmwqemu::logdie "Could not reclaim guest despite hard_shutdown and retrying multiple times. this is odd.\n"
+                  . "Is this machine possibly connected on another terminal?";
             }
 
             last if $reconnect_ok;
 
-            carp "trying hard shutdown and reconnect...\n";
+            carp "trying hard shutdown and reconnect...";
             $self->cp_logoff_disconnect();
             next;
         }

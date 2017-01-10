@@ -931,9 +931,8 @@ sub read_qemupipe {
     my $bytes = sysread($self->{qemupipe}, $buffer, 1000);
     chomp $buffer;
     for my $line (split(/\n/, $buffer)) {
-==== BASE ====
         bmwqemu::diag "QEMU: $line";
-==== BASE ====
+        bmwqemu::logdie "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
     }
     return $bytes;
 }
