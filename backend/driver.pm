@@ -28,7 +28,7 @@ use IO::Select;
 use POSIX '_exit';
 require IPC::System::Simple;
 use autodie ':all';
-use bmwqemu qw(:DEFAULT);
+use bmwqemu qw(fctwarn logdie fctdbg);
 use myjsonrpc;
 
 

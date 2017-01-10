@@ -53,7 +53,7 @@ use Carp 'cluck';
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use File::Spec;
 use File::Path;
-
+use backend::driver;
 use Log::Log4perl;
 
 # avoid paranoia

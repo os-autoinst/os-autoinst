@@ -36,7 +36,6 @@ our $VERSION;
 our @EXPORT    = qw(fileContent save_vars);
 our @EXPORT_OK = qw(diag fctres fctinfo fctwarn fctdbg fcterr logdie);
 
-use backend::driver;
 require IPC::System::Simple;
 use autodie ':all';
 use Log::Log4perl;
@@ -288,11 +287,17 @@ sub pp {
     return $value_with_trailing_newline;
 }
 
+=head2 log_call
+
+    log_call method will write the name of the fuction that actually triggered the call in testapi,
+    calls that are using log_call from testapi, will have the following syntax on logfiles: B<::: <<<>
+
+
+=cut
+
 sub log_call {
     my $fname = (caller(1))[3];
-
-    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 2;
     update_line_number();
 
     my @result;
@@ -302,7 +307,6 @@ sub log_call {
 
     my $params = join(", ", @result);
     fctinfo('<<< ' . $fname . "($params)");
-
     return;
 }
 
