@@ -241,10 +241,16 @@ sub _check_or_assert {
 
   assert_screen($mustmatch [,$timeout]);
 
-Wait for needle with tag C<$mustmatch> to appear on SUT screen.
-C<$mustmatch> can be string or C<ARRAYREF> of string (C<['tag1', 'tag2']>).
+Wait for needle with tag C<$mustmatch> to appear on SUT screen. C<$mustmatch>
+can be string or C<ARRAYREF> of string (C<['tag1', 'tag2']>). The maximum
+waiting time is defined by C<$timeout>. It is recommended to use a value lower
+than the default timeout only when explicitly needed. C<assert_screen> is not
+very suitable for checking performance expectations. Under the normal
+circumstance of the screen being shown this does not imply a longer waiting
+time as the method returns as soon as a successful needle match occured.
 
-Returns matched needle or throws C<NeedleFailed> exception if $timeout timeout is hit. Default timeout is 30s.
+Returns matched needle or throws C<NeedleFailed> exception if $timeout timeout
+is hit. Default timeout is 30s.
 
 =cut
 
@@ -261,6 +267,14 @@ sub assert_screen {
 
 Similar to C<assert_screen> but does not throw exceptions. Use this for optional matches.
 Check C<assert_screen> for parameters.
+
+Unlike C<assert_screen> it is recommended to use the lowest possible timeout
+to prevent needless waiting time in case no match is expected behaviour. In
+general a value of 0s for the timeout should suffice, that is only checking
+once with no waiting time. In most cases a check_screen with a higher timeout
+can be replaced by C<assert_screen> with multiple tags using an C<ARRAYREF> in
+combination with C<match_has_tag> or another synchronization call in before,
+for example C<wait_screen_change> or C<wait_still_screen>.
 
 Returns matched needle or C<undef> if timeout is hit. Default timeout is 30s.
 
