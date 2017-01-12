@@ -45,8 +45,8 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   assert_and_click mouse_hide mouse_set mouse_click
   mouse_dclick mouse_tclick match_has_tag
 
-  script_run script_sudo script_output validate_script_output
-  assert_script_run assert_script_sudo
+  assert_script_run script_run assert_script_sudo script_sudo
+  script_output validate_script_output
 
   wait_terminal assert_terminal
 
@@ -241,10 +241,16 @@ sub _check_or_assert {
 
   assert_screen($mustmatch [,$timeout]);
 
-Wait for needle with tag C<$mustmatch> to appear on SUT screen.
-C<$mustmatch> can be string or C<ARRAYREF> of string (C<['tag1', 'tag2']>).
+Wait for needle with tag C<$mustmatch> to appear on SUT screen. C<$mustmatch>
+can be string or C<ARRAYREF> of string (C<['tag1', 'tag2']>). The maximum
+waiting time is defined by C<$timeout>. It is recommended to use a value lower
+than the default timeout only when explicitly needed. C<assert_screen> is not
+very suitable for checking performance expectations. Under the normal
+circumstance of the screen being shown this does not imply a longer waiting
+time as the method returns as soon as a successful needle match occured.
 
-Returns matched needle or throws C<NeedleFailed> exception if $timeout timeout is hit. Default timeout is 30s.
+Returns matched needle or throws C<NeedleFailed> exception if $timeout timeout
+is hit. Default timeout is 30s.
 
 =cut
 
@@ -261,6 +267,14 @@ sub assert_screen {
 
 Similar to C<assert_screen> but does not throw exceptions. Use this for optional matches.
 Check C<assert_screen> for parameters.
+
+Unlike C<assert_screen> it is recommended to use the lowest possible timeout
+to prevent needless waiting time in case no match is expected behaviour. In
+general a value of 0s for the timeout should suffice, that is only checking
+once with no waiting time. In most cases a check_screen with a higher timeout
+can be replaced by C<assert_screen> with multiple tags using an C<ARRAYREF> in
+combination with C<match_has_tag> or another synchronization call in before,
+for example C<wait_screen_change> or C<wait_still_screen>.
 
 Returns matched needle or C<undef> if timeout is hit. Default timeout is 30s.
 
@@ -624,28 +638,6 @@ sub x11_start_program {
     return $distri->x11_start_program($program, $timeout, $options);
 }
 
-=head2 script_run
-
-  script_run($program [, $wait]);
-
-Run C<$program> (by assuming the console prompt and typing it).
-
-The C<$wait> parameter will (unless 0) wait for the script to finish
-by following the script with an echo to serial line and waiting
-for it. Default timeout is 30s.
-
-I<Make sure the command does not write to the serial output.>
-
-=cut
-
-sub script_run {
-    my ($name, $wait) = @_;
-    $wait //= $bmwqemu::default_timeout;
-
-    bmwqemu::log_call(name => $name, wait => $wait);
-    return $distri->script_run($name, $wait);
-}
-
 =head2 assert_script_run
 
   assert_script_run($cmd [, timeout => $timeout] [, fail_message => $fail_message]);
@@ -654,12 +646,12 @@ Deprecated mode
 
   assert_script_run($cmd [, $timeout [, $fail_message]]);
 
-Run C<$cmd> via C<script_run> and C<die> if its exit status is not zero.
-The exit status is checked by magic string on the serial port.
-See C<script_run> for default timeout.
-C<$fail_message> is returned in the die message if specified.
+Run C<$cmd> via C<script_run> and C<die> if its exit status is not zero.  The
+exit status is checked by magic string on the serial port with a waiting time
+up do C<$timeout>. Default timeout is 30s.
+Use C<script_run> if C<$cmd> can be expected to fail.
 
-I<Make sure the command does not write to the serial output.>
+C<$fail_message> is returned in the die message if specified.
 
 =cut
 
@@ -690,6 +682,49 @@ sub assert_script_run {
     return;
 }
 
+=head2 script_run
+
+  script_run($program [, $wait]);
+
+Run C<$program> (by assuming the console prompt and typing it).
+
+The C<$wait> parameter will (unless 0) wait for the script to finish
+by following the script with an echo to serial line and waiting
+for it. Default timeout is 30s.
+
+I<The implementation is distribution specific and not always available.>
+
+=cut
+
+sub script_run {
+    my ($name, $wait) = @_;
+    $wait //= $bmwqemu::default_timeout;
+
+    bmwqemu::log_call(name => $name, wait => $wait);
+    return $distri->script_run($name, $wait);
+}
+
+=head2 assert_script_sudo
+
+  assert_script_sudo($command [, $wait]);
+
+Run C<$command> via C<script_sudo> and then check by C<wait_serial> if its exit
+status is not zero.
+See C<wait_serial> for default timeout.
+
+I<The implementation is distribution specific and not always available.>
+
+=cut
+
+sub assert_script_sudo {
+    my ($cmd, $wait) = @_;
+    my $str = hashed_string("ASS$cmd");
+    script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
+    my $ret = wait_serial("$str-\\d+-", $wait);
+    croak "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
+}
+
+
 =head2 script_sudo
 
   script_sudo($program [, $wait]);
@@ -707,28 +742,6 @@ sub script_sudo {
 
     bmwqemu::log_call(name => $name, wait => $wait);
     return $distri->script_sudo($name, $wait);
-}
-
-=head2 assert_script_sudo
-
-  assert_script_sudo($command [, $wait]);
-
-Run C<$command> via C<script_sudo> and then check by C<wait_serial> if its exit
-status is not zero.
-See C<wait_serial> for default timeout.
-
-I<Make sure the command does not write to the serial output.>
-
-I<The implementation is distribution specific and not always available.>
-
-=cut
-
-sub assert_script_sudo {
-    my ($cmd, $wait) = @_;
-    my $str = hashed_string("ASS$cmd");
-    script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
-    my $ret = wait_serial("$str-\\d+-", $wait);
-    croak "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
 }
 
 =for stopwords SUT
