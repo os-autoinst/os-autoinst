@@ -692,6 +692,8 @@ The C<$wait> parameter will (unless 0) wait for the script to finish
 by following the script with an echo to serial line and waiting
 for it. Default timeout is 30s.
 
+I<The implementation is distribution specific and not always available.>
+
 =cut
 
 sub script_run {
