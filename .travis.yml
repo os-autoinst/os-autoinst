@@ -7,3 +7,4 @@ script:
   # 'coverage' executes all tests and checks code coverage against threshold
   # in Makefile.am
   - make && make check coverage-coveralls VERBOSE=1
+sudo: required
