@@ -126,20 +126,20 @@ subtest 'script_run' => sub {
 
     is(assert_script_run('true'), undef, 'nothing happens on success');
     $fake_exit = 1;
-    like(exception { assert_script_run 'false', 42; }, qr/command.*false.*failed at/, 'with timeout option (deprecated mode)');
+    like(exception { assert_script_run 'false', 42; }, qr/command.*false.*failed or timed out at/, 'with timeout option (deprecated mode)');
     like(
         exception { assert_script_run 'false', 0, 'my custom fail message'; },
-        qr/command.*false.*failed: my custom fail message at/,
+        qr/command.*false.*failed or timed out: my custom fail message at/,
         'custom message on die (deprecated mode)'
     );
     like(
         exception { assert_script_run('false', fail_message => 'my custom fail message'); },
-        qr/command.*false.*failed: my custom fail message at/,
+        qr/command.*false.*failed or timed out: my custom fail message at/,
         'using named arguments'
     );
     like(
         exception { assert_script_run('false', timeout => 0, fail_message => 'my custom fail message'); },
-        qr/command.*false.*failed: my custom fail message at/,
+        qr/command.*false.*failed or timed out: my custom fail message at/,
         'using two named arguments'
     );
     $fake_exit = 0;

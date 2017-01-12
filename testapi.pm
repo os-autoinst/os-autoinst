@@ -681,12 +681,16 @@ Deprecated mode
 
   assert_script_run($cmd [, $timeout [, $fail_message]]);
 
-Run C<$cmd> via C<script_run> and C<die> if its exit status is not zero.  The
-exit status is checked by magic string on the serial port with a waiting time
-up do C<$timeout>. Default timeout is 30s.
-Use C<script_run> if C<$cmd> can be expected to fail.
+Run C<$cmd> via C<$distri->script_run> and C<die> unless it returns zero (indicating
+successful completion of C<$cmd>). See C<distri->script_run> for default timeout.
+Use C<script_run> instead if C<$cmd> may fail.
 
 C<$fail_message> is returned in the die message if specified.
+
+I<The C<script_run> implementation is distribution specific and not always available.
+For this to work correctly, it must return 0 if and only if C<$command> completes
+successfully. It must NOT return 0 if C<$command> times out. The default implementation
+should work on *nix operating systems with a configured serial device.>
 
 =cut
 
@@ -702,41 +706,42 @@ sub assert_script_run {
     else {
         %args = @_;
     }
-    my $str = hashed_string("ASR$cmd");
-    # call script_run with idle_timeout 0 so we don't wait twice
-    if (is_serial_terminal) {
-        script_run("$cmd; echo $str-\$?-", 0);
-    }
-    else {
-        script_run("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
-    }
-    my $ret = wait_serial("$str-\\d+-", $args{timeout});
-    my $die_msg = "command '$cmd' failed";
+    bmwqemu::log_call(cmd => $cmd, wait => $args{timeout}, fail_message => $args{fail_message});
+    # assume a call to 'assert_' with timeout 0 means 'default timeout', not
+    # 'no wait'
+    undef $args{timeout} if ($args{timeout} == 0);
+    my $ret = $distri->script_run($cmd, $args{timeout});
+    my $die_msg = "command '$cmd' failed or timed out";
     $die_msg .= ": $args{fail_message}" if $args{fail_message};
-    croak $die_msg unless (defined $ret && $ret =~ /$str-0-/);
+    croak $die_msg unless (defined $ret && $ret == 0);
     return;
 }
 
 =head2 script_run
 
-  script_run($program [, $wait]);
+  script_run($cmd [, $wait]);
 
-Run C<$program> (by assuming the console prompt and typing it).
+Run C<$cmd> (in the default implementation, by assuming the console prompt and typing
+the command). If $wait_seconds is greater than 0, wait for that length of time for
+execution to complete (otherwise, returns undef immediately). See C<distri->script_run>
+for default timeout.
 
-The C<$wait> parameter will (unless 0) wait for the script to finish
-by following the script with an echo to serial line and waiting
-for it. Default timeout is 30s.
+<Returns> exit code received from I<$cmd>, or undef if $wait_seconds is 0 or execution
+does not complete within $wait_seconds.
 
 I<The implementation is distribution specific and not always available.>
+
+The default implementation should work on *nix operating systems with a configured
+serial device so long as the user has permissions to write to the supplied serial
+device C<$serialdev>.
 
 =cut
 
 sub script_run {
-    my ($name, $wait) = @_;
-    $wait //= $bmwqemu::default_timeout;
+    my ($cmd, $wait) = @_;
 
-    bmwqemu::log_call(name => $name, wait => $wait);
-    return $distri->script_run($name, $wait);
+    bmwqemu::log_call(cmd => $cmd, wait => $wait);
+    return $distri->script_run($cmd, $wait);
 }
 
 =head2 assert_script_sudo
@@ -749,6 +754,9 @@ See C<wait_serial> for default timeout.
 
 I<The implementation is distribution specific and not always available.>
 
+Make sure the non-root user has permissions to write to the supplied serial device
+C<$serialdev>.
+
 =cut
 
 sub assert_script_sudo {
@@ -756,7 +764,7 @@ sub assert_script_sudo {
     my $str = hashed_string("ASS$cmd");
     script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $wait);
-    croak "command '$cmd' failed" unless (defined $ret && $ret =~ /$str-0-/);
+    croak "command '$cmd' failed or timed out" unless (defined $ret && $ret =~ /$str-0-/);
 }
 
 
