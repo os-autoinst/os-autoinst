@@ -206,7 +206,7 @@ sub save_snapshot {
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("savevm $vmname");
     diag "SAVED $vmname $rsp";
-    die "Could not save snapshot \'$vmname\'" unless ($rsp eq "savevm $vmname");
+    die "Could not save snapshot \'$vmname\': $rsp" unless ($rsp eq "savevm $vmname");
     return;
 }
 
@@ -214,7 +214,7 @@ sub load_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("loadvm $vmname");
-    die "Could not load snapshot \'$vmname\'" unless ($rsp eq "loadvm $vmname");
+    die "Could not load snapshot \'$vmname\': $rsp" unless ($rsp eq "loadvm $vmname");
     $rsp = $self->handle_qmp_command({execute => 'stop'});
     $rsp = $self->handle_qmp_command({execute => 'cont'});
     sleep(10);
