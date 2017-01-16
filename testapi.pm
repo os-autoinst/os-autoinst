@@ -85,6 +85,22 @@ sub check_screen;
 sub type_string;
 sub type_password;
 
+
+=head1 introduction
+
+This test API module provides methods exposed by the os-autoinst backend to be
+used within tests.
+
+Many methods define a timeout parameter which can be scaled by setting the
+C<TIMEOUT_SCALE> variable in the test settings which are read by the isotovideo
+process. The scale parameter can be used based on performance of workers to
+prevent false positive timeouts based on differing worker performance.
+
+os-autoinst is used in the openQA project.
++For more information on how to use openQA, please visit http://open.qa/documentation
+
+=cut
+
 =head1 internal
 
 =for stopwords xen hvc0 xvc0 ipmi ttyS
