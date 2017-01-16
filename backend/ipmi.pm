@@ -43,7 +43,7 @@ sub new {
 sub ipmi_cmdline {
     my ($self) = @_;
 
-    return ('ipmitool', '-H', $bmwqemu::vars{IPMI_HOSTNAME}, '-U', $bmwqemu::vars{IPMI_USER}, '-P', $bmwqemu::vars{IPMI_PASSWORD});
+    return ('ipmitool', '-I', 'lanplus', '-H', $bmwqemu::vars{IPMI_HOSTNAME}, '-U', $bmwqemu::vars{IPMI_USER}, '-P', $bmwqemu::vars{IPMI_PASSWORD});
 }
 
 sub ipmitool {
@@ -57,9 +57,17 @@ sub ipmitool {
     chomp $stdout;
     chomp $stderr;
 
+    $self->dell_sleep;
+
     die join(' ', @cmd) . ": $stderr" unless ($ret);
     bmwqemu::diag("IPMI: $stdout");
     return $stdout;
+}
+
+# DELL BMCs are touchy
+sub dell_sleep {
+    my ($self) = @_;
+    return unless ($bmwqemu::vars{IPMI_HW} || '') eq 'dell', sleep 3;
 }
 
 sub restart_host {
@@ -90,16 +98,19 @@ sub relogin_vnc {
         sleep(1);
     }
 
-    my $vnc = $testapi::distri->add_console(
-        'sut',
-        'vnc-base',
-        {
-            hostname => $bmwqemu::vars{IPMI_HOSTNAME},
-            port     => 5900,
-            username => $bmwqemu::vars{IPMI_USER},
-            password => $bmwqemu::vars{IPMI_PASSWORD},
-            ikvm     => 1
-        });
+    my $vncopts = {
+        hostname => $bmwqemu::vars{IPMI_HOSTNAME},
+        port     => 5900,
+        username => $bmwqemu::vars{IPMI_USER},
+        password => $bmwqemu::vars{IPMI_PASSWORD},
+    };
+    my $hwclass = $bmwqemu::vars{IPMI_HW} || 'supermicro';
+    $vncopts->{ikvm} = 1 if $hwclass eq 'supermicro';
+    if ($hwclass eq 'dell') {
+        $vncopts->{dell} = 1;
+        $vncopts->{port} = 5901;
+    }
+    my $vnc = $testapi::distri->add_console('sut', 'vnc-base', $vncopts);
     $vnc->backend($self);
     $self->select_console({testapi_console => 'sut'});
 

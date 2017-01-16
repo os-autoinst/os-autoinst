@@ -52,7 +52,7 @@ my %supported_depths = (
         green_shift => 8,
         blue_shift  => 0,
     },
-    16 => {
+    16 => {    # same as 15
         bpp         => 16,
         true_colour => 1,
         red_max     => 31,
@@ -61,6 +61,16 @@ my %supported_depths = (
         red_shift   => 10,
         green_shift => 5,
         blue_shift  => 0,
+    },
+    15 => {
+        bpp         => 16,
+        true_colour => 1,
+        red_max     => 31,
+        green_max   => 31,
+        blue_max    => 31,
+        red_shift   => 10,
+        green_shift => 5,
+        blue_shift  => 0
     },
     8 => {
         bpp         => 8,
@@ -188,10 +198,12 @@ sub _handshake_security {
     # Retrieve list of security options
     my $security_type;
     if ($self->_rfb_version ge '003.007') {
-        $socket->read(my $number_of_security_types, 1)
-          || die 'unexpected end of data';
-        $number_of_security_types = unpack('C', $number_of_security_types);
-
+        my $number_of_security_types = 0;
+        my $number_of_security_types;
+        my $r = $socket->read($number_of_security_types, 1);
+        if ($r) {
+            $number_of_security_types = unpack('C', $number_of_security_types);
+        }
         if ($number_of_security_types == 0) {
             die 'Error authenticating';
         }
