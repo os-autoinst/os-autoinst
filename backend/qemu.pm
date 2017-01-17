@@ -530,7 +530,7 @@ sub start_qemu {
     die "fork failed" unless defined($pid);
     if ($pid == 0) {
         $SIG{__DIE__} = undef;    # overwrite the default - just exit
-        my @params = ("-serial", "file:serial0", "-soundhw", "ac97", @vgaoptions);
+        my @params = ("-serial", "file:serial0", "-soundhw", "ac97");
 
         push(@params, "-global", "isa-fdc.driveA=") unless ($vars->{QEMU_NO_FDC_SET});
         push(@params, @vgaoptions);
