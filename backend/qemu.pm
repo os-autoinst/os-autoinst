@@ -932,6 +932,7 @@ sub read_qemupipe {
     chomp $buffer;
     for my $line (split(/\n/, $buffer)) {
         bmwqemu::diag "QEMU: $line";
+        die "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
     }
     return $bytes;
 }
