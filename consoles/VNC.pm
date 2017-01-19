@@ -7,7 +7,6 @@ use bytes;
 use bmwqemu 'diag';
 use Time::HiRes qw( usleep gettimeofday time );
 use Carp;
-use tinycv;
 use List::Util 'min';
 
 use Crypt::DES;
@@ -21,7 +20,7 @@ __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
-      _last_update_requested _vnc_stalled vncinfo old_ikvm
+      _last_update_requested _vnc_stalled vncinfo old_ikvm dell
       ));
 our $VERSION = '0.40';
 
@@ -96,6 +95,7 @@ my @encodings = (
         num       => 16,
         name      => 'ZRLE',
         supported => 1,
+        bandwidth => 1,
     },
     {
         num       => -223,
@@ -114,26 +114,9 @@ my @encodings = (
     },
 );
 
-sub list_encodings {
-    my $pkg_or_self = shift;
-
-    my %encmap = map { $_->{num} => $_->{name} } @encodings;
-    return %encmap;
-}
-
 sub login {
-    my $self     = shift;
-    my $hostname = $self->hostname;
-    my $port     = $self->port;
-
-    my $socket = IO::Socket::INET->new(
-        PeerAddr => $hostname || 'localhost',
-        PeerPort => $port     || '5900',
-        Proto    => 'tcp',
-    ) || Carp::croak "Error connecting to host <$hostname>\n" . Dumper($self) . "\n$@";
-    $socket->timeout(15);    # FIXME: is this used for anything but connect?
-    $socket->sockopt(Socket::TCP_NODELAY, 1);    # turn off Naegle's algorithm for vnc
-    $self->socket($socket);
+    my ($self, $connect_timeout) = @_;
+    $connect_timeout //= 10;
 
     $self->width(0);
     $self->height(0);
@@ -143,13 +126,35 @@ sub login {
     $self->_last_update_requested(0);
     $self->_vnc_stalled(0);
 
+    my $hostname = $self->hostname || 'localhost';
+    my $port     = $self->port     || 5900;
+
+    my $endtime = time + $connect_timeout;
+
+    my $socket;
+    while (!$socket) {
+        $socket = IO::Socket::INET->new(
+            PeerAddr => $hostname,
+            PeerPort => $port,
+            Proto    => 'tcp',
+        );
+        if (!$socket) {
+            return if (time > $endtime);
+            bmwqemu::diag "Error connecting to host <$hostname>: $@";
+            sleep 1;
+            next;
+        }
+        $socket->sockopt(Socket::TCP_NODELAY, 1);    # turn off Naegle's algorithm for vnc
+    }
+    $self->socket($socket);
+
     eval {
         $self->_handshake_protocol_version();
         $self->_handshake_security();
         $self->_client_initialization();
         $self->_server_initialization();
     };
-    my $error = $@;    # store so it doesn't get overwritten
+    my $error = $@;                                  # store so it doesn't get overwritten
     if ($error) {
 
         # clean up so socket can be garbage collected
@@ -159,7 +164,7 @@ sub login {
 }
 
 sub _handshake_protocol_version {
-    my $self = shift;
+    my ($self) = @_;
 
     my $socket = $self->socket;
     $socket->read(my $protocol_version, 12) || die 'unexpected end of data';
@@ -199,7 +204,6 @@ sub _handshake_security {
     my $security_type;
     if ($self->_rfb_version ge '003.007') {
         my $number_of_security_types = 0;
-        my $number_of_security_types;
         my $r = $socket->read($number_of_security_types, 1);
         if ($r) {
             $number_of_security_types = unpack('C', $number_of_security_types);

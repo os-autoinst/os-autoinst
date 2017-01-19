@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2016 SUSE LLC
+# Copyright © 2012-2017 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,32 +56,8 @@ sub connect_vnc {
 
     CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
-    my $endtime = time + ($args->{connect_timeout} || 10);
-
-    # try to log in, this may fail a few times
-    while (1) {
-        my @connection_error;
-        my $vnc = try {
-            print "trying to login\n";
-            local $SIG{__DIE__};
-            $self->{vnc}->login();
-            CORE::say __FILE__. ":" . __LINE__ . ":done\n";
-            return $self->{vnc};
-        }
-        catch {
-            push @connection_error, $@;
-            if (time > $endtime) {
-                printf "%d $endtime\n", time;
-                $self->disable();
-                die join("\n", @connection_error);
-            }
-            sleep 1;
-            return;
-        };
-        return $vnc if $vnc;
-    }
-    # impossible to reach
-    return;
+    $self->{vnc}->login($args->{connect_timeout});
+    return $self->{vnc};
 }
 
 sub request_screen_update {
@@ -122,6 +98,11 @@ sub type_string {
     # server may think of contact bounces for repeating keys.
     my $seconds_per_keypress = 1 / 15;
 
+    # IDrac's VNC implementation is even more problematic, so better type
+    # slower
+    if ($self->{vnc}->dell) {
+        $seconds_per_keypress = 1 / 10;
+    }
     # further slow down if being asked for.
     # 250 = magic default from testapi.pm (FIXME: wouldn't undef just do?)
 
