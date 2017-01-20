@@ -67,7 +67,8 @@ sub ipmitool {
 # DELL BMCs are touchy
 sub dell_sleep {
     my ($self) = @_;
-    return unless ($bmwqemu::vars{IPMI_HW} || '') eq 'dell', sleep 3;
+    return unless ($bmwqemu::vars{IPMI_HW} || '') eq 'dell';
+    sleep 4;
 }
 
 sub restart_host {
