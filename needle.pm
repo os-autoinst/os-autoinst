@@ -51,7 +51,13 @@ sub new {
             return;
         }
     }
-    my $self = {tags => ($json->{tags} || [])};
+    my $self = {};
+
+    die "Needle $jsonfile is not under project directory $bmwqemu::vars{PRJDIR}" if (index($jsonfile, $bmwqemu::vars{PRJDIR}));
+    # store json file path relative to $prjdir
+    $self->{file} = substr($jsonfile, length($bmwqemu::vars{PRJDIR}) + 1);
+
+    $self->{tags}       = $json->{tags}       || [];
     $self->{properties} = $json->{properties} || [];
 
     my $gotmatch;
@@ -79,7 +85,6 @@ sub new {
         return;
     }
 
-    $self->{file} = $jsonfile;
     $self->{name} = basename($jsonfile, '.json');
     my $png = $self->{png} || $self->{name} . ".png";
 
@@ -209,7 +214,7 @@ sub init {
     ($needledir, $shared_cache) = @_;
 
     $needledir //= "$bmwqemu::vars{PRODUCTDIR}/needles/";
-    $needledir = abs_path($needledir) // die "needledir not found: $needledir (check vars.json?)";
+    -d $needledir || die "needledir not found: $needledir (check vars.json?)";
 
     %needles = ();
     %tags    = ();
