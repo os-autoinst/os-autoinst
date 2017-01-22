@@ -1012,9 +1012,15 @@ sub hashed_string {
 
 =head2 send_key
 
+  send_key($key [, wait_screen_change => $wait_screen_change]);
+
+Deprecated mode
+
   send_key($key [, $do_wait]);
 
-Send one C<$key> to SUT keyboard input.
+Send one C<$key> to SUT keyboard input. Waits for the screen to change when
+C<$wait_screen_change> is true.
+I<Deprecated: C<$do_wait> instructs to wait with <$wait_idle>.>
 
 Special characters naming:
 
@@ -1025,11 +1031,18 @@ Special characters naming:
 =cut
 
 sub send_key {
-    my ($key, $do_wait) = @_;
-    $do_wait //= 0;
-    bmwqemu::log_call(key => $key, do_wait => $do_wait);
-    query_isotovideo('backend_send_key', {key => $key});
-    wait_idle() if $do_wait;
+    my $key = shift;
+    my %args = (@_ == 1) ? (do_wait => +shift()) : @_;
+    $args{do_wait}            //= 0;
+    $args{wait_screen_change} //= 0;
+    bmwqemu::log_call(key => $key, %args);
+    if ($args{wait_screen_change}) {
+        wait_screen_change { query_isotovideo('backend_send_key', {key => $key}) };
+    }
+    else {
+        query_isotovideo('backend_send_key', {key => $key});
+    }
+    wait_idle() if $args{do_wait};
 }
 
 =head2 hold_key

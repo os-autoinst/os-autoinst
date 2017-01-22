@@ -49,7 +49,7 @@ sub fake_read_json {
         return {ret => {x => -1, y => -1}};
     }
     else {
-        print "not implemented \$cmd: $cmd\n";
+        print "mock method not implemented \$cmd: $cmd\n";
     }
     return {};
 }
@@ -67,64 +67,89 @@ $autotest::current_test = basetest->new();
 # that use it, as it doesn't work with the fake send_json and read_json
 my $mod2 = new Test::MockModule('testapi');
 
-## no critic (ProhibitSubroutinePrototypes)
-sub fake_wait_screen_change(&@) {
-    my ($callback, $timeout) = @_;
-    $callback->() if $callback;
-}
+subtest 'type_string' => sub {
+    ## no critic (ProhibitSubroutinePrototypes)
+    sub fake_wait_screen_change(&@) {
+        my ($callback, $timeout) = @_;
+        $callback->() if $callback;
+    }
 
-$mod2->mock(wait_screen_change => \&fake_wait_screen_change);
+    $mod2->mock(wait_screen_change => \&fake_wait_screen_change);
 
-type_string 'hallo';
-is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hallo'}]);
-$cmds = [];
+    type_string 'hallo';
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hallo'}]);
+    $cmds = [];
 
-type_string 'hallo', 4;
-is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 4, text => 'hallo'}]);
-$cmds = [];
+    type_string 'hallo', 4;
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 4, text => 'hallo'}]);
+    $cmds = [];
 
-type_string 'hallo', secret => 1;
-is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hallo'}]);
-$cmds = [];
+    type_string 'hallo', secret => 1;
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hallo'}]);
+    $cmds = [];
 
-type_string 'hallo', secret => 1, max_interval => 10;
-is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 10, text => 'hallo'}]);
-$cmds = [];
+    type_string 'hallo', secret => 1, max_interval => 10;
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 10, text => 'hallo'}]);
+    $cmds = [];
 
-type_string 'hallo', wait_screen_change => 3;
-is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hal'}, {cmd => 'backend_type_string', max_interval => 250, text => 'lo'},]);
-$cmds = [];
+    type_string 'hallo', wait_screen_change => 3;
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hal'}, {cmd => 'backend_type_string', max_interval => 250, text => 'lo'},]);
+    $cmds = [];
 
-type_string 'hallo', wait_screen_change => 2;
-is_deeply(
-    $cmds,
-    [
-        {cmd => 'backend_type_string', max_interval => 250, text => 'ha'},
-        {cmd => 'backend_type_string', max_interval => 250, text => 'll'},
-        {cmd => 'backend_type_string', max_interval => 250, text => 'o'},
-    ]);
-$cmds = [];
+    type_string 'hallo', wait_screen_change => 2;
+    is_deeply(
+        $cmds,
+        [
+            {cmd => 'backend_type_string', max_interval => 250, text => 'ha'},
+            {cmd => 'backend_type_string', max_interval => 250, text => 'll'},
+            {cmd => 'backend_type_string', max_interval => 250, text => 'o'},
+        ]);
+    $cmds = [];
 
-type_string 'hallo', wait_screen_change => 3, max_interval => 10;
-is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 10, text => 'hal'}, {cmd => 'backend_type_string', max_interval => 10, text => 'lo'},]);
-$cmds = [];
+    type_string 'hallo', wait_screen_change => 3, max_interval => 10;
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 10, text => 'hal'}, {cmd => 'backend_type_string', max_interval => 10, text => 'lo'},]);
+    $cmds = [];
 
-$testapi::password = 'stupid';
-type_password;
-is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 'stupid'}]);
-$cmds = [];
+    $testapi::password = 'stupid';
+    type_password;
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 'stupid'}]);
+    $cmds = [];
 
-type_password 'hallo';
-is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 'hallo'}]);
-$cmds = [];
+    type_password 'hallo';
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 'hallo'}]);
+    $cmds = [];
 
-type_password 'hallo', max_interval => 5;
-is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 5, text => 'hallo'}]);
-$cmds = [];
+    type_password 'hallo', max_interval => 5;
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 5, text => 'hallo'}]);
+    $cmds = [];
+};
 
 #$mock_basetest->mock(record_soft_failure_result => sub {});
 my $mock_bmwqemu = new Test::MockModule('bmwqemu');
-$mock_bmwqemu->mock(result_dir => File::Temp->newdir());
+$mock_bmwqemu->mock(result_dir => sub { File::Temp->newdir() });
+
+send_key 'ret';
+is_deeply($cmds, [{cmd => 'backend_send_key', key => 'ret'}], 'send_key with no default arguments') || diag explain $cmds;
+$cmds = [];
+
+subtest 'send_key with wait_idle' => sub {
+    my $mock_testapi     = new Test::MockModule('testapi');
+    my $wait_idle_called = 0;
+    $mock_testapi->mock(wait_idle => sub { $wait_idle_called = 1 });
+    send_key 'ret', 1;
+    ok($wait_idle_called, 'wait idle has been called by send_key');
+    $cmds = [];
+};
+
+subtest 'send_key with wait_screen_change' => sub {
+    my $mock_testapi              = new Test::MockModule('testapi');
+    my $wait_screen_change_called = 0;
+    $mock_testapi->mock(wait_screen_change => sub(&@) { shift->(); $wait_screen_change_called = 1 });
+    send_key 'ret', wait_screen_change => 1;
+    is(scalar @$cmds, 1, 'send_key waits for screen change') || diag explain $cmds;
+    $cmds = [];
+    ok($wait_screen_change_called, 'wait_screen_change called by send_key');
+};
 
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
