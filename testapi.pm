@@ -970,9 +970,15 @@ sub hashed_string {
 
 =head2 send_key
 
+  send_key($key [, wait_screen_change => $wait_screen_change]);
+
+Deprecated mode
+
   send_key($key [, $do_wait]);
 
-Send one C<$key> to SUT keyboard input.
+Send one C<$key> to SUT keyboard input. Waits for the screen to change when
+C<$wait_screen_change> is true.
+I<Deprecated: C<$do_wait> instructs to wait with <$wait_idle>.>
 
 Special characters naming:
 
@@ -983,11 +989,25 @@ Special characters naming:
 =cut
 
 sub send_key {
-    my ($key, $do_wait) = @_;
-    $do_wait //= 0;
+    my ($key) = shift;
+    my %args;
+    if (@_ == 1) {
+        %args = (do_wait => $_[0]);
+    }
+    else {
+        %args = @_;
+    }
+    $args{do_wait} //= 0;
+    $args{wait_screen_change} //= 0;
     bmwqemu::log_call(key => $key);
+    if ($args{wait_screen_change}) {
+        wait_screen_change { query_isotovideo('backend_send_key', {key => $key}) };
+    }
+    else {
+        query_isotovideo('backend_send_key', {key => $key});
+    }
     query_isotovideo('backend_send_key', {key => $key});
-    wait_idle() if $do_wait;
+    wait_idle() if $args{do_wait};
 }
 
 =head2 hold_key
@@ -1142,7 +1162,6 @@ sub mouse_click {
     my $time   = shift || 0.15;
     bmwqemu::log_call(button => $button, cursor_down => $time);
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    # FIXME sleep resolution = 1s, use usleep
     sleep $time;
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
 }
@@ -1159,14 +1178,11 @@ sub mouse_dclick(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    # FIXME sleep resolution = 1s, use usleep
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    for (1..2) {
+        query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+        sleep $time;
+        query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    }
 }
 
 =head2 mouse_tclick
@@ -1181,17 +1197,11 @@ sub mouse_tclick(;$$) {
     my $button = shift || 'left';
     my $time   = shift || 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    sleep $time;
-    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    for (1..3) {
+        query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+        sleep $time;
+        query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    }
 }
 
 =head2 mouse_hide

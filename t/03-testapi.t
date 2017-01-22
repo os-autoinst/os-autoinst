@@ -123,6 +123,19 @@ $cmds = [];
 my $mock_bmwqemu = new Test::MockModule('bmwqemu');
 $mock_bmwqemu->mock(result_dir => sub() { File::Temp->newdir() });
 
+send_key 'ret';
+is_deeply($cmds, [{cmd => 'backend_send_key', key => 'ret'}, {cmd => 'backend_send_key', key => 'ret'}], 'send_key with no default arguments') || diag explain $cmds;
+$cmds = [];
+
+send_key 'ret', 1;
+is($cmds->[2]->{cmd}, 'backend_wait_idle', 'send_key waits with wait_idle if instructed') || diag explain $cmds;
+$cmds = [];
+
+send_key 'ret', wait_screen_change => 1;
+diag explain $cmds;
+is(scalar @$cmds, 2, 'send_key waits for screen change') || diag explain $cmds;
+$cmds = [];
+
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
 is($autotest::current_test->{dents}, 1, 'soft failure recorded');
