@@ -1020,7 +1020,7 @@ sub new_ssh_connection {
             last;
         }
         else {
-            bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}, Retry";
+            bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}, Retrying after some seconds...";
             sleep(10);
             $counter--;
             next;
