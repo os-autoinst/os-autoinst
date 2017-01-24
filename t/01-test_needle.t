@@ -2,9 +2,12 @@
 
 use strict;
 use warnings;
+use Cwd 'abs_path';
 use Test::More;
 use Try::Tiny;
 use File::Basename;
+use File::Path 'make_path';
+use File::Temp 'tempdir';
 
 # optional but very useful
 eval 'use Test::More::Color';                 ## no critic
@@ -14,6 +17,7 @@ BEGIN {
     unshift @INC, '..';
     $bmwqemu::vars{DISTRI}  = "unicorn";
     $bmwqemu::vars{CASEDIR} = "/var/lib/empty";
+    $bmwqemu::vars{PRJDIR}  = dirname(__FILE__);
 }
 
 use needle;
@@ -278,6 +282,19 @@ is($res->{needle}->{name}, 'login_sddm.ref.perfect', "perfect match should win")
 # one wins
 $res = $img1->search([$imperfect, $workaround], 0.9, 0);
 is($res->{needle}->{name}, 'login_sddm.ref.workaround.imperfect', "workaround match should win");
+
+# test needle->file is relative to default prjdir
+is($needle->{file}, 'data/other-desktop-dvd-20140904.json', 'needle json path is relative to prjdir');
+# test needle dir is symlinked from different location
+$bmwqemu::vars{PRJDIR} = tempdir(CLEANUP => 1);
+my $new_data_dir = $bmwqemu::vars{PRJDIR} . '/out-of-prj/test/data';
+ok(make_path($bmwqemu::vars{PRJDIR} . '/out-of-prj/test/'), 'out of project datadir exists');
+ok(symlink(abs_path($data_dir), $new_data_dir), 'needles linked');
+
+# test needle->file is relative to different prjdir
+$needle = needle->new($new_data_dir . '/login_sddm.ref.perfect.json');
+ok($needle, 'needle object created from symlinked resource outside of prjdir');
+is($needle->{file}, 'out-of-prj/test/data/login_sddm.ref.perfect.json', 'json file path is relative to prjdir');
 
 done_testing();
 
