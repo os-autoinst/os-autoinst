@@ -52,10 +52,17 @@ sub new {
         }
     }
     my $self = {};
-
-    die "Needle $jsonfile is not under project directory $bmwqemu::vars{PRJDIR}" if (index($jsonfile, $bmwqemu::vars{PRJDIR}));
-    # store json file path relative to $prjdir
-    $self->{file} = substr($jsonfile, length($bmwqemu::vars{PRJDIR}) + 1);
+    if (index($jsonfile, $bmwqemu::vars{PRJDIR}) == 0) {
+        # store json file path relative to $prjdir
+        $self->{file} = substr($jsonfile, length($bmwqemu::vars{PRJDIR}) + 1);
+    }
+    elsif (-f File::Spec->catfile($bmwqemu::vars{PRJDIR}, $jsonfile)) {
+        # json file path already relative
+        $self->{file} = $jsonfile;
+    }
+    else {
+        die "Needle $jsonfile is not under project directory $bmwqemu::vars{PRJDIR}";
+    }
 
     $self->{tags}       = $json->{tags}       || [];
     $self->{properties} = $json->{properties} || [];
