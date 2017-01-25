@@ -26,6 +26,7 @@ print $var <<EOV;
    "QEMU_NO_TABLET" : "1",
    "QEMU_NO_FDC_SET" : "1",
    "CASEDIR" : "$data_dir/tests",
+   "PRJDIR"  : "$data_dir",
    "ISO" : "$data_dir/pitux-0.3.2.iso",
    "CDMODEL" : "ide-cd",
    "HDDMODEL" : "ide-drive",
