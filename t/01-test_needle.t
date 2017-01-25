@@ -287,14 +287,22 @@ is($res->{needle}->{name}, 'login_sddm.ref.workaround.imperfect', "workaround ma
 is($needle->{file}, 'data/other-desktop-dvd-20140904.json', 'needle json path is relative to prjdir');
 # test needle dir is symlinked from different location
 $bmwqemu::vars{PRJDIR} = tempdir(CLEANUP => 1);
-my $new_data_dir = $bmwqemu::vars{PRJDIR} . '/out-of-prj/test/data';
-ok(make_path($bmwqemu::vars{PRJDIR} . '/out-of-prj/test/'), 'out of project datadir exists');
+my $new_data_dir = $bmwqemu::vars{PRJDIR} . '/out-of-def-prj/test/data';
+ok(make_path($bmwqemu::vars{PRJDIR} . '/out-of-def-prj/test/'), 'out of project datadir exists');
 ok(symlink(abs_path($data_dir), $new_data_dir), 'needles linked');
 
 # test needle->file is relative to different prjdir
 $needle = needle->new($new_data_dir . '/login_sddm.ref.perfect.json');
 ok($needle, 'needle object created from symlinked resource outside of prjdir');
-is($needle->{file}, 'out-of-prj/test/data/login_sddm.ref.perfect.json', 'json file path is relative to prjdir');
+is($needle->{file}, 'out-of-def-prj/test/data/login_sddm.ref.perfect.json', 'json file path is relative to prjdir');
+ok(-f $needle->{png}, 'png file is accessible');
+
+# test needle-new accepts relative path if the path is still under set prjdir
+ok($needle = needle->new('out-of-def-prj/test/data/other-desktop-dvd-20140904.json'), 'needle object created with relpath');
+is($needle->{file}, 'out-of-def-prj/test/data/other-desktop-dvd-20140904.json', 'needle json file path is left intact');
+
+eval { $needle = needle->new('out-of-prj/test/data/some-needle.json') };
+ok($@, 'died when accessing needle outside of prjdir');
 
 done_testing();
 
