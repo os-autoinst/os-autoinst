@@ -88,6 +88,8 @@ sub type_password;
 
 =head1 introduction
 
+=for stopwords os autoinst isotovideo openQA
+
 This test API module provides methods exposed by the os-autoinst backend to be
 used within tests.
 
@@ -264,7 +266,7 @@ waiting time is defined by C<$timeout>. It is recommended to use a value lower
 than the default timeout only when explicitly needed. C<assert_screen> is not
 very suitable for checking performance expectations. Under the normal
 circumstance of the screen being shown this does not imply a longer waiting
-time as the method returns as soon as a successful needle match occured.
+time as the method returns as soon as a successful needle match occurred.
 
 Returns matched needle or throws C<NeedleFailed> exception if $timeout timeout
 is hit. Default timeout is 30s.
@@ -579,6 +581,7 @@ sub check_var_array {
 
 =head1 script execution helpers
 
+=for stopwords os-autoinst autoinst isotovideo VNC
 
 =head2 is_serial_terminal
 
@@ -587,7 +590,7 @@ sub check_var_array {
 Determines if communication with the guest is being performed purely over a
 serial port. When true, the guest should have a tty attached to a serial port
 and os-autoinst sends commands to it as text. This differs from when a text
-console is selected in the guest, but VNC is being used to simulate keypresses.
+console is selected in the guest, but VNC is being used to simulate key presses.
 
 When a serial terminal is selected you will not be able to use functions which
 rely on needles. This sub is not exported by default as most tests I<will not
@@ -1286,6 +1289,8 @@ sub reset_consoles {
 
 =head1 audio support
 
+=for stopwords qemu
+
 =head2 start_audiocapture
 
   start_audiocapture;
@@ -1450,9 +1455,10 @@ sub save_storage_drives {
 
   freeze_vm;
 
-If the backend supports it, freeze the vm. This will allow the vm to be
-paused/frozen within the test, but only from the post_fail_hook. So that memory
-and disk dumps can be extracted without any risk of data changing.
+If the backend supports it, freeze the virtual machine. This will allow the
+virtual machine to be paused/frozen within the test, but only from the
+post_fail_hook. So that memory and disk dumps can be extracted without any
+risk of data changing.
 
 Call this method to ensure memory and disk dump refer to the same machine state.
 
@@ -1472,8 +1478,8 @@ sub freeze_vm {
 
   resume_vm;
 
-If the backend supports it, resume the vm.
-Call this method to start vm CPU explicitly if DELAYED_START is set.
+If the backend supports it, resume the virtual machine. Call this method to
+start virtual machine CPU explicitly if DELAYED_START is set.
 
 I<Currently only qemu backend is supported.>
 
@@ -1727,6 +1733,8 @@ sub upload_logs {
 
 =head2 upload_asset
 
+=for stopwords svirt
+
   upload_asset $file [,$public[,$nocheck]];
 
 Uploads C<$file> as asset to OpenQA WebUI
@@ -1743,7 +1751,7 @@ replacing previous assets - useful for external users:
 If you just want to upload a file and verify that it was uploaded
 correctly on your own (e.g. in svirt console we don't have a serial
 line and can't rely on assert_script_run check), add an optional
-'nocheck' parameter:
+C<$nocheck> parameter:
 
     upload_asset '/tmp/suse.ps', 1, 1;
 
