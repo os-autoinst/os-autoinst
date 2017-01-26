@@ -27,7 +27,7 @@ print $var <<EOV;
    "QEMU_NO_FDC_SET" : "1",
    "CASEDIR" : "$data_dir/tests",
    "PRJDIR"  : "$data_dir",
-   "ISO" : "$data_dir/pitux-0.3.2.iso",
+   "ISO" : "$data_dir/Core-7.2.iso",
    "CDMODEL" : "ide-cd",
    "HDDMODEL" : "ide-drive",
    "VERSION" : "1",
@@ -37,6 +37,8 @@ close($var);
 # create screenshots
 open($var, '>', 'live_log');
 close($var);
-is(system("perl $toplevel_dir/isotovideo -d"), 0, 'Test executed fine');
+system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
+is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'),     0,   'test executed fine');
+is(system("grep -q 'test \w* failed' autoinst-log.txt"), 256, 'no test moduled failed');
 
 done_testing();

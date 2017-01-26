@@ -19,24 +19,10 @@ use strict;
 use testapi;
 
 sub run {
-    assert_screen 'pitux';
+    assert_screen 'core';
     send_key 'ret';
 
-    assert_screen 'keyboard_layout';
-    send_key 'ret';
-
-    assert_screen 'tty_select';
-    send_key 'ret';
-
-    assert_screen 'baudrate';
-    send_key 'ret';
-
-    assert_screen 'minicom';
-
-    send_key 'alt-f2';
-    assert_screen 'activate';
-    send_key 'ret';
-    assert_screen 'prompt';
+    assert_screen 'on_prompt';
 
     assert_script_run "cat /proc/cpuinfo";
 }
@@ -48,3 +34,4 @@ sub test_flags {
 1;
 
 # vim: set sw=4 et:
+
