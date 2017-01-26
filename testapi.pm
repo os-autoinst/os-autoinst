@@ -246,19 +246,19 @@ sub _check_backend_response {
 }
 
 sub _check_or_assert {
-    my ($mustmatch, $timeout, $check, %args) = @_;
-    $timeout = bmwqemu::scale_timeout($timeout);
+    my ($mustmatch, $check, %args) = @_;
+    $args{timeout} = bmwqemu::scale_timeout($args{timeout});
 
     die "current_test undefined" unless $autotest::current_test;
 
-    my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, timeout => $timeout, check => $check, no_wait => $args{no_wait}});
-    # seperate function because it needs to call itself
-    return _check_backend_response($rsp, $check, $timeout, $mustmatch, $args{no_wait});
+    my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, check => $check, timeout => $args{timeout}, no_wait => $args{no_wait}});
+    # separate function because it needs to call itself
+    return _check_backend_response($rsp, $check, $args{timeout}, $mustmatch, $args{no_wait});
 }
 
 =head2 assert_screen
 
-  assert_screen($mustmatch [,$timeout] [, no_wait => $no_wait]);
+  assert_screen($mustmatch [, [$timeout] | [timeout => $timeout]] [, no_wait => $no_wait]);
 
 Wait for needle with tag C<$mustmatch> to appear on SUT screen. C<$mustmatch>
 can be string or C<ARRAYREF> of string (C<['tag1', 'tag2']>). The maximum
@@ -279,15 +279,17 @@ is hit. Default timeout is 30s.
 =cut
 
 sub assert_screen {
-    my ($mustmatch, $timeout, %args) = @_;
-    $timeout //= $bmwqemu::default_timeout;
-    bmwqemu::log_call(mustmatch => $mustmatch, timeout => $timeout, %args);
-    return _check_or_assert($mustmatch, $timeout, 0, %args);
+    my ($mustmatch) = shift;
+    my $timeout;
+    $timeout = shift if (@_ % 2);
+    my %args = (timeout => $timeout // $bmwqemu::default_timeout, @_);
+    bmwqemu::log_call(mustmatch => $mustmatch, %args);
+    return _check_or_assert($mustmatch, 0, %args);
 }
 
 =head2 check_screen
 
-  check_screen($mustmatch [,$timeout] [, no_wait => $no_wait]);
+  check_screen($mustmatch [, [$timeout] | [timeout => $timeout]] [, no_wait => $no_wait]);
 
 Similar to C<assert_screen> but does not throw exceptions. Use this for optional matches.
 Check C<assert_screen> for parameters.
@@ -305,10 +307,12 @@ Returns matched needle or C<undef> if timeout is hit. Default timeout is 30s.
 =cut
 
 sub check_screen {
-    my ($mustmatch, $timeout, %args) = @_;
-    $timeout //= $bmwqemu::default_timeout;
-    bmwqemu::log_call(mustmatch => $mustmatch, timeout => $timeout, %args);
-    return _check_or_assert($mustmatch, $timeout, 1, %args);
+    my ($mustmatch) = shift;
+    my $timeout;
+    $timeout = shift if (@_ % 2);
+    my %args = (timeout => $timeout // $bmwqemu::default_timeout, @_);
+    bmwqemu::log_call(mustmatch => $mustmatch, %args);
+    return _check_or_assert($mustmatch, 1, %args);
 }
 
 =head2 match_has_tag
