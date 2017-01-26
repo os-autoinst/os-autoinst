@@ -22,7 +22,7 @@ use Carp qw(cluck carp confess);
 use JSON 'to_json';
 use File::Copy 'cp';
 use File::Basename;
-use Time::HiRes qw(gettimeofday tv_interval);
+use Time::HiRes qw(gettimeofday time tv_interval);
 use POSIX '_exit';
 use bmwqemu;
 use IO::Select;
@@ -795,6 +795,10 @@ sub _failed_screens_to_json {
     return {timeout => 1, failed_screens => \@json_fails};
 }
 
+sub time_remaining_str {
+    return sprintf("%.1fs", shift);
+}
+
 sub check_asserted_screen {
     my ($self, $args) = @_;
 
@@ -817,7 +821,7 @@ sub check_asserted_screen {
     }
     else {
         if ($oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio) {
-            bmwqemu::diag("no change $n");
+            bmwqemu::diag('no change: ' . time_remaining_str($n));
             return;
         }
     }
@@ -881,7 +885,7 @@ sub check_asserted_screen {
             _reduce_to_biggest_changes($failed_screens, 20);
         }
     }
-    bmwqemu::diag("no match $n");
+    bmwqemu::diag('no match: ' . time_remaining_str($n));
     $self->assert_screen_last_check([$img, $search_ratio]);
     return;
 }
