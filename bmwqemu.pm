@@ -352,6 +352,8 @@ sub hashed_string {
 
 sub wait_for_one_more_screenshot {
     # sleeping for one second should ensure that one more screenshot is taken
+    # uncoverable subroutine
+    # uncoverable statement
     sleep 1;
 }
 
