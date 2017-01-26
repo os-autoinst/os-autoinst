@@ -19,7 +19,8 @@ use strict;
 use testapi;
 
 sub run {
-    assert_screen 'core';
+    # just assume the first screen has a timeout so we should make sure not to miss it
+    assert_screen 'core', 15, no_wait => 1;
     send_key 'ret';
 
     assert_screen 'on_prompt';
