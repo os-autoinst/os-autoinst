@@ -809,8 +809,8 @@ sub script_output($;$) {
         my $cat = "cat - > /tmp/script$suffix.sh; echo $suffix-\$?-";
         type_string($cat . "\n");
         wait_serial("$cat", undef, 0, no_regex => 1);
-        type_string($current_test_script, terminate_with => 'EOT');
-        type_string('',                   terminate_with => 'EOT');
+        type_string($current_test_script);
+        type_string("\n", terminate_with => 'EOT');
         wait_serial("$suffix-0-");
     }
     else {
