@@ -806,7 +806,7 @@ sub start_qemu {
 
     # retrieve welcome
     my $line = $self->_read_hmp;
-    bmwqemu::fctinfo "WELCOME $line\n";
+    OpenQA::Log::info "WELCOME $line\n";
 
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});

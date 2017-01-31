@@ -66,7 +66,7 @@ sub _init {
 sub api_call {
     my ($method, $action, $params, $expected_codes) = @_;
     _init unless $ua;
-    bmwqemu::mydie('Missing mandatory options') unless $method && $action && $ua;
+    OpenQA::Log::die('Missing mandatory options') unless $method && $action && $ua;
 
     my $ua_url = $url->clone;
     $ua_url->path($action);

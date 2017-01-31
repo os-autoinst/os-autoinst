@@ -166,7 +166,7 @@ sub signalhandler_chld {
             $loop    = 0;
             next;
         }
-        bmwqemu::fcterr("unknown child $child died");
+        OpenQA::Log::error("unknown child $child died");
     }
 }
 
@@ -388,7 +388,7 @@ while ($loop) {
             next;
         }
         if ($rsp->{cmd} =~ m/^backend_(.*)/) {
-            bmwqemu::fcterr("we need to implement a backend queue") if $backend_requester;
+            OpenQA::Log::error("we need to implement a backend queue") if $backend_requester;
             $backend_requester = $r;
             my $cmd = $1;
             delete $rsp->{cmd};
@@ -499,7 +499,7 @@ if (!$r) {
     # don't rely on the backend in a sane state if we failed - just kill it later
     eval { bmwqemu::stop_vm(); };
     if ($@) {
-        bmwqemu::fcterr("Error during stop_vm: $@");
+        OpenQA::Log::error("Error during stop_vm: $@");
         $r = 1;
     }
 }
@@ -523,7 +523,7 @@ if (!$r && $completed && (my $nd = $bmwqemu::vars{NUMDISKS}) && ($bmwqemu::vars{
         push @toextract, {hdd_num => $i, name => $name, dir => $dir, format => $format};
     }
     if (@toextract && !$clean_shutdown) {
-        bmwqemu::fcterr("ERROR: Machine not shut down when uploading disks!\n");
+        OpenQA::Log::error("ERROR: Machine not shut down when uploading disks!\n");
         $r = 1;
     }
     else {

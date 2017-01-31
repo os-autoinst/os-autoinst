@@ -1,6 +1,6 @@
 package consoles::VNC;
 use strict;
-use warnings;
+use OpenQA::Log::warnings;
 use base 'Class::Accessor::Fast';
 use IO::Socket::INET;
 use bytes;
@@ -1146,7 +1146,7 @@ sub _receive_ikvm_session {
     $self->socket->read(my $ikvm_session_infos, 264);
 
     my ($msg1, $msg2, $str) = unpack('NNZ256', $ikvm_session_infos);
-    fctwarn "IKVM Session Message: $msg1 $msg2 $str\n";
+    fctOpenQA::Log::warn "IKVM Session Message: $msg1 $msg2 $str\n";
     return 1;
 }
 

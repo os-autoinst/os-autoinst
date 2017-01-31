@@ -912,13 +912,13 @@ sub _reduce_to_biggest_changes {
 
 sub freeze_vm {
     my ($self) = @_;
-    bmwqemu::fcterr("ignored freeze_vm");
+    OpenQA::Log::error("ignored freeze_vm");
     return;
 }
 
 sub cont_vm {
     my ($self) = @_;
-    bmwqemu::fcterr("ignored cont_vm");
+    OpenQA::Log::error("ignored cont_vm");
     return;
 }
 
@@ -986,7 +986,7 @@ sub new_ssh_connection {
                 # this relies on agent to be set up correctly
                 $ssh->auth_agent($args{username});
             }
-            bmwqemu::fctinfo("Connection to $args{username}\@$args{hostname} established") if $ssh->auth_ok;
+            OpenQA::Log::info("Connection to $args{username}\@$args{hostname} established") if $ssh->auth_ok;
             last;
         }
         else {
