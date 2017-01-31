@@ -94,8 +94,8 @@ sub read_json {
 
         my $qbuffer;
         my $bytes = sysread($socket, $qbuffer, 8000);
-        #OpenQA::Log::debug("sysread $qbuffer");
-        if (!$bytes) { OpenQA::Log::debug("sysread failed: $!"); return; }
+        #OpenQA::Log::trace("sysread $qbuffer");
+        if (!$bytes) { OpenQA::Log::warn("sysread failed: $!"); return; }
         $JSON->incr_parse($qbuffer);
     }
 

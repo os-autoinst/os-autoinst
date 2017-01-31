@@ -134,7 +134,7 @@ sub record_screenmatch {
     if ($foundneedle->has_property('workaround')) {
         $result->{dent} = 1;
         $self->{dents}++;
-        OpenQA::Log::debug("needle '$h->{name}' is a workaround");
+        OpenQA::Log::info("needle '$h->{name}' is a workaround");
     }
 
     # Hack to make it obvious that some test passed by applying a hack
@@ -296,7 +296,7 @@ sub run_post_fail {
     my ($self, $msg) = @_;
     $self->{post_fail_hook_running} = 1;
     eval { $self->post_fail_hook; };
-    OpenQA::Log::debug("post_fail_hook failed: $@") if $@;
+    OpenQA::Log::error("post_fail_hook failed: $@") if $@;
     $self->{post_fail_hook_running} = 0;
     $self->fail_if_running();
     die $msg . "\n";
@@ -326,7 +326,7 @@ sub runtest {
         # show a text result with the die message unless the die was internally generated
         if (!$internal) {
             my $msg = "# Test died: $@";
-            OpenQA::Log::debug($msg);
+            OpenQA::Log::warn($msg);
             my $details = {result => 'fail'};
             my $text_fn = $self->next_resultname('txt');
             open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";

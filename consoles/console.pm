@@ -22,7 +22,6 @@ use autodie ':all';
 
 use Class::Accessor 'antlers';
 has backend => (is => "rw");
-use bmwqemu qw( diag  fcterr fctwarn);
 
 sub new {
     my ($class, $testapi_console, $args) = @_;

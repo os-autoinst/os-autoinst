@@ -27,7 +27,7 @@ use JSON;
 use Carp;
 use Fcntl;
 use Net::DBus;
-use bmwqemu qw(fileContent OpenQA::Log::debug save_vars);
+use bmwqemu qw(fileContent save_vars);
 require IPC::System::Simple;
 use autodie ':all';
 
@@ -104,15 +104,15 @@ sub kill_qemu {
 
     # already gone?
     my $ret = waitpid($pid, WNOHANG);
-    OpenQA::Log::debug "waitpid for $pid returned $ret";
+    OpenQA::Log::trace "waitpid for $pid returned $ret";
     return if ($ret == $pid || $ret == -1);
 
-    OpenQA::Log::debug "sending TERM to qemu pid: $pid";
+    OpenQA::Log::info "sending TERM to qemu pid: $pid";
     kill('TERM', $pid);
     for my $i (1 .. 5) {
         sleep 1;
         $ret = waitpid($pid, WNOHANG);
-        OpenQA::Log::debug "waitpid for $pid returned $ret";
+        OpenQA::Log::trace "waitpid for $pid returned $ret";
         last if ($ret == $pid);
     }
     unless ($ret == $pid) {
@@ -126,7 +126,7 @@ sub kill_qemu {
         kill('TERM', $pid);
         for my $i (1 .. 5) {
             $ret = waitpid($pid, WNOHANG);
-            OpenQA::Log::debug "waitpid for $pid returned $ret";
+            OpenQA::Log::trace "waitpid for $pid returned $ret";
             last if ($ret == $pid);
             sleep 1;
         }
@@ -174,8 +174,8 @@ sub save_memory_dump {
                       # migrated in about 40secs with an ssd drive. and no heavy load.
         $rsp = $self->handle_qmp_command({execute => "query-migrate"});
 
-        OpenQA::Log::debug "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
-        OpenQA::Log::debug "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
+        OpenQA::Log::trace "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
+        OpenQA::Log::trace "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
 
     } until ($rsp->{return}->{status} eq "completed");
 
@@ -744,6 +744,7 @@ sub start_qemu {
         if ($vars->{AUTO_INST}) {
             push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
         }
+	# We are using system somwhere else, why not here too?
         OpenQA::Log::info(`$qemubin -version`);
         OpenQA::Log::info("starting: " . join(" ", @params));
 
@@ -835,7 +836,7 @@ sub start_qemu {
         };
         if ($@) {
             OpenQA::Log::warn("$@\n");
-            OpenQA::Log::warn("WARNING: Can't switch NICVLAN number, independent tests may be running on the same network.");
+            OpenQA::Log::warn("Can't switch NICVLAN number, independent tests may be running on the same network.");
         }
     }
 
@@ -843,7 +844,7 @@ sub start_qemu {
         OpenQA::Log::warn "DELAYED_START set, not starting CPU, waiting for resume_vm() call\n";
     }
     else {
-        print "Start CPU\n";
+        OpenQA::Log::info "Start CPU\n";
         $self->handle_qmp_command({execute => 'cont'});
     }
 

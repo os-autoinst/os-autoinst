@@ -879,12 +879,12 @@ sub validate_script_output($&;$) {
     $_ = $output;
     if (!$code->()) {
         $res = 'fail';
-        OpenQA::Log::debug("output does not pass the code block:\n$output");
+        OpenQA::Log::warn("output does not pass the code block:\n$output");
     }
     # abusing the function
     $autotest::current_test->record_serialresult($output, $res, $output);
     if ($res eq 'fail') {
-        croak "output not validating";
+        OpenQA::Log::warn("output not validating");
     }
 }
 
@@ -1426,7 +1426,7 @@ sub save_memory_dump {
 
     bmwqemu::log_call();
     OpenQA::Log::debug "If save_memory_dump is called multiple times with the same '\$filename', it will be rewritten."
-      unless ((caller(1))[3]) =~ /post_fail_hook/;
+     unless ((caller(1))[3]) =~ /post_fail_hook/;
     OpenQA::Log::debug("Trying to save machine state");
 
     query_isotovideo('backend_save_memory_dump', $args);

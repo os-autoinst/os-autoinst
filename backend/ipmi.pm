@@ -28,7 +28,7 @@ use POSIX qw(strftime :sys_wait_h);
 use JSON;
 require Carp;
 use Fcntl;
-use bmwqemu qw(fileContent diag save_vars diag);
+use bmwqemu qw(fileContent save_vars);
 use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
@@ -59,7 +59,7 @@ sub ipmitool {
 
     $self->dell_sleep;
 
-    die join(' ', @cmd) . ": $stderr" unless ($ret);
+    OpenQA::Log::die join(' ', @cmd) . ": $stderr" unless ($ret);
     OpenQA::Log::debug("IPMI: $stdout");
     return $stdout;
 }
@@ -163,7 +163,7 @@ sub start_serial_grab {
         push(@cmd, qw(-W nochecksumcheck));
 
         exec(@cmd);
-        die "exec failed $!";
+        OpenQA::Log::die "exec failed $!";
     }
     return;
 }

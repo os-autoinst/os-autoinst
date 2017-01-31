@@ -465,7 +465,7 @@ sub connect_and_login() {
 
             last if $reconnect_ok;
 
-            carp "trying hard shutdown and reconnect...";
+            OpenQA::Log::error "trying hard shutdown and reconnect...";
             $self->cp_logoff_disconnect();
             next;
         }

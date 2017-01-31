@@ -69,7 +69,7 @@ sub search_ {
 
     my $needle_image = $needle->get_image;
     unless ($needle_image) {
-        OpenQA::Log::debug("SKIP($needle->{name}:missing PNG)");
+        OpenQA::Log::debug("SKIP ($needle->{name}:missing PNG)");
         return;
     }
     $stopwatch->lap("**++ search__: get image") if $stopwatch;

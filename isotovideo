@@ -52,8 +52,6 @@ use Carp 'cluck';
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use File::Spec;
 use File::Path;
-use backend::driver;
-
 use OpenQA::Log;
 
 # avoid paranoia
@@ -81,7 +79,6 @@ $| = 1;
 select(STDOUT);            # default
 $| = 1;
 
-
 $OpenQA::Log::configuration = $installprefix;
 OpenQA::Log::setup();
 
@@ -89,8 +86,8 @@ $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
 
 # Sanity checks
-OpenQA::Log::("CASEDIR environment variable not set, unknown test case directory") if !defined $bmwqemu::vars{CASEDIR};
-OpenQA::Log::("No scripts in $bmwqemu::vars{CASEDIR}") if !-e "$bmwqemu::vars{CASEDIR}";
+OpenQA::Log::die("CASEDIR environment variable not set, unknown test case directory") if !defined $bmwqemu::vars{CASEDIR};
+OpenQA::Log::die("No scripts in $bmwqemu::vars{CASEDIR}") if !-e "$bmwqemu::vars{CASEDIR}";
 
 my $cpid;
 my $testpid;
@@ -215,7 +212,6 @@ sub calculate_git_hash {
     OpenQA::Log::warn("git hash of test distribution: $test_git_hash");
     return $test_git_hash;
 }
-
 
 $SIG{TERM} = \&signalhandler;
 $SIG{INT}  = \&signalhandler;

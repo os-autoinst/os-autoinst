@@ -71,7 +71,7 @@ sub mutex_unlock {
 
 sub mutex_create {
     my ($name) = @_;
-    bmwqemu::mydie('missing lock name') unless $name;
+    OpenQA::Log::die('missing lock name') unless $name;
     OpenQA::Log::debug("mutex create '$name'");
     my $res = api_call('post', "mutex", {name => $name})->code;
     return 1 if ($res == 200);

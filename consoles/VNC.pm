@@ -4,7 +4,7 @@ use warnings;
 use base 'Class::Accessor::Fast';
 use IO::Socket::INET;
 use bytes;
-use bmwqemu qw( diag  fcterr fctwarn);
+use bmwqemu qw();
 use Time::HiRes qw( usleep gettimeofday time );
 use Carp;
 use List::Util 'min';
@@ -944,7 +944,8 @@ sub _receive_update {
             my $led_data;
             $socket->read($led_data, 1) || OpenQA::Log::die "unexpected end of data";
             my @bytes = unpack("C", $led_data);
-            bmwqemu::fcterr("led state $bytes[0] $w $h $encoding_type");
+            # Not an error, but if seen many times, means kernel panic :)
+            OpenQA::Log::info("led state $bytes[0] $w $h $encoding_type");
         }
         elsif ($self->ikvm) {
             $self->_receive_ikvm_encoding($encoding_type, $x, $y, $w, $h);

@@ -36,6 +36,7 @@ our $VERSION;
 our @EXPORT    = qw(fileContent save_vars);
 our @EXPORT_OK = qw(diag fctres fctinfo fctwarn  fcterr );
 
+use backend::driver;
 require IPC::System::Simple;
 use autodie ':all';
 use OpenQA::Log;
@@ -65,14 +66,13 @@ our @ovmf_locations = ('/usr/share/qemu/ovmf-x86_64-ms.bin', '/usr/share/edk2.gi
 
 our %vars;
 
-
 sub load_vars() {
     my $fn  = "vars.json";
     my $ret = {};
     local $/;
-    open(my $fh, '<', $fn) or ("Can't open '$fn'");
+    open(my $fh, '<', $fn) or OpenQA::Log::die("Can't open '$fn'");
     eval { $ret = JSON->new->relaxed->decode(<$fh>); };
-    ("parse error in vars.json: $@") if $@;
+    OpenQA::Log::die("parse error in vars.json: $@") if $@;
     close($fh);
     %vars = %{$ret};
     return;
@@ -114,21 +114,19 @@ sub init {
     mkdir result_dir;
     mkdir join('/', result_dir, 'ulogs');
 
-
     if ($direct_output) {
         open($logfd, '>&STDERR');
     }
     else {
         open($logfd, ">", result_dir . "/autoinst-log.txt");
     }
-
     # set unbuffered so that send_key lines from main thread will be written
     my $oldfh = select($logfd);
     $| = 1;
     select($oldfh);
 
     unless ($vars{CASEDIR}) {
-        ("DISTRI undefined\n" . pp(\%vars)) unless $vars{DISTRI};
+        OpenQA::Log::die("DISTRI undefined\n" . pp(\%vars)) unless $vars{DISTRI};
         my @dirs = ("$scriptdir/distri/$vars{DISTRI}");
         unshift @dirs, $dirs[-1] . "-" . $vars{VERSION} if ($vars{VERSION});
         for my $d (@dirs) {
@@ -137,7 +135,7 @@ sub init {
                 last;
             }
         }
-        ("can't determine test directory for $vars{DISTRI}'") unless $vars{CASEDIR};
+        OpenQA::Log::die("can't determine test directory for $vars{DISTRI}'") unless $vars{CASEDIR};
     }
 
     # defaults
@@ -161,7 +159,7 @@ sub init {
     }
     if ($vars{SUSEMIRROR} && $vars{SUSEMIRROR} =~ s{^(\w+)://}{}) {    # strip & check proto
         if ($1 ne "http") {
-            ("only http mirror URLs are currently supported but found '$1'");
+            OpenQA::Log::die("only http mirror URLs are currently supported but found '$1'");
         }
     }
 
@@ -187,23 +185,6 @@ sub set_ocr_rect {
 # global/shared var set functions end
 
 # util and helper functions
-
-sub print_possibly_colored {
-    my ($text, $color) = @_;
-
-    if (($direct_output && !$istty) || !$direct_output) {
-        $logfd && print $logfd get_timestamp() . "$$ $text\n";
-    }
-    if ($istty || !$logfd) {
-        if ($color) {
-            print STDERR colored(get_timestamp() . "$$ " . $text, $color) . "\n";
-        }
-        else {
-            print STDERR get_timestamp() . "$$ $text\n";
-        }
-    }
-    return;
-}
 
 # sub  {
 #     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
@@ -271,7 +252,7 @@ sub update_line_number {
         my ($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i);
         last unless $filename;
         next unless $filename =~ m/$ending$/;
-        fctres("$filename:$line called $subroutine");
+        OpenQA::Log::debug("$filename:$line called $subroutine");
         last;
     }
     return;
@@ -290,21 +271,19 @@ sub pp {
     log_call method will write the name of the fuction that actually triggered the call in testapi,
     calls that are using log_call from testapi, will have the following syntax on logfiles: B<::: <<<>
 
-
 =cut
 
 sub log_call {
     my $fname = (caller(1))[3];
     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 2;
     update_line_number();
-
     my @result;
     while (my ($key, $value) = splice(@_, 0, 2)) {
         push @result, join("=", $key, pp($value));
     }
 
     my $params = join(", ", @result);
-    fctinfo('<<< ' . $fname . "($params)");
+    OpenQA::Log::info('<<< ' . $fname . "($params)");
     return;
 }
 
@@ -332,14 +311,7 @@ sub stop_vm() {
     return $ret;
 }
 
-sub mydie {
-    my ($cause_of_death) = @_;
-    log_call(cause_of_death => $cause_of_death);
-    croak "mydie";
-}
-
 # runtime information gathering functions end
-
 
 # store the obj as json into the given filename
 sub save_json_file {
@@ -362,6 +334,7 @@ sub scale_timeout {
 
 Just a random string useful for pseudo security or temporary files.
 =cut
+
 sub random_string {
     my ($count) = @_;
     $count //= 4;
