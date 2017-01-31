@@ -30,6 +30,7 @@ use Net::DBus;
 use bmwqemu qw(fileContent save_vars);
 require IPC::System::Simple;
 use autodie ':all';
+use OpenQA::Log;
 
 sub new {
     my $class = shift;

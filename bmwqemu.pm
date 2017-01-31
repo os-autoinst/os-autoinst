@@ -82,8 +82,8 @@ sub save_vars() {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
-    flock($fd, LOCK_EX) or OpenQA::Log::("cannot lock vars.json: $!");
-    truncate($fd, 0) or OpenQA::Log::("cannot truncate vars.json: $!");
+    flock($fd, LOCK_EX) or OpenQA::Log::die("cannot lock vars.json: $!");
+    truncate($fd, 0) or OpenQA::Log::die("cannot truncate vars.json: $!");
 
     # make sure the JSON is sorted
     my $json = JSON->new->pretty->canonical;

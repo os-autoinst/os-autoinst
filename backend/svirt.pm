@@ -20,6 +20,7 @@ use base ('backend::virt');
 use testapi qw(get_var get_required_var check_var);
 
 use IO::Select;
+use OpenQA::Log;
 
 # this is a fake backend to some extend. We don't start VMs, but provide ssh access
 # to a libvirt running host (KVM for System Z in mind)

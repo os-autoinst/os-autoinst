@@ -24,6 +24,7 @@ use IPC::Run ();
 require IPC::System::Simple;
 use autodie ':all';
 use File::Basename 'basename';
+use OpenQA::Log;
 
 sub new {
     my $class = shift;

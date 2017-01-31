@@ -33,6 +33,7 @@ use Net::SSH2;
 use feature 'say';
 use OpenQA::Benchmark::Stopwatch;
 use MIME::Base64 'encode_base64';
+use OpenQA::Log;
 
 # should be a singleton - and only useful in backend process
 our $backend;

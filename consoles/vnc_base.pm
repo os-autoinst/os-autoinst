@@ -26,6 +26,7 @@ use feature 'say';
 use Data::Dumper 'Dumper';
 use Carp qw(confess cluck carp croak);
 use Try::Tiny;
+use OpenQA::Log;
 
 sub screen {
     my ($self) = @_;

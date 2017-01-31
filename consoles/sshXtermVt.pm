@@ -22,7 +22,7 @@ use testapi 'get_var';
 require IPC::System::Simple;
 use autodie ':all';
 use File::Which;
-
+use OpenQA::Log;
 
 sub fullscreen {
     my ($self, $args) = @_;

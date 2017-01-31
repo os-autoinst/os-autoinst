@@ -29,7 +29,7 @@ use POSIX '_exit';
 require IPC::System::Simple;
 use autodie ':all';
 use myjsonrpc;
-
+use OpenQA::Log;
 
 sub new {
     my ($class, $name) = @_;

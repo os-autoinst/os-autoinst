@@ -33,6 +33,7 @@ use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
 use autodie ':all';
+use OpenQA::Log;
 
 sub new {
     my $class = shift;
