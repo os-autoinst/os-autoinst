@@ -27,7 +27,7 @@ use JSON;
 use Carp;
 use Fcntl;
 use Net::DBus;
-use bmwqemu qw(fileContent diag save_vars);
+use bmwqemu qw(fileContent OpenQA::Log::debug save_vars);
 require IPC::System::Simple;
 use autodie ':all';
 
@@ -104,15 +104,15 @@ sub kill_qemu {
 
     # already gone?
     my $ret = waitpid($pid, WNOHANG);
-    diag "waitpid for $pid returned $ret";
+    OpenQA::Log::debug "waitpid for $pid returned $ret";
     return if ($ret == $pid || $ret == -1);
 
-    diag "sending TERM to qemu pid: $pid";
+    OpenQA::Log::debug "sending TERM to qemu pid: $pid";
     kill('TERM', $pid);
     for my $i (1 .. 5) {
         sleep 1;
         $ret = waitpid($pid, WNOHANG);
-        diag "waitpid for $pid returned $ret";
+        OpenQA::Log::debug "waitpid for $pid returned $ret";
         last if ($ret == $pid);
     }
     unless ($ret == $pid) {
@@ -122,11 +122,11 @@ sub kill_qemu {
     }
 
     for my $pid (@{$self->{children}}) {
-        diag("killing child $pid");
+        OpenQA::Log::debug("killing child $pid");
         kill('TERM', $pid);
         for my $i (1 .. 5) {
             $ret = waitpid($pid, WNOHANG);
-            diag "waitpid for $pid returned $ret";
+            OpenQA::Log::debug "waitpid for $pid returned $ret";
             last if ($ret == $pid);
             sleep 1;
         }
@@ -155,7 +155,7 @@ sub save_memory_dump {
     my ($self, $args) = @_;
     my $rsp = 0;
 
-    bmwqemu::diag("Migrating the machine.");
+    OpenQA::Log::debug("Migrating the machine.");
 
     mkpath("ulogs");
 
@@ -174,19 +174,19 @@ sub save_memory_dump {
                       # migrated in about 40secs with an ssd drive. and no heavy load.
         $rsp = $self->handle_qmp_command({execute => "query-migrate"});
 
-        bmwqemu::diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
-        bmwqemu::diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
+        OpenQA::Log::debug "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
+        OpenQA::Log::debug "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
 
     } until ($rsp->{return}->{status} eq "completed");
 
-    bmwqemu::diag "Migration completed.";
+    OpenQA::Log::debug "Migration completed.";
     return;
 }
 
 sub save_storage_drives {
     my ($self, $args) = @_;
 
-    bmwqemu::diag "Attemping to extract disk #%d.", $args->{disk};
+    OpenQA::Log::debug "Attemping to extract disk #%d.", $args->{disk};
 
     $self->do_extract_assets(
         {
@@ -196,7 +196,7 @@ sub save_storage_drives {
             format  => "qcow2"
         });
 
-    bmwqemu::diag "Sucessfully extracted disk #%d.", $args->{disk};
+    OpenQA::Log::debug "Sucessfully extracted disk #%d.", $args->{disk};
     return;
 }
 
@@ -204,7 +204,7 @@ sub save_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("savevm $vmname");
-    bmwqemu::diag "SAVED $vmname $rsp";
+    OpenQA::Log::debug "SAVED $vmname $rsp";
     bmwqemu::logdie "Could not save snapshot \'$vmname\'" unless ($rsp eq "savevm $vmname");
     return;
 }
@@ -221,7 +221,7 @@ sub load_snapshot {
 }
 
 sub runcmd {
-    bmwqemu::diag "running " . join(' ', @_);
+    OpenQA::Log::debug "running " . join(' ', @_);
     local $SIG{CHLD} = 'IGNORE';
     return CORE::system(@_);
 }
@@ -233,10 +233,10 @@ sub do_extract_assets {
     my $img_dir = $args->{dir};
     my $format  = $args->{format};
     if (!$format || $format !~ /^(raw|qcow2)$/) {
-        bmwqemu::diag "do_extract_assets: only raw and qcow2 formats supported $name $format";
+        OpenQA::Log::debug "do_extract_assets: only raw and qcow2 formats supported $name $format";
     }
     elsif (-f "raid/l$hdd_num") {
-        bmwqemu::diag "preparing hdd $hdd_num for upload as $name in $format";
+        OpenQA::Log::debug "preparing hdd $hdd_num for upload as $name in $format";
         mkpath($img_dir);
         my @cmd = ('nice', 'ionice', 'qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name");
         if ($format eq 'raw') {
@@ -254,7 +254,7 @@ sub do_extract_assets {
         }
     }
     else {
-        bmwqemu::diag "do_extract_assets: hdd $hdd_num does not exist";
+        OpenQA::Log::debug "do_extract_assets: hdd $hdd_num does not exist";
     }
 }
 
@@ -472,7 +472,7 @@ sub start_qemu {
                 exec(@cmd);
                 bmwqemu::logdie "failed to exec slirpvde";
             }
-            bmwqemu::diag join(' ', @cmd) . " started with pid $pid";
+            OpenQA::Log::debug join(' ', @cmd) . " started with pid $pid";
             push @{$self->{children}}, $pid;
             runcmd('vdecmd', '-s', $mgmtsocket, 'port/setvlan', $port + 1, $vlan) if $vlan;
         }
@@ -744,8 +744,8 @@ sub start_qemu {
         if ($vars->{AUTO_INST}) {
             push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
         }
-        bmwqemu::diag(`$qemubin -version`);
-        bmwqemu::fctwarn("starting: " . join(" ", @params));
+        OpenQA::Log::info(`$qemubin -version`);
+        OpenQA::Log::info("starting: " . join(" ", @params));
 
         # don't try to talk to the host's PA
         $ENV{QEMU_AUDIO_DRV} = "none";
@@ -755,7 +755,7 @@ sub start_qemu {
         open(STDERR, ">&", $writer);
         close($reader);
         exec(@params);
-        bmwqemu::logdie("failed to exec qemu");
+        OpenQA::Log::die("failed to exec qemu");
     }
     else {
         $self->{pid} = $pid;
@@ -834,13 +834,13 @@ sub start_qemu {
             }
         };
         if ($@) {
-            bmwqemu::fctwarn("$@\n");
-            bmwqemu::fctwarn("WARNING: Can't switch NICVLAN number, independent tests may be running on the same network.");
+            OpenQA::Log::warn("$@\n");
+            OpenQA::Log::warn("WARNING: Can't switch NICVLAN number, independent tests may be running on the same network.");
         }
     }
 
     if ($bmwqemu::vars{DELAYED_START}) {
-        bmwqemu::fctwarn "DELAYED_START set, not starting CPU, waiting for resume_vm() call\n";
+        OpenQA::Log::warn "DELAYED_START set, not starting CPU, waiting for resume_vm() call\n";
     }
     else {
         print "Start CPU\n";
@@ -931,7 +931,8 @@ sub read_qemupipe {
     my $bytes = sysread($self->{qemupipe}, $buffer, 1000);
     chomp $buffer;
     for my $line (split(/\n/, $buffer)) {
-        bmwqemu::diag "QEMU: $line";
+        OpenQA::Log::debug "QEMU: $line";
+        # TODO: Cause of death poo#12250
         bmwqemu::logdie "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
     }
     return $bytes;
@@ -1013,7 +1014,7 @@ sub wait_idle {
         $stat += $systemstat;
         if ($prev) {
             my $diff = $stat - $prev;
-            bmwqemu::diag("wait_idle $timesidle d=$diff");
+            OpenQA::Log::debug("wait_idle $timesidle d=$diff");
             if ($diff < $idlethreshold) {
                 if (++$timesidle > $timesidleneeded) {    # idle for $x sec
                                                           #if($diff<2000000) # idle for one sec

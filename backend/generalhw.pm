@@ -57,7 +57,7 @@ sub run_cmd {
     chomp $stderr;
 
     die $cmd . ": $stderr" unless ($ret);
-    bmwqemu::diag("IPMI: $stdout");
+    OpenQA::Log::debug("IPMI: $stdout");
     return $stdout;
 }
 

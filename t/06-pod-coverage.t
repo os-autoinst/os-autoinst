@@ -18,5 +18,5 @@ my $pc = Pod::Coverage->new(
     package  => 'testapi',
     pod_from => 'testapi.pm',
 );
-is($pc->coverage, 1, 'Everything in testapi covered') || diag('Uncovered: ', join(', ', $pc->uncovered), "\n");
+is($pc->coverage, 1, 'Everything in testapi covered') || OpenQA::Log::debug('Uncovered: ', join(', ', $pc->uncovered), "\n");
 done_testing();

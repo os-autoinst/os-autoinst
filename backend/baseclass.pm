@@ -77,7 +77,7 @@ sub die_handler {
 
 sub backend_signalhandler {
     my ($sig) = @_;
-    bmwqemu::diag("backend got $sig");
+    OpenQA::Log::debug("backend got $sig");
     $backend->stop_vm;
 }
 
@@ -100,8 +100,8 @@ sub run {
     $io->autoflush(1);
     $self->{rsppipe} = $io;
 
-    bmwqemu::fctwarn sprintf "$$: cmdpipe %d, rsppipe %d\n", fileno($self->{cmdpipe}), fileno($self->{rsppipe});
-    bmwqemu::diag "started mgmt loop with pid $$";
+    OpenQA::Log::warn sprintf "$$: cmdpipe %d, rsppipe %d\n", fileno($self->{cmdpipe}), fileno($self->{rsppipe});
+    OpenQA::Log::debug "started mgmt loop with pid $$";
 
     $self->{select} = IO::Select->new();
     $self->{select}->add($self->{cmdpipe});
@@ -120,7 +120,7 @@ sub run {
 
     $self->run_capture_loop;
 
-    bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
+    OpenQA::Log::debug("management process exit at " . POSIX::strftime("%F %T", gmtime));
 }
 
 use List::Util 'min';
@@ -173,7 +173,7 @@ sub run_capture_loop {
             if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
                 $self->stall_detected(1);
                 my $diff = $now - $self->last_screenshot;
-                bmwqemu::fctwarn("There is some problem with your environment, we detected a stall for $diff seconds");
+                OpenQA::Log::warn("There is some problem with your environment, we detected a stall for $diff seconds");
             }
 
             my $time_to_screenshot = $self->screenshot_interval - ($now - $self->last_screenshot);
@@ -222,7 +222,7 @@ sub run_capture_loop {
     };
 
     if ($@) {
-        bmwqemu::diag "capture loop failed $@";
+        OpenQA::Log::debug "capture loop failed $@";
         $self->close_pipes();
     }
     return;
@@ -277,7 +277,7 @@ sub alive {
             return 1;
         }
         else {
-            bmwqemu::fctwarn("ALARM: backend.run got deleted! - exiting...");
+            OpenQA::Log::warn("ALARM: backend.run got deleted! - exiting...");
             _exit(1);
         }
     }
@@ -385,9 +385,10 @@ sub enqueue_screenshot {
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
-        my $encoder_warining = sprintf("WARNING: enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
-        bmwqemu::fctwarn($encoder_warining);
-        bmwqemu::fctdbg("\n".$watch->summary());
+        my $encoder_warining = sprintf("Enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
+        OpenQA::Log::warn($encoder_warining);
+        # Stopwatch data can be safely handled as a trace message
+        OpenQA::Log::trace("\n" . $watch->summary());
     }
 
     return;
@@ -403,7 +404,7 @@ sub close_pipes {
 
     return unless $self->{rsppipe};
 
-    bmwqemu::diag("sending magic and exit");
+    OpenQA::Log::debug("sending magic and exit");
     $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || bmwqemu::logdie("close $!\n");
     Devel::Cover::report() if Devel::Cover->can('report');
@@ -721,7 +722,7 @@ sub set_tags_to_assert {
                 next;
             }
             unless (ref($n) eq 'needle' && $n->{name}) {
-                bmwqemu::fctwarn("invalid needle passed <" . ref($n) . "> " . bmwqemu::pp($n));
+                OpenQA::Log::warn("invalid needle passed <" . ref($n) . "> " . bmwqemu::pp($n));
                 next;
             }
             push @$needles, $n;
@@ -739,7 +740,7 @@ sub set_tags_to_assert {
     $mustmatch = join('_', @tags);
 
     if (!@$needles) {
-        bmwqemu::fctwarn("No matching needles for $mustmatch");
+        OpenQA::Log::warn("No matching needles for $mustmatch");
     }
 
     $self->assert_screen_deadline(time + $timeout);
@@ -842,8 +843,8 @@ sub check_asserted_screen {
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
-        bmwqemu::fctwarn(sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time}));
-        bmwqemu::fctdbg($watch->summary());
+        OpenQA::Log::warn(sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time}));
+        OpenQA::Log::trace($watch->summary());
     }
 
     if ($n < 0) {
@@ -852,7 +853,7 @@ sub check_asserted_screen {
 
         if ($self->stall_detected) {
             backend::baseclass::write_crash_file();
-            bmwqemu::logdie("assert_screen fails, but we detected a timeout in the process, so we abort");
+            OpenQA::Log::die("assert_screen fails, but we detected a timeout in the process, so we abort");
         }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
@@ -883,7 +884,7 @@ sub check_asserted_screen {
             _reduce_to_biggest_changes($failed_screens, 20);
         }
     }
-    bmwqemu::fctwarn("no match $n");
+    OpenQA::Log::warn("no match $n");
     $self->assert_screen_last_check([$img, $search_ratio]);
     return;
 }
@@ -988,7 +989,7 @@ sub new_ssh_connection {
             last;
         }
         else {
-            bmwqemu::fctwarn("Could not connect to $args{username}\@$args{hostname}, Retry");
+            OpenQA::Log::warn("Could not connect to $args{username}\@$args{hostname}, Retry");
             sleep(10);
             $counter--;
             next;

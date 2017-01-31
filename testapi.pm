@@ -361,7 +361,7 @@ sub assert_and_click {
     my $ry       = 1;                                                  # $origy / $img->yres();
     my $x        = int(($lastarea->{x} + $lastarea->{w} / 2) * $rx);
     my $y        = int(($lastarea->{y} + $lastarea->{h} / 2) * $ry);
-    bmwqemu::diag("clicking at $x/$y");
+    OpenQA::Log::debug("clicking at $x/$y");
     mouse_set($x, $y);
     if ($dclick) {
         mouse_dclick($button, $clicktime);
@@ -879,7 +879,7 @@ sub validate_script_output($&;$) {
     $_ = $output;
     if (!$code->()) {
         $res = 'fail';
-        bmwqemu::diag("output does not pass the code block:\n$output");
+        OpenQA::Log::debug("output does not pass the code block:\n$output");
     }
     # abusing the function
     $autotest::current_test->record_serialresult($output, $res, $output);
@@ -1377,7 +1377,7 @@ sub assert_shutdown {
     while ($timeout >= 0) {
         my $is_shutdown = query_isotovideo('backend_is_shutdown') || 0;
         if ($is_shutdown < 0) {
-            bmwqemu::diag("Backend does not implement is_shutdown - just sleeping");
+            OpenQA::Log::debug("Backend does not implement is_shutdown - just sleeping");
             sleep($timeout);
         }
         # -1 counts too
@@ -1425,8 +1425,9 @@ sub save_memory_dump {
     $args->{filename} ||= ref($autotest::current_test);
 
     bmwqemu::log_call();
-    bmwqemu::diag "If save_memory_dump is called multiple times with the same '\$filename', it will be rewritten." unless ((caller(1))[3]) =~ /post_fail_hook/;
-    bmwqemu::diag("Trying to save machine state");
+    OpenQA::Log::debug "If save_memory_dump is called multiple times with the same '\$filename', it will be rewritten."
+      unless ((caller(1))[3]) =~ /post_fail_hook/;
+    OpenQA::Log::debug("Trying to save machine state");
 
     query_isotovideo('backend_save_memory_dump', $args);
 }
@@ -1449,7 +1450,7 @@ sub save_storage_drives {
     die "Method should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
 
     bmwqemu::log_call();
-    bmwqemu::diag("Trying to save machine drives");
+    OpenQA::Log::debug("Trying to save machine drives");
     bmwqemu::load_vars();
 
     # Right now, we're saving all the disks
@@ -1644,7 +1645,7 @@ Write a diagnostic message to the logfile. In color, if possible.
 
 sub diag {
     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-    return bmwqemu::diag(@_);
+    return OpenQA::Log::debug(@_);
 }
 
 =head2 autoinst_url

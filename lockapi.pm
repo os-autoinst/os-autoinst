@@ -35,7 +35,7 @@ sub _lock_action {
     bmwqemu::mydie "mutex lock '$name': lock owner already finished" if $res == 410;
 
     if ($res != 409) {
-        bmwqemu::fctwarn("Unknown return code $res for lock api");
+        OpenQA::Log::warn("Unknown return code $res for lock api");
     }
     return 0;
 }
@@ -43,11 +43,11 @@ sub _lock_action {
 sub mutex_lock {
     my ($name, $where) = @_;
     bmwqemu::mydie('missing lock name') unless $name;
-    bmwqemu::diag("mutex lock '$name'");
+    OpenQA::Log::debug("mutex lock '$name'");
     while (1) {
         my $res = _lock_action($name, $where);
         return 1 if $res;
-        bmwqemu::diag("mutex lock '$name' unavailable, sleeping 5s");
+        OpenQA::Log::debug("mutex lock '$name' unavailable, sleeping 5s");
         sleep(5);
     }
 }
@@ -55,27 +55,27 @@ sub mutex_lock {
 sub mutex_try_lock {
     my ($name, $where) = @_;
     bmwqemu::mydie('missing lock name') unless $name;
-    bmwqemu::diag("mutex try lock '$name'");
+    OpenQA::Log::debug("mutex try lock '$name'");
     return _lock_action($name, $where);
 }
 
 sub mutex_unlock {
     my ($name) = @_;
     bmwqemu::mydie('missing lock name') unless $name;
-    bmwqemu::diag("mutex unlock '$name'");
+    OpenQA::Log::debug("mutex unlock '$name'");
     my $res = api_call('post', "mutex/$name", {action => 'unlock'})->code;
     return 1 if ($res == 200);
-    bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
+    OpenQA::Log::warn("Unknown return code $res for lock api") if ($res != 409);
     return 0;
 }
 
 sub mutex_create {
     my ($name) = @_;
     bmwqemu::mydie('missing lock name') unless $name;
-    bmwqemu::diag("mutex create '$name'");
+    OpenQA::Log::debug("mutex create '$name'");
     my $res = api_call('post', "mutex", {name => $name})->code;
     return 1 if ($res == 200);
-    bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
+    OpenQA::Log::warn("Unknown return code $res for lock api") if ($res != 409);
     return 0;
 }
 
@@ -84,10 +84,10 @@ sub barrier_create {
     my ($name, $tasks) = @_;
     bmwqemu::mydie('missing barrier name')           unless $name;
     bmwqemu::mydie('missing number of barrier task') unless $tasks;
-    bmwqemu::diag("barrier create '$name' for $tasks tasks");
+    OpenQA::Log::debug("barrier create '$name' for $tasks tasks");
     my $res = api_call('post', 'barrier', {name => $name, tasks => $tasks})->code;
     return 1 if ($res == 200);
-    bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
+    OpenQA::Log::warn("Unknown return code $res for lock api") if ($res != 409);
     return 0;
 }
 
@@ -101,7 +101,7 @@ sub _wait_action {
     bmwqemu::mydie "barrier_wait '$name': barrier owner already finished" if $res == 410;
 
     if ($res != 409) {
-        bmwqemu::fctwarn("Unknown return code $res for lock api");
+        OpenQA::Log::warn("Unknown return code $res for lock api");
         return 0;
     }
 }
@@ -110,19 +110,19 @@ sub _wait_action {
 sub barrier_try_wait {
     my ($name, $where) = @_;
     bmwqemu::mydie('missing barrier name') unless $name;
-    bmwqemu::diag("barrier try wait '$name'");
+    OpenQA::Log::debug("barrier try wait '$name'");
     return _wait_action($name, $where);
 }
 
 sub barrier_wait {
     my ($name, $where) = @_;
     bmwqemu::mydie('missing barrier name') unless $name;
-    bmwqemu::diag("barrier wait '$name'");
+    OpenQA::Log::debug("barrier wait '$name'");
     while (1) {
         my $res = _wait_action($name, $where);
         return 1 if $res;
 
-        bmwqemu::diag("barrier '$name' not released, sleeping 5s");
+        OpenQA::Log::debug("barrier '$name' not released, sleeping 5s");
         sleep(5);
     }
 }
@@ -130,12 +130,12 @@ sub barrier_wait {
 sub barrier_destroy {
     my ($name, $where) = @_;
     bmwqemu::mydie('missing barrier name') unless $name;
-    bmwqemu::diag("barrier destroy '$name'");
+    OpenQA::Log::debug("barrier destroy '$name'");
     my $param;
     $param->{where} = $where if $where;
     my $res = api_call('delete', "barrier/$name", $param)->code;
     return 1 if ($res == 200);
-    bmwqemu::fctwarn("Unknown return code $res for lock api");
+    OpenQA::Log::warn("Unknown return code $res for lock api");
 }
 
 1;

@@ -42,7 +42,6 @@ use needle;
 use autotest;
 use commands;
 use distribution;
-use testapi 'diag';
 use Getopt::Std;
 require IPC::System::Simple;
 use autodie ':all';
@@ -54,7 +53,8 @@ use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use File::Spec;
 use File::Path;
 use backend::driver;
-use Log::Log4perl;
+
+use OpenQA::Log;
 
 # avoid paranoia
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
@@ -82,16 +82,15 @@ select(STDOUT);            # default
 $| = 1;
 
 
-Log::Log4perl->init($installprefix . "/etc/os-autoinst/log4perl.conf");
-my $log = Log::Log4perl->get_logger("openqa.os-autoinst.isotovideo");
-$log->info("Isotovideo logger initialized");
+$OpenQA::Log::configuration = $installprefix;
+OpenQA::Log::setup();
 
 $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
 
 # Sanity checks
-bmwqemu::logdie("CASEDIR environment variable not set, unknown test case directory") if !defined $bmwqemu::vars{CASEDIR};
-bmwqemu::logdie("No scripts in $bmwqemu::vars{CASEDIR}") if !-e "$bmwqemu::vars{CASEDIR}";
+OpenQA::Log::logdie("CASEDIR environment variable not set, unknown test case directory") if !defined $bmwqemu::vars{CASEDIR};
+OpenQA::Log::logdie("No scripts in $bmwqemu::vars{CASEDIR}") if !-e "$bmwqemu::vars{CASEDIR}";
 
 my $cpid;
 my $testpid;
@@ -104,9 +103,9 @@ sub kill_commands {
     # create a copy as cpid is overwritten by SIGCHLD
     my $pid = $cpid;
     if (kill('TERM', $pid)) {
-        diag "awaiting death of commands process";
+        OpenQA::Log::info("awaiting death of commands process");
         my $ret = waitpid($pid, 0);
-        diag "commands process exited: $ret";
+        OpenQA::Log::info("commands process exited: $ret");
     }
     $cpid = 0;
 }
@@ -116,9 +115,9 @@ sub kill_autotest {
     # create a copy as cpid is overwritten by SIGCHLD
     my $pid = $testpid;
     if (kill('TERM', $pid)) {
-        diag "awaiting death of testpid $pid";
+        OpenQA::Log::debug "awaiting death of testpid $pid";
         my $ret = waitpid($pid, 0);
-        diag "test process exited: $ret";
+        OpenQA::Log::debug "test process exited: $ret";
     }
     $testpid = 0;
 }
@@ -127,10 +126,10 @@ sub kill_backend {
     if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
         # save the pid in a scalar - signal handlers will reset it
         my $bpid = $bmwqemu::backend->{backend_pid};
-        diag "killing backend process $bpid";
+        OpenQA::Log::debug("killing backend process $bpid");
         kill('TERM', $bpid);
         waitpid($bpid, 0);
-        diag("done with backend process");
+        OpenQA::Log::debug("done with backend process");
         $bmwqemu::backend->{backend_pid} = 0;
     }
 }
@@ -138,7 +137,7 @@ sub kill_backend {
 sub signalhandler {
 
     my ($sig) = @_;
-    diag("signalhandler got $sig - loop $loop");
+    OpenQA::Log::debug("signalhandler got $sig - loop $loop");
     if ($loop) {
         $loop = 0;
         return;
@@ -153,19 +152,19 @@ sub signalhandler_chld {
 
     while ((my $child = waitpid(-1, WNOHANG)) > 0) {
         if ($child == $cpid) {
-            bmwqemu::fctwarn("commands webserver died");
+            OpenQA::Log::warn("commands webserver died");
             $loop = 0;
             $cpid = 0;
             next;
         }
         if ($bmwqemu::backend->{backend_pid} && $child == $bmwqemu::backend->{backend_pid}) {
-            bmwqemu::fctwarn("backend $child died");
+            OpenQA::Log::warn("backend $child died");
             $bmwqemu::backend->{backend_pid} = 0;
             $loop = 0;
             next;
         }
         if ($child == $testpid) {
-            bmwqemu::fctwarn("tests died");
+            OpenQA::Log::warn("tests died");
             $testpid = 0;
             $loop    = 0;
             next;
@@ -188,7 +187,7 @@ sub sync_needles_to_cache {
     my $res = system($cmd);
 
     bmwqemu::logdie("Failed to rsync needles: '$@' ") if $res;
-    bmwqemu::diag(sprintf("Rsync: Synchronization of needles directory took %.2f seconds", time - $start));
+    OpenQA::Log::debug(sprintf("Rsync: Synchronization of needles directory took %.2f seconds", time - $start));
     return $shared_cache;
 }
 
@@ -213,7 +212,7 @@ sub calculate_git_hash {
     chomp($test_git_hash = qx{git rev-parse HEAD});
     $test_git_hash ||= "UNKNOWN";
     chdir($dir);
-    bmwqemu::fctwarn("git hash of test distribution: $test_git_hash");
+    OpenQA::Log::warn("git hash of test distribution: $test_git_hash");
     return $test_git_hash;
 }
 
@@ -382,7 +381,7 @@ while ($loop) {
     for my $r (@$reads) {
         my $rsp = myjsonrpc::read_json($r);
         if (!defined $rsp) {
-            bmwqemu::fctwarn(sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($r), fileno($testfd), fileno($cfd)));
+            OpenQA::Log::warn(sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($r), fileno($testfd), fileno($cfd)));
             $r    = 1;
             $loop = 0;
             last;
@@ -493,13 +492,13 @@ if ($testfd) {
     kill_autotest;
 }
 
-bmwqemu::diag("isotovideo " . ($r ? 'failed' : 'done'));
+OpenQA::Log::debug("isotovideo " . ($r ? 'failed' : 'done'));
 
 my $clean_shutdown;
 if (!$r) {
     eval {
         $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
-        bmwqemu::diag("BACKEND SHUTDOWN $clean_shutdown");
+        OpenQA::Log::debug("BACKEND SHUTDOWN $clean_shutdown");
     };
     # don't rely on the backend in a sane state if we failed - just kill it later
     eval { bmwqemu::stop_vm(); };

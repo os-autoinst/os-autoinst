@@ -36,7 +36,7 @@ sub loadtest {
     my $casedir = $bmwqemu::vars{CASEDIR};
 
     unless (-f join('/', $casedir, $script)) {
-        bmwqemu::fctwarn "loadtest needs a script below $casedir - $script is not\n";
+        OpenQA::Log::warn "loadtest needs a script below $casedir - $script is not\n";
         $script = File::Spec->abs2rel($script, $bmwqemu::vars{CASEDIR});
     }
     unless ($script =~ m,(\w+)/([^/]+)\.pm$,) {
@@ -56,7 +56,7 @@ sub loadtest {
     eval $code;    ## no critic
     if ($@) {
         my $msg = "error on $script: $@";
-        bmwqemu::logdie($msg);
+        OpenQA::Log::die($msg);
     }
     $test             = $name->new($category);
     $test->{script}   = $script;
@@ -65,13 +65,13 @@ sub loadtest {
     while (exists $tests{$fullname . $nr}) {
         # to all perl hardcore hackers: fuck off!
         $nr = $nr eq '' ? 1 : $nr + 1;
-        bmwqemu::fctwarn($fullname . ' already scheduled');
+        OpenQA::Log::warn($fullname . ' already scheduled');
     }
     $tests{$fullname . $nr} = $test;
 
     return unless $test->is_applicable;
     push @testorder, $test;
-    bmwqemu::fctinfo("scheduling $name$nr $script");
+    OpenQA::Log::info("scheduling $name$nr $script");
 }
 
 our $current_test;
@@ -99,13 +99,13 @@ sub write_test_order {
 
 sub make_snapshot {
     my ($sname) = @_;
-    bmwqemu::diag("Creating a VM snapshot $sname");
+    OpenQA::Log::debug("Creating a VM snapshot $sname");
     return query_isotovideo('backend_save_snapshot', {name => $sname});
 }
 
 sub load_snapshot {
     my ($sname) = @_;
-    bmwqemu::diag("Loading a VM snapshot $sname");
+    OpenQA::Log::debug("Loading a VM snapshot $sname");
     return query_isotovideo('backend_load_snapshot', {name => $sname});
 }
 
@@ -167,7 +167,7 @@ sub start_process {
 sub prestart_hook {
     # run prestart test code before VM is started
     if (-f "$bmwqemu::vars{CASEDIR}/prestart.pm") {
-        bmwqemu::diag "running prestart step";
+        OpenQA::Log::debug "running prestart step";
         eval { require $bmwqemu::vars{CASEDIR} . "/prestart.pm"; };
         if ($@) {
             bmwqemu::logdie "prestart step FAIL:" . $@;
@@ -179,10 +179,10 @@ sub prestart_hook {
 sub postrun_hook {
     # run postrun test code after VM is stopped
     if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
-        bmwqemu::diag "running postrun step";
+        OpenQA::Log::debug "running postrun step";
         eval { require "$bmwqemu::vars{CASEDIR}/postrun.pm"; };    ## no critic
         if ($@) {
-            bmwqemu::fctwarn "postrun step FAIL:" . $@;
+            OpenQA::Log::warn "postrun step FAIL:" . $@;
         }
     }
 }
@@ -245,7 +245,7 @@ sub runalltests {
                 my $msg = $@;
                 if ($msg !~ /^test.*died/) {
                     # avoid duplicating the message
-                    bmwqemu::diag $msg;
+                    OpenQA::Log::debug $msg;
                 }
                 if ($flags->{fatal} || !$snapshots_supported || $bmwqemu::vars{TESTDEBUG}) {
                     bmwqemu::stop_vm();
@@ -266,7 +266,7 @@ sub runalltests {
             }
         }
         else {
-            bmwqemu::fctwarn "skipping $fullname";
+            OpenQA::Log::warn "skipping $fullname";
             $t->skip_if_not_running();
             $t->save_test_result();
         }

@@ -449,21 +449,21 @@ sub get_ssh_output {
         return ($stdout, $errout);
     }
     else {
-        bmwqemu::diag "Command's stdout:\n$stdout" if length($stdout);
-        bmwqemu::diag "Command's stderr:\n$errout" if length($errout);
+        OpenQA::Log::debug "Command's stdout:\n$stdout" if length($stdout);
+        OpenQA::Log::debug "Command's stderr:\n$errout" if length($errout);
     }
 }
 
 sub suspend {
     my ($self) = @_;
     $self->run_cmd("virsh suspend " . $self->name) && die "Can't suspend VM ";
-    bmwqemu::diag "VM " . $self->name . " suspended";
+    OpenQA::Log::debug "VM " . $self->name . " suspended";
 }
 
 sub resume {
     my ($self) = @_;
     $self->run_cmd("virsh resume " . $self->name) && die "Can't resume VM ";
-    bmwqemu::diag "VM " . $self->name . " resumed";
+    OpenQA::Log::debug "VM " . $self->name . " resumed";
 }
 
 sub define_and_start {
@@ -542,7 +542,7 @@ sub run_cmd {
     my $chan = $self->{ssh}->channel();
     $chan->exec($cmd);
     $chan->send_eof;
-    bmwqemu::diag "Command executed: $cmd";
+    OpenQA::Log::debug "Command executed: $cmd";
     get_ssh_output($chan);
     my $ret = $chan->exit_status();
     $chan->close();

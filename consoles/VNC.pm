@@ -140,7 +140,7 @@ sub login {
         );
         if (!$socket) {
             return if (time > $endtime);
-            bmwqemu::diag "Error connecting to host <$hostname>: $@";
+            OpenQA::Log::debug "Error connecting to host <$hostname>: $@";
             sleep 1;
             next;
         }
@@ -169,7 +169,7 @@ sub _handshake_protocol_version {
     my $socket = $self->socket;
     $socket->read(my $protocol_version, 12) || bmwqemu::logdie 'unexpected end of data';
 
-    #bmwqemu::diag "prot: $protocol_version";
+    #OpenQA::Log::debug "prot: $protocol_version";
 
     my $protocol_pattern = qr/\A RFB [ ] (\d{3}\.\d{3}) \s* \z/xms;
     if ($protocol_version !~ m/$protocol_pattern/xms) {
@@ -747,7 +747,7 @@ sub map_and_send_key {
 
 sub send_pointer_event {
     my ($self, $button_mask, $x, $y) = @_;
-    bmwqemu::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
+    OpenQA::Log::debug "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
 
     my $template = 'CCnn';
     $template = 'CxCnnx11' if ($self->ikvm);
@@ -805,7 +805,7 @@ sub send_update_request {
         if (($self->_vnc_stalled == 1) && ($self->_last_update_requested - $self->_last_update_received > 4)) {
             $self->_last_update_received(0);
             # return black image - screen turned off
-            bmwqemu::diag "considering VNC stalled - turning black";
+            OpenQA::Log::debug "considering VNC stalled - turning black";
             $self->_framebuffer(tinycv::new($self->width, $self->height));
             $self->_vnc_stalled(2);
         }
@@ -897,7 +897,7 @@ sub _receive_update {
     my $hlen                 = $socket->read(my $header, 3) || bmwqemu::logdie 'unexpected end of data';
     my $number_of_rectangles = unpack('xn', $header);
 
-    #bmwqemu::diag "NOR $number_of_rectangles";
+    #OpenQA::Log::debug "NOR $number_of_rectangles";
 
     my $depth = $self->depth;
 
@@ -910,7 +910,7 @@ sub _receive_update {
         # unsigned -> signed conversion
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
 
-        #bmwqemu::diag "UP $x,$y $w x $h $encoding_type";
+        #OpenQA::Log::debug "UP $x,$y $w x $h $encoding_type";
 
         # work around buggy addrlink VNC
         next if ($w * $h == 0);

@@ -69,7 +69,7 @@ sub search_ {
 
     my $needle_image = $needle->get_image;
     unless ($needle_image) {
-        bmwqemu::diag("SKIP($needle->{name}:missing PNG)");
+        OpenQA::Log::debug("SKIP($needle->{name}:missing PNG)");
         return;
     }
     $stopwatch->lap("**++ search__: get image") if $stopwatch;
@@ -119,7 +119,7 @@ sub search_ {
     }
 
     $ret->{error} = mean_square_error($ret->{area});
-    bmwqemu::diag(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - sqrt($ret->{error})));
+    OpenQA::Log::debug(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - sqrt($ret->{error})));
     $stopwatch->lap("**++ mean_square_error") if $stopwatch;
     if ($ret->{ok}) {
         for my $a (@ocr) {

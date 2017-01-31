@@ -148,7 +148,7 @@ sub register {
     my %check_dups;
     for my $g (@{$self->{tags}}) {
         if ($check_dups{$g}) {
-            bmwqemu::diag("$self->{name} contains $g twice");
+            OpenQA::Log::debug("$self->{name} contains $g twice");
             next;
         }
         $check_dups{$g} = 1;
@@ -167,7 +167,7 @@ sub get_image {
         $watch->stop();
 
         if ($watch->as_data()->{total_time} > 0.1) {
-            bmwqemu::diag(sprintf("load of $self->{png} took %.2f seconds", $watch->as_data()->{total_time}));
+            OpenQA::Log::debug(sprintf("load of $self->{png} took %.2f seconds", $watch->as_data()->{total_time}));
         }
 
         for my $a (@{$self->{area}}) {
@@ -225,13 +225,13 @@ sub init {
     ($needledir, $shared_cache) = @_;
 
     $needledir //= "$bmwqemu::vars{PRODUCTDIR}/needles/";
-    $needledir = abs_path($needledir) // bmwqemu::logdie("needledir not found: $needledir (check vars.json?)");
+    -d $needledir || die "needledir not found: $needledir (check vars.json?)";
 
     %needles = ();
     %tags    = ();
-    bmwqemu::diag("init needles from $needledir");
+    OpenQA::Log::debug("init needles from $needledir");
     find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needledir);
-    bmwqemu::diag(sprintf("loaded %d needles", scalar keys %needles));
+    OpenQA::Log::debug(sprintf("loaded %d needles", scalar keys %needles));
 
     if ($cleanuphandler) {
         &$cleanuphandler();

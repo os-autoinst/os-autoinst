@@ -60,7 +60,7 @@ sub ipmitool {
     $self->dell_sleep;
 
     die join(' ', @cmd) . ": $stderr" unless ($ret);
-    bmwqemu::diag("IPMI: $stdout");
+    OpenQA::Log::debug("IPMI: $stdout");
     return $stdout;
 }
 

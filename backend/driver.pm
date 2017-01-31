@@ -59,7 +59,7 @@ sub start {
     $self->{to_parent}  = $p2;
     $self->{from_child} = $p1;
 
-    bmwqemu::fctwarn sprintf "$$: to_child %d, from_child %d\n", fileno($self->{to_child}), fileno($self->{from_child});
+    OpenQA::Log::warn sprintf "$$: to_child %d, from_child %d\n", fileno($self->{to_child}), fileno($self->{from_child});
 
     my $pid = fork();
     bmwqemu::logdie "fork failed" unless defined $pid;

@@ -184,7 +184,7 @@ sub get_job_autoinst_url {
         }
     }
     else {
-        bmwqemu::diag("get_job_autoinst_url: code: " . $res->code);
+        OpenQA::Log::debug("get_job_autoinst_url: code: " . $res->code);
     }
     return;
 }
@@ -214,7 +214,7 @@ sub get_job_autoinst_vars {
         return $res->json('/vars');
     }
     else {
-        bmwqemu::diag("get_job_autoinst_vars: code: " . $res->code);
+        OpenQA::Log::debug("get_job_autoinst_vars: code: " . $res->code);
     }
     return;
 }
@@ -236,7 +236,7 @@ sub wait_for_children {
             $n++;
         }
 
-        bmwqemu::diag("Waiting for $n jobs to finish");
+        OpenQA::Log::debug("Waiting for $n jobs to finish");
         last unless $n;
         sleep 1;
     }
@@ -258,7 +258,7 @@ sub wait_for_children_to_start {
             $n++;
         }
 
-        bmwqemu::diag("Waiting for $n jobs to start");
+        OpenQA::Log::debug("Waiting for $n jobs to start");
         last unless $n;
         sleep 1;
     }
