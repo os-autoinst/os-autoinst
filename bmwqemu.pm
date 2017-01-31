@@ -38,9 +38,7 @@ our @EXPORT_OK = qw(diag fctres fctinfo fctwarn fctdbg fcterr logdie);
 
 require IPC::System::Simple;
 use autodie ':all';
-use Log::Log4perl;
-
-our $log = Log::Log4perl->get_logger('os-autoinst');
+use OpenQA::Log;
 
 sub mydie;
 
@@ -84,8 +82,8 @@ sub save_vars() {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
-    flock($fd, LOCK_EX) or $log->logdie("cannot lock vars.json: $!");
-    truncate($fd, 0) or $log->logdie("cannot truncate vars.json: $!");
+    flock($fd, LOCK_EX) or OpenQA::Log::logdie("cannot lock vars.json: $!");
+    truncate($fd, 0) or OpenQA::Log::logdie("cannot truncate vars.json: $!");
 
     # make sure the JSON is sorted
     my $json = JSON->new->pretty->canonical;
@@ -207,56 +205,56 @@ sub print_possibly_colored {
     return;
 }
 
-sub logdie {
-    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-    $log->logdie(@_);
-}
+# sub logdie {
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     OpenQA::Log::logdie(@_);
+# }
 
-sub diag {
-    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-    $log->info(@_);
-    return;
-}
+# sub diag {
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     OpenQA::Log::info(@_);
+#     return;
+# }
 
-sub fctdbg {
-    my ($text) = @_;
-    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-    $log->debug("$text");
-    return;
-}
+# sub fctdbg {
+#     my ($text) = @_;
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     OpenQA::Log::debug("$text");
+#     return;
+# }
 
-sub fctres {
-    my ($text) = @_;
-    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-    $log->info(">>> $text");
-    return;
-}
+# sub fctres {
+#     my ($text) = @_;
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     OpenQA::Log::info(">>> $text");
+#     return;
+# }
 
-sub fctinfo {
-    my ($text) = @_;
-    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-    $log->info("::: $text");
-    return;
-}
+# sub fctinfo {
+#     my ($text) = @_;
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     OpenQA::Log::info("::: $text");
+#     return;
+# }
 
-sub fctwarn {
-    my ($text) = @_;
-    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-    $log->warn("!!! $text");
-    return;
-}
+# sub fctwarn {
+#     my ($text) = @_;
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     OpenQA::Log::warn("!!! $text");
+#     return;
+# }
 
-sub fcterr {
-    my ($text) = @_;
-    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-    $log->error("EEE $text");
-    return;
-}
+# sub fcterr {
+#     my ($text) = @_;
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     OpenQA::Log::error("EEE $text");
+#     return;
+# }
 
 sub modstart {
     my $text = sprintf "||| %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-    $log->info($text);
+    OpenQA::Log::info($text);
     return;
 }
 
@@ -374,7 +372,7 @@ sub random_string {
 }
 
 sub hashed_string {
-    fctwarn '@DEPRECATED: Use testapi::hashed_string instead';
+    OpenQA::Log::warn('@DEPRECATED: Use testapi::hashed_string instead');
     return testapi::hashed_string(@_);
 }
 
