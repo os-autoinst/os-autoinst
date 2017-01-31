@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2016 SUSE LLC
+# Copyright © 2012-2017 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -460,7 +460,7 @@ sub assert_screen_change(&@) {
 
 =for stopwords stilltime
 
-  wait_still_screen([$stilltime_sec [, $timeout_sec [, $similarity_level]]]);
+  wait_still_screen([$stilltime_sec [, $timeout [, $similarity_level]]]);
 
 Wait until the screen stops changing.
 
@@ -786,7 +786,7 @@ sub assert_script_sudo {
   script_sudo($program [, $wait]);
 
 Run C<$program> using sudo. Handle the sudo timeout and send password when appropriate.
-C<$wait_seconds> defaults to 2 seconds.
+C<$wait> defaults to 2 seconds.
 
 I<The implementation is distribution specific and not always available.>
 
