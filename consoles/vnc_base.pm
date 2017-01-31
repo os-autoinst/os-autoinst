@@ -73,7 +73,7 @@ sub connect_vnc {
             if (time > $endtime) {
                 bmwqemu::fctdbg sprintf "%d $endtime\n", time;
                 $self->disable();
-                bmwqemu::logdie(@connection_error);
+                OpenQA::Log::die(@connection_error);
             }
             sleep 1;
             return;
@@ -188,7 +188,7 @@ sub release_key {
 
 sub _mouse_move {
     my ($self, $x, $y) = @_;
-    bmwqemu::logdie "need parameter \$x and \$y" unless (defined $x and defined $y);
+    OpenQA::Log::die "need parameter \$x and \$y" unless (defined $x and defined $y);
 
     if ($self->{mouse}->{x} == $x && $self->{mouse}->{y} == $y) {
         # in case the mouse is moved twice to the same position
@@ -229,7 +229,7 @@ sub mouse_hide {
 
 sub mouse_set {
     my ($self, $args) = @_;
-    bmwqemu::logdie "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
+    OpenQA::Log::die "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
 
     # TODO: for framebuffers larger than 1024x768, we need to upscale
     $self->_mouse_move(int($args->{x}), int($args->{y}));

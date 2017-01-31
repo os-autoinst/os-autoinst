@@ -186,7 +186,7 @@ sub sync_needles_to_cache {
     my $cmd = sprintf("flock -E 999 %s/needleslock rsync -aP --delete --exclude=.git %s %s/", $shared_cache, $needles_source, $shared_cache);
     my $res = system($cmd);
 
-    bmwqemu::logdie("Failed to rsync needles: '$@' ") if $res;
+    OpenQA::Log::die("Failed to rsync needles: '$@' ") if $res;
     OpenQA::Log::debug(sprintf("Rsync: Synchronization of needles directory took %.2f seconds", time - $start));
     return $shared_cache;
 }
@@ -474,7 +474,7 @@ while ($loop) {
             check_asserted_screen(1, $no_wait);
             next;
         }
-        bmwqemu::logdie("Unknown command $rsp->{cmd}");
+        OpenQA::Log::die("Unknown command $rsp->{cmd}");
     }
 
     if (defined $tags && !$needinput) {

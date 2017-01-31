@@ -40,7 +40,7 @@ sub loadtest {
         $script = File::Spec->abs2rel($script, $bmwqemu::vars{CASEDIR});
     }
     unless ($script =~ m,(\w+)/([^/]+)\.pm$,) {
-        bmwqemu::logdie "loadtest needs a script to match \\w+/[^/]+.pm\n";
+        OpenQA::Log::die "loadtest needs a script to match \\w+/[^/]+.pm\n";
     }
     my $category = $1;
     my $name     = $2;
@@ -170,7 +170,7 @@ sub prestart_hook {
         OpenQA::Log::debug "running prestart step";
         eval { require $bmwqemu::vars{CASEDIR} . "/prestart.pm"; };
         if ($@) {
-            bmwqemu::logdie "prestart step FAIL:" . $@;
+            OpenQA::Log::die "prestart step FAIL:" . $@;
         }
     }
 }

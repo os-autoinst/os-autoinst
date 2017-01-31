@@ -39,7 +39,7 @@ sub activate {
         my $co = $r->{command_output};
         CORE::say bmwqemu::pp($co);
         last if grep { /[Pp]assword:/ } @$co;
-        bmwqemu::logdie "ssh password prompt timeout" unless $i;
+        OpenQA::Log::die "ssh password prompt timeout" unless $i;
         sleep 1;
     }
     $s3270->send_3270("String(\"$sshpassword\")");

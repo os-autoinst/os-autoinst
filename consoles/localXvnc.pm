@@ -33,13 +33,13 @@ sub activate {
 
     my $tcpproto = getprotobyname('tcp');
     my $s;
-    socket($s, PF_INET, SOCK_STREAM, $tcpproto) || bmwqemu::logdie "socket: $!\n";
+    socket($s, PF_INET, SOCK_STREAM, $tcpproto) || OpenQA::Log::die "socket: $!\n";
     bind($s, sockaddr_in(0, INADDR_ANY));
     my ($port) = sockaddr_in(getsockname($s));
 
     my $display = ":$port";
     my $pid     = fork();
-    bmwqemu::logdie unless defined $pid;
+    OpenQA::Log::die unless defined $pid;
     if (!$pid) {
         listen($s, 1);
         my $peer;

@@ -189,7 +189,7 @@ sub run_capture_loop {
             if (grep { $_ == $self->{encoder_pipe} } @$write_set) {
                 my $fdata        = shift @{$self->{video_frame_data}};
                 my $data_written = $self->{encoder_pipe}->syswrite($fdata);
-                bmwqemu::logdie("Encoder not accepting data") unless defined $data_written;
+                OpenQA::Log::die("Encoder not accepting data") unless defined $data_written;
                 if ($data_written != length($fdata)) {
                     # put it back into the queue
                     unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
@@ -398,7 +398,7 @@ sub close_pipes {
     my ($self) = @_;
 
     if ($self->{cmdpipe}) {
-        close($self->{cmdpipe}) || bmwqemu::logdie("close $!\n");
+        close($self->{cmdpipe}) || OpenQA::Log::die("close $!\n");
         $self->{cmdpipe} = undef;
     }
 
@@ -406,7 +406,7 @@ sub close_pipes {
 
     OpenQA::Log::debug("sending magic and exit");
     $self->{rsppipe}->print('{"QUIT":1}');
-    close($self->{rsppipe}) || bmwqemu::logdie("close $!\n");
+    close($self->{rsppipe}) || OpenQA::Log::die("close $!\n");
     Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
 }
@@ -430,7 +430,7 @@ sub check_socket {
         }
         else {
             use Data::Dumper;
-            bmwqemu::logdie("no command in " . Dumper($cmd));
+            OpenQA::Log::die("no command in " . Dumper($cmd));
         }
         return 1;
     }
@@ -995,7 +995,7 @@ sub new_ssh_connection {
             next;
         }
     }
-    bmwqemu::logdie("Failed to login to $args{username}\@$args{hostname}") unless $ssh->auth_ok;
+    OpenQA::Log::die("Failed to login to $args{username}\@$args{hostname}") unless $ssh->auth_ok;
 
     return $ssh;
 }
@@ -1008,7 +1008,7 @@ sub start_ssh_serial {
 
     $self->{serial} = $self->new_ssh_connection(%args);
     my $chan = $self->{serial}->channel();
-    bmwqemu::logdie("No channel found") unless $chan;
+    OpenQA::Log::die("No channel found") unless $chan;
     $self->{serial_chan} = $chan;
     $chan->blocking(0);
     $chan->pty(1);

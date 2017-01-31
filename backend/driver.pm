@@ -49,20 +49,20 @@ sub start {
     my ($self) = @_;
 
     my $p1, my $p2;
-    pipe($p1, $p2) or bmwqemu::logdie("pipe: $!");
+    pipe($p1, $p2) or OpenQA::Log::die("pipe: $!");
     $self->{from_parent} = $p1;
     $self->{to_child}    = $p2;
 
     $p1 = undef;
     $p2 = undef;
-    pipe($p1, $p2) or bmwqemu::logdie("pipe: $!");
+    pipe($p1, $p2) or OpenQA::Log::die("pipe: $!");
     $self->{to_parent}  = $p2;
     $self->{from_child} = $p1;
 
     OpenQA::Log::warn sprintf "$$: to_child %d, from_child %d\n", fileno($self->{to_child}), fileno($self->{from_child});
 
     my $pid = fork();
-    bmwqemu::logdie "fork failed" unless defined $pid;
+    OpenQA::Log::die "fork failed" unless defined $pid;
 
     if ($pid == 0) {
         $SIG{TERM} = 'DEFAULT';
@@ -120,7 +120,7 @@ sub start_vm {
     remove_tree($bmwqemu::screenshotpath);
     mkdir $bmwqemu::screenshotpath;
 
-    $self->_send_json({cmd => 'start_vm'}) || bmwqemu::logdie "failed to start VM";
+    $self->_send_json({cmd => 'start_vm'}) || OpenQA::Log::die "failed to start VM";
     return 1;
 }
 
