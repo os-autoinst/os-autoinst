@@ -54,7 +54,7 @@ sub connect_vnc {
 
     $self->{mouse} = {x => undef, y => undef};
 
-    CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
+    OpenQA::Log::info "Setting up a connection to VNC console". bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
     my $endtime = time + ($args->{connect_timeout} || 10);
 
@@ -62,10 +62,10 @@ sub connect_vnc {
     while (1) {
         my @connection_error;
         my $vnc = try {
-            OpenQA::Log::debug "trying to login\n";
+            OpenQA::Log::debug "trying to login to VNC\n";
             local $SIG{__DIE__};
             $self->{vnc}->login();
-            CORE::say __FILE__. ":" . __LINE__ . ":done\n";
+            OpenQA::Log::info ":Sucessfully loged into VNC\n";
             return $self->{vnc};
         }
         catch {
@@ -188,7 +188,7 @@ sub release_key {
 
 sub _mouse_move {
     my ($self, $x, $y) = @_;
-    OpenQA::Log::die "need parameter \$x and \$y" unless (defined $x and defined $y);
+    OpenQA::Log::die 'need parameter $x and $y' unless (defined $x and defined $y);
 
     if ($self->{mouse}->{x} == $x && $self->{mouse}->{y} == $y) {
         # in case the mouse is moved twice to the same position
@@ -205,7 +205,7 @@ sub _mouse_move {
     $self->{mouse}->{x} = $x;
     $self->{mouse}->{y} = $y;
 
-    OpenQA::Log::debug "mouse_move $x, $y";
+    OpenQA::Log::trace "mouse_move $x, $y";
     $self->{vnc}->mouse_move_to($x, $y);
     return;
 }
