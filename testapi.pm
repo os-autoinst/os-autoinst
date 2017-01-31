@@ -682,7 +682,7 @@ Deprecated mode
   assert_script_run($cmd [, $timeout [, $fail_message]]);
 
 Run C<$cmd> via C<$distri->script_run> and C<die> unless it returns zero (indicating
-successful completion of C<$cmd>). See C<distri->script_run> for default timeout.
+successful completion of C<$cmd>). Default timeout is 90 seconds.
 Use C<script_run> instead if C<$cmd> may fail.
 
 C<$fail_message> is returned in the die message if specified.
@@ -706,10 +706,11 @@ sub assert_script_run {
     else {
         %args = @_;
     }
+    # assert_script_run originally had the implicit default timeout of
+    # wait_serial which we are repeating here to preserve old behaviour and
+    # not change default timeout.
+    $args{timeout} //= 90;
     bmwqemu::log_call(cmd => $cmd, wait => $args{timeout}, fail_message => $args{fail_message});
-    # assume a call to 'assert_' with timeout 0 means 'default timeout', not
-    # 'no wait'
-    undef $args{timeout} if ($args{timeout} == 0);
     my $ret = $distri->script_run($cmd, $args{timeout});
     my $die_msg = "command '$cmd' failed or timed out";
     $die_msg .= ": $args{fail_message}" if $args{fail_message};
