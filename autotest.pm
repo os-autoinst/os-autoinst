@@ -155,7 +155,7 @@ sub start_process {
     if (!$line) {
         _exit(0);
     }
-    bmwqemu::fctdbg "GOT $line";
+    OpenQA::Log::debug "GOT $line";
     # the backend process might have added some defaults for the backend
     bmwqemu::load_vars();
 
@@ -209,7 +209,7 @@ sub runalltests {
     my $firsttest           = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded            = 0;
     my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
-    bmwqemu::fctdbg "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
+    OpenQA::Log::info "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
 
     write_test_order();
 

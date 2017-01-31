@@ -4,7 +4,7 @@ use warnings;
 use base 'Class::Accessor::Fast';
 use IO::Socket::INET;
 use bytes;
-use bmwqemu qw(logdie diag fctdbg fcterr fctwarn);
+use bmwqemu qw( diag  fcterr fctwarn);
 use Time::HiRes qw( usleep gettimeofday time );
 use Carp;
 use List::Util 'min';
@@ -937,7 +937,7 @@ sub _receive_update {
             $self->_framebuffer($image);
         }
         elsif ($encoding_type == -257) {
-            bmwqemu::fctdbg("pointer type $x $y $w $h $encoding_type");
+            OpenQA::Log::debug("pointer type $x $y $w $h $encoding_type");
             $self->absolute($x);
         }
         elsif ($encoding_type == -261) {
@@ -994,7 +994,7 @@ sub _receive_zlre_encoding {
         $read_len += $len;
     }
     if (time - $stime > 0.1) {
-        bmwqemu::fctdbg sprintf("read $data_len in %fs\n", time - $stime);
+        OpenQA::Log::debug sprintf("read $data_len in %fs\n", time - $stime);
     }
     # the zlib header is only sent once per session
     $self->{_inflater} ||= new Compress::Raw::Zlib::Inflate();

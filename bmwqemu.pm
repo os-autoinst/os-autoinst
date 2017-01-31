@@ -34,7 +34,7 @@ use Exporter;
 
 our $VERSION;
 our @EXPORT    = qw(fileContent save_vars);
-our @EXPORT_OK = qw(diag fctres fctinfo fctwarn fctdbg fcterr logdie);
+our @EXPORT_OK = qw(diag fctres fctinfo fctwarn  fcterr );
 
 require IPC::System::Simple;
 use autodie ':all';
@@ -70,9 +70,9 @@ sub load_vars() {
     my $fn  = "vars.json";
     my $ret = {};
     local $/;
-    open(my $fh, '<', $fn) or logdie("Can't open '$fn'");
+    open(my $fh, '<', $fn) or ("Can't open '$fn'");
     eval { $ret = JSON->new->relaxed->decode(<$fh>); };
-    logdie("parse error in vars.json: $@") if $@;
+    ("parse error in vars.json: $@") if $@;
     close($fh);
     %vars = %{$ret};
     return;
@@ -82,8 +82,8 @@ sub save_vars() {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
-    flock($fd, LOCK_EX) or OpenQA::Log::logdie("cannot lock vars.json: $!");
-    truncate($fd, 0) or OpenQA::Log::logdie("cannot truncate vars.json: $!");
+    flock($fd, LOCK_EX) or OpenQA::Log::("cannot lock vars.json: $!");
+    truncate($fd, 0) or OpenQA::Log::("cannot truncate vars.json: $!");
 
     # make sure the JSON is sorted
     my $json = JSON->new->pretty->canonical;
@@ -128,7 +128,7 @@ sub init {
     select($oldfh);
 
     unless ($vars{CASEDIR}) {
-        logdie("DISTRI undefined\n" . pp(\%vars)) unless $vars{DISTRI};
+        ("DISTRI undefined\n" . pp(\%vars)) unless $vars{DISTRI};
         my @dirs = ("$scriptdir/distri/$vars{DISTRI}");
         unshift @dirs, $dirs[-1] . "-" . $vars{VERSION} if ($vars{VERSION});
         for my $d (@dirs) {
@@ -137,7 +137,7 @@ sub init {
                 last;
             }
         }
-        logdie("can't determine test directory for $vars{DISTRI}'") unless $vars{CASEDIR};
+        ("can't determine test directory for $vars{DISTRI}'") unless $vars{CASEDIR};
     }
 
     # defaults
@@ -161,7 +161,7 @@ sub init {
     }
     if ($vars{SUSEMIRROR} && $vars{SUSEMIRROR} =~ s{^(\w+)://}{}) {    # strip & check proto
         if ($1 ne "http") {
-            logdie("only http mirror URLs are currently supported but found '$1'");
+            ("only http mirror URLs are currently supported but found '$1'");
         }
     }
 
@@ -205,9 +205,9 @@ sub print_possibly_colored {
     return;
 }
 
-# sub logdie {
+# sub  {
 #     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-#     OpenQA::Log::logdie(@_);
+#     OpenQA::Log::(@_);
 # }
 
 # sub diag {
@@ -216,7 +216,7 @@ sub print_possibly_colored {
 #     return;
 # }
 
-# sub fctdbg {
+# sub  {
 #     my ($text) = @_;
 #     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
 #     OpenQA::Log::debug("$text");

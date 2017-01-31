@@ -28,7 +28,7 @@ use IO::Select;
 use POSIX '_exit';
 require IPC::System::Simple;
 use autodie ':all';
-use bmwqemu qw(fctwarn logdie fctdbg);
+use bmwqemu qw(fctwarn  );
 use myjsonrpc;
 
 
@@ -116,7 +116,7 @@ sub start_vm {
     close $runf;
 
     # remove old screenshots
-    bmwqemu::fctdbg "remove_tree $bmwqemu::screenshotpath\n";
+    OpenQA::Log::debug "remove_tree $bmwqemu::screenshotpath\n";
     remove_tree($bmwqemu::screenshotpath);
     mkdir $bmwqemu::screenshotpath;
 

@@ -62,7 +62,7 @@ sub connect_vnc {
     while (1) {
         my @connection_error;
         my $vnc = try {
-            bmwqemu::fctdbg "trying to login\n";
+            OpenQA::Log::debug "trying to login\n";
             local $SIG{__DIE__};
             $self->{vnc}->login();
             CORE::say __FILE__. ":" . __LINE__ . ":done\n";
@@ -71,7 +71,7 @@ sub connect_vnc {
         catch {
             push @connection_error, $@;
             if (time > $endtime) {
-                bmwqemu::fctdbg sprintf "%d $endtime\n", time;
+                OpenQA::Log::debug sprintf "%d $endtime\n", time;
                 $self->disable();
                 OpenQA::Log::die(@connection_error);
             }
@@ -205,7 +205,7 @@ sub _mouse_move {
     $self->{mouse}->{x} = $x;
     $self->{mouse}->{y} = $y;
 
-    bmwqemu::fctdbg "mouse_move $x, $y";
+    OpenQA::Log::debug "mouse_move $x, $y";
     $self->{vnc}->mouse_move_to($x, $y);
     return;
 }
@@ -252,7 +252,7 @@ sub mouse_button {
     elsif ($button eq 'middle') {
         $mask = $bstate << 1;
     }
-    bmwqemu::fctdbg "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
+    OpenQA::Log::debug "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
     $self->{vnc}->send_pointer_event($mask, $self->{mouse}->{x}, $self->{mouse}->{y});
     return {};
 }

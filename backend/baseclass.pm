@@ -693,7 +693,7 @@ sub wait_idle {
     my ($self, $args) = @_;
     my $timeout = $args->{timeout};
 
-    bmwqemu::fctdbg("wait_idle sleeping for $timeout seconds");
+    OpenQA::Log::debug("wait_idle sleeping for $timeout seconds");
     $self->run_capture_loop($timeout);
     return;
 }
@@ -822,7 +822,7 @@ sub check_asserted_screen {
     }
     else {
         if ($oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio) {
-            bmwqemu::fctdbg("no change $n");
+            OpenQA::Log::debug("no change $n");
             return;
         }
     }

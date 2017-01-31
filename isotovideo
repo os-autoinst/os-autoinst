@@ -89,8 +89,8 @@ $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
 
 # Sanity checks
-OpenQA::Log::logdie("CASEDIR environment variable not set, unknown test case directory") if !defined $bmwqemu::vars{CASEDIR};
-OpenQA::Log::logdie("No scripts in $bmwqemu::vars{CASEDIR}") if !-e "$bmwqemu::vars{CASEDIR}";
+OpenQA::Log::("CASEDIR environment variable not set, unknown test case directory") if !defined $bmwqemu::vars{CASEDIR};
+OpenQA::Log::("No scripts in $bmwqemu::vars{CASEDIR}") if !-e "$bmwqemu::vars{CASEDIR}";
 
 my $cpid;
 my $testpid;

@@ -798,7 +798,7 @@ sub start_qemu {
     $flags = fcntl($self->{qmpsocket}, Fcntl::F_GETFL, 0) or OpenQA::Log::die "can't getfl(): $!\n";
     $flags = fcntl($self->{qmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or OpenQA::Log::die "can't setfl(): $!\n";
 
-    bmwqemu::fctdbg(sprintf("hmpsocket %d, qmpsocket %d", fileno($self->{hmpsocket}), fileno($self->{qmpsocket})));
+    OpenQA::Log::debug(sprintf("hmpsocket %d, qmpsocket %d", fileno($self->{hmpsocket}), fileno($self->{qmpsocket})));
 
     fcntl($self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or OpenQA::Log::die "can't setfl(): $!\n";
 
@@ -916,7 +916,7 @@ sub handle_qmp_command {
     while (!$hash) {
         $hash = myjsonrpc::read_json($self->{qmpsocket});
         if ($hash->{event}) {
-            bmwqemu::fctdbg("EVENT " . JSON::to_json($hash));
+            OpenQA::Log::debug("EVENT " . JSON::to_json($hash));
             # ignore
             $hash = undef;
         }
