@@ -34,7 +34,7 @@ use Exporter;
 
 our $VERSION;
 our @EXPORT    = qw(fileContent save_vars);
-our @EXPORT_OK = qw(diag fctres fctinfo fctwarn  fcterr );
+our @EXPORT_OK = qw(diag fctres fctinfo fctOpenQA::Log::warn  fcterr );
 
 use backend::driver;
 require IPC::System::Simple;
@@ -218,10 +218,10 @@ sub set_ocr_rect {
 #     return;
 # }
 
-# sub fctwarn {
+# sub fctOpenQA::Log::warn {
 #     my ($text) = @_;
 #     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-#     OpenQA::Log::warn("!!! $text");
+#     OpenQA::Log::OpenQA::Log::warn("!!! $text");
 #     return;
 # }
 
@@ -233,7 +233,7 @@ sub set_ocr_rect {
 # }
 
 sub modstart {
-    my $text = sprintf "||| %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
+    my $text = sprintf "Test module: %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
     OpenQA::Log::info($text);
     return;
@@ -345,7 +345,7 @@ sub random_string {
 }
 
 sub hashed_string {
-    OpenQA::Log::warn('@DEPRECATED: Use testapi::hashed_string instead');
+    OpenQA::Log::OpenQA::Log::warn('@DEPRECATED: Use testapi::hashed_string instead');
     return testapi::hashed_string(@_);
 }
 

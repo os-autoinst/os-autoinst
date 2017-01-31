@@ -745,7 +745,7 @@ sub start_qemu {
         if ($vars->{AUTO_INST}) {
             push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
         }
-	# We are using system somwhere else, why not here too?
+        # We are using system somwhere else, why not here too?
         OpenQA::Log::info(`$qemubin -version`);
         OpenQA::Log::info("starting: " . join(" ", @params));
 

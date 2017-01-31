@@ -55,7 +55,7 @@ sub connect_vnc {
 
     $self->{mouse} = {x => undef, y => undef};
 
-    OpenQA::Log::info "Setting up a connection to VNC console". bmwqemu::pp($args);
+    OpenQA::Log::info "Setting up a connection to VNC console" . bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
     my $endtime = time + ($args->{connect_timeout} || 10);
 

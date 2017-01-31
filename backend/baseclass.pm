@@ -885,7 +885,7 @@ sub check_asserted_screen {
             _reduce_to_biggest_changes($failed_screens, 20);
         }
     }
-    OpenQA::Log::warn("no match $n");
+    OpenQA::Log::debug("no match $n");
     $self->assert_screen_last_check([$img, $search_ratio]);
     return;
 }

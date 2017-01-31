@@ -25,6 +25,7 @@ use autodie ':all';
 use Socket;
 use strict;
 use warnings;
+use OpenQA::Log;
 
 sub activate {
     my ($self) = @_;

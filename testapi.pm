@@ -193,12 +193,13 @@ sub _check_backend_response {
         my $img = tinycv::from_ppm(decode_base64($rsp->{image}));
         $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
         my $lastarea = $foundneedle->{area}->[-1];
-        bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+        OpenQA::Log::debug(
+            sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
         $last_matched_needle = $foundneedle;
         return $foundneedle;
     }
     elsif ($rsp->{timeout}) {
-        bmwqemu::fctres("match=" . join(',', @$tags) . " timed out after $timeout");
+        OpenQA::Log::debug("match=" . join(',', @$tags) . " timed out after $timeout");
         my $failed_screens = $rsp->{failed_screens};
         my $final_mismatch = $failed_screens->[-1];
         if ($check) {
@@ -427,15 +428,15 @@ sub wait_screen_change(&@) {
 
     while (time - $starttime < $timeout) {
         my $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
-        print "waiting for screen change: " . (time - $starttime) . " $sim\n";
+        OpenQA::Log::debug "waiting for screen change: " . (time - $starttime) . " $sim\n";
         if ($sim < $similarity_level) {
-            bmwqemu::fctres("screen change seen at " . (time - $starttime));
+            OpenQA::Log::debug("screen change seen at " . (time - $starttime));
             return 1;
         }
         sleep(0.5);
     }
     save_screenshot;
-    bmwqemu::fctres("timed out");
+    OpenQA::Log::debug("timed out");
     return 0;
 }
 
@@ -493,13 +494,13 @@ sub wait_still_screen {
             query_isotovideo('backend_set_reference_screenshot');
         }
         if (($now->[0] - $lastchangetime->[0]) + ($now->[1] - $lastchangetime->[1]) / 1000000. >= $stilltime) {
-            bmwqemu::fctres("detected same image for $stilltime seconds");
+            OpenQA::Log::debug("detected same image for $stilltime seconds");
             return 1;
         }
         sleep(0.5);
     }
     $autotest::current_test->timeout_screenshot();
-    bmwqemu::fctres("wait_still_screen timed out after $timeout");
+    OpenQA::Log::debug("wait_still_screen timed out after $timeout");
     return 0;
 }
 
@@ -665,7 +666,7 @@ sub wait_serial {
         $matched = 'fail';
     }
     $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string});
-    bmwqemu::fctres("$regexp: $matched");
+    OpenQA::Log::debug("$regexp: $matched");
     return $ret->{string} if ($matched eq "ok");
     return;    # false
 }
@@ -1426,7 +1427,7 @@ sub save_memory_dump {
 
     bmwqemu::log_call();
     OpenQA::Log::debug "If save_memory_dump is called multiple times with the same '\$filename', it will be rewritten."
-     unless ((caller(1))[3]) =~ /post_fail_hook/;
+      unless ((caller(1))[3]) =~ /post_fail_hook/;
     OpenQA::Log::debug("Trying to save machine state");
 
     query_isotovideo('backend_save_memory_dump', $args);
@@ -1623,10 +1624,10 @@ sub wait_idle {
         threshold => get_var('IDLETHRESHOLD', 18)};
     my $rsp = query_isotovideo('backend_wait_idle', $args);
     if ($rsp && $rsp->{idle}) {
-        bmwqemu::fctres("idle detected");
+        OpenQA::Log::debug("idle detected");
     }
     else {
-        bmwqemu::fctres("timed out after $timeout");
+        OpenQA::Log::debug("timed out after $timeout");
     }
     return;
 }
