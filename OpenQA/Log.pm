@@ -2,9 +2,8 @@ package OpenQA::Log;
 use strict;
 use warnings;
 
-use base qw(Exporter);
+use base qw(Exporter Log::Log4perl);
 our @EXPORT = qw(get_logger trace debug info warn error fatal);
-our @ISA    = qw(Log::Log4perl);
 
 use Log::Log4perl qw(:no_extra_logdie_message);
 use Log::Log4perl::Level;
