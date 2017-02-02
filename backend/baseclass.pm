@@ -386,8 +386,8 @@ sub enqueue_screenshot {
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
-        my $encoder_warining = sprintf("Enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
-        OpenQA::Log::warn($encoder_warining);
+        my $encoder_warning = sprintf("Enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
+        OpenQA::Log::warn($encoder_warning);
         # Stopwatch data can be safely handled as a trace message
         OpenQA::Log::trace("\n" . $watch->summary());
     }
