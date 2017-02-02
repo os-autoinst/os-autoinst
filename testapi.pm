@@ -1359,22 +1359,30 @@ sub assert_shutdown {
     $timeout //= 60;
     bmwqemu::log_call(timeout => $timeout);
     $timeout = bmwqemu::scale_timeout($timeout);
-    while ($timeout >= 0) {
-        my $is_shutdown = query_isotovideo('backend_is_shutdown') || 0;
-        if ($is_shutdown < 0) {
-            bmwqemu::diag("Backend does not implement is_shutdown - just sleeping");
-            sleep($timeout);
-        }
-        # -1 counts too
-        if ($is_shutdown) {
-            $autotest::current_test->take_screenshot('ok');
-            return;
-        }
-        sleep 1;
-        --$timeout;
+    if (check_var('BACKEND', 'svirt')) {
+        # Using is_shutdown() in backend causes frequent stalls
+        bmwqemu::diag "svirt backend: 'is_shutdown' not supported, sleep for $timeout seconds";
+        sleep $timeout;
+        return;
     }
-    $autotest::current_test->take_screenshot('fail');
-    croak "Machine didn't shut down!";
+    else {
+        while ($timeout >= 0) {
+            my $is_shutdown = query_isotovideo('backend_is_shutdown') || 0;
+            if ($is_shutdown < 0) {
+                bmwqemu::diag("Backend does not implement is_shutdown - just sleeping");
+                sleep($timeout);
+            }
+            # -1 counts too
+            if ($is_shutdown) {
+                $autotest::current_test->take_screenshot('ok');
+                return;
+            }
+            sleep 1;
+            --$timeout;
+        }
+        $autotest::current_test->take_screenshot('fail');
+        croak "Machine didn't shut down!";
+    }
 }
 
 =head2 eject_cd
