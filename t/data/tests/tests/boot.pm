@@ -23,7 +23,7 @@ sub run {
     assert_screen 'core', 15, no_wait => 1;
     # different variants of parameter selection
     assert_screen 'core', timeout => 60;
-    assert_screen 'core', no_wait => 1;
+    assert_screen 'core', no_wait => 1, abort_on_stall => 1;
     send_key 'ret';
 
     assert_screen 'on_prompt';

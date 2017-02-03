@@ -304,6 +304,9 @@ my $timeout = undef;
 # do not wait for timeout if set
 my $no_wait = undef;
 
+# detect stalls of the system where we are blind during the screen checks
+my $abort_on_stall = undef;
+
 # marks a running check_screen
 our $tags = undef;
 
@@ -329,7 +332,7 @@ sub _calc_check_delta {
 }
 
 sub check_asserted_screen {
-    my ($force_timeout, $no_wait) = @_;
+    my ($force_timeout, $no_wait, $abort_on_stall) = @_;
 
     if ($no_wait) {
         # prevent CPU overload by waiting at least a little bit
@@ -341,7 +344,7 @@ sub check_asserted_screen {
         return if $timeout > 0.05;
     }
     ($last_check_seconds, $last_check_microseconds) = gettimeofday;
-    my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'}) || {};
+    my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen', arguments => {abort_on_stall => $abort_on_stall}}) || {};
     # the test needs that information
     $rsp->{tags} = $tags;
     if ($rsp->{found}) {
@@ -410,7 +413,8 @@ while ($loop) {
         if ($rsp->{cmd} eq 'check_screen') {
             my $mustmatch     = $rsp->{mustmatch};
             my $check_timeout = $rsp->{timeout};
-            $no_wait = $rsp->{no_wait} // 0;
+            $no_wait        = $rsp->{no_wait}        // 0;
+            $abort_on_stall = $rsp->{abort_on_stall} // 0;
 
             $tags = $bmwqemu::backend->_send_json(
                 {
@@ -445,7 +449,7 @@ while ($loop) {
                 $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen'});
                 $needinput = 0;
                 $timeout   = .1;
-                check_asserted_screen(1, $no_wait);
+                check_asserted_screen(1, $no_wait, $abort_on_stall);
             }
             myjsonrpc::send_json($r, {interactive => $interactive});
             next;
@@ -464,14 +468,14 @@ while ($loop) {
             $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen', arguments => {reload_needles => $reload}});
             # that's enough for the webui to know
             myjsonrpc::send_json($r, {ret => 0});
-            check_asserted_screen(1, $no_wait);
+            check_asserted_screen(1, $no_wait, $abort_on_stall);
             next;
         }
         die "Unknown command $rsp->{cmd}";
     }
 
     if (defined $tags && !$needinput) {
-        check_asserted_screen(0, $no_wait);
+        check_asserted_screen(0, $no_wait, $abort_on_stall);
     }
 }
 
