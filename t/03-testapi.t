@@ -26,16 +26,23 @@ sub fake_send_json {
 sub fake_read_json {
     my ($fd) = @_;
     my $lcmd = $cmds->[-1];
-    if ($lcmd->{cmd} eq 'backend_wait_serial') {
+    my $cmd  = $lcmd->{cmd};
+    if ($cmd eq 'backend_wait_serial') {
         my $str = $lcmd->{regexp};
         $str =~ s,\\d\+,$fake_exit,;
         return {ret => {matched => 1, string => $str}};
     }
-    elsif ($lcmd->{cmd} eq 'backend_select_console') {
+    elsif ($cmd eq 'backend_select_console') {
         return {ret => {activated => 0}};
     }
-    elsif ($lcmd->{cmd} eq 'backend_is_serial_terminal') {
+    elsif ($cmd eq 'backend_is_serial_terminal') {
         return {ret => {yesorno => 0}};
+    }
+    elsif ($cmd eq 'check_screen') {
+        return {ret => {found => {needle => 1}}};
+    }
+    else {
+        print "not implemented \$cmd: $cmd\n";
     }
     return {};
 }
@@ -158,6 +165,17 @@ subtest 'script_run' => sub {
     is(script_run('false', 0), undef, 'script_run with no check of success, returns undef when not waiting');
 };
 
-done_testing();
+subtest 'assert_screen' => sub {
+    my $mock_testapi = new Test::MockModule('testapi');
+    $mock_testapi->mock(_handle_found_needle => sub { return $_[0] });
+    stderr_like {
+        is_deeply(assert_screen('foo', 1), {needle => 1}, 'expected and found MATCH reported');
+    }
+    qr/assert_screen(.*timeout=1)/;
+    stderr_like { assert_screen('foo', 3, timeout => 2) } qr/timeout=2/, 'named over positional';
+    stderr_like { assert_screen('foo') } qr/timeout=30/, 'default timeout';
+};
+
+done_testing;
 
 # vim: set sw=4 et:
