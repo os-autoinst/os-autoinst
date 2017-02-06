@@ -41,6 +41,9 @@ sub fake_read_json {
     elsif ($cmd eq 'check_screen') {
         return {ret => {found => {needle => 1}}};
     }
+    elsif ($cmd eq 'backend_mouse_hide') {
+        return {ret => 1};
+    }
     else {
         print "not implemented \$cmd: $cmd\n";
     }
@@ -165,7 +168,7 @@ subtest 'script_run' => sub {
     is(script_run('false', 0), undef, 'script_run with no check of success, returns undef when not waiting');
 };
 
-subtest 'assert_screen' => sub {
+subtest 'check_assert_screen' => sub {
     my $mock_testapi = new Test::MockModule('testapi');
     $mock_testapi->mock(_handle_found_needle => sub { return $_[0] });
     stderr_like {
@@ -174,6 +177,19 @@ subtest 'assert_screen' => sub {
     qr/assert_screen(.*timeout=1)/;
     stderr_like { assert_screen('foo', 3, timeout => 2) } qr/timeout=2/, 'named over positional';
     stderr_like { assert_screen('foo') } qr/timeout=30/, 'default timeout';
+    stderr_like { check_screen('foo') } qr/timeout=30/,  'check_screen with same default timeout';
+    stderr_like { check_screen('foo', 42) } qr/timeout=42/, 'check_screen with timeout variable';
+};
+
+ok(save_screenshot);
+
+is(match_has_tag,        undef, 'match_has_tag on no value -> undef');
+is(match_has_tag('foo'), undef, 'match_has_tag on not matched tag -> undef');
+subtest 'assert_and_click' => sub {
+    my $mock_testapi = new Test::MockModule('testapi');
+    $mock_testapi->mock(assert_screen => sub { return {area => [{x => 1, y => 2, w => 3, h => 4}]}; });
+    ok(assert_and_click('foo'));
+    is_deeply($cmds->[-1], {cmd => 'backend_mouse_hide', offset => 0}, 'assert_and_click succeeds and hides mouse again -> undef return');
 };
 
 done_testing;
