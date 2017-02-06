@@ -301,6 +301,9 @@ my $current_test_name;
 # timeout for the select (only set for check_screens)
 my $timeout = undef;
 
+# do not wait for timeout if set
+my $no_wait = undef;
+
 # marks a running check_screen
 our $tags = undef;
 
@@ -326,11 +329,17 @@ sub _calc_check_delta {
 }
 
 sub check_asserted_screen {
-    my ($force_timeout) = @_;
+    my ($force_timeout, $no_wait) = @_;
 
-    my $delta = _calc_check_delta;
-    # come back later, avoid too often called function
-    return if $timeout > 0.05;
+    if ($no_wait) {
+        # prevent CPU overload by waiting at least a little bit
+        $timeout = 0.1;
+    }
+    else {
+        _calc_check_delta;
+        # come back later, avoid too often called function
+        return if $timeout > 0.05;
+    }
     ($last_check_seconds, $last_check_microseconds) = gettimeofday;
     my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'}) || {};
     # the test needs that information
@@ -354,7 +363,7 @@ sub check_asserted_screen {
         $timeout = undef;
     }
     else {
-        _calc_check_delta;
+        _calc_check_delta unless $no_wait;
     }
 }
 
@@ -399,16 +408,16 @@ while ($loop) {
             next;
         }
         if ($rsp->{cmd} eq 'check_screen') {
-            my $mustmatch = $rsp->{mustmatch};
-            my $timeout   = $rsp->{timeout};
-            my $check     = $rsp->{check};
+            my $mustmatch     = $rsp->{mustmatch};
+            my $check_timeout = $rsp->{timeout};
+            $no_wait = $rsp->{no_wait} // 0;
 
             $tags = $bmwqemu::backend->_send_json(
                 {
                     cmd       => 'set_tags_to_assert',
                     arguments => {
                         mustmatch => $mustmatch,
-                        timeout   => $timeout
+                        timeout   => $check_timeout
                     }})->{tags};
             next;
         }
@@ -436,7 +445,7 @@ while ($loop) {
                 $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen'});
                 $needinput = 0;
                 $timeout   = .1;
-                check_asserted_screen(1);
+                check_asserted_screen(1, $no_wait);
             }
             myjsonrpc::send_json($r, {interactive => $interactive});
             next;
@@ -455,14 +464,14 @@ while ($loop) {
             $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen', arguments => {reload_needles => $reload}});
             # that's enough for the webui to know
             myjsonrpc::send_json($r, {ret => 0});
-            check_asserted_screen(1);
+            check_asserted_screen(1, $no_wait);
             next;
         }
         die "Unknown command $rsp->{cmd}";
     }
 
     if (defined $tags && !$needinput) {
-        check_asserted_screen;
+        check_asserted_screen(0, $no_wait);
     }
 }
 

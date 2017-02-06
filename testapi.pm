@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2016 SUSE LLC
+# Copyright © 2012-2017 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -87,6 +87,8 @@ sub type_password;
 
 
 =head1 introduction
+
+=for stopwords os autoinst isotovideo openQA
 
 This test API module provides methods exposed by the os-autoinst backend to be
 used within tests.
@@ -244,19 +246,19 @@ sub _check_backend_response {
 }
 
 sub _check_or_assert {
-    my ($mustmatch, $timeout, $check) = @_;
-    $timeout = bmwqemu::scale_timeout($timeout);
+    my ($mustmatch, $check, %args) = @_;
+    $args{timeout} = bmwqemu::scale_timeout($args{timeout});
 
     die "current_test undefined" unless $autotest::current_test;
 
-    my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, timeout => $timeout, check => $check});
-    # seperate function because it needs to call itself
-    return _check_backend_response($rsp, $check, $timeout, $mustmatch);
+    my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, check => $check, timeout => $args{timeout}, no_wait => $args{no_wait}});
+    # separate function because it needs to call itself
+    return _check_backend_response($rsp, $check, $args{timeout}, $mustmatch, $args{no_wait});
 }
 
 =head2 assert_screen
 
-  assert_screen($mustmatch [,$timeout]);
+  assert_screen($mustmatch [, [$timeout] | [timeout => $timeout]] [, no_wait => $no_wait]);
 
 Wait for needle with tag C<$mustmatch> to appear on SUT screen. C<$mustmatch>
 can be string or C<ARRAYREF> of string (C<['tag1', 'tag2']>). The maximum
@@ -264,7 +266,12 @@ waiting time is defined by C<$timeout>. It is recommended to use a value lower
 than the default timeout only when explicitly needed. C<assert_screen> is not
 very suitable for checking performance expectations. Under the normal
 circumstance of the screen being shown this does not imply a longer waiting
-time as the method returns as soon as a successful needle match occured.
+time as the method returns as soon as a successful needle match occurred.
+
+Specify C<$no_wait> to run the screen check as fast as possible that is
+possibly more than once per second which is default. Select this to check a
+screen which can change in a range faster than 1-2 seconds not to miss the
+screen to check for.
 
 Returns matched needle or throws C<NeedleFailed> exception if $timeout timeout
 is hit. Default timeout is 30s.
@@ -272,15 +279,17 @@ is hit. Default timeout is 30s.
 =cut
 
 sub assert_screen {
-    my ($mustmatch, $timeout) = @_;
-    $timeout //= $bmwqemu::default_timeout;
-    bmwqemu::log_call(mustmatch => $mustmatch, timeout => $timeout);
-    return _check_or_assert($mustmatch, $timeout, 0);
+    my ($mustmatch) = shift;
+    my $timeout;
+    $timeout = shift if (@_ % 2);
+    my %args = (timeout => $timeout // $bmwqemu::default_timeout, @_);
+    bmwqemu::log_call(mustmatch => $mustmatch, %args);
+    return _check_or_assert($mustmatch, 0, %args);
 }
 
 =head2 check_screen
 
-  check_screen($mustmatch [,$timeout]);
+  check_screen($mustmatch [, [$timeout] | [timeout => $timeout]] [, no_wait => $no_wait]);
 
 Similar to C<assert_screen> but does not throw exceptions. Use this for optional matches.
 Check C<assert_screen> for parameters.
@@ -298,10 +307,12 @@ Returns matched needle or C<undef> if timeout is hit. Default timeout is 30s.
 =cut
 
 sub check_screen {
-    my ($mustmatch, $timeout) = @_;
-    $timeout //= $bmwqemu::default_timeout;
-    bmwqemu::log_call(mustmatch => $mustmatch, timeout => $timeout);
-    return _check_or_assert($mustmatch, $timeout, 1);
+    my ($mustmatch) = shift;
+    my $timeout;
+    $timeout = shift if (@_ % 2);
+    my %args = (timeout => $timeout // $bmwqemu::default_timeout, @_);
+    bmwqemu::log_call(mustmatch => $mustmatch, %args);
+    return _check_or_assert($mustmatch, 1, %args);
 }
 
 =head2 match_has_tag
@@ -449,7 +460,7 @@ sub assert_screen_change(&@) {
 
 =for stopwords stilltime
 
-  wait_still_screen([$stilltime_sec [, $timeout_sec [, $similarity_level]]]);
+  wait_still_screen([$stilltime_sec [, $timeout [, $similarity_level]]]);
 
 Wait until the screen stops changing.
 
@@ -579,6 +590,7 @@ sub check_var_array {
 
 =head1 script execution helpers
 
+=for stopwords os-autoinst autoinst isotovideo VNC
 
 =head2 is_serial_terminal
 
@@ -587,7 +599,7 @@ sub check_var_array {
 Determines if communication with the guest is being performed purely over a
 serial port. When true, the guest should have a tty attached to a serial port
 and os-autoinst sends commands to it as text. This differs from when a text
-console is selected in the guest, but VNC is being used to simulate keypresses.
+console is selected in the guest, but VNC is being used to simulate key presses.
 
 When a serial terminal is selected you will not be able to use functions which
 rely on needles. This sub is not exported by default as most tests I<will not
@@ -774,7 +786,7 @@ sub assert_script_sudo {
   script_sudo($program [, $wait]);
 
 Run C<$program> using sudo. Handle the sudo timeout and send password when appropriate.
-C<$wait_seconds> defaults to 2 seconds.
+C<$wait> defaults to 2 seconds.
 
 I<The implementation is distribution specific and not always available.>
 
@@ -1286,6 +1298,8 @@ sub reset_consoles {
 
 =head1 audio support
 
+=for stopwords qemu
+
 =head2 start_audiocapture
 
   start_audiocapture;
@@ -1450,9 +1464,10 @@ sub save_storage_drives {
 
   freeze_vm;
 
-If the backend supports it, freeze the vm. This will allow the vm to be
-paused/frozen within the test, but only from the post_fail_hook. So that memory
-and disk dumps can be extracted without any risk of data changing.
+If the backend supports it, freeze the virtual machine. This will allow the
+virtual machine to be paused/frozen within the test, but only from the
+post_fail_hook. So that memory and disk dumps can be extracted without any
+risk of data changing.
 
 Call this method to ensure memory and disk dump refer to the same machine state.
 
@@ -1472,8 +1487,8 @@ sub freeze_vm {
 
   resume_vm;
 
-If the backend supports it, resume the vm.
-Call this method to start vm CPU explicitly if DELAYED_START is set.
+If the backend supports it, resume the virtual machine. Call this method to
+start virtual machine CPU explicitly if DELAYED_START is set.
 
 I<Currently only qemu backend is supported.>
 
@@ -1727,6 +1742,8 @@ sub upload_logs {
 
 =head2 upload_asset
 
+=for stopwords svirt
+
   upload_asset $file [,$public[,$nocheck]];
 
 Uploads C<$file> as asset to OpenQA WebUI
@@ -1743,7 +1760,7 @@ replacing previous assets - useful for external users:
 If you just want to upload a file and verify that it was uploaded
 correctly on your own (e.g. in svirt console we don't have a serial
 line and can't rely on assert_script_run check), add an optional
-'nocheck' parameter:
+C<$nocheck> parameter:
 
     upload_asset '/tmp/suse.ps', 1, 1;
 
