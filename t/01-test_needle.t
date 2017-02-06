@@ -9,6 +9,7 @@ use File::Basename;
 use File::Path 'make_path';
 use File::Temp 'tempdir';
 
+
 # optional but very useful
 eval 'use Test::More::Color';                 ## no critic
 eval 'use Test::More::Color "foreground"';    ## no critic
@@ -20,11 +21,17 @@ BEGIN {
     $bmwqemu::vars{PRJDIR}  = dirname(__FILE__);
 }
 
+
+
 use needle;
 use cv;
 
 cv::init();
 require tinycv;
+
+use OpenQA::Log;
+$OpenQA::Log::configuration = dirname(__FILE__).'/data/';
+OpenQA::Log::setup();
 
 my ($res, $needle, $img1, $cand);
 
@@ -38,8 +45,9 @@ is($needle->has_tag('foobar'),        0, "tag not found");
 
 is($needle->has_property('glossy'), 1, "property found");
 is($needle->has_property('dull'),   0, "property not found");
-
+print "Here";
 $res = $img1->search($needle);
+print "There";
 
 ok(defined $res, "match with exclude area");
 

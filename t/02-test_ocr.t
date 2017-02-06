@@ -16,6 +16,11 @@ use needle;
 use cv;
 use ocr;
 
+
+use OpenQA::Log;
+$OpenQA::Log::configuration = dirname(__FILE__).'/data/';
+OpenQA::Log::setup();
+
 cv::init();
 require tinycv;
 

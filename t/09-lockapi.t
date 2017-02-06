@@ -4,12 +4,19 @@ use strict;
 use warnings;
 use Test::More;
 use Test::MockModule;
+use File::Basename;
+
 
 BEGIN {
     unshift @INC, '..';
 }
 
 use lockapi;
+
+
+use OpenQA::Log;
+$OpenQA::Log::configuration = dirname(__FILE__).'/data/';
+OpenQA::Log::setup();
 
 # mock api_call return value
 my $api_call_return;

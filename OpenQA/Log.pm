@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use base qw(Exporter Log::Log4perl);
-our @EXPORT = qw(get_logger trace debug info warn error fatal);
+our @EXPORT = qw(get_logger trace debug info warn error fatal die);
 
 use Log::Log4perl qw(:no_extra_logdie_message);
 use Log::Log4perl::Level;
@@ -14,7 +14,7 @@ our $configuration;
 sub setup {
 
     unless (Log::Log4perl->initialized) {
-        Log::Log4perl->init($configuration . "/etc/os-autoinst/log4perl.conf");
+        Log::Log4perl->init($configuration . "log4perl.conf");
         $Log::Log4perl::caller_depth = 1;
         $logger                      = Log::Log4perl->get_logger(__PACKAGE__);
         warn("Hardcoded line $configuration/etc/os-autoinst/log4perl.conf");
