@@ -275,7 +275,6 @@ sub pp {
 
 sub log_call {
     my $fname = (caller(1))[3];
-    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 2;
     update_line_number();
     my @result;
     while (my ($key, $value) = splice(@_, 0, 2)) {
