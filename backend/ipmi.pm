@@ -60,8 +60,8 @@ sub ipmitool {
 
     $self->dell_sleep;
 
-    OpenQA::Log::die join(' ', @cmd) . ": $stderr" unless ($ret);
-    OpenQA::Log::debug("IPMI: $stdout");
+    die join(' ', @cmd) . ": $stderr" unless ($ret);
+    debug("IPMI: $stdout");
     return $stdout;
 }
 
@@ -164,7 +164,7 @@ sub start_serial_grab {
         push(@cmd, qw(-W nochecksumcheck));
 
         exec(@cmd);
-        OpenQA::Log::die "exec failed $!";
+        die "exec failed $!";
     }
     return;
 }

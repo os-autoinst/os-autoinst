@@ -15,8 +15,8 @@ use lockapi;
 
 
 use OpenQA::Log;
-$OpenQA::Log::configuration = dirname(__FILE__).'/data/';
-OpenQA::Log::setup();
+$configuration = dirname(__FILE__).'/data/';
+setup();
 
 # mock api_call return value
 my $api_call_return;

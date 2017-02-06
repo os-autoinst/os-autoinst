@@ -30,8 +30,8 @@ cv::init();
 require tinycv;
 
 use OpenQA::Log;
-$OpenQA::Log::configuration = dirname(__FILE__).'/data/';
-OpenQA::Log::setup();
+$configuration = dirname(__FILE__).'/data/';
+setup();
 
 my ($res, $needle, $img1, $cand);
 

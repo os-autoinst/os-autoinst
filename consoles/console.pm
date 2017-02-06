@@ -47,7 +47,7 @@ sub reset {
 
 sub screen {
     my ($self) = @_;
-    OpenQA::Log::die "screen needs to be implemented in subclasses - $self->{class} does not\n";
+    die "screen needs to be implemented in subclasses - $self->{class} does not\n";
     return;
 }
 

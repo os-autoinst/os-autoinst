@@ -105,15 +105,15 @@ sub kill_qemu {
 
     # already gone?
     my $ret = waitpid($pid, WNOHANG);
-    OpenQA::Log::trace "waitpid for $pid returned $ret";
+    trace "waitpid for $pid returned $ret";
     return if ($ret == $pid || $ret == -1);
 
-    OpenQA::Log::info "sending TERM to qemu pid: $pid";
+    info "sending TERM to qemu pid: $pid";
     kill('TERM', $pid);
     for my $i (1 .. 5) {
         sleep 1;
         $ret = waitpid($pid, WNOHANG);
-        OpenQA::Log::trace "waitpid for $pid returned $ret";
+        trace "waitpid for $pid returned $ret";
         last if ($ret == $pid);
     }
     unless ($ret == $pid) {
@@ -123,11 +123,11 @@ sub kill_qemu {
     }
 
     for my $pid (@{$self->{children}}) {
-        OpenQA::Log::debug("killing child $pid");
+        debug("killing child $pid");
         kill('TERM', $pid);
         for my $i (1 .. 5) {
             $ret = waitpid($pid, WNOHANG);
-            OpenQA::Log::trace "waitpid for $pid returned $ret";
+            trace "waitpid for $pid returned $ret";
             last if ($ret == $pid);
             sleep 1;
         }
@@ -156,7 +156,7 @@ sub save_memory_dump {
     my ($self, $args) = @_;
     my $rsp = 0;
 
-    OpenQA::Log::debug("Migrating the machine.");
+    debug("Migrating the machine.");
 
     mkpath("ulogs");
 
@@ -167,7 +167,7 @@ sub save_memory_dump {
                 uri => sprintf("exec:gzip -c > ulogs/%s-vm-memory-dump.gz", $args->{filename}),
             }});
 
-    OpenQA::Log::die(sprintf("Migration failed: desc: %s, class: %s, stopped", $rsp->{error}->{desc}, $rsp->{error}->{class})) if ($rsp->{error});
+    die(sprintf("Migration failed: desc: %s, class: %s, stopped", $rsp->{error}->{desc}, $rsp->{error}->{class})) if ($rsp->{error});
 
     do {
 
@@ -175,19 +175,19 @@ sub save_memory_dump {
                       # migrated in about 40secs with an ssd drive. and no heavy load.
         $rsp = $self->handle_qmp_command({execute => "query-migrate"});
 
-        OpenQA::Log::trace "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
-        OpenQA::Log::trace "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
+        trace "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
+        trace "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
 
     } until ($rsp->{return}->{status} eq "completed");
 
-    OpenQA::Log::debug "Migration completed.";
+    debug "Migration completed.";
     return;
 }
 
 sub save_storage_drives {
     my ($self, $args) = @_;
 
-    OpenQA::Log::debug "Attemping to extract disk #%d.", $args->{disk};
+    debug "Attemping to extract disk #%d.", $args->{disk};
 
     $self->do_extract_assets(
         {
@@ -197,7 +197,7 @@ sub save_storage_drives {
             format  => "qcow2"
         });
 
-    OpenQA::Log::debug "Sucessfully extracted disk #%d.", $args->{disk};
+    debug "Sucessfully extracted disk #%d.", $args->{disk};
     return;
 }
 
@@ -205,8 +205,8 @@ sub save_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("savevm $vmname");
-    OpenQA::Log::debug "SAVED $vmname $rsp";
-    OpenQA::Log::die "Could not save snapshot \'$vmname\'" unless ($rsp eq "savevm $vmname");
+    debug "SAVED $vmname $rsp";
+    die "Could not save snapshot \'$vmname\'" unless ($rsp eq "savevm $vmname");
     return;
 }
 
@@ -214,7 +214,7 @@ sub load_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("loadvm $vmname");
-    OpenQA::Log::die "Could not load snapshot \'$vmname\'" unless ($rsp eq "loadvm $vmname");
+    die "Could not load snapshot \'$vmname\'" unless ($rsp eq "loadvm $vmname");
     $rsp = $self->handle_qmp_command({execute => 'stop'});
     $rsp = $self->handle_qmp_command({execute => 'cont'});
     sleep(10);
@@ -222,7 +222,7 @@ sub load_snapshot {
 }
 
 sub runcmd {
-    OpenQA::Log::debug "running " . join(' ', @_);
+    debug "running " . join(' ', @_);
     local $SIG{CHLD} = 'IGNORE';
     return CORE::system(@_);
 }
@@ -234,10 +234,10 @@ sub do_extract_assets {
     my $img_dir = $args->{dir};
     my $format  = $args->{format};
     if (!$format || $format !~ /^(raw|qcow2)$/) {
-        OpenQA::Log::debug "do_extract_assets: only raw and qcow2 formats supported $name $format";
+        debug "do_extract_assets: only raw and qcow2 formats supported $name $format";
     }
     elsif (-f "raid/l$hdd_num") {
-        OpenQA::Log::debug "preparing hdd $hdd_num for upload as $name in $format";
+        debug "preparing hdd $hdd_num for upload as $name in $format";
         mkpath($img_dir);
         my @cmd = ('nice', 'ionice', 'qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name");
         if ($format eq 'raw') {
@@ -255,7 +255,7 @@ sub do_extract_assets {
         }
     }
     else {
-        OpenQA::Log::debug "do_extract_assets: hdd $hdd_num does not exist";
+        debug "do_extract_assets: hdd $hdd_num does not exist";
     }
 }
 
@@ -281,7 +281,7 @@ sub start_qemu {
             $qemubin = $bin;
             last;
         }
-        OpenQA::Log::die "no Qemu/KVM found\n" unless $qemubin;
+        die "no Qemu/KVM found\n" unless $qemubin;
     }
 
     if ($vars->{UEFI}) {
@@ -299,7 +299,7 @@ sub start_qemu {
             $vars->{$attribute} = '/usr/share/qemu/' . $vars->{$attribute};
         }
         if ($vars->{$attribute} && !-e $vars->{$attribute}) {
-            OpenQA::Log::die "'$vars->{$attribute}' missing, check $attribute\n";
+            die "'$vars->{$attribute}' missing, check $attribute\n";
         }
     }
 
@@ -312,16 +312,16 @@ sub start_qemu {
         }
         if (!$vars->{BIOS}) {
             # We know this won't go well.
-            OpenQA::Log::die "No UEFI firmware can be found! Please specify BIOS or UEFI_BIOS or install an appropriate package";
+            die "No UEFI firmware can be found! Please specify BIOS or UEFI_BIOS or install an appropriate package";
         }
     }
 
     if ($vars->{LAPTOP}) {
         if ($vars->{LAPTOP} =~ /\/|\.\./) {
-            OpenQA::Log::die "invalid characters in LAPTOP\n";
+            die "invalid characters in LAPTOP\n";
         }
         $vars->{LAPTOP} = 'dell_e6330' if $vars->{LAPTOP} eq '1';
-        OpenQA::Log::die "no dmi data for '$vars->{LAPTOP}'\n" unless -d "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
+        die "no dmi data for '$vars->{LAPTOP}'\n" unless -d "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
     }
 
     my $bootfrom = '';    # branch by "disk" or "cdrom", not "c" or "d"
@@ -339,7 +339,7 @@ sub start_qemu {
             $vars->{BOOTFROM} = 'c';
         }
         else {
-            OpenQA::Log::die "unknown/unsupported boot order: $bootfrom_var";
+            die "unknown/unsupported boot order: $bootfrom_var";
         }
     }
 
@@ -465,15 +465,15 @@ sub start_qemu {
         if ($vars->{VDE_USE_SLIRP}) {
             # TODO: move infrastructure to fork and monitor children to baseclass
             my $pid = fork();
-            OpenQA::Log::die "fork failed" unless defined($pid);
+            die "fork failed" unless defined($pid);
 
             my @cmd = ('slirpvde', '--dhcp', '-s', "$vars->{VDE_SOCKETDIR}/vde.ctl", '--port', $port + 1);
             if ($pid == 0) {
                 $SIG{__DIE__} = undef;    # overwrite the default - just exit
                 exec(@cmd);
-                OpenQA::Log::die "failed to exec slirpvde";
+                die "failed to exec slirpvde";
             }
-            OpenQA::Log::debug join(' ', @cmd) . " started with pid $pid";
+            debug join(' ', @cmd) . " started with pid $pid";
             push @{$self->{children}}, $pid;
             runcmd('vdecmd', '-s', $mgmtsocket, 'port/setvlan', $port + 1, $vlan) if $vlan;
         }
@@ -492,7 +492,7 @@ sub start_qemu {
         no autodie 'unlink';
         unlink("$basedir/l$i");
         if (-e "$basedir/$i.lvm") {
-            symlink("$i.lvm", "$basedir/l$i") or OpenQA::Log::die "$!\n";
+            symlink("$i.lvm", "$basedir/l$i") or die "$!\n";
             runcmd("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1");    # for LVM
         }
         elsif ($vars->{"HDD_$i"}) {
@@ -501,7 +501,7 @@ sub start_qemu {
             # HDD_$i specific size
             @sizeopt = ($vars->{"HDDSIZEGB_$i"} . "G") if $vars->{"HDDSIZEGB_$i"};
             runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"}, @sizeopt);
-            symlink($i, "$basedir/l$i") or OpenQA::Log::die "$!\n";
+            symlink($i, "$basedir/l$i") or die "$!\n";
         }
         else {
             # default: generic hdd size
@@ -509,7 +509,7 @@ sub start_qemu {
             # HDD_$i specific size
             @sizeopt = ($vars->{"HDDSIZEGB_$i"} . "G") if $vars->{"HDDSIZEGB_$i"};
             runcmd($qemuimg, "create", "$basedir/$i", "-f", $vars->{HDDFORMAT}, @sizeopt);
-            symlink($i, "$basedir/l$i") or OpenQA::Log::die "$!\n";
+            symlink($i, "$basedir/l$i") or die "$!\n";
         }
     }
 
@@ -522,12 +522,12 @@ sub start_qemu {
     for my $i (1 .. 4) {    # create missing symlinks
         next if -e "$basedir/l$i";
         next unless -e "$basedir/$i";
-        symlink($i, "$basedir/l$i") or OpenQA::Log::die "$!\n";
+        symlink($i, "$basedir/l$i") or die "$!\n";
     }
 
     pipe(my $reader, my $writer);
     my $pid = fork();
-    OpenQA::Log::die "fork failed" unless defined($pid);
+    die "fork failed" unless defined($pid);
     if ($pid == 0) {
         $SIG{__DIE__} = undef;    # overwrite the default - just exit
         my @params = ("-serial", "file:serial0", "-soundhw", "ac97");
@@ -560,7 +560,7 @@ sub start_qemu {
                 push(@params, '-netdev', "vde,id=qanet0,sock=$vars->{VDE_SOCKETDIR}/vde.ctl,port=$vars->{VDE_PORT}");
             }
             else {
-                OpenQA::Log::die "unknown NICTYPE $vars->{NICTYPE}\n";
+                die "unknown NICTYPE $vars->{NICTYPE}\n";
             }
             push(@params, '-device', "$vars->{NICMODEL},netdev=qanet$i,mac=$nicmac[$i]");
         }
@@ -673,7 +673,7 @@ sub start_qemu {
         }
         if ($vars->{MULTINET}) {
             if ($vars->{NICTYPE} eq "tap") {
-                OpenQA::Log::die "MULTINET is not supported with NICTYPE==tap\n";
+                die "MULTINET is not supported with NICTYPE==tap\n";
             }
             push(@params, ('-net', "nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57", '-net', 'none,vlan=1'));
         }
@@ -746,8 +746,8 @@ sub start_qemu {
             push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
         }
         # We are using system somwhere else, why not here too?
-        OpenQA::Log::info(`$qemubin -version`);
-        OpenQA::Log::info("starting: " . join(" ", @params));
+        info(`$qemubin -version`);
+        info("starting: " . join(" ", @params));
 
         # don't try to talk to the host's PA
         $ENV{QEMU_AUDIO_DRV} = "none";
@@ -757,7 +757,7 @@ sub start_qemu {
         open(STDERR, ">&", $writer);
         close($reader);
         exec(@params);
-        OpenQA::Log::die("failed to exec qemu");
+        die("failed to exec qemu");
     }
     else {
         $self->{pid} = $pid;
@@ -782,38 +782,38 @@ sub start_qemu {
         Type     => IO::Socket::UNIX::SOCK_STREAM,
         Peer     => "hmp_socket",
         Blocking => 0
-    ) or OpenQA::Log::die "can't open hmp";
+    ) or die "can't open hmp";
 
     $self->{hmpsocket}->autoflush(1);
     binmode $self->{hmpsocket};
-    my $flags = fcntl($self->{hmpsocket}, Fcntl::F_GETFL, 0) or OpenQA::Log::die "can't getfl(): $!\n";
-    $flags = fcntl($self->{hmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or OpenQA::Log::die "can't setfl(): $!\n";
+    my $flags = fcntl($self->{hmpsocket}, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
+    $flags = fcntl($self->{hmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
     $self->{qmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
         Peer     => "qmp_socket",
         Blocking => 0
-    ) or OpenQA::Log::die "can't open qmp: $!";
+    ) or die "can't open qmp: $!";
 
     $self->{qmpsocket}->autoflush(1);
     binmode $self->{qmpsocket};
-    $flags = fcntl($self->{qmpsocket}, Fcntl::F_GETFL, 0) or OpenQA::Log::die "can't getfl(): $!\n";
-    $flags = fcntl($self->{qmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or OpenQA::Log::die "can't setfl(): $!\n";
+    $flags = fcntl($self->{qmpsocket}, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
+    $flags = fcntl($self->{qmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
-    OpenQA::Log::debug(sprintf("hmpsocket %d, qmpsocket %d", fileno($self->{hmpsocket}), fileno($self->{qmpsocket})));
+    debug(sprintf("hmpsocket %d, qmpsocket %d", fileno($self->{hmpsocket}), fileno($self->{qmpsocket})));
 
-    fcntl($self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or OpenQA::Log::die "can't setfl(): $!\n";
+    fcntl($self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
     # retrieve welcome
     my $line = $self->_read_hmp;
-    OpenQA::Log::info "WELCOME $line\n";
+    info "WELCOME $line\n";
 
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
     if (0) {
         # TODO: Why is this here? that 0 means always false.
         $hash = $self->handle_qmp_command({execute => 'query-commands'});
-        OpenQA::Log::die "no commands!" unless ($hash);
+        die "no commands!" unless ($hash);
         print "COMMANDS " . JSON::to_json($hash, {pretty => 1}) . "\n";
     }
 
@@ -824,7 +824,7 @@ sub start_qemu {
 
     if ($vars->{NICTYPE} eq "tap") {
         eval {
-            # do not OpenQA::Log::die on unconfigured service
+            # do not die on unconfigured service
             local $SIG{__DIE__};
 
             my $bus     = Net::DBus->system;
@@ -836,16 +836,16 @@ sub start_qemu {
             }
         };
         if ($@) {
-            OpenQA::Log::warn("$@\n");
-            OpenQA::Log::warn("Can't switch NICVLAN number, independent tests may be running on the same network.");
+            warn("$@\n");
+            warn("Can't switch NICVLAN number, independent tests may be running on the same network.");
         }
     }
 
     if ($bmwqemu::vars{DELAYED_START}) {
-        OpenQA::Log::warn "DELAYED_START set, not starting CPU, waiting for resume_vm() call\n";
+        warn "DELAYED_START set, not starting CPU, waiting for resume_vm() call\n";
     }
     else {
-        OpenQA::Log::info "Start CPU\n";
+        info "Start CPU\n";
         $self->handle_qmp_command({execute => 'cont'});
     }
 
@@ -860,7 +860,7 @@ sub _read_hmp {
     $s->add($self->{hmpsocket});
 
     # the timeout is actually pretty insane, but savevm is quite
-    # heavy on IO and after this timeout we OpenQA::Log::die anyway, so if we
+    # heavy on IO and after this timeout we die anyway, so if we
     # waited one minute or 5 doesn't really matter
     while (my @ready = $s->can_read(300)) {
         my $buffer;
@@ -902,7 +902,7 @@ sub _read_hmp {
     }
 
     backend::baseclass::write_crash_file;
-    OpenQA::Log::die "ERROR: timeout reading hmp socket\n";
+    die "ERROR: timeout reading hmp socket\n";
 }
 
 # runs in the thread to bounce QMP
@@ -912,13 +912,13 @@ sub handle_qmp_command {
 
     my $line = JSON::to_json($cmd);
     my $wb = syswrite($self->{qmpsocket}, "$line\n");
-    OpenQA::Log::die "syswrite failed $!" unless ($wb == length($line) + 1);
+    die "syswrite failed $!" unless ($wb == length($line) + 1);
 
     my $hash;
     while (!$hash) {
         $hash = myjsonrpc::read_json($self->{qmpsocket});
         if ($hash->{event}) {
-            OpenQA::Log::debug("EVENT " . JSON::to_json($hash));
+            debug("EVENT " . JSON::to_json($hash));
             # ignore
             $hash = undef;
         }
@@ -933,9 +933,9 @@ sub read_qemupipe {
     my $bytes = sysread($self->{qemupipe}, $buffer, 1000);
     chomp $buffer;
     for my $line (split(/\n/, $buffer)) {
-        OpenQA::Log::debug "QEMU: $line";
+        debug "QEMU: $line";
         # TODO: Cause of death poo#12250
-        OpenQA::Log::die "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
+        die "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
     }
     return $bytes;
 }
@@ -954,11 +954,11 @@ sub close_pipes {
     }
 
     if ($self->{qmpsocket}) {
-        close($self->{qmpsocket}) || OpenQA::Log::die "close $!\n";
+        close($self->{qmpsocket}) || die "close $!\n";
         $self->{qmpsocket} = undef;
     }
     if ($self->{hmpsocket}) {
-        close($self->{hmpsocket}) || OpenQA::Log::die "close $!\n";
+        close($self->{hmpsocket}) || die "close $!\n";
         $self->{hmpsocket} = undef;
     }
     $self->SUPER::close_pipes();
@@ -969,7 +969,7 @@ sub _send_hmp {
 
     my $wb = syswrite($self->{hmpsocket}, "$hmp\n");
 
-    OpenQA::Log::die "syswrite failed $!" unless ($wb == length($hmp) + 1);
+    die "syswrite failed $!" unless ($wb == length($hmp) + 1);
 
     return $self->_read_hmp;
 }
@@ -1016,7 +1016,7 @@ sub wait_idle {
         $stat += $systemstat;
         if ($prev) {
             my $diff = $stat - $prev;
-            OpenQA::Log::debug("wait_idle $timesidle d=$diff");
+            debug("wait_idle $timesidle d=$diff");
             if ($diff < $idlethreshold) {
                 if (++$timesidle > $timesidleneeded) {    # idle for $x sec
                                                           #if($diff<2000000) # idle for one sec

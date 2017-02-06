@@ -232,7 +232,7 @@ sub read_until {
     }
 
     my $elapsed = get_elapsed($sttime);
-    OpenQA::Log::info("Matched output from SUT in $loops loops & $elapsed seconds: $match");
+    info("Matched output from SUT in $loops loops & $elapsed seconds: $match");
 
     $overflow ||= '';
     if ($nargs{exclude_match}) {

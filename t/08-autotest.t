@@ -15,8 +15,8 @@ BEGIN {
 
 
 use OpenQA::Log;
-$OpenQA::Log::configuration = dirname(__FILE__).'/data/';
-OpenQA::Log::setup();
+$configuration = dirname(__FILE__).'/data/';
+setup();
 
 use autotest;
 use bmwqemu;

@@ -36,11 +36,11 @@ sub loadtest {
     my $casedir = $bmwqemu::vars{CASEDIR};
 
     unless (-f join('/', $casedir, $script)) {
-        OpenQA::Log::warn "loadtest needs a script below $casedir - $script is not\n";
+        warn "loadtest needs a script below $casedir - $script is not\n";
         $script = File::Spec->abs2rel($script, $bmwqemu::vars{CASEDIR});
     }
     unless ($script =~ m,(\w+)/([^/]+)\.pm$,) {
-        OpenQA::Log::die "loadtest needs a script to match \\w+/[^/]+.pm\n";
+        die "loadtest needs a script to match \\w+/[^/]+.pm\n";
     }
     my $category = $1;
     my $name     = $2;
@@ -56,7 +56,7 @@ sub loadtest {
     eval $code;    ## no critic
     if ($@) {
         my $msg = "error on $script: $@";
-        OpenQA::Log::die($msg);
+        die($msg);
     }
     $test             = $name->new($category);
     $test->{script}   = $script;
@@ -65,13 +65,13 @@ sub loadtest {
     while (exists $tests{$fullname . $nr}) {
         # to all perl hardcore hackers: fuck off!
         $nr = $nr eq '' ? 1 : $nr + 1;
-        OpenQA::Log::warn($fullname . ' already scheduled');
+        warn($fullname . ' already scheduled');
     }
     $tests{$fullname . $nr} = $test;
 
     return unless $test->is_applicable;
     push @testorder, $test;
-    OpenQA::Log::info("scheduling $name$nr $script");
+    info("scheduling $name$nr $script");
 }
 
 our $current_test;
@@ -99,13 +99,13 @@ sub write_test_order {
 
 sub make_snapshot {
     my ($sname) = @_;
-    OpenQA::Log::debug("Creating a VM snapshot $sname");
+    debug("Creating a VM snapshot $sname");
     return query_isotovideo('backend_save_snapshot', {name => $sname});
 }
 
 sub load_snapshot {
     my ($sname) = @_;
-    OpenQA::Log::debug("Loading a VM snapshot $sname");
+    debug("Loading a VM snapshot $sname");
     return query_isotovideo('backend_load_snapshot', {name => $sname});
 }
 
@@ -155,7 +155,7 @@ sub start_process {
     if (!$line) {
         _exit(0);
     }
-    OpenQA::Log::debug "GOT $line";
+    debug "GOT $line";
     # the backend process might have added some defaults for the backend
     bmwqemu::load_vars();
 
@@ -167,10 +167,10 @@ sub start_process {
 sub prestart_hook {
     # run prestart test code before VM is started
     if (-f "$bmwqemu::vars{CASEDIR}/prestart.pm") {
-        OpenQA::Log::debug "running prestart step";
+        debug "running prestart step";
         eval { require $bmwqemu::vars{CASEDIR} . "/prestart.pm"; };
         if ($@) {
-            OpenQA::Log::die "prestart step FAIL:" . $@;
+            die "prestart step FAIL:" . $@;
         }
     }
 }
@@ -179,10 +179,10 @@ sub prestart_hook {
 sub postrun_hook {
     # run postrun test code after VM is stopped
     if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
-        OpenQA::Log::debug "running postrun step";
+        debug "running postrun step";
         eval { require "$bmwqemu::vars{CASEDIR}/postrun.pm"; };    ## no critic
         if ($@) {
-            OpenQA::Log::warn "postrun step FAIL:" . $@;
+            warn "postrun step FAIL:" . $@;
         }
     }
 }
@@ -209,7 +209,7 @@ sub runalltests {
     my $firsttest           = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded            = 0;
     my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
-    OpenQA::Log::info "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
+    info "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
 
     write_test_order();
 
@@ -245,7 +245,7 @@ sub runalltests {
                 my $msg = $@;
                 if ($msg !~ /^test.*died/) {
                     # avoid duplicating the message
-                    OpenQA::Log::debug $msg;
+                    debug $msg;
                 }
                 if ($flags->{fatal} || !$snapshots_supported || $bmwqemu::vars{TESTDEBUG}) {
                     bmwqemu::stop_vm();
@@ -266,7 +266,7 @@ sub runalltests {
             }
         }
         else {
-            OpenQA::Log::warn "skipping $fullname";
+            warn "skipping $fullname";
             $t->skip_if_not_running();
             $t->save_test_result();
         }

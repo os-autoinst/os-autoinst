@@ -31,7 +31,7 @@ sub fullscreen {
     my $window_name = $args->{window_name};
 
     my $xdotool = which "xdotool";
-    OpenQA::Log::die "Missing 'xdotool'" unless $xdotool;
+    die "Missing 'xdotool'" unless $xdotool;
     # search for YaST Window and grab the id
     my $window_id = qx"DISPLAY=$display $xdotool search --sync --limit 1 --name $window_name";
     $window_id =~ s/\D//g;
@@ -58,11 +58,11 @@ sub activate {
 
     $sshcommand = "TERM=xterm " . $sshcommand;
     my $xterm_vt_cmd = which "xterm-console";
-    OpenQA::Log::die "Missing 'xterm-console'" unless $xterm_vt_cmd;
+    die "Missing 'xterm-console'" unless $xterm_vt_cmd;
     my $window_name = "ssh:$testapi_console";
     eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$sshcommand' & echo \$!") };
     if (my $E = $@) {
-        OpenQA::Log::die "cant' start xterm on $display (err: $! retval: $?)";
+        die "cant' start xterm on $display (err: $! retval: $?)";
     }
 
     # FIXME: assert_screen('xterm_password');

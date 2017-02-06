@@ -38,12 +38,12 @@ sub get_cmd {
 
     my $dir = get_required_var('GENERAL_HW_CMD_DIR');
     if (!-d $dir) {
-        OpenQA::Log::die "GENERAL_HW_CMD_DIR is not pointing to a directory";
+        die "GENERAL_HW_CMD_DIR is not pointing to a directory";
     }
     $cmd = get_required_var($cmd);
     $cmd = "$dir/" . basename($cmd);
     if (!-x $cmd) {
-        OpenQA::Log::die "CMD $cmd is not an executable";
+        die "CMD $cmd is not an executable";
     }
     return $cmd;
 }
@@ -56,8 +56,8 @@ sub run_cmd {
     chomp $stdout;
     chomp $stderr;
 
-    OpenQA::Log::die $cmd . ": $stderr" unless ($ret);
-    OpenQA::Log::debug("IPMI: $stdout");
+    die $cmd . ": $stderr" unless ($ret);
+    debug("IPMI: $stdout");
     return $stdout;
 }
 
@@ -130,7 +130,7 @@ sub start_serial_grab {
         open(STDOUT,     ">&", $serial);
         open(STDERR,     ">&", $serial);
         exec($self->get_cmd('GENERAL_HW_SOL_CMD'));
-        OpenQA::Log::die "exec failed $!";
+        die "exec failed $!";
     }
     return;
 }

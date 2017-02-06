@@ -55,7 +55,7 @@ sub connect_vnc {
 
     $self->{mouse} = {x => undef, y => undef};
 
-    OpenQA::Log::info "Setting up a connection to VNC console" . bmwqemu::pp($args);
+    info "Setting up a connection to VNC console" . bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
     my $endtime = time + ($args->{connect_timeout} || 10);
 
@@ -63,18 +63,18 @@ sub connect_vnc {
     while (1) {
         my @connection_error;
         my $vnc = try {
-            OpenQA::Log::debug "trying to login to VNC\n";
+            debug "trying to login to VNC\n";
             local $SIG{__DIE__};
             $self->{vnc}->login();
-            OpenQA::Log::info ":Sucessfully loged into VNC\n";
+            info ":Sucessfully loged into VNC\n";
             return $self->{vnc};
         }
         catch {
             push @connection_error, $@;
             if (time > $endtime) {
-                OpenQA::Log::debug sprintf "%d $endtime\n", time;
+                debug sprintf "%d $endtime\n", time;
                 $self->disable();
-                OpenQA::Log::die(@connection_error);
+                die(@connection_error);
             }
             sleep 1;
             return;
@@ -189,7 +189,7 @@ sub release_key {
 
 sub _mouse_move {
     my ($self, $x, $y) = @_;
-    OpenQA::Log::die 'need parameter $x and $y' unless (defined $x and defined $y);
+    die 'need parameter $x and $y' unless (defined $x and defined $y);
 
     if ($self->{mouse}->{x} == $x && $self->{mouse}->{y} == $y) {
         # in case the mouse is moved twice to the same position
@@ -206,7 +206,7 @@ sub _mouse_move {
     $self->{mouse}->{x} = $x;
     $self->{mouse}->{y} = $y;
 
-    OpenQA::Log::trace "mouse_move $x, $y";
+    trace "mouse_move $x, $y";
     $self->{vnc}->mouse_move_to($x, $y);
     return;
 }
@@ -230,7 +230,7 @@ sub mouse_hide {
 
 sub mouse_set {
     my ($self, $args) = @_;
-    OpenQA::Log::die "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
+    die "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
 
     # TODO: for framebuffers larger than 1024x768, we need to upscale
     $self->_mouse_move(int($args->{x}), int($args->{y}));
@@ -253,7 +253,7 @@ sub mouse_button {
     elsif ($button eq 'middle') {
         $mask = $bstate << 1;
     }
-    OpenQA::Log::debug "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
+    debug "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
     $self->{vnc}->send_pointer_event($mask, $self->{mouse}->{x}, $self->{mouse}->{y});
     return {};
 }

@@ -78,7 +78,7 @@ sub die_handler {
 
 sub backend_signalhandler {
     my ($sig) = @_;
-    OpenQA::Log::debug("backend got $sig");
+    debug("backend got $sig");
     $backend->stop_vm;
 }
 
@@ -101,8 +101,8 @@ sub run {
     $io->autoflush(1);
     $self->{rsppipe} = $io;
 
-    OpenQA::Log::warn sprintf "$$: cmdpipe %d, rsppipe %d\n", fileno($self->{cmdpipe}), fileno($self->{rsppipe});
-    OpenQA::Log::debug "started mgmt loop with pid $$";
+    warn sprintf "$$: cmdpipe %d, rsppipe %d\n", fileno($self->{cmdpipe}), fileno($self->{rsppipe});
+    debug "started mgmt loop with pid $$";
 
     $self->{select} = IO::Select->new();
     $self->{select}->add($self->{cmdpipe});
@@ -121,7 +121,7 @@ sub run {
 
     $self->run_capture_loop;
 
-    OpenQA::Log::debug("management process exit at " . POSIX::strftime("%F %T", gmtime));
+    debug("management process exit at " . POSIX::strftime("%F %T", gmtime));
 }
 
 use List::Util 'min';
@@ -174,7 +174,7 @@ sub run_capture_loop {
             if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
                 $self->stall_detected(1);
                 my $diff = $now - $self->last_screenshot;
-                OpenQA::Log::warn("There is some problem with your environment, we detected a stall for $diff seconds");
+                warn("There is some problem with your environment, we detected a stall for $diff seconds");
             }
 
             my $time_to_screenshot = $self->screenshot_interval - ($now - $self->last_screenshot);
@@ -190,7 +190,7 @@ sub run_capture_loop {
             if (grep { $_ == $self->{encoder_pipe} } @$write_set) {
                 my $fdata        = shift @{$self->{video_frame_data}};
                 my $data_written = $self->{encoder_pipe}->syswrite($fdata);
-                OpenQA::Log::die("Encoder not accepting data") unless defined $data_written;
+                die("Encoder not accepting data") unless defined $data_written;
                 if ($data_written != length($fdata)) {
                     # put it back into the queue
                     unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
@@ -223,7 +223,7 @@ sub run_capture_loop {
     };
 
     if ($@) {
-        OpenQA::Log::debug "capture loop failed $@";
+        debug "capture loop failed $@";
         $self->close_pipes();
     }
     return;
@@ -278,7 +278,7 @@ sub alive {
             return 1;
         }
         else {
-            OpenQA::Log::warn("ALARM: backend.run got deleted! - exiting...");
+            warn("ALARM: backend.run got deleted! - exiting...");
             _exit(1);
         }
     }
@@ -387,9 +387,9 @@ sub enqueue_screenshot {
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
         my $encoder_warning = sprintf("Enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
-        OpenQA::Log::warn($encoder_warning);
+        warn($encoder_warning);
         # Stopwatch data can be safely handled as a trace message
-        OpenQA::Log::trace("\n" . $watch->summary());
+        trace("\n" . $watch->summary());
     }
 
     return;
@@ -399,15 +399,15 @@ sub close_pipes {
     my ($self) = @_;
 
     if ($self->{cmdpipe}) {
-        close($self->{cmdpipe}) || OpenQA::Log::die("close $!\n");
+        close($self->{cmdpipe}) || die("close $!\n");
         $self->{cmdpipe} = undef;
     }
 
     return unless $self->{rsppipe};
 
-    OpenQA::Log::debug("sending magic and exit");
+    debug("sending magic and exit");
     $self->{rsppipe}->print('{"QUIT":1}');
-    close($self->{rsppipe}) || OpenQA::Log::die("close $!\n");
+    close($self->{rsppipe}) || die("close $!\n");
     Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
 }
@@ -431,7 +431,7 @@ sub check_socket {
         }
         else {
             use Data::Dumper;
-            OpenQA::Log::die("no command in " . Dumper($cmd));
+            die("no command in " . Dumper($cmd));
         }
         return 1;
     }
@@ -694,7 +694,7 @@ sub wait_idle {
     my ($self, $args) = @_;
     my $timeout = $args->{timeout};
 
-    OpenQA::Log::debug("wait_idle sleeping for $timeout seconds");
+    debug("wait_idle sleeping for $timeout seconds");
     $self->run_capture_loop($timeout);
     return;
 }
@@ -723,7 +723,7 @@ sub set_tags_to_assert {
                 next;
             }
             unless (ref($n) eq 'needle' && $n->{name}) {
-                OpenQA::Log::warn("invalid needle passed <" . ref($n) . "> " . bmwqemu::pp($n));
+                warn("invalid needle passed <" . ref($n) . "> " . bmwqemu::pp($n));
                 next;
             }
             push @$needles, $n;
@@ -741,7 +741,7 @@ sub set_tags_to_assert {
     $mustmatch = join('_', @tags);
 
     if (!@$needles) {
-        OpenQA::Log::warn("No matching needles for $mustmatch");
+        warn("No matching needles for $mustmatch");
     }
 
     $self->assert_screen_deadline(time + $timeout);
@@ -823,7 +823,7 @@ sub check_asserted_screen {
     }
     else {
         if ($oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio) {
-            OpenQA::Log::debug("no change $n");
+            debug("no change $n");
             return;
         }
     }
@@ -844,8 +844,8 @@ sub check_asserted_screen {
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
-        OpenQA::Log::warn(sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time}));
-        OpenQA::Log::trace($watch->summary());
+        warn(sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time}));
+        trace($watch->summary());
     }
 
     if ($n < 0) {
@@ -854,7 +854,7 @@ sub check_asserted_screen {
 
         if ($self->stall_detected) {
             backend::baseclass::write_crash_file();
-            OpenQA::Log::die("assert_screen fails, but we detected a timeout in the process, so we abort");
+            die("assert_screen fails, but we detected a timeout in the process, so we abort");
         }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
@@ -885,7 +885,7 @@ sub check_asserted_screen {
             _reduce_to_biggest_changes($failed_screens, 20);
         }
     }
-    OpenQA::Log::debug("no match $n");
+    debug("no match $n");
     $self->assert_screen_last_check([$img, $search_ratio]);
     return;
 }
@@ -912,13 +912,13 @@ sub _reduce_to_biggest_changes {
 
 sub freeze_vm {
     my ($self) = @_;
-    OpenQA::Log::error("ignored freeze_vm");
+    error("ignored freeze_vm");
     return;
 }
 
 sub cont_vm {
     my ($self) = @_;
-    OpenQA::Log::error("ignored cont_vm");
+    error("ignored cont_vm");
     return;
 }
 
@@ -986,17 +986,17 @@ sub new_ssh_connection {
                 # this relies on agent to be set up correctly
                 $ssh->auth_agent($args{username});
             }
-            OpenQA::Log::info("Connection to $args{username}\@$args{hostname} established") if $ssh->auth_ok;
+            info("Connection to $args{username}\@$args{hostname} established") if $ssh->auth_ok;
             last;
         }
         else {
-            OpenQA::Log::warn("Could not connect to $args{username}\@$args{hostname}, Retry");
+            warn("Could not connect to $args{username}\@$args{hostname}, Retry");
             sleep(10);
             $counter--;
             next;
         }
     }
-    OpenQA::Log::die("Failed to login to $args{username}\@$args{hostname}") unless $ssh->auth_ok;
+    die("Failed to login to $args{username}\@$args{hostname}") unless $ssh->auth_ok;
 
     return $ssh;
 }
@@ -1009,7 +1009,7 @@ sub start_ssh_serial {
 
     $self->{serial} = $self->new_ssh_connection(%args);
     my $chan = $self->{serial}->channel();
-    OpenQA::Log::die("No channel found") unless $chan;
+    die("No channel found") unless $chan;
     $self->{serial_chan} = $chan;
     $chan->blocking(0);
     $chan->pty(1);

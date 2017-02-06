@@ -34,7 +34,6 @@ use Exporter;
 
 our $VERSION;
 our @EXPORT    = qw(fileContent save_vars);
-our @EXPORT_OK = qw(diag fctres fctinfo fctOpenQA::Log::warn  fcterr );
 
 use backend::driver;
 require IPC::System::Simple;
@@ -70,9 +69,9 @@ sub load_vars() {
     my $fn  = "vars.json";
     my $ret = {};
     local $/;
-    open(my $fh, '<', $fn) or OpenQA::Log::die("Can't open '$fn'");
+    open(my $fh, '<', $fn) or die("Can't open '$fn'");
     eval { $ret = JSON->new->relaxed->decode(<$fh>); };
-    OpenQA::Log::die("parse error in vars.json: $@") if $@;
+    die("parse error in vars.json: $@") if $@;
     close($fh);
     %vars = %{$ret};
     return;
@@ -82,8 +81,8 @@ sub save_vars() {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
-    flock($fd, LOCK_EX) or OpenQA::Log::die("cannot lock vars.json: $!");
-    truncate($fd, 0) or OpenQA::Log::die("cannot truncate vars.json: $!");
+    flock($fd, LOCK_EX) or die("cannot lock vars.json: $!");
+    truncate($fd, 0) or die("cannot truncate vars.json: $!");
 
     # make sure the JSON is sorted
     my $json = JSON->new->pretty->canonical;
@@ -126,7 +125,7 @@ sub init {
     select($oldfh);
 
     unless ($vars{CASEDIR}) {
-        OpenQA::Log::die("DISTRI undefined\n" . pp(\%vars)) unless $vars{DISTRI};
+        die("DISTRI undefined\n" . pp(\%vars)) unless $vars{DISTRI};
         my @dirs = ("$scriptdir/distri/$vars{DISTRI}");
         unshift @dirs, $dirs[-1] . "-" . $vars{VERSION} if ($vars{VERSION});
         for my $d (@dirs) {
@@ -135,7 +134,7 @@ sub init {
                 last;
             }
         }
-        OpenQA::Log::die("can't determine test directory for $vars{DISTRI}'") unless $vars{CASEDIR};
+        die("can't determine test directory for $vars{DISTRI}'") unless $vars{CASEDIR};
     }
 
     # defaults
@@ -159,7 +158,7 @@ sub init {
     }
     if ($vars{SUSEMIRROR} && $vars{SUSEMIRROR} =~ s{^(\w+)://}{}) {    # strip & check proto
         if ($1 ne "http") {
-            OpenQA::Log::die("only http mirror URLs are currently supported but found '$1'");
+            die("only http mirror URLs are currently supported but found '$1'");
         }
     }
 
@@ -188,54 +187,54 @@ sub set_ocr_rect {
 
 # sub  {
 #     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-#     OpenQA::Log::(@_);
+#     (@_);
 # }
 
 # sub diag {
 #     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-#     OpenQA::Log::info(@_);
+#     info(@_);
 #     return;
 # }
 
 # sub  {
 #     my ($text) = @_;
 #     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-#     OpenQA::Log::debug("$text");
+#     debug("$text");
 #     return;
 # }
 
 # sub fctres {
 #     my ($text) = @_;
 #     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-#     OpenQA::Log::info(">>> $text");
+#     info(">>> $text");
 #     return;
 # }
 
 # sub fctinfo {
 #     my ($text) = @_;
 #     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-#     OpenQA::Log::info("::: $text");
+#     info("::: $text");
 #     return;
 # }
 
-# sub fctOpenQA::Log::warn {
+# sub fctwarn {
 #     my ($text) = @_;
 #     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-#     OpenQA::Log::OpenQA::Log::warn("!!! $text");
+#     OpenQA::Log::warn("!!! $text");
 #     return;
 # }
 
 # sub fcterr {
 #     my ($text) = @_;
 #     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-#     OpenQA::Log::error("EEE $text");
+#     error("EEE $text");
 #     return;
 # }
 
 sub modstart {
     my $text = sprintf "Test module: %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
-    OpenQA::Log::info($text);
+    info($text);
     return;
 }
 
@@ -252,7 +251,7 @@ sub update_line_number {
         my ($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i);
         last unless $filename;
         next unless $filename =~ m/$ending$/;
-        OpenQA::Log::debug("$filename:$line called $subroutine");
+        debug("$filename:$line called $subroutine");
         last;
     }
     return;
@@ -282,7 +281,7 @@ sub log_call {
     }
 
     my $params = join(", ", @result);
-    OpenQA::Log::info('<<< ' . $fname . "($params)");
+    info('<<< ' . $fname . "($params)");
     return;
 }
 
@@ -344,7 +343,7 @@ sub random_string {
 }
 
 sub hashed_string {
-    OpenQA::Log::OpenQA::Log::warn('@DEPRECATED: Use testapi::hashed_string instead');
+    OpenQA::Log::warn('@DEPRECATED: Use testapi::hashed_string instead');
     return testapi::hashed_string(@_);
 }
 

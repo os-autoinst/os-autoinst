@@ -33,7 +33,7 @@ sub send_json {
     $cmdcopy{json_cmd_token} = bmwqemu::random_string(8);
     my $json = $JSON->encode(\%cmdcopy);
 
-    #OpenQA::Log::debug("send_json $json");
+    #debug("send_json $json");
     my $wb = syswrite($to_fd, "$json");
     confess "syswrite failed $!" unless ($wb && $wb == length($json));
     return $cmdcopy{json_cmd_token};
@@ -69,7 +69,7 @@ sub read_json {
             # remember the trailing text
             $sockets->{$fd} = $JSON->incr_text();
             if ($hash->{QUIT}) {
-                OpenQA::Log::debug("received magic close");
+                debug("received magic close");
                 return;
             }
             if ($cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token) {
@@ -86,7 +86,7 @@ sub read_json {
                 confess "ERROR: timeout reading JSON reply: $E\n";
             }
             else {
-                OpenQA::Log::die("can_read received kill signal");
+                die("can_read received kill signal");
             }
             close($socket);
             return;
@@ -94,8 +94,8 @@ sub read_json {
 
         my $qbuffer;
         my $bytes = sysread($socket, $qbuffer, 8000);
-        #OpenQA::Log::trace("sysread $qbuffer");
-        if (!$bytes) { OpenQA::Log::warn("sysread failed: $!"); return; }
+        #trace("sysread $qbuffer");
+        if (!$bytes) { warn("sysread failed: $!"); return; }
         $JSON->incr_parse($qbuffer);
     }
 
