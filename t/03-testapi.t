@@ -5,6 +5,7 @@ use warnings;
 use Test::More;
 use Test::Output;
 use Test::Fatal;
+use File::Temp;
 
 BEGIN {
     unshift @INC, '..';
@@ -44,14 +45,16 @@ $mod->mock(read_json => \&fake_read_json);
 
 use testapi qw(is_serial_terminal :DEFAULT);
 use basetest;
-*{basetest::_result_add_screenshot} = sub { my ($self, $result) = @_; };
+my $mock_basetest = new Test::MockModule('basetest');
+$mock_basetest->mock(_result_add_screenshot => sub { my ($self, $result) = @_; });
 $autotest::current_test = basetest->new();
 
 # we have to mock out wait_screen_change for the type_string tests
 # that use it, as it doesn't work with the fake send_json and read_json
 my $mod2 = new Test::MockModule('testapi');
 
-sub fake_wait_screen_change {
+## no critic (ProhibitSubroutinePrototypes)
+sub fake_wait_screen_change(&@) {
     my ($callback, $timeout) = @_;
     $callback->() if $callback;
 }
@@ -105,6 +108,10 @@ type_password 'hallo', max_interval => 5;
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 5, text => 'hallo'}]);
 $cmds = [];
 
+#$mock_basetest->mock(record_soft_failure_result => sub {});
+my $mock_bmwqemu = new Test::MockModule('bmwqemu');
+$mock_bmwqemu->mock(result_dir => sub() { File::Temp->newdir() });
+
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
 is($autotest::current_test->{dents}, 1, 'soft failure recorded');
@@ -122,7 +129,9 @@ is(is_serial_terminal, 0, 'Not a serial terminal');
 subtest 'script_run' => sub {
     my $module = new Test::MockModule('bmwqemu');
     # just save ourselves some time during testing
-    $module->mock('wait_for_one_more_screenshot', sub { sleep 0; });
+    $module->mock(wait_for_one_more_screenshot => sub { sleep 0; });
+
+    $testapi::serialdev = 'null';
 
     is(assert_script_run('true'), undef, 'nothing happens on success');
     $fake_exit = 1;
