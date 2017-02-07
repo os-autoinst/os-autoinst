@@ -19,12 +19,19 @@ use POSIX qw( :sys_wait_h sigprocmask sigsuspend );
 use Socket qw( PF_UNIX SOCK_STREAM sockaddr_un );
 use Time::HiRes 'usleep';
 use File::Temp 'tempfile';
+use File::Basename;
+
 
 use Test::More;
 
 BEGIN {
     unshift @INC, '..';
 }
+
+
+use OpenQA::Log;
+$OpenQA::Log::configuration = dirname(__FILE__) . '/data/';
+OpenQA::Log::setup();
 
 use consoles::virtio_terminal;
 use testapi ();

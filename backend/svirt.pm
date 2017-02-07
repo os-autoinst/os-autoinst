@@ -20,6 +20,7 @@ use base ('backend::virt');
 use testapi qw(get_var get_required_var check_var);
 
 use IO::Select;
+use OpenQA::Log;
 
 # this is a fake backend to some extend. We don't start VMs, but provide ssh access
 # to a libvirt running host (KVM for System Z in mind)
@@ -66,7 +67,7 @@ sub do_stop_vm {
 
     unless (get_var('SVIRT_KEEP_VM_RUNNING')) {
         my $vmname = $self->console('svirt')->name;
-        bmwqemu::diag "Destroying $vmname virtual machine";
+        debug "Destroying $vmname virtual machine";
         $self->run_cmd("virsh destroy $vmname");
         $self->run_cmd("virsh undefine $vmname");
     }
@@ -85,7 +86,7 @@ sub run_cmd {
     $chan->exec($cmd);
     $chan->send_eof;
     my $ret = $chan->exit_status();
-    bmwqemu::diag "Command executed: $cmd, ret=$ret";
+    debug "Command executed: $cmd, ret=$ret";
     $chan->close();
     return $ret;
 }
@@ -116,7 +117,7 @@ sub save_snapshot {
     my $vmname   = $self->console('svirt')->name;
     $self->run_cmd("virsh snapshot-delete $vmname $snapname");
     my $rsp = $self->run_cmd("virsh snapshot-create-as $vmname $snapname");
-    bmwqemu::diag "SAVED VM \"$vmname\" as \"$snapname\" snapshot, $rsp";
+    debug "SAVED VM \"$vmname\" as \"$snapname\" snapshot, $rsp";
     die unless ($rsp == 0);
     return;
 }
@@ -126,7 +127,7 @@ sub load_snapshot {
     my $snapname = $args->{name};
     my $vmname   = $self->console('svirt')->name;
     my $rsp      = $self->run_cmd("virsh snapshot-revert $vmname $snapname");
-    bmwqemu::diag "LOADED snapshot \"$snapname\" to \"$vmname\", $rsp";
+    debug "LOADED snapshot \"$snapname\" to \"$vmname\", $rsp";
     die unless ($rsp == 0);
     return $rsp;
 }

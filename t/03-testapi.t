@@ -5,10 +5,16 @@ use warnings;
 use Test::More;
 use Test::Output;
 use Test::Fatal;
+use File::Basename;
+
 
 BEGIN {
     unshift @INC, '..';
 }
+
+use OpenQA::Log;
+$OpenQA::Log::configuration = dirname(__FILE__) . '/data/';
+OpenQA::Log::setup();
 
 require bmwqemu;
 
@@ -106,9 +112,9 @@ is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 5, text => 'hal
 $cmds = [];
 
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
-stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
+stdout_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
 is($autotest::current_test->{dents}, 1, 'soft failure recorded');
-stderr_like(sub { record_soft_failure('workaround for bug#1234') }, qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason');
+stdout_like(sub { record_soft_failure('workaround for bug#1234') }, qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason');
 is($autotest::current_test->{dents}, 2, 'another');
 my $details = $autotest::current_test->{details}[-1];
 is($details->{title}, 'Soft Failed', 'title for soft failure added');

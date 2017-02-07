@@ -20,6 +20,7 @@ use warnings;
 use Carp qw(cluck confess);
 use bmwqemu ();
 use Errno;
+use OpenQA::Log;
 
 sub send_json {
     my ($to_fd, $cmd) = @_;
@@ -33,7 +34,7 @@ sub send_json {
     $cmdcopy{json_cmd_token} = bmwqemu::random_string(8);
     my $json = $JSON->encode(\%cmdcopy);
 
-    #bmwqemu::diag("send_json $json");
+    #debug("send_json $json");
     my $wb = syswrite($to_fd, "$json");
     confess "syswrite failed $!" unless ($wb && $wb == length($json));
     return $cmdcopy{json_cmd_token};
@@ -69,7 +70,7 @@ sub read_json {
             # remember the trailing text
             $sockets->{$fd} = $JSON->incr_text();
             if ($hash->{QUIT}) {
-                bmwqemu::diag("received magic close");
+                debug("received magic close");
                 return;
             }
             if ($cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token) {
@@ -94,8 +95,8 @@ sub read_json {
 
         my $qbuffer;
         my $bytes = sysread($socket, $qbuffer, 8000);
-        #bmwqemu::diag("sysread $qbuffer");
-        if (!$bytes) { bmwqemu::diag("sysread failed: $!"); return; }
+        #trace("sysread $qbuffer");
+        if (!$bytes) { warn("sysread failed: $!"); return; }
         $JSON->incr_parse($qbuffer);
     }
 

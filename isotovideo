@@ -42,7 +42,6 @@ use needle;
 use autotest;
 use commands;
 use distribution;
-use testapi 'diag';
 use Getopt::Std;
 require IPC::System::Simple;
 use autodie ':all';
@@ -53,6 +52,7 @@ use Carp 'cluck';
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use File::Spec;
 use File::Path;
+use OpenQA::Log;
 
 # avoid paranoia
 $Getopt::Std::STANDARD_HELP_VERSION = 1;
@@ -79,12 +79,15 @@ $| = 1;
 select(STDOUT);            # default
 $| = 1;
 
+$OpenQA::Log::configuration = $installprefix . "/etc/os-autoinst/";
+OpenQA::Log::setup();
+
 $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
 
 # Sanity checks
-die "CASEDIR environment variable not set, unknown test case directory" if !defined $bmwqemu::vars{CASEDIR};
-die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
+die("CASEDIR environment variable not set, unknown test case directory") if !defined $bmwqemu::vars{CASEDIR};
+die("No scripts in $bmwqemu::vars{CASEDIR}") if !-e "$bmwqemu::vars{CASEDIR}";
 
 my $cpid;
 my $testpid;
@@ -97,9 +100,9 @@ sub kill_commands {
     # create a copy as cpid is overwritten by SIGCHLD
     my $pid = $cpid;
     if (kill('TERM', $pid)) {
-        diag "awaiting death of commands process";
+        info("awaiting death of commands process");
         my $ret = waitpid($pid, 0);
-        diag "commands process exited: $ret";
+        info("commands process exited: $ret");
     }
     $cpid = 0;
 }
@@ -109,9 +112,9 @@ sub kill_autotest {
     # create a copy as cpid is overwritten by SIGCHLD
     my $pid = $testpid;
     if (kill('TERM', $pid)) {
-        diag "awaiting death of testpid $pid";
+        debug "awaiting death of testpid $pid";
         my $ret = waitpid($pid, 0);
-        diag "test process exited: $ret";
+        debug "test process exited: $ret";
     }
     $testpid = 0;
 }
@@ -120,10 +123,10 @@ sub kill_backend {
     if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
         # save the pid in a scalar - signal handlers will reset it
         my $bpid = $bmwqemu::backend->{backend_pid};
-        diag "killing backend process $bpid";
+        debug("killing backend process $bpid");
         kill('TERM', $bpid);
         waitpid($bpid, 0);
-        diag("done with backend process");
+        debug("done with backend process");
         $bmwqemu::backend->{backend_pid} = 0;
     }
 }
@@ -131,7 +134,7 @@ sub kill_backend {
 sub signalhandler {
 
     my ($sig) = @_;
-    diag("signalhandler got $sig - loop $loop");
+    debug("signalhandler got $sig - loop $loop");
     if ($loop) {
         $loop = 0;
         return;
@@ -146,24 +149,24 @@ sub signalhandler_chld {
 
     while ((my $child = waitpid(-1, WNOHANG)) > 0) {
         if ($child == $cpid) {
-            diag("commands webserver died");
+            warn("commands webserver died");
             $loop = 0;
             $cpid = 0;
             next;
         }
         if ($bmwqemu::backend->{backend_pid} && $child == $bmwqemu::backend->{backend_pid}) {
-            diag("backend $child died");
+            warn("backend $child died");
             $bmwqemu::backend->{backend_pid} = 0;
             $loop = 0;
             next;
         }
         if ($child == $testpid) {
-            diag("tests died");
+            warn("tests died");
             $testpid = 0;
             $loop    = 0;
             next;
         }
-        diag("unknown child $child died");
+        error("unknown child $child died");
     }
 }
 
@@ -180,8 +183,8 @@ sub sync_needles_to_cache {
     my $cmd = sprintf("flock -E 999 %s/needleslock rsync -aP --delete --exclude=.git %s %s/", $shared_cache, $needles_source, $shared_cache);
     my $res = system($cmd);
 
-    die "Failed to rsync needles: '$@' " if $res;
-    bmwqemu::diag(sprintf("Rsync: Synchronization of needles directory took %.2f seconds", time - $start));
+    die("Failed to rsync needles: '$@' ") if $res;
+    debug(sprintf("Rsync: Synchronization of needles directory took %.2f seconds", time - $start));
     return $shared_cache;
 }
 
@@ -206,7 +209,7 @@ sub calculate_git_hash {
     chomp($test_git_hash = qx{git rev-parse HEAD});
     $test_git_hash ||= "UNKNOWN";
     chdir($dir);
-    diag "git hash of test distribution: $test_git_hash";
+    warn("git hash of test distribution: $test_git_hash");
     return $test_git_hash;
 }
 
@@ -374,7 +377,7 @@ while ($loop) {
     for my $r (@$reads) {
         my $rsp = myjsonrpc::read_json($r);
         if (!defined $rsp) {
-            diag sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($r), fileno($testfd), fileno($cfd));
+            warn(sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($r), fileno($testfd), fileno($cfd)));
             $r    = 1;
             $loop = 0;
             last;
@@ -385,7 +388,7 @@ while ($loop) {
             next;
         }
         if ($rsp->{cmd} =~ m/^backend_(.*)/) {
-            die "we need to implement a backend queue" if $backend_requester;
+            error("we need to implement a backend queue") if $backend_requester;
             $backend_requester = $r;
             my $cmd = $1;
             delete $rsp->{cmd};
@@ -467,7 +470,7 @@ while ($loop) {
             check_asserted_screen(1, $no_wait);
             next;
         }
-        die "Unknown command $rsp->{cmd}";
+        die("Unknown command $rsp->{cmd}");
     }
 
     if (defined $tags && !$needinput) {
@@ -485,18 +488,18 @@ if ($testfd) {
     kill_autotest;
 }
 
-diag "isotovideo " . ($r ? 'failed' : 'done');
+debug("isotovideo " . ($r ? 'failed' : 'done'));
 
 my $clean_shutdown;
 if (!$r) {
     eval {
         $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
-        diag "BACKEND SHUTDOWN $clean_shutdown";
+        debug("BACKEND SHUTDOWN $clean_shutdown");
     };
     # don't rely on the backend in a sane state if we failed - just kill it later
     eval { bmwqemu::stop_vm(); };
     if ($@) {
-        diag "Error during stop_vm: $@";
+        error("Error during stop_vm: $@");
         $r = 1;
     }
 }
@@ -520,7 +523,7 @@ if (!$r && $completed && (my $nd = $bmwqemu::vars{NUMDISKS}) && ($bmwqemu::vars{
         push @toextract, {hdd_num => $i, name => $name, dir => $dir, format => $format};
     }
     if (@toextract && !$clean_shutdown) {
-        diag "ERROR: Machine not shut down when uploading disks!\n";
+        error("ERROR: Machine not shut down when uploading disks!\n");
         $r = 1;
     }
     else {

@@ -4,7 +4,7 @@ use warnings;
 use base 'Class::Accessor::Fast';
 use IO::Socket::INET;
 use bytes;
-use bmwqemu 'diag';
+use bmwqemu qw();
 use Time::HiRes qw( usleep gettimeofday time );
 use Carp;
 use List::Util 'min';
@@ -15,6 +15,7 @@ use Compress::Raw::Zlib;
 use Carp qw(confess cluck carp croak);
 use Data::Dumper 'Dumper';
 use feature 'say';
+use OpenQA::Log;
 
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth save_bandwidth
@@ -140,7 +141,7 @@ sub login {
         );
         if (!$socket) {
             return if (time > $endtime);
-            bmwqemu::diag "Error connecting to host <$hostname>: $@";
+            debug "Error connecting to host <$hostname>: $@";
             sleep 1;
             next;
         }
@@ -169,7 +170,7 @@ sub _handshake_protocol_version {
     my $socket = $self->socket;
     $socket->read(my $protocol_version, 12) || die 'unexpected end of data';
 
-    #bmwqemu::diag "prot: $protocol_version";
+    #debug "prot: $protocol_version";
 
     my $protocol_pattern = qr/\A RFB [ ] (\d{3}\.\d{3}) \s* \z/xms;
     if ($protocol_version !~ m/$protocol_pattern/xms) {
@@ -203,11 +204,10 @@ sub _handshake_security {
     # Retrieve list of security options
     my $security_type;
     if ($self->_rfb_version ge '003.007') {
-        my $number_of_security_types = 0;
-        my $r = $socket->read($number_of_security_types, 1);
-        if ($r) {
-            $number_of_security_types = unpack('C', $number_of_security_types);
-        }
+        $socket->read(my $number_of_security_types, 1)
+          || die 'unexpected end of data';
+        $number_of_security_types = unpack('C', $number_of_security_types);
+
         if ($number_of_security_types == 0) {
             die 'Error authenticating';
         }
@@ -748,7 +748,7 @@ sub map_and_send_key {
 
 sub send_pointer_event {
     my ($self, $button_mask, $x, $y) = @_;
-    bmwqemu::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
+    debug "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
 
     my $template = 'CCnn';
     $template = 'CxCnnx11' if ($self->ikvm);
@@ -806,7 +806,7 @@ sub send_update_request {
         if (($self->_vnc_stalled == 1) && ($self->_last_update_requested - $self->_last_update_received > 4)) {
             $self->_last_update_received(0);
             # return black image - screen turned off
-            bmwqemu::diag "considering VNC stalled - turning black";
+            debug "considering VNC stalled - turning black";
             $self->_framebuffer(tinycv::new($self->width, $self->height));
             $self->_vnc_stalled(2);
         }
@@ -898,7 +898,7 @@ sub _receive_update {
     my $hlen                 = $socket->read(my $header, 3) || die 'unexpected end of data';
     my $number_of_rectangles = unpack('xn', $header);
 
-    #bmwqemu::diag "NOR $number_of_rectangles";
+    #debug "NOR $number_of_rectangles";
 
     my $depth = $self->depth;
 
@@ -911,7 +911,7 @@ sub _receive_update {
         # unsigned -> signed conversion
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
 
-        #bmwqemu::diag "UP $x,$y $w x $h $encoding_type";
+        #debug "UP $x,$y $w x $h $encoding_type";
 
         # work around buggy addrlink VNC
         next if ($w * $h == 0);
@@ -938,14 +938,15 @@ sub _receive_update {
             $self->_framebuffer($image);
         }
         elsif ($encoding_type == -257) {
-            bmwqemu::diag("pointer type $x $y $w $h $encoding_type");
+            debug("pointer type $x $y $w $h $encoding_type");
             $self->absolute($x);
         }
         elsif ($encoding_type == -261) {
             my $led_data;
             $socket->read($led_data, 1) || die "unexpected end of data";
             my @bytes = unpack("C", $led_data);
-            bmwqemu::diag("led state $bytes[0] $w $h $encoding_type");
+            # Not an error, but if seen many times, means kernel panic :)
+            info("led state $bytes[0] $w $h $encoding_type");
         }
         elsif ($self->ikvm) {
             $self->_receive_ikvm_encoding($encoding_type, $x, $y, $w, $h);
@@ -995,7 +996,7 @@ sub _receive_zlre_encoding {
         $read_len += $len;
     }
     if (time - $stime > 0.1) {
-        diag sprintf("read $data_len in %fs\n", time - $stime);
+        debug sprintf("read $data_len in %fs\n", time - $stime);
     }
     # the zlib header is only sent once per session
     $self->{_inflater} ||= new Compress::Raw::Zlib::Inflate();
@@ -1145,7 +1146,7 @@ sub _receive_ikvm_session {
     $self->socket->read(my $ikvm_session_infos, 264);
 
     my ($msg1, $msg2, $str) = unpack('NNZ256', $ikvm_session_infos);
-    print "IKVM Session Message: $msg1 $msg2 $str\n";
+    warn "IKVM Session Message: $msg1 $msg2 $str\n";
     return 1;
 }
 

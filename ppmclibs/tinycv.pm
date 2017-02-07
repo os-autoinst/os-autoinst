@@ -19,8 +19,6 @@ package tinycv;
 use strict;
 use warnings;
 
-use bmwqemu 'diag';
-
 use File::Basename;
 use Math::Complex 'sqrt';
 
@@ -35,6 +33,7 @@ our $VERSION = '1.0';
 bootstrap tinycv $VERSION;
 
 package tinycv::Image;
+use OpenQA::Log;
 
 sub mean_square_error {
     my ($areas) = @_;
@@ -69,7 +68,7 @@ sub search_ {
 
     my $needle_image = $needle->get_image;
     unless ($needle_image) {
-        bmwqemu::diag("SKIP($needle->{name}:missing PNG)");
+        debug("SKIP ($needle->{name}:missing PNG)");
         return;
     }
     $stopwatch->lap("**++ search__: get image") if $stopwatch;
@@ -119,7 +118,7 @@ sub search_ {
     }
 
     $ret->{error} = mean_square_error($ret->{area});
-    bmwqemu::diag(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - sqrt($ret->{error})));
+    debug(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - sqrt($ret->{error})));
     $stopwatch->lap("**++ mean_square_error") if $stopwatch;
     if ($ret->{ok}) {
         for my $a (@ocr) {

@@ -38,7 +38,7 @@ close($var);
 open($var, '>', 'live_log');
 close($var);
 system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
-is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'),     0,   'test executed fine');
-is(system("grep -q 'test \w* failed' autoinst-log.txt"), 256, 'no test moduled failed');
+is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'),      0,   'test executed fine');
+is(system("grep -q 'test \\w* failed' autoinst-log.txt"), 256, 'no test moduled failed');
 
 done_testing();

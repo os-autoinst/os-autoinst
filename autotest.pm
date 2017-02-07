@@ -26,6 +26,7 @@ use Socket;
 use IO::Handle;
 use POSIX '_exit';
 use cv;
+use OpenQA::Log;
 
 our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
@@ -56,8 +57,7 @@ sub loadtest {
     eval $code;    ## no critic
     if ($@) {
         my $msg = "error on $script: $@";
-        bmwqemu::diag($msg);
-        die $msg;
+        die($msg);
     }
     $test             = $name->new($category);
     $test->{script}   = $script;
@@ -66,13 +66,13 @@ sub loadtest {
     while (exists $tests{$fullname . $nr}) {
         # to all perl hardcore hackers: fuck off!
         $nr = $nr eq '' ? 1 : $nr + 1;
-        bmwqemu::diag($fullname . ' already scheduled');
+        warn($fullname . ' already scheduled');
     }
     $tests{$fullname . $nr} = $test;
 
     return unless $test->is_applicable;
     push @testorder, $test;
-    bmwqemu::diag("scheduling $name$nr $script");
+    info("scheduling $name$nr $script");
 }
 
 our $current_test;
@@ -100,13 +100,13 @@ sub write_test_order {
 
 sub make_snapshot {
     my ($sname) = @_;
-    bmwqemu::diag("Creating a VM snapshot $sname");
+    debug("Creating a VM snapshot $sname");
     return query_isotovideo('backend_save_snapshot', {name => $sname});
 }
 
 sub load_snapshot {
     my ($sname) = @_;
-    bmwqemu::diag("Loading a VM snapshot $sname");
+    debug("Loading a VM snapshot $sname");
     return query_isotovideo('backend_load_snapshot', {name => $sname});
 }
 
@@ -156,7 +156,7 @@ sub start_process {
     if (!$line) {
         _exit(0);
     }
-    print "GOT $line\n";
+    debug "GOT $line";
     # the backend process might have added some defaults for the backend
     bmwqemu::load_vars();
 
@@ -168,11 +168,10 @@ sub start_process {
 sub prestart_hook {
     # run prestart test code before VM is started
     if (-f "$bmwqemu::vars{CASEDIR}/prestart.pm") {
-        bmwqemu::diag "running prestart step";
+        debug "running prestart step";
         eval { require $bmwqemu::vars{CASEDIR} . "/prestart.pm"; };
         if ($@) {
-            bmwqemu::diag "prestart step FAIL:";
-            die $@;
+            die "prestart step FAIL:" . $@;
         }
     }
 }
@@ -181,11 +180,10 @@ sub prestart_hook {
 sub postrun_hook {
     # run postrun test code after VM is stopped
     if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
-        bmwqemu::diag "running postrun step";
+        debug "running postrun step";
         eval { require "$bmwqemu::vars{CASEDIR}/postrun.pm"; };    ## no critic
         if ($@) {
-            bmwqemu::diag "postrun step FAIL:";
-            warn $@;
+            warn "postrun step FAIL:" . $@;
         }
     }
 }
@@ -212,7 +210,7 @@ sub runalltests {
     my $firsttest           = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded            = 0;
     my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
-    bmwqemu::diag "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
+    info "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
 
     write_test_order();
 
@@ -248,7 +246,7 @@ sub runalltests {
                 my $msg = $@;
                 if ($msg !~ /^test.*died/) {
                     # avoid duplicating the message
-                    bmwqemu::diag $msg;
+                    debug $msg;
                 }
                 if ($flags->{fatal} || !$snapshots_supported || $bmwqemu::vars{TESTDEBUG}) {
                     bmwqemu::stop_vm();
@@ -269,7 +267,7 @@ sub runalltests {
             }
         }
         else {
-            bmwqemu::diag "skipping $fullname";
+            warn "skipping $fullname";
             $t->skip_if_not_running();
             $t->save_test_result();
         }

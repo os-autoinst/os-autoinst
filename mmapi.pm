@@ -66,7 +66,7 @@ sub _init {
 sub api_call {
     my ($method, $action, $params, $expected_codes) = @_;
     _init unless $ua;
-    bmwqemu::mydie('Missing mandatory options') unless $method && $action && $ua;
+    die('Missing mandatory options') unless $method && $action && $ua;
 
     my $ua_url = $url->clone;
     $ua_url->path($action);
@@ -184,7 +184,7 @@ sub get_job_autoinst_url {
         }
     }
     else {
-        bmwqemu::diag("get_job_autoinst_url: code: " . $res->code);
+        debug("get_job_autoinst_url: code: " . $res->code);
     }
     return;
 }
@@ -214,7 +214,7 @@ sub get_job_autoinst_vars {
         return $res->json('/vars');
     }
     else {
-        bmwqemu::diag("get_job_autoinst_vars: code: " . $res->code);
+        debug("get_job_autoinst_vars: code: " . $res->code);
     }
     return;
 }
@@ -236,7 +236,7 @@ sub wait_for_children {
             $n++;
         }
 
-        bmwqemu::diag("Waiting for $n jobs to finish");
+        debug("Waiting for $n jobs to finish");
         last unless $n;
         sleep 1;
     }
@@ -258,7 +258,7 @@ sub wait_for_children_to_start {
             $n++;
         }
 
-        bmwqemu::diag("Waiting for $n jobs to start");
+        debug("Waiting for $n jobs to start");
         last unless $n;
         sleep 1;
     }

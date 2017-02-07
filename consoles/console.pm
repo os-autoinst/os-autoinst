@@ -22,6 +22,7 @@ use autodie ':all';
 
 use Class::Accessor 'antlers';
 has backend => (is => "rw");
+use OpenQA::Log;
 
 sub new {
     my ($class, $testapi_console, $args) = @_;

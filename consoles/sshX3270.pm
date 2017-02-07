@@ -19,6 +19,7 @@ use base 'consoles::localXvnc';
 use strict;
 use warnings;
 use testapi 'get_var';
+use OpenQA::Log;
 
 sub activate {
     my ($self) = @_;

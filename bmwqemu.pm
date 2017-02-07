@@ -33,12 +33,12 @@ use base 'Exporter';
 use Exporter;
 
 our $VERSION;
-our @EXPORT    = qw(fileContent save_vars);
-our @EXPORT_OK = qw(diag);
+our @EXPORT = qw(fileContent save_vars);
 
 use backend::driver;
 require IPC::System::Simple;
 use autodie ':all';
+use OpenQA::Log;
 
 sub mydie;
 
@@ -69,9 +69,9 @@ sub load_vars() {
     my $fn  = "vars.json";
     my $ret = {};
     local $/;
-    open(my $fh, '<', $fn) or return 0;
+    open(my $fh, '<', $fn) or die("Can't open '$fn'");
     eval { $ret = JSON->new->relaxed->decode(<$fh>); };
-    die "parse error in vars.json:\n$@" if $@;
+    die("parse error in vars.json: $@") if $@;
     close($fh);
     %vars = %{$ret};
     return;
@@ -81,8 +81,8 @@ sub save_vars() {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
-    flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
-    truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
+    flock($fd, LOCK_EX) or die("cannot lock vars.json: $!");
+    truncate($fd, 0) or die("cannot truncate vars.json: $!");
 
     # make sure the JSON is sorted
     my $json = JSON->new->pretty->canonical;
@@ -125,7 +125,7 @@ sub init {
     select($oldfh);
 
     unless ($vars{CASEDIR}) {
-        die "DISTRI undefined\n" . pp(\%vars) . "\n" unless $vars{DISTRI};
+        die("DISTRI undefined\n" . pp(\%vars)) unless $vars{DISTRI};
         my @dirs = ("$scriptdir/distri/$vars{DISTRI}");
         unshift @dirs, $dirs[-1] . "-" . $vars{VERSION} if ($vars{VERSION});
         for my $d (@dirs) {
@@ -134,7 +134,7 @@ sub init {
                 last;
             }
         }
-        die "can't determine test directory for $vars{DISTRI}\n" unless $vars{CASEDIR};
+        die("can't determine test directory for $vars{DISTRI}'") unless $vars{CASEDIR};
     }
 
     # defaults
@@ -158,7 +158,7 @@ sub init {
     }
     if ($vars{SUSEMIRROR} && $vars{SUSEMIRROR} =~ s{^(\w+)://}{}) {    # strip & check proto
         if ($1 ne "http") {
-            die "only http mirror URLs are currently supported but found '$1'.";
+            die("only http mirror URLs are currently supported but found '$1'");
         }
     }
 
@@ -185,60 +185,56 @@ sub set_ocr_rect {
 
 # util and helper functions
 
-sub get_timestamp {
-    my $t = gettimeofday;
-    return sprintf "%s.%04d ", (POSIX::strftime "%H:%M:%S", gmtime($t)), 10000 * ($t - int($t));
-}
+# sub  {
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     (@_);
+# }
 
-sub print_possibly_colored {
-    my ($text, $color) = @_;
+# sub diag {
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     info(@_);
+#     return;
+# }
 
-    if (($direct_output && !$istty) || !$direct_output) {
-        $logfd && print $logfd get_timestamp() . "$$ $text\n";
-    }
-    if ($istty || !$logfd) {
-        if ($color) {
-            print STDERR colored(get_timestamp() . "$$ " . $text, $color) . "\n";
-        }
-        else {
-            print STDERR get_timestamp() . "$$ $text\n";
-        }
-    }
-    return;
-}
+# sub  {
+#     my ($text) = @_;
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     debug("$text");
+#     return;
+# }
 
-sub diag {
-    print_possibly_colored "@_";
-    return;
-}
+# sub fctres {
+#     my ($text) = @_;
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     info(">>> $text");
+#     return;
+# }
 
-sub fctres {
-    my ($text, $fname) = @_;
+# sub fctinfo {
+#     my ($text) = @_;
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     info("::: $text");
+#     return;
+# }
 
-    $fname //= (caller(1))[3];
-    print_possibly_colored ">>> $fname: $text", 'green';
-    return;
-}
+# sub fctwarn {
+#     my ($text) = @_;
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     OpenQA::Log::warn("!!! $text");
+#     return;
+# }
 
-sub fctinfo {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    print_possibly_colored "::: $fname: $text", 'yellow';
-    return;
-}
-
-sub fctwarn {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    print_possibly_colored "!!! $fname: $text", 'red';
-    return;
-}
+# sub fcterr {
+#     my ($text) = @_;
+#     local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+#     error("EEE $text");
+#     return;
+# }
 
 sub modstart {
-    my $text = sprintf "||| %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
-    print_possibly_colored $text, 'bold';
+    my $text = sprintf "Test module: %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
+    local $Log::Log4perl::caller_depth = $Log::Log4perl::caller_depth + 1;
+    info($text);
     return;
 }
 
@@ -255,7 +251,7 @@ sub update_line_number {
         my ($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i);
         last unless $filename;
         next unless $filename =~ m/$ending$/;
-        print get_timestamp() . "Debug: $filename:$line called $subroutine\n";
+        debug("$filename:$line called $subroutine");
         last;
     }
     return;
@@ -269,6 +265,13 @@ sub pp {
     return $value_with_trailing_newline;
 }
 
+=head2 log_call
+
+    log_call method will write the name of the fuction that actually triggered the call in testapi,
+    calls that are using log_call from testapi, will have the following syntax on logfiles: B<::: <<<>
+
+=cut
+
 sub log_call {
     my $fname = (caller(1))[3];
     update_line_number();
@@ -276,9 +279,9 @@ sub log_call {
     while (my ($key, $value) = splice(@_, 0, 2)) {
         push @result, join("=", $key, pp($value));
     }
-    my $params = join(", ", @result);
 
-    print_possibly_colored '<<< ' . $fname . "($params)", 'blue';
+    my $params = join(", ", @result);
+    info('<<< ' . $fname . "($params)");
     return;
 }
 
@@ -306,14 +309,7 @@ sub stop_vm() {
     return $ret;
 }
 
-sub mydie {
-    my ($cause_of_death) = @_;
-    log_call(cause_of_death => $cause_of_death);
-    croak "mydie";
-}
-
 # runtime information gathering functions end
-
 
 # store the obj as json into the given filename
 sub save_json_file {
@@ -336,6 +332,7 @@ sub scale_timeout {
 
 Just a random string useful for pseudo security or temporary files.
 =cut
+
 sub random_string {
     my ($count) = @_;
     $count //= 4;
@@ -346,7 +343,7 @@ sub random_string {
 }
 
 sub hashed_string {
-    fctwarn '@DEPRECATED: Use testapi::hashed_string instead';
+    OpenQA::Log::warn('@DEPRECATED: Use testapi::hashed_string instead');
     return testapi::hashed_string(@_);
 }
 

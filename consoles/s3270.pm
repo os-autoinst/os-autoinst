@@ -19,6 +19,7 @@ package consoles::s3270;
 use base 'consoles::localXvnc';
 use strict;
 use warnings;
+use OpenQA::Log;
 
 use Class::Accessor 'antlers';
 has zVM_host    => (is => "rw");
@@ -460,12 +461,12 @@ sub connect_and_login() {
             }
             elsif ($count == 3) {
                 die "Could not reclaim guest despite hard_shutdown and retrying multiple times. this is odd.\n"
-                  . "Is this machine possibly connected on another terminal?\n";
+                  . "Is this machine possibly connected on another terminal?";
             }
 
             last if $reconnect_ok;
 
-            carp "trying hard shutdown and reconnect...\n";
+            error "trying hard shutdown and reconnect...";
             $self->cp_logoff_disconnect();
             next;
         }

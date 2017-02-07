@@ -26,6 +26,7 @@ use feature 'say';
 use Data::Dumper 'Dumper';
 use Carp qw(confess cluck carp croak);
 use Try::Tiny;
+use OpenQA::Log;
 
 sub screen {
     my ($self) = @_;
@@ -54,10 +55,34 @@ sub connect_vnc {
 
     $self->{mouse} = {x => undef, y => undef};
 
-    CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
+    info "Setting up a connection to VNC console" . bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
-    $self->{vnc}->login($args->{connect_timeout});
-    return $self->{vnc};
+    my $endtime = time + ($args->{connect_timeout} || 10);
+
+    # try to log in, this may fail a few times
+    while (1) {
+        my @connection_error;
+        my $vnc = try {
+            debug "trying to login to VNC\n";
+            local $SIG{__DIE__};
+            $self->{vnc}->login();
+            info ":Sucessfully loged into VNC\n";
+            return $self->{vnc};
+        }
+        catch {
+            push @connection_error, $@;
+            if (time > $endtime) {
+                debug sprintf "%d $endtime\n", time;
+                $self->disable();
+                die(@connection_error);
+            }
+            sleep 1;
+            return;
+        };
+        return $vnc if $vnc;
+    }
+    # impossible to reach
+    return;
 }
 
 sub request_screen_update {
@@ -164,7 +189,7 @@ sub release_key {
 
 sub _mouse_move {
     my ($self, $x, $y) = @_;
-    die "need parameter \$x and \$y" unless (defined $x and defined $y);
+    die 'need parameter $x and $y' unless (defined $x and defined $y);
 
     if ($self->{mouse}->{x} == $x && $self->{mouse}->{y} == $y) {
         # in case the mouse is moved twice to the same position
@@ -181,7 +206,7 @@ sub _mouse_move {
     $self->{mouse}->{x} = $x;
     $self->{mouse}->{y} = $y;
 
-    bmwqemu::diag "mouse_move $x, $y";
+    trace "mouse_move $x, $y";
     $self->{vnc}->mouse_move_to($x, $y);
     return;
 }
@@ -228,7 +253,7 @@ sub mouse_button {
     elsif ($button eq 'middle') {
         $mask = $bstate << 1;
     }
-    bmwqemu::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
+    debug "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
     $self->{vnc}->send_pointer_event($mask, $self->{mouse}->{x}, $self->{mouse}->{y});
     return {};
 }

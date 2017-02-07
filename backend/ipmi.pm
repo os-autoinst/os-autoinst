@@ -28,11 +28,12 @@ use POSIX qw(strftime :sys_wait_h);
 use JSON;
 require Carp;
 use Fcntl;
-use bmwqemu qw(fileContent diag save_vars diag);
+use bmwqemu qw(fileContent save_vars);
 use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
 use autodie ':all';
+use OpenQA::Log;
 
 sub new {
     my $class = shift;
@@ -60,7 +61,7 @@ sub ipmitool {
     $self->dell_sleep;
 
     die join(' ', @cmd) . ": $stderr" unless ($ret);
-    bmwqemu::diag("IPMI: $stdout");
+    debug("IPMI: $stdout");
     return $stdout;
 }
 

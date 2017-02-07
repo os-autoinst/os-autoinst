@@ -6,11 +6,16 @@ use Test::More;
 use Test::Output;
 use Test::Fatal;
 use Test::MockModule;
-use File::Basename ();
+use File::Basename;
+
 
 BEGIN {
     unshift @INC, '..';
 }
+
+use OpenQA::Log;
+$OpenQA::Log::configuration = dirname(__FILE__) . '/data/';
+OpenQA::Log::setup();
 
 use autotest;
 use bmwqemu;
@@ -20,7 +25,7 @@ my @sent;
 
 
 like(exception { autotest::runalltests }, qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first');
-stderr_like(
+stdout_like(
     sub {
         like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest needs a script to match/);
     },
@@ -29,7 +34,7 @@ stderr_like(
 
 sub loadtest {
     my ($test, $args) = @_;
-    stderr_like(sub { autotest::loadtest "tests/$test.pm" }, qr@scheduling $test[0-9]? tests/$test.pm@, \$args);
+    stdout_like(sub { autotest::loadtest "tests/$test.pm" }, qr@scheduling $test[0-9]? tests/$test.pm@, \$args);
 }
 
 sub fake_send {

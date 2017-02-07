@@ -25,6 +25,7 @@ use POSIX;
 use testapi  ();
 use autotest ();
 use MIME::Base64 'decode_base64';
+use OpenQA::Log;
 
 # enable strictures and warnings in all tests globaly
 sub import {
@@ -134,7 +135,7 @@ sub record_screenmatch {
     if ($foundneedle->has_property('workaround')) {
         $result->{dent} = 1;
         $self->{dents}++;
-        bmwqemu::diag("needle '$h->{name}' is a workaround");
+        info("needle '$h->{name}' is a workaround");
     }
 
     # Hack to make it obvious that some test passed by applying a hack
@@ -296,7 +297,7 @@ sub run_post_fail {
     my ($self, $msg) = @_;
     $self->{post_fail_hook_running} = 1;
     eval { $self->post_fail_hook; };
-    bmwqemu::diag("post_fail_hook failed: $@") if $@;
+    error("post_fail_hook failed: $@") if $@;
     $self->{post_fail_hook_running} = 0;
     $self->fail_if_running();
     die $msg . "\n";
@@ -326,7 +327,7 @@ sub runtest {
         # show a text result with the die message unless the die was internally generated
         if (!$internal) {
             my $msg = "# Test died: $@";
-            bmwqemu::diag($msg);
+            warn($msg);
             my $details = {result => 'fail'};
             my $text_fn = $self->next_resultname('txt');
             open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
@@ -343,7 +344,7 @@ sub runtest {
         $self->run_post_fail("test $name failed");
     }
     $self->done();
-    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), time - $starttime));
+    debug(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), time - $starttime));
     return $ret;
 }
 
@@ -389,7 +390,7 @@ sub record_serialresult {
     my $details = {result => $res};
 
     my $text_fn = $self->next_resultname('txt');
-    open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
+    debug("Can't open " . bmwqemu::result_dir() . "/$text_fn") unless open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
     print $fd "# wait_serial expected: $ref\n\n";
     print $fd "# Result:\n";
     print $fd "$string\n";

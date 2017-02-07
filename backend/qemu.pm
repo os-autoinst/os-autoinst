@@ -27,9 +27,10 @@ use JSON;
 use Carp;
 use Fcntl;
 use Net::DBus;
-use bmwqemu qw(fileContent diag save_vars);
+use bmwqemu qw(fileContent save_vars);
 require IPC::System::Simple;
 use autodie ':all';
+use OpenQA::Log;
 
 sub new {
     my $class = shift;
@@ -104,15 +105,15 @@ sub kill_qemu {
 
     # already gone?
     my $ret = waitpid($pid, WNOHANG);
-    diag "waitpid for $pid returned $ret";
+    trace "waitpid for $pid returned $ret";
     return if ($ret == $pid || $ret == -1);
 
-    diag "sending TERM to qemu pid: $pid";
+    info "sending TERM to qemu pid: $pid";
     kill('TERM', $pid);
     for my $i (1 .. 5) {
         sleep 1;
         $ret = waitpid($pid, WNOHANG);
-        diag "waitpid for $pid returned $ret";
+        trace "waitpid for $pid returned $ret";
         last if ($ret == $pid);
     }
     unless ($ret == $pid) {
@@ -122,11 +123,11 @@ sub kill_qemu {
     }
 
     for my $pid (@{$self->{children}}) {
-        diag("killing child $pid");
+        debug("killing child $pid");
         kill('TERM', $pid);
         for my $i (1 .. 5) {
             $ret = waitpid($pid, WNOHANG);
-            diag "waitpid for $pid returned $ret";
+            trace "waitpid for $pid returned $ret";
             last if ($ret == $pid);
             sleep 1;
         }
@@ -155,7 +156,7 @@ sub save_memory_dump {
     my ($self, $args) = @_;
     my $rsp = 0;
 
-    bmwqemu::diag("Migrating the machine.");
+    debug("Migrating the machine.");
 
     mkpath("ulogs");
 
@@ -168,26 +169,25 @@ sub save_memory_dump {
 
     die(sprintf("Migration failed: desc: %s, class: %s, stopped", $rsp->{error}->{desc}, $rsp->{error}->{class})) if ($rsp->{error});
 
-
     do {
 
         sleep 0.5;    #We want to wait a decent amount of time, a file of 1GB will be
                       # migrated in about 40secs with an ssd drive. and no heavy load.
         $rsp = $self->handle_qmp_command({execute => "query-migrate"});
 
-        diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
-        diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
+        trace "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
+        trace "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
 
     } until ($rsp->{return}->{status} eq "completed");
 
-    diag "Migration completed.";
+    debug "Migration completed.";
     return;
 }
 
 sub save_storage_drives {
     my ($self, $args) = @_;
 
-    diag "Attemping to extract disk #%d.", $args->{disk};
+    debug "Attemping to extract disk #%d.", $args->{disk};
 
     $self->do_extract_assets(
         {
@@ -197,7 +197,7 @@ sub save_storage_drives {
             format  => "qcow2"
         });
 
-    diag "Sucessfully extracted disk #%d.", $args->{disk};
+    debug "Sucessfully extracted disk #%d.", $args->{disk};
     return;
 }
 
@@ -205,8 +205,8 @@ sub save_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("savevm $vmname");
-    diag "SAVED $vmname $rsp";
-    die "Could not save snapshot \'$vmname\': $rsp" unless ($rsp eq "savevm $vmname");
+    debug "SAVED $vmname $rsp";
+    die "Could not save snapshot \'$vmname\'" unless ($rsp eq "savevm $vmname");
     return;
 }
 
@@ -214,7 +214,7 @@ sub load_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("loadvm $vmname");
-    die "Could not load snapshot \'$vmname\': $rsp" unless ($rsp eq "loadvm $vmname");
+    die "Could not load snapshot \'$vmname\'" unless ($rsp eq "loadvm $vmname");
     $rsp = $self->handle_qmp_command({execute => 'stop'});
     $rsp = $self->handle_qmp_command({execute => 'cont'});
     sleep(10);
@@ -222,7 +222,7 @@ sub load_snapshot {
 }
 
 sub runcmd {
-    diag "running " . join(' ', @_);
+    debug "running " . join(' ', @_);
     local $SIG{CHLD} = 'IGNORE';
     return CORE::system(@_);
 }
@@ -234,10 +234,10 @@ sub do_extract_assets {
     my $img_dir = $args->{dir};
     my $format  = $args->{format};
     if (!$format || $format !~ /^(raw|qcow2)$/) {
-        bmwqemu::diag "do_extract_assets: only raw and qcow2 formats supported $name $format";
+        debug "do_extract_assets: only raw and qcow2 formats supported $name $format";
     }
     elsif (-f "raid/l$hdd_num") {
-        bmwqemu::diag "preparing hdd $hdd_num for upload as $name in $format";
+        debug "preparing hdd $hdd_num for upload as $name in $format";
         mkpath($img_dir);
         my @cmd = ('nice', 'ionice', 'qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name");
         if ($format eq 'raw') {
@@ -255,7 +255,7 @@ sub do_extract_assets {
         }
     }
     else {
-        bmwqemu::diag "do_extract_assets: hdd $hdd_num does not exist";
+        debug "do_extract_assets: hdd $hdd_num does not exist";
     }
 }
 
@@ -473,7 +473,7 @@ sub start_qemu {
                 exec(@cmd);
                 die "failed to exec slirpvde";
             }
-            diag join(' ', @cmd) . " started with pid $pid";
+            debug join(' ', @cmd) . " started with pid $pid";
             push @{$self->{children}}, $pid;
             runcmd('vdecmd', '-s', $mgmtsocket, 'port/setvlan', $port + 1, $vlan) if $vlan;
         }
@@ -745,8 +745,9 @@ sub start_qemu {
         if ($vars->{AUTO_INST}) {
             push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
         }
-        bmwqemu::diag(`$qemubin -version`);
-        bmwqemu::diag("starting: " . join(" ", @params));
+        # We are using system somwhere else, why not here too?
+        info(`$qemubin -version`);
+        info("starting: " . join(" ", @params));
 
         # don't try to talk to the host's PA
         $ENV{QEMU_AUDIO_DRV} = "none";
@@ -756,7 +757,7 @@ sub start_qemu {
         open(STDERR, ">&", $writer);
         close($reader);
         exec(@params);
-        die "failed to exec qemu";
+        die("failed to exec qemu");
     }
     else {
         $self->{pid} = $pid;
@@ -799,17 +800,18 @@ sub start_qemu {
     $flags = fcntl($self->{qmpsocket}, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
     $flags = fcntl($self->{qmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
-    diag sprintf("hmpsocket %d, qmpsocket %d", fileno($self->{hmpsocket}), fileno($self->{qmpsocket}));
+    debug(sprintf("hmpsocket %d, qmpsocket %d", fileno($self->{hmpsocket}), fileno($self->{qmpsocket})));
 
     fcntl($self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
     # retrieve welcome
     my $line = $self->_read_hmp;
-    print "WELCOME $line\n";
+    info "WELCOME $line\n";
 
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
     if (0) {
+        # TODO: Why is this here? that 0 means always false.
         $hash = $self->handle_qmp_command({execute => 'query-commands'});
         die "no commands!" unless ($hash);
         print "COMMANDS " . JSON::to_json($hash, {pretty => 1}) . "\n";
@@ -834,16 +836,16 @@ sub start_qemu {
             }
         };
         if ($@) {
-            print "$@\n";
-            print "WARNING: Can't switch NICVLAN number, independent tests may be running on the same network.\n\n";
+            warn("$@\n");
+            warn("Can't switch NICVLAN number, independent tests may be running on the same network.");
         }
     }
 
     if ($bmwqemu::vars{DELAYED_START}) {
-        print "DELAYED_START set, not starting CPU, waiting for resume_vm() call\n";
+        warn "DELAYED_START set, not starting CPU, waiting for resume_vm() call\n";
     }
     else {
-        print "Start CPU\n";
+        info "Start CPU\n";
         $self->handle_qmp_command({execute => 'cont'});
     }
 
@@ -916,7 +918,7 @@ sub handle_qmp_command {
     while (!$hash) {
         $hash = myjsonrpc::read_json($self->{qmpsocket});
         if ($hash->{event}) {
-            bmwqemu::diag "EVENT " . JSON::to_json($hash);
+            debug("EVENT " . JSON::to_json($hash));
             # ignore
             $hash = undef;
         }
@@ -931,7 +933,8 @@ sub read_qemupipe {
     my $bytes = sysread($self->{qemupipe}, $buffer, 1000);
     chomp $buffer;
     for my $line (split(/\n/, $buffer)) {
-        bmwqemu::diag "QEMU: $line";
+        debug "QEMU: $line";
+        # TODO: Cause of death poo#12250
         die "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
     }
     return $bytes;
@@ -1013,7 +1016,7 @@ sub wait_idle {
         $stat += $systemstat;
         if ($prev) {
             my $diff = $stat - $prev;
-            bmwqemu::diag("wait_idle $timesidle d=$diff");
+            debug("wait_idle $timesidle d=$diff");
             if ($diff < $idlethreshold) {
                 if (++$timesidle > $timesidleneeded) {    # idle for $x sec
                                                           #if($diff<2000000) # idle for one sec
