@@ -137,14 +137,6 @@ sub record_screenmatch {
         bmwqemu::diag("needle '$h->{name}' is a workaround");
     }
 
-    # Hack to make it obvious that some test passed by applying a hack
-    # (such as clicking away some error popup). Those hacks are indicated by a
-    # needle containing "bnc" in its name
-    if ($h->{name} =~ /bnc\d{4}/) {
-        $result->{dent} = 1;
-        $self->{dents}++;
-    }
-
     # also include the not matched needles
     my $candidates;
     for my $cand (@{$failed_needles || []}) {
