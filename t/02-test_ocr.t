@@ -18,8 +18,8 @@ use ocr;
 
 
 use OpenQA::Log;
-$configuration = dirname(__FILE__).'/data/';
-setup();
+$OpenQA::Log::configuration = dirname(__FILE__) . '/data/';
+OpenQA::Log::setup();
 
 cv::init();
 require tinycv;

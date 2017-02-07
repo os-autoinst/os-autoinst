@@ -14,10 +14,10 @@ our $configuration;
 sub setup {
 
     unless (Log::Log4perl->initialized) {
-        Log::Log4perl->init($configuration . "log4perl.conf");
+        Log::Log4perl->init($configuration . "/log4perl.conf");
         $Log::Log4perl::caller_depth = 1;
-        $logger                      = Log::Log4perl->get_logger(__PACKAGE__);
-        warn("Hardcoded line $configuration/etc/os-autoinst/log4perl.conf");
+        Log::Log4perl::wrapper_register(__PACKAGE__);
+        $logger = Log::Log4perl->get_logger(__PACKAGE__);
     }
 
 }
@@ -56,6 +56,7 @@ sub die {
     my ($message) = @_;
     $logger->logdie($message);
 }
+
 
 1;
 

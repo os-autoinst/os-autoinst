@@ -19,6 +19,7 @@ package consoles::s3270;
 use base 'consoles::localXvnc';
 use strict;
 use warnings;
+use OpenQA::Log;
 
 use Class::Accessor 'antlers';
 has zVM_host    => (is => "rw");

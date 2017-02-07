@@ -9,7 +9,6 @@ use File::Basename;
 use File::Path 'make_path';
 use File::Temp 'tempdir';
 
-
 # optional but very useful
 eval 'use Test::More::Color';                 ## no critic
 eval 'use Test::More::Color "foreground"';    ## no critic
@@ -30,8 +29,8 @@ cv::init();
 require tinycv;
 
 use OpenQA::Log;
-$configuration = dirname(__FILE__).'/data/';
-setup();
+$OpenQA::Log::configuration = dirname(__FILE__) . '/data/';
+OpenQA::Log::setup();
 
 my ($res, $needle, $img1, $cand);
 
@@ -309,8 +308,7 @@ ok(-f $needle->{png}, 'png file is accessible');
 ok($needle = needle->new('out-of-def-prj/test/data/other-desktop-dvd-20140904.json'), 'needle object created with relpath');
 is($needle->{file}, 'out-of-def-prj/test/data/other-desktop-dvd-20140904.json', 'needle json file path is left intact');
 
-eval { $needle = needle->new('out-of-prj/test/data/some-needle.json') };
-ok($@, 'died when accessing needle outside of prjdir');
+dies_ok { $needle = needle->new('out-of-prj/test/data/some-needle.json') } 'died when accessing needle outside of prjdir';
 
 done_testing();
 

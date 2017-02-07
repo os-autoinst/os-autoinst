@@ -30,8 +30,8 @@ BEGIN {
 
 
 use OpenQA::Log;
-$configuration = dirname(__FILE__).'/data/';
-setup();
+$OpenQA::Log::configuration = dirname(__FILE__) . '/data/';
+OpenQA::Log::setup();
 
 use consoles::virtio_terminal;
 use testapi ();

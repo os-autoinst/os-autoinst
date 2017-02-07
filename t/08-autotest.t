@@ -13,10 +13,9 @@ BEGIN {
     unshift @INC, '..';
 }
 
-
 use OpenQA::Log;
-$configuration = dirname(__FILE__).'/data/';
-setup();
+$OpenQA::Log::configuration = dirname(__FILE__) . '/data/';
+OpenQA::Log::setup();
 
 use autotest;
 use bmwqemu;

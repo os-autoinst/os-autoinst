@@ -24,6 +24,7 @@ use Scalar::Util 'blessed';
 use Cwd;
 use consoles::virtio_screen ();
 use testapi 'get_var';
+use OpenQA::Log;
 
 use base 'consoles::console';
 

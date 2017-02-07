@@ -19,8 +19,6 @@ package tinycv;
 use strict;
 use warnings;
 
-use bmwqemu 'diag';
-
 use File::Basename;
 use Math::Complex 'sqrt';
 
@@ -35,6 +33,7 @@ our $VERSION = '1.0';
 bootstrap tinycv $VERSION;
 
 package tinycv::Image;
+use OpenQA::Log;
 
 sub mean_square_error {
     my ($areas) = @_;

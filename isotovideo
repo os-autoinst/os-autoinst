@@ -79,8 +79,8 @@ $| = 1;
 select(STDOUT);            # default
 $| = 1;
 
-$configuration = $installprefix."/etc/os-autoinst/";
-setup();
+$OpenQA::Log::configuration = $installprefix . "/etc/os-autoinst/";
+OpenQA::Log::setup();
 
 $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();

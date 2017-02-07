@@ -23,6 +23,7 @@ require IPC::System::Simple;
 use autodie ':all';
 use XML::LibXML;
 use File::Temp 'tempfile';
+use OpenQA::Log;
 
 use Class::Accessor 'antlers';
 has instance   => (is => "rw", isa => "Num");

@@ -26,6 +26,7 @@ use Socket;
 use IO::Handle;
 use POSIX '_exit';
 use cv;
+use OpenQA::Log;
 
 our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order

@@ -22,6 +22,8 @@
 
 package backend::console_proxy;
 use strict;
+use warnings;
+use OpenQA::Log;
 
 sub new {
     my ($class, $console) = @_;

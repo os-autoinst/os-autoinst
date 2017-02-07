@@ -25,6 +25,7 @@ use File::Basename;
 require IPC::System::Simple;
 use autodie ':all';
 use OpenQA::Benchmark::Stopwatch;
+use OpenQA::Log;
 
 our %needles;
 our %tags;

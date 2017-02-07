@@ -390,7 +390,7 @@ sub record_serialresult {
     my $details = {result => $res};
 
     my $text_fn = $self->next_resultname('txt');
-    debug("Can't open ".bmwqemu::result_dir() . "/$text_fn") unless open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
+    debug("Can't open " . bmwqemu::result_dir() . "/$text_fn") unless open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
     print $fd "# wait_serial expected: $ref\n\n";
     print $fd "# Result:\n";
     print $fd "$string\n";

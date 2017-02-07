@@ -33,7 +33,7 @@ use base 'Exporter';
 use Exporter;
 
 our $VERSION;
-our @EXPORT    = qw(fileContent save_vars);
+our @EXPORT = qw(fileContent save_vars);
 
 use backend::driver;
 require IPC::System::Simple;

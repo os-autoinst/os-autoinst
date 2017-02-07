@@ -31,6 +31,7 @@ use OpenQA::Exceptions;
 use Digest::MD5 'md5_base64';
 use Carp qw(cluck croak);
 use MIME::Base64 'decode_base64';
+use OpenQA::Log;
 
 require bmwqemu;
 
@@ -193,8 +194,7 @@ sub _check_backend_response {
         my $img = tinycv::from_ppm(decode_base64($rsp->{image}));
         $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
         my $lastarea = $foundneedle->{area}->[-1];
-        debug(
-            sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+        debug(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
         $last_matched_needle = $foundneedle;
         return $foundneedle;
     }
