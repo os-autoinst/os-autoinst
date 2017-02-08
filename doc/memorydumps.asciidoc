@@ -48,7 +48,7 @@ A very simple way to use this helpful feature is the following:
 sub post_fail_hook {
 	my $self = shift;
 	freeze_vm;
-	save_memory_dump("my-memory-dump");
+	save_memory_dump(filename => "my-memory-dump");
 	save_storage_drives("my-disk");
 }
 
