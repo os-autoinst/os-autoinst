@@ -17,7 +17,7 @@ use Data::Dumper 'Dumper';
 use feature 'say';
 
 __PACKAGE__->mk_accessors(
-    qw(hostname port username password socket name width height depth save_bandwidth
+    qw(hostname port username password socket name width height depth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
       _last_update_requested _vnc_stalled vncinfo old_ikvm dell
@@ -95,7 +95,6 @@ my @encodings = (
         num       => 16,
         name      => 'ZRLE',
         supported => 1,
-        bandwidth => 1,
     },
     {
         num       => -223,
@@ -478,8 +477,10 @@ sub _server_initialization {
     # Prefer the higher-numbered encodings
     @encs = reverse sort { $a->{num} <=> $b->{num} } @encs;
 
-    if (!$self->save_bandwidth) {
-        @encs = grep { !$_->{bandwidth} } @encs;
+    if ($self->dell) {
+        # idrac's zlre implementation even kills tigervnc, they duplicate
+        # frames under certain conditions. Raw works ok
+        @encs = grep { $_->{name} ne 'ZRLE' } @encs;
     }
     $socket->print(
         pack(
