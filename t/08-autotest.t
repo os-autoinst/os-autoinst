@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Output;
+use Test::Output 'stderr_like';
 use Test::Fatal;
 use Test::MockModule;
 use File::Basename ();
@@ -24,9 +24,11 @@ my @sent;
 like(exception { autotest::runalltests }, qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first');
 stderr_like(
     sub {
-        like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest.*does not match required pattern/);
+        like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest.*does not match required pattern/,
+            'loadtest catches incorrect test script paths');
     },
-    qr/loadtest needs a script below.*is not/
+    qr/loadtest needs a script below.*is not/,
+    'loadtest outputs on stderr'
 );
 
 sub loadtest {
@@ -65,7 +67,7 @@ my $completed;
 # we have to define this to *something* so the `close` in run_all
 # doesn't crash us
 $autotest::isotovideo = 'foo';
-autotest::run_all;
+stderr_like(sub { autotest::run_all }, qr/ERROR: no tests loaded/, 'run_all outputs status on stderr');
 ($died, $completed) = get_tests_done;
 is($died,      1, 'run_all with no tests should catch runalltests dying');
 is($completed, 0, 'run_all with no tests should not complete');
@@ -73,14 +75,14 @@ is($completed, 0, 'run_all with no tests should not complete');
 
 loadtest 'start';
 loadtest 'next';
-is(keys %autotest::tests, 2);
+is(keys %autotest::tests, 2, 'two tests have been scheduled');
 loadtest 'start', 'rescheduling same step later';
-is(keys %autotest::tests, 3) || diag explain %autotest::tests;
+is(keys %autotest::tests, 3, 'three steps have been scheduled (one twice)') || diag explain %autotest::tests;
 is($autotest::tests{'tests-start1'}->{name}, 'start#1', 'handle duplicate tests');
 is($autotest::tests{'tests-start1'}->{$_}, $autotest::tests{'tests-start'}->{$_}, "duplicate tests point to the same $_")
   for qw(script fullname category class);
 
-autotest::run_all;
+stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
 ($died, $completed) = get_tests_done;
 is($died,      0, 'start+next+start should not die');
 is($completed, 1, 'start+next+start should complete');
@@ -93,7 +95,7 @@ stderr_like(
     },
     qr@scheduling alt_name tests/run_args.pm@
 );
-autotest::run_all;
+stderr_like(sub { autotest::run_all }, qr/finished alt_name tests/, 'dynamic scheduled alt_name shows up');
 ($died, $completed) = get_tests_done;
 is($died,      0, 'run_args test should not die');
 is($completed, 1, 'run_args test should complete');
@@ -122,7 +124,7 @@ like($@, qr/The run_args must be a sub-class of OpenQA::Test::RunArgs/);
 $mock_basetest->mock(runtest          => sub { die 'oh noes!'; });
 $mock_autotest->mock(query_isotovideo => sub { return 1; });
 
-autotest::run_all;
+stderr_like(sub { autotest::run_all }, qr/oh noes/, 'run_all outputs status on stderr');
 ($died, $completed) = get_tests_done;
 is($died,      0, 'non-fatal test failure should not die');
 is($completed, 1, 'non-fatal test failure should complete');
@@ -130,7 +132,7 @@ is($completed, 1, 'non-fatal test failure should complete');
 
 # now let's add an ignore_failure test
 loadtest 'ignore_failure';
-autotest::run_all;
+stderr_like(sub { autotest::run_all }, qr/oh noes/, 'run_all outputs status on stderr');
 ($died, $completed) = get_tests_done;
 is($died,      0, 'unimportant test failure should not die');
 is($completed, 1, 'unimportant test failure should complete');
@@ -166,7 +168,7 @@ $mock_basetest->mock(runtest => sub { die "oh noes!\n"; });
 
 # now let's add a fatal test
 loadtest 'fatal';
-autotest::run_all;
+stderr_like(sub { autotest::run_all }, qr/oh noes/, 'run_all outputs status on stderr');
 ($died, $completed) = get_tests_done;
 is($died,      0, 'fatal test failure should not die');
 is($completed, 0, 'fatal test failure should not complete');

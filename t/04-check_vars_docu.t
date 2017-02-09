@@ -19,6 +19,7 @@
 use strict;
 use warnings;
 
+use Test::Warnings;
 use FindBin;
 use File::Find;
 require IPC::System::Simple;
