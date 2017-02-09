@@ -396,6 +396,7 @@ sub record_serialresult {
 
 sub record_soft_failure_result {
     my ($self, $reason) = @_;
+    $reason //= '(no reason specified)';
 
     my $result = $self->record_testresult('unk');
     $self->_result_add_screenshot($result);
