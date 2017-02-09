@@ -56,6 +56,7 @@ on 'test' => sub {
   requires 'Test::MockModule';
   requires 'Pod::Coverage';
   requires 'Devel::Cover';
+  requires 'String::Random';
 };
 
 feature 'coverage', 'coverage for travis' => sub {
