@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Warnings;
 use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
