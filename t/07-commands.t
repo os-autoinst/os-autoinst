@@ -33,6 +33,7 @@ use commands;
 use Mojo::IOLoop::Server;
 use Time::HiRes 'sleep';
 use Test::More;
+use Test::Warnings;
 use POSIX '_exit';
 
 our $mojoport = Mojo::IOLoop::Server->generate_port;

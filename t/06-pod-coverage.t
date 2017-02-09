@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Warnings;
 use Pod::Coverage;
 use File::Basename;
 
