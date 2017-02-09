@@ -58,7 +58,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   upload_logs
 
   wait_idle wait_screen_change assert_screen_change wait_still_screen wait_serial
-  record_soft_failure
+  record_soft_failure record_info
   become_root x11_start_program ensure_installed eject_cd power
 
   save_memory_dump save_storage_drives freeze_vm resume_vm
@@ -177,7 +177,37 @@ sub record_soft_failure {
 
     $autotest::current_test->record_soft_failure_result($reason);
     $autotest::current_test->{dents}++;
-    return;
+}
+
+sub _is_valid_result {
+    my ($result) = @_;
+    return $result =~ /^(ok|fail|softfail)$/;
+}
+
+=head2 record_info
+
+    record_info($title, $output [, result => $result] [, resultname => $resultname]);
+
+Example:
+
+  record_info('workaround', "we know what we are doing");
+
+Record a generic step result on the current test modules. This is meant for
+informational purposes to be interpreted by a displaying system. For example
+openQA can show a info box as part of the job results details. Use this
+instead of C<record_soft_failure> for example when you do not want to mark the
+job as a softfail. The optional value C<$result> can be 'ok' (default),
+'fail', 'softfail'. C<$resultname> can be specified for the additional name
+tag on the result file.
+
+=cut
+
+sub record_info {
+    my ($title, $output, %nargs) = @_;
+    $nargs{result} //= 'ok';
+    die 'unsupported $result \'' . $nargs{result} . '\'' unless _is_valid_result($nargs{result});
+    bmwqemu::log_call(title => $title, output => $output, %nargs);
+    $autotest::current_test->record_resultfile($title, $output, %nargs);
 }
 
 sub _handle_found_needle {
@@ -661,13 +691,8 @@ sub wait_serial {
     bmwqemu::wait_for_one_more_screenshot() unless is_serial_terminal;
 
     # to string, we need to feed string of result to
-    # record_serialresult(), either 'ok' or 'fail'
-    if ($matched) {
-        $matched = 'ok';
-    }
-    else {
-        $matched = 'fail';
-    }
+    # record_serialresult()
+    $matched = $matched ? 'ok' : 'fail';
     $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string});
     bmwqemu::fctres("$regexp: $matched");
     return $ret->{string} if ($matched eq "ok");

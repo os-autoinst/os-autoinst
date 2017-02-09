@@ -368,6 +368,27 @@ sub next_resultname {
     }
 }
 
+=head2 record_resultfile
+
+    $self->record_resultfile($title, $output [, result => $result] [, resultname => $name]);
+
+Record result file to be parsed when evaluating test results, for example
+within the openQA web interface.
+=cut
+sub record_resultfile {
+    my ($self, $title, $output, %nargs) = @_;
+    my $filename = $self->next_resultname('txt', $nargs{resultname});
+    my $detail = {
+        title  => $title,
+        result => $nargs{result},
+        text   => $filename,
+    };
+    push @{$self->{details}}, $detail;
+    open my $fh, '>', bmwqemu::result_dir() . "/$filename";
+    print $fh $output;
+    close $fh;
+}
+
 sub record_serialresult {
     my ($self, $ref, $res, $string) = @_;
 
@@ -378,19 +399,10 @@ sub record_serialresult {
         # the screenshot is not the fail, it's just for documentation
         $self->_result_add_screenshot($result);
     }
-
-    my $details = {result => $res};
-
-    my $text_fn = $self->next_resultname('txt');
-    open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
-    print $fd "# wait_serial expected: $ref\n\n";
-    print $fd "# Result:\n";
-    print $fd "$string\n";
-    close $fd;
-    $details->{text}  = $text_fn;
-    $details->{title} = 'wait_serial';
-    push @{$self->{details}}, $details;
-
+    my $output = "# wait_serial expected: $ref\n\n";
+    $output .= "# Result:\n";
+    $output .= "$string\n";
+    $self->record_resultfile('wait_serial', $output, result => $res);
     return $result;
 }
 
@@ -400,17 +412,8 @@ sub record_soft_failure_result {
 
     my $result = $self->record_testresult('unk');
     $self->_result_add_screenshot($result);
-
-    my $details = {result => $result};
-
-    my $text_fn = $self->next_resultname('txt');
-    open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
-    print $fd "# Soft Failure:\n$reason\n";
-    close $fd;
-    $details->{text}  = $text_fn;
-    $details->{title} = 'Soft Failed';
-    push @{$self->{details}}, $details;
-
+    my $output = "# Soft Failure:\n$reason\n";
+    $self->record_resultfile('Soft Failed', $output, result => $result);
     return $result;
 }
 

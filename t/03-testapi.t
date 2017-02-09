@@ -193,6 +193,12 @@ subtest 'assert_and_click' => sub {
     is_deeply($cmds->[-1], {cmd => 'backend_mouse_hide', offset => 0}, 'assert_and_click succeeds and hides mouse again -> undef return');
 };
 
+subtest 'record_info' => sub {
+    ok(record_info('my title', "my output\nnext line"), 'simple call');
+    ok(record_info('my title', 'output', result => 'ok', resultname => 'foo'), 'all arguments');
+    like(exception { record_info('my title', 'output', result => 'not supported', resultname => 'foo') }, qr/unsupported/, 'invalid result');
+};
+
 done_testing;
 
 # vim: set sw=4 et:
