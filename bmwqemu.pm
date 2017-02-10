@@ -249,6 +249,7 @@ sub current_test() {
 
 sub update_line_number {
     return unless current_test;
+    return unless current_test->{script};
     my $out    = "";
     my $ending = quotemeta(current_test->{script});
     for my $i (1 .. 10) {

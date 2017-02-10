@@ -17,6 +17,7 @@
 package basetest;
 use strict;
 use warnings;
+use autodie ':all';
 use bmwqemu ();
 use ocr;
 use Time::HiRes;

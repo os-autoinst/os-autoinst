@@ -5,6 +5,7 @@ use warnings;
 use Test::More;
 use Test::Output;
 use Test::Fatal;
+use File::Temp;
 
 BEGIN {
     unshift @INC, '..';
@@ -25,16 +26,26 @@ sub fake_send_json {
 sub fake_read_json {
     my ($fd) = @_;
     my $lcmd = $cmds->[-1];
-    if ($lcmd->{cmd} eq 'backend_wait_serial') {
+    my $cmd  = $lcmd->{cmd};
+    if ($cmd eq 'backend_wait_serial') {
         my $str = $lcmd->{regexp};
         $str =~ s,\\d\+,$fake_exit,;
         return {ret => {matched => 1, string => $str}};
     }
-    elsif ($lcmd->{cmd} eq 'backend_select_console') {
+    elsif ($cmd eq 'backend_select_console') {
         return {ret => {activated => 0}};
     }
-    elsif ($lcmd->{cmd} eq 'backend_is_serial_terminal') {
+    elsif ($cmd eq 'backend_is_serial_terminal') {
         return {ret => {yesorno => 0}};
+    }
+    elsif ($cmd eq 'check_screen') {
+        return {ret => {found => {needle => 1}}};
+    }
+    elsif ($cmd eq 'backend_mouse_hide') {
+        return {ret => 1};
+    }
+    else {
+        print "not implemented \$cmd: $cmd\n";
     }
     return {};
 }
@@ -44,14 +55,16 @@ $mod->mock(read_json => \&fake_read_json);
 
 use testapi qw(is_serial_terminal :DEFAULT);
 use basetest;
-*{basetest::_result_add_screenshot} = sub { my ($self, $result) = @_; };
+my $mock_basetest = new Test::MockModule('basetest');
+$mock_basetest->mock(_result_add_screenshot => sub { my ($self, $result) = @_; });
 $autotest::current_test = basetest->new();
 
 # we have to mock out wait_screen_change for the type_string tests
 # that use it, as it doesn't work with the fake send_json and read_json
 my $mod2 = new Test::MockModule('testapi');
 
-sub fake_wait_screen_change {
+## no critic (ProhibitSubroutinePrototypes)
+sub fake_wait_screen_change(&@) {
     my ($callback, $timeout) = @_;
     $callback->() if $callback;
 }
@@ -105,6 +118,10 @@ type_password 'hallo', max_interval => 5;
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 5, text => 'hallo'}]);
 $cmds = [];
 
+#$mock_basetest->mock(record_soft_failure_result => sub {});
+my $mock_bmwqemu = new Test::MockModule('bmwqemu');
+$mock_bmwqemu->mock(result_dir => sub() { File::Temp->newdir() });
+
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
 is($autotest::current_test->{dents}, 1, 'soft failure recorded');
@@ -122,7 +139,9 @@ is(is_serial_terminal, 0, 'Not a serial terminal');
 subtest 'script_run' => sub {
     my $module = new Test::MockModule('bmwqemu');
     # just save ourselves some time during testing
-    $module->mock('wait_for_one_more_screenshot', sub { sleep 0; });
+    $module->mock(wait_for_one_more_screenshot => sub { sleep 0; });
+
+    $testapi::serialdev = 'null';
 
     is(assert_script_run('true'), undef, 'nothing happens on success');
     $fake_exit = 1;
@@ -149,6 +168,31 @@ subtest 'script_run' => sub {
     is(script_run('false', 0), undef, 'script_run with no check of success, returns undef when not waiting');
 };
 
-done_testing();
+subtest 'check_assert_screen' => sub {
+    my $mock_testapi = new Test::MockModule('testapi');
+    $mock_testapi->mock(_handle_found_needle => sub { return $_[0] });
+    stderr_like {
+        is_deeply(assert_screen('foo', 1), {needle => 1}, 'expected and found MATCH reported');
+    }
+    qr/assert_screen(.*timeout=1)/;
+    stderr_like { assert_screen('foo', 3, timeout => 2) } qr/timeout=2/, 'named over positional';
+    stderr_like { assert_screen('foo') } qr/timeout=30/, 'default timeout';
+    stderr_like { assert_screen('foo', no_wait => 1) } qr/no_wait=1/, 'no wait option';
+    stderr_like { check_screen('foo') } qr/timeout=30/, 'check_screen with same default timeout';
+    stderr_like { check_screen('foo', 42) } qr/timeout=42/, 'check_screen with timeout variable';
+};
+
+ok(save_screenshot);
+
+is(match_has_tag,        undef, 'match_has_tag on no value -> undef');
+is(match_has_tag('foo'), undef, 'match_has_tag on not matched tag -> undef');
+subtest 'assert_and_click' => sub {
+    my $mock_testapi = new Test::MockModule('testapi');
+    $mock_testapi->mock(assert_screen => sub { return {area => [{x => 1, y => 2, w => 3, h => 4}]}; });
+    ok(assert_and_click('foo'));
+    is_deeply($cmds->[-1], {cmd => 'backend_mouse_hide', offset => 0}, 'assert_and_click succeeds and hides mouse again -> undef return');
+};
+
+done_testing;
 
 # vim: set sw=4 et:

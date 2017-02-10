@@ -180,21 +180,26 @@ sub record_soft_failure {
     return;
 }
 
+sub _handle_found_needle {
+    my ($foundneedle, $rsp, $tags) = @_;
+    # convert the needle back to an object
+    $foundneedle->{needle} = needle->new($foundneedle->{needle});
+    my $img = tinycv::from_ppm(decode_base64($rsp->{image}));
+    $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
+    my $lastarea = $foundneedle->{area}->[-1];
+    bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+    $last_matched_needle = $foundneedle;
+    return $foundneedle;
+}
+
+
 sub _check_backend_response {
     my ($rsp, $check, $timeout, $mustmatch) = @_;
 
     my $tags = $rsp->{tags};
 
-    if ($rsp->{found}) {
-        my $foundneedle = $rsp->{found};
-        # convert the needle back to an object
-        $foundneedle->{needle} = needle->new($foundneedle->{needle});
-        my $img = tinycv::from_ppm(decode_base64($rsp->{image}));
-        $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
-        my $lastarea = $foundneedle->{area}->[-1];
-        bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
-        $last_matched_needle = $foundneedle;
-        return $foundneedle;
+    if (my $foundneedle = $rsp->{found}) {
+        return _handle_found_needle($foundneedle, $rsp, $tags);
     }
     elsif ($rsp->{timeout}) {
         bmwqemu::fctres("match=" . join(',', @$tags) . " timed out after $timeout");
