@@ -565,6 +565,10 @@ sub start_qemu {
             push(@params, '-device', "$vars->{NICMODEL},netdev=qanet$i,mac=$nicmac[$i]");
         }
 
+        if ($vars->{QEMU_SMBIOS}) {
+            push @params, '-smbios', $vars->{QEMU_SMBIOS};
+        }
+
         if ($vars->{LAPTOP}) {
             my $laptop_path = "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
             for my $f (glob "$laptop_path/*.bin") {

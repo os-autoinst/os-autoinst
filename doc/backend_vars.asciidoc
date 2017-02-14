@@ -69,6 +69,7 @@ QEMU_NO_KVM;boolean;0;Don't use KVM acceleration.
 QEMU_NO_TABLET;boolean;0;Don't use USB tablet.
 QEMU_VIRTIO_RNG;boolean;0;Enable virtio random number generator
 QEMU_NUMA;boolean;0;Enable NUMA simulation, requires QEMUCPUS to be greater than one
+QEMU_SMBIOS;see qemu -smbios ?;undef;pass this value to qemu -smbios
 RAIDLEVEL;;;
 SKIPTO;full name of test module;;Restore VM from snapshot and continue by running specified test module. Needs HDD image with snapshots present
 TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used
