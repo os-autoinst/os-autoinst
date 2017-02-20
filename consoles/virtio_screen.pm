@@ -110,10 +110,16 @@ sub thetime {
     return clock_gettime(CLOCK_MONOTONIC);
 }
 
-sub get_elapsed {
+sub elapsed {
     no integer;
     my $start = shift;
     return thetime() - $start;
+}
+
+sub remaining {
+    no integer;
+    my ($start, $timeout) = @_;
+    return $timeout - elapsed($start);
 }
 
 # If $pattern is an array of regexes combine them into a single one.
@@ -175,7 +181,6 @@ sub read_until {
     my ($rbuf, $buf) = ('', '');
     my $loops = 0;
     my ($prematch, $match);
-    my $do_while_idle = $nargs{do_while_idle};
 
     my $re = normalise_pattern($pattern, $nargs{no_regex});
 
@@ -183,17 +188,24 @@ sub read_until {
     $nargs{timeout} = $timeout;
     bmwqemu::log_call(%nargs);
 
+    my $rin = '';
+    vec($rin, fileno($fd), 1) = 1;
+
   READ: while (1) {
         $loops++;
 
-        if (get_elapsed($sttime) >= $timeout) {
+        if (elapsed($sttime) >= $timeout) {
             return {matched => 0, string => ($overflow || '') . $rbuf};
+        }
+
+        my $nfound = select(my $rout = $rin, undef, my $eout = $rin, remaining($sttime, $timeout));
+        if ($nfound < 0) {
+            croak "Failed to select socket for reading: $ERRNO";
         }
 
         my $read = sysread($fd, $buf, $buflen / 2);
         unless (defined $read) {
             if ($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK}) {
-                &$do_while_idle() if defined $do_while_idle;
                 next READ;
             }
             croak "Failed to read from virtio console char device: $ERRNO";
@@ -231,7 +243,7 @@ sub read_until {
         }
     }
 
-    my $elapsed = get_elapsed($sttime);
+    my $elapsed = elapsed($sttime);
     bmwqemu::fctinfo("Matched output from SUT in $loops loops & $elapsed seconds: $match");
 
     $overflow ||= '';
