@@ -48,8 +48,6 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   assert_script_run script_run assert_script_sudo script_sudo
   script_output validate_script_output
 
-  wait_terminal assert_terminal
-
   start_audiocapture assert_recorded_sound
 
   select_console console reset_consoles
