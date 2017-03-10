@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Cwd 'abs_path';
 use Test::More;
+use Test::Warnings;
 use Try::Tiny;
 use File::Basename;
 use File::Path 'make_path';

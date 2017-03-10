@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::MockModule;
+use Test::Warnings;
 
 BEGIN {
     unshift @INC, '..';

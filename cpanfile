@@ -52,10 +52,12 @@ on 'test' => sub {
   requires 'Perl::Critic';
   requires 'Test::Output';
   requires 'Test::Fatal';
+  requires 'Test::Warnings';
   requires 'Test::Pod';
   requires 'Test::MockModule';
   requires 'Pod::Coverage';
   requires 'Devel::Cover';
+  requires 'String::Random';
 };
 
 feature 'coverage', 'coverage for travis' => sub {

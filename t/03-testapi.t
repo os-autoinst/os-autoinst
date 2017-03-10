@@ -5,6 +5,7 @@ use warnings;
 use Test::More;
 use Test::Output;
 use Test::Fatal;
+use Test::Warnings;
 use File::Temp;
 
 BEGIN {
