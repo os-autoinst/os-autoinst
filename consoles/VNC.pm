@@ -116,6 +116,8 @@ my @encodings = (
 sub login {
     my ($self, $connect_timeout) = @_;
     $connect_timeout //= 10;
+    # arbitrary
+    my $connect_failure_limit = 2;
 
     $self->width(0);
     $self->height(0);
@@ -131,6 +133,7 @@ sub login {
     my $endtime = time + $connect_timeout;
 
     my $socket;
+    my $err_cnt = 0;
     while (!$socket) {
         $socket = IO::Socket::INET->new(
             PeerAddr => $hostname,
@@ -138,8 +141,12 @@ sub login {
             Proto    => 'tcp',
         );
         if (!$socket) {
+            $err_cnt++;
             return if (time > $endtime);
-            bmwqemu::diag "Error connecting to host <$hostname>: $@";
+            # we might be too fast trying to connect to the VNC host (e.g.
+            # qemu) so ignore the first occurences of a failed
+            # connection attempt.
+            bmwqemu::diag "Error connecting to host <$hostname>: $@" if $err_cnt > $connect_failure_limit;
             sleep 1;
             next;
         }
