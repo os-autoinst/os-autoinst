@@ -9,7 +9,7 @@ use Test::Warnings;
 use Try::Tiny;
 use File::Basename;
 use File::Path qw(make_path remove_tree);
-use String::Random;
+use File::Temp 'tempfile';
 use Cwd;
 
 
@@ -23,7 +23,6 @@ use OpenQA::Benchmark::Stopwatch;
 # optional but very useful
 eval 'use Test::More::Color';                 ## no critic
 eval 'use Test::More::Color "foreground"';    ## no critic
-my $string = new String::Random;
 
 use needle;
 use cv;
@@ -47,8 +46,7 @@ my $watch = OpenQA::Benchmark::Stopwatch->new();
 $watch->start();
 
 foreach my $img_src (@all_images) {
-
-    my $filename = "$result_dir/test-" . $string->randregex('\d\d\d\d\d') . "$img_src";
+    my (undef, $filename) = tempfile('test-XXXXX', DIR => $result_dir, SUFFIX => $img_src, OPEN => 0);
     $image = tinycv::read($data_dir . '/' . $img_src);
     if ($image) {
         $image->write($filename);
