@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2017 SUSE LLC
+# Copyright (C) 2017 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -11,16 +11,19 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along
-# with this program; if not, write to the Free Software Foundation, Inc.,
-# 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+# with this program; if not, see <http://www.gnu.org/licenses/>.
 
-use strict;
+use 5.018;
+use base 'basetest';
 use testapi;
 
-autotest::loadtest "tests/boot.pm";
-autotest::loadtest "tests/shutdown.pm";
-autotest::loadtest "tests/parameterized.pm", 'foo';
+sub run {
+    my ($input_param) = @_;
+    type_string $input_param;
+}
+
+sub test_flags {
+    return {fatal => 1};
+}
 
 1;
-
-# vim: set sw=4 et:

@@ -32,7 +32,7 @@ our @testorder;    # for keeping them in order
 our $isotovideo;
 
 sub loadtest {
-    my ($script) = @_;
+    my ($script, $arg) = @_;
     my $casedir = $bmwqemu::vars{CASEDIR};
 
     unless (-f join('/', $casedir, $script)) {
@@ -45,7 +45,7 @@ sub loadtest {
     my $category = $1;
     my $name     = $2;
     my $test;
-    my $fullname = "$category-$name";
+    my $fullname = "$category-$name-$arg";
     # perl code generating perl code is overcool
     # FIXME turn this into a proper eval instead of a generated string
     my $code = "package $name;";
@@ -62,6 +62,7 @@ sub loadtest {
     $test             = $name->new($category);
     $test->{script}   = $script;
     $test->{fullname} = $fullname;
+    $test->{arg}      = $arg;
     my $nr = '';
     while (exists $tests{$fullname . $nr}) {
         # to all perl hardcore hackers: fuck off!
