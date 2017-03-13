@@ -21,6 +21,7 @@ use Time::HiRes 'usleep';
 use File::Temp 'tempfile';
 
 use Test::More;
+use Test::Warnings;
 
 BEGIN {
     unshift @INC, '..';
@@ -64,7 +65,7 @@ my $next_test             = "GOTO NEXT\n";
 
 # If test keeps timing out, this can be increased or you can add more calls to
 # alarm in fake terminal
-my $timeout = 30;
+my $timeout = 10;
 
 my ($logfd, $log_path) = tempfile('10-terminalXXXXX',       TMPDIR => 1, SUFFIX => '.log');
 my ($errfd, $err_path) = tempfile('10-terminal-ERRORXXXXX', TMPDIR => 1, SUFFIX => '.log');
@@ -72,6 +73,9 @@ my ($errfd, $err_path) = tempfile('10-terminal-ERRORXXXXX', TMPDIR => 1, SUFFIX 
 $bmwqemu::direct_output = 0;
 $bmwqemu::logfd         = $errfd;
 $bmwqemu::istty         = 0;
+
+# Line buffer the error log (make it hot)
+select((select($errfd), $| = 1)[0]);
 
 # Either write $msg to the socket or die
 sub try_write {
@@ -154,6 +158,7 @@ sub fake_terminal {
 
     $SIG{ALRM} = sub {
         fail('fake_terminal timed out while waiting for a connection');
+        done_testing;
         exit(1);
     };
 
@@ -181,6 +186,7 @@ sub fake_terminal {
 
     $SIG{ALRM} = sub {
         fail('fake_terminal timed out while performing IO');
+        done_testing;
         exit(1);
     };
 
@@ -218,12 +224,18 @@ sub fake_terminal {
     #try_write($fd, ($US_keyboard_data x 100_000) . $stop_code_data);
 
     alarm $timeout;
-    $SIG{ALRM} = sub { fail('fake_terminal timed out first'); exit(1); };
+    $SIG{ALRM} = sub {
+        fail('fake_terminal timed out first');
+        done_testing;
+        exit(0);
+    };
+
     try_read($fd, $next_test);
     try_write($fd, $US_keyboard_data);
     # Keep the socket open while we test the timeout
     try_read($fd, $next_test);
 
+    alarm 0;
     pass('fake_terminal managed to get all the way to the end without timing out!');
     done_testing;
 }
@@ -234,9 +246,8 @@ sub is_matched {
 }
 
 sub test_terminal_directly {
-    my $errdupfd = tempfile();
-    open STDERR, '>&', $errdupfd;
-    STDERR->autoflush(1);
+    my $tb = Test::More->builder;
+    $tb->reset;
 
     testapi::set_var('VIRTIO_CONSOLE', 1);
 
@@ -293,11 +304,7 @@ sub test_terminal_directly {
     type_string($next_test);
 
     $term->reset;
-
-    #say STDERR 'Enable this to check that the unit test fails when something is written to STDERR.';
-    local $RS;
-    seek $errdupfd, 0, 0;
-    is(<$errdupfd>, '', 'No output to STDERR');
+    done_testing;
 }
 
 sub test_terminal_through_testapi {
@@ -305,29 +312,15 @@ sub test_terminal_through_testapi {
 }
 
 # Called after waitpid to check child's exit
-sub report_on_fake_terminal {
+sub check_child {
+    my ($child)     = @_;
     my $exited      = WIFEXITED($CHILD_ERROR);
     my $exit_status = WEXITSTATUS($CHILD_ERROR);
-    ok($exited, 'Fake terminal process exits cleanly');
+    ok($exited, "$child process exits cleanly");
     if ($exited) {
-        is($exit_status, 0, 'Child exit status is zero');
+        is($exit_status, 0, "$child process exit status is zero");
     }
-    if ($exited == 0 || $exit_status != 0) {
-        return 0;
-    }
-
-    return 1;
 }
-
-# If fake terminal bails out early, stop the test.
-# It is possible that SIGCHLD is received because of some status change
-# other than termination, hence the if statement.
-$SIG{CHLD} = sub {
-    local ($ERRNO, $CHILD_ERROR);
-    if (waitpid(-1, WNOHANG) > 0) {
-        report_on_fake_terminal || exit(1);
-    }
-};
 
 # The virtio_terminal expects the socket to be ready by the time it is activated
 # so wait for fake terminal to create socket and emit SIGCONT. Sigsuspend only
@@ -338,17 +331,22 @@ my $blockmask = POSIX::SigSet->new(&POSIX::SIGCONT);
 my $oldmask   = POSIX::SigSet->new();
 sigprocmask(POSIX::SIG_BLOCK, $blockmask, $oldmask);
 
-my $pid = fork || do {
+my $fpid = fork || do {
     fake_terminal($socket_path);
     exit 0;
 };
 
 sigsuspend($oldmask);
-test_terminal_directly;
+my $tpid = fork || do {
+    test_terminal_directly;
+    exit 0;
+};
 
-$SIG{CHLD} = sub { };
-waitpid($pid, 0);
-report_on_fake_terminal;
+waitpid($fpid, 0);
+check_child('Fake terminal');
+waitpid($tpid, 0);
+check_child('Direct test');
+
 done_testing;
 unlink $socket_path;
 say "The IO log file is at $log_path and the error log is $err_path.";
