@@ -370,10 +370,11 @@ sub match_has_tag {
 
   assert_and_click($mustmatch, [$button], [$timeout], [$click_time], [$dclick]);
 
-Wait for needle with C<$mustmatch> tag to appear on SUT screen. Then click C<$button> in the middle
-of last matched region. If C<$dclick> is set, do double click instead.
-C<$mustmatch> can be string or C<ARRAYREF> of strings (C<['tag1', 'tag2']>).
-C<$button> is by default C<'left'>. C<'left'> and C<'right'> is supported.
+Wait for needle with C<$mustmatch> tag to appear on SUT screen. Then click
+C<$button> in the middle of the last match region as defined in the needle
+JSON file. If C<$dclick> is set, do double click instead.  C<$mustmatch> can
+be string or C<ARRAYREF> of strings (C<['tag1', 'tag2']>).  C<$button> is by
+default C<'left'>. C<'left'> and C<'right'> is supported.
 
 Throws C<NeedleFailed> exception if C<$timeout> timeout is hit. Default timeout is 30s.
 
