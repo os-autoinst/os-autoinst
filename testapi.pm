@@ -184,6 +184,8 @@ sub _is_valid_result {
 
 =head2 record_info
 
+=for stopwords softfail
+
     record_info($title, $output [, result => $result] [, resultname => $resultname]);
 
 Example:

@@ -16,10 +16,27 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-use strict;
+=head1 SYNOPSIS
 
-local $Devel::Trace::TRACE;
-$Devel::Trace::TRACE = 0;
+isotovideo [OPTIONS]
+
+Parses vars.json and tests the given assets/ISOs.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-d, --debug>
+
+Enable direct output to STDERR instead of autoinst-log.txt
+
+=item B<-h, -?, --help>
+
+Show this help.
+
+=cut
+
+use strict;
 
 my $installprefix;    # $bmwqemu::scriptdir
 
@@ -43,7 +60,7 @@ use autotest;
 use commands;
 use distribution;
 use testapi 'diag';
-use Getopt::Std;
+use Getopt::Long;
 require IPC::System::Simple;
 use autodie ':all';
 no autodie 'kill';
@@ -53,30 +70,34 @@ use Carp 'cluck';
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use File::Spec;
 use File::Path;
+Getopt::Long::Configure("no_ignore_case");
 
-# avoid paranoia
-$Getopt::Std::STANDARD_HELP_VERSION = 1;
-
-sub HELP_MESSAGE {
-    print "$0 [-d]\n";
-    print "Parses vars.json and tests the given assets/ISOS\n\n";
-    print " -d enables direct output to STDERR instead of autoinst-log.txt\n";
-}
-
-# enable debug default when started from a tty
-$bmwqemu::istty = -t 1;    ## no critic
-our ($opt_d);
-getopts('d');
-$bmwqemu::direct_output = $opt_d;
-
+my %options;
 # global exit status
 my $r = 1;
+
+sub usage {
+    my ($return_code) = @_;
+    $r = $return_code;
+    eval { use Pod::Usage; pod2usage($return_code); };
+    if ($@) {
+        die "cannot display help, install perl(Pod::Usage)\n";
+    }
+}
+
+GetOptions(\%options, 'debug|d', 'help|h|?') or usage(1);
+usage(0) if $options{help};
+
+# enable debug default when started from a tty
+$bmwqemu::istty         = -t 1;              ## no critic
+$bmwqemu::direct_output = $options{debug};
+
 # whether tests completed (or we bailed due to a failed 'fatal' test)
 my $completed = 0;
 
 select(STDERR);
 $| = 1;
-select(STDOUT);            # default
+select(STDOUT);                              # default
 $| = 1;
 
 $bmwqemu::scriptdir = $installprefix;
@@ -534,6 +555,8 @@ END {
     kill_backend;
     kill_commands;
     kill_autotest;
+    # in case of early exit, e.g. help display
+    $r //= 0;
     print "$$: EXIT $r\n";
     $? = $r;
 }
