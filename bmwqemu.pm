@@ -151,7 +151,7 @@ sub init {
     ## env vars end
 
     ## some var checks
-    if (!-x $gocrbin) {
+    if ($gocrbin && !-x $gocrbin) {
         $gocrbin = undef;
     }
     if ($vars{SUSEMIRROR} && $vars{SUSEMIRROR} =~ s{^(\w+)://}{}) {    # strip & check proto
