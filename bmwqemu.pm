@@ -124,18 +124,16 @@ sub init {
     $| = 1;
     select($oldfh);
 
-    unless ($vars{CASEDIR}) {
-        die "DISTRI undefined\n" . pp(\%vars) . "\n" unless $vars{DISTRI};
-        my @dirs = ("$scriptdir/distri/$vars{DISTRI}");
-        unshift @dirs, $dirs[-1] . "-" . $vars{VERSION} if ($vars{VERSION});
-        for my $d (@dirs) {
-            if (-d $d) {
-                $vars{CASEDIR} = $d;
-                last;
-            }
+    die "CASEDIR variable not set in vars.json, unknown test case directory" if !$vars{CASEDIR};
+
+    unless ($vars{PRJDIR}) {
+        if (index($vars{CASEDIR}, '/var/lib/openqa/share') != 0) {
+            die "PRJDIR not specified and CASEDIR ($vars{CASEDIR}) does not appear to be a
+                subdir of default (/var/lib/openqa/share). Please specify PRJDIR in vars.json";
         }
-        die "can't determine test directory for $vars{DISTRI}\n" unless $vars{CASEDIR};
+        $vars{PRJDIR} = '/var/lib/openqa/share';
     }
+
 
     # defaults
     $vars{QEMUPORT} ||= 15222;
@@ -143,17 +141,12 @@ sub init {
     # openQA already sets a random string we can reuse
     $vars{JOBTOKEN} ||= random_string(10);
 
-    # FIXME: does not belong here
-    if (defined($vars{DISTRI}) && $vars{DISTRI} eq 'archlinux') {
-        $vars{HDDMODEL} = "ide";
-    }
-
     save_vars();
 
     ## env vars end
 
     ## some var checks
-    if (!-x $gocrbin) {
+    if ($gocrbin && !-x $gocrbin) {
         $gocrbin = undef;
     }
     if ($vars{SUSEMIRROR} && $vars{SUSEMIRROR} =~ s{^(\w+)://}{}) {    # strip & check proto
