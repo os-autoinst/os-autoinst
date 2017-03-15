@@ -141,11 +141,6 @@ sub init {
     # openQA already sets a random string we can reuse
     $vars{JOBTOKEN} ||= random_string(10);
 
-    # FIXME: does not belong here
-    if (defined($vars{DISTRI}) && $vars{DISTRI} eq 'archlinux') {
-        $vars{HDDMODEL} = "ide";
-    }
-
     save_vars();
 
     ## env vars end
