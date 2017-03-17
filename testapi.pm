@@ -261,6 +261,16 @@ sub _check_backend_response {
                 );
             }
         }
+        # Handle case where a stall was detected: fail if this is an
+        # assert_screen, warn if it's a check_screen
+        if ($rsp->{stall}) {
+            if (!$check) {
+                record_info('Stall detected', 'Stall was detected during assert_screen fail', result => 'fail');
+            }
+            else {
+                bmwqemu::fctwarn("stall detected during check_screen failure!");
+            }
+        }
         if (!$check && !$rsp->{saveresult}) {
             OpenQA::Exception::FailedNeedle->throw(error => "needle(s) '$mustmatch' not found", tags => $mustmatch);
         }
