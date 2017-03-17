@@ -188,32 +188,12 @@ sub signalhandler_chld {
     }
 }
 
-sub sync_needles_to_cache {
-
-    no autodie 'system';
-
-    my $needles_source = $bmwqemu::vars{PRODUCTDIR} . "/needles";
-    my $shared_cache = File::Spec->catdir($bmwqemu::vars{CACHEDIRECTORY}, $bmwqemu::vars{OPENQA_HOSTNAME}, $bmwqemu::vars{DISTRI});
-    File::Path::make_path($shared_cache);
-
-    my $start = time;
-    #Do an flock to ensure only one worker is trying to synchronize at a time.
-    my $cmd = sprintf("flock -E 999 %s/needleslock rsync -aP --delete --exclude=.git %s %s/", $shared_cache, $needles_source, $shared_cache);
-    my $res = system($cmd);
-
-    die "Failed to rsync needles: '$@' " if $res;
-    bmwqemu::diag(sprintf("Rsync: Synchronization of needles directory took %.2f seconds", time - $start));
-    return $shared_cache;
-}
-
-our $shared_cache;
-
 sub init_backend {
     my ($name) = @_;
     $bmwqemu::vars{BACKEND} ||= "qemu";
 
     # make sure the needles are initialized
-    needle::init($bmwqemu::vars{PRODUCTDIR} . "/needles", $shared_cache ? $shared_cache . "/needles" : undef);
+    needle::init($bmwqemu::vars{PRODUCTDIR} . "/needles");
 
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
     return $bmwqemu::backend;
@@ -261,12 +241,6 @@ $bmwqemu::vars{TEST_GIT_HASH} = $test_git_hash;
 # start the command fork before we get into the backend, the command child
 # is not supposed to talk to the backend directly
 ($cpid, $cfd) = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
-
-# rsync before we read main.pm - it might trigger opencv and we need
-# to move this as late as possible due to the evil udev thread hooks
-# opencv adds
-# CACHEDIRECTORY must be defined in workers.ini either global or per worker configuration
-$shared_cache = sync_needles_to_cache if $bmwqemu::vars{CACHEDIRECTORY};
 
 # add lib of the test distributions - but only for main.pm not to pollute
 # further dependencies (the tests get it through autotest)
