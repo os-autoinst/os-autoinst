@@ -52,7 +52,7 @@ sub get_last_mouse_set {
 sub connect_vnc {
     my ($self, $args) = @_;
 
-    $self->{mouse} = {x => undef, y => undef};
+    $self->{mouse} = {x => -1, y => -1};
 
     CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
