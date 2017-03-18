@@ -29,7 +29,6 @@ use OpenQA::Benchmark::Stopwatch;
 our %needles;
 our %tags;
 our $needledir;
-our $shared_cache;
 our $cleanuphandler;
 
 sub new {
@@ -99,9 +98,7 @@ sub new {
     $self->{name} = basename($jsonfile, '.json');
     my $png = $self->{png} || $self->{name} . ".png";
 
-    my $original_needles_dir = dirname($jsonfile);
-    # we want to load needles from the cache if it is present
-    $self->{png} = File::Spec->catpath('', $shared_cache ? $shared_cache : $original_needles_dir, $png);
+    $self->{png} = File::Spec->catdir(dirname($jsonfile), $png);
 
     if (!-s $self->{png}) {
         warn "Can't find $self->{png}";
@@ -222,7 +219,7 @@ sub wanted_ {
 }
 
 sub init {
-    ($needledir, $shared_cache) = @_;
+    ($needledir) = @_;
 
     $needledir //= "$bmwqemu::vars{PRODUCTDIR}/needles/";
     -d $needledir || die "needledir not found: $needledir (check vars.json?)";
