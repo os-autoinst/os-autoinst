@@ -93,13 +93,14 @@ sub current_screen {
 sub type_string {
     my ($self, $args) = @_;
 
-    # speed limit: 15bps.  VNC has key up and key down over the wire,
-    # not whole key press events.  So with a faster pace, the vnc
-    # server may think of contact bounces for repeating keys.
-    my $seconds_per_keypress = 1 / 15;
+    # speed limit: 50bps.  VNC has key up and key down over the wire,
+    # not whole key press events and after each event we wait 2ms, so
+    # that makes 250 keys a second - so 50 is still a factor 5 for
+    # buffer
+    my $seconds_per_keypress = 1 / 50;
 
-    # IDrac's VNC implementation is even more problematic, so better type
-    # slower
+    # IDrac's VNC implementation is more problematic, so better type
+    # *SLOW*
     if ($self->{vnc}->dell) {
         $seconds_per_keypress = 1 / 10;
     }

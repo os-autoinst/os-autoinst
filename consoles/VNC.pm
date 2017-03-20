@@ -542,8 +542,9 @@ sub send_key_event_up {
 sub send_key_event {
     my ($self, $key) = @_;
     $self->send_key_event_down($key);
-    usleep(50);    # just a brief moment
+    usleep(2_000);    # just a brief moment
     $self->send_key_event_up($key);
+    usleep(2_000);
 }
 
 
@@ -746,12 +747,13 @@ sub map_and_send_key {
             $self->send_key_event_down($key);
         }
     }
-    usleep(50);    # just a brief moment
+    usleep(2_000);
     if (!defined $down_flag || $down_flag == 0) {
         for my $key (@events) {
             $self->send_key_event_up($key);
         }
     }
+    usleep(2_000);
 }
 
 sub send_pointer_event {
@@ -953,6 +955,9 @@ sub _receive_update {
             my $led_data;
             $socket->read($led_data, 1) || die "unexpected end of data";
             my @bytes = unpack("C", $led_data);
+            # 100     CapsLock is on, NumLock and ScrollLock are off
+            # 010     NumLock is on, CapsLock and ScrollLock are off
+            # 111     CapsLock, NumLock and ScrollLock are on
             bmwqemu::diag("led state $bytes[0] $w $h $encoding_type");
         }
         elsif ($self->ikvm) {
