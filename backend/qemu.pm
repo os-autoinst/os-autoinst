@@ -34,6 +34,10 @@ use autodie ':all';
 sub new {
     my $class = shift;
     my $self  = $class->SUPER::new;
+    # By compressing we are making the images self contained, i.e. they are
+    # portable by not requiring backing files referencing the openQA instance.
+    # Compressing takes longer but the transfer takes shorter amount of time.
+    $bmwqemu::vars{QEMU_COMPRESS_QCOW2} //= 1;
 
     $self->{pid}         = undef;
     $self->{children}    = [];
