@@ -23,6 +23,7 @@ require IPC::System::Simple;
 use autodie ':all';
 use XML::LibXML;
 use File::Temp 'tempfile';
+use File::Basename 'basename';
 
 use Class::Accessor 'antlers';
 has instance   => (is => "rw", isa => "Num");
@@ -327,8 +328,17 @@ sub add_disk {
             }
         }
         elsif ($args->{copy}) {
+            my $HDD_1   = $args->{file};
+            my $hddpath = "/var/lib/openqa/share/factory/hdd";
+            my $base    = basename($HDD_1);
+
             $file = "/var/lib/libvirt/images/$file";
-            $self->run_cmd("rsync -av $args->{file} $file") && die 'rsync failed';
+            #$self->run_cmd("rsync -av $args->{file} $file") && die 'rsync failed';
+            $self->run_cmd(
+                "HDD=\$(find $hddpath -name $base | head -n1);\
+                            echo HDD path found: \$HDD; \
+                            rsync -av \$HDD $file;"
+            ) && die "rsync failed";
         }
         else {
             # Not sure what will be equivalent solution for JeOS on VMware, though
