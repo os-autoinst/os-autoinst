@@ -157,5 +157,15 @@ sub script_sudo {
     return;
 }
 
+# override
+sub activate_console {
+    my ($self, $console) = @_;
+}
+
+# override
+sub console_selected {
+    my ($self, $console) = @_;
+}
+
 1;
 # vim: set sw=4 et:

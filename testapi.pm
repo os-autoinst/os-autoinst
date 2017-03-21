@@ -1279,6 +1279,7 @@ sub select_console {
         }
         $testapi::distri->activate_console($testapi_console);
     }
+    $testapi::distri->console_selected($testapi_console);
 
     return $testapi_console_proxies{$testapi_console};
 }
