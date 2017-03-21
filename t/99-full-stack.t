@@ -6,6 +6,8 @@ use Test::More;
 use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
+use Mojo::File;
+use JSON 'from_json';
 
 # optional but very useful
 eval 'use Test::More::Color';                 ## no critic
@@ -38,7 +40,10 @@ close($var);
 open($var, '>', 'live_log');
 close($var);
 system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
-is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'),      0,   'test executed fine');
-is(system("grep -q 'test \\w* failed' autoinst-log.txt"), 256, 'no test moduled failed');
+is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'), 0, 'test executed fine');
+for my $result (glob("testresults/result*.json")) {
+    my $json = from_json(Mojo::File->new($result)->slurp);
+    is($json->{result}, 'ok', "Result in $result is ok");
+}
 
 done_testing();
