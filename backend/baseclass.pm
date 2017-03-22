@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2016 SUSE LLC
+# Copyright © 2012-2017 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -852,7 +852,7 @@ sub check_asserted_screen {
         # make sure we recheck later
         $self->assert_screen_last_check(undef);
 
-        if ($self->stall_detected) {
+        if (($args->{abort_on_stall} || $bmwqemu::vars{ABORT_ON_STALL}) && $self->stall_detected) {
             backend::baseclass::write_crash_file();
             bmwqemu::mydie "assert_screen fails, but we detected a timeout in the process, so we abort";
         }

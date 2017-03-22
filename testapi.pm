@@ -286,14 +286,16 @@ sub _check_or_assert {
 
     die "current_test undefined" unless $autotest::current_test;
 
-    my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, check => $check, timeout => $args{timeout}, no_wait => $args{no_wait}});
+    $args{mustmatch} //= $mustmatch;
+    $args{check}     //= $check;
+    my $rsp = query_isotovideo('check_screen', \%args);
     # separate function because it needs to call itself
-    return _check_backend_response($rsp, $check, $args{timeout}, $mustmatch, $args{no_wait});
+    return _check_backend_response($rsp, $check, $args{timeout}, $mustmatch, $args{no_wait}, $args{abort_on_stall});
 }
 
 =head2 assert_screen
 
-  assert_screen($mustmatch [, [$timeout] | [timeout => $timeout]] [, no_wait => $no_wait]);
+  assert_screen($mustmatch [, [$timeout] | [timeout => $timeout]] [, no_wait => $no_wait] [, abort_on_stall => $abort_on_stall]);
 
 Wait for needle with tag C<$mustmatch> to appear on SUT screen. C<$mustmatch>
 can be string or C<ARRAYREF> of string (C<['tag1', 'tag2']>). The maximum
@@ -307,6 +309,13 @@ Specify C<$no_wait> to run the screen check as fast as possible that is
 possibly more than once per second which is default. Select this to check a
 screen which can change in a range faster than 1-2 seconds not to miss the
 screen to check for.
+
+Specify C<$abort_on_stall> to look for system stalls while checking for screens.
+Sometimes systems running tests can stall during which C<isotovideo> is
+basically blind. When it is mandatory for testing to not miss a screen, set
+this option. As C<$no_wait> is meant for checking time critical screen changes
+consider setting both C<$no_wait> and C<$abort_on_stall> together for example
+when checking dialogues which timeout.
 
 Returns matched needle or throws C<NeedleFailed> exception if $timeout timeout
 is hit. Default timeout is 30s.
@@ -324,7 +333,7 @@ sub assert_screen {
 
 =head2 check_screen
 
-  check_screen($mustmatch [, [$timeout] | [timeout => $timeout]] [, no_wait => $no_wait]);
+  check_screen($mustmatch [, [$timeout] | [timeout => $timeout]] [, no_wait => $no_wait] [, abort_on_stall => $abort_on_stall]);
 
 Similar to C<assert_screen> but does not throw exceptions. Use this for optional matches.
 Check C<assert_screen> for parameters.
