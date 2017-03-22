@@ -394,7 +394,7 @@ sub start_qemu {
         $arch_supports_boot_order = 0;
     }
     if ($vars->{ARCH} eq 'aarch64' || $vars->{ARCH} eq 'arm') {
-        push @vgaoptions, '-device', 'VGA';
+        push @vgaoptions, '-device', 'virtio-gpu-pci';
         $arch_supports_boot_order = 0;
         $use_usb_kbd              = 1;
     }
