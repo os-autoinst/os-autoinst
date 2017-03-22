@@ -1249,7 +1249,11 @@ our %testapi_console_proxies;
 
 =head2 select_console
 
-  select_console("root-console")
+    select_console($console [, @args]);
+
+Example:
+
+  select_console("root-console");
 
 Select the named console for further C<testapi> interaction (send_text,
 send_key, wait_screen_change, ...)
@@ -1261,10 +1265,13 @@ object (in this example) - so it will ensure the console is active,
 but to setup the root shell on this console, the distribution needs
 to run test code.
 
+After the console selection the distribution callback
+C<$distri->console_selected> is called with C<@args>.
+
 =cut
 
 sub select_console {
-    my ($testapi_console) = @_;
+    my ($testapi_console, @args) = @_;
     bmwqemu::log_call(testapi_console => $testapi_console);
     if (!exists $testapi_console_proxies{$testapi_console}) {
         $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
@@ -1279,7 +1286,7 @@ sub select_console {
         }
         $testapi::distri->activate_console($testapi_console);
     }
-    $testapi::distri->console_selected($testapi_console);
+    $testapi::distri->console_selected($testapi_console, @args);
 
     return $testapi_console_proxies{$testapi_console};
 }
