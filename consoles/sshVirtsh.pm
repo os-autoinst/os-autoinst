@@ -23,6 +23,7 @@ require IPC::System::Simple;
 use autodie ':all';
 use XML::LibXML;
 use File::Temp 'tempfile';
+use File::Basename;
 
 use Class::Accessor 'antlers';
 has instance   => (is => "rw", isa => "Num");
@@ -299,43 +300,39 @@ sub add_interface {
 sub add_disk {
     my ($self, $args) = @_;
 
-    my $file;
-    if ($args->{cdrom}) {
-        $file = $args->{file};
-    }
-    else {
-        $file = $self->name . $args->{dev_id} . (($self->vmm_family eq 'vmware') ? ".vmdk" : ".img");
-        if ($args->{create}) {
-            my $size = $args->{size} || '4G';
-            if ($self->vmm_family eq 'vmware') {
-                my $vmware_disk_path = "/vmfs/volumes/" . get_required_var('VMWARE_DATASTORE') . "/openQA/$file";
-                my $chan             = $self->{sshVMwareServer}->channel();
-                # Power VM off, delete it's disk image, and create it again.
-                # Than wait for some time for the VM to *really* turn off.
-                my $name = $self->name;
-                $chan->exec(
+    my $file = $self->name . $args->{dev_id} . (($self->vmm_family eq 'vmware') ? ".vmdk" : ".img");
+    if ($args->{create}) {
+        my $size = $args->{size} || '4G';
+        if ($self->vmm_family eq 'vmware') {
+            my $vmware_disk_path = "/vmfs/volumes/" . get_required_var('VMWARE_DATASTORE') . "/openQA/$file";
+            my $chan             = $self->{sshVMwareServer}->channel();
+            # Power VM off, delete it's disk image, and create it again.
+            # Than wait for some time for the VM to *really* turn off.
+            my $name = $self->name;
+            $chan->exec(
 "vmid=\$(vim-cmd vmsvc/getallvms | awk '/ $name / { print \$1 }'); vim-cmd vmsvc/power.getstate \$vmid; vim-cmd vmsvc/power.off \$vmid; vim-cmd vmsvc/power.getstate \$vmid; vmkfstools -v1 -U $vmware_disk_path; vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10"
-                );
-                $chan->send_eof;
-                get_ssh_output($chan);
-                $chan->close();
-                die "Can't create VMware image" if $chan->exit_status();
-            }
-            else {
-                $file = "/var/lib/libvirt/images/$file";
-                $self->run_cmd("qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
-            }
-        }
-        elsif ($args->{copy}) {
-            $file = "/var/lib/libvirt/images/$file";
-            $self->run_cmd("rsync -av $args->{file} $file") && die 'rsync failed';
+            );
+            $chan->send_eof;
+            get_ssh_output($chan);
+            $chan->close();
+            die "Can't create VMware image" if $chan->exit_status();
         }
         else {
-            # Not sure what will be equivalent solution for JeOS on VMware, though
+            $file = "/var/lib/libvirt/images/$file";
+            $self->run_cmd("qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
+        }
+    }
+    else {    # Copy image to VM host
+        my $dir = "/var/lib/libvirt/images";
+        $self->run_cmd("rsync -av $args->{file} ${dir}/" . basename($args->{file})) && die 'rsync failed';
+        if ($args->{backingfile}) {
             if ($self->vmm_family ne 'vmware') {
                 $file = "/var/lib/libvirt/images/$file";
-                $self->run_cmd("qemu-img create $file -f qcow2 -b " . $args->{file}) && die "qemu-img create with basefile failed";
+                $self->run_cmd("qemu-img create ${file} -f qcow2 -b " . $dir . '/' . basename($args->{file})) && die "qemu-img create with backing file failed";
             }
+        }
+        else {    # cdrom
+            $file = "/var/lib/libvirt/images/" . basename($args->{file});
         }
     }
 
