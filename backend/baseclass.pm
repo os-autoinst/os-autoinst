@@ -852,15 +852,14 @@ sub check_asserted_screen {
         # make sure we recheck later
         $self->assert_screen_last_check(undef);
 
-        if ($self->stall_detected) {
-            backend::baseclass::write_crash_file();
-            bmwqemu::mydie "assert_screen fails, but we detected a timeout in the process, so we abort";
-        }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
         push(@$failed_screens, [$img, $failed_candidates, 0, 1000]);
         my $hash = $self->_failed_screens_to_json;
         $hash->{image} = encode_base64($img->ppm_data);
+        # store stall status
+        $hash->{stall} = $self->stall_detected;
+
         return $hash;
     }
 
