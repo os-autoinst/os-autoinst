@@ -26,6 +26,7 @@ use feature 'say';
 use Data::Dumper 'Dumper';
 use Carp qw(confess cluck carp croak);
 use Try::Tiny;
+use testapi 'get_var';
 
 sub screen {
     my ($self) = @_;
@@ -97,13 +98,8 @@ sub type_string {
     # not whole key press events and after each event we wait 2ms, so
     # that makes 250 keys a second - so 50 is still a factor 5 for
     # buffer
-    my $seconds_per_keypress = 1 / 50;
+    my $seconds_per_keypress = 1 / (get_var('VNC_TYPING_LIMIT', 50) || 1);
 
-    # IDrac's VNC implementation is more problematic, so better type
-    # *SLOW*
-    if ($self->{vnc}->dell) {
-        $seconds_per_keypress = 1 / 10;
-    }
     # further slow down if being asked for.
     # 250 = magic default from testapi.pm (FIXME: wouldn't undef just do?)
 
