@@ -418,7 +418,7 @@ sub assert_and_click {
     sleep 1;
     # move mouse back to where it was before we clicked, or to the 'hidden'
     # position if it had never been positioned
-    if (defined $old_mouse_coords->{x} && defined $old_mouse_coords->{y}) {
+    if ($old_mouse_coords->{x} > -1 && $old_mouse_coords->{y} > -1) {
         return mouse_set($old_mouse_coords->{x}, $old_mouse_coords->{y});
     }
     else {

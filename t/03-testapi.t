@@ -45,6 +45,9 @@ sub fake_read_json {
     elsif ($cmd eq 'backend_mouse_hide') {
         return {ret => 1};
     }
+    elsif ($cmd eq 'backend_get_last_mouse_set') {
+        return {ret => {x => -1, y => -1}};
+    }
     else {
         print "not implemented \$cmd: $cmd\n";
     }
