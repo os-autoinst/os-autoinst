@@ -912,7 +912,6 @@ sub validate_script_output($&;$) {
     $wait ||= 30;
 
     my $output = script_output($script, $wait);
-    return unless $code;
     my $res = 'ok';
 
     # set $_ so the callbacks can be simpler code
