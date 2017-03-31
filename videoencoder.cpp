@@ -32,6 +32,7 @@ video.
 #define _FILE_OFFSET_BITS 64
 
 #include "theora/theoraenc.h"
+#include <cassert>
 #include <cstdio>
 #include <getopt.h>
 #include <ogg/ogg.h>
@@ -58,6 +59,7 @@ static int theora_write_frame(th_ycbcr_buffer ycbcr, int last)
 {
     ogg_packet op;
     ogg_page og;
+    assert(ogg_fp);
 
     /* Theora is a one-frame-in,one-frame-out system; submit a frame
    for compression and pull out the packet */
@@ -76,7 +78,6 @@ static int theora_write_frame(th_ycbcr_buffer ycbcr, int last)
         fwrite(og.header, og.header_len, 1, ogg_fp);
         fwrite(og.body, og.body_len, 1, ogg_fp);
     }
-
     return 0;
 }
 
@@ -173,11 +174,13 @@ int main(int argc, char* argv[])
 
     option_output = argv[optind];
 
-    ogg_fp = fopen(option_output, "wb");
-    if (!ogg_fp) {
-        fprintf(stderr, "%s: error: %s\n", option_output,
-            "couldn't open output file");
-        return 1;
+    if (output_video) {
+        ogg_fp = fopen(option_output, "wb");
+        if (!ogg_fp) {
+            fprintf(stderr, "%s: error: %s\n", option_output,
+                    "couldn't open output file");
+            return 1;
+        }
     }
 
     srand(time(NULL));
@@ -248,8 +251,10 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Internal Ogg library error.\n");
         exit(1);
     }
-    fwrite(og.header, 1, og.header_len, ogg_fp);
-    fwrite(og.body, 1, og.body_len, ogg_fp);
+    if (ogg_fp) {
+        fwrite(og.header, 1, og.header_len, ogg_fp);
+        fwrite(og.body, 1, og.body_len, ogg_fp);
+    }
     /* create the remaining theora headers */
     for (;;) {
         ret = th_encode_flushheader(td, &tc, &op);
@@ -272,8 +277,10 @@ int main(int argc, char* argv[])
         }
         if (result == 0)
             break;
-        fwrite(og.header, 1, og.header_len, ogg_fp);
-        fwrite(og.body, 1, og.body_len, ogg_fp);
+        if (ogg_fp) {
+            fwrite(og.header, 1, og.header_len, ogg_fp);
+            fwrite(og.body, 1, og.body_len, ogg_fp);
+        }
     }
 
     char line[PATH_MAX + 10];
@@ -345,18 +352,19 @@ int main(int argc, char* argv[])
 
     printf("last frame\n");
     // send last frame
-    theora_write_frame(ycbcr, 1);
+    if (ogg_fp) {
+        theora_write_frame(ycbcr, 1);
+    }
     th_encode_free(td);
     free(ycbcr[0].data);
     free(ycbcr[1].data);
     free(ycbcr[2].data);
 
-    if (ogg_stream_flush(&ogg_os, &og)) {
-        fwrite(og.header, og.header_len, 1, ogg_fp);
-        fwrite(og.body, og.body_len, 1, ogg_fp);
-    }
-
     if (ogg_fp) {
+        if (ogg_stream_flush(&ogg_os, &og)) {
+            fwrite(og.header, og.header_len, 1, ogg_fp);
+            fwrite(og.body, og.body_len, 1, ogg_fp);
+        }
         fflush(ogg_fp);
         if (ogg_fp != stdout)
             fclose(ogg_fp);
