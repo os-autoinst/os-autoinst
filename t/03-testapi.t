@@ -203,6 +203,14 @@ subtest 'record_info' => sub {
     like(exception { record_info('my title', 'output', result => 'not supported', resultname => 'foo') }, qr/unsupported/, 'invalid result');
 };
 
+subtest 'set_typing_speed' => sub {
+    ok(set_typing_speed, 'set default typing speed');
+    ok(set_typing_speed(42), 'set configured typing speed');
+    ok(set_typing_speed(3000), 'too high values are limited by default');
+    ok(set_typing_speed(3000, force => 1), '… but can be forced');
+    ok(set_typing_speed, 'set back to default typing speed');
+};
+
 done_testing;
 
 # vim: set sw=4 et:
