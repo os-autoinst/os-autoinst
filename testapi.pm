@@ -38,6 +38,8 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   get_var get_required_var check_var set_var get_var_array check_var_array autoinst_url
 
+  set_typing_speed
+
   send_key send_key_until_needlematch type_string type_password
   hold_key release_key
 
@@ -977,6 +979,25 @@ sub hashed_string {
 }
 
 =head1 keyboard support
+
+=head2 set_typing_speed
+
+  set_typing_speed([$characters_per_second] [, force => 1 ]);
+
+Set typing speed to the minimum of C<$characters_per_second> and the default
+C<VNC_TYPING_LIMIT>. Set C<force> to 1 to set the configured value regardless
+of the default. This can lead to characters being lossed depending on the
+backend, the worker performance, the SUT behaviour and infrastructure.
+
+=cut
+
+sub set_typing_speed {
+    my ($characters_per_second, %args) = @_;
+    $args{force} //= 0;
+    $args{characters_per_second} //= $characters_per_second;
+    bmwqemu::log_call(%args);
+    query_isotovideo('set_typing_speed', {%args});
+}
 
 =head2 send_key
 
