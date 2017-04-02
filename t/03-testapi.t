@@ -203,6 +203,19 @@ subtest 'record_info' => sub {
     like(exception { record_info('my title', 'output', result => 'not supported', resultname => 'foo') }, qr/unsupported/, 'invalid result');
 };
 
+subtest 'validate_script_output' => sub {
+    my $mock_testapi = new Test::MockModule('testapi');
+    $mock_testapi->mock(script_output => sub ($;$) { return 'output'; });
+    pass(validate_script_output('script', sub { m/output/ }));
+    pass(validate_script_output('script', sub { m/output/ }, 30));
+    like(
+        exception {
+            validate_script_output('script', sub { m/error/ });
+        },
+        qr/output not validating/
+    );
+};
+
 done_testing;
 
 # vim: set sw=4 et:
