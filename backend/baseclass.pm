@@ -1022,7 +1022,7 @@ sub check_ssh_serial {
     if ($self->{serial} && $self->{serial}->sock == $fh) {
         my $chan = $self->{serial_chan};
         my $line = <$chan>;
-        if ($line) {
+        if (defined $line) {
             print $line;
             open(my $serial, '>>', $self->{serialfile});
             print $serial $line;
