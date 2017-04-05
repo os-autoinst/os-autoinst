@@ -472,7 +472,7 @@ sub wait_screen_change(&@) {
 
     while (time - $starttime < $timeout) {
         my $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
-        print "waiting for screen change: " . (time - $starttime) . " $sim\n";
+        bmwqemu::diag("waiting for screen change: " . (time - $starttime) . " $sim");
         if ($sim < $similarity_level) {
             bmwqemu::fctres("screen change seen at " . (time - $starttime));
             return 1;
