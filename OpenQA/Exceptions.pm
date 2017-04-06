@@ -28,6 +28,10 @@ use Exception::Class (
         isa         => 'OpenQA::Exception::InternalException',
         fields      => 'tags',
     },
+
+    'OpenQA::Exception::VNCProtocolError' => {
+        description => 'VNC Server interrupted connection'
+    },
 );
 
 1;
