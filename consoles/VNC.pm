@@ -876,7 +876,7 @@ sub _receive_message {
     my $self = shift;
 
     my $socket = $self->socket;
-
+    $socket or die 'socket does not exist. Probably your backend instance could not start or died.';
     $socket->blocking(0);
     my $ret = $socket->read(my $message_type, 1);
     $socket->blocking(1);
