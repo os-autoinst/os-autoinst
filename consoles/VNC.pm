@@ -15,6 +15,9 @@ use Compress::Raw::Zlib;
 use Carp qw(confess cluck carp croak);
 use Data::Dumper 'Dumper';
 use feature 'say';
+use Try::Tiny;
+
+use OpenQA::Exceptions;
 
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth
@@ -126,6 +129,7 @@ sub login {
     $self->_last_update_received(0);
     $self->_last_update_requested(0);
     $self->_vnc_stalled(0);
+    $self->{_inflater} = undef;
 
     my $hostname = $self->hostname || 'localhost';
     my $port     = $self->port     || 5900;
@@ -778,11 +782,23 @@ sub send_pointer_event {
 sub update_framebuffer() {    # upstream VNC.pm:  "capture"
     my ($self) = @_;
 
-    my $have_recieved_update = 0;
-    while (defined(my $message_type = $self->_receive_message())) {
-        $have_recieved_update = 1 if $message_type == 0;
+    try {
+        local $SIG{__DIE__} = undef;
+        my $have_recieved_update = 0;
+        while (defined(my $message_type = $self->_receive_message())) {
+            $have_recieved_update = 1 if $message_type == 0;
+        }
+        return $have_recieved_update;
     }
-    return $have_recieved_update;
+    catch {
+        if (blessed $_ && $_->isa('OpenQA::Exception::VNCProtocolError')) {
+            bmwqemu::diag "Error in VNC protocol - relogin: " . $_->error;
+            $self->login;
+        }
+        else {
+            die $_;
+        }
+    };
 }
 
 use POSIX ':errno_h';
@@ -999,12 +1015,14 @@ sub _receive_zlre_encoding {
 
     my $stime = time;
     $socket->read(my $data, 4)
-      or die "short read for length";
+      or OpenQA::Exception::VNCProtocolError->throw(error => 'short read for length');
     my ($data_len) = unpack('N', $data);
     my $read_len = 0;
     while ($read_len < $data_len) {
         my $len = read($socket, $data, $data_len - $read_len, $read_len);
-        die "short read for zlre data $read_len - $data_len" unless $len;
+        if (!$len) {
+            OpenQA::Exception::VNCProtocolError->throw(error => "short read for zlre data $read_len - $data_len");
+        }
         $read_len += $len;
     }
     if (time - $stime > 0.1) {
@@ -1016,10 +1034,12 @@ sub _receive_zlre_encoding {
     my $old_total_out = $self->{_inflater}->total_out;
     my $status = $self->{_inflater}->inflate($data, $out, 1);
     if ($status != Z_OK) {
-        die "inflation failed $status";
+        OpenQA::Exception::VNCProtocolError->throw(error => "inflation failed $status");
     }
     my $res = $image->map_raw_data_zrle($x, $y, $w, $h, $self->vncinfo, $out, $self->{_inflater}->total_out - $old_total_out);
-    die "not read enough data" unless $old_total_out + $res == $self->{_inflater}->total_out;
+    if ($old_total_out + $res != $self->{_inflater}->total_out) {
+        OpenQA::Exception::VNCProtocolError->throw(error => "not read enough data");
+    }
     return $res;
 }
 
@@ -1063,7 +1083,7 @@ sub _receive_ikvm_encoding {
         my $data;
         print "Additional Bytes: ";
         while ($data_len > $required_data) {
-            $socket->read($data, 1) || die "unexpected end of data";
+            $socket->read($data, 1) || OpenQA::Exception::VNCProtocolError->throw(error => "unexpected end of data");
             $data_len--;
             my @bytes = unpack("C", $data);
             printf "%02x ", $bytes[0];
@@ -1077,12 +1097,12 @@ sub _receive_ikvm_encoding {
     }
     elsif ($encoding_type == 0) {
         # ikvm manages to redeclare raw to be something completely different ;(
-        $socket->read(my $data, 10) || die "unexpected end of data";
+        $socket->read(my $data, 10) || OpenQA::Exception::VNCProtocolError->throw(error => "unexpected end of data");
         my ($type, $segments, $length) = unpack('CxNN', $data);
         while ($segments--) {
-            $socket->read(my $data, 6) || die "unexpected end of data";
+            $socket->read(my $data, 6) || OpenQA::Exception::VNCProtocolError->throw(error => "unexpected end of data");
             my ($dummy_a, $dummy_b, $y, $x) = unpack('nnCC', $data);
-            $socket->read($data, 512) || die "unexpected end of data";
+            $socket->read($data, 512) || OpenQA::Exception::VNCProtocolError->throw(error => "unexpected end of data");
             my $img = tinycv::new(16, 16);
             $img->map_raw_data_rgb555($data);
 
@@ -1124,7 +1144,7 @@ sub _receive_ikvm_encoding {
         }
     }
     else {
-        die "unsupported encoding $encoding_type\n";
+        die "unsupported encoding $encoding_type";
     }
 }
 
@@ -1166,10 +1186,10 @@ sub _receive_cut_text {
     my $self = shift;
 
     my $socket = $self->socket;
-    $socket->read(my $cut_msg, 7) || die 'unexpected end of data';
+    $socket->read(my $cut_msg, 7) || OpenQA::Exception::VNCProtocolError->throw(error => 'unexpected end of data');
     my $cut_length = unpack 'xxxN', $cut_msg;
     $socket->read(my $cut_string, $cut_length)
-      || die 'unexpected end of data';
+      || OpenQA::Exception::VNCProtocolError->throw(error => 'unexpected end of data');
 
     # And discard it...
 
@@ -1218,5 +1238,5 @@ Copyright (C) 2006, Leon Brocard
 This module is free software; you can redistribute it or modify it
 under the same terms as Perl itself.
 
-Copyright (C) 2014, Stephan Kulow (coolo@suse.de) 
+Copyright (C) 2014, Stephan Kulow (coolo@suse.de)
 adapted to be purely useful for qemu/openqa
