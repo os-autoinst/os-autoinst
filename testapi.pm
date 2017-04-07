@@ -1586,7 +1586,7 @@ sub parse_junit_log {
 
         push @tests,
           {
-            flags    => {important => 1},
+            flags    => {},
             category => $ts_category,
             name     => $ts_name,
             script   => $autotest::current_test->{script},

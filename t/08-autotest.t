@@ -95,12 +95,12 @@ is($died,      0, 'non-fatal test failure should not die');
 is($completed, 1, 'non-fatal test failure should complete');
 @sent = [];
 
-# now let's add an important test
-loadtest 'important';
+# now let's add an ignore_failure test
+loadtest 'ignore_failure';
 autotest::run_all;
 ($died, $completed) = get_tests_done;
-is($died,      0, 'important test failure should not die');
-is($completed, 1, 'important test failure should complete');
+is($died,      0, 'unimportant test failure should not die');
+is($completed, 1, 'unimportant test failure should complete');
 @sent = [];
 
 # now let's add a fatal test

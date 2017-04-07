@@ -5,7 +5,7 @@ use base 'basetest';
 sub run { }
 
 sub test_flags {
-    return {important => 1};
+    return {ignore_failure => 1};
 }
 
 1;
