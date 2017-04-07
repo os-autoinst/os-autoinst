@@ -395,7 +395,8 @@ sub start_qemu {
         $arch_supports_boot_order = 0;
     }
     if ($vars->{ARCH} eq 'aarch64' || $vars->{ARCH} eq 'arm') {
-        push @vgaoptions, '-device', 'virtio-gpu-pci';
+        my $video_device = ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) ? 'VGA' : 'virtio-gpu-pci';
+        push @vgaoptions, '-device', $video_device;
         $arch_supports_boot_order = 0;
         $use_usb_kbd              = 1;
     }
