@@ -85,8 +85,16 @@ sub usage {
     }
 }
 
-GetOptions(\%options, 'debug|d', 'help|h|?') or usage(1);
-usage(0) if $options{help};
+sub version {
+    my $thisversion = qx{git rev-parse HEAD};
+    print "Current version is $thisversion";
+    exit 0;
+}
+
+GetOptions(\%options, 'debug|d', 'help|h|?', 'version|v') or usage(1);
+usage(0)  if $options{help};
+version() if $options{version};
+
 
 # enable debug default when started from a tty
 $bmwqemu::istty         = -t 1;              ## no critic
