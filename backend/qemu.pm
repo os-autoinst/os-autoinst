@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2017 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ use Net::DBus;
 use bmwqemu qw(fileContent diag save_vars);
 require IPC::System::Simple;
 use autodie ':all';
+use Try::Tiny;
 
 sub new {
     my $class = shift;
@@ -453,7 +454,6 @@ sub start_qemu {
     $vars->{TAPSCRIPT}     = join ',', @tapscript if $vars->{NICTYPE} eq "tap";
     $vars->{TAPDOWNSCRIPT} = join ',', @tapdownscript if $vars->{NICTYPE} eq "tap";
 
-
     if ($vars->{NICTYPE} eq "vde") {
         my $mgmtsocket = $vars->{VDE_SOCKETDIR} . '/vde.mgmt';
         my $port       = $vars->{VDE_PORT};
@@ -779,11 +779,22 @@ sub start_qemu {
         'sut',
         'vnc-base',
         {
-            hostname => 'localhost',
-            port     => 5900 + $bmwqemu::vars{VNC}});
+            hostname        => 'localhost',
+            connect_timeout => 3,
+            port            => 5900 + $bmwqemu::vars{VNC}});
 
     $vnc->backend($self);
-    $self->select_console({testapi_console => 'sut'});
+    try {
+        local $SIG{__DIE__} = undef;
+        $self->select_console({testapi_console => 'sut'});
+    }
+    catch {
+        if (!raw_alive) {
+            bmwqemu::diag "qemu didn't start";
+            $self->read_qemupipe;
+            exit(1);
+        }
+    };
 
     $self->{hmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
