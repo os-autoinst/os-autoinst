@@ -88,11 +88,9 @@ sub is_applicable {
 Return a hash of flags that are either there or not
 
   without anything - rollback to 'lastgood' snapshot if failed
-  'fatal' - whole test suite is in danger if this fails
-  'milestone' - after this test succeeds, update 'lastgood'
-  'important' - if this fails, set the overall state to 'fail'
-
-default is obviously no flags, installation tests are 'fatal' by default
+  'fatal'          - abort whole test suite if this fails (and set overall state 'failed')
+  'ignore_failure' - if this module fails, it will not affect the overall result at all
+  'milestone'      - after this test succeeds, update 'lastgood'
 
 =cut
 
