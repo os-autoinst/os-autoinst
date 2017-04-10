@@ -62,8 +62,7 @@ git-pull requests via https://github.com/os-autoinst/os-autoinst.
 More information on the contribution can be found on
 http://os-autoinst.github.io/openQA/contact/, too.
 
-Issues are tracked on https://progress.opensuse.org/projects/openqav3/ and
-also on https://github.com/os-autoinst/os-autoinst/issues
+Issues are tracked on https://progress.opensuse.org/projects/openqav3/
 
 Rules for commits
 ^^^^^^^^^^^^^^^^^
