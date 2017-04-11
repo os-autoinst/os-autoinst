@@ -87,10 +87,10 @@ sub is_applicable {
 
 Return a hash of flags that are either there or not
 
-  without anything - rollback to 'lastgood' snapshot if failed
   'fatal'          - abort whole test suite if this fails (and set overall state 'failed')
   'ignore_failure' - if this module fails, it will not affect the overall result at all
   'milestone'      - after this test succeeds, update 'lastgood'
+  'norollback'     - don't roll back to 'lastgood' snapshot if this fails
 
 =cut
 
