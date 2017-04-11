@@ -25,19 +25,29 @@ our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock barrier_cre
 require bmwqemu;
 use mmapi 'api_call';
 
-sub _lock_action {
-    my ($name, $where) = @_;
-    my $param = {action => 'lock'};
-    $param->{where} = $where if $where;
-    my $res = api_call('post', "mutex/$name", $param)->code;
-    return 1 if ($res == 200);
-
-    bmwqemu::mydie "mutex lock '$name': lock owner already finished" if $res == 410;
-
+sub _try_lock {
+    my ($type, $name, $param) = @_;
+    # try up to 7 times
+    my $res = '';
+    for (1 .. 7) {
+        $res = api_call('post', "$type/$name", $param)->code;
+        return 1 if ($res == 200);
+        last unless $res == 410;
+        bmwqemu::fctinfo("Retry $_ of 7...");
+        sleep 10;
+    }
+    bmwqemu::mydie "$type '$name': lock owner already finished" if $res == 410;
     if ($res != 409) {
         bmwqemu::fctwarn("Unknown return code $res for lock api");
     }
     return 0;
+}
+
+sub _lock_action {
+    my ($name, $where) = @_;
+    my $param = {action => 'lock'};
+    $param->{where} = $where if $where;
+    return _try_lock('mutex', $name, $param);
 }
 
 sub mutex_lock {
@@ -95,15 +105,7 @@ sub _wait_action {
     my ($name, $where) = @_;
     my $param;
     $param->{where} = $where if $where;
-    my $res = api_call('post', "barrier/$name", $param)->code;
-    return 1 if ($res == 200);
-
-    bmwqemu::mydie "barrier_wait '$name': barrier owner already finished" if $res == 410;
-
-    if ($res != 409) {
-        bmwqemu::fctwarn("Unknown return code $res for lock api");
-        return 0;
-    }
+    return _try_lock('barrier', $name, $param);
 }
 
 # Reason to include this is to be able to unit test _wait_action without blocking
