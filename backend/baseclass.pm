@@ -640,6 +640,7 @@ sub wait_serial {
     my $matched = 0;
     my $str;
 
+    confess '\'current_console\' is not set' unless $self->{current_console};
     if ($self->{current_console}->is_serial_terminal) {
         return $self->{current_screen}->read_until($regexp, $timeout, %$args);
     }
