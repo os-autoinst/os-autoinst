@@ -90,6 +90,10 @@ sub set_vlan {
         print STDERR "'$tap' does not fit the naming scheme\n";
         return;
     }
+    if ($vlan !~ /^[0-9]+$/) {
+        print STDERR "'$vlan' does not fit the naming scheme (only numbers)\n";
+        return;
+    }
 
     my $check_bridge = `ovs-vsctl port-to-br $tap`;
     chomp $check_bridge;
