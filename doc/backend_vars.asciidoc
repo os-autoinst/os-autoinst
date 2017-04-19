@@ -54,6 +54,7 @@ NICTYPE_USER_OPTIONS;string;undef;Arbitrary options for NICTYPE
 NICVLAN;integer;undef;network (vlan) number to which the NIC should be connected, assigned by scheduler to jobs with NICTYPE != user
 NUMDISKS;integer;1;Number of disks to be created and attached to VM
 OFW;;;
+QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64;boolean;undef;If set, for aarch64 systems use VGA as video adapter
 PATHCNT;integer;2;Number of paths in MULTIPATH scenario
 PXEBOOT;boolean;0;Boot VM from network
 QEMU;QEMU binary filename;undef;Filename of QEMU binary to use
