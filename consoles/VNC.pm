@@ -826,15 +826,15 @@ sub send_update_request {
     my $time_since_last_update = time - $self->_last_update_received;
 
     # if there were no updates, send a forced update request
-    # to get a defined live sign. If that doesn't help, consider
-    # the framebuffer outdated
+    # to get a defined live sign. If that doesn't help, reconnect
     if ($self->_framebuffer) {
-        if (($self->_vnc_stalled == 1) && ($self->_last_update_requested - $self->_last_update_received > 4)) {
+        if ($self->_vnc_stalled && $time_since_last_update > 4) {
             $self->_last_update_received(0);
             # return black image - screen turned off
-            bmwqemu::diag "considering VNC stalled - turning black";
-            $self->_framebuffer(tinycv::new($self->width, $self->height));
-            $self->_vnc_stalled(2);
+            bmwqemu::diag sprintf("considering VNC stalled, no update for %.2f seconds", $time_since_last_update);
+            $self->socket->close;
+            $self->socket(undef);
+            return $self->login;
         }
         if ($time_since_last_update > 2) {
             $self->send_forced_update_request;
