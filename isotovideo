@@ -135,6 +135,9 @@ sub kill_commands {
 
 sub kill_autotest {
     return unless $testpid;
+    bmwqemu::load_vars();
+    autotest::postrun_hook();
+
     # create a copy as cpid is overwritten by SIGCHLD
     my $pid = $testpid;
     if (kill('TERM', $pid)) {
