@@ -123,6 +123,7 @@ sub do_start_vm() {
 
     # remove backend.crashed
     $self->unlink_crash_file;
+    $self->get_mc_status;
     $self->restart_host;
     $self->relogin_vnc;
     $self->start_serial_grab;
@@ -176,6 +177,18 @@ sub stop_serial_grab {
 }
 
 # serial grab end
+
+# management controller status
+
+sub get_mc_status {
+    my ($self) = @_;
+
+    $self->ipmitool("mc guid");
+    $self->ipmitool("mc info");
+    $self->ipmitool("mc selftest");
+}
+
+# management controller status end
 
 1;
 
