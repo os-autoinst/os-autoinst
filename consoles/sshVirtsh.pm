@@ -325,16 +325,16 @@ sub add_disk {
     else {    # Copy image to VM host
         my $dir = "/var/lib/libvirt/images";
         die "No file given" unless $args->{file};
-        die "File $args->{file} not readable" unless -r $args->{file};
-        $self->run_cmd(sprintf("rsync -av '$args->{file}' '${dir}/%s'", basename($args->{file}))) && die 'rsync failed';
         if ($args->{backingfile}) {
+            die "File $args->{file} not readable" unless -r $args->{file};
+            $self->run_cmd(sprintf("rsync -av '$args->{file}' '${dir}/%s'", basename($args->{file}))) && die 'rsync failed';
             if ($self->vmm_family ne 'vmware') {
                 $file = "/var/lib/libvirt/images/$file";
                 $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -b '$dir/%s'", basename($args->{file})))
                   && die "qemu-img create with backing file failed";
             }
         }
-        else {    # cdrom
+        else {    # e.g. cdrom
             $file = "/var/lib/libvirt/images/" . basename($args->{file});
         }
     }
