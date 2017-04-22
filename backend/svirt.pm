@@ -103,13 +103,6 @@ sub can_handle {
     return;
 }
 
-sub is_shutdown {
-    my ($self) = @_;
-    my $vmname = $self->console('svirt')->name;
-    my $rsp    = $self->run_cmd("! virsh dominfo $vmname | grep -w 'shut off'");
-    return $rsp;
-}
-
 sub save_snapshot {
     my ($self, $args) = @_;
     my $snapname = $args->{name};
