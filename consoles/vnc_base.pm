@@ -50,6 +50,12 @@ sub get_last_mouse_set {
     return $self->{mouse};
 }
 
+sub disable_vnc_stalls {
+    my ($self, $args) = @_;
+    return unless $self->{vnc};
+    $self->{vnc}->check_vnc_stalls(0);
+}
+
 sub connect_vnc {
     my ($self, $args) = @_;
 
