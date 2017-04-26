@@ -41,10 +41,10 @@ use parent 'Class::Accessor::Fast';
 __PACKAGE__->mk_accessors(
     qw(
       update_request_interval last_update_request screenshot_interval
-      last_screenshot last_image
-      reference_screenshot assert_screen_tags assert_screen_needles assert_screen_deadline
-      assert_screen_fails assert_screen_last_check stall_detected
-      reload_needles
+      last_screenshot last_image assert_screen_check
+      reference_screenshot assert_screen_tags assert_screen_needles
+      assert_screen_deadline assert_screen_fails assert_screen_last_check
+      stall_detected reload_needles
       ));
 
 sub new {
@@ -751,6 +751,7 @@ sub set_tags_to_assert {
     $self->reload_needles($reloadneedles);
     # store them for needle reload event
     $self->assert_screen_tags(\@tags);
+    $self->assert_screen_check($args->{check});
     return {tags => \@tags};
 }
 
@@ -830,7 +831,8 @@ sub check_asserted_screen {
     $watch->start();
     $watch->{debug} = 1;
 
-    my ($foundneedle, $failed_candidates) = $img->search($self->assert_screen_needles, 0, $search_ratio, ($watch->{debug} ? $watch : undef));
+    my @registered_needles = grep { !$_->{unregistered} } @{$self->assert_screen_needles};
+    my ($foundneedle, $failed_candidates) = $img->search(\@registered_needles, 0, $search_ratio, ($watch->{debug} ? $watch : undef));
     $watch->lap("Needle search") unless $watch->{debug};
     if ($foundneedle) {
         $self->assert_screen_last_check(undef);
@@ -845,14 +847,19 @@ sub check_asserted_screen {
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
         bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time});
         bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
-
-
     }
 
     if ($n < 0) {
         # make sure we recheck later
         $self->assert_screen_last_check(undef);
 
+        if (!$self->assert_screen_check) {
+            my @unregistered_needles = grep { $_->{unregistered} } @{$self->assert_screen_needles};
+            my ($foundneedle, $candidates) = $img->search(\@unregistered_needles, 0, 1, undef);
+            # the best here is still a failure, as unregistered
+            push(@$failed_candidates, $foundneedle) if $foundneedle;
+            push(@$failed_candidates, @$candidates);
+        }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
         push(@$failed_screens, [$img, $failed_candidates, 0, 1000]);
@@ -962,7 +969,6 @@ sub retry_assert_screen {
     if ($args->{reload_needles}) {
         # short timeout, we're already there
         $self->set_tags_to_assert({mustmatch => $self->assert_screen_tags, timeout => 5, reloadneedles => 1});
-
     }
     return;
 }
