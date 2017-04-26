@@ -23,7 +23,7 @@ __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
-      _last_update_requested _vnc_stalled vncinfo old_ikvm dell
+      _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell
       ));
 our $VERSION = '0.40';
 
@@ -129,6 +129,7 @@ sub login {
     $self->_last_update_received(0);
     $self->_last_update_requested(0);
     $self->_vnc_stalled(0);
+    $self->check_vnc_stalls(1);
     $self->{_inflater} = undef;
 
     my $hostname = $self->hostname || 'localhost';
@@ -827,7 +828,7 @@ sub send_update_request {
 
     # if there were no updates, send a forced update request
     # to get a defined live sign. If that doesn't help, reconnect
-    if ($self->_framebuffer) {
+    if ($self->_framebuffer && $self->check_vnc_stalls) {
         if ($self->_vnc_stalled && $time_since_last_update > 4) {
             $self->_last_update_received(0);
             # return black image - screen turned off
@@ -1238,5 +1239,5 @@ Copyright (C) 2006, Leon Brocard
 This module is free software; you can redistribute it or modify it
 under the same terms as Perl itself.
 
-Copyright (C) 2014, Stephan Kulow (coolo@suse.de)
+Copyright (C) 2014-2017 Stephan Kulow (coolo@suse.de)
 adapted to be purely useful for qemu/openqa
