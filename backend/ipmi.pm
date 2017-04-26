@@ -155,7 +155,10 @@ sub start_serial_grab {
         open(my $serial, '>',  $self->{serialfile});
         open(STDOUT,     ">&", $serial);
         open(STDERR,     ">&", $serial);
-        my @cmd = ('/usr/sbin/ipmiconsole', '-h', $bmwqemu::vars{IPMI_HOSTNAME}, '-u', $bmwqemu::vars{IPMI_USER}, '-p', $bmwqemu::vars{IPMI_PASSWORD});
+        my @cmd = (
+            '/usr/sbin/ipmiconsole', '--serial-keepalive', '-h', $bmwqemu::vars{IPMI_HOSTNAME},
+            '-u', $bmwqemu::vars{IPMI_USER},
+            '-p', $bmwqemu::vars{IPMI_PASSWORD});
 
         # zypper in dumponlyconsole, check devel:openQA for a patched freeipmi version that doesn't grab the terminal
         push(@cmd, '--dumponly');
