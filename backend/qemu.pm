@@ -639,6 +639,13 @@ sub start_qemu {
                 push(@params, '-device', "$vars->{CDMODEL},drive=cd0" . $cdbus . $bootindex);
             }
         }
+        
+		for my $i ( 1 .. 6 ) {  # check for up to 6 ADDON ISOs
+			if ( $vars->{"ISO_$i"} && $vars->{"ADDONS"}) {
+				my $addoniso = $vars->{"ISO_$i"};
+				push( @params, "-drive", "if=ide,id=addon_$i,file=$addoniso,media=cdrom" );
+			}
+		}
 
         my $is_first = 1;
         for my $k (sort grep { /^ISO_\d+$/ } keys %$vars) {
