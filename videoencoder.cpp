@@ -287,6 +287,7 @@ int main(int argc, char* argv[])
     int fsls = 0; // frames since last sync
 
     Mat last_frame_image;
+    vector<uchar> buf;
     bool last_frame_converted = false;
 
     while (fgets(line, PATH_MAX + 8, stdin)) {
@@ -298,8 +299,8 @@ int main(int argc, char* argv[])
                 fprintf(stderr, "Can't parse %s\n", line);
                 exit(1);
             }
-            uchar* buffer = new uchar[len];
-            size_t r = fread(buffer, len, 1, stdin);
+            buf.resize(len);
+            size_t r = fread(&buf[0], len, 1, stdin);
             if (r != 1) {
                 fprintf(stderr, "Unexpected end of data %ld\n", r);
                 exit(1);
@@ -307,15 +308,13 @@ int main(int argc, char* argv[])
             last_frame_converted = false;
 
             if (output_video || need_last_png()) {
-                vector<uchar> buf(buffer, buffer + len);
-                last_frame_image = imdecode(buf, CV_LOAD_IMAGE_COLOR);
+                last_frame_image = imdecode(buf, CV_LOAD_IMAGE_COLOR, &last_frame_image);
 
                 if (!last_frame_image.data) {
                     cout << "Could not open or find the image" << endl;
                     return -1;
                 }
             }
-            delete[] buffer;
 
             if (output_video)
                 rgb_to_yuv(&last_frame_image, ycbcr);
