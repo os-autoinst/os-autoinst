@@ -220,6 +220,12 @@ sub fake_terminal {
         try_write_sequence($fd, $US_keyboard_data, $repeat_sequence_count, $stop_code_data);
     }
 
+    # Trailing data/carry buffer tests
+    for (1 .. 2) {
+        try_read($fd, $next_test);
+        try_write($fd, $US_keyboard_data . $stop_code_data);
+    }
+
     #alarm $timeout * 2;
     #try_write($fd, ($US_keyboard_data x 100_000) . $stop_code_data);
 
@@ -295,6 +301,17 @@ sub test_terminal_directly {
         qr/^(\Q$US_keyboard_data\E){$repeat_sequence_count}$stop_code_data$/,
         'direct: record a large amount of data'
     );
+    type_string($next_test);
+
+    # In theory this may succeed if the kernel is preempted in, and/or a
+    # kernel buffer ends in just the right place. Even if the carry buffer is
+    # not implemented. However That seems unlikely.
+    is($scrn->read_until($US_keyboard_data, $timeout, no_regex => 1)->{matched}, 1, 'direct: read including trailing data with no_regex');
+    is($scrn->read_until(qr/$stop_code_data$/, $timeout)->{matched}, 1, 'direct: trailing data is carried over to next read');
+    type_string($next_test);
+
+    is($scrn->read_until(qr/\Q$US_keyboard_data\E/, $timeout)->{matched}, 1, 'direct: read including trailing data');
+    is($scrn->read_until(qr/$stop_code_data$/,      $timeout)->{matched}, 1, 'direct: trailing data is carried over to next read');
     type_string($next_test);
 
     #ok($scrn->read_until(qr/$stop_code_data$/, $timeout, record_output => 1)->{matched},
