@@ -238,6 +238,15 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Could not set keyframe interval to %d.\n",
             (int)keyframe_frequency);
     }
+    /* Get maximum encoding speed value (trade quality for speed) */
+    int splevel;
+    ret = th_encode_ctl(td, TH_ENCCTL_GET_SPLEVEL_MAX, &splevel, sizeof(int));
+    if (ret < 0)
+        fprintf(stderr, "Could not get SPLEVEL_MAX");
+    ret = th_encode_ctl(td, TH_ENCCTL_SET_SPLEVEL, &splevel, sizeof(int));
+    if (ret < 0)
+        fprintf(stderr, "Could not set SPLEVEL");
+
     /* write the bitstream header packets with proper page interleave */
     th_comment_init(&tc);
     /* first packet will get its own page automatically */
