@@ -620,7 +620,7 @@ sub start_qemu {
             }
         }
 
-        my $cdbus = $vars->{CDMODEL} ne 'ide-cd' ? ',bus=scsi0.0' : '';
+        my $cdbus = $vars->{CDMODEL} eq 'scsi-cd' ? ',bus=scsi0.0' : '';
         if ($iso) {
             if ($vars->{USBBOOT}) {
                 push(@params, "-drive",  "if=none,id=usbstick,file=$iso,snapshot=on");
