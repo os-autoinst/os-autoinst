@@ -304,9 +304,29 @@ int main(int argc, char* argv[])
     Mat last_frame_image;
     vector<uchar> buf;
     bool last_frame_converted = false;
+    int repeat = -1;
 
     while (fgets(line, PATH_MAX + 8, stdin)) {
         line[strlen(line) - 1] = 0;
+
+        if (repeat >= (keyframe_frequency - 1) || line[0] != 'R') {
+            if (output_video && repeat >= 0) {
+                ret = th_encode_ctl(td, TH_ENCCTL_SET_DUP_COUNT, &repeat, sizeof(repeat));
+                if (ret < 0)
+                    fprintf(stderr, "Could not set repeat count to %d.\n", repeat);
+                repeat = -1;
+
+                if (theora_write_frame(ycbcr, 0)) {
+                    fprintf(stderr, "Encoding error.\n");
+                    exit(1);
+                }
+
+                if (++fsls > 10) {
+                    fflush(ogg_fp);
+                    fsls = 0;
+                }
+            }
+        }
 
         if (line[0] == 'E') {
             int len = 0;
@@ -321,6 +341,7 @@ int main(int argc, char* argv[])
                 exit(1);
             }
             last_frame_converted = false;
+            repeat = 0;
 
             if (output_video || need_last_png()) {
                 last_frame_image = imdecode(buf, CV_LOAD_IMAGE_COLOR, &last_frame_image);
@@ -336,6 +357,7 @@ int main(int argc, char* argv[])
 
         } else if (line[0] == 'R') {
             // Just repeat the last frame
+            repeat++;
         } else {
             fprintf(stderr, "unknown command line: %s\n", line);
         }
@@ -351,22 +373,12 @@ int main(int argc, char* argv[])
             last_frame_converted = true;
         }
 
-        if (output_video) {
-            if (theora_write_frame(ycbcr, 0)) {
-                fprintf(stderr, "Encoding error.\n");
-                exit(1);
-            }
-
-            if (++fsls > 10) {
-                fflush(ogg_fp);
-                fsls = 0;
-            }
-        }
     }
 
     printf("last frame\n");
     // send last frame
     if (ogg_fp) {
+        th_encode_ctl(td, TH_ENCCTL_SET_DUP_COUNT, &repeat, sizeof(repeat));
         theora_write_frame(ycbcr, 1);
     }
     th_encode_free(td);
