@@ -68,17 +68,23 @@ static int theora_write_frame(th_ycbcr_buffer ycbcr, int last)
         return 1;
     }
 
-    if (!th_encode_packetout(td, last, &op)) {
-        fprintf(stderr, "%s: error: could not read packets\n", option_output);
-        return 1;
-    }
+    while (true) {
+        int ret = th_encode_packetout(td, last, &op);
+        if (ret == 0)
+            return 0;
 
-    ogg_stream_packetin(&ogg_os, &op);
-    while (ogg_stream_pageout(&ogg_os, &og)) {
-        fwrite(og.header, og.header_len, 1, ogg_fp);
-        fwrite(og.body, og.body_len, 1, ogg_fp);
+        if (ret < 0) {
+            fprintf(stderr, "%s: error: could not read packets\n", option_output);
+            return 1;
+        }
+
+        ogg_stream_packetin(&ogg_os, &op);
+        while (ogg_stream_pageout(&ogg_os, &og)) {
+            fwrite(og.header, og.header_len, 1, ogg_fp);
+            fwrite(og.body, og.body_len, 1, ogg_fp);
+        }
+
     }
-    return 0;
 }
 
 static unsigned char clamp(int d)
