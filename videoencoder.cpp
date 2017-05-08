@@ -68,17 +68,23 @@ static int theora_write_frame(th_ycbcr_buffer ycbcr, int last)
         return 1;
     }
 
-    if (!th_encode_packetout(td, last, &op)) {
-        fprintf(stderr, "%s: error: could not read packets\n", option_output);
-        return 1;
-    }
+    while (true) {
+        int ret = th_encode_packetout(td, last, &op);
+        if (ret == 0)
+            return 0;
 
-    ogg_stream_packetin(&ogg_os, &op);
-    while (ogg_stream_pageout(&ogg_os, &og)) {
-        fwrite(og.header, og.header_len, 1, ogg_fp);
-        fwrite(og.body, og.body_len, 1, ogg_fp);
+        if (ret < 0) {
+            fprintf(stderr, "%s: error: could not read packets\n", option_output);
+            return 1;
+        }
+
+        ogg_stream_packetin(&ogg_os, &op);
+        while (ogg_stream_pageout(&ogg_os, &og)) {
+            fwrite(og.header, og.header_len, 1, ogg_fp);
+            fwrite(og.body, og.body_len, 1, ogg_fp);
+        }
+
     }
-    return 0;
 }
 
 static unsigned char clamp(int d)
@@ -238,6 +244,15 @@ int main(int argc, char* argv[])
         fprintf(stderr, "Could not set keyframe interval to %d.\n",
             (int)keyframe_frequency);
     }
+    /* Get maximum encoding speed value (trade quality for speed) */
+    int splevel;
+    ret = th_encode_ctl(td, TH_ENCCTL_GET_SPLEVEL_MAX, &splevel, sizeof(int));
+    if (ret < 0)
+        fprintf(stderr, "Could not get SPLEVEL_MAX");
+    ret = th_encode_ctl(td, TH_ENCCTL_SET_SPLEVEL, &splevel, sizeof(int));
+    if (ret < 0)
+        fprintf(stderr, "Could not set SPLEVEL");
+
     /* write the bitstream header packets with proper page interleave */
     th_comment_init(&tc);
     /* first packet will get its own page automatically */
@@ -287,10 +302,31 @@ int main(int argc, char* argv[])
     int fsls = 0; // frames since last sync
 
     Mat last_frame_image;
+    vector<uchar> buf;
     bool last_frame_converted = false;
+    int repeat = -1;
 
     while (fgets(line, PATH_MAX + 8, stdin)) {
         line[strlen(line) - 1] = 0;
+
+        if (repeat >= (keyframe_frequency - 1) || line[0] != 'R') {
+            if (output_video && repeat >= 0) {
+                ret = th_encode_ctl(td, TH_ENCCTL_SET_DUP_COUNT, &repeat, sizeof(repeat));
+                if (ret < 0)
+                    fprintf(stderr, "Could not set repeat count to %d.\n", repeat);
+                repeat = -1;
+
+                if (theora_write_frame(ycbcr, 0)) {
+                    fprintf(stderr, "Encoding error.\n");
+                    exit(1);
+                }
+
+                if (++fsls > 10) {
+                    fflush(ogg_fp);
+                    fsls = 0;
+                }
+            }
+        }
 
         if (line[0] == 'E') {
             int len = 0;
@@ -298,30 +334,30 @@ int main(int argc, char* argv[])
                 fprintf(stderr, "Can't parse %s\n", line);
                 exit(1);
             }
-            uchar* buffer = new uchar[len];
-            size_t r = fread(buffer, len, 1, stdin);
+            buf.resize(len);
+            size_t r = fread(&buf[0], len, 1, stdin);
             if (r != 1) {
                 fprintf(stderr, "Unexpected end of data %ld\n", r);
                 exit(1);
             }
             last_frame_converted = false;
+            repeat = 0;
 
             if (output_video || need_last_png()) {
-                vector<uchar> buf(buffer, buffer + len);
-                last_frame_image = imdecode(buf, CV_LOAD_IMAGE_COLOR);
+                last_frame_image = imdecode(buf, CV_LOAD_IMAGE_COLOR, &last_frame_image);
 
                 if (!last_frame_image.data) {
                     cout << "Could not open or find the image" << endl;
                     return -1;
                 }
             }
-            delete[] buffer;
 
             if (output_video)
                 rgb_to_yuv(&last_frame_image, ycbcr);
 
         } else if (line[0] == 'R') {
             // Just repeat the last frame
+            repeat++;
         } else {
             fprintf(stderr, "unknown command line: %s\n", line);
         }
@@ -337,22 +373,12 @@ int main(int argc, char* argv[])
             last_frame_converted = true;
         }
 
-        if (output_video) {
-            if (theora_write_frame(ycbcr, 0)) {
-                fprintf(stderr, "Encoding error.\n");
-                exit(1);
-            }
-
-            if (++fsls > 10) {
-                fflush(ogg_fp);
-                fsls = 0;
-            }
-        }
     }
 
     printf("last frame\n");
     // send last frame
     if (ogg_fp) {
+        th_encode_ctl(td, TH_ENCCTL_SET_DUP_COUNT, &repeat, sizeof(repeat));
         theora_write_frame(ycbcr, 1);
     }
     th_encode_free(td);
