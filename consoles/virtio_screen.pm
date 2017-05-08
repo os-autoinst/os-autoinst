@@ -25,7 +25,8 @@ our $VERSION;
 sub new {
     my ($class, $socket_fd) = @_;
     my $self = bless {class => $class}, $class;
-    $self->{socket_fd} = $socket_fd;
+    $self->{socket_fd}    = $socket_fd;
+    $self->{carry_buffer} = '';
     return $self;
 }
 
@@ -154,16 +155,23 @@ sub normalise_pattern {
                      no_regex => 0
   ]);
 
-Monitor the virtio console socket $file_descriptor for a character sequence which matches
-$pattern. Bytes are read from the socket in up to $buffer_size chunks and each chunk is
-added to a ring buffer which is also up to $buffer_size long. The regular expression is tested
-against the ring buffer after each read operation. Note, the reason we are using a ring
-buffer is to avoid matches failing because the matching text is split between two reads.
+Monitor the virtio console socket $file_descriptor for a character sequence
+which matches $pattern. Bytes are read from the socket in up to $buffer_size/2
+chunks and each chunk is added to a ring buffer which is $buffer_size
+long. The regular expression is tested against the ring buffer after each read
+operation. Note, the reason we are using a ring buffer is to avoid matches
+failing because the matching text is split between two reads.
 
-If $record_output is set then all data from the socket is stored in a separate string and returned.
-Otherwise just the contents of the ring buffer will be returned. Setting $exclude_match removes the
-matched string from the returned string. Data which was received after a matching set of characters
-is lost unless data from the socket is being logged to a file.
+If $record_output is set then all data from the socket is stored in a separate
+string and returned.  Otherwise just the contents of the ring buffer will be
+returned.
+
+Setting $exclude_match removes the matched string from the returned string.
+
+Data which was read after a matching set of characters is saved to a carry
+buffer and used in the next call to read_until (unless the console is
+reset). If the match fails the whole ring buffer is carried over to the next
+call.
 
 Setting $no_regex will cause it to do a plain string search using index().
 
@@ -178,7 +186,7 @@ sub read_until {
     my $buflen   = $nargs{buffer_size} || 4096;
     my $overflow = $nargs{record_output} ? '' : undef;
     my $sttime   = thetime();
-    my ($rbuf, $buf) = ('', '');
+    my ($rbuf, $buf) = ($self->{carry_buffer}, '');
     my $loops = 0;
     my ($prematch, $match);
 
@@ -194,7 +202,28 @@ sub read_until {
   READ: while (1) {
         $loops++;
 
+        # Search ring buffer for a match and exit if we find it
+        if ($nargs{no_regex}) {
+            for my $p (@$re) {
+                my $i = index($rbuf, $p);
+                if ($i >= 0) {
+                    $match = substr $rbuf, $i, length($p);
+                    $prematch = substr $rbuf, 0, $i;
+                    $self->{carry_buffer} = substr $rbuf, $i + length($p);
+                    last READ;
+                }
+            }
+        }
+        elsif ($rbuf =~ m/$re/) {
+            # See match variable perf issues: http://bit.ly/2dbGrzo
+            $prematch = substr $rbuf, 0, $LAST_MATCH_START[0];
+            $match = substr $rbuf, $LAST_MATCH_START[0], $LAST_MATCH_END[0] - $LAST_MATCH_START[0];
+            $self->{carry_buffer} = substr $rbuf, $LAST_MATCH_END[0];
+            last READ;
+        }
+
         if (elapsed($sttime) >= $timeout) {
+            $self->{carry_buffer} = $rbuf;
             return {matched => 0, string => ($overflow || '') . $rbuf};
         }
 
@@ -223,24 +252,6 @@ sub read_until {
             $rbuf = substr $rbuf, $remove_len;
         }
         $rbuf .= $buf;
-
-        # Search ring buffer for a match and exit if we find it
-        if ($nargs{no_regex}) {
-            for my $p (@$re) {
-                my $i = index($rbuf, $p);
-                if ($i >= 0) {
-                    $match = substr $rbuf, $i, length($p);
-                    $prematch = substr $rbuf, 0, $i;
-                    last READ;
-                }
-            }
-        }
-        elsif ($rbuf =~ m/$re/) {
-            # See match variable perf issues: http://bit.ly/2dbGrzo
-            $prematch = substr $rbuf, 0, $LAST_MATCH_START[0];
-            $match = substr $rbuf, $LAST_MATCH_START[0], $LAST_MATCH_END[0] - $LAST_MATCH_START[0];
-            last READ;
-        }
     }
 
     my $elapsed = elapsed($sttime);
