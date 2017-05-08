@@ -272,7 +272,7 @@ sub _check_backend_response {
             }
         }
         if (!$check && !$rsp->{saveresult}) {
-            OpenQA::Exception::FailedNeedle->throw(error => "needle(s) '$mustmatch' not found", tags => $mustmatch);
+            OpenQA::Exception::FailedNeedle->throw(error => "no candidate needle with tag(s) '$mustmatch' matched", tags => $mustmatch);
         }
         if ($rsp->{saveresult}) {
             $autotest::current_test->save_test_result();
