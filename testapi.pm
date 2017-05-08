@@ -726,6 +726,14 @@ sub x11_start_program {
     return $distri->x11_start_program($program, $timeout, $options);
 }
 
+sub _handle_script_run_ret {
+    my ($ret, $cmd, %args) = @_;
+    croak "command '$cmd' timed out" unless (defined $ret);
+    my $die_msg = "command '$cmd' failed";
+    $die_msg .= ": $args{fail_message}" if $args{fail_message};
+    croak $die_msg unless ($ret == 0);
+}
+
 =head2 assert_script_run
 
   assert_script_run($cmd [, timeout => $timeout] [, fail_message => $fail_message]);
@@ -765,9 +773,7 @@ sub assert_script_run {
     $args{timeout} //= 90;
     bmwqemu::log_call(cmd => $cmd, wait => $args{timeout}, fail_message => $args{fail_message});
     my $ret = $distri->script_run($cmd, $args{timeout});
-    my $die_msg = "command '$cmd' failed or timed out";
-    $die_msg .= ": $args{fail_message}" if $args{fail_message};
-    croak $die_msg unless (defined $ret && $ret == 0);
+    _handle_script_run_ret($ret, $cmd, %args);
     return;
 }
 
@@ -818,7 +824,8 @@ sub assert_script_sudo {
     my $str = hashed_string("ASS$cmd");
     script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $wait);
-    croak "command '$cmd' failed or timed out" unless (defined $ret && $ret =~ /$str-0-/);
+    _handle_script_run_ret($ret, $cmd);
+    return;
 }
 
 
