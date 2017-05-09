@@ -24,7 +24,7 @@ use IO::Select;
 use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use Data::Dumper;
-use POSIX qw(strftime :sys_wait_h);
+use POSIX qw(strftime :sys_wait_h _exit);
 use JSON;
 require Carp;
 use Fcntl;
@@ -150,26 +150,32 @@ sub start_serial_grab {
     my ($self) = @_;
 
     $self->{serialpid} = fork();
-    if ($self->{serialpid} == 0) {
-        setpgrp 0, 0;
-        open(my $serial, '>',  $self->{serialfile});
-        open(STDOUT,     ">&", $serial);
-        open(STDERR,     ">&", $serial);
-        my @cmd = (
-            '/usr/sbin/ipmiconsole', '--serial-keepalive', '-h', $bmwqemu::vars{IPMI_HOSTNAME},
-            '-u', $bmwqemu::vars{IPMI_USER},
-            '-p', $bmwqemu::vars{IPMI_PASSWORD});
 
-        # zypper in dumponlyconsole, check devel:openQA for a patched freeipmi version that doesn't grab the terminal
-        push(@cmd, '--dumponly');
+    return if $self->{serialpid};
+    # a child was born
+    setpgrp 0, 0;
+    open(my $serial, '>',  $self->{serialfile});
+    open(STDOUT,     ">&", $serial);
+    open(STDERR,     ">&", $serial);
 
-        # our supermicro boards need workarounds to get SOL ;(
-        push(@cmd, qw(-W nochecksumcheck));
+    my @cmd = ('/usr/sbin/ipmiconsole', '-h', $bmwqemu::vars{IPMI_HOSTNAME}, '-u', $bmwqemu::vars{IPMI_USER}, '-p', $bmwqemu::vars{IPMI_PASSWORD});
 
-        exec(@cmd);
-        die "exec failed $!";
+    # zypper in dumponlyconsole, check devel:openQA for a patched freeipmi version that doesn't grab the terminal
+    push(@cmd, '--dumponly');
+
+    # our supermicro boards need workarounds to get SOL ;(
+    push(@cmd, qw(-W nochecksumcheck));
+
+    # Disable autodie
+    no autodie 'system';
+
+    # Start serial grab
+    while (system(@cmd)) {
+        print STDERR "SOL failed, reconnecting [$?]\n";
+        sleep 1;
     }
-    return;
+    _exit(0);
+
 }
 
 sub stop_serial_grab {
