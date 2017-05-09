@@ -59,6 +59,13 @@ sub do_start_vm {
     return {};
 }
 
+sub is_shutdown {
+    my ($self) = @_;
+
+    my $instance = get_var('VIRSH_INSTANCE');
+    return $self->run_cmd("virsh dominfo openQA-SUT-$instance | grep running");
+}
+
 sub do_stop_vm {
     my ($self) = @_;
 
