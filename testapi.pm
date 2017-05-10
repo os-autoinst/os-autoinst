@@ -402,10 +402,14 @@ sub assert_and_click {
 
     # last_matched_needle has to be set, or the assert is buggy :)
     my $lastarea = $last_matched_needle->{area}->[-1];
-    my $rx       = 1;                                                  # $origx / $img->xres();
-    my $ry       = 1;                                                  # $origy / $img->yres();
-    my $x        = int(($lastarea->{x} + $lastarea->{w} / 2) * $rx);
-    my $y        = int(($lastarea->{y} + $lastarea->{h} / 2) * $ry);
+    my $rx       = 1;                                    # $origx / $img->xres();
+    my $ry       = 1;                                    # $origy / $img->yres();
+    if (check_var('VIRSH_VMM_FAMILY', 'xen') and check_var('VIRSH_VMM_TYPE', 'linux')) {
+        # POO#13536 - openQA on Xen PV seems to believe it's on 800x600 resolution
+        $rx = $ry = 1 / (1024 / 800);
+    }
+    my $x = int(($lastarea->{x} + $lastarea->{w} / 2) * $rx);
+    my $y = int(($lastarea->{y} + $lastarea->{h} / 2) * $ry);
     bmwqemu::diag("clicking at $x/$y");
     mouse_set($x, $y);
     if ($dclick) {
