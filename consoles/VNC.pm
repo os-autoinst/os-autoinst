@@ -16,6 +16,7 @@ use Carp qw(confess cluck carp croak);
 use Data::Dumper 'Dumper';
 use feature 'say';
 use Try::Tiny;
+use Scalar::Util 'blessed';
 
 use OpenQA::Exceptions;
 
