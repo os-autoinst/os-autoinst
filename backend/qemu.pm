@@ -150,7 +150,10 @@ sub do_stop_vm {
 sub can_handle {
     my ($self, $args) = @_;
     my $vars = \%bmwqemu::vars;
-    if ($args->{function} eq 'snapshots' && $vars->{HDDFORMAT} ne 'raw') {
+
+    # XXX: Temporary (hopefully) workaround for nvme, since snapshots fails.
+    # See also https://github.com/os-autoinst/os-autoinst/pull/781
+    if ($args->{function} eq 'snapshots' && $vars->{HDDFORMAT} ne 'raw' && $vars->{HDDMODEL} ne "nvme") {
         return {ret => 1};
     }
     return;
@@ -615,7 +618,8 @@ sub start_qemu {
             else {
                 # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
                 my $bootindex = ($i == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? ",bootindex=0" : "";
-                push(@params, "-device", "$vars->{HDDMODEL},drive=hd$i" . $bootindex);
+                my $serial = ($vars->{HDDMODEL} eq "nvme") ? ",serial=$i" : "";    # serial for nvme is mandatory
+                push(@params, "-device", "$vars->{HDDMODEL},drive=hd$i" . $bootindex . $serial);
                 push(@params, "-drive",  "file=$basedir/l$i,cache=unsafe,if=none,id=hd$i,format=$vars->{HDDFORMAT}");
             }
         }
