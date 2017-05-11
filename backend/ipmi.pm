@@ -94,11 +94,6 @@ sub restart_host {
 sub relogin_vnc {
     my ($self) = @_;
 
-    if ($self->{vnc}) {
-        close($self->{vnc}->socket);
-        sleep(1);
-    }
-
     my $vncopts = {
         hostname => $bmwqemu::vars{IPMI_HOSTNAME},
         port     => 5900,

@@ -130,7 +130,7 @@ sub login {
     $self->_last_update_received(0);
     $self->_last_update_requested(0);
     $self->_vnc_stalled(0);
-    $self->check_vnc_stalls(1);
+    $self->check_vnc_stalls(!$self->ikvm);
     $self->{_inflater} = undef;
 
     my $hostname = $self->hostname || 'localhost';
