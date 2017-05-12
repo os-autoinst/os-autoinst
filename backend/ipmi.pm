@@ -165,7 +165,8 @@ sub start_serial_grab {
     no autodie 'system';
 
     # Start serial grab
-    while (system(@cmd)) {
+    while (1) {
+        system(@cmd);
         print STDERR "SOL failed, reconnecting [$?]\n";
         sleep 1;
     }
