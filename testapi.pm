@@ -1765,20 +1765,22 @@ sub data_url($) {
 
 =for stopwords GiB failok OpenQA WebUI
 
-  upload_logs($file [, failok => 0 ]);
+  upload_logs($file [, failok => 0, timeout => 90 ]);
 
 Upload C<$file> to OpenQA WebUI as a log file and
-return the uploaded file name. If failok is not set, a failed upload
-will cause the test to die. Failed uploads happen if the file does not
+return the uploaded file name. If failok is not set, a failed upload or
+timeout will cause the test to die. Failed uploads happen if the file does not
 exist or is over 20 GiB in size, so failok is useful when you just want
-to upload the file if it exists but not mind if it doesn't.
+to upload the file if it exists but not mind if it doesn't. Default
+timeout is 90s.
 
 =cut
 
 sub upload_logs {
-    my $file   = shift;
-    my %args   = @_;
-    my $failok = $args{failok} || 0;
+    my $file    = shift;
+    my %args    = @_;
+    my $failok  = $args{failok} || 0;
+    my $timeout = $args{timeout} || 90;
 
     bmwqemu::log_call(file => $file);
     my $basename = basename($file);
@@ -1787,10 +1789,10 @@ sub upload_logs {
     $cmd .= autoinst_url("/uploadlog/$basename");
     if ($failok) {
         # just use script_run so we don't care if the upload fails
-        script_run($cmd);
+        script_run($cmd, $timeout);
     }
     else {
-        assert_script_run($cmd);
+        assert_script_run($cmd, $timeout);
     }
     return $upname;
 }
