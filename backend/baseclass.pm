@@ -1002,6 +1002,7 @@ sub new_ssh_connection {
             next;
         }
     }
+    bmwqemu::diag "Possible solutions: check network-settings e.g. VIRSH_CMDLINE or S390_NETWORK_PARAMS and VNC/SSH settings in there";
     die "Failed to login to $args{username}\@$args{hostname}" unless $ssh->auth_ok;
 
     return $ssh;
