@@ -282,24 +282,15 @@ double getPSNR(const Mat& I1, const Mat& I2)
     assert(I1.depth() == CV_8U);
     assert(I1.channels() == 3);
 
-    double sse = 0;
+    double noise = norm(I1, I2);
 
-    const uchar* I1_data = I1.data;
-    const uchar* I2_data = I2.data;
-    int index = 0;
-
-    for (int j = 0; j < I1.rows; j++)
-        for (int i = 0; i < I1.cols; i++)
-            for (int ch = 0; ch < 3; ch++, index++) {
-                double diff = abs(I1_data[index] - I2_data[index]);
-                sse += diff * diff;
-            }
-
-    double mse = sse / (double)(3 * I1.total());
-    if (!mse) {
+    if (!noise) {
         return VERY_SIM;
     }
-    return 10.0 * log10((255 * 255) / mse);
+
+    double signal = 255.0 * 255 * 3 * I1.total();
+
+    return 10.0 * log10(signal / (noise * noise));
 }
 
 void image_destroy(Image* s) { delete (s); }
