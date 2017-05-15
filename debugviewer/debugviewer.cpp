@@ -16,15 +16,11 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    Mat image;
+    Mat image(768, 1024, CV_8UC3, Scalar(0, 0, 0));
     while (1) {
-        image = imread(argv[1], CV_LOAD_IMAGE_COLOR); // Read the file
-
-        if (!image.data) // Check for invalid input
-        {
-            cout << "Could not open or find the image" << std::endl;
-            return -1;
-        }
+        Mat last = imread(argv[1], CV_LOAD_IMAGE_COLOR); // Read the file
+        if (last.data)
+            image = last;
 
         namedWindow("Display window",
             WINDOW_AUTOSIZE); // Create a window for display.
