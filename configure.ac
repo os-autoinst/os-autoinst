@@ -21,6 +21,7 @@ AM_SILENT_RULES([yes])
 # Basic app check
 # ===============
 AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX([11], [], [mandatory])
 AC_PROG_LIBTOOL
 AC_PROG_MKDIR_P
 PKG_PROG_PKG_CONFIG([0.20])
