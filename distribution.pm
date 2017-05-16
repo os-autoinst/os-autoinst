@@ -42,7 +42,8 @@ sub add_console {
         'vnc-base'        => 'vnc_base',
         'local-Xvnc'      => 'localXvnc',
         'ssh-iucvconn'    => 'sshIucvconn',
-        'virtio-terminal' => 'virtio_terminal'
+        'virtio-terminal' => 'virtio_terminal',
+        'ipmi-sol'        => 'ipmiSol',
     );
     my $required_type = $class_names{$backend_console} || $backend_console;
     my $location      = "consoles/$required_type.pm";

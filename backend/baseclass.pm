@@ -264,8 +264,9 @@ sub stop_vm {
         for my $fdata (@{$self->{video_frame_data}}) {
             $self->{encoder_pipe}->print($fdata);
         }
-        close($self->{encoder_pipe}) if $self->{encoder_pipe};
-        $self->{started} = 0;
+        $self->{encoder_pipe}->close if $self->{encoder_pipe};
+        $self->{encoder_pipe} = undef;
+        $self->{started}      = 0;
     }
     $self->close_pipes();    # does not return
     return;
