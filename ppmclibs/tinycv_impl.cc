@@ -45,7 +45,7 @@ struct Image {
 
     cv::Mat prep() const
     {
-        if (!_preped.empty() && false)
+        if (!_preped.empty())
             return _preped;
 
         _preped = img.clone();
