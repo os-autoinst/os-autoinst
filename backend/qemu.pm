@@ -31,6 +31,8 @@ use bmwqemu qw(fileContent diag save_vars);
 require IPC::System::Simple;
 use autodie ':all';
 use Try::Tiny;
+use osutils qw(find_bin gen_params qv);
+use List::Util 'max';
 
 sub new {
     my $class = shift;
@@ -153,7 +155,7 @@ sub can_handle {
 
     # XXX: Temporary (hopefully) workaround for nvme, since snapshots fails.
     # See also https://github.com/os-autoinst/os-autoinst/pull/781
-    if ($args->{function} eq 'snapshots' && $vars->{HDDFORMAT} ne 'raw' && $vars->{HDDMODEL} ne "nvme") {
+    if ($args->{function} eq 'snapshots' && $vars->{HDDFORMAT} ne 'raw' && $vars->{HDDMODEL} ne 'nvme') {
         return {ret => 1};
     }
     return;
@@ -276,40 +278,19 @@ sub start_qemu {
     my $vars = \%bmwqemu::vars;
 
     my $basedir = "raid";
-    my $qemuimg = "/usr/bin/kvm-img";
-    if (!-e $qemuimg) {
-        $qemuimg = "/usr/bin/qemu-img";
-    }
-
     my $qemubin = $ENV{QEMU};
+
+    my $qemuimg = find_bin('/usr/bin/', qw(kvm-img qemu-img));
     unless ($qemubin) {
-        my @candidates = $vars->{QEMU} ? ('qemu-system-' . $vars->{QEMU}) : qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64);
-        for my $bin (map { '/usr/bin/' . $_ } @candidates) {
-            next unless -x $bin;
-            $qemubin = $bin;
-            last;
-        }
-        die "no Qemu/KVM found\n" unless $qemubin;
+        $qemubin = find_bin('/usr/bin/', $vars->{QEMU} ? ('qemu-system-' . $vars->{QEMU}) : qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64));
     }
 
-    if ($vars->{UEFI}) {
-        # XXX: compat with old deployment
-        $vars->{BIOS} //= $vars->{UEFI_BIOS};
-    }
+    die "no kvm-img/qemu-img found\n" unless $qemuimg;
+    die "no Qemu/KVM found\n"         unless $qemubin;
+    die "MULTINET is not supported with NICTYPE==tap\n" if ($vars->{MULTINET} && $vars->{NICTYPE} eq "tap");
 
-    if ($vars->{UEFI_PFLASH}) {
-        $vars->{UEFI} = 1;
-    }
-
-    foreach my $attribute (qw(BIOS KERNEL INITRD)) {
-        if ($vars->{$attribute} && $vars->{$attribute} !~ /^\//) {
-            # Non-absolute paths are assumed relative to /usr/share/qemu
-            $vars->{$attribute} = '/usr/share/qemu/' . $vars->{$attribute};
-        }
-        if ($vars->{$attribute} && !-e $vars->{$attribute}) {
-            die "'$vars->{$attribute}' missing, check $attribute\n";
-        }
-    }
+    $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});    # XXX: compat with old deployment
+    $vars->{UEFI} = 1 if ($vars->{UEFI_PFLASH});
 
     if ($vars->{UEFI} && $vars->{ARCH} eq 'x86_64' && !$vars->{BIOS}) {
         foreach my $firmware (@bmwqemu::ovmf_locations) {
@@ -321,6 +302,16 @@ sub start_qemu {
         if (!$vars->{BIOS}) {
             # We know this won't go well.
             die "No UEFI firmware can be found! Please specify BIOS or UEFI_BIOS or install an appropriate package";
+        }
+    }
+
+    foreach my $attribute (qw(BIOS KERNEL INITRD)) {
+        if ($vars->{$attribute} && $vars->{$attribute} !~ /^\//) {
+            # Non-absolute paths are assumed relative to /usr/share/qemu
+            $vars->{$attribute} = '/usr/share/qemu/' . $vars->{$attribute};
+        }
+        if ($vars->{$attribute} && !-e $vars->{$attribute}) {
+            die "'$vars->{$attribute}' missing, check $attribute\n";
         }
     }
 
@@ -353,14 +344,14 @@ sub start_qemu {
 
     my $iso = $vars->{ISO};
     # disk settings
-    $vars->{NUMDISKS}  ||= 1;
-    $vars->{HDDSIZEGB} ||= 10;
-    $vars->{CDMODEL}   ||= "scsi-cd";
     if ($vars->{MULTIPATH}) {
         $vars->{HDDMODEL}  ||= "scsi-hd";
         $vars->{HDDFORMAT} ||= "raw";
         $vars->{PATHCNT}   ||= 2;
     }
+    $vars->{NUMDISKS} ||= defined($vars->{RAIDLEVEL}) ? 4 : 1;
+    $vars->{HDDSIZEGB} ||= 10;
+    $vars->{CDMODEL}   ||= "scsi-cd";
     $vars->{HDDMODEL}  ||= "virtio-blk";
     $vars->{HDDFORMAT} ||= "qcow2";
 
@@ -390,33 +381,29 @@ sub start_qemu {
         # of ports is 32 so enough for 14 workers per host.
         $vars->{VDE_PORT} ||= ($vars->{WORKER_ID} // 0) * 2 + 2;
     }
+
     # misc
-    my $arch_supports_boot_order = 1;
+    my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
     my $use_usb_kbd;
     my @vgaoptions;
-    if ($vars->{UEFI}) {    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
-        $arch_supports_boot_order = 0;
-    }
+
     if ($vars->{ARCH} eq 'aarch64' || $vars->{ARCH} eq 'arm') {
         my $video_device = ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) ? 'VGA' : 'virtio-gpu-pci';
-        push @vgaoptions, '-device', $video_device;
+        gen_params @vgaoptions, 'device', $video_device;
         $arch_supports_boot_order = 0;
         $use_usb_kbd              = 1;
     }
     elsif ($vars->{OFW}) {
         $vars->{QEMUVGA} ||= "std";
         $vars->{QEMUMACHINE} = "usb=off";
-        push(@vgaoptions, '-g', '1024x768');
+        gen_params @vgaoptions, 'g', '1024x768';
         $use_usb_kbd = 1;
     }
     else {
         $vars->{QEMUVGA} ||= "cirrus";
     }
-    push(@vgaoptions, "-vga", $vars->{QEMUVGA}) if $vars->{QEMUVGA};
 
-    if (defined($vars->{RAIDLEVEL})) {
-        $vars->{NUMDISKS} = 4;
-    }
+    gen_params @vgaoptions, 'vga', $vars->{QEMUVGA} if $vars->{QEMUVGA};
 
     my @nicmac;
     my @nicvlan;
@@ -431,9 +418,7 @@ sub start_qemu {
     @tapdownscript = split /\s*,\s*/, $vars->{TAPDOWNSCRIPT} if $vars->{TAPDOWNSCRIPT};
 
     my $num_networks = 1;
-    $num_networks = @nicmac  if $num_networks < @nicmac;
-    $num_networks = @nicvlan if $num_networks < @nicvlan;
-    $num_networks = @tapdev  if $num_networks < @tapdev;
+    $num_networks = max($num_networks, scalar @nicmac, scalar @nicvlan, scalar @tapdev);
 
     for (my $i = 0; $i < $num_networks; $i++) {
         # ensure MAC addresses differ globally
@@ -445,7 +430,6 @@ sub start_qemu {
         my $instance = ($vars->{WORKER_INSTANCE} || 'manual') eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
         # use $instance for tap name so it is predicable, network is still configured staticaly
         $tapdev[$i] //= 'tap' . ($instance - 1 + $i * 64);
-
         $nicvlan[$i] //= 0;
     }
     push @tapscript,     "no" until @tapscript >= $num_networks;        #no TAPSCRIPT by default
@@ -498,7 +482,7 @@ sub start_qemu {
         # skip HDD refresh when HDD exists and KEEPHDDS or SKIPTO is set
         next if ($keephdds && (-e "$basedir/$i.lvm" || -e "$basedir/$i"));
         no autodie 'unlink';
-        unlink("$basedir/l$i");
+        unlink("$basedir/l$i") if -e "$basedir/l$i";
         if (-e "$basedir/$i.lvm") {
             symlink("$i.lvm", "$basedir/l$i") or die "$!\n";
             runcmd("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1");    # for LVM
@@ -522,7 +506,7 @@ sub start_qemu {
     }
 
     if ($vars->{AUTO_INST} && !$keephdds) {
-        unlink("$basedir/autoinst.img");
+        unlink("$basedir/autoinst.img") if -e "$basedir/autoinst.img";
         runcmd("/sbin/mkfs.vfat", "-C", "$basedir/autoinst.img", "1440");
         runcmd("/usr/bin/mcopy", "-i", "$basedir/autoinst.img", $vars->{AUTO_INST}, "::/");
     }
@@ -539,69 +523,46 @@ sub start_qemu {
     if ($pid == 0) {
         $SIG{__DIE__} = undef;    # overwrite the default - just exit
         my @params = ("-serial", "file:serial0", "-soundhw", "ac97");
-
-        push(@params, "-global", "isa-fdc.driveA=") unless ($vars->{QEMU_NO_FDC_SET});
         push(@params, @vgaoptions);
-        push(@params, '-m', $vars->{QEMURAM});
 
-        if ($vars->{QEMUMACHINE}) {
-            push(@params, "-machine", $vars->{QEMUMACHINE});
-        }
-
-        if ($vars->{QEMUCPU}) {
-            push(@params, "-cpu", $vars->{QEMUCPU});
-        }
-
-        if ($vars->{QEMU_VIRTIO_RNG}) {
-            push(@params, '-device', 'virtio-rng-pci');
-        }
+        gen_params @params, "global", "isa-fdc.driveA=" unless $vars->{QEMU_NO_FDC_SET};
+        gen_params @params, 'm',       $vars->{QEMURAM}     if $vars->{QEMURAM};
+        gen_params @params, 'machine', $vars->{QEMUMACHINE} if $vars->{QEMUMACHINE};
+        gen_params @params, 'cpu',     $vars->{QEMUCPU}     if $vars->{QEMUCPU};
+        gen_params @params, 'device',  'virtio-rng-pci'     if $vars->{QEMU_VIRTIO_RNG};
 
         for (my $i = 0; $i < $num_networks; $i++) {
             if ($vars->{NICTYPE} eq "user") {
                 my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} ? ',' . $vars->{NICTYPE_USER_OPTIONS} : '';
-                push(@params, '-netdev', "user,id=qanet$i$nictype_user_options");
+                gen_params @params, 'netdev', [qv "user id=qanet$i$nictype_user_options"];
             }
             elsif ($vars->{NICTYPE} eq "tap") {
-                push(@params, '-netdev', "tap,id=qanet$i,ifname=$tapdev[$i],script=$tapscript[$i],downscript=$tapdownscript[$i]");
+                gen_params @params, 'netdev', [qv "tap id=qanet$i ifname=$tapdev[$i] script=$tapscript[$i] downscript=$tapdownscript[$i]"];
             }
             elsif ($vars->{NICTYPE} eq "vde") {
-                push(@params, '-netdev', "vde,id=qanet0,sock=$vars->{VDE_SOCKETDIR}/vde.ctl,port=$vars->{VDE_PORT}");
+                gen_params @params, 'netdev', [qv "vde id=qanet0 sock=$vars->{VDE_SOCKETDIR}/vde.ctl port=$vars->{VDE_PORT}"];
             }
             else {
                 die "unknown NICTYPE $vars->{NICTYPE}\n";
             }
-            push(@params, '-device', "$vars->{NICMODEL},netdev=qanet$i,mac=$nicmac[$i]");
+            gen_params @params, 'device', [qv "$vars->{NICMODEL} netdev=qanet$i mac=$nicmac[$i]"];
         }
 
-        if ($vars->{QEMU_SMBIOS}) {
-            push @params, '-smbios', $vars->{QEMU_SMBIOS};
-        }
+        gen_params @params, 'smbios', $vars->{QEMU_SMBIOS} if $vars->{QEMU_SMBIOS};
 
         if ($vars->{LAPTOP}) {
             my $laptop_path = "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
             for my $f (glob "$laptop_path/*.bin") {
-                push @params, '-smbios', "file=$f";
+                gen_params @params, 'smbios', "file=$f";
             }
         }
-
         if ($vars->{NBF}) {
-            push(@params, '-kernel', '/usr/share/qemu/ipxe.lkrn');
-            push(@params, '-append', "dhcp && sanhook iscsi:$vars->{WORKER_HOSTNAME}::3260:1:$vars->{NBF}");
+            gen_params @params, 'kernel', '/usr/share/qemu/ipxe.lkrn';
+            gen_params @params, 'append', "dhcp && sanhook iscsi:$vars->{WORKER_HOSTNAME}::3260:1:$vars->{NBF}";
         }
-
-        if ($vars->{SCSICONTROLLER}) {
-            # scsi devices need SCSI controller
-            push(@params, "-device", "$vars->{SCSICONTROLLER},id=scsi0");
-            if ($vars->{MULTIPATH}) {
-                # add the second HBA
-                push(@params, "-device", "$vars->{SCSICONTROLLER},id=scsi1");
-            }
-        }
-
-        if ($vars->{ATACONTROLLER}) {
-            # SATA devices need SATA controller
-            push(@params, "-device", "$vars->{ATACONTROLLER},id=ahci0");
-        }
+        gen_params @params, 'device', [qv "$vars->{SCSICONTROLLER} id=scsi0"] if $vars->{SCSICONTROLLER};
+        gen_params @params, 'device', [qv "$vars->{SCSICONTROLLER} id=scsi1"] if ($vars->{SCSICONTROLLER} && $vars->{MULTIPATH});
+        gen_params @params, 'device', [qv "$vars->{ATACONTROLLER} id=ahci0"]  if $vars->{ATACONTROLLER};
 
         for my $i (1 .. $vars->{NUMDISKS}) {
             if ($vars->{MULTIPATH}) {
@@ -610,37 +571,37 @@ sub start_qemu {
                     my $bus = sprintf "scsi%d.0", ($c - 1) % 2;    # alternate between scsi0 and scsi1
                     my $id = sprintf 'hd%d%c', $i, 96 + $c;
                     # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
-                    my $bootindex = ($i == 1 && $c == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? ",bootindex=0" : "";
-                    push(@params, "-device", "$vars->{HDDMODEL},drive=$id,bus=$bus" . $bootindex);
-                    push(@params, "-drive",  "file=$basedir/l$i,cache=none,if=none,id=$id,serial=mpath$i,format=$vars->{HDDFORMAT}");
+                    my $bootindex = ($i == 1 && $c == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? "bootindex=0" : "";
+                    gen_params @params, 'device', [qv "$vars->{HDDMODEL} drive=$id bus=$bus $bootindex"];
+                    gen_params @params, 'drive',  [qv "file=$basedir/l$i cache=none if=none id=$id serial=mpath$i format=$vars->{HDDFORMAT}"];
                 }
             }
             else {
                 # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
-                my $bootindex = ($i == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? ",bootindex=0" : "";
-                my $serial = ($vars->{HDDMODEL} eq "nvme") ? ",serial=$i" : "";    # serial for nvme is mandatory
-                push(@params, "-device", "$vars->{HDDMODEL},drive=hd$i" . $bootindex . $serial);
-                push(@params, "-drive",  "file=$basedir/l$i,cache=unsafe,if=none,id=hd$i,format=$vars->{HDDFORMAT}");
+                my $bootindex = ($i == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? "bootindex=0" : "";
+                my $serial = ($vars->{HDDMODEL} eq "nvme") ? "serial=$i" : "";    # serial for nvme is mandatory
+                gen_params @params, 'device', [qv "$vars->{HDDMODEL} drive=hd$i $bootindex $serial"];
+                gen_params @params, 'drive',  [qv "file=$basedir/l$i cache=unsafe if=none id=hd$i format=$vars->{HDDFORMAT}"];
             }
         }
 
-        my $cdbus = $vars->{CDMODEL} eq 'scsi-cd' ? ',bus=scsi0.0' : '';
+        my $cdbus = $vars->{CDMODEL} eq 'scsi-cd' ? 'bus=scsi0.0' : '';
         if ($iso) {
             if ($vars->{USBBOOT}) {
-                push(@params, "-drive",  "if=none,id=usbstick,file=$iso,snapshot=on");
-                push(@params, "-device", "usb-ehci,id=ehci");
+                gen_params @params, 'drive',  [qv "if=none id=usbstick file=$iso snapshot=on"];
+                gen_params @params, 'device', [qv "usb-ehci id=ehci"];
                 # when USBBOOT is defined on UEFI, it gets ",bootindex=0"
-                my $bootindex = ($vars->{UEFI} && $bootfrom ne "disk") ? ",bootindex=0" : "";
-                push(@params, "-device", "usb-storage,bus=ehci.0,drive=usbstick,id=devusb" . $bootindex);
+                my $bootindex = ($vars->{UEFI} && $bootfrom ne "disk") ? "bootindex=0" : "";
+                gen_params @params, "device", [qv "usb-storage bus=ehci.0 drive=usbstick id=devusb $bootindex"];
             }
             else {
-                push(@params, '-drive', "media=cdrom,if=none,id=cd0,format=raw,file=$iso");
+                gen_params @params, "drive", [qv "media=cdrom if=none id=cd0 format=raw file=$iso"];
                 # XXX: workaround for OVMF wanting to write NVvars into first FAT partition
                 # we need to replace -bios with proper pflash drive specification
                 $params[-1] .= ',snapshot=on' if $vars->{UEFI};
                 # when booting from cdrom on UEFI, first connected CD gets ",bootindex=0"
-                my $bootindex = ($vars->{UEFI} && $bootfrom eq "cdrom") ? ",bootindex=0" : "";
-                push(@params, '-device', "$vars->{CDMODEL},drive=cd0" . $cdbus . $bootindex);
+                my $bootindex = ($vars->{UEFI} && $bootfrom eq "cdrom") ? "bootindex=0" : "";
+                gen_params @params, "device", [qv "$vars->{CDMODEL} drive=cd0 $cdbus $bootindex"];
             }
         }
 
@@ -653,67 +614,64 @@ sub start_qemu {
             my $bootindex = "";
             if ($is_first && $vars->{UEFI} && $bootfrom eq "cdrom" && !$iso) {
                 $is_first  = 0;
-                $bootindex = ",bootindex=0";
+                $bootindex = "bootindex=0";
             }
-            push(@params, '-drive',  "media=cdrom,if=none,id=cd$i,format=raw,file=$addoniso");
-            push(@params, '-device', "$vars->{CDMODEL},drive=cd$i" . $cdbus . $bootindex);
+            gen_params @params, "drive",  [qv "media=cdrom if=none id=cd$i format=raw file=$addoniso"];
+            gen_params @params, "device", [qv "$vars->{CDMODEL} drive=cd$i $cdbus $bootindex"];
         }
 
         if ($arch_supports_boot_order) {
             if ($vars->{PXEBOOT}) {
-                push(@params, "-boot", "n");
+                gen_params @params, "boot", "n";
             }
             elsif ($vars->{BOOTFROM}) {
-                push(@params, "-boot", "order=$vars->{BOOTFROM},menu=on,splash-time=5000");
+                gen_params @params, "boot", [qv "order=$vars->{BOOTFROM} menu=on splash-time=5000"];
+
             }
             else {
-                push(@params, "-boot", "once=d,menu=on,splash-time=5000");
+                gen_params @params, "boot", [qw(once=d menu=on splash-time=5000)];
             }
         }
 
         if ($vars->{UEFI_PFLASH}) {
             # Convert the firmware file into qcow2 format or savevm would fail
             runcmd('qemu-img', 'convert', '-O', 'qcow2', $vars->{BIOS}, 'ovmf.bin');
-            push(@params, "-drive", "if=pflash,format=qcow2,file=ovmf.bin");
+            gen_params @params, "drive", [qw(if=pflash format=qcow2 file=ovmf.bin)];
         }
         elsif ($vars->{BIOS}) {
-            push(@params, "-bios", $vars->{BIOS});
+            gen_params @params, "bios", $vars->{BIOS};
         }
+
         foreach my $attribute (qw(KERNEL INITRD APPEND)) {
-            if ($vars->{$attribute}) {
-                push(@params, "-" . lc($attribute), $vars->{$attribute});
-            }
+            gen_params @params, lc($attribute), $vars->{$attribute} if $vars->{$attribute};
         }
+
         if ($vars->{MULTINET}) {
-            if ($vars->{NICTYPE} eq "tap") {
-                die "MULTINET is not supported with NICTYPE==tap\n";
-            }
-            push(@params, ('-net', "nic,vlan=1,model=$vars->{NICMODEL},macaddr=52:54:00:12:34:57", '-net', 'none,vlan=1'));
+            gen_params @params, 'net', [qv "nic vlan=1 model=$vars->{NICMODEL} macaddr=52:54:00:12:34:57"];
+            gen_params @params, 'net', [qw(none vlan=1)];
         }
+
         unless ($vars->{QEMU_NO_TABLET}) {
-            if ($vars->{OFW}) {
-                no warnings 'qw';
-                push(@params, qw(-device nec-usb-xhci -device usb-tablet));
-            }
-            elsif ($vars->{ARCH} eq 'aarch64') {
-                push(@params, qw(-device nec-usb-xhci -device usb-tablet));
+            if ($vars->{OFW} || $vars->{ARCH} eq 'aarch64') {
+                gen_params @params, 'device', 'nec-usb-xhci';
             }
             else {
-                push(@params, qw(-device usb-ehci -device usb-tablet));
+                gen_params @params, 'device', 'usb-ehci';
             }
+            gen_params @params, 'device', 'usb-tablet';
         }
-        if ($use_usb_kbd) {
-            push(@params, qw(-device usb-kbd));
-        }
+
+        gen_params @params, 'device', 'usb-kbd' if $use_usb_kbd;
+
         if ($vars->{QEMUTHREADS}) {
-            push(@params, "-smp", $vars->{QEMUCPUS} . ",threads=" . $vars->{QEMUTHREADS});
+            gen_params @params, 'smp', [qv "$vars->{QEMUCPUS} threads=$vars->{QEMUTHREADS}"];
         }
         else {
-            push(@params, "-smp", $vars->{QEMUCPUS});
+            gen_params @params, 'smp', $vars->{QEMUCPUS};
         }
         if ($vars->{QEMU_NUMA}) {
             for my $i (0 .. ($vars->{QEMUCPUS} - 1)) {
-                push(@params, '-numa', "node,nodeid=$i");
+                gen_params @params, 'numa', [qv "node nodeid=$i"];
             }
         }
 
@@ -738,26 +696,28 @@ sub start_qemu {
             if ($vars->{VNC} !~ /:/) {
                 $vars->{VNC} = ":$vars->{VNC}";
             }
-            push(@params, "-vnc", "$vars->{VNC},share=force-shared");
-            push(@params, "-k", $vars->{VNCKB}) if ($vars->{VNCKB});
+            gen_params @params, 'vnc', [qv "$vars->{VNC} share=force-shared"];
+            gen_params @params, 'k', $vars->{VNCKB} if $vars->{VNCKB};
         }
 
         if ($vars->{VIRTIO_CONSOLE}) {
             my $id = 'virtio_console';
-            push(@params, '-device',  'virtio-serial');
-            push(@params, '-chardev', "socket,path=$id,server,nowait,id=$id,logfile=$id.log");
-            push(@params, '-device',  "virtconsole,chardev=$id,name=org.openqa.console.$id");
+            gen_params @params, 'device', 'virtio-serial';
+            gen_params @params, 'chardev', [qv "socket path=$id server nowait id=$id logfile=$id.log"];
+            gen_params @params, 'device',  [qv "virtconsole chardev=$id name=org.openqa.console.$id"];
         }
 
-        push @params, '-qmp', "unix:qmp_socket,server,nowait", "-monitor", "unix:hmp_socket,server,nowait", "-S";
+        gen_params @params, 'qmp',     [qw(unix:qmp_socket server nowait)];
+        gen_params @params, 'monitor', [qw(unix:hmp_socket server nowait)];
+        push(@params, "-S");
+
         my $port = $vars->{QEMUPORT};
-        push @params, "-monitor", "telnet:127.0.0.1:$port,server,nowait";
+        gen_params @params, 'monitor', [qv "telnet:127.0.0.1:$port server nowait"];
 
         unshift(@params, $qemubin);
 
-        if ($vars->{AUTO_INST}) {
-            push(@params, "-drive", "file=$basedir/autoinst.img,index=0,if=floppy");
-        }
+        gen_params @params, 'drive', [qv "file=$basedir/autoinst.img index=0 if=floppy"] if $vars->{AUTO_INST};
+
         bmwqemu::diag(`$qemubin -version`);
         bmwqemu::diag("starting: " . join(" ", @params));
 
@@ -833,11 +793,6 @@ sub start_qemu {
 
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
-    if (0) {
-        $hash = $self->handle_qmp_command({execute => 'query-commands'});
-        die "no commands!" unless ($hash);
-        print "COMMANDS " . JSON::to_json($hash, {pretty => 1}) . "\n";
-    }
 
     my $cnt = bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw");
     if ($cnt) {
