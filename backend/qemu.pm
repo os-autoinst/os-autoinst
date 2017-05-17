@@ -43,7 +43,6 @@ sub new {
     $bmwqemu::vars{QEMU_COMPRESS_QCOW2} //= 1;
 
     $self->{pid}         = undef;
-    $self->{children}    = [];
     $self->{pidfilename} = 'qemu.pid';
 
     return $self;
@@ -128,16 +127,7 @@ sub kill_qemu {
         waitpid($pid, 0);
     }
 
-    for my $pid (@{$self->{children}}) {
-        diag("killing child $pid");
-        kill('TERM', $pid);
-        for my $i (1 .. 5) {
-            $ret = waitpid($pid, WNOHANG);
-            diag "waitpid for $pid returned $ret";
-            last if ($ret == $pid);
-            sleep 1;
-        }
-    }
+    $self->_kill_children_processes;
 }
 
 sub do_stop_vm {
@@ -455,23 +445,22 @@ sub start_qemu {
         }
 
         if ($vars->{VDE_USE_SLIRP}) {
-            # TODO: move infrastructure to fork and monitor children to baseclass
-            my $pid = fork();
-            die "fork failed" unless defined($pid);
 
             my @cmd = ('slirpvde', '--dhcp', '-s', "$vars->{VDE_SOCKETDIR}/vde.ctl", '--port', $port + 1);
-            if ($pid == 0) {
-                $SIG{__DIE__} = undef;    # overwrite the default - just exit
-                exec(@cmd);
-                die "failed to exec slirpvde";
-            }
-            diag join(' ', @cmd) . " started with pid $pid";
-            push @{$self->{children}}, $pid;
+
+            my $child_pid = $self->_child_process(
+                sub {
+                    $SIG{__DIE__} = undef;    # overwrite the default - just exit
+                    exec(@cmd);
+                    die "failed to exec slirpvde";
+                });
+            diag join(' ', @cmd) . " started with pid $child_pid";
+
             runcmd('vdecmd', '-s', $mgmtsocket, 'port/setvlan', $port + 1, $vlan) if $vlan;
         }
     }
 
-    bmwqemu::save_vars();                 # update variables
+    bmwqemu::save_vars();                     # update variables
 
     mkpath($basedir);
 
