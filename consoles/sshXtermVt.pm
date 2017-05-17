@@ -54,7 +54,8 @@ sub activate {
     my $hostname = $ssh_args->{hostname} || die('we need a hostname to ssh to');
     my $password = $ssh_args->{password} || $testapi::password;
     my $sshcommand = $self->sshCommand($hostname, $gui);
-    my $display = $self->{DISPLAY};
+    my $serial     = $self->{args}->{serial};
+    my $display    = $self->{DISPLAY};
 
     $sshcommand = "TERM=xterm " . $sshcommand;
     my $xterm_vt_cmd = which "xterm-console";
@@ -68,6 +69,13 @@ sub activate {
     # FIXME: assert_screen('xterm_password');
     sleep 3;
     $self->type_string({text => $password . "\n"});
+
+    if ($serial) {
+        # ssh connection to SUT for iucvconn
+        my $serialchan = $self->backend->start_ssh_serial(hostname => $hostname, password => $password, username => 'root');
+        # start iucvconn
+        $serialchan->exec($serial);
+    }
 }
 
 1;
