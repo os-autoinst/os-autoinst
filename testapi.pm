@@ -1331,10 +1331,10 @@ sub console {
     my ($testapi_console) = @_;
     $testapi_console ||= $selected_console;
     bmwqemu::log_call(testapi_console => $testapi_console);
-    if (exists $testapi_console_proxies{$testapi_console}) {
-        return $testapi_console_proxies{$testapi_console};
+    if (!exists $testapi_console_proxies{$testapi_console}) {
+        $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
     }
-    croak "console $testapi_console is not activated.";
+    return $testapi_console_proxies{$testapi_console};
 }
 
 =head2 reset_consoles
