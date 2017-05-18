@@ -33,6 +33,8 @@ use Net::SSH2;
 use feature 'say';
 use OpenQA::Benchmark::Stopwatch;
 use MIME::Base64 'encode_base64';
+use List::Util 'min';
+use List::MoreUtils 'uniq';
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -123,8 +125,6 @@ sub run {
 
     bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
 }
-
-use List::Util 'min';
 
 =head2 run_capture_loop($timeout)
 
@@ -727,6 +727,7 @@ sub set_tags_to_assert {
             }
             push @$needles, $n;
         }
+        $needles = [uniq @$needles];
     }
     elsif ($mustmatch) {
         $needles = needle::tags($mustmatch) || [];
