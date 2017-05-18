@@ -5,6 +5,7 @@ use warnings;
 use Test::More;
 use Test::Output;
 use Test::Fatal;
+use Test::Mock::Time;
 use Test::Warnings;
 use File::Temp;
 
@@ -215,6 +216,16 @@ subtest 'validate_script_output' => sub {
         },
         qr/output not validating/
     );
+};
+
+subtest 'wait_still_screen' => sub {
+    $mod->mock(
+        read_json => sub {
+            return {ret => {sim => 999}};
+        });
+    ok(wait_still_screen,    'default arguments');
+    ok(wait_still_screen(3), 'still time specified');
+    ok(wait_still_screen(2, 4), 'still time and timeout');
 };
 
 done_testing;
