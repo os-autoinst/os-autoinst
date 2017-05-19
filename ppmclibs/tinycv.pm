@@ -120,7 +120,6 @@ sub search_ {
 
     $ret->{error} = mean_square_error($ret->{area});
     bmwqemu::diag(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - sqrt($ret->{error})));
-    $stopwatch->lap("**++ mean_square_error") if $stopwatch;
     if ($ret->{ok}) {
         for my $a (@ocr) {
             $ret->{ocr} ||= [];
