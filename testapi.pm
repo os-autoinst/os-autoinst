@@ -824,6 +824,7 @@ sub assert_script_sudo {
     my $str = hashed_string("ASS$cmd");
     script_sudo("$cmd; echo $str-\$?- > /dev/$serialdev", 0);
     my $ret = wait_serial("$str-\\d+-", $wait);
+    $ret = ($ret =~ /$str-(\d+)-/)[0] if $ret;
     _handle_script_run_ret($ret, $cmd);
     return;
 }
