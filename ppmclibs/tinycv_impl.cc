@@ -48,13 +48,12 @@ struct Image {
         if (!_preped.empty())
             return _preped;
 
-        _preped = img.clone();
+        cvtColor(img, _preped, CV_BGR2GRAY);
 
         // blur the whole image to avoid differences depending on where the object
         // is
         GaussianBlur(_preped, _preped, Size(3, 3), 0, 0);
 
-        cvtColor(_preped, _preped, CV_BGR2GRAY);
         return _preped;
     }
 };
