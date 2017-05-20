@@ -87,15 +87,15 @@ sub search_ {
             $img->replacerect($a->{xpos}, $a->{ypos}, $a->{width}, $a->{height});
             $stopwatch->lap("**++-- search__: rectangle replacement") if $stopwatch;
         }
+        $stopwatch->lap("**++ search__: areas exclusion") if $stopwatch;
     }
-    $stopwatch->lap("**++ search__: areas exclusion") if $stopwatch;
     my $ret = {ok => 1, needle => $needle, area => []};
     for my $area (@match) {
         my $margin = int($area->{margin} + $search_ratio * (1024 - $area->{margin}));
 
         ($sim, $xmatch, $ymatch) = $img->search_needle($needle_image, $area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}, $margin);
 
-        $stopwatch->lap("**++ tinycv::search_needle $area->{xpos}x$area->{ypos}x$area->{width}") if $stopwatch;
+        $stopwatch->lap("**++ tinycv::search_needle $area->{width}x$area->{height} + $margin @ $area->{xpos}x$area->{ypos}") if $stopwatch;
         my $ma = {
             similarity => $sim,
             x          => $xmatch,
@@ -120,7 +120,6 @@ sub search_ {
 
     $ret->{error} = mean_square_error($ret->{area});
     bmwqemu::diag(sprintf("MATCH(%s:%.2f)", $needle->{name}, 1 - sqrt($ret->{error})));
-    $stopwatch->lap("**++ mean_square_error") if $stopwatch;
     if ($ret->{ok}) {
         for my $a (@ocr) {
             $ret->{ocr} ||= [];
