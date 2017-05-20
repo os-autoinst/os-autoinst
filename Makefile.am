@@ -106,7 +106,7 @@ OPENVSWITCH_SERVICE = systemd/os-autoinst-openvswitch.service
 
 ppmclibs/Makefile: ppmclibs/Makefile.PL
 	cd ppmclibs && \
-	perl Makefile.PL OPTIMIZE="$(CXXFLAGS)"
+	perl Makefile.PL OPTIMIZE="$(CXXFLAGS)" CC="$(CXX)"
 
 $(PERL_MODULE): ppmclibs/Makefile
 	$(MAKE) -C ppmclibs
