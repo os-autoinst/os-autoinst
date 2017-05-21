@@ -42,19 +42,27 @@ using namespace std;
 struct Image {
     cv::Mat img;
     mutable cv::Mat _preped;
+    mutable cv::Rect _prep_roi;
 
-    cv::Mat prep() const
+    cv::Mat prep(const Rect& roi) const
     {
-        if (!_preped.empty())
-            return _preped;
+        if (!_preped.empty()) {
+            // Check if ROI is contained in the current ROI
+            if ((_prep_roi & roi) == roi)
+                return _preped;
+        }
+        // Union of earlier requests and current
+        _prep_roi |= roi;
 
-        _preped = img.clone();
+        cvtColor(img, _preped, CV_BGR2GRAY);
 
-        // blur the whole image to avoid differences depending on where the object
-        // is
-        GaussianBlur(_preped, _preped, Size(3, 3), 0, 0);
+        if (img.total() * 0.5 <= _prep_roi.area())
+            _prep_roi = Rect(Point(0, 0), img.size());
 
-        cvtColor(_preped, _preped, CV_BGR2GRAY);
+        // blur the image to avoid differences depending on where the object is
+        Mat img_roi(_preped, _prep_roi);
+        GaussianBlur(img_roi, img_roi, Size(3, 3), 0, 0);
+
         return _preped;
     }
 };
@@ -197,8 +205,8 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
     int scene_width = scene_bottom_x - scene_x;
     int scene_height = scene_bottom_y - scene_y;
 
-    Mat scene_copy = scene->prep();
-    Mat object_copy = object->prep();
+    Mat scene_copy = scene->prep(Rect(scene_x, scene_y, scene_width, scene_height));
+    Mat object_copy = object->prep(Rect(x, y, width, height));
 
     Mat scene_roi(scene_copy, Rect(scene_x, scene_y, scene_width, scene_height));
     Mat object_roi(object_copy, Rect(x, y, width, height));
