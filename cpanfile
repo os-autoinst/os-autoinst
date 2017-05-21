@@ -28,6 +28,7 @@ requires 'IPC::Run::Debug';
 requires 'IPC::System::Simple';
 requires 'JSON';
 requires 'JSON::XS';
+requires 'List::MoreUtils';
 requires 'Mojo::URL';
 requires 'Mojo::UserAgent';
 requires 'Mojolicious::Lite';
