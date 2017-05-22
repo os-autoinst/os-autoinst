@@ -133,6 +133,16 @@ sub _init_xml {
         $os->appendChild($elem);
     }
 
+    # The root of all problems is this: Xen closes VNC and serial console connections
+    # on reboot. Unlike KVM. So, to know when we are restarting if we are in the
+    # state before, or after restart we have to configure libvirt to destroy
+    # (i.e. turn off) the VM. Then we have to explicitely start it define_and_start.
+    if ($self->vmm_family eq 'xen') {
+        $elem = $doc->createElement('on_reboot');
+        $elem->appendTextNode('destroy');
+        $root->appendChild($elem);
+    }
+
     if (get_var('UEFI') and check_var('ARCH', 'x86_64') and !get_var('BIOS')) {
         foreach my $firmware (@bmwqemu::ovmf_locations) {
             if (!$self->run_cmd("test -e $firmware")) {
