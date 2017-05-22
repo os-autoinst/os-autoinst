@@ -150,7 +150,7 @@ sub kill_backend {
         # save the pid in a scalar - signal handlers will reset it
         my $bpid = $bmwqemu::backend->{backend_pid};
         diag "killing backend process $bpid";
-        kill('TERM', $bpid);
+        kill('-TERM', $bpid);
         waitpid($bpid, 0);
         diag("done with backend process");
         $bmwqemu::backend->{backend_pid} = 0;

@@ -24,7 +24,7 @@ use IO::Select;
 use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use Data::Dumper;
-use POSIX qw(strftime :sys_wait_h _exit);
+use POSIX qw(strftime :sys_wait_h);
 use JSON;
 require Carp;
 use Fcntl;
@@ -113,7 +113,7 @@ sub relogin_vnc {
     return 1;
 }
 
-sub do_start_vm() {
+sub do_start_vm {
     my ($self) = @_;
 
     # remove backend.crashed
@@ -121,7 +121,13 @@ sub do_start_vm() {
     $self->get_mc_status;
     $self->restart_host;
     $self->relogin_vnc;
-    $self->start_serial_grab;
+
+    # truncate the serial file
+    open(my $sf, '>', $self->{serialfile});
+    close($sf);
+
+    my $sol = $testapi::distri->add_console('sol', 'ipmi-sol', {serialfile => $self->{serialfile}});
+    $sol->activate;
     return {};
 }
 
@@ -129,7 +135,7 @@ sub do_stop_vm {
     my ($self) = @_;
 
     $self->ipmitool("chassis power off");
-    $self->stop_serial_grab();
+    $self->deactivate_console({testapi_console => 'sol'});
     return {};
 }
 
@@ -139,51 +145,14 @@ sub is_shutdown {
     return $ret =~ m/is off/;
 }
 
-# serial grab
+sub check_socket {
+    my ($self, $fh, $write) = @_;
 
-sub start_serial_grab {
-    my ($self) = @_;
-
-    $self->{serialpid} = fork();
-
-    return if $self->{serialpid};
-    # a child was born
-    setpgrp 0, 0;
-    open(my $serial, '>',  $self->{serialfile});
-    open(STDOUT,     ">&", $serial);
-    open(STDERR,     ">&", $serial);
-
-    my @cmd = ('/usr/sbin/ipmiconsole', '-h', $bmwqemu::vars{IPMI_HOSTNAME}, '-u', $bmwqemu::vars{IPMI_USER}, '-p', $bmwqemu::vars{IPMI_PASSWORD});
-
-    # zypper in dumponlyconsole, check devel:openQA for a patched freeipmi version that doesn't grab the terminal
-    push(@cmd, '--dumponly');
-
-    # our supermicro boards need workarounds to get SOL ;(
-    push(@cmd, qw(-W nochecksumcheck));
-
-    # Disable autodie
-    no autodie 'system';
-
-    # Start serial grab
-    while (1) {
-        system(@cmd);
-        print STDERR "SOL failed, reconnecting [$?]\n";
-        sleep 1;
+    if ($self->check_ssh_serial($fh)) {
+        return 1;
     }
-    _exit(0);
-
+    return $self->SUPER::check_socket($fh, $write);
 }
-
-sub stop_serial_grab {
-    my ($self) = @_;
-    return unless $self->{serialpid};
-    kill("-TERM", $self->{serialpid});
-    return waitpid($self->{serialpid}, 0);
-}
-
-# serial grab end
-
-# management controller status
 
 sub get_mc_status {
     my ($self) = @_;
@@ -192,8 +161,6 @@ sub get_mc_status {
     $self->ipmitool("mc info");
     $self->ipmitool("mc selftest");
 }
-
-# management controller status end
 
 1;
 
