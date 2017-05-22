@@ -800,7 +800,9 @@ sub _failed_screens_to_json {
 }
 
 sub time_remaining_str {
-    return sprintf("%.1fs", shift);
+    my $time = shift;
+    # compensate rounding to be consistent with truncation in $search_ratio calculation
+    return sprintf("%.1fs", $time - 0.05);
 }
 
 sub check_asserted_screen {
