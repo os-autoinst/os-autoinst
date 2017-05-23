@@ -80,6 +80,27 @@ sub do_stop_vm {
     return {};
 }
 
+# In list context returns pair ($stdout, $stderr). In void (and scalar)
+# context just logs stdout and stderr, returns nothing.
+sub get_ssh_output {
+    my ($chan) = @_;
+
+    my ($stdout, $errout) = ('', '');
+    while (!$chan->eof) {
+        if (my ($o, $e) = $chan->read2) {
+            $stdout .= $o;
+            $errout .= $e;
+        }
+    }
+    if (wantarray) {
+        return ($stdout, $errout);
+    }
+    else {
+        bmwqemu::diag "Command's stdout:\n$stdout" if length($stdout);
+        bmwqemu::diag "Command's stderr:\n$errout" if length($errout);
+    }
+}
+
 sub run_cmd {
     my ($self, $cmd) = @_;
 
