@@ -112,7 +112,13 @@ sub can_handle {
 sub is_shutdown {
     my ($self) = @_;
     my $vmname = $self->console('svirt')->name;
-    my $rsp    = $self->run_cmd("! virsh dominfo $vmname | grep -w 'shut off'");
+    my $rsp;
+    if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+        $rsp = $self->run_cmd("powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"");
+    }
+    else {
+        $rsp = $self->run_cmd("! virsh dominfo $vmname | grep -w 'shut off'");
+    }
     return $rsp;
 }
 
