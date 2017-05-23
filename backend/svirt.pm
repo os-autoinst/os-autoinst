@@ -198,7 +198,18 @@ sub load_snapshot {
 sub start_serial_grab {
     my ($self, $name) = @_;
 
-    my $chan = $self->start_ssh_serial(hostname => get_required_var('VIRSH_HOSTNAME'), password => get_var('VIRSH_PASSWORD'), username => 'root');
+    # Connect to VM host, or, in case of Hyper-V, to intermediary from which we gather
+    # remote serial console output.
+    my ($hostname, $password);
+    if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+        $hostname = get_required_var('VIRSH_GUEST');
+        $password = get_var('VIRSH_GUEST_PASSWORD');
+    }
+    else {
+        $hostname = get_required_var('VIRSH_HOSTNAME');
+        $password = get_var('VIRSH_PASSWORD');
+    }
+    my $chan = $self->start_ssh_serial(hostname => $hostname, password => $password, username => 'root');
     if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {
         # libvirt esx driver does not support `virsh console', so
         # we have to connect to VM's serial port via TCP which is
