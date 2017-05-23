@@ -101,9 +101,8 @@ sub can_handle {
     my ($self, $args) = @_;
     my $vars = \%bmwqemu::vars;
     if ($args->{function} eq 'snapshots' && !check_var('HDDFORMAT', 'raw')) {
-        # snapshots via libvirt (or at all?) are supported on KVM and,
-        # perhaps, ESXi only: https://libvirt.org/hvsupport.html
-        if (check_var('VIRSH_VMM_FAMILY', 'kvm')) {
+        # Snapshots via libvirt are supported on KVM and, perhaps, ESXi. Hyper-V uses native tools.
+        if (check_var('VIRSH_VMM_FAMILY', 'kvm') || check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
             return {ret => 1};
         }
     }
@@ -121,9 +120,17 @@ sub save_snapshot {
     my ($self, $args) = @_;
     my $snapname = $args->{name};
     my $vmname   = $self->console('svirt')->name;
-    $self->run_cmd("virsh snapshot-delete $vmname $snapname");
-    my $rsp = $self->run_cmd("virsh snapshot-create-as $vmname $snapname");
-    bmwqemu::diag "SAVED VM \"$vmname\" as \"$snapname\" snapshot, $rsp";
+    my $rsp;
+    if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+        my $ps = 'powershell -Command';
+        $self->run_cmd("$ps Remove-VMSnapshot -VMName $vmname -Name $snapname");
+        $rsp = $self->run_cmd("$ps Checkpoint-VM -VMName $vmname -SnapshotName $snapname");
+    }
+    else {
+        $self->run_cmd("virsh snapshot-delete $vmname $snapname");
+        $rsp = $self->run_cmd("virsh snapshot-create-as $vmname $snapname");
+    }
+    bmwqemu::diag "SAVE VM \"$vmname\" as \"$snapname\" snapshot, return code=$rsp";
     die unless ($rsp == 0);
     return;
 }
@@ -132,8 +139,27 @@ sub load_snapshot {
     my ($self, $args) = @_;
     my $snapname = $args->{name};
     my $vmname   = $self->console('svirt')->name;
-    my $rsp      = $self->run_cmd("virsh snapshot-revert $vmname $snapname");
-    bmwqemu::diag "LOADED snapshot \"$snapname\" to \"$vmname\", $rsp";
+    my $rsp;
+    if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+        my $ps = 'powershell -Command';
+        $rsp = $self->run_cmd("$ps Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false");
+        $self->run_cmd("mv -v xfreerdp_${vmname}_stop xfreerdp_${vmname}_stop.bkp", get_required_var('VIRSH_GUEST'), get_var('VIRSH_GUEST_PASSWORD'));
+        for my $i (1 .. 5) {
+            # Because of FreeRDP issue https://github.com/FreeRDP/FreeRDP/issues/3876,
+            # we can't connect too "early". Let's have a nap for a while.
+            sleep 10;
+            last
+              unless $self->run_cmd(
+                "pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)",
+                get_required_var('VIRSH_GUEST'),
+                get_var('VIRSH_GUEST_PASSWORD'));
+            die "xfreerdp did not start" if ($i eq 5);
+        }
+    }
+    else {
+        $rsp = $self->run_cmd("virsh snapshot-revert $vmname $snapname");
+    }
+    bmwqemu::diag "LOAD snapshot \"$snapname\" to \"$vmname\", return code=$rsp";
     die unless ($rsp == 0);
     return $rsp;
 }
