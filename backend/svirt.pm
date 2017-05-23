@@ -67,8 +67,15 @@ sub do_stop_vm {
     unless (get_var('SVIRT_KEEP_VM_RUNNING')) {
         my $vmname = $self->console('svirt')->name;
         bmwqemu::diag "Destroying $vmname virtual machine";
-        $self->run_cmd("virsh destroy $vmname");
-        $self->run_cmd("virsh undefine $vmname");
+        if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+            my $ps = 'powershell -Command';
+            $self->run_cmd("$ps Stop-VM -Force -VMName $vmname -TurnOff");
+            $self->run_cmd("$ps Remove-VM -Force -VMName $vmname");
+        }
+        else {
+            $self->run_cmd("virsh destroy $vmname");
+            $self->run_cmd("virsh undefine $vmname");
+        }
     }
     return {};
 }
