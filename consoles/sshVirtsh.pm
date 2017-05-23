@@ -143,7 +143,7 @@ sub _init_xml {
         $root->appendChild($elem);
     }
 
-    if (get_var('UEFI') and check_var('ARCH', 'x86_64') and !get_var('BIOS')) {
+    if (get_var('UEFI') and check_var('ARCH', 'x86_64') and !get_var('BIOS') and !check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         foreach my $firmware (@bmwqemu::ovmf_locations) {
             if (!$self->run_cmd("test -e $firmware")) {
                 set_var('BIOS', $firmware);
