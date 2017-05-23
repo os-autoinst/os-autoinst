@@ -102,15 +102,18 @@ sub get_ssh_output {
 }
 
 sub run_cmd {
-    my ($self, $cmd) = @_;
+    my ($self, $cmd, $hostname, $password) = @_;
+    $hostname ||= get_required_var('VIRSH_HOSTNAME');
+    $password ||= get_var('VIRSH_PASSWORD');
 
     $self->{ssh} = $self->new_ssh_connection(
-        hostname => get_required_var('VIRSH_HOSTNAME'),
-        password => get_var('VIRSH_PASSWORD'),
+        hostname => $hostname,
+        password => $password,
         username => 'root'
     );
     my $chan = $self->{ssh}->channel();
     $chan->exec($cmd);
+    get_ssh_output($chan);
     $chan->send_eof;
     my $ret = $chan->exit_status();
     bmwqemu::diag "Command executed: $cmd, ret=$ret";
