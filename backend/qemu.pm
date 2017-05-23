@@ -506,12 +506,9 @@ sub start_qemu {
         symlink($i, "$basedir/l$i") or die "$!\n";
     }
 
-    pipe(my $reader, my $writer);
-    my $pid = fork();
-    die "fork failed" unless defined($pid);
-    if ($pid == 0) {
-        $SIG{__DIE__} = undef;    # overwrite the default - just exit
-        my @params = ("-serial", "file:serial0", "-soundhw", "ac97");
+
+    my @params = ("-serial", "file:serial0", "-soundhw", "ac97");
+    {
         push(@params, @vgaoptions);
 
         gen_params @params, "global", "isa-fdc.driveA=" unless $vars->{QEMU_NO_FDC_SET};
@@ -615,7 +612,6 @@ sub start_qemu {
             }
             elsif ($vars->{BOOTFROM}) {
                 gen_params @params, "boot", [qv "order=$vars->{BOOTFROM} menu=on splash-time=5000"];
-
             }
             else {
                 gen_params @params, "boot", [qw(once=d menu=on splash-time=5000)];
@@ -682,10 +678,8 @@ sub start_qemu {
         chmod 0755, 'runqemu';
 
         if ($vars->{VNC}) {
-            if ($vars->{VNC} !~ /:/) {
-                $vars->{VNC} = ":$vars->{VNC}";
-            }
-            gen_params @params, 'vnc', [qv "$vars->{VNC} share=force-shared"];
+            my $vncport = $vars->{VNC} !~ /:/ ? ":$vars->{VNC}" : $vars->{VNC};
+            gen_params @params, 'vnc', [qv "$vncport share=force-shared"];
             gen_params @params, 'k', $vars->{VNCKB} if $vars->{VNCKB};
         }
 
@@ -700,12 +694,16 @@ sub start_qemu {
         gen_params @params, 'monitor', [qw(unix:hmp_socket server nowait)];
         push(@params, "-S");
 
-        my $port = $vars->{QEMUPORT};
-        gen_params @params, 'monitor', [qv "telnet:127.0.0.1:$port server nowait"];
-
-        unshift(@params, $qemubin);
-
+        gen_params @params, 'monitor', [qv "telnet:127.0.0.1:$vars->{QEMUPORT} server nowait"];
         gen_params @params, 'drive', [qv "file=$basedir/autoinst.img index=0 if=floppy"] if $vars->{AUTO_INST};
+        unshift(@params, $qemubin);
+    }
+
+    pipe(my $reader, my $writer);
+    my $pid = fork();
+    die "fork failed" unless defined($pid);
+    if ($pid == 0) {
+        $SIG{__DIE__} = undef;    # overwrite the default - just exit
 
         bmwqemu::diag(`$qemubin -version`);
         bmwqemu::diag("starting: " . join(" ", @params));
