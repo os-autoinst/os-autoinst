@@ -25,6 +25,19 @@ sub new() {
 
     my $self = bless {}, $class;
     $self->{consoles} = {};
+
+=head2 serial_term_prompt
+
+   wait_serial($serial_term_prompt);
+
+A simple undecorated prompt for serial terminals. ANSI escape characters only
+serve to create log noise in most tests which use the serial terminal, so
+don't use them here. Also avoid using characters which have special meaning in
+a regex. Note that our common prompt character '#' denotes a comment in a
+regex with '/z' on the end, but if you are using /z you will need to wrap the
+prompt in \Q and \E anyway otherwise the whitespace will be ignored.
+=cut
+    $self->{serial_term_prompt} = '# ';
     return $self;
 }
 
@@ -108,6 +121,9 @@ sub script_run {
     my ($self, $cmd, $wait) = @_;
     $wait //= $bmwqemu::default_timeout;
 
+    if (testapi::is_serial_terminal) {
+        testapi::wait_serial($self->{serial_term_prompt}, undef, 0, no_regex => 1);
+    }
     testapi::type_string "$cmd";
     if ($wait > 0) {
         my $str = testapi::hashed_string("SR$cmd$wait");
