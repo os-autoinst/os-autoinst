@@ -52,11 +52,13 @@ __PACKAGE__->mk_accessors(
 sub new {
     my $class = shift;
     my $self = bless({class => $class}, $class);
-    $self->{started}            = 0;
-    $self->{serialfile}         = "serial0";
-    $self->{serial_offset}      = 0;
-    $self->{video_frame_data}   = [];
-    $self->{video_frame_number} = 0;
+    $self->{started}              = 0;
+    $self->{serialfile}           = "serial0";
+    $self->{serial_offset}        = 0;
+    $self->{video_frame_data}     = [];
+    $self->{video_frame_number}   = 0;
+    $self->{min_image_similarity} = 10000;
+    $self->{min_video_similarity} = 10000;
     return $self;
 }
 
@@ -367,15 +369,21 @@ sub enqueue_screenshot {
     $sim = $lastscreenshot->similarity($image) if $lastscreenshot;
     $watch->lap("similarity");
 
+    $self->{min_image_similarity} -= 1;
+    $self->{min_image_similarity} = $sim if $sim < $self->{min_image_similarity};
+    $self->{min_video_similarity} -= 1;
+    $self->{min_video_similarity} = $sim if $sim < $self->{min_video_similarity};
+
     # we have two different similarity levels - one (slightly higher value, based
     # t/data/user-settings-*) to determine if it's worth it to recheck needles
     # and one (slightly lower as less significant) determining if we write the frame
     # into the video
-    if ($sim <= 54) {
+    if ($self->{min_image_similarity} <= 54) {
         $self->last_image($image);
+        $self->{min_image_similarity} = 10000;
     }
 
-    if ($sim > 50) {    # we ignore smaller differences
+    if ($self->{min_video_similarity} > 50) {    # we ignore smaller differences
         push(@{$self->{video_frame_data}}, "R\n");
     }
     else {
@@ -383,6 +391,7 @@ sub enqueue_screenshot {
         $watch->lap("convert ppm data");
         push(@{$self->{video_frame_data}}, 'E ' . length($imgdata) . "\n");
         push(@{$self->{video_frame_data}}, $imgdata);
+        $self->{min_video_similarity} = 10000;
     }
     $self->{select}->add($self->{encoder_pipe});
     $self->{video_frame_number} += 1;
