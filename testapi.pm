@@ -214,8 +214,9 @@ sub _handle_found_needle {
     my ($foundneedle, $rsp, $tags) = @_;
     # convert the needle back to an object
     $foundneedle->{needle} = needle->new($foundneedle->{needle});
-    my $img = tinycv::from_ppm(decode_base64($rsp->{image}));
-    $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates});
+    my $img   = tinycv::from_ppm(decode_base64($rsp->{image}));
+    my $frame = $rsp->{frame};
+    $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates}, $frame);
     my $lastarea = $foundneedle->{area}->[-1];
     bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
     $last_matched_needle = $foundneedle;
@@ -248,7 +249,8 @@ sub _check_backend_response {
                     img     => $img,
                     needles => $l->{candidates},
                     tags    => $tags,
-                    result  => $result
+                    result  => $result,
+                    frame   => $l->{frame},
                 );
             }
             else {
@@ -257,7 +259,8 @@ sub _check_backend_response {
                     needles => $l->{candidates},
                     tags    => $tags,
                     result  => $result,
-                    overall => $check ? undef : 'fail'
+                    overall => $check ? undef : 'fail',
+                    frame   => $l->{frame},
                 );
             }
         }

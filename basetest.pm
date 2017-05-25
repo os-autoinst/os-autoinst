@@ -108,8 +108,19 @@ sub post_fail_hook {
     return 1;
 }
 
+=head2 _framenumber_to_timerange
+
+Create a media fragment time from a given framenumber
+
+=cut
+
+sub _framenumber_to_timerange {
+    my $frame = shift;
+    return [sprintf("%.2f", $frame / 24.0), sprintf("%.2f", ($frame + 1) / 24.0)];
+}
+
 sub record_screenmatch {
-    my ($self, $img, $match, $tags, $failed_needles) = @_;
+    my ($self, $img, $match, $tags, $failed_needles, $frame) = @_;
     $tags           ||= [];
     $failed_needles ||= [];
 
@@ -118,11 +129,12 @@ sub record_screenmatch {
     my $result     = {
         needle     => $h->{name},
         area       => $h->{area},
-        tags       => [@$tags],                        # make a copy
+        tags       => [@$tags],                            # make a copy
         screenshot => $self->next_resultname('png'),
         result     => 'ok',
         properties => [@$properties],
         json       => $h->{json},
+        frametime  => _framenumber_to_timerange($frame),
     };
 
     # make sure needle is blessed
@@ -194,6 +206,7 @@ sub record_screenfail {
     my $tags    = $args{tags} || [];
     my $status  = $args{result} || 'fail';
     my $overall = $args{overall};            # whether and how to set global test result
+    my $frame   = $args{frame};
 
     my $candidates;
     for my $cand (@{$needles || []}) {
@@ -203,6 +216,7 @@ sub record_screenfail {
     my $result = {
         screenshot => $self->next_resultname('png'),
         result     => $status,
+        frametime  => _framenumber_to_timerange($frame),
     };
 
     $result->{needles} = $candidates if $candidates;
@@ -463,13 +477,15 @@ internal function to add a screenshot to an existing result structure
 sub _result_add_screenshot {
     my ($self, $result) = @_;
 
-    my $img = autotest::query_isotovideo('backend_last_screenshot_data')->{image};
+    my $rsp = autotest::query_isotovideo('backend_last_screenshot_data');
+    my $img = $rsp->{image};
     return $result unless $img;
 
     $img = tinycv::from_ppm(decode_base64($img));
     return $result unless $img;
 
     $result->{screenshot} = $self->next_resultname('png');
+    $result->{frametime}  = _framenumber_to_timerange($rsp->{frame});
 
     my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
     $img->write_with_thumbnail($fn);
