@@ -131,9 +131,8 @@ std::vector<char> str2vec(std::string str_in)
 
 /* we try to the find the best locations - possibly more and will
    weight in later */
-std::vector<Point> minVec(const Mat& m, double& min)
+std::vector<Point> minVec(const Mat& m, float thresh)
 {
-    min = INT_MAX;
     std::vector<Point> res;
 
     assert(m.depth() == CV_32F);
@@ -142,14 +141,10 @@ std::vector<Point> minVec(const Mat& m, double& min)
         const float* sptr = m.ptr<float>(y);
 
         for (int x = 0; x < m.cols; x++) {
-            float diff = min - sptr[x];
-            if (diff > 10) {
-                min = sptr[x];
-                res.clear(); // reset
-                res.push_back(Point(x, y));
-            } else if (fabs(diff) < 10) {
-                res.push_back(Point(x, y));
-            }
+            if (sptr[x] > thresh)
+                continue;
+
+            res.push_back(Point(x, y));
         }
     }
     return res;
@@ -226,31 +221,60 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
     // Perform the matching. Info about algorithm:
     // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
     // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
+    // Used metric is (sum of) squared differences
     matchTemplate(scene_roi, object_roi, result, CV_TM_SQDIFF);
 
-    // Localizing the points that are "good" - not necessarly the absolute min
-    double minval;
-    std::vector<Point> mins = minVec(result, minval);
+    // Get the position and squared difference value of the best match
+    double sse;
+    Point minloc;
+    cv::minMaxLoc(result, &sse, nullptr, &minloc, nullptr);
 
-    if (mins.empty())
+    // Shortcut 1: if the best match has a similarity of 0, others will be worse
+    //
+    //   similarity = .9 + (40 - mse) / 380  ==  0
+    //   <=>  mse = 40 + .9 * 380 = 382
+    if (sse > 382.0 * object_roi.total())
         return outvec;
-    // sort it by distance to the original - and take the closest
-    SortByClose s(x, y);
-    sort(mins.begin(), mins.end(), s);
-    Point minloc = mins[0];
+
+    // Shortcut 2: if the best match is center, no reason to look for any neighbours
+    Point center = Point(x - scene_x, y - scene_y);
+    double distance = cv::norm(minloc - center);
+    if (distance > 0) {
+        // Use best match distance to create a new bounding box
+        Point tl = center - Point(distance + 1, distance + 1);
+        Point br = center + Point(distance + 1, distance + 1);
+        Rect intersect = Rect(tl, br) & Rect(0, 0, result.cols, result.rows);
+        Point intersectCenter = center - Point(intersect.x, intersect.y);
+
+        // Localizing the points that are "good" - not necessarly the absolute min
+        std::vector<Point> mins = minVec(Mat(result, intersect), sse + 10);
+
+        if (mins.size() > 1) {
+            // sort it by distance to the original - and take the closest
+            SortByClose s(intersectCenter.x, intersectCenter.y);
+            sort(mins.begin(), mins.end(), s);
+            minloc = mins[0];
+            minloc += Point(intersect.x, intersect.y);
+            sse = result.at<float>(minloc.x, minloc.y);
+        }
+    }
+
     outvec[0] = int(minloc.x + scene_x);
     outvec[1] = int(minloc.y + scene_y);
 
-    double mse = 10000;
+    double mse = 0;
 
-    // detect the MSE at the given location
-    Mat scene_best(scene_copy, Rect(outvec[0], outvec[1], width, height));
+    // calculate the biased MSE at the given location
+    // it is guranteed to be less-or-equal to the unbiased MSE
+    if (sse > 0) {
+        Mat scene_best(scene_copy, Rect(outvec[0], outvec[1], width, height));
 
-    mse = enhancedMSE(scene_best, object_roi);
+        mse = enhancedMSE(scene_best, object_roi);
+    }
 
     /* our callers expect a "how well does it match between 0-1", where 0.96 is
-   defined as
-   good enough. So we need to map this a bit to avoid breaking all the rest */
+     * defined as good enough. So we need to map this a bit to avoid breaking
+     * all the rest */
     // mse = 2 => 1
     // mse = 40 => .9
     similarity = .9 + (40 - mse) / 380;
