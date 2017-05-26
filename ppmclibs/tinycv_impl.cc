@@ -135,6 +135,7 @@ std::vector<Point> minVec(const Mat& m, double& min)
 {
     min = INT_MAX;
     std::vector<Point> res;
+    min += 10;
 
     assert(m.depth() == CV_32F);
 
@@ -142,12 +143,14 @@ std::vector<Point> minVec(const Mat& m, double& min)
         const float* sptr = m.ptr<float>(y);
 
         for (int x = 0; x < m.cols; x++) {
-            float diff = min - sptr[x];
-            if (diff > 10) {
-                min = sptr[x];
+            if (sptr[x] > min)
+                continue;
+
+            if (sptr[x] + 10 < min) {
+                min = sptr[x] + 10;
                 res.clear(); // reset
                 res.push_back(Point(x, y));
-            } else if (fabs(diff) < 10) {
+            } else {
                 res.push_back(Point(x, y));
             }
         }
