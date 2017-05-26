@@ -234,6 +234,10 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
     // Use error at original location as upper bound
     Point center = Point(x - scene_x, y - scene_y);
     double sse = result.at<float>(center);
+    if (sse == 0) {
+        similarity = 1;
+        return { (int)(x), (int)(y) };
+    }
 
     // Localizing the points that are "good" - not necessarly the absolute min
     std::vector<Point> mins = minVec(result, sse);
