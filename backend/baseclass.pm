@@ -52,10 +52,11 @@ __PACKAGE__->mk_accessors(
 sub new {
     my $class = shift;
     my $self = bless({class => $class}, $class);
-    $self->{started}          = 0;
-    $self->{serialfile}       = "serial0";
-    $self->{serial_offset}    = 0;
-    $self->{video_frame_data} = [];
+    $self->{started}            = 0;
+    $self->{serialfile}         = "serial0";
+    $self->{serial_offset}      = 0;
+    $self->{video_frame_data}   = [];
+    $self->{video_frame_number} = 0;
     return $self;
 }
 
@@ -384,6 +385,7 @@ sub enqueue_screenshot {
         push(@{$self->{video_frame_data}}, $imgdata);
     }
     $self->{select}->add($self->{encoder_pipe});
+    $self->{video_frame_number} += 1;
 
     $watch->stop();
     if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
@@ -787,10 +789,12 @@ sub _failed_screens_to_json {
 
     my @json_fails;
     for my $l (@$failed_screens) {
-        my ($img, $failed_candidates, $testtime, $similarity) = @$l;
+        my ($img, $failed_candidates, $testtime, $similarity, $frame) = @$l;
         my $h = {
             candidates => $failed_candidates,
-            image      => encode_base64($img->ppm_data)};
+            image      => encode_base64($img->ppm_data),
+            frame      => $frame,
+        };
         push(@json_fails, $h);
     }
 
@@ -815,6 +819,7 @@ sub check_asserted_screen {
     my $watch     = OpenQA::Benchmark::Stopwatch->new();
     my $timestamp = $self->last_screenshot;
     my $n         = $self->_time_to_assert_screen_deadline;
+    my $frame     = $self->{video_frame_number};
 
     my $search_ratio = 0.02;
     $search_ratio = 1 if ($n % 5 == 0);
@@ -843,7 +848,8 @@ sub check_asserted_screen {
         return {
             image      => encode_base64($img->ppm_data),
             found      => $foundneedle,
-            candidates => $failed_candidates
+            candidates => $failed_candidates,
+            frame      => $frame,
         };
     }
 
@@ -866,7 +872,7 @@ sub check_asserted_screen {
         }
         my $failed_screens = $self->assert_screen_fails;
         # store the final mismatch
-        push(@$failed_screens, [$img, $failed_candidates, 0, 1000]);
+        push(@$failed_screens, [$img, $failed_candidates, 0, 1000, $frame]);
         my $hash = $self->_failed_screens_to_json;
         $hash->{image} = encode_base64($img->ppm_data);
         # store stall status
@@ -888,7 +894,7 @@ sub check_asserted_screen {
             $sim = $failed_screens->[-1]->[0]->similarity($img);
         }
         if ($sim < 30) {
-            push(@$failed_screens, [$img, $failed_candidates, $n, $sim]);
+            push(@$failed_screens, [$img, $failed_candidates, $n, $sim, $frame]);
         }
         # clean up every once in a while to avoid excessive memory consumption.
         # The value here is an arbitrary limit.
@@ -936,7 +942,10 @@ sub cont_vm {
 sub last_screenshot_data {
     my ($self, $args) = @_;
     return {} unless $self->last_image;
-    return {image => encode_base64($self->last_image->ppm_data)};
+    return {
+        image => encode_base64($self->last_image->ppm_data),
+        frame => $self->{video_frame_number},
+    };
 }
 
 sub verify_image {
