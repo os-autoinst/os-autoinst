@@ -234,6 +234,10 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
     // Use error at original location as upper bound
     Point center = Point(x - scene_x, y - scene_y);
     double sse = result.at<float>(center);
+    if (sse == 0) {
+        similarity = 1;
+        return { (int)(x), (int)(y) };
+    }
 
     // We are only interested in points with a similarity > 0
     //   similarity = .9 + (40 - mse) / 380  ==  0
