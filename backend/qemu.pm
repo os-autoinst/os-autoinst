@@ -673,8 +673,17 @@ sub start_qemu {
 
         if ($vars->{UEFI_PFLASH}) {
             # Convert the firmware file into qcow2 format or savevm would fail
-            runcmd('qemu-img', 'convert', '-O', 'qcow2', $vars->{BIOS}, 'ovmf.bin');
-            push(@params, "-drive", "if=pflash,format=qcow2,file=ovmf.bin");
+            # Prepare clean 64M nvram image for uefi vars in raw format
+            runcmd("dd", "if=/dev/zero", "of=uefi-vars.bin", "iflag=fullblock", "bs=1M", "count=64");
+            # Convert uefi raw fw from BIOS var into 64M image for uefi code in raw format
+            runcmd("dd", "if=$vars->{BIOS}", "iflag=fullblock", "bs=1M", "of=uefi-code.bin");
+            runcmd("truncate", "-s", "64M", "uefi-code.bin");
+            # Convert both raw images into qcow2 format
+            foreach my $i (qw(uefi-vars uefi-code)) {
+                runcmd("qemu-img", "convert", "-O", "qcow2", "$i.bin", "$i.qcow2");
+            }
+            push(@params, "-drive", "if=pflash,format=qcow2,file=uefi-code.qcow2,unit=0,readonly=on");
+            push(@params, "-drive", "if=pflash,format=qcow2,file=uefi-vars.qcow2,unit=1");
         }
         elsif ($vars->{BIOS}) {
             push(@params, "-bios", $vars->{BIOS});
