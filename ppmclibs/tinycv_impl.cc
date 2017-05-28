@@ -131,10 +131,10 @@ std::vector<char> str2vec(std::string str_in)
 
 /* we try to the find the best locations - possibly more and will
    weight in later */
-std::vector<Point> minVec(const Mat& m, double& min)
+std::vector<Point> minVec(const Mat& m, float min)
 {
-    min = INT_MAX;
     std::vector<Point> res;
+    min += 10;
 
     assert(m.depth() == CV_32F);
 
@@ -142,12 +142,14 @@ std::vector<Point> minVec(const Mat& m, double& min)
         const float* sptr = m.ptr<float>(y);
 
         for (int x = 0; x < m.cols; x++) {
-            float diff = min - sptr[x];
-            if (diff > 10) {
-                min = sptr[x];
+            if (sptr[x] > min)
+                continue;
+
+            if (sptr[x] + 10 < min) {
+                min = sptr[x] + 10;
                 res.clear(); // reset
                 res.push_back(Point(x, y));
-            } else if (fabs(diff) < 10) {
+            } else {
                 res.push_back(Point(x, y));
             }
         }
@@ -226,11 +228,24 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
     // Perform the matching. Info about algorithm:
     // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
     // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
+    // Used metric is (sum of) squared differences
     matchTemplate(scene_roi, object_roi, result, CV_TM_SQDIFF);
 
+    // Use error at original location as upper bound
+    Point center = Point(x - scene_x, y - scene_y);
+    double sse = result.at<float>(center);
+    if (sse == 0) {
+        similarity = 1;
+        return { (int)(x), (int)(y) };
+    }
+
+    // We are only interested in points with a similarity > 0
+    //   similarity = .9 + (40 - mse) / 380  ==  0
+    //   <=>  mse = 40 + .9 * 380 = 382
+    sse = std::min(sse, (382.0 * object_roi.total()));
+
     // Localizing the points that are "good" - not necessarly the absolute min
-    double minval;
-    std::vector<Point> mins = minVec(result, minval);
+    std::vector<Point> mins = minVec(result, sse);
 
     if (mins.empty())
         return outvec;
