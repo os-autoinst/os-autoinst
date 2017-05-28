@@ -26,6 +26,7 @@ consolesexecdir = $(pkglibexecdir)/consoles
 consolesexec_DATA = \
 	consoles/console.pm \
 	consoles/icewm.cfg \
+	consoles/ipmiSol.pm \
 	consoles/localXvnc.pm \
 	consoles/remoteVnc.pm \
 	consoles/s3270.pm \
