@@ -23,7 +23,7 @@ use JSON 'to_json';
 use File::Copy 'cp';
 use File::Basename;
 use Time::HiRes qw(gettimeofday time tv_interval);
-use POSIX '_exit';
+use POSIX qw(_exit :sys_wait_h);
 use bmwqemu;
 use IO::Select;
 require IPC::System::Simple;
@@ -59,6 +59,8 @@ sub new {
     $self->{video_frame_number}   = 0;
     $self->{min_image_similarity} = 10000;
     $self->{min_video_similarity} = 10000;
+    $self->{children}             = [];
+
     return $self;
 }
 
@@ -1072,6 +1074,40 @@ sub stop_ssh_serial {
     $self->{serial}->disconnect;
     $self->{serial} = undef;
     return;
+}
+
+# Send TERM signal to any child process
+sub _kill_children_processes {
+    my ($self) = @_;
+    my $ret;
+    for my $pid (@{$self->{children}}) {
+        bmwqemu::diag("killing child $pid");
+        kill('TERM', $pid);
+        for my $i (1 .. 5) {
+            $ret = waitpid($pid, WNOHANG);
+            bmwqemu::diag "waitpid for $pid returned $ret";
+            last if ($ret == $pid);
+            sleep 1;
+        }
+    }
+}
+
+sub _child_process {
+    my ($self, $code) = @_;
+
+    die "Can't spawn child without code" unless ref($code) eq "CODE";
+
+    my $pid = fork();
+    die "fork failed" unless defined($pid);
+
+    if ($pid == 0) {
+        $code->();
+    }
+    else {
+        push @{$self->{children}}, $pid;
+        return $pid;
+    }
+
 }
 
 1;

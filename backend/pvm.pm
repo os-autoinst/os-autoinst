@@ -22,6 +22,7 @@ require IPC::System::Simple;
 use autodie ':all';
 use File::Basename;
 use Digest::MD5 'md5_hex';
+use osutils qw(dd_gen_params gen_params);
 
 sub new {
     my $class      = shift;
@@ -89,37 +90,51 @@ sub do_extract_assets {
 }
 
 sub pvmctl {
-    my $self = shift @_;
-    my $vars = \%bmwqemu::vars;
-    my ($type, $action) = @_;
+    my $self   = shift @_;
+    my $type   = shift @_;
+    my $action = shift @_;
+    my $vars   = \%bmwqemu::vars;
+
+    die "pvmctl: Not enough arguments (at least you should supply a type and an action)" unless ($type && $action);
+
     push(my @cmd, $self->{pvmctl}, $type, $action);
     my $lpar = $vars->{LPAR};
 
     if ($type =~ /lpar/) {
-        push(@cmd, "-i", "name=" . $lpar) if ($action =~ /power|restart|delete/);
+        gen_params @cmd, "i", "name=$lpar" if ($lpar && $action =~ /power|restart|delete/);
         if ($action =~ /create/) {
-            my ($type, $action, $cpu, $memory) = @_;
-            push(@cmd, qw(--proc-type shared --sharing-mode uncapped --type AIX/Linux));
-            push(@cmd, "--proc", $cpu, "--mem", $memory, "--name", $lpar);
-            push(@cmd, "--proc-unit", $cpu * 0.05);
+            my ($cpu, $memory) = @_;
+            dd_gen_params @cmd, "proc-type",    "shared";
+            dd_gen_params @cmd, "sharing-mode", "uncapped";
+            dd_gen_params @cmd, "type",         "AIX/Linux";
+            dd_gen_params @cmd, "proc",         $cpu if $cpu;
+            dd_gen_params @cmd, "mem",          $memory if $memory;
+            dd_gen_params @cmd, "name",         $lpar if $lpar;
+            dd_gen_params @cmd, "proc-unit",    $cpu * 0.05 if $cpu;
         }
     }
     elsif ($type =~ /scsi/) {
-        my ($type, $action, $kind, $file, $target) = @_;
+        my ($kind, $file, $target) = @_;
+        die "pvmctl: scsi type needs at least both kind and file" unless ($kind && $file);
+
         #so far only disks are reatachable to the master LPAR
         #set it back to default if argument is omited
         $lpar = $target if $target;
-        push(@cmd, "--type", $kind, "--stor-id", $file);
-        push(@cmd, "--lpar", "name=" . $lpar);
-        push(@cmd, "--vg", "name=rootvg") if ($type =~ /lv/);
+        dd_gen_params @cmd, "type",    $kind;
+        dd_gen_params @cmd, "stor-id", $file;
+        dd_gen_params @cmd, "lpar",    "name=$lpar" if $lpar;
+        dd_gen_params @cmd, "vg",      "name=rootvg" if ($type =~ /lv/);
     }
     elsif ($type =~ /lv/) {
-        my ($type, $action, $name, $size) = @_;
-        push(@cmd, "--name", $name, "--size", $size);
+        my ($name, $size) = @_;
+        dd_gen_params @cmd, "name", $name if $name;
+        dd_gen_params @cmd, "size", $size if $size;
     }
     elsif ($type =~ /eth/) {
-        my ($type, $action, $vlan, $vswitch) = @_;
-        push(@cmd, "--pvid", $vlan, "--vswitch", $vswitch, "-p", "name=" . $lpar);
+        my ($vlan, $vswitch) = @_;
+        dd_gen_params @cmd, "pvid",    $vlan        if $vlan;
+        dd_gen_params @cmd, "vswitch", $vswitch     if $vswitch;
+        gen_params @cmd,    "p",       "name=$lpar" if $lpar;
     }
     else {
         die "Unrecognized command $type";

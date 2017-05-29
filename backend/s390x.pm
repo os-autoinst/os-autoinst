@@ -23,11 +23,7 @@ require IPC::System::Simple;
 use autodie ':all';
 
 use base 'backend::baseclass';
-
 use Carp qw(confess cluck carp croak);
-
-use feature 'say';
-
 use testapi 'get_required_var';
 
 sub new {

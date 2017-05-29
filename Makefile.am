@@ -7,7 +7,7 @@ doc_DATA = \
 	INSTALL.asciidoc \
 	COPYING \
 	doc/basetest.html \
-	doc/testapi.html 
+	doc/testapi.html
 
 backendexecdir = $(pkglibexecdir)/backend
 backendexec_DATA = \
@@ -62,7 +62,8 @@ perlexec_DATA = \
 	distribution.pm \
 	ocr.pm \
 	cv.pm \
-	needle.pm
+	needle.pm \
+	osutils.pm
 
 pkglibexec_SCRIPTS = \
 	crop.py \
@@ -100,7 +101,7 @@ CLEANFILES = \
 	$(ppmcexec_SCRIPTS) \
 	ppmclibs/tinycv_wrap.cxx \
 	doc/basetest.html \
-	doc/testapi.html 
+	doc/testapi.html
 
 PERL_MODULE = ppmclibs/blib/arch/auto/tinycv/tinycv.so
 OPENVSWITCH_SERVICE = systemd/os-autoinst-openvswitch.service
