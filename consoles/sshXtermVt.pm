@@ -66,10 +66,6 @@ sub activate {
         die "cant' start xterm on $display (err: $! retval: $?)";
     }
 
-    # FIXME: assert_screen('xterm_password');
-    sleep 3;
-    $self->type_string({text => $password . "\n"});
-
     if ($serial) {
         # ssh connection to SUT for iucvconn
         my $serialchan = $self->backend->start_ssh_serial(hostname => $hostname, password => $password, username => 'root');
