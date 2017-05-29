@@ -104,4 +104,9 @@ sub disable {
     return $ret;
 }
 
+sub screen {
+    # we have no screen
+    return;
+}
+
 1;
