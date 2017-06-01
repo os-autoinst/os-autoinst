@@ -456,6 +456,17 @@ Example:
      send_key 'esc';
   };
 
+Notice: If you use the second parameter, you could get the following warning
+
+  Useless use of private variable in void context
+
+To avoid it, use parentheses for the function call and the reserved word 'sub' for the callback
+subroutine block.
+
+  wait_screen_change(sub {
+    send_key 'esc';
+  }, 15);
+
 Returns true if screen changed or C<undef> on timeout. Default timeout is 10s.
 
 =cut
@@ -1238,7 +1249,7 @@ and clicks on a console.
 Most backends support several consoles in some way.  These consoles
 then have names as defined by the backend.
 
-Consoles can be selected for interaction with the system under test.  
+Consoles can be selected for interaction with the system under test.
 One of them is 'selected' by default, as defined by the backend.
 
 There are no consoles predefined by default, the distribution has
@@ -1342,7 +1353,7 @@ sub console {
 }
 
 =head2 reset_consoles
- 
+
   reset_consoles;
 
 will make sure the next select_console will activate the console. This is important
@@ -1496,7 +1507,7 @@ sub save_memory_dump {
 Saves all of the SUT drives using C<$filename> as part of the final filename,
 the default will be the current test's name. The disk number will be always present.
 
-This method must be called within a post_fail_hook. 
+This method must be called within a post_fail_hook.
 
 I<Currently only qemu backend is supported.>
 
@@ -1710,7 +1721,7 @@ sub diag {
 
 returns the base URL to contact the local C<os-autoinst> service
 
-Optional C<$path> argument is appended after base url. 
+Optional C<$path> argument is appended after base url.
 
 Optional HASHREF C<$query> is converted to URL query and appended
 after path.
