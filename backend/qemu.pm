@@ -204,10 +204,12 @@ sub save_storage_drives {
 sub save_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
-    my $rsp    = $self->_send_hmp("savevm $vmname");
-    diag "SAVED $vmname $rsp";
-    die "Could not save snapshot \'$vmname\': $rsp" unless ($rsp eq "savevm $vmname");
-    return;
+    my $ret = $self->handle_qmp_command({execute => 'blockdev-snapshot-internal-sync', arguments => {device => "hd1", name => $vmname}});
+    diag "SAVED $vmname $ret";
+    return if ($ret eq '{}');
+    diag "Could not save snapshot using QMP. \$ret: '$ret'. Trying old HMP mode";
+    $ret = $self->_send_hmp("savevm $vmname");
+    die "Could not save snapshot \'$vmname\': $ret" unless ($ret eq "savevm $vmname");
 }
 
 sub load_snapshot {
@@ -866,7 +868,7 @@ sub _read_hmp {
     }
 
     backend::baseclass::write_crash_file;
-    die "ERROR: timeout reading hmp socket\n";
+    die "ERROR: timeout reading hmp socket";
 }
 
 # runs in the thread to bounce QMP
