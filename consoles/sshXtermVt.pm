@@ -74,4 +74,11 @@ sub activate {
     }
 }
 
+# to be called on reconnect
+sub kill_ssh {
+    my ($self) = @_;
+
+    $self->backend->stop_ssh_serial;
+}
+
 1;
