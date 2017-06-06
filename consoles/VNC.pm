@@ -926,8 +926,6 @@ sub _receive_update {
     my $hlen                 = $socket->read(my $header, 3) || die 'unexpected end of data';
     my $number_of_rectangles = unpack('xn', $header);
 
-    #bmwqemu::diag "NOR $number_of_rectangles";
-
     my $depth = $self->depth;
 
     my $do_endian_conversion = $self->_do_endian_conversion;
@@ -938,8 +936,6 @@ sub _receive_update {
 
         # unsigned -> signed conversion
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
-
-        #bmwqemu::diag "UP $x,$y $w x $h $encoding_type";
 
         # work around buggy addrlink VNC
         next if ($w * $h == 0);
@@ -1054,14 +1050,12 @@ sub _receive_ikvm_encoding {
     # ikvm specific
     $socket->read(my $aten_data, 8);
     my ($data_prefix, $data_len) = unpack('NN', $aten_data);
-    #printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
 
     $self->screen_on($w < 33000);    # screen is off is signaled by negative numbers
 
     # ikvm doesn't bother sending screen size changes
     if ($w != $self->width || $h != $self->height) {
         if ($self->screen_on) {
-            # printf "resizing to $w $h from %dx%d\n", $self->width, $self->height;
             my $newimg = tinycv::new($w, $h);
             if ($image) {
                 $image = $image->copyrect(0, 0, min($image->xres(), $w), min($image->yres(), $h));
