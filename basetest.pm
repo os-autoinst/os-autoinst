@@ -318,7 +318,7 @@ sub runtest {
     my $name = ref($self);
     eval {
         $self->pre_run_hook();
-        $self->run();
+        $self->run($self->{arg});
         $self->post_run_hook();
     };
     if ($@) {
