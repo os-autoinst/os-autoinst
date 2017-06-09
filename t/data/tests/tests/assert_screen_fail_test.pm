@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2017 SUSE LLC
+# Copyright (C) 2017 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,14 +13,19 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-use strict;
+use 5.018;
+use base 'basetest';
 use testapi;
 
-autotest::loadtest "tests/boot.pm";
-autotest::loadtest "tests/assert_screen_fail_test.pm";
-autotest::loadtest "tests/shutdown.pm";
+sub run {
+    # Test done this way, because:
+    eval { assert_screen ['no_tag', 'no_tag2'], timeout => 1, no_wait => 1; };
+    bmwqemu::diag($@) if ($@);
 
+    eval { assert_screen 'no_tag3', timeout => 1, no_wait => 1; };
+    bmwqemu::diag($@) if ($@);
+
+
+}
 
 1;
-
-# vim: set sw=4 et:

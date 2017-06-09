@@ -275,7 +275,15 @@ sub _check_backend_response {
             }
         }
         if (!$check && !$rsp->{saveresult}) {
-            OpenQA::Exception::FailedNeedle->throw(error => "no candidate needle with tag(s) '$mustmatch' matched", tags => $mustmatch);
+            # Must match can be only scalar or array ref.
+            my $needletags = $mustmatch;
+            if (ref($mustmatch) eq 'ARRAY') {
+                $needletags = join(', ', @$mustmatch);
+            }
+            OpenQA::Exception::FailedNeedle->throw(
+                error => "no candidate needle with tag(s) '$needletags' matched",
+                tags  => $mustmatch
+            );
         }
         if ($rsp->{saveresult}) {
             $autotest::current_test->save_test_result();
