@@ -89,8 +89,22 @@ ok(defined $res, "skip needles without png");
 
 $img1   = tinycv::read($data_dir . "console.test.png");
 $needle = needle->new($data_dir . "console.ref.json");
-$res    = $img1->search($needle);
+($res, $cand) = $img1->search($needle);
 ok(!defined $res, "no match different console screenshots");
+is_deeply(
+    $cand->[0]->{area},
+    [
+        {
+            h          => 160,
+            w          => 645,
+            y          => 285,
+            result     => 'fail',
+            similarity => '0.946257037943696',
+            x          => 190
+        }
+    ],
+    'candidate is almost true'
+);
 
 # XXX TODO -- This need to be fixed.
 # $img1   = tinycv::read($data_dir . "font-kerning.test.png");
@@ -214,7 +228,22 @@ ok(!defined $res, "the headline is completely different");
 
 $img1   = tinycv::read($data_dir . "inst-rescuesystem-20141027.test.png");
 $needle = needle->new($data_dir . "inst-rescuesystem-20141027.json");
-$res    = $img1->search($needle);
+($res, $cand) = $img1->search($needle);
+is_deeply(
+    $cand->[0]->{area},
+    [
+        {
+            similarity => '0',
+            x          => 245,
+            w          => 312,
+            result     => 'fail',
+            y          => 219,
+            h          => 36
+
+        }
+    ],
+    'candidate total fail, but not at 0x0'
+);
 
 ok(!defined $res, "different text");
 
