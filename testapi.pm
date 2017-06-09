@@ -35,7 +35,7 @@ use MIME::Base64 'decode_base64';
 require bmwqemu;
 
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
-
+  connection_hijack
   get_var get_required_var check_var set_var get_var_array check_var_array autoinst_url
 
   send_key send_key_until_needlematch type_string type_password
@@ -1860,6 +1860,27 @@ sub upload_asset {
     else {
         return assert_script_run($cmd);
     }
+}
+
+=head2 connection_hijack
+
+   connection_hijack();
+
+Sets up the VM to redirect DNS or HTTP requests to the host machine, which is
+running the DNS and Proxy components. It is meant to execute required commands
+to redirect the connections on a tty as root, and will perform different
+operations depending on context (LiveCD, upgrade, ecc..), usage example:
+
+    send_key("ctrl-alt-f5");
+    connection_hijack();
+    send_key("ctrl-alt-f7");
+
+=cut
+
+sub connection_hijack {
+
+    bmwqemu::log_call(title => "connection_hijack");
+    return $distri->connection_hijack();
 }
 
 1;
