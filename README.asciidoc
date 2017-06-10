@@ -53,6 +53,15 @@ and we can use VNC to connect to the QEMU instance:
 
 $ vncviewer localhost:91 -ViewOnly -Shared
 
+
+Run isotovideo with the environment variable `RUN_VNCVIEWER` set to autostart
+a VNC viewer on the right port.
+
+Run isotovideo with the environment variable `RUN_DEBUGVIEWER` to start the
+internal debug screenshot viewer updated with an always recent screenshot of
+the test run.
+
+
 How to contribute
 -----------------
 
