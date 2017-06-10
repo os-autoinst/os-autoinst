@@ -399,7 +399,7 @@ sub enqueue_screenshot {
     $self->{video_frame_number} += 1;
 
     $watch->stop();
-    if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
+    if ($watch->as_data()->{total_time} > $self->screenshot_interval && !$bmwqemu::vars{NO_DEBUG_IO}) {
         bmwqemu::diag sprintf("WARNING: enqueue_screenshot took %.2f seconds", $watch->as_data()->{total_time});
         bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
     }
@@ -865,7 +865,7 @@ sub check_asserted_screen {
     }
 
     $watch->stop();
-    if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
+    if ($watch->as_data()->{total_time} > $self->screenshot_interval && !$bmwqemu::vars{NO_DEBUG_IO}) {
         bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time});
         bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
     }
