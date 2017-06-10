@@ -91,6 +91,8 @@ $img1   = tinycv::read($data_dir . "console.test.png");
 $needle = needle->new($data_dir . "console.ref.json");
 ($res, $cand) = $img1->search($needle);
 ok(!defined $res, "no match different console screenshots");
+# prevent tiny resolution differences to fail the test
+$cand->[0]->{area}->[0]->{similarity} = sprintf "%.3f", $cand->[0]->{area}->[0]->{similarity};
 is_deeply(
     $cand->[0]->{area},
     [
@@ -99,7 +101,7 @@ is_deeply(
             w          => 645,
             y          => 285,
             result     => 'fail',
-            similarity => '0.946257037943696',
+            similarity => '0.946',
             x          => 190
         }
     ],
