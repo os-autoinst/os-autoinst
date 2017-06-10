@@ -131,8 +131,9 @@ std::vector<char> str2vec(std::string str_in)
 
 /* we try to the find the best locations - possibly more and will
    weight in later */
-std::vector<Point> minVec(const Mat& m, float min)
+std::vector<Point> minVec(const Mat& m, double& min)
 {
+    min = INT_MAX;
     std::vector<Point> res;
     min += 10;
 
@@ -228,24 +229,11 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
     // Perform the matching. Info about algorithm:
     // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
     // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
-    // Used metric is (sum of) squared differences
     matchTemplate(scene_roi, object_roi, result, CV_TM_SQDIFF);
 
-    // Use error at original location as upper bound
-    Point center = Point(x - scene_x, y - scene_y);
-    double sse = result.at<float>(center);
-    if (sse == 0) {
-        similarity = 1;
-        return { (int)(x), (int)(y) };
-    }
-
-    // We are only interested in points with a similarity > 0
-    //   similarity = .9 + (40 - mse) / 380  ==  0
-    //   <=>  mse = 40 + .9 * 380 = 382
-    sse = std::min(sse, (382.0 * object_roi.total()));
-
     // Localizing the points that are "good" - not necessarly the absolute min
-    std::vector<Point> mins = minVec(result, sse);
+    double minval;
+    std::vector<Point> mins = minVec(result, minval);
 
     if (mins.empty())
         return outvec;
