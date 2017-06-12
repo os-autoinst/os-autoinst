@@ -9,7 +9,8 @@ Variable;Values allowed;Default value;Explanation
 EXCLUDE_MODULES;string;;comma separated names or fullnames of excluded test modules
 NOVIDEO;boolean;0;Do not encode video if set
 VNC_TYPING_LIMIT;integer;50;Maximum number of keys per second
-SCREENSHOTINTERVAL;;;
+NO_DEBUG_IO;boolean;0;Disable the I/O debug output in case of needle comparison times longer than expected
+SCREENSHOTINTERVAL;float;0.5;The interval in seconds at which screenshots are taken internally
 |====================
 
 .IPMI backend
