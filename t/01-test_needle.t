@@ -249,6 +249,28 @@ is_deeply(
 
 ok(!defined $res, "different text");
 
+$needle = needle->new($data_dir . "ooffice-save-prompt-gnome-20160713.json");
+$img1   = tinycv::read($data_dir . "ooffice-save-prompt-gnome-20160713.test.png");
+($res, $cand) = $img1->search($needle);
+
+ok(!defined $res, "font rendering changed");
+is_deeply(
+    $cand->[0]->{area},
+    [
+        {
+            similarity => '0',
+            x          => 273,
+            w          => 483,
+            result     => 'fail',
+            y          => 323,
+            h          => 133
+
+        }
+    ],
+    'candidate total fail, but position still good'
+);
+
+
 $img1   = tinycv::read($data_dir . "inst-welcome-20140902.test.png");
 $needle = needle->new($data_dir . "inst-welcome-20140902.json");
 $res    = $img1->search($needle);
