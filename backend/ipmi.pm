@@ -103,8 +103,8 @@ sub do_start_vm {
     open(my $sf, '>', $self->{serialfile});
     close($sf);
 
-    my $sol = $testapi::distri->add_console('sol', 'ipmitool', {serialfile => $self->{serialfile}});
-    $sol->activate;
+    my $sol = $testapi::distri->add_console('sol', 'ipmi-xterm');
+    $sol->backend($self);
     return {};
 }
 

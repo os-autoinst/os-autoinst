@@ -25,6 +25,7 @@ use autodie ':all';
 use Socket;
 use strict;
 use warnings;
+use File::Which;
 
 sub callxterm {
     my ($self, $command, $window_name) = @_;
@@ -82,7 +83,6 @@ sub activate {
         exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");
     }
     close($s);
-
     #print "$self->{testapi_console} -> $port\n";
 
     $self->connect_vnc(
@@ -96,7 +96,6 @@ sub activate {
 
     # we need a window manager for fullscreen apps to work
     system("DISPLAY=$display icewm -c $bmwqemu::scriptdir/consoles/icewm.cfg &");
-
     return;
 }
 
