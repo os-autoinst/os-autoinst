@@ -23,24 +23,6 @@ require IPC::System::Simple;
 use autodie ':all';
 use File::Which;
 
-
-sub fullscreen {
-    my ($self, $args) = @_;
-
-    my $display     = $self->{DISPLAY};
-    my $window_name = $args->{window_name};
-
-    my $xdotool = which "xdotool";
-    die "Missing 'xdotool'" unless $xdotool;
-    # search for YaST Window and grab the id
-    my $window_id = qx"DISPLAY=$display $xdotool search --sync --limit 1 --name $window_name";
-    $window_id =~ s/\D//g;
-
-    # resize and move window to fit in icewm
-    system("DISPLAY=$display $xdotool windowsize $window_id 100% 100%");
-    system("DISPLAY=$display $xdotool windowmove $window_id 0 0");
-}
-
 sub activate {
     my ($self) = @_;
 
@@ -54,21 +36,19 @@ sub activate {
     my $hostname = $ssh_args->{hostname} || die('we need a hostname to ssh to');
     my $password = $ssh_args->{password} || $testapi::password;
     my $sshcommand = $self->sshCommand($hostname, $gui);
-    my $serial     = $self->{args}->{serial};
-    my $display    = $self->{DISPLAY};
+    my $serial = $self->{args}->{serial};
 
-    $sshcommand = "TERM=xterm " . $sshcommand;
-    my $xterm_vt_cmd = which "xterm-console";
-    die "Missing 'xterm-console'" unless $xterm_vt_cmd;
-    my $window_name = "ssh:$testapi_console";
-    eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$sshcommand' & echo \$!") };
-    if (my $E = $@) {
-        die "cant' start xterm on $display (err: $! retval: $?)";
-    }
+    $self->callxterm($sshcommand, "ssh:$testapi_console");
 
     if ($serial) {
+
         # ssh connection to SUT for iucvconn
-        my $serialchan = $self->backend->start_ssh_serial(hostname => $hostname, password => $password, username => 'root');
+        my $serialchan = $self->backend->start_ssh_serial(
+            hostname => $hostname,
+            password => $password,
+            username => 'root'
+        );
+
         # start iucvconn
         $serialchan->exec($serial);
     }

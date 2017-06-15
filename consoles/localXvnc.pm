@@ -26,6 +26,37 @@ use Socket;
 use strict;
 use warnings;
 
+sub callxterm {
+    my ($self, $command, $window_name) = @_;
+
+    my $display = $self->{DISPLAY};
+    $command = "TERM=xterm $command";
+    my $xterm_vt_cmd = which "xterm-console";
+    die "Missing 'xterm-console'" unless $xterm_vt_cmd;
+    eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command' & echo \$!"); };
+    if (my $E = $@) {
+        die "cant' start xterm on $display (err: $! retval: $?)";
+    }
+}
+
+sub fullscreen {
+    my ($self, $args) = @_;
+
+    my $display     = $self->{DISPLAY};
+    my $window_name = $args->{window_name};
+
+    my $xdotool = which "xdotool";
+    die "Missing 'xdotool'" unless $xdotool;
+
+    # search for YaST Window and grab the id
+    my $window_id = qx"DISPLAY=$display $xdotool search --sync --limit 1 --name $window_name";
+    $window_id =~ s/\D//g;
+
+    # resize and move window to fit in icewm
+    system("DISPLAY=$display $xdotool windowsize $window_id 100% 100%");
+    system("DISPLAY=$display $xdotool windowmove $window_id 0 0");
+}
+
 sub activate {
     my ($self) = @_;
 
@@ -51,6 +82,7 @@ sub activate {
         exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");
     }
     close($s);
+
     #print "$self->{testapi_console} -> $port\n";
 
     $self->connect_vnc(
