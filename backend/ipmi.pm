@@ -91,28 +91,6 @@ sub restart_host {
     }
 }
 
-sub relogin_vnc {
-    my ($self) = @_;
-
-    my $vncopts = {
-        hostname => $bmwqemu::vars{IPMI_HOSTNAME},
-        port     => 5900,
-        username => $bmwqemu::vars{IPMI_USER},
-        password => $bmwqemu::vars{IPMI_PASSWORD},
-    };
-    my $hwclass = $bmwqemu::vars{IPMI_HW} || 'supermicro';
-    $vncopts->{ikvm} = 1 if $hwclass eq 'supermicro';
-    if ($hwclass eq 'dell') {
-        $vncopts->{dell} = 1;
-        $vncopts->{port} = 5901;
-    }
-    my $vnc = $testapi::distri->add_console('sut', 'vnc-base', $vncopts);
-    $vnc->backend($self);
-    $self->select_console({testapi_console => 'sut'});
-
-    return 1;
-}
-
 sub do_start_vm {
     my ($self) = @_;
 
@@ -120,13 +98,12 @@ sub do_start_vm {
     $self->unlink_crash_file;
     $self->get_mc_status;
     $self->restart_host;
-    $self->relogin_vnc;
 
     # truncate the serial file
     open(my $sf, '>', $self->{serialfile});
     close($sf);
 
-    my $sol = $testapi::distri->add_console('sol', 'ipmi-sol', {serialfile => $self->{serialfile}});
+    my $sol = $testapi::distri->add_console('sol', 'ipmitool', {serialfile => $self->{serialfile}});
     $sol->activate;
     return {};
 }
