@@ -796,13 +796,19 @@ sub start_qemu {
             my $object  = $service->get_object("/switch", "org.opensuse.os_autoinst.switch");
 
             for (my $i = 0; $i < $num_networks; $i++) {
-                $object->set_vlan($tapdev[$i], $nicvlan[$i]);
+                my ($rt, $message) = $object->set_vlan($tapdev[$i], $nicvlan[$i]);
+                chomp $message;
+                if ($rt != 0) {
+                    bmwqemu::diag "Failed to set vlan tag '" . $nicvlan[$i] . "' on interface '" . $tapdev[$i] . "' : " . $message;
+                }
+            }
+            my $ovs_status = $object->show();
+            if (length $ovs_status > 0) {
+                bmwqemu::diag "Open vSwitch networking status:";
+                bmwqemu::diag $ovs_status;
             }
         };
-        if ($@) {
-            print "$@\n";
-            print "WARNING: Can't switch NICVLAN number, independent tests may be running on the same network.\n\n";
-        }
+        print "$@\n" if ($@);
     }
 
     if ($bmwqemu::vars{DELAYED_START}) {

@@ -24,6 +24,7 @@ requires 'IO::Handle';
 requires 'IO::Select';
 requires 'IO::Socket';
 requires 'IO::Socket::UNIX';
+requires 'IPC::Open3';
 requires 'IPC::Run::Debug';
 requires 'IPC::System::Simple';
 requires 'JSON';
