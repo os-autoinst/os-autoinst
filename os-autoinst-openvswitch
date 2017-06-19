@@ -6,6 +6,9 @@ use base 'Net::DBus::Object';
 use Net::DBus::Exporter 'org.opensuse.os_autoinst.switch';
 require IPC::System::Simple;
 use autodie ':all';
+use IPC::Open3;
+use Symbol 'gensym';
+
 
 sub new {
     my $class   = shift;
@@ -80,31 +83,60 @@ sub init_switch {
 }
 
 
-dbus_method("set_vlan", ["string", "uint32"]);
+dbus_method("set_vlan", ["string", "uint32"], ["int32", "string"]);
 sub set_vlan {
     my $self = shift;
     my $tap  = shift;
     my $vlan = shift;
+    my $return_output;
+    my $return_code = 1;
 
     if ($tap !~ /^tap[0-9]+$/) {
-        print STDERR "'$tap' does not fit the naming scheme\n";
-        return;
+        $return_output = "'$tap' does not fit the naming scheme";
+        print STDERR $return_output."\n";
+        return ($return_code, $return_output);
     }
     if ($vlan !~ /^[0-9]+$/) {
-        print STDERR "'$vlan' does not fit the naming scheme (only numbers)\n";
-        return;
+          $return_output = "'$vlan' does not fit the naming scheme (only numbers)";
+          print STDERR $return_output."\n";
+          return ($return_code, $return_output);
     }
 
     my $check_bridge = `ovs-vsctl port-to-br $tap`;
     chomp $check_bridge;
     if ($check_bridge ne $self->{BRIDGE}) {
-        print STDERR "'$tap' is not connected to bridge '$self->{BRIDGE}'\n";
-        return;
+          $return_output =  "'$tap' is not connected to bridge '$self->{BRIDGE}'";
+          print STDERR $return_output."\n";
+          return ($return_code, $return_output);
     }
 
-    # connect tap device to given vlan
-    system('ovs-vsctl', 'set', 'port', $tap, "tag=$vlan");
-    system('ip', 'link', 'set', $tap, 'up');
+    # Connect tap device to given vlan
+    # We need open3 because otherwise STDERR is captured by systemd.
+    # In such way we collect the error and send it back in the dbus call as well.
+    my($wtr, $rdr, $err);
+    $err = gensym;
+    my $ovs_vsctl_pid = open3($wtr, $rdr, $err, 'ovs-vsctl', 'set', 'port', $tap, "tag=$vlan");
+
+    my @ovs_vsctl_output = <$rdr>;
+    my @ovs_vsctl_error = <$err>;
+    waitpid( $ovs_vsctl_pid, 0 );
+    $return_code = $?;
+
+    print STDERR "@ovs_vsctl_error" if @ovs_vsctl_error > 0;
+    print "@ovs_vsctl_output" if @ovs_vsctl_output > 0;
+    return $return_code, "@ovs_vsctl_error" unless $return_code == 0;
+
+    $return_code = system('ip', 'link', 'set', $tap, 'up');
+    return $return_code, $return_code != 0 ? "Failed to set $tap up " : '';
+}
+
+dbus_method("show", [], ["string"]);
+sub show {
+    my $self = shift;
+
+    my @output = qx|ovs-vsctl show|;
+
+    return "@output";
 }
 
 ################################################################################
