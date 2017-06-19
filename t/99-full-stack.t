@@ -41,9 +41,29 @@ open($var, '>', 'live_log');
 close($var);
 system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
 is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'), 0, 'test executed fine');
-for my $result (glob("testresults/result*.json")) {
+
+my $ignore_results_re = qr/fail/;
+for my $result (grep { $_ !~ $ignore_results_re } glob("testresults/result*.json")) {
     my $json = from_json(Mojo::File->new($result)->slurp);
     is($json->{result}, 'ok', "Result in $result is ok");
 }
+
+for my $result (glob("testresults/result*fail*.json")) {
+    my $json = from_json(Mojo::File->new($result)->slurp);
+    is($json->{result}, 'fail', "Result in $result is fail");
+}
+
+subtest 'Assert screen failure' => sub {
+    plan tests => 1;
+    open my $ifh, '<', 'autoinst-log.txt';
+    my $regexp = qr /(?<=no candidate needle with tag\(s\)) '(no_tag, no_tag2|no_tag3)'/;
+    my $count  = 0;
+    while (<$ifh>) {
+        $count++ if $_ =~ $regexp;
+    }
+    close $ifh;
+
+    is($count, 2, 'Assert screen failures');
+};
 
 done_testing();
