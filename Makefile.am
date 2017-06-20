@@ -15,6 +15,7 @@ backendexec_DATA = \
 	backend/console_proxy.pm \
 	backend/driver.pm \
 	backend/generalhw.pm \
+	backend/ikvm.pm \
 	backend/ipmi.pm \
 	backend/qemu.pm \
 	backend/s390x.pm \
@@ -33,6 +34,7 @@ consolesexec_DATA = \
 	consoles/sshX3270.pm \
 	consoles/sshVirtsh.pm \
 	consoles/sshIucvconn.pm \
+	consoles/sshXtermIPMI.pm \
 	consoles/sshXtermVt.pm \
 	consoles/ttyConsole.pm \
 	consoles/virtio_screen.pm \

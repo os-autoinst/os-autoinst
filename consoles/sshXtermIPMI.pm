@@ -14,13 +14,14 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-package consoles::sshXtermVt;
+package consoles::sshXtermIPMI;
 use base 'consoles::localXvnc';
 use strict;
 use warnings;
-use testapi 'get_var';
+use testapi 'get_required_var';
 require IPC::System::Simple;
 use autodie ':all';
+use File::Which;
 
 sub activate {
     my ($self) = @_;
@@ -29,35 +30,13 @@ sub activate {
     $self->SUPER::activate;
 
     my $testapi_console = $self->{testapi_console};
-    my $ssh_args        = $self->{args};
-    my $gui             = $self->{args}->{gui};
 
-    my $hostname = $ssh_args->{hostname} || die('we need a hostname to ssh to');
-    my $password = $ssh_args->{password} || $testapi::password;
-    my $sshcommand = $self->sshCommand($hostname, $gui);
+    my @command = $self->backend->ipmi_cmdline;
+    push(@command, qw(sol activate));
     my $serial = $self->{args}->{serial};
 
-    $self->callxterm($sshcommand, "ssh:$testapi_console");
-
-    if ($serial) {
-
-        # ssh connection to SUT for iucvconn
-        my $serialchan = $self->backend->start_ssh_serial(
-            hostname => $hostname,
-            password => $password,
-            username => 'root'
-        );
-
-        # start iucvconn
-        $serialchan->exec($serial);
-    }
-}
-
-# to be called on reconnect
-sub kill_ssh {
-    my ($self) = @_;
-
-    $self->backend->stop_ssh_serial;
+    my $cstr = join(' ', @command);
+    $self->callxterm($cstr, "ipmitool:$testapi_console");
 }
 
 1;

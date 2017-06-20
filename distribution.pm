@@ -57,6 +57,7 @@ sub add_console {
         'ssh-iucvconn'    => 'sshIucvconn',
         'virtio-terminal' => 'virtio_terminal',
         'ipmi-sol'        => 'ipmiSol',
+        'ipmi-xterm'      => 'sshXtermIPMI',
     );
     my $required_type = $class_names{$backend_console} || $backend_console;
     my $location      = "consoles/$required_type.pm";
