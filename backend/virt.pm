@@ -21,8 +21,8 @@ use testapi 'get_var';
 use bmwqemu;
 
 sub new {
-    my ($class) = @_;
-    my $self = $class->SUPER::new;
+    my ($class) = shift;
+    my $self = $class->SUPER::new(@_);
     $bmwqemu::vars{QEMURAM}  //= 1024;
     $bmwqemu::vars{QEMUCPUS} //= 1;
     return $self;
@@ -31,4 +31,3 @@ sub new {
 
 1;
 # vim: set sw=4 et:
-
