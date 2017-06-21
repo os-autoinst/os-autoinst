@@ -278,6 +278,10 @@ sub start_qemu {
     die "no kvm-img/qemu-img found\n" unless $qemuimg;
     die "no Qemu/KVM found\n"         unless $qemubin;
     die "MULTINET is not supported with NICTYPE==tap\n" if ($vars->{MULTINET} && $vars->{NICTYPE} eq "tap");
+    bmwqemu::diag "Hijack of connections its supported automatically only with NICTYPE==user"
+      if $vars->{NICTYPE}
+      && $vars->{NICTYPE} ne "user"
+      && ($vars->{CONNECTIONS_HIJACK} || $vars->{CONNECTIONS_HIJACK_DNS} || $vars->{CONNECTIONS_HIJACK_PROXY});
 
     $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});    # XXX: compat with old deployment
     $vars->{UEFI} = 1 if ($vars->{UEFI_PFLASH});
@@ -517,16 +521,33 @@ sub start_qemu {
         gen_params @params, 'cpu',     $vars->{QEMUCPU}     if $vars->{QEMUCPU};
         gen_params @params, 'device',  'virtio-rng-pci'     if $vars->{QEMU_VIRTIO_RNG};
 
+        my $hijack = '';
+        my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} || '';
+
+        if (($vars->{CONNECTIONS_HIJACK_PROXY} || $vars->{CONNECTIONS_HIJACK_DNS} || $vars->{CONNECTIONS_HIJACK}) && $vars->{CONNECTIONS_HIJACK_FAKEIP}) {
+            $hijack
+              = 'guestfwd=tcp:'
+              . $vars->{CONNECTIONS_HIJACK_FAKEIP}
+              . ':80-tcp:127.0.0.1:'
+              . $vars->{CONNECTIONS_HIJACK_PROXY_SERVER_PORT}
+              . ',guestfwd=tcp:'
+              . $vars->{CONNECTIONS_HIJACK_FAKEIP}
+              . ':443-tcp:127.0.0.1:'
+              . $vars->{CONNECTIONS_HIJACK_PROXY_SERVER_PORT};
+        }
+
         for (my $i = 0; $i < $num_networks; $i++) {
             if ($vars->{NICTYPE} eq "user") {
-                my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} ? ',' . $vars->{NICTYPE_USER_OPTIONS} : '';
-                gen_params @params, 'netdev', [qv "user id=qanet$i$nictype_user_options"];
+                gen_params @params, 'netdev', [qv "user id=qanet$i $nictype_user_options $hijack"];
             }
             elsif ($vars->{NICTYPE} eq "tap") {
                 gen_params @params, 'netdev', [qv "tap id=qanet$i ifname=$tapdev[$i] script=$tapscript[$i] downscript=$tapdownscript[$i]"];
             }
             elsif ($vars->{NICTYPE} eq "vde") {
                 gen_params @params, 'netdev', [qv "vde id=qanet0 sock=$vars->{VDE_SOCKETDIR}/vde.ctl port=$vars->{VDE_PORT}"];
+            }
+            elsif ($vars->{NICTYPE} eq "vhost-user") {
+                gen_params @params, 'netdev', [qv "vhost-user id=qanet$i $nictype_user_options $hijack"];
             }
             else {
                 die "unknown NICTYPE $vars->{NICTYPE}\n";
