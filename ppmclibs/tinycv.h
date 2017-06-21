@@ -63,8 +63,8 @@ void image_map_raw_data_rgb555(Image *a, const unsigned char *data);
 // this is for IPMI Supermicro X10 support - ast2100 (don't ask)
 void image_map_raw_data_ast2100(Image *a, const unsigned char *data, size_t len);
 
-// ZLRE encoding for VNC
-long image_map_raw_data_zlre(Image* a, long x, long y, long w, long h,
+// ZRLE encoding for VNC
+long image_map_raw_data_zrle(Image* a, long x, long y, long w, long h,
 			     VNCInfo *info,
 			     unsigned char *data,
 			     size_t len);

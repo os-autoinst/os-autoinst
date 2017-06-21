@@ -661,10 +661,10 @@ cv::Vec3b VNCInfo::read_cpixel(const unsigned char* data, size_t& offset)
     return cv::Vec3b(blue, green, red);
 }
 
-long image_map_raw_data_zlre(Image* a, long x, long y, long w, long h,
+long image_map_raw_data_zrle(Image* a, long x, long y, long w, long h,
     VNCInfo* info, unsigned char* data, size_t bytes)
 {
-    /* ZLRE implementation is described pretty straight forward in the RFB 3.8
+    /* ZRLE implementation is described pretty straight forward in the RFB 3.8
    * protocol */
 
     size_t offset = 0;
@@ -675,7 +675,7 @@ long image_map_raw_data_zlre(Image* a, long x, long y, long w, long h,
         x = orig_x;
         while (w > 0) {
             if (offset >= bytes) {
-                fprintf(stderr, "not enough bytes for zlre\n");
+                fprintf(stderr, "not enough bytes for zrle\n");
                 abort();
             }
             unsigned char sub_encoding = data[offset++];

@@ -116,7 +116,7 @@ void map_raw_data_ast2100(tinycv::Image self, unsigned char *data, size_t len)
 
 long map_raw_data_zrle(tinycv::Image self, long x, long y, long w, long h, tinycv::VNCInfo info, unsigned char *data, size_t len)
   CODE:
-   RETVAL = image_map_raw_data_zlre(self, x, y, w, h, info, data, len);
+   RETVAL = image_map_raw_data_zrle(self, x, y, w, h, info, data, len);
 
   OUTPUT:
    RETVAL
