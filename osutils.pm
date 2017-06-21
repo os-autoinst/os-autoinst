@@ -26,8 +26,17 @@ our @EXPORT_OK = qw(
   dd_gen_params
   find_bin
   gen_params
+  looks_like_ip
   qv
 );
+
+sub looks_like_ip {
+    my $part = qr/\d{1,2}|[01]\d{2}|2[0-4]\d|25[0-5]/;
+    if ($_[0] =~ /^($part\.){3}$part$/) {
+        return 1;
+    }
+    return 0;
+}
 
 # An helper to lookup into a folder and find an executable file between given candidates
 # First argument is the directory, the remainining are the candidates.
