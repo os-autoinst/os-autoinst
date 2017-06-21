@@ -491,7 +491,7 @@ sub _server_initialization {
     @encs = reverse sort { $a->{num} <=> $b->{num} } @encs;
 
     if ($self->dell) {
-        # idrac's zlre implementation even kills tigervnc, they duplicate
+        # idrac's ZRLE implementation even kills tigervnc, they duplicate
         # frames under certain conditions. Raw works ok
         @encs = grep { $_->{name} ne 'ZRLE' } @encs;
     }
@@ -957,7 +957,7 @@ sub _receive_update {
             $image->map_raw_data($data, $x, $y, $w, $h, $self->vncinfo);
         }
         elsif ($encoding_type == 16) {
-            $self->_receive_zlre_encoding($x, $y, $w, $h);
+            $self->_receive_zrle_encoding($x, $y, $w, $h);
         }
         elsif ($encoding_type == -223) {
             $self->width($w);
@@ -1007,7 +1007,7 @@ sub _discard_ikvm_message {
     #     bytes "get-viewer-lang", 8
 }
 
-sub _receive_zlre_encoding {
+sub _receive_zrle_encoding {
     my ($self, $x, $y, $w, $h) = @_;
 
     my $socket = $self->socket;
@@ -1023,7 +1023,7 @@ sub _receive_zlre_encoding {
     while ($read_len < $data_len) {
         my $len = read($socket, $data, $data_len - $read_len, $read_len);
         if (!$len) {
-            OpenQA::Exception::VNCProtocolError->throw(error => "short read for zlre data $read_len - $data_len");
+            OpenQA::Exception::VNCProtocolError->throw(error => "short read for zrle data $read_len - $data_len");
         }
         $read_len += $len;
     }
