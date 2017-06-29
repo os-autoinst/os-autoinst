@@ -36,7 +36,7 @@ my $test = Test::Compile->new();
 my @files = $test->all_pm_files(".");
 
 for my $file (@files) {
-    next if ($file =~ /main.pm/);
+    next if ($file =~ /(main|broken).pm/);
     $file =~ s,^\./,,;
     $test->ok($test->pm_file_compiles($file), "Compile test for $file");
 }
