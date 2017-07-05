@@ -17,9 +17,12 @@ use strict;
 use testapi;
 
 autotest::loadtest "tests/boot.pm";
-autotest::loadtest "tests/assert_screen_fail_test.pm";
-autotest::loadtest "tests/shutdown.pm";
 
+unless (get_var('INTEGRATION_TESTS')) {
+    autotest::loadtest "tests/assert_screen_fail_test.pm";
+}
+
+autotest::loadtest "tests/shutdown.pm";
 
 1;
 
