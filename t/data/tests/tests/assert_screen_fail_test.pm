@@ -25,7 +25,6 @@ sub run {
     eval { assert_screen 'no_tag3', timeout => 1, no_wait => 1; };
     bmwqemu::diag($@) if ($@);
 
-
 }
 
 1;
