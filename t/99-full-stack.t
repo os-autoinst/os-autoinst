@@ -45,12 +45,12 @@ is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'), 0, 'test executed fine');
 my $ignore_results_re = qr/fail/;
 for my $result (grep { $_ !~ $ignore_results_re } glob("testresults/result*.json")) {
     my $json = from_json(Mojo::File->new($result)->slurp);
-    is($json->{result}, 'ok', "Result in $result is ok");
+    is($json->{result}, 'ok', "Result in $result is ok") or BAIL_OUT("$result failed");
 }
 
 for my $result (glob("testresults/result*fail*.json")) {
     my $json = from_json(Mojo::File->new($result)->slurp);
-    is($json->{result}, 'fail', "Result in $result is fail");
+    is($json->{result}, 'fail', "Result in $result is fail") or BAIL_OUT("$result failed");
 }
 
 subtest 'Assert screen failure' => sub {
