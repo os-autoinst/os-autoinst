@@ -159,6 +159,59 @@ subtest 'Test components process' => sub {
 };
 
 
+subtest 'Test components restart' => sub {
+    use backend::component::process;
+
+    my @output;
+    pipe(PARENT, CHILD);
+
+    my $p = backend::component::process->new(
+        code => sub {
+            close(PARENT);
+            open STDERR, ">&", \*CHILD or die $!;
+            print STDERR "FOOBARFTW\n";
+        });
+
+    $p->start();
+    $p->stop();
+
+    close(CHILD);
+    @output = <PARENT>;
+    close(PARENT);
+    chomp @output;
+    is $output[0], "FOOBARFTW";
+    is $p->is_running, 0, "Process now is stopped";
+
+
+    # Redefine new code and restart it.
+    pipe(PARENT, CHILD);
+    $p->code(
+        sub {
+            close(PARENT);
+            open STDERR, ">&", \*CHILD or die $!;
+            print STDERR "FOOBAZFTW\n";
+        });
+    $p->restart();
+    is $p->is_running, 1, "Process now is running";
+    $p->stop();
+    close(CHILD);
+    @output = <PARENT>;
+    chomp @output;
+    is $output[0], "FOOBAZFTW";
+    is $p->is_running, 0, "Process now is not running";
+    @output = ('');
+
+    pipe(PARENT, CHILD);
+    $p->restart();
+    is $p->is_running, 1, "Process now is running";
+    $p->stop();
+    close(CHILD);
+    @output = <PARENT>;
+    chomp @output;
+    is $output[0], "FOOBAZFTW";
+
+};
+
 subtest 'Test components baseclass' => sub {
     use backend::component;
 
