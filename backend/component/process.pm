@@ -26,14 +26,14 @@ has 'sleeptime_during_kill' => 1;
 has [qw(execute code)];
 
 sub _fork {
-    my ($self, $code) = @_;
+    my ($self, $code, @args) = @_;
     die "Can't spawn child without code" unless ref($code) eq "CODE";
 
     my $pid = fork;
     die "Cannot fork: $!" unless defined $pid;
 
     if ($pid == 0) {
-        $code->();
+        $code->(@args);
         exit 0;
     }
     $self->process_id($pid);
@@ -49,6 +49,7 @@ sub is_running {
 
 sub start {
     my $self = shift;
+    return $self if $self->is_running;
     die "Nothing to do" unless !!$self->execute || !!$self->code;
 
     $self->_fork(sub { exec($self->execute); }) if !!$self->execute;
@@ -62,7 +63,7 @@ sub start {
 
 sub stop {
     my $self = shift;
-    return unless $self->is_running;
+    return $self unless $self->is_running;
 
     my $ret;
     my $attempt = 0;
@@ -86,4 +87,16 @@ sub stop {
     return $self;
 }
 
+sub restart {
+    my $self = shift;
+
+    if ($self->is_running) {
+        $self->stop->start();
+    }
+    else {
+        $self->start();
+    }
+
+    return $self;
+}
 1;
