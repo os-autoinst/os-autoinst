@@ -27,6 +27,50 @@ BEGIN {
     unshift @INC, '..';
 }
 
+
+subtest 'Test components pipes' => sub {
+    use backend::component::process;
+    my $p = backend::component::process->new(execute => "$FindBin::Bin/data/process_check.sh");
+
+    $p->start();
+    sleep 1;
+    is $p->getline,     "TEST normal print\n";
+    is $p->err_getline, "TEST error print\n";
+    is $p->is_running,  1;
+    $p->write("FOOBAR\n");
+    sleep 1;
+    is $p->getline, "you entered FOOBAR\n";
+    $p->stop();
+    is $p->is_running, 0;
+};
+
+
+subtest 'Test components pipes with fork' => sub {
+    use backend::component::process;
+    use IO::Select;
+    my $p = backend::component::process->new(
+        code => sub {
+            print "TEST normal print\n";
+            print STDERR "TEST error print\n";
+            print "Enter something : ";
+            my $a = <STDIN>;
+            chomp($a);
+            print "you entered $a\n";
+        });
+
+    $p->start();
+    sleep 1;
+    is $p->getline,     "TEST normal print\n";
+    is $p->err_getline, "TEST error print\n";
+    is $p->is_running,  1;
+    $p->write("FOOBAR\n");
+    is(IO::Select->new($p->read_stream)->can_read(0), 1);
+    sleep 1;
+    is $p->getline, "Enter something : you entered FOOBAR\n";
+    $p->stop();
+    is $p->is_running, 0;
+};
+
 subtest 'Components autoload' => sub {
     use bmwqemu;
     use backend::baseclass;
