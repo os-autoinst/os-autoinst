@@ -16,29 +16,80 @@
 package backend::component::process;
 
 use Mojo::Base 'backend::component';
+BEGIN { $| = 1 }
+
 use bmwqemu;
 use POSIX ":sys_wait_h";
 use Carp 'confess';
+use Symbol 'gensym';
+use IPC::Open3;
+use IO::Handle;
+use IO::Pipe;
+
+use constant DEBUG => $ENV{OSAUTOINST_PROCESS_DEBUG};
 has 'process_id';
-has 'max_kill_attempts'     => 5;
-has 'kill_sleeptime'        => 1;
-has 'sleeptime_during_kill' => 1;
-has [qw(execute code)];
+has [qw(execute code process_control_id write_stream read_stream error_stream)];
+has max_kill_attempts     => 5;
+has kill_sleeptime        => 1;
+has sleeptime_during_kill => 1;
+has args                  => sub { [] };
 
 sub _fork {
     my ($self, $code, @args) = @_;
     die "Can't spawn child without code" unless ref($code) eq "CODE";
 
+    my $input_pipe      = IO::Pipe->new();
+    my $output_pipe     = IO::Pipe->new();
+    my $output_err_pipe = IO::Pipe->new();
+
     my $pid = fork;
     die "Cannot fork: $!" unless defined $pid;
 
     if ($pid == 0) {
-        $code->(@args);
-        exit 0;
+        my $stdout = $output_pipe->writer();
+        my $stderr = $output_err_pipe->writer();
+        my $stdin  = $input_pipe->reader();
+        open STDERR, ">&", $stderr or die $!;
+        open STDOUT, ">&", $stdout or die $!;
+        open STDIN,  ">&", $stdin  or die $!;
+        exit $code->(@args);
     }
     $self->process_id($pid);
+    $self->read_stream($output_pipe->reader());
+    $self->error_stream($output_err_pipe->reader());
+    $self->write_stream($input_pipe->writer());
 
     push @{$self->backend->{children}}, $pid if ($self->backend);
+
+    return $self;
+}
+
+sub write {
+    my ($self, @data) = @_;
+    return unless $self->write_stream;
+    $self->write_stream->syswrite($_) for @data;
+    return $self;
+}
+
+sub getline { return unless $_[0]->read_stream; shift->read_stream->getline; }
+
+sub err_getline { return unless $_[0]->error_stream; shift->error_stream->getline; }
+
+sub _pipe {
+
+    my ($self, @args) = @_;
+    warn 'Pipe: ' . (join ', ', map { "'$_'" } @args) . "\n" if DEBUG;
+
+    my ($wtr, $rdr, $err);
+    $err = gensym;
+    my $pid = open3($wtr, $rdr, $err, @args);
+
+    die "Cannot create pipe: $!" unless defined $pid;
+    $self->process_id($pid);
+
+    $self->read_stream(IO::Handle->new_from_fd($rdr, "r"));
+    $self->write_stream(IO::Handle->new_from_fd($wtr, "w"));
+    $self->error_stream(IO::Handle->new_from_fd($err, "r"));
 
     return $self;
 }
@@ -52,12 +103,14 @@ sub start {
     return $self if $self->is_running;
     die "Nothing to do" unless !!$self->execute || !!$self->code;
 
-    $self->_fork(sub { exec($self->execute); }) if !!$self->execute;
     $self->_fork(
         sub {
             local $SIG{TERM} = sub { exit 0 };
-            &{$self->code()}->();
+            &{$self->code()}->(@{$self->args});
         }) if !!$self->code;
+
+    $self->_pipe($self->execute, (@{$self->args}) x !!($self->args && ref($self->args) eq "ARRAY")) if !!$self->execute;
+
     return $self;
 }
 
@@ -81,7 +134,7 @@ sub stop {
         $self->_diag("Could not kill process id: " . $self->process_id);
     }
     else {
-        $self->process_id(0);
+        delete $self->{process_id};
     }
 
     return $self;
