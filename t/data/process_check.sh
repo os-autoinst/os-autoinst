@@ -9,3 +9,7 @@ do
 done
 
 echo "you entered $TESTVAR"
+
+[[ -n "$@" ]] && echo "$@"
+
+exit 100
