@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-
 # Copyright (C) 2017 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
@@ -49,10 +48,11 @@ sub _start_proxy {
         policy            => $policy,
         redirect_table    => $redirect_table,
         verbose           => 0,
-        kill_sleeptime    => 1
+        kill_sleeptime    => 1,
+        set_pipes         => 0
     );
-
-    $proxy->prepare()->start();
+    $proxy->prepare();
+    $proxy->start();
 
     while (1) {
         last
@@ -150,27 +150,26 @@ subtest 'proxy urlrewrite' => sub {
 
     $proxy->stop();
 
-    my $buffer;
-    {
-        open my $handle, '>', \$buffer;
-        local *STDERR = $handle;
-        local *STDOUT = $handle;
 
-        my $proxy = backend::component::proxy->new(
-            listening_address => $ip,
-            listening_port    => $port,
-            policy            => "URLREWRITE",
-            redirect_table    => {
-                'download.opensuse.org' => ['github.com', "/tumbleweed/repo/oss/README", "FORWARD", "FOOBAR"]
-            },
-            verbose        => 1,
-            kill_sleeptime => 1
-        );
-        $proxy->start();
-        $proxy->stop();
-    }
 
-    like $buffer, qr/Odd number of rewrite rules given.*?Expecting even/;
+    $proxy = backend::component::proxy->new(
+        listening_address => $ip,
+        listening_port    => $port,
+        policy            => "URLREWRITE",
+        redirect_table    => {
+            'download.opensuse.org' => ['github.com', "/tumbleweed/repo/oss/README", "FORWARD", "FOOBAR"]
+        },
+        verbose        => 1,
+        set_pipes      => 1,    # We want to catch the output
+        kill_sleeptime => 1,
+        separate_err   => 0     # We want error to be redirected to stdout
+    );
+    $proxy->start();
+    sleep 1;
+    $proxy->stop();
+
+    my @output = $proxy->getlines();
+    like("@output", qr/Odd number of rewrite rules given.*?Expecting even/);
 };
 
 subtest 'proxy options' => sub {
@@ -250,32 +249,29 @@ subtest 'proxy options' => sub {
     is $proxy->server_type, $bmwqemu::vars{CONNECTIONS_HIJACK_PROXY_SERVER_TYPE}, "Correctly set server type from vars";
 
     # Expected failures.
-    eval {
-        my $proxy = backend::component::proxy->new(
-            listening_address => $ip,
-            listening_port    => $port,
-            policy            => "FOO",
-            verbose           => 0
-        );
-        $proxy->start();
-        $proxy->stop();
-    };
-    ok $@;
-    like $@, qr/Invalid policy/;
 
-    eval {
-        my $proxy = backend::component::proxy->new(
-            listening_address => $ip,
-            listening_port    => $port,
-            server_type       => "FOO",
-            verbose           => 0
-        );
-        $proxy->start();
-        $proxy->stop();
-    };
-    ok $@;
-    like $@, qr/Proxy server_type can be only of type/, "server type can be 'Prefork' or 'Daemon'";
+    $proxy = backend::component::proxy->new(
+        listening_address => $ip,
+        listening_port    => $port,
+        policy            => "FOO",
+        verbose           => 0
+    );
+    $proxy->start();
+    $proxy->stop();
 
+
+    like((@{$proxy->error})[0], qr/Invalid policy/);
+
+    $proxy = backend::component::proxy->new(
+        listening_address => $ip,
+        listening_port    => $port,
+        server_type       => "FOO",
+        verbose           => 0
+    );
+    $proxy->start();
+    $proxy->stop();
+
+    like((@{$proxy->error})[0], qr/Proxy server_type can be only of type/, "server type can be 'Prefork' or 'Daemon'");
 };
 
 done_testing;

@@ -132,15 +132,16 @@ subtest 'dns requests in FORWARD mode' => sub {
 };
 
 subtest 'dns server failures' => sub {
+    my $dnsserver;
     eval {
-        my $dnsserver = _start_dnsserver('SSSINK', {}, []);
+        $dnsserver = _start_dnsserver('SSSINK', {}, []);
         $dnsserver->stop();
     };
-    ok defined $@;
-    like $@, qr/Invalid policy supplied for DNS server./;
+    ok defined !$@;
+    like((@{$dnsserver->error()})[0], qr/Invalid policy supplied for DNS server./);
 
     *bmwqemu::vars = {};
-    my $dnsserver = _start_dnsserver('FORWARD', {}, []);
+    $dnsserver = _start_dnsserver('FORWARD', {}, []);
 
     my $ans = _request('download.opensuse.org', 'A', 'IN');
     ok scalar(@$ans) == 0, 'answer expected in FORWARD mode. but is none if no forward servers are defined';
