@@ -35,6 +35,7 @@ has inactivity_timeout => 20;
 has max_redirects      => 5;
 has connect_timeout    => 20;
 has request_timeout    => 10;
+has set_pipes          => 0;
 
 sub prepare {
     my ($self) = @_;
@@ -72,6 +73,7 @@ sub prepare {
     $self->listening_address($proxy_server_address) if $proxy_server_address;
     $self->policy($policy)                          if $policy;
     $self->server_type($server_type)                if $server_type;
+    $self->code(\&_start);
 
     return $self;
 }
@@ -188,7 +190,7 @@ sub startup {
     $self->routes->any('/' => sub { $self->_handle_request(shift) });
 }
 
-sub start {
+sub _start {
     my $self = shift;
 
     die "Invalid policy supplied for Proxy"
@@ -219,12 +221,16 @@ sub start {
         }
     }
 
-    $self->_fork(
-        sub {
-            my $server_type = join("::", "Mojo", "Server", $self->server_type);
-            $server_type->new(listen => ['http://' . $self->listening_address . ':' . $self->listening_port], app => $self)->silent($self->silent_daemon)->run;
-        });
-    return $self;
+    my $server_type = join("::", "Mojo", "Server", $self->server_type);
+    $server_type->new(listen => ['http://' . $self->listening_address . ':' . $self->listening_port], app => $self)->silent($self->silent_daemon)->run;
+
+}
+
+# We need to override the Mojolicious one with the backend::component::process start()
+sub start {
+    my $self = shift;
+    $self->code(\&_start) unless $self->code;
+    $self->backend::component::process::start;
 }
 
 1;

@@ -28,6 +28,7 @@ has listening_address  => "127.0.0.1";
 has policy             => 'SINK';
 has listening_port     => DNS_BASE_PORT;
 has load => sub { $bmwqemu::vars{CONNECTIONS_HIJACK_DNS} || $bmwqemu::vars{CONNECTIONS_HIJACK} };  #use autoload. so we keep the loading logic in the component.
+has set_pipes => 0;
 
 sub prepare {
     my ($self) = @_;
@@ -39,7 +40,7 @@ sub prepare {
     my $listening_address = $bmwqemu::vars{CONNECTIONS_HIJACK_DNS_SERVER_ADDRESS} || $self->listening_address();
     $bmwqemu::vars{CONNECTIONS_HIJACK_DNS_SERVER_ADDRESS} = $listening_address
       if !$bmwqemu::vars{CONNECTIONS_HIJACK_DNS_SERVER_ADDRESS} || $bmwqemu::vars{CONNECTIONS_HIJACK_DNS_SERVER_ADDRESS} ne $listening_address;
-    my $policy = $bmwqemu::vars{CONNECTIONS_HIJACK_DNS_POLICY} || $self->policy;                   # Can be SINK/FORWARD
+    my $policy = $bmwqemu::vars{CONNECTIONS_HIJACK_DNS_POLICY} || $self->policy;    # Can be SINK/FORWARD
     $bmwqemu::vars{CONNECTIONS_HIJACK_DNS_POLICY} = $policy
       if !$bmwqemu::vars{CONNECTIONS_HIJACK_DNS_POLICY} || $bmwqemu::vars{CONNECTIONS_HIJACK_DNS_POLICY} ne $policy;
 
@@ -56,20 +57,19 @@ sub prepare {
     my %record_table;
 
     if ($dns_table) {
-
         # Generate record table from configuration, translate them in DNS entries
         %record_table = map {
             my ($host, $ip) = split(/:/, $_);
             return () unless $host and $ip;
             $host => ($ip eq "FORWARD" or $ip eq "DROP") ? $ip : (looks_like_ip($ip)) ? ["$host.     A   $ip"] : ["$host.     CNAME   $ip"];
         } split(/,/, $dns_table);
-
     }
 
     $self->record_table(\%record_table)          if keys %record_table > 0;
     $self->listening_port($listening_port)       if $listening_port;
     $self->listening_address($listening_address) if $listening_address;
     $self->policy($policy)                       if $policy;
+    $self->code(\&_start);
 
     return $self;
 }
@@ -104,8 +104,7 @@ sub _forward_resolve {
     return ($rcode, @ans);
 }
 
-sub start {
-
+sub _start {
     my $self = shift;
 
     die "Invalid policy supplied for DNS server. Policy can be 'SINK' or 'FORWARD'"
@@ -170,9 +169,15 @@ sub start {
             $self->_diag("Forward rule: $k => ${record_table{$k}}")   if ref($record_table{$k}) ne "ARRAY";
         }
     }
-    $self->_fork(sub { $ns->main_loop; });
 
+    $ns->main_loop;
     return $self;
+}
+
+sub start {
+    my $self = shift;
+    $self->code(\&_start) unless $self->code;    # Also if we do not call prepare() component will start.
+    $self->backend::component::process::start;
 }
 
 1;
