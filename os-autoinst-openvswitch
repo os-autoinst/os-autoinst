@@ -82,6 +82,49 @@ sub init_switch {
     }
 }
 
+# Check if tap and vlan are in the correct format.
+sub _ovs_check {
+  my $tap = shift;
+  my $vlan = shift;
+  my $bridge = shift;
+  my $return_output;
+  my $return_code = 1;
+
+  if ($tap !~ /^tap[0-9]+$/) {
+        $return_output = "'$tap' does not fit the naming scheme";
+        return ($return_code, $return_output);
+  }
+  if ($vlan !~ /^[0-9]+$/) {
+        $return_output = "'$vlan' does not fit the naming scheme (only numbers)";
+        return ($return_code, $return_output);
+  }
+
+  my $check_bridge = `ovs-vsctl port-to-br $tap`;
+  chomp $check_bridge;
+  if ($check_bridge ne $bridge) {
+        $return_output =  "'$tap' is not connected to bridge '$bridge'";
+        return ($return_code, $return_output);
+  }
+
+  return 0;
+}
+
+sub _cmd {
+  my @args = @_;
+  my($wtr, $rdr, $err);
+  $err = gensym;
+
+  # We need open3 because otherwise STDERR is captured by systemd.
+  # In such way we collect the error and send it back in the dbus call as well.
+  my $ovs_vsctl_pid = open3($wtr, $rdr, $err, @args);
+
+  my @ovs_vsctl_output = <$rdr>;
+  my @ovs_vsctl_error = <$err>;
+  waitpid( $ovs_vsctl_pid, 0 );
+  my $return_code = $?;
+
+  return $return_code, "@ovs_vsctl_error","@ovs_vsctl_output";
+}
 
 dbus_method("set_vlan", ["string", "uint32"], ["int32", "string"]);
 sub set_vlan {
@@ -90,53 +133,59 @@ sub set_vlan {
     my $vlan = shift;
     my $return_output;
     my $return_code = 1;
+    my $ovs_vsctl_error;
+    my $ovs_vsctl_output;
 
-    if ($tap !~ /^tap[0-9]+$/) {
-        $return_output = "'$tap' does not fit the naming scheme";
-        print STDERR $return_output."\n";
-        return ($return_code, $return_output);
-    }
-    if ($vlan !~ /^[0-9]+$/) {
-          $return_output = "'$vlan' does not fit the naming scheme (only numbers)";
-          print STDERR $return_output."\n";
-          return ($return_code, $return_output);
-    }
+    ($return_code, $return_output) = _ovs_check($tap, $vlan, $self->{BRIDGE});
 
-    my $check_bridge = `ovs-vsctl port-to-br $tap`;
-    chomp $check_bridge;
-    if ($check_bridge ne $self->{BRIDGE}) {
-          $return_output =  "'$tap' is not connected to bridge '$self->{BRIDGE}'";
-          print STDERR $return_output."\n";
-          return ($return_code, $return_output);
+    unless ($return_code == 0){
+      print STDERR $return_output."\n";
+      return ($return_code,$return_output);
     }
 
     # Connect tap device to given vlan
-    # We need open3 because otherwise STDERR is captured by systemd.
-    # In such way we collect the error and send it back in the dbus call as well.
-    my($wtr, $rdr, $err);
-    $err = gensym;
-    my $ovs_vsctl_pid = open3($wtr, $rdr, $err, 'ovs-vsctl', 'set', 'port', $tap, "tag=$vlan");
+    ($return_code, $ovs_vsctl_error, $ovs_vsctl_output) = _cmd( 'ovs-vsctl', 'set', 'port', $tap, "tag=$vlan" );
 
-    my @ovs_vsctl_output = <$rdr>;
-    my @ovs_vsctl_error = <$err>;
-    waitpid( $ovs_vsctl_pid, 0 );
-    $return_code = $?;
-
-    print STDERR "@ovs_vsctl_error" if @ovs_vsctl_error > 0;
-    print "@ovs_vsctl_output" if @ovs_vsctl_output > 0;
-    return $return_code, "@ovs_vsctl_error" unless $return_code == 0;
+    print STDERR $ovs_vsctl_error if length($ovs_vsctl_error) > 0;
+    print $ovs_vsctl_output if length($ovs_vsctl_output) > 0;
+    return $return_code, $ovs_vsctl_error unless $return_code == 0;
 
     $return_code = system('ip', 'link', 'set', $tap, 'up');
     return $return_code, $return_code != 0 ? "Failed to set $tap up " : '';
 }
 
-dbus_method("show", [], ["string"]);
+dbus_method("unset_vlan", ["string", "uint32"], ["int32", "string"]);
+sub unset_vlan {
+    my $self = shift;
+    my $tap  = shift;
+    my $vlan = shift;
+    my $return_output;
+    my $return_code = 1;
+    my $ovs_vsctl_error;
+    my $ovs_vsctl_output;
+
+    ($return_code, $return_output) = _ovs_check($tap, $vlan, $self->{BRIDGE});
+
+    unless ($return_code == 0){
+      print STDERR $return_output."\n";
+      return ($return_code,$return_output);
+    }
+
+    # Remove tap device to given vlan
+    ($return_code, $ovs_vsctl_error, $ovs_vsctl_output) = _cmd( 'ovs-vsctl', 'remove', 'port', $tap, 'tag', $vlan );
+
+    print STDERR $ovs_vsctl_error if length($ovs_vsctl_error) > 0;
+    print $ovs_vsctl_output if length($ovs_vsctl_output) > 0;
+    return $return_code, $return_code != 0 ? $ovs_vsctl_error : '';
+}
+
+dbus_method("show", [], ["int32", "string"]);
 sub show {
     my $self = shift;
 
-    my @output = qx|ovs-vsctl show|;
+    my ($return_code, undef, $ovs_vsctl_output) = _cmd( 'ovs-vsctl', 'show' );
 
-    return "@output";
+    return $return_code, $ovs_vsctl_output;
 }
 
 ################################################################################
