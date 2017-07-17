@@ -130,6 +130,31 @@ sub kill_qemu {
     $self->_kill_children_processes;
 }
 
+sub _dbus_call {
+    my $self = shift;
+    my $fn   = shift;
+    my @args = @_;
+
+    my ($rt, $message);
+    eval {
+        # do not die on unconfigured service
+        local $SIG{__DIE__};
+
+        $self->{dbus}         ||= Net::DBus->system;
+        $self->{dbus_service} ||= $self->{dbus}->get_service("org.opensuse.os_autoinst.switch");
+        $self->{dbus_object}  ||= $self->{dbus_service}->get_object("/switch", "org.opensuse.os_autoinst.switch");
+
+        ($rt, $message) = $self->{dbus_object}->$fn(@args);
+        chomp $message;
+        if ($rt != 0) {
+            bmwqemu::diag "Failed to run dbus command '$fn' with arguments '@args'" . " : " . $message;
+        }
+    };
+    print "$@\n" if ($@);
+
+    return ($rt, $message, ($@) x !!($@));
+}
+
 sub do_stop_vm {
     my $self = shift;
 
@@ -137,6 +162,13 @@ sub do_stop_vm {
     kill_qemu($self);
     $self->{pid} = undef;
     unlink($self->{pidfilename});
+
+    # Free allocated vlans - if any -
+    return unless $self->{allocated_networks} && $self->{allocated_tap_devices} && $self->{allocated_vlan_tags};
+
+    for (my $i = 0; $i < $self->{allocated_networks}; $i++) {
+        $self->_dbus_call('unset_vlan', (@{$self->{allocated_tap_devices}})[$i], (@{$self->{allocated_vlan_tags}})[$i]);
+    }
 }
 
 sub can_handle {
@@ -506,7 +538,6 @@ sub start_qemu {
         symlink($i, "$basedir/l$i") or die "$!\n";
     }
 
-
     my @params = ("-serial", "file:serial0", "-soundhw", "ac97");
     {
         push(@params, @vgaoptions);
@@ -787,28 +818,17 @@ sub start_qemu {
     }
 
     if ($vars->{NICTYPE} eq "tap") {
-        eval {
-            # do not die on unconfigured service
-            local $SIG{__DIE__};
-
-            my $bus     = Net::DBus->system;
-            my $service = $bus->get_service("org.opensuse.os_autoinst.switch");
-            my $object  = $service->get_object("/switch", "org.opensuse.os_autoinst.switch");
-
-            for (my $i = 0; $i < $num_networks; $i++) {
-                my ($rt, $message) = $object->set_vlan($tapdev[$i], $nicvlan[$i]);
-                chomp $message;
-                if ($rt != 0) {
-                    bmwqemu::diag "Failed to set vlan tag '" . $nicvlan[$i] . "' on interface '" . $tapdev[$i] . "' : " . $message;
-                }
-            }
-            my $ovs_status = $object->show();
-            if (length $ovs_status > 0) {
-                bmwqemu::diag "Open vSwitch networking status:";
-                bmwqemu::diag $ovs_status;
-            }
-        };
-        print "$@\n" if ($@);
+        $self->{allocated_networks}    = $num_networks;
+        $self->{allocated_tap_devices} = \@tapdev;
+        $self->{allocated_vlan_tags}   = \@nicvlan;
+        for (my $i = 0; $i < $num_networks; $i++) {
+            $self->_dbus_call('set_vlan', $tapdev[$i], $nicvlan[$i]);
+        }
+        if (exists $vars->{OVS_DEBUG} && $vars->{OVS_DEBUG} == 1) {
+            my (undef, $output) = $self->_dbus_call('show');
+            bmwqemu::diag "Open vSwitch networking status:";
+            bmwqemu::diag $output;
+        }
     }
 
     if ($bmwqemu::vars{DELAYED_START}) {
