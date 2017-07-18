@@ -548,16 +548,22 @@ sub start_qemu {
         gen_params @params, 'cpu',     $vars->{QEMUCPU}     if $vars->{QEMUCPU};
         gen_params @params, 'device',  'virtio-rng-pci'     if $vars->{QEMU_VIRTIO_RNG};
 
+        my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} || '';
+
         for (my $i = 0; $i < $num_networks; $i++) {
+            my $net_id = "id=qanet$i";
+
             if ($vars->{NICTYPE} eq "user") {
-                my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} ? ',' . $vars->{NICTYPE_USER_OPTIONS} : '';
-                gen_params @params, 'netdev', [qv "user id=qanet$i$nictype_user_options"];
+                gen_params @params, 'netdev', [qv "user $net_id $nictype_user_options"];
             }
             elsif ($vars->{NICTYPE} eq "tap") {
-                gen_params @params, 'netdev', [qv "tap id=qanet$i ifname=$tapdev[$i] script=$tapscript[$i] downscript=$tapdownscript[$i]"];
+                gen_params @params, 'netdev', [qv "tap $net_id ifname=$tapdev[$i] script=$tapscript[$i] downscript=$tapdownscript[$i]"];
             }
             elsif ($vars->{NICTYPE} eq "vde") {
-                gen_params @params, 'netdev', [qv "vde id=qanet0 sock=$vars->{VDE_SOCKETDIR}/vde.ctl port=$vars->{VDE_PORT}"];
+                gen_params @params, 'netdev', [qv "vde $net_id sock=$vars->{VDE_SOCKETDIR}/vde.ctl port=$vars->{VDE_PORT}"];
+            }
+            elsif ($vars->{NICTYPE} eq "vhost-user") {
+                gen_params @params, 'netdev', [qv "vhost-user $net_id $nictype_user_options"];
             }
             else {
                 die "unknown NICTYPE $vars->{NICTYPE}\n";
@@ -596,8 +602,7 @@ sub start_qemu {
             else {
                 # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
                 my $bootindex = ($i == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? "bootindex=0" : "";
-                my $serial = "serial=$i";
-                gen_params @params, 'device', [qv "$vars->{HDDMODEL} drive=hd$i $bootindex $serial"];
+                gen_params @params, 'device', [qv "$vars->{HDDMODEL} drive=hd$i $bootindex serial=$i"];
                 gen_params @params, 'drive',  [qv "file=$basedir/l$i cache=unsafe if=none id=hd$i format=$vars->{HDDFORMAT}"];
             }
         }
