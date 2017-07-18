@@ -129,6 +129,7 @@ sub run {
     $self->run_capture_loop;
 
     bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
+
 }
 
 =head2 run_capture_loop($timeout)
@@ -259,6 +260,7 @@ sub start_vm {
 
 sub stop_vm {
     my ($self) = @_;
+
     if ($self->{started}) {
         # backend.run might have disappeared already in case of failed builds
         no autodie 'unlink';
@@ -420,6 +422,7 @@ sub close_pipes {
     bmwqemu::diag "sending magic and exit";
     $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || die "close $!\n";
+    $self->_kill_children_processes;
     Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
 }
