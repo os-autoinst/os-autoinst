@@ -26,7 +26,7 @@ use osutils qw(dd_gen_params gen_params);
 
 sub new {
     my $class      = shift;
-    my $self       = $class->SUPER::new;
+    my $self       = $class->SUPER::new(@_);
     my $masterlpar = qx{cat /proc/device-tree/ibm,partition-name};
     $self->{pid}         = undef;
     $self->{children}    = [];

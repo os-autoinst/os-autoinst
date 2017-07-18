@@ -51,7 +51,10 @@ __PACKAGE__->mk_accessors(
 
 sub new {
     my $class = shift;
-    my $self = bless({class => $class}, $class);
+
+    my $self = bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, $class;
+
+    $self->{class}                = $class;
     $self->{started}              = 0;
     $self->{serialfile}           = "serial0";
     $self->{serial_offset}        = 0;

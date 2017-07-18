@@ -36,7 +36,7 @@ use autodie ':all';
 
 sub new {
     my $class = shift;
-    return $class->SUPER::new;
+    return $class->SUPER::new(@_);
 }
 
 sub relogin_vnc {

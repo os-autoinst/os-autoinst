@@ -26,7 +26,7 @@ use IO::Select;
 
 sub new {
     my $class = shift;
-    my $self  = $class->SUPER::new;
+    my $self  = $class->SUPER::new(@_);
     get_required_var('WORKER_HOSTNAME');
 
     return $self;

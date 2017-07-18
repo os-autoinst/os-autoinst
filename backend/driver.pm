@@ -39,16 +39,20 @@ sub diag {
 }
 
 sub new {
-    my ($class, $name) = @_;
+    my $class = shift;
 
-    my $self = bless({class => $class}, $class);
+    my $self = bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, $class;
 
+    $self->{class} = $class;
+    die "You should at least specify a backend" unless exists $self->{backend};
+
+    my $name           = $self->{backend};
     my $backend_module = "backend::$name";
 
     my $e = load_class $backend_module;
     die ">> Loading '$backend_module' failed: $e" if ref $e;
 
-    $self->{backend}      = $backend_module->new();
+    $self->{backend}      = $backend_module->new(@_);
     $self->{backend_name} = $name;
 
     $self->start();

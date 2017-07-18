@@ -36,7 +36,7 @@ use List::Util 'max';
 
 sub new {
     my $class = shift;
-    my $self  = $class->SUPER::new;
+    my $self  = $class->SUPER::new(@_);
     # By compressing we are making the images self contained, i.e. they are
     # portable by not requiring backing files referencing the openQA instance.
     # Compressing takes longer but the transfer takes shorter amount of time.

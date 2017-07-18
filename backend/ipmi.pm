@@ -37,7 +37,7 @@ use autodie ':all';
 sub new {
     my $class = shift;
     get_required_var('WORKER_HOSTNAME');
-    return $class->SUPER::new;
+    return $class->SUPER::new(@_);
 }
 
 sub ipmi_cmdline {
