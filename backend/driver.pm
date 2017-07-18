@@ -29,6 +29,7 @@ use POSIX '_exit';
 require IPC::System::Simple;
 use autodie ':all';
 use myjsonrpc;
+use Mojo::Loader 'load_class';
 
 # TODO: move the whole printing out of bmwqemu
 sub diag {
@@ -39,10 +40,15 @@ sub diag {
 
 sub new {
     my ($class, $name) = @_;
+
     my $self = bless({class => $class}, $class);
 
-    require "backend/$name.pm";    ## no critic
-    $self->{backend}      = "backend::$name"->new();
+    my $backend_module = "backend::$name";
+
+    my $e = load_class $backend_module;
+    die ">> Loading '$backend_module' failed: $e" if ref $e;
+
+    $self->{backend}      = $backend_module->new();
     $self->{backend_name} = $name;
 
     $self->start();
