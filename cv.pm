@@ -24,7 +24,7 @@ use ExtUtils::testlib;
 
 use File::Basename;
 
-sub init() {
+sub init {
     use Config;
     my $vendorlib = $Config{installvendorlib};
     my $libdir    = dirname(__FILE__);

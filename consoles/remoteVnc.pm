@@ -20,12 +20,12 @@ use strict;
 use warnings;
 use testapi 'get_var';
 
-sub init() {
+sub init {
     my ($self) = @_;
     $self->{name} = 'remote-vnc';
 }
 
-sub activate() {
+sub activate {
     my ($self, $testapi_console, $console_args) = @_;
 
     return $self->SUPER::activate(
@@ -39,7 +39,7 @@ sub activate() {
 }
 
 # override
-sub select() {
+sub select {
 }
 
 1;

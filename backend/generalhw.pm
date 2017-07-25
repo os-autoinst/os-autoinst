@@ -99,7 +99,7 @@ sub relogin_vnc {
     return 1;
 }
 
-sub do_start_vm() {
+sub do_start_vm {
     my ($self) = @_;
 
     # remove backend.crashed

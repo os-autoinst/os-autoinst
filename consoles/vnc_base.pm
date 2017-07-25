@@ -39,7 +39,7 @@ sub activate {
     return $self->SUPER::activate;
 }
 
-sub disable() {
+sub disable {
     my ($self) = @_;
     close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
     $self->{vnc} = undef;
