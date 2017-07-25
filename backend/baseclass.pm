@@ -305,7 +305,7 @@ sub write_crash_file {
 # new api end
 
 # virtual methods
-sub notimplemented() { confess "backend method not implemented" }
+sub notimplemented { confess "backend method not implemented" }
 
 sub power {
 

@@ -781,7 +781,7 @@ sub send_pointer_event {
 
 # drain the VNC socket from all pending incoming messages.  return
 # true if there was a screen update.
-sub update_framebuffer() {    # upstream VNC.pm:  "capture"
+sub update_framebuffer {    # upstream VNC.pm:  "capture"
     my ($self) = @_;
 
     try {

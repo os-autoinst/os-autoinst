@@ -20,7 +20,7 @@ use warnings;
 
 use testapi ();
 
-sub new() {
+sub new {
     my ($class) = @_;
 
     my $self = bless {}, $class;

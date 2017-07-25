@@ -726,6 +726,8 @@ sub wait_serial {
     # to string, we need to feed string of result to
     # record_serialresult()
     $matched = $matched ? 'ok' : 'fail';
+    # convert dos2unix (poo#20542)
+    $ret->{string} =~ s,\r\n,\n,g;
     $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string});
     bmwqemu::fctres("$regexp: $matched");
     return $ret->{string} if ($matched eq "ok");

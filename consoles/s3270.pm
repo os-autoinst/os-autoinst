@@ -39,7 +39,7 @@ use Thread::Queue;
 
 use Time::HiRes 'usleep';
 
-sub start() {
+sub start {
     my $self = shift;
 
     # prepare the communication queue
@@ -54,7 +54,7 @@ sub start() {
 
 }
 
-sub finish() {
+sub finish {
     my $self = shift;
     IPC::Run::finish($self->{connection});
 }
@@ -72,7 +72,7 @@ sub finish() {
 #    terminal_status => "s3270 status line, see man s3270",
 # }
 
-sub send_3270() {
+sub send_3270 {
     my ($self, $command, %arg) = @_;
     $command //= '';
     if (!exists $arg{command_status}) {
@@ -161,7 +161,7 @@ sub ensure_screen_update {
 #  - only clear the screen when it's full, not all the time, thus
 #    cope with new incremental input in addition to something that
 #    is already captured.
-sub expect_3270() {
+sub expect_3270 {
     my ($self, %arg) = @_;
 
     $arg{buffer_full}     //= qr/MORE\.\.\./;
@@ -291,7 +291,7 @@ sub expect_3270() {
     return $result;
 }
 
-sub wait_output() {
+sub wait_output {
     my ($self, $timeout) = @_;
     $timeout //= 0;    # just poll
     my $r = $self->send_3270("Wait($timeout,Output)", command_status => 'any');
@@ -308,7 +308,7 @@ sub wait_output() {
 
 ###################################################################
 
-sub sequence_3270() {
+sub sequence_3270 {
     my ($self, @commands) = @_;
 
     foreach my $command (@commands) {
@@ -317,7 +317,7 @@ sub sequence_3270() {
 }
 
 # map the terminal status of x3270 to a hash
-sub nice_3270_status() {
+sub nice_3270_status {
     my ($self, $status_string) = @_;
     my (@raw_status) = split(" ", $status_string);
     my @status_names = (
@@ -373,7 +373,7 @@ sub nice_3270_status() {
     return \%nice_status;
 }
 
-sub _connect_3270() {
+sub _connect_3270 {
     my ($self, $host) = @_;
 
     my $r = $self->send_3270("Connect($host)");
@@ -393,7 +393,7 @@ sub _connect_3270() {
     return $r;
 }
 
-sub _login_guest() {
+sub _login_guest {
     my ($self, $guest, $password) = @_;
 
     $self->send_3270("String($guest)");
@@ -408,7 +408,7 @@ sub _login_guest() {
     return $r;
 }
 
-sub cp_logoff_disconnect() {
+sub cp_logoff_disconnect {
     my ($self) = @_;
 
     # #cp force logoff immediate ??
@@ -418,7 +418,7 @@ sub cp_logoff_disconnect() {
 
 }
 
-sub cp_disconnect() {
+sub cp_disconnect {
     my ($self) = @_;
 
     $self->send_3270('String("#cp disconnect")');
@@ -431,7 +431,7 @@ sub DESTROY {
     IPC::Run::finish($self->{connection}) if $self->{connection};
 }
 
-sub connect_and_login() {
+sub connect_and_login {
     my ($self, $reconnect_ok) = @_;
     $reconnect_ok //= 0;
     my $r;
@@ -511,7 +511,7 @@ sub activate {
     return;
 }
 
-sub disable() {
+sub disable {
     my ($self) = @_;
     $self->cp_logoff_disconnect();
     $self->_kill_window();

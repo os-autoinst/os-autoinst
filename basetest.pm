@@ -249,13 +249,13 @@ sub result {
     return $self->{result} || 'na';
 }
 
-sub start() {
+sub start {
     my ($self) = @_;
     $self->{running} = 1;
     autotest::set_current_test($self);
 }
 
-sub done() {
+sub done {
     my $self = shift;
     $self->{running} = 0;
     $self->{result} ||= 'ok';
@@ -265,13 +265,13 @@ sub done() {
     autotest::set_current_test(undef);
 }
 
-sub fail_if_running() {
+sub fail_if_running {
     my $self = shift;
     $self->{result} = 'fail' if $self->{result};
     autotest::set_current_test(undef);
 }
 
-sub skip_if_not_running() {
+sub skip_if_not_running {
     my ($self) = @_;
 
     $self->{result} = 'skip' if !$self->{result};
@@ -279,7 +279,7 @@ sub skip_if_not_running() {
 }
 
 
-sub timeout_screenshot() {
+sub timeout_screenshot {
     my ($self) = @_;
 
     my $n = ++$self->{timeoutcounter};
@@ -355,7 +355,7 @@ sub runtest {
     return $ret;
 }
 
-sub save_test_result() {
+sub save_test_result {
     my ($self) = @_;
 
     my $result = {

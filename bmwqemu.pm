@@ -65,7 +65,7 @@ our @ovmf_locations = ('/usr/share/qemu/ovmf-x86_64-ms.bin', '/usr/share/edk2.gi
 
 our %vars;
 
-sub load_vars() {
+sub load_vars {
     my $fn  = "vars.json";
     my $ret = {};
     local $/;
@@ -77,7 +77,7 @@ sub load_vars() {
     return;
 }
 
-sub save_vars() {
+sub save_vars {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
@@ -91,7 +91,7 @@ sub save_vars() {
     return;
 }
 
-sub result_dir() {
+sub result_dir {
     return "testresults";
 }
 
@@ -236,7 +236,7 @@ sub modstart {
 }
 
 use autotest '$current_test';
-sub current_test() {
+sub current_test {
     return $autotest::current_test;
 }
 
@@ -290,7 +290,7 @@ sub fileContent {
 
 # backend management
 
-sub stop_vm() {
+sub stop_vm {
     return unless $backend;
     my $ret = $backend->stop();
     if (!$direct_output && $logfd) {
