@@ -177,14 +177,14 @@ sub can_handle {
 
     if ($args->{function} eq 'snapshots') {
         # raw HDD format does not support snapshots
-        return unless $vars->{HDDFORMAT} ne 'raw';
+        return if $vars->{HDDFORMAT} eq 'raw';
 
         # virtio-gpu does not support saving yet
-        return unless $vars->{QEMUVGA} ne 'virtio';
+        return if $vars->{QEMUVGA} eq 'virtio';
 
         # XXX: Temporary (hopefully) workaround for nvme, since snapshots fails.
         # See also https://github.com/os-autoinst/os-autoinst/pull/781
-        return unless $vars->{HDDMODEL} ne 'nvme';
+        return if $vars->{HDDMODEL} eq 'nvme';
 
         return {ret => 1};
     }
