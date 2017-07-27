@@ -180,7 +180,7 @@ sub can_handle {
         return if $vars->{HDDFORMAT} eq 'raw';
 
         # virtio-gpu does not support saving yet
-        return if defined?($vars->{QEMUVGA}) && $vars->{QEMUVGA} eq 'virtio';
+        return if defined $vars->{QEMUVGA} && $vars->{QEMUVGA} eq 'virtio';
 
         # XXX: Temporary (hopefully) workaround for nvme, since snapshots fails.
         # See also https://github.com/os-autoinst/os-autoinst/pull/781
