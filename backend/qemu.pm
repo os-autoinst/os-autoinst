@@ -175,9 +175,17 @@ sub can_handle {
     my ($self, $args) = @_;
     my $vars = \%bmwqemu::vars;
 
-    # XXX: Temporary (hopefully) workaround for nvme, since snapshots fails.
-    # See also https://github.com/os-autoinst/os-autoinst/pull/781
-    if ($args->{function} eq 'snapshots' && $vars->{HDDFORMAT} ne 'raw' && $vars->{HDDMODEL} ne 'nvme') {
+    if ($args->{function} eq 'snapshots') {
+        # raw HDD format does not support snapshots
+        return if $vars->{HDDFORMAT} eq 'raw';
+
+        # virtio-gpu does not support saving yet
+        return if ($vars->{QEMUVGA} || '') eq 'virtio';
+
+        # XXX: Temporary (hopefully) workaround for nvme, since snapshots fails.
+        # See also https://github.com/os-autoinst/os-autoinst/pull/781
+        return if $vars->{HDDMODEL} eq 'nvme';
+
         return {ret => 1};
     }
     return;
