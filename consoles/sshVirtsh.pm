@@ -387,11 +387,12 @@ sub add_disk {
         if ($self->vmm_type eq 'hvm') {
             if ($args->{cdrom}) {
                 $dev_type = "hd$dev_id";
+                $bus_type = 'ide';
             }
             else {
                 $dev_type = "hd$dev_id";
+                $bus_type = 'xen';
             }
-            $bus_type = 'ide';
         }
         elsif ($self->vmm_type eq 'linux') {
             if ($args->{cdrom}) {
