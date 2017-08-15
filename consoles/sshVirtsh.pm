@@ -76,7 +76,7 @@ sub activate {
         die "cant' start xterm on $display (err: $! retval: $?)";
     }
     # FIXME: assert_screen('xterm_password');
-    sleep 3;
+    sleep 10;
     $self->type_string({text => $password . "\n"});
     $self->_init_xml();
 }
