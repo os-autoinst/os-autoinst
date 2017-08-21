@@ -218,7 +218,8 @@ sub _handle_found_needle {
     my $frame = $rsp->{frame};
     $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates}, $frame);
     my $lastarea = $foundneedle->{area}->[-1];
-    bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+    bmwqemu::fctres(
+        sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x} // 0, $lastarea->{y} // 0));
     $last_matched_needle = $foundneedle;
     return $foundneedle;
 }
