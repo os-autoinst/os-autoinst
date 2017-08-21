@@ -120,7 +120,7 @@ int main(int argc, char* argv[])
         return 2;
     }
 
-    fftw_plan snd_plan = fftw_plan_dft_r2c_1d(nDftSamples, fftw_in, fftw_out, 0);
+    fftw_plan snd_plan = fftw_plan_dft_r2c_1d(nDftSamples, fftw_in, fftw_out, FFTW_ESTIMATE);
 
     if (!snd_plan) {
         fprintf(stderr, "Fail to initialize FFTW plan.\n");
