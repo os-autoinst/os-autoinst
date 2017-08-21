@@ -40,7 +40,8 @@ close($var);
 open($var, '>', 'live_log');
 close($var);
 system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
-is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'), 0, 'test executed fine');
+is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'),                 0, 'test executed fine');
+is(system('grep -q "\d* Snapshots are supported" autoinst-log.txt'), 0, 'Snapshots are enabled');
 
 my $ignore_results_re = qr/fail/;
 for my $result (grep { $_ !~ $ignore_results_re } glob("testresults/result*.json")) {
@@ -82,12 +83,14 @@ print $var <<EOV;
    "HDDMODEL" : "ide-drive",
    "INTEGRATION_TESTS" : "1",
    "VERSION" : "1",
+   "QEMU_DISABLE_SNAPSHOTS" : "1"
 }
 EOV
 
 system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
 isnt(system('grep -q "assert_screen_fail_test" autoinst-log.txt'), 0, 'assert screen test not scheduled');
-is(system('grep -q "isotovideo done" autoinst-log.txt'), 0, 'isotovideo is done');
-is(system('grep -q "EXIT 0" autoinst-log.txt'),          0, 'Test finished as expected');
+is(system('grep -q "\d* Snapshots are not supported" autoinst-log.txt'), 0, 'Snapshots are not supported');
+is(system('grep -q "isotovideo done" autoinst-log.txt'),                 0, 'isotovideo is done');
+is(system('grep -q "EXIT 0" autoinst-log.txt'),                          0, 'Test finished as expected');
 
 done_testing();

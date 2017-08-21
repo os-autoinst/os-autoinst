@@ -186,6 +186,8 @@ sub can_handle {
         # See also https://github.com/os-autoinst/os-autoinst/pull/781
         return if $vars->{HDDMODEL} eq 'nvme';
 
+        return if $vars->{QEMU_DISABLE_SNAPSHOTS};
+
         return {ret => 1};
     }
     return;
