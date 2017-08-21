@@ -149,7 +149,7 @@ int main(int argc, char* argv[])
         memset(points[TimePos], 0, sizeof(double) * nDftSamples);
         for (sf_count_t i = 0; i < nDftSamples / 2; i++) {
             double freq = (double)i * info_in.samplerate / (double)nDftSamples;
-            double value = imabs(fftw_out[i]) / 2.0;
+            double value = imabs(fftw_out[i]);
             points[TimePos][i * 2] = freq;
             points[TimePos][i * 2 + 1] = value;
             if (max_value < value)
@@ -157,7 +157,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    fprintf(stderr, "max amplitude: %lf\n", max_value);
+    fprintf(stderr, "max amplitude: %lf\n", max_value / 2.0);
 
     // SILENCE, I'll kill you!
     int first_non_silence = 0;
