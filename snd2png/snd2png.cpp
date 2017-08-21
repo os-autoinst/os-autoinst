@@ -75,6 +75,9 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    fprintf(stderr, "snd2png: %d channels, samplerate %d Hz, %ld frames (%.2f seconds)\n", info_in.channels,
+            info_in.samplerate, info_in.frames, (float)(info_in.frames)/info_in.samplerate);
+
     float* infile_data = (float*)fftw_malloc(sizeof(float) * info_in.frames * info_in.channels);
     if (!infile_data) {
         fputs(ERR_NOT_ENOUGH_MEMORY, stderr);
@@ -101,7 +104,7 @@ int main(int argc, char* argv[])
     sf_count_t overlap = window_size / 2;
     sf_count_t nDftSamples = window_size + overlap * 2;
 
-    fprintf(stderr, "snd2png: %ld samples\n", nDftSamples);
+    fprintf(stderr, "snd2png: %ld frequency bins\n", nDftSamples);
 
     double* fftw_in = (double*)fftw_malloc(sizeof(double) * nDftSamples);
     if (!fftw_in) {
@@ -130,7 +133,7 @@ int main(int argc, char* argv[])
     if (times * window_size + overlap > info_in.frames)
         times--;
 
-    fprintf(stderr, "times %d\n", times);
+    fprintf(stderr, "spectogram samples: %d\n", times);
 
     double** points = (double**)malloc(sizeof(double*) * times);
     double max_value = 0;
@@ -154,7 +157,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    fprintf(stderr, "max value: %lf\n", max_value);
+    fprintf(stderr, "max amplitude: %lf\n", max_value);
 
     // SILENCE, I'll kill you!
     int first_non_silence = 0;
