@@ -1028,7 +1028,7 @@ Special characters naming:
 sub send_key {
     my ($key, $do_wait) = @_;
     $do_wait //= 0;
-    bmwqemu::log_call(key => $key);
+    bmwqemu::log_call(key => $key, do_wait => $do_wait);
     query_isotovideo('backend_send_key', {key => $key});
     wait_idle() if $do_wait;
 }
@@ -1315,7 +1315,7 @@ C<$distri->console_selected> is called with C<@args>.
 
 sub select_console {
     my ($testapi_console, @args) = @_;
-    bmwqemu::log_call(testapi_console => $testapi_console);
+    bmwqemu::log_call(testapi_console => $testapi_console, @args);
     if (!exists $testapi_console_proxies{$testapi_console}) {
         $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
     }
@@ -1809,7 +1809,7 @@ sub upload_logs {
     my $failok  = $args{failok} || 0;
     my $timeout = $args{timeout} || 90;
 
-    bmwqemu::log_call(file => $file);
+    bmwqemu::log_call(file => $file, %args);
     my $basename = basename($file);
     my $upname   = ref($autotest::current_test) . '-' . $basename;
     my $cmd      = "curl --form upload=\@$file --form upname=$upname ";
@@ -1853,7 +1853,7 @@ C<$nocheck> parameter:
 sub upload_asset {
     my ($file, $public, $nocheck) = @_;
 
-    bmwqemu::log_call(file => $file);
+    bmwqemu::log_call(file => $file, public => $public, nocheck => $nocheck);
     my $cmd = "curl --form upload=\@$file ";
     $cmd .= "--form target=assets_public " if $public;
     my $basename = basename($file);
