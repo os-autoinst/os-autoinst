@@ -1123,17 +1123,24 @@ sub type_string {
 
     my $max_interval = $args{max_interval}       // 250;
     my $wait         = $args{wait_screen_change} // 0;
-    bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait);
+    my $wait_still   = $args{wait_still_screen}  // 0;
+    bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait, wait_still_screen => $wait_still);
     if ($wait) {
         # split string into an array of pieces of specified size
         # https://stackoverflow.com/questions/372370
         my @pieces = unpack("(a${wait})*", $string);
         for my $piece (@pieces) {
             wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); };
+            if ($wait_still) {
+                wait_still_screen($wait_still);
+            }
         }
     }
     else {
         query_isotovideo('backend_type_string', {text => $string, max_interval => $max_interval});
+        if ($wait_still) {
+            wait_still_screen($wait_still);
+        }
     }
 }
 

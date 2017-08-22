@@ -89,8 +89,12 @@ EOV
 
 system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
 isnt(system('grep -q "assert_screen_fail_test" autoinst-log.txt'), 0, 'assert screen test not scheduled');
-is(system('grep -q "\d* Snapshots are not supported" autoinst-log.txt'), 0, 'Snapshots are not supported');
-is(system('grep -q "isotovideo done" autoinst-log.txt'),                 0, 'isotovideo is done');
-is(system('grep -q "EXIT 0" autoinst-log.txt'),                          0, 'Test finished as expected');
+is(system('grep -q "do not wait_still_screen" autoinst-log.txt'),                              0, 'test type string and do not wait');
+is(system('grep -q "wait_still_screen: detected same image for 5 seconds" autoinst-log.txt'),  0, 'test type string and wait for 5 seconds');
+is(system('grep -q "wait_still_screen: detected same image for 10 seconds" autoinst-log.txt'), 0, 'test type string and wait for 10 seconds');
+is(system('grep -q "wait_still_screen: detected same image for 20 seconds" autoinst-log.txt'), 0, 'test type string and wait for 20 seconds');
+is(system('grep -q "\d* Snapshots are not supported" autoinst-log.txt'),                       0, 'Snapshots are not supported');
+is(system('grep -q "isotovideo done" autoinst-log.txt'),                                       0, 'isotovideo is done');
+is(system('grep -q "EXIT 0" autoinst-log.txt'),                                                0, 'Test finished as expected');
 
 done_testing();

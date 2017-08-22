@@ -109,6 +109,17 @@ type_string 'hallo', wait_screen_change => 3, max_interval => 10;
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 10, text => 'hal'}, {cmd => 'backend_type_string', max_interval => 10, text => 'lo'},]);
 $cmds = [];
 
+subtest 'type_string with wait_still_screen' => sub {
+    my $wait_still_screen_called = 0;
+    my $module                   = new Test::MockModule('testapi');
+    $module->mock(wait_still_screen => sub { $wait_still_screen_called = 1; });
+    type_string 'hallo', wait_still_screen => 1;
+    is_deeply($cmds, [{cmd => 'backend_type_string', text => 'hallo', max_interval => 250}]);
+    $cmds = [];
+    ok($wait_still_screen_called, 'wait still screen should have been called');
+};
+
+
 $testapi::password = 'stupid';
 type_password;
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 'stupid'}]);
