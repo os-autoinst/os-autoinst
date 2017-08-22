@@ -26,16 +26,16 @@ static double imabs(fftw_complex cpx)
 }
 
 // boring linear interpolation
-double valueForFreq(double* points, int count, double freq)
+double valueForFreq(double* points, double* frequencies, int count, double freq)
 {
-    for (int i = 0; i < count; ++i) {
+    for (int i = 1; i < count; ++i) {
 
-        if (points[i * 2] > freq) {
-            double next_freq = points[i * 2];
-            double next_value = points[i * 2 + 1];
+        if (frequencies[i] > freq) {
+            double next_freq = frequencies[i];
+            double next_value = points[i];
 
-            double prev_freq = points[i * 2 - 2];
-            double prev_value = points[i * 2 - 1];
+            double prev_freq = frequencies[i - 1];
+            double prev_value = points[i - 1];
 
             double value = prev_value + (next_value - prev_value) * (freq - prev_freq) / (next_freq - prev_freq);
             return value;
@@ -49,7 +49,7 @@ double max_row_value(double* points, int count)
 {
     double max_value = 0;
     for (sf_count_t i = 0; i < count; i++) {
-        double value = points[i * 2 + 1];
+        double value = points[i];
         if (value > max_value)
             max_value = value;
     }
@@ -140,6 +140,12 @@ int main(int argc, char* argv[])
     double fft_max_freq = info_in.samplerate / 2.0;
     int last_bin = std::min(int(1 + ceil(max_freq / fft_max_freq * (nDftSamples/2.0))), int(1 + nDftSamples/2.0));
 
+    double* frequencies = (double*)malloc(sizeof(double) * last_bin);
+    for (sf_count_t i = 0; i < last_bin; i++) {
+        double freq = (double)i * info_in.samplerate / (double)nDftSamples;
+        frequencies[i] = freq;
+    }
+
     double** points = (double**)malloc(sizeof(double*) * times);
     double max_value = 0;
 
@@ -150,13 +156,11 @@ int main(int argc, char* argv[])
 
         fftw_execute(snd_plan);
 
-        points[TimePos] = (double*)malloc(sizeof(double) * last_bin * 2);
-        memset(points[TimePos], 0, sizeof(double) * last_bin * 2);
+        points[TimePos] = (double*)malloc(sizeof(double) * last_bin);
+        memset(points[TimePos], 0, sizeof(double) * last_bin);
         for (sf_count_t i = 0; i < last_bin; i++) {
-            double freq = (double)i * info_in.samplerate / (double)nDftSamples;
             double value = imabs(fftw_out[i]);
-            points[TimePos][i * 2] = freq;
-            points[TimePos][i * 2 + 1] = value;
+            points[TimePos][i] = value;
             if (max_value < value)
                 max_value = value;
         }
@@ -189,10 +193,10 @@ int main(int argc, char* argv[])
         last_non_silence = grayscaleMat.cols - first_non_silence - 1;
 
     fprintf(stderr, "silences: %d %d\n", first_non_silence, last_non_silence);
-    for (int TimePos = first_non_silence; TimePos < last_non_silence; TimePos++) {
-        for (int i = 1; i < freqs; ++i) {
-            double freq = i * max_freq / freqs;
-            double value = valueForFreq(points[TimePos], last_bin, freq);
+    for (int i = 1; i < freqs; ++i) {
+        double freq = i * max_freq / freqs;
+        for (int TimePos = first_non_silence; TimePos < last_non_silence; TimePos++) {
+            double value = valueForFreq(points[TimePos], frequencies, last_bin, freq);
             int scaled = 255 - uchar(255 * value / max_value);
             for (int j = 0; j < scale_factor; j++) {
                 grayscaleMat.at<uchar>(height - 1 - i * scale_factor + j,
