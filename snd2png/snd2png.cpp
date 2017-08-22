@@ -200,8 +200,14 @@ int main(int argc, char* argv[])
 
     imwrite(pszOutputFile, grayscaleMat);
 
+    for (int TimePos = 0; TimePos < times; TimePos++) {
+        free(points[TimePos]);
+    }
+    free(points);
+
     fftw_destroy_plan(snd_plan);
     fftw_free(fftw_in);
     fftw_free(fftw_out);
+    fftw_free(infile_data);
     return 0;
 }
