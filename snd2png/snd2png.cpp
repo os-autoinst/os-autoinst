@@ -135,6 +135,11 @@ int main(int argc, char* argv[])
 
     fprintf(stderr, "spectogram samples: %d\n", times);
 
+    // https://en.wikipedia.org/wiki/Voice_frequency
+    double max_freq = 3200.;
+    double fft_max_freq = info_in.samplerate / 2.0;
+    int last_bin = std::min(int(1 + ceil(max_freq / fft_max_freq * (nDftSamples/2.0))), int(1 + nDftSamples/2.0));
+
     double** points = (double**)malloc(sizeof(double*) * times);
     double max_value = 0;
 
@@ -145,9 +150,9 @@ int main(int argc, char* argv[])
 
         fftw_execute(snd_plan);
 
-        points[TimePos] = (double*)malloc(sizeof(double) * nDftSamples);
-        memset(points[TimePos], 0, sizeof(double) * nDftSamples);
-        for (sf_count_t i = 0; i < nDftSamples / 2; i++) {
+        points[TimePos] = (double*)malloc(sizeof(double) * last_bin * 2);
+        memset(points[TimePos], 0, sizeof(double) * last_bin * 2);
+        for (sf_count_t i = 0; i < last_bin; i++) {
             double freq = (double)i * info_in.samplerate / (double)nDftSamples;
             double value = imabs(fftw_out[i]);
             points[TimePos][i * 2] = freq;
@@ -162,12 +167,12 @@ int main(int argc, char* argv[])
     // SILENCE, I'll kill you!
     int first_non_silence = 0;
     for (; first_non_silence < times; first_non_silence++) {
-        if (max_row_value(points[first_non_silence], nDftSamples / 2) > max_value * .1)
+        if (max_row_value(points[first_non_silence], last_bin) > max_value * .1)
             break;
     }
     int last_non_silence = times - 1;
     for (; last_non_silence > 0; last_non_silence--) {
-        if (max_row_value(points[last_non_silence], nDftSamples / 2) > max_value * .1)
+        if (max_row_value(points[last_non_silence], last_bin) > max_value * .1)
             break;
     }
 
@@ -186,10 +191,8 @@ int main(int argc, char* argv[])
     fprintf(stderr, "silences: %d %d\n", first_non_silence, last_non_silence);
     for (int TimePos = first_non_silence; TimePos < last_non_silence; TimePos++) {
         for (int i = 1; i < freqs; ++i) {
-            // https://en.wikipedia.org/wiki/Voice_frequency
-            double max_freq = 3200.;
             double freq = i * max_freq / freqs;
-            double value = valueForFreq(points[TimePos], nDftSamples / 2, freq);
+            double value = valueForFreq(points[TimePos], last_bin, freq);
             int scaled = 255 - uchar(255 * value / max_value);
             for (int j = 0; j < scale_factor; j++) {
                 grayscaleMat.at<uchar>(height - 1 - i * scale_factor + j,
