@@ -26,23 +26,16 @@ static double imabs(fftw_complex cpx)
 }
 
 // boring linear interpolation
-double valueForFreq(double* points, double* frequencies, int count, double freq)
+double valueForFreq(double* points, int bin, double ratio)
 {
-    for (int i = 1; i < count; ++i) {
+   if (bin == 0)
+        return points[0];
 
-        if (frequencies[i] > freq) {
-            double next_freq = frequencies[i];
-            double next_value = points[i];
+    double next_value = points[bin];
+    double prev_value = points[bin - 1];
 
-            double prev_freq = frequencies[i - 1];
-            double prev_value = points[i - 1];
-
-            double value = prev_value + (next_value - prev_value) * (freq - prev_freq) / (next_freq - prev_freq);
-            return value;
-        }
-    }
-    // who knows
-    return 0;
+    double value = ratio * prev_value + (1.0 - ratio) * next_value;
+    return value;
 }
 
 double max_row_value(double* points, int count)
@@ -139,12 +132,7 @@ int main(int argc, char* argv[])
     double max_freq = 3200.;
     double fft_max_freq = info_in.samplerate / 2.0;
     int last_bin = std::min(int(1 + ceil(max_freq / fft_max_freq * (nDftSamples/2.0))), int(1 + nDftSamples/2.0));
-
-    double* frequencies = (double*)malloc(sizeof(double) * last_bin);
-    for (sf_count_t i = 0; i < last_bin; i++) {
-        double freq = (double)i * info_in.samplerate / (double)nDftSamples;
-        frequencies[i] = freq;
-    }
+    double fft_bw = fft_max_freq / (nDftSamples / 2.0);
 
     double** points = (double**)malloc(sizeof(double*) * times);
     double max_value = 0;
@@ -195,8 +183,12 @@ int main(int argc, char* argv[])
     fprintf(stderr, "silences: %d %d\n", first_non_silence, last_non_silence);
     for (int i = 1; i < freqs; ++i) {
         double freq = i * max_freq / freqs;
+        int bin = ceil(freq/fft_bw);
+        double ratio = bin - (freq/fft_bw);
+
         for (int TimePos = first_non_silence; TimePos < last_non_silence; TimePos++) {
-            double value = valueForFreq(points[TimePos], frequencies, last_bin, freq);
+            double value = valueForFreq(points[TimePos], bin, ratio);
+
             int scaled = 255 - uchar(255 * value / max_value);
             for (int j = 0; j < scale_factor; j++) {
                 grayscaleMat.at<uchar>(height - 1 - i * scale_factor + j,
