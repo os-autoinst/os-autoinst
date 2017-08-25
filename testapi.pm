@@ -1791,14 +1791,14 @@ sub data_url($) {
 
 =for stopwords GiB failok OpenQA WebUI
 
-  upload_logs($file [, failok => 0, timeout => 90 ]);
+  upload_logs($file [, failok => 0, timeout => 90, log_name => "custom_name.log" ]);
 
 Upload C<$file> to OpenQA WebUI as a log file and
 return the uploaded file name. If failok is not set, a failed upload or
 timeout will cause the test to die. Failed uploads happen if the file does not
 exist or is over 20 GiB in size, so failok is useful when you just want
 to upload the file if it exists but not mind if it doesn't. Default
-timeout is 90s.
+timeout is 90s. C<log_name> parameter allow to control resulted job's attachment name.
 
 =cut
 
@@ -1810,7 +1810,7 @@ sub upload_logs {
 
     bmwqemu::log_call(file => $file);
     my $basename = basename($file);
-    my $upname   = ref($autotest::current_test) . '-' . $basename;
+    my $upname   = ($args{log_name} || ref($autotest::current_test)) . '-' . $basename;
     my $cmd      = "curl --form upload=\@$file --form upname=$upname ";
     $cmd .= autoinst_url("/uploadlog/$basename");
     if ($failok) {
