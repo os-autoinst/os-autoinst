@@ -46,7 +46,6 @@ $| = 1;
 
 
 our $default_timeout = 30;    # assert timeout, 0 is a valid timeout
-our $idle_timeout    = 19;    # wait_idle 0 makes no sense
 
 my @ocrrect;
 

@@ -1675,38 +1675,33 @@ sub parse_junit_log {
 
 =head2 wait_idle
 
-=for stopwords IDLETHRESHOLD qemu
-
   wait_idle([$timeout_sec]);
 
-Wait until the system becomes idle (as configured by IDLETHRESHOLD) or timeout.
-This function only works on qemu backend and will sleep on other backends. As
-such it's wasting a lot of time and should be avoided as such. Take it
-as last resort if there is nothing else you can assert on.
+B<Deprecated: > It is recommended to avoid the use of C<wait_idle>. See
+L<https://progress.opensuse.org/issues/5830> for details.
+
+This function will basically just sleep some time as this is the only viable
+option considering all backend implementations. Previously this function tried
+to wait until a test system becomes idle or timeout which only reliably worked
+on qemu backend and was just sleeping on other backends. As such it is wasting
+a lot of time and should be avoided as such.
+
 Default timeout is 19s.
 
 =cut
 
 sub wait_idle {
-    my $timeout = shift || $bmwqemu::idle_timeout;
+    my $timeout = shift || 19;
     $timeout = bmwqemu::scale_timeout($timeout);
 
     # report wait_idle calls while we work on
     # https://progress.opensuse.org/issues/5830
-    cluck "Wait_idle called";
+    cluck "DEPRECATED: wait_idle called, update your test code";
 
     bmwqemu::log_call(timeout => $timeout);
 
-    my $args = {
-        timeout   => $timeout,
-        threshold => get_var('IDLETHRESHOLD', 18)};
-    my $rsp = query_isotovideo('backend_wait_idle', $args);
-    if ($rsp && $rsp->{idle}) {
-        bmwqemu::fctres("idle detected");
-    }
-    else {
-        bmwqemu::fctres("timed out after $timeout");
-    }
+    my $rsp = query_isotovideo('backend_wait_idle', timeout => $timeout);
+    bmwqemu::fctres("slept $timeout seconds");
     return;
 }
 

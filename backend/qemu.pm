@@ -998,35 +998,6 @@ sub check_socket {
     return $self->SUPER::check_socket($fh);
 }
 
-sub wait_idle {
-    my ($self, $args) = @_;
-    my $timeout       = $args->{timeout};
-    my $idlethreshold = $args->{threshold};
-    my $prev;
-    my $timesidle       = 0;
-    my $timesidleneeded = 1;
-
-    for my $n (1 .. $timeout) {
-        my ($stat, $systemstat) = @{$self->cpu_stat()};
-        $self->run_capture_loop(1);
-        next unless $stat;
-        $stat += $systemstat;
-        if ($prev) {
-            my $diff = $stat - $prev;
-            bmwqemu::diag("wait_idle $timesidle d=$diff");
-            if ($diff < $idlethreshold) {
-                if (++$timesidle > $timesidleneeded) {    # idle for $x sec
-                                                          #if($diff<2000000) # idle for one sec
-                    return {idle => 1};
-                }
-            }
-            else { $timesidle = 0 }
-        }
-        $prev = $stat;
-    }
-    return;
-}
-
 sub freeze_vm {
     my ($self) = @_;
     # qemu specific - all other backends will crash
