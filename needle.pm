@@ -83,7 +83,7 @@ sub new {
         $a->{type}   = $area->{type}   || 'match';
         $a->{margin} = $area->{margin} || 50;
 
-        $gotmatch = 1 if $a->{type} eq 'match';
+        $gotmatch = 1 if $a->{type} =~ /match|ocr/;
 
         $self->{area} ||= [];
         push @{$self->{area}}, $a;
