@@ -26,30 +26,23 @@ static double imabs(fftw_complex cpx)
 }
 
 // boring linear interpolation
-double valueForFreq(double* points, int count, double freq)
+double valueForFreq(double* points, int bin, double ratio)
 {
-    for (int i = 0; i < count; ++i) {
+   if (bin == 0)
+        return points[0];
 
-        if (points[i * 2] > freq) {
-            double next_freq = points[i * 2];
-            double next_value = points[i * 2 + 1];
+    double next_value = points[bin];
+    double prev_value = points[bin - 1];
 
-            double prev_freq = points[i * 2 - 2];
-            double prev_value = points[i * 2 - 1];
-
-            double value = prev_value + (next_value - prev_value) * (freq - prev_freq) / (next_freq - prev_freq);
-            return value;
-        }
-    }
-    // who knows
-    return 0;
+    double value = ratio * prev_value + (1.0 - ratio) * next_value;
+    return value;
 }
 
 double max_row_value(double* points, int count)
 {
     double max_value = 0;
     for (sf_count_t i = 0; i < count; i++) {
-        double value = points[i * 2 + 1];
+        double value = points[i];
         if (value > max_value)
             max_value = value;
     }
@@ -74,6 +67,9 @@ int main(int argc, char* argv[])
         sf_error(NULL);
         return 1;
     }
+
+    fprintf(stderr, "snd2png: %d channels, samplerate %d Hz, %ld frames (%.2f seconds)\n", info_in.channels,
+            info_in.samplerate, info_in.frames, (float)(info_in.frames)/info_in.samplerate);
 
     float* infile_data = (float*)fftw_malloc(sizeof(float) * info_in.frames * info_in.channels);
     if (!infile_data) {
@@ -101,7 +97,7 @@ int main(int argc, char* argv[])
     sf_count_t overlap = window_size / 2;
     sf_count_t nDftSamples = window_size + overlap * 2;
 
-    fprintf(stderr, "snd2png: %ld samples\n", nDftSamples);
+    fprintf(stderr, "snd2png: %ld frequency bins\n", nDftSamples);
 
     double* fftw_in = (double*)fftw_malloc(sizeof(double) * nDftSamples);
     if (!fftw_in) {
@@ -117,7 +113,7 @@ int main(int argc, char* argv[])
         return 2;
     }
 
-    fftw_plan snd_plan = fftw_plan_dft_r2c_1d(nDftSamples, fftw_in, fftw_out, 0);
+    fftw_plan snd_plan = fftw_plan_dft_r2c_1d(nDftSamples, fftw_in, fftw_out, FFTW_ESTIMATE);
 
     if (!snd_plan) {
         fprintf(stderr, "Fail to initialize FFTW plan.\n");
@@ -130,7 +126,13 @@ int main(int argc, char* argv[])
     if (times * window_size + overlap > info_in.frames)
         times--;
 
-    fprintf(stderr, "times %d\n", times);
+    fprintf(stderr, "spectogram samples: %d\n", times);
+
+    // https://en.wikipedia.org/wiki/Voice_frequency
+    double max_freq = 3200.;
+    double fft_max_freq = info_in.samplerate / 2.0;
+    int last_bin = std::min(int(1 + ceil(max_freq / fft_max_freq * (nDftSamples/2.0))), int(1 + nDftSamples/2.0));
+    double fft_bw = fft_max_freq / (nDftSamples / 2.0);
 
     double** points = (double**)malloc(sizeof(double*) * times);
     double max_value = 0;
@@ -142,29 +144,27 @@ int main(int argc, char* argv[])
 
         fftw_execute(snd_plan);
 
-        points[TimePos] = (double*)malloc(sizeof(double) * nDftSamples);
-        memset(points[TimePos], 0, sizeof(double) * nDftSamples);
-        for (sf_count_t i = 0; i < nDftSamples / 2; i++) {
-            double freq = (double)i * info_in.samplerate / (double)nDftSamples;
-            double value = imabs(fftw_out[i]) / 2.0;
-            points[TimePos][i * 2] = freq;
-            points[TimePos][i * 2 + 1] = value;
+        points[TimePos] = (double*)malloc(sizeof(double) * last_bin);
+        memset(points[TimePos], 0, sizeof(double) * last_bin);
+        for (sf_count_t i = 0; i < last_bin; i++) {
+            double value = imabs(fftw_out[i]);
+            points[TimePos][i] = value;
             if (max_value < value)
                 max_value = value;
         }
     }
 
-    fprintf(stderr, "max value: %lf\n", max_value);
+    fprintf(stderr, "max amplitude: %lf\n", max_value / 2.0);
 
     // SILENCE, I'll kill you!
     int first_non_silence = 0;
     for (; first_non_silence < times; first_non_silence++) {
-        if (max_row_value(points[first_non_silence], nDftSamples / 2) > max_value * .1)
+        if (max_row_value(points[first_non_silence], last_bin) > max_value * .1)
             break;
     }
     int last_non_silence = times - 1;
     for (; last_non_silence > 0; last_non_silence--) {
-        if (max_row_value(points[last_non_silence], nDftSamples / 2) > max_value * .1)
+        if (max_row_value(points[last_non_silence], last_bin) > max_value * .1)
             break;
     }
 
@@ -181,12 +181,14 @@ int main(int argc, char* argv[])
         last_non_silence = grayscaleMat.cols - first_non_silence - 1;
 
     fprintf(stderr, "silences: %d %d\n", first_non_silence, last_non_silence);
-    for (int TimePos = first_non_silence; TimePos < last_non_silence; TimePos++) {
-        for (int i = 1; i < freqs; ++i) {
-            // https://en.wikipedia.org/wiki/Voice_frequency
-            double max_freq = 3200.;
-            double freq = i * max_freq / freqs;
-            double value = valueForFreq(points[TimePos], nDftSamples / 2, freq);
+    for (int i = 1; i < freqs; ++i) {
+        double freq = i * max_freq / freqs;
+        int bin = ceil(freq/fft_bw);
+        double ratio = bin - (freq/fft_bw);
+
+        for (int TimePos = first_non_silence; TimePos < last_non_silence; TimePos++) {
+            double value = valueForFreq(points[TimePos], bin, ratio);
+
             int scaled = 255 - uchar(255 * value / max_value);
             for (int j = 0; j < scale_factor; j++) {
                 grayscaleMat.at<uchar>(height - 1 - i * scale_factor + j,
@@ -198,8 +200,14 @@ int main(int argc, char* argv[])
 
     imwrite(pszOutputFile, grayscaleMat);
 
+    for (int TimePos = 0; TimePos < times; TimePos++) {
+        free(points[TimePos]);
+    }
+    free(points);
+
     fftw_destroy_plan(snd_plan);
     fftw_free(fftw_in);
     fftw_free(fftw_out);
+    fftw_free(infile_data);
     return 0;
 }
