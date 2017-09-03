@@ -52,8 +52,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   select_console console reset_consoles
 
-  upload_asset upload_image data_url assert_shutdown parse_junit_log
-  upload_logs
+  upload_asset data_url assert_shutdown parse_junit_log upload_logs
 
   wait_idle wait_screen_change assert_screen_change wait_still_screen wait_serial
   record_soft_failure record_info
