@@ -226,6 +226,9 @@ subtest 'wait_still_screen' => sub {
     ok(wait_still_screen,    'default arguments');
     ok(wait_still_screen(3), 'still time specified');
     ok(wait_still_screen(2, 4), 'still time and timeout');
+    ok(wait_still_screen(stilltime => 2, no_wait => 1), 'no_wait option can be specified');
+    ok(!wait_still_screen(timeout => 4, no_wait => 1), 'two named args, with timeout below stilltime - which will always return false');
+    ok(wait_still_screen(1, 2, timeout => 3), 'named over positional');
 };
 
 done_testing;

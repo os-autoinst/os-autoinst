@@ -31,6 +31,7 @@ use OpenQA::Exceptions;
 use Digest::MD5 'md5_base64';
 use Carp qw(cluck croak);
 use MIME::Base64 'decode_base64';
+use Scalar::Util 'looks_like_number';
 
 require bmwqemu;
 
@@ -529,23 +530,29 @@ sub assert_screen_change(&@) {
 
 =for stopwords stilltime
 
-  wait_still_screen([$stilltime_sec [, $timeout [, $similarity_level]]]);
+  wait_still_screen([$stilltime | [stilltime => $stilltime]] [, $timeout] | [timeout => $timeout]] [, similarity_level => $similarity_level] [, no_wait => $no_wait]);
 
 Wait until the screen stops changing.
 
-Returns true if screen is not changed for given $stilltime (in seconds) or undef on timeout.
+See C<assert_screen> for C<$no_wait>.
+
+Returns true if screen is not changed for given C<$stilltime> (in seconds) or undef on timeout.
 Default timeout is 30s, default stilltime is 7s.
 
 =cut
 
 sub wait_still_screen {
-    my $stilltime        = shift || 7;
-    my $timeout          = shift || 30;
-    my $similarity_level = shift || 47;
-
-    bmwqemu::log_call(stilltime => $stilltime, timeout => $timeout, simlvl => $similarity_level);
-
-    $timeout = bmwqemu::scale_timeout($timeout);
+    my $stilltime = looks_like_number($_[0]) ? shift : 7;
+    my $timeout = (@_ % 2) ? shift : $bmwqemu::default_timeout;
+    my %args = (stilltime => $stilltime, timeout => $timeout, @_);
+    $args{similarity_level} //= 47;
+    bmwqemu::log_call(%args);
+    $timeout   = bmwqemu::scale_timeout($args{timeout});
+    $stilltime = $args{stilltime};
+    if ($timeout < $stilltime) {
+        bmwqemu::fctwarn("Selected timeout \'$timeout\' below stilltime \'$stilltime\', returning with false");
+        return 0;
+    }
 
     my $starttime      = time;
     my $lastchangetime = [gettimeofday];
@@ -554,7 +561,7 @@ sub wait_still_screen {
     while (time - $starttime < $timeout) {
         my $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
         my $now = [gettimeofday];
-        if ($sim < $similarity_level) {
+        if ($sim < $args{similarity_level}) {
 
             # a change
             $lastchangetime = $now;
@@ -564,7 +571,10 @@ sub wait_still_screen {
             bmwqemu::fctres("detected same image for $stilltime seconds");
             return 1;
         }
-        sleep(0.5);
+        # with 'no_wait' actually wait a little bit not to waste too much CPU
+        # corresponding to what check_screen/assert_screen also does
+        # internally
+        sleep($args{no_wait} ? 0.01 : 0.5);
     }
     $autotest::current_test->timeout_screenshot();
     bmwqemu::fctres("wait_still_screen timed out after $timeout");
