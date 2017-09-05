@@ -505,6 +505,7 @@ sub start_qemu {
     bmwqemu::save_vars();                     # update variables
 
     mkpath($basedir);
+    runcmd('/usr/bin/chattr', '-f', '+C', $basedir);
 
     my $keephdds = $vars->{KEEPHDDS} || $vars->{SKIPTO};
 
