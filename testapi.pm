@@ -452,11 +452,12 @@ sub assert_and_dclick {
 
 =head2 wait_screen_change
 
-  wait_screen_change(CODEREF [,$timeout [, similarity_level => 50]]);
+  wait_screen_change(CODEREF [,$timeout [,$minimal_timeout [, similarity_level => 50]]]);
 
 Wrapper around code that is supposed to change the screen.
 This is the opposite to C<wait_still_screen>. Make sure to put the commands to change the screen
 within the block to avoid races between the action and the screen change.
+Minimal timeout is time to wait before screen change due to button press animation.
 
 Example:
 
@@ -475,14 +476,15 @@ subroutine block.
     send_key 'esc';
   }, 15);
 
-Returns true if screen changed or false on timeout. Default timeout is 10s. Default
-similarity_level is 50.
+Returns true if screen changed or false on timeout. Default timeout is 10s.
+Default minimal_timeout is 0.5s. Default similarity_level is 50.
 
 =cut
 
 sub wait_screen_change(&@) {
-    my ($callback, $timeout, %args) = @_;
-    $timeout ||= 10;
+    my ($callback, $timeout, $minimal_timeout, %args) = @_;
+    $timeout         ||= 10;
+    $minimal_timeout ||= 0.5;
     $args{similarity_level} //= 50;
 
     bmwqemu::log_call(timeout => $timeout);
@@ -494,6 +496,8 @@ sub wait_screen_change(&@) {
     my $starttime = time;
 
     while (time - $starttime < $timeout) {
+        sleep $minimal_timeout;
+        bmwqemu::diag("waiting safe timeout before any screen change: $minimal_timeout sec");
         my $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
         bmwqemu::diag("waiting for screen change: " . (time - $starttime) . " $sim");
         if ($sim < $args{similarity_level}) {
