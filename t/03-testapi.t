@@ -124,7 +124,7 @@ $cmds = [];
 
 #$mock_basetest->mock(record_soft_failure_result => sub {});
 my $mock_bmwqemu = new Test::MockModule('bmwqemu');
-$mock_bmwqemu->mock(result_dir => sub() { File::Temp->newdir() });
+$mock_bmwqemu->mock(result_dir => File::Temp->newdir());
 
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
