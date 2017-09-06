@@ -499,9 +499,9 @@ sub wait_screen_change(&@) {
         sleep $minimal_timeout;
         bmwqemu::diag("waiting safe timeout before any screen change: $minimal_timeout sec");
         my $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
-        bmwqemu::diag("waiting for screen change: " . (time - $starttime) . " $sim");
+        bmwqemu::diag("waiting for screen change: " . (time - $starttime) . " sec $sim similarity level");
         if ($sim < $args{similarity_level}) {
-            bmwqemu::fctres("screen change seen at " . (time - $starttime));
+            bmwqemu::fctres("screen change seen after " . (time - $starttime) . " sec");
             return 1;
         }
         sleep(0.5);
