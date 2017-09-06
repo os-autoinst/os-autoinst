@@ -541,7 +541,7 @@ Default timeout is 30s, default stilltime is 7s.
 sub wait_still_screen {
     my $stilltime        = shift || 7;
     my $timeout          = shift || 30;
-    my $similarity_level = shift || (get_var('HW') ? 44 : 47);
+    my $similarity_level = shift || 47;
 
     bmwqemu::log_call(stilltime => $stilltime, timeout => $timeout, simlvl => $similarity_level);
 
