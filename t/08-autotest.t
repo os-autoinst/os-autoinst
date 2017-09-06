@@ -119,7 +119,7 @@ like($@, qr/The run_args must be a sub-class of OpenQA::Test::RunArgs/);
 # we cause the failure by mocking runtest rather than using a test
 # which dies, as runtest does a whole bunch of stuff when the test
 # dies that we may not want to run into here
-$mock_basetest->mock(runtest          => sub { die "oh noes!\n"; });
+$mock_basetest->mock(runtest          => sub { die 'oh noes!'; });
 $mock_autotest->mock(query_isotovideo => sub { return 1; });
 
 autotest::run_all;
