@@ -124,7 +124,7 @@ $cmds = [];
 
 #$mock_basetest->mock(record_soft_failure_result => sub {});
 my $mock_bmwqemu = new Test::MockModule('bmwqemu');
-$mock_bmwqemu->mock(result_dir => sub() { File::Temp->newdir() });
+$mock_bmwqemu->mock(result_dir => File::Temp->newdir());
 
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
@@ -193,7 +193,7 @@ is(match_has_tag,        undef, 'match_has_tag on no value -> undef');
 is(match_has_tag('foo'), undef, 'match_has_tag on not matched tag -> undef');
 subtest 'assert_and_click' => sub {
     my $mock_testapi = new Test::MockModule('testapi');
-    $mock_testapi->mock(assert_screen => sub { return {area => [{x => 1, y => 2, w => 3, h => 4}]}; });
+    $mock_testapi->mock(assert_screen => {area => [{x => 1, y => 2, w => 3, h => 4}]});
     ok(assert_and_click('foo'));
     is_deeply($cmds->[-1], {cmd => 'backend_mouse_hide', offset => 0}, 'assert_and_click succeeds and hides mouse again -> undef return');
 };
