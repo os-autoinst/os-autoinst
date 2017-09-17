@@ -262,6 +262,9 @@ unshift @INC, $bmwqemu::vars{CASEDIR} . '/lib';
 require $bmwqemu::vars{PRODUCTDIR} . "/main.pm";
 @INC = @oldINC;
 
+diag 'Early exit has been requested with _EXIT_AFTER_SCHEDULE. Only evaluating test schedule.';
+exit 0 if $bmwqemu::vars{_EXIT_AFTER_SCHEDULE};
+
 # set a default distribution if the tests don't have one
 $testapi::distri ||= distribution->new;
 
