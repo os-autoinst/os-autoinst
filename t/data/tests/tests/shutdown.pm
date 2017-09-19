@@ -18,6 +18,7 @@ use base 'basetest';
 use testapi;
 
 sub run {
+    wait_idle 1;
     type_string "sudo su\n";
     type_string "poweroff\n";
     assert_shutdown;

@@ -1707,7 +1707,7 @@ sub wait_idle {
 
     bmwqemu::log_call(timeout => $timeout);
 
-    my $rsp = query_isotovideo('backend_wait_idle', timeout => $timeout);
+    my $rsp = query_isotovideo('backend_wait_idle', {timeout => $timeout});
     bmwqemu::fctres("slept $timeout seconds");
     return;
 }
