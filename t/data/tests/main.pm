@@ -20,6 +20,7 @@ autotest::loadtest "tests/boot.pm";
 
 unless (get_var('INTEGRATION_TESTS')) {
     autotest::loadtest "tests/assert_screen_fail_test.pm";
+    autotest::loadtest "tests/typing.pm";
 }
 
 autotest::loadtest "tests/shutdown.pm";

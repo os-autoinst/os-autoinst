@@ -49,11 +49,7 @@ END
     type_string "\nEOF\n";
     script_run "echo '924095f2cb4d622a8796de66a5e0a44a  text' > text.md5";
     assert_script_run 'md5sum -c text.md5';
-    type_string("echo do not wait_still_screen\n", max_interval => 50, wait_still_screen => 0);
-    type_string("echo type string and wait for 5 seconds\n",               wait_still_screen => 5);
-    type_string("echo test\necho wait\necho 10se\n",                       max_interval      => 100, wait_screen_changes => 11, wait_still_screen => 10);
-    type_string("echo test if wait_screen_change functions as expected\n", max_interval      => 150, wait_screen_changes => 11, wait_still_screen => 10);
-    type_string("echo wait_still_screen for 20 seconds\n", max_interval => 200, wait_still_screen => 20);
+
 }
 
 sub test_flags {
