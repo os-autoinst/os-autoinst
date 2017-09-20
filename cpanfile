@@ -58,6 +58,7 @@ on 'test' => sub {
   requires 'Test::Warnings';
   requires 'Test::Pod';
   requires 'Test::MockModule';
+  requires 'Test::Mock::Time';
   requires 'Pod::Coverage';
   requires 'Devel::Cover';
 };

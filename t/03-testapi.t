@@ -5,6 +5,7 @@ use warnings;
 use Test::More;
 use Test::Output;
 use Test::Fatal;
+use Test::Mock::Time;
 use Test::Warnings;
 use File::Temp;
 
@@ -218,14 +219,27 @@ subtest 'record_info' => sub {
 subtest 'validate_script_output' => sub {
     my $mock_testapi = new Test::MockModule('testapi');
     $mock_testapi->mock(script_output => sub ($;$) { return 'output'; });
-    pass(validate_script_output('script', sub { m/output/ }));
-    pass(validate_script_output('script', sub { m/output/ }, 30));
+    ok(!validate_script_output('script', sub { m/output/ }), 'validating output with default timeout');
+    ok(!validate_script_output('script', sub { m/output/ }, 30), 'specifying timeout');
     like(
         exception {
             validate_script_output('script', sub { m/error/ });
         },
         qr/output not validating/
     );
+};
+
+subtest 'wait_still_screen' => sub {
+    $mod->mock(
+        read_json => sub {
+            return {ret => {sim => 999}};
+        });
+    ok(wait_still_screen,    'default arguments');
+    ok(wait_still_screen(3), 'still time specified');
+    ok(wait_still_screen(2, 4), 'still time and timeout');
+    ok(wait_still_screen(stilltime => 2, no_wait => 1), 'no_wait option can be specified');
+    ok(!wait_still_screen(timeout => 4, no_wait => 1), 'two named args, with timeout below stilltime - which will always return false');
+    ok(wait_still_screen(1, 2, timeout => 3), 'named over positional');
 };
 
 done_testing;
