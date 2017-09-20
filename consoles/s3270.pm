@@ -207,7 +207,7 @@ sub expect_3270 {
                 $we_had_new_output = 1;
             }
 
-            say Dumper $self->{raw_expect_queue};
+            say "expect_3270 qeue content:\n\t" . join("\n\t", @{$self->{raw_expect_queue}->{queue}});
 
             # if there is MORE..., go and grab it.
             if ($status_line =~ /$arg{buffer_full}/) {
@@ -287,7 +287,7 @@ sub expect_3270 {
     }
 
     # tracing output
-    say Dumper $result;
+    say 'expect_3270 result: ' . Dumper(\$result);
     return $result;
 }
 
