@@ -1097,7 +1097,7 @@ sub send_key_until_needlematch {
 
 =head2 type_string
 
-  type_string($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, secret => 1 ] );
+  type_string($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, wait_still_screen => <num> ] [, secret => 1 ] );
 
 send a string of characters, mapping them to appropriate key names as necessary
 
@@ -1108,6 +1108,9 @@ C<max_interval> the slower the typing.
 
 C<wait_screen_change> if set, type only this many characters at a time
 C<wait_screen_change> and wait for the screen to change between sets.
+
+C<wait_still_screen> if set, C<wait_still_screen> for the given seconds
+after the whole string is typed.
 
 C<secret (bool)> suppresses logging of the actual string typed.
 
