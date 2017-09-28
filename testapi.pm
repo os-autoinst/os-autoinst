@@ -724,7 +724,7 @@ sub wait_serial {
     my %nargs = (@_, (regexp => $regexp, timeout => $timeout));
 
     bmwqemu::log_call(%nargs);
-    $timeout = bmwqemu::scale_timeout($timeout);
+    $nargs{timeout} = bmwqemu::scale_timeout($nargs{timeout});
 
     my $ret = query_isotovideo('backend_wait_serial', \%nargs);
     my $matched = $ret->{matched};
