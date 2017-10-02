@@ -1000,6 +1000,7 @@ sub retry_assert_screen {
 # shared between svirt and s390 backend
 sub new_ssh_connection {
     my ($self, %args) = @_;
+    $args{username} ||= 'root';
 
     my $ssh = Net::SSH2->new;
 
@@ -1007,7 +1008,6 @@ sub new_ssh_connection {
     my $counter = 5;
     while ($counter > 0) {
         if ($ssh->connect($args{hostname})) {
-            $args{username} ||= 'root';
 
             if ($args{password}) {
                 $ssh->auth(username => $args{username}, password => $args{password});
