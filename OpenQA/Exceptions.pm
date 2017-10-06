@@ -32,6 +32,10 @@ use Exception::Class (
     'OpenQA::Exception::VNCProtocolError' => {
         description => 'VNC Server interrupted connection'
     },
+
+    'OpenQA::Exception::VNCSocketError' => {
+        description => 'VNC Socket does not exist',
+    },
 );
 
 1;
