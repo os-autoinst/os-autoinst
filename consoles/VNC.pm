@@ -880,7 +880,6 @@ sub _receive_message {
     my $self = shift;
 
     my $socket = $self->socket;
-    #$socket or die 'socket does not exist. Probably your backend instance could not start or died.';
     if (!$socket) {
         record_info('VNC Error', 'Socket does not exist', result => 'fail');
         OpenQA::Exception::VNCSocketError->throw(error => 'There is no socket we can connect to.');
