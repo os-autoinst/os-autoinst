@@ -10,4 +10,4 @@ check-local:
 	-rm -f test.pnm
 	./snd2png $(srcdir)/aplay-captured.wav test.pnm
 	md5sum test.pnm > test.pnm.md5
-	diff -u test.pnm.md5 $(srcdir)/test.pnm.md5.orig
+	diff -u test.pnm.md5 $(srcdir)/test.pnm.md5.original
