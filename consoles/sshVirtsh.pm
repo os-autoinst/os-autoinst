@@ -462,6 +462,8 @@ sub get_ssh_output {
         return ($stdout, $errout);
     }
     else {
+        chomp($stdout);
+        chomp($errout);
         bmwqemu::diag "Command's stdout:\n$stdout" if length($stdout);
         bmwqemu::diag "Command's stderr:\n$errout" if length($errout);
     }
@@ -517,8 +519,9 @@ __END"
 
     # shut down possibly running previous test (just to be sure) - ignore errors
     # just making sure we continue after the command finished
-    $self->run_cmd("virsh $remote_vmm destroy " . $self->name);
-    $self->run_cmd("virsh $remote_vmm undefine --snapshots-metadata " . $self->name);
+    my $ignore = ' |& grep -v "\(failed to get domain\|Domain not found\)"';
+    $self->run_cmd("virsh $remote_vmm destroy " . $self->name . $ignore);
+    $self->run_cmd("virsh $remote_vmm undefine --snapshots-metadata " . $self->name . $ignore);
 
     # define the new domain
     $self->run_cmd("virsh $remote_vmm define $xmlfilename")  && die "virsh define failed";
