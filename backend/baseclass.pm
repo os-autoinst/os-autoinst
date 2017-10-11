@@ -752,7 +752,7 @@ sub set_tags_to_assert {
         my %h = map { $_ => 1 } @tags;
         @tags = sort keys %h;
     }
-    $mustmatch = join('_', @tags);
+    $mustmatch = join(',', @tags);
 
     if (!@$needles) {
         bmwqemu::diag("NO matching needles for $mustmatch");
