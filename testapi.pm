@@ -747,7 +747,7 @@ sub wait_serial {
 
 =head2 x11_start_program
 
-    x11_start_program($program[, $timeout, $options]);
+    x11_start_program($program[, @args]);
 
 Start C<$program> in graphical desktop environment.
 
@@ -756,9 +756,9 @@ I<The implementation is distribution specific and not always available.>
 =cut
 
 sub x11_start_program {
-    my ($program, $timeout, $options) = @_;
-    bmwqemu::log_call(timeout => $timeout, options => $options);
-    return $distri->x11_start_program($program, $timeout, $options);
+    my ($program, @args) = @_;
+    bmwqemu::log_call(program => $program, @args);
+    return $distri->x11_start_program($program, @args);
 }
 
 sub _handle_script_run_ret {

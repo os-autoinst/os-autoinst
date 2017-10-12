@@ -72,10 +72,6 @@ sub add_console {
 }
 
 sub x11_start_program {
-    my ($program, $timeout, $options) = @_;
-    $timeout ||= 6;
-    $options ||= {};
-
     die "TODO: implement x11_start_program for your distri " . testapi::get_var('DISTRI');
 }
 
