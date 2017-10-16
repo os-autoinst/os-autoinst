@@ -16,12 +16,27 @@
 use strict;
 use testapi;
 
+sub unregister_needle_tags {
+    my ($tag) = @_;
+    my @a = @{needle::tags($tag)};
+    for my $n (@a) { $n->unregister($tag); }
+}
+
+sub cleanup_needles {
+    unregister_needle_tags("ENV-VERSION-2") if check_var('VERSION', '1');
+    unregister_needle_tags("ENV-VERSION-1") unless check_var('VERSION', '1');
+}
+
+$needle::cleanuphandler = \&cleanup_needles;
+
 autotest::loadtest "tests/boot.pm";
 
+# openQA tests set this to 0 when reusing the os-autoinst tests
 unless (get_var('INTEGRATION_TESTS')) {
     autotest::loadtest "tests/assert_screen_fail_test.pm";
     autotest::loadtest "tests/typing.pm";
 }
+autotest::loadtest "tests/reload_needles.pm";
 
 autotest::loadtest "tests/shutdown.pm";
 

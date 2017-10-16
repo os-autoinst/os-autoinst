@@ -589,6 +589,16 @@ sub capture_screenshot {
     return;
 }
 
+sub reload_needles {
+    # called from testapi::set_var, so read the vars
+    bmwqemu::load_vars();
+
+    for my $n (needle->all()) {
+        $n->unregister();
+    }
+    needle::init();
+}
+
 ###################################################################
 # this is used by backend::console_proxy
 sub proxy_console_call {
@@ -714,8 +724,8 @@ sub wait_idle {
 
 sub set_tags_to_assert {
     my ($self, $args) = @_;
-    my $mustmatch     = $args->{mustmatch};
-    my $timeout       = $args->{timeout} // $bmwqemu::default_timeout;
+    my $mustmatch = $args->{mustmatch};
+    my $timeout = $args->{timeout} // $bmwqemu::default_timeout;
 
     # free all needle images (https://progress.opensuse.org/issues/15438)
     for my $n (needle->all()) {
@@ -972,15 +982,11 @@ sub verify_image {
     return {candidates => $failed_candidates};
 }
 
-
 sub retry_assert_screen {
     my ($self, $args) = @_;
 
     if ($args->{reload_needles}) {
-        for my $n (needle->all()) {
-            $n->unregister();
-        }
-        needle::init();
+        $self->reload_needles;
     }
     # reset timeout otherwise continue wait_forneedle might just fail if stopped too long than timeout
     if ($args->{timeout}) {

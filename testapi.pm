@@ -611,15 +611,24 @@ sub get_required_var {
 
 =head2 set_var
 
-  set_var($variable, $value);
+  set_var($variable, $value [, reload_needles => 1] );
 
 Set test variable C<$variable> to value C<$value>.
+
+Specify a true value for the C<reload_needles> flag to trigger a reloading 
+of needles in the backend and call the cleanup handler with the new variables 
+to make sure that possibly unselected needles are now taken into account
+(useful if you change scenarios during the test run)
 
 =cut
 
 sub set_var {
-    my ($var, $val) = @_;
+    my ($var, $val, %args) = @_;
     $bmwqemu::vars{$var} = $val;
+    if ($args{reload_needles}) {
+        bmwqemu::save_vars();
+        query_isotovideo('backend_reload_needles', {});
+    }
     return;
 }
 

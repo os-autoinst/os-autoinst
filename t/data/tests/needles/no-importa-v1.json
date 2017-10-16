@@ -1,0 +1,15 @@
+{
+    "area": [
+        {
+            "height": 20,
+            "type": "match",
+            "width": 100,
+            "xpos": 90,
+            "ypos": 350
+        }
+    ],
+    "tags": [
+        "ENV-VERSION-1",
+        "no-importa"
+    ]
+}
