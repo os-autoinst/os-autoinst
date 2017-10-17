@@ -209,7 +209,8 @@ sub init_backend {
     $needles_git_hash = calculate_git_hash($needles_dir);
     $bmwqemu::vars{NEEDLES_GIT_HASH} = $needles_git_hash;
 
-    $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
+    $bmwqemu::backend = backend::driver->new(backend => $bmwqemu::vars{BACKEND});
+
     return $bmwqemu::backend;
 }
 

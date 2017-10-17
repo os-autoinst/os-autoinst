@@ -18,6 +18,8 @@
 use 5.018;
 use warnings;
 use Test::More;
+use FindBin;
+use lib "$FindBin::Bin/lib";
 
 BEGIN {
     unshift @INC, '..';
@@ -128,6 +130,90 @@ subtest find_bin => sub {
     is find_bin($sandbox, qw(test2)), undef, "Executable file found but not executable";
     is find_bin($sandbox, qw(test3)), undef, "Executable file not found";
 
+};
+
+subtest looks_like_ip => sub {
+    use osutils 'looks_like_ip';
+
+    ok looks_like_ip($_), "$_ is a valid ip"
+      for (
+        qw(
+        127.0.0.1
+        255.255.255.255
+        1.1.1.1
+        2.2.2.2
+        192.168.0.0
+        10.10.0.0
+        0.0.0.0
+        ));
+
+    ok !looks_like_ip($_), "$_ is an invalid ip"
+      for (
+        qw(
+        255.255.255.256
+        255.255.256.256
+        255.256.256.256
+        256.256.256.256
+        256.256.256.255
+        256.256.255.255
+        256.255.255.255
+        my.foo.bar
+        1a.22.33.44
+        1.22a.33.44
+        1.22.33.44a
+        4.4.4.4.4
+        1.1.23.21.3.12.2.23
+        ));
+};
+
+subtest get_class_name => sub {
+    use osutils 'get_class_name';
+    use foo;
+    use foobar;
+    my $obj1 = foo->new;
+    my $obj2 = foobar->new;
+
+
+    is get_class_name("foo=HASH(0x27a3640)"),        "foo";
+    is get_class_name("dnsserver=HASH(0x1f8e1c8)"),  "dnsserver";
+    is get_class_name("proxy=HASH(0x3538eb0)"),      "proxy";
+    is get_class_name("foo::proxy=HASH(0x3538eb0)"), "foo::proxy";
+
+    is get_class_name($obj1), "foo";
+    is get_class_name($obj2), "foobar";
+};
+
+subtest load_module => sub {
+    use osutils 'load_module';
+
+    my $obj = load_module('foo', {prepare => 0});
+    is $obj->prepared, 0;
+    $obj = load_module('foo', {prepare => 1});
+    is $obj->prepared, 1;
+    $obj = load_module('foo');
+    is $obj->prepared, 1;
+    is $obj->started,  1;
+};
+
+subtest load_components => sub {
+    use osutils 'load_components';
+
+    my ($errors, $loaded) = load_components('fuzz', 'barfuzz', {prepare => 0});
+    is @{$errors}, 0;
+    is @{$loaded}, 1;
+    is $_->{prepare}, 0 for @{$loaded};
+
+    ($errors, $loaded) = load_components('fuzz', '', {prepare => 0});
+    is @{$errors}, 1;
+    is @{$loaded}, 0;
+    my $err = shift @{$errors};
+    isa_ok $err, "Mojo::Exception";
+
+    local $ENV{FOO_BAR_BAZ} = 1;
+    ($errors, $loaded) = load_components('fuzz', '');
+    is @{$errors}, 1;
+    is @{$loaded}, 1;
+    is shift(@{$loaded})->prepared, 1;
 };
 
 done_testing();

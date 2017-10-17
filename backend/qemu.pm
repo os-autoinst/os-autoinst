@@ -33,28 +33,28 @@ use autodie ':all';
 use Try::Tiny;
 use osutils qw(find_bin gen_params qv);
 use List::Util 'max';
+use process;
 
 sub new {
     my $class = shift;
-    my $self  = $class->SUPER::new;
+    my $self  = $class->SUPER::new(@_);
     # By compressing we are making the images self contained, i.e. they are
     # portable by not requiring backing files referencing the openQA instance.
     # Compressing takes longer but the transfer takes shorter amount of time.
     $bmwqemu::vars{QEMU_COMPRESS_QCOW2} //= 1;
 
-    $self->{pid}         = undef;
-    $self->{pidfilename} = 'qemu.pid';
+    $self->{qemu_process} = process->new(
+        separate_err  => 0,
+        pidfile       => 'qemu.pid',
+        blocking_stop => 1
+    );
 
     return $self;
 }
 
 # baseclass virt method overwrite
 
-sub raw_alive {
-    my ($self) = @_;
-    return 0 unless $self->{pid};
-    return kill(0, $self->{pid});
-}
+sub raw_alive { shift->{qemu_process}->is_running; }
 
 sub start_audiocapture {
     my ($self, $args) = @_;
@@ -90,7 +90,7 @@ sub eject_cd {
 
 sub cpu_stat {
     my $self = shift;
-    my $stat = bmwqemu::fileContent("/proc/" . $self->{pid} . "/stat");
+    my $stat = bmwqemu::fileContent("/proc/" . $self->{qemu_process}->pid . "/stat");
     my @a    = split(" ", $stat);
     return [@a[13, 14]];
 }
@@ -106,27 +106,8 @@ sub do_start_vm {
 
 sub kill_qemu {
     my ($self) = (@_);
-    my $pid = $self->{pid};
 
-    # already gone?
-    my $ret = waitpid($pid, WNOHANG);
-    diag "waitpid for $pid returned $ret";
-    return if ($ret == $pid || $ret == -1);
-
-    diag "sending TERM to qemu pid: $pid";
-    kill('TERM', $pid);
-    for my $i (1 .. 5) {
-        sleep 1;
-        $ret = waitpid($pid, WNOHANG);
-        diag "waitpid for $pid returned $ret";
-        last if ($ret == $pid);
-    }
-    unless ($ret == $pid) {
-        kill("KILL", $pid);
-        # now we have to wait
-        waitpid($pid, 0);
-    }
-
+    $self->{qemu_process}->stop();
     $self->_kill_children_processes;
 }
 
@@ -158,10 +139,7 @@ sub _dbus_call {
 sub do_stop_vm {
     my $self = shift;
 
-    return unless $self->{pid};
-    kill_qemu($self);
-    $self->{pid} = undef;
-    unlink($self->{pidfilename});
+    $self->kill_qemu();
 
     # Free allocated vlans - if any -
     return unless $self->{allocated_networks} && $self->{allocated_tap_devices} && $self->{allocated_vlan_tags};
@@ -209,7 +187,6 @@ sub save_memory_dump {
             }});
 
     die(sprintf("Migration failed: desc: %s, class: %s, stopped", $rsp->{error}->{desc}, $rsp->{error}->{class})) if ($rsp->{error});
-
 
     do {
 
@@ -558,16 +535,22 @@ sub start_qemu {
         gen_params @params, 'cpu',     $vars->{QEMUCPU}     if $vars->{QEMUCPU};
         gen_params @params, 'device',  'virtio-rng-pci'     if $vars->{QEMU_VIRTIO_RNG};
 
+        my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} || '';
+
         for (my $i = 0; $i < $num_networks; $i++) {
+            my $net_id = "id=qanet$i";
+
             if ($vars->{NICTYPE} eq "user") {
-                my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} ? ',' . $vars->{NICTYPE_USER_OPTIONS} : '';
-                gen_params @params, 'netdev', [qv "user id=qanet$i$nictype_user_options"];
+                gen_params @params, 'netdev', [qv "user $net_id $nictype_user_options"];
             }
             elsif ($vars->{NICTYPE} eq "tap") {
-                gen_params @params, 'netdev', [qv "tap id=qanet$i ifname=$tapdev[$i] script=$tapscript[$i] downscript=$tapdownscript[$i]"];
+                gen_params @params, 'netdev', [qv "tap $net_id ifname=$tapdev[$i] script=$tapscript[$i] downscript=$tapdownscript[$i]"];
             }
             elsif ($vars->{NICTYPE} eq "vde") {
-                gen_params @params, 'netdev', [qv "vde id=qanet0 sock=$vars->{VDE_SOCKETDIR}/vde.ctl port=$vars->{VDE_PORT}"];
+                gen_params @params, 'netdev', [qv "vde $net_id sock=$vars->{VDE_SOCKETDIR}/vde.ctl port=$vars->{VDE_PORT}"];
+            }
+            elsif ($vars->{NICTYPE} eq "vhost-user") {
+                gen_params @params, 'netdev', [qv "vhost-user $net_id $nictype_user_options"];
             }
             else {
                 die "unknown NICTYPE $vars->{NICTYPE}\n";
@@ -606,8 +589,7 @@ sub start_qemu {
             else {
                 # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
                 my $bootindex = ($i == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? "bootindex=0" : "";
-                my $serial = "serial=$i";
-                gen_params @params, 'device', [qv "$vars->{HDDMODEL} drive=hd$i $bootindex $serial"];
+                gen_params @params, 'device', [qv "$vars->{HDDMODEL} drive=hd$i $bootindex serial=$i"];
                 gen_params @params, 'drive',  [qv "file=$basedir/l$i cache=unsafe if=none id=hd$i format=$vars->{HDDFORMAT}"];
             }
         }
@@ -737,36 +719,17 @@ sub start_qemu {
 
         gen_params @params, 'monitor', [qv "telnet:127.0.0.1:$vars->{QEMUPORT} server nowait"];
         gen_params @params, 'drive', [qv "file=$basedir/autoinst.img index=0 if=floppy"] if $vars->{AUTO_INST};
-        unshift(@params, $qemubin);
     }
 
-    pipe(my $reader, my $writer);
-    my $pid = fork();
-    die "fork failed" unless defined($pid);
-    if ($pid == 0) {
-        $SIG{__DIE__} = undef;    # overwrite the default - just exit
+    # don't try to talk to the host's PA
+    $ENV{QEMU_AUDIO_DRV} = "none";
 
-        bmwqemu::diag(`$qemubin -version`);
-        bmwqemu::diag("starting: " . join(" ", @params));
+    $self->{qemu_process}->execute($qemubin)->args([@params])->start();
 
-        # don't try to talk to the host's PA
-        $ENV{QEMU_AUDIO_DRV} = "none";
+    bmwqemu::diag(`$qemubin -version`);
+    bmwqemu::diag("started: " . join(" ", $qemubin, @params));
 
-        # redirect qemu's output to the parent pipe
-        open(STDOUT, ">&", $writer);
-        open(STDERR, ">&", $writer);
-        close($reader);
-        exec(@params);
-        die "failed to exec qemu";
-    }
-    else {
-        $self->{pid} = $pid;
-    }
-    close $writer;
-    $self->{qemupipe} = $reader;
-    open(my $pidf, ">", $self->{pidfilename});
-    print $pidf $self->{pid}, "\n";
-    close $pidf;
+    $self->{qemupipe} = $self->{qemu_process}->read_stream;
 
     my $vnc = $testapi::distri->add_console(
         'sut',
@@ -782,7 +745,7 @@ sub start_qemu {
         $self->select_console({testapi_console => 'sut'});
     }
     catch {
-        if (!raw_alive) {
+        if (!$self->raw_alive) {
             bmwqemu::diag "qemu didn't start";
             $self->read_qemupipe;
             exit(1);

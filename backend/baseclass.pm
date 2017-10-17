@@ -51,7 +51,10 @@ __PACKAGE__->mk_accessors(
 
 sub new {
     my $class = shift;
-    my $self = bless({class => $class}, $class);
+
+    my $self = bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, $class;
+
+    $self->{class}                = $class;
     $self->{started}              = 0;
     $self->{serialfile}           = "serial0";
     $self->{serial_offset}        = 0;
@@ -129,6 +132,7 @@ sub run {
     $self->run_capture_loop;
 
     bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
+
 }
 
 =head2 run_capture_loop($timeout)
@@ -259,6 +263,7 @@ sub start_vm {
 
 sub stop_vm {
     my ($self) = @_;
+
     if ($self->{started}) {
         # backend.run might have disappeared already in case of failed builds
         no autodie 'unlink';
@@ -420,6 +425,7 @@ sub close_pipes {
     bmwqemu::diag "sending magic and exit";
     $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || die "close $!\n";
+    $self->_kill_children_processes;
     Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
 }

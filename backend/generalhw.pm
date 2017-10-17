@@ -30,7 +30,7 @@ sub new {
     my $class = shift;
     # required for the tests to access our HTTP port
     get_required_var('WORKER_HOSTNAME');
-    return $class->SUPER::new;
+    return $class->SUPER::new(@_);
 }
 
 sub get_cmd {
