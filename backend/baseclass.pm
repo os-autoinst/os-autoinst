@@ -46,7 +46,7 @@ __PACKAGE__->mk_accessors(
       last_screenshot last_image assert_screen_check
       reference_screenshot assert_screen_tags assert_screen_needles
       assert_screen_deadline assert_screen_fails assert_screen_last_check
-      stall_detected reload_needles
+      stall_detected
       ));
 
 sub new {
@@ -589,6 +589,16 @@ sub capture_screenshot {
     return;
 }
 
+sub reload_needles {
+    # called from testapi::set_var, so read the vars
+    bmwqemu::load_vars();
+
+    for my $n (needle->all()) {
+        $n->unregister();
+    }
+    needle::init();
+}
+
 ###################################################################
 # this is used by backend::console_proxy
 sub proxy_console_call {
@@ -714,9 +724,8 @@ sub wait_idle {
 
 sub set_tags_to_assert {
     my ($self, $args) = @_;
-    my $mustmatch     = $args->{mustmatch};
-    my $timeout       = $args->{timeout} // $bmwqemu::default_timeout;
-    my $reloadneedles = $args->{reloadneedles} || 0;
+    my $mustmatch = $args->{mustmatch};
+    my $timeout = $args->{timeout} // $bmwqemu::default_timeout;
 
     # free all needle images (https://progress.opensuse.org/issues/15438)
     for my $n (needle->all()) {
@@ -763,7 +772,6 @@ sub set_tags_to_assert {
     $self->assert_screen_needles($needles);
     $self->assert_screen_last_check(undef);
     $self->stall_detected(0);
-    $self->reload_needles($reloadneedles);
     # store them for needle reload event
     $self->assert_screen_tags(\@tags);
     $self->assert_screen_check($args->{check});
@@ -974,15 +982,11 @@ sub verify_image {
     return {candidates => $failed_candidates};
 }
 
-
 sub retry_assert_screen {
     my ($self, $args) = @_;
 
     if ($args->{reload_needles}) {
-        for my $n (needle->all()) {
-            $n->unregister();
-        }
-        needle::init();
+        $self->reload_needles;
     }
     # reset timeout otherwise continue wait_forneedle might just fail if stopped too long than timeout
     if ($args->{timeout}) {
