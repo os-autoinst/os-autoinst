@@ -77,6 +77,7 @@ sub handle_command {
 
 sub die_handler {
     my $msg = shift;
+    return if ($^S); # don't handle our own custom evals
     cluck "DIE $msg\n";
     $backend->stop_vm();
     $backend->close_pipes();
@@ -475,12 +476,13 @@ sub select_console {
     my $testapi_console = $args->{testapi_console};
 
     my $selected_console = $self->console($testapi_console);
-    my $activated        = $selected_console->select;
-
+    my $ret = $selected_console->select;
+    use Data::Dumper;
+    print("ret in baseclass::select_console " . Dumper($ret));
     $self->{current_console} = $selected_console;
     $self->{current_screen}  = $selected_console->screen;
     $self->capture_screenshot();
-    return {activated => $activated};
+    return $ret;
 }
 
 sub reset_consoles {

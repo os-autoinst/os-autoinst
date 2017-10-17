@@ -148,7 +148,12 @@ sub login {
         );
         if (!$socket) {
             $err_cnt++;
-            return if (time > $endtime);
+            if (time > $endtime) {
+                my $err = "Not possible to connect to host <$hostname> after $err_cnt retries";
+                #OpenQA::Exception::VNCProtocolError->throw(error => $err);
+                die $err;
+            }
+            die "Not possible to connect to host <$hostname> after $err_cnt retries" if (time > $endtime);
             # we might be too fast trying to connect to the VNC host (e.g.
             # qemu) so ignore the first occurences of a failed
             # connection attempt.
@@ -878,7 +883,8 @@ sub _receive_message {
     my $self = shift;
 
     my $socket = $self->socket;
-    $socket or die 'socket does not exist. Probably your backend instance could not start or died.';
+    return unless $socket;
+    #$socket or die 'socket does not exist. Probably your backend instance could not start or died.';
     $socket->blocking(0);
     my $ret = $socket->read(my $message_type, 1);
     $socket->blocking(1);
