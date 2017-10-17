@@ -1,4 +1,4 @@
-# Copyright © 2016 SUSE LLC
+# Copyright (C) 2017 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,21 +13,21 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-package backend::virt;
-use strict;
-use warnings;
-use base 'backend::baseclass';
-use testapi 'get_var';
-use bmwqemu;
+package backend::component;
 
-sub new {
-    my ($class) = shift;
-    my $self = $class->SUPER::new(@_);
-    $bmwqemu::vars{QEMURAM}  //= 1024;
-    $bmwqemu::vars{QEMUCPUS} //= 1;
-    return $self;
+use Mojo::Base -base;
+use bmwqemu;
+use POSIX;
+use Carp 'confess';
+
+has verbose => 1;
+has load    => 0;
+has 'backend';
+
+sub _diag {
+    my ($self, @messages) = @_;
+    my $caller = (caller(1))[3];
+    bmwqemu::diag ">> ${caller}(): @messages" if $self->verbose;
 }
 
-
 1;
-# vim: set sw=4 et:

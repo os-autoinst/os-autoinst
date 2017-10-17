@@ -21,13 +21,60 @@ use warnings;
 use Carp;
 use base 'Exporter';
 use Mojo::File 'path';
+use Mojo::Loader qw(find_modules load_class);
 
 our @EXPORT_OK = qw(
   dd_gen_params
   find_bin
   gen_params
+  looks_like_ip
+  load_module
+  load_components
+  get_class_name
   qv
 );
+
+sub get_class_name { (split(/=/, "$_[0]"))[0] }
+
+sub load_module {
+    my ($module, @args) = @_;
+    my $loaded_module;
+    eval { $loaded_module = $module->new(@args); };
+    return if $@;
+
+    # If in the components options we define prepare => 0, skip the prepare() call.
+    $loaded_module->prepare if ($module->can("prepare") and !(ref($args[0]) eq "HASH" and exists $args[0]->{prepare} and !$args[0]->{prepare}));
+
+    # Starts the component if required.
+    $loaded_module->start if ($module->can("start"));
+    return $loaded_module;
+}
+
+sub load_components {
+    my ($namespace, $component, @args) = @_;
+    my (@errors, @loaded);
+    for my $module (find_modules $namespace) {
+        next if $component and ($module !~ /$component/);
+        my $e = load_class $module;
+        if (ref $e) {
+            push(@errors, $e);
+            next;
+        }
+        next if !$component and $module->can("load") and !$module->new->load;
+        if (defined(my $loaded_module = load_module($module, @args))) {
+            push @loaded, $loaded_module;
+        }
+    }
+    return \@errors, \@loaded;
+}
+
+sub looks_like_ip {
+    my $part = qr/\d{1,2}|[01]\d{2}|2[0-4]\d|25[0-5]/;
+    if ($_[0] =~ /^($part\.){3}$part$/) {
+        return 1;
+    }
+    return 0;
+}
 
 # An helper to lookup into a folder and find an executable file between given candidates
 # First argument is the directory, the remainining are the candidates.

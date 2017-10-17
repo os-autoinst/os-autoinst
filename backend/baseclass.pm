@@ -35,6 +35,9 @@ use OpenQA::Benchmark::Stopwatch;
 use MIME::Base64 'encode_base64';
 use List::Util 'min';
 use List::MoreUtils 'uniq';
+use Mojo::URL;
+use Mojo::Loader qw(find_modules load_class);
+use osutils qw(load_components get_class_name);
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -51,7 +54,10 @@ __PACKAGE__->mk_accessors(
 
 sub new {
     my $class = shift;
-    my $self = bless({class => $class}, $class);
+
+    my $self = bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, $class;
+
+    $self->{class}                = $class;
     $self->{started}              = 0;
     $self->{serialfile}           = "serial0";
     $self->{serial_offset}        = 0;
@@ -126,9 +132,13 @@ sub run {
         $console->backend($self);
     }
 
+    # Loads automatically component which are explictly requested or the ones that returns 1 on load().
+    $self->_autoload_components;
+
     $self->run_capture_loop;
 
     bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
+
 }
 
 =head2 run_capture_loop($timeout)
@@ -259,6 +269,9 @@ sub start_vm {
 
 sub stop_vm {
     my ($self) = @_;
+
+    $self->_stop_components();
+
     if ($self->{started}) {
         # backend.run might have disappeared already in case of failed builds
         no autodie 'unlink';
@@ -420,6 +433,7 @@ sub close_pipes {
     bmwqemu::diag "sending magic and exit";
     $self->{rsppipe}->print('{"QUIT":1}');
     close($self->{rsppipe}) || die "close $!\n";
+    $self->_kill_children_processes;
     Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
 }
@@ -1112,6 +1126,52 @@ sub _child_process {
         return $pid;
     }
 
+}
+
+# Components can be loaded explictly, by supplying a list or as a HASH/ARRAY reference (HASH if containing components options to pass by).
+# e.g. from backend::driver (but it does apply also to child backends.)
+#      $bmwqemu::backend = backend::driver->new(
+#        backend    => $bmwqemu::vars{BACKEND},
+#        components => [('foo') x !!($bmwqemu::vars{FOO}), ('bar') x !!($bmwqemu::vars{BAR})]
+#      );
+sub _autoload_components {
+    my $self = shift;
+    # Load components and starts them.
+    # First load the components that have been explictly requested by the backend, the try to load them greedly.
+    my (@components, @errors, @loaded);
+    @components = keys %{$self->{components}} if exists $self->{components} and ref($self->{components}) eq "HASH"  and keys %{$self->{components}} > 0;
+    @components = @{$self->{components}}      if exists $self->{components} and ref($self->{components}) eq "ARRAY" and @{$self->{components}} > 0;
+    for (@components) {
+        my ($l_errors, $l_loaded) = load_components(
+            'backend::component', $_,
+            backend => $self,
+            (ref($self->{components}) eq "HASH" and exists $self->{components}->{$_}) ?
+              %{$self->{components}->{$_}}
+            : ());
+        push(@errors, @{$l_errors});
+        push(@loaded, @{$l_loaded});
+    }
+    # Now loads all the components which calls to load returns a positive value.
+    # If a component has a method load, that returns 1 it gets automatically loaded (and started, if necessary)
+    my ($l_errors, $l_loaded) = load_components('backend::component', '', backend => $self);
+    push(@errors, @{$l_errors});
+    push(@loaded, @{$l_loaded});
+    for (@loaded) {
+        my $name = get_class_name($_);
+        $self->{active_components}->{$name} = $_;
+        bmwqemu::diag ">> '$name' Loaded successfully";
+    }
+    bmwqemu::diag ">> Error: $_" for @errors;
+
+    return @errors;
+}
+
+sub _stop_components {
+    my $self = shift;
+    # Be sure to stop components when finished. (they gets ripped off also when calling _kill_children_processes())
+    for my $component (keys %{$self->{active_components}}) {
+        $self->{active_components}->{$component}->stop() if ($self->{active_components}->{$component}->can("stop"));
+    }
 }
 
 1;

@@ -18,6 +18,8 @@
 use 5.018;
 use warnings;
 use Test::More;
+use FindBin;
+use lib "$FindBin::Bin/lib";
 
 BEGIN {
     unshift @INC, '..';
@@ -128,6 +130,89 @@ subtest find_bin => sub {
     is find_bin($sandbox, qw(test2)), undef, "Executable file found but not executable";
     is find_bin($sandbox, qw(test3)), undef, "Executable file not found";
 
+};
+
+subtest looks_like_ip => sub {
+    use osutils 'looks_like_ip';
+
+    ok looks_like_ip($_), "$_ is a valid ip"
+      for (
+        qw(
+        127.0.0.1
+        255.255.255.255
+        1.1.1.1
+        2.2.2.2
+        192.168.0.0
+        10.10.0.0
+        0.0.0.0
+        ));
+
+    ok !looks_like_ip($_), "$_ is an invalid ip"
+      for (
+        qw(
+        255.255.255.256
+        255.255.256.256
+        255.256.256.256
+        256.256.256.256
+        256.256.256.255
+        256.256.255.255
+        256.255.255.255
+        my.foo.bar
+        1a.22.33.44
+        1.22a.33.44
+        1.22.33.44a
+        4.4.4.4.4
+        1.1.23.21.3.12.2.23
+        ));
+};
+
+subtest get_class_name => sub {
+    use osutils 'get_class_name';
+    use backend::component::foo;
+    use backend::component::foobar;
+    my $obj1 = backend::component::foo->new;
+    my $obj2 = backend::component::foobar->new;
+
+
+    is get_class_name("backend::component::foo=HASH(0x27a3640)"),       "backend::component::foo";
+    is get_class_name("backend::component::dnsserver=HASH(0x1f8e1c8)"), "backend::component::dnsserver";
+    is get_class_name("backend::component::proxy=HASH(0x3538eb0)"),     "backend::component::proxy";
+    is get_class_name($obj1), "backend::component::foo";
+    is get_class_name($obj2), "backend::component::foobar";
+};
+
+subtest load_module => sub {
+    use osutils 'load_module';
+    use backend::component::foo;
+
+    my $obj = load_module('backend::component::foo', {prepare => 0});
+    is $obj->prepared, 0;
+    $obj = load_module('backend::component::foo', {prepare => 1});
+    is $obj->prepared, 1;
+    $obj = load_module('backend::component::foo');
+    is $obj->prepared, 1;
+    is $obj->started,  1;
+};
+
+subtest load_components => sub {
+    use osutils 'load_components';
+
+    my ($errors, $loaded) = load_components('backend::component', 'foo', {prepare => 0});
+    is @{$errors}, 0;
+    is @{$loaded}, 2;
+    is $_->{prepare}, 0 for @{$loaded};
+
+    ($errors, $loaded) = load_components('backend::component', '', {prepare => 0});
+    is @{$errors}, 1;
+    is @{$loaded}, 0;
+    my $err = shift @{$errors};
+    isa_ok $err, "Mojo::Exception";
+
+    local $ENV{FOO_BAR_BAZ} = 1;
+    ($errors, $loaded) = load_components('backend::component', '');
+    is @{$errors}, 1;
+    is @{$loaded}, 1;
+    is shift(@{$loaded})->prepared, 1;
 };
 
 done_testing();
