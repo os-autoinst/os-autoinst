@@ -6,7 +6,6 @@ use IO::Socket::INET;
 use bytes;
 use bmwqemu 'diag';
 use Time::HiRes qw( usleep gettimeofday time );
-use Carp;
 use List::Util 'min';
 
 use Crypt::DES;
@@ -148,7 +147,9 @@ sub login {
         );
         if (!$socket) {
             $err_cnt++;
-            return if (time > $endtime);
+            if (time > $endtime) {
+                OpenQA::Exception::VNCSetupError->throw(error => "Error connecting to host <$hostname>: $@");
+            }
             # we might be too fast trying to connect to the VNC host (e.g.
             # qemu) so ignore the first occurences of a failed
             # connection attempt.

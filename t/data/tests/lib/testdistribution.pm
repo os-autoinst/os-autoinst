@@ -1,4 +1,4 @@
-# Copyright © 2016 SUSE LLC
+# Copyright (C) 2017 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,28 +13,28 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
+package testdistribution;
 use strict;
-use warnings;
+use base 'distribution';
 
-package OpenQA::Exceptions;
+sub init {
+    my ($self) = @_;
 
-use Exception::Class (
-    'OpenQA::Exception::InternalException' => {
-        description => 'internal errors not for the user'
-    },
+    $self->SUPER::init();
+    $self->init_consoles();
+}
 
-    'OpenQA::Exception::FailedNeedle' => {
-        description => 'assert_screen failed',
-        isa         => 'OpenQA::Exception::InternalException',
-        fields      => 'tags',
-    },
+sub init_consoles {
+    my ($self) = @_;
 
-    'OpenQA::Exception::VNCProtocolError' => {
-        description => 'VNC Server interrupted connection'
-    },
-    'OpenQA::Exception::VNCSetupError' => {
-        description => 'Failed to connect to VNC Server'
-    },
-);
+    $self->add_console(
+        'brokenvnc',
+        'vnc-base',
+        {
+            hostname => 'novnc.nowhere',
+            port     => 5901,
+            password => $testapi::password
+        });
+}
 
 1;

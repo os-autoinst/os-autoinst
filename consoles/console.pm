@@ -71,7 +71,9 @@ sub select {
     my ($self) = @_;
     my $activated;
     if (!$self->{activated}) {
-        $self->activate;
+        my $ret = $self->activate;
+        # undef on success
+        return $ret if $ret;
         $self->{activated} = 1;
         $activated = 1;
     }
