@@ -17,6 +17,7 @@
 package consoles::console;
 use strict;
 use warnings;
+use Carp 'cluck';
 require IPC::System::Simple;
 use autodie ':all';
 
@@ -69,14 +70,18 @@ sub trigger_select {
 
 sub select {
     my ($self) = @_;
-    my $activated;
+    my %ret;
     if (!$self->{activated}) {
-        $self->activate;
+        eval { $self->activate };
+        if ($@) {
+            cluck "Failure to activate console on select";
+            $ret{error} = 1;
+        }
         $self->{activated} = 1;
-        $activated = 1;
+        $ret{activated} = 1;
     }
     $self->trigger_select;
-    return $activated;
+    return \%ret;
 }
 
 sub activate {

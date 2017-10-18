@@ -62,6 +62,7 @@ sub connect_vnc {
     $self->{mouse} = {x => -1, y => -1};
 
     CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
+    bmwqemu::diag "Now trying to connect to VNC server...";
     $self->{vnc} = consoles::VNC->new($args);
     $self->{vnc}->login($args->{connect_timeout});
     return $self->{vnc};
