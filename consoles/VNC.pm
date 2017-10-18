@@ -9,6 +9,8 @@ use Time::HiRes qw( usleep gettimeofday time );
 use Carp;
 use List::Util 'min';
 
+use testapi 'record_info';
+
 use Crypt::DES;
 use Compress::Raw::Zlib;
 
@@ -816,7 +818,7 @@ sub _send_frame_buffer {
             $args->{x},
             $args->{y},
             $args->{width},
-            $args->{height}));
+            $args->{height})) if $self->socket;
 }
 
 # frame buffer update request
@@ -878,7 +880,10 @@ sub _receive_message {
     my $self = shift;
 
     my $socket = $self->socket;
-    $socket or die 'socket does not exist. Probably your backend instance could not start or died.';
+    if (!$socket) {
+        record_info('VNC Error', 'Socket does not exist', result => 'fail');
+        OpenQA::Exception::VNCSocketError->throw(error => 'There is no socket we can connect to.');
+    }
     $socket->blocking(0);
     my $ret = $socket->read(my $message_type, 1);
     $socket->blocking(1);
