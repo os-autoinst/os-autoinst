@@ -49,7 +49,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   assert_script_run script_run assert_script_sudo script_sudo
   script_output validate_script_output
 
-  start_audiocapture assert_recorded_sound
+  start_audiocapture assert_recorded_sound check_recorded_sound
 
   select_console console reset_consoles
 
@@ -615,8 +615,8 @@ sub get_required_var {
 
 Set test variable C<$variable> to value C<$value>.
 
-Specify a true value for the C<reload_needles> flag to trigger a reloading 
-of needles in the backend and call the cleanup handler with the new variables 
+Specify a true value for the C<reload_needles> flag to trigger a reloading
+of needles in the backend and call the cleanup handler with the new variables
 to make sure that possibly unselected needles are now taken into account
 (useful if you change scenarios during the test run)
 
@@ -1427,18 +1427,8 @@ sub start_audiocapture {
     return query_isotovideo('backend_start_audiocapture', {filename => $filename});
 }
 
-=head2 assert_recorded_sound
-
-  assert_recorded_sound('we-will-rock-you');
-
-Tells the backend to record a C<.wav> file of the sound card.
-
-I<Only supported by QEMU backend.>
-
-=cut
-
-sub assert_recorded_sound {
-    my ($mustmatch) = @_;
+sub _check_or_assert_sound {
+    my ($mustmatch, $check) = @_;
 
     my $result = $autotest::current_test->stop_audiocapture();
     my $wavfile = join('/', bmwqemu::result_dir(), $result->{audio});
@@ -1446,7 +1436,39 @@ sub assert_recorded_sound {
 
     my $imgpath = "$result->{audio}.png";
 
-    return $autotest::current_test->verify_sound_image($imgpath, $mustmatch);
+    return $autotest::current_test->verify_sound_image($imgpath, $mustmatch, $check);
+}
+
+=head2 assert_recorded_sound
+
+  assert_recorded_sound('we-will-rock-you');
+
+Tells the backend to record a C<.wav> file of the sound card and asserts if it matches
+expected audio. Comparison is performed after conversion to the image.
+
+I<Only supported by QEMU backend.>
+
+=cut
+
+sub assert_recorded_sound {
+    my ($mustmatch) = @_;
+    return _check_or_assert_sound $mustmatch;
+}
+
+=head2 check_recorded_sound
+
+  check_recorded_sound('we-will-rock-you');
+
+Tells the backend to record a C<.wav> file of the sound card and checks if it matches
+expected audio. Comparison is performed after conversion to the image.
+
+I<Only supported by QEMU backend.>
+
+=cut
+
+sub check_recorded_sound {
+    my ($mustmatch) = @_;
+    return _check_or_assert_sound $mustmatch, 1;
 }
 
 =head1 miscellaneous
