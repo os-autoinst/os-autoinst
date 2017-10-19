@@ -35,8 +35,15 @@ sub screen {
 
 sub activate {
     my ($self) = @_;
-    $self->connect_vnc($self->{args});
-    return $self->SUPER::activate;
+    try {
+        local $SIG{__DIE__} = undef;
+        $self->connect_vnc($self->{args});
+        return $self->SUPER::activate;
+    }
+    catch {
+        die $_ unless blessed $_ && $_->can('rethrow');
+        return {error => $_->error};
+    };
 }
 
 sub disable {

@@ -477,6 +477,7 @@ sub select_console {
     my $selected_console = $self->console($testapi_console);
     my $activated        = $selected_console->select;
 
+    return $activated if ref($activated);
     $self->{current_console} = $selected_console;
     $self->{current_screen}  = $selected_console->screen;
     $self->capture_screenshot();
