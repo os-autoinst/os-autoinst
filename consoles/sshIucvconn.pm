@@ -40,7 +40,8 @@ sub connect_remote {
     $chan->blocking(0);
     $chan->pty(1);
 
-    $chan->exec("smart_agetty hvc0");
+    $chan->exec("smart_agetty hvc0")
+      or $chan->die_with_error;
     # Save objects to prevent unexpected closings
     $self->{ttychan} = $chan;
     $self->{ttyconn} = $ttyconn;
@@ -48,7 +49,8 @@ sub connect_remote {
     # ssh connection to SUT for iucvconn
     my $serialchan = $self->backend->start_ssh_serial(hostname => $args->{hostname}, password => $args->{password}, username => 'root');
     # start iucvconn
-    $serialchan->exec("iucvconn $zvmguest lnxhvc0");
+    $serialchan->exec("iucvconn $zvmguest lnxhvc0")
+      or $serialchan->die_with_error;
 }
 
 # to be called on reconnect

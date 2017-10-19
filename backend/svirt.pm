@@ -116,7 +116,8 @@ sub run_cmd {
         username => 'root'
     );
     my $chan = $self->{ssh}->channel();
-    $chan->exec($cmd);
+    $chan->exec($cmd)
+      or $chan->die_with_error;
     get_ssh_output($chan);
     $chan->send_eof;
     my $ret = $chan->exit_status();
@@ -244,16 +245,19 @@ sub start_serial_grab {
         # libvirt esx driver does not support `virsh console', so
         # we have to connect to VM's serial port via TCP which is
         # provided by ESXi server.
-        $chan->exec('nc ' . get_var('VMWARE_HOST') . ' ' . get_var('VMWARE_SERIAL_PORT'));
+        $chan->exec('nc ' . get_var('VMWARE_HOST') . ' ' . get_var('VMWARE_SERIAL_PORT'))
+          or $chan->die_with_error;
     }
     elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         # Hyper-V does not support serial console export via TCP, just
         # windows named pipes (e.g. \\.\pipe\mypipe). Such a named pipe
         # has to be enabled by a namedpipe-to-TCP on HYPERV_SERVER application.
-        $chan->exec('nc ' . get_var('HYPERV_SERVER') . ' ' . get_var('HYPERV_SERIAL_PORT'));
+        $chan->exec('nc ' . get_var('HYPERV_SERVER') . ' ' . get_var('HYPERV_SERIAL_PORT'))
+          or $chan->die_with_error;
     }
     else {
-        $chan->exec('virsh console ' . $name);
+        $chan->exec('virsh console ' . $name)
+          or $chan->die_with_error;
     }
 }
 

@@ -53,7 +53,8 @@ sub activate {
         );
 
         # start iucvconn
-        $serialchan->exec($serial);
+        $serialchan->exec($serial)
+          or $serialchan->die_with_error;
     }
 }
 

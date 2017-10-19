@@ -355,7 +355,7 @@ sub add_disk {
                   'fi;' .
                   "vmkfstools -v1 -U $vmware_disk_path;" .
                   "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1"
-            );
+            ) or $chan->die_with_error;
             $vmware_chan->send_eof;
             get_ssh_output($vmware_chan);
             $vmware_chan->close();
@@ -550,7 +550,8 @@ __END"
     my $xmlfilename = "/var/lib/libvirt/images/" . $self->name . ".xml";
     my $chan        = $self->{ssh}->channel();
     # scp_put is unfortunately unreliable (RT#61771)
-    $chan->exec("cat > $xmlfilename");
+    $chan->exec("cat > $xmlfilename")
+      or $chan->die_with_error;
     $chan->write($doc->toString(2));
     $chan->close();
 
@@ -623,7 +624,8 @@ sub run_cmd {
     my ($self, $cmd) = @_;
 
     my $chan = $self->{ssh}->channel();
-    $chan->exec($cmd);
+    $chan->exec($cmd)
+      or $chan->die_with_error;
     bmwqemu::diag "Command executed: $cmd";
     get_ssh_output($chan);
     $chan->send_eof;
@@ -640,7 +642,7 @@ sub get_cmd_output {
     my $wantarray = $args->{wantarray};
     my $domain    = $args->{domain} // 'ssh';
     my $chan      = $self->{$domain}->channel();
-    $chan->exec($cmd);
+    $chan->exec($cmd) or $chan->die_with_error;
     bmwqemu::diag "Command executed: $cmd";
     my @cmd_output = get_ssh_output($chan);
     $chan->send_eof;

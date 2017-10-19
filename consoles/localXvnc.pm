@@ -83,7 +83,8 @@ sub activate {
         open(STDIN,  "<&", $peer);
         open(STDOUT, ">&", $peer);
         close($peer);
-        exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");
+        exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display")
+          or die "Could not execute Xvnc: $!";
     }
     close($s);
     #print "$self->{testapi_console} -> $port\n";
