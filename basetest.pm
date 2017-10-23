@@ -534,7 +534,7 @@ sub stop_audiocapture {
 }
 
 sub verify_sound_image {
-    my ($self, $imgpath, $mustmatch) = @_;
+    my ($self, $imgpath, $mustmatch, $check) = @_;
 
     my $rsp = autotest::query_isotovideo('backend_verify_image', {imgpath => $imgpath, mustmatch => $mustmatch});
 
@@ -547,14 +547,13 @@ sub verify_sound_image {
         return $foundneedle;
     }
     bmwqemu::fctres(sprintf("failed to find %s", $mustmatch));
-
-    $self->record_screenfail(
-        img     => $img,
-        needles => $rsp->{candidates},
-        tags    => [$mustmatch],
-        result  => 'fail',
-        overall => 'fail'
-    );
+    my @needles_params = (img => $img, needles => $rsp->{candidates}, tags => [$mustmatch]);
+    if ($check) {
+        $self->record_screenfail(@needles_params, result => 'unk');
+    }
+    else {
+        $self->record_screenfail(@needles_params, result => 'fail', overall => 'fail');
+    }
     return;
 }
 
