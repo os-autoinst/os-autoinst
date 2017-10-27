@@ -332,7 +332,7 @@ sub add_disk {
             $self->run_cmd("qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
         }
     }
-    else {    # Copy image to VM host
+    elsif ($self->vmm_family ne 'vmware') {    # Copy image to VM host
         my $dir = "/var/lib/libvirt/images";
         die "No file given" unless $args->{file};
         if ($args->{cdrom} or $args->{backingfile}) {
@@ -488,22 +488,22 @@ sub define_and_start {
     if ($self->vmm_family eq 'vmware') {
         my ($fh, $libvirtauthfilename) = tempfile(DIR => "/tmp/");
 
+        my $user     = get_required_var('VMWARE_USERNAME');
+        my $password = get_required_var('VMWARE_PASSWORD');
+        my $server   = get_required_var('VMWARE_SERVER');
+
         # The libvirt esx driver supports connection over HTTP(S) only. When
         # asked to authenticate we provide the password via 'authfile'.
         $self->run_cmd(
             "cat > $libvirtauthfilename <<__END
 [credentials-vmware]
-username=" . get_required_var('VMWARE_USERNAME') . "
-password=" . get_required_var('VMWARE_PASSWORD') . "
-[auth-esx-" . get_required_var('VMWARE_HOST') . "]
+username=$user
+password=$password
+[auth-esx-$server]
 credentials=vmware
 __END"
         );
-        my $user       = get_required_var('VMWARE_USERNAME');
-        my $host       = get_required_var('VMWARE_HOST');
-        my $datacenter = get_required_var('VMWARE_DATACENTER');
-        my $server     = get_required_var('VMWARE_SERVER');
-        $remote_vmm = "-c vpx://$user@$host/$datacenter/$server/?no_verify=1\\&authfile=$libvirtauthfilename ";
+        $remote_vmm = "-c esx://$user\@$server/?no_verify=1\\&authfile=$libvirtauthfilename ";
     }
 
     my $instance = $self->instance;
