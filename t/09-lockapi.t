@@ -112,6 +112,12 @@ ok(check_action('POST', 'barrier', {name => 'barrier1', tasks => 3}), 'barrier c
 ok(barrier_wait('barrier1'), 'registered for waiting and released immideately');
 ok(check_action('POST', 'barrier/barrier1', undef), 'barrier wait request valid');
 
+ok(barrier_wait {name => 'barrier1'}, 'registered for waiting and released immediately');
+ok(check_action('POST', 'barrier/barrier1', undef), 'barrier wait request valid');
+
+ok(barrier_wait({name => 'barrier1', check_dead_job => 1}), 'registered for waiting and destroy barrier if one of the jobs die');
+ok(check_action('POST', 'barrier/barrier1', {check_dead_job => 1}), 'barrier wait request valid with check_dead_job');
+
 ok(barrier_destroy('barrier1'), 'barrier destroyed');
 ok(check_action('DELETE', 'barrier/barrier1', undef), 'barrier destroy request valid');
 

@@ -18,7 +18,7 @@ package lockapi;
 
 use strict;
 use warnings;
-
+use Scalar::Util 'looks_like_number';
 use base 'Exporter';
 our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock barrier_create barrier_wait barrier_try_wait barrier_destroy);
 
@@ -102,9 +102,11 @@ sub barrier_create {
 }
 
 sub _wait_action {
-    my ($name, $where) = @_;
+    my ($name, $where, $check_dead_job) = @_;
     my $param;
-    $param->{where} = $where if $where;
+    $param->{where}          = $where          if $where;
+    $param->{check_dead_job} = $check_dead_job if defined $check_dead_job;
+
     return _try_lock('barrier', $name, $param);
 }
 
@@ -117,11 +119,14 @@ sub barrier_try_wait {
 }
 
 sub barrier_wait {
-    my ($name, $where) = @_;
+    my ($name, $where, $check_dead_job) = ref $_[0] eq 'HASH' ? (@{$_[0]}{qw(name where check_dead_job)}) : @_;
+
+    $check_dead_job = looks_like_number($check_dead_job) && $check_dead_job ? 1 : 0;
+
     bmwqemu::mydie('missing barrier name') unless $name;
     bmwqemu::diag("barrier wait '$name'");
     while (1) {
-        my $res = _wait_action($name, $where);
+        my $res = _wait_action($name, $where, $check_dead_job);
         return 1 if $res;
 
         bmwqemu::diag("barrier '$name' not released, sleeping 5s");
