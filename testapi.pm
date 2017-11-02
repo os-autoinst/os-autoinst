@@ -21,7 +21,8 @@ use Carp;
 use Exporter;
 use 5.018;
 use warnings;
-use File::Basename 'basename';
+use File::Basename qw(basename dirname);
+use File::Path 'make_path';
 use Time::HiRes qw(sleep gettimeofday tv_interval);
 use autotest 'query_isotovideo';
 use Mojo::DOM;
@@ -62,6 +63,8 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   save_memory_dump save_storage_drives freeze_vm resume_vm
 
   diag hashed_string
+
+  save_tmp_file
 );
 our @EXPORT_OK = qw(is_serial_terminal);
 
@@ -959,6 +962,34 @@ sub script_output {
     $output =~ s/^\s+|\s+$//g;
 
     return $output;
+}
+
+
+=head2 save_tmp_file
+
+  save_tmp_file($relpath, $content)
+
+Saves content to the file in the worker pool directory using hash of the path,
+including file, so it can be fetched via http later on using
+ C< <autoinst_url>/files/#path_to_the_file> > url.
+Can be used to modify files for specific test needs, e.g. autoinst profiles.
+Dies if cannot open file for writing.
+
+Example:
+  save_tmp_file('autoyast/autoinst.xml', '<profile>Test</profile>')
+Then the file can be fetched using url:
+C< <autoinst_url>/files/autoyast/autoinst.xml> >
+
+=cut
+
+sub save_tmp_file {
+    my ($relpath, $content) = @_;
+    my $path = hashed_string($relpath);
+
+    bmwqemu::log_call(path => $relpath);
+    open my $fh, ">", $path;
+    print $fh $content;
+    close $fh;
 }
 
 =head2 validate_script_output

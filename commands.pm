@@ -221,6 +221,14 @@ sub isotovideo_post {
     return isotovideo_command($c, [qw(interactive stop_waitforneedle continue_waitforneedle reload_needles)]);
 }
 
+sub get_temp_file {
+    my ($self)  = @_;
+    my $relpath = $self->param('relpath');
+    my $path    = testapi::hashed_string($relpath);
+    return _test_data_file($self, $path) if -f $path;
+    return $self->reply->not_found;
+}
+
 sub run_daemon {
     my ($port) = @_;
 
@@ -249,6 +257,9 @@ sub run_daemon {
 
     # to get the current bash script out of the test
     $token_auth->get('/current_script' => \&current_script);
+
+    # to get temporary files from the current worker
+    $token_auth->get('/files/*relpath' => \&get_temp_file);
 
     # get asset
     $token_auth->get('/assets/#assettype/#assetname'          => \&get_asset);
