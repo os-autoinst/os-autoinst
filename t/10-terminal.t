@@ -19,6 +19,7 @@ use POSIX qw( :sys_wait_h sigprocmask sigsuspend );
 use Socket qw( PF_UNIX SOCK_STREAM sockaddr_un );
 use Time::HiRes 'usleep';
 use File::Temp 'tempfile';
+use Mojo::Log;
 
 use Test::More;
 use Test::Warnings;
@@ -71,11 +72,7 @@ my ($logfd, $log_path) = tempfile('10-terminalXXXXX',       TMPDIR => 1, SUFFIX 
 my ($errfd, $err_path) = tempfile('10-terminal-ERRORXXXXX', TMPDIR => 1, SUFFIX => '.log');
 
 $bmwqemu::direct_output = 0;
-$bmwqemu::logfd         = $errfd;
-$bmwqemu::istty         = 0;
-
-# Line buffer the error log (make it hot)
-select((select($errfd), $| = 1)[0]);
+$bmwqemu::logger = Mojo::Log->new(path => $err_path);
 
 # Either write $msg to the socket or die
 sub try_write {
