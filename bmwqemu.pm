@@ -23,12 +23,12 @@ use Fcntl ':flock';
 
 use Thread::Queue;
 use POSIX;
-use Term::ANSIColor;
 use Carp;
 use JSON;
 use File::Path 'remove_tree';
 use Data::Dumper;
-
+use Mojo::Log;
+use File::Spec::Functions;
 use base 'Exporter';
 use Exporter;
 
@@ -53,9 +53,8 @@ our $screenshotpath = "qemuscreenshot";
 
 # global vars
 
-our $logfd;
+our $logger;
 
-our $istty;
 our $direct_output;
 
 # Known locations of OVMF (UEFI) firmware: first is openSUSE, second is
@@ -113,15 +112,17 @@ sub init {
     mkdir join('/', result_dir, 'ulogs');
 
     if ($direct_output) {
-        open($logfd, '>&STDERR');
+        $logger = Mojo::Log->new(level => 'debug');
     }
     else {
-        open($logfd, ">", result_dir . "/autoinst-log.txt");
+        $logger = Mojo::Log->new(level => 'debug', path => catfile(result_dir, 'autoinst-log.txt'));
     }
-    # set unbuffered so that send_key lines from main thread will be written
-    my $oldfh = select($logfd);
-    $| = 1;
-    select($oldfh);
+
+    $logger->format(
+        sub {
+            my ($time, $level, @lines) = @_;
+            return '[' . localtime($time) . "] [$$:$level] " . join "\n", @lines, '';
+        });
 
     die "CASEDIR variable not set in vars.json, unknown test case directory" if !$vars{CASEDIR};
 
@@ -182,25 +183,9 @@ sub get_timestamp {
     return sprintf "%s.%04d ", (POSIX::strftime "%H:%M:%S", gmtime($t)), 10000 * ($t - int($t));
 }
 
-sub print_possibly_colored {
-    my ($text, $color) = @_;
-
-    if (($direct_output && !$istty) || !$direct_output) {
-        $logfd && print $logfd get_timestamp() . "$$ $text\n";
-    }
-    if ($istty || !$logfd) {
-        if ($color) {
-            print STDERR colored(get_timestamp() . "$$ " . $text, $color) . "\n";
-        }
-        else {
-            print STDERR get_timestamp() . "$$ $text\n";
-        }
-    }
-    return;
-}
-
 sub diag {
-    print_possibly_colored "@_";
+    $logger = Mojo::Log->new(level => 'debug') unless $logger;
+    $logger->debug("@_");
     return;
 }
 
@@ -208,7 +193,8 @@ sub fctres {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    print_possibly_colored ">>> $fname: $text", 'green';
+    $logger = Mojo::Log->new(level => 'debug') unless $logger;
+    $logger->debug(">>> $fname: $text");
     return;
 }
 
@@ -216,7 +202,8 @@ sub fctinfo {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    print_possibly_colored "::: $fname: $text", 'yellow';
+    $logger = Mojo::Log->new(level => 'debug') unless $logger;
+    $logger->info("::: $fname: $text");
     return;
 }
 
@@ -224,13 +211,15 @@ sub fctwarn {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    print_possibly_colored "!!! $fname: $text", 'red';
+    $logger = Mojo::Log->new(level => 'debug') unless $logger;
+    $logger->warn("!!! $fname: $text");
     return;
 }
 
 sub modstart {
     my $text = sprintf "||| %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
-    print_possibly_colored $text, 'bold';
+    $logger = Mojo::Log->new(level => 'debug') unless $logger;
+    $logger->debug($text);
     return;
 }
 
@@ -248,7 +237,7 @@ sub update_line_number {
         my ($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i);
         last unless $filename;
         next unless $filename =~ m/$ending$/;
-        print get_timestamp() . "Debug: $filename:$line called $subroutine\n";
+        $logger->debug("$filename:$line called $subroutine");
         last;
     }
     return;
@@ -270,8 +259,8 @@ sub log_call {
         push @result, join("=", $key, pp($value));
     }
     my $params = join(", ", @result);
-
-    print_possibly_colored '<<< ' . $fname . "($params)", 'blue';
+    $logger = Mojo::Log->new(level => 'debug') unless $logger;
+    $logger->debug('<<< ' . $fname . "($params)");
     return;
 }
 
@@ -292,10 +281,6 @@ sub fileContent {
 sub stop_vm {
     return unless $backend;
     my $ret = $backend->stop();
-    if (!$direct_output && $logfd) {
-        close $logfd;
-        $logfd = undef;
-    }
     return $ret;
 }
 

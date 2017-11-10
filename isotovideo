@@ -97,7 +97,6 @@ version() if $options{version};
 
 
 # enable debug default when started from a tty
-$bmwqemu::istty         = -t 1;              ## no critic
 $bmwqemu::direct_output = $options{debug};
 
 # whether tests completed (or we bailed due to a failed 'fatal' test)
@@ -105,7 +104,7 @@ my $completed = 0;
 
 select(STDERR);
 $| = 1;
-select(STDOUT);                              # default
+select(STDOUT);    # default
 $| = 1;
 
 $bmwqemu::scriptdir = $installprefix;
