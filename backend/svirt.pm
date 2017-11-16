@@ -37,7 +37,7 @@ sub do_start_vm {
     my ($self) = @_;
 
     my $vars = \%bmwqemu::vars;
-    $vars->{NUMDISKS} ||= 1;
+    $vars->{NUMDISKS} ||= defined($vars->{RAIDLEVEL}) ? 4 : 1;
 
     # truncate the serial file
     open(my $sf, '>', $self->{serialfile});

@@ -384,33 +384,15 @@ sub add_disk {
     my $bus_type;
     my $dev_id = $args->{dev_id};
     if ($self->vmm_family eq 'xen') {
-        if ($self->vmm_type eq 'hvm') {
-            if ($args->{cdrom}) {
-                $dev_type = "hd$dev_id";
-                $bus_type = 'ide';
-            }
-            else {
-                $dev_type = "hd$dev_id";
-                $bus_type = 'xen';
-            }
+        if ($args->{cdrom}) {
+            $dev_type = "sd$dev_id";
+            $bus_type = 'scsi';
         }
-        elsif ($self->vmm_type eq 'linux') {
-            if ($args->{cdrom}) {
-                $dev_type = "xvd$dev_id";
-            }
-            else {
-                $dev_type = "xvd$dev_id";
-            }
-            $bus_type = 'xen';
-        }
+        $dev_type = "xvd$dev_id";
+        $bus_type = 'xen';
     }
     elsif ($self->vmm_family eq 'vmware') {
-        if ($args->{cdrom}) {
-            $dev_type = "hd$dev_id";
-        }
-        else {
-            $dev_type = "hd$dev_id";
-        }
+        $dev_type = "hd$dev_id";
         $bus_type = 'ide';
     }
     elsif ($self->vmm_family eq 'kvm') {
