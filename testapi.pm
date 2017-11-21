@@ -897,19 +897,26 @@ sub script_sudo {
 
 =head2 script_output
 
-  script_output($script [, $wait])
+  script_output($script [, $wait, type_command => 1])
 
-fetches the script through HTTP into the SUT and execs it with C<bash -xe> and directs
-C<stdout> (I<not> C<stderr>!) to the serial console and returns the output I<if> the script
-exists with 0. Otherwise the test is set to failed.
+Executing script inside SUT with C<bash -eox> (in case of serial console with C<bash -eo>)
+and directs C<stdout> (I<not> C<stderr>!) to the serial console and returns
+the output I<if> the script exists with 0. Otherwise the test is set to failed.
 
-The default timeout for the script is 30 seconds. If you need more, pass a second parameter
+Script content based on C<current_test_script> value and typed or fetched
+through HTTP depends on various parameters,so if you need to have it typed because
+your SUT is offline, pass type_command => 1.
+
+The default timeout for the script is 30 seconds. If you need more, pass a second parameter.
 
 =cut
 
-sub script_output($;$) {
-    my ($current_test_script, $wait) = @_;
+sub script_output {
+    my ($current_test_script, $wait, %args) = @_;
     my $suffix = hashed_string("SO$current_test_script");
+    # 80 is approximate quantity of chars typed during 'curl' approach
+    # if script length is lower there is no point to proceed with more complex solution
+    $args{type_command} ||= length($current_test_script) < 80;
 
     if (is_serial_terminal) {
         my $cat = "cat - > /tmp/script$suffix.sh; echo $suffix-\$?-";
@@ -918,6 +925,12 @@ sub script_output($;$) {
         type_string($current_test_script);
         type_string("\n", terminate_with => 'EOT');
         wait_serial("$suffix-0-");
+    }
+    elsif ($args{type_command}) {
+        my $cat = "cat - > /tmp/script$suffix.sh << EOF;";
+        type_string($cat . "\n");
+        type_string($current_test_script . "\n");
+        type_string("EOF\n");
     }
     else {
         open my $fh, ">", 'current_script' or croak("Could not open file. $!");
