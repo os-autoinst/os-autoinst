@@ -25,6 +25,7 @@ use POSIX '_exit', 'strftime';
 use autodie ':all';
 use myjsonrpc;
 
+
 BEGIN {
     # https://github.com/os-autoinst/openQA/issues/450
     $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
@@ -229,6 +230,7 @@ sub get_temp_file {
     return $self->reply->not_found;
 }
 
+
 sub run_daemon {
     my ($port) = @_;
 
@@ -238,9 +240,11 @@ sub run_daemon {
 
     # avoid leaking token
     app->mode('production');
-    app->log->level('info');
+    app->log->level('debug');
+    app->stash(isotovideo => $isotovideo);
 
-    my $r          = app->routes;
+    my $r = app->routes;
+    $r->namespaces(['OpenQA']);
     my $token_auth = $r->route("/$bmwqemu::vars{JOBTOKEN}");
 
     # for access all data as CPIO archive
@@ -270,6 +274,9 @@ sub run_daemon {
 
     $token_auth->get('/isotovideo/#command' => \&isotovideo_get);
     $token_auth->post('/isotovideo/#command' => \&isotovideo_post);
+
+    $token_auth->websocket('/ws')->name('ws')->to('commands#start_ws');
+    $token_auth->get('/developer')->to('commands#developer');
 
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');
@@ -332,6 +339,5 @@ sub start_server {
     return ($pid, $child);
 }
 
-1;
 
-# vim: set sw=4 et:
+1;
