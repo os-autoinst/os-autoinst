@@ -435,13 +435,15 @@ while ($loop) {
         if ($rsp->{cmd} eq 'check_screen') {
             $no_wait = $rsp->{no_wait} // 0;
 
+            my $arguments = {
+                mustmatch => $rsp->{mustmatch},
+                timeout   => $rsp->{timeout},
+                check     => $rsp->{check}};
             $tags = $bmwqemu::backend->_send_json(
                 {
                     cmd       => 'set_tags_to_assert',
-                    arguments => {
-                        mustmatch => $rsp->{mustmatch},
-                        timeout   => $rsp->{timeout},
-                        check     => $rsp->{check}}})->{tags};
+                    arguments => $arguments
+                })->{tags};
             next;
         }
 
