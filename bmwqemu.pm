@@ -58,8 +58,12 @@ our $logger;
 our $direct_output;
 
 # Known locations of OVMF (UEFI) firmware: first is openSUSE, second is
-# the kraxel.org nightly packages, third is Fedora's edk2-ovmf package.
-our @ovmf_locations = ('/usr/share/qemu/ovmf-x86_64-ms.bin', '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd', '/usr/share/edk2/ovmf/OVMF_CODE.fd');
+# the kraxel.org nightly packages, third is Fedora's edk2-ovmf package,
+# fourth is Debian's ovmf package.
+our @ovmf_locations = (
+    '/usr/share/qemu/ovmf-x86_64-ms.bin', '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd',
+    '/usr/share/edk2/ovmf/OVMF_CODE.fd',  '/usr/share/OVMF/OVMF_CODE.fd'
+);
 
 our %vars;
 
