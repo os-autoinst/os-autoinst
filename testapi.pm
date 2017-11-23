@@ -1551,10 +1551,15 @@ sub eject_cd {
 
 =head2 save_memory_dump
 
-  save_memory_dump([$filename, $max_downtime]);
+  save_memory_dump([filename => $filename, migrate_set_downtime => 120, migrate_set_speed => 4096m]);
 
 Saves the SUT memory state using C<$filename> as base for the memory dump
-filename,  the default will be the current test's name.
+filename,  the default will be the current test's name. A timeout for memory
+dump is set to 120 by default but can be overriden by specifying
+C<migrate_set_downtime> as a hash with value in seconds.
+
+C<migrate_set_speed> can also be set, but the default is to use pagesizes of 4m, the qemu
+documentation for qmp-commands has more information.
 
 The memory dump can be created at any point, but it's recommended to use it
 within a post fail hook. Different filenames should be provided if the dump is
@@ -1567,12 +1572,11 @@ I<Currently only qemu backend is supported.>
 sub save_memory_dump {
     my %nargs = @_;
     $nargs{filename} ||= ref($autotest::current_test);
-    $nargs{max_downtime} ||= 120;
+    $nargs{migrate_set_downtime} ||= 120;
 
     bmwqemu::log_call(%nargs);
     bmwqemu::diag "If save_memory_dump is called multiple times with the same '\$filename', it will be rewritten." unless ((caller(1))[3]) =~ /post_fail_hook/;
     bmwqemu::diag("Trying to save machine state");
-
     query_isotovideo('backend_save_memory_dump', \%nargs);
 }
 

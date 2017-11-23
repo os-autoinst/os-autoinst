@@ -40,6 +40,7 @@ unless (get_var('INTEGRATION_TESTS')) {
     autotest::loadtest "tests/assert_screen_fail_test.pm";
     autotest::loadtest "tests/typing.pm";
     autotest::loadtest "tests/reload_needles.pm";
+    autotest::loadtest "tests/create_snapshot.pm";
 }
 autotest::loadtest "tests/shutdown.pm";
 

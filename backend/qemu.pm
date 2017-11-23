@@ -206,9 +206,16 @@ sub save_memory_dump {
         {
             execute   => "migrate_set_downtime",
             arguments => {
-                value => $args->{max_downtime},
+                value => $args->{migrate_set_downtime},
             }});
 
+
+    $rsp = $self->handle_qmp_command(
+        {
+            execute   => "migrate_set_speed",
+            arguments => {
+                value => $args->{migrate_set_speed},
+            }}) if $args->{migrate_set_speed};
 
     $rsp = $self->handle_qmp_command(
         {
