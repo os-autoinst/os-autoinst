@@ -1551,7 +1551,7 @@ sub eject_cd {
 
 =head2 save_memory_dump
 
-  save_memory_dump(filename => undef, migration_speed => "4096m");
+  save_memory_dump([$filename, $max_downtime]);
 
 Saves the SUT memory state using C<$filename> as base for the memory dump
 filename,  the default will be the current test's name.
@@ -1566,7 +1566,8 @@ I<Currently only qemu backend is supported.>
 
 sub save_memory_dump {
     my %nargs = @_;
-    $nargs{filename} ||= $autotest::current_test->{name};
+    $nargs{filename} ||= ref($autotest::current_test);
+    $nargs{max_downtime} ||= 120;
 
     bmwqemu::log_call(%nargs);
     bmwqemu::diag "If save_memory_dump is called multiple times with the same '\$filename', it will be rewritten." unless ((caller(1))[3]) =~ /post_fail_hook/;

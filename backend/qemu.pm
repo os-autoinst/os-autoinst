@@ -201,6 +201,15 @@ sub save_memory_dump {
 
     mkpath("ulogs");
 
+
+    $rsp = $self->handle_qmp_command(
+        {
+            execute   => "migrate_set_downtime",
+            arguments => {
+                value => $args->{max_downtime},
+            }});
+
+
     $rsp = $self->handle_qmp_command(
         {
             execute   => "migrate",
@@ -210,6 +219,7 @@ sub save_memory_dump {
 
     die(sprintf("Migration failed: desc: %s, class: %s, stopped", $rsp->{error}->{desc}, $rsp->{error}->{class})) if ($rsp->{error});
 
+    do_stop_vm();
 
     do {
 
@@ -223,6 +233,8 @@ sub save_memory_dump {
     } until ($rsp->{return}->{status} eq "completed");
 
     diag "Migration completed.";
+    cont_vm();
+
     return;
 }
 
