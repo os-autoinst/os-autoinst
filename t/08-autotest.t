@@ -29,7 +29,7 @@ stderr_like(
 
 sub loadtest {
     my ($test, $args) = @_;
-    stderr_like(sub { autotest::loadtest "tests/$test.pm" }, qr@scheduling $test[0-9]? tests/$test.pm@, \$args);
+    stderr_like(sub { autotest::loadtest "tests/$test.pm" }, qr@scheduling $test[0-9]? tests/$test.pm|$test already scheduled@, \$args);
 }
 
 sub fake_send {
@@ -74,6 +74,9 @@ loadtest 'next';
 is(keys %autotest::tests, 2);
 loadtest 'start', 'rescheduling same step later';
 is(keys %autotest::tests, 3) || diag explain %autotest::tests;
+is($autotest::tests{'tests-start1'}->{name}, 'start#1', 'handle duplicate tests');
+is($autotest::tests{'tests-start1'}->{$_}, $autotest::tests{'tests-start'}->{$_}, "duplicate tests point to the same $_")
+  for qw(script fullname category class);
 
 autotest::run_all;
 ($died, $completed) = get_tests_done;
@@ -110,6 +113,13 @@ autotest::run_all;
 is($died,      0, 'fatal test failure should not die');
 is($completed, 0, 'fatal test failure should not complete');
 @sent = [];
+
+
+loadtest 'fatal', 'rescheduling same step later' for 1 .. 10;
+my @opts = qw(script fullname category class);
+is(@{$autotest::tests{'tests-fatal'}}{@opts}, @{$autotest::tests{'tests-fatal' . $_}}{@opts}, "tests-fatal$_ share same options with tests-fatal")
+  && is(@{$autotest::tests{'tests-fatal' . $_}}{name}, 'fatal#' . $_)
+  for 1 .. 10;
 
 done_testing();
 
