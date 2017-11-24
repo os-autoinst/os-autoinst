@@ -7,7 +7,7 @@ AM_CPPFLAGS = $(OPENCV_CFLAGS) $(FFTW_CFLAGS) $(SNDFILE_CFLAGS)
 snd2png_LDFLAGS = $(OPENCV_LIBS) $(FFTW_LIBS) $(SNDFILE_LIBS) -lm
 
 check-local:
-	-rm -f test.pnm
-	./snd2png $(srcdir)/aplay-captured.wav test.pnm
-	md5sum test.pnm > test.pnm.md5
-	diff -u test.pnm.md5 $(srcdir)/test.pnm.md5.original
+	-rm -f test.png
+	./snd2png $(srcdir)/aplay-captured.wav test.png
+	md5sum test.png > test.png.md5
+	diff -u test.png.md5 $(srcdir)/test.png.md5.original
