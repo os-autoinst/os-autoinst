@@ -927,10 +927,9 @@ sub script_output {
         wait_serial("$suffix-0-");
     }
     elsif ($args{type_command}) {
-        my $cat = "cat - > /tmp/script$suffix.sh << EOF;";
-        type_string($cat . "\n");
-        type_string($current_test_script . "\n");
-        type_string("EOF\n");
+        my $cat = "cat - > /tmp/script$suffix.sh << 'EOF';\n";
+        type_string($cat);
+        type_string($current_test_script . "\nEOF\n");
     }
     else {
         open my $fh, ">", 'current_script' or croak("Could not open file. $!");
