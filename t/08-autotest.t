@@ -14,6 +14,8 @@ BEGIN {
 
 use autotest;
 use bmwqemu;
+use OpenQA::Test::RunArgs;
+
 $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
 # array of messages sent with the fake json_send
 my @sent;
@@ -29,7 +31,7 @@ stderr_like(
 
 sub loadtest {
     my ($test, $args) = @_;
-    stderr_like(sub { autotest::loadtest "tests/$test.pm" }, qr@scheduling $test[0-9]? tests/$test.pm|$test already scheduled@, \$args);
+    stderr_like(sub { autotest::loadtest "tests/$test.pm" }, qr@scheduling $test#?[0-9]* tests/$test.pm|$test already scheduled@, \$args);
 }
 
 sub fake_send {
@@ -83,6 +85,34 @@ autotest::run_all;
 is($died,      0, 'start+next+start should not die');
 is($completed, 1, 'start+next+start should complete');
 @sent = [];
+
+my $targs = OpenQA::Test::RunArgs->new();
+stderr_like(
+    sub {
+        autotest::loadtest("tests/run_args.pm", name => 'alt_name', run_args => $targs);
+    },
+    qr@scheduling alt_name tests/run_args.pm@
+);
+autotest::run_all;
+($died, $completed) = get_tests_done;
+is($died,      0, 'run_args test should not die');
+is($completed, 1, 'run_args test should complete');
+@sent = [];
+
+stderr_like(
+    sub {
+        autotest::loadtest("tests/run_args.pm", name => 'alt_name');
+    },
+    qr@scheduling alt_name tests/run_args.pm@
+);
+autotest::run_all;
+($died, $completed) = get_tests_done;
+is($died,      0, 'run_args test should not die if there is no run_args');
+is($completed, 0, 'run_args test should not complete if there is no run_args');
+@sent = [];
+
+eval { autotest::loadtest("tests/run_args.pm", name => 'alt_name', run_args => {foo => 'bar'}); };
+like($@, qr/The run_args must be a sub-class of OpenQA::Test::RunArgs/);
 
 # now let's make the tests fail...but so far none is fatal. We also
 # have to mock query_isotovideo so we think snapshots are supported.
