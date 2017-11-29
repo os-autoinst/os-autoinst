@@ -67,6 +67,7 @@ sub loadtest {
         # to all perl hardcore hackers: fuck off!
         $nr = $nr eq '' ? 1 : $nr + 1;
         bmwqemu::diag($fullname . ' already scheduled');
+        $test->{name} = join("#", $name, $nr);
     }
     $tests{$fullname . $nr} = $test;
 
@@ -80,7 +81,7 @@ our $last_milestone;
 
 sub set_current_test {
     ($current_test) = @_;
-    query_isotovideo('set_current_test', {name => ref($current_test)});
+    query_isotovideo('set_current_test', {name => $current_test->{name}});
 }
 
 sub write_test_order {
@@ -90,7 +91,7 @@ sub write_test_order {
         push(
             @result,
             {
-                name     => ref($t),
+                name     => $t->{name},
                 category => $t->{category},
                 flags    => $t->test_flags(),
                 script   => $t->{script}});
@@ -232,7 +233,7 @@ sub runalltests {
             $vmloaded = 1;
         }
         if ($vmloaded) {
-            my $name = ref($t);
+            my $name = $t->{name};
             bmwqemu::modstart "starting $name $t->{script}";
             $t->start();
 

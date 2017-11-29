@@ -1566,7 +1566,7 @@ I<Currently only qemu backend is supported.>
 
 sub save_memory_dump {
     my %nargs = @_;
-    $nargs{filename} ||= ref($autotest::current_test);
+    $nargs{filename} ||= $autotest::current_test->{name};
 
     bmwqemu::log_call(%nargs);
     bmwqemu::diag "If save_memory_dump is called multiple times with the same '\$filename', it will be rewritten." unless ((caller(1))[3]) =~ /post_fail_hook/;
@@ -1589,7 +1589,7 @@ I<Currently only qemu backend is supported.>
 =cut
 
 sub save_storage_drives {
-    my $filename ||= ref($autotest::current_test);
+    my $filename ||= $autotest::current_test->{name};
     die "Method should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
 
     bmwqemu::log_call();
@@ -1869,7 +1869,7 @@ sub upload_logs {
 
     bmwqemu::log_call(file => $file, %args);
     my $basename = basename($file);
-    my $upname   = ($args{log_name} || ref($autotest::current_test)) . '-' . $basename;
+    my $upname   = ($args{log_name} || $autotest::current_test->{name}) . '-' . $basename;
     my $cmd      = "curl --form upload=\@$file --form upname=$upname ";
     $cmd .= autoinst_url("/uploadlog/$basename");
     if ($failok) {

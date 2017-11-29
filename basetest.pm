@@ -49,7 +49,7 @@ sub new {
     $self->{post_fail_hook_running} = 0;
     $self->{timeoutcounter}         = 0;
     $self->{activated_consoles}     = [];
-
+    $self->{name}                   = $class;
     return bless $self, $class;
 }
 
@@ -173,7 +173,7 @@ serialize a match result from needle::search
 sub _serialize_match {
     my ($self, $cand) = @_;
 
-    my $testname = ref($self);
+    my $testname = $self->{name};
     my $count    = $self->{test_count};
 
     my $candidates;
@@ -315,7 +315,7 @@ sub runtest {
     my $starttime = time;
 
     my $ret;
-    my $name = ref($self);
+    my $name = $self->{name};
     eval {
         $self->pre_run_hook();
         $self->run();
@@ -366,14 +366,14 @@ sub save_test_result {
     $result->{extra_test_results} = $self->{extra_test_results} if $self->{extra_test_results};
 
     # be aware that $name has to be unique within one job (also assumed in several other places)
-    my $fn = bmwqemu::result_dir() . sprintf("/result-%s.json", ref $self);
+    my $fn = bmwqemu::result_dir() . sprintf("/result-%s.json", $self->{name});
     bmwqemu::save_json_file($result, $fn);
     return $result;
 }
 
 sub next_resultname {
     my ($self, $type, $name) = @_;
-    my $testname = ref($self);
+    my $testname = $self->{name};
     my $count    = ++$self->{test_count};
     if ($name) {
         return "$testname-$count.$name.$type";
@@ -511,7 +511,7 @@ sub take_screenshot {
 
 sub capture_filename {
     my ($self) = @_;
-    my $fn = ref($self) . "-captured.wav";
+    my $fn = $self->{name} . "-captured.wav";
     die "audio capture already in progress. Stop it first!\n" if ($self->{wav_fn});
     $self->{wav_fn} = $fn;
     return $fn;
