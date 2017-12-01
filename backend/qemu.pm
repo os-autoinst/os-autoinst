@@ -33,6 +33,7 @@ use autodie ':all';
 use Try::Tiny;
 use osutils qw(find_bin gen_params qv);
 use List::Util 'max';
+use Data::Dumper;
 
 sub new {
     my $class = shift;
@@ -247,8 +248,8 @@ sub save_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("savevm $vmname");
-    diag "SAVED $vmname $rsp";
-    die "Could not save snapshot \'$vmname\': $rsp" unless ($rsp eq "savevm $vmname");
+    diag "SAVED $vmname ", Dumper($rsp);
+    #die "Could not save snapshot \'$vmname\': $rsp" unless ($rsp eq "savevm $vmname");
     return;
 }
 
@@ -256,7 +257,7 @@ sub load_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->_send_hmp("loadvm $vmname");
-    die "Could not load snapshot \'$vmname\': $rsp" unless ($rsp eq "loadvm $vmname");
+    #die "Could not load snapshot \'$vmname\': $rsp" unless ($rsp eq "loadvm $vmname");
     $rsp = $self->handle_qmp_command({execute => 'stop'});
     $rsp = $self->handle_qmp_command({execute => 'cont'});
     sleep(10);
@@ -966,11 +967,11 @@ sub close_pipes {
 sub _send_hmp {
     my ($self, $hmp) = @_;
 
-    my $wb = syswrite($self->{hmpsocket}, "$hmp\n");
+    my $cmd = { execute => 'human-monitor-command',
+                arguments => { 'command-line' => $hmp } };
+    my $ret = $self->handle_qmp_command($cmd);
 
-    die "syswrite failed $!" unless ($wb == length($hmp) + 1);
-
-    return $self->_read_hmp;
+    return $ret;
 }
 
 sub is_shutdown {
