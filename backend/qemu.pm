@@ -33,6 +33,7 @@ use autodie ':all';
 use Try::Tiny;
 use osutils qw(find_bin gen_params qv);
 use List::Util 'max';
+use Data::Dumper;
 
 sub new {
     my $class = shift;
@@ -56,15 +57,22 @@ sub raw_alive {
     return kill(0, $self->{pid});
 }
 
+sub _wrap_hmc {
+    my $cmdline = shift;
+    return {
+        execute   => 'human-monitor-command',
+        arguments => {'command-line' => $cmdline}};
+}
 sub start_audiocapture {
     my ($self, $args) = @_;
 
-    $self->_send_hmp("wavcapture $args->{filename} 44100 16 1");
+    $self->handle_qmp_command(_wrap_hmc("wavcapture $args->{filename} 44100 16 1"));
 }
 
 sub stop_audiocapture {
     my ($self, $args) = @_;
-    $self->_send_hmp("stopcapture 0");
+
+    $self->handle_qmp_command(_wrap_hmc("stopcapture 0"));
 }
 
 sub power {
@@ -73,10 +81,10 @@ sub power {
     my ($self, $args) = @_;
     my $action = $args->{action};
     if ($action eq 'acpi') {
-        $self->_send_hmp("system_powerdown");
+        $self->handle_qmp_command({excecute => 'system_powerdown'});
     }
     elsif ($action eq 'reset') {
-        $self->_send_hmp("system_reset");
+        $self->handle_qmp_command({execute => 'system_reset'});
     }
     elsif ($action eq 'off') {
         $self->handle_qmp_command({execute => 'quit'});
@@ -246,17 +254,20 @@ sub save_storage_drives {
 sub save_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
-    my $rsp    = $self->_send_hmp("savevm $vmname");
-    diag "SAVED $vmname $rsp";
-    die "Could not save snapshot \'$vmname\': $rsp" unless ($rsp eq "savevm $vmname");
+    my $rsp    = $self->handle_qmp_command(_wrap_hmc("savevm $vmname"));
+    if (!$rsp || $rsp->{return} ne '') {
+        die "Could not save snapshot \'$vmname\' " . Dumper($rsp);
+    }
     return;
 }
 
 sub load_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
-    my $rsp    = $self->_send_hmp("loadvm $vmname");
-    die "Could not load snapshot \'$vmname\': $rsp" unless ($rsp eq "loadvm $vmname");
+    my $rsp    = $self->handle_qmp_command(_wrap_hmc("loadvm $vmname"));
+    if ($rsp || $rsp->{return} ne '') {
+        die "Could not load snapshot \'$vmname\': " . Dumper($rsp);
+    }
     $rsp = $self->handle_qmp_command({execute => 'stop'});
     $rsp = $self->handle_qmp_command({execute => 'cont'});
     sleep(10);
@@ -789,17 +800,6 @@ sub start_qemu {
         }
     };
 
-    $self->{hmpsocket} = IO::Socket::UNIX->new(
-        Type     => IO::Socket::UNIX::SOCK_STREAM,
-        Peer     => "hmp_socket",
-        Blocking => 0
-    ) or die "can't open hmp";
-
-    $self->{hmpsocket}->autoflush(1);
-    binmode $self->{hmpsocket};
-    my $flags = fcntl($self->{hmpsocket}, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
-    $flags = fcntl($self->{hmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
-
     $self->{qmpsocket} = IO::Socket::UNIX->new(
         Type     => IO::Socket::UNIX::SOCK_STREAM,
         Peer     => "qmp_socket",
@@ -808,16 +808,12 @@ sub start_qemu {
 
     $self->{qmpsocket}->autoflush(1);
     binmode $self->{qmpsocket};
-    $flags = fcntl($self->{qmpsocket}, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
+    my $flags = fcntl($self->{qmpsocket}, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
     $flags = fcntl($self->{qmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
-    diag sprintf("hmpsocket %d, qmpsocket %d", fileno($self->{hmpsocket}), fileno($self->{qmpsocket}));
+    diag sprintf("qmpsocket %d", fileno($self->{qmpsocket}));
 
     fcntl($self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
-
-    # retrieve welcome
-    my $line = $self->_read_hmp;
-    print "WELCOME $line\n";
 
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
@@ -850,59 +846,6 @@ sub start_qemu {
     }
 
     $self->{select}->add($self->{qemupipe});
-}
-
-sub _read_hmp {
-    my ($self) = @_;
-
-    my $rsp = '';
-    my $s   = IO::Select->new();
-    $s->add($self->{hmpsocket});
-
-    # the timeout is actually pretty insane, but savevm is quite
-    # heavy on IO and after this timeout we die anyway, so if we
-    # waited one minute or 5 doesn't really matter
-    while (my @ready = $s->can_read(300)) {
-        my $buffer;
-        my $bytes = sysread($self->{hmpsocket}, $buffer, 1000);
-        last unless ($bytes);
-        $rsp .= $buffer;
-        my @rsp2 = unpack("C*", $rsp);
-        my $line = '';
-        for my $c (@rsp2) {
-            if ($c == 13) {
-
-                # skip
-            }
-            elsif ($c == 10) {
-                $line .= "\n";
-            }
-            elsif ($c == 27) {
-                $line .= "^";
-            }
-            elsif ($c < 32) {
-                $line .= "C$c ";
-            }
-            else {
-                $line .= chr($c);
-            }
-        }
-
-        # remove nop
-        $line =~ s/\^\[K//g;
-
-        # remove "cursor back"
-        while ($line =~ m/.\^\[D/) {
-            $line =~ s/.\^\[D//;
-        }
-        if ($line =~ m/\n\(qemu\) *$/) {
-            $line =~ s/\n\(qemu\) *$//;
-            return $line;
-        }
-    }
-
-    backend::baseclass::write_crash_file;
-    die "ERROR: timeout reading hmp socket\n";
 }
 
 # runs in the thread to bounce QMP
@@ -956,34 +899,13 @@ sub close_pipes {
         close($self->{qmpsocket}) || die "close $!\n";
         $self->{qmpsocket} = undef;
     }
-    if ($self->{hmpsocket}) {
-        close($self->{hmpsocket}) || die "close $!\n";
-        $self->{hmpsocket} = undef;
-    }
     $self->SUPER::close_pipes();
-}
-
-sub _send_hmp {
-    my ($self, $hmp) = @_;
-
-    my $wb = syswrite($self->{hmpsocket}, "$hmp\n");
-
-    die "syswrite failed $!" unless ($wb == length($hmp) + 1);
-
-    return $self->_read_hmp;
 }
 
 sub is_shutdown {
     my ($self) = @_;
     my $ret = $self->handle_qmp_command({execute => 'query-status'});
     return ($ret->{return}->{status} || '') eq 'shutdown';
-}
-
-sub handle_hmp_command {
-    my ($self, $hmp) = @_;
-
-    my $line = $self->_send_hmp($hmp);
-    $self->{rsppipe}->print(JSON::to_json({rsp => $line}));
 }
 
 # this is called for all sockets ready to read from. return 1 if socket
