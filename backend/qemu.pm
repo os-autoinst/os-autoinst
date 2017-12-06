@@ -265,12 +265,9 @@ sub load_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
     my $rsp    = $self->handle_qmp_command(_wrap_hmc("loadvm $vmname"));
-    if ($rsp || $rsp->{return} ne '') {
+    if (!$rsp || $rsp->{return} ne '') {
         die "Could not load snapshot \'$vmname\': " . Dumper($rsp);
     }
-    $rsp = $self->handle_qmp_command({execute => 'stop'});
-    $rsp = $self->handle_qmp_command({execute => 'cont'});
-    sleep(10);
     return $rsp;
 }
 
