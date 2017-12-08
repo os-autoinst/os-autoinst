@@ -1646,7 +1646,7 @@ I<Currently only qemu backend is supported.>
 
 sub save_storage_drives {
     my $filename ||= $autotest::current_test->{name};
-    die "Method should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
+    die "save_storage_drives should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
 
     bmwqemu::log_call();
     bmwqemu::diag("Trying to save machine drives");
