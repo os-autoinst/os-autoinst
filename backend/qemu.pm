@@ -218,19 +218,28 @@ sub save_memory_dump {
 
     die(sprintf("Migration failed: desc: %s, class: %s, stopped", $rsp->{error}->{desc}, $rsp->{error}->{class})) if ($rsp->{error});
 
-
+    my $migration_starttime = gettimeofday;
+    my $execution_time      = gettimeofday;
+    my $max_execution_time  = 240;            # We need to wait for qemu, since it will not honor timeouts
     do {
 
-        sleep 0.5;    #We want to wait a decent amount of time, a file of 1GB will be
-                      # migrated in about 40secs with an ssd drive. and no heavy load.
+        sleep 0.5;                            #We want to wait a decent amount of time, a file of 1GB will be
+                                              # migrated in about 40secs with an ssd drive. and no heavy load.
+        $execution_time = gettimeofday - $migration_starttime;
         $rsp = $self->handle_qmp_command({execute => "query-migrate"});
 
         diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
         diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
+        # 240 seconds should be ok for 4GB
+        if ($execution_time > $max_execution_time) {
+            # migrate_cancel returns an empty hash, so there is no need to check.
+            $rsp = $self->handle_qmp_command({execute => "migrate_cancel"});
+            die "Memory dump failed, it has been running for more than $max_execution_time";
+        }
 
     } until ($rsp->{return}->{status} eq "completed");
 
-    diag "Migration completed.";
+    diag "Memory dump completed.";
     return;
 }
 
