@@ -1609,14 +1609,12 @@ sub eject_cd {
 
 =head2 save_memory_dump
 
-  save_memory_dump(filename => undef, migration_speed => "4096m");
+  save_memory_dump(filename => undef);
 
 Saves the SUT memory state using C<$filename> as base for the memory dump
 filename,  the default will be the current test's name.
 
-The memory dump can be created at any point, but it's recommended to use it
-within a post fail hook. Different filenames should be provided if the dump is
-being used within the test itself.
+This method must be called within a post_fail_hook.
 
 I<Currently only qemu backend is supported.>
 
@@ -1627,7 +1625,7 @@ sub save_memory_dump {
     $nargs{filename} ||= $autotest::current_test->{name};
 
     bmwqemu::log_call(%nargs);
-    bmwqemu::diag "If save_memory_dump is called multiple times with the same '\$filename', it will be rewritten." unless ((caller(1))[3]) =~ /post_fail_hook/;
+    die "save_memory_dump should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
     bmwqemu::diag("Trying to save machine state");
 
     query_isotovideo('backend_save_memory_dump', \%nargs);
