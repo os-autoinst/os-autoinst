@@ -409,16 +409,16 @@ sub record_serialresult {
 
     $string //= '';
 
-    my $result = $self->record_testresult('unk');
     unless (testapi::is_serial_terminal) {
         # the screenshot is not the fail, it's just for documentation
+        my $result = $self->record_testresult('unk');
         $self->_result_add_screenshot($result);
     }
     my $output = "# wait_serial expected: $ref\n\n";
     $output .= "# Result:\n";
     $output .= "$string\n";
     $self->record_resultfile('wait_serial', $output, result => $res);
-    return $result;
+    return;
 }
 
 sub record_soft_failure_result {
@@ -429,7 +429,7 @@ sub record_soft_failure_result {
     $self->_result_add_screenshot($result);
     my $output = "# Soft Failure:\n$reason\n";
     $self->record_resultfile('Soft Failed', $output, result => $result);
-    return $result;
+    return;
 }
 
 sub register_extra_test_results {
