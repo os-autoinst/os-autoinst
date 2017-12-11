@@ -26,13 +26,55 @@ use Socket;
 use IO::Handle;
 use POSIX '_exit';
 use cv;
+use Scalar::Util 'blessed';
 
 our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
 our $isotovideo;
 
+=head1 Introduction
+
+OS Autoinst decides which test modules to run based on a distribution specific
+script called main.pm. This is either located in $vars{PRODUCTDIR} or
+$vars{CASEDIR} (e.g. <distribution>/products/<product>/main.pm).
+
+This script does not actually run the tests, but queues them to be run by
+autotest.pm. A test is queued by calling the loadtest function which is also
+located in autotest.pm. The test modules are executed in the same order that
+loadtest is called.
+
+=cut
+
+=head2 loadtest
+
+	loadtest(<string>, [ name => <string>, run_args => <OpenQA::Test::RunArgs> ]);
+
+Queue a test module for execution by the test runner. The first argument is
+mandatory and specifies the Perl module name containing the test code to be run.
+
+The next two arguments are optional and rarely used. First there is name which
+can be used to give the test a different display name from the Perl source
+file.
+
+Then there is the run_args object, which must be a subclass of
+OpenQA::Test::RunArgs. This is passed to the run() method of the test module
+when it is executed. This is useful if you need to load the same test module
+multiple times within a single test, but with different parameters each time.
+
+Usually get_var and set_var are used to pass parameters to a test. However if
+you use set_var multiple times inside main.pm then the final value you set
+will be the one seen by all tests. Regardless of whether the tests were loaded
+before or after the variable was set.
+
+Both optional arguments were created for integrating a third party test suites
+or test runners into OpenQA. In such cases the same test module may be
+dynamically queued multiple times to execute different test cases within the
+third party test suite.
+
+=cut
+
 sub loadtest {
-    my ($script) = @_;
+    my ($script, %args) = @_;
     my $casedir = $bmwqemu::vars{CASEDIR};
 
     unless (-f join('/', $casedir, $script)) {
@@ -62,18 +104,30 @@ sub loadtest {
     $test             = $name->new($category);
     $test->{script}   = $script;
     $test->{fullname} = $fullname;
+
+    if (defined $args{run_args}) {
+        unless (blessed($args{run_args}) && $args{run_args}->isa('OpenQA::Test::RunArgs')) {
+            die 'The run_args must be a sub-class of OpenQA::Test::RunArgs';
+        }
+        $test->{run_args} = $args{run_args};
+        delete $args{run_args};
+    }
+
     my $nr = '';
     while (exists $tests{$fullname . $nr}) {
         # to all perl hardcore hackers: fuck off!
         $nr = $nr eq '' ? 1 : $nr + 1;
-        bmwqemu::diag($fullname . ' already scheduled');
         $test->{name} = join("#", $name, $nr);
     }
+    if ($args{name}) {
+        $test->{name} = $args{name};
+    }
+
     $tests{$fullname . $nr} = $test;
 
     return unless $test->is_applicable;
     push @testorder, $test;
-    bmwqemu::diag("scheduling $name$nr $script");
+    bmwqemu::diag("scheduling $test->{name} $script");
 }
 
 our $current_test;

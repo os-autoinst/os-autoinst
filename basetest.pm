@@ -318,7 +318,12 @@ sub runtest {
     my $name = $self->{name};
     eval {
         $self->pre_run_hook();
-        $self->run();
+        if (defined $self->{run_args}) {
+            $self->run($self->{run_args});
+        }
+        else {
+            $self->run();
+        }
         $self->post_run_hook();
     };
     if ($@) {
