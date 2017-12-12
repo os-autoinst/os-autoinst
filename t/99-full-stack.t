@@ -63,6 +63,10 @@ is(system('grep -q "wait_still_screen: detected same image for 5 seconds" autoin
 is(system('grep -q "wait_still_screen: detected same image for 10 seconds" autoinst-log.txt'), 0, 'test type string and wait for 10 seconds');
 is(system('grep -q "wait_still_screen: detected same image for 20 seconds" autoinst-log.txt'), 0, 'test type string and wait for 20 seconds');
 
+
+is(system('grep -q "get_test_data returned expected file" autoinst-log.txt'), 0, 'get_test_data test');
+is(system('grep -q "save_tmp_file returned expected file" autoinst-log.txt'), 0, 'save_tmp_file test');
+
 my $ignore_results_re = qr/fail/;
 for my $result (grep { $_ !~ $ignore_results_re } glob("testresults/result*.json")) {
     my $json = from_json(Mojo::File->new($result)->slurp);

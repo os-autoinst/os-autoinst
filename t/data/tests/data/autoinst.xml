@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE profile>
+<profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">
+<users config:type="list">
+    <user>
+      <encrypted config:type="boolean">false</encrypted>
+      <user_password>PASSWORD</user_password>
+      <username>root</username>
+    </user>
+  </users>
+</profile>
