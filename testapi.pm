@@ -64,7 +64,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   diag hashed_string
 
-  save_tmp_file
+  save_tmp_file get_test_data
 );
 our @EXPORT_OK = qw(is_serial_terminal);
 
@@ -990,6 +990,33 @@ sub save_tmp_file {
     open my $fh, ">", $path;
     print $fh $content;
     close $fh;
+}
+
+=head2 get_test_data
+
+  get_test_data($relpath)
+
+Returns content of the file located in data directory. This method can be used
+if one needs to modify files content before accessing it in SUT.
+
+Example:
+  get_test_data('autoyast/autoinst.xml')
+This will return content of the file located in data/autoyast/autoinst.xml
+
+=cut
+
+sub get_test_data {
+    my ($path) = @_;
+    $path = get_var('CASEDIR') . '/data/' . $path;
+    bmwqemu::log_call(path => $path);
+    unless (-e $path) {
+        bmwqemu::diag("File doesn't exist: $path");
+        return;
+    }
+    open my $fh, "<", $path;
+    my $content = do { local $/; <$fh> };
+    close $fh;
+    return $content;
 }
 
 =head2 validate_script_output
