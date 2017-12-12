@@ -31,7 +31,8 @@ use Mojo::Log;
 use File::Spec::Functions;
 use base 'Exporter';
 use Exporter;
-
+use POSIX 'strftime';
+use Time::HiRes 'gettimeofday';
 our $VERSION;
 our @EXPORT    = qw(fileContent save_vars);
 our @EXPORT_OK = qw(diag);
@@ -125,7 +126,10 @@ sub init {
     $logger->format(
         sub {
             my ($time, $level, @lines) = @_;
-            return '[' . localtime($time) . "] [$$:$level] " . join "\n", @lines, '';
+            # Unfortunately $time doesn't have the precision we want. So we need to use Time::HiRes
+            $time = gettimeofday;
+            return sprintf(strftime("[%FT%T.%%04d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
+
         });
 
     die "CASEDIR variable not set in vars.json, unknown test case directory" if !$vars{CASEDIR};
@@ -182,13 +186,15 @@ sub set_ocr_rect {
 
 # util and helper functions
 
-sub get_timestamp {
-    my $t = gettimeofday;
-    return sprintf "%s.%04d ", (POSIX::strftime "%H:%M:%S", gmtime($t)), 10000 * ($t - int($t));
+sub log_format_callback {
+    my ($time, $level, @lines) = @_;
+    # Unfortunately $time doesn't have the precision we want. So we need to use Time::HiRes
+    $time = gettimeofday;
+    return sprintf(strftime("[%FT%T.%%04d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
 }
 
 sub diag {
-    $logger = Mojo::Log->new(level => 'debug') unless $logger;
+    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
     $logger->debug("@_");
     return;
 }
@@ -197,7 +203,7 @@ sub fctres {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    $logger = Mojo::Log->new(level => 'debug') unless $logger;
+    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
     $logger->debug(">>> $fname: $text");
     return;
 }
@@ -206,7 +212,7 @@ sub fctinfo {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    $logger = Mojo::Log->new(level => 'debug') unless $logger;
+    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
     $logger->info("::: $fname: $text");
     return;
 }
@@ -215,15 +221,15 @@ sub fctwarn {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    $logger = Mojo::Log->new(level => 'debug') unless $logger;
+    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
     $logger->warn("!!! $fname: $text");
     return;
 }
 
 sub modstart {
-    my $text = sprintf "||| %s at %s", join(' ', @_), POSIX::strftime("%F %T", gmtime);
-    $logger = Mojo::Log->new(level => 'debug') unless $logger;
-    $logger->debug($text);
+    my ($text, $fname) = @_;
+    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
+    $logger->debug("||| $text $fname");
     return;
 }
 
@@ -263,7 +269,7 @@ sub log_call {
         push @result, join("=", $key, pp($value));
     }
     my $params = join(", ", @result);
-    $logger = Mojo::Log->new(level => 'debug') unless $logger;
+    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
     $logger->debug('<<< ' . $fname . "($params)");
     return;
 }

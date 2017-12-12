@@ -21,7 +21,7 @@ use warnings;
 require IPC::System::Simple;
 use Try::Tiny;
 use Socket;
-use POSIX '_exit';
+use POSIX '_exit', 'strftime';
 use autodie ':all';
 use myjsonrpc;
 
@@ -34,8 +34,8 @@ BEGIN {
 use Mojolicious::Lite;
 use Mojo::IOLoop;
 use Mojo::Server::Daemon;
-
 use File::Basename;
+use Time::HiRes 'gettimeofday';
 
 # a socket opened to isotovideo
 my $isotovideo;
@@ -273,6 +273,14 @@ sub run_daemon {
     }
     my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://$address:$port"]);
     $daemon->silent;
+    # We need to override the default logging format
+    app->log->format(
+        sub {
+            my ($time, $level, @lines) = @_;
+            # Unfortunately $time doesn't have the precision we want. So we need to use Time::HiRes
+            $time = gettimeofday;
+            return sprintf(strftime("[%FT%T.%%04d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
+        });
     app->log->info("Daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
     try {
         $daemon->run;
