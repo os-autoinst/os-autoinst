@@ -24,6 +24,7 @@ sub run {
     type_string("echo test\necho wait\necho 10se\n",                       max_interval      => 100, wait_screen_changes => 11, wait_still_screen => 10);
     type_string("echo test if wait_screen_change functions as expected\n", max_interval      => 150, wait_screen_changes => 11, wait_still_screen => 10);
     type_string("echo wait_still_screen for 20 seconds\n", max_interval => 200, wait_still_screen => 20);
+    type_string("echo 'ignore \\r'\r\n");
 
 }
 
