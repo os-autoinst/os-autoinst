@@ -21,7 +21,6 @@ use Time::HiRes qw(sleep gettimeofday);
 use IO::Socket;
 use Fcntl ':flock';
 
-use Thread::Queue;
 use POSIX;
 use Carp;
 use JSON;

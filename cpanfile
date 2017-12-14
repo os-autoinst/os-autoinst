@@ -9,9 +9,7 @@ requires 'Digest::MD5';
 requires 'DynaLoader';
 requires 'Exporter';
 requires 'Exception::Class';
-requires 'ExtUtils::MakeMaker';
-# waiting for https://rt.cpan.org/Public/Bug/Display.html?id=106808
-conflicts 'ExtUtils::MakeMaker', '>= 7.06';;
+requires 'ExtUtils::MakeMaker', '>= 7.12';
 requires 'ExtUtils::testlib';
 requires 'Fcntl';
 requires 'File::Basename';
@@ -39,10 +37,6 @@ requires 'Net::DBus';
 requires 'Net::SNMP';
 requires 'Net::SSH2';
 requires 'POSIX';
-requires 'Perl::Tidy';
-requires 'Test::Compile';
-requires 'Test::More';
-requires 'Test::Simple';
 requires 'Thread::Queue';
 requires 'Time::HiRes';
 requires 'XML::LibXML';
@@ -52,15 +46,19 @@ requires 'strict';
 requires 'warnings';
 
 on 'test' => sub {
-  requires 'Perl::Critic';
-  requires 'Test::Output';
-  requires 'Test::Fatal';
-  requires 'Test::Warnings';
-  requires 'Test::Pod';
-  requires 'Test::MockModule';
-  requires 'Test::Mock::Time';
-  requires 'Pod::Coverage';
   requires 'Devel::Cover';
+  requires 'Perl::Critic';
+  requires 'Perl::Tidy', '>= 20171214';
+  requires 'Pod::Coverage';
+  requires 'Test::Compile';
+  requires 'Test::Fatal';
+  requires 'Test::Mock::Time';
+  requires 'Test::MockModule';
+  requires 'Test::More';
+  requires 'Test::Output';
+  requires 'Test::Pod';
+  requires 'Test::Simple';
+  requires 'Test::Warnings';
 };
 
 feature 'coverage', 'coverage for travis' => sub {
