@@ -1213,9 +1213,9 @@ sub type_string {
         return;
     }
 
-    my $max_interval = $args{max_interval}       // 250;
+    my $max_interval = $args{max_interval} // 250;
     my $wait         = $args{wait_screen_change} // 0;
-    my $wait_still   = $args{wait_still_screen}  // 0;
+    my $wait_still   = $args{wait_still_screen} // 0;
     bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait, wait_still_screen => $wait_still);
     if ($wait) {
         # split string into an array of pieces of specified size
