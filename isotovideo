@@ -535,7 +535,12 @@ if (!$r && $completed && (my $nd = $bmwqemu::vars{NUMDISKS}) && ($bmwqemu::vars{
     }
     else {
         for my $asset (@toextract) {
-            $bmwqemu::backend->extract_assets($asset);
+            local $@;
+            eval { $bmwqemu::backend->extract_assets($asset); };
+            if ($@) {
+                diag "extract assets failed: $@";
+                $r = 1;
+            }
         }
     }
 }

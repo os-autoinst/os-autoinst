@@ -31,7 +31,7 @@ use bmwqemu qw(fileContent diag save_vars);
 require IPC::System::Simple;
 use autodie ':all';
 use Try::Tiny;
-use osutils qw(find_bin gen_params qv);
+use osutils qw(find_bin gen_params qv runcmd);
 use List::Util 'max';
 use Data::Dumper;
 
@@ -280,12 +280,6 @@ sub load_snapshot {
     return $rsp;
 }
 
-sub runcmd {
-    diag "running " . join(' ', @_);
-    local $SIG{CHLD} = 'IGNORE';
-    return CORE::system(@_);
-}
-
 sub do_extract_assets {
     my ($self, $args) = @_;
     my $hdd_num = $args->{hdd_num};
@@ -293,7 +287,7 @@ sub do_extract_assets {
     my $img_dir = $args->{dir};
     my $format  = $args->{format};
     if (!$format || $format !~ /^(raw|qcow2)$/) {
-        bmwqemu::diag "do_extract_assets: only raw and qcow2 formats supported $name $format";
+        die "do_extract_assets: only raw and qcow2 formats supported $name $format";
     }
     elsif (-f "raid/l$hdd_num") {
         bmwqemu::diag "preparing hdd $hdd_num for upload as $name in $format";
@@ -314,7 +308,7 @@ sub do_extract_assets {
         }
     }
     else {
-        bmwqemu::diag "do_extract_assets: hdd $hdd_num does not exist";
+        die "do_extract_assets: hdd $hdd_num does not exist";
     }
 }
 

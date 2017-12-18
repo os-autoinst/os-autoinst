@@ -148,4 +148,15 @@ subtest quote => sub {
     is quote($vars->{ADDONS}), "\'ha,geo,sdk\'", "Quote variables and hash values";
 };
 
+subtest runcmd => sub {
+    use osutils 'runcmd';
+
+    my @cmd = ('qemu-img', 'create', '-f', 'qcow2', 'image.qcow2', '1G');
+    is runcmd(@cmd), 0, "qemu-image creation and get its return code";
+    is runcmd('rm', 'image.qcow2'), 0, "delete image and get its return code";
+    local $@;
+    eval { runcmd('ls', 'image.qcow2') };
+    like $@, qr/runcmd failed with exit code \d+/, "command failed and calls die";
+};
+
 done_testing();

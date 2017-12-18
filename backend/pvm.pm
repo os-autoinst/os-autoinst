@@ -22,7 +22,7 @@ require IPC::System::Simple;
 use autodie ':all';
 use File::Basename;
 use Digest::MD5 'md5_hex';
-use osutils qw(dd_gen_params gen_params);
+use osutils qw(dd_gen_params gen_params runcmd);
 
 sub new {
     my $class      = shift;
@@ -43,11 +43,6 @@ sub do_start_vm {
     $self->unlink_crash_file;
     $self->start_lpar();
     return {};
-}
-
-sub runcmd {
-    diag "running " . join(' ', @_);
-    return system(@_);
 }
 
 sub do_extract_assets {
