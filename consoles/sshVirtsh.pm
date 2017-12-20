@@ -528,6 +528,18 @@ sub attach_to_running {
     }
 }
 
+sub start_serial_grab {
+    my ($self, $args) = @_;
+
+    $self->backend->start_serial_grab($self->name);
+}
+
+sub stop_serial_grab {
+    my ($self, $args) = @_;
+
+    $self->backend->stop_serial_grab($self->name);
+}
+
 # Sends command to libvirt host, logs stdout and stderr of the command,
 # returns exit status.
 #
