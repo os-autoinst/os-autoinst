@@ -41,10 +41,15 @@ sub run {
     my $url = autoinst_url . '/files/modified.xml';
     $content =~ s/PASSWORD/nots3cr3t/g;
     save_tmp_file('modified.xml', $content);
-    # Verify that correct file is downloaded
-    assert_script_run("wget -q $url");
-    script_run "echo '72d2c15cb10535f36862d7d2eecc8a79  modified.xml' > modified.md5";
-    assert_script_run("md5sum -c modified.md5");
-
-    type_string("echo save_tmp_file returned expected file\n");
+    # Ping default gateway to see if network is available and skip test otherwise
+    if (script_run("ping -q -w 1 -c 1 `ip r | grep default | cut -d ' ' -f 3`")) {
+        # Verify that correct file is downloaded
+        assert_script_run("wget -q $url");
+        script_run "echo '72d2c15cb10535f36862d7d2eecc8a79  modified.xml' > modified.md5";
+        assert_script_run("md5sum -c modified.md5");
+        type_string("echo save_tmp_file returned expected file\n");
+    }
+    else {
+        type_string("echo no network: save_tmp_file test skipped\n");
+    }
 }
