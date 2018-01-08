@@ -1867,7 +1867,7 @@ sub autoinst_url {
 
     # in a kvm instance you reach the VM's host under 10.0.2.2
     my $qemuhost = '10.0.2.2';
-    my $hostname = get_var('WORKER_HOSTNAME') || $qemuhost;
+    my $hostname = check_var('BACKEND', 'qemu') ? $qemuhost : get_required_var('WORKER_HOSTNAME');
 
     # QEMUPORT is historical for the base port of the worker instance
     my $workerport = get_var("QEMUPORT") + 1;
