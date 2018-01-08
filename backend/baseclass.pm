@@ -154,6 +154,8 @@ sub run_capture_loop {
     }
 
     eval {
+        # Time slot buckets
+        my $buckets = {};
         while (1) {
 
             last if (!$self->{cmdpipe});
@@ -191,20 +193,53 @@ sub run_capture_loop {
 
             my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
             my ($read_set, $write_set) = IO::Select->select($self->{select}, $self->{select}, undef, $time_to_next);
-            # check the video encoder pipe first, it has the most traffic
-            if (grep { $_ == $self->{encoder_pipe} } @$write_set) {
-                my $fdata        = shift @{$self->{video_frame_data}};
-                my $data_written = $self->{encoder_pipe}->syswrite($fdata);
-                die "Encoder not accepting data" unless defined $data_written;
-                if ($data_written != length($fdata)) {
-                    # put it back into the queue
-                    unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
+
+            # We need to check the video encoder and the serial socket
+            my ($video_encoder, $other) = (0, 0);
+            for my $fh (@$write_set) {
+                if ($fh == $self->{encoder_pipe}) {
+                    # check the video encoder pipe, it has the most traffic
+                    my $fdata        = shift @{$self->{video_frame_data}};
+                    my $data_written = $self->{encoder_pipe}->syswrite($fdata);
+                    die "Encoder not accepting data" unless defined $data_written;
+                    if ($data_written != length($fdata)) {
+                        # put it back into the queue
+                        unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
+                    }
+                    if (!@{$self->{video_frame_data}}) {
+                        $self->{select}->remove($self->{encoder_pipe});
+                    }
+                    $video_encoder = 1;
                 }
-                if (!@{$self->{video_frame_data}}) {
-                    $self->{select}->remove($self->{encoder_pipe});
+                else {
+                    next if $other;
+                    $other = 1;
+                    if (!$self->check_socket($fh, 1) && !$other) {
+                        die "huh! $fh\n";
+                    }
                 }
+                last if $video_encoder == 1 && $other;
             }
+
             for my $fh (@$read_set) {
+                # This tries to solve the problem of half-open sockets (when reading, as writing will throw an exception)
+                # There are three ways to solve this problem:
+                # + Send a message either to the application protocol (null message) or to the application protocol framing (an empty message)
+                #   Disadvantages: Requires changes on both ends of the communication. (for example: on SSH connection i realized that after a
+                #   while i start getting "bad packet length" errors)
+                # + Polling the connections (Note: This is how HTTP servers work when dealing with persistent connections)
+                #    Disadvantages: False positives
+                # + Change the keepalive packet settings
+                #   Disadvantages: TCP/IP stacks are not required to support keepalives.
+                if (fileno $fh && fileno $fh != -1) {
+                    # Very high limits! On a working socket, the maximum hits per 10 seconds will be around 60.
+                    # The maximum hits per 10 seconds saw on a half open socket was >100k
+                    if (update_time_bucket($buckets, 10, fileno $fh) > 5_000) {
+                        die "The console isn't responding correctly. Maybe half-open socket?";
+                    }
+                }
+
+
                 unless ($self->check_socket($fh, 0)) {
                     die "huh! $fh\n";
                 }
@@ -212,16 +247,6 @@ sub run_capture_loop {
                 # check_socket can have side effects on the sockets
                 # (e.g. console resets), so better take the next socket
                 # next time
-                $write_set = [];
-                last;
-            }
-            for my $fh (@$write_set) {
-                if ($fh == $self->{encoder_pipe}) {
-                    # already handled
-                }
-                elsif (!$self->check_socket($fh, 1)) {
-                    die "huh! $fh\n";
-                }
                 last;
             }
         }
@@ -233,6 +258,32 @@ sub run_capture_loop {
     }
     return;
 }
+
+# bucket_size = seconds
+# This is not sliding buckets
+sub update_time_bucket {
+    my ($buckets, $bucket_size, $id) = @_;
+
+    my $time        = gettimeofday;
+    my $lower_limit = gettimeofday;
+
+    if ($buckets->{TIME}) {
+        $lower_limit = $buckets->{TIME};
+    }
+    else {
+        # Bucket initialization;
+        $buckets->{TIME} = $time;
+    }
+
+    my $upper_limit = $lower_limit + $bucket_size;
+    if ($time > $upper_limit) {
+        $buckets->{TIME}   = $time;
+        $buckets->{BUCKET} = {};
+    }
+
+    return ++$buckets->{BUCKET}{$id};
+}
+
 
 sub start_encoder {
     my ($self) = @_;
