@@ -50,6 +50,10 @@ openqaexecbenchdir = $(pkglibexecdir)/OpenQA/Benchmark
 openqaexecbench_DATA = \
 	OpenQA/Benchmark/Stopwatch.pm
 
+openqaexecrunargsdir = $(pkglibexecdir)/OpenQA/Tests
+openqaexecrunargs_DATA = \
+    OpenQA/Test/RunArgs.pm
+
 # circumvent automake's test - possibly we really shouldn't install in /usr/lib though
 perlexecdir = $(pkglibexecdir)
 perlexec_DATA = \
