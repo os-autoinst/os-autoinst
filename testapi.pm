@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2017 SUSE LLC
+# Copyright © 2012-2018 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,6 +35,7 @@ use MIME::Base64 'decode_base64';
 use Scalar::Util 'looks_like_number';
 
 require bmwqemu;
+use constant OPENQA_LIBPATH => '/usr/share/openqa/lib';
 
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
@@ -54,7 +55,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   select_console console reset_consoles
 
-  upload_asset data_url assert_shutdown parse_junit_log upload_logs
+  upload_asset data_url assert_shutdown parse_junit_log parse_extra_log upload_logs
 
   wait_idle wait_screen_change assert_screen_change wait_still_screen wait_serial
   record_soft_failure record_info
@@ -1711,83 +1712,47 @@ file is then parsed as jUnit format and extra test results are created from it.
 
 =cut
 
-sub parse_junit_log {
-    my ($file) = @_;
+# XXX: To keep until tests are adapted
+sub parse_junit_log { return parse_extra_log('JUnit', shift) }
+
+=head2 parse_extra_log
+
+=for stopwords extra_log
+
+  parse_extra_log( Format => "report.xml" );
+
+Upload log file from SUT (calls upload_logs internally). The uploaded
+file is then parsed as the format supplied, that can be understood by OpenQA::Parser
+ and extra test results are created from it.
+
+ Formats currently supported are: JUnit, XUnit, LTP
+
+=cut
+
+sub parse_extra_log {
+    my ($format, $file) = @_;
 
     $file = upload_logs($file);
-
-    open my $fd, "<", "ulogs/$file";
-    my $xml = join("", <$fd>);
-    close $fd;
-
-    my $dom = Mojo::DOM->new($xml);
-
     my @tests;
 
-    for my $ts ($dom->find('testsuite')->each) {
-        my $ts_category = $ts->{package};
-        $ts_category =~ s/[^A-Za-z0-9._-]/_/g;    # the name is used as part of url so we must strip special characters
-        my $ts_name = $ts_category;
-        $ts_category =~ s/\..*$//;
-        $ts_name =~ s/^[^.]*\.//;
-        $ts_name =~ s/\./_/;
-        if ($ts->{id} =~ /^[0-9]+$/) {
-            # make sure that the name is unique
-            # prepend numeric $ts->{id}, start counting from 1
-            $ts_name = ($ts->{id} + 1) . '_' . $ts_name;
-        }
+    {
+        local $@;
+        # We need to touch @INC as specific supported format are split
+        # in different classes and dynamically loaded by OpenQA::Parser
+        local @INC = (OPENQA_LIBPATH, @INC);
+        eval {
+            require OpenQA::Parser;
+            OpenQA::Parser->import('parser');
+            my $parser = parser($format => "ulogs/$file");
+            $parser->write_output(bmwqemu::result_dir());
+            $parser->write_test_result(bmwqemu::result_dir());
 
-        push @tests,
-          {
-            flags    => {},
-            category => $ts_category,
-            name     => $ts_name,
-            script   => $autotest::current_test->{script},
-          };
-
-        my $ts_result = 'ok';
-        $ts_result = 'fail' if $ts->{failures} || $ts->{errors};
-
-        my $result = {
-            result  => $ts_result,
-            details => [],
-            dents   => 0,
+            $parser->tests->each(
+                sub {
+                    push(@tests, $_->to_openqa);
+                });
         };
-
-        my $num = 1;
-        for my $tc ($ts, $ts->children('testcase')->each) {
-
-            # create extra entry for whole testsuite  if there is any system-out or system-err outside of particular testcase
-            next if ($tc->tag eq 'testsuite' && $tc->children('system-out, system-err')->size == 0);
-
-            my $tc_result = $ts_result;    # use overall testsuite result as fallback
-            if (defined $tc->{status}) {
-                $tc_result = $tc->{status};
-                $tc_result =~ s/^success$/ok/;
-                $tc_result =~ s/^skipped$/missing/;
-                $tc_result =~ s/^error$/unknown/;    # error in the testsuite itself
-                $tc_result =~ s/^failure$/fail/;     # test failed
-            }
-
-            my $details = {result => $tc_result};
-
-            my $text_fn = "$ts_category-$ts_name-$num.txt";
-            open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
-            print $fd "# $tc->{name}\n";
-            for my $out ($tc->children('system-out, system-err, failure')->each) {
-                print $fd "# " . $out->tag . ": \n\n";
-                print $fd $out->text . "\n";
-            }
-            close $fd;
-            $details->{text}  = $text_fn;
-            $details->{title} = $tc->{name};
-
-            push @{$result->{details}}, $details;
-            $num++;
-        }
-
-        my $fn = bmwqemu::result_dir() . "/result-$ts_name.json";
-        bmwqemu::save_json_file($result, $fn);
+        croak $@ if $@;
     }
 
     return $autotest::current_test->register_extra_test_results(\@tests);
