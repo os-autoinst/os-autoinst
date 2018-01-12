@@ -226,9 +226,8 @@ sub fctwarn {
 }
 
 sub modstart {
-    my ($text, $fname) = @_;
     $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
-    $logger->debug("||| $text $fname");
+    $logger->debug("||| @{[join(' ', @_)]}");
     return;
 }
 
