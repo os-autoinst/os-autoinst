@@ -155,7 +155,10 @@ sub run_capture_loop {
 
     eval {
         # Time slot buckets
-        my $buckets = {};
+        my $buckets         = {};
+        my $wait_time_limit = $bmwqemu::vars{_CHKSEL_RATE_WAIT_TIME} // 30;
+        my $hits_limit      = $bmwqemu::vars{_CHKSEL_RATE_HITS} // 15_000;
+
         while (1) {
 
             last if (!$self->{cmdpipe});
@@ -234,7 +237,8 @@ sub run_capture_loop {
                 if (fileno $fh && fileno $fh != -1) {
                     # Very high limits! On a working socket, the maximum hits per 10 seconds will be around 60.
                     # The maximum hits per 10 seconds saw on a half open socket was >100k
-                    if (update_time_bucket($buckets, 10, fileno $fh) > 5_000) {
+                    # if (update_time_bucket($buckets, $bucket_time_size, fileno $fh) > $bucket_hit_size) {
+                    if (check_select_rate($buckets, $wait_time_limit, $hits_limit, fileno $fh)) {
                         die "The console isn't responding correctly. Maybe half-open socket?";
                     }
                 }
@@ -259,13 +263,13 @@ sub run_capture_loop {
     return;
 }
 
-# bucket_size = seconds
-# This is not sliding buckets
-sub update_time_bucket {
-    my ($buckets, $bucket_size, $id) = @_;
+# wait_time_limit = seconds
+# This is not sliding buckets. All the IDs inside the bucket must be over the limit!
+sub check_select_rate {
+    my ($buckets, $wait_time_limit, $hits_limit, $id) = @_;
 
     my $time        = gettimeofday;
-    my $lower_limit = gettimeofday;
+    my $lower_limit = $time;
 
     if ($buckets->{TIME}) {
         $lower_limit = $buckets->{TIME};
@@ -275,15 +279,23 @@ sub update_time_bucket {
         $buckets->{TIME} = $time;
     }
 
-    my $upper_limit = $lower_limit + $bucket_size;
+    my $upper_limit = $lower_limit + $wait_time_limit;
     if ($time > $upper_limit) {
-        $buckets->{TIME}   = $time;
-        $buckets->{BUCKET} = {};
+        $buckets->{TIME} = $time;
+
+        # This is to give the oportunity to recover, if the reboot/restart is slow
+        for (keys %{$buckets->{BUCKET}}) {
+            if ($buckets->{BUCKET}{$_} < $hits_limit) {
+                $buckets->{BUCKET} = {$id => 1};
+                return 0;
+            }
+        }
+
+        return 1;
     }
-
-    return ++$buckets->{BUCKET}{$id};
+    $buckets->{BUCKET}{$id}++;
+    return 0;
 }
-
 
 sub start_encoder {
     my ($self) = @_;

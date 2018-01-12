@@ -12,6 +12,8 @@ NOVIDEO;boolean;0;Do not encode video if set
 VNC_TYPING_LIMIT;integer;50;Maximum number of keys per second
 NO_DEBUG_IO;boolean;0;Disable the I/O debug output in case of needle comparison times longer than expected
 SCREENSHOTINTERVAL;float;0.5;The interval in seconds at which screenshots are taken internally
+_CHKSEL_RATE_WAIT_TIME;integer;30;The ammount of time isotovideo is going to wait for the VNC console to become responsive
+_CHKSEL_RATE_HITS;integer;15000;The ammount of times, the select should return the same fileno during the _CHKSEL_RATE_WAIT_TIME seconds, to consider the VNC console unresponsive
 |====================
 
 .IPMI backend
