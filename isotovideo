@@ -87,14 +87,14 @@ sub usage {
 
 sub version {
     my $thisversion = qx{git rev-parse HEAD};
-    print "Current version is $thisversion";
+    chomp $thisversion;
+    print "Current version is $thisversion [interface v$INTERFACE]\n";
     exit 0;
 }
 
 GetOptions(\%options, 'debug|d', 'help|h|?', 'version|v') or usage(1);
 usage(0)  if $options{help};
 version() if $options{version};
-
 
 # enable debug default when started from a tty
 $bmwqemu::direct_output = $options{debug};
