@@ -50,7 +50,7 @@ openqaexecbenchdir = $(pkglibexecdir)/OpenQA/Benchmark
 openqaexecbench_DATA = \
 	OpenQA/Benchmark/Stopwatch.pm
 
-openqaexecrunargsdir = $(pkglibexecdir)/OpenQA/Tests
+openqaexecrunargsdir = $(pkglibexecdir)/OpenQA/Test
 openqaexecrunargs_DATA = \
     OpenQA/Test/RunArgs.pm
 
