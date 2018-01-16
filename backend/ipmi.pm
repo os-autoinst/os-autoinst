@@ -111,7 +111,9 @@ sub do_start_vm {
 sub do_stop_vm {
     my ($self) = @_;
 
-    $self->ipmitool("chassis power off");
+    if (!$bmwqemu::vars{IPMI_DO_NOT_POWER_OFF}) {
+        $self->ipmitool("chassis power off");
+    }
     $self->deactivate_console({testapi_console => 'sol'});
     return {};
 }
