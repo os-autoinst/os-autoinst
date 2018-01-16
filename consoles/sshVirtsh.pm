@@ -65,7 +65,7 @@ sub activate {
     my $testapi_console = $self->{testapi_console};
     my $ssh_args        = $self->{args};
 
-    my $sshcommand = $self->sshCommand($hostname);
+    my $sshcommand = $self->sshCommand('root', $hostname);
     my $display    = $self->{DISPLAY};
 
     $sshcommand = "TERM=xterm " . $sshcommand;
