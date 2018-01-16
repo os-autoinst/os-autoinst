@@ -7,6 +7,7 @@ use bytes;
 use bmwqemu 'diag';
 use Time::HiRes qw( usleep gettimeofday time );
 use List::Util 'min';
+use testapi 'get_var';
 
 use Crypt::DES;
 use Compress::Raw::Zlib;
@@ -824,6 +825,7 @@ sub _send_frame_buffer {
 sub send_update_request {
     my ($self) = @_;
 
+    my $time_after_vnc_is_considered_stalled = get_var('VNC_STALL_TRESHOLD', 4);
     # after 2 seconds: send forced update
     # after 4 seconds: turn off screen
     my $time_since_last_update = time - $self->_last_update_received;
@@ -831,7 +833,7 @@ sub send_update_request {
     # if there were no updates, send a forced update request
     # to get a defined live sign. If that doesn't help, reconnect
     if ($self->_framebuffer && $self->check_vnc_stalls) {
-        if ($self->_vnc_stalled && $time_since_last_update > 4) {
+        if ($self->_vnc_stalled && $time_since_last_update > $time_after_vnc_is_considered_stalled) {
             $self->_last_update_received(0);
             # return black image - screen turned off
             bmwqemu::diag sprintf("considering VNC stalled, no update for %.2f seconds", $time_since_last_update);

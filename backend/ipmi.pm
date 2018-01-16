@@ -76,18 +76,18 @@ sub restart_host {
 
     $self->ipmitool("chassis power off");
     while (1) {
+        sleep(3);
         my $stdout = $self->ipmitool('chassis power status');
         last if $stdout =~ m/is off/;
         $self->ipmitool('chassis power off');
-        sleep(2);
     }
 
     $self->ipmitool("chassis power on");
     while (1) {
+        sleep(3);
         my $ret = $self->ipmitool('chassis power status');
         last if $ret =~ m/is on/;
         $self->ipmitool('chassis power on');
-        sleep(2);
     }
 }
 
@@ -111,7 +111,9 @@ sub do_start_vm {
 sub do_stop_vm {
     my ($self) = @_;
 
-    $self->ipmitool("chassis power off");
+    if (!$bmwqemu::vars{IPMI_DO_NOT_POWER_OFF}) {
+        $self->ipmitool("chassis power off");
+    }
     $self->deactivate_console({testapi_console => 'sol'});
     return {};
 }
