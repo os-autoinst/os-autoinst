@@ -80,6 +80,9 @@ subtest gen_params => sub {
     gen_params @params, "test", [qv "$apple $tree $bar"], "!!";
     is_deeply(\@params, [qw(!!foo bar !!test 1,2,3)], "Added parameter if parameter is an arrayref and with custom prefix");
 
+    @params = qw(-kernel vmlinuz -initrd initrd);
+    gen_params @params, "append", "ro root=/dev/sda1";
+    is_deeply(\@params, [('-kernel', 'vmlinuz', '-initrd', 'initrd', '-append', "\'ro root=/dev/sda1\'")], "Quote itself if parameter contains whitespace");
 };
 
 subtest dd_gen_params => sub {
@@ -128,6 +131,21 @@ subtest find_bin => sub {
     is find_bin($sandbox, qw(test2)), undef, "Executable file found but not executable";
     is find_bin($sandbox, qw(test3)), undef, "Executable file not found";
 
+};
+
+subtest quote => sub {
+    use osutils 'quote';
+
+    my $foo = "foo";
+    my $bar = "bar bar";
+    my $vars;
+
+    is quote($foo), "\'foo\'",     "Quote variables";
+    is quote($bar), "\'bar bar\'", "Quote words";
+    is quote('foo' . $bar), "\'foobar bar\'", "Quote words and variables";
+
+    $vars->{ADDONS} = "ha,geo,sdk";
+    is quote($vars->{ADDONS}), "\'ha,geo,sdk\'", "Quote variables and hash values";
 };
 
 done_testing();

@@ -27,6 +27,7 @@ our @EXPORT_OK = qw(
   find_bin
   gen_params
   qv
+  quote
 );
 
 # An helper to lookup into a folder and find an executable file between given candidates
@@ -52,6 +53,7 @@ sub gen_params(\@$$;$) {
     $prefix = "-" unless $prefix;
 
     if (ref($parameter) eq "") {
+        $parameter = quote($parameter) if $parameter =~ /\s+/;
         push(@$array, "${prefix}${argument}", $parameter);
     }
     elsif (ref($parameter) eq "ARRAY") {
@@ -71,6 +73,13 @@ sub dd_gen_params(\@$$) {
 #       gen_params @params, 'drive', [qv "file=$basedir/l$i cache=unsafe if=none id=hd$i format=$vars->{HDDFORMAT}"]
 sub qv($) {
     split /\s+|\h+|\r+/, $_[0];
+}
+
+# Add single quote mark to string
+# Mainly use in the case of multiple kernel parameters to be passed to the -append option
+# and they need to be quoted using single or double quotes
+sub quote {
+    "\'" . $_[0] . "\'";
 }
 ## use critic
 
