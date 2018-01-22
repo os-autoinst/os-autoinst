@@ -237,7 +237,6 @@ sub run_capture_loop {
                 if (fileno $fh && fileno $fh != -1) {
                     # Very high limits! On a working socket, the maximum hits per 10 seconds will be around 60.
                     # The maximum hits per 10 seconds saw on a half open socket was >100k
-                    # if (update_time_bucket($buckets, $bucket_time_size, fileno $fh) > $bucket_hit_size) {
                     if (check_select_rate($buckets, $wait_time_limit, $hits_limit, fileno $fh)) {
                         die "The console isn't responding correctly. Maybe half-open socket?";
                     }
