@@ -1806,6 +1806,14 @@ sub diag {
     return bmwqemu::diag(@_);
 }
 
+=head2 host_ip
+    Return VM's host IP
+    in a kvm instance you reach the VM's host under 10.0.2.2
+=cut
+sub host_ip {
+    return check_var('BACKEND', 'qemu') ? '10.0.2.2' : get_required_var('WORKER_HOSTNAME');
+}
+
 =head2 autoinst_url
 
   autoinst_url([$path, $query]);
@@ -1827,11 +1835,7 @@ sub autoinst_url {
     my ($path, $query) = @_;
     $path  //= '';
     $query //= {};
-
-    # in a kvm instance you reach the VM's host under 10.0.2.2
-    my $qemuhost = '10.0.2.2';
-    my $hostname = check_var('BACKEND', 'qemu') ? $qemuhost : get_required_var('WORKER_HOSTNAME');
-
+    my $hostname = host_ip();
     # QEMUPORT is historical for the base port of the worker instance
     my $workerport = get_var("QEMUPORT") + 1;
 
