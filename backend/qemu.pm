@@ -601,6 +601,7 @@ sub start_qemu {
             }
         }
         if ($vars->{NBF}) {
+            die "Need variable WORKER_HOSTNAME\n" unless $vars->{WORKER_HOSTNAME};
             gen_params @params, 'kernel', '/usr/share/qemu/ipxe.lkrn';
             gen_params @params, 'append', "dhcp && sanhook iscsi:$vars->{WORKER_HOSTNAME}::3260:1:$vars->{NBF}";
         }
