@@ -18,9 +18,12 @@ package backend::qemu;
 use strict;
 use base 'backend::virt';
 use File::Path 'mkpath';
+use File::Basename;
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Select;
 use IO::Socket::UNIX 'SOCK_STREAM';
+use Socket;
+use Socket::MsgHdr;
 use IO::Handle;
 use POSIX qw(strftime :sys_wait_h);
 use JSON;
@@ -201,22 +204,43 @@ sub can_handle {
     return;
 }
 
+sub open_file_and_send_fd_to_qemu {
+    my ($self, $path, $fdname) = @_;
+    my $rsp;
+
+    my $fd = POSIX::open($path, &POSIX::O_CREAT | &POSIX::O_RDWR);
+    die "Failed to open $path: $!" unless (defined $fd);
+
+    $rsp = $self->handle_qmp_command({execute => 'getfd', arguments => {fdname => $fdname}},
+                                     send_fd => $fd, fatal => 1);
+    POSIX::close($fd);
+}
+
 sub save_memory_dump {
     my ($self, $args) = @_;
-    my $rsp = 0;
+    my $filename = $args->{filename} . '-vm-memory-dump';
+    my $fdname = 'dumpfd';
+    my $vars = \%bmwqemu::vars;
 
-    bmwqemu::diag("Migrating the machine.");
+    my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
+    bmwqemu::diag("Migrating the machine (Current VM state is $rsp->{return}->{status}).");
+    my $was_running = $rsp->{return}->{status} eq 'running';
+
+    # Ensure slow dump times are not due to a transfer rate cap
+    $rsp = $self->handle_qmp_command(
+        {execute => 'migrate-set-parameters',
+         arguments => {'max-bandwidth' => $vars->{QEMU_MAX_BANDWIDTH} || 2147483648 }},
+        fatal => 1);
 
     mkpath("ulogs");
+    $self->open_file_and_send_fd_to_qemu("ulogs/$filename", $fdname);
 
-    $rsp = $self->handle_qmp_command(
-        {
-            execute   => "migrate",
-            arguments => {
-                uri => sprintf("exec:gzip -c > ulogs/%s-vm-memory-dump.gz", $args->{filename}),
-            }});
-
-    die(sprintf("Migration failed: desc: %s, class: %s, stopped", $rsp->{error}->{desc}, $rsp->{error}->{class})) if ($rsp->{error});
+    # QEMU will freeze the VM when the RAM migration reaches a low water
+    # mark. However it is easier for QEMU if the VM is already frozen.
+    $self->freeze_vm();
+    # migrate consumes the file descriptor, so we do not need to call closefd
+    $rsp = $self->handle_qmp_command({execute => 'migrate',
+                                      arguments => {uri => "fd:$fdname"}}, fatal => 1);
 
     my $migration_starttime = gettimeofday;
     my $execution_time      = gettimeofday;
@@ -227,6 +251,10 @@ sub save_memory_dump {
                                               # migrated in about 40secs with an ssd drive. and no heavy load.
         $execution_time = gettimeofday - $migration_starttime;
         $rsp = $self->handle_qmp_command({execute => "query-migrate"});
+
+        if ($rsp->{return}->{status} eq "failed") {
+            die "Memory dump failed";
+        }
 
         diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
         diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
@@ -240,6 +268,9 @@ sub save_memory_dump {
     } until ($rsp->{return}->{status} eq "completed");
 
     diag "Memory dump completed.";
+
+    $self->cont_vm() if $was_running;
+
     return;
 }
 
@@ -855,14 +886,35 @@ sub start_qemu {
     $self->{select}->add($self->{qemupipe});
 }
 
-# runs in the thread to bounce QMP
+# Similar to syswrite, but passes a file descriptor to the receiving process
+# along with the data.
+sub send_with_fd {
+    my ($self, $text, $fd) = @_;
+    my $msg = Socket::MsgHdr->new();
+    $msg->{buf} = $text;
+
+    $msg->cmsghdr(SOL_SOCKET, SCM_RIGHTS, pack("i", $fd));
+
+    return sendmsg($self->{qmpsocket}, $msg);
+}
+
+# Send a QMP command and wait for the result
+#
+# Pass fatal => 1 to die on failure. Pass send_fd => $fd to send $fd to QEMU
+# using SCM rights. Probably only useful with the getfd command
 sub handle_qmp_command {
+    my ($self, $cmd) = @_[0, 1];
+    my %optargs = @_[2 .. $#_];
+    $optargs{fatal} ||= 0;
+    my $wb;
 
-    my ($self, $cmd) = @_;
-
-    my $line = JSON::to_json($cmd);
-    my $wb = syswrite($self->{qmpsocket}, "$line\n");
-    die "syswrite failed $!" unless ($wb == length($line) + 1);
+    my $line = JSON::to_json($cmd) . "\n";
+    if (defined $optargs{send_fd}) {
+        $wb = $self->send_with_fd($line, $optargs{send_fd});
+    } else {
+        $wb = syswrite($self->{qmpsocket}, $line);
+    }
+    die "syswrite failed $!" unless ($wb == length($line));
 
     my $hash;
     while (!$hash) {
@@ -872,6 +924,10 @@ sub handle_qmp_command {
             # ignore
             $hash = undef;
         }
+    }
+
+    if ($optargs{fatal} && defined($hash->{error})) {
+        die "QMP command $cmd->{execute} failed: $hash->{error}->{class}; $hash->{error}->{desc}";
     }
 
     return $hash;

@@ -44,6 +44,7 @@ requires 'base';
 requires 'constant';
 requires 'strict';
 requires 'warnings';
+requires 'Socket::MsgHdr';
 
 on 'test' => sub {
   requires 'Devel::Cover';
