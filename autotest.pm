@@ -173,9 +173,13 @@ sub run_all {
         warn $@;
         $died = 1;    # test execution died
     }
-    bmwqemu::save_vars();
-    myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, completed => $completed});
-    close $isotovideo;
+    eval {
+        # When the disk runs out of space there's nothing else we can do. We just can't allow to jump the exit
+        bmwqemu::save_vars();
+        myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, completed => $completed});
+        close $isotovideo;
+    };
+    warn "Exception while processing the send_json call: $@" if $@;
     Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
 }

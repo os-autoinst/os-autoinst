@@ -146,6 +146,8 @@ sub kill_autotest {
 
 sub kill_backend {
     if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
+        # Make sure that the backend child processes (eg. qemu) dies
+        _kill_all_descendants($bmwqemu::backend->{backend_pid});
         # save the pid in a scalar - signal handlers will reset it
         my $bpid = $bmwqemu::backend->{backend_pid};
         diag "killing backend process $bpid";
@@ -181,6 +183,7 @@ sub signalhandler_chld {
         }
         if ($bmwqemu::backend->{backend_pid} && $child == $bmwqemu::backend->{backend_pid}) {
             diag("backend $child died");
+            _kill_all_descendants($bmwqemu::backend->{backend_pid});
             $bmwqemu::backend->{backend_pid} = 0;
             $loop = 0;
             next;
@@ -323,6 +326,30 @@ our $tags = undef;
 my $backend_requester = undef;
 
 my ($last_check_seconds, $last_check_microseconds) = gettimeofday;
+
+# Kill all the descendantes of a PID - A grandchild process is not considered a child
+# We loop through the proc instead of checking the task/tid/children, so we can invoke this when processing SIGCHLD.
+# Since the orphans are adopted by init (pid 1), we need to check if the process group is the same as the actual group (since forks have the same group)
+# To know more about procfs, please check man(5) proc
+sub _kill_all_descendants {
+    no autodie;
+    my ($ppid) = @_;
+    my $group = getpgrp(0);
+    for my $proc_folder (glob("/proc/*")) {
+        next if (!-d $proc_folder || !-f "$proc_folder/stat" || $proc_folder eq "/proc/$$");
+        open my $ifh, '<', "$proc_folder/stat" or next;
+        my ($pid, $executable, $state, $parent, $pgroup) = split(' ', <$ifh>);
+        close $ifh;
+        if ($executable !~ /videoenc/ && (($parent == $ppid) || ($parent == 1 && $pgroup == $group)) && $state =~ /R|S/) {
+            if (kill 'TERM', $pid) {
+                diag "awaiting death of descendant $executable $pid";
+                my $ret = waitpid($pid, 0);
+                diag "descendant process $executable exited: $ret";
+            }
+        }
+    }
+}
+
 sub _calc_check_delta {
     # an estimate of eternity
     my $delta = 100;
