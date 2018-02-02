@@ -7,12 +7,61 @@
 #include "XSUB.h"
 #include "tinycv.h"
 
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+
 typedef Image *tinycv__Image;
 typedef VNCInfo *tinycv__VNCInfo;
+typedef PerlIO* InOutStream;
+typedef int SysRet;
+
+/* send_with_fd(unix_socket, message, file_descriptor_to_send)
+ *
+ * Send a message (buf) with a control section containing a file
+ * descriptor. This allows you to transfer the 'rights' to a file descriptor
+ * between processes as well as the actual FD number.
+ *
+ * This function does not take Perl's buffering into account. So if you plan
+ * to use it on a socket then only write to that socket with syswrite,
+ * POSIX::write or similar.
+ *
+ * See the unix(7), sendmsg(2) and cmsg(3) man pages.
+ */
+static SysRet clib_send_with_fd(int sk, char *buf, size_t len, int fd)
+{
+	struct msghdr msg = { 0 };
+	struct cmsghdr *cmsg;
+	struct iovec iov = {
+		.iov_base = buf,
+		.iov_len = len
+	};
+	char cmsg_buf[CMSG_ALIGN(CMSG_SPACE(sizeof(fd)))];
+
+	msg.msg_iov = &iov;
+	msg.msg_iovlen = 1;
+	msg.msg_control = cmsg_buf;
+	msg.msg_controllen = sizeof(cmsg_buf);
+
+	cmsg = CMSG_FIRSTHDR(&msg);
+	cmsg->cmsg_level = SOL_SOCKET;
+	cmsg->cmsg_type = SCM_RIGHTS;
+	cmsg->cmsg_len = CMSG_LEN(sizeof(fd));
+	*((int *)CMSG_DATA(cmsg)) = fd;
+
+	return sendmsg(sk, &msg, 0);
+}
 
 MODULE = tinycv     PACKAGE = tinycv
 
 PROTOTYPES: ENABLE
+
+SysRet
+send_with_fd(InOutStream sk, char *buf, int fd);
+CODE:
+       RETVAL = clib_send_with_fd(PerlIO_fileno(sk), buf, strlen(buf), fd);
+OUTPUT:
+       RETVAL
 
 tinycv::Image new(long width, long height)
   CODE:
