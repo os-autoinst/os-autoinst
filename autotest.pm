@@ -173,8 +173,10 @@ sub run_all {
         warn $@;
         $died = 1;    # test execution died
     }
-    bmwqemu::save_vars();
-    myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, completed => $completed});
+    eval {
+        bmwqemu::save_vars();
+        myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, completed => $completed});
+    };
     close $isotovideo;
     Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
