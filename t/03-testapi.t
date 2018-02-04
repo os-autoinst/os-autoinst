@@ -216,9 +216,23 @@ subtest 'record_info' => sub {
     like(exception { record_info('my title', 'output', result => 'not supported', resultname => 'foo') }, qr/unsupported/, 'invalid result');
 };
 
+subtest 'script_output' => sub {
+    my $mock_testapi = new Test::MockModule('testapi');
+    # mock what script_output will expect on success
+    $mock_testapi->mock(hashed_string => sub { return 'XXX' });
+    $mock_testapi->mock(wait_serial   => sub { return 'SCRIPT_FINISHEDXXX-0-' });
+    is(script_output('foo'), '', 'calling script_output does not fail if script returns with success');
+    $mock_testapi->mock(wait_serial => sub { return 'SCRIPT_FINISHEDXXX-1-' });
+    like(exception { script_output 'false'; }, qr/script failed/, 'script_output fails the test on failing script');
+    subtest 'script_output with additional noise output on serial device' => sub {
+        $mock_testapi->mock(wait_serial => sub { return "This is simulated output on the serial device\nXXXfoo\nSCRIPT_FINISHEDXXX-0-\nand more here" });
+        is(script_output('echo foo'), 'foo', 'script_output should only return the actual output of the script');
+    };
+};
+
 subtest 'validate_script_output' => sub {
     my $mock_testapi = new Test::MockModule('testapi');
-    $mock_testapi->mock(script_output => sub ($;$) { return 'output'; });
+    $mock_testapi->mock(script_output => sub { return 'output'; });
     ok(!validate_script_output('script', sub { m/output/ }), 'validating output with default timeout');
     ok(!validate_script_output('script', sub { m/output/ }, 30), 'specifying timeout');
     like(

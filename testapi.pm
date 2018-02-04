@@ -905,64 +905,71 @@ sub script_sudo {
 
 Executing script inside SUT with C<bash -eox> (in case of serial console with C<bash -eo>)
 and directs C<stdout> (I<not> C<stderr>!) to the serial console and returns
-the output I<if> the script exists with 0. Otherwise the test is set to failed.
+the output I<if> the script exits with 0. Otherwise the test is set to failed.
 
-Script content based on C<current_test_script> value and typed or fetched
-through HTTP depends on various parameters,so if you need to have it typed because
-your SUT is offline, pass type_command => 1.
+The script content is based on the variable content of C<current_test_script>
+and is typed or fetched through HTTP depending on various parameters. Typing
+can be forced by passing C<type_command => 1> for example when the SUT does
+not provide a usable network connection.
 
-The default timeout for the script is 30 seconds. If you need more, pass a second parameter.
+The default timeout for the script is based on the default in C<wait_serial>
+and can be tweaked by setting the C<$wait> positional parameter.
 
 =cut
 
 sub script_output {
     my ($current_test_script, $wait, %args) = @_;
-    my $suffix = hashed_string("SO$current_test_script");
+    my $marker = hashed_string("SO$current_test_script");
     # 80 is approximate quantity of chars typed during 'curl' approach
     # if script length is lower there is no point to proceed with more complex solution
-    $args{type_command} ||= length($current_test_script) < 80;
+    $args{type_command} //= length($current_test_script) < 80;
+    my $script_path = "/tmp/script$marker.sh";
 
     if (is_serial_terminal) {
-        my $cat = "cat - > /tmp/script$suffix.sh; echo $suffix-\$?-";
+        my $cat = "cat - > $script_path; echo $marker-\$?-";
         type_string($cat . "\n");
         wait_serial("$cat", undef, 0, no_regex => 1);
         type_string($current_test_script);
         type_string("\n", terminate_with => 'EOT');
-        wait_serial("$suffix-0-");
+        wait_serial("$marker-0-");
     }
     elsif ($args{type_command}) {
-        my $cat = "cat - > /tmp/script$suffix.sh << 'EOF';\n";
+        my $cat = "cat - > $script_path;\n";
         type_string($cat);
-        type_string($current_test_script . "\nEOF\n");
+        type_string($current_test_script . "\n");
+        send_key('ctrl-d');
     }
     else {
         open my $fh, ">", 'current_script' or croak("Could not open file. $!");
         print $fh $current_test_script;
         close $fh;
-        assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > /tmp/script$suffix.sh";
+        assert_script_run "curl -f -v " . autoinst_url("/current_script") . " > $script_path";
         script_run "clear";
     }
 
-    my $run_script = "/tmp/script$suffix.sh ; echo SCRIPT_FINISHED$suffix-\$?-";
+    # Surround the actual script output with special markers so that we can
+    # unambiguously separate the expected output from other content that we
+    # might encounter on the serial device depending on how it is used in the
+    # SUT
+    my $shell_cmd = is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
+    my $run_script = "echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-";
     if (is_serial_terminal) {
-        type_string("/bin/bash -oe pipefail $run_script\n");
+        type_string("$run_script\n");
         wait_serial($run_script, undef, 0, no_regex => 1);
     }
     else {
-        type_string "(/bin/bash -eox pipefail $run_script)| tee /dev/$serialdev\n";
+        type_string "($run_script) | tee /dev/$serialdev\n";
     }
-    my $output = wait_serial("SCRIPT_FINISHED$suffix-\\d+-", $wait, 0, record_output => 1)
+    my $output = wait_serial("SCRIPT_FINISHED$marker-\\d+-", $wait, 0, record_output => 1)
       || croak "script timeout";
 
-    croak "script failed" if $output !~ "SCRIPT_FINISHED$suffix-0-";
+    croak "script failed" if $output !~ "SCRIPT_FINISHED$marker-0-";
 
-    # strip the internal exit catcher
-    $output =~ s,SCRIPT_FINISHED$suffix-0-,,;
-
+    # and the markers including internal exit catcher
+    my $out = $output =~ /$marker(?<expected_output>.+)SCRIPT_FINISHED$marker-0-/s ? $+ : '';
     # trim whitespaces
-    $output =~ s/^\s+|\s+$//g;
-
-    return $output;
+    $out =~ s/^\s+|\s+$//g;
+    return $out;
 }
 
 
