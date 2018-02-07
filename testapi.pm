@@ -621,7 +621,7 @@ Set test variable C<$variable> to value C<$value>.
 
 Specify a true value for the C<reload_needles> flag to trigger a reloading
 of needles in the backend and call the cleanup handler with the new variables
-to make sure that possibly unselected needles are now taken into account
+to make sure that possibly deselected needles are now taken into account
 (useful if you change scenarios during the test run)
 
 =cut
