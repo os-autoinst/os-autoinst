@@ -21,6 +21,11 @@ use warnings;
 use Carp;
 use base 'Exporter';
 use Mojo::File 'path';
+use bmwqemu 'diag';
+use POSIX ':sys_wait_h';
+use Symbol 'gensym';
+use IPC::Open3;
+use IO::Select;
 
 our @EXPORT_OK = qw(
   dd_gen_params
@@ -28,6 +33,7 @@ our @EXPORT_OK = qw(
   gen_params
   qv
   quote
+  runcmd
 );
 
 # An helper to lookup into a folder and find an executable file between given candidates
@@ -80,6 +86,46 @@ sub qv($) {
 # and they need to be quoted using single or double quotes
 sub quote {
     "\'" . $_[0] . "\'";
+}
+
+# Open a process to run external program and check its return status
+sub runcmd {
+    diag "running " . join(' ', @_);
+    my ($pid, $status);
+
+    local $SIG{CHLD} = sub {
+        local ($!, $?);
+        while ((my $child = waitpid(-1, WNOHANG)) > 0) {
+            diag "runcmd pid $pid returned $child";
+            $status = $?;
+        }
+    };
+
+    my ($wtr, $rdr, $err);
+    $err = gensym;
+    $pid = open3($wtr, $rdr, $err, @_);
+    die "couldn't open: $!" unless defined $pid;
+    close($wtr) or die "couldn't close fh: $!";
+
+    my $s = IO::Select->new();
+    $s->add($rdr, $err);
+    while (my @ready = $s->can_read()) {
+        for my $fh (@ready) {
+            if (sysread($fh, my $buf, 4096)) {
+                diag $buf if ($fh == $rdr);
+                diag $buf if ($fh == $err);
+            }
+            else {
+                $s->remove($fh);
+            }
+        }
+    }
+    close($rdr) or die "couldn't close fh: $!";
+    close($err) or die "couldn't close fh: $!";
+
+    my $exit_code = $status >> 8;
+    die "runcmd failed with exit code $exit_code" unless ($exit_code == 0);
+    return $exit_code;
 }
 ## use critic
 
