@@ -222,7 +222,10 @@ sub init {
     %needles = ();
     %tags    = ();
     bmwqemu::diag("init needles from $needledir");
-    find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needledir);
+    # TODO my os-autoinst fails to load any needles but the directory is readable by the user. `find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needledir)` does not give back anything, if I delete the "follow => 1" part wanted_ returns me just the symlink path /var/lib/openqa/share/tests/sle/products/sle/needles itself. idea?
+    #find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needledir);
+    # okurz: 2017-10-15: helps me to make sure the real directory under a symlink is loaded
+    find({no_chdir => 1, wanted => \&wanted_}, $needledir . '/');
     bmwqemu::diag(sprintf("loaded %d needles", scalar keys %needles));
 
     if ($cleanuphandler) {
