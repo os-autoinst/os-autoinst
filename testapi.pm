@@ -954,6 +954,7 @@ sub script_output {
     my $shell_cmd = is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
     my $run_script = "echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-";
     if (is_serial_terminal) {
+        wait_serial('# ', undef, 0, no_regex => 1);
         type_string("$run_script\n");
         wait_serial($run_script, undef, 0, no_regex => 1);
     }
