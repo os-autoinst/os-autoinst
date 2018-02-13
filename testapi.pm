@@ -1037,6 +1037,15 @@ sub validate_script_output($&;$) {
     my $output = script_output($script, $wait);
     my $res = 'ok';
 
+    if ($ENV{SANITYCHECK}) {
+        # quick sanity check for check functions:
+        $_ = '';
+        my $ret1 = $code->();
+        $_ = 'foobar';
+        if ($ret1 && $code->()) {
+            confess("sanity check failed for $script validator code - always returns true");
+        }
+    }
     # set $_ so the callbacks can be simpler code
     $_ = $output;
     if (!$code->()) {
