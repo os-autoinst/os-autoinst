@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2018 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -428,29 +428,6 @@ sub add_disk {
     return;
 }
 
-# In list context returns pair ($stdout, $stderr). In void (and scalar)
-# context just logs stdout and stderr, returns nothing.
-sub get_ssh_output {
-    my ($chan) = @_;
-
-    my ($stdout, $errout) = ('', '');
-    while (!$chan->eof) {
-        if (my ($o, $e) = $chan->read2) {
-            $stdout .= $o;
-            $errout .= $e;
-        }
-    }
-    if (wantarray) {
-        return ($stdout, $errout);
-    }
-    else {
-        chomp($stdout);
-        chomp($errout);
-        bmwqemu::diag "Command's stdout:\n$stdout" if length($stdout);
-        bmwqemu::diag "Command's stderr:\n$errout" if length($errout);
-    }
-}
-
 sub suspend {
     my ($self) = @_;
     $self->run_cmd("virsh suspend " . $self->name) && die "Can't suspend VM ";
@@ -540,6 +517,24 @@ sub stop_serial_grab {
     $self->backend->stop_serial_grab($self->name);
 }
 
+# In list context returns ($stdout, $stderr) pair. In void (and scalar)
+# context just logs stdout and stderr, returns nothing.
+sub get_ssh_output {
+    my ($chan) = @_;
+
+    my ($stdout, $stderr) = ('', '');
+    while (!$chan->eof) {
+        if (my ($o, $e) = $chan->read2) {
+            $stdout .= $o;
+            $stderr .= $e;
+        }
+    }
+    chomp($stdout, $stderr);
+    bmwqemu::diag "Command's stdout:\n$stdout" if length($stdout);
+    bmwqemu::diag "Command's stderr:\n$stderr" if length($stderr);
+    return $stdout, $stderr if wantarray;
+}
+
 # Sends command to libvirt host, logs stdout and stderr of the command,
 # returns exit status.
 #
@@ -559,16 +554,19 @@ sub run_cmd {
     return $ret;
 }
 
-# returns stdout of provided command
+# Executes command and in list context returns pair of standard output and standard error
+# of the command. In void (and scalar) context returns just standard the standard output.
 sub get_cmd_output {
-    my ($self, $cmd) = @_;
+    my ($self, $cmd, $args) = @_;
 
-    my $chan = $self->{ssh}->channel();
+    my $wantarray = $args->{wantarray};
+    my $chan      = $self->{ssh}->channel();
     $chan->exec($cmd);
+    bmwqemu::diag "Command executed: $cmd";
     my @cmd_output = get_ssh_output($chan);
     $chan->send_eof;
     $chan->close();
-    return $cmd_output[0];
+    return $wantarray ? \@cmd_output : $cmd_output[0];
 }
 
 1;
