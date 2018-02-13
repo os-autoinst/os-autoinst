@@ -59,6 +59,7 @@ on 'test' => sub {
   requires 'Test::Pod';
   requires 'Test::Simple';
   requires 'Test::Warnings';
+  requires 'Socket::MsgHdr';
 };
 
 feature 'coverage', 'coverage for travis' => sub {

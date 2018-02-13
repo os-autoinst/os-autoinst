@@ -1626,7 +1626,6 @@ sub save_memory_dump {
     $nargs{filename} ||= $autotest::current_test->{name};
 
     bmwqemu::log_call(%nargs);
-    die "save_memory_dump should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
     bmwqemu::diag("Trying to save machine state");
 
     query_isotovideo('backend_save_memory_dump', \%nargs);
