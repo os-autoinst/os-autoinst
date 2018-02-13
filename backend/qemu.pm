@@ -563,7 +563,10 @@ sub start_qemu {
     {
         push(@params, @vgaoptions);
 
-        gen_params @params, "global", "isa-fdc.driveA=" unless $vars->{QEMU_NO_FDC_SET};
+        # Avoid qemu's error message about floppy controller when using arm/aarch64:
+        unless ($vars->{ARCH} eq 'aarch64' || $vars->{ARCH} eq 'arm' || $vars->{QEMU_NO_FDC_SET}) {
+            gen_params @params, "global", "isa-fdc.driveA=";
+        }
         gen_params @params, 'm',       $vars->{QEMURAM}     if $vars->{QEMURAM};
         gen_params @params, 'machine', $vars->{QEMUMACHINE} if $vars->{QEMUMACHINE};
         gen_params @params, 'cpu',     $vars->{QEMUCPU}     if $vars->{QEMUCPU};
