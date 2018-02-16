@@ -606,7 +606,8 @@ sub start_qemu {
     bmwqemu::save_vars();                     # update variables
 
     mkpath($basedir);
-    runcmd('/usr/bin/chattr', '-f', '+C', $basedir);
+    # do not use runcmd or autodie here, it can fail on tmpfs, xfs, ...
+    CORE::system('/usr/bin/chattr', '-f', '+C', $basedir);
 
     my $keephdds = $vars->{KEEPHDDS} || $vars->{SKIPTO};
 
