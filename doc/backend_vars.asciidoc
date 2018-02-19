@@ -111,8 +111,6 @@ VIRSH_GUEST;string;Where to look for VNC server (SUT or VM);
 VIRSH_INSTANCE;integer;VM's instance number on VIRSH_HOSTNAME;
 VMWARE_USERNAME;string;Administrator's username ('@' is '%40');
 VMWARE_PASSWORD;string;Administrator's password;
-VMWARE_HOST;string;VCS server for autentication;
-VMWARE_DATACENTER;string;VMware datacenter;
 VMWARE_SERVER;string;ESX server to start VM on;
 VMWARE_DATASTORE;string;VMware datastore;
 VMWARE_SERIAL_PORT;string;TCP port where is VM's serial port stream to be expected on the ESX server;
