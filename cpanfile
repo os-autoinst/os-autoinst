@@ -48,7 +48,7 @@ requires 'warnings';
 on 'test' => sub {
   requires 'Devel::Cover';
   requires 'Perl::Critic';
-  requires 'Perl::Tidy', '>= 20171214';
+  requires 'Perl::Tidy', '>= 20180101, != 20180219';
   requires 'Pod::Coverage';
   requires 'Test::Compile';
   requires 'Test::Fatal';
