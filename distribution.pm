@@ -19,6 +19,7 @@ use strict;
 use warnings;
 
 use testapi ();
+use Carp 'croak';
 
 sub new {
     my ($class) = @_;
@@ -169,6 +170,74 @@ sub script_sudo {
         return testapi::wait_serial($str, $wait);
     }
     return;
+}
+
+=head2 script_output
+
+    script_output($script, [ $wait, type_command => ? ]) 
+
+Execute $script on the SUT and return the data written to STDOUT by
+$script. See script_output in the testapi.
+
+You may be able to avoid overriding this function by setting
+$serial_term_prompt.
+
+=cut
+sub script_output {
+    my ($self, $script, $wait, %args) = @_;
+    my $marker = testapi::hashed_string("SO$script");
+    # 80 is approximate quantity of chars typed during 'curl' approach
+    # if script length is lower there is no point to proceed with more complex solution
+    $args{type_command} //= length($script) < 80;
+    my $script_path = "/tmp/script$marker.sh";
+
+    if (testapi::is_serial_terminal) {
+        my $cat = "cat - > $script_path; echo $marker-\$?-";
+        testapi::wait_serial($self->{serial_term_prompt}, undef, 0, no_regex => 1);
+        testapi::type_string($cat . "\n");
+        testapi::wait_serial("$cat", undef, 0, no_regex => 1);
+        testapi::type_string($script);
+        testapi::type_string("\n", terminate_with => 'EOT');
+        testapi::wait_serial("$marker-0-");
+    }
+    elsif ($args{type_command}) {
+        my $cat = "cat - > $script_path;\n";
+        testapi::type_string($cat);
+        testapi::type_string($script . "\n");
+        testapi::send_key('ctrl-d');
+    }
+    else {
+        open my $fh, ">", 'current_script' or croak("Could not open file. $!");
+        print $fh $script;
+        close $fh;
+        testapi::assert_script_run("curl -f -v " . testapi::autoinst_url("/current_script") . " > $script_path");
+        testapi::script_run "clear";
+    }
+
+    # Surround the actual script output with special markers so that we can
+    # unambiguously separate the expected output from other content that we
+    # might encounter on the serial device depending on how it is used in the
+    # SUT
+    my $shell_cmd = testapi::is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
+    my $run_script = "echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-";
+    if (testapi::is_serial_terminal) {
+        testapi::wait_serial($self->{serial_term_prompt}, undef, 0, no_regex => 1);
+        testapi::type_string("$run_script\n");
+        testapi::wait_serial($run_script, undef, 0, no_regex => 1);
+    }
+    else {
+        testapi::type_string("($run_script) | tee /dev/$testapi::serialdev\n");
+    }
+    my $output = testapi::wait_serial("SCRIPT_FINISHED$marker-\\d+-", $wait, 0, record_output => 1)
+      || croak "script timeout";
+
+    croak "script failed" if $output !~ "SCRIPT_FINISHED$marker-0-";
+
+    # and the markers including internal exit catcher
+    my $out = $output =~ /$marker(?<expected_output>.+)SCRIPT_FINISHED$marker-0-/s ? $+ : '';
+    # trim whitespaces
+    $out =~ s/^\s+|\s+$//g;
+    return $out;
 }
 
 # override
