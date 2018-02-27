@@ -718,7 +718,8 @@ sub start_qemu {
                 my $diskmodel;
                 if (defined $vars->{"HDDMODEL_$i"}) {
                     $diskmodel = $vars->{"HDDMODEL_$i"};
-                } else {
+                }
+                else {
                     $diskmodel = $vars->{HDDMODEL};
                 }
                 # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
