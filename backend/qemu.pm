@@ -202,7 +202,7 @@ sub can_handle {
         return if $vars->{QEMU_DISABLE_SNAPSHOTS};
 
         for my $i (1 .. $vars->{NUMDISKS}) {
-            return if $vars->{"HDDMODEL_$i"} eq 'nvme';
+            return if (defined $vars->{"HDDMODEL_$i"} && $vars->{"HDDMODEL_$i"} eq 'nvme');
         }
 
         return {ret => 1};
