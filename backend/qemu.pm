@@ -711,7 +711,7 @@ sub start_qemu {
                     # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
                     my $bootindex = ($i == 1 && $c == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? "bootindex=0" : "";
                     gen_params @params, 'device', [qv "$vars->{HDDMODEL} drive=$id bus=$bus $bootindex"];
-                    gen_params @params, 'drive',  [qv "file=$basedir/l$i cache=none if=none id=$id serial=mpath$i format=$vars->{HDDFORMAT}"];
+                    gen_params @params, 'drive',  [qv "file=$basedir/l$i cache=none if=none id=$id serial=mpath$i format=$vars->{HDDFORMAT} discard=on"];
                 }
             }
             else {
@@ -726,7 +726,7 @@ sub start_qemu {
                 my $bootindex = ($i == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? "bootindex=0" : "";
                 my $serial = "serial=$i";
                 gen_params @params, 'device', [qv "$diskmodel drive=hd$i $bootindex $serial"];
-                gen_params @params, 'drive',  [qv "file=$basedir/l$i cache=unsafe if=none id=hd$i format=$vars->{HDDFORMAT}"];
+                gen_params @params, 'drive',  [qv "file=$basedir/l$i cache=unsafe if=none id=hd$i format=$vars->{HDDFORMAT} discard=on"];
             }
         }
 
