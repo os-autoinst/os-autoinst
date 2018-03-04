@@ -201,6 +201,10 @@ sub can_handle {
 
         return if $vars->{QEMU_DISABLE_SNAPSHOTS};
 
+        for my $i (1 .. $vars->{NUMDISKS}) {
+            return if (defined $vars->{"HDDMODEL_$i"} && $vars->{"HDDMODEL_$i"} eq 'nvme');
+        }
+
         return {ret => 1};
     }
     return;
@@ -711,10 +715,17 @@ sub start_qemu {
                 }
             }
             else {
+                my $diskmodel;
+                if (defined $vars->{"HDDMODEL_$i"}) {
+                    $diskmodel = $vars->{"HDDMODEL_$i"};
+                }
+                else {
+                    $diskmodel = $vars->{HDDMODEL};
+                }
                 # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
                 my $bootindex = ($i == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? "bootindex=0" : "";
                 my $serial = "serial=$i";
-                gen_params @params, 'device', [qv "$vars->{HDDMODEL} drive=hd$i $bootindex $serial"];
+                gen_params @params, 'device', [qv "$diskmodel drive=hd$i $bootindex $serial"];
                 gen_params @params, 'drive',  [qv "file=$basedir/l$i cache=unsafe if=none id=hd$i format=$vars->{HDDFORMAT}"];
             }
         }
