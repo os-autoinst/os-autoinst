@@ -40,7 +40,6 @@ sub new {
 
 sub do_start_vm {
     my $self = shift;
-    $self->unlink_crash_file;
     $self->start_lpar();
     return {};
 }

@@ -54,8 +54,6 @@ sub do_start_vm {
 
     $ssh->backend($self);
 
-    # remove backend.crashed
-    $self->unlink_crash_file;
     bmwqemu::save_vars();    # update variables
     return {};
 }
