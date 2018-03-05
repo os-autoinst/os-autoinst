@@ -418,8 +418,23 @@ sub start_qemu {
     my $qemubin = $ENV{QEMU};
 
     my $qemuimg = find_bin('/usr/bin/', qw(kvm-img qemu-img));
+
     unless ($qemubin) {
-        $qemubin = find_bin('/usr/bin/', $vars->{QEMU} ? ('qemu-system-' . $vars->{QEMU}) : qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64));
+        if ($vars->{QEMU}) {
+            $qemubin = find_bin('/usr/bin/', 'qemu-system-' . $vars->{QEMU});
+        }
+        else {
+            (my $class = $vars->{WORKER_CLASS} || '') =~ s/qemu_/qemu-system\-/g;
+            my @execs = qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64);
+            my %allowed = map { $_ => 1 } @execs;
+            for (split(/\s*,\s*/, $class)) {
+                if ($allowed{$_}) {
+                    $qemubin = find_bin('/usr/bin/', $_);
+                    last;
+                }
+            }
+            $qemubin = find_bin('/usr/bin/', @execs) unless $qemubin;
+        }
     }
 
     die "no kvm-img/qemu-img found\n" unless $qemuimg;
