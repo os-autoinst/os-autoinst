@@ -94,8 +94,6 @@ sub restart_host {
 sub do_start_vm {
     my ($self) = @_;
 
-    # remove backend.crashed
-    $self->unlink_crash_file;
     $self->get_mc_status;
     $self->restart_host;
 

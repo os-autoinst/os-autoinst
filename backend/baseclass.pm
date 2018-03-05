@@ -353,17 +353,6 @@ sub alive {
     return 0;
 }
 
-my $iscrashedfile = 'backend.crashed';
-sub unlink_crash_file {
-    unlink($iscrashedfile) if -e $iscrashedfile;
-}
-
-sub write_crash_file {
-    open(my $fh, ">", $iscrashedfile);
-    print $fh "crashed\n";
-    close $fh;
-}
-
 # new api end
 
 # virtual methods

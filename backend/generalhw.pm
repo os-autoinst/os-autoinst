@@ -102,8 +102,6 @@ sub relogin_vnc {
 sub do_start_vm {
     my ($self) = @_;
 
-    # remove backend.crashed
-    $self->unlink_crash_file;
     $self->restart_host;
     $self->relogin_vnc;
     $self->start_serial_grab;

@@ -41,7 +41,6 @@ sub do_start_vm {
     open(my $sf, '>', $self->{serialfile});
     close($sf);
 
-    $self->unlink_crash_file();
     my $console = $testapi::distri->add_console('x3270', 's3270');
     $console->backend($self);
     $self->select_console({testapi_console => 'x3270'});

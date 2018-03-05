@@ -111,8 +111,6 @@ sub cpu_stat {
 sub do_start_vm {
     my $self = shift;
 
-    # remove backend.crashed
-    $self->unlink_crash_file();
     $self->start_qemu();
     return {};
 }
