@@ -37,8 +37,8 @@ debugviewer/debugviewer
 snd2png/snd2png
 snd2png/test.pnm
 snd2png/test.pnm.md5
-t/*.pl.log
-t/*.pl.trs
+t/*.log
+t/*.trs
 t/pool/*
 t/cover_db/*
 .*.swp
