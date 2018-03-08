@@ -78,7 +78,6 @@ our $username;
 our $password;
 
 our $serialdev;
-our $selected_console;
 
 our $last_matched_needle;
 
@@ -709,8 +708,8 @@ For more info see consoles/virtio_console.pm and consoles/virtio_screen.pm.
 sub is_serial_terminal {
     state $ret;
     state $last_seen = '';
-    if (defined $selected_console && $selected_console ne $last_seen) {
-        $last_seen = $selected_console;
+    if (defined $autotest::selected_console && $autotest::selected_console ne $last_seen) {
+        $last_seen = $autotest::selected_console;
         $ret = query_isotovideo('backend_is_serial_terminal', {});
     }
     return $ret->{yesorno};
@@ -1387,7 +1386,7 @@ sub select_console {
     my $ret = query_isotovideo('backend_select_console', {testapi_console => $testapi_console});
     die $ret->{error} if $ret->{error};
 
-    $selected_console = $testapi_console;
+    $autotest::selected_console = $testapi_console;
     if ($ret->{activated}) {
         # we need to store the activated consoles for rollback
         if ($autotest::last_milestone) {
@@ -1422,7 +1421,7 @@ here.
 
 sub console {
     my ($testapi_console) = @_;
-    $testapi_console ||= $selected_console;
+    $testapi_console ||= $autotest::selected_console;
     bmwqemu::log_call(testapi_console => $testapi_console);
     if (!exists $testapi_console_proxies{$testapi_console}) {
         $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
