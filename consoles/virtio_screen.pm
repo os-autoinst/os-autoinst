@@ -264,6 +264,37 @@ sub read_until {
     return {matched => 1, string => $overflow . $prematch . $match};
 }
 
+=head2 peak
+
+Read and return pending data without consuming it. This is useful if you are
+about to destroy the virtio_screen instance, but want to keep any pending
+data. However this does not wait for any data in particular so this races with
+the backend and data transport. Therefor it should only be used when there is
+no information available about what data is expected to be available.
+
+=cut
+sub peak {
+    my ($self, %nargs) = @_;
+    my $buflen     = $nargs{buffer_size} || 4096;
+    my $total_read = 0;
+    my $buf        = '';
+    my $read;
+
+    bmwqemu::log_call(%nargs);
+  LOOP: {
+        $read = sysread($self->{socket_fd}, $buf, $buflen);
+        last LOOP unless defined $read;
+
+        $self->{carry_buffer} .= $buf;
+        $total_read += $read;
+
+        next LOOP if $read > 0 && $total_read < $buflen;
+    }
+
+    bmwqemu::fctinfo('Peaked ' . ($total_read + length($self->{carry_buffer})) . ' bytes');
+    return $self->{carry_buffer};
+}
+
 sub current_screen {
     return 0;
 }

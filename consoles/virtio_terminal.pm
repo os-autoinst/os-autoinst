@@ -55,8 +55,10 @@ requires a UNIX socket which inputs and outputs terminal ASCII/ANSI codes.
 sub new {
     my ($class, $testapi_console, $args) = @_;
     my $self = $class->SUPER::new($testapi_console, $args);
-    $self->{socket_fd}   = 0;
-    $self->{socket_path} = cwd() . '/virtio_console';
+    $self->{socket_fd}      = 0;
+    $self->{socket_path}    = cwd() . '/virtio_console';
+    $self->{snapshots}      = {};
+    $self->{preload_buffer} = '';
     return $self;
 }
 
@@ -65,14 +67,33 @@ sub screen {
     return $self->{screen};
 }
 
-sub reset {
+sub disable {
     my ($self) = @_;
     if ($self->{socket_fd} > 0) {
         close $self->{socket_fd};
         $self->{socket_fd} = 0;
         $self->{screen}    = undef;
     }
-    return $self->SUPER::reset;
+}
+
+sub save_snapshot {
+    my ($self, $name) = @_;
+
+    if (defined($self->{screen})) {
+        $self->{snapshots}->{$name} = $self->{screen}->peak();
+    } else {
+        $self->{snapshots}->{$name} = '';
+    }
+}
+
+sub load_snapshot {
+    my ($self, $name) = @_;
+
+    if (defined($self->{screen})) {
+        $self->{screen}->{carry_buffer} = $self->{snapshots}->{$name};
+    } else {
+        $self->{preload_buffer} = $self->{snapshots}->{$name};
+    }
 }
 
 =head2 socket_path
@@ -112,8 +133,10 @@ sub open_socket {
 sub activate {
     my ($self) = @_;
     if (get_var('VIRTIO_CONSOLE')) {
-        $self->{socket_fd} = $self->open_socket;
-        $self->{screen}    = consoles::virtio_screen::->new($self->{socket_fd});
+        $self->{socket_fd}              = $self->open_socket;
+        $self->{screen}                 = consoles::virtio_screen::->new($self->{socket_fd});
+        $self->{screen}->{carry_buffer} = $self->{preload_buffer};
+        $self->{preload_buffer}         = '';
     }
     else {
         croak 'VIRTIO_CONSOLE is not set, so no virtio-serial and virtconsole devices will be available to use with this console.';

@@ -90,9 +90,12 @@ SKIPTO;full name of test module;;Restore VM from snapshot and continue by runnin
 TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used
 TAPSCRIPT;;;
 TESTDEBUG;boolean;0;Enable test debugging: override 'milestone' and 'fatal' test flags to 1. Snapshot are created after each successful test module and each fail aborts test run
-UEFI;;;
-UEFI_PFLASH;boolean;0;Enable the pflash mode to write the UEFI variables directly into the firmware file instead of NVvars in the EFI system partition
-UEFI_BIOS;;;
+UEFI;boolean;0;Enable UEFI
+UEFI_PFLASH_CODE;string;;Specify the file name of the UEFI firmware code which will be loaded onto a read-only PFLASH drive
+UEFI_PFLASH_VARS;string;;Specify the file name which contains the UEFI firmware variables which will be loaded onto a mutable PFLASH drive
+PUBLISH_PFLASH_VARS;string;;Specify the file name to publish the UEFI vars file as
+UEFI_PFLASH;boolean;0;(Deprecated, use UEFI_PFLASH_VARS) Enable the pflash mode to write the UEFI variables directly into the firmware file instead of NVvars in the EFI system partition
+UEFI_BIOS;;;Deprecated, use UEFI_PFLASH_CODE
 USBBOOT;boolean;0;Mount ISO as USB disk and boot VM from it
 VDE_PORT;integer;worker instance + 10;number of vde switch port to connect
 VDE_SOCKETDIR;string;.;directory where vde_switch control socket is to be found

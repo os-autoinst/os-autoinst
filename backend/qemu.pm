@@ -18,6 +18,7 @@ package backend::qemu;
 use strict;
 use base 'backend::virt';
 use File::Path 'mkpath';
+use File::Spec;
 use File::Which;
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Select;
@@ -36,9 +37,15 @@ use osutils qw(find_bin gen_params qv runcmd);
 use List::Util 'max';
 use Data::Dumper;
 
+use OpenQA::Qemu::Proc;
+
 # The maximum value of the system's native signed integer. Which will probably
 # be 2^64 - 1.
 use constant LONG_MAX => (~0 >> 1);
+
+# Folder where RAM/VM state files live. Note that the blockdevice snapshots go
+# in a seperate dir.
+use constant VM_SNAPSHOTS_DIR => 'vm-snapshots';
 
 sub new {
     my $class = shift;
@@ -50,6 +57,7 @@ sub new {
 
     $self->{pid}         = undef;
     $self->{pidfilename} = 'qemu.pid';
+    $self->{proc}        = OpenQA::Qemu::Proc->new();
 
     return $self;
 }
@@ -65,7 +73,7 @@ sub raw_alive {
 sub _wrap_hmc {
     my $cmdline = shift;
     return {
-        execute   => 'human-monitor-command',
+        execute => 'human-monitor-command',
         arguments => {'command-line' => $cmdline}};
 }
 sub start_audiocapture {
@@ -167,13 +175,17 @@ sub _dbus_call {
 }
 
 sub do_stop_vm {
-    my $self = shift;
+    my ($self, %args) = @_;
+    my $only_qemu = $args{only_qemu} || 0;
+
+    $self->{proc}->save_state();
 
     return unless $self->{pid};
     kill_qemu($self);
     $self->{pid} = undef;
     unlink($self->{pidfilename});
 
+    return if $only_qemu;
     # Free allocated vlans - if any -
     return unless $self->{allocated_networks} && $self->{allocated_tap_devices} && $self->{allocated_vlan_tags};
 
@@ -187,20 +199,17 @@ sub can_handle {
     my $vars = \%bmwqemu::vars;
 
     if ($args->{function} eq 'snapshots') {
-        # raw HDD format does not support snapshots
-        return if $vars->{HDDFORMAT} eq 'raw';
-
-        # virtio-gpu does not support saving yet
-        return if ($vars->{QEMUVGA} || '') eq 'virtio';
-
-        # XXX: Temporary (hopefully) workaround for nvme, since snapshots fails.
-        # See also https://github.com/os-autoinst/os-autoinst/pull/781
-        return if $vars->{HDDMODEL} eq 'nvme';
-
         return if $vars->{QEMU_DISABLE_SNAPSHOTS};
 
+        my $nvme = $vars->{HDDMODEL} eq 'nvme';
         for my $i (1 .. $vars->{NUMDISKS}) {
-            return if (defined $vars->{"HDDMODEL_$i"} && $vars->{"HDDMODEL_$i"} eq 'nvme');
+            last if $nvme;
+            $nvme = (defined $vars->{"HDDMODEL_$i"} && $vars->{"HDDMODEL_$i"} eq 'nvme');
+        }
+        if ($nvme) {
+            bmwqemu::fctwarn('NVMe drives can not be migrated which is required for snapshotting')
+              unless $args->{no_warn};
+            return;
         }
 
         return {ret => 1};
@@ -233,11 +242,87 @@ sub set_migrate_capability {
                 capabilities => [
                     {
                         capability => $name,
-                        state      => $state ? JSON::true : JSON::false,
+                        state => $state ? JSON::true : JSON::false,
                     }]}
         },
         fatal => 1
     );
+}
+
+sub _wait_for_migrate {
+    my ($self)              = @_;
+    my $migration_starttime = gettimeofday;
+    my $execution_time      = gettimeofday;
+    # We need to wait for qemu, since it will not honor timeouts
+    my $max_execution_time = 240;
+    my $rsp;
+
+    do {
+        #We want to wait a decent amount of time, a file of 1GB will be
+        # migrated in about 40secs with an ssd drive. and no heavy load.
+        sleep 0.5;
+
+        $execution_time = gettimeofday - $migration_starttime;
+        $rsp = $self->handle_qmp_command({execute => "query-migrate"},
+            fatal => 1);
+
+        if ($rsp->{return}->{status} eq "failed") {
+            die "Migrate to file failed";
+        }
+
+        diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
+        diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
+
+        # 240 seconds should be ok for 4GB
+        if ($execution_time > $max_execution_time) {
+            # migrate_cancel returns an empty hash, so there is no need to check.
+            $rsp = $self->handle_qmp_command({execute => "migrate_cancel"});
+            die "Migrate to file failed, it has been running for more than $max_execution_time";
+        }
+
+    } until ($rsp->{return}->{status} eq "completed");
+}
+
+sub _migrate_to_file {
+    my ($self, %args) = @_;
+    my $fdname         = 'dumpfd';
+    my $compress_level = $args{compress_level} || 0;
+    my $filename       = $args{filename};
+    my $max_bandwidth  = $args{max_bandwidth} // LONG_MAX;
+
+    # Internally compressed dumps can't be opened by crash. They need to be
+    # fed back into QEMU as an incoming migration.
+    $self->set_migrate_capability('compress', 1) if $compress_level > 0;
+    $self->set_migrate_capability('events', 1);
+
+    $self->handle_qmp_command(
+        {
+            execute   => 'migrate-set-parameters',
+            arguments => {
+                # This is ignored if the compress capability is not set
+                'compress-level' => $compress_level,
+                # Ensure slow dump times are not due to a transfer rate cap
+                'max-bandwidth' => $max_bandwidth,
+              }
+        },
+        fatal => 1
+    );
+
+    $self->open_file_and_send_fd_to_qemu($filename, $fdname);
+
+    # QEMU will freeze the VM when the RAM migration reaches a low water
+    # mark. However it is easier for QEMU if the VM is already frozen.
+    $self->freeze_vm();
+    # migrate consumes the file descriptor, so we do not need to call closefd
+    $self->handle_qmp_command(
+        {
+            execute => 'migrate',
+            arguments => {uri => "fd:$fdname"}
+        },
+        fatal => 1
+    );
+
+    return $self->_wait_for_migrate();
 }
 
 sub save_memory_dump {
@@ -252,67 +337,10 @@ sub save_memory_dump {
     bmwqemu::diag("Migrating the machine (Current VM state is $rsp->{return}->{status}).");
     my $was_running = $rsp->{return}->{status} eq 'running';
 
-    # Internally compressed dumps can't be opened by crash. They need to be
-    # fed back into QEMU as an incoming migration.
-    $self->set_migrate_capability('compress', 1) if $compress_method eq 'internal';
-    $self->set_migrate_capability('events', 1);
-
-    $self->handle_qmp_command(
-        {
-            execute   => 'migrate-set-parameters',
-            arguments => {
-                # This is ignored if the compress capability is not set
-                'compress-level' => $compress_level,
-                # Ensure slow dump times are not due to a transfer rate cap
-                'max-bandwidth' => $vars->{QEMU_MAX_BANDWIDTH} || LONG_MAX
-            }
-        },
-        fatal => 1
-    );
-
-    mkpath("ulogs");
-    $self->open_file_and_send_fd_to_qemu("ulogs/$filename", $fdname);
-
-    # QEMU will freeze the VM when the RAM migration reaches a low water
-    # mark. However it is easier for QEMU if the VM is already frozen.
-    $self->freeze_vm();
-    # migrate consumes the file descriptor, so we do not need to call closefd
-    $self->handle_qmp_command(
-        {
-            execute   => 'migrate',
-            arguments => {uri => "fd:$fdname"}
-        },
-        fatal => 1
-    );
-
-    my $migration_starttime = gettimeofday;
-    my $execution_time      = gettimeofday;
-    # We need to wait for qemu, since it will not honor timeouts
-    my $max_execution_time = 240;
-
-    do {
-        #We want to wait a decent amount of time, a file of 1GB will be
-        # migrated in about 40secs with an ssd drive. and no heavy load.
-        sleep 0.5;
-
-        $execution_time = gettimeofday - $migration_starttime;
-        $rsp = $self->handle_qmp_command({execute => "query-migrate"});
-
-        if ($rsp->{return}->{status} eq "failed") {
-            die "Memory dump failed";
-        }
-
-        diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
-        diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
-
-        # 240 seconds should be ok for 4GB
-        if ($execution_time > $max_execution_time) {
-            # migrate_cancel returns an empty hash, so there is no need to check.
-            $rsp = $self->handle_qmp_command({execute => "migrate_cancel"});
-            die "Memory dump failed, it has been running for more than $max_execution_time";
-        }
-
-    } until ($rsp->{return}->{status} eq "completed");
+    mkpath('ulogs');
+    $self->_migrate_to_file(compress_level => $compress_method eq 'internal' ? $compress_level : 0,
+        filename      => "ulogs/$filename",
+        max_bandwidth => $vars->{QEMU_MAX_BANDWIDTH});
 
     diag "Memory dump completed.";
 
@@ -338,7 +366,7 @@ sub save_memory_dump {
 sub save_storage_drives {
     my ($self, $args) = @_;
 
-    diag "Attemping to extract disk #%d.", $args->{disk};
+    diag "Attempting to extract disk #%d.", $args->{disk};
 
     $self->do_extract_assets(
         {
@@ -355,67 +383,146 @@ sub save_storage_drives {
 sub save_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
-    my $rsp    = $self->handle_qmp_command(_wrap_hmc("savevm $vmname"));
-    if (!$rsp || $rsp->{return} ne '') {
-        die "Could not save snapshot \'$vmname\' " . Dumper($rsp);
-    }
+    my $bdc    = $self->{proc}->blockdev_conf;
+
+    my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
+    bmwqemu::diag("Saving snapshot (Current VM state is $rsp->{return}->{status}).");
+    my $was_running = $rsp->{return}->{status} eq 'running';
+    $self->freeze_vm() if $was_running;
+
+    $self->save_console_snapshots($vmname);
+
+    my $snapshot = $self->{proc}->snapshot_conf->add_snapshot($vmname);
+    $bdc->for_each_drive(sub {
+            local $Data::Dumper::Indent   = 0;
+            local $Data::Dumper::Terse    = 1;
+            local $Data::Dumper::Sortkeys = 1;
+            my $drive = shift;
+
+            my $overlay = $bdc->add_snapshot_to_drive($drive, $snapshot);
+            my $req = {execute => 'blockdev-snapshot-sync',
+                arguments => {'node-name' => $overlay->backing_file->node_name,
+                    'snapshot-node-name' => $overlay->node_name,
+                    'snapshot-file'      => $overlay->file,
+                    format               => $overlay->driver}};
+            $rsp = $self->handle_qmp_command($req);
+
+            # Assumes errors are caused by pflash drives using an autogenerated
+            # blockdev node-name. Try again using the device id instead.
+            if ($rsp->{error}) {
+                diag('blockdev-snapshot-sync(' . Dumper($req) . ') -> ' . Dumper($rsp));
+                delete($req->{arguments}->{'node-name'});
+                $req->{arguments}->{device} = $overlay->backing_file->node_name;
+                $rsp = $self->handle_qmp_command($req);
+            }
+
+            diag('blockdev-snapshot-sync(' . Dumper($req) . ') -> ' . Dumper($rsp));
+    });
+
+    mkpath(VM_SNAPSHOTS_DIR);
+    $self->_migrate_to_file(filename => VM_SNAPSHOTS_DIR . '/' . $snapshot->name,
+        compress_level => 9);
+    diag('Snapshot complete');
+
+    $self->cont_vm() if $was_running;
     return;
 }
 
 sub load_snapshot {
     my ($self, $args) = @_;
     my $vmname = $args->{name};
-    my $rsp    = $self->handle_qmp_command(_wrap_hmc("loadvm $vmname"));
-    if (!$rsp || $rsp->{return} ne '') {
-        die "Could not load snapshot \'$vmname\': " . Dumper($rsp);
+
+    my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
+    bmwqemu::diag("Loading snapshot (Current VM state is $rsp->{return}->{status}).");
+    my $was_running = $rsp->{return}->{status} eq 'running';
+    $self->freeze_vm() if $was_running;
+
+    $self->disable_consoles();
+    $self->close_pipes(only_qemu => 1);
+
+    my $snapshot = $self->{proc}->revert_to_snapshot($vmname);
+
+    my ($pid, $reader) = $self->{proc}->exec_qemu();
+    $self->{pid}      = $pid;
+    $self->{qemupipe} = $reader;
+    open(my $pidf, ">", $self->{pidfilename});
+    print $pidf $self->{pid}, "\n";
+    close $pidf;
+
+    $self->{qmpsocket} = $self->{proc}->connect_qmp();
+    my $init = myjsonrpc::read_json($self->{qmpsocket});
+    my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
+    $self->{select}->add($self->{qemupipe});
+
+    # Ideally we want to send a file descriptor to QEMU, but it doesn't seem
+    # to work for incoming migrations, so we are forced to use exec:cat instead.
+    #
+    # my $fdname = 'incoming';
+    # $self->open_file_and_send_fd_to_qemu(VM_SNAPSHOTS_DIR . '/' . $snapshot->name,
+    #                                     $fdname);
+    $self->set_migrate_capability('compress', 1);
+    $self->set_migrate_capability('events',   1);
+    $rsp = $self->handle_qmp_command({execute => 'migrate-incoming',
+            arguments => {uri => 'exec:cat ' . VM_SNAPSHOTS_DIR . '/' . $snapshot->name}},
+        #arguments => { uri => "fd:$fdname" }},
+        fatal => 1);
+
+    $self->load_console_snapshots($vmname);
+
+    # query-migrate does not seem to work for an incoming migration
+    $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
+    my $i = 0;
+    while ($rsp->{return}->{status} =~ qr/migrate/) {
+        $i += 1;
+        if ($i > 300) {
+            die 'Loading snapshot timed out';
+        }
+        sleep(1);
+        $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
     }
-    return $rsp;
+
+    $self->select_console({testapi_console => 'sut'});
+    diag('Restored snapshot');
+    $self->cont_vm();
 }
 
 sub do_extract_assets {
     my ($self, $args) = @_;
-    my $hdd_num = $args->{hdd_num};
+    my $pattern;
     my $name    = $args->{name};
     my $img_dir = $args->{dir};
-    my $format  = $args->{format};
-    if (!$format || $format !~ /^(raw|qcow2)$/) {
-        die "do_extract_assets: only raw and qcow2 formats supported $name $format";
-    }
-    elsif (-f "raid/l$hdd_num") {
-        bmwqemu::diag "preparing hdd $hdd_num for upload as $name in $format";
-        mkpath($img_dir);
-        my @cmd = ('nice', 'ionice', 'qemu-img', 'convert', '-O', $format, "raid/l$hdd_num", "$img_dir/$name");
-        if ($format eq 'raw') {
-            runcmd(@cmd);
-        }
-        elsif ($format eq 'qcow2') {
-            push @cmd, '-c' if $bmwqemu::vars{QEMU_COMPRESS_QCOW2};
-            # including all snapshots is prohibitively big
-            if ($bmwqemu::vars{MAKETESTSNAPSHOTS} || $bmwqemu::vars{QEMU_COMPRESS_QCOW2}) {
-                runcmd(@cmd);
-            }
-            else {
-                symlink("../raid/l$hdd_num", "$img_dir/$name");
-            }
-        }
+
+    if ($args->{pflash_vars}) {
+        $pattern = qr/^pflash-vars$/;
     }
     else {
-        die "do_extract_assets: hdd $hdd_num does not exist";
+        my $hdd_num = $args->{hdd_num} - 1;
+        $pattern = qr/^hd$hdd_num$/;
     }
+
+    unless ($self->{proc}->has_state()) {
+        $self->{proc}->load_state();
+    }
+
+    mkpath($img_dir);
+    bmwqemu::fctinfo("Extracting $pattern");
+    my $res = $self->{proc}->export_blockdev_images($pattern, $img_dir, $name);
+    die "Expected one drive to be exported, not $res" if $res != 1;
 }
 
 
 # baseclass virt method overwrite end
 
 sub start_qemu {
-
     my $self = shift;
     my $vars = \%bmwqemu::vars;
 
-    my $basedir = "raid";
+    my $basedir = File::Spec->rel2abs("raid");
     my $qemubin = $ENV{QEMU};
 
     my $qemuimg = find_bin('/usr/bin/', qw(kvm-img qemu-img));
+
+    local *sp = sub { $self->{proc}->static_param(@_); };
 
     unless ($qemubin) {
         if ($vars->{QEMU}) {
@@ -439,10 +546,13 @@ sub start_qemu {
     die "no Qemu/KVM found\n"         unless $qemubin;
     die "MULTINET is not supported with NICTYPE==tap\n" if ($vars->{MULTINET} && $vars->{NICTYPE} eq "tap");
 
-    $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});    # XXX: compat with old deployment
-    $vars->{UEFI} = 1 if ($vars->{UEFI_PFLASH});
+    $self->{proc}->qemu_bin($qemubin);
+    $self->{proc}->qemu_img_bin($qemuimg);
 
-    if ($vars->{UEFI} && $vars->{ARCH} eq 'x86_64' && !$vars->{BIOS}) {
+    $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});    # XXX: compat with old deployment
+    $vars->{UEFI} = 1 if $vars->{UEFI_PFLASH};
+
+    if ($vars->{UEFI_PFLASH} && $vars->{ARCH} eq 'x86_64' && !$vars->{BIOS}) {
         foreach my $firmware (@bmwqemu::ovmf_locations) {
             if (-e $firmware) {
                 $vars->{BIOS} = $firmware;
@@ -453,6 +563,11 @@ sub start_qemu {
             # We know this won't go well.
             die "No UEFI firmware can be found! Please specify BIOS or UEFI_BIOS or install an appropriate package";
         }
+    }
+
+    if ($vars->{UEFI_PFLASH} || $vars->{BIOS}) {
+        bmwqemu::fctinfo('UEFI_PFLASH and BIOS are deprecated, use UEFI_PFLASH_CODE and UEFI_PFLASH_VARS');
+        $vars->{UEFI_PFLASH} = undef if $vars->{UEFI_PFLASH_CODE};
     }
 
     foreach my $attribute (qw(BIOS KERNEL INITRD)) {
@@ -492,33 +607,19 @@ sub start_qemu {
         }
     }
 
-    my $iso = $vars->{ISO};
+    if ($vars->{HDDFORMAT}) {
+        die 'HDDFORMAT has been removed. If you are using existing images in some other format then qcow2 overalys will be created on top of them';
+    }
+
     # disk settings
     if ($vars->{MULTIPATH}) {
-        $vars->{HDDMODEL}  ||= "scsi-hd";
-        $vars->{HDDFORMAT} ||= "raw";
-        $vars->{PATHCNT}   ||= 2;
+        $vars->{HDDMODEL} ||= "scsi-hd";
+        $vars->{PATHCNT}  ||= 2;
     }
     $vars->{NUMDISKS} ||= defined($vars->{RAIDLEVEL}) ? 4 : 1;
     $vars->{HDDSIZEGB} ||= 10;
     $vars->{CDMODEL}   ||= "scsi-cd";
     $vars->{HDDMODEL}  ||= "virtio-blk";
-    $vars->{HDDFORMAT} ||= "qcow2";
-
-    # Deprecated behaviour: set scsi controller using the value of the HDD or CD Model.
-    # Then set the HDD or CD model to an actual drive type.
-    for my $var (qw(HDDMODEL CDMODEL)) {
-        if ($vars->{$var} =~ /virtio-scsi.*/) {
-            $vars->{SCSICONTROLLER} = $vars->{$var};
-            $vars->{$var} = sprintf "scsi-%sd", lc substr $var, 0, 1;
-        }
-    }
-
-    # New behaviour: create default scsi controller for common scsi devices or use the
-    # controller type specified by the user.
-    if ($vars->{CDMODEL} eq 'scsi-cd' || $vars->{HDDMODEL} eq 'scsi-hd') {
-        $vars->{SCSICONTROLLER} ||= "virtio-scsi-pci";
-    }
 
     # network settings
     $vars->{NICMODEL} ||= "virtio-net";
@@ -535,25 +636,24 @@ sub start_qemu {
     # misc
     my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
     my $use_usb_kbd;
-    my @vgaoptions;
 
     if ($vars->{ARCH} eq 'aarch64' || $vars->{ARCH} eq 'arm') {
         my $video_device = ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) ? 'VGA' : 'virtio-gpu-pci';
-        gen_params @vgaoptions, 'device', $video_device;
+        sp('device', $video_device);
         $arch_supports_boot_order = 0;
         $use_usb_kbd              = 1;
     }
     elsif ($vars->{OFW}) {
         $vars->{QEMUVGA} ||= "std";
         $vars->{QEMUMACHINE} = "usb=off";
-        gen_params @vgaoptions, 'g', '1024x768';
+        sp('g', '1024x768');
         $use_usb_kbd = 1;
     }
     else {
         $vars->{QEMUVGA} ||= "cirrus";
     }
 
-    gen_params @vgaoptions, 'vga', $vars->{QEMUVGA} if $vars->{QEMUVGA};
+    sp('vga', $vars->{QEMUVGA}) if $vars->{QEMUVGA};
 
     my @nicmac;
     my @nicvlan;
@@ -632,277 +732,140 @@ sub start_qemu {
 
     my $keephdds = $vars->{KEEPHDDS} || $vars->{SKIPTO};
 
-    # fresh HDDs
-    for my $i (1 .. $vars->{NUMDISKS}) {
-        # skip HDD refresh when HDD exists and KEEPHDDS or SKIPTO is set
-        next if ($keephdds && (-e "$basedir/$i.lvm" || -e "$basedir/$i"));
-        no autodie 'unlink';
-        unlink("$basedir/l$i") if -e "$basedir/l$i";
-        if (-e "$basedir/$i.lvm") {
-            symlink("$i.lvm", "$basedir/l$i") or die "$!\n";
-            runcmd("/bin/dd", "if=/dev/zero", "count=1", "of=$basedir/l1");    # for LVM
-        }
-        elsif ($vars->{"HDD_$i"}) {
-            # default: same size as the original image
-            my @sizeopt = ();
-            # HDD_$i specific size
-            @sizeopt = ($vars->{"HDDSIZEGB_$i"} . "G") if $vars->{"HDDSIZEGB_$i"};
-            runcmd($qemuimg, "create", "$basedir/$i", "-f", "qcow2", "-b", $vars->{"HDD_$i"}, @sizeopt);
-            symlink($i, "$basedir/l$i") or die "$!\n";
-        }
-        else {
-            # default: generic hdd size
-            my @sizeopt = ($vars->{HDDSIZEGB} . "G");
-            # HDD_$i specific size
-            @sizeopt = ($vars->{"HDDSIZEGB_$i"} . "G") if $vars->{"HDDSIZEGB_$i"};
-            runcmd($qemuimg, "create", "$basedir/$i", "-f", $vars->{HDDFORMAT}, @sizeopt);
-            symlink($i, "$basedir/l$i") or die "$!\n";
-        }
+    if ($vars->{AUTO_INST}) {
+        die 'Ironically AUTO_INST has been removed from os-autoinst';
     }
 
-    if ($vars->{AUTO_INST} && !$keephdds) {
-        unlink("$basedir/autoinst.img") if -e "$basedir/autoinst.img";
-        runcmd("/sbin/mkfs.vfat", "-C", "$basedir/autoinst.img", "1440");
-        runcmd("/usr/bin/mcopy", "-i", "$basedir/autoinst.img", $vars->{AUTO_INST}, "::/");
+    if ($keephdds) {
+        $self->{proc}->load_state();
+    } else {
+        $self->{proc}->configure_controllers($vars);
+        $self->{proc}->configure_blockdevs($bootfrom, $basedir, $vars);
+        $self->{proc}->configure_pflash($vars);
     }
+    $self->{proc}->init_blockdev_images();
 
-    for my $i (1 .. 4) {    # create missing symlinks
-        next if -e "$basedir/l$i";
-        next unless -e "$basedir/$i";
-        symlink($i, "$basedir/l$i") or die "$!\n";
-    }
-
-    my @params = ("-serial", "file:serial0", "-soundhw", "ac97");
+    sp('only-migratable') if $self->can_handle({function => 'snapshots', no_warn => 1});
+    sp('serial',  'file:serial0');
+    sp('soundhw', 'ac97');
     {
-        push(@params, @vgaoptions);
-
-        # Avoid qemu's error message about floppy controller when using arm/aarch64:
-        unless ($vars->{ARCH} eq 'aarch64' || $vars->{ARCH} eq 'arm' || $vars->{QEMU_NO_FDC_SET}) {
-            gen_params @params, "global", "isa-fdc.driveA=";
-        }
-        gen_params @params, 'm',       $vars->{QEMURAM}     if $vars->{QEMURAM};
-        gen_params @params, 'machine', $vars->{QEMUMACHINE} if $vars->{QEMUMACHINE};
-        gen_params @params, 'cpu',     $vars->{QEMUCPU}     if $vars->{QEMUCPU};
-        gen_params @params, 'device',  'virtio-rng-pci'     if $vars->{QEMU_VIRTIO_RNG};
-        gen_params @params, 'net',     'none'               if $vars->{OFFLINE_SUT};
+        sp('m',       $vars->{QEMURAM})     if $vars->{QEMURAM};
+        sp('machine', $vars->{QEMUMACHINE}) if $vars->{QEMUMACHINE};
+        sp('cpu',     $vars->{QEMUCPU})     if $vars->{QEMUCPU};
+        sp('device',  'virtio-rng-pci')     if $vars->{QEMU_VIRTIO_RNG};
+        sp('net',     'none')               if $vars->{OFFLINE_SUT};
 
         for (my $i = 0; $i < $num_networks; $i++) {
             if ($vars->{NICTYPE} eq "user") {
                 my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} ? ',' . $vars->{NICTYPE_USER_OPTIONS} : '';
-                gen_params @params, 'netdev', [qv "user id=qanet$i$nictype_user_options"];
+                sp('netdev', [qv "user id=qanet$i$nictype_user_options"]);
             }
             elsif ($vars->{NICTYPE} eq "tap") {
-                gen_params @params, 'netdev', [qv "tap id=qanet$i ifname=$tapdev[$i] script=$tapscript[$i] downscript=$tapdownscript[$i]"];
+                sp('netdev', [qv "tap id=qanet$i ifname=$tapdev[$i] script=$tapscript[$i] downscript=$tapdownscript[$i]"]);
             }
             elsif ($vars->{NICTYPE} eq "vde") {
-                gen_params @params, 'netdev', [qv "vde id=qanet0 sock=$vars->{VDE_SOCKETDIR}/vde.ctl port=$vars->{VDE_PORT}"];
+                sp('netdev', [qv "vde id=qanet0 sock=$vars->{VDE_SOCKETDIR}/vde.ctl port=$vars->{VDE_PORT}"]);
             }
             else {
                 die "unknown NICTYPE $vars->{NICTYPE}\n";
             }
-            gen_params @params, 'device', [qv "$vars->{NICMODEL} netdev=qanet$i mac=$nicmac[$i]"];
+            sp('device', [qv "$vars->{NICMODEL} netdev=qanet$i mac=$nicmac[$i]"]);
         }
 
-        gen_params @params, 'smbios', $vars->{QEMU_SMBIOS} if $vars->{QEMU_SMBIOS};
+        sp('smbios', $vars->{QEMU_SMBIOS}) if $vars->{QEMU_SMBIOS};
 
         if ($vars->{LAPTOP}) {
             my $laptop_path = "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
             for my $f (glob "$laptop_path/*.bin") {
-                gen_params @params, 'smbios', "file=$f";
+                sp('smbios', "file=$f");
             }
         }
         if ($vars->{NBF}) {
             die "Need variable WORKER_HOSTNAME\n" unless $vars->{WORKER_HOSTNAME};
-            gen_params @params, 'kernel', '/usr/share/qemu/ipxe.lkrn';
-            gen_params @params, 'append', "dhcp && sanhook iscsi:$vars->{WORKER_HOSTNAME}::3260:1:$vars->{NBF}", no_quotes => 1;
-        }
-        gen_params @params, 'device', [qv "$vars->{SCSICONTROLLER} id=scsi0"] if $vars->{SCSICONTROLLER};
-        gen_params @params, 'device', [qv "$vars->{SCSICONTROLLER} id=scsi1"] if ($vars->{SCSICONTROLLER} && $vars->{MULTIPATH});
-        gen_params @params, 'device', [qv "$vars->{ATACONTROLLER} id=ahci0"]  if $vars->{ATACONTROLLER};
-
-        for my $i (1 .. $vars->{NUMDISKS}) {
-            if ($vars->{MULTIPATH}) {
-                for my $c (1 .. $vars->{PATHCNT}) {
-                    # pathname is a .. d
-                    my $bus = sprintf "scsi%d.0", ($c - 1) % 2;    # alternate between scsi0 and scsi1
-                    my $id = sprintf 'hd%d%c', $i, 96 + $c;
-                    # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
-                    my $bootindex = ($i == 1 && $c == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? "bootindex=0" : "";
-                    gen_params @params, 'device', [qv "$vars->{HDDMODEL} drive=$id bus=$bus $bootindex"];
-                    gen_params @params, 'drive',  [qv "file=$basedir/l$i cache=none if=none id=$id serial=mpath$i format=$vars->{HDDFORMAT} discard=on"];
-                }
-            }
-            else {
-                my $diskmodel;
-                if (defined $vars->{"HDDMODEL_$i"}) {
-                    $diskmodel = $vars->{"HDDMODEL_$i"};
-                }
-                else {
-                    $diskmodel = $vars->{HDDMODEL};
-                }
-                # when booting from disk on UEFI, first connected disk gets ",bootindex=0"
-                my $bootindex = ($i == 1 && $vars->{UEFI} && $bootfrom eq "disk") ? "bootindex=0" : "";
-                my $serial = "serial=$i";
-                gen_params @params, 'device', [qv "$diskmodel drive=hd$i $bootindex $serial"];
-                gen_params @params, 'drive',  [qv "file=$basedir/l$i cache=unsafe if=none id=hd$i format=$vars->{HDDFORMAT} discard=on"];
-            }
-        }
-
-        my $cdbus = $vars->{CDMODEL} eq 'scsi-cd' ? 'bus=scsi0.0' : '';
-        if ($iso) {
-            if ($vars->{USBBOOT}) {
-                gen_params @params, 'drive',  [qv "if=none id=usbstick file=$iso snapshot=on"];
-                gen_params @params, 'device', [qv "usb-ehci id=ehci"];
-                # when USBBOOT is defined on UEFI, it gets ",bootindex=0"
-                my $bootindex = ($vars->{UEFI} && $bootfrom ne "disk") ? "bootindex=0" : "";
-                gen_params @params, "device", [qv "usb-storage bus=ehci.0 drive=usbstick id=devusb $bootindex"];
-            }
-            else {
-                gen_params @params, "drive", [qv "media=cdrom if=none id=cd0 format=raw file=$iso"];
-                # XXX: workaround for OVMF wanting to write NVvars into first FAT partition
-                # we need to replace -bios with proper pflash drive specification
-                $params[-1] .= ',snapshot=on' if $vars->{UEFI};
-                # when booting from cdrom on UEFI, first connected CD gets ",bootindex=0"
-                my $bootindex = ($vars->{UEFI} && $bootfrom eq "cdrom") ? "bootindex=0" : "";
-                gen_params @params, "device", [qv "$vars->{CDMODEL} drive=cd0 $cdbus $bootindex"];
-            }
-        }
-
-        my $is_first = 1;
-        for my $k (sort grep { /^ISO_\d+$/ } keys %$vars) {
-            my $addoniso = $vars->{$k};
-            my $i        = $k;
-            $i =~ s/^ISO_//;
-            # first connected cdrom gets ",bootindex=0" on UEFI when booting from cdrom and there wasn't `ISO` defined
-            my $bootindex = "";
-            if ($is_first && $vars->{UEFI} && $bootfrom eq "cdrom" && !$iso) {
-                $is_first  = 0;
-                $bootindex = "bootindex=0";
-            }
-            gen_params @params, "drive",  [qv "media=cdrom if=none id=cd$i format=raw file=$addoniso"];
-            gen_params @params, "device", [qv "$vars->{CDMODEL} drive=cd$i $cdbus $bootindex"];
+            sp('kernel', '/usr/share/qemu/ipxe.lkrn');
+            sp('append', "dhcp && sanhook iscsi:$vars->{WORKER_HOSTNAME}::3260:1:$vars->{NBF}", no_quotes => 1);
         }
 
         if ($arch_supports_boot_order) {
             if ($vars->{PXEBOOT}) {
-                gen_params @params, "boot", "n";
+                sp("boot", "n");
             }
             elsif ($vars->{BOOTFROM}) {
-                gen_params @params, "boot", [qv "order=$vars->{BOOTFROM} menu=on splash-time=5000"];
+                sp("boot", [qv "order=$vars->{BOOTFROM} menu=on splash-time=5000"]);
             }
             else {
-                gen_params @params, "boot", [qw(once=d menu=on splash-time=5000)];
+                sp("boot", [qw(once=d menu=on splash-time=5000)]);
             }
         }
 
-        if ($vars->{UEFI_PFLASH}) {
-            # Convert the firmware file into qcow2 format or savevm would fail
-            runcmd('qemu-img', 'convert', '-O', 'qcow2', $vars->{BIOS}, 'ovmf.bin');
-            gen_params @params, "drive", [qw(if=pflash format=qcow2 file=ovmf.bin)];
-        }
-        elsif ($vars->{BIOS}) {
-            gen_params @params, "bios", $vars->{BIOS};
+        if (!$vars->{UEFI_PFLASH} && $vars->{BIOS}) {
+            sp("bios", $vars->{BIOS});
         }
 
         foreach my $attribute (qw(KERNEL INITRD APPEND)) {
-            gen_params @params, lc($attribute), $vars->{$attribute} if $vars->{$attribute};
+            sp(lc($attribute), $vars->{$attribute}) if $vars->{$attribute};
         }
 
         if ($vars->{MULTINET}) {
-            gen_params @params, 'net', [qv "nic vlan=1 model=$vars->{NICMODEL} macaddr=52:54:00:12:34:57"];
-            gen_params @params, 'net', [qw(none vlan=1)];
+            sp('net', [qv "nic vlan=1 model=$vars->{NICMODEL} macaddr=52:54:00:12:34:57"]);
+            sp('net', [qw(none vlan=1)]);
         }
 
         unless ($vars->{QEMU_NO_TABLET}) {
             if ($vars->{OFW} || $vars->{ARCH} eq 'aarch64') {
-                gen_params @params, 'device', 'nec-usb-xhci';
+                sp('device', 'nec-usb-xhci');
             }
             else {
-                gen_params @params, 'device', 'usb-ehci';
+                sp('device', 'usb-ehci');
             }
-            gen_params @params, 'device', 'usb-tablet';
+            sp('device', 'usb-tablet');
         }
 
-        gen_params @params, 'device', 'usb-kbd' if $use_usb_kbd;
+        sp('device', 'usb-kbd') if $use_usb_kbd;
 
         if ($vars->{QEMUTHREADS}) {
-            gen_params @params, 'smp', [qv "$vars->{QEMUCPUS} threads=$vars->{QEMUTHREADS}"];
+            sp('smp', [qv "$vars->{QEMUCPUS} threads=$vars->{QEMUTHREADS}"]);
         }
         else {
-            gen_params @params, 'smp', $vars->{QEMUCPUS};
+            sp('smp', $vars->{QEMUCPUS});
         }
         if ($vars->{QEMU_NUMA}) {
             for my $i (0 .. ($vars->{QEMUCPUS} - 1)) {
-                gen_params @params, 'numa', [qv "node nodeid=$i"];
+                sp('numa', [qv "node nodeid=$i"]);
             }
         }
 
-        push(@params, "-enable-kvm") unless $vars->{QEMU_NO_KVM};
-        push(@params, "-no-shutdown");
-
-        open(my $cmdfd, '>', 'runqemu');
-        print $cmdfd "#!/bin/bash\n";
-        my @args;
-        for my $arg (@params) {
-            $arg =~ s,\\,\\\\,g;
-            $arg =~ s,\$,\\\$,g;
-            $arg =~ s,\",\\\",g;
-            $arg =~ s,\`,\\\`,;
-            push(@args, "\"$arg\"");
-        }
-        printf $cmdfd "%s \\\n  %s \\\n  \"\$@\"\n", $qemubin, join(" \\\n  ", @args);
-        close $cmdfd;
-        chmod 0755, 'runqemu';
+        sp('enable-kvm') unless $vars->{QEMU_NO_KVM};
+        sp('no-shutdown');
 
         if ($vars->{VNC}) {
             my $vncport = $vars->{VNC} !~ /:/ ? ":$vars->{VNC}" : $vars->{VNC};
-            gen_params @params, 'vnc', [qv "$vncport share=force-shared"];
-            gen_params @params, 'k', $vars->{VNCKB} if $vars->{VNCKB};
+            sp('vnc', [qv "$vncport share=force-shared"]);
+            sp('k', $vars->{VNCKB}) if $vars->{VNCKB};
         }
 
         if ($vars->{VIRTIO_CONSOLE}) {
             my $id = 'virtio_console';
-            gen_params @params, 'device', 'virtio-serial';
-            gen_params @params, 'chardev', [qv "socket path=$id server nowait id=$id logfile=$id.log"];
-            gen_params @params, 'device',  [qv "virtconsole chardev=$id name=org.openqa.console.$id"];
+            sp('device', 'virtio-serial');
+            sp('chardev', [qv "socket path=$id server nowait id=$id logfile=$id.log"]);
+            sp('device',  [qv "virtconsole chardev=$id name=org.openqa.console.$id"]);
         }
 
-        gen_params @params, 'qmp',     [qw(unix:qmp_socket server nowait)];
-        gen_params @params, 'monitor', [qw(unix:hmp_socket server nowait)];
-        push(@params, "-S");
-
-        gen_params @params, 'monitor', [qv "telnet:127.0.0.1:$vars->{QEMUPORT} server nowait"];
-        gen_params @params, 'drive', [qv "file=$basedir/autoinst.img index=0 if=floppy"] if $vars->{AUTO_INST};
-        unshift(@params, $qemubin);
+        my $qmpid = 'qmp_socket';
+        sp('chardev', [qv "socket path=$qmpid server nowait id=$qmpid logfile=$qmpid.log logappend"]);
+        sp('qmp', "chardev:$qmpid");
+        sp('S');
     }
 
-    pipe(my $reader, my $writer);
-    my $pid = fork();
-    die "fork failed" unless defined($pid);
-    if ($pid == 0) {
-        $SIG{__DIE__} = undef;    # overwrite the default - just exit
-
-        bmwqemu::diag(`$qemubin -version`);
-        bmwqemu::diag("starting: " . join(" ", @params));
-
-        # don't try to talk to the host's PA
-        $ENV{QEMU_AUDIO_DRV} = "none";
-
-        # redirect qemu's output to the parent pipe
-        open(STDOUT, ">&", $writer);
-        open(STDERR, ">&", $writer);
-        close($reader);
-        exec(@params);
-        die "failed to exec qemu";
-    }
-    else {
-        $self->{pid} = $pid;
-    }
-    close $writer;
+    my ($pid, $reader) = $self->{proc}->exec_qemu();
+    $self->{pid}      = $pid;
     $self->{qemupipe} = $reader;
     open(my $pidf, ">", $self->{pidfilename});
     print $pidf $self->{pid}, "\n";
     close $pidf;
+    $self->{qmpsocket} = $self->{proc}->connect_qmp();
+    my $init = myjsonrpc::read_json($self->{qmpsocket});
+    my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
 
     my $vnc = $testapi::distri->add_console(
         'sut',
@@ -925,24 +888,6 @@ sub start_qemu {
         }
     };
 
-    $self->{qmpsocket} = IO::Socket::UNIX->new(
-        Type     => IO::Socket::UNIX::SOCK_STREAM,
-        Peer     => "qmp_socket",
-        Blocking => 0
-    ) or die "can't open qmp: $!";
-
-    $self->{qmpsocket}->autoflush(1);
-    binmode $self->{qmpsocket};
-    my $flags = fcntl($self->{qmpsocket}, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
-    $flags = fcntl($self->{qmpsocket}, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
-
-    diag sprintf("qmpsocket %d", fileno($self->{qmpsocket}));
-
-    fcntl($self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
-
-    my $init = myjsonrpc::read_json($self->{qmpsocket});
-    my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
-
     my $cnt = bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw");
     if ($cnt) {
         $self->send($cnt);
@@ -963,7 +908,7 @@ sub start_qemu {
     }
 
     if ($bmwqemu::vars{DELAYED_START}) {
-        print "DELAYED_START set, not starting CPU, waiting for resume_vm() call\n";
+        print "DELAYED_START set, not starting CPU, waiting for resume_vm()\n";
     }
     else {
         print "Start CPU\n";
@@ -1028,14 +973,16 @@ sub read_qemupipe {
 }
 
 sub close_pipes {
-    my ($self) = @_;
+    my ($self, %args) = @_;
+    my $only_qemu = $args{only_qemu} || 0;
 
-    $self->do_stop_vm();
+    $self->do_stop_vm(only_qemu => $only_qemu);
 
     if ($self->{qemupipe}) {
         # one last word?
         fcntl($self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK);
         $self->read_qemupipe();
+        $self->{select}->remove($self->{qemupipe});
         close($self->{qemupipe});
         $self->{qemupipe} = undef;
     }
@@ -1044,13 +991,20 @@ sub close_pipes {
         close($self->{qmpsocket}) || die "close $!\n";
         $self->{qmpsocket} = undef;
     }
-    $self->SUPER::close_pipes();
+
+    unless ($only_qemu) {
+        $self->SUPER::close_pipes();
+    }
 }
 
 sub is_shutdown {
     my ($self) = @_;
-    my $ret = $self->handle_qmp_command({execute => 'query-status'});
-    return ($ret->{return}->{status} || '') eq 'shutdown';
+    my $ret = $self->handle_qmp_command({execute => 'query-status'})->{return}->{status}
+      || 'unknown';
+
+    diag("QEMU status is not shutdown it is $ret") if $ret ne 'shutdown';
+
+    return $ret eq 'shutdown';
 }
 
 # this is called for all sockets ready to read from. return 1 if socket
@@ -1070,7 +1024,7 @@ sub check_socket {
 sub freeze_vm {
     my ($self) = @_;
     # qemu specific - all other backends will crash
-    my $ret = $self->handle_qmp_command({execute => 'stop'});
+    my $ret = $self->handle_qmp_command({execute => 'stop'}, fatal => 1);
     # once we stopped, there is no point in querying VNC
     if (!defined $self->{_qemu_saved_request_interval}) {
         $self->{_qemu_saved_request_interval} = $self->update_request_interval;
