@@ -699,13 +699,26 @@ Returns the output on the serial device since the last call to set_serial_offset
 
 sub serial_text {
     my ($self) = @_;
+    return ($self->read_serial($self->{serial_offset}))[0];
+}
+
+=head2 read_serial
+
+Returns the output and the offset after reading on the serial device from position
+
+=cut
+
+sub read_serial {
+    my ($self, $position, $whence) = @_;
 
     open(my $SERIAL, "<", $self->{serialfile});
-    seek($SERIAL, $self->{serial_offset}, 0);
+    seek($SERIAL, $position, $whence // 0);
     local $/;
-    my $data = <$SERIAL>;
+    my $data   = <$SERIAL>;
+    my $offset = tell $SERIAL;
     close($SERIAL);
-    return $data;
+
+    return ($data, $offset);
 }
 
 sub wait_serial {

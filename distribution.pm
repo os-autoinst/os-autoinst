@@ -25,7 +25,8 @@ sub new {
     my ($class) = @_;
 
     my $self = bless {}, $class;
-    $self->{consoles} = {};
+    $self->{consoles}        = {};
+    $self->{serial_failures} = {};
 
 =head2 serial_term_prompt
 
@@ -238,6 +239,25 @@ sub script_output {
     # trim whitespaces
     $out =~ s/^\s+|\s+$//g;
     return $out;
+}
+
+=head2 set_expected_serial_failures
+
+    set_expected_serial_failures(%failures)
+
+Define the patterns to look for in the serial console.
+The patterns can be either I<hard> or I<soft>.
+
+Example:
+    set_expected_serial_failures(soft=>[qr/Pattern1/], hard=>[qr/Pattern2/]);
+
+=cut
+sub set_expected_serial_failures {
+    my ($self, %failures) = @_;
+
+    # To be sure that we only store soft and hard keys
+    $self->{serial_failures}{soft} = $failures{soft} if $failures{soft};
+    $self->{serial_failures}{hard} = $failures{hard} if $failures{hard};
 }
 
 # override

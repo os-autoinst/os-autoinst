@@ -477,6 +477,12 @@ while ($loop) {
             check_asserted_screen(1, $no_wait);
             next;
         }
+        if ($rsp->{cmd} eq 'read_serial') {
+            # This will stop to work if we change the serialfile after the initialization because of the fork
+            my ($serial, $pos) = $bmwqemu::backend->{backend}->read_serial($rsp->{position});
+            myjsonrpc::send_json($r, {serial => $serial, position => $pos});
+            next;
+        }
         die "Unknown command $rsp->{cmd}";
     }
 

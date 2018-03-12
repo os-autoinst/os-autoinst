@@ -104,6 +104,7 @@ sub loadtest {
     $test             = $name->new($category);
     $test->{script}   = $script;
     $test->{fullname} = $fullname;
+    $test->{serial_failures} = $testapi::distri->{serial_failures} // {};
 
     if (defined $args{run_args}) {
         unless (blessed($args{run_args}) && $args{run_args}->isa('OpenQA::Test::RunArgs')) {
@@ -270,6 +271,7 @@ sub runalltests {
     my $vmloaded            = 0;
     my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
     bmwqemu::diag "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
+    my $serial_file_pos = 0;
 
     write_test_order();
 
@@ -298,7 +300,10 @@ sub runalltests {
                 make_snapshot($t->{fullname});
             }
 
-            eval { $t->runtest; };
+            eval {
+                $t->runtest;
+                $serial_file_pos = parse_serial_output($serial_file_pos, $t);
+            };
             $t->save_test_result();
 
             if ($@) {
@@ -343,6 +348,51 @@ sub loadtestdir {
     foreach my $script (glob "$dir/*.pm") {
         loadtest($script);
     }
+}
+
+sub parse_serial_output {
+    if ($bmwqemu::vars{BACKEND} eq 'qemu') {
+        parse_serial_output_qemu(@_);
+    }
+}
+
+sub parse_serial_output_qemu {
+    my ($serial_file_pos, $t) = @_;
+    # serial failures defined in distri (test can override them)
+    my $failures = $t->{serial_failures};
+
+    myjsonrpc::send_json($isotovideo, {cmd => 'read_serial', position => $serial_file_pos});
+    my $json = myjsonrpc::read_json($isotovideo);
+
+    # loop line by line
+    open my $ifh, '<', \$json->{serial} or die "Unable to process serial text: $!";
+    my $die = 0;
+    while (defined(my $line = <$ifh>)) {
+        chomp $line;
+        # only two keys allowed
+        for my $type (qw(soft hard)) {
+            for my $regexp (@{$failures->{$type}}) {
+                # If you want to match a simple string please be sure that you create it with quotemeta
+                if ($line =~ /$regexp/) {
+                    if ($type eq 'soft') {
+                        $t->record_testresult('softfail');
+                        $t->record_resultfile('Serial Failure', "Serial error: $line", result => 'softfail');
+                        $t->{result} = 'softfail';
+                    }
+                    else {
+                        $t->record_testresult('fail');
+                        $t->record_resultfile('Serial Failure', "Serial error: $line", result => 'fail');
+                        $t->{result} = 'fail';
+                        $die = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    close $ifh;
+    die if $die;
+    return $json->{position};
 }
 
 1;

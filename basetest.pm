@@ -50,6 +50,7 @@ sub new {
     $self->{timeoutcounter}         = 0;
     $self->{activated_consoles}     = [];
     $self->{name}                   = $class;
+    $self->{serial_failures}        = {};
     return bless $self, $class;
 }
 
