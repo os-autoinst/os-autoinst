@@ -364,10 +364,9 @@ sub parse_serial_output_qemu {
     myjsonrpc::send_json($isotovideo, {cmd => 'read_serial', position => $serial_file_pos});
     my $json = myjsonrpc::read_json($isotovideo);
 
-    # loop line by line
-    open my $ifh, '<', \$json->{serial} or die "Unable to process serial text: $!";
     my $die = 0;
-    while (defined(my $line = <$ifh>)) {
+    # loop line by line
+    for my $line (split(/^/, $json->{serial})) {
         chomp $line;
         # only two keys allowed
         for my $type (qw(soft hard)) {
@@ -390,7 +389,6 @@ sub parse_serial_output_qemu {
         }
     }
 
-    close $ifh;
     die if $die;
     return $json->{position};
 }
