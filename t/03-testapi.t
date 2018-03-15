@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use consoles::console;
 use Test::More;
 use Test::Output;
 use Test::Fatal;
@@ -254,6 +255,40 @@ subtest 'wait_still_screen' => sub {
     ok(wait_still_screen(stilltime => 2, no_wait => 1), 'no_wait option can be specified');
     ok(!wait_still_screen(timeout => 4, no_wait => 1), 'two named args, with timeout below stilltime - which will always return false');
     ok(wait_still_screen(1, 2, timeout => 3), 'named over positional');
+};
+
+subtest 'set console tty and other args' => sub {
+    # ensure previously emitted commands are cleared
+    $cmds = ();
+
+    console->set_tty(4);
+    console->set_args(tty => 5, foo => 'bar');
+
+    is_deeply(
+        $cmds,
+        [
+            {
+                cmd      => 'backend_proxy_console_call',
+                console  => 'a-console',
+                function => 'set_tty',
+                args     => [4],
+            },
+            {
+                cmd      => 'backend_proxy_console_call',
+                console  => 'a-console',
+                function => 'set_args',
+                args     => ['tty', 5, 'foo', 'bar'],
+            },
+        ]);
+
+    # test console's methods manually since promoting the commands is mocked in this test
+    my $console = consoles::console->new('dummy-console', {tty => 3});
+    is($console->{args}->{tty}, 3);
+    $console->set_tty(42);
+    is($console->{args}->{tty}, 42);
+    $console->set_args(tty => 43, foo => 'bar');
+    is($console->{args}->{tty}, 43);
+    is($console->{args}->{foo}, 'bar');
 };
 
 done_testing;

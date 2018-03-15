@@ -37,6 +37,9 @@ sub DESTROY {
     # nothing to destroy but avoid AUTOLOAD
 }
 
+# handles the attempt to invoke an undefined method on the proxy console object
+# using query_isotovideo() to invoke the method on the actual console object in
+# the right process
 sub AUTOLOAD {
 
     my $function = our $AUTOLOAD;
