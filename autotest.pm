@@ -389,7 +389,7 @@ sub parse_serial_output_qemu {
         }
     }
 
-    die if $die;
+    die "Got serial hard failure" if $die;
     return $json->{position};
 }
 
