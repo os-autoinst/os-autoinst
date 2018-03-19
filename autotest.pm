@@ -302,7 +302,7 @@ sub runalltests {
 
             eval {
                 $t->runtest;
-                $serial_file_pos = parse_serial_output($serial_file_pos, $t);
+                $serial_file_pos = $t->search_for_expected_serial_failures($serial_file_pos);
             };
             $t->save_test_result();
 
@@ -348,49 +348,6 @@ sub loadtestdir {
     foreach my $script (glob "$dir/*.pm") {
         loadtest($script);
     }
-}
-
-sub parse_serial_output {
-    if ($bmwqemu::vars{BACKEND} eq 'qemu') {
-        parse_serial_output_qemu(@_);
-    }
-}
-
-sub parse_serial_output_qemu {
-    my ($serial_file_pos, $t) = @_;
-    # serial failures defined in distri (test can override them)
-    my $failures = $t->{serial_failures};
-
-    myjsonrpc::send_json($isotovideo, {cmd => 'read_serial', position => $serial_file_pos});
-    my $json = myjsonrpc::read_json($isotovideo);
-
-    my $die = 0;
-    # loop line by line
-    for my $line (split(/^/, $json->{serial})) {
-        chomp $line;
-        # only two keys allowed
-        for my $type (qw(soft hard)) {
-            for my $regexp (@{$failures->{$type}}) {
-                # If you want to match a simple string please be sure that you create it with quotemeta
-                if ($line =~ /$regexp/) {
-                    if ($type eq 'soft') {
-                        $t->record_testresult('softfail');
-                        $t->record_resultfile('Serial Failure', "Serial error: $line", result => 'softfail');
-                        $t->{result} = 'softfail';
-                    }
-                    else {
-                        $t->record_testresult('fail');
-                        $t->record_resultfile('Serial Failure', "Serial error: $line", result => 'fail');
-                        $t->{result} = 'fail';
-                        $die = 1;
-                    }
-                }
-            }
-        }
-    }
-
-    die "Got serial hard failure" if $die;
-    return $json->{position};
 }
 
 1;

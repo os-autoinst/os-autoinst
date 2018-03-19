@@ -612,6 +612,50 @@ sub rollback_activated_consoles {
     return;
 }
 
+sub search_for_expected_serial_failures {
+    my ($self, $from_position) = @_;
+    if ($bmwqemu::vars{BACKEND} eq 'qemu') {
+        $self->parse_serial_output_qemu($from_position);
+    }
+}
+
+sub parse_serial_output_qemu {
+    my ($self, $from_position) = @_;
+    # serial failures defined in distri (test can override them)
+    my $failures = $self->{serial_failures};
+
+    myjsonrpc::send_json($autotest::isotovideo, {cmd => 'read_serial', position => $from_position});
+    my $json = myjsonrpc::read_json($autotest::isotovideo);
+
+    my $die = 0;
+    # loop line by line
+    for my $line (split(/^/, $json->{serial})) {
+        chomp $line;
+        # only two keys allowed
+        for my $type (qw(soft hard)) {
+            for my $regexp (@{$failures->{$type}}) {
+                # If you want to match a simple string please be sure that you create it with quotemeta
+                if ($line =~ /$regexp/) {
+                    if ($type eq 'soft') {
+                        $self->record_testresult('softfail');
+                        $self->record_resultfile('Serial Failure', "Serial error: $line", result => 'softfail');
+                        $self->{result} = 'softfail';
+                    }
+                    else {
+                        $self->record_testresult('fail');
+                        $self->record_resultfile('Serial Failure', "Serial error: $line", result => 'fail');
+                        $self->{result} = 'fail';
+                        $die = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    die "Got serial hard failure" if $die;
+    return $json->{position};
+}
+
 1;
 
 # vim: set sw=4 et:
