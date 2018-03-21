@@ -90,4 +90,23 @@ sub is_serial_terminal {
     return 0;
 }
 
+sub set_args {
+    my ($self, %args) = @_;
+
+    my $my_args = $self->{args};
+    for my $arg (keys %args) {
+        $my_args->{$arg} = $args{$arg};
+    }
+    # no need to send changes to right process; console proxy already takes care
+    # that this method is called in the right process
+}
+
+sub set_tty {
+    my ($self, $tty) = @_;
+
+    $self->{args}->{tty} = $tty;
+    # no need to send changes to right process; console proxy already takes care
+    # that this method is called in the right process
+}
+
 1;
