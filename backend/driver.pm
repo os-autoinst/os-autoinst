@@ -143,16 +143,7 @@ sub mouse_hide {
     my ($self, $border_offset) = @_;
     $border_offset ||= 0;
 
-    # TODO: come up with a better solution - this is qemu specific.
-    my $counter = 0;
-    my $rsp;
-    while ($counter < 10) {
-        $rsp = $self->_send_json({cmd => 'mouse_hide', arguments => {border_offset => $border_offset}});
-        last if $rsp->{absolute} ne '0';
-        sleep 1;
-        $counter++;
-    }
-    return $rsp;
+    return $self->_send_json({cmd => 'mouse_hide', arguments => {border_offset => $border_offset}});
 }
 
 # virtual methods end
