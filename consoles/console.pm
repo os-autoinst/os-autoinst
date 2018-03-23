@@ -52,9 +52,9 @@ sub screen {
 
 # helper function
 sub sshCommand {
-    my ($self, $host, $gui) = @_;
+    my ($self, $username, $host, $gui) = @_;
 
-    my $sshopts = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no root\@$host";
+    my $sshopts = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no $username\@$host";
 
     if ($gui) {
         $sshopts = "-X $sshopts";
