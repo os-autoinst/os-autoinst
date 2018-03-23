@@ -23,7 +23,7 @@ use testapi 'get_var';
 sub activate {
     my ($self) = @_;
 
-    my $sshcommand  = $self->sshCommand(get_var("PARMFILE")->{Hostname});
+    my $sshcommand  = $self->sshCommand('root', get_var("PARMFILE")->{Hostname});
     my $display     = $self->{backend}->{consoles}->{worker}->{DISPLAY};
     my $sshpassword = $testapi::password;
 
