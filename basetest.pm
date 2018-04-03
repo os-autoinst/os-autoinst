@@ -637,17 +637,16 @@ sub parse_serial_output_qemu {
             for my $regexp (@{$failures->{$type}}) {
                 # If you want to match a simple string please be sure that you create it with quotemeta
                 if ($line =~ /$regexp/) {
-                    if ($type eq 'soft') {
-                        $self->record_testresult('softfail');
-                        $self->record_resultfile('Serial Failure', "Serial error: $line", result => 'softfail');
-                        $self->{result} = 'softfail';
+                    my $fail_type = 'softfail';
+                    if ($type eq 'hard') {
+                        $die       = 1;
+                        $fail_type = 'fail';
                     }
-                    else {
-                        $self->record_testresult('fail');
-                        $self->record_resultfile('Serial Failure', "Serial error: $line", result => 'fail');
-                        $self->{result} = 'fail';
-                        $die = 1;
-                    }
+
+                    $self->record_testresult($fail_type);
+                    $self->record_resultfile('Serial Failure', "Serial error: $line", result => $fail_type);
+                    $self->{result} = $fail_type;
+
                 }
             }
         }
