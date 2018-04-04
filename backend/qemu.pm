@@ -570,6 +570,10 @@ sub start_qemu {
     my $num_networks = 1;
     $num_networks = max($num_networks, scalar @nicmac, scalar @nicvlan, scalar @tapdev);
 
+    if ($vars->{OFFLINE_SUT}) {
+        $num_networks = 0;
+    }
+
     for (my $i = 0; $i < $num_networks; $i++) {
         # ensure MAC addresses differ globally
         # and allow MAC addresses for more than 256 workers (up to 16384)
@@ -680,6 +684,7 @@ sub start_qemu {
         gen_params @params, 'machine', $vars->{QEMUMACHINE} if $vars->{QEMUMACHINE};
         gen_params @params, 'cpu',     $vars->{QEMUCPU}     if $vars->{QEMUCPU};
         gen_params @params, 'device',  'virtio-rng-pci'     if $vars->{QEMU_VIRTIO_RNG};
+        gen_params @params, 'net',     'none'               if $vars->{OFFLINE_SUT};
 
         for (my $i = 0; $i < $num_networks; $i++) {
             if ($vars->{NICTYPE} eq "user") {

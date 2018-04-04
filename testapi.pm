@@ -1847,6 +1847,10 @@ sub upload_logs {
     my $failok  = $args{failok} || 0;
     my $timeout = $args{timeout} || 90;
 
+    if (get_var('OFFLINE_SUT')) {
+        record_info('upload skipped', "Skipped uploading log file '$file' as we are offline");
+        return;
+    }
     bmwqemu::log_call(file => $file, %args);
     my $basename = basename($file);
     my $upname   = ($args{log_name} || $autotest::current_test->{name}) . '-' . $basename;
@@ -1891,6 +1895,10 @@ C<$nocheck> parameter:
 sub upload_asset {
     my ($file, $public, $nocheck) = @_;
 
+    if (get_var('OFFLINE_SUT')) {
+        record_info('upload skipped', "Skipped uploading asset '$file' as we are offline");
+        return;
+    }
     bmwqemu::log_call(file => $file, public => $public, nocheck => $nocheck);
     my $cmd = "curl --form upload=\@$file ";
     $cmd .= "--form target=assets_public " if $public;

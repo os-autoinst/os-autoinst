@@ -192,6 +192,12 @@ sub script_output {
     $args{type_command} //= length($script) < 80;
     my $script_path = "/tmp/script$marker.sh";
 
+    # prevent use of network for offline installations
+    if (testapi::get_var('OFFLINE_SUT')) {
+        testapi::record_info('forced type_cmd', "Forced typing the command as we are offline");
+        $args{type_command} = 1;
+    }
+
     if (testapi::is_serial_terminal) {
         my $cat = "cat - > $script_path; echo $marker-\$?-";
         testapi::wait_serial($self->{serial_term_prompt}, undef, 0, no_regex => 1);
