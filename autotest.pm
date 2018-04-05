@@ -183,6 +183,17 @@ sub run_all {
     _exit(0);
 }
 
+sub handle_sigterm {
+    my ($sig) = @_;
+
+    if ($current_test) {
+        bmwqemu::diag("autotest received signal $sig, saving results of current test before exiting");
+        $current_test->result('canceled');
+        $current_test->save_test_result();
+    }
+    _exit(1);
+}
+
 sub start_process {
     my $child;
 
@@ -201,7 +212,7 @@ sub start_process {
     die "cannot fork: $!" unless defined $testpid;
     close $child;
 
-    $SIG{TERM} = 'DEFAULT';
+    $SIG{TERM} = \&handle_sigterm;
     $SIG{INT}  = 'DEFAULT';
     $SIG{HUP}  = 'DEFAULT';
     $SIG{CHLD} = 'DEFAULT';
