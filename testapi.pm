@@ -459,9 +459,11 @@ sub assert_and_dclick {
 
   wait_screen_change(CODEREF [,$timeout [, similarity_level => 50]]);
 
-Wrapper around code that is supposed to change the screen.
-This is the opposite to C<wait_still_screen>. Make sure to put the commands to change the screen
-within the block to avoid races between the action and the screen change.
+Wrapper around code that is supposed to change the screen. This is the
+opposite to C<wait_still_screen>. Make sure to put the commands to change the
+screen within the block to avoid races between the action and the screen
+change. C<wait_screen_change> waits for a screen change after C<CODEREF> was
+executed.
 
 Example:
 
