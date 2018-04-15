@@ -1,4 +1,4 @@
-# Copyright © 2016 SUSE LLC
+# Copyright © 2016-2018 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,13 +22,10 @@ use Exception::Class (
     'OpenQA::Exception::InternalException' => {
         description => 'internal errors not for the user'
     },
-
     'OpenQA::Exception::FailedNeedle' => {
         description => 'assert_screen failed',
-        isa         => 'OpenQA::Exception::InternalException',
         fields      => 'tags',
     },
-
     'OpenQA::Exception::VNCProtocolError' => {
         description => 'VNC Server interrupted connection'
     },
