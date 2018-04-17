@@ -52,7 +52,7 @@ BEGIN {
 
 # this shall be an integer increased by every change of the API
 # either to the worker or the tests
-our $INTERFACE = 8;
+our $INTERFACE = 9;
 
 use bmwqemu;
 use needle;
