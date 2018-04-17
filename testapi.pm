@@ -1357,7 +1357,7 @@ Select the named console for further C<testapi> interaction (send_text,
 send_key, wait_screen_change, ...)
 
 If this the first time, a test selects this console, the distribution
-will get a call into activate_console('root-console', $console_obj) to
+will get a call into activate_console('root-console', $console_obj, @args) to
 make sure to actually log in root. For the backend it's just a C<tty>
 object (in this example) - so it will ensure the console is active,
 but to setup the root shell on this console, the distribution needs
@@ -1383,7 +1383,7 @@ sub select_console {
         if ($autotest::last_milestone) {
             push(@{$autotest::last_milestone->{activated_consoles}}, $testapi_console);
         }
-        $testapi::distri->activate_console($testapi_console);
+        $testapi::distri->activate_console($testapi_console, @args);
     }
     $testapi::distri->console_selected($testapi_console, @args);
 
