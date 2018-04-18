@@ -1122,7 +1122,12 @@ sub send_key_until_needlematch {
     my ($tag, $key, $counter, $timeout) = @_;
 
     $counter //= 20;
-    $timeout //= 1;
+    if (get_var('OFW')) {
+        $timeout //= 3;
+    }
+    else {
+        $timeout //= 1;
+    }
     while (!check_screen($tag, $timeout)) {
         send_key $key;
         if (!$counter--) {
