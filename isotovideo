@@ -260,6 +260,9 @@ $bmwqemu::vars{TEST_GIT_HASH} = $test_git_hash;
 # is not supposed to talk to the backend directly
 ($cpid, $cfd) = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
 
+# set a default distribution if the tests don't have one
+$testapi::distri = distribution->new;
+
 # add lib of the test distributions - but only for main.pm not to pollute
 # further dependencies (the tests get it through autotest)
 my @oldINC = @INC;
@@ -271,9 +274,6 @@ if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {
     diag 'Early exit has been requested with _EXIT_AFTER_SCHEDULE. Only evaluating test schedule.';
     exit 0;
 }
-
-# set a default distribution if the tests don't have one
-$testapi::distri ||= distribution->new;
 
 testapi::init();
 
