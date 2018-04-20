@@ -50,20 +50,22 @@ sub find_bin {
 ## no critic
 # An helper to full a parameter list, typically used to build option arguments for executing external programs.
 # mimics perl's push, this why it's a prototype: first argument is the array, second is the argument option and the third is the parameter.
-# the (optional) fourth argument is the prefix argument for the array, if not specified '-' (dash) is assumed by default
+# the (optional) hash argument which can include the prefix argument for the array, if not specified '-' (dash) is assumed by default
+# and if parameter should not be quoted, for that one can use no_quotes. NOTE: this is applicable for string parameters only.
 # if the parameter is equal to "", the value is not pushed to the array.
-sub gen_params(\@$$;$) {
-    my ($array, $argument, $parameter, $prefix) = @_;
+# For example: gen_params \@params, 'device', 'scsi', prefix => '--', no_quotes => 1;
+sub gen_params(\@$$;%) {
+    my ($array, $argument, $parameter, %args) = @_;
 
     return unless ($parameter);
-    $prefix = "-" unless $prefix;
+    $args{prefix} = "-" unless $args{prefix};
 
     if (ref($parameter) eq "") {
-        $parameter = quote($parameter) if $parameter =~ /\s+/;
-        push(@$array, "${prefix}${argument}", $parameter);
+        $parameter = quote($parameter) if $parameter =~ /\s+/ && !$args{no_quotes};
+        push(@$array, $args{prefix} . "${argument}", $parameter);
     }
     elsif (ref($parameter) eq "ARRAY") {
-        push(@$array, "${prefix}${argument}", join(',', @$parameter));
+        push(@$array, $args{prefix} . "${argument}", join(',', @$parameter));
     }
 
 }
@@ -71,7 +73,7 @@ sub gen_params(\@$$;$) {
 # doubledash shortcut version. Same can be achieved with gen_params.
 sub dd_gen_params(\@$$) {
     my ($array, $argument, $parameter) = @_;
-    gen_params(@{$array}, $argument, $parameter, "--");
+    gen_params(@{$array}, $argument, $parameter, prefix => "--");
 }
 
 # It merely splits a string into pieces interpolating variables inside it.

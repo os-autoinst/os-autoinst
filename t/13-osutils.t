@@ -77,12 +77,20 @@ subtest gen_params => sub {
 
 
     @params = qw(!!foo bar);
-    gen_params @params, "test", [qv "$apple $tree $bar"], "!!";
+    gen_params @params, "test", [qv "$apple $tree $bar"], prefix => "!!";
     is_deeply(\@params, [qw(!!foo bar !!test 1,2,3)], "Added parameter if parameter is an arrayref and with custom prefix");
 
     @params = qw(-kernel vmlinuz -initrd initrd);
     gen_params @params, "append", "ro root=/dev/sda1";
     is_deeply(\@params, [('-kernel', 'vmlinuz', '-initrd', 'initrd', '-append', "\'ro root=/dev/sda1\'")], "Quote itself if parameter contains whitespace");
+
+    @params = qw(-kernel vmlinuz -initrd initrd);
+    gen_params @params, "append", "ro root=/dev/sda1", no_quotes => 1;
+    is_deeply(\@params, [('-kernel', 'vmlinuz', '-initrd', 'initrd', '-append', "ro root=/dev/sda1")], "Do not quote itself if pass no_quotes argument");
+
+    @params = qw(-kernel vmlinuz);
+    gen_params @params, "append", "ro root=/dev/sda1", no_quotes => 1, prefix => '--';
+    is_deeply(\@params, [('-kernel', 'vmlinuz', '--append', "ro root=/dev/sda1")], "Do not quote itself if pass no_quotes argument with custom prefix");
 };
 
 subtest dd_gen_params => sub {
