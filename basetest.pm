@@ -645,7 +645,7 @@ sub rollback_activated_consoles {
 
 sub search_for_expected_serial_failures {
     my ($self) = @_;
-    if ($bmwqemu::vars{BACKEND} eq 'qemu') {
+    if (defined $bmwqemu::vars{BACKEND} && $bmwqemu::vars{BACKEND} eq 'qemu') {
         $self->parse_serial_output_qemu();
     }
 }
