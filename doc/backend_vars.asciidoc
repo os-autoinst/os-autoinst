@@ -16,6 +16,8 @@ VNC_STALL_THRESHOLD;integer;4;Time after which is VNC considered stalled
 VNC_TYPING_LIMIT;integer;50;Maximum number of keys per second
 _CHKSEL_RATE_WAIT_TIME;integer;30;The ammount of time isotovideo is going to wait for the VNC console to become responsive
 _CHKSEL_RATE_HITS;integer;15000;The ammount of times, the select should return the same fileno during the _CHKSEL_RATE_WAIT_TIME seconds, to consider the VNC console unresponsive
+TIMEOUT_SCALE;integer;1;This scale parameter can be used based on performance of workers to prevent false positive timeouts based on differing worker performance.
+
 |====================
 
 .IPMI backend
