@@ -175,10 +175,13 @@ sub script_sudo {
 
 =head2 script_output
 
-    script_output($script, [ $wait, type_command => ? ]) 
+    script_output($script, [ $wait, type_command => ?, proceed_on_failure => ?])
 
 Execute $script on the SUT and return the data written to STDOUT by
 $script. See script_output in the testapi.
+
+C<proceed_on_failure> - allows to proceed with validation when C<$script> is
+failing (return non-zero exit code)
 
 You may be able to avoid overriding this function by setting
 $serial_term_prompt.
@@ -191,6 +194,8 @@ sub script_output {
     # if script length is lower there is no point to proceed with more complex solution
     $args{type_command} //= length($script) < 80;
     my $script_path = "/tmp/script$marker.sh";
+    # fail on error by default
+    $args{proceed_on_failure} //= 0;
 
     # prevent use of network for offline installations
     if (testapi::get_var('OFFLINE_SUT')) {
@@ -238,7 +243,9 @@ sub script_output {
     my $output = testapi::wait_serial("SCRIPT_FINISHED$marker-\\d+-", $wait, 0, record_output => 1)
       || croak "script timeout";
 
-    croak "script failed" if $output !~ "SCRIPT_FINISHED$marker-0-";
+    if ($output !~ "SCRIPT_FINISHED$marker-0-") {
+        croak "script failed with : $output" unless $args{proceed_on_failure};
+    }
 
     # and the markers including internal exit catcher
     my $out = $output =~ /$marker(?<expected_output>.+)SCRIPT_FINISHED$marker-0-/s ? $+ : '';
