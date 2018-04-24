@@ -137,7 +137,8 @@ sub _init_xml {
     # on reboot. Unlike KVM. So, to know when we are restarting if we are in the
     # state before, or after restart we have to configure libvirt to destroy
     # (i.e. turn off) the VM. Then we have to explicitely start it define_and_start.
-    if ($self->vmm_family eq 'xen') {
+    # Even if KVM does not need this, from test code POV it's convenient to have it.
+    if ($self->vmm_family eq 'xen' || $self->vmm_family eq 'kvm') {
         $elem = $doc->createElement('on_reboot');
         $elem->appendTextNode('destroy');
         $root->appendChild($elem);
