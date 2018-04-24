@@ -334,7 +334,7 @@ possibly more than once per second which is default. Select this to check a
 screen which can change in a range faster than 1-2 seconds not to miss the
 screen to check for.
 
-Returns matched needle or throws C<NeedleFailed> exception if $timeout timeout
+Returns matched needle or throws C<FailedNeedle> exception if $timeout timeout
 is hit. Default timeout is 30s.
 
 =cut
@@ -402,7 +402,7 @@ JSON file. If C<$dclick> is set, do double click instead.  C<$mustmatch> can
 be string or C<ARRAYREF> of strings (C<['tag1', 'tag2']>).  C<$button> is by
 default C<'left'>. C<'left'> and C<'right'> is supported.
 
-Throws C<NeedleFailed> exception if C<$timeout> timeout is hit. Default timeout is 30s.
+Throws C<FailedNeedle> exception if C<$timeout> timeout is hit. Default timeout is 30s.
 
 =cut
 
@@ -1116,7 +1116,7 @@ Send specific key until needle with C<$tag> is not matched or C<$counter> is 0.
 C<$tag> can be string or C<ARRAYREF> (C<['tag1', 'tag2']>)
 Default counter is 20 steps, default timeout is 1s
 
-Throws C<NeedleFailed> exception if needle is not matched until C<$counter> is 0.
+Throws C<FailedNeedle> exception if needle is not matched until C<$counter> is 0.
 
 =cut
 
