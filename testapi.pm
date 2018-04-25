@@ -903,7 +903,7 @@ sub script_sudo {
 
 =head2 script_output
 
-  script_output($script [, $wait, type_command => 1])
+  script_output($script [, $wait, type_command => 1, proceed_on_failure => 1])
 
 Executing script inside SUT with C<bash -eox> (in case of serial console with C<bash -eo>)
 and directs C<stdout> (I<not> C<stderr>!) to the serial console and returns
@@ -913,6 +913,9 @@ The script content is based on the variable content of C<current_test_script>
 and is typed or fetched through HTTP depending on various parameters. Typing
 can be forced by passing C<type_command => 1> for example when the SUT does
 not provide a usable network connection.
+
+C<proceed_on_failure> - allows to proceed with validation when C<$script> is
+failing (return non-zero exit code)
 
 The default timeout for the script is based on the default in C<wait_serial>
 and can be tweaked by setting the C<$wait> positional parameter.
