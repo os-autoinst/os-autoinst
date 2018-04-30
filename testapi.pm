@@ -492,7 +492,7 @@ sub wait_screen_change(&@) {
     $timeout ||= 10;
     $args{similarity_level} //= 50;
 
-    bmwqemu::log_call(timeout => $timeout);
+    bmwqemu::log_call(timeout => $timeout, %args);
 
     # get the initial screen
     query_isotovideo('backend_set_reference_screenshot');
@@ -1856,7 +1856,7 @@ sub upload_logs {
         record_info('upload skipped', "Skipped uploading log file '$file' as we are offline");
         return;
     }
-    bmwqemu::log_call(file => $file, %args);
+    bmwqemu::log_call(file => $file, failok => $failok, timeout => $timeout, %args);
     my $basename = basename($file);
     my $upname   = ($args{log_name} || $autotest::current_test->{name}) . '-' . $basename;
     my $cmd      = "curl --form upload=\@$file --form upname=$upname ";
