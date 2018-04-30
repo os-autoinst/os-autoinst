@@ -18,7 +18,7 @@
 
 =head1 SYNOPSIS
 
-isotovideo [OPTIONS]
+isotovideo [OPTIONS] [TEST PARAMETER]
 
 Parses vars.json and tests the given assets/ISOs.
 
@@ -30,9 +30,20 @@ Parses vars.json and tests the given assets/ISOs.
 
 Enable direct output to STDERR instead of autoinst-log.txt
 
+=item B<-v, --version>
+
+Show the current program version and test API version
+
 =item B<-h, -?, --help>
 
 Show this help.
+
+=head1 TEST PARAMETER
+
+All additional command line arguments specified in the C<key=value> format are
+parsed as test parameters which take precedence over the settings in the
+vars.json file. Lower case key names are transformed into upper case
+automatically for convenience.
 
 =cut
 
@@ -115,6 +126,14 @@ $| = 1;
 
 $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
+
+for my $arg (@ARGV) {
+    if ($arg =~ /^([[:alnum:]_\[\]\.]+)=(.+)/) {
+        my $key = uc $1;
+        $bmwqemu::vars{$key} = $2;
+        diag("Setting forced test parameter $key -> $2");
+    }
+}
 
 # Sanity checks
 die "CASEDIR environment variable not set, unknown test case directory" if !defined $bmwqemu::vars{CASEDIR};

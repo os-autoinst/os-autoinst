@@ -106,12 +106,12 @@ print $var <<EOV;
    "CDMODEL" : "ide-cd",
    "HDDMODEL" : "ide-drive",
    "INTEGRATION_TESTS" : "1",
-   "VERSION" : "1",
-   "QEMU_DISABLE_SNAPSHOTS" : "1"
+   "VERSION" : "1"
 }
 EOV
 
-system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
+# call isotovideo with additional test parameters provided by command line
+system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
 isnt(system('grep -q "assert_screen_fail_test" autoinst-log.txt'), 0, 'assert screen test not scheduled');
 is(system('grep -q "\d* Snapshots are not supported" autoinst-log.txt'), 0, 'Snapshots are not supported');
 is(system('grep -q "isotovideo done" autoinst-log.txt'),                 0, 'isotovideo is done');
