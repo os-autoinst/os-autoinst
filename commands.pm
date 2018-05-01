@@ -218,7 +218,7 @@ sub isotovideo_get {
 
 sub isotovideo_post {
     my ($c) = @_;
-    return isotovideo_command($c, [qw(interactive stop_waitforneedle continue_waitforneedle reload_needles)]);
+    return isotovideo_command($c, []);
 }
 
 sub get_temp_file {

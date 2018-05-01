@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2016 SUSE LLC
+# Copyright © 2012-2018 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -330,9 +330,6 @@ $s->add($bmwqemu::backend->{from_child});
 # now we have everything, give the tests a go
 $testfd->write("GO\n");
 
-my $interactive = 0;
-my $needinput   = 0;
-
 my $current_test_name;
 
 # timeout for the select (only set for check_screens)
@@ -366,7 +363,7 @@ sub _calc_check_delta {
 }
 
 sub check_asserted_screen {
-    my ($force_timeout, $no_wait) = @_;
+    my $no_wait = shift;
 
     if ($no_wait) {
         # prevent CPU overload by waiting at least a little bit
@@ -386,17 +383,8 @@ sub check_asserted_screen {
         $tags = $timeout = undef;
     }
     elsif ($rsp->{timeout}) {
-        if ($interactive && !$force_timeout) {
-            # now get fancy
-            $bmwqemu::backend->_send_json({cmd => 'freeze_vm'});
-            $rsp->{saveresult} = 1;
-            myjsonrpc::send_json($testfd, {ret => $rsp});
-            $needinput = 1;
-        }
-        else {
-            myjsonrpc::send_json($testfd, {ret => $rsp});
-            $tags = undef;
-        }
+        myjsonrpc::send_json($testfd, {ret => $rsp});
+        $tags    = undef;
         $timeout = undef;
     }
     else {
@@ -460,8 +448,6 @@ while ($loop) {
         ##### HTTP commands
         if ($rsp->{cmd} eq 'status') {
             my $result = {tags => $tags, running => $current_test_name};
-            $result->{interactive} = $interactive;
-            $result->{needinput}   = $needinput;
             myjsonrpc::send_json($r, $result);
             next;
         }
@@ -472,36 +458,6 @@ while ($loop) {
             next;
         }
 
-        if ($rsp->{cmd} eq 'interactive') {
-            # interactive is boolean
-            $interactive = $rsp->{params}->{state} ? 1 : 0;
-            if (!$interactive && $needinput) {
-                # need to continue the VM
-                $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen'});
-                $needinput = 0;
-                $timeout   = .1;
-                check_asserted_screen(1, $no_wait);
-            }
-            myjsonrpc::send_json($r, {interactive => $interactive});
-            next;
-        }
-
-        if ($rsp->{cmd} eq 'stop_waitforneedle') {
-            $bmwqemu::backend->_send_json({cmd => 'reduce_deadline'});
-            myjsonrpc::send_json($r, {ret => 0});
-            next;
-        }
-        if ($rsp->{cmd} eq 'continue_waitforneedle' || $rsp->{cmd} eq 'reload_needles') {
-            $needinput = 0;
-            $timeout   = .1;
-            my $reload = $rsp->{cmd} eq 'reload_needles';
-            # tell backend to retry
-            $bmwqemu::backend->_send_json({cmd => 'retry_assert_screen', arguments => {reload_needles => $reload}});
-            # that's enough for the webui to know
-            myjsonrpc::send_json($r, {ret => 0});
-            check_asserted_screen(1, $no_wait);
-            next;
-        }
         if ($rsp->{cmd} eq 'read_serial') {
             # This will stop to work if we change the serialfile after the initialization because of the fork
             my ($serial, $pos) = $bmwqemu::backend->{backend}->read_serial($rsp->{position});
@@ -511,8 +467,8 @@ while ($loop) {
         die "Unknown command $rsp->{cmd}";
     }
 
-    if (defined $tags && !$needinput) {
-        check_asserted_screen(0, $no_wait);
+    if (defined $tags) {
+        check_asserted_screen($no_wait);
     }
 }
 
