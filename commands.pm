@@ -38,9 +38,6 @@ use Mojo::Server::Daemon;
 use File::Basename;
 use Time::HiRes 'gettimeofday';
 
-# a socket opened to isotovideo
-my $isotovideo;
-
 # borrowed from obs with permission from mls@suse.de to license as
 # GPLv2+
 sub _makecpiohead {
@@ -207,9 +204,9 @@ sub isotovideo_command {
     my ($c, $commands) = @_;
     my $cmd = $c->param('command');
     return $c->reply->not_found unless grep { $cmd eq $_ } @$commands;
+    my $isotovideo = $c->app->defaults('isotovideo');
     myjsonrpc::send_json($isotovideo, {cmd => $cmd, params => $c->req->query_params->to_hash});
-    $c->render(json => myjsonrpc::read_json($isotovideo));
-    return;
+    return $c->render(json => myjsonrpc::read_json($isotovideo));
 }
 
 sub isotovideo_get {
@@ -232,7 +229,7 @@ sub get_temp_file {
 
 
 sub run_daemon {
-    my ($port) = @_;
+    my ($port, $isotovideo) = @_;
 
     # allow up to 20GB - hdd images
     $ENV{MOJO_MAX_MESSAGE_SIZE}   = 1024 * 1024 * 1024 * 20;
@@ -241,7 +238,8 @@ sub run_daemon {
     # avoid leaking token
     app->mode('production');
     app->log->level('debug');
-    app->stash(isotovideo => $isotovideo);
+    app->log->debug("RUN_DAEMON " . $isotovideo);
+    app->defaults(isotovideo => $isotovideo);
 
     my $r = app->routes;
     $r->namespaces(['OpenQA']);
@@ -312,7 +310,7 @@ sub run_daemon {
 sub start_server {
     my ($port) = @_;
 
-    my $child;
+    my ($child, $isotovideo);
     socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
       or die "socketpair: $!";
 
@@ -330,7 +328,7 @@ sub start_server {
 
         close($child);
         $0 = "$0: commands";
-        run_daemon($port);
+        run_daemon($port, $isotovideo);
         Devel::Cover::report() if Devel::Cover->can('report');
         _exit(0);
     }

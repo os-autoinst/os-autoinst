@@ -32,10 +32,11 @@ sub ws_message {
     my ($self, $msg) = @_;
     $self->app->log->debug("Message $msg");
     $msg = decode_json($msg);
-    my $isotovideo = $self->app->stash('isotovideo');
+    my $isotovideo = $self->app->defaults('isotovideo');
+    $self->app->log->debug("Isotovideo " . $isotovideo);
     myjsonrpc::send_json($isotovideo, $msg);
     my $reply = myjsonrpc::read_json($isotovideo);
-    app->log->debug("Message " . encode_json($reply));
+    $self->app->log->debug("Message " . encode_json($reply));
 
     for (keys %{$self->{clients}}) {
         $self->{clients}->{$_}->send({json => $reply});

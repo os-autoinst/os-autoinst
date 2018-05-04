@@ -11,8 +11,7 @@ $(function () {
   };
 
   ws.onmessage = function (msg) {
-    var res = JSON.parse(msg.data);
-    log('[' + res.hms + '] ' + res.text);
+    log(msg.data);
   };
 
 $('#msg').keydown(function (e) {
@@ -22,4 +21,3 @@ $('#msg').keydown(function (e) {
     }
   });
 });
-
