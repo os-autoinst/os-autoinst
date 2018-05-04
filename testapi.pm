@@ -1699,7 +1699,7 @@ sub parse_extra_log {
         local $@;
         # We need to touch @INC as specific supported format are split
         # in different classes and dynamically loaded by OpenQA::Parser
-        local @INC = (OPENQA_LIBPATH, @INC);
+        local @INC = ($ENV{OPENQA_LIBPATH} // OPENQA_LIBPATH, @INC);
         eval {
             require OpenQA::Parser;
             OpenQA::Parser->import('parser');
