@@ -20,10 +20,12 @@ use strict;
 use warnings;
 use Scalar::Util 'looks_like_number';
 use base 'Exporter';
-our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock barrier_create barrier_wait barrier_try_wait barrier_destroy);
+our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_wait
+  barrier_create barrier_wait barrier_try_wait barrier_destroy);
 
 require bmwqemu;
-use mmapi 'api_call';
+use mmapi qw(api_call get_job_info);
+use testapi 'record_info';
 
 sub _try_lock {
     my ($type, $name, $param) = @_;
@@ -87,6 +89,26 @@ sub mutex_create {
     return 1 if ($res == 200);
     bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
     return 0;
+}
+
+# Wrapper for mutex_lock & mutex_unlock
+sub mutex_wait {
+    my ($name, $where, $info) = @_;
+
+    # Log info about event and it's location
+    my $job = $where ? get_job_info($where)->{settings}->{TEST} . " #$where" : 'parent job';
+    my $msg = "Wait for $name (on $job)";
+    $msg .= " - $info" if $info;
+    record_info 'Paused', $msg;
+
+    my $start = time;
+    mutex_lock $name, $where;
+    my $delay = time - $start;
+    mutex_unlock $name;
+
+    # Ammend info with time spent waiting
+    $autotest::current_test->remove_last_result;
+    record_info 'Paused ' . int($delay / 60) . 'm' . $delay % 60 . 's', $msg;
 }
 
 ## Barriers
