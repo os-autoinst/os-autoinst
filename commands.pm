@@ -303,6 +303,7 @@ sub run_daemon {
 
     # hook the parent into the io loop
     my $stream = Mojo::IOLoop::Stream->new($isotovideo);
+    $stream->timeout(0);
     $stream->on(
         read => sub {
             my ($stream, $bytes) = @_;
