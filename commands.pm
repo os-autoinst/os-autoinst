@@ -23,6 +23,7 @@ use Try::Tiny;
 use Socket;
 use POSIX '_exit', 'strftime';
 use autodie ':all';
+use JSON 'from_json';
 use myjsonrpc;
 
 
@@ -239,7 +240,9 @@ sub run_daemon {
     app->mode('production');
     app->log->level('debug');
     app->log->debug("RUN_DAEMON " . $isotovideo);
+    # abuse the defaults to store singletons for the server
     app->defaults(isotovideo => $isotovideo);
+    app->defaults(clients    => {});
 
     my $r = app->routes;
     $r->namespaces(['OpenQA']);
@@ -297,6 +300,26 @@ sub run_daemon {
             $time = gettimeofday;
             return sprintf(strftime("[%FT%T.%%04d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
         });
+
+    # hook the parent into the io loop
+    my $stream = Mojo::IOLoop::Stream->new($isotovideo);
+    $stream->on(
+        read => sub {
+            my ($stream, $bytes) = @_;
+
+            my $json = from_json($bytes);
+            # this is just internal information
+            delete $json->{json_cmd_token};
+            my $clients = app->defaults('clients');
+            for (keys %$clients) {
+                $clients->{$_}->send({json => $json});
+            }
+
+            # Process input chunk
+            say "BYTES $bytes";
+        });
+    Mojo::IOLoop->stream($stream);
+
     app->log->info("Daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
     try {
         $daemon->run;

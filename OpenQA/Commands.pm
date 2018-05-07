@@ -21,15 +21,8 @@ use commands;
 
 use JSON qw(encode_json decode_json);
 
-sub new {
-    my $class = shift;
-    my $self  = $class->SUPER::new(@_);
-    $self->{clients} = {};
-    return $self;
-}
-
 sub ws_message {
-    my ($self, $msg) = @_;
+    my ($self, $id, $msg) = @_;
     $self->app->log->debug("Message $msg");
     $msg = decode_json($msg);
     my $isotovideo = $self->app->defaults('isotovideo');
@@ -38,15 +31,14 @@ sub ws_message {
     my $reply = myjsonrpc::read_json($isotovideo);
     $self->app->log->debug("Message " . encode_json($reply));
 
-    for (keys %{$self->{clients}}) {
-        $self->{clients}->{$_}->send({json => $reply});
-    }
+    my $clients = $self->app->defaults('clients');
+    $clients->{$id}->send({json => $reply});
 }
 
 sub ws_finish {
     my ($self, $id) = @_;
     $self->app->log->debug('Client disconnected');
-    delete $self->{clients}->{$id};
+    delete $self->app->defaults('clients')->{$id};
 }
 
 sub start_ws {
@@ -54,9 +46,13 @@ sub start_ws {
 
     $self->app->log->debug(sprintf 'Client connected: %s', $self->tx);
     my $id = sprintf "%s", $self->tx;
-    $self->{clients}->{$id} = $self->tx;
+    $self->app->defaults('clients')->{$id} = $self->tx;
 
-    $self->on(message => \&ws_message);
+    $self->on(
+        message => sub {
+            my ($self, $msg) = @_;
+            ws_message($self, $id, $msg);
+        });
     $self->on(finish => sub { ws_finish($self, $id) });
 }
 

@@ -1079,7 +1079,8 @@ sub send_key {
     my ($key, $do_wait) = @_;
     $do_wait //= 0;
     bmwqemu::log_call(key => $key, do_wait => $do_wait);
-    query_isotovideo('backend_send_key', {key => $key});
+    query_isotovideo('send_clients',     {send_key => $key});
+    query_isotovideo('backend_send_key', {key      => $key});
     wait_idle() if $do_wait;
 }
 
@@ -1169,6 +1170,7 @@ sub type_string {
     }
     my $log = $args{secret} ? 'SECRET STRING' : $string;
 
+    query_isotovideo('send_clients', {type_string => $string});
     if (is_serial_terminal) {
         bmwqemu::log_call(text => $log, %args);
         query_isotovideo('backend_type_string', {text => $string, %args});
