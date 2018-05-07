@@ -420,6 +420,7 @@ while ($loop) {
         if ($rsp->{cmd} eq 'set_current_test') {
             $bmwqemu::backend->_send_json({cmd => 'set_serial_offset'});
             $current_test_name = $rsp->{name};
+            myjsonrpc::send_json($cfd, {set_current_test => $current_test_name});
             myjsonrpc::send_json($r, {ret => 1});
             next;
         }
@@ -435,6 +436,7 @@ while ($loop) {
         if ($rsp->{cmd} eq 'check_screen') {
             $no_wait = $rsp->{no_wait} // 0;
 
+            myjsonrpc::send_json($cfd, {check_screen => $rsp->{mustmatch}});
             my $arguments = {
                 mustmatch => $rsp->{mustmatch},
                 timeout   => $rsp->{timeout},
@@ -464,6 +466,14 @@ while ($loop) {
             # This will stop to work if we change the serialfile after the initialization because of the fork
             my ($serial, $pos) = $bmwqemu::backend->{backend}->read_serial($rsp->{position});
             myjsonrpc::send_json($r, {serial => $serial, position => $pos});
+            next;
+        }
+        if ($rsp->{cmd} eq 'send_clients') {
+            # we don't expect replies
+            delete $rsp->{cmd};
+            delete $rsp->{json_cmd_token};
+            myjsonrpc::send_json($cfd, $rsp);
+            myjsonrpc::send_json($r, {ret => 1});
             next;
         }
         die "Unknown command $rsp->{cmd}";
