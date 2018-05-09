@@ -34,7 +34,7 @@ sub callxterm {
     $command = "TERM=xterm $command";
     my $xterm_vt_cmd = which "xterm-console";
     die "Missing 'xterm-console'" unless $xterm_vt_cmd;
-    eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command' & echo \$!"); };
+    eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command' & echo \"xterm PID is \$!\""); };
     if (my $E = $@) {
         die "cant' start xterm on $display (err: $! retval: $?)";
     }
@@ -91,11 +91,12 @@ sub activate {
             port     => $port,
             ikvm     => 0
         });
+    bmwqemu::diag("Connected to Xvnc - PID $pid");
     $self->{DISPLAY} = $display;
     sleep 1;
 
     # we need a window manager for fullscreen apps to work
-    system("DISPLAY=$display icewm -c $bmwqemu::scriptdir/consoles/icewm.cfg &");
+    system("DISPLAY=$display icewm -c $bmwqemu::scriptdir/consoles/icewm.cfg & echo \"icewm PID is \$!\"");
     return;
 }
 
