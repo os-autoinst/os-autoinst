@@ -6,7 +6,8 @@ Supported variables per backend
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-EXCLUDE_MODULES;string;;comma separated names or fullnames of excluded test modules
+INCLUDE_MODULES;string;;comma separated names or fullnames of test modules to be included while excluding all that do not match, e.g. "boot,mod1"
+EXCLUDE_MODULES;string;;comma separated names or fullnames of test modules to exclude. Can be combined with INCLUDE_MODULES and has precedence, e.g. to additionally exclude modules based on an include-list
 _EXIT_AFTER_SCHEDULE;boolean;0;Exit test execution immediately after evaluation of the test schedule, e.g. to check only which test modules would be executed
 _SKIP_POST_FAIL_HOOKS;boolean;0;Skip the execution of post_fail_hook methods if set. This can be useful to save test execution time during test development when the post_fail_hook is not expected to provide any value as most likely the test developer already knows what needs to be done as a next step on a test fail.
 NOVIDEO;boolean;0;Do not encode video if set
