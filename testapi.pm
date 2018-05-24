@@ -363,7 +363,7 @@ can be replaced by C<assert_screen> with multiple tags using an C<ARRAYREF> in
 combination with C<match_has_tag> or another synchronization call in before,
 for example C<wait_screen_change> or C<wait_still_screen>.
 
-Returns matched needle or C<undef> if timeout is hit. Default timeout is 30s.
+Returns matched needle or C<undef> if timeout is hit. Default timeout is 0s.
 
 =cut
 
@@ -371,7 +371,7 @@ sub check_screen {
     my ($mustmatch) = shift;
     my $timeout;
     $timeout = shift if (@_ % 2);
-    my %args = (timeout => $timeout // $bmwqemu::default_timeout, @_);
+    my %args = (timeout => $timeout // 0, @_);
     bmwqemu::log_call(mustmatch => $mustmatch, %args);
     return _check_or_assert($mustmatch, 1, %args);
 }

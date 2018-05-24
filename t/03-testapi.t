@@ -196,7 +196,7 @@ subtest 'check_assert_screen' => sub {
     stderr_like { assert_screen('foo', 3, timeout => 2) } qr/timeout=2/, 'named over positional';
     stderr_like { assert_screen('foo') } qr/timeout=30/, 'default timeout';
     stderr_like { assert_screen('foo', no_wait => 1) } qr/no_wait=1/, 'no wait option';
-    stderr_like { check_screen('foo') } qr/timeout=30/, 'check_screen with same default timeout';
+    stderr_like { check_screen('foo') } qr/timeout=0/, 'check_screen with timeout of 0';
     stderr_like { check_screen('foo', 42) } qr/timeout=42/, 'check_screen with timeout variable';
 };
 
