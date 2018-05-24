@@ -277,7 +277,6 @@ sub run_daemon {
     $token_auth->post('/isotovideo/#command' => \&isotovideo_post);
 
     $token_auth->websocket('/ws')->name('ws')->to('commands#start_ws');
-    $token_auth->get('/developer')->to('commands#developer');
 
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');

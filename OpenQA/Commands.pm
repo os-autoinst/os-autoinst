@@ -56,10 +56,4 @@ sub start_ws {
     $self->on(finish => sub { ws_finish($self, $id) });
 }
 
-sub developer {
-    my ($self) = @_;
-    $self->stash(wsurl => $self->url_for('ws')->to_abs);
-    return $self->render;
-}
-
 1;
