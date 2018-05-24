@@ -330,7 +330,19 @@ $s->add($bmwqemu::backend->{from_child});
 # now we have everything, give the tests a go
 $testfd->write("GO\n");
 
+# store the name of the current test
 my $current_test_name;
+my $current_test_full_name;
+
+# store the name of the test where the test execution should be paused
+my $pause_test_name = $bmwqemu::vars{PAUSE_AT};
+
+# when paused, stop passing commands to the backend
+my $stop_passing_commands_to_backend = 0;
+
+# when paused, save the command from autotest which has been postponed to be able to resume
+my $postponed_r;
+my $postponed_command;
 
 # timeout for the select (only set for check_screens)
 my $timeout = undef;
@@ -392,6 +404,154 @@ sub check_asserted_screen {
     }
 }
 
+sub handle_paused_test_execution {
+    return unless ($stop_passing_commands_to_backend);
+
+    my ($r, $rsp) = @_;
+    my $cmd = $rsp->{cmd};
+
+    # write debugging info
+    myjsonrpc::send_json($cfd, {paused => $rsp});
+    print("paused, so not passing $cmd to backend\n");
+
+    # postpone execution of command
+    $postponed_r       = $r;
+    $postponed_command = $rsp;
+
+    # send no reply to autotest, just let it wait
+    return 1;
+}
+
+sub process_command {
+    my ($r, $rsp) = @_;
+
+    if ($rsp->{cmd} =~ m/^backend_(.*)/) {
+        return if handle_paused_test_execution($r, $rsp);
+        die "we need to implement a backend queue" if $backend_requester;
+        $backend_requester = $r;
+        my $cmd = $1;
+        delete $rsp->{cmd};
+
+        # send debugging info for ws clients
+        myjsonrpc::send_json($cfd, {$cmd => $rsp});
+        # pass command to backend
+        myjsonrpc::send_json($bmwqemu::backend->{to_child}, {cmd => $cmd, arguments => $rsp});
+        return;
+    }
+    if ($rsp->{cmd} eq 'set_pause_at_test') {
+        $pause_test_name = $rsp->{name};
+
+        # print debugging info
+        print("test execution will be paused at test $pause_test_name\n");
+        myjsonrpc::send_json($cfd, {set_pause_at_test => $pause_test_name});
+
+        myjsonrpc::send_json($r, {ret => 1});
+        return;
+    }
+    if ($rsp->{cmd} eq 'resume_test_execution') {
+        # print debug info
+        print($stop_passing_commands_to_backend ?
+              "test execution will be resumed\n"
+            : "resuming test execution requested but not paused anyways\n"
+        );
+        myjsonrpc::send_json($cfd, {resume_test_execution => $postponed_command});
+
+        # no longer stop passing commands to backend
+        $stop_passing_commands_to_backend = 0;
+
+        # resume with postponed command so autotest can continue
+        if ($postponed_command) {
+            my $cmd = $postponed_command->{cmd};
+            print("resuming, continue passing $cmd to backend\n");
+            process_command($postponed_r, $postponed_command);
+            $postponed_r       = undef;
+            $postponed_command = undef;
+            return;
+        }
+        myjsonrpc::send_json($r, {ret => 1});
+        return;
+    }
+    if ($rsp->{cmd} eq 'set_current_test') {
+        $bmwqemu::backend->_send_json({cmd => 'set_serial_offset'});
+        $current_test_name      = $rsp->{name};
+        $current_test_full_name = $rsp->{full_name};
+
+        # send debugging info for ws clients
+        myjsonrpc::send_json($cfd, {set_current_test => $current_test_name});
+        if (   $pause_test_name
+            && $current_test_name
+            && $current_test_full_name
+            && ($pause_test_name eq $current_test_name || $pause_test_name eq $current_test_full_name))
+        {
+            print("pausing test execution of $pause_test_name\n");
+            $stop_passing_commands_to_backend = 1;
+        }
+        myjsonrpc::send_json($r, {ret => 1});
+        return;
+    }
+    if ($rsp->{cmd} eq 'tests_done') {
+        $r         = $rsp->{died};
+        $completed = $rsp->{completed};
+        CORE::close($testfd);
+        $testfd = undef;
+        kill_autotest;
+        $loop = 0;
+        return;
+    }
+    if ($rsp->{cmd} eq 'check_screen') {
+        $no_wait = $rsp->{no_wait} // 0;
+        return if handle_paused_test_execution($r, $rsp);
+
+        # send debugging info for ws clients
+        myjsonrpc::send_json($cfd, {check_screen => $rsp->{mustmatch}});
+
+        my $arguments = {
+            mustmatch => $rsp->{mustmatch},
+            timeout   => $rsp->{timeout},
+            check     => $rsp->{check}};
+        $tags = $bmwqemu::backend->_send_json(
+            {
+                cmd       => 'set_tags_to_assert',
+                arguments => $arguments
+            })->{tags};
+        return;
+    }
+
+    # handle HTTP commands
+    if ($rsp->{cmd} eq 'status') {
+        my $result = {tags => $tags, running => $current_test_name};
+        myjsonrpc::send_json($r, $result);
+        return;
+    }
+    if ($rsp->{cmd} eq 'version') {
+        my $result = {test_git_hash => $test_git_hash, needles_git_hash => $needles_git_hash, version => $INTERFACE};
+        myjsonrpc::send_json($r, $result);
+        return;
+    }
+    if ($rsp->{cmd} eq 'read_serial') {
+        # This will stop to work if we change the serialfile after the initialization because of the fork
+        my ($serial, $pos) = $bmwqemu::backend->{backend}->read_serial($rsp->{position});
+        myjsonrpc::send_json($r, {serial => $serial, position => $pos});
+        return;
+    }
+    if ($rsp->{cmd} eq 'send_clients') {
+        # we don't expect replies
+        delete $rsp->{cmd};
+        delete $rsp->{json_cmd_token};
+        myjsonrpc::send_json($cfd, $rsp);
+        myjsonrpc::send_json($r, {ret => 1});
+        return;
+    }
+
+    # die if command unknown
+    if ($rsp->{cmd}) {
+        die "Unknown command $rsp->{cmd}";
+    }
+    else {
+        die 'No command specified';
+    }
+}
+
 $r = 0;
 
 while ($loop) {
@@ -409,74 +569,7 @@ while ($loop) {
             $backend_requester = undef;
             next;
         }
-        if ($rsp->{cmd} =~ m/^backend_(.*)/) {
-            die "we need to implement a backend queue" if $backend_requester;
-            $backend_requester = $r;
-            my $cmd = $1;
-            delete $rsp->{cmd};
-            myjsonrpc::send_json($bmwqemu::backend->{to_child}, {cmd => $cmd, arguments => $rsp});
-            next;
-        }
-        if ($rsp->{cmd} eq 'set_current_test') {
-            $bmwqemu::backend->_send_json({cmd => 'set_serial_offset'});
-            $current_test_name = $rsp->{name};
-            myjsonrpc::send_json($cfd, {set_current_test => $current_test_name});
-            myjsonrpc::send_json($r, {ret => 1});
-            next;
-        }
-        if ($rsp->{cmd} eq 'tests_done') {
-            $r         = $rsp->{died};
-            $completed = $rsp->{completed};
-            CORE::close($testfd);
-            $testfd = undef;
-            kill_autotest;
-            $loop = 0;
-            next;
-        }
-        if ($rsp->{cmd} eq 'check_screen') {
-            $no_wait = $rsp->{no_wait} // 0;
-
-            myjsonrpc::send_json($cfd, {check_screen => $rsp->{mustmatch}});
-            my $arguments = {
-                mustmatch => $rsp->{mustmatch},
-                timeout   => $rsp->{timeout},
-                check     => $rsp->{check}};
-            $tags = $bmwqemu::backend->_send_json(
-                {
-                    cmd       => 'set_tags_to_assert',
-                    arguments => $arguments
-                })->{tags};
-            next;
-        }
-
-        ##### HTTP commands
-        if ($rsp->{cmd} eq 'status') {
-            my $result = {tags => $tags, running => $current_test_name};
-            myjsonrpc::send_json($r, $result);
-            next;
-        }
-
-        if ($rsp->{cmd} eq 'version') {
-            my $result = {test_git_hash => $test_git_hash, needles_git_hash => $needles_git_hash, version => $INTERFACE};
-            myjsonrpc::send_json($r, $result);
-            next;
-        }
-
-        if ($rsp->{cmd} eq 'read_serial') {
-            # This will stop to work if we change the serialfile after the initialization because of the fork
-            my ($serial, $pos) = $bmwqemu::backend->{backend}->read_serial($rsp->{position});
-            myjsonrpc::send_json($r, {serial => $serial, position => $pos});
-            next;
-        }
-        if ($rsp->{cmd} eq 'send_clients') {
-            # we don't expect replies
-            delete $rsp->{cmd};
-            delete $rsp->{json_cmd_token};
-            myjsonrpc::send_json($cfd, $rsp);
-            myjsonrpc::send_json($r, {ret => 1});
-            next;
-        }
-        die "Unknown command $rsp->{cmd}";
+        process_command($r, $rsp);
     }
 
     if (defined $tags) {

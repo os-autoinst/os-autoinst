@@ -136,7 +136,14 @@ our $last_milestone;
 
 sub set_current_test {
     ($current_test) = @_;
-    query_isotovideo('set_current_test', {name => $current_test->{name}});
+    query_isotovideo(
+        'set_current_test',
+        $current_test ?
+          {
+            name      => $current_test->{name},
+            full_name => $current_test->{fullname},
+          }
+        : {});
 }
 
 sub write_test_order {
@@ -269,8 +276,12 @@ sub query_isotovideo {
     }
     $json{cmd} = $cmd;
 
+    # send the command to isotovideo
     myjsonrpc::send_json($isotovideo, \%json);
+
+    # wait for response (if test is paused, this will block until resume)
     my $rsp = myjsonrpc::read_json($isotovideo);
+
     return $rsp->{ret};
 }
 
