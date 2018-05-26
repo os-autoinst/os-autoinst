@@ -65,16 +65,8 @@ sub activate {
     my $testapi_console = $self->{testapi_console};
     my $ssh_args        = $self->{args};
 
-    my $sshcommand = $self->sshCommand('root', $hostname);
-    my $display = $self->{DISPLAY};
-
-    $sshcommand = "TERM=xterm " . $sshcommand;
-    my $xterm_vt_cmd = "xterm-console";
-    my $window_name  = "ssh:$testapi_console";
-    eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$sshcommand' & echo \$!") };
-    if (my $E = $@) {
-        die "cant' start xterm on $display (err: $! retval: $?)";
-    }
+    my $command = $self->sshCommand('root', $hostname);
+    $self->callxterm($command, "ssh:$testapi_console");
     # FIXME: assert_screen('xterm_password');
     sleep 3;
     $self->type_string({text => $password . "\n"});
