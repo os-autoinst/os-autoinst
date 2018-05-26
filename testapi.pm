@@ -380,7 +380,9 @@ sub check_screen {
 
   match_has_tag($tag);
 
-Returns true if last matched needle has C<$tag> else return C<undef>.
+Returns true (1) if last matched needle has C<$tag>, false (0) if last
+matched needle does not have C<$tag>, and C<undef> if no needle has yet
+been matched at the time of the call.
 
 =cut
 
