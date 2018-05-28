@@ -23,7 +23,9 @@ use Try::Tiny;
 use Socket;
 use POSIX '_exit', 'strftime';
 use autodie ':all';
+use JSON 'from_json';
 use myjsonrpc;
+
 
 BEGIN {
     # https://github.com/os-autoinst/openQA/issues/450
@@ -36,9 +38,6 @@ use Mojo::IOLoop;
 use Mojo::Server::Daemon;
 use File::Basename;
 use Time::HiRes 'gettimeofday';
-
-# a socket opened to isotovideo
-my $isotovideo;
 
 # borrowed from obs with permission from mls@suse.de to license as
 # GPLv2+
@@ -206,9 +205,9 @@ sub isotovideo_command {
     my ($c, $commands) = @_;
     my $cmd = $c->param('command');
     return $c->reply->not_found unless grep { $cmd eq $_ } @$commands;
+    my $isotovideo = $c->app->defaults('isotovideo');
     myjsonrpc::send_json($isotovideo, {cmd => $cmd, params => $c->req->query_params->to_hash});
-    $c->render(json => myjsonrpc::read_json($isotovideo));
-    return;
+    return $c->render(json => myjsonrpc::read_json($isotovideo));
 }
 
 sub isotovideo_get {
@@ -218,7 +217,7 @@ sub isotovideo_get {
 
 sub isotovideo_post {
     my ($c) = @_;
-    return isotovideo_command($c, [qw(interactive stop_waitforneedle continue_waitforneedle reload_needles)]);
+    return isotovideo_command($c, []);
 }
 
 sub get_temp_file {
@@ -229,8 +228,9 @@ sub get_temp_file {
     return $self->reply->not_found;
 }
 
+
 sub run_daemon {
-    my ($port) = @_;
+    my ($port, $isotovideo) = @_;
 
     # allow up to 20GB - hdd images
     $ENV{MOJO_MAX_MESSAGE_SIZE}   = 1024 * 1024 * 1024 * 20;
@@ -238,9 +238,14 @@ sub run_daemon {
 
     # avoid leaking token
     app->mode('production');
-    app->log->level('info');
+    app->log->level('debug');
+    app->log->debug("RUN_DAEMON " . $isotovideo);
+    # abuse the defaults to store singletons for the server
+    app->defaults(isotovideo => $isotovideo);
+    app->defaults(clients    => {});
 
-    my $r          = app->routes;
+    my $r = app->routes;
+    $r->namespaces(['OpenQA']);
     my $token_auth = $r->route("/$bmwqemu::vars{JOBTOKEN}");
 
     # for access all data as CPIO archive
@@ -271,6 +276,9 @@ sub run_daemon {
     $token_auth->get('/isotovideo/#command' => \&isotovideo_get);
     $token_auth->post('/isotovideo/#command' => \&isotovideo_post);
 
+    $token_auth->websocket('/ws')->name('ws')->to('commands#start_ws');
+    $token_auth->get('/developer')->to('commands#developer');
+
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');
 
@@ -292,6 +300,27 @@ sub run_daemon {
             $time = gettimeofday;
             return sprintf(strftime("[%FT%T.%%04d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
         });
+
+    # hook the parent into the io loop
+    my $stream = Mojo::IOLoop::Stream->new($isotovideo);
+    $stream->timeout(0);
+    $stream->on(
+        read => sub {
+            my ($stream, $bytes) = @_;
+
+            my $json = from_json($bytes);
+            # this is just internal information
+            delete $json->{json_cmd_token};
+            my $clients = app->defaults('clients');
+            for (keys %$clients) {
+                $clients->{$_}->send({json => $json});
+            }
+
+            # Process input chunk
+            say "BYTES $bytes";
+        });
+    Mojo::IOLoop->stream($stream);
+
     app->log->info("Daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
     try {
         $daemon->run;
@@ -305,7 +334,7 @@ sub run_daemon {
 sub start_server {
     my ($port) = @_;
 
-    my $child;
+    my ($child, $isotovideo);
     socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
       or die "socketpair: $!";
 
@@ -323,7 +352,7 @@ sub start_server {
 
         close($child);
         $0 = "$0: commands";
-        run_daemon($port);
+        run_daemon($port, $isotovideo);
         Devel::Cover::report() if Devel::Cover->can('report');
         _exit(0);
     }
@@ -332,6 +361,5 @@ sub start_server {
     return ($pid, $child);
 }
 
-1;
 
-# vim: set sw=4 et:
+1;
