@@ -412,7 +412,7 @@ sub handle_paused_test_execution {
 
     # write debugging info
     myjsonrpc::send_json($cfd, {paused => $rsp});
-    print("paused, so not passing $cmd to backend\n");
+    print("isotovideo: paused, so not passing $cmd to backend\n");
 
     # postpone execution of command
     $postponed_r       = $r;
@@ -427,7 +427,7 @@ sub process_command {
 
     if ($rsp->{cmd} =~ m/^backend_(.*)/) {
         return if handle_paused_test_execution($r, $rsp);
-        die "we need to implement a backend queue" if $backend_requester;
+        die 'isotovideo: we need to implement a backend queue' if $backend_requester;
         $backend_requester = $r;
         my $cmd = $1;
         delete $rsp->{cmd};
@@ -441,18 +441,18 @@ sub process_command {
     if ($rsp->{cmd} eq 'set_pause_at_test') {
         $pause_test_name = $rsp->{name};
 
-        # print debugging info
-        print("test execution will be paused at test $pause_test_name\n");
+        # print/send debugging info
+        print("isotovideo: test execution will be paused at test $pause_test_name\n");
         myjsonrpc::send_json($cfd, {set_pause_at_test => $pause_test_name});
 
         myjsonrpc::send_json($r, {ret => 1});
         return;
     }
     if ($rsp->{cmd} eq 'resume_test_execution') {
-        # print debug info
+        # print/send debug info
         print($stop_passing_commands_to_backend ?
-              "test execution will be resumed\n"
-            : "resuming test execution requested but not paused anyways\n"
+              "isotovideo: test execution will be resumed\n"
+            : "isotovideo: resuming test execution requested but not paused anyways\n"
         );
         myjsonrpc::send_json($cfd, {resume_test_execution => $postponed_command});
 
@@ -462,7 +462,7 @@ sub process_command {
         # resume with postponed command so autotest can continue
         if ($postponed_command) {
             my $cmd = $postponed_command->{cmd};
-            print("resuming, continue passing $cmd to backend\n");
+            print("isotovideo: resuming, continue passing $cmd to backend\n");
             process_command($postponed_r, $postponed_command);
             $postponed_r       = undef;
             $postponed_command = undef;
@@ -483,7 +483,7 @@ sub process_command {
             && $current_test_full_name
             && ($pause_test_name eq $current_test_name || $pause_test_name eq $current_test_full_name))
         {
-            print("pausing test execution of $pause_test_name\n");
+            print("isotovideo: pausing test execution of $pause_test_name\n");
             $stop_passing_commands_to_backend = 1;
         }
         myjsonrpc::send_json($r, {ret => 1});
@@ -545,10 +545,10 @@ sub process_command {
 
     # die if command unknown
     if ($rsp->{cmd}) {
-        die "Unknown command $rsp->{cmd}";
+        die "isotovideo: unknown command $rsp->{cmd}";
     }
     else {
-        die 'No command specified';
+        die 'isotovideo: no command specified';
     }
 }
 
