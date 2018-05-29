@@ -58,6 +58,7 @@ sub add_console {
         'local-Xvnc'      => 'localXvnc',
         'ssh-iucvconn'    => 'sshIucvconn',
         'virtio-terminal' => 'virtio_terminal',
+        'amt-sol'         => 'amtSol',
         'ipmi-sol'        => 'ipmiSol',
         'ipmi-xterm'      => 'sshXtermIPMI',
     );
