@@ -85,11 +85,11 @@ Getopt::Long::Configure("no_ignore_case");
 
 my %options;
 # global exit status
-my $r = 1;
+my $return_code = 1;
 
 sub usage {
-    my ($return_code) = @_;
-    $r = $return_code;
+    my ($usage_return_code) = @_;
+    $return_code = $usage_return_code;
     eval { use Pod::Usage; pod2usage($return_code); };
     if ($@) {
         die "cannot display help, install perl(Pod::Usage)\n";
@@ -139,22 +139,22 @@ for my $arg (@ARGV) {
 die "CASEDIR environment variable not set, unknown test case directory" if !defined $bmwqemu::vars{CASEDIR};
 die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
 
-my $cpid;
+my $cmd_srv_pid;
 my $testpid;
-my $cfd;
+my $cmd_srv_fd;
 
 my $loop = 1;
 
 sub kill_commands {
-    return unless $cpid;
+    return unless $cmd_srv_pid;
     # create a copy as cpid is overwritten by SIGCHLD
-    my $pid = $cpid;
+    my $pid = $cmd_srv_pid;
     if (kill('TERM', $pid)) {
         diag "awaiting death of commands process";
         my $ret = waitpid($pid, 0);
         diag "commands process exited: $ret";
     }
-    $cpid = 0;
+    $cmd_srv_pid = 0;
 }
 
 sub kill_autotest {
@@ -198,10 +198,10 @@ sub signalhandler {
 sub signalhandler_chld {
 
     while ((my $child = waitpid(-1, WNOHANG)) > 0) {
-        if ($child == $cpid) {
+        if ($child == $cmd_srv_pid) {
             diag("commands webserver died");
-            $loop = 0;
-            $cpid = 0;
+            $loop        = 0;
+            $cmd_srv_pid = 0;
             next;
         }
         if ($bmwqemu::backend->{backend_pid} && $child == $bmwqemu::backend->{backend_pid}) {
@@ -277,7 +277,7 @@ $bmwqemu::vars{TEST_GIT_HASH} = $test_git_hash;
 
 # start the command fork before we get into the backend, the command child
 # is not supposed to talk to the backend directly
-($cpid, $cfd) = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
+($cmd_srv_pid, $cmd_srv_fd) = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
 
 # set a default distribution if the tests don't have one
 $testapi::distri = distribution->new;
@@ -322,10 +322,10 @@ if ($ENV{RUN_DEBUGVIEWER}) {
 
 use IO::Select;
 
-my $s = IO::Select->new();
-$s->add($testfd);
-$s->add($cfd);
-$s->add($bmwqemu::backend->{from_child});
+my $io_select = IO::Select->new();
+$io_select->add($testfd);
+$io_select->add($cmd_srv_fd);
+$io_select->add($bmwqemu::backend->{from_child});
 
 # now we have everything, give the tests a go
 $testfd->write("GO\n");
@@ -341,7 +341,7 @@ my $pause_test_name = $bmwqemu::vars{PAUSE_AT};
 my $stop_passing_commands_to_backend = 0;
 
 # when paused, save the command from autotest which has been postponed to be able to resume
-my $postponed_r;
+my $postponed_io_handle;
 my $postponed_command;
 
 # timeout for the select (only set for check_screens)
@@ -407,33 +407,33 @@ sub check_asserted_screen {
 sub handle_paused_test_execution {
     return unless ($stop_passing_commands_to_backend);
 
-    my ($r, $rsp) = @_;
+    my ($io_handle, $rsp) = @_;
     my $cmd = $rsp->{cmd};
 
     # write debugging info
-    myjsonrpc::send_json($cfd, {paused => $rsp});
+    myjsonrpc::send_json($cmd_srv_fd, {paused => $rsp});
     print("isotovideo: paused, so not passing $cmd to backend\n");
 
     # postpone execution of command
-    $postponed_r       = $r;
-    $postponed_command = $rsp;
+    $postponed_io_handle = $io_handle;
+    $postponed_command   = $rsp;
 
     # send no reply to autotest, just let it wait
     return 1;
 }
 
 sub process_command {
-    my ($r, $rsp) = @_;
+    my ($io_handle, $rsp) = @_;
 
     if ($rsp->{cmd} =~ m/^backend_(.*)/) {
-        return if handle_paused_test_execution($r, $rsp);
+        return if handle_paused_test_execution($io_handle, $rsp);
         die 'isotovideo: we need to implement a backend queue' if $backend_requester;
-        $backend_requester = $r;
+        $backend_requester = $io_handle;
         my $cmd = $1;
         delete $rsp->{cmd};
 
         # send debugging info for ws clients
-        myjsonrpc::send_json($cfd, {$cmd => $rsp});
+        myjsonrpc::send_json($cmd_srv_fd, {$cmd => $rsp});
         # pass command to backend
         myjsonrpc::send_json($bmwqemu::backend->{to_child}, {cmd => $cmd, arguments => $rsp});
         return;
@@ -443,9 +443,9 @@ sub process_command {
 
         # print/send debugging info
         print("isotovideo: test execution will be paused at test $pause_test_name\n");
-        myjsonrpc::send_json($cfd, {set_pause_at_test => $pause_test_name});
+        myjsonrpc::send_json($cmd_srv_fd, {set_pause_at_test => $pause_test_name});
 
-        myjsonrpc::send_json($r, {ret => 1});
+        myjsonrpc::send_json($io_handle, {ret => 1});
         return;
     }
     if ($rsp->{cmd} eq 'resume_test_execution') {
@@ -454,7 +454,7 @@ sub process_command {
               "isotovideo: test execution will be resumed\n"
             : "isotovideo: resuming test execution requested but not paused anyways\n"
         );
-        myjsonrpc::send_json($cfd, {resume_test_execution => $postponed_command});
+        myjsonrpc::send_json($cmd_srv_fd, {resume_test_execution => $postponed_command});
 
         # no longer stop passing commands to backend
         $stop_passing_commands_to_backend = 0;
@@ -463,12 +463,12 @@ sub process_command {
         if ($postponed_command) {
             my $cmd = $postponed_command->{cmd};
             print("isotovideo: resuming, continue passing $cmd to backend\n");
-            process_command($postponed_r, $postponed_command);
-            $postponed_r       = undef;
-            $postponed_command = undef;
+            process_command($postponed_io_handle, $postponed_command);
+            $postponed_io_handle = undef;
+            $postponed_command   = undef;
             return;
         }
-        myjsonrpc::send_json($r, {ret => 1});
+        myjsonrpc::send_json($io_handle, {ret => 1});
         return;
     }
     if ($rsp->{cmd} eq 'set_current_test') {
@@ -477,7 +477,7 @@ sub process_command {
         $current_test_full_name = $rsp->{full_name};
 
         # send debugging info for ws clients
-        myjsonrpc::send_json($cfd, {set_current_test => $current_test_name});
+        myjsonrpc::send_json($cmd_srv_fd, {set_current_test => $current_test_name});
         if (   $pause_test_name
             && $current_test_name
             && $current_test_full_name
@@ -486,11 +486,11 @@ sub process_command {
             print("isotovideo: pausing test execution of $pause_test_name\n");
             $stop_passing_commands_to_backend = 1;
         }
-        myjsonrpc::send_json($r, {ret => 1});
+        myjsonrpc::send_json($io_handle, {ret => 1});
         return;
     }
     if ($rsp->{cmd} eq 'tests_done') {
-        $r         = $rsp->{died};
+        $io_handle = $rsp->{died};
         $completed = $rsp->{completed};
         CORE::close($testfd);
         $testfd = undef;
@@ -500,10 +500,10 @@ sub process_command {
     }
     if ($rsp->{cmd} eq 'check_screen') {
         $no_wait = $rsp->{no_wait} // 0;
-        return if handle_paused_test_execution($r, $rsp);
+        return if handle_paused_test_execution($io_handle, $rsp);
 
         # send debugging info for ws clients
-        myjsonrpc::send_json($cfd, {check_screen => $rsp->{mustmatch}});
+        myjsonrpc::send_json($cmd_srv_fd, {check_screen => $rsp->{mustmatch}});
 
         my $arguments = {
             mustmatch => $rsp->{mustmatch},
@@ -520,26 +520,26 @@ sub process_command {
     # handle HTTP commands
     if ($rsp->{cmd} eq 'status') {
         my $result = {tags => $tags, running => $current_test_name};
-        myjsonrpc::send_json($r, $result);
+        myjsonrpc::send_json($io_handle, $result);
         return;
     }
     if ($rsp->{cmd} eq 'version') {
         my $result = {test_git_hash => $test_git_hash, needles_git_hash => $needles_git_hash, version => $INTERFACE};
-        myjsonrpc::send_json($r, $result);
+        myjsonrpc::send_json($io_handle, $result);
         return;
     }
     if ($rsp->{cmd} eq 'read_serial') {
         # This will stop to work if we change the serialfile after the initialization because of the fork
         my ($serial, $pos) = $bmwqemu::backend->{backend}->read_serial($rsp->{position});
-        myjsonrpc::send_json($r, {serial => $serial, position => $pos});
+        myjsonrpc::send_json($io_handle, {serial => $serial, position => $pos});
         return;
     }
     if ($rsp->{cmd} eq 'send_clients') {
         # we don't expect replies
         delete $rsp->{cmd};
         delete $rsp->{json_cmd_token};
-        myjsonrpc::send_json($cfd, $rsp);
-        myjsonrpc::send_json($r, {ret => 1});
+        myjsonrpc::send_json($cmd_srv_fd, $rsp);
+        myjsonrpc::send_json($io_handle, {ret => 1});
         return;
     }
 
@@ -552,24 +552,24 @@ sub process_command {
     }
 }
 
-$r = 0;
+$return_code = 0;
 
 while ($loop) {
-    my ($reads, $writes, $exceps) = IO::Select::select($s, undef, $s, $timeout);
-    for my $r (@$reads) {
-        my $rsp = myjsonrpc::read_json($r);
+    my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $timeout);
+    for my $readable (@$ready_for_read) {
+        my $rsp = myjsonrpc::read_json($readable);
         if (!defined $rsp) {
-            diag sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($r), fileno($testfd), fileno($cfd));
-            $r    = 1;
-            $loop = 0;
+            diag sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($readable), fileno($testfd), fileno($cmd_srv_fd));
+            $readable = 1;
+            $loop     = 0;
             last;
         }
-        if ($r == $bmwqemu::backend->{from_child}) {
+        if ($readable == $bmwqemu::backend->{from_child}) {
             myjsonrpc::send_json($backend_requester, {ret => $rsp->{rsp}});
             $backend_requester = undef;
             next;
         }
-        process_command($r, $rsp);
+        process_command($readable, $rsp);
     }
 
     if (defined $tags) {
@@ -582,15 +582,15 @@ while ($loop) {
 kill_commands;
 
 if ($testfd) {
-    $r = 1;    # unusual shutdown
+    $return_code = 1;    # unusual shutdown
     CORE::close $testfd;
     kill_autotest;
 }
 
-diag "isotovideo " . ($r ? 'failed' : 'done');
+diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
 
 my $clean_shutdown;
-if (!$r) {
+if (!$return_code) {
     eval {
         $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
         diag "BACKEND SHUTDOWN $clean_shutdown";
@@ -599,7 +599,7 @@ if (!$r) {
     eval { bmwqemu::stop_vm(); };
     if ($@) {
         diag "Error during stop_vm: $@";
-        $r = 1;
+        $return_code = 1;
     }
 }
 
@@ -607,7 +607,7 @@ if (!$r) {
 bmwqemu::load_vars();
 
 # mark hard disks for upload if test finished
-if (!$r && $completed && (my $nd = $bmwqemu::vars{NUMDISKS}) && ($bmwqemu::vars{BACKEND} eq 'qemu')) {
+if (!$return_code && $completed && (my $nd = $bmwqemu::vars{NUMDISKS}) && ($bmwqemu::vars{BACKEND} eq 'qemu')) {
     my @toextract;
     for my $i (1 .. $nd) {
         my $dir = 'assets_private';
@@ -623,7 +623,7 @@ if (!$r && $completed && (my $nd = $bmwqemu::vars{NUMDISKS}) && ($bmwqemu::vars{
     }
     if (@toextract && !$clean_shutdown) {
         diag "ERROR: Machine not shut down when uploading disks!\n";
-        $r = 1;
+        $return_code = 1;
     }
     else {
         for my $asset (@toextract) {
@@ -631,7 +631,7 @@ if (!$r && $completed && (my $nd = $bmwqemu::vars{NUMDISKS}) && ($bmwqemu::vars{
             eval { $bmwqemu::backend->extract_assets($asset); };
             if ($@) {
                 diag "extract assets failed: $@";
-                $r = 1;
+                $return_code = 1;
             }
         }
     }
@@ -642,9 +642,9 @@ END {
     kill_commands;
     kill_autotest;
     # in case of early exit, e.g. help display
-    $r //= 0;
-    print "$$: EXIT $r\n";
-    $? = $r;
+    $return_code //= 0;
+    print "$$: EXIT $return_code\n";
+    $? = $return_code;
 }
 
 # vim: set sw=4 et:
