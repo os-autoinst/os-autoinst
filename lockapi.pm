@@ -72,10 +72,13 @@ sub mutex_try_lock {
 }
 
 sub mutex_unlock {
-    my ($name) = @_;
+    my ($name, $where) = @_;
+    my $param = {action => 'unlock'};
+    $param->{where} = $where if $where;
+
     bmwqemu::mydie('missing lock name') unless $name;
     bmwqemu::diag("mutex unlock '$name'");
-    my $res = api_call('post', "mutex/$name", {action => 'unlock'})->code;
+    my $res = api_call('post', "mutex/$name", $param)->code;
     return 1 if ($res == 200);
     bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
     return 0;
@@ -104,7 +107,7 @@ sub mutex_wait {
     my $start = time;
     mutex_lock $name, $where;
     my $delay = time - $start;
-    mutex_unlock $name;
+    mutex_unlock $name, $where;
 
     # Ammend info with time spent waiting
     $autotest::current_test->remove_last_result;
