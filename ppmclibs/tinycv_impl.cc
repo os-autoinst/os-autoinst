@@ -16,8 +16,8 @@
 #include <cerrno>
 #include <exception>
 #include <iostream>
-#include <stdint.h>
-#include <stdio.h>
+#include <cstdint>
+#include <cstdio>
 #include <sys/time.h>
 
 #include <algorithm> // std::min
@@ -37,14 +37,13 @@
 #define VERY_SIM 1000000.0
 
 using namespace cv;
-using namespace std;
 
 struct Image {
-    cv::Mat img;
-    mutable cv::Mat _preped;
-    mutable cv::Rect _prep_roi;
+    Mat img;
+    mutable Mat _preped;
+    mutable Rect _prep_roi;
 
-    cv::Mat prep(const Rect& roi) const
+    Mat prep(const Rect& roi) const
     {
         if (!_preped.empty()) {
             // Check if ROI is contained in the current ROI
@@ -160,9 +159,9 @@ std::vector<Point> minVec(const Mat& m, float min)
 // Used to sort a list of points to find the closest to the original
 struct SortByClose {
     SortByClose(int _x, int _y) { orig.x = _x, orig.y = _y; }
-    bool operator()(Point a, Point b)
+    bool operator()(const Point& a, const Point& b) const
     {
-        return cv::norm(orig - a) < cv::norm(orig - b);
+        return norm(orig - a) < norm(orig - b);
     }
     Point orig;
 };
@@ -333,21 +332,21 @@ Image* image_read(const char* filename)
 
 Image* image_from_ppm(const unsigned char* data, size_t len)
 {
-    vector<uchar> buf(data, data + len);
+    std::vector<uchar> buf(data, data + len);
     Image* image = new Image;
     image->img = imdecode(buf, CV_LOAD_IMAGE_COLOR);
     return image;
 }
 
-bool image_write(Image* s, const char* filename)
+bool image_write(const Image* const s, const char* filename)
 {
     return imwrite(filename, s->img);
 }
 
-vector<uchar>* image_ppm(Image* s)
+std::vector<uchar>* image_ppm(Image* s)
 {
     // reuse memory
-    static vector<uchar> buf;
+    static std::vector<uchar> buf;
     imencode(".ppm", s->img, buf);
     return &buf;
 }
@@ -399,12 +398,12 @@ void image_threshold(Image* a, int level)
 {
     for (int y = 0; y < a->img.rows; y++) {
         for (int x = 0; x < a->img.cols; x++) {
-            cv::Vec3b farbe = a->img.at<cv::Vec3b>(y, x);
+            Vec3b farbe = a->img.at<Vec3b>(y, x);
             if ((farbe[0] + farbe[1] + farbe[2]) / 3 > level)
-                farbe = cv::Vec3b(255, 255, 255);
+                farbe = Vec3b(255, 255, 255);
             else
-                farbe = cv::Vec3b(0, 0, 0);
-            a->img.at<cv::Vec3b>(y, x) = farbe;
+                farbe = Vec3b(0, 0, 0);
+            a->img.at<Vec3b>(y, x) = farbe;
         }
     }
 }
@@ -413,7 +412,7 @@ std::vector<float> image_avgcolor(Image* s)
 {
     Scalar t = mean(s->img);
 
-    vector<float> f;
+    std::vector<float> f;
     f.push_back(t[2] / 255.0); // Red
     f.push_back(t[1] / 255.0); // Green
     f.push_back(t[0] / 255.0); // Blue
@@ -438,7 +437,7 @@ Image* image_scale(Image* a, int width, int height)
         resize(a->img, n->img, n->img.size());
     } else if (n->img.rows < height || n->img.cols < width) {
         n->img = Mat::zeros(height, width, a->img.type());
-        n->img = cv::Scalar(120, 120, 120);
+        n->img = Scalar(120, 120, 120);
         a->img.copyTo(n->img(Rect(0, 0, a->img.cols, a->img.rows)));
     } else
         n->img = a->img;
@@ -485,7 +484,7 @@ class VNCInfo {
     unsigned char red_skale;
 
     // in case !true_color
-    cv::Vec3b colourMap[256];
+    Vec3b colourMap[256];
 
 public:
     VNCInfo(bool do_endian_conversion, bool true_colour,
@@ -508,13 +507,13 @@ public:
         this->red_skale = 256 / (red_mask + 1);
     }
 
-    cv::Vec3b read_cpixel(const unsigned char* data, size_t& offset);
-    cv::Vec3b read_pixel(const unsigned char* data, size_t& offset);
+    Vec3b read_cpixel(const unsigned char* data, size_t& offset);
+    Vec3b read_pixel(const unsigned char* data, size_t& offset);
     void set_colour(unsigned int index, unsigned int red, unsigned int green,
         unsigned int blue)
     {
         assert(index < 256);
-        colourMap[index] = cv::Vec3b(blue, green, red);
+        colourMap[index] = Vec3b(blue, green, red);
     }
 };
 
@@ -536,7 +535,7 @@ VNCInfo* image_vncinfo(bool do_endian_conversion, bool true_colour,
 }
 
 // implemented in tinycv_ast2100
-void decode_ast2100(cv::Mat* img, const unsigned char* data, size_t len);
+void decode_ast2100(Mat* img, const unsigned char* data, size_t len);
 
 void image_map_raw_data_ast2100(Image* a, const unsigned char* data,
     size_t len)
@@ -556,9 +555,9 @@ void image_map_raw_data_rgb555(Image* a, const unsigned char* data)
             pixel = pixel >> 5;
             unsigned char red = pixel % 32 * 8;
             // MSB ignored
-            a->img.at<cv::Vec3b>(y, x)[0] = blue;
-            a->img.at<cv::Vec3b>(y, x)[1] = green;
-            a->img.at<cv::Vec3b>(y, x)[2] = red;
+            a->img.at<Vec3b>(y, x)[0] = blue;
+            a->img.at<Vec3b>(y, x)[1] = green;
+            a->img.at<Vec3b>(y, x)[2] = red;
         }
     }
 }
@@ -577,7 +576,7 @@ static uint16_t read_u16(const unsigned char* data, size_t& offset,
     return pixel;
 }
 
-cv::Vec3b VNCInfo::read_pixel(const unsigned char* data, size_t& offset)
+Vec3b VNCInfo::read_pixel(const unsigned char* data, size_t& offset)
 {
     unsigned char blue_skale = 256 / (blue_mask + 1);
     unsigned char green_skale = 256 / (green_mask + 1);
@@ -621,8 +620,8 @@ void image_map_raw_data(Image* a, const unsigned char* data, unsigned int ox,
     size_t offset = 0;
     for (unsigned int y = 0; y < height; y++) {
         for (unsigned int x = 0; x < width; x++) {
-            cv::Vec3b pixel = info->read_pixel(data, offset);
-            a->img.at<cv::Vec3b>(y + oy, x + ox) = pixel;
+            Vec3b pixel = info->read_pixel(data, offset);
+            a->img.at<Vec3b>(y + oy, x + ox) = pixel;
         }
     }
 }
@@ -630,13 +629,13 @@ void image_map_raw_data(Image* a, const unsigned char* data, unsigned int ox,
 // copy the s image into a at x,y
 void image_blend_image(Image* a, Image* s, long x, long y)
 {
-    cv::Rect roi(cv::Point(x, y), s->img.size());
+    Rect roi(Point(x, y), s->img.size());
     if (s->img.rows == 0 || s->img.cols == 0)
         return;
     s->img.copyTo(a->img(roi));
 }
 
-cv::Vec3b VNCInfo::read_cpixel(const unsigned char* data, size_t& offset)
+Vec3b VNCInfo::read_cpixel(const unsigned char* data, size_t& offset)
 {
     unsigned char red, green, blue;
 
@@ -658,7 +657,7 @@ cv::Vec3b VNCInfo::read_cpixel(const unsigned char* data, size_t& offset)
             red = data[offset++];
         }
     }
-    return cv::Vec3b(blue, green, red);
+    return Vec3b(blue, green, red);
 }
 
 long image_map_raw_data_zrle(Image* a, long x, long y, long w, long h,
@@ -683,23 +682,23 @@ long image_map_raw_data_zrle(Image* a, long x, long y, long w, long h,
             int tile_height = h > 64 ? 64 : h;
 
             if (sub_encoding == 1) {
-                cv::Vec3b farbe = info->read_cpixel(data, offset);
+                Vec3b farbe = info->read_cpixel(data, offset);
                 for (int j = 0; j < tile_height; j++) {
                     for (int i = 0; i < tile_width; i++) {
-                        a->img.at<cv::Vec3b>(y + j, x + i) = farbe;
+                        a->img.at<Vec3b>(y + j, x + i) = farbe;
                     }
                 }
             } else if (sub_encoding == 0) {
                 for (int j = 0; j < tile_height; j++) {
                     for (int i = 0; i < tile_width; i++) {
-                        cv::Vec3b farbe = info->read_cpixel(data, offset);
-                        a->img.at<cv::Vec3b>(y + j, x + i) = farbe;
+                        Vec3b farbe = info->read_cpixel(data, offset);
+                        a->img.at<Vec3b>(y + j, x + i) = farbe;
                     }
                 }
             } else if (sub_encoding == 128) {
                 int j = 0, i = 0;
                 while (j < tile_height) {
-                    cv::Vec3b farbe = info->read_cpixel(data, offset);
+                    Vec3b farbe = info->read_cpixel(data, offset);
                     int length = 1;
                     /* run length */
                     while (data[offset] == 0xff) {
@@ -707,7 +706,7 @@ long image_map_raw_data_zrle(Image* a, long x, long y, long w, long h,
                     }
                     length += data[offset++];
                     while (j < tile_height && length > 0) {
-                        a->img.at<cv::Vec3b>(y + j, x + i) = farbe;
+                        a->img.at<Vec3b>(y + j, x + i) = farbe;
                         length--;
                         if (++i >= tile_width) {
                             i = 0;
@@ -724,7 +723,7 @@ long image_map_raw_data_zrle(Image* a, long x, long y, long w, long h,
                     palette_bpp = (sub_encoding > 4 ? 4 : (sub_encoding > 2 ? 2 : 1));
                 }
 
-                cv::Vec3b palette[128]; // max size
+                Vec3b palette[128]; // max size
                 for (int i = 0; i < palette_size; ++i) {
                     palette[i] = info->read_cpixel(data, offset);
                 }
@@ -732,7 +731,7 @@ long image_map_raw_data_zrle(Image* a, long x, long y, long w, long h,
                     int j = 0, i = 0;
                     while (j < tile_height) {
                         int palette_index = data[offset] & 0x7f;
-                        cv::Vec3b farbe = palette[palette_index];
+                        Vec3b farbe = palette[palette_index];
                         int length = 1;
                         if (data[offset] & 0x80) { // run
                             offset++;
@@ -744,7 +743,7 @@ long image_map_raw_data_zrle(Image* a, long x, long y, long w, long h,
                         }
                         offset++;
                         while (j < tile_height && length > 0) {
-                            a->img.at<cv::Vec3b>(y + j, x + i) = farbe;
+                            a->img.at<Vec3b>(y + j, x + i) = farbe;
                             length--;
                             if (++i >= tile_width) {
                                 i = 0;
@@ -757,8 +756,8 @@ long image_map_raw_data_zrle(Image* a, long x, long y, long w, long h,
                     for (int j = 0; j < tile_height; j++) {
                         int shift = 8 - palette_bpp;
                         for (int i = 0; i < tile_width; i++) {
-                            cv::Vec3b farbe = palette[((data[offset]) >> shift) & mask];
-                            a->img.at<cv::Vec3b>(y + j, x + i) = farbe;
+                            Vec3b farbe = palette[((data[offset]) >> shift) & mask];
+                            a->img.at<Vec3b>(y + j, x + i) = farbe;
 
                             shift -= palette_bpp;
                             if (shift < 0) {
