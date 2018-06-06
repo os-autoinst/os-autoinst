@@ -478,7 +478,7 @@ sub process_command {
 
         # send debugging info for ws clients
         myjsonrpc::send_json($cmd_srv_fd, {set_current_test => $current_test_name});
-        if (   $pause_test_name
+        if ($pause_test_name
             && $current_test_name
             && $current_test_full_name
             && ($pause_test_name eq $current_test_name || $pause_test_name eq $current_test_full_name))
