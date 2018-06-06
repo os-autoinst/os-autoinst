@@ -34,9 +34,6 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single new drive');
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single new drive');
 
-@gcmdl = $bdc->gen_qemu_img_rebase(qr/^hd/);
-is_deeply(\@gcmdl, [], 'Generate qemu-img rebase for single new drive');
-
 @cmdl = (['convert', '-c', '-O', 'qcow2', 'raid/hd1', 'images/hd1.qcow2']);
 @gcmdl = $bdc->gen_qemu_img_convert(qr/^hd/, 'images', 'hd1.qcow2');
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert for single new drive');
@@ -78,9 +75,6 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing d
 @gcmdl = $bdc->gen_unlink_list();
 is_deeply(\@cmdl, \@gcmdl, 'Generate unlink list for single existing drive');
 
-@gcmdl = $bdc->gen_qemu_img_rebase(qr/^hd1/);
-is_deeply(\@gcmdl, [], 'Generate qemu-img rebase for single existing drive');
-
 @cmdl = (['convert', '-c', '-O', 'qcow2', 'raid/hd1-overlay0', 'images/hd1.qcow2']);
 @gcmdl = $bdc->gen_qemu_img_convert(qr/^hd1/, 'images', 'hd1.qcow2');
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert for single existing drive');
@@ -106,7 +100,7 @@ $proc = OpenQA::Qemu::Proc->new()
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single existing UEFI disk using vars');
 
-@cmdl  = ([qw(create -f qcow2 -b Core-7.2.iso raid/hd0-overlay0 11116544)]);
+@cmdl  = ([qw(create -f qcow2 -b data/Core-7.2.iso raid/hd0-overlay0 11116544)]);
 @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing UEFI disk');
 
@@ -226,18 +220,14 @@ $proc->deserialise_state(path($path)->slurp());
 is_deeply(\@gcmdl, \@cmdl, 'Command line after snapshot and serialisation')
   || diag(explain(\@gcmdl));
 
-@cmdl = ([qw(create -f qcow2 -b hd0 raid/hd0-overlay1 10G)],
-    [qw(create -f qcow2 -b cd0-overlay0 raid/cd0-overlay1 11116544)]);
+@cmdl = ([qw(create -f qcow2 -b raid/hd0 raid/hd0-overlay1 10G)],
+    [qw(create -f qcow2 -b raid/cd0-overlay0 raid/cd0-overlay1 11116544)]);
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate reverted snapshot images');
 
 @cmdl  = qw(raid/hd0-overlay1 raid/cd0-overlay1);
 @gcmdl = $bdc->gen_unlink_list();
 is_deeply(\@gcmdl, \@cmdl, 'Generate unlink list of reverted snapshot images');
-
-@cmdl = (['rebase', '-u', '-b', 'hd0', 'raid/hd0-overlay1']);
-@gcmdl = $bdc->gen_qemu_img_rebase(qr/^hd0$/);
-is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img rebase with snapshots');
 
 @cmdl = (['convert', '-c', '-O', 'qcow2', 'raid/hd0-overlay1', 'images/hd0.qcow2']);
 @gcmdl = $bdc->gen_qemu_img_convert(qr/^hd0$/, 'images', 'hd0.qcow2');

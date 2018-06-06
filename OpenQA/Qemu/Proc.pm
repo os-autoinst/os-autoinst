@@ -281,10 +281,6 @@ sub init_blockdev_images {
     }
 
     $self->blockdev_conf->mark_all_created();
-
-    for my $qicmd ($self->blockdev_conf->gen_qemu_img_rebase(qr/^pflash/)) {
-        runcmd($self->qemu_img_bin, @$qicmd);
-    }
 }
 
 =head3 export_blockdev_images
@@ -303,10 +299,6 @@ thing as performing an offline migration.
 sub export_blockdev_images($$$$) {
     my ($self, $filter, $img_dir, $name) = @_;
     my $count = 0;
-
-    for my $qicmd ($self->blockdev_conf->gen_qemu_img_rebase($filter)) {
-        runcmd($self->qemu_img_bin, @$qicmd);
-    }
 
     for my $qicmd ($self->blockdev_conf->gen_qemu_img_convert($filter, $img_dir, $name)) {
         runcmd('nice', 'ionice', $self->qemu_img_bin, @$qicmd);

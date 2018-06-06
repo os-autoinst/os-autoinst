@@ -163,20 +163,6 @@ sub gen_cmdline {
     return @cmdl;
 }
 
-# The qemu-img -b param treats relative paths as being relative to the image
-# being created. Whereas the rest of the universe treats relative paths as
-# relative to the CWD. So if the path is relative then we just use the path's
-# basename and hope for the best (i.e. we assume the backing file is in the
-# same dir as the file being created).
-sub _abs_or_basename {
-    my $path = shift;
-
-    if (File::Spec->file_name_is_absolute($path)) {
-        return $path;
-    }
-    return (File::Spec->splitpath($path))[2];
-}
-
 =head3 gen_qemu_img_cmdlines
 
 Generate the qemu-img command line to create this blockdevice, if it needs
@@ -198,41 +184,12 @@ sub gen_qemu_img_cmdlines {
     return @cmdlns unless $self->needs_creating;
 
     my @params = ('create', '-f', $self->driver);
-    # We pass -u so that the backing files are not checked because qemu-img
-    # treats the paths as relative to the top overlay, but apparantly
-    # blockdev-snapshot-sync does not, so the paths stored in the resulting
-    # qcow2 images confuse qemu-img. This means we have to set the sizes of
-    # the backing files explicitly because qemu-img can not read them.
-    push(@params, ('-b', _abs_or_basename($self->backing_file->file)))
+    push(@params, ('-b', $self->backing_file->file))
       if defined $self->backing_file;
     push(@params, $self->file);
     push(@params, $self->size);
 
     return (@cmdlns, \@params);
-}
-
-=head3 gen_qemu_img_rebase
-
-Fixup the backing file paths by removing any relative paths which contain more
-than just the backing file's base name. For some reason qemu-img thinks
-relative paths are relative to the active layer's location, but when QEMU
-creates overlays (i.e. takes a snapshot) it sets paths relative to its CWD.
-
-So applying this method to a backing file chain will allow commands like
-'qemu-img convert' to work correctly.
-
-=cut
-sub gen_qemu_img_rebase {
-    my $self = shift;
-    return () unless defined $self->backing_file;
-
-    my @cmdlns = $self->backing_file->gen_qemu_img_rebase();
-
-    return @cmdlns
-      if File::Spec->file_name_is_absolute($self->backing_file->file);
-
-    return (@cmdlns, ['rebase', '-u', '-b',
-            _abs_or_basename($self->backing_file->file), $self->file]);
 }
 
 =head 3 gen_unlink_list
@@ -426,12 +383,6 @@ sub gen_qemu_img_cmdlines {
     my $self = shift;
 
     return $self->drive->gen_qemu_img_cmdlines();
-}
-
-sub gen_qemu_img_rebase {
-    my $self = shift;
-
-    return $self->drive->gen_qemu_img_rebase();
 }
 
 sub gen_qemu_img_convert($$$) {
@@ -787,20 +738,6 @@ sub gen_qemu_img_cmdlines {
     my $self = shift;
 
     return map { $_->gen_qemu_img_cmdlines() } @{$self->_drives};
-}
-
-=head3 gen_qemu_img_rebase
-
-Create qemu-img command lines for all overlays which need rebasing (See
-comments about relative backing file paths).
-
-=cut
-sub gen_qemu_img_rebase {
-    my ($self, $filter) = @_;
-
-    return
-      map  { $_->gen_qemu_img_rebase() }
-      grep { $_->id =~ $filter } @{$self->_drives};
 }
 
 sub gen_qemu_img_commit {
