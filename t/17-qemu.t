@@ -30,7 +30,7 @@ $bdc->add_new_drive('hd1', 'virtio-blk', '10G');
 @gcmdl = $bdc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single new drive');
 
-@cmdl  = ([qw(create -f qcow2 -o nocow=on raid/hd1 10G)]);
+@cmdl  = ([qw(create -f qcow2 raid/hd1 10G)]);
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single new drive');
 
@@ -57,8 +57,8 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for multiple new drives')
 @gcmdl = $bdc->gen_unlink_list();
 is_deeply(\@cmdl, \@gcmdl, 'Generate unlink list for multiple new drives');
 
-@cmdl = ([qw(create -f qcow2 -o nocow=on raid/hd1 10G)],
-    [qw(create -f qcow2 -o nocow=on raid/hd2 12G)]);
+@cmdl = ([qw(create -f qcow2  raid/hd1 10G)],
+    [qw(create -f qcow2  raid/hd2 12G)]);
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for multiple new drives');
 
@@ -70,7 +70,7 @@ $bdc->add_existing_drive('hd1', '/abs/path/sle15-minimal.qcow2', 'virtio-blk', 2
 @gcmdl = $bdc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single existing drive');
 
-@cmdl  = ([qw(create -f qcow2 -o nocow=on -u -b /abs/path/sle15-minimal.qcow2 raid/hd1-overlay0 22548578304)]);
+@cmdl  = ([qw(create -f qcow2 -b /abs/path/sle15-minimal.qcow2 raid/hd1-overlay0 22548578304)]);
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing drive');
 
@@ -102,11 +102,11 @@ $proc = OpenQA::Qemu::Proc->new()
   ->_static_params(['-foo'])
   ->qemu_bin('qemu-kvm')
   ->qemu_img_bin('qemu-img')
-  ->configure_blockdevs('disk', \%vars);
+  ->configure_blockdevs('disk', 'raid', \%vars);
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single existing UEFI disk using vars');
 
-@cmdl  = ([qw(create -f qcow2 -o nocow=on -u -b Core-7.2.iso raid/hd0-overlay0 11116544)]);
+@cmdl  = ([qw(create -f qcow2 -b Core-7.2.iso raid/hd0-overlay0 11116544)]);
 @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing UEFI disk');
 
@@ -135,7 +135,7 @@ $proc = OpenQA::Qemu::Proc->new()
   ->qemu_bin('qemu-kvm')
   ->qemu_img_bin('qemu-img')
   ->configure_controllers(\%vars)
-  ->configure_blockdevs('disk', \%vars);
+  ->configure_blockdevs('disk', 'raid', \%vars);
 
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for new drives on multipath');
@@ -171,7 +171,7 @@ $proc = OpenQA::Qemu::Proc->new()
   ->qemu_bin('qemu-kvm')
   ->qemu_img_bin('qemu-img')
   ->configure_controllers(\%vars)
-  ->configure_blockdevs('disk', \%vars);
+  ->configure_blockdevs('disk', 'raid', \%vars);
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for new drive and cdrom using vars');
 
@@ -226,8 +226,8 @@ $proc->deserialise_state(path($path)->slurp());
 is_deeply(\@gcmdl, \@cmdl, 'Command line after snapshot and serialisation')
   || diag(explain(\@gcmdl));
 
-@cmdl = ([qw(create -f qcow2 -o nocow=on -u -b hd0 raid/hd0-overlay1 10G)],
-    [qw(create -f qcow2 -o nocow=on -u -b cd0-overlay0 raid/cd0-overlay1 11116544)]);
+@cmdl = ([qw(create -f qcow2 -b hd0 raid/hd0-overlay1 10G)],
+    [qw(create -f qcow2 -b cd0-overlay0 raid/cd0-overlay1 11116544)]);
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate reverted snapshot images');
 
@@ -263,7 +263,7 @@ $proc = OpenQA::Qemu::Proc->new()
   ->qemu_bin('qemu-kvm')
   ->qemu_img_bin('qemu-img')
   ->configure_controllers(\%vars)
-  ->configure_blockdevs('disk', \%vars);
+  ->configure_blockdevs('disk', 'raid', \%vars);
 $ssc = $proc->snapshot_conf;
 $bdc = $proc->blockdev_conf;
 
@@ -327,7 +327,7 @@ $proc = OpenQA::Qemu::Proc->new()
   ->qemu_bin('qemu-kvm')
   ->qemu_img_bin('qemu-img')
   ->configure_controllers(\%vars)
-  ->configure_blockdevs('disk', \%vars)
+  ->configure_blockdevs('disk', 'raid', \%vars)
   ->configure_pflash(\%vars);
 $ssc = $proc->snapshot_conf;
 $bdc = $proc->blockdev_conf;

@@ -18,6 +18,7 @@ package backend::qemu;
 use strict;
 use base 'backend::virt';
 use File::Path 'mkpath';
+use File::Spec;
 use File::Which;
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Select;
@@ -516,7 +517,7 @@ sub start_qemu {
     my $self = shift;
     my $vars = \%bmwqemu::vars;
 
-    my $basedir = "raid";
+    my $basedir = File::Spec->rel2abs("raid");
     my $qemubin = $ENV{QEMU};
 
     my $qemuimg = find_bin('/usr/bin/', qw(kvm-img qemu-img));
@@ -741,7 +742,7 @@ sub start_qemu {
         $self->{proc}->load_state();
     } else {
         $self->{proc}->configure_controllers($vars);
-        $self->{proc}->configure_blockdevs($bootfrom, $vars);
+        $self->{proc}->configure_blockdevs($bootfrom, $basedir, $vars);
         $self->{proc}->configure_pflash($vars);
     }
     $self->{proc}->init_blockdev_images();

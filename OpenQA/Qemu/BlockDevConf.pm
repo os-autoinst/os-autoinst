@@ -203,7 +203,7 @@ sub gen_qemu_img_cmdlines {
     # blockdev-snapshot-sync does not, so the paths stored in the resulting
     # qcow2 images confuse qemu-img. This means we have to set the sizes of
     # the backing files explicitly because qemu-img can not read them.
-    push(@params, ('-u', '-b', _abs_or_basename($self->backing_file->file)))
+    push(@params, ('-b', _abs_or_basename($self->backing_file->file)))
       if defined $self->backing_file;
     push(@params, $self->file);
     push(@params, $self->size);

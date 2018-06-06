@@ -139,10 +139,12 @@ Configure disk drives and their block device backing chains. See BlockDevConf.pm
 
 =cut
 sub configure_blockdevs {
-    my ($self, $bootfrom, $vars) = @_;
+    my ($self, $bootfrom, $basedir, $vars) = @_;
     my $bdc       = $self->blockdev_conf;
     my @scsi_ctrs = $self->controller_conf->get_controllers(qr/scsi/);
     my $uefi      = $vars->{UEFI};
+
+    $bdc->basedir($basedir);
 
     for my $i (1 .. $vars->{NUMDISKS}) {
         my $hdd_model    = $vars->{"HDDMODEL_$i"} // $vars->{HDDMODEL};
