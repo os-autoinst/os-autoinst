@@ -1,11 +1,9 @@
-dist: trusty
-language: perl
-perl:
-  - "5.18-extras"
-install:
-  - SETUP_FOR_TRAVIS=1 sh autogen.sh
-script:
-  # 'coverage' executes all tests and checks code coverage against threshold
-  # in Makefile.am
-  - make && make check coverage-coveralls VERBOSE=1
 sudo: required
+dist: trusty
+services:
+  - docker
+before_install:
+  - docker build docker/travis_test -t os-autoinst/travis_test:latest
+script:
+  - docker run --cap-add SYS_ADMIN -v $TRAVIS_BUILD_DIR:/opt/repo os-autoinst/travis_test:latest
+
