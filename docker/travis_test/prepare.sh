@@ -27,6 +27,7 @@ zypper in -y -C \
        qemu-tools \
        qemu-kvm \
        tar \
+       opencv-devel \
        optipng \
        which \
        perl \
