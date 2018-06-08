@@ -2,6 +2,7 @@
 #-l=120   # 120 characters per line
 -l=160
 -fbl     # don't change blank lines
+-fnl	 # don't remove new lines
 -nsfs    # no spaces before semicolons
 -baao    # space after operators
 -bbao    # space before operators

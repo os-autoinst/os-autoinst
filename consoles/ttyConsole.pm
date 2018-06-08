@@ -35,6 +35,7 @@ sub trigger_select {
     else {
         $key = "ctrl-alt-f" . $self->{args}->{tty};
     }
+
     $self->screen->send_key({key => $key});
     return;
 }

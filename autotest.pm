@@ -132,7 +132,9 @@ sub loadtest {
 }
 
 our $current_test;
+our $selected_console;
 our $last_milestone;
+our $last_milestone_console;
 
 sub set_current_test {
     ($current_test) = @_;
@@ -338,17 +340,16 @@ sub runalltests {
                     bmwqemu::stop_vm();
                     return 0;
                 }
-                elsif (!$flags->{norollback}) {
-                    if ($last_milestone) {
-                        load_snapshot('lastgood');
-                        $last_milestone->rollback_activated_consoles();
-                    }
+                elsif (!$flags->{norollback} && $last_milestone) {
+                    load_snapshot('lastgood');
+                    $last_milestone->rollback_activated_consoles();
                 }
             }
             else {
                 if ($snapshots_supported && ($flags->{milestone} || $bmwqemu::vars{TESTDEBUG})) {
                     make_snapshot('lastgood');
-                    $last_milestone = $t;
+                    $last_milestone         = $t;
+                    $last_milestone_console = $selected_console;
                 }
             }
         }

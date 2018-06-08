@@ -211,3 +211,8 @@ coverage-check: t/cover_db/coverage.html
 .PHONY: tidy-cpp
 tidy-cpp:
 	clang-format --style=WebKit -i $$(find . -name \*.cc -o -name \*.cpp)
+
+.PHONY: docker-test
+docker-test:
+	docker build $(top_srcdir)/docker/travis_test -t os-autoinst/travis_test:latest
+	docker run --cap-add SYS_ADMIN -v $(abs_top_srcdir):/opt/repo os-autoinst/travis_test:latest

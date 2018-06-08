@@ -14,6 +14,17 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
+=head2 consoles::console
+
+Base class for consoles. That is, 'user' interfaces between os-autoinst and
+the SUT which are independant of the backend (e.g. QEMU, IPMI). Consoles are
+used to match needles against the GUI and send key presses (e.g. VNC) or
+communicate with the shell using text (e.g. virtio_terminal).
+
+Consoles should implement disable and reset if necessary as well as a number
+of other functions. See vnc_base and virtio_terminal to see how this works.
+
+=cut
 package consoles::console;
 use strict;
 use warnings;
