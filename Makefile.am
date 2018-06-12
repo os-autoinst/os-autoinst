@@ -44,6 +44,7 @@ consolesexec_DATA = \
 
 openqaexecdir = $(pkglibexecdir)/OpenQA
 openqaexec_DATA = \
+	OpenQA/Commands.pm \
 	OpenQA/Exceptions.pm
 
 openqaexecbenchdir = $(pkglibexecdir)/OpenQA/Benchmark
