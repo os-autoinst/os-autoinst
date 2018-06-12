@@ -60,7 +60,7 @@ sub sshCommand {
         $sshopts = "-X $sshopts";
     }
 
-    return "ssh $sshopts";
+    return "ssh $sshopts; read";
 }
 
 # to be overloaded
