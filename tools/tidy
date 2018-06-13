@@ -22,7 +22,7 @@ test -e tools/tidy || exit 1
 
 find -name '*.tdy' -delete
 
-find . \( -name '*.p[lm]' -o -name '*.t' \) -print0 | xargs -0 perltidy --pro=.../.perltidyrc
+find . \( -name '*.p[lm]' -o -name '*.t' \) -not -path '*/.git/*' -print0 | xargs -0 perltidy --pro=.../.perltidyrc
 
 isotovideo=$(ls isotovideo 2>/dev/null)
 find tools/absolutize $isotovideo -print0 | xargs -0 perltidy $TIDY_ARGS
