@@ -519,7 +519,14 @@ sub process_command {
 
     # handle HTTP commands
     if ($rsp->{cmd} eq 'status') {
-        my $result = {tags => $tags, running => $current_test_name};
+        my $result = {
+            tags                   => $tags,
+            running                => $current_test_name,
+            current_test_full_name => $current_test_full_name,
+            pause_test_name        => $pause_test_name,
+            test_execution_paused  => $stop_passing_commands_to_backend
+        };
+
         myjsonrpc::send_json($io_handle, $result);
         return;
     }
