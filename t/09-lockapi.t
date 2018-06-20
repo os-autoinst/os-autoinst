@@ -43,6 +43,12 @@ sub fake_api_call {
 my $mod = new Test::MockModule('lockapi');
 $mod->mock(api_call => \&fake_api_call);
 
+# So barriers can call record_info
+use basetest;
+$autotest::current_test = basetest->new();
+my $mock_bmwqemu = new Test::MockModule('bmwqemu');
+$mock_bmwqemu->mock(result_dir => File::Temp->newdir());
+
 sub check_action {
     my ($method, $action, $params) = @_;
     my $res = 0;

@@ -52,6 +52,25 @@ sub _lock_action {
     return _try_lock('mutex', $name, $param);
 }
 
+# Log info about event and it's location
+sub _log {
+    my ($name, %args) = @_;
+
+    # Generate log message
+    my $job = $args{where} ? get_job_info($args{where})->{settings}->{TEST} . " #$args{where}" : 'parent job';
+    my $msg = "Wait for $name (on $job)";
+    $msg .= " - $args{info}" if $args{info};
+
+    if (defined $args{amend}) {
+        # amend log info with wait duration
+        $autotest::current_test->remove_last_result;
+        record_info 'Paused ' . int($args{amend} / 60) . 'm' . $args{amend} % 60 . 's', $msg;
+    }
+    else {
+        record_info 'Paused', $msg;
+    }
+}
+
 sub mutex_lock {
     my ($name, $where) = @_;
     bmwqemu::mydie('missing lock name') unless $name;
@@ -97,21 +116,11 @@ sub mutex_create {
 # Wrapper for mutex_lock & mutex_unlock
 sub mutex_wait {
     my ($name, $where, $info) = @_;
-
-    # Log info about event and it's location
-    my $job = $where ? get_job_info($where)->{settings}->{TEST} . " #$where" : 'parent job';
-    my $msg = "Wait for $name (on $job)";
-    $msg .= " - $info" if $info;
-    record_info 'Paused', $msg;
-
+    _log $name, where => $where, info => $info;
     my $start = time;
-    mutex_lock $name, $where;
-    my $delay = time - $start;
+    mutex_lock $name,   $where;
     mutex_unlock $name, $where;
-
-    # Ammend info with time spent waiting
-    $autotest::current_test->remove_last_result;
-    record_info 'Paused ' . int($delay / 60) . 'm' . $delay % 60 . 's', $msg;
+    _log $name,         where => $where, info => $info, amend => time - $start;
 }
 
 ## Barriers
@@ -150,9 +159,15 @@ sub barrier_wait {
 
     bmwqemu::mydie('missing barrier name') unless $name;
     bmwqemu::diag("barrier wait '$name'");
+
+    _log $name, where => $where;
+    my $start = time;
     while (1) {
         my $res = _wait_action($name, $where, $check_dead_job);
-        return 1 if $res;
+        if ($res) {
+            _log $name, where => $where, amend => time - $start;
+            return 1;
+        }
 
         bmwqemu::diag("barrier '$name' not released, sleeping 5s");
         sleep(5);
