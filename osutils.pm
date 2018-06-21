@@ -34,6 +34,8 @@ our @EXPORT_OK = qw(
   qv
   quote
   runcmd
+  runcmd_output
+  attempt
 );
 
 # An helper to lookup into a folder and find an executable file between given candidates
@@ -90,9 +92,8 @@ sub quote {
     "\'" . $_[0] . "\'";
 }
 
-# Open a process to run external program and check its return status
-sub runcmd {
-    diag "running " . join(' ', @_);
+sub opencmd {
+    my ($params, $sub) = @_;
     my ($pid, $status);
 
     local $SIG{CHLD} = sub {
@@ -105,23 +106,12 @@ sub runcmd {
 
     my ($wtr, $rdr, $err);
     $err = gensym;
-    $pid = open3($wtr, $rdr, $err, @_);
+    $pid = open3($wtr, $rdr, $err, @$params);
     die "couldn't open: $!" unless defined $pid;
     close($wtr) or die "couldn't close fh: $!";
 
-    my $s = IO::Select->new();
-    $s->add($rdr, $err);
-    while (my @ready = $s->can_read()) {
-        for my $fh (@ready) {
-            if (sysread($fh, my $buf, 4096)) {
-                diag $buf if ($fh == $rdr);
-                diag $buf if ($fh == $err);
-            }
-            else {
-                $s->remove($fh);
-            }
-        }
-    }
+    $sub->($rdr, $err);
+
     close($rdr) or die "couldn't close fh: $!";
     close($err) or die "couldn't close fh: $!";
 
@@ -129,6 +119,67 @@ sub runcmd {
     die "runcmd failed with exit code $exit_code" unless ($exit_code == 0);
     return $exit_code;
 }
+
+# Open a process to run external program and check its return status
+sub runcmd {
+    diag "running " . join(' ', @_);
+
+    return opencmd(\@_, sub {
+            my ($rdr, $err) = @_;
+            my $s = IO::Select->new();
+
+            $s->add($rdr, $err);
+            while (my @ready = $s->can_read()) {
+                for my $fh (@ready) {
+                    if (sysread($fh, my $buf, 4096)) {
+                        diag $buf if ($fh == $rdr);
+                        diag $buf if ($fh == $err);
+                    }
+                    else {
+                        $s->remove($fh);
+                    }
+                }
+            }
+    });
+}
+
+sub runcmd_output {
+    diag "running " . join(' ', @_);
+    my $out = '';
+
+    opencmd(\@_, sub {
+            my ($rdr, $err) = @_;
+            my $s = IO::Select->new();
+
+            $s->add($rdr, $err);
+            while (my @ready = $s->can_read()) {
+                for my $fh (@ready) {
+                    if (sysread($fh, my $buf, 4096)) {
+                        $out .= $buf if ($fh == $rdr);
+                        diag $buf if ($fh == $err);
+                    }
+                    else {
+                        $s->remove($fh);
+                    }
+                }
+            }
+    });
+
+    return $out;
+}
 ## use critic
+
+sub attempt {
+    my $attempts = 0;
+    my ($total_attempts, $condition, $cb, $or) = ref $_[0] eq 'HASH' ? (@{$_[0]}{qw(attempts condition cb or)}) : @_;
+    until ($condition->() || $attempts >= $total_attempts) {
+        warn "Attempt $attempts";
+        $cb->();
+        sleep 1;
+        $attempts++;
+    }
+    $or->() if $or && !$condition->();
+    warn "Attempts terminated!";
+}
 
 1;

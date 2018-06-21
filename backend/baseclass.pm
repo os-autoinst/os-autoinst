@@ -564,6 +564,54 @@ sub deactivate_console {
     return;
 }
 
+sub disable_consoles {
+    my ($self) = @_;
+
+    for my $console (keys %{$testapi::distri->{consoles}}) {
+        my $console_info = $self->console($console);
+        $console_info->reset();
+        if ($console_info->can('disable')) {
+            $console_info->disable();
+        }
+    }
+}
+
+=head3 save_console_snapshots
+
+Should be called when a snapshot of the SUT is taken to save the current state
+of any consoles which have state. For example: text consoles may have
+unprocessed output from the SUT in their buffers which is needed by test
+module after the snpashot.
+
+=cut
+sub save_console_snapshots {
+    my ($self, $name) = @_;
+
+    for my $console (keys %{$testapi::distri->{consoles}}) {
+        my $console_info = $self->console($console);
+        if ($console_info->can('save_snapshot')) {
+            $console_info->save_snapshot($name);
+        }
+    }
+}
+
+=head3 load_console_snapshots
+
+Should be called when a snapshot of the SUT is loaded to ensure consoles are
+in the same state as when the snapshot was taken.
+
+=cut
+sub load_console_snapshots {
+    my ($self, $name) = @_;
+
+    for my $console (keys %{$testapi::distri->{consoles}}) {
+        my $console_info = $self->console($console);
+        if ($console_info->can('load_snapshot')) {
+            $console_info->load_snapshot($name);
+        }
+    }
+}
+
 sub request_screen_update {
     my ($self) = @_;
 

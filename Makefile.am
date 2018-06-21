@@ -55,6 +55,20 @@ openqaexecrunargsdir = $(pkglibexecdir)/OpenQA/Test
 openqaexecrunargs_DATA = \
     OpenQA/Test/RunArgs.pm
 
+openqaexecqemudir = $(pkglibexecdir)/OpenQA/Qemu
+openqaexecqemu_DATA = \
+	OpenQA/Qemu/BlockDevConf.pm \
+	OpenQA/Qemu/BlockDev.pm \
+	OpenQA/Qemu/ControllerConf.pm \
+	OpenQA/Qemu/DriveController.pm \
+	OpenQA/Qemu/DriveDevice.pm \
+	OpenQA/Qemu/DrivePath.pm \
+	OpenQA/Qemu/MutParams.pm \
+	OpenQA/Qemu/PFlashDevice.pm \
+	OpenQA/Qemu/Proc.pm \
+	OpenQA/Qemu/SnapshotConf.pm \
+	OpenQA/Qemu/Snapshot.pm
+
 # circumvent automake's test - possibly we really shouldn't install in /usr/lib though
 perlexecdir = $(pkglibexecdir)
 perlexec_DATA = \
@@ -212,3 +226,16 @@ coverage-check: t/cover_db/coverage.html
 .PHONY: tidy-cpp
 tidy-cpp:
 	clang-format --style=WebKit -i $$(find . -name \*.cc -o -name \*.cpp)
+
+.PHONY: docker-test-build
+docker-test-build:
+	docker build $(top_srcdir)/docker/travis_test -t os-autoinst/travis_test:latest
+
+.PHONY: docker-test-run
+docker-test-run:
+	docker run --cap-add SYS_ADMIN -v $(abs_top_srcdir):/opt/repo os-autoinst/travis_test:latest
+
+.PHONY: docker-test
+docker-test: docker-test-build docker-test-run
+	echo "Use docker-rm and docker-rmi to remove the container and image if necessary"
+
