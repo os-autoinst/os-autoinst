@@ -215,13 +215,12 @@ tidy-cpp:
 
 .PHONY: docker-test-build
 docker-test-build:
-	docker build $(top_srcdir)/docker/travis_test -t os-autoinst/travis_test:latest
+	docker build --no-cache $(top_srcdir)/docker/travis_test -t os-autoinst/travis_test:latest
 
 .PHONY: docker-test-run
 docker-test-run:
-	docker run --cap-add SYS_ADMIN -v $(abs_top_srcdir):/opt/repo os-autoinst/travis_test:latest
+	docker run --rm -v $(abs_top_srcdir):/opt/repo os-autoinst/travis_test:latest 'make && make check VERBOSE=1'
 
 .PHONY: docker-test
 docker-test: docker-test-build docker-test-run
 	echo "Use docker-rm and docker-rmi to remove the container and image if necessary"
-

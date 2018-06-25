@@ -1,13 +1,13 @@
 #!/bin/sh
 
-cd /opt
-# Do a clone to avoid writing to the host's volume when not running in Travis
-# and also to avoid using files not checked into the repo.
-git clone /opt/repo run
+set -e
 
-cd run
+# Prepare dir and chdir into it before executing the wanted action
+sudo cp -rd /opt/repo /opt/run
+sudo chown -R $NORMAL_USER:users /opt/run
+sudo cpanm -n Devel::Cover::Report::Coveralls
+
+pushd /opt/run
 ./autogen.sh
-make
-# 'coverage' executes all tests and checks code coverage against threshold
-# in Makefile.am
-make check coverage VERBOSE=1
+
+/bin/bash -c "$*"

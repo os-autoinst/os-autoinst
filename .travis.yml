@@ -3,7 +3,6 @@ dist: trusty
 services:
   - docker
 before_install:
-  - docker build docker/travis_test -t os-autoinst/travis_test:latest
+  - docker build --no-cache docker/travis_test -t os-autoinst/travis_test:latest
 script:
-  - docker run --cap-add SYS_ADMIN -v $TRAVIS_BUILD_DIR:/opt/repo os-autoinst/travis_test:latest
-
+  - docker run -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" -e COVER_OPTS=${COVER_OPTS} --rm -v $TRAVIS_BUILD_DIR:/opt/repo os-autoinst/travis_test:latest 'make && make check coverage-coveralls VERBOSE=1'
