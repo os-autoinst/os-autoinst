@@ -5,4 +5,5 @@ services:
 before_install:
   - docker build --no-cache docker/travis_test -t os-autoinst/travis_test:latest
 script:
-  - docker run -e TRAVIS_JOB_ID="$TRAVIS_JOB_ID" -e TRAVIS_BRANCH="$TRAVIS_BRANCH" -e COVER_OPTS=${COVER_OPTS} --rm -v $TRAVIS_BUILD_DIR:/opt/repo os-autoinst/travis_test:latest 'make && make check coverage-coveralls VERBOSE=1'
+  - CI_ENV=`bash <(curl -s https://codecov.io/env)` &&
+    docker run $CI_ENV --rm -v $TRAVIS_BUILD_DIR:/opt/repo os-autoinst/travis_test:latest 'make && make check coverage-codecov VERBOSE=1'

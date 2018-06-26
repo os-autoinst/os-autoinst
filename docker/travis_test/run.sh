@@ -5,7 +5,6 @@ set -e
 # Prepare dir and chdir into it before executing the wanted action
 sudo cp -rd /opt/repo /opt/run
 sudo chown -R $NORMAL_USER:users /opt/run
-sudo cpanm -n Devel::Cover::Report::Coveralls
 
 pushd /opt/run
 ./autogen.sh

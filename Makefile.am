@@ -195,12 +195,12 @@ coverage-test: t/cover_db/
 .PHONY: coverage
 coverage: coverage-html
 
-.PHONY: coverage-coveralls
-coverage-coveralls: t/cover_db/
-	(cd t && cover ${COVER_OPTS} -report coveralls)
+.PHONY: coverage-codecov
+coverage-codecov: t/cover_db/
+	(cd t && cover -report codecov)
 
 t/cover_db/coverage.html: t/cover_db/
-	(cd t && cover ${COVER_OPTS} -report html)
+	(cd t && cover -report html_basic)
 
 .PHONY: coverage-html
 coverage-html: t/cover_db/coverage.html
