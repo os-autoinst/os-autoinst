@@ -18,3 +18,5 @@ coverage:
     patch:
       default:
         branches: null
+fixes:
+  - "/opt/run/::"
