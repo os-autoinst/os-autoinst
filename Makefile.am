@@ -195,12 +195,12 @@ coverage-test: t/cover_db/
 .PHONY: coverage
 coverage: coverage-html
 
-.PHONY: coverage-coveralls
-coverage-coveralls: t/cover_db/
-	(cd t && cover ${COVER_OPTS} -report coveralls)
+.PHONY: coverage-codecov
+coverage-codecov: t/cover_db/
+	(cd t && cover -report codecov)
 
 t/cover_db/coverage.html: t/cover_db/
-	(cd t && cover ${COVER_OPTS} -report html)
+	(cd t && cover -report html_basic)
 
 .PHONY: coverage-html
 coverage-html: t/cover_db/coverage.html
@@ -212,3 +212,15 @@ coverage-check: t/cover_db/coverage.html
 .PHONY: tidy-cpp
 tidy-cpp:
 	clang-format --style=WebKit -i $$(find . -name \*.cc -o -name \*.cpp)
+
+.PHONY: docker-test-build
+docker-test-build:
+	docker build --no-cache $(top_srcdir)/docker/travis_test -t os-autoinst/travis_test:latest
+
+.PHONY: docker-test-run
+docker-test-run:
+	docker run --rm -v $(abs_top_srcdir):/opt/repo os-autoinst/travis_test:latest 'make && make check VERBOSE=1'
+
+.PHONY: docker-test
+docker-test: docker-test-build docker-test-run
+	echo "Use docker-rm and docker-rmi to remove the container and image if necessary"
