@@ -351,4 +351,14 @@ $bdc->for_each_drive(sub {
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after deserialising and reverting a snapshot')
   || diag(explain(\@gcmdl));
 
+subtest DriveDevice => sub {
+
+    use OpenQA::Qemu::DriveDevice;
+    my $drive = OpenQA::Qemu::DriveDevice->new(id => 'test', last_overlay_id => 2);
+    is $drive->new_overlay_id, 3, 'new_overlay_id() bumps last_overlay_id value';
+    is($drive->_gen_node_name(3, 2), 'test-device-2', 'Expected generated node name matches');
+    is($drive->_gen_node_name(1, 2), 'test-device',   'Expected generated node name matches');
+
+};
+
 done_testing();
