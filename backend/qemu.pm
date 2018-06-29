@@ -55,20 +55,15 @@ sub new {
     # Compressing takes longer but the transfer takes shorter amount of time.
     $bmwqemu::vars{QEMU_COMPRESS_QCOW2} //= 1;
 
-    $self->{pid}         = undef;
     $self->{pidfilename} = 'qemu.pid';
     $self->{proc}        = OpenQA::Qemu::Proc->new();
-
+    $self->{proc}->_process->pidfile($self->{pidfilename});
     return $self;
 }
 
 # baseclass virt method overwrite
 
-sub raw_alive {
-    my ($self) = @_;
-    return 0 unless $self->{pid};
-    return kill(0, $self->{pid});
-}
+sub raw_alive { shift->{proc}->_process->is_running }
 
 sub _wrap_hmc {
     my $cmdline = shift;
@@ -111,7 +106,7 @@ sub eject_cd {
 
 sub cpu_stat {
     my $self = shift;
-    my $stat = bmwqemu::fileContent("/proc/" . $self->{pid} . "/stat");
+    my $stat = bmwqemu::fileContent("/proc/" . $self->{proc}->_process->pid . "/stat");
     my @a    = split(" ", $stat);
     return [@a[13, 14]];
 }
@@ -125,27 +120,7 @@ sub do_start_vm {
 
 sub kill_qemu {
     my ($self) = (@_);
-    my $pid = $self->{pid};
-
-    # already gone?
-    my $ret = waitpid($pid, WNOHANG);
-    diag "waitpid for $pid returned $ret";
-    return if ($ret == $pid || $ret == -1);
-
-    diag "sending TERM to qemu pid: $pid";
-    kill('TERM', $pid);
-    for my $i (1 .. 5) {
-        sleep 1;
-        $ret = waitpid($pid, WNOHANG);
-        diag "waitpid for $pid returned $ret";
-        last if ($ret == $pid);
-    }
-    unless ($ret == $pid) {
-        kill("KILL", $pid);
-        # now we have to wait
-        waitpid($pid, 0);
-    }
-
+    $self->{proc}->_process->stop;
     $self->_kill_children_processes;
 }
 
@@ -175,23 +150,9 @@ sub _dbus_call {
 }
 
 sub do_stop_vm {
-    my ($self, %args) = @_;
-    my $only_qemu = $args{only_qemu} || 0;
-
+    my $self = shift;
     $self->{proc}->save_state();
-
-    return unless $self->{pid};
-    kill_qemu($self);
-    $self->{pid} = undef;
-    unlink($self->{pidfilename});
-
-    return if $only_qemu;
-    # Free allocated vlans - if any -
-    return unless $self->{allocated_networks} && $self->{allocated_tap_devices} && $self->{allocated_vlan_tags};
-
-    for (my $i = 0; $i < $self->{allocated_networks}; $i++) {
-        $self->_dbus_call('unset_vlan', (@{$self->{allocated_tap_devices}})[$i], (@{$self->{allocated_vlan_tags}})[$i]);
-    }
+    $self->kill_qemu;
 }
 
 sub can_handle {
@@ -459,17 +420,16 @@ sub load_snapshot {
     $self->freeze_vm() if $was_running;
 
     $self->disable_consoles();
-    $self->close_pipes(only_qemu => 1);
+
+    # NOTE: This still needs to be handled better
+    # Between restarts we do not rewire network switches
+    $self->{stop_only_qemu} = 1;
+    $self->close_pipes();
+    $self->{stop_only_qemu} = 0;
 
     my $snapshot = $self->{proc}->revert_to_snapshot($vmname);
 
-    my ($pid, $reader) = $self->{proc}->exec_qemu();
-    $self->{pid}      = $pid;
-    $self->{qemupipe} = $reader;
-    open(my $pidf, ">", $self->{pidfilename});
-    print $pidf $self->{pid}, "\n";
-    close $pidf;
-
+    $self->{qemupipe}  = $self->{proc}->exec_qemu();
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
@@ -875,12 +835,7 @@ sub start_qemu {
         sp('S');
     }
 
-    my ($pid, $reader) = $self->{proc}->exec_qemu();
-    $self->{pid}      = $pid;
-    $self->{qemupipe} = $reader;
-    open(my $pidf, ">", $self->{pidfilename});
-    print $pidf $self->{pid}, "\n";
-    close $pidf;
+    $self->{qemupipe}  = $self->{proc}->exec_qemu();
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
@@ -918,6 +873,18 @@ sub start_qemu {
         for (my $i = 0; $i < $num_networks; $i++) {
             $self->_dbus_call('set_vlan', $tapdev[$i], $nicvlan[$i]);
         }
+        $self->{proc}->_process->on(collected => sub {
+                $self->{proc}->_process->emit('cleanup') unless exists $self->{stop_only_qemu} && $self->{stop_only_qemu} == 1;
+        });
+
+        $self->{proc}->_process->on(cleanup => sub {
+                eval {
+                    for (my $i = 0; $i < $self->{allocated_networks}; $i++) {
+                        $self->_dbus_call('unset_vlan', (@{$self->{allocated_tap_devices}})[$i], (@{$self->{allocated_vlan_tags}})[$i]);
+                    }
+                }
+        });
+
         if (exists $vars->{OVS_DEBUG} && $vars->{OVS_DEBUG} == 1) {
             my (undef, $output) = $self->_dbus_call('show');
             bmwqemu::diag "Open vSwitch networking status:";
@@ -991,10 +958,8 @@ sub read_qemupipe {
 }
 
 sub close_pipes {
-    my ($self, %args) = @_;
-    my $only_qemu = $args{only_qemu} || 0;
-
-    $self->do_stop_vm(only_qemu => $only_qemu);
+    my ($self) = @_;
+    $self->do_stop_vm();
 
     if ($self->{qemupipe}) {
         # one last word?
@@ -1010,9 +975,7 @@ sub close_pipes {
         $self->{qmpsocket} = undef;
     }
 
-    unless ($only_qemu) {
-        $self->SUPER::close_pipes();
-    }
+    $self->SUPER::close_pipes() unless exists $self->{stop_only_qemu} && $self->{stop_only_qemu};
 }
 
 sub is_shutdown {
@@ -1055,6 +1018,11 @@ sub cont_vm {
     my ($self) = @_;
     $self->update_request_interval(delete $self->{_qemu_saved_request_interval}) if $self->{_qemu_saved_request_interval};
     return $self->handle_qmp_command({execute => 'cont'});
+}
+
+sub DESTROY {
+    # Make sure we don't leave any process behind and that vlans are unset
+    session->all->each(sub { $_->emit('cleanup'); shift->stop });
 }
 
 1;
