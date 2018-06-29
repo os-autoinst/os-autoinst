@@ -81,7 +81,12 @@ use Carp 'cluck';
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use File::Spec;
 use File::Path;
+use Mojo::IOLoop::ReadWriteProcess 'process';
+use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
+
+session->enable;
+session->enable_subreaper;
 
 my %options;
 # global exit status
@@ -139,52 +144,35 @@ for my $arg (@ARGV) {
 die "CASEDIR environment variable not set, unknown test case directory" if !defined $bmwqemu::vars{CASEDIR};
 die "No scripts in $bmwqemu::vars{CASEDIR}" if !-e "$bmwqemu::vars{CASEDIR}";
 
-my $cmd_srv_pid;
-my $testpid;
+my $cmd_srv_process;
+my $testprocess;
 my $cmd_srv_fd;
+my $backend_process;
 
 my $loop = 1;
 
 sub kill_commands {
-    return unless $cmd_srv_pid;
-    # create a copy as cpid is overwritten by SIGCHLD
-    my $pid = $cmd_srv_pid;
-    if (kill('TERM', $pid)) {
-        diag "awaiting death of commands process";
-        my $ret = waitpid($pid, 0);
-        diag "commands process exited: $ret";
-    }
-    $cmd_srv_pid = 0;
+    return unless defined $cmd_srv_process;
+    $cmd_srv_process->stop() if $cmd_srv_process->is_running;
 }
 
 sub kill_autotest {
-    return unless $testpid;
-    # create a copy as cpid is overwritten by SIGCHLD
-    my $pid = $testpid;
-    if (kill('TERM', $pid)) {
-        diag "awaiting death of testpid $pid";
-        my $ret = waitpid($pid, 0);
-        diag "test process exited: $ret";
-    }
-    $testpid = 0;
+    return unless defined $testprocess;
+    $testprocess->stop() if $testprocess->is_running;
 }
 
 sub kill_backend {
-    if (defined $bmwqemu::backend && $bmwqemu::backend->{backend_pid}) {
-        # save the pid in a scalar - signal handlers will reset it
-        my $bpid = $bmwqemu::backend->{backend_pid};
-        diag "killing backend process $bpid";
-        kill('-TERM', $bpid);
-        waitpid($bpid, 0);
+    if (defined $bmwqemu::backend && $backend_process) {
+        diag "killing backend process " . $backend_process->pid;
+        $backend_process->stop if $backend_process->is_running;
         diag("done with backend process");
-        $bmwqemu::backend->{backend_pid} = 0;
     }
 }
 
 sub signalhandler {
 
     my ($sig) = @_;
-    diag("signalhandler got $sig - loop $loop");
+    diag("signalhandler got $sig");
     if ($loop) {
         $loop = 0;
         return;
@@ -193,31 +181,6 @@ sub signalhandler {
     kill_commands;
     kill_autotest;
     _exit(1);
-}
-
-sub signalhandler_chld {
-
-    while ((my $child = waitpid(-1, WNOHANG)) > 0) {
-        if ($child == $cmd_srv_pid) {
-            diag("commands webserver died");
-            $loop        = 0;
-            $cmd_srv_pid = 0;
-            next;
-        }
-        if ($bmwqemu::backend->{backend_pid} && $child == $bmwqemu::backend->{backend_pid}) {
-            diag("backend $child died");
-            $bmwqemu::backend->{backend_pid} = 0;
-            $loop = 0;
-            next;
-        }
-        if ($child == $testpid) {
-            diag("tests died");
-            $testpid = 0;
-            $loop    = 0;
-            next;
-        }
-        diag("unknown child $child died");
-    }
 }
 
 our $test_git_hash;
@@ -251,7 +214,6 @@ sub calculate_git_hash {
 $SIG{TERM} = \&signalhandler;
 $SIG{INT}  = \&signalhandler;
 $SIG{HUP}  = \&signalhandler;
-$SIG{CHLD} = \&signalhandler_chld;
 
 # make sure all commands coming from the backend will not be in the
 # developers's locale - but a defined english one. This is SUSE's
@@ -277,7 +239,7 @@ $bmwqemu::vars{TEST_GIT_HASH} = $test_git_hash;
 
 # start the command fork before we get into the backend, the command child
 # is not supposed to talk to the backend directly
-($cmd_srv_pid, $cmd_srv_fd) = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
+($cmd_srv_process, $cmd_srv_fd) = commands::start_server($bmwqemu::vars{QEMUPORT} + 1);
 
 # set a default distribution if the tests don't have one
 $testapi::distri = distribution->new;
@@ -300,7 +262,7 @@ testapi::init();
 bmwqemu::save_vars();
 
 my $testfd;
-($testpid, $testfd) = autotest::start_process();
+($testprocess, $testfd) = autotest::start_process();
 
 init_backend();
 
@@ -322,10 +284,16 @@ if ($ENV{RUN_DEBUGVIEWER}) {
 
 use IO::Select;
 
+$backend_process = $bmwqemu::backend->{backend_process};
 my $io_select = IO::Select->new();
 $io_select->add($testfd);
 $io_select->add($cmd_srv_fd);
-$io_select->add($bmwqemu::backend->{from_child});
+$io_select->add($backend_process->channel_out);
+
+my $stop_loop = sub { if ($loop) { diag "Stopping LOOOP"; $loop = 0; } };
+$testprocess->once(collected => $stop_loop);
+$backend_process->once(collected => $stop_loop);
+$cmd_srv_process->once(collected => $stop_loop);
 
 # now we have everything, give the tests a go
 $testfd->write("GO\n");
@@ -435,7 +403,7 @@ sub process_command {
         # send debugging info for ws clients
         myjsonrpc::send_json($cmd_srv_fd, {$cmd => $rsp});
         # pass command to backend
-        myjsonrpc::send_json($bmwqemu::backend->{to_child}, {cmd => $cmd, arguments => $rsp});
+        myjsonrpc::send_json($backend_process->channel_in, {cmd => $cmd, arguments => $rsp});
         return;
     }
     if ($rsp->{cmd} eq 'set_pause_at_test') {
@@ -571,7 +539,7 @@ while ($loop) {
             $loop     = 0;
             last;
         }
-        if ($readable == $bmwqemu::backend->{from_child}) {
+        if ($readable == $backend_process->channel_out) {
             myjsonrpc::send_json($backend_requester, {ret => $rsp->{rsp}});
             $backend_requester = undef;
             next;
@@ -583,7 +551,6 @@ while ($loop) {
         check_asserted_screen($no_wait);
     }
 }
-
 # don't leave the commands server open - it will no longer react anyway
 # as most of it ends up in the loop above
 kill_commands;
@@ -602,6 +569,7 @@ if (!$return_code) {
         $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
         diag "BACKEND SHUTDOWN $clean_shutdown";
     };
+
     # don't rely on the backend in a sane state if we failed - just kill it later
     eval { bmwqemu::stop_vm(); };
     if ($@) {

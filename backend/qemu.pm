@@ -36,7 +36,7 @@ use Try::Tiny;
 use osutils qw(find_bin gen_params qv runcmd);
 use List::Util 'max';
 use Data::Dumper;
-
+use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use OpenQA::Qemu::Proc;
 
 # The maximum value of the system's native signed integer. Which will probably
@@ -1018,11 +1018,6 @@ sub cont_vm {
     my ($self) = @_;
     $self->update_request_interval(delete $self->{_qemu_saved_request_interval}) if $self->{_qemu_saved_request_interval};
     return $self->handle_qmp_command({execute => 'cont'});
-}
-
-sub DESTROY {
-    # Make sure we don't leave any process behind and that vlans are unset
-    session->all->each(sub { $_->emit('cleanup'); shift->stop });
 }
 
 1;

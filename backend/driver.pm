@@ -28,6 +28,8 @@ use IO::Select;
 use POSIX '_exit';
 require IPC::System::Simple;
 use autodie ':all';
+use Mojo::IOLoop::ReadWriteProcess 'process';
+use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use myjsonrpc;
 
 # TODO: move the whole printing out of bmwqemu
@@ -45,6 +47,12 @@ sub new {
     $self->{backend}      = "backend::$name"->new();
     $self->{backend_name} = $name;
 
+    session->on(
+        collected_orphan => sub {
+            my ($session, $p) = @_;
+            printf STDERR "Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status . "\n";
+        });
+
     $self->start();
 
     return $self;
@@ -53,41 +61,34 @@ sub new {
 sub start {
     my ($self) = @_;
 
-    my $p1, my $p2;
-    pipe($p1, $p2) or die "pipe: $!";
-    $self->{from_parent} = $p1;
-    $self->{to_child}    = $p2;
+    open(my $STDOUTPARENT, '>&', *STDOUT);
+    open(my $STDERRPARENT, '>&', *STDERR);
 
-    $p1 = undef;
-    $p2 = undef;
-    pipe($p1, $p2) or die "pipe: $!";
-    $self->{to_parent}  = $p2;
-    $self->{from_child} = $p1;
+    my $backend_process = process(sub {
+            my $process = shift;
+            $SIG{TERM} = 'DEFAULT';
+            $SIG{INT}  = 'DEFAULT';
+            $SIG{HUP}  = 'DEFAULT';
+            #  $SIG{CHLD} = 'DEFAULT';
+            $0 = "$0: backend";
 
-    printf STDERR "$$: to_child %d, from_child %d\n", fileno($self->{to_child}), fileno($self->{from_child});
+            open STDOUT, ">&", $STDOUTPARENT;
+            open STDERR, ">&", $STDERRPARENT;
+            # now initialize opencv
+            require cv;
 
-    my $pid = fork();
-    die "fork failed" unless defined $pid;
+            cv::init();
+            require tinycv;
 
-    if ($pid == 0) {
-        $SIG{TERM} = 'DEFAULT';
-        $SIG{INT}  = 'DEFAULT';
-        $SIG{HUP}  = 'DEFAULT';
-        $SIG{CHLD} = 'DEFAULT';
-        $0         = "$0: backend";
+            $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
+            _exit(0);
+    })->blocking_stop(1)->separate_err(0)->subreaper(1)->start;
 
-        # now initialize opencv
-        require cv;
+    $backend_process->on(collected => sub { diag "backend process exited: " . shift->exit_status; });
 
-        cv::init();
-        require tinycv;
-
-        $self->{backend}->run(fileno($self->{from_parent}), fileno($self->{to_parent}));
-        _exit(0);
-    }
-    else {
-        $self->{backend_pid} = $pid;
-    }
+    printf STDERR "$$: channel_out %d, channel_in %d\n", fileno($backend_process->channel_out), fileno($backend_process->channel_in);
+    $self->{backend_pid}     = $backend_process->pid;
+    $self->{backend_process} = $backend_process;
 }
 
 sub extract_assets {
@@ -97,18 +98,14 @@ sub extract_assets {
 
 sub stop {
     my ($self, $cmd) = @_;
+    return unless $self->{backend_process}->is_running;
 
-    return unless ($self->{backend_pid});
-
-    $self->stop_backend() if $self->{from_child};
-    close($self->{from_child}) if $self->{from_child};
-    $self->{from_child} = undef;
-
-    close($self->{to_child}) if ($self->{to_child});
-    $self->{to_child} = undef;
-
-    waitpid($self->{backend_pid}, 0) if $self->{backend_pid};
-    $self->{backend_pid} = undef;
+    $self->stop_backend()                        if $self->{backend_process}->channel_out;
+    close($self->{backend_process}->channel_out) if $self->{backend_process}->channel_out;
+    close($self->{backend_process}->channel_in)  if $self->{backend_process}->channel_in;
+    $self->{backend_process}->channel_in(undef);
+    $self->{backend_process}->channel_out(undef);
+    $self->{backend_process}->stop;
 }
 
 # new api
@@ -150,16 +147,16 @@ sub mouse_hide {
 
 sub _send_json {
     my ($self, $cmd) = @_;
+    croak "no backend running" unless $self->{backend_process}->channel_in;
+    my $token = myjsonrpc::send_json($self->{backend_process}->channel_in, $cmd);
+    my $rsp = myjsonrpc::read_json($self->{backend_process}->channel_out, $token);
 
-    croak "no backend running" unless $self->{to_child};
-    my $token = myjsonrpc::send_json($self->{to_child}, $cmd);
-    my $rsp = myjsonrpc::read_json($self->{from_child}, $token);
     unless (defined $rsp) {
         # this might have been closed by signal handler
         no autodie 'close';
-        close($self->{from_child});
-        $self->{from_child} = undef;
-        $self->stop();
+        close($self->{backend_process}->channel_out);
+        $self->{backend_process}->channel_out(undef);
+        $self->{backend_process}->stop;
         return;
     }
     return $rsp->{rsp};

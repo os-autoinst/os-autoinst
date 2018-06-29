@@ -356,7 +356,7 @@ sub exec_qemu {
         });
 
     session->enable_subreaper;
-    $self->_process->code(sub { $SIG{TERM} = sub { Mojo::IOLoop::ReadWriteProcess::_exit(1) }; exec(@params) })->start();
+    $self->_process->code(sub { exec(@params) })->start();
     fcntl($self->_process->read_stream, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
     return $self->_process->read_stream;

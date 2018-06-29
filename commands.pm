@@ -35,6 +35,8 @@ BEGIN {
 # Automatically enables "strict", "warnings", "utf8" and Perl 5.10 features
 use Mojolicious::Lite;
 use Mojo::IOLoop;
+use Mojo::IOLoop::ReadWriteProcess 'process';
+use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use Mojo::Server::Daemon;
 use File::Basename;
 use Time::HiRes 'gettimeofday';
@@ -340,24 +342,22 @@ sub start_server {
     $child->autoflush(1);
     $isotovideo->autoflush(1);
 
-    my $pid = fork();
-    die "fork failed" unless defined $pid;
+    my $process = process(sub {
+            $SIG{TERM} = 'DEFAULT';
+            $SIG{INT}  = 'DEFAULT';
+            $SIG{HUP}  = 'DEFAULT';
+            $SIG{CHLD} = 'DEFAULT';
 
-    if ($pid == 0) {
-        $SIG{TERM} = 'DEFAULT';
-        $SIG{INT}  = 'DEFAULT';
-        $SIG{HUP}  = 'DEFAULT';
-        $SIG{CHLD} = 'DEFAULT';
+            close($child);
+            $0 = "$0: commands";
+            run_daemon($port, $isotovideo);
+            Devel::Cover::report() if Devel::Cover->can('report');
+            _exit(0);
+    })->blocking_stop(1)->internal_pipes(0)->set_pipes(0)->start;
 
-        close($child);
-        $0 = "$0: commands";
-        run_daemon($port, $isotovideo);
-        Devel::Cover::report() if Devel::Cover->can('report');
-        _exit(0);
-    }
     close($isotovideo);
-
-    return ($pid, $child);
+    $process->on(collected => sub { print STDERR "commands process exited: " . shift->exit_status . "\n"; });
+    return ($process, $child);
 }
 
 
