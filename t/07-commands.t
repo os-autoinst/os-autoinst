@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2016 SUSE LLC
+# Copyright (c) 2016-2018 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,14 +34,16 @@ use Mojo::IOLoop::Server;
 use Time::HiRes 'sleep';
 use Test::More;
 use Test::Warnings;
+use Test::Mojo;
 use POSIX '_exit';
 
 our $mojoport = Mojo::IOLoop::Server->generate_port;
+my $base_url = "http://localhost:$mojoport";
 
 sub wait_for_server {
     my ($ua) = @_;
     for (my $counter = 0; $counter < 20; $counter++) {
-        return if (($ua->get("http://localhost:$mojoport/NEVEREVER")->res->code // 0) == 404);
+        return if (($ua->get("$base_url/NEVEREVER")->res->code // 0) == 404);
         sleep .1;
     }
     return 1;
@@ -62,20 +64,25 @@ if ($spid == 0) {
     _exit(0);
 }
 
-my $ua = Mojo::UserAgent->new;
-if (wait_for_server($ua)) {
+# create test user agent and wait for server
+my $t = Test::Mojo->new;
+if (wait_for_server($t->ua)) {
     exit(0);
 }
 
-is($ua->get("http://localhost:$mojoport/NEVEREVER")->res->code,          404);
-is($ua->get("http://localhost:$mojoport/isotovideo/version")->res->code, 404);
-my $get = $ua->get("http://localhost:$mojoport/Hallo/isotovideo/version");
-is($get->res->code, 200);
-my $json = $get->res->json;
-# we only care for its existance
-ok(defined $json->{json_cmd_token});
-delete $json->{json_cmd_token};
-is_deeply($json, {VERSION => 'COOL'});
+subtest 'failure if jobtoken wrong' => sub {
+    $t->get_ok("$base_url/NEVEREVER")->status_is(404);
+    $t->get_ok("$base_url/isotovideo/version")->status_is(404);
+};
+
+subtest 'query isotovideo version' => sub {
+    $t->get_ok("$base_url/Hallo/isotovideo/version");
+    $t->status_is(200);
+    # we only care whether 'json_cmd_token' exists
+    $t->json_has('/json_cmd_token');
+    delete $t->tx->res->json->{json_cmd_token};
+    $t->json_is({VERSION => 'COOL'});
+};
 
 done_testing;
 
@@ -85,5 +92,5 @@ END {
     waitpid($spid, 0);
     kill TERM => $cpid;
     waitpid($cpid, 0);
-    wait_for_server($ua);
+    wait_for_server($t->ua);
 }
