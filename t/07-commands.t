@@ -35,6 +35,7 @@ use Time::HiRes 'sleep';
 use Test::More;
 use Test::Warnings;
 use Test::Mojo;
+use Devel::Cover;
 use POSIX '_exit';
 
 our $mojoport = Mojo::IOLoop::Server->generate_port;
@@ -57,9 +58,15 @@ my ($cpid, $cfd) = commands::start_server($mojoport);
 my $spid = fork();
 if ($spid == 0) {
     # we need to fake isotovideo here
-    my $h = myjsonrpc::read_json($cfd);
-    if ($h->{cmd} eq 'version') {
-        myjsonrpc::send_json($cfd, {VERSION => 'COOL'});
+    while (1) {
+        my $json = myjsonrpc::read_json($cfd);
+        my $cmd  = delete $json->{cmd};
+        if ($cmd eq 'version') {
+            myjsonrpc::send_json($cfd, {VERSION => 'COOL'});
+        }
+        elsif ($cmd) {
+            myjsonrpc::send_json($cfd, {response_for => $cmd, %$json});
+        }
     }
     _exit(0);
 }
@@ -82,6 +89,23 @@ subtest 'query isotovideo version' => sub {
     $t->json_has('/json_cmd_token');
     delete $t->tx->res->json->{json_cmd_token};
     $t->json_is({VERSION => 'COOL'});
+};
+
+subtest 'web socket route' => sub {
+    $t->websocket_ok("$base_url/Hallo/ws");
+    $t->send_ok(
+        {
+            json => {
+                cmd  => 'set_pause_at_test',
+                name => 'installation-welcome',
+            }
+        },
+        'command passed to isotovideo'
+    );
+    $t->message_ok('result from isotovideo is passed back');
+    $t->json_message_is('/response_for' => 'set_pause_at_test');
+    $t->json_message_is('/name'         => 'installation-welcome');
+    $t->finish_ok();
 };
 
 done_testing;
