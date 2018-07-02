@@ -249,6 +249,21 @@ sub set_migrate_capability {
     );
 }
 
+sub _wait_while_status_is {
+    my ($self, $status, $timeout, $fail_msg) = @_;
+
+    my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
+    my $i = 0;
+    while ($rsp->{return}->{status} =~ $status) {
+        $i += 1;
+        if ($i > $timeout) {
+            die $fail_msg . "; QEMU status is " . $rsp->{return}->{status};
+        }
+        sleep(1);
+        $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
+    }
+}
+
 sub _wait_for_migrate {
     my ($self)              = @_;
     my $migration_starttime = gettimeofday;
@@ -281,6 +296,12 @@ sub _wait_for_migrate {
         }
 
     } until ($rsp->{return}->{status} eq "completed");
+
+    # Avoid race condition where QEMU allows us to start the VM (set state to
+    # running) then tries to transition to post-migarte which fails
+    $self->_wait_while_status_is(qr/paused|finish-migrate/,
+        $max_execution_time - $execution_time,
+        'Timed out waiting for migration to finalize');
 }
 
 sub _migrate_to_file {
@@ -470,16 +491,7 @@ sub load_snapshot {
     $self->load_console_snapshots($vmname);
 
     # query-migrate does not seem to work for an incoming migration
-    $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
-    my $i = 0;
-    while ($rsp->{return}->{status} =~ qr/migrate/) {
-        $i += 1;
-        if ($i > 300) {
-            die 'Loading snapshot timed out';
-        }
-        sleep(1);
-        $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
-    }
+    $self->_wait_while_status_is(qr/migrate/, 300, 'Timed out while loading snapshot');
 
     $self->select_console({testapi_console => 'sut'});
     diag('Restored snapshot');
