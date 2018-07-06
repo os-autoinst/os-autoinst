@@ -910,6 +910,9 @@ sub script_sudo {
 Executing script inside SUT with C<bash -eox> (in case of serial console with C<bash -eo>)
 and directs C<stdout> (I<not> C<stderr>!) to the serial console and returns
 the output I<if> the script exits with 0. Otherwise the test is set to failed.
+NOTE: execution result may include extra serial output which was on serial console
+since command was triggered in case serial console is not dedicated for
+the script output only.
 
 The script content is based on the variable content of C<current_test_script>
 and is typed or fetched through HTTP depending on various parameters. Typing
