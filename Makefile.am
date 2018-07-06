@@ -21,6 +21,7 @@ backendexec_DATA = \
 	backend/s390x.pm \
 	backend/svirt.pm \
 	backend/pvm.pm \
+	backend/spvm.pm \
 	backend/virt.pm
 
 consolesexecdir = $(pkglibexecdir)/consoles
