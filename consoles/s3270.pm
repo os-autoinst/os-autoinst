@@ -207,7 +207,7 @@ sub expect_3270 {
                 $we_had_new_output = 1;
             }
 
-            say "expect_3270 qeue content:\n\t" . join("\n\t", @{$self->{raw_expect_queue}->{queue}});
+            say "expect_3270 queue content:\n\t" . join("\n\t", @{$self->{raw_expect_queue}->{queue}});
 
             # if there is MORE..., go and grab it.
             if ($status_line =~ /$arg{buffer_full}/) {
