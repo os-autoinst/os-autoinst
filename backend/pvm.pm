@@ -24,6 +24,12 @@ use File::Basename;
 use Digest::MD5 'md5_hex';
 use osutils qw(dd_gen_params gen_params runcmd);
 
+# this backend relies on NovaLink tools being around on the worker
+# host. It supports HDD_1 and publishing assets
+
+# the spvm backend will only support the basics, but generally through
+# ssh to a novalink installation (so you only need ssh and terminal on worker)
+
 sub new {
     my $class      = shift;
     my $self       = $class->SUPER::new;
