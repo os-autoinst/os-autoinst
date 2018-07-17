@@ -63,7 +63,7 @@ BEGIN {
 
 # this shall be an integer increased by every change of the API
 # either to the worker or the tests
-our $INTERFACE = 11;
+our $INTERFACE = 12;
 
 use bmwqemu;
 use needle;
@@ -478,7 +478,7 @@ sub process_command {
 
         # send debugging info for ws clients
         myjsonrpc::send_json($cmd_srv_fd, {set_current_test => $current_test_name});
-        if (   $pause_test_name
+        if ($pause_test_name
             && $current_test_name
             && $current_test_full_name
             && ($pause_test_name eq $current_test_name || $pause_test_name eq $current_test_full_name))
@@ -614,9 +614,9 @@ if (!$return_code) {
 bmwqemu::load_vars();
 
 # mark hard disks for upload if test finished
-if (!$return_code && $completed && (my $nd = $bmwqemu::vars{NUMDISKS}) && ($bmwqemu::vars{BACKEND} eq 'qemu')) {
+if (!$return_code && $completed && $bmwqemu::vars{BACKEND} eq 'qemu') {
     my @toextract;
-    for my $i (1 .. $nd) {
+    for my $i (1 .. $bmwqemu::vars{NUMDISKS}) {
         my $dir = 'assets_private';
         my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
         unless ($name) {
@@ -627,6 +627,12 @@ if (!$return_code && $completed && (my $nd = $bmwqemu::vars{NUMDISKS}) && ($bmwq
         $name =~ /\.([[:alnum:]]+)$/;
         my $format = $1;
         push @toextract, {hdd_num => $i, name => $name, dir => $dir, format => $format};
+    }
+    if ($bmwqemu::vars{UEFI} && $bmwqemu::vars{PUBLISH_PFLASH_VARS}) {
+        push(@toextract, {pflash_vars => 1,
+                name   => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
+                dir    => 'assets_public',
+                format => 'qcow2'});
     }
     if (@toextract && !$clean_shutdown) {
         diag "ERROR: Machine not shut down when uploading disks!\n";

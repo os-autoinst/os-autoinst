@@ -56,6 +56,20 @@ openqaexecrunargsdir = $(pkglibexecdir)/OpenQA/Test
 openqaexecrunargs_DATA = \
     OpenQA/Test/RunArgs.pm
 
+openqaexecqemudir = $(pkglibexecdir)/OpenQA/Qemu
+openqaexecqemu_DATA = \
+	OpenQA/Qemu/BlockDevConf.pm \
+	OpenQA/Qemu/BlockDev.pm \
+	OpenQA/Qemu/ControllerConf.pm \
+	OpenQA/Qemu/DriveController.pm \
+	OpenQA/Qemu/DriveDevice.pm \
+	OpenQA/Qemu/DrivePath.pm \
+	OpenQA/Qemu/MutParams.pm \
+	OpenQA/Qemu/PFlashDevice.pm \
+	OpenQA/Qemu/Proc.pm \
+	OpenQA/Qemu/SnapshotConf.pm \
+	OpenQA/Qemu/Snapshot.pm
+
 # circumvent automake's test - possibly we really shouldn't install in /usr/lib though
 perlexecdir = $(pkglibexecdir)
 perlexec_DATA = \

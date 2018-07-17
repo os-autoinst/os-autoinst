@@ -220,11 +220,14 @@ sub fake_terminal {
     # Trailing data/carry buffer tests
     for (1 .. 2) {
         try_read($fd, $next_test);
-        try_write($fd, $US_keyboard_data . $stop_code_data);
+        try_write($fd, $US_keyboard_data . $stop_code_data . $stop_code_data);
     }
 
     #alarm $timeout * 2;
     #try_write($fd, ($US_keyboard_data x 100_000) . $stop_code_data);
+
+    try_write($fd, $first_prompt_data);
+    try_read($fd, $next_test);
 
     alarm $timeout;
     $SIG{ALRM} = sub {
@@ -300,19 +303,29 @@ sub test_terminal_directly {
     );
     type_string($next_test);
 
-    # In theory this may succeed if the kernel is preempted in, and/or a
-    # kernel buffer ends in just the right place. Even if the carry buffer is
-    # not implemented. However That seems unlikely.
+    # In theory, even if the carry buffer is not implemented, this may succeed
+    # if the kernel is preempted in, and/or a kernel buffer ends in just the
+    # right place.
     is($scrn->read_until($US_keyboard_data, $timeout, no_regex => 1)->{matched}, 1, 'direct: read including trailing data with no_regex');
     is($scrn->read_until(qr/$stop_code_data$/, $timeout)->{matched}, 1, 'direct: trailing data is carried over to next read');
     type_string($next_test);
 
     is($scrn->read_until(qr/\Q$US_keyboard_data\E/, $timeout)->{matched}, 1, 'direct: read including trailing data');
-    is($scrn->read_until(qr/$stop_code_data$/,      $timeout)->{matched}, 1, 'direct: trailing data is carried over to next read');
+    is($scrn->read_until(qr/$stop_code_data$stop_code_data/, $timeout)->{matched}, 1,
+        'direct: trailing data is carried over to next read');
     type_string($next_test);
 
     #ok($scrn->read_until(qr/$stop_code_data$/, $timeout, record_output => 1)->{matched},
     #   'direct: record a huge amount of data');
+
+    my $res;
+    do {
+        $res = $scrn->peak();
+    } while (length($res) < 1);
+    ok($res, 'direct: peaked');
+    is($scrn->read_until($first_prompt_data, $timeout, no_regex => 1)->{matched}, 1,
+        'direct: read after peak');
+    type_string($next_test);
 
     is_deeply($scrn->read_until('we timeout', 1), {matched => 0, string => $US_keyboard_data}, 'direct: timeout');
     type_string($next_test);
