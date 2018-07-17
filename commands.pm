@@ -238,7 +238,7 @@ sub run_daemon {
 
     # avoid leaking token
     app->mode('production');
-    app->log->level('debug');
+    app->log->level('info');
     app->log->debug("RUN_DAEMON " . $isotovideo);
     # abuse the defaults to store singletons for the server
     app->defaults(isotovideo => $isotovideo);
