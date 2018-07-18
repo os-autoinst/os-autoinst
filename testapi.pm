@@ -734,8 +734,8 @@ For more info see consoles/virtio_console.pm and consoles/virtio_screen.pm.
 sub is_serial_terminal {
     state $ret;
     state $last_seen = '';
-    if (defined $autotest::selected_console && $autotest::selected_console ne $last_seen) {
-        $last_seen = $autotest::selected_console;
+    if (defined current_console() && current_console() ne $last_seen) {
+        $last_seen = current_console();
         $ret = query_isotovideo('backend_is_serial_terminal', {});
     }
     return $ret->{yesorno};
@@ -1449,7 +1449,7 @@ here.
 
 sub console {
     my ($testapi_console) = @_;
-    $testapi_console ||= $autotest::selected_console;
+    $testapi_console ||= current_console();
     bmwqemu::log_call(testapi_console => $testapi_console);
     if (!exists $testapi_console_proxies{$testapi_console}) {
         $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
@@ -1474,7 +1474,8 @@ sub reset_consoles {
 =head2
     current_console
 
-Return the currently selected console
+Return the currently selected console, a call when no console is selected, will
+return C<undef>.
 
 =cut
 
