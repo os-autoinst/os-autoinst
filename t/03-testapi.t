@@ -182,7 +182,8 @@ like($details->{text}, qr/basetest-[0-9]+.*txt/, 'file for soft failure added');
 require distribution;
 testapi::set_distribution(distribution->new());
 select_console('a-console');
-is(is_serial_terminal, 0, 'Not a serial terminal');
+is(is_serial_terminal, 0,           'Not a serial terminal');
+is(current_console,    'a-console', 'Current console is the a-console');
 
 subtest 'script_run' => sub {
     my $module = new Test::MockModule('bmwqemu');

@@ -53,7 +53,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   start_audiocapture assert_recorded_sound check_recorded_sound
 
-  select_console console reset_consoles
+  select_console console reset_consoles current_console
 
   upload_asset data_url check_shutdown assert_shutdown parse_junit_log parse_extra_log upload_logs
 
@@ -1469,6 +1469,17 @@ if you did something to the system that affects the console (e.g. trigger reboot
 sub reset_consoles {
     query_isotovideo('backend_reset_consoles');
     return;
+}
+
+=head2
+    current_console
+
+Return the currently selected console
+
+=cut
+
+sub current_console {
+    return $autotest::selected_console;
 }
 
 =head1 audio support
