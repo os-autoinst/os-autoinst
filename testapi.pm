@@ -239,6 +239,11 @@ sub _check_backend_response {
     elsif ($rsp->{timeout}) {
         bmwqemu::fctres("match=" . join(',', @$tags) . " timed out after $timeout");
 
+        # make and upload a screenshot because we might want to create a new needle from this so far unexpected screen
+        my $current_test = $autotest::current_test;
+        $current_test->take_screenshot();
+        $current_test->save_test_result();
+
         # do a special rpc call to isotovideo which will block if the test should be paused
         # (if the test should not be paused this call will return 0; on resume (after pause) it will return 1)
         query_isotovideo('report_timeout') and return 'try_again';
