@@ -645,29 +645,25 @@ sub parse_serial_output_qemu {
     my $json = myjsonrpc::read_json($autotest::isotovideo);
 
     my $die = 0;
-    my %regexp_matched;
     # loop line by line
     for my $line (split(/^/, $json->{serial})) {
         chomp $line;
-        for my $regexp_table (@{$failures}) {
-            my $regexp  = $regexp_table->{pattern};
-            my $message = $regexp_table->{message};
-            my $type    = $regexp_table->{type};
-            die "Wrong type defined for serial failure. Only soft or hard allowed." if $type !~ /soft|hard/;
-            die "Not defined message key. Please, define one for each regular expression" if !defined $message;
+        # only two keys allowed
+        for my $type (qw(soft hard)) {
+            for my $regexp (@{$failures->{$type}}) {
+                # If you want to match a simple string please be sure that you create it with quotemeta
+                if ($line =~ /$regexp/) {
+                    my $fail_type = 'softfail';
+                    if ($type eq 'hard') {
+                        $die       = 1;
+                        $fail_type = 'fail';
+                    }
 
-            # If you want to match a simple string please be sure that you create it with quotemeta
-            if (!exists $regexp_matched{$regexp} and $line =~ /$regexp/) {
-                $regexp_matched{$regexp} = 1;
-                my $fail_type = 'softfail';
-                if ($type eq 'hard') {
-                    $die       = 1;
-                    $fail_type = 'fail';
+                    $self->record_testresult($fail_type);
+                    $self->record_resultfile('Serial Failure', "Serial error: $line", result => $fail_type);
+                    $self->{result} = $fail_type;
+
                 }
-
-                $self->record_testresult($fail_type);
-                $self->record_resultfile('Serial Failure', $message . " - Serial error: $line", result => $fail_type);
-                $self->{result} = $fail_type;
             }
         }
     }
