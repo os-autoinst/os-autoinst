@@ -419,7 +419,7 @@ sub process_command {
 
         # emit info
         myjsonrpc::send_json($cmd_srv_fd, {paused => $rsp, reason => $test_execution_paused});
-        print("isotovideo: pausing test execution at $current_test_full_name because a timeout occured\n");
+        print("isotovideo: pausing test execution at $current_test_full_name because a timeout occurred\n");
 
         # postpone sending the reply
         $postponed_io_handle = $io_handle;

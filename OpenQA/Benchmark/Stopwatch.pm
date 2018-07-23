@@ -38,7 +38,7 @@ The stopwatch analogy is that at some point you get a C<new> stopwatch and
 C<start> timing. Then you note certain events using C<lap>. Finally you
 C<stop> the watch and then print out a C<summary>.
 
-The summary shows all the events in order, what time they occured at, how long
+The summary shows all the events in order, what time they occurred at, how long
 since the last lap and the percentage of the total time. Hopefully this will
 give you a good idea of where your code is spending most of its time.
 
@@ -138,7 +138,7 @@ sub total_time {
 
     my $summary_text = $stopwatch->summary;
 
-Returns text summarizing the events that occured. Example output from a script
+Returns text summarizing the events that occurred. Example output from a script
 that fetches the homepages of the web's five busiest sites and times how long
 each took.
 
