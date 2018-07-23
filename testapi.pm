@@ -330,7 +330,7 @@ sub _check_or_assert {
 
         # check backend response
         # (implemented as separate function because it needs to call itself)
-        my $backend_response = _check_backend_response($rsp, $check, $args{timeout}, $mustmatch, $args{no_wait});
+        my $backend_response = _check_backend_response($rsp, $check, $args{timeout}, $mustmatch);
 
         # return the response unless we should try again after resuming from paused state
         return $backend_response if (!$backend_response || $backend_response ne 'try_again');
