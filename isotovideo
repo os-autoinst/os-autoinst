@@ -477,7 +477,10 @@ sub process_command {
         $current_test_full_name = $rsp->{full_name};
 
         # send debugging info for ws clients
-        myjsonrpc::send_json($cmd_srv_fd, {set_current_test => $current_test_name});
+        myjsonrpc::send_json($cmd_srv_fd, {
+                set_current_test       => $current_test_name,
+                current_test_full_name => $current_test_full_name,
+        });
         if ($pause_test_name
             && $current_test_name
             && $current_test_full_name
