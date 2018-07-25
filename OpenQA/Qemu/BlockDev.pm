@@ -138,12 +138,6 @@ sub gen_cmdline {
     my ($self) = @_;
     my @cmdl = ();
 
-    my $backing = '';
-    if (defined $self->backing_file && !$self->backing_file->implicit) {
-        push(@cmdl, $self->backing_file->gen_cmdline);
-        $backing = $self->backing_file->node_name;
-    }
-
     # The first blockdev defines the data store, we only use files, but in
     # theory it could be a http address, ISCSI or a link to an object store
     # item (like Ceph).
@@ -157,8 +151,7 @@ sub gen_cmdline {
             join(',', ('driver=' . $self->driver,
                     'node-name=' . $self->node_name,
                     'file=' . $self->node_name . FILE_POSTFIX,
-                    'cache.no-flush=on',
-                    ('backing=' . $backing) x !!$backing))));
+                    'cache.no-flush=on'))));
 
     return @cmdl;
 }
