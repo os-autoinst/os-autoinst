@@ -622,9 +622,11 @@ sub rollback_activated_consoles {
         autotest::query_isotovideo('backend_reset_console', {testapi_console => $console});
     }
 
-    my $ret = autotest::query_isotovideo('backend_select_console',
-        {testapi_console => $autotest::last_milestone_console});
-    die $ret->{error} if $ret->{error};
+    if (defined($autotest::last_milestone_console)) {
+        my $ret = autotest::query_isotovideo('backend_select_console',
+            {testapi_console => $autotest::last_milestone_console});
+        die $ret->{error} if $ret->{error};
+    }
 
     return;
 }
