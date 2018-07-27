@@ -650,7 +650,7 @@ sub parse_serial_output_qemu {
     # serial failures defined in distri (test can override them)
     my $failures = $self->{serial_failures};
 
-    my $json = $self->get_serial_output_json;
+    my $json = $self->get_serial_output_json($from_position);
 
     my $die = 0;
     my %regexp_matched;
@@ -674,7 +674,7 @@ sub parse_serial_output_qemu {
                 }
 
                 $self->record_testresult($fail_type);
-                $self->record_resultfile('Serial Failure', $message . " - Serial error: $line", result => $fail_type);
+                $self->record_resultfile($message, $message . " - Serial error: $line", result => $fail_type);
                 $self->{result} = $fail_type;
             }
         }
