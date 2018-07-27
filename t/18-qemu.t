@@ -110,8 +110,8 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing U
 
   -blockdev driver=file,node-name=hd0-file,filename=raid/hd0,cache.no-flush=on
   -blockdev driver=qcow2,node-name=hd0,file=hd0-file,cache.no-flush=on
-  -device sega-mega,id=hd0-device-path0,drive=hd0,share-rw=true,bus=scsi0.0,serial=hd0
-  -device sega-mega,id=hd0-device-path1,drive=hd0,share-rw=true,bus=scsi1.0,serial=hd0
+  -device sega-mega,id=hd0-device-path0,drive=hd0,share-rw=true,bus=scsi0.0,bootindex=0,serial=hd0
+  -device sega-mega,id=hd0-device-path1,drive=hd0,share-rw=true,bus=scsi1.0,bootindex=0,serial=hd0
 
   -blockdev driver=file,node-name=hd1-file,filename=raid/hd1,cache.no-flush=on
   -blockdev driver=qcow2,node-name=hd1,file=hd1-file,cache.no-flush=on
@@ -149,7 +149,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Multipath Command line after serialisation and deser
 
   -blockdev driver=file,node-name=hd0-file,filename=raid/hd0,cache.no-flush=on
   -blockdev driver=qcow2,node-name=hd0,file=hd0-file,cache.no-flush=on
-  -device scsi-hd,id=hd0-device,drive=hd0,serial=hd0
+  -device scsi-hd,id=hd0-device,drive=hd0,bootindex=0,serial=hd0
 
   -blockdev driver=file,node-name=cd0-overlay0-file,filename=raid/cd0-overlay0,cache.no-flush=on
   -blockdev driver=qcow2,node-name=cd0-overlay0,file=cd0-overlay0-file,cache.no-flush=on
@@ -179,7 +179,7 @@ my $ss;
 
   -blockdev driver=file,node-name=hd0-overlay1-file,filename=raid/hd0-overlay1,cache.no-flush=on
   -blockdev driver=qcow2,node-name=hd0-overlay1,file=hd0-overlay1-file,cache.no-flush=on
-  -device scsi-hd,id=hd0-device,drive=hd0-overlay1,serial=hd0
+  -device scsi-hd,id=hd0-device,drive=hd0-overlay1,bootindex=0,serial=hd0
 
   -blockdev driver=file,node-name=cd0-overlay1-file,filename=raid/cd0-overlay1,cache.no-flush=on
   -blockdev driver=qcow2,node-name=cd0-overlay1,file=cd0-overlay1-file,cache.no-flush=on
@@ -234,7 +234,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert with snapshots');
 
   -blockdev driver=file,node-name=hd0-overlay1-file,filename=raid/hd0-overlay1,cache.no-flush=on
   -blockdev driver=qcow2,node-name=hd0-overlay1,file=hd0-overlay1-file,cache.no-flush=on
-  -device scsi-hd,id=hd0-device,drive=hd0-overlay1,serial=hd0
+  -device scsi-hd,id=hd0-device,drive=hd0-overlay1,bootindex=0,serial=hd0
 
   -blockdev driver=file,node-name=cd0-overlay1-file,filename=raid/cd0-overlay1,cache.no-flush=on
   -blockdev driver=qcow2,node-name=cd0-overlay1,file=cd0-overlay1-file,cache.no-flush=on

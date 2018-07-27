@@ -142,7 +142,6 @@ sub configure_blockdevs {
     my ($self, $bootfrom, $basedir, $vars) = @_;
     my $bdc       = $self->blockdev_conf;
     my @scsi_ctrs = $self->controller_conf->get_controllers(qr/scsi/);
-    my $uefi      = $vars->{UEFI};
 
     $bdc->basedir($basedir);
 
@@ -163,7 +162,7 @@ sub configure_blockdevs {
             $drive = $bdc->add_new_drive($node_id, $hdd_model, $size);
         }
 
-        if ($i == 1 && $uefi && $bootfrom eq 'disk') {
+        if ($i == 1 && $bootfrom eq 'disk') {
             $drive->bootindex(0);
         }
 
@@ -182,12 +181,12 @@ sub configure_blockdevs {
         my $size = $self->get_img_size($iso);
         if ($vars->{USBBOOT}) {
             my $drive = $bdc->add_iso_drive('usbstick', $iso, 'usb-storage', $size);
-            $drive->bootindex(0) if $uefi && $bootfrom ne "disk";
+            $drive->bootindex(0) if $bootfrom ne "disk";
         }
         else {
             my $drive = $bdc->add_iso_drive('cd0', $iso, $vars->{CDMODEL}, $size);
             $drive->serial('cd0');
-            $drive->bootindex(0) if $uefi && $bootfrom eq "cdrom";
+            $drive->bootindex(0) if $bootfrom eq "cdrom";
         }
     }
     my $is_first = 1;
@@ -199,9 +198,9 @@ sub configure_blockdevs {
         my $size = $self->get_img_size($addoniso);
         my $drive = $bdc->add_iso_drive("cd$i", $addoniso, $vars->{CDMODEL}, $size);
         $drive->serial("cd$i");
-        # first connected cdrom gets ",bootindex=0" on UEFI when booting from
-        # cdrom and there wasn't `ISO` defined
-        if ($is_first && $uefi && $bootfrom eq "cdrom" && !$iso) {
+        # first connected cdrom gets ",bootindex=0 when booting from cdrom and
+        # there wasn't `ISO` defined
+        if ($is_first && $bootfrom eq "cdrom" && !$iso) {
             $drive->bootindex(0);
             $is_first = 0;
         }
