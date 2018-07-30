@@ -637,9 +637,13 @@ if (!$return_code && $completed && $bmwqemu::vars{BACKEND} eq 'qemu') {
         }
         else {
             # Temporary workaround for poo#38813 note 24
+            my $pvars = 'assets_public/' . $bmwqemu::vars{PUBLISH_PFLASH_VARS};
             mkpath('assets_public');
-            open(my $fh, '>>', 'assets_public/' . $bmwqemu::vars{PUBLISH_PFLASH_VARS});
-            close($fh);
+            if(((stat($pvars))[8] // 0) == 0 && open(my $fh, '>', $pvars)) {
+                bmwqemu::diag("Creating dummy pflash vars file $pvars");
+                print($fh, 'Not a real UEFI vars file');
+                close($fh);
+            }
         }
     }
     if (@toextract && !$clean_shutdown) {
