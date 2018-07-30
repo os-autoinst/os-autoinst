@@ -761,6 +761,11 @@ sub start_qemu {
     sp('serial',  'file:serial0');
     sp('soundhw', 'ac97');
     {
+        # Remove floppy drive device on archictures
+        unless ($vars->{ARCH} eq 'aarch64' || $vars->{ARCH} eq 'arm' || $vars->{QEMU_NO_FDC_SET}) {
+            sp('global', 'isa-fdc.driveA=');
+        }
+
         sp('m',       $vars->{QEMURAM})     if $vars->{QEMURAM};
         sp('machine', $vars->{QEMUMACHINE}) if $vars->{QEMUMACHINE};
         sp('cpu',     $vars->{QEMUCPU})     if $vars->{QEMUCPU};
