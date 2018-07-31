@@ -290,7 +290,7 @@ $io_select->add($testfd);
 $io_select->add($cmd_srv_fd);
 $io_select->add($backend_process->channel_out);
 
-my $stop_loop = sub { if ($loop) { diag "Stopping LOOOP"; $loop = 0; } };
+my $stop_loop = sub { $loop = 0 if $loop; };
 $testprocess->once(collected => $stop_loop);
 $backend_process->once(collected => $stop_loop);
 $cmd_srv_process->once(collected => $stop_loop);

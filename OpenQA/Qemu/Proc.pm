@@ -356,7 +356,14 @@ sub exec_qemu {
         });
 
     session->enable_subreaper;
-    $self->_process->code(sub { exec(@params) })->start();
+    $self->_process->code(sub {
+            $SIG{__DIE__} = undef;    # overwrite the default - just exit
+            system $self->qemu_bin, '-version';
+            bmwqemu::diag("starting: " . join(" ", @params));
+            # don't try to talk to the host's PA
+            $ENV{QEMU_AUDIO_DRV} = "none";
+
+            exec(@params) })->separate_err(0)->start();
     fcntl($self->_process->read_stream, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
     return $self->_process->read_stream;

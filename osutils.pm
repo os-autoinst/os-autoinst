@@ -22,10 +22,7 @@ use Carp;
 use base 'Exporter';
 use Mojo::File 'path';
 use bmwqemu 'diag';
-use POSIX ':sys_wait_h';
-use Symbol 'gensym';
-use IPC::Open3;
-use IO::Select;
+use Mojo::IOLoop::ReadWriteProcess 'process';
 
 our @EXPORT_OK = qw(
   dd_gen_params
@@ -92,78 +89,35 @@ sub quote {
     "\'" . $_[0] . "\'";
 }
 
-sub opencmd {
-    my ($params, $sub) = @_;
-    my ($pid, $status);
-
-    local $SIG{CHLD} = sub {
-        local ($!, $?);
-        while ((my $child = waitpid(-1, WNOHANG)) > 0) {
-            diag "runcmd pid $pid returned $child";
-            $status = $?;
-        }
-    };
-
-    my ($wtr, $rdr, $err);
-    $err = gensym;
-    $pid = open3($wtr, $rdr, $err, @$params);
-    die "couldn't open: $!" unless defined $pid;
-    close($wtr) or die "couldn't close fh: $!";
-
-    $sub->($rdr, $err);
-
-    close($rdr) or die "couldn't close fh: $!";
-    close($err) or die "couldn't close fh: $!";
-
-    my $exit_code = $status >> 8;
-    die "runcmd failed with exit code $exit_code" unless ($exit_code == 0);
-    return $exit_code;
-}
-
 # Open a process to run external program and check its return status
 sub runcmd {
     diag "running " . join(' ', @_);
+    my @args = @_;
 
-    return opencmd(\@_, sub {
-            my ($rdr, $err) = @_;
-            my $s = IO::Select->new();
+    my $p = process(sub { exec(@args) })->separate_err(0)->start;
+    while (defined(my $line = $p->getline)) {
+        diag $line;
+    }
 
-            $s->add($rdr, $err);
-            while (my @ready = $s->can_read()) {
-                for my $fh (@ready) {
-                    if (sysread($fh, my $buf, 4096)) {
-                        diag $buf if ($fh == $rdr);
-                        diag $buf if ($fh == $err);
-                    }
-                    else {
-                        $s->remove($fh);
-                    }
-                }
-            }
-    });
+    $p->wait_stop;
+    close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
+
+    die "runcmd failed with exit code " . $p->exit_status unless $p->exit_status == 0;
+
+    return $p->exit_status;
 }
 
 sub runcmd_output {
     diag "running " . join(' ', @_);
-    my $out = '';
+    my @args = @_;
+    my $out;
+    my $p = process(sub { exec(@args) })->separate_err(1)->start;
+    while (defined(my $line = $p->getline)) {
+        $out .= $line;
+    }
 
-    opencmd(\@_, sub {
-            my ($rdr, $err) = @_;
-            my $s = IO::Select->new();
-
-            $s->add($rdr, $err);
-            while (my @ready = $s->can_read()) {
-                for my $fh (@ready) {
-                    if (sysread($fh, my $buf, 4096)) {
-                        $out .= $buf if ($fh == $rdr);
-                        diag $buf if ($fh == $err);
-                    }
-                    else {
-                        $s->remove($fh);
-                    }
-                }
-            }
-    });
+    $p->wait_stop;
+    close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
 
     return $out;
 }
