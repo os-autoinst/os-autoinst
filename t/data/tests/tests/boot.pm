@@ -25,7 +25,14 @@ sub run {
     assert_screen 'core', no_wait => 1;
     send_key 'ret';
 
-    assert_screen 'on_prompt';
+    # set timeout to 15 seconds so we don't waste too much time here when testing for
+    #  pausing on assert_screen timeout
+    if (get_var('TESTING_ASSERT_SCREEN_TIMEOUT')) {
+        assert_screen 'on_prompt', timeout => 15;
+    }
+    else {
+        assert_screen 'on_prompt';
+    }
 
     assert_script_run 'cat /proc/cpuinfo';
     type_string "cat > text <<EOF\n";
