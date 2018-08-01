@@ -628,19 +628,11 @@ if (!$return_code && $completed && $bmwqemu::vars{BACKEND} eq 'qemu') {
         my $format = $1;
         push @toextract, {hdd_num => $i, name => $name, dir => $dir, format => $format};
     }
-    if ($bmwqemu::vars{PUBLISH_PFLASH_VARS}) {
-        if ($bmwqemu::vars{UEFI}) {
-            push(@toextract, {pflash_vars => 1,
-                    name   => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
-                    dir    => 'assets_public',
-                    format => 'qcow2'});
-        }
-        else {
-            # Temporary workaround for poo#38813 note 24
-            mkpath('assets_public');
-            open(my $fh, '>>', 'assets_public/' . $bmwqemu::vars{PUBLISH_PFLASH_VARS});
-            close($fh);
-        }
+    if ($bmwqemu::vars{UEFI} && $bmwqemu::vars{PUBLISH_PFLASH_VARS}) {
+        push(@toextract, {pflash_vars => 1,
+                name   => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
+                dir    => 'assets_public',
+                format => 'qcow2'});
     }
     if (@toextract && !$clean_shutdown) {
         diag "ERROR: Machine not shut down when uploading disks!\n";
