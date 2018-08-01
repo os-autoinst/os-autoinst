@@ -493,6 +493,7 @@ sub load_snapshot {
     # query-migrate does not seem to work for an incoming migration
     $self->_wait_while_status_is(qr/migrate/, 300, 'Timed out while loading snapshot');
 
+    $self->reenable_consoles();
     $self->select_console({testapi_console => 'sut'});
     diag('Restored snapshot');
     $self->cont_vm();
