@@ -569,9 +569,19 @@ sub disable_consoles {
 
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
-        $console_info->reset();
         if ($console_info->can('disable')) {
             $console_info->disable();
+        }
+    }
+}
+
+sub reenable_consoles {
+    my ($self) = @_;
+
+    for my $console (keys %{$testapi::distri->{consoles}}) {
+        my $console_info = $self->console($console);
+        if ($console_info->can('disable')) {
+            $console_info->activate();
         }
     }
 }
