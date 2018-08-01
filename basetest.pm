@@ -621,6 +621,7 @@ sub rollback_activated_consoles {
         # able to activate a 2nd time, but that's up to the console class
         autotest::query_isotovideo('backend_reset_console', {testapi_console => $console});
     }
+    $self->{activated_consoles} = [];
 
     if (defined($autotest::last_milestone_console)) {
         my $ret = autotest::query_isotovideo('backend_select_console',
