@@ -24,6 +24,8 @@ use Mojo::File 'path';
 use bmwqemu 'diag';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 
+use constant RUNCMD_FAILURE_MESS => 'runcmd failed with exit code';
+
 our @EXPORT_OK = qw(
   dd_gen_params
   find_bin
@@ -32,6 +34,7 @@ our @EXPORT_OK = qw(
   quote
   runcmd
   runcmd_output
+  simple_run
   attempt
 );
 
@@ -89,29 +92,12 @@ sub quote {
     "\'" . $_[0] . "\'";
 }
 
-# Open a process to run external program and check its return status
-sub runcmd {
+sub _run {
     diag "running " . join(' ', @_);
-    my @args = @_;
-
-    my $p = process(sub { exec(@args) })->separate_err(0)->start;
-    while (defined(my $line = $p->getline)) {
-        diag $line;
-    }
-
-    $p->wait_stop;
-    close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
-
-    die "runcmd failed with exit code " . $p->exit_status unless $p->exit_status == 0;
-
-    return $p->exit_status;
-}
-
-sub runcmd_output {
-    diag "running " . join(' ', @_);
+    my $e    = pop;
     my @args = @_;
     my $out;
-    my $p = process(sub { exec(@args) })->separate_err(1)->start;
+    my $p = process(sub { exec(@args) })->separate_err($e)->start;
     while (defined(my $line = $p->getline)) {
         $out .= $line;
     }
@@ -119,6 +105,25 @@ sub runcmd_output {
     $p->wait_stop;
     close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
 
+    return $p->exit_status, $out;
+}
+
+# Do not check for anything - just execute and print
+sub simple_run { diag((_run(@_, 0))[1]) }
+
+# Open a process to run external program and check its return status
+sub runcmd {
+    my ($e, $out) = _run(@_, 0);
+    diag $out;
+    die join(" ", RUNCMD_FAILURE_MESS, $e) unless $e == 0;
+    return $e;
+}
+
+# Check for exit status and return the output
+sub runcmd_output {
+    my ($e, $out) = _run(@_, 1);
+    diag $out;
+    die join(" ", RUNCMD_FAILURE_MESS, $e) unless $e == 0;
     return $out;
 }
 ## use critic

@@ -33,7 +33,7 @@ use bmwqemu qw(fileContent diag save_vars);
 require IPC::System::Simple;
 use autodie ':all';
 use Try::Tiny;
-use osutils qw(find_bin gen_params qv runcmd runcmd_output);
+use osutils qw(find_bin gen_params qv simple_run runcmd);
 use List::Util 'max';
 use Data::Dumper;
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
@@ -702,7 +702,7 @@ sub start_qemu {
     mkpath($basedir);
 
     # do not use autodie here, it can fail on tmpfs, xfs, ...
-    runcmd_output('/usr/bin/chattr', '-f', '+C', $basedir);
+    simple_run('/usr/bin/chattr', '-f', '+C', $basedir);
 
     my $keephdds = $vars->{KEEPHDDS} || $vars->{SKIPTO};
 
