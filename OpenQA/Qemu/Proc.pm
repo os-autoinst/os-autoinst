@@ -46,7 +46,10 @@ use constant STATE_FILE => 'qemu_state.json';
 
 has qemu_bin     => 'qemu-kvm';
 has qemu_img_bin => 'qemu-img';
-has '_process';
+has _process     => sub { process(
+        pidfile       => 'qemu.pid',
+        separate_err  => 0,
+        blocking_stop => 1) };
 
 has _static_params => sub { return []; };
 has _mut_params    => sub { return []; };
@@ -60,11 +63,6 @@ has snapshot_conf   => sub { return OpenQA::Qemu::SnapshotConf->new(); };
 sub new {
     my $self = shift->SUPER::new(@_);
 
-    $self->_process(process(
-            pidfile       => 'qemu.pid',
-            separate_err  => 0,
-            blocking_stop => 1)
-    );
     $self->_push_mut($self->controller_conf);
     $self->_push_mut($self->blockdev_conf);
     $self->_push_mut($self->snapshot_conf);
