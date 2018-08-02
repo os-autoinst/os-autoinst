@@ -580,7 +580,7 @@ sub reenable_consoles {
 
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
-        if ($console_info->can('disable')) {
+        if ($console_info->{activated} && $console_info->can('disable')) {
             $console_info->activate();
         }
     }
