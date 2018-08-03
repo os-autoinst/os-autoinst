@@ -114,7 +114,7 @@ sub simple_run { diag((_run(@_, 0))[1]) }
 # Open a process to run external program and check its return status
 sub runcmd {
     my ($e, $out) = _run(@_, 0);
-    diag $out;
+    diag $out if $out && length($out) > 0;
     die join(" ", RUNCMD_FAILURE_MESS, $e) unless $e == 0;
     return $e;
 }
@@ -122,7 +122,7 @@ sub runcmd {
 # Check for exit status and return the output
 sub runcmd_output {
     my ($e, $out) = _run(@_, 1);
-    diag $out;
+    diag $out if $out && length($out) > 0;
     die join(" ", RUNCMD_FAILURE_MESS, $e) unless $e == 0;
     return $out;
 }

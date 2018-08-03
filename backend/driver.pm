@@ -31,13 +31,7 @@ use autodie ':all';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use myjsonrpc;
-
-# TODO: move the whole printing out of bmwqemu
-sub diag {
-    my ($text) = @_;
-
-    print "$text\n";
-}
+use bmwqemu;    # TODO: move the whole printing out of bmwqemu
 
 sub new {
     my ($class, $name) = @_;
@@ -50,7 +44,7 @@ sub new {
     session->on(
         collected_orphan => sub {
             my ($session, $p) = @_;
-            printf STDERR "Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status . "\n";
+            bmwqemu::diag("Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status);
         });
 
     $self->start();
@@ -84,7 +78,7 @@ sub start {
             _exit(0);
     })->blocking_stop(1)->separate_err(0)->subreaper(1)->start;
 
-    $backend_process->on(collected => sub { diag "backend process exited: " . shift->exit_status; });
+    $backend_process->on(collected => sub { bmwqemu::diag("backend process exited: " . shift->exit_status) });
 
     printf STDERR "$$: channel_out %d, channel_in %d\n", fileno($backend_process->channel_out), fileno($backend_process->channel_in);
     $self->{backend_pid}     = $backend_process->pid;

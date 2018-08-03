@@ -25,7 +25,7 @@ use POSIX '_exit', 'strftime';
 use autodie ':all';
 use JSON 'from_json';
 use myjsonrpc;
-
+use bmwqemu 'diag';
 
 BEGIN {
     # https://github.com/os-autoinst/openQA/issues/450
@@ -356,7 +356,7 @@ sub start_server {
     })->blocking_stop(1)->internal_pipes(0)->set_pipes(0)->start;
 
     close($isotovideo);
-    $process->on(collected => sub { print STDERR "commands process exited: " . shift->exit_status . "\n"; });
+    $process->on(collected => sub { diag("commands process exited: " . shift->exit_status); });
     return ($process, $child);
 }
 
