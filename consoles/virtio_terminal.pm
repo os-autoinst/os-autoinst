@@ -133,7 +133,7 @@ sub open_socket {
 sub activate {
     my ($self) = @_;
     if (get_var('VIRTIO_CONSOLE')) {
-        $self->{socket_fd}              = $self->open_socket;
+        $self->{socket_fd}              = $self->open_socket unless $self->{socket_fd};
         $self->{screen}                 = consoles::virtio_screen::->new($self->{socket_fd});
         $self->{screen}->{carry_buffer} = $self->{preload_buffer};
         $self->{preload_buffer}         = '';
