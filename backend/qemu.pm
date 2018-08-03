@@ -759,7 +759,8 @@ sub start_qemu {
     $self->{proc}->init_blockdev_images();
 
     sp('only-migratable') if $self->can_handle({function => 'snapshots', no_warn => 1});
-    sp('serial',  'file:serial0');
+    sp('chardev', 'ringbuf,id=serial0,logfile=serial0,logappend=on');
+    sp('serial',  'chardev:serial0');
     sp('soundhw', 'ac97');
     {
         # Remove floppy drive device on archictures
@@ -865,12 +866,12 @@ sub start_qemu {
         if ($vars->{VIRTIO_CONSOLE}) {
             my $id = 'virtio_console';
             sp('device', 'virtio-serial');
-            sp('chardev', [qv "socket path=$id server nowait id=$id logfile=$id.log"]);
+            sp('chardev', [qv "socket path=$id server nowait id=$id logfile=$id.log logappend=on"]);
             sp('device',  [qv "virtconsole chardev=$id name=org.openqa.console.$id"]);
         }
 
         my $qmpid = 'qmp_socket';
-        sp('chardev', [qv "socket path=$qmpid server nowait id=$qmpid logfile=$qmpid.log logappend"]);
+        sp('chardev', [qv "socket path=$qmpid server nowait id=$qmpid logfile=$qmpid.log logappend=on"]);
         sp('qmp', "chardev:$qmpid");
         sp('S');
     }
