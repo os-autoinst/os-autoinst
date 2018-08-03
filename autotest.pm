@@ -27,11 +27,13 @@ use IO::Handle;
 use POSIX '_exit';
 use cv;
 use Scalar::Util 'blessed';
+use Mojo::IOLoop::ReadWriteProcess 'process';
+use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 
 our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
 our $isotovideo;
-
+our $process;
 =head1 Introduction
 
 OS Autoinst decides which test modules to run based on a distribution specific
@@ -212,33 +214,31 @@ sub start_process {
     $child->autoflush(1);
     $isotovideo->autoflush(1);
 
-    my $testpid = fork();
-    if ($testpid) {
-        close $isotovideo;
-        return ($testpid, $child);
-    }
+    $process = process(sub {
+            close $child;
+            $SIG{TERM} = \&handle_sigterm;
+            $SIG{INT}  = 'DEFAULT';
+            $SIG{HUP}  = 'DEFAULT';
+            $SIG{CHLD} = 'DEFAULT';
 
-    die "cannot fork: $!" unless defined $testpid;
-    close $child;
+            cv::init;
+            require tinycv;
 
-    $SIG{TERM} = \&handle_sigterm;
-    $SIG{INT}  = 'DEFAULT';
-    $SIG{HUP}  = 'DEFAULT';
-    $SIG{CHLD} = 'DEFAULT';
+            $0 = "$0: autotest";
+            my $line = <$isotovideo>;
+            if (!$line) {
+                _exit(0);
+            }
+            print "GOT $line\n";
+            # the backend process might have added some defaults for the backend
+            bmwqemu::load_vars();
 
-    cv::init;
-    require tinycv;
+            run_all;
+    })->blocking_stop(1)->separate_err(0)->set_pipes(0)->internal_pipes(0)->start;
+    $process->on(collected => sub { bmwqemu::diag "[" . __PACKAGE__ . "] process exited: " . shift->exit_status; });
 
-    $0 = "$0: autotest";
-    my $line = <$isotovideo>;
-    if (!$line) {
-        _exit(0);
-    }
-    print "GOT $line\n";
-    # the backend process might have added some defaults for the backend
-    bmwqemu::load_vars();
-
-    run_all;
+    close $isotovideo;
+    return ($process, $child);
 }
 
 

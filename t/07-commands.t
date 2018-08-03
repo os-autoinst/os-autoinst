@@ -53,7 +53,7 @@ sub wait_for_server {
 $bmwqemu::vars{JOBTOKEN} = 'Hallo';
 
 # now this is a game of luck
-my ($cpid, $cfd) = commands::start_server($mojoport);
+my ($cserver, $cfd) = commands::start_server($mojoport);
 
 my $spid = fork();
 if ($spid == 0) {
@@ -108,13 +108,8 @@ subtest 'web socket route' => sub {
     $t->finish_ok();
 };
 
-done_testing;
+kill TERM => $spid;
+waitpid($spid, 0);
+eval { $cserver->stop() };
 
-END {
-    return unless $spid;
-    kill TERM => $spid;
-    waitpid($spid, 0);
-    kill TERM => $cpid;
-    waitpid($cpid, 0);
-    wait_for_server($t->ua);
-}
+done_testing;

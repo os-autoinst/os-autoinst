@@ -22,10 +22,9 @@ use Carp;
 use base 'Exporter';
 use Mojo::File 'path';
 use bmwqemu 'diag';
-use POSIX ':sys_wait_h';
-use Symbol 'gensym';
-use IPC::Open3;
-use IO::Select;
+use Mojo::IOLoop::ReadWriteProcess 'process';
+
+use constant RUNCMD_FAILURE_MESS => 'runcmd failed with exit code';
 
 our @EXPORT_OK = qw(
   dd_gen_params
@@ -35,6 +34,7 @@ our @EXPORT_OK = qw(
   quote
   runcmd
   runcmd_output
+  simple_run
   attempt
 );
 
@@ -92,79 +92,38 @@ sub quote {
     "\'" . $_[0] . "\'";
 }
 
-sub opencmd {
-    my ($params, $sub) = @_;
-    my ($pid, $status);
+sub _run {
+    diag "running " . join(' ', @_);
+    my $e    = pop;
+    my @args = @_;
+    my $out;
+    my $p = process(sub { exec(@args) })->separate_err($e)->start;
+    while (defined(my $line = $p->getline)) {
+        $out .= $line;
+    }
 
-    local $SIG{CHLD} = sub {
-        local ($!, $?);
-        while ((my $child = waitpid(-1, WNOHANG)) > 0) {
-            diag "runcmd pid $pid returned $child";
-            $status = $?;
-        }
-    };
+    $p->wait_stop;
+    close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
 
-    my ($wtr, $rdr, $err);
-    $err = gensym;
-    $pid = open3($wtr, $rdr, $err, @$params);
-    die "couldn't open: $!" unless defined $pid;
-    close($wtr) or die "couldn't close fh: $!";
-
-    $sub->($rdr, $err);
-
-    close($rdr) or die "couldn't close fh: $!";
-    close($err) or die "couldn't close fh: $!";
-
-    my $exit_code = $status >> 8;
-    die "runcmd failed with exit code $exit_code" unless ($exit_code == 0);
-    return $exit_code;
+    return $p->exit_status, $out;
 }
+
+# Do not check for anything - just execute and print
+sub simple_run { diag((_run(@_, 0))[1]) }
 
 # Open a process to run external program and check its return status
 sub runcmd {
-    diag "running " . join(' ', @_);
-
-    return opencmd(\@_, sub {
-            my ($rdr, $err) = @_;
-            my $s = IO::Select->new();
-
-            $s->add($rdr, $err);
-            while (my @ready = $s->can_read()) {
-                for my $fh (@ready) {
-                    if (sysread($fh, my $buf, 4096)) {
-                        diag $buf if ($fh == $rdr);
-                        diag $buf if ($fh == $err);
-                    }
-                    else {
-                        $s->remove($fh);
-                    }
-                }
-            }
-    });
+    my ($e, $out) = _run(@_, 0);
+    diag $out if $out && length($out) > 0;
+    die join(" ", RUNCMD_FAILURE_MESS, $e) unless $e == 0;
+    return $e;
 }
 
+# Check for exit status and return the output
 sub runcmd_output {
-    diag "running " . join(' ', @_);
-    my $out = '';
-
-    opencmd(\@_, sub {
-            my ($rdr, $err) = @_;
-            my $s = IO::Select->new();
-
-            $s->add($rdr, $err);
-            while (my @ready = $s->can_read()) {
-                for my $fh (@ready) {
-                    if (sysread($fh, my $buf, 4096)) {
-                        $out .= $buf if ($fh == $rdr);
-                        diag $buf if ($fh == $err);
-                    }
-                    else {
-                        $s->remove($fh);
-                    }
-                }
-            }
-    });
-
+    my ($e, $out) = _run(@_, 1);
+    diag $out if $out && length($out) > 0;
+    die join(" ", RUNCMD_FAILURE_MESS, $e) unless $e == 0;
     return $out;
 }
 ## use critic

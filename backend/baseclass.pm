@@ -839,7 +839,6 @@ sub similiarity_to_reference {
 sub wait_idle {
     my ($self, $args) = @_;
     my $timeout = $args->{timeout};
-
     bmwqemu::diag("wait_idle sleeping for $timeout seconds");
     $self->run_capture_loop($timeout);
     return;

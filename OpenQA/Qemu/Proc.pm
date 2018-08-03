@@ -37,12 +37,19 @@ use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::ControllerConf;
 use OpenQA::Qemu::SnapshotConf;
 use osutils qw(gen_params runcmd runcmd_output);
+use Mojo::IOLoop::ReadWriteProcess 'process';
+use Mojo::IOLoop::ReadWriteProcess::Session 'session';
+
 use POSIX ();
 
 use constant STATE_FILE => 'qemu_state.json';
 
 has qemu_bin     => 'qemu-kvm';
 has qemu_img_bin => 'qemu-img';
+has _process     => sub { process(
+        pidfile       => 'qemu.pid',
+        separate_err  => 0,
+        blocking_stop => 1) };
 
 has _static_params => sub { return []; };
 has _mut_params    => sub { return []; };
@@ -338,32 +345,26 @@ sub gen_runfile {
 sub exec_qemu {
     my $self   = shift;
     my @params = $self->gen_cmdline();
+    session->enable;
 
-    pipe(my $reader, my $writer);
-    my $pid = fork();
-    die "fork failed" unless defined($pid);
-    if ($pid == 0) {
-        $SIG{__DIE__} = undef;    # overwrite the default - just exit
-        close($reader);
+    session->on(
+        collected_orphan => sub {
+            my ($session, $p) = @_;
+            bmwqemu::diag("Collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status);
+        });
 
-        system $self->qemu_bin, '-version';
-        bmwqemu::diag("starting: " . join(" ", @params));
+    session->enable_subreaper;
+    $self->_process->code(sub {
+            $SIG{__DIE__} = undef;    # overwrite the default - just exit
+            system $self->qemu_bin, '-version';
+            bmwqemu::diag("starting: " . join(" ", @params));
+            # don't try to talk to the host's PA
+            $ENV{QEMU_AUDIO_DRV} = "none";
 
-        # don't try to talk to the host's PA
-        $ENV{QEMU_AUDIO_DRV} = "none";
+            exec(@params) })->separate_err(0)->start();
+    fcntl($self->_process->read_stream, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
 
-        # redirect qemu's output to the parent pipe
-        open(STDOUT, ">&", $writer);
-        open(STDERR, ">&", $writer);
-        exec(@params);
-        die "failed to exec qemu";
-    }
-
-    $self->{pid} = $pid;
-    close $writer;
-    fcntl($reader, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
-
-    return ($pid, $reader);
+    return $self->_process->read_stream;
 }
 
 =head3 connect_qmp
