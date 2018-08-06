@@ -565,8 +565,9 @@ sub wait_still_screen {
     my $lastchangetime = [gettimeofday];
     query_isotovideo('backend_set_reference_screenshot');
 
+    my $sim = 0;
     while (time - $starttime < $timeout) {
-        my $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
+        $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
         my $now = [gettimeofday];
         if ($sim < $args{similarity_level}) {
 
@@ -575,7 +576,7 @@ sub wait_still_screen {
             query_isotovideo('backend_set_reference_screenshot');
         }
         if (($now->[0] - $lastchangetime->[0]) + ($now->[1] - $lastchangetime->[1]) / 1000000. >= $stilltime) {
-            bmwqemu::fctres("detected same image for $stilltime seconds");
+            bmwqemu::fctres("detected same image for $stilltime seconds, last detected similarity is $sim");
             return 1;
         }
         # with 'no_wait' actually wait a little bit not to waste too much CPU
@@ -584,7 +585,7 @@ sub wait_still_screen {
         sleep($args{no_wait} ? 0.01 : 0.5);
     }
     $autotest::current_test->timeout_screenshot();
-    bmwqemu::fctres("wait_still_screen timed out after $timeout");
+    bmwqemu::fctres("wait_still_screen timed out after $timeout, last detected similarity is $sim");
     return 0;
 }
 
