@@ -97,11 +97,15 @@ sub _run {
     my $e    = pop;
     my @args = @_;
     my $out;
-    my $p = process(sub { exec(@args) })->separate_err($e)->start;
-    while (defined(my $line = $p->getline)) {
-        $out .= $line;
-    }
-
+    my $buffer;
+    open my $handle, '>', \$buffer;
+    my $p = process(sub { local *STDERR = $handle; exec(@args) })->separate_err($e)->start;
+    $p->on(stop => sub {
+            while (defined(my $line = $p->getline)) {
+                $out .= $line;
+            }
+            diag $buffer if $e && $buffer && length($buffer) > 0;
+    });
     $p->wait_stop;
     close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
 
