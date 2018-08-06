@@ -383,7 +383,7 @@ sub handle_paused_test_execution {
 
     # emit info
     myjsonrpc::send_json($cmd_srv_fd, {paused => $rsp, reason => $test_execution_paused});
-    print("isotovideo: paused, so not passing $cmd to backend\n");
+    diag("isotovideo: paused, so not passing $cmd to backend");
 
     # postpone execution of command
     $postponed_io_handle = $io_handle;
@@ -419,7 +419,7 @@ sub process_command {
 
         # emit info
         myjsonrpc::send_json($cmd_srv_fd, {paused => $rsp, reason => $test_execution_paused});
-        print("isotovideo: pausing test execution at $current_test_full_name because a timeout occurred\n");
+        diag('isotovideo: pausing test execution on timeout as requested at ' . $current_test_full_name);
 
         # postpone sending the reply
         $postponed_io_handle = $io_handle;
@@ -430,7 +430,7 @@ sub process_command {
         $pause_test_name = $rsp->{name};
 
         # print/send debugging info
-        print("isotovideo: test execution will be paused at test $pause_test_name\n");
+        diag('isotovideo: test execution will be paused at test ' . $pause_test_name);
         myjsonrpc::send_json($cmd_srv_fd, {set_pause_at_test => $pause_test_name});
 
         myjsonrpc::send_json($io_handle, {ret => 1});
@@ -447,9 +447,9 @@ sub process_command {
     }
     if ($rsp->{cmd} eq 'resume_test_execution') {
         # print/send debug info
-        print($test_execution_paused ?
-              "isotovideo: test execution will be resumed\n"
-            : "isotovideo: resuming test execution requested but not paused anyways\n"
+        diag($test_execution_paused ?
+              'isotovideo: test execution will be resumed'
+            : 'isotovideo: resuming test execution requested but not paused anyways'
         );
         myjsonrpc::send_json($cmd_srv_fd, {resume_test_execution => $postponed_command});
 
@@ -465,7 +465,7 @@ sub process_command {
 
         # resume with postponed command so autotest can continue
         my $cmd = $postponed_command->{cmd};
-        print("isotovideo: resuming, continue passing $cmd to backend\n");
+        diag("isotovideo: resuming, continue passing $cmd to backend");
         process_command($postponed_io_handle, $postponed_command);
         $postponed_io_handle = undef;
         $postponed_command   = undef;
@@ -486,7 +486,7 @@ sub process_command {
             && $current_test_full_name
             && ($pause_test_name eq $current_test_name || $pause_test_name eq $current_test_full_name))
         {
-            print("isotovideo: pausing test execution of $pause_test_name because we're supposed to pause there\n");
+            diag("isotovideo: pausing test execution of $pause_test_name because we're supposed to pause at this test module");
             $test_execution_paused = 'reached module ' . $pause_test_name;
         }
         myjsonrpc::send_json($io_handle, {ret => 1});
