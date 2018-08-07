@@ -1159,7 +1159,9 @@ sub send_key_until_needlematch {
     $counter //= 20;
     $timeout //= 1;
     while (!check_screen($tag, $timeout)) {
-        send_key $key;
+        wait_screen_change {
+            send_key $key;
+        };
         if (!$counter--) {
             assert_screen $tag, 1;
         }
