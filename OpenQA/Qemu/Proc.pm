@@ -36,7 +36,7 @@ use Mojo::File 'path';
 use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::ControllerConf;
 use OpenQA::Qemu::SnapshotConf;
-use osutils qw(gen_params runcmd runcmd_output);
+use osutils qw(gen_params runcmd simple_run);
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 
@@ -132,7 +132,7 @@ sub configure_controllers {
 
 sub get_img_size {
     my ($self, $path) = @_;
-    my $json = runcmd_output($self->qemu_img_bin, 'info', '--output=json', $path);
+    my $json = simple_run($self->qemu_img_bin, 'info', '--output=json', $path);
     my $map = decode_json($json);
 
     die 'No size field in: ' . Dumper($map) unless defined $map->{'virtual-size'};
