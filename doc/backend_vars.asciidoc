@@ -158,3 +158,11 @@ GENERAL_HW_SOL_CMD;string;;Shell Script to output serial output (in CMD_DIR)
 GENERAL_HW_POWERON_CMD;string;;Shell Command to power on the SUT (in CMD_DIR)
 GENERAL_HW_POWEROFF_CMD;string;;Shell Command to power off the SUT (in CMD_DIR)
 |====================
+
+.AMT backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+AMT_HOSTNAME;string;;Hostname or IP of the target host
+AMT_PASSWORD;string;;Password for admin AMT user on target host
