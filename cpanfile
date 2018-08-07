@@ -60,6 +60,7 @@ on 'test' => sub {
   requires 'Test::Pod';
   requires 'Test::Simple';
   requires 'Test::Warnings';
+  requires 'Test::Exception';
   requires 'Socket::MsgHdr';
 };
 

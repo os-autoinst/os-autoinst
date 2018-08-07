@@ -8,6 +8,7 @@ use Test::Output;
 use Test::Fatal;
 use Test::Mock::Time;
 use Test::Warnings;
+use Test::Exception;
 use File::Temp;
 
 BEGIN {
@@ -20,6 +21,16 @@ my $cmds;
 use Test::MockModule;
 my $mod       = new Test::MockModule('myjsonrpc');
 my $fake_exit = 0;
+
+# define variables for 'fake_read_json'
+my $report_timeout_called         = 0;
+my $fake_pause_on_timeout         = 0;
+my $fake_needle_found             = 1;
+my $fake_needle_found_after_pause = 0;
+
+# define 'write_with_thumbnail' to fake image
+sub write_with_thumbnail {
+}
 
 sub fake_send_json {
     my ($to_fd, $cmd) = @_;
@@ -38,11 +49,30 @@ sub fake_read_json {
     elsif ($cmd eq 'backend_select_console') {
         return {ret => {activated => 0}};
     }
+    elsif ($cmd eq 'report_timeout') {
+        $report_timeout_called += 1;
+        return {ret => 0} unless ($fake_pause_on_timeout);
+
+        $fake_pause_on_timeout = 0;    # only fake the pause once to prevent enless loop
+        return {ret => 1};
+    }
     elsif ($cmd eq 'backend_is_serial_terminal') {
         return {ret => {yesorno => 0}};
     }
     elsif ($cmd eq 'check_screen') {
-        return {ret => {found => {needle => 1}}};
+        if ($fake_needle_found || ($fake_needle_found_after_pause && !$fake_pause_on_timeout)) {
+            return {ret => {found => {needle => 1}}};
+        }
+        return {
+            ret => {
+                timeout        => 1,
+                tags           => [qw(fake tags)],
+                failed_screens => [{
+                        image => 'fake image',
+                        frame => 42,
+                }],
+              }
+        };
     }
     elsif ($cmd eq 'backend_mouse_hide') {
         return {ret => 1};
@@ -189,6 +219,10 @@ subtest 'script_run' => sub {
 subtest 'check_assert_screen' => sub {
     my $mock_testapi = new Test::MockModule('testapi');
     $mock_testapi->mock(_handle_found_needle => sub { return $_[0] });
+
+    my $mock_tinycv = new Test::MockModule('tinycv');
+    $mock_tinycv->mock(from_ppm => sub { return bless({} => __PACKAGE__); });
+
     stderr_like {
         is_deeply(assert_screen('foo', 1), {needle => 1}, 'expected and found MATCH reported');
     }
@@ -198,6 +232,39 @@ subtest 'check_assert_screen' => sub {
     stderr_like { assert_screen('foo', no_wait => 1) } qr/no_wait=1/, 'no wait option';
     stderr_like { check_screen('foo') } qr/timeout=0/, 'check_screen with timeout of 0';
     stderr_like { check_screen('foo', 42) } qr/timeout=42/, 'check_screen with timeout variable';
+
+    $fake_needle_found = 0;
+    is($report_timeout_called, 0, 'report_timeout not called yet');
+
+    subtest 'handle check_screen timeout' => sub {
+        ok(!check_screen('foo', 3, timeout => 2));
+        is($report_timeout_called, 0, 'report_timeout not called for check_screen');
+    };
+
+    subtest 'handle assert_screen timeout' => sub {
+        # simulate that we don't want to pause at all and just let it fail
+        throws_ok(sub { assert_screen('foo', 3, timeout => 2) },
+            qr/no candidate needle with tag\(s\) \'foo\' matched/,
+            'no candidate needle matched tags'
+        );
+        is($report_timeout_called, 1, 'report_timeout called on timeout');
+
+        # simulate that we want to pause after timeout in the first place but fail as usual on 2nd attempt
+        $report_timeout_called = 0;
+        $fake_pause_on_timeout = 1;
+        throws_ok(sub { assert_screen('foo', 3, timeout => 2) },
+            qr/no candidate needle with tag\(s\) \'foo\' matched/,
+            'no candidate needle matched tags'
+        );
+        is($report_timeout_called, 2, 'report_timeout called once, and then again after pause');
+
+        # simulate a match after pausing due to timeout
+        $report_timeout_called         = 0;
+        $fake_pause_on_timeout         = 1;
+        $fake_needle_found_after_pause = 1;
+        assert_screen('foo', 3, timeout => 2);
+        is($report_timeout_called, 1, 'report_timeout called only once');
+    };
 };
 
 ok(save_screenshot);

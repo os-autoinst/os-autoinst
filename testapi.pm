@@ -237,7 +237,23 @@ sub _check_backend_response {
         return _handle_found_needle($foundneedle, $rsp, $tags);
     }
     elsif ($rsp->{timeout}) {
-        bmwqemu::fctres("match=" . join(',', @$tags) . " timed out after $timeout");
+        my $status_message = "match=" . join(',', @$tags) . " timed out after $timeout";
+        bmwqemu::fctres($status_message);
+
+        if (!$check) {
+            # make and upload a screenshot because we might want to create a new needle from this so far unexpected screen
+            my $current_test = $autotest::current_test;
+            $current_test->take_screenshot();
+            $current_test->save_test_result();
+
+            # do a special rpc call to isotovideo which will block if the test should be paused
+            # (if the test should not be paused this call will return 0; on resume (after pause) it will return 1)
+            query_isotovideo('report_timeout', {
+                    tags => $tags,
+                    msg  => $status_message,
+            }) and return 'try_again';
+        }
+
         my $failed_screens = $rsp->{failed_screens};
         my $final_mismatch = $failed_screens->[-1];
         if ($check) {
@@ -311,9 +327,19 @@ sub _check_or_assert {
 
     die "current_test undefined" unless $autotest::current_test;
 
-    my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, check => $check, timeout => $args{timeout}, no_wait => $args{no_wait}});
-    # separate function because it needs to call itself
-    return _check_backend_response($rsp, $check, $args{timeout}, $mustmatch, $args{no_wait});
+    while (1) {
+        my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, check => $check, timeout => $args{timeout}, no_wait => $args{no_wait}});
+
+        # check backend response
+        # (implemented as separate function because it needs to call itself)
+        my $backend_response = _check_backend_response($rsp, $check, $args{timeout}, $mustmatch);
+
+        # return the response unless we should try again after resuming from paused state
+        return $backend_response if (!$backend_response || $backend_response ne 'try_again');
+
+        # reload needles before trying again
+        query_isotovideo('backend_reload_needles', {});
+    }
 }
 
 =head2 assert_screen

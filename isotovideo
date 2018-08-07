@@ -63,7 +63,7 @@ BEGIN {
 
 # this shall be an integer increased by every change of the API
 # either to the worker or the tests
-our $INTERFACE = 12;
+our $INTERFACE = 13;
 
 use bmwqemu;
 use needle;
@@ -305,8 +305,11 @@ my $current_test_full_name;
 # store the name of the test where the test execution should be paused
 my $pause_test_name = $bmwqemu::vars{PAUSE_AT};
 
-# when paused, stop passing commands to the backend
-my $stop_passing_commands_to_backend = 0;
+# store whether to stop on next assert_screen timeout
+my $pause_on_assert_screen_timeout = $bmwqemu::vars{PAUSE_ON_ASSERT_SCREEN_TIMEOUT} // 0;
+
+# when paused, the reason for the pause (as a string); otherwise 0
+my $test_execution_paused = 0;
 
 # when paused, save the command from autotest which has been postponed to be able to resume
 my $postponed_io_handle;
@@ -373,14 +376,14 @@ sub check_asserted_screen {
 }
 
 sub handle_paused_test_execution {
-    return unless ($stop_passing_commands_to_backend);
+    return unless ($test_execution_paused);
 
     my ($io_handle, $rsp) = @_;
     my $cmd = $rsp->{cmd};
 
-    # write debugging info
-    myjsonrpc::send_json($cmd_srv_fd, {paused => $rsp});
-    print("isotovideo: paused, so not passing $cmd to backend\n");
+    # emit info
+    myjsonrpc::send_json($cmd_srv_fd, {paused => $rsp, reason => $test_execution_paused});
+    diag("isotovideo: paused, so not passing $cmd to backend");
 
     # postpone execution of command
     $postponed_io_handle = $io_handle;
@@ -406,37 +409,66 @@ sub process_command {
         myjsonrpc::send_json($backend_process->channel_in, {cmd => $cmd, arguments => $rsp});
         return;
     }
+    if ($rsp->{cmd} eq 'report_timeout') {
+        if (!$pause_on_assert_screen_timeout) {
+            myjsonrpc::send_json($io_handle, {ret => 0});
+            return;
+        }
+
+        $test_execution_paused = $rsp->{msg};
+
+        # emit info
+        myjsonrpc::send_json($cmd_srv_fd, {paused => $rsp, reason => $test_execution_paused});
+        diag('isotovideo: pausing test execution on timeout as requested at ' . $current_test_full_name);
+
+        # postpone sending the reply
+        $postponed_io_handle = $io_handle;
+        $postponed_command   = undef;
+        return;
+    }
     if ($rsp->{cmd} eq 'set_pause_at_test') {
         $pause_test_name = $rsp->{name};
 
         # print/send debugging info
-        print("isotovideo: test execution will be paused at test $pause_test_name\n");
+        diag('isotovideo: test execution will be paused at test ' . $pause_test_name);
         myjsonrpc::send_json($cmd_srv_fd, {set_pause_at_test => $pause_test_name});
+
+        myjsonrpc::send_json($io_handle, {ret => 1});
+        return;
+    }
+    if ($rsp->{cmd} eq 'set_pause_on_assert_screen_timeout') {
+        $pause_on_assert_screen_timeout = $rsp->{flag};
+
+        # send debugging info
+        myjsonrpc::send_json($cmd_srv_fd, {set_pause_on_assert_screen_timeout => $pause_on_assert_screen_timeout});
 
         myjsonrpc::send_json($io_handle, {ret => 1});
         return;
     }
     if ($rsp->{cmd} eq 'resume_test_execution') {
         # print/send debug info
-        print($stop_passing_commands_to_backend ?
-              "isotovideo: test execution will be resumed\n"
-            : "isotovideo: resuming test execution requested but not paused anyways\n"
+        diag($test_execution_paused ?
+              'isotovideo: test execution will be resumed'
+            : 'isotovideo: resuming test execution requested but not paused anyways'
         );
         myjsonrpc::send_json($cmd_srv_fd, {resume_test_execution => $postponed_command});
 
-        # no longer stop passing commands to backend
-        $stop_passing_commands_to_backend = 0;
+        # unset paused state to continue passing commands to backend
+        $test_execution_paused = 0;
 
-        # resume with postponed command so autotest can continue
-        if ($postponed_command) {
-            my $cmd = $postponed_command->{cmd};
-            print("isotovideo: resuming, continue passing $cmd to backend\n");
-            process_command($postponed_io_handle, $postponed_command);
+        # if no command has been postponed (because paused due to timeout) just return 1
+        if (!$postponed_command) {
+            myjsonrpc::send_json($postponed_io_handle, {ret => 1});
             $postponed_io_handle = undef;
-            $postponed_command   = undef;
             return;
         }
-        myjsonrpc::send_json($io_handle, {ret => 1});
+
+        # resume with postponed command so autotest can continue
+        my $cmd = $postponed_command->{cmd};
+        diag("isotovideo: resuming, continue passing $cmd to backend");
+        process_command($postponed_io_handle, $postponed_command);
+        $postponed_io_handle = undef;
+        $postponed_command   = undef;
         return;
     }
     if ($rsp->{cmd} eq 'set_current_test') {
@@ -445,14 +477,17 @@ sub process_command {
         $current_test_full_name = $rsp->{full_name};
 
         # send debugging info for ws clients
-        myjsonrpc::send_json($cmd_srv_fd, {set_current_test => $current_test_name});
+        myjsonrpc::send_json($cmd_srv_fd, {
+                set_current_test       => $current_test_name,
+                current_test_full_name => $current_test_full_name,
+        });
         if ($pause_test_name
             && $current_test_name
             && $current_test_full_name
             && ($pause_test_name eq $current_test_name || $pause_test_name eq $current_test_full_name))
         {
-            print("isotovideo: pausing test execution of $pause_test_name\n");
-            $stop_passing_commands_to_backend = 1;
+            diag("isotovideo: pausing test execution of $pause_test_name because we're supposed to pause at this test module");
+            $test_execution_paused = 'reached module ' . $pause_test_name;
         }
         myjsonrpc::send_json($io_handle, {ret => 1});
         return;
@@ -488,11 +523,12 @@ sub process_command {
     # handle HTTP commands
     if ($rsp->{cmd} eq 'status') {
         my $result = {
-            tags                   => $tags,
-            running                => $current_test_name,
-            current_test_full_name => $current_test_full_name,
-            pause_test_name        => $pause_test_name,
-            test_execution_paused  => $stop_passing_commands_to_backend
+            tags                           => $tags,
+            running                        => $current_test_name,
+            current_test_full_name         => $current_test_full_name,
+            pause_test_name                => $pause_test_name,
+            pause_on_assert_screen_timeout => $pause_on_assert_screen_timeout,
+            test_execution_paused          => $test_execution_paused,
         };
 
         myjsonrpc::send_json($io_handle, $result);
