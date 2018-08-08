@@ -26,7 +26,7 @@ sub new {
 
     my $self = bless {}, $class;
     $self->{consoles}        = {};
-    $self->{serial_failures} = {};
+    $self->{serial_failures} = [];
 
 =head2 serial_term_prompt
 
@@ -260,21 +260,24 @@ sub script_output {
 
 =head2 set_expected_serial_failures
 
-    set_expected_serial_failures(%failures)
+    set_expected_serial_failures($failures)
 
 Define the patterns to look for in the serial console.
-The patterns can be either I<hard> or I<soft>.
+Each pattern comes along with a type either I<hard> or I<soft> and a message,
+for instance, to label the match with a bug/ticket
 
 Example:
-    set_expected_serial_failures(soft=>[qr/Pattern1/], hard=>[qr/Pattern2/]);
+    set_expected_serial_failures([
+        { type => 'soft', message => 'Message 1', pattern => qr/Pattern1/ },
+        { type => 'soft', message => 'Message 2', pattern => qr/Pattern2/ },
+        { type => 'hard', message => 'Message 3', pattern => qr/Pattern3/ },]
+    );
 
 =cut
 sub set_expected_serial_failures {
-    my ($self, %failures) = @_;
+    my ($self, $failures) = @_;
 
-    # To be sure that we only store soft and hard keys
-    $self->{serial_failures}{soft} = $failures{soft} if $failures{soft};
-    $self->{serial_failures}{hard} = $failures{hard} if $failures{hard};
+    $self->{serial_failures} = $failures;
 }
 
 # override

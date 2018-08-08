@@ -106,7 +106,7 @@ sub loadtest {
     $test             = $name->new($category);
     $test->{script}   = $script;
     $test->{fullname} = $fullname;
-    $test->{serial_failures} = $testapi::distri->{serial_failures} // {};
+    $test->{serial_failures} = $testapi::distri->{serial_failures} // [];
 
     if (defined $args{run_args}) {
         unless (blessed($args{run_args}) && $args{run_args}->isa('OpenQA::Test::RunArgs')) {

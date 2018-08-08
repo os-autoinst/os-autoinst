@@ -50,7 +50,7 @@ sub new {
     $self->{timeoutcounter}         = 0;
     $self->{activated_consoles}     = [];
     $self->{name}                   = $class;
-    $self->{serial_failures}        = {};
+    $self->{serial_failures}        = [];
     return bless $self, $class;
 }
 
@@ -639,34 +639,44 @@ sub search_for_expected_serial_failures {
     }
 }
 
+sub get_serial_output_json {
+    my ($self, $from_position) = @_;
+
+    myjsonrpc::send_json($autotest::isotovideo, {cmd => 'read_serial', position => $from_position});
+    return myjsonrpc::read_json($autotest::isotovideo);
+}
+
 sub parse_serial_output_qemu {
     my ($self, $from_position) = @_;
     # serial failures defined in distri (test can override them)
     my $failures = $self->{serial_failures};
 
-    myjsonrpc::send_json($autotest::isotovideo, {cmd => 'read_serial', position => $from_position});
-    my $json = myjsonrpc::read_json($autotest::isotovideo);
+    my $json = $self->get_serial_output_json($from_position);
 
     my $die = 0;
+    my %regexp_matched;
     # loop line by line
     for my $line (split(/^/, $json->{serial})) {
         chomp $line;
-        # only two keys allowed
-        for my $type (qw(soft hard)) {
-            for my $regexp (@{$failures->{$type}}) {
-                # If you want to match a simple string please be sure that you create it with quotemeta
-                if ($line =~ /$regexp/) {
-                    my $fail_type = 'softfail';
-                    if ($type eq 'hard') {
-                        $die       = 1;
-                        $fail_type = 'fail';
-                    }
+        for my $regexp_table (@{$failures}) {
+            my $regexp  = $regexp_table->{pattern};
+            my $message = $regexp_table->{message};
+            my $type    = $regexp_table->{type};
+            die "Wrong type defined for serial failure. Only 'soft' or 'hard' allowed. Got: $type" if $type !~ /soft|hard/;
+            die "Message not defined for serial failure for the pattern: '$regexp', type: $type"   if !defined $message;
 
-                    $self->record_testresult($fail_type);
-                    $self->record_resultfile('Serial Failure', "Serial error: $line", result => $fail_type);
-                    $self->{result} = $fail_type;
-
+            # If you want to match a simple string please be sure that you create it with quotemeta
+            if (!exists $regexp_matched{$regexp} and $line =~ /$regexp/) {
+                $regexp_matched{$regexp} = 1;
+                my $fail_type = 'softfail';
+                if ($type eq 'hard') {
+                    $die       = 1;
+                    $fail_type = 'fail';
                 }
+
+                $self->record_testresult($fail_type);
+                $self->record_resultfile($message, $message . " - Serial error: $line", result => $fail_type);
+                $self->{result} = $fail_type;
             }
         }
     }
