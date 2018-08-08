@@ -156,6 +156,7 @@ sub configure_blockdevs {
         my $hdd_model    = $vars->{"HDDMODEL_$i"} // $vars->{HDDMODEL};
         my $backing_file = $vars->{"HDD_$i"};
         my $node_id      = 'hd' . ($i - 1);
+        my $hdd_serial   = $vars->{"HDDSERIAL_$i"} || $node_id;
         my $size         = $vars->{"HDDSIZEGB_$i"};
         my $drive;
 
@@ -173,7 +174,7 @@ sub configure_blockdevs {
             $drive->bootindex(0);
         }
 
-        $drive->serial($node_id);
+        $drive->serial($hdd_serial);
         if ($vars->{MULTIPATH}) {
             for my $c (0 .. $vars->{PATHCNT} - 1) {
                 $bdc->add_path_to_drive("path$c",
