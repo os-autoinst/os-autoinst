@@ -122,7 +122,9 @@ sub init {
     elsif (get_var('SERIALDEV')) {
         $serialdev = get_var('SERIALDEV');
     }
-    else {
+    elsif (check_var('BACKEND', 'ssh')) {
+        $serialdev = "ssh_fake_serial";
+    } else {
         $serialdev = 'ttyS0';
     }
     return;
