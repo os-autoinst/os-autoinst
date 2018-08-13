@@ -4,6 +4,8 @@ set -e
 
 INSTALL_FROM_CPAN="${INSTALL_FROM_CPAN:-0}"
 
+sudo zypper --gpg-auto-import-keys -n ref --force && sudo zypper up -l -y
+
 # Prepare dir and chdir into it before executing the wanted action
 sudo cp -rd /opt/repo /opt/run
 sudo chown -R $NORMAL_USER:users /opt/run
