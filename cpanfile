@@ -29,7 +29,7 @@ requires 'JSON';
 requires 'JSON::XS';
 requires 'List::MoreUtils';
 requires 'List::Util';
-requires 'Mojo::IOLoop::ReadWriteProcess';
+requires 'Mojo::IOLoop::ReadWriteProcess', '0.21';
 requires 'Mojo::URL';
 requires 'Mojo::UserAgent';
 requires 'Mojo::Log';
