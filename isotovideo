@@ -305,8 +305,9 @@ my $current_test_full_name;
 # store the name of the test where the test execution should be paused
 my $pause_test_name = $bmwqemu::vars{PAUSE_AT};
 
-# store whether to stop on next assert_screen timeout
+# store whether to stop on next assert_screen/check_screen timeout
 my $pause_on_assert_screen_timeout = $bmwqemu::vars{PAUSE_ON_ASSERT_SCREEN_TIMEOUT} // 0;
+my $pause_on_check_screen_timeout  = $bmwqemu::vars{PAUSE_ON_CHECK_SCREEN_TIMEOUT} // 0;
 
 # when paused, the reason for the pause (as a string); otherwise 0
 my $test_execution_paused = 0;
@@ -410,7 +411,9 @@ sub process_command {
         return;
     }
     if ($rsp->{cmd} eq 'report_timeout') {
-        if (!$pause_on_assert_screen_timeout) {
+        my $supposed_to_pause
+          = $pause_on_check_screen_timeout || ($pause_on_assert_screen_timeout && !$rsp->{check});
+        if (!$supposed_to_pause) {
             myjsonrpc::send_json($io_handle, {ret => 0});
             return;
         }
@@ -441,6 +444,15 @@ sub process_command {
 
         # send debugging info
         myjsonrpc::send_json($cmd_srv_fd, {set_pause_on_assert_screen_timeout => $pause_on_assert_screen_timeout});
+
+        myjsonrpc::send_json($io_handle, {ret => 1});
+        return;
+    }
+    if ($rsp->{cmd} eq 'set_pause_on_check_screen_timeout') {
+        $pause_on_check_screen_timeout = $rsp->{flag};
+
+        # send debugging info
+        myjsonrpc::send_json($cmd_srv_fd, {set_pause_on_check_screen_timeout => $pause_on_check_screen_timeout});
 
         myjsonrpc::send_json($io_handle, {ret => 1});
         return;
@@ -528,6 +540,7 @@ sub process_command {
             current_test_full_name         => $current_test_full_name,
             pause_test_name                => $pause_test_name,
             pause_on_assert_screen_timeout => $pause_on_assert_screen_timeout,
+            pause_on_check_screen_timeout  => $pause_on_check_screen_timeout,
             test_execution_paused          => $test_execution_paused,
         };
 

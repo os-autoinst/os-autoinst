@@ -237,22 +237,22 @@ sub _check_backend_response {
         return _handle_found_needle($foundneedle, $rsp, $tags);
     }
     elsif ($rsp->{timeout}) {
-        my $status_message = "match=" . join(',', @$tags) . " timed out after $timeout";
+        my $method = $check ? 'check_screen' : 'assert_screen';
+        my $status_message = "match=" . join(',', @$tags) . " timed out after $timeout ($method)";
         bmwqemu::fctres($status_message);
 
-        if (!$check) {
-            # make and upload a screenshot because we might want to create a new needle from this so far unexpected screen
-            my $current_test = $autotest::current_test;
-            $current_test->take_screenshot();
-            $current_test->save_test_result();
+        # make and upload a screenshot because we might want to create a new needle from this so far unexpected screen
+        my $current_test = $autotest::current_test;
+        $current_test->take_screenshot();
+        $current_test->save_test_result();
 
-            # do a special rpc call to isotovideo which will block if the test should be paused
-            # (if the test should not be paused this call will return 0; on resume (after pause) it will return 1)
-            query_isotovideo('report_timeout', {
-                    tags => $tags,
-                    msg  => $status_message,
-            }) and return 'try_again';
-        }
+        # do a special rpc call to isotovideo which will block if the test should be paused
+        # (if the test should not be paused this call will return 0; on resume (after pause) it will return 1)
+        query_isotovideo('report_timeout', {
+                tags  => $tags,
+                msg   => $status_message,
+                check => $check,
+        }) and return 'try_again';
 
         my $failed_screens = $rsp->{failed_screens};
         my $final_mismatch = $failed_screens->[-1];
