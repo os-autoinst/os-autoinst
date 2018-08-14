@@ -61,10 +61,6 @@ BEGIN {
     unshift @INC, "$installprefix";
 }
 
-# this shall be an integer increased by every change of the API
-# either to the worker or the tests
-our $INTERFACE = 13;
-
 use bmwqemu;
 use needle;
 use autotest;
@@ -75,15 +71,16 @@ use Getopt::Long;
 require IPC::System::Simple;
 use autodie ':all';
 no autodie 'kill';
-use Cwd;
 use POSIX qw(:sys_wait_h _exit);
-use Carp 'cluck';
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use File::Spec;
 use File::Path;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
+use OpenQA::Isotovideo::CommandHandler;
+use OpenQA::Isotovideo::Interface;
+use OpenQA::Isotovideo::Utils;
 
 session->enable;
 session->enable_subreaper;
@@ -104,7 +101,7 @@ sub usage {
 sub _get_version_string {
     my $thisversion = qx{git rev-parse HEAD};
     chomp $thisversion;
-    return "Current version is $thisversion [interface v$INTERFACE]";
+    return "Current version is $thisversion [interface v$OpenQA::Isotovideo::Interface::version]";
 }
 
 sub version {
@@ -120,9 +117,6 @@ diag(_get_version_string());
 
 # enable debug default when started from a tty
 $bmwqemu::direct_output = $options{debug};
-
-# whether tests completed (or we bailed due to a failed 'fatal' test)
-my $completed = 0;
 
 select(STDERR);
 $| = 1;
@@ -170,7 +164,6 @@ sub kill_backend {
 }
 
 sub signalhandler {
-
     my ($sig) = @_;
     diag("signalhandler got $sig");
     if ($loop) {
@@ -183,9 +176,6 @@ sub signalhandler {
     _exit(1);
 }
 
-our $test_git_hash;
-our $needles_git_hash;
-
 sub init_backend {
     my ($name) = @_;
     $bmwqemu::vars{BACKEND} ||= "qemu";
@@ -193,22 +183,10 @@ sub init_backend {
     # make sure the needles are initialized
     my $needles_dir = $bmwqemu::vars{PRODUCTDIR} . '/needles';
     needle::init($needles_dir);
-    $needles_git_hash = calculate_git_hash($needles_dir);
-    $bmwqemu::vars{NEEDLES_GIT_HASH} = $needles_git_hash;
+    $bmwqemu::vars{NEEDLES_GIT_HASH} = OpenQA::Isotovideo::Utils::calculate_git_hash($needles_dir);
 
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
     return $bmwqemu::backend;
-}
-
-sub calculate_git_hash {
-    my ($git_repo_dir) = @_;
-    my $dir = getcwd;
-    chdir($git_repo_dir);
-    chomp(my $git_hash = qx{git rev-parse HEAD});
-    $git_hash ||= "UNKNOWN";
-    chdir($dir);
-    diag "git hash in $git_repo_dir: $git_hash";
-    return $git_hash;
 }
 
 $SIG{TERM} = \&signalhandler;
@@ -232,10 +210,9 @@ $bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
 # as we are about to load the test modules store the git hash that has been
 # used. If it is not a git repo fail silently, i.e. store an empty variable
 
-$test_git_hash = calculate_git_hash($bmwqemu::vars{CASEDIR});
 # TODO find a better place to store hash in than vars.json, see
 # https://github.com/os-autoinst/os-autoinst/pull/393#discussion_r50143013
-$bmwqemu::vars{TEST_GIT_HASH} = $test_git_hash;
+$bmwqemu::vars{TEST_GIT_HASH} = OpenQA::Isotovideo::Utils::calculate_git_hash($bmwqemu::vars{CASEDIR});
 
 # start the command fork before we get into the backend, the command child
 # is not supposed to talk to the backend directly
@@ -298,35 +275,16 @@ $cmd_srv_process->once(collected => $stop_loop);
 # now we have everything, give the tests a go
 $testfd->write("GO\n");
 
-# store the name of the current test
-my $current_test_name;
-my $current_test_full_name;
-
-# store the name of the test where the test execution should be paused
-my $pause_test_name = $bmwqemu::vars{PAUSE_AT};
-
-# store whether to stop on next assert_screen/check_screen timeout
-my $pause_on_assert_screen_timeout = $bmwqemu::vars{PAUSE_ON_ASSERT_SCREEN_TIMEOUT} // 0;
-my $pause_on_check_screen_timeout  = $bmwqemu::vars{PAUSE_ON_CHECK_SCREEN_TIMEOUT} // 0;
-
-# when paused, the reason for the pause (as a string); otherwise 0
-my $test_execution_paused = 0;
-
-# when paused, save the command from autotest which has been postponed to be able to resume
-my $postponed_io_handle;
-my $postponed_command;
-
-# timeout for the select (only set for check_screens)
-my $timeout = undef;
-
-# do not wait for timeout if set
-my $no_wait = undef;
-
-# marks a running check_screen
-our $tags = undef;
-
-# set to the socket we have to send replies to when the backend is done
-my $backend_requester = undef;
+my $command_handler = OpenQA::Isotovideo::CommandHandler->new(
+    cmd_srv_fd => $cmd_srv_fd,
+    backend_fd => $backend_process->channel_in,
+);
+$command_handler->on(tests_done => sub {
+        CORE::close($testfd);
+        $testfd = undef;
+        kill_autotest;
+        $loop = 0;
+});
 
 my ($last_check_seconds, $last_check_microseconds) = gettimeofday;
 sub _calc_check_delta {
@@ -335,14 +293,9 @@ sub _calc_check_delta {
     if ($last_check_seconds) {
         $delta = tv_interval([$last_check_seconds, $last_check_microseconds], [gettimeofday]);
     }
-    if ($delta > 0) {
-        # sleep the remains of one second
-        $timeout = 1 - $delta;
-        $timeout = 0 if $timeout < 0;
-    }
-    else {
-        $timeout = 0;
-    }
+    # sleep the remains of one second if $delta > 0
+    my $timeout = $delta > 0 ? 1 - $delta : 0;
+    $command_handler->timeout($timeout < 0 ? 0 : $timeout);
     return $delta;
 }
 
@@ -351,235 +304,30 @@ sub check_asserted_screen {
 
     if ($no_wait) {
         # prevent CPU overload by waiting at least a little bit
-        $timeout = 0.1;
+        $command_handler->timeout(0.1);
     }
     else {
         _calc_check_delta;
         # come back later, avoid too often called function
-        return if $timeout > 0.05;
+        return if $command_handler->timeout > 0.05;
     }
     ($last_check_seconds, $last_check_microseconds) = gettimeofday;
     my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'}) || {};
     # the test needs that information
-    $rsp->{tags} = $tags;
-    if ($rsp->{found}) {
+    $rsp->{tags} = $command_handler->tags;
+    if ($rsp->{found} || $rsp->{timeout}) {
         myjsonrpc::send_json($testfd, {ret => $rsp});
-        $tags = $timeout = undef;
-    }
-    elsif ($rsp->{timeout}) {
-        myjsonrpc::send_json($testfd, {ret => $rsp});
-        $tags    = undef;
-        $timeout = undef;
+        $command_handler->clear_tags_and_timeout();
     }
     else {
         _calc_check_delta unless $no_wait;
     }
 }
 
-sub handle_paused_test_execution {
-    return unless ($test_execution_paused);
-
-    my ($io_handle, $rsp) = @_;
-    my $cmd = $rsp->{cmd};
-
-    # emit info
-    myjsonrpc::send_json($cmd_srv_fd, {paused => $rsp, reason => $test_execution_paused});
-    diag("isotovideo: paused, so not passing $cmd to backend");
-
-    # postpone execution of command
-    $postponed_io_handle = $io_handle;
-    $postponed_command   = $rsp;
-
-    # send no reply to autotest, just let it wait
-    return 1;
-}
-
-sub process_command {
-    my ($io_handle, $rsp) = @_;
-
-    if ($rsp->{cmd} =~ m/^backend_(.*)/) {
-        return if handle_paused_test_execution($io_handle, $rsp);
-        die 'isotovideo: we need to implement a backend queue' if $backend_requester;
-        $backend_requester = $io_handle;
-        my $cmd = $1;
-        delete $rsp->{cmd};
-
-        # send debugging info for ws clients
-        myjsonrpc::send_json($cmd_srv_fd, {$cmd => $rsp});
-        # pass command to backend
-        myjsonrpc::send_json($backend_process->channel_in, {cmd => $cmd, arguments => $rsp});
-        return;
-    }
-    if ($rsp->{cmd} eq 'report_timeout') {
-        my $supposed_to_pause
-          = $pause_on_check_screen_timeout || ($pause_on_assert_screen_timeout && !$rsp->{check});
-        if (!$supposed_to_pause) {
-            myjsonrpc::send_json($io_handle, {ret => 0});
-            return;
-        }
-
-        $test_execution_paused = $rsp->{msg};
-
-        # emit info
-        myjsonrpc::send_json($cmd_srv_fd, {paused => $rsp, reason => $test_execution_paused});
-        diag('isotovideo: pausing test execution on timeout as requested at ' . $current_test_full_name);
-
-        # postpone sending the reply
-        $postponed_io_handle = $io_handle;
-        $postponed_command   = undef;
-        return;
-    }
-    if ($rsp->{cmd} eq 'set_pause_at_test') {
-        $pause_test_name = $rsp->{name};
-
-        # print/send debugging info
-        diag('isotovideo: test execution will be paused at test ' . $pause_test_name);
-        myjsonrpc::send_json($cmd_srv_fd, {set_pause_at_test => $pause_test_name});
-
-        myjsonrpc::send_json($io_handle, {ret => 1});
-        return;
-    }
-    if ($rsp->{cmd} eq 'set_pause_on_assert_screen_timeout') {
-        $pause_on_assert_screen_timeout = $rsp->{flag};
-
-        # send debugging info
-        myjsonrpc::send_json($cmd_srv_fd, {set_pause_on_assert_screen_timeout => $pause_on_assert_screen_timeout});
-
-        myjsonrpc::send_json($io_handle, {ret => 1});
-        return;
-    }
-    if ($rsp->{cmd} eq 'set_pause_on_check_screen_timeout') {
-        $pause_on_check_screen_timeout = $rsp->{flag};
-
-        # send debugging info
-        myjsonrpc::send_json($cmd_srv_fd, {set_pause_on_check_screen_timeout => $pause_on_check_screen_timeout});
-
-        myjsonrpc::send_json($io_handle, {ret => 1});
-        return;
-    }
-    if ($rsp->{cmd} eq 'resume_test_execution') {
-        # print/send debug info
-        diag($test_execution_paused ?
-              'isotovideo: test execution will be resumed'
-            : 'isotovideo: resuming test execution requested but not paused anyways'
-        );
-        myjsonrpc::send_json($cmd_srv_fd, {resume_test_execution => $postponed_command});
-
-        # unset paused state to continue passing commands to backend
-        $test_execution_paused = 0;
-
-        # if no command has been postponed (because paused due to timeout) just return 1
-        if (!$postponed_command) {
-            myjsonrpc::send_json($postponed_io_handle, {ret => 1});
-            $postponed_io_handle = undef;
-            return;
-        }
-
-        # resume with postponed command so autotest can continue
-        my $cmd = $postponed_command->{cmd};
-        diag("isotovideo: resuming, continue passing $cmd to backend");
-        process_command($postponed_io_handle, $postponed_command);
-        $postponed_io_handle = undef;
-        $postponed_command   = undef;
-        return;
-    }
-    if ($rsp->{cmd} eq 'set_current_test') {
-        $bmwqemu::backend->_send_json({cmd => 'set_serial_offset'});
-        $current_test_name      = $rsp->{name};
-        $current_test_full_name = $rsp->{full_name};
-
-        # send debugging info for ws clients
-        myjsonrpc::send_json($cmd_srv_fd, {
-                set_current_test       => $current_test_name,
-                current_test_full_name => $current_test_full_name,
-        });
-        if ($pause_test_name
-            && $current_test_name
-            && $current_test_full_name
-            && ($pause_test_name eq $current_test_name || $pause_test_name eq $current_test_full_name))
-        {
-            diag("isotovideo: pausing test execution of $pause_test_name because we're supposed to pause at this test module");
-            $test_execution_paused = 'reached module ' . $pause_test_name;
-        }
-        myjsonrpc::send_json($io_handle, {ret => 1});
-        return;
-    }
-    if ($rsp->{cmd} eq 'tests_done') {
-        $io_handle = $rsp->{died};
-        $completed = $rsp->{completed};
-        CORE::close($testfd);
-        $testfd = undef;
-        kill_autotest;
-        $loop = 0;
-        return;
-    }
-    if ($rsp->{cmd} eq 'check_screen') {
-        $no_wait = $rsp->{no_wait} // 0;
-        return if handle_paused_test_execution($io_handle, $rsp);
-
-        # send debugging info for ws clients
-        myjsonrpc::send_json($cmd_srv_fd, {check_screen => $rsp->{mustmatch}});
-
-        my $arguments = {
-            mustmatch => $rsp->{mustmatch},
-            timeout   => $rsp->{timeout},
-            check     => $rsp->{check}};
-        $tags = $bmwqemu::backend->_send_json(
-            {
-                cmd       => 'set_tags_to_assert',
-                arguments => $arguments
-            })->{tags};
-        return;
-    }
-
-    # handle HTTP commands
-    if ($rsp->{cmd} eq 'status') {
-        my $result = {
-            tags                           => $tags,
-            running                        => $current_test_name,
-            current_test_full_name         => $current_test_full_name,
-            pause_test_name                => $pause_test_name,
-            pause_on_assert_screen_timeout => $pause_on_assert_screen_timeout,
-            pause_on_check_screen_timeout  => $pause_on_check_screen_timeout,
-            test_execution_paused          => $test_execution_paused,
-        };
-
-        myjsonrpc::send_json($io_handle, $result);
-        return;
-    }
-    if ($rsp->{cmd} eq 'version') {
-        my $result = {test_git_hash => $test_git_hash, needles_git_hash => $needles_git_hash, version => $INTERFACE};
-        myjsonrpc::send_json($io_handle, $result);
-        return;
-    }
-    if ($rsp->{cmd} eq 'read_serial') {
-        # This will stop to work if we change the serialfile after the initialization because of the fork
-        my ($serial, $pos) = $bmwqemu::backend->{backend}->read_serial($rsp->{position});
-        myjsonrpc::send_json($io_handle, {serial => $serial, position => $pos});
-        return;
-    }
-    if ($rsp->{cmd} eq 'send_clients') {
-        # we don't expect replies
-        delete $rsp->{cmd};
-        delete $rsp->{json_cmd_token};
-        myjsonrpc::send_json($cmd_srv_fd, $rsp);
-        myjsonrpc::send_json($io_handle, {ret => 1});
-        return;
-    }
-
-    # die if command unknown
-    if ($rsp->{cmd}) {
-        die "isotovideo: unknown command $rsp->{cmd}";
-    }
-    else {
-        die 'isotovideo: no command specified';
-    }
-}
-
 $return_code = 0;
 
 while ($loop) {
-    my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $timeout);
+    my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $command_handler->timeout);
     for my $readable (@$ready_for_read) {
         my $rsp = myjsonrpc::read_json($readable);
         if (!defined $rsp) {
@@ -589,15 +337,13 @@ while ($loop) {
             last;
         }
         if ($readable == $backend_process->channel_out) {
-            myjsonrpc::send_json($backend_requester, {ret => $rsp->{rsp}});
-            $backend_requester = undef;
+            $command_handler->send_to_backend_requester({ret => $rsp->{rsp}});
             next;
         }
-        process_command($readable, $rsp);
+        $command_handler->process_command($readable, $rsp);
     }
-
-    if (defined $tags) {
-        check_asserted_screen($no_wait);
+    if (defined($command_handler->tags)) {
+        check_asserted_screen($command_handler->no_wait);
     }
 }
 # don't leave the commands server open - it will no longer react anyway
@@ -631,7 +377,7 @@ if (!$return_code) {
 bmwqemu::load_vars();
 
 # mark hard disks for upload if test finished
-if (!$return_code && $completed && $bmwqemu::vars{BACKEND} eq 'qemu') {
+if (!$return_code && $command_handler->test_completed && $bmwqemu::vars{BACKEND} eq 'qemu') {
     my @toextract;
     for my $i (1 .. $bmwqemu::vars{NUMDISKS}) {
         my $dir = 'assets_private';
