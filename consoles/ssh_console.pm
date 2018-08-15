@@ -18,7 +18,7 @@ use warnings;
 use autodie;
 use Scalar::Util 'blessed';
 use Cwd;
-use consoles::virtio_screen;
+use consoles::serial_screen;
 
 use base 'consoles::console';
 
@@ -63,7 +63,7 @@ sub activate {
     print $chan "PS1='# '\n";
     print $chan "exec 2>&1\n";
 
-    $self->{screen} = consoles::virtio_screen->new($chan, $self->{ssh}->sock);
+    $self->{screen} = consoles::serial_screen->new($chan, $self->{ssh}->sock);
     return;
 }
 

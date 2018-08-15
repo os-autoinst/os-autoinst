@@ -733,7 +733,8 @@ rely on needles. This sub is not exported by default as most tests I<will not
 benefit> from changing their behaviour depending on if communication happens
 over serial or VNC.
 
-For more info see consoles/virtio_console.pm and consoles/virtio_screen.pm.
+For more info see consoles/virtio_console.pm, consoles/ssh_console.pm and
+consoles/serial_screen.pm.
 
 =cut
 

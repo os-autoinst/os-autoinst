@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
-package consoles::virtio_screen;
+package consoles::serial_screen;
 use 5.018;
 use warnings;
 use English -no_match_vars;
@@ -269,7 +269,7 @@ sub read_until {
 =head2 peak
 
 Read and return pending data without consuming it. This is useful if you are
-about to destroy the virtio_screen instance, but want to keep any pending
+about to destroy the serial_screen instance, but want to keep any pending
 data. However this does not wait for any data in particular so this races with
 the backend and data transport. Therefor it should only be used when there is
 no information available about what data is expected to be available.

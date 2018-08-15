@@ -22,7 +22,7 @@ use English -no_match_vars;
 use Carp 'croak';
 use Scalar::Util 'blessed';
 use Cwd;
-use consoles::virtio_screen ();
+use consoles::serial_screen ();
 use testapi 'get_var';
 
 use base 'consoles::console';
@@ -134,7 +134,7 @@ sub activate {
     my ($self) = @_;
     if (get_var('VIRTIO_CONSOLE')) {
         $self->{socket_fd}              = $self->open_socket unless $self->{socket_fd};
-        $self->{screen}                 = consoles::virtio_screen::->new($self->{socket_fd});
+        $self->{screen}                 = consoles::serial_screen::->new($self->{socket_fd});
         $self->{screen}->{carry_buffer} = $self->{preload_buffer};
         $self->{preload_buffer}         = '';
     }
