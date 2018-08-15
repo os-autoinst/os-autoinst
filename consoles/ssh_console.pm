@@ -57,15 +57,18 @@ sub activate {
     my $username = $self->{username};
 
     $self->{ssh} = $self->backend->new_ssh_connection(hostname => $hostname, password => $password, username => $username);
-    $self->{shell} = $self->{ssh}->channel();
-    $self->{shell}->shell();
+    my $chan = $self->{shell} = $self->{ssh}->channel();
+    $chan->pty(1);
+    $chan->shell();
+    print $chan "PS1='# '\n";
+    print $chan "exec 2>&1\n";
 
-    $self->{screen} = consoles::virtio_screen->new($self->{shell});
+    $self->{screen} = consoles::virtio_screen->new($chan, $self->{ssh}->sock);
     return;
 }
 
 sub is_serial_terminal {
-    return 0;
+    return 1;
 }
 
 1;
