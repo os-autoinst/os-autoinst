@@ -53,6 +53,7 @@ sub new {
     $self->{activated_consoles}     = [];
     $self->{name}                   = $class;
     $self->{serial_failures}        = [];
+    $self->{fatal_failure}          = 0;
     return bless $self, $class;
 }
 
@@ -331,6 +332,8 @@ sub runtest {
 
     my $died;
     my $name = $self->{name};
+    # Set flags to the field value
+    $self->{flags} = $self->test_flags();
     eval {
         $self->pre_run_hook();
         if (defined $self->{run_args}) {
@@ -670,16 +673,18 @@ sub parse_serial_output_qemu {
             my $message = $regexp_table->{message};
             my $type    = $regexp_table->{type};
 
-            die "Wrong type defined for serial failure. Only 'soft' or 'hard' allowed. Got: $type" if $type !~ /^soft|hard$/;
+            # Input parameters validation
+            die "Wrong type defined for serial failure. Only 'soft' or 'hard' allowed. Got: $type" if $type !~ /^soft|hard|fatal$/;
             die "Message not defined for serial failure for the pattern: '$regexp', type: $type"   if !defined $message;
 
             # If you want to match a simple string please be sure that you create it with quotemeta
             if (!exists $regexp_matched{$regexp} and $line =~ /$regexp/) {
                 $regexp_matched{$regexp} = 1;
                 my $fail_type = 'softfail';
-                if ($type eq 'hard') {
-                    $die       = 1;
-                    $fail_type = 'fail';
+                if ($type =~ 'hard|fatal') {
+                    $die                   = 1;
+                    $fail_type             = 'fail';
+                    $self->{fatal_failure} = $type eq 'fatal';
                 }
                 $self->record_resultfile($message, $message . " - Serial error: $line", result => $fail_type);
                 $self->{result} = $fail_type;

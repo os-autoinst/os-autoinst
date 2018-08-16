@@ -332,7 +332,7 @@ sub runalltests {
                     # avoid duplicating the message
                     bmwqemu::diag $msg;
                 }
-                if ($flags->{fatal} || !$snapshots_supported || $bmwqemu::vars{TESTDEBUG}) {
+                if ($flags->{fatal} || $t->{fatal_failure} || !$snapshots_supported || $bmwqemu::vars{TESTDEBUG}) {
                     bmwqemu::stop_vm();
                     return 0;
                 }
