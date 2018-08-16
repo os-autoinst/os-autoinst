@@ -27,6 +27,8 @@ use testapi  ();
 use autotest ();
 use MIME::Base64 'decode_base64';
 
+my $serial_file_pos = 0;
+
 # enable strictures and warnings in all tests globaly
 sub import {
     strict->import;
@@ -327,7 +329,7 @@ sub runtest {
     my ($self) = @_;
     my $starttime = time;
 
-    my $ret;
+    my $died;
     my $name = $self->{name};
     eval {
         $self->pre_run_hook();
@@ -352,25 +354,31 @@ sub runtest {
         # show a text result with the die message unless the die was internally generated
         if (!$internal) {
             my $msg = "# Test died: $@";
-            bmwqemu::diag($msg);
-            my $details = {result => 'fail'};
-            my $text_fn = $self->next_resultname('txt');
-            open my $fd, ">", bmwqemu::result_dir() . "/$text_fn";
-            print $fd $msg;
-            close $fd;
-            $details->{text}  = $text_fn;
-            $details->{title} = 'Failed';
-            push @{$self->{details}}, $details;
-            $self->run_post_fail("test $name died");
+            bmwqemu::diag($@);
+            $self->record_resultfile('Failed', $msg, result => 'fail');
+            $died = 1;
         }
     }
+
+    # Detect serial failures and override result if die
+    eval { $self->search_for_expected_serial_failures(); };
+    # Process serial dectection failure
+    if ($@) {
+        bmwqemu::diag($@);
+        $self->record_resultfile('Failed', $@, result => 'fail');
+        $died = 1;
+    }
+
+    $self->run_post_fail("test $name died") if ($died);
+
     if (($self->{result} || '') eq 'fail') {
         # fatal
         $self->run_post_fail("test $name failed");
     }
+
     $self->done();
     bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), time - $starttime));
-    return $ret;
+    return;
 }
 
 sub save_test_result {
@@ -633,27 +641,26 @@ sub rollback_activated_consoles {
 }
 
 sub search_for_expected_serial_failures {
-    my ($self, $from_position) = @_;
+    my ($self) = @_;
     if ($bmwqemu::vars{BACKEND} eq 'qemu') {
-        $self->parse_serial_output_qemu($from_position);
+        $self->parse_serial_output_qemu();
     }
 }
 
 sub get_serial_output_json {
-    my ($self, $from_position) = @_;
+    my ($self) = @_;
 
-    myjsonrpc::send_json($autotest::isotovideo, {cmd => 'read_serial', position => $from_position});
+    myjsonrpc::send_json($autotest::isotovideo, {cmd => 'read_serial', position => $serial_file_pos});
     return myjsonrpc::read_json($autotest::isotovideo);
 }
 
 sub parse_serial_output_qemu {
-    my ($self, $from_position) = @_;
+    my ($self) = @_;
     # serial failures defined in distri (test can override them)
     my $failures = $self->{serial_failures};
 
-    my $json = $self->get_serial_output_json($from_position);
-
-    my $die = 0;
+    my $json = $self->get_serial_output_json($serial_file_pos);
+    my $die  = 0;
     my %regexp_matched;
     # loop line by line
     for my $line (split(/^/, $json->{serial})) {
@@ -662,7 +669,8 @@ sub parse_serial_output_qemu {
             my $regexp  = $regexp_table->{pattern};
             my $message = $regexp_table->{message};
             my $type    = $regexp_table->{type};
-            die "Wrong type defined for serial failure. Only 'soft' or 'hard' allowed. Got: $type" if $type !~ /soft|hard/;
+
+            die "Wrong type defined for serial failure. Only 'soft' or 'hard' allowed. Got: $type" if $type !~ /^soft|hard$/;
             die "Message not defined for serial failure for the pattern: '$regexp', type: $type"   if !defined $message;
 
             # If you want to match a simple string please be sure that you create it with quotemeta
@@ -673,16 +681,14 @@ sub parse_serial_output_qemu {
                     $die       = 1;
                     $fail_type = 'fail';
                 }
-
-                $self->record_testresult($fail_type);
                 $self->record_resultfile($message, $message . " - Serial error: $line", result => $fail_type);
                 $self->{result} = $fail_type;
             }
         }
     }
-
+    $serial_file_pos = $json->{position};
     die "Got serial hard failure" if $die;
-    return $json->{position};
+    return;
 }
 
 1;
