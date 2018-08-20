@@ -1138,13 +1138,14 @@ sub retry_assert_screen {
 sub new_ssh_connection {
     my ($self, %args) = @_;
     $args{username} ||= 'root';
+    $args{port}     ||= 22;
 
     my $ssh = Net::SSH2->new;
 
     # Retry 5 times, in case of the guest is not running yet
     my $counter = 5;
     while ($counter > 0) {
-        if ($ssh->connect($args{hostname})) {
+        if ($ssh->connect($args{hostname}, $args{port})) {
 
             if ($args{password}) {
                 $ssh->auth(username => $args{username}, password => $args{password});
@@ -1153,17 +1154,17 @@ sub new_ssh_connection {
                 # this relies on agent to be set up correctly
                 $ssh->auth_agent($args{username});
             }
-            bmwqemu::diag "Connection to $args{username}\@$args{hostname} established" if $ssh->auth_ok;
+            bmwqemu::diag "Connection to $args{username}\@$args{hostname}:$args{port} established" if $ssh->auth_ok;
             last;
         }
         else {
-            bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}, Retry";
+            bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}:$args{port}, Retry";
             sleep(10);
             $counter--;
             next;
         }
     }
-    die "Failed to login to $args{username}\@$args{hostname}" unless $ssh->auth_ok;
+    die "Failed to login to $args{username}\@$args{hostname}:$args{port}" unless $ssh->auth_ok;
 
     return $ssh;
 }

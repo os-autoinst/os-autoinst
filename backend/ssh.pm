@@ -16,9 +16,9 @@
 package backend::ssh;
 use strict;
 use base 'backend::baseclass';
-use testapi 'get_required_var';
+use testapi qw(get_required_var set_var get_var);
 use Carp 'cluck';
-
+use Mojo::IOLoop::ReadWriteProcess 'process';
 use IO::Select;
 
 sub new {
@@ -33,7 +33,8 @@ sub do_start_vm {
 
     my $hostname = get_required_var('SSH_HOSTNAME');
     my $password = get_required_var('SSH_PASSWORD');
-    my $username = get_required_var('SSH_USERNAME', 'root');
+    my $username = get_var('SSH_USERNAME', 'root');
+    my $port     = get_var('SSH_PORT', '22');
 
     # truncate the serial file
     open(my $sf, '>', $self->{serialfile});
@@ -45,30 +46,86 @@ sub do_start_vm {
         {
             hostname => $hostname,
             password => $password,
-            username => $username
+            username => $username,
+            port     => $port
         });
     $ssh_console->backend($self);
     $self->select_console({testapi_console => 'sut'});
 
-    # TODO use unique filename or exit if file exists
-    my $serial_file = "/dev/" . $testapi::serialdev;
-    $self->run_cmd("mkfifo $serial_file", $hostname, $password, $username);
+    $self->start_reverse_tunnel;
 
-    # Listen on serial file
-    my $chan = $self->start_ssh_serial(hostname => $hostname, password => $password, username => $username);
-    $chan->exec("tail -F $serial_file");
-
+    my $chan = $self->start_ssh_serial(
+        hostname => $hostname,
+        password => $password,
+        username => $username,
+        port     => $port
+    );
     return {};
+}
+
+sub start_reverse_tunnel {
+    my ($self) = @_;
+
+    my $workerport = get_required_var("QEMUPORT") + 1;
+    my $hostname   = get_required_var('SSH_HOSTNAME');
+    my $password   = get_required_var('SSH_PASSWORD');
+    my $username   = get_var('SSH_USERNAME', 'root');
+    my $port       = get_var('SSH_PORT', '22');
+
+    my $fwd_process = process(sub {
+            my $ssh = $self->new_ssh_connection(
+                hostname => $hostname,
+                password => $password,
+                username => $username,
+                port     => $port
+            ) || die($@);
+
+            # FIXME allow simultaneous connections
+            my $l = $ssh->listen($workerport);
+            while (1) {
+                $ssh->blocking(1);
+                my $channel = $l->accept();
+                last unless (defined($channel));
+                $ssh->blocking(0);
+
+                my $socket = IO::Socket::INET->new(
+                    PeerHost => '127.0.0.1',
+                    PeerPort => $workerport,
+                    Proto    => 'tcp',
+                );
+                if ($socket) {
+                    my $buf = '';
+                    my $len = 512;
+                    my $s   = IO::Select->new();
+                    $s->add($socket);
+                    while (1) {
+                        last if ($channel->eof);
+                        while (sysread($channel, $buf, $len)) {
+                            last unless syswrite($socket, $buf);
+                        }
+                        if ($s->can_read(0.1)) {
+                            last unless sysread($socket, $buf, $len);
+                            last unless syswrite($channel, $buf);
+                        }
+                    }
+                    $socket->close();
+                }
+                $channel->close();
+            }
+    })->blocking_stop(1)->start;
+    $fwd_process->on(stop => sub { bmwqemu::diag("SSH Tunnel " . (shift->pid) . " finished"); });
+    $self->{fwd_process} = $fwd_process;
 }
 
 sub do_stop_vm {
 
     my ($self) = @_;
-    my $serial_file = "/dev/" . $testapi::serialdev;
 
     $self->stop_ssh_serial;
-    $self->run_cmd("rm $serial_file");
     $self->deactivate_console({testapi_console => 'sut'});
+    if ($self->{fwd_process}) {
+        $self->{fwd_process}->stop();
+    }
 
     return {};
 }

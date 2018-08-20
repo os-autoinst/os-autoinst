@@ -30,6 +30,7 @@ sub new {
     $self->{hostname}       = $args->{hostname};
     $self->{password}       = $args->{password};
     $self->{username}       = $args->{username};
+    $self->{port}           = $args->{port};
     $self->{preload_buffer} = '';
     return $self;
 }
@@ -55,10 +56,17 @@ sub activate {
     my $hostname = $self->{hostname} || die('we need a hostname to ssh to');
     my $password = $self->{password};
     my $username = $self->{username};
+    my $port     = $self->{port};
 
-    $self->{ssh} = $self->backend->new_ssh_connection(hostname => $hostname, password => $password, username => $username);
+    $self->{ssh} = $self->backend->new_ssh_connection(
+        hostname => $hostname,
+        password => $password,
+        username => $username,
+        port     => $port
+    );
     my $chan = $self->{shell} = $self->{ssh}->channel();
-    $chan->pty(1);
+    $chan->pty('vt100', {echo => 1});
+    $chan->pty_size(1024, 24);
     $chan->shell();
     print $chan "PS1='# '\n";
     print $chan "exec 2>&1\n";
