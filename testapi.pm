@@ -55,7 +55,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   select_console console reset_consoles
 
-  upload_asset data_url assert_shutdown parse_junit_log parse_extra_log upload_logs
+  upload_asset data_url check_shutdown assert_shutdown parse_junit_log parse_extra_log upload_logs
 
   wait_idle wait_screen_change assert_screen_change wait_still_screen wait_serial
   record_soft_failure record_info
@@ -1554,18 +1554,17 @@ sub power {
     query_isotovideo('backend_power', {action => $action});
 }
 
-=head2 assert_shutdown
+=head2 check_shutdown
 
-  assert_shutdown([$timeout]);
+  check_shutdown([$timeout]);
 
 Periodically check backend for status until C<'shutdown'>. Does I<not> initiate shutdown.
-Default timeout is 60s
 
-Returns C<undef> on success, throws exception on timeout.
+Returns true on success and false if C<$timeout> timeout is hit. Default timeout is 60s.
 
 =cut
 
-sub assert_shutdown {
+sub check_shutdown {
     my ($timeout) = @_;
     $timeout //= 60;
     bmwqemu::log_call(timeout => $timeout);
@@ -1578,14 +1577,36 @@ sub assert_shutdown {
         }
         # -1 counts too
         if ($is_shutdown) {
-            $autotest::current_test->take_screenshot('ok');
-            return;
+            return 1;
         }
         sleep 1;
         --$timeout;
     }
-    $autotest::current_test->take_screenshot('fail');
-    croak "Machine didn't shut down!";
+    return 0;
+}
+
+=head2 assert_shutdown
+
+  assert_shutdown([$timeout]);
+
+Periodically check backend for status until C<'shutdown'>. Does I<not> initiate shutdown.
+
+Returns C<undef> on success, marks the test as failed and throws exception
+if C<$timeout> timeout is hit. Default timeout is 60s.
+
+=cut
+
+sub assert_shutdown {
+    my ($timeout) = @_;
+    $timeout //= 60;
+    if (check_shutdown($timeout)) {
+        $autotest::current_test->take_screenshot('ok');
+        return;
+    }
+    else {
+        $autotest::current_test->take_screenshot('fail');
+        croak "Machine didn't shut down!";
+    }
 }
 
 =head2 eject_cd

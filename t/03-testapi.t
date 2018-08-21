@@ -10,6 +10,7 @@ use Test::Mock::Time;
 use Test::Warnings;
 use Test::Exception;
 use File::Temp;
+use Test::Exception;
 
 BEGIN {
     unshift @INC, '..';
@@ -356,6 +357,30 @@ subtest 'set console tty and other args' => sub {
     $console->set_args(tty => 43, foo => 'bar');
     is($console->{args}->{tty}, 43);
     is($console->{args}->{foo}, 'bar');
+};
+
+subtest 'check_assert_shutdown' => sub {
+    # Test cases, when shutdown is finished before timeout is hit
+    $mod->mock(
+        read_json => sub {
+            return {ret => 1};
+        });
+    ok(check_shutdown, 'check_shutdown should return "true" if shutdown finished before timeout is hit');
+    is(assert_shutdown, undef, 'assert_shutdown should return "undef" if shutdown finished before timeout is hit');
+    $mod->mock(
+        read_json => sub {
+            return {ret => -1};
+        });
+    ok(check_shutdown, 'check_shutdown should return "true" if backend does not implement is_shutdown');
+    is(assert_shutdown, undef, 'assert_shutdown should return "undef" if backend does not implement is_shutdown');
+    # Test cases, when shutdown is not finished if timeout is hit
+    $mod->mock(
+        read_json => sub {
+            return {ret => 0};
+        });
+    is(check_shutdown, 0, 'check_shutdown should return "false" if timeout is hit');
+    throws_ok { assert_shutdown } qr/Machine didn't shut down!/, 'assert_shutdown should throw exception if timeout is hit';
+
 };
 
 done_testing;

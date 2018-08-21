@@ -21,7 +21,12 @@ sub run {
     wait_idle 1;
     type_string "sudo su\n";
     type_string "poweroff\n";
-    assert_shutdown;
+    if (get_var('INTEGRATION_TESTS')) {
+        assert_shutdown(90);
+    }
+    else {
+        assert_shutdown;
+    }
 }
 
 sub test_flags {
