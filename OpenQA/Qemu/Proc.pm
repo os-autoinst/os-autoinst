@@ -354,11 +354,11 @@ sub exec_qemu {
             bmwqemu::diag("Collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status);
         });
 
+    bmwqemu::diag("starting: " . join(" ", @params));
     session->enable_subreaper;
     $self->_process->code(sub {
             $SIG{__DIE__} = undef;    # overwrite the default - just exit
             system $self->qemu_bin, '-version';
-            bmwqemu::diag("starting: " . join(" ", @params));
             # don't try to talk to the host's PA
             $ENV{QEMU_AUDIO_DRV} = "none";
 
