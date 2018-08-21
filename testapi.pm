@@ -53,7 +53,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   start_audiocapture assert_recorded_sound check_recorded_sound
 
-  select_console console reset_consoles
+  select_console console reset_consoles current_console
 
   upload_asset data_url check_shutdown assert_shutdown parse_junit_log parse_extra_log upload_logs
 
@@ -735,8 +735,8 @@ For more info see consoles/virtio_console.pm and consoles/virtio_screen.pm.
 sub is_serial_terminal {
     state $ret;
     state $last_seen = '';
-    if (defined $autotest::selected_console && $autotest::selected_console ne $last_seen) {
-        $last_seen = $autotest::selected_console;
+    if (defined current_console() && current_console() ne $last_seen) {
+        $last_seen = current_console();
         $ret = query_isotovideo('backend_is_serial_terminal', {});
     }
     return $ret->{yesorno};
@@ -1450,7 +1450,7 @@ here.
 
 sub console {
     my ($testapi_console) = @_;
-    $testapi_console ||= $autotest::selected_console;
+    $testapi_console ||= current_console();
     bmwqemu::log_call(testapi_console => $testapi_console);
     if (!exists $testapi_console_proxies{$testapi_console}) {
         $testapi_console_proxies{$testapi_console} = backend::console_proxy->new($testapi_console);
@@ -1470,6 +1470,18 @@ if you did something to the system that affects the console (e.g. trigger reboot
 sub reset_consoles {
     query_isotovideo('backend_reset_consoles');
     return;
+}
+
+=head2
+    current_console
+
+Return the currently selected console, a call when no console is selected, will
+return C<undef>.
+
+=cut
+
+sub current_console {
+    return $autotest::selected_console;
 }
 
 =head1 audio support

@@ -318,7 +318,7 @@ sub run_daemon {
             }
 
             # Process input chunk
-            say "BYTES $bytes";
+            app->log->debug("BYTES $bytes");
         });
     Mojo::IOLoop->stream($stream);
 
