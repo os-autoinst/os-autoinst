@@ -44,12 +44,11 @@ subtest parse_serial_output => sub {
             $message = $output;
     });
 
-    is($basetest->parse_serial_output_qemu(0), 100, 'expected json result position returned');
-
+    $basetest->parse_serial_output_qemu();
     $basetest->{serial_failures} = [
         {type => 'soft', message => 'DoNotMatch', pattern => qr/DoNotMatch/},
     ];
-    $basetest->parse_serial_output_qemu(0);
+    $basetest->parse_serial_output_qemu();
     is($basetest->{result}, undef, 'test result untouched without match');
     is($message,            undef, 'test details do not have extra message');
 
@@ -57,14 +56,14 @@ subtest parse_serial_output => sub {
         {type => 'soft', message => 'SimplePattern', pattern => qr/Serial/},
     ];
 
-    $basetest->parse_serial_output_qemu(0);
+    $basetest->parse_serial_output_qemu();
     is($basetest->{result}, 'softfail', 'test result set to soft failure');
     is($message, 'SimplePattern - Serial error: Serial to match', 'log message matches output');
 
     $basetest->{serial_failures} = [
         {type => 'soft', message => 'Proper regexp', pattern => qr/\d{3}/},
     ];
-    $basetest->parse_serial_output_qemu(0);
+    $basetest->parse_serial_output_qemu();
     is($basetest->{result}, 'softfail', 'test result set to soft failure');
     is($message, 'Proper regexp - Serial error: 1q2w333', 'log message matches output');
 
@@ -72,8 +71,30 @@ subtest parse_serial_output => sub {
         {type => 'hard', message => 'Message1', pattern => qr/Serial/},
     ];
 
-    eval { $basetest->parse_serial_output_qemu(0) };
+    eval { $basetest->parse_serial_output_qemu() };
     like($@, qr(Got serial hard failure at.*), 'test died hard after match');
+    is($basetest->{result}, 'fail', 'test result set to hard failure');
+
+    $basetest->{serial_failures} = [
+        {type => 'fatal', message => 'Message1', pattern => qr/Serial/},
+    ];
+
+    eval { $basetest->parse_serial_output_qemu() };
+    like($@, qr(Got serial hard failure at.*), 'test died hard after match with fatal type');
+    is($basetest->{result}, 'fail', 'test result set to fail after fatal failure');
+
+    $basetest->{serial_failures} = [
+        {type => 'non_existent type', message => 'Message1', pattern => qr/Serial/},
+    ];
+    eval { $basetest->parse_serial_output_qemu() };
+    like($@, qr(Wrong type defined for serial failure.*), 'test died because of wrong serial failure type');
+    is($basetest->{result}, 'fail', 'test result set to hard failure');
+
+    $basetest->{serial_failures} = [
+        {type => 'soft', message => undef, pattern => qr/Serial/},
+    ];
+    eval { $basetest->parse_serial_output_qemu() };
+    like($@, qr(Message not defined for serial failure for the pattern.*), 'test died because of missing message');
     is($basetest->{result}, 'fail', 'test result set to hard failure');
 
 };

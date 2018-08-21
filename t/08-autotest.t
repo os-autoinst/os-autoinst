@@ -136,6 +136,34 @@ is($died,      0, 'unimportant test failure should not die');
 is($completed, 1, 'unimportant test failure should complete');
 @sent = [];
 
+# unmock runtest, to fail in search_for_expected_serial_failures
+$mock_basetest->unmock('runtest');
+# Mock reading of the serial output
+$mock_basetest->mock(search_for_expected_serial_failures => sub {
+        my ($self) = @_;
+        $self->{fatal_failure} = 1;
+        die "Got serial hard failure";
+});
+autotest::run_all;
+($died, $completed) = get_tests_done;
+is($died,      0, 'fatal serial failure test should not die');
+is($completed, 0, 'fatal serial failure test should not complete');
+@sent = [];
+$mock_basetest->unmock('search_for_expected_serial_failures');
+$mock_basetest->mock(search_for_expected_serial_failures => sub {
+        my ($self) = @_;
+        $self->{fatal_failure} = 0;
+        die "Got serial hard failure";
+});
+autotest::run_all;
+($died, $completed) = get_tests_done;
+is($died,      0, 'non-fatal serial failure test should not die');
+is($completed, 1, 'non-fatal serial failure test should complete');
+@sent = [];
+# Revert mock for runtest and remove mock for search_for_expected_serial_failures
+$mock_basetest->original('search_for_expected_serial_failures');
+$mock_basetest->mock(runtest => sub { die "oh noes!\n"; });
+
 # now let's add a fatal test
 loadtest 'fatal';
 autotest::run_all;

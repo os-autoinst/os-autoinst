@@ -295,7 +295,6 @@ sub runalltests {
     my $vmloaded            = 0;
     my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
     bmwqemu::diag "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
-    my $serial_file_pos = 0;
 
     write_test_order();
 
@@ -324,10 +323,7 @@ sub runalltests {
                 make_snapshot($t->{fullname});
             }
 
-            eval {
-                $t->runtest;
-                $serial_file_pos = $t->search_for_expected_serial_failures($serial_file_pos);
-            };
+            eval { $t->runtest; };
             $t->save_test_result();
 
             if ($@) {
@@ -336,7 +332,7 @@ sub runalltests {
                     # avoid duplicating the message
                     bmwqemu::diag $msg;
                 }
-                if ($flags->{fatal} || !$snapshots_supported || $bmwqemu::vars{TESTDEBUG}) {
+                if ($flags->{fatal} || $t->{fatal_failure} || !$snapshots_supported || $bmwqemu::vars{TESTDEBUG}) {
                     bmwqemu::stop_vm();
                     return 0;
                 }
