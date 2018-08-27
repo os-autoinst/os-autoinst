@@ -20,10 +20,15 @@ use testapi qw(get_required_var set_var get_var);
 use Carp 'cluck';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use IO::Select;
+use Errno ':POSIX';
 
 sub new {
     my $class = shift;
     my $self  = $class->SUPER::new;
+
+    # overwrite WORKER_HOSTNAME, use a SSH reverse tunnel.
+    $bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
+    bmwqemu::save_vars();
 
     return $self;
 }
@@ -63,6 +68,23 @@ sub do_start_vm {
     return {};
 }
 
+sub save_syswrite
+{
+    my ($fd, $buf, $len) = @_;
+
+    my $wr = 0;
+    do {
+        my $i = syswrite($fd, $buf);
+        if (!defined($i)) {
+            next if ($!{EAGAIN});
+            return;
+        }
+        $wr += $i;
+        $buf = substr($buf, $i);
+    } while ($wr < $len);
+    return $wr;
+}
+
 sub start_reverse_tunnel {
     my ($self) = @_;
 
@@ -95,19 +117,20 @@ sub start_reverse_tunnel {
                 );
                 if ($socket) {
                     my $buf = '';
-                    my $len = 512;
+                    my $len = 4096;
                     my $s   = IO::Select->new();
                     $s->add($socket);
                     while (1) {
                         last if ($channel->eof);
-                        while (sysread($channel, $buf, $len)) {
-                            last unless syswrite($socket, $buf);
+                        while (my $read = sysread($channel, $buf, $len)) {
+                            goto OUT unless save_syswrite($socket, $buf, $read);
                         }
-                        if ($s->can_read(0.1)) {
-                            last unless sysread($socket, $buf, $len);
-                            last unless syswrite($channel, $buf);
+                        while ($s->can_read(0.1)) {
+                            goto OUT unless (my $read = sysread($socket, $buf, $len));
+                            goto OUT unless save_syswrite($channel, $buf, $read);
                         }
                     }
+                  OUT:
                     $socket->close();
                 }
                 $channel->close();
