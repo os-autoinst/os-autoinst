@@ -267,10 +267,11 @@ sub _wait_for_migrate {
 
 sub _migrate_to_file {
     my ($self, %args) = @_;
-    my $fdname         = 'dumpfd';
-    my $compress_level = $args{compress_level} || 0;
-    my $filename       = $args{filename};
-    my $max_bandwidth  = $args{max_bandwidth} // LONG_MAX;
+    my $fdname           = 'dumpfd';
+    my $compress_level   = $args{compress_level} || 0;
+    my $compress_threads = $args{compress_threads} // 2;
+    my $filename         = $args{filename};
+    my $max_bandwidth    = $args{max_bandwidth} // LONG_MAX;
 
     # Internally compressed dumps can't be opened by crash. They need to be
     # fed back into QEMU as an incoming migration.
@@ -282,9 +283,10 @@ sub _migrate_to_file {
             execute   => 'migrate-set-parameters',
             arguments => {
                 # This is ignored if the compress capability is not set
-                'compress-level' => $compress_level,
+                'compress-level'   => $compress_level + 0,
+                'compress-threads' => $compress_threads + 0,
                 # Ensure slow dump times are not due to a transfer rate cap
-                'max-bandwidth' => $max_bandwidth,
+                'max-bandwidth' => $max_bandwidth + 0,
               }
         },
         fatal => 1
@@ -309,11 +311,12 @@ sub _migrate_to_file {
 
 sub save_memory_dump {
     my ($self, $args) = @_;
-    my $fdname          = 'dumpfd';
-    my $vars            = \%bmwqemu::vars;
-    my $compress_method = $vars->{QEMU_COMPRESS_METHOD} || 'xz';
-    my $compress_level  = $vars->{QEMU_COMPRESS_LEVEL} || 6;
-    my $filename        = $args->{filename} . '-vm-memory-dump';
+    my $fdname           = 'dumpfd';
+    my $vars             = \%bmwqemu::vars;
+    my $compress_method  = $vars->{QEMU_DUMP_COMPRESS_METHOD} || 'xz';
+    my $compress_level   = $vars->{QEMU_COMPRESS_LEVEL} || 6;
+    my $compress_threads = $vars->{QEMU_COMPRESS_THREADS} || $vars->{QEMUCPUS} || 2;
+    my $filename         = $args->{filename} . '-vm-memory-dump';
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
     bmwqemu::diag("Migrating the machine (Current VM state is $rsp->{return}->{status}).");
@@ -321,8 +324,9 @@ sub save_memory_dump {
 
     mkpath('ulogs');
     $self->_migrate_to_file(compress_level => $compress_method eq 'internal' ? $compress_level : 0,
-        filename      => "ulogs/$filename",
-        max_bandwidth => $vars->{QEMU_MAX_BANDWIDTH});
+        compress_threads => $compress_threads,
+        filename         => "ulogs/$filename",
+        max_bandwidth    => $vars->{QEMU_MAX_BANDWIDTH});
 
     diag "Memory dump completed.";
 
@@ -330,7 +334,7 @@ sub save_memory_dump {
 
     if ($compress_method eq 'xz') {
         if (defined which('xz')) {
-            system(('xz', '-T', '2', "-v$compress_level", "ulogs/$filename"));
+            system(('xz', '-T', $compress_threads, "-v$compress_level", "ulogs/$filename"));
         }
         else {
             bmwqemu::fctwarn('xz not found; falling back to bzip2');
@@ -364,6 +368,7 @@ sub save_storage_drives {
 
 sub save_snapshot {
     my ($self, $args) = @_;
+    my $vars   = \%bmwqemu::vars;
     my $vmname = $args->{name};
     my $bdc    = $self->{proc}->blockdev_conf;
 
@@ -402,8 +407,11 @@ sub save_snapshot {
     });
 
     mkpath(VM_SNAPSHOTS_DIR);
-    $self->_migrate_to_file(filename => VM_SNAPSHOTS_DIR . '/' . $snapshot->name,
-        compress_level => 9);
+    $self->_migrate_to_file(
+        filename         => VM_SNAPSHOTS_DIR . '/' . $snapshot->name,
+        compress_level   => $vars->{QEMU_COMPRESS_LEVEL} || 6,
+        compress_threads => $vars->{QEMU_COMPRESS_THREADS} // $vars->{QEMUCPUS},
+        max_bandwidth    => $vars->{QEMU_MAX_BANDWIDTH});
     diag('Snapshot complete');
 
     $self->cont_vm() if $was_running;

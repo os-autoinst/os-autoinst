@@ -85,6 +85,10 @@ QEMU_NO_TABLET;boolean;0;Don't use USB tablet.
 QEMU_VIRTIO_RNG;boolean;0;Enable virtio random number generator
 QEMU_NUMA;boolean;0;Enable NUMA simulation, requires QEMUCPUS to be greater than one
 QEMU_SMBIOS;see qemu -smbios ?;undef;pass this value to qemu -smbios
+QEMU_COMPRESS_LEVEL;integer;6;Sets the compression level used for memory dumps and snapshots. Zero turns compression off and 9 is the maximum level. Generally there is little improvement in compression ratio by increasing the level, but the CPU time can be high on some platforms.
+QEMU_COMPRESS_THREADS;integer;QEMUCPUS;Number of threads used for compressing memory dumps and snapshots.
+QEMU_MAX_BANDWIDTH;integer;INT_MAX;Limits the transfer rate during a snapshot.
+QEMU_DUMP_COMPRESS_METHOD;string;xz;The compression to use during a memory dump. Can be set to xz, bzip2 or internal (QEMU's internal compression, not compatible with crash or gdb). If xz is set, but not available, it will fallback to bzip2. Also see QEMU_COMPRESSION_LEVEL.
 RAIDLEVEL;;;
 SKIPTO;full name of test module;;Restore VM from snapshot and continue by running specified test module. Needs HDD image with snapshots present
 TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used
