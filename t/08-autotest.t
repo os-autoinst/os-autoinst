@@ -24,7 +24,7 @@ my @sent;
 like(exception { autotest::runalltests }, qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first');
 stderr_like(
     sub {
-        like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest needs a script to match/);
+        like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest.*does not match required pattern/);
     },
     qr/loadtest needs a script below.*is not/
 );
