@@ -370,6 +370,42 @@ sub save_storage_drives {
     return;
 }
 
+sub inflate_balloon {
+    my $self = shift;
+    my $vars = \%bmwqemu::vars;
+
+    return unless $vars->{QEMU_BALLOON_TARGET};
+
+    my $target_bytes = $vars->{QEMU_BALLOON_TARGET} * 1048576;
+
+    $self->handle_qmp_command({execute => 'balloon',
+            arguments => {value => $target_bytes}},
+        fatal => 1);
+
+    my $rsp         = $self->handle_qmp_command({execute => 'query-balloon'}, fatal => 1);
+    my $prev_actual = $rsp->{return}->{actual};
+    my $i           = 0;
+    while ($i < 5) {
+        $i += 1;
+        sleep(1);
+        $rsp = $self->handle_qmp_command({execute => 'query-balloon'}, fatal => 1);
+        last if $prev_actual <= $rsp->{return}->{actual};
+    }
+}
+
+sub deflate_balloon {
+    my $self = shift;
+    my $vars = \%bmwqemu::vars;
+
+    return unless $vars->{QEMU_BALLOON_TARGET};
+
+    my $ram_bytes = $vars->{QEMURAM} * 1048576;
+
+    $self->handle_qmp_command({execute => 'balloon',
+            arguments => {value => $ram_bytes}},
+        fatal => 1);
+}
+
 sub save_snapshot {
     my ($self, $args) = @_;
     my $vars   = \%bmwqemu::vars;
@@ -379,7 +415,10 @@ sub save_snapshot {
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
     bmwqemu::diag("Saving snapshot (Current VM state is $rsp->{return}->{status}).");
     my $was_running = $rsp->{return}->{status} eq 'running';
-    $self->freeze_vm() if $was_running;
+    if ($was_running) {
+        $self->inflate_balloon();
+        $self->freeze_vm();
+    }
 
     $self->save_console_snapshots($vmname);
 
@@ -418,7 +457,10 @@ sub save_snapshot {
         max_bandwidth    => $vars->{QEMU_MAX_BANDWIDTH});
     diag('Snapshot complete');
 
-    $self->cont_vm() if $was_running;
+    if ($was_running) {
+        $self->cont_vm();
+        $self->deflate_balloon();
+    }
     return;
 }
 
@@ -470,6 +512,7 @@ sub load_snapshot {
     $self->select_console({testapi_console => 'sut'});
     diag('Restored snapshot');
     $self->cont_vm();
+    $self->deflate_balloon();
 }
 
 sub do_extract_assets {
@@ -754,6 +797,8 @@ sub start_qemu {
             sp('mem-prealloc');
             sp('mem-path', $path);
         }
+
+        sp('device', 'virtio-balloon,deflate-on-oom=on') if $vars->{QEMU_BALLOON_TARGET};
 
         for (my $i = 0; $i < $num_networks; $i++) {
             if ($vars->{NICTYPE} eq "user") {
