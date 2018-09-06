@@ -61,14 +61,14 @@ subtest gen_params => sub {
 
     @params = qw(-foo bar);
     gen_params @params, "test", [qw(1 2 3)];
-    is_deeply(\@params, [qw(-foo bar -test 1,2,3)], "Added parameter if parameter is an arrayref");
+    is_deeply(\@params, [qw(-foo bar -test), '1,2,3'], "Added parameter if parameter is an arrayref");
 
     @params = qw(-foo bar);
     my $apple = 1;
     my $tree  = 2;
     my $bar   = 3;
     gen_params @params, "test", [qv "$apple $tree $bar"];
-    is_deeply(\@params, [qw(-foo bar -test 1,2,3)], "Added parameter if parameter is an arrayref supplied with qv()");
+    is_deeply(\@params, [qw(-foo bar -test), '1,2,3'], "Added parameter if parameter is an arrayref supplied with qv()");
 
     my $nothing_is_there;
     @params = qw(-foo bar);
@@ -78,7 +78,7 @@ subtest gen_params => sub {
 
     @params = qw(!!foo bar);
     gen_params @params, "test", [qv "$apple $tree $bar"], prefix => "!!";
-    is_deeply(\@params, [qw(!!foo bar !!test 1,2,3)], "Added parameter if parameter is an arrayref and with custom prefix");
+    is_deeply(\@params, [qw(!!foo bar !!test), '1,2,3'], "Added parameter if parameter is an arrayref and with custom prefix");
 
     @params = qw(-kernel vmlinuz -initrd initrd);
     gen_params @params, "append", "ro root=/dev/sda1";
@@ -109,14 +109,14 @@ subtest dd_gen_params => sub {
 
     @params = qw(--foo bar);
     dd_gen_params @params, "test", [qw(1 2 3)];
-    is_deeply(\@params, [qw(--foo bar --test 1,2,3)], "Added parameter if parameter is an arrayref");
+    is_deeply(\@params, [qw(--foo bar --test), '1,2,3'], "Added parameter if parameter is an arrayref");
 
     @params = qw(--foo bar);
     my $apple = 1;
     my $tree  = 2;
     my $bar   = 3;
     dd_gen_params @params, "test", [qv "$apple $tree $bar"];
-    is_deeply(\@params, [qw(--foo bar --test 1,2,3)], "Added parameter if parameter is an arrayref supplied with qv()");
+    is_deeply(\@params, [qw(--foo bar --test), '1,2,3'], "Added parameter if parameter is an arrayref supplied with qv()");
 
     my $nothing_is_there;
     @params = qw(--foo bar);
