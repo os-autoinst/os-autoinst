@@ -19,12 +19,17 @@ use 5.018;
 use warnings;
 use Test::More;
 use File::Temp 'tempdir';
+use File::Basename;
 use File::Path 'make_path';
+use Cwd 'abs_path';
 use JSON;
 
 BEGIN {
     unshift @INC, '..';
 }
+
+my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
+my $data_dir     = "$toplevel_dir/t/data";
 
 sub create_vars {
     my $data = shift;
@@ -51,8 +56,9 @@ subtest 'CASEDIR is mandatory' => sub {
     eval {
         use bmwqemu ();
         bmwqemu::init;
+        bmwqemu::ensure_valid_vars();
     };
-    like($@, qr(CASEDIR variable not set in vars.json.*), 'bmwqemu refuses to init');
+    like($@, qr(CASEDIR variable not set.*), 'bmwqemu refuses to init');
 
 
     my %vars = %{read_vars()};
@@ -61,36 +67,39 @@ subtest 'CASEDIR is mandatory' => sub {
     is($vars{PRJDIR}, $dir, 'PRJDIR unchanged');
 };
 
-subtest 'test PRJDIR default' => sub {
-    my $dir = '/var/lib/openqa/share/tests/test';
+subtest 'test CASEDIR not under PRJDIR default' => sub {
+    my $dir = "$data_dir/tests";
     create_vars({CASEDIR => $dir});
 
     eval {
         use bmwqemu ();
         bmwqemu::init;
+        bmwqemu::ensure_valid_vars();
     };
     ok(!$@, 'init successful');
 
     my %vars = %{read_vars()};
     ok(!$vars{DISTRI}, 'DISTRI not supplied and not set');
     is($vars{CASEDIR}, $dir, 'CASEDIR unchanged');
-    is($vars{PRJDIR}, '/var/lib/openqa/share', 'PRJDIR set to default');
+    is($vars{PRJDIR},  $dir, 'PRJDIR set CASEDIR');
 };
 
-subtest 'test CASEDIR not under PRJDIR default' => sub {
-    my $dir = '/tmp/some/dir/tests/test';
+subtest 'test PRJDIR default' => sub {
+    my $dir = "$data_dir/tests";
     create_vars({CASEDIR => $dir});
+    $bmwqemu::openqa_default_share = $data_dir;
 
     eval {
         use bmwqemu ();
         bmwqemu::init;
+        bmwqemu::ensure_valid_vars();
     };
-    ok($@, 'bmwqemu init failed');
+    ok(!$@, 'init successful');
 
     my %vars = %{read_vars()};
     ok(!$vars{DISTRI}, 'DISTRI not supplied and not set');
-    is($vars{CASEDIR}, $dir, 'CASEDIR unchanged');
-    ok(!$vars{PRJDIR}, 'PRJDIR not supplied and not set');
+    is($vars{CASEDIR}, $dir,      'CASEDIR unchanged');
+    is($vars{PRJDIR},  $data_dir, 'PRJDIR set to default');
 };
 
 done_testing;
