@@ -193,7 +193,9 @@ sub log_format_callback {
 }
 
 sub diag {
+    my ($args) = @_;
     $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
+    confess "missing input" unless $_[0];
     $logger->debug("@_");
     return;
 }

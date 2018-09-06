@@ -112,7 +112,7 @@ sub _run {
 }
 
 # Do not check for anything - just execute and print
-sub simple_run { my $o = (_run(@_))[1]; diag($o); $o }
+sub simple_run { my $o = (_run(@_))[1]; diag($o) if $o; $o }
 
 # Open a process to run external program and check its return status
 sub runcmd {
