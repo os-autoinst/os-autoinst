@@ -239,17 +239,48 @@ subtest 'check_assert_screen' => sub {
     is($report_timeout_called, 0, 'report_timeout not called yet');
 
     subtest 'handle check_screen timeout' => sub {
+        $cmds = [];
         ok(!check_screen('foo', 3, timeout => 2));
-        is($report_timeout_called, 0, 'report_timeout not called for check_screen');
+        is($report_timeout_called, 1, 'report_timeout called for check_screen');
+        is_deeply($cmds, [{
+                    timeout   => 2,
+                    no_wait   => undef,
+                    check     => 1,
+                    mustmatch => 'foo',
+                    cmd       => 'check_screen',
+                },
+                {
+                    check => 1,
+                    cmd   => 'report_timeout',
+                    msg   => 'match=fake,tags timed out after 2 (check_screen)',
+                    tags  => [qw(fake tags)],
+                }], 'RPC messages correct (especially check == 1)');
     };
 
+    $report_timeout_called = 0;
+
     subtest 'handle assert_screen timeout' => sub {
+        $cmds = [];
+
         # simulate that we don't want to pause at all and just let it fail
         throws_ok(sub { assert_screen('foo', 3, timeout => 2) },
             qr/no candidate needle with tag\(s\) \'foo\' matched/,
             'no candidate needle matched tags'
         );
         is($report_timeout_called, 1, 'report_timeout called on timeout');
+        is_deeply($cmds, [{
+                    timeout   => 2,
+                    no_wait   => undef,
+                    check     => 0,
+                    mustmatch => 'foo',
+                    cmd       => 'check_screen',
+                },
+                {
+                    check => 0,
+                    cmd   => 'report_timeout',
+                    msg   => 'match=fake,tags timed out after 2 (assert_screen)',
+                    tags  => [qw(fake tags)],
+                }], 'RPC messages correct (especially check == 0)');
 
         # simulate that we want to pause after timeout in the first place but fail as usual on 2nd attempt
         $report_timeout_called = 0;

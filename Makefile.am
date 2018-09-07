@@ -70,6 +70,12 @@ openqaexecqemu_DATA = \
 	OpenQA/Qemu/SnapshotConf.pm \
 	OpenQA/Qemu/Snapshot.pm
 
+openqaisotovideodir = $(pkglibexecdir)/OpenQA/Isotovideo
+openqaisotovideo_DATA = \
+	OpenQA/Isotovideo/CommandHandler.pm \
+	OpenQA/Isotovideo/Interface.pm \
+	OpenQA/Isotovideo/Utils.pm
+
 # circumvent automake's test - possibly we really shouldn't install in /usr/lib though
 perlexecdir = $(pkglibexecdir)
 perlexec_DATA = \
