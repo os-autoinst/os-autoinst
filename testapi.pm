@@ -1833,6 +1833,9 @@ sub diag {
 }
 
 =head2 host_ip
+
+=for stopwords kvm VM
+
     Return VM's host IP
     in a kvm instance you reach the VM's host under 10.0.2.2
 =cut
