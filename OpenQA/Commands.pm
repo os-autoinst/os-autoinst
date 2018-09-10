@@ -18,42 +18,56 @@ package OpenQA::Commands;
 use strict;
 use Mojo::Base 'Mojolicious::Controller';
 use commands;
+use Try::Tiny;
 
 use JSON qw(encode_json decode_json);
 
-sub ws_message {
+sub process_message_from_ws_client {
     my ($self, $id, $msg) = @_;
-    $self->app->log->debug("Message $msg");
-    $msg = decode_json($msg);
-    my $isotovideo = $self->app->defaults('isotovideo');
-    $self->app->log->debug("Isotovideo " . $isotovideo);
-    myjsonrpc::send_json($isotovideo, $msg);
-    my $reply = myjsonrpc::read_json($isotovideo);
-    $self->app->log->debug("Message " . encode_json($reply));
 
-    my $clients = $self->app->defaults('clients');
-    $clients->{$id}->send({json => $reply});
+    my $isotovideo = $self->app->defaults('isotovideo');
+    my $client     = $self->app->defaults('clients')->{$id};
+    if (!$client) {
+        $self->app->log->warning("cmdsrv: trying to pass command to isotovideo but client $id not found");
+        return;
+    }
+
+    $self->app->log->debug("cmdsrv: passing command from client to isotovideo $isotovideo: " . $msg);
+    try {
+        $msg = decode_json($msg);
+    }
+    catch {
+        $self->app->log->warning('cmdsrv: failed to decode message');
+        return;
+    };
+    myjsonrpc::send_json($isotovideo, $msg);
+
+    my $reply = myjsonrpc::read_json($isotovideo);
+    $self->app->log->debug('cmdsrv: passing reponse from isotovideo to client: ' . encode_json($reply));
+    $client->send({json => $reply});
 }
 
-sub ws_finish {
+sub handle_ws_client_disconnects {
     my ($self, $id) = @_;
-    $self->app->log->debug('Client disconnected');
+    $self->app->log->debug('cmdsrv: client disconnected: ' . $id);
     delete $self->app->defaults('clients')->{$id};
 }
 
 sub start_ws {
     my ($self) = @_;
 
-    $self->app->log->debug(sprintf 'Client connected: %s', $self->tx);
     my $id = sprintf "%s", $self->tx;
+    $self->app->log->debug('cmdsrv: client connected: ' . $id);
     $self->app->defaults('clients')->{$id} = $self->tx;
 
     $self->on(
         message => sub {
             my ($self, $msg) = @_;
-            ws_message($self, $id, $msg);
+            process_message_from_ws_client($self, $id, $msg);
         });
-    $self->on(finish => sub { ws_finish($self, $id) });
+    $self->on(finish => sub {
+            handle_ws_client_disconnects($self, $id);
+    });
 }
 
 1;

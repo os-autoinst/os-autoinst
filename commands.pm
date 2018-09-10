@@ -241,7 +241,7 @@ sub run_daemon {
     # avoid leaking token
     app->mode('production');
     app->log->level('info');
-    app->log->debug("RUN_DAEMON " . $isotovideo);
+    app->log->debug('cmdsrv: run daemon ' . $isotovideo);
     # abuse the defaults to store singletons for the server
     app->defaults(isotovideo => $isotovideo);
     app->defaults(clients    => {});
@@ -309,25 +309,23 @@ sub run_daemon {
         read => sub {
             my ($stream, $bytes) = @_;
 
+            app->log->debug("cmdsrv: broadcasting message from os-autoinst to all clients: $bytes");
+
             my $json = from_json($bytes);
-            # this is just internal information
             delete $json->{json_cmd_token};
             my $clients = app->defaults('clients');
             for (keys %$clients) {
                 $clients->{$_}->send({json => $json});
             }
-
-            # Process input chunk
-            app->log->debug("BYTES $bytes");
         });
     Mojo::IOLoop->stream($stream);
 
-    app->log->info("Daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
+    app->log->info("cmdsrv: daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
     try {
         $daemon->run;
     }
     catch {
-        print "failed to run daemon $_\n";
+        print "cmdsrv: failed to run daemon $_\n";
         _exit(1);
     };
 }
@@ -337,7 +335,7 @@ sub start_server {
 
     my ($child, $isotovideo);
     socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
-      or die "socketpair: $!";
+      or die "cmdsrv: socketpair: $!";
 
     $child->autoflush(1);
     $isotovideo->autoflush(1);
