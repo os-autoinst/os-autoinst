@@ -3,20 +3,24 @@
 use strict;
 use warnings;
 use consoles::console;
+use File::Temp;
+use OpenQA::Isotovideo::Interface;
 use Test::More;
 use Test::Output;
 use Test::Fatal;
 use Test::Mock::Time;
 use Test::Warnings;
 use Test::Exception;
-use File::Temp;
 use Test::Exception;
+use Scalar::Util 'looks_like_number';
 
 BEGIN {
     unshift @INC, '..';
 }
 
 require bmwqemu;
+
+ok(looks_like_number($OpenQA::Isotovideo::Interface::version), 'isotovideo version set (variable is considered part of test API)');
 
 my $cmds;
 use Test::MockModule;
