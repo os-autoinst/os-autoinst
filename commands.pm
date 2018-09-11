@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2018 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ use autodie ':all';
 use JSON 'from_json';
 use myjsonrpc;
 use bmwqemu 'diag';
+use JSON 'encode_json';
 
 BEGIN {
     # https://github.com/os-autoinst/openQA/issues/450
@@ -302,23 +303,20 @@ sub run_daemon {
             return sprintf(strftime("[%FT%T.%%04d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
         });
 
-    # hook the parent into the io loop
-    my $stream = Mojo::IOLoop::Stream->new($isotovideo);
-    $stream->timeout(0);
-    $stream->on(
-        read => sub {
-            my ($stream, $bytes) = @_;
+    # process json messages from isotovideo
+    Mojo::IOLoop->singleton->reactor->io($isotovideo => sub {
+            my ($reactor, $writable) = @_;
+            return if ($writable);
 
-            app->log->debug("cmdsrv: broadcasting message from os-autoinst to all clients: $bytes");
+            my $isotovideo_response = myjsonrpc::read_json($isotovideo);
+            my $clients             = app->defaults('clients');
+            delete $isotovideo_response->{json_cmd_token};
 
-            my $json = from_json($bytes);
-            delete $json->{json_cmd_token};
-            my $clients = app->defaults('clients');
+            app->log->debug('cmdsrv: broadcasting message from os-autoinst to all ws clients: ' . encode_json($isotovideo_response));
             for (keys %$clients) {
-                $clients->{$_}->send({json => $json});
+                $clients->{$_}->send({json => $isotovideo_response});
             }
-        });
-    Mojo::IOLoop->stream($stream);
+    });
 
     app->log->info("cmdsrv: daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
     try {

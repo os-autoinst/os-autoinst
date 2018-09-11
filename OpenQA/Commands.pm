@@ -22,16 +22,10 @@ use Try::Tiny;
 
 use JSON qw(encode_json decode_json);
 
-sub process_message_from_ws_client {
+sub pass_message_from_ws_client_to_isotovideo {
     my ($self, $id, $msg) = @_;
 
     my $isotovideo = $self->app->defaults('isotovideo');
-    my $client     = $self->app->defaults('clients')->{$id};
-    if (!$client) {
-        $self->app->log->warning("cmdsrv: trying to pass command to isotovideo but client $id not found");
-        return;
-    }
-
     $self->app->log->debug("cmdsrv: passing command from client to isotovideo $isotovideo: " . $msg);
     try {
         $msg = decode_json($msg);
@@ -42,9 +36,7 @@ sub process_message_from_ws_client {
     };
     myjsonrpc::send_json($isotovideo, $msg);
 
-    my $reply = myjsonrpc::read_json($isotovideo);
-    $self->app->log->debug('cmdsrv: passing reponse from isotovideo to client: ' . encode_json($reply));
-    $client->send({json => $reply});
+    # note: no myjsonrpc::read_json() here - response is broadcasted to all clients in commands.pm
 }
 
 sub handle_ws_client_disconnects {
@@ -63,10 +55,10 @@ sub start_ws {
     $self->on(
         message => sub {
             my ($self, $msg) = @_;
-            process_message_from_ws_client($self, $id, $msg);
+            $self->pass_message_from_ws_client_to_isotovideo($id, $msg);
         });
     $self->on(finish => sub {
-            handle_ws_client_disconnects($self, $id);
+            $self->handle_ws_client_disconnects($id);
     });
 }
 
