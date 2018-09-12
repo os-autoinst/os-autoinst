@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2018 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ use autodie ':all';
 use JSON 'from_json';
 use myjsonrpc;
 use bmwqemu 'diag';
+use JSON 'encode_json';
 
 BEGIN {
     # https://github.com/os-autoinst/openQA/issues/450
@@ -241,7 +242,7 @@ sub run_daemon {
     # avoid leaking token
     app->mode('production');
     app->log->level('info');
-    app->log->debug("RUN_DAEMON " . $isotovideo);
+    app->log->debug('cmdsrv: run daemon ' . $isotovideo);
     # abuse the defaults to store singletons for the server
     app->defaults(isotovideo => $isotovideo);
     app->defaults(clients    => {});
@@ -302,32 +303,27 @@ sub run_daemon {
             return sprintf(strftime("[%FT%T.%%04d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
         });
 
-    # hook the parent into the io loop
-    my $stream = Mojo::IOLoop::Stream->new($isotovideo);
-    $stream->timeout(0);
-    $stream->on(
-        read => sub {
-            my ($stream, $bytes) = @_;
+    # process json messages from isotovideo
+    Mojo::IOLoop->singleton->reactor->io($isotovideo => sub {
+            my ($reactor, $writable) = @_;
+            return if ($writable);
 
-            my $json = from_json($bytes);
-            # this is just internal information
-            delete $json->{json_cmd_token};
-            my $clients = app->defaults('clients');
+            my $isotovideo_response = myjsonrpc::read_json($isotovideo);
+            my $clients             = app->defaults('clients');
+            delete $isotovideo_response->{json_cmd_token};
+
+            app->log->debug('cmdsrv: broadcasting message from os-autoinst to all ws clients: ' . encode_json($isotovideo_response));
             for (keys %$clients) {
-                $clients->{$_}->send({json => $json});
+                $clients->{$_}->send({json => $isotovideo_response});
             }
+    });
 
-            # Process input chunk
-            app->log->debug("BYTES $bytes");
-        });
-    Mojo::IOLoop->stream($stream);
-
-    app->log->info("Daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
+    app->log->info("cmdsrv: daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
     try {
         $daemon->run;
     }
     catch {
-        print "failed to run daemon $_\n";
+        print "cmdsrv: failed to run daemon $_\n";
         _exit(1);
     };
 }
@@ -337,7 +333,7 @@ sub start_server {
 
     my ($child, $isotovideo);
     socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
-      or die "socketpair: $!";
+      or die "cmdsrv: socketpair: $!";
 
     $child->autoflush(1);
     $isotovideo->autoflush(1);
