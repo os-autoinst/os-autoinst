@@ -21,6 +21,7 @@ use Carp 'cluck';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use IO::Select;
 use Errno ':POSIX';
+use Config::IniFiles;
 
 sub new {
     my $class = shift;
@@ -33,37 +34,49 @@ sub new {
     return $self;
 }
 
+sub get_ssh_credentials
+{
+    my %cred = (hostname => get_required_var('SSH_HOSTNAME'));
+    my $cfg_dir = $ENV{OPENQA_CONFIG} || '/etc/openqa';
+
+    for my $k (qw(username password port key)) {
+        my $val = get_var("SSH_" . uc($k));
+        $cred{$k} = $val if ($val);
+    }
+
+    if (-f $cfg_dir . '/ssh.ini') {
+        my $cfg = Config::IniFiles->new(-file => $cfg_dir . '/ssh.ini');
+        for my $section (($cred{hostname}, "default")) {
+            next unless ($cfg->SectionExists($section));
+            for my $set ($cfg->Parameters($section)) {
+                $cred{$set} = $cfg->val($section, $set);
+            }
+            last;
+        }
+    }
+    return %cred;
+}
+
 sub do_start_vm {
     my ($self) = @_;
-
-    my $hostname = get_required_var('SSH_HOSTNAME');
-    my $password = get_required_var('SSH_PASSWORD');
-    my $username = get_var('SSH_USERNAME', 'root');
-    my $port     = get_var('SSH_PORT', '22');
 
     # truncate the serial file
     open(my $sf, '>', $self->{serialfile});
     close($sf);
+    my %cred = $self->get_ssh_credentials();
 
     my $ssh_console = $testapi::distri->add_console(
-        'sut',
+        'root-virtio-terminal',
         'ssh_console',
-        {
-            hostname => $hostname,
-            password => $password,
-            username => $username,
-            port     => $port
-        });
+        \%cred
+    );
     $ssh_console->backend($self);
-    $self->select_console({testapi_console => 'sut'});
+    $self->select_console({testapi_console => 'root-virtio-terminal'});
 
     $self->start_reverse_tunnel;
 
     my $chan = $self->start_ssh_serial(
-        hostname => $hostname,
-        password => $password,
-        username => $username,
-        port     => $port
+        $self->get_ssh_credentials()
     );
     return {};
 }
@@ -89,17 +102,10 @@ sub start_reverse_tunnel {
     my ($self) = @_;
 
     my $workerport = get_required_var("QEMUPORT") + 1;
-    my $hostname   = get_required_var('SSH_HOSTNAME');
-    my $password   = get_required_var('SSH_PASSWORD');
-    my $username   = get_var('SSH_USERNAME', 'root');
-    my $port       = get_var('SSH_PORT', '22');
 
     my $fwd_process = process(sub {
             my $ssh = $self->new_ssh_connection(
-                hostname => $hostname,
-                password => $password,
-                username => $username,
-                port     => $port
+                $self->get_ssh_credentials()
             ) || die($@);
 
             # FIXME allow simultaneous connections
@@ -145,7 +151,8 @@ sub do_stop_vm {
     my ($self) = @_;
 
     $self->stop_ssh_serial;
-    $self->deactivate_console({testapi_console => 'sut'});
+    #$self->deactivate_console({testapi_console => 'sut'});
+    $self->deactivate_console({testapi_console => 'root-virtio-terminal'});
     if ($self->{fwd_process}) {
         $self->{fwd_process}->stop();
     }

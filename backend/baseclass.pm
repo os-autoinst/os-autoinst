@@ -35,6 +35,7 @@ use OpenQA::Benchmark::Stopwatch;
 use MIME::Base64 'encode_base64';
 use List::Util 'min';
 use List::MoreUtils 'uniq';
+use Data::Dumper;
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -1140,7 +1141,10 @@ sub new_ssh_connection {
     $args{username} ||= 'root';
     $args{port}     ||= 22;
 
+    print(Dumper(%args));
     my $ssh = Net::SSH2->new;
+
+    print("HOSTNAME: " . $args{hostname} . " PORT:" . $args{port});
 
     # Retry 5 times, in case of the guest is not running yet
     my $counter = 5;
