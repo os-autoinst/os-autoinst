@@ -34,6 +34,9 @@ sub callxterm {
     $command = "TERM=xterm $command";
     my $xterm_vt_cmd = which "xterm-console";
     die "Missing 'xterm-console'" unless $xterm_vt_cmd;
+    die('Missing "Xvnc"')         unless which('Xvnc');
+    die('Missing "icewm"')        unless which('icewm');
+    die('Missing "xterm"')        unless which('xterm');
     eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command' & echo \"xterm PID is \$!\""); };
     if (my $E = $@) {
         die "cant' start xterm on $display (err: $! retval: $?)";
