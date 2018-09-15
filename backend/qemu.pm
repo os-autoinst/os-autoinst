@@ -283,6 +283,8 @@ sub _migrate_to_file {
             arguments => {
                 # This is ignored if the compress capability is not set
                 'compress-level' => $compress_level,
+                # Default of 8 causes high load spikes for concurrent runs
+                'compress-threads' => 2,
                 # Ensure slow dump times are not due to a transfer rate cap
                 'max-bandwidth' => $max_bandwidth,
               }
@@ -402,8 +404,10 @@ sub save_snapshot {
     });
 
     mkpath(VM_SNAPSHOTS_DIR);
+    my $migrate_compress_level = 6;
+
     $self->_migrate_to_file(filename => VM_SNAPSHOTS_DIR . '/' . $snapshot->name,
-        compress_level => 9);
+        compress_level => $migrate_compress_level);
     diag('Snapshot complete');
 
     $self->cont_vm() if $was_running;
