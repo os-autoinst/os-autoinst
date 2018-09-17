@@ -18,9 +18,14 @@ package OpenQA::Isotovideo::CommandHandler;
 use strict;
 use warnings;
 use Mojo::Base 'Mojo::EventEmitter';
+use Mojo::UserAgent;
+use Mojo::URL;
 use bmwqemu;
 use testapi 'diag';
 use OpenQA::Isotovideo::Interface;
+use File::stat;
+use Try::Tiny;
+use POSIX 'strftime';
 
 # io handles for sending data to command server and backend
 has [qw(cmd_srv_fd backend_fd answer_fd)] => undef;
@@ -192,6 +197,54 @@ sub _handle_command_resume_test_execution {
 
     # unset paused state to continue passing commands to backend
     $self->reason_for_pause(0);
+
+    # download new needles
+    my @files_to_download;
+    my $needle_dir   = needle::default_needle_dir();
+    my $new_needles  = $response->{new_needles} // [];
+    my $openqa_url   = 'http://' . $bmwqemu::vars{OPENQA_URL};
+    my $add_download = sub {
+        my ($needle, $extension, $path_param) = @_;
+        my $needle_name     = $needle->{name};
+        my $latest_update   = $needle->{t_updated};
+        my $download_target = "$needle_dir/$needle_name.$extension";
+        if (my $target_stat = stat($download_target)) {
+            if (my $target_last_modified = $target_stat->[9] // $target_stat->[8]) {
+                $target_last_modified = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime($target_last_modified));
+                if ($target_last_modified >= $latest_update) {
+                    diag("skip downloading new needle: $download_target seems already up-to-date (last update: $target_last_modified > $latest_update)");
+                    return;
+                }
+            }
+        }
+        push(@files_to_download, {
+                target => $download_target,
+                url    => Mojo::URL->new($openqa_url . $needle->{$path_param}),
+        });
+    };
+    for my $needle (@$new_needles) {
+        $add_download->($needle, 'json', 'json_path');
+        $add_download->($needle, 'png',  'image_path');
+    }
+    my $ua = Mojo::UserAgent->new;
+    for my $download (@files_to_download) {
+        my $download_url    = $download->{url};
+        my $download_target = $download->{target};
+        diag("download new needle: $download_url => $download_target");
+
+        my $download_res = $ua->get($download_url)->result;
+        if (!$download_res->is_success) {
+            diag("failed to download needle: $download_url");
+            next;
+        }
+        try {
+            unlink($download_target);
+            Mojo::File->new($download_target)->spurt($download_res->body);
+        }
+        catch {
+            diag("unable to store download under $download_target");
+        };
+    }
 
     # if no command has been postponed (because paused due to timeout) just return 1
     if (!$postponed_command) {

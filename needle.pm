@@ -213,10 +213,14 @@ sub wanted_ {
     }
 }
 
+sub default_needle_dir {
+    return "$bmwqemu::vars{PRODUCTDIR}/needles/";
+}
+
 sub init {
     ($needledir) = @_;
 
-    $needledir //= "$bmwqemu::vars{PRODUCTDIR}/needles/";
+    $needledir //= default_needle_dir();
     -d $needledir || die "needledir not found: $needledir (check vars.json?)";
 
     %needles = ();
