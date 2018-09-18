@@ -48,6 +48,7 @@ requires 'warnings';
 
 on 'test' => sub {
   requires 'Devel::Cover';
+  requires 'File::Touch';
   requires 'Perl::Critic';
   requires 'Perl::Tidy', '== 20180220';
   requires 'Pod::Coverage';

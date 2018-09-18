@@ -73,6 +73,7 @@ openqaexecqemu_DATA = \
 openqaisotovideodir = $(pkglibexecdir)/OpenQA/Isotovideo
 openqaisotovideo_DATA = \
 	OpenQA/Isotovideo/CommandHandler.pm \
+	OpenQA/Isotovideo/NeedleDownloader.pm \
 	OpenQA/Isotovideo/Interface.pm \
 	OpenQA/Isotovideo/Utils.pm
 
