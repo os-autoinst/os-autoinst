@@ -213,8 +213,8 @@ sub script_output {
         testapi::wait_serial($self->{serial_term_prompt}, undef, 0, no_regex => 1);
         testapi::type_string($cat . "\n");
         testapi::wait_serial("$cat", undef, 0, no_regex => 1);
-        testapi::type_string($script);
-        testapi::type_string("\n$heretag\n");
+        testapi::type_string("$script\n$heretag\n");
+        testapi::wait_serial("> $heretag", undef, 0, no_regex => 1);
         testapi::wait_serial("$marker-0-");
     }
     elsif ($args{type_command}) {
