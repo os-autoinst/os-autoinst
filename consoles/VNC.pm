@@ -945,7 +945,7 @@ sub _receive_update {
         #bmwqemu::diag "UP $x,$y $w x $h $encoding_type";
 
         # work around buggy addrlink VNC
-        next if ($w * $h == 0);
+        next if $encoding_type > 0 && $w * $h == 0;
 
         my $bytes_per_pixel = $self->_bpp / 8;
 
