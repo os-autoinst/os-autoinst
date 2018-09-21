@@ -23,15 +23,25 @@ $user_agent_mock->mock(get => sub {
         return $user_agent_mock->original('get')->(@_);
 });
 
-$bmwqemu::vars{OPENQA_URL} = 'openqa';
-
-# setup a NeedleDownloader instance
+# setup needle directory
 my $needle_dir = path(tempdir, 'needle_dir');
 ok(make_path($needle_dir), 'create test needle dir under ' . $needle_dir);
+
+subtest 'deduce URL for needle download from test variable OPENQA_URL' => sub {
+    $bmwqemu::vars{OPENQA_URL} = 'https://openqa1-opensuse';
+    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'https://openqa1-opensuse', 'existing scheme not overridden');
+    $bmwqemu::vars{OPENQA_URL} = 'not/a/proper/hostname';
+    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'http:not/a/proper/hostname', 'hostname not present');
+    $bmwqemu::vars{OPENQA_HOSTNAME} = 'openqa1-opensuse';
+    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'http://openqa1-opensuse', 'hostname taken from OPENQA_HOSTNAME if not present');
+    $bmwqemu::vars{OPENQA_URL} = 'openqa';
+    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'http://openqa', 'just "openqa" is treated as hostname');
+};
+
+# setup a NeedleDownloader instance
 my $downloader = OpenQA::Isotovideo::NeedleDownloader->new(
     needle_dir => $needle_dir,
 );
-is($downloader->openqa_url, 'http://openqa', 'default openQA URL');
 
 subtest 'add relevant downloads' => sub {
     my @new_needles = (

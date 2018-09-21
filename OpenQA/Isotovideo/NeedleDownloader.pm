@@ -29,8 +29,37 @@ use bmwqemu;
 
 has files_to_download => sub { [] };
 has needle_dir        => sub { needle::default_needle_dir() };
-has openqa_url        => sub { 'http://' . $bmwqemu::vars{OPENQA_URL} };
-has ua                => sub { Mojo::UserAgent->new };
+has openqa_url        => sub {
+    # deduce the default openQA URL from OPENQA_URL/OPENQA_HOSTNAME
+    # note: OPENQA_URL is sometimes just the hostname (eg. e212.suse.de) but might be a proper URL
+    #       as well (eg. http://openqa1-opensuse).
+    my $url  = Mojo::URL->new($bmwqemu::vars{OPENQA_URL});
+    my $host = $bmwqemu::vars{OPENQA_HOSTNAME};
+
+    # assume 'http' if scheme is missing
+    if (!$url->scheme) {
+        $url->scheme('http');
+    }
+
+    # determine host if not present in OPENQA_URL
+    if (!$url->host) {
+        my $path_parts = $url->path->parts;
+        if (scalar @$path_parts == 1) {
+            # treat URLs like just 'e212.suse.de' in the way that 'e212.suse.de' is the hostname (and not a relative path)
+            $url->host($path_parts->[0]);
+            $url->path(Mojo::Path->new);
+        }
+        elsif ($host) {
+            # build a default URL from OPENQA_HOSTNAME if no host in OPENQA_URL is missing
+            $url = Mojo::URL->new();
+            $url->scheme('http');
+            $url->host($host);
+        }
+    }
+
+    return $url;
+};
+has ua => sub { Mojo::UserAgent->new };
 
 sub _add_download {
     my ($self, $needle, $extension, $path_param) = @_;
@@ -44,7 +73,7 @@ sub _add_download {
         if (my $target_last_modified = $target_stat->[9] // $target_stat->[8]) {
             $target_last_modified = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime($target_last_modified));
             if ($target_last_modified ge $latest_update) {
-                diag("skip downloading new needle: $download_target seems already up-to-date (last update: $target_last_modified > $latest_update)");
+                diag("skipping downloading new needle: $download_target seems already up-to-date (last update: $target_last_modified > $latest_update)");
                 return;
             }
         }
