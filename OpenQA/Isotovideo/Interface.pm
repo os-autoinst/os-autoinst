@@ -18,8 +18,9 @@ package OpenQA::Isotovideo::Interface;
 use strict;
 use warnings;
 
-# this shall be an integer increased by every change of the API
-# either to the worker or the tests
+# This shall be an integer increased by every change of the API either to
+# the worker or the tests. It is considered part of the test API (so don't
+# move it anywhere else).
 our $version = 13;
 
 1;
