@@ -245,10 +245,16 @@ sub script_output {
         testapi::type_string("($run_script) | tee /dev/$testapi::serialdev\n");
     }
     my $output = testapi::wait_serial("SCRIPT_FINISHED$marker-\\d+-", $wait, 0, record_output => 1)
-      || croak "script timeout";
+      || croak "script timeout: $script";
 
     if ($output !~ "SCRIPT_FINISHED$marker-0-") {
-        croak "script failed with : $output" unless $args{proceed_on_failure};
+        my $log_message = 'script failed with : ' . $output;
+        if ($args{proceed_on_failure}) {
+            bmwqemu::log_call($log_message);
+        }
+        else {
+            croak($log_message);
+        }
     }
 
     # and the markers including internal exit catcher
