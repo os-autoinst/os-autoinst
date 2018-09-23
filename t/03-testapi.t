@@ -317,18 +317,50 @@ subtest 'record_info' => sub {
     like(exception { record_info('my title', 'output', result => 'not supported', resultname => 'foo') }, qr/unsupported/, 'invalid result');
 };
 
-subtest 'script_output' => sub {
-    my $mock_testapi = new Test::MockModule('testapi');
-    # mock what script_output will expect on success
-    $mock_testapi->mock(hashed_string => sub { return 'XXX' });
-    $mock_testapi->mock(wait_serial   => sub { return 'SCRIPT_FINISHEDXXX-0-' });
+sub script_output_test {
+    my $is_serial_terminal = shift;
+    my $mock_testapi       = new Test::MockModule('testapi');
+    $testapi::serialdev = 'null';
+    $mock_testapi->mock(type_string        => sub { return });
+    $mock_testapi->mock(send_key           => sub { return });
+    $mock_testapi->mock(hashed_string      => sub { return 'XXX' });
+    $mock_testapi->mock(is_serial_terminal => sub { return $is_serial_terminal });
+
+    $mock_testapi->mock(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-0-" });
+    is(script_output('echo foo'), 'foo', 'sucessfull retrieves output of script');
+
+    $mock_testapi->mock(wait_serial => sub { return 'SCRIPT_FINISHEDXXX-0-' });
     is(script_output('foo'), '', 'calling script_output does not fail if script returns with success');
-    $mock_testapi->mock(wait_serial => sub { return 'SCRIPT_FINISHEDXXX-1-' });
-    like(exception { script_output 'false'; }, qr/script failed/, 'script_output fails the test on failing script');
-    subtest 'script_output with additional noise output on serial device' => sub {
-        $mock_testapi->mock(wait_serial => sub { return "This is simulated output on the serial device\nXXXfoo\nSCRIPT_FINISHEDXXX-0-\nand more here" });
-        is(script_output('echo foo'), 'foo', 'script_output should only return the actual output of the script');
+
+    $mock_testapi->mock(wait_serial => sub { return "This is simulated output on the serial device\nXXXfoo\nSCRIPT_FINISHEDXXX-0-\nand more here" });
+    is(script_output('echo foo'), 'foo', 'script_output return only the actual output of the script');
+
+    $mock_testapi->mock(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-1-" });
+    is(script_output('echo foo', undef, proceed_on_failure => 1), '', 'proceed_on_failure=1 retrieves empty string and do not die');
+
+    $mock_testapi->mock(wait_serial => sub { return 'none' if (shift !~ m/SCRIPT_FINISHEDXXX-\\d\+-/) });
+    like(exception { script_output('timeout'); }, qr/timeout/, 'die expected with timeout');
+
+    subtest 'script_output check error codes' => sub {
+        for my $ret ((1, 10, 100, 255)) {
+            $mock_testapi->mock(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-$ret-" });
+            like(exception { script_output('false'); }, qr/script failed/, "script_output die expected on exitcode $ret");
+        }
     };
+
+    $mock_testapi->mock(wait_serial => sub {
+            my ($regex, $wait) = @_;
+            if ($regex =~ m/SCRIPT_FINISHEDXXX-\\d\+-/) {
+                is($wait, 30, 'pass $wait value to wait_serial');
+            }
+            return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
+    });
+    is(script_output('echo foo', 30), 'foo', '');
+}
+
+subtest 'script_output' => sub {
+    subtest('Test with is_serial_terminal==0', \&script_output_test, 0);
+    subtest('Test with is_serial_terminal==1', \&script_output_test, 1);
 };
 
 subtest 'validate_script_output' => sub {
