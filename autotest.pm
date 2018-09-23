@@ -47,6 +47,21 @@ loadtest is called.
 
 =cut
 
+sub find_script {
+    my ($script) = @_;
+    my $casedir = $bmwqemu::vars{CASEDIR};
+    my $script_override_path = join('/', $bmwqemu::vars{PRJDIR}, 'factory/other', $script);
+    if (-f $script_override_path) {
+        bmwqemu::diag("Found override test module for $script: $script_override_path");
+        return File::Spec->abs2rel($script_override_path, $casedir);
+    }
+    elsif (!-f join('/', $casedir, $script)) {
+        warn "loadtest needs a script below $casedir - $script is not\n";
+        return File::Spec->abs2rel($script, $casedir);
+    }
+    return "$casedir/$script";
+}
+
 =head2 loadtest
 
 	loadtest(<string>, [ name => <string>, run_args => <OpenQA::Test::RunArgs> ]);
@@ -73,18 +88,18 @@ or test runners into OpenQA. In such cases the same test module may be
 dynamically queued multiple times to execute different test cases within the
 third party test suite.
 
+Prefers test module files found in the openQA asset folder "other/" over
+corresponding files within the "CASEDIR" tree to allow temporary overrides,
+e.g. by making use of the openQA asset download feature.
+
 =cut
 
 sub loadtest {
     my ($script, %args) = @_;
-    my $casedir = $bmwqemu::vars{CASEDIR};
-
-    unless (-f join('/', $casedir, $script)) {
-        warn "loadtest needs a script below $casedir - $script is not\n";
-        $script = File::Spec->abs2rel($script, $bmwqemu::vars{CASEDIR});
-    }
-    unless ($script =~ m,(\w+)/([^/]+)\.pm$,) {
-        die "loadtest needs a script to match \\w+/[^/]+.pm\n";
+    my $casedir     = $bmwqemu::vars{CASEDIR};
+    my $script_path = find_script($script);
+    unless ($script_path =~ m,(\w+)/([^/]+)\.pm$,) {
+        die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.pm\n";
     }
     my $category = $1;
     my $name     = $2;
@@ -94,9 +109,9 @@ sub loadtest {
     # FIXME turn this into a proper eval instead of a generated string
     my $code = "package $name;";
     $code .= "use lib '$casedir/lib';";
-    my $basename = dirname($script);
-    $code .= "use lib '$casedir/$basename';";
-    $code .= "require '$casedir/$script';";
+    my $basename = dirname($script_path);
+    $code .= "use lib '$basename';";
+    $code .= "require '$script_path';";
     eval $code;    ## no critic
     if ($@) {
         my $msg = "error on $script: $@";

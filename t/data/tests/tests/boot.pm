@@ -31,7 +31,7 @@ sub run {
         assert_screen 'on_prompt', timeout => 15;
     }
     else {
-        assert_screen 'on_prompt';
+        assert_screen 'on_prompt', 90;
     }
 
     assert_script_run 'cat /proc/cpuinfo';

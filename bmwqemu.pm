@@ -45,7 +45,8 @@ sub mydie;
 $| = 1;
 
 
-our $default_timeout = 30;    # assert timeout, 0 is a valid timeout
+our $default_timeout      = 30;                        # assert timeout, 0 is a valid timeout
+our $openqa_default_share = '/var/lib/openqa/share';
 
 my @ocrrect;
 
@@ -71,7 +72,9 @@ sub load_vars {
     my $fn  = "vars.json";
     my $ret = {};
     local $/;
-    open(my $fh, '<', $fn) or return 0;
+    my $fh;
+    eval { open($fh, '<', $fn) };
+    return 0 if $@;
     eval { $ret = JSON->new->relaxed->decode(<$fh>); };
     die "parse error in vars.json:\n$@" if $@;
     close($fh);
@@ -130,29 +133,15 @@ sub init {
             return sprintf(strftime("[%FT%T.%%04d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
 
         });
+}
 
-    die "CASEDIR variable not set in vars.json, unknown test case directory" if !$vars{CASEDIR};
-
-    unless ($vars{PRJDIR}) {
-        if (index($vars{CASEDIR}, '/var/lib/openqa/share') != 0) {
-            die "PRJDIR not specified and CASEDIR ($vars{CASEDIR}) does not appear to be a
-                subdir of default (/var/lib/openqa/share). Please specify PRJDIR in vars.json";
-        }
-        $vars{PRJDIR} = '/var/lib/openqa/share';
-    }
-
-
+sub ensure_valid_vars {
     # defaults
     $vars{QEMUPORT} ||= 15222;
     $vars{VNC}      ||= 90;
     # openQA already sets a random string we can reuse
     $vars{JOBTOKEN} ||= random_string(10);
 
-    save_vars();
-
-    ## env vars end
-
-    ## some var checks
     if ($gocrbin && !-x $gocrbin) {
         $gocrbin = undef;
     }
@@ -162,6 +151,18 @@ sub init {
         }
     }
 
+    die "CASEDIR variable not set, unknown test case directory" if !defined $vars{CASEDIR};
+    die "No scripts in $vars{CASEDIR}" if !-e "$vars{CASEDIR}";
+    unless ($vars{PRJDIR}) {
+        if (index($vars{CASEDIR}, $openqa_default_share) != 0) {
+            diag("PRJDIR not specified and CASEDIR ($vars{CASEDIR}) does not appear to be a subdir of default ($openqa_default_share), using CASEDIR instead");
+            $vars{PRJDIR} = $vars{CASEDIR};
+        }
+        else {
+            $vars{PRJDIR} = $openqa_default_share;
+        }
+    }
+    save_vars();
 }
 
 ## some var checks end
@@ -193,7 +194,9 @@ sub log_format_callback {
 }
 
 sub diag {
+    my ($args) = @_;
     $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
+    confess "missing input" unless $_[0];
     $logger->debug("@_");
     return;
 }
