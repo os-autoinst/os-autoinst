@@ -465,7 +465,10 @@ sub register_extra_test_results {
     my ($self, $tests) = @_;
 
     $self->{extra_test_results} //= [];
-    push @{$self->{extra_test_results}}, @$tests;
+    foreach my $t (@{$tests}) {
+        $t->{script} = $self->{script} if (!defined($t->{script}) || $t->{script} eq 'unk');
+        push @{$self->{extra_test_results}}, $t;
+    }
     return;
 }
 
