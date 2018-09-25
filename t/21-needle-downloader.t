@@ -35,10 +35,13 @@ subtest 'deduce URL for needle download from test variable OPENQA_URL' => sub {
     $bmwqemu::vars{OPENQA_HOSTNAME} = 'openqa1-opensuse';
     is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'http://openqa1-opensuse', 'hostname taken from OPENQA_HOSTNAME if not present');
     $bmwqemu::vars{OPENQA_URL} = 'openqa';
-    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'http://openqa', 'just "openqa" is treated as hostname');
+    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'http://openqa', 'domain is treated as host (and not relative path)');
+    $bmwqemu::vars{OPENQA_URL} = 'localhost:9526';
+    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'http://localhost:9526', 'domain:port is treated as host + port (and not protocol + path)');
 };
 
 # setup a NeedleDownloader instance
+$bmwqemu::vars{OPENQA_URL} = 'openqa';
 my $downloader = OpenQA::Isotovideo::NeedleDownloader->new(
     needle_dir => $needle_dir,
 );

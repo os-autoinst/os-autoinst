@@ -35,25 +35,33 @@ has openqa_url        => sub {
     my $url  = Mojo::URL->new($bmwqemu::vars{OPENQA_URL});
     my $host = $bmwqemu::vars{OPENQA_HOSTNAME};
 
-    # assume 'http' if scheme is missing
-    if (!$url->scheme) {
-        $url->scheme('http');
-    }
-
     # determine host if not present in OPENQA_URL
     if (!$url->host) {
         my $path_parts = $url->path->parts;
         if (scalar @$path_parts == 1) {
-            # treat URLs like just 'e212.suse.de' in the way that 'e212.suse.de' is the hostname (and not a relative path)
-            $url->host($path_parts->[0]);
+            if ($url->scheme) {
+                # treat URLs like 'localhost:9526' in the way that 'localhost' is the hostname (and not the protocol)
+                $url->host($url->scheme);
+                $url->port($path_parts->[0]);
+                $url->scheme('');
+            }
+            else {
+                # treat URLs like just 'e212.suse.de' in the way that 'e212.suse.de' is the hostname (and not a relative path)
+                $url->host($path_parts->[0]);
+            }
             $url->path(Mojo::Path->new);
         }
         elsif ($host) {
             # build a default URL from OPENQA_HOSTNAME if no host in OPENQA_URL is missing
             $url = Mojo::URL->new();
-            $url->scheme('http');
+            $url->scheme('');
             $url->host($host);
         }
+    }
+
+    # assume 'http' if scheme is missing
+    if (!$url->scheme) {
+        $url->scheme('http');
     }
 
     return $url;
