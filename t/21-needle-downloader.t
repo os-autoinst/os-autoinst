@@ -42,6 +42,7 @@ subtest 'deduce URL for needle download from test variable OPENQA_URL' => sub {
 my $downloader = OpenQA::Isotovideo::NeedleDownloader->new(
     needle_dir => $needle_dir,
 );
+is($downloader->download_limit, 150, 'by default limited to 150 downloads');
 
 subtest 'add relevant downloads' => sub {
     my @new_needles = (
@@ -93,6 +94,13 @@ subtest 'add relevant downloads' => sub {
     $downloader->add_relevant_downloads(\@new_needles);
     is_deeply($downloader->files_to_download, \@expected_downloads, 'downloads added')
       or diag explain $downloader->files_to_download;
+
+    subtest 'limit applied' => sub {
+        $downloader->download_limit(3);
+        $downloader->add_relevant_downloads(\@new_needles);
+        is_deeply($downloader->files_to_download, \@expected_downloads, 'no more downloads added')
+          or diag explain $downloader->files_to_download;
+    };
 };
 
 subtest 'download added URLs' => sub {

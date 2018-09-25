@@ -60,6 +60,7 @@ has openqa_url        => sub {
     return $url;
 };
 has ua => sub { Mojo::UserAgent->new };
+has download_limit => 150;
 
 sub _add_download {
     my ($self, $needle, $extension, $path_param) = @_;
@@ -110,7 +111,10 @@ sub _download_file {
 sub add_relevant_downloads {
     my ($self, $new_needles) = @_;
 
+    my $download_limit  = $self->download_limit;
+    my $added_downloads = $self->files_to_download;
     for my $needle (@$new_needles) {
+        last if (scalar @$added_downloads >= $download_limit);
         $self->_add_download($needle, 'json', 'json_path');
         $self->_add_download($needle, 'png',  'image_path');
     }
