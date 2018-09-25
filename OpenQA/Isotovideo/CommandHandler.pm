@@ -21,7 +21,6 @@ use Mojo::Base 'Mojo::EventEmitter';
 use bmwqemu;
 use testapi 'diag';
 use OpenQA::Isotovideo::Interface;
-use OpenQA::Isotovideo::NeedleDownloader;
 
 
 # io handles for sending data to command server and backend
@@ -195,13 +194,15 @@ sub _handle_command_resume_test_execution {
     # unset paused state to continue passing commands to backend
     $self->reason_for_pause(0);
 
-    # download new/updated needles
     my $downloader = OpenQA::Isotovideo::NeedleDownloader->new();
     $downloader->download_missing_needles($response->{new_needles} // []);
 
     # if no command has been postponed (because paused due to timeout) just return 1
     if (!$postponed_command) {
-        myjsonrpc::send_json($postponed_answer_fd, {ret => 1});
+        myjsonrpc::send_json($postponed_answer_fd, {
+                ret         => 1,
+                new_needles => $response->{new_needles},
+        });
         $self->postponed_answer_fd(undef);
         return;
     }

@@ -24,7 +24,6 @@ use Mojo::File;
 use File::stat;
 use Try::Tiny;
 use POSIX 'strftime';
-use testapi 'diag';
 use bmwqemu;
 
 has files_to_download => sub { [] };
@@ -74,7 +73,7 @@ sub _add_download {
         if (my $target_last_modified = $target_stat->[9] // $target_stat->[8]) {
             $target_last_modified = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime($target_last_modified));
             if ($target_last_modified ge $latest_update) {
-                diag("skipping downloading new needle: $download_target seems already up-to-date (last update: $target_last_modified > $latest_update)");
+                bmwqemu::diag("skipping downloading new needle: $download_target seems already up-to-date (last update: $target_last_modified > $latest_update)");
                 return;
             }
         }
@@ -91,19 +90,29 @@ sub _download_file {
 
     my $download_url    = $download->{url};
     my $download_target = $download->{target};
-    diag("download new needle: $download_url => $download_target");
+    bmwqemu::diag("download new needle: $download_url => $download_target");
 
-    my $download_res = $self->ua->get($download_url)->result;
-    if (!$download_res->is_success) {
-        diag("failed to download needle: $download_url");
-        return;
+    # download the file
+    my $download_res;
+    try {
+        $download_res = $self->ua->get($download_url)->result;
+        if (!$download_res->is_success) {
+            bmwqemu::diag("failed to download $download_url");
+            return;
+        }
     }
+    catch {
+        bmwqemu::diag("internal error occurred when downloading $download_url: $_");
+    };
+
+    # store the file on disk
+    return unless ($download_res);
     try {
         unlink($download_target);
         Mojo::File->new($download_target)->spurt($download_res->body);
     }
     catch {
-        diag("unable to store download under $download_target");
+        bmwqemu::diag("unable to store download under $download_target");
     };
 }
 

@@ -29,6 +29,7 @@ use Mojo::DOM;
 require IPC::System::Simple;
 use autodie ':all';
 use OpenQA::Exceptions;
+use OpenQA::Isotovideo::NeedleDownloader;
 use Digest::MD5 'md5_base64';
 use Carp qw(cluck croak);
 use MIME::Base64 'decode_base64';
@@ -336,6 +337,9 @@ sub _check_or_assert {
 
         # return the response unless we should try again after resuming from paused state
         return $backend_response if (!$backend_response || $backend_response ne 'try_again');
+
+        # download new needles
+        OpenQA::Isotovideo::NeedleDownloader->new()->download_missing_needles($rsp->{new_needles} // []);
 
         # reload needles before trying again
         query_isotovideo('backend_reload_needles', {});
