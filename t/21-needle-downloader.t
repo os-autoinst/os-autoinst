@@ -7,6 +7,7 @@ use File::Path qw(make_path remove_tree);
 use Test::More;
 use Test::MockModule;
 use Test::Warnings;
+use Test::Output 'stderr_like';
 use Mojo::File qw(path tempdir);
 use OpenQA::Isotovideo::NeedleDownloader;
 
@@ -94,7 +95,13 @@ subtest 'add relevant downloads' => sub {
     );
 
     # actually add the downloads
-    $downloader->add_relevant_downloads(\@new_needles);
+    stderr_like(
+        sub {
+            $downloader->add_relevant_downloads(\@new_needles);
+        },
+        qr/.*skipping downloading new needle: $needle_dir\/foo\.png seems already up-to-date.*/,
+        'skipped downloads logged'
+    );
     is_deeply($downloader->files_to_download, \@expected_downloads, 'downloads added')
       or diag explain $downloader->files_to_download;
 
@@ -109,7 +116,14 @@ subtest 'add relevant downloads' => sub {
 subtest 'download added URLs' => sub {
     is_deeply(\@queried_urls, [], 'no URLs queried so far');
 
-    $downloader->download();
+    stderr_like(
+        sub {
+            $downloader->download();
+        },
+        qr/.*download new needle.*\n.*failed to download.*server returned 404.*/,
+        'errors logged'
+    );
+
     is_deeply(\@queried_urls, [
             'http://openqa/needles/1/json',
             'http://openqa/needles/2/json',

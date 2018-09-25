@@ -105,8 +105,9 @@ sub _download_file {
     try {
         $download_res = $self->ua->get($download_url)->result;
         if (!$download_res->is_success) {
-            bmwqemu::diag("failed to download $download_url");
-            return;
+            my $return_code = $download_res->code;
+            bmwqemu::diag("failed to download $download_url, server returned $return_code");
+            $download_res = undef;
         }
     }
     catch {
