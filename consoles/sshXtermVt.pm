@@ -61,4 +61,10 @@ sub kill_ssh {
     $self->backend->stop_ssh_serial;
 }
 
+# be be called when normal reboot is no avaiable
+sub hard_reset {
+    my ($self) = @_;
+    $self->backend->restart_host;
+}
+
 1;
