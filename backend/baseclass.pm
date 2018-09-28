@@ -77,7 +77,7 @@ sub handle_command {
 
 sub die_handler {
     my $msg = shift;
-    cluck "DIE $msg\n";
+    bmwqemu::diag "Backend process died, backend errors are reported below in the following lines $msg";
     $backend->stop_vm();
     $backend->close_pipes();
 }
