@@ -60,9 +60,9 @@ sub start {
 
     my $backend_process = process(sub {
             my $process = shift;
-            $SIG{TERM} = 'DEFAULT';
-            $SIG{INT}  = 'DEFAULT';
-            $SIG{HUP}  = 'DEFAULT';
+            $SIG{TERM} = 'IGNORE';
+            $SIG{INT}  = 'IGNORE';
+            $SIG{HUP}  = 'IGNORE';
             #  $SIG{CHLD} = 'DEFAULT';
             $0 = "$0: backend";
 
@@ -72,7 +72,22 @@ sub start {
             require cv;
 
             cv::init();
+
+            # opencv forks a lot of threads and the TERM signal we
+            # may get from the parent process would be delivered
+            # to an undefined thread. But as those threads do not
+            # have a perl interpreter, the perl signal handler
+            # (we set later) would crash. So we need to block
+            # the TERM signal in the forked processes before we
+            # set the signal handler of our choice
+            use POSIX qw(:signal_h);
+            my $sigset = POSIX::SigSet->new(SIGTERM);
+            unless (defined sigprocmask(SIG_BLOCK, $sigset, undef)) {
+                die "Could not block SIGTERM\n";
+            }
             require tinycv;
+
+            sigprocmask(SIG_UNBLOCK, $sigset, undef);
 
             $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
             _exit(0);
