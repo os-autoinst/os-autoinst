@@ -125,6 +125,7 @@ sub init {
         $serialdev = 'ttyS0';
     }
     $serialdev = 'ttyS1' if check_var('BACKEND', 'ipmi');
+    $serialdev = 'ttyAMA0' if check_var('ARCH', 'aarch64');
     return;
 }
 
