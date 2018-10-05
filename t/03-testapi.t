@@ -340,7 +340,7 @@ sub script_output_test {
     is(script_output('echo foo'), 'foo', 'script_output return only the actual output of the script');
 
     $mock_testapi->mock(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-1-" });
-    is(script_output('echo foo', undef, proceed_on_failure => 1), '', 'proceed_on_failure=1 retrieves empty string and do not die');
+    is(script_output('echo foo', undef, proceed_on_failure => 1), 'foo', 'proceed_on_failure=1 retrieves retrieves output of script and do not die');
 
     $mock_testapi->mock(wait_serial => sub { return 'none' if (shift !~ m/SCRIPT_FINISHEDXXX-\\d\+-/) });
     like(exception { script_output('timeout'); }, qr/timeout/, 'die expected with timeout');
