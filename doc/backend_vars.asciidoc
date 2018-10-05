@@ -66,7 +66,7 @@ NICTYPE_USER_OPTIONS;string;undef;Arbitrary options for NICTYPE
 NICVLAN;integer;undef;network (vlan) number to which the NIC should be connected, assigned by scheduler to jobs with NICTYPE != user
 NUMDISKS;integer;1;Number of disks to be created and attached to VM
 OFFLINE_SUT;boolean;0;Disable network for a VM
-OFW;;;
+OFW;boolean;0;QEMU Open Firmware is in use
 QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64;boolean;undef;If set, for aarch64 systems use VGA as video adapter
 QEMU_DISABLE_SNAPSHOTS;boolean;undef;If set, disable snapshots in case the worker has slow disks to avoid save_vm calls failing due to timeouts (See https://bugzilla.suse.com/show_bug.cgi?id=1035453[bsc#1035453])
 PATHCNT;integer;2;Number of paths in MULTIPATH scenario
