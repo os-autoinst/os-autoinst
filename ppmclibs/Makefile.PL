@@ -1,7 +1,7 @@
 use strict;
 use ExtUtils::MakeMaker;
 
-my $opencv_libs = `pkg-config --libs opencv`;
+my $opencv_libs = '-lopencv_core -lopencv_imgcodecs';
 $opencv_libs =~ s,/usr/lib64/lib(\S+)\.so,-l\1,g;
 
 WriteMakefile(
