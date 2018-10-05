@@ -80,7 +80,7 @@ sub start {
             # (we set later) would crash. So we need to block
             # the TERM signal in the forked processes before we
             # set the signal handler of our choice
-            use POSIX qw(:signal_h);
+            use POSIX ':signal_h';
             my $sigset = POSIX::SigSet->new(SIGTERM);
             unless (defined sigprocmask(SIG_BLOCK, $sigset, undef)) {
                 die "Could not block SIGTERM\n";
