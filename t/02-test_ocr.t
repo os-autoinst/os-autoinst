@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Warnings;
 use File::Which 'which';
 use File::Basename;
 
@@ -27,6 +28,7 @@ unless (which('tesseract')) {
 my ($res, $needle, $img1);
 
 my $data_dir = dirname(__FILE__) . '/data/';
+$bmwqemu::vars{PRJDIR} = $data_dir;
 $img1 = tinycv::read($data_dir . "bootmenu.test.png");
 
 $needle = needle->new($data_dir . "bootmenu-ocr.ref.json");
