@@ -115,10 +115,7 @@ Used for internal initialization, do not call from tests.
 =cut
 
 sub init {
-    if (check_var('BACKEND', 'ipmi')) {
-        $serialdev = 'ttyS1';
-    }
-    elsif (get_var('OFW') || check_var('BACKEND', 's390x')) {
+    if (get_var('OFW') || check_var('BACKEND', 's390x')) {
         $serialdev = "hvc0";
     }
     elsif (get_var('SERIALDEV')) {
