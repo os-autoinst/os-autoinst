@@ -116,7 +116,7 @@ Used for internal initialization, do not call from tests.
 
 sub init {
     if (check_var('BACKEND', 'ipmi')) {
-	$serialdev = 'ttyS1';
+        $serialdev = 'ttyS1';
     }
     elsif (get_var('OFW') || check_var('BACKEND', 's390x')) {
         $serialdev = "hvc0";
@@ -125,7 +125,7 @@ sub init {
         $serialdev = get_var('SERIALDEV');
     }
     else {
-	$serialdev = 'ttyS0';
+        $serialdev = 'ttyS0';
     }
     return;
 }
