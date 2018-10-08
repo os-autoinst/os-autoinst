@@ -115,6 +115,7 @@ Used for internal initialization, do not call from tests.
 =cut
 
 sub init {
+    $serialdev = 'ttyS1' if check_var('BACKEND', 'ipmi');
     if (get_var('SERIALDEV')) {
         $serialdev = get_var('SERIALDEV');
     }
@@ -124,8 +125,6 @@ sub init {
     else {
         $serialdev = 'ttyS0';
     }
-    $serialdev = 'ttyS1' if check_var('BACKEND', 'ipmi');
-    $serialdev = 'ttyAMA0' if check_var('ARCH', 'aarch64');
     return;
 }
 
