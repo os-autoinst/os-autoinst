@@ -51,7 +51,6 @@ sub activate {
 
     my $hostname = $args->{hostname} || die('we need a hostname to ssh to');
     my $password = $args->{password};
-
     $self->{ssh} = $self->backend->new_ssh_connection(hostname => $hostname, password => $password);
     if ($self->vmm_family eq 'vmware') {
         $self->{sshVMwareServer} = $self->backend->new_ssh_connection(
@@ -62,14 +61,6 @@ sub activate {
     # start Xvnc
     $self->SUPER::activate;
 
-    my $testapi_console = $self->{testapi_console};
-    my $ssh_args        = $self->{args};
-
-    my $command = $self->sshCommand('root', $hostname);
-    $self->callxterm($command, "ssh:$testapi_console");
-    # FIXME: assert_screen('xterm_password');
-    sleep 3;
-    $self->type_string({text => $password . "\n"});
     $self->_init_xml();
 }
 
