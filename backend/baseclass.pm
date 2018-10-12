@@ -979,7 +979,7 @@ sub check_asserted_screen {
     }
 
     $watch->start();
-    $watch->{debug} = 1;
+    $watch->{debug} = 0;
 
     my @registered_needles = grep { !$_->{unregistered} } @{$self->assert_screen_needles};
     my ($foundneedle, $failed_candidates) = $img->search(\@registered_needles, 0, $search_ratio, ($watch->{debug} ? $watch : undef));
