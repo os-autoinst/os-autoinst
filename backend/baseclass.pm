@@ -1043,7 +1043,15 @@ sub check_asserted_screen {
             _reduce_to_biggest_changes($failed_screens, 20);
         }
     }
-    bmwqemu::diag('no match: ' . time_remaining_str($n));
+    my $no_match_diag = 'no match: ' . time_remaining_str($n);
+    if (my $best_candidate = $failed_candidates->[0]) {
+        $no_match_diag .= sprintf(
+            ", best candidate: %s (%.2f)",
+            $best_candidate->{needle}->{name},
+            1 - sqrt($best_candidate->{error})
+        );
+    }
+    bmwqemu::diag($no_match_diag);
     $self->assert_screen_last_check([$img, $search_ratio]);
     return;
 }
