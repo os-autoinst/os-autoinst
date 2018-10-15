@@ -354,12 +354,16 @@ sub runalltests {
                     bmwqemu::stop_vm();
                     return 0;
                 }
-                elsif (!$flags->{norollback} && $last_milestone) {
+                elsif (!$flags->{no_rollback} && $last_milestone) {
                     load_snapshot('lastgood');
                     $last_milestone->rollback_activated_consoles();
                 }
             }
             else {
+                if (!$flags->{no_rollback} && $last_milestone && $flags->{always_rollback}) {
+                    load_snapshot('lastgood');
+                    $last_milestone->rollback_activated_consoles();
+                }
                 if ($snapshots_supported && ($flags->{milestone} || $bmwqemu::vars{TESTDEBUG})) {
                     make_snapshot('lastgood');
                     $last_milestone         = $t;
