@@ -170,7 +170,6 @@ type_password 'hallo', max_interval => 5;
 is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 5, text => 'hallo'}]);
 $cmds = [];
 
-#$mock_basetest->mock(record_soft_failure_result => sub {});
 my $mock_bmwqemu = new Test::MockModule('bmwqemu');
 $mock_bmwqemu->mock(result_dir => File::Temp->newdir());
 
@@ -180,8 +179,10 @@ is($autotest::current_test->{dents}, 1, 'soft failure recorded');
 stderr_like(sub { record_soft_failure('workaround for bug#1234') }, qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason');
 is($autotest::current_test->{dents}, 2, 'another');
 my $details = $autotest::current_test->{details}[-1];
-is($details->{title}, 'Soft Failed', 'title for soft failure added');
-like($details->{text}, qr/basetest-[0-9]+.*txt/, 'file for soft failure added');
+my $details_ok = is($details->{title}, 'Soft Failed', 'title for soft failure added');
+$details_ok &= is($details->{result}, 'softfail', 'result correct');
+$details_ok &= like($details->{text}, qr/basetest-[0-9]+.*txt/, 'file for soft failure added');
+diag explain $details unless $details_ok;
 
 require distribution;
 testapi::set_distribution(distribution->new());
