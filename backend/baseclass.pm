@@ -46,7 +46,7 @@ __PACKAGE__->mk_accessors(
       last_screenshot last_image assert_screen_check
       reference_screenshot assert_screen_tags assert_screen_needles
       assert_screen_deadline assert_screen_fails assert_screen_last_check
-      stall_detected
+      stall_detected ssh_half_open_expected
       ));
 
 sub new {
@@ -238,6 +238,11 @@ sub run_capture_loop {
                     # Very high limits! On a working socket, the maximum hits per 10 seconds will be around 60.
                     # The maximum hits per 10 seconds saw on a half open socket was >100k
                     if (check_select_rate($buckets, $wait_time_limit, $hits_limit, fileno $fh)) {
+                        if ($self->ssh_half_open_expected) {
+                            bmwqemu::diag "expected half-open sockets in ssh";
+                            $self->stop_ssh_serial;
+                            last;
+                        }
                         die "The console isn't responding correctly. Maybe half-open socket?";
                     }
                 }
@@ -1200,6 +1205,18 @@ sub stop_ssh_serial {
     $self->{serial}->disconnect;
     $self->{serial} = undef;
     return;
+}
+
+sub set_ssh_half_open_expected {
+    my ($self) = @_;
+    bmwqemu::diag("set_ssh_half_open_expected");
+    $self->ssh_half_open_expected(1);
+}
+
+sub clean_ssh_half_open_expected {
+    my ($self) = @_;
+    bmwqemu::diag("clean_ssh_half_open_expected");
+    $self->ssh_half_open_expected(0);
 }
 
 # Send TERM signal to any child process
