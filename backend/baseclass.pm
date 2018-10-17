@@ -979,7 +979,7 @@ sub check_asserted_screen {
     }
 
     $watch->start();
-    $watch->{debug} = 1;
+    $watch->{debug} = 0;
 
     my @registered_needles = grep { !$_->{unregistered} } @{$self->assert_screen_needles};
     my ($foundneedle, $failed_candidates) = $img->search(\@registered_needles, 0, $search_ratio, ($watch->{debug} ? $watch : undef));
@@ -995,9 +995,12 @@ sub check_asserted_screen {
     }
 
     $watch->stop();
-    if ($watch->as_data()->{total_time} > $self->screenshot_interval && !$bmwqemu::vars{NO_DEBUG_IO}) {
-        bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time});
-        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
+    if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
+        bmwqemu::diag sprintf(
+            "WARNING: check_asserted_screen took %.2f seconds for %d candidate needles - make your needles more specific",
+            $watch->as_data()->{total_time},
+            scalar(@registered_needles));
+        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary() if (!$bmwqemu::vars{NO_DEBUG_IO} && $watch->{debug});
     }
 
     if ($n < 0) {
@@ -1043,7 +1046,15 @@ sub check_asserted_screen {
             _reduce_to_biggest_changes($failed_screens, 20);
         }
     }
-    bmwqemu::diag('no match: ' . time_remaining_str($n));
+    my $no_match_diag = 'no match: ' . time_remaining_str($n);
+    if (my $best_candidate = $failed_candidates->[0]) {
+        $no_match_diag .= sprintf(
+            ", best candidate: %s (%.2f)",
+            $best_candidate->{needle}->{name},
+            1 - sqrt($best_candidate->{error})
+        );
+    }
+    bmwqemu::diag($no_match_diag);
     $self->assert_screen_last_check([$img, $search_ratio]);
     return;
 }
