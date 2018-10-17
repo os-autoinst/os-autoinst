@@ -1696,20 +1696,21 @@ sub save_storage_drives {
   freeze_vm;
 
 If the backend supports it, freeze the virtual machine. This will allow the
-virtual machine to be paused/frozen within the test, but only from the
-post_fail_hook. So that memory and disk dumps can be extracted without any
-risk of data changing.
-
-Call this method to ensure memory and disk dump refer to the same machine state.
+virtual machine to be paused/frozen within the test, it is recommended to call
+this within a C<post_fail_hook> so that memory and disk dumps can be extracted
+without any risk of data changing, or in rare cases call it before the tests
+tests have already begun, to avoid unexpected behaviour.
 
 I<Currently only qemu backend is supported.>
 
 =cut
 
 sub freeze_vm {
-    #While it might be a good idea to allow the user to stop the vm within a test
-    #we're not allowing them to do that outside a post_fail_hook.
-    die "Method should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
+    # While it might be a good idea to allow the user to stop the vm within a test
+    # we're not encouraging them to do that outside a post_fail_hook or at any point
+    # in the test code.
+    bmwqemu::diag "Call freeze_vm within a post_fail_hook or very early in your test"
+      unless ((caller(1))[3]) =~ /post_fail_hook/;
     bmwqemu::log_call();
     query_isotovideo('backend_freeze_vm');
 }

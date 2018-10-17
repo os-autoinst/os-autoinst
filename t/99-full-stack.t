@@ -63,7 +63,8 @@ is(system('grep -q "do not wait_still_screen" autoinst-log.txt'),               
 is(system('grep -q "wait_still_screen: detected same image for 5 seconds" autoinst-log.txt'),  0, 'test type string and wait for 5 seconds');
 is(system('grep -q "wait_still_screen: detected same image for 10 seconds" autoinst-log.txt'), 0, 'test type string and wait for 10 seconds');
 is(system('grep -q "wait_still_screen: detected same image for 20 seconds" autoinst-log.txt'), 0, 'test type string and wait for 20 seconds');
-
+is(system('grep -q ".*event.*STOP" autoinst-log.txt'),                                         0, 'Machine properly paused');
+is(system('grep -q ".*event.*RESUME" autoinst-log.txt'),                                       0, 'Machine properly resumed');
 
 is(system('grep -q "get_test_data returned expected file" autoinst-log.txt'), 0, 'get_test_data test');
 is(system('grep -q "save_tmp_file returned expected file" autoinst-log.txt'), 0, 'save_tmp_file test');
