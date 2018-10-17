@@ -995,9 +995,12 @@ sub check_asserted_screen {
     }
 
     $watch->stop();
-    if ($watch->as_data()->{total_time} > $self->screenshot_interval && !$bmwqemu::vars{NO_DEBUG_IO}) {
-        bmwqemu::diag sprintf("WARNING: check_asserted_screen took %.2f seconds - make your needles more specific", $watch->as_data()->{total_time});
-        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary();
+    if ($watch->as_data()->{total_time} > $self->screenshot_interval) {
+        bmwqemu::diag sprintf(
+            "WARNING: check_asserted_screen took %.2f seconds for %d candidate needles - make your needles more specific",
+            $watch->as_data()->{total_time},
+            scalar(@registered_needles));
+        bmwqemu::diag "DEBUG_IO: \n" . $watch->summary() if (!$bmwqemu::vars{NO_DEBUG_IO} && $watch->{debug});
     }
 
     if ($n < 0) {
