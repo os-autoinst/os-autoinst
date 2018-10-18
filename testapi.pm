@@ -241,9 +241,23 @@ sub _check_backend_response {
         my $status_message = "match=" . join(',', @$tags) . " timed out after $timeout ($method)";
         bmwqemu::fctres($status_message);
 
-        # make and upload a screenshot because we might want to create a new needle from this so far unexpected screen
-        my $current_test = $autotest::current_test;
-        $current_test->take_screenshot();
+        # add the final mismatch as 'unk' result to be able to create a new needle from it
+        my $failed_screens = $rsp->{failed_screens};
+        my $final_mismatch = $failed_screens->[-1];
+        my $current_test   = $autotest::current_test;
+        if ($final_mismatch) {
+            $autotest::current_test->record_screenfail(
+                img     => tinycv::from_ppm(decode_base64($final_mismatch->{image})),
+                needles => $final_mismatch->{candidates},
+                tags    => $tags,
+                result  => 'unk',
+                frame   => $final_mismatch->{frame},
+            );
+        }
+        else {
+            bmwqemu::fctwarn("ran into $method timeout but there's no final mismatch - just taking a screenshot");
+            $current_test->take_screenshot();
+        }
         $current_test->save_test_result();
 
         # do a special rpc call to isotovideo which will block if the test should be paused
@@ -254,8 +268,6 @@ sub _check_backend_response {
                 check => $check,
         }) and return 'try_again';
 
-        my $failed_screens = $rsp->{failed_screens};
-        my $final_mismatch = $failed_screens->[-1];
         if ($check) {
             # only care for the last one
             $failed_screens = [$final_mismatch];
