@@ -18,6 +18,11 @@ use strict;
 use testapi;
 
 sub run {
+    unless (get_var('INTEGRATION_TESTS')) {
+        freeze_vm();
+        diag "Simply freeze the vm and resume right before the first assert screen is done";
+        resume_vm();
+    }
     # just assume the first screen has a timeout so we should make sure not to miss it
     assert_screen 'core', 15, no_wait => 1;
     # different variants of parameter selection
