@@ -46,6 +46,16 @@ subtest 'report timeout, set pause on assert/check screen timeout' => sub {
     );
 
     # report timeout when not supposted to pause
+    $command_handler->process_command($answer_fd, {
+            cmd   => 'is_configured_to_pause_on_timeout',
+            check => 0,
+    });
+    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 0}, 'not configured to pause on assert_screen');
+    $command_handler->process_command($answer_fd, {
+            cmd   => 'is_configured_to_pause_on_timeout',
+            check => 1,
+    });
+    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 0}, 'not configured to pause on check_screen');
     $command_handler->process_command($answer_fd, \%basic_report_timeout_cmd);
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 0}, 'not supposed to pause');
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], undef, 'nothing sent to cmd srv');
@@ -59,10 +69,21 @@ subtest 'report timeout, set pause on assert/check screen timeout' => sub {
             set_pause_on_assert_screen_timeout => 1,
     }, 'event passed cmd srv');
     is($command_handler->pause_on_assert_screen_timeout, 1, 'enabling pause on assert_screen timeout');
+    $command_handler->process_command($answer_fd, {
+            cmd   => 'is_configured_to_pause_on_timeout',
+            check => 0,
+    });
+    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'configured to pause on assert_screen');
+    $command_handler->process_command($answer_fd, {
+            cmd   => 'is_configured_to_pause_on_timeout',
+            check => 1,
+    });
+    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 0}, 'not configured to pause on check_screen');
 
     # report timeout when supposed to pause
     $command_handler->process_command($answer_fd, \%basic_report_timeout_cmd);
-    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'supposed to pause');
+    # note: $last_received_msg_by_fd[$answer_fd] does not contain {ret => 1} because answer has
+    #       been postponed
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {
             paused => \%basic_report_timeout_cmd,
             reason => $basic_report_timeout_cmd{msg},
@@ -82,6 +103,16 @@ subtest 'report timeout, set pause on assert/check screen timeout' => sub {
             set_pause_on_check_screen_timeout => 1,
     }, 'event passed cmd srv');
     is($command_handler->pause_on_check_screen_timeout, 1, 'enabling pause on check_screen timeout');
+    $command_handler->process_command($answer_fd, {
+            cmd   => 'is_configured_to_pause_on_timeout',
+            check => 0,
+    });
+    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'configured to pause on assert_screen');
+    $command_handler->process_command($answer_fd, {
+            cmd   => 'is_configured_to_pause_on_timeout',
+            check => 1,
+    });
+    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'configured to pause on check_screen');
     $command_handler->process_command($answer_fd, \%basic_report_timeout_cmd);
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'supposed to pause on check_screen');
 };

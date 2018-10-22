@@ -254,11 +254,15 @@ subtest 'check_assert_screen' => sub {
                     cmd       => 'check_screen',
                 },
                 {
+                    cmd   => 'is_configured_to_pause_on_timeout',
+                    check => 1,
+                },
+                {
                     check => 1,
                     cmd   => 'report_timeout',
                     msg   => 'match=fake,tags timed out after 2 (check_screen)',
                     tags  => [qw(fake tags)],
-                }], 'RPC messages correct (especially check == 1)');
+                }], 'RPC messages correct (especially check == 1)') or diag explain $cmds;
     };
 
     $report_timeout_called = 0;
@@ -280,11 +284,15 @@ subtest 'check_assert_screen' => sub {
                     cmd       => 'check_screen',
                 },
                 {
+                    cmd   => 'is_configured_to_pause_on_timeout',
+                    check => 0,
+                },
+                {
                     check => 0,
                     cmd   => 'report_timeout',
                     msg   => 'match=fake,tags timed out after 2 (assert_screen)',
                     tags  => [qw(fake tags)],
-                }], 'RPC messages correct (especially check == 0)');
+                }], 'RPC messages correct (especially check == 0)') or diag explain $cmds;
 
         # simulate that we want to pause after timeout in the first place but fail as usual on 2nd attempt
         $report_timeout_called = 0;

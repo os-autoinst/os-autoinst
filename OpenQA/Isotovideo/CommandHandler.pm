@@ -132,12 +132,17 @@ sub _pass_command_to_backend_unless_paused {
     $self->_send_to_backend({cmd => $backend_cmd, arguments => $response});
 }
 
+sub _is_configured_to_pause_on_timeout {
+    my ($self, $response) = @_;
+
+    return $self->pause_on_check_screen_timeout
+      || ($self->pause_on_assert_screen_timeout && !$response->{check});
+}
+
 sub _handle_command_report_timeout {
     my ($self, $response) = @_;
 
-    my $supposed_to_pause
-      = $self->pause_on_check_screen_timeout || ($self->pause_on_assert_screen_timeout && !$response->{check});
-    if (!$supposed_to_pause) {
+    if (!$self->_is_configured_to_pause_on_timeout($response)) {
         $self->_respond({ret => 0});
         return;
     }
@@ -150,6 +155,14 @@ sub _handle_command_report_timeout {
     # postpone sending the reply
     $self->postponed_answer_fd($self->answer_fd);
     $self->postponed_command(undef);
+}
+
+sub _handle_command_is_configured_to_pause_on_timeout {
+    my ($self, $response) = @_;
+
+    $self->_respond({
+            ret => ($self->_is_configured_to_pause_on_timeout($response) ? 1 : 0)
+    });
 }
 
 sub _handle_command_set_pause_at_test {

@@ -242,23 +242,27 @@ sub _check_backend_response {
         bmwqemu::fctres($status_message);
 
         # add the final mismatch as 'unk' result to be able to create a new needle from it
+        # note: add the screenshot only if configured to pause on timeout - otherwise we would
+        #       record each failure twice
         my $failed_screens = $rsp->{failed_screens};
         my $final_mismatch = $failed_screens->[-1];
-        my $current_test   = $autotest::current_test;
-        if ($final_mismatch) {
-            $autotest::current_test->record_screenfail(
-                img     => tinycv::from_ppm(decode_base64($final_mismatch->{image})),
-                needles => $final_mismatch->{candidates},
-                tags    => $tags,
-                result  => 'unk',
-                frame   => $final_mismatch->{frame},
-            );
+        if (query_isotovideo(is_configured_to_pause_on_timeout => {check => $check})) {
+            my $current_test = $autotest::current_test;
+            if ($final_mismatch) {
+                $autotest::current_test->record_screenfail(
+                    img     => tinycv::from_ppm(decode_base64($final_mismatch->{image})),
+                    needles => $final_mismatch->{candidates},
+                    tags    => $tags,
+                    result  => 'unk',
+                    frame   => $final_mismatch->{frame},
+                );
+            }
+            else {
+                bmwqemu::fctwarn("ran into $method timeout but there's no final mismatch - just taking a screenshot");
+                $current_test->take_screenshot();
+            }
+            $current_test->save_test_result();
         }
-        else {
-            bmwqemu::fctwarn("ran into $method timeout but there's no final mismatch - just taking a screenshot");
-            $current_test->take_screenshot();
-        }
-        $current_test->save_test_result();
 
         # do a special rpc call to isotovideo which will block if the test should be paused
         # (if the test should not be paused this call will return 0; on resume (after pause) it will return 1)
