@@ -49,6 +49,7 @@ sub do_start_vm {
         'ssh-virtsh',
         {
             hostname => get_required_var('VIRSH_HOSTNAME'),
+            username => get_var('VIRSH_USERNAME'),
             password => get_var('VIRSH_PASSWORD'),
         });
 

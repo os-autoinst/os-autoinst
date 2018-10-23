@@ -51,7 +51,11 @@ sub activate {
 
     my $hostname = $args->{hostname} || die('we need a hostname to ssh to');
     my $password = $args->{password};
-    $self->{ssh} = $self->backend->new_ssh_connection(hostname => $hostname, password => $password);
+    $self->{ssh} = $self->backend->new_ssh_connection(
+        username => $args->{username},
+        hostname => $hostname,
+        password => $password,
+    );
     if ($self->vmm_family eq 'vmware') {
         $self->{sshVMwareServer} = $self->backend->new_ssh_connection(
             hostname => get_required_var('VMWARE_SERVER'),
