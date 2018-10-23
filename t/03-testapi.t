@@ -244,6 +244,8 @@ subtest 'check_assert_screen' => sub {
 
     subtest 'handle check_screen timeout' => sub {
         $cmds = [];
+        $autotest::current_test->{details} = [];
+
         ok(!check_screen('foo', 3, timeout => 2));
         is($report_timeout_called, 1, 'report_timeout called for check_screen');
         is_deeply($cmds, [{
@@ -254,11 +256,24 @@ subtest 'check_assert_screen' => sub {
                     cmd       => 'check_screen',
                 },
                 {
+                    cmd   => 'is_configured_to_pause_on_timeout',
+                    check => 1,
+                },
+                {
                     check => 1,
                     cmd   => 'report_timeout',
                     msg   => 'match=fake,tags timed out after 2 (check_screen)',
                     tags  => [qw(fake tags)],
-                }], 'RPC messages correct (especially check == 1)');
+                }], 'RPC messages correct (especially check == 1)') or diag explain $cmds;
+        is_deeply($autotest::current_test->{details}, [
+                {
+                    result     => 'unk',
+                    screenshot => 'basetest-17.png',
+                    frametime  => [qw(1.75 1.79)],
+                    tags       => [qw(fake tags)],
+                }
+        ], 'result (to create a new neede from) has been added')
+          or diag explain $autotest::current_test->{details};
     };
 
     $report_timeout_called = 0;
@@ -280,11 +295,15 @@ subtest 'check_assert_screen' => sub {
                     cmd       => 'check_screen',
                 },
                 {
+                    cmd   => 'is_configured_to_pause_on_timeout',
+                    check => 0,
+                },
+                {
                     check => 0,
                     cmd   => 'report_timeout',
                     msg   => 'match=fake,tags timed out after 2 (assert_screen)',
                     tags  => [qw(fake tags)],
-                }], 'RPC messages correct (especially check == 0)');
+                }], 'RPC messages correct (especially check == 0)') or diag explain $cmds;
 
         # simulate that we want to pause after timeout in the first place but fail as usual on 2nd attempt
         $report_timeout_called = 0;
