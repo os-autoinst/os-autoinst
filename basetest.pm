@@ -455,10 +455,9 @@ sub record_soft_failure_result {
     my ($self, $reason) = @_;
     $reason //= '(no reason specified)';
 
-    my $result = $self->record_testresult('unk');
-    $self->_result_add_screenshot($result);
+    my $result = $self->record_testresult('softfail');
     my $output = "# Soft Failure:\n$reason\n";
-    $self->record_resultfile('Soft Failed', $output, result => $result);
+    $self->record_resultfile('Soft Failed', $output, %$result);
     return;
 }
 
@@ -472,30 +471,38 @@ sub register_extra_test_results {
 
 =head2 record_testresult
 
-generic function that adds a test result to results and re-computes overall state
+Makes a new test detail with the specified $result, adds it to the
+test details and returns it.
 
 =cut
 
 sub record_testresult {
-    my ($self, $res) = @_;
+    my ($self, $result) = @_;
+    $result //= 'unk';
 
-    unless ($res && $res =~ /(ok|unk|fail)/) {
-        $res = 'unk';
+    # assign result as overall result unless it is already worse
+    my $current_result = \$self->{result};
+    if ($result eq 'fail') {
+        $$current_result = 'fail';
+    }
+    elsif ($result eq 'softfail') {
+        if (!$$current_result || $$current_result eq 'fail') {
+            $$current_result = 'softfail';
+        }
+    }
+    elsif ($result && $result eq 'ok') {
+        $$current_result //= 'ok';
+    }
+    else {
+        # set $result to 'unk' if an invalid value has been specified
+        $result = 'unk';
     }
 
-    if ($res eq 'fail') {
-        $self->{result} = $res;
-    }
-    elsif ($res eq 'ok') {
-        $self->{result} ||= $res;
-    }
-
-    my $result = {result => $res,};
-
-    push @{$self->{details}}, $result;
+    # add detail
+    my $detail = {result => $result};
+    push(@{$self->{details}}, $detail);
     ++$self->{test_count};
-
-    return $result;
+    return $detail;
 }
 
 =head2 _result_add_screenshot
