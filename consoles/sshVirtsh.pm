@@ -246,7 +246,9 @@ sub add_vnc {
     $graphics->setAttribute(autoport    => 'no');
     $graphics->setAttribute(listen      => '0.0.0.0');
     $graphics->setAttribute(sharePolicy => 'force-shared');
-    $graphics->setAttribute(passwd      => $testapi::password);
+    if (my $vnc_password = $testapi::password) {
+        $graphics->setAttribute(passwd => $vnc_password);
+    }
     $devices->appendChild($graphics);
 
     my $elem = $doc->createElement('listen');
