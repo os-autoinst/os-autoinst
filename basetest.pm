@@ -486,7 +486,7 @@ sub record_testresult {
         $$current_result = 'fail';
     }
     elsif ($result eq 'softfail') {
-        if (!$$current_result || $$current_result eq 'fail') {
+        if (!$$current_result || $$current_result ne 'fail') {
             $$current_result = 'softfail';
         }
     }
