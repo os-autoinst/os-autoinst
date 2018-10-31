@@ -99,4 +99,40 @@ subtest parse_serial_output => sub {
 
 };
 
+subtest record_testresult => sub {
+    my $basetest = {
+        result     => undef,
+        details    => [],
+        test_count => 0,
+    };
+
+    is_deeply(basetest::record_testresult($basetest), {result => 'unk'}, 'adding unknown result');
+    is($basetest->{result},     undef, 'test result unaffected');
+    is($basetest->{test_count}, 1,     'test count increased');
+
+    is_deeply(basetest::record_testresult($basetest, 'ok'), {result => 'ok'}, 'adding "ok" result');
+    is($basetest->{result}, 'ok', 'test result is now "ok"');
+
+    is_deeply(basetest::record_testresult($basetest, 'softfail'), {result => 'softfail'}, 'adding "softfail" result');
+    is($basetest->{result}, 'softfail', 'test result is now "softfail"');
+
+    is_deeply(basetest::record_testresult($basetest, 'ok'), {result => 'ok'}, 'adding one more "ok" result');
+    is($basetest->{result}, 'softfail', 'test result is still "softfail"');
+
+    is_deeply(basetest::record_testresult($basetest, 'fail'), {result => 'fail'}, 'adding "fail" result');
+    is($basetest->{result}, 'fail', 'test result is now "fail"');
+
+    is_deeply(basetest::record_testresult($basetest, 'ok'), {result => 'ok'}, 'adding one more "ok" result');
+    is($basetest->{result}, 'fail', 'test result is still "fail"');
+
+    is_deeply(basetest::record_testresult($basetest, 'softfail'), {result => 'softfail'}, 'adding one more "softfail" result');
+    is($basetest->{result}, 'fail', 'test result is still "fail"');
+
+    is_deeply(basetest::record_testresult($basetest), {result => 'unk'}, 'adding one more "unk" result');
+    is($basetest->{result}, 'fail', 'test result is still "fail"');
+
+    is($basetest->{test_count},        8, 'test_count accumulated');
+    is(scalar @{$basetest->{details}}, 8, '8 details added');
+};
+
 done_testing;
