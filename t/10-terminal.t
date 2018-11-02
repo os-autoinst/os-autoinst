@@ -255,8 +255,6 @@ sub test_terminal_directly {
     my $tb = Test::More->builder;
     $tb->reset;
 
-    testapi::set_var('VIRTIO_CONSOLE', 1);
-
     my $term = consoles::virtio_terminal->new('unit-test-console', []);
     $term->activate;
     my $scrn = $term->screen;
@@ -334,18 +332,31 @@ sub test_terminal_directly {
     done_testing;
 }
 
+sub test_terminal_disabled {
+    my $tb = Test::More->builder;
+    $tb->reset;
+
+    testapi::set_var('VIRTIO_CONSOLE', 0);
+
+    my $term = consoles::virtio_terminal->new('unit-test-console', []);
+    $term->activate;
+}
+
 sub test_terminal_through_testapi {
     ...;
 }
 
 # Called after waitpid to check child's exit
 sub check_child {
-    my ($child)     = @_;
+    my ($child, $expected_exit_status) = @_;
+    $expected_exit_status //= 0;
+
     my $exited      = WIFEXITED($CHILD_ERROR);
     my $exit_status = WEXITSTATUS($CHILD_ERROR);
+
     ok($exited, "$child process exits cleanly");
     if ($exited) {
-        is($exit_status, 0, "$child process exit status is zero");
+        is($exit_status, $expected_exit_status, "$child process exit status is $expected_exit_status");
     }
 }
 
@@ -362,17 +373,23 @@ my $fpid = fork || do {
     fake_terminal($socket_path);
     exit 0;
 };
-
 sigsuspend($oldmask);
 my $tpid = fork || do {
     test_terminal_directly;
     exit 0;
 };
 
+my $tpid2 = fork || do {
+    test_terminal_disabled;
+    exit 0;
+};
+
 waitpid($fpid, 0);
 check_child('Fake terminal');
 waitpid($tpid, 0);
-check_child('Direct test');
+check_child('Direct test VIRTIO_CONSOLE not set');
+waitpid($tpid2, 0);
+check_child('Direct test with VIRTIO_CONSOLE=0', 255);
 
 done_testing;
 unlink $socket_path;
