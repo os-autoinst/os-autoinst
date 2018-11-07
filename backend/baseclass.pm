@@ -307,6 +307,9 @@ sub start_encoder {
 
     $self->{encoder_pipe}->blocking(0);
 
+    open($self->{vtt_caption_file}, '>', "$cwd/video_time.vtt");
+    $self->{vtt_caption_file}->print("WEBVTT\n");
+
     return;
 }
 
@@ -404,6 +407,22 @@ sub cpu_stat {
     return [];
 }
 
+sub format_vtt_timestamp {
+    my ($self, $walltime) = @_;
+
+    my $frametime_ms = 1000 * $self->{video_frame_number} / 24;
+    my $caption      = "\n$self->{video_frame_number}\n";
+    # presentation time span (one frame)
+    $caption .= sprintf(POSIX::strftime("%T.%%03d", gmtime($frametime_ms / 1000)), $frametime_ms % 1000);
+    $frametime_ms += 1000 / 24;
+    $caption .= " --> ";
+    $caption .= sprintf(POSIX::strftime("%T.%%03d\n", gmtime($frametime_ms / 1000)), $frametime_ms % 1000);
+    # clock value as caption text
+    $caption .= sprintf(POSIX::strftime("[%FT%T.%%03d]\n", localtime($walltime)), 1000 * ($walltime - int($walltime)));
+
+    return $caption;
+}
+
 sub enqueue_screenshot {
     my ($self, $image) = @_;
 
@@ -426,6 +445,8 @@ sub enqueue_screenshot {
     $self->{min_image_similarity} = $sim if $sim < $self->{min_image_similarity};
     $self->{min_video_similarity} -= 1;
     $self->{min_video_similarity} = $sim if $sim < $self->{min_video_similarity};
+
+    $self->{vtt_caption_file}->print($self->format_vtt_timestamp(gettimeofday));
 
     # we have two different similarity levels - one (slightly higher value, based
     # t/data/user-settings-*) to determine if it's worth it to recheck needles
