@@ -283,8 +283,12 @@ master.bind('t', changetype)
 
 print("""Use cursor keys to move
 Use shift + cursor keys to resize
++/-: Change increment for move/resize
+
 t = change type
 ins = add area, del = remove area
+<TAB>: select next area
+
 s = save, q = quit
 """)
 master.mainloop()
