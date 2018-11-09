@@ -505,6 +505,10 @@ sub start_qemu {
 
     local *sp = sub { $self->{proc}->static_param(@_); };
 
+    if ($vars->{VIRTIO_CONSOLE} ne 0) {
+        $vars->{VIRTIO_CONSOLE} = 1;
+    }
+
     unless ($qemubin) {
         if ($vars->{QEMU}) {
             $qemubin = find_bin('/usr/bin/', 'qemu-system-' . $vars->{QEMU});
