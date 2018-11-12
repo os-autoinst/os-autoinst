@@ -59,7 +59,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   upload_asset data_url check_shutdown assert_shutdown parse_junit_log parse_extra_log upload_logs
 
   wait_idle wait_screen_change assert_screen_change wait_still_screen wait_serial
-  record_soft_failure record_info
+  record_soft_failure record_info force_soft_failure
   become_root x11_start_program ensure_installed eject_cd power
 
   save_memory_dump save_storage_drives freeze_vm resume_vm
@@ -164,11 +164,16 @@ sub save_screenshot {
 
 =head2 record_soft_failure
 
+=for stopwords softfail
+
   record_soft_failure([$reason]);
 
 Record a soft failure on the current test modules result. The result will
 still be counted as a success. Use this to mark where workarounds are applied.
-Takes an optional C<$reason> string which is recorded in the log file.
+Takes an optional C<$reason> string which is recorded in the log file. See
+C<force_soft_failure> to forcefully override a failed test module status from
+a C<post_fail_hook> or C<record_info> when the status should not be
+influenced.
 
 =cut
 
@@ -211,6 +216,26 @@ sub record_info {
     die 'unsupported $result \'' . $nargs{result} . '\'' unless _is_valid_result($nargs{result});
     bmwqemu::log_call(title => $title, output => $output, %nargs);
     $autotest::current_test->record_resultfile($title, $output, %nargs);
+}
+
+=head2 force_soft_failure
+
+=for stopwords softfail
+
+  force_soft_failure([$reason]);
+
+Like C<record_soft_failure> but overrides the test module status to a softfail
+status even if the module would be set to fail otherwise. This can be used for
+easier tracking of known issues without needing to handle failed tests a lot.
+
+=cut
+
+sub force_soft_failure {
+    my ($reason) = @_;
+    bmwqemu::log_call(reason => $reason);
+
+    $autotest::current_test->record_soft_failure_result($reason, force_status => 1);
+    $autotest::current_test->{dents}++;
 }
 
 sub _handle_found_needle {

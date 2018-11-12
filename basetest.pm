@@ -452,10 +452,10 @@ sub record_serialresult {
 }
 
 sub record_soft_failure_result {
-    my ($self, $reason) = @_;
+    my ($self, $reason, %args) = @_;
     $reason //= '(no reason specified)';
 
-    my $result = $self->record_testresult('softfail');
+    my $result = $self->record_testresult('softfail', %args);
     my $output = "# Soft Failure:\n$reason\n";
     $self->record_resultfile('Soft Failed', $output, %$result);
     return;
@@ -477,7 +477,7 @@ test details and returns it.
 =cut
 
 sub record_testresult {
-    my ($self, $result) = @_;
+    my ($self, $result, %args) = @_;
     $result //= 'unk';
 
     # assign result as overall result unless it is already worse
@@ -486,7 +486,7 @@ sub record_testresult {
         $$current_result = 'fail';
     }
     elsif ($result eq 'softfail') {
-        if (!$$current_result || $$current_result ne 'fail') {
+        if (!$$current_result || $$current_result ne 'fail' || $args{force_status}) {
             $$current_result = 'softfail';
         }
     }
