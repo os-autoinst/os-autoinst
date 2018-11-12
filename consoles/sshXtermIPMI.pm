@@ -34,9 +34,19 @@ sub activate {
     my @command = $self->backend->ipmi_cmdline;
     push(@command, qw(sol activate));
     my $serial = $self->{args}->{serial};
-
     my $cstr = join(' ', @command);
     $self->callxterm($cstr, "ipmitool:$testapi_console");
+}
+
+sub reset {
+    my ($self) = @_;
+
+    # Deactivate sol connection if it is activated
+    if ($self->{activated}) {
+        $self->backend->ipmitool("sol deactivate");
+        $self->{activated} = 0;
+    }
+    return;
 }
 
 1;
