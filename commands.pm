@@ -300,7 +300,7 @@ sub run_daemon {
             my ($time, $level, @lines) = @_;
             # Unfortunately $time doesn't have the precision we want. So we need to use Time::HiRes
             $time = gettimeofday;
-            return sprintf(strftime("[%FT%T.%%04d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
+            return sprintf(strftime("[%FT%T.%%03d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
         });
 
     # process json messages from isotovideo
