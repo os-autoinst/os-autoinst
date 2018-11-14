@@ -73,7 +73,7 @@ http://os-autoinst.github.io/openQA/contact/, too.
 
 Issues are tracked on https://progress.opensuse.org/projects/openqav3/
 
-For an overview of the architecture, see link:architecture.md[architecture.md].
+For an overview of the architecture, see link:architecture.md[doc/architecture.md].
 
 Rules for commits
 ^^^^^^^^^^^^^^^^^
