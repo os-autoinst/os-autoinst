@@ -131,8 +131,12 @@ subtest record_testresult => sub {
     is_deeply(basetest::record_testresult($basetest), {result => 'unk'}, 'adding one more "unk" result');
     is($basetest->{result}, 'fail', 'test result is still "fail"');
 
-    is($basetest->{test_count},        8, 'test_count accumulated');
-    is(scalar @{$basetest->{details}}, 8, '8 details added');
+    is_deeply(basetest::record_testresult($basetest, 'softfail', force_status => 1), {result => 'softfail'}, 'adding one more "softfail" result but forcing the status');
+    is($basetest->{result}, 'softfail', 'test result was forced to "softfail"');
+
+    my $nr_test_details = 9;
+    is($basetest->{test_count},        $nr_test_details, 'test_count accumulated');
+    is(scalar @{$basetest->{details}}, $nr_test_details, 'all details added');
 };
 
 done_testing;
