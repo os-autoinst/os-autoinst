@@ -366,7 +366,7 @@ sub runtest {
 
     # Detect serial failures and override result if die
     eval { $self->search_for_expected_serial_failures(); };
-    # Process serial dectection failure
+    # Process serial detection failure
     if ($@) {
         bmwqemu::diag($@);
         $self->record_resultfile('Failed', $@, result => 'fail');
