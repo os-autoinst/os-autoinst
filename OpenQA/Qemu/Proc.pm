@@ -30,6 +30,8 @@ parameters which are represented as complex objects.
 
 =cut
 package OpenQA::Qemu::Proc;
+use File::Basename;
+use File::Which;
 use Mojo::Base -base;
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::File 'path';
@@ -163,6 +165,14 @@ sub configure_blockdevs {
         $size .= 'G' if defined($size);
 
         if (defined $backing_file) {
+            # Handle files compressed as *.xz
+            my ($name, $path, $ext) = fileparse($backing_file, ".xz");
+            if ($ext =~ qr /.xz/) {
+                die 'unxz was not found in PATH' unless defined which('unxz');
+                bmwqemu::diag("Extract XZ compressed file");
+                runcmd('nice', 'ionice', 'unxz', '-k', '-f', $backing_file);
+                $backing_file = $path . $name;
+            }
             $size //= $self->get_img_size($backing_file);
             $drive = $bdc->add_existing_drive($node_id, $backing_file, $hdd_model, $size);
         } else {
