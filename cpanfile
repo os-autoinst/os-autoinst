@@ -56,6 +56,7 @@ on 'test' => sub {
   requires 'Test::Fatal';
   requires 'Test::Mock::Time';
   requires 'Test::MockModule';
+  requires 'Test::Mojo';
   requires 'Test::More';
   requires 'Test::Output';
   requires 'Test::Pod';
