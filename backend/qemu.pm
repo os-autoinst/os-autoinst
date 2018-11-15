@@ -849,6 +849,10 @@ sub start_qemu {
         sp('S');
     }
 
+    # Add parameters from QEMU_APPEND var, if any.
+    # The first item will have '-' prepended to it.
+    sp("$vars->{QEMU_APPEND}") if $vars->{QEMU_APPEND};
+
     $self->{qemupipe}  = $self->{proc}->exec_qemu();
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
