@@ -38,6 +38,16 @@ sub activate {
         });
 }
 
+sub reset {
+    my ($self) = @_;
+
+    if ($self->{activated}) {
+        $self->SUPER::disable();
+        $self->{activated} = 0;
+    }
+    return;
+}
+
 # override
 sub select {
 }
