@@ -64,6 +64,7 @@ on 'test' => sub {
   requires 'Test::Warnings';
   requires 'Test::Exception';
   requires 'Socket::MsgHdr';
+  requires 'XML::SemanticDiff';
 };
 
 feature 'coverage', 'coverage for travis' => sub {

@@ -51,7 +51,11 @@ sub activate {
 
     my $hostname = $args->{hostname} || die('we need a hostname to ssh to');
     my $password = $args->{password};
-    $self->{ssh} = $self->backend->new_ssh_connection(hostname => $hostname, password => $password);
+    $self->{ssh} = $self->backend->new_ssh_connection(
+        username => $args->{username},
+        hostname => $hostname,
+        password => $password,
+    );
     if ($self->vmm_family eq 'vmware') {
         $self->{sshVMwareServer} = $self->backend->new_ssh_connection(
             hostname => get_required_var('VMWARE_SERVER'),
@@ -64,6 +68,8 @@ sub activate {
     $self->_init_xml();
 }
 
+# creates an XML document to configure the libvirt domain
+# (see https://libvirt.org/formatdomain.html for the specification of that config file)
 sub _init_xml {
     my ($self, $args) = @_;
 
@@ -194,6 +200,7 @@ sub change_domain_element {
     return;
 }
 
+# adds the serial console used for the serial log
 sub add_pty {
     my ($self, $args) = @_;
 
@@ -242,7 +249,9 @@ sub add_vnc {
     $graphics->setAttribute(autoport    => 'no');
     $graphics->setAttribute(listen      => '0.0.0.0');
     $graphics->setAttribute(sharePolicy => 'force-shared');
-    $graphics->setAttribute(passwd      => $testapi::password);
+    if (my $vnc_password = $testapi::password) {
+        $graphics->setAttribute(passwd => $vnc_password);
+    }
     $devices->appendChild($graphics);
 
     my $elem = $doc->createElement('listen');
@@ -250,6 +259,33 @@ sub add_vnc {
     $elem->setAttribute(address => '0.0.0.0');
     $graphics->appendChild($elem);
 
+    return;
+}
+
+# adds a further serial port
+# (in addition to the serial console on port 0 which added in add_pty, so don't use port 0 here)
+sub add_serial_console {
+    my ($self, $args) = @_;
+
+    my $doc     = $self->{domainxml};
+    my $devices = $self->{devices_element};
+    my $port    = $args->{port} // '1';
+
+    my $serial = $doc->createElement('serial');
+    $serial->setAttribute(type => 'pty');
+
+    # set the port number
+    my $target = $doc->createElement('target');
+    $target->setAttribute(port => $port);
+    $serial->appendChild($target);
+
+    # set the name of the serial port used to refer to it when calling 'virsh console'
+    # note: This doesn't seem to have any effect, but set it in accordance with the 'default' we expect to get.
+    my $alias = $doc->createElement('alias');
+    $alias->setAttribute(name => 'serial' . $port);
+    $serial->appendChild($alias);
+
+    $devices->appendChild($serial);
     return;
 }
 
