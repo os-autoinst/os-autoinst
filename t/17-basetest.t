@@ -139,4 +139,36 @@ subtest record_testresult => sub {
     is(scalar @{$basetest->{details}}, $nr_test_details, 'all details added');
 };
 
+subtest 'register_extra_test_results' => sub {
+    my $test = basetest->new('foo');
+    $test->{script} = '/tests/foo/bar.pm';
+
+    my $extra_tests = [
+        {
+            category => 'foo',
+            name     => 'extra1',
+            flags    => {},
+            script   => 'unk'
+        },
+        {
+            category => 'foo',
+            name     => 'extra2',
+            flags    => {},
+            script   => '/test/foo/baz.pm'
+        },
+        {
+            category => 'foo',
+            name     => 'extra3',
+            flags    => {},
+            script   => undef
+        }
+    ];
+
+    $test->register_extra_test_results($extra_tests);
+    is(@{$test->{extra_test_results}},             @{$extra_tests},             'add extra test results');
+    is($test->{extra_test_results}->[0]->{script}, $test->{script},             'unknown script is replaced with self->{script}.');
+    is($test->{extra_test_results}->[1]->{script}, $extra_tests->[1]->{script}, 'existing script is untouched.');
+    is($test->{extra_test_results}->[2]->{script}, $test->{script},             'undefined script is replaced with self->{script}.');
+};
+
 done_testing;
