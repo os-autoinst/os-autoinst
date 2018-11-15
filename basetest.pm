@@ -281,12 +281,6 @@ sub done {
     autotest::set_current_test(undef);
 }
 
-sub fail_if_running {
-    my $self = shift;
-    $self->{result} = 'fail' if $self->{result};
-    autotest::set_current_test(undef);
-}
-
 sub skip_if_not_running {
     my ($self) = @_;
 
@@ -323,7 +317,6 @@ sub run_post_fail {
     eval { $self->post_fail_hook; };
     bmwqemu::diag("post_fail_hook failed: $@") if $@;
     $self->{post_fail_hook_running} = 0;
-    $self->fail_if_running();
     die $msg . "\n";
 }
 
