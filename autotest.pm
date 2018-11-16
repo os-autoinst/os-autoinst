@@ -98,11 +98,12 @@ sub loadtest {
     my ($script, %args) = @_;
     my $casedir     = $bmwqemu::vars{CASEDIR};
     my $script_path = find_script($script);
-    unless ($script_path =~ m,(\w+)/([^/]+)\.pm$,) {
-        die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.pm\n";
+    my $pattern     = qr,(tests/[^/]+/)?tests/([\w/]+)/([^/]+)\.pm$,;
+    unless ($script_path =~ $pattern) {
+        die "loadtest: script path '$script_path' does not match required pattern $pattern\n";
     }
-    my $category = $1;
-    my $name     = $2;
+    my $category = $2;
+    my $name     = $3;
     my $test;
     my $fullname = "$category-$name";
     # perl code generating perl code is overcool
