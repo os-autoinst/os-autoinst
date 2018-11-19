@@ -851,7 +851,13 @@ sub start_qemu {
 
     # Add parameters from QEMU_APPEND var, if any.
     # The first item will have '-' prepended to it.
-    sp("$vars->{QEMU_APPEND}") if $vars->{QEMU_APPEND};
+    if ($vars->{QEMU_APPEND}) {
+        # Split multiple options, if needed
+        my @spl = split(' -', $vars->{QEMU_APPEND});
+        foreach my $i (@spl) {
+            sp(split(' ', $i));
+        }
+    }
 
     $self->{qemupipe}  = $self->{proc}->exec_qemu();
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
