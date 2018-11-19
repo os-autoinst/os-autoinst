@@ -306,7 +306,6 @@ sub run_daemon {
     # process json messages from isotovideo
     Mojo::IOLoop->singleton->reactor->io($isotovideo => sub {
             my ($reactor, $writable) = @_;
-            return if ($writable);
 
             my $isotovideo_response = myjsonrpc::read_json($isotovideo);
             my $clients             = app->defaults('clients');
@@ -316,7 +315,7 @@ sub run_daemon {
             for (keys %$clients) {
                 $clients->{$_}->send({json => $isotovideo_response});
             }
-    });
+    })->watch($isotovideo, 1, 0);    # watch only readable (and not writable)
 
     app->log->info("cmdsrv: daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
     try {
