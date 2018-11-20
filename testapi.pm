@@ -224,9 +224,10 @@ sub record_info {
 
   force_soft_failure([$reason]);
 
-Like C<record_soft_failure> but overrides the test module status to a softfail
-status even if the module would be set to fail otherwise. This can be used for
-easier tracking of known issues without needing to handle failed tests a lot.
+Similar to C<record_soft_failure> but can be used to override the test module
+status to softfail from a C<post_fail_hook> if the module would be set to fail
+otherwise. This can be used for easier tracking of known issues without
+needing to handle failed tests a lot.
 
 =cut
 
