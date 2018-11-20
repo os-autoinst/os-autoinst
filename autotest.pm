@@ -98,11 +98,7 @@ sub loadtest {
     my ($script, %args) = @_;
     my $casedir     = $bmwqemu::vars{CASEDIR};
     my $script_path = find_script($script);
-    unless ($script_path =~ m,(\w+)/([^/]+)\.pm$,) {
-        die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.pm\n";
-    }
-    my $category = $1;
-    my $name     = $2;
+    my ($name, $category) = parse_test_path($script_path);
     my $test;
     my $fullname = "$category-$name";
     # perl code generating perl code is overcool
@@ -152,6 +148,23 @@ our $current_test;
 our $selected_console;
 our $last_milestone;
 our $last_milestone_console;
+
+sub parse_test_path {
+    my ($script_path) = @_;
+    unless ($script_path =~ m,(\w+)/([^/]+)\.pm$,) {
+        die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.pm\n";
+    }
+    my $category = $1;
+    my $name     = $2;
+    if ($category ne 'other') {
+        # show full folder hierachy as category for non-sideloaded tests
+        my $pattern = qr,(tests/[^/]+/)?tests/([\w/]+)/([^/]+)\.pm$,;
+        if ($script_path =~ $pattern) {
+            $category = $2;
+        }
+    }
+    return ($name, $category);
+}
 
 sub set_current_test {
     ($current_test) = @_;

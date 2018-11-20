@@ -240,6 +240,11 @@ is(@{$autotest::tests{'tests-fatal'}}{@opts}, @{$autotest::tests{'tests-fatal' .
   && is(@{$autotest::tests{'tests-fatal' . $_}}{name}, 'fatal#' . $_)
   for 1 .. 10;
 
+my $sharedir = '/home/tux/.local/lib/openqa/share';
+is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/firefox.pm"),        ('firefox', 'x11'));
+is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"), ('motif',   'x11/toolkits'));
+is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"),                ('sysrq',   'other'));
+
 done_testing();
 
 # vim: set sw=4 et:
