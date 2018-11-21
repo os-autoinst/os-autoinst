@@ -102,7 +102,7 @@ sub configure_controllers {
     # deprecated for a long time.
     for my $var (qw(HDDMODEL CDMODEL)) {
         if ($vars->{$var} =~ /virtio-scsi.*/) {
-            die "Set $var to scsi-" . lc(substr($var, 0, 1)) . ' and SCSICONTROLLER to '
+            die "Set $var to scsi-" . lc(substr($var, 0, 1)) . 'd and SCSICONTROLLER to '
               . $vars->{$var};
         }
     }
