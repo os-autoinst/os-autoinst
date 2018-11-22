@@ -1144,22 +1144,27 @@ sub release_key {
 
 =head2 send_key_until_needlematch
 
-  send_key_until_needlematch($tag, $key [, $counter, $timeout]);
+  send_key_until_needlematch($tag, $key [, [$counter] | [timeout => $timeout]]);
 
 Send specific key until needle with C<$tag> is not matched or C<$counter> is 0.
-C<$tag> can be string or C<ARRAYREF> (C<['tag1', 'tag2']>)
-Default counter is 20 steps, default timeout is 1s
+C<$tag> can be string or C<ARRAYREF> (C<['tag1', 'tag2']>).
+Default counter is 20 steps, default timeout is 1s.
+
+As this function uses check_screen, all extra arguments are passed as-is to it.
 
 Throws C<FailedNeedle> exception if needle is not matched until C<$counter> is 0.
 
 =cut
 
 sub send_key_until_needlematch {
-    my ($tag, $key, $counter, $timeout) = @_;
+    my $tag     = shift;
+    my $key     = shift;
+    my $counter = shift;
+    $counter = 20 unless looks_like_number($counter);
+    my $timeout = looks_like_number($_[0]) ? shift : 1;
+    my %args = (timeout => $timeout, @_);
 
-    $counter //= 20;
-    $timeout //= 1;
-    while (!check_screen($tag, $timeout)) {
+    while (!check_screen($tag, %args)) {
         wait_screen_change {
             send_key $key;
         };
