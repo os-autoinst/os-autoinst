@@ -155,31 +155,83 @@ sub register {
     }
 }
 
+sub _load_image {
+    my ($self, $image_path) = @_;
+
+    # read PNG file measuring required time
+    my $watch = OpenQA::Benchmark::Stopwatch->new();
+    $watch->start();
+    my $image = tinycv::read($image_path);
+    $watch->stop();
+    if ($watch->as_data()->{total_time} > 0.1) {
+        bmwqemu::diag(sprintf("load of $image_path took %.2f seconds", $watch->as_data()->{total_time}));
+    }
+
+    # call replacerect for non-exclude areas
+    for my $area (@{$self->{area}}) {
+        next unless $area->{type} eq 'exclude';
+        $image->replacerect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height});
+    }
+
+    return {
+        image      => $image,
+        image_path => $image_path,
+    };
+}
+
+my %image_cache;
+my $image_cache_tick = 0;
+
+sub _load_image_with_caching {
+    my ($self) = @_;
+
+    # insert newly loaded image to cache or recycle previously cached image
+    my $image_path = $self->{png};
+    my $image_cache_item = ($image_cache{$image_path} //= $self->_load_image($image_path));
+    $image_cache_item->{last_use} = ++$image_cache_tick;
+    return $image_cache_item->{image};
+}
+
+sub clean_image_cache {
+    my ($limit) = @_;
+    $limit //= 30;
+
+    # compute the number of images to delete
+    my @cache_items = values %image_cache;
+    my $cache_size  = scalar @cache_items;
+    my $to_delete   = $cache_size - $limit;
+    return unless $to_delete > 0 && $to_delete <= $cache_size;
+
+    # sort the cache items by their last use (ascending)
+    my @sorted_cache_items = sort { $a->{last_use} <=> $b->{last_use} } @cache_items;
+
+    # determine the minimum last use to lower the cache tick (so it won't overflow)
+    my $min_last_use = $to_delete == $cache_size ? $image_cache_tick : $sorted_cache_items[$to_delete]->{last_use};
+    $image_cache_tick -= $min_last_use;
+
+    my $index = -1;
+    for my $image_cache_item (@sorted_cache_items) {
+        if (++$index < $to_delete) {
+            # delete cache items up to the number of items to delete
+            delete $image_cache{$image_cache_item->{image_path}};
+        }
+        else {
+            # adapt last_use of items to keep to new $image_cache_tick
+            $image_cache_item->{last_use} -= $min_last_use;
+        }
+    }
+}
+
+sub image_cache_size {
+    return scalar keys %image_cache;
+}
+
 sub get_image {
     my ($self, $area) = @_;
 
-    if (!$self->{img}) {
-        my $watch = OpenQA::Benchmark::Stopwatch->new();
-        $watch->start();
-        $self->{img} = tinycv::read($self->{png});
-        $watch->stop();
-
-        if ($watch->as_data()->{total_time} > 0.1) {
-            bmwqemu::diag(sprintf("load of $self->{png} took %.2f seconds", $watch->as_data()->{total_time}));
-        }
-
-        for my $a (@{$self->{area}}) {
-            next unless $a->{type} eq 'exclude';
-            $self->{img}->replacerect($a->{xpos}, $a->{ypos}, $a->{width}, $a->{height});
-        }
-    }
-
-    return $self->{img} unless $area;
-
-    if (!$area->{img}) {
-        $area->{img} = $self->{img}->copyrect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height});
-    }
-    return $area->{img};
+    my $image = $self->_load_image_with_caching;
+    return $image unless $area;
+    return $area->{img} //= $image->copyrect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height});
 }
 
 sub has_tag {
