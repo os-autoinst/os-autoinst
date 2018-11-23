@@ -35,6 +35,7 @@ use OpenQA::Benchmark::Stopwatch;
 use MIME::Base64 'encode_base64';
 use List::Util 'min';
 use List::MoreUtils 'uniq';
+use Scalar::Util 'looks_like_number';
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -889,7 +890,7 @@ sub set_tags_to_assert {
         bmwqemu::diag("NO matching needles for $mustmatch");
     }
 
-    $self->assert_screen_deadline(time + $timeout);
+    $self->set_assert_screen_timeout($timeout);
     $self->assert_screen_fails([]);
     $self->assert_screen_needles($needles);
     $self->assert_screen_last_check(undef);
@@ -898,6 +899,12 @@ sub set_tags_to_assert {
     $self->assert_screen_tags(\@tags);
     $self->assert_screen_check($args->{check});
     return {tags => \@tags};
+}
+
+sub set_assert_screen_timeout {
+    my ($self, $timeout) = @_;
+    return bmwqemu::diag('set_assert_screen_timeout called with non-numeric timeout') unless looks_like_number($timeout);
+    $self->assert_screen_deadline(time + $timeout);
 }
 
 sub _time_to_assert_screen_deadline {
@@ -1123,7 +1130,7 @@ sub retry_assert_screen {
     }
     # reset timeout otherwise continue wait_forneedle might just fail if stopped too long than timeout
     if ($args->{timeout}) {
-        $self->assert_screen_deadline(time + $args->{timeout});
+        $self->set_assert_screen_timeout($args->{timeout});
     }
     $self->cont_vm;
     # do not need to retry in 5 seconds but contining SUT if continue_waitforneedle

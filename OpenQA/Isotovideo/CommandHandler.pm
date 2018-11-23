@@ -293,6 +293,18 @@ sub _handle_command_check_screen {
     $self->current_api_function($current_api_function);
 }
 
+sub _handle_command_set_assert_screen_timeout {
+    my ($self, $response) = @_;
+
+    my $timeout = $response->{timeout};
+    $self->_send_to_cmd_srv({set_assert_screen_timeout => $timeout});
+    $bmwqemu::backend->_send_json({
+            cmd       => 'set_assert_screen_timeout',
+            arguments => $timeout,
+    });
+    $self->_respond_ok();
+}
+
 sub _handle_command_status {
     my ($self, $response) = @_;
     $self->_respond({
