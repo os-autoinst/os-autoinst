@@ -29,6 +29,9 @@ has [qw(cmd_srv_fd backend_fd answer_fd)] => undef;
 # the name of the current test (full name includes category prefix, eg. installation-)
 has [qw(current_test_name current_test_full_name)];
 
+# the currently processed test API function
+has current_api_function => undef;
+
 # conditions when to pause
 has pause_test_name                => sub { $bmwqemu::vars{PAUSE_AT} };
 has pause_on_assert_screen_timeout => sub { $bmwqemu::vars{PAUSE_ON_ASSERT_SCREEN_TIMEOUT} // 0 };
@@ -128,8 +131,12 @@ sub _pass_command_to_backend_unless_paused {
     die 'isotovideo: we need to implement a backend queue' if $self->backend_requester;
     $self->backend_requester($self->answer_fd);
 
-    $self->_send_to_cmd_srv({$backend_cmd => $response});
+    $self->_send_to_cmd_srv({
+            $backend_cmd         => $response,
+            current_api_function => $backend_cmd,
+    });
     $self->_send_to_backend({cmd => $backend_cmd, arguments => $response});
+    $self->current_api_function($backend_cmd);
 }
 
 sub _is_configured_to_pause_on_timeout {
@@ -268,16 +275,22 @@ sub _handle_command_check_screen {
     $self->no_wait($response->{no_wait} // 0);
     return if $self->_postpone_backend_command_until_resumed($response);
 
-    $self->_send_to_cmd_srv({check_screen => $response->{mustmatch}});
+    my %arguments = (
+        mustmatch => $response->{mustmatch},
+        timeout   => $response->{timeout},
+        check     => $response->{check},
+    );
+    my $current_api_function = $response->{check} ? 'check_screen' : 'assert_screen';
+    $self->_send_to_cmd_srv({
+            check_screen         => \%arguments,
+            current_api_function => $current_api_function,
+    });
     $self->tags($bmwqemu::backend->_send_json(
             {
                 cmd       => 'set_tags_to_assert',
-                arguments => {
-                    mustmatch => $response->{mustmatch},
-                    timeout   => $response->{timeout},
-                    check     => $response->{check},
-                },
+                arguments => \%arguments,
             })->{tags});
+    $self->current_api_function($current_api_function);
 }
 
 sub _handle_command_status {
@@ -286,6 +299,7 @@ sub _handle_command_status {
             tags                           => $self->tags,
             running                        => $self->current_test_name,
             current_test_full_name         => $self->current_test_full_name,
+            current_api_function           => $self->current_api_function,
             pause_test_name                => $self->pause_test_name,
             pause_on_assert_screen_timeout => $self->pause_on_assert_screen_timeout,
             pause_on_check_screen_timeout  => $self->pause_on_check_screen_timeout,
