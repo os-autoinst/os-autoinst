@@ -6,7 +6,6 @@ use Test::More;
 use Test::MockModule;
 use Test::Warnings;
 use OpenQA::Isotovideo::CommandHandler;
-use bmwqemu;
 
 BEGIN {
     unshift @INC, '..';
@@ -32,7 +31,7 @@ $rpc_mock->mock(read_json => sub {
         fail('we do not expect anything to be read here');
 });
 
-# mock backend
+# mock bmwqemu/backend
 {
     package FakeBackend;
     sub new {
@@ -45,7 +44,10 @@ $rpc_mock->mock(read_json => sub {
         return {tags => [qw(some fake tags)]};
     }
 }
-$bmwqemu::backend = FakeBackend->new();
+{
+    package bmwqemu;
+    our $backend = FakeBackend->new();
+}
 
 # setup a CommandHandler instance using the fake file descriptors
 my $command_handler = OpenQA::Isotovideo::CommandHandler->new(
