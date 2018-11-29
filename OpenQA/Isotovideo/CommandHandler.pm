@@ -34,6 +34,7 @@ has current_api_function => undef;
 has pause_test_name                => sub { $bmwqemu::vars{PAUSE_AT} };
 has pause_on_assert_screen_timeout => sub { $bmwqemu::vars{PAUSE_ON_ASSERT_SCREEN_TIMEOUT} // 0 };
 has pause_on_check_screen_timeout  => sub { $bmwqemu::vars{PAUSE_ON_CHECK_SCREEN_TIMEOUT} // 0 };
+has pause_on_next_command          => sub { $bmwqemu::vars{PAUSE_ON_NEXT_COMMAND} // 0 };
 
 # the reason why the test execution has paused or 0 if not paused
 has reason_for_pause => 0;
@@ -80,12 +81,18 @@ sub process_command {
 
 sub _postpone_backend_command_until_resumed {
     my ($self, $response) = @_;
-    my $cmd             = $response->{cmd};
-    my $reson_for_pause = $self->reason_for_pause;
-    return unless $reson_for_pause;
+    my $cmd              = $response->{cmd};
+    my $reason_for_pause = $self->reason_for_pause;
+
+    # check whether we're supposed to pause on the next command if there's no other reason to pause anyways
+    if (!$reason_for_pause && $self->pause_on_next_command) {
+        $self->reason_for_pause($reason_for_pause = "reached $cmd and pause on next command enabled");
+    }
+
+    return unless $reason_for_pause;
 
     # emit info
-    $self->_send_to_cmd_srv({paused => $response, reason => $reson_for_pause});
+    $self->_send_to_cmd_srv({paused => $response, reason => $reason_for_pause});
     diag("isotovideo: paused, so not passing $cmd to backend");
 
     # postpone execution of command
@@ -199,6 +206,15 @@ sub _handle_command_set_pause_on_check_screen_timeout {
 
     $self->pause_on_check_screen_timeout($pause_on_check_screen_timeout);
     $self->_send_to_cmd_srv({set_pause_on_check_screen_timeout => $pause_on_check_screen_timeout});
+    $self->_respond_ok();
+}
+
+sub _handle_command_set_pause_on_next_command {
+    my ($self, $response) = @_;
+    my $set_pause_on_next_command = ($response->{flag} ? 1 : 0);
+
+    $self->pause_on_next_command($set_pause_on_next_command);
+    $self->_send_to_cmd_srv({set_pause_on_next_command => $set_pause_on_next_command});
     $self->_respond_ok();
 }
 
@@ -317,6 +333,7 @@ sub _handle_command_status {
             pause_test_name                => $self->pause_test_name,
             pause_on_assert_screen_timeout => $self->pause_on_assert_screen_timeout,
             pause_on_check_screen_timeout  => $self->pause_on_check_screen_timeout,
+            pause_on_next_command          => $self->pause_on_next_command,
             test_execution_paused          => $self->reason_for_pause,
     });
 }
