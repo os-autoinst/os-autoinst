@@ -182,16 +182,20 @@ sub _handle_command_set_pause_at_test {
 
 sub _handle_command_set_pause_on_assert_screen_timeout {
     my ($self, $response) = @_;
-    my $pause_on_assert_screen_timeout = $response->{flag};
+    my $pause_on_assert_screen_timeout = ($response->{flag} ? 1 : 0);
 
     $self->pause_on_assert_screen_timeout($pause_on_assert_screen_timeout);
-    $self->_send_to_cmd_srv({set_pause_on_assert_screen_timeout => $pause_on_assert_screen_timeout});
+    $self->pause_on_check_screen_timeout($pause_on_assert_screen_timeout) unless $pause_on_assert_screen_timeout;
+    $self->_send_to_cmd_srv({
+            set_pause_on_assert_screen_timeout => $pause_on_assert_screen_timeout,
+            set_pause_on_check_screen_timeout  => $self->pause_on_check_screen_timeout,
+    });
     $self->_respond_ok();
 }
 
 sub _handle_command_set_pause_on_check_screen_timeout {
     my ($self, $response) = @_;
-    my $pause_on_check_screen_timeout = $response->{flag};
+    my $pause_on_check_screen_timeout = ($response->{flag} ? 1 : 0);
 
     $self->pause_on_check_screen_timeout($pause_on_check_screen_timeout);
     $self->_send_to_cmd_srv({set_pause_on_check_screen_timeout => $pause_on_check_screen_timeout});
