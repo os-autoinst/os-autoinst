@@ -30,10 +30,10 @@ sub run {
     assert_screen 'core', no_wait => 1;
     send_key 'ret';
 
-    # set timeout to 15 seconds so we don't waste too much time here when testing for
-    #  pausing on assert_screen timeout
     if (get_var('TESTING_ASSERT_SCREEN_TIMEOUT')) {
-        assert_screen 'on_prompt', timeout => 15;
+        # set timeout to 10 minutes so we can't miss the situation when we're waiting for the assert_screen to timeout
+        # (test uses 'Skip timeout' so this won't actually delay the test execution)
+        assert_screen 'on_prompt', timeout => 600;
     }
     else {
         assert_screen 'on_prompt', 90;
