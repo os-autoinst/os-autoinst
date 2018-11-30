@@ -330,43 +330,98 @@ sub add_interface {
 sub add_disk {
     my ($self, $args) = @_;
 
-    my $file = $self->name . $args->{dev_id} . (($self->vmm_family eq 'vmware') ? ".vmdk" : ".img");
+    my $backingfile             = $args->{backingfile};
+    my $cdrom                   = $args->{cdrom};
+    my $name                    = $self->name;
+    my $file                    = $name . $args->{dev_id} . ($self->vmm_family eq 'vmware' ? '.vmdk' : '.img');
+    my $basedir                 = '/var/lib/libvirt/images/';
+    my $vmware_datastore        = get_var('VMWARE_DATASTORE');
+    my $vmware_openqa_datastore = "/vmfs/volumes/$vmware_datastore/openQA/";
     if ($args->{create}) {
-        my $size = $args->{size} || '4G';
+        my $size = $args->{size} || '20G';
         if ($self->vmm_family eq 'vmware') {
-            my $vmware_disk_path = "/vmfs/volumes/" . get_required_var('VMWARE_DATASTORE') . "/openQA/$file";
-            my $chan             = $self->{sshVMwareServer}->channel();
+            my $vmware_disk_path = $vmware_openqa_datastore . $file;
             # Power VM off, delete it's disk image, and create it again.
             # Than wait for some time for the VM to *really* turn off.
-            my $name = $self->name;
-            $chan->exec(
-"vmid=\$(vim-cmd vmsvc/getallvms | awk '/ $name / { print \$1 }'); vim-cmd vmsvc/power.getstate \$vmid; vim-cmd vmsvc/power.off \$vmid; vim-cmd vmsvc/power.getstate \$vmid; vmkfstools -v1 -U $vmware_disk_path; vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10"
+            my $vmware_chan = $self->{sshVMwareServer}->channel();
+            $vmware_chan->exec(
+                "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
+                  'if [ $vmid ]; then ' .
+                  'vim-cmd vmsvc/power.off $vmid;' .
+                  'vim-cmd vmsvc/destroy $vmid;' .
+                  'fi;' .
+                  "vmkfstools -v1 -U $vmware_disk_path;" .
+                  "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1"
             );
-            $chan->send_eof;
-            get_ssh_output($chan);
-            $chan->close();
-            die "Can't create VMware image" if $chan->exit_status();
+            $vmware_chan->send_eof;
+            get_ssh_output($vmware_chan);
+            $vmware_chan->close();
+            die "Can't create VMware image $vmware_disk_path" if $vmware_chan->exit_status();
         }
         else {
-            $file = "/var/lib/libvirt/images/$file";
+            $file = $basedir . $file;
             $self->run_cmd("qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
         }
     }
     else {    # Copy image to VM host
-        my $dir = "/var/lib/libvirt/images";
-        die "No file given" unless $args->{file};
-        if ($args->{cdrom} or $args->{backingfile}) {
-            $self->run_cmd(sprintf("rsync -av '$args->{file}' '${dir}/%s'", basename($args->{file}))) && die 'rsync failed';
+        die 'No file given' unless $args->{file};
+        my $file_basename             = basename($args->{file});
+        my $vmware_disk_path          = $vmware_openqa_datastore . $file_basename;
+        my $vmware_disk_path_thinfile = $vmware_disk_path =~ s/\.vmdk/_${name}_thinfile\.vmdk/r;
+        if ($cdrom || $backingfile) {
+            if ($self->vmm_family eq 'vmware') {
+                # If the file exists, make sure someone else is not copying it there right now,
+                # otherwise copy image from NFS datastore.
+                my $nfs_dir              = $backingfile ? 'hdd' : 'iso';
+                my $vmware_nfs_datastore = get_required_var('VMWARE_NFS_DATASTORE');
+                my $vmware_chan          = $self->{sshVMwareServer}->channel();
+                $vmware_chan->exec(
+                    "if test -e $vmware_openqa_datastore$file_basename; then " .
+                      "while lsof | grep 'cp.*$file_basename'; do " .
+                      "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
+                      'done;' .
+                      'else ' .
+                      "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
+                      'fi;'
+                );
+                $vmware_chan->send_eof;
+                get_ssh_output($vmware_chan);
+                $vmware_chan->close();
+                die "Can't copy VMware image $file_basename" if $vmware_chan->exit_status();
+                if ($backingfile) {
+                    # Power VM off, delete it's disk image, and create it again.
+                    # Than wait for some time for the VM to *really* turn off.
+                    $vmware_chan = $self->{sshVMwareServer}->channel();
+                    $vmware_chan->exec(
+                        "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
+                          'if [ $vmid ]; then ' .
+                          'vim-cmd vmsvc/power.off $vmid;' .
+                          'fi;' .
+                          "vmkfstools -v1 -U $vmware_disk_path_thinfile;" .
+                          "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1"
+                    );
+                    $vmware_chan->send_eof;
+                    get_ssh_output($vmware_chan);
+                    $vmware_chan->close();
+                    die "Can't create thin VMware image" if $vmware_chan->exit_status();
+                }
+            }
+            else {
+                $self->run_cmd(sprintf("rsync -av '$args->{file}' '$basedir/%s'", $file_basename)) && die 'rsync failed';
+            }
         }
-        if ($args->{backingfile}) {
-            if ($self->vmm_family ne 'vmware') {
-                $file = "/var/lib/libvirt/images/$file";
-                $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -b '$dir/%s'", basename($args->{file})))
-                  && die "qemu-img create with backing file failed";
+        if ($backingfile) {
+            if ($self->vmm_family eq 'vmware') {
+                $file = basename($vmware_disk_path_thinfile);
+            }
+            else {
+                $file = $basedir . $file;
+                $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -b '$basedir/%s'", $file_basename))
+                  && die 'qemu-img create with backing file failed';
             }
         }
         else {    # e.g. cdrom
-            $file = "/var/lib/libvirt/images/" . basename($args->{file});
+            $file = ($self->vmm_family eq 'vmware' ? '' : $basedir) . $file_basename;
         }
     }
 
@@ -375,7 +430,7 @@ sub add_disk {
 
     my $disk = $doc->createElement('disk');
     $disk->setAttribute(type => 'file');
-    if ($args->{cdrom}) {
+    if ($cdrom) {
         $disk->setAttribute(device => 'cdrom');
     }
     else {
@@ -389,7 +444,7 @@ sub add_disk {
     if ($self->vmm_family ne 'vmware') {
         $elem = $doc->createElement('driver');
         $elem->setAttribute(name => 'qemu');
-        if ($args->{cdrom}) {
+        if ($cdrom) {
             $elem->setAttribute(type => 'raw');
         }
         else {
@@ -403,7 +458,7 @@ sub add_disk {
     my $bus_type;
     my $dev_id = $args->{dev_id};
     if ($self->vmm_family eq 'xen') {
-        if ($args->{cdrom}) {
+        if ($cdrom) {
             $dev_type = "sd$dev_id";
             $bus_type = 'scsi';
         }
@@ -415,7 +470,7 @@ sub add_disk {
         $bus_type = 'ide';
     }
     elsif ($self->vmm_family eq 'kvm') {
-        if ($args->{cdrom}) {
+        if ($cdrom) {
             $dev_type = "hd$dev_id";
             $bus_type = 'ide';
         }
@@ -431,7 +486,7 @@ sub add_disk {
 
     $elem = $doc->createElement('source');
     if ($self->vmm_family eq 'vmware') {
-        $elem->setAttribute(file => '[' . get_required_var('VMWARE_DATASTORE') . "] openQA/$file");
+        $elem->setAttribute(file => "[$vmware_datastore] openQA/$file");
     }
     else {
         $elem->setAttribute(file => $file);
