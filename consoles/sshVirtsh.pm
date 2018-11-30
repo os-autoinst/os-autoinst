@@ -449,13 +449,15 @@ sub add_disk {
 
 sub suspend {
     my ($self) = @_;
-    $self->run_cmd("virsh suspend " . $self->name) && die "Can't suspend VM ";
+    my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
+    $self->run_cmd("virsh $libvirt_connector suspend " . $self->name) && die "Can't suspend VM ";
     bmwqemu::diag "VM " . $self->name . " suspended";
 }
 
 sub resume {
     my ($self) = @_;
-    $self->run_cmd("virsh resume " . $self->name) && die "Can't resume VM ";
+    my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
+    $self->run_cmd("virsh $libvirt_connector resume " . $self->name) && die "Can't resume VM ";
     bmwqemu::diag "VM " . $self->name . " resumed";
 }
 
