@@ -58,7 +58,7 @@ sub activate {
     );
     if ($self->vmm_family eq 'vmware') {
         $self->{sshVMwareServer} = $self->backend->new_ssh_connection(
-            hostname => get_required_var('VMWARE_SERVER'),
+            hostname => get_required_var('VMWARE_HOST'),
             password => get_required_var('VMWARE_PASSWORD'));
     }
 
@@ -479,11 +479,10 @@ password=" . get_required_var('VMWARE_PASSWORD') . "
 credentials=vmware
 __END"
         );
-        my $user       = get_required_var('VMWARE_USERNAME');
-        my $host       = get_required_var('VMWARE_HOST');
-        my $datacenter = get_required_var('VMWARE_DATACENTER');
-        my $server     = get_required_var('VMWARE_SERVER');
-        $remote_vmm = "-c vpx://$user@$host/$datacenter/$server/?no_verify=1\\&authfile=$libvirtauthfilename ";
+        my $user = get_required_var('VMWARE_USERNAME');
+        my $host = get_required_var('VMWARE_HOST');
+        $remote_vmm = "-c esx://$user\@$host/?no_verify=1\\&authfile=$libvirtauthfilename ";
+        set_var('VMWARE_REMOTE_VMM', $remote_vmm);
     }
 
     my $instance = $self->instance;

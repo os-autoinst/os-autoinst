@@ -239,7 +239,7 @@ sub start_serial_grab {
         # libvirt esx driver does not support `virsh console', so
         # we have to connect to VM's serial port via TCP which is
         # provided by ESXi server.
-        $chan->exec('nc ' . get_var('VMWARE_SERVER') . ' ' . get_var('VMWARE_SERIAL_PORT'));
+        $chan->exec('nc ' . get_var('VMWARE_HOST') . ' ' . get_var('VMWARE_SERIAL_PORT'));
     }
     elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         # Hyper-V does not support serial console export via TCP, just
