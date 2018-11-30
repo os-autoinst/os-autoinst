@@ -81,14 +81,13 @@ subtest 'report timeout, set pause on assert/check screen timeout' => sub {
 
     # enable pause on assert_screen timeout
     $command_handler->process_command($answer_fd, {
-            cmd  => 'set_pause_on_assert_screen_timeout',
-            flag => 1,
+            cmd      => 'set_pause_on_screen_mismatch',
+            pause_on => 'assert_screen',
     });
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {
-            set_pause_on_assert_screen_timeout => 1,
-            set_pause_on_check_screen_timeout  => 0,
+            set_pause_on_screen_mismatch => 'assert_screen',
     }, 'event passed cmd srv');
-    is($command_handler->pause_on_assert_screen_timeout, 1, 'enabling pause on assert_screen timeout');
+    is($command_handler->pause_on_screen_mismatch, 'assert_screen', 'enabling pause on assert_screen timeout');
     $command_handler->process_command($answer_fd, {
             cmd   => 'is_configured_to_pause_on_timeout',
             check => 0,
@@ -116,13 +115,13 @@ subtest 'report timeout, set pause on assert/check screen timeout' => sub {
 
     # enable pause on check_screen timeout
     $command_handler->process_command($answer_fd, {
-            cmd  => 'set_pause_on_check_screen_timeout',
-            flag => 1,
+            cmd      => 'set_pause_on_screen_mismatch',
+            pause_on => 'check_screen',
     });
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {
-            set_pause_on_check_screen_timeout => 1,
+            set_pause_on_screen_mismatch => 'check_screen',
     }, 'event passed cmd srv');
-    is($command_handler->pause_on_check_screen_timeout, 1, 'enabling pause on check_screen timeout');
+    is($command_handler->pause_on_screen_mismatch, 'check_screen', 'enabling pause on check_screen timeout');
     $command_handler->process_command($answer_fd, {
             cmd   => 'is_configured_to_pause_on_timeout',
             check => 0,
@@ -138,15 +137,13 @@ subtest 'report timeout, set pause on assert/check screen timeout' => sub {
 
     # disabling pause on assert_screen timeout disables pause on check_screen timeout as well
     $command_handler->process_command($answer_fd, {
-            cmd  => 'set_pause_on_assert_screen_timeout',
-            flag => 0,
+            cmd      => 'set_pause_on_screen_mismatch',
+            pause_on => undef,
     });
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {
-            set_pause_on_assert_screen_timeout => 0,
-            set_pause_on_check_screen_timeout  => 0,
+            set_pause_on_screen_mismatch => 0,
     }, 'event passed cmd srv');
-    is($command_handler->pause_on_assert_screen_timeout, 0, 'pause on assert_screen timeout disabled');
-    is($command_handler->pause_on_check_screen_timeout,  0, 'pause on check_screen timeout disabled');
+    is($command_handler->pause_on_screen_mismatch, undef, 'pause on assert_screen/check_screen timeout disabled');
 
     $command_handler->reason_for_pause(undef);
 };

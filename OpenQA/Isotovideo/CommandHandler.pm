@@ -31,10 +31,12 @@ has [qw(current_test_name current_test_full_name)];
 has current_api_function => undef;
 
 # conditions when to pause
-has pause_test_name                => sub { $bmwqemu::vars{PAUSE_AT} };
-has pause_on_assert_screen_timeout => sub { $bmwqemu::vars{PAUSE_ON_ASSERT_SCREEN_TIMEOUT} // 0 };
-has pause_on_check_screen_timeout  => sub { $bmwqemu::vars{PAUSE_ON_CHECK_SCREEN_TIMEOUT} // 0 };
-has pause_on_next_command          => sub { $bmwqemu::vars{PAUSE_ON_NEXT_COMMAND} // 0 };
+has pause_test_name => sub { $bmwqemu::vars{PAUSE_AT} };
+# (set to name of a certain test module, with or without category)
+has pause_on_screen_mismatch => sub { $bmwqemu::vars{PAUSE_ON_SCREEN_MISMATCH} };
+# (set to 'assert_screen' or 'check_screen' where 'check_screen' includes 'assert_screen')
+has pause_on_next_command => sub { $bmwqemu::vars{PAUSE_ON_NEXT_COMMAND} // 0 };
+# (set to 0 or 1)
 
 # the reason why the test execution has paused or 0 if not paused
 has reason_for_pause => 0;
@@ -146,9 +148,11 @@ sub _pass_command_to_backend_unless_paused {
 
 sub _is_configured_to_pause_on_timeout {
     my ($self, $response) = @_;
+    return 0 unless my $pause_on_screen_mismatch = $self->pause_on_screen_mismatch;
 
-    return $self->pause_on_check_screen_timeout
-      || ($self->pause_on_assert_screen_timeout && !$response->{check});
+    return 1 if ($pause_on_screen_mismatch eq 'check_screen');
+    return $response->{check} ? 0 : 1 if ($pause_on_screen_mismatch eq 'assert_screen');
+    return 0;
 }
 
 sub _handle_command_report_timeout {
@@ -187,25 +191,12 @@ sub _handle_command_set_pause_at_test {
     $self->_respond_ok();
 }
 
-sub _handle_command_set_pause_on_assert_screen_timeout {
+sub _handle_command_set_pause_on_screen_mismatch {
     my ($self, $response) = @_;
-    my $pause_on_assert_screen_timeout = ($response->{flag} ? 1 : 0);
+    my $pause_on_screen_mismatch = $response->{pause_on};
 
-    $self->pause_on_assert_screen_timeout($pause_on_assert_screen_timeout);
-    $self->pause_on_check_screen_timeout($pause_on_assert_screen_timeout) unless $pause_on_assert_screen_timeout;
-    $self->_send_to_cmd_srv({
-            set_pause_on_assert_screen_timeout => $pause_on_assert_screen_timeout,
-            set_pause_on_check_screen_timeout  => $self->pause_on_check_screen_timeout,
-    });
-    $self->_respond_ok();
-}
-
-sub _handle_command_set_pause_on_check_screen_timeout {
-    my ($self, $response) = @_;
-    my $pause_on_check_screen_timeout = ($response->{flag} ? 1 : 0);
-
-    $self->pause_on_check_screen_timeout($pause_on_check_screen_timeout);
-    $self->_send_to_cmd_srv({set_pause_on_check_screen_timeout => $pause_on_check_screen_timeout});
+    $self->pause_on_screen_mismatch($pause_on_screen_mismatch);
+    $self->_send_to_cmd_srv({set_pause_on_screen_mismatch => ($pause_on_screen_mismatch // Mojo::JSON->false)});
     $self->_respond_ok();
 }
 
@@ -326,15 +317,14 @@ sub _handle_command_set_assert_screen_timeout {
 sub _handle_command_status {
     my ($self, $response) = @_;
     $self->_respond({
-            tags                           => $self->tags,
-            running                        => $self->current_test_name,
-            current_test_full_name         => $self->current_test_full_name,
-            current_api_function           => $self->current_api_function,
-            pause_test_name                => $self->pause_test_name,
-            pause_on_assert_screen_timeout => $self->pause_on_assert_screen_timeout,
-            pause_on_check_screen_timeout  => $self->pause_on_check_screen_timeout,
-            pause_on_next_command          => $self->pause_on_next_command,
-            test_execution_paused          => $self->reason_for_pause,
+            tags                     => $self->tags,
+            running                  => $self->current_test_name,
+            current_test_full_name   => $self->current_test_full_name,
+            current_api_function     => $self->current_api_function,
+            pause_test_name          => $self->pause_test_name,
+            pause_on_screen_mismatch => ($self->pause_on_screen_mismatch // Mojo::JSON->false),
+            pause_on_next_command    => $self->pause_on_next_command,
+            test_execution_paused    => $self->reason_for_pause,
     });
 }
 
