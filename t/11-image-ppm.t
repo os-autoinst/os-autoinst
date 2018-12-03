@@ -20,8 +20,8 @@ use OpenQA::Benchmark::Stopwatch;
 
 
 # optional but very useful
-eval 'use Test::More::Color';                 ## no critic
-eval 'use Test::More::Color "foreground"';    ## no critic
+eval 'use Test::More::Color';
+eval 'use Test::More::Color "foreground"';
 
 use cv;
 

@@ -25,6 +25,7 @@ This class is the same as DriveDevice except for a few extra fields and
 gen_cmdline has been overriden to use '-drive' instead.
 
 =cut
+
 package OpenQA::Qemu::PFlashDevice;
 use Mojo::Base 'OpenQA::Qemu::DriveDevice';
 

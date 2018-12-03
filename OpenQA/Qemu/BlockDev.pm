@@ -31,8 +31,10 @@ between the overlay and backing_file properties, the overlay property is
 weakened.
 
 =cut
+
 package OpenQA::Qemu::BlockDev;
 use Mojo::Base 'OpenQA::Qemu::MutParams';
+
 use Scalar::Util 'weaken';
 use OpenQA::Qemu::SnapshotConf;
 use File::Spec;

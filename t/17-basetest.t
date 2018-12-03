@@ -29,7 +29,7 @@ subtest modules_test => sub {
 };
 
 subtest parse_serial_output => sub {
-    my $mock_basetest = new Test::MockModule('basetest');
+    my $mock_basetest = Test::MockModule->new('basetest');
     # Mock reading of the serial output
     $mock_basetest->mock(get_serial_output_json => sub {
             return {

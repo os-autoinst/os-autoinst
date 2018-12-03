@@ -14,8 +14,13 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package backend::amt;
+
 use strict;
+use warnings;
+use autodie ':all';
+
 use base 'backend::baseclass';
+
 use Time::HiRes qw(sleep gettimeofday);
 use Data::Dumper;
 require Carp;
@@ -23,7 +28,6 @@ use bmwqemu qw(fileContent diag save_vars diag);
 use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
-use autodie ':all';
 
 # xml namespaces
 my $IPS = "http://intel.com/wbem/wscim/1/ips-schema/1";

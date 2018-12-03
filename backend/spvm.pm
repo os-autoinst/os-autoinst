@@ -14,10 +14,13 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package backend::spvm;
-use strict;
-use base ('backend::virt');
-use testapi qw(get_var get_required_var check_var);
 
+use strict;
+use warnings;
+
+use base 'backend::virt';
+
+use testapi qw(get_var get_required_var check_var);
 use IO::Select;
 
 # supporting the minimal command set of NovaLink through a ssh tunnel

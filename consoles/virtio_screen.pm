@@ -13,11 +13,14 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 package consoles::virtio_screen;
+
 use 5.018;
+use strict;
 use warnings;
+use integer;
+
 use English -no_match_vars;
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
-use integer;
 use Carp 'croak';
 
 our $VERSION;

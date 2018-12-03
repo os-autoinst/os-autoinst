@@ -15,11 +15,14 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package consoles::ttyConsole;
-use base 'consoles::console';
+
 use strict;
 use warnings;
-require IPC::System::Simple;
 use autodie ':all';
+
+use base 'consoles::console';
+
+require IPC::System::Simple;
 use testapi 'check_var';
 
 # to be overloaded

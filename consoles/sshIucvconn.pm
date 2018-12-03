@@ -17,12 +17,15 @@
 # it is used in s390x backend for serial connection
 
 package consoles::sshIucvconn;
-use base 'consoles::console';
+
 use strict;
 use warnings;
+use autodie ':all';
+
+use base 'consoles::console';
+
 use testapi 'get_var';
 require IPC::System::Simple;
-use autodie ':all';
 use XML::LibXML;
 
 sub new {

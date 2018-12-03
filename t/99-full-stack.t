@@ -17,6 +17,7 @@
 
 use strict;
 use warnings;
+
 use Test::More;
 use Test::Warnings;
 use Try::Tiny;
@@ -26,8 +27,8 @@ use Mojo::File;
 use JSON 'from_json';
 
 # optional but very useful
-eval 'use Test::More::Color';                 ## no critic
-eval 'use Test::More::Color "foreground"';    ## no critic
+eval 'use Test::More::Color';
+eval 'use Test::More::Color "foreground"';
 
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir     = "$toplevel_dir/t/data/";
@@ -85,8 +86,8 @@ subtest 'Assert screen failure' => sub {
     open my $ifh, '<', 'autoinst-log.txt';
     my $regexp = qr /(?<=no candidate needle with tag\(s\)) '(no_tag, no_tag2|no_tag3)'/;
     my $count  = 0;
-    while (<$ifh>) {
-        $count++ if $_ =~ $regexp;
+    for my $line (<$ifh>) {
+        $count++ if $line =~ $regexp;
     }
     close $ifh;
 

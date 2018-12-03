@@ -15,17 +15,20 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package consoles::sshVirtsh;
-use base 'consoles::sshXtermVt';
+
 use strict;
 use warnings;
+use autodie ':all';
+
+use base 'consoles::sshXtermVt';
+
 use testapi qw(get_var get_required_var check_var set_var);
 require IPC::System::Simple;
-use autodie ':all';
 use XML::LibXML;
 use File::Temp 'tempfile';
 use File::Basename;
-
 use Class::Accessor 'antlers';
+
 has instance   => (is => "rw", isa => "Num");
 has name       => (is => "rw", isa => "Str");
 has vmm_family => (is => "rw", isa => "Str");

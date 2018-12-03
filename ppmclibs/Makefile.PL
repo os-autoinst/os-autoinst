@@ -1,4 +1,6 @@
 use strict;
+use warnings;
+
 use ExtUtils::MakeMaker;
 
 my $opencv_libs = '-lopencv_core -lopencv_imgcodecs';

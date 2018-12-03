@@ -20,6 +20,7 @@ use warnings;
 use Carp qw(cluck confess);
 use bmwqemu ();
 use Errno;
+use JSON ();
 
 sub send_json {
     my ($to_fd, $cmd) = @_;

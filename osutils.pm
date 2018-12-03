@@ -48,7 +48,6 @@ sub find_bin {
     return;
 }
 
-## no critic
 # An helper to full a parameter list, typically used to build option arguments for executing external programs.
 # mimics perl's push, this why it's a prototype: first argument is the array, second is the argument option and the third is the parameter.
 # the (optional) hash argument which can include the prefix argument for the array, if not specified '-' (dash) is assumed by default

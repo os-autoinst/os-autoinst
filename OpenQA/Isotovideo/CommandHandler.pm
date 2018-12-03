@@ -14,10 +14,8 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package OpenQA::Isotovideo::CommandHandler;
-
-use strict;
-use warnings;
 use Mojo::Base 'Mojo::EventEmitter';
+
 use bmwqemu;
 use testapi 'diag';
 use OpenQA::Isotovideo::Interface;

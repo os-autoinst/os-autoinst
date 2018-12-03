@@ -15,8 +15,13 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package backend::qemu;
+
 use strict;
+use warnings;
+use autodie ':all';
+
 use base 'backend::virt';
+
 use File::Path 'mkpath';
 use File::Spec;
 use File::Which;
@@ -31,7 +36,6 @@ use Fcntl;
 use Net::DBus;
 use bmwqemu qw(fileContent diag save_vars);
 require IPC::System::Simple;
-use autodie ':all';
 use Try::Tiny;
 use osutils qw(find_bin gen_params qv simple_run runcmd);
 use List::Util 'max';
@@ -182,7 +186,7 @@ sub open_file_and_send_fd_to_qemu {
     my ($self, $path, $fdname) = @_;
     my $rsp;
 
-    my $fd = POSIX::open($path, &POSIX::O_CREAT | &POSIX::O_RDWR);
+    my $fd = POSIX::open($path, POSIX::O_CREAT() | POSIX::O_RDWR());
     die "Failed to open $path: $!" unless (defined $fd);
 
     $rsp = $self->handle_qmp_command(
@@ -203,7 +207,7 @@ sub set_migrate_capability {
                 capabilities => [
                     {
                         capability => $name,
-                        state => $state ? JSON::true : JSON::false,
+                         state => $state ? JSON::true : JSON::false,
                     }]}
         },
         fatal => 1

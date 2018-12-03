@@ -14,12 +14,14 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package consoles::ipmiSol;
-use base 'consoles::console';
 
 use strict;
 use warnings;
-require IPC::System::Simple;
 use autodie ':all';
+
+use base 'consoles::console';
+
+require IPC::System::Simple;
 use POSIX '_exit';
 use bmwqemu 'diag';
 use IO::Pipe;

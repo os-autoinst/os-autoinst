@@ -14,9 +14,12 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package backend::virt;
+
 use strict;
 use warnings;
+
 use base 'backend::baseclass';
+
 use testapi 'get_var';
 use bmwqemu;
 

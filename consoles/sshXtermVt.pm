@@ -15,12 +15,15 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package consoles::sshXtermVt;
-use base 'consoles::localXvnc';
+
 use strict;
 use warnings;
+use autodie ':all';
+
+use base 'consoles::localXvnc';
+
 use testapi 'get_var';
 require IPC::System::Simple;
-use autodie ':all';
 
 sub activate {
     my ($self) = @_;

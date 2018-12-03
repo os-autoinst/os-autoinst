@@ -14,10 +14,8 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package OpenQA::Isotovideo::Utils;
-
-use strict;
-use warnings;
 use Mojo::Base -base;
+
 use File::Spec;
 use File::Path;
 use Cwd;

@@ -13,10 +13,10 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
+package OpenQA::Exceptions;
+
 use strict;
 use warnings;
-
-package OpenQA::Exceptions;
 
 use Exception::Class (
     'OpenQA::Exception::InternalException' => {

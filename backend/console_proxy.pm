@@ -21,7 +21,10 @@
 # thread.
 
 package backend::console_proxy;
+
 use strict;
+use warnings;
+use feature 'say';
 
 sub new {
     my ($class, $console) = @_;
@@ -30,8 +33,6 @@ sub new {
 
     return $self;
 }
-
-use feature 'say';
 
 sub DESTROY {
     # nothing to destroy but avoid AUTOLOAD
@@ -47,7 +48,7 @@ sub AUTOLOAD {
     $function =~ s,.*::,,;
 
     # allow symbolic references
-    no strict 'refs';    ## no critic
+    no strict 'refs';
     *$AUTOLOAD = sub {
         my $self = shift;
         my $args = \@_;

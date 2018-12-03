@@ -18,11 +18,12 @@ package backend::s390x;
 
 use strict;
 use warnings;
-use English;
-require IPC::System::Simple;
 use autodie ':all';
 
 use base 'backend::baseclass';
+
+use English;
+require IPC::System::Simple;
 use Carp qw(confess cluck carp croak);
 use testapi 'get_required_var';
 

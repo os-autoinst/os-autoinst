@@ -15,13 +15,14 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package basetest;
+
 use strict;
 use warnings;
 use autodie ':all';
+
 use bmwqemu ();
 use ocr;
 use Time::HiRes;
-use JSON;
 use POSIX;
 use testapi  ();
 use autotest ();
@@ -202,12 +203,12 @@ sub _serialize_match {
     if (my $unregistered = $cand->{needle}->{unregistered}) {
         $h->{unregistered} = $unregistered;
     }
-    for my $a (@{$cand->{area}}) {
+    for my $area (@{$cand->{area}}) {
         my $na = {};
         for my $i (qw(x y w h result)) {
-            $na->{$i} = $a->{$i};
+            $na->{$i} = $area->{$i};
         }
-        $na->{similarity} = int($a->{similarity} * 100);
+        $na->{similarity} = int($area->{similarity} * 100);
         push @{$h->{area}}, $na;
     }
 

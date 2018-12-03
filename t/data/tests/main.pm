@@ -14,6 +14,8 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 use strict;
+use warnings;
+
 use testapi;
 use testdistribution;
 

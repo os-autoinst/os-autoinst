@@ -15,8 +15,13 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package backend::ikvm;
+
 use strict;
+use warnings;
+use autodie ':all';
+
 use base 'backend::ipmi';
+
 require File::Temp;
 use File::Temp ();
 use Time::HiRes qw(sleep gettimeofday);
@@ -25,14 +30,12 @@ use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use Data::Dumper;
 use POSIX qw(strftime :sys_wait_h);
-use JSON;
 require Carp;
 use Fcntl;
 use bmwqemu qw(fileContent diag save_vars diag);
 use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
-use autodie ':all';
 
 sub new {
     my $class = shift;

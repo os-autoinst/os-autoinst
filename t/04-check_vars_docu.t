@@ -57,18 +57,18 @@ sub read_doc {
     open($docfh, '<', VARS_DOC);
     my $backend;
     my $reading;
-    while (<$docfh>) {
-        if (!$backend && /^\.([^ ]+) backend$/) {
+    for my $line (<$docfh>) {
+        if (!$backend && $line =~ /^\.([^ ]+) backend$/) {
             $backend = $1;
         }
         elsif ($backend) {
-            if (/^\|====/) {
+            if ($line =~ /^\|====/) {
                 $reading = $reading ? 0 : 1;
                 $backend = undef unless $reading;
             }
             elsif ($reading) {
-                next if (/$table_header/);
-                my ($var, $value, $default, $explanation) = $_ =~ /^([^;]+);\s*([^;]*);\s*([^;]*);\s*(.*)$/;
+                next if ($line =~ /$table_header/);
+                my ($var, $value, $default, $explanation) = $line =~ /^([^;]+);\s*([^;]*);\s*([^;]*);\s*(.*)$/;
                 next unless ($var);
                 $default = '' unless (defined $default);
                 $value   = '' unless (defined $value);
@@ -129,8 +129,8 @@ sub read_backend_pm {
     if (my $E = $@) {
         say 'Unable to open ' . $File::Find::name && return;
     }
-    while (<$fh>) {
-        my @vars = /(?:\$bmwqemu::|\$)vars(?:->)?{["']?([^}"']+)["']?}/g;
+    for my $line (<$fh>) {
+        my @vars = $line =~ /(?:\$bmwqemu::|\$)vars(?:->)?{["']?([^}"']+)["']?}/g;
         for my $var (@vars) {
             # initially I used array and kept greping through to maintain uniqueness, but I had problem greping ISO_$i
             # and HDD_$i variables. And hash is faster anyway, memory consumption is no issue here.

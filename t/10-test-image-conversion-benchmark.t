@@ -21,8 +21,8 @@ use OpenQA::Benchmark::Stopwatch;
 
 
 # optional but very useful
-eval 'use Test::More::Color';                 ## no critic
-eval 'use Test::More::Color "foreground"';    ## no critic
+eval 'use Test::More::Color';
+eval 'use Test::More::Color "foreground"';
 
 use needle;
 use cv;
@@ -38,9 +38,9 @@ my $result_dir = "$data_dir/results";
 
 make_path($result_dir);
 
-opendir(DIR, $data_dir) or die("Cannot read directories: $data_dir");
+opendir(my $dir, $data_dir) or die("Cannot read directories: $data_dir");
 
-my @all_images = grep { /\.png$/ } readdir DIR;
+my @all_images = grep { /\.png$/ } readdir $dir;
 
 my $watch = OpenQA::Benchmark::Stopwatch->new();
 $watch->start();

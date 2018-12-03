@@ -14,12 +14,16 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package backend::pvm;
+
 use strict;
+use warnings;
+use autodie ':all';
+
 use base 'backend::baseclass';
+
 use bmwqemu qw(fileContent diag save_vars);
 use File::Path 'mkpath';
 require IPC::System::Simple;
-use autodie ':all';
 use File::Basename;
 use Digest::MD5 'md5_hex';
 use osutils qw(dd_gen_params gen_params runcmd);

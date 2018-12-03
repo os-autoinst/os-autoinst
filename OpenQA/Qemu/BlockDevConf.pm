@@ -18,9 +18,10 @@
 Configure block devices and drives.
 
 =cut
+
 package OpenQA::Qemu::BlockDevConf;
 use Mojo::Base 'OpenQA::Qemu::MutParams';
-use Mojo::JSON 'encode_json';
+
 use OpenQA::Qemu::BlockDev;
 use OpenQA::Qemu::DriveDevice;
 use OpenQA::Qemu::PFlashDevice;

@@ -15,10 +15,13 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package backend::svirt;
-use strict;
-use base ('backend::virt');
-use testapi qw(get_var get_required_var check_var);
 
+use strict;
+use warnings;
+
+use base 'backend::virt';
+
+use testapi qw(get_var get_required_var check_var);
 use IO::Select;
 
 # this is a fake backend to some extend. We don't start VMs, but provide ssh access

@@ -29,7 +29,6 @@ require bmwqemu;
 
 use Mojo::UserAgent;
 use Mojo::URL;
-use JSON 'decode_json';
 
 # private ua
 my $ua;

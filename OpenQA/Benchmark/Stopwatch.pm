@@ -1,7 +1,7 @@
+package OpenQA::Benchmark::Stopwatch;
+
 use strict;
 use warnings;
-
-package OpenQA::Benchmark::Stopwatch;
 
 our $VERSION = '0.05';
 use Time::HiRes;

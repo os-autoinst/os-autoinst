@@ -25,8 +25,8 @@ use Cwd 'abs_path';
 use Mojo::File;
 
 # optional but very useful
-eval 'use Test::More::Color';                 ## no critic
-eval 'use Test::More::Color "foreground"';    ## no critic
+eval 'use Test::More::Color';
+eval 'use Test::More::Color "foreground"';
 
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir     = "$toplevel_dir/t/data/";

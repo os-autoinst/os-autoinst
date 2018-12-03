@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+
 use File::Touch;
 use File::Path qw(make_path remove_tree);
 use Test::More;
@@ -16,7 +17,7 @@ BEGIN {
 }
 
 # mock user agent and file
-my $user_agent_mock = new Test::MockModule('Mojo::UserAgent');
+my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');
 my @queried_urls;
 $user_agent_mock->mock(get => sub {
         my ($self, $url) = @_;

@@ -18,12 +18,13 @@ package needle;
 
 use strict;
 use warnings;
+use autodie ':all';
+
 use File::Find;
 use File::Spec;
 use JSON;
 use File::Basename;
 require IPC::System::Simple;
-use autodie ':all';
 use OpenQA::Benchmark::Stopwatch;
 
 our %needles;
@@ -72,21 +73,21 @@ sub new {
 
     my $gotmatch;
     for my $area (@{$json->{area}}) {
-        my $a = {};
+        my $hash = {};
         for my $tag (qw(xpos ypos width height)) {
-            $a->{$tag} = $area->{$tag} || 0;
+            $hash->{$tag} = $area->{$tag} || 0;
         }
         for my $tag (qw(processing_flags max_offset)) {
-            $a->{$tag} = $area->{$tag} if $area->{$tag};
+            $hash->{$tag} = $area->{$tag} if $area->{$tag};
         }
-        $a->{match} = $area->{match} if $area->{match};
-        $a->{type}   = $area->{type}   || 'match';
-        $a->{margin} = $area->{margin} || 50;
+        $hash->{match} = $area->{match} if $area->{match};
+        $hash->{type}   = $area->{type}   || 'match';
+        $hash->{margin} = $area->{margin} || 50;
 
-        $gotmatch = 1 if $a->{type} =~ /match|ocr/;
+        $gotmatch = 1 if $hash->{type} =~ /match|ocr/;
 
         $self->{area} ||= [];
-        push @{$self->{area}}, $a;
+        push @{$self->{area}}, $hash;
     }
 
     # one match is mandatory
@@ -114,12 +115,12 @@ sub save {
     my ($self, $fn) = @_;
     $fn ||= $self->{file};
     my @area;
-    for my $a (@{$self->{area}}) {
-        my $aa = {};
+    for my $area (@{$self->{area}}) {
+        my $hash = {};
         for my $tag (qw(xpos ypos width height max_offset processing_flags match type margin)) {
-            $aa->{$tag} = $a->{$tag} if defined $a->{$tag};
+            $hash->{$tag} = $area->{$tag} if defined $area->{$tag};
         }
-        push @area, $aa;
+        push @area, $hash;
     }
     my $json = JSON->new->pretty->utf8->canonical->encode(
         {

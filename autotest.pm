@@ -15,11 +15,12 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package autotest;
+
 use strict;
+use warnings;
+
 use bmwqemu;
 use Exporter 'import';
-our @EXPORT_OK = qw(loadtest $current_test $selected_console $last_milestone_console query_isotovideo);
-
 use File::Basename;
 use File::Spec;
 use Socket;
@@ -29,6 +30,8 @@ use cv;
 use Scalar::Util 'blessed';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
+
+our @EXPORT_OK = qw(loadtest $current_test $selected_console $last_milestone_console query_isotovideo);
 
 our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
@@ -108,7 +111,7 @@ sub loadtest {
     my $basename = dirname($script_path);
     $code .= "use lib '$basename';";
     $code .= "require '$script_path';";
-    eval $code;    ## no critic
+    eval $code;
     if ($@) {
         my $msg = "error on $script: $@";
         bmwqemu::diag($msg);
@@ -288,7 +291,7 @@ sub postrun_hook {
     # run postrun test code after VM is stopped
     if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
         bmwqemu::diag "running postrun step";
-        eval { require "$bmwqemu::vars{CASEDIR}/postrun.pm"; };    ## no critic
+        eval { require "$bmwqemu::vars{CASEDIR}/postrun.pm" };
         if ($@) {
             bmwqemu::diag "postrun step FAIL:";
             warn $@;
