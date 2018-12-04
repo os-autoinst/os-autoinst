@@ -6,7 +6,9 @@ use warnings;
 use Test::More;
 use Test::MockModule;
 use Test::Warnings;
+use Mojo::JSON;
 use OpenQA::Isotovideo::CommandHandler;
+use OpenQA::Isotovideo::Interface;
 
 BEGIN {
     unshift @INC, '..';
@@ -58,11 +60,32 @@ my $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     current_test_full_name => 'installation-welcome',
 );
 
+subtest status => sub {
+    $command_handler->tags([qw(foo bar)]);
+    $command_handler->pause_test_name('foo');
+    $command_handler->process_command($answer_fd, {cmd => 'status'});
+    is_deeply($last_received_msg_by_fd[$answer_fd], {
+            tags                     => [qw(foo bar)],
+            running                  => 'welcome',
+            current_test_full_name   => 'installation-welcome',
+            current_api_function     => undef,
+            pause_test_name          => 'foo',
+            pause_on_screen_mismatch => Mojo::JSON->false,
+            pause_on_next_command    => 0,
+            test_execution_paused    => 0,
+            devel_mode_major_version => $OpenQA::Isotovideo::Interface::developer_mode_major_version,
+            devel_mode_minor_version => $OpenQA::Isotovideo::Interface::developer_mode_minor_version,
+    }, 'status returned as expected');
+};
+
 subtest 'report timeout, set pause on assert/check screen timeout' => sub {
     my %basic_report_timeout_cmd = (
         cmd => 'report_timeout',
         msg => 'some test',
     );
+
+    $command_handler->tags(undef);
+    $command_handler->pause_test_name(undef);
 
     # report timeout when not supposted to pause
     $command_handler->process_command($answer_fd, {

@@ -18,9 +18,18 @@ package OpenQA::Isotovideo::Interface;
 use strict;
 use warnings;
 
-# This shall be an integer increased by every change of the API either to
-# the worker or the tests. It is considered part of the test API (so don't
-# move it anywhere else).
+# version of the test API and the API relevant to the worker
+# -> increment on every change of such APIs
+# -> never move that variable to another place (when refactoring)
+#    because it may be accessed by the tests itself
 our $version = 13;
+
+# major version of the (web socket) API relevant to the developer mode
+# -> increment when making non-backward compatible changes to that API
+our $developer_mode_major_version = 1;
+# minor version of the (web socket) API relevant to the developer mode
+# -> reset to 0 when making non-backward compatible changes to that API
+# -> increment when making backward compatible changes to that API
+our $developer_mode_minor_version = 0;
 
 1;

@@ -325,6 +325,8 @@ sub _handle_command_status {
             pause_on_screen_mismatch => ($self->pause_on_screen_mismatch // Mojo::JSON->false),
             pause_on_next_command    => $self->pause_on_next_command,
             test_execution_paused    => $self->reason_for_pause,
+            devel_mode_major_version => $OpenQA::Isotovideo::Interface::developer_mode_major_version,
+            devel_mode_minor_version => $OpenQA::Isotovideo::Interface::developer_mode_minor_version,
     });
 }
 
