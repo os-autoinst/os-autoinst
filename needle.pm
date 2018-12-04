@@ -72,22 +72,22 @@ sub new {
     $self->{properties} = $json->{properties} || [];
 
     my $gotmatch;
-    for my $area (@{$json->{area}}) {
-        my $hash = {};
+    for my $area_from_json (@{$json->{area}}) {
+        my $area = {};
         for my $tag (qw(xpos ypos width height)) {
-            $hash->{$tag} = $area->{$tag} || 0;
+            $area->{$tag} = $area_from_json->{$tag} || 0;
         }
         for my $tag (qw(processing_flags max_offset)) {
-            $hash->{$tag} = $area->{$tag} if $area->{$tag};
+            $area->{$tag} = $area_from_json->{$tag} if $area_from_json->{$tag};
         }
-        $hash->{match} = $area->{match} if $area->{match};
-        $hash->{type}   = $area->{type}   || 'match';
-        $hash->{margin} = $area->{margin} || 50;
+        $area->{match} = $area_from_json->{match} if $area_from_json->{match};
+        $area->{type}   = $area_from_json->{type}   || 'match';
+        $area->{margin} = $area_from_json->{margin} || 50;
 
-        $gotmatch = 1 if $hash->{type} =~ /match|ocr/;
+        $gotmatch = 1 if $area->{type} =~ /match|ocr/;
 
         $self->{area} ||= [];
-        push @{$self->{area}}, $hash;
+        push @{$self->{area}}, $area;
     }
 
     # one match is mandatory
@@ -115,12 +115,12 @@ sub save {
     my ($self, $fn) = @_;
     $fn ||= $self->{file};
     my @area;
-    for my $area (@{$self->{area}}) {
-        my $hash = {};
+    for my $area_from_json (@{$self->{area}}) {
+        my $area = {};
         for my $tag (qw(xpos ypos width height max_offset processing_flags match type margin)) {
-            $hash->{$tag} = $area->{$tag} if defined $area->{$tag};
+            $area->{$tag} = $area_from_json->{$tag} if defined $area_from_json->{$tag};
         }
-        push @area, $hash;
+        push @area, $area;
     }
     my $json = JSON->new->pretty->utf8->canonical->encode(
         {

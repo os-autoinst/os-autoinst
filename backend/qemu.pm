@@ -207,7 +207,7 @@ sub set_migrate_capability {
                 capabilities => [
                     {
                         capability => $name,
-                         state => $state ? JSON::true : JSON::false,
+                        state => $state ? JSON::true : JSON::false,
                     }]}
         },
         fatal => 1

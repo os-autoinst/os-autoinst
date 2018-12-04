@@ -84,8 +84,8 @@ sub search_ {
 
     if (@exclude) {
         $img = $self->copy;
-        for my $e (@exclude) {
-            $img->replacerect($e->{xpos}, $e->{ypos}, $e->{width}, $e->{height});
+        for my $exclude_area (@exclude) {
+            $img->replacerect(@{$exclude_area}{qw(xpos ypos width height)});
             $stopwatch->lap("**++-- search__: rectangle replacement") if $stopwatch;
         }
         $stopwatch->lap("**++ search__: areas exclusion") if $stopwatch;
@@ -121,9 +121,9 @@ sub search_ {
 
     $ret->{error} = mean_square_error($ret->{area});
     if ($ret->{ok}) {
-        for my $o (@ocr) {
+        for my $ocr_area (@ocr) {
             $ret->{ocr} ||= [];
-            my $ocr = ocr::tesseract($img, $o);
+            my $ocr = ocr::tesseract($img, $ocr_area);
             push @{$ret->{ocr}}, $ocr;
         }
         $stopwatch->lap("**++ ocr::tesseract: $needle->{name}") if $stopwatch;
