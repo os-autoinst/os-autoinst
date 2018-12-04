@@ -635,7 +635,8 @@ sub get_cmd_output {
     my ($self, $cmd, $args) = @_;
 
     my $wantarray = $args->{wantarray};
-    my $chan      = $self->{ssh}->channel();
+    my $domain    = $args->{domain} // 'ssh';
+    my $chan      = $self->{$domain}->channel();
     $chan->exec($cmd);
     bmwqemu::diag "Command executed: $cmd";
     my @cmd_output = get_ssh_output($chan);
