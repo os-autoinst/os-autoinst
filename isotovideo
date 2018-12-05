@@ -223,7 +223,7 @@ my @oldINC = @INC;
 unshift @INC, $bmwqemu::vars{CASEDIR} . '/lib';
 if ($bmwqemu::vars{SCHEDULE}) {
     diag 'Enforced test schedule by \'SCHEDULE\' variable in action';
-    autotest::loadtest($_ . '.pm') foreach split(',', $bmwqemu::vars{SCHEDULE});
+    autotest::loadtest('test/' . $_ . '.pm') foreach split(',', $bmwqemu::vars{SCHEDULE});
     $bmwqemu::vars{INCLUDE_MODULES} = 'none';
 }
 if (-e $bmwqemu::vars{PRODUCTDIR} . '/main.pm') {
