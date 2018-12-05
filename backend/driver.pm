@@ -26,7 +26,7 @@ use warnings;
 use autodie ':all';
 
 use Carp qw(cluck carp croak confess);
-use JSON 'to_json';
+use Mojo::JSON 'to_json';
 use File::Path 'remove_tree';
 use IO::Select;
 use POSIX '_exit';

@@ -22,7 +22,8 @@ use File::Temp 'tempdir';
 use File::Basename;
 use File::Path 'make_path';
 use Cwd 'abs_path';
-use JSON;
+use Mojo::JSON;    # booleans
+use Cpanel::JSON::XS ();
 
 BEGIN {
     unshift @INC, '..';
@@ -34,7 +35,7 @@ my $data_dir     = "$toplevel_dir/t/data";
 sub create_vars {
     my $data = shift;
     open(my $varsfh, '>', 'vars.json') || BAIL_OUT('can not create vars.json');
-    my $json = JSON->new->pretty->canonical;
+    my $json = Cpanel::JSON::XS->new->pretty->canonical;
     print $varsfh $json->encode($data);
     close($varsfh);
 }
@@ -43,7 +44,7 @@ sub read_vars {
     local $/;
     open(my $varsfh, '<', 'vars.json') || BAIL_OUT('can not open vars.json for reading');
     my $ret;
-    eval { $ret = JSON->new->relaxed->decode(<$varsfh>); };
+    eval { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$varsfh>); };
     die "parse error in vars.json:\n$@" if $@;
     close($varsfh);
     return $ret;

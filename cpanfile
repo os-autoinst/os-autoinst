@@ -25,8 +25,6 @@ requires 'IO::Socket::UNIX';
 requires 'IPC::Open3';
 requires 'IPC::Run::Debug';
 requires 'IPC::System::Simple';
-requires 'JSON';
-requires 'JSON::XS';
 requires 'Cpanel::JSON::XS';
 requires 'List::MoreUtils';
 requires 'List::Util';

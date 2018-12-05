@@ -22,7 +22,8 @@ use autodie ':all';
 
 use File::Find;
 use File::Spec;
-use JSON;
+use Mojo::JSON 'decode_json';
+use Cpanel::JSON::XS ();
 use File::Basename;
 require IPC::System::Simple;
 use OpenQA::Benchmark::Stopwatch;
@@ -122,7 +123,7 @@ sub save {
         }
         push @area, $area;
     }
-    my $json = JSON->new->pretty->utf8->canonical->encode(
+    my $json = Cpanel::JSON::XS->new->pretty->utf8->canonical->encode(
         {
             tags       => [sort(@{$self->{tags}})],
             area       => \@area,

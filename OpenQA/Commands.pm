@@ -18,7 +18,7 @@ use Mojo::Base 'Mojolicious::Controller';
 
 use commands;
 use Try::Tiny;
-use JSON qw(encode_json decode_json);
+use Mojo::JSON 'decode_json';
 
 sub pass_message_from_ws_client_to_isotovideo {
     my ($self, $id, $msg) = @_;

@@ -30,7 +30,7 @@ use IO::Select;
 use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use POSIX qw(strftime :sys_wait_h);
-use JSON;
+use Mojo::JSON;
 use Carp;
 use Fcntl;
 use Net::DBus;
@@ -207,7 +207,7 @@ sub set_migrate_capability {
                 capabilities => [
                     {
                         capability => $name,
-                        state => $state ? JSON::true : JSON::false,
+                        state => $state ? Mojo::JSON::true : Mojo::JSON::false,
                     }]}
         },
         fatal => 1
@@ -947,7 +947,7 @@ sub handle_qmp_command {
     my $wb;
     my $sk = $self->{qmpsocket};
 
-    my $line = JSON::to_json($cmd) . "\n";
+    my $line = Mojo::JSON::to_json($cmd) . "\n";
     if (defined $optargs{send_fd}) {
         $wb = tinycv::send_with_fd($sk, $line, $optargs{send_fd});
     }
@@ -960,7 +960,7 @@ sub handle_qmp_command {
     while (!$hash) {
         $hash = myjsonrpc::read_json($sk);
         if ($hash->{event}) {
-            bmwqemu::diag "EVENT " . JSON::to_json($hash);
+            bmwqemu::diag "EVENT " . Mojo::JSON::to_json($hash);
             # ignore
             $hash = undef;
         }

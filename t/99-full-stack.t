@@ -24,7 +24,7 @@ use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
 use Mojo::File;
-use JSON 'from_json';
+use Mojo::JSON 'decode_json';
 
 # optional but very useful
 eval 'use Test::More::Color';
@@ -72,12 +72,12 @@ is(system('grep -q "save_tmp_file returned expected file" autoinst-log.txt'), 0,
 
 my $ignore_results_re = qr/fail/;
 for my $result (grep { $_ !~ $ignore_results_re } glob("testresults/result*.json")) {
-    my $json = from_json(Mojo::File->new($result)->slurp);
+    my $json = decode_json(Mojo::File->new($result)->slurp);
     is($json->{result}, 'ok', "Result in $result is ok") or BAIL_OUT("$result failed");
 }
 
 for my $result (glob("testresults/result*fail*.json")) {
-    my $json = from_json(Mojo::File->new($result)->slurp);
+    my $json = decode_json(Mojo::File->new($result)->slurp);
     is($json->{result}, 'fail', "Result in $result is fail") or BAIL_OUT("$result failed");
 }
 
