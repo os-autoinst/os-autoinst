@@ -32,36 +32,53 @@ sub activate {
 
     my $testapi_console = $self->{testapi_console};
 
-    my $cstr              = "";
+    my $cstr = "";
+
+
+    ############## Following snippet will be splitted into separate functions 
+    ############## to simplify implementation and standardize development method
+    #############  New function sub mc_reset will be needed
     my @command_reset_tmp = $self->backend->ipmi_cmdline;
     push(@command_reset_tmp, qw(mc reset cold));
-    my $command_reset = join(' ', @command_reset_tmp);
+    my $command_reset     = join(' ', @command_reset_tmp);
 
     my @command_sleep_tmp = "sleep";
-    push(@command_sleep_tmp, qw(15));
-    my $command_sleep = join(' ', @command_sleep_tmp);
+    push(@command_sleep_tmp, qw(50));
+    my $command_sleep     = join(' ', @command_sleep_tmp);
 
-    my $bmcipaddr = get_var('BMC_IP');
+    my $bmcipaddr         = get_var('IPMI_HOSTNAME');
     if ($bmcipaddr eq '') {
         die "BMC IP address is not defined.";
     }
-    my @command_ping_tmp = "(while true; do /usr/bin/ping -c1";
-    push(@command_ping_tmp, $bmcipaddr);
-    my $command_ping_tmp_part2 = "; if [";
-    push(@command_ping_tmp, $command_ping_tmp_part2);
-    push(@command_ping_tmp, qw($?));
-    my $command_ping_tmp_part3 = "-eq '0' ]; then break; fi; done;)";
-    push(@command_ping_tmp, $command_ping_tmp_part3);
-    my $command_ping = join(' ', @command_ping_tmp);
+    my @command_ping_tmp_1  = "(for i in `seq 100`; do /usr/bin/ping -c1";
+    push(@command_ping_tmp_1, $bmcipaddr);
+    my $command_ping_tmp_2  = "; if [";
+    push(@command_ping_tmp_1, $command_ping_tmp_2);
+    push(@command_ping_tmp_1, qw($?));
+    my $command_ping_tmp_3  = "-ne '0' ]; then break; else sleep 5; fi; done;)";
+    push(@command_ping_tmp_1, $command_ping_tmp_3);
+
+    my @command_ping_tmp_4  = "(for i in `seq 100`; do /usr/bin/ping -c1";
+    push(@command_ping_tmp_4, $bmcipaddr);
+    my $command_ping_tmp_5  = "; if [";
+    push(@command_ping_tmp_4, $command_ping_tmp_5);
+    push(@command_ping_tmp_4, qw($?));
+    my $command_ping_tmp_6  = "-eq '0' ]; then break; else sleep 5; fi; done;)";
+    push(@command_ping_tmp_4, $command_ping_tmp_6);
+    #my $command_ping      = join(' ', @command_ping_tmp_4);
+    my $command_ping_1      = join(' ', @command_ping_tmp_1);
+    my $command_ping_2      = join(' ', @command_ping_tmp_4);
+    my $command_ping        = join(';', $command_ping_1, $command_ping_2);
 
     my @command_deactivate_tmp = $self->backend->ipmi_cmdline;
     push(@command_deactivate_tmp, qw(sol deactivate));
-    my $command_deactivate = join(' ', @command_deactivate_tmp);
+    my $command_deactivate     = join(' ', @command_deactivate_tmp); 
 
     my @command_activate_tmp = $self->backend->ipmi_cmdline;
     push(@command_activate_tmp, qw(sol activate));
-    my $command_activate = join(' ', @command_activate_tmp);
-    $cstr = join(' ; ', $command_reset, $command_sleep, $command_ping, $command_deactivate, $command_activate);
+    my $command_activate     = join(' ', @command_activate_tmp); 
+    #$cstr = join(' ; ', $command_reset, $command_sleep, $command_deactivate, $command_activate);
+    $cstr = join(' ; ', $command_reset, $command_ping, $command_sleep, $command_deactivate, $command_sleep, $command_activate);
 
     bmwqemu::diag "ipmicmdline is $cstr";
 
@@ -77,6 +94,15 @@ sub reset {
         $self->backend->ipmitool("sol deactivate");
         $self->{activated} = 0;
     }
+    return;
+}
+
+sub mc_reset {
+    my ($self) = @_;
+
+    # Reset mc it necessary
+    $self->backend->ipmitool("mc reset cold");
+    $self->{activated} = 0;
     return;
 }
 
