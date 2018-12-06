@@ -15,9 +15,12 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package consoles::sshX3270;
-use base 'consoles::localXvnc';
+
 use strict;
 use warnings;
+
+use base 'consoles::localXvnc';
+
 use testapi 'get_var';
 
 sub activate {

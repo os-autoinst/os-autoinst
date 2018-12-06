@@ -25,13 +25,16 @@ Consoles should implement disable and reset if necessary as well as a number
 of other functions. See vnc_base and virtio_terminal to see how this works.
 
 =cut
+
 package consoles::console;
+
 use strict;
 use warnings;
-require IPC::System::Simple;
 use autodie ':all';
 
+require IPC::System::Simple;
 use Class::Accessor 'antlers';
+
 has backend => (is => "rw");
 
 sub new {

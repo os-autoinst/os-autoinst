@@ -15,12 +15,15 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package consoles::sshXtermIPMI;
-use base 'consoles::localXvnc';
+
 use strict;
 use warnings;
+use autodie ':all';
+
+use base 'consoles::localXvnc';
+
 use testapi 'get_required_var';
 require IPC::System::Simple;
-use autodie ':all';
 use File::Which;
 
 sub activate {

@@ -48,6 +48,9 @@ automatically for convenience.
 =cut
 
 use strict;
+use warnings;
+use autodie ':all';
+no autodie 'kill';
 
 my $installprefix;    # $bmwqemu::scriptdir
 
@@ -69,8 +72,6 @@ use distribution;
 use testapi 'diag';
 use Getopt::Long;
 require IPC::System::Simple;
-use autodie ':all';
-no autodie 'kill';
 use POSIX qw(:sys_wait_h _exit);
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use File::Spec;

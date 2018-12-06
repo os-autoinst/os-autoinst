@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+
 use Test::More;
 use Test::Output 'stderr_like';
 use Test::Fatal;
@@ -51,15 +52,15 @@ sub get_tests_done {
     }
 }
 
-my $mock_jsonrpc = new Test::MockModule('myjsonrpc');
+my $mock_jsonrpc = Test::MockModule->new('myjsonrpc');
 $mock_jsonrpc->mock(send_json => \&fake_send);
 $mock_jsonrpc->mock(read_json => sub { });
-my $mock_bmwqemu = new Test::MockModule('bmwqemu');
+my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
 $mock_bmwqemu->mock(save_json_file => sub { });
-my $mock_basetest = new Test::MockModule('basetest');
+my $mock_basetest = Test::MockModule->new('basetest');
 $mock_basetest->mock(_result_add_screenshot => sub { });
 # stop run_all from quitting at the end
-my $mock_autotest = new Test::MockModule('autotest', no_auto => 1);
+my $mock_autotest = Test::MockModule->new('autotest', no_auto => 1);
 $mock_autotest->mock(_exit => sub { });
 
 my $died;

@@ -1,23 +1,23 @@
 package consoles::VNC;
+
 use strict;
 use warnings;
-use base 'Class::Accessor::Fast';
-use IO::Socket::INET;
 use bytes;
+use feature 'say';
+
+use base 'Class::Accessor::Fast';
+
+use IO::Socket::INET;
 use bmwqemu 'diag';
 use Time::HiRes qw( usleep gettimeofday time );
 use List::Util 'min';
 use testapi 'get_var';
-
 use Crypt::DES;
 use Compress::Raw::Zlib;
-
 use Carp qw(confess cluck carp croak);
 use Data::Dumper 'Dumper';
-use feature 'say';
 use Try::Tiny;
 use Scalar::Util 'blessed';
-
 use OpenQA::Exceptions;
 
 __PACKAGE__->mk_accessors(
@@ -26,6 +26,7 @@ __PACKAGE__->mk_accessors(
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
       _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell
       ));
+
 our $VERSION = '0.40';
 
 my $MAX_PROTOCOL_VERSION = 'RFB 003.008' . chr(0x0a);    # Max version supported
@@ -328,8 +329,8 @@ sub _handshake_security {
         $socket->read(my $ikvm_session, 20) || die 'unexpected end of data';
         my @bytes = unpack("C20", $ikvm_session);
         print "Session info: ";
-        for my $b (@bytes) {
-            printf "%02x ", $b;
+        for my $byte (@bytes) {
+            printf "%02x ", $byte;
         }
         print "\n";
         # examples
@@ -1034,7 +1035,7 @@ sub _receive_zrle_encoding {
         diag sprintf("read $data_len in %fs\n", time - $stime);
     }
     # the zlib header is only sent once per session
-    $self->{_inflater} ||= new Compress::Raw::Zlib::Inflate();
+    $self->{_inflater} ||= Compress::Raw::Zlib::Inflate->new;
     my $out;
     my $old_total_out = $self->{_inflater}->total_out;
     my $status = $self->{_inflater}->inflate($data, $out, 1);

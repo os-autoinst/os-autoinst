@@ -16,10 +16,15 @@
 
 # this is an abstract class
 package backend::baseclass;
+
 use strict;
 use warnings;
+use feature 'say';
+use autodie ':all';
+
 use Carp qw(cluck carp confess);
-use JSON 'to_json';
+use Mojo::JSON;    # booleans
+use Cpanel::JSON::XS ();
 use File::Copy 'cp';
 use File::Basename;
 use Time::HiRes qw(gettimeofday time tv_interval);
@@ -27,10 +32,8 @@ use POSIX qw(_exit :sys_wait_h);
 use bmwqemu;
 use IO::Select;
 require IPC::System::Simple;
-use autodie ':all';
 use myjsonrpc;
 use Net::SSH2;
-use feature 'say';
 use OpenQA::Benchmark::Stopwatch;
 use MIME::Base64 'encode_base64';
 use List::Util 'min';
@@ -509,8 +512,8 @@ sub check_socket {
             my $rsp = {rsp => ($self->handle_command($cmd) // 0)};
             $rsp->{json_cmd_token} = $cmd->{json_cmd_token};
             if ($self->{rsppipe}) {    # the command might have closed it
-                my $JSON = JSON->new()->convert_blessed();
-                my $json = $JSON->encode($rsp);
+                my $cjx  = Cpanel::JSON::XS->new->convert_blessed();
+                my $json = $cjx->encode($rsp);
                 $self->{rsppipe}->print($json);
             }
         }

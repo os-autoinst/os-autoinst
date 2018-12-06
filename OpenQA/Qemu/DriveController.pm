@@ -19,6 +19,7 @@ A device which provides at least one bus for the drive devices to attach
 to. Buses are documented in <qemu source>/docs/qdev-device-use.txt.
 
 =cut
+
 package OpenQA::Qemu::DriveController;
 use Mojo::Base 'OpenQA::Qemu::MutParams';
 

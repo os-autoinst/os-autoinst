@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+
 use Test::More;
 use Test::MockModule;
 use Test::Warnings;
@@ -18,7 +19,7 @@ my $answer_fd               = 2;
 my @last_received_msg_by_fd = (undef, undef, undef);
 
 # mock the json rpc
-my $rpc_mock = new Test::MockModule('myjsonrpc');
+my $rpc_mock = Test::MockModule->new('myjsonrpc');
 $rpc_mock->mock(send_json => sub {
         my ($fd, $cmd) = @_;
         if (!defined($fd) || ($fd != $cmd_srv_fd && $fd != $backend_fd && $fd != $answer_fd)) {

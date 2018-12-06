@@ -17,17 +17,18 @@
 
 use strict;
 use warnings;
+
 use Test::More;
 use Test::Warnings;
 use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
 use Mojo::File;
-use JSON 'from_json';
+use Mojo::JSON 'decode_json';
 
 # optional but very useful
-eval 'use Test::More::Color';                 ## no critic
-eval 'use Test::More::Color "foreground"';    ## no critic
+eval 'use Test::More::Color';
+eval 'use Test::More::Color "foreground"';
 
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir     = "$toplevel_dir/t/data/";
@@ -71,12 +72,12 @@ is(system('grep -q "save_tmp_file returned expected file" autoinst-log.txt'), 0,
 
 my $ignore_results_re = qr/fail/;
 for my $result (grep { $_ !~ $ignore_results_re } glob("testresults/result*.json")) {
-    my $json = from_json(Mojo::File->new($result)->slurp);
+    my $json = decode_json(Mojo::File->new($result)->slurp);
     is($json->{result}, 'ok', "Result in $result is ok") or BAIL_OUT("$result failed");
 }
 
 for my $result (glob("testresults/result*fail*.json")) {
-    my $json = from_json(Mojo::File->new($result)->slurp);
+    my $json = decode_json(Mojo::File->new($result)->slurp);
     is($json->{result}, 'fail', "Result in $result is fail") or BAIL_OUT("$result failed");
 }
 
@@ -85,8 +86,8 @@ subtest 'Assert screen failure' => sub {
     open my $ifh, '<', 'autoinst-log.txt';
     my $regexp = qr /(?<=no candidate needle with tag\(s\)) '(no_tag, no_tag2|no_tag3)'/;
     my $count  = 0;
-    while (<$ifh>) {
-        $count++ if $_ =~ $regexp;
+    for my $line (<$ifh>) {
+        $count++ if $line =~ $regexp;
     }
     close $ifh;
 

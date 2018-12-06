@@ -29,10 +29,12 @@ are static parameters which are stored as simple strings and mutable
 parameters which are represented as complex objects.
 
 =cut
+
 package OpenQA::Qemu::Proc;
+use Mojo::Base -base;
+
 use File::Basename;
 use File::Which;
-use Mojo::Base -base;
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::File 'path';
 use OpenQA::Qemu::BlockDevConf;

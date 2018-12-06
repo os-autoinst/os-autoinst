@@ -15,14 +15,16 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package consoles::vnc_base;
+
 use strict;
 use warnings;
+use feature 'say';
+
 use base 'consoles::console';
 
 use consoles::VNC;
 use Time::HiRes qw(usleep gettimeofday);
 
-use feature 'say';
 use Data::Dumper 'Dumper';
 use Carp qw(confess cluck carp croak);
 use Try::Tiny;

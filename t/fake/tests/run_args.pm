@@ -1,4 +1,7 @@
 use 5.018;
+use strict;
+use warnings;
+
 use base 'basetest';
 
 sub run {

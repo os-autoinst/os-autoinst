@@ -13,9 +13,14 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 package consoles::virtio_terminal;
+
 use 5.018;
+use strict;
 use warnings;
 use autodie;
+
+use base 'consoles::console';
+
 use Socket qw(SOCK_NONBLOCK PF_UNIX SOCK_STREAM sockaddr_un);
 use Errno qw(EAGAIN EWOULDBLOCK);
 use English -no_match_vars;
@@ -24,8 +29,6 @@ use Scalar::Util 'blessed';
 use Cwd;
 use consoles::virtio_screen ();
 use testapi 'check_var';
-
-use base 'consoles::console';
 
 our $VERSION;
 

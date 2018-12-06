@@ -365,7 +365,7 @@ sub check_child {
 # returns if a signal is received which has a handler set. We must initially
 # block the signal incase SIGCONT is emitted before we reach sigsuspend.
 $SIG{CONT} = sub { };
-my $blockmask = POSIX::SigSet->new(&POSIX::SIGCONT);
+my $blockmask = POSIX::SigSet->new(POSIX::SIGCONT());
 my $oldmask   = POSIX::SigSet->new();
 sigprocmask(POSIX::SIG_BLOCK, $blockmask, $oldmask);
 

@@ -18,15 +18,15 @@ package commands;
 
 use strict;
 use warnings;
+use autodie ':all';
+
 require IPC::System::Simple;
 use Try::Tiny;
 use Socket;
 use POSIX '_exit', 'strftime';
-use autodie ':all';
-use JSON 'from_json';
 use myjsonrpc;
 use bmwqemu 'diag';
-use JSON 'encode_json';
+use Mojo::JSON 'to_json';
 
 BEGIN {
     # https://github.com/os-autoinst/openQA/issues/450
@@ -311,7 +311,7 @@ sub run_daemon {
             my $clients             = app->defaults('clients');
             delete $isotovideo_response->{json_cmd_token};
 
-            app->log->debug('cmdsrv: broadcasting message from os-autoinst to all ws clients: ' . encode_json($isotovideo_response));
+            app->log->debug('cmdsrv: broadcasting message from os-autoinst to all ws clients: ' . to_json($isotovideo_response));
             for (keys %$clients) {
                 $clients->{$_}->send({json => $isotovideo_response});
             }

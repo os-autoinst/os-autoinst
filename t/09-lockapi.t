@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+
 use Test::More;
 use Test::MockModule;
 use Test::Warnings;
@@ -40,13 +41,13 @@ sub fake_api_call {
 }
 
 # monkey-patch mmap::api_call
-my $mod = new Test::MockModule('lockapi');
+my $mod = Test::MockModule->new('lockapi');
 $mod->mock(api_call => \&fake_api_call);
 
 # So barriers can call record_info
 use basetest;
 $autotest::current_test = basetest->new();
-my $mock_bmwqemu = new Test::MockModule('bmwqemu');
+my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
 $mock_bmwqemu->mock(result_dir => File::Temp->newdir());
 
 sub check_action {

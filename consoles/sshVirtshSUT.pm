@@ -14,9 +14,12 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package consoles::sshVirtshSUT;
-use base 'consoles::console';
+
 use strict;
 use warnings;
+
+use base 'consoles::console';
+
 use testapi 'get_var';
 use consoles::virtio_screen;
 

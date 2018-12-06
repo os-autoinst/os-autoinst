@@ -140,7 +140,6 @@ You can use distribution object to implement distribution specific helpers.
 
 =cut
 
-## no critic (ProhibitSubroutinePrototypes)
 sub set_distribution {
     ($distri) = @_;
     return $distri->init();

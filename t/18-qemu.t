@@ -1,6 +1,8 @@
 #!/usr/bin/perl
 
 use 5.018;
+use strict;
+use warnings;
 
 use Test::More;
 use Mojo::JSON 'encode_json';

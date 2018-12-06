@@ -15,6 +15,7 @@
 
 package OpenQA::Qemu::ControllerConf;
 use Mojo::Base 'OpenQA::Qemu::MutParams';
+
 use OpenQA::Qemu::DriveController;
 use List::Util 'first';
 

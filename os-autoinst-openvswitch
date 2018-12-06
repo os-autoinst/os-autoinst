@@ -1,14 +1,16 @@
 #!/usr/bin/perl
 package OVS;
+
 use strict;
+use warnings;
+use autodie ':all';
 
 use base 'Net::DBus::Object';
+
 use Net::DBus::Exporter 'org.opensuse.os_autoinst.switch';
 require IPC::System::Simple;
-use autodie ':all';
 use IPC::Open3;
 use Symbol 'gensym';
-
 
 sub new {
     my $class   = shift;

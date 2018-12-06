@@ -24,6 +24,7 @@ We only consider snapshots which form a linear chain. Branching snapshots are
 not supported.
 
 =cut
+
 package OpenQA::Qemu::Snapshot;
 use Mojo::Base 'OpenQA::Qemu::MutParams';
 

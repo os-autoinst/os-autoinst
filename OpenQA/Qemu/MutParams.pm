@@ -25,8 +25,10 @@ MutParams are also used to represent static devices which benefit from the
 added structure.
 
 =cut
+
 package OpenQA::Qemu::MutParams;
 use Mojo::Base -base;
+
 use Scalar::Util 'blessed';
 
 sub _push_ifdef {

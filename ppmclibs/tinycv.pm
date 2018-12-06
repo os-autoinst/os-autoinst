@@ -20,10 +20,8 @@ use strict;
 use warnings;
 
 use bmwqemu 'diag';
-
 use File::Basename;
 use Math::Complex 'sqrt';
-
 require Exporter;
 require DynaLoader;
 
@@ -35,6 +33,9 @@ our $VERSION = '1.0';
 bootstrap tinycv $VERSION;
 
 package tinycv::Image;
+
+use strict;
+use warnings;
 
 sub mean_square_error {
     my ($areas) = @_;
@@ -75,16 +76,16 @@ sub search_ {
     $stopwatch->lap("**++ search__: get image") if $stopwatch;
 
     my $img = $self;
-    for my $a (@{$needle->{area}}) {
-        push @exclude, $a if $a->{type} eq 'exclude';
-        push @match,   $a if $a->{type} eq 'match';
-        push @ocr,     $a if $a->{type} eq 'ocr';
+    for my $area (@{$needle->{area}}) {
+        push @exclude, $area if $area->{type} eq 'exclude';
+        push @match,   $area if $area->{type} eq 'match';
+        push @ocr,     $area if $area->{type} eq 'ocr';
     }
 
     if (@exclude) {
         $img = $self->copy;
-        for my $a (@exclude) {
-            $img->replacerect($a->{xpos}, $a->{ypos}, $a->{width}, $a->{height});
+        for my $exclude_area (@exclude) {
+            $img->replacerect(@{$exclude_area}{qw(xpos ypos width height)});
             $stopwatch->lap("**++-- search__: rectangle replacement") if $stopwatch;
         }
         $stopwatch->lap("**++ search__: areas exclusion") if $stopwatch;
@@ -120,9 +121,9 @@ sub search_ {
 
     $ret->{error} = mean_square_error($ret->{area});
     if ($ret->{ok}) {
-        for my $a (@ocr) {
+        for my $ocr_area (@ocr) {
             $ret->{ocr} ||= [];
-            my $ocr = ocr::tesseract($img, $a);
+            my $ocr = ocr::tesseract($img, $ocr_area);
             push @{$ret->{ocr}}, $ocr;
         }
         $stopwatch->lap("**++ ocr::tesseract: $needle->{name}") if $stopwatch;
@@ -135,6 +136,9 @@ sub search_ {
 # if match is equal quality prefer workaround needle to non-workaround
 # the name doesn't matter, but we prefer alphabetic order
 sub cmp_by_error_type_ {
+
+    ## no critic ($a/$b outside of sort block)
+
     my $okay = $b->{ok} <=> $a->{ok};
     return $okay if $okay;
     my $error = $a->{error} <=> $b->{error};
@@ -142,6 +146,9 @@ sub cmp_by_error_type_ {
     return -1 if ($a->{needle}->has_property('workaround') && !$b->{needle}->has_property('workaround'));
     return 1  if ($b->{needle}->has_property('workaround') && !$a->{needle}->has_property('workaround'));
     return $a->{needle}->{name} cmp $b->{needle}->{name};
+
+    ## use critic
+
 }
 
 

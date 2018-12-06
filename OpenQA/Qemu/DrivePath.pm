@@ -20,9 +20,9 @@ multiple SCSI controllers). This represents a single connection from a drive
 to a controller.
 
 =cut
+
 package OpenQA::Qemu::DrivePath;
 use Mojo::Base -base;
-use Mojo::JSON 'encode_json';
 
 has 'id';
 has 'controller';

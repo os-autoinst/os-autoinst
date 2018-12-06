@@ -14,7 +14,10 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 use strict;
+use warnings;
+
 use base "basetest";
+
 use testapi;
 
 my $orig_file = <<'END';

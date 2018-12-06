@@ -13,8 +13,11 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-use base "basetest";
 use strict;
+use warnings;
+
+use base "basetest";
+
 use testapi;
 
 sub run {

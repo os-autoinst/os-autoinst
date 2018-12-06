@@ -15,30 +15,32 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package bmwqemu;
+
 use strict;
 use warnings;
+use autodie ':all';
+
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Socket;
 use Fcntl ':flock';
-
 use POSIX;
 use Carp;
-use JSON;
+use Mojo::JSON;    # booleans
+use Cpanel::JSON::XS ();
 use File::Path 'remove_tree';
 use Data::Dumper;
 use Mojo::Log;
 use File::Spec::Functions;
-use base 'Exporter';
-use Exporter;
+use Exporter 'import';
 use POSIX 'strftime';
 use Time::HiRes 'gettimeofday';
+
 our $VERSION;
 our @EXPORT    = qw(fileContent save_vars);
 our @EXPORT_OK = qw(diag);
 
 use backend::driver;
 require IPC::System::Simple;
-use autodie ':all';
 
 sub mydie;
 
@@ -75,7 +77,7 @@ sub load_vars {
     my $fh;
     eval { open($fh, '<', $fn) };
     return 0 if $@;
-    eval { $ret = JSON->new->relaxed->decode(<$fh>); };
+    eval { $ret = Cpanel::JSON::XS->new->relaxed->decode(<$fh>); };
     die "parse error in vars.json:\n$@" if $@;
     close($fh);
     %vars = %{$ret};
@@ -90,7 +92,7 @@ sub save_vars {
     truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
 
     # make sure the JSON is sorted
-    my $json = JSON->new->pretty->canonical;
+    my $json = Cpanel::JSON::XS->new->pretty->canonical;
     print $fd $json->encode(\%vars);
     close($fd);
     return;
@@ -307,9 +309,9 @@ sub mydie {
 # store the obj as json into the given filename
 sub save_json_file {
     my ($result, $fn) = @_;
-
     open(my $fd, ">", "$fn.new");
-    print $fd to_json($result, {pretty => 1});
+    my $json = Cpanel::JSON::XS->new->pretty->canonical->encode($result);
+    print $fd $json;
     close($fd);
     return rename("$fn.new", $fn);
 }

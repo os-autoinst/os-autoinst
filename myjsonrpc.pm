@@ -20,6 +20,8 @@ use warnings;
 use Carp qw(cluck confess);
 use bmwqemu ();
 use Errno;
+use Mojo::JSON;    # booleans
+use Cpanel::JSON::XS ();
 
 sub send_json {
     my ($to_fd, $cmd) = @_;
@@ -27,11 +29,11 @@ sub send_json {
     # allow regular expressions to be automatically converted into
     # strings, using the Regex::TO_JSON function as defined at the end
     # of this file.
-    my $JSON = JSON->new()->convert_blessed();
+    my $cjx = Cpanel::JSON::XS->new->convert_blessed();
     # deep copy to add a random string
     my %cmdcopy = %$cmd;
     $cmdcopy{json_cmd_token} = bmwqemu::random_string(8);
-    my $json = $JSON->encode(\%cmdcopy);
+    my $json = $cjx->encode(\%cmdcopy);
 
     #bmwqemu::diag("send_json $json");
     my $wb = syswrite($to_fd, "$json");
@@ -46,12 +48,12 @@ our $sockets;
 sub read_json {
     my ($socket, $cmd_token) = @_;
 
-    my $JSON = JSON->new();
+    my $cjx = Cpanel::JSON::XS->new;
 
     my $fd = fileno($socket);
     if (exists $sockets->{$fd}) {
         # start with the trailing text from previous call
-        $JSON->incr_parse($sockets->{$fd});
+        $cjx->incr_parse($sockets->{$fd});
         delete $sockets->{$fd};
     }
 
@@ -64,10 +66,10 @@ sub read_json {
     # add more data to it. As the backend sends things unasked, we might
     # run into the next message otherwise
     while (1) {
-        $hash = $JSON->incr_parse();
+        $hash = $cjx->incr_parse();
         if ($hash) {
             # remember the trailing text
-            $sockets->{$fd} = $JSON->incr_text();
+            $sockets->{$fd} = $cjx->incr_text();
             if ($hash->{QUIT}) {
                 bmwqemu::diag("received magic close");
                 return;
@@ -96,7 +98,7 @@ sub read_json {
         my $bytes = sysread($socket, $qbuffer, 8000);
         #bmwqemu::diag("sysread $qbuffer");
         if (!$bytes) { bmwqemu::diag("sysread failed: $!"); return; }
-        $JSON->incr_parse($qbuffer);
+        $cjx->incr_parse($qbuffer);
     }
 
     return $hash;

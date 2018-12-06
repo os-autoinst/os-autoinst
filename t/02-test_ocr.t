@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+
 use Test::More;
 use Test::Warnings;
 use File::Which 'which';
@@ -36,9 +37,9 @@ $res    = $img1->search($needle);
 ok(defined $res, "ocr match 1");
 
 my $ocr;
-for my $a (@{$res->{needle}->{area}}) {
-    next unless $a->{type} eq 'ocr';
-    $ocr .= ocr::tesseract($img1, $a);
+for my $area (@{$res->{needle}->{area}}) {
+    next unless $area->{type} eq 'ocr';
+    $ocr .= ocr::tesseract($img1, $area);
 }
 
 ok($ocr =~ /Memory Test.*Video Mode/s, "multiple OCR regions");

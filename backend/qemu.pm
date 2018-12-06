@@ -15,8 +15,13 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package backend::qemu;
+
 use strict;
+use warnings;
+use autodie ':all';
+
 use base 'backend::virt';
+
 use File::Path 'mkpath';
 use File::Spec;
 use File::Which;
@@ -25,13 +30,12 @@ use IO::Select;
 use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use POSIX qw(strftime :sys_wait_h);
-use JSON;
+use Mojo::JSON;
 use Carp;
 use Fcntl;
 use Net::DBus;
 use bmwqemu qw(fileContent diag save_vars);
 require IPC::System::Simple;
-use autodie ':all';
 use Try::Tiny;
 use osutils qw(find_bin gen_params qv simple_run runcmd);
 use List::Util 'max';
@@ -182,7 +186,7 @@ sub open_file_and_send_fd_to_qemu {
     my ($self, $path, $fdname) = @_;
     my $rsp;
 
-    my $fd = POSIX::open($path, &POSIX::O_CREAT | &POSIX::O_RDWR);
+    my $fd = POSIX::open($path, POSIX::O_CREAT() | POSIX::O_RDWR());
     die "Failed to open $path: $!" unless (defined $fd);
 
     $rsp = $self->handle_qmp_command(
@@ -203,7 +207,7 @@ sub set_migrate_capability {
                 capabilities => [
                     {
                         capability => $name,
-                        state => $state ? JSON::true : JSON::false,
+                        state => $state ? Mojo::JSON::true : Mojo::JSON::false,
                     }]}
         },
         fatal => 1
@@ -943,7 +947,7 @@ sub handle_qmp_command {
     my $wb;
     my $sk = $self->{qmpsocket};
 
-    my $line = JSON::to_json($cmd) . "\n";
+    my $line = Mojo::JSON::to_json($cmd) . "\n";
     if (defined $optargs{send_fd}) {
         $wb = tinycv::send_with_fd($sk, $line, $optargs{send_fd});
     }
@@ -956,7 +960,7 @@ sub handle_qmp_command {
     while (!$hash) {
         $hash = myjsonrpc::read_json($sk);
         if ($hash->{event}) {
-            bmwqemu::diag "EVENT " . JSON::to_json($hash);
+            bmwqemu::diag "EVENT " . Mojo::JSON::to_json($hash);
             # ignore
             $hash = undef;
         }

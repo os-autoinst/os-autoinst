@@ -15,9 +15,12 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package consoles::remoteVnc;
-use base 'consoles::vnc_base';
+
 use strict;
 use warnings;
+
+use base 'consoles::vnc_base';
+
 use testapi 'get_var';
 
 sub init {

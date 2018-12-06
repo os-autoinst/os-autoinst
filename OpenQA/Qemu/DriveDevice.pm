@@ -19,9 +19,10 @@ The device which the SUT sees. The data on the device depends on the block dev
 chain pointed to by 'drive'.
 
 =cut
+
 package OpenQA::Qemu::DriveDevice;
 use Mojo::Base 'OpenQA::Qemu::MutParams';
-use Mojo::JSON 'encode_json';
+
 use OpenQA::Qemu::DrivePath;
 use bmwqemu 'diag';
 

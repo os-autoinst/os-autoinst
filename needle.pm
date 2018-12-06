@@ -18,12 +18,14 @@ package needle;
 
 use strict;
 use warnings;
+use autodie ':all';
+
 use File::Find;
 use File::Spec;
-use JSON;
+use Mojo::JSON 'decode_json';
+use Cpanel::JSON::XS ();
 use File::Basename;
 require IPC::System::Simple;
-use autodie ':all';
 use OpenQA::Benchmark::Stopwatch;
 
 our %needles;
@@ -71,22 +73,22 @@ sub new {
     $self->{properties} = $json->{properties} || [];
 
     my $gotmatch;
-    for my $area (@{$json->{area}}) {
-        my $a = {};
+    for my $area_from_json (@{$json->{area}}) {
+        my $area = {};
         for my $tag (qw(xpos ypos width height)) {
-            $a->{$tag} = $area->{$tag} || 0;
+            $area->{$tag} = $area_from_json->{$tag} || 0;
         }
         for my $tag (qw(processing_flags max_offset)) {
-            $a->{$tag} = $area->{$tag} if $area->{$tag};
+            $area->{$tag} = $area_from_json->{$tag} if $area_from_json->{$tag};
         }
-        $a->{match} = $area->{match} if $area->{match};
-        $a->{type}   = $area->{type}   || 'match';
-        $a->{margin} = $area->{margin} || 50;
+        $area->{match} = $area_from_json->{match} if $area_from_json->{match};
+        $area->{type}   = $area_from_json->{type}   || 'match';
+        $area->{margin} = $area_from_json->{margin} || 50;
 
-        $gotmatch = 1 if $a->{type} =~ /match|ocr/;
+        $gotmatch = 1 if $area->{type} =~ /match|ocr/;
 
         $self->{area} ||= [];
-        push @{$self->{area}}, $a;
+        push @{$self->{area}}, $area;
     }
 
     # one match is mandatory
@@ -114,14 +116,14 @@ sub save {
     my ($self, $fn) = @_;
     $fn ||= $self->{file};
     my @area;
-    for my $a (@{$self->{area}}) {
-        my $aa = {};
+    for my $area_from_json (@{$self->{area}}) {
+        my $area = {};
         for my $tag (qw(xpos ypos width height max_offset processing_flags match type margin)) {
-            $aa->{$tag} = $a->{$tag} if defined $a->{$tag};
+            $area->{$tag} = $area_from_json->{$tag} if defined $area_from_json->{$tag};
         }
-        push @area, $aa;
+        push @area, $area;
     }
-    my $json = JSON->new->pretty->utf8->canonical->encode(
+    my $json = Cpanel::JSON::XS->new->pretty->utf8->canonical->encode(
         {
             tags       => [sort(@{$self->{tags}})],
             area       => \@area,

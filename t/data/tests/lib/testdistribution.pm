@@ -14,7 +14,10 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package testdistribution;
+
 use strict;
+use warnings;
+
 use base 'distribution';
 
 sub init {

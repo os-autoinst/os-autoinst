@@ -15,16 +15,16 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package consoles::localXvnc;
-use base 'consoles::vnc_base';
-use strict;
-use warnings;
-use IPC::Run ();
 
-require IPC::System::Simple;
-use autodie ':all';
-use Socket;
 use strict;
 use warnings;
+use autodie ':all';
+
+use base 'consoles::vnc_base';
+
+use IPC::Run ();
+require IPC::System::Simple;
+use Socket;
 use File::Which;
 
 sub callxterm {
