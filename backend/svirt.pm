@@ -73,8 +73,9 @@ sub do_stop_vm {
             $self->run_cmd("$ps Remove-VM -Force -VMName $vmname");
         }
         else {
-            $self->run_cmd("virsh destroy $vmname");
-            $self->run_cmd("virsh undefine $vmname");
+            my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
+            $self->run_cmd("virsh $libvirt_connector destroy $vmname");
+            $self->run_cmd("virsh $libvirt_connector undefine --snapshots-metadata $vmname");
         }
     }
     return {};
@@ -126,7 +127,7 @@ sub can_handle {
     my $vars = \%bmwqemu::vars;
     if ($args->{function} eq 'snapshots' && !check_var('HDDFORMAT', 'raw')) {
         # Snapshots via libvirt are supported on KVM and, perhaps, ESXi. Hyper-V uses native tools.
-        if (check_var('VIRSH_VMM_FAMILY', 'kvm') || check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+        if (check_var('VIRSH_VMM_FAMILY', 'kvm') || check_var('VIRSH_VMM_FAMILY', 'hyperv') || check_var('VIRSH_VMM_FAMILY', 'vmware')) {
             return {ret => 1};
         }
     }
@@ -141,7 +142,8 @@ sub is_shutdown {
         $rsp = $self->run_cmd("powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"");
     }
     else {
-        $rsp = $self->run_cmd("! virsh dominfo $vmname | grep -w 'shut off'");
+        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
+        $rsp = $self->run_cmd("! virsh $libvirt_connector dominfo $vmname | grep -w 'shut off'");
     }
     return $rsp;
 }
@@ -157,10 +159,11 @@ sub save_snapshot {
         $rsp = $self->run_cmd("$ps Checkpoint-VM -VMName $vmname -SnapshotName $snapname");
     }
     else {
-        $self->run_cmd("virsh snapshot-delete $vmname $snapname");
-        $rsp = $self->run_cmd("virsh snapshot-create-as $vmname $snapname");
+        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
+        $self->run_cmd("virsh $libvirt_connector snapshot-delete $vmname $snapname");
+        $rsp = $self->run_cmd("virsh $libvirt_connector snapshot-create-as $vmname $snapname");
     }
-    bmwqemu::diag "SAVE VM \"$vmname\" as \"$snapname\" snapshot, return code=$rsp";
+    bmwqemu::diag "SAVE VM $vmname as $snapname snapshot, return code=$rsp";
     die unless ($rsp == 0);
     return;
 }
@@ -187,9 +190,10 @@ sub load_snapshot {
         }
     }
     else {
-        $rsp = $self->run_cmd("virsh snapshot-revert $vmname $snapname");
+        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
+        $rsp = $self->run_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
     }
-    bmwqemu::diag "LOAD snapshot \"$snapname\" to \"$vmname\", return code=$rsp";
+    bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
     die unless ($rsp == 0);
     return $rsp;
 }
@@ -235,7 +239,7 @@ sub start_serial_grab {
         # libvirt esx driver does not support `virsh console', so
         # we have to connect to VM's serial port via TCP which is
         # provided by ESXi server.
-        $chan->exec('nc ' . get_var('VMWARE_SERVER') . ' ' . get_var('VMWARE_SERIAL_PORT'));
+        $chan->exec('nc ' . get_var('VMWARE_HOST') . ' ' . get_var('VMWARE_SERIAL_PORT'));
     }
     elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         # Hyper-V does not support serial console export via TCP, just
