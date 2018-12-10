@@ -123,7 +123,7 @@ VIRSH_PASSWORD;string;Password for root account on above host;
 VIRSH_VMM_FAMILY;string;Host's hypervisor ('kvm', 'xen');
 VIRSH_VMM_TYPE;string;Host's hypervisor type ('hvm' for full virtualization on 'kvm' and 'xen' families, 'linux' for paravirtualization on 'xen' family);
 VIRSH_GUEST;string;Where to look for VNC server (SUT or VM);
-VIRSH_GUEST_PASSWORD;string;VNC password of the guest
+VIRSH_GUEST_PASSWORD;string;VNC password of the guest;
 VIRSH_INSTANCE;integer;VM's instance number on VIRSH_HOSTNAME;
 VMWARE_USERNAME;string;Administrator's username ('@' is '%40');
 VMWARE_PASSWORD;string;Administrator's password;
