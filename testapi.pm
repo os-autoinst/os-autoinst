@@ -691,6 +691,7 @@ sub get_required_var {
   set_var($variable, $value [, reload_needles => 1] );
 
 Set test variable C<$variable> to value C<$value>.
+Variables starting with C<_SECRET_> will not appear in the vars.json file.
 
 Specify a true value for the C<reload_needles> flag to trigger a reloading
 of needles in the backend and call the cleanup handler with the new variables
