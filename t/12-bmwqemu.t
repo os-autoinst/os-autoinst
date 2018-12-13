@@ -103,6 +103,40 @@ subtest 'test PRJDIR default' => sub {
     is($vars{PRJDIR},  $data_dir, 'PRJDIR set to default');
 };
 
+subtest 'save_vars' => sub {
+    my $dir = "$data_dir/tests";
+    create_vars({CASEDIR => $dir, _SECRET_TEST => 'my_credentials'});
+    $bmwqemu::openqa_default_share = $data_dir;
+
+    eval {
+        use bmwqemu ();
+        bmwqemu::init;
+        bmwqemu::save_vars();
+    };
+    ok(!$@, 'init successful');
+
+    my %vars = %{read_vars()};
+    is($vars{_SECRET_TEST}, 'my_credentials', '_SECRET_TEST unchanged');
+    is($vars{CASEDIR},      $dir,             'CASEDIR unchanged');
+};
+
+subtest 'save_vars no_secret' => sub {
+    my $dir = "$data_dir/tests";
+    create_vars({CASEDIR => $dir, _SECRET_TEST => 'my_credentials'});
+    $bmwqemu::openqa_default_share = $data_dir;
+
+    eval {
+        use bmwqemu ();
+        bmwqemu::init;
+        bmwqemu::save_vars(no_secret => 1);
+    };
+    ok(!$@, 'init successful');
+
+    my %vars = %{read_vars()};
+    ok(!$vars{_SECRET_TEST}, '_SECRET_TEST not written to vars.json');
+    is($vars{CASEDIR}, $dir, 'CASEDIR unchanged');
+};
+
 done_testing;
 
 END {

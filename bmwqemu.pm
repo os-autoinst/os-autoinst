@@ -85,15 +85,22 @@ sub load_vars {
 }
 
 sub save_vars {
+    my (%args) = @_;
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
     flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
     truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
 
+    my $write_vars = \%vars;
+    if ($args{no_secret}) {
+        $write_vars = {};
+        $write_vars->{$_} = $vars{$_} for (grep !/^_SECRET_/, keys(%vars));
+    }
+
     # make sure the JSON is sorted
     my $json = Cpanel::JSON::XS->new->pretty->canonical;
-    print $fd $json->encode(\%vars);
+    print $fd $json->encode($write_vars);
     close($fd);
     return;
 }

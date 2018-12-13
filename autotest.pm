@@ -217,7 +217,7 @@ sub run_all {
         $died = 1;    # test execution died
     }
     eval {
-        bmwqemu::save_vars();
+        bmwqemu::save_vars(no_secret => 1);
         myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, completed => $completed});
     };
     close $isotovideo;
