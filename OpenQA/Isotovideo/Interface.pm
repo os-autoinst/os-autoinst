@@ -22,7 +22,7 @@ use warnings;
 # -> increment on every change of such APIs
 # -> never move that variable to another place (when refactoring)
 #    because it may be accessed by the tests itself
-our $version = 13;
+our $version = 14;
 
 # major version of the (web socket) API relevant to the developer mode
 # -> increment when making non-backward compatible changes to that API

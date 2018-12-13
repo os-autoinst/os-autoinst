@@ -83,7 +83,10 @@ sub fake_read_json {
         return {ret => 1};
     }
     elsif ($cmd eq 'backend_get_last_mouse_set') {
-        return {ret => {x => -1, y => -1}};
+        return {ret => {x => 100, y => 100}};
+    }
+    elsif ($cmd eq 'backend_mouse_set') {
+        return {ret => {x => 100, y => 100}};
     }
     else {
         print "not implemented \$cmd: $cmd\n";
@@ -374,10 +377,11 @@ subtest 'assert_and_click' => sub {
                 cmd    => 'backend_mouse_button'
             },
             {
-                cmd    => 'backend_mouse_hide',
-                offset => 0
+                cmd => 'backend_mouse_set',
+                x   => 100,
+                y   => 100
             },
-    ], 'assert_and_click clicks in the middle and hides the mouse again') or diag explain $cmds;
+    ], 'assert_and_click succeeds and move to old mouse set') or diag explain $cmds;
 
     $cmds = [];
     push(@areas, {x => 50, y => 60, w => 22, h => 20, click_point => {xpos => 5, ypos => 7}});
@@ -396,6 +400,28 @@ subtest 'assert_and_click' => sub {
             x   => 61,
             y   => 70,
     }, 'assert_and_click clicks at the  click point specified as "center"') or diag explain $cmds;
+
+    is_deeply($cmds->[-1], {cmd => 'backend_mouse_set', x => 100, y => 100}, 'assert_and_click succeeds and move to old mouse set');
+
+    ok(assert_and_click('foo', mousehide => 1));
+    is_deeply($cmds->[-1], {cmd => 'backend_mouse_hide', offset => 0}, 'assert_and_click succeeds and hides mouse with mousehide => 1');
+
+    ok(assert_and_click('foo', button => 'right'));
+    is_deeply($cmds->[-2], {bstate => 0, button => 'right', cmd => 'backend_mouse_button'}, 'assert_and_click succeeds with right click');
+    is_deeply($cmds->[-1], {cmd => 'backend_mouse_set', x => 100, y => 100}, 'assert_and_click succeeds and move to old mouse set');
+};
+
+subtest 'assert_and_dclick' => sub {
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->mock(assert_screen => {area => [{x => 1, y => 2, w => 3, h => 4}]});
+    ok(assert_and_dclick('foo', mousehide => 1));
+    for (-2, -4) {
+        is_deeply($cmds->[$_], {bstate => 0, button => 'left', cmd => 'backend_mouse_button'}, 'assert_and_dclick succeeds with bstate => 0');
+    }
+    for (-3, -5) {
+        is_deeply($cmds->[$_], {bstate => 1, button => 'left', cmd => 'backend_mouse_button'}, 'assert_and_dclick succeeds with bstate => 1');
+    }
+    is_deeply($cmds->[-1], {cmd => 'backend_mouse_hide', offset => 0}, 'assert_and_dclick succeeds and hides mouse with mousehide => 1');
 };
 
 subtest 'record_info' => sub {
