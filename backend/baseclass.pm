@@ -55,7 +55,7 @@ __PACKAGE__->mk_accessors(
 
 sub new {
     my $class = shift;
-    my $self = bless({class => $class}, $class);
+    my $self  = bless({class => $class}, $class);
     $self->{started}              = 0;
     $self->{serialfile}           = "serial0";
     $self->{serial_offset}        = 0;
@@ -899,7 +899,7 @@ sub set_tags_to_assert {
     }
     elsif ($mustmatch) {
         $needles = needle::tags($mustmatch) || [];
-        @tags = ($mustmatch);
+        @tags    = ($mustmatch);
     }
 
     {    # remove duplicates
@@ -1134,7 +1134,7 @@ sub verify_image {
     my $imgpath   = $args->{imgpath};
     my $mustmatch = $args->{mustmatch};
 
-    my $img = tinycv::read($imgpath);
+    my $img     = tinycv::read($imgpath);
     my $needles = needle::tags($mustmatch) || [];
 
     my ($foundneedle, $failed_candidates) = $img->search($needles, 0, 1);

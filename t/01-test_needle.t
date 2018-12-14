@@ -329,7 +329,7 @@ my $workaround = needle->new($data_dir . "login_sddm.ref.workaround.imperfect.js
 # test that a perfect non-workaround match is preferred to imperfect
 # non-workaround and workaround matches
 $img1 = tinycv::read($data_dir . "login_sddm.test.png");
-$res = $img1->search([$perfect, $imperfect, $workaround], 0.9, 0);
+$res  = $img1->search([$perfect, $imperfect, $workaround], 0.9, 0);
 is($res->{needle}->{name}, 'login_sddm.ref.perfect', "perfect match should win");
 
 # test that when two equal matches fight and one is a workaround, that

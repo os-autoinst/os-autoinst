@@ -261,7 +261,7 @@ sub _check_backend_response {
         return _handle_found_needle($foundneedle, $rsp, $tags);
     }
     elsif ($rsp->{timeout}) {
-        my $method = $check ? 'check_screen' : 'assert_screen';
+        my $method         = $check ? 'check_screen' : 'assert_screen';
         my $status_message = "match=" . join(',', @$tags) . " timed out after $timeout ($method)";
         bmwqemu::fctres($status_message);
 
@@ -301,7 +301,7 @@ sub _check_backend_response {
             $failed_screens = [$final_mismatch];
         }
         for my $l (@$failed_screens) {
-            my $img = tinycv::from_ppm(decode_base64($l->{image}));
+            my $img    = tinycv::from_ppm(decode_base64($l->{image}));
             my $result = $check ? 'unk' : 'fail';
             $result = 'unk' if ($l != $final_mismatch);
             if ($rsp->{saveresult}) {
@@ -781,7 +781,7 @@ sub is_serial_terminal {
     state $last_seen = '';
     if (defined current_console() && current_console() ne $last_seen) {
         $last_seen = current_console();
-        $ret = query_isotovideo('backend_is_serial_terminal', {});
+        $ret       = query_isotovideo('backend_is_serial_terminal', {});
     }
     return $ret->{yesorno};
 }
@@ -813,7 +813,7 @@ sub wait_serial {
     bmwqemu::log_call(%nargs);
     $nargs{timeout} = bmwqemu::scale_timeout($nargs{timeout});
 
-    my $ret = query_isotovideo('backend_wait_serial', \%nargs);
+    my $ret     = query_isotovideo('backend_wait_serial', \%nargs);
     my $matched = $ret->{matched};
 
     if ($expect_not_found) {
@@ -1071,7 +1071,7 @@ sub validate_script_output($&;$) {
     $wait ||= 30;
 
     my $output = script_output($script, $wait);
-    my $res = 'ok';
+    my $res    = 'ok';
 
     # set $_ so the callbacks can be simpler code
     $_ = $output;
@@ -1252,9 +1252,9 @@ sub type_string {
         return;
     }
 
-    my $max_interval = $args{max_interval} // 250;
+    my $max_interval = $args{max_interval}       // 250;
     my $wait         = $args{wait_screen_change} // 0;
-    my $wait_still   = $args{wait_still_screen} // 0;
+    my $wait_still   = $args{wait_still_screen}  // 0;
     bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait, wait_still_screen => $wait_still);
     if ($wait) {
         # split string into an array of pieces of specified size
@@ -1543,7 +1543,7 @@ I<Only supported by qemu backend.>
 =cut
 
 sub start_audiocapture {
-    my $fn = $autotest::current_test->capture_filename;
+    my $fn       = $autotest::current_test->capture_filename;
     my $filename = join('/', bmwqemu::result_dir(), $fn);
     bmwqemu::log_call(filename => $filename);
     return query_isotovideo('backend_start_audiocapture', {filename => $filename});
@@ -1552,7 +1552,7 @@ sub start_audiocapture {
 sub _check_or_assert_sound {
     my ($mustmatch, $check) = @_;
 
-    my $result = $autotest::current_test->stop_audiocapture();
+    my $result  = $autotest::current_test->stop_audiocapture();
     my $wavfile = join('/', bmwqemu::result_dir(), $result->{audio});
     system("snd2png $wavfile $result->{audio}.png");
 

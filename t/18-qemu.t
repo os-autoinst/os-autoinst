@@ -36,7 +36,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single new drive');
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single new drive');
 
-@cmdl = (['convert', '-c', '-O', 'qcow2', 'raid/hd1', 'images/hd1.qcow2']);
+@cmdl  = (['convert', '-c', '-O', 'qcow2', 'raid/hd1', 'images/hd1.qcow2']);
 @gcmdl = $bdc->gen_qemu_img_convert(qr/^hd/, 'images', 'hd1.qcow2');
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert for single new drive');
 
@@ -77,7 +77,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing d
 @gcmdl = $bdc->gen_unlink_list();
 is_deeply(\@cmdl, \@gcmdl, 'Generate unlink list for single existing drive');
 
-@cmdl = (['convert', '-c', '-O', 'qcow2', 'raid/hd1-overlay0', 'images/hd1.qcow2']);
+@cmdl  = (['convert', '-c', '-O', 'qcow2', 'raid/hd1-overlay0', 'images/hd1.qcow2']);
 @gcmdl = $bdc->gen_qemu_img_convert(qr/^hd1/, 'images', 'hd1.qcow2');
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert for single existing drive');
 
@@ -227,7 +227,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate reverted snapshot images');
 @gcmdl = $bdc->gen_unlink_list();
 is_deeply(\@gcmdl, \@cmdl, 'Generate unlink list of reverted snapshot images');
 
-@cmdl = (['convert', '-c', '-O', 'qcow2', 'raid/hd0-overlay1', 'images/hd0.qcow2']);
+@cmdl  = (['convert', '-c', '-O', 'qcow2', 'raid/hd0-overlay1', 'images/hd0.qcow2']);
 @gcmdl = $bdc->gen_qemu_img_convert(qr/^hd0$/, 'images', 'hd0.qcow2');
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert with snapshots');
 
@@ -271,7 +271,7 @@ $bdc = $proc->blockdev_conf;
 $ss = $ssc->revert_to_snapshot('snapshot 1');
 is($ss->sequence, 1, 'Returned snapshot sequence number');
 $bdc->for_each_drive(sub {
-        my $drive = shift;
+        my $drive   = shift;
         my $unlinks = $bdc->revert_to_snapshot($drive, $ss);
         is(scalar(@$unlinks), 9, 'Correct number of overlay files need unlinking for ' . $drive->id);
 });
@@ -333,7 +333,7 @@ $bdc = $proc->blockdev_conf;
 $ss = $ssc->revert_to_snapshot('snapshot 1');
 is($ss->sequence, 1, 'Returned snapshot sequence number');
 $bdc->for_each_drive(sub {
-        my $drive = shift;
+        my $drive   = shift;
         my $unlinks = $bdc->revert_to_snapshot($drive, $ss);
         is(scalar(@$unlinks), 10, 'Correct number of overlay files need unlinking for ' . $drive->id);
 });

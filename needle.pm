@@ -38,7 +38,7 @@ sub new {
 
     my $json;
     if (ref $jsonfile eq 'HASH') {
-        $json = $jsonfile;
+        $json     = $jsonfile;
         $jsonfile = $json->{file} || File::Spec->catfile($needledir, $json->{name} . '.json');
     }
 
@@ -188,7 +188,7 @@ sub _load_image_with_caching {
     my ($self) = @_;
 
     # insert newly loaded image to cache or recycle previously cached image
-    my $image_path = $self->{png};
+    my $image_path       = $self->{png};
     my $image_cache_item = ($image_cache{$image_path} //= $self->_load_image($image_path));
     $image_cache_item->{last_use} = ++$image_cache_tick;
     return $image_cache_item->{image};

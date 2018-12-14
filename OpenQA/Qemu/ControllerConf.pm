@@ -50,7 +50,7 @@ sub get_controllers {
 }
 
 sub to_map {
-    my $self = shift;
+    my $self        = shift;
     my @controllers = map { $_->_to_map } @{$self->_controllers};
 
     return {controllers => \@controllers};

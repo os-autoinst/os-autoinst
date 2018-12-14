@@ -59,7 +59,7 @@ BEGIN {
     $installprefix = undef;
 
     my ($wd) = $0 =~ m-(.*)/-;
-    $wd ||= '.';
+    $wd            ||= '.';
     $installprefix ||= $wd;
     unshift @INC, "$installprefix";
 }
@@ -386,11 +386,11 @@ bmwqemu::load_vars();
 if (!$return_code && $command_handler->test_completed && $bmwqemu::vars{BACKEND} eq 'qemu') {
     my @toextract;
     for my $i (1 .. $bmwqemu::vars{NUMDISKS}) {
-        my $dir = 'assets_private';
+        my $dir  = 'assets_private';
         my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
         unless ($name) {
             $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
-            $dir = 'assets_public';
+            $dir  = 'assets_public';
         }
         next unless $name;
         $name =~ /\.([[:alnum:]]+)$/;

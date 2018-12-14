@@ -236,7 +236,7 @@ sub script_output {
     # unambiguously separate the expected output from other content that we
     # might encounter on the serial device depending on how it is used in the
     # SUT
-    my $shell_cmd = testapi::is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
+    my $shell_cmd  = testapi::is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
     my $run_script = "echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-";
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, undef, 0, no_regex => 1);

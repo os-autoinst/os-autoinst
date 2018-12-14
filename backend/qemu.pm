@@ -72,7 +72,7 @@ sub raw_alive { shift->{proc}->_process->is_running }
 sub _wrap_hmc {
     my $cmdline = shift;
     return {
-        execute => 'human-monitor-command',
+        execute   => 'human-monitor-command',
         arguments => {'command-line' => $cmdline}};
 }
 sub start_audiocapture {
@@ -207,7 +207,7 @@ sub set_migrate_capability {
                 capabilities => [
                     {
                         capability => $name,
-                        state => $state ? Mojo::JSON::true : Mojo::JSON::false,
+                        state      => $state ? Mojo::JSON::true : Mojo::JSON::false,
                     }]}
         },
         fatal => 1
@@ -218,7 +218,7 @@ sub _wait_while_status_is {
     my ($self, $status, $timeout, $fail_msg) = @_;
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
-    my $i = 0;
+    my $i   = 0;
     while ($rsp->{return}->{status} =~ $status) {
         $i += 1;
         if ($i > $timeout) {
@@ -243,7 +243,7 @@ sub _wait_for_migrate {
         sleep 0.5;
 
         $execution_time = gettimeofday - $migration_starttime;
-        $rsp = $self->handle_qmp_command({execute => "query-migrate"},
+        $rsp            = $self->handle_qmp_command({execute => "query-migrate"},
             fatal => 1);
 
         if ($rsp->{return}->{status} eq "failed") {
@@ -291,7 +291,7 @@ sub _migrate_to_file {
                 'compress-threads' => $compress_threads + 0,
                 # Ensure slow dump times are not due to a transfer rate cap
                 'max-bandwidth' => $max_bandwidth + 0,
-              }
+            }
         },
         fatal => 1
     );
@@ -304,7 +304,7 @@ sub _migrate_to_file {
     # migrate consumes the file descriptor, so we do not need to call closefd
     $self->handle_qmp_command(
         {
-            execute => 'migrate',
+            execute   => 'migrate',
             arguments => {uri => "fd:$fdname"}
         },
         fatal => 1
@@ -519,7 +519,7 @@ sub start_qemu {
         }
         else {
             (my $class = $vars->{WORKER_CLASS} || '') =~ s/qemu_/qemu-system\-/g;
-            my @execs = qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64);
+            my @execs   = qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64);
             my %allowed = map { $_ => 1 } @execs;
             for (split(/\s*,\s*/, $class)) {
                 if ($allowed{$_}) {
@@ -605,7 +605,7 @@ sub start_qemu {
         $vars->{HDDMODEL} ||= "scsi-hd";
         $vars->{PATHCNT}  ||= 2;
     }
-    $vars->{NUMDISKS} ||= defined($vars->{RAIDLEVEL}) ? 4 : 1;
+    $vars->{NUMDISKS}  ||= defined($vars->{RAIDLEVEL}) ? 4 : 1;
     $vars->{HDDSIZEGB} ||= 10;
     $vars->{CDMODEL}   ||= "scsi-cd";
     $vars->{HDDMODEL}  ||= "virtio-blk";
@@ -672,7 +672,7 @@ sub start_qemu {
         # always set proper TAPDEV for os-autoinst when using tap network mode
         my $instance = ($vars->{WORKER_INSTANCE} || 'manual') eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
         # use $instance for tap name so it is predicable, network is still configured staticaly
-        $tapdev[$i] //= 'tap' . ($instance - 1 + $i * 64);
+        $tapdev[$i]  //= 'tap' . ($instance - 1 + $i * 64);
         $nicvlan[$i] //= 0;
     }
     push @tapscript,     "no" until @tapscript >= $num_networks;        #no TAPSCRIPT by default

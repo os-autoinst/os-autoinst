@@ -20,7 +20,7 @@ set_var(VIRSH_HOSTNAME  => 'bar');
 set_var(VIRSH_PASSWORD  => 'password');
 
 my $distri = $testapi::distri = distribution->new();
-my $svirt = backend::svirt->new();
+my $svirt  = backend::svirt->new();
 
 is_deeply($svirt->read_credentials_from_virsh_variables, {
         hostname => 'bar',

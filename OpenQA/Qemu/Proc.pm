@@ -114,7 +114,7 @@ sub configure_controllers {
     }
 
     my $scsi_con = $vars->{SCSICONTROLLER} || 0;
-    my $cc = $self->controller_conf;
+    my $cc       = $self->controller_conf;
 
     if ($scsi_con) {
         $cc->add_controller($scsi_con, 'scsi0');
@@ -137,7 +137,7 @@ sub configure_controllers {
 sub get_img_size {
     my ($self, $path) = @_;
     my $json = simple_run($self->qemu_img_bin, 'info', '--output=json', $path);
-    my $map = decode_json($json);
+    my $map  = decode_json($json);
 
     die 'No size field in: ' . Dumper($map) unless defined $map->{'virtual-size'};
 
@@ -215,7 +215,7 @@ sub configure_blockdevs {
         my $i        = $k;
         $i =~ s/^ISO_//;
 
-        my $size = $self->get_img_size($addoniso);
+        my $size  = $self->get_img_size($addoniso);
         my $drive = $bdc->add_iso_drive("cd$i", $addoniso, $vars->{CDMODEL}, $size);
         $drive->serial("cd$i");
         # first connected cdrom gets ",bootindex=0 when booting from cdrom and
@@ -427,7 +427,7 @@ sub revert_to_snapshot {
 
     my $snapshot = $self->snapshot_conf->revert_to_snapshot($name);
     $bdc->for_each_drive(sub {
-            my $drive = shift;
+            my $drive     = shift;
             my $del_files = $bdc->revert_to_snapshot($drive, $snapshot);
 
             die "Snapshot $name not found for " . $drive->id unless defined($del_files);

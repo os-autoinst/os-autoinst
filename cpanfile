@@ -50,7 +50,7 @@ on 'test' => sub {
   requires 'File::Touch';
   requires 'Perl::Critic';
   requires 'Perl::Critic::Freenode';
-  requires 'Perl::Tidy', '== 20180220';
+  requires 'Perl::Tidy', '== 20181120';
   requires 'Pod::Coverage';
   requires 'Test::Compile';
   requires 'Test::Fatal';

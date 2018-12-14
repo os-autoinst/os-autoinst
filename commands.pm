@@ -140,7 +140,7 @@ sub test_data {
 sub get_asset {
     my ($self) = @_;
 
-    my $path = join '/', $bmwqemu::vars{ASSETDIR}, $self->param('assettype'), $self->param('assetname');
+    my $path    = join '/', $bmwqemu::vars{ASSETDIR}, $self->param('assettype'), $self->param('assetname');
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
         # do not allow .. in path
