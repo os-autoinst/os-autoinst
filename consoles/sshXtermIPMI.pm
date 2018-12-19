@@ -37,7 +37,7 @@ sub activate {
     my @command = $self->backend->ipmi_cmdline;
     push(@command, qw(sol activate));
     my $serial = $self->{args}->{serial};
-    my $cstr = join(' ', @command);
+    my $cstr   = join(' ', @command);
     $self->callxterm($cstr, "ipmitool:$testapi_console");
 }
 

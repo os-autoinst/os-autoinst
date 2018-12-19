@@ -133,7 +133,7 @@ sub add_existing_drive {
     my ($self, $id, $file_name, $model, $size) = @_;
 
     my $base_drive = $self->add_existing_base($id, $file_name, $size)->implicit(1);
-    my $overlay = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);
+    my $overlay    = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);
 
     return $self->_push_new_drive_dev($id, $overlay, $model);
 }
@@ -169,7 +169,7 @@ sub add_pflash_drive {
       ->implicit(1)
       ->driver($file_name =~ qr/\.qcow2$/ ? 'qcow2' : 'raw');
     my $overlay = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);
-    my $pflash = OpenQA::Qemu::PFlashDevice->new()
+    my $pflash  = OpenQA::Qemu::PFlashDevice->new()
       ->id($id)
       ->drive($overlay);
 
@@ -308,7 +308,7 @@ sub gen_unlink_list {
 
 # See MutParams.pm
 sub to_map {
-    my $self = shift;
+    my $self   = shift;
     my @drives = map { $_->_to_map() } @{$self->_drives};
 
     return {basedir => $self->basedir, drives => \@drives};

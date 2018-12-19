@@ -98,7 +98,7 @@ subtest 'web socket route' => sub {
             json => {
                 cmd  => 'set_pause_at_test',
                 name => 'installation-welcome',
-              }
+            }
         },
         'command passed to isotovideo'
     );

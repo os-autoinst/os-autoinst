@@ -219,7 +219,7 @@ sub _handshake_security {
     my $security_type;
     if ($self->_rfb_version ge '003.007') {
         my $number_of_security_types = 0;
-        my $r = $socket->read($number_of_security_types, 1);
+        my $r                        = $socket->read($number_of_security_types, 1);
         if ($r) {
             $number_of_security_types = unpack('C', $number_of_security_types);
         }
@@ -238,7 +238,7 @@ sub _handshake_security {
 
         my @pref_types = (1, 2);
         @pref_types = (30, 1, 2) if $self->username;
-        @pref_types = (16) if $self->ikvm;
+        @pref_types = (16)       if $self->ikvm;
 
         for my $preferred_type (@pref_types) {
             if (0 < grep { $_ == $preferred_type } @security_types) {
@@ -1038,7 +1038,7 @@ sub _receive_zrle_encoding {
     $self->{_inflater} ||= Compress::Raw::Zlib::Inflate->new;
     my $out;
     my $old_total_out = $self->{_inflater}->total_out;
-    my $status = $self->{_inflater}->inflate($data, $out, 1);
+    my $status        = $self->{_inflater}->inflate($data, $out, 1);
     if ($status != Z_OK) {
         OpenQA::Exception::VNCProtocolError->throw(error => "inflation failed $status");
     }

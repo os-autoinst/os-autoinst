@@ -39,7 +39,7 @@ sub activate {
     my $password = $ssh_args->{password} || $testapi::password;
     my $username = $ssh_args->{username} || 'root';
     my $sshcommand = $self->sshCommand($username, $hostname, $gui);
-    my $serial = $self->{args}->{serial};
+    my $serial     = $self->{args}->{serial};
 
     $self->callxterm($sshcommand, "ssh:$testapi_console");
 

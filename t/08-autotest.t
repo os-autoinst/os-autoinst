@@ -93,7 +93,7 @@ is($completed, 1, 'start+next+start should complete');
 # runargs test module, as it fails.
 subtest 'test always_rollback flag' => sub {
     # Test that no rollback is triggered when flag is not explicitly set to true
-    $mock_basetest->mock(test_flags => sub { return {milestone => 1}; });
+    $mock_basetest->mock(test_flags       => sub { return {milestone => 1}; });
     $mock_autotest->mock(query_isotovideo => sub { return 0; });
     my $reverts_done = 0;
     $mock_autotest->mock(load_snapshot => sub { $reverts_done++; });
@@ -107,7 +107,7 @@ subtest 'test always_rollback flag' => sub {
     @sent         = [];
 
     # Test that no rollback is triggered if snapshots are not supported
-    $mock_basetest->mock(test_flags => sub { return {always_rollback => 1, milestone => 1}; });
+    $mock_basetest->mock(test_flags       => sub { return {always_rollback => 1, milestone => 1}; });
     $mock_autotest->mock(query_isotovideo => sub { return 0; });
     my $reverts_done = 0;
     $mock_autotest->mock(load_snapshot => sub { $reverts_done++; });
@@ -121,7 +121,7 @@ subtest 'test always_rollback flag' => sub {
     @sent         = [];
 
     # Test that snapshot loading is triggered even when tests are successful
-    $mock_basetest->mock(test_flags => sub { return {always_rollback => 1}; });
+    $mock_basetest->mock(test_flags       => sub { return {always_rollback => 1}; });
     $mock_autotest->mock(query_isotovideo => sub { return 1; });
     $reverts_done = 0;
 

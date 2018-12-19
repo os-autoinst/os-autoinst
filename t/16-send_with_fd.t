@@ -33,7 +33,7 @@ my $pid = fork || do {
     shutdown($ask, 2);
 
     my @cmsg = $msg->cmsghdr();
-    my $fd = unpack('i', $cmsg[2]);
+    my $fd   = unpack('i', $cmsg[2]);
 
     POSIX::write($fd, $msg->buf(), 4)
       || die "Failed to write echo to pipe: $!";

@@ -56,7 +56,7 @@ sub activate {
     my $backend = $self->{backend};
     my ($ssh, $chan) = $backend->open_serial_console_via_ssh($self->{libvirt_domain}, $self->{serial_port_no});
 
-    $self->{ssh} = $ssh;
+    $self->{ssh}    = $ssh;
     $self->{screen} = consoles::virtio_screen->new($chan, $ssh->sock);
     return;
 }

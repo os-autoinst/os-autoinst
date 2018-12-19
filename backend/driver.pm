@@ -161,7 +161,7 @@ sub _send_json {
     my ($self, $cmd) = @_;
     croak "no backend running" unless $self->{backend_process}->channel_in;
     my $token = myjsonrpc::send_json($self->{backend_process}->channel_in, $cmd);
-    my $rsp = myjsonrpc::read_json($self->{backend_process}->channel_out, $token);
+    my $rsp   = myjsonrpc::read_json($self->{backend_process}->channel_out, $token);
 
     unless (defined $rsp) {
         # this might have been closed by signal handler

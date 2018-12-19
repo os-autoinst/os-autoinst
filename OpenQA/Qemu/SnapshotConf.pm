@@ -28,7 +28,7 @@ use Mojo::Base 'OpenQA::Qemu::MutParams';
 use OpenQA::Qemu::Snapshot;
 
 has _sequence => 0;
-has _head => sub { return OpenQA::Qemu::Snapshot->new(); };
+has _head     => sub { return OpenQA::Qemu::Snapshot->new(); };
 
 sub add_snapshot {
     my ($self, $name) = @_;
