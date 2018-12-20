@@ -244,5 +244,6 @@ docker-test-run:
 	docker run --rm -v $(abs_top_srcdir):/opt/repo os-autoinst/travis_test:latest 'make && make check VERBOSE=1'
 
 .PHONY: docker-test
+.NOTPARALLEL: docker-test
 docker-test: docker-test-build docker-test-run
 	echo "Use docker-rm and docker-rmi to remove the container and image if necessary"
