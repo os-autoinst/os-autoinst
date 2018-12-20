@@ -97,6 +97,16 @@ sub restart_host {
 sub do_start_vm {
     my ($self) = @_;
 
+    # reset ipmi main board if switch on
+    # We may need this IPMI_BACKEND_MC_RESET setting to tune differently
+    # on different ipmi workers according to different ipmi machines' behavior.
+    # It is expected generally that ipmi machine's stability is higher with this mc reset.
+    # However there maybe exceptions on machines from different vendors.
+    # So keep it for flexibility.
+    if ($bmwqemu::vars{IPMI_BACKEND_MC_RESET}) {
+        $self->do_mc_reset;
+    }
+
     $self->get_mc_status;
     $self->restart_host;
 
@@ -115,7 +125,9 @@ sub do_stop_vm {
     if (!$bmwqemu::vars{IPMI_DO_NOT_POWER_OFF}) {
         $self->ipmitool("chassis power off");
     }
-    $self->deactivate_console({testapi_console => 'sol'});
+    if (defined $testapi::distri->{consoles}->{sol}) {
+        $self->deactivate_console({testapi_console => 'sol'});
+    }
     return {};
 }
 
@@ -140,6 +152,57 @@ sub get_mc_status {
     $self->ipmitool("mc guid");
     $self->ipmitool("mc info");
     $self->ipmitool("mc selftest");
+}
+
+sub do_mc_reset {
+    my ($self) = @_;
+
+    # deactivate sol console before doing mc reset because it breaks sol connection
+    if (defined $testapi::distri->{consoles}->{sol}) {
+        bmwqemu::diag("Before doing mc reset, sol console exists, so cleanup it");
+        $testapi::distri->{consoles}->{sol}->reset();
+        bmwqemu::diag("sol console reset done");
+        $self->deactivate_console({testapi_console => 'sol'});
+        bmwqemu::diag("deactivate console sol done");
+    }
+
+    # during the eval execution of following commands, SIG{__DIE__} will definitely be triggered, let it go
+    local $SIG{__DIE__} = {};
+
+    # mc reset cmd should return immediately, try maximum 5 times to ensure cmd executed
+    my $max_tries = 5;
+    for (1 .. $max_tries) {
+        eval { $self->ipmitool("mc reset cold"); };
+        if ($@) {
+            bmwqemu::diag("IPMI mc reset failure: $@");
+        }
+        else {
+            bmwqemu::diag("IPMI mc reset success!");
+            # wait seconds until mc reset really sent to board
+            sleep 10;
+            bmwqemu::diag("sleep 10 ends, will do ping");
+            # check until  mc reset is done and ipmi recovered
+            my $count    = 0;
+            my $timeout  = 60;
+            my $ping_cmd = "ping -c1 " . $bmwqemu::vars{IPMI_HOSTNAME};
+            while ($count++ < $timeout) {
+                eval { system($ping_cmd); };
+                if (!$@) {
+                    # ping pass, check ipmitool function normally
+                    eval { $self->ipmitool('chassis power status'); };
+                    if (!$@) {
+                        # ipmitool is recovered completely
+                        bmwqemu::diag("IPMI: ipmitool is recovered after mc reset!");
+                        return;
+                    }
+                }
+                sleep 3;
+            }
+        }
+        sleep 3;
+    }
+
+    die "IPMI mc reset failure after $max_tries tries! Exit...";
 }
 
 1;
