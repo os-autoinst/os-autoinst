@@ -30,7 +30,8 @@ Variable;Values allowed;Default value;Explanation
 IPMI_HOSTNAME;string;Hostname/IP for IPMI interface;
 IPMI_PASSWORD;string;Password for the IPMI interface;
 IPMI_USER;string;Username for the IPMI interface;
-IPMI_DO_NOT_POWER_OFF;boolean;undef;Don't power off the machine after test
+IPMI_DO_NOT_POWER_OFF;boolean;undef;Don't power off the machine after test;
+IPMI_BACKEND_MC_RESET;boolean;undef;Reset ipmi main board before test for sol console stability
 |====================
 
 .QEMU backend

@@ -52,4 +52,14 @@ sub reset {
     return;
 }
 
+sub do_mc_reset {
+    my ($self) = @_;
+
+    if ($self->{activated}) {
+        $self->backend->do_mc_reset;
+        $self->{activated} = 0;
+    }
+    return;
+}
+
 1;
