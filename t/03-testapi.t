@@ -451,6 +451,19 @@ subtest 'check_assert_shutdown' => sub {
 
 };
 
+subtest 'send_key_until_needlematch' => sub {
+    $mod->mock(
+        read_json => sub {
+            return {ret => {sim => 999}};
+        });
+    $fake_needle_found = 1;
+    ok(send_key_until_needlematch('foo', 'spc'), 'simple test');
+    ok(send_key_until_needlematch('foo', 'spc', 2). 'counter specified');
+    ok(send_key_until_needlematch('foo', 'spc', 2, 5). 'counter and old-fashion timeout specified');
+    ok(send_key_until_needlematch('foo', 'spc', 2, timeout => 10). 'counter and new-fashion timeout specified');
+    ok(!send_key_until_needlematch('foo', 'spc', 2, no_wait => 1). 'check_screen option specified');
+};
+
 done_testing;
 
 # vim: set sw=4 et:
