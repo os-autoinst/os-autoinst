@@ -22,25 +22,17 @@ use strict;
 use warnings;
 use autodie ':all';
 
-use base 'consoles::console';
+use base 'consoles::network_console';
 
 use testapi 'get_var';
-require IPC::System::Simple;
-use XML::LibXML;
 
-sub new {
-    my ($class, $testapi_console, $args) = @_;
-    my $self = $class->SUPER::new($testapi_console, $args);
-    return $self;
-}
-
-sub activate {
-    my ($self)   = @_;
-    my $hostname = $self->{args}->{hostname};
+sub connect_remote {
+    my ($self, $args) = @_;
+    my $hostname = $args->{hostname};
     my $zvmguest = get_var('ZVM_GUEST');
 
     # ssh connection to SUT for agetty
-    my $ttyconn = $self->backend->new_ssh_connection(hostname => $hostname, password => $self->{args}->{password}, username => 'root');
+    my $ttyconn = $self->backend->new_ssh_connection(hostname => $hostname, password => $args->{password}, username => 'root');
 
     # start agetty to ensure that iucvconn is not killed
     my $chan = $ttyconn->channel;
@@ -54,8 +46,7 @@ sub activate {
     $self->{ttyconn} = $ttyconn;
 
     # ssh connection to SUT for iucvconn
-    my $serialchan = $self->backend->start_ssh_serial(hostname => $hostname, password => $self->{args}->{password}, username => 'root');
-
+    my $serialchan = $self->backend->start_ssh_serial(hostname => $args->{hostname}, password => $args->{password}, username => 'root');
     # start iucvconn
     $serialchan->exec("iucvconn $zvmguest lnxhvc0");
 }

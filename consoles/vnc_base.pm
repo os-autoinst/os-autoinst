@@ -20,32 +20,17 @@ use strict;
 use warnings;
 use feature 'say';
 
-use base 'consoles::console';
+use base 'consoles::network_console';
 
 use consoles::VNC;
 use Time::HiRes qw(usleep gettimeofday);
 
-use Data::Dumper 'Dumper';
-use Carp qw(confess cluck carp croak);
 use Try::Tiny;
 use testapi 'get_var';
 
 sub screen {
     my ($self) = @_;
     return $self;
-}
-
-sub activate {
-    my ($self) = @_;
-    try {
-        local $SIG{__DIE__} = undef;
-        $self->connect_vnc($self->{args});
-        return $self->SUPER::activate;
-    }
-    catch {
-        die $_ unless blessed $_ && $_->can('rethrow');
-        return {error => $_->error};
-    };
 }
 
 sub disable {
@@ -65,7 +50,7 @@ sub disable_vnc_stalls {
     $self->{vnc}->check_vnc_stalls(0);
 }
 
-sub connect_vnc {
+sub connect_remote {
     my ($self, $args) = @_;
 
     $self->{mouse} = {x => -1, y => -1};
@@ -97,7 +82,7 @@ sub current_screen {
         # waits after first login
 
         # FIXME: should instead loop update_framebuffer until
-        # _framebuffer in connect_vnc?  works for now.
+        # _framebuffer in connect_remote?  works for now.
         usleep(50_000);
     }
 
