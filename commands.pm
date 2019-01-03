@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2018 SUSE LLC
+# Copyright © 2012-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -204,13 +204,25 @@ sub current_script {
 }
 
 sub isotovideo_command {
-    # $c is the lite controller - not the package
-    my ($c, $commands) = @_;
-    my $cmd = $c->param('command');
-    return $c->reply->not_found unless grep { $cmd eq $_ } @$commands;
-    my $isotovideo = $c->app->defaults('isotovideo');
-    myjsonrpc::send_json($isotovideo, {cmd => $cmd, params => $c->req->query_params->to_hash});
-    return $c->render(json => myjsonrpc::read_json($isotovideo));
+    my ($mojo_lite_controller, $commands) = @_;
+
+    my $cmd = $mojo_lite_controller->param('command');
+    return $mojo_lite_controller->reply->not_found unless grep { $cmd eq $_ } @$commands;
+
+    my $app        = $mojo_lite_controller->app;
+    my $isotovideo = $app->defaults('isotovideo') or return;
+
+    # send command to isotovideo and block until a response arrives
+    myjsonrpc::send_json($isotovideo, {cmd => $cmd, params => $mojo_lite_controller->req->query_params->to_hash});
+    my $response = myjsonrpc::read_json($isotovideo);
+    if ($response->{stop_processing_isotovideo_commands}) {
+        # stop processing isotovideo commands if isotovideo says so
+        $app->log->debug('cmdsrv: stop processing isotovideo commands');
+        $app->defaults('isotovideo', undef);
+        return;
+    }
+
+    return $mojo_lite_controller->render(json => $response);
 }
 
 sub isotovideo_get {
@@ -230,7 +242,6 @@ sub get_temp_file {
     return _test_data_file($self, $path) if -f $path;
     return $self->reply->not_found;
 }
-
 
 sub run_daemon {
     my ($port, $isotovideo) = @_;
@@ -279,7 +290,9 @@ sub run_daemon {
     $token_auth->get('/isotovideo/#command' => \&isotovideo_get);
     $token_auth->post('/isotovideo/#command' => \&isotovideo_post);
 
+    # websocket related routes
     $token_auth->websocket('/ws')->name('ws')->to('commands#start_ws');
+    $token_auth->post('/broadcast')->name('broadcast')->to('commands#broadcast_message_to_websocket_clients');
 
     # not known by default mojolicious
     app->types->type(oga => 'audio/ogg');

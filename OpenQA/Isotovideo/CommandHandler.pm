@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -79,6 +79,12 @@ sub process_command {
     }
 
     die 'isotovideo: unknown command ' . $cmd;
+}
+
+sub stop_command_processing {
+    my ($self) = @_;
+
+    $self->_send_to_cmd_srv({stop_processing_isotovideo_commands => 1});
 }
 
 sub _postpone_backend_command_until_resumed {

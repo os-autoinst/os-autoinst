@@ -105,6 +105,17 @@ subtest 'web socket route' => sub {
     $t->message_ok('result from isotovideo is passed back');
     $t->json_message_is('/response_for' => 'set_pause_at_test');
     $t->json_message_is('/name'         => 'installation-welcome');
+
+    subtest 'broadcast messages to websocket clients' => sub {
+        my $t2 = Test::Mojo->new;
+        $t2->post_ok("$base_url/Hallo/broadcast", json => {
+                stopping_test_execution => 'foo',
+        });
+        $t2->status_is(200);
+        $t->message_ok('message from broadcast route received');
+        $t->json_message_is('/stopping_test_execution' => 'foo');
+    };
+
     $t->finish_ok();
 };
 
