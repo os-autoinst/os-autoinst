@@ -11,6 +11,11 @@ BEGIN {
 }
 
 use basetest;
+use needle;
+
+# define 'write_with_thumbnail' to fake image
+sub write_with_thumbnail {
+}
 
 subtest modules_test => sub {
     ok(my $basetest = basetest->new('installation'), 'module can be created');
@@ -137,6 +142,77 @@ subtest record_testresult => sub {
     my $nr_test_details = 9;
     is($basetest->{test_count},        $nr_test_details, 'test_count accumulated');
     is(scalar @{$basetest->{details}}, $nr_test_details, 'all details added');
+};
+
+subtest record_screenmatch => sub {
+    my $basetest = basetest->new();
+    my $image    = bless({} => __PACKAGE__);
+    my %match    = (
+        area => [
+            {x => 1, y => 2, w => 3, h => 4, result => 'ok'},
+        ],
+        error  => 0.128,
+        needle => {
+            name => 'foo',
+            file => 'some/path/foo.json',
+        },
+    );
+    my @tags           = (qw(some tags));
+    my @failed_needles = (
+        {
+            error => 1,
+            area  => [
+                {x => 4, y => 3, w => 2, h => 1, result => 'fail'},
+            ],
+            needle => {
+                name => 'failure',
+                file => 'some/path/failure.json',
+            },
+        },
+    );
+    my $frame = 24;
+
+    $basetest->record_screenmatch($image, \%match, \@tags, \@failed_needles, $frame);
+    is_deeply($basetest->{details}, [
+            {
+                area => [
+                    {
+                        x          => 1,
+                        y          => 2,
+                        w          => 3,
+                        h          => 4,
+                        similarity => 0,
+                        result     => 'ok',
+                    },
+                ],
+                error     => 0.128,
+                frametime => [qw(1.00 1.04)],
+                needle    => 'foo',
+                json      => 'some/path/foo.json',
+                needles   => [
+                    {
+                        area => [
+                            {
+                                x          => 4,
+                                y          => 3,
+                                w          => 2,
+                                h          => 1,
+                                similarity => 0,
+                                result     => 'fail',
+                            },
+                        ],
+                        error => 1,
+                        name  => 'failure',
+                        json  => 'some/path/failure.json',
+                    }
+                ],
+                properties => [],
+                screenshot => 'basetest-1.png',
+                tags       => [qw(some tags)],
+                result     => 'ok',
+            }
+    ], 'screenmatch detail recorded as expected')
+      or diag explain $basetest->{details};
 };
 
 subtest 'register_extra_test_results' => sub {
