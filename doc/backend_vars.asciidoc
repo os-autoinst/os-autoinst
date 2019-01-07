@@ -6,6 +6,9 @@ Supported variables per backend
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
+CASEDIR;string;;Path to test distribution. Can be a git repository URL of a test distribution to checkout with an optional refspec into the current directory. Tries to follow the definition of https://docs.npmjs.com/files/package.json#git-urls-as-dependencies , for example `git@github.com:os-autoinst/os-autoinst-distri-opensuse.git#feature/test`
+PRODUCTDIR;string;;Path to optional "product directory" which includes the test schedule entry point "main.pm" as well as a "needles" subdirectory with the needles to load.
+NEEDLES_DIR;string;;Path to needles subdirectory to use, defaults to "needles" within `PRODUCTDIR`. Can be a git repository URL, comparable to `CASEDIR`
 INCLUDE_MODULES;string;;comma separated names or fullnames of test modules to be included while excluding all that do not match, e.g. "boot,mod1"
 EXCLUDE_MODULES;string;;comma separated names or fullnames of test modules to exclude. Can be combined with INCLUDE_MODULES and has precedence, e.g. to additionally exclude modules based on an include-list
 SCHEDULE;string;;comma separated list of relative paths to test modules within CASEDIR without the implicit file extension '.pm' to be scheduled instead of evaluating a schedule from the test distributions main.pm file, e.g. "boot,console/mod1"
