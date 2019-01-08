@@ -38,6 +38,14 @@ sub init_consoles {
             port     => 5901,
             password => $testapi::password
         });
+    $self->add_console(
+        'brokeniucv',
+        'ssh-iucvconn',
+        {
+            hostname => 'noIucvconn.nowhere',
+            password => $testapi::password
+        });
+
 }
 
 1;

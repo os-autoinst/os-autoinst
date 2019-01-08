@@ -88,7 +88,7 @@ sub activate {
     close($s);
     #print "$self->{testapi_console} -> $port\n";
 
-    $self->connect_vnc(
+    $self->connect_remote(
         {
             hostname => "localhost",
             port     => $port,

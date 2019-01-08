@@ -1,4 +1,5 @@
-# Copyright © 2016-2018 SUSE LLC
+# Copyright © 2009-2013 Bernhard M. Wiedemann
+# Copyright © 2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,28 +14,30 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-package OpenQA::Exceptions;
+package consoles::network_console;
 
 use strict;
 use warnings;
 
-use Exception::Class (
-    'OpenQA::Exception::InternalException' => {
-        description => 'internal errors not for the user'
-    },
-    'OpenQA::Exception::FailedNeedle' => {
-        description => 'assert_screen failed',
-        fields      => 'tags',
-    },
-    'OpenQA::Exception::VNCProtocolError' => {
-        description => 'VNC Server interrupted connection'
-    },
-    'OpenQA::Exception::VNCSetupError' => {
-        description => 'Failed to connect to VNC Server'
-    },
-    'OpenQA::Exception::SSHConnectionError' => {
-        description => 'Failed to connect to SSH Server'
-    },
-);
+use base 'consoles::console';
+
+use Try::Tiny;
+
+sub activate {
+    my ($self) = @_;
+    try {
+        local $SIG{__DIE__} = undef;
+        $self->connect_remote($self->{args});
+        return $self->SUPER::activate;
+    }
+    catch {
+        die $_ unless blessed $_ && $_->can('rethrow');
+        return {error => $_->error};
+    };
+}
+
+# to be overwritten
+sub connect_remote {
+}
 
 1;

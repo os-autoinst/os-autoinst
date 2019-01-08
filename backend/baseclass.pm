@@ -1192,7 +1192,7 @@ sub new_ssh_connection {
             next;
         }
     }
-    die "Failed to login to $args{username}\@$args{hostname}" unless $ssh->auth_ok;
+    OpenQA::Exception::SSHConnectionError->throw(error => "Error connecting to <$args{username}\@$args{hostname}>: $@") unless $ssh->auth_ok;
 
     return $ssh;
 }
