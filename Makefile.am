@@ -41,6 +41,7 @@ consolesexec_DATA = \
 	consoles/virtio_screen.pm \
 	consoles/virtio_terminal.pm \
 	consoles/vnc_base.pm \
+	consoles/network_console.pm \
 	consoles/VNC.pm
 
 openqaexecdir = $(pkglibexecdir)/OpenQA
