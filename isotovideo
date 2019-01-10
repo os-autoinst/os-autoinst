@@ -133,7 +133,6 @@ for my $arg (@ARGV) {
         diag("Setting forced test parameter $key -> $2");
     }
 }
-bmwqemu::ensure_valid_vars();
 
 my $cmd_srv_process;
 my $testprocess;
@@ -178,9 +177,8 @@ sub init_backend {
     $bmwqemu::vars{BACKEND} ||= "qemu";
 
     # make sure the needles are initialized
-    my $needles_dir = $bmwqemu::vars{PRODUCTDIR} . '/needles';
-    needle::init($needles_dir);
-    $bmwqemu::vars{NEEDLES_GIT_HASH} = OpenQA::Isotovideo::Utils::calculate_git_hash($needles_dir);
+    needle::init($bmwqemu::vars{NEEDLES_DIR});
+    $bmwqemu::vars{NEEDLES_GIT_HASH} = OpenQA::Isotovideo::Utils::calculate_git_hash($bmwqemu::vars{NEEDLES_DIR});
 
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
     return $bmwqemu::backend;
@@ -196,6 +194,8 @@ $SIG{HUP}  = \&signalhandler;
 $ENV{LC_ALL} = 'en_US.UTF-8';
 $ENV{LANG}   = 'en_US.UTF-8';
 
+OpenQA::Isotovideo::Utils::checkout_git_repo_and_branch('CASEDIR');
+
 # Try to load the main.pm from one of the following in this order:
 #  - product dir
 #  - casedir
@@ -204,11 +204,14 @@ $ENV{LANG}   = 'en_US.UTF-8';
 # multiple distributions or flavors in one repository.
 $bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
 
+$bmwqemu::vars{NEEDLES_DIR} //= $bmwqemu::vars{PRODUCTDIR} . '/needles';
+OpenQA::Isotovideo::Utils::checkout_git_repo_and_branch('NEEDLES_DIR');
+
+bmwqemu::ensure_valid_vars();
+
 # as we are about to load the test modules store the git hash that has been
 # used. If it is not a git repo fail silently, i.e. store an empty variable
 
-# TODO find a better place to store hash in than vars.json, see
-# https://github.com/os-autoinst/os-autoinst/pull/393#discussion_r50143013
 $bmwqemu::vars{TEST_GIT_HASH} = OpenQA::Isotovideo::Utils::calculate_git_hash($bmwqemu::vars{CASEDIR});
 
 # start the command fork before we get into the backend, the command child
