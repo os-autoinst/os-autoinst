@@ -96,6 +96,7 @@ test_requires:
   '%spellcheck_requires':
   '%yamllint_requires':
   perl(YAML::PP):
+  perl(Inline::Python):
 
 main_requires:
   git-core:
