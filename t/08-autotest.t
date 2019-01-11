@@ -33,8 +33,10 @@ stderr_like(
 );
 
 sub loadtest {
-    my ($test, $args) = @_;
-    stderr_like(sub { autotest::loadtest "tests/$test.pm" }, qr@scheduling $test#?[0-9]* tests/$test.pm|$test already scheduled@, \$args);
+    my ($test, $msg) = @_;
+    my $filename = $test =~ /\.p[my]$/ ? $test : $test . '.pm';
+    $test =~ s/\.p[my]//;
+    stderr_like(sub { autotest::loadtest "tests/$filename" }, qr@scheduling $test#?[0-9]* tests/$test|$test already scheduled@, $msg);
 }
 
 sub fake_send {
@@ -245,6 +247,8 @@ my $sharedir = '/home/tux/.local/lib/openqa/share';
 is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/firefox.pm"),        ('firefox', 'x11'));
 is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"), ('motif',   'x11/toolkits'));
 is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"),                ('sysrq',   'other'));
+
+loadtest 'test.py', 'we can also parse python test modules';
 
 done_testing();
 

@@ -16,6 +16,8 @@
 use strict;
 use warnings;
 
+use Cwd 'abs_path';
+
 use testapi;
 use testdistribution;
 
@@ -34,6 +36,10 @@ sub cleanup_needles {
 
 $needle::cleanuphandler = \&cleanup_needles;
 
+# Add import path for local test python modules from pool directory
+use Inline Python => "import os.path, sys; sys.path.insert(0, os.path.abspath(os.path.join(os.path.curdir, '../..')))";
+
+autotest::loadtest "tests/pre_boot.py";
 autotest::loadtest "tests/boot.pm";
 
 # openQA tests set this to 0 when reusing the os-autoinst tests

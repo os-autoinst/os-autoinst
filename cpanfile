@@ -18,6 +18,7 @@ requires 'File::Path';
 requires 'File::Spec';
 requires 'File::Temp';
 requires 'File::Which';
+requires 'Inline::Python';
 requires 'IO::Handle';
 requires 'IO::Select';
 requires 'IO::Socket';

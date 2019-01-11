@@ -110,7 +110,21 @@ sub loadtest {
     $code .= "use lib '$casedir/lib';";
     my $basename = dirname($script_path);
     $code .= "use lib '$basename';";
-    $code .= "require '$script_path';";
+    if ($script =~ m/\.pm$/) {
+        $code .= "require '$script_path';";
+    }
+    elsif ($script =~ m/\.py$/) {
+        # import the test API and all methods from the test API by default
+        # into python context
+        $code .= "
+            use base 'basetest';
+            use Inline Python => <<'END_OF_PYTHON_CODE';\n";
+        $code .= `cat $casedir/$script`;
+        $code .= "\nEND_OF_PYTHON_CODE\n";
+    }
+    else {
+        die "impossible codepath";
+    }
     eval $code;
     if ($@) {
         my $msg = "error on $script: $@";
@@ -154,14 +168,14 @@ our $last_milestone_console;
 
 sub parse_test_path {
     my ($script_path) = @_;
-    unless ($script_path =~ m,(\w+)/([^/]+)\.pm$,) {
-        die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.pm\n";
+    unless ($script_path =~ m,(\w+)/([^/]+)\.p[my]$,) {
+        die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.p[my]\n";
     }
     my $category = $1;
     my $name     = $2;
     if ($category ne 'other') {
         # show full folder hierachy as category for non-sideloaded tests
-        my $pattern = qr,(tests/[^/]+/)?tests/([\w/]+)/([^/]+)\.pm$,;
+        my $pattern = qr,(tests/[^/]+/)?tests/([\w/]+)/([^/]+)\.p[my]$,;
         if ($script_path =~ $pattern) {
             $category = $2;
         }
