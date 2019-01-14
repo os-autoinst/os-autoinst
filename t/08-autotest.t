@@ -109,7 +109,7 @@ subtest 'test always_rollback flag' => sub {
     # Test that no rollback is triggered if snapshots are not supported
     $mock_basetest->mock(test_flags       => sub { return {always_rollback => 1, milestone => 1}; });
     $mock_autotest->mock(query_isotovideo => sub { return 0; });
-    my $reverts_done = 0;
+    $reverts_done = 0;
     $mock_autotest->mock(load_snapshot => sub { $reverts_done++; });
 
     autotest::run_all;
