@@ -141,17 +141,18 @@ sub record_screenmatch {
     $tags           ||= [];
     $failed_needles ||= [];
 
-    my $h          = $self->_serialize_match($match);
-    my $properties = $match->{needle}->{properties} || [];
-    my $result     = {
-        needle     => $h->{name},
-        area       => $h->{area},
+    my $serialized_match = $self->_serialize_match($match);
+    my $properties       = $match->{needle}->{properties} || [];
+    my $result           = {
+        needle     => $serialized_match->{name},
+        area       => $serialized_match->{area},
+        error      => $serialized_match->{error},
+        json       => $serialized_match->{json},
         tags       => [@$tags],                            # make a copy
+        properties => [@$properties],                      # make a copy
+        frametime  => _framenumber_to_timerange($frame),
         screenshot => $self->next_resultname('png'),
         result     => 'ok',
-        properties => [@$properties],
-        json       => $h->{json},
-        frametime  => _framenumber_to_timerange($frame),
     };
 
     # make sure needle is blessed
@@ -162,7 +163,7 @@ sub record_screenmatch {
     if ($foundneedle->has_property('workaround')) {
         $result->{dent} = 1;
         $self->{dents}++;
-        bmwqemu::diag("needle '$h->{name}' is a workaround");
+        bmwqemu::diag("needle '$serialized_match->{name}' is a workaround");
     }
 
     # also include the not matched needles
@@ -188,31 +189,30 @@ serialize a match result from needle::search
 =cut
 
 sub _serialize_match {
-    my ($self, $cand) = @_;
+    my ($self, $candidate) = @_;
 
-    my $testname = $self->{name};
-    my $count    = $self->{test_count};
+    my $name     = $candidate->{needle}->{name};
+    my $jsonfile = $candidate->{needle}->{file};
+    my %match    = (
+        name  => $name,
+        error => $candidate->{error},
+        area  => [],
+        json  => $jsonfile
+    );
 
-    my $candidates;
-    my $diffcount = 0;
-
-    my $name     = $cand->{needle}->{name};
-    my $jsonfile = $cand->{needle}->{file};
-
-    my $h = {name => $name, error => $cand->{error}, area => [], json => $jsonfile};
-    if (my $unregistered = $cand->{needle}->{unregistered}) {
-        $h->{unregistered} = $unregistered;
+    if (my $unregistered = $candidate->{needle}->{unregistered}) {
+        $match{unregistered} = $unregistered;
     }
-    for my $area (@{$cand->{area}}) {
+    for my $area (@{$candidate->{area}}) {
         my $na = {};
         for my $i (qw(x y w h result)) {
             $na->{$i} = $area->{$i};
         }
         $na->{similarity} = int($area->{similarity} * 100);
-        push @{$h->{area}}, $na;
+        push @{$match{area}}, $na;
     }
 
-    return $h;
+    return \%match;
 }
 
 sub record_screenfail {
