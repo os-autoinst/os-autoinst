@@ -39,7 +39,10 @@ sub trigger_select {
         $key = "ctrl-alt-f" . $self->{args}->{tty};
     }
 
-    $self->screen->send_key({key => $key});
+    # Sometimes the screen can not change after send key, so try to send key more times
+    for my $i (1 .. 3) {
+        $self->screen->send_key({key => $key});
+    }
     return;
 }
 
