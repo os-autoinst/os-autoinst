@@ -146,7 +146,7 @@ sub set_vlan {
     }
 
     # Connect tap device to given vlan
-    ($return_code, $ovs_vsctl_error, $ovs_vsctl_output) = _cmd( 'ovs-vsctl', 'set', 'port', $tap, "tag=$vlan" );
+    ($return_code, $ovs_vsctl_error, $ovs_vsctl_output) = _cmd( 'ovs-vsctl', 'set', 'port', $tap, 'vlan_mode=dot1q-tunnel', "tag=$vlan" );
 
     print STDERR $ovs_vsctl_error if length($ovs_vsctl_error) > 0;
     print $ovs_vsctl_output if length($ovs_vsctl_output) > 0;
