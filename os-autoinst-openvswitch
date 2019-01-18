@@ -128,6 +128,17 @@ sub _cmd {
   return $return_code, "@ovs_vsctl_error","@ovs_vsctl_output";
 }
 
+sub check_min_ovs_version {
+    my $min_ver = shift;
+    my $out     = `ovs-vsctl --version`;
+    return if ($out !~ /\(Open vSwitch\)\s+(\d+\.\d+\.\d+)/m);
+    my @ver     = split(/\./, $1);
+    my @min_ver = split(/\./, $min_ver);
+    return if (@ver != @min_ver);
+
+    return sprintf("%04d%04d%04d", @ver) >= sprintf("%04d%04d%04d", @min_ver);
+}
+
 dbus_method("set_vlan", ["string", "uint32"], ["int32", "string"]);
 sub set_vlan {
     my $self = shift;
@@ -137,6 +148,7 @@ sub set_vlan {
     my $return_code = 1;
     my $ovs_vsctl_error;
     my $ovs_vsctl_output;
+    my @cmd;
 
     ($return_code, $return_output) = _ovs_check($tap, $vlan, $self->{BRIDGE});
 
@@ -145,8 +157,13 @@ sub set_vlan {
       return ($return_code,$return_output);
     }
 
+    @cmd = ('ovs-vsctl', 'set', 'port', $tap, "tag=$vlan");
+    if (check_min_ovs_version('2.8.1')) {
+        push(@cmd, 'vlan_mode=dot1q-tunnel');
+    }
+
     # Connect tap device to given vlan
-    ($return_code, $ovs_vsctl_error, $ovs_vsctl_output) = _cmd( 'ovs-vsctl', 'set', 'port', $tap, 'vlan_mode=dot1q-tunnel', "tag=$vlan" );
+    ($return_code, $ovs_vsctl_error, $ovs_vsctl_output) = _cmd(@cmd);
 
     print STDERR $ovs_vsctl_error if length($ovs_vsctl_error) > 0;
     print $ovs_vsctl_output if length($ovs_vsctl_output) > 0;
