@@ -22,6 +22,9 @@ VNC_TYPING_LIMIT;integer;50;Maximum number of keys per second
 _CHKSEL_RATE_WAIT_TIME;integer;30;The ammount of time isotovideo is going to wait for the VNC console to become responsive
 _CHKSEL_RATE_HITS;integer;15000;The ammount of times, the select should return the same fileno during the _CHKSEL_RATE_WAIT_TIME seconds, to consider the VNC console unresponsive
 TIMEOUT_SCALE;integer;1;This scale parameter can be used based on performance of workers to prevent false positive timeouts based on differing worker performance.
+PAUSE_AT;string;;Test module (name or fullname) to pause test execution at. To be used together with the openQA developer mode to continue test execution. Be aware that the openQA web UI will only reflect this within the developer mode after confirming to control the test.
+PAUSE_ON_SCREEN_MISMATCH;boolean;0;Pause test execution on the next screen mismatch. Same notes as for `PAUSE_AT` apply.
+PAUSE_ON_NEXT_COMMAND;boolean;0;Pause test execution on the next test API command. Same notes as for `PAUSE_AT` apply.
 
 |====================
 
