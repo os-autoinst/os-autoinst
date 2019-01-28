@@ -185,7 +185,12 @@ sub _handle_command_set_pause_at_test {
     my ($self, $response) = @_;
     my $pause_test_name = $response->{name};
 
-    diag('isotovideo: test execution will be paused at test ' . $pause_test_name);
+    if ($pause_test_name) {
+        diag('isotovideo: test execution will be paused at test ' . $pause_test_name);
+    }
+    elsif ($self->pause_test_name) {
+        diag('isotovideo: test execution will no longer be paused at a certain test');
+    }
     $self->pause_test_name($pause_test_name);
     $self->_send_to_cmd_srv({set_pause_at_test => $pause_test_name});
     $self->_respond_ok();
