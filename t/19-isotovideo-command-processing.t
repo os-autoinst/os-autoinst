@@ -60,6 +60,13 @@ my $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     current_test_full_name => 'installation-welcome',
 );
 
+sub reset_state {
+    $command_handler->tags(undef);
+    $command_handler->pause_test_name(undef);
+    $last_received_msg_by_fd[$answer_fd]  = undef;
+    $last_received_msg_by_fd[$cmd_srv_fd] = undef;
+}
+
 subtest status => sub {
     $command_handler->tags([qw(foo bar)]);
     $command_handler->pause_test_name('foo');
@@ -78,14 +85,33 @@ subtest status => sub {
     }, 'status returned as expected');
 };
 
+subtest 'set pause at test' => sub {
+    reset_state;
+
+    $command_handler->process_command($answer_fd, {
+            cmd  => 'set_pause_at_test',
+            name => 'some test',
+    });
+    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'answer received');
+    is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {set_pause_at_test => 'some test'}, 'broadcasted via command server');
+    is($command_handler->pause_test_name, 'some test', 'test to pause at set');
+
+    $command_handler->process_command($answer_fd, {
+            cmd  => 'set_pause_at_test',
+            name => undef,
+    });
+    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'answer received');
+    is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {set_pause_at_test => undef}, 'broadcasted via command server');
+    is($command_handler->pause_test_name, undef, 'test to pause at unset');
+};
+
 subtest 'report timeout, set pause on assert/check screen timeout' => sub {
     my %basic_report_timeout_cmd = (
         cmd => 'report_timeout',
         msg => 'some test',
     );
 
-    $command_handler->tags(undef);
-    $command_handler->pause_test_name(undef);
+    reset_state;
 
     # report timeout when not supposted to pause
     $command_handler->process_command($answer_fd, {
