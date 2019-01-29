@@ -29,7 +29,6 @@ use bmwqemu 'diag';
 use Mojo::JSON 'to_json';
 
 BEGIN {
-    # https://github.com/os-autoinst/openQA/issues/450
     $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
 }
 
