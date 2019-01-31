@@ -34,6 +34,7 @@ consolesexec_DATA = \
 	consoles/s3270.pm \
 	consoles/sshX3270.pm \
 	consoles/sshVirtsh.pm \
+	consoles/sshVirtshSUT.pm \
 	consoles/sshIucvconn.pm \
 	consoles/sshXtermIPMI.pm \
 	consoles/sshXtermVt.pm \
