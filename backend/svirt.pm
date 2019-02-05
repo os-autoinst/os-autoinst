@@ -130,7 +130,7 @@ sub can_handle {
     my $vars = \%bmwqemu::vars;
     if ($args->{function} eq 'snapshots' && !check_var('HDDFORMAT', 'raw')) {
         # Snapshots via libvirt are supported on KVM and, perhaps, ESXi. Hyper-V uses native tools.
-        if (check_var('VIRSH_VMM_FAMILY', 'kvm') || check_var('VIRSH_VMM_FAMILY', 'hyperv') || check_var('VIRSH_VMM_FAMILY', 'vmware')) {
+        if (check_var('VIRSH_VMM_FAMILY', 'kvm') || check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
             return {ret => 1};
         }
     }
