@@ -169,7 +169,7 @@ sub kill_commands {
         my $tx = $ua->post($url, json => {stopping_test_execution => $reason});
         try {
             my $res = $tx->result;
-            if (!$res->is_success || $res->code != 200) {
+            if ($res->code != 200) {
                 diag('isotovideo: unable to inform websocket clients about stopping command server: ' . $res->to_string);
             }
         }
