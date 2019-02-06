@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use autodie ':all';
 use Test::More;
 use File::Basename;
 use File::Path 'remove_tree';
@@ -25,7 +26,7 @@ sub is_in_log {
 
 subtest 'standalone isotovideo without vars.json file and only command line parameters' => sub {
     chdir($pool_dir);
-    unlink('vars.json');
+    unlink('vars.json') if -e 'vars.json';
     isotovideo(opts => "casedir=$data_dir/tests schedule=foo,bar/baz _exit_after_schedule=1");
     is_in_log('scheduling.*foo',     'requested modules are run as part of enforced scheduled');
     is_in_log('scheduling.*bar/baz', 'requested modules in subdirs are scheduled');
@@ -49,8 +50,8 @@ EOV
 
 subtest 'isotovideo with custom git repo parameters specified' => sub {
     chdir($pool_dir);
-    unlink('vars.json');
-    mkdir('repo.git');
+    unlink('vars.json') if -e 'vars.json';
+    mkdir('repo.git') unless -d 'repo.git';
     qx{git init -q --bare repo.git};
     # Ensure the checkout folder does not exist so that git clone tries to
     # create a new checkout on every test run
@@ -59,6 +60,18 @@ subtest 'isotovideo with custom git repo parameters specified' => sub {
     is_in_log('git URL.*\<repo\>', 'git repository would be cloned');
     is_in_log('branch.*foo',       'branch in git repository would be checked out');
     is_in_log('No scripts',        'the repo actually has no test definitions');
+};
+
+subtest 'productdir variable relative/absolute' => sub {
+    chdir($pool_dir);
+    unlink('vars.json') if -e 'vars.json';
+    isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=$data_dir/tests");
+    is_in_log('\d* scheduling.*shutdown', 'schedule has been evaluated');
+    mkdir('product')     unless -e 'product';
+    mkdir('product/foo') unless -e 'product/foo';
+    symlink("$data_dir/tests/main.pm", "$pool_dir/product/foo/main.pm") unless -e "$pool_dir/product/foo/main.pm";
+    isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product/foo");
+    is_in_log('\d* scheduling.*shutdown', 'schedule can still be found');
 };
 
 done_testing();
