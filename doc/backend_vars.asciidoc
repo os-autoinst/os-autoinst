@@ -125,26 +125,26 @@ Variable;Values allowed;Default value;Explanation
 HDDSIZEGB;integer;15;Disk size in GB
 QEMUCPUS;integer;1;Number of CPUs to assign to VM
 QEMURAM;integer;1024;Size of RAM of VM in MiB
-VIRSH_HOSTNAME;string;SSH Host with virsh;
-VIRSH_PASSWORD;string;Password for root account on above host;
-VIRSH_VMM_FAMILY;string;Host's hypervisor ('kvm', 'xen');
-VIRSH_VMM_TYPE;string;Host's hypervisor type ('hvm' for full virtualization on 'kvm' and 'xen' families, 'linux' for paravirtualization on 'xen' family);
-VIRSH_GUEST;string;Where to look for VNC server (SUT or VM);
-VIRSH_GUEST_PASSWORD;string;VNC password of the guest;
-VIRSH_INSTANCE;integer;VM's instance number on VIRSH_HOSTNAME;
-VMWARE_USERNAME;string;Administrator's username ('@' is '%40');
-VMWARE_PASSWORD;string;Administrator's password;
-VMWARE_HOST;string;VCS server for autentication;
-VMWARE_DATASTORE;string;VMware datastore;
-VMWARE_NFS_DATASTORE;string;VMware datastore with openQA NFS directories;
-VMWARE_SERIAL_PORT;string;TCP port where is VM's serial port stream to be expected on the ESX server;
-VMWARE_BRIDGE;string;VMware's bridge name (usual default is 'VM Network');
-VMWARE_REMOTE_VMM;string;
-HYPERV_USERNAME;string;Administrator account name;
-HYPERV_PASSWORD;string;Password for above account;
-HYPERV_SERVER;string;Windows Server (2008 R2, 2012 R2, or 2016) instance IP address;
-HYPERV_SERIAL_PORT;integer;TCP port where is VM's serial port stream to be expected on the Hyper-V server;
-HYPERV_VIRTUAL_SWITCH;string;ExternalVirtualSwitch;Name of Hyper-V's External Virtual Switch;
+VIRSH_HOSTNAME;string;;SSH Host with virsh
+VIRSH_PASSWORD;string;;Password for root account on above host
+VIRSH_VMM_FAMILY;string;;Host's hypervisor ('kvm', 'xen')
+VIRSH_VMM_TYPE;string;;Host's hypervisor type ('hvm' for full virtualization on 'kvm' and 'xen' families, 'linux' for paravirtualization on 'xen' family)
+VIRSH_GUEST;string;;Where to look for VNC server (SUT or VM)
+VIRSH_GUEST_PASSWORD;string;;VNC password of the guest
+VIRSH_INSTANCE;integer;;VM's instance number on VIRSH_HOSTNAME
+VMWARE_USERNAME;string;;Administrator's username ('@' is '%40')
+VMWARE_PASSWORD;string;;Administrator's password
+VMWARE_HOST;string;;VCS server for autentication
+VMWARE_DATASTORE;string;;VMware datastore
+VMWARE_NFS_DATASTORE;string;;VMware datastore with openQA NFS directories
+VMWARE_SERIAL_PORT;string;;TCP port where is VM's serial port stream to be expected on the ESX server
+VMWARE_BRIDGE;string;;VMware's bridge name (usual default is 'VM Network')
+VMWARE_REMOTE_VMM;string;;
+HYPERV_USERNAME;string;;Administrator account name
+HYPERV_PASSWORD;string;;Password for above account
+HYPERV_SERVER;string;;Windows Server (2008 R2, 2012 R2, or 2016) instance IP address
+HYPERV_SERIAL_PORT;integer;;TCP port where is VM's serial port stream to be expected on the Hyper-V server
+HYPERV_VIRTUAL_SWITCH;string;;ExternalVirtualSwitch;Name of Hyper-V's External Virtual Switch
 |====================
 
 .PVM backend
