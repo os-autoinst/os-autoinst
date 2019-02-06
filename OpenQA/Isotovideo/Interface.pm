@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,6 +30,6 @@ our $developer_mode_major_version = 1;
 # minor version of the (web socket) API relevant to the developer mode
 # -> reset to 0 when making non-backward compatible changes to that API
 # -> increment when making backward compatible changes to that API
-our $developer_mode_minor_version = 0;
+our $developer_mode_minor_version = 1;
 
 1;

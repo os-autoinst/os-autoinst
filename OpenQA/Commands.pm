@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@ use Mojo::Base 'Mojolicious::Controller';
 
 use commands;
 use Try::Tiny;
-use Mojo::JSON 'decode_json';
+use Mojo::JSON qw(decode_json to_json);
 
 sub pass_message_from_ws_client_to_isotovideo {
     my ($self, $id, $msg) = @_;
@@ -58,6 +58,33 @@ sub start_ws {
     $self->on(finish => sub {
             $self->handle_ws_client_disconnects($id);
     });
+}
+
+sub broadcast_message_to_websocket_clients {
+    my ($self) = @_;
+
+    my $app     = $self->app;
+    my $clients = $app->defaults('clients');
+    my $message = $self->req->json;
+    $app->log->debug('cmdsrv: broadcasting message from API call to all ws clients');
+    return $self->render(
+        json => {
+            error  => 'JSON message to be boradcasted missing or invalid',
+            status => 'boradcast failed',
+        },
+        status => 400,
+    ) unless ($message);
+
+    $app->log->debug('cmdsrv: broadcasting message from API call to all ws clients: ' . to_json($message));
+    my $outstanding_transactions = scalar keys %$clients;
+    for (keys %$clients) {
+        $clients->{$_}->send({json => $message}, sub {
+                return if (($outstanding_transactions -= 1) > 0);
+                return $self->render(json => {status => 'boradcast done'});
+        });
+    }
+
+    return $self;
 }
 
 1;
