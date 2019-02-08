@@ -273,6 +273,7 @@ if ($bmwqemu::vars{SCHEDULE}) {
     autotest::loadtest($_ . '.pm') foreach split(',', $bmwqemu::vars{SCHEDULE});
     $bmwqemu::vars{INCLUDE_MODULES} = 'none';
 }
+unshift @INC, '.' unless File::Spec->file_name_is_absolute($bmwqemu::vars{PRODUCTDIR});
 if (-e $bmwqemu::vars{PRODUCTDIR} . '/main.pm') {
     require $bmwqemu::vars{PRODUCTDIR} . '/main.pm';
 }
