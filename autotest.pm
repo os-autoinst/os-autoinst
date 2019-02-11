@@ -205,7 +205,14 @@ sub make_snapshot {
 sub load_snapshot {
     my ($sname) = @_;
     bmwqemu::diag("Loading a VM snapshot $sname");
-    return query_isotovideo('backend_load_snapshot', {name => $sname});
+    my $command = query_isotovideo('backend_load_snapshot', {name => $sname});
+    # On VMware VNC console needs to be re-selected after snapshot revert,
+    # so the screen is refreshed. Same with serial console.
+    if ($command eq 'vmware_fixup') {
+        testapi::select_console('sut');
+        query_isotovideo('backend_stop_serial_grab');
+        query_isotovideo('backend_start_serial_grab');
+    }
 }
 
 sub run_all {

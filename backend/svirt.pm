@@ -176,6 +176,7 @@ sub load_snapshot {
     my $snapname = $args->{name};
     my $vmname   = $self->console('svirt')->name;
     my $rsp;
+    my $post_load_snapshot_command = '';
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         my $ps = 'powershell -Command';
         $rsp = $self->run_cmd("$ps Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false");
@@ -194,11 +195,12 @@ sub load_snapshot {
     }
     else {
         my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
-        $rsp = $self->run_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
+        $rsp                        = $self->run_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
+        $post_load_snapshot_command = 'vmware_fixup' if check_var('VIRSH_VMM_FAMILY', 'vmware');
     }
     bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
-    die unless ($rsp == 0);
-    return $rsp;
+    die if $rsp;
+    return $post_load_snapshot_command;
 }
 
 sub read_credentials_from_virsh_variables {
