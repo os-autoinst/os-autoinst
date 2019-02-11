@@ -145,7 +145,7 @@ sub is_shutdown {
         $rsp = $self->run_cmd("powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"");
     }
     else {
-        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
+        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
         $rsp = $self->run_cmd("! virsh $libvirt_connector dominfo $vmname | grep -w 'shut off'");
     }
     return $rsp;
