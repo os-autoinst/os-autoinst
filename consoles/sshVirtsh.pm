@@ -338,7 +338,7 @@ sub add_disk {
     my $name                    = $self->name;
     my $file                    = $name . $args->{dev_id} . ($self->vmm_family eq 'vmware' ? '.vmdk' : '.img');
     my $basedir                 = '/var/lib/libvirt/images/';
-    my $vmware_datastore        = get_var('VMWARE_DATASTORE');
+    my $vmware_datastore        = get_var('VMWARE_DATASTORE', '');
     my $vmware_openqa_datastore = "/vmfs/volumes/$vmware_datastore/openQA/";
     if ($args->{create}) {
         my $size = $args->{size} || '20G';
