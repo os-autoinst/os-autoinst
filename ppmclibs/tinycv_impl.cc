@@ -325,7 +325,8 @@ Image* image_read(const char* filename)
     image->img = imread(filename, CV_LOAD_IMAGE_COLOR);
     if (!image->img.data) {
         std::cerr << "Could not open image " << filename << std::endl;
-        return 0L;
+        delete image;
+        return nullptr;
     }
     return image;
 }
