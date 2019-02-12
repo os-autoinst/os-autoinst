@@ -71,7 +71,7 @@ sub search_ {
     my $needle_image = $needle->get_image;
     unless ($needle_image) {
         bmwqemu::diag("skipping $needle->{name}: missing PNG");
-        return;
+        return undef;
     }
     $stopwatch->lap("**++ search__: get image") if $stopwatch;
 
