@@ -789,7 +789,7 @@ sub is_serial_terminal {
 
 =head2 wait_serial
 
-  wait_serial($regex or ARRAYREF of $regexes [[, $timeout], $expect_not_found]);
+  wait_serial($regex or ARRAYREF of $regexes [, $timeout [, $expect_not_found [, @args ]]]);
 
 Wait for C<$regex> or anyone of C<$regexes> to appear on serial output.
 
@@ -797,7 +797,9 @@ Returns the string matched or C<undef> if C<$expect_not_found> is false
 (default).
 
 Returns C<undef> or (after timeout) the string that I<did _not_ match> if
-C<$expect_not_found> is true.
+C<$expect_not_found> is true. The default timeout is 90 seconds.
+
+Setting C<$no_regex> will cause it to do a plain string search.
 
 =cut
 
