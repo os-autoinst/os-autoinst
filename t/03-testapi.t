@@ -154,6 +154,14 @@ subtest 'type_string with wait_still_screen' => sub {
     is_deeply($cmds, [{cmd => 'backend_type_string', text => 'hallo', max_interval => 250}]);
     $cmds = [];
     ok($wait_still_screen_called, 'wait still screen should have been called');
+    type_string 'test2_adding_timeout', wait_still_screen => 1, timeout => 5, max_interval => 100;
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 'test2_adding_timeout'}]);
+    $cmds = [];
+    ok($wait_still_screen_called, 'wait still screen should have been called');
+    type_string 'test3_with_sim_level', wait_still_screen => 1, timeout => 5, similarity_level => 38, max_interval => 100;
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 'test3_with_sim_level'}]);
+    $cmds = [];
+    ok($wait_still_screen_called, 'wait still screen should have been called');
 };
 
 
@@ -409,6 +417,7 @@ subtest 'wait_still_screen' => sub {
     ok(wait_still_screen(3), 'still time specified');
     ok(wait_still_screen(2, 4), 'still time and timeout');
     ok(wait_still_screen(stilltime => 2, no_wait => 1), 'no_wait option can be specified');
+    ok(wait_still_screen(stilltime => 2, timeout => 5, no_wait => 1, similarity_level => 30), 'Add similarity_level & timeout');
     ok(!wait_still_screen(timeout => 4, no_wait => 1), 'two named args, with timeout below stilltime - which will always return false');
     ok(wait_still_screen(1, 2, timeout => 3), 'named over positional');
 };
