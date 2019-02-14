@@ -76,7 +76,7 @@ sub do_stop_vm {
             $self->run_cmd("$ps Remove-VM -Force -VMName $vmname");
         }
         else {
-            my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
+            my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
             $self->run_cmd("virsh $libvirt_connector destroy $vmname");
             $self->run_cmd("virsh $libvirt_connector undefine --snapshots-metadata $vmname");
         }
@@ -162,7 +162,7 @@ sub save_snapshot {
         $rsp = $self->run_cmd("$ps Checkpoint-VM -VMName $vmname -SnapshotName $snapname");
     }
     else {
-        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
+        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
         $self->run_cmd("virsh $libvirt_connector snapshot-delete $vmname $snapname");
         $rsp = $self->run_cmd("virsh $libvirt_connector snapshot-create-as $vmname $snapname");
     }
@@ -194,7 +194,7 @@ sub load_snapshot {
         }
     }
     else {
-        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
+        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
         $rsp                        = $self->run_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
         $post_load_snapshot_command = 'vmware_fixup' if check_var('VIRSH_VMM_FAMILY', 'vmware');
     }
