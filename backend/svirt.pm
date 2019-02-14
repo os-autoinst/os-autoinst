@@ -130,7 +130,7 @@ sub can_handle {
     my $vars = \%bmwqemu::vars;
     if ($args->{function} eq 'snapshots' && !check_var('HDDFORMAT', 'raw')) {
         # Snapshots via libvirt are supported on KVM and, perhaps, ESXi. Hyper-V uses native tools.
-        if (check_var('VIRSH_VMM_FAMILY', 'kvm') || check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+        if (check_var('VIRSH_VMM_FAMILY', 'kvm') || check_var('VIRSH_VMM_FAMILY', 'hyperv') || check_var('VIRSH_VMM_FAMILY', 'vmware')) {
             return {ret => 1};
         }
     }
@@ -176,6 +176,7 @@ sub load_snapshot {
     my $snapname = $args->{name};
     my $vmname   = $self->console('svirt')->name;
     my $rsp;
+    my $post_load_snapshot_command = '';
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         my $ps = 'powershell -Command';
         $rsp = $self->run_cmd("$ps Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false");
@@ -194,11 +195,12 @@ sub load_snapshot {
     }
     else {
         my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
-        $rsp = $self->run_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
+        $rsp                        = $self->run_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
+        $post_load_snapshot_command = 'vmware_fixup' if check_var('VIRSH_VMM_FAMILY', 'vmware');
     }
     bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
-    die unless ($rsp == 0);
-    return $rsp;
+    die if $rsp;
+    return $post_load_snapshot_command;
 }
 
 sub read_credentials_from_virsh_variables {
