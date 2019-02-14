@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,8 +27,12 @@ sub new {
     my ($class, $testapi_console, $args) = @_;
 
     my $self = $class->SUPER::new($testapi_console, $args);
-    $self->{libvirt_domain} = $args->{libvirt_domain} // 'openQA-SUT-1';
+
+    # TODO: inherit from consoles::sshVirtsh
+    my $instance = get_var('VIRSH_INSTANCE', 1);
+    $self->{libvirt_domain} = $args->{libvirt_domain} // "openQA-SUT-$instance";
     $self->{serial_port_no} = $args->{serial_port_no} // 1;
+
     return $self;
 }
 
