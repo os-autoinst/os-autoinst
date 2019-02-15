@@ -121,6 +121,8 @@ sub init {
     }
     elsif (get_var('SERIALDEV')) {
         $serialdev = get_var('SERIALDEV');
+        set_var('SERIALDEVORIG', $serialdev);
+        bmwqemu::save_vars();
     }
     else {
         $serialdev = 'ttyS0';
