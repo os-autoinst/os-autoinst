@@ -21,6 +21,7 @@ use warnings;
 use base 'consoles::console';
 
 use testapi 'get_var';
+use backend::svirt qw(SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE);
 use consoles::virtio_screen;
 
 sub new {
@@ -31,7 +32,15 @@ sub new {
     # TODO: inherit from consoles::sshVirtsh
     my $instance = get_var('VIRSH_INSTANCE', 1);
     $self->{libvirt_domain} = $args->{libvirt_domain} // "openQA-SUT-$instance";
-    $self->{serial_port_no} = $args->{serial_port_no} // 1;
+    $self->{serial_port_no} = $args->{serial_port_no} // SERIAL_TERMINAL_DEFAULT_PORT;
+
+    # QEMU on s390x fails to start when added <serial> device due arch limitation
+    # on SCLP console, see "Multiple VT220 operator consoles are not supported"
+    # error at
+    # https://github.com/qemu/qemu/blob/master/hw/char/sclpconsole.c#L226
+    # Therefore <console> must be used for s390x.
+    # ATM there is only s390x using this console, let's make it the default.
+    $self->{pty_dev} = $args->{pty_dev} // SERIAL_TERMINAL_DEFAULT_DEVICE;
 
     return $self;
 }
@@ -58,7 +67,7 @@ sub activate {
     my ($self) = @_;
 
     my $backend = $self->{backend};
-    my ($ssh, $chan) = $backend->open_serial_console_via_ssh($self->{libvirt_domain}, $self->{serial_port_no});
+    my ($ssh, $chan) = $backend->open_serial_console_via_ssh($self->{libvirt_domain}, $self->{pty_dev}, $self->{serial_port_no});
 
     $self->{ssh}    = $ssh;
     $self->{screen} = consoles::virtio_screen->new($chan, $ssh->sock);

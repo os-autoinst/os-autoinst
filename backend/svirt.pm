@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2016 SUSE LLC
+# Copyright © 2012-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,8 +21,17 @@ use warnings;
 
 use base 'backend::virt';
 
-use testapi qw(get_var get_required_var check_var);
 use IO::Select;
+use testapi qw(get_var get_required_var check_var);
+
+use constant SERIAL_CONSOLE_DEFAULT_PORT   => 0;
+use constant SERIAL_CONSOLE_DEFAULT_DEVICE => 'console';
+
+use constant SERIAL_TERMINAL_DEFAULT_PORT   => 1;
+use constant SERIAL_TERMINAL_DEFAULT_DEVICE => 'console';
+
+use Exporter 'import';
+our @EXPORT_OK = qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_CONSOLE_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE);
 
 # this is a fake backend to some extend. We don't start VMs, but provide ssh access
 # to a libvirt running host (KVM for System Z in mind)
@@ -276,7 +285,7 @@ sub start_serial_grab {
 
 # opens another SSH connection to grab the serial console with the specified port
 sub open_serial_console_via_ssh {
-    my ($self, $name, $port) = @_;
+    my ($self, $name, $devname, $port) = @_;
 
     bmwqemu::diag("Starting SSH connection to connect to libvirt domain $name via serial port $port");
     my $credentials = $self->read_credentials_from_virsh_variables;
@@ -299,7 +308,7 @@ sub open_serial_console_via_ssh {
         $command = "nc $server $port";
     }
     else {
-        $command = "virsh console \"$name\" \"serial$port\"";
+        $command = "virsh console \"$name\" \"$devname$port\"";
     }
     $chan->exec($command) || $ssh->die_with_error('Unable to start serial console');
 

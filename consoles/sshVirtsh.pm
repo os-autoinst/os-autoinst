@@ -224,7 +224,7 @@ sub add_pty {
     my $doc     = $self->{domainxml};
     my $devices = $self->{devices_element};
 
-    my $console = $doc->createElement($args->{pty_dev} || 'console');
+    my $console = $doc->createElement($args->{pty_dev} || backend::svirt::SERIAL_CONSOLE_DEFAULT_DEVICE);
     $console->setAttribute(type => $args->{pty_dev_type} || 'pty');
     $devices->appendChild($console);
 
@@ -281,29 +281,13 @@ sub add_vnc {
 
 # adds a further serial port
 # (in addition to the serial console on port 0 which added in add_pty, so don't use port 0 here)
+# As it's used over virsh console, use <console>.
 sub add_serial_console {
     my ($self, $args) = @_;
 
-    my $doc     = $self->{domainxml};
-    my $devices = $self->{devices_element};
-    my $port    = $args->{port} // '1';
-
-    my $serial = $doc->createElement('serial');
-    $serial->setAttribute(type => 'pty');
-
-    # set the port number
-    my $target = $doc->createElement('target');
-    $target->setAttribute(port => $port);
-    $serial->appendChild($target);
-
-    # set the name of the serial port used to refer to it when calling 'virsh console'
-    # note: This doesn't seem to have any effect, but set it in accordance with the 'default' we expect to get.
-    my $alias = $doc->createElement('alias');
-    $alias->setAttribute(name => 'serial' . $port);
-    $serial->appendChild($alias);
-
-    $devices->appendChild($serial);
-    return;
+    my $port    = $args->{port}    // backend::svirt::SERIAL_TERMINAL_DEFAULT_PORT;
+    my $pty_dev = $args->{pty_dev} // backend::svirt::SERIAL_TERMINAL_DEFAULT_DEVICE;
+    $self->add_pty({pty_dev => $pty_dev, pty_dev_type => 'pty', target_port => $port});
 }
 
 sub add_input {
