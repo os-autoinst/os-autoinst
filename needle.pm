@@ -168,6 +168,7 @@ sub _load_image {
     if ($watch->as_data()->{total_time} > 0.1) {
         bmwqemu::diag(sprintf("load of $image_path took %.2f seconds", $watch->as_data()->{total_time}));
     }
+    return undef unless $image;
 
     # call replacerect for non-exclude areas
     for my $area (@{$self->{area}}) {
@@ -189,8 +190,16 @@ sub _load_image_with_caching {
 
     # insert newly loaded image to cache or recycle previously cached image
     my $image_path       = $self->{png};
-    my $image_cache_item = ($image_cache{$image_path} //= $self->_load_image($image_path));
+    my $image_cache_item = $image_cache{$image_path};
+    if (!$image_cache_item) {
+        my $new_image_cache_item = $self->_load_image($image_path);
+        return undef unless $new_image_cache_item;
+
+        $image_cache_item = $image_cache{$image_path} = $new_image_cache_item;
+    }
+
     $image_cache_item->{last_use} = ++$image_cache_tick;
+
     return $image_cache_item->{image};
 }
 
@@ -232,6 +241,7 @@ sub get_image {
     my ($self, $area) = @_;
 
     my $image = $self->_load_image_with_caching;
+    return undef  unless $image;
     return $image unless $area;
     return $area->{img} //= $image->copyrect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height});
 }

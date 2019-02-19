@@ -3,9 +3,9 @@
 use strict;
 use warnings;
 use Cwd 'abs_path';
+use Test::Output 'stderr_like';
 use Test::More;
 use Test::Warnings;
-use Try::Tiny;
 use File::Basename;
 use File::Path 'make_path';
 use File::Temp 'tempdir';
@@ -77,15 +77,26 @@ $needle = needle->new($data_dir . "kde.ref.json");
 $res    = $img1->search($needle);
 ok(!defined $res, "no match with different art");
 
-$res = undef;
-try {
-    $img1   = tinycv::read($data_dir . "kde.ref.png");
-    $needle = needle->new($data_dir . "kde.ref.json");
-    my $needle_nopng = needle->new($data_dir . "console.ref.json");
-    $needle_nopng->{png} .= ".missing.png";
-    $res = $img1->search([$needle_nopng, $needle]);
+subtest 'handle failure to load image' => sub {
+    my $needle_with_png = needle->new("${data_dir}kde.ref.json");
+    ok(my $image = $needle_with_png->get_image, 'image returned');
+    my $needle_without_png  = needle->new("${data_dir}console.ref.json");
+    my $missing_needle_path = $needle_without_png->{png} .= '.missing.png';
+    is($needle_without_png->get_image, undef, 'get_image returns undef if no image present');
+
+    stderr_like(
+        sub {
+            my ($best_candidate, $candidates) = $image->search([$needle_without_png, $needle_with_png]);
+            ok($best_candidate, 'has best candidate');
+            is($best_candidate->{needle}, $needle_with_png, 'needle with png is best candidate')
+              or diag explain $best_candidate;
+            is_deeply($candidates, [], 'missing needle not even considered as candidate')
+              or diag explain $candidates;
+        },
+        qr{.*Could not open image .*$missing_needle_path.*\n.*skipping console\.ref\: missing PNG.*},
+        'needle with missing PNG skipped'
+    );
 };
-ok(defined $res, "skip needles without png");
 
 $img1   = tinycv::read($data_dir . "console.test.png");
 $needle = needle->new($data_dir . "console.ref.json");
