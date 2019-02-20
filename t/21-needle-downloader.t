@@ -121,7 +121,7 @@ subtest 'download added URLs' => sub {
         sub {
             $downloader->download();
         },
-        qr/.*download new needle.*\n.*failed to download.*server returned 404.*/,
+        qr/.*download new needle.*\n.*(failed to download.*server returned 404|internal error occurred).*/,
         'errors logged'
     );
 
