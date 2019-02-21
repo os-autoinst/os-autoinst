@@ -384,7 +384,7 @@ sub add_disk {
                       "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
                       'done;' .
                       'else ' .
-                      "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
+                      "rsync --checksum -av /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
                       'fi;'
                 );
                 $vmware_chan->send_eof;
@@ -410,7 +410,7 @@ sub add_disk {
                 }
             }
             else {
-                $self->run_cmd(sprintf("rsync -av '$args->{file}' '$basedir/%s'", $file_basename)) && die 'rsync failed';
+                $self->run_cmd(sprintf("rsync --checksum -av '$args->{file}' '$basedir/%s'", $file_basename)) && die 'rsync failed';
             }
         }
         if ($backingfile) {
