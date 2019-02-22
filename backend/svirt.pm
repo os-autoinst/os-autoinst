@@ -72,13 +72,13 @@ sub do_stop_vm {
         bmwqemu::diag "Destroying $vmname virtual machine";
         if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
             my $ps = 'powershell -Command';
-            $self->run_cmd("$ps Stop-VM -Force -VMName $vmname -TurnOff");
-            $self->run_cmd("$ps Remove-VM -Force -VMName $vmname");
+            $self->run_ssh_cmd("$ps Stop-VM -Force -VMName $vmname -TurnOff");
+            $self->run_ssh_cmd("$ps Remove-VM -Force -VMName $vmname");
         }
         else {
             my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
-            $self->run_cmd("virsh $libvirt_connector destroy $vmname");
-            $self->run_cmd("virsh $libvirt_connector undefine --snapshots-metadata $vmname");
+            $self->run_ssh_cmd("virsh $libvirt_connector destroy $vmname");
+            $self->run_ssh_cmd("virsh $libvirt_connector undefine --snapshots-metadata $vmname");
         }
     }
     return {};
@@ -105,7 +105,7 @@ sub get_ssh_output {
     }
 }
 
-sub run_cmd {
+sub run_ssh_cmd {
     my ($self, $cmd, $hostname, $password) = @_;
     $hostname ||= get_required_var('VIRSH_HOSTNAME');
     $password ||= get_var('VIRSH_PASSWORD');
@@ -142,11 +142,11 @@ sub is_shutdown {
     my $vmname = $self->console('svirt')->name;
     my $rsp;
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
-        $rsp = $self->run_cmd("powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"");
+        $rsp = $self->run_ssh_cmd("powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"");
     }
     else {
         my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
-        $rsp = $self->run_cmd("! virsh $libvirt_connector dominfo $vmname | grep -w 'shut off'");
+        $rsp = $self->run_ssh_cmd("! virsh $libvirt_connector dominfo $vmname | grep -w 'shut off'");
     }
     return $rsp;
 }
@@ -158,13 +158,13 @@ sub save_snapshot {
     my $rsp;
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         my $ps = 'powershell -Command';
-        $self->run_cmd("$ps Remove-VMSnapshot -VMName $vmname -Name $snapname");
-        $rsp = $self->run_cmd("$ps Checkpoint-VM -VMName $vmname -SnapshotName $snapname");
+        $self->run_ssh_cmd("$ps Remove-VMSnapshot -VMName $vmname -Name $snapname");
+        $rsp = $self->run_ssh_cmd("$ps Checkpoint-VM -VMName $vmname -SnapshotName $snapname");
     }
     else {
         my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
-        $self->run_cmd("virsh $libvirt_connector snapshot-delete $vmname $snapname");
-        $rsp = $self->run_cmd("virsh $libvirt_connector snapshot-create-as $vmname $snapname");
+        $self->run_ssh_cmd("virsh $libvirt_connector snapshot-delete $vmname $snapname");
+        $rsp = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-create-as $vmname $snapname");
     }
     bmwqemu::diag "SAVE VM $vmname as $snapname snapshot, return code=$rsp";
     die unless ($rsp == 0);
@@ -179,14 +179,14 @@ sub load_snapshot {
     my $post_load_snapshot_command = '';
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         my $ps = 'powershell -Command';
-        $rsp = $self->run_cmd("$ps Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false");
-        $self->run_cmd("mv -v xfreerdp_${vmname}_stop xfreerdp_${vmname}_stop.bkp", get_required_var('VIRSH_GUEST'), get_var('VIRSH_GUEST_PASSWORD'));
+        $rsp = $self->run_ssh_cmd("$ps Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false");
+        $self->run_ssh_cmd("mv -v xfreerdp_${vmname}_stop xfreerdp_${vmname}_stop.bkp", get_required_var('VIRSH_GUEST'), get_var('VIRSH_GUEST_PASSWORD'));
         for my $i (1 .. 5) {
             # Because of FreeRDP issue https://github.com/FreeRDP/FreeRDP/issues/3876,
             # we can't connect too "early". Let's have a nap for a while.
             sleep 10;
             last
-              unless $self->run_cmd(
+              unless $self->run_ssh_cmd(
                 "pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)",
                 get_required_var('VIRSH_GUEST'),
                 get_var('VIRSH_GUEST_PASSWORD'));
@@ -195,7 +195,7 @@ sub load_snapshot {
     }
     else {
         my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
-        $rsp                        = $self->run_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
+        $rsp                        = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
         $post_load_snapshot_command = 'vmware_fixup' if check_var('VIRSH_VMM_FAMILY', 'vmware');
     }
     bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
