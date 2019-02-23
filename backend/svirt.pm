@@ -76,9 +76,10 @@ sub do_stop_vm {
             $self->run_ssh_cmd("$ps Remove-VM -Force -VMName $vmname");
         }
         else {
-            my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
-            $self->run_ssh_cmd("virsh $libvirt_connector destroy $vmname");
-            $self->run_ssh_cmd("virsh $libvirt_connector undefine --snapshots-metadata $vmname");
+            my $virsh = 'virsh';
+            $virsh .= ' ' . get_var('VMWARE_REMOTE_VMM') if get_var('VMWARE_REMOTE_VMM');
+            $self->run_ssh_cmd("$virsh destroy $vmname");
+            $self->run_ssh_cmd("$virsh undefine --snapshots-metadata $vmname");
         }
     }
     return {};
@@ -105,6 +106,25 @@ sub get_ssh_output {
     }
 }
 
+# Sends command to libvirt host, logs stdout and stderr of the command,
+# returns exit status.
+#
+# Example:
+#   my $ret = $svirt->run_cmd("virsh snapshot-create-as snap1");
+#   die "snapshot creation failed" unless $ret == 0;
+sub run_cmd {
+    my ($ssh, $cmd) = @_;
+
+    my $chan = $ssh->channel();
+    $chan->exec($cmd);
+    get_ssh_output($chan);
+    $chan->send_eof;
+    my $ret = $chan->exit_status();
+    bmwqemu::diag "Command executed: $cmd, ret=$ret";
+    $chan->close();
+    return $ret;
+}
+
 sub run_ssh_cmd {
     my ($self, $cmd, $hostname, $password) = @_;
     $hostname ||= get_required_var('VIRSH_HOSTNAME');
@@ -115,14 +135,7 @@ sub run_ssh_cmd {
         password => $password,
         username => 'root'
     );
-    my $chan = $self->{ssh}->channel();
-    $chan->exec($cmd);
-    get_ssh_output($chan);
-    $chan->send_eof;
-    my $ret = $chan->exit_status();
-    bmwqemu::diag "Command executed: $cmd, ret=$ret";
-    $chan->close();
-    return $ret;
+    return run_cmd($self->{ssh}, $cmd);
 }
 
 sub can_handle {

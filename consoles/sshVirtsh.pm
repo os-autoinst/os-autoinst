@@ -22,6 +22,7 @@ use autodie ':all';
 
 use base 'consoles::sshXtermVt';
 
+use backend::svirt;
 use testapi qw(get_var get_required_var check_var set_var);
 require IPC::System::Simple;
 use XML::LibXML;
@@ -505,17 +506,21 @@ sub add_disk {
     return;
 }
 
+sub virsh {
+    my $virsh = 'virsh';
+    $virsh .= ' ' . get_var('VMWARE_REMOTE_VMM') if get_var('VMWARE_REMOTE_VMM');
+    return $virsh;
+}
+
 sub suspend {
     my ($self) = @_;
-    my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
-    $self->run_cmd("virsh $libvirt_connector suspend " . $self->name) && die "Can't suspend VM ";
+    $self->run_cmd(virsh() . " suspend " . $self->name) && die "Can't suspend VM ";
     bmwqemu::diag "VM " . $self->name . " suspended";
 }
 
 sub resume {
     my ($self) = @_;
-    my $libvirt_connector = get_var('VMWARE_REMOTE_VMM');
-    $self->run_cmd("virsh $libvirt_connector resume " . $self->name) && die "Can't resume VM ";
+    $self->run_cmd(virsh() . " resume " . $self->name) && die "Can't resume VM ";
     bmwqemu::diag "VM " . $self->name . " resumed";
 }
 
@@ -621,15 +626,7 @@ sub get_ssh_output {
 #   die "snapshot creation failed" unless $ret == 0;
 sub run_cmd {
     my ($self, $cmd) = @_;
-
-    my $chan = $self->{ssh}->channel();
-    $chan->exec($cmd);
-    bmwqemu::diag "Command executed: $cmd";
-    get_ssh_output($chan);
-    $chan->send_eof;
-    my $ret = $chan->exit_status();
-    $chan->close();
-    return $ret;
+    return backend::svirt::run_cmd($self->{ssh}, $cmd);
 }
 
 # Executes command and in list context returns pair of standard output and standard error
