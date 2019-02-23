@@ -1217,7 +1217,8 @@ sub send_key_until_needlematch {
 
 =head2 type_string
 
-  type_string($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, wait_still_screen => <num> ] [, secret => 1 ] );
+  type_string($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, wait_still_screen => <num> ] [, secret => 1 ] 
+  [, timeout => <num>] [, similarity_level => <num>] );
 
 send a string of characters, mapping them to appropriate key names as necessary
 
@@ -1229,8 +1230,12 @@ C<max_interval> the slower the typing.
 C<wait_screen_change> if set, type only this many characters at a time
 C<wait_screen_change> and wait for the screen to change between sets.
 
-C<wait_still_screen> if set, C<wait_still_screen> for the given seconds
-after the whole string is typed.
+C<wait_still_screen> if set, C<wait_still_screen> returns true if screen is not 
+changed for given C<$wait_still_screen> seconds or false if the screen is not still
+for the given seconds within defined C<timeout> after the whole string is typed.
+Default timeout is 30s, default stilltime is 0s.
+
+C<similarity_level> can be passed as argument for wrapped C<wait_still_screen> calls.
 
 C<secret (bool)> suppresses logging of the actual string typed.
 
@@ -1254,25 +1259,27 @@ sub type_string {
         return;
     }
 
-    my $max_interval = $args{max_interval}       // 250;
-    my $wait         = $args{wait_screen_change} // 0;
-    my $wait_still   = $args{wait_still_screen}  // 0;
-    bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait, wait_still_screen => $wait_still);
+    my $max_interval   = $args{max_interval}       // 250;
+    my $wait           = $args{wait_screen_change} // 0;
+    my $wait_still     = $args{wait_still_screen}  // 0;
+    my $wait_timeout   = $args{timeout}            // 30;
+    my $wait_sim_level = $args{similarity_level}   // 47;
+    bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait, wait_still_screen => $wait_still,
+        timeout => $wait_timeout, similarity_level => $wait_sim_level);
+    my @pieces;
     if ($wait) {
         # split string into an array of pieces of specified size
         # https://stackoverflow.com/questions/372370
-        my @pieces = unpack("(a${wait})*", $string);
-        for my $piece (@pieces) {
-            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); };
-            if ($wait_still) {
-                wait_still_screen($wait_still);
-            }
-        }
+        @pieces = unpack("(a${wait})*", $string);
     }
     else {
-        query_isotovideo('backend_type_string', {text => $string, max_interval => $max_interval});
-        if ($wait_still) {
-            wait_still_screen($wait_still);
+        push @pieces, $string;
+    }
+    for my $piece (@pieces) {
+        wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); };
+        if ($wait_still && !wait_still_screen(stilltime => $wait_still,
+                timeout => $wait_timeout, similarity_level => $wait_sim_level)) {
+            die "wait_still_screen timed out after ${wait_timeout}s!";
         }
     }
 }
