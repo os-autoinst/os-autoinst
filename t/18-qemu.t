@@ -113,7 +113,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing U
   -blockdev driver=file,node-name=hd0-file,filename=raid/hd0,cache.no-flush=on
   -blockdev driver=qcow2,node-name=hd0,file=hd0-file,cache.no-flush=on
   -device sega-mega,id=hd0-device-path0,drive=hd0,share-rw=true,bus=scsi0.0,bootindex=0,serial=hd0
-  -device sega-mega,id=hd0-device-path1,drive=hd0,share-rw=true,bus=scsi1.0,bootindex=0,serial=hd0
+  -device sega-mega,id=hd0-device-path1,drive=hd0,share-rw=true,bus=scsi1.0,serial=hd0
 
   -blockdev driver=file,node-name=hd1-file,filename=raid/hd1,cache.no-flush=on
   -blockdev driver=qcow2,node-name=hd1,file=hd1-file,cache.no-flush=on
