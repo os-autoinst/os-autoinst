@@ -12,7 +12,6 @@ use Test::Fatal;
 use Test::Mock::Time;
 use Test::Warnings;
 use Test::Exception;
-use Test::Exception;
 use Scalar::Util 'looks_like_number';
 
 BEGIN {
@@ -238,6 +237,14 @@ subtest 'check_assert_screen' => sub {
     my $mock_tinycv = Test::MockModule->new('tinycv');
     $mock_tinycv->mock(from_ppm => sub { return bless({} => __PACKAGE__); });
 
+    throws_ok(sub { assert_screen(''); }, qr/no tags specified/, 'error if tag(s) is falsy scalar');
+    throws_ok(sub { assert_screen([]); }, qr/no tags specified/, 'error if tag(s) is empty array');
+
+    my $current_test = $autotest::current_test;
+    $autotest::current_test = undef;
+    throws_ok(sub { assert_screen('foo', 1); }, qr/current_test undefined/, 'error if current test undefined');
+    $autotest::current_test = $current_test;
+
     stderr_like {
         is_deeply(assert_screen('foo', 1), {needle => 1}, 'expected and found MATCH reported');
     }
@@ -246,7 +253,8 @@ subtest 'check_assert_screen' => sub {
     stderr_like { assert_screen('foo') } qr/timeout=30/, 'default timeout';
     stderr_like { assert_screen('foo', no_wait => 1) } qr/no_wait=1/, 'no wait option';
     stderr_like { check_screen('foo') } qr/timeout=0/, 'check_screen with timeout of 0';
-    stderr_like { check_screen('foo', 42) } qr/timeout=42/, 'check_screen with timeout variable';
+    stderr_like { check_screen('foo',         42) } qr/timeout=42/, 'check_screen with timeout variable';
+    stderr_like { check_screen([qw(foo bar)], 42) } qr/timeout=42/, 'check_screen with multiple tags';
 
     $fake_needle_found = 0;
     is($report_timeout_called, 0, 'report_timeout not called yet');
