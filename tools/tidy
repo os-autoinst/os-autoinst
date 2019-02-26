@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 #
 # perltidy rules can be found in ../.perltidyrc
@@ -38,7 +38,7 @@ find . \( -name '*.p[lm]' -o -name '*.t' \) -not -path '*/.git/*' -not -path '*/
 isotovideo=$(ls isotovideo 2>/dev/null)
 find tools/absolutize $isotovideo -print0 | xargs -0 perltidy $TIDY_ARGS
 
-while read file; do
+for file in $(find . -name "*.tdy"); do
     if ! diff -u ${file%.tdy} $file; then
         if test -n "$check"; then
             echo "RUN tools/tidy script before checkin"
@@ -49,6 +49,6 @@ while read file; do
     else
         rm $file
     fi
-done < <(find . -name "*.tdy")
+done
 
 # vim: set sw=4 et:
