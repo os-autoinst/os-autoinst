@@ -291,11 +291,6 @@ sub open_serial_console_via_ssh {
     my $credentials = $self->read_credentials_from_virsh_variables;
     my $ssh         = $self->new_ssh_connection(%$credentials);
     my $chan        = $ssh->channel() || $ssh->die_with_error('Unable to create SSH channel for serial console');
-    $chan->blocking(0);
-    $chan->pty('vt100', {echo => 1});
-    $chan->pty_size(1024, 24);
-    $chan->shell() || $ssh->die_with_error('Unable to start shell for serial console');
-    print($chan "PS1='# '\n");
 
     # note: see comments in start_serial_grab for the special handling of vmware/hyperv
     my $command;

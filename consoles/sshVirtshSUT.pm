@@ -53,9 +53,6 @@ sub screen {
 sub disable {
     my ($self) = @_;
 
-    if (my $shell = $self->{shell}) {
-        $shell->close();
-    }
     if (my $ssh = $self->{ssh}) {
         $ssh->disconnect;
         $self->{ssh} = $self->{chan} = $self->{screen} = undef;
