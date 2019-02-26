@@ -23,7 +23,7 @@ if [ "$perltidy_version_found" != "$perltidy_version_expected" ]; then
     exit 1
 fi
 
-cd $dir
+cd "${0%/*}/.."
 
 # just to make sure we are at the right location
 test -e tools/tidy || exit 1
