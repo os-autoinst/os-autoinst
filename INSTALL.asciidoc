@@ -13,10 +13,11 @@ installation guide]
 git clone YOUR-WRITEABLE-COPY-OF/os-autoinst.git
 cd os-autoinst
 ------------------------------------------------
-3.  install the BuildRequires, as per the https://build.opensuse.org/package/show/devel:openQA/os-autoinst[spec file] 
+3.  install the BuildRequires, as per the https://build.opensuse.org/package/show/devel:openQA/os-autoinst[spec file]
 +
 -----------------------------------------------------------------------------------------------------------------------------------
-sudo zypper in git-core make libtheora-devel opencv-devel fftw3-devel libsndfile-devel pkg-config libtool autoconf automake gcc-c++
+sudo zypper in git-core make libtheora-devel opencv-devel fftw3-devel libsndfile-devel \
+  pkg-config libtool autoconf automake gcc-c++
 -----------------------------------------------------------------------------------------------------------------------------------
 4.  build the beastie locally
 +
@@ -104,3 +105,10 @@ useradd -m USERNAME -G kvm
 passwd USERNAME # and/or add ~USERNAME/.ssh/authorized_keys
 -----------------------------------------------------------
 
+[[debian]]
+Development on Debian/Ubuntu
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------------------------------------------------------------------------------------------
+apt install autoconf automake g++ git libfftw3-dev libopencv-dev libsndfile-dev \
+  libtheora-dev libtool make perltidy pkg-config spell
+------------------------------------------------------------------------------------------------------------------------------------
