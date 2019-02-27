@@ -636,8 +636,6 @@ sub run_cmd {
 # of the command. In void (and scalar) context returns just standard the standard output.
 sub get_cmd_output {
     my ($self, $cmd, $args) = @_;
-
-    my $wantarray = $args->{wantarray};
     my $domain    = $args->{domain} // 'ssh';
     my $chan      = $self->{$domain}->channel();
     $chan->exec($cmd);
@@ -645,7 +643,7 @@ sub get_cmd_output {
     my @cmd_output = get_ssh_output($chan);
     $chan->send_eof;
     $chan->close();
-    return $wantarray ? \@cmd_output : $cmd_output[0];
+    return wantarray ? \@cmd_output : $cmd_output[0];
 }
 
 1;
