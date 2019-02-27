@@ -533,7 +533,6 @@ sub start_qemu {
 
     die "no kvm-img/qemu-img found\n" unless $qemuimg;
     die "no Qemu/KVM found\n"         unless $qemubin;
-    die "MULTINET is not supported with NICTYPE==tap\n" if ($vars->{MULTINET} && $vars->{NICTYPE} eq "tap");
 
     $self->{proc}->qemu_bin($qemubin);
     $self->{proc}->qemu_img_bin($qemuimg);
@@ -801,11 +800,6 @@ sub start_qemu {
 
         foreach my $attribute (qw(KERNEL INITRD APPEND)) {
             sp(lc($attribute), $vars->{$attribute}) if $vars->{$attribute};
-        }
-
-        if ($vars->{MULTINET}) {
-            sp('net', [qv "nic vlan=1 model=$vars->{NICMODEL} macaddr=52:54:00:12:34:57"]);
-            sp('net', [qw(none vlan=1)]);
         }
 
         unless ($vars->{QEMU_NO_TABLET}) {
