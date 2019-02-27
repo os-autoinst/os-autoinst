@@ -363,9 +363,11 @@ sub _check_backend_response {
 
 sub _check_or_assert {
     my ($mustmatch, $check, %args) = @_;
-    $args{timeout} = bmwqemu::scale_timeout($args{timeout});
 
+    die "no tags specified" if (!$mustmatch || (ref $mustmatch eq 'ARRAY' && scalar @$mustmatch == 0));
     die "current_test undefined" unless $autotest::current_test;
+
+    $args{timeout} = bmwqemu::scale_timeout($args{timeout});
 
     while (1) {
         my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, check => $check, timeout => $args{timeout}, no_wait => $args{no_wait}});
