@@ -35,6 +35,9 @@ use Exception::Class (
     'OpenQA::Exception::SSHConnectionError' => {
         description => 'Failed to connect to SSH Server'
     },
+    'OpenQA::Exception::ConsoleReadError' => {
+        description => 'Failed to receive data from console'
+    },
 );
 
 1;

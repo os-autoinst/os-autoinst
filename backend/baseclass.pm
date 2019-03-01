@@ -242,7 +242,8 @@ sub run_capture_loop {
                     # Very high limits! On a working socket, the maximum hits per 10 seconds will be around 60.
                     # The maximum hits per 10 seconds saw on a half open socket was >100k
                     if (check_select_rate($buckets, $wait_time_limit, $hits_limit, fileno $fh)) {
-                        die "The console isn't responding correctly. Maybe half-open socket?";
+                        my $console = $self->{current_console}->{testapi_console};
+                        OpenQA::Exception::ConsoleReadError->throw(error => "The console '$console' is not responding (half-open socket?). Make sure the console is reachable or disable stall detection on expected disconnects with '\$console->disable_vnc_stalls', for example in case of intended machine shutdown");
                     }
                 }
 
