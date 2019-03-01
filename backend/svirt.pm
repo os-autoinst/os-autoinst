@@ -255,17 +255,6 @@ sub read_credentials_from_virsh_variables {
 sub start_serial_grab {
     my ($self, $name) = @_;
 
-    # Connect to VM host, or, in case of Hyper-V, to intermediary from which we gather
-    # remote serial console output.
-    my ($hostname, $password);
-    if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
-        $hostname = get_required_var('VIRSH_GUEST');
-        $password = get_var('VIRSH_GUEST_PASSWORD');
-    }
-    else {
-        $hostname = get_required_var('VIRSH_HOSTNAME');
-        $password = get_var('VIRSH_PASSWORD');
-    }
     my $credentials = $self->read_credentials_from_virsh_variables;
     my ($ssh, $chan) = $self->start_ssh_serial(%$credentials);
     my $command;
