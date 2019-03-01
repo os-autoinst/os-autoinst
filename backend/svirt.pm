@@ -135,15 +135,17 @@ sub run_cmd {
 }
 
 sub run_ssh_cmd {
-    my ($self, $cmd, $hostname, $password) = @_;
-    $hostname ||= get_required_var('VIRSH_HOSTNAME');
-    $password ||= get_var('VIRSH_PASSWORD');
+    my ($self, $cmd, %args) = @_;
+
+    $args{hostname} //= get_required_var('VIRSH_HOSTNAME');
+    $args{password} //= get_var('VIRSH_PASSWORD');
 
     $self->{ssh} = $self->new_ssh_connection(
-        hostname => $hostname,
-        password => $password,
+        hostname => $args{hostname},
+        password => $args{password},
         username => 'root'
     );
+
     return run_cmd($self->{ssh}, $cmd);
 }
 
@@ -200,18 +202,18 @@ sub load_snapshot {
     my $rsp;
     my $post_load_snapshot_command = '';
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
-        my $ps = 'powershell -Command';
+        my $ps          = 'powershell -Command';
+        my %credentials = {hostname => get_required_var('VIRSH_GUEST'), password => get_var('VIRSH_GUEST_PASSWORD')};
         $rsp = $self->run_ssh_cmd("$ps Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false");
-        $self->run_ssh_cmd("mv -v xfreerdp_${vmname}_stop xfreerdp_${vmname}_stop.bkp", get_required_var('VIRSH_GUEST'), get_var('VIRSH_GUEST_PASSWORD'));
+        $self->run_ssh_cmd("mv -v xfreerdp_${vmname}_stop xfreerdp_${vmname}_stop.bkp", %credentials);
+
         for my $i (1 .. 5) {
             # Because of FreeRDP issue https://github.com/FreeRDP/FreeRDP/issues/3876,
             # we can't connect too "early". Let's have a nap for a while.
             sleep 10;
             last
               unless $self->run_ssh_cmd(
-                "pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)",
-                get_required_var('VIRSH_GUEST'),
-                get_var('VIRSH_GUEST_PASSWORD'));
+                "pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)", %credentials);
             die "xfreerdp did not start" if ($i eq 5);
         }
     }
@@ -225,8 +227,12 @@ sub load_snapshot {
     return $post_load_snapshot_command;
 }
 
+# TODO: refactor selecting variables according to whether used for connecting
+# to VM host (VIRSH_HOSTNAME) or intermediary which handles VNC (VIRSH_GUEST).
+# Then it'd be possible to use it for run_ssh_cmd() as well (and remove duplicity
+# in load_snapshot()).
 sub read_credentials_from_virsh_variables {
-    my ($self) = @_;
+    my ($self, %args) = @_;
 
     my ($hostname, $username, $password);
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
