@@ -750,6 +750,10 @@ sub start_qemu {
         sp('object',  'rng-random,filename=/dev/urandom,id=rng0') if $vars->{QEMU_VIRTIO_RNG};
         sp('device',  'virtio-rng-pci,rng=rng0')                  if $vars->{QEMU_VIRTIO_RNG};
         sp('net',     'none')                                     if $vars->{OFFLINE_SUT};
+        if (my $path = $vars->{QEMU_HUGE_PAGES_PATH}) {
+            sp('mem-prealloc');
+            sp('mem-path', $path);
+        }
 
         for (my $i = 0; $i < $num_networks; $i++) {
             if ($vars->{NICTYPE} eq "user") {
