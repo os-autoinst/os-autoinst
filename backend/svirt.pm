@@ -94,25 +94,22 @@ sub do_stop_vm {
     return {};
 }
 
-# In list context returns pair ($stdout, $stderr). In void (and scalar)
-# context just logs stdout and stderr, returns nothing.
+# Log stdout and stderr and return them in a list (comped).
 sub get_ssh_output {
     my ($chan) = @_;
+    die 'No channel found' unless $chan;
 
-    my ($stdout, $errout) = ('', '');
+    my ($stdout, $stderr) = ('', '');
     while (!$chan->eof) {
         if (my ($o, $e) = $chan->read2) {
             $stdout .= $o;
-            $errout .= $e;
+            $stderr .= $e;
         }
     }
-    if (wantarray) {
-        return ($stdout, $errout);
-    }
-    else {
-        bmwqemu::diag "Command's stdout:\n$stdout" if length($stdout);
-        bmwqemu::diag "Command's stderr:\n$errout" if length($errout);
-    }
+    chomp($stdout, $stderr);
+    bmwqemu::diag("Command's stdout:\n$stdout") if length($stdout);
+    bmwqemu::diag("Command's stderr:\n$stderr") if length($stderr);
+    return ($stdout, $stderr);
 }
 
 # Sends command to libvirt host, logs stdout and stderr of the command,

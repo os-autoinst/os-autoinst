@@ -22,13 +22,14 @@ use autodie ':all';
 
 use base 'consoles::sshXtermVt';
 
-use backend::svirt;
-use testapi qw(get_var get_required_var check_var set_var);
 require IPC::System::Simple;
 use XML::LibXML;
 use File::Temp 'tempfile';
 use File::Basename;
 use Class::Accessor 'antlers';
+
+use backend::svirt;
+use testapi qw(get_var get_required_var check_var set_var);
 
 has instance   => (is => "rw", isa => "Num");
 has name       => (is => "rw", isa => "Str");
@@ -356,7 +357,7 @@ sub add_disk {
                   "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1"
             ) || $ssh->die_with_error("Unable to execute command for adding disk");
             $vmware_chan->send_eof;
-            get_ssh_output($vmware_chan);
+            backend::svirt::get_ssh_output($vmware_chan);
             $vmware_chan->close();
             die "Can't create VMware image $vmware_disk_path" if $vmware_chan->exit_status();
         }
@@ -388,7 +389,7 @@ sub add_disk {
                       'fi;'
                 ) || $ssh->die_with_error("Unable to execute command to copy VMware image $file_basename");
                 $vmware_chan->send_eof;
-                get_ssh_output($vmware_chan);
+                backend::svirt::get_ssh_output($vmware_chan);
                 $vmware_chan->close();
                 die "Can't copy VMware image $file_basename" if $vmware_chan->exit_status();
                 if ($backingfile) {
@@ -404,7 +405,7 @@ sub add_disk {
                           "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1"
                     ) || $ssh->die_with_error("Unable to execute command to create thin VMware image");
                     $vmware_chan->send_eof;
-                    get_ssh_output($vmware_chan);
+                    backend::svirt::get_ssh_output($vmware_chan);
                     $vmware_chan->close();
                     die "Can't create thin VMware image" if $vmware_chan->exit_status();
                 }
@@ -605,24 +606,6 @@ sub stop_serial_grab {
     $self->backend->stop_serial_grab($self->name);
 }
 
-# In list context returns ($stdout, $stderr) pair. In void (and scalar)
-# context just logs stdout and stderr, returns nothing.
-sub get_ssh_output {
-    my ($chan) = @_;
-
-    my ($stdout, $stderr) = ('', '');
-    while (!$chan->eof) {
-        if (my ($o, $e) = $chan->read2) {
-            $stdout .= $o;
-            $stderr .= $e;
-        }
-    }
-    chomp($stdout, $stderr);
-    bmwqemu::diag "Command's stdout:\n$stdout" if length($stdout);
-    bmwqemu::diag "Command's stderr:\n$stderr" if length($stderr);
-    return $stdout, $stderr if wantarray;
-}
-
 # Sends command to libvirt host, logs stdout and stderr of the command,
 # returns exit status.
 #
@@ -660,10 +643,9 @@ sub get_cmd_output {
 
     # read output and close channel
     bmwqemu::diag "Command executed: $cmd";
-    my @cmd_output = get_ssh_output($channel);
+    my @cmd_output = backend::svirt::get_ssh_output($channel);
     $channel->send_eof();
     $channel->close();
-
     return $wantarray ? \@cmd_output : $cmd_output[0];
 }
 
