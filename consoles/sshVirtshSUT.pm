@@ -22,7 +22,7 @@ use base 'consoles::console';
 
 use testapi 'get_var';
 use backend::svirt qw(SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE);
-use consoles::virtio_screen;
+use consoles::serial_screen;
 
 sub new {
     my ($class, $testapi_console, $args) = @_;
@@ -66,7 +66,7 @@ sub activate {
     my $backend = $self->{backend};
     my ($ssh, $chan) = $backend->open_serial_console_via_ssh($self->{libvirt_domain},
         devname => $self->{pty_dev}, port => $self->{serial_port_no}, is_terminal => 1);
-    $self->{screen} = consoles::virtio_screen->new($chan, $ssh->sock);
+    $self->{screen} = consoles::serial_screen->new($chan, $ssh->sock);
     return;
 }
 

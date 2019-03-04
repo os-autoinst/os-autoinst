@@ -39,7 +39,7 @@ consolesexec_DATA = \
 	consoles/sshXtermIPMI.pm \
 	consoles/sshXtermVt.pm \
 	consoles/ttyConsole.pm \
-	consoles/virtio_screen.pm \
+	consoles/serial_screen.pm \
 	consoles/virtio_terminal.pm \
 	consoles/vnc_base.pm \
 	consoles/network_console.pm \

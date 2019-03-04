@@ -1,4 +1,4 @@
-# Copyright © 2016 SUSE LLC
+# Copyright © 2016-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -12,7 +12,7 @@
 #
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
-package consoles::virtio_screen;
+package consoles::serial_screen;
 
 use 5.018;
 use strict;
@@ -35,9 +35,9 @@ sub new {
 }
 
 my $trying_to_use_keys = <<'FIN.';
-Virtio terminal does not support send_key. Use type_string (possibly with an
-ANSI/XTERM escape sequence), or switch to a console which sends key presses, not
-terminal codes.
+Virtio terminal and svirt serial terminal do not support send_key. Use
+type_string (possibly with an ANSI/XTERM escape sequence), or switch to a
+console which sends key presses, not terminal codes.
 FIN.
 
 =head2 send_key
@@ -104,10 +104,10 @@ sub type_string {
     $text .= $term if defined $term;
     my $written = syswrite $fd, $text;
     unless (defined $written) {
-        croak "Error writing to virtio terminal: $ERRNO";
+        croak "Error writing to virtio/svirt serial terminal: $ERRNO";
     }
     if ($written < length($text)) {
-        croak "Was not able to write entire message to virtio terminal. Only $written of $nargs->{text}";
+        croak "Was not able to write entire message to virtio/svirt serial terminal. Only $written of $nargs->{text}";
     }
 }
 
@@ -159,7 +159,7 @@ sub normalise_pattern {
                      no_regex => 0
   ]);
 
-Monitor the virtio console socket $file_descriptor for a character sequence
+Monitor the virtio/svirt serial console socket $file_descriptor for a character sequence
 which matches $pattern. Bytes are read from the socket in up to $buffer_size/2
 chunks and each chunk is added to a ring buffer which is $buffer_size
 long. The regular expression is tested against the ring buffer after each read
@@ -242,7 +242,7 @@ sub read_until {
             if ($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK}) {
                 next READ;
             }
-            croak "Failed to read from virtio console char device: $ERRNO";
+            croak "Failed to read from virtio/svirt serial console char device: $ERRNO";
         }
 
         # If there is not enough free space in the ring buffer; remove an amount
@@ -272,7 +272,7 @@ sub read_until {
 =head2 peak
 
 Read and return pending data without consuming it. This is useful if you are
-about to destroy the virtio_screen instance, but want to keep any pending
+about to destroy the serial_screen instance, but want to keep any pending
 data. However this does not wait for any data in particular so this races with
 the backend and data transport. Therefor it should only be used when there is
 no information available about what data is expected to be available.

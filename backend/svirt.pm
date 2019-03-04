@@ -322,7 +322,7 @@ sub start_serial_grab {
 =head2 ($ssh, $chan) = $self->backend->start_serial_grab($name, %args)
 
 Opens SSH connection to grab serial terminal log
-(using consoles::virtio_screen, saved into serial_terminal.txt).
+(using consoles::serial_screen, saved into serial_terminal.txt).
 
 This method is not supposed to be called twice for test run due logging
 into file.

@@ -1,4 +1,4 @@
-# Copyright © 2016 SUSE LLC
+# Copyright © 2016-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ use English -no_match_vars;
 use Carp 'croak';
 use Scalar::Util 'blessed';
 use Cwd;
-use consoles::virtio_screen ();
+use consoles::serial_screen ();
 use testapi 'check_var';
 
 our $VERSION;
@@ -137,7 +137,7 @@ sub activate {
     my ($self) = @_;
     if (!check_var('VIRTIO_CONSOLE', 0)) {
         $self->{socket_fd}              = $self->open_socket unless $self->{socket_fd};
-        $self->{screen}                 = consoles::virtio_screen::->new($self->{socket_fd});
+        $self->{screen}                 = consoles::serial_screen::->new($self->{socket_fd});
         $self->{screen}->{carry_buffer} = $self->{preload_buffer};
         $self->{preload_buffer}         = '';
     }
