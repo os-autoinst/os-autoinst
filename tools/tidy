@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 #
 # perltidy rules can be found in ../.perltidyrc
@@ -15,6 +15,7 @@ if ! which perltidy > /dev/null 2>&1; then
     exit 1
 fi
 
+# cpan file is in os-autoinst directory
 dir="$(dirname $(readlink -f $0))/.."
 perltidy_version_found=$(perltidy -version | sed -n '1s/^.*perltidy, v\([0-9]*\)\s*$/\1/p')
 perltidy_version_expected=$(sed -n "s/^.*Tidy[^0-9]*\([0-9]*\)['];$/\1/p" $dir/cpanfile)
@@ -23,7 +24,8 @@ if [ "$perltidy_version_found" != "$perltidy_version_expected" ]; then
     exit 1
 fi
 
-cd "${0%/*}/.."
+# go to caller directory (os-autoinst / os-autoinst-distri-FOO)
+cd "$(dirname $0)/.."
 
 # just to make sure we are at the right location
 test -e tools/tidy || exit 1
@@ -36,7 +38,7 @@ find . \( -name '*.p[lm]' -o -name '*.t' \) -not -path '*/.git/*' -not -path '*/
 isotovideo=$(ls isotovideo 2>/dev/null)
 find tools/absolutize $isotovideo -print0 | xargs -0 perltidy $TIDY_ARGS
 
-while read file; do
+for file in $(find . -name "*.tdy"); do
     if ! diff -u ${file%.tdy} $file; then
         if test -n "$check"; then
             echo "RUN tools/tidy script before checkin"
@@ -47,6 +49,6 @@ while read file; do
     else
         rm $file
     fi
-done < <(find . -name "*.tdy")
+done
 
 # vim: set sw=4 et:
