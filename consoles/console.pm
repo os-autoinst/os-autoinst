@@ -31,6 +31,7 @@ package consoles::console;
 use strict;
 use warnings;
 use autodie ':all';
+use testapi 'check_var';
 
 require IPC::System::Simple;
 use Class::Accessor 'antlers';
@@ -48,7 +49,15 @@ sub new {
 }
 
 sub init {
-    # nothing fancy
+    my ($self) = @_;
+    if ($self->{args}->{tty}) {
+        if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+            $self->{console_key} = "alt-f" . $self->{args}->{tty};
+        }
+        else {
+            $self->{console_key} = "ctrl-alt-f" . $self->{args}->{tty};
+        }
+    }
 }
 
 # SUT was e.g. rebooted
