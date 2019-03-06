@@ -182,9 +182,12 @@ $mock_bmwqemu->mock(result_dir => File::Temp->newdir());
 
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
-is($autotest::current_test->{dents}, 1, 'soft failure recorded');
+is($autotest::current_test->{dents},             1, 'one dent recorded');
+is(scalar @{$autotest::current_test->{details}}, 1, 'exactly one detail added recorded');
+
 stderr_like(sub { record_soft_failure('workaround for bug#1234') }, qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason');
-is($autotest::current_test->{dents}, 2, 'another');
+is($autotest::current_test->{dents},             2, 'one more dent recorded');
+is(scalar @{$autotest::current_test->{details}}, 2, 'exactly one more detail added recorded');
 my $details    = $autotest::current_test->{details}[-1];
 my $details_ok = is($details->{title}, 'Soft Failed', 'title for soft failure added');
 $details_ok &= is($details->{result}, 'softfail', 'result correct');

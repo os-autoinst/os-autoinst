@@ -414,6 +414,14 @@ sub next_resultname {
     }
 }
 
+sub write_resultfile {
+    my ($self, $filename, $output) = @_;
+
+    open my $fh, '>', bmwqemu::result_dir() . "/$filename";
+    print $fh $output;
+    close $fh;
+}
+
 =head2 record_resultfile
 
     $self->record_resultfile($title, $output [, result => $result] [, resultname => $name]);
@@ -430,9 +438,7 @@ sub record_resultfile {
         text   => $filename,
     };
     push @{$self->{details}}, $detail;
-    open my $fh, '>', bmwqemu::result_dir() . "/$filename";
-    print $fh $output;
-    close $fh;
+    $self->write_resultfile($filename, $output);
 }
 
 sub record_serialresult {
@@ -449,17 +455,19 @@ sub record_serialresult {
     $output .= "# Result:\n";
     $output .= "$string\n";
     $self->record_resultfile('wait_serial', $output, result => $res);
-    return;
+    return undef;
 }
 
 sub record_soft_failure_result {
     my ($self, $reason, %args) = @_;
     $reason //= '(no reason specified)';
 
-    my $result = $self->record_testresult('softfail', %args);
-    my $output = "# Soft Failure:\n$reason\n";
-    $self->record_resultfile('Soft Failed', $output, %$result);
-    return;
+    my $result   = $self->record_testresult('softfail', %args);
+    my $filename = $self->next_resultname('txt');
+    $result->{title} = 'Soft Failed';
+    $result->{text}  = $filename;
+    $self->write_resultfile($filename, "# Soft Failure:\n$reason\n");
+    return undef;
 }
 
 sub register_extra_test_results {
@@ -470,7 +478,7 @@ sub register_extra_test_results {
         $t->{script} = $self->{script} if (!defined($t->{script}) || $t->{script} eq 'unk');
         push @{$self->{extra_test_results}}, $t;
     }
-    return;
+    return undef;
 }
 
 =head2 record_testresult
