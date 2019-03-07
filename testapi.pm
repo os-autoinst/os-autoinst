@@ -565,6 +565,7 @@ sub wait_screen_change(&@) {
     $args{similarity_level} //= 50;
 
     bmwqemu::log_call(timeout => $timeout, %args);
+    $timeout = bmwqemu::scale_timeout($timeout);
 
     # get the initial screen
     query_isotovideo('backend_set_reference_screenshot');
