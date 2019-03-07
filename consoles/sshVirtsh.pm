@@ -566,7 +566,10 @@ __END"
     $self->run_cmd("virsh $remote_vmm undefine --snapshots-metadata " . $self->name . $ignore);
 
     # define the new domain
-    $self->run_cmd("virsh $remote_vmm define $xmlfilename")  && die "virsh define failed";
+    $self->run_cmd("virsh $remote_vmm define $xmlfilename") && die "virsh define failed";
+    if ($self->vmm_family eq 'vmware') {
+        $self->get_cmd_output('echo bios.bootDelay = \"10000\" >> /vmfs/volumes/datastore1/openQA/' . $self->name . '.vmx', {domain => 'sshVMwareServer'});
+    }
     $self->run_cmd("virsh $remote_vmm start " . $self->name) && die "virsh start failed";
 
     $self->backend->start_serial_grab($self->name);
