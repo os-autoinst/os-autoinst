@@ -524,6 +524,10 @@ sub resume {
     bmwqemu::diag "VM " . $self->name . " resumed";
 }
 
+sub get_remote_vmm {
+    return get_var('VMWARE_REMOTE_VMM', '');
+}
+
 sub define_and_start {
     my ($self, $args) = @_;
 
