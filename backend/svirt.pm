@@ -21,6 +21,8 @@ use warnings;
 
 use base 'backend::virt';
 
+use File::Basename;
+use IO::Scalar;
 use IO::Select;
 use testapi qw(get_var get_required_var check_var);
 
@@ -94,7 +96,11 @@ sub do_stop_vm {
         }
     }
 
-    $self->delete_log();
+    # TODO: stream serial_terminal.txt with scp on the fly instead
+    if ($self->{need_delete_log}) {
+        $self->scp_get($self->serial_terminal_log_file(), SERIAL_TERMINAL_LOG_PATH);
+        $self->delete_log();
+    }
 
     return {};
 }
@@ -167,6 +173,22 @@ sub run_ssh_cmd {
     );
 
     return run_cmd($self->{ssh}, $cmd, %args);
+}
+
+sub scp_get {
+    my ($self, $src, $dest) = @_;
+    bmwqemu::log_call(@_);
+
+    my $credentials = $self->read_credentials_from_virsh_variables;
+    my $ssh         = $self->new_ssh_connection(%$credentials);
+
+    open(my $fh, '>', $dest) or die "Could not open file '$dest' $!";
+    bmwqemu::diag("SCP file: '$src' => '$dest'");
+    my $output = IO::Scalar->new;
+    $ssh->scp_get($src, $output) or die "SCP failed";
+    print $fh $output;
+    close $fh;
+    $ssh->disconnect();
 }
 
 sub can_handle {
