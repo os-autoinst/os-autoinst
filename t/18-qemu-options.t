@@ -150,4 +150,37 @@ EOV
 
 };
 
+# Test QEMU_HUGE_PAGES_PATH option with:
+# * /no/dev/hugepages/ value
+# Note: no option starts a full qemu test
+subtest qemu_huge_pages_option => sub {
+
+    # Print version
+    open(my $var, '>', 'vars.json');
+    print $var <<EOV;
+{
+   "ARCH" : "i386",
+   "BACKEND" : "qemu",
+   "QEMU" : "i386",
+   "QEMU_NO_KVM" : "1",
+   "QEMU_NO_TABLET" : "1",
+   "QEMU_NO_FDC_SET" : "1",
+   "CASEDIR" : "$data_dir/tests",
+   "PRJDIR"  : "$data_dir",
+   "ISO" : "$data_dir/Core-7.2.iso",
+   "CDMODEL" : "ide-cd",
+   "HDDMODEL" : "ide-drive",
+   "VERSION" : "1",
+   "QEMU_HUGE_PAGES_PATH" : "/no/dev/hugepages/"
+}
+EOV
+    close($var);
+    # call isotovideo with QEMU_HUGE_PAGES_PATH
+    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
+    is(system('grep -q -e "-mem-prealloc" autoinst-log.txt'),                0, '-mem-prealloc option added');
+    is(system('grep -q -e "-mem-path /no/dev/hugepages/" autoinst-log.txt'), 0, '-mem-path /no/dev/hugepages/');
+    is(system('grep -q -e "can\'t open backing store /no/dev/hugepages/ for guest RAM: No such file or directory" autoinst-log.txt'), 0, 'expected failure as /no/dev/hugepages/ does not exist');
+
+};
+
 done_testing();
