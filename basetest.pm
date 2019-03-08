@@ -27,6 +27,7 @@ use POSIX;
 use testapi  ();
 use autotest ();
 use MIME::Base64 'decode_base64';
+use Mojo::File 'path';
 
 my $serial_file_pos = 0;
 
@@ -417,9 +418,7 @@ sub next_resultname {
 sub write_resultfile {
     my ($self, $filename, $output) = @_;
 
-    open my $fh, '>', bmwqemu::result_dir() . "/$filename";
-    print $fh $output;
-    close $fh;
+    path(bmwqemu::result_dir(), $filename)->spurt($output);
 }
 
 =head2 record_resultfile
