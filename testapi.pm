@@ -565,6 +565,7 @@ sub wait_screen_change(&@) {
     $args{similarity_level} //= 50;
 
     bmwqemu::log_call(timeout => $timeout, %args);
+    $timeout = bmwqemu::scale_timeout($timeout);
 
     # get the initial screen
     query_isotovideo('backend_set_reference_screenshot');
@@ -1859,13 +1860,13 @@ Default timeout is 19s.
 
 sub wait_idle {
     my $timeout = shift || 19;
-    $timeout = bmwqemu::scale_timeout($timeout);
 
     # report wait_idle calls while we work on
     # https://progress.opensuse.org/issues/5830
     cluck "DEPRECATED: wait_idle called, update your test code";
 
     bmwqemu::log_call(timeout => $timeout);
+    $timeout = bmwqemu::scale_timeout($timeout);
 
     my $rsp = query_isotovideo('backend_wait_idle', {timeout => $timeout});
     bmwqemu::fctres("slept $timeout seconds");
