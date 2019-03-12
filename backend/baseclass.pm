@@ -1204,14 +1204,15 @@ sub start_ssh_serial {
 
     $self->stop_ssh_serial;
 
-    $self->{serial} = $self->new_ssh_connection(%args);
-    my $chan = $self->{serial}->channel();
-    die "No channel found" unless $chan;
-    $self->{serial_chan} = $chan;
+    my $ssh  = $self->{serial}      = $self->new_ssh_connection(%args);
+    my $chan = $self->{serial_chan} = $ssh->channel();
+    if (!$chan) {
+        $ssh->die_with_error("Unable to establish SSH channel for serial console");
+    }
     $chan->blocking(0);
     $chan->pty(1);
     $self->{select}->add($self->{serial}->sock);
-    return $chan;
+    return ($ssh, $chan);
 }
 
 sub check_ssh_serial {

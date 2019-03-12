@@ -46,14 +46,16 @@ sub activate {
     if ($serial) {
 
         # ssh connection to SUT for iucvconn
-        my $serialchan = $self->backend->start_ssh_serial(
+        my ($ssh, $serialchan) = $self->backend->start_ssh_serial(
             hostname => $hostname,
             password => $password,
             username => 'root'
         );
 
         # start iucvconn
-        $serialchan->exec($serial);
+        if (!$serialchan->exec($serial)) {
+            bmwqemu::diag('Unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
+        }
     }
 }
 
