@@ -744,12 +744,10 @@ sub start_qemu {
             sp('global', 'isa-fdc.driveA=');
         }
 
-        sp('m',       $vars->{QEMURAM})                           if $vars->{QEMURAM};
-        sp('machine', $vars->{QEMUMACHINE})                       if $vars->{QEMUMACHINE};
-        sp('cpu',     $vars->{QEMUCPU})                           if $vars->{QEMUCPU};
-        sp('object',  'rng-random,filename=/dev/urandom,id=rng0') if $vars->{QEMU_VIRTIO_RNG};
-        sp('device',  'virtio-rng-pci,rng=rng0')                  if $vars->{QEMU_VIRTIO_RNG};
-        sp('net',     'none')                                     if $vars->{OFFLINE_SUT};
+        sp('m',       $vars->{QEMURAM})     if $vars->{QEMURAM};
+        sp('machine', $vars->{QEMUMACHINE}) if $vars->{QEMUMACHINE};
+        sp('cpu',     $vars->{QEMUCPU})     if $vars->{QEMUCPU};
+        sp('net',     'none')               if $vars->{OFFLINE_SUT};
         if (my $path = $vars->{QEMU_HUGE_PAGES_PATH}) {
             sp('mem-prealloc');
             sp('mem-path', $path);
@@ -770,6 +768,12 @@ sub start_qemu {
                 die "unknown NICTYPE $vars->{NICTYPE}\n";
             }
             sp('device', [qv "$vars->{NICMODEL} netdev=qanet$i mac=$nicmac[$i]"]);
+        }
+
+        # Keep additionnal virtio _after_ Ethernet setup to keep virtio-net as eth0
+        if ($vars->{QEMU_VIRTIO_RNG}) {
+            sp('object', 'rng-random,filename=/dev/urandom,id=rng0');
+            sp('device', 'virtio-rng-pci,rng=rng0');
         }
 
         sp('smbios', $vars->{QEMU_SMBIOS}) if $vars->{QEMU_SMBIOS};
