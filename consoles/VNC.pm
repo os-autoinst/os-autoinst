@@ -149,13 +149,14 @@ sub login {
         );
         if (!$socket) {
             $err_cnt++;
+            my $error_message = "Error connecting to VNC server <$hostname:$port>: $@";
             if (time > $endtime) {
-                OpenQA::Exception::VNCSetupError->throw(error => "Error connecting to host <$hostname>: $@");
+                OpenQA::Exception::VNCSetupError->throw(error => $error_message);
             }
             # we might be too fast trying to connect to the VNC host (e.g.
             # qemu) so ignore the first occurences of a failed
             # connection attempt.
-            bmwqemu::diag "Error connecting to host <$hostname>: $@" if $err_cnt > $connect_failure_limit;
+            bmwqemu::diag($error_message) if $err_cnt > $connect_failure_limit;
             sleep 1;
             next;
         }
