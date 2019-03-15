@@ -115,35 +115,35 @@ subtest record_testresult => sub {
             test_count => 0,
     }, $basetest_class);
 
-    is_deeply(basetest::record_testresult($basetest), {result => 'unk'}, 'adding unknown result');
+    is_deeply($basetest->record_testresult(), {result => 'unk'}, 'adding unknown result');
     is($basetest->{result},     undef, 'test result unaffected');
     is($basetest->{test_count}, 1,     'test count increased');
 
-    is_deeply(basetest::record_testresult($basetest, 'ok'), {result => 'ok'}, 'adding "ok" result');
+    is_deeply($basetest->record_testresult('ok'), {result => 'ok'}, 'adding "ok" result');
     is($basetest->{result}, 'ok', 'test result is now "ok"');
 
-    is_deeply(basetest::record_testresult($basetest, 'softfail'), {result => 'softfail'}, 'adding "softfail" result');
+    is_deeply($basetest->record_testresult('softfail'), {result => 'softfail'}, 'adding "softfail" result');
     is($basetest->{result}, 'softfail', 'test result is now "softfail"');
 
-    is_deeply(basetest::record_testresult($basetest, 'ok'), {result => 'ok'}, 'adding one more "ok" result');
+    is_deeply($basetest->record_testresult('ok'), {result => 'ok'}, 'adding one more "ok" result');
     is($basetest->{result}, 'softfail', 'test result is still "softfail"');
 
-    is_deeply(basetest::record_testresult($basetest, 'fail'), {result => 'fail'}, 'adding "fail" result');
+    is_deeply($basetest->record_testresult('fail'), {result => 'fail'}, 'adding "fail" result');
     is($basetest->{result}, 'fail', 'test result is now "fail"');
 
-    is_deeply(basetest::record_testresult($basetest, 'ok'), {result => 'ok'}, 'adding one more "ok" result');
+    is_deeply($basetest->record_testresult('ok'), {result => 'ok'}, 'adding one more "ok" result');
     is($basetest->{result}, 'fail', 'test result is still "fail"');
 
-    is_deeply(basetest::record_testresult($basetest, 'softfail'), {result => 'softfail'}, 'adding one more "softfail" result');
+    is_deeply($basetest->record_testresult('softfail'), {result => 'softfail'}, 'adding one more "softfail" result');
     is($basetest->{result}, 'fail', 'test result is still "fail"');
 
-    is_deeply(basetest::record_testresult($basetest), {result => 'unk'}, 'adding one more "unk" result');
+    is_deeply($basetest->record_testresult(), {result => 'unk'}, 'adding one more "unk" result');
     is($basetest->{result}, 'fail', 'test result is still "fail"');
 
-    is_deeply(basetest::record_testresult($basetest, 'softfail', force_status => 1), {result => 'softfail'}, 'adding one more "softfail" result but forcing the status');
+    is_deeply($basetest->record_testresult('softfail', force_status => 1), {result => 'softfail'}, 'adding one more "softfail" result but forcing the status');
     is($basetest->{result}, 'softfail', 'test result was forced to "softfail"');
 
-    is_deeply(basetest::take_screenshot($basetest), {result => 'unk'},
+    is_deeply($basetest->take_screenshot(), {result => 'unk'},
         'unknown result from take_screenshot not added to details');
 
     my $nr_test_details = 9;
