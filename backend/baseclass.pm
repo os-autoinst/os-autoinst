@@ -1170,24 +1170,40 @@ sub new_ssh_connection {
     $args{username} ||= 'root';
 
     my $ssh = Net::SSH2->new;
-
+    my $privatekey_path = '/home/foursixnine/.openqa';
+    my $publickey_path  = '/home/foursixnine/.openqa.pub';
     # Retry 5 times, in case of the guest is not running yet
     my $counter = 5;
     while ($counter > 0) {
         if ($ssh->connect($args{hostname})) {
+            # Attempt always key authentication
+            eval {
+                $ssh->auth(
+                    username => $args{username},
+                    password => $args{password},
+                    privatekey => $privatekey_path,
+                    publickey => $publickey_path,
+                    passphrase => undef
+                );
+            };
 
-            if ($args{password}) {
-                $ssh->auth(username => $args{username}, password => $args{password});
-            }
-            else {
-                # this relies on agent to be set up correctly
-                $ssh->auth_agent($args{username});
-            }
-            bmwqemu::diag "Connection to $args{username}\@$args{hostname} established" if $ssh->auth_ok;
-            last;
+            carp "It seems that there's a problem with public key auth" . $@ if $@;
+
+            $ssh->auth(
+                username => $args{username},
+                password => $args{password},
+            ) unless $ssh->auth_ok;
+
+            bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}: error - " . $ssh->error unless $ssh->auth_ok;
+            bmwqemu::diag "Connection stablished $args{username}\@$args{hostname} " if $ssh->auth_ok;
+
+            last if $ssh->auth_ok;
+            sleep(10);
+
         }
+
         else {
-            bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}, Retry";
+            bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}, Retry ($counter)";
             sleep(10);
             $counter--;
             next;
