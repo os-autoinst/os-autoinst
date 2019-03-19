@@ -288,7 +288,7 @@ subtest 'check_assert_screen' => sub {
         is_deeply($autotest::current_test->{details}, [
                 {
                     result     => 'unk',
-                    screenshot => 'basetest-17.png',
+                    screenshot => 'basetest-11.png',
                     frametime  => [qw(1.75 1.79)],
                     tags       => [qw(fake tags)],
                 }

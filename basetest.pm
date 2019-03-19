@@ -249,7 +249,6 @@ sub record_screenfail {
     return $result;
 }
 
-# for interactive mode
 sub remove_last_result {
     my $self = shift;
     --$self->{test_count};
@@ -354,8 +353,7 @@ sub runtest {
         $self->{result} = 'fail';
         # add a fail screenshot in case there is none
         if (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail') {
-            my $result = $self->record_testresult('unk');
-            $self->_result_add_screenshot($result);
+            $self->take_screenshot();
         }
         # show a text result with the die message unless the die was internally generated
         if (!$internal) {
@@ -445,11 +443,9 @@ sub record_serialresult {
 
     $string //= '';
 
-    unless (testapi::is_serial_terminal) {
-        # the screenshot is not the fail, it's just for documentation
-        my $result = $self->record_testresult('unk');
-        $self->_result_add_screenshot($result);
-    }
+    # take screenshot for documentation (screenshot does not represent fail itself)
+    $self->take_screenshot() unless (testapi::is_serial_terminal);
+
     my $output = "# wait_serial expected: $ref\n\n";
     $output .= "# Result:\n";
     $output .= "$string\n";
@@ -543,7 +539,7 @@ sub _result_add_screenshot {
 
 =head2 take_screenshot
 
-add screenshot with 'unk' result
+add screenshot with 'unk' result if an image is available
 
 =cut
 
@@ -553,6 +549,9 @@ sub take_screenshot {
 
     my $result = $self->record_testresult($res);
     $self->_result_add_screenshot($result);
+
+    # prevent adding incomplete result to details in case not image was available
+    $self->remove_last_result() unless ($result->{screenshot});
 
     return $result;
 }
