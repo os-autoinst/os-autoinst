@@ -254,23 +254,23 @@ sub start_serial_grab {
 
     my $credentials = $self->read_credentials_from_virsh_variables;
     my ($ssh, $chan) = $self->start_ssh_serial(%$credentials);
-    my $command;
+    my $cmd;
     if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {
         # libvirt esx driver does not support `virsh console', so
         # we have to connect to VM's serial port via TCP which is
         # provided by ESXi server.
-        $command = 'nc ' . get_var('VMWARE_HOST') . ' ' . get_var('VMWARE_SERIAL_PORT');
+        $cmd = 'nc ' . get_var('VMWARE_HOST') . ' ' . get_var('VMWARE_SERIAL_PORT');
     }
     elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         # Hyper-V does not support serial console export via TCP, just
         # windows named pipes (e.g. \\.\pipe\mypipe). Such a named pipe
         # has to be enabled by a namedpipe-to-TCP on HYPERV_SERVER application.
-        $command = 'nc ' . get_var('HYPERV_SERVER') . ' ' . get_var('HYPERV_SERIAL_PORT');
+        $cmd = 'nc ' . get_var('HYPERV_SERVER') . ' ' . get_var('HYPERV_SERIAL_PORT');
     }
     else {
-        $command = 'virsh console ' . $name;
+        $cmd = 'virsh console ' . $name;
     }
-    if (!$chan->exec($command)) {
+    if (!$chan->exec($cmd)) {
         bmwqemu::diag('Unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
     }
 }
@@ -285,19 +285,19 @@ sub open_serial_console_via_ssh {
     my $chan        = $ssh->channel() || $ssh->die_with_error('Unable to create SSH channel for serial console');
 
     # note: see comments in start_serial_grab for the special handling of vmware/hyperv
-    my $command;
+    my $cmd;
     if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {
         my $server = get_var('VMWARE_SERVER');
-        $command = "nc $server $port";
+        $cmd = "nc $server $port";
     }
     elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         my $server = get_var('HYPERV_SERVER');
-        $command = "nc $server $port";
+        $cmd = "nc $server $port";
     }
     else {
-        $command = "virsh console \"$name\" \"$devname$port\"";
+        $cmd = "virsh console \"$name\" \"$devname$port\"";
     }
-    $chan->exec($command) || $ssh->die_with_error('Unable to start serial console');
+    $chan->exec($cmd) || $ssh->die_with_error('Unable to start serial console');
 
     return ($ssh, $chan);
 }
