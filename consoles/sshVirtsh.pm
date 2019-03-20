@@ -630,22 +630,22 @@ sub get_cmd_output {
     }
 
     # create a new channel; try to re-establish the SSH connection on failure
-    my $channel = $ssh->channel();
-    if (!$channel) {
-        $ssh     = $self->_init_ssh($domain);
-        $channel = $ssh->channel() || $ssh->die_with_error("unable to create channel for SSH console \"$domain\"");
+    my $chan = $ssh->channel();
+    if (!$chan) {
+        $ssh  = $self->_init_ssh($domain);
+        $chan = $ssh->channel() || $ssh->die_with_error("unable to create channel for SSH console \"$domain\"");
     }
 
     # execute command
-    if (!$channel->exec($cmd)) {
+    if (!$chan->exec($cmd)) {
         $ssh->die_with_error("unable to execute command \"$cmd\" via SSH console \"$domain\"");
     }
 
     # read output and close channel
     bmwqemu::diag "Command executed: $cmd";
-    my @cmd_output = backend::svirt::get_ssh_output($channel);
-    $channel->send_eof();
-    $channel->close();
+    my @cmd_output = backend::svirt::get_ssh_output($chan);
+    $chan->send_eof();
+    $chan->close();
     return $wantarray ? \@cmd_output : $cmd_output[0];
 }
 
