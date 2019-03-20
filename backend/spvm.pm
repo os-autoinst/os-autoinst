@@ -67,14 +67,14 @@ sub run_cmd {
     $hostname ||= get_required_var('NOVALINK_HOSTNAME');
     $password ||= get_required_var('NOVALINK_PASSWORD');
 
-    $self->{ssh} = $self->new_ssh_connection(
+    my $ssh = $self->{ssh} = $self->new_ssh_connection(
         hostname => $hostname,
         password => $password,
         username => get_var('NOVALINK_USERNAME', 'root'));
-    my $chan = $self->{ssh}->channel();
-    $chan->exec($cmd);
+    my $chan = $ssh->channel() || $ssh->die_with_error();
+    $chan->exec($cmd) || $ssh->die_with_error();
     get_ssh_output($chan);
-    $chan->send_eof;
+    $chan->send_eof();
     my $ret = $chan->exit_status();
     bmwqemu::diag "Command executed: $cmd, ret=$ret";
     $chan->close();

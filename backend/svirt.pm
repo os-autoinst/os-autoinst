@@ -115,8 +115,8 @@ sub get_ssh_output {
 sub run_cmd {
     my ($ssh, $cmd) = @_;
 
-    my $chan = $ssh->channel();
-    $chan->exec($cmd);
+    my $chan = $ssh->channel() || $ssh->die_with_error("Unable to create SSH channel for executing \"$cmd\"");
+    $chan->exec($cmd) || $ssh->die_with_error("Unable to execute \"$cmd\"");
     get_ssh_output($chan);
     $chan->send_eof;
     my $ret = $chan->exit_status();
@@ -252,21 +252,25 @@ sub start_serial_grab {
         $password = get_var('VIRSH_PASSWORD');
     }
     my $credentials = $self->read_credentials_from_virsh_variables;
-    my $chan        = $self->start_ssh_serial(%$credentials);
+    my ($ssh, $chan) = $self->start_ssh_serial(%$credentials);
+    my $command;
     if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {
         # libvirt esx driver does not support `virsh console', so
         # we have to connect to VM's serial port via TCP which is
         # provided by ESXi server.
-        $chan->exec('nc ' . get_var('VMWARE_HOST') . ' ' . get_var('VMWARE_SERIAL_PORT'));
+        $command = 'nc ' . get_var('VMWARE_HOST') . ' ' . get_var('VMWARE_SERIAL_PORT');
     }
     elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         # Hyper-V does not support serial console export via TCP, just
         # windows named pipes (e.g. \\.\pipe\mypipe). Such a named pipe
         # has to be enabled by a namedpipe-to-TCP on HYPERV_SERVER application.
-        $chan->exec('nc ' . get_var('HYPERV_SERVER') . ' ' . get_var('HYPERV_SERIAL_PORT'));
+        $command = 'nc ' . get_var('HYPERV_SERVER') . ' ' . get_var('HYPERV_SERIAL_PORT');
     }
     else {
-        $chan->exec('virsh console ' . $name);
+        $command = 'virsh console ' . $name;
+    }
+    if (!$chan->exec($command)) {
+        bmwqemu::diag('Unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
     }
 }
 
@@ -277,24 +281,27 @@ sub open_serial_console_via_ssh {
     bmwqemu::diag("Starting SSH connection to connect to libvirt domain $name via serial port $port");
     my $credentials = $self->read_credentials_from_virsh_variables;
     my $ssh         = $self->new_ssh_connection(%$credentials);
-    my $chan        = $ssh->channel();
-    die 'No channel found' unless $chan;
+    my $chan        = $ssh->channel() || $ssh->die_with_error('Unable to create SSH channel for serial console');
     $chan->blocking(0);
     $chan->pty('vt100', {echo => 1});
     $chan->pty_size(1024, 24);
-    $chan->shell();
+    $chan->shell() || $ssh->die_with_error('Unable to start shell for serial console');
     print($chan "PS1='# '\n");
 
     # note: see comments in start_serial_grab for the special handling of vmware/hyperv
+    my $command;
     if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {
-        $chan->exec('nc ' . get_var('VMWARE_SERVER') . ' ' . $port);
+        my $server = get_var('VMWARE_SERVER');
+        $command = "nc $server $port";
     }
     elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
-        $chan->exec('nc ' . get_var('HYPERV_SERVER') . ' ' . $port);
+        my $server = get_var('HYPERV_SERVER');
+        $command = "nc $server $port";
     }
     else {
-        $chan->exec("virsh console \"$name\" \"serial$port\"");
+        $command = "virsh console \"$name\" \"serial$port\"";
     }
+    $chan->exec($command) || $ssh->die_with_error('Unable to start serial console');
 
     return ($ssh, $chan);
 }
