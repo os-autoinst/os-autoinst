@@ -28,6 +28,7 @@ $user_agent_mock->mock(get => sub {
 # setup needle directory
 my $needle_dir = path(tempdir, 'needle_dir');
 ok(make_path($needle_dir), 'create test needle dir under ' . $needle_dir);
+$bmwqemu::vars{NEEDLES_DIR} = $needle_dir;
 
 subtest 'deduce URL for needle download from test variable OPENQA_URL' => sub {
     $bmwqemu::vars{OPENQA_URL} = 'https://openqa1-opensuse';
@@ -44,9 +45,7 @@ subtest 'deduce URL for needle download from test variable OPENQA_URL' => sub {
 
 # setup a NeedleDownloader instance
 $bmwqemu::vars{OPENQA_URL} = 'openqa';
-my $downloader = OpenQA::Isotovideo::NeedleDownloader->new(
-    needle_dir => $needle_dir,
-);
+my $downloader = OpenQA::Isotovideo::NeedleDownloader->new;
 is($downloader->download_limit, 150, 'by default limited to 150 downloads');
 
 subtest 'add relevant downloads' => sub {

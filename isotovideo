@@ -247,7 +247,7 @@ OpenQA::Isotovideo::Utils::checkout_git_repo_and_branch('CASEDIR');
 # multiple distributions or flavors in one repository.
 $bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
 
-$bmwqemu::vars{NEEDLES_DIR} //= $bmwqemu::vars{PRODUCTDIR} . '/needles';
+$bmwqemu::vars{NEEDLES_DIR} //= "$bmwqemu::vars{PRODUCTDIR}/needles";
 OpenQA::Isotovideo::Utils::checkout_git_repo_and_branch('NEEDLES_DIR');
 
 bmwqemu::ensure_valid_vars();
