@@ -36,6 +36,8 @@ our @EXPORT_OK = qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_CONSOLE_DEFAULT_DEVICE SE
 # this is a fake backend to some extend. We don't start VMs, but provide ssh access
 # to a libvirt running host (KVM for System Z in mind)
 
+use constant SERIAL_TERMINAL_LOG_PATH => 'serial_terminal.txt';
+
 sub new {
     my $class = shift;
     my $self  = $class->SUPER::new;
@@ -91,6 +93,9 @@ sub do_stop_vm {
             $self->run_ssh_cmd("$virsh undefine --snapshots-metadata $vmname");
         }
     }
+
+    $self->delete_log();
+
     return {};
 }
 
@@ -112,25 +117,43 @@ sub get_ssh_output {
     return ($stdout, $stderr);
 }
 
-# Sends command to libvirt host, logs stdout and stderr of the command,
-# returns exit status.
-#
-# Example:
-#   my $ret = $svirt->run_cmd("virsh snapshot-create-as snap1");
-#   die "snapshot creation failed" unless $ret == 0;
+=head2 run_cmd($ssh, $cmd, %args);
+Runs command to libvirt host over SSH, logs stdout and stderr of the command.
+
+Returns either exit code itself or with stdout and stderr (both in blocking
+mode. C<$args{nonblock}> is for long running process, returns $ssh and $sock
+for handling the process.
+
+# Examples:
+    my $ret = $svirt->run_cmd($ssh, "virsh snapshot-create-as snap1");
+    die "snapshot creation failed" unless $ret == 0;
+
+    my ($ret, $stdout, $stderr) = $svirt->run_cmd($ssh, "grep -q '$marker' $log", wantarray => 1);
+    my ($ssh, $chan) = $svirt->run_cmd($ssh, $cmd_full, nonblock => 1);
+=cut
 sub run_cmd {
-    my ($ssh, $cmd) = @_;
+    my ($ssh, $cmd, %args) = @_;
+    bmwqemu::log_call(@_);
 
     my $chan = $ssh->channel() || $ssh->die_with_error("Unable to create SSH channel for executing \"$cmd\"");
     $chan->exec($cmd) || $ssh->die_with_error("Unable to execute \"$cmd\"");
-    get_ssh_output($chan);
+    if ($args{nonblock}) {
+        bmwqemu::diag("Run command: '$cmd' (nonblock)");
+        return ($ssh, $chan);
+    }
+
+    my ($stdout, $errout) = get_ssh_output($chan);
     $chan->send_eof;
     my $ret = $chan->exit_status();
-    bmwqemu::diag "Command executed: $cmd, ret=$ret";
+    bmwqemu::diag("Command executed: '$cmd', ret=$ret");
     $chan->close();
-    return $ret;
+
+    return $args{wantarray} ? ($ret, $stdout, $errout) : $ret;
 }
 
+=head2
+See parameters and examples at C<run_cmd>.
+=cut
 sub run_ssh_cmd {
     my ($self, $cmd, %args) = @_;
 
@@ -143,7 +166,7 @@ sub run_ssh_cmd {
         username => 'root'
     );
 
-    return run_cmd($self->{ssh}, $cmd);
+    return run_cmd($self->{ssh}, $cmd, %args);
 }
 
 sub can_handle {
@@ -188,7 +211,7 @@ sub save_snapshot {
         $rsp = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-create-as $vmname $snapname");
     }
     bmwqemu::diag "SAVE VM $vmname as $snapname snapshot, return code=$rsp";
-    die unless ($rsp == 0);
+    $self->die unless ($rsp == 0);
     return;
 }
 
@@ -211,7 +234,7 @@ sub load_snapshot {
             last
               unless $self->run_ssh_cmd(
                 "pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)", %credentials);
-            die "xfreerdp did not start" if ($i eq 5);
+            $self->die("xfreerdp did not start") if ($i eq 5);
         }
     }
     else {
@@ -220,7 +243,7 @@ sub load_snapshot {
         $post_load_snapshot_command = 'vmware_fixup' if check_var('VIRSH_VMM_FAMILY', 'vmware');
     }
     bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
-    die if $rsp;
+    $self->die if $rsp;
     return $post_load_snapshot_command;
 }
 
@@ -248,7 +271,6 @@ sub read_credentials_from_virsh_variables {
     };
 }
 
-# opens another SSH connection to grab the serial console for the serial log
 sub start_serial_grab {
     my ($self, $name) = @_;
 
@@ -275,31 +297,77 @@ sub start_serial_grab {
     }
 }
 
-# opens another SSH connection to grab the serial console with the specified port
+=head2 ($ssh, $chan) = $self->backend->start_serial_grab($name, %args)
+
+Opens SSH connection to grab serial terminal log
+(using consoles::virtio_screen, saved into serial_terminal.txt).
+
+This method is not supposed to be called twice for test run due logging
+into file.
+
+C<$args{port}> used non-default port
+C<$args{devname}> used device name
+C<$args{is_terminal}> for serial terminal
+=cut
 sub open_serial_console_via_ssh {
-    my ($self, $name, $devname, $port) = @_;
+    my ($self, $name, %args) = @_;
+    my ($chan, $cmd, $cmd_full, $ret, $ssh, $stderr, $stdout);
+    my $port    = $args{port}    // '';
+    my $devname = $args{devname} // '';
+    my $marker  = "CONSOLE_EXIT_" . get_required_var('JOBTOKEN') . ":";
+    my $log     = $self->serial_terminal_log_file();
 
-    bmwqemu::diag("Starting SSH connection to connect to libvirt domain $name via serial port $port");
-    my $credentials = $self->read_credentials_from_virsh_variables;
-    my $ssh         = $self->new_ssh_connection(%$credentials);
-    my $chan        = $ssh->channel() || $ssh->die_with_error('Unable to create SSH channel for serial console');
-
-    # note: see comments in start_serial_grab for the special handling of vmware/hyperv
-    my $cmd;
     if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {
-        my $server = get_var('VMWARE_SERVER');
-        $cmd = "nc $server $port";
+        # libvirt esx driver does not support `virsh console', so
+        # we have to connect to VM's serial port via TCP which is
+        # provided by ESXi server.
+        $cmd = 'nc ' . get_var('VMWARE_HOST') . ' ' . $port;
     }
     elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
-        my $server = get_var('HYPERV_SERVER');
-        $cmd = "nc $server $port";
+        # Hyper-V does not support serial console export via TCP, just
+        # windows named pipes (e.g. \\.\pipe\mypipe). Such a named pipe
+        # has to be enabled by a namedpipe-to-TCP on HYPERV_SERVER application.
+        $cmd = 'nc ' . get_var('HYPERV_SERVER') . ' ' . $port;
     }
     else {
-        $cmd = "virsh console \"$name\" \"$devname$port\"";
+        $cmd = "virsh console $name $devname$port";
     }
-    $chan->exec($cmd) || $ssh->die_with_error('Unable to start serial console');
+
+    $cmd_full = "script -f $log -c '$cmd; echo \"$marker \$?\"'";
+    bmwqemu::diag("Starting SSH connection to connect to libvirt domain '$name' (cmd: '$cmd'), full cmd: '$cmd_full'");
+
+    ($ssh, $chan) = $self->run_ssh_cmd($cmd_full, nonblock => 1);
+    ($ret, $stdout, $stderr) = $self->run_ssh_cmd("grep -q '^$marker' $log", wantarray => 1);
+    $self->{need_delete_log} = 1;
+    if (!$ret) {
+        (undef, $stdout, undef) = $self->run_ssh_cmd("cat $log", wantarray => 1);
+        $self->die("problem with virsh: cmd: '$cmd', output of script wrapper: '$stdout')");
+    }
 
     return ($ssh, $chan);
+}
+
+sub delete_log {
+    my ($self) = @_;
+    my $log = $self->serial_terminal_log_file();
+    $self->run_ssh_cmd("[ -f '$log' ] && rm -v $log");
+}
+
+# Intent to use CORE::GLOBAL::die, that does not have $self.
+sub die {
+    my ($self, $err) = @_;
+    $err //= '';
+    if ($self->{need_delete_log}) {
+        bmwqemu::diag("error, cleanup logs before die");
+        $self->delete_log();
+    }
+    die $err;
+}
+
+sub serial_terminal_log_file {
+    my ($self) = @_;
+    return "/tmp/" . SERIAL_TERMINAL_LOG_PATH . '.'
+      . get_required_var('JOBTOKEN');
 }
 
 sub check_socket {
