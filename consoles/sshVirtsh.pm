@@ -412,6 +412,10 @@ sub add_disk {
             }
             else {
                 $self->run_cmd(sprintf("rsync -av '$args->{file}' '$basedir/%s'", $file_basename)) && die 'rsync failed';
+                if ($file_basename =~ /(.*)\.xz$/) {
+                    $self->run_cmd(sprintf("nice ionice unxz -f -k '$basedir/%s'", $file_basename)) unless -e "$basedir$1";
+                    $file_basename = $1;
+                }
             }
         }
         if ($backingfile) {
