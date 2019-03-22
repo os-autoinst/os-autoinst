@@ -1169,7 +1169,7 @@ sub new_ssh_connection {
     my ($self, %args) = @_;
     $args{username} ||= 'root';
 
-    my $ssh = Net::SSH2->new;
+    my $ssh             = Net::SSH2->new;
     my $privatekey_path = '/home/foursixnine/.openqa';
     my $publickey_path  = '/home/foursixnine/.openqa.pub';
     # Retry 5 times, in case of the guest is not running yet
@@ -1179,10 +1179,10 @@ sub new_ssh_connection {
             # Attempt always key authentication
             eval {
                 $ssh->auth(
-                    username => $args{username},
-                    password => $args{password},
+                    username   => $args{username},
+                    password   => $args{password},
                     privatekey => $privatekey_path,
-                    publickey => $publickey_path,
+                    publickey  => $publickey_path,
                     passphrase => undef
                 );
             };

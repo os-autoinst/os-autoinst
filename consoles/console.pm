@@ -67,15 +67,18 @@ sub screen {
 
 # helper function
 sub sshCommand {
-    my ($self, $username, $host, $gui, $privatekey) = @_;
+    my ($self, $username, $host, $gui) = @_;
+
+    my $privatekey = '/home/foursixnine/.openqa';
+
     my $sshopts = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no";
-    $sshopts   .= " -o PubkeyAuthentication=no" unless defined $privatekey;
-    if (defined $privatekey && -e $privatekey){
-        $sshopts   .= " -i $privatekey";
-        diag 'Heavens! We are there!!! '. $sshopts . $privatekey;
+    $sshopts .= " -o PubkeyAuthentication=no" unless defined $privatekey;
+    if (defined $privatekey && -e $privatekey) {
+        $sshopts .= " -i $privatekey";
     }
-    $sshopts   .= "-X $sshopts" if $gui;
-    $sshopts   .= " $username\@$host";
+
+    $sshopts .= "-X $sshopts" if $gui;
+    $sshopts .= " $username\@$host";
 
     return "ssh $sshopts; read";
 }
