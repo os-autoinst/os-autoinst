@@ -36,11 +36,12 @@ sub connect_remote {
 
     # start agetty to ensure that iucvconn is not killed
     my $chan = $ttyconn->channel() || $ttyconn->die_with_error();
-
     $chan->blocking(0);
     $chan->pty(1);
+    if (!$chan->exec('smart_agetty hvc0')) {
+        bmwqemu::diag('Unable to execute "smart_agetty hvc0" at this point: ' . ($ttyconn->error // 'unknown SSH error'));
+    }
 
-    $chan->exec("smart_agetty hvc0") || $ttyconn->die_with_error("Unable to execute smart_agetty hvc0");
     # Save objects to prevent unexpected closings
     $self->{ttychan} = $chan;
     $self->{ttyconn} = $ttyconn;
