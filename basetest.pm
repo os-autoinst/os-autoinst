@@ -320,11 +320,12 @@ sub post_run_hook {
 sub run_post_fail {
     my ($self, $msg) = @_;
     return if $bmwqemu::vars{_SKIP_POST_FAIL_HOOKS};
+    $self->{result}                 = 'fail' if $self->{result};
     $self->{post_fail_hook_running} = 1;
     eval { $self->post_fail_hook; };
     bmwqemu::diag("post_fail_hook failed: $@") if $@;
     $self->{post_fail_hook_running} = 0;
-    $self->fail_if_running();
+    autotest::set_current_test(undef);
     die $msg . "\n";
 }
 
