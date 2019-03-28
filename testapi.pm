@@ -739,7 +739,8 @@ Return the given variable as array reference (split variable value by , | or ; )
 sub get_var_array {
     my ($var, $default) = @_;
     my @vars = split(/,|;/, $bmwqemu::vars{$var} || '');
-    return $default if !@vars;
+    my @default = split(/,|;/, $default || '');
+    return \@default if !@vars;
     return \@vars;
 }
 
