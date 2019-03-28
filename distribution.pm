@@ -288,6 +288,28 @@ sub set_expected_serial_failures {
     $self->{serial_failures} = $failures;
 }
 
+=head2 set_expected_journal_failures
+
+    set_expected_journal_failures($failures)
+
+Define the patterns to look for in the systemd journal.
+Each pattern comes along with a type either I<hard> or I<soft> and a message,
+for instance, to label the match with a bug/ticket
+
+Example:
+    set_expected_serial_failures([
+        { type => 'soft', message => 'Message 1', pattern => qr/Pattern1/ },
+        { type => 'soft', message => 'Message 2', pattern => qr/Pattern2/ },
+        { type => 'hard', message => 'Message 3', pattern => qr/Pattern3/ },]
+    );
+
+=cut
+sub set_expected_journal_failures {
+    my ($self, $failures) = @_;
+
+    $self->{journal_failures} = $failures;
+}
+
 # override
 sub activate_console {
     my ($self, $console) = @_;

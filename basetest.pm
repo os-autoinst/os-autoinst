@@ -55,6 +55,7 @@ sub new {
     $self->{activated_consoles}     = [];
     $self->{name}                   = $class;
     $self->{serial_failures}        = [];
+    $self->{journal_failures}       = [];
     $self->{fatal_failure}          = 0;
     return bless $self, $class;
 }

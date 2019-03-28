@@ -56,7 +56,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   select_console console reset_consoles current_console
 
-  upload_asset data_url check_shutdown assert_shutdown parse_junit_log parse_extra_log upload_logs
+  upload_asset data_url check_shutdown assert_shutdown parse_junit_log parse_extra_log upload_logs upload_journal
 
   wait_idle wait_screen_change assert_screen_change wait_still_screen wait_serial
   record_soft_failure record_info force_soft_failure
@@ -1839,6 +1839,46 @@ sub parse_extra_log {
     }
 
     return $autotest::current_test->register_extra_test_results(\@tests);
+}
+
+=head2 upload_journal
+=cut
+
+sub upload_journal {
+    my ($file) = @_;
+
+    $file = upload_logs($file);
+    my $failures = $autotest::current_test->{journal_failures};
+
+    my $die = 0;
+    my %regexp_matched;
+    # loop line by line
+    open(my $journal, "ulogs/$file") or die("Could not open uploaded journal: $file");
+    while (my $line = <$journal>) {
+        chomp $line;
+        for my $regexp_table (@{$failures}) {
+            my $regexp  = $regexp_table->{pattern};
+            my $message = $regexp_table->{message};
+            my $type    = $regexp_table->{type};
+
+            # Input parameters validation
+            die "Wrong type defined for journal failure. Only 'soft' or 'hard' allowed. Got: $type" if $type !~ /^soft|hard|fatal$/;
+            die "Message not defined for journal failure for the pattern: '$regexp', type: $type" if !defined $message;
+
+            # If you want to match a simple string please be sure that you create it with quotemeta
+            if (!exists $regexp_matched{$regexp} and $line =~ /$regexp/) {
+                $regexp_matched{$regexp} = 1;
+                my $fail_type = 'softfail';
+                if ($type eq 'hard') {
+                    record_soft_failure $message. "\n\n" . "$line";
+                }
+                elsif ($type eq 'soft') {
+                    force_soft_failure $message. "\n\n" . "$line";
+                }
+            }
+        }
+    }
+    close($journal);
 }
 
 =head2 wait_idle
