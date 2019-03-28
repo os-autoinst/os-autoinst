@@ -225,7 +225,11 @@ sub _handshake_security {
             $number_of_security_types = unpack('C', $number_of_security_types);
         }
         if ($number_of_security_types == 0) {
-            die 'Error authenticating';
+            my $generic_error_message = 'Error authenticating: server returned no "security types"';
+            $socket->read(my $error_message_length, 4) || die $generic_error_message;
+            $error_message_length = unpack('N', $error_message_length) || die $generic_error_message;
+            $socket->read(my $error_message, $error_message_length) || die $generic_error_message;
+            die "Error authenticating: $error_message";
         }
 
         my @security_types;
