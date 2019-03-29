@@ -25,7 +25,6 @@ use POSIX 'strftime';
 use bmwqemu;
 
 has files_to_download => sub { [] };
-has needle_dir        => sub { needle::default_needle_dir() };
 has openqa_url        => sub {
     # deduce the default openQA URL from OPENQA_URL/OPENQA_HOSTNAME
     # note: OPENQA_URL is sometimes just the hostname (eg. e212.suse.de) but might be a proper URL
@@ -72,7 +71,7 @@ sub _add_download {
 
     my $needle_name     = $needle->{name};
     my $latest_update   = $needle->{t_updated};
-    my $needle_dir      = $self->needle_dir;
+    my $needle_dir      = $bmwqemu::vars{NEEDLES_DIR};
     my $download_target = "$needle_dir/$needle_name.$extension";
 
     if (my $target_stat = stat($download_target)) {
