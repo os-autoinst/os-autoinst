@@ -22,13 +22,14 @@ use autodie ':all';
 
 use base 'consoles::sshXtermVt';
 
-use backend::svirt;
-use testapi qw(get_var get_required_var check_var set_var);
 require IPC::System::Simple;
 use XML::LibXML;
 use File::Temp 'tempfile';
 use File::Basename;
 use Class::Accessor 'antlers';
+
+use backend::svirt;
+use testapi qw(get_var get_required_var check_var set_var);
 
 has instance   => (is => "rw", isa => "Num");
 has name       => (is => "rw", isa => "Str");
@@ -224,7 +225,7 @@ sub add_pty {
     my $doc     = $self->{domainxml};
     my $devices = $self->{devices_element};
 
-    my $console = $doc->createElement($args->{pty_dev} || 'console');
+    my $console = $doc->createElement($args->{pty_dev} || backend::svirt::SERIAL_CONSOLE_DEFAULT_DEVICE);
     $console->setAttribute(type => $args->{pty_dev_type} || 'pty');
     $devices->appendChild($console);
 
@@ -281,29 +282,13 @@ sub add_vnc {
 
 # adds a further serial port
 # (in addition to the serial console on port 0 which added in add_pty, so don't use port 0 here)
+# As it's used over virsh console, use <console>.
 sub add_serial_console {
     my ($self, $args) = @_;
 
-    my $doc     = $self->{domainxml};
-    my $devices = $self->{devices_element};
-    my $port    = $args->{port} // '1';
-
-    my $serial = $doc->createElement('serial');
-    $serial->setAttribute(type => 'pty');
-
-    # set the port number
-    my $target = $doc->createElement('target');
-    $target->setAttribute(port => $port);
-    $serial->appendChild($target);
-
-    # set the name of the serial port used to refer to it when calling 'virsh console'
-    # note: This doesn't seem to have any effect, but set it in accordance with the 'default' we expect to get.
-    my $alias = $doc->createElement('alias');
-    $alias->setAttribute(name => 'serial' . $port);
-    $serial->appendChild($alias);
-
-    $devices->appendChild($serial);
-    return;
+    my $port    = $args->{port}    // backend::svirt::SERIAL_TERMINAL_DEFAULT_PORT;
+    my $pty_dev = $args->{pty_dev} // backend::svirt::SERIAL_TERMINAL_DEFAULT_DEVICE;
+    $self->add_pty({pty_dev => $pty_dev, pty_dev_type => 'pty', target_port => $port});
 }
 
 sub add_input {
@@ -372,7 +357,7 @@ sub add_disk {
                   "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1"
             ) || $ssh->die_with_error("Unable to execute command for adding disk");
             $vmware_chan->send_eof;
-            get_ssh_output($vmware_chan);
+            backend::svirt::get_ssh_output($vmware_chan);
             $vmware_chan->close();
             die "Can't create VMware image $vmware_disk_path" if $vmware_chan->exit_status();
         }
@@ -404,7 +389,7 @@ sub add_disk {
                       'fi;'
                 ) || $ssh->die_with_error("Unable to execute command to copy VMware image $file_basename");
                 $vmware_chan->send_eof;
-                get_ssh_output($vmware_chan);
+                backend::svirt::get_ssh_output($vmware_chan);
                 $vmware_chan->close();
                 die "Can't copy VMware image $file_basename" if $vmware_chan->exit_status();
                 if ($backingfile) {
@@ -420,7 +405,7 @@ sub add_disk {
                           "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1"
                     ) || $ssh->die_with_error("Unable to execute command to create thin VMware image");
                     $vmware_chan->send_eof;
-                    get_ssh_output($vmware_chan);
+                    backend::svirt::get_ssh_output($vmware_chan);
                     $vmware_chan->close();
                     die "Can't create thin VMware image" if $vmware_chan->exit_status();
                 }
@@ -625,24 +610,6 @@ sub stop_serial_grab {
     $self->backend->stop_serial_grab($self->name);
 }
 
-# In list context returns ($stdout, $stderr) pair. In void (and scalar)
-# context just logs stdout and stderr, returns nothing.
-sub get_ssh_output {
-    my ($chan) = @_;
-
-    my ($stdout, $stderr) = ('', '');
-    while (!$chan->eof) {
-        if (my ($o, $e) = $chan->read2) {
-            $stdout .= $o;
-            $stderr .= $e;
-        }
-    }
-    chomp($stdout, $stderr);
-    bmwqemu::diag "Command's stdout:\n$stdout" if length($stdout);
-    bmwqemu::diag "Command's stderr:\n$stderr" if length($stderr);
-    return $stdout, $stderr if wantarray;
-}
-
 # Sends command to libvirt host, logs stdout and stderr of the command,
 # returns exit status.
 #
@@ -667,23 +634,22 @@ sub get_cmd_output {
     }
 
     # create a new channel; try to re-establish the SSH connection on failure
-    my $channel = $ssh->channel();
-    if (!$channel) {
-        $ssh     = $self->_init_ssh($domain);
-        $channel = $ssh->channel() || $ssh->die_with_error("unable to create channel for SSH console \"$domain\"");
+    my $chan = $ssh->channel();
+    if (!$chan) {
+        $ssh  = $self->_init_ssh($domain);
+        $chan = $ssh->channel() || $ssh->die_with_error("unable to create channel for SSH console \"$domain\"");
     }
 
     # execute command
-    if (!$channel->exec($cmd)) {
+    if (!$chan->exec($cmd)) {
         $ssh->die_with_error("unable to execute command \"$cmd\" via SSH console \"$domain\"");
     }
 
     # read output and close channel
     bmwqemu::diag "Command executed: $cmd";
-    my @cmd_output = get_ssh_output($channel);
-    $channel->send_eof();
-    $channel->close();
-
+    my @cmd_output = backend::svirt::get_ssh_output($chan);
+    $chan->send_eof();
+    $chan->close();
     return $wantarray ? \@cmd_output : $cmd_output[0];
 }
 

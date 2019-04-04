@@ -15,15 +15,14 @@
   </features>
   <on_reboot>destroy</on_reboot>
   <devices>
-    <graphics type="vnc"  port="5901" autoport="no" listen="0.0.0.0" sharePolicy="force-shared">
+    <graphics type="vnc" port="5901" autoport="no" listen="0.0.0.0" sharePolicy="force-shared">
       <listen type="address" address="0.0.0.0"/>
     </graphics>
     <console type="pty">
       <target port="0"/>
     </console>
-    <serial type="pty">
+    <console type="pty">
       <target port="1"/>
-      <alias name="serial1"/>
-    </serial>
+    </console>
   </devices>
 </domain>

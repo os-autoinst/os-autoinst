@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# Copyright © 2018-2019 SUSE LLC
 
 use strict;
 use warnings;
@@ -10,6 +11,7 @@ use XML::SemanticDiff;
 use backend::svirt;
 use distribution;
 use testapi qw(get_var get_required_var check_var set_var);
+use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT);
 
 BEGIN {
     unshift @INC, '..';
@@ -53,13 +55,16 @@ is_deeply($svirt_sut_console, {
         libvirt_domain  => 'openQA-SUT-1',
         serial_port_no  => 1,
         testapi_console => 'sut-serial',
+        pty_dev         => SERIAL_TERMINAL_DEFAULT_DEVICE,
 }, 'SUT serial console correctly initialized') or diag explain $consoles;
 
 subtest 'XML config for VNC and serial console' => sub {
     $svirt_console->_init_xml();
     $svirt_console->add_vnc({port => 5901});
-    $svirt_console->add_pty({target_port => 0});
-    $svirt_console->add_serial_console();
+    $svirt_console->add_pty({target_port => SERIAL_CONSOLE_DEFAULT_PORT});
+    $svirt_console->add_serial_console({
+            pty_dev     => SERIAL_TERMINAL_DEFAULT_DEVICE,
+            target_port => SERIAL_TERMINAL_DEFAULT_PORT});
 
     my $produced_xml = $svirt_console->{domainxml}->toString(2);
     my $expected_xml = '22-svirth-virsh-config.xml';

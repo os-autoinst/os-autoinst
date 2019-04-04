@@ -19,6 +19,7 @@ requires 'File::Spec';
 requires 'File::Temp';
 requires 'File::Which';
 requires 'IO::Handle';
+requires 'IO::Scalar';
 requires 'IO::Select';
 requires 'IO::Socket';
 requires 'IO::Socket::UNIX';
