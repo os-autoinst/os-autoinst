@@ -671,8 +671,11 @@ sub start_qemu {
         # always set proper TAPDEV for os-autoinst when using tap network mode
         my $instance = ($vars->{WORKER_INSTANCE} || 'manual') eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
         # use $instance for tap name so it is predicable, network is still configured staticaly
-        $tapdev[$i]  //= 'tap' . ($instance - 1 + $i * 64);
-        $nicvlan[$i] //= 0;
+        if (!defined($tapdev[$i]) || $tapdev[$i] eq 'auto') {
+            $tapdev[$i] = 'tap' . ($instance - 1 + $i * 64);
+        }
+        my $vlan = (@nicvlan) ? $nicvlan[-1] : 0;
+        $nicvlan[$i] //= $vlan;
     }
     push @tapscript,     "no" until @tapscript >= $num_networks;        #no TAPSCRIPT by default
     push @tapdownscript, "no" until @tapdownscript >= $num_networks;    #no TAPDOWNSCRIPT by default
