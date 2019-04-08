@@ -86,7 +86,7 @@ sub send_key;
 sub check_screen;
 sub type_string;
 sub type_password;
-
+sub wait_screen_change;
 
 =head1 introduction
 
@@ -601,7 +601,7 @@ Example:
 =cut
 
 sub assert_screen_change(&@) {
-    ::wait_screen_change(@_) or die 'assert_screen_change failed to detect a screen change';
+    wait_screen_change(@_) or die 'assert_screen_change failed to detect a screen change';
 }
 
 
