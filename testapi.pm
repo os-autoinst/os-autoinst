@@ -601,7 +601,11 @@ Example:
 =cut
 
 sub assert_screen_change(&@) {
-    ::wait_screen_change(@_) or die 'assert_screen_change failed to detect a screen change';
+    # Need to parse code reference and pass to the method explicitly as
+    # wait_screen_change uses prototype which expects code block as an argument
+    # This resolves compile time issues
+    my ($coderef, @args) = @_;
+    wait_screen_change(\&{$coderef}, @_) or die 'assert_screen_change failed to detect a screen change';
 }
 
 
