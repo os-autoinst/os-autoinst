@@ -601,7 +601,11 @@ Example:
 =cut
 
 sub assert_screen_change(&@) {
-    ::wait_screen_change(@_) or die 'assert_screen_change failed to detect a screen change';
+    # Need to parse code reference and pass to the method explicitly as
+    # wait_screen_change uses prototype which expects code block as an argument
+    # This resolves compile time issues
+    my ($coderef, @args) = @_;
+    wait_screen_change(\&{$coderef}, @_) or die 'assert_screen_change failed to detect a screen change';
 }
 
 
@@ -1220,7 +1224,7 @@ sub send_key_until_needlematch {
 
 =head2 type_string
 
-  type_string($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, wait_still_screen => <num> ] [, secret => 1 ] 
+  type_string($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, wait_still_screen => <num> ] [, secret => 1 ]
   [, timeout => <num>] [, similarity_level => <num>] );
 
 send a string of characters, mapping them to appropriate key names as necessary
@@ -1233,7 +1237,7 @@ C<max_interval> the slower the typing.
 C<wait_screen_change> if set, type only this many characters at a time
 C<wait_screen_change> and wait for the screen to change between sets.
 
-C<wait_still_screen> if set, C<wait_still_screen> returns true if screen is not 
+C<wait_still_screen> if set, C<wait_still_screen> returns true if screen is not
 changed for given C<$wait_still_screen> seconds or false if the screen is not still
 for the given seconds within defined C<timeout> after the whole string is typed.
 Default timeout is 30s, default stilltime is 0s.
