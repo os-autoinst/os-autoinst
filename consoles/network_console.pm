@@ -22,6 +22,7 @@ use warnings;
 use base 'consoles::console';
 
 use Try::Tiny;
+use Scalar::Util 'blessed';
 
 sub activate {
     my ($self) = @_;
