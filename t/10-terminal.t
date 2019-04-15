@@ -255,7 +255,9 @@ sub test_terminal_directly {
     my $tb = Test::More->builder;
     $tb->reset;
 
-    my $term = consoles::virtio_terminal->new('unit-test-console', []);
+    my $term = consoles::virtio_terminal->new('unit-test-console', {tty => 3});
+    ok($term->{console_key} eq "ctrl-alt-f3", 'console_key set correct');
+
     $term->activate;
     my $scrn = $term->screen;
     ok(defined($scrn), 'Create screen');
@@ -338,7 +340,7 @@ sub test_terminal_disabled {
 
     testapi::set_var('VIRTIO_CONSOLE', 0);
 
-    my $term = consoles::virtio_terminal->new('unit-test-console', []);
+    my $term = consoles::virtio_terminal->new('unit-test-console', {});
     $term->activate;
 }
 
