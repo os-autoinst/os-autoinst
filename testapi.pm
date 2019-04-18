@@ -490,10 +490,8 @@ sub assert_and_click {
 
     # last_matched_needle has to be set, or the assert is buggy :)
     my $lastarea = $last_matched_needle->{area}->[-1];
-    my $rx       = 1;                                                  # $origx / $img->xres();
-    my $ry       = 1;                                                  # $origy / $img->yres();
-    my $x        = int(($lastarea->{x} + $lastarea->{w} / 2) * $rx);
-    my $y        = int(($lastarea->{y} + $lastarea->{h} / 2) * $ry);
+    my $x        = int(($lastarea->{x} + $lastarea->{w} / 2));
+    my $y        = int(($lastarea->{y} + $lastarea->{h} / 2));
     bmwqemu::diag("clicking at $x/$y");
     mouse_set($x, $y);
     if ($dclick) {
