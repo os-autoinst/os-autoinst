@@ -209,7 +209,8 @@ sub _serialize_match {
         for my $i (qw(x y w h result)) {
             $na->{$i} = $area->{$i};
         }
-        $na->{similarity} = int($area->{similarity} * 100);
+        $na->{similarity}  = int($area->{similarity} * 100);
+        $na->{click_point} = $area->{click_point} if exists $area->{click_point};
         push @{$match{area}}, $na;
     }
 

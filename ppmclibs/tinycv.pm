@@ -105,6 +105,9 @@ sub search_ {
             h          => $area->{height},
             result     => 'ok',
         };
+        if (my $click_point = $area->{click_point}) {
+            $ma->{click_point} = $click_point;
+        }
 
         # A 96% match is ok for console tests. Please, if you
         # change this number consider change also the test
