@@ -493,14 +493,9 @@ sub assert_and_click {
     my $relative_click_point;
     for my $area (reverse @{$last_matched_needle->{area}}) {
         next unless ($relative_click_point = $area->{click_point});
-        if ((ref $relative_click_point eq 'HASH'
-                && $relative_click_point->{xpos}
-                && $relative_click_point->{ypos})
-            || $relative_click_point eq 'center') {
-            $relevant_area = $area;
-            last;
-        }
-        bmwqemu::diag("ignoring invalid click point");
+
+        $relevant_area = $area;
+        last;
     }
 
     # use center of the last area if no area contains click coordinates
