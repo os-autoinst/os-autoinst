@@ -1313,18 +1313,21 @@ sub type_string {
 
 =head2 type_password
 
-  type_password([$password]);
+  type_password($password [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, wait_still_screen => <num> ] [, timeout => <num>]
+  [, similarity_level => <num>] );
 
 A convenience wrapper around C<type_string>, which doesn't log the string.
 
 Uses C<$testapi::password> if no string is given.
+
+You can pass same optional parameters as for C<type_string> function.
 
 =cut
 
 sub type_password {
     my ($string, %args) = @_;
     $string //= $password;
-    type_string $string, secret => 1, max_interval => ($args{max_interval} // 100);
+    type_string $string, secret => 1, max_interval => ($args{max_interval} // 100), %args;
 }
 
 =head1 mouse support
