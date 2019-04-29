@@ -212,6 +212,7 @@ sub script_output {
         my $heretag = 'EOT_' . $marker;
         my $cat     = "cat > $script_path << '$heretag'; echo $marker-\$?-";
         testapi::wait_serial($self->{serial_term_prompt}, undef, 0, no_regex => 1);
+        bmwqemu::log_call("Content of $script_path :\n \"$cat\" \n");
         testapi::type_string($cat . "\n");
         testapi::wait_serial("$cat", undef, 0, no_regex => 1);
         testapi::type_string("$script\n$heretag\n");
