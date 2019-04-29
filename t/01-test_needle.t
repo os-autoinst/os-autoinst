@@ -5,7 +5,7 @@ use warnings;
 use Cwd 'abs_path';
 use Test::Output 'stderr_like';
 use Test::More;
-use Test::Warnings;
+use Test::Warnings 'warning';
 use File::Basename;
 use File::Path 'make_path';
 use File::Temp 'tempdir';
@@ -29,7 +29,9 @@ require tinycv;
 
 my ($res, $needle, $img1, $cand);
 
-my $data_dir = dirname(__FILE__) . '/data/';
+my $data_dir        = dirname(__FILE__) . '/data/';
+my $misc_needle_dir = dirname(__FILE__) . '/misc_needles/';
+
 $img1 = tinycv::read($data_dir . "bootmenu.test.png");
 
 $needle = needle->new($data_dir . "bootmenu.ref.json");
@@ -395,6 +397,21 @@ is($needle->{file}, 'out-of-def-prj/test/data/other-desktop-dvd-20140904.json', 
 
 eval { $needle = needle->new('out-of-prj/test/data/some-needle.json') };
 ok($@, 'died when accessing needle outside of prjdir');
+
+subtest 'click point' => sub {
+    $bmwqemu::vars{PRJDIR} = $misc_needle_dir;
+
+    my $needle = needle->new($misc_needle_dir . 'click-point.json');
+    is_deeply($needle->{area}->[0]->{click_point}, {xpos => 2, ypos => 4}, 'click point parsed');
+
+    $needle = needle->new($misc_needle_dir . 'click-point-center.json');
+    is_deeply($needle->{area}->[0]->{click_point}, 'center', 'click point "center" parsed');
+
+    like(warning {
+            $needle = needle->new($misc_needle_dir . 'click-point-multiple.json');
+    }, qr/click-point-multiple\.json has more than one area with a click point/, 'warning shown');
+    is_deeply($needle, undef, 'multiple click points not accepted');
+};
 
 done_testing();
 

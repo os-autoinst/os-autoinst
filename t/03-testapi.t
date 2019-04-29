@@ -349,9 +349,53 @@ is(match_has_tag,        undef, 'match_has_tag on no value -> undef');
 is(match_has_tag('foo'), undef, 'match_has_tag on not matched tag -> undef');
 subtest 'assert_and_click' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
-    $mock_testapi->mock(assert_screen => {area => [{x => 1, y => 2, w => 3, h => 4}]});
+    my @areas        = ({x => 1, y => 2, w => 10, h => 20});
+    $mock_testapi->mock(assert_screen => {area => \@areas});
+
+    $cmds = [];
     ok(assert_and_click('foo'));
-    is_deeply($cmds->[-1], {cmd => 'backend_mouse_hide', offset => 0}, 'assert_and_click succeeds and hides mouse again -> undef return');
+    is_deeply($cmds, [
+            {
+                cmd => 'backend_get_last_mouse_set'
+            },
+            {
+                cmd => 'backend_mouse_set',
+                x   => 6,
+                y   => 12
+            },
+            {
+                bstate => 1,
+                button => 'left',
+                cmd    => 'backend_mouse_button'
+            },
+            {
+                bstate => 0,
+                button => 'left',
+                cmd    => 'backend_mouse_button'
+            },
+            {
+                cmd    => 'backend_mouse_hide',
+                offset => 0
+            },
+    ], 'assert_and_click clicks in the middle and hides the mouse again') or diag explain $cmds;
+
+    $cmds = [];
+    push(@areas, {x => 50, y => 60, w => 22, h => 20, click_point => {xpos => 5, ypos => 7}});
+    ok(assert_and_click('foo'));
+    is_deeply($cmds->[1], {
+            cmd => 'backend_mouse_set',
+            x   => 55,
+            y   => 67,
+    }, 'assert_and_click clicks at the click point') or diag explain $cmds;
+
+    $cmds  = [];
+    @areas = ({x => 50, y => 60, w => 22, h => 20, click_point => 'center'}, {x => 0, y => 0, w => 0, h => 0});
+    ok(assert_and_click('foo'));
+    is_deeply($cmds->[1], {
+            cmd => 'backend_mouse_set',
+            x   => 61,
+            y   => 70,
+    }, 'assert_and_click clicks at the  click point specified as "center"') or diag explain $cmds;
 };
 
 subtest 'record_info' => sub {

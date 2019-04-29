@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2018 SUSE LLC
+# Copyright © 2012-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -488,12 +488,30 @@ sub assert_and_click {
     my $old_mouse_coords = query_isotovideo('backend_get_last_mouse_set');
     bmwqemu::log_call(mustmatch => $mustmatch, button => $button, timeout => $timeout);
 
-    # last_matched_needle has to be set, or the assert is buggy :)
-    my $lastarea = $last_matched_needle->{area}->[-1];
-    my $rx       = 1;                                                  # $origx / $img->xres();
-    my $ry       = 1;                                                  # $origy / $img->yres();
-    my $x        = int(($lastarea->{x} + $lastarea->{w} / 2) * $rx);
-    my $y        = int(($lastarea->{y} + $lastarea->{h} / 2) * $ry);
+    # determine click coordinates from the last area which has those explicitly specified
+    my $relevant_area;
+    my $relative_click_point;
+    for my $area (reverse @{$last_matched_needle->{area}}) {
+        next unless ($relative_click_point = $area->{click_point});
+
+        $relevant_area = $area;
+        last;
+    }
+
+    # use center of the last area if no area contains click coordinates
+    if (!$relevant_area) {
+        $relevant_area = $last_matched_needle->{area}->[-1];
+    }
+    if (!$relative_click_point || $relative_click_point eq 'center') {
+        $relative_click_point = {
+            xpos => $relevant_area->{w} / 2,
+            ypos => $relevant_area->{h} / 2,
+        };
+    }
+
+    # calculate absolute click position and click
+    my $x = int($relevant_area->{x} + $relative_click_point->{xpos});
+    my $y = int($relevant_area->{y} + $relative_click_point->{ypos});
     bmwqemu::diag("clicking at $x/$y");
     mouse_set($x, $y);
     if ($dclick) {
@@ -502,10 +520,11 @@ sub assert_and_click {
     else {
         mouse_click($button, $clicktime);
     }
-    # We can't just move the mouse, or we end up in a click-and-drag situation
+
+    # move mouse back to where it was before we clicked, or to the 'hidden' position if it had never been
+    # positioned
+    # note: We can not move the mouse instantly. Otherwise we might end up in a click-and-drag situation.
     sleep 1;
-    # move mouse back to where it was before we clicked, or to the 'hidden'
-    # position if it had never been positioned
     if ($old_mouse_coords->{x} > -1 && $old_mouse_coords->{y} > -1) {
         return mouse_set($old_mouse_coords->{x}, $old_mouse_coords->{y});
     }

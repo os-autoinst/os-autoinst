@@ -33,6 +33,14 @@ our %tags;
 our $needledir;
 our $cleanuphandler;
 
+sub is_click_point_valid {
+    my ($click_point) = @_;
+    return (ref $click_point eq 'HASH'
+          && $click_point->{xpos}
+          && $click_point->{ypos})
+      || $click_point eq 'center';
+}
+
 sub new {
     my ($classname, $jsonfile) = @_;
 
@@ -73,6 +81,7 @@ sub new {
     $self->{properties} = $json->{properties} || [];
 
     my $gotmatch;
+    my $got_click_point;
     for my $area_from_json (@{$json->{area}}) {
         my $area = {};
         for my $tag (qw(xpos ypos width height)) {
@@ -84,6 +93,18 @@ sub new {
         $area->{match} = $area_from_json->{match} if $area_from_json->{match};
         $area->{type}   = $area_from_json->{type}   || 'match';
         $area->{margin} = $area_from_json->{margin} || 50;
+        if (my $click_point = $area_from_json->{click_point}) {
+            if ($got_click_point) {
+                warn "$jsonfile has more than one area with a click point\n";
+                return;
+            }
+            if (!is_click_point_valid($click_point)) {
+                warn "$jsonfile has an area with invalid click point\n";
+                return;
+            }
+            $got_click_point = 1;
+            $area->{click_point} = $click_point;
+        }
 
         $gotmatch = 1 if $area->{type} =~ /match|ocr/;
 
