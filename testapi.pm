@@ -466,27 +466,30 @@ sub match_has_tag {
 
 =head2 assert_and_click
 
-  assert_and_click($mustmatch, [$button], [$timeout], [$click_time], [$dclick]);
+  assert_and_click($mustmatch [, timeout => $timeout] [, button => $button] [, clicktime => $clicktime ] [, dclick => 1 ] [, mousehide => 1 ]);
 
 Wait for needle with C<$mustmatch> tag to appear on SUT screen. Then click
 C<$button> in the middle of the last match region as defined in the needle
 JSON file. If C<$dclick> is set, do double click instead.  C<$mustmatch> can
 be string or C<ARRAYREF> of strings (C<['tag1', 'tag2']>).  C<$button> is by
-default C<'left'>. C<'left'> and C<'right'> is supported.
+default C<'left'>. C<'left'> and C<'right'> is supported. If C<$mousehide> is
+true then always move mouse to the 'hidden' position after clicking to prevent
+to hide the area where user wants to assert/click in second step.
 
 Throws C<FailedNeedle> exception if C<$timeout> timeout is hit. Default timeout is 30s.
 
 =cut
 
 sub assert_and_click {
-    my ($mustmatch, $button, $timeout, $clicktime, $dclick) = @_;
-    $timeout //= $bmwqemu::default_timeout;
+    my ($mustmatch, %args) = @_;
+    $args{timeout}   //= $bmwqemu::default_timeout;
+    $args{button}    //= 'left';
+    $args{dclick}    //= 0;
+    $args{mousehide} //= 0;
 
-    $dclick //= 0;
-
-    $last_matched_needle = assert_screen($mustmatch, $timeout);
+    $last_matched_needle = assert_screen($mustmatch, $args{timeout});
     my $old_mouse_coords = query_isotovideo('backend_get_last_mouse_set');
-    bmwqemu::log_call(mustmatch => $mustmatch, button => $button, timeout => $timeout);
+    bmwqemu::log_call(mustmatch => $mustmatch, %args);
 
     # determine click coordinates from the last area which has those explicitly specified
     my $relevant_area;
@@ -514,18 +517,18 @@ sub assert_and_click {
     my $y = int($relevant_area->{y} + $relative_click_point->{ypos});
     bmwqemu::diag("clicking at $x/$y");
     mouse_set($x, $y);
-    if ($dclick) {
-        mouse_dclick($button, $clicktime);
+    if ($args{dclick}) {
+        mouse_dclick($args{button}, $args{clicktime});
     }
     else {
-        mouse_click($button, $clicktime);
+        mouse_click($args{button}, $args{clicktime});
     }
 
     # move mouse back to where it was before we clicked, or to the 'hidden' position if it had never been
     # positioned
     # note: We can not move the mouse instantly. Otherwise we might end up in a click-and-drag situation.
     sleep 1;
-    if ($old_mouse_coords->{x} > -1 && $old_mouse_coords->{y} > -1) {
+    if ($old_mouse_coords->{x} > -1 && $old_mouse_coords->{y} > -1 && !$args{mousehide}) {
         return mouse_set($old_mouse_coords->{x}, $old_mouse_coords->{y});
     }
     else {
@@ -535,15 +538,16 @@ sub assert_and_click {
 
 =head2 assert_and_dclick
 
-  assert_and_dclick($mustmatch, $button, [$timeout], [$click_time]);
+  assert_and_dclick($mustmatch [, timeout => $timeout] [, button => $button] [, clicktime => $clicktime ] [, dclick => 1 ] [, mousehide => 1 ]);
 
 Alias for C<assert_and_click> with C<$dclick> set.
 
 =cut
 
 sub assert_and_dclick {
-    my ($mustmatch, $button, $timeout, $clicktime) = @_;
-    return assert_and_click($mustmatch, $button, $timeout, $clicktime, 1);
+    my ($mustmatch, %args) = @_;
+    $args{dclick} = 1;
+    return assert_and_click($mustmatch, %args);
 }
 
 =head2 wait_screen_change
