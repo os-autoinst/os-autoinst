@@ -334,7 +334,8 @@ sub stop_vm {
         no autodie 'unlink';
         unlink('backend.run');
         $self->do_stop_vm();
-        # flush frames
+
+        bmwqemu::diag('flushing frames');
         $self->{encoder_pipe}->blocking(1);
         for my $fdata (@{$self->{video_frame_data}}) {
             $self->{encoder_pipe}->print($fdata);
