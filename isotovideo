@@ -165,12 +165,20 @@ sub kill_commands {
         my $url       = "http://127.0.0.1:$cmd_srv_port/$job_token/broadcast";
         diag('isotovideo: informing websocket clients before stopping command server: ' . $url);
 
-        my $ua = Mojo::UserAgent->new(request_timeout => 15);
-        my $tx = $ua->post($url, json => {stopping_test_execution => $reason});
+        my $timeout = 15;
+        my $ua      = Mojo::UserAgent->new(request_timeout => $timeout);
+        my $tx      = $ua->post($url, json => {stopping_test_execution => $reason});
         try {
             my $res = $tx->result;
             if ($res->code != 200) {
-                diag('isotovideo: unable to inform websocket clients about stopping command server: ' . $res->to_string);
+                my $error_message = $res->to_string;
+                diag('isotovideo: unable to inform websocket clients about stopping command server: ' . $error_message);
+                if ($error_message =~ qr/.*timeout.*/i) {
+                    diag("isotovideo: The command server could be under heavy load and the timeout of $timeout seconds has been exceeded. This message is most likely not be related to the MAX_JOB_TIME of the current job possibly being exceeded.");
+                }
+                else {
+                    diag('The command server might have already been killed by the worker after the user has aborted the job or the job timeout has been exceeded.');
+                }
             }
         }
         catch {
