@@ -25,8 +25,9 @@ sub new {
     my ($class) = @_;
 
     my $self = bless {}, $class;
-    $self->{consoles}        = {};
-    $self->{serial_failures} = [];
+    $self->{consoles}          = {};
+    $self->{serial_failures}   = [];
+    $self->{autoinst_failures} = [];
 
 =head2 serial_term_prompt
 
@@ -287,6 +288,28 @@ sub set_expected_serial_failures {
     my ($self, $failures) = @_;
 
     $self->{serial_failures} = $failures;
+}
+
+=head2 set_expected_autoinst_failures
+
+    set_expected_autoinst_failures($failures)
+
+Define the patterns to look for in the os-autoinst-log.txt
+Each pattern comes along with a type either I<hard> or I<soft> and a message,
+for instance, to label the match with a bug/ticket
+
+Example:
+    set_expected_serial_failures([
+        { type => 'soft', message => 'Message 1', pattern => qr/Pattern1/ },
+        { type => 'soft', message => 'Message 2', pattern => qr/Pattern2/ },
+        { type => 'hard', message => 'Message 3', pattern => qr/Pattern3/ },]
+    );
+
+=cut
+sub set_expected_autoinst_failures {
+    my ($self, $failures) = @_;
+
+    $self->{autoinst_failures} = $failures;
 }
 
 # override

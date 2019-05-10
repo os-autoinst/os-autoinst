@@ -28,8 +28,10 @@ use testapi  ();
 use autotest ();
 use MIME::Base64 'decode_base64';
 use Mojo::File 'path';
+use Try::Tiny;
 
-my $serial_file_pos = 0;
+my $serial_file_pos  = 0;
+my $autoinst_log_pos = 0;
 
 # enable strictures and warnings in all tests globaly
 sub import {
@@ -55,6 +57,7 @@ sub new {
     $self->{activated_consoles}     = [];
     $self->{name}                   = $class;
     $self->{serial_failures}        = [];
+    $self->{autoinst_failures}      = [];
     $self->{fatal_failure}          = 0;
     return bless $self, $class;
 }
@@ -366,13 +369,26 @@ sub runtest {
     }
 
     # Detect serial failures and override result if die
-    eval { $self->search_for_expected_serial_failures(); };
-    # Process serial dectection failure
-    if ($@) {
-        bmwqemu::diag($@);
-        $self->record_resultfile('Failed', $@, result => 'fail');
+    try {
+        $self->search_for_expected_serial_failures();
+    }
+    catch {
+        # Process serial dectection failure
+        bmwqemu::diag($_);
+        $self->record_resultfile('Failed', $_, result => 'fail');
         $died = 1;
     }
+
+    # Detect autoinst failures and override result if die
+    try {
+        $self->search_for_expected_autoinst_failures();
+    }
+    catch {
+        # Process autoinst dectection failure
+        bmwqemu::diag($_);
+        $self->record_resultfile('Failed', $_, result => 'fail');
+        $died = 1;
+    };
 
     $self->run_post_fail("test $name died") if ($died);
 
@@ -712,6 +728,51 @@ sub parse_serial_output_qemu {
     }
     $serial_file_pos = $json->{position};
     die "Got serial hard failure" if $die;
+    return;
+}
+
+sub search_for_expected_autoinst_failures {
+    my ($self) = @_;
+    # autoinst failures defined in distri (test can override them)
+    my $failures = $self->{autoinst_failures};
+
+    my $die = 0;
+    my %regexp_matched;
+    # loop line by line
+    open(my $AUTOINSTLOG, "<", "autoinst-log.txt") || die('Could not open autoinst-log.txt for reading');
+    seek($AUTOINSTLOG, $autoinst_log_pos, 0) || die('Could not seek within autoinst-log.txt');
+    while (my $line = <$AUTOINSTLOG>) {
+        chomp $line;
+        for my $regexp_table (@{$failures}) {
+            my $regexp  = $regexp_table->{pattern};
+            my $message = $regexp_table->{message};
+            my $type    = $regexp_table->{type};
+
+            # Input parameters validation
+            die "Wrong type defined for serial failure. Only 'soft' or 'hard' allowed. Got: $type" if $type !~ /^soft|hard|fatal$/;
+            die "Message not defined for serial failure for the pattern: '$regexp', type: $type" if !defined $message;
+
+            # If you want to match a simple string please be sure that you create it with quotemeta
+            if (!exists $regexp_matched{$regexp} and $line =~ /$regexp/) {
+                $regexp_matched{$regexp} = 1;
+                my $fail_type = 'softfail';
+                if ($type =~ 'hard|fatal') {
+                    $die                   = 1;
+                    $fail_type             = 'fail';
+                    $self->{fatal_failure} = $type eq 'fatal';
+                }
+                $self->record_resultfile($message, $message . " - autoinst-log error: $line", result => $fail_type);
+                $self->{result} = $fail_type;
+            }
+        }
+    }
+    my $fp_pos = tell $AUTOINSTLOG;
+    if ($fp_pos == -1) {
+        die('Error reading from autoinst-log.txt - tell returned -1');
+    }
+    $autoinst_log_pos = $fp_pos;
+    close($AUTOINSTLOG);
+    die "Got autoinst hard failure" if $die;
     return;
 }
 
