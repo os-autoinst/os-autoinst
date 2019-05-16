@@ -106,38 +106,47 @@ sub become_root {
 
 =head2 script_run
 
-script_run($program, [$wait_seconds])
+  script_run($cmd [, timeout => $timeout] [,quiet => $quiet])
 
-Run I<$program> (by assuming the console prompt and typing the command). After that, echo
+Deprecated mode
+
+  script_run($program, [$timeout])
+
+Run I<$cmd> (by assuming the console prompt and typing the command). After that, echo
 hashed command to serial line and wait for it in order to detect execution is finished.
-To avoid waiting, use I<$wait_seconds> 0.
+To avoid waiting, use I<$timeout> 0.
 
-<Returns> exit code received from I<$program>, or 0 in case of C<not> waiting for I<$program>
+Use C<quiet> to avoid recording serial_results.
+
+<Returns> exit code received from I<$cmd>, or C<undef> in case of C<not> waiting for I<$cmd>
 to return.
 
 =cut
 
 sub script_run {
-    # start console application
-    my ($self, $cmd, $wait) = @_;
-    $wait //= $bmwqemu::default_timeout;
+    my ($self, $cmd) = splice(@_, 0, 2);
+    my %args = testapi::compat_args(
+        {
+            timeout => $bmwqemu::default_timeout,
+            quiet   => undef
+        }, ['timeout'], @_);
 
     if (testapi::is_serial_terminal) {
-        testapi::wait_serial($self->{serial_term_prompt}, undef, 0, no_regex => 1);
+        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
     }
     testapi::type_string "$cmd";
-    if ($wait > 0) {
-        my $str = testapi::hashed_string("SR$cmd$wait");
+    if ($args{timeout} > 0) {
+        my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
         if (testapi::is_serial_terminal) {
             my $marker = " ; echo $str-\$?-";
             testapi::type_string($marker);
-            testapi::wait_serial($cmd . $marker, undef, 0, no_regex => 1);
+            testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
             testapi::type_string("\n");
         }
         else {
             testapi::type_string " ; echo $str-\$?- > /dev/$testapi::serialdev\n";
         }
-        my $res = testapi::wait_serial(qr/$str-\d+-/, $wait);
+        my $res = testapi::wait_serial(qr/$str-\d+-/, timeout => $args{timeout}, quiet => $args{quiet});
         return unless $res;
         return ($res =~ /$str-(\d+)-/)[0];
     }
@@ -180,6 +189,10 @@ sub script_sudo {
 
 =head2 script_output
 
+    script_output($script [, timeout => ?] [, type_command => ?] [, proceed_on_failure => ?] [, quiet => ?])
+
+Deprecated mode
+
     script_output($script, [ $wait, type_command => ?, proceed_on_failure => ?])
 
 Execute $script on the SUT and return the data written to STDOUT by
@@ -188,19 +201,26 @@ $script. See script_output in the testapi.
 C<proceed_on_failure> - allows to proceed with validation when C<$script> is
 failing (return non-zero exit code)
 
+Use C<quiet> to avoid recording serial_results.
+
 You may be able to avoid overriding this function by setting
 $serial_term_prompt.
 
 =cut
 sub script_output {
-    my ($self, $script, $wait, %args) = @_;
-    my $marker = testapi::hashed_string("SO$script");
-    # 80 is approximate quantity of chars typed during 'curl' approach
-    # if script length is lower there is no point to proceed with more complex solution
-    $args{type_command} //= length($script) < 80;
+    my ($self, $script) = splice(@_, 0, 2);
+    my %args = testapi::compat_args(
+        {
+            timeout            => undef,
+            proceed_on_failure => 0,       # fail on error by default
+            quiet              => undef,
+            # 80 is approximate quantity of chars typed during 'curl' approach
+            # if script length is lower there is no point to proceed with more complex solution
+            type_command => length($script) < 80,
+        }, ['timeout'], @_);
+
+    my $marker      = testapi::hashed_string("SO$script");
     my $script_path = "/tmp/script$marker.sh";
-    # fail on error by default
-    $args{proceed_on_failure} //= 0;
 
     # prevent use of network for offline installations
     if (testapi::get_var('OFFLINE_SUT')) {
@@ -211,13 +231,13 @@ sub script_output {
     if (testapi::is_serial_terminal) {
         my $heretag = 'EOT_' . $marker;
         my $cat     = "cat > $script_path << '$heretag'; echo $marker-\$?-";
-        testapi::wait_serial($self->{serial_term_prompt}, undef, 0, no_regex => 1);
+        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
         bmwqemu::log_call("Content of $script_path :\n \"$cat\" \n");
         testapi::type_string($cat . "\n");
-        testapi::wait_serial("$cat", undef, 0, no_regex => 1);
+        testapi::wait_serial("$cat", no_regex => 1, quiet => $args{quiet});
         testapi::type_string("$script\n$heretag\n");
-        testapi::wait_serial("> $heretag", undef, 0, no_regex => 1);
-        testapi::wait_serial("$marker-0-");
+        testapi::wait_serial("> $heretag", no_regex => 1, quiet => $args{quiet});
+        testapi::wait_serial("$marker-0-", quiet => $args{quiet});
     }
     elsif ($args{type_command}) {
         my $cat = "cat - > $script_path;\n";
@@ -240,14 +260,14 @@ sub script_output {
     my $shell_cmd  = testapi::is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
     my $run_script = "echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-";
     if (testapi::is_serial_terminal) {
-        testapi::wait_serial($self->{serial_term_prompt}, undef, 0, no_regex => 1);
+        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
         testapi::type_string("$run_script\n");
-        testapi::wait_serial($run_script, undef, 0, no_regex => 1);
+        testapi::wait_serial($run_script, no_regex => 1, quiet => $args{quiet});
     }
     else {
         testapi::type_string("($run_script) | tee /dev/$testapi::serialdev\n");
     }
-    my $output = testapi::wait_serial("SCRIPT_FINISHED$marker-\\d+-", $wait, 0, record_output => 1)
+    my $output = testapi::wait_serial("SCRIPT_FINISHED$marker-\\d+-", timeout => $args{timeout}, record_output => 1, quiet => $args{quiet})
       || croak "script timeout: $script";
 
     if ($output !~ "SCRIPT_FINISHED$marker-0-") {

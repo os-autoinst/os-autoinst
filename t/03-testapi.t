@@ -10,7 +10,7 @@ use Test::More;
 use Test::Output;
 use Test::Fatal;
 use Test::Mock::Time;
-use Test::Warnings;
+use Test::Warnings ':all';
 use Test::Exception;
 use Scalar::Util 'looks_like_number';
 
@@ -462,13 +462,22 @@ sub script_output_test {
     };
 
     $mock_testapi->mock(wait_serial => sub {
-            my ($regex, $wait) = @_;
+            my ($regex, %args) = @_;
+            is($args{quiet}, undef, 'Check default quiet argument');
             if ($regex =~ m/SCRIPT_FINISHEDXXX-\\d\+-/) {
-                is($wait, 30, 'pass $wait value to wait_serial');
+                is($args{timeout}, 30, 'pass $wait value to wait_serial');
             }
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', 30), 'foo', '');
+    is(script_output('echo foo', timeout => 30), 'foo', '');
+
+    $mock_testapi->mock(wait_serial => sub {
+            my ($regex, %args) = @_;
+            is($args{quiet}, 1, 'Check quiet argument');
+            return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
+    });
+    is(script_output('echo foo', quiet => 1), 'foo', '');
 }
 
 subtest 'script_output' => sub {
@@ -559,6 +568,44 @@ subtest 'check_assert_shutdown' => sub {
     is(check_shutdown, 0, 'check_shutdown should return "false" if timeout is hit');
     throws_ok { assert_shutdown } qr/Machine didn't shut down!/, 'assert_shutdown should throw exception if timeout is hit';
 
+};
+
+subtest 'compat_args' => sub {
+    my %def_args = (a => 'X', b => 123, c => undef);
+    is_deeply({testapi::compat_args(\%def_args, [], a => 'X', b => 123)}, \%def_args, 'Check defaults 1');
+    is_deeply({testapi::compat_args(\%def_args, [], a => 'X')}, \%def_args, 'Check defaults 2');
+    is_deeply({testapi::compat_args(\%def_args, [])}, \%def_args, 'Check defaults 3');
+
+    is_deeply({testapi::compat_args(\%def_args, ['a'], a => 'X', b => 123)}, \%def_args, 'Check named parameter 1');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], a => 'X')}, \%def_args, 'Check named parameter 2');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'])}, \%def_args, 'Check named parameter 3');
+
+    is_deeply({testapi::compat_args(\%def_args, [], a => 'Y', b => 666, c => 23)}, {a => 'Y', b => 666, c => 23}, 'Check named parameter 4');
+    is_deeply({testapi::compat_args(\%def_args, [], a => 'Y', b => 666)}, {a => 'Y', b => 666, c => $def_args{c}}, 'Check named parameter 5');
+    is_deeply({testapi::compat_args(\%def_args, [], a => 'Y')}, {a => 'Y', b => $def_args{b}, c => $def_args{c}}, 'Check named parameter 6');
+
+    is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', b => 666, c => 23)}, {a => 'Y', b => 666, c => 23}, 'Check mixed parameter 1');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', 666, c => 23)}, {a => 'Y', b => 666, c => 23}, 'Check mixed parameter 2');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'], 'Y', 666, 23)}, {a => 'Y', b => 666, c => 23}, 'Check mixed parameter 3');
+
+    is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => 23, b => 666)}, {a => 'Y', b => 666, c => 23}, 'Check mixed parameter 4');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', undef, c => 23)}, {a => 'Y', b => $def_args{b}, c => 23},           'Check mixed parameter 5');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', undef, b => 23)}, {a => 'Y', b => 23,           c => $def_args{c}}, 'Check mixed parameter 6');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'], undef, 666, 23)}, {a => $def_args{a}, b => 666, c => 23}, 'Check mixed parameter 7');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'], undef, undef, 23)}, {a => $def_args{a}, b => $def_args{b}, c => 23}, 'Check mixed parameter 8');
+    is_deeply({testapi::compat_args(\%def_args, ['c', 'b', 'a'], undef, undef, 23)}, {a => 23, b => $def_args{b}, c => $def_args{c}}, 'Check mixed parameter 9');
+    is_deeply({testapi::compat_args(\%def_args, ['c', 'b', 'a'], 666, undef, 23)}, {a => 23, b => $def_args{b}, c => 666}, 'Check mixed parameter 10');
+
+    is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => undef, b => 666)},   {a => 'Y', b => 666,          c => $def_args{c}}, 'Undef in parameter 1');
+    is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => undef, b => undef)}, {a => 'Y', b => $def_args{b}, c => $def_args{c}}, 'Undef in parameter 2');
+    is_deeply({testapi::compat_args(\%def_args, ['a'], undef, c => undef, b => undef)}, {a => $def_args{a}, b => $def_args{b}, c => $def_args{c}}, 'Undef in parameter 3');
+
+    is_deeply({testapi::compat_args(\%def_args, [], a => 'Y', b => 666, k => 5)}, {a => 'Y', b => 666, c => $def_args{c}, k => 5}, 'Additional parameter 1');
+    is_deeply({testapi::compat_args(\%def_args, [], k => 5)}, {a => $def_args{a}, b => $def_args{b}, c => $def_args{c}, k => 5}, 'Additional parameter 2');
+    is_deeply({testapi::compat_args(\%def_args, ['c'], 666, k => 5)}, {a => $def_args{a}, b => $def_args{b}, c => 666, k => 5}, 'Additional parameter 3');
+
+    like(warning { testapi::compat_args(\%def_args, [], a => 'Z', 'outch') }->[0], qr/^Odd number of arguments/, 'Warned on Odd number 1');
+    like(warning { testapi::compat_args(\%def_args, [], 'outch') }->[0], qr/^Odd number of arguments/, 'Warned on Odd number 2');
 };
 
 done_testing;

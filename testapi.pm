@@ -820,9 +820,20 @@ sub is_serial_terminal {
 
 =head2 wait_serial
 
+  wait_serial($regex or ARRAYREF of $regexes, [, timeout => $timeout] [, expect_not_found => $expect_not_found] [, %args]);
+
+Deprecated mode
+
   wait_serial($regex or ARRAYREF of $regexes [, $timeout [, $expect_not_found [, @args ]]]);
 
 Wait for C<$regex> or anyone of C<$regexes> to appear on serial output.
+
+Setting C<$no_regex> will cause it to do a plain string search.
+
+Set C<$quiet>, to avoid recording serial_result.
+
+For serial_terminal there are more options available, like C<record_output>,
+C<buffer_size>. See C<consoles::serial_screen::read_unitl> for details.
 
 Returns the string matched or C<undef> if C<$expect_not_found> is false
 (default).
@@ -830,26 +841,28 @@ Returns the string matched or C<undef> if C<$expect_not_found> is false
 Returns C<undef> or (after timeout) the string that I<did _not_ match> if
 C<$expect_not_found> is true. The default timeout is 90 seconds.
 
-Setting C<$no_regex> will cause it to do a plain string search.
-
 =cut
 
 sub wait_serial {
+    my $regexp = shift;
+    my %args   = compat_args(
+        {
+            regexp           => $regexp,
+            timeout          => 90,
+            expect_not_found => 0,
+            quiet            => undef,
+            no_regex         => 0,
+            buffer_size      => undef,
+            record_output    => undef,
+        }, ['timeout', 'expect_not_found'], @_);
 
-    # wait for a message to appear on serial output
-    my $regexp           = shift;
-    my $timeout          = shift || 90;    # seconds
-    my $expect_not_found = shift || 0;     # expected can not found the term in serial output
+    bmwqemu::log_call(%args);
+    $args{timeout} = bmwqemu::scale_timeout($args{timeout});
 
-    my %nargs = (@_, (regexp => $regexp, timeout => $timeout));
-
-    bmwqemu::log_call(%nargs);
-    $nargs{timeout} = bmwqemu::scale_timeout($nargs{timeout});
-
-    my $ret     = query_isotovideo('backend_wait_serial', \%nargs);
+    my $ret     = query_isotovideo('backend_wait_serial', \%args);
     my $matched = $ret->{matched};
 
-    if ($expect_not_found) {
+    if ($args{expect_not_found}) {
         $matched = !$matched;
     }
     bmwqemu::wait_for_one_more_screenshot() unless is_serial_terminal;
@@ -859,7 +872,7 @@ sub wait_serial {
     $matched = $matched ? 'ok' : 'fail';
     # convert dos2unix (poo#20542)
     $ret->{string} =~ s,\r\n,\n,g;
-    $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string});
+    $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string}) unless ($args{quiet});
     bmwqemu::fctres("$regexp: $matched");
     return $ret->{string} if ($matched eq "ok");
     return;    # false
@@ -911,38 +924,38 @@ should work on *nix operating systems with a configured serial device.>
 =cut
 
 sub assert_script_run {
-    my ($cmd) = shift;
-    my %args;
-    if (@_ == 1) {
-        %args = (timeout => $_[0]);
-    }
-    elsif (@_ == 2 && $_[0] ne 'fail_message' && $_[0] ne 'timeout') {
-        %args = (timeout => $_[0], fail_message => $_[1]);
-    }
-    else {
-        %args = @_;
-    }
-    # assert_script_run originally had the implicit default timeout of
-    # wait_serial which we are repeating here to preserve old behaviour and
-    # not change default timeout.
-    $args{timeout} //= 90;
-    bmwqemu::log_call(cmd => $cmd, wait => $args{timeout}, fail_message => $args{fail_message});
-    my $ret = $distri->script_run($cmd, $args{timeout});
+    my $cmd  = shift;
+    my %args = compat_args(
+        {
+            # assert_script_run originally had the implicit default timeout of
+            # wait_serial which we are repeating here to preserve old behaviour and
+            # not change default timeout.
+            timeout      => 90,
+            fail_message => '',
+            quiet        => undef
+        }, ['timeout', 'fail_message'], @_);
+
+    bmwqemu::log_call(cmd => $cmd, %args);
+    my $ret = $distri->script_run($cmd, timeout => $args{timeout}, quiet => $args{quiet});
     _handle_script_run_ret($ret, $cmd, %args);
     return;
 }
 
 =head2 script_run
 
-  script_run($cmd [, $wait]);
+  script_run($cmd [, timeout => $timeout] [, quiet => $quiet]);
+
+Deprecated mode
+
+  script_run($cmd [, $timeout]);
 
 Run C<$cmd> (in the default implementation, by assuming the console prompt and typing
-the command). If $wait_seconds is greater than 0, wait for that length of time for
+the command). If C<$timeout> is greater than 0, wait for that length of time for
 execution to complete (otherwise, returns undef immediately). See C<distri->script_run>
 for default timeout.
 
-<Returns> exit code received from I<$cmd>, or undef if $wait_seconds is 0 or execution
-does not complete within $wait_seconds.
+<Returns> exit code received from I<$cmd>, or undef if $timeout is 0 or execution
+does not complete within $timeout.
 
 I<The implementation is distribution specific and not always available.>
 
@@ -953,10 +966,15 @@ device C<$serialdev>.
 =cut
 
 sub script_run {
-    my ($cmd, $wait) = @_;
+    my $cmd  = shift;
+    my %args = compat_args(
+        {
+            timeout => undef,
+            quiet   => undef
+        }, ['timeout'], @_);
 
-    bmwqemu::log_call(cmd => $cmd, wait => $wait);
-    return $distri->script_run($cmd, $wait);
+    bmwqemu::log_call(cmd => $cmd, %args);
+    return $distri->script_run($cmd, %args);
 }
 
 =head2 assert_script_sudo
@@ -1091,6 +1109,10 @@ sub get_test_data {
 
 =head2 validate_script_output
 
+  validate_script_output($script, $code [, timeout => $timeout] [,quiet => $quiet])
+
+Deprecated mode
+
   validate_script_output($script, $code, [$wait])
 
 Wrapper around script_output, that runs a callback on the output. Use it as
@@ -1099,11 +1121,15 @@ Wrapper around script_output, that runs a callback on the output. Use it as
 
 =cut
 
-sub validate_script_output($&;$) {
-    my ($script, $code, $wait) = @_;
-    $wait ||= 30;
+sub validate_script_output {
+    my ($script, $code) = splice(@_, 0, 2);
+    my %args = compat_args(
+        {
+            timeout => 30,
+            quiet   => undef
+        }, ['timeout'], @_);
 
-    my $output = script_output($script, $wait);
+    my $output = script_output($script, %args);
     my $res    = 'ok';
 
     # set $_ so the callbacks can be simpler code
@@ -1113,7 +1139,7 @@ sub validate_script_output($&;$) {
         bmwqemu::diag("output does not pass the code block:\n$output");
     }
     # abusing the function
-    $autotest::current_test->record_serialresult($output, $res, $output);
+    $autotest::current_test->record_serialresult($output, $res, $output) unless ($args{quiet});
     if ($res eq 'fail') {
         croak "output not validating";
     }
@@ -2072,6 +2098,29 @@ sub upload_asset {
     else {
         return assert_script_run($cmd);
     }
+}
+
+=head2 compat_args
+
+Helper function to create backward compatible function arguments when moving
+from positional arguments to named one.
+
+    compat_args( $hash_ref_defaults, $arrayref_old_fixed, [ $arg1, $arg2, ...])
+
+A typical call would look like:
+
+    my %args = compat_args({timeout => 60, .. }, ['timeout'], @_);
+=cut
+sub compat_args {
+    my ($def_args, $fix_keys) = splice(@_, 0, 2);
+    my %ret;
+    for my $key (@{$fix_keys}) {
+        $ret{$key} = shift if (scalar(@_) >= 1 && (!defined($_[0]) || !grep(/^$_[0]$/, keys(%{$def_args}))));
+    }
+    carp("Odd number of arguments") unless ((@_ % 2) == 0);
+    %ret = (%{$def_args}, %ret, @_);
+    map { $ret{$_} //= $def_args->{$_} } keys(%{$def_args});
+    return %ret;
 }
 
 1;
