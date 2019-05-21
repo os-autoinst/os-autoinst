@@ -148,7 +148,7 @@ sub save {
         {
             tags       => [sort(@{$self->{tags}})],
             area       => \@area,
-            properties => [sort(@{$self->{properties}})],
+            properties => [$self->{properties}],
         });
     open(my $fh, '>', $fn);
     print $fh $json;
@@ -276,11 +276,25 @@ sub has_tag {
 }
 
 sub has_property {
-    my ($self, $tag) = @_;
-    for my $t (@{$self->{properties}}) {
-        return 1 if ($t eq $tag);
+    my ($self, $property_name) = @_;
+
+    return grep { ref($_) eq "HASH" ? $_->{name} eq $property_name : $_ eq $property_name } @{$self->{properties}};
+}
+
+sub get_property_value {
+    my ($self, $property_name) = @_;
+
+    for my $property (@{$self->{properties}}) {
+        if (ref($property) eq "HASH") {
+            return $property->{value} if ($property->{name} eq $property_name);
+        }
     }
-    return 0;
+    if ($property_name eq "workaround") {
+        if ($self->{name} =~ /\S+\-(bsc|poo|bnc)(\d+)\-\S+/) {
+            return $1 . "#" . $2;
+        }
+    }
+    return undef;
 }
 
 sub TO_JSON {

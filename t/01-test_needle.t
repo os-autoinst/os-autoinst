@@ -413,6 +413,31 @@ subtest 'click point' => sub {
     is_deeply($needle, undef, 'multiple click points not accepted');
 };
 
+subtest 'workaround property' => sub {
+    my $workaround_string_needle     = needle->new($misc_needle_dir . 'check-workaround-bsc1234567-20190522.json');
+    my $workaround_hash_needle       = needle->new($misc_needle_dir . 'check-workaround-hash-20190522.json');
+    my $no_workaround_needle         = needle->new($misc_needle_dir . 'click-point-center.json');
+    my $mix_workaround_string_needle = needle->new($misc_needle_dir . 'check-workaround-mix-bsc987321-20190617.json');
+    my $mix_workaround_hash_needle   = needle->new($misc_needle_dir . 'check-workaround-hash-mix-20190617.json');
+
+    ok($workaround_string_needle->has_property("workaround"),     "workaround property found when it is recorded in string");
+    ok($workaround_hash_needle->has_property("workaround"),       "workaround property found when it is recorded in hash");
+    ok($mix_workaround_string_needle->has_property("workaround"), "workaround property found in mixed properties");
+    ok($mix_workaround_hash_needle->has_property("workaround"),   "workaround property found in mixed properties");
+    ok($no_workaround_needle->has_property("glossy"),             "glossy property found");
+    ok(!$no_workaround_needle->has_property("workaround"),        "workaround property not found");
+    ok(!$workaround_string_needle->has_property("glossy"),        "glossy property not found");
+    ok(!$workaround_hash_needle->has_property("glossy"),          "glossy property not found");
+
+    is($workaround_string_needle->get_property_value("workaround"), "bsc#1234567", "get correct value when workaround is recorded in string");
+    is($workaround_hash_needle->get_property_value("workaround"), "bsc#7654321: this is a test about workaround.", "get ccorrect value when workaround is recorded in hash");
+    is($mix_workaround_string_needle->get_property_value("workaround"), "bsc#987321",                                         "workaround value is correct");
+    is($mix_workaround_hash_needle->get_property_value("workaround"),   "bsc#123789: This is a test for workaround property", "workaround value is correct");
+    is($workaround_hash_needle->get_property_value("test"),             undef,                                                "no test value");
+    is($no_workaround_needle->get_property_value("workaround"),         undef,                                                "no workaround property");
+    is($no_workaround_needle->get_property_value("glossy"), undef, "glossy property is a string, has no value");
+};
+
 done_testing();
 
 # vim: set sw=4 et:

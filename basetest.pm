@@ -163,10 +163,15 @@ sub record_screenmatch {
 
     # When the needle has the workaround property,
     # mark the result as dent and increase the dents
-    if ($foundneedle->has_property('workaround')) {
-        $result->{dent} = 1;
-        $self->{dents}++;
-        bmwqemu::diag("needle '$serialized_match->{name}' is a workaround");
+    if (my $reason = $foundneedle->get_property_value('workaround')) {
+        $result->{dent}   = 1;
+        $result->{result} = "softfail";
+
+        # write a test result file
+        my $reason = $foundneedle->get_property_value('workaround');
+        $self->record_soft_failure_result($reason);
+
+        bmwqemu::diag("needle '$serialized_match->{name}' is a workaround. The reason is $reason");
     }
 
     # also include the not matched needles
@@ -464,6 +469,7 @@ sub record_soft_failure_result {
     $result->{title} = 'Soft Failed';
     $result->{text}  = $filename;
     $self->write_resultfile($filename, "# Soft Failure:\n$reason\n");
+    $self->{dents}++;
     return undef;
 }
 
