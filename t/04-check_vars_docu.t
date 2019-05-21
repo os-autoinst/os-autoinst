@@ -84,7 +84,7 @@ sub read_doc {
 
 sub write_doc {
     my $docfh;
-    open($docfh, '>', VARS_DOC);
+    open($docfh, '>', VARS_DOC . '.newvars');
     print $docfh <<EO_HEADER;
 Supported variables per backend
 -------------------------------
