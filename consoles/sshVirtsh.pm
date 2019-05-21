@@ -557,13 +557,17 @@ __END"
     }
 
     my $instance    = $self->instance;
-    my $doc         = $self->{domainxml};
+    my $xmldata     = $self->{domainxml}->toString(2);
     my $xmlfilename = "/var/lib/libvirt/images/" . $self->name . ".xml";
     my $ssh         = $self->{ssh};
     my $chan        = $ssh->channel() || $ssh->die_with_error("Unable to create SSH channel for writing virsh config");
+    my $ret;
+
+    bmwqemu::diag("Creating libvirt configuration file $xmlfilename:\n$xmldata");
+
     # scp_put is unfortunately unreliable (RT#61771)
     $chan->exec("cat > $xmlfilename") || $ssh->die_with_error();
-    $chan->write($doc->toString(2))   || $ssh->die_with_error();
+    $chan->write($xmldata) || $ssh->die_with_error();
     $chan->close();
 
     # shut down possibly running previous test (just to be sure) - ignore errors
@@ -577,7 +581,11 @@ __END"
     if ($self->vmm_family eq 'vmware') {
         $self->get_cmd_output('echo bios.bootDelay = \"10000\" >> /vmfs/volumes/datastore1/openQA/' . $self->name . '.vmx', {domain => 'sshVMwareServer'});
     }
-    $self->run_cmd("virsh $remote_vmm start " . $self->name) && die "virsh start failed";
+
+    $ret = $self->run_cmd("virsh $remote_vmm start " . $self->name);
+    bmwqemu::diag("Dump actually used libvirt configuration file " . ($ret ? "(broken)" : "(working)"));
+    $self->run_cmd("virsh $remote_vmm dumpxml " . $self->name);
+    die "virsh start failed" if $ret;
 
     $self->backend->start_serial_grab($self->name);
 
