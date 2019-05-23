@@ -112,7 +112,7 @@ sub gen_cmdline {
             push(@params, 'bus=' . $path->controller->id . '.0');
         }
         # Configure bootindex only for first path
-        $self->_push_ifdef(\@params, 'bootindex=', $self->bootindex) if (($path->id eq 'path0') || (!$path->id));
+        $self->_push_ifdef(\@params, 'bootindex=', $self->bootindex) if (!$path->id || $path->id eq 'path0');
         $self->_push_ifdef(\@params, 'serial=', $self->serial);
         push(@cmdln, ('-device', join(',', @params)));
     }
