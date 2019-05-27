@@ -27,6 +27,7 @@ use POSIX '_exit', 'strftime';
 use myjsonrpc;
 use bmwqemu 'diag';
 use Mojo::JSON 'to_json';
+use Mojo::File 'path';
 
 BEGIN {
     $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';
@@ -75,9 +76,9 @@ sub _test_data_dir {
     $self->res->headers->content_type('application/x-cpio');
 
     my $data = '';
-    for my $file (glob $base . '*') {
-        next unless -f $file;
-        my @s = stat _;
+    for my $file (path($base)->list_tree->each) {
+        $file = $file->to_string();
+        my @s = stat $file;
         unless (@s) {
             $self->app->log->error("error stating $file: $!");
             next;
