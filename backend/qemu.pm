@@ -847,10 +847,12 @@ sub start_qemu {
         }
 
         if ($vars->{VIRTIO_CONSOLE}) {
-            my $id = 'virtio_console';
             sp('device', 'virtio-serial');
-            sp('chardev', [qv "socket path=$id server nowait id=$id logfile=$id.log logappend=on"]);
-            sp('device',  [qv "virtconsole chardev=$id name=org.openqa.console.$id"]);
+            for (my $i = 0; $i < ($vars->{VIRTIO_CONSOLE_NUM} // 1); $i++) {
+                my $name = 'virtio_console' . ($i ? $i : '');
+                sp('chardev', [qv "socket path=$name server nowait id=$name logfile=$name.log logappend=on"]);
+                sp('device',  [qv "virtconsole chardev=$name name=org.openqa.console.$name"]);
+            }
         }
 
         my $qmpid = 'qmp_socket';
