@@ -608,6 +608,32 @@ subtest 'compat_args' => sub {
     like(warning { testapi::compat_args(\%def_args, [], 'outch') }->[0], qr/^Odd number of arguments/, 'Warned on Odd number 2');
 };
 
+subtest 'check quiet option on script runs' => sub {
+    $bmwqemu::vars{_QUIET_SCRIPT_CALLS} = 1;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->mock(wait_serial => sub {
+            my ($regex, %args) = @_;
+            is($args{quiet}, 1, 'Check default quiet argument');
+            return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
+    });
+    is(script_output('echo foo', 30), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 expects command output');
+    is(script_run('true'),        '0',   'script_run with _QUIET_SCRIPT_CALLS=1');
+    is(assert_script_run('true'), undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1');
+    ok(!validate_script_output('script', sub { m/output/ }), 'validate_script_output with _QUIET_SCRIPT_CALLS=1');
+
+    $mock_testapi->mock(wait_serial => sub {
+            my ($regex, %args) = @_;
+            is($args{quiet}, 0, 'Check default quiet argument');
+            return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
+    });
+    is(script_output('echo foo', quiet => 0), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
+    is(script_run('true', quiet => 0), '0', 'script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
+    is(assert_script_run('true', quiet => 0), undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
+    ok(!validate_script_output('script', sub { m/output/ }, quiet => 0), 'validate_script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
+    delete $bmwqemu::vars{_QUIET_SCRIPT_CALLS};
+};
+
+
 done_testing;
 
 # vim: set sw=4 et:

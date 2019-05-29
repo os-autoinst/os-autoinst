@@ -25,6 +25,7 @@ TIMEOUT_SCALE;integer;1;This scale parameter can be used based on performance of
 PAUSE_AT;string;;Test module (name or fullname) to pause test execution at. To be used together with the openQA developer mode to continue test execution. Be aware that the openQA web UI will only reflect this within the developer mode after confirming to control the test.
 PAUSE_ON_SCREEN_MISMATCH;boolean;0;Pause test execution on the next screen mismatch. Same notes as for `PAUSE_AT` apply.
 PAUSE_ON_NEXT_COMMAND;boolean;0;Pause test execution on the next test API command. Same notes as for `PAUSE_AT` apply.
+_QUIET_SCRIPT_CALLS;boolean;0;Add quiet flag to all the calls to script_run, script_output and validate_script_output. It will omit all the squares "wait_serial expected" on the Details view of the test case. This option might be useful for serial terminal tests.
 
 |====================
 

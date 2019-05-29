@@ -904,7 +904,7 @@ sub _handle_script_run_ret {
 
 =head2 assert_script_run
 
-  assert_script_run($cmd [, timeout => $timeout] [, fail_message => $fail_message]);
+  assert_script_run($cmd [, timeout => $timeout] [, fail_message => $fail_message] [,quiet => $quiet]);
 
 Deprecated mode
 
@@ -932,7 +932,7 @@ sub assert_script_run {
             # not change default timeout.
             timeout      => 90,
             fail_message => '',
-            quiet        => undef
+            quiet        => testapi::get_var('_QUIET_SCRIPT_CALLS')
         }, ['timeout', 'fail_message'], @_);
 
     bmwqemu::log_call(cmd => $cmd, %args);
@@ -970,7 +970,7 @@ sub script_run {
     my %args = compat_args(
         {
             timeout => undef,
-            quiet   => undef
+            quiet   => testapi::get_var('_QUIET_SCRIPT_CALLS')
         }, ['timeout'], @_);
 
     bmwqemu::log_call(cmd => $cmd, %args);
@@ -1026,7 +1026,7 @@ sub script_sudo {
 
 =head2 script_output
 
-  script_output($script [, $wait, type_command => 1, proceed_on_failure => 1])
+  script_output($script [, $wait, type_command => 1, proceed_on_failure => 1] [,quiet => $quiet])
 
 Executing script inside SUT with C<bash -eox> (in case of serial console with C<bash -eo>)
 and directs C<stdout> (I<not> C<stderr>!) to the serial console and returns
@@ -1049,7 +1049,16 @@ and can be tweaked by setting the C<$wait> positional parameter.
 =cut
 
 sub script_output {
-    return $distri->script_output(@_);
+    my $script = shift;
+    my %args   = testapi::compat_args(
+        {
+            timeout            => undef,
+            proceed_on_failure => undef,                                     # fail on error by default
+            quiet              => testapi::get_var('_QUIET_SCRIPT_CALLS'),
+            type_command       => undef,
+        }, ['timeout'], @_);
+
+    return $distri->script_output($script, %args);
 }
 
 
@@ -1126,7 +1135,7 @@ sub validate_script_output {
     my %args = compat_args(
         {
             timeout => 30,
-            quiet   => undef
+            quiet   => testapi::get_var('_QUIET_SCRIPT_CALLS')
         }, ['timeout'], @_);
 
     my $output = script_output($script, %args);
