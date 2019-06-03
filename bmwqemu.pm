@@ -127,21 +127,25 @@ sub init {
     mkdir result_dir;
     mkdir join('/', result_dir, 'ulogs');
 
+    $logger = Mojo::Log->new(level => 'debug', path => 'autoinst-log.txt');
+    $logger->format(\&format_log);
+
     if ($direct_output) {
-        $logger = Mojo::Log->new(level => 'debug');
-    }
-    else {
-        $logger = Mojo::Log->new(level => 'debug', path => catfile(result_dir, 'autoinst-log.txt'));
-    }
-
-    $logger->format(
-        sub {
-            my ($time, $level, @lines) = @_;
-            # Unfortunately $time doesn't have the precision we want. So we need to use Time::HiRes
-            $time = gettimeofday;
-            return sprintf(strftime("[%FT%T.%%03d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
-
+        my $logger_stderr = Mojo::Log->new(level => 'debug');
+        $logger_stderr->format(\&format_log);
+        $logger->on(message => sub {
+                my ($log, $level, @lines) = @_;
+                $logger_stderr->$level(@lines);
         });
+    }
+
+}
+
+sub format_log {
+    my ($time, $level, @lines) = @_;
+    # Unfortunately $time doesn't have the precision we want. So we need to use Time::HiRes
+    $time = gettimeofday;
+    return sprintf(strftime("[%FT%T.%%03d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
 }
 
 sub ensure_valid_vars {
