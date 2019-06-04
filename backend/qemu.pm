@@ -509,7 +509,7 @@ sub start_qemu {
 
     local *sp = sub { $self->{proc}->static_param(@_); };
 
-    if ($vars->{VIRTIO_CONSOLE} ne 0) {
+    if (($vars->{VIRTIO_CONSOLE} // '') ne 0) {
         $vars->{VIRTIO_CONSOLE} = 1;
     }
 
