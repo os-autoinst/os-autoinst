@@ -596,7 +596,7 @@ sub start_qemu {
     }
 
     if ($vars->{HDDFORMAT}) {
-        die 'HDDFORMAT has been removed. If you are using existing images in some other format then qcow2 overalys will be created on top of them';
+        die 'HDDFORMAT has been removed. If you are using existing images in some other format then qcow2 overlays will be created on top of them';
     }
 
     # disk settings
