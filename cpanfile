@@ -40,7 +40,6 @@ requires 'Net::SSH2';
 requires 'POSIX';
 requires 'Thread::Queue';
 requires 'Time::HiRes';
-requires 'Try::Tiny';
 requires 'XML::LibXML';
 requires 'base';
 requires 'constant';

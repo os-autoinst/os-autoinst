@@ -74,8 +74,6 @@ is($died,      1, 'run_all with no tests should catch runalltests dying');
 is($completed, 0, 'run_all with no tests should not complete');
 @sent = [];
 
-`touch autoinst-log.txt`;
-
 loadtest 'start';
 loadtest 'next';
 is(keys %autotest::tests, 2, 'two tests have been scheduled');
@@ -248,7 +246,6 @@ is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/firefox.pm"),       
 is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"), ('motif',   'x11/toolkits'));
 is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"),                ('sysrq',   'other'));
 
-unlink 'autoinst-log.txt';
 done_testing();
 
 # vim: set sw=4 et:
