@@ -280,17 +280,6 @@ sub add_vnc {
     return;
 }
 
-# adds a further serial port
-# (in addition to the serial console on port 0 which added in add_pty, so don't use port 0 here)
-# As it's used over virsh console, use <console>.
-sub add_serial_console {
-    my ($self, $args) = @_;
-
-    my $port    = $args->{port}    // backend::svirt::SERIAL_TERMINAL_DEFAULT_PORT;
-    my $pty_dev = $args->{pty_dev} // backend::svirt::SERIAL_TERMINAL_DEFAULT_DEVICE;
-    $self->add_pty({pty_dev => $pty_dev, pty_dev_type => 'pty', target_port => $port});
-}
-
 sub add_input {
     my ($self, $args) = @_;
 

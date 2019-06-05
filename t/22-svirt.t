@@ -62,9 +62,7 @@ subtest 'XML config for VNC and serial console' => sub {
     $svirt_console->_init_xml();
     $svirt_console->add_vnc({port => 5901});
     $svirt_console->add_pty({target_port => SERIAL_CONSOLE_DEFAULT_PORT});
-    $svirt_console->add_serial_console({
-            pty_dev     => SERIAL_TERMINAL_DEFAULT_DEVICE,
-            target_port => SERIAL_TERMINAL_DEFAULT_PORT});
+    $svirt_console->add_pty({pty_dev     => SERIAL_TERMINAL_DEFAULT_DEVICE, pty_dev_type => 'pty', target_port => SERIAL_TERMINAL_DEFAULT_PORT});
 
     my $produced_xml = $svirt_console->{domainxml}->toString(2);
     my $expected_xml = '22-svirth-virsh-config.xml';
