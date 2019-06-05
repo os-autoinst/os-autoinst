@@ -30,7 +30,7 @@ sub get_ocr {
     my $gocrparams = shift || "";
     my @ocrrect    = @{$_[0]};
     if (!$gocrbin || !@ocrrect) { return "" }
-    if (@ocrrect != 4) { return " ocr: bad rect" }
+    if (@ocrrect != 4)          { return " ocr: bad rect" }
     return unless $ppm;
     my $ppm2 = $ppm->copyrect(@ocrrect);
     if (!$ppm2) { return "" }
