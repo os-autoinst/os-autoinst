@@ -20,6 +20,7 @@ use warnings;
 
 use testapi ();
 use Carp 'croak';
+use Mojo::Util 'trim';
 
 sub new {
     my ($class) = @_;
@@ -188,16 +189,12 @@ sub script_sudo {
     return;
 }
 
-=head2 script_output
+=head2 script_output_with_status
 
-    script_output($script [, timeout => ?] [, type_command => ?] [, proceed_on_failure => ?] [, quiet => ?])
+    script_output_with_status($script [, timeout => ?] [, type_command => ?] [, proceed_on_failure => ?] [, quiet => ?])
 
-Deprecated mode
-
-    script_output($script, [ $wait, type_command => ?, proceed_on_failure => ?])
-
-Execute $script on the SUT and return the data written to STDOUT by
-$script. See script_output in the testapi.
+Execute C<$script> on the SUT and return an array with the data written to
+STDOUT by C<$script> and the exit value.
 
 C<proceed_on_failure> - allows to proceed with validation when C<$script> is
 failing (return non-zero exit code)
@@ -208,17 +205,12 @@ You may be able to avoid overriding this function by setting
 $serial_term_prompt.
 
 =cut
-sub script_output {
-    my ($self, $script) = splice(@_, 0, 2);
-    my %args = testapi::compat_args(
-        {
-            timeout            => undef,
-            proceed_on_failure => 0,       # fail on error by default
-            quiet              => undef,
-            # 80 is approximate quantity of chars typed during 'curl' approach
-            # if script length is lower there is no point to proceed with more complex solution
-            type_command => length($script) < 80,
-        }, ['timeout'], @_);
+sub script_output_with_status {
+    my ($self, $script, %args) = @_;
+    $args{proceed_on_failure} //= 0;
+    # 80 is approximate quantity of chars typed during 'curl' approach
+    # if script length is lower there is no point to proceed with more complex solution
+    $args{type_command} //= length($script) < 80;
 
     my $marker      = testapi::hashed_string("SO$script");
     my $script_path = "/tmp/script$marker.sh";
@@ -270,8 +262,8 @@ sub script_output {
     }
     my $output = testapi::wait_serial("SCRIPT_FINISHED$marker-\\d+-", timeout => $args{timeout}, record_output => 1, quiet => $args{quiet})
       || croak "script timeout: $script";
-
-    if ($output !~ "SCRIPT_FINISHED$marker-0-") {
+    my ($retval) = $output =~ /SCRIPT_FINISHED$marker-(\d+)-/;
+    if ($retval != 0) {
         my $log_message = 'script failed with : ' . $output;
         if ($args{proceed_on_failure}) {
             bmwqemu::log_call($log_message);
@@ -282,10 +274,29 @@ sub script_output {
     }
 
     # and the markers including internal exit catcher
-    my $out = $output =~ /$marker(?<expected_output>.+)SCRIPT_FINISHED$marker-\d+-/s ? $+ : '';
-    # trim whitespaces
-    $out =~ s/^\s+|\s+$//g;
-    return $out;
+    my $out;
+    $out = $+{output} if ($output =~ /$marker(\r?\n|\025)(?<output>.*)SCRIPT_FINISHED$marker-$retval-/s);
+    return ($out, $retval);
+}
+
+=head2 script_output
+
+Wrap C<script_output_with_status()> and only return the trimmed output.
+Returns empty string, unless start- and end-markers were found.
+=cut
+sub script_output {
+    my ($self, $script) = splice(@_, 0, 2);
+    my %args = testapi::compat_args(
+        {
+            timeout            => undef,
+            proceed_on_failure => undef,
+            quiet              => undef,
+            type_command       => undef,
+        }, ['timeout'], @_);
+
+    my ($out, $reval) = $self->script_output_with_status($script, %args);
+    $out //= '';
+    return trim($out);
 }
 
 =head2 set_expected_serial_failures

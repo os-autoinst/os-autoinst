@@ -439,16 +439,19 @@ sub script_output_test {
     $mock_testapi->mock(hashed_string      => sub { return 'XXX' });
     $mock_testapi->mock(is_serial_terminal => sub { return $is_serial_terminal });
 
-    $mock_testapi->mock(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-0-" });
+    $mock_testapi->mock(wait_serial => sub { return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-" });
     is(script_output('echo foo'), 'foo', 'sucessfull retrieves output of script');
+    my @array = script_output('echo foo');
+    is(@array,    1,     'No auto array context 1');
+    is($array[0], 'foo', 'No auto array context 2');
 
     $mock_testapi->mock(wait_serial => sub { return 'SCRIPT_FINISHEDXXX-0-' });
     is(script_output('foo'), '', 'calling script_output does not fail if script returns with success');
 
-    $mock_testapi->mock(wait_serial => sub { return "This is simulated output on the serial device\nXXXfoo\nSCRIPT_FINISHEDXXX-0-\nand more here" });
+    $mock_testapi->mock(wait_serial => sub { return "This is simulated output on the serial device\nXXX\nfoo\nSCRIPT_FINISHEDXXX-0-\nand more here" });
     is(script_output('echo foo'), 'foo', 'script_output return only the actual output of the script');
 
-    $mock_testapi->mock(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-1-" });
+    $mock_testapi->mock(wait_serial => sub { return "XXX\nfoo\nSCRIPT_FINISHEDXXX-1-" });
     is(script_output('echo foo', undef, proceed_on_failure => 1), 'foo', 'proceed_on_failure=1 retrieves retrieves output of script and do not die');
 
     $mock_testapi->mock(wait_serial => sub { return 'none' if (shift !~ m/SCRIPT_FINISHEDXXX-\\d\+-/) });
@@ -456,8 +459,9 @@ sub script_output_test {
 
     subtest 'script_output check error codes' => sub {
         for my $ret ((1, 10, 100, 255)) {
-            $mock_testapi->mock(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-$ret-" });
+            $mock_testapi->mock(wait_serial => sub { return "XXX\nfoo\nSCRIPT_FINISHEDXXX-$ret-" });
             like(exception { script_output('false'); }, qr/script failed/, "script_output die expected on exitcode $ret");
+            is(script_output('echo foo', proceed_on_failure => 1), 'foo', "script_output(proceed_on_failure=>1) failed with exitcode:$ret");
         }
     };
 
@@ -467,7 +471,7 @@ sub script_output_test {
             if ($regex =~ m/SCRIPT_FINISHEDXXX-\\d\+-/) {
                 is($args{timeout}, 30, 'pass $wait value to wait_serial');
             }
-            return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
+            return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', 30),            'foo', '');
     is(script_output('echo foo', timeout => 30), 'foo', '');
@@ -475,7 +479,7 @@ sub script_output_test {
     $mock_testapi->mock(wait_serial => sub {
             my ($regex, %args) = @_;
             is($args{quiet}, 1, 'Check quiet argument');
-            return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
+            return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', quiet => 1), 'foo', '');
 }
@@ -483,6 +487,85 @@ sub script_output_test {
 subtest 'script_output' => sub {
     subtest('Test with is_serial_terminal==0', \&script_output_test, 0);
     subtest('Test with is_serial_terminal==1', \&script_output_test, 1);
+};
+
+sub script_output_with_status_test {
+    my $is_serial_terminal = shift;
+    my $mock_testapi       = Test::MockModule->new('testapi');
+    my @ret_arr;
+    $testapi::serialdev = 'null';
+    $mock_testapi->mock(type_string        => sub { return });
+    $mock_testapi->mock(send_key           => sub { return });
+    $mock_testapi->mock(hashed_string      => sub { return 'XXX' });
+    $mock_testapi->mock(is_serial_terminal => sub { return $is_serial_terminal });
+
+    $mock_testapi->mock(wait_serial => sub { return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-" });
+    @ret_arr = script_output_with_status('echo foo');
+    is_deeply(\@ret_arr, ["foo\n", 0], 'sucessfull retrieves output of script');
+
+    $mock_testapi->mock(wait_serial => sub { return "XXX\n\nSCRIPT_FINISHEDXXX-0-" });
+    @ret_arr = script_output_with_status('echo ""');
+    is_deeply(\@ret_arr, ["\n", 0], 'sucessfull retrieves empty output of script');
+
+    $mock_testapi->mock(wait_serial => sub { return "XXX\nSCRIPT_FINISHEDXXX-0-" });
+    @ret_arr = script_output_with_status('echo -n ""');
+    is_deeply(\@ret_arr, ["", 0], 'sucessfull retrieves none output of script');
+
+    $mock_testapi->mock(wait_serial => sub { return 'SCRIPT_FINISHEDXXX-0-' });
+    @ret_arr = script_output_with_status('echo foo');
+    is_deeply(\@ret_arr, [undef, 0], 'calling script_output_with_status does not fail if script returns with success');
+
+    $mock_testapi->mock(wait_serial => sub { return "This is simulated output on the serial device\nXXX\nfoo\nSCRIPT_FINISHEDXXX-0-\nand more here" });
+    @ret_arr = script_output_with_status('echo foo');
+    is_deeply(\@ret_arr, ["foo\n", 0], 'script_output_with_status return only the actual output of the script');
+
+    $mock_testapi->mock(wait_serial => sub { return "XXX\nfoo\nSCRIPT_FINISHEDXXX-1-" });
+    @ret_arr = script_output_with_status('echo foo', proceed_on_failure => 1);
+    is_deeply(\@ret_arr, ["foo\n", 1], 'proceed_on_failure=1 retrieves retrieves output of script and do not die');
+
+    $mock_testapi->mock(wait_serial => sub { return 'none' if (shift !~ m/SCRIPT_FINISHEDXXX-\\d\+-/) });
+    like(exception { script_output_with_status('timeout'); }, qr/timeout/, 'die expected with timeout');
+
+    subtest 'script_output_with_status check error codes' => sub {
+        for my $ret ((1, 10, 100, 255)) {
+            $mock_testapi->mock(wait_serial => sub { return "XXX\nfoo\nSCRIPT_FINISHEDXXX-$ret-" });
+            @ret_arr = script_output_with_status('echo foo', proceed_on_failure => 1);
+            is_deeply(\@ret_arr, ["foo\n", $ret], "script_output_with_status(proceed_on_failure=>1) failed with exitcode:$ret");
+        }
+    };
+
+    $mock_testapi->mock(wait_serial => sub {
+            my ($regex, %args) = @_;
+            is($args{quiet}, undef, 'Check default quiet argument');
+            if ($regex =~ m/SCRIPT_FINISHEDXXX-\\d\+-/) {
+                is($args{timeout}, 30, 'pass $wait value to wait_serial');
+            }
+            return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-";
+    });
+    script_output_with_status('echo foo', timeout => 30);
+
+    $mock_testapi->mock(wait_serial => sub {
+            my ($regex, %args) = @_;
+            is($args{quiet}, 1, 'Check quiet argument');
+            return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-";
+    });
+    @ret_arr = script_output_with_status('echo foo', quiet => 1);
+    is_deeply(\@ret_arr, ["foo\n", 0], 'Output with quiet => 1');
+
+    $mock_testapi->mock(wait_serial => sub { return "XXX\r\nfoo\r\nSCRIPT_FINISHEDXXX-0-" });
+    @ret_arr = script_output_with_status('echo foo');
+    is_deeply(\@ret_arr, ["foo\r\n", 0], 'Check for \r as newline');
+    $mock_testapi->mock(wait_serial => sub { return "XXX\025foo\025SCRIPT_FINISHEDXXX-0-" });
+    @ret_arr = script_output_with_status('echo foo');
+    is_deeply(\@ret_arr, ["foo\025", 0], 'Check for \025 as newline');
+    $mock_testapi->mock(wait_serial => sub { return "XXX\nfooSCRIPT_FINISHEDXXX-0-" });
+    @ret_arr = script_output_with_status('echo -n foo');
+    is_deeply(\@ret_arr, ["foo", 0], 'Check output without ending newline');
+}
+
+subtest 'script_output_with_status' => sub {
+    subtest('Test with is_serial_terminal==0', \&script_output_with_status_test, 0);
+    subtest('Test with is_serial_terminal==1', \&script_output_with_status_test, 1);
 };
 
 subtest 'validate_script_output' => sub {
@@ -614,7 +697,7 @@ subtest 'check quiet option on script runs' => sub {
     $mock_testapi->mock(wait_serial => sub {
             my ($regex, %args) = @_;
             is($args{quiet}, 1, 'Check default quiet argument');
-            return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
+            return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', 30), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 expects command output');
     is(script_run('true'),        '0',   'script_run with _QUIET_SCRIPT_CALLS=1');
@@ -624,7 +707,7 @@ subtest 'check quiet option on script runs' => sub {
     $mock_testapi->mock(wait_serial => sub {
             my ($regex, %args) = @_;
             is($args{quiet}, 0, 'Check default quiet argument');
-            return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
+            return "XXX\nfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', quiet => 0), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     is(script_run('true', quiet => 0), '0', 'script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
