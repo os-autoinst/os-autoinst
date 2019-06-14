@@ -83,7 +83,7 @@ sub read_json {
         # wait for next read
         my @res = $s->can_read;
         unless (@res) {
-            my $E = $!;    # save the error
+            my $E = $!;             # save the error
             unless ($!{EINTR}) {    # EINTR if killed
                 confess "ERROR: timeout reading JSON reply: $E\n";
             }

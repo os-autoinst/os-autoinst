@@ -60,7 +60,7 @@ is_deeply($svirt_sut_console, {
 
 subtest 'XML config for VNC and serial console' => sub {
     $svirt_console->_init_xml();
-    $svirt_console->add_vnc({port => 5901});
+    $svirt_console->add_vnc({port        => 5901});
     $svirt_console->add_pty({target_port => SERIAL_CONSOLE_DEFAULT_PORT});
     $svirt_console->add_serial_console({
             pty_dev     => SERIAL_TERMINAL_DEFAULT_DEVICE,

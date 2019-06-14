@@ -469,7 +469,7 @@ sub script_output_test {
             }
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
     });
-    is(script_output('echo foo', 30), 'foo', '');
+    is(script_output('echo foo', 30),            'foo', '');
     is(script_output('echo foo', timeout => 30), 'foo', '');
 
     $mock_testapi->mock(wait_serial => sub {
@@ -589,14 +589,14 @@ subtest 'compat_args' => sub {
     is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'], 'Y', 666, 23)}, {a => 'Y', b => 666, c => 23}, 'Check mixed parameter 3');
 
     is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => 23, b => 666)}, {a => 'Y', b => 666, c => 23}, 'Check mixed parameter 4');
-    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', undef, c => 23)}, {a => 'Y', b => $def_args{b}, c => 23},           'Check mixed parameter 5');
-    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', undef, b => 23)}, {a => 'Y', b => 23,           c => $def_args{c}}, 'Check mixed parameter 6');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', undef, c => 23)}, {a => 'Y', b => $def_args{b}, c => 23}, 'Check mixed parameter 5');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', undef, b => 23)}, {a => 'Y', b => 23, c => $def_args{c}}, 'Check mixed parameter 6');
     is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'], undef, 666, 23)}, {a => $def_args{a}, b => 666, c => 23}, 'Check mixed parameter 7');
     is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'], undef, undef, 23)}, {a => $def_args{a}, b => $def_args{b}, c => 23}, 'Check mixed parameter 8');
     is_deeply({testapi::compat_args(\%def_args, ['c', 'b', 'a'], undef, undef, 23)}, {a => 23, b => $def_args{b}, c => $def_args{c}}, 'Check mixed parameter 9');
     is_deeply({testapi::compat_args(\%def_args, ['c', 'b', 'a'], 666, undef, 23)}, {a => 23, b => $def_args{b}, c => 666}, 'Check mixed parameter 10');
 
-    is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => undef, b => 666)},   {a => 'Y', b => 666,          c => $def_args{c}}, 'Undef in parameter 1');
+    is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => undef, b => 666)}, {a => 'Y', b => 666, c => $def_args{c}}, 'Undef in parameter 1');
     is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => undef, b => undef)}, {a => 'Y', b => $def_args{b}, c => $def_args{c}}, 'Undef in parameter 2');
     is_deeply({testapi::compat_args(\%def_args, ['a'], undef, c => undef, b => undef)}, {a => $def_args{a}, b => $def_args{b}, c => $def_args{c}}, 'Undef in parameter 3');
 

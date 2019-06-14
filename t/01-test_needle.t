@@ -57,7 +57,7 @@ $res    = $img1->search($needle);
 ok(!defined $res, "no match");
 
 ($res, $cand) = $img1->search($needle);
-ok(!defined $res, "no match in array context");
+ok(!defined $res,                         "no match in array context");
 ok(defined $cand && ref $cand eq 'ARRAY', "candidates must be array");
 
 # this test is just asking too much as the screens are very different (SSIM of 87%!)
@@ -144,7 +144,7 @@ $img1   = tinycv::read($data_dir . "uefi.test.png");
 $needle = needle->new($data_dir . "uefi-margin.ref.json");
 ok($needle->{area}->[0]->{margin} == 100, "search margin have the defined value");
 $res = $img1->search($needle);
-ok(defined $res, "found match for a large margin");
+ok(defined $res,                                                   "found match for a large margin");
 ok($res->{area}->[0]->{x} == 378 && $res->{area}->[0]->{y} == 221, "mach area coordinates");
 
 # This test fails in internal SLE system

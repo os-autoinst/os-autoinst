@@ -92,9 +92,9 @@ sub _gen_node_name {
 
 sub gen_cmdline {
     my ($self) = @_;
-    my @cmdln = ();
-    my $paths = @{$self->paths} < 1 ? [OpenQA::Qemu::DrivePath->new()] : $self->paths;
-    my $pathn = scalar @$paths;
+    my @cmdln  = ();
+    my $paths  = @{$self->paths} < 1 ? [OpenQA::Qemu::DrivePath->new()] : $self->paths;
+    my $pathn  = scalar @$paths;
 
     # First create params which tell QEMU where the drive content is and what
     # format it is using
@@ -113,7 +113,7 @@ sub gen_cmdline {
         }
         # Configure bootindex only for first path
         $self->_push_ifdef(\@params, 'bootindex=', $self->bootindex) if (!$path->id || $path->id eq 'path0');
-        $self->_push_ifdef(\@params, 'serial=', $self->serial);
+        $self->_push_ifdef(\@params, 'serial=',    $self->serial);
         push(@cmdln, ('-device', join(',', @params)));
     }
 
