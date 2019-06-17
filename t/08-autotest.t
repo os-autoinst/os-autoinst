@@ -7,6 +7,7 @@ use Test::More;
 use Test::Output 'stderr_like';
 use Test::Fatal;
 use Test::MockModule;
+use Test::Warnings;
 use File::Basename ();
 
 BEGIN {
@@ -18,6 +19,7 @@ use bmwqemu;
 use OpenQA::Test::RunArgs;
 
 $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
+$bmwqemu::vars{PRJDIR} = File::Basename::dirname($0);
 # array of messages sent with the fake json_send
 my @sent;
 
@@ -98,7 +100,7 @@ subtest 'test always_rollback flag' => sub {
     my $reverts_done = 0;
     $mock_autotest->mock(load_snapshot => sub { $reverts_done++; });
 
-    autotest::run_all;
+    stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
     ($died, $completed) = get_tests_done;
     is($died,         0, 'start+next+start should not die when always_rollback flag is set');
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
@@ -109,10 +111,10 @@ subtest 'test always_rollback flag' => sub {
     # Test that no rollback is triggered if snapshots are not supported
     $mock_basetest->mock(test_flags       => sub { return {always_rollback => 1, milestone => 1}; });
     $mock_autotest->mock(query_isotovideo => sub { return 0; });
-    my $reverts_done = 0;
+    $reverts_done = 0;
     $mock_autotest->mock(load_snapshot => sub { $reverts_done++; });
 
-    autotest::run_all;
+    stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
     ($died, $completed) = get_tests_done;
     is($died,         0, 'start+next+start should not die when always_rollback flag is set');
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
@@ -125,7 +127,7 @@ subtest 'test always_rollback flag' => sub {
     $mock_autotest->mock(query_isotovideo => sub { return 1; });
     $reverts_done = 0;
 
-    autotest::run_all;
+    stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
     ($died, $completed) = get_tests_done;
     is($died,         0, 'start+next+start should not die when always_rollback flag is set');
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
@@ -135,7 +137,7 @@ subtest 'test always_rollback flag' => sub {
 
     # Test with snapshot available
     $mock_basetest->mock(test_flags => sub { return {always_rollback => 1, milestone => 1}; });
-    autotest::run_all;
+    stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
     ($died, $completed) = get_tests_done;
     is($died,         0, 'start+next+start should not die when always_rollback flag is set');
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
@@ -167,14 +169,14 @@ stderr_like(
     },
     qr@scheduling alt_name tests/run_args.pm@
 );
-autotest::run_all;
+stderr_like(sub { autotest::run_all }, qr/Snapshots are not supported/, 'run_all outputs status on stderr');
 ($died, $completed) = get_tests_done;
 is($died,      0, 'run_args test should not die if there is no run_args');
 is($completed, 0, 'run_args test should not complete if there is no run_args');
 @sent = [];
 
 eval { autotest::loadtest("tests/run_args.pm", name => 'alt_name', run_args => {foo => 'bar'}); };
-like($@, qr/The run_args must be a sub-class of OpenQA::Test::RunArgs/);
+like($@, qr/The run_args must be a sub-class of OpenQA::Test::RunArgs/, 'error message mentions RunArgs');
 
 # now let's make the tests fail...but so far none is fatal. We also
 # have to mock query_isotovideo so we think snapshots are supported.
@@ -206,7 +208,7 @@ $mock_basetest->mock(search_for_expected_serial_failures => sub {
         $self->{fatal_failure} = 1;
         die "Got serial hard failure";
 });
-autotest::run_all;
+stderr_like(sub { autotest::run_all }, qr/Snapshots are supported/, 'run_all outputs status on stderr');
 ($died, $completed) = get_tests_done;
 is($died,      0, 'fatal serial failure test should not die');
 is($completed, 0, 'fatal serial failure test should not complete');
@@ -217,7 +219,7 @@ $mock_basetest->mock(search_for_expected_serial_failures => sub {
         $self->{fatal_failure} = 0;
         die "Got serial hard failure";
 });
-autotest::run_all;
+stderr_like(sub { autotest::run_all }, qr/Snapshots are supported/, 'run_all outputs status on stderr');
 ($died, $completed) = get_tests_done;
 is($died,      0, 'non-fatal serial failure test should not die');
 is($completed, 1, 'non-fatal serial failure test should complete');
@@ -242,9 +244,9 @@ is(@{$autotest::tests{'tests-fatal'}}{@opts}, @{$autotest::tests{'tests-fatal' .
   for 1 .. 10;
 
 my $sharedir = '/home/tux/.local/lib/openqa/share';
-is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/firefox.pm"),        ('firefox', 'x11'));
-is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"), ('motif',   'x11/toolkits'));
-is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"),                ('sysrq',   'other'));
+is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/firefox.pm"),        'x11');
+is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"), 'x11/toolkits');
+is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"),                'other');
 
 done_testing();
 

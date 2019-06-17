@@ -20,6 +20,7 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Warnings;
 use bmwqemu;
 use Mojo::File 'tempfile';
 use Data::Dumper;

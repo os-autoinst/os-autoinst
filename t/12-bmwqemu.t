@@ -18,6 +18,7 @@
 use 5.018;
 use warnings;
 use Test::More;
+use Test::Warnings;
 use File::Temp 'tempdir';
 use File::Basename;
 use File::Path 'make_path';

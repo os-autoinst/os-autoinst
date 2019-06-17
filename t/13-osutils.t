@@ -18,6 +18,7 @@
 use 5.018;
 use warnings;
 use Test::More;
+use Test::Warnings;
 
 BEGIN {
     unshift @INC, '..';

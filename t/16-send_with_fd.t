@@ -5,6 +5,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Warnings;
 use Socket;
 # This is the library we want to avoid, but it is OK just for testing
 use Socket::MsgHdr;

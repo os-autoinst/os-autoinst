@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use autodie ':all';
 use Test::More;
+use Test::Warnings;
 use File::Basename;
 use File::Path 'remove_tree';
 use Cwd 'abs_path';
