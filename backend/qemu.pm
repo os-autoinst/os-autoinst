@@ -689,7 +689,7 @@ sub start_qemu {
         $vars->{HDDMODEL} ||= "scsi-hd";
         $vars->{PATHCNT}  ||= 2;
     }
-    $vars->{NUMDISKS}  ||= defined($vars->{RAIDLEVEL}) ? 4 : 1;
+    $vars->{NUMDISKS} //= defined($vars->{RAIDLEVEL}) ? 4 : 1;
     $vars->{HDDSIZEGB} ||= 10;
     $vars->{CDMODEL}   ||= "scsi-cd";
     $vars->{HDDMODEL}  ||= "virtio-blk";
