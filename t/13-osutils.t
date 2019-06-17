@@ -19,6 +19,8 @@ use 5.018;
 use warnings;
 use Test::More;
 use Test::MockModule;
+use Test::Warnings ':all';
+use Test::Output;
 
 BEGIN {
     unshift @INC, '..';
@@ -164,7 +166,7 @@ subtest runcmd => sub {
     is runcmd(@cmd), 0, "qemu-image creation and get its return code";
     is runcmd('rm', 'image.qcow2'), 0, "delete image and get its return code";
     local $@;
-    eval { runcmd('ls', 'image.qcow2') };
+    stderr_like(sub { eval { runcmd('ls', 'image.qcow2') } }, qr/No such file or directory/, 'no image found as expected');
     like $@, qr/runcmd failed with exit code \d+/, "command failed and calls die";
 };
 
