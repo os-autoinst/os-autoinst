@@ -18,6 +18,7 @@
 use 5.018;
 use warnings;
 use Test::More;
+use Test::MockModule;
 
 BEGIN {
     unshift @INC, '..';
@@ -169,6 +170,9 @@ subtest runcmd => sub {
 
 subtest attempt => sub {
     use osutils 'attempt';
+    my $module = Test::MockModule->new('osutils');
+    # just save ourselves some time during testing
+    $module->mock(wait_attempt => sub { sleep 0; });
 
     my $var = 0;
     attempt(5, sub { $var == 5 }, sub { $var++ });

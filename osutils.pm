@@ -123,13 +123,17 @@ sub runcmd {
 
 ## use critic
 
+sub wait_attempt {
+    sleep 1;
+}
+
 sub attempt {
     my $attempts = 0;
     my ($total_attempts, $condition, $cb, $or) = ref $_[0] eq 'HASH' ? (@{$_[0]}{qw(attempts condition cb or)}) : @_;
     until ($condition->() || $attempts >= $total_attempts) {
         warn "Attempt $attempts";
         $cb->();
-        sleep 1;
+        wait_attempt;
         $attempts++;
     }
     $or->() if $or && !$condition->();
