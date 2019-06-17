@@ -156,7 +156,7 @@ subtest record_screenmatch => sub {
     my $image    = bless({} => __PACKAGE__);
     my %match    = (
         area => [
-            {x => 1, y => 2, w => 3, h => 4, result => 'ok'},
+            {x => 1, y => 2, w => 3, h => 4, similarity => 0, result => 'ok'},
         ],
         error  => 0.128,
         needle => {
@@ -169,7 +169,7 @@ subtest record_screenmatch => sub {
         {
             error => 1,
             area  => [
-                {x => 4, y => 3, w => 2, h => 1, result => 'fail'},
+                {x => 4, y => 3, w => 2, h => 1, similarity => 0, result => 'fail'},
             ],
             needle => {
                 name => 'failure',
