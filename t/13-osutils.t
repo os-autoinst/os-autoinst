@@ -18,6 +18,9 @@
 use 5.018;
 use warnings;
 use Test::More;
+use Test::MockModule;
+use Test::Warnings ':all';
+use Test::Output;
 
 BEGIN {
     unshift @INC, '..';
@@ -163,12 +166,15 @@ subtest runcmd => sub {
     is runcmd(@cmd), 0, "qemu-image creation and get its return code";
     is runcmd('rm', 'image.qcow2'), 0, "delete image and get its return code";
     local $@;
-    eval { runcmd('ls', 'image.qcow2') };
+    stderr_like(sub { eval { runcmd('ls', 'image.qcow2') } }, qr/No such file or directory/, 'no image found as expected');
     like $@, qr/runcmd failed with exit code \d+/, "command failed and calls die";
 };
 
 subtest attempt => sub {
     use osutils 'attempt';
+    my $module = Test::MockModule->new('osutils');
+    # just save ourselves some time during testing
+    $module->mock(wait_attempt => sub { sleep 0; });
 
     my $var = 0;
     attempt(5, sub { $var == 5 }, sub { $var++ });
