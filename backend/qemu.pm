@@ -637,10 +637,6 @@ sub start_qemu {
         sp('g', '1024x768');
         $use_usb_kbd = 1;
     }
-    else {
-        $vars->{QEMUVGA} ||= "cirrus";
-    }
-
     sp('vga', $vars->{QEMUVGA}) if $vars->{QEMUVGA};
 
     my @nicmac;
