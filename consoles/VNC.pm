@@ -759,7 +759,7 @@ sub map_and_send_key {
     }
     usleep(2_000);
     if (!defined $down_flag || $down_flag == 0) {
-        for my $key (@events) {
+        for my $key (reverse @events) {
             $self->send_key_event_up($key);
         }
     }
