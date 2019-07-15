@@ -24,25 +24,15 @@ License:        GPL-2.0-or-later
 Group:          Development/Tools/Other
 Url:            https://github.com/os-autoinst/os-autoinst
 Source0:        %{name}-%{version}.tar.xz
-BuildRequires:  autoconf
-BuildRequires:  automake
-BuildRequires:  gcc-c++
-BuildRequires:  libtool
-BuildRequires:  opencv-devel > 3.0
-BuildRequires:  pkg-config
-BuildRequires:  perl(Module::CPANfile)
-BuildRequires:  perl(Perl::Tidy)
-BuildRequires:  perl(Test::Compile)
-BuildRequires:  pkgconfig(fftw3)
-BuildRequires:  pkgconfig(libpng)
-BuildRequires:  pkgconfig(sndfile)
-BuildRequires:  pkgconfig(theoraenc)
+%define         build_requires autoconf automake gcc-c++ libtool opencv-devel > 3.0, pkg-config perl(Module::CPANfile) perl(Perl::Tidy) perl(Test::Compile) pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc) make
+BuildRequires:  %build_requires
 # just for the test suite
 BuildRequires:  qemu-tools
 Requires:       /usr/bin/qemu-img
 Requires:       git-core
 Requires:       optipng
 %{perl_requires}
+Requires:       perl-base
 Requires:       qemu >= 2.0.0
 Recommends:       tesseract-ocr
 %define t_requires perl(Carp::Always) perl(Data::Dump) perl(Crypt::DES) perl(JSON) perl(autodie) perl(Class::Accessor::Fast) perl(Exception::Class) perl(File::Touch) perl(File::Which) perl(IPC::Run::Debug) perl(Net::DBus) perl(Net::SNMP) perl(Net::IP) perl(IPC::System::Simple) perl(Net::SSH2) perl(XML::LibXML) perl(XML::SemanticDiff) perl(Test::Exception) perl(Test::Output) perl(Test::Fatal) perl(Test::Warnings) perl(Pod::Coverage) perl(Test::Pod) perl(Test::MockModule) perl(Devel::Cover) perl(JSON::XS) perl(List::MoreUtils) perl(Mojo::IOLoop::ReadWriteProcess) perl(Test::Mock::Time) perl(Socket::MsgHdr) perl(Cpanel::JSON::XS) perl(IO::Scalar)
@@ -55,6 +45,7 @@ Requires:       perl(Mojo::IOLoop::ReadWriteProcess) >= 0.23
 # and the JSON modules have subtle differences and we only test against XS in production
 Requires:       perl(JSON::XS)
 Recommends:     /usr/bin/xkbcomp /usr/bin/Xvnc dumponlyconsole
+%define         devel_requires %build_requires %t_requires
 Requires(pre):  %{_bindir}/getent
 Requires(pre):  %{_sbindir}/useradd
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -67,6 +58,14 @@ and upgrade, which can not easily and safely be tested with other
 automated testing frameworks. However, it can just as well be used
 to test firefox and openoffice operation on top of a newly
 installed OS.
+
+%package devel
+Summary:        Development package pulling in all build+test dependencies
+Group:          Development/Tools/Other
+Requires:       %devel_requires
+
+%description devel
+Development package pulling in all build+test dependencies.
 
 %package openvswitch
 Summary:        Openvswitch support for os-autoinst
@@ -169,5 +168,7 @@ make check VERBOSE=1
 /usr/lib/systemd/system/os-autoinst-openvswitch.service
 %config /etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf
 %{_sbindir}/rcos-autoinst-openvswitch
+
+%files devel
 
 %changelog
