@@ -22,7 +22,7 @@ use base 'consoles::console';
 
 use testapi 'get_var';
 use backend::svirt qw(SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE);
-use consoles::serial_screen;
+use consoles::ssh_screen;
 
 sub new {
     my ($class, $testapi_console, $args) = @_;
@@ -64,9 +64,12 @@ sub activate {
     my ($self) = @_;
 
     my $backend = $self->{backend};
+    bmwqemu::diag(sprintf("Activate console on libvirt_domain:%s devname:%s port:%s",
+            $self->{libvirt_domain}, $self->{pty_dev}, $self->{serial_port_no}));
     my ($ssh, $chan) = $backend->open_serial_console_via_ssh($self->{libvirt_domain},
         devname => $self->{pty_dev}, port => $self->{serial_port_no}, is_terminal => 1);
-    $self->{screen} = consoles::serial_screen->new($chan, $ssh->sock);
+    $ssh->blocking(0);
+    $self->{screen} = consoles::ssh_screen->new(ssh_connection => $ssh, ssh_channel => $chan);
     return;
 }
 
