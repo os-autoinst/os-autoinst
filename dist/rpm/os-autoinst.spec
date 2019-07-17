@@ -24,7 +24,7 @@ License:        GPL-2.0-or-later
 Group:          Development/Tools/Other
 Url:            https://github.com/os-autoinst/os-autoinst
 Source0:        %{name}-%{version}.tar.xz
-%define         build_requires autoconf automake gcc-c++ libtool opencv-devel > 3.0, pkg-config perl(Module::CPANfile) perl(Perl::Tidy) perl(Test::Compile) pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc) make
+%define         build_requires autoconf automake gcc-c++ libtool pkgconfig(opencv) pkg-config perl(Module::CPANfile) perl(Perl::Tidy) perl(Test::Compile) pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc) make
 BuildRequires:  %build_requires
 # just for the test suite
 BuildRequires:  qemu-tools
