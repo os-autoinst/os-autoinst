@@ -24,6 +24,8 @@ License:        GPL-2.0-or-later
 Group:          Development/Tools/Other
 Url:            https://github.com/os-autoinst/os-autoinst
 Source0:        %{name}-%{version}.tar.xz
+# Force OBS to resolve choices on opencv-devel
+#!BuildIgnore: opencv3-devel
 %define         build_requires autoconf automake gcc-c++ libtool pkgconfig(opencv) pkg-config perl(Module::CPANfile) perl(Perl::Tidy) perl(Test::Compile) pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc) make
 BuildRequires:  %build_requires
 # just for the test suite
