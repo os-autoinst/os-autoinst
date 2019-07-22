@@ -26,10 +26,9 @@ use Carp 'croak';
 our $VERSION;
 
 sub new {
-    my ($class, $socket_fd, $select_fd) = @_;
+    my ($class, $socket_fd) = @_;
     my $self = bless {class => $class}, $class;
     $self->{socket_fd}    = $socket_fd;
-    $self->{select_fd}    = $select_fd;
     $self->{carry_buffer} = '';
     return $self;
 }
@@ -152,6 +151,45 @@ sub normalise_pattern {
     return $pattern;
 }
 
+=head2 do_read
+
+  my $num_read = do_read($buffer [, max_size => 2048][,timeout => undef]);
+
+Attempts to read up to max_size bytes from the C<<$self->{socket_fd}>> into buffer.
+The method returns as soon as some data is available, even if the given size has not been reached.
+Returns number of bytes read or undef on timeout. Note that 0 is a valid return code.
+If an failure occur the method croak.
+
+A undefined timeout will wait infinitive. A timeout of 0 just try to read once.
+=cut
+sub do_read
+{
+    my ($self, undef, %args) = @_;
+    my $buffer = '';
+    $args{timeout}  //= undef;    # wait till data is available
+    $args{max_size} //= 2048;
+    my $fd = $self->{socket_fd};
+
+    my $rin = '';
+    vec($rin, fileno($fd), 1) = 1;
+    my $nfound = select(my $rout = $rin, undef, my $eout = $rin, $args{timeout});
+    if ($nfound < 0) {
+        croak "Failed to select socket for reading: $ERRNO";
+    } elsif ($nfound == 0) {
+        return undef;
+    }
+
+    my $read;
+    while (!defined($read)) {
+        $read = sysread($fd, $buffer, $args{max_size});
+        if (!defined($read) && !($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK})) {
+            croak "Failed to read from virtio/svirt serial console char device: $ERRNO";
+        }
+    }
+    $_[1] = $buffer;
+    return $read;
+}
+
 =head2 read_until
 
   read_until($self, $pattern, $timeout, [
@@ -186,7 +224,6 @@ and { matched => 0, string => 'text from the terminal' } on failure.
 sub read_until {
     my ($self, $pattern, $timeout) = @_[0 .. 2];
     my $fd       = $self->{socket_fd};
-    my $sel_fd   = $self->{select_fd} || $fd;
     my %nargs    = @_[3 .. $#_];
     my $buflen   = $nargs{buffer_size} || 4096;
     my $overflow = $nargs{record_output} ? '' : undef;
@@ -200,9 +237,6 @@ sub read_until {
     $nargs{pattern} = $re;
     $nargs{timeout} = $timeout;
     bmwqemu::log_call(%nargs);
-
-    my $rin = '';
-    vec($rin, fileno($sel_fd), 1) = 1;
 
   READ: while (1) {
         $loops++;
@@ -232,18 +266,8 @@ sub read_until {
             return {matched => 0, string => ($overflow || '') . $rbuf};
         }
 
-        my $nfound = select(my $rout = $rin, undef, my $eout = $rin, remaining($sttime, $timeout));
-        if ($nfound < 0) {
-            croak "Failed to select socket for reading: $ERRNO";
-        }
-
-        my $read = sysread($fd, $buf, $buflen / 2);
-        unless (defined $read) {
-            if ($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK}) {
-                next READ;
-            }
-            croak "Failed to read from virtio/svirt serial console char device: $ERRNO";
-        }
+        my $read = $self->do_read($buf, max_size => $buflen / 2, timeout => remaining($sttime, $timeout));
+        next READ unless (defined($read));
 
         # If there is not enough free space in the ring buffer; remove an amount
         # equal to the bytes just read minus the free space in $rbuf from the
