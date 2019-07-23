@@ -32,6 +32,7 @@ consolesexec_DATA = \
 	consoles/localXvnc.pm \
 	consoles/remoteVnc.pm \
 	consoles/s3270.pm \
+	consoles/serial_screen.pm \
 	consoles/sshX3270.pm \
 	consoles/sshVirtsh.pm \
 	consoles/sshVirtshSUT.pm \
