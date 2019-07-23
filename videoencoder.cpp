@@ -344,7 +344,7 @@ int main(int argc, char* argv[])
             repeat = 0;
 
             if (output_video || need_last_png()) {
-                last_frame_image = imdecode(buf, CV_LOAD_IMAGE_COLOR, &last_frame_image);
+                last_frame_image = imdecode(buf, cv::IMREAD_COLOR, &last_frame_image);
 
                 if (!last_frame_image.data) {
                     cout << "Could not open or find the image" << endl;
