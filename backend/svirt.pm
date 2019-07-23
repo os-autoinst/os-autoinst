@@ -21,9 +21,7 @@ use warnings;
 
 use base 'backend::virt';
 
-use File::Basename;
 use IO::Scalar;
-use IO::Select;
 use testapi qw(get_var get_required_var check_var);
 
 use constant SERIAL_CONSOLE_DEFAULT_PORT   => 0;

@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2016 SUSE LLC
+# Copyright © 2012-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,16 +22,13 @@ use warnings;
 use feature 'say';
 use autodie ':all';
 
-use Carp qw(cluck carp confess);
+use Carp qw(carp confess);
 use Mojo::JSON;    # booleans
 use Cpanel::JSON::XS ();
-use File::Copy 'cp';
-use File::Basename;
-use Time::HiRes qw(gettimeofday time tv_interval);
+use Time::HiRes qw(gettimeofday time);
 use POSIX qw(_exit :sys_wait_h);
 use bmwqemu;
 use IO::Select;
-require IPC::System::Simple;
 use myjsonrpc;
 use Net::SSH2;
 use OpenQA::Benchmark::Stopwatch;
