@@ -19,7 +19,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from Tkinter import Tk, Canvas, NW
+try:
+    # Python 2
+    from Tkinter import Tk, Canvas, NW
+except ImportError:
+    # Python 3
+    from tkinter import Tk, Canvas, NW
 from PIL import Image, ImageTk
 import json
 import optparse
