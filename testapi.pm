@@ -1342,7 +1342,12 @@ sub type_string {
         push @pieces, $string;
     }
     for my $piece (@pieces) {
-        wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); };
+        if ($wait) {
+            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); };
+        }
+        else {
+            query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval});
+        }
         if ($wait_still && !wait_still_screen(stilltime => $wait_still,
                 timeout => $wait_timeout, similarity_level => $wait_sim_level)) {
             die "wait_still_screen timed out after ${wait_timeout}s!";
