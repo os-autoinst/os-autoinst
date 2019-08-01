@@ -33,6 +33,7 @@ parameters which are represented as complex objects.
 package OpenQA::Qemu::Proc;
 use Mojo::Base -base;
 
+use Data::Dumper;
 use File::Basename;
 use File::Which;
 use Mojo::JSON qw(encode_json decode_json);
