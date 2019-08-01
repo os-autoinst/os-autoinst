@@ -1992,7 +1992,7 @@ sub autoinst_url {
     my ($path, $query) = @_;
     $path  //= '';
     $query //= {};
-    my $hostname = host_ip();
+    my $hostname = get_var('AUTOINST_URL_HOSTNAME', host_ip());
     # QEMUPORT is historical for the base port of the worker instance
     my $workerport = get_var("QEMUPORT") + 1;
 

@@ -633,6 +633,16 @@ subtest 'check quiet option on script runs' => sub {
     delete $bmwqemu::vars{_QUIET_SCRIPT_CALLS};
 };
 
+subtest 'autoinst_url' => sub {
+    $bmwqemu::vars{QEMUPORT}        = 0;
+    $bmwqemu::vars{JOBTOKEN}        = '';
+    $bmwqemu::vars{WORKER_HOSTNAME} = 'my_worker_host';
+    is(autoinst_url('foo'), 'http://my_worker_host:1/foo', 'autoinst_url returns reasonable URL based on WORKER_HOSTNAME');
+    $bmwqemu::vars{BACKEND} = 'qemu';
+    is(autoinst_url('foo'), 'http://10.0.2.2:1/foo', 'autoinst_url returns static IP for qemu');
+    $bmwqemu::vars{AUTOINST_URL_HOSTNAME} = 'localhost';
+    is(autoinst_url('foo'), 'http://localhost:1/foo', 'we can configure the hostname that autoinst_url returns');
+};
 
 done_testing;
 
