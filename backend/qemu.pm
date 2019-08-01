@@ -219,7 +219,7 @@ sub _wait_while_status_is {
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
     my $i   = 0;
-    while ($rsp->{return}->{status} =~ $status) {
+    while (($rsp->{return}->{status} // '') =~ $status) {
         $i += 1;
         if ($i > $timeout) {
             die $fail_msg . "; QEMU status is " . $rsp->{return}->{status};
