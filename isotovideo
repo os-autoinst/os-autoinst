@@ -70,6 +70,7 @@ use autotest;
 use commands;
 use distribution;
 use testapi 'diag';
+use File::Basename;
 use Getopt::Long;
 require IPC::System::Simple;
 use POSIX qw(:sys_wait_h _exit);
@@ -102,8 +103,10 @@ sub usage {
 }
 
 sub _get_version_string {
-    my $thisversion = qx{git rev-parse HEAD};
+    my $dirname     = dirname(__FILE__);
+    my $thisversion = qx{git -C $dirname rev-parse HEAD};
     chomp $thisversion;
+    die 'Could not parse version' unless $thisversion;
     return "Current version is $thisversion [interface v$OpenQA::Isotovideo::Interface::version]";
 }
 
