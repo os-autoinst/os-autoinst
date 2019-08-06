@@ -498,6 +498,12 @@ sub do_extract_assets {
 
 # baseclass virt method overwrite end
 
+sub find_ovmf {
+    foreach my $firmware (@bmwqemu::ovmf_locations) {
+        return $firmware if -e $firmware;
+    }
+}
+
 sub start_qemu {
     my $self = shift;
     my $vars = \%bmwqemu::vars;
@@ -540,22 +546,17 @@ sub start_qemu {
     $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});    # XXX: compat with old deployment
     $vars->{UEFI} = 1 if $vars->{UEFI_PFLASH};
 
-    if ($vars->{UEFI_PFLASH} && $vars->{ARCH} eq 'x86_64' && !$vars->{BIOS}) {
-        foreach my $firmware (@bmwqemu::ovmf_locations) {
-            if (-e $firmware) {
-                $vars->{BIOS} = $firmware;
-                last;
-            }
-        }
-        if (!$vars->{BIOS}) {
-            # We know this won't go well.
-            die "No UEFI firmware can be found! Please specify BIOS or UEFI_BIOS or install an appropriate package";
-        }
-    }
 
+    if ($vars->{UEFI_PFLASH} && (($vars->{ARCH} // '') eq 'x86_64')) {
+        $vars->{BIOS} //= find_ovmf =~ s/-code//r;
+    }
+    elsif ($vars->{UEFI} && (($vars->{ARCH} // '') eq 'x86_64')) {
+        $vars->{UEFI_PFLASH_CODE} //= find_ovmf;
+        $vars->{UEFI_PFLASH_VARS} //= $vars->{UEFI_PFLASH_CODE} =~ s/code/vars/r;
+        die "No UEFI firmware can be found! Please specify UEFI_PFLASH_CODE/UEFI_PFLASH_VARS or BIOS or UEFI_BIOS or install an appropriate package" unless $vars->{UEFI_PFLASH_CODE};
+    }
     if ($vars->{UEFI_PFLASH} || $vars->{BIOS}) {
-        bmwqemu::fctinfo('UEFI_PFLASH and BIOS are deprecated, use UEFI_PFLASH_CODE and UEFI_PFLASH_VARS');
-        $vars->{UEFI_PFLASH} = undef if $vars->{UEFI_PFLASH_CODE};
+        bmwqemu::fctinfo('UEFI_PFLASH and BIOS are deprecated. It is recommended to use UEFI_PFLASH_CODE and UEFI_PFLASH_VARS instead. These variables can be auto-discovered, try to just remove UEFI_PFLASH.');
     }
 
     foreach my $attribute (qw(BIOS KERNEL INITRD)) {
@@ -801,7 +802,7 @@ sub start_qemu {
             }
         }
 
-        if (!$vars->{UEFI_PFLASH} && $vars->{BIOS}) {
+        if (!$vars->{UEFI} && $vars->{BIOS}) {
             sp("bios", $vars->{BIOS});
         }
 
