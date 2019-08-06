@@ -107,6 +107,7 @@ sub _run {
     $p->wait_stop;
     close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
 
+    chomp($out) if $out;
     return $p->exit_status, $out;
 }
 
