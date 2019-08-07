@@ -11,9 +11,9 @@ WriteMakefile(
   VERSION_FROM => 'tinycv.pm',
   LIBS => [$opencv_libs],
   DEFINE => '-Wall',
-  INC => `pkg-config --cflags opencv`,
-  CC => 'g++',
-  LD => 'g++',
+  INC => `pkg-config --cflags opencv4 || pkg-config --cflags opencv`,
+  CC => $ENV{CXX} // 'g++',
+  LD => $ENV{CXX} // 'g++',
   XSOPT => '-C++',
   OBJECT => '$(O_FILES)',
 );

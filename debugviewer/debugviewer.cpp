@@ -18,7 +18,7 @@ int main(int argc, char** argv)
 
     Mat image(768, 1024, CV_8UC3, Scalar(0, 0, 0));
     while (1) {
-        Mat last = imread(argv[1], CV_LOAD_IMAGE_COLOR); // Read the file
+        Mat last = imread(argv[1], cv::IMREAD_COLOR); // Read the file
         if (last.data)
             image = last;
 

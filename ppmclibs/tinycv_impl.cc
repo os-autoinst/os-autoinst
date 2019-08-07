@@ -53,7 +53,7 @@ struct Image {
         // Union of earlier requests and current
         _prep_roi |= roi;
 
-        cvtColor(img, _preped, CV_BGR2GRAY);
+        cvtColor(img, _preped, cv::COLOR_BGR2GRAY);
 
         if (img.total() * 0.5 <= _prep_roi.area())
             _prep_roi = Rect(Point(0, 0), img.size());
@@ -228,7 +228,7 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
     // http://docs.opencv.org/trunk/doc/tutorials/imgproc/histograms/template_matching/template_matching.html
     // http://docs.opencv.org/modules/imgproc/doc/object_detection.html
     // Used metric is (sum of) squared differences
-    matchTemplate(scene_roi, object_roi, result, CV_TM_SQDIFF);
+    matchTemplate(scene_roi, object_roi, result, cv::TM_SQDIFF);
 
     // Use error at original location as upper bound
     Point center = Point(x - scene_x, y - scene_y);
@@ -322,7 +322,7 @@ Image* image_new(long width, long height)
 Image* image_read(const char* filename)
 {
     Image* image = new Image;
-    image->img = imread(filename, CV_LOAD_IMAGE_COLOR);
+    image->img = imread(filename, cv::IMREAD_COLOR);
     if (!image->img.data) {
         std::cerr << "Could not open image " << filename << std::endl;
         delete image;
@@ -335,7 +335,7 @@ Image* image_from_ppm(const unsigned char* data, size_t len)
 {
     std::vector<uchar> buf(data, data + len);
     Image* image = new Image;
-    image->img = imdecode(buf, CV_LOAD_IMAGE_COLOR);
+    image->img = imdecode(buf, cv::IMREAD_COLOR);
     return image;
 }
 
@@ -375,7 +375,7 @@ void image_replacerect(Image* s, long x, long y, long width, long height)
         return;
     }
 
-    rectangle(s->img, Rect(x, y, width, height), CV_RGB(0, 255, 0), CV_FILLED);
+    rectangle(s->img, Rect(x, y, width, height), CV_RGB(0, 255, 0), cv::FILLED);
 }
 
 /* copies the given range into a new image */
