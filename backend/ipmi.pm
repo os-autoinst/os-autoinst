@@ -20,7 +20,7 @@ use strict;
 use warnings;
 use autodie ':all';
 
-use base 'backend::ssh';
+use base 'backend::baseclass';
 
 require File::Temp;
 use File::Temp ();
@@ -135,6 +135,15 @@ sub is_shutdown {
     my ($self) = @_;
     my $ret = $self->ipmitool('chassis power status');
     return $ret =~ m/is off/;
+}
+
+sub check_socket {
+    my ($self, $fh, $write) = @_;
+
+    if ($self->check_ssh_serial($fh)) {
+        return 1;
+    }
+    return $self->SUPER::check_socket($fh, $write);
 }
 
 sub get_mc_status {
