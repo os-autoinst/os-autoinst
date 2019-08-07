@@ -19,7 +19,7 @@ package backend::svirt;
 use strict;
 use warnings;
 
-use base qw(backend::virt backend::ssh);
+use base 'backend::virt';
 
 use File::Basename;
 use IO::Scalar;
@@ -390,6 +390,15 @@ sub serial_terminal_log_file {
     my ($self) = @_;
     return "/tmp/" . SERIAL_TERMINAL_LOG_PATH . '.'
       . get_required_var('JOBTOKEN');
+}
+
+sub check_socket {
+    my ($self, $fh, $write) = @_;
+
+    if ($self->check_ssh_serial($fh)) {
+        return 1;
+    }
+    return $self->SUPER::check_socket($fh, $write);
 }
 
 sub stop_serial_grab {

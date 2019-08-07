@@ -22,7 +22,6 @@ backendexec_DATA = \
 	backend/svirt.pm \
 	backend/pvm.pm \
 	backend/spvm.pm \
-	backend/ssh.pm \
 	backend/virt.pm
 
 consolesexecdir = $(pkglibexecdir)/consoles
