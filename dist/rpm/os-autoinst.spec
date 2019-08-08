@@ -82,6 +82,8 @@ This package contains openvswitch support for os-autoinst.
 %prep
 %setup -q
 sed -e 's,/bin/env python,/bin/python,' -i crop.py
+# Replace version number from git to what's reported by the package
+sed  -i 's/ my $thisversion = qx{git.*rev-parse HEAD}.*;/ my $thisversion = "%{version}";/' isotovideo
 
 %build
 mkdir -p m4
@@ -91,8 +93,6 @@ make INSTALLDIRS=vendor %{?_smp_mflags}
 
 %install
 %make_install INSTALLDIRS=vendor
-# Replace version number from git to what's reported by the package
-sed  -i 's/ my $thisversion = qx{git.*rev-parse HEAD}.*;/ my $thisversion = "%{version}";/' %{buildroot}/usr/bin/isotovideo
 # only internal stuff
 rm %{buildroot}/usr/lib/os-autoinst/tools/{tidy,check_coverage,absolutize}
 rm -r %{buildroot}/usr/lib/os-autoinst/tools/lib/perlcritic
