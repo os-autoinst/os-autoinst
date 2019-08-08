@@ -1,0 +1,19 @@
+{
+    "area": [
+        {
+            "height": 100,
+            "match": 80,
+            "type": "match",
+            "width": 200,
+            "xpos": 10,
+            "ypos": 10
+        }
+    ],
+    "tags": ["check-workaround-hash"],
+    "properties": [
+        {
+            "name": "workaround",
+            "value": "bsc#7654321: this is a test about workaround."
+        }
+    ]
+}

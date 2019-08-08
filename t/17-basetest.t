@@ -5,6 +5,7 @@ use warnings;
 use Test::MockModule;
 use Test::More;
 use Test::Fatal;
+use File::Basename;
 
 BEGIN {
     unshift @INC, '..';
@@ -220,6 +221,63 @@ subtest record_screenmatch => sub {
             }
     ], 'screenmatch detail recorded as expected')
       or diag explain $basetest->{details};
+
+    # check a needle has workaround property
+    my $basetest_for_workaround = basetest->new();
+    my $misc_needle_dir         = dirname(__FILE__) . '/misc_needles/';
+    my $needle_file             = $misc_needle_dir . "check-workaround-hash-20190522.json";
+    my %workaround_match        = (
+        area => [
+            {x => 1, y => 2, w => 3, h => 4, result => 'ok'},
+        ],
+        error  => 0.25,
+        needle => {
+            name       => 'check-workaround-hash-20190522',
+            file       => $needle_file,
+            properties => [
+                {
+                    name  => 'workaround',
+                    value => 'bsc#7654321: this is a test about workaround.',
+                }
+            ],
+        },
+    );
+
+    $basetest_for_workaround->record_screenmatch($image, \%workaround_match, ['check-workaround-hash'], [], $frame);
+    is_deeply($basetest_for_workaround->{details}, [
+            {
+                result => 'softfail',
+                title  => 'Soft Failed',
+                text   => 'basetest-3.txt'
+            },
+            {
+                area => [
+                    {
+                        x          => 1,
+                        y          => 2,
+                        w          => 3,
+                        h          => 4,
+                        similarity => 0,
+                        result     => 'ok',
+                    },
+                ],
+                error      => 0.25,
+                frametime  => [qw(1.00 1.04)],
+                needle     => 'check-workaround-hash-20190522',
+                json       => $needle_file,
+                properties => [
+                    {
+                        name  => 'workaround',
+                        value => 'bsc#7654321: this is a test about workaround.',
+                    }
+                ],
+                screenshot => 'basetest-1.png',
+                tags       => [qw(check-workaround-hash)],
+                result     => 'softfail',
+                dent       => 1,
+            }
+    ], 'screenmatch detail with workaround property recorded as expected')
+      or diag explain $basetest_for_workaround->{details};
 };
 
 subtest 'register_extra_test_results' => sub {

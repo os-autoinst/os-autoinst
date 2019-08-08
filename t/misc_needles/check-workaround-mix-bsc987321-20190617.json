@@ -1,0 +1,27 @@
+{
+    "area": [
+        {
+            "height": 100,
+            "match": 80,
+            "type": "match",
+            "width": 200,
+            "xpos": 10,
+            "ypos": 10
+        }
+    ],
+    "tags": ["check-workaround"],
+    "properties": [
+        "glossy",
+        {
+            "name": "test",
+            "value": "this is a test"
+        },
+        "workaround",
+        "test2",
+        "test3",
+        {
+            "name": "test4",
+            "value": "this is a test for mix properties"
+        }
+    ]
+}

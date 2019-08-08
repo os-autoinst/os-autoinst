@@ -181,7 +181,6 @@ sub record_soft_failure {
     bmwqemu::log_call(reason => $reason);
 
     $autotest::current_test->record_soft_failure_result($reason);
-    $autotest::current_test->{dents}++;
 }
 
 sub _is_valid_result {
@@ -235,7 +234,6 @@ sub force_soft_failure {
     bmwqemu::log_call(reason => $reason);
 
     $autotest::current_test->record_soft_failure_result($reason, force_status => 1);
-    $autotest::current_test->{dents}++;
 }
 
 sub _handle_found_needle {
