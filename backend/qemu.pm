@@ -625,8 +625,9 @@ sub start_qemu {
     # misc
     my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
     my $use_usb_kbd;
+    my $arch = $vars->{ARCH} // '';
 
-    if ($vars->{ARCH} eq 'aarch64' || $vars->{ARCH} eq 'arm') {
+    if ($arch eq 'aarch64' || $arch eq 'arm') {
         my $video_device = ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) ? 'VGA' : 'virtio-gpu-pci';
         sp('device', $video_device);
         $arch_supports_boot_order = 0;
@@ -739,8 +740,8 @@ sub start_qemu {
     sp('serial',  'chardev:serial0');
     sp('soundhw', 'ac97');
     {
-        # Remove floppy drive device on archictures
-        unless ($vars->{ARCH} eq 'aarch64' || $vars->{ARCH} eq 'arm' || $vars->{QEMU_NO_FDC_SET}) {
+        # Remove floppy drive device on architectures
+        unless ($arch eq 'aarch64' || $arch eq 'arm' || $vars->{QEMU_NO_FDC_SET}) {
             sp('global', 'isa-fdc.driveA=');
         }
 
@@ -811,7 +812,7 @@ sub start_qemu {
         }
 
         unless ($vars->{QEMU_NO_TABLET}) {
-            if ($vars->{OFW} || $vars->{ARCH} eq 'aarch64') {
+            if ($vars->{OFW} || $arch eq 'aarch64') {
                 sp('device', 'nec-usb-xhci');
             }
             else {
