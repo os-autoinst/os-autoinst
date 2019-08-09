@@ -117,8 +117,9 @@ sed '/tidy/d' -i Makefile
 rm tools/lib/perlcritic/Perl/Critic/Policy/*.pm
 
 # don't require qemu within OBS
-cp t/05-pod.t t/18-qemu-options.t
-cp t/05-pod.t t/99-full-stack.t
+for i in 18-qemu-options 18-backend-qemu 99-full-stack; do
+    cp t/05-pod.t t/${i}.t
+done
 
 # should work offline
 for p in $(cpanfile-dump); do rpm -q --whatprovides "perl($p)"; done
