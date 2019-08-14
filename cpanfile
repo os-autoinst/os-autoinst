@@ -1,3 +1,4 @@
+requires 'B::Deparse';
 requires 'Carp';
 requires 'Carp::Always';
 requires 'Class::Accessor::Fast';
