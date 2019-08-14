@@ -21,7 +21,6 @@ use autodie;
 
 use base 'consoles::console';
 
-use Mojo::File 'path';
 use Socket qw(SOCK_NONBLOCK PF_UNIX SOCK_STREAM sockaddr_un);
 use Errno qw(EAGAIN EWOULDBLOCK);
 use English -no_match_vars;
@@ -29,8 +28,7 @@ use Carp 'croak';
 use Scalar::Util 'blessed';
 use Cwd;
 use consoles::serial_screen ();
-use testapi qw(check_var get_var);
-use Fcntl;
+use testapi 'check_var';
 
 our $VERSION;
 
@@ -50,8 +48,8 @@ where it can start a tty on the virtual console. By default openSUSE and SLE
 automatically start agetty when the kernel finds the virtio console device, but
 another OS may require some additional configuration.
 
-It may also be possible to use a transport other than virtio. This code
-uses two pipes to communicate with virtio_consoles from qemu.
+It may also be possible to use a transport other than virtio. This code just
+requires a UNIX socket which inputs and outputs terminal ASCII/ANSI codes.
 
 =head1 SUBROUTINES/METHODS
 
@@ -60,9 +58,8 @@ uses two pipes to communicate with virtio_consoles from qemu.
 sub new {
     my ($class, $testapi_console, $args) = @_;
     my $self = $class->SUPER::new($testapi_console, $args);
-    $self->{fd_read}        = 0;
-    $self->{fd_write}       = 0;
-    $self->{pipe_prefix}    = $self->{args}->{socked_path} // cwd() . '/virtio_console';
+    $self->{socket_fd}      = 0;
+    $self->{socket_path}    = $self->{args}->{socked_path} // cwd() . '/virtio_console';
     $self->{snapshots}      = {};
     $self->{preload_buffer} = '';
     return $self;
@@ -75,12 +72,10 @@ sub screen {
 
 sub disable {
     my ($self) = @_;
-    if ($self->{fd_read} > 0) {
-        close $self->{fd_read};
-        close $self->{fd_write};
-        $self->{fd_read}  = 0;
-        $self->{fd_write} = 0;
-        $self->{screen}   = undef;
+    if ($self->{socket_fd} > 0) {
+        close $self->{socket_fd};
+        $self->{socket_fd} = 0;
+        $self->{screen}    = undef;
     }
 }
 
@@ -104,60 +99,47 @@ sub load_snapshot {
     }
 }
 
-=head2 F_GETPIPE_SZ
-This is a helper method for system which do not have F_GETPIPE_SZ in
-there Fcntl bindings. See https://perldoc.perl.org/Fcntl.html
-=cut
-sub F_GETPIPE_SZ
-{
-    return eval 'no warnings "all"; Fcntl::F_GETPIPE_SZ;' || 1032;
-}
+=head2 socket_path
 
-=head2 F_SETPIPE_SZ
-This is a helper method for system which do not have F_SETPIPE_SZ in
-there Fcntl bindings. See: https://perldoc.perl.org/Fcntl.html
-=cut
-sub F_SETPIPE_SZ
-{
-    return eval 'no warnings "all"; Fcntl::F_SETPIPE_SZ;' || 1031;
-}
-
-=head2 open_pipe
-
-  open_pipe();
-
-Opens a the read and write pipe based on C<$pipe_prefix>.
-
-Returns the read and write file descriptors for the open sockets,
-otherwise it dies.
+The file system path bound to a UNIX socket which will be used to transfer
+terminal data between the host and guest.
 
 =cut
-sub open_pipe {
+sub socket_path {
     my ($self) = @_;
-    bmwqemu::log_call(pipe_prefix => $self->{pipe_prefix});
+    return $self->{socket_path};
+}
 
-    sysopen(my $fd_w, $self->{pipe_prefix} . '.in', O_WRONLY)
-      or die "Can't open in pipe for writing $!";
-    sysopen(my $fd_r, $self->{pipe_prefix} . '.out', O_NONBLOCK | O_RDONLY)
-      or die "Can't open out pipe for reading $!";
+=head2 open_socket
 
-    my $newsize = get_var('VIRTIO_CONSOLE_PIPE_SZ', path('/proc/sys/fs/pipe-max-size')->slurp());
-    for my $fd (($fd_w, $fd_r)) {
-        my $old = fcntl($fd, F_GETPIPE_SZ(), 0);
-        my $new = fcntl($fd, F_SETPIPE_SZ(), int($newsize));
-        bmwqemu::fctinfo("Set PIPE_SZ from $old to $new");
-    }
+  open_socket();
 
-    return ($fd_r, $fd_w);
+Opens a unix socket to the character device located at $socket_path.
+
+Returns the file descriptor for the open socket, otherwise it dies.
+
+=cut
+sub open_socket {
+    my ($self) = @_;
+    my $fd;
+    bmwqemu::log_call(socket_path => $self->socket_path);
+
+    (-S $self->socket_path) || croak 'Could not find ' . $self->socket_path;
+    socket($fd, PF_UNIX, SOCK_STREAM | SOCK_NONBLOCK, 0)
+      || croak 'Could not create Unix socket: ' . $ERRNO;
+    connect($fd, sockaddr_un($self->socket_path))
+      || croak 'Could not connect to virtio-console chardev socket: ' . $ERRNO;
+
+    return $fd;
 }
 
 sub activate {
     my ($self) = @_;
     if (!check_var('VIRTIO_CONSOLE', 0)) {
-        ($self->{fd_read}, $self->{fd_write}) = $self->open_pipe() unless ($self->{fd_read});
-        $self->{screen} = consoles::serial_screen::->new($self->{fd_read}, $self->{fd_write});
+        $self->{socket_fd}              = $self->open_socket unless $self->{socket_fd};
+        $self->{screen}                 = consoles::serial_screen::->new($self->{socket_fd});
         $self->{screen}->{carry_buffer} = $self->{preload_buffer};
-        $self->{preload_buffer} = '';
+        $self->{preload_buffer}         = '';
     }
     else {
         croak 'VIRTIO_CONSOLE is set 0, so no virtio-serial and virtconsole devices will be available to use with this console.';
