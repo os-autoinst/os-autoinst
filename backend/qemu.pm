@@ -29,7 +29,7 @@ use Time::HiRes qw(sleep gettimeofday);
 use IO::Select;
 use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
-use POSIX qw(strftime :sys_wait_h mkfifo);
+use POSIX qw(strftime :sys_wait_h);
 use Mojo::JSON;
 use Carp;
 use Fcntl;
@@ -848,9 +848,7 @@ sub start_qemu {
             sp('device', 'virtio-serial');
             for (my $i = 0; $i < ($vars->{VIRTIO_CONSOLE_NUM} // 1); $i++) {
                 my $name = 'virtio_console' . ($i ? $i : '');
-                mkfifo($name . ".in",  0666);
-                mkfifo($name . ".out", 0666);
-                sp('chardev', [qv "pipe id=$name path=$name logfile=$name.log logappend=on"]);
+                sp('chardev', [qv "socket path=$name server nowait id=$name logfile=$name.log logappend=on"]);
                 sp('device',  [qv "virtconsole chardev=$name name=org.openqa.console.$name"]);
             }
         }

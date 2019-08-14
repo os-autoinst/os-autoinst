@@ -26,12 +26,10 @@ use Carp 'croak';
 our $VERSION;
 
 sub new {
-    my ($class, $fd_read, $fd_write) = @_;
+    my ($class, $socket_fd) = @_;
     my $self = bless {class => $class}, $class;
-    $self->{fd_read}      = $fd_read;
-    $self->{fd_write}     = $fd_write // $fd_read;
+    $self->{socket_fd}    = $socket_fd;
     $self->{carry_buffer} = '';
-
     return $self;
 }
 
@@ -91,7 +89,7 @@ and ETX is the same as pressing Ctrl-C on a terminal.
 =cut
 sub type_string {
     my ($self, $nargs) = @_;
-    my $fd = $self->{fd_write};
+    my $fd = $self->{socket_fd};
 
     bmwqemu::log_call(%$nargs);
 
@@ -157,7 +155,7 @@ sub normalise_pattern {
 
   my $num_read = do_read($buffer [, max_size => 2048][,timeout => undef]);
 
-Attempts to read up to max_size bytes from the C<<$self->{fd_read}>> into buffer.
+Attempts to read up to max_size bytes from the C<<$self->{socket_fd}>> into buffer.
 The method returns as soon as some data is available, even if the given size has not been reached.
 Returns number of bytes read or undef on timeout. Note that 0 is a valid return code.
 If an failure occur the method croak.
@@ -170,7 +168,7 @@ sub do_read
     my $buffer = '';
     $args{timeout}  //= undef;    # wait till data is available
     $args{max_size} //= 2048;
-    my $fd = $self->{fd_read};
+    my $fd = $self->{socket_fd};
 
     my $rin = '';
     vec($rin, fileno($fd), 1) = 1;
@@ -225,7 +223,7 @@ and { matched => 0, string => 'text from the terminal' } on failure.
 =cut
 sub read_until {
     my ($self, $pattern, $timeout) = @_[0 .. 2];
-    my $fd       = $self->{fd_read};
+    my $fd       = $self->{socket_fd};
     my %nargs    = @_[3 .. $#_];
     my $buflen   = $nargs{buffer_size} || 4096;
     my $overflow = $nargs{record_output} ? '' : undef;
@@ -313,7 +311,7 @@ sub peak {
 
     bmwqemu::log_call(%nargs);
   LOOP: {
-        $read = sysread($self->{fd_read}, $buf, $buflen);
+        $read = sysread($self->{socket_fd}, $buf, $buflen);
         last LOOP unless defined $read;
 
         $self->{carry_buffer} .= $buf;
