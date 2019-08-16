@@ -571,7 +571,7 @@ __END"
         $self->get_cmd_output('echo bios.bootDelay = \"10000\" >> /vmfs/volumes/datastore1/openQA/' . $self->name . '.vmx', {domain => 'sshVMwareServer'});
     }
 
-    $ret = $self->run_cmd("virsh $remote_vmm start " . $self->name);
+    $ret = $self->run_cmd("virsh $remote_vmm start " . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');
     bmwqemu::diag("Dump actually used libvirt configuration file " . ($ret ? "(broken)" : "(working)"));
     $self->run_cmd("virsh $remote_vmm dumpxml " . $self->name);
     die "virsh start failed" if $ret;
