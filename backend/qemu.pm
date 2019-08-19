@@ -338,7 +338,7 @@ sub save_memory_dump {
 
     if ($compress_method eq 'xz') {
         if (defined which('xz')) {
-            system(('xz', '-T', $compress_threads, "-v$compress_level", "ulogs/$filename"));
+            runcmd('xz', '--no-warn', '-T', $compress_threads, "-v$compress_level", "ulogs/$filename");
         }
         else {
             bmwqemu::fctwarn('xz not found; falling back to bzip2');
@@ -347,7 +347,7 @@ sub save_memory_dump {
     }
 
     if ($compress_method eq 'bzip2') {
-        system(('bzip2', "-v$compress_level", "ulogs/$filename"));
+        runcmd('bzip2', "-v$compress_level", "ulogs/$filename");
     }
 
     return;
