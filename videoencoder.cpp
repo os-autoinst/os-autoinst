@@ -375,7 +375,6 @@ int main(int argc, char* argv[])
 
     }
 
-    printf("last frame\n");
     // send last frame
     if (ogg_fp) {
         th_encode_ctl(td, TH_ENCCTL_SET_DUP_COUNT, &repeat, sizeof(repeat));
