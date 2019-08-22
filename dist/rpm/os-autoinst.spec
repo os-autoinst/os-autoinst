@@ -26,28 +26,18 @@ Url:            https://github.com/os-autoinst/os-autoinst
 Source0:        %{name}-%{version}.tar.xz
 # Force OBS to resolve choices on opencv-devel
 #!BuildIgnore: opencv3-devel
-%define         build_requires autoconf automake gcc-c++ libtool pkgconfig(opencv) pkg-config perl(Module::CPANfile) perl(Perl::Tidy) perl(Test::Compile) pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc) make
-BuildRequires:  %build_requires
-# just for the test suite
-BuildRequires:  qemu-tools
-Requires:       /usr/bin/qemu-img
-Requires:       git-core
-Requires:       optipng
 %{perl_requires}
-Requires:       perl-base
-Requires:       qemu >= 2.0.0
-Recommends:       tesseract-ocr
-%define t_requires perl(Carp::Always) perl(Data::Dump) perl(Data::Dumper) perl(Crypt::DES) perl(JSON) perl(autodie) perl(Class::Accessor::Fast) perl(Exception::Class) perl(File::Touch) perl(File::Which) perl(IPC::Run::Debug) perl(Net::DBus) perl(Net::SNMP) perl(Net::IP) perl(IPC::System::Simple) perl(Net::SSH2) perl(XML::LibXML) perl(XML::SemanticDiff) perl(Test::Exception) perl(Test::Output) perl(Test::Fatal) perl(Test::Warnings) perl(Pod::Coverage) perl(Test::Pod) perl(Test::MockModule) perl(Test::MockObject) perl(Devel::Cover) perl(JSON::XS) perl(List::MoreUtils) perl(Mojo::IOLoop::ReadWriteProcess) perl(Test::Mock::Time) perl(Socket::MsgHdr) perl(Cpanel::JSON::XS) perl(IO::Scalar)
-BuildRequires:  %t_requires
-Requires:       %t_requires
-BuildRequires:  perl(Mojolicious)
-Requires:       perl(Mojolicious) >= 7.92
-Requires:       perl(Mojo::IOLoop::ReadWriteProcess) >= 0.23
-# we shuffle around a lot of JSON, so make sure this is fast
-# and the JSON modules have subtle differences and we only test against XS in production
-Requires:       perl(JSON::XS)
+%define build_requires autoconf automake gcc-c++ libtool pkgconfig(opencv) pkg-config perl(Module::CPANfile) pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc) make
+%define requires perl(Mojolicious) >= 7.92, perl(Mojo::IOLoop::ReadWriteProcess) >= 0.23, perl(Carp::Always) perl(Data::Dump) perl(Data::Dumper) perl(Crypt::DES) perl(JSON) perl(autodie) perl(Class::Accessor::Fast) perl(Exception::Class) perl(File::Touch) perl(File::Which) perl(IPC::Run::Debug) perl(Net::DBus) perl(Net::SNMP) perl(Net::IP) perl(IPC::System::Simple) perl(Net::SSH2) perl(XML::LibXML) perl(XML::SemanticDiff) perl(JSON::XS) perl(List::MoreUtils) perl(Mojo::IOLoop::ReadWriteProcess) perl(Socket::MsgHdr) perl(Cpanel::JSON::XS) perl(IO::Scalar) perl(Try::Tiny) perl-base
+%define requires_not_needed_in_tests qemu >= 2.0.0, /usr/bin/qemu-img, git-core optipng
+# all requirements needed by the tests, do not require on this in the package
+# itself or any sub-packages
+%define test_requires %build_requires %requires perl(Perl::Tidy) perl(Test::Compile) perl(Test::Exception) perl(Test::Output) perl(Test::Fatal) perl(Test::Warnings) perl(Pod::Coverage) perl(Test::Pod) perl(Test::MockModule) perl(Test::MockObject) perl(Devel::Cover) perl(Test::Mock::Time) qemu-tools
+%define devel_requires %test_requires %requires_not_needed_in_tests
+BuildRequires:  %test_requires
+Requires:       %requires
+Recommends:     tesseract-ocr
 Recommends:     /usr/bin/xkbcomp /usr/bin/Xvnc dumponlyconsole
-%define         devel_requires %build_requires %t_requires
 Requires(pre):  %{_bindir}/getent
 Requires(pre):  %{_sbindir}/useradd
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
