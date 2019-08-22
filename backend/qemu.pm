@@ -792,7 +792,10 @@ sub start_qemu {
         }
 
         if ($arch_supports_boot_order) {
-            if ($vars->{PXEBOOT}) {
+            if ($vars->{PXEBOOT} // '' eq 'once') {
+                sp("boot", "once=n");
+            }
+            elsif ($vars->{PXEBOOT}) {
                 sp("boot", "n");
             }
             elsif ($vars->{BOOTFROM}) {
