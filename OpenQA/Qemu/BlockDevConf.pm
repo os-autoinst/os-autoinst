@@ -96,7 +96,7 @@ sub del_overlay {
 }
 
 sub _push_new_drive_dev {
-    my ($self, $id, $drive, $model) = @_;
+    my ($self, $id, $drive, $model, $num_queues) = @_;
 
     die 'PFlash drives are not supported by DriveDevice, use PFlashDevice'
       if $model eq 'pflash';
@@ -104,7 +104,8 @@ sub _push_new_drive_dev {
     my $dd = OpenQA::Qemu::DriveDevice->new()
       ->id($id)
       ->drive($drive)
-      ->model($model);
+      ->model($model)
+      ->num_queues($num_queues);
     push(@{$self->_drives}, $dd);
 
     return $dd;
@@ -116,11 +117,11 @@ Create a new drive device and qcow2 image.
 
 =cut
 sub add_new_drive {
-    my ($self, $id, $model, $size) = @_;
+    my ($self, $id, $model, $size, $num_queues) = @_;
 
     my $base_drive = $self->add_new_base($id, $id, $size);
 
-    return $self->_push_new_drive_dev($id, $base_drive, $model);
+    return $self->_push_new_drive_dev($id, $base_drive, $model, $num_queues);
 }
 
 =head3 add_existing_drive
@@ -130,12 +131,12 @@ new overlay is created so that the existing qcow2 image is not modified.
 
 =cut
 sub add_existing_drive {
-    my ($self, $id, $file_name, $model, $size) = @_;
+    my ($self, $id, $file_name, $model, $size, $num_queues) = @_;
 
     my $base_drive = $self->add_existing_base($id, $file_name, $size)->implicit(1);
     my $overlay    = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);
 
-    return $self->_push_new_drive_dev($id, $overlay, $model);
+    return $self->_push_new_drive_dev($id, $overlay, $model, $num_queues);
 }
 
 
