@@ -107,7 +107,7 @@ sub become_root {
 
 =head2 script_run
 
-  script_run($cmd [, timeout => $timeout] [,quiet => $quiet])
+  script_run($cmd [, timeout => $timeout] [, output => $output] [,quiet => $quiet])
 
 Deprecated mode
 
@@ -116,6 +116,8 @@ Deprecated mode
 Run I<$cmd> (by assuming the console prompt and typing the command). After that, echo
 hashed command to serial line and wait for it in order to detect execution is finished.
 To avoid waiting, use I<$timeout> 0.
+
+Use C<output> to add a description or a comment of the $cmd.
 
 Use C<quiet> to avoid recording serial_results.
 
@@ -138,14 +140,14 @@ sub script_run {
     testapi::type_string "$cmd";
     if ($args{timeout} > 0) {
         my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
+        my $marker = ($args{output} ? " ; echo $str-\$?- Comment: $args{output}" : " ; echo $str-\$?-");
         if (testapi::is_serial_terminal) {
-            my $marker = " ; echo $str-\$?-";
             testapi::type_string($marker);
             testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
             testapi::type_string("\n");
         }
         else {
-            testapi::type_string " ; echo $str-\$?- > /dev/$testapi::serialdev\n";
+            testapi::type_string " ; echo $marker > /dev/$testapi::serialdev\n";
         }
         my $res = testapi::wait_serial(qr/$str-\d+-/, timeout => $args{timeout}, quiet => $args{quiet});
         return unless $res;
