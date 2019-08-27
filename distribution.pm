@@ -138,14 +138,14 @@ sub script_run {
     testapi::type_string "$cmd";
     if ($args{timeout} > 0) {
         my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
+        my $marker = ($args{output} ? " ; echo $str-\$?- Comment: $args{output}" : " ; echo $str-\$?-");
         if (testapi::is_serial_terminal) {
-            my $marker = " ; echo $str-\$?-";
             testapi::type_string($marker);
             testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
             testapi::type_string("\n");
         }
         else {
-            testapi::type_string " ; echo $str-\$?- > /dev/$testapi::serialdev\n";
+            testapi::type_string " ; echo $marker > /dev/$testapi::serialdev\n";
         }
         my $res = testapi::wait_serial(qr/$str-\d+-/, timeout => $args{timeout}, quiet => $args{quiet});
         return unless $res;
