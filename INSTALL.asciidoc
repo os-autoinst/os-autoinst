@@ -13,12 +13,12 @@ installation guide]
 git clone YOUR-WRITEABLE-COPY-OF/os-autoinst.git
 cd os-autoinst
 ------------------------------------------------
-3.  install the BuildRequires, as per the https://build.opensuse.org/package/show/devel:openQA/os-autoinst[spec file]
+3.  install the build requirements as visible in +dist/rpm/os-autoinst.spec+
+or if you have the openSUSE repositories added:
 +
------------------------------------------------------------------------------------------------------------------------------------
-sudo zypper in git-core make libtheora-devel opencv-devel fftw3-devel libsndfile-devel \
-  pkg-config libtool autoconf automake gcc-c++
------------------------------------------------------------------------------------------------------------------------------------
+----
+sudo zypper in os-autoinst-devel
+----
 4.  build the beastie locally
 +
 ----------------
@@ -87,7 +87,13 @@ openSUSE setup
 ~~~~~~~~~~~~~~
 
 -------------------------------------------------------
-zypper ar -r http://download.opensuse.org/repositories/devel:/openQA/openSUSE_Leap_42.1/devel:openQA.repo
+# openSUSE Tumbleweed
+zypper ar -p 95 -f 'http://download.opensuse.org/repositories/devel:openQA/openSUSE_Tumbleweed' devel_openQA
+
+# openSUSE Leap
+zypper ar -p 95 -f 'http://download.opensuse.org/repositories/devel:openQA/openSUSE_Leap_$releasever' devel_openQA
+zypper ar -p 90 -f 'http://download.opensuse.org/repositories/devel:openQA:Leap:$releasever/openSUSE_Leap_$releasever' devel_openQA_Leap
+
 zypper in os-autoinst
 
 usermod -G kvm -a $USERNAME || usermod -A kvm $USERNAME
