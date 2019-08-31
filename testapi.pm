@@ -468,8 +468,9 @@ sub match_has_tag {
   assert_and_click($mustmatch [, timeout => $timeout] [, button => $button] [, clicktime => $clicktime ] [, dclick => 1 ] [, mousehide => 1 ]);
 
 Wait for needle with C<$mustmatch> tag to appear on SUT screen. Then click
-C<$button> in the middle of the last match region as defined in the needle
-JSON file. If C<$dclick> is set, do double click instead.  C<$mustmatch> can
+C<$button> at the "click_point" position as defined in the needle JSON file,
+or - if the JSON has not explicit "click_point" - in the middle of the last
+needle area. If C<$dclick> is set, do double click instead.  C<$mustmatch> can
 be string or C<ARRAYREF> of strings (C<['tag1', 'tag2']>).  C<$button> is by
 default C<'left'>. C<'left'> and C<'right'> is supported. If C<$mousehide> is
 true then always move mouse to the 'hidden' position after clicking to prevent
