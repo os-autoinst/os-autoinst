@@ -47,7 +47,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   assert_screen check_screen assert_and_dclick save_screenshot
   assert_and_click mouse_hide mouse_set mouse_click
-  mouse_dclick mouse_tclick match_has_tag
+  mouse_dclick mouse_tclick match_has_tag click_lastmatch
 
   assert_script_run script_run assert_script_sudo script_sudo
   script_output validate_script_output
@@ -482,14 +482,39 @@ Throws C<FailedNeedle> exception if C<$timeout> timeout is hit. Default timeout 
 
 sub assert_and_click {
     my ($mustmatch, %args) = @_;
-    $args{timeout}   //= $bmwqemu::default_timeout;
+    $args{timeout} //= $bmwqemu::default_timeout;
+
+    $last_matched_needle = assert_screen($mustmatch, $args{timeout});
+    bmwqemu::log_call(mustmatch => $mustmatch, %args);
+
+    my %click_args = map { $_ => $args{$_} } qw(button dclick mousehide);
+    return click_lastmatch(%click_args);
+}
+
+=head2 click_lastmatch
+
+  click_lastmatch([, button => $button] [, clicktime => $clicktime ] [, dclick => 1 ] [, mousehide => 1 ]);
+
+Click C<$button> at the "click_point" position as defined in the needle JSON file
+of the last matched needle, or - if the JSON has not explicit "click_point" -
+in the middle of the last match area. If C<$dclick> is set, do double click
+instead. Supported values for C<$button> are C<'left'> and C<'right'>, C<'left'>
+is the default. If C<$mousehide> is true then always move mouse to the 'hidden'
+position after clicking to prevent to disturb the area where user wants to
+assert/click in second step, otherwise move the mouse back to its previous
+position.
+
+=cut
+
+sub click_lastmatch {
+    my %args = @_;
     $args{button}    //= 'left';
     $args{dclick}    //= 0;
     $args{mousehide} //= 0;
 
-    $last_matched_needle = assert_screen($mustmatch, $args{timeout});
+    return unless $last_matched_needle;
+
     my $old_mouse_coords = query_isotovideo('backend_get_last_mouse_set');
-    bmwqemu::log_call(mustmatch => $mustmatch, %args);
 
     # determine click coordinates from the last area which has those explicitly specified
     my $relevant_area;
