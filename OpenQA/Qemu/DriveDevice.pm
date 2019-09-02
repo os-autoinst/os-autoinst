@@ -69,6 +69,13 @@ has 'serial';
 has 'id';
 has last_overlay_id => 0;
 
+=head3 num_queues
+
+The number of I/O queues of the drive, esp. for NVMe devices
+
+=cut
+has 'num_queues';
+
 sub new_overlay_id {
     my $self = shift;
 
@@ -112,8 +119,9 @@ sub gen_cmdline {
             push(@params, 'bus=' . $path->controller->id . '.0');
         }
         # Configure bootindex only for first path
-        $self->_push_ifdef(\@params, 'bootindex=', $self->bootindex) if (!$path->id || $path->id eq 'path0');
-        $self->_push_ifdef(\@params, 'serial=',    $self->serial);
+        $self->_push_ifdef(\@params, 'bootindex=',  $self->bootindex) if (!$path->id || $path->id eq 'path0');
+        $self->_push_ifdef(\@params, 'serial=',     $self->serial);
+        $self->_push_ifdef(\@params, 'num_queues=', $self->num_queues) if ($self->num_queues != -1);
         push(@cmdln, ('-device', join(',', @params)));
     }
 
@@ -160,11 +168,12 @@ sub _to_map {
     });
 
     return {drives => \@overlays,
-        model     => $self->model,
-        paths     => \@paths,
-        bootindex => $self->bootindex,
-        serial    => $self->serial,
-        id        => $self->id};
+        model      => $self->model,
+        paths      => \@paths,
+        bootindex  => $self->bootindex,
+        serial     => $self->serial,
+        id         => $self->id,
+        num_queues => $self->num_queues};
 }
 
 sub _from_map {
@@ -179,7 +188,8 @@ sub _from_map {
       ->paths(\@paths)
       ->bootindex($map->{bootindex})
       ->serial($map->{serial})
-      ->id($map->{id});
+      ->id($map->{id})
+      ->num_queues($map->{num_queues});
 }
 
 sub CARP_TRACE {
