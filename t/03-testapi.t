@@ -489,12 +489,19 @@ subtest 'validate_script_output' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->mock(script_output => sub { return 'output'; });
     ok(!validate_script_output('script', sub { m/output/ }), 'validating output with default timeout');
+    ok(!validate_script_output('script', qr/output/),        'validating output with regex and default timeout');
     ok(!validate_script_output('script', sub { m/output/ }, 30), 'specifying timeout');
     like(
         exception {
             validate_script_output('script', sub { m/error/ });
         },
         qr/output not validating/
+    );
+    like(
+        exception {
+            validate_script_output('script', ['Invalid parameter']);
+        },
+        qr/coderef or regexp/
     );
 };
 

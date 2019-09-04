@@ -33,7 +33,8 @@ use OpenQA::Isotovideo::NeedleDownloader;
 use Digest::MD5 'md5_base64';
 use Carp qw(cluck croak);
 use MIME::Base64 'decode_base64';
-use Scalar::Util 'looks_like_number';
+use Scalar::Util qw(looks_like_number reftype);
+use B::Deparse;
 
 require bmwqemu;
 use constant OPENQA_LIBPATH => '/usr/share/openqa/lib';
@@ -1143,20 +1144,23 @@ sub get_test_data {
 
 =head2 validate_script_output
 
-  validate_script_output($script, $code [, timeout => $timeout] [,quiet => $quiet])
+  validate_script_output($script, $code | $regexp [, timeout => $timeout] [,quiet => $quiet])
 
 Deprecated mode
 
   validate_script_output($script, $code, [$wait])
 
-Wrapper around script_output, that runs a callback on the output. Use it as
+Wrapper around script_output, that runs a callback on the output, or
+alternatively matches a regular expression. Use it as
 
-  validate_script_output "cat /etc/hosts", sub { m/127.*localhost/ }
+  validate_script_output "cat /etc/hosts", sub { m/127.*localhost/ };
+  validate_script_output "cat /etc/hosts", qr/127.*localhost/;
+  validate_script_output "cat /etc/hosts", sub { $_ !~ m/987.*somehost/ };
 
 =cut
 
 sub validate_script_output {
-    my ($script, $code) = splice(@_, 0, 2);
+    my ($script, $check) = splice(@_, 0, 2);
     my %args = compat_args(
         {
             timeout => 30,
@@ -1166,17 +1170,44 @@ sub validate_script_output {
     my $output = script_output($script, %args);
     my $res    = 'ok';
 
-    # set $_ so the callbacks can be simpler code
-    $_ = $output;
-    if (!$code->()) {
-        $res = 'fail';
-        bmwqemu::diag("output does not pass the code block:\n$output");
+    my $message = '';
+    if (reftype $check eq 'CODE') {
+        # set $_ so the callbacks can be simpler code
+        $_ = $output;
+        if (!$check->()) {
+            $res = 'fail';
+            bmwqemu::diag("output does not pass the code block:\n$output");
+        }
+        my $deparse = B::Deparse->new("-p");
+        # avoid "use strict; use warnings" in the output to make it shorter
+        $deparse->ambient_pragmas(warnings => [], strict => "all");
+
+        my $body = $deparse->coderef2text($check);
+
+        $message = sprintf
+          "validate_script_output got:\n%s\n\nCheck function (deparsed code):\n%s",
+          $output, $body;
     }
-    # abusing the function
-    $autotest::current_test->record_serialresult($output, $res, $output) unless ($args{quiet});
+    elsif (reftype $check eq 'REGEXP') {
+        if ($output !~ $check) {
+            $res = 'fail';
+            bmwqemu::diag("output does not match the regex:\n$output");
+        }
+        $message = sprintf
+          "validate_script_output got:\n%s\n\nRegular expression:\n%s",
+          $output, $check;
+    }
+    else {
+        croak "Invalid use of validate_script_output(), second arg must be a coderef or regexp";
+    }
+    $autotest::current_test->record_resultfile(
+        'validate_script_output', $message,
+        result => $res,
+    );
     if ($res eq 'fail') {
         croak "output not validating";
     }
+    return 0;
 }
 
 =head2 become_root
