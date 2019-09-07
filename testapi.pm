@@ -1461,7 +1461,6 @@ sub mouse_click {
     my $time   = shift || 0.15;
     bmwqemu::log_call(button => $button, cursor_down => $time);
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    # FIXME sleep resolution = 1s, use usleep
     sleep $time;
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
 }
@@ -1479,7 +1478,6 @@ sub mouse_dclick(;$$) {
     my $time   = shift || 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
-    # FIXME sleep resolution = 1s, use usleep
     sleep $time;
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
     sleep $time;
