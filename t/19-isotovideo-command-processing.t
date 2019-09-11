@@ -54,10 +54,10 @@ $rpc_mock->mock(read_json => sub {
 
 # setup a CommandHandler instance using the fake file descriptors
 my $command_handler = OpenQA::Isotovideo::CommandHandler->new(
-    cmd_srv_fd             => $cmd_srv_fd,
-    backend_fd             => $backend_fd,
-    current_test_name      => 'welcome',
-    current_test_full_name => 'installation-welcome',
+    cmd_srv_fd        => $cmd_srv_fd,
+    backend_fd        => $backend_fd,
+    current_test_name => 'welcome',
+    status            => 'initial',
 );
 
 sub reset_state {
@@ -66,6 +66,16 @@ sub reset_state {
     $last_received_msg_by_fd[$answer_fd]  = undef;
     $last_received_msg_by_fd[$cmd_srv_fd] = undef;
 }
+
+subtest set_current_test => sub {
+    $command_handler->process_command($answer_fd, {
+            cmd       => 'set_current_test',
+            name      => 'welcome',
+            full_name => 'installation-welcome',
+    });
+    is($command_handler->status, 'running', 'Status == running');
+};
+
 
 subtest status => sub {
     $command_handler->tags([qw(foo bar)]);
@@ -296,3 +306,7 @@ subtest 'set_assert_screen_timeout' => sub {
 };
 
 done_testing;
+
+END {
+    unlink OpenQA::Isotovideo::CommandHandler::AUTOINST_STATUSFILE;
+}
