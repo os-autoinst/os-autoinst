@@ -615,8 +615,8 @@ sub stop_serial_grab {
 #   my $ret = $svirt->run_cmd("virsh snapshot-create-as snap1");
 #   die "snapshot creation failed" unless $ret == 0;
 sub run_cmd {
-    my ($self, $cmd) = @_;
-    return backend::svirt::run_cmd($self->{ssh}, $cmd);
+    my ($self, $cmd, %args) = @_;
+    return backend::svirt::run_cmd($self->{ssh}, $cmd, %args);
 }
 
 # Executes command and in list context returns pair of standard output and standard error
