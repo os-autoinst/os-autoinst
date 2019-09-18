@@ -738,7 +738,7 @@ sub start_qemu {
     sp('only-migratable') if $self->can_handle({function => 'snapshots', no_warn => 1});
     sp('chardev', 'ringbuf,id=serial0,logfile=serial0,logappend=on');
     sp('serial',  'chardev:serial0');
-    sp('soundhw', 'ac97');
+    sp('soundhw', 'hda');
     {
         # Remove floppy drive device on architectures
         unless ($arch eq 'aarch64' || $arch eq 'arm' || $vars->{QEMU_NO_FDC_SET}) {
