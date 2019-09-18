@@ -105,7 +105,8 @@ sub _init_xml {
     $root->appendChild($elem);
 
     $elem = $doc->createElement('description');
-    $elem->appendTextNode("openQA Instance $instance");
+    $elem->appendTextNode("openQA Instance $instance: ");
+    $elem->appendTextNode(get_required_var('NAME'));
     $root->appendChild($elem);
 
     $elem = $doc->createElement('memory');
