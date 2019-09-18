@@ -106,7 +106,7 @@ sub _init_xml {
 
     $elem = $doc->createElement('description');
     $elem->appendTextNode("openQA Instance $instance: ");
-    $elem->appendTextNode(get_required_var('NAME'));
+    $elem->appendTextNode(get_var('NAME', '0-no-scenario'));
     $root->appendChild($elem);
 
     $elem = $doc->createElement('memory');
@@ -353,7 +353,17 @@ sub add_disk {
         }
         else {
             $file = $basedir . $file;
-            $self->run_cmd("qemu-img create $file $size -f qcow2") && die "qemu-img create failed";
+            my $bucket = 5;
+            # Avoid qemu-img's failure to get a write lock to be the reason for a job to fail
+            while (1) {
+                my ($ret, $stdout, $stderr) = $self->run_cmd("qemu-img create $file $size -f qcow2", wantarray => 1);
+                die "Too many attempts to format HDD" unless ($bucket-- && $ret);
+                if ($stderr =~ /lock/i) {
+                    sleep 5;
+                    next;
+                }
+                last unless $ret;
+            }
         }
     }
     else {    # Copy image to VM host
