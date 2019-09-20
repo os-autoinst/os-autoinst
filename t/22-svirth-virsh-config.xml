@@ -2,7 +2,7 @@
 <!-- basic virsh config for KVM with VNC serial console and additional serial console -->
 <domain type="kvm">
   <name>openQA-SUT-1</name>
-  <description>openQA Instance 1</description>
+  <description>openQA Instance 1: 0-no-scenario</description>
   <memory unit="MiB">1024</memory>
   <vcpu>1</vcpu>
   <os>
