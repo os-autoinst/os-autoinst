@@ -972,10 +972,10 @@ sub script_run {
     my %args = compat_args(
         {
             timeout => undef,
-            output => '',
+            output  => '',
             quiet   => testapi::get_var('_QUIET_SCRIPT_CALLS')
         }, ['timeout'], @_);
-    
+
     bmwqemu::log_call(cmd => $cmd, %args);
     return $distri->script_run($cmd, %args);
 }
