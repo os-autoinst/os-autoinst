@@ -131,6 +131,7 @@ sub script_run {
     my %args = testapi::compat_args(
         {
             timeout => $bmwqemu::default_timeout,
+            output  => '',
             quiet   => undef
         }, ['timeout'], @_);
 
@@ -139,7 +140,7 @@ sub script_run {
     }
     testapi::type_string "$cmd";
     if ($args{timeout} > 0) {
-        my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
+        my $str    = testapi::hashed_string("SR" . $cmd . $args{timeout});
         my $marker = ($args{output} ? " ; echo $str-\$?- Comment: $args{output}" : " ; echo $str-\$?-");
         if (testapi::is_serial_terminal) {
             testapi::type_string($marker);

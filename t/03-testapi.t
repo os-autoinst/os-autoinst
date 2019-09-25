@@ -48,7 +48,7 @@ sub fake_read_json {
     my $cmd  = $lcmd->{cmd};
     if ($cmd eq 'backend_wait_serial') {
         my $str = $lcmd->{regexp};
-        $str =~ s,\\d\+,$fake_exit,;
+        $str =~ s,\\d\+(\\s\+\\S\+)?,$fake_exit,;
         return {ret => {matched => 1, string => $str}};
     }
     elsif ($cmd eq 'backend_select_console') {
@@ -293,7 +293,7 @@ subtest 'check_assert_screen' => sub {
         is_deeply($autotest::current_test->{details}, [
                 {
                     result     => 'unk',
-                    screenshot => 'basetest-11.png',
+                    screenshot => 'basetest-13.png',
                     frametime  => [qw(1.75 1.79)],
                     tags       => [qw(fake tags)],
                 }
