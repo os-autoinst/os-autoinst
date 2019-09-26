@@ -357,8 +357,10 @@ sub add_disk {
             # Avoid qemu-img's failure to get a write lock to be the reason for a job to fail
             while (1) {
                 my ($ret, $stdout, $stderr) = $self->run_cmd("qemu-img create $file $size -f qcow2", wantarray => 1);
-                die "Too many attempts to format HDD" unless ($bucket-- && $ret);
                 if ($stderr =~ /lock/i) {
+                    $bucket--;
+                    die "Too many attempts to format HDD" unless $bucket;
+                    bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
                     sleep 5;
                     next;
                 }
