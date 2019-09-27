@@ -37,6 +37,7 @@ our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
 our $isotovideo;
 our $process;
+our $tests_running = 0;
 =head1 Introduction
 
 OS Autoinst decides which test modules to run based on a distribution specific
@@ -145,6 +146,10 @@ sub loadtest {
 
     return unless $test->is_applicable;
     push @testorder, $test;
+
+    # Test schedule may change at runtime. Update test_order.json to notify
+    # the OpenQA server of the change.
+    write_test_order() if $tests_running;
     bmwqemu::diag("scheduling $test->{name} $script");
 }
 
@@ -219,6 +224,7 @@ sub load_snapshot {
 sub run_all {
     my $died      = 0;
     my $completed = 0;
+    $tests_running = 1;
     eval { $completed = autotest::runalltests(); };
     if ($@) {
         warn $@;
