@@ -242,6 +242,48 @@ is(@{$autotest::tests{'tests-fatal'}}{@opts}, @{$autotest::tests{'tests-fatal' .
   && is(@{$autotest::tests{'tests-fatal' . $_}}{name}, 'fatal#' . $_)
   for 1 .. 10;
 
+# test scheduling new modules at job runtime
+subtest 'test scheduling test modules at test runtime' => sub {
+    $autotest::tests_running = 0;
+    @autotest::testorder     = ();
+    %autotest::tests         = ();
+
+    my %json_data;
+    my $json_filename = bmwqemu::result_dir . '/test_order.json';
+    my $testorder     = [
+        {
+            name     => 'scheduler',
+            category => 'tests',
+            flags    => {},
+            script   => 'tests/scheduler.pm'
+        },
+        {
+            name     => 'next',
+            category => 'tests',
+            flags    => {},
+            script   => 'tests/next.pm'
+        }
+    ];
+
+    $mock_basetest->unmock('runtest');
+    $mock_bmwqemu->mock(save_json_file => sub {
+            my ($data, $filename) = @_;
+            $json_data{$filename} = $data;
+    });
+
+    loadtest 'scheduler';
+    ok(!defined($json_data{$json_filename}),
+        "loadtest shouldn't create test_order.json before tests started");
+
+    stderr_like(sub { autotest::run_all }, qr#scheduling next tests/next\.pm#,
+        'new test module gets scheduled at runtime');
+    is(scalar @autotest::testorder, 2, "loadtest adds new modules at runtime");
+    is_deeply($json_data{$json_filename}, $testorder,
+        "loadtest updates test_order.json at test runtime");
+
+    $mock_bmwqemu->mock(save_json_file => sub { });
+};
+
 my $sharedir = '/home/tux/.local/lib/openqa/share';
 is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/firefox.pm"),        'x11');
 is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"), 'x11/toolkits');

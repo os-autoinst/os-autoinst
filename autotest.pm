@@ -37,8 +37,7 @@ our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
 our $isotovideo;
 our $process;
-
-my $tests_running = 0;
+our $tests_running = 0;
 =head1 Introduction
 
 OS Autoinst decides which test modules to run based on a distribution specific
