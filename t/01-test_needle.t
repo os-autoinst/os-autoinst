@@ -30,7 +30,7 @@ require tinycv;
 my ($res, $needle, $img1, $cand);
 
 my $data_dir        = dirname(__FILE__) . '/data/';
-my $misc_needle_dir = dirname(__FILE__) . '/misc_needles/';
+my $misc_needle_dir = abs_path(dirname(__FILE__)) . '/misc_needles/';
 
 $img1 = tinycv::read($data_dir . "bootmenu.test.png");
 
@@ -379,6 +379,7 @@ ok($needle->get_image != $img1, 'cleaning cache to keep 1 image deleted $img1');
 
 # test needle->file is relative to default prjdir
 is($needle->{file}, 'data/other-desktop-dvd-20140904.json', 'needle json path is relative to prjdir');
+
 # test needle dir is symlinked from different location
 $bmwqemu::vars{PRJDIR} = tempdir(CLEANUP => 1);
 my $new_data_dir = $bmwqemu::vars{PRJDIR} . '/out-of-def-prj/test/data';
@@ -397,6 +398,21 @@ is($needle->{file}, 'out-of-def-prj/test/data/other-desktop-dvd-20140904.json', 
 
 eval { $needle = needle->new('out-of-prj/test/data/some-needle.json') };
 ok($@, 'died when accessing needle outside of prjdir');
+
+subtest 'needle->new accepts path relative to working directory' => sub {
+    my $temp_working_dir = tempdir(CLEANUP => 1);
+    note("using working directory $temp_working_dir");
+    chdir($temp_working_dir);
+    my $needles_dir = $bmwqemu::vars{NEEDLES_DIR} = "$temp_working_dir/some-needle-repo";
+    make_path("$needles_dir/subdir");
+    for my $extension (qw(json png)) {
+        Mojo::File->new($misc_needle_dir, "click-point.$extension")->copy_to("$needles_dir/subdir/foo.$extension");
+    }
+
+    ok($needle = needle->new('subdir/foo.json'), 'needle object created with needle from working directory');
+    is($needle->{file}, 'subdir/foo.json',             'relative file path assigned');
+    is($needle->{png},  "$needles_dir/subdir/foo.png", 'absolute image path assigned');
+};
 
 subtest 'click point' => sub {
     $bmwqemu::vars{PRJDIR} = $misc_needle_dir;

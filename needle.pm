@@ -20,6 +20,7 @@ use strict;
 use warnings;
 use autodie ':all';
 
+use Cwd 'cwd';
 use File::Find;
 use File::Spec;
 use Mojo::JSON 'decode_json';
@@ -51,20 +52,33 @@ sub new {
     }
 
     my $self = {};
-    if (index($jsonfile, $bmwqemu::vars{PRJDIR}) == 0) {
-        $self->{file} = substr($jsonfile, length($bmwqemu::vars{PRJDIR}) + 1);
-    }
-    elsif (-f File::Spec->catfile($bmwqemu::vars{PRJDIR}, $jsonfile)) {
-        # json file path already relative
-        $self->{file} = $jsonfile;
-        $jsonfile = File::Spec->catfile($bmwqemu::vars{PRJDIR}, $jsonfile);
-    }
-    else {
-        die "Needle $jsonfile is not under project directory $bmwqemu::vars{PRJDIR}";
-    }
 
-    # $json->{file} contains path relative to $bmwqemu::vars{PRJDIR}
-    # $jsonfile contains absolute path within $bmwqemu::vars{PRJDIR}
+    # locate the needle file in one of the lookup directories
+    # - This code initializes $json->{file} so it contains the path relative to the lookup
+    #   directory and re-assigns $jsonfile to contain the absolute path.
+    # - A custom needle repo checkout referenced by the $bmwqemu::vars{NEEDLES_DIR} variable
+    #   is considered to support loading custom needles (e.g. with the openqa-clone-custom-git-refspec
+    #   script). The custom needle repo must be within the current working directory (usually the
+    #   openQA worker's pool directory).
+    # - Otherwise, the needle will be looked up under $bmwqemu::vars{PRJDIR}.
+    my @lookup_dirs;
+    my $needles_dir = $bmwqemu::vars{NEEDLES_DIR};
+    push(@lookup_dirs, $needles_dir) if (defined $needles_dir && index($needles_dir, cwd) == 0);
+    push(@lookup_dirs, $bmwqemu::vars{PRJDIR});
+    for my $lookup_dir (@lookup_dirs) {
+        if (index($jsonfile, $lookup_dir) == 0) {
+            $self->{file} = substr($jsonfile, length($lookup_dir) + 1);
+            last;
+        }
+        elsif (-f File::Spec->catfile($lookup_dir, $jsonfile)) {
+            # json file path already relative
+            $self->{file} = $jsonfile;
+            $jsonfile = File::Spec->catfile($lookup_dir, $jsonfile);
+            last;
+        }
+    }
+    die "Needle $jsonfile is not under any of the following directories: " . join(', ', @lookup_dirs)
+      unless exists $self->{file};
 
     if (!$json) {
         local $/;
