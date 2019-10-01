@@ -969,7 +969,7 @@ sub assert_script_run {
 
 =head2 script_run
 
-  script_run($cmd [, timeout => $timeout] [, output => ''] [, quiet => $quiet]);
+  script_run($cmd [, timeout => $timeout] [, quiet => $quiet]);
 
 Deprecated mode
 
@@ -980,9 +980,6 @@ the command). If C<$timeout> is greater than 0, wait for that length of time for
 execution to complete (otherwise, returns undef immediately). See C<distri->script_run>
 for default timeout.
 
-C<$output> can be used as an explanatory text that will be displayed with the execution of
-the command.
- 
 <Returns> exit code received from I<$cmd>, or undef if $timeout is 0 or execution
 does not complete within $timeout.
 
@@ -999,7 +996,6 @@ sub script_run {
     my %args = compat_args(
         {
             timeout => undef,
-            output  => '',
             quiet   => testapi::get_var('_QUIET_SCRIPT_CALLS')
         }, ['timeout'], @_);
 
