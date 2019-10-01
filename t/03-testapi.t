@@ -48,7 +48,7 @@ sub fake_read_json {
     my $cmd  = $lcmd->{cmd};
     if ($cmd eq 'backend_wait_serial') {
         my $str = $lcmd->{regexp};
-        $str =~ s,\\d\+(\\s\+\\S\+)?,$fake_exit,;
+        $str =~ s,\\d\+,$fake_exit,;
         return {ret => {matched => 1, string => $str}};
     }
     elsif ($cmd eq 'backend_select_console') {
@@ -231,10 +231,8 @@ subtest 'script_run' => sub {
     );
     $fake_exit = 0;
     is(script_run('true'), '0', 'script_run with no check of success, returns exit code');
-    is(script_run('true', output => 'foo'), '0', 'script_run with no check of success and output, returns exit code');
     $fake_exit = 1;
     is(script_run('false'), '1', 'script_run with no check of success, returns exit code');
-    is(script_run('false', output => 'foo'), '1', 'script_run with no check of success and output, returns exit code');
     is(script_run('false', 0), undef, 'script_run with no check of success, returns undef when not waiting');
 };
 
@@ -293,7 +291,7 @@ subtest 'check_assert_screen' => sub {
         is_deeply($autotest::current_test->{details}, [
                 {
                     result     => 'unk',
-                    screenshot => 'basetest-13.png',
+                    screenshot => 'basetest-11.png',
                     frametime  => [qw(1.75 1.79)],
                     tags       => [qw(fake tags)],
                 }
