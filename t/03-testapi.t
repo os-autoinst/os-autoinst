@@ -3,16 +3,17 @@
 use strict;
 use warnings;
 
-use consoles::console;
+use Test::Mock::Time;
 use File::Temp;
-use OpenQA::Isotovideo::Interface;
 use Test::More;
 use Test::Output;
 use Test::Fatal;
-use Test::Mock::Time;
 use Test::Warnings ':all';
 use Test::Exception;
 use Scalar::Util 'looks_like_number';
+
+use OpenQA::Isotovideo::Interface;
+use consoles::console;
 
 BEGIN {
     unshift @INC, '..';
