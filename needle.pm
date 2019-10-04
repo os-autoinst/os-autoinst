@@ -331,7 +331,7 @@ sub init {
 }
 
 sub tags {
-    my ($wanted) = @_;
+    my ($wanted)  = @_;
     my @wanted    = split(/ /, $wanted);
     my $first_tag = shift @wanted;
     my $goods     = $tags{$first_tag};

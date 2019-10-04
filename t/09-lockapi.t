@@ -76,7 +76,7 @@ ok($@, 'missing unlock name catched');
 
 # check successful ops
 $api_call_return = 200;
-ok(mutex_create('lock1'), 'mutex created');
+ok(mutex_create('lock1'),                            'mutex created');
 ok(check_action('POST', 'mutex', {name => 'lock1'}), 'mutex_create request valid');
 
 ok(mutex_lock('lock1'), 'mutex locked');
@@ -90,7 +90,7 @@ ok(check_action('POST', 'mutex/lock1', {action => 'unlock'}), 'mutex_unlock requ
 
 # check unsuccessful ops
 $api_call_return = 409;
-ok(!mutex_create('lock1'), 'mutex not created');
+ok(!mutex_create('lock1'),                           'mutex not created');
 ok(check_action('POST', 'mutex', {name => 'lock1'}), 'mutex_create request valid');
 
 # instead of mutex_lock test mutex_try_lock to avoid block
@@ -129,7 +129,7 @@ ok(barrier_destroy('barrier1'), 'barrier destroyed');
 ok(check_action('DELETE', 'barrier/barrier1', undef), 'barrier destroy request valid');
 
 $api_call_return = 409;
-ok(!barrier_create('barrier1', 3), 'barrier not created');
+ok(!barrier_create('barrier1', 3),                                    'barrier not created');
 ok(check_action('POST', 'barrier', {name => 'barrier1', tasks => 3}), 'barrier create request valid');
 
 # instead of barrier_wait test barrier_try_wait to avoid block

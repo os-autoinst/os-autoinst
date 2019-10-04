@@ -476,7 +476,7 @@ sub script_output_test {
             }
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
     });
-    is(script_output('echo foo', 30),            'foo', '');
+    is(script_output('echo foo', 30), 'foo', '');
     is(script_output('echo foo', timeout => 30), 'foo', '');
 
     $mock_testapi->mock(wait_serial => sub {
@@ -523,7 +523,7 @@ subtest 'wait_still_screen' => sub {
     ok(wait_still_screen(stilltime => 2, no_wait => 1), 'no_wait option can be specified');
     ok(wait_still_screen(stilltime => 2, timeout => 5, no_wait => 1, similarity_level => 30), 'Add similarity_level & timeout');
     ok(!wait_still_screen(timeout => 4, no_wait => 1), 'two named args, with timeout below stilltime - which will always return false');
-    ok(wait_still_screen(1, 2, timeout => 3), 'named over positional');
+    ok(wait_still_screen(1, 2, timeout => 3),          'named over positional');
 };
 
 subtest 'set console tty and other args' => sub {
@@ -631,8 +631,8 @@ subtest 'check quiet option on script runs' => sub {
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', 30), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 expects command output');
-    is(script_run('true'),        '0',   'script_run with _QUIET_SCRIPT_CALLS=1');
-    is(assert_script_run('true'), undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1');
+    is(script_run('true'),            '0',   'script_run with _QUIET_SCRIPT_CALLS=1');
+    is(assert_script_run('true'),     undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1');
     ok(!validate_script_output('script', sub { m/output/ }), 'validate_script_output with _QUIET_SCRIPT_CALLS=1');
 
     $mock_testapi->mock(wait_serial => sub {
@@ -641,7 +641,7 @@ subtest 'check quiet option on script runs' => sub {
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', quiet => 0), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
-    is(script_run('true', quiet => 0), '0', 'script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
+    is(script_run('true', quiet => 0),        '0',   'script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     is(assert_script_run('true', quiet => 0), undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     ok(!validate_script_output('script', sub { m/output/ }, quiet => 0), 'validate_script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     delete $bmwqemu::vars{_QUIET_SCRIPT_CALLS};

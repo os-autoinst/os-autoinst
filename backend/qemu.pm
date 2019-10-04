@@ -280,7 +280,7 @@ sub _migrate_to_file {
     # Internally compressed dumps can't be opened by crash. They need to be
     # fed back into QEMU as an incoming migration.
     $self->set_migrate_capability('compress', 1) if $compress_level > 0;
-    $self->set_migrate_capability('events',   1);
+    $self->set_migrate_capability('events', 1);
 
     $self->handle_qmp_command(
         {
@@ -391,7 +391,7 @@ sub save_snapshot {
             my $drive = shift;
 
             my $overlay = $bdc->add_snapshot_to_drive($drive, $snapshot);
-            my $req     = {execute => 'blockdev-snapshot-sync',
+            my $req = {execute => 'blockdev-snapshot-sync',
                 arguments => {'node-name' => $overlay->backing_file->node_name,
                     'snapshot-node-name' => $overlay->node_name,
                     'snapshot-file'      => $overlay->file,
