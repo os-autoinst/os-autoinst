@@ -48,7 +48,7 @@ sub fake_read_json {
     my $cmd  = $lcmd->{cmd};
     if ($cmd eq 'backend_wait_serial') {
         my $str = $lcmd->{regexp};
-        $str =~ s,\\d\+,$fake_exit,;
+        $str =~ s,\\d\+(\\s\+\\S\+)?,$fake_exit,;
         return {ret => {matched => 1, string => $str}};
     }
     elsif ($cmd eq 'backend_select_console') {
@@ -230,9 +230,15 @@ subtest 'script_run' => sub {
         'using two named arguments; fail message does not apply on timeout'
     );
     $fake_exit = 0;
+    $cmds      = [];
     is(script_run('true'), '0', 'script_run with no check of success, returns exit code');
+    like($cmds->[1]->{text}, qr/; echo /);
+    $cmds = [];
+    is(script_run('true', output => 'foo'), '0', 'script_run with no check of success and output, returns exit code');
+    like($cmds->[1]->{text}, qr/; echo .*Comment: foo/);
     $fake_exit = 1;
     is(script_run('false'), '1', 'script_run with no check of success, returns exit code');
+    is(script_run('false', output => 'foo'), '1', 'script_run with no check of success and output, returns exit code');
     is(script_run('false', 0), undef, 'script_run with no check of success, returns undef when not waiting');
 };
 
@@ -291,7 +297,7 @@ subtest 'check_assert_screen' => sub {
         is_deeply($autotest::current_test->{details}, [
                 {
                     result     => 'unk',
-                    screenshot => 'basetest-11.png',
+                    screenshot => 'basetest-13.png',
                     frametime  => [qw(1.75 1.79)],
                     tags       => [qw(fake tags)],
                 }
