@@ -25,6 +25,9 @@ sub pass_message_from_ws_client_to_isotovideo {
 
     my $app        = $self->app;
     my $isotovideo = $app->defaults('isotovideo');
+    return $app->log->debug('cmdsrv: not passing command from client to isotovideo; connection to isotovideo has already been stopped')
+      unless defined $isotovideo;
+
     $app->log->debug("cmdsrv: passing command from client to isotovideo $isotovideo: $msg");
 
     my $decoded_message;
