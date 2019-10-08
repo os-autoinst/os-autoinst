@@ -23,16 +23,21 @@ use Mojo::JSON qw(decode_json to_json);
 sub pass_message_from_ws_client_to_isotovideo {
     my ($self, $id, $msg) = @_;
 
-    my $isotovideo = $self->app->defaults('isotovideo');
-    $self->app->log->debug("cmdsrv: passing command from client to isotovideo $isotovideo: " . $msg);
+    my $app        = $self->app;
+    my $isotovideo = $app->defaults('isotovideo');
+    $app->log->debug("cmdsrv: passing command from client to isotovideo $isotovideo: $msg");
+
+    my $decoded_message;
     try {
-        $msg = decode_json($msg);
+        $decoded_message = decode_json($msg);
     }
     catch {
-        $self->app->log->warning('cmdsrv: failed to decode message');
-        return;
+        $app->log->warn('cmdsrv: failed to decode message');
+        return undef;
     };
-    myjsonrpc::send_json($isotovideo, $msg);
+    return undef unless defined $decoded_message;
+
+    myjsonrpc::send_json($isotovideo, $decoded_message);
 
     # note: no myjsonrpc::read_json() here - response is broadcasted to all clients in commands.pm
 }
