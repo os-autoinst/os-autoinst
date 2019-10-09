@@ -25,6 +25,9 @@ sub pass_message_from_ws_client_to_isotovideo {
 
     my $app        = $self->app;
     my $isotovideo = $app->defaults('isotovideo');
+    return $app->log->debug('cmdsrv: not passing command from client to isotovideo; connection to isotovideo has already been stopped')
+      unless defined $isotovideo;
+
     $app->log->debug("cmdsrv: passing command from client to isotovideo $isotovideo: $msg");
 
     my $decoded_message;
@@ -71,6 +74,7 @@ sub broadcast_message_to_websocket_clients {
     my $app     = $self->app;
     my $clients = $app->defaults('clients');
     my $message = $self->req->json;
+
     $app->log->debug('cmdsrv: broadcasting message from API call to all ws clients');
     return $self->render(
         json => {
@@ -81,10 +85,13 @@ sub broadcast_message_to_websocket_clients {
     ) unless ($message);
 
     $app->log->debug('cmdsrv: broadcasting message from API call to all ws clients: ' . to_json($message));
+
     my $outstanding_transactions = scalar keys %$clients;
+    return $self->render(json => {status => 'boradcast done'}) unless $outstanding_transactions;
+
     for (keys %$clients) {
         $clients->{$_}->send({json => $message}, sub {
-                return if (($outstanding_transactions -= 1) > 0);
+                return undef if (($outstanding_transactions -= 1) > 0);
                 return $self->render(json => {status => 'boradcast done'});
         });
     }

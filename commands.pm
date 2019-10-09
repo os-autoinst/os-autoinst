@@ -203,6 +203,16 @@ sub current_script {
     return $self->reply->asset(Mojo::Asset::File->new(path => 'current_script'));
 }
 
+sub _handle_isotovideo_response {
+    my ($app, $response) = @_;
+
+    return undef unless $response->{stop_processing_isotovideo_commands};
+
+    # stop processing isotovideo commands if isotovideo says so
+    $app->log->debug('cmdsrv: stop processing isotovideo commands');
+    $app->defaults(isotovideo => undef);
+}
+
 sub isotovideo_command {
     my ($mojo_lite_controller, $commands) = @_;
 
@@ -215,12 +225,7 @@ sub isotovideo_command {
     # send command to isotovideo and block until a response arrives
     myjsonrpc::send_json($isotovideo, {cmd => $cmd, params => $mojo_lite_controller->req->query_params->to_hash});
     my $response = myjsonrpc::read_json($isotovideo);
-    if ($response->{stop_processing_isotovideo_commands}) {
-        # stop processing isotovideo commands if isotovideo says so
-        $app->log->debug('cmdsrv: stop processing isotovideo commands');
-        $app->defaults('isotovideo', undef);
-        return;
-    }
+    _handle_isotovideo_response($app, $response);
 
     return $mojo_lite_controller->render(json => $response);
 }
@@ -322,6 +327,7 @@ sub run_daemon {
 
             my $isotovideo_response = myjsonrpc::read_json($isotovideo);
             my $clients             = app->defaults('clients');
+            _handle_isotovideo_response(app, $isotovideo_response);
             delete $isotovideo_response->{json_cmd_token};
 
             app->log->debug('cmdsrv: broadcasting message from os-autoinst to all ws clients: ' . to_json($isotovideo_response));
