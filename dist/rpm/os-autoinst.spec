@@ -110,6 +110,9 @@ rm tools/lib/perlcritic/Perl/Critic/Policy/*.pm
 for i in 18-qemu-options 18-backend-qemu 99-full-stack; do
     cp t/05-pod.t t/${i}.t
 done
+# exclude known flaky tests in OBS check
+# https://progress.opensuse.org/issues/52652
+cp t/{05-pod,13-osutils}.t
 
 # should work offline
 for p in $(cpanfile-dump); do rpm -q --whatprovides "perl($p)"; done
