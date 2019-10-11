@@ -22,9 +22,11 @@ use autodie ':all';
 
 use File::Find;
 use File::Spec;
+use Mojo::File;
 use Mojo::JSON 'decode_json';
 use Cpanel::JSON::XS ();
 use File::Basename;
+use Try::Tiny;
 require IPC::System::Simple;
 use OpenQA::Benchmark::Stopwatch;
 
@@ -67,14 +69,13 @@ sub new {
     # $jsonfile contains absolute path within $bmwqemu::vars{PRJDIR}
 
     if (!$json) {
-        local $/;
-        open(my $fh, '<', $jsonfile);
-        $json = decode_json(<$fh>);
-        close($fh);
-        if (!$json || $@) {
-            warn "broken json $jsonfile: $@";
-            return;
+        try {
+            $json = decode_json(Mojo::File->new($jsonfile)->slurp);
         }
+        catch {
+            warn "broken json $jsonfile: $_";
+        };
+        return undef unless $json;
     }
 
     $self->{tags}       = $json->{tags}       || [];
