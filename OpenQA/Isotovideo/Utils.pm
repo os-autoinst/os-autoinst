@@ -44,11 +44,15 @@ argument C<clone_depth> which defaults to 1.
 
 =cut
 sub checkout_git_repo_and_branch {
-    my ($dir, %args) = @_;
-    my $url = Mojo::URL->new($bmwqemu::vars{$dir});
-    # assume we have a remote git URL to clone only if this looks like a remote URL
-    return unless $url->scheme;
+    my ($dir_variable, %args) = @_;
+    my $dir = $bmwqemu::vars{$dir_variable};
+    return undef unless defined $dir;
+
+    my $url = Mojo::URL->new($dir);
+    return undef unless $url->scheme;    # assume we have a remote git URL to clone only if this looks like a remote URL
+
     $args{clone_depth} //= 1;
+
     my $branch     = $url->fragment;
     my $clone_url  = $url->fragment(undef)->to_string;
     my $local_path = $url->path->parts->[-1] =~ s/.git//r;
@@ -61,7 +65,7 @@ sub checkout_git_repo_and_branch {
         diag "Cloning git URL '$clone_url' to use as test distribution";
         qx{env GIT_SSH_COMMAND="ssh -oBatchMode=yes" git clone $clone_args $clone_url};
     }
-    $bmwqemu::vars{$dir} = File::Spec->rel2abs($local_path);
+    return $bmwqemu::vars{$dir_variable} = File::Spec->rel2abs($local_path);
 }
 
 1;
