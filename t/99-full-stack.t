@@ -34,6 +34,9 @@ my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir     = "$toplevel_dir/t/data/";
 my $pool_dir     = "$toplevel_dir/t/pool/";
 
+note("data dir: $data_dir");
+note("pool dir: $pool_dir");
+
 chdir($pool_dir);
 open(my $var, '>', 'vars.json');
 print $var <<EOV;
