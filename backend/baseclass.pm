@@ -24,7 +24,6 @@ use autodie ':all';
 
 use Carp qw(cluck carp confess);
 use Mojo::JSON;    # booleans
-use Cpanel::JSON::XS ();
 use File::Copy 'cp';
 use File::Basename;
 use Time::HiRes qw(gettimeofday time tv_interval);
@@ -496,7 +495,7 @@ sub close_pipes {
     return unless $self->{rsppipe};
 
     bmwqemu::diag "sending magic and exit";
-    $self->{rsppipe}->print('{"QUIT":1}');
+    myjsonrpc::send_json($self->{rsppipe}, {QUIT => 1});
     close($self->{rsppipe}) || die "close $!\n";
     Devel::Cover::report() if Devel::Cover->can('report');
     _exit(0);
@@ -514,9 +513,7 @@ sub check_socket {
             my $rsp = {rsp => ($self->handle_command($cmd) // 0)};
             $rsp->{json_cmd_token} = $cmd->{json_cmd_token};
             if ($self->{rsppipe}) {    # the command might have closed it
-                my $cjx  = Cpanel::JSON::XS->new->convert_blessed();
-                my $json = $cjx->encode($rsp);
-                $self->{rsppipe}->print($json);
+                myjsonrpc::send_json($self->{rsppipe}, $rsp);
             }
         }
         else {
