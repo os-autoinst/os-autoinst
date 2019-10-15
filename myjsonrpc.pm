@@ -32,7 +32,8 @@ sub send_json {
     my $cjx = Cpanel::JSON::XS->new->convert_blessed();
     # deep copy to add a random string
     my %cmdcopy = %$cmd;
-    $cmdcopy{json_cmd_token} = bmwqemu::random_string(8);
+    # The hash might already contain a json_cmd_token
+    $cmdcopy{json_cmd_token} ||= bmwqemu::random_string(8);
     my $json = $cjx->encode(\%cmdcopy);
 
     #bmwqemu::diag("send_json $json");
