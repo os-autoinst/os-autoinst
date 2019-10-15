@@ -24,6 +24,7 @@ use autodie ':all';
 
 use Carp qw(cluck carp confess);
 use Mojo::JSON;    # booleans
+use Cpanel::JSON::XS ();
 use File::Copy 'cp';
 use File::Basename;
 use Time::HiRes qw(gettimeofday time tv_interval);
