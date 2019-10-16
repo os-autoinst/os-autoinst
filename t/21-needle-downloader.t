@@ -11,6 +11,7 @@ use Test::Warnings;
 use Test::Output 'stderr_like';
 use Mojo::File qw(path tempdir);
 use OpenQA::Isotovideo::NeedleDownloader;
+use needle;
 
 BEGIN {
     unshift @INC, '..';
@@ -26,9 +27,8 @@ $user_agent_mock->mock(get => sub {
 });
 
 # setup needle directory
-my $needle_dir = path(tempdir, 'needle_dir');
+my $needle_dir = $needle::needles_dir = path(tempdir, 'needle_dir');
 ok(make_path($needle_dir), 'create test needle dir under ' . $needle_dir);
-$bmwqemu::vars{NEEDLES_DIR} = $needle_dir;
 
 subtest 'deduce URL for needle download from test variable OPENQA_URL' => sub {
     $bmwqemu::vars{OPENQA_URL} = 'https://openqa1-opensuse';

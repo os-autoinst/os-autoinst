@@ -20,11 +20,14 @@ use strict;
 use warnings;
 use autodie ':all';
 
+use Cwd 'cwd';
 use File::Find;
 use File::Spec;
+use Mojo::File;
 use Mojo::JSON 'decode_json';
 use Cpanel::JSON::XS ();
 use File::Basename;
+use Try::Tiny;
 require IPC::System::Simple;
 use OpenQA::Benchmark::Stopwatch;
 
@@ -51,30 +54,37 @@ sub new {
     }
 
     my $self = {};
-    if (index($jsonfile, $bmwqemu::vars{PRJDIR}) == 0) {
-        $self->{file} = substr($jsonfile, length($bmwqemu::vars{PRJDIR}) + 1);
-    }
-    elsif (-f File::Spec->catfile($bmwqemu::vars{PRJDIR}, $jsonfile)) {
-        # json file path already relative
-        $self->{file} = $jsonfile;
-        $jsonfile = File::Spec->catfile($bmwqemu::vars{PRJDIR}, $jsonfile);
-    }
-    else {
-        die "Needle $jsonfile is not under project directory $bmwqemu::vars{PRJDIR}";
-    }
 
-    # $json->{file} contains path relative to $bmwqemu::vars{PRJDIR}
-    # $jsonfile contains absolute path within $bmwqemu::vars{PRJDIR}
+    # locate the needle's JSON file in one of the allowed parent directories
+    # - This code initializes $json->{file} so it contains the path relative to the lookup
+    #   directory and re-assigns $jsonfile to contain the absolute path.
+    # - The needle must be within the needle directory ($needledir) or the project directory.
+    # - The needle directory might be within the current working directory to support loading custom
+    #   needles (e.g. with the openqa-clone-custom-git-refspec script).
+    my @allowed_parent_dirs = ($needledir, $bmwqemu::vars{PRJDIR});
+    for my $allowed_parrent_dir (@allowed_parent_dirs) {
+        if (index($jsonfile, $allowed_parrent_dir) == 0) {
+            $self->{file} = substr($jsonfile, length($allowed_parrent_dir) + 1);
+            last;
+        }
+        elsif (-f File::Spec->catfile($allowed_parrent_dir, $jsonfile)) {
+            # json file path already relative
+            $self->{file} = $jsonfile;
+            $jsonfile = File::Spec->catfile($allowed_parrent_dir, $jsonfile);
+            last;
+        }
+    }
+    die "Needle $jsonfile is not under any of the following directories: " . join(', ', @allowed_parent_dirs)
+      unless exists $self->{file};
 
     if (!$json) {
-        local $/;
-        open(my $fh, '<', $jsonfile);
-        $json = decode_json(<$fh>);
-        close($fh);
-        if (!$json || $@) {
-            warn "broken json $jsonfile: $@";
-            return;
+        try {
+            $json = decode_json(Mojo::File->new($jsonfile)->slurp);
         }
+        catch {
+            warn "broken json $jsonfile: $_";
+        };
+        return undef unless $json;
     }
 
     $self->{tags}       = $json->{tags}       || [];
@@ -312,11 +322,24 @@ sub wanted_ {
     }
 }
 
-sub init {
-    ($needledir) = @_;
+sub default_needles_dir {
+    return "$bmwqemu::vars{PRODUCTDIR}/needles";
+}
 
-    $needledir //= $bmwqemu::vars{NEEDLES_DIR};
-    -d $needledir || die "needledir not found: $needledir (check vars.json?)";
+sub init {
+    # validate that possibly user-provided NEEDLES_DIR is a path within the current working directory (usually the openQA worker's pool directory)
+    my $user_provided_needles_dir = $bmwqemu::vars{NEEDLES_DIR};
+    if (defined $user_provided_needles_dir) {
+        $user_provided_needles_dir = File::Spec->rel2abs($user_provided_needles_dir) unless File::Spec->file_name_is_absolute($user_provided_needles_dir);
+        if (index($user_provided_needles_dir, cwd) != 0) {
+            $bmwqemu::vars{NEEDLES_DIR} = $user_provided_needles_dir = undef;
+            bmwqemu::diag('Ignoring needle dir specified via NEEDLES_DIR because it is not within the current working directory.');
+        }
+    }
+
+    # initialize/re-assign global $needledir
+    $needledir = ($user_provided_needles_dir // default_needles_dir);
+    die "needledir not found: $needledir (check vars.json?)" unless -d $needledir;
 
     %needles = ();
     %tags    = ();
@@ -327,6 +350,8 @@ sub init {
     if ($cleanuphandler) {
         &$cleanuphandler();
     }
+
+    return $needledir;
 }
 
 sub tags {
