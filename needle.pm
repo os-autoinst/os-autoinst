@@ -62,15 +62,15 @@ sub new {
     # - The needle directory might be within the current working directory to support loading custom
     #   needles (e.g. with the openqa-clone-custom-git-refspec script).
     my @allowed_parent_dirs = ($needledir, $bmwqemu::vars{PRJDIR});
-    for my $allowed_parrent_dir (@allowed_parent_dirs) {
-        if (index($jsonfile, $allowed_parrent_dir) == 0) {
-            $self->{file} = substr($jsonfile, length($allowed_parrent_dir) + 1);
+    for my $allowed_parent_dir (@allowed_parent_dirs) {
+        if (index($jsonfile, $allowed_parent_dir) == 0) {
+            $self->{file} = substr($jsonfile, length($allowed_parent_dir) + 1);
             last;
         }
-        elsif (-f File::Spec->catfile($allowed_parrent_dir, $jsonfile)) {
+        elsif (-f File::Spec->catfile($allowed_parent_dir, $jsonfile)) {
             # json file path already relative
             $self->{file} = $jsonfile;
-            $jsonfile = File::Spec->catfile($allowed_parrent_dir, $jsonfile);
+            $jsonfile = File::Spec->catfile($allowed_parent_dir, $jsonfile);
             last;
         }
     }
