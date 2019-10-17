@@ -20,6 +20,7 @@ use strict;
 use warnings;
 use autodie ':all';
 
+use Cwd 'cwd';
 use File::Find;
 use File::Spec;
 use Mojo::File;
@@ -53,20 +54,22 @@ sub new {
     }
 
     my $self = {};
-    if (index($jsonfile, $bmwqemu::vars{PRJDIR}) == 0) {
-        $self->{file} = substr($jsonfile, length($bmwqemu::vars{PRJDIR}) + 1);
+
+    # locate the needle's JSON file within the needle directory
+    # - This code initializes $json->{file} so it contains the path within the needle directory.
+    # - $jsonfile is re-assigned to contain the absolute path the the JSON file.
+    # - The needle must be within the needle directory.
+    if (index($jsonfile, $needledir) == 0) {
+        $self->{file} = substr($jsonfile, length($needledir) + 1);
     }
-    elsif (-f File::Spec->catfile($bmwqemu::vars{PRJDIR}, $jsonfile)) {
+    elsif (-f File::Spec->catfile($needledir, $jsonfile)) {
         # json file path already relative
         $self->{file} = $jsonfile;
-        $jsonfile = File::Spec->catfile($bmwqemu::vars{PRJDIR}, $jsonfile);
+        $jsonfile = File::Spec->catfile($needledir, $jsonfile);
     }
     else {
-        die "Needle $jsonfile is not under project directory $bmwqemu::vars{PRJDIR}";
+        die "Needle $jsonfile is not under needle directory $needledir";
     }
-
-    # $json->{file} contains path relative to $bmwqemu::vars{PRJDIR}
-    # $jsonfile contains absolute path within $bmwqemu::vars{PRJDIR}
 
     if (!$json) {
         try {

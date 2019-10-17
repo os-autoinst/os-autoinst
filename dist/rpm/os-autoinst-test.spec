@@ -24,8 +24,7 @@ echo '1;' > main.pm
 mkdir needles
 cat - > vars.json <<EOF
 {
-    "CASEDIR": "/tmp",
-    "PRJDIR": "/tmp"
+    "CASEDIR": "/tmp"
 }
 EOF
 isotovideo -d casedir=$(pwd -P) productdir=$(pwd -P) |& tee isotovideo.log ||:

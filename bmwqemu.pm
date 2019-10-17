@@ -162,15 +162,7 @@ sub ensure_valid_vars {
 
     die "CASEDIR variable not set, unknown test case directory" if !defined $vars{CASEDIR};
     die "No scripts in $vars{CASEDIR}" if !-e "$vars{CASEDIR}";
-    unless ($vars{PRJDIR}) {
-        if (index($vars{CASEDIR}, $openqa_default_share) != 0) {
-            diag("PRJDIR not specified and CASEDIR ($vars{CASEDIR}) does not appear to be a subdir of default ($openqa_default_share), using CASEDIR instead");
-            $vars{PRJDIR} = $vars{CASEDIR};
-        }
-        else {
-            $vars{PRJDIR} = $openqa_default_share;
-        }
-    }
+
     save_vars();
 }
 
