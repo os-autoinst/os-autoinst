@@ -441,11 +441,12 @@ sub load_snapshot {
 
     my $snapshot = $self->{proc}->revert_to_snapshot($vmname);
 
-    $self->{qemupipe}  = $self->{proc}->exec_qemu();
+    my $qemu_pipe = $self->{qemupipe} = $self->{proc}->exec_qemu();
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
-    $self->{select}->add($self->{qemupipe});
+    $self->{select_read}->add($qemu_pipe);
+    $self->{select_write}->add($qemu_pipe);
 
     # Ideally we want to send a file descriptor to QEMU, but it doesn't seem
     # to work for incoming migrations, so we are forced to use exec:cat instead.
@@ -872,7 +873,7 @@ sub start_qemu {
         }
     }
 
-    $self->{qemupipe}  = $self->{proc}->exec_qemu();
+    my $qemu_pipe = $self->{qemupipe} = $self->{proc}->exec_qemu();
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
@@ -937,7 +938,8 @@ sub start_qemu {
         $self->handle_qmp_command({execute => 'cont'});
     }
 
-    $self->{select}->add($self->{qemupipe});
+    $self->{select_read}->add($qemu_pipe);
+    $self->{select_write}->add($qemu_pipe);
 }
 
 =head2 handle_qmp_command
@@ -998,12 +1000,13 @@ sub close_pipes {
     my ($self) = @_;
     $self->do_stop_vm();
 
-    if ($self->{qemupipe}) {
+    if (my $qemu_pipe = $self->{qemupipe}) {
         # one last word?
-        fcntl($self->{qemupipe}, Fcntl::F_SETFL, Fcntl::O_NONBLOCK);
+        fcntl($qemu_pipe, Fcntl::F_SETFL, Fcntl::O_NONBLOCK);
         $self->read_qemupipe();
-        $self->{select}->remove($self->{qemupipe});
-        close($self->{qemupipe});
+        $self->{select_read}->remove($qemu_pipe);
+        $self->{select_write}->remove($qemu_pipe);
+        close($qemu_pipe);
         $self->{qemupipe} = undef;
     }
 
