@@ -3,8 +3,7 @@
 use strict;
 use warnings;
 use Cwd 'abs_path';
-use Test::Exception;
-use Test::Output qw(combined_like stderr_like);
+use Test::Output 'stderr_like';
 use Test::More;
 use Test::Warnings 'warning';
 use File::Basename;
@@ -31,10 +30,7 @@ require tinycv;
 my ($res, $needle, $img1, $cand);
 
 my $data_dir        = dirname(__FILE__) . '/data/';
-my $misc_needle_dir = abs_path(dirname(__FILE__)) . '/misc_needles/';
-
-$bmwqemu::vars{NEEDLES_DIR} = $data_dir;
-needle::init;
+my $misc_needle_dir = dirname(__FILE__) . '/misc_needles/';
 
 $img1 = tinycv::read($data_dir . "bootmenu.test.png");
 
@@ -170,9 +166,9 @@ ok($needle->{area}->[0]->{margin} == 300, "search margin have the default value"
 $res = $img1->search($needle);
 ok(defined $res, "found a match for 300 margin");
 
-needle::init;
-
+needle::init($data_dir);
 my @alltags = sort keys %needle::tags;
+
 my @needles = @{needle::tags('FIXME') || []};
 is(@needles, 4, "four needles found");
 for my $n (@needles) {
@@ -383,7 +379,6 @@ ok($needle->get_image != $img1, 'cleaning cache to keep 1 image deleted $img1');
 
 # test needle->file is relative to default prjdir
 is($needle->{file}, 'data/other-desktop-dvd-20140904.json', 'needle json path is relative to prjdir');
-
 # test needle dir is symlinked from different location
 $bmwqemu::vars{PRJDIR} = tempdir(CLEANUP => 1);
 my $new_data_dir = $bmwqemu::vars{PRJDIR} . '/out-of-def-prj/test/data';
@@ -402,42 +397,6 @@ is($needle->{file}, 'out-of-def-prj/test/data/other-desktop-dvd-20140904.json', 
 
 eval { $needle = needle->new('out-of-prj/test/data/some-needle.json') };
 ok($@, 'died when accessing needle outside of prjdir');
-
-subtest 'needle->new accepts path relative to working directory' => sub {
-    # create needle directory in temp directory and make it the current working directory
-    my $temp_working_dir = tempdir(CLEANUP => 1);
-    my $needles_dir      = $bmwqemu::vars{NEEDLES_DIR} = "$temp_working_dir/some-needle-repo";
-    make_path("$needles_dir/subdir");
-    for my $extension (qw(json png)) {
-        Mojo::File->new($misc_needle_dir, "click-point.$extension")->copy_to("$needles_dir/subdir/foo.$extension");
-    }
-
-    # re-initialize needles to reflect the changed $bmwqemu::vars{NEEDLES_DIR} (negative case where NEEDLES_DIR is ignored)
-    $bmwqemu::vars{PRODUCTDIR} = '/does/not/exist';    # set PRODUCTDIR as it is used to deduce the default needle dir
-    combined_like(
-        sub {
-            throws_ok(
-                sub {
-                    needle::init;
-                },
-                qr{needledir not found: /does/not/exist/needles}s,
-                'attempt to use default needle dir (which does not exist here)'
-            );
-        },
-        qr{Ignoring needle dir specified via NEEDLES_DIR because it is not within the current working directory\.}s,
-        'custom needle dir outside cwd ignored'
-    );
-
-    # change the working directory to actually initialize the needles
-    note("using working directory $temp_working_dir");
-    chdir($temp_working_dir);
-    $bmwqemu::vars{NEEDLES_DIR} = $needles_dir;
-    is(needle::init, $needles_dir, 'custom needle dir accepted');
-
-    ok($needle = needle->new('subdir/foo.json'), 'needle object created with needle from working directory');
-    is($needle->{file}, 'subdir/foo.json',             'relative file path assigned');
-    is($needle->{png},  "$needles_dir/subdir/foo.png", 'absolute image path assigned');
-};
 
 subtest 'click point' => sub {
     $bmwqemu::vars{PRJDIR} = $misc_needle_dir;
