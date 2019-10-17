@@ -46,9 +46,10 @@ sub do_start_vm {
         'novalink-ssh',
         'ssh-xterm',
         {
-            hostname => get_required_var('NOVALINK_HOSTNAME'),
-            password => get_required_var('NOVALINK_PASSWORD'),
-            username => get_var('NOVALINK_USERNAME', 'root')});
+            hostname   => get_required_var('NOVALINK_HOSTNAME'),
+            password   => get_required_var('NOVALINK_PASSWORD'),
+            username   => get_var('NOVALINK_USERNAME', 'root'),
+            persistent => 1});
     $ssh->backend($self);
 
     return {};
