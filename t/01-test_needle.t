@@ -3,7 +3,8 @@
 use strict;
 use warnings;
 use Cwd 'abs_path';
-use Test::Output 'stderr_like';
+use Test::Exception;
+use Test::Output qw(combined_like stderr_like);
 use Test::More;
 use Test::Warnings 'warning';
 use File::Basename;
@@ -18,7 +19,6 @@ BEGIN {
     unshift @INC, '..';
     $bmwqemu::vars{DISTRI}  = "unicorn";
     $bmwqemu::vars{CASEDIR} = "/var/lib/empty";
-    $bmwqemu::vars{PRJDIR}  = dirname(__FILE__);
 }
 
 use needle;
@@ -30,11 +30,13 @@ require tinycv;
 my ($res, $needle, $img1, $cand);
 
 my $data_dir        = dirname(__FILE__) . '/data/';
-my $misc_needle_dir = dirname(__FILE__) . '/misc_needles/';
+my $misc_needle_dir = abs_path(dirname(__FILE__)) . '/misc_needles/';
 
-$img1 = tinycv::read($data_dir . "bootmenu.test.png");
+$bmwqemu::vars{NEEDLES_DIR} = $data_dir;
+needle::init;
 
-$needle = needle->new($data_dir . "bootmenu.ref.json");
+$img1   = tinycv::read($data_dir . 'bootmenu.test.png');
+$needle = needle->new('bootmenu.ref.json');
 
 is($needle->has_tag('inst-bootmenu'), 1, "tag found");
 is($needle->has_tag('foobar'),        0, "tag not found");
@@ -52,7 +54,7 @@ ok($res->{ok},                           "match in array context ok == 1");
 ok($res->{area}->[-1]->{result} eq 'ok', "match in array context result == ok");
 ok(!defined $cand,                       "candidates must be undefined");
 
-$needle = needle->new($data_dir . "bootmenu-fail.ref.json");
+$needle = needle->new('bootmenu-fail.ref.json');
 $res    = $img1->search($needle);
 ok(!defined $res, "no match");
 
@@ -60,29 +62,23 @@ ok(!defined $res, "no match");
 ok(!defined $res,                         "no match in array context");
 ok(defined $cand && ref $cand eq 'ARRAY', "candidates must be array");
 
-# this test is just asking too much as the screens are very different (SSIM of 87%!)
-#$img1   = tinycv::read($data_dir . "welcome.test.png");
-#$needle = needle->new($data_dir . "welcome.ref.json");
-#$res    = $img1->search($needle);
-#ok( defined $res, "match with different art" );
-
-$img1   = tinycv::read($data_dir . "reclaim_space_delete_btn-20160823.test.png");
-$needle = needle->new($data_dir . "reclaim_space_delete_btn-20160823.ref.json");
+$img1   = tinycv::read($data_dir . 'reclaim_space_delete_btn-20160823.test.png');
+$needle = needle->new('reclaim_space_delete_btn-20160823.ref.json');
 
 $res = $img1->search($needle, 0, 0);
 is($res->{area}->[0]->{x}, 108, "found area is the original one");
 $res = $img1->search($needle, 0, 0.9);
 is($res->{area}->[0]->{x}, 108, "found area is the original one too");
 
-$img1   = tinycv::read($data_dir . "kde.test.png");
-$needle = needle->new($data_dir . "kde.ref.json");
+$img1   = tinycv::read($data_dir . 'kde.test.png');
+$needle = needle->new('kde.ref.json');
 $res    = $img1->search($needle);
 ok(!defined $res, "no match with different art");
 
 subtest 'handle failure to load image' => sub {
-    my $needle_with_png = needle->new("${data_dir}kde.ref.json");
+    my $needle_with_png = needle->new('kde.ref.json');
     ok(my $image = $needle_with_png->get_image, 'image returned');
-    my $needle_without_png  = needle->new("${data_dir}console.ref.json");
+    my $needle_without_png  = needle->new('console.ref.json');
     my $missing_needle_path = $needle_without_png->{png} .= '.missing.png';
     is($needle_without_png->get_image, undef, 'get_image returns undef if no image present');
 
@@ -100,8 +96,8 @@ subtest 'handle failure to load image' => sub {
     );
 };
 
-$img1   = tinycv::read($data_dir . "console.test.png");
-$needle = needle->new($data_dir . "console.ref.json");
+$img1   = tinycv::read($data_dir . 'console.test.png');
+$needle = needle->new('console.ref.json');
 ($res, $cand) = $img1->search($needle);
 ok(!defined $res, "no match different console screenshots");
 # prevent tiny resolution differences to fail the test
@@ -121,35 +117,29 @@ is_deeply(
     'candidate is almost true'
 );
 
-# XXX TODO -- This need to be fixed.
-# $img1   = tinycv::read($data_dir . "font-kerning.test.png");
-# $needle = needle->new($data_dir . "font-kerning.ref.json");
-# $res    = $img1->search($needle);
-# ok( defined $res, "match when the font kerning change" );
-
-$img1   = tinycv::read($data_dir . "instdetails.test.png");
-$needle = needle->new($data_dir . "instdetails.ref.json");
+$img1   = tinycv::read($data_dir . 'instdetails.test.png');
+$needle = needle->new('instdetails.ref.json');
 $res    = $img1->search($needle);
 ok(!defined $res, "no match different perform installation tabs");
 
 # Check that if the margin is missing from JSON, is set in the hash
-$img1   = tinycv::read($data_dir . "uefi.test.png");
-$needle = needle->new($data_dir . "uefi.ref.json");
+$img1   = tinycv::read($data_dir . 'uefi.test.png');
+$needle = needle->new('uefi.ref.json');
 ok($needle->{area}->[0]->{margin} == 50, "search margin have the default value");
 $res = $img1->search($needle);
 ok(!defined $res, "no found a match for an small margin");
 
 # Check that if the margin is set in JSON, is set in the hash
-$img1   = tinycv::read($data_dir . "uefi.test.png");
-$needle = needle->new($data_dir . "uefi-margin.ref.json");
+$img1   = tinycv::read($data_dir . 'uefi.test.png');
+$needle = needle->new('uefi-margin.ref.json');
 ok($needle->{area}->[0]->{margin} == 100, "search margin have the defined value");
 $res = $img1->search($needle);
 ok(defined $res,                                                   "found match for a large margin");
 ok($res->{area}->[0]->{x} == 378 && $res->{area}->[0]->{y} == 221, "mach area coordinates");
 
 # This test fails in internal SLE system
-$img1   = tinycv::read($data_dir . "glibc_i686.test.png");
-$needle = needle->new($data_dir . "glibc_i686.ref.json");
+$img1   = tinycv::read($data_dir . 'glibc_i686.test.png');
+$needle = needle->new('glibc_i686.ref.json');
 $res    = $img1->search($needle);
 ok(!defined $res, "no found a match for an small margin");
 # We emulate 'assert_screen "needle", 3'
@@ -160,15 +150,15 @@ for (my $n = 0; $n < $timeout; $n++) {
 }
 ok(defined $res, "found match after timeout");
 
-$img1   = tinycv::read($data_dir . "zypper_ref.test.png");
-$needle = needle->new($data_dir . "zypper_ref.ref.json");
+$img1   = tinycv::read($data_dir . 'zypper_ref.test.png');
+$needle = needle->new('zypper_ref.ref.json');
 ok($needle->{area}->[0]->{margin} == 300, "search margin have the default value");
 $res = $img1->search($needle);
 ok(defined $res, "found a match for 300 margin");
 
-needle::init($data_dir);
-my @alltags = sort keys %needle::tags;
+needle::init;
 
+my @alltags = sort keys %needle::tags;
 my @needles = @{needle::tags('FIXME') || []};
 is(@needles, 4, "four needles found");
 for my $n (@needles) {
@@ -194,55 +184,55 @@ $img1 = tinycv::read($data_dir . "user_settings-1.png");
 my $img2 = tinycv::read($data_dir . "user_settings-2.png");
 ok($img1->similarity($img2) > 53, "similarity is too small");
 
-$img1   = tinycv::read($data_dir . "screenlock.test.png");
-$needle = needle->new($data_dir . "screenlock.ref.json");
+$img1   = tinycv::read($data_dir . 'screenlock.test.png');
+$needle = needle->new('screenlock.ref.json');
 $res    = $img1->search($needle);
 
 ok(defined $res, "match screenlock");
 
 $img1   = tinycv::read($data_dir . "desktop-at-first-boot-kde-without-greeter-20140926.test.png");
-$needle = needle->new($data_dir . "desktop-at-first-boot-kde-without-greeter-20140926.json");
+$needle = needle->new("desktop-at-first-boot-kde-without-greeter-20140926.json");
 $res    = $img1->search($needle);
 ok(!defined $res, "KDE clearly not ready");
 
 $img1   = tinycv::read($data_dir . "yast2_lan-hostname-tab-20140630.test.png");
-$needle = needle->new($data_dir . "yast2_lan-hostname-tab-20140630.json");
+$needle = needle->new("yast2_lan-hostname-tab-20140630.json");
 $res    = $img1->search($needle);
 
 ok(defined $res, "hostname is different");
 
 $img1   = tinycv::read($data_dir . "desktop_mainmenu-gnomesled-sles12.test.png");
-$needle = needle->new($data_dir . "desktop_mainmenu-gnomesled-sles12.json");
+$needle = needle->new("desktop_mainmenu-gnomesled-sles12.json");
 $res    = $img1->search($needle);
 
 ok(!defined $res, "the mixer has a hover effect");
 
 $img1   = tinycv::read($data_dir . "inst-video-typed-sles12b9.test.png");
-$needle = needle->new($data_dir . "inst-video-typed-sles12b9.json");
+$needle = needle->new("inst-video-typed-sles12b9.json");
 $res    = $img1->search($needle);
 
 ok(!defined $res, "the contrast is just too different");
 
 $img1   = tinycv::read($data_dir . "xterm-started-20141204.test.png");
-$needle = needle->new($data_dir . "xterm-started-20141204.json");
+$needle = needle->new("xterm-started-20141204.json");
 $res    = $img1->search($needle, 0, 0.7);
 
 ok(defined $res, "xterm basically the same");
 
 $img1   = tinycv::read($data_dir . "pkcon-proceed-prompt-20141205.test.png");
-$needle = needle->new($data_dir . "pkcon-proceed-prompt-20141205.json");
+$needle = needle->new("pkcon-proceed-prompt-20141205.json");
 $res    = $img1->search($needle, 0, 0.7);
 
 ok(defined $res, "the prompt is the same to the human eye");
 
 $img1   = tinycv::read($data_dir . "displaymanager-sle12.test.png");
-$needle = needle->new($data_dir . "displaymanager-sle12.json");
+$needle = needle->new("displaymanager-sle12.json");
 $res    = $img1->search($needle);
 
 ok(!defined $res, "the headline is completely different");
 
 $img1   = tinycv::read($data_dir . "inst-rescuesystem-20141027.test.png");
-$needle = needle->new($data_dir . "inst-rescuesystem-20141027.json");
+$needle = needle->new("inst-rescuesystem-20141027.json");
 ($res, $cand) = $img1->search($needle);
 is_deeply(
     $cand->[0]->{area},
@@ -262,7 +252,7 @@ is_deeply(
 
 ok(!defined $res, "different text");
 
-$needle = needle->new($data_dir . "ooffice-save-prompt-gnome-20160713.json");
+$needle = needle->new("ooffice-save-prompt-gnome-20160713.json");
 $img1   = tinycv::read($data_dir . "ooffice-save-prompt-gnome-20160713.test.png");
 ($res, $cand) = $img1->search($needle);
 
@@ -285,36 +275,36 @@ is_deeply(
 
 
 $img1   = tinycv::read($data_dir . "inst-welcome-20140902.test.png");
-$needle = needle->new($data_dir . "inst-welcome-20140902.json");
+$needle = needle->new("inst-welcome-20140902.json");
 $res    = $img1->search($needle);
 
 ok(defined $res, "match welcome");
 
 $img1   = tinycv::read($data_dir . "confirmlicense-sle12.test.png");
-$needle = needle->new($data_dir . "confirmlicense-sle12.json");
+$needle = needle->new("confirmlicense-sle12.json");
 $res    = $img1->search($needle);
 
 ok(defined $res, "license to confirm");
 
 $img1   = tinycv::read($data_dir . "desktop-runner-20140523.test.png");
-$needle = needle->new($data_dir . "desktop-runner-20140523.json");
+$needle = needle->new("desktop-runner-20140523.json");
 $res    = $img1->search($needle);
 
 ok(defined $res, "just some dark shade");
 
 $img1   = tinycv::read($data_dir . "accept-ssh-host-key.test.png");
-$needle = needle->new($data_dir . "accept-ssh-host-key.json");
+$needle = needle->new("accept-ssh-host-key.json");
 $res    = $img1->search($needle);
 
 ok(!defined $res, "no match for blinking cursor");
 
 $img1   = tinycv::read($data_dir . "xorg_vt-Xorg-20140729.test.png");
-$needle = needle->new($data_dir . "xorg_vt-Xorg-20140729.json");
+$needle = needle->new("xorg_vt-Xorg-20140729.json");
 $res    = $img1->search($needle);
 
 ok(!defined $res, "the y goes into the line");
 
-$needle = needle->new($data_dir . "kde-unselected-20141211.json");
+$needle = needle->new("kde-unselected-20141211.json");
 $img1   = tinycv::read($data_dir . "kde-unselected-20141211.test.png");
 $res    = $img1->search($needle);
 
@@ -327,7 +317,7 @@ is($res->{area}->[-1]->{y}, 260);
 is($res->{area}->[-1]->{x}, 313);
 
 $img1   = tinycv::read($data_dir . "other-desktop-dvd-20140904.test.png");
-$needle = needle->new($data_dir . "other-desktop-dvd-20140904.json");
+$needle = needle->new("other-desktop-dvd-20140904.json");
 $res    = $img1->search($needle);
 
 ok(!defined $res, "the hot keys don't match");
@@ -335,9 +325,9 @@ ok(!defined $res, "the hot keys don't match");
 # match comparison tests
 # note it's important that the workaround needle sort alphabetically
 # *AFTER* the imperfect needle, so it doesn't win 'by accident'
-my $perfect    = needle->new($data_dir . "login_sddm.ref.perfect.json");
-my $imperfect  = needle->new($data_dir . "login_sddm.ref.imperfect.json");
-my $workaround = needle->new($data_dir . "login_sddm.ref.workaround.imperfect.json");
+my $perfect    = needle->new("login_sddm.ref.perfect.json");
+my $imperfect  = needle->new("login_sddm.ref.imperfect.json");
+my $workaround = needle->new("login_sddm.ref.workaround.imperfect.json");
 
 # test that a perfect non-workaround match is preferred to imperfect
 # non-workaround and workaround matches
@@ -353,14 +343,14 @@ is($res->{needle}->{name}, 'login_sddm.ref.workaround.imperfect', "workaround ma
 # test caching via needle->get_image
 needle::clean_image_cache(0);
 is(needle::image_cache_size, 0, 'image cache completely cleaned');
-$needle        = needle->new($data_dir . 'other-desktop-dvd-20140904.json');
+$needle        = needle->new('other-desktop-dvd-20140904.json');
 $needle->{png} = $data_dir . 'other-desktop-dvd-20140904.test.png';
 $img1          = $needle->get_image;
 ok(defined $img1, 'image returned');
 is(needle::image_cache_size, 1,     'cache size increased');
 is($needle->get_image,       $img1, 'cached image returned on next call');
 is(needle::image_cache_size, 1,     'cache size not further increased');
-my $other_needle = needle->new($data_dir . 'xorg_vt-Xorg-20140729.json');
+my $other_needle = needle->new('xorg_vt-Xorg-20140729.json');
 $other_needle->{png} = $data_dir . 'xorg_vt-Xorg-20140729.test.png';
 $img2 = $other_needle->get_image;
 ok($img2 != $img1, 'different image returned for other needle instance');
@@ -376,49 +366,81 @@ $img2 = $other_needle->get_image;    # make $img2 the most recently used
 needle::clean_image_cache(1);
 is($other_needle->get_image, $img2, 'cleaning cache to keep 1 image kept $img2');
 ok($needle->get_image != $img1, 'cleaning cache to keep 1 image deleted $img1');
+is($needle->{file}, 'other-desktop-dvd-20140904.json', 'needle json path is relative to needles dir');
 
-# test needle->file is relative to default prjdir
-is($needle->{file}, 'data/other-desktop-dvd-20140904.json', 'needle json path is relative to prjdir');
-# test needle dir is symlinked from different location
-$bmwqemu::vars{PRJDIR} = tempdir(CLEANUP => 1);
-my $new_data_dir = $bmwqemu::vars{PRJDIR} . '/out-of-def-prj/test/data';
-ok(make_path($bmwqemu::vars{PRJDIR} . '/out-of-def-prj/test/'), 'out of project datadir exists');
-ok(symlink(abs_path($data_dir), $new_data_dir), 'needles linked');
+TODO: {
+    local $TODO = 'loading needles outside the needle dir not prevented yet';
+    throws_ok(
+        sub {
+            $needle = needle->new('../misc_needles/click-point.json');
+        },
+        qr{Needle ../misc_needles/click-point.json is not under needle directory}s,
+        'died when accessing needle outside of needledir'
+    );
+}
 
-# test needle->file is relative to different prjdir
-$needle = needle->new($new_data_dir . '/login_sddm.ref.perfect.json');
-ok($needle, 'needle object created from symlinked resource outside of prjdir');
-is($needle->{file}, 'out-of-def-prj/test/data/login_sddm.ref.perfect.json', 'json file path is relative to prjdir');
-ok(-f $needle->{png}, 'png file is accessible');
+subtest 'needle::init accepts custom NEEDLES_DIR within working directory and otherwise falls back to "$bmwqemu::vars{PRODUCTDIR}/needles"' => sub {
+    # create temporary working directory and a needle directory within it
+    my $temp_working_dir = tempdir(CLEANUP => 1);
+    my $needles_dir = $bmwqemu::vars{NEEDLES_DIR} = "$temp_working_dir/some-needle-repo";
+    make_path("$needles_dir/subdir");
+    for my $extension (qw(json png)) {
+        Mojo::File->new($misc_needle_dir, "click-point.$extension")->copy_to("$needles_dir/subdir/foo.$extension");
+    }
 
-# test needle-new accepts relative path if the path is still under set prjdir
-ok($needle = needle->new('out-of-def-prj/test/data/other-desktop-dvd-20140904.json'), 'needle object created with relpath');
-is($needle->{file}, 'out-of-def-prj/test/data/other-desktop-dvd-20140904.json', 'needle json file path is left intact');
+    subtest 'custom NEEDLES_DIR ignored when not within working directory' => sub {
+        $bmwqemu::vars{PRODUCTDIR} = '/does/not/exist';    # set PRODUCTDIR as it is used to deduce the default needle dir
+        combined_like(
+            sub {
+                throws_ok(
+                    sub {
+                        needle::init;
+                    },
+                    qr{needledir not found: /does/not/exist/needles}s,
+                    'attempt to use default needle dir (which does not exist here)'
+                );
+            },
+            qr{Ignoring needle dir specified via NEEDLES_DIR because it is not within the current working directory\.}s,
+            'custom needle dir outside cwd ignored'
+        );
+        is($bmwqemu::vars{NEEDLES_DIR}, undef, 'custom needle directory unset if ignored');
+    };
 
-eval { $needle = needle->new('out-of-prj/test/data/some-needle.json') };
-ok($@, 'died when accessing needle outside of prjdir');
+    subtest 'custom NEEDLES_DIR used when within working directory' => sub {
+        note("using working directory $temp_working_dir");
+        chdir($temp_working_dir);
+        $bmwqemu::vars{NEEDLES_DIR} = $needles_dir;
+        is(needle::init, $needles_dir, 'custom needle dir accepted');
+
+        ok($needle = needle->new('subdir/foo.json'), 'needle object created with needle from working directory');
+        is($needle->{file}, 'subdir/foo.json',             'file path relative to needle directory');
+        is($needle->{png},  "$needles_dir/subdir/foo.png", 'absolute image path assigned');
+    };
+};
 
 subtest 'click point' => sub {
-    $bmwqemu::vars{PRJDIR} = $misc_needle_dir;
+    $needle::needledir = $misc_needle_dir;
 
-    my $needle = needle->new($misc_needle_dir . 'click-point.json');
+    my $needle = needle->new('click-point.json');
     is_deeply($needle->{area}->[0]->{click_point}, {xpos => 2, ypos => 4}, 'click point parsed');
 
-    $needle = needle->new($misc_needle_dir . 'click-point-center.json');
+    $needle = needle->new('click-point-center.json');
     is_deeply($needle->{area}->[0]->{click_point}, 'center', 'click point "center" parsed');
 
     like(warning {
-            $needle = needle->new($misc_needle_dir . 'click-point-multiple.json');
+            $needle = needle->new('click-point-multiple.json');
     }, qr/click-point-multiple\.json has more than one area with a click point/, 'warning shown');
     is_deeply($needle, undef, 'multiple click points not accepted');
 };
 
 subtest 'workaround property' => sub {
-    my $workaround_string_needle     = needle->new($misc_needle_dir . 'check-workaround-bsc1234567-20190522.json');
-    my $workaround_hash_needle       = needle->new($misc_needle_dir . 'check-workaround-hash-20190522.json');
-    my $no_workaround_needle         = needle->new($misc_needle_dir . 'click-point-center.json');
-    my $mix_workaround_string_needle = needle->new($misc_needle_dir . 'check-workaround-mix-bsc987321-20190617.json');
-    my $mix_workaround_hash_needle   = needle->new($misc_needle_dir . 'check-workaround-hash-mix-20190617.json');
+    $needle::needledir = $misc_needle_dir;
+
+    my $workaround_string_needle     = needle->new('check-workaround-bsc1234567-20190522.json');
+    my $workaround_hash_needle       = needle->new('check-workaround-hash-20190522.json');
+    my $no_workaround_needle         = needle->new('click-point-center.json');
+    my $mix_workaround_string_needle = needle->new('check-workaround-mix-bsc987321-20190617.json');
+    my $mix_workaround_hash_needle   = needle->new('check-workaround-hash-mix-20190617.json');
 
     ok($workaround_string_needle->has_property("workaround"),     "workaround property found when it is recorded in string");
     ok($workaround_hash_needle->has_property("workaround"),       "workaround property found when it is recorded in hash");
