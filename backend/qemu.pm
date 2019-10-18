@@ -635,7 +635,7 @@ sub start_qemu {
     }
     elsif ($vars->{OFW}) {
         $vars->{QEMUVGA} ||= "std";
-        $vars->{QEMUMACHINE} = "usb=off";
+        $vars->{QEMUMACHINE} = ($vars->{QEMUMACHINE}) ? "usb=off,$vars->{QEMUMACHINE}" : "usb=off";
         sp('g', '1024x768');
         $use_usb_kbd = 1;
     }
