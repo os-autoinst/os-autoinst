@@ -23,19 +23,33 @@ use Errno;
 use Mojo::JSON;    # booleans
 use Cpanel::JSON::XS ();
 
+use constant DEBUG_JSON => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
+
 sub send_json {
     my ($to_fd, $cmd) = @_;
 
     # allow regular expressions to be automatically converted into
     # strings, using the Regex::TO_JSON function as defined at the end
     # of this file.
-    my $cjx = Cpanel::JSON::XS->new->convert_blessed();
+    # The resulting JSON should be in a single line, otherwise
+    # read_json won't work
+    my $cjx = Cpanel::JSON::XS->new->canonical->utf8->convert_blessed();
+
     # deep copy to add a random string
     my %cmdcopy = %$cmd;
-    $cmdcopy{json_cmd_token} = bmwqemu::random_string(8);
-    my $json = $cjx->encode(\%cmdcopy);
+    # The hash might already contain a json_cmd_token
+    $cmdcopy{json_cmd_token} ||= bmwqemu::random_string(8);
 
-    #bmwqemu::diag("send_json $json");
+    my $json = $cjx->encode(\%cmdcopy);
+    if (DEBUG_JSON) {
+        my $copy = $json;
+        # shorten long content
+        $copy =~ s/"([^"]{30})[^"]+"/"$1"/g;
+        my $fd = fileno($to_fd);
+        bmwqemu::diag("($$) send_json($fd) JSON=$copy");
+    }
+    $json .= "\n";
+
     my $wb = syswrite($to_fd, "$json");
     confess "syswrite failed $!" unless ($wb && $wb == length($json));
     return $cmdcopy{json_cmd_token};
@@ -46,38 +60,48 @@ our $sockets;
 
 # utility function
 sub read_json {
-    my ($socket, $cmd_token) = @_;
+    my ($socket, $cmd_token, $multi) = @_;
 
-    my $cjx = Cpanel::JSON::XS->new;
 
     my $fd = fileno($socket);
+    if (DEBUG_JSON) {
+        bmwqemu::diag("($$) read_json($fd)");
+    }
+    my $buffer = '';
     if (exists $sockets->{$fd}) {
         # start with the trailing text from previous call
-        $cjx->incr_parse($sockets->{$fd});
-        delete $sockets->{$fd};
+        $buffer = delete $sockets->{$fd};
     }
 
     my $s = IO::Select->new();
     $s->add($socket);
 
-    my $hash;
+    my @results;
 
     # the goal here is to find the end of the next valid JSON - and don't
     # add more data to it. As the backend sends things unasked, we might
     # run into the next message otherwise
     while (1) {
-        $hash = $cjx->incr_parse();
+        my $hash = _parse_json(\$buffer);
+        # remember the trailing text
+        $sockets->{$fd} = $buffer;
         if ($hash) {
-            # remember the trailing text
-            $sockets->{$fd} = $cjx->incr_text();
             if ($hash->{QUIT}) {
                 bmwqemu::diag("received magic close");
-                return;
+                push @results, undef;
+                last;
             }
             if ($cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token) {
                 confess "ERROR: the token does not match - questions and answers not in the right order";
             }
-            return $hash;
+            push @results, $hash;
+            # parse all lines from buffer
+            next if $multi;
+            last;
+        }
+        elsif ($multi and @results) {
+            # read at least one item in list context
+            last;
         }
 
         # wait for next read
@@ -98,10 +122,28 @@ sub read_json {
         my $bytes = sysread($socket, $qbuffer, 8000);
         #bmwqemu::diag("sysread $qbuffer");
         if (!$bytes) { bmwqemu::diag("sysread failed: $!"); return; }
-        $cjx->incr_parse($qbuffer);
+        $buffer .= $qbuffer;
     }
 
-    return $hash;
+    return $multi ? @results : $results[0];
+}
+
+sub _parse_json {
+    my ($buffer) = @_;
+    if ($$buffer =~ s/^([^\r\n]*)\r?\n//) {
+        my $json = $1;
+        if ($json) {
+            my $cjx  = Cpanel::JSON::XS->new->utf8;
+            my $hash = $cjx->decode($json);
+            if (DEBUG_JSON) {
+                # shorten long content
+                $json =~ s/"([^"]{30})[^"]+"/"$1"/g;
+                bmwqemu::diag("($$) _parse_json() JSON=$json");
+            }
+            return $hash;
+        }
+    }
+    return undef;
 }
 
 ###################################################################
