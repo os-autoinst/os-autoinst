@@ -67,8 +67,8 @@ subtest 'productdir variable relative/absolute' => sub {
     unlink('vars.json') if -e 'vars.json';
     isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=$data_dir/tests");
     is_in_log('\d* scheduling.*shutdown', 'schedule has been evaluated');
-    mkdir('product')     unless -e 'product';
-    mkdir('product/foo') unless -e 'product/foo';
+    mkdir('product')                                                    unless -e 'product';
+    mkdir('product/foo')                                                unless -e 'product/foo';
     symlink("$data_dir/tests/main.pm", "$pool_dir/product/foo/main.pm") unless -e "$pool_dir/product/foo/main.pm";
     isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product/foo");
     is_in_log('\d* scheduling.*shutdown', 'schedule can still be found');

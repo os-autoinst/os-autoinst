@@ -52,8 +52,8 @@ loadtest is called.
 =cut
 
 sub find_script {
-    my ($script) = @_;
-    my $casedir = $bmwqemu::vars{CASEDIR};
+    my ($script)             = @_;
+    my $casedir              = $bmwqemu::vars{CASEDIR};
     my $script_override_path = join('/', $bmwqemu::vars{PRJDIR} // '', 'factory/other', $script);
     if (-f $script_override_path) {
         bmwqemu::diag("Found override test module for $script: $script_override_path");
