@@ -49,9 +49,12 @@ sub connect_remote {
     # ssh connection to SUT for iucvconn
     my ($ssh, $serialchan) = $self->backend->start_ssh_serial(hostname => $args->{hostname}, password => $args->{password}, username => 'root');
     # start iucvconn
+    bmwqemu::diag('ssh iucvconn: grabbing serial console');
+    $ssh->blocking(1);
     if (!$serialchan->exec("iucvconn $zvmguest lnxhvc0")) {
-        bmwqemu::diag('Unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
+        bmwqemu::diag('ssh iucvconn: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
     }
+    $ssh->blocking(0);
 }
 
 # to be called on reconnect
