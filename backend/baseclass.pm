@@ -1222,20 +1222,34 @@ sub start_ssh_serial {
 }
 
 sub check_ssh_serial {
-    my ($self, $fh) = @_;
+    my ($self, $fh, $write) = @_;
 
-    if ($self->{serial} && $self->{serial}->sock == $fh) {
-        my $chan = $self->{serial_chan};
-        my $line = <$chan>;
-        if (defined $line) {
-            print $line;
-            open(my $serial, '>>', $self->{serialfile});
-            print $serial $line;
-            close($serial);
-        }
+    my $ssh = $self->{serial};
+    return 0 unless $ssh;
+    my $ssh_socket = $ssh->sock;
+    return 0 unless $ssh_socket == $fh;
+
+    if ($write) {
+        bmwqemu::diag('SSH serial: setup error: socket has been wrongly selected for writing');
         return 1;
     }
-    return;
+
+    # read from SSH channel (receiving extended data channel as well via `$chan->ext_data('merge')`)
+    my $chan = $self->{serial_chan};
+    my $buffer;
+    my $bytes_read = $chan->read($buffer, 4048);
+    if (defined $bytes_read) {
+        return 1 unless $bytes_read > 0;
+        print $buffer;
+        open(my $serial, '>>', $self->{serialfile});
+        print $serial $buffer;
+        close($serial);
+    }
+    else {
+        my ($error_code, $error_name, $error_string) = $ssh->error;
+        bmwqemu::diag("svirt serial: unable to read: $error_string (error code: $error_code)");
+    }
+    return 1;
 }
 
 sub stop_ssh_serial {
