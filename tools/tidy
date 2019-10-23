@@ -10,6 +10,12 @@ if test "$1"  = '--check'; then
     check=1
 fi
 
+onlychanged=
+if test "$1"  = '--only-changed'; then
+    shift
+    onlychanged=1
+fi
+
 if ! which perltidy > /dev/null 2>&1; then
     echo "No perltidy found, install it first!"
     exit 1
@@ -32,8 +38,15 @@ test -e tools/tidy || exit 1
 
 find -name '*.tdy' -delete
 
-# Exclude any "os-autoinst" subdirectory which for example is used for "os-autoinst-distri-opensuse" which symlinks "tools/tidy" into their own tests
-find . \( -name '*.p[lm]' -o -name '*.t' \) -not -path '*/.git/*' -not -path '*/os-autoinst/*' -print0 | xargs -0 perltidy --pro=.../.perltidyrc
+# Exclude any "os-autoinst" subdirectory which for example is used for "os-autoinst-distri-opensuse"
+# which symlinks "tools/tidy" into their own tests
+if [ -n "$onlychanged" ]; then
+    git status --porcelain --ignored '**.p[ml]'  | awk '{ print $2 }' \
+        | xargs -I {} perltidy --pro=.../.perltidyrc "{}"
+else
+    find . \( -name '*.p[lm]' -o -name '*.t' \) -not -path '*/.git/*' -not -path '*/os-autoinst/*' -print0 \
+        | xargs -0 perltidy --pro=.../.perltidyrc
+fi;
 
 isotovideo=$(ls isotovideo 2>/dev/null)
 find tools/absolutize $isotovideo -print0 | xargs -0 perltidy $TIDY_ARGS
