@@ -314,9 +314,13 @@ sub start_serial_grab {
     else {
         $cmd = 'virsh console ' . $name;
     }
+
+    bmwqemu::diag('svirt: grabbing serial console');
+    $ssh->blocking(1);
     if (!$chan->exec($cmd)) {
-        bmwqemu::diag('Unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
+        bmwqemu::diag('svirt: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
     }
+    $ssh->blocking(0);
 }
 
 =head2 ($ssh, $chan) = $self->backend->start_serial_grab($name, %args)
@@ -395,7 +399,7 @@ sub serial_terminal_log_file {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    if ($self->check_ssh_serial($fh)) {
+    if ($self->check_ssh_serial($fh, $write)) {
         return 1;
     }
     return $self->SUPER::check_socket($fh, $write);

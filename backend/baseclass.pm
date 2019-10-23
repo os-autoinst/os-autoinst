@@ -115,8 +115,10 @@ sub run {
 
     bmwqemu::diag "started mgmt loop with pid $$";
 
-    $self->{select} = IO::Select->new();
-    $self->{select}->add($self->{cmdpipe});
+    my $select_read  = $self->{select_read}  = IO::Select->new;
+    my $select_write = $self->{select_write} = IO::Select->new;
+    $select_read->add($self->{cmdpipe});
+    $select_write->add($self->{cmdpipe});
 
     $self->last_update_request("-Inf" + 0);
     $self->last_screenshot(undef);
@@ -199,7 +201,7 @@ sub run_capture_loop {
             }
 
             my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
-            my ($read_set, $write_set) = IO::Select->select($self->{select}, $self->{select}, undef, $time_to_next);
+            my ($read_set, $write_set) = IO::Select->select($self->{select_read}, $self->{select_write}, undef, $time_to_next);
 
             # We need to check the video encoder and the serial socket
             my ($video_encoder, $other) = (0, 0);
@@ -207,14 +209,15 @@ sub run_capture_loop {
                 if ($fh == $self->{encoder_pipe}) {
                     # check the video encoder pipe, it has the most traffic
                     my $fdata        = shift @{$self->{video_frame_data}};
-                    my $data_written = $self->{encoder_pipe}->syswrite($fdata);
+                    my $data_written = $fh->syswrite($fdata);
                     die "Encoder not accepting data" unless defined $data_written;
                     if ($data_written != length($fdata)) {
                         # put it back into the queue
                         unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
                     }
                     if (!@{$self->{video_frame_data}}) {
-                        $self->{select}->remove($self->{encoder_pipe});
+                        $self->{select_read}->remove($fh);
+                        $self->{select_write}->remove($fh);
                     }
                     $video_encoder = 1;
                 }
@@ -233,7 +236,7 @@ sub run_capture_loop {
                 # There are three ways to solve this problem:
                 # + Send a message either to the application protocol (null message) or to the application protocol framing (an empty message)
                 #   Disadvantages: Requires changes on both ends of the communication. (for example: on SSH connection i realized that after a
-                #   while i start getting "bad packet length" errors)
+                #   while I start getting "bad packet length" errors)
                 # + Polling the connections (Note: This is how HTTP servers work when dealing with persistent connections)
                 #    Disadvantages: False positives
                 # + Change the keepalive packet settings
@@ -473,7 +476,9 @@ sub enqueue_screenshot {
         push(@{$self->{video_frame_data}}, $imgdata);
         $self->{min_video_similarity} = 10000;
     }
-    $self->{select}->add($self->{encoder_pipe});
+    my $encoder_pipe = $self->{encoder_pipe};
+    $self->{select_read}->add($encoder_pipe);
+    $self->{select_write}->add($encoder_pipe);
     $self->{video_frame_number} += 1;
 
     $watch->stop();
@@ -1211,37 +1216,51 @@ sub start_ssh_serial {
     }
     $chan->blocking(0);
     $chan->pty(1);
-    $self->{select}->add($self->{serial}->sock);
+    $chan->ext_data('merge');
+    $self->{select_read}->add($ssh->sock);
     return ($ssh, $chan);
 }
 
 sub check_ssh_serial {
-    my ($self, $fh) = @_;
+    my ($self, $fh, $write) = @_;
 
-    if ($self->{serial} && $self->{serial}->sock == $fh) {
-        my $chan = $self->{serial_chan};
-        my $line = <$chan>;
-        if (defined $line) {
-            print $line;
-            open(my $serial, '>>', $self->{serialfile});
-            print $serial $line;
-            close($serial);
-        }
+    my $ssh = $self->{serial};
+    return 0 unless $ssh;
+    my $ssh_socket = $ssh->sock;
+    return 0 unless $ssh_socket == $fh;
+
+    if ($write) {
+        bmwqemu::diag('SSH serial: setup error: socket has been wrongly selected for writing');
         return 1;
     }
-    return;
+
+    # read from SSH channel (receiving extended data channel as well via `$chan->ext_data('merge')`)
+    my $chan = $self->{serial_chan};
+    my $buffer;
+    my $bytes_read = $chan->read($buffer, 4048);
+    if (defined $bytes_read) {
+        return 1 unless $bytes_read > 0;
+        print $buffer;
+        open(my $serial, '>>', $self->{serialfile});
+        print $serial $buffer;
+        close($serial);
+    }
+    else {
+        my ($error_code, $error_name, $error_string) = $ssh->error;
+        bmwqemu::diag("svirt serial: unable to read: $error_string (error code: $error_code)");
+    }
+    return 1;
 }
 
 sub stop_ssh_serial {
     my ($self) = @_;
 
-    if (!$self->{serial}) {
-        return;
-    }
-    $self->{select}->remove($self->{serial}->sock);
-    $self->{serial}->disconnect;
-    $self->{serial} = undef;
-    return;
+    my $ssh = $self->{serial};
+    return undef unless $ssh;
+
+    $self->{select_read}->remove($ssh->sock);
+    $ssh->disconnect;
+    return $self->{serial} = undef;
 }
 
 # Send TERM signal to any child process

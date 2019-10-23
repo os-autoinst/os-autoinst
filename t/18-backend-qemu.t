@@ -39,8 +39,7 @@ $distri->mock(add_console => sub {
 });
 $backend_mock->mock(select_console => undef);
 $testapi::distri = distribution->new;
-$backend->{select} = Test::MockObject->new();
-$backend->{select}->set_true('add');
+($backend->{"select_$_"} = Test::MockObject->new)->set_true('add') for qw(read write);
 ok($backend->start_qemu(),      'qemu can be started');
 ok(exists $called{add_console}, 'a console has been added');
 is($called{add_console}, 1, 'one console has been added');
