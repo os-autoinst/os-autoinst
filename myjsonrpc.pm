@@ -1,4 +1,5 @@
 # Dummy Change 1
+# Dummy Change 2
 
 # Copyright © 2012-2016 SUSE LLC
 #
