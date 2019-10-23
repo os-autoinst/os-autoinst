@@ -369,10 +369,11 @@ sub runalltests {
             }
 
             eval { $t->runtest; };
+            my $error = $@;    # save $@, it might be overwritten
             $t->save_test_result();
 
-            if ($@) {
-                my $msg = $@;
+            if ($error) {
+                my $msg = $error;
                 if ($msg !~ /^test.*died/) {
                     # avoid duplicating the message
                     bmwqemu::diag $msg;

@@ -19,6 +19,10 @@ use Mojo::Base 'Mojo::EventEmitter';
 use bmwqemu;
 use testapi 'diag';
 use OpenQA::Isotovideo::Interface;
+use Cpanel::JSON::XS;
+use Mojo::File 'path';
+
+use constant AUTOINST_STATUSFILE => 'autoinst-status.json';
 
 
 # io handles for sending data to command server and backend
@@ -29,6 +33,10 @@ has [qw(current_test_name current_test_full_name)];
 
 # the currently processed test API function
 has current_api_function => undef;
+
+# status = ( initial | running | finished )
+# set to running when first test starts
+has status => 'initial';
 
 # conditions when to pause
 has pause_test_name => sub { $bmwqemu::vars{PAUSE_AT} };
@@ -101,6 +109,7 @@ sub _postpone_backend_command_until_resumed {
 
     # emit info
     $self->_send_to_cmd_srv({paused => $response, reason => $reason_for_pause});
+    $self->update_status_file;
     diag("isotovideo: paused, so not passing $cmd to backend");
 
     # postpone execution of command
@@ -172,6 +181,7 @@ sub _handle_command_report_timeout {
     my $reason_for_pause = $response->{msg};
     $self->reason_for_pause($reason_for_pause);
     $self->_send_to_cmd_srv({paused => $response, reason => $reason_for_pause});
+    $self->update_status_file;
     diag('isotovideo: pausing test execution on timeout as requested at ' . $self->current_test_full_name);
 
     # postpone sending the reply
@@ -234,6 +244,7 @@ sub _handle_command_resume_test_execution {
     # unset paused state to continue passing commands to backend
     $self->reason_for_pause(0);
 
+    $self->update_status_file;
     my $downloader = OpenQA::Isotovideo::NeedleDownloader->new();
     $downloader->download_missing_needles($response->{new_needles} // []);
 
@@ -265,6 +276,7 @@ sub _handle_command_set_current_test {
     my ($test_name, $full_test_name) = ($response->{name}, $response->{full_name});
     my $pause_test_name = $self->pause_test_name;
     $self->current_test_name($test_name);
+    $self->status('running');
     $self->current_test_full_name($full_test_name);
     $self->_send_to_cmd_srv({
             set_current_test       => $test_name,
@@ -279,6 +291,7 @@ sub _handle_command_set_current_test {
         diag("isotovideo: pausing test execution of $pause_test_name because we're supposed to pause at this test module");
         $self->reason_for_pause('reached module ' . $pause_test_name);
     }
+    $self->update_status_file;
     $self->_respond_ok();
 }
 
@@ -288,6 +301,9 @@ sub _handle_command_tests_done {
     $self->test_died($response->{died});
     $self->test_completed($response->{completed});
     $self->emit(tests_done => $response);
+    $self->current_test_name('');
+    $self->status('finished');
+    $self->update_status_file;
 }
 
 sub _handle_command_check_screen {
@@ -364,6 +380,22 @@ sub _handle_command_send_clients {
     delete $response->{json_cmd_token};
     $self->_send_to_cmd_srv($response);
     $self->_respond_ok();
+}
+
+sub update_status_file {
+    my ($self) = @_;
+
+    my $coder = Cpanel::JSON::XS->new->pretty->canonical;
+    my $data  = {
+        test_execution_paused => $self->reason_for_pause,
+        status                => $self->status,
+        current_test          => $self->current_test_name,
+    };
+    my $json = $coder->encode($data);
+
+    my $tmp = AUTOINST_STATUSFILE . ".$$.tmp";
+    path($tmp)->spurt($json);
+    rename $tmp, AUTOINST_STATUSFILE or die $!;
 }
 
 1;
