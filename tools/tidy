@@ -41,7 +41,7 @@ find -name '*.tdy' -delete
 # Exclude any "os-autoinst" subdirectory which for example is used for "os-autoinst-distri-opensuse"
 # which symlinks "tools/tidy" into their own tests
 if [ -n "$onlychanged" ]; then
-    git status --porcelain --ignored '**.p[ml]'  | awk '{ print $2 }' \
+    git status --porcelain --ignored '**.p[ml]' '**.t' | awk '{ print $2 }' \
         | xargs -I {} perltidy --pro=.../.perltidyrc "{}"
 else
     find . \( -name '*.p[lm]' -o -name '*.t' \) -not -path '*/.git/*' -not -path '*/os-autoinst/*' -print0 \
