@@ -232,7 +232,7 @@ sub isotovideo_command {
 
 sub isotovideo_get {
     my ($c) = @_;
-    return isotovideo_command($c, [qw(status version)]);
+    return isotovideo_command($c, [qw(version)]);
 }
 
 sub isotovideo_post {
