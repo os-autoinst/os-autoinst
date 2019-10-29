@@ -570,7 +570,7 @@ sub reset_consoles {
 
     # we iterate through all consoles
     for my $console (keys %{$testapi::distri->{consoles}}) {
-        #next if ($console eq 'x3270');
+        next if $self->console($console)->{args}->{persistent};
         $self->reset_console({testapi_console => $console});
     }
     return;

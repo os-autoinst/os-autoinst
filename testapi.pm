@@ -1559,7 +1559,8 @@ tests to select
 You need to do this in your distribution and not in tests. It will not trigger
 any action on the system under test, but only store the parameters.
 
-The console parameters are console specific.
+The console parameters are console specific. Parameter C<persistent> skips
+console reset and console is persistent during the test execution.
 
 I<The implementation is distribution specific and not always available.>
 
