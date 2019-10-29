@@ -325,16 +325,14 @@ sub run_daemon {
     Mojo::IOLoop->singleton->reactor->io($isotovideo => sub {
             my ($reactor, $writable) = @_;
 
-            my @isotovideo_responses = myjsonrpc::read_json($isotovideo, undef, 1);
-            my $clients              = app->defaults('clients');
-            for my $response (@isotovideo_responses) {
-                _handle_isotovideo_response(app, $response);
-                delete $response->{json_cmd_token};
+            my $isotovideo_response = myjsonrpc::read_json($isotovideo);
+            my $clients             = app->defaults('clients');
+            _handle_isotovideo_response(app, $isotovideo_response);
+            delete $isotovideo_response->{json_cmd_token};
 
-                app->log->debug('cmdsrv: broadcasting message from os-autoinst to all ws clients: ' . to_json($response));
-                for (keys %$clients) {
-                    $clients->{$_}->send({json => $response});
-                }
+            app->log->debug('cmdsrv: broadcasting message from os-autoinst to all ws clients: ' . to_json($isotovideo_response));
+            for (keys %$clients) {
+                $clients->{$_}->send({json => $isotovideo_response});
             }
     })->watch($isotovideo, 1, 0);    # watch only readable (and not writable)
 
