@@ -55,7 +55,6 @@ subtest debug_json => sub {
     my @warnings = warnings { debug() };
     like($warnings[0], qr{send_json});
     like($warnings[1], qr{read_json});
-    like($warnings[2], qr{_parse_json});
 };
 
 close $isotovideo;
