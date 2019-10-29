@@ -62,15 +62,16 @@ our $sockets;
 sub read_json {
     my ($socket, $cmd_token, $multi) = @_;
 
+    my $cjx = Cpanel::JSON::XS->new;
 
     my $fd = fileno($socket);
     if (DEBUG_JSON) {
         bmwqemu::diag("($$) read_json($fd)");
     }
-    my $buffer = '';
     if (exists $sockets->{$fd}) {
         # start with the trailing text from previous call
-        $buffer = delete $sockets->{$fd};
+        my $buffer = delete $sockets->{$fd};
+        $cjx->incr_parse($buffer);
     }
 
     my $s = IO::Select->new();
@@ -82,10 +83,10 @@ sub read_json {
     # add more data to it. As the backend sends things unasked, we might
     # run into the next message otherwise
     while (1) {
-        my $hash = _parse_json(\$buffer);
+        my $hash = $cjx->incr_parse();
         # remember the trailing text
-        $sockets->{$fd} = $buffer;
         if ($hash) {
+            $sockets->{$fd} = $cjx->incr_text();
             if ($hash->{QUIT}) {
                 bmwqemu::diag("received magic close");
                 push @results, undef;
@@ -122,28 +123,10 @@ sub read_json {
         my $bytes = sysread($socket, $qbuffer, 8000);
         #bmwqemu::diag("sysread $qbuffer");
         if (!$bytes) { bmwqemu::diag("sysread failed: $!"); return; }
-        $buffer .= $qbuffer;
+        $cjx->incr_parse($qbuffer);
     }
 
     return $multi ? @results : $results[0];
-}
-
-sub _parse_json {
-    my ($buffer) = @_;
-    if ($$buffer =~ s/^([^\r\n]*)\r?\n//) {
-        my $json = $1;
-        if ($json) {
-            my $cjx  = Cpanel::JSON::XS->new->utf8;
-            my $hash = $cjx->decode($json);
-            if (DEBUG_JSON) {
-                # shorten long content
-                $json =~ s/"([^"]{30})[^"]+"/"$1"/g;
-                bmwqemu::diag("($$) _parse_json() JSON=$json");
-            }
-            return $hash;
-        }
-    }
-    return undef;
 }
 
 ###################################################################
