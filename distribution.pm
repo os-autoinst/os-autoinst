@@ -239,7 +239,10 @@ sub script_output {
         bmwqemu::log_call("Content of $script_path :\n \"$cat\" \n");
         testapi::type_string($cat . "\n");
         testapi::wait_serial("$cat", no_regex => 1, quiet => $args{quiet});
-        testapi::wait_serial('> ',   no_regex => 1, quiet => $args{quiet});
+        # Wait for input prompt of here tag before typing $script. This avoids
+        # messy output, like duplicate output of $script. We do this in a second
+        # wait_serial() call, to avoid issues during new line detection.
+        testapi::wait_serial('> ', no_regex => 1, quiet => $args{quiet});
         testapi::type_string("$script\n$heretag\n");
         testapi::wait_serial("> $heretag", no_regex => 1, quiet => $args{quiet});
         testapi::wait_serial("$marker-0-", quiet => $args{quiet});
