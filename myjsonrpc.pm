@@ -24,6 +24,7 @@ use Mojo::JSON;    # booleans
 use Cpanel::JSON::XS ();
 
 use constant DEBUG_JSON => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
+use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8000000;
 
 sub send_json {
     my ($to_fd, $cmd) = @_;
@@ -120,7 +121,7 @@ sub read_json {
         }
 
         my $qbuffer;
-        my $bytes = sysread($socket, $qbuffer, 8000);
+        my $bytes = sysread($socket, $qbuffer, READ_BUFFER);
         #bmwqemu::diag("sysread $qbuffer");
         if (!$bytes) { bmwqemu::diag("sysread failed: $!"); return; }
         $cjx->incr_parse($qbuffer);
