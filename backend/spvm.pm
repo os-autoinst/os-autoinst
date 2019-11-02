@@ -74,7 +74,7 @@ sub run_cmd {
         username => get_var('NOVALINK_USERNAME', 'root'));
     my $chan = $ssh->channel() || $ssh->die_with_error();
     $chan->exec($cmd) || $ssh->die_with_error();
-    get_ssh_output($chan);
+    backend::svirt::get_ssh_output($chan);
     $chan->send_eof();
     my $ret = $chan->exit_status();
     bmwqemu::diag "Command executed: $cmd, ret=$ret";
@@ -89,8 +89,8 @@ sub can_handle {
 
 sub is_shutdown {
     my ($self) = @_;
-    # TODO
-    return 0;
+    my $lpar_id = get_required_var('NOVALINK_LPAR_ID');
+    return $self->run_cmd("! pvmctl  lpar list -i id=${lpar_id} | grep  'not a'");
 }
 
 sub check_socket {
