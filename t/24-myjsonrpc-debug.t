@@ -50,11 +50,12 @@ sub debug {
     is_deeply($read, $send1, "read_json returns what send_json sent");
 }
 subtest debug_json => sub {
-    local $myjsonrpc::DEBUG_JSON = 1;
 
     my @warnings = warnings { debug() };
-    like($warnings[0], qr{send_json});
-    like($warnings[1], qr{read_json});
+    like($warnings[0], qr{send_json},                       "debug send_json");
+    like($warnings[1], qr{read_json},                       "debug read_json");
+    like($warnings[2], qr{read_json.*json_cmd_token=dummy}, "debug json_cmd_token");
+    is(scalar @warnings, 3, "Correct number of warnings");
 };
 
 close $isotovideo;
