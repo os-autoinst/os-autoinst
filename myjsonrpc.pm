@@ -87,6 +87,10 @@ sub read_json {
         # remember the trailing text
         if ($hash) {
             $sockets->{$fd} = $cjx->incr_text();
+            if (DEBUG_JSON) {
+                my $token = $hash->{json_cmd_token} // 'no-token';
+                bmwqemu::diag("($$) read_json($fd) json_cmd_token=$token");
+            }
             if ($hash->{QUIT}) {
                 bmwqemu::diag("received magic close");
                 push @results, undef;
