@@ -448,42 +448,56 @@ if (!$return_code) {
 # read calculated variables from backend and tests
 bmwqemu::load_vars();
 
-# mark hard disks for upload if test finished
-if (!$return_code && $command_handler->test_completed && $bmwqemu::vars{BACKEND} eq 'qemu') {
+sub store_asset {
+    my ($index, $name, $dir) = @_;
+    $name =~ /\.([[:alnum:]]+)$/;
+    my $format = $1;
+    return {hdd_num => $index, name => $name, dir => $dir, format => $format};
+}
+
+sub handle_generated_assets {
+    # mark hard disks for upload if test finished
+    return unless !$return_code && $command_handler->test_completed && ($bmwqemu::vars{BACKEND} eq 'qemu');
     my @toextract;
-    for my $i (1 .. $bmwqemu::vars{NUMDISKS}) {
-        my $dir  = 'assets_private';
-        my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
-        unless ($name) {
-            $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
-            $dir  = 'assets_public';
-        }
-        next unless $name;
-        $name =~ /\.([[:alnum:]]+)$/;
-        my $format = $1;
-        push @toextract, {hdd_num => $i, name => $name, dir => $dir, format => $format};
-    }
-    if ($bmwqemu::vars{UEFI} && $bmwqemu::vars{PUBLISH_PFLASH_VARS}) {
-        push(@toextract, {pflash_vars => 1,
-                name   => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
-                dir    => 'assets_public',
-                format => 'qcow2'});
-    }
-    if (@toextract && !$clean_shutdown) {
-        diag "ERROR: Machine not shut down when uploading disks!\n";
-        $return_code = 1;
-    }
-    else {
-        for my $asset (@toextract) {
-            local $@;
-            eval { $bmwqemu::backend->extract_assets($asset); };
-            if ($@) {
-                diag "extract assets failed: $@";
-                $return_code = 1;
+    my $nd = $bmwqemu::vars{NUMDISKS};
+    if ($command_handler->test_completed) {
+        for my $i (1 .. $nd) {
+            my $dir  = 'assets_private';
+            my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
+            unless ($name) {
+                $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
+                $dir  = 'assets_public';
             }
+            next unless $name;
+            push @toextract, store_asset($i, $name, $dir);
+        }
+        if ($bmwqemu::vars{UEFI} && $bmwqemu::vars{PUBLISH_PFLASH_VARS}) {
+            push(@toextract, {pflash_vars => 1,
+                    name   => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
+                    dir    => 'assets_public',
+                    format => 'qcow2'});
+        }
+        if (@toextract && !$clean_shutdown) {
+            diag "ERROR: Machine not shut down when uploading disks!\n";
+            $return_code = 1;
+            return;
+        }
+    }
+    for my $i (1 .. $nd) {
+        my $name = $bmwqemu::vars{"FORCE_PUBLISH_HDD_$i"} || next;
+        diag "Requested to force the publication of '$name'";
+        push @toextract, store_asset($i, $name, 'assets_public');
+    }
+    for my $asset (@toextract) {
+        local $@;
+        eval { $bmwqemu::backend->extract_assets($asset); };
+        if ($@) {
+            diag "extract assets failed: $@";
+            $return_code = 1;
         }
     }
 }
+handle_generated_assets;
 
 END {
     kill_backend;
