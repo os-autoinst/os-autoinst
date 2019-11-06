@@ -117,7 +117,7 @@ our $scriptdir;
 sub init {
     load_vars();
 
-    $bmwqemu::vars{BACKEND} ||= "qemu";
+    $vars{BACKEND} ||= "qemu";
 
     # remove directories for asset upload
     remove_tree("assets_public");
