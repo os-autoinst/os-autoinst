@@ -144,6 +144,19 @@ sub init {
         });
 }
 
+sub _check_publish_vars {
+    return 0 unless my $nd = $vars{NUMDISKS};
+    my @hdds = map { $vars{"HDD_$_"} } 1 .. $nd;
+    for my $i (1 .. $nd) {
+        for my $type (qw(STORE PUBLISH FORCE_PUBLISH)) {
+            my $name = $type . "_HDD_$i";
+            next unless my $out = $vars{$name};
+            die "HDD_$i also specified in $name. This is not supported" if grep { $_ eq $out } @hdds;
+        }
+    }
+    return 1;
+}
+
 sub ensure_valid_vars {
     # defaults
     $vars{QEMUPORT} ||= 15222;
@@ -162,7 +175,7 @@ sub ensure_valid_vars {
 
     die "CASEDIR variable not set, unknown test case directory" if !defined $vars{CASEDIR};
     die "No scripts in $vars{CASEDIR}" if !-e "$vars{CASEDIR}";
-
+    _check_publish_vars();
     save_vars();
 }
 

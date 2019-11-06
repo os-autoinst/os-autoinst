@@ -18,6 +18,7 @@
 use 5.018;
 use warnings;
 use Test::More;
+use Test::Exception;
 use File::Temp 'tempdir';
 use File::Basename;
 use File::Path 'make_path';
@@ -99,6 +100,14 @@ subtest 'save_vars no_secret' => sub {
     my %vars = %{read_vars()};
     ok(!$vars{_SECRET_TEST}, '_SECRET_TEST not written to vars.json');
     is($vars{CASEDIR}, $dir, 'CASEDIR unchanged');
+};
+
+subtest 'HDD variables sanity check' => sub {
+    use bmwqemu ();
+    %bmwqemu::vars = (NUMDISKS => 1, HDD_1 => 'foo.qcow2', PUBLISH_HDD_1 => 'bar.qcow2');
+    ok(bmwqemu::_check_publish_vars, 'one HDD for reading, one for publishing is ok');
+    $bmwqemu::vars{PUBLISH_HDD_1} = 'foo.qcow2';
+    throws_ok { bmwqemu::_check_publish_vars } qr/HDD_1 also specified in PUBLISH/, 'overwriting source HDD is prevented';
 };
 
 done_testing;
