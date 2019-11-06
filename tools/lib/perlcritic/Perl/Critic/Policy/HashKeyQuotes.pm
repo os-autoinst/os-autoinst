@@ -22,10 +22,10 @@ sub violates {
     return if !is_hash_key($elem);
 
     my $c = $elem->content;
-    # special characters
-    return if $c =~ m/[- \/<>.=_:\\\$]/;
+    # Quotes allowed, if not matching following regex
+    return unless $c =~ m/^(["'])[a-zA-Z][0-9a-zA-Z]*\1$/;
 
-    my $desc = q{Hash key with quotes};
+    my $desc = qq{Hash key $c with quotes};
     my $expl = q{Avoid useless quotes};
     return $self->violation($desc, $expl, $elem);
 }
