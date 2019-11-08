@@ -721,7 +721,9 @@ sub init_ikvm_keymap {
 
 
 sub map_and_send_key {
-    my ($self, $keys, $down_flag) = @_;
+    my ($self, $keys, $down_flag, $press_release_delay_us) = @_;
+
+    $press_release_delay_us //= 2_000;    # default to 2 ms
 
     if ($self->ikvm) {
         $self->init_ikvm_keymap;
@@ -755,15 +757,17 @@ sub map_and_send_key {
     if (!defined $down_flag || $down_flag == 1) {
         for my $key (@events) {
             $self->send_key_event_down($key);
+            usleep($press_release_delay_us);
         }
     }
-    usleep(2_000);
+    usleep($press_release_delay_us);
     if (!defined $down_flag || $down_flag == 0) {
         for my $key (reverse @events) {
             $self->send_key_event_up($key);
+            usleep($press_release_delay_us);
         }
     }
-    usleep(2_000);
+    usleep($press_release_delay_us);
 }
 
 sub send_pointer_event {

@@ -23,6 +23,7 @@ use feature 'say';
 use base 'consoles::network_console';
 
 use consoles::VNC;
+use List::Util 'max';
 use Time::HiRes qw(usleep gettimeofday);
 
 use Try::Tiny;
@@ -139,9 +140,11 @@ sub type_string {
 sub send_key {
     my ($self, $args) = @_;
 
-    # FIXME the max_interval logic from type_string should go here, no?
-    # and really, the screen should be checked for settling after key press...
-    $self->{vnc}->map_and_send_key($args->{key});
+    # send_key rate must be limited to take into account VNC_TYPING_LIMIT- poo#55703
+    # map_and_send_key default value is 2 ms, so do not be faster.
+    my $press_release_delay_us = max(2_000, 1_000_000 / (get_var('VNC_TYPING_LIMIT', 50) || 1));
+
+    $self->{vnc}->map_and_send_key($args->{key}, undef, $press_release_delay_us);
     $self->backend->run_capture_loop(.2);
     return {};
 }
