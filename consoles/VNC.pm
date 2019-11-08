@@ -20,6 +20,8 @@ use Try::Tiny;
 use Scalar::Util 'blessed';
 use OpenQA::Exceptions;
 
+use constant DEFAULT_KEY_PRESS_RELEASE_DELAY_US => 20_000; # default to 20 ms
+
 __PACKAGE__->mk_accessors(
     qw(hostname port username password socket name width height depth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
@@ -723,7 +725,7 @@ sub init_ikvm_keymap {
 sub map_and_send_key {
     my ($self, $keys, $down_flag, $press_release_delay_us) = @_;
 
-    $press_release_delay_us //= 2_000;    # default to 2 ms
+    $press_release_delay_us //= DEFAULT_KEY_PRESS_RELEASE_DELAY_US;
 
     if ($self->ikvm) {
         $self->init_ikvm_keymap;

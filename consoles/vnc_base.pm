@@ -141,8 +141,8 @@ sub send_key {
     my ($self, $args) = @_;
 
     # send_key rate must be limited to take into account VNC_TYPING_LIMIT- poo#55703
-    # map_and_send_key default value is 2 ms, so do not be faster.
-    my $press_release_delay_us = max(2_000, 1_000_000 / (get_var('VNC_TYPING_LIMIT', 50) || 1));
+    # map_and_send_key: do not be faster than default
+    my $press_release_delay_us = max(consoles::VNC->DEFAULT_KEY_PRESS_RELEASE_DELAY_US, 1_000_000 / (get_var('VNC_TYPING_LIMIT', 50) || 1));
 
     $self->{vnc}->map_and_send_key($args->{key}, undef, $press_release_delay_us);
     $self->backend->run_capture_loop(.2);
