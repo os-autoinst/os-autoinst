@@ -20,6 +20,7 @@ use strict;
 use warnings;
 use autodie ':all';
 
+use Cwd 'cwd';
 use File::Find;
 use File::Spec;
 use Mojo::File;
@@ -53,20 +54,22 @@ sub new {
     }
 
     my $self = {};
-    if (index($jsonfile, $bmwqemu::vars{PRJDIR}) == 0) {
-        $self->{file} = substr($jsonfile, length($bmwqemu::vars{PRJDIR}) + 1);
+
+    # locate the needle's JSON file within the needle directory
+    # - This code initializes $json->{file} so it contains the path within the needle directory.
+    # - $jsonfile is re-assigned to contain the absolute path the the JSON file.
+    # - The needle must be within the needle directory.
+    if (index($jsonfile, $needledir) == 0) {
+        $self->{file} = substr($jsonfile, length($needledir) + 1);
     }
-    elsif (-f File::Spec->catfile($bmwqemu::vars{PRJDIR}, $jsonfile)) {
+    elsif (-f File::Spec->catfile($needledir, $jsonfile)) {
         # json file path already relative
         $self->{file} = $jsonfile;
-        $jsonfile = File::Spec->catfile($bmwqemu::vars{PRJDIR}, $jsonfile);
+        $jsonfile = File::Spec->catfile($needledir, $jsonfile);
     }
     else {
-        die "Needle $jsonfile is not under project directory $bmwqemu::vars{PRJDIR}";
+        die "Needle $jsonfile is not under needle directory $needledir";
     }
-
-    # $json->{file} contains path relative to $bmwqemu::vars{PRJDIR}
-    # $jsonfile contains absolute path within $bmwqemu::vars{PRJDIR}
 
     if (!$json) {
         try {
@@ -313,11 +316,24 @@ sub wanted_ {
     }
 }
 
-sub init {
-    ($needledir) = @_;
+sub default_needles_dir {
+    return "$bmwqemu::vars{PRODUCTDIR}/needles";
+}
 
-    $needledir //= $bmwqemu::vars{NEEDLES_DIR};
-    -d $needledir || die "needledir not found: $needledir (check vars.json?)";
+sub init {
+    # validate that possibly user-provided NEEDLES_DIR is a path within the current working directory (usually the openQA worker's pool directory)
+    my $user_provided_needles_dir = $bmwqemu::vars{NEEDLES_DIR};
+    if (defined $user_provided_needles_dir) {
+        $user_provided_needles_dir = File::Spec->rel2abs($user_provided_needles_dir) unless File::Spec->file_name_is_absolute($user_provided_needles_dir);
+        if (index($user_provided_needles_dir, cwd) != 0) {
+            $bmwqemu::vars{NEEDLES_DIR} = $user_provided_needles_dir = undef;
+            bmwqemu::diag('Ignoring needle dir specified via NEEDLES_DIR because it is not within the current working directory.');
+        }
+    }
+
+    # initialize/re-assign global $needledir
+    $needledir = ($user_provided_needles_dir // default_needles_dir);
+    die "needledir not found: $needledir (check vars.json?)" unless -d $needledir;
 
     %needles = ();
     %tags    = ();
@@ -328,6 +344,8 @@ sub init {
     if ($cleanuphandler) {
         &$cleanuphandler();
     }
+
+    return $needledir;
 }
 
 sub tags {

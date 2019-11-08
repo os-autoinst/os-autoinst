@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2017 SUSE LLC
+# Copyright (C) 2017-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -52,7 +52,7 @@ sub read_vars {
 
 subtest 'CASEDIR is mandatory' => sub {
     my $dir = '/var/lib/openqa';
-    create_vars({DISTRI => 'test', PRJDIR => $dir});
+    create_vars({DISTRI => 'test'});
 
     eval {
         use bmwqemu ();
@@ -65,42 +65,6 @@ subtest 'CASEDIR is mandatory' => sub {
     my %vars = %{read_vars()};
     is($vars{DISTRI}, 'test', 'DISTRI unchanged by init call');
     ok(!$vars{CASEDIR}, 'CASEDIR not set');
-    is($vars{PRJDIR}, $dir, 'PRJDIR unchanged');
-};
-
-subtest 'test CASEDIR not under PRJDIR default' => sub {
-    my $dir = "$data_dir/tests";
-    create_vars({CASEDIR => $dir});
-
-    eval {
-        use bmwqemu ();
-        bmwqemu::init;
-        bmwqemu::ensure_valid_vars();
-    };
-    ok(!$@, 'init successful');
-
-    my %vars = %{read_vars()};
-    ok(!$vars{DISTRI}, 'DISTRI not supplied and not set');
-    is($vars{CASEDIR}, $dir, 'CASEDIR unchanged');
-    is($vars{PRJDIR},  $dir, 'PRJDIR set CASEDIR');
-};
-
-subtest 'test PRJDIR default' => sub {
-    my $dir = "$data_dir/tests";
-    create_vars({CASEDIR => $dir});
-    $bmwqemu::openqa_default_share = $data_dir;
-
-    eval {
-        use bmwqemu ();
-        bmwqemu::init;
-        bmwqemu::ensure_valid_vars();
-    };
-    ok(!$@, 'init successful');
-
-    my %vars = %{read_vars()};
-    ok(!$vars{DISTRI}, 'DISTRI not supplied and not set');
-    is($vars{CASEDIR}, $dir,      'CASEDIR unchanged');
-    is($vars{PRJDIR},  $data_dir, 'PRJDIR set to default');
 };
 
 subtest 'save_vars' => sub {

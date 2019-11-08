@@ -18,7 +18,6 @@ use bmwqemu;
 use OpenQA::Test::RunArgs;
 
 $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
-$bmwqemu::vars{PRJDIR}  = File::Basename::dirname($0);
 # array of messages sent with the fake json_send
 my @sent;
 

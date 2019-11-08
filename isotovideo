@@ -228,12 +228,8 @@ sub signalhandler {
 
 sub init_backend {
     my ($name) = @_;
+
     $bmwqemu::vars{BACKEND} ||= "qemu";
-
-    # make sure the needles are initialized
-    needle::init($bmwqemu::vars{NEEDLES_DIR});
-    $bmwqemu::vars{NEEDLES_GIT_HASH} = OpenQA::Isotovideo::Utils::calculate_git_hash($bmwqemu::vars{NEEDLES_DIR});
-
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
     return $bmwqemu::backend;
 }
@@ -258,7 +254,7 @@ OpenQA::Isotovideo::Utils::checkout_git_repo_and_branch('CASEDIR');
 # multiple distributions or flavors in one repository.
 $bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
 
-$bmwqemu::vars{NEEDLES_DIR} //= "$bmwqemu::vars{PRODUCTDIR}/needles";
+# checkout Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
 OpenQA::Isotovideo::Utils::checkout_git_repo_and_branch('NEEDLES_DIR');
 
 bmwqemu::ensure_valid_vars();
@@ -299,6 +295,9 @@ if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {
     exit 0;
 }
 testapi::init();
+
+# make sure the needles are initialized
+$bmwqemu::vars{NEEDLES_GIT_HASH} = OpenQA::Isotovideo::Utils::calculate_git_hash(needle::init);
 
 # init part
 bmwqemu::save_vars();
