@@ -33,7 +33,7 @@ use bmwqemu;
 use IO::Select;
 require IPC::System::Simple;
 use myjsonrpc;
-use Net::SSH2;
+use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use OpenQA::Benchmark::Stopwatch;
 use MIME::Base64 'encode_base64';
 use List::Util 'min';
@@ -1237,18 +1237,21 @@ sub check_ssh_serial {
     # read from SSH channel (receiving extended data channel as well via `$chan->ext_data('merge')`)
     my $chan = $self->{serial_chan};
     my $buffer;
-    my $bytes_read = $chan->read($buffer, 4048);
-    if (defined $bytes_read) {
+    my $bytes_read      = $chan->read($buffer, 4096);
+    my $could_read_once = defined $bytes_read;
+    while (defined $bytes_read) {
         return 1 unless $bytes_read > 0;
         print $buffer;
         open(my $serial, '>>', $self->{serialfile});
         print $serial $buffer;
         close($serial);
+        $bytes_read = $chan->read($buffer, 4096);
     }
-    else {
-        my ($error_code, $error_name, $error_string) = $ssh->error;
-        bmwqemu::diag("svirt serial: unable to read: $error_string (error code: $error_code)");
-    }
+
+    my ($error_code, $error_name, $error_string) = $ssh->error;
+    return 1 if $could_read_once && $error_code == LIBSSH2_ERROR_EAGAIN;
+
+    bmwqemu::diag("svirt serial: unable to read: $error_string (error code: $error_code)");
     return 1;
 }
 
