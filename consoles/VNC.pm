@@ -9,7 +9,7 @@ use base 'Class::Accessor::Fast';
 
 use IO::Socket::INET;
 use bmwqemu 'diag';
-use Time::HiRes qw( usleep gettimeofday time );
+use Time::HiRes qw( sleep gettimeofday time );
 use List::Util 'min';
 use testapi 'get_var';
 use Crypt::DES;
@@ -549,15 +549,6 @@ sub send_key_event_up {
     $self->_send_key_event(0, $key);
 }
 
-sub send_key_event {
-    my ($self, $key) = @_;
-    $self->send_key_event_down($key);
-    usleep(2_000);    # just a brief moment
-    $self->send_key_event_up($key);
-    usleep(2_000);
-}
-
-
 ## no critic (HashKeyQuotes)
 
 my $keymap_x11 = {
@@ -721,7 +712,9 @@ sub init_ikvm_keymap {
 
 
 sub map_and_send_key {
-    my ($self, $keys, $down_flag) = @_;
+    my ($self, $keys, $down_flag, $press_release_delay) = @_;
+
+    die "need delay" unless $press_release_delay;
 
     if ($self->ikvm) {
         $self->init_ikvm_keymap;
@@ -755,15 +748,15 @@ sub map_and_send_key {
     if (!defined $down_flag || $down_flag == 1) {
         for my $key (@events) {
             $self->send_key_event_down($key);
+            sleep($press_release_delay);
         }
     }
-    usleep(2_000);
     if (!defined $down_flag || $down_flag == 0) {
         for my $key (reverse @events) {
             $self->send_key_event_up($key);
+            sleep($press_release_delay);
         }
     }
-    usleep(2_000);
 }
 
 sub send_pointer_event {

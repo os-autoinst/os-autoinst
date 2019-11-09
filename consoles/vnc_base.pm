@@ -23,10 +23,14 @@ use feature 'say';
 use base 'consoles::network_console';
 
 use consoles::VNC;
-use Time::HiRes qw(usleep gettimeofday);
+use List::Util 'max';
+use Time::HiRes qw(usleep time);
 
 use Try::Tiny;
 use testapi 'get_var';
+
+# speed limit: 30 keys per second
+use constant VNC_TYPING_LIMIT_DEFAULT => 30;
 
 sub screen {
     my ($self) = @_;
@@ -94,11 +98,7 @@ sub current_screen {
 sub type_string {
     my ($self, $args) = @_;
 
-    # speed limit: 50bps.  VNC has key up and key down over the wire,
-    # not whole key press events and after each event we wait 2ms, so
-    # that makes 250 keys a second - so 50 is still a factor 5 for
-    # buffer
-    my $seconds_per_keypress = 1 / (get_var('VNC_TYPING_LIMIT', 50) || 1);
+    my $seconds_per_keypress = 1 / (get_var('VNC_TYPING_LIMIT', VNC_TYPING_LIMIT_DEFAULT) || 1);
 
     # further slow down if being asked for.
     # 250 = magic default from testapi.pm (FIXME: wouldn't undef just do?)
@@ -130,8 +130,9 @@ sub type_string {
             "\e" => 'esc'
         };
         $letter = $charmap->{$letter} || $letter;
-        $self->{vnc}->map_and_send_key($letter);
-        $self->{backend}->run_capture_loop($seconds_per_keypress);
+        # 25% is spent hitting the key, 25% releasing it, 50% searching the next key
+        $self->{vnc}->map_and_send_key($letter, undef, $seconds_per_keypress * 0.25);
+        $self->{backend}->run_capture_loop($seconds_per_keypress * 0.5);
     }
     return {};
 }
@@ -139,23 +140,25 @@ sub type_string {
 sub send_key {
     my ($self, $args) = @_;
 
-    # FIXME the max_interval logic from type_string should go here, no?
-    # and really, the screen should be checked for settling after key press...
-    $self->{vnc}->map_and_send_key($args->{key});
+    # send_key rate must be limited to take into account VNC_TYPING_LIMIT- poo#55703
+    # map_and_send_key: do not be faster than default
+    my $press_release_delay = 1 / (get_var('VNC_TYPING_LIMIT', VNC_TYPING_LIMIT_DEFAULT) || 1);
+
+    $self->{vnc}->map_and_send_key($args->{key}, undef, $press_release_delay);
     $self->backend->run_capture_loop(.2);
     return {};
 }
 
 sub hold_key {
     my ($self, $args) = @_;
-    $self->{vnc}->map_and_send_key($args->{key}, 1);
+    $self->{vnc}->map_and_send_key($args->{key}, 1, 1 / VNC_TYPING_LIMIT_DEFAULT);
     $self->backend->run_capture_loop(.2);
     return {};
 }
 
 sub release_key {
     my ($self, $args) = @_;
-    $self->{vnc}->map_and_send_key($args->{key}, 0);
+    $self->{vnc}->map_and_send_key($args->{key}, 0, 1 / VNC_TYPING_LIMIT_DEFAULT);
     $self->backend->run_capture_loop(.2);
     return {};
 }
