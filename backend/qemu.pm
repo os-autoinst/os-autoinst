@@ -451,7 +451,7 @@ sub save_snapshot {
 
     mkpath(VM_SNAPSHOTS_DIR);
     $self->_migrate_to_file(
-        filename         => VM_SNAPSHOTS_DIR . '/' . $snapshot->name,
+        filename         => File::Spec->catfile(VM_SNAPSHOTS_DIR, $snapshot->name),
         compress_level   => $vars->{QEMU_COMPRESS_LEVEL} || 6,
         compress_threads => $vars->{QEMU_COMPRESS_THREADS} // $vars->{QEMUCPUS},
         max_bandwidth    => $vars->{QEMU_MAX_BANDWIDTH});
