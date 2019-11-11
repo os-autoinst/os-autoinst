@@ -28,6 +28,7 @@ use Cpanel::JSON::XS ();
 use File::Copy 'cp';
 use File::Basename;
 use Time::HiRes qw(gettimeofday time tv_interval);
+use Try::Tiny;
 use POSIX qw(_exit :sys_wait_h);
 use bmwqemu;
 use IO::Select;
@@ -556,7 +557,13 @@ sub select_console {
     my $testapi_console = $args->{testapi_console};
 
     my $selected_console = $self->console($testapi_console);
-    my $activated        = $selected_console->select;
+    my $activated        = try {
+        local $SIG{__DIE__} = 'DEFAULT';
+        $selected_console->select;
+    }
+    catch {
+        {error => $_};
+    };
 
     return $activated if ref($activated);
     $self->{current_console} = $selected_console;
