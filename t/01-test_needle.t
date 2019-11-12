@@ -24,6 +24,14 @@ BEGIN {
 use needle;
 use cv;
 
+throws_ok(
+    sub {
+        needle->new('foo.json');
+    },
+    qr{needles not initialized}s,
+    'died when constructing needle without prior call to needle::init()'
+);
+
 cv::init();
 require tinycv;
 
