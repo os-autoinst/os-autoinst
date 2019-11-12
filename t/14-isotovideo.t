@@ -39,6 +39,7 @@ subtest 'standard tests based on simple vars.json file' => sub {
     print $var <<EOV;
 {
    "CASEDIR" : "$data_dir/tests",
+   "PRJDIR"  : "$data_dir",
    "_EXIT_AFTER_SCHEDULE" : 1,
 }
 EOV

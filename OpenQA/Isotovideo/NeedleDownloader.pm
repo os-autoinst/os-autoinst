@@ -23,7 +23,6 @@ use File::stat;
 use Try::Tiny;
 use POSIX 'strftime';
 use bmwqemu;
-use needle;
 
 has files_to_download => sub { [] };
 has openqa_url        => sub {
@@ -72,7 +71,7 @@ sub _add_download {
 
     my $needle_name     = $needle->{name};
     my $latest_update   = $needle->{t_updated};
-    my $needle_dir      = $needle::needles_dir;
+    my $needle_dir      = $bmwqemu::vars{NEEDLES_DIR};
     my $download_target = "$needle_dir/$needle_name.$extension";
 
     if (my $target_stat = stat($download_target)) {
