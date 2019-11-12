@@ -47,6 +47,8 @@ sub is_click_point_valid {
 sub new {
     my ($classname, $jsonfile) = @_;
 
+    die 'needles not initialized via needle::init() before needle constructor called' unless defined $needledir;
+
     my $json;
     if (ref $jsonfile eq 'HASH') {
         $json     = $jsonfile;
@@ -59,7 +61,6 @@ sub new {
     # - This code initializes $json->{file} so it contains the path within the needle directory.
     # - $jsonfile is re-assigned to contain the absolute path the the JSON file.
     # - The needle must be within the needle directory.
-    $needledir //= '';
     if (index($jsonfile, $needledir) == 0) {
         $self->{file} = substr($jsonfile, length($needledir) + 1);
     }
