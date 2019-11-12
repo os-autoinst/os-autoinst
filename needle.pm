@@ -59,6 +59,7 @@ sub new {
     # - This code initializes $json->{file} so it contains the path within the needle directory.
     # - $jsonfile is re-assigned to contain the absolute path the the JSON file.
     # - The needle must be within the needle directory.
+    $needledir //= '';
     if (index($jsonfile, $needledir) == 0) {
         $self->{file} = substr($jsonfile, length($needledir) + 1);
     }
@@ -325,10 +326,6 @@ sub init {
     my $user_provided_needles_dir = $bmwqemu::vars{NEEDLES_DIR};
     if (defined $user_provided_needles_dir) {
         $user_provided_needles_dir = File::Spec->rel2abs($user_provided_needles_dir) unless File::Spec->file_name_is_absolute($user_provided_needles_dir);
-        if (index($user_provided_needles_dir, cwd) != 0) {
-            $bmwqemu::vars{NEEDLES_DIR} = $user_provided_needles_dir = undef;
-            bmwqemu::diag('Ignoring needle dir specified via NEEDLES_DIR because it is not within the current working directory.');
-        }
     }
 
     # initialize/re-assign global $needledir

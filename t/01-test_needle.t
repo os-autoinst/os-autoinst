@@ -388,24 +388,6 @@ subtest 'needle::init accepts custom NEEDLES_DIR within working directory and ot
         Mojo::File->new($misc_needle_dir, "click-point.$extension")->copy_to("$needles_dir/subdir/foo.$extension");
     }
 
-    subtest 'custom NEEDLES_DIR ignored when not within working directory' => sub {
-        $bmwqemu::vars{PRODUCTDIR} = '/does/not/exist';    # set PRODUCTDIR as it is used to deduce the default needle dir
-        combined_like(
-            sub {
-                throws_ok(
-                    sub {
-                        needle::init;
-                    },
-                    qr{needledir not found: /does/not/exist/needles}s,
-                    'attempt to use default needle dir (which does not exist here)'
-                );
-            },
-            qr{Ignoring needle dir specified via NEEDLES_DIR because it is not within the current working directory\.}s,
-            'custom needle dir outside cwd ignored'
-        );
-        is($bmwqemu::vars{NEEDLES_DIR}, undef, 'custom needle directory unset if ignored');
-    };
-
     subtest 'custom NEEDLES_DIR used when within working directory' => sub {
         note("using working directory $temp_working_dir");
         chdir($temp_working_dir);
