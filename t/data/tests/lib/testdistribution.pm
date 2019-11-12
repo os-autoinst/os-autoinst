@@ -45,6 +45,16 @@ sub init_consoles {
             hostname => 'noIucvconn.nowhere',
             password => $testapi::password
         });
+    $self->add_console(
+        'brokenssh',
+        'ssh-xterm',
+        {
+            hostname => 'nossh.nowhere',
+            password => $testapi::password,
+            user     => 'root',
+            serial   => 'touch /dev/sshserial',
+            gui      => 1
+        });
 
 }
 

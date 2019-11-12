@@ -40,6 +40,7 @@ autotest::loadtest "tests/boot.pm";
 unless (get_var('INTEGRATION_TESTS')) {
     autotest::loadtest "tests/select_console_fail_test.pm";
     autotest::loadtest "tests/select_ssh_console_fail_test.pm";
+    autotest::loadtest "tests/select_ssh_console_fail2_test.pm";
     autotest::loadtest "tests/assert_screen_fail_test.pm";
     autotest::loadtest "tests/typing.pm";
     autotest::loadtest "tests/reload_needles.pm";
