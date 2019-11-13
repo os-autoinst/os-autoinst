@@ -22,6 +22,7 @@ use autodie ':all';
 
 use base 'backend::virt';
 
+use File::Basename 'dirname';
 use File::Path 'mkpath';
 use File::Spec;
 use File::Which;
@@ -186,6 +187,7 @@ sub open_file_and_send_fd_to_qemu {
     my ($self, $path, $fdname) = @_;
     my $rsp;
 
+    mkpath(dirname($path));
     my $fd = POSIX::open($path, POSIX::O_CREAT() | POSIX::O_RDWR());
     die "Failed to open $path: $!" unless (defined $fd);
 
@@ -449,9 +451,8 @@ sub save_snapshot {
             diag('blockdev-snapshot-sync(' . Dumper($req) . ') -> ' . Dumper($rsp));
     });
 
-    mkpath(VM_SNAPSHOTS_DIR);
     $self->_migrate_to_file(
-        filename         => VM_SNAPSHOTS_DIR . '/' . $snapshot->name,
+        filename         => File::Spec->catfile(VM_SNAPSHOTS_DIR, $snapshot->name),
         compress_level   => $vars->{QEMU_COMPRESS_LEVEL} || 6,
         compress_threads => $vars->{QEMU_COMPRESS_THREADS} // $vars->{QEMUCPUS},
         max_bandwidth    => $vars->{QEMU_MAX_BANDWIDTH});
