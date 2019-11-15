@@ -1181,7 +1181,7 @@ sub retry_assert_screen {
 # shared between svirt and s390 backend
 sub new_ssh_connection {
     my ($self, %args) = @_;
-    bmwqemu::log_call(%args);
+    bmwqemu::log_call(%{$self->hide_password(%args)});
     my %credentials = $self->get_ssh_credentials;
     $args{$_} //= $credentials{$_} foreach (keys(%credentials));
     $args{username} ||= 'root';
@@ -1191,7 +1191,7 @@ sub new_ssh_connection {
     # e.g. using hyperv_intermediate host which is running Windows need to keep the connection.
     # Otherwise a mount point doesn't exists within the next command.
     if ($args{keep_open}) {
-        $connection_key = join(',', map { $_ . "=" . $args{$_} } qw(hostname username password));
+        $connection_key = join(',', map { $_ . "=" . $args{$_} } qw(hostname username));
         my $con = $self->{ssh_connections}->{$connection_key};
         return $con if (defined($con));
     }
@@ -1236,7 +1236,7 @@ sub get_ssh_credentials {
 # open another ssh connection to grab the serial console
 sub start_ssh_serial {
     my ($self, %args) = @_;
-    bmwqemu::log_call(%args);
+    bmwqemu::log_call(%{$self->hide_password(%args)});
     $self->stop_ssh_serial;
 
     my $ssh  = $self->{serial}      = $self->new_ssh_connection(%args);
@@ -1297,7 +1297,7 @@ sub run_ssh_cmd {
     $args{wantarray} //= 0;
     $args{keep_open} //= 1;
 
-    bmwqemu::log_call(cmd => $cmd, %args);
+    bmwqemu::log_call(cmd => $cmd, %{$self->hide_password(%args)});
     my ($ssh, $chan) = $self->run_ssh($cmd, %args);
     $chan->send_eof;
 
@@ -1319,7 +1319,7 @@ sub run_ssh_cmd {
 
 sub run_ssh {
     my ($self, $cmd, %args) = @_;
-    bmwqemu::log_call(cmd => $cmd, %args);
+    bmwqemu::log_call(cmd => $cmd, %{$self->hide_password(%args)});
     $args{blocking} //= 1;
     my $ssh  = $self->new_ssh_connection(%args);
     my $chan = $ssh->channel() || $ssh->die_with_error("Unable to create SSH channel for executing \"$cmd\"");
@@ -1347,6 +1347,12 @@ sub stop_ssh_serial {
     $self->{select_read}->remove($ssh->sock);
     $ssh->disconnect;
     return $self->{serial} = undef;
+}
+
+sub hide_password {
+    my ($self, %args) = @_;
+    $args{password} = 'SECRET' if ($args{password});
+    return \%args;
 }
 
 # Send TERM signal to any child process
