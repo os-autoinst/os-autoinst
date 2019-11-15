@@ -32,7 +32,13 @@ Source0:        %{name}-%{version}.tar.xz
 %define requires_not_needed_in_tests git-core
 # all requirements needed by the tests, do not require on this in the package
 # itself or any sub-packages
-%define test_requires %build_requires %requires perl(Perl::Tidy) perl(Test::Compile) perl(Test::Exception) perl(Test::Output) perl(Test::Fatal) perl(Test::Warnings) perl(Pod::Coverage) perl(Test::Pod) perl(Test::MockModule) perl(Test::MockObject) perl(Devel::Cover) perl(Test::Mock::Time) qemu-tools
+# SLE is missing spell check requirements
+%if !0%{?is_opensuse}
+%define spellcheck_requires %{nil}
+%else
+%define spellcheck_requires perl(Pod::Spell) aspell-spell
+%endif
+%define test_requires %build_requires %requires perl(Perl::Tidy) perl(Test::Compile) perl(Test::Exception) perl(Test::Output) perl(Test::Fatal) perl(Test::Warnings) perl(Pod::Coverage) perl(Test::Pod) perl(Test::MockModule) perl(Test::MockObject) perl(Devel::Cover) perl(Test::Mock::Time) qemu-tools %spellcheck_requires
 %define devel_requires %test_requires %requires_not_needed_in_tests
 BuildRequires:  %test_requires
 Requires:       %requires %requires_not_needed_in_tests
