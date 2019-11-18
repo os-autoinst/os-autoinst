@@ -52,7 +52,11 @@ sub send_json {
     $json .= "\n";
 
     my $wb = syswrite($to_fd, "$json");
-    confess "syswrite failed $!" unless ($wb && $wb == length($json));
+    if (!$wb || !$wb == length($json)) {
+        confess "syswrite failed: $!" if DEBUG_JSON;
+        # remote end most likely terminated on request, silently ignore
+        return undef;
+    }
     return $cmdcopy{json_cmd_token};
 }
 
@@ -126,7 +130,6 @@ sub read_json {
 
         my $qbuffer;
         my $bytes = sysread($socket, $qbuffer, READ_BUFFER);
-        #bmwqemu::diag("sysread $qbuffer");
         if (!$bytes) { bmwqemu::diag("sysread failed: $!"); return; }
         $cjx->incr_parse($qbuffer);
     }
