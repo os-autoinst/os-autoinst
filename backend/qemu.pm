@@ -1011,7 +1011,7 @@ sub handle_qmp_command {
     else {
         $wb = syswrite($sk, $line);
     }
-    die "syswrite failed $!" unless ($wb == length($line));
+    die "handle_qmp_command: syswrite failed $!" unless ($wb == length($line));
 
     my $hash;
     while (!$hash) {
