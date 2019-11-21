@@ -767,10 +767,6 @@ sub start_qemu {
 
     my $keephdds = $vars->{KEEPHDDS} || $vars->{SKIPTO};
 
-    if ($vars->{AUTO_INST}) {
-        die 'Ironically AUTO_INST has been removed from os-autoinst';
-    }
-
     if ($keephdds) {
         $self->{proc}->load_state();
     } else {
