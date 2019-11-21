@@ -115,17 +115,19 @@ sub read_json {
         }
 
         # wait for next read
-        my @res = $s->can_read;
-        unless (@res) {
-            my $E = $!;    # save the error
-            unless ($!{EINTR}) {    # EINTR if killed
-                confess "ERROR: timeout reading JSON reply: $E\n";
-            }
-            else {
-                die("can_read received kill signal");
-            }
-            close($socket);
-            return;
+        my @res                = $s->can_read;
+        my $remaining_attempts = 5;
+        while (!@res) {
+            # throw an error except can_read has been interrupted
+            my $error = $!;
+            confess "ERROR: unable to wait for JSON reply: $error\n" unless $!{EINTR};
+            confess "ERROR: can_read's underlying system call has been interrupted too many times\n" unless $remaining_attempts;
+
+            # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation
+            bmwqemu::diag("($$) read_json($fd): can_read's underlying system call has been interrupted, trying again\n") if DEBUG_JSON;
+            @res = $s->can_read;
+            $remaining_attempts -= 1;
+            next;
         }
 
         my $qbuffer;
