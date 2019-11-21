@@ -24,12 +24,7 @@ use testapi;
 sub run {
     type_string "sudo su\n";
     type_string "poweroff\n";
-    if (get_var('INTEGRATION_TESTS')) {
-        assert_shutdown(90);
-    }
-    else {
-        assert_shutdown;
-    }
+    assert_shutdown(get_var('INTEGRATION_TESTS') ? 90 : undef);
 }
 
 sub test_flags {

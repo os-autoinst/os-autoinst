@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2017 SUSE LLC
+# Copyright (C) 2017-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -61,14 +61,14 @@ close($var);
 open($var, '>', 'live_log');
 close($var);
 system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
-is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'),                                           0, 'test executed fine');
-is(system('grep -q "\d* Snapshots are supported" autoinst-log.txt'),                           0, 'Snapshots are enabled');
-is(system('grep -q "do not wait_still_screen" autoinst-log.txt'),                              0, 'test type string and do not wait');
-is(system('grep -q "wait_still_screen: detected same image for 5 seconds" autoinst-log.txt'),  0, 'test type string and wait for 5 seconds');
-is(system('grep -q "wait_still_screen: detected same image for 10 seconds" autoinst-log.txt'), 0, 'test type string and wait for 10 seconds');
-is(system('grep -q "wait_still_screen: detected same image for 20 seconds" autoinst-log.txt'), 0, 'test type string and wait for 20 seconds');
-is(system('grep -q ".*event.*STOP" autoinst-log.txt'),                                         0, 'Machine properly paused');
-is(system('grep -q ".*event.*RESUME" autoinst-log.txt'),                                       0, 'Machine properly resumed');
+is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'),                                            0, 'test executed fine');
+is(system('grep -q "\d* Snapshots are supported" autoinst-log.txt'),                            0, 'Snapshots are enabled');
+is(system('grep -q "do not wait_still_screen" autoinst-log.txt'),                               0, 'test type string and do not wait');
+is(system('grep -q "wait_still_screen: detected same image for 0.2 seconds" autoinst-log.txt'), 0, 'test type string and wait for .2 seconds');
+is(system('grep -q "wait_still_screen: detected same image for 1 seconds" autoinst-log.txt'),   0, 'test type string and wait for 1 seconds');
+is(system('grep -q "wait_still_screen: detected same image for 0.1 seconds" autoinst-log.txt'), 0, 'test type string and wait for .1 seconds');
+is(system('grep -q ".*event.*STOP" autoinst-log.txt'),                                          0, 'Machine properly paused');
+is(system('grep -q ".*event.*RESUME" autoinst-log.txt'),                                        0, 'Machine properly resumed');
 
 is(system('grep -q "get_test_data returned expected file" autoinst-log.txt'), 0, 'get_test_data test');
 is(system('grep -q "save_tmp_file returned expected file" autoinst-log.txt'), 0, 'save_tmp_file test');
