@@ -52,6 +52,8 @@ AUTO_INST;;;
 ATACONTROLLER;see qemu -device ?, e. g. for SATA: ich9-ahci;;Controller for ATA devices, needed for connecting disks as SATA.
 BIOS;;;
 BOOT_HDD_IMAGE;boolean;;enables boot from HDD_1 (BOOTFROM has higher priority)
+BOOT_MENU;boolean;enables boot menu for selection of boot device
+BOOT_MENU_TIMEOUT;integer;5000;boot menu timeout in ms. Needs BOOT_MENU
 BOOTFROM;chars;undef;Influences order of boot devices. See qemu -boot option
 CDMODEL;see qemu -device ?;undef;Storage device for virtualized CD
 DELAYED_START;boolean;;delay vm cpu start until resume_vm() is called
