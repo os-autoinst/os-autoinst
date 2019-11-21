@@ -63,11 +63,6 @@ sub start {
 
     my $backend_process = process(sub {
             my $process = shift;
-            my %old_sig = %SIG;
-            $SIG{TERM} = 'IGNORE';
-            $SIG{INT}  = 'IGNORE';
-            $SIG{HUP}  = 'IGNORE';
-            #  $SIG{CHLD} = 'DEFAULT';
             $0 = "$0: backend";
 
             open STDOUT, ">&", $STDOUTPARENT;
@@ -84,6 +79,11 @@ sub start {
             # (we set later) would crash. So we need to block
             # the TERM signal in the forked processes before we
             # set the signal handler of our choice
+            my %old_sig = %SIG;
+            $SIG{TERM} = 'IGNORE';
+            $SIG{INT}  = 'IGNORE';
+            $SIG{HUP}  = 'IGNORE';
+            #  $SIG{CHLD} = 'DEFAULT';
             use POSIX ':signal_h';
             my $sigset = POSIX::SigSet->new(SIGTERM);
             unless (defined sigprocmask(SIG_BLOCK, $sigset, undef)) {
