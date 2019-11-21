@@ -63,6 +63,7 @@ sub start {
 
     my $backend_process = process(sub {
             my $process = shift;
+            my %old_sig = %SIG;
             $SIG{TERM} = 'IGNORE';
             $SIG{INT}  = 'IGNORE';
             $SIG{HUP}  = 'IGNORE';
@@ -91,6 +92,9 @@ sub start {
             require tinycv;
 
             sigprocmask(SIG_UNBLOCK, $sigset, undef);
+            # set back signal handling to default to be able to terminate the
+            # backend properly
+            %SIG = %old_sig;
 
             $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
             _exit(0);
