@@ -155,9 +155,9 @@ sub activate {
     my ($self) = @_;
     if (!check_var('VIRTIO_CONSOLE', 0)) {
         ($self->{fd_read}, $self->{fd_write}) = $self->open_pipe() unless ($self->{fd_read});
-        $self->{screen} = consoles::serial_screen::->new($self->{fd_read}, $self->{fd_write});
+        $self->{screen}                 = consoles::serial_screen::->new($self->{fd_read}, $self->{fd_write});
         $self->{screen}->{carry_buffer} = $self->{preload_buffer};
-        $self->{preload_buffer} = '';
+        $self->{preload_buffer}         = '';
     }
     else {
         croak 'VIRTIO_CONSOLE is set 0, so no virtio-serial and virtconsole devices will be available to use with this console.';

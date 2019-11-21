@@ -126,6 +126,7 @@ sub do_start_vm {
 sub stop_qemu {
     my ($self) = (@_);
     $self->{proc}->_process->stop;
+    $self->delete_virtio_console_fifo();
     $self->_stop_children_processes;
 }
 
@@ -484,6 +485,7 @@ sub load_snapshot {
 
     my $snapshot = $self->{proc}->revert_to_snapshot($vmname);
 
+    $self->create_virtio_console_fifo();
     my $qemu_pipe = $self->{qemupipe} = $self->{proc}->exec_qemu();
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
@@ -546,6 +548,43 @@ sub do_extract_assets {
 sub find_ovmf {
     foreach my $firmware (@bmwqemu::ovmf_locations) {
         return $firmware if -e $firmware;
+    }
+}
+
+sub get_virtio_console_names {
+    my $self = shift;
+    my @names;
+    if ($bmwqemu::vars{VIRTIO_CONSOLE}) {
+        for (my $i = 0; $i < ($bmwqemu::vars{VIRTIO_CONSOLE_NUM} // 1); $i++) {
+            my $name = 'virtio_console' . ($i ? $i : '');
+            push(@names, $name);
+        }
+    }
+    return @names;
+}
+
+sub get_virtio_console_fifo_names {
+    my $self = shift;
+    return map { ($_ . '.in', $_ . '.out') } $self->get_virtio_console_names();
+}
+
+sub create_virtio_console_fifo {
+    my $self = shift;
+    for my $name ($self->get_virtio_console_fifo_names) {
+        if (-e $name) {
+            bmwqemu::fctwarn("Fifo pipe '$name' already exists!");
+        } else {
+            mkfifo($name, 0666) or bmwqemu::fctwarn("Failed to create pipe $name: $!");
+        }
+    }
+}
+
+sub delete_virtio_console_fifo {
+    my $self = shift;
+    for my $name ($self->get_virtio_console_fifo_names) {
+        if (-e $name) {
+            unlink($name) or bmwqemu::fctwarn("Could not unlink $name: $!");
+        }
     }
 }
 
@@ -893,12 +932,10 @@ sub start_qemu {
             sp('k', $vars->{VNCKB}) if $vars->{VNCKB};
         }
 
-        if ($vars->{VIRTIO_CONSOLE}) {
+        my @virtio_consoles = $self->get_virtio_console_names;
+        if (@virtio_consoles) {
             sp('device', 'virtio-serial');
-            for (my $i = 0; $i < ($vars->{VIRTIO_CONSOLE_NUM} // 1); $i++) {
-                my $name = 'virtio_console' . ($i ? $i : '');
-                mkfifo($name . ".in",  0666);
-                mkfifo($name . ".out", 0666);
+            for my $name (@virtio_consoles) {
                 sp('chardev', [qv "pipe id=$name path=$name logfile=$name.log logappend=on"]);
                 sp('device',  [qv "virtconsole chardev=$name name=org.openqa.console.$name"]);
             }
@@ -920,6 +957,7 @@ sub start_qemu {
         }
     }
 
+    $self->create_virtio_console_fifo();
     my $qemu_pipe = $self->{qemupipe} = $self->{proc}->exec_qemu();
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
