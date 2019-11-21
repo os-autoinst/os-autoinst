@@ -1,6 +1,9 @@
 AM_MAKEFLAGS = \
 	PERL5OPT="-MDevel::Cover=-db,$(abs_builddir)/cover_db,-ignore,^*\.t|^data\/tests\/*|^fake\/tests\/*" \
 	PERL5LIB="..:../ppmclibs:../ppmclibs/blib/arch/auto/tinycv:$$PERL5LIB"
+# Prevent error "blank line following trailing backslash" when deleting last
+# line in list in spec file to exclude tests
+EMPTY =
 TESTS = \
 	00-compile-check-all.t \
 	01-test_needle.t \
@@ -32,6 +35,7 @@ TESTS = \
 	24-myjsonrpc.t \
 	24-myjsonrpc-debug.t \
 	25-spvm.t \
-	99-full-stack.t
+	99-full-stack.t \
+	$(EMPTY)
 
 EXTRA_DIST = $(TESTS)
