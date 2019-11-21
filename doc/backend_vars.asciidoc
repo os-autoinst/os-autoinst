@@ -17,6 +17,8 @@ _SKIP_POST_FAIL_HOOKS;boolean;0;Skip the execution of post_fail_hook methods if 
 NOVIDEO;boolean;0;Do not encode video if set
 NO_DEBUG_IO;boolean;0;Disable the I/O debug output in case of needle comparison times longer than expected
 SCREENSHOTINTERVAL;float;0.5;The interval in seconds at which screenshots are taken internally
+SSH_CONNECT_RETRY;integer;5;Maximum retries to connect to SSH based console targets
+SSH_CONNECT_RETRY_INTERVAL;float;10;Interval in seconds between retries to connect to SSH based console targets. Related to SSH_CONNECT_RETRY
 VNC_STALL_THRESHOLD;integer;4;Time after which is VNC considered stalled
 VNC_TYPING_LIMIT;integer;50;Maximum number of keys per second
 _CHKSEL_RATE_WAIT_TIME;integer;30;The ammount of time isotovideo is going to wait for the VNC console to become responsive

@@ -52,6 +52,8 @@ print $var <<EOV;
    "CDMODEL" : "ide-cd",
    "HDDMODEL" : "ide-drive",
    "VERSION" : "1",
+   "SSH_CONNECT_RETRY"  : "2",
+   "SSH_CONNECT_RETRY_INTERVAL"  : ".001",
 }
 EOV
 close($var);
