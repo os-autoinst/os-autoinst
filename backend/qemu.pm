@@ -1044,7 +1044,7 @@ sub read_qemupipe {
 
 sub close_pipes {
     my ($self) = @_;
-    $self->do_stop_vm();
+    $self->do_stop_vm() if $self->{started};
 
     if (my $qemu_pipe = $self->{qemupipe}) {
         # one last word?
@@ -1069,7 +1069,7 @@ sub is_shutdown {
     my $ret = $self->handle_qmp_command({execute => 'query-status'})->{return}->{status}
       || 'unknown';
 
-    diag("QEMU status is not shutdown it is $ret") if $ret ne 'shutdown';
+    diag("QEMU status is not 'shutdown', it is '$ret'") if $ret ne 'shutdown';
 
     return $ret eq 'shutdown';
 }
