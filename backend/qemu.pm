@@ -123,10 +123,10 @@ sub do_start_vm {
     return {};
 }
 
-sub kill_qemu {
+sub stop_qemu {
     my ($self) = (@_);
     $self->{proc}->_process->stop;
-    $self->_kill_children_processes;
+    $self->_stop_children_processes;
 }
 
 sub _dbus_call {
@@ -157,7 +157,7 @@ sub _dbus_call {
 sub do_stop_vm {
     my $self = shift;
     $self->{proc}->save_state();
-    $self->kill_qemu;
+    $self->stop_qemu;
 }
 
 sub can_handle {

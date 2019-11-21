@@ -1356,11 +1356,11 @@ sub hide_password {
 }
 
 # Send TERM signal to any child process
-sub _kill_children_processes {
+sub _stop_children_processes {
     my ($self) = @_;
     my $ret;
     for my $pid (@{$self->{children}}) {
-        bmwqemu::diag("killing child $pid");
+        bmwqemu::diag("terminating child $pid");
         kill('TERM', $pid);
         for my $i (1 .. 5) {
             $ret = waitpid($pid, WNOHANG);
