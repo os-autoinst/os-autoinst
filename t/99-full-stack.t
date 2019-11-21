@@ -61,7 +61,6 @@ close($var);
 system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
 is(system('grep -q "\d*: EXIT 0" autoinst-log.txt'),                                           0, 'test executed fine');
 is(system('grep -q "\d* Snapshots are supported" autoinst-log.txt'),                           0, 'Snapshots are enabled');
-is(system('grep -q "\d* wait_idle sleeping for 1 seconds" autoinst-log.txt'),                  0, 'Wait idle waits for a second.');
 is(system('grep -q "do not wait_still_screen" autoinst-log.txt'),                              0, 'test type string and do not wait');
 is(system('grep -q "wait_still_screen: detected same image for 5 seconds" autoinst-log.txt'),  0, 'test type string and wait for 5 seconds');
 is(system('grep -q "wait_still_screen: detected same image for 10 seconds" autoinst-log.txt'), 0, 'test type string and wait for 10 seconds');

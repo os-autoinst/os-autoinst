@@ -1,4 +1,4 @@
-# Copyright (C) 2017 SUSE LLC
+# Copyright (C) 2017-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ use base 'basetest';
 use testapi;
 
 sub run {
-    wait_idle 1;
     type_string "sudo su\n";
     type_string "poweroff\n";
     if (get_var('INTEGRATION_TESTS')) {
