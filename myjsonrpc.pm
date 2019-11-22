@@ -22,6 +22,7 @@ use bmwqemu ();
 use Errno;
 use Mojo::JSON;    # booleans
 use Cpanel::JSON::XS ();
+use POSIX '_exit';
 
 use constant DEBUG_JSON  => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
 use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8000000;
@@ -54,7 +55,8 @@ sub send_json {
     my $wb = syswrite($to_fd, "$json");
     if (!$wb || $wb != length($json)) {
         if (!DEBUG_JSON && $! =~ qr/Broken pipe/) {
-            die('myjsonrpc: remote end terminated connection, stopping');
+            bmwqemu::diag("myjsonrpc: remote end terminated connection, stopping");
+            _exit(0);
         }
         confess "syswrite failed: $!";
     }
