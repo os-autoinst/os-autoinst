@@ -381,7 +381,7 @@ sub runalltests {
                 if ($bmwqemu::vars{DUMP_MEMORY_ON_FAIL}) {
                     query_isotovideo('backend_save_memory_dump', {filename => $fullname});
                 }
-                if ($flags->{fatal} || $t->{fatal_failure} || !$snapshots_supported || $bmwqemu::vars{TESTDEBUG}) {
+                if ($t->{fatal_failure} || $flags->{fatal} || (!exists $flags->{fatal} && !$snapshots_supported) || $bmwqemu::vars{TESTDEBUG}) {
                     bmwqemu::stop_vm();
                     return 0;
                 }
