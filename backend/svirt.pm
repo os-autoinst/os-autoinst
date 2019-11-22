@@ -347,5 +347,3 @@ sub stop_serial_grab {
 }
 
 1;
-
-# vim: set sw=4 et:

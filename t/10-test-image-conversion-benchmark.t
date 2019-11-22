@@ -62,5 +62,3 @@ print $watch->summary();
 
 
 done_testing();
-
-# vim: set sw=4 et:

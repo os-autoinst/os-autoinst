@@ -63,5 +63,3 @@ for file in $(find . -name "*.tdy"); do
         rm $file
     fi
 done
-
-# vim: set sw=4 et:

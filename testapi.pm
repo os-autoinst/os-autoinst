@@ -2210,5 +2210,3 @@ sub compat_args {
 }
 
 1;
-
-# vim: set sw=4 et:

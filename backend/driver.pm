@@ -175,4 +175,3 @@ sub _send_json {
 }
 
 1;
-# vim: set sw=4 et:

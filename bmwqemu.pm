@@ -361,5 +361,3 @@ sub wait_for_one_more_screenshot {
 }
 
 1;
-
-# vim: set sw=4 et:

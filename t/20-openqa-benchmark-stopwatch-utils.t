@@ -29,5 +29,3 @@ ok($watch->as_data()->{laps}[1]{time} gt 0.002 && $watch->as_data()->{laps}[1]{t
 print $watch->summary();
 
 done_testing();
-
-# vim: set sw=4 et:

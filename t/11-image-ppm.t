@@ -41,5 +41,3 @@ my $img2 = tinycv::from_ppm($ppm);
 is(1000000, $img1->similarity($img2));
 
 done_testing();
-
-# vim: set sw=4 et:

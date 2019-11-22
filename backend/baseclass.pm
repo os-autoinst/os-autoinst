@@ -1390,4 +1390,3 @@ sub _child_process {
 }
 
 1;
-# vim: set sw=4 et:

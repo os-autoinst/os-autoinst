@@ -268,5 +268,3 @@ sub is_shutdown {
 }
 
 1;
-
-# vim: set sw=4 et:
