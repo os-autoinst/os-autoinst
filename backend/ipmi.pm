@@ -109,11 +109,7 @@ sub do_start_vm {
 
     $self->get_mc_status;
     $self->restart_host;
-
-    # truncate the serial file
-    open(my $sf, '>', $self->{serialfile});
-    close($sf);
-
+    $self->truncate_serial_file;
     my $sol = $testapi::distri->add_console('sol', 'ipmi-xterm');
     $sol->backend($self);
     return {};
