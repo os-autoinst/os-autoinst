@@ -1,4 +1,4 @@
-# Copyright © 2012-2016 SUSE LLC
+# Copyright © 2012-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,9 +53,10 @@ sub send_json {
 
     my $wb = syswrite($to_fd, "$json");
     if (!$wb || !$wb == length($json)) {
-        confess "syswrite failed: $!" if DEBUG_JSON;
-        # remote end most likely terminated on request, silently ignore
-        return undef;
+        if (!DEBUG_JSON && $! =~ qr/Broken pipe/) {
+            die('myjsonrpc: remote end terminated connection, stopping');
+        }
+        confess "syswrite failed: $!";
     }
     return $cmdcopy{json_cmd_token};
 }
@@ -132,7 +133,10 @@ sub read_json {
 
         my $qbuffer;
         my $bytes = sysread($socket, $qbuffer, READ_BUFFER);
-        if (!$bytes) { bmwqemu::diag("sysread failed: $!"); return; }
+        if (!$bytes) {
+            bmwqemu::diag("sysread failed: $!") if DEBUG_JSON;
+            return;
+        }
         $cjx->incr_parse($qbuffer);
     }
 
