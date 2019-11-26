@@ -24,6 +24,7 @@ use base 'backend::virt';
 use File::Basename;
 use IO::Scalar;
 use IO::Select;
+use Time::HiRes 'usleep';
 use testapi qw(get_var get_required_var check_var);
 
 use constant SERIAL_CONSOLE_DEFAULT_PORT   => 0;
@@ -276,6 +277,7 @@ sub open_serial_console_via_ssh {
     my $devname = $args{devname} // '';
     my $marker  = "CONSOLE_EXIT_" . get_required_var('JOBTOKEN') . ":";
     my $log     = $self->serial_terminal_log_file();
+    my $max_tries = 10;
 
     if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {
         # libvirt esx driver does not support `virsh console', so
@@ -297,6 +299,9 @@ sub open_serial_console_via_ssh {
     bmwqemu::diag("Starting SSH connection to connect to libvirt domain '$name' (cmd: '$cmd'), full cmd: '$cmd_full'");
 
     ($ssh, $chan) = $self->run_ssh($cmd_full, blocking => 0);
+    usleep(500) while ($self->run_ssh_cmd("test -e $log") != 0 && $max_tries-- > 0);
+    $self->die("Command 'script' did not create logfile $log") if ($max_tries < 1);
+
     ($ret, $stdout, $stderr) = $self->run_ssh_cmd("grep -q '^$marker' $log", wantarray => 1);
     $self->{need_delete_log} = 1;
     if (!$ret) {
