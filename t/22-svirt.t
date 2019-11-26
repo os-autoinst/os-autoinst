@@ -8,7 +8,8 @@ use Test::MockModule;
 use Test::MockObject;
 use Test::Warnings;
 use Test::Exception;
-use Test::Output 'stderr_like';
+use Test::Output;
+use Mojo::Log;
 use Scalar::Util 'refaddr';
 use XML::SemanticDiff;
 use backend::svirt;
@@ -16,6 +17,9 @@ use distribution;
 use Net::SSH2;
 use testapi qw(get_var get_required_var check_var set_var);
 use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT);
+
+# Initialize bmwqemu loggers
+bmwqemu::init();
 
 set_var(WORKER_HOSTNAME => 'foo');
 set_var(VIRSH_HOSTNAME  => 'bar');
@@ -80,7 +84,6 @@ subtest 'XML config for VNC and serial console' => sub {
         ok('XML looks as expected');
     }
 };
-
 
 subtest 'SSH credentials' => sub {
 
@@ -152,9 +155,14 @@ subtest 'SSH usage in svirt' => sub {
 
     # check connection handling
     my $ssh1 = $svirt->new_ssh_connection();
-    my $ssh2 = $svirt->new_ssh_connection();
-    my $ssh3 = $svirt->new_ssh_connection(keep_open => 1);
-    my $ssh4 = $svirt->new_ssh_connection(keep_open => 1);
+    my ($ssh2, $ssh3, $ssh4);
+    my $exp_log        = qr/SSH connection to root\@bar established/;
+    my $default_logger = $bmwqemu::logger;
+    $bmwqemu::logger = Mojo::Log->new(level => 'debug');
+    stderr_like { $ssh2 = $svirt->new_ssh_connection(); } $exp_log, 'New SSH connection announced in logs';
+    stderr_like { $ssh3 = $svirt->new_ssh_connection(keep_open => 1); } $exp_log, 'New SSH connection announced in logs';
+    stderr_unlike { $ssh4 = $svirt->new_ssh_connection(keep_open => 1); } $exp_log, 'No new SSH connection announced, if it already exists';
+    $bmwqemu::logger = $default_logger;
     $ssh_expect_credentials->{username} = 'foo911';
     my $ssh5 = $svirt->new_ssh_connection(keep_open => 1, username => 'foo911');
     $ssh_expect_credentials->{username} = 'root';
@@ -197,6 +205,74 @@ subtest 'SSH usage in svirt' => sub {
     is($svirt_console->run_cmd('echo "BLAFAFU"'),           0,         "sshVirtsh::run_cmd() test return value ");
     is($svirt_console->get_cmd_output('echo -n "BLAFAFU"'), 'BLAFAFU', "sshVirtsh::get_cmd_output()");
     is_deeply($svirt_console->get_cmd_output('echo -n "BLAFAFU"', {wantarray => 1}), ['BLAFAFU', ''], "sshVirtsh::get_cmd_output(wantarray => 1) ");
+};
+
+subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
+    my $module = Test::MockModule->new('backend::baseclass');
+    my @LAST_;
+    my $test_log_cnt = 0;
+    my $grep_return  = 1;
+    my @deleted_logs;
+    $module->mock('run_ssh_cmd', sub {
+            my $self = shift;
+            @LAST_ = @_;
+            my $cmd = shift;
+            return !!($test_log_cnt > 0 ? --$test_log_cnt : 0) if ($cmd =~ m/^test -e/);
+            return $grep_return if ($cmd =~ m/^grep -q/);
+            push @deleted_logs, ($cmd =~ /(\S+)$/) if ($cmd =~ / && rm /);
+            return (0, "FOOBAR_OUTPUT", '') if ($cmd =~ m/^cat /);
+            die("Adopt test, unexpected call of run_ssh_cmd()");
+    });
+
+    my $run_ssh_expect = '$a';
+    $module->mock('run_ssh', sub {
+            my ($self, $cmd, %args) = @_;
+            like($cmd, qr/$run_ssh_expect/, "run_ssh() command is like qr/$run_ssh_expect/");
+            return ('A', 'B');
+    });
+
+    delete $bmwqemu::vars{VIRSH_VMM_FAMILY};
+    $bmwqemu::vars{JOBTOKEN} = 'XYZ23';
+
+    my $svirt = backend::svirt->new();
+    $run_ssh_expect = 'virsh console NAME\s+;';
+    $svirt->open_serial_console_via_ssh('NAME');
+
+    $run_ssh_expect = 'virsh console NAME DEV\s*;';
+    $svirt->open_serial_console_via_ssh('NAME', devname => 'DEV');
+    $run_ssh_expect = 'virsh console NAME DEV666\s*;';
+    $svirt->open_serial_console_via_ssh('NAME', devname => 'DEV', port => 666);
+    $run_ssh_expect = 'virsh console NAME 666\s*;';
+    $svirt->open_serial_console_via_ssh('NAME', port => 666);
+
+    $bmwqemu::vars{VIRSH_VMM_FAMILY} = 'vmware';
+    $bmwqemu::vars{VMWARE_HOST}      = 'my.vmware.host';
+    $run_ssh_expect                  = 'nc my.vmware.host\s*;';
+    $svirt->open_serial_console_via_ssh('NAME');
+    $run_ssh_expect = 'nc my.vmware.host 666\s*;';
+    $svirt->open_serial_console_via_ssh('NAME', port => 666);
+
+    $bmwqemu::vars{VIRSH_VMM_FAMILY} = 'hyperv';
+    $bmwqemu::vars{HYPERV_SERVER}    = 'my.hyperv.server';
+    $run_ssh_expect                  = 'nc my.hyperv.server\s*;';
+    $svirt->open_serial_console_via_ssh('NAME');
+    $run_ssh_expect = 'nc my.hyperv.server 666\s*;';
+    $svirt->open_serial_console_via_ssh('NAME', port => 666);
+
+    # Disable command check, as we do not care anymore
+    $module->mock('run_ssh', sub { return ('A', 'B') });
+    is_deeply([$svirt->open_serial_console_via_ssh('NAME')], ['A', 'B'], 'Check that we get output from run_ssh() call');
+
+    $bmwqemu::vars{JOBTOKEN} = 'CHECK_DELETE_TOKEN';
+    my $expected_serial_file = '/tmp/' . $svirt->SERIAL_TERMINAL_LOG_PATH . '.CHECK_DELETE_TOKEN';
+    $test_log_cnt = 11;
+    dies_ok(sub { $svirt->open_serial_console_via_ssh('NAME') }, "die() when log file wasn't created");
+    is(shift @deleted_logs, $expected_serial_file, "Check if $expected_serial_file was deleted on die()");
+
+    $test_log_cnt = 0;
+    $grep_return  = 0;
+    dies_ok(sub { $svirt->open_serial_console_via_ssh('NAME') }, 'die() when emulate CONSOLE_EXIT token in log file');
+    is(shift @deleted_logs, $expected_serial_file, "Check if $expected_serial_file was deleted on die()");
 };
 
 done_testing;
