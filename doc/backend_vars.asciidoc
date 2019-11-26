@@ -16,6 +16,7 @@ _EXIT_AFTER_SCHEDULE;boolean;0;Exit test execution immediately after evaluation 
 _SKIP_POST_FAIL_HOOKS;boolean;0;Skip the execution of post_fail_hook methods if set. This can be useful to save test execution time during test development when the post_fail_hook is not expected to provide any value as most likely the test developer already knows what needs to be done as a next step on a test fail. Note that this also skips the test module result evaluation, for example a failing fatal test module does not abort the isotovideo run.
 NOVIDEO;boolean;0;Do not encode video if set
 NO_DEBUG_IO;boolean;0;Disable the I/O debug output in case of needle comparison times longer than expected
+OSUTILS_WAIT_ATTEMPT_INTERVAL;float;1;The interval in seconds between "attempts" in osutils, e.g. used for connections to qemu qmp backend
 SCREENSHOTINTERVAL;float;0.5;The interval in seconds at which screenshots are taken internally
 SSH_CONNECT_RETRY;integer;5;Maximum retries to connect to SSH based console targets
 SSH_CONNECT_RETRY_INTERVAL;float;10;Interval in seconds between retries to connect to SSH based console targets. Related to SSH_CONNECT_RETRY
@@ -81,6 +82,7 @@ OFFLINE_SUT;boolean;0;Disable network for a VM
 OFW;boolean;0;QEMU Open Firmware is in use
 QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64;boolean;undef;If set, for aarch64 systems use VGA as video adapter
 QEMU_DISABLE_SNAPSHOTS;boolean;undef;If set, disable snapshots in case the worker has slow disks to avoid save_vm calls failing due to timeouts (See https://bugzilla.suse.com/show_bug.cgi?id=1035453[bsc#1035453])
+QEMU_QMP_CONNECT_ATTEMPTS;integer;20;The number of attempts to connect to qemu qmp. Usually used for internal testing
 PATHCNT;integer;2;Number of paths in MULTIPATH scenario
 PXEBOOT;boolean or 'once';0;Boot VM from network, on every boot or only once if set to 'once'
 QEMU;QEMU binary filename;undef;Filename of QEMU binary to use

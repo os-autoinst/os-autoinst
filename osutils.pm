@@ -125,7 +125,7 @@ sub runcmd {
 ## use critic
 
 sub wait_attempt {
-    sleep 1;
+    sleep($ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} // 1);
 }
 
 sub attempt {

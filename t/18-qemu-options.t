@@ -34,6 +34,10 @@ my $pool_dir     = "$toplevel_dir/t/pool/";
 
 chdir($pool_dir);
 
+# just save ourselves some time during testing
+$ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} //= 1;
+$ENV{QEMU_QMP_CONNECT_ATTEMPTS}     //= 1;
+
 # Test QEMU_APPEND option with:
 # * version: '-version'
 # * list machines: '-M ?'
