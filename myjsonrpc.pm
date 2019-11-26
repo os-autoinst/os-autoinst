@@ -55,8 +55,9 @@ sub send_json {
     my $wb = syswrite($to_fd, "$json");
     if (!$wb || $wb != length($json)) {
         if (!DEBUG_JSON && $! =~ qr/Broken pipe/) {
-            bmwqemu::diag("myjsonrpc: remote end terminated connection, stopping");
-            _exit(0);
+            #bmwqemu::diag("myjsonrpc: remote end terminated connection, stopping");
+            die("myjsonrpc: remote end terminated connection, stopping");
+            #_exit(0);
         }
         confess "syswrite failed: $!";
     }
