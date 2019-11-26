@@ -123,10 +123,10 @@ sub do_start_vm {
     return {};
 }
 
-sub kill_qemu {
+sub stop_qemu {
     my ($self) = (@_);
     $self->{proc}->_process->stop;
-    $self->_kill_children_processes;
+    $self->_stop_children_processes;
 }
 
 sub _dbus_call {
@@ -157,7 +157,7 @@ sub _dbus_call {
 sub do_stop_vm {
     my $self = shift;
     $self->{proc}->save_state();
-    $self->kill_qemu;
+    $self->stop_qemu;
 }
 
 sub can_handle {
@@ -767,10 +767,6 @@ sub start_qemu {
 
     my $keephdds = $vars->{KEEPHDDS} || $vars->{SKIPTO};
 
-    if ($vars->{AUTO_INST}) {
-        die 'Ironically AUTO_INST has been removed from os-autoinst';
-    }
-
     if ($keephdds) {
         $self->{proc}->load_state();
     } else {
@@ -1044,7 +1040,7 @@ sub read_qemupipe {
 
 sub close_pipes {
     my ($self) = @_;
-    $self->do_stop_vm();
+    $self->do_stop_vm() if $self->{started};
 
     if (my $qemu_pipe = $self->{qemupipe}) {
         # one last word?
@@ -1069,7 +1065,7 @@ sub is_shutdown {
     my $ret = $self->handle_qmp_command({execute => 'query-status'})->{return}->{status}
       || 'unknown';
 
-    diag("QEMU status is not shutdown it is $ret") if $ret ne 'shutdown';
+    diag("QEMU status is not 'shutdown', it is '$ret'") if $ret ne 'shutdown';
 
     return $ret eq 'shutdown';
 }

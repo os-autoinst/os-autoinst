@@ -48,7 +48,6 @@ IPMI_BACKEND_MC_RESET;boolean;undef;Reset ipmi main board before test for sol co
 |====================
 Variable;Values allowed;Default value;Explanation
 ARCH;x86_64|i686|aarch64|...;depends on tested medium;Architecture of VM.
-AUTO_INST;;;
 ATACONTROLLER;see qemu -device ?, e. g. for SATA: ich9-ahci;;Controller for ATA devices, needed for connecting disks as SATA.
 BIOS;;;
 BOOT_HDD_IMAGE;boolean;;enables boot from HDD_1 (BOOTFROM has higher priority)

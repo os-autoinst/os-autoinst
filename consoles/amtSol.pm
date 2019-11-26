@@ -95,7 +95,7 @@ sub disable {
     return unless $self->{serialpid};
     $self->{serial_pipe}->print("GO!\n");
     $self->{serial_pipe}->close;
-    bmwqemu::diag "killing amtterm $self->{serialpid}";
+    bmwqemu::diag "waiting for termination of amtterm $self->{serialpid}";
     my $ret = waitpid($self->{serialpid}, 0);
     $self->{serialpid} = undef;
     return $ret;
