@@ -37,11 +37,7 @@ sub new {
 ###################################################################
 sub do_start_vm {
     my ($self) = @_;
-
-    # truncate the serial file
-    open(my $sf, '>', $self->{serialfile});
-    close($sf);
-
+    $self->truncate_serial_file;
     my $console = $testapi::distri->add_console('x3270', 's3270');
     $console->backend($self);
     $self->select_console({testapi_console => 'x3270'});

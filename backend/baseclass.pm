@@ -70,6 +70,12 @@ sub new {
     return $self;
 }
 
+sub truncate_serial_file {
+    my ($self) = @_;
+    open(my $sf, '>', $self->{serialfile});
+    close($sf);
+}
+
 # runs in the backend process to deserialize VNC commands
 sub handle_command {
     my ($self, $cmd) = @_;

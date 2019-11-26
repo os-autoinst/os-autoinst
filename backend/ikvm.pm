@@ -70,11 +70,7 @@ sub do_start_vm {
     $self->get_mc_status;
     $self->restart_host;
     $self->relogin_vnc;
-
-    # truncate the serial file
-    open(my $sf, '>', $self->{serialfile});
-    close($sf);
-
+    $self->truncate_serial_file;
     my $sol = $testapi::distri->add_console('sol', 'ipmi-sol', {serialfile => $self->{serialfile}});
     $sol->activate;
     return {};

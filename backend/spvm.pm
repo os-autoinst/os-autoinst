@@ -37,11 +37,7 @@ sub new {
 # poweron to the test
 sub do_start_vm {
     my ($self) = @_;
-
-    # truncate the serial file
-    open(my $sf, '>', $self->{serialfile});
-    close($sf);
-
+    $self->truncate_serial_file;
     my $ssh = $testapi::distri->add_console(
         'novalink-ssh',
         'ssh-xterm',

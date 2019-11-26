@@ -222,13 +222,8 @@ sub do_start_vm {
     # remove backend.crashed
     $self->unlink_crash_file;
     $self->restart_host;
-
     sleep(5);
-
-    # truncate the serial file
-    open(my $sf, '>', $self->{serialfile});
-    close($sf);
-
+    $self->truncate_serial_file;
     my $sol = $testapi::distri->add_console('sol', 'amt-sol');
     $sol->backend($self);
 
