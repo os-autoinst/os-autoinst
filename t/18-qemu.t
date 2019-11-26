@@ -5,7 +5,6 @@ use strict;
 use warnings;
 
 use Test::More;
-use Mojo::JSON 'encode_json';
 use Mojo::File qw(tempfile path);
 use Carp 'cluck';
 

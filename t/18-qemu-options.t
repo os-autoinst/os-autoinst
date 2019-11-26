@@ -38,6 +38,21 @@ chdir($pool_dir);
 $ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} //= 1;
 $ENV{QEMU_QMP_CONNECT_ATTEMPTS}     //= 1;
 
+my $common_options = <<EOV;
+   "ARCH" : "i386",
+   "BACKEND" : "qemu",
+   "QEMU" : "i386",
+   "QEMU_NO_KVM" : "1",
+   "QEMU_NO_TABLET" : "1",
+   "QEMU_NO_FDC_SET" : "1",
+   "CASEDIR" : "$data_dir/tests",
+   "ISO" : "$data_dir/Core-7.2.iso",
+   "CDMODEL" : "ide-cd",
+   "HDDMODEL" : "ide-drive",
+   "VERSION" : "1",
+EOV
+
+
 # Test QEMU_APPEND option with:
 # * version: '-version'
 # * list machines: '-M ?'
@@ -50,17 +65,8 @@ subtest qemu_append_option => sub {
     open(my $var, '>', 'vars.json');
     print $var <<EOV;
 {
-   "ARCH" : "i386",
-   "BACKEND" : "qemu",
-   "QEMU" : "i386",
-   "QEMU_NO_KVM" : "1",
-   "QEMU_NO_TABLET" : "1",
-   "QEMU_NO_FDC_SET" : "1",
-   "CASEDIR" : "$data_dir/tests",
-   "ISO" : "$data_dir/Core-7.2.iso",
-   "CDMODEL" : "ide-cd",
-   "HDDMODEL" : "ide-drive",
-   "VERSION" : "1",
+$common_options
+   "QEMU_ONLY_EXEC": "1",
    "QEMU_APPEND" : "version"
 }
 EOV
@@ -70,23 +76,14 @@ EOV
     is(system('grep -q -e "-version" autoinst-log.txt'),                                     0, '-version option added');
     is(system('grep -q "QEMU emulator version" autoinst-log.txt'),                           0, 'QEMU version printed');
     is(system('grep -q "Fabrice Bellard and the QEMU Project developers" autoinst-log.txt'), 0, 'Copyright printed');
+    is(system('grep -q "Returning early as requested by QEMU_ONLY_EXEC" autoinst-log.txt'),  0, 'Copyright printed');
     isnt(system('grep -q -e ": invalid option" autoinst-log.txt'), 0, 'no invalid option detected');
 
     # List machines
     open($var, '>', 'vars.json');
     print $var <<EOV;
 {
-   "ARCH" : "i386",
-   "BACKEND" : "qemu",
-   "QEMU" : "i386",
-   "QEMU_NO_KVM" : "1",
-   "QEMU_NO_TABLET" : "1",
-   "QEMU_NO_FDC_SET" : "1",
-   "CASEDIR" : "$data_dir/tests",
-   "ISO" : "$data_dir/Core-7.2.iso",
-   "CDMODEL" : "ide-cd",
-   "HDDMODEL" : "ide-drive",
-   "VERSION" : "1",
+$common_options
    "QEMU_APPEND" : "M ?"
 }
 EOV
@@ -101,17 +98,7 @@ EOV
     open($var, '>', 'vars.json');
     print $var <<EOV;
 {
-   "ARCH" : "i386",
-   "BACKEND" : "qemu",
-   "QEMU" : "i386",
-   "QEMU_NO_KVM" : "1",
-   "QEMU_NO_TABLET" : "1",
-   "QEMU_NO_FDC_SET" : "1",
-   "CASEDIR" : "$data_dir/tests",
-   "ISO" : "$data_dir/Core-7.2.iso",
-   "CDMODEL" : "ide-cd",
-   "HDDMODEL" : "ide-drive",
-   "VERSION" : "1",
+$common_options
    "QEMU_APPEND" : "M ? -version"
 }
 EOV
@@ -127,17 +114,7 @@ EOV
     open($var, '>', 'vars.json');
     print $var <<EOV;
 {
-   "ARCH" : "i386",
-   "BACKEND" : "qemu",
-   "QEMU" : "i386",
-   "QEMU_NO_KVM" : "1",
-   "QEMU_NO_TABLET" : "1",
-   "QEMU_NO_FDC_SET" : "1",
-   "CASEDIR" : "$data_dir/tests",
-   "ISO" : "$data_dir/Core-7.2.iso",
-   "CDMODEL" : "ide-cd",
-   "HDDMODEL" : "ide-drive",
-   "VERSION" : "1",
+$common_options
    "QEMU_APPEND" : "broken option"
 }
 EOV
@@ -159,17 +136,7 @@ subtest qemu_huge_pages_option => sub {
     open(my $var, '>', 'vars.json');
     print $var <<EOV;
 {
-   "ARCH" : "i386",
-   "BACKEND" : "qemu",
-   "QEMU" : "i386",
-   "QEMU_NO_KVM" : "1",
-   "QEMU_NO_TABLET" : "1",
-   "QEMU_NO_FDC_SET" : "1",
-   "CASEDIR" : "$data_dir/tests",
-   "ISO" : "$data_dir/Core-7.2.iso",
-   "CDMODEL" : "ide-cd",
-   "HDDMODEL" : "ide-drive",
-   "VERSION" : "1",
+$common_options
    "QEMU_HUGE_PAGES_PATH" : "/no/dev/hugepages/"
 }
 EOV

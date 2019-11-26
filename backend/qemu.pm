@@ -963,6 +963,7 @@ sub start_qemu {
 
     $self->create_virtio_console_fifo();
     my $qemu_pipe = $self->{qemupipe} = $self->{proc}->exec_qemu();
+    return bmwqemu::fctinfo('Returning early as requested by QEMU_ONLY_EXEC.') if $vars->{QEMU_ONLY_EXEC};
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
