@@ -690,5 +690,3 @@ subtest 'autoinst_url' => sub {
 };
 
 done_testing;
-
-# vim: set sw=4 et:

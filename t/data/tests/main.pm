@@ -48,5 +48,3 @@ unless (get_var('INTEGRATION_TESTS')) {
 autotest::loadtest "tests/shutdown.pm";
 
 1;
-
-# vim: set sw=4 et:

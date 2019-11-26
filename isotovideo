@@ -513,5 +513,3 @@ END {
     print "$$: EXIT $return_code\n";
     $? = $return_code;
 }
-
-# vim: set sw=4 et:

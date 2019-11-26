@@ -206,5 +206,3 @@ sub do_mc_reset {
 }
 
 1;
-
-# vim: set sw=4 et:

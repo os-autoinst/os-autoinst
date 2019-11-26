@@ -214,5 +214,3 @@ sub write_with_thumbnail {
 }
 
 1;
-
-# vim: set sw=4 et:

@@ -321,5 +321,3 @@ is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"),
 is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"),                'other');
 
 done_testing();
-
-# vim: set sw=4 et:

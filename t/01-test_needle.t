@@ -451,5 +451,3 @@ subtest 'workaround property' => sub {
 };
 
 done_testing();
-
-# vim: set sw=4 et:
