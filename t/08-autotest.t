@@ -269,7 +269,6 @@ is(@{$autotest::tests{'tests-fatal'}}{@opts}, @{$autotest::tests{'tests-fatal' .
   && is(@{$autotest::tests{'tests-fatal' . $_}}{name}, 'fatal#' . $_)
   for 1 .. 10;
 
-# test scheduling new modules at job runtime
 subtest 'test scheduling test modules at test runtime' => sub {
     $autotest::tests_running = 0;
     @autotest::testorder     = ();
