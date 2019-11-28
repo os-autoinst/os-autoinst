@@ -834,20 +834,23 @@ sub start_qemu {
             sp('append', "dhcp && sanhook iscsi:$vars->{WORKER_HOSTNAME}::3260:1:$vars->{NBF}", no_quotes => 1);
         }
 
+        my @boot_args;
+        push @boot_args, ('menu=on,splash-time=' . $vars->{BOOT_MENU_TIMEOUT} // '5000') if $vars->{BOOT_MENU};
         if ($arch_supports_boot_order) {
             if (($vars->{PXEBOOT} // '') eq 'once') {
-                sp("boot", "once=n");
+                push @boot_args, 'once=n';
             }
             elsif ($vars->{PXEBOOT}) {
-                sp("boot", "n");
+                push @boot_args, 'n';
             }
             elsif ($vars->{BOOTFROM}) {
-                sp("boot", [qv "order=$vars->{BOOTFROM} menu=on splash-time=5000"]);
+                push @boot_args, "order=$vars->{BOOTFROM}";
             }
             else {
-                sp("boot", [qw(once=d menu=on splash-time=5000)]);
+                push @boot_args, 'once=d';
             }
         }
+        sp('boot', join(',', @boot_args)) if @boot_args;
 
         if (!$vars->{UEFI} && $vars->{BIOS}) {
             sp("bios", $vars->{BIOS});
