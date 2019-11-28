@@ -6,7 +6,6 @@
 */
 
 #include <fftw3.h>
-#include <highgui.h>
 #include <locale.h>
 #include <math.h>
 #include <memory.h>
