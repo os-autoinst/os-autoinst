@@ -15,7 +15,8 @@ use 5.018;
 use warnings;
 use Carp 'confess';
 use English -no_match_vars;
-use POSIX qw( :sys_wait_h sigprocmask sigsuspend );
+use POSIX qw( :sys_wait_h sigprocmask sigsuspend mkfifo);
+use Fcntl;
 use Socket qw( PF_UNIX SOCK_STREAM sockaddr_un );
 use Time::HiRes 'usleep';
 use File::Temp 'tempfile';
@@ -114,7 +115,7 @@ sub try_write_sequence {
 # Once we have read the data, echo it back like a real terminal, unless the
 # message is $next_test which we just use for synchronisation.
 sub try_read {
-    my ($fd, $expected) = @_;
+    my ($fd, $fd_w, $expected) = @_;
     my ($buf, $text);
 
     while (1) {
@@ -139,7 +140,7 @@ sub try_read {
     $text .= $buf;
 
     if ($expected ne $next_test) {
-        try_write($fd, $text);
+        try_write($fd_w, $text);
     }
     elsif ($text ne $next_test) {
         confess 'fake_terminal: Expecting special $next_test message, but got: ' . $text;
@@ -150,7 +151,7 @@ sub try_read {
 
 # A mock terminal which we can communicate with over a UNIX socket
 sub fake_terminal {
-    my ($sock_path) = @_;
+    my ($pipe_in, $pipe_out) = @_;
     my ($fd, $listen_fd);
 
     $SIG{ALRM} = sub {
@@ -161,25 +162,10 @@ sub fake_terminal {
 
     alarm $timeout;
 
-    socket($listen_fd, PF_UNIX, SOCK_STREAM, 0)
-      || confess "fake_terminal: Could not create socket: $ERRNO";
-    unlink($sock_path);
-    bind($listen_fd, sockaddr_un($sock_path))
-      || confess "fake_terminal: Could not bind socket to path $sock_path: $ERRNO";
-    listen($listen_fd, 1)
-      || confess "fake_terminal: Could not list on socket: $ERRNO";
-
-    #Signal to parent that the socket is listening
-    kill 'CONT', getppid;
-
-  ACCEPT: {
-        accept($fd, $listen_fd) || do {
-            if ($ERRNO{EINTR}) {
-                next ACCEPT;
-            }
-            confess "fake_terminal: Failed to accept connection: $ERRNO";
-        };
-    }
+    open(my $fd_r, "<", $pipe_in)
+      or die "Can't open in pipe for writing $!";
+    open(my $fd_w, ">", $pipe_out)
+      or die "Can't open out pipe for reading $!";
 
     $SIG{ALRM} = sub {
         fail('fake_terminal timed out while performing IO');
@@ -193,41 +179,41 @@ sub fake_terminal {
     my $tb = Test::More->builder;
     $tb->reset;
 
-    try_write($fd, $login_prompt_data);
-    ok(try_read($fd, $user_name_data), 'fake_terminal reads: Entered user name');
+    try_write($fd_w, $login_prompt_data);
+    ok(try_read($fd_r, $fd_w, $user_name_data), 'fake_terminal reads: Entered user name');
 
-    try_write($fd, $password_prompt_data);
-    ok(try_read($fd, $password_data), 'fake_terminal reads: Entered password');
+    try_write($fd_w, $password_prompt_data);
+    ok(try_read($fd_r, $fd_w, $password_data), 'fake_terminal reads: Entered password');
 
-    try_write($fd, $first_prompt_data);
-    ok(try_read($fd, $set_prompt_data), 'fake_terminal reads: Normalised bash prompt');
+    try_write($fd_w, $first_prompt_data);
+    ok(try_read($fd_r, $fd_w, $set_prompt_data), 'fake_terminal reads: Normalised bash prompt');
 
-    try_write($fd, $normalised_prompt_data);
+    try_write($fd_w, $normalised_prompt_data);
 
-    ok(try_read($fd, $C0_EOT), 'fake_terminal reads: C0 EOT control code');
-    ok(try_read($fd, $C0_ETX), 'fake_terminal reads: C0 ETX control code');
-    ok(try_read($fd, "\n"),    'fake_terminal reads: ret');
-    try_write($fd, $login_prompt_data);
+    ok(try_read($fd_r, $fd_w, $C0_EOT), 'fake_terminal reads: C0 EOT control code');
+    ok(try_read($fd_r, $fd_w, $C0_ETX), 'fake_terminal reads: C0 ETX control code');
+    ok(try_read($fd_r, $fd_w, "\n"),    'fake_terminal reads: ret');
+    try_write($fd_w, $login_prompt_data);
 
     alarm $timeout;
 
     # This for loop corresponds to the 'large amount of data tests'
     for (1 .. 2) {
-        try_read($fd, $next_test);
-        try_write_sequence($fd, $US_keyboard_data, $repeat_sequence_count, $stop_code_data);
+        try_read($fd_r, $fd_w, $next_test);
+        try_write_sequence($fd_w, $US_keyboard_data, $repeat_sequence_count, $stop_code_data);
     }
 
     # Trailing data/carry buffer tests
     for (1 .. 2) {
-        try_read($fd, $next_test);
-        try_write($fd, $US_keyboard_data . $stop_code_data . $stop_code_data);
+        try_read($fd_r, $fd_w, $next_test);
+        try_write($fd_w, $US_keyboard_data . $stop_code_data . $stop_code_data);
     }
 
     #alarm $timeout * 2;
     #try_write($fd, ($US_keyboard_data x 100_000) . $stop_code_data);
 
-    try_write($fd, $first_prompt_data);
-    try_read($fd, $next_test);
+    try_write($fd_w, $first_prompt_data);
+    try_read($fd_r, $fd_w, $next_test);
 
     alarm $timeout;
     $SIG{ALRM} = sub {
@@ -236,10 +222,10 @@ sub fake_terminal {
         exit(0);
     };
 
-    try_read($fd, $next_test);
-    try_write($fd, $US_keyboard_data);
+    try_read($fd_r, $fd_w, $next_test);
+    try_write($fd_w, $US_keyboard_data);
     # Keep the socket open while we test the timeout
-    try_read($fd, $next_test);
+    try_read($fd_r, $fd_w, $next_test);
 
     alarm 0;
     pass('fake_terminal managed to get all the way to the end without timing out!');
@@ -366,16 +352,19 @@ sub check_child {
 # so wait for fake terminal to create socket and emit SIGCONT. Sigsuspend only
 # returns if a signal is received which has a handler set. We must initially
 # block the signal incase SIGCONT is emitted before we reach sigsuspend.
-$SIG{CONT} = sub { };
-my $blockmask = POSIX::SigSet->new(POSIX::SIGCONT());
-my $oldmask   = POSIX::SigSet->new();
-sigprocmask(POSIX::SIG_BLOCK, $blockmask, $oldmask);
+my $pipe_in  = $socket_path . ".in";
+my $pipe_out = $socket_path . ".out";
+
+for (($pipe_in, $pipe_out)) {
+    unlink($_) if (-p $_);
+    mkfifo($_, 0666) or die("Cannot create fifo pipe $_");
+}
 
 my $fpid = fork || do {
-    fake_terminal($socket_path);
+    fake_terminal($pipe_in, $pipe_out);
     exit 0;
 };
-sigsuspend($oldmask);
+
 my $tpid = fork || do {
     test_terminal_directly;
     exit 0;
@@ -394,5 +383,6 @@ waitpid($tpid2, 0);
 check_child('Direct test with VIRTIO_CONSOLE=0', 255);
 
 done_testing;
-unlink $socket_path;
+unlink $socket_path . ".in";
+unlink $socket_path . ".out";
 say "The IO log file is at $log_path and the error log is $err_path.";
