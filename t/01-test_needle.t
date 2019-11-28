@@ -375,17 +375,6 @@ is($other_needle->get_image, $img2, 'cleaning cache to keep 1 image kept $img2')
 ok($needle->get_image != $img1, 'cleaning cache to keep 1 image deleted $img1');
 is($needle->{file}, 'other-desktop-dvd-20140904.json', 'needle json path is relative to needles dir');
 
-TODO: {
-    local $TODO = 'loading needles outside the needle dir not prevented yet';
-    throws_ok(
-        sub {
-            $needle = needle->new('../misc_needles/click-point.json');
-        },
-        qr{Needle ../misc_needles/click-point.json is not under needle directory}s,
-        'died when accessing needle outside of needledir'
-    );
-}
-
 subtest 'needle::init accepts custom NEEDLES_DIR within working directory and otherwise falls back to "$bmwqemu::vars{PRODUCTDIR}/needles"' => sub {
     # create temporary working directory and a needle directory within it
     my $temp_working_dir = tempdir(CLEANUP => 1);

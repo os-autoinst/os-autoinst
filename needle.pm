@@ -323,14 +323,7 @@ sub default_needles_dir {
 }
 
 sub init {
-    # validate that possibly user-provided NEEDLES_DIR is a path within the current working directory (usually the openQA worker's pool directory)
-    my $user_provided_needles_dir = $bmwqemu::vars{NEEDLES_DIR};
-    if (defined $user_provided_needles_dir) {
-        $user_provided_needles_dir = File::Spec->rel2abs($user_provided_needles_dir) unless File::Spec->file_name_is_absolute($user_provided_needles_dir);
-    }
-
-    # initialize/re-assign global $needledir
-    $needledir = ($user_provided_needles_dir // default_needles_dir);
+    $needledir = ($bmwqemu::vars{NEEDLES_DIR} // default_needles_dir);
     die "needledir not found: $needledir (check vars.json?)" unless -d $needledir;
 
     %needles = ();
