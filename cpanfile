@@ -55,7 +55,7 @@ on 'test' => sub {
   requires 'Perl::Critic::Freenode';
   requires 'Perl::Tidy', '== 20190915';
   requires 'Pod::Coverage';
-  requires 'Test::Compile';
+  requires 'Test::Strict';
   requires 'Test::Fatal';
   requires 'Test::Mock::Time';
   requires 'Test::MockModule';
