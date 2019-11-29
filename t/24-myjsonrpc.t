@@ -18,6 +18,7 @@
 
 use strict;
 use warnings;
+use Devel::Cover;
 use Socket;
 use myjsonrpc;
 

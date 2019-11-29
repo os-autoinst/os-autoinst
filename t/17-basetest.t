@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Devel::Cover;
 use Test::MockModule;
 use Test::More;
 use Test::Fatal;

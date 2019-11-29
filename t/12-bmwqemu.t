@@ -17,6 +17,7 @@
 
 use 5.018;
 use warnings;
+use Devel::Cover;
 use Test::More;
 use Test::Exception;
 use File::Temp 'tempdir';

@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Devel::Cover;
 
 use Test::More;
 use Test::Output qw(stderr_like combined_from);

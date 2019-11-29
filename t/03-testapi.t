@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Devel::Cover;
 
 use Test::Mock::Time;
 use File::Temp;

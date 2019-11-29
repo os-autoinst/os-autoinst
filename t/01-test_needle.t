@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Devel::Cover;
 use Cwd 'abs_path';
 use Test::Exception;
 use Test::Output qw(combined_like stderr_like);

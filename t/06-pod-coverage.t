@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Devel::Cover;
 
 BEGIN {
     push @INC, '.';

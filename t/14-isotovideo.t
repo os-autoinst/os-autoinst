@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Devel::Cover;
 use autodie ':all';
 use Test::More;
 use File::Basename;
