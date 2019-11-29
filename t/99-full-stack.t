@@ -17,6 +17,7 @@
 
 use strict;
 use warnings;
+use Devel::Cover;
 
 use Test::More;
 use Test::Warnings;

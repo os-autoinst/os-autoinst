@@ -16,6 +16,7 @@
 
 use strict;
 use warnings;
+use Devel::Cover;
 use Test::Compile;
 use Test::Warnings;
 use Cwd;

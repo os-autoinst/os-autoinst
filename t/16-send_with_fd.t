@@ -3,6 +3,7 @@
 use 5.018;
 use strict;
 use warnings;
+use Devel::Cover;
 
 use Test::More;
 use Socket;

@@ -18,6 +18,7 @@
 
 use strict;
 use warnings;
+use Devel::Cover;
 use Socket;
 BEGIN {
     $ENV{PERL_MYJSONRPC_DEBUG} = 1;

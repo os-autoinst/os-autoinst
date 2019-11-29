@@ -14,6 +14,7 @@
 use 5.018;
 use warnings;
 use Carp 'confess';
+use Devel::Cover;
 use English -no_match_vars;
 use POSIX qw( :sys_wait_h sigprocmask sigsuspend mkfifo);
 use Fcntl;

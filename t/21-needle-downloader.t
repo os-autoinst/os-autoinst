@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Devel::Cover;
 
 use File::Touch;
 use File::Path qw(make_path remove_tree);
