@@ -4,7 +4,7 @@ use warnings;
 use ExtUtils::MakeMaker;
 
 my $opencv_libs = '-lopencv_core -lopencv_imgcodecs';
-$opencv_libs =~ s,/usr/lib64/lib(\S+)\.so,-l\1,g;
+$opencv_libs =~ s,/usr/lib64/lib(\S+)\.so,-l$1,g;
 
 WriteMakefile(
   NAME => 'tinycv',
