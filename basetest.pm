@@ -652,20 +652,21 @@ sub standstill_detected {
 # state
 sub rollback_activated_consoles {
     my ($self) = @_;
+    my $ret;
     for my $console (@{$self->{activated_consoles}}) {
         # the backend will only reset its state, and call activate
         # the next time - the console itself might actually not be
         # able to activate a 2nd time, but that's up to the console class
-        autotest::query_isotovideo('backend_reset_console', {testapi_console => $console});
+        $ret = autotest::query_isotovideo('backend_reset_console', {testapi_console => $console});
+        last if $ret->{error};
     }
     $self->{activated_consoles} = [];
 
     if (defined($autotest::last_milestone_console)) {
-        my $ret = autotest::query_isotovideo('backend_select_console',
+        $ret = autotest::query_isotovideo('backend_select_console',
             {testapi_console => $autotest::last_milestone_console});
-        die $ret->{error} if $ret->{error};
     }
-
+    die $ret->{error} if $ret->{error};
     return;
 }
 

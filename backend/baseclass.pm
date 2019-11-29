@@ -586,7 +586,13 @@ sub reset_consoles {
     # we iterate through all consoles
     for my $console (keys %{$testapi::distri->{consoles}}) {
         next if $self->console($console)->{args}->{persistent};
-        $self->reset_console({testapi_console => $console});
+        try {
+            local $SIG{__DIE__} = 'DEFAULT';
+            $self->reset_console({testapi_console => $console});
+        }
+        catch {
+            return {error => $_};
+        }
     }
     return;
 }
