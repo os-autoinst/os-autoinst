@@ -881,14 +881,6 @@ sub similiarity_to_reference {
     return {sim => $self->reference_screenshot->similarity($self->last_image)};
 }
 
-sub wait_idle {
-    my ($self, $args) = @_;
-    my $timeout = $args->{timeout};
-    bmwqemu::diag("wait_idle sleeping for $timeout seconds");
-    $self->run_capture_loop($timeout);
-    return;
-}
-
 sub set_tags_to_assert {
     my ($self, $args) = @_;
     my $mustmatch = $args->{mustmatch};

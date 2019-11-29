@@ -193,15 +193,6 @@ send_key 'ret';
 is_deeply($cmds, [{cmd => 'backend_send_key', key => 'ret'}], 'send_key with no default arguments') || diag explain $cmds;
 $cmds = [];
 
-subtest 'send_key with wait_idle' => sub {
-    my $mock_testapi     = Test::MockModule->new('testapi');
-    my $wait_idle_called = 0;
-    $mock_testapi->mock(wait_idle => sub { $wait_idle_called = 1 });
-    send_key 'ret', 1;
-    ok($wait_idle_called, 'wait idle has been called by send_key');
-    $cmds = [];
-};
-
 my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
 $mock_bmwqemu->mock(result_dir => File::Temp->newdir());
 

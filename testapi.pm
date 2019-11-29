@@ -59,7 +59,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   upload_asset data_url check_shutdown assert_shutdown parse_junit_log parse_extra_log upload_logs
 
-  wait_idle wait_screen_change assert_screen_change wait_still_screen wait_serial
+  wait_screen_change assert_screen_change wait_still_screen wait_serial
   record_soft_failure record_info force_soft_failure
   become_root x11_start_program ensure_installed eject_cd power
 
@@ -1268,13 +1268,8 @@ sub hashed_string {
 
   send_key($key [, wait_screen_change => $wait_screen_change]);
 
-Deprecated mode
-
-  send_key($key [, $do_wait]);
-
 Send one C<$key> to SUT keyboard input. Waits for the screen to change when
 C<$wait_screen_change> is true.
-I<Deprecated: C<$do_wait> instructs to wait with <$wait_idle>.>
 
 Special characters naming:
 
@@ -1296,7 +1291,6 @@ sub send_key {
     else {
         query_isotovideo('backend_send_key', {key => $key});
     }
-    wait_idle() if $args{do_wait};
 }
 
 =head2 hold_key
@@ -1982,38 +1976,6 @@ sub parse_extra_log {
     }
 
     return $autotest::current_test->register_extra_test_results(\@tests);
-}
-
-=head2 wait_idle
-
-  wait_idle([$timeout_sec]);
-
-B<Deprecated: > It is recommended to avoid the use of C<wait_idle>. See
-L<https://progress.opensuse.org/issues/5830> for details.
-
-This function will basically just sleep some time as this is the only viable
-option considering all backend implementations. Previously this function tried
-to wait until a test system becomes idle or timeout which only reliably worked
-on qemu backend and was just sleeping on other backends. As such it is wasting
-a lot of time and should be avoided as such.
-
-Default timeout is 19s.
-
-=cut
-
-sub wait_idle {
-    my $timeout = shift || 19;
-
-    # report wait_idle calls while we work on
-    # https://progress.opensuse.org/issues/5830
-    cluck "DEPRECATED: wait_idle called, update your test code";
-
-    bmwqemu::log_call(timeout => $timeout);
-    $timeout = bmwqemu::scale_timeout($timeout);
-
-    my $rsp = query_isotovideo('backend_wait_idle', {timeout => $timeout});
-    bmwqemu::fctres("slept $timeout seconds");
-    return;
 }
 
 =head1 log and data upload and download helpers
