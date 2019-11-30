@@ -9,10 +9,8 @@ use Test::MockModule;
 use Test::MockObject;
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings;
-
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 use backend::qemu;
 

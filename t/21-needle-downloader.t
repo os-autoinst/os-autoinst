@@ -12,10 +12,8 @@ use Test::Output 'stderr_like';
 use Mojo::File qw(path tempdir);
 use OpenQA::Isotovideo::NeedleDownloader;
 use needle;
-
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 # mock user agent and file
 my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');

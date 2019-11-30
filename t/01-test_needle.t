@@ -10,19 +10,22 @@ use Test::Warnings 'warning';
 use File::Basename;
 use File::Path 'make_path';
 use File::Temp 'tempdir';
+use FindBin '$Bin';
 
 # optional but very useful
 eval 'use Test::More::Color';
 eval 'use Test::More::Color "foreground"';
+use lib "$Bin/..";
 
 BEGIN {
-    unshift @INC, '..';
     $bmwqemu::vars{DISTRI}  = "unicorn";
     $bmwqemu::vars{CASEDIR} = "/var/lib/empty";
 }
 
 use needle;
 use cv;
+
+chdir $Bin;
 
 throws_ok(
     sub {
@@ -37,8 +40,8 @@ require tinycv;
 
 my ($res, $needle, $img1, $cand);
 
-my $data_dir        = dirname(__FILE__) . '/data/';
-my $misc_needle_dir = abs_path(dirname(__FILE__)) . '/misc_needles/';
+my $data_dir        = "$Bin/data/";
+my $misc_needle_dir = "$Bin/misc_needles/";
 
 $bmwqemu::vars{NEEDLES_DIR} = $data_dir;
 needle::init;

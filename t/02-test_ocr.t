@@ -7,9 +7,10 @@ use Test::More;
 use Test::Warnings;
 use File::Which 'which';
 use File::Basename;
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 BEGIN {
-    unshift @INC, '..';
     $bmwqemu::vars{DISTRI}      = 'unicorn';
     $bmwqemu::vars{CASEDIR}     = '/var/lib/empty';
     $bmwqemu::vars{NEEDLES_DIR} = dirname(__FILE__) . '/data';
@@ -18,6 +19,8 @@ BEGIN {
 use needle;
 use cv;
 use ocr;
+
+chdir "$Bin/data";
 
 cv::init();
 require tinycv;

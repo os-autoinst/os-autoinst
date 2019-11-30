@@ -25,10 +25,8 @@ use File::Path 'make_path';
 use Cwd 'abs_path';
 use Mojo::JSON;    # booleans
 use Cpanel::JSON::XS ();
-
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir     = "$toplevel_dir/t/data";

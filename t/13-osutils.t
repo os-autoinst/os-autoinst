@@ -21,10 +21,8 @@ use Test::More;
 use Test::MockModule;
 use Test::Warnings ':all';
 use Test::Output;
-
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 subtest qv => sub {
     use osutils 'qv';

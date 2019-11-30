@@ -23,11 +23,9 @@ use FindBin;
 use File::Find;
 require IPC::System::Simple;
 use autodie ':all';
+use FindBin '$Bin';
 
-
-BEGIN {
-    unshift @INC, '..';
-}
+use lib "$Bin/..";
 
 use commands;
 use Mojo::IOLoop::Server;
@@ -36,7 +34,6 @@ use Test::More;
 use Test::Warnings;
 use Test::Output;
 use Test::Mojo;
-use Devel::Cover;    # needed to collect coverage on spawned processes as well
 use Mojo::File qw(path tempfile tempdir);
 use File::Which;
 use Data::Dumper;

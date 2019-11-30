@@ -6,10 +6,8 @@ use Test::MockModule;
 use Test::More;
 use Test::Fatal;
 use File::Basename;
-
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 use basetest;
 use needle;

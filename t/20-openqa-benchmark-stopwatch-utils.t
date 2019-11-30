@@ -6,11 +6,8 @@ use warnings;
 use Test::More;
 use Test::Warnings;
 use Time::HiRes 'sleep';
-
-
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 use OpenQA::Benchmark::Stopwatch;
 

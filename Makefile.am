@@ -195,6 +195,20 @@ dist-hook:
 
 distclean-local: clean-local
 
+TEST_OPTS= \
+	PERL5OPT="-MDevel::Cover=-db,$(abs_builddir)/cover_db,+inc,$(PWD),-select,$(PWD)/[^/]+.pm|$(PWD)/(OpenQA|consoles|backend)|$(PWD)/isotovideo,-ignore,/usr/bin/prove|t/data/|t/fake/|\.t|tools/lib/perlcritic" \
+	PERL5LIB="$(PWD):$(PWD)/ppmclibs/blib/lib:$(PWD)/ppmclibs/blib/arch/auto/tinycv:$$PERL5LIB"
+test-cover:
+#	$(TEST_OPTS) prove t/00-compile-check-all.t -v
+#	$(TEST_OPTS) prove t/14-isotovideo.t -v
+	$(TEST_OPTS) prove t/*.t
+test-coverage-codecov: cover_db/
+	cover -report codecov
+
+cover_db/coverage.html: cover_db/
+	cover -report html_basic
+
+
 check-local:
 	$(srcdir)/tools/tidy --check
 	PERL5LIB=tools/lib/perlcritic:$$PERL5LIB perlcritic --gentle --include Perl::Critic::Policy::HashKeyQuote --include Perl::Critic::Policy::ConsistentQuoteLikeWords $(srcdir)

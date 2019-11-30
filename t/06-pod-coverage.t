@@ -3,10 +3,6 @@
 use strict;
 use warnings;
 
-BEGIN {
-    push @INC, '.';
-}
-
 use Test::More;
 use Test::Warnings;
 use Pod::Coverage;

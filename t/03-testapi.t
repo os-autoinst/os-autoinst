@@ -11,13 +11,12 @@ use Test::Fatal;
 use Test::Warnings ':all';
 use Test::Exception;
 use Scalar::Util 'looks_like_number';
+use FindBin '$Bin';
 
 use OpenQA::Isotovideo::Interface;
 use consoles::console;
 
-BEGIN {
-    unshift @INC, '..';
-}
+use lib "$Bin/..";
 
 require bmwqemu;
 

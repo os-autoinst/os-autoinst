@@ -9,10 +9,8 @@ use Test::Warnings;
 use Mojo::JSON;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
-
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 # declare fake file descriptors
 my $cmd_srv_fd              = 0;

@@ -8,10 +8,8 @@ use Test::More;
 use Test::MockModule;
 use backend::spvm;
 use testapi 'set_var';
-
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 subtest 'SSH credentials in spvm' => sub {
     my $expected_credentials = {username => 'root', password => 'foo', hostname => 'my_foo_hostname'};

@@ -8,10 +8,9 @@ use Test::Output qw(stderr_like combined_from);
 use Test::Fatal;
 use Test::MockModule;
 use File::Basename ();
+use FindBin '$Bin';
 
-BEGIN {
-    unshift @INC, '..';
-}
+use lib "$Bin/..";
 
 use autotest;
 use bmwqemu;

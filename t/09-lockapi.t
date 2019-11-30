@@ -6,10 +6,9 @@ use warnings;
 use Test::More;
 use Test::MockModule;
 use Test::Warnings;
+use FindBin '$Bin';
 
-BEGIN {
-    unshift @INC, '..';
-}
+use lib "$Bin/..";
 
 use lockapi;
 

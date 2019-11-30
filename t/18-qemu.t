@@ -9,12 +9,13 @@ use Mojo::JSON 'encode_json';
 use Mojo::File qw(tempfile path);
 use Carp 'cluck';
 
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::Proc;
+
+chdir "$Bin";
 
 use constant TMPPATH => '/tmp/18-qemu.t/';
 

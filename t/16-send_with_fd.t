@@ -9,10 +9,8 @@ use Socket;
 # This is the library we want to avoid, but it is OK just for testing
 use Socket::MsgHdr;
 use POSIX;
-
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 use cv;
 

@@ -10,11 +10,8 @@ use Try::Tiny;
 use File::Basename;
 use File::Path qw(make_path remove_tree);
 use Cwd;
-
-
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 use OpenQA::Benchmark::Stopwatch;
 

@@ -10,10 +10,8 @@ use Net::SSH2;
 use Scalar::Util 'refaddr';
 use backend::baseclass;
 use POSIX 'tzset';
-
-BEGIN {
-    unshift @INC, '..';
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 # make the test time-zone neutral
 $ENV{TZ} = 'UTC';
