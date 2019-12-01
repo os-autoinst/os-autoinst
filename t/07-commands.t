@@ -35,7 +35,7 @@ use Time::HiRes 'sleep';
 use Test::More;
 use Test::Warnings;
 use Test::Mojo;
-use Devel::Cover;
+use Devel::Cover;    # needed to collect coverage on spawned processes as well
 use Mojo::File qw(path tempfile tempdir);
 use File::Which;
 use Data::Dumper;
