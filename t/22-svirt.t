@@ -19,6 +19,7 @@ use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE
 
 use FindBin '$Bin';
 use lib "$Bin/..";
+chdir $Bin;
 
 set_var(WORKER_HOSTNAME => 'foo');
 set_var(VIRSH_HOSTNAME  => 'bar');

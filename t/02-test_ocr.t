@@ -13,14 +13,14 @@ use lib "$Bin/..";
 BEGIN {
     $bmwqemu::vars{DISTRI}      = 'unicorn';
     $bmwqemu::vars{CASEDIR}     = '/var/lib/empty';
-    $bmwqemu::vars{NEEDLES_DIR} = dirname(__FILE__) . '/data';
+    $bmwqemu::vars{NEEDLES_DIR} = 'data';
 }
 
 use needle;
 use cv;
 use ocr;
 
-chdir "$Bin/data";
+chdir $Bin;
 
 cv::init();
 require tinycv;

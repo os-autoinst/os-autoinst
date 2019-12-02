@@ -15,8 +15,9 @@ use lib "$Bin/..";
 use autotest;
 use bmwqemu;
 use OpenQA::Test::RunArgs;
+chdir $Bin;
 
-$bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
+$bmwqemu::vars{CASEDIR} = "$Bin/fake";
 # array of messages sent with the fake json_send
 my @sent;
 
