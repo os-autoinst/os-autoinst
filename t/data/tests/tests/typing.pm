@@ -1,4 +1,4 @@
-# Copyright (C) 2017 SUSE LLC
+# Copyright (C) 2017-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,10 +23,10 @@ use testapi;
 sub run {
 
     type_string("echo do not wait_still_screen\n", max_interval => 50, wait_still_screen => 0);
-    type_string("echo type string and wait for 5 seconds\n",               wait_still_screen => 5);
-    type_string("echo test\necho wait\necho 10se\n",                       max_interval      => 100, wait_screen_changes => 11, wait_still_screen => 10);
-    type_string("echo test if wait_screen_change functions as expected\n", max_interval      => 150, wait_screen_changes => 11, wait_still_screen => 10);
-    type_string("echo wait_still_screen for 20 seconds\n", max_interval => 200, wait_still_screen => 20);
+    type_string("echo type string and wait for .2 seconds\n",              wait_still_screen => .2);
+    type_string("echo test\necho wait\necho 1se\n",                        max_interval      => 100, wait_screen_changes => 11, wait_still_screen => 1);
+    type_string("echo test if wait_screen_change functions as expected\n", max_interval      => 150, wait_screen_changes => 11, wait_still_screen => 1);
+    type_string("echo wait_still_screen for .1 seconds\n", max_interval => 200, wait_still_screen => .1);
     type_string("echo 'ignore \\r'\r\n");
 
 }

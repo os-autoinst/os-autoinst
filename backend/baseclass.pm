@@ -1196,8 +1196,8 @@ sub new_ssh_connection {
 
     my $ssh = Net::SSH2->new;
 
-    # Retry 5 times, in case of the guest is not running yet
-    my $counter = 5;
+    # Retry multiple times, in case of the guest is not running yet
+    my $counter = $bmwqemu::vars{SSH_CONNECT_RETRY} // 5;
     while ($counter > 0) {
         if ($ssh->connect($args{hostname})) {
 
@@ -1213,7 +1213,7 @@ sub new_ssh_connection {
         }
         else {
             bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}, Retrying after some seconds...";
-            sleep(10);
+            sleep($bmwqemu::vars{SSH_CONNECT_RETRY_INTERVAL} // 10);
             $counter--;
             next;
         }
