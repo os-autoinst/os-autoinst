@@ -34,7 +34,6 @@ use Test::More;
 use Test::Warnings;
 use Test::Output;
 use Test::Mojo;
-use Devel::Cover;
 use Mojo::File qw(path tempfile tempdir);
 use File::Which;
 use Data::Dumper;
