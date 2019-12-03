@@ -36,6 +36,7 @@ requires 'Mojo::UserAgent';
 requires 'Mojo::Log';
 requires 'Mojolicious::Lite';
 requires 'Net::DBus';
+requires 'Net::Ping';
 requires 'Net::SNMP';
 requires 'Net::SSH2';
 requires 'POSIX';

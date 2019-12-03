@@ -24,6 +24,7 @@ use base 'consoles::localXvnc';
 
 use testapi 'get_var';
 require IPC::System::Simple;
+use Net::Ping;
 
 sub activate {
     my ($self) = @_;
@@ -34,6 +35,17 @@ sub activate {
     my $testapi_console = $self->{testapi_console};
     my $ssh_args        = $self->{args};
     my $gui             = $self->{args}->{gui};
+
+    # Wait that SUT is live on network (for generalhw/ssh)
+    my $p       = Net::Ping->new();
+    my $counter = get_var('SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT') // 120;
+    while ($counter > 0) {
+        last if ($p->ping($ssh_args->{hostname}));
+        sleep(1);
+        $counter--;
+    }
+    $p->close();
+    bmwqemu::diag("$ssh_args->{hostname} does not seems to be alive. Continuing anyway.\n") if ($counter == 0);
 
     my $hostname = $ssh_args->{hostname} || die('we need a hostname to ssh to');
     my $password = $ssh_args->{password} || $testapi::password;
