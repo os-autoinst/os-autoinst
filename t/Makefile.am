@@ -1,6 +1,10 @@
+UPDIR = $(dir $(PWD))
+
+PATHRE = ^|$(UPDIR)|\.\./
+
 AM_MAKEFLAGS = \
-	PERL5OPT="-MDevel::Cover=-db,$(abs_builddir)/cover_db,-ignore,^.*\.t|^data\/tests\/|^fake\/tests\/" \
-	PERL5LIB="..:../ppmclibs:../ppmclibs/blib/arch/auto/tinycv:$$PERL5LIB"
+	PERL5OPT="-MDevel::Cover=-db,$(abs_builddir)/cover_db,-select,($(PATHRE))(OpenQA|backend|consoles|ppmclibs)/|($(PATHRE))isotovideo|($(PATHRE))[^/]+\.pm,-ignore,\.t|.*data/tests/|.*fake/tests/" \
+	PERL5LIB="$(PWD)/..:$(PWD)/../ppmclibs:$(PWD)/../ppmclibs/blib/arch/auto/tinycv:$$PERL5LIB"
 # Prevent error "blank line following trailing backslash" when deleting last
 # line in list in spec file to exclude tests
 EMPTY =
