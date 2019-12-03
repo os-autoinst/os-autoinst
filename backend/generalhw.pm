@@ -108,8 +108,10 @@ sub do_start_vm {
 
     $self->truncate_serial_file;
     $self->restart_host;
-    $self->relogin_vnc;
-    $self->start_serial_grab;
+    if (get_var('GENERAL_HW_VNC_IP')) {
+        $self->relogin_vnc;
+        $self->start_serial_grab;    # Make ssh serial to fail
+    }
     return {};
 }
 
@@ -117,8 +119,18 @@ sub do_stop_vm {
     my ($self) = @_;
 
     $self->poweroff_host;
-    $self->stop_serial_grab();
+    $self->stop_serial_grab() if get_var('GENERAL_HW_VNC_IP');
     return {};
+}
+
+sub check_socket {
+    my ($self, $fh, $write) = @_;
+
+    if ($self->check_ssh_serial($fh)) {
+        return 1;
+    }
+
+    return $self->SUPER::check_socket($fh, $write);
 }
 
 # serial grab
