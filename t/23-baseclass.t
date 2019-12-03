@@ -11,10 +11,6 @@ use Scalar::Util 'refaddr';
 use backend::baseclass;
 use POSIX 'tzset';
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 # make the test time-zone neutral
 $ENV{TZ} = 'UTC';
 tzset;

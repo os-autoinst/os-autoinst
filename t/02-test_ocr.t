@@ -9,7 +9,6 @@ use File::Which 'which';
 use File::Basename;
 
 BEGIN {
-    unshift @INC, '..';
     $bmwqemu::vars{DISTRI}      = 'unicorn';
     $bmwqemu::vars{CASEDIR}     = '/var/lib/empty';
     $bmwqemu::vars{NEEDLES_DIR} = dirname(__FILE__) . '/data';

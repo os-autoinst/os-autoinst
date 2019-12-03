@@ -8,10 +8,6 @@ use Test::Warnings;
 use Time::HiRes 'sleep';
 
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 use OpenQA::Benchmark::Stopwatch;
 
 my $watch = OpenQA::Benchmark::Stopwatch->new();
