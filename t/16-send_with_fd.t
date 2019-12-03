@@ -10,10 +10,6 @@ use Socket;
 use Socket::MsgHdr;
 use POSIX;
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 use cv;
 
 cv::init();

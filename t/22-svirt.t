@@ -17,10 +17,6 @@ use Net::SSH2;
 use testapi qw(get_var get_required_var check_var set_var);
 use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT);
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 set_var(WORKER_HOSTNAME => 'foo');
 set_var(VIRSH_HOSTNAME  => 'bar');
 set_var(VIRSH_PASSWORD  => 'password');

@@ -16,7 +16,6 @@ eval 'use Test::More::Color';
 eval 'use Test::More::Color "foreground"';
 
 BEGIN {
-    unshift @INC, '..';
     $bmwqemu::vars{DISTRI}  = "unicorn";
     $bmwqemu::vars{CASEDIR} = "/var/lib/empty";
 }

@@ -12,10 +12,6 @@ use File::Path qw(make_path remove_tree);
 use Cwd;
 
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 use OpenQA::Benchmark::Stopwatch;
 
 

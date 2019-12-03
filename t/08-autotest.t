@@ -9,10 +9,6 @@ use Test::Fatal;
 use Test::MockModule;
 use File::Basename ();
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 use autotest;
 use bmwqemu;
 use OpenQA::Test::RunArgs;

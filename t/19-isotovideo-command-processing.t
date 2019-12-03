@@ -10,10 +10,6 @@ use Mojo::JSON;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 # declare fake file descriptors
 my $cmd_srv_fd              = 0;
 my $backend_fd              = 1;

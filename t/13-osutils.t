@@ -22,10 +22,6 @@ use Test::MockModule;
 use Test::Warnings ':all';
 use Test::Output;
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 subtest qv => sub {
     use osutils 'qv';
 

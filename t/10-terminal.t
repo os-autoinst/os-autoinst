@@ -25,10 +25,6 @@ use Mojo::Log;
 use Test::More;
 use Test::Warnings;
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 use consoles::virtio_terminal;
 use testapi ();
 use bmwqemu ();

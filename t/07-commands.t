@@ -25,10 +25,6 @@ require IPC::System::Simple;
 use autodie ':all';
 
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 use commands;
 use Mojo::IOLoop::Server;
 use Time::HiRes 'sleep';

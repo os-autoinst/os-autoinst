@@ -7,10 +7,6 @@ use Test::More;
 use Test::Fatal;
 use File::Basename;
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 use basetest;
 use needle;
 

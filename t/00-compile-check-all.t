@@ -20,16 +20,12 @@ use Test::Compile;
 use Test::Warnings;
 use Cwd;
 
-BEGIN {
-    if (getcwd =~ /\/t$/) {
-        # not really using it, but we need the init to be called before the chdir
-        use FindBin;
-        chdir("..");
-    }
-    unshift @INC, ".";
-}
+use FindBin '$Bin';
+use lib "$Bin/..";
 
 use cv;
+
+chdir "$Bin/..";
 cv::init;
 
 my $test = Test::Compile->new();
