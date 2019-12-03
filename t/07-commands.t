@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2016-2018 SUSE LLC
+# Copyright (c) 2016-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ use Mojo::IOLoop::Server;
 use Time::HiRes 'sleep';
 use Test::More;
 use Test::Warnings;
+use Test::Output;
 use Test::Mojo;
 use Devel::Cover;    # needed to collect coverage on spawned processes as well
 use Mojo::File qw(path tempfile tempdir);
@@ -59,7 +60,8 @@ $bmwqemu::vars{JOBTOKEN} = 'Hallo';
 $bmwqemu::vars{CASEDIR}  = $data_dir;
 
 # now this is a game of luck
-my ($cserver, $cfd) = commands::start_server($mojoport);
+my ($cserver, $cfd);
+combined_like(sub { ($cserver, $cfd) = commands::start_server($mojoport); }, qr//, 'command server started');
 
 my $spid = fork();
 if ($spid == 0) {
@@ -181,6 +183,6 @@ subtest 'data api' => sub {
 
 kill TERM => $spid;
 waitpid($spid, 0);
-eval { $cserver->stop() };
+combined_like(sub { eval { $cserver->stop() } }, qr/commands process exited/, 'commands server stopped');
 
 done_testing;
