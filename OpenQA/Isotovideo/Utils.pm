@@ -65,6 +65,9 @@ sub checkout_git_repo_and_branch {
         diag "Cloning git URL '$clone_url' to use as test distribution";
         qx{env GIT_SSH_COMMAND="ssh -oBatchMode=yes" git clone $clone_args $clone_url};
     }
+    else {
+        diag "Skipping to clone '$clone_url'; $local_path already exists";
+    }
     return $bmwqemu::vars{$dir_variable} = File::Spec->rel2abs($local_path);
 }
 
