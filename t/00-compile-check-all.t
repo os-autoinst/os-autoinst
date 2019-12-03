@@ -22,7 +22,6 @@ use Test::Warnings ':no_end_test';
 use Test::Strict;
 
 use FindBin '$Bin';
-use lib "$Bin/..";
 chdir "$Bin/..";
 
 $Test::Strict::TEST_SYNTAX   = 1;
