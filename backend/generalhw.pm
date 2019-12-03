@@ -44,19 +44,25 @@ sub get_cmd {
     if (!-d $dir) {
         die "GENERAL_HW_CMD_DIR is not pointing to a directory";
     }
+
+    my $args = get_var('GENERAL_HW_FLASH_ARGS') if ($cmd eq 'GENERAL_HW_FLASH_CMD' and get_var('GENERAL_HW_FLASH_ARGS'));
+
     $cmd = get_required_var($cmd);
     $cmd = "$dir/" . basename($cmd);
     if (!-x $cmd) {
         die "CMD $cmd is not an executable";
     }
+    $cmd .= " $args" if $args;
+
     return $cmd;
 }
 
 sub run_cmd {
     my ($self, $cmd) = @_;
+    my @full_cmd = split / /, $self->get_cmd($cmd);
 
     my ($stdin, $stdout, $stderr, $ret);
-    $ret = IPC::Run::run([$self->get_cmd($cmd)], \$stdin, \$stdout, \$stderr);
+    $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr);
     chomp $stdout;
     chomp $stderr;
 
@@ -107,6 +113,10 @@ sub do_start_vm {
     my ($self) = @_;
 
     $self->truncate_serial_file;
+    if (get_var('GENERAL_HW_FLASH_CMD')) {
+        $self->poweroff_host;    # Ensure system is off, before flashing
+        $self->run_cmd('GENERAL_HW_FLASH_CMD');
+    }
     $self->restart_host;
     if (get_var('GENERAL_HW_VNC_IP')) {
         $self->relogin_vnc;
