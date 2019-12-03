@@ -52,7 +52,7 @@ sub send_json {
     $json .= "\n";
 
     my $wb = syswrite($to_fd, "$json");
-    if (!$wb || !$wb == length($json)) {
+    if (!$wb || $wb != length($json)) {
         if (!DEBUG_JSON && $! =~ qr/Broken pipe/) {
             die('myjsonrpc: remote end terminated connection, stopping');
         }
