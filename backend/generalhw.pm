@@ -106,6 +106,7 @@ sub relogin_vnc {
 sub do_start_vm {
     my ($self) = @_;
 
+    $self->truncate_serial_file;
     $self->restart_host;
     $self->relogin_vnc;
     $self->start_serial_grab;
