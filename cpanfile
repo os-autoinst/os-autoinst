@@ -1,4 +1,5 @@
 requires 'B::Deparse';
+requires 'Benchmark';
 requires 'Carp';
 requires 'Carp::Always';
 requires 'Class::Accessor::Fast';
