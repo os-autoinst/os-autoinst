@@ -13,10 +13,6 @@ use Mojo::File qw(path tempdir);
 use OpenQA::Isotovideo::NeedleDownloader;
 use needle;
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 # mock user agent and file
 my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');
 my @queried_urls;

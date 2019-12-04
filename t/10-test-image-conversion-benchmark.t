@@ -13,10 +13,6 @@ use File::Temp 'tempfile';
 use Cwd;
 
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 use OpenQA::Benchmark::Stopwatch;
 
 

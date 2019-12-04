@@ -7,10 +7,6 @@ use Test::More;
 use Test::MockModule;
 use Test::Warnings;
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 use lockapi;
 
 # mock api_call return value

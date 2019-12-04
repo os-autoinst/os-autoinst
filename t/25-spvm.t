@@ -9,10 +9,6 @@ use Test::MockModule;
 use backend::spvm;
 use testapi 'set_var';
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 subtest 'SSH credentials in spvm' => sub {
     my $expected_credentials = {username => 'root', password => 'foo', hostname => 'my_foo_hostname'};
     my $mock_spvm            = Test::MockModule->new('backend::spvm');

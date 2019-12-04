@@ -15,10 +15,6 @@ use Scalar::Util 'looks_like_number';
 use OpenQA::Isotovideo::Interface;
 use consoles::console;
 
-BEGIN {
-    unshift @INC, '..';
-}
-
 require bmwqemu;
 
 ok(looks_like_number($OpenQA::Isotovideo::Interface::version), 'isotovideo version set (variable is considered part of test API)');
