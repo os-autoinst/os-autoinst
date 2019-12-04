@@ -116,6 +116,11 @@ my @encodings = (
         name      => 'VNC_ENCODING_LED_STATE',
         supported => 1,
     },
+    {
+        num       => -224,
+        name      => 'VNC_ENCODING_LAST_RECT',
+        supported => 1,
+    },
 );
 
 sub login {
@@ -930,7 +935,7 @@ sub _receive_update {
 
     my $do_endian_conversion = $self->_do_endian_conversion;
 
-    foreach (1 .. $number_of_rectangles) {
+    foreach (my $i = 0; $i < $number_of_rectangles; ++$i) {
         $socket->read(my $data, 12) || die 'unexpected end of data';
         my ($x, $y, $w, $h, $encoding_type) = unpack 'nnnnN', $data;
 
@@ -975,6 +980,9 @@ sub _receive_update {
             # 010     NumLock is on, CapsLock and ScrollLock are off
             # 111     CapsLock, NumLock and ScrollLock are on
             bmwqemu::diag("led state $bytes[0] $w $h $encoding_type");
+        }
+        elsif ($encoding_type == -224) {
+            last;
         }
         elsif ($self->ikvm) {
             $self->_receive_ikvm_encoding($encoding_type, $x, $y, $w, $h);
