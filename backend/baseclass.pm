@@ -1265,9 +1265,7 @@ sub check_ssh_serial {
     # read from SSH channel (receiving extended data channel as well via `$chan->ext_data('merge')`)
     my $chan = $self->{serial_chan};
     my $buffer;
-    my $bytes_read      = $chan->read($buffer, 4096);
-    my $could_read_once = defined $bytes_read;
-    while (defined $bytes_read) {
+    while (defined(my $bytes_read = $chan->read($buffer, 4096))) {
         return 1 unless $bytes_read > 0;
         print $buffer;
         open(my $serial, '>>', $self->{serialfile});
@@ -1277,9 +1275,10 @@ sub check_ssh_serial {
     }
 
     my ($error_code, $error_name, $error_string) = $ssh->error;
-    return 1 if $could_read_once && $error_code == LIBSSH2_ERROR_EAGAIN;
+    return 1 if $error_code == LIBSSH2_ERROR_EAGAIN;
 
-    bmwqemu::diag("svirt serial: unable to read: $error_string (error code: $error_code)");
+    bmwqemu::diag("ssh serial: unable to read: $error_string (error code: $error_code) - closing connection");
+    $self->stop_ssh_serial();
     return 1;
 }
 
@@ -1341,9 +1340,10 @@ sub stop_ssh_serial {
 
     my $ssh = $self->{serial};
     return undef unless $ssh;
-
+    bmwqemu::diag('Closing SSH serial connection with ' . $ssh->hostname);
     $self->{select_read}->remove($ssh->sock);
     $ssh->disconnect;
+    $self->{serial_chan} = undef;
     return $self->{serial} = undef;
 }
 
