@@ -20,6 +20,7 @@ use strict;
 use warnings;
 
 use Test::Warnings;
+use Test::More;
 use FindBin;
 use File::Find;
 require IPC::System::Simple;
@@ -146,4 +147,5 @@ find(\&read_backend_pm, (BACKEND_DIR));
 # check if vars are properly documented and update data
 write_doc;
 $error_found = $ignore_errors ? 0 : $error_found;
-exit $error_found;
+ok($error_found ? 0 : 1, "No errors found");
+done_testing;
