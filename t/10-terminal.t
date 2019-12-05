@@ -16,14 +16,17 @@ use warnings;
 use Carp 'confess';
 use English -no_match_vars;
 use POSIX qw( :sys_wait_h sigprocmask sigsuspend mkfifo);
-use Fcntl;
+use Fcntl qw( :flock :seek );
 use Socket qw( PF_UNIX SOCK_STREAM sockaddr_un );
 use Time::HiRes 'usleep';
 use File::Temp 'tempfile';
 use Mojo::Log;
+use Mojo::JSON qw( encode_json decode_json );
 
 use Test::More;
 use Test::Warnings;
+use FindBin '$Bin';
+my $main_pid = $$;
 
 use consoles::virtio_terminal;
 use testapi ();
@@ -33,6 +36,7 @@ our $VERSION;
 
 $testapi::password = 'd*97Jlk/.d';
 my $socket_path       = './virtio_console';
+my $sharefile         = "$Bin/fork-share.txt";
 my $login_prompt_data = <<'FIN.';
 
 
@@ -151,8 +155,7 @@ sub fake_terminal {
     my ($fd, $listen_fd);
 
     $SIG{ALRM} = sub {
-        fail('fake_terminal timed out while waiting for a connection');
-        done_testing;
+        report_child_test(fail => 'fake_terminal timed out while waiting for a connection');
         exit(1);
     };
 
@@ -164,8 +167,7 @@ sub fake_terminal {
       or die "Can't open out pipe for reading $!";
 
     $SIG{ALRM} = sub {
-        fail('fake_terminal timed out while performing IO');
-        done_testing;
+        report_child_test(fail => 'fake_terminal timed out while performing IO');
         exit(1);
     };
 
@@ -176,19 +178,19 @@ sub fake_terminal {
     $tb->reset;
 
     try_write($fd_w, $login_prompt_data);
-    ok(try_read($fd_r, $fd_w, $user_name_data), 'fake_terminal reads: Entered user name');
+    report_child_test(ok => (scalar try_read($fd_r, $fd_w, $user_name_data)), 'fake_terminal reads: Entered user name');
 
     try_write($fd_w, $password_prompt_data);
-    ok(try_read($fd_r, $fd_w, $password_data), 'fake_terminal reads: Entered password');
+    report_child_test(ok => try_read($fd_r, $fd_w, $password_data), 'fake_terminal reads: Entered password');
 
     try_write($fd_w, $first_prompt_data);
-    ok(try_read($fd_r, $fd_w, $set_prompt_data), 'fake_terminal reads: Normalised bash prompt');
+    report_child_test(ok => try_read($fd_r, $fd_w, $set_prompt_data), 'fake_terminal reads: Normalised bash prompt');
 
     try_write($fd_w, $normalised_prompt_data);
 
-    ok(try_read($fd_r, $fd_w, $C0_EOT), 'fake_terminal reads: C0 EOT control code');
-    ok(try_read($fd_r, $fd_w, $C0_ETX), 'fake_terminal reads: C0 ETX control code');
-    ok(try_read($fd_r, $fd_w, "\n"),    'fake_terminal reads: ret');
+    report_child_test(ok => try_read($fd_r, $fd_w, $C0_EOT), 'fake_terminal reads: C0 EOT control code');
+    report_child_test(ok => try_read($fd_r, $fd_w, $C0_ETX), 'fake_terminal reads: C0 ETX control code');
+    report_child_test(ok => try_read($fd_r, $fd_w, "\n"),    'fake_terminal reads: ret');
     try_write($fd_w, $login_prompt_data);
 
     alarm $timeout;
@@ -213,8 +215,7 @@ sub fake_terminal {
 
     alarm $timeout;
     $SIG{ALRM} = sub {
-        fail('fake_terminal timed out first');
-        done_testing;
+        report_child_test(fail => 'fake_terminal timed out first');
         exit(0);
     };
 
@@ -224,13 +225,12 @@ sub fake_terminal {
     try_read($fd_r, $fd_w, $next_test);
 
     alarm 0;
-    pass('fake_terminal managed to get all the way to the end without timing out!');
-    done_testing;
+    report_child_test(pass => 'fake_terminal managed to get all the way to the end without timing out!');
 }
 
 sub is_matched {
     my ($result, $expected, $name) = @_;
-    is_deeply($result, {matched => 1, string => $expected}, $name);
+    report_child_test(is_deeply => $result, {matched => 1, string => $expected}, $name);
 }
 
 sub test_terminal_directly {
@@ -238,11 +238,11 @@ sub test_terminal_directly {
     $tb->reset;
 
     my $term = consoles::virtio_terminal->new('unit-test-console', {tty => 3});
-    ok($term->{console_key} eq "ctrl-alt-f3", 'console_key set correct');
+    report_child_test(ok => $term->{console_key} eq "ctrl-alt-f3", 'console_key set correct');
 
     $term->activate;
     my $scrn = $term->screen;
-    ok(defined($scrn), 'Create screen');
+    report_child_test(ok => defined($scrn), 'Create screen');
 
     local *type_string = sub {
         $scrn->type_string({text => shift});
@@ -263,7 +263,7 @@ sub test_terminal_directly {
     $scrn->type_string({text => '', terminate_with => 'ETX'});
     $scrn->send_key({key => 'ret'});
 
-    like($scrn->read_until([qr/.*\: /, qr/7/], $timeout)->{string}, qr/.*\Q$login_prompt_data\E/, 'direct: use array of regexs');
+    report_child_test(like => $scrn->read_until([qr/.*\: /, qr/7/], $timeout)->{string}, qr/.*\Q$login_prompt_data\E/, 'direct: use array of regexs');
 
     # Note that a real terminal would echo this back to us causing the next test to fail
     # unless we suck up the echo.
@@ -274,12 +274,12 @@ sub test_terminal_directly {
         no_regex    => 1,
         buffer_size => 256
     );
-    is(length($result->{string}), 256, 'direct: returned data is same length as buffer');
-    like($result->{string}, qr/\Q$US_keyboard_data\E$stop_code_data$/, 'direct: read a large amount of data with small ring buffer');
+    report_child_test(is => length($result->{string}), 256, 'direct: returned data is same length as buffer');
+    report_child_test(like => $result->{string}, qr/\Q$US_keyboard_data\E$stop_code_data$/, 'direct: read a large amount of data with small ring buffer');
     type_string($next_test);
 
-    like(
-        $scrn->read_until(qr/$stop_code_data$/, $timeout, record_output => 1)->{string},
+    report_child_test(like =>
+          $scrn->read_until(qr/$stop_code_data$/, $timeout, record_output => 1)->{string},
         qr/^(\Q$US_keyboard_data\E){$repeat_sequence_count}$stop_code_data$/,
         'direct: record a large amount of data'
     );
@@ -288,12 +288,12 @@ sub test_terminal_directly {
     # In theory, even if the carry buffer is not implemented, this may succeed
     # if the kernel is preempted in, and/or a kernel buffer ends in just the
     # right place.
-    is($scrn->read_until($US_keyboard_data, $timeout, no_regex => 1)->{matched}, 1, 'direct: read including trailing data with no_regex');
-    is($scrn->read_until(qr/$stop_code_data$/, $timeout)->{matched}, 1, 'direct: trailing data is carried over to next read');
+    report_child_test(is => $scrn->read_until($US_keyboard_data, $timeout, no_regex => 1)->{matched}, 1, 'direct: read including trailing data with no_regex');
+    report_child_test(is => $scrn->read_until(qr/$stop_code_data$/, $timeout)->{matched}, 1, 'direct: trailing data is carried over to next read');
     type_string($next_test);
 
-    is($scrn->read_until(qr/\Q$US_keyboard_data\E/, $timeout)->{matched}, 1, 'direct: read including trailing data');
-    is($scrn->read_until(qr/$stop_code_data$stop_code_data/, $timeout)->{matched}, 1,
+    report_child_test(is => $scrn->read_until(qr/\Q$US_keyboard_data\E/, $timeout)->{matched}, 1, 'direct: read including trailing data');
+    report_child_test(is => $scrn->read_until(qr/$stop_code_data$stop_code_data/, $timeout)->{matched}, 1,
         'direct: trailing data is carried over to next read');
     type_string($next_test);
 
@@ -304,16 +304,15 @@ sub test_terminal_directly {
     do {
         $res = $scrn->peak();
     } while (length($res) < 1);
-    ok($res, 'direct: peaked');
-    is($scrn->read_until($first_prompt_data, $timeout, no_regex => 1)->{matched}, 1,
+    report_child_test(ok => $res, 'direct: peaked');
+    report_child_test(is => $scrn->read_until($first_prompt_data, $timeout, no_regex => 1)->{matched}, 1,
         'direct: read after peak');
     type_string($next_test);
 
-    is_deeply($scrn->read_until('we timeout', 1), {matched => 0, string => $US_keyboard_data}, 'direct: timeout');
+    report_child_test(is_deeply => $scrn->read_until('we timeout', 1), {matched => 0, string => $US_keyboard_data}, 'direct: timeout');
     type_string($next_test);
 
     $term->reset;
-    done_testing;
 }
 
 sub test_terminal_disabled {
@@ -377,8 +376,62 @@ waitpid($tpid, 0);
 check_child('Direct test VIRTIO_CONSOLE not set');
 waitpid($tpid2, 0);
 check_child('Direct test with VIRTIO_CONSOLE=0', 255);
+my $child_tests = retrieve_child_tests();
+for my $pid (sort keys %$child_tests) {
+    my $tests = $child_tests->{$pid};
+    for my $test (@$tests) {
+        my ($method, @args) = @$test;
+        if (my $sub = Test::More->can($method)) {
+            if ($method eq 'like') {
+                $args[1] = qr{$args[1]};
+            }
+            $args[-1] = "[Child $pid] " . $args[-1];
+            $sub->(@args);
+        }
+    }
+}
 
 done_testing;
 unlink $socket_path . ".in";
 unlink $socket_path . ".out";
 say "The IO log file is at $log_path and the error log is $err_path.";
+
+# We need this because the test numbers need to be in the right order
+# so that prove doesn't complain
+# Otherwise the childs will output test numbers in arbitrary order,
+# so we temporarily save the tests in a JSON file and output them when
+# all childs have finished
+# Test::SharedFork is usually used to share test numbers between forks,
+# but it doesn't work with this test
+sub report_child_test {
+    my ($method, @args) = @_;
+    my $json = encode_json([$$, [$method => @args]]);
+    open my $fh, '>>', $sharefile or die $!;
+    flock $fh, LOCK_EX;
+    seek $fh, 0, SEEK_END;
+    print $fh "$json\n";
+    close $fh;
+}
+
+sub retrieve_child_tests {
+    return unless -e $sharefile;
+    open my $fh, '<', $sharefile or die $!;
+    flock $fh, LOCK_SH;
+    my %tests;
+    while (my $json = <$fh>) {
+        my $data = eval { decode_json($json) };
+        if (my $error = $@) {
+            diag("Error decoding '$json': $error");
+            ok(0, "Valid JSON");
+            next;
+        }
+        my ($pid, $test) = @$data;
+        push @{$tests{$pid}}, $test;
+    }
+    close $fh;
+    return \%tests;
+}
+
+END {
+    unlink $sharefile if $$ == $main_pid;
+}
