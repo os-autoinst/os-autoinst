@@ -39,6 +39,7 @@ TESTS = \
 	24-myjsonrpc.t \
 	24-myjsonrpc-debug.t \
 	25-spvm.t \
+	26-ssh_screen.t \
 	99-full-stack.t \
 	$(EMPTY)
 
