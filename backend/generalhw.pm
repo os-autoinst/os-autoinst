@@ -118,10 +118,8 @@ sub do_start_vm {
         $self->run_cmd('GENERAL_HW_FLASH_CMD');
     }
     $self->restart_host;
-    if (get_var('GENERAL_HW_VNC_IP')) {
-        $self->relogin_vnc;
-        $self->start_serial_grab;    # Make ssh serial to fail
-    }
+    $self->relogin_vnc if (get_var('GENERAL_HW_VNC_IP'));
+    $self->start_serial_grab if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
     return {};
 }
 
@@ -129,7 +127,7 @@ sub do_stop_vm {
     my ($self) = @_;
 
     $self->poweroff_host;
-    $self->stop_serial_grab() if get_var('GENERAL_HW_VNC_IP');
+    $self->stop_serial_grab() if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
     return {};
 }
 
