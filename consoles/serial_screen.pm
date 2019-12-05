@@ -27,7 +27,13 @@ our $VERSION;
 
 sub new {
     my ($class, $fd_read, $fd_write) = @_;
-    my $self = bless {class => $class}, $class;
+    my $self;
+    if (ref($class) ne '' && $class->isa('consoles::serial_screen')) {
+        $self = $class;
+    } else {
+        $self = bless {class => $class}, $class;
+    }
+
     $self->{fd_read}      = $fd_read;
     $self->{fd_write}     = $fd_write // $fd_read;
     $self->{carry_buffer} = '';
