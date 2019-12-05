@@ -28,10 +28,7 @@ sub new {
     croak('Missing parameter ssh_connection') unless $self->ssh_connection;
     croak('Missing parameter ssh_channel')    unless $self->ssh_channel;
 
-    $self->{socket_fd}    = $self->ssh_channel;
-    $self->{carry_buffer} = '';
-
-    return $self;
+    return $self->SUPER::new($self->ssh_channel);
 }
 
 sub do_read
