@@ -40,6 +40,5 @@ snd2png/test.pnm.md5
 t/*.log
 t/*.trs
 t/pool/*
-t/cover_db/*
 cover_db/*
 .*.swp
