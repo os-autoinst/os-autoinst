@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2015 SUSE Linux Products GmbH
+# Copyright (C) 2015-2019 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,33 +16,21 @@
 
 use strict;
 use warnings;
-use Test::Compile;
 # We need :no_end_test here because otherwise it would output a no warnings
 # test for each of the modules, but with the same test number
 use Test::Warnings ':no_end_test';
-
-use Cwd;
+use Test::Strict;
 
 use FindBin '$Bin';
 use lib "$Bin/..";
-
-use cv;
-
 chdir "$Bin/..";
-cv::init;
 
-my $test = Test::Compile->new();
-
-my @files = $test->all_pm_files(".");
-
-for my $file (@files) {
-    next if ($file =~ /main.pm/);
-    $file =~ s,^\./,,;
-    $test->ok($test->pm_file_compiles($file), "Compile test for $file");
-}
-
-@files = ('isotovideo', $test->all_pl_files("."));
-for my $file (@files) {
-    $test->ok($test->pl_file_compiles($file), "Compile test for $file");
-}
-$test->done_testing();
+$Test::Strict::TEST_SYNTAX   = 1;
+$Test::Strict::TEST_STRICT   = 1;
+$Test::Strict::TEST_WARNINGS = 1;
+$Test::Strict::TEST_SKIP     = [
+    't/data/tests/main.pm',
+    't/data/tests/product/main.pm',
+    't/pool/product/foo/main.pm',
+];
+all_perl_files_ok('.');
