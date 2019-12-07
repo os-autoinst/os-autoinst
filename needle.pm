@@ -324,6 +324,7 @@ sub default_needles_dir {
 
 sub init {
     $needledir = ($bmwqemu::vars{NEEDLES_DIR} // default_needles_dir);
+    $needledir = File::Spec->catdir($bmwqemu::vars{CASEDIR}, $needledir) unless -d $needledir;
     die "needledir not found: $needledir (check vars.json?)" unless -d $needledir;
 
     %needles = ();
