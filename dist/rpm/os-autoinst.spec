@@ -89,7 +89,8 @@ sed  -i 's/ my $thisversion = qx{git.*rev-parse HEAD}.*;/ my $thisversion = "%{v
 # don't require qemu within OBS
 # and exclude known flaky tests in OBS check
 # https://progress.opensuse.org/issues/52652
-for i in 13-osutils 14-isotovideo 18-qemu-options 18-backend-qemu 99-full-stack; do
+# 07-commands: https://progress.opensuse.org/issues/60755
+for i in 07-commands 13-osutils 14-isotovideo 18-qemu-options 18-backend-qemu 99-full-stack; do
     rm t/$i.t
     sed -i "s/ \?$i\.t//g" t/Makefile.am
 done
