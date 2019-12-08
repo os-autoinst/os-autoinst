@@ -72,6 +72,11 @@ subtest 'productdir variable relative/absolute' => sub {
     symlink("$data_dir/tests/main.pm", "$pool_dir/product/foo/main.pm") unless -e "$pool_dir/product/foo/main.pm";
     isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product/foo");
     is_in_log('\d* scheduling.*shutdown', 'schedule can still be found');
+    unlink("$pool_dir/product/foo/main.pm");
+    mkdir("$data_dir/tests/product") unless -e "$data_dir/tests/product";
+    symlink("$data_dir/tests/main.pm", "$data_dir/tests/product/main.pm") unless -e "$data_dir/tests/product/main.pm";
+    isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product");
+    is_in_log('\d* scheduling.*shutdown', 'schedule can still be found for productdir relative to casedir');
 };
 
 subtest 'upload assets on demand even in failed jobs' => sub {

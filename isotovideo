@@ -281,12 +281,17 @@ if ($bmwqemu::vars{SCHEDULE}) {
     autotest::loadtest($_ . '.pm') foreach split(',', $bmwqemu::vars{SCHEDULE});
     $bmwqemu::vars{INCLUDE_MODULES} = 'none';
 }
-unshift @INC, '.' unless File::Spec->file_name_is_absolute($bmwqemu::vars{PRODUCTDIR});
-if (-e $bmwqemu::vars{PRODUCTDIR} . '/main.pm') {
-    require $bmwqemu::vars{PRODUCTDIR} . '/main.pm';
+my $productdir = $bmwqemu::vars{PRODUCTDIR};
+my $main_path  = File::Spec->catfile($productdir, 'main.pm');
+if (-e $main_path) {
+    unshift @INC, '.';
+    require $main_path;
+}
+elsif (!File::Spec->file_name_is_absolute($productdir) && -e File::Spec->catfile($bmwqemu::vars{CASEDIR}, $main_path)) {
+    require File::Spec->catfile($bmwqemu::vars{CASEDIR}, $main_path);
 }
 elsif (!$bmwqemu::vars{SCHEDULE}) {
-    die '\'SCHEDULE\' not set and ' . $bmwqemu::vars{PRODUCTDIR} . '/main.pm not found, need one of both';
+    die '\'SCHEDULE\' not set and ' . $productdir . '/main.pm not found, need one of both';
 }
 @INC = @oldINC;
 
