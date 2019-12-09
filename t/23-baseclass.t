@@ -157,7 +157,7 @@ subtest 'SSH utilities' => sub {
         is($ssh->blocking(),     0,                              'We run SSH in none blocking mode');
 
         $baseclass->truncate_serial_file();
-        my $expect_output       = "FOO$/" x 80;
+        my $expect_output       = "FOO$/" x 4096;
         my $channel_read_string = $expect_output;
         $chan->mock('read', sub {
                 my ($self, undef, $max) = @_;
