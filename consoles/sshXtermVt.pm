@@ -22,9 +22,9 @@ use autodie ':all';
 
 use base 'consoles::localXvnc';
 
+use IO::Socket::INET;
 use testapi 'get_var';
 require IPC::System::Simple;
-use Net::Ping;
 
 sub activate {
     my ($self) = @_;
@@ -36,23 +36,16 @@ sub activate {
     my $ssh_args        = $self->{args};
     my $gui             = $self->{args}->{gui};
 
-    # Wait that SUT is live on network (for generalhw/ssh)
-    my $p       = Net::Ping->new();
-    my $counter = get_var('SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT') // 120;
-    while ($counter > 0) {
-        last if ($p->ping($ssh_args->{hostname}));
-        sleep(1);
-        $counter--;
-    }
-    $p->close();
-    bmwqemu::diag("$ssh_args->{hostname} does not seems to be alive. Continuing anyway.\n") if ($counter == 0);
-
     my $hostname = $ssh_args->{hostname} || die('we need a hostname to ssh to');
     my $password = $ssh_args->{password} || $testapi::password;
     my $username = $ssh_args->{username} || 'root';
     my $sshcommand = $self->sshCommand($username, $hostname, $gui);
     my $serial     = $self->{args}->{serial};
 
+    # Wait that ssh server on SUT is live on network
+    if (!$self->wait_for_ssh_port($hostname, timeout => (get_var('SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT') // 120))) {
+        bmwqemu::diag("$hostname does not seems to have an active SSH server. Continuing anyway.\n");
+    }
     $self->callxterm($sshcommand, "ssh:$testapi_console");
 
     if ($serial) {
@@ -72,6 +65,23 @@ sub activate {
         }
         $ssh->blocking(0);
     }
+}
+
+sub wait_for_ssh_port {
+    my ($self, $hostname, %args) = @_;
+    $args{timeout} //= 120;
+    $args{port}    //= 22;
+
+    bmwqemu::diag("Wait for SSH on host $hostname (timeout: $args{timeout})");
+
+    $args{timeout} = 1 unless ($args{timeout} > 0);
+    my $endtime = time() + $args{timeout};
+    while (time() < $endtime) {
+        my $sock = IO::Socket::INET->new(PeerAddr => $hostname, PeerPort => $args{port}, Proto => 'tcp', Timeout => 1);
+        return 1 if (defined $sock);
+        sleep 1;
+    }
+    return 0;
 }
 
 # to be called on reconnect
