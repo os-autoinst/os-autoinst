@@ -41,4 +41,5 @@ t/*.log
 t/*.trs
 t/pool/*
 t/cover_db/*
+cover_db/*
 .*.swp
