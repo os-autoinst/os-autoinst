@@ -44,19 +44,25 @@ sub get_cmd {
     if (!-d $dir) {
         die "GENERAL_HW_CMD_DIR is not pointing to a directory";
     }
+
+    my $args = get_var('GENERAL_HW_FLASH_ARGS') if ($cmd eq 'GENERAL_HW_FLASH_CMD' and get_var('GENERAL_HW_FLASH_ARGS'));
+
     $cmd = get_required_var($cmd);
     $cmd = "$dir/" . basename($cmd);
     if (!-x $cmd) {
         die "CMD $cmd is not an executable";
     }
+    $cmd .= " $args" if $args;
+
     return $cmd;
 }
 
 sub run_cmd {
     my ($self, $cmd) = @_;
+    my @full_cmd = split / /, $self->get_cmd($cmd);
 
     my ($stdin, $stdout, $stderr, $ret);
-    $ret = IPC::Run::run([$self->get_cmd($cmd)], \$stdin, \$stdout, \$stderr);
+    $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr);
     chomp $stdout;
     chomp $stderr;
 
@@ -106,9 +112,14 @@ sub relogin_vnc {
 sub do_start_vm {
     my ($self) = @_;
 
+    $self->truncate_serial_file;
+    if (get_var('GENERAL_HW_FLASH_CMD')) {
+        $self->poweroff_host;    # Ensure system is off, before flashing
+        $self->run_cmd('GENERAL_HW_FLASH_CMD');
+    }
     $self->restart_host;
-    $self->relogin_vnc;
-    $self->start_serial_grab;
+    $self->relogin_vnc if (get_var('GENERAL_HW_VNC_IP'));
+    $self->start_serial_grab if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
     return {};
 }
 
@@ -116,8 +127,18 @@ sub do_stop_vm {
     my ($self) = @_;
 
     $self->poweroff_host;
-    $self->stop_serial_grab();
+    $self->stop_serial_grab() if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
     return {};
+}
+
+sub check_socket {
+    my ($self, $fh, $write) = @_;
+
+    if ($self->check_ssh_serial($fh)) {
+        return 1;
+    }
+
+    return $self->SUPER::check_socket($fh, $write);
 }
 
 # serial grab

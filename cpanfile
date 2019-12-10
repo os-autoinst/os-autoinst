@@ -23,6 +23,7 @@ requires 'IO::Handle';
 requires 'IO::Scalar';
 requires 'IO::Select';
 requires 'IO::Socket';
+requires 'IO::Socket::INET';
 requires 'IO::Socket::UNIX';
 requires 'IPC::Open3';
 requires 'IPC::Run::Debug';
