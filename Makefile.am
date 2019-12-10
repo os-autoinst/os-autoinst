@@ -198,13 +198,15 @@ distclean-local: clean-local
 check-local:
 	$(srcdir)/tools/tidy --check
 	PERL5LIB=tools/lib/perlcritic:$$PERL5LIB perlcritic --gentle --include Perl::Critic::Policy::HashKeyQuote --include Perl::Critic::Policy::ConsistentQuoteLikeWords $(srcdir)
-	$(MAKE) check-doc
+	test x$(CHECK_DOC) = x0 || $(MAKE) check-doc
 
 .PHONY: check-doc
 check-doc: check-doc-testapi
 
 .PHONY: check-doc-testapi
 check-doc-testapi:
+	command -v podspell >/dev/null || (echo "Missing podspell"; exit 2)
+	command -v spell >/dev/null || (echo "Missing spell"; exit 2)
 	[ -z "$$(podspell testapi.pm | spell)" ]
 
 clean-local:

@@ -37,9 +37,16 @@ Source0:        %{name}-%{version}.tar.xz
 # itself or any sub-packages
 # SLE is missing spell check requirements
 %if !0%{?is_opensuse}
-%define spellcheck_requires %{nil}
+%bcond_with spellcheck
 %else
-%define spellcheck_requires perl(Pod::Spell) aspell-spell
+%bcond_without spellcheck
+%endif
+%if %{with spellcheck}
+%define spellcheck_requires perl(Pod::Spell) aspell-spell aspell-en
+%define make_check_args %{nil}
+%else
+%define spellcheck_requires %{nil}
+%define make_check_args CHECK_DOC=0
 %endif
 %define test_requires %build_requires %requires perl(Perl::Tidy) perl(Test::Strict) perl(Test::Exception) perl(Test::Output) perl(Test::Fatal) perl(Test::Warnings) perl(Pod::Coverage) perl(Test::Pod) perl(Test::MockModule) perl(Test::MockObject) perl(Devel::Cover) perl(Test::Mock::Time) qemu-tools %spellcheck_requires
 %define devel_requires %test_requires %requires_not_needed_in_tests
@@ -128,7 +135,7 @@ rm tools/lib/perlcritic/Perl/Critic/Policy/*.pm
 
 # should work offline
 for p in $(cpanfile-dump); do rpm -q --whatprovides "perl($p)"; done
-make check test VERBOSE=1
+make check test VERBOSE=1 %{make_check_args}
 
 %pre openvswitch
 %service_add_pre os-autoinst-openvswitch.service
