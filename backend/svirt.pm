@@ -253,7 +253,9 @@ sub start_serial_grab {
     $ssh->blocking(0);
 }
 
-=head2 ($ssh, $chan) = $self->backend->start_serial_grab($name, %args)
+=head2 open_serial_console_via_ssh
+
+  ($ssh, $chan) = open_serial_console_via_ssh($name[, port => ''][, devname => ''])
 
 Opens SSH connection to grab serial terminal log
 (using consoles::serial_screen, saved into serial_terminal.txt).
@@ -263,7 +265,6 @@ into file.
 
 C<$args{port}> used non-default port
 C<$args{devname}> used device name
-C<$args{is_terminal}> for serial terminal
 =cut
 sub open_serial_console_via_ssh {
     my ($self, $name, %args) = @_;
@@ -297,9 +298,9 @@ sub open_serial_console_via_ssh {
     ($ssh, $chan) = $self->run_ssh($cmd_full, blocking => 0);
     usleep(500) while ($self->run_ssh_cmd("test -e $log") != 0 && $max_tries-- > 0);
     $self->die("Command 'script' did not create logfile $log") if ($max_tries < 1);
-
-    ($ret, $stdout, $stderr) = $self->run_ssh_cmd("grep -q '^$marker' $log", wantarray => 1);
     $self->{need_delete_log} = 1;
+
+    $ret = $self->run_ssh_cmd("grep -q '^$marker' $log");
     if (!$ret) {
         (undef, $stdout, undef) = $self->run_ssh_cmd("cat $log", wantarray => 1);
         $self->die("problem with virsh: cmd: '$cmd', output of script wrapper: '$stdout')");
