@@ -19,6 +19,7 @@ use 5.018;
 use warnings;
 use Test::More;
 use Test::Exception;
+use Test::Output 'stderr_like';
 use File::Temp 'tempdir';
 use File::Basename;
 use File::Path 'make_path';
@@ -46,6 +47,14 @@ sub read_vars {
     close($varsfh);
     return $ret;
 }
+
+subtest 'log_call' => sub {
+    require bmwqemu;
+    sub log_call_test {
+        bmwqemu::log_call(foo => "bar\tbaz\rboo\n");
+    }
+    stderr_like(\&log_call_test, qr{\Q<<< main::log_call_test(foo="bar\tbaz\rboo\n")}, 'log_call escapes special characters');
+};
 
 subtest 'CASEDIR is mandatory' => sub {
     my $dir = '/var/lib/openqa';
