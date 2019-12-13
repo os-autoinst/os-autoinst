@@ -23,8 +23,8 @@ $user_agent_mock->mock(get => sub {
 });
 
 # setup needle directory
-my $needle_dir = $needle::needles_dir = path(tempdir, 'needle_dir');
-ok(make_path($needle_dir), 'create test needle dir under ' . $needle_dir);
+my $needles_dir = $needle::needles_dir = path(tempdir, 'needles_dir');
+ok(make_path($needles_dir), 'create test needle dir under ' . $needles_dir);
 
 subtest 'deduce URL for needle download from test variable OPENQA_URL' => sub {
     $bmwqemu::vars{OPENQA_URL} = 'https://openqa1-opensuse';
@@ -70,22 +70,22 @@ subtest 'add relevant downloads' => sub {
 
     # pretend that ...
     # ... one file is already up to date (to the exact second)
-    File::Touch->new(mtime => 1514764800)->touch($needle_dir . '/foo.png');
+    File::Touch->new(mtime => 1514764800)->touch($needles_dir . '/foo.png');
     # ... one file is present but outdated (by one second)
-    File::Touch->new(mtime => 1514764799)->touch($needle_dir . '/bar.json');
+    File::Touch->new(mtime => 1514764799)->touch($needles_dir . '/bar.json');
 
     # define expected downloads: everything from @new_needles except foo.png
     my @expected_downloads = (
         {
-            target => $needle_dir . '/foo.json',
+            target => $needles_dir . '/foo.json',
             url    => 'http://openqa/needles/1/json',
         },
         {
-            target => $needle_dir . '/bar.json',
+            target => $needles_dir . '/bar.json',
             url    => 'http://openqa/needles/2/json',
         },
         {
-            target => $needle_dir . '/bar.png',
+            target => $needles_dir . '/bar.png',
             url    => 'http://openqa/needles/2/image',
         }
     );
@@ -95,7 +95,7 @@ subtest 'add relevant downloads' => sub {
         sub {
             $downloader->add_relevant_downloads(\@new_needles);
         },
-        qr/.*skipping downloading new needle: $needle_dir\/foo\.png seems already up-to-date.*/,
+        qr/.*skipping downloading new needle: $needles_dir\/foo\.png seems already up-to-date.*/,
         'skipped downloads logged'
     );
     is_deeply($downloader->files_to_download, \@expected_downloads, 'downloads added')
@@ -127,6 +127,6 @@ subtest 'download added URLs' => sub {
     ], 'right URLs queried');
 };
 
-remove_tree($needle_dir);
+remove_tree($needles_dir);
 
 done_testing;

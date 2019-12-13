@@ -33,7 +33,7 @@ use OpenQA::Benchmark::Stopwatch;
 
 our %needles;
 our %tags;
-our $needledir;
+our $needles_dir;
 our $cleanuphandler;
 
 sub is_click_point_valid {
@@ -47,12 +47,12 @@ sub is_click_point_valid {
 sub new {
     my ($classname, $jsonfile) = @_;
 
-    die 'needles not initialized via needle::init() before needle constructor called' unless defined $needledir;
+    die 'needles not initialized via needle::init() before needle constructor called' unless defined $needles_dir;
 
     my $json;
     if (ref $jsonfile eq 'HASH') {
         $json     = $jsonfile;
-        $jsonfile = $json->{file} || File::Spec->catfile($needledir, $json->{name} . '.json');
+        $jsonfile = $json->{file} || File::Spec->catfile($needles_dir, $json->{name} . '.json');
     }
 
     my $self = {};
@@ -61,16 +61,16 @@ sub new {
     # - This code initializes $json->{file} so it contains the path within the needle directory.
     # - $jsonfile is re-assigned to contain the absolute path the the JSON file.
     # - The needle must be within the needle directory.
-    if (index($jsonfile, $needledir) == 0) {
-        $self->{file} = substr($jsonfile, length($needledir) + 1);
+    if (index($jsonfile, $needles_dir) == 0) {
+        $self->{file} = substr($jsonfile, length($needles_dir) + 1);
     }
-    elsif (-f File::Spec->catfile($needledir, $jsonfile)) {
+    elsif (-f File::Spec->catfile($needles_dir, $jsonfile)) {
         # json file path already relative
         $self->{file} = $jsonfile;
-        $jsonfile = File::Spec->catfile($needledir, $jsonfile);
+        $jsonfile = File::Spec->catfile($needles_dir, $jsonfile);
     }
     else {
-        die "Needle $jsonfile is not under needle directory $needledir";
+        die "Needle $jsonfile is not under needle directory $needles_dir";
     }
 
     if (!$json) {
@@ -323,21 +323,21 @@ sub default_needles_dir {
 }
 
 sub init {
-    $needledir = ($bmwqemu::vars{NEEDLES_DIR} // default_needles_dir);
-    $needledir = File::Spec->catdir($bmwqemu::vars{CASEDIR}, $needledir) unless -d $needledir;
-    die "needledir not found: $needledir (check vars.json?)" unless -d $needledir;
+    $needles_dir = ($bmwqemu::vars{NEEDLES_DIR} // default_needles_dir);
+    $needles_dir = File::Spec->catdir($bmwqemu::vars{CASEDIR}, $needles_dir) unless -d $needles_dir;
+    die "needles_dir not found: $needles_dir (check vars.json?)" unless -d $needles_dir;
 
     %needles = ();
     %tags    = ();
-    bmwqemu::diag("init needles from $needledir");
-    find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needledir);
+    bmwqemu::diag("init needles from $needles_dir");
+    find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needles_dir);
     bmwqemu::diag(sprintf("loaded %d needles", scalar keys %needles));
 
     if ($cleanuphandler) {
         &$cleanuphandler();
     }
 
-    return $needledir;
+    return $needles_dir;
 }
 
 sub tags {

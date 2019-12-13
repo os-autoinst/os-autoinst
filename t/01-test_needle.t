@@ -36,8 +36,8 @@ require tinycv;
 
 my ($res, $needle, $img1, $cand);
 
-my $data_dir        = dirname(__FILE__) . '/data/';
-my $misc_needle_dir = abs_path(dirname(__FILE__)) . '/misc_needles/';
+my $data_dir         = dirname(__FILE__) . '/data/';
+my $misc_needles_dir = abs_path(dirname(__FILE__)) . '/misc_needles/';
 
 $bmwqemu::vars{NEEDLES_DIR} = $data_dir;
 needle::init;
@@ -381,7 +381,7 @@ subtest 'needle::init accepts custom NEEDLES_DIR within working directory and ot
     my $needles_dir = $bmwqemu::vars{NEEDLES_DIR} = "$temp_working_dir/some-needle-repo";
     make_path("$needles_dir/subdir");
     for my $extension (qw(json png)) {
-        Mojo::File->new($misc_needle_dir, "click-point.$extension")->copy_to("$needles_dir/subdir/foo.$extension");
+        Mojo::File->new($misc_needles_dir, "click-point.$extension")->copy_to("$needles_dir/subdir/foo.$extension");
     }
 
     subtest 'custom NEEDLES_DIR used when within working directory' => sub {
@@ -397,7 +397,7 @@ subtest 'needle::init accepts custom NEEDLES_DIR within working directory and ot
 };
 
 subtest 'click point' => sub {
-    $needle::needledir = $misc_needle_dir;
+    $needle::needles_dir = $misc_needles_dir;
 
     my $needle = needle->new('click-point.json');
     is_deeply($needle->{area}->[0]->{click_point}, {xpos => 2, ypos => 4}, 'click point parsed');
@@ -412,7 +412,7 @@ subtest 'click point' => sub {
 };
 
 subtest 'workaround property' => sub {
-    $needle::needledir = $misc_needle_dir;
+    $needle::needles_dir = $misc_needles_dir;
 
     my $workaround_string_needle     = needle->new('check-workaround-bsc1234567-20190522.json');
     my $workaround_hash_needle       = needle->new('check-workaround-hash-20190522.json');

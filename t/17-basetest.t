@@ -220,8 +220,8 @@ subtest record_screenmatch => sub {
 
     # check a needle has workaround property
     my $basetest_for_workaround = basetest->new();
-    my $misc_needle_dir         = dirname(__FILE__) . '/misc_needles/';
-    my $needle_file             = $misc_needle_dir . "check-workaround-hash-20190522.json";
+    my $misc_needles_dir        = dirname(__FILE__) . '/misc_needles/';
+    my $needle_file             = $misc_needles_dir . "check-workaround-hash-20190522.json";
     my %workaround_match        = (
         area => [
             {x => 1, y => 2, w => 3, h => 4, result => 'ok'},
