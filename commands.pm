@@ -131,7 +131,7 @@ sub test_data {
         $path .= $relpath;
     }
 
-    return _test_data_dir($self, $path) if -d $path;
+    return _test_data_dir($self, $path)  if -d $path;
     return _test_data_file($self, $path) if -f $path;
 
     return $self->reply->not_found;

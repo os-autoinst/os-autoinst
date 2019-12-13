@@ -171,7 +171,7 @@ subtest 'SSH utilities' => sub {
         my $exit_value;
         stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } $expect_output, 'Serial output is printed to STDOUT';
         is(path($baseclass->{serialfile})->slurp(), $expect_output, 'Serial output is writen to serial file');
-        is($exit_value, 1, 'Check return value on success');
+        is($exit_value,                             1,              'Check return value on success');
 
         $channel_read_string = undef;
         @net_ssh2_error      = (LIBSSH2_ERROR_EAGAIN, 'EAGAIN', 'Try later');

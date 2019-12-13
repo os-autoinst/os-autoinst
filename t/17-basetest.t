@@ -59,15 +59,15 @@ subtest parse_serial_output => sub {
     ];
 
     $basetest->parse_serial_output_qemu();
-    is($basetest->{result}, 'softfail', 'test result set to soft failure');
-    is($message, 'SimplePattern - Serial error: Serial to match', 'log message matches output');
+    is($basetest->{result}, 'softfail',                                      'test result set to soft failure');
+    is($message,            'SimplePattern - Serial error: Serial to match', 'log message matches output');
 
     $basetest->{serial_failures} = [
         {type => 'soft', message => 'Proper regexp', pattern => qr/\d{3}/},
     ];
     $basetest->parse_serial_output_qemu();
-    is($basetest->{result}, 'softfail', 'test result set to soft failure');
-    is($message, 'Proper regexp - Serial error: 1q2w333', 'log message matches output');
+    is($basetest->{result}, 'softfail',                              'test result set to soft failure');
+    is($message,            'Proper regexp - Serial error: 1q2w333', 'log message matches output');
 
     $basetest->{serial_failures} = [
         {type => 'hard', message => 'Message1', pattern => qr/Serial/},

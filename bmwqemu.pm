@@ -90,7 +90,7 @@ sub save_vars {
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
     flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
-    truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
+    truncate($fd, 0)    or die "cannot truncate vars.json: $!\n";
 
     my $write_vars = \%vars;
     if ($args{no_secret}) {
@@ -174,7 +174,7 @@ sub ensure_valid_vars {
     }
 
     die "CASEDIR variable not set, unknown test case directory" if !defined $vars{CASEDIR};
-    die "No scripts in $vars{CASEDIR}" if !-e "$vars{CASEDIR}";
+    die "No scripts in $vars{CASEDIR}"                          if !-e "$vars{CASEDIR}";
     _check_publish_vars();
     save_vars();
 }

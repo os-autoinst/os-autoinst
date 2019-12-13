@@ -165,7 +165,7 @@ sub _is_configured_to_pause_on_timeout {
     my ($self, $response) = @_;
     return 0 unless my $pause_on_screen_mismatch = $self->pause_on_screen_mismatch;
 
-    return 1 if ($pause_on_screen_mismatch eq 'check_screen');
+    return 1                          if ($pause_on_screen_mismatch eq 'check_screen');
     return $response->{check} ? 0 : 1 if ($pause_on_screen_mismatch eq 'assert_screen');
     return 0;
 }
