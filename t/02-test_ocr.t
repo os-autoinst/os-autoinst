@@ -28,7 +28,7 @@ unless (which('tesseract')) {
 
 needle::init;
 
-my $img1   = tinycv::read("$needle::needles_dir/bootmenu.test.png");
+my $img1   = tinycv::read(needle::needles_dir() . '/bootmenu.test.png');
 my $needle = needle->new('bootmenu-ocr.ref.json');
 my $res    = $img1->search($needle);
 ok(defined $res, 'ocr match 1');
