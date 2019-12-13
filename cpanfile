@@ -54,7 +54,7 @@ on 'test' => sub {
   requires 'File::Touch';
   requires 'Perl::Critic';
   requires 'Perl::Critic::Freenode';
-  requires 'Perl::Tidy', '== 20190915';
+  requires 'Perl::Tidy', '== 20191203';
   requires 'Pod::Coverage';
   requires 'Test::Strict';
   requires 'Test::Fatal';

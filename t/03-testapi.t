@@ -257,8 +257,8 @@ subtest 'script_run' => sub {
     like($cmds->[1]->{text}, qr/; echo .*Comment: foo/);
     $fake_exit = 1;
     is(script_run('false'), '1', 'script_run with no check of success, returns exit code');
-    is(script_run('false', output => 'foo'), '1', 'script_run with no check of success and output, returns exit code');
-    is(script_run('false', 0), undef, 'script_run with no check of success, returns undef when not waiting');
+    is(script_run('false', output => 'foo'), '1',   'script_run with no check of success and output, returns exit code');
+    is(script_run('false', 0),               undef, 'script_run with no check of success, returns undef when not waiting');
 };
 
 subtest 'check_assert_screen' => sub {
@@ -494,7 +494,7 @@ sub script_output_test {
             }
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
     });
-    is(script_output('echo foo', 30), 'foo', '');
+    is(script_output('echo foo', 30),            'foo', '');
     is(script_output('echo foo', timeout => 30), 'foo', '');
 
     $mock_testapi->mock(wait_serial => sub {
@@ -637,7 +637,7 @@ subtest 'compat_args' => sub {
     is_deeply({testapi::compat_args(\%def_args, ['c'], 666, k => 5)}, {a => $def_args{a}, b => $def_args{b}, c => 666, k => 5}, 'Additional parameter 3');
 
     like(warning { testapi::compat_args(\%def_args, [], a => 'Z', 'outch') }->[0], qr/^Odd number of arguments/, 'Warned on Odd number 1');
-    like(warning { testapi::compat_args(\%def_args, [], 'outch') }->[0], qr/^Odd number of arguments/, 'Warned on Odd number 2');
+    like(warning { testapi::compat_args(\%def_args, [], 'outch') }->[0],           qr/^Odd number of arguments/, 'Warned on Odd number 2');
 };
 
 subtest 'check quiet option on script runs' => sub {

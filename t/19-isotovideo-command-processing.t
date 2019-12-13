@@ -98,7 +98,7 @@ subtest 'set pause at test' => sub {
             cmd  => 'set_pause_at_test',
             name => 'some test',
     });
-    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'answer received');
+    is_deeply($last_received_msg_by_fd[$answer_fd],  {ret               => 1},           'answer received');
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {set_pause_at_test => 'some test'}, 'broadcasted via command server');
     is($command_handler->pause_test_name, 'some test', 'test to pause at set');
 
@@ -106,7 +106,7 @@ subtest 'set pause at test' => sub {
             cmd  => 'set_pause_at_test',
             name => undef,
     });
-    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'answer received');
+    is_deeply($last_received_msg_by_fd[$answer_fd],  {ret               => 1},     'answer received');
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {set_pause_at_test => undef}, 'broadcasted via command server');
     is($command_handler->pause_test_name, undef, 'test to pause at unset');
 };

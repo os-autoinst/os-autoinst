@@ -171,7 +171,7 @@ subtest 'SSH usage in svirt' => sub {
     isnt(refaddr($ssh4), refaddr($ssh5), "Got new connection with different credentials");
 
     $net_ssh2->mock('auth_ok', sub { return 0; });
-    throws_ok(sub                  { $svirt->new_ssh_connection() }, qr/Error connecting to/, 'Got exception on connection error');
+    throws_ok(sub { $svirt->new_ssh_connection() }, qr/Error connecting to/, 'Got exception on connection error');
     $net_ssh2->mock('auth_ok', sub { return 1; });
 
     # check run_ssh_cmd() usage
@@ -218,9 +218,9 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
             @LAST_ = @_;
             my $cmd = shift;
             return !!($test_log_cnt > 0 ? --$test_log_cnt : 0) if ($cmd =~ m/^test -e/);
-            return $grep_return if ($cmd =~ m/^grep -q/);
-            push @deleted_logs, ($cmd =~ /(\S+)$/) if ($cmd =~ / && rm /);
-            return (0, "FOOBAR_OUTPUT", '') if ($cmd =~ m/^cat /);
+            return $grep_return                                if ($cmd =~ m/^grep -q/);
+            push @deleted_logs, ($cmd =~ /(\S+)$/)             if ($cmd =~ / && rm /);
+            return (0, "FOOBAR_OUTPUT", '')                    if ($cmd =~ m/^cat /);
             die("Adopt test, unexpected call of run_ssh_cmd()");
     });
 

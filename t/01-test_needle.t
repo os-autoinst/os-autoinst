@@ -378,7 +378,7 @@ is($needle->{file}, 'other-desktop-dvd-20140904.json', 'needle json path is rela
 subtest 'needle::init accepts custom NEEDLES_DIR within working directory and otherwise falls back to "$bmwqemu::vars{PRODUCTDIR}/needles"' => sub {
     # create temporary working directory and a needle directory within it
     my $temp_working_dir = tempdir(CLEANUP => 1);
-    my $needles_dir = $bmwqemu::vars{NEEDLES_DIR} = "$temp_working_dir/some-needle-repo";
+    my $needles_dir      = $bmwqemu::vars{NEEDLES_DIR} = "$temp_working_dir/some-needle-repo";
     make_path("$needles_dir/subdir");
     for my $extension (qw(json png)) {
         Mojo::File->new($misc_needles_dir, "click-point.$extension")->copy_to("$needles_dir/subdir/foo.$extension");

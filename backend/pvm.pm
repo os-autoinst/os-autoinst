@@ -218,8 +218,8 @@ sub start_lpar {
         my $name = $vars->{LPAR} . "_" . $i;
         $vars->{"HDD_$i"} = $name;
         my $size = $vars->{HDDSIZEGB};
-        $self->pvmctl("lv", "create", $name, $size) if !image_exists($name, $size);
-        $self->pvmctl("scsi", "create", "lv", $name);
+        $self->pvmctl("lv",   "create", $name, $size) if !image_exists($name, $size);
+        $self->pvmctl("scsi", "create", "lv",  $name);
     }
 
     $self->pvmctl("eth", "create", $vars->{NICVLAN}, $vars->{VSWITCH});

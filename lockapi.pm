@@ -98,7 +98,7 @@ sub mutex_unlock {
     bmwqemu::mydie('missing lock name') unless $name;
     bmwqemu::diag("mutex unlock '$name'");
     my $res = api_call('post', "mutex/$name", $param)->code;
-    return 1 if ($res == 200);
+    return 1                                                  if ($res == 200);
     bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
     return 0;
 }
@@ -108,7 +108,7 @@ sub mutex_create {
     bmwqemu::mydie('missing lock name') unless $name;
     bmwqemu::diag("mutex create '$name'");
     my $res = api_call('post', "mutex", {name => $name})->code;
-    return 1 if ($res == 200);
+    return 1                                                  if ($res == 200);
     bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
     return 0;
 }
@@ -130,7 +130,7 @@ sub barrier_create {
     bmwqemu::mydie('missing number of barrier task') unless $tasks;
     bmwqemu::diag("barrier create '$name' for $tasks tasks");
     my $res = api_call('post', 'barrier', {name => $name, tasks => $tasks})->code;
-    return 1 if ($res == 200);
+    return 1                                                  if ($res == 200);
     bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
     return 0;
 }
