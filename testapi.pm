@@ -1463,7 +1463,7 @@ sub mouse_set {
   mouse_click([$button, $hold_time]);
 
 Click mouse C<$button>. Can be C<'left'> or C<'right'>. Set C<$hold_time> to hold button for set time in seconds.
-Default hold time is 1s
+Default hold time is 0.15s
 
 =cut
 
