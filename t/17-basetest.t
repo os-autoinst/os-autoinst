@@ -224,7 +224,7 @@ subtest record_screenmatch => sub {
     my $needle_file             = $misc_needles_dir . "check-workaround-hash-20190522.json";
     my %workaround_match        = (
         area => [
-            {x => 1, y => 2, w => 3, h => 4, result => 'ok'},
+            {x => 1, y => 2, w => 3, h => 4, similarity => 0, result => 'ok'},
         ],
         error  => 0.25,
         needle => {
