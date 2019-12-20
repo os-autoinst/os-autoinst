@@ -33,8 +33,9 @@ use OpenQA::Benchmark::Stopwatch;
 
 our %needles;
 our %tags;
-our $needles_dir;
 our $cleanuphandler;
+
+my $needles_dir;
 
 sub is_click_point_valid {
     my ($click_point) = @_;
@@ -339,6 +340,10 @@ sub init {
 
     return $needles_dir;
 }
+
+sub needles_dir { $needles_dir; }
+
+sub set_needles_dir { ($needles_dir) = @_; }
 
 sub tags {
     my ($wanted)  = @_;

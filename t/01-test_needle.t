@@ -397,7 +397,7 @@ subtest 'needle::init accepts custom NEEDLES_DIR within working directory and ot
 };
 
 subtest 'click point' => sub {
-    $needle::needles_dir = $misc_needles_dir;
+    needle::set_needles_dir($misc_needles_dir);
 
     my $needle = needle->new('click-point.json');
     is_deeply($needle->{area}->[0]->{click_point}, {xpos => 2, ypos => 4}, 'click point parsed');
@@ -412,7 +412,7 @@ subtest 'click point' => sub {
 };
 
 subtest 'workaround property' => sub {
-    $needle::needles_dir = $misc_needles_dir;
+    needle::set_needles_dir($misc_needles_dir);
 
     my $workaround_string_needle     = needle->new('check-workaround-bsc1234567-20190522.json');
     my $workaround_hash_needle       = needle->new('check-workaround-hash-20190522.json');

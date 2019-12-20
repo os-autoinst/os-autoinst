@@ -23,8 +23,9 @@ $user_agent_mock->mock(get => sub {
 });
 
 # setup needle directory
-my $needles_dir = $needle::needles_dir = path(tempdir, 'needles_dir');
+my $needles_dir = path(tempdir, 'needles_dir');
 ok(make_path($needles_dir), 'create test needle dir under ' . $needles_dir);
+needle::set_needles_dir($needles_dir);
 
 subtest 'deduce URL for needle download from test variable OPENQA_URL' => sub {
     $bmwqemu::vars{OPENQA_URL} = 'https://openqa1-opensuse';

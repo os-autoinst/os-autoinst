@@ -72,7 +72,7 @@ sub _add_download {
 
     my $needle_name     = $needle->{name};
     my $latest_update   = $needle->{t_updated};
-    my $needles_dir     = $needle::needles_dir;
+    my $needles_dir     = needle::needles_dir();
     my $download_target = "$needles_dir/$needle_name.$extension";
 
     if (my $target_stat = stat($download_target)) {
