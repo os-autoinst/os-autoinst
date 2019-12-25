@@ -874,7 +874,7 @@ sub start_qemu {
         }
 
         my @boot_args;
-        push @boot_args, ('menu=on,splash-time=' . $vars->{BOOT_MENU_TIMEOUT} // '5000') if $vars->{BOOT_MENU};
+        push @boot_args, ('menu=on,splash-time=' . ($vars->{BOOT_MENU_TIMEOUT} // '5000')) if $vars->{BOOT_MENU};
         if ($arch_supports_boot_order) {
             if (($vars->{PXEBOOT} // '') eq 'once') {
                 push @boot_args, 'once=n';
