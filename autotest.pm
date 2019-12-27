@@ -341,6 +341,7 @@ sub runalltests {
     bmwqemu::diag "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
 
     write_test_order();
+    my %modules_spent_time;
 
     for my $t (@testorder) {
         my $flags    = $t->test_flags();
@@ -358,7 +359,8 @@ sub runalltests {
             $vmloaded = 1;
         }
         if ($vmloaded) {
-            my $name = $t->{name};
+            my $start_time = time;
+            my $name       = $t->{name};
             bmwqemu::modstart "starting $name $t->{script}";
             $t->start();
 
@@ -369,6 +371,7 @@ sub runalltests {
 
             eval { $t->runtest; };
             my $error = $@;    # save $@, it might be overwritten
+            $modules_spent_time{$name} = time - $start_time;
             $t->save_test_result();
 
             if ($error) {
@@ -407,6 +410,7 @@ sub runalltests {
             $t->save_test_result();
         }
     }
+    bmwqemu::save_json_file(\%modules_spent_time, "modules_spent_time.json") if (%modules_spent_time);
     return 1;
 }
 
