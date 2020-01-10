@@ -40,6 +40,7 @@ use Mojo::JSON qw(encode_json decode_json);
 use Mojo::File 'path';
 use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::ControllerConf;
+use OpenQA::Qemu::DriveDevice 'QEMU_IMAGE_FORMAT';
 use OpenQA::Qemu::SnapshotConf;
 use osutils qw(gen_params runcmd simple_run);
 use Mojo::IOLoop::ReadWriteProcess 'process';
@@ -135,14 +136,22 @@ sub configure_controllers {
     return $self;
 }
 
-sub get_img_size {
-    my ($self, $path) = @_;
+sub get_img_json_field {
+    my ($self, $path, $field) = @_;
     my $json = simple_run($self->qemu_img_bin, 'info', '--output=json', $path);
     my $map  = decode_json($json);
+    die "No $field field in: " . Dumper($map) unless defined $map->{$field};
+    return $map->{$field};
+}
 
-    die 'No size field in: ' . Dumper($map) unless defined $map->{'virtual-size'};
+sub get_img_size {
+    my ($self, $path) = @_;
+    return $self->get_img_json_field($path, 'virtual-size');
+}
 
-    return $map->{'virtual-size'};
+sub get_img_format {
+    my ($self, $path) = @_;
+    return $self->get_img_json_field($path, 'format');
 }
 
 =head3 configure_blockdevs
@@ -327,6 +336,12 @@ sub export_blockdev_images {
 
     for my $qicmd ($self->blockdev_conf->gen_qemu_img_convert($filter, $img_dir, $name)) {
         runcmd('nice', 'ionice', $self->qemu_img_bin, @$qicmd);
+
+        my $img        = "$img_dir/$name";
+        my $exp_format = OpenQA::Qemu::DriveDevice::QEMU_IMAGE_FORMAT;
+        my $format     = $self->get_img_format($img);
+        die "'$format': unexpected format for '$img' (expected '$exp_format'), maybe snapshotting failed" unless $format eq $exp_format;
+
         $count++;
     }
 

@@ -26,7 +26,11 @@ use Mojo::Base 'OpenQA::Qemu::MutParams';
 use OpenQA::Qemu::DrivePath;
 use bmwqemu 'diag';
 
-use constant DEVICE_POSTFIX => '-device';
+use constant DEVICE_POSTFIX    => '-device';
+use constant QEMU_IMAGE_FORMAT => 'qcow2';
+
+use Exporter 'import';
+our @EXPORT_OK = qw(QEMU_IMAGE_FORMAT);
 
 =head3 drive
 
@@ -137,7 +141,7 @@ sub gen_qemu_img_cmdlines {
 sub gen_qemu_img_convert {
     my ($self, $img_dir, $name) = @_;
 
-    return ['convert', '-c', '-O', 'qcow2', $self->drive->file, "$img_dir/$name"];
+    return ['convert', '-c', '-O', QEMU_IMAGE_FORMAT, $self->drive->file, "$img_dir/$name"];
 }
 
 sub gen_unlink_list {
