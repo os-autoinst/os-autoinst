@@ -108,7 +108,7 @@ subtest record_testresult => sub {
 
     my $basetest = bless({
             result     => undef,
-            details    => [],
+            details    => {},
             test_count => 0,
     }, $basetest_class);
 
@@ -144,8 +144,8 @@ subtest record_testresult => sub {
         'unknown result from take_screenshot not added to details');
 
     my $nr_test_details = 9;
-    is($basetest->{test_count},        $nr_test_details, 'test_count accumulated');
-    is(scalar @{$basetest->{details}}, $nr_test_details, 'all details added');
+    is($basetest->{test_count},                   $nr_test_details, 'test_count accumulated');
+    is(scalar @{$basetest->{details}->{results}}, $nr_test_details, 'all details added');
 };
 
 subtest record_screenmatch => sub {
@@ -177,7 +177,7 @@ subtest record_screenmatch => sub {
     my $frame = 24;
 
     $basetest->record_screenmatch($image, \%match, \@tags, \@failed_needles, $frame);
-    is_deeply($basetest->{details}, [
+    is_deeply($basetest->{details}->{results}, [
             {
                 area => [
                     {
@@ -240,7 +240,7 @@ subtest record_screenmatch => sub {
     );
 
     $basetest_for_workaround->record_screenmatch($image, \%workaround_match, ['check-workaround-hash'], [], $frame);
-    is_deeply($basetest_for_workaround->{details}, [
+    is_deeply($basetest_for_workaround->{details}->{results}, [
             {
                 result => 'softfail',
                 title  => 'Soft Failed',
