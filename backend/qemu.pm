@@ -237,7 +237,8 @@ sub _wait_for_migrate {
     my $migration_starttime = gettimeofday;
     my $execution_time      = gettimeofday;
     # We need to wait for qemu, since it will not honor timeouts
-    my $max_execution_time = 240;
+    # 240 seconds should be ok for 4GB
+    my $max_execution_time = $bmwqemu::vars{QEMU_MAX_MIGRATION_TIME} // 240;
     my $rsp;
 
     do {
@@ -256,7 +257,6 @@ sub _wait_for_migrate {
         diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
         diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
 
-        # 240 seconds should be ok for 4GB
         if ($execution_time > $max_execution_time) {
             # migrate_cancel returns an empty hash, so there is no need to check.
             $rsp = $self->handle_qmp_command({execute => "migrate_cancel"});
