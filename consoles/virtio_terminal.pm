@@ -143,9 +143,18 @@ sub open_pipe {
 
     my $newsize = get_var('VIRTIO_CONSOLE_PIPE_SZ', path('/proc/sys/fs/pipe-max-size')->slurp());
     for my $fd (($fd_w, $fd_r)) {
-        my $old = fcntl($fd, F_GETPIPE_SZ(), 0);
-        my $new = fcntl($fd, F_SETPIPE_SZ(), int($newsize));
-        bmwqemu::fctinfo("Set PIPE_SZ from $old to $new");
+        my $old = fcntl($fd, F_GETPIPE_SZ(), 0) or die("Unable to read PIPE_SZ");
+        {
+            no autodie;
+            my $new;
+            while ($newsize > $old) {
+                $new = fcntl($fd, F_SETPIPE_SZ(), int($newsize));
+                last if ($new);
+                $newsize /= 2;
+            }
+            $new //= $old;
+            bmwqemu::fctinfo("Set PIPE_SZ from $old to $new");
+        }
     }
 
     return ($fd_r, $fd_w);
