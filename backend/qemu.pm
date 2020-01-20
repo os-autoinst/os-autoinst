@@ -710,6 +710,7 @@ sub start_qemu {
     my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
     my $use_usb_kbd;
     my $arch = $vars->{ARCH} // '';
+    $arch = 'arm' if ($arch =~ /armv6|armv7/);
 
     if ($arch eq 'aarch64' || $arch eq 'arm') {
         my $video_device = ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) ? 'VGA' : 'virtio-gpu-pci';
@@ -876,7 +877,7 @@ sub start_qemu {
 
         my @boot_args;
         # Enable boot menu for aarch64 workaround, see bsc#1022064 for details
-        $vars->{BOOT_MENU} //= 1 if ($vars->{BOOTFROM} && ($vars->{ARCH} // '') eq 'aarch64');
+        $vars->{BOOT_MENU} //= 1 if ($vars->{BOOTFROM} && ($arch eq 'aarch64'));
         push @boot_args, ('menu=on,splash-time=' . ($vars->{BOOT_MENU_TIMEOUT} // '5000')) if $vars->{BOOT_MENU};
         if ($arch_supports_boot_order) {
             if (($vars->{PXEBOOT} // '') eq 'once') {
