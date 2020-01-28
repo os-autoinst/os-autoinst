@@ -114,19 +114,7 @@ our $gocrbin = "/usr/bin/gocr";
 # set from isotovideo during initialization
 our $scriptdir;
 
-sub init {
-    load_vars();
-
-    $vars{BACKEND} ||= "qemu";
-
-    # remove directories for asset upload
-    remove_tree("assets_public");
-    remove_tree("assets_private");
-
-    remove_tree(result_dir);
-    mkdir result_dir;
-    mkdir join('/', result_dir, 'ulogs');
-
+sub init_logger {
     if ($direct_output) {
         $logger = Mojo::Log->new(level => 'debug');
     }
@@ -142,6 +130,22 @@ sub init {
             return sprintf(strftime("[%FT%T.%%03d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
 
         });
+}
+
+sub init {
+    load_vars();
+
+    $vars{BACKEND} ||= "qemu";
+
+    # remove directories for asset upload
+    remove_tree("assets_public");
+    remove_tree("assets_private");
+
+    remove_tree(result_dir);
+    mkdir result_dir;
+    mkdir join('/', result_dir, 'ulogs');
+
+    init_logger;
 }
 
 sub _check_publish_vars {
