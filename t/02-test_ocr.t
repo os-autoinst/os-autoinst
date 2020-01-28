@@ -31,7 +31,7 @@ stderr_like sub { needle::init }, qr/loaded.*needles/, 'log output for needle in
 my $img1   = tinycv::read(needle::needles_dir() . '/bootmenu.test.png');
 my $needle = needle->new('bootmenu-ocr.ref.json');
 my $res;
-stderr_like sub { $res    = $img1->search($needle) }, qr/Tesseract.*OCR/, 'log output for OCR';
+stderr_like sub { $res = $img1->search($needle) }, qr/Tesseract.*OCR/, 'log output for OCR';
 ok(defined $res, 'ocr match 1');
 
 my $ocr;

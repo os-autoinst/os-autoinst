@@ -31,6 +31,12 @@ throws_ok(
     'died when constructing needle without prior call to needle::init()'
 );
 
+sub needle_init {
+    my $ret;
+    stderr_like sub { $ret = needle::init }, qr/loaded.*needles/, 'log output for needle init';
+    return $ret;
+}
+
 cv::init();
 require tinycv;
 
@@ -40,7 +46,7 @@ my $data_dir         = dirname(__FILE__) . '/data/';
 my $misc_needles_dir = abs_path(dirname(__FILE__)) . '/misc_needles/';
 
 $bmwqemu::vars{NEEDLES_DIR} = $data_dir;
-needle::init;
+needle_init;
 
 $img1   = tinycv::read($data_dir . 'bootmenu.test.png');
 $needle = needle->new('bootmenu.ref.json');
@@ -87,7 +93,9 @@ subtest 'handle failure to load image' => sub {
     ok(my $image = $needle_with_png->get_image, 'image returned');
     my $needle_without_png  = needle->new('console.ref.json');
     my $missing_needle_path = $needle_without_png->{png} .= '.missing.png';
-    is($needle_without_png->get_image, undef, 'get_image returns undef if no image present');
+    stderr_like sub {
+        is($needle_without_png->get_image, undef, 'get_image returns undef if no image present');
+    }, qr/Could not open image/, 'log output for missing image';
 
     stderr_like(
         sub {
@@ -163,7 +171,7 @@ ok($needle->{area}->[0]->{margin} == 300, "search margin have the default value"
 $res = $img1->search($needle);
 ok(defined $res, "found a match for 300 margin");
 
-needle::init;
+needle_init;
 
 my @alltags = sort keys %needle::tags;
 my @needles = @{needle::tags('FIXME') || []};
@@ -388,7 +396,7 @@ subtest 'needle::init accepts custom NEEDLES_DIR within working directory and ot
         note("using working directory $temp_working_dir");
         chdir($temp_working_dir);
         $bmwqemu::vars{NEEDLES_DIR} = $needles_dir;
-        is(needle::init, $needles_dir, 'custom needle dir accepted');
+        is(needle_init, $needles_dir, 'custom needle dir accepted');
 
         ok($needle = needle->new('subdir/foo.json'), 'needle object created with needle from working directory');
         is($needle->{file}, 'subdir/foo.json',             'file path relative to needle directory');
