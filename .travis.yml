@@ -6,4 +6,4 @@ before_install:
   - docker build --no-cache docker/travis_test -t os-autoinst/travis_test:latest
 script:
   - CI_ENV=`bash <(curl -s https://codecov.io/env)` &&
-    docker run $CI_ENV --rm -v $TRAVIS_BUILD_DIR:/opt/repo os-autoinst/travis_test:latest 'make && make check coverage-codecov VERBOSE=1'
+    docker run --env "QEMU_QMP_CONNECT_ATTEMPTS=10" $CI_ENV --rm -v $TRAVIS_BUILD_DIR:/opt/repo os-autoinst/travis_test:latest 'make && make check coverage-codecov VERBOSE=1'

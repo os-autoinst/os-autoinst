@@ -401,7 +401,7 @@ sub connect_qmp {
     my $sk;
 
     osutils::attempt {
-        attempts  => 20,
+        attempts  => $ENV{QEMU_QMP_CONNECT_ATTEMPTS} // 20,
         condition => sub { $sk },
         cb        => sub {
             $sk = IO::Socket::UNIX->new(
