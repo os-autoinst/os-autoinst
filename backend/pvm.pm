@@ -177,7 +177,7 @@ sub start_lpar {
     $vars->{CPUS} ||= 1;
     $vars->{MEM}  ||= "2048";
     #disk settings
-    $vars->{NUMDISKS}  ||= 1;
+    $vars->{NUMDISKS} //= 1;
     $vars->{HDDSIZEGB} ||= 15;
     #network settings
     $vars->{NIC}     ||= "sea";
