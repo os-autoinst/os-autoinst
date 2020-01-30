@@ -530,7 +530,7 @@ subtest 'validate_script_output' => sub {
     );
 };
 
-subtest 'wait_still_screen' => sub {
+subtest 'wait_still_screen & assert_still_screen' => sub {
     $mod->mock(
         read_json => sub {
             return {ret => {sim => 999}};
@@ -542,6 +542,11 @@ subtest 'wait_still_screen' => sub {
     ok(wait_still_screen(stilltime => 2, timeout => 5, no_wait => 1, similarity_level => 30), 'Add similarity_level & timeout');
     ok(!wait_still_screen(timeout => 4, no_wait => 1), 'two named args, with timeout below stilltime - which will always return false');
     ok(wait_still_screen(1, 2, timeout => 3),          'named over positional');
+    ok(assert_still_screen,                            'default arguments to assert_still_screen');
+    my $testapi = Test::MockModule->new('testapi');
+    $testapi->mock(wait_still_screen => sub { die "wait_still_screen(@_)" });
+    like(exception { assert_still_screen similarity_level => 9999; }, qr/wait_still_screen\(similarity_level 9999\)/,
+        'assert_still_screen forwards arguments to wait_still_screen');
 };
 
 subtest 'set console tty and other args' => sub {

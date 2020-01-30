@@ -59,7 +59,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   upload_asset data_url check_shutdown assert_shutdown parse_junit_log parse_extra_log upload_logs
 
-  wait_screen_change assert_screen_change wait_still_screen wait_serial
+  wait_screen_change assert_screen_change wait_still_screen assert_still_screen wait_serial
   record_soft_failure record_info force_soft_failure
   become_root x11_start_program ensure_installed eject_cd power
 
@@ -712,6 +712,19 @@ sub wait_still_screen {
     $autotest::current_test->timeout_screenshot();
     bmwqemu::fctres("wait_still_screen timed out after $timeout, last detected similarity is $sim");
     return 0;
+}
+
+=head2 assert_still_screen
+
+  assert_still_screen([$args...])
+
+Run C<wait_still_screen> but C<die> if screen changed within timeout. Look
+into C<wait_still_screen> for details.
+
+=cut
+
+sub assert_still_screen(@) {
+    wait_still_screen(@_) or die 'assert_still_screen failed to detect a still screen';
 }
 
 =head1 test variable access
