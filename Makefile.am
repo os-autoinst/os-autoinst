@@ -230,6 +230,7 @@ TEST_FILES = \
 	08-autotest.t \
 	09-lockapi.t \
 	10-terminal.t \
+	10-virtio_terminal.t \
 	10-test-image-conversion-benchmark.t \
 	11-image-ppm.t \
 	12-bmwqemu.t \

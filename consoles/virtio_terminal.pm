@@ -122,6 +122,18 @@ sub F_SETPIPE_SZ
     return eval 'no warnings "all"; Fcntl::F_SETPIPE_SZ;' || 1031;
 }
 
+sub set_pipe_sz
+{
+    my ($self, $fd, $newsize) = @_;
+    return fcntl($fd, F_SETPIPE_SZ(), int($newsize));
+}
+
+sub get_pipe_sz
+{
+    my ($self, $fd) = @_;
+    return fcntl($fd, F_GETPIPE_SZ(), 0);
+}
+
 =head2 open_pipe
 
   open_pipe();
@@ -143,9 +155,18 @@ sub open_pipe {
 
     my $newsize = get_var('VIRTIO_CONSOLE_PIPE_SZ', path('/proc/sys/fs/pipe-max-size')->slurp());
     for my $fd (($fd_w, $fd_r)) {
-        my $old = fcntl($fd, F_GETPIPE_SZ(), 0);
-        my $new = fcntl($fd, F_SETPIPE_SZ(), int($newsize));
-        bmwqemu::fctinfo("Set PIPE_SZ from $old to $new");
+        my $old = $self->get_pipe_sz($fd) or die("Unable to read PIPE_SZ");
+        {
+            no autodie;
+            my $new;
+            while ($newsize > $old) {
+                $new = $self->set_pipe_sz($fd, $newsize);
+                last if ($new);
+                $newsize /= 2;
+            }
+            $new //= $old;
+            bmwqemu::fctinfo("Set PIPE_SZ from $old to $new");
+        }
     }
 
     return ($fd_r, $fd_w);
