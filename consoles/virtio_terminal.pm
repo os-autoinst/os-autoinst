@@ -124,6 +124,7 @@ sub F_SETPIPE_SZ
 
 sub set_pipe_sz
 {
+    no autodie;
     my ($self, $fd, $newsize) = @_;
     return fcntl($fd, F_SETPIPE_SZ(), int($newsize));
 }
@@ -157,7 +158,6 @@ sub open_pipe {
     for my $fd (($fd_w, $fd_r)) {
         my $old = $self->get_pipe_sz($fd) or die("Unable to read PIPE_SZ");
         {
-            no autodie;
             my $new;
             while ($newsize > $old) {
                 $new = $self->set_pipe_sz($fd, $newsize);
