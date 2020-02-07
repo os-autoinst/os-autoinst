@@ -18,8 +18,7 @@ use Net::SSH2;
 use testapi qw(get_var get_required_var check_var set_var);
 use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT);
 
-# Initialize bmwqemu loggers
-bmwqemu::init();
+bmwqemu::init_logger;
 
 set_var(WORKER_HOSTNAME => 'foo');
 set_var(VIRSH_HOSTNAME  => 'bar');

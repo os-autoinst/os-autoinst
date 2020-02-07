@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 use Test::More;
-use Mojo::JSON 'encode_json';
+use Test::Warnings;
 use Mojo::File qw(tempfile path);
 use Carp 'cluck';
 
@@ -15,6 +15,8 @@ use OpenQA::Qemu::Proc;
 use constant TMPPATH => '/tmp/18-qemu.t/';
 
 $SIG{__DIE__} = sub { cluck(shift); };
+
+bmwqemu::init_logger;
 
 my $bdc;
 my @cmdl;

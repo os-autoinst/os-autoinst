@@ -17,8 +17,7 @@ use POSIX 'tzset';
 $ENV{TZ} = 'UTC';
 tzset;
 
-# Call bmwqemu::init() to initialize the logger. Prevent logging to STDOUT.
-bmwqemu::init();
+bmwqemu::init_logger;
 
 my $baseclass = backend::baseclass->new();
 
