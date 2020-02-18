@@ -80,6 +80,7 @@ NICVLAN;integer;undef;network (vlan) number to which the NIC should be connected
 NUMDISKS;integer;1;Number of disks to be created and attached to VM, can be 0 to disable disks
 OFFLINE_SUT;boolean;0;Disable network for a VM
 OFW;boolean;0;QEMU Open Firmware is in use
+QEMU_ONLY_EXEC;boolean;undef;If set, only execute the qemu process but return early before connecting to the process. This can be helpful for cutting testing time or to connect to the qemu process manually.
 QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64;boolean;undef;If set, for aarch64 systems use VGA as video adapter
 QEMU_DISABLE_SNAPSHOTS;boolean;undef;If set, disable snapshots in case the worker has slow disks to avoid save_vm calls failing due to timeouts (See https://bugzilla.suse.com/show_bug.cgi?id=1035453[bsc#1035453])
 QEMU_QMP_CONNECT_ATTEMPTS;integer;20;The number of attempts to connect to qemu qmp. Usually used for internal testing
