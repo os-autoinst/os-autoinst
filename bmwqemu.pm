@@ -260,15 +260,15 @@ sub current_test {
 sub update_line_number {
     return unless current_test;
     return unless current_test->{script};
-    my $out    = "";
-    my $ending = quotemeta(current_test->{script});
-    for my $i (1 .. 10) {
-        my ($package, $filename, $line, $subroutine, $hasargs, $wantarray, $evaltext, $is_require, $hints, $bitmask, $hinthash) = caller($i);
-        last unless $filename;
-        next unless $filename =~ m/$ending$/;
-        $logger->debug("$filename:$line called $subroutine");
-        last;
+    my @out;
+    my $casedir = $vars{CASEDIR} // '';
+    for (my $i = 10; $i > 0; $i--) {
+        my ($package, $filename, $line, $subroutine) = caller($i);
+        next unless $filename && $filename =~ /\Q$casedir/;
+        $filename =~ s@$casedir/?@@;
+        push @out, "$filename:$line called $subroutine";
     }
+    $logger->debug(join(' -> ', @out));
     return;
 }
 
