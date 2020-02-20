@@ -45,7 +45,7 @@ sub new {
 
 sub ipmi_cmdline {
     my ($self) = @_;
-
+    get_required_var("IPMI_$_") foreach qw(HOSTNAME USER PASSWORD);
     return ('ipmitool', '-I', 'lanplus', '-H', $bmwqemu::vars{IPMI_HOSTNAME}, '-U', $bmwqemu::vars{IPMI_USER}, '-P', $bmwqemu::vars{IPMI_PASSWORD});
 }
 
