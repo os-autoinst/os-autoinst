@@ -204,13 +204,13 @@ subtest 'send_key with wait_screen_change' => sub {
 
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
-is($autotest::current_test->{dents},             1, 'one dent recorded');
-is(scalar @{$autotest::current_test->{details}}, 1, 'exactly one detail added recorded');
+is($autotest::current_test->{dents},                        1, 'one dent recorded');
+is(scalar @{$autotest::current_test->{details}->{results}}, 1, 'exactly one detail added recorded');
 
 stderr_like(sub { record_soft_failure('workaround for bug#1234') }, qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason');
-is($autotest::current_test->{dents},             2, 'one more dent recorded');
-is(scalar @{$autotest::current_test->{details}}, 2, 'exactly one more detail added recorded');
-my $details    = $autotest::current_test->{details}[-1];
+is($autotest::current_test->{dents},                        2, 'one more dent recorded');
+is(scalar @{$autotest::current_test->{details}->{results}}, 2, 'exactly one more detail added recorded');
+my $details    = $autotest::current_test->{details}->{results}[-1];
 my $details_ok = is($details->{title}, 'Soft Failed', 'title for soft failure added');
 $details_ok &= is($details->{result}, 'softfail', 'result correct');
 $details_ok &= like($details->{text}, qr/basetest-[0-9]+.*txt/, 'file for soft failure added');
@@ -292,7 +292,7 @@ subtest 'check_assert_screen' => sub {
 
     subtest 'handle check_screen timeout' => sub {
         $cmds = [];
-        $autotest::current_test->{details} = [];
+        $autotest::current_test->{details}->{results} = [];
 
         ok(!check_screen('foo', 3, timeout => 2));
         is($report_timeout_called, 1, 'report_timeout called for check_screen');
@@ -313,7 +313,7 @@ subtest 'check_assert_screen' => sub {
                     msg   => 'match=fake,tags timed out after 2 (check_screen)',
                     tags  => [qw(fake tags)],
                 }], 'RPC messages correct (especially check == 1)') or diag explain $cmds;
-        is_deeply($autotest::current_test->{details}, [
+        is_deeply($autotest::current_test->{details}->{results}, [
                 {
                     result     => 'unk',
                     screenshot => 'basetest-13.png',
@@ -321,7 +321,7 @@ subtest 'check_assert_screen' => sub {
                     tags       => [qw(fake tags)],
                 }
         ], 'result (to create a new neede from) has been added')
-          or diag explain $autotest::current_test->{details};
+          or diag explain $autotest::current_test->{details}->{results};
     };
 
     $report_timeout_called = 0;
