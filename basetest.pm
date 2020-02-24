@@ -43,7 +43,7 @@ sub new {
     $category ||= 'unknown';
     my $self = {class => $class};
     $self->{lastscreenshot}         = undef;
-    $self->{details}                = {};
+    $self->{details}                = [];
     $self->{result}                 = undef;
     $self->{running}                = 0;
     $self->{category}               = $category;
@@ -186,7 +186,7 @@ sub record_screenmatch {
 
     $self->{result} ||= 'ok';
 
-    push @{$self->{details}->{results}}, $result;
+    push @{$self->{details}}, $result;
     return $result;
 }
 
@@ -253,14 +253,14 @@ sub record_screenfail {
 
     $self->{result} = $overall if $overall;
 
-    push @{$self->{details}->{results}}, $result;
+    push @{$self->{details}}, $result;
     return $result;
 }
 
 sub remove_last_result {
     my $self = shift;
     --$self->{test_count};
-    return pop @{$self->{details}->{results}};
+    return pop @{$self->{details}};
 }
 
 sub details {
@@ -360,7 +360,7 @@ sub runtest {
 
         $self->{result} = 'fail';
         # add a fail screenshot in case there is none
-        if (!@{$self->{details}->{results}} || ($self->{details}->{results}->[-1]->{result} || '') ne 'fail') {
+        if (!@{$self->{details}} || ($self->{details}->[-1]->{result} || '') ne 'fail') {
             $self->take_screenshot();
         }
         # show a text result with the die message unless the die was internally generated
@@ -387,10 +387,8 @@ sub runtest {
         $self->run_post_fail("test $name failed");
     }
 
-    my $execution_time = time - $starttime;
-    $self->{details}->{execution_time} = $execution_time;
     $self->done();
-    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), $execution_time));
+    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), time - $starttime));
     return;
 }
 
@@ -443,7 +441,7 @@ sub record_resultfile {
         result => $nargs{result},
         text   => $filename,
     };
-    push @{$self->{details}->{results}}, $detail;
+    push @{$self->{details}}, $detail;
     $self->write_resultfile($filename, $output);
 }
 
@@ -517,7 +515,7 @@ sub record_testresult {
 
     # add detail
     my $detail = {result => $result};
-    push(@{$self->{details}->{results}}, $detail);
+    push(@{$self->{details}}, $detail);
     ++$self->{test_count};
     return $detail;
 }
@@ -585,7 +583,7 @@ sub stop_audiocapture {
         result => 'unk',
     };
 
-    push @{$self->{details}->{results}}, $result;
+    push @{$self->{details}}, $result;
 
     return $result;
 }
