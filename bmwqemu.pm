@@ -283,11 +283,22 @@ sub pp {
 sub log_call {
     my $fname = (caller(1))[3];
     update_line_number();
-    my @result;
-    while (my ($key, $value) = splice(@_, 0, 2)) {
-        push @result, join("=", $key, pp($value));
+    my $params;
+    if (@_ == 1) {
+        $params = pp($_[0]);
     }
-    my $params = join(", ", @result);
+    else {
+        # key/value pairs
+        my @result;
+        while (my ($key, $value) = splice(@_, 0, 2)) {
+            if ($key =~ tr/0-9a-zA-Z_//c) {
+                # only quote if needed
+                $key = pp($key);
+            }
+            push @result, join("=", $key, pp($value));
+        }
+        $params = join(", ", @result);
+    }
     $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
     $logger->debug('<<< ' . $fname . "($params)");
     return;
