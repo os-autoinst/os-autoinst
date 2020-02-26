@@ -54,6 +54,16 @@ subtest 'log_call' => sub {
         bmwqemu::log_call(foo => "bar\tbaz\rboo\n");
     }
     stderr_like(\&log_call_test, qr{\Q<<< main::log_call_test(foo="bar\tbaz\rboo\n")}, 'log_call escapes special characters');
+
+    sub log_call_test_escape_key {
+        bmwqemu::log_call("foo\nbar" => "bar\tbaz\rboo\n");
+    }
+    stderr_like(\&log_call_test_escape_key, qr{\Q<<< main::log_call_test_escape_key("foo\nbar"="bar\tbaz\rboo\n")}, 'log_call escapes special characters');
+
+    sub log_call_test_single {
+        bmwqemu::log_call("bar\tbaz\rboo\n");
+    }
+    stderr_like(\&log_call_test_single, qr{\Q<<< main::log_call_test_single("bar\tbaz\rboo\n")}, 'log_call escapes special characters');
 };
 
 subtest 'update_line_number' => sub {
