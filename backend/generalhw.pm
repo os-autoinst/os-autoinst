@@ -48,6 +48,19 @@ sub get_cmd {
     my $args = get_var('GENERAL_HW_FLASH_ARGS') if ($cmd eq 'GENERAL_HW_FLASH_CMD' and get_var('GENERAL_HW_FLASH_ARGS'));
     $args = get_var('GENERAL_HW_SOL_ARGS') if ($cmd eq 'GENERAL_HW_SOL_CMD' and get_var('GENERAL_HW_SOL_ARGS'));
 
+    # Append HDD infos to flash script
+    if ($cmd eq 'GENERAL_HW_FLASH_CMD' and get_var('HDD_1')) {
+        my $numdisks = get_var('NUMDISKS') // 1;
+        for my $i (1 .. $numdisks) {
+            # Pass path of HDD
+            $args .= " " . get_required_var("HDD_$i");
+            # Pass size of HDD
+            my $size = get_var("HDDSIZEGB_$i");
+            $size //= get_var('HDDSIZEGB') // 10;
+            $args .= " $size" . 'G';
+        }
+    }
+
     $cmd = get_required_var($cmd);
     $cmd = "$dir/" . basename($cmd);
     if (!-x $cmd) {
