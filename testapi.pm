@@ -117,7 +117,7 @@ Used for internal initialization, do not call from tests.
 =cut
 
 sub init {
-    if (get_var('OFW') || check_var('BACKEND', 's390x')) {
+    if (get_var('OFW') || get_var('BACKEND', '') =~ /s390x|pvm_hmc/) {
         $serialdev = "hvc0";
     }
     elsif (get_var('SERIALDEV')) {
