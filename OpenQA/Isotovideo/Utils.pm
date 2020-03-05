@@ -17,10 +17,12 @@ package OpenQA::Isotovideo::Utils;
 use Mojo::Base -base;
 use Mojo::URL;
 
+use Exporter 'import';
 use File::Spec;
 use Cwd;
-use testapi 'diag';
-use bmwqemu;
+use bmwqemu 'diag';
+
+our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec);
 
 sub calculate_git_hash {
     my ($git_repo_dir) = @_;
@@ -69,6 +71,30 @@ sub checkout_git_repo_and_branch {
         diag "Skipping to clone '$clone_url'; $local_path already exists";
     }
     return $bmwqemu::vars{$dir_variable} = File::Spec->rel2abs($local_path);
+}
+
+=head2 checkout_git_refspec
+
+    checkout_git_refspec($dir, $refspec_variable);
+
+Takes a git working copy directory path and checks out a git refspec specified
+in a git hash test parameter if possible. Returns the determined git hash in
+any case, also if C<$refspec> was not specified or is not defined.
+
+Example:
+
+    checkout_git_refspec('/path/to/casedir', 'TEST_GIT_REFSPEC');
+
+=cut
+sub checkout_git_refspec {
+    my ($dir, $refspec_variable) = @_;
+    return undef unless defined $dir;
+    if (my $refspec = $bmwqemu::vars{$refspec_variable}) {
+        diag "Checking out local git refspec '$refspec' in '$dir'";
+        qx{env git -C $dir checkout -q $refspec};
+        die "Failed to checkout '$refspec' in '$dir'\n" unless $? == 0;
+    }
+    calculate_git_hash($dir);
 }
 
 1;

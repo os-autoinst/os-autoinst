@@ -6,7 +6,7 @@ Supported variables per backend
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-CASEDIR;string;;Path to test distribution. Can be a git repository URL of a test distribution to checkout with an optional refspec into the current directory. It tries to follow the definition of https://docs.npmjs.com/files/package.json#git-urls-as-dependencies (e.g. `https://github.com/os-autoinst/os-autoinst-distri-opensuse.git#feature/test` or `git@github.com:os-autoinst/os-autoinst-distri-opensuse.git`). Note that cloning via SSH is only possible if git is configured accordingly on the host where isotovideo is executed.
+CASEDIR;string;;Path to test distribution. Can be a git repository URL of a test distribution to checkout with an optional refspec into the current directory. It tries to follow the definition of https://docs.npmjs.com/files/package.json#git-urls-as-dependencies (e.g. `https://github.com/os-autoinst/os-autoinst-distri-opensuse.git#feature/test` or `git@github.com:os-autoinst/os-autoinst-distri-opensuse.git`). Note that cloning via SSH is only possible if git is configured accordingly on the host where isotovideo is executed. Can be combined with `TEST_GIT_REFSPEC` and `NEEDLES_GIT_REFSPEC`.
 PRODUCTDIR;string;;Path to optional "product directory" which includes the test schedule entry point "main.pm" as well as a "needles" subdirectory with the needles to load. Can be relative path.
 NEEDLES_DIR;string;;Path to needles subdirectory to use, defaults to "needles" within `PRODUCTDIR`. Can be a git repository URL, comparable to `CASEDIR`
 INCLUDE_MODULES;string;;comma separated names or fullnames of test modules to be included while excluding all that do not match, e.g. "boot,mod1"
@@ -14,6 +14,8 @@ EXCLUDE_MODULES;string;;comma separated names or fullnames of test modules to ex
 SCHEDULE;string;;comma separated list of relative paths to test modules within CASEDIR without the implicit file extension '.pm' to be scheduled instead of evaluating a schedule from the test distributions main.pm file, e.g. "boot,console/mod1"
 _EXIT_AFTER_SCHEDULE;boolean;0;Exit test execution immediately after evaluation of the test schedule, e.g. to check only which test modules would be executed
 _SKIP_POST_FAIL_HOOKS;boolean;0;Skip the execution of post_fail_hook methods if set. This can be useful to save test execution time during test development when the post_fail_hook is not expected to provide any value as most likely the test developer already knows what needs to be done as a next step on a test fail. Note that this also skips the test module result evaluation, for example a failing fatal test module does not abort the isotovideo run.
+TEST_GIT_REFSPEC;string;;git refspec to checkout within `CASEDIR` when `CASEDIR` is a git working copy. By default, does not change the content of `CASEDIR`. Overrides the optional git refspec in `CASEDIR`. Can be used to explicitly select a git commit within an existing git working copy and also to skip unnecessary git network transfers when `CASEDIR` is already providing the right git working copy.
+NEEDLES_GIT_REFSPEC;string;;git refspec to checkout within `NEEDLES_DIR`. See `TEST_GIT_REFSPEC` for details.
 NOVIDEO;boolean;0;Do not encode video if set
 NO_DEBUG_IO;boolean;0;Disable the I/O debug output in case of needle comparison times longer than expected
 OSUTILS_WAIT_ATTEMPT_INTERVAL;float;1;The interval in seconds between "attempts" in osutils, e.g. used for connections to qemu qmp backend

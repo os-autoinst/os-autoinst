@@ -84,7 +84,7 @@ use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
-use OpenQA::Isotovideo::Utils;
+use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch checkout_git_refspec);
 
 session->enable;
 session->enable_subreaper;
@@ -244,7 +244,7 @@ $SIG{HUP}  = \&signalhandler;
 $ENV{LC_ALL} = 'en_US.UTF-8';
 $ENV{LANG}   = 'en_US.UTF-8';
 
-OpenQA::Isotovideo::Utils::checkout_git_repo_and_branch('CASEDIR');
+checkout_git_repo_and_branch('CASEDIR');
 
 # Try to load the main.pm from one of the following in this order:
 #  - product dir
@@ -255,14 +255,15 @@ OpenQA::Isotovideo::Utils::checkout_git_repo_and_branch('CASEDIR');
 $bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
 
 # checkout Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
-OpenQA::Isotovideo::Utils::checkout_git_repo_and_branch('NEEDLES_DIR');
+checkout_git_repo_and_branch('NEEDLES_DIR');
 
 bmwqemu::ensure_valid_vars();
 
-# as we are about to load the test modules store the git hash that has been
-# used. If it is not a git repo fail silently, i.e. store an empty variable
+# as we are about to load the test modules checkout the specified git refspec,
+# if specified, or simply store the git hash that has been used. If it is not a
+# git repo fail silently, i.e. store an empty variable
 
-$bmwqemu::vars{TEST_GIT_HASH} = OpenQA::Isotovideo::Utils::calculate_git_hash($bmwqemu::vars{CASEDIR});
+$bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
 
 # start the command fork before we get into the backend, the command child
 # is not supposed to talk to the backend directly
@@ -300,11 +301,7 @@ if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {
     exit 0;
 }
 testapi::init();
-
-# make sure the needles are initialized
-$bmwqemu::vars{NEEDLES_GIT_HASH} = OpenQA::Isotovideo::Utils::calculate_git_hash(needle::init);
-
-# init part
+needle::init();
 bmwqemu::save_vars();
 
 my $testfd;

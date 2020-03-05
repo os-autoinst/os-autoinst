@@ -22,6 +22,8 @@ sub isotovideo {
 
 sub is_in_log {
     my ($regex, $msg) = @_;
+    # adjust file location report on error to one level up
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
     is(system("grep -q \"$regex\" autoinst-log.txt"), 0, $msg);
 }
 
@@ -60,6 +62,13 @@ subtest 'isotovideo with custom git repo parameters specified' => sub {
     is_in_log('git URL.*\<repo\>', 'git repository would be cloned');
     is_in_log('branch.*foo',       'branch in git repository would be checked out');
     is_in_log('No scripts',        'the repo actually has no test definitions');
+};
+
+subtest 'isotovideo with git refspec specified' => sub {
+    chdir($pool_dir);
+    unlink('vars.json') if -e 'vars.json';
+    isotovideo(opts => "casedir=$data_dir/tests test_git_refspec=deadbeef _exit_after_schedule=1");
+    is_in_log("Checking.*local.*deadbeef", 'refspec in local git repository would be checked out');
 };
 
 subtest 'productdir variable relative/absolute' => sub {
