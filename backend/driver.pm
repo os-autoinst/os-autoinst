@@ -98,7 +98,7 @@ sub start {
 
             $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
             _exit(0);
-    })->blocking_stop(1)->separate_err(0)->subreaper(1)->start;
+    }, sleeptime_during_kill => .1)->blocking_stop(1)->separate_err(0)->subreaper(1)->start;
 
     $backend_process->on(collected => sub { bmwqemu::diag("backend process exited: " . shift->exit_status) });
 
