@@ -39,7 +39,7 @@ sub _try_lock {
         sleep 10;
     }
     bmwqemu::mydie "$type '$name': lock owner already finished" if $res == 410;
-    if ($res != 409) {
+    if ($res != 409 and $res != 400) {
         bmwqemu::fctwarn("Unknown return code $res for lock api");
     }
     return 0;

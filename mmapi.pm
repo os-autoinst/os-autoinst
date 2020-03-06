@@ -75,12 +75,15 @@ sub api_call {
     $expected_codes //= {
         200 => 1,
         409 => 1,
+        400 => 1,
     };
 
     my $res;
     while ($tries--) {
         $res = $ua->$method($ua_url)->res;
-        last if $expected_codes->{$res->code};
+        my $body = $res->body;
+        bmwqemu::log_call('mmapi call: ' . $body) if defined $body and $res->code != 200;
+        last                                      if $expected_codes->{$res->code};
     }
     return $res;
 }
