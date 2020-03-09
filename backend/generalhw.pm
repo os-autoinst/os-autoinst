@@ -45,10 +45,8 @@ sub get_cmd {
         die "GENERAL_HW_CMD_DIR is not pointing to a directory";
     }
 
-    my $args = get_var('GENERAL_HW_FLASH_ARGS') if ($cmd eq 'GENERAL_HW_FLASH_CMD' and get_var('GENERAL_HW_FLASH_ARGS'));
-    $args = get_var('GENERAL_HW_SOL_ARGS')      if ($cmd eq 'GENERAL_HW_SOL_CMD'      and get_var('GENERAL_HW_SOL_ARGS'));
-    $args = get_var('GENERAL_HW_POWERON_ARGS')  if ($cmd eq 'GENERAL_HW_POWERON_CMD'  and get_var('GENERAL_HW_POWERON_ARGS'));
-    $args = get_var('GENERAL_HW_POWEROFF_ARGS') if ($cmd eq 'GENERAL_HW_POWEROFF_CMD' and get_var('GENERAL_HW_POWEROFF_ARGS'));
+    my %GENERAL_HW_ARG_VARIABLES_BY_CMD = ('GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS', 'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS', 'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS', 'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS');
+    my $args = get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}) if get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd});
 
     # Append HDD infos to flash script
     if ($cmd eq 'GENERAL_HW_FLASH_CMD' and get_var('HDD_1')) {
