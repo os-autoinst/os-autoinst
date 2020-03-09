@@ -46,7 +46,9 @@ sub get_cmd {
     }
 
     my $args = get_var('GENERAL_HW_FLASH_ARGS') if ($cmd eq 'GENERAL_HW_FLASH_CMD' and get_var('GENERAL_HW_FLASH_ARGS'));
-    $args = get_var('GENERAL_HW_SOL_ARGS') if ($cmd eq 'GENERAL_HW_SOL_CMD' and get_var('GENERAL_HW_SOL_ARGS'));
+    $args = get_var('GENERAL_HW_SOL_ARGS')      if ($cmd eq 'GENERAL_HW_SOL_CMD'      and get_var('GENERAL_HW_SOL_ARGS'));
+    $args = get_var('GENERAL_HW_POWERON_ARGS')  if ($cmd eq 'GENERAL_HW_POWERON_CMD'  and get_var('GENERAL_HW_POWERON_ARGS'));
+    $args = get_var('GENERAL_HW_POWEROFF_ARGS') if ($cmd eq 'GENERAL_HW_POWEROFF_CMD' and get_var('GENERAL_HW_POWEROFF_ARGS'));
 
     # Append HDD infos to flash script
     if ($cmd eq 'GENERAL_HW_FLASH_CMD' and get_var('HDD_1')) {
