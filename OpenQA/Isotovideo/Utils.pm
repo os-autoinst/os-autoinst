@@ -28,7 +28,7 @@ sub calculate_git_hash {
     my ($git_repo_dir) = @_;
     my $dir = getcwd();
     chdir($git_repo_dir);
-    chomp(my $git_hash = qx{git rev-parse HEAD});
+    chomp(my $git_hash = qx{git rev-parse HEAD ||:});
     $git_hash ||= "UNKNOWN";
     chdir($dir);
     diag "git hash in $git_repo_dir: $git_hash";
