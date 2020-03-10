@@ -257,7 +257,7 @@ TEST_FILES = \
 
 PATHRE = ^|$(PWD)/|\.\./
 COVER_OPTS = \
-	PERL5OPT="-MDevel::Cover=-db,$(abs_builddir)/cover_db,-select,($(PATHRE))(OpenQA|backend|consoles|ppmclibs)/|($(PATHRE))isotovideo|($(PATHRE))[^/]+\.pm,-ignore,\.t|data/tests/|fake/tests/|/usr/bin/prove"
+	PERL5OPT="-MDevel::Cover=-db,$(abs_builddir)/cover_db,-select,($(PATHRE))(OpenQA|backend|consoles|ppmclibs)/|($(PATHRE))isotovideo|($(PATHRE))[^/]+\.pm,-ignore,\.t|data/tests/|fake/tests/|/usr/bin/prove,-coverage,statement"
 TEST_OPTS = \
 	PERL5LIB="$(PWD):$(PWD)/ppmclibs:$(PWD)/ppmclibs/blib/arch/auto/tinycv:$$PERL5LIB"
 
