@@ -30,6 +30,7 @@ use File::Basename;
 use Try::Tiny;
 require IPC::System::Simple;
 use OpenQA::Benchmark::Stopwatch;
+use OpenQA::Isotovideo::Utils 'checkout_git_refspec';
 
 our %needles;
 our %tags;
@@ -327,6 +328,7 @@ sub init {
     $needles_dir = ($bmwqemu::vars{NEEDLES_DIR} // default_needles_dir);
     $needles_dir = File::Spec->catdir($bmwqemu::vars{CASEDIR}, $needles_dir) unless -d $needles_dir;
     die "needles_dir not found: $needles_dir (check vars.json?)" unless -d $needles_dir;
+    $bmwqemu::vars{NEEDLES_GIT_HASH} = checkout_git_refspec($needles_dir => 'NEEDLES_GIT_REFSPEC');
 
     %needles = ();
     %tags    = ();
