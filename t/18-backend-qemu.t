@@ -7,7 +7,9 @@ use warnings;
 use Test::More;
 use Test::MockModule;
 use Test::MockObject;
-use Test::Output qw(combined_like stderr_like);
+use FindBin '$Bin';
+use lib "$Bin/lib";
+use OpenQA::Test::Warnings qw(stderr_like combined_like);
 use Test::Warnings;
 
 use backend::qemu;

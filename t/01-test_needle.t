@@ -4,12 +4,14 @@ use strict;
 use warnings;
 use Cwd 'abs_path';
 use Test::Exception;
-use Test::Output qw(combined_like stderr_like);
 use Test::More;
 use Test::Warnings 'warning';
 use File::Basename;
 use File::Path 'make_path';
 use File::Temp 'tempdir';
+use FindBin '$Bin';
+use lib "$Bin/lib";
+use OpenQA::Test::Warnings qw(stderr_like combined_like);
 
 # optional but very useful
 eval 'use Test::More::Color';

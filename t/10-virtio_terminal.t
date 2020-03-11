@@ -7,7 +7,9 @@ use warnings;
 use Test::More;
 use Test::Exception;
 use Test::MockModule;
-use Test::Output;
+use FindBin '$Bin';
+use lib "$Bin/lib";
+use OpenQA::Test::Warnings qw(stderr_like combined_like);
 use POSIX 'mkfifo';
 
 use consoles::virtio_terminal;

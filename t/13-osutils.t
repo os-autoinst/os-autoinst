@@ -20,7 +20,9 @@ use warnings;
 use Test::More;
 use Test::MockModule;
 use Test::Warnings ':all';
-use Test::Output;
+use FindBin '$Bin';
+use lib "$Bin/lib";
+use OpenQA::Test::Warnings qw(stderr_like combined_like);
 
 subtest qv => sub {
     use osutils 'qv';

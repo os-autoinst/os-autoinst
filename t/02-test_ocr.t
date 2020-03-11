@@ -4,7 +4,9 @@ use strict;
 use warnings;
 
 use Test::More;
-use Test::Output;
+use FindBin '$Bin';
+use lib "$Bin/lib";
+use OpenQA::Test::Warnings qw(stderr_like combined_like);
 use Test::Warnings;
 use File::Which 'which';
 use File::Basename;
