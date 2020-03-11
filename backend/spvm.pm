@@ -95,4 +95,17 @@ sub stop_serial_grab {
     return;
 }
 
+sub power {
+    # parameters: on, off, reset
+    my ($self, $args) = @_;
+    my $action  = $args->{action};
+    my $lpar_id = get_required_var('NOVALINK_LPAR_ID');
+
+    my %cmds = (
+        on    => "pvmctl lpar power-on -i id=${lpar_id} --bootmode norm",
+        off   => "pvmctl lpar power-off -i id=${lpar_id} --hard",
+        reset => "pvmctl lpar restart -i id=${lpar_id}");
+    $self->run_cmd($cmds{$action}) if (exists($cmds{$action})) || die "Unknown power action ${action}";
+}
+
 1;

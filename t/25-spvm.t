@@ -7,7 +7,8 @@ use warnings;
 use Test::More;
 use Test::MockModule;
 use backend::spvm;
-use testapi 'set_var';
+use testapi qw(set_var power);
+use Test::Exception;
 
 subtest 'SSH credentials in spvm' => sub {
     my $expected_credentials = {username => 'root', password => 'foo', hostname => 'my_foo_hostname'};
@@ -36,4 +37,16 @@ subtest 'SSH credentials in spvm' => sub {
     is($spvm->run_cmd('true', $expected_credentials->{hostname}, $expected_credentials->{password}), 0, "Test specific credentials");
 };
 
+subtest 'PowerVM power actions' => sub {
+    my $mock_spvm = Test::MockModule->new('backend::spvm');
+    $mock_spvm->mock('run_cmd', sub {
+            my ($self, $cmd) = @_;
+            return $cmd;
+    });
+    my $spvm    = backend::spvm->new();
+    my $lpar_id = 3;
+    set_var(NOVALINK_LPAR_ID => $lpar_id);
+    is($spvm->power({action => 'on'}), "pvmctl lpar power-on -i id=${lpar_id} --bootmode norm", "Test power on");
+    throws_ok { $spvm->power({action => 'reboot'}) } qr/Unknown power action reboot/, 'Unknown power action';
+};
 done_testing;
