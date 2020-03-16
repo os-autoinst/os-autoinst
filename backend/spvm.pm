@@ -81,9 +81,7 @@ sub is_shutdown {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    if ($self->check_ssh_serial($fh)) {
-        return 1;
-    }
+    return 1 if $self->check_ssh_serial($fh);
     return $self->SUPER::check_socket($fh, $write);
 }
 

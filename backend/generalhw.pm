@@ -148,10 +148,7 @@ sub do_stop_vm {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    if ($self->check_ssh_serial($fh)) {
-        return 1;
-    }
-
+    return 1 if $self->check_ssh_serial($fh);
     return $self->SUPER::check_socket($fh, $write);
 }
 
@@ -161,15 +158,13 @@ sub start_serial_grab {
     my ($self) = @_;
 
     $self->{serialpid} = fork();
-    if ($self->{serialpid} == 0) {
-        setpgrp 0, 0;
-        open(my $serial, '>',  $self->{serialfile});
-        open(STDOUT,     ">&", $serial);
-        open(STDERR,     ">&", $serial);
-        exec($self->get_cmd('GENERAL_HW_SOL_CMD'));
-        die "exec failed $!";
-    }
-    return;
+    return unless $self->{serialpid} == 0;
+    setpgrp 0, 0;
+    open(my $serial, '>',  $self->{serialfile});
+    open(STDOUT,     ">&", $serial);
+    open(STDERR,     ">&", $serial);
+    exec($self->get_cmd('GENERAL_HW_SOL_CMD'));
+    die "exec failed $!";
 }
 
 sub stop_serial_grab {

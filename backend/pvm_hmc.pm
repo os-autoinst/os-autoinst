@@ -1,4 +1,4 @@
-# Copyright © 2019 SUSE LLC
+# Copyright © 2019-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -86,9 +86,7 @@ sub is_shutdown {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    if ($self->check_ssh_serial($fh)) {
-        return 1;
-    }
+    return 1 if $self->check_ssh_serial($fh);
     return $self->SUPER::check_socket($fh, $write);
 }
 
