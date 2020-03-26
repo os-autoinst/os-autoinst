@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -83,6 +83,7 @@ sub checkout_git_repo_and_branch {
                 diag "git fetch: @out";
                 die "Could not find '$branch' in complete history" if grep /remote: Total 0/, @out;
             }
+            qx{git -C $local_path checkout $branch};
         }
         else {
             diag "@out\n";
