@@ -5,7 +5,7 @@ use strict;
 use warnings;
 
 use Test::More;
-use Test::Warnings 'warning';
+use Test::Warnings;
 use Mojo::File qw(tempfile path);
 use Carp 'cluck';
 
@@ -338,25 +338,6 @@ $bdc->for_each_drive(sub {
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after deserialising and reverting a snapshot')
   || diag(explain(\@gcmdl));
-
-subtest 'non-existing-iso' => sub {
-    $vars{ISO} .= 'XXX';
-    my $err;
-    my $warning = warning {
-        eval {
-            $proc = OpenQA::Qemu::Proc->new()
-              ->_static_params(['-static-args'])
-              ->qemu_bin('qemu-kvm')
-              ->qemu_img_bin('qemu-img')
-              ->configure_controllers(\%vars)
-              ->configure_blockdevs('disk', 'raid', \%vars)
-              ->configure_pflash(\%vars);
-        };
-        $err = $@;
-    };
-    like $err,     qr{qemu-img command failed},                        'Got expected eval error';
-    like $warning, qr{qemu-img command failed.*data/Core-7.2.isoXXX}s, 'Got expected warning';
-};
 
 subtest DriveDevice => sub {
 

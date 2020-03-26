@@ -138,9 +138,8 @@ sub configure_controllers {
 
 sub get_img_json_field {
     my ($self, $path, $field) = @_;
-    my ($rc, $json) = simple_run($self->qemu_img_bin, 'info', '--output=json', $path);
-    die "qemu-img command failed" if $rc;
-    my $map = decode_json($json);
+    my $json = simple_run($self->qemu_img_bin, 'info', '--output=json', $path);
+    my $map  = decode_json($json);
     die "No $field field in: " . Dumper($map) unless defined $map->{$field};
     return $map->{$field};
 }
