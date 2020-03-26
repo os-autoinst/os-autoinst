@@ -139,7 +139,13 @@ sub configure_controllers {
 sub get_img_json_field {
     my ($self, $path, $field) = @_;
     my $json = simple_run($self->qemu_img_bin, 'info', '--output=json', $path);
-    my $map  = decode_json($json);
+    # We can't check the exit code of qemu-img, because it sometimes returns
+    # 1 even for a successful command on ppc
+    # Did we get JSON or an error message?
+    my $map = eval { decode_json($json) };
+    if (my $err = $@) {
+        die "qemu-img command failed. Output: $json";
+    }
     die "No $field field in: " . Dumper($map) unless defined $map->{$field};
     return $map->{$field};
 }
