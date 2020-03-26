@@ -111,8 +111,12 @@ sub _run {
     return $p->exit_status, $out;
 }
 
-# Do not check for anything - just execute and print
-sub simple_run { my $o = (_run(@_))[1]; diag($o) if $o; $o }
+# Just execute and print/return output. Return exit code on request
+sub simple_run {
+    my ($rc, $o) = _run(@_);
+    diag($o) if $o;
+    return wantarray ? ($rc, $o) : $o;
+}
 
 # Open a process to run external program and check its return status
 sub runcmd {
