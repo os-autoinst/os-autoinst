@@ -7,10 +7,16 @@ use Test::More;
 use File::Basename;
 use File::Path 'remove_tree';
 use Cwd 'abs_path';
+use FindBin '$Bin';
+use File::Path 'rmtree';
+use Mojo::File 'tempdir';
 
+my $dir          = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir     = "$toplevel_dir/t/data";
-my $pool_dir     = "$toplevel_dir/t/pool";
+my $pool_dir     = "$dir/pool";
+chdir $dir;
+mkdir $pool_dir;
 
 sub isotovideo {
     my (%args) = @_;
@@ -100,3 +106,8 @@ subtest 'upload assets on demand even in failed jobs' => sub {
 };
 
 done_testing();
+
+chdir $Bin;
+END {
+    rmtree "$Bin/data/tests/product";
+}

@@ -39,7 +39,5 @@ snd2png/test.pnm
 snd2png/test.pnm.md5
 t/*.log
 t/*.trs
-t/vars.json
-t/pool/*
 cover_db/*
 .*.swp
