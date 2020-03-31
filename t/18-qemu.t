@@ -354,9 +354,11 @@ subtest 'non-existing-iso' => sub {
         };
         $err = $@;
     };
-    like $err, qr{qemu-img command failed}, 'Got expected eval error';
-    like $warnings[0], qr{malformed JSON},                                 'Got expected warning';
-    like $warnings[1], qr{qemu-img command failed.*data/Core-7.2.isoXXX}s, 'Got expected warning';
+    my $expected = qr{qemu-img: Could not open.*data/Core-7.2.isoXXX.*No such file};
+    like $err, $expected, 'Got expected eval error';
+    is @warnings, 1, 'only a single-line failure message';
+    like $warnings[0], $expected, 'Got expected warning';
+    unlike $warnings[0], qr{malformed JSON}, 'No confusing JSON parsing error';
 };
 
 subtest DriveDevice => sub {

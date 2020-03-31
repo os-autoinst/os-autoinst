@@ -42,7 +42,7 @@ use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::ControllerConf;
 use OpenQA::Qemu::DriveDevice 'QEMU_IMAGE_FORMAT';
 use OpenQA::Qemu::SnapshotConf;
-use osutils qw(gen_params runcmd simple_run);
+use osutils qw(gen_params runcmd run);
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 
@@ -138,14 +138,17 @@ sub configure_controllers {
 
 sub get_img_json_field {
     my ($self, $path, $field) = @_;
-    my $json = simple_run($self->qemu_img_bin, 'info', '--output=json', $path);
-    # We can't check the exit code of qemu-img, because it sometimes returns
-    # 1 even for a successful command on ppc
-    # Did we get JSON or an error message?
-    my $map = eval { decode_json($json) };
-    if (my $err = $@) {
-        die "qemu-img command failed. Output: $json";
-    }
+    my $json = run($self->qemu_img_bin, 'info', '--output=json', $path);
+    # We can't check the exit code of qemu-img, because it sometimes returns 1
+    # even for a successful command on ppc. Instead we just hide and ignore
+    # JSON decode failures and assume the previous command has printed the
+    # error string already
+    my $map;
+    {
+        local $SIG{__DIE__} = 'DEFAULT';
+        $map = eval { decode_json($json) }
+    };
+    die "$json\n" if $@;
     die "No $field field in: " . Dumper($map) unless defined $map->{$field};
     return $map->{$field};
 }
