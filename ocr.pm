@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,38 +19,6 @@ use strict;
 use warnings;
 require IPC::System::Simple;
 use autodie ':all';
-
-our $gocrbin = "/usr/bin/gocr";
-if (!-x $gocrbin) { $gocrbin = undef }
-
-# input: image ref
-# TODO get_ocr is nowhere called, also not in opensuse tests or openQA, delete?
-sub get_ocr {
-    my $ppm        = shift;
-    my $gocrparams = shift || "";
-    my @ocrrect    = @{$_[0]};
-    if (!$gocrbin || !@ocrrect) { return "" }
-    if (@ocrrect != 4)          { return " ocr: bad rect" }
-    return unless $ppm;
-    my $ppm2 = $ppm->copyrect(@ocrrect);
-    if (!$ppm2) { return "" }
-    my $tempname = "ocr.$$-" . time . rand(10000) . ".ppm";
-    $ppm2->write($tempname) or return " ocr error writing $tempname";
-
-    # init DB file:
-    if (!-e "db/db.lst") {
-        mkdir "db";
-        open(my $fd, ">", "db/db.lst");
-        close $fd;
-    }
-
-    open(my $pipe, '-|', "$gocrbin -l 128 -d 0 $gocrparams $tempname");
-    local $/;
-    my $ocr = <$pipe>;
-    close($pipe);
-    unlink $tempname;
-    return $ocr;
-}
 
 # input: image ref, area
 # FIXME: pass options
