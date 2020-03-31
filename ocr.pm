@@ -21,8 +21,6 @@ require IPC::System::Simple;
 use autodie ':all';
 
 # input: image ref, area
-# FIXME: pass options
-# FIXME: write C library bindings instead of system()
 sub tesseract {
     my ($img, $area) = @_;
     my $imgfn = 'ocr.png';
