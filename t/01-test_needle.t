@@ -174,13 +174,13 @@ ok(defined $res, "found a match for 300 margin");
 needle_init;
 
 my @alltags = sort keys %needle::tags;
-my @needles = @{needle::tags('FIXME') || []};
+my @needles = @{needle::tags('none') || []};
 is(@needles, 4, "four needles found");
 for my $n (@needles) {
     $n->unregister();
 }
 
-@needles = @{needle::tags('FIXME') || []};
+@needles = @{needle::tags('none') || []};
 is(@needles, 0, "no needles after unregister");
 
 for my $n (needle::all()) {
