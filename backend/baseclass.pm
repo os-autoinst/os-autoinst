@@ -549,8 +549,8 @@ sub check_socket {
 # switching means: turn to the right vnc and if it's the Xvnc,
 # iconify/deiconify the right x3270 terminal window.
 #
-# FIXME? for now, we just raise the terminal window to the front on
-# the local-Xvnc DISPLAY.
+# For now, we just raise the terminal window to the front on the local-Xvnc
+# DISPLAY.
 #
 # should we hide the other windows, somehow?
 #if exists $self->{current_console} ...

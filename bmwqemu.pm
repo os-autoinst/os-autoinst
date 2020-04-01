@@ -189,7 +189,7 @@ sub ensure_valid_vars {
 
 # local vars
 
-our $backend;    #FIXME: make local after adding frontend-api to bmwqemu
+our $backend;
 
 # local vars end
 

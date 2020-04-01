@@ -59,7 +59,7 @@ has postponed_command   => undef;
 #  * do not wait for timeout if set
 has [qw(timeout no_wait tags)];
 
-# set to the socket we have to send replies to when the backend is done (FIXME: just use answer_fd?)
+# set to the socket we have to send replies to when the backend is done
 has backend_requester => undef;
 
 # whether the test has already been completed and whether it has died
@@ -270,7 +270,7 @@ sub _handle_command_resume_test_execution {
 sub _handle_command_set_current_test {
     my ($self, $response) = @_;
 
-    # FIXME: why set_serial_offset here?
+    # Note: It is unclear why we call set_serial_offset here
     $bmwqemu::backend->_send_json({cmd => 'set_serial_offset'});
 
     my ($test_name, $full_test_name) = ($response->{name}, $response->{full_name});

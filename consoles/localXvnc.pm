@@ -108,8 +108,8 @@ sub disable {
 
     return unless $self->{local_X_handle};
 
-    # FIXME shut down more gracefully, some processes may still be
-    # open on Xvnc.
+    # We could shut down more gracefully, some processes may still be open on
+    # Xvnc.
     IPC::Run::signal($self->{local_X_handle}, 'TERM');
     IPC::Run::signal($self->{local_X_handle}, 'KILL');
     IPC::Run::finish($self->{local_X_handle});

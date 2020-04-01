@@ -43,7 +43,7 @@ if filename.endswith('.png'):
     png = filename
     filename = filename[0:len(filename) - len(".png")] + '.json'
     needle = json.loads("""{
-        "tags": [ "FIXME" ],
+        "tags": [ "none" ],
         "area": [ { "height": 100, "width": 100,
         "xpos": 0, "ypos": 0, "type": "match" } ]
     }""")
