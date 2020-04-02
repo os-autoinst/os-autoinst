@@ -155,7 +155,7 @@ sub _check_publish_vars {
         for my $type (qw(STORE PUBLISH FORCE_PUBLISH)) {
             my $name = $type . "_HDD_$i";
             next unless my $out = $vars{$name};
-            die "HDD_$i also specified in $name. This is not supported" if grep { $_ eq $out } @hdds;
+            die "HDD_$i also specified in $name. This is not supported" if grep { $_ && $_ eq $out } @hdds;
         }
     }
     return 1;

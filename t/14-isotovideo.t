@@ -14,9 +14,12 @@ my $pool_dir     = "$toplevel_dir/t/pool";
 
 sub isotovideo {
     my (%args) = @_;
-    $args{opts}      //= '';
-    $args{exit_code} //= 1;
-    system("perl $toplevel_dir/isotovideo -d $args{opts} 2>&1 | tee autoinst-log.txt");
+    $args{default_opts} //= 'backend=null';
+    $args{opts}         //= '';
+    $args{exit_code}    //= 1;
+    my $cmd = "perl $toplevel_dir/isotovideo -d $args{default_opts} $args{opts} 2>&1 | tee autoinst-log.txt";
+    note("Starting isotovideo with: $cmd");
+    system($cmd);
     is(system('grep -q "\d*: EXIT ' . $args{exit_code} . '" autoinst-log.txt'), 0, $args{end_test_str} ? $args{end_test_str} : 'isotovideo run exited as expected');
 }
 
