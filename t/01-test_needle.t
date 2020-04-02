@@ -9,7 +9,7 @@ use Test::More;
 use Test::Warnings 'warning';
 use File::Basename;
 use File::Path 'make_path';
-use File::Temp 'tempdir';
+use File::Temp qw(tempdir);
 
 # optional but very useful
 eval 'use Test::More::Color';
