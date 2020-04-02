@@ -249,7 +249,16 @@ subtest 'script_run' => sub {
         'using two named arguments; fail message does not apply on timeout'
     );
     $fake_exit = 0;
-    $cmds      = [];
+
+    $cmds = [];    #resetting cmds for easier handling
+
+    # running assert_script_run with a non default max_interval, then checking if it passed
+    #  correctly to the underlying functions
+    is(assert_script_run('true', timeout => 2, max_interval => 1000), '1', 'assert_script_run timed out as expected');
+    like($cmds->[0]->{max_interval}, qr/1000/);
+
+    $cmds = [];
+
     is(script_run('true'), '0', 'script_run with no check of success, returns exit code');
     like($cmds->[1]->{text}, qr/; echo /);
     $cmds = [];

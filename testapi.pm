@@ -943,7 +943,7 @@ sub _handle_script_run_ret {
 
 =head2 assert_script_run
 
-  assert_script_run($cmd [, timeout => $timeout] [, fail_message => $fail_message] [,quiet => $quiet]);
+  assert_script_run($cmd [, timeout => $timeout] [, fail_message => $fail_message] [,quiet => $quiet] [,max_interval => $max_interval ]);
 
 Deprecated mode
 
@@ -960,6 +960,8 @@ For this to work correctly, it must return 0 if and only if C<$command> complete
 successfully. It must NOT return 0 if C<$command> times out. The default implementation
 should work on *nix operating systems with a configured serial device.>
 
+C<$max_interval> is mapped to C<max_interval> of C<type_string>
+
 =cut
 
 sub assert_script_run {
@@ -971,11 +973,12 @@ sub assert_script_run {
             # not change default timeout.
             timeout      => 90,
             fail_message => '',
-            quiet        => testapi::get_var('_QUIET_SCRIPT_CALLS')
+            quiet        => testapi::get_var('_QUIET_SCRIPT_CALLS'),
+            max_interval => undef
         }, ['timeout', 'fail_message'], @_);
 
     bmwqemu::log_call(cmd => $cmd, %args);
-    my $ret = $distri->script_run($cmd, timeout => $args{timeout}, quiet => $args{quiet});
+    my $ret = $distri->script_run($cmd, imeout => $args{timeout}, quiet => $args{quiet}, max_interval => $args{max_interval});
     _handle_script_run_ret($ret, $cmd, %args);
     return;
 }
@@ -1011,9 +1014,10 @@ sub script_run {
     my $cmd  = shift;
     my %args = compat_args(
         {
-            timeout => undef,
-            output  => '',
-            quiet   => testapi::get_var('_QUIET_SCRIPT_CALLS')
+            timeout      => undef,
+            output       => '',
+            quiet        => testapi::get_var('_QUIET_SCRIPT_CALLS'),
+            max_interval => undef
         }, ['timeout'], @_);
 
     bmwqemu::log_call(cmd => $cmd, %args);
