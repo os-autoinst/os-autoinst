@@ -2184,4 +2184,68 @@ sub compat_args {
     return %ret;
 }
 
+=head1 state files
+
+The state files are being written to facilitate IPC and allow OpenQA to process
+the results.
+
+=head2 autoinst-status.json
+
+This file is written to reflect the status of isotovideo at runtime.
+
+=over
+
+=item B<test_execution_paused>: string describing why isotovideo was paused, or 0 if it is running
+
+=item B<status>: initial, running or finished
+
+=item B<current_test>: the name of the test being executed
+
+=back
+
+=head2 qemu_state.json
+
+This file is being read and written by the qemu process and contains the
+generated VM configuration. It should not be modified.
+
+=head2 test_order.json
+
+The test order is a list of test descriptions in the order they should run.
+Additional test modules added via I<loadtest> will be picked up at runtime.
+Each element has the folloing form:
+
+=over
+
+=item B<category>: the category, e.g. "tests"
+
+=item B<flags>: a dictionary if test flags
+
+=over
+
+=item B<fatal>: abort whole test suite if this fails (and set overall state 'failed')
+
+=item B<ignore_failure>: if this module fails, it will not affect  the overall result at all
+
+=item B<milestone>: after this test succeeds, update 'lastgood'
+
+=item B<no_rollback>: don't roll back to 'lastgood' snapshot if this fails
+
+=item B<always_rollback>: roll back to 'lastgood' snapshot even if this does not fail
+
+=back
+
+These values correspond to I<testflags>.
+
+=back
+
+=over
+
+=item B<name>: the name of the test, e.g. "mytest"
+
+=item B<script>: the name of the perl module, e.g. "tests/mytest.pm"
+
+=back
+
+=cut
+
 1;
