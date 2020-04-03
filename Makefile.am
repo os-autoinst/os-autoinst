@@ -218,7 +218,7 @@ clean-local:
 # Prevent error "blank line following trailing backslash" when deleting last
 # line in list in spec file to exclude tests
 EMPTY =
-TEST_FILES = \
+TESTS ?= \
 	00-compile-check-all.t \
 	01-test_needle.t \
 	02-test_ocr.t \
@@ -263,15 +263,15 @@ TEST_OPTS = \
 
 .PHONY: test
 test:
-	( cd t && $(TEST_OPTS) prove $(TEST_FILES) )
+	( cd t && $(TEST_OPTS) prove $(TESTS) )
 
 .PHONY: testv
 testv:
-	( cd t && $(TEST_OPTS) prove -v $(TEST_FILES) )
+	( cd t && $(TEST_OPTS) prove -v $(TESTS) )
 
 .PHONY: test-cover
 test-cover:
-	( cd t && $(TEST_OPTS) $(COVER_OPTS) prove $(TEST_FILES) )
+	( cd t && $(TEST_OPTS) $(COVER_OPTS) prove $(TESTS) )
 
 .PHONY: test-cover-summary
 test-cover-summary:

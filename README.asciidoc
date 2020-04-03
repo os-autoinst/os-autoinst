@@ -90,8 +90,10 @@ once to setup your workspace and before every commit
 make check
 ----
 
-* You *may* also run local tests on your machine or in your own development
-environment to verify everything works as expected.
+* You can also run individual tests by specifying them explicitly:
+----
+make check TESTS=23-baseclass.t
+----
 
 * For git commit messages use the rules stated on
 http://chris.beams.io/posts/git-commit/[How to Write a Git Commit Message] as
