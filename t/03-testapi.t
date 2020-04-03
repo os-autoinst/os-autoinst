@@ -681,4 +681,20 @@ subtest 'autoinst_url' => sub {
     is(autoinst_url('foo'), 'http://localhost:1/foo', 'we can configure the hostname that autoinst_url returns');
 };
 
+subtest 'data_url' => sub {
+    $bmwqemu::vars{QEMUPORT}              = 9998;
+    $bmwqemu::vars{JOBTOKEN}              = 'test-token';
+    $bmwqemu::vars{ASSET_0}               = 'file1';
+    $bmwqemu::vars{ASSET_9}               = '/var/what/ever/else/file1';
+    $bmwqemu::vars{ASSET_10}              = '/var/what/ever/else/file1.keep_my_prefix';
+    $bmwqemu::vars{ASSET_9000}            = '/var/what/ever/else//empty/file1.keep_my_prefix2';
+    $bmwqemu::vars{AUTOINST_URL_HOSTNAME} = 'localhost';
+
+    is(data_url('ASSET_0'),    'http://localhost:9999/test-token/assets/other/file1',                 'Retrieved path is correct');
+    is(data_url('ASSET_9'),    'http://localhost:9999/test-token/assets/other/file1',                 'Retrieved path is correct');
+    is(data_url('ASSET_10'),   'http://localhost:9999/test-token/assets/other/file1.keep_my_prefix',  'Retrieved path is correct');
+    is(data_url('ASSET_9000'), 'http://localhost:9999/test-token/assets/other/file1.keep_my_prefix2', 'Retrieved fake_pause_on_timeouth is correct');
+
+};
+
 done_testing;

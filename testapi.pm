@@ -2063,11 +2063,11 @@ in the corresponding variable
 
 sub data_url($) {
     my ($name) = @_;
-    if ($name =~ /^REPO_\d$/) {
+    if ($name =~ /^REPO_\d+$/) {
         return autoinst_url("/assets/repo/" . get_var($name));
     }
-    if ($name =~ /^ASSET_\d$/) {
-        return autoinst_url("/assets/other/" . get_var($name));
+    if ($name =~ /^ASSET_\d+$/) {
+        return autoinst_url("/assets/other/" . basename(get_var($name)));
     }
     else {
         return autoinst_url("/data/$name");
