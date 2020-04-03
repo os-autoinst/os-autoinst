@@ -40,6 +40,10 @@ use MIME::Base64 'encode_base64';
 use List::Util 'min';
 use List::MoreUtils 'uniq';
 use Scalar::Util 'looks_like_number';
+use Mojo::JSON qw(encode_json);
+use Mojo::File 'path';
+
+use constant STATE_FILE => 'base_state.json';
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -87,9 +91,19 @@ sub handle_command {
     return $self->$func($cmd->{arguments});
 }
 
+# Write a JSON representation of the process termination to disk
+sub _serialize_state {
+    my $msg = shift;
+    return undef if -e STATE_FILE;
+    path(STATE_FILE)->spurt(encode_json({
+                msg => $msg,
+    }));
+}
+
 sub die_handler {
     my $msg = shift;
     bmwqemu::diag "Backend process died, backend errors are reported below in the following lines:\n$msg";
+    _serialize_state($msg);
     $backend->stop_vm();
     $backend->close_pipes();
 }

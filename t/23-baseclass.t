@@ -9,6 +9,7 @@ use Test::Output 'stdout_is';
 use Test::Warnings;
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use Mojo::File 'path';
+use Mojo::JSON 'decode_json';
 use Scalar::Util 'refaddr';
 use backend::baseclass;
 use POSIX 'tzset';
@@ -192,6 +193,17 @@ subtest 'SSH utilities' => sub {
         is($baseclass->{serial}, undef, 'SSH serial get disconnected on unknown read ERROR');
 
         is($baseclass->check_ssh_serial(23), 0, 'Return 0 if SSH serial isn\'t connected');
+    };
+
+    subtest Run => sub {
+        my $base_state = path('base_state.json');
+        $base_state->remove;
+        my $channel_in;
+        my $channel_out;
+        my $msg;
+        eval { $baseclass->run($channel_in, $channel_out); };
+        eval { $msg = decode_json($base_state->slurp)->{msg}; };
+        like($msg, qr/fdopen Invalid argument/, 'State file contains error message');
     };
 };
 
