@@ -58,6 +58,7 @@ sub new {
     $self->{serial_failures}        = [];
     $self->{autoinst_failures}      = [];
     $self->{fatal_failure}          = 0;
+    $self->{execution_time}         = 0;
     return bless $self, $class;
 }
 
@@ -388,7 +389,8 @@ sub runtest {
     }
 
     $self->done();
-    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), time - $starttime));
+    $self->{execution_time} = time - $starttime;
+    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), $self->{execution_time}));
     return;
 }
 
@@ -396,9 +398,10 @@ sub save_test_result {
     my ($self) = @_;
 
     my $result = {
-        details => $self->details(),
-        result  => $self->result(),
-        dents   => $self->{dents},
+        details        => $self->details(),
+        result         => $self->result(),
+        dents          => $self->{dents},
+        execution_time => $self->{execution_time},
     };
     $result->{extra_test_results} = $self->{extra_test_results} if $self->{extra_test_results};
 

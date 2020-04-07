@@ -308,4 +308,15 @@ subtest 'register_extra_test_results' => sub {
     is($test->{extra_test_results}->[2]->{script}, $test->{script},             'undefined script is replaced with self->{script}.');
 };
 
+subtest 'execute_time' => sub {
+    my $basetest_class = 'basetest';
+    my $mock_basetest  = Test::MockModule->new($basetest_class);
+    my $test           = basetest->new('foo');
+    is($test->{execution_time}, 0, 'the execution time is initiated correctly');
+    $mock_basetest->mock(run  => sub { sleep 2; });
+    $mock_basetest->mock(done => sub { });
+    $test->runtest;
+    is($test->{execution_time}, 2, 'the execution time is correct');
+};
+
 done_testing;
