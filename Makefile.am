@@ -300,15 +300,6 @@ coverage-check: cover_db/coverage.html
 tidy-cpp:
 	clang-format --style=WebKit -i $$(find . -name \*.cc -o -name \*.cpp)
 
-.PHONY: docker-test-build
-docker-test-build:
-	docker build --no-cache $(top_srcdir)/docker/travis_test -t os-autoinst/travis_test:latest
-
-.PHONY: docker-test-run
-docker-test-run:
-	docker run --rm -v $(abs_top_srcdir):/opt/repo os-autoinst/travis_test:latest 'make && make check test VERBOSE=1'
-
 .PHONY: docker-test
-.NOTPARALLEL: docker-test
-docker-test: docker-test-build docker-test-run
-	echo "Use docker-rm and docker-rmi to remove the container and image if necessary"
+docker-test:
+	docker run --rm --entrypoint '' -v $(abs_top_srcdir):/opt/repo registry.opensuse.org/devel/openqa/containers/openqa_dev sh -c 'cd /opt/repo && ./autogen.sh && make && make check test VERBOSE=1'
