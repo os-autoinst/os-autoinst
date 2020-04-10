@@ -4,6 +4,12 @@
 # perltidy rules can be found in ../.perltidyrc
 #
 
+cleanup() {
+    find . -name '*.tdy' -delete
+}
+
+trap cleanup EXIT
+
 check=
 if test "$1"  = '--check'; then
     shift
@@ -36,7 +42,7 @@ cd "$(dirname $0)/.."
 # just to make sure we are at the right location
 test -e tools/tidy || exit 1
 
-find -name '*.tdy' -delete
+cleanup
 
 # Exclude any "os-autoinst" subdirectory which for example is used for "os-autoinst-distri-opensuse"
 # which symlinks "tools/tidy" into their own tests
@@ -52,14 +58,13 @@ isotovideo=$(ls isotovideo 2>/dev/null)
 find tools/absolutize $isotovideo -print0 | xargs -0 perltidy $TIDY_ARGS
 
 for file in $(find . -name "*.tdy"); do
-    if ! diff -u ${file%.tdy} $file; then
-        if test -n "$check"; then
-            echo "RUN tools/tidy script before checkin"
-            exit 1
-        else
-            mv -v $file ${file%.tdy}
-        fi
+    if diff -u ${file%.tdy} $file; then
+        continue
+    fi
+    if test -n "$check"; then
+        echo "RUN tools/tidy script before checkin"
+        exit 1
     else
-        rm $file
+        mv -v $file ${file%.tdy}
     fi
 done
