@@ -32,7 +32,7 @@ Source0:        %{name}-%{version}.tar.xz
 %define opencv_require pkgconfig(opencv)
 %endif
 %define build_requires autoconf automake gcc-c++ libtool pkg-config perl(Module::CPANfile) pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc) make %opencv_require
-%define requires perl(B::Deparse) perl(Mojolicious) >= 7.92, perl(Mojo::IOLoop::ReadWriteProcess) >= 0.23, perl(Carp::Always) perl(Data::Dump) perl(Data::Dumper) perl(Crypt::DES) perl(JSON) perl(autodie) perl(Class::Accessor::Fast) perl(Exception::Class) perl(File::Touch) perl(File::Which) perl(IO::Socket::INET) perl(IPC::Run::Debug) perl(Net::DBus) perl(Net::SNMP) perl(Net::IP) perl(IPC::System::Simple) perl(Net::SSH2) perl(XML::LibXML) perl(XML::SemanticDiff) perl(JSON::XS) perl(List::MoreUtils) perl(Mojo::IOLoop::ReadWriteProcess) perl(Socket::MsgHdr) perl(Cpanel::JSON::XS) perl(IO::Scalar) perl(Try::Tiny) perl-base
+%define requires perl(B::Deparse) perl(Mojolicious) >= 7.92 perl(Mojo::IOLoop::ReadWriteProcess) >= 0.23 perl(Carp::Always) perl(Data::Dump) perl(Data::Dumper) perl(Crypt::DES) perl(JSON) perl(autodie) perl(Class::Accessor::Fast) perl(Exception::Class) perl(File::Touch) perl(File::Which) perl(IO::Socket::INET) perl(IPC::Run::Debug) perl(Net::DBus) perl(Net::SNMP) perl(Net::IP) perl(IPC::System::Simple) perl(Net::SSH2) perl(XML::LibXML) perl(XML::SemanticDiff) perl(JSON::XS) perl(List::MoreUtils) perl(Mojo::IOLoop::ReadWriteProcess) perl(Socket::MsgHdr) perl(Cpanel::JSON::XS) perl(IO::Scalar) perl(Try::Tiny) perl-base
 %define requires_not_needed_in_tests git-core
 # all requirements needed by the tests, do not require on this in the package
 # itself or any sub-packages
