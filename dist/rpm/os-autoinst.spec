@@ -31,8 +31,8 @@ Source0:        %{name}-%{version}.tar.xz
 %else
 %define opencv_require pkgconfig(opencv)
 %endif
-%define build_requires autoconf automake gcc-c++ libtool pkg-config perl(Module::CPANfile) pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc) make %opencv_require
-%define requires perl(B::Deparse) perl(Mojolicious) >= 7.92, perl(Mojo::IOLoop::ReadWriteProcess) >= 0.23, perl(Carp::Always) perl(Data::Dump) perl(Data::Dumper) perl(Crypt::DES) perl(JSON) perl(autodie) perl(Class::Accessor::Fast) perl(Exception::Class) perl(File::Touch) perl(File::Which) perl(IO::Socket::INET) perl(IPC::Run::Debug) perl(Net::DBus) perl(Net::SNMP) perl(Net::IP) perl(IPC::System::Simple) perl(Net::SSH2) perl(XML::LibXML) perl(XML::SemanticDiff) perl(JSON::XS) perl(List::MoreUtils) perl(Mojo::IOLoop::ReadWriteProcess) perl(Socket::MsgHdr) perl(Cpanel::JSON::XS) perl(IO::Scalar) perl(Try::Tiny) perl-base
+%define build_requires %opencv_require autoconf automake gcc-c++ libtool make perl(Module::CPANfile) pkg-config pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc)
+%define requires perl(B::Deparse) perl(Carp::Always) perl(Class::Accessor::Fast) perl(Cpanel::JSON::XS) perl(Crypt::DES) perl(Data::Dump) perl(Data::Dumper) perl(Exception::Class) perl(File::Touch) perl(File::Which) perl(IO::Scalar) perl(IO::Socket::INET) perl(IPC::Run::Debug) perl(IPC::System::Simple) perl(JSON) perl(JSON::XS) perl(List::MoreUtils) perl(Mojolicious) >= 7.92 perl(Mojo::IOLoop::ReadWriteProcess) >= 0.23 perl(Net::DBus) perl(Net::IP) perl(Net::SNMP) perl(Net::SSH2) perl(Socket::MsgHdr) perl(Try::Tiny) perl(XML::LibXML) perl(XML::SemanticDiff) perl(autodie) perl-base
 %define requires_not_needed_in_tests git-core
 # all requirements needed by the tests, do not require on this in the package
 # itself or any sub-packages
@@ -49,7 +49,7 @@ Source0:        %{name}-%{version}.tar.xz
 %define spellcheck_requires %{nil}
 %define make_check_args CHECK_DOC=0
 %endif
-%define test_requires %build_requires %requires perl(Perl::Tidy) perl(Test::Strict) perl(Test::Exception) perl(Test::Output) perl(Test::Fatal) perl(Test::Warnings) perl(Pod::Coverage) perl(Test::Pod) perl(Test::MockModule) perl(Test::MockObject) perl(Devel::Cover) perl(Test::Mock::Time) qemu-tools %spellcheck_requires
+%define test_requires %build_requires %requires %spellcheck_requires perl(Devel::Cover) perl(Perl::Tidy) perl(Pod::Coverage) perl(Test::Exception) perl(Test::Fatal) perl(Test::MockModule) perl(Test::MockObject) perl(Test::Mock::Time) perl(Test::Output) perl(Test::Pod) perl(Test::Strict) perl(Test::Warnings) qemu-tools
 %define devel_requires %test_requires %requires_not_needed_in_tests
 BuildRequires:  %test_requires
 Requires:       %requires %requires_not_needed_in_tests
