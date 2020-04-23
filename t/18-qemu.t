@@ -6,13 +6,18 @@ use warnings;
 
 use Test::More;
 use Test::Warnings 'warnings';
-use Mojo::File qw(tempfile path);
+use Mojo::File qw(tempfile tempdir path);
 use Carp 'cluck';
+use FindBin '$Bin';
 
 use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::Proc;
 
 use constant TMPPATH => '/tmp/18-qemu.t/';
+
+my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+chdir $dir;
+mkdir "$dir/testresults";
 
 $SIG{__DIE__} = sub { cluck(shift); };
 
@@ -90,7 +95,7 @@ my $proc;
     HDDMODEL  => 'virtio-blk',
     CDMODEL   => 'virtio-cd',
     HDDSIZEGB => 69,
-    HDD_1     => 'data/Core-7.2.iso',
+    HDD_1     => "$Bin/data/Core-7.2.iso",
     UEFI      => 1);
 $proc = OpenQA::Qemu::Proc->new()
   ->_static_params(['-foo'])
@@ -100,7 +105,7 @@ $proc = OpenQA::Qemu::Proc->new()
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single existing UEFI disk using vars');
 
-@cmdl  = ([qw(create -f qcow2 -b data/Core-7.2.iso raid/hd0-overlay0 11116544)]);
+@cmdl  = ([qw(create -f qcow2 -b), "$Bin/data/Core-7.2.iso", qw(raid/hd0-overlay0 11116544)]);
 @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing UEFI disk');
 
@@ -157,7 +162,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Multipath Command line after serialisation and deser
 %vars = (NUMDISKS => 1,
     HDDMODEL       => 'scsi-hd',
     CDMODEL        => 'scsi-cd',
-    ISO            => 'data/Core-7.2.iso',
+    ISO            => "$Bin/data/Core-7.2.iso",
     HDDSIZEGB      => 10,
     SCSICONTROLLER => 'virtio-scsi-device');
 $proc = OpenQA::Qemu::Proc->new()
@@ -280,12 +285,12 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after deserialising and r
 %vars = (NUMDISKS => 1,
     HDDMODEL         => 'scsi-hd',
     CDMODEL          => 'scsi-cd',
-    ISO              => 'data/Core-7.2.iso',
+    ISO              => "$Bin/data/Core-7.2.iso",
     HDDSIZEGB        => 10,
     SCSICONTROLLER   => 'virtio-scsi-device',
     UEFI             => 1,
-    UEFI_PFLASH_CODE => 'data/uefi-code.bin',
-    UEFI_PFLASH_VARS => 'data/uefi-vars.bin');
+    UEFI_PFLASH_CODE => "$Bin/data/uefi-code.bin",
+    UEFI_PFLASH_VARS => "$Bin/data/uefi-vars.bin");
 @cmdl = ('qemu-kvm', '-static-args',
     '-device', 'virtio-scsi-device,id=scsi0',
 
@@ -372,3 +377,5 @@ subtest DriveDevice => sub {
 };
 
 done_testing();
+chdir $Bin;
+

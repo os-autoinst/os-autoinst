@@ -8,6 +8,8 @@ use Test::Output qw(stderr_like combined_from);
 use Test::Fatal;
 use Test::MockModule;
 use File::Basename ();
+use FindBin '$Bin';
+use File::Path 'rmtree';
 
 use autotest;
 use bmwqemu;
@@ -316,3 +318,8 @@ is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"),
 is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"),                'other');
 
 done_testing();
+
+END {
+    unlink "$Bin/vars.json";
+    rmtree "$Bin/testresults";
+}

@@ -23,16 +23,19 @@ use Test::Warnings;
 use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
-use Mojo::File;
 use Mojo::JSON 'decode_json';
+use FindBin '$Bin';
+use Mojo::File 'tempdir';
 
 # optional but very useful
 eval 'use Test::More::Color';
 eval 'use Test::More::Color "foreground"';
 
-my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
-my $data_dir     = "$toplevel_dir/t/data/";
-my $pool_dir     = "$toplevel_dir/t/pool/";
+my $dir          = tempdir("/tmp/$FindBin::Script-XXXX");
+my $toplevel_dir = "$Bin/..";
+my $data_dir     = "$Bin/data/";
+my $pool_dir     = "$dir/pool/";
+mkdir $pool_dir;
 
 note("data dir: $data_dir");
 note("pool dir: $pool_dir");
@@ -123,3 +126,5 @@ is(system('grep -q "isotovideo done" autoinst-log.txt'),                 0, 'iso
 is(system('grep -q "EXIT 0" autoinst-log.txt'),                          0, 'Test finished as expected');
 
 done_testing();
+
+chdir $Bin;

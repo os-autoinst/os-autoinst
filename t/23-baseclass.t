@@ -12,6 +12,12 @@ use Mojo::File 'path';
 use Scalar::Util 'refaddr';
 use backend::baseclass;
 use POSIX 'tzset';
+use FindBin '$Bin';
+use Mojo::File 'tempdir';
+
+my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+chdir $dir;
+mkdir 'testresults';
 
 # make the test time-zone neutral
 $ENV{TZ} = 'UTC';
@@ -190,3 +196,5 @@ subtest 'SSH utilities' => sub {
 };
 
 done_testing;
+
+chdir $Bin;

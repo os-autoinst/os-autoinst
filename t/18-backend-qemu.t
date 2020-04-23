@@ -9,9 +9,13 @@ use Test::MockModule;
 use Test::MockObject;
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings;
+use FindBin '$Bin';
+use Mojo::File 'tempdir';
 
 use backend::qemu;
 
+my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+chdir $dir;
 
 my $proc = Test::MockModule->new('OpenQA::Qemu::Proc');
 $proc->mock(exec_qemu            => undef);
@@ -42,3 +46,5 @@ ok(exists $called{add_console}, 'a console has been added');
 is($called{add_console}, 1, 'one console has been added');
 
 done_testing();
+
+chdir $Bin;

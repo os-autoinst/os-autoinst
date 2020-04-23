@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-
 use strict;
 use warnings;
 use Test::More;
@@ -24,14 +23,18 @@ use File::Basename;
 use Cwd 'abs_path';
 use Mojo::File;
 use Benchmark ':hireswallclock';
+use FindBin '$Bin';
+use Mojo::File 'tempdir';
 
 # optional but very useful
 eval 'use Test::More::Color';
 eval 'use Test::More::Color "foreground"';
 
-my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
-my $data_dir     = "$toplevel_dir/t/data/";
-my $pool_dir     = "$toplevel_dir/t/pool/";
+my $dir          = tempdir("/tmp/$FindBin::Script-XXXX");
+my $toplevel_dir = "$Bin/..";
+my $data_dir     = "$Bin/data";
+my $pool_dir     = "$dir/pool";
+mkdir $pool_dir;
 
 chdir($pool_dir);
 
@@ -154,3 +157,5 @@ EOV
 };
 
 done_testing();
+
+chdir $Bin;

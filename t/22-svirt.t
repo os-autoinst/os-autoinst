@@ -17,6 +17,12 @@ use distribution;
 use Net::SSH2;
 use testapi qw(get_var get_required_var check_var set_var);
 use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT);
+use FindBin '$Bin';
+use Mojo::File 'tempdir';
+
+my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+chdir $dir;
+mkdir 'testresults';
 
 bmwqemu::init_logger;
 
@@ -68,8 +74,7 @@ subtest 'XML config for VNC and serial console' => sub {
     $svirt_console->add_pty({pty_dev     => SERIAL_TERMINAL_DEFAULT_DEVICE, pty_dev_type => 'pty', target_port => SERIAL_TERMINAL_DEFAULT_PORT});
 
     my $produced_xml = $svirt_console->{domainxml}->toString(2);
-    my $expected_xml = '22-svirth-virsh-config.xml';
-    $expected_xml = 't/' . $expected_xml unless (-f $expected_xml);
+    my $expected_xml = "$Bin/22-svirth-virsh-config.xml";
 
     my $diff = XML::SemanticDiff->new(keeplinenums => 1);
     if (my @changes = $diff->compare($produced_xml, $expected_xml)) {
@@ -275,3 +280,5 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
 };
 
 done_testing;
+
+chdir $Bin;

@@ -6,6 +6,12 @@ use Test::MockModule;
 use Test::More;
 use Test::Fatal;
 use File::Basename;
+use FindBin '$Bin';
+use Mojo::File 'tempdir';
+
+my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
+chdir $dir;
+mkdir 'testresults';
 
 use basetest;
 use needle;
@@ -320,3 +326,5 @@ subtest 'execute_time' => sub {
 };
 
 done_testing;
+
+chdir $Bin;
