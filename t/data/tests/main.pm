@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2017 SUSE LLC
+# Copyright (C) 2016-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,14 +34,16 @@ sub cleanup_needles {
 
 $needle::cleanuphandler = \&cleanup_needles;
 
+# openQA tests set INTEGRATION_TESTS to 1 when reusing the os-autoinst tests
+#
+autotest::loadtest "tests/freeze.pm" unless get_var('INTEGRATION_TESTS');
 autotest::loadtest "tests/boot.pm";
-
-# openQA tests set this to 0 when reusing the os-autoinst tests
 unless (get_var('INTEGRATION_TESTS')) {
+    autotest::loadtest "tests/assert_screen.pm";
+    autotest::loadtest "tests/typing.pm";
     autotest::loadtest "tests/select_console_fail_test.pm";
     autotest::loadtest "tests/select_ssh_console_fail_test.pm";
     autotest::loadtest "tests/assert_screen_fail_test.pm";
-    autotest::loadtest "tests/typing.pm";
     autotest::loadtest "tests/reload_needles.pm";
     autotest::loadtest "tests/modify_and_upload_file.pm";
 }
