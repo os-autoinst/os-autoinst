@@ -16,22 +16,14 @@
 use strict;
 use warnings;
 
-use base "basetest";
+use base 'basetest';
 
 use testapi;
 
 sub run {
-    # just assume the first screen has a timeout so we should make sure not to miss it
-    assert_screen 'core', 15, no_wait => 1;
-    send_key 'ret';
-
-    # set timeout to 10 minutes so we can't miss the situation when we're waiting for the assert_screen to timeout
-    # (test uses 'Skip timeout' so this won't actually delay the test execution)
-    assert_screen 'on_prompt', timeout => get_var('TESTING_ASSERT_SCREEN_TIMEOUT') ? 600 : 90;
-}
-
-sub test_flags {
-    return {};
+    freeze_vm();
+    diag "Simply freeze the vm and resume right before the first assert screen is done";
+    resume_vm();
 }
 
 1;

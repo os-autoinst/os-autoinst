@@ -16,22 +16,15 @@
 use strict;
 use warnings;
 
-use base "basetest";
+use base 'basetest';
 
 use testapi;
 
 sub run {
-    # just assume the first screen has a timeout so we should make sure not to miss it
-    assert_screen 'core', 15, no_wait => 1;
-    send_key 'ret';
-
-    # set timeout to 10 minutes so we can't miss the situation when we're waiting for the assert_screen to timeout
-    # (test uses 'Skip timeout' so this won't actually delay the test execution)
-    assert_screen 'on_prompt', timeout => get_var('TESTING_ASSERT_SCREEN_TIMEOUT') ? 600 : 90;
-}
-
-sub test_flags {
-    return {};
+    # different variants of parameter selection
+    assert_screen 'on_prompt', timeout => 60;
+    assert_screen 'on_prompt', no_wait => 1;
 }
 
 1;
+
