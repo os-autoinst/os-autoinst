@@ -24,8 +24,6 @@ use Mojo::File 'path';
 use bmwqemu 'diag';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 
-use constant RUNCMD_FAILURE_MESS => 'runcmd failed with exit code';
-
 our @EXPORT_OK = qw(
   dd_gen_params
   find_bin
@@ -117,9 +115,10 @@ sub run_diag { my $o = (run(@_))[1]; diag($o) if $o; $o }
 
 # Open a process to run external program and check its return status
 sub runcmd {
-    my ($e, $out) = run(@_);
+    my (@cmd) = @_;
+    my ($e, $out) = run(@cmd);
     diag $out if $out && length($out) > 0;
-    die join(" ", RUNCMD_FAILURE_MESS, $e) unless $e == 0;
+    die "runcmd '" . join(' ', @cmd) . "' failed with exit code $e" unless $e == 0;
     return $e;
 }
 
