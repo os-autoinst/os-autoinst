@@ -118,7 +118,7 @@ sub runcmd {
     my (@cmd) = @_;
     my ($e, $out) = run(@cmd);
     diag $out if $out && length($out) > 0;
-    die "runcmd '" . join(' ', @cmd) . "' failed with exit code $e" unless $e == 0;
+    die "runcmd '" . join(' ', @cmd) . "' failed with exit code $e" . ($out ? ": '$out'" : '') unless $e == 0;
     return $e;
 }
 
