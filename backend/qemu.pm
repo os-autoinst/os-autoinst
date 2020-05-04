@@ -89,19 +89,14 @@ sub stop_audiocapture {
 }
 
 sub power {
-
     # parameters: acpi, reset, (on), off
     my ($self, $args) = @_;
-    my $action = $args->{action};
-    if ($action eq 'acpi') {
-        $self->handle_qmp_command({execute => 'system_powerdown'});
-    }
-    elsif ($action eq 'reset') {
-        $self->handle_qmp_command({execute => 'system_reset'});
-    }
-    elsif ($action eq 'off') {
-        $self->handle_qmp_command({execute => 'quit'});
-    }
+    my %action_to_cmd = (
+        acpi  => 'system_powerdown',
+        reset => 'system_reset',
+        off   => 'quit',
+    );
+    $self->handle_qmp_command({execute => $action_to_cmd{$args->{action}}});
 }
 
 sub eject_cd {
