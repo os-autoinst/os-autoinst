@@ -17,6 +17,7 @@ use constant TMPPATH => '/tmp/18-qemu.t/';
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
+END { chdir $Bin }
 mkdir "$dir/testresults";
 
 $SIG{__DIE__} = sub { cluck(shift); };
@@ -377,5 +378,3 @@ subtest DriveDevice => sub {
 };
 
 done_testing();
-chdir $Bin;
-

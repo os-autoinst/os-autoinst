@@ -11,6 +11,7 @@ use Mojo::File 'tempdir';
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
+END { chdir $Bin }
 mkdir 'testresults';
 
 use basetest;
@@ -326,5 +327,3 @@ subtest 'execute_time' => sub {
 };
 
 done_testing;
-
-chdir $Bin;

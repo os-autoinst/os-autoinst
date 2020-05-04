@@ -16,6 +16,7 @@ my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir     = "$toplevel_dir/t/data";
 my $pool_dir     = "$dir/pool";
 chdir $dir;
+END { chdir $Bin }
 mkdir $pool_dir;
 
 sub isotovideo {
@@ -107,7 +108,6 @@ subtest 'upload assets on demand even in failed jobs' => sub {
 
 done_testing();
 
-chdir $Bin;
 END {
     rmtree "$Bin/data/tests/product";
 }

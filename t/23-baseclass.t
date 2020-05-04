@@ -17,6 +17,7 @@ use Mojo::File 'tempdir';
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
+END { chdir $Bin }
 mkdir 'testresults';
 
 # make the test time-zone neutral
@@ -196,5 +197,3 @@ subtest 'SSH utilities' => sub {
 };
 
 done_testing;
-
-chdir $Bin;

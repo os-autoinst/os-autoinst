@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2017-2019 SUSE LLC
+# Copyright (C) 2017-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ note("data dir: $data_dir");
 note("pool dir: $pool_dir");
 
 chdir($pool_dir);
+END { chdir $Bin }
 open(my $var, '>', 'vars.json');
 print $var <<EOV;
 {
@@ -126,5 +127,3 @@ is(system('grep -q "isotovideo done" autoinst-log.txt'),                 0, 'iso
 is(system('grep -q "EXIT 0" autoinst-log.txt'),                          0, 'Test finished as expected');
 
 done_testing();
-
-chdir $Bin;

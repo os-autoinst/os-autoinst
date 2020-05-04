@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2018 SUSE LLC
+# Copyright (C) 2018-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ my $pool_dir     = "$dir/pool";
 mkdir $pool_dir;
 
 chdir($pool_dir);
+END { chdir $Bin }
 
 # just save ourselves some time during testing
 $ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} //= 1;
@@ -157,5 +158,3 @@ EOV
 };
 
 done_testing();
-
-chdir $Bin;

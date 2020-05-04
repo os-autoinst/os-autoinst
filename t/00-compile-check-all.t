@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2015-2019 SUSE LLC
+# Copyright (C) 2015-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ use Test::Strict;
 
 use FindBin '$Bin';
 chdir "$Bin/..";
+END { chdir $Bin }
 
 $Test::Strict::TEST_SYNTAX   = 1;
 $Test::Strict::TEST_STRICT   = 1;

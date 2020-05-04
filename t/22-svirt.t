@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright © 2018-2019 SUSE LLC
+# Copyright © 2018-2020 SUSE LLC
 
 use strict;
 use warnings;
@@ -22,6 +22,7 @@ use Mojo::File 'tempdir';
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
+END { chdir $Bin }
 mkdir 'testresults';
 
 bmwqemu::init_logger;
@@ -280,5 +281,3 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
 };
 
 done_testing;
-
-chdir $Bin;
