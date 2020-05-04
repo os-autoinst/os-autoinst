@@ -8,7 +8,8 @@ use Test::More;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Output qw(combined_like stderr_like);
-use Test::Warnings;
+use Test::Warnings ':all';
+use Test::Fatal;
 use FindBin '$Bin';
 use Mojo::File 'tempdir';
 
@@ -44,6 +45,12 @@ $testapi::distri = distribution->new;
 stderr_like(sub { ok($backend->start_qemu(), 'qemu can be started'); }, qr/running .*chattr/, 'preparing local files');
 ok(exists $called{add_console}, 'a console has been added');
 is($called{add_console}, 1, 'one console has been added');
+
+my $expected = qr/The name.*not provided|Failed to connect/;
+my $msg      = 'error about missing service';
+combined_like sub { ok($backend->_dbus_call('show'), 'failed dbus call ignored gracefully') }, $expected, $msg;
+$bmwqemu::vars{QEMU_FATAL_DBUS_CALL} = 1;
+like exception { $backend->_dbus_call('show') }, $expected, $msg . ' in exception';
 
 done_testing();
 
