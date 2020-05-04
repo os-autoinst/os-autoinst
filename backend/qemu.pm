@@ -130,21 +130,24 @@ sub stop_qemu {
     $self->_stop_children_processes;
 }
 
+sub _dbus_do_call {
+    my ($self, $fn, @args) = @_;
+    $self->{dbus}         ||= Net::DBus->system;
+    $self->{dbus_service} ||= $self->{dbus}->get_service("org.opensuse.os_autoinst.switch");
+    $self->{dbus_object}  ||= $self->{dbus_service}->get_object("/switch", "org.opensuse.os_autoinst.switch");
+    $self->{dbus_object}->$fn(@args);
+}
+
 sub _dbus_call {
     my $self = shift;
     my $fn   = shift;
     my @args = @_;
-
+    return $self->_dbus_do_call($fn, @args) if $bmwqemu::vars{QEMU_FATAL_DBUS_CALL};
     my ($rt, $message);
     eval {
         # do not die on unconfigured service
         local $SIG{__DIE__};
-
-        $self->{dbus}         ||= Net::DBus->system;
-        $self->{dbus_service} ||= $self->{dbus}->get_service("org.opensuse.os_autoinst.switch");
-        $self->{dbus_object}  ||= $self->{dbus_service}->get_object("/switch", "org.opensuse.os_autoinst.switch");
-
-        ($rt, $message) = $self->{dbus_object}->$fn(@args);
+        ($rt, $message) = $self->_dbus_do_call($fn, @args);
         chomp $message;
         if ($rt != 0) {
             bmwqemu::diag "Failed to run dbus command '$fn' with arguments '@args'" . " : " . $message;
