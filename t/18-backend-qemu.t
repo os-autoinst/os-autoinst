@@ -19,26 +19,27 @@ my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
 
 my $proc = Test::MockModule->new('OpenQA::Qemu::Proc');
-$proc->mock(exec_qemu            => undef);
-$proc->mock(connect_qmp          => undef);
-$proc->mock(init_blockdef_images => undef);
+$proc->redefine(exec_qemu   => undef);
+$proc->redefine(connect_qmp => undef);
 ok(my $backend = backend::qemu->new(), 'backend can be created');
 # disable any graphics display in tests
 $bmwqemu::vars{QEMU_APPEND} = '-nographic';
 # as needed to start backend
 $bmwqemu::vars{VNC} = '1';
 my $jsonrpc = Test::MockModule->new('myjsonrpc');
-$jsonrpc->mock(read_json => undef);
+$jsonrpc->redefine(read_json => undef);
 my $backend_mock = Test::MockModule->new('backend::qemu', no_auto => 1);
-$backend_mock->mock(handle_qmp_command => undef);
+$backend_mock->redefine(handle_qmp_command => undef);
 my $distri = Test::MockModule->new('distribution');
 my %called;
-$distri->mock(add_console => sub {
+$distri->redefine(add_console => sub {
         $called{add_console}++;
         my $ret = Test::MockObject->new();
         $ret->set_true('backend');
         return $ret;
 });
+# "redefine" fails with "backend::qemu::select_console does not exist!" but
+# defining this still matters for unknown reason
 $backend_mock->mock(select_console => undef);
 $testapi::distri = distribution->new;
 ($backend->{"select_$_"} = Test::MockObject->new)->set_true('add') for qw(read write);
@@ -51,6 +52,13 @@ my $msg      = 'error about missing service';
 combined_like sub { ok($backend->_dbus_call('show'), 'failed dbus call ignored gracefully') }, $expected, $msg;
 $bmwqemu::vars{QEMU_FATAL_DBUS_CALL} = 1;
 like exception { $backend->_dbus_call('show') }, $expected, $msg . ' in exception';
+
+$backend_mock->redefine(handle_qmp_command => sub { $called{handle_qmp_command} = $_[1] });
+$backend->power({action => 'off'});
+ok(exists $called{handle_qmp_command}, 'a qmp command has been called');
+is_deeply($called{handle_qmp_command}, {execute => 'quit'}, 'quit has been called for off');
+$backend->power({action => 'acpi'});
+is_deeply($called{handle_qmp_command}, {execute => 'system_powerdown'}, 'powerdown has been called for acpi');
 
 done_testing();
 

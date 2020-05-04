@@ -94,7 +94,7 @@ sub power {
     my ($self, $args) = @_;
     my $action = $args->{action};
     if ($action eq 'acpi') {
-        $self->handle_qmp_command({excecute => 'system_powerdown'});
+        $self->handle_qmp_command({execute => 'system_powerdown'});
     }
     elsif ($action eq 'reset') {
         $self->handle_qmp_command({execute => 'system_reset'});
