@@ -107,34 +107,34 @@ subtest 'SSH usage in svirt' => sub {
     my $ssh_expect_credentials = {username => 'root', password => 'password'};
     my $ssh_obj_data           = {};                                             # used to store Net::SSH2 fake data per object
     my $net_ssh2               = Test::MockModule->new('Net::SSH2');
-    $net_ssh2->mock('connect', sub {
+    $net_ssh2->redefine(connect => sub {
             my $self = shift;
             $ssh_obj_data->{refaddr($self)}->{connected} = 1;
             $ssh_obj_data->{refaddr($self)}->{blocking}  = 0;
             return 1;
     });
-    $net_ssh2->mock('auth', sub {
+    $net_ssh2->redefine(auth => sub {
             my ($self, %args) = @_;
             is($args{username}, $ssh_expect_credentials->{username}, 'Correct username for ssh connection');
             is($args{password}, $ssh_expect_credentials->{password}, 'Correct password for ssh connection');
             return 1;
     });
-    $net_ssh2->mock('auth_ok', sub { return 1; });
-    $net_ssh2->mock('blocking', sub {
+    $net_ssh2->redefine(auth_ok => sub { return 1; });
+    $net_ssh2->redefine(blocking => sub {
             my ($self, $v);
             $ssh_obj_data->{refaddr($self)}->{blocking} = $v if defined($v);
             return $self->{blocking};
     });
-    $net_ssh2->mock('disconnect', sub {
+    $net_ssh2->redefine(disconnect => sub {
             $ssh_obj_data->{refaddr(shift)}->{connected} = 0;
             return 1;
     });
-    $net_ssh2->mock('channel', sub {
+    $net_ssh2->redefine(channel => sub {
             my $self = shift;
             die("Not connected") unless ($ssh_obj_data->{refaddr($self)}->{connected});
             my $mock_channel = Test::MockObject->new();
             $mock_channel->{ssh} = $self;
-            $mock_channel->mock('exec', sub {
+            $mock_channel->mock(exec => sub {
                     my ($self, $cmd) = @_;
                     $self->{cmd} = $cmd;
                     $self->{eof} = 0;
@@ -145,16 +145,16 @@ subtest 'SSH usage in svirt' => sub {
                     }
                     return 1;
             });
-            $mock_channel->mock('read2', sub {
+            $mock_channel->mock(read2 => sub {
                     my ($self) = @_;
                     $self->{eof} = 1;
                     return ($self->{stdout}, $self->{stderr});
             });
-            $mock_channel->mock('eof',         sub { return shift->{eof}; });
-            $mock_channel->mock('blocking',    sub { return shift->{ssh}->blocking(shift) });
-            $mock_channel->mock('pty',         sub { return 1; });
-            $mock_channel->mock('send_eof',    sub { return 1; });
-            $mock_channel->mock('exit_status', sub { shift->{exit_status}; });
+            $mock_channel->mock(eof         => sub { return shift->{eof}; });
+            $mock_channel->mock(blocking    => sub { return shift->{ssh}->blocking(shift) });
+            $mock_channel->mock(pty         => sub { return 1; });
+            $mock_channel->mock(send_eof    => sub { return 1; });
+            $mock_channel->mock(exit_status => sub { shift->{exit_status}; });
     });
 
     # check connection handling
@@ -174,9 +174,9 @@ subtest 'SSH usage in svirt' => sub {
     is(refaddr($ssh3), refaddr($ssh4), "Got same connection with keep_open");
     isnt(refaddr($ssh4), refaddr($ssh5), "Got new connection with different credentials");
 
-    $net_ssh2->mock('auth_ok', sub { return 0; });
+    $net_ssh2->redefine(auth_ok => sub { return 0; });
     throws_ok(sub { $svirt->new_ssh_connection() }, qr/Error connecting to/, 'Got exception on connection error');
-    $net_ssh2->mock('auth_ok', sub { return 1; });
+    $net_ssh2->redefine(auth_ok => sub { return 1; });
 
     # check run_ssh_cmd() usage
     is($svirt->run_ssh_cmd('echo -n "foo"'), 0, 'Command successful exit');
@@ -217,7 +217,7 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
     my $test_log_cnt = 0;
     my $grep_return  = 1;
     my @deleted_logs;
-    $module->mock('run_ssh_cmd', sub {
+    $module->redefine(run_ssh_cmd => sub {
             my $self = shift;
             @LAST_ = @_;
             my $cmd = shift;
@@ -229,7 +229,7 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
     });
 
     my $run_ssh_expect = '$a';
-    $module->mock('run_ssh', sub {
+    $module->redefine(run_ssh => sub {
             my ($self, $cmd, %args) = @_;
             like($cmd, qr/$run_ssh_expect/, "run_ssh() command is like qr/$run_ssh_expect/");
             return ('A', 'B');
@@ -264,7 +264,7 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
     $svirt->open_serial_console_via_ssh('NAME', port => 666);
 
     # Disable command check, as we do not care anymore
-    $module->mock('run_ssh', sub { return ('A', 'B') });
+    $module->redefine(run_ssh => sub { return ('A', 'B') });
     is_deeply([$svirt->open_serial_console_via_ssh('NAME')], ['A', 'B'], 'Check that we get output from run_ssh() call');
 
     $bmwqemu::vars{JOBTOKEN} = 'CHECK_DELETE_TOKEN';

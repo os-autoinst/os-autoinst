@@ -170,7 +170,7 @@ subtest attempt => sub {
     use osutils 'attempt';
     my $module = Test::MockModule->new('osutils');
     # just save ourselves some time during testing
-    $module->mock(wait_attempt => sub { sleep 0; });
+    $module->redefine(wait_attempt => sub { sleep 0; });
 
     my $var = 0;
     attempt(5, sub { $var == 5 }, sub { $var++ });

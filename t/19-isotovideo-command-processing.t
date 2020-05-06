@@ -18,7 +18,7 @@ my @last_received_msg_by_fd = (undef, undef, undef);
 
 # mock the json rpc
 my $rpc_mock = Test::MockModule->new('myjsonrpc');
-$rpc_mock->mock(send_json => sub {
+$rpc_mock->redefine(send_json => sub {
         my ($fd, $cmd) = @_;
         if (!defined($fd) || ($fd != $cmd_srv_fd && $fd != $backend_fd && $fd != $answer_fd)) {
             fail('invalid file descriptor passed to send_json: ' . ($fd ? $fd : 'undef'));
@@ -26,7 +26,7 @@ $rpc_mock->mock(send_json => sub {
         }
         $last_received_msg_by_fd[$fd] = $cmd;
 });
-$rpc_mock->mock(read_json => sub {
+$rpc_mock->redefine(read_json => sub {
         fail('we do not expect anything to be read here');
 });
 

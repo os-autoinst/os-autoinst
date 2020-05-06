@@ -48,7 +48,7 @@ subtest 'SSH utilities' => sub {
     my $ssh_obj_data   = {};                                                                    # used to store Net::SSH2 fake data per object
     my @net_ssh2_error = ();
     my $net_ssh2       = Test::MockModule->new('Net::SSH2');
-    $net_ssh2->mock('connect', sub {
+    $net_ssh2->redefine(connect => sub {
             my ($self, $hostname) = @_;
             is($hostname, $ssh_expect->{hostname}, 'Connect to correct hostname');
             $ssh_obj_data->{refaddr($self)}->{hostname}  = $hostname;
@@ -56,25 +56,25 @@ subtest 'SSH utilities' => sub {
             $ssh_obj_data->{refaddr($self)}->{blocking}  = 0;
             return 1;
     });
-    $net_ssh2->mock('hostname', sub { return $ssh_obj_data->{refaddr(shift)}->{hostname} });
-    $net_ssh2->mock('auth', sub {
+    $net_ssh2->redefine(hostname => sub { return $ssh_obj_data->{refaddr(shift)}->{hostname} });
+    $net_ssh2->redefine(auth => sub {
             my ($self, %args) = @_;
             is($args{username}, $ssh_expect->{username}, 'Correct username for ssh connection');
             is($args{password}, $ssh_expect->{password}, 'Correct password for ssh connection');
             return 1;
     });
-    $net_ssh2->mock('auth_ok', sub { return 1; });
-    $net_ssh2->mock('blocking', sub {
+    $net_ssh2->redefine(auth_ok => sub { return 1; });
+    $net_ssh2->redefine(blocking => sub {
             my ($self, $v) = @_;
             $ssh_obj_data->{refaddr($self)}->{blocking} = $v if defined($v);
             return $ssh_obj_data->{refaddr($self)}->{blocking};
     });
-    $net_ssh2->mock('disconnect', sub {
+    $net_ssh2->redefine(disconnect => sub {
             $ssh_obj_data->{refaddr(shift)}->{connected} = 0;
             return 1;
     });
-    $net_ssh2->mock('error', sub { return @net_ssh2_error; });
-    $net_ssh2->mock('sock', sub {
+    $net_ssh2->redefine(error => sub { return @net_ssh2_error; });
+    $net_ssh2->redefine(sock => sub {
             my $self = shift;
             unless ($ssh_obj_data->{refaddr($self)}->{sock}) {
                 my $mock_sock = Test::MockObject->new();
@@ -83,12 +83,12 @@ subtest 'SSH utilities' => sub {
             }
             return $ssh_obj_data->{refaddr($self)}->{sock};
     });
-    $net_ssh2->mock('channel', sub {
+    $net_ssh2->redefine(channel => sub {
             my $self = shift;
             die("Not connected") unless ($ssh_obj_data->{refaddr($self)}->{connected});
             my $mock_channel = Test::MockObject->new();
             $mock_channel->{ssh} = $self;
-            $mock_channel->mock('exec', sub {
+            $mock_channel->mock(exec => sub {
                     my ($self, $cmd) = @_;
                     $self->{cmd} = $cmd;
                     $self->{eof} = 0;
@@ -99,17 +99,17 @@ subtest 'SSH utilities' => sub {
                     }
                     return 1;
             });
-            $mock_channel->mock('read2', sub {
+            $mock_channel->mock(read2 => sub {
                     my ($self) = @_;
                     $self->{eof} = 1;
                     return ($self->{stdout}, $self->{stderr});
             });
-            $mock_channel->mock('eof',         sub { return shift->{eof}; });
-            $mock_channel->mock('blocking',    sub { return shift->{ssh}->blocking(shift) });
-            $mock_channel->mock('pty',         sub { return 1; });
-            $mock_channel->mock('send_eof',    sub { return 1; });
-            $mock_channel->mock('exit_status', sub { shift->{exit_status}; });
-            $mock_channel->mock('ext_data',    sub { my ($self, $v) = @_; $self->{ext_data} = $v; });
+            $mock_channel->mock(eof         => sub { return shift->{eof}; });
+            $mock_channel->mock(blocking    => sub { return shift->{ssh}->blocking(shift) });
+            $mock_channel->mock(pty         => sub { return 1; });
+            $mock_channel->mock(send_eof    => sub { return 1; });
+            $mock_channel->mock(exit_status => sub { shift->{exit_status}; });
+            $mock_channel->mock(ext_data    => sub { my ($self, $v) = @_; $self->{ext_data} = $v; });
             return $mock_channel;
     });
 
@@ -150,8 +150,8 @@ subtest 'SSH utilities' => sub {
 
     subtest 'Serial SSH' => sub {
         my $io_select_mock = Test::MockModule->new('IO::Select');
-        $io_select_mock->mock('add');
-        $io_select_mock->mock('remove');
+        $io_select_mock->redefine('add');
+        $io_select_mock->redefine('remove');
         $baseclass->{select_read} = IO::Select->new;
 
         $ssh_expect      = {username => 'serial', password => 'XXX', hostname => 'serial.host'};
@@ -164,7 +164,7 @@ subtest 'SSH utilities' => sub {
         $baseclass->truncate_serial_file();
         my $expect_output       = "FOO$/" x 4096;
         my $channel_read_string = $expect_output;
-        $chan->mock('read', sub {
+        $chan->mock(read => sub {
                 my ($self, undef, $max) = @_;
                 return unless (defined($channel_read_string));
                 $max //= 4096;

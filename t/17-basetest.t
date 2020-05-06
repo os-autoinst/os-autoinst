@@ -39,7 +39,7 @@ subtest modules_test => sub {
 subtest parse_serial_output => sub {
     my $mock_basetest = Test::MockModule->new('basetest');
     # Mock reading of the serial output
-    $mock_basetest->mock(get_serial_output_json => sub {
+    $mock_basetest->redefine(get_serial_output_json => sub {
             return {
                 serial   => "Serial to match\n1q2w333\nMore text",
                 position => '100'
@@ -47,7 +47,7 @@ subtest parse_serial_output => sub {
     });
     my $basetest = basetest->new('installation');
     my $message;
-    $mock_basetest->mock(record_resultfile => sub {
+    $mock_basetest->redefine(record_resultfile => sub {
             my ($self, $title, $output, %nargs) = @_;
             $message = $output;
     });
@@ -110,7 +110,7 @@ subtest parse_serial_output => sub {
 subtest record_testresult => sub {
     my $basetest_class = 'basetest';
     my $mock_basetest  = Test::MockModule->new($basetest_class);
-    $mock_basetest->mock(_result_add_screenshot => sub { });
+    $mock_basetest->redefine(_result_add_screenshot => sub { });
 
     my $basetest = bless({
             result     => undef,
@@ -319,8 +319,8 @@ subtest 'execute_time' => sub {
     my $mock_basetest  = Test::MockModule->new($basetest_class);
     my $test           = basetest->new('foo');
     is($test->{execution_time}, 0, 'the execution time is initiated correctly');
-    $mock_basetest->mock(run  => sub { sleep 2; });
-    $mock_basetest->mock(done => sub { });
+    $mock_basetest->mock(run => sub { sleep 2; });
+    $mock_basetest->redefine(done => sub { });
     $test->runtest;
     is($test->{execution_time}, 2, 'the execution time is correct');
 };

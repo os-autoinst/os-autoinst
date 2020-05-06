@@ -19,8 +19,9 @@ my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
 
 my $proc = Test::MockModule->new('OpenQA::Qemu::Proc');
-$proc->redefine(exec_qemu   => undef);
-$proc->redefine(connect_qmp => undef);
+$proc->redefine(exec_qemu            => undef);
+$proc->redefine(connect_qmp          => undef);
+$proc->redefine(init_blockdev_images => undef);
 ok(my $backend = backend::qemu->new(), 'backend can be created');
 # disable any graphics display in tests
 $bmwqemu::vars{QEMU_APPEND} = '-nographic';

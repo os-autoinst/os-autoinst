@@ -16,7 +16,7 @@ use needle;
 # mock user agent and file
 my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');
 my @queried_urls;
-$user_agent_mock->mock(get => sub {
+$user_agent_mock->redefine(get => sub {
         my ($self, $url) = @_;
         push(@queried_urls, $url);
         return $user_agent_mock->original('get')->(@_);

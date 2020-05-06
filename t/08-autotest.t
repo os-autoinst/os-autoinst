@@ -51,15 +51,15 @@ sub get_tests_done {
 }
 
 my $mock_jsonrpc = Test::MockModule->new('myjsonrpc');
-$mock_jsonrpc->mock(send_json => \&fake_send);
-$mock_jsonrpc->mock(read_json => sub { });
+$mock_jsonrpc->redefine(send_json => \&fake_send);
+$mock_jsonrpc->redefine(read_json => sub { });
 my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
-$mock_bmwqemu->mock(save_json_file => sub { });
+$mock_bmwqemu->redefine(save_json_file => sub { });
 my $mock_basetest = Test::MockModule->new('basetest');
-$mock_basetest->mock(_result_add_screenshot => sub { });
+$mock_basetest->redefine(_result_add_screenshot => sub { });
 # stop run_all from quitting at the end
 my $mock_autotest = Test::MockModule->new('autotest', no_auto => 1);
-$mock_autotest->mock(_exit => sub { });
+$mock_autotest->redefine(_exit => sub { });
 
 my $died;
 my $completed;
@@ -91,10 +91,10 @@ is($completed, 1, 'start+next+start should complete');
 # runargs test module, as it fails.
 subtest 'test always_rollback flag' => sub {
     # Test that no rollback is triggered when flag is not explicitly set to true
-    $mock_basetest->mock(test_flags       => sub { return {milestone => 1}; });
-    $mock_autotest->mock(query_isotovideo => sub { return 0; });
+    $mock_basetest->redefine(test_flags       => sub { return {milestone => 1}; });
+    $mock_autotest->redefine(query_isotovideo => sub { return 0; });
     my $reverts_done = 0;
-    $mock_autotest->mock(load_snapshot => sub { $reverts_done++; });
+    $mock_autotest->redefine(load_snapshot => sub { $reverts_done++; });
 
     stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
     ($died, $completed) = get_tests_done;
@@ -105,10 +105,10 @@ subtest 'test always_rollback flag' => sub {
     @sent         = [];
 
     # Test that no rollback is triggered if snapshots are not supported
-    $mock_basetest->mock(test_flags       => sub { return {always_rollback => 1, milestone => 1}; });
-    $mock_autotest->mock(query_isotovideo => sub { return 0; });
+    $mock_basetest->redefine(test_flags       => sub { return {always_rollback => 1, milestone => 1}; });
+    $mock_autotest->redefine(query_isotovideo => sub { return 0; });
     $reverts_done = 0;
-    $mock_autotest->mock(load_snapshot => sub { $reverts_done++; });
+    $mock_autotest->redefine(load_snapshot => sub { $reverts_done++; });
 
     stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
     ($died, $completed) = get_tests_done;
@@ -119,8 +119,8 @@ subtest 'test always_rollback flag' => sub {
     @sent         = [];
 
     # Test that snapshot loading is triggered even when tests are successful
-    $mock_basetest->mock(test_flags       => sub { return {always_rollback => 1}; });
-    $mock_autotest->mock(query_isotovideo => sub { return 1; });
+    $mock_basetest->redefine(test_flags       => sub { return {always_rollback => 1}; });
+    $mock_autotest->redefine(query_isotovideo => sub { return 1; });
     $reverts_done = 0;
 
     stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
@@ -132,7 +132,7 @@ subtest 'test always_rollback flag' => sub {
     @sent         = [];
 
     # Test with snapshot available
-    $mock_basetest->mock(test_flags => sub { return {always_rollback => 1, milestone => 1}; });
+    $mock_basetest->redefine(test_flags => sub { return {always_rollback => 1, milestone => 1}; });
     stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
     ($died, $completed) = get_tests_done;
     is($died,         0, 'start+next+start should not die when always_rollback flag is set');
@@ -179,9 +179,9 @@ like($@, qr/The run_args must be a sub-class of OpenQA::Test::RunArgs/, 'error m
 # we cause the failure by mocking runtest rather than using a test
 # which dies, as runtest does a whole bunch of stuff when the test
 # dies that we may not want to run into here
-$mock_basetest->mock(runtest => sub { die 'oh noes!'; });
+$mock_basetest->redefine(runtest => sub { die 'oh noes!'; });
 my $enable_snapshots = 1;
-$mock_autotest->mock(query_isotovideo => sub {
+$mock_autotest->redefine(query_isotovideo => sub {
         my ($command, $arguments) = @_;
         return $enable_snapshots if $command eq 'backend_can_handle' && $arguments->{function} eq 'snapshots';
         return 1;
@@ -204,7 +204,7 @@ is($completed, 1, 'unimportant test failure should complete');
 # unmock runtest, to fail in search_for_expected_serial_failures
 $mock_basetest->unmock('runtest');
 # mock reading of the serial output
-$mock_basetest->mock(search_for_expected_serial_failures => sub {
+$mock_basetest->redefine(search_for_expected_serial_failures => sub {
         my ($self) = @_;
         $self->{fatal_failure} = 1;
         die "Got serial hard failure";
@@ -218,7 +218,7 @@ is($completed, 0, 'fatal serial failure test should not complete');
 
 # make the serial failure non-fatal
 $mock_basetest->unmock('search_for_expected_serial_failures');
-$mock_basetest->mock(search_for_expected_serial_failures => sub {
+$mock_basetest->redefine(search_for_expected_serial_failures => sub {
         my ($self) = @_;
         $self->{fatal_failure} = 0;
         die "Got serial hard failure";
@@ -242,7 +242,7 @@ is($died,      0, 'non-fatal serial failure test should not die');
 is($completed, 0, 'non-fatal serial failure test should not complete by default without snapshot support');
 @sent = [];
 
-$mock_basetest->mock(test_flags => sub { return {fatal => 0}; });
+$mock_basetest->redefine(test_flags => sub { return {fatal => 0}; });
 $output = combined_from(sub { autotest::run_all });
 like($output, qr/Snapshots are not supported/, 'snapshots actually disabled');
 unlike($output, qr/Loading a VM snapshot/, 'no attempt to load VM snapshot');
@@ -254,7 +254,7 @@ is($completed, 1, 'non-fatal serial failure test should complete with {fatal => 
 # Revert mock for runtest and remove mock for search_for_expected_serial_failures
 $mock_basetest->unmock('search_for_expected_serial_failures');
 $mock_basetest->unmock('test_flags');
-$mock_basetest->mock(runtest => sub { die "oh noes!\n"; });
+$mock_basetest->redefine(runtest => sub { die "oh noes!\n"; });
 
 # now let's add a fatal test
 loadtest 'fatal';
@@ -294,7 +294,7 @@ subtest 'test scheduling test modules at test runtime' => sub {
     ];
 
     $mock_basetest->unmock('runtest');
-    $mock_bmwqemu->mock(save_json_file => sub {
+    $mock_bmwqemu->redefine(save_json_file => sub {
             my ($data, $filename) = @_;
             $json_data{$filename} = $data;
     });
@@ -309,7 +309,7 @@ subtest 'test scheduling test modules at test runtime' => sub {
     is_deeply($json_data{$json_filename}, $testorder,
         "loadtest updates test_order.json at test runtime");
 
-    $mock_bmwqemu->mock(save_json_file => sub { });
+    $mock_bmwqemu->redefine(save_json_file => sub { });
 };
 
 my $sharedir = '/home/tux/.local/lib/openqa/share';

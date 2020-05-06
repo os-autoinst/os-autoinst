@@ -91,13 +91,13 @@ sub fake_read_json {
     return {};
 }
 
-$mod->mock(send_json => \&fake_send_json);
-$mod->mock(read_json => \&fake_read_json);
+$mod->redefine(send_json => \&fake_send_json);
+$mod->redefine(read_json => \&fake_read_json);
 
 use testapi qw(is_serial_terminal :DEFAULT);
 use basetest;
 my $mock_basetest = Test::MockModule->new('basetest');
-$mock_basetest->mock(_result_add_screenshot => sub { my ($self, $result) = @_; });
+$mock_basetest->redefine(_result_add_screenshot => sub { my ($self, $result) = @_; });
 $autotest::current_test = basetest->new();
 
 # we have to mock out wait_screen_change for the type_string tests
@@ -111,7 +111,7 @@ subtest 'type_string' => sub {
         $callback->() if $callback;
     }
 
-    $mod2->mock(wait_screen_change => \&fake_wait_screen_change);
+    $mod2->redefine(wait_screen_change => \&fake_wait_screen_change);
 
     type_string 'hallo';
     is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hallo'}]);
@@ -164,7 +164,7 @@ subtest 'type_string' => sub {
 subtest 'type_string with wait_still_screen' => sub {
     my $wait_still_screen_called = 0;
     my $module                   = Test::MockModule->new('testapi');
-    $module->mock(wait_still_screen => sub { $wait_still_screen_called = 1; });
+    $module->redefine(wait_still_screen => sub { $wait_still_screen_called = 1; });
     type_string 'hallo', wait_still_screen => 1;
     is_deeply($cmds, [{cmd => 'backend_type_string', text => 'hallo', max_interval => 250}]);
     $cmds = [];
@@ -190,12 +190,12 @@ is_deeply($cmds, [{cmd => 'backend_send_key', key => 'ret'}], 'send_key with no 
 $cmds = [];
 
 my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
-$mock_bmwqemu->mock(result_dir => File::Temp->newdir());
+$mock_bmwqemu->redefine(result_dir => File::Temp->newdir());
 
 subtest 'send_key with wait_screen_change' => sub {
     my $mock_testapi              = Test::MockModule->new('testapi');
     my $wait_screen_change_called = 0;
-    $mock_testapi->mock(wait_screen_change => sub(&@) { shift->(); $wait_screen_change_called = 1 });
+    $mock_testapi->redefine(wait_screen_change => sub(&@) { shift->(); $wait_screen_change_called = 1 });
     send_key 'ret', wait_screen_change => 1;
     is(scalar @$cmds, 1, 'send_key waits for screen change') || diag explain $cmds;
     $cmds = [];
@@ -225,7 +225,7 @@ is(current_console,    'a-console', 'Current console is the a-console');
 subtest 'script_run' => sub {
     my $module = Test::MockModule->new('bmwqemu');
     # just save ourselves some time during testing
-    $module->mock(wait_for_one_more_screenshot => sub { sleep 0; });
+    $module->redefine(wait_for_one_more_screenshot => sub { sleep 0; });
 
     $testapi::serialdev = 'null';
 
@@ -263,10 +263,10 @@ subtest 'script_run' => sub {
 
 subtest 'check_assert_screen' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
-    $mock_testapi->mock(_handle_found_needle => sub { return $_[0] });
+    $mock_testapi->redefine(_handle_found_needle => sub { return $_[0] });
 
     my $mock_tinycv = Test::MockModule->new('tinycv');
-    $mock_tinycv->mock(from_ppm => sub { return bless({} => __PACKAGE__); });
+    $mock_tinycv->redefine(from_ppm => sub { return bless({} => __PACKAGE__); });
 
     throws_ok(sub { assert_screen(''); }, qr/no tags specified/, 'error if tag(s) is falsy scalar');
     throws_ok(sub { assert_screen([]); }, qr/no tags specified/, 'error if tag(s) is empty array');
@@ -378,7 +378,7 @@ is(match_has_tag('foo'), undef, 'match_has_tag on not matched tag -> undef');
 subtest 'assert_and_click' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my @areas        = ({x => 1, y => 2, w => 10, h => 20});
-    $mock_testapi->mock(assert_screen => {area => \@areas});
+    $mock_testapi->redefine(assert_screen => {area => \@areas});
 
     $cmds = [];
     ok(assert_and_click('foo'));
@@ -438,7 +438,7 @@ subtest 'assert_and_click' => sub {
 
 subtest 'assert_and_dclick' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
-    $mock_testapi->mock(assert_screen => {area => [{x => 1, y => 2, w => 3, h => 4}]});
+    $mock_testapi->redefine(assert_screen => {area => [{x => 1, y => 2, w => 3, h => 4}]});
     ok(assert_and_dclick('foo', mousehide => 1));
     for (-2, -4) {
         is_deeply($cmds->[$_], {bstate => 0, button => 'left', cmd => 'backend_mouse_button'}, 'assert_and_dclick succeeds with bstate => 0');
@@ -459,34 +459,34 @@ sub script_output_test {
     my $is_serial_terminal = shift;
     my $mock_testapi       = Test::MockModule->new('testapi');
     $testapi::serialdev = 'null';
-    $mock_testapi->mock(type_string        => sub { return });
-    $mock_testapi->mock(send_key           => sub { return });
-    $mock_testapi->mock(hashed_string      => sub { return 'XXX' });
-    $mock_testapi->mock(is_serial_terminal => sub { return $is_serial_terminal });
+    $mock_testapi->redefine(type_string        => sub { return });
+    $mock_testapi->redefine(send_key           => sub { return });
+    $mock_testapi->redefine(hashed_string      => sub { return 'XXX' });
+    $mock_testapi->redefine(is_serial_terminal => sub { return $is_serial_terminal });
 
-    $mock_testapi->mock(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-0-" });
+    $mock_testapi->redefine(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-0-" });
     is(script_output('echo foo'), 'foo', 'sucessfull retrieves output of script');
 
-    $mock_testapi->mock(wait_serial => sub { return 'SCRIPT_FINISHEDXXX-0-' });
+    $mock_testapi->redefine(wait_serial => sub { return 'SCRIPT_FINISHEDXXX-0-' });
     is(script_output('foo'), '', 'calling script_output does not fail if script returns with success');
 
-    $mock_testapi->mock(wait_serial => sub { return "This is simulated output on the serial device\nXXXfoo\nSCRIPT_FINISHEDXXX-0-\nand more here" });
+    $mock_testapi->redefine(wait_serial => sub { return "This is simulated output on the serial device\nXXXfoo\nSCRIPT_FINISHEDXXX-0-\nand more here" });
     is(script_output('echo foo'), 'foo', 'script_output return only the actual output of the script');
 
-    $mock_testapi->mock(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-1-" });
+    $mock_testapi->redefine(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-1-" });
     is(script_output('echo foo', undef, proceed_on_failure => 1), 'foo', 'proceed_on_failure=1 retrieves retrieves output of script and do not die');
 
-    $mock_testapi->mock(wait_serial => sub { return 'none' if (shift !~ m/SCRIPT_FINISHEDXXX-\\d\+-/) });
+    $mock_testapi->redefine(wait_serial => sub { return 'none' if (shift !~ m/SCRIPT_FINISHEDXXX-\\d\+-/) });
     like(exception { script_output('timeout'); }, qr/timeout/, 'die expected with timeout');
 
     subtest 'script_output check error codes' => sub {
         for my $ret ((1, 10, 100, 255)) {
-            $mock_testapi->mock(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-$ret-" });
+            $mock_testapi->redefine(wait_serial => sub { return "XXXfoo\nSCRIPT_FINISHEDXXX-$ret-" });
             like(exception { script_output('false'); }, qr/script failed/, "script_output die expected on exitcode $ret");
         }
     };
 
-    $mock_testapi->mock(wait_serial => sub {
+    $mock_testapi->redefine(wait_serial => sub {
             my ($regex, %args) = @_;
             is($args{quiet}, undef, 'Check default quiet argument');
             if ($regex =~ m/SCRIPT_FINISHEDXXX-\\d\+-/) {
@@ -497,7 +497,7 @@ sub script_output_test {
     is(script_output('echo foo', 30),            'foo', '');
     is(script_output('echo foo', timeout => 30), 'foo', '');
 
-    $mock_testapi->mock(wait_serial => sub {
+    $mock_testapi->redefine(wait_serial => sub {
             my ($regex, %args) = @_;
             is($args{quiet}, 1, 'Check quiet argument');
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
@@ -512,7 +512,7 @@ subtest 'script_output' => sub {
 
 subtest 'validate_script_output' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
-    $mock_testapi->mock(script_output => sub { return 'output'; });
+    $mock_testapi->redefine(script_output => sub { return 'output'; });
     ok(!validate_script_output('script', sub { m/output/ }), 'validating output with default timeout');
     ok(!validate_script_output('script', qr/output/),        'validating output with regex and default timeout');
     ok(!validate_script_output('script', sub { m/output/ }, 30), 'specifying timeout');
@@ -531,7 +531,7 @@ subtest 'validate_script_output' => sub {
 };
 
 subtest 'wait_still_screen & assert_still_screen' => sub {
-    $mod->mock(
+    $mod->redefine(
         read_json => sub {
             return {ret => {sim => 999}};
         });
@@ -544,7 +544,7 @@ subtest 'wait_still_screen & assert_still_screen' => sub {
     ok(wait_still_screen(1, 2, timeout => 3),          'named over positional');
     ok(assert_still_screen,                            'default arguments to assert_still_screen');
     my $testapi = Test::MockModule->new('testapi');
-    $testapi->mock(wait_still_screen => sub { die "wait_still_screen(@_)" });
+    $testapi->redefine(wait_still_screen => sub { die "wait_still_screen(@_)" });
     like(exception { assert_still_screen similarity_level => 9999; }, qr/wait_still_screen\(similarity_level 9999\)/,
         'assert_still_screen forwards arguments to wait_still_screen');
 };
@@ -585,20 +585,20 @@ subtest 'set console tty and other args' => sub {
 
 subtest 'check_assert_shutdown' => sub {
     # Test cases, when shutdown is finished before timeout is hit
-    $mod->mock(
+    $mod->redefine(
         read_json => sub {
             return {ret => 1};
         });
     ok(check_shutdown, 'check_shutdown should return "true" if shutdown finished before timeout is hit');
     is(assert_shutdown, undef, 'assert_shutdown should return "undef" if shutdown finished before timeout is hit');
-    $mod->mock(
+    $mod->redefine(
         read_json => sub {
             return {ret => -1};
         });
     ok(check_shutdown, 'check_shutdown should return "true" if backend does not implement is_shutdown');
     is(assert_shutdown, undef, 'assert_shutdown should return "undef" if backend does not implement is_shutdown');
     # Test cases, when shutdown is not finished if timeout is hit
-    $mod->mock(
+    $mod->redefine(
         read_json => sub {
             return {ret => 0};
         });
@@ -648,7 +648,7 @@ subtest 'compat_args' => sub {
 subtest 'check quiet option on script runs' => sub {
     $bmwqemu::vars{_QUIET_SCRIPT_CALLS} = 1;
     my $mock_testapi = Test::MockModule->new('testapi');
-    $mock_testapi->mock(wait_serial => sub {
+    $mock_testapi->redefine(wait_serial => sub {
             my ($regex, %args) = @_;
             is($args{quiet}, 1, 'Check default quiet argument');
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
@@ -658,7 +658,7 @@ subtest 'check quiet option on script runs' => sub {
     is(assert_script_run('true'),     undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1');
     ok(!validate_script_output('script', sub { m/output/ }), 'validate_script_output with _QUIET_SCRIPT_CALLS=1');
 
-    $mock_testapi->mock(wait_serial => sub {
+    $mock_testapi->redefine(wait_serial => sub {
             my ($regex, %args) = @_;
             is($args{quiet}, 0, 'Check default quiet argument');
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
