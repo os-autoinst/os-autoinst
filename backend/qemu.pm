@@ -89,19 +89,14 @@ sub stop_audiocapture {
 }
 
 sub power {
-
     # parameters: acpi, reset, (on), off
     my ($self, $args) = @_;
-    my $action = $args->{action};
-    if ($action eq 'acpi') {
-        $self->handle_qmp_command({excecute => 'system_powerdown'});
-    }
-    elsif ($action eq 'reset') {
-        $self->handle_qmp_command({execute => 'system_reset'});
-    }
-    elsif ($action eq 'off') {
-        $self->handle_qmp_command({execute => 'quit'});
-    }
+    my %action_to_cmd = (
+        acpi  => 'system_powerdown',
+        reset => 'system_reset',
+        off   => 'quit',
+    );
+    $self->handle_qmp_command({execute => $action_to_cmd{$args->{action}}});
 }
 
 sub eject_cd {
@@ -168,23 +163,20 @@ sub can_handle {
     my ($self, $args) = @_;
     my $vars = \%bmwqemu::vars;
 
-    if ($args->{function} eq 'snapshots') {
-        return if $vars->{QEMU_DISABLE_SNAPSHOTS};
-
-        my $nvme = $vars->{HDDMODEL} eq 'nvme';
-        for my $i (1 .. $vars->{NUMDISKS}) {
-            last if $nvme;
-            $nvme = (defined $vars->{"HDDMODEL_$i"} && $vars->{"HDDMODEL_$i"} eq 'nvme');
-        }
-        if ($nvme) {
-            bmwqemu::fctwarn('NVMe drives can not be migrated which is required for snapshotting')
-              unless $args->{no_warn};
-            return;
-        }
-
-        return {ret => 1};
+    return unless $args->{function} eq 'snapshots';
+    return if $vars->{QEMU_DISABLE_SNAPSHOTS};
+    my $nvme = $vars->{HDDMODEL} eq 'nvme';
+    for my $i (1 .. $vars->{NUMDISKS}) {
+        last if $nvme;
+        $nvme = (defined $vars->{"HDDMODEL_$i"} && $vars->{"HDDMODEL_$i"} eq 'nvme');
     }
-    return;
+    if ($nvme) {
+        bmwqemu::fctwarn('NVMe drives can not be migrated which is required for snapshotting')
+          unless $args->{no_warn};
+        return;
+    }
+
+    return {ret => 1};
 }
 
 sub open_file_and_send_fd_to_qemu {
