@@ -5,6 +5,7 @@ use strict;
 use warnings;
 
 use Test::More;
+use Test::Fatal;
 use Test::Warnings 'warnings';
 use Mojo::File qw(tempfile tempdir path);
 use Carp 'cluck';
@@ -148,6 +149,13 @@ $proc = OpenQA::Qemu::Proc->new()
 $proc->deserialise_state(path($path)->slurp());
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Multipath Command line after serialisation and deserialisation');
+
+my @warnings = warnings {
+    like exception { $proc->init_blockdev_images() }, qr/No such.*directory/, 'init_blockdev_images can report error';
+};
+like $warnings[0], qr/No such.*directory/, 'failure message for no directory';
+mkdir 'raid';
+ok $proc->init_blockdev_images(), 'init_blockdev_images passes';
 
 @cmdl = ('qemu-kvm', '-static-args',
     '-device', 'virtio-scsi-device,id=scsi0',
