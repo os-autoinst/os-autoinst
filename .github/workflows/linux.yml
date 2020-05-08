@@ -16,27 +16,29 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v2
 
-    - name: Cache image
-      uses: actions/cache@v1
-      env:
-        cache-name: cache-image
-      with:
-        path: ~/cache
-        key: cache-${{ hashFiles('Dockerfile') }}
+    - run: echo HELLO
 
-    - run: ls -lha ~/cache || true
-
-    - run: |
-        if [[ -f ~/cache/test.image ]]; then
-            echo "Image exists"
-            docker load -i ~/cache/test.image
-        else
-            docker build -t hello .
-            mkdir -p ~/cache
-            docker save --output ~/cache/test.image hello
-        fi
-        ls -lha ~/cache
-        docker images | grep hello || true
-
-    - run: |
-        docker run -i --rm hello
+#    - name: Cache image
+#      uses: actions/cache@v1
+#      env:
+#        cache-name: cache-image
+#      with:
+#        path: ~/cache
+#        key: cache-${{ hashFiles('Dockerfile') }}
+#
+#    - run: ls -lha ~/cache || true
+#
+#    - run: |
+#        if [[ -f ~/cache/test.image ]]; then
+#            echo "Image exists"
+#            docker load -i ~/cache/test.image
+#        else
+#            docker build -t hello .
+#            mkdir -p ~/cache
+#            docker save --output ~/cache/test.image hello
+#        fi
+#        ls -lha ~/cache
+#        docker images | grep hello || true
+#
+#    - run: |
+#        docker run -i --rm hello
