@@ -196,10 +196,16 @@ dist-hook:
 
 distclean-local: clean-local
 
-check-local:
+check-style:
 	$(srcdir)/tools/tidy --check
 	PERL5LIB=tools/lib/perlcritic:$$PERL5LIB perlcritic --gentle --include Perl::Critic::Policy::HashKeyQuote $(srcdir)
 	test x$(CHECK_DOC) = x0 || $(MAKE) check-doc
+
+check-local:
+	echo disabled
+#	$(srcdir)/tools/tidy --check
+#	PERL5LIB=tools/lib/perlcritic:$$PERL5LIB perlcritic --gentle --include Perl::Critic::Policy::HashKeyQuote $(srcdir)
+#	test x$(CHECK_DOC) = x0 || $(MAKE) check-doc
 
 .PHONY: check-doc
 check-doc: check-doc-testapi
