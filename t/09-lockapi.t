@@ -38,13 +38,13 @@ sub fake_api_call {
 
 # monkey-patch mmap::api_call
 my $mod = Test::MockModule->new('lockapi');
-$mod->mock(api_call => \&fake_api_call);
+$mod->redefine(api_call => \&fake_api_call);
 
 # So barriers can call record_info
 use basetest;
 $autotest::current_test = basetest->new();
 my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
-$mock_bmwqemu->mock(result_dir => File::Temp->newdir());
+$mock_bmwqemu->redefine(result_dir => File::Temp->newdir());
 
 sub check_action {
     my ($method, $action, $params) = @_;

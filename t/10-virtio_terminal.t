@@ -59,7 +59,7 @@ subtest "Test open_pipe() error condition" => sub {
     my $socket_path    = './virtio_console_open_test';
     my $file_mock      = Test::MockModule->new('Mojo::File');
     my $vterminal_mock = Test::MockModule->new('consoles::virtio_terminal');
-    $vterminal_mock->mock("get_pipe_sz", sub { return; });
+    $vterminal_mock->redefine("get_pipe_sz", sub { return; });
 
     my $helper = prepare_pipes($socket_path);
     my $term   = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
@@ -67,9 +67,9 @@ subtest "Test open_pipe() error condition" => sub {
     cleanup_pipes($helper);
 
     my $size = 1024;
-    $file_mock->mock('slurp', sub { return 65536; });
-    $vterminal_mock->mock("get_pipe_sz", sub { return 1024; });
-    $vterminal_mock->mock("set_pipe_sz", sub {
+    $file_mock->redefine(slurp => sub { return 65536; });
+    $vterminal_mock->redefine("get_pipe_sz", sub { return 1024; });
+    $vterminal_mock->redefine("set_pipe_sz", sub {
             my ($self, $fd, $newsize) = @_;
             return if ($newsize > 2048);
             return $size = $newsize;
@@ -81,7 +81,7 @@ subtest "Test open_pipe() error condition" => sub {
     is($size, 2048, "PIPE_SZ is 2048");
 
     $size = 1024;
-    $vterminal_mock->mock("set_pipe_sz", undef);
+    $vterminal_mock->redefine("set_pipe_sz", undef);
     $helper = prepare_pipes($socket_path);
     $term   = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     stderr_like { $term->open_pipe() } qr/Set PIPE_SZ from 1024 to 1024/, 'Log mention new size';
@@ -89,7 +89,7 @@ subtest "Test open_pipe() error condition" => sub {
     is($size, 1024, "Size didn't changed");
 
     $size = 1024;
-    $vterminal_mock->mock("set_pipe_sz", sub {
+    $vterminal_mock->redefine("set_pipe_sz", sub {
             my ($self, $fd, $newsize) = @_;
             return $size = $newsize;
     });
