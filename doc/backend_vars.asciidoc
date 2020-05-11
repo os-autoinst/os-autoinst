@@ -97,6 +97,7 @@ QEMURAM;integer;1024;Size of RAM of VM in MiB
 QEMUTHREADS;integer;0;Number of cpu threads used by VM
 QEMUVGA;see qemu -device ?;cirrus;VGA device to use with VM
 QEMU_COMPRESS_QCOW2;boolean;1;compress qcow2 images intended for upload
+QEMU_IMG_CREATE_TRIES;integer;3;Define number of tries for qemu-img commands
 QEMU_HUGE_PAGES_PATH;string;undef;Define a path to use huge pages (e.g. /dev/hugepages/)
 QEMU_MAX_MIGRATION_TIME;integer;240;Maximum time in seconds a migration to file may take for example for snapshot creation before being forcefully aborted.
 QEMU_NO_FDC_SET;boolean;0;Don't disable the floppy drive.

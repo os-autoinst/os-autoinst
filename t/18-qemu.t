@@ -150,8 +150,10 @@ $proc->deserialise_state(path($path)->slurp());
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Multipath Command line after serialisation and deserialisation');
 
+$ENV{QEMU_IMG_CREATE_TRIES} = 2;
+my $expected = qr/failed after 2 tries.*No such.*directory/;
 my @warnings = warnings {
-    like exception { $proc->init_blockdev_images() }, qr/No such.*directory/, 'init_blockdev_images can report error';
+    like exception { $proc->init_blockdev_images() }, $expected, 'init_blockdev_images can report error';
 };
 like $warnings[0], qr/No such.*directory/, 'failure message for no directory';
 mkdir 'raid';

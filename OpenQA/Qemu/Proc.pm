@@ -319,8 +319,15 @@ sub init_blockdev_images {
         unlink($file) if -e $file;
     }
 
+    my $tries = $ENV{QEMU_IMG_CREATE_TRIES} // 3;
     for my $qicmd ($self->blockdev_conf->gen_qemu_img_cmdlines()) {
-        runcmd($self->qemu_img_bin, @$qicmd);
+        for (1 .. $tries) {
+            undef $@;
+            eval { runcmd($self->qemu_img_bin, @$qicmd) };
+            last unless $@;
+            bmwqemu::diag("init_blockdev_images: '@$qicmd' failed: $@, try $_ out of $tries");
+        }
+        die "init_blockdev_images: '@$qicmd' failed after $tries tries: $@" if $@;
     }
 
     $self->blockdev_conf->mark_all_created();
