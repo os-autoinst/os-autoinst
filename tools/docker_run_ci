@@ -1,0 +1,5 @@
+#!/bin/bash -e
+CI_ENV=$(bash <(curl -s https://codecov.io/env))
+# shellcheck disable=SC2086
+docker run --env "QEMU_QMP_CONNECT_ATTEMPTS=10" --env "EXPECTED_QEMU_START_S=20" $CI_ENV --rm --entrypoint '' -v "$PWD":/opt registry.opensuse.org/devel/openqa/containers/openqa_dev sh -c 'cd /opt && ./autogen.sh && make && make check coverage-codecov VERBOSE=1'
+
