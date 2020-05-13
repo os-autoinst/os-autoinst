@@ -5,11 +5,10 @@ use warnings;
 use autodie ':all';
 use Test::More;
 use File::Basename;
-use File::Path 'remove_tree';
+use File::Path qw(remove_tree rmtree);
 use Cwd 'abs_path';
-use FindBin '$Bin';
-use File::Path 'rmtree';
 use Mojo::File 'tempdir';
+use FindBin '$Bin';
 
 my $dir          = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
