@@ -33,6 +33,7 @@ use Mojo::Log;
 use File::Spec::Functions;
 use Exporter 'import';
 use POSIX 'strftime';
+use Term::ANSIColor;
 
 our $VERSION;
 our @EXPORT    = qw(fileContent save_vars);
@@ -197,7 +198,8 @@ sub log_format_callback {
 sub diag {
     my ($args) = @_;
     confess "missing input" unless $_[0];
-    logger->debug("@_");
+    logger->append(color('white'));
+    logger->debug(@_)->append(color('reset'));
     return;
 }
 
@@ -205,7 +207,8 @@ sub fctres {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    logger->debug(">>> $fname: $text");
+    logger->append(color('green'));
+    logger->debug(">>> $fname: $text")->append(color('reset'));
     return;
 }
 
@@ -213,7 +216,8 @@ sub fctinfo {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    logger->info("::: $fname: $text");
+    logger->append(color('yellow'));
+    logger->info("::: $fname: $text")->append(color('reset'));
     return;
 }
 
@@ -221,12 +225,14 @@ sub fctwarn {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    logger->warn("!!! $fname: $text");
+    logger->append(color('red'));
+    logger->warn("!!! $fname: $text")->append(color('reset'));
     return;
 }
 
 sub modstart {
-    logger->debug("||| @{[join(' ', @_)]}");
+    logger->append(color('bold blue'));
+    logger->debug("||| @{[join(' ', @_)]}")->append(color('reset'));
     return;
 }
 
