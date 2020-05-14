@@ -69,10 +69,11 @@ our @ovmf_locations = (
 
 our %vars;
 
-sub logger {
-    $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback);
-    return $logger;
-}
+sub result_dir { 'testresults' }
+
+sub logger { $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback) }
+
+sub init_logger { logger->path(catfile(result_dir, 'autoinst-log.txt')) unless $direct_output }
 
 sub load_vars {
     my $fn  = "vars.json";
@@ -109,27 +110,10 @@ sub save_vars {
     return;
 }
 
-sub result_dir {
-    return "testresults";
-}
-
 our $gocrbin = "/usr/bin/gocr";
 
 # set from isotovideo during initialization
 our $scriptdir;
-
-sub init_logger {
-    my $log = Mojo::Log->new(level => 'debug');
-    $logger = $log->path(catfile(result_dir, 'autoinst-log.txt')) unless $direct_output;
-    $logger->format(
-        sub {
-            my ($time, $level, @lines) = @_;
-            # Unfortunately $time doesn't have the precision we want. So we need to use Time::HiRes
-            $time = gettimeofday;
-            return sprintf(strftime("[%FT%T.%%03d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
-
-        });
-}
 
 sub init {
     load_vars();
