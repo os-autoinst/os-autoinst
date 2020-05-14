@@ -69,6 +69,11 @@ our @ovmf_locations = (
 
 our %vars;
 
+sub logger {
+    $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback);
+    return $logger;
+}
+
 sub load_vars {
     my $fn  = "vars.json";
     my $ret = {};
@@ -114,13 +119,8 @@ our $gocrbin = "/usr/bin/gocr";
 our $scriptdir;
 
 sub init_logger {
-    if ($direct_output) {
-        $logger = Mojo::Log->new(level => 'debug');
-    }
-    else {
-        $logger = Mojo::Log->new(level => 'debug', path => catfile(result_dir, 'autoinst-log.txt'));
-    }
-
+    my $log = Mojo::Log->new(level => 'debug');
+    $logger = $log->path(catfile(result_dir, 'autoinst-log.txt')) unless $direct_output;
     $logger->format(
         sub {
             my ($time, $level, @lines) = @_;
@@ -212,9 +212,8 @@ sub log_format_callback {
 
 sub diag {
     my ($args) = @_;
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
     confess "missing input" unless $_[0];
-    $logger->debug("@_");
+    logger->debug("@_");
     return;
 }
 
@@ -222,8 +221,7 @@ sub fctres {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
-    $logger->debug(">>> $fname: $text");
+    logger->debug(">>> $fname: $text");
     return;
 }
 
@@ -231,8 +229,7 @@ sub fctinfo {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
-    $logger->info("::: $fname: $text");
+    logger->info("::: $fname: $text");
     return;
 }
 
@@ -240,14 +237,12 @@ sub fctwarn {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
-    $logger->warn("!!! $fname: $text");
+    logger->warn("!!! $fname: $text");
     return;
 }
 
 sub modstart {
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
-    $logger->debug("||| @{[join(' ', @_)]}");
+    logger->debug("||| @{[join(' ', @_)]}");
     return;
 }
 
@@ -298,8 +293,7 @@ sub log_call {
         }
         $params = join(", ", @result);
     }
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
-    $logger->debug('<<< ' . $fname . "($params)");
+    logger->debug('<<< ' . $fname . "($params)");
     return;
 }
 
