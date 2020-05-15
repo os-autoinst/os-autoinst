@@ -319,10 +319,11 @@ subtest 'execute_time' => sub {
     my $mock_basetest  = Test::MockModule->new($basetest_class);
     my $test           = basetest->new('foo');
     is($test->{execution_time}, 0, 'the execution time is initiated correctly');
-    $mock_basetest->mock(run => sub { sleep 2; });
-    $mock_basetest->redefine(done => sub { });
+    $mock_basetest->mock(execution_time => 42);
+    $mock_basetest->mock(run            => undef);
+    $mock_basetest->redefine(done => undef);
     $test->runtest;
-    is($test->{execution_time}, 2, 'the execution time is correct');
+    is($test->{execution_time}, 42, 'the execution time is correct');
 };
 
 done_testing;
