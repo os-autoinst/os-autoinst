@@ -147,7 +147,7 @@ sub get_mc_status {
 
     $self->ipmitool("mc guid");
     $self->ipmitool("mc info");
-    $self->ipmitool("mc selftest");
+    $self->ipmitool("mc selftest") unless $bmwqemu::vars{IPMI_SKIP_SELFTEST};
 }
 
 sub do_mc_reset {

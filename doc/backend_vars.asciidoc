@@ -45,6 +45,7 @@ IPMI_PASSWORD;string;Password for the IPMI interface;
 IPMI_USER;string;Username for the IPMI interface;
 IPMI_DO_NOT_POWER_OFF;boolean;undef;Don't power off the machine after test;
 IPMI_BACKEND_MC_RESET;boolean;undef;Reset ipmi main board before test for sol console stability
+IPMI_SKIP_SELFTEST;boolean;undef;Don't perform BMC selftest
 |====================
 
 .QEMU backend
