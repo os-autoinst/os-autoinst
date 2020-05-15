@@ -337,6 +337,8 @@ sub run_post_fail {
     die $msg . "\n";
 }
 
+sub execution_time { time - shift }
+
 sub runtest {
     my ($self) = @_;
     my $starttime = time;
@@ -389,7 +391,7 @@ sub runtest {
     }
 
     $self->done();
-    $self->{execution_time} = time - $starttime;
+    $self->{execution_time} = execution_time($starttime);
     bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), $self->{execution_time}));
     return;
 }
