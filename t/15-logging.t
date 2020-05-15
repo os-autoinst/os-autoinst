@@ -20,7 +20,7 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Output;
+use Test::Output qw(stderr_from);
 use bmwqemu;
 use Mojo::File 'tempfile';
 use Data::Dumper;
