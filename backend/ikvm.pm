@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,21 +21,6 @@ use warnings;
 use autodie ':all';
 
 use base 'backend::ipmi';
-
-require File::Temp;
-use File::Temp ();
-use Time::HiRes qw(sleep gettimeofday);
-use IO::Select;
-use IO::Socket::UNIX 'SOCK_STREAM';
-use IO::Handle;
-use Data::Dumper;
-use POSIX qw(strftime :sys_wait_h);
-require Carp;
-use Fcntl;
-use bmwqemu qw(fileContent diag save_vars diag);
-use testapi 'get_required_var';
-use IPC::Run ();
-require IPC::System::Simple;
 
 sub new {
     my $class = shift;

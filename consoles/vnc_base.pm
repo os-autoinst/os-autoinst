@@ -24,7 +24,7 @@ use base 'consoles::network_console';
 
 use consoles::VNC;
 use List::Util 'max';
-use Time::HiRes qw(usleep time);
+use Time::HiRes qw(usleep);
 
 use Try::Tiny;
 use testapi 'get_var';

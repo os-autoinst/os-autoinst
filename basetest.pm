@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ use autodie ':all';
 
 use bmwqemu ();
 use ocr;
-use Time::HiRes;
 use POSIX;
 use testapi  ();
 use autotest ();
