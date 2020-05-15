@@ -93,10 +93,7 @@ sub do_start_vm {
     # It is expected generally that ipmi machine's stability is higher with this mc reset.
     # However there maybe exceptions on machines from different vendors.
     # So keep it for flexibility.
-    if ($bmwqemu::vars{IPMI_BACKEND_MC_RESET}) {
-        $self->do_mc_reset;
-    }
-
+    $self->do_mc_reset if $bmwqemu::vars{IPMI_BACKEND_MC_RESET};
     $self->get_mc_status;
     $self->restart_host;
     $self->truncate_serial_file;
@@ -108,12 +105,8 @@ sub do_start_vm {
 sub do_stop_vm {
     my ($self) = @_;
 
-    if (!$bmwqemu::vars{IPMI_DO_NOT_POWER_OFF}) {
-        $self->ipmitool("chassis power off");
-    }
-    if (defined $testapi::distri->{consoles}->{sol}) {
-        $self->deactivate_console({testapi_console => 'sol'});
-    }
+    $self->ipmitool("chassis power off") unless $bmwqemu::vars{IPMI_DO_NOT_POWER_OFF};
+    $self->deactivate_console({testapi_console => 'sol'}) if defined $testapi::distri->{consoles}->{sol};
     return {};
 }
 
@@ -126,9 +119,7 @@ sub is_shutdown {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    if ($self->check_ssh_serial($fh)) {
-        return 1;
-    }
+    return 1 if $self->check_ssh_serial($fh);
     return $self->SUPER::check_socket($fh, $write);
 }
 
