@@ -184,10 +184,7 @@ $self->{cmdpipe} is closed, whichever occurs first.
 sub run_capture_loop {
     my ($self, $timeout) = @_;
     my $starttime = gettimeofday;
-    if (!$self->last_screenshot) {
-        my $now = gettimeofday;
-        $self->last_screenshot($now);
-    }
+    $self->last_screenshot($starttime) unless $self->last_screenshot;
 
     eval {
         # Time slot buckets
@@ -196,13 +193,11 @@ sub run_capture_loop {
         my $hits_limit      = $bmwqemu::vars{_CHKSEL_RATE_HITS}      // 15_000;
 
         while (1) {
-            last if (!$self->{cmdpipe});
-
+            last unless $self->{cmdpipe};
             my $now             = gettimeofday;
             my $time_to_timeout = "Inf" + 0;
             if (defined $timeout) {
                 $time_to_timeout = $timeout - ($now - $starttime);
-
                 last if $time_to_timeout <= 0;
             }
 
@@ -297,16 +292,7 @@ sub check_select_rate {
     my ($buckets, $wait_time_limit, $hits_limit, $id) = @_;
 
     my $time        = gettimeofday;
-    my $lower_limit = $time;
-
-    if ($buckets->{TIME}) {
-        $lower_limit = $buckets->{TIME};
-    }
-    else {
-        # Bucket initialization;
-        $buckets->{TIME} = $time;
-    }
-
+    my $lower_limit = $buckets->{TIME} //= $time;
     my $upper_limit = $lower_limit + $wait_time_limit;
     if ($time > $upper_limit) {
         $buckets->{TIME} = $time;
@@ -449,16 +435,14 @@ sub stop_vm {
 
 sub alive {
     my ($self) = @_;
-    if ($self->{started}) {
-        if ($self->file_alive() and $self->raw_alive()) {
-            return 1;
-        }
-        else {
-            bmwqemu::fctwarn 'backend.run got deleted! - exiting...';
-            _exit(1);
-        }
+    return 0 unless $self->{started};
+    if ($self->file_alive() and $self->raw_alive()) {
+        return 1;
     }
-    return 0;
+    else {
+        bmwqemu::fctwarn("ALARM: backend.run got deleted! - exiting...");
+        _exit(1);
+    }
 }
 
 # new api end
@@ -835,9 +819,7 @@ sub reload_needles {
     # called from testapi::set_var, so read the vars
     bmwqemu::load_vars();
 
-    for my $n (needle->all()) {
-        $n->unregister();
-    }
+    $_->unregister() for needle->all();
     needle::init();
 }
 
