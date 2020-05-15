@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,17 +22,7 @@ use autodie ':all';
 
 use base 'backend::baseclass';
 
-require File::Temp;
-use File::Temp ();
-use Time::HiRes qw(sleep gettimeofday);
-use IO::Select;
-use IO::Socket::UNIX 'SOCK_STREAM';
-use IO::Handle;
-use Data::Dumper;
-use POSIX qw(strftime :sys_wait_h);
-require Carp;
-use Fcntl;
-use bmwqemu qw(fileContent diag save_vars diag);
+use Time::HiRes qw(sleep);
 use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
@@ -103,10 +93,7 @@ sub do_start_vm {
     # It is expected generally that ipmi machine's stability is higher with this mc reset.
     # However there maybe exceptions on machines from different vendors.
     # So keep it for flexibility.
-    if ($bmwqemu::vars{IPMI_BACKEND_MC_RESET}) {
-        $self->do_mc_reset;
-    }
-
+    $self->do_mc_reset if $bmwqemu::vars{IPMI_BACKEND_MC_RESET};
     $self->get_mc_status;
     $self->restart_host;
     $self->truncate_serial_file;
@@ -118,12 +105,8 @@ sub do_start_vm {
 sub do_stop_vm {
     my ($self) = @_;
 
-    if (!$bmwqemu::vars{IPMI_DO_NOT_POWER_OFF}) {
-        $self->ipmitool("chassis power off");
-    }
-    if (defined $testapi::distri->{consoles}->{sol}) {
-        $self->deactivate_console({testapi_console => 'sol'});
-    }
+    $self->ipmitool("chassis power off") unless $bmwqemu::vars{IPMI_DO_NOT_POWER_OFF};
+    $self->deactivate_console({testapi_console => 'sol'}) if defined $testapi::distri->{consoles}->{sol};
     return {};
 }
 
@@ -136,9 +119,7 @@ sub is_shutdown {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    if ($self->check_ssh_serial($fh)) {
-        return 1;
-    }
+    return 1 if $self->check_ssh_serial($fh);
     return $self->SUPER::check_socket($fh, $write);
 }
 

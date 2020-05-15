@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2019 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,6 @@ use base 'backend::virt';
 
 use File::Basename;
 use IO::Scalar;
-use IO::Select;
 use Time::HiRes 'usleep';
 use testapi qw(get_var get_required_var check_var);
 
@@ -335,9 +334,7 @@ sub serial_terminal_log_file {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    if ($self->check_ssh_serial($fh, $write)) {
-        return 1;
-    }
+    return 1 if $self->check_ssh_serial($fh, $write);
     return $self->SUPER::check_socket($fh, $write);
 }
 
