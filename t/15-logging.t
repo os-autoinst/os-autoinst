@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2017-2019 SUSE LLC
+# Copyright (C) 2017-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,63 +20,37 @@
 use strict;
 use warnings;
 use Test::More;
+use Test::Output;
 use bmwqemu;
 use Mojo::File 'tempfile';
 use Data::Dumper;
 
 
-subtest 'Logging to STDERR' => sub {
-
-    # Capture STDERR:
-    # 1- dups the current STDERR to $oldSTDERR. This is used to restore the STDERR later
-    # 2- Closes the current STDERR
-    # 2- Links the STDERR to the variable
-    open(my $oldSTDERR, ">&", STDERR) or die "Can't preserve STDERR\n$!\n";
-    close STDERR;
-    my $output;
-    open STDERR, '>', \$output;
-    ### Testing code here ###
-
-    my $re = qr/Via .*? function/;
-
+sub output_once {
     bmwqemu::diag('Via diag function');
     bmwqemu::fctres('Via fctres function');
     bmwqemu::fctinfo('Via fctinfo function');
     bmwqemu::fctwarn('Via fctwarn function');
     bmwqemu::modstart('Via modstart function');
+}
 
-    my @matches = ($output =~ m/$re/gm);
+subtest 'Logging to STDERR' => sub {
+    my $output = stderr_from(\&output_once);
+    note $output;
+    my @matches = ($output =~ m/Via .*? function/gm);
     ok(@matches == 5, 'All messages logged to STDERR');
     my $i = 0;
     ok($matches[$i++] =~ /$_/, "Logging $_ match!") for ('diag', 'fctres', 'fctinfo', 'fctwarn', 'modstart');
-
-    ### End of the Testing code ###
-    # Close the capture (current stdout) and restore STDOUT (by dupping the old STDOUT);
-    close STDERR;
-    open(STDERR, '>&', $oldSTDERR) or die "Can't dup \$oldSTDERR: $!";
-
-
 };
 
 subtest 'Logging to file' => sub {
-
     my $log_file = tempfile;
     $bmwqemu::logger = Mojo::Log->new(path => $log_file);
-    my $re = qr/Via .*? function/;
-
-    bmwqemu::diag('Via diag function');
-    bmwqemu::fctres('Via fctres function');
-    bmwqemu::fctinfo('Via fctinfo function');
-    bmwqemu::fctwarn('Via fctwarn function');
-    bmwqemu::modstart('Via modstart function');
-
-    my @matches = (Mojo::File->new($log_file)->slurp =~ m/$re/gm);
+    output_once;
+    my @matches = (Mojo::File->new($log_file)->slurp =~ m/Via .*? function/gm);
     ok(@matches == 5, 'All messages logged to file');
     my $i = 0;
     ok($matches[$i++] =~ /$_/, "Logging $_ match!") for ('diag', 'fctres', 'fctinfo', 'fctwarn', 'modstart');
 };
-
-
-
 
 done_testing;

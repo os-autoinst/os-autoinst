@@ -33,6 +33,7 @@ use Mojo::Log;
 use File::Spec::Functions;
 use Exporter 'import';
 use POSIX 'strftime';
+use Term::ANSIColor;
 
 our $VERSION;
 our @EXPORT    = qw(fileContent save_vars);
@@ -69,6 +70,12 @@ our @ovmf_locations = (
 
 our %vars;
 
+sub result_dir { 'testresults' }
+
+sub logger { $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback) }
+
+sub init_logger { logger->path(catfile(result_dir, 'autoinst-log.txt')) unless $direct_output }
+
 sub load_vars {
     my $fn  = "vars.json";
     my $ret = {};
@@ -104,32 +111,10 @@ sub save_vars {
     return;
 }
 
-sub result_dir {
-    return "testresults";
-}
-
 our $gocrbin = "/usr/bin/gocr";
 
 # set from isotovideo during initialization
 our $scriptdir;
-
-sub init_logger {
-    if ($direct_output) {
-        $logger = Mojo::Log->new(level => 'debug');
-    }
-    else {
-        $logger = Mojo::Log->new(level => 'debug', path => catfile(result_dir, 'autoinst-log.txt'));
-    }
-
-    $logger->format(
-        sub {
-            my ($time, $level, @lines) = @_;
-            # Unfortunately $time doesn't have the precision we want. So we need to use Time::HiRes
-            $time = gettimeofday;
-            return sprintf(strftime("[%FT%T.%%03d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
-
-        });
-}
 
 sub init {
     load_vars();
@@ -212,9 +197,9 @@ sub log_format_callback {
 
 sub diag {
     my ($args) = @_;
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
     confess "missing input" unless $_[0];
-    $logger->debug("@_");
+    logger->append(color('white'));
+    logger->debug(@_)->append(color('reset'));
     return;
 }
 
@@ -222,8 +207,8 @@ sub fctres {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
-    $logger->debug(">>> $fname: $text");
+    logger->append(color('green'));
+    logger->debug(">>> $fname: $text")->append(color('reset'));
     return;
 }
 
@@ -231,8 +216,8 @@ sub fctinfo {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
-    $logger->info("::: $fname: $text");
+    logger->append(color('yellow'));
+    logger->info("::: $fname: $text")->append(color('reset'));
     return;
 }
 
@@ -240,14 +225,14 @@ sub fctwarn {
     my ($text, $fname) = @_;
 
     $fname //= (caller(1))[3];
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
-    $logger->warn("!!! $fname: $text");
+    logger->append(color('red'));
+    logger->warn("!!! $fname: $text")->append(color('reset'));
     return;
 }
 
 sub modstart {
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
-    $logger->debug("||| @{[join(' ', @_)]}");
+    logger->append(color('bold blue'));
+    logger->debug("||| @{[join(' ', @_)]}")->append(color('reset'));
     return;
 }
 
@@ -298,8 +283,7 @@ sub log_call {
         }
         $params = join(", ", @result);
     }
-    $logger = Mojo::Log->new(level => 'debug', format => \&log_format_callback) unless $logger;
-    $logger->debug('<<< ' . $fname . "($params)");
+    logger->debug('<<< ' . $fname . "($params)");
     return;
 }
 
