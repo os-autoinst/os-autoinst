@@ -65,6 +65,7 @@ requires 'base';
 requires 'constant';
 requires 'integer';
 requires 'strict';
+requires 'version';
 requires 'warnings';
 
 on 'test' => sub {

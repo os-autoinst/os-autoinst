@@ -110,7 +110,9 @@ QEMU_NO_TABLET;boolean;0;Don't use USB tablet.
 QEMU_VIRTIO_RNG;boolean;0;Enable virtio random number generator
 QEMU_NUMA;boolean;0;Enable NUMA simulation, requires QEMUCPUS to be greater than one
 QEMU_SMBIOS;see qemu -smbios ?;undef;pass this value to qemu -smbios
-QEMU_SOUNDHW;see qemu -soundhw ?;hda;pass this value to qemu -soundhw
+QEMU_SOUNDHW;see qemu -soundhw ?;hda;pass this value to qemu -soundhw (for qemu < 4.2)
+QEMU_AUDIODEV;see qemu -device ?;intel-hda;Audio device to use with audiodev to qemu -device (for qemu >= 4.2)
+QEMU_AUDIOBACKEND;see qemu -audio-help;none;Audio backend to use with audiodev (for qemu >= 4.2)
 QEMU_COMPRESS_LEVEL;integer;6;Sets the compression level used for memory dumps and snapshots. Zero turns compression off and 9 is the maximum level. Generally there is little improvement in compression ratio by increasing the level, but the CPU time can be high on some platforms.
 QEMU_COMPRESS_THREADS;integer;QEMUCPUS;Number of threads used for compressing memory dumps and snapshots.
 QEMU_FATAL_DBUS_CALL;boolean;0;Yield fatal error on failed dbus calls instead of just recording the error and continuing

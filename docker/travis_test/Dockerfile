@@ -117,6 +117,7 @@ RUN zypper in -y -C \
        'perl(constant)' \
        'perl(integer)' \
        'perl(strict)' \
+       'perl(version)' \
        'perl(warnings)' \
    && true
 # AUTODEPS END
