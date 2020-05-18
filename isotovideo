@@ -280,16 +280,25 @@ if ($bmwqemu::vars{SCHEDULE}) {
 }
 my $productdir = $bmwqemu::vars{PRODUCTDIR};
 my $main_path  = File::Spec->catfile($productdir, 'main.pm');
-if (-e $main_path) {
-    unshift @INC, '.';
-    require $main_path;
+try {
+    if (-e $main_path) {
+        unshift @INC, '.';
+        require $main_path;
+    }
+    elsif (!File::Spec->file_name_is_absolute($productdir) && -e File::Spec->catfile($bmwqemu::vars{CASEDIR}, $main_path)) {
+        require File::Spec->catfile($bmwqemu::vars{CASEDIR}, $main_path);
+    }
+    elsif (!$bmwqemu::vars{SCHEDULE}) {
+        die '\'SCHEDULE\' not set and ' . $productdir . '/main.pm not found, need one of both';
+    }
 }
-elsif (!File::Spec->file_name_is_absolute($productdir) && -e File::Spec->catfile($bmwqemu::vars{CASEDIR}, $main_path)) {
-    require File::Spec->catfile($bmwqemu::vars{CASEDIR}, $main_path);
-}
-elsif (!$bmwqemu::vars{SCHEDULE}) {
-    die '\'SCHEDULE\' not set and ' . $productdir . '/main.pm not found, need one of both';
-}
+catch {
+    # record that the exception is caused by the tests themselves before letting it pass
+    my $error_message = $_;
+    bmwqemu::serialize_state(component => 'tests', msg => 'unable to load main.pm, check the log for the cause (e.g. syntax error)');
+    die "$error_message\n";
+};
+
 @INC = @oldINC;
 
 if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {
