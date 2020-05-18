@@ -2,6 +2,7 @@
 
 use strict;
 use warnings;
+use Test::Exception;
 use Test::More;
 use Test::MockModule;
 use Test::MockObject;
@@ -194,17 +195,17 @@ subtest 'SSH utilities' => sub {
 
         is($baseclass->check_ssh_serial(23), 0, 'Return 0 if SSH serial isn\'t connected');
     };
+};
 
-    subtest Run => sub {
-        my $base_state = path('base_state.json');
-        $base_state->remove;
-        my $channel_in;
-        my $channel_out;
-        my $msg;
-        eval { $baseclass->run($channel_in, $channel_out); };
-        eval { $msg = decode_json($base_state->slurp)->{msg}; };
-        like($msg, qr/fdopen Invalid argument/, 'State file contains error message');
-    };
+subtest 'running test' => sub {
+    my $base_state = path(bmwqemu::STATE_FILE);
+    $base_state->remove;
+    throws_ok { $baseclass->run(my $channel_in, my $channel_out) } qr/fdopen Invalid argument/, 'error logged';
+    my $state = decode_json($base_state->slurp);
+    if (is(ref $state, 'HASH', 'state file contains object')) {
+        is($state->{component}, 'backend', 'state file contains component message');
+        like($state->{msg}, qr/fdopen Invalid argument/, 'state file contains error message');
+    }
 };
 
 done_testing;
