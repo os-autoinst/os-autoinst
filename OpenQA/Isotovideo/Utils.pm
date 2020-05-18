@@ -21,8 +21,9 @@ use Exporter 'import';
 use File::Spec;
 use Cwd;
 use bmwqemu 'diag';
+use Try::Tiny;
 
-our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec);
+our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec load_test_schedule);
 
 sub calculate_git_hash {
     my ($git_repo_dir) = @_;
@@ -117,6 +118,52 @@ sub checkout_git_refspec {
         die "Failed to checkout '$refspec' in '$dir'\n" unless $? == 0;
     }
     calculate_git_hash($dir);
+}
+
+=head2 load_test_schedule
+
+Loads the test schedule (main.pm) or particular test modules if the `SCHEDULE` variable is
+present.
+
+=cut
+
+sub load_test_schedule {
+    # add lib of the test distributions - but only for main.pm not to pollute
+    # further dependencies (the tests get it through autotest)
+    my @oldINC = @INC;
+    unshift @INC, $bmwqemu::vars{CASEDIR} . '/lib';
+    if ($bmwqemu::vars{SCHEDULE}) {
+        diag 'Enforced test schedule by \'SCHEDULE\' variable in action';
+        $bmwqemu::vars{INCLUDE_MODULES} = undef;
+        autotest::loadtest($_ . '.pm') foreach split(',', $bmwqemu::vars{SCHEDULE});
+        $bmwqemu::vars{INCLUDE_MODULES} = 'none';
+    }
+    my $productdir = $bmwqemu::vars{PRODUCTDIR};
+    my $main_path  = File::Spec->catfile($productdir, 'main.pm');
+    try {
+        if (-e $main_path) {
+            unshift @INC, '.';
+            require $main_path;
+        }
+        elsif (!File::Spec->file_name_is_absolute($productdir) && -e File::Spec->catfile($bmwqemu::vars{CASEDIR}, $main_path)) {
+            require File::Spec->catfile($bmwqemu::vars{CASEDIR}, $main_path);
+        }
+        elsif (!$bmwqemu::vars{SCHEDULE}) {
+            die '\'SCHEDULE\' not set and ' . $productdir . '/main.pm not found, need one of both';
+        }
+    }
+    catch {
+        # record that the exception is caused by the tests themselves before letting it pass
+        my $error_message = $_;
+        bmwqemu::serialize_state(component => 'tests', msg => 'unable to load main.pm, check the log for the cause (e.g. syntax error)');
+        die "$error_message\n";
+    };
+    @INC = @oldINC;
+
+    if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {
+        diag 'Early exit has been requested with _EXIT_AFTER_SCHEDULE. Only evaluating test schedule.';
+        exit 0;
+    }
 }
 
 1;
