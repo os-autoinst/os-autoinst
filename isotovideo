@@ -265,10 +265,6 @@ bmwqemu::ensure_valid_vars();
 
 $bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
 
-# start the command fork before we get into the backend, the command child
-# is not supposed to talk to the backend directly
-($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
-
 # set a default distribution if the tests don't have one
 $testapi::distri = distribution->new;
 
@@ -300,6 +296,11 @@ if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {
     diag 'Early exit has been requested with _EXIT_AFTER_SCHEDULE. Only evaluating test schedule.';
     exit 0;
 }
+
+# start the command fork before we get into the backend, the command child
+# is not supposed to talk to the backend directly
+($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
+
 testapi::init();
 needle::init();
 bmwqemu::save_vars();
