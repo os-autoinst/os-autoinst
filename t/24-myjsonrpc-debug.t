@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2019 SUSE LLC
+# Copyright (c) 2019-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,9 +28,7 @@ use Test::More;
 use Test::Warnings 'warnings';
 
 no warnings 'redefine';
-sub bmwqemu::diag {
-    warn $_[0];
-}
+sub bmwqemu::diag { warn $_[0] }
 
 
 my ($child, $isotovideo);

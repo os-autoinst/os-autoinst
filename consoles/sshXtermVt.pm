@@ -44,7 +44,7 @@ sub activate {
 
     # Wait that ssh server on SUT is live on network
     if (!$self->wait_for_ssh_port($hostname, timeout => (get_var('SSH_XTERM_WAIT_SUT_ALIVE_TIMEOUT') // 120))) {
-        bmwqemu::diag("$hostname does not seems to have an active SSH server. Continuing anyway.\n");
+        bmwqemu::diag("$hostname does not seems to have an active SSH server. Continuing anyway.");
     }
     $self->callxterm($sshcommand, "ssh:$testapi_console");
 
@@ -74,11 +74,11 @@ sub wait_for_ssh_port {
 
     bmwqemu::diag("Wait for SSH on host $hostname (timeout: $args{timeout})");
 
-    $args{timeout} = 1 unless ($args{timeout} > 0);
+    $args{timeout} = 1 unless $args{timeout} > 0;
     my $endtime = time() + $args{timeout};
     while (time() < $endtime) {
         my $sock = IO::Socket::INET->new(PeerAddr => $hostname, PeerPort => $args{port}, Proto => 'tcp', Timeout => 1);
-        return 1 if (defined $sock);
+        return 1 if defined $sock;
         sleep 1;
     }
     return 0;

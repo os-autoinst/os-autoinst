@@ -189,9 +189,6 @@ sub _handshake_protocol_version {
 
     my $socket = $self->socket;
     $socket->read(my $protocol_version, 12) || die 'unexpected end of data';
-
-    #bmwqemu::diag "prot: $protocol_version";
-
     my $protocol_pattern = qr/\A RFB [ ] (\d{3}\.\d{3}) \s* \z/xms;
     if ($protocol_version !~ m/$protocol_pattern/xms) {
         die 'Malformed RFB protocol: ' . $protocol_version;
@@ -928,11 +925,7 @@ sub _receive_update {
     my $socket               = $self->socket;
     my $hlen                 = $socket->read(my $header, 3) || die 'unexpected end of data';
     my $number_of_rectangles = unpack('xn', $header);
-
-    #bmwqemu::diag "NOR $number_of_rectangles";
-
-    my $depth = $self->depth;
-
+    my $depth                = $self->depth;
     my $do_endian_conversion = $self->_do_endian_conversion;
 
     foreach (my $i = 0; $i < $number_of_rectangles; ++$i) {
@@ -941,8 +934,6 @@ sub _receive_update {
 
         # unsigned -> signed conversion
         $encoding_type = unpack 'l', pack 'L', $encoding_type;
-
-        #bmwqemu::diag "UP $x,$y $w x $h $encoding_type";
 
         # work around buggy addrlink VNC
         next if $encoding_type > 0 && $w * $h == 0;
@@ -1033,9 +1024,7 @@ sub _receive_zrle_encoding {
         }
         $read_len += $len;
     }
-    if (time - $stime > 0.1) {
-        diag sprintf("read $data_len in %fs\n", time - $stime);
-    }
+    diag sprintf("read $data_len in %fs\n", time - $stime) if (time - $stime > 0.1);
     # the zlib header is only sent once per session
     $self->{_inflater} ||= Compress::Raw::Zlib::Inflate->new;
     my $out;

@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,9 +38,7 @@ sub callxterm {
     die('Missing "icewm"')        unless which('icewm');
     die('Missing "xterm"')        unless which('xterm');
     eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command' & echo \"xterm PID is \$!\""); };
-    if (my $E = $@) {
-        die "cant' start xterm on $display (err: $! retval: $?)";
-    }
+    die "cant' start xterm on $display (err: $! retval: $?)" if $@;
 }
 
 sub fullscreen {
@@ -86,7 +84,6 @@ sub activate {
         exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");
     }
     close($s);
-    #print "$self->{testapi_console} -> $port\n";
 
     $self->connect_remote(
         {

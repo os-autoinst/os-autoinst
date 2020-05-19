@@ -45,18 +45,14 @@ sub new {
     return $self;
 }
 
-sub screen {
-    my ($self) = @_;
-    return $self->{screen};
-}
+sub screen { shift->{screen} }
 
 sub disable {
     my ($self) = @_;
 
-    if (my $ssh = $self->{ssh}) {
-        $ssh->disconnect;
-        $self->{ssh} = $self->{chan} = $self->{screen} = undef;
-    }
+    return unless $self->{ssh};
+    $self->{ssh}->disconnect;
+    $self->{ssh} = $self->{chan} = $self->{screen} = undef;
     return;
 }
 
@@ -73,8 +69,6 @@ sub activate {
     return;
 }
 
-sub is_serial_terminal {
-    return 1;
-}
+sub is_serial_terminal { 1 }
 
 1;

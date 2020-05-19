@@ -64,9 +64,7 @@ sub kill_ssh {
     $self->backend->stop_ssh_serial;
 }
 
-sub screen {
-    # we have no screen
-    return;
-}
+# we have no screen
+sub screen { }
 
 1;
