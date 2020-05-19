@@ -191,7 +191,7 @@ sub configure_blockdevs {
             my ($name, $path, $ext) = fileparse($backing_file, ".xz");
             if ($ext =~ qr /.xz/) {
                 die 'unxz was not found in PATH' unless defined which('unxz');
-                bmwqemu::diag("Extract XZ compressed file");
+                bmwqemu::diag("Extracting XZ compressed file");
                 runcmd('nice', 'ionice', 'unxz', '-k', '-f', $backing_file);
                 $backing_file = $path . $name;
             }
