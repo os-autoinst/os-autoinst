@@ -1,4 +1,4 @@
-#!BuildTag: openqa_dev
+#!BuildTag: os-autoinst_dev
 FROM opensuse/leap:15.1
 
 # Define environment variable
