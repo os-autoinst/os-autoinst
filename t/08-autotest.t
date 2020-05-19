@@ -21,18 +21,16 @@ my @sent;
 
 
 like(exception { autotest::runalltests }, qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first');
-stderr_like(
-    sub {
-        like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest.*does not match required pattern/,
-            'loadtest catches incorrect test script paths');
-    },
-    qr/loadtest needs a script below.*is not/,
-    'loadtest outputs on stderr'
-);
+stderr_like {
+    like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest.*does not match required pattern/,
+        'loadtest catches incorrect test script paths')
+}
+qr/loadtest needs a script below.*is not/,
+  'loadtest outputs on stderr';
 
 sub loadtest {
     my ($test, $args) = @_;
-    stderr_like(sub { autotest::loadtest "tests/$test.pm" }, qr@scheduling $test#?[0-9]* tests/$test.pm|$test already scheduled@, \$args);
+    stderr_like { autotest::loadtest "tests/$test.pm" } qr@scheduling $test#?[0-9]* tests/$test.pm|$test already scheduled@, \$args;
 }
 
 sub fake_send {
@@ -66,7 +64,7 @@ my $completed;
 # we have to define this to *something* so the `close` in run_all
 # doesn't crash us
 $autotest::isotovideo = 'foo';
-stderr_like(sub { autotest::run_all }, qr/ERROR: no tests loaded/, 'run_all outputs status on stderr');
+stderr_like { autotest::run_all } qr/ERROR: no tests loaded/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died,      1, 'run_all with no tests should catch runalltests dying');
 is($completed, 0, 'run_all with no tests should not complete');
@@ -81,7 +79,7 @@ is($autotest::tests{'tests-start1'}->{name}, 'start#1', 'handle duplicate tests'
 is($autotest::tests{'tests-start1'}->{$_}, $autotest::tests{'tests-start'}->{$_}, "duplicate tests point to the same $_")
   for qw(script fullname category class);
 
-stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
+stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died,      0, 'start+next+start should not die');
 is($completed, 1, 'start+next+start should complete');
@@ -96,7 +94,7 @@ subtest 'test always_rollback flag' => sub {
     my $reverts_done = 0;
     $mock_autotest->redefine(load_snapshot => sub { $reverts_done++; });
 
-    stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
+    stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
     ($died, $completed) = get_tests_done;
     is($died,         0, 'start+next+start should not die when always_rollback flag is set');
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
@@ -110,7 +108,7 @@ subtest 'test always_rollback flag' => sub {
     $reverts_done = 0;
     $mock_autotest->redefine(load_snapshot => sub { $reverts_done++; });
 
-    stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
+    stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
     ($died, $completed) = get_tests_done;
     is($died,         0, 'start+next+start should not die when always_rollback flag is set');
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
@@ -123,7 +121,7 @@ subtest 'test always_rollback flag' => sub {
     $mock_autotest->redefine(query_isotovideo => sub { return 1; });
     $reverts_done = 0;
 
-    stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
+    stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
     ($died, $completed) = get_tests_done;
     is($died,         0, 'start+next+start should not die when always_rollback flag is set');
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
@@ -133,7 +131,7 @@ subtest 'test always_rollback flag' => sub {
 
     # Test with snapshot available
     $mock_basetest->redefine(test_flags => sub { return {always_rollback => 1, milestone => 1}; });
-    stderr_like(sub { autotest::run_all }, qr/finished/, 'run_all outputs status on stderr');
+    stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
     ($died, $completed) = get_tests_done;
     is($died,         0, 'start+next+start should not die when always_rollback flag is set');
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
@@ -147,25 +145,18 @@ subtest 'test always_rollback flag' => sub {
 };
 
 my $targs = OpenQA::Test::RunArgs->new();
-stderr_like(
-    sub {
-        autotest::loadtest("tests/run_args.pm", name => 'alt_name', run_args => $targs);
-    },
-    qr@scheduling alt_name tests/run_args.pm@
-);
-stderr_like(sub { autotest::run_all }, qr/finished alt_name tests/, 'dynamic scheduled alt_name shows up');
+stderr_like {
+    autotest::loadtest("tests/run_args.pm", name => 'alt_name', run_args => $targs)
+}
+qr@scheduling alt_name tests/run_args.pm@;
+stderr_like { autotest::run_all } qr/finished alt_name tests/, 'dynamic scheduled alt_name shows up';
 ($died, $completed) = get_tests_done;
 is($died,      0, 'run_args test should not die');
 is($completed, 1, 'run_args test should complete');
 @sent = [];
 
-stderr_like(
-    sub {
-        autotest::loadtest("tests/run_args.pm", name => 'alt_name');
-    },
-    qr@scheduling alt_name tests/run_args.pm@
-);
-stderr_like(sub { autotest::run_all }, qr/Snapshots are not supported/, 'run_all outputs status on stderr');
+stderr_like { autotest::loadtest("tests/run_args.pm", name => 'alt_name') } qr@scheduling alt_name tests/run_args.pm@;
+stderr_like { autotest::run_all } qr/Snapshots are not supported/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died,      0, 'run_args test should not die if there is no run_args');
 is($completed, 0, 'run_args test should not complete if there is no run_args');
@@ -187,7 +178,7 @@ $mock_autotest->redefine(query_isotovideo => sub {
         return 1;
 });
 
-stderr_like(sub { autotest::run_all }, qr/oh noes/, 'run_all outputs status on stderr');
+stderr_like { autotest::run_all } qr/oh noes/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died,      0, 'non-fatal test failure should not die');
 is($completed, 1, 'non-fatal test failure should complete');
@@ -195,7 +186,7 @@ is($completed, 1, 'non-fatal test failure should complete');
 
 # now let's add an ignore_failure test
 loadtest 'ignore_failure';
-stderr_like(sub { autotest::run_all }, qr/oh noes/, 'run_all outputs status on stderr');
+stderr_like { autotest::run_all } qr/oh noes/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died,      0, 'unimportant test failure should not die');
 is($completed, 1, 'unimportant test failure should complete');
@@ -210,7 +201,7 @@ $mock_basetest->redefine(search_for_expected_serial_failures => sub {
         die "Got serial hard failure";
 });
 
-stderr_like(sub { autotest::run_all }, qr/Snapshots are supported/, 'run_all outputs status on stderr');
+stderr_like { autotest::run_all } qr/Snapshots are supported/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died,      0, 'fatal serial failure test should not die');
 is($completed, 0, 'fatal serial failure test should not complete');
@@ -224,7 +215,7 @@ $mock_basetest->redefine(search_for_expected_serial_failures => sub {
         die "Got serial hard failure";
 });
 
-stderr_like(sub { autotest::run_all }, qr/Snapshots are supported/, 'run_all outputs status on stderr');
+stderr_like { autotest::run_all } qr/Snapshots are supported/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died,      0, 'non-fatal serial failure test should not die');
 is($completed, 1, 'non-fatal serial failure test should complete');
@@ -258,7 +249,7 @@ $mock_basetest->redefine(runtest => sub { die "oh noes!\n"; });
 
 # now let's add a fatal test
 loadtest 'fatal';
-stderr_like(sub { autotest::run_all }, qr/oh noes/, 'run_all outputs status on stderr');
+stderr_like { autotest::run_all } qr/oh noes/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died,      0, 'fatal test failure should not die');
 is($completed, 0, 'fatal test failure should not complete');
@@ -303,8 +294,7 @@ subtest 'test scheduling test modules at test runtime' => sub {
     ok(!defined($json_data{$json_filename}),
         "loadtest shouldn't create test_order.json before tests started");
 
-    stderr_like(sub { autotest::run_all }, qr#scheduling next tests/next\.pm#,
-        'new test module gets scheduled at runtime');
+    stderr_like { autotest::run_all } qr#scheduling next tests/next\.pm#, 'new test module gets scheduled at runtime';
     is(scalar @autotest::testorder, 2, "loadtest adds new modules at runtime");
     is_deeply($json_data{$json_filename}, $testorder,
         "loadtest updates test_order.json at test runtime");

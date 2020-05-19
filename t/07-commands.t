@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2016-2019 SUSE LLC
+# Copyright (c) 2016-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,7 +56,7 @@ $bmwqemu::vars{CASEDIR}  = $data_dir;
 
 # now this is a game of luck
 my ($cserver, $cfd);
-combined_like(sub { ($cserver, $cfd) = commands::start_server($mojoport); }, qr//, 'command server started');
+combined_like { ($cserver, $cfd) = commands::start_server($mojoport); } qr//, 'command server started';
 
 my $spid = fork();
 if ($spid == 0) {
@@ -178,6 +178,6 @@ subtest 'data api' => sub {
 
 kill TERM => $spid;
 waitpid($spid, 0);
-combined_like(sub { eval { $cserver->stop() } }, qr/commands process exited/, 'commands server stopped');
+combined_like { eval { $cserver->stop() } } qr/commands process exited/, 'commands server stopped';
 
 done_testing;
