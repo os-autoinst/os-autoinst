@@ -1,4 +1,4 @@
-# Copyright © 2016 SUSE LLC
+# Copyright © 2016-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ sub connect_remote {
     $chan->blocking(0);
     $chan->pty(1);
     if (!$chan->exec('smart_agetty hvc0')) {
-        bmwqemu::diag('Unable to execute "smart_agetty hvc0" at this point: ' . ($ttyconn->error // 'unknown SSH error'));
+        bmwqemu::fctwarn('Unable to execute "smart_agetty hvc0" at this point: ' . ($ttyconn->error // 'unknown SSH error'));
     }
 
     # Save objects to prevent unexpected closings
@@ -52,7 +52,7 @@ sub connect_remote {
     bmwqemu::diag('ssh iucvconn: grabbing serial console');
     $ssh->blocking(1);
     if (!$serialchan->exec("iucvconn $zvmguest lnxhvc0")) {
-        bmwqemu::diag('ssh iucvconn: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
+        bmwqemu::fctwarn('ssh iucvconn: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
     }
     $ssh->blocking(0);
 }

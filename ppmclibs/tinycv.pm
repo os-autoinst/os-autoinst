@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ package tinycv;
 use strict;
 use warnings;
 
-use bmwqemu;
+use bmwqemu 'fctwarn';
 use File::Basename;
 use Math::Complex 'sqrt';
 require Exporter;
@@ -70,7 +70,7 @@ sub search_ {
 
     my $needle_image = $needle->get_image;
     unless ($needle_image) {
-        bmwqemu::diag("skipping $needle->{name}: missing PNG");
+        bmwqemu::fctwarn("skipping $needle->{name}: missing PNG");
         return undef;
     }
     $stopwatch->lap("**++ search__: get image") if $stopwatch;

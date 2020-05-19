@@ -197,7 +197,7 @@ sub load_test_schedule {
     my @oldINC = @INC;
     unshift @INC, $bmwqemu::vars{CASEDIR} . '/lib';
     if ($bmwqemu::vars{SCHEDULE}) {
-        bmwqemu::diag 'Enforced test schedule by \'SCHEDULE\' variable in action';
+        bmwqemu::fctinfo 'Enforced test schedule by \'SCHEDULE\' variable in action';
         $bmwqemu::vars{INCLUDE_MODULES} = undef;
         autotest::loadtest($_ . '.pm') foreach split(',', $bmwqemu::vars{SCHEDULE});
         $bmwqemu::vars{INCLUDE_MODULES} = 'none';
@@ -225,7 +225,7 @@ sub load_test_schedule {
     @INC = @oldINC;
 
     if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {
-        bmwqemu::diag 'Early exit has been requested with _EXIT_AFTER_SCHEDULE. Only evaluating test schedule.';
+        bmwqemu::fctinfo 'Early exit has been requested with _EXIT_AFTER_SCHEDULE. Only evaluating test schedule.';
         exit 0;
     }
 }

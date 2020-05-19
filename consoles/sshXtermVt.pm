@@ -61,7 +61,7 @@ sub activate {
         bmwqemu::diag('ssh xterm vt: grabbing serial console');
         $ssh->blocking(1);
         if (!$serialchan->exec($serial)) {
-            bmwqemu::diag('ssh xterm vt: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
+            bmwqemu::fctwarn('ssh xterm vt: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
         }
         $ssh->blocking(0);
     }
