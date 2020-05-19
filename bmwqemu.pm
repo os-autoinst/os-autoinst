@@ -25,11 +25,12 @@ use IO::Socket;
 use Fcntl ':flock';
 use POSIX;
 use Carp;
-use Mojo::JSON;    # booleans
+use Mojo::JSON qw(encode_json);
 use Cpanel::JSON::XS ();
 use File::Path 'remove_tree';
 use Data::Dumper;
 use Mojo::Log;
+use Mojo::File;
 use File::Spec::Functions;
 use Exporter 'import';
 use POSIX 'strftime';
@@ -75,6 +76,14 @@ sub result_dir { 'testresults' }
 sub logger { $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback) }
 
 sub init_logger { logger->path(catfile(result_dir, 'autoinst-log.txt')) unless $direct_output }
+
+use constant STATE_FILE => 'base_state.json';
+
+# Write a JSON representation of the process termination to disk
+sub serialize_state {
+    return undef if -e STATE_FILE;
+    Mojo::File->new(STATE_FILE)->spurt(encode_json({@_}));
+}
 
 sub load_vars {
     my $fn  = "vars.json";

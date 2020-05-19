@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2016 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -115,6 +115,7 @@ sub loadtest {
     if ($@) {
         my $msg = "error on $script: $@";
         bmwqemu::diag($msg);
+        bmwqemu::serialize_state(component => 'tests', msg => "unable to load $script, check the log for the cause (e.g. syntax error)");
         die $msg;
     }
     $test             = $name->new($category);
