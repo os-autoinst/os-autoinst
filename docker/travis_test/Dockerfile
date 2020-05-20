@@ -8,14 +8,16 @@ ENV LANG en_US.UTF-8
 RUN zypper ar -f -G 'http://download.opensuse.org/repositories/devel:/openQA:/Leap:/15.1/openSUSE_Leap_15.1' devel_openqa
 
 RUN zypper in -y -C \
-       glibc-i18ndata \
-       glibc-locale \
+       aspell-en \
+       aspell-spell \
        automake \
        curl \
        fftw3-devel \
        gcc \
        gcc-c++ \
        git \
+       glibc-i18ndata \
+       glibc-locale \
        gmp-devel \
        gzip \
        libexpat-devel \
@@ -28,114 +30,49 @@ RUN zypper in -y -C \
        make \
        opencv-devel \
        patch \
-       postgresql-devel \
-       qemu \
-       qemu-tools \
-       qemu-kvm \
-       tar \
-       optipng \
-       python3-base \
-       python3-requests \
-       python3-future \
-       sqlite3 \
-       postgresql-server \
-       which \
-       chromedriver \
-       xorg-x11-fonts \
-       'rubygem(sass)' \
        perl \
+       qemu \
+       qemu-kvm \
+       qemu-tools \
        ShellCheck \
-       python3-setuptools \
-       python3-yamllint \
        sudo \
-       'perl(App::cpanminus)' \
+       systemd-sysvinit \
+       systemd libudev1 tack \
+       tar \
+       which \
+       xorg-x11-fonts \
        'perl(Archive::Extract)' \
-       'perl(BSD::Resource)' \
-       'perl(CSS::Minifier::XS)' \
-       'perl(Carp::Always)' \
-       'perl(Class::Accessor::Fast)' \
-       'perl(Config)' \
-       'perl(Config::IniFiles)' \
-       'perl(Config::Tiny)' \
+       'perl(Class::Accessor)' \
        'perl(Cpanel::JSON::XS)' \
        'perl(Crypt::DES)' \
-       'perl(Cwd)' \
-       'perl(DBD::Pg)' \
-       'perl(DBD::SQLite)' \
-       'perl(DBIx::Class)' \
-       'perl(DBIx::Class::DeploymentHandler)' \
-       'perl(DBIx::Class::DynamicDefault)' \
-       'perl(DBIx::Class::OptimisticLocking)' \
-       'perl(DBIx::Class::Schema::Config)' \
-       'perl(Data::Dump)' \
-       'perl(Data::Dumper)' \
-       'perl(Digest::MD5) >= 2.55' \
-       'perl(Data::OptList)' \
-       'perl(DateTime::Format::Pg)' \
-       'perl(DateTime::Format::SQLite)' \
        'perl(Devel::Cover)' \
        'perl(Devel::Cover::Report::Codecov)' \
-       'perl(ExtUtils::MakeMaker) >= 7.12' \
        'perl(Exception::Class)' \
-       'perl(File::Copy::Recursive)' \
        'perl(File::Touch)' \
        'perl(IO::Scalar)' \
-       'perl(IO::Socket::SSL)' \
        'perl(IPC::Run)' \
        'perl(IPC::System::Simple)' \
-       'perl(JSON::XS)' \
-       'perl(JavaScript::Minifier::XS)' \
-       'perl(LWP::Protocol::https)' \
-       'perl(Minion) >= 10.0' \
-       'perl(Module::CPANfile)' \
-       'perl(Module::Pluggable)' \
        'perl(Mojo::IOLoop::ReadWriteProcess)' \
-       'perl(Mojo::Pg)' \
-       'perl(Mojo::RabbitMQ::Client)' \
-       'perl(Mojo::SQLite)' \
-       'perl(Minion::Backend::SQLite)' \
-       'perl(Mojolicious)' \
-       'perl(Mojolicious::Plugin::AssetPack)' \
-       'perl(Mojolicious::Plugin::RenderFile)' \
-       'perl(JSON::Validator)' \
-       'perl(YAML::PP) >= 0.020' \
-       'perl(YAML::XS) >= 0.67' \
-       'perl(Net::OpenID::Consumer)' \
-       'perl(Net::SNMP)' \
+       'perl(Mojo::JSON)' \
+       'perl(Net::DBus)' \
        'perl(Net::SSH2)' \
        'perl(Perl::Critic)' \
        'perl(Perl::Critic::Freenode)' \
-       'perl(Perl::Tidy)' \
-       'perl(Pod::POM)' \
        'perl(Pod::Coverage)' \
-       'perl(Pod::Spell)' \
-       'perl(SQL::SplitStatement)' \
-       'perl(SQL::Translator)' \
-       'perl(Selenium::Remote::Driver)' \
        'perl(Socket::MsgHdr)' \
-       'perl(Sort::Versions)' \
-       'perl(Test::Compile)' \
-       'perl(Test::Strict)' \
+       'perl(Test::Exception)' \
        'perl(Test::Fatal)' \
-       'perl(Test::Pod)' \
-       'perl(Test::Mock::Time)' \
        'perl(Test::MockModule)' \
        'perl(Test::MockObject)' \
+       'perl(Test::Mock::Time)' \
        'perl(Test::Output)' \
-       'perl(Socket::MsgHdr)' \
+       'perl(Test::Pod)' \
+       'perl(Test::Strict)' \
        'perl(Test::Warnings)' \
-       'perl(Text::Diff)' \
-       'perl(CommonMark)' \
-       'perl(Time::ParseDate)' \
-       'perl(XSLoader) >= 0.24' \
+       'perl(Try::Tiny)' \
+       'perl(XML::LibXML)' \
        'perl(XML::SemanticDiff)' \
-       perl-Archive-Extract \
-       perl-Test-Simple \
-       'perl(aliased)' \
-       aspell-spell \
-       aspell-en \
-       systemd-sysvinit \
-       systemd libudev1 tack
+  && true
 
 VOLUME ["/sys/fs/cgroup", "/run"]
 
