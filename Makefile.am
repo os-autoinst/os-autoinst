@@ -307,4 +307,4 @@ docker-test:
 
 .PHONY: update-deps
 update-deps:
-	./tools/update-deps --specfile dist/rpm/os-autoinst.spec
+	./tools/update-deps --specfile dist/rpm/os-autoinst.spec --dockerfile docker/travis_test/Dockerfile
