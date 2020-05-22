@@ -72,6 +72,7 @@ RUN zypper in -y -C \
        'perl(Try::Tiny)' \
        'perl(XML::LibXML)' \
        'perl(XML::SemanticDiff)' \
+       'perl(YAML::PP)' \
   && true
 
 VOLUME ["/sys/fs/cgroup", "/run"]
