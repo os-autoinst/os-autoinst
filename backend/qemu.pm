@@ -255,7 +255,7 @@ sub _wait_for_migrate {
         if ($execution_time > $max_execution_time) {
             # migrate_cancel returns an empty hash, so there is no need to check.
             $rsp = $self->handle_qmp_command({execute => "migrate_cancel"});
-            die "Migrate to file failed, it has been running for more than $max_execution_time";
+            die "Migrate to file failed, it has been running for more than $max_execution_time seconds";
         }
 
     } until ($rsp->{return}->{status} eq "completed");
