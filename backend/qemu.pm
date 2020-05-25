@@ -219,9 +219,7 @@ sub _wait_while_status_is {
     my $i   = 0;
     while (($rsp->{return}->{status} // '') =~ $status) {
         $i += 1;
-        if ($i > $timeout) {
-            die $fail_msg . "; QEMU status is " . $rsp->{return}->{status};
-        }
+        die "$fail_msg; QEMU status is $rsp->{return}->{status}" if $i > $timeout;
         sleep(1);
         $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
     }
@@ -237,28 +235,24 @@ sub _wait_for_migrate {
     my $rsp;
 
     do {
-        #We want to wait a decent amount of time, a file of 1GB will be
+        # We want to wait a decent amount of time, a file of 1GB will be
         # migrated in about 40secs with an ssd drive. and no heavy load.
         sleep 0.5;
 
         $execution_time = gettimeofday - $migration_starttime;
-        $rsp            = $self->handle_qmp_command({execute => "query-migrate"},
-            fatal => 1);
-
-        if ($rsp->{return}->{status} eq "failed") {
-            die "Migrate to file failed";
-        }
+        $rsp            = $self->handle_qmp_command({execute => 'query-migrate'}, fatal => 1);
+        die 'Migrate to file failed' if $rsp->{return}->{status} eq 'failed';
 
         diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
         diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
 
         if ($execution_time > $max_execution_time) {
             # migrate_cancel returns an empty hash, so there is no need to check.
-            $rsp = $self->handle_qmp_command({execute => "migrate_cancel"});
-            die "Migrate to file failed, it has been running for more than $max_execution_time";
+            $rsp = $self->handle_qmp_command({execute => 'migrate_cancel'});
+            die "Migrate to file failed, it has been running for more than $max_execution_time seconds";
         }
 
-    } until ($rsp->{return}->{status} eq "completed");
+    } until ($rsp->{return}->{status} eq 'completed');
 
     # Avoid race condition where QEMU allows us to start the VM (set state to
     # running) then tries to transition to post-migarte which fails
