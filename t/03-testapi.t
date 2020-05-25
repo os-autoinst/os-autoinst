@@ -549,6 +549,12 @@ subtest 'wait_still_screen & assert_still_screen' => sub {
         'assert_still_screen forwards arguments to wait_still_screen');
 };
 
+subtest 'send_key with wait_still_screen' => sub {
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->redefine(wait_still_screen => sub { die "wait_still_screen(@_)" });
+    like(exception { send_key 'ret', wait_still_screen => 2 }, qr/wait_still_screen\(stilltime 2\)/, 'wait_still_screen called by send_key');
+};
+
 subtest 'set console tty and other args' => sub {
     # ensure previously emitted commands are cleared
     $cmds = ();

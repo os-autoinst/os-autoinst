@@ -1279,7 +1279,7 @@ sub hashed_string {
 
 =head2 send_key
 
-  send_key($key [, wait_screen_change => $wait_screen_change]);
+  send_key($key [, wait_screen_change => <num> ] [, wait_still_screen => <num> ]);
 
 Send one C<$key> to SUT keyboard input. Waits for the screen to change when
 C<$wait_screen_change> is true.
@@ -1304,6 +1304,8 @@ sub send_key {
     else {
         query_isotovideo('backend_send_key', {key => $key});
     }
+    my $stilltime = $args{wait_still_screen} // 0;
+    wait_still_screen stilltime => $stilltime if $stilltime;
 }
 
 =head2 hold_key
