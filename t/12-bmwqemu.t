@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2017-2019 SUSE LLC
+# Copyright (C) 2017-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -71,7 +71,7 @@ subtest 'update_line_number' => sub {
     bmwqemu::init_logger();
     ok !bmwqemu::update_line_number(), 'update_line_number needs current_test defined';
     $autotest::current_test = {script => 'my/module.pm'};
-    stderr_like(sub { bmwqemu::update_line_number() }, qr{bmwqemu.t.*called.*subtest}, 'update_line_number identifies caller scope');
+    stderr_like { bmwqemu::update_line_number() } qr{bmwqemu.t.*called.*subtest}, 'update_line_number identifies caller scope';
 };
 
 subtest 'CASEDIR is mandatory' => sub {

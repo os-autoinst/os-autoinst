@@ -92,13 +92,9 @@ subtest 'add relevant downloads' => sub {
     );
 
     # actually add the downloads
-    stderr_like(
-        sub {
-            $downloader->add_relevant_downloads(\@new_needles);
-        },
-        qr/.*skipping downloading new needle: $needles_dir\/foo\.png seems already up-to-date.*/,
-        'skipped downloads logged'
-    );
+    stderr_like { $downloader->add_relevant_downloads(\@new_needles) }
+    qr/.*skipping downloading new needle: $needles_dir\/foo\.png seems already up-to-date.*/,
+      'skipped downloads logged';
     is_deeply($downloader->files_to_download, \@expected_downloads, 'downloads added')
       or diag explain $downloader->files_to_download;
 
@@ -113,13 +109,9 @@ subtest 'add relevant downloads' => sub {
 subtest 'download added URLs' => sub {
     is_deeply(\@queried_urls, [], 'no URLs queried so far');
 
-    stderr_like(
-        sub {
-            $downloader->download();
-        },
-        qr/.*download new needle.*\n.*(failed to download.*server returned 404|internal error occurred).*/,
-        'errors logged'
-    );
+    stderr_like { $downloader->download() }
+    qr/.*download new needle.*\n.*(failed to download.*server returned 404|internal error occurred).*/,
+      'errors logged';
 
     is_deeply(\@queried_urls, [
             'http://openqa/needles/1/json',

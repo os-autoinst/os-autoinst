@@ -33,7 +33,7 @@ throws_ok(
 
 sub needle_init {
     my $ret;
-    stderr_like sub { $ret = needle::init }, qr/loaded.*needles/, 'log output for needle init';
+    stderr_like { $ret = needle::init } qr/loaded.*needles/, 'log output for needle init';
     return $ret;
 }
 
@@ -93,22 +93,20 @@ subtest 'handle failure to load image' => sub {
     ok(my $image = $needle_with_png->get_image, 'image returned');
     my $needle_without_png  = needle->new('console.ref.json');
     my $missing_needle_path = $needle_without_png->{png} .= '.missing.png';
-    stderr_like sub {
-        is($needle_without_png->get_image, undef, 'get_image returns undef if no image present');
-    }, qr/Could not open image/, 'log output for missing image';
+    stderr_like {
+        is($needle_without_png->get_image, undef, 'get_image returns undef if no image present')
+    } qr/Could not open image/, 'log output for missing image';
 
-    stderr_like(
-        sub {
-            my ($best_candidate, $candidates) = $image->search([$needle_without_png, $needle_with_png]);
-            ok($best_candidate, 'has best candidate');
-            is($best_candidate->{needle}, $needle_with_png, 'needle with png is best candidate')
-              or diag explain $best_candidate;
-            is_deeply($candidates, [], 'missing needle not even considered as candidate')
-              or diag explain $candidates;
-        },
-        qr{.*Could not open image .*$missing_needle_path.*\n.*skipping console\.ref\: missing PNG.*},
-        'needle with missing PNG skipped'
-    );
+    stderr_like {
+        my ($best_candidate, $candidates) = $image->search([$needle_without_png, $needle_with_png]);
+        ok($best_candidate, 'has best candidate');
+        is($best_candidate->{needle}, $needle_with_png, 'needle with png is best candidate')
+          or diag explain $best_candidate;
+        is_deeply($candidates, [], 'missing needle not even considered as candidate')
+          or diag explain $candidates;
+    }
+    qr{.*Could not open image .*$missing_needle_path.*\n.*skipping console\.ref\: missing PNG.*},
+      'needle with missing PNG skipped';
 };
 
 $img1   = tinycv::read($data_dir . 'console.test.png');

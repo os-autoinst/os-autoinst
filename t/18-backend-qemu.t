@@ -44,13 +44,13 @@ $distri->redefine(add_console => sub {
 $backend_mock->mock(select_console => undef);
 $testapi::distri = distribution->new;
 ($backend->{"select_$_"} = Test::MockObject->new)->set_true('add') for qw(read write);
-stderr_like(sub { ok($backend->start_qemu(), 'qemu can be started'); }, qr/running .*chattr/, 'preparing local files');
+stderr_like { ok($backend->start_qemu(), 'qemu can be started') } qr/running .*chattr/, 'preparing local files';
 ok(exists $called{add_console}, 'a console has been added');
 is($called{add_console}, 1, 'one console has been added');
 
 my $expected = qr/The name.*not provided|Failed to connect/;
 my $msg      = 'error about missing service';
-combined_like sub { ok($backend->_dbus_call('show'), 'failed dbus call ignored gracefully') }, $expected, $msg;
+combined_like { ok($backend->_dbus_call('show'), 'failed dbus call ignored gracefully') } $expected, $msg;
 $bmwqemu::vars{QEMU_FATAL_DBUS_CALL} = 1;
 like exception { $backend->_dbus_call('show') }, $expected, $msg . ' in exception';
 

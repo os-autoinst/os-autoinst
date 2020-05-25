@@ -207,7 +207,7 @@ stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'sof
 is($autotest::current_test->{dents},             1, 'one dent recorded');
 is(scalar @{$autotest::current_test->{details}}, 1, 'exactly one detail added recorded');
 
-stderr_like(sub { record_soft_failure('workaround for bug#1234') }, qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason');
+stderr_like { record_soft_failure('workaround for bug#1234') } qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason';
 is($autotest::current_test->{dents},             2, 'one more dent recorded');
 is(scalar @{$autotest::current_test->{details}}, 2, 'exactly one more detail added recorded');
 my $details    = $autotest::current_test->{details}[-1];
@@ -277,7 +277,7 @@ subtest 'check_assert_screen' => sub {
     $autotest::current_test = $current_test;
 
     stderr_like {
-        is_deeply(assert_screen('foo', 1), {needle => 1}, 'expected and found MATCH reported');
+        is_deeply(assert_screen('foo', 1), {needle => 1}, 'expected and found MATCH reported')
     }
     qr/assert_screen(.*timeout=1)/;
     stderr_like { assert_screen('foo', 3, timeout => 2) } qr/timeout=2/, 'named over positional';
