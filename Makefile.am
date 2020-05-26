@@ -252,6 +252,7 @@ TESTS ?= \
 	25-spvm.t \
 	26-serial_screen.t \
 	26-ssh_screen.t \
+	27-make-update-deps.t \
 	99-full-stack.t \
 	$(EMPTY)
 
@@ -303,3 +304,7 @@ tidy-cpp:
 .PHONY: docker-test
 docker-test:
 	docker run --rm --entrypoint '' -v $(abs_top_srcdir):/opt/repo registry.opensuse.org/devel/openqa/containers/openqa_dev sh -c 'cd /opt/repo && ./autogen.sh && make && make check test VERBOSE=1'
+
+.PHONY: update-deps
+update-deps:
+	./tools/update-deps --specfile dist/rpm/os-autoinst.spec
