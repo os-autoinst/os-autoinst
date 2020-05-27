@@ -35,9 +35,10 @@ my ($modules, $test_modules, $cover_modules, $devel_modules) = get_modules();
 
 update_spec();
 update_cpanfile($modules, $test_modules, $cover_modules, $devel_modules);
-update_dockerfile() if $dockerfile;
+update_dockerfile($dockerfile) if $dockerfile;
 
 sub update_dockerfile {
+    my ($dockerfile) = @_;
     my $docker = path($dockerfile)->slurp;
     my @perl;
     my @pkg;
