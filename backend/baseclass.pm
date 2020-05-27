@@ -58,15 +58,16 @@ __PACKAGE__->mk_accessors(
 sub new {
     my $class = shift;
     my $self  = bless({class => $class}, $class);
-    $self->{started}              = 0;
-    $self->{serialfile}           = "serial0";
-    $self->{serial_offset}        = 0;
-    $self->{video_frame_data}     = [];
-    $self->{video_frame_number}   = 0;
-    $self->{min_image_similarity} = 10000;
-    $self->{min_video_similarity} = 10000;
-    $self->{children}             = [];
-    $self->{ssh_connections}      = {};
+    $self->{started}                           = 0;
+    $self->{serialfile}                        = "serial0";
+    $self->{serial_offset}                     = 0;
+    $self->{video_frame_data}                  = [];
+    $self->{video_frame_number}                = 0;
+    $self->{external_video_encoder_image_data} = [];
+    $self->{min_image_similarity}              = 10000;
+    $self->{min_video_similarity}              = 10000;
+    $self->{children}                          = [];
+    $self->{ssh_connections}                   = {};
 
     return $self;
 }
@@ -147,6 +148,24 @@ sub run {
     bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
 }
 
+sub _write_buffered_data_to_file_handle {
+    my ($self, $program_name, $array_of_buffers, $fh) = @_;
+
+    # write as much data as possible (this is called when $fh is ready to write)
+    my $data         = shift @$array_of_buffers;
+    my $data_written = $fh->syswrite($data);
+    die "$program_name not accepting data" unless defined $data_written;
+
+    # put remaining data it back into the queue
+    unshift @$array_of_buffers, substr($data, $data_written) unless $data_written == length($data);
+
+    # remove file handle from selects if there's no more data to write
+    if (!@$array_of_buffers) {
+        $self->{select_read}->remove($fh);
+        $self->{select_write}->remove($fh);
+    }
+}
+
 =head2 run_capture_loop($timeout)
 
 =out
@@ -214,22 +233,15 @@ sub run_capture_loop {
             my ($read_set, $write_set) = IO::Select->select($self->{select_read}, $self->{select_write}, undef, $time_to_next);
 
             # We need to check the video encoder and the serial socket
-            my ($video_encoder, $other) = (0, 0);
+            my ($video_encoder, $external_video_encoder, $other) = (0, 0, 0);
             for my $fh (@$write_set) {
                 if ($fh == $self->{encoder_pipe}) {
-                    # check the video encoder pipe, it has the most traffic
-                    my $fdata        = shift @{$self->{video_frame_data}};
-                    my $data_written = $fh->syswrite($fdata);
-                    die "Encoder not accepting data" unless defined $data_written;
-                    if ($data_written != length($fdata)) {
-                        # put it back into the queue
-                        unshift @{$self->{video_frame_data}}, substr($fdata, $data_written);
-                    }
-                    if (!@{$self->{video_frame_data}}) {
-                        $self->{select_read}->remove($fh);
-                        $self->{select_write}->remove($fh);
-                    }
+                    $self->_write_buffered_data_to_file_handle('Encoder', $self->{video_frame_data}, $fh);
                     $video_encoder = 1;
+                }
+                elsif ($fh == $self->{external_video_encoder_cmd_pipe}) {
+                    $self->_write_buffered_data_to_file_handle('External encoder', $self->{external_video_encoder_image_data}, $fh);
+                    $external_video_encoder = 1;
                 }
                 else {
                     next if $other;
@@ -238,7 +250,7 @@ sub run_capture_loop {
                         die "huh! $fh\n";
                     }
                 }
-                last if $video_encoder == 1 && $other;
+                last if $video_encoder == 1 && $external_video_encoder == 1 && $other;
             }
 
             for my $fh (@$read_set) {
@@ -314,17 +326,36 @@ sub check_select_rate {
     return 0;
 }
 
+sub _start_external_video_encoder_if_configured {
+    my ($self) = @_;
+
+    return 0 if $bmwqemu::vars{NOVIDEO};
+
+    my $cmd              = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} or return 0;
+    my $output_file_name = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_OUTPUT_FILE_EXTENSION} // 'webm';
+    my $output_file_path = Cwd::getcwd . "/video.$output_file_name";
+    $cmd .= " '$output_file_path'" unless $cmd =~ s/%OUTPUT_FILE_NAME%/$output_file_path/;
+
+    bmwqemu::diag "Launching external video encoder: $cmd";
+    open($self->{external_video_encoder_cmd_pipe}, '|-', $cmd);
+    $self->{external_video_encoder_cmd_pipe}->blocking(0);
+    return 1;
+}
+
 sub start_encoder {
     my ($self) = @_;
 
-    my $cwd = Cwd::getcwd();
-    my @cmd = qw(nice -n 19);
-    push(@cmd, ("$bmwqemu::scriptdir/videoencoder", "$cwd/video.ogv"));
-    push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO};
-    open($self->{encoder_pipe}, '|-', @cmd);
+    # start external video encoder if configured
+    my $has_external_video_encoder_configured = $self->_start_external_video_encoder_if_configured;
 
+    # start internal video encoder; only start it to generate PNGs if an external video encoder is used or NOVIDEO set
+    my $cwd = Cwd::getcwd;
+    my @cmd = (qw(nice -n 19), "$bmwqemu::scriptdir/videoencoder", "$cwd/video.ogv");
+    push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO} || ($has_external_video_encoder_configured && !$bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_ADDITIONALLY});
+    open($self->{encoder_pipe}, '|-', @cmd);
     $self->{encoder_pipe}->blocking(0);
 
+    # open file for recording real time clock timestamps as subtitle
     open($self->{vtt_caption_file}, '>', "$cwd/video_time.vtt");
     $self->{vtt_caption_file}->print("WEBVTT\n");
 
@@ -477,19 +508,28 @@ sub enqueue_screenshot {
         $self->{min_image_similarity} = 10000;
     }
 
+    my $external_video_encoder_cmd_pipe = $self->{external_video_encoder_cmd_pipe};
     if ($self->{min_video_similarity} > 50) {    # we ignore smaller differences
-        push(@{$self->{video_frame_data}}, "R\n");
+        push(@{$self->{video_frame_data}},                  "R\n");
+        push(@{$self->{external_video_encoder_image_data}}, $self->{last_image_data})
+          if defined $external_video_encoder_cmd_pipe && defined $self->{last_image_data};
     }
     else {
-        my $imgdata = $image->ppm_data;
+        my $imgdata = $self->{last_image_data} = $image->ppm_data;
         $watch->lap("convert ppm data");
         push(@{$self->{video_frame_data}}, 'E ' . length($imgdata) . "\n");
         push(@{$self->{video_frame_data}}, $imgdata);
         $self->{min_video_similarity} = 10000;
+        push(@{$self->{external_video_encoder_image_data}}, $imgdata)
+          if defined $external_video_encoder_cmd_pipe;
     }
     my $encoder_pipe = $self->{encoder_pipe};
     $self->{select_read}->add($encoder_pipe);
     $self->{select_write}->add($encoder_pipe);
+    if (defined $external_video_encoder_cmd_pipe) {
+        $self->{select_read}->add($external_video_encoder_cmd_pipe);
+        $self->{select_write}->add($external_video_encoder_cmd_pipe);
+    }
     $self->{video_frame_number} += 1;
 
     $watch->stop();
