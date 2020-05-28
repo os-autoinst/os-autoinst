@@ -2,7 +2,10 @@
    from stdin and use opencv directly */
 /* Modified by Stephan Kulow <coolo@suse.de> 2016 to take the PNGs
    from external file and back */
+/* Modified by by the openQA team to take PPM images instead of PNGs
+   and to produce PNG images needed by the live log */
 
+// This file is taken from the Theora project. Original licensing:
 /********************************************************************
  *                                                                  *
  * THIS FILE IS PART OF THE OggTheora SOFTWARE CODEC SOURCE CODE.   *
@@ -15,14 +18,22 @@
  *                                                                  *
  ********************************************************************
 
-  function: example encoder application; makes an Ogg Theora
-            file from a sequence of png images
-  last mod: $Id$
-             based on code from Vegard Nossum
+  last mod: based on code from Vegard Nossum
 
-Commands can be: E src_image or R:
-  * E src_image will add src_image to the video as a new frame
-  * R will wait until a new command is recieved
+// Documentation:
+/********************************************************************
+
+This program makes an Ogg Theora file from a sequence of PPM images.
+It expects the PPM images to be passed via stdin. The following
+commands are used:
+    * Enqueue a new frame: "E " + to_string(length_of_ppm_image) + "\n" + ppm_image
+    * Repeat last frame:   "R\n"
+
+If the file "live_log" exists the last PNG for the live log is produced.
+
+The output file path needs to be passed as CLI argument. Passing '-n'
+prevents the actual video encoding so only the PNG is produced
+anymore (as needed).
 
 This program will wait until it recieves a TERM signal to complete the
 video.
