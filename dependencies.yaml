@@ -8,8 +8,9 @@
 #######################################################
 ---
 targets:
-  cpanfile: [        cover, devel, requires,             test ]
-  spec:     [ build,        devel, requires, spellcheck, test ]
+  cpanfile: [        cover, devel,         requires,             test ]
+  spec:     [ build,        devel,         requires, spellcheck, test ]
+  docker:   [ build,        devel, docker, requires, spellcheck, test ]
 
 build_requires:
   '%opencv_require':
@@ -18,6 +19,7 @@ build_requires:
   gcc-c++:
   libtool:
   make:
+  perl(ExtUtils::Embed):
   perl(Module::CPANfile):
   pkg-config:
   pkgconfig(fftw3):
@@ -37,6 +39,12 @@ devel_requires:
   perl(Perl::Tidy): '== 20200110'
   perl(YAML::PP):
 
+docker_requires:
+  git:
+  pkgconfig(opencv):
+  sudo:
+  which:
+
 spellcheck_requires:
   aspell-spell:
   aspell-en:
@@ -48,6 +56,7 @@ test_requires:
   '%spellcheck_requires':
   perl(Benchmark):
   perl(Devel::Cover):
+  perl(FindBin):
   perl(Perl::Critic):
   perl(Perl::Critic::Freenode):
   perl(Pod::Coverage):
@@ -62,7 +71,10 @@ test_requires:
   perl(Test::Pod):
   perl(Test::Strict):
   perl(Test::Warnings):
+  qemu:
+  qemu-kvm:
   qemu-tools:
+  qemu-x86:
 
 'requires':
   perl(Cwd):
@@ -76,10 +88,12 @@ test_requires:
   perl(Data::Dumper):
   perl(Digest::MD5):
   perl(DynaLoader):
+  perl(English):
+  perl(Errno):
   perl(Exception::Class):
   perl(Exporter):
-  perl(ExtUtils::testlib):
   perl(ExtUtils::MakeMaker): '>= 7.12'
+  perl(ExtUtils::testlib):
   perl(Fcntl):
   perl(File::Basename):
   perl(File::Find):
@@ -101,6 +115,7 @@ test_requires:
   perl(List::Util):
   perl(Mojolicious): '>= 8.42'
   perl(Mojo::IOLoop::ReadWriteProcess): '>= 0.23'
+  perl(Mojo::JSON):
   perl(Mojo::Log):
   perl(Mojo::URL):
   perl(Mojo::UserAgent):
@@ -110,6 +125,8 @@ test_requires:
   perl(Net::SNMP):
   perl(Net::SSH2):
   perl(POSIX):
+  perl(Scalar::Util):
+  perl(Socket):
   perl(Socket::MsgHdr):
   perl(Term::ANSIColor):
   perl(Thread::Queue):
@@ -120,6 +137,7 @@ test_requires:
   perl(autodie):
   perl(base):
   perl(constant):
+  perl(integer):
   perl(strict):
   perl(warnings):
   perl-base:
