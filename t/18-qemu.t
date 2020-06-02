@@ -6,7 +6,7 @@ use warnings;
 
 use Test::More;
 use Test::Fatal;
-use Test::Warnings 'warnings';
+use Test::Warnings qw(warnings :report_warnings);
 use Mojo::File qw(tempfile tempdir path);
 use Carp 'cluck';
 use FindBin '$Bin';

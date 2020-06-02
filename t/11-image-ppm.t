@@ -4,7 +4,7 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Warnings;
+use Test::Warnings ':report_warnings';
 
 use Try::Tiny;
 use File::Basename;

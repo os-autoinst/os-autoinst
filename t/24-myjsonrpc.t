@@ -22,7 +22,7 @@ use Socket;
 use myjsonrpc;
 
 use Test::More;
-use Test::Warnings 'warnings';
+use Test::Warnings qw(warnings :report_warnings);
 
 no warnings 'redefine';
 sub bmwqemu::diag { warn $_[0] }

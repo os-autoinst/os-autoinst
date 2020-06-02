@@ -6,7 +6,7 @@ use warnings;
 use Test::More;
 use Test::MockModule;
 use Test::MockObject;
-use Test::Warnings;
+use Test::Warnings ':report_warnings';
 use Test::Exception;
 use Test::Output;
 use Mojo::Log;

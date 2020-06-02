@@ -7,7 +7,7 @@ use Test::More;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Output 'stdout_is';
-use Test::Warnings;
+use Test::Warnings ':report_warnings';
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use Mojo::File 'path';
 use Mojo::JSON 'decode_json';

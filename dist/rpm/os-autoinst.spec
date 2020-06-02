@@ -53,7 +53,7 @@ Source0:        %{name}-%{version}.tar.xz
 %define make_check_args CHECK_DOC=0
 %endif
 # The following line is generated from dependencies.yaml
-%define test_requires %build_requires %requires %spellcheck_requires perl(Benchmark) perl(Devel::Cover) perl(FindBin) perl(Perl::Critic) perl(Perl::Critic::Freenode) perl(Pod::Coverage) perl(Test::Exception) perl(Test::Fatal) perl(Test::Mock::Time) perl(Test::MockModule) perl(Test::MockObject) perl(Test::Mojo) perl(Test::More) perl(Test::Output) perl(Test::Pod) perl(Test::Strict) perl(Test::Warnings) qemu qemu-kvm qemu-tools qemu-x86
+%define test_requires %build_requires %requires %spellcheck_requires perl(Benchmark) perl(Devel::Cover) perl(FindBin) perl(Perl::Critic) perl(Perl::Critic::Freenode) perl(Pod::Coverage) perl(Test::Exception) perl(Test::Fatal) perl(Test::Mock::Time) perl(Test::MockModule) perl(Test::MockObject) perl(Test::Mojo) perl(Test::More) perl(Test::Output) perl(Test::Pod) perl(Test::Strict) perl(Test::Warnings) >= 0.029 qemu qemu-kvm qemu-tools qemu-x86
 # The following line is generated from dependencies.yaml
 %define devel_requires %requires_not_needed_in_tests %test_requires perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy) perl(YAML::PP)
 BuildRequires:  %test_requires

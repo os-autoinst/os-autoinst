@@ -19,7 +19,7 @@
 use strict;
 use warnings;
 
-use Test::Warnings;
+use Test::Warnings ':report_warnings';
 use Test::More;
 use FindBin;
 use File::Find;

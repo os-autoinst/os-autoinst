@@ -24,7 +24,7 @@ use Mojo::Log;
 use Mojo::JSON qw( encode_json decode_json );
 
 use Test::More;
-use Test::Warnings;
+use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 my $main_pid = $$;
 
