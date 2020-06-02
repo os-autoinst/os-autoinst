@@ -19,7 +19,7 @@ use 5.018;
 use warnings;
 use Test::More;
 use Test::MockModule;
-use Test::Warnings ':all';
+use Test::Warnings qw(:all :report_warnings);
 use Test::Output;
 
 subtest qv => sub {

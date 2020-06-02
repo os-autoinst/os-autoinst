@@ -5,7 +5,7 @@ use warnings;
 
 use Test::More;
 use Test::Output;
-use Test::Warnings;
+use Test::Warnings ':report_warnings';
 use File::Which 'which';
 use File::Basename;
 

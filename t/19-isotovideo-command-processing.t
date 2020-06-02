@@ -5,7 +5,7 @@ use warnings;
 
 use Test::More;
 use Test::MockModule;
-use Test::Warnings;
+use Test::Warnings ':report_warnings';
 use Mojo::JSON;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;

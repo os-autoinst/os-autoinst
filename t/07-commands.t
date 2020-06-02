@@ -29,7 +29,7 @@ use commands;
 use Mojo::IOLoop::Server;
 use Time::HiRes 'sleep';
 use Test::More;
-use Test::Warnings;
+use Test::Warnings ':report_warnings';
 use Test::Output;
 use Test::Mojo;
 use Mojo::File qw(path tempfile tempdir);

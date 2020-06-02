@@ -8,7 +8,7 @@ BEGIN {
 }
 
 use Test::More;
-use Test::Warnings;
+use Test::Warnings ':report_warnings';
 use Pod::Coverage;
 use File::Basename;
 

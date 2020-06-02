@@ -18,7 +18,7 @@ use strict;
 use warnings;
 # We need :no_end_test here because otherwise it would output a no warnings
 # test for each of the modules, but with the same test number
-use Test::Warnings ':no_end_test';
+use Test::Warnings qw(:no_end_test :report_warnings);
 use Test::Strict;
 
 use FindBin '$Bin';

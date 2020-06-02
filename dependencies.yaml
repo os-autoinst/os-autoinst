@@ -70,7 +70,7 @@ test_requires:
   perl(Test::Output):
   perl(Test::Pod):
   perl(Test::Strict):
-  perl(Test::Warnings):
+  perl(Test::Warnings): '>= 0.029'
   qemu:
   qemu-kvm:
   qemu-tools:

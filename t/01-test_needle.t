@@ -6,7 +6,7 @@ use Cwd 'abs_path';
 use Test::Exception;
 use Test::Output qw(combined_like stderr_like);
 use Test::More;
-use Test::Warnings 'warning';
+use Test::Warnings qw(warning :report_warnings);
 use File::Basename;
 use File::Path 'make_path';
 use File::Temp qw(tempdir);

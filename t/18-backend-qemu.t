@@ -8,7 +8,7 @@ use Test::More;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Output qw(combined_like stderr_like);
-use Test::Warnings ':all';
+use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
 use FindBin '$Bin';
 use Mojo::File 'tempdir';
