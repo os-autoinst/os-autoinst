@@ -199,7 +199,7 @@ sub _load_image {
     }
     return undef unless $image;
 
-    # call replacerect for non-exclude areas
+    # call replacerect for exclude areas
     for my $area (@{$self->{area}}) {
         next unless $area->{type} eq 'exclude';
         $image->replacerect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height});
