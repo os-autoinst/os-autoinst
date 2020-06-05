@@ -86,6 +86,7 @@ on 'test' => sub {
     requires 'Test::Pod';
     requires 'Test::Strict';
     requires 'Test::Warnings', '>= 0.029';
+    requires 'YAML::PP';
 
 };
 
@@ -93,7 +94,6 @@ on 'devel' => sub {
     requires 'Devel::Cover';
     requires 'Devel::Cover::Report::Codecov';
     requires 'Perl::Tidy', '== 20200110';
-    requires 'YAML::PP';
 
 };
 
