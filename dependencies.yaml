@@ -8,9 +8,9 @@
 #######################################################
 ---
 targets:
-  cpanfile: [        cover, devel,         requires,             test ]
-  spec:     [ build,        devel,         requires, spellcheck, test ]
-  docker:   [ build,        devel, docker, requires, spellcheck, test ]
+  cpanfile: [        cover, devel,         main,             test ]
+  spec:     [ build,        devel,         main, spellcheck, test ]
+  docker:   [ build,        devel, docker, main, spellcheck, test ]
 
 build_requires:
   '%opencv_require':
@@ -51,7 +51,7 @@ spellcheck_requires:
 
 test_requires:
   '%build_requires':
-  '%requires':
+  '%main_requires':
   '%spellcheck_requires':
   perl(Benchmark):
   perl(Devel::Cover):
@@ -76,7 +76,7 @@ test_requires:
   qemu-tools:
   qemu-x86:
 
-'requires':
+main_requires:
   perl(Cwd):
   perl(B::Deparse):
   perl(Carp):
