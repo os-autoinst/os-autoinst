@@ -43,9 +43,6 @@ sub update_dockerfile {
     my @pkg;
     for my $target (@$dockertargets) {
         my $name = $target . '_requires';
-        if ($target eq 'requires') {
-            $name = 'requires';
-        }
         my $deps     = $data->{$name};
         for my $key (sort keys %$deps) {
             next if $key =~ m/^%/;
@@ -83,9 +80,6 @@ sub update_spec {
 
     for my $target (@$spectargets) {
         my $name = $target . '_requires';
-        if ($target eq 'requires') {
-            $name = 'requires';
-        }
         my $deps     = $data->{$name};
         my $prefix   = "%define $name";
         my $specline = $prefix;
@@ -121,9 +115,6 @@ sub get_modules {
     my (%modules, %test, %cover, %devel);
     for my $target (@$cpantargets) {
         my $name = $target . '_requires';
-        if ($target eq 'requires') {
-            $name = 'requires';
-        }
         my $deps = $data->{$name};
         for my $key (keys %$deps) {
             my $module = $key;
