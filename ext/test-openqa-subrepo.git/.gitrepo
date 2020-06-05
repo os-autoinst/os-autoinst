@@ -6,7 +6,7 @@
 [subrepo]
 	remote = git@github.com:perlpunk/test-openqa-subrepo.git
 	branch = devel
-	commit = 78f01ea4e589d7e4d7a781e7cf9a42b69ae3c1bd
-	parent = c32c5465502441afacfa3221a9c061aa07546216
+	commit = c35d3801c86eeef745a1d6cf49e191c6b74f37b6
+	parent = 7ef1cfff732a147655ef2825ffa063e843f88e8b
 	method = merge
 	cmdver = 0.4.1
