@@ -72,7 +72,6 @@ test_requires:
   perl(Test::Warnings): '>= 0.029'
   perl(YAML::PP):
   qemu:
-  qemu-kvm:
   qemu-tools:
   qemu-x86:
 
