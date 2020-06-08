@@ -117,7 +117,7 @@ make INSTALLDIRS=vendor %{?_smp_mflags}
 %install
 %make_install INSTALLDIRS=vendor
 # only internal stuff
-rm %{buildroot}/usr/lib/os-autoinst/tools/{tidy,check_coverage,absolutize,docker_run_ci}
+rm %{buildroot}/usr/lib/os-autoinst/tools/{tidy,check_coverage,absolutize,docker_run_ci,update-deps}
 rm -r %{buildroot}/usr/lib/os-autoinst/tools/lib/perlcritic
 #
 ls -lR %buildroot
