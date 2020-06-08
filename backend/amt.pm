@@ -199,13 +199,7 @@ sub select_next_boot {
 
 sub restart_host {
     my ($self) = @_;
-
-    if ($self->is_shutdown) {
-        $self->set_power_state(2);
-    }
-    else {
-        $self->set_power_state(5);
-    }
+    $self->set_power_state($self->is_shutdown() ? 2 : 5);
 }
 
 sub do_start_vm {
