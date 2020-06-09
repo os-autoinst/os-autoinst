@@ -19,7 +19,6 @@ requires 'English';
 requires 'Errno';
 requires 'Exception::Class';
 requires 'Exporter';
-requires 'ExtUtils::MakeMaker', '>= 7.12';
 requires 'ExtUtils::testlib';
 requires 'Fcntl';
 requires 'File::Basename';

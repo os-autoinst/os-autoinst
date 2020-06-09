@@ -20,6 +20,7 @@ build_requires:
   libtool:
   make:
   perl(ExtUtils::Embed):
+  perl(ExtUtils::MakeMaker): '>= 7.12'
   perl(Module::CPANfile):
   pkg-config:
   pkgconfig(fftw3):
@@ -91,7 +92,6 @@ main_requires:
   perl(Errno):
   perl(Exception::Class):
   perl(Exporter):
-  perl(ExtUtils::MakeMaker): '>= 7.12'
   perl(ExtUtils::testlib):
   perl(Fcntl):
   perl(File::Basename):
