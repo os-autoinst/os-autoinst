@@ -61,7 +61,15 @@ sub start {
     open(my $STDOUTPARENT, '>&', *STDOUT);
     open(my $STDERRPARENT, '>&', *STDERR);
 
-    my $backend_process = process(sub {
+    my $backend_process = process(
+        sleeptime_during_kill       => .1,
+        total_sleeptime_during_kill => 30,
+        max_kill_attempts           => 1,
+        kill_sleeptime              => 0,
+        blocking_stop               => 1,
+        separate_err                => 0,
+        subreaper                   => 1,
+        code                        => sub {
             my $process = shift;
             $0 = "$0: backend";
 
@@ -98,7 +106,7 @@ sub start {
 
             $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
             _exit(0);
-    }, sleeptime_during_kill => .1)->blocking_stop(1)->separate_err(0)->subreaper(1)->start;
+        })->start;
 
     $backend_process->on(collected => sub { bmwqemu::diag("backend process exited: " . shift->exit_status) });
 

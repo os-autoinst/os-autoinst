@@ -39,7 +39,7 @@ requires 'IPC::Run::Debug';
 requires 'IPC::System::Simple';
 requires 'List::MoreUtils';
 requires 'List::Util';
-requires 'Mojo::IOLoop::ReadWriteProcess', '>= 0.23';
+requires 'Mojo::IOLoop::ReadWriteProcess', '>= 0.26';
 requires 'Mojo::JSON';
 requires 'Mojo::Log';
 requires 'Mojo::URL';
