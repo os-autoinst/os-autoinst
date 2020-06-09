@@ -20,7 +20,7 @@ RUN zypper in -y -C \
        autoconf \
        automake \
        gcc-c++ \
-       git \
+       git-core \
        libtool \
        make \
        perl-base \
