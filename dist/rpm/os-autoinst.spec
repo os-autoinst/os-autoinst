@@ -46,10 +46,8 @@ Source0:        %{name}-%{version}.tar.xz
 %if %{with spellcheck}
 # The following line is generated from dependencies.yaml
 %define spellcheck_requires aspell-en aspell-spell perl(Pod::Spell)
-%define make_check_args %{nil}
 %else
 %define spellcheck_requires %{nil}
-%define make_check_args CHECK_DOC=0
 %endif
 # The following line is generated from dependencies.yaml
 %define test_requires %build_requires %main_requires %spellcheck_requires perl(Benchmark) perl(Devel::Cover) perl(FindBin) perl(Perl::Critic) perl(Perl::Critic::Freenode) perl(Pod::Coverage) perl(Test::Exception) perl(Test::Fatal) perl(Test::Mock::Time) perl(Test::MockModule) perl(Test::MockObject) perl(Test::Mojo) perl(Test::More) perl(Test::Output) perl(Test::Pod) perl(Test::Strict) perl(Test::Warnings) >= 0.029 perl(YAML::PP) qemu qemu-tools qemu-x86
@@ -131,14 +129,15 @@ ln -s ../sbin/service %{buildroot}%{_sbindir}/rcos-autoinst-openvswitch
 export NO_BRP_STALE_LINK_ERROR=yes
 
 %check
-# disable code quality checks - not worth the time for package builds
-sed '/perlcritic/d' -i Makefile
+# we may not pull Perl::Critic in for RPM builds as we don't run code
+# quality checks, so cut it from cpanfile ahead of the next check
 sed '/Perl::Critic/d' -i cpanfile
-sed '/tidy/d' -i Makefile
-
 # should work offline
 for p in $(cpanfile-dump); do rpm -q --whatprovides "perl($p)"; done
-make check test VERBOSE=1 %{make_check_args}
+%if %{with spellcheck}
+make check-doc VERBOSE=1
+%endif
+make test VERBOSE=1
 
 %pre openvswitch
 %service_add_pre os-autoinst-openvswitch.service
