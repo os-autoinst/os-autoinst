@@ -116,9 +116,8 @@ make INSTALLDIRS=vendor %{?_smp_mflags}
 %install
 %make_install INSTALLDIRS=vendor
 # only internal stuff
-rm %{buildroot}/usr/lib/os-autoinst/tools/{tidy,check_coverage,absolutize,docker_run_ci,update-deps}
-rm -r %{buildroot}/usr/lib/os-autoinst/tools/lib/perlcritic
-#
+rm -r %{buildroot}/usr/lib/os-autoinst/tools/
+
 ls -lR %buildroot
 find %{buildroot} -type f -name .packlist -print0 | xargs -0 --no-run-if-empty rm -f
 find %{buildroot} -depth -type d -and -not -name distri -print0 | xargs -0 --no-run-if-empty rmdir 2>/dev/null || true
@@ -136,7 +135,6 @@ export NO_BRP_STALE_LINK_ERROR=yes
 sed '/perlcritic/d' -i Makefile
 sed '/Perl::Critic/d' -i cpanfile
 sed '/tidy/d' -i Makefile
-rm tools/lib/perlcritic/Perl/Critic/Policy/*.pm
 
 # should work offline
 for p in $(cpanfile-dump); do rpm -q --whatprovides "perl($p)"; done
@@ -177,7 +175,6 @@ make check test VERBOSE=1 %{make_check_args}
 %{_libexecdir}/os-autoinst/backend
 %{_libexecdir}/os-autoinst/OpenQA
 %{_libexecdir}/os-autoinst/consoles
-%dir %{_libexecdir}/os-autoinst/tools
 %{_libexecdir}/os-autoinst/autotest.pm
 %{_libexecdir}/os-autoinst/crop.py
 
