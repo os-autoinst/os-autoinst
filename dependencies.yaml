@@ -22,6 +22,7 @@ build_requires:
   perl(ExtUtils::Embed):
   perl(ExtUtils::MakeMaker): '>= 7.12'
   perl(Module::CPANfile):
+  perl(Pod::Html):
   pkg-config:
   pkgconfig(fftw3):
   pkgconfig(libpng):

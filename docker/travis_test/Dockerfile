@@ -89,6 +89,7 @@ RUN zypper in -y -C \
        'perl(Perl::Critic::Freenode)' \
        'perl(Perl::Tidy)' \
        'perl(Pod::Coverage)' \
+       'perl(Pod::Html)' \
        'perl(Pod::Spell)' \
        'perl(Scalar::Util)' \
        'perl(Socket)' \
