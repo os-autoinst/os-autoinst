@@ -34,13 +34,11 @@ cover_requires:
 
 devel_requires:
   '%test_requires':
-  '%requires_not_needed_in_tests':
   perl(Devel::Cover):
   perl(Devel::Cover::Report::Codecov):
   perl(Perl::Tidy): '== 20200110'
 
 docker_requires:
-  git:
   pkgconfig(opencv):
   sudo:
   which:
@@ -77,6 +75,7 @@ test_requires:
   qemu-x86:
 
 main_requires:
+  git-core:
   perl(Cwd):
   perl(B::Deparse):
   perl(Carp):
