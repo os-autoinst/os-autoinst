@@ -179,7 +179,6 @@ make check test VERBOSE=1 %{make_check_args}
 %{_libexecdir}/os-autoinst/OpenQA
 %{_libexecdir}/os-autoinst/consoles
 %dir %{_libexecdir}/os-autoinst/tools
-%{_libexecdir}/os-autoinst/tools/preparepool
 %{_libexecdir}/os-autoinst/autotest.pm
 %{_libexecdir}/os-autoinst/crop.py
 
