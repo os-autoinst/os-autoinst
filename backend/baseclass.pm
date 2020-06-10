@@ -62,6 +62,7 @@ sub new {
     $self->{serial_offset}                     = 0;
     $self->{video_frame_data}                  = [];
     $self->{video_frame_number}                = 0;
+    $self->{video_encoders}                    = {};
     $self->{external_video_encoder_image_data} = [];
     $self->{min_image_similarity}              = 10000;
     $self->{min_video_similarity}              = 10000;
@@ -325,6 +326,15 @@ sub check_select_rate {
     return 0;
 }
 
+sub _invoke_video_encoder {
+    my ($self, $pipe_name, $display_name, @cmd) = @_;
+
+    my $pid  = open($self->{$pipe_name}, '|-', @cmd);
+    my $pipe = $self->{$pipe_name};
+    $self->{video_encoders}->{$pid} = {name => $display_name, pipe => $pipe};
+    $pipe->blocking(0);
+}
+
 sub _start_external_video_encoder_if_configured {
     my ($self) = @_;
 
@@ -336,8 +346,7 @@ sub _start_external_video_encoder_if_configured {
     $cmd .= " '$output_file_path'" unless $cmd =~ s/%OUTPUT_FILE_NAME%/$output_file_path/;
 
     bmwqemu::diag "Launching external video encoder: $cmd";
-    open($self->{external_video_encoder_cmd_pipe}, '|-', $cmd);
-    $self->{external_video_encoder_cmd_pipe}->blocking(0);
+    $self->_invoke_video_encoder(external_video_encoder_cmd_pipe => 'external video encoder', $cmd);
     return 1;
 }
 
@@ -351,14 +360,40 @@ sub start_encoder {
     my $cwd = Cwd::getcwd;
     my @cmd = (qw(nice -n 19), "$bmwqemu::scriptdir/videoencoder", "$cwd/video.ogv");
     push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO} || ($has_external_video_encoder_configured && !$bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_ADDITIONALLY});
-    open($self->{encoder_pipe}, '|-', @cmd);
-    $self->{encoder_pipe}->blocking(0);
+    $self->_invoke_video_encoder(encoder_pipe => 'built-in video encoder', @cmd);
 
     # open file for recording real time clock timestamps as subtitle
     open($self->{vtt_caption_file}, '>', "$cwd/video_time.vtt");
     $self->{vtt_caption_file}->print("WEBVTT\n");
 
     return;
+}
+
+sub _stop_video_encoder {
+    my ($self) = @_;
+
+    my $video_encoders = delete $self->{video_encoders};
+    return undef unless defined $video_encoders && keys %$video_encoders;
+
+    # give the video encoder processes 30 seconds to finalize the video
+    # note: Closing the pipe should cause the video encoder to terminate. Not sending SIGTERM/SIGINT because the signal might be
+    #       already sent by the worker or shell and ffmpeg will not continue finalizing the video after receiving a 2nd exit signal.
+    no autodie qw(close waitpid);
+    close $video_encoders->{$_}->{pipe} for keys %$video_encoders;
+    bmwqemu::diag 'Waiting for video encoder to finalize the video';
+    for (my $timeout = 30, my $interval = 0.25; $timeout > 0; sleep($interval), $timeout -= $interval) {
+        for my $pid (keys %$video_encoders) {
+            my $ret = waitpid($pid, WNOHANG);
+            if ($ret == $pid || $ret == -1) {
+                bmwqemu::diag "The $video_encoders->{$pid}->{name} (pid $pid) terminated";
+                delete $video_encoders->{$pid};
+            }
+        }
+        last unless keys %$video_encoders;
+    }
+    return undef unless keys %$video_encoders;
+    bmwqemu::diag "Unable to terminate $video_encoders->{$_}->{name}, sending SIGKILL" for keys %$video_encoders;
+    kill KILL => (keys %$video_encoders);
 }
 
 # new api
@@ -387,6 +422,7 @@ sub stop_vm {
         $self->{encoder_pipe} = undef;
         $self->{started}      = 0;
     }
+    $self->_stop_video_encoder();
     $self->close_ssh_connections();
     $self->close_pipes();    # does not return
     return;
