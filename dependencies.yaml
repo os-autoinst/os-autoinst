@@ -8,9 +8,9 @@
 #######################################################
 ---
 targets:
-  cpanfile: [        cover, devel,         main,             test ]
-  spec:     [ build,        devel,         main, spellcheck, test ]
-  docker:   [ build,        devel, docker, main, spellcheck, test ]
+  cpanfile: [        cover, devel,         main,             lint, test ]
+  spec:     [ build,        devel,         main, spellcheck,       test ]
+  docker:   [ build,        devel, docker, main, spellcheck, lint, test ]
 
 build_requires:
   '%opencv_require':
@@ -49,6 +49,12 @@ spellcheck_requires:
   aspell-en:
   perl(Pod::Spell):
 
+lint_requires:
+  perl(Perl::Critic):
+  perl(Perl::Critic::Freenode):
+  perl(Perl::Critic::Policy):
+  perl(Perl::Critic::Utils):
+
 test_requires:
   '%build_requires':
   '%main_requires':
@@ -56,8 +62,6 @@ test_requires:
   perl(Benchmark):
   perl(Devel::Cover):
   perl(FindBin):
-  perl(Perl::Critic):
-  perl(Perl::Critic::Freenode):
   perl(Pod::Coverage):
   perl(Test::Exception):
   perl(Test::Fatal):

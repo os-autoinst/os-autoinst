@@ -87,6 +87,8 @@ RUN zypper in -y -C \
        'perl(POSIX)' \
        'perl(Perl::Critic)' \
        'perl(Perl::Critic::Freenode)' \
+       'perl(Perl::Critic::Policy)' \
+       'perl(Perl::Critic::Utils)' \
        'perl(Perl::Tidy)' \
        'perl(Pod::Coverage)' \
        'perl(Pod::Html)' \
