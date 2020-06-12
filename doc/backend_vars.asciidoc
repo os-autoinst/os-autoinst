@@ -38,17 +38,29 @@ AUTOINST_URL_HOSTNAME;string;;hostname or IP adress of host running the autoinst
 
 |====================
 
+.IKVM backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+IPMI_HOSTNAME;string;undef;Hostname/IP for IPMI interface
+IPMI_HW;string;supermicro;Hardware used for IPMI interface
+IPMI_PASSWORD;string;undef;Password for the IPMI interface
+IPMI_USER;string;undef;Username for the IPMI interface
+|====================
+
 .IPMI backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-IPMI_HOSTNAME;string;Hostname/IP for IPMI interface;
-IPMI_PASSWORD;string;Password for the IPMI interface;
-IPMI_USER;string;Username for the IPMI interface;
-IPMI_DO_NOT_POWER_OFF;boolean;undef;Don't power off the machine after test;
+IPMI_HOSTNAME;string;undef;Hostname/IP for IPMI interface
+IPMI_PASSWORD;string;undef;Password for the IPMI interface
+IPMI_USER;string;undef;Username for the IPMI interface
+IPMI_DO_NOT_POWER_OFF;boolean;undef;Don't power off the machine after test
 IPMI_BACKEND_MC_RESET;boolean;undef;Reset ipmi main board before test for sol console stability
 IPMI_SKIP_SELFTEST;boolean;undef;Don't perform BMC selftest
+IPMI_HW;string;supermicro;Hardware used for IPMI interface
 |====================
 
 .QEMU backend
@@ -58,14 +70,14 @@ IPMI_SKIP_SELFTEST;boolean;undef;Don't perform BMC selftest
 Variable;Values allowed;Default value;Explanation
 ARCH;x86_64|i686|aarch64|...;depends on tested medium;Architecture of VM.
 ATACONTROLLER;see qemu -device ?, e. g. for SATA: ich9-ahci;;Controller for ATA devices, needed for connecting disks as SATA.
-BIOS;;;
+BIOS;;;Set the filename for the BIOS
 BOOT_HDD_IMAGE;boolean;;enables boot from HDD_1 (BOOTFROM has higher priority)
-BOOT_MENU;boolean;enables boot menu for selection of boot device
+BOOT_MENU;boolean;undef;enables boot menu for selection of boot device
 BOOT_MENU_TIMEOUT;integer;5000;boot menu timeout in ms. Needs BOOT_MENU
 BOOTFROM;chars;undef;Influences order of boot devices. See qemu -boot option
 CDMODEL;see qemu -device ?;undef;Storage device for virtualized CD
 DELAYED_START;boolean;;delay vm cpu start until resume_vm() is called
-HDDFORMAT;;;
+HDDFORMAT;;;HDD format
 HDDMODEL;see qemu -device ?;virtio-blk;Storage device for virtualized HDD.
 HDDMODEL_$i;see qemu -device ?;virtio-blk;Storage device for virtualized HDD. Overrides global HDDMODEL for HDD_$i
 HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
@@ -86,6 +98,7 @@ NICVLAN;integer;undef;network (vlan) number to which the NIC should be connected
 NUMDISKS;integer;1;Number of disks to be created and attached to VM, can be 0 to disable disks
 OFFLINE_SUT;boolean;0;Disable network for a VM
 OFW;boolean;0;QEMU Open Firmware is in use
+OVS_DEBUG;integer;undef;Set debug mode if value is 1
 QEMU_ONLY_EXEC;boolean;undef;If set, only execute the qemu process but return early before connecting to the process. This can be helpful for cutting testing time or to connect to the qemu process manually.
 QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64;boolean;undef;If set, for aarch64 systems use VGA as video adapter
 QEMU_DISABLE_SNAPSHOTS;boolean;undef;If set, disable snapshots in case the worker has slow disks to avoid save_vm calls failing due to timeouts (See https://bugzilla.suse.com/show_bug.cgi?id=1035453[bsc#1035453])
@@ -122,10 +135,11 @@ QEMU_APPEND;string;;Append parameters on qemu command line. The first item will 
 VIRTIO_CONSOLE;boolean;1;Enable/disable virtio console. (@see `-device virtconsole` qemu option)
 VIRTIO_CONSOLE_NUM;integer;1;Number of virtio consoles.
 QEMU_BALLOON_TARGET;integer;undef;The target guest RAM usage before a snapshot is taken. It is intended to speed up snapshots by forcing the guest to drop various caches. Setting this enables the virtio-balloon device which requires a kernel with a virtio-balloon driver. Setting this far below the RAM required by the guest will probably cause the guest to panic or deadlock. However it should be able to cope with it being set slightly below what is needed.
-RAIDLEVEL;;;
+RAIDLEVEL;;;Set the raid level
 SKIPTO;full name of test module;;Restore VM from snapshot and continue by running specified test module. Needs HDD image with snapshots present
 TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used
-TAPSCRIPT;;;
+TAPDOWNSCRIPT;string;undef;Script used during the backend network shutdown
+TAPSCRIPT;;;Script used during the backend network creation
 TESTDEBUG;boolean;0;Enable test debugging: override 'milestone' and 'fatal' test flags to 1. Snapshot are created after each successful test module and each fail aborts test run
 UEFI;boolean;0;Enable UEFI
 UEFI_PFLASH_CODE;string;;Specify the file name of the UEFI firmware code which will be loaded onto a read-only PFLASH drive
@@ -138,7 +152,9 @@ VDE_PORT;integer;worker instance + 10;number of vde switch port to connect
 VDE_SOCKETDIR;string;.;directory where vde_switch control socket is to be found
 VDE_USE_SLIRP;integer;1;whether to start slirpvde
 VNC;integer;worker instance + 90;Display on which VNC server is running. Actual port is 5900 + VNC
-VNCKB;;;
+VNCKB;;;Set the keyboard layout if you are not using en-us
+WORKER_CLASS;string;undef;qemu system types
+WORKER_HOSTNAME;string;undef;Worker host name
 |====================
 
 .SVIRT backend
@@ -163,12 +179,23 @@ VMWARE_DATASTORE;string;;VMware datastore
 VMWARE_NFS_DATASTORE;string;;VMware datastore with openQA NFS directories
 VMWARE_SERIAL_PORT;string;;TCP port where is VM's serial port stream to be expected on the ESX server
 VMWARE_BRIDGE;string;;VMware's bridge name (usual default is 'VM Network')
-VMWARE_REMOTE_VMM;string;;
+VMWARE_REMOTE_VMM;string;;Set the vmware Virtual Machine Manager
 HYPERV_USERNAME;string;;Administrator account name
 HYPERV_PASSWORD;string;;Password for above account
 HYPERV_SERVER;string;;Windows Server (2008 R2, 2012 R2, or 2016) instance IP address
 HYPERV_SERIAL_PORT;integer;;TCP port where is VM's serial port stream to be expected on the Hyper-V server
 HYPERV_VIRTUAL_SWITCH;string;;ExternalVirtualSwitch;Name of Hyper-V's External Virtual Switch
+NUMDISKS;integer;1;Number of disks
+RAIDLEVEL;integer;undef;Sets the raid level
+|====================
+
+.VIRT backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+QEMUCPUS;integer;undef;Number of CPUs
+QEMURAM;integer;undef;Quantity of RAM
 |====================
 
 .PVM backend
@@ -176,13 +203,23 @@ HYPERV_VIRTUAL_SWITCH;string;;ExternalVirtualSwitch;Name of Hyper-V's External V
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
+ARCH;string;undef;Arquitecture of the pvm backend
 MEM;integer;2048;amount of RAM
 LPAR;string;osauto;LPAR name to be created
+LPARID;string;udef;LPAR id
 NUMDISKS;integer;1;Number of disks
+HDD_$hdd_num;string;udef;Name of the virtual disk to be attached
+HDD_$i;string;udef;Additional disk to be attached
 HDDSIZEGB;integer;15;Disk size in GB
+NIC;string;sea;Type of NIC
 NICVLAN;integer;1;VLAN to attach to
 VSWITCH;string;VSWITCH0;A virtula switch to connect to
 CPUS;integer;1;Number of CPUS for LPAR
+ISO;string;undef;isos from nfs mount on VIO side to VMLibrary
+VIOISO;string;undef;Virtual Optical Media ISO
+VNC;integer;undef;VNC port
+WORKER_ID;string;undef;osauto id
+
 |====================
 
 .GENERAL_HW backend

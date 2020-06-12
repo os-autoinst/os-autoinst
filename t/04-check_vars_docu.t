@@ -74,7 +74,7 @@ sub read_doc {
                 $default = '' unless (defined $default);
                 $value   = '' unless (defined $value);
                 unless ($explanation) {
-                    say "still missing explanation for backend $backend variable $var";
+                    fail "still missing explanation for backend $backend variable $var";
                 }
                 $documented_vars{$backend}{$var} = [$value, $default, $explanation];
             }
@@ -107,7 +107,7 @@ EO_BACKEND_HEADER
             unless ($documented_vars{$backend}{$var}) {
                 $error_found = 1;
                 $documented_vars{$backend}{$var} = ['', '', ''];
-                say "missing documentation for backend $backend variable $var, please update backend_vars";
+                fail "missing documentation for backend $backend variable $var, please update backend_vars";
             }
             my @var_docu = @{$documented_vars{$backend}{$var}};
             printf $docfh "%s;%s;%s;%s\n", $var, @var_docu;
