@@ -76,10 +76,19 @@ sub _wrap_hmc {
         execute   => 'human-monitor-command',
         arguments => {'command-line' => $cmdline}};
 }
+
+# poo#66667: Since qemu 4.2, -audiodev is required to record sounds, as we need an audiodev id for 'wavcapture'
+sub requires_audiodev {
+    my ($self) = @_;
+    return (version->declare($self->{qemu_version}) ge version->declare(4.2));
+}
+
 sub start_audiocapture {
     my ($self, $args) = @_;
 
-    $self->handle_qmp_command(_wrap_hmc("wavcapture $args->{filename} 44100 16 1"));
+    # poo#66667: an audiodev id is required by wavcapture when audiodev is used
+    my $audiodev_id = 'snd0' if $self->requires_audiodev;
+    $self->handle_qmp_command(_wrap_hmc("wavcapture $args->{filename} $audiodev_id 44100 16 1"));
 }
 
 sub stop_audiocapture {
@@ -616,6 +625,13 @@ sub start_qemu {
     $self->{proc}->qemu_bin($qemubin);
     $self->{proc}->qemu_img_bin($qemuimg);
 
+    # Get qemu version
+    my $qemu_version = `$qemubin -version`;
+    $qemu_version =~ /([0-9]+([.][0-9]+)+)/;
+    $qemu_version = $1;
+    $self->{qemu_version} = $qemu_version;
+    bmwqemu::diag "qemu version detected: $self->{qemu_version}";
+
     $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});    # XXX: compat with old deployment
     $vars->{UEFI} = 1 if $vars->{UEFI_PFLASH};
 
@@ -808,8 +824,21 @@ sub start_qemu {
     sp('only-migratable') if $self->can_handle({function => 'snapshots', no_warn => 1});
     sp('chardev', 'ringbuf,id=serial0,logfile=serial0,logappend=on');
     sp('serial',  'chardev:serial0');
-    my $soundhw = $vars->{QEMU_SOUNDHW} // 'hda';
-    sp('soundhw', $soundhw);
+
+    if ($self->requires_audiodev) {
+        my $audiodev     = $vars->{QEMU_AUDIODEV}     // 'intel-hda';
+        my $audiobackend = $vars->{QEMU_AUDIOBACKEND} // 'none';
+        sp('audiodev', $audiobackend . ',id=snd0');
+        if ("$audiodev" eq "intel-hda") {
+            sp('device', $audiodev);
+            $audiodev = "hda-output";
+        }
+        sp('device', $audiodev . ',audiodev=snd0');
+    }
+    else {
+        my $soundhw = $vars->{QEMU_SOUNDHW} // 'hda';
+        sp('soundhw', $soundhw);
+    }
     {
         # Remove floppy drive device on architectures
         unless ($arch eq 'aarch64' || $arch eq 'arm' || $vars->{QEMU_NO_FDC_SET}) {

@@ -138,6 +138,7 @@ main_requires:
   perl(constant):
   perl(integer):
   perl(strict):
+  perl(version):
   perl(warnings):
   perl-base:
 
