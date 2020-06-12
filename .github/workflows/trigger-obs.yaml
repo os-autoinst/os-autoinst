@@ -1,0 +1,33 @@
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: [master]
+
+jobs:
+  obs:
+    runs-on: ubuntu-latest
+    name: Trigger OBS
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - run: env | sort
+
+    - name: Branch and Trigger OBS Build
+      uses: perlpunk/action-open-build-service-pr@dev
+      id: obs
+      with:
+        apiurl:       https://api.opensuse.org
+        project:      devel:openQA
+        package:      os-autoinst
+        branchprefix: home:$USER:branches:TestGitHub
+        timeout:      1800 # 30min
+        sleep:        60
+        ignore-repos: SLE_12_SP5,SLE_12_SP4,SLE_12_SP3,SLE_15_SP2,openSUSE_Leap_15.0
+      env:
+        OSCLOGIN:     ${{ secrets.OSCLOGIN }}
+        OSCPASS:      ${{ secrets.OSCPASS }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Path to branched package
+      run: echo "${{ steps.obs.outputs.branch }}"
