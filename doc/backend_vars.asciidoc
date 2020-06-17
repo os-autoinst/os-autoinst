@@ -38,17 +38,6 @@ AUTOINST_URL_HOSTNAME;string;;hostname or IP adress of host running the autoinst
 
 |====================
 
-.IKVM backend
-[grid="rows",format="csv"]
-[options="header",cols="^m,^m,^m,v",separator=";"]
-|====================
-Variable;Values allowed;Default value;Explanation
-IPMI_HOSTNAME;string;undef;Hostname/IP for IPMI interface
-IPMI_HW;string;supermicro;Hardware used for IPMI interface
-IPMI_PASSWORD;string;undef;Password for the IPMI interface
-IPMI_USER;string;undef;Username for the IPMI interface
-|====================
-
 .IPMI backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]

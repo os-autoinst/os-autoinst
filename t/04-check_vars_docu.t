@@ -37,7 +37,7 @@ my @backend_blacklist = qw();
 # blacklist of vars per backend. These vars will be ignored during vars exploration
 my %var_blacklist = (QEMU => ['WORKER_ID', 'WORKER_INSTANCE']);
 # in case we want to present backend under different name, place it here
-my %backend_renames = (BASECLASS => 'Common');
+my %backend_renames = (BASECLASS => 'Common', IKVM => 'IPMI');
 
 my %documented_vars = ();
 my %found_vars;
