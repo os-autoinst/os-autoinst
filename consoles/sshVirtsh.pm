@@ -348,7 +348,7 @@ sub add_disk {
               'fi;' .
               "vmkfstools -v1 -U $vmware_disk_path;" .
               "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1";
-            my $retval = $self->run_cmd($cmd, domain => 'ssh_VMwareServer');
+            my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
             die "Can't create VMware image $vmware_disk_path" if $retval;
         }
         else {
