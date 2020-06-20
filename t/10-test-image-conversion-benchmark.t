@@ -6,6 +6,7 @@ use warnings;
 use Test::More;
 use Test::Warnings ':report_warnings';
 
+use FindBin '$Bin';
 use Try::Tiny;
 use File::Basename;
 use File::Path qw(make_path remove_tree);
@@ -29,7 +30,7 @@ require tinycv;
 
 my ($res, $needle, $image, $cand, $img_src);
 
-my $data_dir   = 't/data';
+my $data_dir   = "$Bin/data";
 my $result_dir = "$data_dir/results";
 
 make_path($result_dir);
