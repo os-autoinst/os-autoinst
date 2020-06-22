@@ -31,5 +31,6 @@ $Test::Strict::TEST_SKIP     = [
     't/data/tests/main.pm',
     't/data/tests/product/main.pm',
     't/pool/product/foo/main.pm',
+    'tools/lib/perlcritic/Perl/Critic/Policy/HashKeyQuotes.pm',
 ];
 all_perl_files_ok('.');

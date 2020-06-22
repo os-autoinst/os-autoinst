@@ -74,6 +74,8 @@ on 'test' => sub {
     requires 'FindBin';
     requires 'Perl::Critic';
     requires 'Perl::Critic::Freenode';
+    requires 'Perl::Critic::Policy';
+    requires 'Perl::Critic::Utils';
     requires 'Pod::Coverage';
     requires 'Test::Exception';
     requires 'Test::Fatal';
