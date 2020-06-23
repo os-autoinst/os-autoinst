@@ -54,6 +54,7 @@ my $common_options = <<EOV;
    "ISO" : "$data_dir/Core-7.2.iso",
    "CDMODEL" : "ide-cd",
    "HDDMODEL" : "ide-drive",
+   "WORKER_INSTANCE": "3",
    "VERSION" : "1",
 EOV
 
@@ -153,6 +154,75 @@ EOV
     is(system('grep -q -e "-mem-prealloc" autoinst-log.txt'),                0, '-mem-prealloc option added');
     is(system('grep -q -e "-mem-path /no/dev/hugepages/" autoinst-log.txt'), 0, '-mem-path /no/dev/hugepages/');
     is(system('grep -q -e "can\'t open backing store /no/dev/hugepages/ for guest RAM: No such file or directory" autoinst-log.txt'), 0, 'expected failure as /no/dev/hugepages/ does not exist');
+
+};
+
+# Test QEMUTPM option with:
+# * 'instance'
+# * a number
+subtest qemu_tpm_option => sub {
+
+    open(my $var, '>', 'vars.json');
+    print $var <<EOV;
+{
+$common_options
+   "QEMU_ONLY_EXEC": "1",
+   "QEMUTPM" : "instance"
+}
+EOV
+    close($var);
+    # call isotovideo with QEMUTPM=instance
+    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
+    is(system('grep -q -e "-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock" autoinst-log.txt'), 0, '-chardev socket option added (instance)');
+    is(system('grep -q -e "-tpmdev emulator,id=tpm0,chardev=chrtpm" autoinst-log.txt'),               0, '-tpmdev emulator option added');
+    is(system('grep -q -e "-device tpm-tis,tpmdev=tpm0" autoinst-log.txt'),                           0, '-device tpm-tis option added');
+
+    open($var, '>', 'vars.json');
+    print $var <<EOV;
+{
+$common_options
+   "QEMU_ONLY_EXEC": "1",
+   "QEMUTPM" : "2"
+}
+EOV
+    close($var);
+    # call isotovideo with QEMUTPM=2
+    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
+    is(system('grep -q -e "-chardev socket,id=chrtpm,path=/tmp/mytpm2/swtpm-sock" autoinst-log.txt'), 0, '-chardev socket option added (2)');
+
+
+    open($var, '>', 'vars.json');
+    print $var <<EOV;
+{
+$common_options
+   "QEMU_ONLY_EXEC": "1",
+   "ARCH": "ppc64le",
+   "QEMUTPM" : "instance"
+}
+EOV
+    close($var);
+    # call isotovideo with QEMUTPM=instance, ppc64le arch
+    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
+    is(system('grep -q -e "-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock" autoinst-log.txt'), 0, '-chardev socket option added (instance)');
+    is(system('grep -q -e "-tpmdev emulator,id=tpm0,chardev=chrtpm" autoinst-log.txt'),               0, '-tpmdev emulator option added');
+    is(system('grep -q -e "-device tpm-spapr,tpmdev=tpm0" autoinst-log.txt'),                         0, '-device tpm-spapr option added');
+    is(system('grep -q -e "-device spapr-vscsi,id=scsi9,reg=0x00002000" autoinst-log.txt'),           0, '-device spapr-vscsi option added');
+
+    open($var, '>', 'vars.json');
+    print $var <<EOV;
+{
+$common_options
+   "QEMU_ONLY_EXEC": "1",
+   "ARCH": "aarch64",
+   "QEMUTPM" : "instance"
+}
+EOV
+    close($var);
+    # call isotovideo with QEMUTPM=instance, aarch64 arch
+    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
+    is(system('grep -q -e "-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock" autoinst-log.txt'), 0, '-chardev socket option added (instance)');
+    is(system('grep -q -e "-tpmdev emulator,id=tpm0,chardev=chrtpm" autoinst-log.txt'),               0, '-tpmdev emulator option added');
+    is(system('grep -q -e "-device tpm-tis-device,tpmdev=tpm0" autoinst-log.txt'),                    0, '-device tpm-tis option added');
 
 };
 
