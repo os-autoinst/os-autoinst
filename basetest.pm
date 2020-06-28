@@ -163,7 +163,7 @@ sub record_screenmatch {
 
     # When the needle has the workaround property,
     # mark the result as dent and increase the dents
-    if (my $reason = $foundneedle->get_property_value('workaround')) {
+    if (my $workaround = $foundneedle->has_property('workaround')) {
         $result->{dent}   = 1;
         $result->{result} = "softfail";
 
