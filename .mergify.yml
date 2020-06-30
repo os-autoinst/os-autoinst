@@ -1,0 +1,18 @@
+pull_request_rules:
+  - name: automatic merge when GitHub branch protection passes + explicit two approvals
+    conditions:
+      - "#approved-reviews-by>=1"
+      - "#changes-requested-reviews-by=0"
+      - base=master
+      # wait explicitly for one of the final checks to show up to be on the
+      # safe side even in case of checks not reporting back at all
+      - "status-success=codecov/project"
+    actions:
+      merge:
+        method: merge
+  - name: ask to resolve conflict
+    conditions:
+      - conflict
+    actions:
+      comment:
+        message: This pull request is now in conflicts. Could you fix it? 🙏
