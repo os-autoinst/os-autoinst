@@ -27,7 +27,10 @@ sub init_switch {
     $self->{BRIDGE} = $ENV{OS_AUTOINST_USE_BRIDGE};
     $self->{BRIDGE} //= 'br0';
 
-    #the bridge must be already created and configured
+    until (-e "/sys/class/net/$self->{BRIDGE}") {
+        print "Waiting for bridge '$self->{BRIDGE}' to be created and configured...\n";
+        sleep 1;
+    }
     system('ovs-vsctl', 'br-exists', $self->{BRIDGE});
 
     my $bridge_conf = `ip addr show $self->{BRIDGE}`;
