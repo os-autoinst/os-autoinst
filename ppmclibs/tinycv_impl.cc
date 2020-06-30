@@ -22,6 +22,7 @@
 
 #include <algorithm> // std::min
 #include <vector>
+#include <cmath> // std::isnan
 
 #include "opencv2/calib3d/calib3d.hpp"
 #include "opencv2/core/core.hpp"
@@ -300,6 +301,11 @@ double getPSNR(const Mat& I1, const Mat& I2)
     assert(I1.channels() == 3);
 
     double noise = norm(I1, I2);
+
+    if (std::isnan(noise)) {
+        std::cerr << "WARNING: cv::norm() returned NaN (poo#68474)\n";
+        return VERY_DIFF;
+    }
 
     if (!noise) {
         return VERY_SIM;
