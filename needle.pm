@@ -298,7 +298,7 @@ sub get_property_value {
         }
     }
     if ($property_name eq "workaround") {
-        if ($self->{name} =~ /\S+\-(bsc|poo|bnc)(\d+)\-\S+/) {
+        if ($self->{name} =~ /\S+\-(bsc|poo|bnc|boo)(\d+)\-\S+/) {
             return $1 . "#" . $2;
         }
     }
