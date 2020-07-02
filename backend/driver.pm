@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,6 +34,7 @@ require IPC::System::Simple;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use myjsonrpc;
+use signalblocker;
 use bmwqemu;    # TODO: move the whole printing out of bmwqemu
 
 sub new {
@@ -75,34 +76,14 @@ sub start {
 
             open STDOUT, ">&", $STDOUTPARENT;
             open STDERR, ">&", $STDERRPARENT;
-            # now initialize opencv
+
+            # initialize OpenCV
+            my $signal_blocker = signalblocker->new;
             require cv;
-
             cv::init();
-
-            # opencv forks a lot of threads and the TERM signal we
-            # may get from the parent process would be delivered
-            # to an undefined thread. But as those threads do not
-            # have a perl interpreter, the perl signal handler
-            # (we set later) would crash. So we need to block
-            # the TERM signal in the forked processes before we
-            # set the signal handler of our choice
-            my %old_sig = %SIG;
-            $SIG{TERM} = 'IGNORE';
-            $SIG{INT}  = 'IGNORE';
-            $SIG{HUP}  = 'IGNORE';
-            #  $SIG{CHLD} = 'DEFAULT';
-            use POSIX ':signal_h';
-            my $sigset = POSIX::SigSet->new(SIGTERM);
-            unless (defined sigprocmask(SIG_BLOCK, $sigset, undef)) {
-                die "Could not block SIGTERM\n";
-            }
             require tinycv;
-
-            sigprocmask(SIG_UNBLOCK, $sigset, undef);
-            # set back signal handling to default to be able to terminate the
-            # backend properly
-            %SIG = %old_sig;
+            tinycv::create_threads();
+            undef $signal_blocker;
 
             $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
             _exit(0);
