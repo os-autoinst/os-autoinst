@@ -121,7 +121,7 @@ sub read_json {
         while (!@res) {
             # throw an error except can_read has been interrupted
             my $error = $!;
-            confess "ERROR: unable to wait for JSON reply: $error\n" unless $!{EINTR};
+            confess "ERROR: unable to wait for JSON reply: $error\n"                                 unless $!{EINTR};
             confess "ERROR: can_read's underlying system call has been interrupted too many times\n" unless $remaining_attempts;
 
             # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation

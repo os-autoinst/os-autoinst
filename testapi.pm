@@ -676,7 +676,7 @@ Default timeout is 30s, default stilltime is 7s.
 sub wait_still_screen {
     my $stilltime = looks_like_number($_[0]) ? shift : 7;
     my $timeout   = (@_ % 2)                 ? shift : $bmwqemu::default_timeout;
-    my %args = (stilltime => $stilltime, timeout => $timeout, @_);
+    my %args      = (stilltime => $stilltime, timeout => $timeout, @_);
     $args{similarity_level} //= 47;
     bmwqemu::log_call(%args);
     $timeout   = bmwqemu::scale_timeout($args{timeout});
