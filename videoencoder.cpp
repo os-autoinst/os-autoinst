@@ -18,7 +18,7 @@
  *                                                                  *
  ********************************************************************
 
-  last mod: based on code from Vegard Nossum
+  last mod: based on code from Vegard Nossum */
 
 // Documentation:
 /********************************************************************
@@ -320,7 +320,7 @@ int main(int argc, char* argv[])
     while (fgets(line, PATH_MAX + 8, stdin)) {
         line[strlen(line) - 1] = 0;
 
-        if (repeat >= (keyframe_frequency - 1) || line[0] != 'R') {
+        if (repeat >= (static_cast<int>(keyframe_frequency) - 1) || line[0] != 'R') {
             if (output_video && repeat >= 0) {
                 ret = th_encode_ctl(td, TH_ENCCTL_SET_DUP_COUNT, &repeat, sizeof(repeat));
                 if (ret < 0)
