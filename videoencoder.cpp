@@ -18,7 +18,7 @@
  *                                                                  *
  ********************************************************************
 
-  last mod: based on code from Vegard Nossum
+  last mod: based on code from Vegard Nossum */
 
 // Documentation:
 /********************************************************************
@@ -42,15 +42,20 @@ video.
 
 #define _FILE_OFFSET_BITS 64
 
-#include "theora/theoraenc.h"
-#include <cassert>
-#include <cstdio>
-#include <getopt.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/opencv.hpp>
+
+#include <theora/theoraenc.h>
 #include <ogg/ogg.h>
-#include <signal.h>
+
+#include <getopt.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
+
+#include <cassert>
+#include <csignal>
+#include <cstdio>
 
 using namespace std;
 
@@ -108,10 +113,6 @@ static unsigned char clamp(int d)
 
     return d;
 }
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/opencv.hpp>
-#include <stdio.h>
 
 using namespace cv;
 
@@ -320,7 +321,7 @@ int main(int argc, char* argv[])
     while (fgets(line, PATH_MAX + 8, stdin)) {
         line[strlen(line) - 1] = 0;
 
-        if (repeat >= (keyframe_frequency - 1) || line[0] != 'R') {
+        if (repeat >= (static_cast<int>(keyframe_frequency) - 1) || line[0] != 'R') {
             if (output_video && repeat >= 0) {
                 ret = th_encode_ctl(td, TH_ENCCTL_SET_DUP_COUNT, &repeat, sizeof(repeat));
                 if (ret < 0)
