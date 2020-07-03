@@ -42,15 +42,20 @@ video.
 
 #define _FILE_OFFSET_BITS 64
 
-#include "theora/theoraenc.h"
-#include <cassert>
-#include <cstdio>
-#include <getopt.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/opencv.hpp>
+
+#include <theora/theoraenc.h>
 #include <ogg/ogg.h>
-#include <signal.h>
+
+#include <getopt.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
+
+#include <cassert>
+#include <csignal>
+#include <cstdio>
 
 using namespace std;
 
@@ -108,10 +113,6 @@ static unsigned char clamp(int d)
 
     return d;
 }
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/opencv.hpp>
-#include <stdio.h>
 
 using namespace cv;
 
