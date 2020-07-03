@@ -373,7 +373,7 @@ int main(int argc, char* argv[])
             fprintf(stderr, "unknown command line: %s\n", line);
         }
 
-        if (!last_frame_converted && need_last_png()) {
+        if (!last_frame_converted && !last_frame_image.empty() && need_last_png()) {
             struct timeval tv;
             gettimeofday(&tv, 0);
             char path[PATH_MAX];
