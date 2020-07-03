@@ -347,6 +347,10 @@ Image* image_from_ppm(const unsigned char* data, size_t len)
 
 bool image_write(const Image* const s, const char* filename)
 {
+    if (s->img.empty()) {
+        std::cerr << "Could not write image " << filename << ": image is empty\n";
+        return false;
+    }
     return imwrite(filename, s->img);
 }
 
