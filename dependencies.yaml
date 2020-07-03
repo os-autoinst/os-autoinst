@@ -11,6 +11,12 @@ targets:
   cpanfile: [        cover, devel,         main,             lint, test ]
   spec:     [ build,        devel,         main, spellcheck,       test ]
   docker:   [ build,        devel, docker, main, spellcheck, lint, test ]
+  cpanfile-targets:
+    # target: cpanfile target type (default main)
+    devel: devel
+    cover: cover
+    test: test
+    lint: test
 
 build_requires:
   '%opencv_require':
