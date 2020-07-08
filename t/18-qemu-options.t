@@ -40,7 +40,7 @@ chdir $pool_dir;
 # just save ourselves some time during testing
 $ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} //= 1;
 $ENV{QEMU_QMP_CONNECT_ATTEMPTS}     //= 1;
-$ENV{EXPECTED_QEMU_START_S}         //= 4;
+$ENV{EXPECTED_ISOTOVIDEO_RUNTIME}   //= 8;
 
 my @common_options = (
     ARCH            => 'i386',
@@ -76,7 +76,7 @@ subtest qemu_append_option => sub {
     like($log, qr/Fabrice Bellard and the QEMU Project developers/,       'Copyright printed');
     like($log, qr/Not connecting to QEMU as requested by QEMU_ONLY_EXEC/, 'QEMU_ONLY_EXEC option has effect');
     unlike($log, qr/\: invalid option/, 'no invalid option detected');
-    cmp_ok($time->[0], '<', $ENV{EXPECTED_QEMU_START_S}, 'Execution time of isotovideo is within reasonable limits');
+    cmp_ok($time->[0], '<', $ENV{EXPECTED_ISOTOVIDEO_RUNTIME}, 'Execution time of isotovideo is within reasonable limits');
 
     # list machines: call isotovideo with QEMU_APPEND, to list machines
     run_isotovideo(@common_options, QEMU_APPEND => 'M ?');
