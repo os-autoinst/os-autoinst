@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2018 SUSE LLC
+# Copyright (C) 2018-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,10 +21,10 @@ use Test::Warnings ':report_warnings';
 use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
-use Mojo::File;
+use Mojo::File qw(path tempdir);
+use Mojo::JSON qw(encode_json);
 use Benchmark ':hireswallclock';
 use FindBin '$Bin';
-use Mojo::File 'tempdir';
 
 # optional but very useful
 eval 'use Test::More::Color';
@@ -35,195 +35,103 @@ my $toplevel_dir = "$Bin/..";
 my $data_dir     = "$Bin/data";
 my $pool_dir     = "$dir/pool";
 mkdir $pool_dir;
-
-chdir($pool_dir);
+chdir $pool_dir;
 
 # just save ourselves some time during testing
 $ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} //= 1;
 $ENV{QEMU_QMP_CONNECT_ATTEMPTS}     //= 1;
 $ENV{EXPECTED_QEMU_START_S}         //= 4;
 
-my $common_options = <<EOV;
-   "ARCH" : "i386",
-   "BACKEND" : "qemu",
-   "QEMU" : "i386",
-   "QEMU_NO_KVM" : "1",
-   "QEMU_NO_TABLET" : "1",
-   "QEMU_NO_FDC_SET" : "1",
-   "CASEDIR" : "$data_dir/tests",
-   "ISO" : "$data_dir/Core-7.2.iso",
-   "CDMODEL" : "ide-cd",
-   "HDDMODEL" : "ide-drive",
-   "WORKER_INSTANCE": "3",
-   "VERSION" : "1",
-EOV
-
-
-# Test QEMU_APPEND option with:
-# * version: '-version'
-# * list machines: '-M ?'
-# * multiple options: '-M ? -version'
-# * invalid option: '-broken option'
-# Note: no option starts a full qemu test
-subtest qemu_append_option => sub {
-
-    # Print version
-    open(my $var, '>', 'vars.json');
-    print $var <<EOV;
-{
-$common_options
-   "QEMU_ONLY_EXEC": "1",
-   "QEMU_APPEND" : "version"
+my @common_options = (
+    ARCH            => 'i386',
+    BACKEND         => 'qemu',
+    QEMU            => 'i386',
+    QEMU_NO_KVM     => 1,
+    QEMU_NO_TABLET  => 1,
+    QEMU_NO_FDC_SET => 1,
+    CASEDIR         => "$data_dir/tests",
+    ISO             => "$data_dir/Core-7.2.iso",
+    CDMODEL         => 'ide-cd',
+    HDDMODEL        => 'ide-drive',
+    WORKER_INSTANCE => 3,
+    VERSION         => 1,
+);
+my $vars_json = path('vars.json');
+my $log_file  = path('autoinst-log.txt');
+my $log       = '';
+sub run_isotovideo {
+    $vars_json->spurt(encode_json({@common_options, @_}));
+    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
+    $log = $log_file->slurp;
 }
-EOV
-    close($var);
-    # call isotovideo with QEMU_APPEND
-    # also measure time of startup and shutdown
-    my $time = timeit(1, sub { system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt") });
-    is(system('grep -q -e "-version" autoinst-log.txt'),                                     0, '-version option added');
-    is(system('grep -q "QEMU emulator version" autoinst-log.txt'),                           0, 'QEMU version printed');
-    is(system('grep -q "Fabrice Bellard and the QEMU Project developers" autoinst-log.txt'), 0, 'Copyright printed');
-    is(system('grep -q "Returning early as requested by QEMU_ONLY_EXEC" autoinst-log.txt'),  0, 'Copyright printed');
-    isnt(system('grep -q -e ": invalid option" autoinst-log.txt'), 0, 'no invalid option detected');
+
+# test QEMU_APPEND with different options
+subtest qemu_append_option => sub {
+    # note: No option starts a full qemu test.
+
+    # print version and also measure time of startup and shutdown: call isotovideo with QEMU_APPEND
+    my $time = timeit(1, sub { run_isotovideo(QEMU_ONLY_EXEC => 1, QEMU_APPEND => 'version') });
+    like($log, qr/-version/,                                        '-version option added');
+    like($log, qr/QEMU emulator version/,                           'QEMU version printed');
+    like($log, qr/Fabrice Bellard and the QEMU Project developers/, 'Copyright printed');
+    like($log, qr/Returning early as requested by QEMU_ONLY_EXEC/,  'Copyright printed');
+    unlike($log, qr/\: invalid option/, 'no invalid option detected');
     cmp_ok($time->[0], '<', $ENV{EXPECTED_QEMU_START_S}, 'Execution time of isotovideo is within reasonable limits');
 
-    # List machines
-    open($var, '>', 'vars.json');
-    print $var <<EOV;
-{
-$common_options
-   "QEMU_APPEND" : "M ?"
-}
-EOV
-    close($var);
-    # call isotovideo with QEMU_APPEND, to list machines
-    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
-    is(system('grep -q -e "-M ?" autoinst-log.txt'),                 0, '-M ? option added');
-    is(system('grep -q "Supported machines are:" autoinst-log.txt'), 0, 'Supported machines listed');
-    isnt(system('grep -q -e ": invalid option" autoinst-log.txt'), 0, 'no invalid option detected');
+    # list machines: call isotovideo with QEMU_APPEND, to list machines
+    run_isotovideo(@common_options, QEMU_APPEND => 'M ?');
+    like($log, qr/-M \?/,                    '-M ? option added');
+    like($log, qr/Supported machines are\:/, 'Supported machines listed');
+    unlike($log, qr/\: invalid option/, 'no invalid option detected');
 
-    # Multiple options
-    open($var, '>', 'vars.json');
-    print $var <<EOV;
-{
-$common_options
-   "QEMU_APPEND" : "M ? -version"
-}
-EOV
-    close($var);
-    # call isotovideo with QEMU_APPEND, with version
-    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
-    is(system('grep -q -e "-version" autoinst-log.txt'),                                     0, '-version option added');
-    is(system('grep -q "QEMU emulator version" autoinst-log.txt'),                           0, 'QEMU version printed');
-    is(system('grep -q "Fabrice Bellard and the QEMU Project developers" autoinst-log.txt'), 0, 'Copyright printed');
-    isnt(system('grep -q -e ": invalid option" autoinst-log.txt'), 0, 'no invalid option detected');
+    # multiple options: call isotovideo with QEMU_APPEND, with version
+    run_isotovideo(QEMU_APPEND => 'M ? -version');
+    like($log, qr/-version/,                                        '-version option added');
+    like($log, qr/QEMU emulator version/,                           'QEMU version printed');
+    like($log, qr/Fabrice Bellard and the QEMU Project developers/, 'Copyright printed');
+    unlike($log, qr/\: invalid option/, 'no invalid option detected');
 
-    # Invalid option
-    open($var, '>', 'vars.json');
-    print $var <<EOV;
-{
-$common_options
-   "QEMU_APPEND" : "broken option"
-}
-EOV
-    close($var);
-
-    # call isotovideo with QEMU_APPEND, with a broken option
-    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
-    is(system('grep -q -e "-broken option" autoinst-log.txt'),          0, '-broken option added');
-    is(system('grep -q -e "-broken: invalid option" autoinst-log.txt'), 0, 'invalid option detected');
-
+    # invalid option: call isotovideo with QEMU_APPEND, with a broken option
+    run_isotovideo(QEMU_APPEND => 'broken option');
+    like($log, qr/-broken option/,           '-broken option added');
+    like($log, qr/-broken\: invalid option/, 'invalid option detected');
 };
 
-# Test QEMU_HUGE_PAGES_PATH option with:
-# * /no/dev/hugepages/ value
-# Note: no option starts a full qemu test
+# test QEMU_HUGE_PAGES_PATH with different options
 subtest qemu_huge_pages_option => sub {
 
-    # Print version
-    open(my $var, '>', 'vars.json');
-    print $var <<EOV;
-{
-$common_options
-   "QEMU_HUGE_PAGES_PATH" : "/no/dev/hugepages/"
-}
-EOV
-    close($var);
-    # call isotovideo with QEMU_HUGE_PAGES_PATH
-    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
-    is(system('grep -q -e "-mem-prealloc" autoinst-log.txt'),                0, '-mem-prealloc option added');
-    is(system('grep -q -e "-mem-path /no/dev/hugepages/" autoinst-log.txt'), 0, '-mem-path /no/dev/hugepages/');
-    is(system('grep -q -e "can\'t open backing store /no/dev/hugepages/ for guest RAM: No such file or directory" autoinst-log.txt'), 0, 'expected failure as /no/dev/hugepages/ does not exist');
-
+    # print version: call isotovideo with QEMU_HUGE_PAGES_PATH
+    run_isotovideo(QEMU_HUGE_PAGES_PATH => '/no/dev/hugepages/');
+    like($log, qr/-mem-prealloc/,                '-mem-prealloc option added');
+    like($log, qr|-mem-path /no/dev/hugepages/|, '-mem-path /no/dev/hugepages/');
+    like($log, qr|can\'t open backing store /no/dev/hugepages/ for guest RAM\: No such file or directory|, 'expected failure as /no/dev/hugepages/ does not exist');
 };
 
-# Test QEMUTPM option with:
-# * 'instance'
-# * a number
+# test QEMUTPM with different options
 subtest qemu_tpm_option => sub {
 
-    open(my $var, '>', 'vars.json');
-    print $var <<EOV;
-{
-$common_options
-   "QEMU_ONLY_EXEC": "1",
-   "QEMUTPM" : "instance"
-}
-EOV
-    close($var);
     # call isotovideo with QEMUTPM=instance
-    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
-    is(system('grep -q -e "-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock" autoinst-log.txt'), 0, '-chardev socket option added (instance)');
-    is(system('grep -q -e "-tpmdev emulator,id=tpm0,chardev=chrtpm" autoinst-log.txt'),               0, '-tpmdev emulator option added');
-    is(system('grep -q -e "-device tpm-tis,tpmdev=tpm0" autoinst-log.txt'),                           0, '-device tpm-tis option added');
+    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => 'instance');
+    like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock|, '-chardev socket option added (instance)');
+    like($log, qr|-tpmdev emulator,id=tpm0,chardev=chrtpm|,               '-tpmdev emulator option added');
+    like($log, qr|-device tpm-tis,tpmdev=tpm0|,                           '-device tpm-tis option added');
 
-    open($var, '>', 'vars.json');
-    print $var <<EOV;
-{
-$common_options
-   "QEMU_ONLY_EXEC": "1",
-   "QEMUTPM" : "2"
-}
-EOV
-    close($var);
     # call isotovideo with QEMUTPM=2
-    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
-    is(system('grep -q -e "-chardev socket,id=chrtpm,path=/tmp/mytpm2/swtpm-sock" autoinst-log.txt'), 0, '-chardev socket option added (2)');
+    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => '2');
+    like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm2/swtpm-sock|, '-chardev socket option added (2)');
 
-
-    open($var, '>', 'vars.json');
-    print $var <<EOV;
-{
-$common_options
-   "QEMU_ONLY_EXEC": "1",
-   "ARCH": "ppc64le",
-   "QEMUTPM" : "instance"
-}
-EOV
-    close($var);
     # call isotovideo with QEMUTPM=instance, ppc64le arch
-    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
-    is(system('grep -q -e "-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock" autoinst-log.txt'), 0, '-chardev socket option added (instance)');
-    is(system('grep -q -e "-tpmdev emulator,id=tpm0,chardev=chrtpm" autoinst-log.txt'),               0, '-tpmdev emulator option added');
-    is(system('grep -q -e "-device tpm-spapr,tpmdev=tpm0" autoinst-log.txt'),                         0, '-device tpm-spapr option added');
-    is(system('grep -q -e "-device spapr-vscsi,id=scsi9,reg=0x00002000" autoinst-log.txt'),           0, '-device spapr-vscsi option added');
+    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => 'instance', ARCH => 'ppc64le');
+    like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock|, '-chardev socket option added (instance)');
+    like($log, qr/-tpmdev emulator,id=tpm0,chardev=chrtpm/,               '-tpmdev emulator option added');
+    like($log, qr/-device tpm-spapr,tpmdev=tpm0/,                         '-device tpm-spapr option added');
+    like($log, qr/-device spapr-vscsi,id=scsi9,reg=0x00002000/,           '-device spapr-vscsi option added');
 
-    open($var, '>', 'vars.json');
-    print $var <<EOV;
-{
-$common_options
-   "QEMU_ONLY_EXEC": "1",
-   "ARCH": "aarch64",
-   "QEMUTPM" : "instance"
-}
-EOV
-    close($var);
     # call isotovideo with QEMUTPM=instance, aarch64 arch
-    system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
-    is(system('grep -q -e "-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock" autoinst-log.txt'), 0, '-chardev socket option added (instance)');
-    is(system('grep -q -e "-tpmdev emulator,id=tpm0,chardev=chrtpm" autoinst-log.txt'),               0, '-tpmdev emulator option added');
-    is(system('grep -q -e "-device tpm-tis-device,tpmdev=tpm0" autoinst-log.txt'),                    0, '-device tpm-tis option added');
-
+    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => 'instance', ARCH => 'aarch64');
+    like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock|, '-chardev socket option added (instance)');
+    like($log, qr/-tpmdev emulator,id=tpm0,chardev=chrtpm/,               '-tpmdev emulator option added');
+    like($log, qr/-device tpm-tis-device,tpmdev=tpm0/,                    '-device tpm-tis option added');
 };
 
 done_testing();
