@@ -55,6 +55,7 @@ my @common_options = (
     HDDMODEL        => 'ide-drive',
     WORKER_INSTANCE => 3,
     VERSION         => 1,
+    SCHEDULE        => 'tests/noop',
 );
 my $vars_json = path('vars.json');
 my $log_file  = path('autoinst-log.txt');
@@ -67,14 +68,13 @@ sub run_isotovideo {
 
 # test QEMU_APPEND with different options
 subtest qemu_append_option => sub {
-    # note: No option starts a full qemu test.
 
     # print version and also measure time of startup and shutdown: call isotovideo with QEMU_APPEND
     my $time = timeit(1, sub { run_isotovideo(QEMU_ONLY_EXEC => 1, QEMU_APPEND => 'version') });
-    like($log, qr/-version/,                                        '-version option added');
-    like($log, qr/QEMU emulator version/,                           'QEMU version printed');
-    like($log, qr/Fabrice Bellard and the QEMU Project developers/, 'Copyright printed');
-    like($log, qr/Returning early as requested by QEMU_ONLY_EXEC/,  'Copyright printed');
+    like($log, qr/-version/,                                              '-version option added');
+    like($log, qr/QEMU emulator version/,                                 'QEMU version printed');
+    like($log, qr/Fabrice Bellard and the QEMU Project developers/,       'Copyright printed');
+    like($log, qr/Not connecting to QEMU as requested by QEMU_ONLY_EXEC/, 'QEMU_ONLY_EXEC option has effect');
     unlike($log, qr/\: invalid option/, 'no invalid option detected');
     cmp_ok($time->[0], '<', $ENV{EXPECTED_QEMU_START_S}, 'Execution time of isotovideo is within reasonable limits');
 
