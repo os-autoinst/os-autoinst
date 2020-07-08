@@ -164,7 +164,15 @@ sub _dbus_call {
 
 sub do_stop_vm {
     my $self = shift;
-    $self->{proc}->save_state();
+
+    my $proc = $self->{proc};
+    if ($bmwqemu::vars{QEMU_WAIT_FINISH}) {
+        # wait until QEMU finishes on its own; used in t/18-qemu-options.t
+        if (my $qemu_pid = $proc->qemu_pid) {
+            waitpid $qemu_pid, 0;
+        }
+    }
+    $proc->save_state;
     $self->stop_qemu;
 }
 

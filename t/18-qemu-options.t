@@ -66,11 +66,20 @@ sub run_isotovideo {
     $log = $log_file->slurp;
 }
 
+# notes regarding SCHEDULE, QEMU_ONLY_EXEC and QEMU_WAIT_FINISH used by this test
+# - SCHEDULE is set to a test which will do nothing to mock any actual test execution.
+# - QEMU_ONLY_EXEC skips any further setup/handling of QEMU after launching it. That means autoinst-log.txt will contain
+#   the QEMU start parameter.
+# - It will not necessarily contain the output of QEMU itself because we do not wait for QEMU to do anything after launching
+#   it and therefore already terminate the test execution before QEMU can do something.
+# - That is where QEMU_WAIT_FINISH comes into play. It causes the backend to wait until QEMU terminates on its own (in this test
+#   case after printing the version).
+
 # test QEMU_APPEND with different options
 subtest qemu_append_option => sub {
 
     # print version and also measure time of startup and shutdown: call isotovideo with QEMU_APPEND
-    my $time = timeit(1, sub { run_isotovideo(QEMU_ONLY_EXEC => 1, QEMU_APPEND => 'version') });
+    my $time = timeit(1, sub { run_isotovideo(QEMU_ONLY_EXEC => 1, QEMU_WAIT_FINISH => 1, QEMU_APPEND => 'version') });
     like($log, qr/-version/,                                              '-version option added');
     like($log, qr/QEMU emulator version/,                                 'QEMU version printed');
     like($log, qr/Fabrice Bellard and the QEMU Project developers/,       'Copyright printed');
@@ -108,6 +117,8 @@ subtest qemu_huge_pages_option => sub {
 };
 
 # test QEMUTPM with different options
+# note: Since this test does not have any checks for the actual QEMU output it would be possible to mock the actual execution
+#       of QEMU here.
 subtest qemu_tpm_option => sub {
 
     # call isotovideo with QEMUTPM=instance
