@@ -123,7 +123,7 @@ main_requires:
   perl(List::MoreUtils):
   perl(List::Util):
   perl(Mojolicious): '>= 8.42'
-  perl(Mojo::IOLoop::ReadWriteProcess): '>= 0.23'
+  perl(Mojo::IOLoop::ReadWriteProcess): '>= 0.26'
   perl(Mojo::JSON):
   perl(Mojo::Log):
   perl(Mojo::URL):
