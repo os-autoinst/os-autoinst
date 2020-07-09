@@ -38,6 +38,16 @@ sub activate {
     push(@command, qw(sol activate));
     my $serial = $self->{args}->{serial};
     my $cstr   = join(' ', @command);
+
+    # Try to deactivate IPMI SOL before activate
+    eval { $self->backend->ipmitool("sol deactivate"); };
+    my $ipmi_response = $@;
+    if ($ipmi_response) {
+        # IPMI response like SOL payload already de-activated is expected
+        die "Unexpect IPMI response: $ipmi_response" unless
+          ($ipmi_response =~ /SOL payload already de-activated/);
+    }
+
     $self->callxterm($cstr, "ipmitool:$testapi_console");
 }
 
@@ -50,6 +60,14 @@ sub reset {
         $self->{activated} = 0;
     }
     return;
+}
+
+sub disable {
+    my ($self) = @_;
+
+    # Try to deactivate IPMI SOL during disable
+    $self->reset;
+    $self->SUPER::disable;
 }
 
 sub do_mc_reset {
