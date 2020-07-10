@@ -1,4 +1,4 @@
-// Copyright © 2012-2016 SUSE LLC
+// Copyright © 2012-2020 SUSE LLC
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 
 // opaque type to seperate perl from opencv
 struct Image;
+void create_opencv_threads(int thread_count);
 void image_destroy(Image *s);
 Image *image_new(long width, long height);
 Image *image_read(const char *filename);

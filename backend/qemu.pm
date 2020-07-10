@@ -164,7 +164,15 @@ sub _dbus_call {
 
 sub do_stop_vm {
     my $self = shift;
-    $self->{proc}->save_state();
+
+    my $proc = $self->{proc};
+    if ($bmwqemu::vars{QEMU_WAIT_FINISH}) {
+        # wait until QEMU finishes on its own; used in t/18-qemu-options.t
+        if (my $qemu_pid = $proc->qemu_pid) {
+            waitpid $qemu_pid, 0;
+        }
+    }
+    $proc->save_state;
     $self->stop_qemu;
 }
 
@@ -998,7 +1006,7 @@ sub start_qemu {
 
     $self->create_virtio_console_fifo();
     my $qemu_pipe = $self->{qemupipe} = $self->{proc}->exec_qemu();
-    return bmwqemu::fctinfo('Returning early as requested by QEMU_ONLY_EXEC.') if $vars->{QEMU_ONLY_EXEC};
+    return bmwqemu::fctinfo('Not connecting to QEMU as requested by QEMU_ONLY_EXEC') if $vars->{QEMU_ONLY_EXEC};
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
@@ -1084,6 +1092,10 @@ sub handle_qmp_command {
     my $sk = $self->{qmpsocket};
 
     my $line = Mojo::JSON::to_json($cmd) . "\n";
+    if ($bmwqemu::vars{QEMU_ONLY_EXEC}) {
+        bmwqemu::fctinfo("Skipping the following qmp_command because QEMU_ONLY_EXEC is enabled:\n$line");
+        return undef;
+    }
     if (defined $optargs{send_fd}) {
         $wb = tinycv::send_with_fd($sk, $line, $optargs{send_fd});
     }

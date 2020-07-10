@@ -27,6 +27,7 @@ use Socket;
 use IO::Handle;
 use POSIX '_exit';
 use cv;
+use signalblocker;
 use Scalar::Util 'blessed';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
@@ -265,8 +266,11 @@ sub start_process {
             $SIG{HUP}  = 'DEFAULT';
             $SIG{CHLD} = 'DEFAULT';
 
+            my $signal_blocker = signalblocker->new;
             cv::init;
             require tinycv;
+            tinycv::create_threads();
+            undef $signal_blocker;
 
             $0 = "$0: autotest";
             my $line = <$isotovideo>;

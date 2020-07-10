@@ -1,4 +1,4 @@
-// Copyright © 2012-2016 SUSE LLC
+// Copyright © 2012-2020 SUSE LLC
 //
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -14,6 +14,8 @@
 // with this program; if not, see <http://www.gnu.org/licenses/>.
 
 #include <cerrno>
+#include <condition_variable>
+#include <mutex>
 #include <exception>
 #include <iostream>
 #include <cstdint>
@@ -314,6 +316,47 @@ double getPSNR(const Mat& I1, const Mat& I2)
     double signal = 255.0 * 255 * 3 * I1.total();
 
     return 10.0 * log10(signal / (noise * noise));
+}
+
+/*!
+ * \brief Creates OpenCV's threads upfront.
+ *
+ * This allows one to take control over spawning these threads, e.g. to block signals. One can
+ * also specify the number of threads to be created (instead of using OpenCV's default).
+ *
+ * \remarks
+ * - This function invokes parallel_for_ because there seems no designated function for explicitly
+ *   spawning the threads upfront. This could be done on the level of the underlying parallelisation
+ *   framework (e.g. OpenMP or TBB) but that would mean multiple code paths depending on OpenCV's
+ *   configuration.
+ * - We can not simply invoke `parallel_for_(Range(0, arbitrary_high_number), [&] (const Range &) {}`
+ *   because that would not guarantee that actually up to \a thread_count are kept busy at the same
+ *   time and indeed does not work in practice for high \a thread_count values like 32. Hence we
+ *   keep the threads idling until the expected number of threads has been spawned.
+ */
+void create_opencv_threads(int thread_count)
+{
+    // use the number of CPU cores as default \a thread_count
+    if (thread_count < 0) {
+        thread_count = std::max(0, cv::getNumberOfCPUs());
+    }
+
+    // set the number of threads explicitly in any case so the number of expected threads is fix
+    cv::setNumThreads(thread_count);
+
+    // execute a parallel algorithm which ensures that \a thread_count are busy at the same time
+    std::mutex m;
+    std::condition_variable cv;
+    int threads_spawned = 0;
+    parallel_for_(Range(0, thread_count), [&] (const Range &) {
+        // keep the thread idling until the expected number of threads has been spawned
+        std::unique_lock<std::mutex> lock(m);
+        if (++threads_spawned >= thread_count) {
+            cv.notify_all(); // note: The last thread releases all previously spawned threads.
+        } else {
+            cv.wait(lock);
+        }
+    });
 }
 
 void image_destroy(Image* s) { delete (s); }

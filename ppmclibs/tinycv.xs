@@ -63,6 +63,11 @@ CODE:
 OUTPUT:
        RETVAL
 
+void
+create_threads(int thread_count = -1)
+CODE:
+       create_opencv_threads(thread_count);
+
 tinycv::Image new(long width, long height)
   CODE:
     RETVAL = image_new(width, height);

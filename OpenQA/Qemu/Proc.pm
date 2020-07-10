@@ -406,6 +406,8 @@ sub exec_qemu {
     return $self->_process->read_stream;
 }
 
+sub qemu_pid { shift->_process->process_id }
+
 =head3 connect_qmp
 
 Connect to QEMU's QMP command socket so that we can control QEMU's execution
