@@ -677,6 +677,8 @@ subtest 'autoinst_url' => sub {
     is(autoinst_url('foo'), 'http://my_worker_host:1/foo', 'autoinst_url returns reasonable URL based on WORKER_HOSTNAME');
     $bmwqemu::vars{BACKEND} = 'qemu';
     is(autoinst_url('foo'), 'http://10.0.2.2:1/foo', 'autoinst_url returns static IP for qemu');
+    $bmwqemu::vars{QEMU_HOST_IP} = '192.168.42.1';
+    is(autoinst_url('foo'), 'http://192.168.42.1:1/foo', 'autoinst_url returns configured static IP');
     $bmwqemu::vars{AUTOINST_URL_HOSTNAME} = 'localhost';
     is(autoinst_url('foo'), 'http://localhost:1/foo', 'we can configure the hostname that autoinst_url returns');
 };
