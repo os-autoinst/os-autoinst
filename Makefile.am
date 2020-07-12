@@ -199,7 +199,12 @@ distclean-local: clean-local
 check-local-files-specified:
 	for i in $$((git ls-files "*.pm" 2>/dev/null || find -name "*.pm" -printf "%P\n") | grep -v -E '(ppmclibs/|t/|tools/|backend/amt|backend/null|consoles/amtSol)'); do if ! grep -q $$i Makefile.am; then echo "$$i missing from install instructions in Makefile.am" && exit 1; fi; done
 
-check-local: check-local-files-specified
+test-yaml:
+	@which yamllint >/dev/null 2>&1 || echo "Command 'yamllint' not found, can not execute YAML syntax checks"
+	@# Fall back to find if there is no git, e.g. in package builds
+	yamllint --strict $$(git ls-files "*.yml" "*.yaml" 2>/dev/null || find -name '*.y*ml')
+
+check-local: check-local-files-specified test-yaml
 	$(srcdir)/tools/tidy --check
 	PERL5LIB=tools/lib/perlcritic:$$PERL5LIB perlcritic --gentle --include Perl::Critic::Policy::HashKeyQuote $(srcdir)
 	test x$(CHECK_DOC) = x0 || $(MAKE) check-doc
