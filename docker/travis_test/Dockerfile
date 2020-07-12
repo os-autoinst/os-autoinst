@@ -25,6 +25,8 @@ RUN zypper in -y -C \
        make \
        perl-base \
        pkg-config \
+       python3-setuptools \
+       python3-yamllint \
        qemu \
        qemu-tools \
        qemu-x86 \

@@ -84,6 +84,8 @@ test_requires:
   qemu:
   qemu-tools:
   qemu-x86:
+  python3-setuptools:
+  python3-yamllint:
 
 main_requires:
   git-core:
@@ -151,4 +153,3 @@ main_requires:
   perl(version):
   perl(warnings):
   perl-base:
-
