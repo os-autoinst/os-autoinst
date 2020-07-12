@@ -96,7 +96,8 @@ perlexec_DATA = \
 	ocr.pm \
 	cv.pm \
 	needle.pm \
-	osutils.pm
+	osutils.pm \
+	signalblocker.pm
 
 pkglibexec_SCRIPTS = \
 	crop.py \
