@@ -10,7 +10,7 @@ coverage:
   - 95.0
   round: down
   status:
-    changes: no
+    changes: false
     project:
       default:
         target: 38.3
