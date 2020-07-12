@@ -171,6 +171,7 @@ make check test VERBOSE=1 %{make_check_args}
 %{_libexecdir}/os-autoinst/ocr.pm
 %{_libexecdir}/os-autoinst/needle.pm
 %{_libexecdir}/os-autoinst/osutils.pm
+%{_libexecdir}/os-autoinst/signalblocker.pm
 %{_libexecdir}/os-autoinst/myjsonrpc.pm
 %{_libexecdir}/os-autoinst/backend
 %{_libexecdir}/os-autoinst/OpenQA
