@@ -198,7 +198,7 @@ dist-hook:
 distclean-local: clean-local
 
 check-local-files-specified:
-	for i in $$((git ls-files "*.pm" 2>/dev/null || find -name "*.pm" -printf "%P\n") | grep -v -E '(ppmclibs/|t/|tools/|backend/amt|backend/null|consoles/amtSol)'); do if ! grep -q $$i Makefile.am; then echo "$$i missing from install instructions in Makefile.am" && exit 1; fi; done
+	$(srcdir)/tools/check-installed-files
 
 test-yaml:
 	@which yamllint >/dev/null 2>&1 || echo "Command 'yamllint' not found, can not execute YAML syntax checks"
