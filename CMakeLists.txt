@@ -48,7 +48,6 @@ set(PERL_FILES
     consoles/virtio_terminal.pm
     consoles/vnc_base.pm
     consoles/VNC.pm
-    cv.pm
     distribution.pm
     lockapi.pm
     mmapi.pm
@@ -85,9 +84,6 @@ set(MISC_FILES
     dmidata/dell_e6330/smbios_type_2.bin
     dmidata/dell_e6330/smbios_type_3.bin
     dmidata/dump
-)
-set(EXECUTABLE_FILES
-    isotovideo
 )
 
 # determine install directories
@@ -132,10 +128,30 @@ add_custom_target(
     COMMAND ln -fs $<TARGET_FILE:tinycv> "${CMAKE_CURRENT_SOURCE_DIR}/ppmclibs/blib/arch/auto/tinycv/tinycv.so"
 )
 
+# create installable versions of isotovideo and cv.pm
+add_custom_command(
+    COMMENT "Make install version of isotovideo"
+    COMMAND
+        sed -e "\"s,\$installprefix = undef\;,\$installprefix = '${CMAKE_INSTALL_PREFIX}/${OS_AUTOINST_DATA_DIR}'\;,\""
+        "${CMAKE_CURRENT_SOURCE_DIR}/isotovideo" > "${CMAKE_CURRENT_BINARY_DIR}/isotovideo"
+    DEPENDS "isotovideo" "CMakeLists.txt"
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/isotovideo"
+)
+add_custom_command(
+    COMMENT "Make install version of cv.pm"
+    COMMAND
+        sed -e "\"s,\\$sysdir = undef\;,\\$sysdir = '${CMAKE_INSTALL_PREFIX}/${OS_AUTOINST_DATA_DIR}'\;,\""
+        "${CMAKE_CURRENT_SOURCE_DIR}/cv.pm" > "${CMAKE_CURRENT_BINARY_DIR}/cv.pm"
+    DEPENDS "cv.pm" "CMakeLists.txt"
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cv.pm"
+)
+add_custom_target(generate_install_versions ALL
+    COMMENT "Generate install version of isotovideo and cv.pm"
+    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/isotovideo" "${CMAKE_CURRENT_BINARY_DIR}/cv.pm"
+)
+
 # install non-C++ files
-foreach (FILE ${EXECUTABLE_FILES})
-    install(FILES "${FILE}" DESTINATION "${CMAKE_INSTALL_BINDIR}")
-endforeach ()
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/isotovideo" DESTINATION "${CMAKE_INSTALL_BINDIR}")
 foreach (FILE README.asciidoc INSTALL.asciidoc COPYING)
     install(FILES "${FILE}" DESTINATION "${OS_AUTOINST_DOC_DIR}")
 endforeach ()
@@ -143,3 +159,4 @@ foreach (FILE ${PERL_FILES} ${MISC_FILES})
     get_filename_component(SUB_DIR ${FILE} DIRECTORY)
     install(FILES "${FILE}" DESTINATION "${OS_AUTOINST_DATA_DIR}/${SUB_DIR}")
 endforeach ()
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/cv.pm" DESTINATION "${OS_AUTOINST_DATA_DIR}")
