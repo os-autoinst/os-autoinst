@@ -6,11 +6,26 @@ find_program(PERL_PATH perl)
 if (NOT PERL_PATH)
     message(FATAL_ERROR "Unable to find perl.")
 endif ()
+message(STATUS "Perl executable: ${PERL_PATH}")
 execute_process(
     COMMAND "${PERL_PATH}" -e "print(join(';', @INC))"
     OUTPUT_VARIABLE PERL_INCLUDE_PATHS
 )
 message(STATUS "Detected Perl include paths: ${PERL_INCLUDE_PATHS}")
+
+# find directory to install the tinycv Perl module to
+set(PERL_INSTALL_CONFIGURATION_VARIABLE "installvendorarch"
+    CACHE STRING "Perl configuration variable to query for the tinycv install directory")
+execute_process(
+    COMMAND "${PERL_PATH}" "-V:${PERL_INSTALL_CONFIGURATION_VARIABLE}"
+    OUTPUT_VARIABLE PERL_INSTALL_VENDORARCH
+)
+if (PERL_INSTALL_VENDORARCH MATCHES "${PERL_INSTALL_CONFIGURATION_VARIABLE}='(.*)';")
+    set(PERL_INSTALL_VENDORARCH "${CMAKE_MATCH_1}")
+    message(STATUS "Detected Perl ${PERL_INSTALL_CONFIGURATION_VARIABLE} (for tinycv): ${PERL_INSTALL_VENDORARCH}")
+else ()
+    message(FATAL_ERROR "Unable to detect Perl ${PERL_INSTALL_CONFIGURATION_VARIABLE} (for tinycv).")
+endif ()
 
 # find Perl's header files
 set(PERL_INCLUDE_DIRECTORY)
@@ -39,6 +54,7 @@ find_program(XSUBPP_PATH xsubpp)
 if (NOT XSUBPP_PATH)
     message(FATAL_ERROR "Unable to find xsubpp.")
 endif ()
+message(STATUS "xsubpp executable: ${XSUBPP_PATH}")
 set(PREPROCESSED_XS_FILE "${CMAKE_CURRENT_BINARY_DIR}/tinycv-xs.cpp")
 add_custom_command(
     COMMENT "Preprocessing Perl XS file"
@@ -61,3 +77,8 @@ add_library(tinycv MODULE
 target_link_libraries(tinycv PRIVATE opencv_core opencv_imgcodecs)
 target_include_directories(tinycv PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${PERL_INCLUDE_DIRECTORY}")
 target_compile_definitions(tinycv PRIVATE "-DVERSION=\"1.0\"" "-DXS_VERSION=\"1.0\"" "-D_LARGEFILE_SOURCE" "-D_FILE_OFFSET_BITS=64")
+set_target_properties(tinycv PROPERTIES PREFIX "") # remove lib prefix (library is *not* supposed to be called libtinycv.so)
+
+# install the native library and Perl code
+install(TARGETS tinycv LIBRARY DESTINATION "${PERL_INSTALL_VENDORARCH}/auto/tinycv")
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/tinycv.pm" DESTINATION "${PERL_INSTALL_VENDORARCH}")

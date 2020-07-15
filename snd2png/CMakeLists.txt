@@ -10,3 +10,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE opencv_core opencv_imgcodecs ${FFT
 target_include_directories(${PROJECT_NAME} PRIVATE ${FFTW3_INCLUDE_DIRS} ${SNDFILE_INCLUDE_DIRS})
 target_compile_options(${PROJECT_NAME} PRIVATE ${FFTW3_CFLAGS} ${SNDFILE_CFLAGS})
 target_link_options(${PROJECT_NAME} PRIVATE ${FFTW3_LDFLAGS} ${SNDFILE_LDFLAGS})
+install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
