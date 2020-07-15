@@ -103,6 +103,7 @@ include(FindPkgConfig)
 add_subdirectory(debugviewer)
 add_subdirectory(snd2png)
 add_subdirectory(ppmclibs)
+add_subdirectory(doc)
 
 # build and install videoencoder
 add_executable(videoencoder videoencoder.cpp)
@@ -152,7 +153,7 @@ add_custom_target(generate_install_versions ALL
 
 # install non-C++ files
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/isotovideo" DESTINATION "${CMAKE_INSTALL_BINDIR}")
-foreach (FILE README.asciidoc INSTALL.asciidoc COPYING)
+foreach (FILE README.asciidoc INSTALL.asciidoc COPYING ${GENERATED_DOC_FILES})
     install(FILES "${FILE}" DESTINATION "${OS_AUTOINST_DOC_DIR}")
 endforeach ()
 foreach (FILE ${PERL_FILES} ${MISC_FILES})
