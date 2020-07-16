@@ -94,24 +94,24 @@ set(OS_AUTOINST_DATA_DIR "lib/os-autoinst"
     CACHE STRING "directory to install os-autoinst internal Perl modules and misc files to")
 set(OS_AUTOINST_DOC_DIR "${CMAKE_INSTALL_DATAROOTDIR}/doc/packages/os-autoinst"
     CACHE STRING "directory to install documentation to")
+set(SYSTEMD_SERVICE_DIR "lib/systemd/system"
+    CACHE STRING "directory to install systemd service files to")
 
 # common dependency lookup
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
+include(pkg-config)
 find_package(OpenCV REQUIRED)
-include(FindPkgConfig)
 
 # build and install tools/libraries in sub directories
 add_subdirectory(debugviewer)
 add_subdirectory(snd2png)
 add_subdirectory(ppmclibs)
 add_subdirectory(doc)
+add_subdirectory(systemd)
 
 # build and install videoencoder
 add_executable(videoencoder videoencoder.cpp)
-pkg_check_modules(THEORAENC theoraenc>=1.1)
-target_link_libraries(videoencoder PRIVATE opencv_core opencv_imgcodecs ${THEORAENC_LIBRARIES})
-target_include_directories(videoencoder PRIVATE ${THEORAENC_INCLUDE_DIRS})
-target_compile_options(videoencoder PRIVATE ${THEORAENC_CFLAGS})
-target_link_options(videoencoder PRIVATE ${THEORAENC_LDFLAGS})
+target_use_pkg_config_module(videoencoder "theoraenc>=1.1")
 install(TARGETS videoencoder RUNTIME DESTINATION "${OS_AUTOINST_DATA_DIR}")
 
 # allow symlinking created executables into source directory
@@ -161,3 +161,19 @@ foreach (FILE ${PERL_FILES} ${MISC_FILES})
     install(FILES "${FILE}" DESTINATION "${OS_AUTOINST_DATA_DIR}/${SUB_DIR}")
 endforeach ()
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/cv.pm" DESTINATION "${OS_AUTOINST_DATA_DIR}")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/cv.pm" DESTINATION "${OS_AUTOINST_DATA_DIR}")
+
+# install openvswitch files
+install(
+    FILES "os-autoinst-openvswitch"
+    DESTINATION "${OS_AUTOINST_DATA_DIR}"
+    COMPONENT "openvswitch" EXCLUDE_FROM_ALL
+)
+install(
+    FILES "etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf"
+    DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d"
+    COMPONENT "openvswitch"
+    EXCLUDE_FROM_ALL
+)
+add_custom_target(install-openvswitch
+    COMMAND "${CMAKE_COMMAND}" -DCMAKE_INSTALL_COMPONENT=openvswitch -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
