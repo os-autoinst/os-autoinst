@@ -19,6 +19,7 @@ backendexec_DATA = \
 	backend/ikvm.pm \
 	backend/ipmi.pm \
 	backend/qemu.pm \
+	backend/null.pm \
 	backend/s390x.pm \
 	backend/svirt.pm \
 	backend/pvm.pm \
