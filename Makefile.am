@@ -11,6 +11,7 @@ doc_DATA = \
 
 backendexecdir = $(pkglibexecdir)/backend
 backendexec_DATA = \
+	backend/amt.pm \
 	backend/baseclass.pm \
 	backend/console_proxy.pm \
 	backend/driver.pm \
@@ -27,6 +28,7 @@ backendexec_DATA = \
 
 consolesexecdir = $(pkglibexecdir)/consoles
 consolesexec_DATA = \
+	consoles/amtSol.pm \
 	consoles/console.pm \
 	consoles/icewm.cfg \
 	consoles/ipmiSol.pm \
