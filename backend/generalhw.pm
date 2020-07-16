@@ -1,4 +1,4 @@
-# Copyright © 2016 SUSE LLC
+# Copyright © 2016-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -148,8 +148,7 @@ sub do_stop_vm {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    return 1 if $self->check_ssh_serial($fh);
-    return $self->SUPER::check_socket($fh, $write);
+    return $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write);
 }
 
 # serial grab

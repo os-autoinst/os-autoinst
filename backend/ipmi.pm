@@ -132,8 +132,7 @@ sub is_shutdown {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    return 1 if $self->check_ssh_serial($fh);
-    return $self->SUPER::check_socket($fh, $write);
+    return $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write);
 }
 
 sub get_mc_status {

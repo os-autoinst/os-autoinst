@@ -1170,9 +1170,7 @@ sub check_socket {
     my ($self, $fh, $write) = @_;
 
     if ($self->{qemupipe} && $fh == $self->{qemupipe}) {
-        if (!$write) {
-            $self->close_pipes() unless $self->read_qemupipe();
-        }
+        $self->close_pipes() if !$write && !$self->read_qemupipe();
         return 1;
     }
     return $self->SUPER::check_socket($fh);
