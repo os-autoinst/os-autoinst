@@ -2,7 +2,7 @@ project(doc CXX)
 cmake_minimum_required(VERSION 3.3.0)
 
 find_program(POD2HTML_PATH pod2html)
-if (NOT PODT2HTML_PATH)
+if (NOT POD2HTML_PATH)
     message(FATAL_ERROR "Unable to find pod2html.")
 endif ()
 
