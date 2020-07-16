@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,8 +20,7 @@ use warnings;
 
 use base 'backend::virt';
 
-use testapi qw(get_var get_required_var check_var);
-use IO::Select;
+use testapi qw(get_var get_required_var);
 
 # supporting the minimal command set of NovaLink through a ssh tunnel
 

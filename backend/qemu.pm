@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2017 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ use File::Path 'mkpath';
 use File::Spec;
 use File::Which;
 use Time::HiRes qw(sleep gettimeofday);
-use IO::Select;
 use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use POSIX qw(strftime :sys_wait_h mkfifo);
