@@ -98,8 +98,9 @@ set(SYSTEMD_SERVICE_DIR "lib/systemd/system"
     CACHE STRING "directory to install systemd service files to")
 
 # common dependency lookup
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
+include(pkg-config)
 find_package(OpenCV REQUIRED)
-include(FindPkgConfig)
 
 # build and install tools/libraries in sub directories
 add_subdirectory(debugviewer)
@@ -110,11 +111,7 @@ add_subdirectory(systemd)
 
 # build and install videoencoder
 add_executable(videoencoder videoencoder.cpp)
-pkg_check_modules(THEORAENC theoraenc>=1.1)
-target_link_libraries(videoencoder PRIVATE opencv_core opencv_imgcodecs ${THEORAENC_LIBRARIES})
-target_include_directories(videoencoder PRIVATE ${THEORAENC_INCLUDE_DIRS})
-target_compile_options(videoencoder PRIVATE ${THEORAENC_CFLAGS})
-target_link_options(videoencoder PRIVATE ${THEORAENC_LDFLAGS})
+target_use_pkg_config_module(videoencoder "theoraenc>=1.1")
 install(TARGETS videoencoder RUNTIME DESTINATION "${OS_AUTOINST_DATA_DIR}")
 
 # allow symlinking created executables into source directory
