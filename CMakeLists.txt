@@ -111,7 +111,7 @@ pkg_check_modules(THEORAENC theoraenc>=1.1)
 target_link_libraries(videoencoder PRIVATE opencv_core opencv_imgcodecs ${THEORAENC_LIBRARIES})
 target_include_directories(videoencoder PRIVATE ${THEORAENC_INCLUDE_DIRS})
 target_compile_options(videoencoder PRIVATE ${THEORAENC_CFLAGS})
-target_link_options(videoencoder PRIVATE ${THEORAENC_LDFLAGS})
+set_target_properties(videoencoder PROPERTIES LINK_FLAGS ${THEORAENC_LDFLAGS})
 install(TARGETS videoencoder RUNTIME DESTINATION "${OS_AUTOINST_DATA_DIR}")
 
 # allow symlinking created executables into source directory
