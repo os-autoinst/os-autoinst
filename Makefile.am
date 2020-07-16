@@ -11,6 +11,7 @@ doc_DATA = \
 
 backendexecdir = $(pkglibexecdir)/backend
 backendexec_DATA = \
+	backend/amt.pm \
 	backend/baseclass.pm \
 	backend/console_proxy.pm \
 	backend/driver.pm \
@@ -18,6 +19,7 @@ backendexec_DATA = \
 	backend/ikvm.pm \
 	backend/ipmi.pm \
 	backend/qemu.pm \
+	backend/null.pm \
 	backend/s390x.pm \
 	backend/svirt.pm \
 	backend/pvm.pm \
@@ -27,6 +29,7 @@ backendexec_DATA = \
 
 consolesexecdir = $(pkglibexecdir)/consoles
 consolesexec_DATA = \
+	consoles/amtSol.pm \
 	consoles/console.pm \
 	consoles/icewm.cfg \
 	consoles/ipmiSol.pm \
