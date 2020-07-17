@@ -29,11 +29,11 @@ subtest modules_test => sub {
     ok(!$basetest->is_applicable, 'module can be excluded');
     $bmwqemu::vars{EXCLUDE_MODULES} = '';
     $bmwqemu::vars{INCLUDE_MODULES} = 'bar,baz';
-    ok(!$basetest->is_applicable, 'modules can be excluded based on a whitelist');
+    ok(!$basetest->is_applicable, 'modules can be excluded based on a passlist');
     $bmwqemu::vars{INCLUDE_MODULES} = 'bar,baz,foo';
-    ok($basetest->is_applicable, 'a whitelisted module shows up');
+    ok($basetest->is_applicable, 'a passlisted module shows up');
     $bmwqemu::vars{EXCLUDE_MODULES} = 'foo';
-    ok(!$basetest->is_applicable, 'whitelisted modules are overriden by blacklist');
+    ok(!$basetest->is_applicable, 'passlisted modules are overriden by blocklist');
 };
 
 subtest parse_serial_output => sub {
