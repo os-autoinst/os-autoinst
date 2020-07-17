@@ -73,14 +73,14 @@ This code is run during test.
 Return false if the test should be skipped.
 
 By default it checks the test name and fullname against a comma-separated
-blacklist in C<EXCLUDE_MODULES> variable and returns false if it is found there.
+blocklist in C<EXCLUDE_MODULES> variable and returns false if it is found there.
 
 If C<INCLUDE_MODULES> is set it will only return true for modules matching the
-whitelist specified in a comma-separated list in C<EXCLUDE_MODULES> matching
+passlist specified in a comma-separated list in C<EXCLUDE_MODULES> matching
 either test name or fullname.
 
 C<EXCLUDE_MODULES> has precedence over C<INCLUDE_MODULES> and can be combined
-to blacklist test modules from the whitelist specified in C<INCLUDE_MODULES>.
+to blocklist test modules from the passlist specified in C<INCLUDE_MODULES>.
 
 Can eg. check vars{BIGTEST}, vars{LIVETEST}
 
