@@ -104,7 +104,6 @@ sed  -i 's/ my $thisversion = qx{git.*rev-parse HEAD}.*;/ my $thisversion = "%{v
 # 07-commands: https://progress.opensuse.org/issues/60755
 for i in 07-commands 13-osutils 14-isotovideo 18-qemu-options 18-backend-qemu 99-full-stack; do
     rm t/$i.t
-    sed -i "s/ \?$i\.t//g" Makefile.am
 done
 
 %build
