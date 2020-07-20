@@ -177,3 +177,11 @@ install(
 )
 add_custom_target(install-openvswitch
     COMMAND "${CMAKE_COMMAND}" -DCMAKE_INSTALL_COMPONENT=openvswitch -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
+
+# add target to update files containing dependency information
+add_custom_target(
+    update-deps
+    COMMENT "Updating dependency information"
+    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/update-deps" --specfile dist/rpm/os-autoinst.spec --dockerfile docker/travis_test/Dockerfile
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
