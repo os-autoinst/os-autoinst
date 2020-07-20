@@ -2,7 +2,7 @@
 destdir="${destdir:-$(mktemp -d)}"
 make install DESTDIR="$destdir"
 installed_files=$(find "$destdir" -name '*.pm')
-all_source_files=$(git ls-files "*.pm" 2>/dev/null || find "$(dirname "$0")" -name "*.pm" -printf "%P\n")
+all_source_files=$(git ls-files "*.pm" 2>/dev/null || find "$(dirname "$0")/.." -name "*.pm" -printf "%P\n")
 source_files=$(echo "$all_source_files" | grep -v -E '(ppmclibs/|t/|tools/)')
 for i in $source_files; do
     if ! echo "$installed_files" | grep -q "$i"; then
