@@ -55,9 +55,10 @@ endif ()
 # add targets for invoking Perl test suite
 find_program(PROVE_PATH prove)
 if (PROVE_PATH)
+    set(INVOKE_TEST_ARGS --prove-tool "${PROVE_PATH}" --make-tool "${CMAKE_MAKE_PROGRAM}" --build-directory "${CMAKE_CURRENT_BINARY_DIR}")
     add_test(
         NAME test-perl-testsuite
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" "${PROVE_PATH}" "${CMAKE_MAKE_PROGRAM}" "${CMAKE_CURRENT_BINARY_DIR}"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" ${INVOKE_TEST_ARGS}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 else ()
@@ -76,7 +77,7 @@ find_program(COVER_PATH cover)
 if (COVER_PATH AND PROVE_PATH)
     add_custom_command(
         COMMENT "Run Perl testsuite with coverage instrumentation"
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" --coverage "${PROVE_PATH}" "${CMAKE_MAKE_PROGRAM}" "${CMAKE_CURRENT_BINARY_DIR}"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" --coverage ${INVOKE_TEST_ARGS}
         OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cover_db/structure"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )

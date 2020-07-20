@@ -1,27 +1,46 @@
 #!/bin/bash -e
 
-# process arguments
-if [[ $1 == --coverage ]]; then
-    WITH_COVER_OPTIONS=1
-    shift
-fi
-if [[ $# -lt 3 ]]; then
-    echo "usage: $0 [--coverage] prove-tool-path make-tool-path build-directory [test-file...]"
+source_directory=$(dirname "$0")/..
+source_directory=$(realpath "$source_directory")
+
+usage() {
+    echo "usage: $0 [options] [test-file...]
+options:
+    --coverage         record test coverage
+    --prove-tool       prove tool to use (defaults to prove)
+    --make-tool        make tool to use (defaults to make)
+    --build-directory  build directory (defaults to $source_directory)"
     exit
-fi
-prove_path=$1 make_path=$2 build_dir=$3
-shift 3
+}
+
+# parse arguments
+prove_path=prove make_path=make build_directory=$source_directory
+opts=$(getopt --options h --longoptions help,coverage,prove-tool:,make-tool:,build-directory: --name "$(basename "$0")" -- "$@") || usage
+eval set -- "$opts"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h | --help       ) usage;                shift   ;;
+    --coverage        ) WITH_COVER_OPTIONS=1; shift   ;;
+    --prove-tool      ) prove_path=$2;        shift 2 ;;
+    --make-tool       ) make_path=$2;         shift 2 ;;
+    --build-directory ) build_directory=$2;   shift 2 ;;
+    --                ) shift; break ;;
+    *                 ) break ;;
+  esac
+done
 test_files=("$@")
 
 # set Perl module include path and coverage options
-export PERL5LIB="$PWD:$PWD/ppmclibs:$PWD/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
+export PERL5LIB="$source_directory:$source_directory/ppmclibs:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
 if [[ $WITH_COVER_OPTIONS ]]; then
-    path_regex="^|$PWD/|\\.\\./"
-    export PERL5OPT="-MDevel::Cover=-db,$build_dir/cover_db,-select,($path_regex)(OpenQA|backend|consoles|ppmclibs)/|($path_regex)isotovideo|($path_regex)[^/]+\.pm,-ignore,\.t|data/tests/|fake/tests/|$prove_path,-coverage,statement"
+    db="$build_directory/cover_db"
+    path_regex="^|$source_directory/|\\.\\./"
+    select="($path_regex)(OpenQA|backend|consoles|ppmclibs)/|($path_regex)isotovideo|($path_regex)[^/]+\.pm,-ignore,\.t|data/tests/|fake/tests/|$prove_path"
+    export PERL5OPT="-MDevel::Cover=-db,$db,-select,$select,-coverage,statement"
 fi
 
 # set variables for tests which need to invoke the make tool
-export OS_AUTOINST_BUILD_DIRECTORY=$build_dir
+export OS_AUTOINST_BUILD_DIRECTORY=$build_directory
 export OS_AUTOINST_MAKE_TOOL=$make_path
 
 # allow specifying the list of tests via TESTS in consistency with openQA; otherwise run all tests

@@ -228,15 +228,15 @@ clean-local:
 
 .PHONY: test
 test:
-	( $(srcdir)/tools/invoke-tests prove make $(abs_builddir) )
+	( $(srcdir)/tools/invoke-tests --build-directory $(abs_builddir) )
 
 .PHONY: testv
 testv:
-	( PROVE_ARGS=-v $(srcdir)/tools/invoke-tests prove make $(abs_builddir) )
+	( PROVE_ARGS=-v $(srcdir)/tools/invoke-tests --build-directory $(abs_builddir) )
 
 .PHONY: test-cover
 test-cover:
-	( $(srcdir)/tools/invoke-tests --coverage prove make $(abs_builddir) )
+	( $(srcdir)/tools/invoke-tests --coverage --build-directory $(abs_builddir) )
 
 .PHONY: test-cover-summary
 test-cover-summary:
