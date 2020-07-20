@@ -26,16 +26,17 @@ if (not -e "$Bin/../.git") {
     exit;
 }
 
-chdir "$Bin/..";
-my $make = "make update-deps";
-my @out  = qx{$make};
-my $rc   = $?;
-die "Could not run $make: rc=$rc" if $rc;
+my $build_dir = $ENV{OS_AUTOINST_BUILD_DIRECTORY} || "$Bin/..";
+my $make_tool = $ENV{OS_AUTOINST_MAKE_TOOL}       || 'make';
+my $make_cmd  = "$make_tool update-deps";
 
-my @status = grep { not m/^\?/ } qx{git status --porcelain};
+chdir $build_dir;
+my @out = qx{$make_cmd};
+my $rc  = $?;
+die "Could not run $make_cmd: rc=$rc" if $rc;
 
-ok(!@status, "No changed files after '$make'")
-  or diag @status;
+my @status = grep { not m/^\?/ } qx{git -C "$Bin/.." status --porcelain};
+ok(!@status, "No changed files after '$make_cmd'") or diag @status;
 
 done_testing;
 

@@ -178,6 +178,9 @@ install(
 add_custom_target(install-openvswitch
     COMMAND "${CMAKE_COMMAND}" -DCMAKE_INSTALL_COMPONENT=openvswitch -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
 
+# add tests
+include(test-targets)
+
 # add target to update files containing dependency information
 add_custom_target(
     update-deps

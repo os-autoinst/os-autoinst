@@ -205,12 +205,11 @@ check-local-files-specified:
 
 test-yaml:
 	@which yamllint >/dev/null 2>&1 || echo "Command 'yamllint' not found, can not execute YAML syntax checks"
-	@# Fall back to find if there is no git, e.g. in package builds
-	yamllint --strict $$(git ls-files "*.yml" "*.yaml" 2>/dev/null || find -name '*.y*ml')
+	$(srcdir)/tools/check-yaml-syntax
 
 check-local: check-local-files-specified test-yaml
 	$(srcdir)/tools/tidy --check
-	PERL5LIB=tools/lib/perlcritic:$$PERL5LIB perlcritic --gentle --include Perl::Critic::Policy::HashKeyQuote $(srcdir)
+	$(srcdir)/tools/check-perl-style perlcritic $(srcdir)
 	test x$(CHECK_DOC) = x0 || $(MAKE) check-doc
 
 .PHONY: check-doc
@@ -227,26 +226,17 @@ clean-local:
 	-rm -rf *.tar.*
 	-rm -rf cover_db/
 
-# TESTS: Specify individual test files in a space separated lists to overwrite
-# recursive search
-TESTS ?= -r
-PATHRE = ^|$(PWD)/|\.\./
-COVER_OPTS = \
-	PERL5OPT="-MDevel::Cover=-db,$(abs_builddir)/cover_db,-select,($(PATHRE))(OpenQA|backend|consoles|ppmclibs)/|($(PATHRE))isotovideo|($(PATHRE))[^/]+\.pm,-ignore,\.t|data/tests/|fake/tests/|/usr/bin/prove,-coverage,statement"
-TEST_OPTS = \
-	PERL5LIB="$(PWD):$(PWD)/ppmclibs:$(PWD)/ppmclibs/blib/arch/auto/tinycv:$$PERL5LIB"
-
 .PHONY: test
 test:
-	( cd t && $(TEST_OPTS) prove $(TESTS) )
+	( $(srcdir)/tools/invoke-tests prove make $(abs_builddir) )
 
 .PHONY: testv
 testv:
-	( cd t && $(TEST_OPTS) prove -v $(TESTS) )
+	( PROVE_ARGS=-v $(srcdir)/tools/invoke-tests prove make $(abs_builddir) )
 
 .PHONY: test-cover
 test-cover:
-	( cd t && $(TEST_OPTS) $(COVER_OPTS) prove $(TESTS) )
+	( $(srcdir)/tools/invoke-tests --coverage prove make $(abs_builddir) )
 
 .PHONY: test-cover-summary
 test-cover-summary:
