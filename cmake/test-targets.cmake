@@ -70,3 +70,33 @@ add_custom_target(test-doc COMMAND ${CMAKE_CTEST_COMMAND} -R "test-doc-.*" WORKI
 add_custom_target(test-installed-files COMMAND ${CMAKE_CTEST_COMMAND} -R "test-installed-files" WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 add_custom_target(test-perl-testsuite COMMAND ${CMAKE_CTEST_COMMAND} -R "test-perl-testsuite" WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 add_dependencies(test-perl-testsuite symlinks)
+
+# add target for computing test coverage of Perl test suite
+find_program(COVER_PATH cover)
+if (COVER_PATH AND PROVE_PATH)
+    add_custom_command(
+        COMMENT "Run Perl testsuite with coverage instrumentation"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" --coverage "${PROVE_PATH}" "${CMAKE_MAKE_PROGRAM}" "${CMAKE_CURRENT_BINARY_DIR}"
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cover_db/structure"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+    add_custom_command(
+        COMMENT "Generate coverage report (HTML)"
+        COMMAND "${COVER_PATH}" -report html_basic "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
+        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db/structure"
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/coverage.html"
+    )
+    add_custom_target(
+        coverage
+        COMMENT "Perl test suite coverage (HTML)"
+        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/coverage.html"
+    )
+    add_custom_target(
+        coverage-codecov
+        COMMENT "Perl test suite coverage (codecov)"
+        COMMAND "${COVER_PATH}" -report codecov "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
+        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db/structure"
+    )
+else ()
+    message(STATUS "Set COVER_PATH to the path of the cover executable to enable coverage computition of the Perl testsuite.")
+endif ()
