@@ -84,6 +84,7 @@ test_requires:
   qemu:
   qemu-tools:
   qemu-x86:
+  procps:
   python3-setuptools:
   python3-yamllint:
 
