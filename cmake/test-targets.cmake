@@ -2,6 +2,15 @@ cmake_minimum_required(VERSION 3.3.0)
 
 enable_testing()
 
+# enable verbose CTest output by default
+# note: We're mainly using prove which already provides a condensed output by default. To be able
+#       to follow the prove output as usual and configure the test verbosity on prove-level it makes
+#       sense to configure CTest to be verbose by default.
+option(VERBOSE_CTEST "enables verbose tests on CTest level" ON)
+if (VERBOSE_CTEST)
+    set(CMAKE_CTEST_COMMAND ${CMAKE_CTEST_COMMAND} -V)
+endif ()
+
 # test for install target
 add_test(
     NAME test-installed-files
@@ -88,16 +97,23 @@ if (COVER_PATH AND PROVE_PATH)
         OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/coverage.html"
     )
     add_custom_target(
+        coverage-reset
+        COMMENT "Resetting previously gathered Perl test suite coverage"
+        COMMAND rm -r "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
+    )
+    add_custom_target(
         coverage
         COMMENT "Perl test suite coverage (HTML)"
         DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/coverage.html"
     )
+    add_dependencies(coverage symlinks)
     add_custom_target(
         coverage-codecov
         COMMENT "Perl test suite coverage (codecov)"
         COMMAND "${COVER_PATH}" -report codecov "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
         DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db/structure"
     )
+    add_dependencies(coverage-codecov symlinks)
 else ()
     message(STATUS "Set COVER_PATH to the path of the cover executable to enable coverage computition of the Perl testsuite.")
 endif ()
