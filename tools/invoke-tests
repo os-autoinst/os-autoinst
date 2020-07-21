@@ -28,7 +28,7 @@ while [[ $# -gt 0 ]]; do
     *                 ) break ;;
   esac
 done
-test_files=("$@")
+[[ "$@" ]] && TESTS="$@"
 
 # set Perl module include path and coverage options
 export PERL5LIB="$source_directory:$source_directory/ppmclibs:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
@@ -43,9 +43,5 @@ fi
 export OS_AUTOINST_BUILD_DIRECTORY=$build_directory
 export OS_AUTOINST_MAKE_TOOL=$make_path
 
-# allow specifying the list of tests via TESTS in consistency with openQA; otherwise run all tests
-[[ ${#test_files[@]} -lt 1 ]] && test_files=($TESTS)
-[[ ${#test_files[@]} -lt 1 ]] && test_files=(-r)
-
 # invoke tests within the t directory
-cd t && "$prove_path" $PROVE_ARGS "${test_files[@]}"
+cd t && "$prove_path" $PROVE_ARGS ${TESTS:-'-r'}
