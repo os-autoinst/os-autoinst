@@ -361,54 +361,54 @@ sub runalltests {
             }
             $vmloaded = 1;
         }
-        if ($vmloaded) {
-            my $name = $t->{name};
-            bmwqemu::modstart "starting $name $t->{script}";
-            $t->start();
-
-            # avoid erasing the good vm snapshot
-            if ($snapshots_supported && (($bmwqemu::vars{SKIPTO} || '') ne $fullname) && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
-                make_snapshot($t->{fullname});
-            }
-
-            eval { $t->runtest; };
-            my $error = $@;    # save $@, it might be overwritten
-            $t->save_test_result();
-
-            if ($error) {
-                my $msg = $error;
-                if ($msg !~ /^test.*died/) {
-                    # avoid duplicating the message
-                    bmwqemu::diag $msg;
-                }
-                if ($bmwqemu::vars{DUMP_MEMORY_ON_FAIL}) {
-                    query_isotovideo('backend_save_memory_dump', {filename => $fullname});
-                }
-                if ($t->{fatal_failure} || $flags->{fatal} || (!exists $flags->{fatal} && !$snapshots_supported) || $bmwqemu::vars{TESTDEBUG}) {
-                    bmwqemu::stop_vm();
-                    return 0;
-                }
-                elsif (!$flags->{no_rollback} && $last_milestone) {
-                    load_snapshot('lastgood');
-                    $last_milestone->rollback_activated_consoles();
-                }
-            }
-            else {
-                if (!$flags->{no_rollback} && $last_milestone && $flags->{always_rollback}) {
-                    load_snapshot('lastgood');
-                    $last_milestone->rollback_activated_consoles();
-                }
-                if ($snapshots_supported && ($flags->{milestone} || $bmwqemu::vars{TESTDEBUG})) {
-                    make_snapshot('lastgood');
-                    $last_milestone         = $t;
-                    $last_milestone_console = $selected_console;
-                }
-            }
-        }
-        else {
+        if (!$vmloaded) {
             bmwqemu::diag "skipping $fullname";
             $t->skip_if_not_running();
             $t->save_test_result();
+            next;
+        }
+
+        my $name = $t->{name};
+        bmwqemu::modstart "starting $name $t->{script}";
+        $t->start();
+
+        # avoid erasing the good vm snapshot
+        if ($snapshots_supported && (($bmwqemu::vars{SKIPTO} || '') ne $fullname) && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
+            make_snapshot($t->{fullname});
+        }
+
+        eval { $t->runtest; };
+        my $error = $@;    # save $@, it might be overwritten
+        $t->save_test_result();
+
+        if ($error) {
+            my $msg = $error;
+            if ($msg !~ /^test.*died/) {
+                # avoid duplicating the message
+                bmwqemu::diag $msg;
+            }
+            if ($bmwqemu::vars{DUMP_MEMORY_ON_FAIL}) {
+                query_isotovideo('backend_save_memory_dump', {filename => $fullname});
+            }
+            if ($t->{fatal_failure} || $flags->{fatal} || (!exists $flags->{fatal} && !$snapshots_supported) || $bmwqemu::vars{TESTDEBUG}) {
+                bmwqemu::stop_vm();
+                return 0;
+            }
+            elsif (!$flags->{no_rollback} && $last_milestone) {
+                load_snapshot('lastgood');
+                $last_milestone->rollback_activated_consoles();
+            }
+        }
+        else {
+            if (!$flags->{no_rollback} && $last_milestone && $flags->{always_rollback}) {
+                load_snapshot('lastgood');
+                $last_milestone->rollback_activated_consoles();
+            }
+            if ($snapshots_supported && ($flags->{milestone} || $bmwqemu::vars{TESTDEBUG})) {
+                make_snapshot('lastgood');
+                $last_milestone         = $t;
+                $last_milestone_console = $selected_console;
+            }
         }
     }
     return 1;
