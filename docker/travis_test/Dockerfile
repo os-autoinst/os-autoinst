@@ -17,12 +17,10 @@ RUN zypper in -y -C \
        'pkgconfig(theoraenc)' \
        aspell-en \
        aspell-spell \
-       autoconf \
-       automake \
+       cmake \
        gcc-c++ \
        git-core \
-       libtool \
-       make \
+       ninja \
        perl-base \
        pkg-config \
        procps \
@@ -52,8 +50,6 @@ RUN zypper in -y -C \
        'perl(Errno)' \
        'perl(Exception::Class)' \
        'perl(Exporter)' \
-       'perl(ExtUtils::Embed)' \
-       'perl(ExtUtils::MakeMaker)' \
        'perl(ExtUtils::testlib)' \
        'perl(Fcntl)' \
        'perl(File::Basename)' \
@@ -75,7 +71,6 @@ RUN zypper in -y -C \
        'perl(IPC::System::Simple)' \
        'perl(List::MoreUtils)' \
        'perl(List::Util)' \
-       'perl(Module::CPANfile)' \
        'perl(Mojo::IOLoop::ReadWriteProcess)' \
        'perl(Mojo::JSON)' \
        'perl(Mojo::Log)' \
