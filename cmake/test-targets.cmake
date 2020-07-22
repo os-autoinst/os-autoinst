@@ -79,7 +79,11 @@ add_custom_target(test-local COMMAND ${CMAKE_CTEST_COMMAND} -R "test-local-.*" W
 add_custom_target(test-doc COMMAND ${CMAKE_CTEST_COMMAND} -R "test-doc-.*" WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
 add_custom_target(test-installed-files COMMAND ${CMAKE_CTEST_COMMAND} -R "test-installed-files" WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 add_custom_target(test-perl-testsuite COMMAND ${CMAKE_CTEST_COMMAND} -R "test-perl-testsuite" WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-add_dependencies(test-perl-testsuite symlinks)
+add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+add_custom_target(check-pkg-build COMMAND ${CMAKE_CTEST_COMMAND} -E "test-local-.*" WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+foreach (CUSTOM_TARGET test-perl-testsuite check check-pkg-build)
+    add_dependencies(${CUSTOM_TARGET} symlinks)
+endforeach ()
 
 # add target for computing test coverage of Perl test suite
 find_program(COVER_PATH cover)
