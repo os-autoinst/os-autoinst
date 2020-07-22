@@ -117,17 +117,25 @@ install(TARGETS videoencoder RUNTIME DESTINATION "${OS_AUTOINST_DATA_DIR}")
 # allow symlinking created executables into source directory
 # note: This target is supposed to be used for making a development environment. The symlinks will
 #       allow isotovideo to find all native executables created by this build.
+get_filename_component(SRC_DIR "${CMAKE_SOURCE_DIR}" REALPATH)
+get_filename_component(BIN_DIR "${CMAKE_BINARY_DIR}" REALPATH)
+if (NOT SRC_DIR STREQUAL BIN_DIR)
+    set(OUT_OF_SOURCE_TREE_BUILD_COMMANDS
+        COMMAND ln -fs $<TARGET_FILE:videoencoder> "${CMAKE_CURRENT_SOURCE_DIR}/videoencoder"
+        COMMAND ln -fs $<TARGET_FILE:snd2png> "${CMAKE_CURRENT_SOURCE_DIR}/snd2png/snd2png"
+        COMMAND ln -fs $<TARGET_FILE:debugviewer> "${CMAKE_CURRENT_SOURCE_DIR}/debugviewer/debugviewer"
+    )
+endif ()
 add_custom_target(
     symlinks
     COMMENT "Symlinking created executables into source directory"
     COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/ppmclibs/blib/arch/auto/tinycv"
     COMMAND mkdir -p "${CMAKE_CURRENT_SOURCE_DIR}/ppmclibs/blib/lib"
-    COMMAND ln -fs $<TARGET_FILE:videoencoder> "${CMAKE_CURRENT_SOURCE_DIR}/videoencoder"
-    COMMAND ln -fs $<TARGET_FILE:snd2png> "${CMAKE_CURRENT_SOURCE_DIR}/snd2png/snd2png"
-    COMMAND ln -fs $<TARGET_FILE:debugviewer> "${CMAKE_CURRENT_SOURCE_DIR}/debugviewer/debugviewer"
     COMMAND ln -fs "../../tinycv.pm" "${CMAKE_CURRENT_SOURCE_DIR}/ppmclibs/blib/lib/tinycv.pm"
     COMMAND ln -fs $<TARGET_FILE:tinycv> "${CMAKE_CURRENT_SOURCE_DIR}/ppmclibs/blib/arch/auto/tinycv/tinycv.so"
+    ${OUT_OF_SOURCE_TREE_BUILD_COMMANDS}
 )
+add_dependencies(symlinks videoencoder snd2png debugviewer tinycv)
 
 # create installable versions of isotovideo and cv.pm
 add_custom_command(
