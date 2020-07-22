@@ -73,27 +73,14 @@ http://os-autoinst.github.io/openQA/contact/, too.
 
 Issues are tracked on https://progress.opensuse.org/projects/openqav3/
 
-For an overview of the architecture, see link:architecture.md[doc/architecture.md].
+For an overview of the architecture, see link:doc/architecture.md[doc/architecture.md].
 
 Rules for commits
 ^^^^^^^^^^^^^^^^^
 
 * Every commit is checked by https://travis-ci.org/travis[Travis CI] as soon as
-you create a pull request but you *should* run the os-autoinst tests locally,
-i.e. call
-----
-./autogen.sh
-make
-----
-once to setup your workspace and before every commit
-----
-make check
-----
-
-* You can also run individual tests by specifying them explicitly:
-----
-make check TESTS=23-baseclass.t
-----
+you create a pull request but you *should* run the os-autoinst tests locally. Checkout
+the build instructions for further details.
 
 * For git commit messages use the rules stated on
 http://chris.beams.io/posts/git-commit/[How to Write a Git Commit Message] as
@@ -104,3 +91,113 @@ implications and how we can help each other to improve
 
 If this is too much hassle for you feel free to provide incomplete pull
 requests for consideration or create an issue with a code change proposal.
+
+Build instructions
+------------------
+
+The required dependencies are delcared in `dependencies.yaml`. (The names listed within
+that file are specific to openSUSE but can be easily transferred to other distributions.)
+
+CMake
+^^^^^
+
+Create a build directory outside of the source directory. The following commands need
+to be invoked within that directory.
+
+Configure build:
+----
+cmake $path_to_os_autoinst_checkout
+----
+
+You can specify any of the standard CMake variables, e.g. `-DCMAKE_BUILD_TYPE=Debug`
+and `-DCMAKE_INSTALL_PREFIX=/custom/install/prefix`.
+
+The following examples assume that GNU Make is used. It is possible to generate for
+a different build tool by adding e.g. `-G Ninja` to the CMake arguments.
+
+Build executables and libraries:
+----
+make symlinks
+----
+
+This target also creates symlinks of the built executables and libraries within the
+source directory so `isotovideo` can find them.
+
+Run all tests:
+----
+make test
+----
+
+Run all Perl tests (`*.t` files found within the `t` directory):
+----
+make test-perl-testsuite
+----
+
+Run individual tests by specifying them explicitly:
+----
+make test-perl-testsuite TESTS="15-logging.t 28-signalblocker.t"
+----
+
+By default CTest is invoked in verbose mode because prove already provides condensed
+output. Add `-DVERBOSE_CTEST=OFF` to the CMake arguments to avoid that.
+
+Add additional arguments to the `prove` invocation, e.g. enable verbose output:
+----
+make test-perl-testsuite PROVE_ARGS=-v
+----
+
+Gather coverage data while running tests:
+----
+make test-perl-testsuite WITH_COVER_OPTIONS=1
+----
+
+Generate a coverage report from the gathered coverage data:
+----
+make coverage
+----
+
+If no coverage data has been gathered so far the `coverage` target will invoke the
+testsuite automatically.
+
+Reset gathered coverage data:
+----
+make coverage-reset
+----
+
+Install files for packaging:
+----
+make install DESTDIR=…
+----
+
+Further notes:
+
+* It is also possible to run `ctest` within the build directory directly instead of
+  using the mentioned targets.
+* All mentioned variables to influence the test execution (`TESTS`, `WITH_COVER_OPTIONS`, …)
+  can be combined and can also be used with the `coverage` target.
+
+GNU Autotools
+^^^^^^^^^^^^^
+
+The following commands need to be invoked within the top-level of the repository
+checkout.
+
+Configure build:
+----
+./autogen.sh
+----
+
+Build executables and libraries:
+----
+make
+----
+
+Run all tests:
+----
+make check
+----
+
+Run individual tests by specifying them explicitly:
+----
+make check TESTS=23-baseclass.t
+----

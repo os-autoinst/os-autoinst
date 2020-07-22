@@ -1,0 +1,3 @@
+#!/bin/sh -e
+# fall back to find if there is no git, e.g. in package builds
+"${1:-yamllint}" --strict $(git ls-files "*.yml" "*.yaml" 2>/dev/null || find -name '*.y*ml')

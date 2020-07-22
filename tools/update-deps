@@ -8,7 +8,6 @@ use Data::Dumper;
 use Mojo::File qw(path);
 use Getopt::Long;
 use FindBin qw($Bin);
-use File::Spec;
 
 GetOptions(
     "help|h" => \my $help,
@@ -19,7 +18,7 @@ GetOptions(
 usage(0) if $help;
 usage(1) unless $specfile;
 
-my $scriptname   = File::Spec->canonpath(__FILE__);
+my $scriptname   = path(__FILE__)->to_rel("$Bin/..");
 my $yamlfile     = "dependencies.yaml";
 my $file         = "$Bin/../$yamlfile";
 my $cpanfile     = "$Bin/../cpanfile";
