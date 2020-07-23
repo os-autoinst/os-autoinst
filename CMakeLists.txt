@@ -183,7 +183,7 @@ install(
 )
 install(
     FILES "etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf"
-    DESTINATION "${CMAKE_INSTALL_SYSCONFDIR}/dbus-1/system.d"
+    DESTINATION "${CMAKE_INSTALL_FULL_SYSCONFDIR}/dbus-1/system.d"
     COMPONENT "openvswitch"
     EXCLUDE_FROM_ALL
 )
