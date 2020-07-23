@@ -346,7 +346,8 @@ sub runalltests {
 
     write_test_order();
 
-    for my $t (@testorder) {
+    for my $testindex (0 .. $#testorder) {
+        my $t        = $testorder[$testindex];
         my $flags    = $t->test_flags();
         my $fullname = $t->{fullname};
 
@@ -404,7 +405,13 @@ sub runalltests {
                 load_snapshot('lastgood');
                 $last_milestone->rollback_activated_consoles();
             }
-            if ($snapshots_supported && ($flags->{milestone} || $bmwqemu::vars{TESTDEBUG})) {
+            my $makesnapshot = $bmwqemu::vars{TESTDEBUG};
+            # Only make a snapshot if there is a next test and it's not a fatal milestone
+            if ($testindex ne $#testorder) {
+                my $nexttestflags = $testorder[$testindex + 1]->test_flags();
+                $makesnapshot ||= $flags->{milestone} && !($nexttestflags->{milestone} && $nexttestflags->{fatal});
+            }
+            if ($snapshots_supported && $makesnapshot) {
                 make_snapshot('lastgood');
                 $last_milestone         = $t;
                 $last_milestone_console = $selected_console;
