@@ -4,7 +4,7 @@
 # Certain lines in dist/rpm/os-autoinst.spec
 #
 # After adding, changing or removing dependencies, run:
-#   make update-deps
+#   make/ninja update-deps
 #######################################################
 ---
 targets:
@@ -20,14 +20,9 @@ targets:
 
 build_requires:
   '%opencv_require':
-  autoconf:
-  automake:
   gcc-c++:
-  libtool:
-  make:
-  perl(ExtUtils::Embed):
-  perl(ExtUtils::MakeMaker): '>= 7.12'
-  perl(Module::CPANfile):
+  cmake:
+  ninja:
   perl(Pod::Html):
   pkg-config:
   pkgconfig(fftw3):

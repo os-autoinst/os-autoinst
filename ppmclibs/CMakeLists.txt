@@ -62,7 +62,7 @@ add_custom_command(
         -typemap "${PERL_TYPEMAP}"
         -typemap "${CMAKE_CURRENT_SOURCE_DIR}/typemap"
         "${CMAKE_CURRENT_SOURCE_DIR}/tinycv.xs"
-        > "${PREPROCESSED_XS_FILE}"
+        -output "${PREPROCESSED_XS_FILE}"
     DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/tinycv.xs"
     OUTPUT "${PREPROCESSED_XS_FILE}"
 )
