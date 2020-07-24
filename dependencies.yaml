@@ -123,6 +123,7 @@ main_requires:
   perl(ExtUtils::testlib):
   perl(Fcntl):
   perl(File::Basename):
+  perl(File::chdir):
   perl(File::Find):
   perl(File::Path):
   perl(File::Spec):

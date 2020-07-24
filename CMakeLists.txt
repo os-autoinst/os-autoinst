@@ -25,6 +25,7 @@ set(PERL_FILES
     backend/s390x.pm
     backend/spvm.pm
     backend/svirt.pm
+    backend/vagrant.pm
     backend/virt.pm
     basetest.pm
     bmwqemu.pm

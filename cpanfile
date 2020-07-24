@@ -28,6 +28,7 @@ requires 'File::Spec';
 requires 'File::Temp';
 requires 'File::Touch';
 requires 'File::Which';
+requires 'File::chdir';
 requires 'IO::Handle';
 requires 'IO::Scalar';
 requires 'IO::Select';

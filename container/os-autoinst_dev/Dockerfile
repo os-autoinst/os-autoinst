@@ -63,6 +63,7 @@ RUN zypper in -y -C \
        'perl(File::Temp)' \
        'perl(File::Touch)' \
        'perl(File::Which)' \
+       'perl(File::chdir)' \
        'perl(FindBin)' \
        'perl(IO::Handle)' \
        'perl(IO::Scalar)' \
