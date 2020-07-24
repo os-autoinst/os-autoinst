@@ -165,7 +165,12 @@ add_custom_target(generate-install-versions ALL
 )
 
 # install non-C++ files
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/install-target/isotovideo" DESTINATION "${CMAKE_INSTALL_BINDIR}")
+set(EXECUTABLE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+install(
+    FILES "${CMAKE_CURRENT_BINARY_DIR}/install-target/isotovideo"
+    DESTINATION "${CMAKE_INSTALL_BINDIR}"
+    PERMISSIONS ${EXECUTABLE_PERMISSIONS}
+)
 foreach (FILE README.asciidoc INSTALL.asciidoc COPYING ${GENERATED_DOC_FILES})
     install(FILES "${FILE}" DESTINATION "${OS_AUTOINST_DOC_DIR}")
 endforeach ()
@@ -179,6 +184,7 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/install-target/cv.pm" DESTINATION "${
 install(
     FILES "os-autoinst-openvswitch"
     DESTINATION "${OS_AUTOINST_DATA_DIR}"
+    PERMISSIONS ${EXECUTABLE_PERMISSIONS}
     COMPONENT "openvswitch" EXCLUDE_FROM_ALL
 )
 install(
