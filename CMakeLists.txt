@@ -146,7 +146,7 @@ add_custom_command(
 add_custom_command(
     COMMENT "Make install version of isotovideo"
     COMMAND
-        sed -e "\"s,\$installprefix = undef\;,\$installprefix = '${CMAKE_INSTALL_PREFIX}/${OS_AUTOINST_DATA_DIR}'\;,\""
+        sed -e "\"s,\\$$installprefix = undef\;,\\$$installprefix = '${CMAKE_INSTALL_PREFIX}/${OS_AUTOINST_DATA_DIR}'\;,\""
         "${CMAKE_CURRENT_SOURCE_DIR}/isotovideo" > "${CMAKE_CURRENT_BINARY_DIR}/install-target/isotovideo"
     DEPENDS "isotovideo" "CMakeLists.txt" "${CMAKE_CURRENT_BINARY_DIR}/install-target"
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/install-target/isotovideo"
@@ -154,7 +154,7 @@ add_custom_command(
 add_custom_command(
     COMMENT "Make install version of cv.pm"
     COMMAND
-        sed -e "\"s,\\$sysdir = undef\;,\\$sysdir = '${CMAKE_INSTALL_PREFIX}/${OS_AUTOINST_DATA_DIR}'\;,\""
+        sed -e "\"s,\\$$sysdir = undef\;,\\$$sysdir = '${CMAKE_INSTALL_PREFIX}/${OS_AUTOINST_DATA_DIR}'\;,\""
         "${CMAKE_CURRENT_SOURCE_DIR}/cv.pm" > "${CMAKE_CURRENT_BINARY_DIR}/install-target/cv.pm"
     DEPENDS "cv.pm" "CMakeLists.txt" "${CMAKE_CURRENT_BINARY_DIR}/install-target"
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/install-target/cv.pm"
