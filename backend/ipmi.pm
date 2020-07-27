@@ -40,17 +40,27 @@ sub ipmi_cmdline {
 }
 
 sub ipmitool {
-    my ($self, $cmd) = @_;
+    my ($self, $cmd, %args) = @_;
+    $args{tries} //= 1;
 
     my @cmd = $self->ipmi_cmdline();
     push(@cmd, split(/ /, $cmd));
 
     my ($stdin, $stdout, $stderr, $ret);
-    $ret = IPC::Run::run(\@cmd, \$stdin, \$stdout, \$stderr);
+    # Mitigate occasional failures of impitool due to self-tests/self-reboots of
+    # the IPMI controller by a simple sleep/retry mechanism.
+    my @tries = (1 .. $args{tries});
+    for (@tries) {
+        $ret = IPC::Run::run(\@cmd, \$stdin, \$stdout, \$stderr);
+        if ($ret == 0) {
+            $self->dell_sleep;
+            last;
+        } else {
+            sleep 4;
+        }
+    }
     chomp $stdout;
     chomp $stderr;
-
-    $self->dell_sleep;
 
     die join(' ', @cmd) . ": $stderr" unless ($ret);
     bmwqemu::diag("IPMI: $stdout");
@@ -67,12 +77,12 @@ sub dell_sleep {
 sub restart_host {
     my ($self) = @_;
 
-    my $stdout = $self->ipmitool('chassis power status');
+    my $stdout = $self->ipmitool('chassis power status', tries => 3);
     if ($stdout !~ m/is off/) {
         $self->ipmitool("chassis power off");
         while (1) {
             sleep(3);
-            my $stdout = $self->ipmitool('chassis power status');
+            my $stdout = $self->ipmitool('chassis power status', tries => 3);
             last if $stdout =~ m/is off/;
             $self->ipmitool('chassis power off');
         }
@@ -81,7 +91,7 @@ sub restart_host {
     $self->ipmitool("chassis power on");
     while (1) {
         sleep(3);
-        my $ret = $self->ipmitool('chassis power status');
+        my $ret = $self->ipmitool('chassis power status', tries => 3);
         last if $ret =~ m/is on/;
         $self->ipmitool('chassis power on');
     }
@@ -115,7 +125,7 @@ sub do_stop_vm {
 
 sub is_shutdown {
     my ($self) = @_;
-    my $ret = $self->ipmitool('chassis power status');
+    my $ret = $self->ipmitool('chassis power status', tries => 3);
     return $ret =~ m/is off/;
 }
 
@@ -169,7 +179,7 @@ sub do_mc_reset {
                 eval { system($ping_cmd); };
                 if (!$@) {
                     # ping pass, check ipmitool function normally
-                    eval { $self->ipmitool('chassis power status'); };
+                    eval { $self->ipmitool('chassis power status', tries => 3); };
                     if (!$@) {
                         # ipmitool is recovered completely
                         bmwqemu::diag("IPMI: ipmitool is recovered after mc reset!");
