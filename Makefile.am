@@ -4,7 +4,6 @@ COVERAGE_THRESHOLD = 30.1
 
 doc_DATA = \
 	README.asciidoc \
-	INSTALL.asciidoc \
 	COPYING \
 	doc/basetest.html \
 	doc/testapi.html

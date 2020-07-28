@@ -20,14 +20,20 @@ http://os-autoinst.github.io/openQA/
 Getting started
 ---------------
 
-To install os-autoinst, you can see link:INSTALL.asciidoc[INSTALL]
+Under openSUSE the `os-autoinst` package can be installed from the official
+repository or from our
+link:https://build.opensuse.org/project/show/devel:openQA[devel repository].
+For further details, have a look at the
+link:http://open.qa/docs/#_development_version_repository[openQA documentation].
 
-To execute an instance of os-autoinst, we need to create file named
-vars.json, that we use to store the values of the different variables
-that will configure and drive the behavior of the application.
+For building os-autoinst manually checkout the build instructions below.
+
+To execute an instance of os-autoinst one needs to create a file named
+`vars.json`. It stores the values of the different variables that will configure
+the behavior of the test execution.
 
 There are some variables used by os-autoinst itself and other that are
-used by the tests.  A minimal vars.json file can be:
+used by the tests. A minimal `vars.json` file can be:
 
 [source, javascript]
 -------------------------------------------------------------------
@@ -42,36 +48,22 @@ used by the tests.  A minimal vars.json file can be:
 }
 -------------------------------------------------------------------
 
-Be advised that the file vars.json is read and also written by isotovideo so
-make sure to backup handcrafted versions of this file.
+Be advised that the file `vars.json` is also modified by `os-autoinst` so make
+sure to backup handcrafted versions of this file.
 
-Now we can launch the application with:
-
-$ ../os-autoinst/isotovideo
-
-and we can use VNC to connect to the QEMU instance:
-
-$ vncviewer localhost:91 -ViewOnly -Shared
-
-
-Run isotovideo with the environment variable `RUN_VNCVIEWER` set to autostart
-a VNC viewer on the right port.
-
-Run isotovideo with the environment variable `RUN_DEBUGVIEWER` to start the
-internal debug screenshot viewer updated with an always recent screenshot of
-the test run.
-
+For more concrete instructions head down to the "How to run test cases" section
+below.
 
 How to contribute
 -----------------
 
 If you want to contribute to this project, please clone and send
-git-pull requests via https://github.com/os-autoinst/os-autoinst.
+pull requests via https://github.com/os-autoinst/os-autoinst.
 
 More information on the contribution can be found on
 http://os-autoinst.github.io/openQA/contact/, too.
 
-Issues are tracked on https://progress.opensuse.org/projects/openqav3/
+Issues are tracked on https://progress.opensuse.org/projects/openqav3/.
 
 For an overview of the architecture, see link:doc/architecture.md[doc/architecture.md].
 
@@ -95,8 +87,16 @@ requests for consideration or create an issue with a code change proposal.
 Build instructions
 ------------------
 
-The required dependencies are delcared in `dependencies.yaml`. (The names listed within
-that file are specific to openSUSE but can be easily transferred to other distributions.)
+Installing dependencies
+^^^^^^^^^^^^^^^^^^^^^^^
+
+On openSUSE one can install the package
+link:https://build.opensuse.org/project/show/devel:openQA[`os-autoinst-devel`] which
+pulls all dependencies required to build with CMake.
+
+The required dependencies are also declared in `dependencies.yaml`. (The names listed
+within that file are specific to openSUSE but can be easily transferred to other
+distributions.)
 
 CMake
 ^^^^^
@@ -201,3 +201,86 @@ Run individual tests by specifying them explicitly:
 ----
 make check TESTS=23-baseclass.t
 ----
+
+How to run test cases
+---------------------
+
+This following instructions shows how to run test cases. First one needs to clone the test
+distribution. Checkout
+link:https://github.com/os-autoinst/os-autoinst-distri-example[os-autoinst-distri-example]
+for an example of a minimal test distribution.
+
+Example for openSUSE's tests:
+
+-----------------------------------------------------------------------------
+mkdir distri && cd distri
+git clone git@github.com:os-autoinst/os-autoinst-distri-opensuse.git opensuse
+cd opensuse/products/opensuse
+git clone git@github.com:os-autoinst/os-autoinst-needles-opensuse.git needles
+-----------------------------------------------------------------------------
+
+Example for openQA's self-tests ("openQA-in-openQA" test):
+
+-----------------------------------------------------------------------------
+mkdir distri && cd distri
+git git@github.com:os-autoinst/os-autoinst-distri-openQA.git openqa
+cd openqa
+git git@github.com:os-autoinst/os-autoinst-needles-openQA.git needles
+-----------------------------------------------------------------------------
+
+Then create a working directory for the test execution, e.g.:
+
+-----------------------------------------------------
+mkdir /tmp/os-autoinst-run && cd /tmp/os-autoinst-run
+-----------------------------------------------------
+
+Create a minimal `vars.json` config file within that directory, e.g.:
+
+.vars.json
+[source,json]
+---------------------------------------------------------
+{
+   "ARCH" : "x86_64",
+   "BACKEND" : "qemu",
+   "CASEDIR" : "/path/to/os-autoinst-distri-opensuse",
+   "DESKTOP" : "gnome",
+   "DISTRI" : "opensuse",
+   "ISO" : "/path/to/openSUSE-Tumbleweed-DVD-x86_64-Snapshot20160715-Media.iso",
+   "PRODUCTDIR" : "/path/to/os-autoinst-distri-opensuse/products/opensuse",
+   "VNC" : 90,
+}
+---------------------------------------------------------
+
+You will need to correct the file paths to point to real locations. Some of the variables
+you can use are listed link:doc/backend_vars.asciidoc[here]. Test case specific variables
+are listed in the distri directories e.g.
+link:https://github.com/os-autoinst/os-autoinst-distri-opensuse/blob/master/variables.md[os-autoinst-distri-opensuse/variables].
+
+Then you can run the `isotovideo` script within the created working directory. When doing
+a manual build, that script can be found at the top-level of the os-autoinst Git checkout.
+
+When using the QEMU backend it is possible to access the system under test via VNC:
+
+----------------------------------------
+vncviewer localhost:91 -ViewOnly -Shared
+----------------------------------------
+
+Run `isotovideo` with the environment variable `RUN_VNCVIEWER` set to autostart a VNC viewer
+on the right port.
+
+Run `isotovideo` with the environment variable `RUN_DEBUGVIEWER` to start the internal debug
+screenshot viewer updated with an always recent screenshot of the test run.
+
+Further notes
+-------------
+
+When using the QEMU backend, also ensure your user running os-autoinst has access
+to `/dev/kvm`.
+
+-----------------------------------------------------------
+modprobe kvm-intel || modprobe kvm-amd
+chgrp kvm /dev/kvm ; chmod g+rw /dev/kvm # maybe redundant
+# optionally use a new user; just to keep things separate
+useradd -m USERNAME -G kvm
+passwd USERNAME # and/or add ~USERNAME/.ssh/authorized_keys
+-----------------------------------------------------------
