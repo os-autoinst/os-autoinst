@@ -346,7 +346,7 @@ sub runalltests {
 
     write_test_order();
 
-    for my $testindex (0 .. $#testorder) {
+    for (my $testindex = 0; $testindex <= $#testorder; $testindex++) {
         my $t        = $testorder[$testindex];
         my $flags    = $t->test_flags();
         my $fullname = $t->{fullname};
