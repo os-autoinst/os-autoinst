@@ -93,8 +93,6 @@ subtest 'test always_rollback flag' => sub {
     $mock_autotest->redefine(query_isotovideo => sub { return 0; });
     my $reverts_done = 0;
     $mock_autotest->redefine(load_snapshot => sub { $reverts_done++; });
-    my $snapshots_made = 0;
-    $mock_autotest->redefine(make_snapshot => sub { $snapshots_made++; });
 
     stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
     ($died, $completed) = get_tests_done;
@@ -102,9 +100,7 @@ subtest 'test always_rollback flag' => sub {
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
     is($reverts_done, 0, "No snapshots loaded when flag is not explicitly set to true");
     $reverts_done = 0;
-    is($snapshots_made, 0, 'No snapshots made if snapshots are not supported');
-    $snapshots_made = 0;
-    @sent           = [];
+    @sent         = [];
 
     # Test that no rollback is triggered if snapshots are not supported
     $mock_basetest->redefine(test_flags       => sub { return {always_rollback => 1, milestone => 1}; });
@@ -118,9 +114,7 @@ subtest 'test always_rollback flag' => sub {
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
     is($reverts_done, 0, "No snapshots loaded if snapshots are not supported");
     $reverts_done = 0;
-    is($snapshots_made, 0, 'No snapshots made if snapshots are not supported');
-    $snapshots_made = 0;
-    @sent           = [];
+    @sent         = [];
 
     # Test that snapshot loading is triggered even when tests are successful
     $mock_basetest->redefine(test_flags       => sub { return {always_rollback => 1}; });
@@ -133,9 +127,7 @@ subtest 'test always_rollback flag' => sub {
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
     is($reverts_done, 0, "No snapshots loaded if not test with milestone flag");
     $reverts_done = 0;
-    is($snapshots_made, 0, 'No snapshots made if snapshots are not supported');
-    $snapshots_made = 0;
-    @sent           = [];
+    @sent         = [];
 
     # Test with snapshot available
     $mock_basetest->redefine(test_flags => sub { return {always_rollback => 1, milestone => 1}; });
@@ -144,26 +136,11 @@ subtest 'test always_rollback flag' => sub {
     is($died,         0, 'start+next+start should not die when always_rollback flag is set');
     is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
     is($reverts_done, 2, "Snapshots are loaded even when tests succeed");
-    $reverts_done = 0;
-    is($snapshots_made, 2, 'Milestone snapshots are made for all except the last');
-    $snapshots_made = 0;
-    @sent           = [];
-
-    $mock_basetest->redefine(test_flags => sub { return {milestone => 1, fatal => 1}; });
-    stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
-    ($died, $completed) = get_tests_done;
-    is($died,         0, 'start+next+start should not die as fatal milestones');
-    is($completed,    1, 'start+next+start should complete as fatal milestones');
-    is($reverts_done, 0, 'No rollbacks done');
-    $reverts_done = 0;
-    is($snapshots_made, 0, 'No snapshots made as no test needed them');
-    $snapshots_made = 0;
-    @sent           = [];
+    @sent = [];
 
     # # Revert mocks
     $mock_basetest->unmock('test_flags');
     $mock_autotest->unmock('load_snapshot');
-    $mock_autotest->unmock('make_snapshot');
     $mock_autotest->unmock('query_isotovideo');
 };
 
