@@ -142,11 +142,12 @@ sub _dbus_do_call {
 }
 
 sub _dbus_call {
-    my $self = shift;
-    my $fn   = shift;
-    my @args = @_;
-    return $self->_dbus_do_call($fn, @args) if $bmwqemu::vars{QEMU_FATAL_DBUS_CALL};
+    my ($self, $fn, @args) = @_;
     my ($rt, $message);
+    if (!$bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL}) {
+        ($rt, $message) = $self->_dbus_do_call($fn, @args);
+        die $message unless $rt == 0;
+    }
     eval {
         # do not die on unconfigured service
         local $SIG{__DIE__};

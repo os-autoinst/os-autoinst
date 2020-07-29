@@ -50,9 +50,12 @@ is($called{add_console}, 1, 'one console has been added');
 
 my $expected = qr/The name.*not provided|Failed to connect/;
 my $msg      = 'error about missing service';
-combined_like { ok($backend->_dbus_call('show'), 'failed dbus call ignored gracefully') } $expected, $msg;
-$bmwqemu::vars{QEMU_FATAL_DBUS_CALL} = 1;
 like exception { $backend->_dbus_call('show') }, $expected, $msg . ' in exception';
+$bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 1;
+combined_like { ok($backend->_dbus_call('show'), 'failed dbus call ignored gracefully') } $expected, $msg;
+$bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 0;
+$backend_mock->redefine(_dbus_do_call => sub { (1, 'failed') });
+like exception { $backend->_dbus_call('show') }, qr/failed/, 'failed dbus call throws exception';
 
 $backend_mock->redefine(handle_qmp_command => sub { $called{handle_qmp_command} = $_[1] });
 $backend->power({action => 'off'});
