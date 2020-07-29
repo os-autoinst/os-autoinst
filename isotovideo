@@ -215,11 +215,8 @@ sub stop_backend {
 
 sub signalhandler {
     my ($sig) = @_;
-    diag("signalhandler got $sig");
-    if ($loop) {
-        $loop = 0;
-        return;
-    }
+    bmwqemu::serialize_state(component => 'isotovideo', msg => "isotovideo received signal $sig", log => 1);
+    return $loop = 0 if $loop;
     stop_backend;
     stop_commands("received signal $sig");
     stop_autotest;
