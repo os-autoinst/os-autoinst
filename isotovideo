@@ -419,7 +419,7 @@ if (!$return_code) {
     # don't rely on the backend in a sane state if we failed - just stop it later
     eval { bmwqemu::stop_vm(); };
     if ($@) {
-        diag "Error during stop_vm: $@";
+        bmwqemu::serialize_state(component => 'backend', msg => "unable to stop VM: $@", log => 1);
         $return_code = 1;
     }
 }
@@ -457,7 +457,7 @@ sub handle_generated_assets {
                     format => 'qcow2'});
         }
         if (@toextract && !$clean_shutdown) {
-            diag "ERROR: Machine not shut down when uploading disks!\n";
+            bmwqemu::serialize_state(component => 'isotovideo', msg => 'unable to handle generated assets: machine not shut down when uploading disks', log => 1);
             $return_code = 1;
             return;
         }
@@ -471,7 +471,7 @@ sub handle_generated_assets {
         local $@;
         eval { $bmwqemu::backend->extract_assets($asset); };
         if ($@) {
-            diag "extract assets failed: $@";
+            bmwqemu::serialize_state(component => 'backend', msg => "unable to extract assets: $@", log => 1);
             $return_code = 1;
         }
     }
