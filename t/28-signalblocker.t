@@ -54,7 +54,8 @@ $SIG{TERM} = sub { $received_sigterm += 1; note "received SIGTERM $received_sigt
     cv::init();
     require tinycv;
     tinycv::create_threads($fix_thread_count_for_testing);
-    is($last_thread_count = thread_count, $fix_thread_count_for_testing, "$fix_thread_count_for_testing threads created");
+    $last_thread_count = thread_count;
+    cmp_ok($last_thread_count, '>=', $fix_thread_count_for_testing, "at least $fix_thread_count_for_testing threads created");
 }
 
 # do some native calls; no further threads should be created

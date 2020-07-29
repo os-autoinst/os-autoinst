@@ -15,6 +15,7 @@
 
 #include <cerrno>
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <exception>
 #include <iostream>
@@ -318,6 +319,19 @@ double getPSNR(const Mat& I1, const Mat& I2)
     return 10.0 * log10(signal / (noise * noise));
 }
 
+using OpenCVParallelFunction = std::function<void(const Range &)>;
+#if defined(CV_VERSION_MAJOR) && (CV_VERSION_MAJOR >= 4)
+using RunFunctionInParallel = OpenCVParallelFunction;
+#else
+class RunFunctionInParallel : public ParallelLoopBody {
+public:
+    explicit RunFunctionInParallel(OpenCVParallelFunction &&functor) : functor(std::move(functor)) {}
+    void operator() (const Range &range) const override { functor(range); }
+private:
+    OpenCVParallelFunction functor;
+};
+#endif
+
 /*!
  * \brief Creates OpenCV's threads upfront.
  *
@@ -348,7 +362,7 @@ void create_opencv_threads(int thread_count)
     std::mutex m;
     std::condition_variable cv;
     int threads_spawned = 0;
-    parallel_for_(Range(0, thread_count), [&] (const Range &) {
+    parallel_for_(Range(0, thread_count), RunFunctionInParallel([&] (const Range &) {
         // keep the thread idling until the expected number of threads has been spawned
         std::unique_lock<std::mutex> lock(m);
         if (++threads_spawned >= thread_count) {
@@ -356,7 +370,7 @@ void create_opencv_threads(int thread_count)
         } else {
             cv.wait(lock);
         }
-    });
+    }));
 }
 
 void image_destroy(Image* s) { delete (s); }
