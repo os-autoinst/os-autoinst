@@ -2012,10 +2012,10 @@ sub diag {
 =for stopwords kvm VM
 
     Return VM's host IP
-    in a kvm instance you reach the VM's host under 10.0.2.2
+    in a kvm instance you reach the VM's host under default 10.0.2.2
 =cut
 sub host_ip {
-    return check_var('BACKEND', 'qemu') ? '10.0.2.2' : get_required_var('WORKER_HOSTNAME');
+    return check_var('BACKEND', 'qemu') ? get_var('QEMU_HOST_IP', '10.0.2.2') : get_required_var('WORKER_HOSTNAME');
 }
 
 =head2 autoinst_url
