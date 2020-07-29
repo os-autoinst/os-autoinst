@@ -389,21 +389,37 @@ sub gen_runfile {
 }
 
 sub exec_qemu {
-    my $self   = shift;
+    my ($self) = @_;
+
     my @params = $self->gen_cmdline();
     session->enable;
-    bmwqemu::diag("starting: " . join(" ", @params));
+    bmwqemu::diag('starting: ' . join(' ', @params));
     session->enable_subreaper;
-    $self->_process->code(sub {
+
+    my $process = $self->_process;
+    $process->on(
+        collected => sub {
+            bmwqemu::serialize_state(component => 'backend', msg => 'QEMU exited unexpectedly, see log for details')
+              unless $self->{_stopping};
+        });
+    $process->code(sub {
             $SIG{__DIE__} = undef;    # overwrite the default - just exit
             system $self->qemu_bin, '-version';
             # don't try to talk to the host's PA
             $ENV{QEMU_AUDIO_DRV} = "none";
+            exec(@params);
+    });
+    $process->separate_err(0)->start();
 
-            exec(@params) })->separate_err(0)->start();
-    fcntl($self->_process->read_stream, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
+    fcntl($process->read_stream, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
+    return $process->read_stream;
+}
 
-    return $self->_process->read_stream;
+sub stop_qemu {
+    my ($self) = @_;
+
+    $self->{_stopping} = 1;
+    $self->_process->stop;
 }
 
 sub qemu_pid { shift->_process->process_id }

@@ -128,7 +128,7 @@ sub do_start_vm {
 
 sub stop_qemu {
     my ($self) = (@_);
-    $self->{proc}->_process->stop;
+    $self->{proc}->stop_qemu;
     $self->delete_virtio_console_fifo();
     $self->_stop_children_processes;
 }
