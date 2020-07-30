@@ -26,6 +26,7 @@ use Cwd 'abs_path';
 use Mojo::JSON 'decode_json';
 use FindBin '$Bin';
 use Mojo::File 'tempdir';
+use Mojo::Util qw(scope_guard);
 
 # optional but very useful
 eval 'use Test::More::Color';
@@ -41,6 +42,8 @@ note("data dir: $data_dir");
 note("pool dir: $pool_dir");
 
 chdir($pool_dir);
+my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
+
 open(my $var, '>', 'vars.json');
 print $var <<EOV;
 {
@@ -126,5 +129,3 @@ is(system('grep -q "isotovideo done" autoinst-log.txt'),                 0, 'iso
 is(system('grep -q "EXIT 0" autoinst-log.txt'),                          0, 'Test finished as expected');
 
 done_testing();
-
-chdir $Bin;
