@@ -189,7 +189,7 @@ subtest 'SSH usage in svirt' => sub {
 
     my $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
     $svirt->run_ssh_cmd('echo -n "foo"', password => '2+3=5', keep_open => 0);
-    is($num_ssh_connect + 1, scalar(keys(%{$ssh_obj_data})), 'Ensure run_ssh_cmd(keep_open => 0) uses a new SSH connection');
+    is(scalar(keys(%{$ssh_obj_data})), $num_ssh_connect + 1, 'Ensure run_ssh_cmd(keep_open => 0) uses a new SSH connection');
 
     # cleanup kept ssh connections
     for my $ssh_ref ((refaddr($ssh3), refaddr($ssh4), refaddr($ssh5))) {
