@@ -12,11 +12,13 @@ use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
 use FindBin '$Bin';
 use Mojo::File 'tempdir';
+use Mojo::Util qw(scope_guard);
 
 use backend::qemu;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
+my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 my $proc = Test::MockModule->new('OpenQA::Qemu::Proc');
 $proc->redefine(exec_qemu            => undef);
@@ -65,5 +67,3 @@ $backend->power({action => 'acpi'});
 is_deeply($called{handle_qmp_command}, {execute => 'system_powerdown'}, 'powerdown has been called for acpi');
 
 done_testing();
-
-chdir $Bin;

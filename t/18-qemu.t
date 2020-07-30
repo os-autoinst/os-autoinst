@@ -10,6 +10,7 @@ use Test::Warnings qw(warnings :report_warnings);
 use Mojo::File qw(tempfile tempdir path);
 use Carp 'cluck';
 use FindBin '$Bin';
+use Mojo::Util qw(scope_guard);
 
 use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::Proc;
@@ -18,6 +19,7 @@ use constant TMPPATH => '/tmp/18-qemu.t/';
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
+my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir "$dir/testresults";
 
 $SIG{__DIE__} = sub { cluck(shift); };
@@ -387,5 +389,3 @@ subtest DriveDevice => sub {
 };
 
 done_testing();
-chdir $Bin;
-

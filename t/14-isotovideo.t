@@ -11,6 +11,7 @@ use File::Path qw(remove_tree rmtree);
 use Cwd 'abs_path';
 use Mojo::File qw(tempdir path);
 use Mojo::JSON qw(decode_json);
+use Mojo::Util qw(scope_guard);
 use FindBin '$Bin';
 use OpenQA::Isotovideo::Utils qw(load_test_schedule);
 
@@ -19,6 +20,7 @@ my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir     = "$toplevel_dir/t/data";
 my $pool_dir     = "$dir/pool";
 chdir $dir;
+my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
 
 sub isotovideo {
@@ -142,7 +144,6 @@ subtest 'upload assets on demand even in failed jobs' => sub {
 
 done_testing();
 
-chdir $Bin;
 END {
     rmtree "$Bin/data/tests/product";
 }
