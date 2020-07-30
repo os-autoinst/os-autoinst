@@ -8,9 +8,11 @@ use Test::Fatal;
 use File::Basename;
 use FindBin '$Bin';
 use Mojo::File 'tempdir';
+use Mojo::Util qw(scope_guard);
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
+my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir 'testresults';
 
 use basetest;
@@ -327,5 +329,3 @@ subtest 'execute_time' => sub {
 };
 
 done_testing;
-
-chdir $Bin;

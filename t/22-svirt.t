@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-# Copyright © 2018-2019 SUSE LLC
 
 use strict;
 use warnings;
@@ -19,9 +18,11 @@ use testapi qw(get_var get_required_var check_var set_var);
 use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT);
 use FindBin '$Bin';
 use Mojo::File 'tempdir';
+use Mojo::Util qw(scope_guard);
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
+my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir 'testresults';
 
 bmwqemu::init_logger;
@@ -280,5 +281,3 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
 };
 
 done_testing;
-
-chdir $Bin;

@@ -25,6 +25,7 @@ use Mojo::File qw(path tempdir);
 use Mojo::JSON qw(encode_json);
 use Benchmark ':hireswallclock';
 use FindBin '$Bin';
+use Mojo::Util qw(scope_guard);
 
 # optional but very useful
 eval 'use Test::More::Color';
@@ -36,6 +37,7 @@ my $data_dir     = "$Bin/data";
 my $pool_dir     = "$dir/pool";
 mkdir $pool_dir;
 chdir $pool_dir;
+my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 # just save ourselves some time during testing
 $ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} //= 1;
@@ -146,5 +148,3 @@ subtest qemu_tpm_option => sub {
 };
 
 done_testing();
-
-chdir $Bin;
