@@ -25,17 +25,15 @@ use strict;
 use warnings;
 use autodie ':all';
 
-use Carp qw(cluck carp croak confess);
+use Carp 'croak';
 use Mojo::JSON 'to_json';
 use File::Path 'remove_tree';
-use IO::Select;
 use POSIX '_exit';
 require IPC::System::Simple;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use myjsonrpc;
 use signalblocker;
-use bmwqemu;    # TODO: move the whole printing out of bmwqemu
 
 sub new {
     my ($class, $name) = @_;
@@ -156,15 +154,13 @@ sub _send_json {
     my $token = myjsonrpc::send_json($self->{backend_process}->channel_in, $cmd);
     my $rsp   = myjsonrpc::read_json($self->{backend_process}->channel_out, $token);
 
-    unless (defined $rsp) {
-        # this might have been closed by signal handler
-        no autodie 'close';
-        close($self->{backend_process}->channel_out);
-        $self->{backend_process}->channel_out(undef);
-        $self->{backend_process}->stop;
-        return;
-    }
-    return $rsp->{rsp};
+    return $rsp->{rsp} if defined $rsp;
+    # this might have been closed by signal handler
+    no autodie 'close';
+    close($self->{backend_process}->channel_out);
+    $self->{backend_process}->channel_out(undef);
+    $self->{backend_process}->stop;
+    return;
 }
 
 1;

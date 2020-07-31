@@ -32,11 +32,6 @@ sub can_handle { }
 
 sub is_shutdown { 1 }
 
-sub check_socket {
-    my ($self, $fh, $write) = @_;
-    $self->SUPER::check_socket($fh, $write);
-}
-
 sub stop_serial_grab { }
 
 1;

@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -62,11 +62,7 @@ sub do_stop_vm {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    if ($self->check_ssh_serial($fh)) {
-        return 1;
-    }
-
-    return $self->SUPER::check_socket($fh, $write);
+    return $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write);
 }
 
 1;

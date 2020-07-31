@@ -1,4 +1,4 @@
-# Copyright © 2016 SUSE LLC
+# Copyright © 2016-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -148,11 +148,7 @@ sub do_stop_vm {
 sub check_socket {
     my ($self, $fh, $write) = @_;
 
-    if ($self->check_ssh_serial($fh)) {
-        return 1;
-    }
-
-    return $self->SUPER::check_socket($fh, $write);
+    return $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write);
 }
 
 # serial grab
@@ -161,15 +157,13 @@ sub start_serial_grab {
     my ($self) = @_;
 
     $self->{serialpid} = fork();
-    if ($self->{serialpid} == 0) {
-        setpgrp 0, 0;
-        open(my $serial, '>',  $self->{serialfile});
-        open(STDOUT,     ">&", $serial);
-        open(STDERR,     ">&", $serial);
-        exec($self->get_cmd('GENERAL_HW_SOL_CMD'));
-        die "exec failed $!";
-    }
-    return;
+    return unless $self->{serialpid} == 0;
+    setpgrp 0, 0;
+    open(my $serial, '>',  $self->{serialfile});
+    open(STDOUT,     ">&", $serial);
+    open(STDERR,     ">&", $serial);
+    exec($self->get_cmd('GENERAL_HW_SOL_CMD'));
+    die "exec failed $!";
 }
 
 sub stop_serial_grab {
