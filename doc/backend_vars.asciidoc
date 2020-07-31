@@ -21,6 +21,7 @@ EXTERNAL_VIDEO_ENCODER_OUTPUT_FILE_EXTENSION;string;webm;The extension of the ou
 EXTERNAL_VIDEO_ENCODER_ADDITIONALLY;boolean;0;Whether `EXTERNAL_VIDEO_ENCODER_CMD` should only be invoked additionally to the built-in Theora encoder. This means two videos will be created and uploaded which can be useful for comparison. (Configuring an external video encoder disables the built-in one by default.)
 NOVIDEO;boolean;0;Whether the creation of the video should be disabled and also any `EXTERNAL_VIDEO_ENCODER_` variables be ignored.
 NO_DEBUG_IO;boolean;0;Disable the I/O debug output in case of needle comparison times longer than expected
+NO_FATAL_WARNINGS;boolean;0;Disable the fatal handling of Perl warnings
 OSUTILS_WAIT_ATTEMPT_INTERVAL;float;1;The interval in seconds between "attempts" in osutils, e.g. used for connections to qemu qmp backend
 SCREENSHOTINTERVAL;float;0.5;The interval in seconds at which screenshots are taken internally
 SSH_CONNECT_RETRY;integer;5;Maximum retries to connect to SSH based console targets

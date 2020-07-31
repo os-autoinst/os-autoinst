@@ -256,6 +256,7 @@ checkout_git_repo_and_branch('NEEDLES_DIR');
 
 bmwqemu::ensure_valid_vars();
 
+$SIG{__WARN__} = sub { die "warning treated fatal (disable with 'NO_FATAL_WARNINGS'): @_" } unless $bmwqemu::vars{NO_FATAL_WARNINGS};
 # as we are about to load the test modules checkout the specified git refspec,
 # if specified, or simply store the git hash that has been used. If it is not a
 # git repo fail silently, i.e. store an empty variable
