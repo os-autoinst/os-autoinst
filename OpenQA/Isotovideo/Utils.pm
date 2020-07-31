@@ -20,7 +20,7 @@ use Mojo::URL;
 use Exporter 'import';
 use File::Spec;
 use Cwd;
-use bmwqemu 'diag';
+use bmwqemu ();
 use Try::Tiny;
 
 our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec load_test_schedule);
@@ -32,7 +32,7 @@ sub calculate_git_hash {
     chomp(my $git_hash = qx{git rev-parse HEAD ||:});
     $git_hash ||= "UNKNOWN";
     chdir($dir);
-    diag "git hash in $git_repo_dir: $git_hash";
+    bmwqemu::diag "git hash in $git_repo_dir: $git_hash";
     return $git_hash;
 }
 
@@ -63,11 +63,11 @@ sub checkout_git_repo_and_branch {
     my $clone_args  = "--depth $args{clone_depth}";
     my $branch_args = '';
     if ($branch) {
-        diag "Checking out git refspec/branch '$branch'";
+        bmwqemu::diag "Checking out git refspec/branch '$branch'";
         $branch_args = " --branch $branch";
     }
     if (!-e $local_path) {
-        diag "Cloning git URL '$clone_url' to use as test distribution";
+        bmwqemu::diag "Cloning git URL '$clone_url' to use as test distribution";
         my @out = qx{$clone_cmd $clone_args $branch_args $clone_url 2>&1};
         if ($branch && grep /warning: Could not find remote branch/, @out) {
             # maybe we misspelled or maybe someone gave a commit hash instead
@@ -76,22 +76,22 @@ sub checkout_git_repo_and_branch {
             # References:
             # * https://stackoverflow.com/questions/18515488/how-to-check-if-the-commit-exists-in-a-git-repository-by-its-sha-1
             # * https://stackoverflow.com/questions/26135216/why-isnt-there-a-git-clone-specific-commit-option
-            diag "Fetching more remote objects to ensure availability of '$branch'";
+            bmwqemu::diag "Fetching more remote objects to ensure availability of '$branch'";
             qx{$clone_cmd $clone_args $clone_url};
             while (qx[git -C $local_path cat-file -e $branch^{commit} 2>&1] =~ /Not a valid object/) {
                 $args{clone_depth} *= 2;
                 @out = qx[git -C $local_path fetch --progress --depth=$args{clone_depth} 2>&1];
-                diag "git fetch: @out";
+                bmwqemu::diag "git fetch: @out";
                 die "Could not find '$branch' in complete history" if grep /remote: Total 0/, @out;
             }
             qx{git -C $local_path checkout $branch};
         }
         else {
-            diag "@out\n";
+            bmwqemu::diag "@out\n";
         }
     }
     else {
-        diag "Skipping to clone '$clone_url'; $local_path already exists";
+        bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
     }
     return $bmwqemu::vars{$dir_variable} = File::Spec->rel2abs($local_path);
 }
@@ -113,7 +113,7 @@ sub checkout_git_refspec {
     my ($dir, $refspec_variable) = @_;
     return undef unless defined $dir;
     if (my $refspec = $bmwqemu::vars{$refspec_variable}) {
-        diag "Checking out local git refspec '$refspec' in '$dir'";
+        bmwqemu::diag "Checking out local git refspec '$refspec' in '$dir'";
         qx{env git -C $dir checkout -q $refspec};
         die "Failed to checkout '$refspec' in '$dir'\n" unless $? == 0;
     }
@@ -133,7 +133,7 @@ sub load_test_schedule {
     my @oldINC = @INC;
     unshift @INC, $bmwqemu::vars{CASEDIR} . '/lib';
     if ($bmwqemu::vars{SCHEDULE}) {
-        diag 'Enforced test schedule by \'SCHEDULE\' variable in action';
+        bmwqemu::diag 'Enforced test schedule by \'SCHEDULE\' variable in action';
         $bmwqemu::vars{INCLUDE_MODULES} = undef;
         autotest::loadtest($_ . '.pm') foreach split(',', $bmwqemu::vars{SCHEDULE});
         $bmwqemu::vars{INCLUDE_MODULES} = 'none';
@@ -161,7 +161,7 @@ sub load_test_schedule {
     @INC = @oldINC;
 
     if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {
-        diag 'Early exit has been requested with _EXIT_AFTER_SCHEDULE. Only evaluating test schedule.';
+        bmwqemu::diag 'Early exit has been requested with _EXIT_AFTER_SCHEDULE. Only evaluating test schedule.';
         exit 0;
     }
 }
