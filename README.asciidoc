@@ -128,6 +128,9 @@ Run all tests:
 make test
 ----
 
+By default CTest is invoked in verbose mode because prove already provides condensed
+output. Add `-DVERBOSE_CTEST=OFF` to the CMake arguments to avoid that.
+
 Run all Perl tests (`*.t` files found within the `t` directory):
 ----
 make test-perl-testsuite
@@ -137,9 +140,6 @@ Run individual tests by specifying them explicitly:
 ----
 make test-perl-testsuite TESTS="15-logging.t 28-signalblocker.t"
 ----
-
-By default CTest is invoked in verbose mode because prove already provides condensed
-output. Add `-DVERBOSE_CTEST=OFF` to the CMake arguments to avoid that.
 
 Add additional arguments to the `prove` invocation, e.g. enable verbose output:
 ----
@@ -171,6 +171,8 @@ make install DESTDIR=…
 
 Further notes:
 
+* When using the `test-perl-testsuite` target, `ctest` is not used (and therefore `ctest`
+  specific tweaks have no effect).
 * One can always run Perl tests manually via `prove` after the build has been conducted with
   `make symlinks`. Note that some tests need to be invoked within the `t` directory. An
   invocation like `prove -vI.. 28-signalblocker.t` is supposed to work.
