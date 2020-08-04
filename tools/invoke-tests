@@ -15,25 +15,31 @@ options:
 
 # parse arguments
 prove_path=prove make_path=make build_directory=$source_directory
-opts=$(getopt --options h --longoptions help,coverage,prove-tool:,make-tool:,build-directory: --name "$(basename "$0")" -- "$@") || usage
+opts=$(getopt \
+    --options h \
+    --longoptions help,coverage,skip-if-cover-db-exists,prove-tool:,make-tool:,build-directory: \
+    --name "$(basename "$0")" -- "$@") || usage
 eval set -- "$opts"
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    -h | --help       ) usage;                shift   ;;
-    --coverage        ) WITH_COVER_OPTIONS=1; shift   ;;
-    --prove-tool      ) prove_path=$2;        shift 2 ;;
-    --make-tool       ) make_path=$2;         shift 2 ;;
-    --build-directory ) build_directory=$2;   shift 2 ;;
-    --                ) shift; break ;;
-    *                 ) break ;;
+    -h | --help               ) usage;                     shift   ;;
+    --coverage                ) WITH_COVER_OPTIONS=1;      shift   ;;
+    --skip-if-cover-db-exists ) SKIP_IF_COVER_DB_EXISTS=1; shift   ;;
+    --prove-tool              ) prove_path=$2;             shift 2 ;;
+    --make-tool               ) make_path=$2;              shift 2 ;;
+    --build-directory         ) build_directory=$2;        shift 2 ;;
+    --                        ) shift; break ;;
+    *                         ) break ;;
   esac
 done
 [[ "$@" ]] && TESTS="$@"
 
+db="$build_directory/cover_db"
+[[ $SKIP_IF_COVER_DB_EXISTS ]] && [[ -d $db ]] && exit 0
+
 # set Perl module include path and coverage options
 export PERL5LIB="$source_directory:$source_directory/ppmclibs:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
 if [[ $WITH_COVER_OPTIONS ]]; then
-    db="$build_directory/cover_db"
     path_regex="^|$source_directory/|\\.\\./"
     select="($path_regex)(OpenQA|backend|consoles|ppmclibs)/|($path_regex)isotovideo|($path_regex)[^/]+\.pm,-ignore,\.t|data/tests/|fake/tests/|$prove_path"
     export PERL5OPT="-MDevel::Cover=-db,$db,-select,$select,-coverage,statement"

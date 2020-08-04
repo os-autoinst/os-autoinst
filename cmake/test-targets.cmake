@@ -89,15 +89,15 @@ endforeach ()
 find_program(COVER_PATH cover)
 if (COVER_PATH AND PROVE_PATH)
     add_custom_command(
-        COMMENT "Run Perl testsuite with coverage instrumentation"
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" --coverage ${INVOKE_TEST_ARGS}
-        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cover_db/structure"
+        COMMENT "Run Perl testsuite with coverage instrumentation if no coverage data has been collected so far"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" --coverage --skip-if-cover-db-exists ${INVOKE_TEST_ARGS}
+        OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
     add_custom_command(
         COMMENT "Generate coverage report (HTML)"
         COMMAND "${COVER_PATH}" -report html_basic "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
-        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db/structure"
+        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
         OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/coverage.html"
     )
     add_custom_target(
@@ -115,7 +115,7 @@ if (COVER_PATH AND PROVE_PATH)
         coverage-codecov
         COMMENT "Perl test suite coverage (codecov)"
         COMMAND "${COVER_PATH}" -report codecov "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
-        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db/structure"
+        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
     )
     add_dependencies(coverage-codecov symlinks)
 else ()
