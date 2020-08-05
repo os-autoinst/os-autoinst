@@ -171,22 +171,13 @@ sub stop_commands {
         my $timeout = 15;
         my $ua      = Mojo::UserAgent->new(request_timeout => $timeout);
         my $tx      = $ua->post($url, json => {stopping_test_execution => $reason});
-        try {
-            my $res = $tx->result;
-            if ($res->code != 200) {
-                my $error_message = $res->to_string;
-                diag('isotovideo: unable to inform websocket clients about stopping command server: ' . $error_message);
-                if ($error_message =~ qr/.*timeout.*/i) {
-                    diag("isotovideo: The command server could be under heavy load and the timeout of $timeout seconds has been exceeded. This message is most likely not be related to the MAX_JOB_TIME of the current job possibly being exceeded.");
-                }
-                else {
-                    diag('The command server might have already been stopped by the worker after the user has aborted the job or the job timeout has been exceeded.');
-                }
-            }
+        if (my $err = $tx->error) {
+            my $msg = $err->{code} ? "$err->{code} response: $err->{message}" : "Connection error: $err->{message}";
+            $msg .= "\nisotovideo: The command server could be under heavy load and the timeout of $timeout"
+              . ' seconds has been exceeded. This message is not be related to the MAX_JOB_TIME'
+              . ' of the current job possibly being exceeded.' if $err =~ qr/.*timeout.*/i;
+            diag('isotovideo: unable to inform websocket clients about stopping command server: ' . $msg) if $cmd_srv_process->is_running;
         }
-        catch {
-            diag('isotovideo: unable to inform websocket clients about stopping command server: ' . $_);
-        };
     }
 
     # stop the command server
