@@ -206,3 +206,12 @@ add_custom_target(
     COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/update-deps" --specfile dist/rpm/os-autoinst.spec --dockerfile docker/travis_test/Dockerfile
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
+
+# add target for formatting C++ source code
+find_program(CLANG_FORMAT_PATH clang-format)
+add_custom_target(
+    tidy-cpp
+    COMMENT "Formatting C++ source code"
+    COMMAND sh -c "'${CLANG_FORMAT_PATH}" "--style=WebKit" "-i" "$$(find" "." "-name" "\*.h" "-o" "-name" "\*.cc" "-o" "-name" "\*.cpp)'"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+)
