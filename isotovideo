@@ -157,40 +157,26 @@ sub stop_commands {
     return unless $cmd_srv_process->is_running;
 
     my $pid = $cmd_srv_process->pid;
-    diag("terminating command server $pid because $reason");
+    diag("stopping command server $pid because $reason");
 
-    # inform websocket clients
-    # note: If the job is stopped by the worker because it has been aborted, the worker will send this command
-    #       on its own to the command server and also stop the command server. So this is only done in the case
-    #       the test execution just ends.
     if ($cmd_srv_port && $reason && $reason eq 'test execution ended') {
         my $job_token = $bmwqemu::vars{JOBTOKEN};
         my $url       = "http://127.0.0.1:$cmd_srv_port/$job_token/broadcast";
         diag('isotovideo: informing websocket clients before stopping command server: ' . $url);
 
+        # note: If the job is stopped by the worker because it has been
+        # aborted, the worker will send this command on its own to the command
+        # server and also stop the command server. So this is only done in the
+        # case the test execution just ends.
+
         my $timeout = 15;
-        my $ua      = Mojo::UserAgent->new(request_timeout => $timeout);
-        my $tx      = $ua->post($url, json => {stopping_test_execution => $reason});
-        try {
-            my $res = $tx->result;
-            if ($res->code != 200) {
-                my $error_message = $res->to_string;
-                diag('isotovideo: unable to inform websocket clients about stopping command server: ' . $error_message);
-                if ($error_message =~ qr/.*timeout.*/i) {
-                    diag("isotovideo: The command server could be under heavy load and the timeout of $timeout seconds has been exceeded. This message is most likely not be related to the MAX_JOB_TIME of the current job possibly being exceeded.");
-                }
-                else {
-                    diag('The command server might have already been stopped by the worker after the user has aborted the job or the job timeout has been exceeded.');
-                }
-            }
-        }
-        catch {
-            diag('isotovideo: unable to inform websocket clients about stopping command server: ' . $_);
-        };
+        # The command server might have already been stopped by the worker
+        # after the user has aborted the job or the job timeout has been
+        # exceeded so no checks for failure done.
+        Mojo::UserAgent->new(request_timeout => $timeout)->post($url, json => {stopping_test_execution => $reason});
     }
 
-    # stop the command server
-    $cmd_srv_process->stop() if $cmd_srv_process->is_running;
+    $cmd_srv_process->stop();
     $cmd_srv_process = undef;
     diag('done with command server');
 }

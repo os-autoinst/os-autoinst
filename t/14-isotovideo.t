@@ -22,6 +22,8 @@ my $pool_dir     = "$dir/pool";
 chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
+my $log_file = path('autoinst-log.txt');
+my $log      = '';
 
 sub isotovideo {
     my (%args) = @_;
@@ -31,14 +33,8 @@ sub isotovideo {
     my $cmd = "perl $toplevel_dir/isotovideo -d $args{default_opts} $args{opts} 2>&1 | tee autoinst-log.txt";
     note("Starting isotovideo with: $cmd");
     system($cmd);
-    is(system('grep -q "\d*: EXIT ' . $args{exit_code} . '" autoinst-log.txt'), 0, $args{end_test_str} ? $args{end_test_str} : 'isotovideo run exited as expected');
-}
-
-sub is_in_log {
-    my ($regex, $msg) = @_;
-    # adjust file location report on error to one level up
-    local $Test::Builder::Level = $Test::Builder::Level + 2;
-    is(system("grep -q \"$regex\" autoinst-log.txt"), 0, $msg);
+    $log = $log_file->slurp;
+    like $log, qr/\d*: EXIT $args{exit_code}/, $args{end_test_str} ? $args{end_test_str} : 'isotovideo run exited as expected';
 }
 
 subtest 'error handling when loading test schedule' => sub {
@@ -71,8 +67,8 @@ subtest 'standalone isotovideo without vars.json file and only command line para
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
     combined_like { isotovideo(opts => "casedir=$data_dir/tests schedule=foo,bar/baz _exit_after_schedule=1") } qr/scheduling foo/, 'foo scheduled';
-    is_in_log('scheduling.*foo',     'requested modules are run as part of enforced scheduled');
-    is_in_log('scheduling.*bar/baz', 'requested modules in subdirs are scheduled');
+    like $log, qr/scheduling.*foo/,     'requested modules are run as part of enforced scheduled';
+    like $log, qr{scheduling.*bar/baz}, 'requested modules in subdirs are scheduled';
 };
 
 subtest 'standard tests based on simple vars.json file' => sub {
@@ -86,8 +82,8 @@ subtest 'standard tests based on simple vars.json file' => sub {
 EOV
     close($var);
     combined_like { isotovideo } qr/scheduling shutdown/, 'shutdown scheduled';
-    is_in_log('\d*: EXIT 1',              'test exited early as requested');
-    is_in_log('\d* scheduling.*shutdown', 'schedule has been evaluated');
+    like $log, qr/d*: EXIT 1/,               'test exited early as requested';
+    like $log, qr/\d* scheduling.*shutdown/, 'schedule has been evaluated';
 };
 
 subtest 'isotovideo with custom git repo parameters specified' => sub {
@@ -100,9 +96,9 @@ subtest 'isotovideo with custom git repo parameters specified' => sub {
     remove_tree('repo');
     combined_like { isotovideo(
             opts => "casedir=file://$pool_dir/repo.git#foo needles_dir=$data_dir _exit_after_schedule=1") } qr/Cloning into 'repo'/, 'repo picked up';
-    is_in_log('git URL.*\<repo\>', 'git repository would be cloned');
-    is_in_log('branch.*foo',       'branch in git repository would be checked out');
-    is_in_log('No scripts',        'the repo actually has no test definitions');
+    like $log, qr{git URL.*/repo}, 'git repository would be cloned';
+    like $log, qr/branch.*foo/,    'branch in git repository would be checked out';
+    like $log, qr/No scripts/,     'the repo actually has no test definitions';
 };
 
 subtest 'isotovideo with git refspec specified' => sub {
@@ -110,7 +106,7 @@ subtest 'isotovideo with git refspec specified' => sub {
     unlink('vars.json') if -e 'vars.json';
     combined_like { isotovideo(
             opts => "casedir=$data_dir/tests test_git_refspec=deadbeef _exit_after_schedule=1") } qr/Checking.*local.*deadbeef/, 'refspec picked up';
-    is_in_log("Checking.*local.*deadbeef", 'refspec in local git repository would be checked out');
+    like $log, qr/Checking.*local.*deadbeef/, 'refspec in local git repository would be checked out';
 };
 
 subtest 'productdir variable relative/absolute' => sub {
@@ -118,17 +114,17 @@ subtest 'productdir variable relative/absolute' => sub {
     unlink('vars.json') if -e 'vars.json';
     combined_like { isotovideo(
             opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=$data_dir/tests") } qr/scheduling shutdown/, 'shutdown scheduled';
-    is_in_log('\d* scheduling.*shutdown', 'schedule has been evaluated');
+    like $log, qr/\d* scheduling.*shutdown/, 'schedule has been evaluated';
     mkdir('product')                                                    unless -e 'product';
     mkdir('product/foo')                                                unless -e 'product/foo';
     symlink("$data_dir/tests/main.pm", "$pool_dir/product/foo/main.pm") unless -e "$pool_dir/product/foo/main.pm";
     combined_like { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product/foo") } qr/scheduling shutdown/, 'shutdown scheduled';
-    is_in_log('\d* scheduling.*shutdown', 'schedule can still be found');
+    like $log, qr/\d* scheduling.*shutdown/, 'schedule can still be found';
     unlink("$pool_dir/product/foo/main.pm");
     mkdir("$data_dir/tests/product")                                      unless -e "$data_dir/tests/product";
     symlink("$data_dir/tests/main.pm", "$data_dir/tests/product/main.pm") unless -e "$data_dir/tests/product/main.pm";
     combined_like { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product") } qr/scheduling shutdown/, 'shutdown scheduled';
-    is_in_log('\d* scheduling.*shutdown', 'schedule can still be found for productdir relative to casedir');
+    like $log, qr/\d* scheduling.*shutdown/, 'schedule can still be found for productdir relative to casedir';
 };
 
 subtest 'upload assets on demand even in failed jobs' => sub {
@@ -138,7 +134,7 @@ subtest 'upload assets on demand even in failed jobs' => sub {
     combined_like { isotovideo(
             opts => "casedir=$data_dir/tests schedule=$module force_publish_hdd_1=foo.qcow2 qemu_no_kvm=1 arch=i386 backend=qemu qemu=i386", exit_code => 0);
     } qr/scheduling failing_module $module\.pm/, 'module scheduled';
-    is_in_log('qemu-img.*foo.qcow2', 'requested image is published even though the job failed');
+    like $log, qr/qemu-img.*foo.qcow2/, 'requested image is published even though the job failed';
     ok(-e $pool_dir . '/assets_public/foo.qcow2', 'published image exists');
 };
 
