@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2020 SUSE LLC
+# Copyright (c) 2015-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -67,15 +67,13 @@ sub _log {
     my $job = $args{where} ? ((get_job_info($args{where}) // {})->{settings}->{TEST} // '?') . " #$args{where}" : 'parent job';
     my $msg = "Wait for $name (on $job)";
     $msg .= " - $args{info}" if $args{info};
-
+    my $subject = 'Paused';
     if (defined $args{amend}) {
         # amend log info with wait duration
         $autotest::current_test->remove_last_result;
-        testapi::record_info 'Paused ' . int($args{amend} / 60) . 'm' . $args{amend} % 60 . 's', $msg;
+        $subject .= ' ' . int($args{amend} / 60) . 'm' . $args{amend} % 60 . 's';
     }
-    else {
-        testapi::record_info 'Paused', $msg;
-    }
+    testapi::record_info $subject, $msg;
 }
 
 sub _api_call_with_logging_and_error_handling {
