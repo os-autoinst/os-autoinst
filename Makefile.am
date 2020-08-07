@@ -262,7 +262,7 @@ coverage-check: cover_db/coverage.html
 
 .PHONY: tidy-cpp
 tidy-cpp:
-	clang-format --style=WebKit -i $$(find . -name \*.cc -o -name \*.cpp)
+	clang-format --style=WebKit -i $$(find . -name \*.h -o -name \*.cc -o -name \*.cpp)
 
 .PHONY: docker-test
 docker-test:
