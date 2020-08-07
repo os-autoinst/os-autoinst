@@ -108,7 +108,7 @@ sub do_start_vm {
     # So keep it for flexibility.
     $self->do_mc_reset if $bmwqemu::vars{IPMI_BACKEND_MC_RESET};
     $self->get_mc_status;
-    $self->restart_host;
+    $self->restart_host unless $bmwqemu::vars{IPMI_DO_NOT_RESTART_HOST};
     $self->truncate_serial_file;
     my $sol = $testapi::distri->add_console('sol', 'ipmi-xterm');
     $sol->backend($self);
