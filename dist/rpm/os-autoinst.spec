@@ -156,6 +156,8 @@ sed '/perlcritic/d' -i Makefile
 sed '/tidy/d' -i Makefile
 sed '/Perl::Critic/d' -i cpanfile
 rm -r t/27-make-update-deps.t tools/update-deps
+# unstable test https://progress.opensuse.org/issues/69820
+rm t/28-signalblocker.t
 printf '#!/bin/sh\necho YAML syntax check disabled' > tools/check-yaml-syntax
 make check test VERBOSE=1 %{spellcheck_make_args_for_autotools}
 %else
