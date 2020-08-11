@@ -62,7 +62,7 @@ $SIG{TERM} = sub { $received_sigterm += 1; note "received SIGTERM $received_sigt
 my $img = tinycv::read(dirname(__FILE__) . '/data/accept-ssh-host-key.png');
 $img->search_needle($img, 0, 0, 50, 50, 0);
 $img->similarity($img);
-is(thread_count, $last_thread_count, 'no new threads after searching for a needle');
+cmp_ok(thread_count, '<=', $last_thread_count, 'no new threads after searching for a needle');
 
 # send a lot of SIGTERMs to ourselves; expect no crashes
 # notes: Not simply using Perl's kill function here because using that I've never been able to actually observe
@@ -74,6 +74,6 @@ waitpid $fork, 0;
 note 'waiting for at least one signal to be handled' and sleep .2 until $received_sigterm >= 1 || ($timeout -= .2) < 0;
 note "handled $received_sigterm TERM signals";
 ok($received_sigterm > 0, "received SIGTERM $received_sigterm times; no crashes after at least 200 ms idling time");
-is(thread_count, $last_thread_count, 'all threads still alive');
+cmp_ok(thread_count, '<=', $last_thread_count, 'still no new threads after sending signals');
 
 done_testing;
