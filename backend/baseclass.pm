@@ -375,13 +375,41 @@ sub _stop_video_encoder {
     my $video_encoders = delete $self->{video_encoders};
     return undef unless defined $video_encoders && keys %$video_encoders;
 
-    # give the video encoder processes 30 seconds to finalize the video
+    # pass remaining video frames to the video encoder
+    bmwqemu::diag 'Passing remaining frames to the video encoder';
+    my $timeout                         = 30;
+    my $video_data_for_internal_encoder = $self->{video_frame_data};
+    my $video_data_for_external_encoder = $self->{external_video_encoder_image_data};
+    my $select                          = IO::Select->new;
+    $select->add(my $internal_pipe = $self->{encoder_pipe})                    if @$video_data_for_internal_encoder;
+    $select->add(my $external_pipe = $self->{external_video_encoder_cmd_pipe}) if @$video_data_for_external_encoder;
+    try {
+        while ($select->count) {
+            $! = 'timeout exceeded';    # can_write returns an empty array and leaves $! unchanged in case of a timeout
+            die "$!\n" unless my @ready = $select->can_write($timeout);
+            for my $fh (@ready) {
+                if ($fh == $internal_pipe) {
+                    $self->_write_buffered_data_to_file_handle('Encoder', $video_data_for_internal_encoder, $fh);
+                    $select->remove($fh) unless @$video_data_for_internal_encoder;
+                }
+                elsif ($fh == $external_pipe) {
+                    $self->_write_buffered_data_to_file_handle('External encoder', $video_data_for_external_encoder, $fh);
+                    $select->remove($fh) unless @$video_data_for_external_encoder;
+                }
+            }
+        }
+    }
+    catch {
+        bmwqemu::diag "Unable to pass remaining frames to video encoder: $_";
+    };
+
+    # give the video encoder processes time to finalize the video
     # note: Closing the pipe should cause the video encoder to terminate. Not sending SIGTERM/SIGINT because the signal might be
     #       already sent by the worker or shell and ffmpeg will not continue finalizing the video after receiving a 2nd exit signal.
     no autodie qw(close waitpid);
     close $video_encoders->{$_}->{pipe} for keys %$video_encoders;
     bmwqemu::diag 'Waiting for video encoder to finalize the video';
-    for (my $timeout = 30, my $interval = 0.25; $timeout > 0; sleep($interval), $timeout -= $interval) {
+    for (my $interval = 0.25; $timeout > 0; sleep($interval), $timeout -= $interval) {
         for my $pid (keys %$video_encoders) {
             my $ret = waitpid($pid, WNOHANG);
             if ($ret == $pid || $ret == -1) {
@@ -412,15 +440,7 @@ sub stop_vm {
         no autodie 'unlink';
         unlink('backend.run');
         $self->do_stop_vm();
-
-        bmwqemu::diag('flushing frames');
-        $self->{encoder_pipe}->blocking(1);
-        for my $fdata (@{$self->{video_frame_data}}) {
-            $self->{encoder_pipe}->print($fdata);
-        }
-        $self->{encoder_pipe}->close if $self->{encoder_pipe};
-        $self->{encoder_pipe} = undef;
-        $self->{started}      = 0;
+        $self->{started} = 0;
     }
     $self->_stop_video_encoder();
     $self->close_ssh_connections();
