@@ -50,14 +50,16 @@ stderr_like { ok($backend->start_qemu(), 'qemu can be started') } qr/running .*c
 ok(exists $called{add_console}, 'a console has been added');
 is($called{add_console}, 1, 'one console has been added');
 
-my $expected = qr/The name.*not provided|Failed to connect/;
-my $msg      = 'error about missing service';
-like exception { $backend->_dbus_call('show') }, $expected, $msg . ' in exception';
-$bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 1;
-combined_like { ok($backend->_dbus_call('show'), 'failed dbus call ignored gracefully') } $expected, $msg;
-$bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 0;
-$backend_mock->redefine(_dbus_do_call => sub { (1, 'failed') });
-like exception { $backend->_dbus_call('show') }, qr/failed/, 'failed dbus call throws exception';
+subtest 'using Open vSwitch D-Bus service' => sub {
+    my $expected = qr/Open vSwitch command.*show.*arguments 'foo bar'.*(The name.*not provided|Failed to connect)/;
+    my $msg      = 'error about missing service';
+    like exception { $backend->_dbus_call('show', 'foo', 'bar') }, $expected, $msg . ' in exception';
+    $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 1;
+    combined_like { ok($backend->_dbus_call('show', 'foo', 'bar'), 'failed dbus call ignored gracefully') } $expected, $msg;
+    $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 0;
+    $backend_mock->redefine(_dbus_do_call => sub { (1, 'failed') });
+    like exception { $backend->_dbus_call('show') }, qr/failed/, 'failed dbus call throws exception';
+};
 
 $backend_mock->redefine(handle_qmp_command => sub { $called{handle_qmp_command} = $_[1] });
 $backend->power({action => 'off'});
