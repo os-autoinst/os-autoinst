@@ -144,22 +144,20 @@ sub _dbus_do_call {
 sub _dbus_call {
     my ($self, $fn, @args) = @_;
     my ($rt, $message);
-    if (!$bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL}) {
-        ($rt, $message) = $self->_dbus_do_call($fn, @args);
-        die $message unless $rt == 0;
-    }
     eval {
         # do not die on unconfigured service
         local $SIG{__DIE__};
         ($rt, $message) = $self->_dbus_do_call($fn, @args);
         chomp $message;
-        if ($rt != 0) {
-            bmwqemu::diag "Failed to run dbus command '$fn' with arguments '@args'" . " : " . $message;
-        }
+        die $message unless $rt == 0;
     };
-    print "$@\n" if ($@);
-
-    return ($rt, $message, ($@) x !!($@));
+    my $error = $@;
+    if ($error) {
+        my $msg = "Open vSwitch command '$fn' with arguments '@args' failed: $error";
+        die "$msg\n" unless $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL};
+        bmwqemu::diag $msg;
+    }
+    return ($rt, $message, ($error) x !!($error));
 }
 
 sub do_stop_vm {
