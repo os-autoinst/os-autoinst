@@ -63,11 +63,7 @@ sub get_cmd {
 
     $cmd = get_required_var($cmd);
     $cmd = "$dir/" . basename($cmd);
-    if (!-x $cmd) {
-        die "CMD $cmd is not an executable";
-    }
     $cmd .= " $args" if $args;
-
     return $cmd;
 }
 
@@ -76,7 +72,8 @@ sub run_cmd {
     my @full_cmd = split / /, $self->get_cmd($cmd);
 
     my ($stdin, $stdout, $stderr, $ret);
-    $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr);
+    eval { $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr) };
+    die "Unable to run command '@full_cmd' (deduced from test variable $cmd): $@\n" if $@;
     chomp $stdout;
     chomp $stderr;
 
