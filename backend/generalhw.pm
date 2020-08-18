@@ -41,9 +41,7 @@ sub get_cmd {
     my ($self, $cmd) = @_;
 
     my $dir = get_required_var('GENERAL_HW_CMD_DIR');
-    if (!-d $dir) {
-        die "GENERAL_HW_CMD_DIR is not pointing to a directory";
-    }
+    die 'GENERAL_HW_CMD_DIR is not pointing to a directory' unless -d $dir;
 
     my %GENERAL_HW_ARG_VARIABLES_BY_CMD = ('GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS', 'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS', 'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS', 'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS');
     my $args = get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}) if get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd});
@@ -63,11 +61,7 @@ sub get_cmd {
 
     $cmd = get_required_var($cmd);
     $cmd = "$dir/" . basename($cmd);
-    if (!-x $cmd) {
-        die "CMD $cmd is not an executable";
-    }
     $cmd .= " $args" if $args;
-
     return $cmd;
 }
 
@@ -76,11 +70,12 @@ sub run_cmd {
     my @full_cmd = split / /, $self->get_cmd($cmd);
 
     my ($stdin, $stdout, $stderr, $ret);
-    $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr);
+    eval { $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr) };
+    die "Unable to run command '@full_cmd' (deduced from test variable $cmd): $@\n" if $@;
     chomp $stdout;
     chomp $stderr;
 
-    die $cmd . ": $stderr" unless ($ret);
+    die "$cmd: $stderr" unless $ret;
     bmwqemu::diag("IPMI: $stdout");
     return $stdout;
 }
