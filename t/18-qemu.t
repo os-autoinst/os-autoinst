@@ -153,7 +153,7 @@ $proc->deserialise_state(path($path)->slurp());
 is_deeply(\@gcmdl, \@cmdl, 'Multipath Command line after serialisation and deserialisation');
 
 $ENV{QEMU_IMG_CREATE_TRIES} = 2;
-my $expected = qr/failed after 2 tries.*No such.*directory/;
+my $expected = qr/failed after 2 tries.*No such.*directory/s;
 my @warnings = warnings {
     like exception { $proc->init_blockdev_images() }, $expected, 'init_blockdev_images can report error';
 };
