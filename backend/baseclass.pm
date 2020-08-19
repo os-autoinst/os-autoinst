@@ -385,14 +385,14 @@ sub _stop_video_encoder {
     $select->add(my $external_pipe = $self->{external_video_encoder_cmd_pipe}) if @$video_data_for_external_encoder;
     try {
         while ($select->count) {
-            $! = 'timeout exceeded';    # can_write returns an empty array and leaves $! unchanged in case of a timeout
-            die "$!\n" unless my @ready = $select->can_write($timeout);
+            $! = 0;
+            die($! ? "$!\n" : 'timeout exceeded') unless my @ready = $select->can_write($timeout);
             for my $fh (@ready) {
-                if ($fh == $internal_pipe) {
+                if (defined $internal_pipe && $fh == $internal_pipe) {
                     $self->_write_buffered_data_to_file_handle('Encoder', $video_data_for_internal_encoder, $fh);
                     $select->remove($fh) unless @$video_data_for_internal_encoder;
                 }
-                elsif ($fh == $external_pipe) {
+                elsif (defined $external_pipe && $fh == $external_pipe) {
                     $self->_write_buffered_data_to_file_handle('External encoder', $video_data_for_external_encoder, $fh);
                     $select->remove($fh) unless @$video_data_for_external_encoder;
                 }
