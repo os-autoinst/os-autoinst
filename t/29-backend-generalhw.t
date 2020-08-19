@@ -65,6 +65,8 @@ $ipc_run_mock->redefine(run => sub {
         $$stdout = 'stdout';
         $$stderr = 'stderr';
 });
+my $serial_mock = Test::MockModule->new('backend::generalhw');
+$serial_mock->redefine(start_serial_grab => sub { push @invoked_cmds, 'start_serial_grab' });
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
 my @vnc_logins;
 $vnc_mock->redefine(login => sub { push @vnc_logins, [shift->hostname] });
@@ -73,9 +75,11 @@ $vnc_mock->redefine($_    => sub { }) for (qw(_receive_message _send_frame_buffe
 subtest 'start VM' => sub {
     # start the "VM" which should actually just run a few commands via IPC::Run and start the VNC and serial consoles
     is_deeply($backend->do_start_vm, {}, 'return value');
-    is_deeply(\@invoked_cmds, [[$cmd_ctl, 'poweroff'], [$cmd_ctl, 'flash', 'light', '/hdd', '5G'], [$cmd_ctl, 'poweroff'], ['sleep', 3], [$cmd_ctl, 'poweron']], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
+    is_deeply(\@invoked_cmds, [
+            [$cmd_ctl, 'poweroff'], [$cmd_ctl, 'flash', 'light', '/hdd', '5G'], [$cmd_ctl, 'poweroff'],
+            ['sleep', 3], [$cmd_ctl, 'poweron'], 'start_serial_grab'
+    ], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
     is_deeply(\@vnc_logins, [['vnc.server']], 'tried to connect to VNC server') or diag explain \@vnc_logins;
-    isnt($backend->{serialpid}, undef, 'serial console started');
 };
 
 subtest 'stop VM' => sub {
