@@ -57,7 +57,7 @@ subtest 'error handling when loading test schedule' => sub {
                 load_test_schedule } qr/Can't locate $module\.pm/, 'error logged' } qr/error on $module\.pm: Can't locate $module\.pm/, 'debug message logged';
         my $state = decode_json($base_state->slurp);
         if (is(ref $state, 'HASH', 'state file contains object')) {
-            is($state->{component}, 'tests', 'state file contains component message');
+            is($state->{component}, 'tests', 'state file contains component');
             like($state->{msg}, qr/unable to load foo\/bar\.pm/, 'state file contains error message');
         }
     };
@@ -129,13 +129,15 @@ subtest 'productdir variable relative/absolute' => sub {
 
 subtest 'upload assets on demand even in failed jobs' => sub {
     chdir($pool_dir);
-    unlink('vars.json') if -e 'vars.json';
+    path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
+    path('vars.json')->remove         if -e 'vars.json';
     my $module = 'tests/failing_module';
     combined_like { isotovideo(
             opts => "casedir=$data_dir/tests schedule=$module force_publish_hdd_1=foo.qcow2 qemu_no_kvm=1 arch=i386 backend=qemu qemu=i386", exit_code => 0);
     } qr/scheduling failing_module $module\.pm/, 'module scheduled';
     like $log, qr/qemu-img.*foo.qcow2/, 'requested image is published even though the job failed';
     ok(-e $pool_dir . '/assets_public/foo.qcow2', 'published image exists');
+    ok(!-e $pool_dir . '/base_state.json',        'no fatal error recorded');
 };
 
 done_testing();

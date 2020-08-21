@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2019 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,10 +53,16 @@ use autodie ':all';
 no autodie 'kill';
 
 my $installprefix;    # $bmwqemu::scriptdir
+my $fatal_error;      # the last error message catched by the die handler
 
 BEGIN {
     # the following line is modified during make install
     $installprefix = undef;
+
+    # record the last die message
+    # note: It might *not* be a fatal error so we don't call bmwqemu::serialize_state here
+    #       immediately but only in the END block.
+    $SIG{__DIE__} = sub { $fatal_error = shift };
 
     my ($wd) = $0 =~ m-(.*)/-;
     $wd            ||= '.';
@@ -461,6 +467,9 @@ sub handle_generated_assets {
 }
 handle_generated_assets;
 
+# clear any previously recorded die message; it was not fatal after all if the execution came this far
+$fatal_error = undef;
+
 END {
     stop_backend;
     stop_commands('test execution ended through exception');
@@ -469,6 +478,7 @@ END {
     # in case of early exit, e.g. help display
     $return_code //= 0;
 
+    bmwqemu::serialize_state(component => 'isotovideo', msg => $fatal_error) if $fatal_error;
     print "$$: EXIT $return_code\n";
     $? = $return_code;
 }
