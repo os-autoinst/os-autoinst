@@ -88,17 +88,29 @@ EOV
 
 subtest 'isotovideo with custom git repo parameters specified' => sub {
     chdir($pool_dir);
-    unlink('vars.json') if -e 'vars.json';
-    mkdir('repo.git') unless -d 'repo.git';
-    qx{git init -q --bare repo.git};
+    my $base_state = path(bmwqemu::STATE_FILE);
+    $base_state->remove       if -e $base_state;
+    path('vars.json')->remove if -e 'vars.json';
+    path('repo.git')->make_path;
+    my $git_init_output = qx{git init -q --bare repo.git 2>&1};
+    is($?, 0, 'initialized test repo') or diag explain $git_init_output;
     # Ensure the checkout folder does not exist so that git clone tries to
     # create a new checkout on every test run
     remove_tree('repo');
     combined_like { isotovideo(
             opts => "casedir=file://$pool_dir/repo.git#foo needles_dir=$data_dir _exit_after_schedule=1") } qr/Cloning into 'repo'/, 'repo picked up';
-    like $log, qr{git URL.*/repo}, 'git repository would be cloned';
-    like $log, qr/branch.*foo/,    'branch in git repository would be checked out';
-    like $log, qr/No scripts/,     'the repo actually has no test definitions';
+    like $log,   qr{git URL.*/repo}, 'git repository attempted to be cloned';
+    like $log,   qr/branch.*foo/,    'branch in git repository attempted to be checked out';
+    like $log,   qr/fatal:.*/,       'fatal Git error logged';
+    unlike $log, qr/No scripts/,     'execution of isotovideo aborted; no follow-up error about empty CASEDIR produced';
+
+    subtest 'fatal error recorded for passing as reason' => sub {
+        my $state = decode_json($base_state->slurp);
+        if (is(ref $state, 'HASH', 'state file contains object')) {
+            is($state->{component}, 'isotovideo', 'state file contains component');
+            like($state->{msg}, qr/Unable to clone Git repository/, 'state file contains error message');
+        }
+    };
 };
 
 subtest 'isotovideo with git refspec specified' => sub {
