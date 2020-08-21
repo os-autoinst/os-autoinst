@@ -1,33 +1,52 @@
-#!/bin/sh
+#!/bin/bash
 
 #
 # perltidy rules can be found in ../.perltidyrc
 #
+usage() {
+    cat << EOF
+Usage:
+ tidy [--check] [--only-changed]
+
+Options:
+ -h, -?, --help       display this help
+ -c, --check          Only check for style check differences
+ -o --only-changed    Only tidy files with uncommited changes in git. This can
+                      speed up execution a lot.
+
+perltidy rules can be found in .perltidyrc
+EOF
+    exit
+}
 
 cleanup() {
     find . -name '*.tdy' -delete
 }
 
-trap cleanup EXIT
+set -eo pipefail
 
 check=
-if test "$1"  = '--check'; then
-    shift
-    check=1
-fi
+only_changed=false
+opts=$(getopt -o hco --long help,check,only-changed -n 'parse-options' -- "$@") || usage
+eval set -- "$opts"
+while true; do
+  case "$1" in
+    -h | --help ) usage; shift ;;
+    -c | --check ) check=true; shift ;;
+    -o | --only-changed ) only_changed=true; shift ;;
+    -- ) shift; break ;;
+    * ) break ;;
+  esac
+done
 
-onlychanged=
-if test "$1"  = '--only-changed'; then
-    shift
-    onlychanged=1
-fi
+trap cleanup EXIT
 
-if ! which perltidy > /dev/null 2>&1; then
+if ! command -v perltidy > /dev/null 2>&1; then
     echo "No perltidy found, install it first!"
     exit 1
 fi
 
-# cpan file is in os-autoinst directory
+# cpan file is in top directory
 dir="$(dirname $(readlink -f $0))/.."
 perltidy_version_found=$(perltidy -version | sed -n '1s/^.*perltidy, v\([0-9]*\)\s*$/\1/p')
 perltidy_version_expected=$(sed -n "s/^.*Tidy[^0-9]*\([0-9]*\)['];$/\1/p" $dir/cpanfile)
@@ -36,7 +55,19 @@ if [ "$perltidy_version_found" != "$perltidy_version_expected" ]; then
     exit 1
 fi
 
-# go to caller directory (os-autoinst / os-autoinst-distri-FOO)
+find-files() {
+    local files=()
+    [[ -d script ]] && files+=(script/*)
+    files=($(file --mime-type * "${files[@]}" | grep text/x-perl | awk -F':' '{ print $1 }'))
+    files+=('**.p[ml]' '**.t')
+    if $only_changed; then
+        git status --porcelain "${files[@]}" | awk '{ print $2 }'
+    else
+        git ls-files "${files[@]}"
+    fi
+}
+
+# go to caller directory
 cd "$(dirname $0)/.."
 
 # just to make sure we are at the right location
@@ -44,27 +75,17 @@ test -e tools/tidy || exit 1
 
 cleanup
 
-# Exclude any "os-autoinst" subdirectory which for example is used for "os-autoinst-distri-opensuse"
-# which symlinks "tools/tidy" into their own tests
-if [ -n "$onlychanged" ]; then
-    git status --porcelain '**.p[ml]' '**.t' | awk '{ print $2 }' \
-        | xargs -I {} perltidy --pro=.../.perltidyrc "{}"
-else
-    find . \( -name '*.p[lm]' -o -name '*.t' \) -not -path '*/.git/*' -not -path '*/os-autoinst/*' -print0 \
-        | xargs -0 perltidy --pro=.../.perltidyrc
-fi;
+find-files | xargs perltidy --pro=.../.perltidyrc
 
-isotovideo=$(ls isotovideo 2>/dev/null)
-find tools/absolutize $isotovideo -print0 | xargs -0 perltidy $TIDY_ARGS
-
-for file in $(find . -name "*.tdy"); do
-    if diff -u ${file%.tdy} $file; then
+for file in $(find . -name "*.tdy")
+do
+    if diff -u "${file%.tdy}" "$file"; then
         continue
     fi
-    if test -n "$check"; then
+    if [[ -n "$check" ]]; then
         echo "RUN tools/tidy script before checkin"
         exit 1
     else
-        mv -v $file ${file%.tdy}
+        mv -v "$file" "${file%.tdy}"
     fi
 done
