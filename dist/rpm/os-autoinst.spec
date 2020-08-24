@@ -178,34 +178,34 @@ cd %{__builddir}
 %files -f %{name}.files
 %defattr(-,root,root)
 %{_docdir}/os-autoinst
-%dir %{_libexecdir}/os-autoinst
-%{_libexecdir}/os-autoinst/videoencoder
-%{_libexecdir}/os-autoinst/basetest.pm
+%dir %{_prefix}/lib/os-autoinst
+%{_prefix}/lib/os-autoinst/videoencoder
+%{_prefix}/lib/os-autoinst/basetest.pm
 #
-%{_libexecdir}/os-autoinst/dmidata
+%{_prefix}/lib/os-autoinst/dmidata
 #
-%{_libexecdir}/os-autoinst/bmwqemu.pm
-%{_libexecdir}/os-autoinst/commands.pm
-%{_libexecdir}/os-autoinst/distribution.pm
-%{_libexecdir}/os-autoinst/testapi.pm
-%{_libexecdir}/os-autoinst/mmapi.pm
-%{_libexecdir}/os-autoinst/lockapi.pm
-%{_libexecdir}/os-autoinst/cv.pm
-%{_libexecdir}/os-autoinst/ocr.pm
-%{_libexecdir}/os-autoinst/needle.pm
-%{_libexecdir}/os-autoinst/osutils.pm
-%{_libexecdir}/os-autoinst/signalblocker.pm
-%{_libexecdir}/os-autoinst/myjsonrpc.pm
-%{_libexecdir}/os-autoinst/backend
-%{_libexecdir}/os-autoinst/OpenQA
-%{_libexecdir}/os-autoinst/consoles
-%{_libexecdir}/os-autoinst/autotest.pm
-%{_libexecdir}/os-autoinst/crop.py
+%{_prefix}/lib/os-autoinst/bmwqemu.pm
+%{_prefix}/lib/os-autoinst/commands.pm
+%{_prefix}/lib/os-autoinst/distribution.pm
+%{_prefix}/lib/os-autoinst/testapi.pm
+%{_prefix}/lib/os-autoinst/mmapi.pm
+%{_prefix}/lib/os-autoinst/lockapi.pm
+%{_prefix}/lib/os-autoinst/cv.pm
+%{_prefix}/lib/os-autoinst/ocr.pm
+%{_prefix}/lib/os-autoinst/needle.pm
+%{_prefix}/lib/os-autoinst/osutils.pm
+%{_prefix}/lib/os-autoinst/signalblocker.pm
+%{_prefix}/lib/os-autoinst/myjsonrpc.pm
+%{_prefix}/lib/os-autoinst/backend
+%{_prefix}/lib/os-autoinst/OpenQA
+%{_prefix}/lib/os-autoinst/consoles
+%{_prefix}/lib/os-autoinst/autotest.pm
+%{_prefix}/lib/os-autoinst/crop.py
 
 %files openvswitch
 %defattr(-,root,root)
-%{_libexecdir}/os-autoinst/os-autoinst-openvswitch
-/usr/lib/systemd/system/os-autoinst-openvswitch.service
+%{_prefix}/lib/os-autoinst/os-autoinst-openvswitch
+%{_unitdir}/os-autoinst-openvswitch.service
 %config /etc/dbus-1/system.d/org.opensuse.os_autoinst.switch.conf
 %{_sbindir}/rcos-autoinst-openvswitch
 
