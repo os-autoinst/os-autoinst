@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2019 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -68,9 +68,6 @@ sub _test_data_dir {
     my ($self, $base) = @_;
 
     $base .= '/' if $base !~ /\/$/;
-
-    $self->app->log->debug("Request for directory $base.");
-
     return $self->reply->not_found unless -d $base;
 
     $self->res->headers->content_type('application/x-cpio');
@@ -80,7 +77,7 @@ sub _test_data_dir {
         $file = $file->to_string();
         my @s = stat $file;
         unless (@s) {
-            $self->app->log->error("error stating $file: $!");
+            $self->app->log->error("Error stating test distribution file '$file': $!");
             next;
         }
         my $fn = 'data/' . substr($file, length($base));
@@ -88,7 +85,7 @@ sub _test_data_dir {
         my $fd;
         eval { (open($fd, '<:raw', $file)) };
         if (my $E = $@) {
-            $self->app->log->error("error reading $file: $!");
+            $self->app->log->error("Error reading test distribution file '$file': $!");
             next;
         }
         my ($header, $pad) = _makecpiohead($fn, \@s);
@@ -104,8 +101,6 @@ sub _test_data_dir {
 # serve a file from within data directory
 sub _test_data_file {
     my ($self, $file) = @_;
-
-    $self->app->log->debug("Request for file $file.");
 
     my $filetype;
 
@@ -131,6 +126,7 @@ sub test_data {
         $path .= $relpath;
     }
 
+    $self->app->log->info("Test data requested: $path");
     return _test_data_dir($self, $path)  if -d $path;
     return _test_data_file($self, $path) if -f $path;
 
@@ -148,6 +144,7 @@ sub get_asset {
         $path .= '/' . $relpath;
     }
 
+    $self->app->log->info("Asset requested: $path");
     return _test_data_file($self, $path) if -f $path;
 
     return $self->reply->not_found;
