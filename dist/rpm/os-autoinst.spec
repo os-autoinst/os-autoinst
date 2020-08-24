@@ -125,7 +125,7 @@ autoreconf -f -i
 make %{?_smp_mflags} INSTALLDIRS=vendor
 %else
 %define __builder ninja
-%cmake -DOS_AUTOINST_DOC_DIR:STRING=%{_docdir}/%{name}
+%cmake -DOS_AUTOINST_DOC_DIR:STRING="%{_docdir}/%{name}" -DSYSTEMD_SERVICE_DIR:STRING="%{_unitdir}"
 %cmake_build
 %endif
 
