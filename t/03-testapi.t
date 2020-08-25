@@ -683,4 +683,32 @@ subtest 'autoinst_url' => sub {
     is(autoinst_url('foo'), 'http://localhost:1/foo', 'we can configure the hostname that autoinst_url returns');
 };
 
+subtest '_calculate_clickpoint' => sub {
+    my %fake_needle = (
+        area => [{x => 10, y => 10, w => 20, h => 30}],
+    );
+    my %fake_needle_area = (x    => 100, y    => 100, w => 50, h => 40);
+    my %fake_click_point = (xpos => 20,  ypos => 10);
+
+    # Everything is provided.
+    my ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle, \%fake_needle_area, \%fake_click_point);
+    is($x, 120);
+    is($y, 110);
+
+    # Everything is provided but the click point is 'center'
+    ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle, \%fake_needle_area, "center");
+    is($x, 125);
+    is($y, 120);
+
+    # Just the area is provided and no click point.
+    ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle, \%fake_needle_area);
+    is($x, 125);
+    is($y, 120);
+
+    # Just the needle is provided and no area and click point.
+    ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle);
+    is($x, 20);
+    is($y, 25);
+};
+
 done_testing;
