@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2019 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -68,9 +68,6 @@ sub _test_data_dir {
     my ($self, $base) = @_;
 
     $base .= '/' if $base !~ /\/$/;
-
-    $self->app->log->debug("Request for directory $base.");
-
     return $self->reply->not_found unless -d $base;
 
     $self->res->headers->content_type('application/x-cpio');
@@ -80,7 +77,7 @@ sub _test_data_dir {
         $file = $file->to_string();
         my @s = stat $file;
         unless (@s) {
-            $self->app->log->error("error stating $file: $!");
+            $self->app->log->error("Error stating test distribution file '$file': $!");
             next;
         }
         my $fn = 'data/' . substr($file, length($base));
@@ -88,7 +85,7 @@ sub _test_data_dir {
         my $fd;
         eval { (open($fd, '<:raw', $file)) };
         if (my $E = $@) {
-            $self->app->log->error("error reading $file: $!");
+            $self->app->log->error("Error reading test distribution file '$file': $!");
             next;
         }
         my ($header, $pad) = _makecpiohead($fn, \@s);
@@ -105,18 +102,14 @@ sub _test_data_dir {
 sub _test_data_file {
     my ($self, $file) = @_;
 
-    $self->app->log->debug("Request for file $file.");
-
     my $filetype;
-
     if ($file =~ m/\.([^\.]+)$/) {
         my $ext = $1;
         $filetype = $self->app->types->type($ext);
     }
 
-    $filetype ||= "application/octet-stream";
+    $filetype ||= 'application/octet-stream';
     $self->res->headers->content_type($filetype);
-
     return $self->reply->asset(Mojo::Asset::File->new(path => $file));
 }
 
@@ -131,9 +124,9 @@ sub test_data {
         $path .= $relpath;
     }
 
+    $self->app->log->info("Test data requested: $path");
     return _test_data_dir($self, $path)  if -d $path;
     return _test_data_file($self, $path) if -f $path;
-
     return $self->reply->not_found;
 }
 
@@ -145,11 +138,11 @@ sub get_asset {
     if (defined $relpath) {
         # do not allow .. in path
         return $self->reply->not_found if $relpath =~ /^(.*\/)*\.\.(\/.*)*$/;
-        $path .= '/' . $relpath;
+        $path .= "/$relpath";
     }
 
+    $self->app->log->info("Asset requested: $path");
     return _test_data_file($self, $path) if -f $path;
-
     return $self->reply->not_found;
 }
 
@@ -157,37 +150,19 @@ sub get_asset {
 sub upload_file {
     my ($self) = @_;
 
-    if ($self->req->is_limit_exceeded) {
-        return $self->render(
-            message => 'File is too big.',
-            status  => 400
-        );
-    }
+    return $self->render(message => 'File is too big', status => 400) if $self->req->is_limit_exceeded;
+    return $self->render(message => 'Upload file content missing', status => 400) unless my $upload = $self->req->upload('upload');
 
-    my $upload = $self->req->upload('upload');
-    if (!$upload) {
-        return $self->render(message => 'upload file content missing', status => 400);
-    }
-
-    # choose 'target' field from curl form, otherwise default 'assets_private'
+    # choose 'target' field from curl form, otherwise default 'assets_private', assume the pool directory is the current working dir
     my $target = $self->param('target') || 'assets_private';
-
-    # global assumption cwd == pooldir
-    if (!-d $target) {
-        mkdir($target) or die "$!";
-    }
+    mkdir($target) or die "Unable to create directory for upload: $!" unless -d $target;
 
     my $upname   = $self->param('upname');
-    my $filename = basename($self->param('filename'));
-    # Only renaming the file if upname parameter has posted ie. from upload_logs()
-    # With this it won't renamed the file in case upload_assert and autoyast profile
-    # as those are not called from upload_logs.
-    if ($upname) {
-        $filename = basename($upname);
-    }
+    my $filename = basename($upname ? $upname : $self->param('filename'));
+    # note: Only renaming the file if upname parameter is present, e.g. from upload_logs(). With this it won't rename the file in
+    #       case of upload_assert() and autoyast profiles as those are not done via upload_logs().
 
     $upload->move_to("$target/$filename");
-
     return $self->render(text => "OK: $filename\n");
 }
 
