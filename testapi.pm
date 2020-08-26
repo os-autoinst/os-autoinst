@@ -1615,7 +1615,6 @@ sub mouse_drag {
     }
     # Get the button variable. If no button has been provided, assume the "left" button.
     my $button = $args{button} // "left";
-    bmwqemu::log_call("mouse dragged", button => $button);
 
     # Now, perform the actual mouse drag. Navigate to the startpoint location,
     # press and hold the mouse button, then navigate to the endpoint location
@@ -1624,6 +1623,7 @@ sub mouse_drag {
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
     mouse_set($endx, $endy);
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    bmwqemu::log_call(message => "Mouse dragged from $startx,$starty to $endx, $endy", button => $button);
 }
 
 =head1 multi console support
