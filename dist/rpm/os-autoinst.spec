@@ -55,12 +55,23 @@ Source0:        %{name}-%{version}.tar.xz
 %define spellcheck_requires %{nil}
 %define spellcheck_make_args_for_autotools CHECK_DOC=0
 %endif
+%if 0%{?sle_version} < 150200 && !0%{?is_opensuse}
+%bcond_without yamllint
+%else
+%bcond_with yamllint
+%endif
+%if %{with yamllint}
+# The following line is generated from dependencies.yaml
+%define yamllint_requires python3-yamllint
+%else
+%define yamllint_requires %{nil}
+%endif
 # The following line is generated from dependencies.yaml
 %define test_base_requires %main_requires perl(Benchmark) perl(Devel::Cover) perl(FindBin) perl(Pod::Coverage) perl(Test::Exception) perl(Test::Fatal) perl(Test::Mock::Time) perl(Test::MockModule) perl(Test::MockObject) perl(Test::Mojo) perl(Test::More) perl(Test::Output) perl(Test::Pod) perl(Test::Strict) perl(Test::Warnings) >= 0.029 procps python3-setuptools qemu qemu-tools qemu-x86
 # The following line is generated from dependencies.yaml
 %define test_legacy_requires %build_legacy_requires %test_base_requires
 # The following line is generated from dependencies.yaml
-%define test_requires %build_requires %spellcheck_requires %test_base_requires perl(YAML::PP) python3-yamllint
+%define test_requires %build_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(YAML::PP)
 # The following line is generated from dependencies.yaml
 %define devel_requires %test_requires perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy)
 %if 0%{?suse_version} == 1315
