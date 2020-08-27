@@ -90,10 +90,14 @@ subtest qemu_append_option => sub {
     cmp_ok($time->[0], '<', $ENV{EXPECTED_ISOTOVIDEO_RUNTIME}, 'Execution time of isotovideo is within reasonable limits');
 
     # list machines: call isotovideo with QEMU_APPEND, to list machines
+    # test whether QMP connection attempts are aborted when QEMU exists: unset QEMU_QMP_CONNECT_ATTEMPTS temporarily
+    my $qmp_connect_attempts = delete $ENV{QEMU_QMP_CONNECT_ATTEMPTS};
     run_isotovideo(@common_options, QEMU_APPEND => 'M ?');
     like($log, qr/-M \?/,                    '-M ? option added');
     like($log, qr/Supported machines are\:/, 'Supported machines listed');
     unlike($log, qr/\: invalid option/, 'no invalid option detected');
+    like($log, qr/QEMU terminated before QMP connection could be established/, 'connecting to QMP socket aborted');
+    $ENV{QEMU_QMP_CONNECT_ATTEMPTS} = $qmp_connect_attempts;
 
     # multiple options: call isotovideo with QEMU_APPEND, with version
     run_isotovideo(QEMU_APPEND => 'M ? -version');
