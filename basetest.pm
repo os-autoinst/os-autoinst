@@ -457,7 +457,7 @@ sub record_serialresult {
     # take screenshot for documentation (screenshot does not represent fail itself)
     $self->take_screenshot() unless (testapi::is_serial_terminal);
 
-    my $output = "# wait_serial expected: $ref\n\n";
+    my $output = "# wait_serial expected: $ref\n";
     $output .= "# Result:\n";
     $output .= "$string\n";
     $self->record_resultfile('wait_serial', $output, result => $res);
