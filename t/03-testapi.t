@@ -683,4 +683,145 @@ subtest 'autoinst_url' => sub {
     is(autoinst_url('foo'), 'http://localhost:1/foo', 'we can configure the hostname that autoinst_url returns');
 };
 
+subtest '_calculate_clickpoint' => sub {
+    my %fake_needle = (
+        area => [{x => 10, y => 10, w => 20, h => 30}],
+    );
+    my %fake_needle_area = (x    => 100, y    => 100, w => 50, h => 40);
+    my %fake_click_point = (xpos => 20,  ypos => 10);
+
+    # Everything is provided.
+    my ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle, \%fake_needle_area, \%fake_click_point);
+    is($x, 120);
+    is($y, 110);
+
+    # Everything is provided but the click point is 'center'
+    ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle, \%fake_needle_area, "center");
+    is($x, 125);
+    is($y, 120);
+
+    # Just the area is provided and no click point.
+    ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle, \%fake_needle_area);
+    is($x, 125);
+    is($y, 120);
+
+    # Just the needle is provided and no area and click point.
+    ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle);
+    is($x, 20);
+    is($y, 25);
+};
+
+subtest 'mouse_drag' => sub {
+    my $mock_testapi = Test::MockModule->new('testapi');
+    my @area         = ({x => 100, y => 100, w => 20, h => 20});
+    $mock_testapi->redefine(assert_screen => {area => \@area});
+
+    my ($startx, $starty) = (0,   0);
+    my ($endx,   $endy)   = (200, 200);
+    my $button = "left";
+    $cmds = [];
+    # Startpoint from a needle. Endpoint coordinates.
+    mouse_drag(startpoint => 'foo', endx => $endx, endy => $endy, button => $button, timeout => 30);
+    is_deeply($cmds, [
+            {
+                cmd => 'backend_mouse_set',
+                x   => 110,
+                y   => 110
+            },
+            {
+                bstate => 1,
+                button => 'left',
+                cmd    => 'backend_mouse_button'
+            },
+            {
+                cmd => 'backend_mouse_set',
+                x   => 200,
+                y   => 200
+            },
+            {
+                bstate => 0,
+                button => 'left',
+                cmd    => 'backend_mouse_button'
+            },
+    ], 'mouse drag (startpoint defined by a needle)') or diag explain $cmds;
+
+    # Startpoint from coordinates, endpoint from a needle.
+    $cmds = [];
+    mouse_drag(endpoint => 'foo', startx => $startx, starty => $starty, button => $button, timeout => 30);
+    is_deeply($cmds, [
+            {
+                cmd => 'backend_mouse_set',
+                x   => 0,
+                y   => 0
+            },
+            {
+                bstate => 1,
+                button => 'left',
+                cmd    => 'backend_mouse_button'
+            },
+            {
+                cmd => 'backend_mouse_set',
+                x   => 110,
+                y   => 110
+            },
+            {
+                bstate => 0,
+                button => 'left',
+                cmd    => 'backend_mouse_button'
+            },
+    ], 'mouse drag (endpoint defined by a needle)') or diag explain $cmds;
+
+    # Using coordinates only.
+    $cmds = [];
+    mouse_drag(endx => $endx, endy => $endy, startx => $startx, starty => $starty, button => $button, timeout => 30);
+    is_deeply($cmds, [
+            {
+                cmd => 'backend_mouse_set',
+                x   => 0,
+                y   => 0
+            },
+            {
+                bstate => 1,
+                button => 'left',
+                cmd    => 'backend_mouse_button'
+            },
+            {
+                cmd => 'backend_mouse_set',
+                x   => 200,
+                y   => 200
+            },
+            {
+                bstate => 0,
+                button => 'left',
+                cmd    => 'backend_mouse_button'
+            },
+    ], 'mouse drag (start and endpoints defined by coordinates)') or diag explain $cmds;
+
+    # Both needle and coordinates provided for startpoint (coordinates should win).
+    $cmds = [];
+    mouse_drag(startpoint => "foo", endx => $endx, endy => $endy, startx => $startx, starty => $starty, button => $button, timeout => 30);
+    is_deeply($cmds, [
+            {
+                cmd => 'backend_mouse_set',
+                x   => 0,
+                y   => 0
+            },
+            {
+                bstate => 1,
+                button => 'left',
+                cmd    => 'backend_mouse_button'
+            },
+            {
+                cmd => 'backend_mouse_set',
+                x   => 200,
+                y   => 200
+            },
+            {
+                bstate => 0,
+                button => 'left',
+                cmd    => 'backend_mouse_button'
+            },
+    ], 'mouse drag (redundant definiton by a needle)') or diag explain $cmds;
+};
+
 done_testing;

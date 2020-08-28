@@ -48,7 +48,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   assert_screen check_screen assert_and_dclick save_screenshot
   assert_and_click mouse_hide mouse_set mouse_click
-  mouse_dclick mouse_tclick match_has_tag click_lastmatch
+  mouse_dclick mouse_tclick match_has_tag click_lastmatch mouse_drag
 
   assert_script_run script_run assert_script_sudo script_sudo
   script_output validate_script_output
@@ -107,6 +107,36 @@ os-autoinst is used in the openQA project.
 =cut
 
 =head1 internal
+
+=head2 _calculate_clickpoint
+
+This subroutine is used to by several subroutines dealing with mouse clicks to calculate
+a clickpoint, when only the needle area is available. It takes the area coordinates and
+returns the center of that area. It is meant to be a helper subroutine not available 
+to be used in tests.
+
+=cut    
+
+sub _calculate_clickpoint {
+    my ($needle_to_use, $needle_area, $click_point) = @_;
+    # If there is no needle area defined, take it from the needle itself.
+    if (!$needle_area) {
+        $needle_area = $needle_to_use->{area}->[-1];
+    }
+    # If there is no clickpoint defined, or if it has been specifically defined as "center"
+    # then calculate the click point as a central point of the specified area.
+    if (!$click_point || $click_point eq 'center') {
+        $click_point = {
+            xpos => $needle_area->{w} / 2,
+            ypos => $needle_area->{h} / 2,
+        };
+    }
+    # Use the click point coordinates (which are relative numbers inside of the area)
+    # to calculate the absolute click point position.
+    my $x = int($needle_area->{x} + $click_point->{xpos});
+    my $y = int($needle_area->{y} + $click_point->{ypos});
+    return $x, $y;
+}
 
 =for stopwords xen hvc0 xvc0 ipmi ttyS
 
@@ -522,25 +552,12 @@ sub click_lastmatch {
     my $relative_click_point;
     for my $area (reverse @{$last_matched_needle->{area}}) {
         next unless ($relative_click_point = $area->{click_point});
-
         $relevant_area = $area;
         last;
     }
 
-    # use center of the last area if no area contains click coordinates
-    if (!$relevant_area) {
-        $relevant_area = $last_matched_needle->{area}->[-1];
-    }
-    if (!$relative_click_point || $relative_click_point eq 'center') {
-        $relative_click_point = {
-            xpos => $relevant_area->{w} / 2,
-            ypos => $relevant_area->{h} / 2,
-        };
-    }
-
-    # calculate absolute click position and click
-    my $x = int($relevant_area->{x} + $relative_click_point->{xpos});
-    my $y = int($relevant_area->{y} + $relative_click_point->{ypos});
+    # Calculate the absolute click point.
+    my ($x, $y) = _calculate_clickpoint($last_matched_needle, $relevant_area, $relative_click_point);
     bmwqemu::diag("clicking at $x/$y");
     mouse_set($x, $y);
     if ($args{dclick}) {
@@ -1547,6 +1564,66 @@ sub mouse_hide(;$) {
     my $border_offset = shift || 0;
     bmwqemu::log_call(border_offset => $border_offset);
     query_isotovideo('backend_mouse_hide', {offset => $border_offset});
+}
+
+=head2 mouse_drag
+  mouse_drag([$startpoint, $endpoint, $startx, $starty, $endx, $endy, $button, $timeout]);
+
+Click mouse C<$button>, C<'left'> or C<'right'>, at a given location, hold the button and drag 
+the mouse to another location where the button is released. You can set the C<$startpoint> 
+and C<$endpoint> by passing the name of the needle tag, i.e. the mouse drag happens between
+the two needle areas. Alternatively, you can set all the coordinates explicitly with C<$startx>,
+C<$starty>, C<$endx>, and C<$endy>. You can also set one point using a needle and another one
+using coordinates.  If both the coordinates and the needle are provided, the coordinates 
+will be used to set up the locations and the needle location will be overridden.
+
+=cut
+
+sub mouse_drag {
+    my %args = @_;
+    my ($startx, $starty, $endx, $endy);
+    # If full coordinates are provided, work with them as a priority,
+    if (defined $args{startx} and defined $args{starty}) {
+        $startx = $args{startx};
+        $starty = $args{starty};
+    }
+    # If the coordinates were not complete, use the needle as a fallback solution.
+    elsif (defined $args{startpoint}) {
+        my $startmatch = $args{startpoint};
+        # Check that the needle exists.
+        my $start_matched_needle = assert_screen($startmatch, $args{timeout});
+        # Calculate the click point from the area defined by the needle (take the center of it)
+        ($startx, $starty) = _calculate_clickpoint($start_matched_needle);
+    }
+    # If neither coordinates nor a needle is provided, report an error and quit.
+    else {
+        die "The starting point of the drag was not correctly provided. Either provide the 'startx' and 'starty' coordinates, or a needle marking the starting point.";
+    }
+
+    # Repeat the same for endpoint coordinates or needles.
+    if (defined $args{endx} and defined $args{endy}) {
+        $endx = $args{endx};
+        $endy = $args{endy};
+    }
+    elsif (defined $args{endpoint}) {
+        my $endmatch           = $args{endpoint};
+        my $end_matched_needle = assert_screen($endmatch, $args{timeout});
+        ($endx, $endy) = _calculate_clickpoint($end_matched_needle);
+    }
+    else {
+        die "The ending point of the drag was not correctly provided. Either provide the 'endx' and 'endy' coordinates, or a needle marking the end point.";
+    }
+    # Get the button variable. If no button has been provided, assume the "left" button.
+    my $button = $args{button} // "left";
+
+    # Now, perform the actual mouse drag. Navigate to the startpoint location,
+    # press and hold the mouse button, then navigate to the endpoint location
+    # and release the mouse button.
+    mouse_set($startx, $starty);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
+    mouse_set($endx, $endy);
+    query_isotovideo('backend_mouse_button', {button => $button, bstate => 0});
+    bmwqemu::log_call(message => "Mouse dragged from $startx,$starty to $endx, $endy", button => $button);
 }
 
 =head1 multi console support
