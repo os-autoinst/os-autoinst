@@ -36,9 +36,9 @@ sub activate {
     my $ssh_args        = $self->{args};
     my $gui             = $self->{args}->{gui};
 
-    my $hostname = $ssh_args->{hostname} || die('we need a hostname to ssh to');
-    my $password = $ssh_args->{password} || $testapi::password;
-    my $username = $ssh_args->{username} || 'root';
+    my $hostname   = $ssh_args->{hostname} || die('we need a hostname to ssh to');
+    my $password   = $ssh_args->{password} || $testapi::password;
+    my $username   = $ssh_args->{username} || 'root';
     my $sshcommand = $self->sshCommand($username, $hostname, $gui);
     my $serial     = $self->{args}->{serial};
 

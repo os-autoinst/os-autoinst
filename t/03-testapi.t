@@ -284,7 +284,7 @@ subtest 'check_assert_screen' => sub {
     stderr_like { assert_screen('foo') } qr/timeout=30/, 'default timeout';
     stderr_like { assert_screen('foo', no_wait => 1) } qr/no_wait=1/, 'no wait option';
     stderr_like { check_screen('foo') } qr/timeout=0/, 'check_screen with timeout of 0';
-    stderr_like { check_screen('foo',         42) } qr/timeout=42/, 'check_screen with timeout variable';
+    stderr_like { check_screen('foo', 42) } qr/timeout=42/, 'check_screen with timeout variable';
     stderr_like { check_screen([qw(foo bar)], 42) } qr/timeout=42/, 'check_screen with multiple tags';
 
     $fake_needle_found = 0;
@@ -377,7 +377,7 @@ is(match_has_tag,        undef, 'match_has_tag on no value -> undef');
 is(match_has_tag('foo'), undef, 'match_has_tag on not matched tag -> undef');
 subtest 'assert_and_click' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
-    my @areas        = ({x => 1, y => 2, w => 10, h => 20});
+    my @areas = ({x => 1, y => 2, w => 10, h => 20});
     $mock_testapi->redefine(assert_screen => {area => \@areas});
 
     $cmds = [];
@@ -535,10 +535,10 @@ subtest 'wait_still_screen & assert_still_screen' => sub {
         read_json => sub {
             return {ret => {sim => 999}};
         });
-    ok(wait_still_screen,    'default arguments');
-    ok(wait_still_screen(3), 'still time specified');
-    ok(wait_still_screen(2, 4), 'still time and timeout');
-    ok(wait_still_screen(stilltime => 2, no_wait => 1), 'no_wait option can be specified');
+    ok(wait_still_screen,                                                                     'default arguments');
+    ok(wait_still_screen(3),                                                                  'still time specified');
+    ok(wait_still_screen(2, 4),                                                               'still time and timeout');
+    ok(wait_still_screen(stilltime => 2, no_wait => 1),                                       'no_wait option can be specified');
     ok(wait_still_screen(stilltime => 2, timeout => 5, no_wait => 1, similarity_level => 30), 'Add similarity_level & timeout');
     ok(!wait_still_screen(timeout => 4, no_wait => 1), 'two named args, with timeout below stilltime - which will always return false');
     ok(wait_still_screen(1, 2, timeout => 3),          'named over positional');
@@ -610,30 +610,30 @@ subtest 'check_assert_shutdown' => sub {
 subtest 'compat_args' => sub {
     my %def_args = (a => 'X', b => 123, c => undef);
     is_deeply({testapi::compat_args(\%def_args, [], a => 'X', b => 123)}, \%def_args, 'Check defaults 1');
-    is_deeply({testapi::compat_args(\%def_args, [], a => 'X')}, \%def_args, 'Check defaults 2');
-    is_deeply({testapi::compat_args(\%def_args, [])}, \%def_args, 'Check defaults 3');
+    is_deeply({testapi::compat_args(\%def_args, [], a => 'X')},           \%def_args, 'Check defaults 2');
+    is_deeply({testapi::compat_args(\%def_args, [])},                     \%def_args, 'Check defaults 3');
 
     is_deeply({testapi::compat_args(\%def_args, ['a'], a => 'X', b => 123)}, \%def_args, 'Check named parameter 1');
-    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], a => 'X')}, \%def_args, 'Check named parameter 2');
-    is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'])}, \%def_args, 'Check named parameter 3');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], a => 'X')},      \%def_args, 'Check named parameter 2');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'])},           \%def_args, 'Check named parameter 3');
 
-    is_deeply({testapi::compat_args(\%def_args, [], a => 'Y', b => 666, c => 23)}, {a => 'Y', b => 666, c => 23}, 'Check named parameter 4');
-    is_deeply({testapi::compat_args(\%def_args, [], a => 'Y', b => 666)}, {a => 'Y', b => 666, c => $def_args{c}}, 'Check named parameter 5');
-    is_deeply({testapi::compat_args(\%def_args, [], a => 'Y')}, {a => 'Y', b => $def_args{b}, c => $def_args{c}}, 'Check named parameter 6');
+    is_deeply({testapi::compat_args(\%def_args, [], a => 'Y', b => 666, c => 23)}, {a => 'Y', b => 666, c => 23},           'Check named parameter 4');
+    is_deeply({testapi::compat_args(\%def_args, [], a => 'Y', b => 666)},          {a => 'Y', b => 666, c => $def_args{c}}, 'Check named parameter 5');
+    is_deeply({testapi::compat_args(\%def_args, [], a => 'Y')},                    {a => 'Y', b => $def_args{b}, c => $def_args{c}}, 'Check named parameter 6');
 
     is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', b => 666, c => 23)}, {a => 'Y', b => 666, c => 23}, 'Check mixed parameter 1');
     is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', 666, c => 23)}, {a => 'Y', b => 666, c => 23}, 'Check mixed parameter 2');
     is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'], 'Y', 666, 23)}, {a => 'Y', b => 666, c => 23}, 'Check mixed parameter 3');
 
-    is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => 23, b => 666)}, {a => 'Y', b => 666, c => 23}, 'Check mixed parameter 4');
-    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', undef, c => 23)}, {a => 'Y', b => $def_args{b}, c => 23}, 'Check mixed parameter 5');
-    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', undef, b => 23)}, {a => 'Y', b => 23, c => $def_args{c}}, 'Check mixed parameter 6');
-    is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'], undef, 666, 23)}, {a => $def_args{a}, b => 666, c => 23}, 'Check mixed parameter 7');
+    is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => 23, b => 666)},     {a => 'Y', b => 666, c => 23}, 'Check mixed parameter 4');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', undef, c => 23)},   {a => 'Y', b => $def_args{b}, c => 23}, 'Check mixed parameter 5');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b'], 'Y', undef, b => 23)},   {a => 'Y', b => 23, c => $def_args{c}}, 'Check mixed parameter 6');
+    is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'], undef, 666, 23)},   {a => $def_args{a}, b => 666, c => 23}, 'Check mixed parameter 7');
     is_deeply({testapi::compat_args(\%def_args, ['a', 'b', 'c'], undef, undef, 23)}, {a => $def_args{a}, b => $def_args{b}, c => 23}, 'Check mixed parameter 8');
     is_deeply({testapi::compat_args(\%def_args, ['c', 'b', 'a'], undef, undef, 23)}, {a => 23, b => $def_args{b}, c => $def_args{c}}, 'Check mixed parameter 9');
-    is_deeply({testapi::compat_args(\%def_args, ['c', 'b', 'a'], 666, undef, 23)}, {a => 23, b => $def_args{b}, c => 666}, 'Check mixed parameter 10');
+    is_deeply({testapi::compat_args(\%def_args, ['c', 'b', 'a'], 666, undef, 23)},   {a => 23, b => $def_args{b}, c => 666}, 'Check mixed parameter 10');
 
-    is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => undef, b => 666)}, {a => 'Y', b => 666, c => $def_args{c}}, 'Undef in parameter 1');
+    is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => undef, b => 666)},   {a => 'Y', b => 666, c => $def_args{c}}, 'Undef in parameter 1');
     is_deeply({testapi::compat_args(\%def_args, ['a'], 'Y', c => undef, b => undef)}, {a => 'Y', b => $def_args{b}, c => $def_args{c}}, 'Undef in parameter 2');
     is_deeply({testapi::compat_args(\%def_args, ['a'], undef, c => undef, b => undef)}, {a => $def_args{a}, b => $def_args{b}, c => $def_args{c}}, 'Undef in parameter 3');
 
@@ -713,7 +713,7 @@ subtest '_calculate_clickpoint' => sub {
 
 subtest 'mouse_drag' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
-    my @area         = ({x => 100, y => 100, w => 20, h => 20});
+    my @area = ({x => 100, y => 100, w => 20, h => 20});
     $mock_testapi->redefine(assert_screen => {area => \@area});
 
     my ($startx, $starty) = (0,   0);

@@ -146,8 +146,8 @@ sub cmp_by_error_type_ {
     return $okay if $okay;
     my $error = $a->{error} <=> $b->{error};
     return $error if $error;
-    return -1 if ($a->{needle}->has_property('workaround') && !$b->{needle}->has_property('workaround'));
-    return 1  if ($b->{needle}->has_property('workaround') && !$a->{needle}->has_property('workaround'));
+    return -1     if ($a->{needle}->has_property('workaround') && !$b->{needle}->has_property('workaround'));
+    return 1      if ($b->{needle}->has_property('workaround') && !$a->{needle}->has_property('workaround'));
     return $a->{needle}->{name} cmp $b->{needle}->{name};
 
     ## use critic
@@ -193,7 +193,7 @@ sub search {
         return unless $found;
         if (wantarray) {
             return ($found, undef) if ($found->{ok});
-            return (undef, [$found]);
+            return (undef,  [$found]);
         }
         return unless $found->{ok};
         return $found;

@@ -131,8 +131,8 @@ subtest 'report timeout, set pause on assert/check screen timeout' => sub {
     });
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 0}, 'not configured to pause on check_screen');
     $command_handler->process_command($answer_fd, \%basic_report_timeout_cmd);
-    is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 0}, 'not supposed to pause');
-    is_deeply($last_received_msg_by_fd[$cmd_srv_fd], undef, 'nothing sent to cmd srv');
+    is_deeply($last_received_msg_by_fd[$answer_fd],  {ret => 0}, 'not supposed to pause');
+    is_deeply($last_received_msg_by_fd[$cmd_srv_fd], undef,      'nothing sent to cmd srv');
 
     # enable pause on assert_screen timeout
     $command_handler->process_command($answer_fd, {

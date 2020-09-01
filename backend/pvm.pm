@@ -111,9 +111,9 @@ sub pvmctl {
             dd_gen_params @cmd, "proc-type",    "shared";
             dd_gen_params @cmd, "sharing-mode", "uncapped";
             dd_gen_params @cmd, "type",         "AIX/Linux";
-            dd_gen_params @cmd, "proc",         $cpu if $cpu;
-            dd_gen_params @cmd, "mem",          $memory if $memory;
-            dd_gen_params @cmd, "name",         $lpar if $lpar;
+            dd_gen_params @cmd, "proc",         $cpu        if $cpu;
+            dd_gen_params @cmd, "mem",          $memory     if $memory;
+            dd_gen_params @cmd, "name",         $lpar       if $lpar;
             dd_gen_params @cmd, "proc-unit",    $cpu * 0.05 if $cpu;
         }
     }
@@ -126,7 +126,7 @@ sub pvmctl {
         $lpar = $target if $target;
         dd_gen_params @cmd, "type",    $kind;
         dd_gen_params @cmd, "stor-id", $file;
-        dd_gen_params @cmd, "lpar",    "name=$lpar" if $lpar;
+        dd_gen_params @cmd, "lpar",    "name=$lpar"  if $lpar;
         dd_gen_params @cmd, "vg",      "name=rootvg" if ($type =~ /lv/);
     }
     elsif ($type =~ /lv/) {
