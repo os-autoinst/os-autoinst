@@ -192,7 +192,7 @@ sub run_capture_loop {
         # Time slot buckets
         my $buckets         = {};
         my $wait_time_limit = $bmwqemu::vars{_CHKSEL_RATE_WAIT_TIME} // 30;
-        my $hits_limit      = $bmwqemu::vars{_CHKSEL_RATE_HITS} // 15_000;
+        my $hits_limit      = $bmwqemu::vars{_CHKSEL_RATE_HITS}      // 15_000;
 
         while (1) {
 

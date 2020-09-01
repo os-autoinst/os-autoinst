@@ -2170,7 +2170,7 @@ timeout is 90s. C<log_name> parameter allow to control resulted job's attachment
 sub upload_logs {
     my $file    = shift;
     my %args    = @_;
-    my $failok  = $args{failok} || 0;
+    my $failok  = $args{failok}  || 0;
     my $timeout = $args{timeout} || 90;
 
     if (get_var('OFFLINE_SUT')) {

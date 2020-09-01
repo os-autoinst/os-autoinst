@@ -269,10 +269,10 @@ sub open_serial_console_via_ssh {
     my ($self, $name, %args) = @_;
     bmwqemu::log_call(name => $name, %args);
     my ($chan, $cmd, $cmd_full, $ret, $ssh, $stderr, $stdout);
-    my $port    = $args{port}    // '';
-    my $devname = $args{devname} // '';
-    my $marker  = "CONSOLE_EXIT_" . get_required_var('JOBTOKEN') . ":";
-    my $log     = $self->serial_terminal_log_file();
+    my $port      = $args{port}    // '';
+    my $devname   = $args{devname} // '';
+    my $marker    = "CONSOLE_EXIT_" . get_required_var('JOBTOKEN') . ":";
+    my $log       = $self->serial_terminal_log_file();
     my $max_tries = 10;
 
     if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {

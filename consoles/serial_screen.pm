@@ -254,8 +254,8 @@ sub read_until {
             for my $p (@$re) {
                 my $i = index($rbuf, $p);
                 if ($i >= 0) {
-                    $match    = substr $rbuf, $i, length($p);
-                    $prematch = substr $rbuf, 0, $i;
+                    $match                = substr $rbuf, $i, length($p);
+                    $prematch             = substr $rbuf, 0, $i;
                     $self->{carry_buffer} = substr $rbuf, $i + length($p);
                     last READ;
                 }
@@ -263,8 +263,8 @@ sub read_until {
         }
         elsif ($rbuf =~ m/$re/) {
             # See match variable perf issues: http://bit.ly/2dbGrzo
-            $prematch = substr $rbuf, 0, $LAST_MATCH_START[0];
-            $match    = substr $rbuf, $LAST_MATCH_START[0], $LAST_MATCH_END[0] - $LAST_MATCH_START[0];
+            $prematch             = substr $rbuf, 0, $LAST_MATCH_START[0];
+            $match                = substr $rbuf, $LAST_MATCH_START[0], $LAST_MATCH_END[0] - $LAST_MATCH_START[0];
             $self->{carry_buffer} = substr $rbuf, $LAST_MATCH_END[0];
             last READ;
         }

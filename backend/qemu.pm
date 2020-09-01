@@ -325,8 +325,8 @@ sub save_memory_dump {
     my $fdname           = 'dumpfd';
     my $vars             = \%bmwqemu::vars;
     my $compress_method  = $vars->{QEMU_DUMP_COMPRESS_METHOD} || 'xz';
-    my $compress_level   = $vars->{QEMU_COMPRESS_LEVEL} || 6;
-    my $compress_threads = $vars->{QEMU_COMPRESS_THREADS} || $vars->{QEMUCPUS} || 2;
+    my $compress_level   = $vars->{QEMU_COMPRESS_LEVEL}       || 6;
+    my $compress_threads = $vars->{QEMU_COMPRESS_THREADS}     || $vars->{QEMUCPUS} || 2;
     my $filename         = $args->{filename} . '-vm-memory-dump';
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
@@ -638,8 +638,8 @@ sub start_qemu {
     $self->{qemu_version} = $qemu_version;
     bmwqemu::diag "qemu version detected: $self->{qemu_version}";
 
-    $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});    # XXX: compat with old deployment
-    $vars->{UEFI} = 1 if $vars->{UEFI_PFLASH};
+    $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});        # XXX: compat with old deployment
+    $vars->{UEFI} = 1                    if $vars->{UEFI_PFLASH};
 
 
     if ($vars->{UEFI_PFLASH} && (($vars->{ARCH} // '') eq 'x86_64')) {
@@ -777,8 +777,8 @@ sub start_qemu {
     # put it back to the vars for save_vars()
     $vars->{NICMAC}        = join ',', @nicmac;
     $vars->{NICVLAN}       = join ',', @nicvlan;
-    $vars->{TAPDEV}        = join ',', @tapdev if $vars->{NICTYPE} eq "tap";
-    $vars->{TAPSCRIPT}     = join ',', @tapscript if $vars->{NICTYPE} eq "tap";
+    $vars->{TAPDEV}        = join ',', @tapdev        if $vars->{NICTYPE} eq "tap";
+    $vars->{TAPSCRIPT}     = join ',', @tapscript     if $vars->{NICTYPE} eq "tap";
     $vars->{TAPDOWNSCRIPT} = join ',', @tapdownscript if $vars->{NICTYPE} eq "tap";
 
     if ($vars->{NICTYPE} eq "vde") {
@@ -974,7 +974,7 @@ sub start_qemu {
         if ($vars->{VNC}) {
             my $vncport = $vars->{VNC} !~ /:/ ? ":$vars->{VNC}" : $vars->{VNC};
             sp('vnc', [qv "$vncport share=force-shared"]);
-            sp('k', $vars->{VNCKB}) if $vars->{VNCKB};
+            sp('k',   $vars->{VNCKB}) if $vars->{VNCKB};
         }
 
         my @virtio_consoles = $self->get_virtio_console_names;
@@ -988,7 +988,7 @@ sub start_qemu {
 
         my $qmpid = 'qmp_socket';
         sp('chardev', [qv "socket path=$qmpid server nowait id=$qmpid logfile=$qmpid.log logappend=on"]);
-        sp('qmp', "chardev:$qmpid");
+        sp('qmp',     "chardev:$qmpid");
         sp('S');
     }
 

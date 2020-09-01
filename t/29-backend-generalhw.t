@@ -84,8 +84,8 @@ subtest 'start VM' => sub {
 
 subtest 'stop VM' => sub {
     @invoked_cmds = ();
-    is_deeply($backend->do_stop_vm, {},                 'return value');
-    is_deeply(\@invoked_cmds, [[$cmd_ctl, 'poweroff']], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
+    is_deeply($backend->do_stop_vm, {},                       'return value');
+    is_deeply(\@invoked_cmds,       [[$cmd_ctl, 'poweroff']], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
 };
 
 subtest 'error handling' => sub {

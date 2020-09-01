@@ -229,9 +229,9 @@ sub record_screenfail {
     my %args    = @_;
     my $img     = $args{img};
     my $needles = $args{needles} || [];
-    my $tags    = $args{tags} || [];
-    my $status  = $args{result} || 'fail';
-    my $overall = $args{overall};            # whether and how to set global test result
+    my $tags    = $args{tags}    || [];
+    my $status  = $args{result}  || 'fail';
+    my $overall = $args{overall};    # whether and how to set global test result
     my $frame   = $args{frame};
 
     my $candidates;

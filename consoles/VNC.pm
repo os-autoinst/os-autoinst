@@ -241,7 +241,7 @@ sub _handshake_security {
 
         my @pref_types = (1, 2);
         @pref_types = (30, 1, 2) if $self->username;
-        @pref_types = (16)       if $self->ikvm;
+        @pref_types = (16) if $self->ikvm;
 
         for my $preferred_type (@pref_types) {
             if (0 < grep { $_ == $preferred_type } @security_types) {

@@ -119,9 +119,9 @@ sub loadtest {
         bmwqemu::serialize_state(component => 'tests', msg => "unable to load $script, check the log for the cause (e.g. syntax error)");
         die $msg;
     }
-    $test             = $name->new($category);
-    $test->{script}   = $script;
-    $test->{fullname} = $fullname;
+    $test                      = $name->new($category);
+    $test->{script}            = $script;
+    $test->{fullname}          = $fullname;
     $test->{serial_failures}   = $testapi::distri->{serial_failures}   // [];
     $test->{autoinst_failures} = $testapi::distri->{autoinst_failures} // [];
 
@@ -424,7 +424,7 @@ sub runalltests {
 sub loadtestdir {
     my ($dir) = @_;
     die "need argument \$dir" unless $dir;
-    $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
+    $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;        # legacy where absolute path is specified
     $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
     die "'$dir' does not exist!\n" unless -d $dir;
     foreach my $script (glob "$dir/*.pm") {

@@ -99,7 +99,7 @@ sub new {
             $area->{$tag} = $area_from_json->{$tag} if $area_from_json->{$tag};
         }
         $area->{match}  = $area_from_json->{match} if $area_from_json->{match};
-        $area->{type}   = $area_from_json->{type} || 'match';
+        $area->{type}   = $area_from_json->{type}   || 'match';
         $area->{margin} = $area_from_json->{margin} || 50;
         if (my $click_point = $area_from_json->{click_point}) {
             if ($got_click_point) {

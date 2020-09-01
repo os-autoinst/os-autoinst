@@ -117,8 +117,8 @@ subtest qemu_huge_pages_option => sub {
 
     # print version: call isotovideo with QEMU_HUGE_PAGES_PATH
     run_isotovideo(QEMU_HUGE_PAGES_PATH => '/no/dev/hugepages/');
-    like($log, qr/-mem-prealloc/,                '-mem-prealloc option added');
-    like($log, qr|-mem-path /no/dev/hugepages/|, '-mem-path /no/dev/hugepages/');
+    like($log, qr/-mem-prealloc/,                                                                          '-mem-prealloc option added');
+    like($log, qr|-mem-path /no/dev/hugepages/|,                                                           '-mem-path /no/dev/hugepages/');
     like($log, qr|can\'t open backing store /no/dev/hugepages/ for guest RAM\: No such file or directory|, 'expected failure as /no/dev/hugepages/ does not exist');
 };
 

@@ -441,7 +441,7 @@ subtest 'workaround property' => sub {
     is($mix_workaround_hash_needle->get_property_value("workaround"),   "bsc#123789: This is a test for workaround property", "workaround value is correct");
     is($workaround_hash_needle->get_property_value("test"),             undef,                                                "no test value");
     is($no_workaround_needle->get_property_value("workaround"),         undef,                                                "no workaround property");
-    is($no_workaround_needle->get_property_value("glossy"), undef, "glossy property is a string, has no value");
+    is($no_workaround_needle->get_property_value("glossy"),             undef, "glossy property is a string, has no value");
 };
 
 done_testing();
