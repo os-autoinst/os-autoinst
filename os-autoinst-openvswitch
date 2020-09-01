@@ -45,12 +45,12 @@ sub init_switch {
     die "can't parse bridge local port MAC" unless $self->{MAC};
     die "can't parse bridge local port IP"  unless $self->{IP};
 
-    my $local_ip = $ENV{OS_AUTOINST_BRIDGE_LOCAL_IP} // '10.0.2.2';
-    my $netmask = $ENV{OS_AUTOINST_BRIDGE_NETMASK} // 15;
+    my $local_ip       = $ENV{OS_AUTOINST_BRIDGE_LOCAL_IP}       // '10.0.2.2';
+    my $netmask        = $ENV{OS_AUTOINST_BRIDGE_NETMASK}        // 15;
     my $rewrite_target = $ENV{OS_AUTOINST_BRIDGE_REWRITE_TARGET} // '10.1.0.0';
     # we also need a hex-converted form of the rewrite target, thanks
     # https://www.perlmonks.org/?node_id=704295
-    my $rewrite_target_hex = unpack('H*', pack('C*', split ('\.', $rewrite_target)));
+    my $rewrite_target_hex = unpack('H*', pack('C*', split('\.', $rewrite_target)));
 
     # the VM have unique MAC that differs in the last 16 bits (see /usr/lib/os-autoinst/backend/qemu.pm)
     # the IP can conflict across vlans
@@ -78,14 +78,14 @@ sub init_switch {
         # arp e.g. 10.0.2.2 - learn rule for handling replies, rewrite ARP sender IP to e.g. 10.1.x.x range and send to local
         # the learned rule rewrites ARP target to the original IP and sends the packet to the original port
         "table=0,priority=100,dl_type=0x0806,nw_dst=$local_ip,actions=" .
-        'learn(table=1,priority=100,in_port=LOCAL,dl_type=0x0806,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],output:NXM_OF_IN_PORT[]),' .
+'learn(table=1,priority=100,in_port=LOCAL,dl_type=0x0806,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],output:NXM_OF_IN_PORT[]),' .
         "load:0x$rewrite_target_hex->NXM_OF_ARP_SPA[],move:NXM_OF_ETH_SRC[0..$netmask]->NXM_OF_ARP_SPA[0..$netmask]," .
         'local',
 
         # tcp to $self->{MAC} syn - learn rule for handling replies, rewrite source IP to e.g. 10.1.x.x range and send to local
         # the learned rule rewrites DST to the original IP and sends the packet to the original port
         "table=0,priority=100,dl_type=0x0800,tcp_flags=+syn-ack,dl_dst=$self->{MAC},actions=" .
-        'learn(table=1,priority=100,in_port=LOCAL,dl_type=0x0800,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_IP_SRC[]->NXM_OF_IP_DST[],output:NXM_OF_IN_PORT[]),' .
+'learn(table=1,priority=100,in_port=LOCAL,dl_type=0x0800,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_IP_SRC[]->NXM_OF_IP_DST[],output:NXM_OF_IN_PORT[]),' .
         "mod_nw_src:$rewrite_target,move:NXM_OF_ETH_SRC[0..$netmask]->NXM_OF_IP_SRC[0..$netmask]," .
         'local',
 
@@ -100,46 +100,46 @@ sub init_switch {
 
 # Check if tap and vlan are in the correct format.
 sub _ovs_check {
-  my $tap = shift;
-  my $vlan = shift;
-  my $bridge = shift;
-  my $return_output;
-  my $return_code = 1;
+    my $tap    = shift;
+    my $vlan   = shift;
+    my $bridge = shift;
+    my $return_output;
+    my $return_code = 1;
 
-  if ($tap !~ /^tap[0-9]+$/) {
+    if ($tap !~ /^tap[0-9]+$/) {
         $return_output = "'$tap' does not fit the naming scheme";
         return ($return_code, $return_output);
-  }
-  if ($vlan !~ /^[0-9]+$/) {
+    }
+    if ($vlan !~ /^[0-9]+$/) {
         $return_output = "'$vlan' does not fit the naming scheme (only numbers)";
         return ($return_code, $return_output);
-  }
+    }
 
-  my $check_bridge = `ovs-vsctl port-to-br $tap`;
-  chomp $check_bridge;
-  if ($check_bridge ne $bridge) {
-        $return_output =  "'$tap' is not connected to bridge '$bridge'";
+    my $check_bridge = `ovs-vsctl port-to-br $tap`;
+    chomp $check_bridge;
+    if ($check_bridge ne $bridge) {
+        $return_output = "'$tap' is not connected to bridge '$bridge'";
         return ($return_code, $return_output);
-  }
+    }
 
-  return 0;
+    return 0;
 }
 
 sub _cmd {
-  my @args = @_;
-  my($wtr, $rdr, $err);
-  $err = gensym;
+    my @args = @_;
+    my ($wtr, $rdr, $err);
+    $err = gensym;
 
-  # We need open3 because otherwise STDERR is captured by systemd.
-  # In such way we collect the error and send it back in the dbus call as well.
-  my $ovs_vsctl_pid = open3($wtr, $rdr, $err, @args);
+    # We need open3 because otherwise STDERR is captured by systemd.
+    # In such way we collect the error and send it back in the dbus call as well.
+    my $ovs_vsctl_pid = open3($wtr, $rdr, $err, @args);
 
-  my @ovs_vsctl_output = <$rdr>;
-  my @ovs_vsctl_error = <$err>;
-  waitpid( $ovs_vsctl_pid, 0 );
-  my $return_code = $?;
+    my @ovs_vsctl_output = <$rdr>;
+    my @ovs_vsctl_error  = <$err>;
+    waitpid($ovs_vsctl_pid, 0);
+    my $return_code = $?;
 
-  return $return_code, "@ovs_vsctl_error","@ovs_vsctl_output";
+    return $return_code, "@ovs_vsctl_error", "@ovs_vsctl_output";
 }
 
 sub check_min_ovs_version {
@@ -166,9 +166,9 @@ sub set_vlan {
 
     ($return_code, $return_output) = _ovs_check($tap, $vlan, $self->{BRIDGE});
 
-    unless ($return_code == 0){
-      print STDERR $return_output."\n";
-      return ($return_code,$return_output);
+    unless ($return_code == 0) {
+        print STDERR $return_output . "\n";
+        return ($return_code, $return_output);
     }
 
     @cmd = ('ovs-vsctl', 'set', 'port', $tap, "tag=$vlan");
@@ -180,7 +180,7 @@ sub set_vlan {
     ($return_code, $ovs_vsctl_error, $ovs_vsctl_output) = _cmd(@cmd);
 
     print STDERR $ovs_vsctl_error if length($ovs_vsctl_error) > 0;
-    print $ovs_vsctl_output if length($ovs_vsctl_output) > 0;
+    print $ovs_vsctl_output       if length($ovs_vsctl_output) > 0;
     return $return_code, $ovs_vsctl_error unless $return_code == 0;
 
     $return_code = system('ip', 'link', 'set', $tap, 'up');
@@ -199,16 +199,16 @@ sub unset_vlan {
 
     ($return_code, $return_output) = _ovs_check($tap, $vlan, $self->{BRIDGE});
 
-    unless ($return_code == 0){
-      print STDERR $return_output."\n";
-      return ($return_code,$return_output);
+    unless ($return_code == 0) {
+        print STDERR $return_output . "\n";
+        return ($return_code, $return_output);
     }
 
     # Remove tap device to given vlan
-    ($return_code, $ovs_vsctl_error, $ovs_vsctl_output) = _cmd( 'ovs-vsctl', 'remove', 'port', $tap, 'tag', $vlan );
+    ($return_code, $ovs_vsctl_error, $ovs_vsctl_output) = _cmd('ovs-vsctl', 'remove', 'port', $tap, 'tag', $vlan);
 
     print STDERR $ovs_vsctl_error if length($ovs_vsctl_error) > 0;
-    print $ovs_vsctl_output if length($ovs_vsctl_output) > 0;
+    print $ovs_vsctl_output       if length($ovs_vsctl_output) > 0;
     return $return_code, $return_code != 0 ? $ovs_vsctl_error : '';
 }
 
@@ -216,7 +216,7 @@ dbus_method("show", [], ["int32", "string"]);
 sub show {
     my $self = shift;
 
-    my ($return_code, undef, $ovs_vsctl_output) = _cmd( 'ovs-vsctl', 'show' );
+    my ($return_code, undef, $ovs_vsctl_output) = _cmd('ovs-vsctl', 'show');
 
     return $return_code, $ovs_vsctl_output;
 }
