@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -399,6 +399,7 @@ sub exec_qemu {
     my $process = $self->_process;
     $process->on(
         collected => sub {
+            $self->{_qemu_terminated} = 1;
             bmwqemu::serialize_state(component => 'backend', msg => 'QEMU exited unexpectedly, see log for details')
               unless $self->{_stopping};
         });
@@ -432,30 +433,27 @@ using the JSON QAPI. QMP and QAPI are documented in the QEMU source tree.
 =cut
 sub connect_qmp {
     my ($self) = @_;
-    my $sk;
 
+    my $sk;
     osutils::attempt {
         attempts  => $ENV{QEMU_QMP_CONNECT_ATTEMPTS} // 20,
         condition => sub { $sk },
+        or        => sub { die "Can't open QMP socket" },
         cb        => sub {
+            die 'QEMU terminated before QMP connection could be established' if $self->{_qemu_terminated};
             $sk = IO::Socket::UNIX->new(
                 Type     => IO::Socket::UNIX::SOCK_STREAM,
-                Peer     => "qmp_socket",
+                Peer     => 'qmp_socket',
                 Blocking => 0
             );
         },
-        or => sub {
-            die "can't open qmp";
-        }
     };
 
     $sk->autoflush(1);
     binmode $sk;
-    my $flags = fcntl($sk, Fcntl::F_GETFL, 0) or die "can't getfl(): $!\n";
-    $flags = fcntl($sk, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
-
-    bmwqemu::diag(sprintf("qmpsocket %d", fileno($sk)));
-
+    my $flags = fcntl($sk, Fcntl::F_GETFL, 0) or die "Can't get file status flags of QMP socket: $!\n";
+    $flags = fcntl($sk, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "Can't set file status flags of QMP socket: $!\n";
+    bmwqemu::diag(sprintf("QMP socket: %d", fileno($sk)));
     return $sk;
 }
 
