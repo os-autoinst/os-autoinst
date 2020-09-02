@@ -397,6 +397,7 @@ sub exec_qemu {
     session->enable_subreaper;
 
     my $process = $self->_process;
+    $self->{_qemu_terminated} = 0;
     $process->on(
         collected => sub {
             $self->{_qemu_terminated} = 1;
