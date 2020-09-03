@@ -145,6 +145,7 @@ make %{?_smp_mflags} INSTALLDIRS=vendor
 %make_install INSTALLDIRS=vendor
 # remove internal tools
 rm -r %{buildroot}/usr/lib/os-autoinst/tools/
+rm -r %{buildroot}/usr/lib/os-autoinst/external/
 %else
 %cmake_install install-openvswitch
 %endif
