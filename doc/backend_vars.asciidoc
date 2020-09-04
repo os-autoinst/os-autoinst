@@ -103,7 +103,7 @@ QEMUMACHINE;see qemu -machine ?;undef;Machine and chipset to emulate
 QEMUPORT;integer;20002 + worker instance * 10;Port on which QEMU monitor should listen
 QEMURAM;integer;1024;Size of RAM of VM in MiB
 QEMUTHREADS;integer;0;Number of cpu threads used by VM
-QEMUTPM;'instance' or appropriate value for local swtpm config;undef;Configure VM to use a TPM emulator device, with appropriate args for the arch; sysadmin is responsible for running swtpm with a socket at /tmp/mytpmX, where X is the value of QEMUTPM or the worker instance number if QEMUTPM is set to 'instance'
+QEMUTPM;'instance' or appropriate value for local swtpm config;undef;Configure VM to use a TPM emulator device, with appropriate args for the arch. sysadmin is responsible for running swtpm with a socket at /tmp/mytpmX, where X is the value of QEMUTPM or the worker instance number if QEMUTPM is set to 'instance'
 QEMUVGA;see qemu -device ?;cirrus;VGA device to use with VM
 QEMU_COMPRESS_QCOW2;boolean;1;compress qcow2 images intended for upload
 QEMU_IMG_CREATE_TRIES;integer;3;Define number of tries for qemu-img commands
