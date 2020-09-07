@@ -113,15 +113,19 @@ sub _test_data_file {
     return $self->reply->asset(Mojo::Asset::File->new(path => $file));
 }
 
+sub _is_allowed_path {
+    my ($path) = @_;
+    return !(!defined $path || $path =~ /^(.*\/)*\.\.(\/.*)*$/);    # do not allow .. in path
+}
+
 sub test_data {
     my ($self) = @_;
 
-    my $path    = $bmwqemu::vars{CASEDIR} . "/data/";
+    my $path    = path($bmwqemu::vars{CASEDIR}, 'data');
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
-        # do not allow .. in path
-        return $self->reply->not_found if $relpath =~ /^(.*\/)*\.\.(\/.*)*$/;
-        $path .= $relpath;
+        return $self->reply->not_found unless _is_allowed_path($relpath);
+        $path = $path->child($relpath);
     }
 
     $self->app->log->info("Test data requested: $path");
@@ -136,8 +140,7 @@ sub get_asset {
     my $path    = join '/', $bmwqemu::vars{ASSETDIR}, $self->param('assettype'), $self->param('assetname');
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
-        # do not allow .. in path
-        return $self->reply->not_found if $relpath =~ /^(.*\/)*\.\.(\/.*)*$/;
+        return $self->reply->not_found unless _is_allowed_path($relpath);
         $path .= "/$relpath";
     }
 
