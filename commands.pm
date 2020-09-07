@@ -137,11 +137,18 @@ sub test_data {
 sub get_asset {
     my ($self) = @_;
 
-    my $path    = join '/', $bmwqemu::vars{ASSETDIR}, $self->param('assettype'), $self->param('assetname');
+    my $asset_name = $self->param('assetname');
+    my $asset_type = $self->param('assettype');
+    return $self->reply->not_found unless _is_allowed_path($asset_name) && _is_allowed_path($asset_type);
+
+    # check for the asset within the current working directory because the worker cache will store it here; otherwise
+    # fallback to $bmwqemu::vars{ASSETDIR} for legacy setups (see poo#70723)
     my $relpath = $self->param('relpath');
+    my $path    = path($asset_name);
+    $path = path($bmwqemu::vars{ASSETDIR}, $asset_type, $asset_name) unless -f $path;
     if (defined $relpath) {
         return $self->reply->not_found unless _is_allowed_path($relpath);
-        $path .= "/$relpath";
+        $path = $path->child($relpath);
     }
 
     $self->app->log->info("Asset requested: $path");
