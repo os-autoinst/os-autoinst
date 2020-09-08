@@ -31,11 +31,7 @@ sub sshCommand {
     my ($self, $username, $host, $gui) = @_;
 
     my $sshopts = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no $username\@$host";
-
-    if ($gui) {
-        $sshopts = "-X $sshopts";
-    }
-
+    $sshopts = "-X $sshopts" if $gui;
     return "ssh $sshopts; read";
 }
 
