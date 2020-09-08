@@ -1161,13 +1161,8 @@ sub _receive_colour_map {
     return 1;
 }
 
-sub _receive_bell {
-    my $self = shift;
-
-    # And discard it...
-
-    return 1;
-}
+# Discard the bell signal
+sub _receive_bell { 1 }
 
 sub _receive_ikvm_session {
     my $self = shift;
@@ -1237,3 +1232,5 @@ under the same terms as Perl itself.
 
 Copyright (C) 2014-2017 Stephan Kulow (coolo@suse.de)
 adapted to be purely useful for qemu/openqa
+
+Copyright © 2017-2020 SUSE LLC

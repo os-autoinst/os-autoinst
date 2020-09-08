@@ -50,14 +50,11 @@ sub new {
 
 sub init {
     my ($self) = @_;
-    if ($self->{args}->{tty}) {
-        if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
-            $self->{console_key} = "alt-f" . $self->{args}->{tty};
-        }
-        else {
-            $self->{console_key} = "ctrl-alt-f" . $self->{args}->{tty};
-        }
-    }
+    return unless $self->{args}->{tty};
+    # Special keys like Ctrl-Alt-Fx are not passed to the VM by xfreerdp.
+    # That means switch from graphical to console is not possible on Hyper-V.
+    my $hotkey = check_var('VIRSH_VMM_FAMILY', 'hyperv') ? 'alt-f' : 'ctrl-alt-f';
+    $self->{console_key} = $hotkey . $self->{args}->{tty};
 }
 
 # SUT was e.g. rebooted
@@ -74,8 +71,7 @@ sub screen {
 }
 
 # to be overloaded
-sub trigger_select {
-}
+sub trigger_select { }
 
 sub select {
     my ($self) = @_;
@@ -91,22 +87,15 @@ sub select {
     return $activated;
 }
 
-sub activate {
-    my ($self) = @_;
-    return;
-}
+sub activate { }
 
-sub is_serial_terminal {
-    return 0;
-}
+sub is_serial_terminal { 0 }
 
 sub set_args {
     my ($self, %args) = @_;
 
     my $my_args = $self->{args};
-    for my $arg (keys %args) {
-        $my_args->{$arg} = $args{$arg};
-    }
+    $self->{args}->{$_} = $args{$_} for (keys %args);
     # no need to send changes to right process; console proxy already takes care
     # that this method is called in the right process
 }

@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2016 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -71,9 +71,7 @@ sub finish {
 sub send_3270 {
     my ($self, $command, %arg) = @_;
     $command //= '';
-    if (!exists $arg{command_status}) {
-        $arg{command_status} = "ok";
-    }
+    $arg{command_status} //= "ok";
     confess "command_status must be 'ok' or 'error' or 'any', got $arg{command_status}."
       unless (grep $arg{command_status}, ['ok', 'error', 'any']);
 
@@ -170,9 +168,7 @@ sub expect_3270 {
 
     if ($arg{clear_buffer}) {
         my $n = $self->{raw_expect_queue}->pending();
-        if ($n) {
-            $self->{raw_expect_queue}->dequeue_nb($n);
-        }
+        $self->{raw_expect_queue}->dequeue_nb($n) if $n;
     }
     my $result     = [];
     my $start_time = time();
@@ -193,10 +189,7 @@ sub expect_3270 {
             my $input_line  = pop @$co;
             my @output_area = @$co;
 
-
-            if (defined $arg{delete_lines}) {
-                @output_area = grep !/$arg{delete_lines}/, @output_area;
-            }
+            @output_area = grep !/$arg{delete_lines}/, @output_area if defined $arg{delete_lines};
 
             if (@output_area > 0) {
                 $self->{raw_expect_queue}->enqueue(@output_area);
@@ -214,11 +207,7 @@ sub expect_3270 {
             if ($status_line !~ /$arg{expected_status}/) {
                 # if the timeout is not over, wait for more output
                 my $elapsed_time = time() - $start_time;
-                if ($elapsed_time < $arg{timeout}) {
-                    if ($self->wait_output($arg{timeout} - $elapsed_time)) {
-                        next;
-                    }
-                }
+                next if $elapsed_time < $arg{timeout} && $self->wait_output($arg{timeout} - $elapsed_time);
 
                 # flush the buffer for debugging:
                 while (my $line = $self->{raw_expect_queue}->dequeue_nb()) {
@@ -249,15 +238,11 @@ sub expect_3270 {
         my $line;
         while ($line = $self->{raw_expect_queue}->dequeue_nb()) {
             push @$result, $line;
-            if (!defined $line || $line =~ /$arg{output_delim}/) {
-                last;
-            }
+            last if !defined $line || $line =~ /$arg{output_delim}/;
         }
 
         # If we matched the 'output_delim', we are done.
-        if (defined $line) {
-            last;
-        }
+        last if defined $line;
 
         # The queue is empty. If we got so far and we had some output on the
         # screen the last time, clear the screen so we don't grab the same
@@ -268,10 +253,7 @@ sub expect_3270 {
         # last Snap(Ascii) and to thus avoid duplicate lines.
 
         # For now we have to live with having a clear screen.
-
-        if ($we_had_new_output) {
-            $self->ensure_screen_update();
-        }
+        $self->ensure_screen_update() if $we_had_new_output;
 
         # wait for new output from the host.
         my $elapsed_time = time() - $start_time;
@@ -291,25 +273,16 @@ sub wait_output {
     my ($self, $timeout) = @_;
     $timeout //= 0;    # just poll
     my $r = $self->send_3270("Wait($timeout,Output)", command_status => 'any');
-
-    if ($r->{command_status} eq 'ok') {
-        return 1;
-    }
-    else {
-        return 0
-          if $r->{command_output}[0] eq 'Wait: Timed out';
-        confess "has the s3270 wait timeout failure response changed?\n" . Dumper $r;
-    }
+    return 1 if $r->{command_status} eq 'ok';
+    return 0 if $r->{command_output}[0] eq 'Wait: Timed out';
+    confess "has the s3270 wait timeout failure response changed?\n" . Dumper $r;
 }
 
 ###################################################################
 
 sub sequence_3270 {
     my ($self, @commands) = @_;
-
-    foreach my $command (@commands) {
-        $self->send_3270($command);
-    }
+    $self->send_3270($_) for (@commands);
 }
 
 # map the terminal status of x3270 to a hash
@@ -373,19 +346,10 @@ sub _connect_3270 {
     my ($self, $host) = @_;
 
     my $r = $self->send_3270("Connect($host)");
-
-    if ($r->{terminal_status} !~ / C\($host\) /) {
-        confess "connect to host >$host< failed.\n" . join("\n", @$r);
-    }
-
+    confess "connect to host >$host< failed.\n" . join("\n", @$r) if $r->{terminal_status} !~ / C\($host\) /;
     $self->send_3270("Wait(InputField)");
-
     $r = $self->expect_3270();
-
-    if (!grep /Fill in your USERID and PASSWORD and press ENTER/, @$r) {
-        confess "doesn't look like zVM login prompt.";
-    }
-
+    confess "doesn't look like zVM login prompt." unless grep /Fill in your USERID and PASSWORD and press ENTER/, @$r;
     return $r;
 }
 
@@ -434,9 +398,7 @@ sub connect_and_login {
     ###################################################################
     # try to connect exactly trice
     for (my $count = 0; $count += 1;) {
-
         $r = $self->_connect_3270($self->{zVM_host});
-
         $r = $self->_login_guest($self->{guest_user}, $self->{guest_login});
 
         # bail out if the host is in use
