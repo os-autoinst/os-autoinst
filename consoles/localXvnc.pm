@@ -27,6 +27,18 @@ require IPC::System::Simple;
 use Socket;
 use File::Which;
 
+sub sshCommand {
+    my ($self, $username, $host, $gui) = @_;
+
+    my $sshopts = "-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no $username\@$host";
+
+    if ($gui) {
+        $sshopts = "-X $sshopts";
+    }
+
+    return "ssh $sshopts; read";
+}
+
 sub callxterm {
     my ($self, $command, $window_name) = @_;
 
