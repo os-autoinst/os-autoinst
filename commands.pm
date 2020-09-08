@@ -113,15 +113,19 @@ sub _test_data_file {
     return $self->reply->asset(Mojo::Asset::File->new(path => $file));
 }
 
+sub _is_allowed_path {
+    my ($path) = @_;
+    return !(!defined $path || $path =~ /^(.*\/)*\.\.(\/.*)*$/);    # do not allow .. in path
+}
+
 sub test_data {
     my ($self) = @_;
 
-    my $path    = $bmwqemu::vars{CASEDIR} . "/data/";
+    my $path    = path($bmwqemu::vars{CASEDIR}, 'data');
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
-        # do not allow .. in path
-        return $self->reply->not_found if $relpath =~ /^(.*\/)*\.\.(\/.*)*$/;
-        $path .= $relpath;
+        return $self->reply->not_found unless _is_allowed_path($relpath);
+        $path = $path->child($relpath);
     }
 
     $self->app->log->info("Test data requested: $path");
@@ -133,12 +137,18 @@ sub test_data {
 sub get_asset {
     my ($self) = @_;
 
-    my $path    = join '/', $bmwqemu::vars{ASSETDIR}, $self->param('assettype'), $self->param('assetname');
+    my $asset_name = $self->param('assetname');
+    my $asset_type = $self->param('assettype');
+    return $self->reply->not_found unless _is_allowed_path($asset_name) && _is_allowed_path($asset_type);
+
+    # check for the asset within the current working directory because the worker cache will store it here; otherwise
+    # fallback to $bmwqemu::vars{ASSETDIR} for legacy setups (see poo#70723)
     my $relpath = $self->param('relpath');
+    my $path    = path($asset_name);
+    $path = path($bmwqemu::vars{ASSETDIR}, $asset_type, $asset_name) unless -f $path;
     if (defined $relpath) {
-        # do not allow .. in path
-        return $self->reply->not_found if $relpath =~ /^(.*\/)*\.\.(\/.*)*$/;
-        $path .= "/$relpath";
+        return $self->reply->not_found unless _is_allowed_path($relpath);
+        $path = $path->child($relpath);
     }
 
     $self->app->log->info("Asset requested: $path");

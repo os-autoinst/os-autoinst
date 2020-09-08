@@ -39,8 +39,9 @@ use POSIX '_exit';
 
 our $mojoport = Mojo::IOLoop::Server->generate_port;
 my $base_url     = "http://localhost:$mojoport";
+my $job          = 'Hallo';
 my $toplevel_dir = path(__FILE__)->dirname->realpath;
-my $data_dir     = "$toplevel_dir/data/tests";
+my $data_dir     = $toplevel_dir->child('data');
 
 sub wait_for_server {
     my ($ua) = @_;
@@ -51,11 +52,13 @@ sub wait_for_server {
     return 1;
 }
 
-$bmwqemu::vars{JOBTOKEN} = 'Hallo';
-$bmwqemu::vars{CASEDIR}  = $data_dir;
+$bmwqemu::vars{JOBTOKEN} = $job;
+$bmwqemu::vars{CASEDIR}  = $data_dir->child('tests');
+$bmwqemu::vars{ASSETDIR} = $data_dir->child('assets');
 
 # now this is a game of luck
 my ($cserver, $cfd);
+ok(chdir $data_dir->child('pool'), 'change command server working directory');
 combined_like { ($cserver, $cfd) = commands::start_server($mojoport); } qr//, 'command server started';
 
 my $spid = fork();
@@ -80,13 +83,15 @@ if (wait_for_server($t->ua)) {
     exit(0);
 }
 
+ok(chdir $toplevel_dir, "change overall test working directory back to $toplevel_dir");
+
 subtest 'failure if jobtoken wrong' => sub {
     $t->get_ok("$base_url/NEVEREVER")->status_is(404);
     $t->get_ok("$base_url/isotovideo/version")->status_is(404);
 };
 
 subtest 'query isotovideo version' => sub {
-    $t->get_ok("$base_url/Hallo/isotovideo/version");
+    $t->get_ok("$base_url/$job/isotovideo/version");
     $t->status_is(200);
     # we only care whether 'json_cmd_token' exists
     $t->json_has('/json_cmd_token');
@@ -95,7 +100,7 @@ subtest 'query isotovideo version' => sub {
 };
 
 subtest 'web socket route' => sub {
-    $t->websocket_ok("$base_url/Hallo/ws");
+    $t->websocket_ok("$base_url/$job/ws");
     $t->send_ok(
         {
             json => {
@@ -111,7 +116,7 @@ subtest 'web socket route' => sub {
 
     subtest 'broadcast messages to websocket clients' => sub {
         my $t2 = Test::Mojo->new;
-        $t2->post_ok("$base_url/Hallo/broadcast", json => {
+        $t2->post_ok("$base_url/$job/broadcast", json => {
                 stopping_test_execution => 'foo',
         });
         $t2->status_is(200);
@@ -122,19 +127,15 @@ subtest 'web socket route' => sub {
     $t->finish_ok();
 };
 
-subtest 'data api' => sub {
-    my $job = 'Hallo';
-
+subtest 'data api (directory download)' => sub {
     # we need `cpio` for these tests
     ok(-x which 'cpio', 'cpio exists');
 
-    $t->get_ok("$base_url/$job/data");
-    $t->status_is(200);
-    $t->content_type_is("application/x-cpio");
+    $t->get_ok("$base_url/$job/data")->status_is(200)->content_type_is('application/x-cpio');
     my $tmpdir  = tempdir;
     my $outfile = path($tmpdir . '/data_full.cpio');
     $outfile->spurt($t->tx->res->body);
-    ok(system("cd $tmpdir && cpio -id < data_full.cpio >/dev/null 2>&1") == 0, "Extract cpio archive");
+    ok(system("cd $tmpdir && cpio -id < data_full.cpio >/dev/null 2>&1") == 0, 'Extract cpio archive');
     ok(-d $tmpdir . '/data/mod1',                                              'Recursive directory download 1.1');
     ok(-d $tmpdir . '/data/mod1/sub',                                          'Recursive directory download 1.2');
     ok(-f $tmpdir . '/data/mod1/test1.txt',                                    'Recursive directory download 1.3');
@@ -149,31 +150,44 @@ subtest 'data api' => sub {
     $tmpdir  = tempdir;
     $outfile = path($tmpdir . '/data_full.cpio');
     $outfile->spurt($t->tx->res->body);
-    ok(system("cd $tmpdir && cpio -id < data_full.cpio >/dev/null 2>&1") == 0, "Extract cpio archive");
+    ok(system("cd $tmpdir && cpio -id < data_full.cpio >/dev/null 2>&1") == 0, 'Extract cpio archive');
     ok(-d $tmpdir . '/data/sub',                                               'Recursive directory download 2.1');
     ok(-f $tmpdir . '/data/test1.txt',                                         'Recursive directory download 2.2');
     ok(-f $tmpdir . '/data/sub/test2.txt',                                     'Recursive directory download 2.3');
     ok(path($tmpdir . '/data/sub/test2.txt')->slurp eq 'TEST_FILE_2',          'Recursive directory download 2.4');
     ok(path($tmpdir . '/data/test1.txt')->slurp eq 'TEST_FILE_1',              'Recursive directory download 2.5');
 
-    $t->get_ok("$base_url/$job/data/mod1/sub");
-    $t->status_is(200);
-    $t->content_type_is("application/x-cpio");
+    $t->get_ok("$base_url/$job/data/mod1/sub")->status_is(200)->content_type_is('application/x-cpio');
+};
 
-    $t->get_ok("$base_url/$job/data/mod1/test1.txt");
-    $t->status_is(200);
-    $t->content_type_like(qr/text/);
-    $t->content_is("TEST_FILE_1");
+subtest 'data api (single file download)' => sub {
+    $t->get_ok("$base_url/$job/data/mod1/not/present")->status_is(404);
 
-    $t->get_ok("$base_url/$job/data/mod1/sub/test2.txt");
-    $t->status_is(200);
-    $t->content_type_like(qr/text/);
-    $t->content_is("TEST_FILE_2");
+    $t->get_ok("$base_url/$job/data/mod1/test1.txt")->status_is(200);
+    $t->content_type_like(qr/text/)->content_is('TEST_FILE_1');
 
-    $t->get_ok("$base_url/$job/data/autoinst.xml");
-    $t->status_is(200);
-    $t->content_type_like(qr/xml/);
+    $t->get_ok("$base_url/$job/data/mod1/sub/test2.txt")->status_is(200);
+    $t->content_type_like(qr/text/)->content_is('TEST_FILE_2');
 
+    $t->get_ok("$base_url/$job/data/autoinst.xml")->status_is(200)->content_type_like(qr/xml/);
+};
+
+subtest 'asset api' => sub {
+    subtest 'asset served from working directory (pool directory)' => sub {
+        $t->get_ok("$base_url/$job/assets/other/01377524-autoinst.xml")->status_is(200);
+        $t->content_type_is('application/xml')->content_like(qr/fake profile within pool dir/);
+    };
+    subtest 'asset served from ASSETDIR' => sub {
+        $t->get_ok("$base_url/$job/assets/other/01377523-autoinst.xml")->status_is(200);
+        $t->content_type_is('application/xml')->content_like(qr/fake profile within assets dir/);
+    };
+    subtest 'asset not present' => sub {
+        $t->get_ok("$base_url/$job/assets/other/01377522-autoinst.xml")->status_is(404);
+    };
+    subtest 'file from parent directory not served' => sub {
+        $t->get_ok("$base_url/$job/assets/../accept-ssh-host-key.png")->status_is(404);
+        $t->get_ok("$base_url/$job/assets/other/../../accept-ssh-host-key.png")->status_is(404);
+    };
 };
 
 kill TERM => $spid;
