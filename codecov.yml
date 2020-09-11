@@ -17,4 +17,4 @@ coverage:
       default:
         branches: null
 fixes:
-  - "/opt/run/::"
+  - "/opt/::"
