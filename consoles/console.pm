@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -71,26 +71,6 @@ sub screen {
     my ($self) = @_;
     die "screen needs to be implemented in subclasses - $self->{class} does not\n";
     return;
-}
-
-# helper function
-# Keep ssh session for the maximum of ServerAliveCountMax x ServerAliveInterval seconds
-# even without receiving any messsage back from the server, and this will not affect normal
-# ssh disconnect and console switching. Ssh console may not display returned result of
-# long-time run test without these options. TCPKeepAlive ensures that if network goes down
-# or the remote host dies, machines will be properly noticed
-sub sshCommand {
-    my ($self, $username, $host, $gui) = @_;
-
-    my $server_alive_count_max = get_var('_SSH_SERVER_ALIVE_COUNT_MAX', 480);
-    my $server_alive_interval  = get_var('_SSH_SERVER_ALIVE_INTERVAL',  60);
-    my $sshopts = "-o TCPKeepAlive=yes -o ServerAliveCountMax=$server_alive_count_max -o ServerAliveInterval=$server_alive_interval -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no $username\@$host";
-
-    if ($gui) {
-        $sshopts = "-X $sshopts";
-    }
-
-    return "ssh $sshopts; read";
 }
 
 # to be overloaded
