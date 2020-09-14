@@ -38,6 +38,15 @@ AUTOINST_URL_HOSTNAME;string;;hostname or IP adress of host running the autoinst
 
 |====================
 
+.SSH backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+_SSH_SERVER_ALIVE_COUNT_MAX;integer;480;Sets the number of server alive messages which may be sent without receiving any messages back from the server. If this threshold is reached while server alive messages are being sent, ssh will disconnect from the server, terminating the session.  The server alive mechanism is valuable when the client or server depend on knowing when a connection has become inactive.
+_SSH_SERVER_ALIVE_INTERVAL;integer;60;Sets a timeout interval in seconds after which if no data has been received from the server, client will send a message through the encrypted channel to request a response from the server.
+|====================
+
 .IPMI backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
