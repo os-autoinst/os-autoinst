@@ -5,6 +5,7 @@ use warnings;
 use Test::MockModule;
 use Test::More;
 use Test::Fatal;
+use Test::Exception;
 use File::Basename;
 use FindBin '$Bin';
 use Mojo::File 'tempdir';
@@ -21,6 +22,23 @@ use needle;
 # define 'write_with_thumbnail' to fake image
 sub write_with_thumbnail {
 }
+
+subtest run_post_fail_test => sub {
+    my $basetest_class = 'basetest';
+    Test::MockModule->new("autotest")->noop('set_current_test');
+    my $mock_basetest = Test::MockModule->new($basetest_class);
+    $mock_basetest->noop('take_screenshot');
+    $mock_basetest->mock(run => sub { die(); });
+    my $basetest = bless({
+            details      => [],
+            name         => 'foo',
+            category     => 'category1',
+            execute_time => 42,
+    }, $basetest_class);
+    dies_ok { $basetest->runtest } 'run_post_fail end up with die';
+    $bmwqemu::vars{_SKIP_POST_FAIL_HOOKS} = 1;
+    dies_ok { $basetest->runtest } 'run_post_fail behavior persists regardless of _SKIP_POST_FAIL_HOOKS setting';
+};
 
 subtest modules_test => sub {
     ok(my $basetest = basetest->new('installation'), 'module can be created');
