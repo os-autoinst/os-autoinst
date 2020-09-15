@@ -189,15 +189,6 @@ our $backend;
 
 # local vars end
 
-# global/shared var set functions
-
-sub set_ocr_rect {
-    @ocrrect = @_;
-    return;
-}
-
-# global/shared var set functions end
-
 # util and helper functions
 
 sub log_format_callback {
