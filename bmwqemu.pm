@@ -349,11 +349,6 @@ sub random_string {
     return $string;
 }
 
-sub hashed_string {
-    fctwarn '@DEPRECATED: Use testapi::hashed_string instead';
-    return testapi::hashed_string(@_);
-}
-
 sub wait_for_one_more_screenshot {
     # sleeping for one second should ensure that one more screenshot is taken
     # uncoverable subroutine
