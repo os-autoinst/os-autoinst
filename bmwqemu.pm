@@ -189,15 +189,6 @@ our $backend;
 
 # local vars end
 
-# global/shared var set functions
-
-sub set_ocr_rect {
-    @ocrrect = @_;
-    return;
-}
-
-# global/shared var set functions end
-
 # util and helper functions
 
 sub log_format_callback {
@@ -356,11 +347,6 @@ sub random_string {
     my @chars = ('a' .. 'z', 'A' .. 'Z');
     $string .= $chars[rand @chars] for 1 .. $count;
     return $string;
-}
-
-sub hashed_string {
-    fctwarn '@DEPRECATED: Use testapi::hashed_string instead';
-    return testapi::hashed_string(@_);
 }
 
 sub wait_for_one_more_screenshot {
