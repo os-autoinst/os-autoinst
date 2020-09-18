@@ -42,7 +42,7 @@ db="$build_directory/cover_db"
 # set Perl module include path and coverage options
 export PERL5LIB="$source_directory:$source_directory/external/os-autoinst-common/lib:$source_directory/ppmclibs:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
 if [[ $WITH_COVER_OPTIONS ]]; then
-    path_regex="^|$source_directory/|\\.\\./"
+    path_regex="^|$source_directory/|\\./"
     select="($path_regex)(OpenQA|backend|consoles|ppmclibs|t)/|($path_regex)isotovideo|($path_regex)[^/]+\.(pm|t),-ignore,$prove_path"
     export PERL5OPT="-MDevel::Cover=-db,$db,-select,$select,-coverage,statement"
 fi
@@ -51,6 +51,5 @@ fi
 export OS_AUTOINST_BUILD_DIRECTORY=$build_directory
 export OS_AUTOINST_MAKE_TOOL=$make_path
 
-# invoke tests within the t and xt directory
-cd t && "$prove_path" $PROVE_ARGS ${TESTS:-'-r'}
-cd ../xt && "$prove_path" $PROVE_ARGS ${TESTS:-'-r'}
+# invoke tests
+"$prove_path" $PROVE_ARGS ${TESTS:-'-r'}
