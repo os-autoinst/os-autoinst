@@ -39,5 +39,16 @@ snd2png/test.pnm
 snd2png/test.pnm.md5
 t/*.log
 t/*.trs
+t/data/*.log
 cover_db/*
 .*.swp
+t/data/autoinst-status.json
+t/data/base_state.json
+t/data/os-autoinst.pid
+t/data/qemu_state.json
+t/data/qemuscreenshot/
+t/data/raid/
+t/data/vars.json
+t/data/video.ogv
+t/data/video_time.vtt
+virtio_console.log
