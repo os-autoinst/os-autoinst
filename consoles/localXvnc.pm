@@ -39,11 +39,7 @@ sub sshCommand {
     my $server_alive_count_max = get_var('_SSH_SERVER_ALIVE_COUNT_MAX', 480);
     my $server_alive_interval  = get_var('_SSH_SERVER_ALIVE_INTERVAL',  60);
     my $sshopts = "-o TCPKeepAlive=yes -o ServerAliveCountMax=$server_alive_count_max -o ServerAliveInterval=$server_alive_interval -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no $username\@$host";
-
-    if ($gui) {
-        $sshopts = "-X $sshopts";
-    }
-
+    $sshopts = "-X $sshopts" if $gui;
     return "ssh $sshopts; read";
 }
 

@@ -1,4 +1,4 @@
-# Copyright © 2016-2019 SUSE LLC
+# Copyright © 2016-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -332,12 +332,8 @@ sub peak {
     return $self->{carry_buffer};
 }
 
-sub current_screen {
-    return 0;
-}
+sub current_screen { 0 }
 
-sub request_screen_update {
-    return;
-}
+sub request_screen_update { }
 
 1;

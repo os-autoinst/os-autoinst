@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,21 +25,9 @@ use base 'consoles::console';
 require IPC::System::Simple;
 use testapi 'check_var';
 
-# to be overloaded
 sub trigger_select {
     my ($self) = @_;
-    my $key;
-
-    # Special keys like Ctrl-Alt-Fx are not passed to the VM by xfreerdp.
-    # That means switch from graphical to console is not possible on Hyper-V.
-    if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
-        $key = "alt-f" . $self->{args}->{tty};
-    }
-    else {
-        $key = "ctrl-alt-f" . $self->{args}->{tty};
-    }
-
-    $self->screen->send_key({key => $key});
+    $self->screen->send_key({key => $self->{console_key}});
     return;
 }
 
