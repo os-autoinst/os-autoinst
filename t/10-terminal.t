@@ -238,7 +238,7 @@ sub test_terminal_directly {
     $tb->reset;
 
     my $term = consoles::virtio_terminal->new('unit-test-console', {tty => 3});
-    report_child_test(ok => $term->{console_key} eq "ctrl-alt-f3", 'console_key set correct');
+    report_child_test(ok => $term->console_key eq "ctrl-alt-f3", 'console_key set correct');
 
     $term->activate;
     my $scrn = $term->screen;

@@ -27,7 +27,7 @@ use testapi 'check_var';
 
 sub trigger_select {
     my ($self) = @_;
-    $self->screen->send_key({key => $self->{console_key}});
+    $self->screen->send_key({key => $self->console_key});
     return;
 }
 

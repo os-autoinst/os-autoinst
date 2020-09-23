@@ -50,11 +50,9 @@ sub new {
 
 sub init {
     my ($self) = @_;
-    return unless $self->{args}->{tty};
     # Special keys like Ctrl-Alt-Fx are not passed to the VM by xfreerdp.
     # That means switch from graphical to console is not possible on Hyper-V.
-    my $hotkey = check_var('VIRSH_VMM_FAMILY', 'hyperv') ? 'alt-f' : 'ctrl-alt-f';
-    $self->{console_key} = $hotkey . $self->{args}->{tty};
+    $self->{console_hotkey} = check_var('VIRSH_VMM_FAMILY', 'hyperv') ? 'alt-f' : 'ctrl-alt-f';
 }
 
 # SUT was e.g. rebooted
@@ -106,6 +104,12 @@ sub set_tty {
     $self->{args}->{tty} = $tty;
     # no need to send changes to right process; console proxy already takes care
     # that this method is called in the right process
+}
+
+sub console_key {
+    my ($self) = @_;
+    return undef unless $self->{console_hotkey} && $self->{args}->{tty};
+    return $self->{console_hotkey} . $self->{args}->{tty};
 }
 
 1;
