@@ -62,6 +62,7 @@ is_deeply($svirt_sut_console, {
         activated       => 0,
         args            => {},
         class           => 'consoles::sshVirtshSUT',
+        console_hotkey  => 'ctrl-alt-f',
         libvirt_domain  => 'openQA-SUT-1',
         serial_port_no  => 1,
         testapi_console => 'sut-serial',
