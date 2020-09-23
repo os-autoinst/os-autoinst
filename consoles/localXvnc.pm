@@ -26,6 +26,7 @@ use IPC::Run ();
 require IPC::System::Simple;
 use Socket;
 use File::Which;
+use testapi qw(get_var);
 
 # helper function
 # Keep ssh session for the maximum of ServerAliveCountMax x ServerAliveInterval seconds
