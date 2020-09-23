@@ -301,9 +301,6 @@ sub test_terminal_directly {
         'direct: trailing data is carried over to next read');
     type_string($next_test);
 
-    #ok($scrn->read_until(qr/$stop_code_data$/, $timeout, record_output => 1)->{matched},
-    #   'direct: record a huge amount of data');
-
     my $res;
     do {
         $res = $scrn->peak();
@@ -328,10 +325,6 @@ sub test_terminal_disabled {
     my $term = consoles::virtio_terminal->new('unit-test-console', {});
     eval { $term->activate };
     die "Expected message about unavailable terminal" unless $@ =~ /no virtio-serial.*available/;
-}
-
-sub test_terminal_through_testapi {
-    ...;
 }
 
 # Called after waitpid to check child's exit
