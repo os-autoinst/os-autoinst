@@ -143,7 +143,7 @@ sub handle_generated_assets {
     my ($command_handler, $clean_shutdown) = @_;
     my $return_code = 0;
     # mark hard disks for upload if test finished
-    return unless $command_handler->test_completed && ($bmwqemu::vars{BACKEND} eq 'qemu');
+    return unless $bmwqemu::vars{BACKEND} eq 'qemu';
     my @toextract;
     my $nd = $bmwqemu::vars{NUMDISKS};
     if ($command_handler->test_completed) {

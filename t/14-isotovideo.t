@@ -13,7 +13,8 @@ use Mojo::File qw(tempdir path);
 use Mojo::JSON qw(decode_json);
 use Mojo::Util qw(scope_guard);
 use FindBin '$Bin';
-use OpenQA::Isotovideo::Utils qw(load_test_schedule);
+use OpenQA::Isotovideo::Utils qw(load_test_schedule handle_generated_assets);
+use OpenQA::Isotovideo::CommandHandler;
 
 my $dir          = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
@@ -124,6 +125,36 @@ subtest 'upload assets on demand even in failed jobs' => sub {
     like $log, qr/qemu-img.*foo.qcow2/, 'requested image is published even though the job failed';
     ok(-e $pool_dir . '/assets_public/foo.qcow2', 'published image exists');
     ok(!-e $pool_dir . '/base_state.json',        'no fatal error recorded');
+};
+
+# mock backend/driver
+{
+    package FakeBackendDriver;
+    sub new {
+        my ($class, $name) = @_;
+        my $self = bless({class => $class}, $class);
+        require "backend/$name.pm";
+        $self->{backend} = "backend::$name"->new();
+        return $self;
+    }
+    sub extract_assets {
+        my $self = shift;
+        $self->{backend}->do_extract_assets(@_);
+    }
+}
+
+subtest 'upload the asset even in an incomplete job' => sub {
+    my $command_handler = OpenQA::Isotovideo::CommandHandler->new();
+    $bmwqemu::vars{BACKEND}             = 'qemu';
+    $bmwqemu::vars{NUMDISKS}            = 1;
+    $bmwqemu::vars{FORCE_PUBLISH_HDD_1} = 'force_publish_test.qcow2';
+    $bmwqemu::vars{PUBLISH_HDD_1}       = 'publish_test.qcow2';
+    $command_handler->test_completed(0);
+    $bmwqemu::backend = FakeBackendDriver->new('qemu');
+    my $return_code = handle_generated_assets($command_handler, 1);
+    is $return_code, 0, 'The asset was uploaded success';
+    ok(-e $pool_dir . '/assets_public/force_publish_test.qcow2', 'test.qcow2 image exists');
+    ok(!-e $pool_dir . '/assets_public/publish_test.qcow2',      'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
 };
 
 subtest 'error handling when loading test schedule' => sub {
