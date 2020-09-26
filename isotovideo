@@ -90,7 +90,8 @@ use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
-use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch checkout_git_refspec load_test_schedule);
+use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch
+  checkout_git_refspec handle_generated_assets load_test_schedule);
 
 session->enable;
 session->enable_subreaper;
@@ -416,56 +417,7 @@ if (!$return_code) {
 # read calculated variables from backend and tests
 bmwqemu::load_vars();
 
-sub store_asset {
-    my ($index, $name, $dir) = @_;
-    $name =~ /\.([[:alnum:]]+)$/;
-    my $format = $1;
-    return {hdd_num => $index, name => $name, dir => $dir, format => $format};
-}
-
-sub handle_generated_assets {
-    # mark hard disks for upload if test finished
-    return unless !$return_code && $command_handler->test_completed && ($bmwqemu::vars{BACKEND} eq 'qemu');
-    my @toextract;
-    my $nd = $bmwqemu::vars{NUMDISKS};
-    if ($command_handler->test_completed) {
-        for my $i (1 .. $nd) {
-            my $dir  = 'assets_private';
-            my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
-            unless ($name) {
-                $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
-                $dir  = 'assets_public';
-            }
-            next unless $name;
-            push @toextract, store_asset($i, $name, $dir);
-        }
-        if ($bmwqemu::vars{UEFI} && $bmwqemu::vars{PUBLISH_PFLASH_VARS}) {
-            push(@toextract, {pflash_vars => 1,
-                    name   => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
-                    dir    => 'assets_public',
-                    format => 'qcow2'});
-        }
-        if (@toextract && !$clean_shutdown) {
-            bmwqemu::serialize_state(component => 'isotovideo', msg => 'unable to handle generated assets: machine not shut down when uploading disks', log => 1);
-            $return_code = 1;
-            return;
-        }
-    }
-    for my $i (1 .. $nd) {
-        my $name = $bmwqemu::vars{"FORCE_PUBLISH_HDD_$i"} || next;
-        diag "Requested to force the publication of '$name'";
-        push @toextract, store_asset($i, $name, 'assets_public');
-    }
-    for my $asset (@toextract) {
-        local $@;
-        eval { $bmwqemu::backend->extract_assets($asset); };
-        if ($@) {
-            bmwqemu::serialize_state(component => 'backend', msg => "unable to extract assets: $@", log => 1);
-            $return_code = 1;
-        }
-    }
-}
-handle_generated_assets;
+$return_code = handle_generated_assets($command_handler, $clean_shutdown) unless $return_code;
 
 # clear any previously recorded die message; it was not fatal after all if the execution came this far
 $fatal_error = undef;
