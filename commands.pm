@@ -354,7 +354,12 @@ sub start_server {
             run_daemon($port, $isotovideo);
             Devel::Cover::report() if Devel::Cover->can('report');
             _exit(0);
-    }, sleeptime_during_kill => .1)->blocking_stop(1)->internal_pipes(0)->set_pipes(0)->start;
+        },
+        sleeptime_during_kill       => 0.1,
+        total_sleeptime_during_kill => 5,
+        blocking_stop               => 1,
+        internal_pipes              => 0,
+        set_pipes                   => 0)->start;
 
     close($isotovideo);
     $process->on(collected => sub { diag("commands process exited: " . shift->exit_status); });

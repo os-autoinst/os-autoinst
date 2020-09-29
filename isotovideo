@@ -403,7 +403,7 @@ my $clean_shutdown;
 if (!$return_code) {
     eval {
         $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
-        diag "BACKEND SHUTDOWN $clean_shutdown";
+        diag('backend shutdown state: ' . ($clean_shutdown // '?'));
     };
 
     # don't rely on the backend in a sane state if we failed - just stop it later

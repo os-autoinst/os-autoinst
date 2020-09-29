@@ -282,7 +282,13 @@ sub start_process {
             bmwqemu::load_vars();
 
             run_all;
-    }, sleeptime_during_kill => .1)->blocking_stop(1)->separate_err(0)->set_pipes(0)->internal_pipes(0)->start;
+        },
+        sleeptime_during_kill       => 0.1,
+        total_sleeptime_during_kill => 5,
+        blocking_stop               => 1,
+        separate_err                => 0,
+        set_pipes                   => 0,
+        internal_pipes              => 0)->start;
     $process->on(collected => sub { bmwqemu::diag "[" . __PACKAGE__ . "] process exited: " . shift->exit_status; });
 
     close $isotovideo;
