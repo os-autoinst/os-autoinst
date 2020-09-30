@@ -37,32 +37,6 @@ sub isotovideo {
     like $log, qr/\d*: EXIT $args{exit_code}/, $args{end_test_str} ? $args{end_test_str} : 'isotovideo run exited as expected';
 }
 
-subtest 'error handling when loading test schedule' => sub {
-    my $base_state = path(bmwqemu::STATE_FILE);
-    subtest 'no schedule at all' => sub {
-        $base_state->remove;
-        $bmwqemu::vars{CASEDIR} = $bmwqemu::vars{PRODUCTDIR} = $dir;
-        throws_ok { load_test_schedule } qr/'SCHEDULE' not set and/, 'error logged';
-        my $state = decode_json($base_state->slurp);
-        if (is(ref $state, 'HASH', 'state file contains object')) {
-            is($state->{component}, 'tests', 'state file contains component message');
-            like($state->{msg}, qr/unable to load main\.pm/, 'state file contains error message');
-        }
-    };
-    subtest 'unable to load test module' => sub {
-        $base_state->remove;
-        my $module = 'foo/bar';
-        $bmwqemu::vars{SCHEDULE} = $module;
-        combined_like { throws_ok {
-                load_test_schedule } qr/Can't locate $module\.pm/, 'error logged' } qr/error on $module\.pm: Can't locate $module\.pm/, 'debug message logged';
-        my $state = decode_json($base_state->slurp);
-        if (is(ref $state, 'HASH', 'state file contains object')) {
-            is($state->{component}, 'tests', 'state file contains component');
-            like($state->{msg}, qr/unable to load foo\/bar\.pm/, 'state file contains error message');
-        }
-    };
-};
-
 subtest 'standalone isotovideo without vars.json file and only command line parameters' => sub {
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
@@ -150,6 +124,33 @@ subtest 'upload assets on demand even in failed jobs' => sub {
     like $log, qr/qemu-img.*foo.qcow2/, 'requested image is published even though the job failed';
     ok(-e $pool_dir . '/assets_public/foo.qcow2', 'published image exists');
     ok(!-e $pool_dir . '/base_state.json',        'no fatal error recorded');
+};
+
+subtest 'error handling when loading test schedule' => sub {
+    chdir($dir);
+    my $base_state = path(bmwqemu::STATE_FILE);
+    subtest 'no schedule at all' => sub {
+        $base_state->remove;
+        $bmwqemu::vars{CASEDIR} = $bmwqemu::vars{PRODUCTDIR} = $dir;
+        throws_ok { load_test_schedule } qr/'SCHEDULE' not set and/, 'error logged';
+        my $state = decode_json($base_state->slurp);
+        if (is(ref $state, 'HASH', 'state file contains object')) {
+            is($state->{component}, 'tests', 'state file contains component message');
+            like($state->{msg}, qr/unable to load main\.pm/, 'state file contains error message');
+        }
+    };
+    subtest 'unable to load test module' => sub {
+        $base_state->remove;
+        my $module = 'foo/bar';
+        $bmwqemu::vars{SCHEDULE} = $module;
+        combined_like { throws_ok {
+                load_test_schedule } qr/Can't locate $module\.pm/, 'error logged' } qr/error on $module\.pm: Can't locate $module\.pm/, 'debug message logged';
+        my $state = decode_json($base_state->slurp);
+        if (is(ref $state, 'HASH', 'state file contains object')) {
+            is($state->{component}, 'tests', 'state file contains component');
+            like($state->{msg}, qr/unable to load foo\/bar\.pm/, 'state file contains error message');
+        }
+    };
 };
 
 done_testing();
