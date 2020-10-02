@@ -14,8 +14,7 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 use 5.018;
-use strict;
-use warnings;
+use strictures;
 
 use base 'basetest';
 

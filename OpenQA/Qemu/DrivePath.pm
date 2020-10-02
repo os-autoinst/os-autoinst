@@ -22,6 +22,7 @@ to a controller.
 =cut
 
 package OpenQA::Qemu::DrivePath;
+use strictures;
 use Mojo::Base -base;
 
 has 'id';

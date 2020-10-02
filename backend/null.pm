@@ -15,8 +15,7 @@
 
 package backend::null;
 
-use strict;
-use warnings;
+use strictures;
 
 use base 'backend::baseclass';
 

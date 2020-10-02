@@ -21,8 +21,7 @@
 
 package backend::driver;
 
-use strict;
-use warnings;
+use strictures;
 use autodie ':all';
 
 use Carp 'croak';

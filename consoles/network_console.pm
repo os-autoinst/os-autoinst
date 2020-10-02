@@ -16,8 +16,7 @@
 
 package consoles::network_console;
 
-use strict;
-use warnings;
+use strictures;
 
 use base 'consoles::console';
 

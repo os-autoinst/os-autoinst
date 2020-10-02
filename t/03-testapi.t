@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+use strictures;
 use Test::Most;
 
 use FindBin '$Bin';

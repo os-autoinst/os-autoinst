@@ -16,8 +16,7 @@
 
 package consoles::sshX3270;
 
-use strict;
-use warnings;
+use strictures;
 
 use base 'consoles::localXvnc';
 

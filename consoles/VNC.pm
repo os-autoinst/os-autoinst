@@ -1,7 +1,6 @@
 package consoles::VNC;
 
-use strict;
-use warnings;
+use strictures;
 use bytes;
 use feature 'say';
 

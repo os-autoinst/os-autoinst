@@ -16,8 +16,7 @@
 
 package autotest;
 
-use strict;
-use warnings;
+use strictures;
 
 use bmwqemu;
 use Exporter 'import';
@@ -27,7 +26,7 @@ use Socket;
 use IO::Handle;
 use POSIX '_exit';
 use cv;
-use signalblocker;
+use signalblocker qw();
 use Scalar::Util 'blessed';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';

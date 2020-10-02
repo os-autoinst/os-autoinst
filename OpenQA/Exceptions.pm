@@ -15,8 +15,7 @@
 
 package OpenQA::Exceptions;
 
-use strict;
-use warnings;
+use strictures;
 
 use Exception::Class (
     'OpenQA::Exception::InternalException' => {

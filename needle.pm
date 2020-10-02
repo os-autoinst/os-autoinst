@@ -16,8 +16,7 @@
 
 package needle;
 
-use strict;
-use warnings;
+use strictures;
 use autodie ':all';
 
 use Cwd 'cwd';

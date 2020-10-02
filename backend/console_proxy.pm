@@ -22,8 +22,7 @@
 
 package backend::console_proxy;
 
-use strict;
-use warnings;
+use strictures;
 use feature 'say';
 
 sub new {

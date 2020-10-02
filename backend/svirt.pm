@@ -16,8 +16,7 @@
 
 package backend::svirt;
 
-use strict;
-use warnings;
+use strictures;
 
 use base 'backend::virt';
 

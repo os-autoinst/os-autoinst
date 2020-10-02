@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+use strictures;
 use Test::Most;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";

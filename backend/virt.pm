@@ -15,8 +15,7 @@
 
 package backend::virt;
 
-use strict;
-use warnings;
+use strictures;
 
 use base 'backend::baseclass';
 

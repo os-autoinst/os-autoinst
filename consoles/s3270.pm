@@ -16,8 +16,7 @@
 
 package consoles::s3270;
 
-use strict;
-use warnings;
+use strictures;
 use feature 'say';
 
 use base 'consoles::localXvnc';

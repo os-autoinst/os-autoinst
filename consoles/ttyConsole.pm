@@ -16,8 +16,7 @@
 
 package consoles::ttyConsole;
 
-use strict;
-use warnings;
+use strictures;
 use autodie ':all';
 
 use base 'consoles::console';

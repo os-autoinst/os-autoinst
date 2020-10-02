@@ -31,6 +31,7 @@ parameters which are represented as complex objects.
 =cut
 
 package OpenQA::Qemu::Proc;
+use strictures;
 use Mojo::Base -base;
 
 use Data::Dumper;

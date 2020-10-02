@@ -1,5 +1,4 @@
-use strict;
-use warnings;
+use strictures;
 use base 'basetest';
 use autotest 'loadtest';
 

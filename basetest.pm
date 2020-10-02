@@ -16,8 +16,7 @@
 
 package basetest;
 
-use strict;
-use warnings;
+use strictures;
 use autodie ':all';
 
 use bmwqemu ();

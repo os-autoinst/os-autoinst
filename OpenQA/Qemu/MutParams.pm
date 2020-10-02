@@ -27,6 +27,7 @@ added structure.
 =cut
 
 package OpenQA::Qemu::MutParams;
+use strictures;
 use Mojo::Base -base;
 
 use Scalar::Util 'blessed';

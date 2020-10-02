@@ -16,8 +16,7 @@
 
 package consoles::vnc_base;
 
-use strict;
-use warnings;
+use strictures;
 use feature 'say';
 
 use base 'consoles::network_console';

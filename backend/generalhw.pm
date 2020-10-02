@@ -18,8 +18,7 @@
 
 package backend::generalhw;
 
-use strict;
-use warnings;
+use strictures;
 use autodie ':all';
 
 use base 'backend::baseclass';

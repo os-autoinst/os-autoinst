@@ -15,8 +15,7 @@
 
 package myjsonrpc;
 
-use strict;
-use warnings;
+use strictures;
 use Carp qw(cluck confess);
 use IO::Select;
 use Errno;

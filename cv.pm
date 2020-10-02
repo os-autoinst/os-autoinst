@@ -17,8 +17,7 @@
 # wrapper around tinycv
 
 package cv;
-use strict;
-use warnings;
+use strictures;
 use constant BPP => 3;
 use ExtUtils::testlib;
 

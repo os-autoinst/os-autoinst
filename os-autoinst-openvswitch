@@ -1,8 +1,7 @@
 #!/usr/bin/perl
 package OVS;
 
-use strict;
-use warnings;
+use strictures;
 use autodie ':all';
 
 use base 'Net::DBus::Object';
@@ -223,7 +222,7 @@ sub show {
 
 ################################################################################
 package main;
-use strict;
+use strictures;
 
 use Net::DBus;
 use Net::DBus::Reactor;

@@ -16,6 +16,7 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 
+use strictures;
 use Test::Most;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";

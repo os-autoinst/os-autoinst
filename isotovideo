@@ -47,8 +47,7 @@ automatically for convenience.
 
 =cut
 
-use strict;
-use warnings;
+use strictures;
 use autodie ':all';
 no autodie 'kill';
 

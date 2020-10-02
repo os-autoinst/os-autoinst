@@ -98,6 +98,7 @@ test_requires:
 
 main_requires:
   git-core:
+  perl(strictures):
   perl(Cwd):
   perl(B::Deparse):
   perl(Carp):

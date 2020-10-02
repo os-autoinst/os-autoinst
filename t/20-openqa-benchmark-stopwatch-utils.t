@@ -1,9 +1,9 @@
 #!/usr/bin/perl
 
+use strictures;
 use Test::Most;
 use Test::Warnings ':report_warnings';
 use Time::HiRes 'sleep';
-
 
 use OpenQA::Benchmark::Stopwatch;
 

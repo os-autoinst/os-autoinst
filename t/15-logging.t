@@ -17,6 +17,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
+use strictures;
 use Test::Most;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";

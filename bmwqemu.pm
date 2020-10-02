@@ -16,8 +16,7 @@
 
 package bmwqemu;
 
-use strict;
-use warnings;
+use strictures;
 use autodie ':all';
 use Fcntl ':flock';
 use Time::HiRes qw(sleep gettimeofday);

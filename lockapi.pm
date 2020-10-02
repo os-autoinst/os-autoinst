@@ -16,8 +16,7 @@
 ## synchronization API
 package lockapi;
 
-use strict;
-use warnings;
+use strictures;
 use Scalar::Util 'looks_like_number';
 use base 'Exporter';
 our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_wait

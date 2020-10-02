@@ -1,6 +1,7 @@
 #!/usr/bin/perl
-# Copyright © 2019 SUSE LLC
+# Copyright © 2019-2020 SUSE LLC
 
+use strictures;
 use Test::Most;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";

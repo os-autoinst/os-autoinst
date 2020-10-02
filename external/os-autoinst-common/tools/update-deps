@@ -1,6 +1,5 @@
 #!/usr/bin/env perl
-use strict;
-use warnings;
+use strictures;
 use 5.010;
 
 use YAML::PP;

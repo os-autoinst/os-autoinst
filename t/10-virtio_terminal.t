@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 # Copyright © 2020 SUSE LLC
 
+use strictures;
 use Test::Most;
 
 # OpenQA::Test::TimeLimit not used as `prepare_pipes` defines an ALRM handler

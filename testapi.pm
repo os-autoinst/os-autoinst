@@ -16,11 +16,11 @@
 
 package testapi;
 
+use warnings;
 use base Exporter;
 use Carp;
 use Exporter;
 use 5.018;
-use warnings;
 use File::Basename qw(basename dirname);
 use File::Path 'make_path';
 use Time::HiRes qw(sleep gettimeofday tv_interval);

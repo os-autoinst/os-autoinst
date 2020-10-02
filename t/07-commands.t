@@ -16,6 +16,7 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 
+use strictures;
 use Test::Most;
 
 use FindBin '$Bin';
@@ -28,7 +29,6 @@ use autodie ':all';
 use commands;
 use Mojo::IOLoop::Server;
 use Time::HiRes 'sleep';
-use Test::Warnings ':report_warnings';
 use Test::Output;
 use Test::Mojo;
 use Mojo::File qw(path tempfile tempdir);

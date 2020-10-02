@@ -15,8 +15,7 @@
 
 package backend::pvm_hmc;
 
-use strict;
-use warnings;
+use strictures;
 
 use base 'backend::virt';
 

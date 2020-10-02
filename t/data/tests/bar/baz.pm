@@ -1,4 +1,3 @@
-use strict;
-use warnings;
+use strictures;
 use base 'basetest';
 1;

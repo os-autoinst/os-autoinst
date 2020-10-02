@@ -1,5 +1,6 @@
 #!/usr/bin/perl
 
+use strictures;
 use Test::Most;
 
 use FindBin '$Bin';
@@ -7,7 +8,6 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Output 'stderr_like';
-use Test::Warnings ':report_warnings';
 use Mojo::JSON;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;

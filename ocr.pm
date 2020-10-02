@@ -15,8 +15,7 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package ocr;
-use strict;
-use warnings;
+use strictures;
 require IPC::System::Simple;
 use autodie ':all';
 

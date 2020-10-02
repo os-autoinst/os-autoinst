@@ -15,8 +15,7 @@
 
 package testdistribution;
 
-use strict;
-use warnings;
+use strictures;
 
 use base 'distribution';
 

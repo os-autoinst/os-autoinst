@@ -15,8 +15,7 @@
 package osutils;
 
 require 5.002;
-use strict;
-use warnings;
+use strictures;
 
 use Carp;
 use base 'Exporter';
