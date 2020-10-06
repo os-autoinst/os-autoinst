@@ -26,6 +26,7 @@ use POSIX ':signal_h';
 # later) would crash. So we need to block the TERM signal in the forked
 # processes before we set the signal handler of our choice.
 
+no warnings 'redefine';    # unclear why this is needed
 sub new {
     my ($class, @args) = @_;
 

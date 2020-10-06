@@ -26,6 +26,7 @@ use bmwqemu          ();
 use constant DEBUG_JSON  => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
 use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8000000;
 
+no warnings 'redefine';    # unclear why this is needed
 sub send_json {
     my ($to_fd, $cmd) = @_;
 

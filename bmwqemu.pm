@@ -69,6 +69,7 @@ our @ovmf_locations = (
 
 our %vars;
 
+no warnings 'redefine';    # unclear why this is needed
 sub result_dir { 'testresults' }
 
 sub logger { $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback) }
