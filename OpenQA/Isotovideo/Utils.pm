@@ -20,7 +20,7 @@ use Mojo::URL;
 use Exporter 'import';
 use File::Spec;
 use Cwd;
-use bmwqemu 'diag';
+use bmwqemu;
 use Try::Tiny;
 
 our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec
@@ -170,7 +170,7 @@ sub handle_generated_assets {
     }
     for my $i (1 .. $nd) {
         my $name = $bmwqemu::vars{"FORCE_PUBLISH_HDD_$i"} || next;
-        diag "Requested to force the publication of '$name'";
+        bmwqemu::diag "Requested to force the publication of '$name'";
         push @toextract, _store_asset($i, $name, 'assets_public');
     }
     for my $asset (@toextract) {

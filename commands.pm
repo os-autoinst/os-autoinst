@@ -25,7 +25,7 @@ use Try::Tiny;
 use Socket;
 use POSIX '_exit', 'strftime';
 use myjsonrpc;
-use bmwqemu 'diag';
+use bmwqemu;
 use Mojo::JSON 'to_json';
 use Mojo::File 'path';
 
@@ -362,7 +362,7 @@ sub start_server {
         set_pipes                   => 0)->start;
 
     close($isotovideo);
-    $process->on(collected => sub { diag("commands process exited: " . shift->exit_status); });
+    $process->on(collected => sub { bmwqemu::diag("commands process exited: " . shift->exit_status); });
     return ($process, $child);
 }
 

@@ -37,8 +37,7 @@ use POSIX 'strftime';
 use Term::ANSIColor;
 
 our $VERSION;
-our @EXPORT    = qw(fileContent save_vars);
-our @EXPORT_OK = qw(diag);
+our @EXPORT_OK = qw(diag fileContent save_vars);
 
 use backend::driver;
 require IPC::System::Simple;
