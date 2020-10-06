@@ -21,7 +21,7 @@ use warnings;
 use Carp;
 use base 'Exporter';
 use Mojo::File 'path';
-use bmwqemu 'diag';
+use bmwqemu;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 
 our @EXPORT_OK = qw(
@@ -90,7 +90,7 @@ sub quote {
 }
 
 sub run {
-    diag "running " . join(' ', @_);
+    bmwqemu::diag "running " . join(' ', @_);
     my @args = @_;
     my $out;
     my $buffer;
@@ -101,7 +101,7 @@ sub run {
             while (defined(my $line = $p->getline)) {
                 $out .= $line;
             }
-            diag $buffer if defined $buffer && length($buffer) > 0;
+            bmwqemu::diag $buffer if defined $buffer && length($buffer) > 0;
     });
     $p->wait_stop;
     close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
@@ -111,13 +111,13 @@ sub run {
 }
 
 # Do not check for anything - just execute and print
-sub run_diag { my $o = (run(@_))[1]; diag($o) if $o; $o }
+sub run_diag { my $o = (run(@_))[1]; bmwqemu::diag($o) if $o; $o }
 
 # Open a process to run external program and check its return status
 sub runcmd {
     my (@cmd) = @_;
     my ($e, $out) = run(@cmd);
-    diag $out if $out && length($out) > 0;
+    bmwqemu::diag $out if $out && length($out) > 0;
     die "runcmd '" . join(' ', @cmd) . "' failed with exit code $e" . ($out ? ": '$out'" : '') unless $e == 0;
     return $e;
 }
@@ -132,13 +132,13 @@ sub attempt {
     my $attempts = 0;
     my ($total_attempts, $condition, $cb, $or) = ref $_[0] eq 'HASH' ? (@{$_[0]}{qw(attempts condition cb or)}) : @_;
     until ($condition->() || $attempts >= $total_attempts) {
-        diag "Waiting for $attempts attempts";
+        bmwqemu::diag "Waiting for $attempts attempts";
         $cb->();
         wait_attempt;
         $attempts++;
     }
     $or->() if $or && !$condition->();
-    diag "Finished after $attempts attempts";
+    bmwqemu::diag "Finished after $attempts attempts";
 }
 
 1;

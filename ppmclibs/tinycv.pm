@@ -19,7 +19,7 @@ package tinycv;
 use strict;
 use warnings;
 
-use bmwqemu 'diag';
+use bmwqemu;
 use File::Basename;
 use Math::Complex 'sqrt';
 require Exporter;

@@ -23,7 +23,7 @@ use base 'consoles::console';
 
 require IPC::System::Simple;
 use POSIX '_exit';
-use bmwqemu 'diag';
+use bmwqemu;
 use IO::Pipe;
 
 sub activate {

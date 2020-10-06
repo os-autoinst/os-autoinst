@@ -24,7 +24,7 @@ use autodie ':all';
 
 use base 'backend::baseclass';
 
-use bmwqemu 'diag';
+use bmwqemu;
 use testapi qw(get_required_var get_var);
 use IPC::Run ();
 require IPC::System::Simple;
