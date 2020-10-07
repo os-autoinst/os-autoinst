@@ -69,7 +69,7 @@ sub find_script {
 
 =head2 loadtest
 
-	loadtest(<string>, [ name => <string>, run_args => <OpenQA::Test::RunArgs> ]);
+    loadtest(<string>, [ name => <string>, run_args => <OpenQA::Test::RunArgs> ]);
 
 Queue a test module for execution by the test runner. The first argument is
 mandatory and specifies the Perl module name containing the test code to be run.
