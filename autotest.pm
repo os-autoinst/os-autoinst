@@ -295,33 +295,6 @@ sub start_process {
     return ($process, $child);
 }
 
-
-# TODO: define use case and reintegrate
-sub prestart_hook {
-    # run prestart test code before VM is started
-    if (-f "$bmwqemu::vars{CASEDIR}/prestart.pm") {
-        bmwqemu::diag "running prestart step";
-        eval { require $bmwqemu::vars{CASEDIR} . "/prestart.pm"; };
-        if ($@) {
-            bmwqemu::diag "prestart step FAIL:";
-            die $@;
-        }
-    }
-}
-
-# TODO: define use case and reintegrate
-sub postrun_hook {
-    # run postrun test code after VM is stopped
-    if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
-        bmwqemu::diag "running postrun step";
-        eval { require "$bmwqemu::vars{CASEDIR}/postrun.pm" };
-        if ($@) {
-            bmwqemu::diag "postrun step FAIL:";
-            warn $@;
-        }
-    }
-}
-
 sub query_isotovideo {
     my ($cmd, $args) = @_;
 
