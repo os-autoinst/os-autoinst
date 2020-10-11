@@ -154,7 +154,7 @@ sub _write_buffered_data_to_file_handle {
     # write as much data as possible (this is called when $fh is ready to write)
     my $data         = shift @$array_of_buffers;
     my $data_written = $fh->syswrite($data);
-    die "$program_name not accepting data" unless defined $data_written;
+    die "$program_name not accepting data: $!" unless defined $data_written;
 
     # put remaining data it back into the queue
     unshift @$array_of_buffers, substr($data, $data_written) unless $data_written == length($data);
