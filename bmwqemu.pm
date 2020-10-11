@@ -20,18 +20,20 @@ use strictures;
 use autodie ':all';
 use Fcntl ':flock';
 use Time::HiRes qw(sleep gettimeofday);
-use IO::Socket;
-use POSIX;
-use Carp;
-use Mojo::JSON qw(encode_json);
-use Cpanel::JSON::XS ();
-use File::Path 'remove_tree';
-use Data::Dumper;
-use Mojo::Log;
-use Mojo::File;
+#use IO::Socket;
+#use POSIX;
+#use Carp;
+#use Mojo::JSON qw(encode_json);
+#use Cpanel::JSON::XS ();
+#use File::Path 'remove_tree';
+#use Data::Dumper;
+#use Mojo::Log;
+#use Mojo::File;
 use File::Spec::Functions;
+use Exporter 'import';
 use POSIX 'strftime';
 use Term::ANSIColor;
+use log;
 
 use Exporter 'import';
 
@@ -55,10 +57,6 @@ our $screenshotpath = "qemuscreenshot";
 
 # global vars
 
-our $logger;
-
-our $direct_output;
-
 # Known locations of OVMF (UEFI) firmware: first is openSUSE, second is
 # the kraxel.org nightly packages, third is Fedora's edk2-ovmf package,
 # fourth is Debian's ovmf package.
@@ -68,13 +66,6 @@ our @ovmf_locations = (
 );
 
 our %vars;
-
-no warnings 'redefine';    # unclear why this is needed
-sub result_dir { 'testresults' }
-
-sub logger { $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback) }
-
-sub init_logger { logger->path(catfile(result_dir, 'autoinst-log.txt')) unless $direct_output }
 
 use constant STATE_FILE => 'base_state.json';
 
@@ -136,11 +127,11 @@ sub init {
     remove_tree("assets_public");
     remove_tree("assets_private");
 
-    remove_tree(result_dir);
-    mkdir result_dir;
-    mkdir join('/', result_dir, 'ulogs');
+    remove_tree(common::result_dir);
+    mkdir common::result_dir;
+    mkdir join('/', common::result_dir, 'ulogs');
 
-    init_logger;
+    log::init_logger;
 }
 
 sub _check_publish_vars {
@@ -187,119 +178,6 @@ sub ensure_valid_vars {
 our $backend;
 
 # local vars end
-
-# util and helper functions
-
-sub log_format_callback {
-    my ($time, $level, @lines) = @_;
-    # Unfortunately $time doesn't have the precision we want. So we need to use Time::HiRes
-    $time = gettimeofday;
-    return sprintf(strftime("[%FT%T.%%03d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
-}
-
-sub diag {
-    my ($args) = @_;
-    confess "missing input" unless $_[0];
-    logger->append(color('white'));
-    logger->debug(@_)->append(color('reset'));
-    return;
-}
-
-sub fctres {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    logger->append(color('green'));
-    logger->debug(">>> $fname: $text")->append(color('reset'));
-    return;
-}
-
-sub fctinfo {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    logger->append(color('yellow'));
-    logger->info("::: $fname: $text")->append(color('reset'));
-    return;
-}
-
-sub fctwarn {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    logger->append(color('red'));
-    logger->warn("!!! $fname: $text")->append(color('reset'));
-    return;
-}
-
-sub modstart {
-    logger->append(color('bold blue'));
-    logger->debug("||| @{[join(' ', @_)]}")->append(color('reset'));
-    return;
-}
-
-sub current_test {
-    require autotest;
-    return $autotest::current_test;
-}
-
-sub update_line_number {
-    return unless current_test;
-    return unless current_test->{script};
-    my @out;
-    my $casedir = $vars{CASEDIR} // '';
-    for (my $i = 10; $i > 0; $i--) {
-        my ($package, $filename, $line, $subroutine) = caller($i);
-        next unless $filename && $filename =~ /\Q$casedir/;
-        $filename =~ s@$casedir/?@@;
-        push @out, "$filename:$line called $subroutine";
-    }
-    $logger->debug(join(' -> ', @out));
-    return;
-}
-
-# pretty print like Data::Dumper but without the "VAR1 = " prefix
-sub pp {
-    # FTR, I actually hate Data::Dumper.
-    my $value_with_trailing_newline = Data::Dumper->new(\@_)->Terse(1)->Useqq(1)->Dump();
-    chomp($value_with_trailing_newline);
-    return $value_with_trailing_newline;
-}
-
-sub log_call {
-    my $fname = (caller(1))[3];
-    update_line_number();
-    my $params;
-    if (@_ == 1) {
-        $params = pp($_[0]);
-    }
-    else {
-        # key/value pairs
-        my @result;
-        while (my ($key, $value) = splice(@_, 0, 2)) {
-            if ($key =~ tr/0-9a-zA-Z_//c) {
-                # only quote if needed
-                $key = pp($key);
-            }
-            push @result, join("=", $key, pp($value));
-        }
-        $params = join(", ", @result);
-    }
-    logger->debug('<<< ' . $fname . "($params)");
-    return;
-}
-
-sub fileContent {
-    my ($fn) = @_;
-    no autodie 'open';
-    open(my $fd, "<", $fn) or return;
-    local $/;
-    my $result = <$fd>;
-    close($fd);
-    return $result;
-}
-
-# util and helper functions end
 
 # backend management
 

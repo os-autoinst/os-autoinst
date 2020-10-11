@@ -19,6 +19,7 @@ package autotest;
 use strictures;
 
 use bmwqemu;
+use common qw(result_dir);
 use Exporter 'import';
 use File::Basename;
 use File::Spec;
@@ -56,7 +57,7 @@ sub find_script {
     my $casedir              = $bmwqemu::vars{CASEDIR};
     my $script_override_path = join('/', $bmwqemu::vars{ASSETDIR} // '', 'other', $script);
     if (-f $script_override_path) {
-        bmwqemu::diag("Found override test module for $script: $script_override_path");
+        log::diag("Found override test module for $script: $script_override_path");
         return File::Spec->abs2rel($script_override_path, $casedir);
     }
     elsif (!-f join('/', $casedir, $script)) {
@@ -114,7 +115,7 @@ sub loadtest {
     eval $code;
     if ($@) {
         my $msg = "error on $script: $@";
-        bmwqemu::diag($msg);
+        log::diag($msg);
         bmwqemu::serialize_state(component => 'tests', msg => "unable to load $script, check the log for the cause (e.g. syntax error)");
         die $msg;
     }
@@ -150,7 +151,7 @@ sub loadtest {
     # Test schedule may change at runtime. Update test_order.json to notify
     # the OpenQA server of the change.
     write_test_order() if $tests_running;
-    bmwqemu::diag("scheduling $test->{name} $script");
+    log::diag("scheduling $test->{name} $script");
 }
 
 our $current_test;
@@ -199,18 +200,18 @@ sub write_test_order {
                 flags    => $t->test_flags(),
                 script   => $t->{script}});
     }
-    bmwqemu::save_json_file(\@result, bmwqemu::result_dir . "/test_order.json");
+    bmwqemu::save_json_file(\@result, common::result_dir . "/test_order.json");
 }
 
 sub make_snapshot {
     my ($sname) = @_;
-    bmwqemu::diag("Creating a VM snapshot $sname");
+    log::diag("Creating a VM snapshot $sname");
     return query_isotovideo('backend_save_snapshot', {name => $sname});
 }
 
 sub load_snapshot {
     my ($sname) = @_;
-    bmwqemu::diag("Loading a VM snapshot $sname");
+    log::diag("Loading a VM snapshot $sname");
     my $command = query_isotovideo('backend_load_snapshot', {name => $sname});
     # On VMware VNC console needs to be re-selected after snapshot revert,
     # so the screen is refreshed. Same with serial console.
@@ -288,7 +289,7 @@ sub start_process {
         separate_err                => 0,
         set_pipes                   => 0,
         internal_pipes              => 0)->start;
-    $process->on(collected => sub { bmwqemu::diag "[" . __PACKAGE__ . "] process exited: " . shift->exit_status; });
+    $process->on(collected => sub { log::diag "[" . __PACKAGE__ . "] process exited: " . shift->exit_status; });
 
     close $isotovideo;
     return ($process, $child);
@@ -320,7 +321,7 @@ sub runalltests {
     my $firsttest           = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
     my $vmloaded            = 0;
     my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
-    bmwqemu::diag "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
+    log::diag "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
 
     write_test_order();
 
@@ -341,14 +342,14 @@ sub runalltests {
             $vmloaded = 1;
         }
         if (!$vmloaded) {
-            bmwqemu::diag "skipping $fullname";
+            log::diag "skipping $fullname";
             $t->skip_if_not_running();
             $t->save_test_result();
             next;
         }
 
         my $name = $t->{name};
-        bmwqemu::modstart "starting $name $t->{script}";
+        log::modstart "starting $name $t->{script}";
         $t->start();
 
         # avoid erasing the good vm snapshot
@@ -364,7 +365,7 @@ sub runalltests {
             my $msg = $error;
             if ($msg !~ /^test.*died/) {
                 # avoid duplicating the message
-                bmwqemu::diag $msg;
+                log::diag $msg;
             }
             if ($bmwqemu::vars{DUMP_MEMORY_ON_FAIL}) {
                 query_isotovideo('backend_save_memory_dump', {filename => $fullname});

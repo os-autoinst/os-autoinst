@@ -292,7 +292,7 @@ subtest 'test scheduling test modules at test runtime' => sub {
     %autotest::tests         = ();
 
     my %json_data;
-    my $json_filename = bmwqemu::result_dir . '/test_order.json';
+    my $json_filename = common::result_dir . '/test_order.json';
     my $testorder     = [
         {
             name     => 'scheduler',

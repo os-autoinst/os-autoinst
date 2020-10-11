@@ -48,32 +48,6 @@ sub read_vars {
     return $ret;
 }
 
-subtest 'log_call' => sub {
-    require bmwqemu;
-    sub log_call_test {
-        bmwqemu::log_call(foo => "bar\tbaz\rboo\n");
-    }
-    stderr_like(\&log_call_test, qr{\Q<<< main::log_call_test(foo="bar\tbaz\rboo\n")}, 'log_call escapes special characters');
-
-    sub log_call_test_escape_key {
-        bmwqemu::log_call("foo\nbar" => "bar\tbaz\rboo\n");
-    }
-    stderr_like(\&log_call_test_escape_key, qr{\Q<<< main::log_call_test_escape_key("foo\nbar"="bar\tbaz\rboo\n")}, 'log_call escapes special characters');
-
-    sub log_call_test_single {
-        bmwqemu::log_call("bar\tbaz\rboo\n");
-    }
-    stderr_like(\&log_call_test_single, qr{\Q<<< main::log_call_test_single("bar\tbaz\rboo\n")}, 'log_call escapes special characters');
-};
-
-subtest 'update_line_number' => sub {
-    $bmwqemu::direct_output = 1;
-    bmwqemu::init_logger();
-    ok !bmwqemu::update_line_number(), 'update_line_number needs current_test defined';
-    $autotest::current_test = {script => 'my/module.pm'};
-    stderr_like { bmwqemu::update_line_number() } qr{bmwqemu.t.*called.*subtest}, 'update_line_number identifies caller scope';
-};
-
 subtest 'CASEDIR is mandatory' => sub {
     my $dir = '/var/lib/openqa';
     create_vars({DISTRI => 'test'});
