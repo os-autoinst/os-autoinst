@@ -72,6 +72,7 @@ on 'test' => sub {
     requires 'Benchmark';
     requires 'Devel::Cover';
     requires 'FindBin';
+    requires 'Mojo::IOLoop::ReadWriteProcess', '>= 0.28';
     requires 'Perl::Critic';
     requires 'Perl::Critic::Freenode';
     requires 'Perl::Critic::Policy';
