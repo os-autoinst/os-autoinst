@@ -21,6 +21,7 @@
 use strict;
 use warnings;
 
+use OpenQA::Test::TimeLimit '5';
 use File::Basename qw(dirname);
 use Test::More;
 use Test::Warnings qw(warnings :report_warnings);

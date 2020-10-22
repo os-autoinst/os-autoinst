@@ -24,6 +24,7 @@ BEGIN { *CORE::GLOBAL::sleep = sub { push @invoked_cmds, [sleep => shift] } }
 
 use Test::Exception;
 use Test::More;
+use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;

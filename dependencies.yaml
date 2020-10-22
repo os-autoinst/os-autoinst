@@ -83,7 +83,7 @@ test_base_requires:
   perl(Test::MockObject):
   perl(Test::Mock::Time):
   perl(Test::Mojo):
-  perl(Test::More):
+  perl(Test::Most):
   perl(Test::Output):
   perl(Test::Pod):
   perl(Test::Strict):
