@@ -69,15 +69,17 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define test_base_requires %main_requires perl(Benchmark) perl(Devel::Cover) perl(FindBin) perl(Pod::Coverage) perl(Test::Exception) perl(Test::Fatal) perl(Test::Mock::Time) perl(Test::MockModule) perl(Test::MockObject) perl(Test::Mojo) perl(Test::More) perl(Test::Output) perl(Test::Pod) perl(Test::Strict) perl(Test::Warnings) >= 0.029 procps python3-setuptools qemu qemu-tools qemu-x86
 # The following line is generated from dependencies.yaml
+%define test_version_only_requires perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
+# The following line is generated from dependencies.yaml
 %define test_legacy_requires %build_legacy_requires %test_base_requires
 # The following line is generated from dependencies.yaml
 %define test_requires %build_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(YAML::PP)
 # The following line is generated from dependencies.yaml
 %define devel_requires %test_requires perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy)
 %if 0%{?suse_version} == 1315
-BuildRequires:  %test_legacy_requires
+BuildRequires:  %test_legacy_requires %test_version_only_requires
 %else
-BuildRequires:  %test_requires
+BuildRequires:  %test_requires %test_version_only_requires
 %endif
 Requires:       %main_requires
 Recommends:     tesseract-ocr
