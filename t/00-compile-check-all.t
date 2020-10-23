@@ -25,6 +25,9 @@ use File::Which;
 use FindBin '$Bin';
 chdir "$Bin/..";
 
+push @Test::Strict::MODULES_ENABLING_STRICT,   'Test::Most';
+push @Test::Strict::MODULES_ENABLING_WARNINGS, 'Test::Most';
+
 $Test::Strict::TEST_SYNTAX   = 1;
 $Test::Strict::TEST_STRICT   = 1;
 $Test::Strict::TEST_WARNINGS = 1;
