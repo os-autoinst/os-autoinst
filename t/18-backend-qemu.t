@@ -4,6 +4,7 @@ use 5.018;
 use strict;
 use warnings;
 
+use OpenQA::Test::TimeLimit '5';
 use Test::More;
 use Test::MockModule;
 use Test::MockObject;

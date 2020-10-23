@@ -175,7 +175,8 @@ Further notes:
   specific tweaks have no effect).
 * One can always run Perl tests manually via `prove` after the build has been conducted with
   `make symlinks`. Note that some tests need to be invoked within the `t` directory. An
-  invocation like `prove -vI.. 28-signalblocker.t` is supposed to work.
+  invocation like `prove -vI.. -I../external/os-autoinst-common/lib 28-signalblocker.t` is
+  supposed to work.
 * It is also possible to run `ctest` within the build directory directly instead of
   using the mentioned targets.
 * All mentioned variables to influence the test execution (`TESTS`, `WITH_COVER_OPTIONS`, …)

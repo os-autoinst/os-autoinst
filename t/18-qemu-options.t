@@ -18,6 +18,7 @@ use strict;
 use warnings;
 use Test::More;
 use Test::Warnings ':report_warnings';
+use OpenQA::Test::TimeLimit '40';
 use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
