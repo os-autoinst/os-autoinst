@@ -33,7 +33,7 @@ sub init_switch {
     }
     system('ovs-vsctl', 'br-exists', $self->{BRIDGE});
 
-    for (my $timeout = 60; $timeout > 0; --$timeout) {
+    for (my $timeout = $ENV{OS_AUTOINST_OPENVSWITCH_INIT_TIMEOUT} // 60; $timeout > 0; --$timeout) {
         my $bridge_conf = `ip addr show $self->{BRIDGE}`;
         $self->{MAC} = $1 if $bridge_conf =~ /ether\s+(([0-9a-f]{2}:){5}[0-9a-f]{2})\s/;
         $self->{IP}  = $1 if $bridge_conf =~ /inet\s+(([0-9]+.){3}[0-9]+\/[0-9]+)\s/;
