@@ -734,6 +734,10 @@ sub start_qemu {
         $vars->{QEMUMACHINE} //= "usb=off";
         sp('g', '1024x768');
         $use_usb_kbd = 1;
+        # newer qemu needs safe cache capability level quirk settings
+        # https://progress.opensuse.org/issues/75259
+        my $caps = ',cap-cfpc=broken,cap-sbbc=broken,cap-ibs=broken';
+        $vars->{QEMUMACHINE} .= $caps if $self->{qemu_version} >= '4' && $vars->{QEMUMACHINE} !~ /$caps/;
     }
     sp('vga', $vars->{QEMUVGA}) if $vars->{QEMUVGA};
 
