@@ -6,6 +6,7 @@ use Test::MockModule;
 use Test::More;
 use Test::Fatal;
 use Test::Exception;
+use Test::Output qw(combined_like);
 use File::Basename;
 use FindBin '$Bin';
 use Mojo::File 'tempdir';
@@ -35,9 +36,10 @@ subtest run_post_fail_test => sub {
             category     => 'category1',
             execute_time => 42,
     }, $basetest_class);
-    dies_ok { $basetest->runtest } 'run_post_fail end up with die';
+    combined_like { dies_ok { $basetest->runtest } 'run_post_fail end up with die' } qr/Test died/, 'test died';
     $bmwqemu::vars{_SKIP_POST_FAIL_HOOKS} = 1;
-    dies_ok { $basetest->runtest } 'run_post_fail behavior persists regardless of _SKIP_POST_FAIL_HOOKS setting';
+    combined_like { dies_ok { $basetest->runtest } 'behavior persists regardless of _SKIP_POST_FAIL_HOOKS setting' }
+    qr/Test died/, 'test died';
 };
 
 subtest modules_test => sub {
@@ -265,7 +267,8 @@ subtest record_screenmatch => sub {
         },
     );
 
-    $basetest_for_workaround->record_screenmatch($image, \%workaround_match, ['check-workaround-hash'], [], $frame);
+    combined_like { $basetest_for_workaround->record_screenmatch($image, \%workaround_match, ['check-workaround-hash'], [], $frame) }
+    qr/needle.*is a workaround/, 'needle workaround debug message found';
     is_deeply($basetest_for_workaround->{details}, [
             {
                 result => 'softfail',
@@ -342,7 +345,7 @@ subtest 'execute_time' => sub {
     $mock_basetest->mock(execution_time => 42);
     $mock_basetest->mock(run            => undef);
     $mock_basetest->redefine(done => undef);
-    $test->runtest;
+    combined_like { $test->runtest } qr/finished basetest foo/, 'finish status message found';
     is($test->{execution_time}, 42, 'the execution time is correct');
 };
 
