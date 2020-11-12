@@ -1,6 +1,4 @@
 #!/usr/bin/perl
-# Do not add to makefile.am
-
 use strict;
 use warnings;
 use Test::More;

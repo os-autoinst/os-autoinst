@@ -92,14 +92,14 @@ Installing dependencies
 
 On openSUSE one can install the package
 link:https://build.opensuse.org/project/show/devel:openQA[`os-autoinst-devel`] which
-pulls all dependencies required to build with CMake.
+pulls all dependencies.
 
 The required dependencies are also declared in `dependencies.yaml`. (The names listed
 within that file are specific to openSUSE but can be easily transferred to other
 distributions.)
 
-CMake
-^^^^^
+Conducting the build
+^^^^^^^^^^^^^^^^^^^^
 
 Create a build directory outside of the source directory. The following commands need
 to be invoked within that directory.
@@ -181,32 +181,6 @@ Further notes:
   using the mentioned targets.
 * All mentioned variables to influence the test execution (`TESTS`, `WITH_COVER_OPTIONS`, …)
   can be combined and can also be used with the `coverage` target.
-
-GNU Autotools
-^^^^^^^^^^^^^
-
-The following commands need to be invoked within the top-level of the repository
-checkout.
-
-Configure build:
-----
-./autogen.sh
-----
-
-Build executables and libraries:
-----
-make
-----
-
-Run all tests:
-----
-make check
-----
-
-Run individual tests by specifying them explicitly:
-----
-make check TESTS=23-baseclass.t
-----
 
 How to run test cases
 ---------------------
