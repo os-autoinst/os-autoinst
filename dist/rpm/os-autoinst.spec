@@ -34,8 +34,6 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define build_base_requires %opencv_require gcc-c++ perl(Pod::Html) pkg-config pkgconfig(fftw3) pkgconfig(libpng) pkgconfig(sndfile) pkgconfig(theoraenc)
 # The following line is generated from dependencies.yaml
-%define build_legacy_requires %build_base_requires autoconf automake libtool make perl(ExtUtils::Embed) perl(ExtUtils::MakeMaker) >= 6.66 perl(Module::CPANfile)
-# The following line is generated from dependencies.yaml
 %define build_requires %build_base_requires cmake ninja
 # The following line is generated from dependencies.yaml
 %define main_requires git-core perl(B::Deparse) perl(Carp) perl(Carp::Always) perl(Class::Accessor::Fast) perl(Config) perl(Cpanel::JSON::XS) perl(Crypt::DES) perl(Cwd) perl(Data::Dumper) perl(Digest::MD5) perl(DynaLoader) perl(English) perl(Errno) perl(Exception::Class) perl(Exporter) perl(ExtUtils::testlib) perl(Fcntl) perl(File::Basename) perl(File::Find) perl(File::Path) perl(File::Spec) perl(File::Temp) perl(File::Touch) perl(File::Which) perl(IO::Handle) perl(IO::Scalar) perl(IO::Select) perl(IO::Socket) perl(IO::Socket::INET) perl(IO::Socket::UNIX) perl(IPC::Open3) perl(IPC::Run::Debug) perl(IPC::System::Simple) perl(List::MoreUtils) perl(List::Util) perl(Mojo::IOLoop::ReadWriteProcess) >= 0.26 perl(Mojo::JSON) perl(Mojo::Log) perl(Mojo::URL) perl(Mojo::UserAgent) perl(Mojolicious) >= 8.42 perl(Mojolicious::Lite) perl(Net::DBus) perl(Net::IP) perl(Net::SNMP) perl(Net::SSH2) perl(POSIX) perl(Scalar::Util) perl(Socket) perl(Socket::MsgHdr) perl(Term::ANSIColor) perl(Thread::Queue) perl(Time::HiRes) perl(Try::Tiny) perl(XML::LibXML) perl(XML::SemanticDiff) perl(autodie) perl(base) perl(constant) perl(integer) perl(strict) perl(version) perl(warnings) perl-base
@@ -50,10 +48,8 @@ Source0:        %{name}-%{version}.tar.xz
 %if %{with spellcheck}
 # The following line is generated from dependencies.yaml
 %define spellcheck_requires aspell-en aspell-spell perl(Pod::Spell)
-%define spellcheck_make_args_for_autotools %{nil}
 %else
 %define spellcheck_requires %{nil}
-%define spellcheck_make_args_for_autotools CHECK_DOC=0
 %endif
 %if 0%{?sle_version} < 150200 && !0%{?is_opensuse}
 %bcond_without yamllint
@@ -71,16 +67,10 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define test_version_only_requires perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
 # The following line is generated from dependencies.yaml
-%define test_legacy_requires %build_legacy_requires %test_base_requires
-# The following line is generated from dependencies.yaml
 %define test_requires %build_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(YAML::PP)
 # The following line is generated from dependencies.yaml
 %define devel_requires %test_requires perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy)
-%if 0%{?suse_version} == 1315
-BuildRequires:  %test_legacy_requires %test_version_only_requires
-%else
 BuildRequires:  %test_requires %test_version_only_requires
-%endif
 Requires:       %main_requires
 Recommends:     tesseract-ocr
 Recommends:     /usr/bin/xkbcomp /usr/bin/Xvnc dumponlyconsole
@@ -132,25 +122,12 @@ for i in 07-commands 13-osutils 14-isotovideo 18-qemu-options 18-backend-qemu 99
 done
 
 %build
-%if 0%{?suse_version} == 1315
-autoreconf -f -i
-%configure --docdir=%{_docdir}/%{name}
-make %{?_smp_mflags} INSTALLDIRS=vendor
-%else
 %define __builder ninja
 %cmake -DOS_AUTOINST_DOC_DIR:STRING="%{_docdir}/%{name}" -DSYSTEMD_SERVICE_DIR:STRING="%{_unitdir}"
 %cmake_build
-%endif
 
 %install
-%if 0%{?suse_version} == 1315
-%make_install INSTALLDIRS=vendor
-# remove internal tools
-rm -r %{buildroot}/usr/lib/os-autoinst/tools/
-rm -r %{buildroot}/usr/lib/os-autoinst/external/
-%else
 %cmake_install install-openvswitch
-%endif
 
 ls -lR %buildroot
 find %{buildroot} -type f -name .packlist -print0 | xargs -0 --no-run-if-empty rm -f
@@ -166,17 +143,8 @@ export NO_BRP_STALE_LINK_ERROR=yes
 
 %check
 export CI=1
-%if 0%{?suse_version} == 1315
-sed '/perlcritic/d' -i Makefile
-sed '/tidy/d' -i Makefile
-sed '/Perl::Critic/d' -i cpanfile
-rm -r t/27-make-update-deps.t tools/update-deps
-printf '#!/bin/sh\necho YAML syntax check disabled' > tools/check-yaml-syntax
-make check test VERBOSE=1 %{spellcheck_make_args_for_autotools}
-%else
 cd %{__builddir}
 %cmake_build check-pkg-build
-%endif
 
 %pre openvswitch
 %service_add_pre os-autoinst-openvswitch.service

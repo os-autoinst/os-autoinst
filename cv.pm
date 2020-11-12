@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,16 +28,13 @@ sub init {
     use Config;
     my $vendorlib = $Config{installvendorlib};
     my $libdir    = dirname(__FILE__);
-    # undef is substituted with $(pkglibexecdir) in
-    # make install, in the following line. See Makefile.am
+    # undef is substituted at install time, see CMakeLists.txt
     my $sysdir = undef;
     return if ($sysdir && $libdir eq $sysdir);
     my @s = stat("$libdir/ppmclibs/blib/lib/tinycv.pm");
     unless (@s && -e "$libdir/ppmclibs/tinycv.pm" && $s[7] == (stat(_))[7]) {
         $| = 1;
-        print STDERR "### Please build the tinycv bindings first:\n";
-        print STDERR "cd $libdir/ppmclibs ; perl Makefile.PL\n" unless -e "$libdir/ppmclibs/Makefile";
-        print STDERR "make -C $libdir/ppmclibs\n";
+        print STDERR "### Please build the tinycv bindings first (see os-autoinst's README)\n";
         die("tinycv outdated");
     }
 

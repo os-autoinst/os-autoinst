@@ -1,23 +1,10 @@
 # autotools
 doc/basetest.html
 doc/testapi.html
-ppmclibs/tinycv_wrap.cxx
 *.tmp
-aclocal.m4
-autom4te.cache/
-m4/
-.libs/
 missing
-install-sh
-config.status
-config.log
-config.guess
-config.sub
-configure
-libtool
 ltmain.sh
 Makefile
-Makefile.in
 depcomp
 .deps/
 *.tar.gz

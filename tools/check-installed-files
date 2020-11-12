@@ -7,7 +7,7 @@ all_source_files=$(git -C "$checkoutdir" ls-files "*.pm" 2>/dev/null || find "$c
 source_files=$(echo "$all_source_files" | grep -v -E '(ppmclibs/|t/|tools/)')
 for i in $source_files; do
     if ! echo "$installed_files" | grep -q "$i"; then
-        echo "$i missing from installed files. Add to install instructions in Makefile.am."
+        echo "$i missing from installed files. Add to install instructions in CMakeLists.txt."
         exit 1
     fi
 done
