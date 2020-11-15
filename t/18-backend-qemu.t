@@ -1,11 +1,9 @@
 #!/usr/bin/perl
 
 use 5.018;
-use strict;
-use warnings;
+use Test::Most;
 
 use OpenQA::Test::TimeLimit '5';
-use Test::More;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Output qw(combined_like stderr_like);

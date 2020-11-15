@@ -1,4 +1,7 @@
 #!/usr/bin/perl
+
+# Copyright (C) 2016-2020 SUSE LLC
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 2 of the License, or
@@ -12,7 +15,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 use 5.018;
-use warnings;
+use Test::Most;
 use Carp 'confess';
 use English -no_match_vars;
 use POSIX qw( :sys_wait_h sigprocmask sigsuspend mkfifo);
@@ -23,7 +26,6 @@ use File::Temp 'tempfile';
 use Mojo::Log;
 use Mojo::JSON qw( encode_json decode_json );
 
-use Test::More;
 use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 my $main_pid = $$;
@@ -171,10 +173,10 @@ sub fake_terminal {
         exit(1);
     };
 
-    # Test::More does not support forking, but if these tests fail it should
+    # Test::Most does not support forking, but if these tests fail it should
     # cause the child to return a non zero exit code which will cause the
     # parent to fail as well
-    my $tb = Test::More->builder;
+    my $tb = Test::Most->builder;
     $tb->reset;
 
     try_write($fd_w, $login_prompt_data);
@@ -234,7 +236,7 @@ sub is_matched {
 }
 
 sub test_terminal_directly {
-    my $tb = Test::More->builder;
+    my $tb = Test::Most->builder;
     $tb->reset;
 
     my $term = consoles::virtio_terminal->new('unit-test-console', {tty => 3});
@@ -316,7 +318,7 @@ sub test_terminal_directly {
 }
 
 sub test_terminal_disabled {
-    my $tb = Test::More->builder;
+    my $tb = Test::Most->builder;
     $tb->reset;
 
     testapi::set_var('VIRTIO_CONSOLE', 0);
@@ -381,7 +383,7 @@ for my $pid (sort keys %$child_tests) {
     my $tests = $child_tests->{$pid};
     for my $test (@$tests) {
         my ($method, @args) = @$test;
-        if (my $sub = Test::More->can($method)) {
+        if (my $sub = Test::Most->can($method)) {
             if ($method eq 'like') {
                 $args[1] = qr{$args[1]};
             }

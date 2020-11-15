@@ -1,9 +1,7 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Test::Most;
 
-use Test::More;
 use Test::Output qw(stderr_like combined_from);
 use Test::Fatal;
 use Test::MockModule;

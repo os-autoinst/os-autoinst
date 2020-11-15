@@ -16,12 +16,10 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 
-use strict;
-use warnings;
+use Test::Most;
 use Socket;
 use myjsonrpc;
 
-use Test::More;
 use Test::Warnings qw(warnings :report_warnings);
 
 no warnings 'redefine';

@@ -18,12 +18,10 @@
 # This test covers the signalblocker module and tinycv's helper to create
 # threads upfront.
 
-use strict;
-use warnings;
+use Test::Most;
 
 use OpenQA::Test::TimeLimit '5';
 use File::Basename qw(dirname);
-use Test::More;
 use Test::Warnings qw(warnings :report_warnings);
 use Time::HiRes qw(sleep);
 use POSIX ':signal_h';

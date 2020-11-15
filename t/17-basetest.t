@@ -1,11 +1,8 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Test::Most;
 use Test::MockModule;
-use Test::More;
 use Test::Fatal;
-use Test::Exception;
 use Test::Output qw(combined_like);
 use File::Basename;
 use FindBin '$Bin';

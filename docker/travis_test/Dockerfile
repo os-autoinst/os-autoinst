@@ -95,7 +95,6 @@ RUN zypper in -y -C \
        'perl(Socket)' \
        'perl(Socket::MsgHdr)' \
        'perl(Term::ANSIColor)' \
-       'perl(Test::Exception)' \
        'perl(Test::Fatal)' \
        'perl(Test::Mock::Time)' \
        'perl(Test::MockModule)' \

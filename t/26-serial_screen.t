@@ -1,9 +1,7 @@
 #!/usr/bin/perl
 # Copyright © 2019 SUSE LLC
 
-use strict;
-use warnings;
-use Test::More;
+use Test::Most;
 use consoles::serial_screen;
 
 my $screen = consoles::serial_screen->new('read', 'write');

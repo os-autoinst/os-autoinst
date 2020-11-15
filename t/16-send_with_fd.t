@@ -1,10 +1,8 @@
 #!/usr/bin/perl
 
 use 5.018;
-use strict;
-use warnings;
+use Test::Most;
 
-use Test::More;
 use Socket;
 # This is the library we want to avoid, but it is OK just for testing
 use Socket::MsgHdr;

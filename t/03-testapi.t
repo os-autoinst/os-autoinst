@@ -1,15 +1,12 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Test::Most;
 
 use Test::Mock::Time;
 use File::Temp;
-use Test::More;
 use Test::Output;
 use Test::Fatal;
 use Test::Warnings qw(:all :report_warnings);
-use Test::Exception;
 use Scalar::Util 'looks_like_number';
 
 use OpenQA::Isotovideo::Interface;

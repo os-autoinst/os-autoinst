@@ -1,11 +1,8 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Test::Most;
 use autodie ':all';
-use Test::Exception;
 use Test::Output;
-use Test::More;
 use File::Basename;
 use File::Path qw(remove_tree rmtree);
 use Cwd 'abs_path';

@@ -17,9 +17,7 @@
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 
-use strict;
-use warnings;
-use Test::More;
+use Test::Most;
 use Test::Output qw(stderr_from);
 use bmwqemu;
 use Mojo::File 'tempfile';

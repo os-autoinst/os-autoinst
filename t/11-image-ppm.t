@@ -1,7 +1,5 @@
 #!/usr/bin/perl
-use strict;
-use warnings;
-use Test::More;
+use Test::Most;
 use Test::Warnings ':report_warnings';
 
 use Try::Tiny;

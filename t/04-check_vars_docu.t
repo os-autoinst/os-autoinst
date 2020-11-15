@@ -16,11 +16,9 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 
-use strict;
-use warnings;
+use Test::Most;
 
 use Test::Warnings ':report_warnings';
-use Test::More;
 use FindBin;
 use File::Find;
 require IPC::System::Simple;

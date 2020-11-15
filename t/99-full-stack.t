@@ -15,11 +15,9 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 
-use strict;
-use warnings;
+use Test::Most;
 
 use OpenQA::Test::TimeLimit '240';
-use Test::More;
 use Test::Warnings ':report_warnings';
 use Try::Tiny;
 use File::Basename;

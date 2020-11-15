@@ -1,9 +1,7 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Test::Most;
 
-use Test::More;
 use Test::Pod;
 use File::Basename;
 my $curdir = dirname(__FILE__);
