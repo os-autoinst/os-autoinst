@@ -78,7 +78,7 @@ Issues are tracked on https://progress.opensuse.org/projects/openqav3/.
 For an overview of the architecture, see link:doc/architecture.md[doc/architecture.md].
 
 Rules for commits
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 * Every commit is checked by https://travis-ci.org/travis[Travis CI] as soon as
 you create a pull request but you *should* run the os-autoinst tests locally. Checkout
@@ -98,7 +98,7 @@ Build instructions
 ------------------
 
 Installing dependencies
-^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~
 
 On openSUSE one can install the package
 link:https://build.opensuse.org/project/show/devel:openQA[`os-autoinst-devel`] which
@@ -109,7 +109,7 @@ within that file are specific to openSUSE but can be easily transferred to other
 distributions.)
 
 Conducting the build
-^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~
 
 Create a build directory outside of the source directory. The following commands need
 to be invoked within that directory.
