@@ -33,6 +33,19 @@ line or read test parameters from a file named `vars.json`. This file stores
 the values of the different variables that will configure the behavior of the
 test execution.
 
+A container is provided and can be pulled and the main execution can be called
+in one step, for example using the `podman` container engine for tests defined
+in the current directory on x86_64:
+
+[source,sh]
+----
+podman run --rm -it -v .:/tests registry.opensuse.org/devel/openqa/containers/isotovideo:qemu-x86 casedir=/tests
+----
+
+Take a look on
+https://registry.opensuse.org/cgi-bin/cooverview?srch_term=project%3Ddevel%3AopenQA
+for all available container images.
+
 Additional test variables can be supplied on the command line. There are some
 variables used by os-autoinst itself and other that are used by the tests. A
 minimal command line can look like this:
