@@ -28,12 +28,22 @@ link:http://open.qa/docs/#_development_version_repository[openQA documentation].
 
 For building os-autoinst manually checkout the build instructions below.
 
-To execute an instance of os-autoinst one needs to create a file named
-`vars.json`. It stores the values of the different variables that will configure
-the behavior of the test execution.
+The main executable `isotovideo` can read test parameters from the command
+line or read test parameters from a file named `vars.json`. This file stores
+the values of the different variables that will configure the behavior of the
+test execution.
 
-There are some variables used by os-autoinst itself and other that are
-used by the tests. A minimal `vars.json` file can be:
+Additional test variables can be supplied on the command line. There are some
+variables used by os-autoinst itself and other that are used by the tests. A
+minimal command line can look like this:
+
+[source,sh]
+----
+isotovideo distri=opensuse casedir=/full/path/for/tests iso=/full/path/for/iso
+----
+
+As alternative or completementary a corresponding `vars.json` with additional
+parameters could be:
 
 [source, javascript]
 -------------------------------------------------------------------
