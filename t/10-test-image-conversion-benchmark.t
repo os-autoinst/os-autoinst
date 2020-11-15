@@ -10,15 +10,7 @@ use File::Basename;
 use File::Path qw(make_path remove_tree);
 use File::Temp 'tempfile';
 use Cwd;
-
-
 use OpenQA::Benchmark::Stopwatch;
-
-
-# optional but very useful
-eval 'use Test::More::Color';
-eval 'use Test::More::Color "foreground"';
-
 use needle;
 use cv;
 

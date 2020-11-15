@@ -29,10 +29,6 @@ use FindBin '$Bin';
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
 
-# optional but very useful
-eval 'use Test::More::Color';
-eval 'use Test::More::Color "foreground"';
-
 my $dir          = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = "$Bin/..";
 my $data_dir     = "$Bin/data/";

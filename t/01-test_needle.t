@@ -11,10 +11,6 @@ use File::Basename;
 use File::Path 'make_path';
 use File::Temp qw(tempdir);
 
-# optional but very useful
-eval 'use Test::More::Color';
-eval 'use Test::More::Color "foreground"';
-
 BEGIN {
     $bmwqemu::vars{DISTRI}  = "unicorn";
     $bmwqemu::vars{CASEDIR} = "/var/lib/empty";
