@@ -20,7 +20,7 @@
 
 isotovideo [OPTIONS] [TEST PARAMETER]
 
-Parses vars.json and tests the given assets/ISOs.
+Parses command line parameters, vars.json and tests the given assets/ISOs.
 
 =head1 OPTIONS
 
