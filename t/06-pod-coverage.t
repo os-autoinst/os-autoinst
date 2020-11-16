@@ -1,13 +1,11 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Test::Most;
 
 BEGIN {
     push @INC, '.';
 }
 
-use Test::More;
 use Test::Warnings ':report_warnings';
 use Pod::Coverage;
 use File::Basename;

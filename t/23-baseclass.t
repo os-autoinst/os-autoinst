@@ -1,9 +1,6 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
-use Test::Exception;
-use Test::More;
+use Test::Most;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Output 'stdout_is';

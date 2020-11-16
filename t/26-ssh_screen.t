@@ -1,9 +1,7 @@
 #!/usr/bin/perl
 # Copyright © 2019 SUSE LLC
 
-use strict;
-use warnings;
-use Test::More;
+use Test::Most;
 use consoles::ssh_screen;
 
 my $screen = consoles::ssh_screen->new(ssh_connection => 'My_Con', ssh_channel => 'My_Chan');

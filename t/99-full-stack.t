@@ -15,11 +15,9 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 
-use strict;
-use warnings;
+use Test::Most;
 
 use OpenQA::Test::TimeLimit '240';
-use Test::More;
 use Test::Warnings ':report_warnings';
 use Try::Tiny;
 use File::Basename;
@@ -28,10 +26,6 @@ use Mojo::JSON 'decode_json';
 use FindBin '$Bin';
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
-
-# optional but very useful
-eval 'use Test::More::Color';
-eval 'use Test::More::Color "foreground"';
 
 my $dir          = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = "$Bin/..";

@@ -1,11 +1,8 @@
 #!/usr/bin/perl
 # Copyright © 2020 SUSE LLC
 
-use strict;
-use warnings;
+use Test::Most;
 
-use Test::More;
-use Test::Exception;
 use Test::MockModule;
 use Test::Output;
 use POSIX 'mkfifo';

@@ -14,9 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-use strict;
-use warnings;
-use Test::More;
+use Test::Most;
 use Test::Warnings ':report_warnings';
 use OpenQA::Test::TimeLimit '40';
 use Try::Tiny;
@@ -27,10 +25,6 @@ use Mojo::JSON qw(encode_json);
 use Benchmark ':hireswallclock';
 use FindBin '$Bin';
 use Mojo::Util qw(scope_guard);
-
-# optional but very useful
-eval 'use Test::More::Color';
-eval 'use Test::More::Color "foreground"';
 
 my $dir          = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = "$Bin/..";

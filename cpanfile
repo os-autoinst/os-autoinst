@@ -78,7 +78,6 @@ on 'test' => sub {
     requires 'Perl::Critic::Policy';
     requires 'Perl::Critic::Utils';
     requires 'Pod::Coverage';
-    requires 'Test::Exception';
     requires 'Test::Fatal';
     requires 'Test::Mock::Time';
     requires 'Test::MockModule';

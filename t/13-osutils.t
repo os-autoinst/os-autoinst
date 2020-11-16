@@ -15,9 +15,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-use 5.018;
-use warnings;
-use Test::More;
+use Test::Most;
 use Test::MockModule;
 use Test::Warnings qw(:all :report_warnings);
 use Test::Output qw(stderr_like);

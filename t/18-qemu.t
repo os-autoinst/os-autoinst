@@ -1,11 +1,9 @@
 #!/usr/bin/perl
 
 use 5.018;
-use strict;
-use warnings;
+use Test::Most;
 
 use OpenQA::Test::TimeLimit '5';
-use Test::More;
 use Test::Fatal;
 use Test::Warnings qw(warnings :report_warnings);
 use Mojo::File qw(tempfile tempdir path);

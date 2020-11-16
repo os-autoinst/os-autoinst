@@ -1,22 +1,12 @@
 #!/usr/bin/perl
-use strict;
-use warnings;
-use Test::More;
+use Test::Most;
 use Test::Warnings ':report_warnings';
 
 use Try::Tiny;
 use File::Basename;
 use File::Path qw(make_path remove_tree);
 use Cwd;
-
-
 use OpenQA::Benchmark::Stopwatch;
-
-
-# optional but very useful
-eval 'use Test::More::Color';
-eval 'use Test::More::Color "foreground"';
-
 use cv;
 
 cv::init();

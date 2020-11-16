@@ -1,19 +1,13 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Test::Most;
 use Cwd 'abs_path';
 use Test::Exception;
 use Test::Output qw(combined_like stderr_like);
-use Test::More;
 use Test::Warnings qw(warning :report_warnings);
 use File::Basename;
 use File::Path 'make_path';
 use File::Temp qw(tempdir);
-
-# optional but very useful
-eval 'use Test::More::Color';
-eval 'use Test::More::Color "foreground"';
 
 BEGIN {
     $bmwqemu::vars{DISTRI}  = "unicorn";

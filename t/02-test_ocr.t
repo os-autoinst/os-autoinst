@@ -1,9 +1,7 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Test::Most;
 
-use Test::More;
 use Test::Output;
 use Test::Warnings ':report_warnings';
 use File::Which 'which';

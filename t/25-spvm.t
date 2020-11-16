@@ -1,14 +1,11 @@
 #!/usr/bin/perl
 
 use 5.018;
-use strict;
-use warnings;
+use Test::Most;
 
-use Test::More;
 use Test::MockModule;
 use backend::spvm;
 use testapi qw(set_var power);
-use Test::Exception;
 
 subtest 'SSH credentials in spvm' => sub {
     my $expected_credentials = {username => 'root', password => 'foo', hostname => 'my_foo_hostname'};
