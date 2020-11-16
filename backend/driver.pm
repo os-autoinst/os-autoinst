@@ -84,7 +84,6 @@ sub start {
             undef $signal_blocker;
 
             $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
-            _exit(0);
         })->start;
 
     $backend_process->on(collected => sub { bmwqemu::diag("backend process exited: " . shift->exit_status) });
@@ -121,7 +120,6 @@ sub start_vm {
     close $runf;
 
     # remove old screenshots
-    print "remove_tree $bmwqemu::screenshotpath\n";
     remove_tree($bmwqemu::screenshotpath);
     mkdir $bmwqemu::screenshotpath;
 

@@ -20,7 +20,7 @@ use warnings;
 use Test::More;
 use Test::MockModule;
 use Test::Warnings qw(:all :report_warnings);
-use Test::Output;
+use Test::Output qw(stderr_like);
 
 subtest qv => sub {
     use osutils 'qv';
@@ -159,8 +159,11 @@ subtest runcmd => sub {
     use osutils 'runcmd';
 
     my @cmd = ('qemu-img', 'create', '-f', 'qcow2', 'image.qcow2', '1G');
-    is runcmd(@cmd), 0, "qemu-image creation and get its return code";
-    is runcmd('rm', 'image.qcow2'), 0, "delete image and get its return code";
+    my $ret;
+    stderr_like { $ret = runcmd(@cmd) } qr/running qemu-img/, 'debug runcmd progress output';
+    is $ret, 0, "qemu-image creation and get its return code";
+    stderr_like { $ret = runcmd('rm', 'image.qcow2') } qr/running rm/, 'debug runcmd output with rm';
+    is $ret, 0, "delete image and get its return code";
     local $@;
     stderr_like { eval { runcmd('ls', 'image.qcow2') } } qr/No such file or directory/, 'no image found as expected';
     like $@, qr/runcmd 'ls image.qcow2' failed with exit code \d+/, "command failed and calls die";
@@ -173,25 +176,24 @@ subtest attempt => sub {
     $module->redefine(wait_attempt => sub { sleep 0; });
 
     my $var = 0;
-    attempt(5, sub { $var == 5 }, sub { $var++ });
-    is $var, 5;
+    stderr_like { attempt(5, sub { $var == 5 }, sub { $var++ }) } qr/Waiting for.*attempts/, 'attempts conducted';
+    is $var, 5, 'all attempts exhausted';
     $var = 0;
-    attempt {
-        attempts  => 6,
-        condition => sub { $var == 6 },
-        cb        => sub { $var++ }
-    };
-    is $var, 6;
+    stderr_like { attempt {
+            attempts  => 6,
+            condition => sub { $var == 6 },
+            cb        => sub { $var++ }
+    } } qr/Waiting for.*attempts/, 'attempts conducted with named parameters';
+    is $var, 6, 'correct attempts with named parameters';
 
     $var = 0;
-    attempt {
-        attempts  => 6,
-        condition => sub { $var == 7 },
-        cb        => sub { $var++ },
-        or        => sub { $var = 42 }
-    };
-
-    is $var, 42;
+    stderr_like { attempt {
+            attempts  => 6,
+            condition => sub { $var == 7 },
+            cb        => sub { $var++ },
+            or        => sub { $var = 42 }
+    } } qr/Waiting for.*attempts/, 'attempts with alternative return';
+    is $var, 42, 'alternative return set';
 };
 
 done_testing();
