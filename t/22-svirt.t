@@ -6,7 +6,6 @@ use Test::MockObject;
 use Test::Warnings ':report_warnings';
 use Test::Output;
 use Mojo::Log;
-use Scalar::Util 'refaddr';
 use XML::SemanticDiff;
 use backend::svirt;
 use distribution;
@@ -106,6 +105,16 @@ subtest 'SSH usage in svirt' => sub {
     my $ssh_expect_credentials = {username => 'root', password => 'password'};
     my $ssh_obj_data           = {};                                             # used to store Net::SSH2 fake data per object
     my $net_ssh2               = Test::MockModule->new('Net::SSH2');
+    $net_ssh2->redefine(new => sub {
+            my ($class, %opts) = @_;
+            my $self = bless {}, $class;
+            my $id   = $self->{my_custom_id} = bmwqemu::random_string(32);
+            die 'Identifier not unique' if exists $ssh_obj_data->{$id};
+            $ssh_obj_data->{$id} = {};
+            return $self;
+    });
+    sub refaddr { return shift->{my_custom_id}; }
+    $net_ssh2->noop('DESTROY');
     $net_ssh2->redefine(connect => sub {
             my $self = shift;
             $ssh_obj_data->{refaddr($self)}->{connected} = 1;
