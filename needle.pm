@@ -327,6 +327,7 @@ sub default_needles_dir {
 sub init {
     $needles_dir = ($bmwqemu::vars{NEEDLES_DIR} // default_needles_dir);
     $needles_dir = File::Spec->catdir($bmwqemu::vars{CASEDIR}, $needles_dir) unless -d $needles_dir;
+    $needles_dir = "$bmwqemu::vars{INIT_PRODUCTDIR}/needles"                 unless -d $needles_dir;
     die "needles_dir not found: $needles_dir (check vars.json?)" unless -d $needles_dir;
     $bmwqemu::vars{NEEDLES_GIT_HASH} = checkout_git_refspec($needles_dir => 'NEEDLES_GIT_REFSPEC');
 
