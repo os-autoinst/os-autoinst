@@ -118,7 +118,7 @@ Returns an array ref conaining ids of children in given state.
 sub get_children_by_state {
     my ($state) = @_;
     my ($res, $tx) = api_call(get => "mm/children/$state");
-    return undef if _handle_api_error($tx);
+    return undef if _handle_api_error($tx, 'get_children_by_state');
     return $res->json('/jobs');
 }
 
@@ -133,7 +133,7 @@ Returns a hash ref conaining { id => state } pair for each child job.
 
 sub get_children {
     my ($res, $tx) = api_call(get => 'mm/children');
-    return undef if _handle_api_error($tx);
+    return undef if _handle_api_error($tx, 'get_children');
     return $res->json('/jobs');
 }
 
@@ -148,7 +148,7 @@ Returns an array ref conaining ids of parent jobs.
 
 sub get_parents {
     my ($res, $tx) = api_call(get => 'mm/parents');
-    return undef if _handle_api_error($tx);
+    return undef if _handle_api_error($tx, 'get_parents');
     return $res->json('/jobs');
 }
 
@@ -164,7 +164,7 @@ Returns a hash containin job information provided by openQA server.
 sub get_job_info {
     my ($target_id) = @_;
     my ($res, $tx) = api_call(get => "jobs/$target_id");
-    return undef if _handle_api_error($tx);
+    return undef if _handle_api_error($tx, 'get_job_info');
     return $res->json('/job');
 }
 
