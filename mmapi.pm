@@ -33,6 +33,7 @@ use Mojo::URL;
 # private ua
 my $ua;
 my $url;
+my $app;
 
 sub _init {
     # init $ua and $url
@@ -60,6 +61,11 @@ sub _init {
             my ($ua, $tx) = @_;
             $tx->req->headers->add('X-API-JobToken' => $secret);
         });
+}
+
+sub set_app {
+    _init unless $ua;
+    $ua->server->app($app = shift);
 }
 
 sub api_call {
@@ -208,6 +214,7 @@ sub get_job_autoinst_vars {
     $url .= '/vars';
 
     my $ua = Mojo::UserAgent->new;
+    $ua->server->app($app) if $app;
     my $tx = $ua->get($url);
     return undef if _handle_api_error($tx, 'get_job_autoinst_vars');
     return $tx->res->json('/vars');
