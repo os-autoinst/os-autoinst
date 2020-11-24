@@ -1,4 +1,4 @@
-# Copyright (c) 2015 SUSE LLC
+# Copyright (c) 2015-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -77,12 +77,27 @@ sub api_call {
         409 => 1,
     };
 
-    my $res;
+    my ($tx, $res);
     while ($tries--) {
-        $res = $ua->$method($ua_url)->res;
-        last if $expected_codes->{$res->code};
+        $tx  = $ua->$method($ua_url);
+        $res = $tx->res;
+        last if $res->code && $expected_codes->{$res->code};
     }
-    return $res;
+    return ($res, $tx);
+}
+
+sub _handle_api_error {
+    my ($tx, $log_ctx) = @_;
+
+    my $err = $tx->error;
+    return 0 unless $err;
+
+    my $url = $tx->req->url;
+    $err->{message} .= "; URL was $url" if $url;
+    bmwqemu::diag($err->{code}
+        ? "$log_ctx: $err->{code} response: $err->{message}"
+        : "$log_ctx: Connection error: $err->{message}") if $log_ctx;
+    return 1;
 }
 
 =head2 get_children_by_state
@@ -96,11 +111,9 @@ Returns an array ref conaining ids of children in given state.
 
 sub get_children_by_state {
     my ($state) = @_;
-    my $res = api_call('get', 'mm/children/' . $state);
-    if ($res->code == 200) {
-        return $res->json('/jobs');
-    }
-    return;
+    my ($res, $tx) = api_call(get => "mm/children/$state");
+    return undef if _handle_api_error($tx);
+    return $res->json('/jobs');
 }
 
 =head2 get_children
@@ -113,12 +126,9 @@ Returns a hash ref conaining { id => state } pair for each child job.
 =cut
 
 sub get_children {
-    my $res = api_call('get', 'mm/children');
-
-    if ($res->code == 200) {
-        return $res->json('/jobs');
-    }
-    return;
+    my ($res, $tx) = api_call(get => 'mm/children');
+    return undef if _handle_api_error($tx);
+    return $res->json('/jobs');
 }
 
 =head2 get_parents
@@ -131,12 +141,9 @@ Returns an array ref conaining ids of parent jobs.
 =cut
 
 sub get_parents {
-    my $res = api_call('get', 'mm/parents');
-
-    if ($res->code == 200) {
-        return $res->json('/jobs');
-    }
-    return;
+    my ($res, $tx) = api_call(get => 'mm/parents');
+    return undef if _handle_api_error($tx);
+    return $res->json('/jobs');
 }
 
 =head2 get_job_info
@@ -150,12 +157,9 @@ Returns a hash containin job information provided by openQA server.
 
 sub get_job_info {
     my ($target_id) = @_;
-    my $res = api_call('get', "jobs/$target_id");
-
-    if ($res->code == 200) {
-        return $res->json('/job');
-    }
-    return;
+    my ($res, $tx) = api_call(get => "jobs/$target_id");
+    return undef if _handle_api_error($tx);
+    return $res->json('/job');
 }
 
 =head2 get_job_autoinst_url
@@ -168,24 +172,20 @@ Returns url of os-autoinst webserver for job $target_id or C<undef> on failure.
 
 sub get_job_autoinst_url {
     my ($target_id) = @_;
-    my $res = api_call('get', "workers");
+    my ($res, $tx) = api_call(get => 'workers');
+    return undef if _handle_api_error($tx, 'get_job_autoinst_url');
 
-    if ($res->code == 200) {
-        my $workers = $res->json('/workers');
-        for my $worker (@$workers) {
-            if ($worker->{jobid} && $target_id == $worker->{jobid} && $worker->{host} && $worker->{instance} && $worker->{properties}{JOBTOKEN}) {
-                my $hostname   = $worker->{host};
-                my $token      = $worker->{properties}{JOBTOKEN};
-                my $workerport = $worker->{instance} * 10 + 20002 + 1;    # the same as in openqa/script/worker
-                my $url        = "http://$hostname:$workerport/$token";
-                return $url;
-            }
+    my $workers = $res->json('/workers');
+    for my $worker (@$workers) {
+        if ($worker->{jobid} && $target_id == $worker->{jobid} && $worker->{host} && $worker->{instance} && $worker->{properties}{JOBTOKEN}) {
+            my $hostname   = $worker->{host};
+            my $token      = $worker->{properties}{JOBTOKEN};
+            my $workerport = $worker->{instance} * 10 + 20002 + 1;    # the same as in openqa/script/worker
+            my $url        = "http://$hostname:$workerport/$token";
+            return $url;
         }
     }
-    else {
-        bmwqemu::diag("get_job_autoinst_url: code: " . $res->code);
-    }
-    return;
+    return undef;
 }
 
 =head2 get_job_autoinst_vars
@@ -202,20 +202,15 @@ sub get_job_autoinst_vars {
     my ($target_id) = @_;
 
     my $url = get_job_autoinst_url($target_id);
-    return unless $url;
+    return undef unless $url;
 
     # query the os-autoinst webserver of the job specifed by $target_id
     $url .= '/vars';
 
-    my $ua  = Mojo::UserAgent->new;
-    my $res = $ua->get($url)->res;
-    if ($res->code == 200) {
-        return $res->json('/vars');
-    }
-    else {
-        bmwqemu::diag("get_job_autoinst_vars: code: " . $res->code);
-    }
-    return;
+    my $ua = Mojo::UserAgent->new;
+    my $tx = $ua->get($url);
+    return undef if _handle_api_error($tx, 'get_job_autoinst_vars');
+    return $tx->res->json('/vars');
 }
 
 =head2 wait_for_children
