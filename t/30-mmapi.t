@@ -28,6 +28,11 @@ use mmapi;
 
 # setup a fake server
 my $mock_srv = Mojolicious->new;
+$mock_srv->log->unsubscribe('message')->on(
+    message => sub {
+        my ($log, $level, @lines) = @_;
+        note "[$level] " . join "\n", @lines, '';
+    });
 my $routes   = $mock_srv->routes;
 my $fake_api = $routes->any('/api/v1');
 $fake_api->get('/mm/children' => sub {
