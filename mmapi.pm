@@ -181,7 +181,7 @@ sub get_job_autoinst_url {
     my ($res, $tx) = api_call(get => 'workers');
     return undef if _handle_api_error($tx, 'get_job_autoinst_url');
 
-    my $workers = $res->json('/workers');
+    my $workers = $res->json('/workers') // [];
     for my $worker (@$workers) {
         if ($worker->{jobid} && $target_id == $worker->{jobid} && $worker->{host} && $worker->{instance} && $worker->{properties}{JOBTOKEN}) {
             my $hostname   = $worker->{host};
@@ -191,6 +191,7 @@ sub get_job_autoinst_url {
             return $url;
         }
     }
+    bmwqemu::diag("get_job_autoinst_url: No worker info for job $target_id available.");
     return undef;
 }
 
