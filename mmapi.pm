@@ -68,7 +68,7 @@ sub set_app {
     $ua->server->app($app = shift);
 }
 
-sub api_call {
+sub api_call_2 {
     my ($method, $action, $params, $expected_codes) = @_;
     _init                                       unless $ua;
     bmwqemu::mydie('Missing mandatory options') unless $method && $action && $ua;
@@ -89,8 +89,10 @@ sub api_call {
         $res = $tx->res;
         last if $res->code && $expected_codes->{$res->code};
     }
-    return ($res, $tx);
+    return $tx;
 }
+
+sub api_call { api_call_2(@_)->res }
 
 sub _handle_api_error {
     my ($tx, $log_ctx) = @_;
@@ -117,9 +119,9 @@ Returns an array ref conaining ids of children in given state.
 
 sub get_children_by_state {
     my ($state) = @_;
-    my ($res, $tx) = api_call(get => "mm/children/$state");
+    my $tx = api_call_2(get => "mm/children/$state");
     return undef if _handle_api_error($tx, 'get_children_by_state');
-    return $res->json('/jobs');
+    return $tx->res->json('/jobs');
 }
 
 =head2 get_children
@@ -132,9 +134,9 @@ Returns a hash ref conaining { id => state } pair for each child job.
 =cut
 
 sub get_children {
-    my ($res, $tx) = api_call(get => 'mm/children');
+    my $tx = api_call_2(get => 'mm/children');
     return undef if _handle_api_error($tx, 'get_children');
-    return $res->json('/jobs');
+    return $tx->res->json('/jobs');
 }
 
 =head2 get_parents
@@ -147,9 +149,9 @@ Returns an array ref conaining ids of parent jobs.
 =cut
 
 sub get_parents {
-    my ($res, $tx) = api_call(get => 'mm/parents');
+    my $tx = api_call_2(get => 'mm/parents');
     return undef if _handle_api_error($tx, 'get_parents');
-    return $res->json('/jobs');
+    return $tx->res->json('/jobs');
 }
 
 =head2 get_job_info
@@ -163,9 +165,9 @@ Returns a hash containin job information provided by openQA server.
 
 sub get_job_info {
     my ($target_id) = @_;
-    my ($res, $tx) = api_call(get => "jobs/$target_id");
+    my $tx = api_call_2(get => "jobs/$target_id");
     return undef if _handle_api_error($tx, 'get_job_info');
-    return $res->json('/job');
+    return $tx->res->json('/job');
 }
 
 =head2 get_job_autoinst_url
@@ -178,10 +180,10 @@ Returns url of os-autoinst webserver for job $target_id or C<undef> on failure.
 
 sub get_job_autoinst_url {
     my ($target_id) = @_;
-    my ($res, $tx) = api_call(get => 'workers');
+    my $tx = api_call_2(get => 'workers');
     return undef if _handle_api_error($tx, 'get_job_autoinst_url');
 
-    my $workers = $res->json('/workers') // [];
+    my $workers = $tx->res->json('/workers') // [];
     for my $worker (@$workers) {
         if ($worker->{jobid} && $target_id == $worker->{jobid} && $worker->{host} && $worker->{instance} && $worker->{properties}{JOBTOKEN}) {
             my $hostname   = $worker->{host};

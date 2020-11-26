@@ -55,12 +55,15 @@ $fake_api->get('/workers' => sub {
                         properties => {JOBTOKEN => 'fake-jobtoken'},
         }]});
 });
+$fake_api->post('/mutex/foo' => sub { shift->render(json => {some => 'mutex'}) });
 $routes->get('/autoinst/vars' => sub { shift->render(json => {vars => {foo => 'bar'}}) });
 
 # make mmapi connect to the fake server
 $bmwqemu::vars{OPENQA_URL} = '/not/relevant';
 $bmwqemu::vars{JOBTOKEN}   = 'fake-jobtoken';
 mmapi::set_app($mock_srv);
+
+is(api_call(post => 'mutex/foo', {action => 'unlock'})->code, 200, 'api_call returns result');
 
 # test mmapi's `get_` functions
 is_deeply(mmapi::get_children(),                      [1, 2, 3], 'query children');
