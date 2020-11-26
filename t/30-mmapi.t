@@ -21,12 +21,18 @@
 use Test::Most;
 
 use OpenQA::Test::TimeLimit '5';
+use Test::Output;
 use Test::MockModule;
 use Mojolicious;
 use mmapi;
 
 # setup a fake server
 my $mock_srv = Mojolicious->new;
+$mock_srv->log->unsubscribe('message')->on(
+    message => sub {
+        my ($log, $level, @lines) = @_;
+        note "[$level] " . join "\n", @lines, '';
+    });
 my $routes   = $mock_srv->routes;
 my $fake_api = $routes->any('/api/v1');
 $fake_api->get('/mm/children' => sub {
@@ -57,14 +63,20 @@ $bmwqemu::vars{JOBTOKEN}   = 'fake-jobtoken';
 mmapi::set_app($mock_srv);
 
 # test mmapi's `get_` functions
-is_deeply(mmapi::get_children(),                         [1, 2, 3],                              'query children');
-is_deeply(mmapi::get_children_by_state('some-state'),    [1],                                    'query children by state');
-is_deeply(mmapi::get_children_by_state('another-state'), undef,                                  'query children by state (no results)');
-is_deeply(mmapi::get_parents(),                          [4, 5, 6],                              'query parents');
-is_deeply(mmapi::get_job_info(100),                      {the => 'job info'},                    'query job info');
-is_deeply(mmapi::get_job_info(101),                      undef,                                  'query job info (no result)');
-is_deeply(mmapi::get_job_autoinst_url(100),              "http://fake-host:20423/fake-jobtoken", 'get autoinst URL');
-is_deeply(mmapi::get_job_autoinst_vars(101),             undef,                                  'get autoinst vars (no result)');
+is_deeply(mmapi::get_children(),                      [1, 2, 3], 'query children');
+is_deeply(mmapi::get_children_by_state('some-state'), [1],       'query children by state');
+combined_like {
+    is_deeply(mmapi::get_children_by_state('another-state'), undef, 'query children by state (no results)');
+} qr|get_children_by_state: 404 response.*URL was.*/mm/children/another-state|, 'query children by state error logged';
+is_deeply(mmapi::get_parents(),     [4, 5, 6],           'query parents');
+is_deeply(mmapi::get_job_info(100), {the => 'job info'}, 'query job info');
+combined_like {
+    is_deeply(mmapi::get_job_info(101), undef, 'query job info (no result)');
+} qr/get_job_info: 404 response.*URL was.*101/, 'query job info error logged';
+is_deeply(mmapi::get_job_autoinst_url(100), "http://fake-host:20423/fake-jobtoken", 'get autoinst URL');
+combined_like {
+    is_deeply(mmapi::get_job_autoinst_vars(101), undef, 'get autoinst vars (no result)');
+} qr/get_job_autoinst_url: .*/, 'error to get autoinst URL logged';
 
 # test with mocked get_job_autoinst_url
 my $mmapi_mock = Test::MockModule->new('mmapi');
