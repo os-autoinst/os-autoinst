@@ -107,6 +107,28 @@ Requires:       os-autoinst
 %description openvswitch
 This package contains openvswitch support for os-autoinst.
 
+%ifarch x86_64
+%package qemu-kvm
+Summary:        Convenience package providing os-autoinst+qemu-kvm
+Group:          Development/Tools/Other
+Requires:       os-autoinst
+Requires:       qemu-kvm
+Requires:       qemu-tools
+
+%description qemu-kvm
+
+%package qemu-x86
+Summary:        Convenience package providing os-autoinst+qemu-x86
+Group:          Development/Tools/Other
+Requires:       os-autoinst
+Requires:       qemu-x86
+Requires:       qemu-tools
+
+%description qemu-x86
+Convenience package providing os-autoinst and qemu-x86 dependencies.
+%endif
+
+
 %prep
 %setup -q
 sed -e 's,/bin/env python,/bin/python3,' -i crop.py
@@ -193,5 +215,9 @@ cd %{__builddir}
 %{_sbindir}/rcos-autoinst-openvswitch
 
 %files devel
+%ifarch x86_64
+%files qemu-kvm
+%files qemu-x86
+%endif
 
 %changelog
