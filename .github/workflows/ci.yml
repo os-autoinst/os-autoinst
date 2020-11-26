@@ -1,0 +1,11 @@
+---
+name: ci
+# yamllint disable-line rule:truthy
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Static checks, unit- and integration tests
+        run: tools/docker_run_ci
