@@ -1,0 +1,5 @@
+#!BuildTag: isotovideo:qemu-x86
+
+FROM opensuse/tumbleweed
+RUN zypper -n in os-autoinst qemu-x86 qemu-tools
+ENTRYPOINT ["/usr/bin/isotovideo"]
