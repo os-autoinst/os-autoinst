@@ -68,6 +68,12 @@ sub set_app {
     $ua->server->app($app = shift);
 }
 
+=head2 api_call_2
+
+Queries openQA's multi-machine API and returns the resulting Mojo::Transaction::HTTP object.
+
+=cut
+
 sub api_call_2 {
     my ($method, $action, $params, $expected_codes) = @_;
     _init                                       unless $ua;
@@ -91,6 +97,12 @@ sub api_call_2 {
     }
     return $tx;
 }
+
+=head2 api_call
+
+Queries openQA's multi-machine API and returns the result as Mojo::Message::Response object.
+
+=cut
 
 sub api_call { api_call_2(@_)->res }
 
