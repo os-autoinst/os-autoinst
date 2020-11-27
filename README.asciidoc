@@ -33,12 +33,16 @@ test execution.
 
 A container is provided and can be pulled and the main execution can be called
 in one step, for example using the `podman` container engine for tests defined
-in the current directory on x86_64:
+in the current directory on x86_64 if your environment supports KVM
+virtualization acceleration:
 
 [source,sh]
 ----
-podman run --rm -it -v .:/tests registry.opensuse.org/devel/openqa/containers/isotovideo:qemu-x86 casedir=/tests
+podman run --rm -it -v .:/tests registry.opensuse.org/devel/openqa/containers/isotovideo:qemu-kvm casedir=/tests
 ----
+
+Use the image variant ending with `qemu-x86` on x86_64 if no KVM support is
+available.
 
 Take a look on
 https://registry.opensuse.org/cgi-bin/cooverview?srch_term=project%3Ddevel%3AopenQA
