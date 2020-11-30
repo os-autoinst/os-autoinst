@@ -180,6 +180,28 @@ subtest 'error handling when loading test schedule' => sub {
         }
     };
 };
+subtest 'load test success when there is no PRODUCTDIR' => sub {
+    chdir($pool_dir);
+    path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
+    path('vars.json')->remove         if -e 'vars.json';
+    mkdir('opensuse')                                                   unless -e 'opensuse';
+    symlink("$data_dir/tests/lib", "opensuse/lib")                      unless -e 'opensuse/lib';
+    mkdir('opensuse/products')                                          unless -e 'opensuse/products';
+    mkdir('opensuse/products/foo')                                      unless -e 'products/foo';
+    symlink("$data_dir/tests/main.pm", "opensuse/products/foo/main.pm") unless -e 'opensuse/product/foo/main.pm';
+    symlink("$data_dir/tests/tests", "opensuse/tests")                  unless -e 'opensuse/tests';
+    combined_like { isotovideo(opts => "casedir=opensuse distri=foo _exit_after_schedule=1") } qr/scheduling shutdown/, 'shutdown scheduled';
+    like $log, qr/\d* scheduling.*shutdown/, 'schedule can still be found';
+
+    path('vars.json')->remove if -e 'vars.json';
+    mkdir('sle')                                                   unless -e 'sle';
+    mkdir('sle/products')                                          unless -e 'sle/products';
+    mkdir('sle/products/foo')                                      unless -e 'sle/products/foo';
+    symlink("$data_dir/tests/needles", "sle/products/foo/needles") unless -e 'sle/products/foo/needles';
+    my $module = 'tests/failing_module';
+    combined_like { isotovideo(opts => "casedir=opensuse distri=foo defcasedir=sle schedule=$module", exit_code => 0) } qr/init needles from sle\/products\/foo\/needles/, "find the needles correctly";
+    like $log, qr/\d* loaded 4 needles/, 'loaded needles successfully';
+};
 
 done_testing();
 

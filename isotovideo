@@ -242,7 +242,10 @@ checkout_git_repo_and_branch('CASEDIR');
 #
 # This allows further structuring the test distribution collections with
 # multiple distributions or flavors in one repository.
-$bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
+my $productdir = $bmwqemu::vars{CASEDIR};
+$productdir = $bmwqemu::vars{CASEDIR} . '/products/' . $bmwqemu::vars{DISTRI}
+  if ($bmwqemu::vars{DISTRI} && -e File::Spec->catfile($bmwqemu::vars{CASEDIR} . '/products/', $bmwqemu::vars{DISTRI}));
+$bmwqemu::vars{PRODUCTDIR} ||= $productdir;
 
 # checkout Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
 checkout_git_repo_and_branch('NEEDLES_DIR');

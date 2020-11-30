@@ -326,7 +326,12 @@ sub default_needles_dir {
 
 sub init {
     $needles_dir = ($bmwqemu::vars{NEEDLES_DIR} // default_needles_dir);
-    $needles_dir = File::Spec->catdir($bmwqemu::vars{CASEDIR}, $needles_dir) unless -d $needles_dir;
+
+    # When CASEDIR is a git repository URL of a test distribution, there is no needles directory under the PRODUCTDIR.
+    # In this scenario, we need to find needles by using DEFCASEDIR. Because this value is the true test distribution directory that the worker used.
+    $needles_dir = File::Spec->catdir("$bmwqemu::vars{DEFCASEDIR}/products/$bmwqemu::vars{DISTRI}", "needles")
+      if ($bmwqemu::vars{DEFCASEDIR} && $bmwqemu::vars{DISTRI} && !-d $needles_dir);
+    $needles_dir = File::Spec->catdir($bmwqemu::vars{DEFCASEDIR}, "needles") if ($bmwqemu::vars{DEFCASEDIR} && !-d $needles_dir);
     die "needles_dir not found: $needles_dir (check vars.json?)" unless -d $needles_dir;
     $bmwqemu::vars{NEEDLES_GIT_HASH} = checkout_git_refspec($needles_dir => 'NEEDLES_GIT_REFSPEC');
 
