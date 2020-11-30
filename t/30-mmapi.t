@@ -20,11 +20,47 @@
 
 use Test::Most;
 
+BEGIN {
+    $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT}    = 1;
+    $ENV{OS_AUTOINST_LOCKAPI_RETRY_INTERVAL} = 0;
+}
+
 use OpenQA::Test::TimeLimit '5';
 use Test::Output;
 use Test::MockModule;
 use Mojolicious;
 use mmapi;
+use lockapi;
+use testapi;
+use autotest;
+use basetest;
+
+# mock testapi
+my $testapi_mock = Test::MockModule->new('testapi');
+my @recorded_info;
+$testapi_mock->redefine(record_info => sub { push @recorded_info, [@_] });
+my $basetest_mock = Test::MockModule->new('basetest');
+$basetest_mock->redefine(remove_last_result => sub { pop @recorded_info });
+$autotest::current_test = basetest->new;
+
+# init mmapi/lockapi
+$bmwqemu::vars{OPENQA_URL} = 'http://not/relevant';
+$bmwqemu::vars{JOBTOKEN}   = 'fake-jobtoken';
+$ENV{MOJO_CONNECT_TIMEOUT} = 0.01;
+
+# define helper to call a function by its name
+sub call {
+    my $function_name = shift;
+    __PACKAGE__->can($function_name)->(@_);
+}
+
+# test without a server
+subtest 'mmapi: server not reachable' => sub {
+    combined_like { is_deeply call($_), undef, "undef returned ($)" } qr/Connection error/, "error logged ($_)" for (qw(mmapi::get_children));
+};
+subtest 'lockapi: server not reachable' => sub {
+    is(call($_, qw(name where info)), 0, $_) for (qw(lockapi::mutex_create lockapi::mutex_try_lock));
+};
 
 # setup a fake server
 my $mock_srv = Mojolicious->new;
@@ -33,6 +69,14 @@ $mock_srv->log->unsubscribe('message')->on(
         my ($log, $level, @lines) = @_;
         note "[$level] " . join "\n", @lines, '';
     });
+$mock_srv->helper(render_mutex => sub {
+        my ($self, %args) = @_;
+        my $name = $self->param('name') // '';
+        return $self->render(status => 200, text => 'ok')             if $name eq 'lucky_lock';
+        return $self->render(status => 404, text => 'error')          if $name eq 'prone_lock';
+        return $self->render(status => 410, text => 'owner finished') if $name eq 'finished_lock';
+        return $self->render(status => 409, text => 'conflict');
+});
 my $routes   = $mock_srv->routes;
 my $fake_api = $routes->any('/api/v1');
 $fake_api->get('/mm/children' => sub {
@@ -55,35 +99,97 @@ $fake_api->get('/workers' => sub {
                         properties => {JOBTOKEN => 'fake-jobtoken'},
         }]});
 });
+$fake_api->post('/mutex'     => sub { shift->render_mutex });
 $fake_api->post('/mutex/foo' => sub { shift->render(json => {some => 'mutex'}) });
+$fake_api->post('/mutex/#name' => sub {
+        my ($self) = @_;
+        my $name   = $self->param('name')   // '';
+        my $action = $self->param('action') // '';
+        return $self->render(status => 200, text => 'ok') if ($name eq 'lockable' && $action eq 'lock') || ($name eq 'unlockable' && $action eq 'unlock');
+        return $self->render_mutex;
+});
+$fake_api->post('/barrier' => sub {
+        my ($self) = @_;
+        my $name   = $self->param('name')  // '';
+        my $tasks  = $self->param('tasks') // '';
+        return $self->render(status => 200, text => 'ok') if $name eq 'lucky_barrier' && $tasks eq '41';
+        return $self->render_mutex;
+});
+$fake_api->post('/barrier/#name' => sub {
+        my ($self) = @_;
+        my $name = $self->param('name') // '';
+        return $self->render(status => 200, text => 'ok') if $name eq 'unblocked';
+        return $self->render(status => 200, text => 'ok') if $name eq 'check_dead_job_barrier' && ($self->param('check_dead_job') // '' eq '1');
+        return $self->render_mutex;
+});
+$fake_api->delete('/barrier/#name' => sub {
+        my ($self) = @_;
+        my $name = $self->param('name') // '';
+        return $self->render(status => 200, text => 'ok') if $name eq 'deletable';
+        return $self->render_mutex;
+});
 $routes->get('/autoinst/vars' => sub { shift->render(json => {vars => {foo => 'bar'}}) });
 
-# make mmapi connect to the fake server
+# make mmapi/lockapi connect to the fake server
 $bmwqemu::vars{OPENQA_URL} = '/not/relevant';
-$bmwqemu::vars{JOBTOKEN}   = 'fake-jobtoken';
 mmapi::set_app($mock_srv);
 
-is(api_call(post => 'mutex/foo', {action => 'unlock'})->code, 200, 'api_call returns result');
+subtest 'mmapi: general usage' => sub {
+    is(api_call(post => 'mutex/foo', {action => 'unlock'})->code, 200, 'api_call returns result');
 
-# test mmapi's `get_` functions
-is_deeply(mmapi::get_children(),                      [1, 2, 3], 'query children');
-is_deeply(mmapi::get_children_by_state('some-state'), [1],       'query children by state');
-combined_like {
-    is_deeply(mmapi::get_children_by_state('another-state'), undef, 'query children by state (no results)');
-} qr|get_children_by_state: 404 response.*URL was.*/mm/children/another-state|, 'query children by state error logged';
-is_deeply(mmapi::get_parents(),     [4, 5, 6],           'query parents');
-is_deeply(mmapi::get_job_info(100), {the => 'job info'}, 'query job info');
-combined_like {
-    is_deeply(mmapi::get_job_info(101), undef, 'query job info (no result)');
-} qr/get_job_info: 404 response.*URL was.*101/, 'query job info error logged';
-is_deeply(mmapi::get_job_autoinst_url(100), "http://fake-host:20423/fake-jobtoken", 'get autoinst URL');
-combined_like {
-    is_deeply(mmapi::get_job_autoinst_vars(101), undef, 'get autoinst vars (no result)');
-} qr/get_job_autoinst_url: .*/, 'error to get autoinst URL logged';
+    # test mmapi's `get_` functions
+    is_deeply(mmapi::get_children(),                      [1, 2, 3], 'query children');
+    is_deeply(mmapi::get_children_by_state('some-state'), [1],       'query children by state');
+    combined_like {
+        is_deeply(mmapi::get_children_by_state('another-state'), undef, 'query children by state (no results)');
+    } qr|get_children_by_state: 404 response.*URL was.*/mm/children/another-state|, 'query children by state error logged';
+    is_deeply(mmapi::get_parents(),     [4, 5, 6],           'query parents');
+    is_deeply(mmapi::get_job_info(100), {the => 'job info'}, 'query job info');
+    combined_like {
+        is_deeply(mmapi::get_job_info(101), undef, 'query job info (no result)');
+    } qr/get_job_info: 404 response.*URL was.*101/, 'query job info error logged';
+    is_deeply(mmapi::get_job_autoinst_url(100), "http://fake-host:20423/fake-jobtoken", 'get autoinst URL');
+    combined_like {
+        is_deeply(mmapi::get_job_autoinst_vars(101), undef, 'get autoinst vars (no result)');
+    } qr/get_job_autoinst_url: .*/, 'error to get autoinst URL logged';
 
-# test with mocked get_job_autoinst_url
-my $mmapi_mock = Test::MockModule->new('mmapi');
-$mmapi_mock->redefine(get_job_autoinst_url => sub { '/autoinst' });
-is_deeply(mmapi::get_job_autoinst_vars(100), {foo => 'bar'}, 'get autoinst vars');
+    # test with mocked get_job_autoinst_url
+    my $mmapi_mock = Test::MockModule->new('mmapi');
+    $mmapi_mock->redefine(get_job_autoinst_url => sub { '/autoinst' });
+    is_deeply(mmapi::get_job_autoinst_vars(100), {foo => 'bar'}, 'get autoinst vars');
+};
+
+subtest 'lockapi: misuse' => sub {
+    combined_like { throws_ok { call($_, '') } qr/mydie/, "no name throws ($_)" } qr/missing lock name/, "no name logged ($_)"
+      for (qw(lockapi::mutex_create lockapi::mutex_try_lock lockapi::mutex_lock lockapi::mutex_unlock));
+    combined_like { throws_ok { call($_, '') } qr/mydie/, "no name throws ($_)" } qr/missing barrier name/, "no name logged ($_)"
+      for (qw(lockapi::barrier_create lockapi::barrier_wait lockapi::barrier_destroy));
+    combined_like { throws_ok { call($_, 'foo', '') } qr/mydie/, "no task throws ($_)" } qr/missing.*task/, "no task logged ($_)"
+      for (qw(lockapi::barrier_create));
+};
+
+subtest 'lockapi: server returns error' => sub {
+    combined_like { is call($_, 'prone_lock'), 0, "0 returned ($_)" } qr/Unknown return code 404 for lock api/, "error logged ($_)"
+      for (qw(lockapi::mutex_create lockapi::mutex_try_lock lockapi::mutex_unlock));
+    combined_like { is call($_, 'prone_lock', 7), 0, "0 returned ($_)" } qr/Unknown return code 404 for lock api/, "error logged ($_)"
+      for (qw(lockapi::barrier_create lockapi::barrier_try_wait lockapi::barrier_destroy));
+    combined_unlike { is call($_, 'some_lock'), 0, "0 returned ($_)" } qr/Unknown return code/, "no error logged for blocked mutex ($_)"
+      for (qw(lockapi::mutex_try_lock lockapi::mutex_unlock lockapi::barrier_try_wait));
+    combined_like { throws_ok { call($_, 'finished_lock') } qr/mydie/, "owner finished throws ($_)" } qr/owner already finished/, "finished logged ($_)"
+      for (qw(lockapi::mutex_try_lock));
+    # note: Omitting lockapi::mutex_lock and lockapi::barrier_wait here to avoid being blocked infinitely.
+};
+
+subtest 'lockapi: successful use' => sub {
+    is(lockapi::mutex_create('lucky_lock'),                                            1, 'mutex created');
+    is(lockapi::mutex_lock('lockable'),                                                1, 'mutex locked');
+    is(lockapi::mutex_try_lock('lockable'),                                            1, 'mutex locked (try)');
+    is(lockapi::mutex_unlock('unlockable'),                                            1, 'mutex unlocked');
+    is(lockapi::barrier_create('lucky_barrier', 41),                                   1, 'barrier created');
+    is(lockapi::barrier_wait('unblocked'),                                             1, 'waited for barrier');
+    is(lockapi::barrier_wait({name => 'check_dead_job_barrier', check_dead_job => 1}), 1, 'waited for barrier with check_dead_job flag');
+    is(lockapi::barrier_try_wait('unblocked'),                                         1, 'tried waiting for barrier');
+    is(lockapi::barrier_destroy('deletable'),                                          1, 'barrier destroyed');
+};
 
 done_testing;

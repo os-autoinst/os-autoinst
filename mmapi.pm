@@ -64,7 +64,7 @@ sub _init {
 }
 
 sub set_app {
-    _init unless $ua;
+    _init;
     $ua->server->app($app = shift);
 }
 

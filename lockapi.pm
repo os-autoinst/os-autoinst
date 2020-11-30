@@ -25,7 +25,7 @@ our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_wait
 
 require bmwqemu;
 use mmapi qw(api_call get_job_info);
-use testapi 'record_info';
+use testapi ();
 
 use constant RETRY_COUNT    => $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT}    // 7;
 use constant RETRY_INTERVAL => $ENV{OS_AUTOINST_LOCKAPI_RETRY_INTERVAL} // 10;
@@ -66,10 +66,10 @@ sub _log {
     if (defined $args{amend}) {
         # amend log info with wait duration
         $autotest::current_test->remove_last_result;
-        record_info 'Paused ' . int($args{amend} / 60) . 'm' . $args{amend} % 60 . 's', $msg;
+        testapi::record_info 'Paused ' . int($args{amend} / 60) . 'm' . $args{amend} % 60 . 's', $msg;
     }
     else {
-        record_info 'Paused', $msg;
+        testapi::record_info 'Paused', $msg;
     }
 }
 
