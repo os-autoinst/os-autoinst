@@ -27,21 +27,23 @@ require bmwqemu;
 use mmapi qw(api_call get_job_info);
 use testapi 'record_info';
 
+use constant RETRY_COUNT    => $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT}    // 7;
+use constant RETRY_INTERVAL => $ENV{OS_AUTOINST_LOCKAPI_RETRY_INTERVAL} // 10;
+use constant POLL_INTERVAL  => $ENV{OS_AUTOINST_LOCKAPI_POLL_INTERVAL}  // 5;
+
 sub _try_lock {
     my ($type, $name, $param) = @_;
-    # try up to 7 times
+
     my $res = '';
-    for (1 .. 7) {
-        $res = api_call('post', "$type/$name", $param)->code;
+    for (1 .. RETRY_COUNT) {
+        $res = api_call(post => "$type/$name", $param)->code;
         return 1 if ($res == 200);
         last unless $res == 410;
-        bmwqemu::fctinfo("Retry $_ of 7...");
-        sleep 10;
+        bmwqemu::fctinfo("Retry $_ of " . RETRY_COUNT);
+        sleep RETRY_INTERVAL;
     }
     bmwqemu::mydie "$type '$name': lock owner already finished" if $res == 410;
-    if ($res != 409) {
-        bmwqemu::fctwarn("Unknown return code $res for lock api");
-    }
+    bmwqemu::fctwarn "Unknown return code $res for lock api"    if $res != 409;
     return 0;
 }
 
@@ -78,8 +80,8 @@ sub mutex_lock {
     while (1) {
         my $res = _lock_action($name, $where);
         return 1 if $res;
-        bmwqemu::diag("mutex lock '$name' unavailable, sleeping 5s");
-        sleep(5);
+        bmwqemu::diag("mutex lock '$name' unavailable, sleeping " . POLL_INTERVAL . ' seconds');
+        sleep POLL_INTERVAL;
     }
 }
 
@@ -169,8 +171,8 @@ sub barrier_wait {
             return 1;
         }
 
-        bmwqemu::diag("barrier '$name' not released, sleeping 5s");
-        sleep(5);
+        bmwqemu::diag("barrier '$name' not released, sleeping " . POLL_INTERVAL . ' seconds');
+        sleep POLL_INTERVAL;
     }
 }
 
