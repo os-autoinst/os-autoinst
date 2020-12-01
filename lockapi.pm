@@ -185,6 +185,7 @@ sub barrier_destroy {
     my $res = api_call('delete', "barrier/$name", $param)->code;
     return 1 if ($res == 200);
     bmwqemu::fctwarn("Unknown return code $res for lock api");
+    return 0;
 }
 
 1;
