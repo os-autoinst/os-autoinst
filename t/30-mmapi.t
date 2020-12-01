@@ -57,10 +57,12 @@ sub call {
 # test without a server
 subtest 'mmapi: server not reachable' => sub {
     combined_like { is_deeply call($_), undef, "undef returned ($)" } qr/Connection error/, "error logged ($_)" for (qw(mmapi::get_children));
+    is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
 };
 subtest 'lockapi: server not reachable' => sub {
     combined_like { is call($_, qw(name where info)), 0, "zero returned $_" } qr/Connection error/, "error logged ($_)"
       for (qw(lockapi::mutex_create lockapi::mutex_try_lock lockapi::barrier_create lockapi::barrier_try_wait));
+    is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
 };
 
 # setup a fake server
@@ -158,6 +160,8 @@ subtest 'mmapi: general usage' => sub {
     my $mmapi_mock = Test::MockModule->new('mmapi');
     $mmapi_mock->redefine(get_job_autoinst_url => sub { '/autoinst' });
     is_deeply(mmapi::get_job_autoinst_vars(100), {foo => 'bar'}, 'get autoinst vars');
+
+    is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
 };
 
 subtest 'lockapi: misuse' => sub {
@@ -167,6 +171,7 @@ subtest 'lockapi: misuse' => sub {
       for (qw(lockapi::barrier_create lockapi::barrier_wait lockapi::barrier_destroy));
     combined_like { throws_ok { call($_, 'foo', '') } qr/mydie/, "no task throws ($_)" } qr/missing.*task/, "no task logged ($_)"
       for (qw(lockapi::barrier_create));
+    is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
 };
 
 subtest 'lockapi: server returns error' => sub {
@@ -178,19 +183,23 @@ subtest 'lockapi: server returns error' => sub {
       for (qw(lockapi::mutex_try_lock lockapi::mutex_unlock lockapi::barrier_try_wait));
     combined_like { throws_ok { call($_, 'finished_lock') } qr/mydie/, "owner finished throws ($_)" } qr/owner already finished/, "finished logged ($_)"
       for (qw(lockapi::mutex_try_lock));
+    is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
     # note: Omitting lockapi::mutex_lock and lockapi::barrier_wait here to avoid being blocked infinitely.
 };
 
 subtest 'lockapi: successful use' => sub {
-    is(lockapi::mutex_create('lucky_lock'),                                            1, 'mutex created');
-    is(lockapi::mutex_lock('lockable'),                                                1, 'mutex locked');
-    is(lockapi::mutex_try_lock('lockable'),                                            1, 'mutex locked (try)');
-    is(lockapi::mutex_unlock('unlockable'),                                            1, 'mutex unlocked');
-    is(lockapi::barrier_create('lucky_barrier', 41),                                   1, 'barrier created');
-    is(lockapi::barrier_wait('unblocked'),                                             1, 'waited for barrier');
-    is(lockapi::barrier_wait({name => 'check_dead_job_barrier', check_dead_job => 1}), 1, 'waited for barrier with check_dead_job flag');
-    is(lockapi::barrier_try_wait('unblocked'),                                         1, 'tried waiting for barrier');
-    is(lockapi::barrier_destroy('deletable'),                                          1, 'barrier destroyed');
+    is(lockapi::mutex_create('lucky_lock'),          1,                                           'mutex created');
+    is(lockapi::mutex_lock('lockable'),              1,                                           'mutex locked');
+    is(lockapi::mutex_try_lock('lockable'),          1,                                           'mutex locked (try)');
+    is(lockapi::mutex_unlock('unlockable'),          1,                                           'mutex unlocked');
+    is(lockapi::barrier_create('lucky_barrier', 41), 1,                                           'barrier created');
+    is(lockapi::barrier_wait('unblocked'),           1,                                           'waited for barrier');
+    is($recorded_info[0]->[1],                       'Wait for unblocked (on parent job)',        'info recorded by waited for barrier');
+    is(lockapi::barrier_wait({name => 'check_dead_job_barrier', check_dead_job => 1}), 1,         'waited for barrier with check_dead_job flag');
+    is($recorded_info[1]->[1],                 'Wait for check_dead_job_barrier (on parent job)', 'different info recorded with check_dead_job flag');
+    is(lockapi::barrier_try_wait('unblocked'), 1,                                                 'tried waiting for barrier');
+    is(lockapi::barrier_destroy('deletable'),  1,                                                 'barrier destroyed');
+    is(scalar @recorded_info,                  2, 'record info called expected number of times') or diag explain \@recorded_info;
 };
 
 done_testing;
