@@ -23,6 +23,7 @@ use Test::Most;
 BEGIN {
     $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT}    = 1;
     $ENV{OS_AUTOINST_LOCKAPI_RETRY_INTERVAL} = 0;
+    $ENV{MOJO_CONNECT_TIMEOUT}               = 0.01;
 }
 
 use OpenQA::Test::TimeLimit '5';
@@ -31,9 +32,6 @@ use Test::MockModule;
 use Mojolicious;
 use mmapi;
 use lockapi;
-use testapi;
-use autotest;
-use basetest;
 
 # mock testapi
 my $testapi_mock = Test::MockModule->new('testapi');
@@ -46,7 +44,6 @@ $autotest::current_test = basetest->new;
 # init mmapi/lockapi
 $bmwqemu::vars{OPENQA_URL} = 'http://not/relevant';
 $bmwqemu::vars{JOBTOKEN}   = 'fake-jobtoken';
-$ENV{MOJO_CONNECT_TIMEOUT} = 0.01;
 
 # define helper to call a function by its name
 sub call {
@@ -188,18 +185,20 @@ subtest 'lockapi: server returns error' => sub {
 };
 
 subtest 'lockapi: successful use' => sub {
-    is(lockapi::mutex_create('lucky_lock'),          1,                                           'mutex created');
-    is(lockapi::mutex_lock('lockable'),              1,                                           'mutex locked');
-    is(lockapi::mutex_try_lock('lockable'),          1,                                           'mutex locked (try)');
-    is(lockapi::mutex_unlock('unlockable'),          1,                                           'mutex unlocked');
-    is(lockapi::barrier_create('lucky_barrier', 41), 1,                                           'barrier created');
-    is(lockapi::barrier_wait('unblocked'),           1,                                           'waited for barrier');
-    is($recorded_info[0]->[1],                       'Wait for unblocked (on parent job)',        'info recorded by waited for barrier');
-    is(lockapi::barrier_wait({name => 'check_dead_job_barrier', check_dead_job => 1}), 1,         'waited for barrier with check_dead_job flag');
-    is($recorded_info[1]->[1],                 'Wait for check_dead_job_barrier (on parent job)', 'different info recorded with check_dead_job flag');
-    is(lockapi::barrier_try_wait('unblocked'), 1,                                                 'tried waiting for barrier');
-    is(lockapi::barrier_destroy('deletable'),  1,                                                 'barrier destroyed');
-    is(scalar @recorded_info,                  2, 'record info called expected number of times') or diag explain \@recorded_info;
+    combined_like {
+        is lockapi::mutex_create('lucky_lock'), 1, 'mutex created';
+        is lockapi::mutex_lock('lockable'),     1, 'mutex locked';
+        is lockapi::mutex_try_lock('lockable'), 1, 'mutex locked (try)';
+        is lockapi::mutex_unlock('unlockable'), 1, 'mutex unlocked';
+        is lockapi::barrier_create('lucky_barrier', 41), 1, 'barrier created';
+        is lockapi::barrier_wait('unblocked'), 1, 'waited for barrier';
+        is $recorded_info[0]->[1], 'Wait for unblocked (on parent job)', 'info recorded by waited for barrier';
+        is lockapi::barrier_wait({name => 'check_dead_job_barrier', check_dead_job => 1}), 1, 'waited for barrier with check_dead_job flag';
+        is $recorded_info[1]->[1], 'Wait for check_dead_job_barrier (on parent job)', 'different info recorded with check_dead_job flag';
+        is lockapi::barrier_try_wait('unblocked'), 1, 'tried waiting for barrier';
+        is lockapi::barrier_destroy('deletable'),  1, 'barrier destroyed';
+    } qr/mutex create.*mutex lock.*mutex try lock.*mutex unlock.*barrier create.*barrier wait.*barrier try wait.*barrier destroy/s, 'logging';
+    is scalar @recorded_info, 2, 'record info called expected number of times' or diag explain \@recorded_info;
 };
 
 done_testing;
