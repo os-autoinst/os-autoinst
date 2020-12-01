@@ -59,7 +59,8 @@ subtest 'mmapi: server not reachable' => sub {
     combined_like { is_deeply call($_), undef, "undef returned ($)" } qr/Connection error/, "error logged ($_)" for (qw(mmapi::get_children));
 };
 subtest 'lockapi: server not reachable' => sub {
-    is(call($_, qw(name where info)), 0, $_) for (qw(lockapi::mutex_create lockapi::mutex_try_lock));
+    combined_like { is call($_, qw(name where info)), 0, "zero returned $_" } qr/Connection error/, "error logged ($_)"
+      for (qw(lockapi::mutex_create lockapi::mutex_try_lock lockapi::barrier_create lockapi::barrier_try_wait));
 };
 
 # setup a fake server
@@ -169,11 +170,11 @@ subtest 'lockapi: misuse' => sub {
 };
 
 subtest 'lockapi: server returns error' => sub {
-    combined_like { is call($_, 'prone_lock'), 0, "0 returned ($_)" } qr/Unknown return code 404 for lock api/, "error logged ($_)"
+    combined_like { is call($_, 'prone_lock'), 0, "0 returned ($_)" } qr/prone_lock.*404 response/, "error logged ($_)"
       for (qw(lockapi::mutex_create lockapi::mutex_try_lock lockapi::mutex_unlock));
-    combined_like { is call($_, 'prone_lock', 7), 0, "0 returned ($_)" } qr/Unknown return code 404 for lock api/, "error logged ($_)"
+    combined_like { is call($_, 'prone_lock', 7), 0, "0 returned ($_)" } qr/prone_lock.*404 response/, "error logged ($_)"
       for (qw(lockapi::barrier_create lockapi::barrier_try_wait lockapi::barrier_destroy));
-    combined_unlike { is call($_, 'some_lock'), 0, "0 returned ($_)" } qr/Unknown return code/, "no error logged for blocked mutex ($_)"
+    combined_unlike { is call($_, 'some_lock'), 0, "0 returned ($_)" } qr/(.*response|Connection error)/, "no error logged for blocked mutex ($_)"
       for (qw(lockapi::mutex_try_lock lockapi::mutex_unlock lockapi::barrier_try_wait));
     combined_like { throws_ok { call($_, 'finished_lock') } qr/mydie/, "owner finished throws ($_)" } qr/owner already finished/, "finished logged ($_)"
       for (qw(lockapi::mutex_try_lock));

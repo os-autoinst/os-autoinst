@@ -1,4 +1,4 @@
-# Copyright (c) 2015 SUSE LLC
+# Copyright (c) 2015-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_wait
   barrier_create barrier_wait barrier_try_wait barrier_destroy);
 
 require bmwqemu;
-use mmapi qw(api_call get_job_info);
+use mmapi qw(api_call_2 get_job_info);
 use testapi ();
 
 use constant RETRY_COUNT    => $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT}    // 7;
@@ -34,16 +34,21 @@ use constant POLL_INTERVAL  => $ENV{OS_AUTOINST_LOCKAPI_POLL_INTERVAL}  // 5;
 sub _try_lock {
     my ($type, $name, $param) = @_;
 
-    my $res = '';
+    my $log_ctx               = "acquiring $type '$name'";
+    my %expected_return_codes = (200 => 1, 409 => 1, 410 => 1);
+    my $actual_return_code;
     for (1 .. RETRY_COUNT) {
-        $res = api_call(post => "$type/$name", $param)->code;
-        return 1 if ($res == 200);
-        last unless $res == 410;
+        my $tx = api_call_2(post => "$type/$name", $param, \%expected_return_codes);
+        $actual_return_code = $tx->res->code;
+        last unless mmapi::handle_api_error($tx, $log_ctx, \%expected_return_codes);
+        last unless $actual_return_code == 410;
         bmwqemu::fctinfo("Retry $_ of " . RETRY_COUNT);
         sleep RETRY_INTERVAL;
     }
-    bmwqemu::mydie "$type '$name': lock owner already finished" if $res == 410;
-    bmwqemu::fctwarn "Unknown return code $res for lock api"    if $res != 409;
+    if ($actual_return_code) {
+        return 1                                               if $actual_return_code == 200;
+        bmwqemu::mydie "$log_ctx: lock owner already finished" if $actual_return_code == 410;
+    }
     return 0;
 }
 
@@ -59,7 +64,7 @@ sub _log {
     my ($name, %args) = @_;
 
     # Generate log message
-    my $job = $args{where} ? get_job_info($args{where})->{settings}->{TEST} . " #$args{where}" : 'parent job';
+    my $job = $args{where} ? ((get_job_info($args{where}) // {})->{settings}->{TEST} // '?') . " #$args{where}" : 'parent job';
     my $msg = "Wait for $name (on $job)";
     $msg .= " - $args{info}" if $args{info};
 
@@ -71,6 +76,14 @@ sub _log {
     else {
         testapi::record_info 'Paused', $msg;
     }
+}
+
+sub _api_call_with_logging_and_error_handling {
+    my ($log_ctx, $method, $action, $params, $expected_codes) = (@_);
+    bmwqemu::diag($log_ctx);
+    my $tx = api_call_2($method, $action, $params, $expected_codes);
+    return 0 if mmapi::handle_api_error($tx, $log_ctx, $expected_codes);
+    return $tx->res->code == 200 ? 1 : 0;
 }
 
 sub mutex_lock {
@@ -94,25 +107,16 @@ sub mutex_try_lock {
 
 sub mutex_unlock {
     my ($name, $where) = @_;
+    bmwqemu::mydie('missing lock name') unless $name;
     my $param = {action => 'unlock'};
     $param->{where} = $where if $where;
-
-    bmwqemu::mydie('missing lock name') unless $name;
-    bmwqemu::diag("mutex unlock '$name'");
-    my $res = api_call('post', "mutex/$name", $param)->code;
-    return 1                                                  if ($res == 200);
-    bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
-    return 0;
+    return _api_call_with_logging_and_error_handling("mutex unlock '$name'", post => "mutex/$name", $param);
 }
 
 sub mutex_create {
     my ($name) = @_;
     bmwqemu::mydie('missing lock name') unless $name;
-    bmwqemu::diag("mutex create '$name'");
-    my $res = api_call('post', "mutex", {name => $name})->code;
-    return 1                                                  if ($res == 200);
-    bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
-    return 0;
+    return _api_call_with_logging_and_error_handling("mutex create '$name'", post => "mutex", {name => $name});
 }
 
 # Wrapper for mutex_lock & mutex_unlock
@@ -130,11 +134,7 @@ sub barrier_create {
     my ($name, $tasks) = @_;
     bmwqemu::mydie('missing barrier name')           unless $name;
     bmwqemu::mydie('missing number of barrier task') unless $tasks;
-    bmwqemu::diag("barrier create '$name' for $tasks tasks");
-    my $res = api_call('post', 'barrier', {name => $name, tasks => $tasks})->code;
-    return 1                                                  if ($res == 200);
-    bmwqemu::fctwarn("Unknown return code $res for lock api") if ($res != 409);
-    return 0;
+    return _api_call_with_logging_and_error_handling("barrier create '$name' for $tasks tasks", post => 'barrier', {name => $name, tasks => $tasks});
 }
 
 sub _wait_action {
@@ -179,13 +179,8 @@ sub barrier_wait {
 sub barrier_destroy {
     my ($name, $where) = @_;
     bmwqemu::mydie('missing barrier name') unless $name;
-    bmwqemu::diag("barrier destroy '$name'");
-    my $param;
-    $param->{where} = $where if $where;
-    my $res = api_call('delete', "barrier/$name", $param)->code;
-    return 1 if ($res == 200);
-    bmwqemu::fctwarn("Unknown return code $res for lock api");
-    return 0;
+    return _api_call_with_logging_and_error_handling("barrier destroy '$name'",
+        delete => "barrier/$name", $where ? {where => $where} : undef, {200 => 1});
 }
 
 1;
