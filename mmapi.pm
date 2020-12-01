@@ -31,6 +31,9 @@ require bmwqemu;
 use Mojo::UserAgent;
 use Mojo::URL;
 
+use constant RETRY_COUNT   => $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}   // 3;
+use constant POLL_INTERVAL => $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL} // 1;
+
 # private ua
 my $ua;
 my $url;
@@ -90,7 +93,7 @@ sub api_call_2 {
     $ua_url->path($action);
     $ua_url->query($params) if $params;
 
-    my $tries = 3;
+    my $tries = RETRY_COUNT;
     my ($tx, $res);
     while ($tries--) {
         $tx  = $ua->$method($ua_url);
@@ -265,7 +268,7 @@ sub wait_for_children {
 
         bmwqemu::diag("Waiting for $n jobs to finish");
         last unless $n;
-        sleep 1;
+        sleep POLL_INTERVAL;
     }
 }
 
@@ -287,7 +290,7 @@ sub wait_for_children_to_start {
 
         bmwqemu::diag("Waiting for $n jobs to start");
         last unless $n;
-        sleep 1;
+        sleep POLL_INTERVAL;
     }
 }
 
