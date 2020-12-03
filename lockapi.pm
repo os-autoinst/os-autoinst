@@ -42,8 +42,8 @@ sub _try_lock {
         $actual_return_code = $tx->res->code;
         last unless mmapi::handle_api_error($tx, $log_ctx, \%expected_return_codes);
         last unless $actual_return_code == 410;
-        bmwqemu::fctinfo("Retry $_ of " . RETRY_COUNT);
-        sleep RETRY_INTERVAL;
+        bmwqemu::fctinfo("Retry $_ of " . RETRY_COUNT);    # uncoverable statement
+        sleep RETRY_INTERVAL;                              # uncoverable statement
     }
     if ($actual_return_code) {
         return 1                                               if $actual_return_code == 200;
@@ -93,8 +93,8 @@ sub mutex_lock {
     while (1) {
         my $res = _lock_action($name, $where);
         return 1 if $res;
-        bmwqemu::diag("mutex lock '$name' unavailable, sleeping " . POLL_INTERVAL . ' seconds');
-        sleep POLL_INTERVAL;
+        bmwqemu::diag("mutex lock '$name' unavailable, sleeping " . POLL_INTERVAL . ' seconds');    # uncoverable statement
+        sleep POLL_INTERVAL;                                                                        # uncoverable statement
     }
 }
 
@@ -171,8 +171,8 @@ sub barrier_wait {
             return 1;
         }
 
-        bmwqemu::diag("barrier '$name' not released, sleeping " . POLL_INTERVAL . ' seconds');
-        sleep POLL_INTERVAL;
+        bmwqemu::diag("barrier '$name' not released, sleeping " . POLL_INTERVAL . ' seconds');    # uncoverable statement
+        sleep POLL_INTERVAL;                                                                      # uncoverable statement
     }
 }
 
