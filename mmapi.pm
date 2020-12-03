@@ -268,7 +268,7 @@ sub wait_for_children {
 
         bmwqemu::diag("Waiting for $n jobs to finish");
         last unless $n;
-        sleep POLL_INTERVAL;    # uncoverable statement
+        sleep POLL_INTERVAL;
     }
 }
 
@@ -290,7 +290,7 @@ sub wait_for_children_to_start {
 
         bmwqemu::diag("Waiting for $n jobs to start");
         last unless $n;
-        sleep POLL_INTERVAL;    # uncoverable statement
+        sleep POLL_INTERVAL;
     }
 }
 

@@ -24,6 +24,7 @@ BEGIN {
     $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT}    = 1;
     $ENV{OS_AUTOINST_LOCKAPI_RETRY_INTERVAL} = 0;
     $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}      = 1;
+    $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL}    = 0;
     $ENV{MOJO_CONNECT_TIMEOUT}               = 0.01;
 }
 
@@ -80,8 +81,13 @@ $mock_srv->helper(render_mutex => sub {
 });
 my $routes   = $mock_srv->routes;
 my $fake_api = $routes->any('/api/v1');
+my $wait_for_children_state;
 $fake_api->get('/mm/children' => sub {
         my ($self) = @_;
+        if ($wait_for_children_state) {
+            return $self->render(json => {jobs => {1 => 'scheduled'}}) if $wait_for_children_state->{interations_left}--;
+            return $self->render(json => {jobs => {1 => $wait_for_children_state->{state}}});
+        }
         return $self->render(status => 403, text => 'not authorized') if ($self->tx->req->headers->header('X-API-JobToken') || '') ne 'fake-jobtoken';
         return $self->render(json   => {jobs => [1, 2, 3]});
 });
@@ -200,6 +206,13 @@ subtest 'lockapi: successful use' => sub {
         is lockapi::barrier_destroy('deletable'),  1, 'barrier destroyed';
     } qr/mutex create.*mutex lock.*mutex try lock.*mutex unlock.*barrier create.*barrier wait.*barrier try wait.*barrier destroy/s, 'logging';
     is scalar @recorded_info, 2, 'record info called expected number of times' or diag explain \@recorded_info;
+};
+
+subtest 'mmapi: wait functions' => sub {
+    $wait_for_children_state = {interations_left => 1, state => 'done'};
+    combined_like { mmapi::wait_for_children } qr/Waiting for 1 jobs to finish/, 'wait for children to be done';
+    $wait_for_children_state = {interations_left => 1, state => 'running'};
+    combined_like { mmapi::wait_for_children_to_start } qr/Waiting for 1 jobs to start/, 'wait for children to be runnning';
 };
 
 done_testing;
