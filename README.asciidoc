@@ -190,8 +190,28 @@ distributions.)
 
 === Conducting the build
 
-Create a build directory outside of the source directory. The following commands need
-to be invoked within that directory.
+Simply call
+
+----
+make
+----
+
+in the top folder which automatically creates a build directory and builds the
+complete project.
+
+Call
+
+----
+make help
+----
+
+to list all available targets.
+
+The above commands use a convenience Makefile calling `cmake`. For packaging,
+when using an IDE or to conduct the steps manually it is suggested to use
+CMake directly and do the following: Create a build directory outside of the
+source directory. The following commands need to be invoked within that
+directory.
 
 Configure build:
 ----

@@ -4,7 +4,6 @@ doc/testapi.html
 *.tmp
 missing
 ltmain.sh
-Makefile
 depcomp
 .deps/
 *.tar.gz
