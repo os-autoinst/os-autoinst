@@ -191,7 +191,7 @@ sub configure_blockdevs {
             my ($name, $path, $ext) = fileparse($backing_file, ".xz");
             if ($ext =~ qr /.xz/) {
                 die 'unxz was not found in PATH' unless defined which('unxz');
-                bmwqemu::diag("Extract XZ compressed file");
+                bmwqemu::diag("Extracting XZ compressed file");
                 runcmd('nice', 'ionice', 'unxz', '-k', '-f', $backing_file);
                 $backing_file = $path . $name;
             }
@@ -454,7 +454,6 @@ sub connect_qmp {
     binmode $sk;
     my $flags = fcntl($sk, Fcntl::F_GETFL, 0) or die "Can't get file status flags of QMP socket: $!\n";
     $flags = fcntl($sk, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "Can't set file status flags of QMP socket: $!\n";
-    bmwqemu::diag(sprintf("QMP socket: %d", fileno($sk)));
     return $sk;
 }
 

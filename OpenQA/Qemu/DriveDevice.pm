@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ package OpenQA::Qemu::DriveDevice;
 use Mojo::Base 'OpenQA::Qemu::MutParams';
 
 use OpenQA::Qemu::DrivePath;
-use bmwqemu 'diag';
 
 use constant DEVICE_POSTFIX    => '-device';
 use constant QEMU_IMAGE_FORMAT => 'qcow2';

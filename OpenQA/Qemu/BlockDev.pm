@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2020 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,7 +38,6 @@ use Mojo::Base 'OpenQA::Qemu::MutParams';
 use Scalar::Util 'weaken';
 use OpenQA::Qemu::SnapshotConf;
 use File::Spec;
-use bmwqemu 'diag';
 
 use constant FILE_POSTFIX => '-file';
 
