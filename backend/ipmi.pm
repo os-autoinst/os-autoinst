@@ -168,7 +168,7 @@ sub do_mc_reset {
         else {
             bmwqemu::diag("IPMI mc reset success!");
             # wait seconds until mc reset really sent to board
-            sleep 10;
+            sleep 120;
             bmwqemu::diag("sleep 10 ends, will do ping");
             # check until  mc reset is done and ipmi recovered
             my $count    = 0;
