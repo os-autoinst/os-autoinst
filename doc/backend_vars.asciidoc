@@ -60,6 +60,11 @@ IPMI_DO_NOT_RESTART_HOST;boolean;undef;Don't restart the machine before test
 IPMI_BACKEND_MC_RESET;boolean;undef;Reset ipmi main board before test for sol console stability
 IPMI_SKIP_SELFTEST;boolean;undef;Don't perform BMC selftest
 IPMI_HW;string;supermicro;Hardware used for IPMI interface
+IPMI_MC_RESET_MAX_TRIES;integer;5;Maximum number of overall retries for mc reset
+IPMI_MC_RESET_SLEEP_TIME_S;integer;10;Time to sleep after sending mc reset command before trying to control IPMI
+IPMI_MC_RESET_TIMEOUT;integer;60;Counts to try to reach IPMI interface after mc reset
+IPMI_MC_RESET_PING_COUNT;integer;1;Ping counts that must be successful after mc reset
+IPMI_MC_RESET_IPMI_TRIES;integer;3;Maximum number of IPMI command tries that are conducted after mc reset
 |====================
 
 .QEMU backend

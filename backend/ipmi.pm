@@ -167,18 +167,20 @@ sub do_mc_reset {
         }
         else {
             bmwqemu::diag("IPMI mc reset success!");
-            # wait seconds until mc reset really sent to board
-            sleep 10;
-            bmwqemu::diag("sleep 10 ends, will do ping");
+            # wait some time until mc reset really sent to board
+            $bmwqemu::vars{IPMI_MC_RESET_SLEEP_TIME_S} // 10;
+            bmwqemu::diag("sleep ends, will do ping");
             # check until  mc reset is done and ipmi recovered
-            my $count    = 0;
-            my $timeout  = 60;
-            my $ping_cmd = "ping -c1 " . $bmwqemu::vars{IPMI_HOSTNAME};
+            my $count      = 0;
+            my $timeout    = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT}    // 60;
+            my $ping_count = $bmwqemu::vars{IPMI_MC_RESET_PING_COUNT} // 1;
+            my $ping_cmd   = "ping -c$ping_count " . $bmwqemu::vars{IPMI_HOSTNAME};
+            my $ipmi_tries = $bmwqemu::vars{IPMI_MC_RESET_IPMI_TRIES} // 3;
             while ($count++ < $timeout) {
                 eval { system($ping_cmd); };
                 if (!$@) {
                     # ping pass, check ipmitool function normally
-                    eval { $self->ipmitool('chassis power status', tries => 3); };
+                    eval { $self->ipmitool('chassis power status', tries => $ipmi_tries); };
                     if (!$@) {
                         # ipmitool is recovered completely
                         bmwqemu::diag("IPMI: ipmitool is recovered after mc reset!");
