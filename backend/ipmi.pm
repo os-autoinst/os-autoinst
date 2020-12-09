@@ -95,6 +95,7 @@ sub restart_host {
         last if $ret =~ m/is on/;
         $self->ipmitool('chassis power on');
     }
+    1;
 }
 
 sub do_start_vm {
@@ -159,7 +160,7 @@ sub do_mc_reset {
     local $SIG{__DIE__} = {};
 
     # mc reset cmd should return immediately, try maximum 5 times to ensure cmd executed
-    my $max_tries = 5;
+    my $max_tries = $bmwqemu::vars{IPMI_MC_RESET_MAX_TRIES} // 5;
     for (1 .. $max_tries) {
         eval { $self->ipmitool("mc reset cold"); };
         if ($@) {
@@ -168,7 +169,7 @@ sub do_mc_reset {
         else {
             bmwqemu::diag("IPMI mc reset success!");
             # wait some time until mc reset really sent to board
-            $bmwqemu::vars{IPMI_MC_RESET_SLEEP_TIME_S} // 10;
+            sleep $bmwqemu::vars{IPMI_MC_RESET_SLEEP_TIME_S} // 10;
             bmwqemu::diag("sleep ends, will do ping");
             # check until  mc reset is done and ipmi recovered
             my $count      = 0;
@@ -195,5 +196,3 @@ sub do_mc_reset {
 
     die "IPMI mc reset failure after $max_tries tries! Exit...";
 }
-
-1;
