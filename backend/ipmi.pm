@@ -175,7 +175,7 @@ sub do_mc_reset {
             my $count      = 0;
             my $timeout    = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT}    // 60;
             my $ping_count = $bmwqemu::vars{IPMI_MC_RESET_PING_COUNT} // 1;
-            my $ping_cmd   = "ping -c$ping_count " . $bmwqemu::vars{IPMI_HOSTNAME};
+            my $ping_cmd   = "ping -c$ping_count '$bmwqemu::vars{IPMI_HOSTNAME}'";
             my $ipmi_tries = $bmwqemu::vars{IPMI_MC_RESET_IPMI_TRIES} // 3;
             while ($count++ < $timeout) {
                 eval { system($ping_cmd); };
