@@ -6,11 +6,12 @@
 usage() {
     cat << EOF
 Usage:
- tidy [--check] [--only-changed]
+ tidy [-c|--check] [-f|--force] [-o|--only-changed]
 
 Options:
  -h, -?, --help       display this help
  -c, --check          Only check for style check differences
+ -f, --force          Force check even if tidy version mismatches
  -o --only-changed    Only tidy files with uncommited changes in git. This can
                       speed up execution a lot.
 
@@ -27,12 +28,13 @@ set -eo pipefail
 
 check=
 only_changed=false
-opts=$(getopt -o hco --long help,check,only-changed -n 'parse-options' -- "$@") || usage
+opts=$(getopt -o hcfo --long help,check,force,only-changed -n 'parse-options' -- "$@") || usage
 eval set -- "$opts"
 while true; do
   case "$1" in
     -h | --help ) usage; shift ;;
     -c | --check ) check=true; shift ;;
+    -f | --force ) force=true; shift ;;
     -o | --only-changed ) only_changed=true; shift ;;
     -- ) shift; break ;;
     * ) break ;;
@@ -51,8 +53,13 @@ dir="$(dirname $(readlink -f $0))/.."
 perltidy_version_found=$(perltidy -version | sed -n '1s/^.*perltidy, v\([0-9]*\)\s*$/\1/p')
 perltidy_version_expected=$(sed -n "s/^.*Tidy[^0-9]*\([0-9]*\)['];$/\1/p" $dir/cpanfile)
 if [ "$perltidy_version_found" != "$perltidy_version_expected" ]; then
-    echo "Wrong version of perltidy. Found '$perltidy_version_found', expected '$perltidy_version_expected'"
-    exit 1
+    echo -n "Wrong version of perltidy. Found '$perltidy_version_found', expected '$perltidy_version_expected'."
+    if [[ "$force" = "true" ]]; then
+        echo "Found '--force', continuing"
+    else
+        echo "Consider '--force' but results might not be consistent."
+        exit 1
+    fi
 fi
 
 find-files() {
