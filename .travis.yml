@@ -1,6 +1,0 @@
-sudo: required
-dist: trusty
-services:
-  - docker
-script:
-  - tools/docker_run_ci
