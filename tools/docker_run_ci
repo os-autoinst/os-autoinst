@@ -6,7 +6,7 @@ IMAGE=registry.opensuse.org/devel/openqa/containers15.2/os-autoinst_dev
 docker pull $IMAGE
 docker images | grep opensuse
 
-docker run --env "QEMU_QMP_CONNECT_ATTEMPTS=10" --env "EXPECTED_ISOTOVIDEO_RUNTIME=30" \
+docker run --env "QEMU_QMP_CONNECT_ATTEMPTS=10" \
   $CI_ENV --rm --entrypoint '' -v "$PWD":/opt $IMAGE sh -ec '
 echo "Newer docker versions need a patched qemu with disabled membarrier"
 . /etc/os-release
