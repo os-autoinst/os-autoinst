@@ -16,6 +16,8 @@
 
 use Test::Most;
 use Test::Warnings ':report_warnings';
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '40';
 use Try::Tiny;
 use File::Basename;
@@ -23,7 +25,6 @@ use Cwd 'abs_path';
 use Mojo::File qw(path tempdir);
 use Mojo::JSON qw(encode_json);
 use Benchmark ':hireswallclock';
-use FindBin '$Bin';
 use Mojo::Util qw(scope_guard);
 
 my $dir          = tempdir("/tmp/$FindBin::Script-XXXX");

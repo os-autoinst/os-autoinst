@@ -3,12 +3,13 @@
 use 5.018;
 use Test::Most;
 
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Fatal;
 use Test::Warnings qw(warnings :report_warnings);
 use Mojo::File qw(tempfile tempdir path);
 use Carp 'cluck';
-use FindBin '$Bin';
 use Mojo::Util qw(scope_guard);
 
 use OpenQA::Qemu::BlockDevConf;
