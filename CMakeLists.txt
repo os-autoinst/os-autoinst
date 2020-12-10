@@ -204,7 +204,7 @@ include(test-targets)
 add_custom_target(
     update-deps
     COMMENT "Updating dependency information"
-    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/update-deps" --specfile dist/rpm/os-autoinst.spec --dockerfile container/travis_test/Dockerfile
+    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/update-deps" --specfile dist/rpm/os-autoinst.spec --dockerfile container/os-autoinst_dev/Dockerfile
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
