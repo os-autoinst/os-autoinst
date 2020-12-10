@@ -31,7 +31,7 @@ my $make_cmd  = "$make_tool update-deps";
 chdir $build_dir;
 my @out = qx{$make_cmd};
 my $rc  = $?;
-die "Could not run $make_cmd: rc=$rc" if $rc;
+die "Could not run $make_cmd: rc=$rc, out: @out" if $rc;
 
 my @status = grep { not m/^\?/ } qx{git -C "$Bin/.." status --porcelain};
 ok(!@status, "No changed files after '$make_cmd'") or diag @status;
