@@ -9,3 +9,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Static checks, unit- and integration tests
         run: tools/docker_run_ci
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          fail_ci_if_error: true
+          verbose: true
