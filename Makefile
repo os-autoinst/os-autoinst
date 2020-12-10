@@ -5,8 +5,8 @@
 all: build/CMakeCache.txt
 	ninja -C build/ all
 
-%: build/CMakeCache.txt
-	ninja -C build/ $*
+.DEFAULT: build/CMakeCache.txt
+	ninja -C build/ $@
 
 build/CMakeCache.txt:
 	@mkdir -p build
