@@ -124,6 +124,14 @@ if (COVER_PATH AND PROVE_PATH)
         DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
     )
     add_dependencies(coverage-codecov symlinks)
+    add_custom_target(
+        coverage-codecovbash
+        COMMENT "Perl test suite coverage (codecovbash)"
+        COMMAND "${COVER_PATH}" -report codecovbash "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
+        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
+    )
+    add_dependencies(coverage-codecovbash symlinks)
+
 else ()
     message(STATUS "Set COVER_PATH to the path of the cover executable to enable coverage computition of the Perl testsuite.")
 endif ()

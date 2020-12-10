@@ -1,4 +1,6 @@
 #!/bin/bash -e
+default_target="${TRAVIS+"coverage-codecov"}"
+target="${default_target:-"coverage-codecovbash"}"
 CI_ENV=$(bash <(curl -s https://codecov.io/env))
 # shellcheck disable=SC2086
 
@@ -7,15 +9,16 @@ docker pull $IMAGE
 docker images | grep opensuse
 
 docker run --env "QEMU_QMP_CONNECT_ATTEMPTS=10" \
-  $CI_ENV --rm --entrypoint '' -v "$PWD":/opt $IMAGE sh -ec '
-echo "Newer docker versions need a patched qemu with disabled membarrier"
+  $CI_ENV --rm --entrypoint '' -v "$PWD":/opt $IMAGE sh -ec "
+echo 'Newer docker versions need a patched qemu with disabled membarrier'
 . /etc/os-release
-zypper -n addrepo http://download.opensuse.org/repositories/devel:/openQA:/ci/openSUSE_Leap_${VERSION} qemu
+zypper -n addrepo http://download.opensuse.org/repositories/devel:/openQA:/ci/openSUSE_Leap_\${VERSION} qemu
 zypper -n --gpg-auto-import-keys --no-gpg-checks refresh
 zypper -n in --from qemu qemu qemu-x86 qemu-tools qemu-ipxe qemu-sgabios qemu-seabios
+[[ '$target' == 'coverage-codecovbash' ]] && zypper -n in perl-App-cpanminus && cpanm -nq 'Devel::Cover::Report::Codecovbash'
 cd /opt
 ./tools/install-new-deps.sh
 cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .
 export CI=1 WITH_COVER_OPTIONS=1
 ninja -v check
-ninja -v coverage-codecov'
+ninja -v $target"
