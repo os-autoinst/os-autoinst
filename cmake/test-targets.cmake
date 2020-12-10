@@ -15,7 +15,6 @@ endif ()
 add_test(
     NAME test-installed-files
     COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-installed-files" "${CMAKE_MAKE_PROGRAM}"
-    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
 
 # add test for YAML syntax
