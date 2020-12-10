@@ -11,3 +11,9 @@ all: build/CMakeCache.txt
 build/CMakeCache.txt:
 	@mkdir -p build
 	@(cd build && cmake -GNinja ..)
+
+# Devel::Cover works best with a simple "test" target in a top-level Makefile
+# Call "check" for all tests and checks
+.PHONY: test
+test: all
+	prove -I. -r t/
