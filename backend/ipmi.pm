@@ -196,3 +196,5 @@ sub do_mc_reset {
 
     die "IPMI mc reset failure after $max_tries tries! Exit...";
 }
+
+1;
