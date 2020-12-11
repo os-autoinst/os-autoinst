@@ -4,7 +4,7 @@ use Test::Most;
 
 use Test::Mock::Time;
 use File::Temp;
-use Test::Output;
+use Test::Output qw(combined_like stderr_like);
 use Test::Fatal;
 use Test::Warnings qw(:all :report_warnings);
 use Scalar::Util 'looks_like_number';
@@ -83,7 +83,7 @@ sub fake_read_json {
         return {ret => {x => 100, y => 100}};
     }
     else {
-        print "mock method not implemented \$cmd: $cmd\n";
+        note "mock method not implemented \$cmd: $cmd\n";
     }
     return {};
 }
@@ -101,6 +101,8 @@ $autotest::current_test = basetest->new();
 # that use it, as it doesn't work with the fake send_json and read_json
 my $mod2 = Test::MockModule->new('testapi');
 
+my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+
 subtest 'type_string' => sub {
     ## no critic (ProhibitSubroutinePrototypes)
     sub fake_wait_screen_change(&@) {
@@ -110,13 +112,17 @@ subtest 'type_string' => sub {
 
     $mod2->redefine(wait_screen_change => \&fake_wait_screen_change);
 
-    type_string 'hallo';
-    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hallo'}]);
+    stderr_like { type_string 'hallo' } qr/<<< testapi::type_string/, 'type_string log output';
+    is_deeply $cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hallo'}], 'type_string called';
     $cmds = [];
 
-    type_string 'hallo', 4;
+    stderr_like { type_string 'hallo', 4 } qr/<<< testapi::type_string.*interval=4/, 'type_string log output';
     is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 4, text => 'hallo'}]);
     $cmds = [];
+
+    # after we tested the log output in some calls we can switch it off for the
+    # rest to reduce the noise
+    $mock_bmwqemu->noop('log_call', 'diag', 'fctres');
 
     type_string 'hallo', secret => 1;
     is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => 'hallo'}]);
@@ -186,7 +192,6 @@ send_key 'ret';
 is_deeply($cmds, [{cmd => 'backend_send_key', key => 'ret'}], 'send_key with no default arguments') || diag explain $cmds;
 $cmds = [];
 
-my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
 $mock_bmwqemu->redefine(result_dir => File::Temp->newdir());
 
 subtest 'send_key with wait_screen_change' => sub {
@@ -200,6 +205,7 @@ subtest 'send_key with wait_screen_change' => sub {
 };
 
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
+$mock_bmwqemu->unmock('log_call');
 stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
 is($autotest::current_test->{dents},             1, 'one dent recorded');
 is(scalar @{$autotest::current_test->{details}}, 1, 'exactly one detail added recorded');
@@ -212,6 +218,7 @@ my $details_ok = is($details->{title}, 'Soft Failed', 'title for soft failure ad
 $details_ok &= is($details->{result}, 'softfail', 'result correct');
 $details_ok &= like($details->{text}, qr/basetest-[0-9]+.*txt/, 'file for soft failure added');
 diag explain $details unless $details_ok;
+$mock_bmwqemu->noop('log_call');
 
 require distribution;
 testapi::set_distribution(distribution->new());
@@ -220,13 +227,14 @@ is(is_serial_terminal, 0,           'Not a serial terminal');
 is(current_console,    'a-console', 'Current console is the a-console');
 
 subtest 'script_run' => sub {
-    my $module = Test::MockModule->new('bmwqemu');
     # just save ourselves some time during testing
-    $module->redefine(wait_for_one_more_screenshot => sub { sleep 0; });
+    $mock_bmwqemu->redefine(wait_for_one_more_screenshot => sub { sleep 0; });
 
     $testapi::serialdev = 'null';
 
-    is(assert_script_run('true'), undef, 'nothing happens on success');
+    $mock_bmwqemu->unmock('fctres');
+    stderr_like { is(assert_script_run('true'), undef, 'nothing happens on success') } qr/wait_serial/, 'log';
+    $mock_bmwqemu->noop('fctres');
     $fake_exit = 1;
     like(exception { assert_script_run 'false', 42; }, qr/command.*false.*failed at/, 'with timeout option (deprecated mode)');
     like(exception { assert_script_run 'false', 0; },  qr/command.*false.*timed out/, 'exception message distinguishes failed/timed out');
@@ -263,7 +271,7 @@ subtest 'check_assert_screen' => sub {
     $mock_testapi->redefine(_handle_found_needle => sub { return $_[0] });
 
     my $mock_tinycv = Test::MockModule->new('tinycv');
-    $mock_tinycv->redefine(from_ppm => sub { return bless({} => __PACKAGE__); });
+    $mock_tinycv->redefine(from_ppm => sub($) { return bless({} => __PACKAGE__); });
 
     throws_ok(sub { assert_screen(''); }, qr/no tags specified/, 'error if tag(s) is falsy scalar');
     throws_ok(sub { assert_screen([]); }, qr/no tags specified/, 'error if tag(s) is empty array');
@@ -273,6 +281,7 @@ subtest 'check_assert_screen' => sub {
     throws_ok(sub { assert_screen('foo', 1); }, qr/current_test undefined/, 'error if current test undefined');
     $autotest::current_test = $current_test;
 
+    $mock_bmwqemu->unmock('log_call');
     stderr_like {
         is_deeply(assert_screen('foo', 1), {needle => 1}, 'expected and found MATCH reported')
     }
@@ -283,6 +292,7 @@ subtest 'check_assert_screen' => sub {
     stderr_like { check_screen('foo') } qr/timeout=0/, 'check_screen with timeout of 0';
     stderr_like { check_screen('foo', 42) } qr/timeout=42/, 'check_screen with timeout variable';
     stderr_like { check_screen([qw(foo bar)], 42) } qr/timeout=42/, 'check_screen with multiple tags';
+    $mock_bmwqemu->noop('log_call');
 
     $fake_needle_found = 0;
     is($report_timeout_called, 0, 'report_timeout not called yet');
@@ -532,14 +542,17 @@ subtest 'wait_still_screen & assert_still_screen' => sub {
         read_json => sub {
             return {ret => {sim => 999}};
         });
+    $mock_bmwqemu->noop('log_call');
     ok(wait_still_screen,                                                                     'default arguments');
     ok(wait_still_screen(3),                                                                  'still time specified');
     ok(wait_still_screen(2, 4),                                                               'still time and timeout');
     ok(wait_still_screen(stilltime => 2, no_wait => 1),                                       'no_wait option can be specified');
     ok(wait_still_screen(stilltime => 2, timeout => 5, no_wait => 1, similarity_level => 30), 'Add similarity_level & timeout');
-    ok(!wait_still_screen(timeout => 4, no_wait => 1), 'two named args, with timeout below stilltime - which will always return false');
-    ok(wait_still_screen(1, 2, timeout => 3),          'named over positional');
-    ok(assert_still_screen,                            'default arguments to assert_still_screen');
+    my $ret;
+    stderr_like { wait_still_screen(timeout => 4, no_wait => 1) } qr/[warn].*wait_still_screen.*timeout.*below stilltime/, 'log';
+    ok(!$ret,                                 'two named args, with timeout below stilltime - which will always return false');
+    ok(wait_still_screen(1, 2, timeout => 3), 'named over positional');
+    ok(assert_still_screen,                   'default arguments to assert_still_screen');
     my $testapi = Test::MockModule->new('testapi');
     $testapi->redefine(wait_still_screen => sub { die "wait_still_screen(@_)" });
     like(exception { assert_still_screen similarity_level => 9999; }, qr/wait_still_screen\(similarity_level 9999\)/,
@@ -689,23 +702,23 @@ subtest '_calculate_clickpoint' => sub {
 
     # Everything is provided.
     my ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle, \%fake_needle_area, \%fake_click_point);
-    is($x, 120);
-    is($y, 110);
+    is $x, 120, 'clickpoint x';
+    is $y, 110, 'clickpoint y';
 
     # Everything is provided but the click point is 'center'
     ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle, \%fake_needle_area, "center");
-    is($x, 125);
-    is($y, 120);
+    is $x, 125, 'clickpoint x centered';
+    is $y, 120, 'clickpoint y centered';
 
     # Just the area is provided and no click point.
     ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle, \%fake_needle_area);
-    is($x, 125);
-    is($y, 120);
+    is $x, 125, 'clickpoint x from area';
+    is $y, 120, 'clickpoint y from area';
 
     # Just the needle is provided and no area and click point.
     ($x, $y) = testapi::_calculate_clickpoint(\%fake_needle);
-    is($x, 20);
-    is($y, 25);
+    is $x, 20, 'clickpoint x from needle';
+    is $y, 25, 'clickpoint y from needle';
 };
 
 subtest 'mouse_drag' => sub {
