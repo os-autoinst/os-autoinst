@@ -49,5 +49,6 @@ fi
 export OS_AUTOINST_BUILD_DIRECTORY=$build_directory
 export OS_AUTOINST_MAKE_TOOL=$make_path
 
-# invoke tests within the t directory
+# invoke tests within the t and xt directory
 cd t && "$prove_path" $PROVE_ARGS ${TESTS:-'-r'}
+cd ../xt && "$prove_path" $PROVE_ARGS ${TESTS:-'-r'}
