@@ -1,6 +1,9 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::MockObject;
 use Test::Warnings ':report_warnings';
@@ -12,7 +15,6 @@ use distribution;
 use Net::SSH2;
 use testapi qw(get_var get_required_var check_var set_var);
 use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT);
-use FindBin '$Bin';
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
 

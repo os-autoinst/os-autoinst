@@ -16,6 +16,9 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 use Test::Most;
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use Test::Output 'stderr_like';
 use File::Temp 'tempdir';
 use File::Basename;

@@ -3,6 +3,9 @@
 use 5.018;
 use Test::Most;
 
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use backend::spvm;
 use testapi qw(set_var power);

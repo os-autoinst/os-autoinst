@@ -2,6 +2,9 @@
 
 use Test::Most;
 
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use File::Touch;
 use File::Path qw(make_path remove_tree);
 use Test::MockModule;

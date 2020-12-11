@@ -1,11 +1,13 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Fatal;
 use Test::Output qw(combined_like);
 use File::Basename;
-use FindBin '$Bin';
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
 
