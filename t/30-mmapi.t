@@ -28,6 +28,8 @@ BEGIN {
     $ENV{MOJO_CONNECT_TIMEOUT}               = 0.01;
 }
 
+use FindBin;
+use lib "$FindBin::Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output;
 use Test::MockModule;

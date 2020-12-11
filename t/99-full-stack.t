@@ -17,13 +17,14 @@
 
 use Test::Most;
 
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '240';
 use Test::Warnings ':report_warnings';
 use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
 use Mojo::JSON 'decode_json';
-use FindBin '$Bin';
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
 
