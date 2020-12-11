@@ -36,9 +36,10 @@ chdir $pool_dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 # just save ourselves some time during testing
-$ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} //= 1;
-$ENV{QEMU_QMP_CONNECT_ATTEMPTS}     //= 1;
-$ENV{EXPECTED_ISOTOVIDEO_RUNTIME}   //= 4;
+$ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL}           //= 1;
+$ENV{QEMU_QMP_CONNECT_ATTEMPTS}               //= 1;
+$ENV{EXPECTED_ISOTOVIDEO_RUNTIME_SCALE_COVER} //= Devel::Cover->can('report') ? 6 : 1;
+$ENV{EXPECTED_ISOTOVIDEO_RUNTIME}             //= $ENV{EXPECTED_ISOTOVIDEO_RUNTIME_SCALE_COVER} * 4;
 
 my @common_options = (
     ARCH            => 'i386',
