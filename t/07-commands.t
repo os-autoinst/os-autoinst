@@ -18,11 +18,12 @@
 
 use Test::Most;
 
-use FindBin;
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use File::Find;
 require IPC::System::Simple;
 use autodie ':all';
-
 
 use commands;
 use Mojo::IOLoop::Server;

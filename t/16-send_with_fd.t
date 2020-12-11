@@ -3,6 +3,9 @@
 use 5.018;
 use Test::Most;
 
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use Socket;
 # This is the library we want to avoid, but it is OK just for testing
 use Socket::MsgHdr;

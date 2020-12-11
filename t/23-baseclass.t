@@ -1,6 +1,9 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::MockObject;
 use Test::Output 'stdout_is';
@@ -11,7 +14,6 @@ use Mojo::JSON 'decode_json';
 use Scalar::Util 'refaddr';
 use backend::baseclass;
 use POSIX 'tzset';
-use FindBin '$Bin';
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
 

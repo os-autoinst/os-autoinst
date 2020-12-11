@@ -2,11 +2,13 @@
 
 use Test::Most;
 
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_like combined_from);
 use Test::Fatal;
 use Test::MockModule;
 use File::Basename ();
-use FindBin '$Bin';
 use File::Path 'rmtree';
 
 use autotest;

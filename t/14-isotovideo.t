@@ -1,6 +1,9 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '20';
 use autodie ':all';
 use Test::Output;
 use File::Basename;
@@ -9,7 +12,6 @@ use Cwd 'abs_path';
 use Mojo::File qw(tempdir path);
 use Mojo::JSON qw(decode_json);
 use Mojo::Util qw(scope_guard);
-use FindBin '$Bin';
 use OpenQA::Isotovideo::Utils qw(load_test_schedule handle_generated_assets);
 use OpenQA::Isotovideo::CommandHandler;
 

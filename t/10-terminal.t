@@ -16,6 +16,9 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 use 5.018;
 use Test::Most;
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use Carp 'confess';
 use English -no_match_vars;
 use POSIX qw( :sys_wait_h sigprocmask sigsuspend mkfifo);
@@ -27,7 +30,6 @@ use Mojo::Log;
 use Mojo::JSON qw( encode_json decode_json );
 
 use Test::Warnings ':report_warnings';
-use FindBin '$Bin';
 my $main_pid = $$;
 
 use consoles::virtio_terminal;

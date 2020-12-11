@@ -18,6 +18,9 @@
 
 
 use Test::Most;
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_from);
 use bmwqemu;
 use Mojo::File 'tempfile';

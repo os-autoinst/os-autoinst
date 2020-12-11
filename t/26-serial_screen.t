@@ -2,6 +2,9 @@
 # Copyright © 2019 SUSE LLC
 
 use Test::Most;
+use FindBin '$Bin';
+use lib "$Bin/../external/os-autoinst-common/lib";
+use OpenQA::Test::TimeLimit '5';
 use consoles::serial_screen;
 
 my $screen = consoles::serial_screen->new('read', 'write');
