@@ -240,7 +240,7 @@ make check
 By default CTest is invoked in verbose mode because prove already provides condensed
 output. Add `-DVERBOSE_CTEST=OFF` to the CMake arguments to avoid that.
 
-Run all Perl tests (`*.t` files found within the `t` directory):
+Run all Perl tests (`*.t` files found within the `t` and `xt` directories):
 ----
 make test-perl-testsuite
 ----
