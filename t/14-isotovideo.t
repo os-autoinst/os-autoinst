@@ -148,7 +148,10 @@ subtest 'upload the asset even in an incomplete job' => sub {
     $bmwqemu::vars{PUBLISH_HDD_1}       = 'publish_test.qcow2';
     $command_handler->test_completed(0);
     $bmwqemu::backend = FakeBackendDriver->new('qemu');
-    my $return_code = handle_generated_assets($command_handler, 1);
+    my $return_code;
+    combined_like {
+        $return_code = handle_generated_assets($command_handler, 1)
+    } qr/Requested to force the publication/, 'forced publication of asset';
     is $return_code, 0, 'The asset was uploaded success';
     ok(-e $pool_dir . '/assets_public/force_publish_test.qcow2', 'test.qcow2 image exists');
     ok(!-e $pool_dir . '/assets_public/publish_test.qcow2',      'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
