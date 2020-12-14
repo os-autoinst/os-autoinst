@@ -17,9 +17,12 @@ package consoles::ssh_screen;
 
 use Mojo::Base 'consoles::serial_screen';
 use Carp 'croak';
+use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 
 has ssh_connection => undef;
 has ssh_channel    => undef;
+
+use constant TYPE_STRING_TIMEOUT => 60;
 
 sub new {
     my $class = shift;
@@ -58,4 +61,44 @@ sub do_read
     }
     return undef;
 }
+
+sub type_string {
+    my ($self, $nargs) = @_;
+
+    bmwqemu::log_call(%$nargs);
+
+    my $text           = $nargs->{text};
+    my $terminate_with = $nargs->{terminate_with} // '';
+    my $written        = 0;
+    my $stime          = consoles::serial_screen::thetime();
+
+    $text .= "\cC" if ($terminate_with eq 'ETX');
+
+    while ($written < length($text)) {
+        my $elapsed = consoles::serial_screen::elapsed($stime);
+
+        croak("type_screen(): Timed out after $elapsed seconds.")
+          if ($elapsed > TYPE_STRING_TIMEOUT);
+
+        my $chunk = $self->ssh_channel->write(substr($text, $written));
+
+        if (!defined($chunk)) {
+            my ($errcode, $errname, $errstr) = $self->ssh_connection->error;
+
+            croak "Lost SSH connection to SUT: $errstr"
+              if $errcode != LIBSSH2_ERROR_EAGAIN;
+            select(undef, undef, undef, 0.1);
+        } elsif ($chunk < 0) {
+            # Old Net::SSH2 error signaling
+            croak "Lost SSH connection to SUT"
+              if $chunk != LIBSSH2_ERROR_EAGAIN;
+            select(undef, undef, undef, 0.1);
+        } else {
+            $written += $chunk;
+        }
+    }
+
+    $self->ssh_channel->send_eof if ($terminate_with eq 'EOT');
+}
+
 1;
