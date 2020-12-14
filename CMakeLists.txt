@@ -39,6 +39,7 @@ set(PERL_FILES
     consoles/serial_screen.pm
     consoles/sshIucvconn.pm
     consoles/ssh_screen.pm
+    consoles/sshSerial.pm
     consoles/sshVirtsh.pm
     consoles/sshVirtshSUT.pm
     consoles/sshX3270.pm
