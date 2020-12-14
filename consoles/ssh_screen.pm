@@ -28,6 +28,11 @@ sub new {
     croak('Missing parameter ssh_connection') unless $self->ssh_connection;
     croak('Missing parameter ssh_channel')    unless $self->ssh_channel;
 
+    if ($self->{logfile}) {
+        open($self->{loghandle}, ">>", $self->{logfile})
+          or croak('Cannot open logfile ' . $self->{logfile});
+    }
+
     return $self->SUPER::new($self->ssh_channel);
 }
 
@@ -44,6 +49,7 @@ sub do_read
         my $read = $self->ssh_channel->read($buffer, $args{max_size});
         if (defined($read)) {
             $_[1] = $buffer;
+            print {$self->{loghandle}} $buffer if $self->{loghandle};
             return $read;
         }
 
