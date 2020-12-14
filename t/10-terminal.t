@@ -326,7 +326,8 @@ sub test_terminal_disabled {
     testapi::set_var('VIRTIO_CONSOLE', 0);
 
     my $term = consoles::virtio_terminal->new('unit-test-console', {});
-    $term->activate;
+    eval { $term->activate };
+    die "Expected message about unavailable terminal" unless $@ =~ /no virtio-serial.*available/;
 }
 
 sub test_terminal_through_testapi {
@@ -379,7 +380,7 @@ check_child('Fake terminal');
 waitpid($tpid, 0);
 check_child('Direct test VIRTIO_CONSOLE not set');
 waitpid($tpid2, 0);
-check_child('Direct test with VIRTIO_CONSOLE=0', 255);
+check_child('Direct test with VIRTIO_CONSOLE=0', 0);
 my $child_tests = retrieve_child_tests();
 for my $pid (sort keys %$child_tests) {
     my $tests = $child_tests->{$pid};

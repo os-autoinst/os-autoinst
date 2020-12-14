@@ -63,7 +63,7 @@ subtest "Test open_pipe() error condition" => sub {
 
     my $helper = prepare_pipes($socket_path);
     my $term   = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
-    dies_ok { $term->open_pipe(); } 'Expect die if pipe_sz fail';
+    combined_like { dies_ok { $term->open_pipe(); } 'Expect die if pipe_sz fail' } qr/\[debug\] <<<.*open_pipe/, 'log';
     cleanup_pipes($helper);
 
     my $size = 1024;
@@ -108,7 +108,8 @@ subtest "Test open_pipe() error condition" => sub {
     is($size, 5555, "PIPE_SZ is 5555 from VIRTIO_CONSOLE_PIPE_SZ");
 
     $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
-    throws_ok { $term->open_pipe() } qr/No such file or directory/, "Throw exception if pipe doesn't exists";
+    combined_like { throws_ok { $term->open_pipe() } qr/No such file or directory/, "Throw exception if pipe doesn't exists" }
+    qr/\[debug\] <<<.*open_pipe/, 'log for open_pipe on non-existant pipe';
 };
 
 done_testing;

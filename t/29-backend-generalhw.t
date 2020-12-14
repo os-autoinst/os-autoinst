@@ -70,6 +70,9 @@ my $vnc_mock = Test::MockModule->new('consoles::VNC');
 my @vnc_logins;
 $vnc_mock->redefine(login => sub { push @vnc_logins, [shift->hostname] });
 $vnc_mock->redefine($_    => sub { }) for (qw(_receive_message _send_frame_buffer send_update_request));
+my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
+# silence some log output for cleaner tests
+$bmwqemu_mock->noop('diag');
 
 subtest 'start VM' => sub {
     # start the "VM" which should actually just run a few commands via IPC::Run and start the VNC and serial consoles
