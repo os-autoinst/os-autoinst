@@ -24,6 +24,7 @@ use base 'backend::virt';
 use File::Basename;
 use IO::Scalar;
 use Time::HiRes 'usleep';
+use bmwqemu;
 use testapi qw(get_var get_required_var check_var);
 
 use constant SERIAL_CONSOLE_DEFAULT_PORT   => 0;
@@ -247,7 +248,7 @@ sub start_serial_grab {
     bmwqemu::diag('svirt: grabbing serial console');
     $ssh->blocking(1);
     if (!$chan->exec($cmd)) {
-        bmwqemu::diag('svirt: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
+        bmwqemu::fctwarn('svirt: unable to grab serial console at this point: ' . ($ssh->error // 'unknown SSH error'));
     }
     $ssh->blocking(0);
 }
@@ -319,7 +320,7 @@ sub die {
     my ($self, $err) = @_;
     $err //= '';
     if ($self->{need_delete_log}) {
-        bmwqemu::diag("error, cleanup logs before die");
+        bmwqemu::fctwarn("error, cleanup logs before die");
         $self->delete_log();
     }
     die $err;

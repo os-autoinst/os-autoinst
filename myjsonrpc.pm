@@ -134,7 +134,7 @@ sub read_json {
         my $qbuffer;
         my $bytes = sysread($socket, $qbuffer, READ_BUFFER);
         if (!$bytes) {
-            bmwqemu::diag("sysread failed: $!") if DEBUG_JSON;
+            bmwqemu::fctwarn("sysread failed: $!") if DEBUG_JSON;
             return;
         }
         $cjx->incr_parse($qbuffer);

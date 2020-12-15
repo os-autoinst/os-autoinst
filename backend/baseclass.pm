@@ -91,7 +91,7 @@ sub handle_command {
 
 sub die_handler {
     my $msg = shift;
-    bmwqemu::diag "Backend process died, backend errors are reported below in the following lines:\n$msg";
+    bmwqemu::fctinfo "Backend process died, backend errors are reported below in the following lines:\n$msg";
     bmwqemu::serialize_state(component => 'backend', msg => $msg);
     $backend->stop_vm();
     $backend->close_pipes();
@@ -219,7 +219,7 @@ sub run_capture_loop {
             if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
                 $self->stall_detected(1);
                 my $diff = $now - $self->last_screenshot;
-                bmwqemu::diag "WARNING: There is some problem with your environment, we detected a stall for $diff seconds";
+                bmwqemu::fctwarn "There is some problem with your environment, we detected a stall for $diff seconds";
             }
 
             my $time_to_screenshot = $self->screenshot_interval - ($now - $self->last_screenshot);
@@ -286,7 +286,7 @@ sub run_capture_loop {
     };
 
     if ($@) {
-        bmwqemu::diag "capture loop failed $@";
+        bmwqemu::fctwarn "capture loop failed $@";
         $self->close_pipes();
     }
     return;
@@ -455,7 +455,7 @@ sub alive {
             return 1;
         }
         else {
-            bmwqemu::diag("ALARM: backend.run got deleted! - exiting...");
+            bmwqemu::fctwarn 'backend.run got deleted! - exiting...';
             _exit(1);
         }
     }
@@ -1017,9 +1017,7 @@ sub set_tags_to_assert {
     }
     $mustmatch = join(',', @tags);
 
-    if (!@$needles) {
-        bmwqemu::diag("NO matching needles for $mustmatch");
-    }
+    bmwqemu::fctinfo "NO matching needles for $mustmatch" unless @$needles;
 
     $self->set_assert_screen_timeout($timeout);
     $self->assert_screen_fails([]);
@@ -1034,7 +1032,7 @@ sub set_tags_to_assert {
 
 sub set_assert_screen_timeout {
     my ($self, $timeout) = @_;
-    return bmwqemu::diag('set_assert_screen_timeout called with non-numeric timeout') unless looks_like_number($timeout);
+    return bmwqemu::fctwarn('set_assert_screen_timeout called with non-numeric timeout') unless looks_like_number($timeout);
     $self->assert_screen_deadline(time + $timeout);
 }
 
@@ -1355,7 +1353,7 @@ sub check_ssh_serial {
     return 0 unless $ssh_socket == $fh;
 
     if ($write) {
-        bmwqemu::diag('SSH serial: setup error: socket has been wrongly selected for writing');
+        bmwqemu::fctwarn 'SSH serial: setup error: socket has been wrongly selected for writing';
         return 1;
     }
 
@@ -1373,7 +1371,7 @@ sub check_ssh_serial {
     my ($error_code, $error_name, $error_string) = $ssh->error;
     return 1 if $error_code == LIBSSH2_ERROR_EAGAIN;
 
-    bmwqemu::diag("ssh serial: unable to read: $error_string (error code: $error_code) - closing connection");
+    bmwqemu::fctwarn "ssh serial: unable to read: $error_string (error code: $error_code) - closing connection";
     $self->stop_ssh_serial();
     return 1;
 }
