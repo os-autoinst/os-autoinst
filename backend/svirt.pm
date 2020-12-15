@@ -233,13 +233,13 @@ sub start_serial_grab {
         # libvirt esx driver does not support `virsh console', so
         # we have to connect to VM's serial port via TCP which is
         # provided by ESXi server.
-        $cmd = 'nc ' . get_var('VMWARE_HOST') . ' ' . get_var('VMWARE_SERIAL_PORT');
+        $cmd = 'socat - TCP4:' . get_var('VMWARE_HOST') . ':' . get_var('VMWARE_SERIAL_PORT') . ',crnl';
     }
     elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         # Hyper-V does not support serial console export via TCP, just
         # windows named pipes (e.g. \\.\pipe\mypipe). Such a named pipe
         # has to be enabled by a namedpipe-to-TCP on HYPERV_SERVER application.
-        $cmd = 'nc ' . get_var('HYPERV_SERVER') . ' ' . get_var('HYPERV_SERIAL_PORT');
+        $cmd = 'socat - TCP4:' . get_var('HYPERV_SERVER') . ':' . get_var('HYPERV_SERIAL_PORT') . ',crnl';
     }
     else {
         $cmd = 'virsh console ' . $name;
@@ -280,13 +280,13 @@ sub open_serial_console_via_ssh {
         # libvirt esx driver does not support `virsh console', so
         # we have to connect to VM's serial port via TCP which is
         # provided by ESXi server.
-        $cmd = 'nc ' . get_var('VMWARE_HOST') . ' ' . $port;
+        $cmd = 'socat - TCP4:' . get_var('VMWARE_HOST') . ':' . $port . ',crnl';
     }
     elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         # Hyper-V does not support serial console export via TCP, just
         # windows named pipes (e.g. \\.\pipe\mypipe). Such a named pipe
         # has to be enabled by a namedpipe-to-TCP on HYPERV_SERVER application.
-        $cmd = 'nc ' . get_var('HYPERV_SERVER') . ' ' . $port;
+        $cmd = 'socat - TCP4:' . get_var('HYPERV_SERVER') . ':' . $port . ',crnl';
     }
     else {
         $cmd = "virsh console $name $devname$port";

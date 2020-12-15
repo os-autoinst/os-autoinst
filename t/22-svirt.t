@@ -261,16 +261,16 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
 
     $bmwqemu::vars{VIRSH_VMM_FAMILY} = 'vmware';
     $bmwqemu::vars{VMWARE_HOST}      = 'my.vmware.host';
-    $run_ssh_expect                  = 'nc my.vmware.host\s*;';
+    $run_ssh_expect                  = 'socat - TCP4:my.vmware.host:,crnl;';
     $svirt->open_serial_console_via_ssh('NAME');
-    $run_ssh_expect = 'nc my.vmware.host 666\s*;';
+    $run_ssh_expect = 'socat - TCP4:my.vmware.host:666,crnl;';
     $svirt->open_serial_console_via_ssh('NAME', port => 666);
 
     $bmwqemu::vars{VIRSH_VMM_FAMILY} = 'hyperv';
     $bmwqemu::vars{HYPERV_SERVER}    = 'my.hyperv.server';
-    $run_ssh_expect                  = 'nc my.hyperv.server\s*;';
+    $run_ssh_expect                  = 'socat - TCP4:my.hyperv.server:,crnl;';
     $svirt->open_serial_console_via_ssh('NAME');
-    $run_ssh_expect = 'nc my.hyperv.server 666\s*;';
+    $run_ssh_expect = 'socat - TCP4:my.hyperv.server:666,crnl;';
     $svirt->open_serial_console_via_ssh('NAME', port => 666);
 
     # Disable command check, as we do not care anymore
