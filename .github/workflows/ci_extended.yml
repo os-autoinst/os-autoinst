@@ -1,0 +1,11 @@
+---
+name: ci extended
+# yamllint disable-line rule:truthy
+on: push
+jobs:
+  test-containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Test our container definitions
+        run: tools/test_containers
