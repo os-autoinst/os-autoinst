@@ -3,9 +3,8 @@
 
 use Test::Most;
 
-use FindBin '$Bin';
-use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '10';
+# OpenQA::Test::TimeLimit not used as `prepare_pipes` defines an ALRM handler
+# internally already
 use Test::MockModule;
 use Test::Output;
 use POSIX 'mkfifo';
