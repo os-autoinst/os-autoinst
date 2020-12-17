@@ -197,6 +197,7 @@ sub load_test_schedule {
     my @oldINC = @INC;
     unshift @INC, $bmwqemu::vars{CASEDIR} . '/lib';
     if ($bmwqemu::vars{SCHEDULE}) {
+        unshift @INC, '.' unless File::Spec->file_name_is_absolute($bmwqemu::vars{CASEDIR});
         bmwqemu::fctinfo 'Enforced test schedule by \'SCHEDULE\' variable in action';
         $bmwqemu::vars{INCLUDE_MODULES} = undef;
         autotest::loadtest($_ . '.pm') foreach split(',', $bmwqemu::vars{SCHEDULE});
