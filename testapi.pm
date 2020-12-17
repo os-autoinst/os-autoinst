@@ -927,6 +927,8 @@ sub wait_serial {
     # record_serialresult()
     $matched = $matched ? 'ok' : 'fail';
     # convert dos2unix (poo#20542)
+    # hyperv and vmware (backend/svirt.pm) connect serial line over TCP/IP (socat)
+    # convert CRLF to LF only
     $ret->{string} =~ s,\r\n,\n,g;
     $autotest::current_test->record_serialresult(bmwqemu::pp($regexp), $matched, $ret->{string}) unless ($args{quiet});
     bmwqemu::fctres("$regexp: $matched");
