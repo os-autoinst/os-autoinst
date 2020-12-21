@@ -186,6 +186,21 @@ subtest 'error handling when loading test schedule' => sub {
     };
 };
 
+subtest 'load test success when casedir and productdir are relative path' => sub {
+    chdir($pool_dir);
+    path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
+    path('vars.json')->remove         if -e 'vars.json';
+    mkdir('my_cases')                                                   unless -e 'my_cases';
+    symlink("$data_dir/tests/lib", 'my_cases/lib')                      unless -e 'my_cases/lib';
+    mkdir('my_cases/products')                                          unless -e 'my_cases/products';
+    mkdir('my_cases/products/foo')                                      unless -e 'my_cases/foo';
+    symlink("$data_dir/tests/tests", 'my_cases/tests')                  unless -e 'my_cases/tests';
+    symlink("$data_dir/tests/needles", 'my_cases/products/foo/needles') unless -e 'my_cases/products/foo/needles';
+    my $module = 'tests/failing_module';
+    combined_like { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) } qr/scheduling failing_module/, "schedule can still be found";
+    like $log, qr/\d* loaded 4 needles/, 'loaded needles successfully';
+};
+
 done_testing();
 
 END {
