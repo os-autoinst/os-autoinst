@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+PROVE_ARGS="${PROVE_ARGS:-"--timer"}"
+
 source_directory=$(dirname "$0")/..
 source_directory=$(realpath "$source_directory")
 

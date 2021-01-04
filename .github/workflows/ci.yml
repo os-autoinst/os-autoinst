@@ -15,3 +15,9 @@ jobs:
           file: ./cover_db/codecov.json
           fail_ci_if_error: true
           verbose: true
+  static-check-containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Test our container definitions
+        run: tools/static_check_containers

@@ -1,0 +1,7 @@
+#!BuildTag: isotovideo:qemu-kvm
+
+# hadolint ignore=DL3006
+FROM opensuse/tumbleweed
+# hadolint ignore=DL3034,DL3037
+RUN zypper -n in os-autoinst-qemu-kvm && zypper clean
+ENTRYPOINT ["/usr/bin/isotovideo"]

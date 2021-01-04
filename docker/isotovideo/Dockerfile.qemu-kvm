@@ -1,5 +1,0 @@
-#!BuildTag: isotovideo:qemu-kvm
-
-FROM opensuse/tumbleweed
-RUN zypper -n in os-autoinst-qemu-kvm
-ENTRYPOINT ["/usr/bin/isotovideo"]
