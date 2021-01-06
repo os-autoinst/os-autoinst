@@ -59,11 +59,6 @@ BEGIN {
     # the following line is modified during make install
     $installprefix = undef;
 
-    # record the last die message
-    # note: It might *not* be a fatal error so we don't call bmwqemu::serialize_state here
-    #       immediately but only in the END block.
-    $SIG{__DIE__} = sub { $fatal_error = shift };
-
     my ($wd) = $0 =~ m-(.*)/-;
     $wd            ||= '.';
     $installprefix ||= $wd;
@@ -118,6 +113,7 @@ sub _get_version_string {
 }
 
 sub version {
+    $return_code = 0;
     print _get_version_string() . "\n";
     exit 0;
 }
@@ -125,6 +121,12 @@ sub version {
 GetOptions(\%options, 'debug|d', 'help|h|?', 'version|v') or usage(1);
 usage(0)  if $options{help};
 version() if $options{version};
+
+
+# record the last die message
+# note: It might *not* be a fatal error so we don't call bmwqemu::serialize_state here
+#       immediately but only in the END block.
+$SIG{__DIE__} = sub { $fatal_error = shift };
 
 diag(_get_version_string());
 
