@@ -229,6 +229,13 @@ WORKER_ID;string;undef;osauto id
 
 |====================
 
+.PVM_HMC backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+HMC_USERNAME;string;;Username for HMC
+
 .GENERAL_HW backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
@@ -253,3 +260,12 @@ GENERAL_HW_FLASH_ARGS;string;;Arguments to pass GENERAL_HW_FLASH_CMD Shell scrip
 Variable;Values allowed;Default value;Explanation
 AMT_HOSTNAME;string;;Hostname or IP of the target host
 AMT_PASSWORD;string;;Password for admin AMT user on target host
+|====================
+
+.S390X backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+WORKER_HOSTNAME;string;undef;Worker host name
+|====================
