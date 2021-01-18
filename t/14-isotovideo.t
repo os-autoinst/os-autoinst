@@ -5,7 +5,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '20';
 use autodie ':all';
-use IPC::System::Simple qw(system capture);
+use IPC::System::Simple qw(system);
 use Test::Output;
 use File::Basename;
 use File::Path qw(remove_tree rmtree);
@@ -30,8 +30,13 @@ sub isotovideo {
     $args{opts}         //= '';
     $args{exit_code}    //= 1;
     my @cmd = ($^X, "$toplevel_dir/isotovideo", '-d', $args{default_opts}, split(' ', $args{opts}));
-    note("Starting isotovideo with: @cmd");
-    capture [$args{exit_code}], @cmd;
+    note "Starting isotovideo with: @cmd";
+    my $output = qx(@cmd);
+    my $res    = $?;
+    return fail 'failed to execute isotovideo: ' . $!         if $res == -1;    # uncoverable statement
+    return fail 'isotovideo died with signal ' . ($res & 127) if $res & 127;    # uncoverable statement
+    is $res >> 8, $args{exit_code}, 'isotovideo exit code';
+    return $output;
 }
 
 subtest 'get the version number' => sub {
