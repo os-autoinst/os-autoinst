@@ -49,7 +49,7 @@ if (-d '.git' and which('git')) {
         my @all_git_files = qx{git ls-files};
         chomp(@all_git_files);
         my $files_to_skip = $Test::Strict::TEST_SKIP || [];
-        my %skip = map { $_ => undef } @$files_to_skip;
+        my %skip          = map { $_ => undef } @$files_to_skip;
         return map { $root . $_ } grep { !exists $skip{$_} } @all_git_files;    # Exclude files to skip
     }
 }

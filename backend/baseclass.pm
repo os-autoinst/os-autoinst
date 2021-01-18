@@ -52,7 +52,7 @@ __PACKAGE__->mk_accessors(
       reference_screenshot assert_screen_tags assert_screen_needles
       assert_screen_deadline assert_screen_fails assert_screen_last_check
       stall_detected
-      ));
+    ));
 
 sub new {
     my $class = shift;

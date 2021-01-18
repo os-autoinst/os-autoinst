@@ -44,7 +44,7 @@ sub disable {
 }
 
 sub activate {
-    my ($self) = @_;
+    my ($self)   = @_;
     my $hostname = $self->{args}->{hostname} || die('we need a hostname to ssh to');
     my $password = $self->{args}->{password} // $testapi::password;
     my $username = $self->{args}->{user}     // 'root';

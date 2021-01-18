@@ -25,7 +25,7 @@ __PACKAGE__->mk_accessors(
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
       _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell
-      ));
+    ));
 
 our $VERSION = '0.40';
 
@@ -36,7 +36,7 @@ my $client_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
 
 # The numbers in the hashes below were acquired from the VNC source code
 my %supported_depths = (
-    32 => {                                              # same as 24 actually
+    32 => {    # same as 24 actually
         bpp         => 32,
         true_colour => 1,
         red_max     => 255,
@@ -175,7 +175,7 @@ sub login {
         $self->_client_initialization();
         $self->_server_initialization();
     };
-    my $error = $@;                                  # store so it doesn't get overwritten
+    my $error = $@;    # store so it doesn't get overwritten
     if ($error) {
 
         # clean up so socket can be garbage collected
@@ -462,18 +462,18 @@ sub _server_initialization {
     }
 
     my $info = tinycv::new_vncinfo(
-        $self->_do_endian_conversion, $self->_true_colour, $self->_bpp / 8, $pixinfo{red_max}, $pixinfo{red_shift},
-        $pixinfo{green_max}, $pixinfo{green_shift}, $pixinfo{blue_max}, $pixinfo{blue_shift});
+        $self->_do_endian_conversion, $self->_true_colour,   $self->_bpp / 8,    $pixinfo{red_max}, $pixinfo{red_shift},
+        $pixinfo{green_max},          $pixinfo{green_shift}, $pixinfo{blue_max}, $pixinfo{blue_shift});
     $self->vncinfo($info);
 
     # setpixelformat
     $socket->print(
         pack(
             'CCCCCCCCnnnCCCCCC',
-            0,     # message_type
-            0,     # padding
-            0,     # padding
-            0,     # padding
+            0,    # message_type
+            0,    # padding
+            0,    # padding
+            0,    # padding
             $self->_bpp,
             $self->depth,
             $self->_do_endian_conversion,
@@ -484,9 +484,9 @@ sub _server_initialization {
             $pixinfo{red_shift},
             $pixinfo{green_shift},
             $pixinfo{blue_shift},
-            0,     # padding
-            0,     # padding
-            0,     # padding
+            0,    # padding
+            0,    # padding
+            0,    # padding
         ));
 
     # set encodings

@@ -387,7 +387,7 @@ is(match_has_tag,        undef, 'match_has_tag on no value -> undef');
 is(match_has_tag('foo'), undef, 'match_has_tag on not matched tag -> undef');
 subtest 'assert_and_click' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
-    my @areas = ({x => 1, y => 2, w => 10, h => 20});
+    my @areas        = ({x => 1, y => 2, w => 10, h => 20});
     $mock_testapi->redefine(assert_screen => {area => \@areas});
 
     $cmds = [];
@@ -442,8 +442,8 @@ subtest 'assert_and_click' => sub {
     is_deeply($cmds->[-1], {cmd => 'backend_mouse_hide', offset => 0}, 'assert_and_click succeeds and hides mouse with mousehide => 1');
 
     ok(assert_and_click('foo', button => 'right'));
-    is_deeply($cmds->[-2], {bstate => 0, button => 'right', cmd => 'backend_mouse_button'}, 'assert_and_click succeeds with right click');
-    is_deeply($cmds->[-1], {cmd => 'backend_mouse_set', x => 100, y => 100}, 'assert_and_click succeeds and move to old mouse set');
+    is_deeply($cmds->[-2], {bstate => 0,                   button => 'right', cmd => 'backend_mouse_button'}, 'assert_and_click succeeds with right click');
+    is_deeply($cmds->[-1], {cmd    => 'backend_mouse_set', x      => 100,     y   => 100}, 'assert_and_click succeeds and move to old mouse set');
 };
 
 subtest 'assert_and_dclick' => sub {
@@ -726,7 +726,7 @@ subtest '_calculate_clickpoint' => sub {
 
 subtest 'mouse_drag' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
-    my @area = ({x => 100, y => 100, w => 20, h => 20});
+    my @area         = ({x => 100, y => 100, w => 20, h => 20});
     $mock_testapi->redefine(assert_screen => {area => \@area});
 
     my ($startx, $starty) = (0,   0);
