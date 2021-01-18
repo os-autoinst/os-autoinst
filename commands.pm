@@ -250,7 +250,7 @@ sub run_daemon {
 
     my $r = app->routes;
     $r->namespaces(['OpenQA']);
-    my $token_auth = $r->route("/$bmwqemu::vars{JOBTOKEN}");
+    my $token_auth = $r->any("/$bmwqemu::vars{JOBTOKEN}");
 
     # for access all data as CPIO archive
     $token_auth->get('/data' => \&test_data);
