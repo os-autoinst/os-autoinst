@@ -813,7 +813,7 @@ sub start_qemu {
         }
     }
 
-    bmwqemu::save_vars();                     # update variables
+    bmwqemu::save_vars();    # update variables
 
     mkpath($basedir);
 

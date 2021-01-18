@@ -79,7 +79,7 @@ subtest 'start VM' => sub {
     is_deeply($backend->do_start_vm, {}, 'return value');
     is_deeply(\@invoked_cmds, [
             [$cmd_ctl, 'poweroff'], [$cmd_ctl, 'flash', 'light', '/hdd', '5G'], [$cmd_ctl, 'poweroff'],
-            ['sleep', 3], [$cmd_ctl, 'poweron'], 'start_serial_grab'
+            ['sleep',  3],          [$cmd_ctl, 'poweron'], 'start_serial_grab'
     ], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
     is_deeply(\@vnc_logins, [['vnc.server']], 'tried to connect to VNC server') or diag explain \@vnc_logins;
 };

@@ -278,7 +278,7 @@ sub test_terminal_directly {
         no_regex    => 1,
         buffer_size => 256
     );
-    report_child_test(is => length($result->{string}), 256, 'direct: returned data is same length as buffer');
+    report_child_test(is   => length($result->{string}), 256,                               'direct: returned data is same length as buffer');
     report_child_test(like => $result->{string}, qr/\Q$US_keyboard_data\E$stop_code_data$/, 'direct: read a large amount of data with small ring buffer');
     type_string($next_test);
 
