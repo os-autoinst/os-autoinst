@@ -738,7 +738,7 @@ sub map_and_send_key {
             next;
         }
         else {
-            die "No map for '$key'";
+            die "Key '$key' not found in map ($keys)";
         }
     }
 
