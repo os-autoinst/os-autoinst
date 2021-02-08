@@ -141,8 +141,9 @@ sub script_run {
     }
     testapi::type_string "$cmd";
     if ($args{timeout} > 0) {
-        my $str    = testapi::hashed_string("SR" . $cmd . $args{timeout});
-        my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
+        my $terminator = ((substr $cmd, -1) eq '&') ? '' : ';';
+        my $str        = testapi::hashed_string("SR" . $cmd . $args{timeout});
+        my $marker     = "$terminator echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
         if (testapi::is_serial_terminal) {
             testapi::type_string($marker);
             testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
