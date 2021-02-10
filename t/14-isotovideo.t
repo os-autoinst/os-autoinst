@@ -71,7 +71,7 @@ subtest 'isotovideo with custom git repo parameters specified' => sub {
     $base_state->remove       if -e $base_state;
     path('vars.json')->remove if -e 'vars.json';
     path('repo.git')->make_path;
-    my $git_init_output = qx{git init -q --bare repo.git 2>&1};
+    my $git_init_output = qx{git init -q --bare -b foo repo.git 2>&1};
     is($?, 0, 'initialized test repo') or diag explain $git_init_output;
     # Ensure the checkout folder does not exist so that git clone tries to
     # create a new checkout on every test run
