@@ -89,7 +89,7 @@ sub quote {
 }
 
 sub run {
-    bmwqemu::diag "running " . join(' ', @_);
+    log::diag "running " . join(' ', @_);
     my @args = @_;
     my $out;
     my $buffer;
@@ -100,7 +100,7 @@ sub run {
             while (defined(my $line = $p->getline)) {
                 $out .= $line;
             }
-            bmwqemu::diag $buffer if defined $buffer && length($buffer) > 0;
+            log::diag $buffer if defined $buffer && length($buffer) > 0;
     });
     $p->wait_stop;
     close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
@@ -110,13 +110,13 @@ sub run {
 }
 
 # Do not check for anything - just execute and print
-sub run_diag { my $o = (run(@_))[1]; bmwqemu::diag($o) if $o; $o }
+sub run_diag { my $o = (run(@_))[1]; log::diag($o) if $o; $o }
 
 # Open a process to run external program and check its return status
 sub runcmd {
     my (@cmd) = @_;
     my ($e, $out) = run(@cmd);
-    bmwqemu::diag $out if $out && length($out) > 0;
+    log::diag $out if $out && length($out) > 0;
     die "runcmd '" . join(' ', @cmd) . "' failed with exit code $e" . ($out ? ": '$out'" : '') unless $e == 0;
     return $e;
 }
@@ -131,13 +131,13 @@ sub attempt {
     my $attempts = 0;
     my ($total_attempts, $condition, $cb, $or) = ref $_[0] eq 'HASH' ? (@{$_[0]}{qw(attempts condition cb or)}) : @_;
     until ($condition->() || $attempts >= $total_attempts) {
-        bmwqemu::diag "Waiting for $attempts attempts";
+        log::diag "Waiting for $attempts attempts";
         $cb->();
         wait_attempt;
         $attempts++;
     }
     $or->() if $or && !$condition->();
-    bmwqemu::diag "Finished after $attempts attempts";
+    log::diag "Finished after $attempts attempts";
 }
 
 1;

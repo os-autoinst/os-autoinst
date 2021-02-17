@@ -80,7 +80,7 @@ sub _add_download {
         if (my $target_last_modified = $target_stat->[9] // $target_stat->[8]) {
             $target_last_modified = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime($target_last_modified));
             if ($target_last_modified ge $latest_update) {
-                bmwqemu::diag("skipping downloading new needle: $download_target seems already up-to-date (last update: $target_last_modified > $latest_update)");
+                log::diag("skipping downloading new needle: $download_target seems already up-to-date (last update: $target_last_modified > $latest_update)");
                 return;
             }
         }
@@ -97,7 +97,7 @@ sub _download_file {
 
     my $download_url    = $download->{url};
     my $download_target = $download->{target};
-    bmwqemu::diag("download new needle: $download_url => $download_target");
+    log::diag("download new needle: $download_url => $download_target");
 
     # download the file
     my $download_res;
@@ -105,12 +105,12 @@ sub _download_file {
         $download_res = $self->ua->get($download_url)->result;
         if (!$download_res->is_success) {
             my $return_code = $download_res->code;
-            bmwqemu::diag("failed to download $download_url, server returned $return_code");
+            log::diag("failed to download $download_url, server returned $return_code");
             $download_res = undef;
         }
     }
     catch {
-        bmwqemu::diag("internal error occurred when downloading $download_url: $_");
+        log::diag("internal error occurred when downloading $download_url: $_");
     };
 
     # store the file on disk
@@ -120,7 +120,7 @@ sub _download_file {
         Mojo::File->new($download_target)->spurt($download_res->body);
     }
     catch {
-        bmwqemu::diag("unable to store download under $download_target");
+        log::diag("unable to store download under $download_target");
     };
 }
 

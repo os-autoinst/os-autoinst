@@ -35,7 +35,7 @@ sub activate {
 
     if ($self->{serialpid}) {
         $self->{serial_pipe}->writer();
-        bmwqemu::diag "started ipmiconsole $self->{serialpid}";
+        log::diag "started ipmiconsole $self->{serialpid}";
         return;
     }
 
@@ -72,7 +72,7 @@ sub activate {
                     $ipmi_console->close;
                     $s->remove($ipmi_console);
                     my $ret = waitpid($self->{consolepid}, 0);
-                    bmwqemu::diag "SOL failed, reconnecting [$ret]\n";
+                    log::diag "SOL failed, reconnecting [$ret]\n";
                     sleep 1;
                     $self->{consolepid} = open($ipmi_console, '-|', @cmd);
                     $ipmi_console->blocking(0);
@@ -99,7 +99,7 @@ sub disable {
     return unless $self->{serialpid};
     $self->{serial_pipe}->print("GO!\n");
     $self->{serial_pipe}->close;
-    bmwqemu::diag "waiting for termination of ipmiconsole $self->{serialpid}";
+    log::diag "waiting for termination of ipmiconsole $self->{serialpid}";
     my $ret = waitpid($self->{serialpid}, 0);
     $self->{serialpid} = undef;
     return $ret;

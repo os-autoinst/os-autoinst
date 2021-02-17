@@ -107,7 +107,7 @@ sub activate {
             port     => $port,
             ikvm     => 0
         });
-    bmwqemu::diag("Connected to Xvnc - PID $pid");
+    log::diag("Connected to Xvnc - PID $pid");
     $self->{DISPLAY} = $display;
     sleep 1;
 

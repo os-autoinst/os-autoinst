@@ -762,7 +762,7 @@ sub map_and_send_key {
 
 sub send_pointer_event {
     my ($self, $button_mask, $x, $y) = @_;
-    bmwqemu::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
+    log::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
 
     my $template = 'CCnn';
     $template = 'CxCnnx11' if ($self->ikvm);
@@ -832,7 +832,7 @@ sub send_update_request {
         if ($self->_vnc_stalled && $time_since_last_update > $time_after_vnc_is_considered_stalled) {
             $self->_last_update_received(0);
             # return black image - screen turned off
-            bmwqemu::diag sprintf("considering VNC stalled, no update for %.2f seconds", $time_since_last_update);
+            log::diag sprintf("considering VNC stalled, no update for %.2f seconds", $time_since_last_update);
             $self->socket->close;
             $self->socket(undef);
             return $self->login;
@@ -959,7 +959,7 @@ sub _receive_update {
             $self->_framebuffer($image);
         }
         elsif ($encoding_type == -257) {
-            bmwqemu::diag("pointer type $x $y $w $h $encoding_type");
+            log::diag("pointer type $x $y $w $h $encoding_type");
             $self->absolute($x);
         }
         elsif ($encoding_type == -261) {
@@ -969,7 +969,7 @@ sub _receive_update {
             # 100     CapsLock is on, NumLock and ScrollLock are off
             # 010     NumLock is on, CapsLock and ScrollLock are off
             # 111     CapsLock, NumLock and ScrollLock are on
-            bmwqemu::diag("led state $bytes[0] $w $h $encoding_type");
+            log::diag("led state $bytes[0] $w $h $encoding_type");
         }
         elsif ($encoding_type == -224) {
             last;

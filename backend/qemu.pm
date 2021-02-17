@@ -154,7 +154,7 @@ sub _dbus_call {
     if ($error) {
         my $msg = "Open vSwitch command '$fn' with arguments '@args' failed: $error";
         die "$msg\n" unless $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL};
-        bmwqemu::diag $msg;
+        log::diag $msg;
     }
     return ($rt, $message, ($error) x !!($error));
 }
@@ -329,7 +329,7 @@ sub save_memory_dump {
     my $filename         = $args->{filename} . '-vm-memory-dump';
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
-    bmwqemu::diag("Migrating the machine (Current VM state is $rsp->{return}->{status}).");
+    log::diag("Migrating the machine (Current VM state is $rsp->{return}->{status}).");
     my $was_running = $rsp->{return}->{status} eq 'running';
 
     mkpath('ulogs');
@@ -419,7 +419,7 @@ sub save_snapshot {
     my $bdc    = $self->{proc}->blockdev_conf;
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
-    bmwqemu::diag("Saving snapshot (Current VM state is $rsp->{return}->{status}).");
+    log::diag("Saving snapshot (Current VM state is $rsp->{return}->{status}).");
     my $was_running = $rsp->{return}->{status} eq 'running';
     if ($was_running) {
         $self->inflate_balloon();
@@ -474,7 +474,7 @@ sub load_snapshot {
     my $vmname = $args->{name};
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
-    bmwqemu::diag("Loading snapshot (Current VM state is $rsp->{return}->{status}).");
+    log::diag("Loading snapshot (Current VM state is $rsp->{return}->{status}).");
     my $was_running = $rsp->{return}->{status} eq 'running';
     $self->freeze_vm() if $was_running;
 
@@ -635,7 +635,7 @@ sub start_qemu {
     $qemu_version =~ /([0-9]+([.][0-9]+)+)/;
     $qemu_version = $1;
     $self->{qemu_version} = $qemu_version;
-    bmwqemu::diag "qemu version detected: $self->{qemu_version}";
+    log::diag "qemu version detected: $self->{qemu_version}";
 
     $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});        # XXX: compat with old deployment
     $vars->{UEFI} = 1                    if $vars->{UEFI_PFLASH};
@@ -1027,7 +1027,7 @@ sub start_qemu {
     }
     catch {
         if (!raw_alive) {
-            bmwqemu::diag "qemu didn't start";
+            log::diag "qemu didn't start";
             $self->read_qemupipe;
             exit(1);
         }
@@ -1059,8 +1059,8 @@ sub start_qemu {
 
         if (exists $vars->{OVS_DEBUG} && $vars->{OVS_DEBUG} == 1) {
             my (undef, $output) = $self->_dbus_call('show');
-            bmwqemu::diag "Open vSwitch networking status:";
-            bmwqemu::diag $output;
+            log::diag "Open vSwitch networking status:";
+            log::diag $output;
         }
     }
 
@@ -1109,7 +1109,7 @@ sub handle_qmp_command {
     while (!$hash) {
         $hash = myjsonrpc::read_json($sk);
         if ($hash->{event}) {
-            bmwqemu::diag "EVENT " . Mojo::JSON::to_json($hash);
+            log::diag "EVENT " . Mojo::JSON::to_json($hash);
             # ignore
             $hash = undef;
         }
@@ -1128,7 +1128,7 @@ sub read_qemupipe {
     my $bytes = sysread($self->{qemupipe}, $buffer, 1000);
     chomp $buffer;
     for my $line (split(/\n/, $buffer)) {
-        bmwqemu::diag "QEMU: $line";
+        log::diag "QEMU: $line";
         die "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
     }
     return $bytes;

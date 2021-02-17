@@ -86,7 +86,7 @@ sub start {
             $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
         })->start;
 
-    $backend_process->on(collected => sub { bmwqemu::diag("backend process exited: " . shift->exit_status) });
+    $backend_process->on(collected => sub { log::diag("backend process exited: " . shift->exit_status) });
 
     printf STDERR "$$: channel_out %d, channel_in %d\n", fileno($backend_process->channel_out), fileno($backend_process->channel_in);
     $self->{backend_pid}     = $backend_process->pid;

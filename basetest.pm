@@ -170,7 +170,7 @@ sub record_screenmatch {
         my $reason = $foundneedle->get_property_value('workaround');
         $self->record_soft_failure_result($reason);
 
-        bmwqemu::diag("needle '$serialized_match->{name}' is a workaround. The reason is $reason");
+        log::diag("needle '$serialized_match->{name}' is a workaround. The reason is $reason");
     }
 
     # also include the not matched needles
@@ -329,7 +329,7 @@ sub run_post_fail {
     unless ($bmwqemu::vars{_SKIP_POST_FAIL_HOOKS}) {
         $self->{post_fail_hook_running} = 1;
         eval { $self->post_fail_hook; };
-        bmwqemu::diag("post_fail_hook failed: $@") if $@;
+        log::diag("post_fail_hook failed: $@") if $@;
         $self->{post_fail_hook_running} = 0;
     }
     $self->fail_if_running();
@@ -377,7 +377,7 @@ sub runtest {
     eval { $self->search_for_expected_serial_failures(); };
     # Process serial detection failure
     if ($@) {
-        bmwqemu::diag($@);
+        log::diag($@);
         $self->record_resultfile('Failed', $@, result => 'fail');
         $died = 1;
     }
@@ -391,7 +391,7 @@ sub runtest {
 
     $self->done();
     $self->{execution_time} = execution_time($starttime);
-    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), $self->{execution_time}));
+    log::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), $self->{execution_time}));
     return;
 }
 

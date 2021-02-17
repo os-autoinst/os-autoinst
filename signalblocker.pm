@@ -31,7 +31,7 @@ sub new {
     my ($class, @args) = @_;
 
     # block signals
-    bmwqemu::diag('Blocking SIGTERM');
+    log::diag('Blocking SIGTERM');
     my %old_sig = %SIG;
     $SIG{TERM} = 'IGNORE';
     $SIG{INT}  = 'IGNORE';
@@ -50,7 +50,7 @@ sub DESTROY {
     my ($self) = @_;
 
     # set back signal handling to default to be able to terminate properly
-    bmwqemu::diag('Unblocking SIGTERM');
+    log::diag('Unblocking SIGTERM');
     die "Could not unblock SIGTERM\n" unless defined sigprocmask(SIG_UNBLOCK, $self->{_sigset}, undef);
     %SIG = %{$self->{_old_sig}};
 }

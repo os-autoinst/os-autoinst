@@ -176,7 +176,7 @@ sub register {
     my %check_dups;
     for my $g (@{$self->{tags}}) {
         if ($check_dups{$g}) {
-            bmwqemu::diag("$self->{name} contains $g twice");
+            log::diag("$self->{name} contains $g twice");
             next;
         }
         $check_dups{$g} = 1;
@@ -194,7 +194,7 @@ sub _load_image {
     my $image = tinycv::read($image_path);
     $watch->stop();
     if ($watch->as_data()->{total_time} > 0.1) {
-        bmwqemu::diag(sprintf("load of $image_path took %.2f seconds", $watch->as_data()->{total_time}));
+        log::diag(sprintf("load of $image_path took %.2f seconds", $watch->as_data()->{total_time}));
     }
     return undef unless $image;
 
@@ -331,9 +331,9 @@ sub init {
 
     %needles = ();
     %tags    = ();
-    bmwqemu::diag("init needles from $needles_dir");
+    log::diag("init needles from $needles_dir");
     find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needles_dir);
-    bmwqemu::diag(sprintf("loaded %d needles", scalar keys %needles));
+    log::diag(sprintf("loaded %d needles", scalar keys %needles));
 
     if ($cleanuphandler) {
         &$cleanuphandler();

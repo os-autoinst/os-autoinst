@@ -243,7 +243,7 @@ sub handle_sigterm {
     my ($sig) = @_;
 
     if ($current_test) {
-        bmwqemu::diag("autotest received signal $sig, saving results of current test before exiting");
+        log::diag("autotest received signal $sig, saving results of current test before exiting");
         $current_test->result('canceled');
         $current_test->save_test_result();
     }

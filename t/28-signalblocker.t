@@ -31,7 +31,7 @@ use POSIX ':signal_h';
 use signalblocker;
 
 no warnings 'redefine';
-sub bmwqemu::diag { note $_[0] }
+sub log::diag { note $_[0] }
 
 # make the number of threads to spawn configurable
 my $fix_thread_count_for_testing = $ENV{OS_AUTOINST_TEST_THREAD_COUNT} // 8;

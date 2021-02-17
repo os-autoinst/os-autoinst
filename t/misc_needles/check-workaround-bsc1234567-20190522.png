@@ -1,1 +1,14 @@
-check-workaround-bsc1234567-20190522.json
+{
+    "area": [
+        {
+            "height": 100,
+            "match": 80,
+            "type": "match",
+            "width": 200,
+            "xpos": 10,
+            "ypos": 10
+        }
+    ],
+    "tags": ["check-workaround"],
+    "properties": ["workaround"]
+}

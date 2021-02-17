@@ -37,7 +37,7 @@ sub disable {
     my ($self) = @_;
 
     return unless $self->{ssh};
-    bmwqemu::diag("Closing SSH connection with " . $self->{ssh}->hostname);
+    log::diag("Closing SSH connection with " . $self->{ssh}->hostname);
     $self->{ssh}->disconnect;
     $self->{ssh} = $self->{screen} = undef;
     return;
@@ -50,7 +50,7 @@ sub activate {
     my $username = $self->{args}->{user}     // 'root';
     my $pty_cols = $self->{args}->{pty_cols} // 2048;
 
-    bmwqemu::diag("Connecting SSH serial console for $username\@$hostname");
+    log::diag("Connecting SSH serial console for $username\@$hostname");
 
     my $ssh = $self->backend->new_ssh_connection(
         hostname => $hostname,

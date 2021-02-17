@@ -27,7 +27,7 @@ use myjsonrpc;
 use Test::Warnings qw(warnings :report_warnings);
 
 no warnings 'redefine';
-sub bmwqemu::diag { warn $_[0] }
+sub log::diag { warn $_[0] }
 
 my ($child, $isotovideo);
 socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC);

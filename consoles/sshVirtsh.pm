@@ -359,7 +359,7 @@ sub add_disk {
                 if ($stderr =~ /lock/i) {
                     $bucket--;
                     die "Too many attempts to format HDD" unless $bucket;
-                    bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
+                    log::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
                     sleep 5;
                     next;
                 }
@@ -511,13 +511,13 @@ sub virsh {
 sub suspend {
     my ($self) = @_;
     $self->run_cmd(virsh() . " suspend " . $self->name) && die "Can't suspend VM ";
-    bmwqemu::diag "VM " . $self->name . " suspended";
+    log::diag "VM " . $self->name . " suspended";
 }
 
 sub resume {
     my ($self) = @_;
     $self->run_cmd(virsh() . " resume " . $self->name) && die "Can't resume VM ";
-    bmwqemu::diag "VM " . $self->name . " resumed";
+    log::diag "VM " . $self->name . " resumed";
 }
 
 sub get_remote_vmm {
@@ -552,7 +552,7 @@ __END"
     my $xmldata     = $self->{domainxml}->toString(2);
     my $xmlfilename = "/var/lib/libvirt/images/" . $self->name . ".xml";
     my $ret;
-    bmwqemu::diag("Creating libvirt configuration file $xmlfilename:\n$xmldata");
+    log::diag("Creating libvirt configuration file $xmlfilename:\n$xmldata");
     my ($ssh, $chan) = $self->backend->run_ssh("cat > $xmlfilename", $self->get_ssh_credentials(), keep_open => 1);
     # scp_put is unfortunately unreliable (RT#61771)
     $chan->write($xmldata) || $ssh->die_with_error();
@@ -572,7 +572,7 @@ __END"
     }
 
     $ret = $self->run_cmd("virsh $remote_vmm start " . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');
-    bmwqemu::diag("Dump actually used libvirt configuration file " . ($ret ? "(broken)" : "(working)"));
+    log::diag("Dump actually used libvirt configuration file " . ($ret ? "(broken)" : "(working)"));
     $self->run_cmd("virsh $remote_vmm dumpxml " . $self->name);
     die "virsh start failed" if $ret;
 

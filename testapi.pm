@@ -558,7 +558,7 @@ sub click_lastmatch {
 
     # Calculate the absolute click point.
     my ($x, $y) = _calculate_clickpoint($last_matched_needle, $relevant_area, $relative_click_point);
-    bmwqemu::diag("clicking at $x/$y");
+    log::diag("clicking at $x/$y");
     mouse_set($x, $y);
     if ($args{dclick}) {
         mouse_dclick($args{button}, $args{clicktime});
@@ -641,7 +641,7 @@ sub wait_screen_change(&@) {
 
     while (time - $starttime < $timeout) {
         my $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
-        bmwqemu::diag("waiting for screen change: " . (time - $starttime) . " $sim");
+        log::diag("waiting for screen change: " . (time - $starttime) . " $sim");
         if ($sim < $args{similarity_level}) {
             bmwqemu::fctres("screen change seen at " . (time - $starttime));
             return 1;
@@ -1169,7 +1169,7 @@ sub get_test_data {
     $path = get_var('CASEDIR') . '/data/' . $path;
     bmwqemu::log_call(path => $path);
     unless (-e $path) {
-        bmwqemu::diag("File doesn't exist: $path");
+        log::diag("File doesn't exist: $path");
         return;
     }
     open my $fh, "<", $path;
@@ -1212,7 +1212,7 @@ sub validate_script_output {
         $_ = $output;
         if (!$check->()) {
             $res = 'fail';
-            bmwqemu::diag("output does not pass the code block:\n$output");
+            log::diag("output does not pass the code block:\n$output");
         }
         my $deparse = B::Deparse->new("-p");
         # avoid "use strict; use warnings" in the output to make it shorter
@@ -1227,7 +1227,7 @@ sub validate_script_output {
     elsif (reftype $check eq 'REGEXP') {
         if ($output !~ $check) {
             $res = 'fail';
-            bmwqemu::diag("output does not match the regex:\n$output");
+            log::diag("output does not match the regex:\n$output");
         }
         $message = sprintf
           "validate_script_output got:\n%s\n\nRegular expression:\n%s",
@@ -1870,7 +1870,7 @@ sub check_shutdown {
     while ($timeout >= 0) {
         my $is_shutdown = query_isotovideo('backend_is_shutdown') || 0;
         if ($is_shutdown < 0) {
-            bmwqemu::diag("Backend does not implement is_shutdown - just sleeping");
+            log::diag("Backend does not implement is_shutdown - just sleeping");
             sleep($timeout);
         }
         # -1 counts too
@@ -1938,7 +1938,7 @@ sub save_memory_dump {
     $nargs{filename} ||= $autotest::current_test->{name};
 
     bmwqemu::log_call(%nargs);
-    bmwqemu::diag("Trying to save machine state");
+    log::diag("Trying to save machine state");
 
     query_isotovideo('backend_save_memory_dump', \%nargs);
 }
@@ -1961,7 +1961,7 @@ sub save_storage_drives {
     die "save_storage_drives should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
 
     bmwqemu::log_call();
-    bmwqemu::diag("Trying to save machine drives");
+    log::diag("Trying to save machine drives");
     bmwqemu::load_vars();
 
     # Right now, we're saving all the disks
@@ -1991,7 +1991,7 @@ sub freeze_vm {
     # While it might be a good idea to allow the user to stop the vm within a test
     # we're not encouraging them to do that outside a post_fail_hook or at any point
     # in the test code.
-    bmwqemu::diag "Call freeze_vm within a post_fail_hook or very early in your test"
+    log::diag "Call freeze_vm within a post_fail_hook or very early in your test"
       unless ((caller(1))[3]) =~ /post_fail_hook/;
     bmwqemu::log_call();
     query_isotovideo('backend_freeze_vm');
@@ -2083,7 +2083,7 @@ Write a diagnostic message to the logfile. In color, if possible.
 =cut
 
 sub diag {
-    return bmwqemu::diag(@_);
+    return log::diag(@_);
 }
 
 =head2 host_ip

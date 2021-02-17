@@ -64,13 +64,13 @@ sub wsman {
     push(@cmd, split(/ /, $cmd));
 
     my ($stdout, $stderr, $ret);
-    bmwqemu::diag("AMT cmd: @cmd");
+    log::diag("AMT cmd: @cmd");
     $ret = IPC::Run::run(\@cmd, \$stdin, \$stdout, \$stderr);
     chomp $stdout;
     chomp $stderr;
 
     die join(' ', @cmd) . ": $stderr" unless ($ret);
-    bmwqemu::diag("AMT: $stdout");
+    log::diag("AMT: $stdout");
     return $stdout;
 }
 

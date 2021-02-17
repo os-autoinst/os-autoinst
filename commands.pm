@@ -361,7 +361,7 @@ sub start_server {
         set_pipes                   => 0)->start;
 
     close($isotovideo);
-    $process->on(collected => sub { bmwqemu::diag("commands process exited: " . shift->exit_status); });
+    $process->on(collected => sub { log::diag("commands process exited: " . shift->exit_status); });
     return ($process, $child);
 }
 

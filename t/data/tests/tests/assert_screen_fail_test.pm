@@ -23,10 +23,10 @@ use testapi;
 sub run {
     # Test done this way, because:
     eval { assert_screen ['no_tag', 'no_tag2'], timeout => 1, no_wait => 1; };
-    bmwqemu::diag($@) if $@;
+    log::diag($@) if $@;
 
     eval { assert_screen 'no_tag3', timeout => 1, no_wait => 1; };
-    bmwqemu::diag($@) if $@;
+    log::diag($@) if $@;
 
 }
 

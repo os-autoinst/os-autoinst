@@ -62,7 +62,7 @@ sub ipmitool {
     chomp $stderr;
 
     die join(' ', @cmd) . ": $stderr" unless ($ret);
-    bmwqemu::diag("IPMI: $stdout");
+    log::diag("IPMI: $stdout");
     return $stdout;
 }
 
@@ -148,11 +148,11 @@ sub do_mc_reset {
 
     # deactivate sol console before doing mc reset because it breaks sol connection
     if (defined $testapi::distri->{consoles}->{sol}) {
-        bmwqemu::diag("Before doing mc reset, sol console exists, so cleanup it");
+        log::diag("Before doing mc reset, sol console exists, so cleanup it");
         $testapi::distri->{consoles}->{sol}->reset();
-        bmwqemu::diag("sol console reset done");
+        log::diag("sol console reset done");
         $self->deactivate_console({testapi_console => 'sol'});
-        bmwqemu::diag("deactivate console sol done");
+        log::diag("deactivate console sol done");
     }
 
     # during the eval execution of following commands, SIG{__DIE__} will definitely be triggered, let it go
@@ -163,13 +163,13 @@ sub do_mc_reset {
     for (1 .. $max_tries) {
         eval { $self->ipmitool("mc reset cold"); };
         if ($@) {
-            bmwqemu::diag("IPMI mc reset failure: $@");
+            log::diag("IPMI mc reset failure: $@");
         }
         else {
-            bmwqemu::diag("IPMI mc reset success!");
+            log::diag("IPMI mc reset success!");
             # wait some time until mc reset really sent to board
             sleep $bmwqemu::vars{IPMI_MC_RESET_SLEEP_TIME_S} // 10;
-            bmwqemu::diag("sleep ends, will do ping");
+            log::diag("sleep ends, will do ping");
             # check until  mc reset is done and ipmi recovered
             my $count      = 0;
             my $timeout    = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT}    // 60;
@@ -183,7 +183,7 @@ sub do_mc_reset {
                     eval { $self->ipmitool('chassis power status', tries => $ipmi_tries); };
                     if (!$@) {
                         # ipmitool is recovered completely
-                        bmwqemu::diag("IPMI: ipmitool is recovered after mc reset!");
+                        log::diag("IPMI: ipmitool is recovered after mc reset!");
                         return;
                     }
                 }

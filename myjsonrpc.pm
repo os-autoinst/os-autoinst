@@ -48,7 +48,7 @@ sub send_json {
         # shorten long content
         $copy =~ s/"([^"]{30})[^"]+"/"$1"/g;
         my $fd = fileno($to_fd);
-        bmwqemu::diag("($$) send_json($fd) JSON=$copy");
+        log::diag("($$) send_json($fd) JSON=$copy");
     }
     $json .= "\n";
 
@@ -73,7 +73,7 @@ sub read_json {
 
     my $fd = fileno($socket);
     if (DEBUG_JSON) {
-        bmwqemu::diag("($$) read_json($fd)");
+        log::diag("($$) read_json($fd)");
     }
     if (exists $sockets->{$fd}) {
         # start with the trailing text from previous call
@@ -96,10 +96,10 @@ sub read_json {
             $sockets->{$fd} = $cjx->incr_text();
             if (DEBUG_JSON) {
                 my $token = $hash->{json_cmd_token} // 'no-token';
-                bmwqemu::diag("($$) read_json($fd) json_cmd_token=$token");
+                log::diag("($$) read_json($fd) json_cmd_token=$token");
             }
             if ($hash->{QUIT}) {
-                bmwqemu::diag("received magic close");
+                log::diag("received magic close");
                 push @results, undef;
                 last;
             }
@@ -126,7 +126,7 @@ sub read_json {
             confess "ERROR: can_read's underlying system call has been interrupted too many times\n" unless $remaining_attempts;
 
             # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation
-            bmwqemu::diag("($$) read_json($fd): can_read's underlying system call has been interrupted, trying again\n") if DEBUG_JSON;
+            log::diag("($$) read_json($fd): can_read's underlying system call has been interrupted, trying again\n") if DEBUG_JSON;
             @res = $s->can_read;
             $remaining_attempts -= 1;
             next;
