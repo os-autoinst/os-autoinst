@@ -32,7 +32,7 @@ use Scalar::Util 'blessed';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 
-our @EXPORT_OK = qw(loadtest $current_test $selected_console $last_milestone_console query_isotovideo);
+our @EXPORT_OK = qw(loadtest $selected_console $last_milestone_console query_isotovideo);
 
 our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order

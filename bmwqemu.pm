@@ -19,10 +19,9 @@ package bmwqemu;
 use strict;
 use warnings;
 use autodie ':all';
-
+use Fcntl ':flock';
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Socket;
-use Fcntl ':flock';
 use POSIX;
 use Carp;
 use Mojo::JSON qw(encode_json);
@@ -32,9 +31,10 @@ use Data::Dumper;
 use Mojo::Log;
 use Mojo::File;
 use File::Spec::Functions;
-use Exporter 'import';
 use POSIX 'strftime';
 use Term::ANSIColor;
+
+use Exporter 'import';
 
 our $VERSION;
 our @EXPORT_OK = qw(diag fctres fctinfo fctwarn modstart fileContent save_vars);
@@ -238,8 +238,8 @@ sub modstart {
     return;
 }
 
-use autotest '$current_test';
 sub current_test {
+    require autotest;
     return $autotest::current_test;
 }
 
