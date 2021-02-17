@@ -43,7 +43,7 @@ sub update_line_number {
         $filename =~ s@$casedir/?@@;
         push @out, "$filename:$line called $subroutine";
     }
-    $bmwqemu::logger->debug(join(' -> ', @out));
+    $log::logger->debug(join(' -> ', @out));
     return;
 }
 

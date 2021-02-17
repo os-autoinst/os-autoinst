@@ -24,7 +24,7 @@ chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir 'testresults';
 
-bmwqemu::init_logger;
+log::init_logger;
 
 set_var(WORKER_HOSTNAME => 'foo');
 set_var(VIRSH_HOSTNAME  => 'bar');
@@ -172,12 +172,12 @@ subtest 'SSH usage in svirt' => sub {
     my $ssh1 = $svirt->new_ssh_connection();
     my ($ssh2, $ssh3, $ssh4);
     my $exp_log        = qr/SSH connection to root\@bar established/;
-    my $default_logger = $bmwqemu::logger;
-    $bmwqemu::logger = Mojo::Log->new(level => 'debug');
+    my $default_logger = $log::logger;
+    $log::logger = Mojo::Log->new(level => 'debug');
     stderr_like { $ssh2 = $svirt->new_ssh_connection() } $exp_log, 'New SSH connection announced in logs';
     stderr_like { $ssh3 = $svirt->new_ssh_connection(keep_open => 1) } $exp_log, 'New SSH connection announced in logs';
     stderr_unlike { $ssh4 = $svirt->new_ssh_connection(keep_open => 1) } $exp_log, 'No new SSH connection announced, if it already exists';
-    $bmwqemu::logger = $default_logger;
+    $log::logger = $default_logger;
     $ssh_expect_credentials->{username} = 'foo911';
     my $ssh5 = $svirt->new_ssh_connection(keep_open => 1, username => 'foo911');
     $ssh_expect_credentials->{username} = 'root';

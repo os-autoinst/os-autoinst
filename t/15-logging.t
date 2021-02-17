@@ -30,10 +30,10 @@ use Data::Dumper;
 
 sub output_once {
     log::diag('Via diag function');
-    bmwqemu::fctres('Via fctres function');
+    log::fctres('Via fctres function');
     log::fctinfo('Via fctinfo function');
     log::fctwarn('Via fctwarn function');
-    bmwqemu::modstart('Via modstart function');
+    log::modstart('Via modstart function');
 }
 
 subtest 'Logging to STDERR' => sub {
@@ -47,7 +47,7 @@ subtest 'Logging to STDERR' => sub {
 
 subtest 'Logging to file' => sub {
     my $log_file = tempfile;
-    $bmwqemu::logger = Mojo::Log->new(path => $log_file);
+    $log::logger = Mojo::Log->new(path => $log_file);
     output_once;
     my @matches = (Mojo::File->new($log_file)->slurp =~ m/Via .*? function/gm);
     ok(@matches == 5, 'All messages logged to file');

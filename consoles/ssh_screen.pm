@@ -65,7 +65,7 @@ sub do_read
 sub type_string {
     my ($self, $nargs) = @_;
 
-    bmwqemu::log_call(%$nargs);
+    log::log_call(%$nargs);
 
     my $text           = $nargs->{text};
     my $terminate_with = $nargs->{terminate_with} // '';

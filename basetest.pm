@@ -579,7 +579,7 @@ sub capture_filename {
 sub stop_audiocapture {
     my ($self) = @_;
 
-    bmwqemu::log_call();
+    log::log_call();
     autotest::query_isotovideo('backend_stop_audiocapture');
 
     my $result = {
@@ -602,10 +602,10 @@ sub verify_sound_image {
         my $foundneedle = $rsp->{found};
         $self->record_screenmatch($img, $foundneedle, [$mustmatch], $rsp->{candidates});
         my $lastarea = $foundneedle->{area}->[-1];
-        bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+        log::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
         return $foundneedle;
     }
-    bmwqemu::fctres(sprintf("failed to find %s", $mustmatch));
+    log::fctres(sprintf("failed to find %s", $mustmatch));
     my @needles_params = (img => $img, needles => $rsp->{candidates}, tags => [$mustmatch]);
     if ($check) {
         $self->record_screenfail(@needles_params, result => 'unk');

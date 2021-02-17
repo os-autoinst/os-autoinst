@@ -98,7 +98,7 @@ sub type_string {
     my ($self, $nargs) = @_;
     my $fd = $self->{fd_write};
 
-    bmwqemu::log_call(%$nargs);
+    log::log_call(%$nargs);
 
     my $text = $nargs->{text};
     my $term;
@@ -243,7 +243,7 @@ sub read_until {
 
     $nargs{pattern} = $re;
     $nargs{timeout} = $timeout;
-    bmwqemu::log_call(%nargs);
+    log::log_call(%nargs);
 
   READ: while (1) {
         $loops++;
@@ -316,7 +316,7 @@ sub peak {
     my $buf        = '';
     my $read;
 
-    bmwqemu::log_call(%nargs);
+    log::log_call(%nargs);
   LOOP: {
         $read = sysread($self->{fd_read}, $buf, $buflen);
         last LOOP unless defined $read;

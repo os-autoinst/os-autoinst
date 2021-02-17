@@ -113,7 +113,7 @@ sub eject_cd {
 
 sub cpu_stat {
     my $self = shift;
-    my $stat = bmwqemu::fileContent("/proc/" . $self->{proc}->_process->pid . "/stat");
+    my $stat = log::fileContent("/proc/" . $self->{proc}->_process->pid . "/stat");
     my @a    = split(" ", $stat);
     return [@a[13, 14]];
 }
@@ -1033,7 +1033,7 @@ sub start_qemu {
         }
     };
 
-    my $cnt = bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw");
+    my $cnt = log::fileContent("$ENV{HOME}/.autotestvncpw");
     if ($cnt) {
         $self->send($cnt);
     }

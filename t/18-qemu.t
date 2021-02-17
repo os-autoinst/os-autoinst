@@ -24,7 +24,7 @@ mkdir "$dir/testresults";
 
 $SIG{__DIE__} = sub { cluck(shift); };
 
-bmwqemu::init_logger;
+log::init_logger;
 
 my $bdc;
 my @cmdl;

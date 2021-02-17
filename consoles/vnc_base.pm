@@ -58,7 +58,7 @@ sub connect_remote {
 
     $self->{mouse} = {x => -1, y => -1};
 
-    CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
+    CORE::say __FILE__. ":" . __LINE__ . ":" . log::pp($args);
     $self->{vnc} = consoles::VNC->new($args);
     $self->{vnc}->login($args->{connect_timeout});
     return $self->{vnc};

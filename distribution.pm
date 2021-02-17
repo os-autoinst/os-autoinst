@@ -236,7 +236,7 @@ sub script_output {
         my $heretag = 'EOT_' . $marker;
         my $cat     = "cat > $script_path << '$heretag'; echo $marker-\$?-";
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
-        bmwqemu::log_call("Content of $script_path :\n \"$cat\" \n");
+        log::log_call("Content of $script_path :\n \"$cat\" \n");
         testapi::type_string($cat . "\n");
         testapi::wait_serial("$cat", no_regex => 1, quiet => $args{quiet});
         # Wait for input prompt of here tag before typing $script. This avoids
@@ -281,7 +281,7 @@ sub script_output {
     if ($output !~ "SCRIPT_FINISHED$marker-0-") {
         my $log_message = 'script failed with : ' . $output;
         if ($args{proceed_on_failure}) {
-            bmwqemu::log_call($log_message);
+            log::log_call($log_message);
         }
         else {
             croak($log_message);
