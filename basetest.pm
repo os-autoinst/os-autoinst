@@ -180,7 +180,7 @@ sub record_screenmatch {
     }
     $result->{needles} = $candidates if $candidates;
 
-    my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
+    my $fn = join('/', common::result_dir(), $result->{screenshot});
     $img->write_with_thumbnail($fn);
 
     $self->{result} ||= 'ok';
@@ -247,7 +247,7 @@ sub record_screenfail {
     $result->{needles} = $candidates if $candidates;
     $result->{tags}    = [@$tags]    if $tags;         # make a copy
 
-    my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
+    my $fn = join('/', common::result_dir(), $result->{screenshot});
     $img->write_with_thumbnail($fn);
 
     $self->{result} = $overall if $overall;
@@ -407,7 +407,7 @@ sub save_test_result {
     $result->{extra_test_results} = $self->{extra_test_results} if $self->{extra_test_results};
 
     # be aware that $name has to be unique within one job (also assumed in several other places)
-    my $fn = bmwqemu::result_dir() . sprintf("/result-%s.json", $self->{name});
+    my $fn = common::result_dir() . sprintf("/result-%s.json", $self->{name});
     bmwqemu::save_json_file($result, $fn);
     return $result;
 }
@@ -427,7 +427,7 @@ sub next_resultname {
 sub write_resultfile {
     my ($self, $filename, $output) = @_;
 
-    path(bmwqemu::result_dir(), $filename)->spurt($output);
+    path(common::result_dir(), $filename)->spurt($output);
 }
 
 =head2 record_resultfile
@@ -543,7 +543,7 @@ sub _result_add_screenshot {
     $result->{screenshot} = $self->next_resultname('png');
     $result->{frametime}  = _framenumber_to_timerange($rsp->{frame});
 
-    my $fn = join('/', bmwqemu::result_dir(), $result->{screenshot});
+    my $fn = join('/', common::result_dir(), $result->{screenshot});
     $img->write_with_thumbnail($fn);
 
     return $result;

@@ -1785,7 +1785,7 @@ I<Only supported by qemu backend.>
 
 sub start_audiocapture {
     my $fn       = $autotest::current_test->capture_filename;
-    my $filename = join('/', bmwqemu::result_dir(), $fn);
+    my $filename = join('/', common::result_dir(), $fn);
     log::log_call(filename => $filename);
     return query_isotovideo('backend_start_audiocapture', {filename => $filename});
 }
@@ -1794,7 +1794,7 @@ sub _check_or_assert_sound {
     my ($mustmatch, $check) = @_;
 
     my $result  = $autotest::current_test->stop_audiocapture();
-    my $wavfile = join('/', bmwqemu::result_dir(), $result->{audio});
+    my $wavfile = join('/', common::result_dir(), $result->{audio});
     system("snd2png $wavfile $result->{audio}.png");
 
     my $imgpath = "$result->{audio}.png";
@@ -2056,8 +2056,8 @@ sub parse_extra_log {
             require OpenQA::Parser;
             OpenQA::Parser->import('parser');
             my $parser = parser($format => "ulogs/$file");
-            $parser->write_output(bmwqemu::result_dir());
-            $parser->write_test_result(bmwqemu::result_dir());
+            $parser->write_output(common::result_dir());
+            $parser->write_test_result(common::result_dir());
 
             $parser->tests->each(
                 sub {

@@ -27,8 +27,6 @@ use Data::Dumper;
 use Mojo::Log;
 use Mojo::File;
 use Exporter 'import';
-use POSIX 'strftime';
-use Term::ANSIColor;
 use log;
 
 use Exporter 'import';
