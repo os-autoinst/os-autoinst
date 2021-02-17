@@ -32,7 +32,7 @@ sub output_once {
     log::diag('Via diag function');
     bmwqemu::fctres('Via fctres function');
     log::fctinfo('Via fctinfo function');
-    bmwqemu::fctwarn('Via fctwarn function');
+    log::fctwarn('Via fctwarn function');
     bmwqemu::modstart('Via modstart function');
 }
 

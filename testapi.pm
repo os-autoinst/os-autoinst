@@ -312,7 +312,7 @@ sub _check_backend_response {
                 );
             }
             else {
-                bmwqemu::fctwarn("ran into $method timeout but there's no final mismatch - just taking a screenshot");
+                log::fctwarn("ran into $method timeout but there's no final mismatch - just taking a screenshot");
                 $current_test->take_screenshot();
             }
             $current_test->save_test_result();
@@ -361,7 +361,7 @@ sub _check_backend_response {
                 record_info('Stall detected', 'Stall was detected during assert_screen fail', result => 'fail');
             }
             else {
-                bmwqemu::fctwarn("stall detected during check_screen failure!");
+                log::fctwarn("stall detected during check_screen failure!");
             }
         }
         if (!$check && !$rsp->{saveresult}) {
@@ -699,7 +699,7 @@ sub wait_still_screen {
     $timeout   = bmwqemu::scale_timeout($args{timeout});
     $stilltime = $args{stilltime};
     if ($timeout < $stilltime) {
-        bmwqemu::fctwarn("Selected timeout \'$timeout\' below stilltime \'$stilltime\', returning with false");
+        log::fctwarn("Selected timeout \'$timeout\' below stilltime \'$stilltime\', returning with false");
         return 0;
     }
 

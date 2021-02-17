@@ -185,7 +185,7 @@ sub can_handle {
         $nvme = (defined $vars->{"HDDMODEL_$i"} && $vars->{"HDDMODEL_$i"} eq 'nvme');
     }
     if ($nvme) {
-        bmwqemu::fctwarn('NVMe drives can not be migrated which is required for snapshotting')
+        log::fctwarn('NVMe drives can not be migrated which is required for snapshotting')
           unless $args->{no_warn};
         return;
     }
@@ -347,7 +347,7 @@ sub save_memory_dump {
             runcmd('xz', '--no-warn', '-T', $compress_threads, "-v$compress_level", "ulogs/$filename");
         }
         else {
-            bmwqemu::fctwarn('xz not found; falling back to bzip2');
+            log::fctwarn('xz not found; falling back to bzip2');
             $compress_method = 'bzip2';
         }
     }
@@ -575,9 +575,9 @@ sub create_virtio_console_fifo {
     my $self = shift;
     for my $name ($self->get_virtio_console_fifo_names) {
         if (-e $name) {
-            bmwqemu::fctwarn("Fifo pipe '$name' already exists!");
+            log::fctwarn("Fifo pipe '$name' already exists!");
         } else {
-            mkfifo($name, 0666) or bmwqemu::fctwarn("Failed to create pipe $name: $!");
+            mkfifo($name, 0666) or log::fctwarn("Failed to create pipe $name: $!");
         }
     }
 }
@@ -586,7 +586,7 @@ sub delete_virtio_console_fifo {
     my $self = shift;
     for my $name ($self->get_virtio_console_fifo_names) {
         if (-e $name) {
-            unlink($name) or bmwqemu::fctwarn("Could not unlink $name: $!");
+            unlink($name) or log::fctwarn("Could not unlink $name: $!");
         }
     }
 }
