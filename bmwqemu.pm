@@ -18,22 +18,15 @@ package bmwqemu;
 
 use strictures;
 use autodie ':all';
+use Time::HiRes qw(sleep);
 use Fcntl ':flock';
-use Mojo::JSON qw(encode_json);
-use Cpanel::JSON::XS ();
-use File::Path 'remove_tree';
-use Data::Dumper;
-use Mojo::File;
-use Exporter 'import';
+use common 'result_dir';
 use log;
 
 use Exporter 'import';
 
 our $VERSION;
 our @EXPORT_OK = qw(save_vars);
-
-use backend::driver;
-require IPC::System::Simple;
 
 $| = 1;
 
