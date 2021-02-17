@@ -1,4 +1,4 @@
-# Copyright © 2019 SUSE LLC
+# Copyright © 2019-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@ package consoles::ssh_screen;
 use Mojo::Base 'consoles::serial_screen';
 use Carp 'croak';
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
+use log;
 
 has ssh_connection => undef;
 has ssh_channel    => undef;

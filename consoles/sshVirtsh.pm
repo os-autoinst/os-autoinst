@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2019 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ use Class::Accessor 'antlers';
 
 use backend::svirt;
 use testapi qw(get_var get_required_var check_var set_var);
+use log;
 
 has instance   => (is => "rw", isa => "Num");
 has name       => (is => "rw", isa => "Str");

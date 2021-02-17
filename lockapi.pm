@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2020 SUSE LLC
+# Copyright (c) 2015-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,9 +22,10 @@ use base 'Exporter';
 our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_wait
   barrier_create barrier_wait barrier_try_wait barrier_destroy);
 
-require bmwqemu;
+use bmwqemu ();
 use mmapi qw(api_call_2 get_job_info);
 use testapi ();
+use log;
 
 use constant RETRY_COUNT    => $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT}    // 7;
 use constant RETRY_INTERVAL => $ENV{OS_AUTOINST_LOCKAPI_RETRY_INTERVAL} // 10;

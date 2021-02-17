@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2019 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,8 +35,9 @@ use Carp qw(cluck croak);
 use MIME::Base64 'decode_base64';
 use Scalar::Util qw(looks_like_number reftype);
 use B::Deparse;
+use log;
+use bmwqemu ();
 
-require bmwqemu;
 use constant OPENQA_LIBPATH => '/usr/share/openqa/lib';
 
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars

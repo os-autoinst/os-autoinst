@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ use Try::Tiny;
 require IPC::System::Simple;
 use OpenQA::Benchmark::Stopwatch;
 use OpenQA::Isotovideo::Utils 'checkout_git_refspec';
+use log;
 
 our %needles;
 our %tags;

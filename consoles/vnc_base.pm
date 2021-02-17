@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2017 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@ use Time::HiRes qw(usleep);
 
 use Try::Tiny;
 use testapi 'get_var';
+use log;
 
 # speed limit: 30 keys per second
 use constant VNC_TYPING_LIMIT_DEFAULT => 30;

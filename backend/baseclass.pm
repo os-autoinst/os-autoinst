@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@ use List::Util 'min';
 use List::MoreUtils 'uniq';
 use Scalar::Util 'looks_like_number';
 use Mojo::File 'path';
+use log;
 
 # should be a singleton - and only useful in backend process
 our $backend;

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2016-2020 SUSE LLC
+# Copyright (C) 2016-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,13 +28,13 @@ use Time::HiRes 'usleep';
 use File::Temp 'tempfile';
 use Mojo::Log;
 use Mojo::JSON qw( encode_json decode_json );
+use log;
 
 use Test::Warnings ':report_warnings';
 my $main_pid = $$;
 
 use consoles::virtio_terminal;
 use testapi ();
-use bmwqemu ();
 
 our $VERSION;
 

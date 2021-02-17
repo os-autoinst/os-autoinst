@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2019-2020 SUSE LLC
+# Copyright (c) 2019-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ BEGIN {
     $ENV{PERL_MYJSONRPC_DEBUG} = 1;
 }
 use myjsonrpc;
+use log;
 
 use Test::Warnings qw(warnings :report_warnings);
 

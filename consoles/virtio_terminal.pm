@@ -1,4 +1,4 @@
-# Copyright © 2016-2020 SUSE LLC
+# Copyright © 2016-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ use Cwd;
 use consoles::serial_screen ();
 use testapi qw(check_var get_var);
 use Fcntl;
+use log;
 
 our $VERSION;
 

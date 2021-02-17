@@ -14,6 +14,7 @@ use Mojo::Util qw(scope_guard);
 
 use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::Proc;
+use log;
 
 use constant TMPPATH => '/tmp/18-qemu.t/';
 

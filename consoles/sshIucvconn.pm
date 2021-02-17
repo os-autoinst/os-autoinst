@@ -1,4 +1,4 @@
-# Copyright © 2016-2020 SUSE LLC
+# Copyright © 2016-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ use autodie ':all';
 use base 'consoles::network_console';
 
 use testapi 'get_var';
+use log;
 
 sub connect_remote {
     my ($self, $args) = @_;

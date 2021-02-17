@@ -7,7 +7,7 @@ use feature 'say';
 use base 'Class::Accessor::Fast';
 
 use IO::Socket::INET;
-use bmwqemu qw(diag fctwarn);
+use log;
 use Time::HiRes qw( sleep gettimeofday time );
 use List::Util 'min';
 use testapi 'get_var';
@@ -1023,7 +1023,7 @@ sub _receive_zrle_encoding {
         }
         $read_len += $len;
     }
-    diag sprintf("read $data_len in %fs\n", time - $stime) if (time - $stime > 0.1);
+    log::diag sprintf("read $data_len in %fs\n", time - $stime) if (time - $stime > 0.1);
     # the zlib header is only sent once per session
     $self->{_inflater} ||= Compress::Raw::Zlib::Inflate->new;
     my $out;

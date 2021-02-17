@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ use Mojo::JSON qw(encode_json);
 use Cpanel::JSON::XS ();
 use File::Path 'remove_tree';
 use Data::Dumper;
-use Mojo::Log;
 use Mojo::File;
 use Exporter 'import';
 use log;
@@ -32,7 +31,7 @@ use log;
 use Exporter 'import';
 
 our $VERSION;
-our @EXPORT_OK = qw(diag fctres fctinfo fctwarn modstart fileContent save_vars);
+our @EXPORT_OK = qw(save_vars);
 
 use backend::driver;
 require IPC::System::Simple;

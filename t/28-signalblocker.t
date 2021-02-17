@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2020 SUSE LLC
+# Copyright (c) 2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,6 +29,7 @@ use Test::Warnings qw(warnings :report_warnings);
 use Time::HiRes qw(sleep);
 use POSIX ':signal_h';
 use signalblocker;
+use log;
 
 no warnings 'redefine';
 sub log::diag { note $_[0] }

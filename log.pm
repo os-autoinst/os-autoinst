@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,7 @@ package log;
 use strictures;
 use Carp;
 use File::Spec::Functions qw(catfile);
+use Mojo::Log;
 use POSIX 'strftime';
 use Time::HiRes qw(gettimeofday);
 use Term::ANSIColor;

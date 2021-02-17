@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2017-2020 SUSE LLC
+# Copyright (C) 2017-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,9 +23,9 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_from);
-use bmwqemu;
 use Mojo::File 'tempfile';
 use Data::Dumper;
+use log;
 
 
 sub output_once {

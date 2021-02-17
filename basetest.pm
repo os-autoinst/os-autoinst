@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,13 +19,13 @@ package basetest;
 use strictures;
 use autodie ':all';
 
-use bmwqemu ();
 use ocr;
 use POSIX;
 use testapi  ();
 use autotest ();
 use MIME::Base64 'decode_base64';
 use Mojo::File 'path';
+use log;
 
 my $serial_file_pos  = 0;
 my $autoinst_log_pos = 0;

@@ -12,7 +12,6 @@ use POSIX 'mkfifo';
 
 use consoles::virtio_terminal;
 use testapi;
-use bmwqemu;
 
 
 sub prepare_pipes

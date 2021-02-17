@@ -1,4 +1,4 @@
-# Copyright © 2016 SUSE LLC
+# Copyright © 2016-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@ use strictures;
 use base 'backend::baseclass';
 
 use testapi 'get_var';
-use bmwqemu;
+use bmwqemu ();
 
 sub new {
     my ($class) = @_;

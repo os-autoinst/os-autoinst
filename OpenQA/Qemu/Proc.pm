@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -48,6 +48,7 @@ use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 
 use POSIX ();
+use log;
 
 use constant STATE_FILE => 'qemu_state.json';
 

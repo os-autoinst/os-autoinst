@@ -17,8 +17,8 @@ package signalblocker;
 use strictures;
 use Mojo::Base -base;
 
-use bmwqemu;
 use POSIX ':signal_h';
+use log;
 
 # OpenCV forks a lot of threads and the TERM signal we may get from the
 # parent process would be delivered to an undefined thread. But as those

@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ use base 'consoles::localXvnc';
 use IO::Socket::INET;
 use testapi 'get_var';
 require IPC::System::Simple;
+use log;
 
 sub activate {
     my ($self) = @_;

@@ -1,4 +1,4 @@
-# Copyright © 2018-2019 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@ use base 'consoles::console';
 use testapi 'get_var';
 use backend::svirt qw(SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE);
 use consoles::ssh_screen;
+use log;
 
 sub new {
     my ($class, $testapi_console, $args) = @_;

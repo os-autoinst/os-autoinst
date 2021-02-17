@@ -30,7 +30,7 @@ use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
 use Mojo::File qw(tempdir);
 
-use bmwqemu;
+use bmwqemu ();
 use backend::generalhw;
 use distribution;
 use testapi;

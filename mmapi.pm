@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2020 SUSE LLC
+# Copyright (c) 2015-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,10 +25,10 @@ our @EXPORT = qw(get_children_by_state get_children get_parents
   api_call_2 handle_api_error
 );
 
-require bmwqemu;
-
+use bmwqemu ();
 use Mojo::UserAgent;
 use Mojo::URL;
+use log;
 
 use constant RETRY_COUNT   => $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}   // 3;
 use constant POLL_INTERVAL => $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL} // 1;

@@ -1,4 +1,4 @@
-# Copyright © 2020 SUSE LLC
+# Copyright © 2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,12 +18,12 @@
 
 package consoles::sshSerial;
 
-use strict;
-use warnings;
+use strictures;
 
 use base 'consoles::console';
 
 use consoles::ssh_screen;
+use log;
 
 sub new {
     my ($class, $testapi_console, $args) = @_;

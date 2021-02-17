@@ -21,7 +21,7 @@ use IO::Select;
 use Errno;
 use Mojo::JSON;    # booleans
 use Cpanel::JSON::XS ();
-use bmwqemu          ();
+use log;
 
 use constant DEBUG_JSON  => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
 use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8000000;

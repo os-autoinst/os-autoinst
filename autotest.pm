@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@ package autotest;
 
 use strictures;
 
-use bmwqemu;
 use common qw(result_dir);
 use Exporter 'import';
 use File::Basename;
@@ -27,6 +26,7 @@ use Socket;
 use IO::Handle;
 use POSIX '_exit';
 use cv;
+use log;
 use signalblocker qw();
 use Scalar::Util 'blessed';
 use Mojo::IOLoop::ReadWriteProcess 'process';

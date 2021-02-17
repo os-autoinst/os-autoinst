@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ use base 'backend::baseclass';
 
 use Time::HiRes qw(sleep);
 use testapi 'get_required_var';
+use log;
 use IPC::Run ();
 require IPC::System::Simple;
 

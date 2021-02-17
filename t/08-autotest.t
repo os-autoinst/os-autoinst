@@ -13,7 +13,7 @@ use File::Basename ();
 use File::Path 'rmtree';
 
 use autotest;
-use bmwqemu;
+use bmwqemu ();
 use OpenQA::Test::RunArgs;
 
 $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';

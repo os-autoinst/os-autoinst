@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,9 +24,9 @@ use Try::Tiny;
 use Socket;
 use POSIX '_exit', 'strftime';
 use myjsonrpc;
-use bmwqemu;
 use Mojo::JSON 'to_json';
 use Mojo::File 'path';
+use log;
 
 BEGIN {
     $ENV{MOJO_REACTOR} = 'Mojo::Reactor::Poll';

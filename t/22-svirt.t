@@ -18,6 +18,7 @@ use testapi qw(get_var get_required_var check_var set_var);
 use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT);
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
+use log;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;

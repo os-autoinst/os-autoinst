@@ -1,4 +1,4 @@
-# Copyright © 2016-2020 SUSE LLC
+# Copyright © 2016-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ use integer;
 use English -no_match_vars;
 use Time::HiRes qw(clock_gettime CLOCK_MONOTONIC);
 use Carp 'croak';
+use log;
 
 our $VERSION;
 

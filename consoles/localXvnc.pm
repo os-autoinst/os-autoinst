@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ require IPC::System::Simple;
 use Socket;
 use File::Which;
 use testapi qw(get_var);
+use log;
 
 # helper function
 # Keep ssh session for the maximum of ServerAliveCountMax x ServerAliveInterval seconds

@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ use Mojo::File;
 use File::stat;
 use Try::Tiny;
 use POSIX 'strftime';
-use bmwqemu;
+use log;
 use needle;
 
 has files_to_download => sub { [] };

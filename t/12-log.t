@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2017-2020 SUSE LLC
+# Copyright (C) 2017-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,10 +17,10 @@
 
 use Test::Most;
 use Test::Output 'stderr_like';
+use log;
 
 
 subtest 'log_call' => sub {
-    require log;
     sub log_call_test {
         log::log_call(foo => "bar\tbaz\rboo\n");
     }

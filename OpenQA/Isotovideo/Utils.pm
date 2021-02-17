@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,8 +21,9 @@ use Mojo::URL;
 use Exporter 'import';
 use File::Spec;
 use Cwd;
-use bmwqemu;
 use Try::Tiny;
+use log;
+use bmwqemu ();
 
 our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec
   handle_generated_assets load_test_schedule);

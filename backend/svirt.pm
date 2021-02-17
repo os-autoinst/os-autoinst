@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,8 +23,9 @@ use base 'backend::virt';
 use File::Basename;
 use IO::Scalar;
 use Time::HiRes 'usleep';
-use bmwqemu;
+use bmwqemu ();
 use testapi qw(get_var get_required_var check_var);
+use log;
 
 use constant SERIAL_CONSOLE_DEFAULT_PORT   => 0;
 use constant SERIAL_CONSOLE_DEFAULT_DEVICE => 'console';
