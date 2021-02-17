@@ -90,7 +90,7 @@ sub handle_command {
 
 sub die_handler {
     my $msg = shift;
-    bmwqemu::fctinfo "Backend process died, backend errors are reported below in the following lines:\n$msg";
+    log::fctinfo "Backend process died, backend errors are reported below in the following lines:\n$msg";
     bmwqemu::serialize_state(component => 'backend', msg => $msg);
     $backend->stop_vm();
     $backend->close_pipes();
@@ -989,7 +989,7 @@ sub set_tags_to_assert {
         @tags = sort keys %h;
     }
     $mustmatch = join(',', @tags);
-    bmwqemu::fctinfo "NO matching needles for $mustmatch" unless @$needles;
+    log::fctinfo "NO matching needles for $mustmatch" unless @$needles;
 
     $self->set_assert_screen_timeout($timeout);
     $self->assert_screen_fails([]);

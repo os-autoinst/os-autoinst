@@ -46,7 +46,7 @@ sub new {
     session->on(
         collected_orphan => sub {
             my ($session, $p) = @_;
-            bmwqemu::fctinfo("Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status);
+            log::fctinfo("Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status);
         });
 
     $self->start();

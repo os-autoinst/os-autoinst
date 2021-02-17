@@ -31,7 +31,7 @@ use Data::Dumper;
 sub output_once {
     log::diag('Via diag function');
     bmwqemu::fctres('Via fctres function');
-    bmwqemu::fctinfo('Via fctinfo function');
+    log::fctinfo('Via fctinfo function');
     bmwqemu::fctwarn('Via fctwarn function');
     bmwqemu::modstart('Via modstart function');
 }

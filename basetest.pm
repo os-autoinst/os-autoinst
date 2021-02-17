@@ -368,7 +368,7 @@ sub runtest {
         # show a text result with the die message unless the die was internally generated
         if (!$internal) {
             my $msg = "# Test died: $@";
-            bmwqemu::fctinfo($msg);
+            log::fctinfo($msg);
             $self->record_resultfile('Failed', $msg, result => 'fail');
             $died = 1;
         }
