@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2020 SUSE LLC
+# Copyright (c) 2020-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,6 +36,7 @@ use Test::MockModule;
 use Mojolicious;
 use mmapi;
 use lockapi;
+use bmwqemu ();
 
 # mock testapi
 my $testapi_mock = Test::MockModule->new('testapi');

@@ -19,7 +19,6 @@ package bmwqemu;
 use strictures;
 use autodie ':all';
 use Fcntl ':flock';
-use Carp;
 use Mojo::JSON qw(encode_json);
 use Cpanel::JSON::XS ();
 use File::Path 'remove_tree';
@@ -36,10 +35,7 @@ our @EXPORT_OK = qw(save_vars);
 use backend::driver;
 require IPC::System::Simple;
 
-sub mydie;
-
 $| = 1;
-
 
 our $default_timeout      = 30;                        # assert timeout, 0 is a valid timeout
 our $openqa_default_share = '/var/lib/openqa/share';
@@ -178,12 +174,6 @@ sub stop_vm {
     return unless $backend;
     my $ret = $backend->stop();
     return $ret;
-}
-
-sub mydie {
-    my ($cause_of_death) = @_;
-    log::log_call(cause_of_death => $cause_of_death);
-    croak "mydie";
 }
 
 # runtime information gathering functions end

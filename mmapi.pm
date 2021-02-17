@@ -25,7 +25,6 @@ our @EXPORT = qw(get_children_by_state get_children get_parents
   api_call_2 handle_api_error
 );
 
-use bmwqemu ();
 use Mojo::UserAgent;
 use Mojo::URL;
 use log;
@@ -85,8 +84,8 @@ Queries openQA's multi-machine API and returns the resulting Mojo::Transaction::
 
 sub api_call_2 {
     my ($method, $action, $params, $expected_codes) = @_;
-    _init                                       unless $ua;
-    bmwqemu::mydie('Missing mandatory options') unless $method && $action && $ua;
+    _init                                   unless $ua;
+    log::mydie('Missing mandatory options') unless $method && $action && $ua;
 
     my $ua_url = $url->clone;
     $ua_url->path($action);
