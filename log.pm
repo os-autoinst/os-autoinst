@@ -89,7 +89,7 @@ sub log_format_callback {
 
 sub diag {
     my ($args) = @_;
-    confess "missing input" unless $_[0];
+    confess "missing input" unless $args;
     logger->append(color('white'));
     logger->debug(@_)->append(color('reset'));
     return;

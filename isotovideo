@@ -130,7 +130,7 @@ $SIG{__DIE__} = sub { $fatal_error = shift };
 diag(_get_version_string());
 
 # enable debug default when started from a tty
-$bmwqemu::direct_output = $options{debug};
+$log::direct_output = $options{debug};
 
 select(STDERR);
 $| = 1;

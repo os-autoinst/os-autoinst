@@ -196,7 +196,8 @@ send_key 'ret';
 is_deeply($cmds, [{cmd => 'backend_send_key', key => 'ret'}], 'send_key with no default arguments') || diag explain $cmds;
 $cmds = [];
 
-$mock_bmwqemu->redefine(result_dir => File::Temp->newdir());
+# TODO if needed, mock common.pm, not bmwqemu.pm
+#$mock_bmwqemu->redefine(result_dir => File::Temp->newdir());
 
 subtest 'send_key with wait_screen_change' => sub {
     my $mock_testapi              = Test::MockModule->new('testapi');

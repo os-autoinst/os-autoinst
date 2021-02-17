@@ -29,6 +29,7 @@ set(PERL_FILES
     basetest.pm
     bmwqemu.pm
     commands.pm
+    common.pm
     consoles/amtSol.pm
     consoles/console.pm
     consoles/ipmiSol.pm
@@ -51,6 +52,7 @@ set(PERL_FILES
     consoles/VNC.pm
     distribution.pm
     lockapi.pm
+    log.pm
     mmapi.pm
     myjsonrpc.pm
     needle.pm

@@ -38,10 +38,16 @@ subtest 'log_call' => sub {
 };
 
 subtest 'update_line_number' => sub {
-    $log::direct_output = 1;
+    {
+        no warnings 'once';
+        $log::direct_output = 1;
+    }
     log::init_logger();
     ok !log::update_line_number(), 'update_line_number needs current_test defined';
-    $autotest::current_test = {script => 'my/module.pm'};
+    {
+        no warnings 'once';
+        $autotest::current_test = {script => 'my/module.pm'};
+    }
     stderr_like { log::update_line_number() } qr{log.t.*called.*subtest}, 'update_line_number identifies caller scope';
 };
 

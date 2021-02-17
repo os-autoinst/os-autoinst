@@ -76,8 +76,8 @@ my $timeout = 10;
 my ($logfd, $log_path) = tempfile('10-terminalXXXXX',       TMPDIR => 1, SUFFIX => '.log');
 my ($errfd, $err_path) = tempfile('10-terminal-ERRORXXXXX', TMPDIR => 1, SUFFIX => '.log');
 
-$bmwqemu::direct_output = 0;
-$log::logger            = Mojo::Log->new(path => $err_path);
+$log::direct_output = 0;
+$log::logger        = Mojo::Log->new(path => $err_path);
 
 # Either write $msg to the socket or die
 sub try_write {
