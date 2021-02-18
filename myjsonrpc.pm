@@ -1,4 +1,4 @@
-# Copyright © 2012-2019 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,10 +18,11 @@ package myjsonrpc;
 use strict;
 use warnings;
 use Carp qw(cluck confess);
-use bmwqemu ();
+use IO::Select;
 use Errno;
 use Mojo::JSON;    # booleans
 use Cpanel::JSON::XS ();
+use bmwqemu          ();
 
 use constant DEBUG_JSON  => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
 use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8000000;

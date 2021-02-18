@@ -32,7 +32,7 @@ use Scalar::Util 'blessed';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 
-our @EXPORT_OK = qw(loadtest $current_test $selected_console $last_milestone_console query_isotovideo);
+our @EXPORT_OK = qw(loadtest $selected_console $last_milestone_console query_isotovideo);
 
 our %tests;        # scheduled or run tests
 our @testorder;    # for keeping them in order
@@ -69,7 +69,7 @@ sub find_script {
 
 =head2 loadtest
 
-	loadtest(<string>, [ name => <string>, run_args => <OpenQA::Test::RunArgs> ]);
+    loadtest(<string>, [ name => <string>, run_args => <OpenQA::Test::RunArgs> ]);
 
 Queue a test module for execution by the test runner. The first argument is
 mandatory and specifies the Perl module name containing the test code to be run.
@@ -293,33 +293,6 @@ sub start_process {
 
     close $isotovideo;
     return ($process, $child);
-}
-
-
-# TODO: define use case and reintegrate
-sub prestart_hook {
-    # run prestart test code before VM is started
-    if (-f "$bmwqemu::vars{CASEDIR}/prestart.pm") {
-        bmwqemu::diag "running prestart step";
-        eval { require $bmwqemu::vars{CASEDIR} . "/prestart.pm"; };
-        if ($@) {
-            bmwqemu::diag "prestart step FAIL:";
-            die $@;
-        }
-    }
-}
-
-# TODO: define use case and reintegrate
-sub postrun_hook {
-    # run postrun test code after VM is stopped
-    if (-f "$bmwqemu::vars{CASEDIR}/postrun.pm") {
-        bmwqemu::diag "running postrun step";
-        eval { require "$bmwqemu::vars{CASEDIR}/postrun.pm" };
-        if ($@) {
-            bmwqemu::diag "postrun step FAIL:";
-            warn $@;
-        }
-    }
 }
 
 sub query_isotovideo {
