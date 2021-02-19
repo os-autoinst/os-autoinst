@@ -182,7 +182,6 @@ $self->{cmdpipe} is closed, whichever occurs first.
 sub run_capture_loop {
     my ($self, $timeout) = @_;
     my $starttime = gettimeofday;
-
     if (!$self->last_screenshot) {
         my $now = gettimeofday;
         $self->last_screenshot($now);
@@ -195,11 +194,9 @@ sub run_capture_loop {
         my $hits_limit      = $bmwqemu::vars{_CHKSEL_RATE_HITS}      // 15_000;
 
         while (1) {
-
             last if (!$self->{cmdpipe});
 
-            my $now = gettimeofday;
-
+            my $now             = gettimeofday;
             my $time_to_timeout = "Inf" + 0;
             if (defined $timeout) {
                 $time_to_timeout = $timeout - ($now - $starttime);
@@ -493,17 +490,11 @@ sub can_handle {
 
 sub do_extract_assets { notimplemented }
 
-sub is_shutdown {
-    return -1;
-}
+sub is_shutdown { -1 }
 
-sub save_memory_dump {
-    notimplemented;
-}
+sub save_memory_dump { notimplemented }
 
-sub save_storage_drives {
-    notimplemented;
-}
+sub save_storage_drives { notimplemented }
 
 ## MAY be overwritten:
 
@@ -766,7 +757,6 @@ sub load_console_snapshots {
 
 sub request_screen_update {
     my ($self) = @_;
-
     return $self->bouncer('request_screen_update', undef);
 }
 
@@ -774,9 +764,7 @@ sub console {
     my ($self, $testapi_console) = @_;
 
     my $ret = $testapi::distri->{consoles}->{$testapi_console};
-    unless ($ret) {
-        carp "console $testapi_console does not exist";
-    }
+    carp "console $testapi_console does not exist" unless $ret;
     return $ret;
 }
 
@@ -868,11 +856,7 @@ sub proxy_console_call {
         local $SIG{__DIE__} = 'DEFAULT';
         $wrapped_result->{result} = $console->$function(@$args);
     };
-
-    if ($@) {
-        $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $@);
-    }
-
+    $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $@) if $@;
     return $wrapped_result;
 }
 
@@ -934,20 +918,12 @@ sub wait_serial {
         return $self->{current_screen}->read_until($regexp, $timeout, %$args);
     }
 
-    if (ref $regexp ne 'ARRAY') {
-        $regexp = [$regexp];
-    }
-
+    $regexp = [$regexp] if ref $regexp ne 'ARRAY';
     my $initial_time = time;
     while (time < $initial_time + $timeout) {
         $str = $self->serial_text();
         for my $r (@$regexp) {
-            if (ref $r eq 'Regexp') {
-                $matched = $str =~ $r;
-            }
-            else {
-                $matched = $str =~ m/$r/;
-            }
+            $matched = ref $r eq 'Regexp' ? $str =~ $r : $str =~ m/$r/;
             if ($matched) {
                 $regexp = "$r";
                 last;
@@ -972,9 +948,7 @@ sub set_reference_screenshot {
 
 sub similiarity_to_reference {
     my ($self, $args) = @_;
-    if (!$self->reference_screenshot || !$self->last_image) {
-        return {sim => 10000};
-    }
+    return {sim => 10000} if (!$self->reference_screenshot || !$self->last_image);
     return {sim => $self->reference_screenshot->similarity($self->last_image)};
 }
 
@@ -1016,7 +990,6 @@ sub set_tags_to_assert {
         @tags = sort keys %h;
     }
     $mustmatch = join(',', @tags);
-
     bmwqemu::fctinfo "NO matching needles for $mustmatch" unless @$needles;
 
     $self->set_assert_screen_timeout($timeout);
@@ -1090,9 +1063,7 @@ sub check_asserted_screen {
     my ($self, $args) = @_;
 
     my $img = $self->last_image;
-    if (!$img) {    # no screenshot yet to search on
-        return;
-    }
+    return unless $img;    # no screenshot yet to search on
     my $watch     = OpenQA::Benchmark::Stopwatch->new();
     my $timestamp = $self->last_screenshot;
     my $n         = $self->_time_to_assert_screen_deadline;
@@ -1246,22 +1217,16 @@ sub verify_image {
     my $needles = needle::tags($mustmatch) || [];
 
     my ($foundneedle, $failed_candidates) = $img->search($needles, 0, 1);
-    if ($foundneedle) {
-        return {found => $foundneedle, candidates => $failed_candidates};
-    }
+    return {found      => $foundneedle, candidates => $failed_candidates} if $foundneedle;
     return {candidates => $failed_candidates};
 }
 
 sub retry_assert_screen {
     my ($self, $args) = @_;
 
-    if ($args->{reload_needles}) {
-        $self->reload_needles;
-    }
+    $self->reload_needles if $args->{reload_needles};
     # reset timeout otherwise continue wait_forneedle might just fail if stopped too long than timeout
-    if ($args->{timeout}) {
-        $self->set_assert_screen_timeout($args->{timeout});
-    }
+    $self->set_assert_screen_timeout($args->{timeout}) if $args->{timeout};
     $self->cont_vm;
     # do not need to retry in 5 seconds but contining SUT if continue_waitforneedle
     if ($args->{reload_needles}) {
@@ -1334,9 +1299,7 @@ sub start_ssh_serial {
 
     my $ssh  = $self->{serial}      = $self->new_ssh_connection(%args);
     my $chan = $self->{serial_chan} = $ssh->channel();
-    if (!$chan) {
-        $ssh->die_with_error("Unable to establish SSH channel for serial console");
-    }
+    $ssh->die_with_error("Unable to establish SSH channel for serial console") unless $chan;
     $chan->blocking(0);
     $chan->pty(1);
     $chan->ext_data('merge');
