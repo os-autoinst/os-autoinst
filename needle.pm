@@ -121,21 +121,13 @@ sub new {
     }
 
     # one match is mandatory
-    unless ($gotmatch) {
-        warn "$jsonfile missing match area\n";
-        return;
-    }
+    warn "$jsonfile missing match area\n" && return unless $gotmatch;
 
     $self->{name} = basename($jsonfile, '.json');
     my $png = $self->{png} || $self->{name} . ".png";
 
     $self->{png} = File::Spec->catdir(dirname($jsonfile), $png);
-
-    if (!-s $self->{png}) {
-        warn "Can't find $self->{png}";
-        return;
-    }
-
+    warn "Can't find $self->{png}" && return unless -s $self->{png};
     $self = bless $self, $classname;
     $self->register();
     return $self;
@@ -262,9 +254,7 @@ sub clean_image_cache {
     }
 }
 
-sub image_cache_size {
-    return scalar keys %image_cache;
-}
+sub image_cache_size { scalar keys %image_cache }
 
 sub get_image {
     my ($self, $area) = @_;
@@ -315,14 +305,10 @@ sub TO_JSON {
 sub wanted_ {
     return unless (m/.json$/);
     my $needle = needle->new($File::Find::name);
-    if ($needle) {
-        $needles{$needle->{name}} = $needle;
-    }
+    $needles{$needle->{name}} = $needle if $needle;
 }
 
-sub default_needles_dir {
-    return "$bmwqemu::vars{PRODUCTDIR}/needles";
-}
+sub default_needles_dir { "$bmwqemu::vars{PRODUCTDIR}/needles" }
 
 sub init {
     $needles_dir = ($bmwqemu::vars{NEEDLES_DIR} // default_needles_dir);
@@ -336,10 +322,7 @@ sub init {
     find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needles_dir);
     bmwqemu::diag(sprintf("loaded %d needles", scalar keys %needles));
 
-    if ($cleanuphandler) {
-        &$cleanuphandler();
-    }
-
+    $cleanuphandler->() if $cleanuphandler;
     return $needles_dir;
 }
 
@@ -354,15 +337,13 @@ sub tags {
     my $goods     = $tags{$first_tag};
 
     # go out early if there is nothing to do
-    if (!$goods || !@wanted) {
-        return $goods || [];
-    }
+    return $goods || [] unless $goods && @wanted;
     my @results;
 
     # now check that it contains all the other tags too
   NEEDLE: for my $n (@$goods) {
-        for my $t (@wanted) {
-            next NEEDLE if (!$n->has_tag($t));
+        for (@wanted) {
+            next NEEDLE if !$n->has_tag($_);
         }
         print "adding ", $n->{name}, "\n";
         push(@results, $n);
@@ -370,8 +351,6 @@ sub tags {
     return \@results;
 }
 
-sub all {
-    return values %needles;
-}
+sub all { values %needles }
 
 1;
