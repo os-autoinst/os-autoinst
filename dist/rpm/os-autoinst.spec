@@ -165,6 +165,9 @@ export NO_BRP_STALE_LINK_ERROR=yes
 
 %check
 export CI=1
+# account for sporadic slowness in build environments
+# https://progress.opensuse.org/issues/89059
+export OPENQA_TEST_TIMEOUT_SCALE_CI=4
 cd %{__builddir}
 %cmake_build check-pkg-build
 
