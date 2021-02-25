@@ -441,4 +441,14 @@ subtest 'workaround property' => sub {
     is($no_workaround_needle->get_property_value("glossy"),             undef, "glossy property is a string, has no value");
 };
 
+subtest 'clarify error message when needles directory does not exist' => sub {
+    $bmwqemu::vars{CASEDIR}     = '/tmp/foo';
+    $bmwqemu::vars{PRODUCTDIR}  = '/tmp/boo/products/boo';
+    $bmwqemu::vars{NEEDLES_DIR} = undef;
+    throws_ok { needle::init } qr/Can't init needles from \/tmp\/boo\/products\/boo\/needles at.*/, 'do not combine CASEDIR when the default needles directory is an absolute path';
+
+    $bmwqemu::vars{PRODUCTDIR} = 'boo/products/boo';
+    throws_ok { needle::init } qr/Can't init needles from boo\/products\/boo\/needles;.*\/tmp\/foo\/boo\/products\/boo\/needles/, 'combine CASEDIR when the default needles directory is a relative path';
+};
+
 done_testing();
