@@ -127,8 +127,7 @@ subtest 'web socket route' => sub {
 };
 
 subtest 'data api (directory download)' => sub {
-    # we need `cpio` for these tests
-    ok(-x which 'cpio', 'cpio exists');
+    die "'cpio' is needed for these tests" unless which 'cpio';
 
     $t->get_ok("$base_url/$job/data")->status_is(200)->content_type_is('application/x-cpio');
     my $tmpdir  = tempdir;
