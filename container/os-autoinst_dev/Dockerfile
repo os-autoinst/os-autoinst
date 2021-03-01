@@ -20,6 +20,7 @@ RUN zypper in -y -C \
        aspell-en \
        aspell-spell \
        cmake \
+       cpio \
        gcc-c++ \
        git-core \
        ninja \
