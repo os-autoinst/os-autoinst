@@ -63,6 +63,7 @@ lint_requires:
 
 test_base_requires:
   '%main_requires':
+  cpio:
   perl(Benchmark):
   perl(Devel::Cover):
   perl(FindBin):
