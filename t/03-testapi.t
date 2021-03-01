@@ -153,6 +153,10 @@ subtest 'type_string' => sub {
     is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 10, text => 'hal'}, {cmd => 'backend_type_string', max_interval => 10, text => 'lo'},]);
     $cmds = [];
 
+    type_string 'true', lf => 1;
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => "true\n"}]);
+    $cmds = [];
+
     $testapi::password = 'stupid';
     type_password;
     is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 100, text => 'stupid'}]);

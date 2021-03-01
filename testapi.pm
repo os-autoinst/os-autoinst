@@ -1383,7 +1383,7 @@ sub send_key_until_needlematch {
 =head2 type_string
 
   type_string($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, wait_still_screen => <num> ] [, secret => 1 ]
-  [, timeout => <num>] [, similarity_level => <num>] );
+  [, timeout => <num>] [, similarity_level => <num>] [, lf => 1 ]);
 
 send a string of characters, mapping them to appropriate key names as necessary
 
@@ -1404,6 +1404,9 @@ C<similarity_level> can be passed as argument for wrapped C<wait_still_screen> c
 
 C<secret (bool)> suppresses logging of the actual string typed.
 
+C<lf (bool)> finishes the string with an additional line feed, for example to
+enter a command line.
+
 =cut
 
 sub type_string {
@@ -1417,6 +1420,7 @@ sub type_string {
         %args = @_;
     }
     my $log = $args{secret} ? 'SECRET STRING' : $string;
+    $string .= "\n" if $args{lf};
 
     if (is_serial_terminal) {
         bmwqemu::log_call(text => $log, %args);
