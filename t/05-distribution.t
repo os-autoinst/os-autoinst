@@ -20,7 +20,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Warnings qw(:all :report_warnings);
-use Test::Fatal qw(lives_ok);
+use Test::Fatal;
 use Test::MockModule;
 
 subtest 'script_run' => sub {
@@ -40,8 +40,8 @@ subtest 'script_run' => sub {
     lives_ok { $d->script_run('foo') } 'script_run succeeds with trivial command';
     like $typed_string, qr/foo; echo .* > .*serial/, 'command is typed plus marker and redirection';
     $typed_string = '';
-    lives_ok { $d->script_run('foo &') } 'script_run with valid terminator ends';
-    like $typed_string, qr/foo & echo .* > .*serial/, 'command with already included terminator handled correctly';
+    like(exception { $d->script_run('foo &') }, qr/Terminator.*found.*type_string/, 'script_run with terminator is caught');
+    lives_ok { $d->script_run('foo\&') }, 'escaped terminator is accepted';
 };
 
 done_testing;

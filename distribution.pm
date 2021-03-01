@@ -114,9 +114,11 @@ Deprecated mode
 
   script_run($program, [$timeout])
 
-Run I<$cmd> (by assuming the console prompt and typing the command). After that, echo
-hashed command to serial line and wait for it in order to detect execution is finished.
-To avoid waiting, use I<$timeout> 0.
+Run I<$cmd> (by assuming the console prompt and typing the command). After
+that, echo hashed command to serial line and wait for it in order to detect
+execution is finished. To avoid waiting, use I<$timeout> 0. The C<script_run>
+command string must not be terminated with '&' otherwise an exception is
+thrown.
 
 Use C<output> to add a description or a comment of the $cmd.
 
@@ -141,9 +143,10 @@ sub script_run {
     }
     testapi::type_string "$cmd";
     if ($args{timeout} > 0) {
-        my $terminator = ((substr $cmd, -1) eq '&') ? '' : ';';
-        my $str        = testapi::hashed_string("SR" . $cmd . $args{timeout});
-        my $marker     = "$terminator echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
+        die "Terminator '&' found in script_run call. script_run can not check script success. Consider using 'type_string'."
+          if $cmd =~ qr/(?<!\\)&$/;
+        my $str    = testapi::hashed_string("SR" . $cmd . $args{timeout});
+        my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
         if (testapi::is_serial_terminal) {
             testapi::type_string($marker);
             testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
