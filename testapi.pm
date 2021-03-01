@@ -44,6 +44,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   get_var get_required_var check_var set_var get_var_array check_var_array autoinst_url
 
   send_key send_key_until_needlematch type_string type_password
+  enter_cmd
   hold_key release_key
 
   assert_screen check_screen assert_and_dclick save_screenshot
@@ -87,6 +88,7 @@ sub send_key;
 sub check_screen;
 sub type_string;
 sub type_password;
+sub enter_cmd;
 
 
 =head1 introduction
@@ -1467,7 +1469,7 @@ A convenience wrapper around C<type_string>, which doesn't log the string.
 
 Uses C<$testapi::password> if no string is given.
 
-You can pass same optional parameters as for C<type_string> function.
+You can pass the same optional parameters as for C<type_string> function.
 
 =cut
 
@@ -1475,6 +1477,22 @@ sub type_password {
     my ($string, %args) = @_;
     $string //= $password;
     type_string $string, secret => 1, max_interval => ($args{max_interval} // 100), %args;
+}
+
+=head2 enter_cmd
+
+  enter_cmd($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, wait_still_screen => <num> ] [, secret => 1 ]
+  [, timeout => <num>] [, similarity_level => <num>] );
+
+A convenience wrapper around C<type_string>, that adds a linefeed to execute a
+command within a command line prompt.
+
+You can pass the same optional parameters as for C<type_string> function.
+
+=cut
+
+sub enter_cmd {
+    type_string shift, lf => 1, @_;
 }
 
 =head1 mouse support

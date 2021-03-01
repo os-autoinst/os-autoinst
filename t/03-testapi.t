@@ -171,6 +171,12 @@ subtest 'type_string' => sub {
     $cmds = [];
 };
 
+subtest 'enter_cmd' => sub {
+    enter_cmd 'true';
+    is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 250, text => "true\n"}]);
+    $cmds = [];
+};
+
 subtest 'type_string with wait_still_screen' => sub {
     my $wait_still_screen_called = 0;
     my $module                   = Test::MockModule->new('testapi');
