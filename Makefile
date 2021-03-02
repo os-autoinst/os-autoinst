@@ -10,4 +10,4 @@ all: build/CMakeCache.txt
 
 build/CMakeCache.txt:
 	@mkdir -p build
-	@(cd build && cmake -GNinja ..)
+	@cmake -B build -S . -G Ninja
