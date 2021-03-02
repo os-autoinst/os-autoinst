@@ -3,11 +3,11 @@
 
 .PHONY: all
 all: build/CMakeCache.txt
-	ninja -C build/ all
+	ninja -C build/ symlinks
 
 .DEFAULT: build/CMakeCache.txt
 	ninja -C build/ $@
 
 build/CMakeCache.txt:
 	@mkdir -p build
-	@(cd build && cmake -GNinja ..)
+	@cmake -B build -S . -G Ninja
