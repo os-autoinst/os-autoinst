@@ -3,7 +3,7 @@
 
 .PHONY: all
 all: build/CMakeCache.txt
-	ninja -C build/ all
+	ninja -C build/ symlinks
 
 .DEFAULT: build/CMakeCache.txt
 	ninja -C build/ $@
