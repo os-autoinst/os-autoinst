@@ -1,4 +1,4 @@
-# Copyright © 2018-2019 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@ use warnings;
 # -> increment on every change of such APIs
 # -> never move that variable to another place (when refactoring)
 #    because it may be accessed by the tests itself
-our $version = 20;
+our $version = 22;
 
 # major version of the (web socket) API relevant to the developer mode
 # -> increment when making non-backward compatible changes to that API

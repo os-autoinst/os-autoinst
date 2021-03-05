@@ -42,7 +42,7 @@ sub isotovideo {
 subtest 'get the version number' => sub {
     # Make sure we're in a folder we can't write to, no base_state.json should be created here
     chdir('/');
-    combined_like { system $^X, "$toplevel_dir/isotovideo", '--version' } qr/Current version is.+\[interface v20\]/, 'version printed';
+    combined_like { system $^X, "$toplevel_dir/isotovideo", '--version' } qr/Current version is.+\[interface v[0-9]+\]/, 'version printed';
     ok(!-e bmwqemu::STATE_FILE, 'no state file was written');
 };
 
