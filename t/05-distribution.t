@@ -40,10 +40,10 @@ subtest 'script_run' => sub {
     lives_ok { $d->script_run('foo') } 'script_run succeeds with trivial command';
     like $typed_string, qr/foo; echo .* > .*serial/, 'command is typed plus marker and redirection';
     $typed_string = '';
-    like(exception { $d->script_run('foo &') }, qr/Terminator.*found.*type_string/, 'script_run with terminator is caught');
-    lives_ok sub { $d->script_run('foo\&') }, 'escaped terminator is accepted';
+    like(exception { $d->script_run('foo &') }, qr/Terminator.*found.*background_script_run/, 'script_run with terminator is caught');
+    lives_ok sub { $d->script_run('foo\&') },      'escaped terminator is accepted';
     lives_ok sub { $d->script_run('foo && bar') }, 'AND operator is accepted';
-    lives_ok sub { $d->script_run('foo "x&"') }, 'quoted & is accepted';
+    lives_ok sub { $d->script_run('foo "x&"') },   'quoted & is accepted';
 };
 
 done_testing;

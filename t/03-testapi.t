@@ -277,6 +277,10 @@ subtest 'script_run' => sub {
     is(script_run('false'), '1', 'script_run with no check of success, returns exit code');
     is(script_run('false', output => 'foo'), '1',   'script_run with no check of success and output, returns exit code');
     is(script_run('false', 0),               undef, 'script_run with no check of success, returns undef when not waiting');
+
+    $fake_exit = 1234;
+    is(background_script_run('sleep 10'),                  '1234', 'background_script_run returns a PID');
+    is(background_script_run('sleep 10', output => 'foo'), '1234', 'background_script_run with output returns valid PID');
 };
 
 subtest 'check_assert_screen' => sub {
@@ -336,7 +340,7 @@ subtest 'check_assert_screen' => sub {
         is_deeply($autotest::current_test->{details}, [
                 {
                     result     => 'unk',
-                    screenshot => 'basetest-13.png',
+                    screenshot => 'basetest-15.png',
                     frametime  => [qw(1.75 1.79)],
                     tags       => [qw(fake tags)],
                 }

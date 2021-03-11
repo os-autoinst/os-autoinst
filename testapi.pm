@@ -51,8 +51,8 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   assert_and_click mouse_hide mouse_set mouse_click
   mouse_dclick mouse_tclick match_has_tag click_lastmatch mouse_drag
 
-  assert_script_run script_run assert_script_sudo script_sudo
-  script_output validate_script_output
+  assert_script_run script_run background_script_run
+  assert_script_sudo script_sudo script_output validate_script_output
 
   start_audiocapture assert_recorded_sound check_recorded_sound
 
@@ -1039,6 +1039,33 @@ sub script_run {
 
     bmwqemu::log_call(cmd => $cmd, %args);
     return $distri->script_run($cmd, %args);
+}
+
+=head2 background_script_run
+
+  background_script_run($cmd [, output => ''] [, quiet => $quiet]);
+
+Run C<$cmd> in background without waiting for it to finish. Remember to redirect output,
+otherwise the PID marker may get corrupted.
+
+C<$output> can be used as an explanatory text that will be displayed with the execution of
+the command.
+
+<Returns> PID of the I<$cmd> process running in the background.
+
+I<The implementation is distribution specific and not always available.>
+
+The default implementation should work on *nix operating systems with a configured
+serial device so long as the user has permissions to write to the supplied serial
+device C<$serialdev>.
+
+=cut
+
+sub background_script_run {
+    my ($cmd, %args) = @_;
+
+    bmwqemu::log_call(cmd => $cmd, %args);
+    return $distri->background_script_run($cmd, %args);
 }
 
 =head2 assert_script_sudo
