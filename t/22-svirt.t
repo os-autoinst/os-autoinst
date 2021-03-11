@@ -193,6 +193,9 @@ subtest 'SSH usage in svirt' => sub {
     isnt($svirt->run_ssh_cmd('test 23 -eq 42'), 0, 'Command failed exit');
     my @output = $svirt->run_ssh_cmd('echo -n "foo"', wantarray => 1);
     is_deeply(\@output, [0, 'foo', ''], 'Command successful exit with output');
+    # Check more complicated command (like those we execute against Hyper-V on Windows
+    my $ps = 'echo powershell -Command';
+    is($svirt->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Remove-VM -Force -VMName Test-VM-1")), 0, 'Hyper-V command successful exit');
 
     $ssh_expect_credentials->{password} = '2+3=5';
     is($svirt->run_ssh_cmd('echo -n "foo"', password => '2+3=5'), 0, 'Allow SSH credentials per run_ssh_cmd() call');

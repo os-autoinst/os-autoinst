@@ -83,7 +83,7 @@ sub do_stop_vm {
         if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
             my $ps = 'powershell -Command';
             $self->run_ssh_cmd("$ps Stop-VM -Force -VMName $vmname -TurnOff");
-            $self->run_ssh_cmd("$ps Remove-VM -Force -VMName $vmname");
+            $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Remove-VM -Force -VMName $vmname"));
         }
         else {
             my $virsh = 'virsh';
@@ -153,7 +153,7 @@ sub save_snapshot {
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         my $ps = 'powershell -Command';
         $self->run_ssh_cmd("$ps Remove-VMSnapshot -VMName $vmname -Name $snapname");
-        $rsp = $self->run_ssh_cmd("$ps Checkpoint-VM -VMName $vmname -SnapshotName $snapname");
+        $rsp = $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Checkpoint-VM -VMName $vmname -SnapshotName $snapname"));
     }
     else {
         my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
@@ -173,7 +173,7 @@ sub load_snapshot {
     my $post_load_snapshot_command = '';
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         my $ps = 'powershell -Command';
-        $rsp = $self->run_ssh_cmd("$ps Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false");
+        $rsp = $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false"));
         $self->run_ssh_cmd("mv -v xfreerdp_${vmname}_stop xfreerdp_${vmname}_stop.bkp", $self->get_ssh_credentials('hyperv'));
 
         for my $i (1 .. 5) {
