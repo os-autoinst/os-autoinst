@@ -326,6 +326,12 @@ is($res->{area}->[-1]->{h}, 12);
 is($res->{area}->[-1]->{y}, 260);
 is($res->{area}->[-1]->{x}, 313);
 
+$img1   = tinycv::read($data_dir . "select_patterns.test.png");
+$needle = needle->new("select_patterns.json");
+$res    = $img1->search($needle);
+
+ok(!defined $res, "the green mark is unselected");
+
 $img1   = tinycv::read($data_dir . "other-desktop-dvd-20140904.test.png");
 $needle = needle->new("other-desktop-dvd-20140904.json");
 $res    = $img1->search($needle);
