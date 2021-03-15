@@ -24,3 +24,5 @@ done_testing;
 __END__
 __Python__
 print(get_var('FOO', 'foo'))
+set_var('MY_PYTHON_VARIABLE', 42)
+assert get_required_var('MY_PYTHON_VARIABLE') == 42, "Could not find get_var/set_var variable"
