@@ -131,7 +131,7 @@ sub loadtest {
     eval $code;
     if ($@) {
         my $msg = "error on $script: $@";
-        bmwqemu::diag($msg);
+        bmwqemu::fctwarn($msg);
         bmwqemu::serialize_state(component => 'tests', msg => "unable to load $script, check the log for the cause (e.g. syntax error)");
         die $msg;
     }
