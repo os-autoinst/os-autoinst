@@ -143,7 +143,7 @@ sub script_run {
     }
     testapi::type_string "$cmd";
     if ($args{timeout} > 0) {
-        die "Terminator '&' found in script_run call. script_run can not check script success. Consider using 'type_string'."
+        die "Terminator '&' found in script_run call. script_run can not check script success. Use 'background_script_run' instead."
           if $cmd =~ qr/(?<!\\)&$/;
         my $str    = testapi::hashed_string("SR" . $cmd . $args{timeout});
         my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
@@ -163,6 +163,45 @@ sub script_run {
         testapi::send_key 'ret';
         return;
     }
+}
+
+=head2 background_script_run
+
+  background_script_run($cmd [, output => $output] [, quiet => $quiet])
+
+Run I<$cmd> in background without waiting for it to finish. Remember to redirect output,
+otherwise the PID marker may get corrupted.
+
+Use C<output> to add a description or a comment of the $cmd.
+
+Use C<quiet> to avoid recording serial_results.
+
+<Returns> PID of the I<$cmd> process running in the background.
+
+=cut
+
+sub background_script_run {
+    my ($self, $cmd, %args) = @_;
+
+    if (testapi::is_serial_terminal) {
+        testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
+    }
+
+    $cmd = "( $cmd )";
+    testapi::type_string $cmd;
+    my $str    = testapi::hashed_string("SR" . $cmd);
+    my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
+    if (testapi::is_serial_terminal) {
+        testapi::type_string($marker);
+        testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
+        testapi::type_string("\n");
+    }
+    else {
+        testapi::type_string "$marker > /dev/$testapi::serialdev\n";
+    }
+    my $res = testapi::wait_serial(qr/$str-\d+-/, quiet => $args{quiet});
+    die 'PID marker not found' unless ($res =~ m/$str-(\d+)-/);
+    return $1;
 }
 
 =head2 script_sudo
