@@ -108,6 +108,7 @@ sub loadtest {
     my $fullname = "$category-$name";
     # perl code generating perl code is overcool
     my $code = "package $name;";
+    $code .= "use lib '.';" unless File::Spec->file_name_is_absolute($casedir);
     $code .= "use lib '$casedir/lib';";
     my $basename = dirname($script_path);
     $code .= "use lib '$basename';";
