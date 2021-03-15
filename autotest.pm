@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -116,13 +116,14 @@ sub loadtest {
         $code .= "require '$script_path';";
     }
     elsif ($script =~ m/\.py$/) {
-        # import the test API and all methods from the test API by default
-        # into python context
+        # Adding the include path of os-autoinst into python context
+        my $inc = File::Basename::dirname(__FILE__);
         $code .= "
             use base 'basetest';
-            use Inline Python => <<'END_OF_PYTHON_CODE';\n";
-        $code .= `cat $casedir/$script`;
-        $code .= "\nEND_OF_PYTHON_CODE\n";
+            use Mojo::File 'path';
+            use Inline Python => 'import sys; sys.path.append(\"$inc\")';
+            use Inline Python => path('$casedir/$script')->slurp;
+            ";
     }
     else {
         die "impossible codepath";
