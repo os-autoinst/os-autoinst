@@ -330,6 +330,12 @@ is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/firefox.pm"),       
 is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"), 'x11/toolkits');
 is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"),                'other');
 
+subtest 'load test successfully when CASEDIR is a relative path' => sub {
+    symlink($bmwqemu::vars{CASEDIR}, 'foo');
+    $bmwqemu::vars{CASEDIR} = 'foo';
+    loadtest 'start';
+};
+
 done_testing();
 
 END {
