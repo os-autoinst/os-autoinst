@@ -52,7 +52,7 @@ print $var <<EOV;
    "CASEDIR" : "$data_dir/tests",
    "ISO" : "$data_dir/Core-7.2.iso",
    "CDMODEL" : "ide-cd",
-   "HDDMODEL" : "ide-drive",
+   "HDDMODEL" : "ide-hd",
    "VERSION" : "1",
    "SSH_CONNECT_RETRY"  : "2",
    "SSH_CONNECT_RETRY_INTERVAL"  : ".001",
@@ -111,7 +111,7 @@ print $var <<EOV;
    "CASEDIR" : "$data_dir/tests",
    "ISO" : "$data_dir/Core-7.2.iso",
    "CDMODEL" : "ide-cd",
-   "HDDMODEL" : "ide-drive",
+   "HDDMODEL" : "ide-hd",
    "INTEGRATION_TESTS" : "1",
    "VERSION" : "1"
 }
