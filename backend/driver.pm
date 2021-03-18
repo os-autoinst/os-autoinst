@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -88,7 +88,7 @@ sub start {
 
     $backend_process->on(collected => sub { bmwqemu::diag("backend process exited: " . shift->exit_status) });
 
-    printf STDERR "$$: channel_out %d, channel_in %d\n", fileno($backend_process->channel_out), fileno($backend_process->channel_in);
+    bmwqemu::diag("$$: channel_out " . fileno($backend_process->channel_out) . ', channel_in ' . fileno($backend_process->channel_in));
     $self->{backend_pid}     = $backend_process->pid;
     $self->{backend_process} = $backend_process;
 }
