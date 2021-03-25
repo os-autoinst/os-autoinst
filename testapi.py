@@ -17,5 +17,5 @@
 # Use with `import testapi; testapi.method()` or `from testapi import *`
 import perl
 perl.use('testapi')
-for i in dir(perl):
-    locals()[i] = getattr(perl, i)
+for i in dir(perl.testapi):
+    locals()[i] = getattr(perl.testapi, i)
