@@ -148,6 +148,15 @@ on the right port.
 Run `isotovideo` with the environment variable `RUN_DEBUGVIEWER` to start the internal debug
 screenshot viewer updated with an always recent screenshot of the test run.
 
+== Develop test modules
+
+Individual test modules are written with one test module per file using the
+test API in Perl code. Experimental support for test modules in the Python
+programming language is provided.
+
+Find more details about how to write tests on
+http://open.qa/docs/#_how_to_write_tests
+
 == How to contribute
 
 If you want to contribute to this project, please clone and send
