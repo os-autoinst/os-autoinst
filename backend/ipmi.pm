@@ -76,22 +76,23 @@ sub dell_sleep {
 
 sub restart_host {
     my ($self) = @_;
+    my $tries = 3;     # arbitrary selection of tries
 
-    my $stdout = $self->ipmitool('chassis power status', tries => 3);
+    my $stdout = $self->ipmitool('chassis power status', tries => $tries);
     if ($stdout !~ m/is off/) {
         $self->ipmitool("chassis power off");
-        while (1) {
+        for (0 .. $tries) {
             sleep(3);
-            my $stdout = $self->ipmitool('chassis power status', tries => 3);
+            my $stdout = $self->ipmitool('chassis power status', tries => $tries);
             last if $stdout =~ m/is off/;
             $self->ipmitool('chassis power off');
         }
     }
 
     $self->ipmitool("chassis power on");
-    while (1) {
+    for (0 .. $tries) {
         sleep(3);
-        my $ret = $self->ipmitool('chassis power status', tries => 3);
+        my $ret = $self->ipmitool('chassis power status', tries => $tries);
         last if $ret =~ m/is on/;
         $self->ipmitool('chassis power on');
     }
