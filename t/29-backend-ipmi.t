@@ -30,9 +30,11 @@ is $ret, 'simulating ipmi foo', 'can call ipmitool';
 ok !$backend->dell_sleep, 'dell_sleep would only work on special HW';
 combined_like { $ret = $backend->is_shutdown } qr/IPMI.*power status/, 'log output for is_shutdown';
 ok !$ret, 'is_shutdown returning false by default';
-$ipmi->redefine(ipmitool => sub { rand > 0.5 ? 'is off' : 'is on' });
+my $ipmitool_mock = Test::MockObject->new();
+$ipmitool_mock->set_series('ipmitool', 'is on', 'foo', 'is on', 'is off', 'foo', 'is off', 'is on');
+$ipmi->redefine(ipmitool => sub { $_[1] =~ /power status/ ? $ipmitool_mock->ipmitool : 'NOT POWER STATUS' });
 ok $backend->restart_host, 'can call restart_host';
-
+$ipmi->noop('ipmitool');
 my $distri = Test::MockModule->new('distribution');
 $distri->redefine(add_console => sub {
         my $ret = Test::MockObject->new();
