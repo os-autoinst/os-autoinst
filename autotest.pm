@@ -112,6 +112,7 @@ sub loadtest {
     $code .= "use lib '$casedir/lib';";
     my $basename = dirname($script_path);
     $code .= "use lib '$basename';";
+    die "Unsupported file extension for '$script'" unless $script =~ /\.p[my]/;
     if ($script =~ m/\.pm$/) {
         $code .= "require '$script_path';";
     }
@@ -124,9 +125,6 @@ sub loadtest {
             use Inline Python => 'import sys; sys.path.append(\"$inc\")';
             use Inline Python => path('$casedir/$script')->slurp;
             ";
-    }
-    else {
-        die "impossible codepath";
     }
     eval $code;
     if ($@) {
