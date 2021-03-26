@@ -122,7 +122,7 @@ sub run {
     $io->autoflush(1);
     $self->{rsppipe} = $io;
 
-    printf STDERR "$$: cmdpipe %d, rsppipe %d\n", fileno($self->{cmdpipe}), fileno($self->{rsppipe});
+    bmwqemu::diag "$$: cmdpipe " . fileno($self->{cmdpipe}) . ', rsppipe ' . fileno($self->{rsppipe});
 
     bmwqemu::diag "started mgmt loop with pid $$";
 
