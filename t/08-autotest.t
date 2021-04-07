@@ -29,8 +29,10 @@ qr/loadtest needs a script below.*is not/,
   'loadtest outputs on stderr';
 
 sub loadtest {
-    my ($test, $args) = @_;
-    stderr_like { autotest::loadtest "tests/$test.pm" } qr@scheduling $test#?[0-9]* tests/$test.pm|$test already scheduled@, \$args;
+    my ($test, $msg) = @_;
+    my $filename = $test =~ /\.p[my]$/ ? $test : $test . '.pm';
+    $test =~ s/\.p[my]//;
+    stderr_like { autotest::loadtest "tests/$filename" } qr@scheduling $test#?[0-9]* tests/$test|$test already scheduled@, $msg;
 }
 
 sub fake_send {
@@ -335,6 +337,8 @@ subtest 'load test successfully when CASEDIR is a relative path' => sub {
     $bmwqemu::vars{CASEDIR} = 'foo';
     loadtest 'start';
 };
+
+loadtest 'test.py', 'we can also parse python test modules';
 
 done_testing();
 

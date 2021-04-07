@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -112,11 +112,26 @@ sub loadtest {
     $code .= "use lib '$casedir/lib';";
     my $basename = dirname($script_path);
     $code .= "use lib '$basename';";
-    $code .= "require '$script_path';";
+    if ($script =~ m/\.pm$/) {
+        $code .= "require '$script_path';";
+    }
+    elsif ($script =~ m/\.py$/) {
+        # Adding the include path of os-autoinst into python context
+        my $inc = File::Basename::dirname(__FILE__);
+        $code .= "
+            use base 'basetest';
+            use Mojo::File 'path';
+            use Inline Python => 'import sys; sys.path.append(\"$inc\")';
+            use Inline Python => path('$casedir/$script')->slurp;
+            ";
+    }
+    else {
+        die "impossible codepath";
+    }
     eval $code;
     if ($@) {
         my $msg = "error on $script: $@";
-        bmwqemu::diag($msg);
+        bmwqemu::fctwarn($msg);
         bmwqemu::serialize_state(component => 'tests', msg => "unable to load $script, check the log for the cause (e.g. syntax error)");
         die $msg;
     }
@@ -162,14 +177,14 @@ our $last_milestone_console;
 
 sub parse_test_path {
     my ($script_path) = @_;
-    unless ($script_path =~ m,(\w+)/([^/]+)\.pm$,) {
-        die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.pm\n";
+    unless ($script_path =~ m,(\w+)/([^/]+)\.p[my]$,) {
+        die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.p[my]\n";
     }
     my $category = $1;
     my $name     = $2;
     if ($category ne 'other') {
         # show full folder hierachy as category for non-sideloaded tests
-        my $pattern = qr,(tests/[^/]+/)?tests/([\w/]+)/([^/]+)\.pm$,;
+        my $pattern = qr,(tests/[^/]+/)?tests/([\w/]+)/([^/]+)\.p[my]$,;
         if ($script_path =~ $pattern) {
             $category = $2;
         }

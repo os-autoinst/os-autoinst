@@ -70,6 +70,7 @@ RUN zypper in -y -C \
        'perl(IPC::Open3)' \
        'perl(IPC::Run::Debug)' \
        'perl(IPC::System::Simple)' \
+       'perl(Inline::Python)' \
        'perl(List::MoreUtils)' \
        'perl(List::Util)' \
        'perl(Mojo::IOLoop::ReadWriteProcess)' \

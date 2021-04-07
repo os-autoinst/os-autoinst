@@ -16,6 +16,8 @@
 use strict;
 use warnings;
 
+use Cwd 'abs_path';
+
 use testapi;
 use testdistribution;
 
@@ -37,6 +39,11 @@ $needle::cleanuphandler = \&cleanup_needles;
 # openQA tests set INTEGRATION_TESTS to 1 when reusing the os-autoinst tests
 #
 autotest::loadtest "tests/freeze.pm" unless get_var('INTEGRATION_TESTS');
+
+# Add import path for local test python modules from pool directory
+use Inline Python => "import os.path, sys; sys.path.insert(0, os.path.abspath(os.path.join(os.path.curdir, '../..')))";
+
+autotest::loadtest "tests/pre_boot.py";
 autotest::loadtest "tests/boot.pm";
 unless (get_var('INTEGRATION_TESTS')) {
     autotest::loadtest "tests/assert_screen.pm";
