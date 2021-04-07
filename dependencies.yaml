@@ -86,6 +86,10 @@ test_base_requires:
 
 test_version_only_requires:
   perl(Mojo::IOLoop::ReadWriteProcess): '>= 0.28'
+  # only require Inline::Python as optional dependency for os-autoinst, not
+  # pulled in in dependant projects, see
+  # https://progress.opensuse.org/issues/90761
+  perl(Inline::Python):
 
 yamllint_requires:
   python3-yamllint:
@@ -96,7 +100,6 @@ test_requires:
   '%spellcheck_requires':
   '%yamllint_requires':
   perl(YAML::PP):
-  perl(Inline::Python):
 
 main_requires:
   git-core:

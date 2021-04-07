@@ -65,9 +65,9 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define test_base_requires %main_requires cpio perl(Benchmark) perl(Devel::Cover) perl(FindBin) perl(Pod::Coverage) perl(Test::Fatal) perl(Test::Mock::Time) perl(Test::MockModule) perl(Test::MockObject) perl(Test::Mojo) perl(Test::Most) perl(Test::Output) perl(Test::Pod) perl(Test::Strict) perl(Test::Warnings) >= 0.029 procps python3-setuptools qemu qemu-tools qemu-x86
 # The following line is generated from dependencies.yaml
-%define test_version_only_requires perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
+%define test_version_only_requires perl(Inline::Python) perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
 # The following line is generated from dependencies.yaml
-%define test_requires %build_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(Inline::Python) perl(YAML::PP)
+%define test_requires %build_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(YAML::PP)
 # The following line is generated from dependencies.yaml
 %define devel_requires %test_requires perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy)
 BuildRequires:  %test_requires %test_version_only_requires
