@@ -220,6 +220,7 @@ sub configure_blockdevs {
     if ($iso) {
         my $size = $self->get_img_size($iso);
         if ($vars->{USBBOOT}) {
+            $size = $vars->{USBSIZEGB} . 'G' if $vars->{USBSIZEGB};
             my $drive = $bdc->add_iso_drive('usbstick', $iso, 'usb-storage', $size);
             $drive->bootindex(0) if $bootfrom ne "disk";
         }

@@ -155,6 +155,7 @@ PUBLISH_PFLASH_VARS;string;;Specify the file name to publish the UEFI vars file 
 UEFI_PFLASH;boolean;0;(Deprecated, use UEFI_PFLASH_VARS) Enable the pflash mode to write the UEFI variables directly into the firmware file instead of NVvars in the EFI system partition
 UEFI_BIOS;;;Deprecated, use UEFI_PFLASH_CODE
 USBBOOT;boolean;0;Mount ISO as USB disk and boot VM from it
+USBSIZEGB;integer;size of ISO;Size of USB disk for USBBOOT
 VDE_PORT;integer;worker instance + 10;number of vde switch port to connect
 VDE_SOCKETDIR;string;.;directory where vde_switch control socket is to be found
 VDE_USE_SLIRP;integer;1;whether to start slirpvde
