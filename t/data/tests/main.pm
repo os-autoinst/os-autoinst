@@ -37,15 +37,18 @@ sub cleanup_needles {
 $needle::cleanuphandler = \&cleanup_needles;
 
 # openQA tests set INTEGRATION_TESTS to 1 when reusing the os-autoinst tests
-#
-autotest::loadtest "tests/freeze.pm" unless get_var('INTEGRATION_TESTS');
+my $integration_tests = get_var('INTEGRATION_TESTS');
+
+autotest::loadtest "tests/freeze.pm" unless $integration_tests;
 
 # Add import path for local test python modules from pool directory
-use Inline Python => "import os.path, sys; sys.path.insert(0, os.path.abspath(os.path.join(os.path.curdir, '../..')))";
+unless ($integration_tests) {
+    use Inline Python => "import os.path, sys; sys.path.insert(0, os.path.abspath(os.path.join(os.path.curdir, '../..')))";
+    autotest::loadtest "tests/pre_boot.py";
+}
 
-autotest::loadtest "tests/pre_boot.py";
 autotest::loadtest "tests/boot.pm";
-unless (get_var('INTEGRATION_TESTS')) {
+unless ($integration_tests) {
     autotest::loadtest "tests/assert_screen.pm";
     autotest::loadtest "tests/typing.pm";
     autotest::loadtest "tests/select_console_fail_test.pm";
