@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2020 SUSE LLC
+# Copyright (c) 2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,9 +44,13 @@ my $no_signal_blocker = $ENV{OS_AUTOINST_TEST_NO_SIGNAL_BLOCKER};
 sub thread_count { scalar split("\n", `ps huH p $$`) }
 is(my $last_thread_count = thread_count, 1, 'initially one thread');
 
-# count SIGTERMs we receive; this handler should work after creating/destroying the signal blocker
+# count SIGTERMs we receive; those handlers should work after creating/destroying the signal blocker
+# Note that without these handlers, there won't be any crash in Perl's signal handler as it's never
+# registered for those signals.
 my $received_sigterm = 0;
 $SIG{TERM} = sub { $received_sigterm += 1; note "received SIGTERM $received_sigterm"; };
+my $received_sigchld = 0;
+$SIG{CHLD} = sub { $received_sigchld += 1; note "received SIGCHLD $received_sigchld"; };
 
 # initialize OpenCV via signalblocker and create_threads
 {
@@ -75,6 +79,12 @@ waitpid $fork, 0;
 note 'waiting for at least one signal to be handled' and sleep .2 until $received_sigterm >= 1 || ($timeout -= .2) < 0;
 note "handled $received_sigterm TERM signals";
 ok($received_sigterm > 0, "received SIGTERM $received_sigterm times; no crashes after at least 200 ms idling time");
+
+$received_sigchld = 0;
+# 0 here means WIFEXITED and WEXITSTATUS == 0
+cmp_ok(system("true"), '==', 0, 'system returns exit status');
+is($received_sigchld, 1, 'got SIGCHLD after system');
+
 cmp_ok(thread_count, '<=', $last_thread_count, 'still no new threads after sending signals');
 
 done_testing;
