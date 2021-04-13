@@ -1,4 +1,4 @@
-# Copyright © 2020 SUSE LLC
+# Copyright © 2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,23 +19,23 @@ use Mojo::Base -base;
 use bmwqemu;
 use POSIX ':signal_h';
 
-# OpenCV forks a lot of threads and the TERM signal we may get from the
-# parent process would be delivered to an undefined thread. But as those
-# threads do not have a perl interpreter, the perl signal handler (we set
-# later) would crash. So we need to block the TERM signal in the forked
-# processes before we set the signal handler of our choice.
+# OpenCV forks a lot of threads and the signals we may get (TERM from the
+# parent, CHLD from children) would be delivered to an undefined thread.
+# But as those threads do not have a perl interpreter, the perl signal
+# handler would crash. We need to block those signals in those threads, so
+# that they get delivered only to those threads which can handle it.
 
 sub new {
     my ($class, @args) = @_;
 
     # block signals
-    bmwqemu::diag('Blocking SIGTERM');
+    bmwqemu::diag('Blocking SIGCHLD and SIGCHLD');
     my %old_sig = %SIG;
     $SIG{TERM} = 'IGNORE';
     $SIG{INT}  = 'IGNORE';
     $SIG{HUP}  = 'IGNORE';
-    my $sigset = POSIX::SigSet->new(SIGTERM);
-    die "Could not block SIGTERM\n" unless defined sigprocmask(SIG_BLOCK, $sigset, undef);
+    my $sigset = POSIX::SigSet->new(SIGCHLD, SIGTERM);
+    die "Could not block SIGCHLD and SIGTERM\n" unless defined sigprocmask(SIG_BLOCK, $sigset, undef);
 
     # create the actual object holding the information to restore the previous state
     my $self = $class->SUPER::new(@args);
@@ -48,8 +48,8 @@ sub DESTROY {
     my ($self) = @_;
 
     # set back signal handling to default to be able to terminate properly
-    bmwqemu::diag('Unblocking SIGTERM');
-    die "Could not unblock SIGTERM\n" unless defined sigprocmask(SIG_UNBLOCK, $self->{_sigset}, undef);
+    bmwqemu::diag('Unblocking SIGCHLD and SIGTERM');
+    die "Could not unblock SIGCHLD and SIGTERM\n" unless defined sigprocmask(SIG_UNBLOCK, $self->{_sigset}, undef);
     %SIG = %{$self->{_old_sig}};
 }
 
