@@ -135,10 +135,14 @@ sub stop_qemu {
 
 sub _dbus_do_call {
     my ($self, $fn, @args) = @_;
-    $self->{dbus}         ||= Net::DBus->system;
-    $self->{dbus_service} ||= $self->{dbus}->get_service("org.opensuse.os_autoinst.switch");
-    $self->{dbus_object}  ||= $self->{dbus_service}->get_object("/switch", "org.opensuse.os_autoinst.switch");
-    $self->{dbus_object}->$fn(@args);
+    # we intentionally do not persist the dbus connection to avoid
+    # queueing up signals we are not interested in handling:
+    # https://progress.opensuse.org/issues/90872
+    my $bus         = Net::DBus->system(private => 1);
+    my $bus_service = $bus->get_service("org.opensuse.os_autoinst.switch");
+    my $bus_object  = $bus_service->get_object("/switch", "org.opensuse.os_autoinst.switch");
+    $bus_object->$fn(@args);
+    $bus->get_connection->disconnect;
 }
 
 sub _dbus_call {
