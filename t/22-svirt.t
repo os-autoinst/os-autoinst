@@ -219,9 +219,17 @@ subtest 'SSH usage in svirt' => sub {
     # W/A cause $svirt_console->activate() didn't worked so far
     $svirt_console->_init_ssh($ssh_creds_svirt);
     %{$ssh_expect_credentials} = (%{$ssh_expect_credentials}, %{$ssh_creds_svirt});
-    is($svirt_console->run_cmd('echo "BLAFAFU"'),           0,         "sshVirtsh::run_cmd() test return value ");
+    is($svirt_console->run_cmd('echo "BLAFAFU"'), 0, "sshVirtsh::run_cmd() test return value");
+    $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
+    is($svirt_console->run_cmd('echo "BLAFAFU"'), 0,                "sshVirtsh::run_cmd() test return value [2]");
+    is(scalar(keys(%{$ssh_obj_data})),            $num_ssh_connect, "sshVirtsh::run_cmd() _no_ new ssh connection created");
+    is_deeply([$svirt_console->run_cmd('echo -n "BLAFAFU"', wantarray => 1)], [0, 'BLAFAFU', ''], "sshVirtsh::run_cmd_(wantarray => 1) ");
     is($svirt_console->get_cmd_output('echo -n "BLAFAFU"'), 'BLAFAFU', "sshVirtsh::get_cmd_output()");
-    is_deeply($svirt_console->get_cmd_output('echo -n "BLAFAFU"', {wantarray => 1}), ['BLAFAFU', ''], "sshVirtsh::get_cmd_output(wantarray => 1) ");
+    is_deeply($svirt_console->get_cmd_output('echo -n "BLAFAFU"', {wantarray => 1}), ['BLAFAFU', ''], "sshVirtsh::get_cmd_output(wantarray => 1 ");
+
+    $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
+    is($svirt_console->run_cmd('echo "BLAFAFU"', keep_open => 0), 0,                    "sshVirtsh::run_cmd(keep_open=>0) test return value ");
+    is(scalar(keys(%{$ssh_obj_data})),                            $num_ssh_connect + 1, "sshVirtsh::run_cmd(keep_open=>0) new ssh object created");
 };
 
 subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
