@@ -105,6 +105,7 @@ subtest 'SSH credentials' => sub {
 
 subtest 'SSH usage in svirt' => sub {
     my $ssh_expect_credentials = {username => 'root', password => 'password'};
+    my $fail_on_channel_call   = 0;
     my $ssh_obj_data           = {};                                             # used to store Net::SSH2 fake data per object
     my $net_ssh2               = Test::MockModule->new('Net::SSH2');
     $net_ssh2->redefine(new => sub {
@@ -142,6 +143,7 @@ subtest 'SSH usage in svirt' => sub {
     $net_ssh2->redefine(channel => sub {
             my $self = shift;
             die("Not connected") unless ($ssh_obj_data->{refaddr($self)}->{connected});
+            return $fail_on_channel_call = 0 if $fail_on_channel_call;
             my $mock_channel = Test::MockObject->new();
             $mock_channel->{ssh} = $self;
             $mock_channel->mock(exec => sub {
@@ -165,20 +167,29 @@ subtest 'SSH usage in svirt' => sub {
             $mock_channel->mock(pty         => sub { return 1; });
             $mock_channel->mock(send_eof    => sub { return 1; });
             $mock_channel->mock(exit_status => sub { shift->{exit_status}; });
+            $mock_channel->mock(close       => sub { return 1; });
     });
 
     # check connection handling
     my $ssh1 = $svirt->new_ssh_connection();
-    my ($ssh2, $ssh3, $ssh4);
+    my ($ssh2, $ssh3, $ssh4, $ssh5, $ssh6, $ssh7);
     my $exp_log        = qr/SSH connection to root\@bar established/;
     my $default_logger = $bmwqemu::logger;
     $bmwqemu::logger = Mojo::Log->new(level => 'debug');
     stderr_like { $ssh2 = $svirt->new_ssh_connection() } $exp_log, 'New SSH connection announced in logs';
     stderr_like { $ssh3 = $svirt->new_ssh_connection(keep_open => 1) } $exp_log, 'New SSH connection announced in logs';
     stderr_unlike { $ssh4 = $svirt->new_ssh_connection(keep_open => 1) } $exp_log, 'No new SSH connection announced, if it already exists';
-    $bmwqemu::logger = $default_logger;
+
+    $exp_log = qr/Use existing SSH connection/;
+    stderr_like { $ssh6 = $svirt->new_ssh_connection(keep_open => 1) } $exp_log, 'Use existing SSH connection announced in logs';
+
+    $fail_on_channel_call = 1;
+    $exp_log              = qr/Close broken SSH connection[\s\S]+SSH connection to root\@bar established/;
+    stderr_like { $ssh7 = $svirt->new_ssh_connection(keep_open => 1) } $exp_log, 'New SSH connection announced in logs';
+
+    $bmwqemu::logger                    = $default_logger;
     $ssh_expect_credentials->{username} = 'foo911';
-    my $ssh5 = $svirt->new_ssh_connection(keep_open => 1, username => 'foo911');
+    $ssh5                               = $svirt->new_ssh_connection(keep_open => 1, username => 'foo911');
     $ssh_expect_credentials->{username} = 'root';
     isnt(refaddr($ssh1), refaddr($ssh2), "Got new connection each call");
     is(refaddr($ssh3), refaddr($ssh4), "Got same connection with keep_open");
@@ -204,15 +215,16 @@ subtest 'SSH usage in svirt' => sub {
     $svirt->run_ssh_cmd('echo -n "foo"', password => '2+3=5', keep_open => 0);
     is(scalar(keys(%{$ssh_obj_data})), $num_ssh_connect + 1, 'Ensure run_ssh_cmd(keep_open => 0) uses a new SSH connection');
 
+
     # cleanup kept ssh connections
-    for my $ssh_ref ((refaddr($ssh3), refaddr($ssh4), refaddr($ssh5))) {
-        is($ssh_obj_data->{$ssh_ref}->{connected}, 1, "SSH connection $ssh_ref connected");
-    }
+    is($ssh_obj_data->{refaddr($ssh5)}->{connected}, 1, "SSH connection ssh5 connected");
+    is($ssh_obj_data->{refaddr($ssh7)}->{connected}, 1, "SSH connection ssh7 connected");
+    is($ssh_obj_data->{refaddr($ssh4)}->{connected}, 0, "SSH connection ssh4 is disconnected");
+    is(scalar(keys(%{$svirt->{ssh_connections}})),   2, "Only one running ssh connection expected");
     $svirt->close_ssh_connections();
-    is(scalar(keys(%{$svirt->{ssh_connections}})), 0, "Cleanup ssh connections");
-    for my $ssh_ref ((refaddr($ssh3), refaddr($ssh4), refaddr($ssh5))) {
-        is($ssh_obj_data->{$ssh_ref}->{connected}, 0, "SSH connection $ssh_ref is disconnected");
-    }
+    is(scalar(keys(%{$svirt->{ssh_connections}})),   0, "Cleanup ssh connections");
+    is($ssh_obj_data->{refaddr($ssh5)}->{connected}, 0, "SSH connection ssh5 is disconnected");
+    is($ssh_obj_data->{refaddr($ssh7)}->{connected}, 0, "SSH connection ssh7 is disconnected");
 
     # Check console::sshVirtsh
     my $ssh_creds_svirt = {hostname => 'hostname_svirt', password => 'password_svirt'};
