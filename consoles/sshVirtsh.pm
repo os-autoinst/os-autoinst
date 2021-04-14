@@ -625,10 +625,13 @@ C<VIRSH_USERNAME> and C<VIRSH_PASSWORD>.
 The second domain B<sshVMwareServer> is available if C<VIRSH_VMM_FAMILY> is
 B<vmware> and defined via C<VMWARE_HOST>, C<VMWARE_PASSWORD> and 'root' as
 username.
+For further arguments see C<baseclass:run_ssh_cmd()>.
 =cut
 sub run_cmd {
     my ($self, $cmd, %args) = @_;
-    return $self->backend->run_ssh_cmd($cmd, $self->get_ssh_credentials($args{domain}), wantarray => $args{wantarray} // 0);
+    my %credentials = $self->get_ssh_credentials($args{domain});
+    delete $args{domain};
+    return $self->backend->run_ssh_cmd($cmd, %credentials, %args);
 }
 
 =head2 get_cmd_output
