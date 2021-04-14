@@ -40,6 +40,7 @@ use List::Util 'min';
 use List::MoreUtils 'uniq';
 use Scalar::Util 'looks_like_number';
 use Mojo::File 'path';
+use OpenQA::Exceptions;
 
 # should be a singleton - and only useful in backend process
 our $backend;
