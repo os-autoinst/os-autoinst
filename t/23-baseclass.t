@@ -11,7 +11,6 @@ use Test::Warnings ':report_warnings';
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use Mojo::File 'path';
 use Mojo::JSON 'decode_json';
-use Scalar::Util 'refaddr';
 use backend::baseclass;
 use POSIX 'tzset';
 use Mojo::File 'tempdir';
@@ -52,70 +51,82 @@ subtest 'SSH utilities' => sub {
     my $ssh_obj_data   = {};                                                                    # used to store Net::SSH2 fake data per object
     my @net_ssh2_error = ();
     my $net_ssh2       = Test::MockModule->new('Net::SSH2');
-    $net_ssh2->redefine(connect => sub {
-            my ($self, $hostname) = @_;
-            is($hostname, $ssh_expect->{hostname}, 'Connect to correct hostname');
-            $ssh_obj_data->{refaddr($self)}->{hostname}  = $hostname;
-            $ssh_obj_data->{refaddr($self)}->{connected} = 1;
-            $ssh_obj_data->{refaddr($self)}->{blocking}  = 0;
-            return 1;
-    });
-    $net_ssh2->redefine(hostname => sub { return $ssh_obj_data->{refaddr(shift)}->{hostname} });
-    $net_ssh2->redefine(auth => sub {
-            my ($self, %args) = @_;
-            is($args{username}, $ssh_expect->{username}, 'Correct username for ssh connection');
-            is($args{password}, $ssh_expect->{password}, 'Correct password for ssh connection');
-            return 1;
-    });
-    $net_ssh2->redefine(auth_ok => sub { return 1; });
-    $net_ssh2->redefine(blocking => sub {
-            my ($self, $v) = @_;
-            $ssh_obj_data->{refaddr($self)}->{blocking} = $v if defined($v);
-            return $ssh_obj_data->{refaddr($self)}->{blocking};
-    });
-    $net_ssh2->redefine(disconnect => sub {
-            $ssh_obj_data->{refaddr(shift)}->{connected} = 0;
-            return 1;
-    });
-    $net_ssh2->redefine(error => sub { return @net_ssh2_error; });
-    $net_ssh2->redefine(sock => sub {
-            my $self = shift;
-            unless ($ssh_obj_data->{refaddr($self)}->{sock}) {
-                my $mock_sock = Test::MockObject->new();
-                $mock_sock->{ssh} = $self;
-                $ssh_obj_data->{refaddr($self)}->{sock} = $mock_sock;
-            }
-            return $ssh_obj_data->{refaddr($self)}->{sock};
-    });
-    $net_ssh2->redefine(channel => sub {
-            my $self = shift;
-            die("Not connected") unless ($ssh_obj_data->{refaddr($self)}->{connected});
-            my $mock_channel = Test::MockObject->new();
-            $mock_channel->{ssh} = $self;
-            $mock_channel->mock(exec => sub {
-                    my ($self, $cmd) = @_;
-                    $self->{cmd} = $cmd;
-                    $self->{eof} = 0;
-                    if ($cmd =~ /^(echo|test)/) {
-                        $self->{stdout}      = `$cmd`;
-                        $self->{exit_status} = $?;
-                        $self->{stderr}      = '';
-                    }
+    $net_ssh2->redefine(new => sub {
+            my ($class, %opts) = @_;
+            my $self = Test::MockObject->new();
+            my $id   = $self->{my_custom_id} = bmwqemu::random_string(32);
+            die 'Identifier not unique' if exists $ssh_obj_data->{$id};
+            $ssh_obj_data->{$id} = $self;
+
+            $self->mock(connect => sub {
+                    my ($self, $hostname) = @_;
+                    is($hostname, $ssh_expect->{hostname}, 'Connect to correct hostname');
+                    $self->{hostname}  = $hostname;
+                    $self->{connected} = 1;
+                    $self->{blocking}  = 0;
                     return 1;
             });
-            $mock_channel->mock(read2 => sub {
-                    my ($self) = @_;
-                    $self->{eof} = 1;
-                    return ($self->{stdout}, $self->{stderr});
+            $self->mock(hostname => sub { return $ssh_obj_data->{refaddr(shift)}->{hostname} });
+            $self->mock(auth => sub {
+                    my ($self, %args) = @_;
+                    is($args{username}, $ssh_expect->{username}, 'Correct username for ssh connection');
+                    is($args{password}, $ssh_expect->{password}, 'Correct password for ssh connection');
+                    return 1;
             });
-            $mock_channel->mock(eof         => sub { return shift->{eof}; });
-            $mock_channel->mock(blocking    => sub { return shift->{ssh}->blocking(shift) });
-            $mock_channel->mock(pty         => sub { return 1; });
-            $mock_channel->mock(send_eof    => sub { return 1; });
-            $mock_channel->mock(exit_status => sub { shift->{exit_status}; });
-            $mock_channel->mock(ext_data    => sub { my ($self, $v) = @_; $self->{ext_data} = $v; });
-            return $mock_channel;
+            $self->mock(auth_ok => sub { return 1; });
+            $self->mock(blocking => sub {
+                    my ($self, $v) = @_;
+                    $self->{blocking} = $v if defined($v);
+                    return $self->{blocking};
+            });
+            $self->mock(disconnect => sub {
+                    $ssh_obj_data->{refaddr(shift)}->{connected} = 0;
+                    return 1;
+            });
+            $self->mock(error => sub { return @net_ssh2_error; });
+            $self->mock(sock => sub {
+                    my $self = shift;
+                    unless ($self->{sock}) {
+                        my $mock_sock = Test::MockObject->new();
+                        $mock_sock->{ssh} = $self;
+                        $self->{sock}     = $mock_sock;
+                    }
+                    return $self->{sock};
+            });
+            $self->mock(channel => sub {
+                    my $self = shift;
+                    die("Not connected") unless ($self->{connected});
+                    my $mock_channel = Test::MockObject->new();
+                    $mock_channel->{ssh} = $self;
+                    $mock_channel->mock(exec => sub {
+                            my ($self, $cmd) = @_;
+                            $self->{cmd} = $cmd;
+                            $self->{eof} = 0;
+                            if ($cmd =~ /^(echo|test)/) {
+                                $self->{stdout}      = `$cmd`;
+                                $self->{exit_status} = $?;
+                                $self->{stderr}      = '';
+                            }
+                            return 1;
+                    });
+                    $mock_channel->mock(read2 => sub {
+                            my ($self) = @_;
+                            $self->{eof} = 1;
+                            return ($self->{stdout}, $self->{stderr});
+                    });
+                    $mock_channel->mock(eof         => sub { return shift->{eof}; });
+                    $mock_channel->mock(blocking    => sub { return shift->{ssh}->blocking(shift) });
+                    $mock_channel->mock(pty         => sub { return 1; });
+                    $mock_channel->mock(send_eof    => sub { return 1; });
+                    $mock_channel->mock(exit_status => sub { shift->{exit_status}; });
+                    $mock_channel->mock(ext_data    => sub { my ($self, $v) = @_; $self->{ext_data} = $v; });
+                    $mock_channel->mock(close       => sub { return 1; });
+                    return $mock_channel;
+            });
+
+            return $self;
     });
+    sub refaddr { return shift->{my_custom_id}; }
 
     my %ssh_creds = (username => 'root', password => 'password', hostname => 'foo.bla');
     my $ssh1      = $baseclass->new_ssh_connection(%ssh_creds);
