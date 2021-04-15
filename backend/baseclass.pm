@@ -40,6 +40,7 @@ use List::Util 'min';
 use List::MoreUtils 'uniq';
 use Scalar::Util 'looks_like_number';
 use Mojo::File 'path';
+use OpenQA::Exceptions;
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -1251,7 +1252,18 @@ sub new_ssh_connection {
     if ($args{keep_open}) {
         $connection_key = join(',', map { $_ . "=" . $args{$_} } qw(hostname username));
         my $con = $self->{ssh_connections}->{$connection_key};
-        return $con if (defined($con));
+        if (defined($con)) {
+            # Check if we still can create channels on that connection
+            if (my $tmp_chan = $con->channel()) {
+                $tmp_chan->close();
+                bmwqemu::diag "Use existing SSH connection (key:$connection_key)";
+                return $con;
+            } else {
+                bmwqemu::diag "Close broken SSH connection (key:$connection_key)";
+                $con->disconnect();
+                delete $self->{ssh_connections}->{$connection_key};
+            }
+        }
     }
 
     my $ssh = Net::SSH2->new;

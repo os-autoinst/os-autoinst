@@ -103,133 +103,67 @@ subtest 'SSH credentials' => sub {
     is_deeply(\%creds, {hostname => 'foo321', password => 'password321', username => 'root'}, 'Check SSH credentials for hyperv');
 };
 
-subtest 'SSH usage in svirt' => sub {
-    my $ssh_expect_credentials = {username => 'root', password => 'password'};
-    my $ssh_obj_data           = {};                                             # used to store Net::SSH2 fake data per object
-    my $net_ssh2               = Test::MockModule->new('Net::SSH2');
-    $net_ssh2->redefine(new => sub {
-            my ($class, %opts) = @_;
-            my $self = bless {}, $class;
-            my $id   = $self->{my_custom_id} = bmwqemu::random_string(32);
-            die 'Identifier not unique' if exists $ssh_obj_data->{$id};
-            $ssh_obj_data->{$id} = {};
-            return $self;
-    });
-    sub refaddr { return shift->{my_custom_id}; }
-    $net_ssh2->noop('DESTROY');
-    $net_ssh2->redefine(connect => sub {
-            my $self = shift;
-            $ssh_obj_data->{refaddr($self)}->{connected} = 1;
-            $ssh_obj_data->{refaddr($self)}->{blocking}  = 0;
-            return 1;
-    });
-    $net_ssh2->redefine(auth => sub {
-            my ($self, %args) = @_;
-            is($args{username}, $ssh_expect_credentials->{username}, 'Correct username for ssh connection');
-            is($args{password}, $ssh_expect_credentials->{password}, 'Correct password for ssh connection');
-            return 1;
-    });
-    $net_ssh2->redefine(auth_ok => sub { return 1; });
-    $net_ssh2->redefine(blocking => sub {
-            my ($self, $v);
-            $ssh_obj_data->{refaddr($self)}->{blocking} = $v if defined($v);
-            return $self->{blocking};
-    });
-    $net_ssh2->redefine(disconnect => sub {
-            $ssh_obj_data->{refaddr(shift)}->{connected} = 0;
-            return 1;
-    });
-    $net_ssh2->redefine(channel => sub {
-            my $self = shift;
-            die("Not connected") unless ($ssh_obj_data->{refaddr($self)}->{connected});
-            my $mock_channel = Test::MockObject->new();
-            $mock_channel->{ssh} = $self;
-            $mock_channel->mock(exec => sub {
-                    my ($self, $cmd) = @_;
-                    $self->{cmd} = $cmd;
-                    $self->{eof} = 0;
-                    if ($cmd =~ /^(echo|test)/) {
-                        $self->{stdout}      = `$cmd`;
-                        $self->{exit_status} = $?;
-                        $self->{stderr}      = '';
-                    }
-                    return 1;
-            });
-            $mock_channel->mock(read2 => sub {
-                    my ($self) = @_;
-                    $self->{eof} = 1;
-                    return ($self->{stdout}, $self->{stderr});
-            });
-            $mock_channel->mock(eof         => sub { return shift->{eof}; });
-            $mock_channel->mock(blocking    => sub { return shift->{ssh}->blocking(shift) });
-            $mock_channel->mock(pty         => sub { return 1; });
-            $mock_channel->mock(send_eof    => sub { return 1; });
-            $mock_channel->mock(exit_status => sub { shift->{exit_status}; });
-    });
-
-    # check connection handling
-    my $ssh1 = $svirt->new_ssh_connection();
-    my ($ssh2, $ssh3, $ssh4);
-    my $exp_log        = qr/SSH connection to root\@bar established/;
-    my $default_logger = $bmwqemu::logger;
-    $bmwqemu::logger = Mojo::Log->new(level => 'debug');
-    stderr_like { $ssh2 = $svirt->new_ssh_connection() } $exp_log, 'New SSH connection announced in logs';
-    stderr_like { $ssh3 = $svirt->new_ssh_connection(keep_open => 1) } $exp_log, 'New SSH connection announced in logs';
-    stderr_unlike { $ssh4 = $svirt->new_ssh_connection(keep_open => 1) } $exp_log, 'No new SSH connection announced, if it already exists';
-    $bmwqemu::logger = $default_logger;
-    $ssh_expect_credentials->{username} = 'foo911';
-    my $ssh5 = $svirt->new_ssh_connection(keep_open => 1, username => 'foo911');
-    $ssh_expect_credentials->{username} = 'root';
-    isnt(refaddr($ssh1), refaddr($ssh2), "Got new connection each call");
-    is(refaddr($ssh3), refaddr($ssh4), "Got same connection with keep_open");
-    isnt(refaddr($ssh4), refaddr($ssh5), "Got new connection with different credentials");
-
-    $net_ssh2->redefine(auth_ok => sub { return 0; });
-    throws_ok(sub { $svirt->new_ssh_connection() }, qr/Error connecting to/, 'Got exception on connection error');
-    $net_ssh2->redefine(auth_ok => sub { return 1; });
-
-    # check run_ssh_cmd() usage
-    is($svirt->run_ssh_cmd('echo -n "foo"'), 0, 'Command successful exit');
-    isnt($svirt->run_ssh_cmd('test 23 -eq 42'), 0, 'Command failed exit');
-    my @output = $svirt->run_ssh_cmd('echo -n "foo"', wantarray => 1);
-    is_deeply(\@output, [0, 'foo', ''], 'Command successful exit with output');
-    # Check more complicated command (like those we execute against Hyper-V on Windows
-    my $ps = 'echo powershell -Command';
-    is($svirt->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Remove-VM -Force -VMName Test-VM-1")), 0, 'Hyper-V command successful exit');
-
-    $ssh_expect_credentials->{password} = '2+3=5';
-    is($svirt->run_ssh_cmd('echo -n "foo"', password => '2+3=5'), 0, 'Allow SSH credentials per run_ssh_cmd() call');
-
-    my $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
-    $svirt->run_ssh_cmd('echo -n "foo"', password => '2+3=5', keep_open => 0);
-    is(scalar(keys(%{$ssh_obj_data})), $num_ssh_connect + 1, 'Ensure run_ssh_cmd(keep_open => 0) uses a new SSH connection');
-
-    # cleanup kept ssh connections
-    for my $ssh_ref ((refaddr($ssh3), refaddr($ssh4), refaddr($ssh5))) {
-        is($ssh_obj_data->{$ssh_ref}->{connected}, 1, "SSH connection $ssh_ref connected");
-    }
-    $svirt->close_ssh_connections();
-    is(scalar(keys(%{$svirt->{ssh_connections}})), 0, "Cleanup ssh connections");
-    for my $ssh_ref ((refaddr($ssh3), refaddr($ssh4), refaddr($ssh5))) {
-        is($ssh_obj_data->{$ssh_ref}->{connected}, 0, "SSH connection $ssh_ref is disconnected");
-    }
-
+subtest 'SSH usage in console::sshVirtsh' => sub {
     # Check console::sshVirtsh
-    my $ssh_creds_svirt = {hostname => 'hostname_svirt', password => 'password_svirt'};
+    my $ssh_creds_svirt    = {hostname => 'hostname_svirt', password => 'password_svirt', username => 'root'};
+    my %ssh_expect         = (%$ssh_creds_svirt, wantarray => undef, keep_open => undef);
+    my $run_ssh_cmd_return = undef;
+    my $mock_baseclass     = Test::MockModule->new('backend::baseclass');
+    $mock_baseclass->redefine('run_ssh_cmd' => sub {
+            my ($self, $cmd, %args) = @_;
+            for my $key (keys(%ssh_expect)) {
+                is($args{$key}, $ssh_expect{$key}, "Correct $key for ssh connection") if $ssh_expect{$key};
+            }
+            if (ref($run_ssh_cmd_return) eq 'ARRAY') {
+                return @$run_ssh_cmd_return;
+            } else {
+                return $run_ssh_cmd_return;
+            }
+    });
+
     # W/A cause $svirt_console->activate() didn't worked so far
     $svirt_console->_init_ssh($ssh_creds_svirt);
-    %{$ssh_expect_credentials} = (%{$ssh_expect_credentials}, %{$ssh_creds_svirt});
+    $run_ssh_cmd_return = 0;
     is($svirt_console->run_cmd('echo "BLAFAFU"'), 0, "sshVirtsh::run_cmd() test return value");
-    $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
-    is($svirt_console->run_cmd('echo "BLAFAFU"'), 0,                "sshVirtsh::run_cmd() test return value [2]");
-    is(scalar(keys(%{$ssh_obj_data})),            $num_ssh_connect, "sshVirtsh::run_cmd() _no_ new ssh connection created");
-    is_deeply([$svirt_console->run_cmd('echo -n "BLAFAFU"', wantarray => 1)], [0, 'BLAFAFU', ''], "sshVirtsh::run_cmd_(wantarray => 1) ");
-    is($svirt_console->get_cmd_output('echo -n "BLAFAFU"'), 'BLAFAFU', "sshVirtsh::get_cmd_output()");
-    is_deeply($svirt_console->get_cmd_output('echo -n "BLAFAFU"', {wantarray => 1}), ['BLAFAFU', ''], "sshVirtsh::get_cmd_output(wantarray => 1 ");
 
-    $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
-    is($svirt_console->run_cmd('echo "BLAFAFU"', keep_open => 0), 0,                    "sshVirtsh::run_cmd(keep_open=>0) test return value ");
-    is(scalar(keys(%{$ssh_obj_data})),                            $num_ssh_connect + 1, "sshVirtsh::run_cmd(keep_open=>0) new ssh object created");
+    $run_ssh_cmd_return = [0, 'BLAFAFU', ''];
+    $ssh_expect{wantarray} = 1;
+    is_deeply([$svirt_console->run_cmd('echo -n "BLAFAFU"', wantarray => 1)], $run_ssh_cmd_return, "sshVirtsh::run_cmd_(wantarray => 1) ");
+
+    $run_ssh_cmd_return = [undef, 'BLAFAFU', undef];
+    is($svirt_console->get_cmd_output('echo -n "BLAFAFU"'), 'BLAFAFU', "sshVirtsh::get_cmd_output()");
+
+    $run_ssh_cmd_return = [undef, 'STDOUT', 'STDERR'];
+    is_deeply($svirt_console->get_cmd_output('echo -n "BLAFAFU"', {wantarray => 1}), ['STDOUT', 'STDERR'], "sshVirtsh::get_cmd_output(wantarray => 1 ");
+    $ssh_expect{wantarray} = undef;
+
+    $ssh_expect{keep_open} = 0;
+    $run_ssh_cmd_return = 0;
+    is($svirt_console->run_cmd('echo "BLAFAFU"', keep_open => 0), 0, "sshVirtsh::run_cmd(keep_open=>0) test return value ");
+    $ssh_expect{keep_open} = undef;
+
+    subtest 'SSH usage in consoles::sshVirtsh(vmware)' => sub {
+        set_var('VMWARE_HOST',      'my_vmware_host');
+        set_var('VMWARE_PASSWORD',  'my_vmware_password');
+        set_var('VIRSH_VMM_FAMILY', 'vmware');
+
+        my $svirt_vmware_console = consoles::sshVirtsh->new('svirt');
+        $svirt_vmware_console->_init_ssh($ssh_creds_svirt);
+        $svirt_vmware_console->backend(backend::baseclass->new);
+
+        is($svirt_vmware_console->run_cmd('echo "BLAFAFU"'), 0, "sshVirtsh::run_cmd() Check use of `default` credentials");
+
+        $run_ssh_cmd_return = [undef, 'STDOUT', undef];
+        is_deeply($svirt_console->get_cmd_output('echo -n "BLAFAFU"'), 'STDOUT', "sshVirtsh::get_cmd_output() Check use of `default` credentials");
+
+        $ssh_expect{hostname} = 'my_vmware_host';
+        $ssh_expect{password} = 'my_vmware_password';
+        $run_ssh_cmd_return   = 0;
+        is($svirt_vmware_console->run_cmd('echo "BLAFAFU"', domain => 'sshVMwareServer'), 0, "sshVirtsh::run_cmd(domain => sshVMwareServer) check use of VMWARE credentials ");
+
+        $run_ssh_cmd_return = [undef, 'STDOUT', undef];
+        is_deeply($svirt_vmware_console->get_cmd_output('echo -n "BLAFAFU"', {domain => 'sshVMwareServer'}), 'STDOUT', "sshVirtsh::get_cmd_output() Check use of VMWARE credentials");
+    }
 };
 
 subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
