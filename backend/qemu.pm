@@ -141,8 +141,9 @@ sub _dbus_do_call {
     my $bus         = Net::DBus->system(private => 1);
     my $bus_service = $bus->get_service("org.opensuse.os_autoinst.switch");
     my $bus_object  = $bus_service->get_object("/switch", "org.opensuse.os_autoinst.switch");
-    $bus_object->$fn(@args);
+    my @result      = $bus_object->$fn(@args);
     $bus->get_connection->disconnect;
+    return @result;
 }
 
 sub _dbus_call {
