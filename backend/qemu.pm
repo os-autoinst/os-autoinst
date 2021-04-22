@@ -857,7 +857,7 @@ sub start_qemu {
     {
         # Remove floppy drive device on architectures
         unless ($arch eq 'aarch64' || $arch eq 'arm' || $vars->{QEMU_NO_FDC_SET}) {
-            sp('global', 'isa-fdc.driveA=');
+            sp('global', 'isa-fdc.fdtypeA=none');
         }
 
         sp('m',       $vars->{QEMURAM})     if $vars->{QEMURAM};
