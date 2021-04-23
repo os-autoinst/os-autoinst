@@ -210,7 +210,7 @@ cd %{__builddir}
 %{_prefix}/lib/os-autoinst/OpenQA
 %{_prefix}/lib/os-autoinst/consoles
 %{_prefix}/lib/os-autoinst/autotest.pm
-%{_prefix}/lib/os-autoinst/crop.py
+%{_prefix}/lib/os-autoinst/*.py
 
 %files openvswitch
 %defattr(-,root,root)
