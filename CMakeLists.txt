@@ -81,6 +81,7 @@ set(PERL_FILES
 set(MISC_FILES
     consoles/icewm.cfg
     crop.py
+    testapi.py
     dmidata/dell_e6330/smbios_type_1.bin
     dmidata/dell_e6330/smbios_type_2.bin
     dmidata/dell_e6330/smbios_type_3.bin
