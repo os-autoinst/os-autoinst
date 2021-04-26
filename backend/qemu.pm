@@ -874,6 +874,7 @@ sub start_qemu {
         for (my $i = 0; $i < $num_networks; $i++) {
             if ($vars->{NICTYPE} eq "user") {
                 my $nictype_user_options = $vars->{NICTYPE_USER_OPTIONS} ? ',' . $vars->{NICTYPE_USER_OPTIONS} : '';
+                $nictype_user_options .= ",smb=${\(dirname($basedir))}" if ($vars->{QEMU_ENABLE_SMBD});
                 sp('netdev', [qv "user id=qanet$i$nictype_user_options"]);
             }
             elsif ($vars->{NICTYPE} eq "tap") {
