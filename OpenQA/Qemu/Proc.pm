@@ -36,6 +36,7 @@ use Mojo::Base -base;
 use Data::Dumper;
 use File::Basename;
 use File::Which;
+use File::Spec;
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::File 'path';
 use OpenQA::Qemu::BlockDevConf;
@@ -187,6 +188,7 @@ sub configure_blockdevs {
         $size .= 'G' if defined($size);
 
         if (defined $backing_file) {
+            $backing_file = File::Spec->rel2abs($backing_file);
             # Handle files compressed as *.xz
             my ($name, $path, $ext) = fileparse($backing_file, ".xz");
             if ($ext =~ qr /.xz/) {
@@ -218,6 +220,7 @@ sub configure_blockdevs {
 
     my $iso = $vars->{ISO};
     if ($iso) {
+        $iso = File::Spec->rel2abs($iso);
         my $size = $self->get_img_size($iso);
         if ($vars->{USBBOOT}) {
             $size = $vars->{USBSIZEGB} . 'G' if $vars->{USBSIZEGB};
@@ -232,7 +235,7 @@ sub configure_blockdevs {
     }
     my $is_first = 1;
     for my $k (sort grep { /^ISO_\d+$/ } keys %$vars) {
-        my $addoniso = $vars->{$k};
+        my $addoniso = File::Spec->rel2abs($vars->{$k});
         my $i        = $k;
         $i =~ s/^ISO_//;
 
