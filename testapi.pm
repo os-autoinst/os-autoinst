@@ -2230,7 +2230,7 @@ sub upload_logs {
     }
     bmwqemu::log_call(file => $file, failok => $failok, timeout => $timeout, %args);
     my $basename = basename($file);
-    my $upname   = ($args{log_name} || $autotest::current_test->{name}) . '-' . $basename;
+    my $upname   = $args{log_name} || ($autotest::current_test->{name} . '-' . $basename);
     my $cmd      = "curl --form upload=\@$file --form upname=$upname ";
     $cmd .= autoinst_url("/uploadlog/$basename");
     if ($failok) {
