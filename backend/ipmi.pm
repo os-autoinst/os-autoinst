@@ -198,4 +198,16 @@ sub do_mc_reset {
     die "IPMI mc reset failure after $max_tries tries! Exit...";
 }
 
+sub deactivate_sol {
+    my ($self) = @_;
+    eval { $self->ipmitool("sol deactivate"); };
+    my $ipmi_response = $@;
+    if ($ipmi_response) {
+        # IPMI response like SOL payload already de-activated is expected
+        die "Unexpect IPMI response: $ipmi_response" unless
+          ($ipmi_response =~ /SOL payload already de-activated/);
+    }
+    1;
+}
+
 1;
