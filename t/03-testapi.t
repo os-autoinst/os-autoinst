@@ -576,30 +576,7 @@ subtest 'wait_still_screen & assert_still_screen' => sub {
         'assert_still_screen forwards arguments to wait_still_screen');
 };
 
-subtest 'set console tty and other args' => sub {
-    # ensure previously emitted commands are cleared
-    $cmds = ();
-
-    console->set_tty(4);
-    console->set_args(tty => 5, foo => 'bar');
-
-    is_deeply(
-        $cmds,
-        [
-            {
-                cmd      => 'backend_proxy_console_call',
-                console  => 'a-console',
-                function => 'set_tty',
-                args     => [4],
-            },
-            {
-                cmd      => 'backend_proxy_console_call',
-                console  => 'a-console',
-                function => 'set_args',
-                args     => ['tty', 5, 'foo', 'bar'],
-            },
-        ]);
-
+subtest 'test console::console argument settings' => sub {
     # test console's methods manually since promoting the commands is mocked in this test
     my $console = consoles::console->new('dummy-console', {tty => 3});
     is($console->{args}->{tty}, 3);
