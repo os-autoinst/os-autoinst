@@ -57,6 +57,7 @@ sub AUTOLOAD {
 			    console => $self->{console},
 			    function => $function,
 			    args => $args,
+			    wantarray => wantarray,
 			   };
         #>>>
 
@@ -72,7 +73,7 @@ sub AUTOLOAD {
         # get more screenshots from consoles, especially from x3270 on s390
         $autotest::current_test->take_screenshot;
 
-        return $wrapped_retval->{result};
+        return wantarray ? @{$wrapped_retval->{result}} : $wrapped_retval->{result};
     };
 
     goto &$AUTOLOAD;

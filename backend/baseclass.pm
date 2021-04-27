@@ -855,7 +855,7 @@ sub proxy_console_call {
         # Move the decision to actually die to the server side instead.
         # For this ignore backend::baseclass::die_handler.
         local $SIG{__DIE__} = 'DEFAULT';
-        $wrapped_result->{result} = $console->$function(@$args);
+        $wrapped_result->{result} = $wrapped_call->{wantarray} ? [$console->$function(@$args)] : $console->$function(@$args);
     };
     $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $@) if $@;
     return $wrapped_result;
