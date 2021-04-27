@@ -631,7 +631,14 @@ sub run_cmd {
     my ($self, $cmd, %args) = @_;
     my %credentials = $self->get_ssh_credentials($args{domain});
     delete $args{domain};
-    return $self->backend->run_ssh_cmd($cmd, %credentials, %args);
+    my @response;
+    if ($args{wantarray}) {
+        @response = $self->backend->run_ssh_cmd($cmd,  %credentials, %args);
+        return @response;
+    } else {
+        $ret = $self->backend->run_ssh_cmd($cmd, %credentials, %args);
+        return $ret
+    }
 }
 
 =head2 get_cmd_output
