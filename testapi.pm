@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2019 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1965,8 +1965,9 @@ if backend supports it, eject the CD
 =cut
 
 sub eject_cd {
-    bmwqemu::log_call();
-    query_isotovideo('backend_eject_cd');
+    my (%nargs) = @_;
+    bmwqemu::log_call(%nargs);
+    query_isotovideo(backend_eject_cd => \%nargs);
 }
 
 =head2 save_memory_dump
