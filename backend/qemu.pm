@@ -112,6 +112,11 @@ sub eject_cd {
     $self->handle_qmp_command({execute => 'eject', arguments => {device => ($args->{device} // 'cd0')}});
 }
 
+sub execute_qmp_command {
+    my ($self, $args) = @_;
+    $self->handle_qmp_command($args->{query});
+}
+
 sub cpu_stat {
     my $self = shift;
     my $stat = bmwqemu::fileContent("/proc/" . $self->{proc}->_process->pid . "/stat");
