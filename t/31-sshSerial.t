@@ -95,11 +95,7 @@ $mock_ssh->mock(error => sub {
         return @{$self->{error}};
 });
 
-$mock_ssh->mock(die_with_error => sub {
-        my ($self, $arg);
-
-        die $arg;
-});
+$mock_ssh->mock(die_with_error => sub { die $_[1] });
 
 subtest 'Read test' => sub {
     $mock_ssh->{error}            = undef;
