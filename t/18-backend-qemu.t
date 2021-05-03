@@ -13,6 +13,7 @@ use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
+use Mojo::JSON;
 
 use backend::qemu;
 
@@ -67,5 +68,21 @@ ok(exists $called{handle_qmp_command}, 'a qmp command has been called');
 is_deeply($called{handle_qmp_command}, {execute => 'quit'}, 'quit has been called for off');
 $backend->power({action => 'acpi'});
 is_deeply($called{handle_qmp_command}, {execute => 'system_powerdown'}, 'powerdown has been called for acpi');
+
+subtest 'eject cd' => sub {
+    my %default_eject_params = (execute => 'eject', arguments => {id     => 'cd0-device', force => Mojo::JSON->true});
+    my %legacy_eject_params  = (execute => 'eject', arguments => {device => 'cd0',        force => Mojo::JSON->false});
+
+    $backend->eject_cd;
+    is_deeply $called{handle_qmp_command}, \%default_eject_params, 'eject called with correct defaults';
+    $backend->eject_cd({device => 'cd0', force => 0});
+    is_deeply $called{handle_qmp_command}, \%legacy_eject_params, 'eject called with custom parameters';
+};
+
+subtest 'execute arbitrary QMP command' => sub {
+    my %query = (execute => 'foo', arguments => {bar => 1});
+    $backend->execute_qmp_command({query => \%query});
+    is_deeply $called{handle_qmp_command}, \%query, 'query params passed as-is';
+};
 
 done_testing();
