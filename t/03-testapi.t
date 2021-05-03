@@ -177,6 +177,13 @@ subtest 'enter_cmd' => sub {
     $cmds = [];
 };
 
+subtest 'eject_cd' => sub {
+    eject_cd;
+    eject_cd device => 'foo';
+    is_deeply $cmds, [{cmd => 'backend_eject_cd'}, {cmd => 'backend_eject_cd', device => 'foo'}];
+    $cmds = [];
+};
+
 subtest 'type_string with wait_still_screen' => sub {
     my $wait_still_screen_called = 0;
     my $module                   = Test::MockModule->new('testapi');

@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -108,8 +108,16 @@ sub power {
 }
 
 sub eject_cd {
-    my $self = shift;
-    $self->handle_qmp_command({execute => 'eject', arguments => {device => 'cd0'}});
+    my ($self, $args) = @_;
+    $self->handle_qmp_command({execute => 'eject', arguments => {
+                (defined $args->{id} || !defined $args->{device} ? (id => $args->{id} // 'cd0-device') : (device => $args->{device})),
+                force => (!defined $args->{force} || $args->{force} ? Mojo::JSON->true : Mojo::JSON->false)
+    }});
+}
+
+sub execute_qmp_command {
+    my ($self, $args) = @_;
+    $self->handle_qmp_command($args->{query});
 }
 
 sub cpu_stat {
