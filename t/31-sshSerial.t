@@ -81,11 +81,7 @@ $mock_channel->mock(write => sub {
         return length($data);
 });
 
-$mock_ssh->mock(blocking => sub {
-        my ($self, $arg) = @_;
-
-        return $mock_channel->blocking($arg);
-});
+$mock_ssh->mock(blocking => sub { return $mock_channel->blocking($_[1]) });
 
 $mock_ssh->mock(error => sub {
         my $self = shift;
@@ -131,9 +127,12 @@ subtest 'Read test' => sub {
     is $data, 'Third line', 'data can be read with timeout';
     is $ret, length($data), 'read with timeout has correct length';
 
-    # Test do_read() timeout
+    # Test do_read() timeout with mocked "elapsed" to skip sleeping
+    my $serial_screen_mock = Test::MockModule->new('consoles::serial_screen');
+    $serial_screen_mock->redefine(elapsed => 1);
     $ret = $screen->do_read($data, timeout => 1);
     is $ret, undef, 'read aborts after timeout on no data';
+    $serial_screen_mock->unmock('elapsed');
 
     # Test that read_until() can correctly assemble fragmented messages
     $mock_channel->{read_queue} = [
@@ -154,7 +153,11 @@ subtest 'Read test' => sub {
     ok $$ret{matched}, 'second part of data can be read partially';
     is $$ret{string}, 'mented a little bit', 'second part of data correctly read';
 
+    # mocked times for faster returns in tests
+    my @times = (0, 1, 1);
+    $serial_screen_mock->redefine(elapsed => sub { shift @times });
     $ret = $screen->read_until('foo', 1);
+    $serial_screen_mock->unmock('elapsed');
     ok !$$ret{matched}, 'read until reports failure if search term not found';
     is $$ret{string}, ' more than usual.', 'rest of data has been read';
     is_deeply $mock_channel->{read_queue}, [], 'nothing left in read queue';
