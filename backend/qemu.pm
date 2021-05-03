@@ -109,7 +109,10 @@ sub power {
 
 sub eject_cd {
     my ($self, $args) = @_;
-    $self->handle_qmp_command({execute => 'eject', arguments => {device => ($args->{device} // 'cd0')}});
+    $self->handle_qmp_command({execute => 'eject', arguments => {
+                (defined $args->{id} || !defined $args->{device} ? (id => $args->{id} // 'cd0-device') : (device => $args->{device})),
+                force => (!defined $args->{force} || $args->{force} ? Mojo::JSON->true : Mojo::JSON->false)
+    }});
 }
 
 sub execute_qmp_command {
