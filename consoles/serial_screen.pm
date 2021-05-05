@@ -51,10 +51,10 @@ FIN.
 
     send_key(key => 'ret');
 
-This is mostly redundant for the time being, use C<type_string> instead. Many testapi
-functions use C<send_key('ret')> however so that particular case has been implemented.
-In the future this could be extended to provide more key name to terminal code
-mappings.
+This is mostly redundant for the time being, use C<type_string> instead. Many
+testapi functions use C<send_key('ret')> however so that particular case has
+been implemented. In the future this could be extended to provide more key
+name to terminal code mappings.
 
 =cut
 sub send_key {
@@ -69,30 +69,28 @@ sub send_key {
     }
 }
 
-sub hold_key {
-    croak $trying_to_use_keys;
-}
+sub hold_key { croak $trying_to_use_keys }
 
-sub release_key {
-    croak $trying_to_use_keys;
-}
+sub release_key { croak $trying_to_use_keys }
 
 =head2 type_string
 
     type_string($self, $message, terminate_with => '');
 
-Writes $message to the socket which the guest's terminal is listening on. Unlike
-VNC based consoles we just send the bytes making up $message not a series of
-keystrokes. This is much faster, but means that special key combinations like
-Ctrl-Alt-Del or SysRq[1] may not be possible. However most terminals do support
-many escape sequences for scrolling and performing various actions other
-than entering text. See C0, C1, ANSI, VT100 and XTERM escape codes.
+Writes C<$message> to the socket which the guest's terminal is listening on.
+Unlike VNC based consoles we just send the bytes making up C<$message>, not a
+series of keystrokes. This is much faster, but means that special key
+combinations like Ctrl-Alt-Del or SysRq[1] may not be possible. However most
+terminals do support many escape sequences for scrolling and performing
+various actions other than entering text. See C0, C1, ANSI, VT100 and XTERM
+escape codes.
 
 The optional terminate_with argument can be set to EOT (End Of Transmission),
 ETX (End Of Text). Sending EOT should have the same effect as pressing Ctrl-D
 and ETX is the same as pressing Ctrl-C on a terminal.
 
-[1] It appears sending 0x0f will press the SysRq key down on hvc based consoles.
+[1] It appears sending 0x0f will press the SysRq key down on hvc based
+consoles.
 
 =cut
 sub type_string {
@@ -118,9 +116,7 @@ sub type_string {
     }
 }
 
-sub thetime {
-    return clock_gettime(CLOCK_MONOTONIC);
-}
+sub thetime { clock_gettime(CLOCK_MONOTONIC) }
 
 sub elapsed {
     no integer;
@@ -163,12 +159,15 @@ sub normalise_pattern {
 
   my $num_read = do_read($buffer [, max_size => 2048][,timeout => undef]);
 
-Attempts to read up to max_size bytes from the C<<$self->{fd_read}>> into buffer.
-The method returns as soon as some data is available, even if the given size has not been reached.
-Returns number of bytes read or undef on timeout. Note that 0 is a valid return code.
-If an failure occur the method croak.
+Attempts to read up to max_size bytes from C<<$self->{fd_read}>> into a
+buffer. The method returns as soon as some data is available, even if the
+given size has not been reached. Returns the number of bytes read or undef on
+timeout. Note that 0 is a valid return code. If a failure occurs the method
+will croak.
 
-A undefined timeout will wait infinitive. A timeout of 0 just try to read once.
+An undefined timeout will cause to wait indefinitely. A timeout of 0 means to
+just read once.
+
 =cut
 sub do_read
 {
@@ -205,28 +204,32 @@ sub do_read
                      no_regex => 0
   ]);
 
-Monitor the virtio/svirt serial console socket $file_descriptor for a character sequence
-which matches $pattern. Bytes are read from the socket in up to $buffer_size/2
-chunks and each chunk is added to a ring buffer which is $buffer_size
-long. The regular expression is tested against the ring buffer after each read
-operation. Note, the reason we are using a ring buffer is to avoid matches
-failing because the matching text is split between two reads.
+Monitor the virtio/svirt serial console socket C<$file_descriptor> for a
+character sequence which matches C<$pattern>. Bytes are read from the socket
+in up to C<$buffer_size/2> chunks and each chunk is added to a ring buffer
+which is C<$buffer_size> long. The regular expression is tested against the
+ring buffer after each read operation. Note, the reason we are using a ring
+buffer is to avoid matches failing because the matching text is split between
+two reads.
 
-If $record_output is set then all data from the socket is stored in a separate
-string and returned.  Otherwise just the contents of the ring buffer will be
-returned.
+If C<$record_output> is set then all data from the socket is stored in a
+separate string and returned. Otherwise just the contents of the ring buffer
+will be returned.
 
-Setting $exclude_match removes the matched string from the returned string.
+Setting C<$exclude_match> removes the matched string from the returned string.
 
 Data which was read after a matching set of characters is saved to a carry
-buffer and used in the next call to read_until (unless the console is
-reset). If the match fails the whole ring buffer is carried over to the next
-call.
+buffer and used in the next call to read_until (unless the console is reset).
+If the match fails the whole ring buffer is carried over to the next call.
 
-Setting $no_regex will cause it to do a plain string search using index().
+Setting C<$no_regex> will cause it to do a plain string search using
+C<index()>.
 
-Returns a map reference like { matched => 1, string => 'text from the terminal' } on success
-and { matched => 0, string => 'text from the terminal' } on failure.
+Returns a map reference like
+C<{ matched => 1, string => 'text from the terminal' }>
+on success and
+C<{ matched => 0, string => 'text from the terminal' }>
+on failure.
 
 =cut
 sub read_until {

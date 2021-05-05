@@ -95,11 +95,7 @@ $mock_ssh->mock(error => sub {
         return @{$self->{error}};
 });
 
-$mock_ssh->mock(die_with_error => sub {
-        my ($self, $arg);
-
-        die $arg;
-});
+$mock_ssh->mock(die_with_error => sub { die $_[1] });
 
 subtest 'Read test' => sub {
     $mock_ssh->{error}            = undef;
@@ -120,24 +116,24 @@ subtest 'Read test' => sub {
     my $data;
     my $ret;
 
-    ok(!$mock_channel->{blocking}, 'sshSerial sets non-blocking mode');
+    ok !$mock_channel->{blocking}, 'sshSerial sets non-blocking mode';
 
     $ret = $screen->do_read($data);
-    is($data, 'First line');
-    is($ret,  length($data));
+    is $data, 'First line', 'first line can be read';
+    is $ret, length($data), 'first line has correct length';
 
     $ret = $screen->do_read($data);
-    is($data, 'Second line');
-    is($ret,  length($data));
+    is $data, 'Second line', 'second line can be read';
+    is $ret, length($data), 'second line has correct length';
 
     # Test that do_read() loops on EAGAIN until data is available
     $ret = $screen->do_read($data, timeout => 1);
-    is($data, 'Third line');
-    is($ret,  length($data));
+    is $data, 'Third line', 'data can be read with timeout';
+    is $ret, length($data), 'read with timeout has correct length';
 
     # Test do_read() timeout
     $ret = $screen->do_read($data, timeout => 1);
-    is($ret, undef);
+    is $ret, undef, 'read aborts after timeout on no data';
 
     # Test that read_until() can correctly assemble fragmented messages
     $mock_channel->{read_queue} = [
@@ -151,17 +147,17 @@ subtest 'Read test' => sub {
     ];
 
     $ret = $screen->read_until('frag', 1);
-    ok($$ret{matched});
-    is($$ret{string}, 'This message is frag');
+    ok $$ret{matched}, 'data can be read partially';
+    is $$ret{string}, 'This message is frag', 'fragment read as expected';
 
     $ret = $screen->read_until('bit', 1);
-    ok($$ret{matched});
-    is($$ret{string}, 'mented a little bit');
+    ok $$ret{matched}, 'second part of data can be read partially';
+    is $$ret{string}, 'mented a little bit', 'second part of data correctly read';
 
     $ret = $screen->read_until('foo', 1);
-    ok(!$$ret{matched});
-    is($$ret{string}, ' more than usual.');
-    is_deeply($mock_channel->{read_queue}, []);
+    ok !$$ret{matched}, 'read until reports failure if search term not found';
+    is $$ret{string}, ' more than usual.', 'rest of data has been read';
+    is_deeply $mock_channel->{read_queue}, [], 'nothing left in read queue';
 };
 
 subtest 'Write test' => sub {
@@ -176,16 +172,16 @@ subtest 'Write test' => sub {
     $console->activate();
     my $screen = $console->screen();
 
-    ok(!$mock_channel->{blocking}, 'sshSerial sets non-blocking mode');
+    ok !$mock_channel->{blocking}, 'sshSerial sets non-blocking mode';
 
     $screen->type_string({text => 'Hello, world!'});
-    is($mock_channel->{write_buffer}, 'Hello, world!');
+    is $mock_channel->{write_buffer}, 'Hello, world!', 'expected data written';
 
     # Test that type_string() will loop until all data is written
     $mock_channel->{write_buffer} = '';
     $mock_channel->{write_limits} = [5, 2, -1, 10, -1, -1, -1, 8];
     $screen->type_string({text => 'A slightly longer test string.'});
-    is($mock_channel->{write_buffer}, 'A slightly longer test string.');
+    is $mock_channel->{write_buffer}, 'A slightly longer test string.', 'larger write buffer written in loop';
 };
 
 done_testing;
