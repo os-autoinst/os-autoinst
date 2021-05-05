@@ -50,15 +50,14 @@ sub AUTOLOAD {
     # allow symbolic references
     no strict 'refs';
     *$AUTOLOAD = sub {
-        my $self = shift;
-        my $args = \@_;
-	#<<< perltidy, this _is_ tidy...
-	my $wrapped_call = {
-			    console => $self->{console},
-			    function => $function,
-			    args => $args,
-			   };
-        #>>>
+        my $self         = shift;
+        my $args         = \@_;
+        my $wrapped_call = {
+            console   => $self->{console},
+            function  => $function,
+            args      => $args,
+            wantarray => wantarray,
+        };
 
         bmwqemu::log_call(wrapped_call => $wrapped_call);
         my $wrapped_retval = autotest::query_isotovideo('backend_proxy_console_call', $wrapped_call);
@@ -72,7 +71,7 @@ sub AUTOLOAD {
         # get more screenshots from consoles, especially from x3270 on s390
         $autotest::current_test->take_screenshot;
 
-        return $wrapped_retval->{result};
+        return wantarray ? @{$wrapped_retval->{result}} : $wrapped_retval->{result};
     };
 
     goto &$AUTOLOAD;
