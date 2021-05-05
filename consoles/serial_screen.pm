@@ -69,13 +69,9 @@ sub send_key {
     }
 }
 
-sub hold_key {
-    croak $trying_to_use_keys;
-}
+sub hold_key { croak $trying_to_use_keys }
 
-sub release_key {
-    croak $trying_to_use_keys;
-}
+sub release_key { croak $trying_to_use_keys }
 
 =head2 type_string
 
@@ -120,9 +116,7 @@ sub type_string {
     }
 }
 
-sub thetime {
-    return clock_gettime(CLOCK_MONOTONIC);
-}
+sub thetime { clock_gettime(CLOCK_MONOTONIC) }
 
 sub elapsed {
     no integer;
