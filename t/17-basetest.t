@@ -82,6 +82,13 @@ subtest parse_serial_output => sub {
     is($message,            undef, 'test details do not have extra message');
 
     $basetest->{serial_failures} = [
+        {type => 'info', message => 'CPU soft lockup detected', pattern => qr/Serial/},
+    ];
+    $basetest->parse_serial_output_qemu();
+    is($basetest->{result}, 'ok',                                                       'test result set to ok');
+    is($message,            'CPU soft lockup detected - Serial error: Serial to match', 'log message matches output');
+
+    $basetest->{serial_failures} = [
         {type => 'soft', message => 'SimplePattern', pattern => qr/Serial/},
     ];
 
