@@ -389,15 +389,18 @@ subtest DriveDevice => sub {
 };
 
 subtest 'relative assets' => sub {
-    $vars{$_} = "Core-7.2.iso" for qw(ISO ISO_1 HDD_1);
+    $vars{$_} = "Core-7.2.iso" for qw(ISO ISO_1 HDD_1 UEFI_PFLASH_VARS);
     symlink("$Bin/data/Core-7.2.iso", "./Core-7.2.iso");
     $proc = OpenQA::Qemu::Proc->new()
       ->_static_params(['-foo'])
       ->qemu_bin('qemu-kvm')
       ->qemu_img_bin('qemu-img')
-      ->configure_blockdevs('disk', 'raid', \%vars);
+      ->configure_blockdevs('disk', 'raid', \%vars)
+      ->configure_pflash(\%vars);
     my @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
     @cmdl = map { [qw(create -f qcow2 -b), "$dir/Core-7.2.iso", "raid/$_-overlay0", 11116544] } qw(hd0 cd0 cd1);
+    push @cmdl, ["create", "-f", "qcow2", "-b", "$Bin/data/uefi-code.bin", "raid/pflash-code-overlay0", 1966080];
+    push @cmdl, ["create", "-f", "qcow2", "-b", "$dir/Core-7.2.iso",       "raid/pflash-vars-overlay0", 11116544];
     is_deeply(\@gcmdl, \@cmdl, 'find the asset real path');
     unlink("./Core-7.2.iso");
 };

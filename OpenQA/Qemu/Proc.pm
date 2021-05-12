@@ -281,7 +281,7 @@ sub configure_pflash {
           ->unit(0)
           ->readonly('on');
 
-        $fw = $vars->{UEFI_PFLASH_VARS};
+        $fw = File::Spec->rel2abs($vars->{UEFI_PFLASH_VARS});
         die 'Need UEFI_PFLASH_VARS with UEFI_PFLASH_CODE' unless $fw;
         $bdc->add_pflash_drive('pflash-vars', $fw, $self->get_img_size($fw))
           ->unit(1);
