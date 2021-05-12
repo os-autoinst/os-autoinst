@@ -705,14 +705,17 @@ sub parse_serial_output_qemu {
             my $type    = $regexp_table->{type};
 
             # Input parameters validation
-            die "Wrong type defined for serial failure. Only 'soft' or 'hard' allowed. Got: $type" if $type !~ /^soft|hard|fatal$/;
-            die "Message not defined for serial failure for the pattern: '$regexp', type: $type"   if !defined $message;
+            die "Wrong type defined for serial failure. Only 'info', 'soft', 'hard' or 'fatal' allowed. Got: $type" if $type !~ /^info|soft|hard|fatal$/;
+            die "Message not defined for serial failure for the pattern: '$regexp', type: $type"                    if !defined $message;
 
             # If you want to match a simple string please be sure that you create it with quotemeta
             if (!exists $regexp_matched{$regexp} and $line =~ /$regexp/) {
                 $regexp_matched{$regexp} = 1;
                 my $fail_type = 'softfail';
-                if ($type =~ 'hard|fatal') {
+                if ($type eq 'info') {
+                    $fail_type = 'ok';
+                }
+                elsif ($type =~ 'hard|fatal') {
                     $die                   = 1;
                     $fail_type             = 'fail';
                     $self->{fatal_failure} = $type eq 'fatal';
