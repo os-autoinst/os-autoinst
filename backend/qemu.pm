@@ -1080,10 +1080,10 @@ sub start_qemu {
     }
 
     if ($bmwqemu::vars{DELAYED_START}) {
-        print "DELAYED_START set, not starting CPU, waiting for resume_vm()\n";
+        bmwqemu::diag("DELAYED_START set, not starting CPU, waiting for resume_vm()");
     }
     else {
-        print "Start CPU\n";
+        bmwqemu::diag("Start CPU");
         $self->handle_qmp_command({execute => 'cont'});
     }
 
