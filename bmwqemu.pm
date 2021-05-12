@@ -284,6 +284,7 @@ sub log_call {
             push @result, join("=", $key, pp($value));
         }
         $params = join(", ", @result);
+        $params =~ s/^/  /gm;
     }
     logger->debug('<<< ' . $fname . "($params)");
     return;
