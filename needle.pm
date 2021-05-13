@@ -64,7 +64,7 @@ sub new {
     # - $jsonfile is re-assigned to contain the absolute path the the JSON file.
     # - The needle must be within the needle directory.
     if (index($jsonfile, $needles_dir) == 0) {
-        $self->{file} = substr($jsonfile, length($needles_dir) + 1);
+        $self->{file} = File::Spec->abs2rel($jsonfile, $needles_dir);
     }
     elsif (-f File::Spec->catfile($needles_dir, $jsonfile)) {
         # json file path already relative
