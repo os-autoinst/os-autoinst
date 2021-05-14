@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2017 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ use Time::HiRes qw(usleep);
 
 use Try::Tiny;
 use testapi 'get_var';
+use bmwqemu qw(diag);
 
 # speed limit: 30 keys per second
 use constant VNC_TYPING_LIMIT_DEFAULT => 30;
@@ -59,7 +60,7 @@ sub connect_remote {
 
     $self->{mouse} = {x => -1, y => -1};
 
-    CORE::say __FILE__. ":" . __LINE__ . ":" . bmwqemu::pp($args);
+    diag "Establishing VNC connection to $args->{hostname}:$args->{port}";
     $self->{vnc} = consoles::VNC->new($args);
     $self->{vnc}->login($args->{connect_timeout});
     return $self->{vnc};
