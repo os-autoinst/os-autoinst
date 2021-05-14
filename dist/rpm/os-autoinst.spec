@@ -222,6 +222,7 @@ cd %{__builddir}
 %{_prefix}/lib/os-autoinst/consoles
 %{_prefix}/lib/os-autoinst/autotest.pm
 %{_prefix}/lib/os-autoinst/*.py
+%{_prefix}/lib/os-autoinst/check_qemu_oom
 
 %files openvswitch
 %defattr(-,root,root)

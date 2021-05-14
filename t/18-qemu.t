@@ -11,6 +11,9 @@ use Test::Warnings qw(warnings :report_warnings);
 use Mojo::File qw(tempfile tempdir path);
 use Carp 'cluck';
 use Mojo::Util qw(scope_guard);
+use Mojo::JSON 'decode_json';
+use Test::MockModule;
+use bmwqemu;
 
 use OpenQA::Qemu::BlockDevConf;
 use OpenQA::Qemu::Proc;
@@ -100,11 +103,7 @@ my $proc;
     HDDSIZEGB => 69,
     HDD_1     => "$Bin/data/Core-7.2.iso",
     UEFI      => 1);
-$proc = OpenQA::Qemu::Proc->new()
-  ->_static_params(['-foo'])
-  ->qemu_bin('qemu-kvm')
-  ->qemu_img_bin('qemu-img')
-  ->configure_blockdevs('disk', 'raid', \%vars);
+$proc  = qemu_proc('-foo', \%vars);
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single existing UEFI disk using vars');
 
@@ -132,12 +131,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing U
     SCSICONTROLLER => 'virtio-scsi-device',
     MULTIPATH      => 1,
     PATHCNT        => 2);
-$proc = OpenQA::Qemu::Proc->new()
-  ->_static_params(['-foo'])
-  ->qemu_bin('qemu-kvm')
-  ->qemu_img_bin('qemu-img')
-  ->configure_controllers(\%vars)
-  ->configure_blockdevs('disk', 'raid', \%vars);
+$proc = qemu_proc('-foo', \%vars);
 
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for new drives on multipath');
@@ -177,12 +171,7 @@ ok $proc->init_blockdev_images(), 'init_blockdev_images passes';
     ISO            => "$Bin/data/Core-7.2.iso",
     HDDSIZEGB      => 10,
     SCSICONTROLLER => 'virtio-scsi-device');
-$proc = OpenQA::Qemu::Proc->new()
-  ->_static_params(['-static-args'])
-  ->qemu_bin('qemu-kvm')
-  ->qemu_img_bin('qemu-img')
-  ->configure_controllers(\%vars)
-  ->configure_blockdevs('disk', 'raid', \%vars);
+$proc  = qemu_proc('-static-args', \%vars);
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for new drive and cdrom using vars');
 
@@ -257,14 +246,9 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert with snapshots');
     '-blockdev', 'driver=qcow2,node-name=cd0-overlay1,file=cd0-overlay1-file,cache.no-flush=on',
     '-device',   'scsi-cd,id=cd0-device,drive=cd0-overlay1,serial=cd0',
     '-incoming', 'defer');
-$proc = OpenQA::Qemu::Proc->new()
-  ->_static_params(['-static-args'])
-  ->qemu_bin('qemu-kvm')
-  ->qemu_img_bin('qemu-img')
-  ->configure_controllers(\%vars)
-  ->configure_blockdevs('disk', 'raid', \%vars);
-$ssc = $proc->snapshot_conf;
-$bdc = $proc->blockdev_conf;
+$proc = qemu_proc('-static-args', \%vars);
+$ssc  = $proc->snapshot_conf;
+$bdc  = $proc->blockdev_conf;
 
 for my $i (1 .. 10) {
     $ss = $ssc->add_snapshot("snapshot $i");
@@ -318,15 +302,9 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after deserialising and r
     '-drive', 'id=pflash-vars-overlay1,if=pflash,file=raid/pflash-vars-overlay1',
 
     '-incoming', 'defer');
-$proc = OpenQA::Qemu::Proc->new()
-  ->_static_params(['-static-args'])
-  ->qemu_bin('qemu-kvm')
-  ->qemu_img_bin('qemu-img')
-  ->configure_controllers(\%vars)
-  ->configure_blockdevs('disk', 'raid', \%vars)
-  ->configure_pflash(\%vars);
-$ssc = $proc->snapshot_conf;
-$bdc = $proc->blockdev_conf;
+$proc = qemu_proc('-static-args', \%vars);
+$ssc  = $proc->snapshot_conf;
+$bdc  = $proc->blockdev_conf;
 
 for my $i (1 .. 11) {
     $ss = $ssc->add_snapshot("snapshot $i");
@@ -356,18 +334,24 @@ $bdc->for_each_drive(sub {
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after deserialising and reverting a snapshot')
   || diag(explain(\@gcmdl));
 
+
+sub qemu_proc {
+    my ($static_params, $vars) = @_;
+    return OpenQA::Qemu::Proc->new()
+      ->_static_params([$static_params])
+      ->qemu_bin('qemu-kvm')
+      ->qemu_img_bin('qemu-img')
+      ->configure_controllers($vars)
+      ->configure_blockdevs('disk', 'raid', $vars)
+      ->configure_pflash(\%vars);
+}
+
 subtest 'non-existing-iso' => sub {
     $vars{ISO} .= 'XXX';
     my $err;
     my @warnings = warnings {
         eval {
-            $proc = OpenQA::Qemu::Proc->new()
-              ->_static_params(['-static-args'])
-              ->qemu_bin('qemu-kvm')
-              ->qemu_img_bin('qemu-img')
-              ->configure_controllers(\%vars)
-              ->configure_blockdevs('disk', 'raid', \%vars)
-              ->configure_pflash(\%vars);
+            $proc = qemu_proc('-static-args', \%vars);
         };
         $err = $@;
     };
@@ -391,17 +375,23 @@ subtest DriveDevice => sub {
 subtest 'relative assets' => sub {
     $vars{$_} = "Core-7.2.iso" for qw(ISO ISO_1 HDD_1 UEFI_PFLASH_VARS);
     symlink("$Bin/data/Core-7.2.iso", "./Core-7.2.iso");
-    $proc = OpenQA::Qemu::Proc->new()
-      ->_static_params(['-foo'])
-      ->qemu_bin('qemu-kvm')
-      ->qemu_img_bin('qemu-img')
-      ->configure_blockdevs('disk', 'raid', \%vars)
-      ->configure_pflash(\%vars);
+    $proc = qemu_proc('-foo', \%vars);
     my @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
     @cmdl = map { [qw(create -f qcow2 -b), "$dir/Core-7.2.iso", "raid/$_-overlay0", 11116544] } qw(hd0 cd0 cd1);
     push @cmdl, ["create", "-f", "qcow2", "-b", "$Bin/data/uefi-code.bin", "raid/pflash-code-overlay0", 1966080];
     push @cmdl, ["create", "-f", "qcow2", "-b", "$dir/Core-7.2.iso",       "raid/pflash-vars-overlay0", 11116544];
     is_deeply(\@gcmdl, \@cmdl, 'find the asset real path');
+};
+
+subtest 'qemu was killed due to the system being out of memory' => sub {
+    my $mock_proc = Test::MockModule->new('OpenQA::Qemu::Proc');
+    $mock_proc->redefine(check_qemu_oom => sub { return 0; });
+    $proc = qemu_proc('-foo', \%vars);
+    $proc->exec_qemu;
+    $proc->_process->stop;
+    my $base_state = path(bmwqemu::STATE_FILE);
+    my $state      = decode_json($base_state->slurp);
+    is($state->{msg}, 'QEMU was killed due to the system being out of memory', 'qemu was killed and the reason was shown correctly');
     unlink("./Core-7.2.iso");
 };
 
