@@ -64,6 +64,12 @@ subtest 'log_call' => sub {
         bmwqemu::log_call("bar\tbaz\rboo\n");
     }
     stderr_like(\&log_call_test_single, qr{\Q<<< main::log_call_test_single("bar\tbaz\rboo\n")}, 'log_call escapes special characters');
+
+    sub log_call_indent {
+        my $lines = ["a", ["b"]];
+        bmwqemu::log_call(test => $lines);
+    }
+    stderr_like(\&log_call_indent, qr{\Q<<< main::log_call_indent(test=[\E\n\Q    "a",\E\n\Q    [\E\n\Q      "b"\E\n\Q    ]\E\n\Q  ])}, 'log_call auto indentation');
 };
 
 subtest 'update_line_number' => sub {
