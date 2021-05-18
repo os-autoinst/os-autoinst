@@ -2,6 +2,7 @@
 # Copyright © 2020 SUSE LLC
 
 use Test::Most;
+use Test::Warnings qw(:all :report_warnings);
 
 # OpenQA::Test::TimeLimit not used as `prepare_pipes` defines an ALRM handler
 # internally already
@@ -16,9 +17,9 @@ use bmwqemu;
 
 sub prepare_pipes
 {
-    my ($socket_path) = @_;
-    my $pipe_in       = $socket_path . ".in";
-    my $pipe_out      = $socket_path . ".out";
+    my ($socket_path, $write_buffer) = @_;
+    my $pipe_in  = $socket_path . ".in";
+    my $pipe_out = $socket_path . ".out";
 
     for (($pipe_in, $pipe_out)) {
         unlink $_ if (-e $_);
@@ -37,6 +38,8 @@ sub prepare_pipes
           or die "Can't open in pipe for writing $!";
         open(my $fd_w, ">", $pipe_out)
           or die "Can't open out pipe for reading $!";
+
+        syswrite($fd_w, $write_buffer) if ($write_buffer);
 
         sysread($fd_r, my $buf, 1024) while ($running);
         exit 0;
@@ -109,6 +112,60 @@ subtest "Test open_pipe() error condition" => sub {
     $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     combined_like { throws_ok { $term->open_pipe() } qr/No such file or directory/, "Throw exception if pipe doesn't exists" }
     qr/\[debug\] <<<.*open_pipe/, 'log for open_pipe on non-existant pipe';
+};
+
+subtest "Test snapshot handling" => sub {
+    $bmwqemu::logger = Mojo::Log->new(level => 'error');    # hide debug messages within this test
+
+    my $socket_path = './virtio_console_open_test';
+    my $test_data   = "Test data foo";
+    my $helper      = prepare_pipes($socket_path, $test_data);
+    my $term        = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
+
+    is_deeply($term->get_snapshot(),                                  undef, "Return undef if no name is given");
+    is_deeply($term->get_snapshot('unknown_snapshot'),                undef, "Return undef, if snapshotname doesn't exist");
+    is_deeply($term->get_snapshot('unknown_snapshot', 'unknown_key'), undef, "Return undef, if snapshot and key doesn't exist");
+    is_deeply($term->set_snapshot(),                                  undef, "Return undef, if snapshot name not given");
+    is_deeply($term->set_snapshot('foo'),                             undef, "Return undef, if key not given");
+    is_deeply($term->{snapshots},                                     {},    "Snapshots are empty");
+
+    $term->select();
+    is_deeply($term->{snapshots}, {}, "Snapshots are empty after select/activate");
+
+    $term->save_snapshot('snap1');
+    is($term->get_snapshot('snap1', 'buffer'),    $test_data, '[snap1] virtio_terminal stored all available data');
+    is($term->get_snapshot('snap1', 'activated'), 1,          '[snap1] console snapshot is activated');
+    is_deeply($term->get_snapshot('snap1', 'unknown_key'), undef,                                  "[snap1] return undef, if key doesn't exist");
+    is_deeply($term->get_snapshot('snap1'),                {activated => 1, buffer => $test_data}, '[snap1] Snapshots data verified');
+
+    $term->screen()->read_until('Test data ', 60);
+    $term->save_snapshot('snap2');
+    is($term->get_snapshot('snap2', 'buffer'),    'foo', '[snap2] virtio_terminal stored all available data');
+    is($term->get_snapshot('snap2', 'activated'), 1,     '[snap2] console snapshot is activated');
+    is_deeply($term->get_snapshot('snap2'), {activated => 1, buffer => 'foo'}, '[snap2] Snapshots data verified');
+
+    $term->reset();
+    is_deeply($term->screen()->peak(), 'foo', 'Verified peak retrieves "foo"');
+    is($term->{activated}, 0, 'Verify console is not activated after reset()');
+    $term->save_snapshot('snap3');
+
+    $term->load_snapshot('snap1');
+    is_deeply($term->screen()->peak(), $test_data, '[snap1] carry over buffer sucessful loaded');
+    is($term->{activated}, 1, '[snap1] console is still activated');
+
+    $term->load_snapshot('snap3');
+    is_deeply($term->screen()->peak(), 'foo', '[snap3] carry over buffer sucessful loaded');
+    is($term->{activated}, 0, '[snap3] console is not activated');
+
+    $term->disable();
+    $term->{preload_buffer} = 'test123';
+    $term->save_snapshot('snap4');
+    is($term->get_snapshot('snap4', 'buffer'), 'test123', '[snap4] virtio_terminal stored preload_buffer if screen is not set');
+    $term->{preload_buffer} = 'this should be overwritten by load_snapshot';
+    $term->load_snapshot('snap4');
+    is($term->{preload_buffer}, 'test123', '[snap4] preload_buffer is restored after loading snapshot');
+
+    cleanup_pipes($helper);
 };
 
 done_testing;
