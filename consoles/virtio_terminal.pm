@@ -87,21 +87,35 @@ sub disable {
 sub save_snapshot {
     my ($self, $name) = @_;
 
-    if (defined($self->{screen})) {
-        $self->{snapshots}->{$name} = $self->{screen}->peak();
-    } else {
-        $self->{snapshots}->{$name} = '';
-    }
+    $self->set_snapshot($name, 'activated', $self->{activated});
+    $self->set_snapshot($name, 'buffer',    $self->{screen} ? $self->{screen}->peak() : $self->{preload_buffer});
 }
 
 sub load_snapshot {
     my ($self, $name) = @_;
 
+    $self->{activated} = $self->get_snapshot($name, 'activated') // 0;
+    my $buffer = $self->get_snapshot($name, 'buffer') // '';
     if (defined($self->{screen})) {
-        $self->{screen}->{carry_buffer} = $self->{snapshots}->{$name};
+        $self->{screen}->{carry_buffer} = $buffer;
     } else {
-        $self->{preload_buffer} = $self->{snapshots}->{$name};
+        $self->{preload_buffer} = $buffer;
     }
+}
+
+sub get_snapshot {
+    my ($self, $name, $key) = @_;
+    return undef unless defined($name);
+
+    my $snapshot = $self->{snapshots}->{$name};
+    return (defined($key) && $snapshot) ? $snapshot->{$key} : $snapshot;
+}
+
+sub set_snapshot {
+    my ($self, $name, $key, $value) = @_;
+    return undef if (!defined($name) || !defined($key));
+
+    $self->{snapshots}->{$name}->{$key} = $value;
 }
 
 =head2 F_GETPIPE_SZ
