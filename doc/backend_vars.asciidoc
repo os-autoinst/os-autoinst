@@ -229,7 +229,6 @@ ISO;string;undef;isos from nfs mount on VIO side to VMLibrary
 VIOISO;string;undef;Virtual Optical Media ISO
 VNC;integer;undef;VNC port
 WORKER_ID;string;undef;osauto id
-
 |====================
 
 .PVM_HMC backend
@@ -238,6 +237,7 @@ WORKER_ID;string;undef;osauto id
 |====================
 Variable;Values allowed;Default value;Explanation
 HMC_USERNAME;string;;Username for HMC
+|====================
 
 .GENERAL_HW backend
 [grid="rows",format="csv"]
