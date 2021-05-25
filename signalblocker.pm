@@ -29,7 +29,7 @@ sub new {
     my ($class, @args) = @_;
 
     # block signals
-    bmwqemu::diag('Blocking SIGCHLD and SIGCHLD');
+    bmwqemu::diag('Blocking SIGCHLD and SIGTERM');
     my %old_sig = %SIG;
     $SIG{TERM} = 'IGNORE';
     $SIG{INT}  = 'IGNORE';
