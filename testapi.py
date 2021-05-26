@@ -16,6 +16,7 @@
 # publish all test API methods over perl into the modules context.
 # Use with `import testapi; testapi.method()` or `from testapi import *`
 import perl
-perl.use('testapi')
+
+perl.use("testapi")
 for i in dir(perl.testapi):
     locals()[i] = getattr(perl.testapi, i)

@@ -14,15 +14,17 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 import sys
+
 print(sys.path)
 from testapi import *
 
+
 def run(self):
-    send_key('esc')
-    if not check_screen('should_not_match', 0):
+    send_key("esc")
+    if not check_screen("should_not_match", 0):
         return
-    raise Exception('Should not reach here')
+    raise Exception("Should not reach here")
 
 
 def test_flags(self):
-    return dict([('fatal', 1)])
+    return dict([("fatal", 1)])
