@@ -30,6 +30,18 @@ else ()
     message(STATUS "Set YAMLLINT_PATH to the path of the yamllint executable to enable YAML syntax checks.")
 endif ()
 
+# add test for python code style
+find_program(BLACK_PATH black)
+if (BLACK_PATH)
+    add_test(
+        NAME test-local-python-style
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-python-style" "${BLACK_PATH}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+else ()
+    message(STATUS "Set BLACK_PATH to the path of the black executable to enable python style checks.")
+endif ()
+
 # add tidy check
 add_test(
     NAME test-local-tidy
