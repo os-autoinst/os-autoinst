@@ -62,6 +62,17 @@ Source0:        %{name}-%{version}.tar.xz
 %else
 %define yamllint_requires %{nil}
 %endif
+%if 0%{?suse_version} >= 1550
+%bcond_without black
+%else
+%bcond_with black
+%endif
+%if %{with black}
+# The following line is generated from dependencies.yaml
+%define python_style_requires python3-black
+%else
+%define python_style_requires %{nil}
+%endif
 # The following line is generated from dependencies.yaml
 %define test_base_requires %main_requires cpio perl(Benchmark) perl(Devel::Cover) perl(FindBin) perl(Pod::Coverage) perl(Test::Fatal) perl(Test::Mock::Time) perl(Test::MockModule) perl(Test::MockObject) perl(Test::Mojo) perl(Test::Most) perl(Test::Output) perl(Test::Pod) perl(Test::Strict) perl(Test::Warnings) >= 0.029 procps python3-setuptools qemu qemu-tools qemu-x86
 # The following line is generated from dependencies.yaml
@@ -69,7 +80,7 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define test_requires %build_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(Inline::Python) perl(YAML::PP)
 # The following line is generated from dependencies.yaml
-%define devel_requires %test_requires perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy)
+%define devel_requires %python_style_requires %test_requires perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy)
 BuildRequires:  %test_requires %test_version_only_requires
 Requires:       %main_requires
 Recommends:     tesseract-ocr
