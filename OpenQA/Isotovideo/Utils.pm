@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -214,7 +214,7 @@ sub load_test_schedule {
             require File::Spec->catfile($bmwqemu::vars{CASEDIR}, $main_path);
         }
         elsif (!$bmwqemu::vars{SCHEDULE}) {
-            die '\'SCHEDULE\' not set and ' . $productdir . '/main.pm not found, need one of both';
+            die "'SCHEDULE' not set and $main_path not found, need one of both";
         }
     }
     catch {
