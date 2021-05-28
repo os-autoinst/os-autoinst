@@ -1,1 +1,3 @@
-shellcheck -x $(file --mime-type tools/* | sed -n 's/^\(.*\):.*text\/x-shellscript.*$/\1/p')
+#!/bin/sh -e
+# shellcheck disable=SC2046
+"${1:-shellcheck}" -x $(file --mime-type tools/* | sed -n 's/^\(.*\):.*text\/x-shellscript.*$/\1/p')

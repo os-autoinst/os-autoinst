@@ -15,6 +15,7 @@ RUN zypper in -y -C \
        'pkgconfig(opencv)' \
        'pkgconfig(sndfile)' \
        'pkgconfig(theoraenc)' \
+       ShellCheck \
        aspell-en \
        aspell-spell \
        cmake \
