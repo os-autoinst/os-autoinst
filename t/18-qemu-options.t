@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2018-2020 SUSE LLC
+# Copyright (C) 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -36,9 +36,10 @@ chdir $pool_dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 # just save ourselves some time during testing
+# note: The factor for coverage has been determined by comparing runtimes locally and was rounded up to the next integer.
 $ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL}           //= 1;
 $ENV{QEMU_QMP_CONNECT_ATTEMPTS}               //= 1;
-$ENV{EXPECTED_ISOTOVIDEO_RUNTIME_SCALE_COVER} //= Devel::Cover->can('report') ? 6 : 1;
+$ENV{EXPECTED_ISOTOVIDEO_RUNTIME_SCALE_COVER} //= Devel::Cover->can('report') ? 12 : 1;
 $ENV{EXPECTED_ISOTOVIDEO_RUNTIME}             //= $ENV{EXPECTED_ISOTOVIDEO_RUNTIME_SCALE_COVER} * 4;
 
 my @common_options = (
