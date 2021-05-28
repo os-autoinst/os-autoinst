@@ -49,6 +49,17 @@ add_test(
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
+find_program(SHELLCHECK_PATH shellcheck)
+if (SHELLCHECK_PATH)
+    add_test(
+        NAME test-local-shellcheck
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check-shellcheck" "${SHELLCHECK_PATH}"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+else ()
+    message(STATUS "Set SHELLCHECK_PATH to the path of shellcheck to enable Shell style checks.")
+endif ()
+
 # add test for Perl syntax/style issues
 find_program(PERLCRITIC_PATH perlcritic)
 if (PERLCRITIC_PATH)
