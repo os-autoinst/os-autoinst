@@ -34,7 +34,7 @@ while [[ $# -gt 0 ]]; do
     *                         ) break ;;
   esac
 done
-[[ "$@" ]] && TESTS="$@"
+[[ "$*" ]] && TESTS="$*"
 
 db="$build_directory/cover_db"
 [[ $SKIP_IF_COVER_DB_EXISTS ]] && [[ -d $db ]] && exit 0
@@ -54,8 +54,8 @@ export OS_AUTOINST_MAKE_TOOL=$make_path
 # invoke tests within the t and xt directory
 if [[ $TESTS = *[!\ ]* ]]
 then
-	"$prove_path" $PROVE_ARGS $TESTS
+    "$prove_path" "$PROVE_ARGS" "$TESTS"
 else
-	cd t && "$prove_path" $PROVE_ARGS -r
-	cd ../xt && "$prove_path" $PROVE_ARGS -r
+    cd t && "$prove_path" "$PROVE_ARGS" -r
+    cd ../xt && "$prove_path" "$PROVE_ARGS" -r
 fi
