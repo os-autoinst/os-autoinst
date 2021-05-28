@@ -1,0 +1,1 @@
+shellcheck -x $(file --mime-type tools/* | sed -n 's/^\(.*\):.*text\/x-shellscript.*$/\1/p')
