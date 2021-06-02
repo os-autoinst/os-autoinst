@@ -195,6 +195,11 @@ install(
     COMPONENT "openvswitch"
     EXCLUDE_FROM_ALL
 )
+install(
+    FILES "check_qemu_oom"
+    DESTINATION "${OS_AUTOINST_DATA_DIR}"
+    PERMISSIONS ${EXECUTABLE_PERMISSIONS}
+)
 add_custom_target(install-openvswitch
     COMMAND "${CMAKE_COMMAND}" -DCMAKE_INSTALL_COMPONENT=openvswitch -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
 

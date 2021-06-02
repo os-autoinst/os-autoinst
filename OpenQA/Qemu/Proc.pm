@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -405,8 +405,11 @@ sub exec_qemu {
     $process->on(
         collected => sub {
             $self->{_qemu_terminated} = 1;
-            bmwqemu::serialize_state(component => 'backend', msg => 'QEMU exited unexpectedly, see log for details')
-              unless $self->{_stopping};
+            unless ($self->{_stopping}) {
+                my $msg = 'QEMU exited unexpectedly, see log for details';
+                $msg = 'QEMU was killed due to the system being out of memory' if ($self->check_qemu_oom == 0);
+                bmwqemu::serialize_state(component => 'backend', msg => $msg);
+            }
         });
     $process->code(sub {
             $SIG{__DIE__} = undef;    # overwrite the default - just exit
@@ -429,6 +432,8 @@ sub stop_qemu {
 }
 
 sub qemu_pid { shift->_process->process_id }
+
+sub check_qemu_oom { system("$bmwqemu::scriptdir/check_qemu_oom " . shift->qemu_pid); }    # uncoverable statement
 
 =head3 connect_qmp
 
