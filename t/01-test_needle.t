@@ -120,7 +120,7 @@ is_deeply(
             w          => 645,
             y          => 285,
             result     => 'fail',
-            similarity => '0.946',
+            similarity => '0.945',
             x          => 190
         }
     ],
@@ -225,15 +225,44 @@ ok(!defined $res, "the contrast is just too different");
 
 $img1   = tinycv::read($data_dir . "xterm-started-20141204.test.png");
 $needle = needle->new("xterm-started-20141204.json");
-$res    = $img1->search($needle, 0, 0.7);
+($res, $cand) = $img1->search($needle, 0, 0.7);
 
-ok(defined $res, "xterm basically the same");
+ok(!defined $res, "xterm on GNOME is more blurry");
+is_deeply(
+    $cand->[0]->{area}->[1],
+    {
+        x          => 127,
+        w          => 39,
+        y          => 76,
+        h          => 18,
+        result     => 'fail',
+        similarity => '0.905881691408007'
+    },
+    'we find the xterm though'
+);
 
 $img1   = tinycv::read($data_dir . "pkcon-proceed-prompt-20141205.test.png");
 $needle = needle->new("pkcon-proceed-prompt-20141205.json");
-$res    = $img1->search($needle, 0, 0.7);
+($res, $cand) = $img1->search($needle, 0, 0.7);
 
-ok(defined $res, "the prompt is the same to the human eye");
+ok(!defined $res, "the prompt is the same to the human eye, but it differs in shades of gray");
+# the value varies between 92.9 and 92.8 dependending on used libraries
+$cand->[0]->{area}->[0]->{similarity} = int($cand->[0]->{area}->[0]->{similarity} * 100 + 0.5);
+is_deeply(
+    $cand->[0]->{area},
+    [
+        {
+            similarity => 93,
+            x          => 17,
+            w          => 237,
+            result     => 'fail',
+            y          => 326,
+            h          => 10
+
+        },
+    ],
+    'offered for needle recreation though'
+);
 
 $img1   = tinycv::read($data_dir . "displaymanager-sle12.test.png");
 $needle = needle->new("displaymanager-sle12.json");
@@ -325,6 +354,12 @@ is($res->{area}->[-1]->{w}, 17);
 is($res->{area}->[-1]->{h}, 12);
 is($res->{area}->[-1]->{y}, 260);
 is($res->{area}->[-1]->{x}, 313);
+
+$img1   = tinycv::read($data_dir . "select_patterns.test.png");
+$needle = needle->new("select_patterns.json");
+$res    = $img1->search($needle);
+
+ok(!defined $res, "the green mark is unselected");
 
 $img1   = tinycv::read($data_dir . "other-desktop-dvd-20140904.test.png");
 $needle = needle->new("other-desktop-dvd-20140904.json");

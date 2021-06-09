@@ -90,12 +90,7 @@ double enhancedMSE(const Mat& _I1, const Mat& _I2)
         const uchar* I2_data = I2.ptr<const uchar>(j);
 
         for (int i = 0; i < I1.cols; i++) {
-            // reduce the colours to 16 before checking the diff
-            if (abs(I1_data[i] - I2_data[i]) < 16)
-                continue; // += 0
-            double t1 = round(I1_data[i] / 16.);
-            double t2 = round(I2_data[i] / 16.);
-            double diff = (t1 - t2) * 16;
+            double diff = I1_data[i] - I2_data[i];
             sse += diff * diff;
         }
     }
@@ -276,8 +271,7 @@ std::vector<int> search_TEMPLATE(const Image* scene, const Image* object,
     gettimeofday(&tv2, 0);
     long tdiff = (tv2.tv_sec - tv1.tv_sec) * 1000 + (tv2.tv_usec - tv1.tv_usec) / 1000;
     std::cerr << "search_template " << tdiff << " ms "
-              << " MSE " << mse << " sim:" << similarity
-              << " minval:" << int(minval * 1000 + 0.5) << std::endl;
+              << " MSE " << mse << " sim:" << similarity << std::endl;
 #endif
     return outvec;
 }
