@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Mojo::Base -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -19,6 +20,13 @@ BEGIN {
 
 use needle;
 use cv;
+
+sub _cmp_similarity ($area, $expected_similarity) {
+    my $similarity = delete $area->{similarity};
+    my $difference = abs($similarity - $expected_similarity);
+    cmp_ok $difference, '<', '0.01', 'similarity within tolerance'
+      or diag explain "actual similarity: $similarity, expected similarity: $expected_similarity";
+}
 
 throws_ok(
     sub {
@@ -110,22 +118,11 @@ $img1   = tinycv::read($data_dir . 'console.test.png');
 $needle = needle->new('console.ref.json');
 ($res, $cand) = $img1->search($needle);
 ok(!defined $res, "no match different console screenshots");
-# prevent tiny resolution differences to fail the test
-$cand->[0]->{area}->[0]->{similarity} = sprintf "%.3f", $cand->[0]->{area}->[0]->{similarity};
-is_deeply(
-    $cand->[0]->{area},
-    [
-        {
-            h          => 160,
-            w          => 645,
-            y          => 285,
-            result     => 'fail',
-            similarity => '0.945',
-            x          => 190
-        }
-    ],
-    'candidate is almost true'
-);
+subtest 'candidate is almost true' => sub {
+    my $areas = $cand->[0]->{area};
+    _cmp_similarity $areas->[0], 0.945;
+    is_deeply $areas, [{h => 160, w => 645, x => 190, y => 285, result => 'fail'}], 'coordinates/result';
+};
 
 $img1   = tinycv::read($data_dir . 'instdetails.test.png');
 $needle = needle->new('instdetails.ref.json');
@@ -227,19 +224,12 @@ $img1   = tinycv::read($data_dir . "xterm-started-20141204.test.png");
 $needle = needle->new("xterm-started-20141204.json");
 ($res, $cand) = $img1->search($needle, 0, 0.7);
 
-ok(!defined $res, "xterm on GNOME is more blurry");
-is_deeply(
-    $cand->[0]->{area}->[1],
-    {
-        x          => 127,
-        w          => 39,
-        y          => 76,
-        h          => 18,
-        result     => 'fail',
-        similarity => '0.905881691408007'
-    },
-    'we find the xterm though'
-);
+ok !defined $res, 'xterm on GNOME is more blurry';
+subtest 'we find the xterm though' => sub {
+    my $area = $cand->[0]->{area}->[1];
+    _cmp_similarity $area, 0.905881691408007;
+    is_deeply $area, {x => 127, w => 39, y => 76, h => 18, result => 'fail'}, 'coordinates/result';
+};
 
 $img1   = tinycv::read($data_dir . "pkcon-proceed-prompt-20141205.test.png");
 $needle = needle->new("pkcon-proceed-prompt-20141205.json");
