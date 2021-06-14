@@ -47,7 +47,7 @@ sub activate {
     my ($self)   = @_;
     my $hostname = $self->{args}->{hostname} || die('we need a hostname to ssh to');
     my $password = $self->{args}->{password} // $testapi::password;
-    my $username = $self->{args}->{user}     // 'root';
+    my $username = $self->{args}->{username} // 'root';
     my $pty_cols = $self->{args}->{pty_cols} // 2048;
 
     bmwqemu::diag("Connecting SSH serial console for $username\@$hostname");
