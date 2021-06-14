@@ -1297,7 +1297,7 @@ sub new_ssh_connection {
 }
 
 =head2 get_ssh_credentials
-Should return a hash with the keys: C<host, username, password>
+Should return a hash with the keys: C<hostname, username, password>
 =cut
 sub get_ssh_credentials {
     return;
