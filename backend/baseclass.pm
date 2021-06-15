@@ -1244,13 +1244,14 @@ sub new_ssh_connection {
     my %credentials = $self->get_ssh_credentials;
     $args{$_} //= $credentials{$_} foreach (keys(%credentials));
     $args{username} ||= 'root';
+    $args{port}     ||= 22;
     $args{keep_open} //= 0;
     my $connection_key;
 
     # e.g. using hyperv_intermediate host which is running Windows need to keep the connection.
     # Otherwise a mount point doesn't exists within the next command.
     if ($args{keep_open}) {
-        $connection_key = join(',', map { $_ . "=" . $args{$_} } qw(hostname username));
+        $connection_key = join(',', map { $_ . "=" . $args{$_} } qw(hostname username port));
         my $con = $self->{ssh_connections}->{$connection_key};
         if (defined($con)) {
             # Check if we still can create channels on that connection
@@ -1269,9 +1270,11 @@ sub new_ssh_connection {
     my $ssh = Net::SSH2->new;
 
     # Retry multiple times, in case of the guest is not running yet
-    my $counter = $bmwqemu::vars{SSH_CONNECT_RETRY} // 5;
+    my $counter    = $bmwqemu::vars{SSH_CONNECT_RETRY} // 5;
+    my $con_pretty = "$args{username}\@$args{hostname}";
+    $con_pretty .= ":$args{port}" unless $args{port} == 22;
     while ($counter > 0) {
-        if ($ssh->connect($args{hostname})) {
+        if ($ssh->connect($args{hostname}, $args{port})) {
 
             if ($args{password}) {
                 $ssh->auth(username => $args{username}, password => $args{password});
@@ -1280,24 +1283,25 @@ sub new_ssh_connection {
                 # this relies on agent to be set up correctly
                 $ssh->auth_agent($args{username});
             }
-            bmwqemu::diag "SSH connection to $args{username}\@$args{hostname} established" if $ssh->auth_ok;
+            bmwqemu::diag "SSH connection to $con_pretty established" if $ssh->auth_ok;
             last;
         }
         else {
-            bmwqemu::diag "Could not connect to $args{username}\@$args{hostname}, Retrying after some seconds...";
+            bmwqemu::diag "Could not connect to $con_pretty, Retrying after some seconds...";
             sleep($bmwqemu::vars{SSH_CONNECT_RETRY_INTERVAL} // 10);
             $counter--;
             next;
         }
     }
-    OpenQA::Exception::SSHConnectionError->throw(error => "Error connecting to <$args{username}\@$args{hostname}>: $@") unless $ssh->auth_ok;
+    OpenQA::Exception::SSHConnectionError->throw(error => "Error connecting to <$con_pretty>: $@") unless $ssh->auth_ok;
 
     $self->{ssh_connections}->{$connection_key} = $ssh if ($args{keep_open});
     return $ssh;
 }
 
 =head2 get_ssh_credentials
-Should return a hash with the keys: C<hostname, username, password>
+Should return a hash with the keys: C<hostname, username, password, port>
+The keys port and username are optional and default to 22 and 'root', respectively.
 =cut
 sub get_ssh_credentials {
     return;
