@@ -4,6 +4,7 @@ set -euo pipefail
 
 cre="${cre:-"docker"}"
 for i in container/*/Dockerfile*; do
+    echo "$0 => Testing container $i"
     tag=${i,,}
     $cre build -t "$tag" -f "$i" "$(dirname "$i")"/
     $cre run --rm "$tag" --help
