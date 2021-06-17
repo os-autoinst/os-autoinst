@@ -47,10 +47,10 @@ subtest 'format_vtt_timestamp' => sub {
 };
 
 subtest 'SSH utilities' => sub {
-    my $ssh_expect           = {username => 'root', password => 'password', hostname => 'foo.bar'};
+    my $ssh_expect           = {username => 'root', password => 'password', hostname => 'foo.bar', port => undef};
     my $fail_on_channel_call = undef;
     my $ssh_auth_ok          = 1;
-    my $ssh_obj_data         = {};                                                                    # used to store Net::SSH2 fake data per object
+    my $ssh_obj_data         = {};                                                                                # used to store Net::SSH2 fake data per object
     my @net_ssh2_error       = ();
     my $net_ssh2             = Test::MockModule->new('Net::SSH2');
     $net_ssh2->redefine(new => sub {
@@ -61,9 +61,12 @@ subtest 'SSH utilities' => sub {
             $ssh_obj_data->{$id} = $self;
 
             $self->mock(connect => sub {
-                    my ($self, $hostname) = @_;
+                    my ($self, $hostname, $port) = @_;
                     is($hostname, $ssh_expect->{hostname}, 'Connect to correct hostname');
+                    # if unspecified, default to port 22
+                    is($port, $ssh_expect->{port} // 22, 'Connect to correct port');
                     $self->{hostname} = $hostname;
+                    $self->{port}     = $port;
                     $self->{blocking} = 0;
                     return 1;
             });
@@ -135,7 +138,7 @@ subtest 'SSH utilities' => sub {
     });
     sub refaddr { return shift->{my_custom_id}; }
 
-    my ($ssh1, $ssh2, $ssh3, $ssh4, $ssh5, $ssh6, $ssh7);
+    my ($ssh1, $ssh2, $ssh3, $ssh4, $ssh5, $ssh6, $ssh7, $ssh8);
     my %ssh_creds        = (username => 'root', password => 'password', hostname => 'foo.bar');
     my $exp_log_new      = qr/SSH connection to root\@foo\.bar established/;
     my $exp_log_existing = qr/Use existing SSH connection/;
@@ -163,6 +166,13 @@ subtest 'SSH utilities' => sub {
     $fail_on_channel_call = 1;
     # 5th SSH instance but 3rd get closed
     stderr_like { $ssh7 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_renew, 'Existing SSH connection announced in logs';
+
+    # New connection using a different port
+    $ssh_expect->{port} = 2222;
+    $exp_log_new = qr/SSH connection to root\@foo\.bar:2222 established/;
+    stderr_like { $ssh8 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds, port => 2222) } $exp_log_new, 'New SSH connection announced in logs -- port=2222';
+    $ssh_expect->{port} = undef;
+
     $bmwqemu::logger = $default_logger;
 
     # Double check references
@@ -171,6 +181,7 @@ subtest 'SSH utilities' => sub {
     is(refaddr($ssh4), refaddr($ssh5), "Got same connection with keep_open");
     isnt(refaddr($ssh5), refaddr($ssh6), "Got new connection with different credentials");
     isnt(refaddr($ssh5), refaddr($ssh7), "Got new connection, when SSH session got broke");
+    isnt(refaddr($ssh4), refaddr($ssh8), "Got same connection with different ports");
 
     $ssh_auth_ok = 0;
     throws_ok(sub { $baseclass->new_ssh_connection(%ssh_creds) }, qr/Error connecting to/, 'Got exception on connection error');
@@ -193,10 +204,11 @@ subtest 'SSH utilities' => sub {
     my @connected_ssh    = grep { $_->{connected} } values(%$ssh_obj_data);
     my @disconnected_ssh = grep { !$_->{connected} } values(%$ssh_obj_data);
 
-    is(scalar(@connected_ssh), 4, "Expect 4 connected SSH connections");
+    is(scalar(@connected_ssh), 5, "Expect 5 connected SSH connections");
     is($ssh1->{connected},     1, "SSH connection ssh1 connected");
     is($ssh2->{connected},     1, "SSH connection ssh2 connected");
     is($ssh7->{connected},     1, "SSH connection ssh7 connected");
+    is($ssh8->{connected},     1, "SSH connection ssh8 connected");
     # +1 unamed connection form implicit run_ssh_cmd()
 
     is(scalar(@disconnected_ssh), 3, "Expect 3 disconnected SSH connections");
