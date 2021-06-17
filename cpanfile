@@ -84,6 +84,7 @@ on 'test' => sub {
     requires 'Test::Mock::Time';
     requires 'Test::MockModule';
     requires 'Test::MockObject';
+    requires 'Test::MockRandom';
     requires 'Test::Mojo';
     requires 'Test::Most';
     requires 'Test::Output';

@@ -76,6 +76,7 @@ test_base_requires:
   perl(Test::Fatal):
   perl(Test::MockModule):
   perl(Test::MockObject):
+  perl(Test::MockRandom):
   perl(Test::Mock::Time):
   perl(Test::Mojo):
   perl(Test::Most):

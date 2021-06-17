@@ -105,6 +105,7 @@ RUN zypper in -y -C \
        'perl(Test::Mock::Time)' \
        'perl(Test::MockModule)' \
        'perl(Test::MockObject)' \
+       'perl(Test::MockRandom)' \
        'perl(Test::Mojo)' \
        'perl(Test::Most)' \
        'perl(Test::Output)' \
