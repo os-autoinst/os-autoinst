@@ -45,15 +45,15 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single new drive');
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single new drive');
 
-@cmdl  = [qw(convert -c -O qcow2 raid/hd1 images/hd1.qcow2)];
-@gcmdl = $bdc->gen_qemu_img_convert(qr/^hd/, 'images', 'hd1.qcow2');
+my $compress = 1;
+@cmdl  = (['convert', '-c', '-O', 'qcow2', 'raid/hd1', 'images/hd1.qcow2']);
+@gcmdl = $bdc->gen_qemu_img_convert(qr/^hd/, 'images', 'hd1.qcow2', $compress);
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert for single new drive');
 
-@cmdl                               = [qw(convert -O qcow2 raid/hd1 images/hd2.qcow2)];
-$bmwqemu::vars{QEMU_COMPRESS_QCOW2} = 0;
-@gcmdl                              = $bdc->gen_qemu_img_convert(qr/^hd/, 'images', 'hd2.qcow2');
-is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert with disabled compression');
-$bmwqemu::vars{QEMU_COMPRESS_QCOW2} = 1;
+$compress = 0;
+@cmdl     = (['convert', '-O', 'qcow2', 'raid/hd1', 'images/hd1.qcow2']);
+@gcmdl    = $bdc->gen_qemu_img_convert(qr/^hd/, 'images', 'hd1.qcow2', $compress);
+is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert for single new drive, without compression');
 
 @cmdl = ('-blockdev', 'driver=file,node-name=hd1-file,filename=raid/hd1,cache.no-flush=on',
     '-blockdev', 'driver=qcow2,node-name=hd1,file=hd1-file,cache.no-flush=on',
@@ -92,8 +92,9 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing d
 @gcmdl = $bdc->gen_unlink_list();
 is_deeply(\@cmdl, \@gcmdl, 'Generate unlink list for single existing drive');
 
-@cmdl  = (['convert', '-c', '-O', 'qcow2', 'raid/hd1-overlay0', 'images/hd1.qcow2']);
-@gcmdl = $bdc->gen_qemu_img_convert(qr/^hd1/, 'images', 'hd1.qcow2');
+$compress = 1;
+@cmdl     = (['convert', '-c', '-O', 'qcow2', 'raid/hd1-overlay0', 'images/hd1.qcow2']);
+@gcmdl    = $bdc->gen_qemu_img_convert(qr/^hd1/, 'images', 'hd1.qcow2', $compress);
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert for single existing drive');
 
 my %vars;
@@ -238,7 +239,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate reverted snapshot images');
 is_deeply(\@gcmdl, \@cmdl, 'Generate unlink list of reverted snapshot images');
 
 @cmdl  = (['convert', '-c', '-O', 'qcow2', 'raid/hd0-overlay1', 'images/hd0.qcow2']);
-@gcmdl = $bdc->gen_qemu_img_convert(qr/^hd0$/, 'images', 'hd0.qcow2');
+@gcmdl = $bdc->gen_qemu_img_convert(qr/^hd0$/, 'images', 'hd0.qcow2', $compress);
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert with snapshots');
 
 @cmdl = ('qemu-kvm', '-static-args',

@@ -282,10 +282,10 @@ sub gen_qemu_img_commit {
 }
 
 sub gen_qemu_img_convert {
-    my ($self, $filter, $img_dir, $name) = @_;
+    my ($self, $filter, $img_dir, $name, $qemu_compress_qcow) = @_;
 
     return
-      map { $_->gen_qemu_img_convert($img_dir, $name) }
+      map { $_->gen_qemu_img_convert($img_dir, $name, $qemu_compress_qcow) }
       grep { $_->id =~ $filter } @{$self->_drives};
 }
 
