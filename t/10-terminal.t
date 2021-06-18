@@ -61,8 +61,8 @@ my $C0_ETX                 = "\cC";
 my $C1_control_code        = qq(\eQ\n);
 my $US_keyboard_data       = <<'FIN.';
 !@\#$%^&*()-_+={}[]|:;"'<>,.?/~`
-abcdefghijklmnopqrstuwxyz
-ABCDEFGHIJKLMNOPQRSTUWXYZ
+abcdefghijklmnopqrstuvwxyz
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
 0123456789
 FIN.
 my $stop_code_data        = "FIN.\n";
