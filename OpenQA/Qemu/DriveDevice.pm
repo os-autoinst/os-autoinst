@@ -138,9 +138,11 @@ sub gen_qemu_img_cmdlines {
 }
 
 sub gen_qemu_img_convert {
-    my ($self, $img_dir, $name) = @_;
+    my ($self, $img_dir, $name, $qemu_compress_qcow) = @_;
 
-    return ['convert', '-c', '-O', QEMU_IMAGE_FORMAT, $self->drive->file, "$img_dir/$name"];
+    my $qemu_img_compression = ($qemu_compress_qcow) ? '-c' : '';
+
+    return ['convert', $qemu_img_compression, '-O', QEMU_IMAGE_FORMAT, $self->drive->file, "$img_dir/$name"];
 }
 
 sub gen_unlink_list {
