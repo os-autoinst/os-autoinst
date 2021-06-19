@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -91,9 +91,7 @@ sub add_new_overlay {
     return add_existing_overlay(@_)->needs_creating(1);
 }
 
-sub del_overlay {
-    my ($self) = @_;
-}
+sub del_overlay { }
 
 sub _push_new_drive_dev {
     my ($self, $id, $drive, $model, $num_queues) = @_;
@@ -245,11 +243,7 @@ sub revert_to_snapshot {
 
 sub for_each_drive {
     my ($self, $sub) = @_;
-
-    for my $drive (@{$self->_drives}) {
-        $sub->($drive);
-    }
-
+    $sub->($_) for @{$self->_drives};
     return $self;
 }
 
@@ -328,8 +322,6 @@ sub from_map {
 }
 
 # See MutParams.pm
-sub has_state {
-    return scalar(@{shift->_drives});
-}
+sub has_state { scalar(@{shift->_drives}) }
 
 1;

@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2019 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -430,20 +430,13 @@ sub add_disk {
     my $devices = $self->{devices_element};
 
     my $disk = $doc->createElement('disk');
-    $disk->setAttribute(type => 'file');
-    if ($cdrom) {
-        $disk->setAttribute(device => 'cdrom');
-    }
-    else {
-        $disk->setAttribute(device => 'disk');
-    }
+    $disk->setAttribute(type   => 'file');
+    $disk->setAttribute(device => $cdrom ? 'cdrom' : 'disk');
     $devices->appendChild($disk);
-
-    my $elem;
 
     # there's no <driver> property on VMware
     if ($self->vmm_family ne 'vmware') {
-        $elem = $doc->createElement('driver');
+        my $elem = $doc->createElement('driver');
         $elem->setAttribute(name => 'qemu');
         if ($cdrom) {
             $elem->setAttribute(type => 'raw');
@@ -480,18 +473,13 @@ sub add_disk {
             $bus_type = 'virtio';
         }
     }
-    $elem = $doc->createElement('target');
+    my $elem = $doc->createElement('target');
     $elem->setAttribute(dev => $dev_type);
     $elem->setAttribute(bus => $bus_type);
     $disk->appendChild($elem);
 
     $elem = $doc->createElement('source');
-    if ($self->vmm_family eq 'vmware') {
-        $elem->setAttribute(file => "[$vmware_datastore] openQA/$file");
-    }
-    else {
-        $elem->setAttribute(file => $file);
-    }
+    $elem->setAttribute(file => $self->vmm_family eq 'vmware' ? "[$vmware_datastore] openQA/$file" : $file);
     $disk->appendChild($elem);
 
     if (my $bootorder = $args->{bootorder}) {
@@ -521,9 +509,7 @@ sub resume {
     bmwqemu::diag "VM " . $self->name . " resumed";
 }
 
-sub get_remote_vmm {
-    return get_var('VMWARE_REMOTE_VMM', '');
-}
+sub get_remote_vmm { get_var('VMWARE_REMOTE_VMM', '') }
 
 sub define_and_start {
     my ($self, $args) = @_;

@@ -39,7 +39,7 @@ use bmwqemu qw(diag);
 require IPC::System::Simple;
 use Try::Tiny;
 use osutils qw(find_bin gen_params qv run_diag runcmd);
-use List::Util 'max';
+use List::Util qw(first max);
 use Data::Dumper;
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use OpenQA::Qemu::Proc;
@@ -82,13 +82,12 @@ sub start_audiocapture {
     my ($self, $args) = @_;
 
     # poo#66667: an audiodev id is required by wavcapture when audiodev is used
-    my $audiodev_id = 'snd0' if $self->requires_audiodev;
+    my $audiodev_id = $self->requires_audiodev ? 'snd0' : '';
     $self->handle_qmp_command(_wrap_hmc("wavcapture $args->{filename} $audiodev_id 44100 16 1"));
 }
 
 sub stop_audiocapture {
     my ($self, $args) = @_;
-
     $self->handle_qmp_command(_wrap_hmc("stopcapture 0"));
 }
 
@@ -125,7 +124,6 @@ sub cpu_stat {
 
 sub do_start_vm {
     my $self = shift;
-
     $self->start_qemu();
     return {};
 }
@@ -189,29 +187,20 @@ sub can_handle {
 
     return unless $args->{function} eq 'snapshots';
     return if $vars->{QEMU_DISABLE_SNAPSHOTS};
-    my $nvme = $vars->{HDDMODEL} eq 'nvme';
-    for my $i (1 .. $vars->{NUMDISKS}) {
-        last if $nvme;
-        $nvme = (defined $vars->{"HDDMODEL_$i"} && $vars->{"HDDMODEL_$i"} eq 'nvme');
-    }
-    if ($nvme) {
-        bmwqemu::fctwarn('NVMe drives can not be migrated which is required for snapshotting')
-          unless $args->{no_warn};
-        return;
-    }
-
-    return {ret => 1};
+    my @models = ($vars->{HDDMODEL}, map { $vars->{"HDDMODEL_$_"} } (1 .. $vars->{NUMDISKS}));
+    my $nvme   = first { ($_ // '') eq 'nvme' } @models;
+    return {ret => 1} unless $nvme;
+    bmwqemu::fctwarn('NVMe drives can not be migrated which is required for snapshotting')
+      unless $args->{no_warn};
+    return undef;
 }
 
 sub open_file_and_send_fd_to_qemu {
     my ($self, $path, $fdname) = @_;
-    my $rsp;
 
     mkpath(dirname($path));
-    my $fd = POSIX::open($path, POSIX::O_CREAT() | POSIX::O_RDWR());
-    die "Failed to open $path: $!" unless (defined $fd);
-
-    $rsp = $self->handle_qmp_command(
+    my $fd  = POSIX::open($path, POSIX::O_CREAT() | POSIX::O_RDWR()) or die "Failed to open $path: $!";
+    my $rsp = $self->handle_qmp_command(
         {execute => 'getfd', arguments => {fdname => $fdname}},
         send_fd => $fd,
         fatal   => 1
@@ -352,6 +341,7 @@ sub save_memory_dump {
 
     $self->cont_vm() if $was_running;
 
+    return undef unless $compress_method;
     if ($compress_method eq 'xz') {
         if (defined which('xz')) {
             runcmd('xz', '--no-warn', '-T', $compress_threads, "-v$compress_level", "ulogs/$filename");
@@ -361,19 +351,14 @@ sub save_memory_dump {
             $compress_method = 'bzip2';
         }
     }
-
     if ($compress_method eq 'bzip2') {
         runcmd('bzip2', "-v$compress_level", "ulogs/$filename");
     }
-
-    return;
 }
 
 sub save_storage_drives {
     my ($self, $args) = @_;
-
     diag "Attempting to extract disk #%d.", $args->{disk};
-
     $self->do_extract_assets(
         {
             hdd_num => $args->{disk},
@@ -389,15 +374,9 @@ sub save_storage_drives {
 sub inflate_balloon {
     my $self = shift;
     my $vars = \%bmwqemu::vars;
-
     return unless $vars->{QEMU_BALLOON_TARGET};
-
     my $target_bytes = $vars->{QEMU_BALLOON_TARGET} * 1048576;
-
-    $self->handle_qmp_command({execute => 'balloon',
-            arguments => {value => $target_bytes}},
-        fatal => 1);
-
+    $self->handle_qmp_command({execute => 'balloon', arguments => {value => $target_bytes}}, fatal => 1);
     my $rsp         = $self->handle_qmp_command({execute => 'query-balloon'}, fatal => 1);
     my $prev_actual = $rsp->{return}->{actual};
     my $i           = 0;
@@ -413,14 +392,9 @@ sub inflate_balloon {
 sub deflate_balloon {
     my $self = shift;
     my $vars = \%bmwqemu::vars;
-
     return unless $vars->{QEMU_BALLOON_TARGET};
-
     my $ram_bytes = $vars->{QEMURAM} * 1048576;
-
-    $self->handle_qmp_command({execute => 'balloon',
-            arguments => {value => $ram_bytes}},
-        fatal => 1);
+    $self->handle_qmp_command({execute => 'balloon', arguments => {value => $ram_bytes}}, fatal => 1);
 }
 
 sub save_snapshot {
@@ -534,73 +508,37 @@ sub load_snapshot {
 
 sub do_extract_assets {
     my ($self, $args) = @_;
-    my $pattern;
     my $name    = $args->{name};
     my $img_dir = $args->{dir};
-
-    if ($args->{pflash_vars}) {
-        $pattern = qr/^pflash-vars$/;
-    }
-    else {
-        my $hdd_num = $args->{hdd_num} - 1;
-        $pattern = qr/^hd$hdd_num$/;
-    }
-
-    unless ($self->{proc}->has_state()) {
-        $self->{proc}->load_state();
-    }
-
+    my $hdd_num = $args->{hdd_num} - 1;
+    my $pattern = $args->{pflash_vars} ? qr/^pflash-vars$/ : qr/^hd$hdd_num$/;
+    $self->{proc}->load_state() unless $self->{proc}->has_state();
     mkpath($img_dir);
     bmwqemu::fctinfo("Extracting $pattern");
     my $res = $self->{proc}->export_blockdev_images($pattern, $img_dir, $name);
     die "Expected one drive to be exported, not $res" if $res != 1;
 }
 
-
 # baseclass virt method overwrite end
 
-sub find_ovmf {
-    foreach my $firmware (@bmwqemu::ovmf_locations) {
-        return $firmware if -e $firmware;
-    }
+sub find_ovmf { first { -e } @bmwqemu::ovmf_locations }
+
+sub virtio_console_names {
+    return () unless $bmwqemu::vars{VIRTIO_CONSOLE};
+    return map { 'virtio_console' . ($_ || '') } (0 .. ($bmwqemu::vars{VIRTIO_CONSOLE_NUM} // 1));
 }
 
-sub get_virtio_console_names {
-    my $self = shift;
-    my @names;
-    if ($bmwqemu::vars{VIRTIO_CONSOLE}) {
-        for (my $i = 0; $i < ($bmwqemu::vars{VIRTIO_CONSOLE_NUM} // 1); $i++) {
-            my $name = 'virtio_console' . ($i ? $i : '');
-            push(@names, $name);
-        }
-    }
-    return @names;
+sub virtio_console_fifo_names { map { $_ . '.in', $_ . '.out' } virtio_console_names }
+
+sub console_fifo {
+    my ($name) = @_;
+    return bmwqemu::fctwarn("Fifo pipe '$name' already exists!") if -e $name;
+    mkfifo($name, 0666) or bmwqemu::fctwarn("Failed to create pipe $name: $!");
 }
 
-sub get_virtio_console_fifo_names {
-    my $self = shift;
-    return map { ($_ . '.in', $_ . '.out') } $self->get_virtio_console_names();
-}
+sub create_virtio_console_fifo { console_fifo($_) for virtio_console_fifo_names }
 
-sub create_virtio_console_fifo {
-    my $self = shift;
-    for my $name ($self->get_virtio_console_fifo_names) {
-        if (-e $name) {
-            bmwqemu::fctwarn("Fifo pipe '$name' already exists!");
-        } else {
-            mkfifo($name, 0666) or bmwqemu::fctwarn("Failed to create pipe $name: $!");
-        }
-    }
-}
-
-sub delete_virtio_console_fifo {
-    my $self = shift;
-    for my $name ($self->get_virtio_console_fifo_names) {
-        if (-e $name) {
-            unlink($name) or bmwqemu::fctwarn("Could not unlink $name: $!");
-        }
-    }
-}
+sub delete_virtio_console_fifo { unlink $_ or bmwqemu::fctwarn("Could not unlink $_ $!") for grep { -e } virtio_console_fifo_names }
 
 sub start_qemu {
     my $self = shift;
@@ -612,10 +550,7 @@ sub start_qemu {
     my $qemuimg = find_bin('/usr/bin/', qw(kvm-img qemu-img));
 
     local *sp = sub { $self->{proc}->static_param(@_); };
-
-    if (($vars->{VIRTIO_CONSOLE} // '') ne 0) {
-        $vars->{VIRTIO_CONSOLE} = 1;
-    }
+    $vars->{VIRTIO_CONSOLE} = 1 if ($vars->{VIRTIO_CONSOLE} // '') ne 0;
 
     unless ($qemubin) {
         if ($vars->{QEMU}) {
@@ -701,9 +636,8 @@ sub start_qemu {
         }
     }
 
-    if ($vars->{HDDFORMAT}) {
-        die 'HDDFORMAT has been removed. If you are using existing images in some other format then qcow2 overlays will be created on top of them';
-    }
+    die 'HDDFORMAT has been removed. If you are using existing images in some other format then qcow2 overlays will be created on top of them'
+      if $vars->{HDDFORMAT};
 
     # disk settings
     if ($vars->{MULTIPATH}) {
@@ -763,13 +697,7 @@ sub start_qemu {
     @tapscript     = split /\s*,\s*/, $vars->{TAPSCRIPT}     if $vars->{TAPSCRIPT};
     @tapdownscript = split /\s*,\s*/, $vars->{TAPDOWNSCRIPT} if $vars->{TAPDOWNSCRIPT};
 
-    my $num_networks = 1;
-    $num_networks = max($num_networks, scalar @nicmac, scalar @nicvlan, scalar @tapdev);
-
-    if ($vars->{OFFLINE_SUT}) {
-        $num_networks = 0;
-    }
-
+    my $num_networks = $vars->{OFFLINE_SUT} ? 0 : max(1, scalar @nicmac, scalar @nicvlan, scalar @tapdev);
     for (my $i = 0; $i < $num_networks; $i++) {
         # ensure MAC addresses differ globally
         # and allow MAC addresses for more than 256 workers (up to 16384)
@@ -779,14 +707,12 @@ sub start_qemu {
         # always set proper TAPDEV for os-autoinst when using tap network mode
         my $instance = ($vars->{WORKER_INSTANCE} || 'manual') eq 'manual' ? 255 : $vars->{WORKER_INSTANCE};
         # use $instance for tap name so it is predicable, network is still configured staticaly
-        if (!defined($tapdev[$i]) || $tapdev[$i] eq 'auto') {
-            $tapdev[$i] = 'tap' . ($instance - 1 + $i * 64);
-        }
+        $tapdev[$i] = 'tap' . ($instance - 1 + $i * 64) if !defined($tapdev[$i]) || $tapdev[$i] eq 'auto';
         my $vlan = (@nicvlan) ? $nicvlan[-1] : 0;
         $nicvlan[$i] //= $vlan;
     }
-    push @tapscript,     "no" until @tapscript >= $num_networks;        #no TAPSCRIPT by default
-    push @tapdownscript, "no" until @tapdownscript >= $num_networks;    #no TAPDOWNSCRIPT by default
+    push @tapscript,     'no' until @tapscript >= $num_networks;        #no TAPSCRIPT by default
+    push @tapdownscript, 'no' until @tapdownscript >= $num_networks;    #no TAPDOWNSCRIPT by default
 
     # put it back to the vars for saving
     $vars->{NICMAC}        = join ',', @nicmac;
@@ -808,9 +734,7 @@ sub start_qemu {
         }
 
         if ($vars->{VDE_USE_SLIRP}) {
-
-            my @cmd = ('slirpvde', '--dhcp', '-s', "$vars->{VDE_SOCKETDIR}/vde.ctl", '--port', $port + 1);
-
+            my @cmd       = ('slirpvde', '--dhcp', '-s', "$vars->{VDE_SOCKETDIR}/vde.ctl", '--port', $port + 1);
             my $child_pid = $self->_child_process(
                 sub {
                     $SIG{__DIE__} = undef;    # overwrite the default - just exit
@@ -831,7 +755,6 @@ sub start_qemu {
     run_diag('/usr/bin/chattr', '-f', '+C', $basedir);
 
     my $keephdds = $vars->{KEEPHDDS} || $vars->{SKIPTO};
-
     if ($keephdds) {
         $self->{proc}->load_state();
     } else {
@@ -861,9 +784,7 @@ sub start_qemu {
     }
     {
         # Remove floppy drive device on architectures
-        unless ($arch eq 'aarch64' || $arch eq 'arm' || $vars->{QEMU_NO_FDC_SET}) {
-            sp('global', 'isa-fdc.fdtypeA=none');
-        }
+        sp('global', 'isa-fdc.fdtypeA=none') unless ($arch eq 'aarch64' || $arch eq 'arm' || $vars->{QEMU_NO_FDC_SET});
 
         sp('m',       $vars->{QEMURAM})     if $vars->{QEMURAM};
         sp('machine', $vars->{QEMUMACHINE}) if $vars->{QEMUMACHINE};
@@ -960,23 +881,12 @@ sub start_qemu {
         }
 
         unless ($vars->{QEMU_NO_TABLET}) {
-            if ($vars->{OFW} || $arch eq 'aarch64') {
-                sp('device', 'nec-usb-xhci');
-            }
-            else {
-                sp('device', 'usb-ehci');
-            }
+            sp('device', ($vars->{OFW} || $arch eq 'aarch64') ? 'nec-usb-xhci' : 'usb-ehci');
             sp('device', 'usb-tablet');
         }
 
         sp('device', 'usb-kbd') if $use_usb_kbd;
-
-        if ($vars->{QEMUTHREADS}) {
-            sp('smp', [qv "$vars->{QEMUCPUS} threads=$vars->{QEMUTHREADS}"]);
-        }
-        else {
-            sp('smp', $vars->{QEMUCPUS});
-        }
+        sp('smp',    $vars->{QEMUTHREADS} ? [qv "$vars->{QEMUCPUS} threads=$vars->{QEMUTHREADS}"] : $vars->{QEMUCPUS});
         if ($vars->{QEMU_NUMA}) {
             for my $i (0 .. ($vars->{QEMUCPUS} - 1)) {
                 my $m = int($vars->{QEMURAM} / $vars->{QEMUCPUS});
@@ -997,7 +907,7 @@ sub start_qemu {
             sp('k',   $vars->{VNCKB}) if $vars->{VNCKB};
         }
 
-        my @virtio_consoles = $self->get_virtio_console_names;
+        my @virtio_consoles = virtio_console_names;
         if (@virtio_consoles) {
             sp('device', 'virtio-serial');
             for my $name (@virtio_consoles) {
@@ -1017,9 +927,7 @@ sub start_qemu {
     if ($vars->{QEMU_APPEND}) {
         # Split multiple options, if needed
         my @spl = split(' -', $vars->{QEMU_APPEND});
-        foreach my $i (@spl) {
-            sp(split(' ', $i));
-        }
+        sp(split(' ', $_)) for @spl;
     }
 
     $self->create_virtio_console_fifo();
@@ -1101,7 +1009,6 @@ sub handle_qmp_command {
     my ($self, $cmd) = @_[0, 1];
     my %optargs = @_[2 .. $#_];
     $optargs{fatal} ||= 0;
-    my $wb;
     my $sk = $self->{qmpsocket};
 
     my $line = Mojo::JSON::to_json($cmd) . "\n";
@@ -1109,28 +1016,20 @@ sub handle_qmp_command {
         bmwqemu::fctinfo("Skipping the following qmp_command because QEMU_ONLY_EXEC is enabled:\n$line");
         return undef;
     }
-    if (defined $optargs{send_fd}) {
-        $wb = tinycv::send_with_fd($sk, $line, $optargs{send_fd});
-    }
-    else {
-        $wb = syswrite($sk, $line);
-    }
+    my $wb = defined $optargs{send_fd} ? tinycv::send_with_fd($sk, $line, $optargs{send_fd}) : syswrite($sk, $line);
     die "handle_qmp_command: syswrite failed $!" unless ($wb == length($line));
 
     my $hash;
-    while (!$hash) {
+    do {
         $hash = myjsonrpc::read_json($sk);
         if ($hash->{event}) {
             bmwqemu::diag "EVENT " . Mojo::JSON::to_json($hash);
             # ignore
             $hash = undef;
         }
-    }
-
-    if ($optargs{fatal} && defined($hash->{error})) {
-        die "QMP command $cmd->{execute} failed: $hash->{error}->{class}; $hash->{error}->{desc}";
-    }
-
+    } until ($hash);
+    die "QMP command $cmd->{execute} failed: $hash->{error}->{class}; $hash->{error}->{desc}"
+      if $optargs{fatal} && defined($hash->{error});
     return $hash;
 }
 
