@@ -41,13 +41,19 @@ $bdc->add_new_drive('hd1', 'virtio-blk', '10G');
 @gcmdl = $bdc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single new drive');
 
-@cmdl  = ([qw(create -f qcow2 raid/hd1 10G)]);
+@cmdl  = [qw(create -f qcow2 raid/hd1 10G)];
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single new drive');
 
-@cmdl  = (['convert', '-c', '-O', 'qcow2', 'raid/hd1', 'images/hd1.qcow2']);
+@cmdl  = [qw(convert -c -O qcow2 raid/hd1 images/hd1.qcow2)];
 @gcmdl = $bdc->gen_qemu_img_convert(qr/^hd/, 'images', 'hd1.qcow2');
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert for single new drive');
+
+@cmdl                               = [qw(convert -O qcow2 raid/hd1 images/hd2.qcow2)];
+$bmwqemu::vars{QEMU_COMPRESS_QCOW2} = 0;
+@gcmdl                              = $bdc->gen_qemu_img_convert(qr/^hd/, 'images', 'hd2.qcow2');
+is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert with disabled compression');
+$bmwqemu::vars{QEMU_COMPRESS_QCOW2} = 1;
 
 @cmdl = ('-blockdev', 'driver=file,node-name=hd1-file,filename=raid/hd1,cache.no-flush=on',
     '-blockdev', 'driver=qcow2,node-name=hd1,file=hd1-file,cache.no-flush=on',
