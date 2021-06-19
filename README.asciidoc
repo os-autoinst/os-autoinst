@@ -100,9 +100,9 @@ Example for openQA's self-tests ("openQA-in-openQA" test):
 
 -----------------------------------------------------------------------------
 mkdir distri && cd distri
-git git@github.com:os-autoinst/os-autoinst-distri-openQA.git openqa
+git clone git@github.com:os-autoinst/os-autoinst-distri-openQA.git openqa
 cd openqa
-git git@github.com:os-autoinst/os-autoinst-needles-openQA.git needles
+git clone git@github.com:os-autoinst/os-autoinst-needles-openQA.git needles
 -----------------------------------------------------------------------------
 
 Then create a working directory for the test execution, e.g.:
