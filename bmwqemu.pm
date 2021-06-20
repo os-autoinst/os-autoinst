@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -295,15 +295,7 @@ sub log_call {
     return;
 }
 
-sub fileContent {
-    my ($fn) = @_;
-    no autodie 'open';
-    open(my $fd, "<", $fn) or return;
-    local $/;
-    my $result = <$fd>;
-    close($fd);
-    return $result;
-}
+sub fileContent { path(shift)->slurp }
 
 # util and helper functions end
 
