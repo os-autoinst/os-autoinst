@@ -34,7 +34,7 @@ use Mojo::JSON;
 use Carp;
 use Fcntl;
 use Net::DBus;
-use bmwqemu qw(fileContent diag save_vars);
+use bmwqemu qw(diag);
 require IPC::System::Simple;
 use Try::Tiny;
 use osutils qw(find_bin gen_params qv run_diag runcmd);
@@ -786,7 +786,7 @@ sub start_qemu {
     push @tapscript,     "no" until @tapscript >= $num_networks;        #no TAPSCRIPT by default
     push @tapdownscript, "no" until @tapdownscript >= $num_networks;    #no TAPDOWNSCRIPT by default
 
-    # put it back to the vars for save_vars()
+    # put it back to the vars for saving
     $vars->{NICMAC}        = join ',', @nicmac;
     $vars->{NICVLAN}       = join ',', @nicvlan;
     $vars->{TAPDEV}        = join ',', @tapdev        if $vars->{NICTYPE} eq "tap";
