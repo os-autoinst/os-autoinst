@@ -1043,11 +1043,6 @@ sub start_qemu {
         }
     };
 
-    my $cnt = bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw");
-    if ($cnt) {
-        $self->send($cnt);
-    }
-
     if ($vars->{NICTYPE} eq "tap") {
         $self->{allocated_networks}    = $num_networks;
         $self->{allocated_tap_devices} = \@tapdev;
