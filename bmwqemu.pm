@@ -29,8 +29,8 @@ use Cpanel::JSON::XS ();
 use File::Path 'remove_tree';
 use Data::Dumper;
 use Mojo::Log;
-use Mojo::File;
-use File::Spec::Functions;
+use File::Spec::Functions qw(catfile);
+use Mojo::File qw(path);
 use POSIX 'strftime';
 use Term::ANSIColor;
 
@@ -295,7 +295,13 @@ sub log_call {
     return;
 }
 
-sub fileContent { path(shift)->slurp }
+sub fileContent {
+    my ($fn) = @_;
+    warn "DEPRECATED: use 'Mojo::File::path('$fn')->slurp' instead";
+    my $ret = eval { path($fn)->slurp };
+    return undef if ($@);
+    return $ret;
+}
 
 # util and helper functions end
 
