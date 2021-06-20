@@ -30,6 +30,7 @@ use Time::HiRes qw(sleep gettimeofday);
 use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use POSIX qw(strftime :sys_wait_h mkfifo);
+use Mojo::File 'path';
 use Mojo::JSON;
 use Carp;
 use Fcntl;
@@ -117,7 +118,7 @@ sub execute_qmp_command {
 
 sub cpu_stat {
     my $self = shift;
-    my $stat = bmwqemu::fileContent("/proc/" . $self->{proc}->_process->pid . "/stat");
+    my $stat = path("/proc/" . $self->{proc}->_process->pid . "/stat")->slurp;
     my @a    = split(" ", $stat);
     return [@a[13, 14]];
 }
