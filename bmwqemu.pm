@@ -37,7 +37,7 @@ use Term::ANSIColor;
 use Exporter 'import';
 
 our $VERSION;
-our @EXPORT_OK = qw(diag fctres fctinfo fctwarn modstart fileContent save_vars);
+our @EXPORT_OK = qw(diag fctres fctinfo fctwarn modstart save_vars);
 
 use backend::driver;
 require IPC::System::Simple;
@@ -293,14 +293,6 @@ sub log_call {
     }
     logger->debug('<<< ' . $fname . "($params)");
     return;
-}
-
-sub fileContent {
-    my ($fn) = @_;
-    warn "DEPRECATED: use 'Mojo::File::path('$fn')->slurp' instead";
-    my $ret = eval { path($fn)->slurp };
-    return undef if ($@);
-    return $ret;
 }
 
 # util and helper functions end
