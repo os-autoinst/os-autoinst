@@ -1,4 +1,4 @@
-# Copyright © 2016 SUSE LLC
+# Copyright © 2016-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@ use autodie ':all';
 
 use base 'backend::baseclass';
 
-use bmwqemu qw(fileContent diag save_vars);
+use bmwqemu qw(diag);
 use File::Path 'mkpath';
 require IPC::System::Simple;
 use File::Basename;

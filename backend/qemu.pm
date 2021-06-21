@@ -30,11 +30,12 @@ use Time::HiRes qw(sleep gettimeofday);
 use IO::Socket::UNIX 'SOCK_STREAM';
 use IO::Handle;
 use POSIX qw(strftime :sys_wait_h mkfifo);
+use Mojo::File 'path';
 use Mojo::JSON;
 use Carp;
 use Fcntl;
 use Net::DBus;
-use bmwqemu qw(fileContent diag save_vars);
+use bmwqemu qw(diag);
 require IPC::System::Simple;
 use Try::Tiny;
 use osutils qw(find_bin gen_params qv run_diag runcmd);
@@ -117,7 +118,7 @@ sub execute_qmp_command {
 
 sub cpu_stat {
     my $self = shift;
-    my $stat = bmwqemu::fileContent("/proc/" . $self->{proc}->_process->pid . "/stat");
+    my $stat = path("/proc/" . $self->{proc}->_process->pid . "/stat")->slurp;
     my @a    = split(" ", $stat);
     return [@a[13, 14]];
 }
@@ -786,7 +787,7 @@ sub start_qemu {
     push @tapscript,     "no" until @tapscript >= $num_networks;        #no TAPSCRIPT by default
     push @tapdownscript, "no" until @tapdownscript >= $num_networks;    #no TAPDOWNSCRIPT by default
 
-    # put it back to the vars for save_vars()
+    # put it back to the vars for saving
     $vars->{NICMAC}        = join ',', @nicmac;
     $vars->{NICVLAN}       = join ',', @nicvlan;
     $vars->{TAPDEV}        = join ',', @tapdev        if $vars->{NICTYPE} eq "tap";
@@ -1042,11 +1043,6 @@ sub start_qemu {
             exit(1);
         }
     };
-
-    my $cnt = bmwqemu::fileContent("$ENV{HOME}/.autotestvncpw");
-    if ($cnt) {
-        $self->send($cnt);
-    }
 
     if ($vars->{NICTYPE} eq "tap") {
         $self->{allocated_networks}    = $num_networks;

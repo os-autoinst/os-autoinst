@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@ use base 'backend::baseclass';
 use Time::HiRes qw(sleep gettimeofday);
 use Data::Dumper;
 require Carp;
-use bmwqemu qw(fileContent diag save_vars diag);
+use bmwqemu ();
 use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
