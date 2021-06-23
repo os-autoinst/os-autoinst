@@ -47,6 +47,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   enter_cmd
   hold_key release_key
 
+  assert_screen check_screen assert_and_tclick save_screenshot
   assert_screen check_screen assert_and_dclick save_screenshot
   assert_and_click mouse_hide mouse_set mouse_click assert_and_tclick
   mouse_dclick mouse_tclick match_has_tag click_lastmatch mouse_drag
@@ -581,6 +582,17 @@ sub click_lastmatch {
     }
 }
 
+<<<<<<< HEAD
+=======
+=head2 assert_and_tclick
+
+  assert_and_tclick($mustmatch [, timeout => $timeout] [, button => $button] [, clicktime => $clicktime ] [, dclick => 1 ] [, mousehide => 1 ]);
+
+Alias for C<assert_and_click> with C<$dclick> set.
+
+=cut
+
+>>>>>>> 2b80584d30fef0c19759ec1d10086274cd22df1f
 sub assert_and_tclick {
     my ($mustmatch, %args) = @_;
     $args{dclick} = 1;
