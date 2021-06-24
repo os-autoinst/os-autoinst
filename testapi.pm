@@ -48,7 +48,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   hold_key release_key
 
   assert_screen check_screen assert_and_dclick save_screenshot
-  assert_and_click mouse_hide mouse_set mouse_click
+  assert_and_click mouse_hide mouse_set mouse_click assert_and_tclick
   mouse_dclick mouse_tclick match_has_tag click_lastmatch mouse_drag
 
   assert_script_run script_run background_script_run
@@ -581,6 +581,12 @@ sub click_lastmatch {
     }
 }
 
+sub assert_and_tclick {
+    my ($mustmatch, %args) = @_;
+    $args{dclick} = 1;
+    return assert_and_click($mustmatch, %args);
+}
+
 =head2 assert_and_dclick
 
   assert_and_dclick($mustmatch [, timeout => $timeout] [, button => $button] [, clicktime => $clicktime ] [, dclick => 1 ] [, mousehide => 1 ]);
@@ -594,6 +600,8 @@ sub assert_and_dclick {
     $args{dclick} = 1;
     return assert_and_click($mustmatch, %args);
 }
+
+
 
 =head2 wait_screen_change
 

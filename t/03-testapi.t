@@ -467,17 +467,17 @@ subtest 'assert_and_click' => sub {
     is_deeply($cmds->[-1], {cmd    => 'backend_mouse_set', x      => 100,     y   => 100}, 'assert_and_click succeeds and move to old mouse set');
 };
 
-subtest 'assert_and_dclick' => sub {
+subtest 'assert_and_dclick and assert_and_tclick' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(assert_screen => {area => [{x => 1, y => 2, w => 3, h => 4}]});
-    ok(assert_and_dclick('foo', mousehide => 1));
+    ok(assert_and_dclick and assert_and_tclick('foo', mousehide => 1));
     for (-2, -4) {
-        is_deeply($cmds->[$_], {bstate => 0, button => 'left', cmd => 'backend_mouse_button'}, 'assert_and_dclick succeeds with bstate => 0');
+        is_deeply($cmds->[$_], {bstate => 0, button => 'left', cmd => 'backend_mouse_button'}, 'assert_and_dclick and assert_and_tclick succeeds with bstate => 0');
     }
     for (-3, -5) {
-        is_deeply($cmds->[$_], {bstate => 1, button => 'left', cmd => 'backend_mouse_button'}, 'assert_and_dclick succeeds with bstate => 1');
+        is_deeply($cmds->[$_], {bstate => 1, button => 'left', cmd => 'backend_mouse_button'}, 'assert_and_dclick and assert_and_tclick succeeds with bstate => 1');
     }
-    is_deeply($cmds->[-1], {cmd => 'backend_mouse_hide', offset => 0}, 'assert_and_dclick succeeds and hides mouse with mousehide => 1');
+    is_deeply($cmds->[-1], {cmd => 'backend_mouse_hide', offset => 0}, 'assert_and_dclick and assert_and_tclick succeeds and hides mouse with mousehide => 1');
 };
 
 subtest 'record_info' => sub {
