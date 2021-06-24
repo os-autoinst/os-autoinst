@@ -581,6 +581,14 @@ sub click_lastmatch {
     }
 }
 
+=head2 assert_and_tclick
+
+  assert_and_tclick($mustmatch [, timeout => $timeout] [, button => $button] [, clicktime => $clicktime ] [, dclick => 1 ] [, mousehide => 1 ]);
+
+Alias for C<assert_and_click> with C<$dclick> set.
+
+=cut
+
 sub assert_and_tclick {
     my ($mustmatch, %args) = @_;
     $args{dclick} = 1;
