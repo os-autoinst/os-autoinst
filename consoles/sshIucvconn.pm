@@ -32,7 +32,7 @@ sub connect_remote {
     my $zvmguest = get_var('ZVM_GUEST');
 
     # ssh connection to SUT for agetty
-    my $ttyconn = $self->backend->new_ssh_connection(hostname => $hostname, password => $args->{password}, username => 'root');
+    my $ttyconn = $self->backend->new_ssh_connection(hostname => $hostname, password => $args->{password}, username => 'bernhard');
 
     # start agetty to ensure that iucvconn is not killed
     my $chan = $ttyconn->channel() || $ttyconn->die_with_error();
