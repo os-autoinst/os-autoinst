@@ -754,7 +754,7 @@ subtest 'mouse_drag' => sub {
                 button => 'left',
                 cmd    => 'backend_mouse_button'
             },
-    ], 'mouse drag (startpoint defined by a needle)') or diag explain $cmds;
+    ], 'mouse drag & mouse_tclick(startpoint defined by a needle)') or diag explain $cmds;
 
     # Startpoint from coordinates, endpoint from a needle.
     $cmds = [];
@@ -780,7 +780,7 @@ subtest 'mouse_drag' => sub {
                 button => 'left',
                 cmd    => 'backend_mouse_button'
             },
-    ], 'mouse drag (endpoint defined by a needle)') or diag explain $cmds;
+    ], 'mouse drag & mouse_tclick(endpoint defined by a needle)') or diag explain $cmds;
 
     # Using coordinates only.
     $cmds = [];
@@ -806,7 +806,7 @@ subtest 'mouse_drag' => sub {
                 button => 'left',
                 cmd    => 'backend_mouse_button'
             },
-    ], 'mouse drag (start and endpoints defined by coordinates)') or diag explain $cmds;
+    ], 'mouse drag & mouse_tclick(start and endpoints defined by coordinates)') or diag explain $cmds;
 
     # Both needle and coordinates provided for startpoint (coordinates should win).
     $cmds = [];
@@ -832,7 +832,7 @@ subtest 'mouse_drag' => sub {
                 button => 'left',
                 cmd    => 'backend_mouse_button'
             },
-    ], 'mouse drag (redundant definiton by a needle)') or diag explain $cmds;
+    ], 'mouse drag & mouse_tclick(redundant definiton by a needle)') or diag explain $cmds;
 };
 
 done_testing;
