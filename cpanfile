@@ -28,6 +28,7 @@ requires 'File::Spec';
 requires 'File::Temp';
 requires 'File::Touch';
 requires 'File::Which';
+requires 'File::chdir';
 requires 'IO::Handle';
 requires 'IO::Scalar';
 requires 'IO::Select';
@@ -83,6 +84,7 @@ on 'test' => sub {
     requires 'Test::Mock::Time';
     requires 'Test::MockModule';
     requires 'Test::MockObject';
+    requires 'Test::MockRandom';
     requires 'Test::Mojo';
     requires 'Test::Most';
     requires 'Test::Output';

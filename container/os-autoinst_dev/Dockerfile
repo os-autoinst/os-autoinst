@@ -63,6 +63,7 @@ RUN zypper in -y -C \
        'perl(File::Temp)' \
        'perl(File::Touch)' \
        'perl(File::Which)' \
+       'perl(File::chdir)' \
        'perl(FindBin)' \
        'perl(IO::Handle)' \
        'perl(IO::Scalar)' \
@@ -104,6 +105,7 @@ RUN zypper in -y -C \
        'perl(Test::Mock::Time)' \
        'perl(Test::MockModule)' \
        'perl(Test::MockObject)' \
+       'perl(Test::MockRandom)' \
        'perl(Test::Mojo)' \
        'perl(Test::Most)' \
        'perl(Test::Output)' \

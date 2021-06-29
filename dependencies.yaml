@@ -76,6 +76,7 @@ test_base_requires:
   perl(Test::Fatal):
   perl(Test::MockModule):
   perl(Test::MockObject):
+  perl(Test::MockRandom):
   perl(Test::Mock::Time):
   perl(Test::Mojo):
   perl(Test::Most):
@@ -123,6 +124,7 @@ main_requires:
   perl(ExtUtils::testlib):
   perl(Fcntl):
   perl(File::Basename):
+  perl(File::chdir):
   perl(File::Find):
   perl(File::Path):
   perl(File::Spec):

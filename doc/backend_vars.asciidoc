@@ -199,6 +199,18 @@ NUMDISKS;integer;1;Number of disks
 RAIDLEVEL;integer;undef;Sets the raid level
 |====================
 
+.VAGRANT backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+VAGRANT_BOX;string;undef;The unique identifier/name of the vagrant box that should be used for the test. This is the same value as used when running `vagrant init $boxname`. When the box name is prefixed with a `/` then the backend expects the such a file in the directory `VAGRANT_ASSETDIR`.
+VAGRANT_BOX_URL;string;undef;URL to the json file that contains the links to the published versions of the vagrant boxes. This is only required for boxes that are hosted in the Open Build Service and not for those hosted on Vagrant Cloud.
+VAGRANT_PROVIDER;libvirt|virtualbox;undef;The provider (= VM backend) that will be used by vagrant.
+VAGRANT_UP_TIMEOUT;integer;300;The maximum time in seconds that `vagrant up` is allowed to take (note that this includes download times as well).
+VAGRANT_ASSETDIR;string;undef;Directory on the worker in which it expects to find local vagrant boxes. This variable must be set when testing local boxes and can be left undefined otherwise. It is recommended to set this variable on the worker.
+|====================
+
 .VIRT backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
