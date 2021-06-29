@@ -1128,15 +1128,25 @@ sub handle_qmp_command {
     return $hash;
 }
 
+sub process_qemu_output {
+    my ($buffer) = @_;
+    for my $line (split(/\n/, $buffer)) {
+        die "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
+        if ($line =~ /^qemu-system-.*: (?!terminating on signal)/) {
+            bmwqemu::fctwarn $line, '';
+        }
+        else {
+            bmwqemu::diag "QEMU: $line";
+        }
+    }
+}
+
 sub read_qemupipe {
     my ($self) = @_;
     my $buffer;
     my $bytes = sysread($self->{qemupipe}, $buffer, 1000);
     chomp $buffer;
-    for my $line (split(/\n/, $buffer)) {
-        bmwqemu::diag "QEMU: $line";
-        die "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
-    }
+    process_qemu_output($buffer);
     return $bytes;
 }
 

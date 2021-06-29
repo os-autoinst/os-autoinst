@@ -451,7 +451,7 @@ sub connect_qmp {
         condition => sub { $sk },
         or        => sub { die "Can't open QMP socket" },
         cb        => sub {
-            die 'QEMU terminated before QMP connection could be established' if $self->{_qemu_terminated};
+            die "QEMU terminated before QMP connection could be established. Check for errors below\n" if $self->{_qemu_terminated};
             $sk = IO::Socket::UNIX->new(
                 Type     => IO::Socket::UNIX::SOCK_STREAM,
                 Peer     => 'qmp_socket',
