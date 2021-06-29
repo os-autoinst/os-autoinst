@@ -978,7 +978,12 @@ sub start_qemu {
         }
         if ($vars->{QEMU_NUMA}) {
             for my $i (0 .. ($vars->{QEMUCPUS} - 1)) {
-                sp('numa', [qv "node nodeid=$i"]);
+                my $m = int($vars->{QEMURAM} / $vars->{QEMUCPUS});
+                # add the rest to the first node to ensure all memory is
+                # allocated
+                $m += $vars->{QEMURAM} % $vars->{QEMUCPUS} if $i == 0;
+                sp('object', "memory-backend-ram,size=${m}m,id=m$i");
+                sp('numa',   [qv "node nodeid=$i,memdev=m$i"]);
             }
         }
 
