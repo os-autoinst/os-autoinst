@@ -235,6 +235,7 @@ sub configure_blockdevs {
     }
     my $is_first = 1;
     for my $k (sort grep { /^ISO_\d+$/ } keys %$vars) {
+        next unless $vars->{$k};
         my $addoniso = File::Spec->rel2abs($vars->{$k});
         my $i        = $k;
         $i =~ s/^ISO_//;
