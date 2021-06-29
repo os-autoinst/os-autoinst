@@ -92,6 +92,7 @@ sub handle_command {
 
 sub die_handler {
     my $msg = shift;
+    chomp($msg);
     bmwqemu::fctinfo "Backend process died, backend errors are reported below in the following lines:\n$msg";
     bmwqemu::serialize_state(component => 'backend', msg => $msg);
     $backend->stop_vm();
