@@ -401,4 +401,19 @@ subtest 'qemu was killed due to the system being out of memory' => sub {
     unlink("./Core-7.2.iso");
 };
 
+subtest 'qemu is not called on an empty file when ISO_1 is an empty string' => sub {
+    my $mock_proc  = Test::MockModule->new('OpenQA::Qemu::Proc');
+    my $call_count = 0;
+    $mock_proc->redefine(get_img_size => sub {
+            my ($iso) = @_;
+            $call_count++;
+            die 'get_img_size called on an empty string' unless $iso;
+    });
+
+    my %empty_iso_vars = (ISO_1 => '', NUMDISKS => 0);
+
+    OpenQA::Qemu::Proc->new()->configure_blockdevs('disk', 'raid', \%empty_iso_vars);
+    is($call_count, 0, 'get_img_size call count check');
+};
+
 done_testing();
