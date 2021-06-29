@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '20';
@@ -24,8 +25,7 @@ chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
 
-sub isotovideo {
-    my (%args) = @_;
+sub isotovideo (%args) {
     $args{default_opts} //= 'backend=null';
     $args{opts}         //= '';
     $args{exit_code}    //= 1;
@@ -131,15 +131,13 @@ subtest 'upload assets on demand even in failed jobs' => sub {
 # mock backend/driver
 {
     package FakeBackendDriver;
-    sub new {
-        my ($class, $name) = @_;
+    sub new ($class, $name) {
         my $self = bless({class => $class}, $class);
         require "backend/$name.pm";
         $self->{backend} = "backend::$name"->new();
         return $self;
     }
-    sub extract_assets {
-        my $self = shift;
+    sub extract_assets ($self) {
         $self->{backend}->do_extract_assets(@_);
     }
 }

@@ -21,8 +21,7 @@
 
 package backend::driver;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use Carp 'croak';
@@ -35,8 +34,7 @@ use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use myjsonrpc;
 use signalblocker;
 
-sub new {
-    my ($class, $name) = @_;
+sub new ($class, $name) {
     my $self = bless({class => $class}, $class);
 
     require "backend/$name.pm";
@@ -54,9 +52,7 @@ sub new {
     return $self;
 }
 
-sub start {
-    my ($self) = @_;
-
+sub start ($self) {
     open(my $STDOUTPARENT, '>&', *STDOUT);
     open(my $STDERRPARENT, '>&', *STDERR);
 
@@ -93,13 +89,11 @@ sub start {
     $self->{backend_process} = $backend_process;
 }
 
-sub extract_assets {
-    my $self = shift;
+sub extract_assets ($self) {
     $self->{backend}->do_extract_assets(@_);
 }
 
-sub stop {
-    my ($self, $cmd) = @_;
+sub stop ($self, $cmd) {
     return unless $self->{backend_process}->is_running;
 
     $self->stop_backend()                        if $self->{backend_process}->channel_out;
@@ -112,8 +106,7 @@ sub stop {
 
 # new api
 
-sub start_vm {
-    my $self = shift;
+sub start_vm ($self) {
     my $json = to_json({backend => $self->{backend_name}});
     open(my $runf, ">", 'backend.run');
     print $runf "$json\n";
@@ -127,8 +120,7 @@ sub start_vm {
     return 1;
 }
 
-sub stop_backend {
-    my ($self) = @_;
+sub stop_backend ($self) {
     $self->_send_json({cmd => 'stop_vm'});
     # remove if still existant
     unlink('backend.run') if -e 'backend.run';
@@ -137,8 +129,7 @@ sub stop_backend {
 
 # new api end
 
-sub mouse_hide {
-    my ($self, $border_offset) = @_;
+sub mouse_hide ($self, $border_offset) {
     $border_offset ||= 0;
 
     return $self->_send_json({cmd => 'mouse_hide', arguments => {border_offset => $border_offset}});
@@ -146,8 +137,7 @@ sub mouse_hide {
 
 # virtual methods end
 
-sub _send_json {
-    my ($self, $cmd) = @_;
+sub _send_json ($self, $cmd) {
     croak "no backend running" unless $self->{backend_process}->channel_in;
     my $token = myjsonrpc::send_json($self->{backend_process}->channel_in, $cmd);
     my $rsp   = myjsonrpc::read_json($self->{backend_process}->channel_out, $token);

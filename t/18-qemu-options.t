@@ -15,6 +15,7 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -77,7 +78,6 @@ sub run_isotovideo {
 
 # test QEMU_APPEND with different options
 subtest qemu_append_option => sub {
-
     # print version and also measure time of startup and shutdown: call isotovideo with QEMU_APPEND
     my $time = timeit(1, sub { run_isotovideo(QEMU_ONLY_EXEC => 1, QEMU_WAIT_FINISH => 1, QEMU_APPEND => 'version') });
     like($log, qr/-version/,                                              '-version option added');
@@ -112,7 +112,6 @@ subtest qemu_append_option => sub {
 
 # test QEMU_HUGE_PAGES_PATH with different options
 subtest qemu_huge_pages_option => sub {
-
     # print version: call isotovideo with QEMU_HUGE_PAGES_PATH
     run_isotovideo(QEMU_HUGE_PAGES_PATH => '/no/dev/hugepages/');
     like($log, qr/-mem-prealloc/,                                                                          '-mem-prealloc option added');
@@ -124,7 +123,6 @@ subtest qemu_huge_pages_option => sub {
 # note: Since this test does not have any checks for the actual QEMU output it would be possible to mock the actual execution
 #       of QEMU here.
 subtest qemu_tpm_option => sub {
-
     # call isotovideo with QEMUTPM=instance
     run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => 'instance');
     like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock|, '-chardev socket option added (instance)');

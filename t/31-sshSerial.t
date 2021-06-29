@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '20';
@@ -41,16 +42,12 @@ $mock_backend->mock(new_ssh_connection => sub { $mock_ssh });
 
 $mock_bmwqemu->noop('diag', 'fctinfo', 'log_call');
 
-$mock_channel->mock(blocking => sub {
-        my ($self, $arg) = @_;
-
+$mock_channel->mock(blocking => sub ($self, $arg) {
         $self->{blocking} = $arg if defined($arg);
         return $self->{blocking};
 });
 
-$mock_channel->mock(read => sub {
-        my ($self, undef, $size) = @_;
-
+$mock_channel->mock(read => sub ($self, $, $size) {
         my $data = shift @{$self->{read_queue}};
 
         if (!defined($data)) {
@@ -67,8 +64,7 @@ $mock_channel->mock(read => sub {
         return length($data);
 });
 
-$mock_channel->mock(write => sub {
-        my ($self, $data) = @_;
+$mock_channel->mock(write => sub ($self, $data) {
         my $limit = shift @{$self->{write_limits}};
 
         if (defined($limit) && $limit < 0) {
@@ -83,9 +79,7 @@ $mock_channel->mock(write => sub {
 
 $mock_ssh->mock(blocking => sub { return $mock_channel->blocking($_[1]) });
 
-$mock_ssh->mock(error => sub {
-        my $self = shift;
-
+$mock_ssh->mock(error => sub ($self) {
         return undef unless defined($self->{error});
         return ${$self->{error}}[0] if ((caller(0))[5]);
         return @{$self->{error}};

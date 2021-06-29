@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,12 +22,10 @@
 
 package backend::console_proxy;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 use feature 'say';
 
-sub new {
-    my ($class, $console) = @_;
+sub new ($class, $console) {
 
     my $self = bless({class => $class, console => $console}, $class);
 
@@ -42,7 +40,6 @@ sub DESTROY {
 # using query_isotovideo() to invoke the method on the actual console object in
 # the right process
 sub AUTOLOAD {
-
     my $function = our $AUTOLOAD;
 
     $function =~ s,.*::,,;

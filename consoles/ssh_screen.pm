@@ -1,4 +1,4 @@
-# Copyright © 2019 SUSE LLC
+# Copyright © 2019-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 
 package consoles::ssh_screen;
 
-use Mojo::Base 'consoles::serial_screen';
+use Mojo::Base 'consoles::serial_screen', -signatures;
 use Carp 'croak';
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 
@@ -24,9 +24,8 @@ has ssh_channel    => undef;
 
 use constant TYPE_STRING_TIMEOUT => 60;
 
-sub new {
-    my $class = shift;
-    my $self  = bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, ref $class || $class;
+sub new ($class) {
+    my $self = bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, ref $class || $class;
 
     croak('Missing parameter ssh_connection') unless $self->ssh_connection;
     croak('Missing parameter ssh_channel')    unless $self->ssh_channel;
@@ -39,9 +38,7 @@ sub new {
     return $self->SUPER::new($self->ssh_channel);
 }
 
-sub do_read
-{
-    my ($self, undef, %args) = @_;
+sub do_read ($self, undef, %args) {
     my $buffer = '';
     $args{timeout}  //= undef;    # wait till data is available
     $args{max_size} //= 2048;
@@ -62,9 +59,7 @@ sub do_read
     return undef;
 }
 
-sub type_string {
-    my ($self, $nargs) = @_;
-
+sub type_string ($self, $nargs) {
     bmwqemu::log_call(%$nargs);
 
     my $text           = $nargs->{text};

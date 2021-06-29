@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,27 +22,18 @@ to a controller.
 =cut
 
 package OpenQA::Qemu::DrivePath;
-use Mojo::Base -base;
+use Mojo::Base -base, -signatures;
 
 has 'id';
 has 'controller';
 
-sub _to_map {
-    my $self = shift;
+sub _to_map ($self) { {id => $self->id, controller => $self->controller->id} }
 
-    return {id => $self->id,
-        controller => $self->controller->id};
-}
-
-sub _from_map {
-    my ($self, $map, $cont_conf) = @_;
-
-    return $self->id($map->{id})
+sub _from_map ($self, $map, $cont_conf) {
+    $self->id($map->{id})
       ->controller($cont_conf->get_controller($map->{controller}));
 }
 
-sub CARP_TRACE {
-    return 'OpenQA::Qemu::DrivePath(' . (shift->id || '') . ')';
-}
+sub CARP_TRACE { 'OpenQA::Qemu::DrivePath(' . (shift->id || '') . ')' }
 
 1;

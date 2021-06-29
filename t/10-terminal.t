@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2016-2020 SUSE LLC
+# Copyright (C) 2016-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,8 +14,8 @@
 #
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
-use 5.018;
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -80,9 +80,7 @@ $bmwqemu::direct_output = 0;
 $bmwqemu::logger        = Mojo::Log->new(path => $err_path);
 
 # Either write $msg to the socket or die
-sub try_write {
-    my ($fd, $msg) = @_;
-
+sub try_write ($fd, $msg) {
     print $logfd $msg;
 
     while (1) {
@@ -102,9 +100,7 @@ sub try_write {
 
 # Try to write $seq to the socket $repeat number of times with pauses between
 # writes
-sub try_write_sequence {
-    my ($fd, $seq, $repeat, $stop_code) = @_;
-
+sub try_write_sequence ($fd, $seq, $repeat, $stop_code) {
     my @pauses = (10, 100, 200, 500, 1000);
 
     for my $i (1 .. $repeat) {
@@ -118,8 +114,7 @@ sub try_write_sequence {
 # Try to read $expected data from the socket or die.
 # Once we have read the data, echo it back like a real terminal, unless the
 # message is $next_test which we just use for synchronisation.
-sub try_read {
-    my ($fd, $fd_w, $expected) = @_;
+sub try_read ($fd, $fd_w, $expected) {
     my ($buf, $text);
 
     while (1) {
@@ -154,8 +149,7 @@ sub try_read {
 }
 
 # A mock terminal which we can communicate with over a UNIX socket
-sub fake_terminal {
-    my ($pipe_in, $pipe_out) = @_;
+sub fake_terminal ($pipe_in, $pipe_out) {
     my ($fd, $listen_fd);
 
     $SIG{ALRM} = sub {
@@ -232,13 +226,11 @@ sub fake_terminal {
     report_child_test(pass => 'fake_terminal managed to get all the way to the end without timing out!');
 }
 
-sub is_matched {
-    my ($result, $expected, $name) = @_;
+sub is_matched ($result, $expected, $name) {
     report_child_test(is_deeply => $result, {matched => 1, string => $expected}, $name);
 }
 
-sub test_terminal_directly {
-    my $tb = Test::Most->builder;
+sub test_terminal_directly ($tb) {
     $tb->reset;
 
     my $term = consoles::virtio_terminal->new('unit-test-console', {tty => 3});
@@ -316,8 +308,7 @@ sub test_terminal_directly {
     $term->reset;
 }
 
-sub test_terminal_disabled {
-    my $tb = Test::Most->builder;
+sub test_terminal_disabled ($tb) {
     $tb->reset;
 
     testapi::set_var('VIRTIO_CONSOLE', 0);
@@ -328,10 +319,7 @@ sub test_terminal_disabled {
 }
 
 # Called after waitpid to check child's exit
-sub check_child {
-    my ($child, $expected_exit_status) = @_;
-    $expected_exit_status //= 0;
-
+sub check_child ($child, $expected_exit_status = 0) {
     my $exited      = WIFEXITED($CHILD_ERROR);
     my $exit_status = WEXITSTATUS($CHILD_ERROR);
 
@@ -401,8 +389,7 @@ say "The IO log file is at $log_path and the error log is $err_path.";
 # all childs have finished
 # Test::SharedFork is usually used to share test numbers between forks,
 # but it doesn't work with this test
-sub report_child_test {
-    my ($method, @args) = @_;
+sub report_child_test ($method, @args) {
     my $json = encode_json([$$, [$method => @args]]);
     open my $fh, '>>', $sharefile or die $!;
     flock $fh, LOCK_EX;

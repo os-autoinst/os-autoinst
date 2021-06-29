@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (c) 2020 SUSE LLC
+# Copyright (c) 2020-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 
 # mock sleeps
 my @invoked_cmds;

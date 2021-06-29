@@ -1,4 +1,4 @@
-# Copyright (C) 2020 SUSE LLC
+# Copyright (C) 2020-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,11 +15,11 @@
 
 package OpenQA::Test::TimeLimit;
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 
 my $SCALE_FACTOR = 1;
 
-sub import {
-    my ($package, $limit) = @_;
+sub import ($package, $limit) {
     die "$package: Need argument on import, e.g. use: use OpenQA::Test::TimeLimit '42';" unless $limit;
     return if $ENV{OPENQA_TEST_TIMEOUT_DISABLE};
     $SCALE_FACTOR *= $ENV{OPENQA_TEST_TIMEOUT_SCALE_COVER} // 3 if Devel::Cover->can('report');
@@ -29,9 +29,7 @@ sub import {
     alarm $limit;
 }
 
-sub scale_timeout {
-    return $_[0] * $SCALE_FACTOR;
-}
+sub scale_timeout ($timeout) { return $timeout * $SCALE_FACTOR }
 
 1;
 

@@ -1,4 +1,4 @@
-# Copyright © 2018-2019 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,15 +14,13 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package OpenQA::Commands;
-use Mojo::Base 'Mojolicious::Controller';
+use Mojo::Base 'Mojolicious::Controller', -signatures;
 
 use commands;
 use Try::Tiny;
 use Mojo::JSON qw(decode_json to_json);
 
-sub pass_message_from_ws_client_to_isotovideo {
-    my ($self, $id, $msg) = @_;
-
+sub pass_message_from_ws_client_to_isotovideo ($self, $id, $msg) {
     my $app        = $self->app;
     my $isotovideo = $app->defaults('isotovideo');
     return $app->log->debug('cmdsrv: not passing command from client to isotovideo; connection to isotovideo has already been stopped')
@@ -45,15 +43,12 @@ sub pass_message_from_ws_client_to_isotovideo {
     # note: no myjsonrpc::read_json() here - response is broadcasted to all clients in commands.pm
 }
 
-sub handle_ws_client_disconnects {
-    my ($self, $id) = @_;
+sub handle_ws_client_disconnects ($self, $id) {
     $self->app->log->debug('cmdsrv: client disconnected: ' . $id);
     delete $self->app->defaults('clients')->{$id};
 }
 
-sub start_ws {
-    my ($self) = @_;
-
+sub start_ws ($self) {
     my $id = sprintf "%s", $self->tx;
     $self->app->log->debug('cmdsrv: client connected: ' . $id);
     $self->app->defaults('clients')->{$id} = $self->tx;
@@ -68,9 +63,7 @@ sub start_ws {
     });
 }
 
-sub broadcast_message_to_websocket_clients {
-    my ($self) = @_;
-
+sub broadcast_message_to_websocket_clients ($self) {
     my $app     = $self->app;
     my $clients = $app->defaults('clients');
     my $message = $self->req->json;

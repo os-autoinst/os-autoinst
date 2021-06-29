@@ -1,4 +1,4 @@
-# Copyright (C) 2017 SUSE LLC
+# Copyright (C) 2017-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,21 +15,16 @@
 
 package testdistribution;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 
 use base 'distribution';
 
-sub init {
-    my ($self) = @_;
-
+sub init ($self) {
     $self->SUPER::init();
     $self->init_consoles();
 }
 
-sub init_consoles {
-    my ($self) = @_;
-
+sub init_consoles ($self) {
     $self->add_console(
         'brokenvnc',
         'vnc-base',
@@ -45,7 +40,6 @@ sub init_consoles {
             hostname => 'noIucvconn.nowhere',
             password => $testapi::password
         });
-
 }
 
 1;

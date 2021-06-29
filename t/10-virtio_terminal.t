@@ -1,7 +1,8 @@
 #!/usr/bin/perl
-# Copyright © 2020 SUSE LLC
+# Copyright © 2020-2021 SUSE LLC
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use Test::Warnings qw(:all :report_warnings);
 
 # OpenQA::Test::TimeLimit not used as `prepare_pipes` defines an ALRM handler
@@ -15,9 +16,7 @@ use testapi;
 use bmwqemu;
 
 
-sub prepare_pipes
-{
-    my ($socket_path, $write_buffer) = @_;
+sub prepare_pipes ($socket_path, $write_buffer) {
     my $pipe_in  = $socket_path . ".in";
     my $pipe_out = $socket_path . ".out";
 
@@ -48,16 +47,13 @@ sub prepare_pipes
     return {pid => $pid, files => [$pipe_in, $pipe_out]};
 }
 
-sub cleanup_pipes
-{
-    my $obj = shift;
+sub cleanup_pipes ($obj) {
     kill 'USR1', $obj->{pid};
     waitpid(-1, 0);
     unlink for (@{$obj->{files}});
 }
 
 subtest "Test open_pipe() error condition" => sub {
-
     my $socket_path    = './virtio_console_open_test';
     my $file_mock      = Test::MockModule->new('Mojo::File');
     my $vterminal_mock = Test::MockModule->new('consoles::virtio_terminal');

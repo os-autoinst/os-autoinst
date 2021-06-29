@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,21 +16,17 @@
 
 package consoles::remoteVnc;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 
 use base 'consoles::vnc_base';
 
 use testapi 'get_var';
 
-sub init {
-    my ($self) = @_;
+sub init ($self) {
     $self->{name} = 'remote-vnc';
 }
 
-sub activate {
-    my ($self, $testapi_console, $console_args) = @_;
-
+sub activate ($self, $testapi_console, $console_args) {
     return $self->SUPER::activate(
         $testapi_console,
         {

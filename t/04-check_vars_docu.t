@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2015 SUSE LLC
+# Copyright (c) 2015-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 
 use Test::Warnings ':report_warnings';
 use FindBin;
@@ -45,8 +46,7 @@ my $ignore_errors = 1;
 
 my $table_header = 'Variable;Values allowed;Default value;Explanation';
 
-sub say {
-    my ($text) = @_;
+sub say ($text) {
     print STDERR "$text\n";
 }
 
@@ -81,8 +81,7 @@ sub read_doc {
     close($docfh);
 }
 
-sub write_doc {
-    my $docfh;
+sub write_doc ($docfh) {
     open($docfh, '>', VARS_DOC . '.newvars');
     print $docfh <<EO_HEADER;
 Supported variables per backend
@@ -117,9 +116,7 @@ EO_BACKEND_FOOTER
     }
 }
 
-sub read_backend_pm {
-    my ($backend) = $_ =~ /^([^\.]+)\.pm/;
-    return unless $backend;
+sub read_backend_pm ($backend) {
     return if (grep { /$backend/i } @backend_blocklist);
     $backend = uc $backend;
     $backend = uc $backend_renames{$backend} if $backend_renames{$backend};

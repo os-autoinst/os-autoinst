@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2016-2020 SUSE LLC
+# Copyright (c) 2016-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -42,8 +43,7 @@ my $job          = 'Hallo';
 my $toplevel_dir = path(__FILE__)->dirname->realpath;
 my $data_dir     = $toplevel_dir->child('data');
 
-sub wait_for_server {
-    my ($ua) = @_;
+sub wait_for_server ($ua) {
     for (my $counter = 0; $counter < 20; $counter++) {
         return if (($ua->get("$base_url/NEVEREVER")->res->code // 0) == 404);
         sleep .1;

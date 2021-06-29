@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,8 +16,7 @@
 
 package backend::ipmi;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'backend::baseclass';
@@ -27,20 +26,17 @@ use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
 
-sub new {
-    my $class = shift;
+sub new ($class) {
     get_required_var('WORKER_HOSTNAME');
     return $class->SUPER::new;
 }
 
-sub ipmi_cmdline {
-    my ($self) = @_;
+sub ipmi_cmdline ($self) {
     get_required_var("IPMI_$_") foreach qw(HOSTNAME USER PASSWORD);
     return ('ipmitool', '-I', 'lanplus', '-H', $bmwqemu::vars{IPMI_HOSTNAME}, '-U', $bmwqemu::vars{IPMI_USER}, '-P', $bmwqemu::vars{IPMI_PASSWORD});
 }
 
-sub ipmitool {
-    my ($self, $cmd, %args) = @_;
+sub ipmitool ($self, $cmd, %args) {
     $args{tries} //= 1;
 
     my @cmd = $self->ipmi_cmdline();
@@ -68,15 +64,13 @@ sub ipmitool {
 }
 
 # DELL BMCs are touchy
-sub dell_sleep {
-    my ($self) = @_;
+sub dell_sleep ($self) {
     return unless ($bmwqemu::vars{IPMI_HW} || '') eq 'dell';
     sleep 4;
 }
 
-sub restart_host {
-    my ($self) = @_;
-    my $tries = 3;     # arbitrary selection of tries
+sub restart_host ($self) {
+    my $tries = 3;    # arbitrary selection of tries
 
     my $stdout = $self->ipmitool('chassis power status', tries => $tries);
     if ($stdout !~ m/is off/) {
@@ -99,9 +93,7 @@ sub restart_host {
     1;
 }
 
-sub do_start_vm {
-    my ($self) = @_;
-
+sub do_start_vm ($self) {
     # reset ipmi main board if switch on
     # We may need this IPMI_BACKEND_MC_RESET setting to tune differently
     # on different ipmi workers according to different ipmi machines' behavior.
@@ -117,37 +109,28 @@ sub do_start_vm {
     return {};
 }
 
-sub do_stop_vm {
-    my ($self) = @_;
-
+sub do_stop_vm ($self) {
     $self->ipmitool("chassis power off") unless $bmwqemu::vars{IPMI_DO_NOT_POWER_OFF};
     $self->deactivate_console({testapi_console => 'sol'}) if defined $testapi::distri->{consoles}->{sol};
     return {};
 }
 
-sub is_shutdown {
-    my ($self) = @_;
+sub is_shutdown ($self) {
     my $ret = $self->ipmitool('chassis power status', tries => 3);
     return $ret =~ m/is off/;
 }
 
-sub check_socket {
-    my ($self, $fh, $write) = @_;
-
+sub check_socket ($self, $fh, $write) {
     return $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write);
 }
 
-sub get_mc_status {
-    my ($self) = @_;
-
+sub get_mc_status ($self) {
     $self->ipmitool("mc guid");
     $self->ipmitool("mc info");
     $self->ipmitool("mc selftest") unless $bmwqemu::vars{IPMI_SKIP_SELFTEST};
 }
 
-sub do_mc_reset {
-    my ($self) = @_;
-
+sub do_mc_reset ($self) {
     # deactivate sol console before doing mc reset because it breaks sol connection
     if (defined $testapi::distri->{consoles}->{sol}) {
         bmwqemu::diag("Before doing mc reset, sol console exists, so cleanup it");

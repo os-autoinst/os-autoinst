@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2019-2020 SUSE LLC
+# Copyright © 2019-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,16 +16,14 @@
 
 package consoles::network_console;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 
 use base 'consoles::console';
 
 use Try::Tiny;
 use Scalar::Util 'blessed';
 
-sub activate {
-    my ($self) = @_;
+sub activate ($self) {
     try {
         local $SIG{__DIE__} = undef;
         $self->connect_remote($self->{args});

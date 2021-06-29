@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2020 SUSE LLC
+# Copyright (C) 2017-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,8 +15,7 @@
 package osutils;
 
 require 5.002;
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 
 use Carp;
 use base 'Exporter';
@@ -38,9 +37,7 @@ our @EXPORT_OK = qw(
 
 # An helper to lookup into a folder and find an executable file between given candidates
 # First argument is the directory, the remainining are the candidates.
-sub find_bin {
-    my ($dir, @candidates) = @_;
-
+sub find_bin ($dir, @candidates) {
     foreach my $t_bin (map { path($dir, $_) } @candidates) {
         return $t_bin if -e $t_bin && -x $t_bin;
     }
@@ -53,9 +50,7 @@ sub find_bin {
 # and if parameter should not be quoted, for that one can use no_quotes. NOTE: this is applicable for string parameters only.
 # if the parameter is equal to "", the value is not pushed to the array.
 # For example: gen_params \@params, 'device', 'scsi', prefix => '--', no_quotes => 1;
-sub gen_params(\@$$;%) {
-    my ($array, $argument, $parameter, %args) = @_;
-
+sub gen_params ($array, $argument, $parameter = undef, %args) {
     return              unless ($parameter);
     $args{prefix} = "-" unless $args{prefix};
 
@@ -70,28 +65,22 @@ sub gen_params(\@$$;%) {
 }
 
 # doubledash shortcut version. Same can be achieved with gen_params.
-sub dd_gen_params(\@$$) {
-    my ($array, $argument, $parameter) = @_;
+sub dd_gen_params ($array, $argument, $parameter) {
     gen_params(@{$array}, $argument, $parameter, prefix => "--");
 }
 
 # It merely splits a string into pieces interpolating variables inside it.
 # e.g.  gen_params @params, 'drive', "file=$basedir/l$i,cache=unsafe,if=none,id=hd$i,format=$vars->{HDDFORMAT}" can be rewritten as
 #       gen_params @params, 'drive', [qv "file=$basedir/l$i cache=unsafe if=none id=hd$i format=$vars->{HDDFORMAT}"]
-sub qv($) {
-    split /\s+|\h+|\r+/, $_[0];
-}
+sub qv ($string) { split /\s+|\h+|\r+/, $string }
 
 # Add single quote mark to string
 # Mainly use in the case of multiple kernel parameters to be passed to the -append option
 # and they need to be quoted using single or double quotes
-sub quote {
-    "\'" . $_[0] . "\'";
-}
+sub quote ($string) { "\'" . $string . "\'" }
 
-sub run {
-    bmwqemu::diag "running " . join(' ', @_);
-    my @args = @_;
+sub run (@args) {
+    bmwqemu::diag "running " . join(' ', @args);
     my $out;
     my $buffer;
     open my $handle, '>', \$buffer;
@@ -114,8 +103,7 @@ sub run {
 sub run_diag { my $o = (run(@_))[1]; bmwqemu::diag($o) if $o; $o }
 
 # Open a process to run external program and check its return status
-sub runcmd {
-    my (@cmd) = @_;
+sub runcmd (@cmd) {
     my ($e, $out) = run(@cmd);
     bmwqemu::diag $out if $out && length($out) > 0;
     die "runcmd '" . join(' ', @cmd) . "' failed with exit code $e" . ($out ? ": '$out'" : '') unless $e == 0;
@@ -128,8 +116,7 @@ sub wait_attempt {
     sleep($ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} // 1);
 }
 
-sub attempt {
-    my $attempts = 0;
+sub attempt ($attempts) {
     my ($total_attempts, $condition, $cb, $or) = ref $_[0] eq 'HASH' ? (@{$_[0]}{qw(attempts condition cb or)}) : @_;
     until ($condition->() || $attempts >= $total_attempts) {
         bmwqemu::diag "Waiting for $attempts attempts";

@@ -1,4 +1,4 @@
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,8 +15,7 @@
 
 package consoles::amtSol;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'consoles::console';
@@ -26,9 +25,7 @@ use POSIX '_exit';
 use bmwqemu;
 use IO::Pipe;
 
-sub activate {
-    my ($self) = @_;
-
+sub activate ($self) {
     $self->{serial_pipe} = IO::Pipe->new();
 
     setpgrp 0, 0;
@@ -90,8 +87,7 @@ sub activate {
     _exit(0);
 }
 
-sub disable {
-    my ($self) = @_;
+sub disable ($self) {
     return unless $self->{serialpid};
     $self->{serial_pipe}->print("GO!\n");
     $self->{serial_pipe}->close;

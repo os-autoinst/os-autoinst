@@ -47,8 +47,7 @@ automatically for convenience.
 
 =cut
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 no autodie 'kill';
 
@@ -95,8 +94,7 @@ my %options;
 # global exit status
 my $return_code = 1;
 
-sub usage {
-    my ($usage_return_code) = @_;
+sub usage ($usage_return_code) {
     $return_code = $usage_return_code;
     eval { use Pod::Usage; pod2usage($return_code); };
     if ($@) {
@@ -104,8 +102,7 @@ sub usage {
     }
 }
 
-sub _get_version_string {
-    my $dirname     = dirname(__FILE__);
+sub _get_version_string ($dirname) {
     my $thisversion = qx{git -C $dirname rev-parse HEAD};
     chomp $thisversion;
     die 'Could not parse version' unless $thisversion;
@@ -160,8 +157,7 @@ my $loop = 1;
 #       However, the worker also ensures that all processes are being terminated (and
 #       eventually killed).
 
-sub stop_commands {
-    my ($reason) = @_;
+sub stop_commands ($reason) {
     return unless defined $cmd_srv_process;
     return unless $cmd_srv_process->is_running;
 
@@ -208,8 +204,7 @@ sub stop_backend {
     diag('done with backend process');
 }
 
-sub signalhandler {
-    my ($sig) = @_;
+sub signalhandler ($sig) {
     bmwqemu::serialize_state(component => 'isotovideo', msg => "isotovideo received signal $sig", log => 1);
     return $loop = 0 if $loop;
     stop_backend;
@@ -218,8 +213,7 @@ sub signalhandler {
     _exit(1);
 }
 
-sub init_backend {
-    my ($name) = @_;
+sub init_backend ($name) {
 
     $bmwqemu::vars{BACKEND} ||= "qemu";
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
@@ -336,8 +330,7 @@ sub _calc_check_delta {
     return $delta;
 }
 
-sub check_asserted_screen {
-    my $no_wait = shift;
+sub check_asserted_screen ($no_wait) {
 
     if ($no_wait) {
         # prevent CPU overload by waiting at least a little bit

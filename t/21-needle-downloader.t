@@ -2,6 +2,7 @@
 
 use Test::Most;
 
+use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -17,8 +18,7 @@ use needle;
 # mock user agent and file
 my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');
 my @queried_urls;
-$user_agent_mock->redefine(get => sub {
-        my ($self, $url) = @_;
+$user_agent_mock->redefine(get => sub ($self, $url) {
         push(@queried_urls, $url);
         return $user_agent_mock->original('get')->(@_);
 });

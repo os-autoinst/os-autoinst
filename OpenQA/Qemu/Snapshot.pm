@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,29 +26,16 @@ not supported.
 =cut
 
 package OpenQA::Qemu::Snapshot;
-use Mojo::Base 'OpenQA::Qemu::MutParams';
+use Mojo::Base 'OpenQA::Qemu::MutParams', -signatures;
 
 has sequence => sub { return -1; };
 has name     => sub { return 'none'; };
 has 'previous';
 
-sub equals {
-    my ($self, $other) = @_;
+sub equals ($self, $other) { $self->sequence == $other->sequence }
 
-    return $self->sequence == $other->sequence;
-}
+sub _to_map ($self) { {sequence => $self->sequence, name => $self->name} }
 
-sub _to_map {
-    my $self = shift;
-
-    return {sequence => $self->sequence,
-        name => $self->name};
-}
-
-sub CARP_TRACE {
-    my $self = shift;
-
-    return 'OpenQA::Qemu::Snapshot(' . $self->sequence . '|' . $self->name . ')';
-}
+sub CARP_TRACE ($self) { 'OpenQA::Qemu::Snapshot(' . $self->sequence . '|' . $self->name . ')' }
 
 1;

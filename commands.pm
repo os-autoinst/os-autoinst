@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,8 +16,7 @@
 
 package commands;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 require IPC::System::Simple;
@@ -44,8 +43,7 @@ use Time::HiRes 'gettimeofday';
 
 # borrowed from obs with permission from mls@suse.de to license as
 # GPLv2+
-sub _makecpiohead {
-    my ($name, $s) = @_;
+sub _makecpiohead ($name, $s) {
     return "07070100000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000b00000000TRAILER!!!\0\0\0\0" if !$s;
     #        magic ino
     my $h = "07070100000000";
@@ -64,9 +62,7 @@ sub _makecpiohead {
 }
 
 # send test data as cpio archive
-sub _test_data_dir {
-    my ($self, $base) = @_;
-
+sub _test_data_dir ($self, $base) {
     $base .= '/' if $base !~ /\/$/;
     return $self->reply->not_found unless -d $base;
 
@@ -99,9 +95,7 @@ sub _test_data_dir {
 }
 
 # serve a file from within data directory
-sub _test_data_file {
-    my ($self, $file) = @_;
-
+sub _test_data_file ($self, $file) {
     my $filetype;
     if ($file =~ m/\.([^\.]+)$/) {
         my $ext = $1;
@@ -113,14 +107,11 @@ sub _test_data_file {
     return $self->reply->asset(Mojo::Asset::File->new(path => $file));
 }
 
-sub _is_allowed_path {
-    my ($path) = @_;
+sub _is_allowed_path ($path) {
     return !(!defined $path || $path =~ /^(.*\/)*\.\.(\/.*)*$/);    # do not allow .. in path
 }
 
-sub test_data {
-    my ($self) = @_;
-
+sub test_data ($self) {
     my $path    = path($bmwqemu::vars{CASEDIR}, 'data');
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
@@ -134,9 +125,7 @@ sub test_data {
     return $self->reply->not_found;
 }
 
-sub get_asset {
-    my ($self) = @_;
-
+sub get_asset ($self) {
     my $asset_name = $self->param('assetname');
     my $asset_type = $self->param('assettype');
     return $self->reply->not_found unless _is_allowed_path($asset_name) && _is_allowed_path($asset_type);
@@ -157,9 +146,7 @@ sub get_asset {
 }
 
 # store the file in $pooldir/$target
-sub upload_file {
-    my ($self) = @_;
-
+sub upload_file ($self) {
     return $self->render(message => 'File is too big', status => 400) if $self->req->is_limit_exceeded;
     return $self->render(message => 'Upload file content missing', status => 400) unless my $upload = $self->req->upload('upload');
 
@@ -176,21 +163,16 @@ sub upload_file {
     return $self->render(text => "OK: $filename\n");
 }
 
-sub get_vars {
-    my ($self) = @_;
-
+sub get_vars ($self) {
     bmwqemu::load_vars();
     return $self->render(json => {vars => \%bmwqemu::vars});
 }
 
-sub current_script {
-    my ($self) = @_;
+sub current_script ($self) {
     return $self->reply->asset(Mojo::Asset::File->new(path => 'current_script'));
 }
 
-sub _handle_isotovideo_response {
-    my ($app, $response) = @_;
-
+sub _handle_isotovideo_response ($app, $response) {
     return undef unless $response->{stop_processing_isotovideo_commands};
 
     # stop processing isotovideo commands if isotovideo says so
@@ -198,9 +180,7 @@ sub _handle_isotovideo_response {
     $app->defaults(isotovideo => undef);
 }
 
-sub isotovideo_command {
-    my ($mojo_lite_controller, $commands) = @_;
-
+sub isotovideo_command ($mojo_lite_controller, $commands) {
     my $cmd = $mojo_lite_controller->param('command');
     return $mojo_lite_controller->reply->not_found unless grep { $cmd eq $_ } @$commands;
 
@@ -215,27 +195,22 @@ sub isotovideo_command {
     return $mojo_lite_controller->render(json => $response);
 }
 
-sub isotovideo_get {
-    my ($c) = @_;
+sub isotovideo_get ($c) {
     return isotovideo_command($c, [qw(version)]);
 }
 
-sub isotovideo_post {
-    my ($c) = @_;
+sub isotovideo_post ($c) {
     return isotovideo_command($c, []);
 }
 
-sub get_temp_file {
-    my ($self)  = @_;
+sub get_temp_file ($self) {
     my $relpath = $self->param('relpath');
     my $path    = testapi::hashed_string($relpath);
     return _test_data_file($self, $path) if -f $path;
     return $self->reply->not_found;
 }
 
-sub run_daemon {
-    my ($port, $isotovideo) = @_;
-
+sub run_daemon ($port, $isotovideo) {
     # allow up to 20GB - hdd images
     $ENV{MOJO_MAX_MESSAGE_SIZE}   = 1024 * 1024 * 1024 * 20;
     $ENV{MOJO_INACTIVITY_TIMEOUT} = 300;
@@ -333,9 +308,7 @@ sub run_daemon {
     };
 }
 
-sub start_server {
-    my ($port) = @_;
-
+sub start_server ($port) {
     my ($child, $isotovideo);
     socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
       or die "cmdsrv: socketpair: $!";
@@ -365,6 +338,5 @@ sub start_server {
     $process->on(collected => sub { bmwqemu::diag("commands process exited: " . shift->exit_status); });
     return ($process, $child);
 }
-
 
 1;

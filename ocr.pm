@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,14 +15,12 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package ocr;
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 require IPC::System::Simple;
 use autodie ':all';
 
 # input: image ref, area
-sub tesseract {
-    my ($img, $area) = @_;
+sub tesseract ($img, $area) {
     my $imgfn = 'ocr.png';
     my $txtfn = 'ocr';       # tesseract appends .txt automatically o_O
     my $txt;

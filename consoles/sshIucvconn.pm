@@ -1,4 +1,4 @@
-# Copyright © 2016-2020 SUSE LLC
+# Copyright © 2016-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,16 +18,14 @@
 
 package consoles::sshIucvconn;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'consoles::network_console';
 
 use testapi 'get_var';
 
-sub connect_remote {
-    my ($self, $args) = @_;
+sub connect_remote ($self, $args) {
     my $hostname = $args->{hostname};
     my $zvmguest = get_var('ZVM_GUEST');
 
@@ -58,9 +56,7 @@ sub connect_remote {
 }
 
 # to be called on reconnect
-sub kill_ssh {
-    my ($self) = @_;
-
+sub kill_ssh ($self) {
     $self->backend->stop_ssh_serial;
 }
 

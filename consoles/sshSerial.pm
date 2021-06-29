@@ -1,4 +1,4 @@
-# Copyright © 2020 SUSE LLC
+# Copyright © 2020-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,24 +18,19 @@
 
 package consoles::sshSerial;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 
 use base 'consoles::console';
 
 use consoles::ssh_screen;
 
-sub new {
-    my ($class, $testapi_console, $args) = @_;
-
+sub new ($class, $testapi_console, $args) {
     return $class->SUPER::new($testapi_console, $args);
 }
 
 sub screen { shift->{screen} }
 
-sub disable {
-    my ($self) = @_;
-
+sub disable ($self) {
     return unless $self->{ssh};
     bmwqemu::diag("Closing SSH connection with " . $self->{ssh}->hostname);
     $self->{ssh}->disconnect;
@@ -43,8 +38,7 @@ sub disable {
     return;
 }
 
-sub activate {
-    my ($self)   = @_;
+sub activate ($self) {
     my $hostname = $self->{args}->{hostname} || die('we need a hostname to ssh to');
     my $password = $self->{args}->{password} // $testapi::password;
     my $username = $self->{args}->{username} // 'root';

@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,14 +15,12 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package distribution;
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 
 use testapi ();
 use Carp 'croak';
 
-sub new {
-    my ($class) = @_;
+sub new ($class) {
 
     my $self = bless {}, $class;
     $self->{consoles}          = {};
@@ -48,9 +46,7 @@ sub init {
     # no cmds on default distri
 }
 
-sub add_console {
-    my ($self, $testapi_console, $backend_console, $backend_args) = @_;
-
+sub add_console ($self, $testapi_console, $backend_console, $backend_args) {
     my %class_names = (
         'tty-console'       => 'ttyConsole',
         'ssh-serial'        => 'sshSerial',
@@ -81,9 +77,7 @@ sub x11_start_program {
     die "TODO: implement x11_start_program for your distri " . testapi::get_var('DISTRI');
 }
 
-sub ensure_installed {
-    my ($self, @pkglist) = @_;
-
+sub ensure_installed ($self, @pkglist) {
     if (testapi::check_var('DISTRI', 'debian')) {
         testapi::x11_start_program("su -c 'aptitude -y install @pkglist'", 4, {terminal => 1});
     }
@@ -97,9 +91,7 @@ sub ensure_installed {
     wait_still_screen(7, 90);    # wait for install
 }
 
-sub become_root {
-    my ($self) = @_;
-
+sub become_root ($self) {
     testapi::script_sudo("bash", 0);    # become root
     testapi::script_run('test $(id -u) -eq 0 && echo "imroot" > /dev/' . $testapi::serialdev, 0);
     testapi::wait_serial("imroot", 5) || die "Root prompt not there";
@@ -129,8 +121,7 @@ to return.
 
 =cut
 
-sub script_run {
-    my ($self, $cmd) = splice(@_, 0, 2);
+sub script_run ($self, $cmd) {
     my %args = testapi::compat_args(
         {
             timeout => $bmwqemu::default_timeout,
@@ -180,9 +171,7 @@ Use C<quiet> to avoid recording serial_results.
 
 =cut
 
-sub background_script_run {
-    my ($self, $cmd, %args) = @_;
-
+sub background_script_run ($self, $cmd, %args) {
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
     }
@@ -214,11 +203,7 @@ $wait_seconds
 
 =cut
 
-sub script_sudo {
-    my ($self, $prog, $wait) = @_;
-
-    $wait //= 10;
-
+sub script_sudo ($self, $prog, $wait = 10) {
     my $str;
     if ($wait > 0) {
         $str  = testapi::hashed_string("SS$prog$wait");
@@ -255,8 +240,7 @@ You may be able to avoid overriding this function by setting
 $serial_term_prompt.
 
 =cut
-sub script_output {
-    my ($self, $script) = splice(@_, 0, 2);
+sub script_output ($self, $script) {
     my %args = testapi::compat_args(
         {
             timeout            => undef,
@@ -355,9 +339,7 @@ Example:
     );
 
 =cut
-sub set_expected_serial_failures {
-    my ($self, $failures) = @_;
-
+sub set_expected_serial_failures ($self, $failures) {
     $self->{serial_failures} = $failures;
 }
 
@@ -377,20 +359,14 @@ Example:
     );
 
 =cut
-sub set_expected_autoinst_failures {
-    my ($self, $failures) = @_;
-
+sub set_expected_autoinst_failures ($self, $failures) {
     $self->{autoinst_failures} = $failures;
 }
 
 # override
-sub activate_console {
-    my ($self, $console) = @_;
-}
+sub activate_console ($self, $console) { }
 
 # override
-sub console_selected {
-    my ($self, $console) = @_;
-}
+sub console_selected ($self, $console) { }
 
 1;

@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use Test::Warnings ':report_warnings';
 use Time::HiRes 'sleep';
 

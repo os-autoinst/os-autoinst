@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@ Configure block devices and drives.
 =cut
 
 package OpenQA::Qemu::BlockDevConf;
-use Mojo::Base 'OpenQA::Qemu::MutParams';
+use Mojo::Base 'OpenQA::Qemu::MutParams', -signatures;
 
 use OpenQA::Qemu::BlockDev;
 use OpenQA::Qemu::DriveDevice;
@@ -38,8 +38,7 @@ has _drives => sub { return []; };
 Add an existing image file at the bottom/start of a block device chain.
 
 =cut
-sub add_existing_base {
-    my ($self, $id, $file_name, $size) = @_;
+sub add_existing_base ($self, $id, $file_name, $size) {
     $file_name //= $id;
 
     return OpenQA::Qemu::BlockDev->new()
@@ -54,8 +53,7 @@ Add a new image file at the bottom of a block device chain. The file is not
 created by this function, this just updates the object model.
 
 =cut
-sub add_new_base {
-    my ($self, $id, $file_name, $size) = @_;
+sub add_new_base ($self, $id, $file_name, $size) {
     $file_name //= $id;
 
     return $self->add_existing_base($id, $self->basedir . '/' . $file_name, $size)
@@ -67,9 +65,7 @@ sub add_new_base {
 Add an existing image file as the overlay of $backing_file.
 
 =cut
-sub add_existing_overlay {
-    my ($self, $id, $backing_file) = @_;
-
+sub add_existing_overlay ($self, $id, $backing_file) {
     my $ol = OpenQA::Qemu::BlockDev->new()
       ->node_name($id)
       ->backing_file($backing_file)
@@ -87,17 +83,11 @@ snapshot. This function does not create the file, it just updates the object
 model.
 
 =cut
-sub add_new_overlay {
-    return add_existing_overlay(@_)->needs_creating(1);
-}
+sub add_new_overlay { return add_existing_overlay(@_)->needs_creating(1) }
 
-sub del_overlay {
-    my ($self) = @_;
-}
+sub del_overlay { }
 
-sub _push_new_drive_dev {
-    my ($self, $id, $drive, $model, $num_queues) = @_;
-
+sub _push_new_drive_dev ($self, $id, $drive, $model, $num_queues = undef) {
     die 'PFlash drives are not supported by DriveDevice, use PFlashDevice'
       if $model eq 'pflash';
 
@@ -116,11 +106,8 @@ sub _push_new_drive_dev {
 Create a new drive device and qcow2 image.
 
 =cut
-sub add_new_drive {
-    my ($self, $id, $model, $size, $num_queues) = @_;
-
+sub add_new_drive ($self, $id, $model, $size, $num_queues = undef) {
     my $base_drive = $self->add_new_base($id, $id, $size);
-
     return $self->_push_new_drive_dev($id, $base_drive, $model, $num_queues);
 }
 
@@ -130,9 +117,7 @@ Create a new drive device with an existing qcow2 image as the backing store. A
 new overlay is created so that the existing qcow2 image is not modified.
 
 =cut
-sub add_existing_drive {
-    my ($self, $id, $file_name, $model, $size, $num_queues) = @_;
-
+sub add_existing_drive ($self, $id, $file_name, $model, $size, $num_queues = undef) {
     my $base_drive = $self->add_existing_base($id, $file_name, $size)->implicit(1);
     my $overlay    = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);
 
@@ -147,9 +132,7 @@ is created, so the test can write to this drive and it won't modify the
 underlying image.
 
 =cut
-sub add_iso_drive {
-    my ($self, $id, $file_name, $model, $size) = @_;
-
+sub add_iso_drive ($self, $id, $file_name, $model, $size) {
     my $base_drive = $self->add_existing_base($id, $file_name, $size)
       ->implicit(1)
       ->driver('raw');
@@ -164,8 +147,7 @@ Add a pflash drive which is generally used for UEFI firmware code and
 variables. See the OpenQA::Qemu::PFlashDevice class.
 
 =cut
-sub add_pflash_drive {
-    my ($self, $id, $file_name, $size) = @_;
+sub add_pflash_drive ($self, $id, $file_name, $size) {
     my $base_drive = $self->add_existing_base($id, $file_name, $size)
       ->implicit(1)
       ->driver($file_name =~ qr/\.qcow2$/ ? 'qcow2' : 'raw');
@@ -184,9 +166,7 @@ Add a connection between a drive device and a controller device. You can add
 multiple connections to simulate multipath.
 
 =cut
-sub add_path_to_drive {
-    my ($self, $id, $drive, $controller) = @_;
-
+sub add_path_to_drive ($self, $id, $drive, $controller) {
     my $dp = OpenQA::Qemu::DrivePath->new()
       ->controller($controller)
       ->id($id);
@@ -202,8 +182,7 @@ added at runtime by a QEMU QMP command which creates the overlay, so this
 function will not mark the overlay for creation by qemu-img.
 
 =cut
-sub add_snapshot_to_drive {
-    my ($self, $drive, $snapshot) = @_;
+sub add_snapshot_to_drive ($self, $drive, $snapshot) {
     my $id = $drive->id . OVERLAY_POSTFIX . $drive->new_overlay_id;
 
     my $snap = $self->add_existing_overlay($id, $drive->drive)
@@ -221,8 +200,7 @@ after the snapshot. These should be deleted to prevent QEMU from doing
 something unexpected. Also init_blockdev_images needs to be run after this.
 
 =cut
-sub revert_to_snapshot {
-    my ($self, $drive, $snapshot) = @_;
+sub revert_to_snapshot ($self, $drive, $snapshot) {
     my @del_files = ();
 
     my $snap = $drive->drive;
@@ -243,19 +221,12 @@ sub revert_to_snapshot {
     return \@del_files;
 }
 
-sub for_each_drive {
-    my ($self, $sub) = @_;
-
-    for my $drive (@{$self->_drives}) {
-        $sub->($drive);
-    }
-
+sub for_each_drive ($self, $sub) {
+    $sub->($_) for @{$self->_drives};
     return $self;
 }
 
-sub mark_all_created {
-    my $self = shift;
-
+sub mark_all_created ($self) {
     $self->for_each_drive(sub {
             shift->for_each_overlay(sub {
                     shift->needs_creating(0);
@@ -264,34 +235,19 @@ sub mark_all_created {
 }
 
 # See MutParams.pm
-sub gen_cmdline {
-    my $self = shift;
-
-    return map { $_->gen_cmdline() } @{$self->_drives};
-}
+sub gen_cmdline ($self) { map { $_->gen_cmdline() } @{$self->_drives} }
 
 =head3 gen_qemu_img_cmdlines
 
 Create qemu-img command lines for all drives that need creating.
 
 =cut
-sub gen_qemu_img_cmdlines {
-    my $self = shift;
+sub gen_qemu_img_cmdlines ($self) { map { $_->gen_qemu_img_cmdlines() } @{$self->_drives} }
 
-    return map { $_->gen_qemu_img_cmdlines() } @{$self->_drives};
-}
+sub gen_qemu_img_commit ($self) { grep { defined $_ } map { $_->gen_qemu_img_commit() } @{$self->_drives} }
 
-sub gen_qemu_img_commit {
-    my $self = shift;
-
-    return grep { defined $_ } map { $_->gen_qemu_img_commit() } @{$self->_drives};
-}
-
-sub gen_qemu_img_convert {
-    my ($self, $filter, $img_dir, $name) = @_;
-
-    return
-      map { $_->gen_qemu_img_convert($img_dir, $name) }
+sub gen_qemu_img_convert ($self, $filter, $img_dir, $name) {
+    map { $_->gen_qemu_img_convert($img_dir, $name) }
       grep { $_->id =~ $filter } @{$self->_drives};
 }
 
@@ -301,23 +257,16 @@ Generate a list of all files which are marked for creation. So that they can
 be safely deleted if they already exist.
 
 =cut
-sub gen_unlink_list {
-    my $self = shift;
-
-    return map { $_->gen_unlink_list() } @{$self->_drives};
-}
+sub gen_unlink_list ($self) { map { $_->gen_unlink_list() } @{$self->_drives} }
 
 # See MutParams.pm
-sub to_map {
-    my $self   = shift;
+sub to_map ($self) {
     my @drives = map { $_->_to_map() } @{$self->_drives};
-
     return {basedir => $self->basedir, drives => \@drives};
 }
 
 # See MutParams.pm
-sub from_map {
-    my ($self, $map, $cont_conf, $snap_conf) = @_;
+sub from_map ($self, $map, $cont_conf, $snap_conf) {
     my @drives = map {
         $_->{model} eq 'pflash' ?
           OpenQA::Qemu::PFlashDevice->new()->_from_map($_, $cont_conf, $snap_conf) :
@@ -328,8 +277,6 @@ sub from_map {
 }
 
 # See MutParams.pm
-sub has_state {
-    return scalar(@{shift->_drives});
-}
+sub has_state { scalar(@{shift->_drives}) }
 
 1;

@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,15 +27,11 @@ added structure.
 =cut
 
 package OpenQA::Qemu::MutParams;
-use Mojo::Base -base;
+use Mojo::Base -base, -signatures;
 
 use Scalar::Util 'blessed';
 
-sub _push_ifdef {
-    my ($self, $arr, $prefix, $val) = @_;
-
-    push(@$arr, $prefix . $val) if defined $val;
-}
+sub _push_ifdef ($self, $arr, $prefix, $val) { push(@$arr, $prefix . $val) if defined $val }
 
 =head3 gen_cmdline
 
@@ -43,33 +39,21 @@ Create the necessary QEMU command line parameters for whatever this object
 model represents.
 
 =cut
-sub gen_cmdline {
-    my $self = shift;
-
-    die blessed($self) . ' has not implemented gen_cmdline';
-}
+sub gen_cmdline ($self) { die blessed($self) . ' has not implemented gen_cmdline' }
 
 =head3 to_map
 
 Convert to a plain hash map with limited nesting, which can easily be serialized.
 
 =cut
-sub to_map {
-    my $self = shift;
-
-    die blessed($self) . ' has not implemented to_map';
-}
+sub to_map ($self) { die blessed($self) . ' has not implemented to_map' }
 
 =head3 from_map
 
 The inverse of to_map.
 
 =cut
-sub from_map {
-    my $self = shift;
-
-    die blessed($self) . ' has not implemented from_map';
-}
+sub from_map ($self) { die blessed($self) . ' has not implemented from_map' }
 
 =head3 has_state
 
@@ -80,10 +64,6 @@ This is used to decide if the object can have state loaded into it without
 clobbering some existing information.
 
 =cut
-sub has_state {
-    my $self = shift;
-
-    die blessed($self) . ' has not implemented has_state';
-}
+sub has_state ($self) { die blessed($self) . ' has not implemented has_state' }
 
 1;

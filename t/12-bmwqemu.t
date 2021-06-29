@@ -16,6 +16,7 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -31,8 +32,7 @@ use Test::Warnings qw(warnings :report_warnings);
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir     = "$toplevel_dir/t/data";
 
-sub create_vars {
-    my $data = shift;
+sub create_vars ($data) {
     open(my $varsfh, '>', 'vars.json') || BAIL_OUT('can not create vars.json');
     my $json = Cpanel::JSON::XS->new->pretty->canonical;
     print $varsfh $json->encode($data);

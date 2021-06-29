@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ weakened.
 =cut
 
 package OpenQA::Qemu::BlockDev;
-use Mojo::Base 'OpenQA::Qemu::MutParams';
+use Mojo::Base 'OpenQA::Qemu::MutParams', -signatures;
 
 use Scalar::Util 'weaken';
 use OpenQA::Qemu::SnapshotConf;
@@ -87,17 +87,8 @@ still be taken from the backing files in the chain).
 To avoid memory leaks we weaken this reference.
 
 =cut
-sub overlay {
-    my ($self, $ol) = @_;
-
-    unless (defined $ol) {
-        if (defined $self->{overlay}) {
-            return $self->{overlay};
-        } else {
-            return;
-        }
-    }
-
+sub overlay ($self, $ol) {
+    return $self->{overlay} unless defined $ol;
     $self->{overlay} = $ol;
     weaken($self->{overlay});
 
@@ -132,11 +123,10 @@ If this is set to an empty snapshot then this blockdevice does not belong to
 any snapshot.
 
 =cut
-has snapshot => sub { return OpenQA::Qemu::Snapshot->new(); };
+has snapshot => sub { return OpenQA::Qemu::Snapshot->new() };
 
 # See MutParams.pm
-sub gen_cmdline {
-    my ($self) = @_;
+sub gen_cmdline ($self) {
     my @cmdl = ();
 
     # The first blockdev defines the data store, we only use files, but in
@@ -165,16 +155,8 @@ for the entire blockdevice chain or an empty array if it does not need
 creating.
 
 =cut
-sub gen_qemu_img_cmdlines {
-    my $self = shift;
-    my @cmdlns;
-
-    if (defined $self->backing_file) {
-        @cmdlns = $self->backing_file->gen_qemu_img_cmdlines;
-    } else {
-        @cmdlns = ();
-    }
-
+sub gen_qemu_img_cmdlines ($self) {
+    my @cmdlns = defined $self->backing_file ? $self->backing_file->gen_qemu_img_cmdlines : ();
     return @cmdlns unless $self->needs_creating;
 
     my @params = ('create', '-f', $self->driver);
@@ -192,20 +174,14 @@ If any image file in the chain is marked as needs_creating, but already exists
 this will return it in an array so that the caller can unlink it.
 
 =cut
-sub gen_unlink_list {
-    my $self = shift;
-
+sub gen_unlink_list ($self) {
     return () unless $self->needs_creating;
-
-    if (defined $self->backing_file) {
-        return ($self->file, $self->backing_file->gen_unlink_list());
-    }
+    return ($self->file, $self->backing_file->gen_unlink_list())
+      if defined $self->backing_file;
     return ($self->file);
 }
 
-sub _to_map {
-    my $self = shift;
-
+sub _to_map ($self) {
     return {driver => $self->driver,
         file           => $self->file,
         node_name      => $self->node_name,
@@ -215,13 +191,11 @@ sub _to_map {
         snapshot       => $self->snapshot->sequence};
 }
 
-sub _from_map {
-    my ($self, $drives, $snap_conf) = @_;
+sub _from_map ($self, $drives, $snap_conf) {
     my ($this, @rest) = @$drives;
 
-    if (@rest > 0) {
-        $self->backing_file(OpenQA::Qemu::BlockDev->new()->_from_map(\@rest, $snap_conf));
-    }
+    $self->backing_file(OpenQA::Qemu::BlockDev->new()->_from_map(\@rest, $snap_conf))
+      if @rest > 0;
 
     return $self->driver($this->{driver})
       ->file($this->{file})
@@ -232,8 +206,6 @@ sub _from_map {
       ->snapshot($snap_conf->get_snapshot(sequence => $this->{snapshot}));
 }
 
-sub CARP_TRACE {
-    return 'OpenQA::Qemu::BlockDev(' . (shift->node_name || '') . ')';
-}
+sub CARP_TRACE { 'OpenQA::Qemu::BlockDev(' . (shift->node_name || '') . ')' }
 
 1;

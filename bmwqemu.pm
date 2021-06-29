@@ -16,8 +16,7 @@
 
 package bmwqemu;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 use Fcntl ':flock';
 use Time::HiRes qw(sleep gettimeofday);
@@ -70,25 +69,23 @@ our @ovmf_locations = (
 
 our %vars;
 
-sub result_dir { 'testresults' }
+sub result_dir() { 'testresults' }
 
-sub logger { $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback) }
+sub logger() { $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback) }
 
-sub init_logger { logger->path(catfile(result_dir, 'autoinst-log.txt')) unless $direct_output }
+sub init_logger() { logger->path(catfile(result_dir, 'autoinst-log.txt')) unless $direct_output }
 
 use constant STATE_FILE => 'base_state.json';
 
 # Write a JSON representation of the process termination to disk
-sub serialize_state {
-    my $state = {@_};
+sub serialize_state ($state) {
     bmwqemu::diag($state->{msg}) if delete $state->{log};
     return undef                 if -e STATE_FILE;
     eval { Mojo::File->new(STATE_FILE)->spurt(encode_json($state)); };
     bmwqemu::diag("Unable to serialize fatal error: $@") if $@;
 }
 
-sub load_vars {
-    my $fn  = "vars.json";
+sub load_vars ($fn) {
     my $ret = {};
     local $/;
     my $fh;
@@ -101,8 +98,7 @@ sub load_vars {
     return;
 }
 
-sub save_vars {
-    my (%args) = @_;
+sub save_vars (%args) {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
@@ -127,7 +123,7 @@ our $gocrbin = "/usr/bin/gocr";
 # set from isotovideo during initialization
 our $scriptdir;
 
-sub init {
+sub init() {
     load_vars();
 
     $vars{BACKEND} ||= "qemu";
@@ -143,8 +139,7 @@ sub init {
     init_logger;
 }
 
-sub _check_publish_vars {
-    return 0 unless my $nd = $vars{NUMDISKS};
+sub _check_publish_vars ($nd) {
     my @hdds = map { $vars{"HDD_$_"} } 1 .. $nd;
     for my $i (1 .. $nd) {
         for my $type (qw(STORE PUBLISH FORCE_PUBLISH)) {
@@ -156,7 +151,7 @@ sub _check_publish_vars {
     return 1;
 }
 
-sub ensure_valid_vars {
+sub ensure_valid_vars() {
     # defaults
     $vars{QEMUPORT} ||= 15222;
     $vars{VNC}      ||= 90;
@@ -190,9 +185,7 @@ our $backend;
 
 # util and helper functions
 
-sub log_format_callback {
-    my ($time, $level, @items) = @_;
-
+sub log_format_callback ($time, $level, @items) {
     my $lines = join("\n", @items, '');
 
     # ensure indentation for multi-line output
@@ -203,53 +196,42 @@ sub log_format_callback {
     return sprintf(strftime("[%FT%T.%%03d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . $lines;
 }
 
-sub diag {
-    my ($args) = @_;
-    confess "missing input" unless $_[0];
+sub diag ($args, @) {
     logger->append(color('white'));
     logger->debug(@_)->append(color('reset'));
     return;
 }
 
-sub fctres {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
+sub fctres ($text, $fname = (caller(1))[3]) {
     logger->append(color('green'));
     logger->debug(">>> $fname: $text")->append(color('reset'));
     return;
 }
 
-sub fctinfo {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
+sub fctinfo ($text, $fname = (caller(1))[3]) {
     logger->append(color('yellow'));
     logger->info("::: $fname: $text")->append(color('reset'));
     return;
 }
 
-sub fctwarn {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
+sub fctwarn ($text, $fname = (caller(1))[3]) {
     logger->append(color('red'));
     logger->warn("!!! $fname: $text")->append(color('reset'));
     return;
 }
 
-sub modstart {
+sub modstart(@) {
     logger->append(color('bold blue'));
     logger->debug("||| @{[join(' ', @_)]}")->append(color('reset'));
     return;
 }
 
-sub current_test {
+sub current_test() {
     require autotest;
     return $autotest::current_test;
 }
 
-sub update_line_number {
+sub update_line_number() {
     return unless current_test;
     return unless current_test->{script};
     my @out;
@@ -265,15 +247,14 @@ sub update_line_number {
 }
 
 # pretty print like Data::Dumper but without the "VAR1 = " prefix
-sub pp {
+sub pp(@) {
     # FTR, I actually hate Data::Dumper.
     my $value_with_trailing_newline = Data::Dumper->new(\@_)->Terse(1)->Useqq(1)->Dump();
     chomp($value_with_trailing_newline);
     return $value_with_trailing_newline;
 }
 
-sub log_call {
-    my $fname = (caller(1))[3];
+sub log_call ($fname, @) {
     update_line_number();
     my $params;
     if (@_ == 1) {
@@ -295,8 +276,7 @@ sub log_call {
     return;
 }
 
-sub fileContent {
-    my ($fn) = @_;
+sub fileContent ($fn) {
     warn "DEPRECATED: use 'Mojo::File::path('$fn')->slurp' instead";
     my $ret = eval { path($fn)->slurp };
     return undef if ($@);
@@ -307,14 +287,13 @@ sub fileContent {
 
 # backend management
 
-sub stop_vm {
+sub stop_vm() {
     return unless $backend;
     my $ret = $backend->stop();
     return $ret;
 }
 
-sub mydie {
-    my ($cause_of_death) = @_;
+sub mydie ($cause_of_death) {
     log_call(cause_of_death => $cause_of_death);
     croak "mydie";
 }
@@ -323,8 +302,7 @@ sub mydie {
 
 
 # store the obj as json into the given filename
-sub save_json_file {
-    my ($result, $fn) = @_;
+sub save_json_file ($result, $fn) {
     open(my $fd, ">", "$fn.new");
     my $json = Cpanel::JSON::XS->new->pretty->canonical->encode($result);
     print $fd $json;
@@ -332,8 +310,7 @@ sub save_json_file {
     return rename("$fn.new", $fn);
 }
 
-sub scale_timeout {
-    my ($timeout) = @_;
+sub scale_timeout ($timeout) {
     return $timeout * ($vars{TIMEOUT_SCALE} // 1);
 }
 
@@ -343,8 +320,7 @@ sub scale_timeout {
 
 Just a random string useful for pseudo security or temporary files.
 =cut
-sub random_string {
-    my ($count) = @_;
+sub random_string ($count) {
     $count //= 4;
     my $string;
     my @chars = ('a' .. 'z', 'A' .. 'Z');
@@ -352,7 +328,7 @@ sub random_string {
     return $string;
 }
 
-sub wait_for_one_more_screenshot {
+sub wait_for_one_more_screenshot() {
     # sleeping for one second should ensure that one more screenshot is taken
     # uncoverable subroutine
     # uncoverable statement

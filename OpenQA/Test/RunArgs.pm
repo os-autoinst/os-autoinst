@@ -21,6 +21,6 @@ context with loadtest should create a subclass of this object.
 =cut
 
 package OpenQA::Test::RunArgs;
-use Mojo::Base -base;
+use Mojo::Base -base, -signatures;
 
 1;

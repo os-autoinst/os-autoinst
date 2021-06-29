@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,16 +23,14 @@ consistent. This is done by the Proc class.
 =cut
 
 package OpenQA::Qemu::SnapshotConf;
-use Mojo::Base 'OpenQA::Qemu::MutParams';
+use Mojo::Base 'OpenQA::Qemu::MutParams', -signatures;
 
 use OpenQA::Qemu::Snapshot;
 
 has _sequence => 0;
 has _head     => sub { return OpenQA::Qemu::Snapshot->new(); };
 
-sub add_snapshot {
-    my ($self, $name) = @_;
-
+sub add_snapshot ($self, $name) {
     $self->_sequence($self->_sequence + 1);
     my $new = OpenQA::Qemu::Snapshot->new()
       ->sequence($self->_sequence)
@@ -44,8 +42,7 @@ sub add_snapshot {
     return $new;
 }
 
-sub get_snapshot {
-    my ($self, %nargs) = @_;
+sub get_snapshot ($self, %nargs) {
     my $snap = $self->_head;
 
     while (defined $snap && $snap->sequence != $nargs{sequence}) {
@@ -58,8 +55,7 @@ sub get_snapshot {
     return $snap;
 }
 
-sub revert_to_snapshot {
-    my ($self, $name) = @_;
+sub revert_to_snapshot ($self, $name) {
     my $snap = $self->_head;
 
     while (defined $snap && $snap->name ne $name) {
@@ -72,17 +68,14 @@ sub revert_to_snapshot {
     return $snap;
 }
 
-sub gen_cmdline {
-    my $self = shift;
-
+sub gen_cmdline ($self) {
     if ($self->_head->sequence > -1) {
         return qw(-incoming defer);
     }
     return ();
 }
 
-sub to_map {
-    my $self      = shift;
+sub to_map ($self) {
     my @snapshots = ();
     my $snap      = $self->_head;
 
@@ -95,9 +88,7 @@ sub to_map {
     return {snapshots => \@snapshots};
 }
 
-sub from_map {
-    my ($self, $map) = @_;
-
+sub from_map ($self, $map) {
     for my $s (@{$map->{snapshots}}) {
         my $snap = $self->add_snapshot($s->{name});
         die "Sequence mismatch while loading '$s->{name}' snapshot state: $s->{sequence} != " . $snap->sequence
@@ -107,8 +98,6 @@ sub from_map {
     return $self;
 }
 
-sub has_state {
-    return shift->_sequence;
-}
+sub has_state { shift->_sequence }
 
 1;

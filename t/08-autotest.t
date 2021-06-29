@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -28,21 +29,19 @@ stderr_like {
 qr/loadtest needs a script below.*is not/,
   'loadtest outputs on stderr';
 
-sub loadtest {
-    my ($test, $msg) = @_;
+sub loadtest ($test, $msg) {
     my $filename = $test =~ /\.p[my]$/ ? $test : $test . '.pm';
     $test =~ s/\.p[my]//;
     stderr_like { autotest::loadtest "tests/$filename" } qr@scheduling $test#?[0-9]* tests/$test|$test already scheduled@, $msg;
 }
 
-sub fake_send {
-    my ($target, $msg) = @_;
+sub fake_send ($target, $msg) {
     push @sent, $msg;
 }
 
 # find the (first) 'tests_done' message from the @sent array and
 # return the 'died' and 'completed' values
-sub get_tests_done {
+sub get_tests_done() {
     for my $msg (@sent) {
         if (ref($msg) eq "HASH" && $msg->{cmd} eq 'tests_done') {
             return ($msg->{died}, $msg->{completed});

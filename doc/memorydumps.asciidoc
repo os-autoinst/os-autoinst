@@ -45,8 +45,7 @@ A very simple way to use this helpful feature is the following:
 
 [source,perl]
 ----------------------------------------
-sub post_fail_hook {
-	my $self = shift;
+sub post_fail_hook($self ) {
 	freeze_vm;
 	save_memory_dump(filename => "my-memory-dump");
 	save_storage_drives("my-disk");

@@ -2,6 +2,7 @@
 
 use 5.018;
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -341,8 +342,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after deserialising and r
   || diag(explain(\@gcmdl));
 
 
-sub qemu_proc {
-    my ($static_params, $vars) = @_;
+sub qemu_proc ($static_params, $vars) {
     return OpenQA::Qemu::Proc->new()
       ->_static_params([$static_params])
       ->qemu_bin('qemu-kvm')

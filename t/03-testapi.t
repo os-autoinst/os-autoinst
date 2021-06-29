@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -31,16 +32,13 @@ my $fake_needle_found             = 1;
 my $fake_needle_found_after_pause = 0;
 
 # define 'write_with_thumbnail' to fake image
-sub write_with_thumbnail {
-}
+sub write_with_thumbnail { }
 
-sub fake_send_json {
-    my ($to_fd, $cmd) = @_;
+sub fake_send_json ($to_fd, $cmd) {
     push(@$cmds, $cmd);
 }
 
-sub fake_read_json {
-    my ($fd) = @_;
+sub fake_read_json ($fd) {
     my $lcmd = $cmds->[-1];
     my $cmd  = $lcmd->{cmd};
     if ($cmd eq 'backend_wait_serial') {
@@ -486,9 +484,8 @@ subtest 'record_info' => sub {
     like(exception { record_info('my title', 'output', result => 'not supported', resultname => 'foo') }, qr/unsupported/, 'invalid result');
 };
 
-sub script_output_test {
-    my $is_serial_terminal = shift;
-    my $mock_testapi       = Test::MockModule->new('testapi');
+sub script_output_test ($is_serial_terminal) {
+    my $mock_testapi = Test::MockModule->new('testapi');
     $testapi::serialdev = 'null';
     $mock_testapi->redefine(type_string        => sub { return });
     $mock_testapi->redefine(send_key           => sub { return });

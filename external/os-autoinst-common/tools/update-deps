@@ -1,6 +1,5 @@
 #!/usr/bin/env perl
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 use 5.010;
 
 use YAML::PP;
@@ -37,8 +36,7 @@ update_spec();
 update_cpanfile($modules_by_target);
 update_dockerfile($dockerfile) if $dockerfile;
 
-sub update_dockerfile {
-    my ($dockerfile) = @_;
+sub update_dockerfile($dockerfile) {
     my $docker = path($dockerfile)->slurp;
     my @perl;
     my @pkg;
@@ -111,8 +109,7 @@ sub update_spec {
     say "Updated $specfile";
 }
 
-sub get_modules {
-    my ($data, $cpantargets, $cpantarget_mapping) = @_;
+sub get_modules($data, $cpantargets, $cpantarget_mapping) {
 
     my %modules_by_target;
     for my $target (@$cpantargets) {
@@ -142,8 +139,7 @@ sub _requires_line {
     return $line;
 }
 
-sub update_cpanfile {
-    my ($modules_by_target) = @_;
+sub update_cpanfile($modules_by_target) {
     my $cpan = <<"EOM";
 ##################################################
 # WARNING
@@ -186,8 +182,7 @@ EOM
     say "Updated $cpanfile";
 }
 
-sub usage {
-    my ($exit) = @_;
+sub usage($exit) {
     print <<"EOM";
 Usage:
     # update cpanfile and dist/rpm/os-autoinst.spec

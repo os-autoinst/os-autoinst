@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 
 use Test::More;
 use Test::Fatal;

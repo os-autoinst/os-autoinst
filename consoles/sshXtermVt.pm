@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2015 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,8 +16,7 @@
 
 package consoles::sshXtermVt;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'consoles::localXvnc';
@@ -26,9 +25,7 @@ use IO::Socket::INET;
 use testapi 'get_var';
 require IPC::System::Simple;
 
-sub activate {
-    my ($self) = @_;
-
+sub activate ($self) {
     # start Xvnc
     $self->SUPER::activate;
 
@@ -67,8 +64,7 @@ sub activate {
     }
 }
 
-sub wait_for_ssh_port {
-    my ($self, $hostname, %args) = @_;
+sub wait_for_ssh_port ($self, $hostname, %args) {
     $args{timeout} //= 120;
     $args{port}    //= 22;
 
@@ -85,9 +81,7 @@ sub wait_for_ssh_port {
 }
 
 # to be called on reconnect
-sub kill_ssh {
-    my ($self) = @_;
-
+sub kill_ssh ($self) {
     $self->backend->stop_ssh_serial;
 }
 

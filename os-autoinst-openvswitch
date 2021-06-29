@@ -1,8 +1,7 @@
 #!/usr/bin/perl
 package OVS;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'Net::DBus::Object';
@@ -12,8 +11,7 @@ require IPC::System::Simple;
 use IPC::Open3;
 use Symbol 'gensym';
 
-sub new {
-    my $class   = shift;
+sub new ($class) {
     my $service = shift;
     my $self    = $class->SUPER::new($service, '/switch');
     bless $self, $class;
@@ -21,8 +19,7 @@ sub new {
     return $self;
 }
 
-sub init_switch {
-    my $self = shift;
+sub init_switch ($self) {
 
     $self->{BRIDGE} = $ENV{OS_AUTOINST_USE_BRIDGE};
     $self->{BRIDGE} //= 'br0';
@@ -99,8 +96,7 @@ sub init_switch {
 }
 
 # Check if tap and vlan are in the correct format.
-sub _ovs_check {
-    my $tap    = shift;
+sub _ovs_check ($tap) {
     my $vlan   = shift;
     my $bridge = shift;
     my $return_output;
@@ -125,8 +121,7 @@ sub _ovs_check {
     return 0;
 }
 
-sub _cmd {
-    my @args = @_;
+sub _cmd (@args) {
     my ($wtr, $rdr, $err);
     $err = gensym;
 
@@ -142,9 +137,8 @@ sub _cmd {
     return $return_code, "@ovs_vsctl_error", "@ovs_vsctl_output";
 }
 
-sub check_min_ovs_version {
-    my $min_ver = shift;
-    my $out     = `ovs-vsctl --version`;
+sub check_min_ovs_version ($min_ver) {
+    my $out = `ovs-vsctl --version`;
     return if ($out !~ /\(Open vSwitch\)\s+(\d+\.\d+\.\d+)/m);
     my @ver     = split(/\./, $1);
     my @min_ver = split(/\./, $min_ver);
@@ -154,8 +148,7 @@ sub check_min_ovs_version {
 }
 
 dbus_method("set_vlan", ["string", "uint32"], ["int32", "string"]);
-sub set_vlan {
-    my $self = shift;
+sub set_vlan ($self) {
     my $tap  = shift;
     my $vlan = shift;
     my $return_output;
@@ -188,8 +181,7 @@ sub set_vlan {
 }
 
 dbus_method("unset_vlan", ["string", "uint32"], ["int32", "string"]);
-sub unset_vlan {
-    my $self = shift;
+sub unset_vlan ($self) {
     my $tap  = shift;
     my $vlan = shift;
     my $return_output;
@@ -213,8 +205,7 @@ sub unset_vlan {
 }
 
 dbus_method("show", [], ["int32", "string"]);
-sub show {
-    my $self = shift;
+sub show ($self) {
 
     my ($return_code, undef, $ovs_vsctl_output) = _cmd('ovs-vsctl', 'show');
 
@@ -223,7 +214,7 @@ sub show {
 
 ################################################################################
 package main;
-use strict;
+use Mojo::Base -strict, -signatures;
 
 use Net::DBus;
 use Net::DBus::Reactor;

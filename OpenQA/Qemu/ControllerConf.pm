@@ -1,4 +1,4 @@
-# Copyright © 2018 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -14,15 +14,14 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package OpenQA::Qemu::ControllerConf;
-use Mojo::Base 'OpenQA::Qemu::MutParams';
+use Mojo::Base 'OpenQA::Qemu::MutParams', -signatures;
 
 use OpenQA::Qemu::DriveController;
 use List::Util 'first';
 
 has _controllers => sub { return []; };
 
-sub add_controller {
-    my ($self, $model, $id) = @_;
+sub add_controller ($self, $model, $id) {
     my $dc = OpenQA::Qemu::DriveController->new()
       ->model($model)
       ->id($id);
@@ -31,41 +30,23 @@ sub add_controller {
     return $dc;
 }
 
-sub gen_cmdline {
-    my $self = shift;
+sub gen_cmdline ($self) { map { $_->gen_cmdline() } @{$self->_controllers}, }
 
-    return map { $_->gen_cmdline() } @{$self->_controllers},;
-}
+sub get_controller ($self, $id) { first { $_->id eq $id } @{$self->_controllers} }
 
-sub get_controller {
-    my ($self, $id) = @_;
+sub get_controllers ($self, $type) { grep { $_->model =~ $type } @{$self->_controllers} }
 
-    return first { $_->id eq $id } @{$self->_controllers};
-}
-
-sub get_controllers {
-    my ($self, $type) = @_;
-
-    return grep { $_->model =~ $type } @{$self->_controllers};
-}
-
-sub to_map {
-    my $self        = shift;
+sub to_map ($self) {
     my @controllers = map { $_->_to_map } @{$self->_controllers};
-
     return {controllers => \@controllers};
 }
 
-sub from_map {
-    my ($self, $map) = @_;
-
+sub from_map ($self, $map) {
     for my $c (@{$map->{controllers}}) {
         $self->add_controller($c->{model}, $c->{id});
     }
 }
 
-sub has_state {
-    return scalar(@{shift->_controllers});
-}
+sub has_state { scalar(@{shift->_controllers}) }
 
 1;

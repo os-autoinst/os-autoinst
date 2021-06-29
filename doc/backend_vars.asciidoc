@@ -144,6 +144,7 @@ QEMU_ENABLE_SMBD;boolean;0;Enable QEMU's built-in samba service for user network
 VIRTIO_CONSOLE;boolean;1;Enable/disable virtio console. (@see `-device virtconsole` qemu option)
 VIRTIO_CONSOLE_NUM;integer;1;Number of virtio consoles.
 QEMU_BALLOON_TARGET;integer;undef;The target guest RAM usage before a snapshot is taken. It is intended to speed up snapshots by forcing the guest to drop various caches. Setting this enables the virtio-balloon device which requires a kernel with a virtio-balloon driver. Setting this far below the RAM required by the guest will probably cause the guest to panic or deadlock. However it should be able to cope with it being set slightly below what is needed.
+QEMU_BALLOON_TIMEOUT;integer;5;Timeout for qemu balloon operations
 RAIDLEVEL;;;Set the raid level
 SKIPTO;full name of test module;;Restore VM from snapshot and continue by running specified test module. Needs HDD image with snapshots present
 TAPDEV;device name;undef;TAP device name to which virtual NIC should be connected. Usually undef so automatic matching is used

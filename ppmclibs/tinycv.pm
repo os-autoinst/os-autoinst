@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,8 +16,7 @@
 
 package tinycv;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 
 use bmwqemu 'fctwarn';
 use File::Basename;
@@ -34,11 +33,9 @@ bootstrap tinycv $VERSION;
 
 package tinycv::Image;
 
-use strict;
-use warnings;
+use Mojo::Base -strict, -signatures;
 
-sub mean_square_error {
-    my ($areas) = @_;
+sub mean_square_error ($areas) {
     my $mse = 0.0;
     my $err;
 
@@ -59,8 +56,7 @@ sub mean_square_error {
 #     }
 #   ]
 # }
-sub search_ {
-    my ($self, $needle, $threshold, $search_ratio, $stopwatch) = @_;
+sub search_ ($self, $needle, $threshold, $search_ratio, $stopwatch) {
     $threshold    ||= 0.0;
     $search_ratio ||= 0.0;
     my ($sim,     $xmatch, $ymatch);
@@ -139,9 +135,7 @@ sub search_ {
 # if match is equal quality prefer workaround needle to non-workaround
 # the name doesn't matter, but we prefer alphabetic order
 sub cmp_by_error_type_ {
-
     ## no critic ($a/$b outside of sort block)
-
     my $okay = $b->{ok} <=> $a->{ok};
     return $okay if $okay;
     my $error = $a->{error} <=> $b->{error};
@@ -158,8 +152,7 @@ sub cmp_by_error_type_ {
 # in scalar context return found info or undef
 # in array context returns array with two elements. First element is best match
 # or undefined, second element are candidates that did not match.
-sub search {
-    my ($self, $needle, $threshold, $search_ratio, $stopwatch) = @_;
+sub search ($self, $needle, $threshold, $search_ratio, $stopwatch) {
     return unless $needle;
 
     $stopwatch->lap("Searching for needles") if $stopwatch;
@@ -200,9 +193,7 @@ sub search {
     }
 }
 
-sub write_with_thumbnail {
-    my ($self, $filename) = @_;
-
+sub write_with_thumbnail ($self, $filename) {
     $self->write($filename);
 
     my $thumb = $self->scale($self->xres() * 45 / $self->yres(), 45);
