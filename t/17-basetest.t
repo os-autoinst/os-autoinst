@@ -355,4 +355,45 @@ subtest 'execute_time' => sub {
     is($test->{execution_time}, 42, 'the execution time is correct');
 };
 
+subtest result => sub {
+    my $basetest_class = 'basetest';
+    my $mock_basetest  = Test::MockModule->new($basetest_class);
+    $mock_basetest->redefine(_result_add_screenshot => sub { });
+
+    my $basetest = bless({
+            result     => undef,
+            details    => [],
+           
+    }, $basetest_class);
+
+    is_deeply($basetest->record_testresult(), {result => 'unk'}, 'adding unknown result');
+    is($basetest->{result},     undef, 'test result unaffected');
+    
+    is_deeply($basetest->record_testresult('ok'), {result => 'ok'}, 'adding "ok" result');
+    is($basetest->{result}, 'ok', 'test result is now "ok"');
+
+    is_deeply($basetest->record_testresult('softfail'), {result => 'softfail'}, 'adding "softfail" result');
+    is($basetest->{result}, 'softfail', 'test result is now "softfail"');
+
+    is_deeply($basetest->record_testresult('ok'), {result => 'ok'}, 'adding one more "ok" result');
+    is($basetest->{result}, 'softfail', 'test result is still "softfail"');
+
+    is_deeply($basetest->record_testresult('fail'), {result => 'fail'}, 'adding "fail" result');
+    is($basetest->{result}, 'fail', 'test result is now "fail"');
+
+    is_deeply($basetest->record_testresult('ok'), {result => 'ok'}, 'adding one more "ok" result');
+    is($basetest->{result}, 'fail', 'test result is still "fail"');
+
+    is_deeply($basetest->record_testresult('softfail'), {result => 'softfail'}, 'adding one more "softfail" result');
+    is($basetest->{result}, 'fail', 'test result is still "fail"');
+
+    is_deeply($basetest->record_testresult(), {result => 'unk'}, 'adding one more "unk" result');
+    is($basetest->{result}, 'fail', 'test result is still "fail"');
+
+    is_deeply($basetest->record_testresult('softfail', force_status => 1), {result => 'softfail'}, 'adding one more "softfail" result but forcing the status');
+    is($basetest->{result}, 'softfail', 'test result was forced to "softfail"');
+
+    is($basetest->{result},   ('ok', 'fail', 'softfail'), "True");
+};
+
 done_testing;
