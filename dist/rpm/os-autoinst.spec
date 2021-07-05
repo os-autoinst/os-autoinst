@@ -152,7 +152,8 @@ sed  -i 's/ my $thisversion = qx{git.*rev-parse HEAD}.*;/ my $thisversion = "%{v
 # and exclude known flaky tests in OBS check
 # https://progress.opensuse.org/issues/52652
 # 07-commands: https://progress.opensuse.org/issues/60755
-for i in 07-commands 13-osutils 14-isotovideo 18-qemu-options 18-backend-qemu 99-full-stack; do
+# 10-virtio_terminal: https://progress.opensuse.org/issues/94991
+for i in 07-commands 10-virtio_terminal 13-osutils 14-isotovideo 18-qemu-options 18-backend-qemu 99-full-stack; do
     rm t/$i.t
 done
 
