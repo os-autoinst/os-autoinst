@@ -122,7 +122,7 @@ sub pvmctl {
         die "pvmctl: scsi type needs at least both kind and file" unless ($kind && $file);
 
         #so far only disks are reatachable to the master LPAR
-        #set it back to default if argument is omited
+        #set it back to default if argument is omitted
         $lpar = $target if $target;
         dd_gen_params @cmd, "type",    $kind;
         dd_gen_params @cmd, "stor-id", $file;

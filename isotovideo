@@ -53,7 +53,7 @@ use autodie ':all';
 no autodie 'kill';
 
 my $installprefix;    # $bmwqemu::scriptdir
-my $fatal_error;      # the last error message catched by the die handler
+my $fatal_error;      # the last error message caught by the die handler
 
 BEGIN {
     # the following line is modified during make install

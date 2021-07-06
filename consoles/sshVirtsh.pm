@@ -149,7 +149,7 @@ sub _init_xml {
     # The root of all problems is this: Xen closes VNC and serial console connections
     # on reboot. Unlike KVM. So, to know when we are restarting if we are in the
     # state before, or after restart we have to configure libvirt to destroy
-    # (i.e. turn off) the VM. Then we have to explicitely start it define_and_start.
+    # (i.e. turn off) the VM. Then we have to explicitly start it define_and_start.
     # Even if KVM does not need this, from test code POV it's convenient to have it.
     if ($self->vmm_family eq 'xen' || $self->vmm_family eq 'kvm') {
         $elem = $doc->createElement('on_reboot');
@@ -198,7 +198,7 @@ sub change_domain_element {
         my $parent   = $elem;
         my $tag_name = shift @_;
         $elem = $parent->getElementsByTagName($tag_name)->[0];
-        # create it if not existant
+        # create it if not existent
         if (!$elem) {
             $elem = $doc->createElement($tag_name);
             $parent->appendChild($elem);

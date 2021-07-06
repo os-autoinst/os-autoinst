@@ -44,7 +44,7 @@ use constant FILE_POSTFIX => '-file';
 =head3 driver
 
 The file format and software layer used to power the block device.  Usually we
-use qcow2; infact only the backing files for ISOs and firmwares should be in
+use qcow2; in fact only the backing files for ISOs and firmwares should be in
 any other format.
 
 =cut
@@ -79,7 +79,7 @@ has 'size';
 
 =head3 overlay
 
-A link to another OpenQA::Qemu::BlockDev object which represnts the overlay on
+A link to another OpenQA::Qemu::BlockDev object which represents the overlay on
 top of this block device. This can be undefined in which case this is the
 'active layer', that is, the block device which QEMU is writing to (reads may
 still be taken from the backing files in the chain).

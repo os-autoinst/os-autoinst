@@ -12,7 +12,7 @@ Options:
  -h, -?, --help       display this help
  -c, --check          Only check for style check differences
  -f, --force          Force check even if tidy version mismatches
- -o --only-changed    Only tidy files with uncommited changes in git. This can
+ -o --only-changed    Only tidy files with uncommitted changes in git. This can
                       speed up execution a lot.
 
 perltidy rules can be found in .perltidyrc

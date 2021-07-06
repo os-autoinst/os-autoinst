@@ -35,7 +35,7 @@ The output file path needs to be passed as CLI argument. Passing '-n'
 prevents the actual video encoding so only the PNG is produced
 anymore (as needed).
 
-This program will wait until it recieves a TERM signal to complete the
+This program will wait until it receives a TERM signal to complete the
 video.
 
  ********************************************************************/

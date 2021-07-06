@@ -181,7 +181,7 @@ sub parse_test_path {
     my $category = $1;
     my $name     = $2;
     if ($category ne 'other') {
-        # show full folder hierachy as category for non-sideloaded tests
+        # show full folder hierarchy as category for non-sideloaded tests
         my $pattern = qr,(tests/[^/]+/)?tests/([\w/]+)/([^/]+)\.p[my]$,;
         if ($script_path =~ $pattern) {
             $category = $2;

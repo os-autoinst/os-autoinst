@@ -44,7 +44,7 @@ sub activate {
     my $ipmi_response = $@;
     if ($ipmi_response) {
         # IPMI response like SOL payload already de-activated is expected
-        die "Unexpect IPMI response: $ipmi_response" unless
+        die "Unexpected IPMI response: $ipmi_response" unless
           ($ipmi_response =~ /SOL payload already de-activated/);
     }
 

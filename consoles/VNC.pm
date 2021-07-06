@@ -159,7 +159,7 @@ sub login {
                 OpenQA::Exception::VNCSetupError->throw(error => $error_message);
             }
             # we might be too fast trying to connect to the VNC host (e.g.
-            # qemu) so ignore the first occurences of a failed
+            # qemu) so ignore the first occurrences of a failed
             # connection attempt.
             bmwqemu::fctwarn($error_message) if $err_cnt > $connect_failure_limit;
             sleep 1;

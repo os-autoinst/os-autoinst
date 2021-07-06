@@ -832,7 +832,7 @@ subtest 'mouse_drag' => sub {
                 button => 'left',
                 cmd    => 'backend_mouse_button'
             },
-    ], 'mouse drag (redundant definiton by a needle)') or diag explain $cmds;
+    ], 'mouse drag (redundant definition by a needle)') or diag explain $cmds;
 };
 
 done_testing;

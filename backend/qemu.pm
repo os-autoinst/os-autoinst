@@ -49,7 +49,7 @@ use OpenQA::Qemu::Proc;
 use constant LONG_MAX => (~0 >> 1);
 
 # Folder where RAM/VM state files live. Note that the blockdevice snapshots go
-# in a seperate dir.
+# in a separate dir.
 use constant VM_SNAPSHOTS_DIR => 'vm-snapshots';
 
 sub new {
@@ -382,7 +382,7 @@ sub save_storage_drives {
             format  => "qcow2"
         });
 
-    diag "Sucessfully extracted disk #%d.", $args->{disk};
+    diag "Successfully extracted disk #%d.", $args->{disk};
     return;
 }
 
@@ -893,7 +893,7 @@ sub start_qemu {
             sp('device', [qv "$vars->{NICMODEL} netdev=qanet$i mac=$nicmac[$i]"]);
         }
 
-        # Keep additionnal virtio _after_ Ethernet setup to keep virtio-net as eth0
+        # Keep additional virtio _after_ Ethernet setup to keep virtio-net as eth0
         if ($vars->{QEMU_VIRTIO_RNG}) {
             sp('object', 'rng-random,filename=/dev/urandom,id=rng0');
             sp('device', 'virtio-rng-pci,rng=rng0');

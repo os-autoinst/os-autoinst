@@ -282,7 +282,7 @@ sub read_until {
 
         # If there is not enough free space in the ring buffer; remove an amount
         # equal to the bytes just read minus the free space in $rbuf from the
-        # begining. If we are recording all output, add the removed bytes to
+        # beginning. If we are recording all output, add the removed bytes to
         # $overflow.
         if (length($rbuf) + $read > $buflen) {
             my $remove_len = $read - ($buflen - length($rbuf));
@@ -309,7 +309,7 @@ sub read_until {
 Read and return pending data without consuming it. This is useful if you are
 about to destroy the serial_screen instance, but want to keep any pending
 data. However this does not wait for any data in particular so this races with
-the backend and data transport. Therefor it should only be used when there is
+the backend and data transport. Therefore it should only be used when there is
 no information available about what data is expected to be available.
 
 =cut

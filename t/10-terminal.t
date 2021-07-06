@@ -344,7 +344,7 @@ sub check_child {
 # The virtio_terminal expects the socket to be ready by the time it is activated
 # so wait for fake terminal to create socket and emit SIGCONT. Sigsuspend only
 # returns if a signal is received which has a handler set. We must initially
-# block the signal incase SIGCONT is emitted before we reach sigsuspend.
+# block the signal in case SIGCONT is emitted before we reach sigsuspend.
 my $pipe_in  = $socket_path . ".in";
 my $pipe_out = $socket_path . ".out";
 
