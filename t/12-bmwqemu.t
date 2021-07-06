@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-# Copyright (C) 2017-2020 SUSE LLC
+# Copyright (C) 2017-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ use File::Path 'make_path';
 use Cwd 'abs_path';
 use Mojo::JSON;    # booleans
 use Cpanel::JSON::XS ();
-use Test::Warnings qw(warnings :report_warnings);
+use Test::Warnings qw(:report_warnings);
 
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
 my $data_dir     = "$toplevel_dir/t/data";
@@ -139,13 +139,6 @@ subtest 'HDD variables sanity check' => sub {
     $bmwqemu::vars{PUBLISH_HDD_1} = 'foo.qcow2';
     throws_ok { bmwqemu::_check_publish_vars } qr/HDD_1 also specified in PUBLISH/, 'overwriting source HDD is prevented';
 };
-
-ok -e 'vars.json', 'file exists';
-my @warnings = warnings {
-    like bmwqemu::fileContent('vars.json'),              qr/CASEDIR/, 'fileContent can read file';
-    is bmwqemu::fileContent('vars.json.does_not_exist'), undef,       'fileContent returns undef on errors';
-};
-like $warnings[0], qr{DEPRECATED}, 'fileContent function marked as deprecated';
 
 done_testing;
 
