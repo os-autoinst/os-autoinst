@@ -84,9 +84,7 @@ sub handle_command {
     my ($self, $cmd) = @_;
 
     my $func = $cmd->{cmd};
-    unless ($self->can($func)) {
-        die "not supported command: $func";
-    }
+    die "not supported command: $func" unless $self->can($func);
     return $self->$func($cmd->{arguments});
 }
 
