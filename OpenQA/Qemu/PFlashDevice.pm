@@ -22,7 +22,7 @@ drive device and block device chain are created; we can not set the node id of
 the top block device for example nor can we override the backing file AFAIK.
 
 This class is the same as DriveDevice except for a few extra fields and
-gen_cmdline has been overriden to use '-drive' instead.
+gen_cmdline has been overridden to use '-drive' instead.
 
 =cut
 

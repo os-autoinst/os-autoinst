@@ -331,7 +331,7 @@ sub nice_3270_status {
         ## is zero.
         'command_execution_time',
         ## The time that it took for the host to respond to the
-        ## previous commnd, in seconds with milliseconds after the
+        ## previous command, in seconds with milliseconds after the
         ## decimal. If the previous command did not require a host
         ## response, this is a dash.
     );

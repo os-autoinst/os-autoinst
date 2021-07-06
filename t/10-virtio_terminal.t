@@ -111,7 +111,7 @@ subtest "Test open_pipe() error condition" => sub {
 
     $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     combined_like { throws_ok { $term->open_pipe() } qr/No such file or directory/, "Throw exception if pipe doesn't exists" }
-    qr/\[debug\] <<<.*open_pipe/, 'log for open_pipe on non-existant pipe';
+    qr/\[debug\] <<<.*open_pipe/, 'log for open_pipe on non-existent pipe';
 };
 
 subtest "Test snapshot handling" => sub {
@@ -150,11 +150,11 @@ subtest "Test snapshot handling" => sub {
     $term->save_snapshot('snap3');
 
     $term->load_snapshot('snap1');
-    is_deeply($term->screen()->peak(), $test_data, '[snap1] carry over buffer sucessful loaded');
+    is_deeply($term->screen()->peak(), $test_data, '[snap1] carry over buffer successful loaded');
     is($term->{activated}, 1, '[snap1] console is still activated');
 
     $term->load_snapshot('snap3');
-    is_deeply($term->screen()->peak(), 'foo', '[snap3] carry over buffer sucessful loaded');
+    is_deeply($term->screen()->peak(), 'foo', '[snap3] carry over buffer successful loaded');
     is($term->{activated}, 0, '[snap3] console is not activated');
 
     $term->disable();

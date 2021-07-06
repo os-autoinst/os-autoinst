@@ -17,7 +17,7 @@
 =head2 consoles::console
 
 Base class for consoles. That is, 'user' interfaces between os-autoinst and
-the SUT which are independant of the backend (e.g. QEMU, IPMI). Consoles are
+the SUT which are independent of the backend (e.g. QEMU, IPMI). Consoles are
 used to match needles against the GUI and send key presses (e.g. VNC) or
 communicate with the shell using text (e.g. virtio_terminal).
 

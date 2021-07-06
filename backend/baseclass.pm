@@ -311,7 +311,7 @@ sub check_select_rate {
     if ($time > $upper_limit) {
         $buckets->{TIME} = $time;
 
-        # This is to give the oportunity to recover, if the reboot/restart is slow
+        # This is to give the opportunity to recover, if the reboot/restart is slow
         for (keys %{$buckets->{BUCKET}}) {
             if ($buckets->{BUCKET}{$_} < $hits_limit) {
                 $buckets->{BUCKET} = {$id => 1};
@@ -726,7 +726,7 @@ sub reenable_consoles {
 Should be called when a snapshot of the SUT is taken to save the current state
 of any consoles which have state. For example: text consoles may have
 unprocessed output from the SUT in their buffers which is needed by test
-module after the snpashot.
+module after the snapshot.
 
 =cut
 sub save_console_snapshots {

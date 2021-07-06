@@ -209,7 +209,7 @@ subtest 'SSH utilities' => sub {
     is($ssh2->{connected},     1, "SSH connection ssh2 connected");
     is($ssh7->{connected},     1, "SSH connection ssh7 connected");
     is($ssh8->{connected},     1, "SSH connection ssh8 connected");
-    # +1 unamed connection form implicit run_ssh_cmd()
+    # +1 unnamed connection form implicit run_ssh_cmd()
 
     is(scalar(@disconnected_ssh), 3, "Expect 3 disconnected SSH connections");
     is($ssh3->{connected},        0, "SSH connection ssh3 disconnected");
@@ -249,7 +249,7 @@ subtest 'SSH utilities' => sub {
         });
         my $exit_value;
         stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } $expect_output, 'Serial output is printed to STDOUT';
-        is(path($baseclass->{serialfile})->slurp(), $expect_output, 'Serial output is writen to serial file');
+        is(path($baseclass->{serialfile})->slurp(), $expect_output, 'Serial output is written to serial file');
         is($exit_value,                             1,              'Check return value on success');
 
         $channel_read_string = undef;

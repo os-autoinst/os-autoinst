@@ -2,7 +2,7 @@
 /*
   snd2png.cpp - idea is from http://snd2fftw.sourceforge.net/, but the code
   doesn't
-  have more similiarity to its grandfather than to a random fftw example
+  have more similarity to its grandfather than to a random fftw example
 */
 
 #include <fftw3.h>
@@ -168,11 +168,11 @@ int main(int argc, char* argv[])
     }
 
     int scale_factor = 3;
-    int height = 768; // make sure it can be devided by the scale_factor
+    int height = 768; // make sure it can be divided by the scale_factor
 
     // we have to cover 3000 hz and 18 hz is the sitance between D4 and E4, so
     // don't
-    // go too low with the number of frequences to cover
+    // go too low with the number of frequencies to cover
     int freqs = height / scale_factor;
     Mat grayscaleMat(height, 1024, CV_8U, Scalar(255));
 

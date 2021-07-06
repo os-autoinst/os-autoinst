@@ -139,7 +139,7 @@ sub handle_api_error {
     my $children = get_children_by_state('done');
     print $children->[0]
 
-Returns an array ref conaining ids of children in given state.
+Returns an array ref containing ids of children in given state.
 
 =cut
 
@@ -152,10 +152,10 @@ sub get_children_by_state {
 
 =head2 get_children
 
-    my $childern = get_children();
+    my $children = get_children();
     print keys %$children;
 
-Returns a hash ref conaining { id => state } pair for each child job.
+Returns a hash ref containing { id => state } pair for each child job.
 
 =cut
 
@@ -170,7 +170,7 @@ sub get_children {
     my $parents = get_parents
     print $parents->[0]
 
-Returns an array ref conaining ids of parent jobs.
+Returns an array ref containing ids of parent jobs.
 
 =cut
 
@@ -239,7 +239,7 @@ sub get_job_autoinst_vars {
     my $url = get_job_autoinst_url($target_id);
     return undef unless $url;
 
-    # query the os-autoinst webserver of the job specifed by $target_id
+    # query the os-autoinst webserver of the job specified by $target_id
     $url .= '/vars';
 
     my $ua = Mojo::UserAgent->new;

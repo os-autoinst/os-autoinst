@@ -30,7 +30,7 @@ use testapi qw(get_var);
 
 # helper function
 # Keep ssh session for the maximum of ServerAliveCountMax x ServerAliveInterval seconds
-# even without receiving any messsage back from the server, and this will not affect normal
+# even without receiving any message back from the server, and this will not affect normal
 # ssh disconnect and console switching. Ssh console may not display returned result of
 # long-time run test without these options. TCPKeepAlive ensures that if network goes down
 # or the remote host dies, machines will be properly noticed

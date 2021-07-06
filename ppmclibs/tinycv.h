@@ -16,7 +16,7 @@
 #include <string>
 #include <vector>
 
-// opaque type to seperate perl from opencv
+// opaque type to separate perl from opencv
 struct Image;
 void create_opencv_threads(int thread_count);
 void image_destroy(Image *s);

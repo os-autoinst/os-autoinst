@@ -130,7 +130,7 @@ sub start_vm {
 sub stop_backend {
     my ($self) = @_;
     $self->_send_json({cmd => 'stop_vm'});
-    # remove if still existant
+    # remove if still existent
     unlink('backend.run') if -e 'backend.run';
     return;
 }

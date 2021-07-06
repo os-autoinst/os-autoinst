@@ -27,14 +27,14 @@ SSH_CONNECT_RETRY;integer;5;Maximum retries to connect to SSH based console targ
 SSH_CONNECT_RETRY_INTERVAL;float;10;Interval in seconds between retries to connect to SSH based console targets. Related to SSH_CONNECT_RETRY
 VNC_STALL_THRESHOLD;integer;4;Time after which is VNC considered stalled
 VNC_TYPING_LIMIT;integer;30;Maximum number of keys per second
-_CHKSEL_RATE_WAIT_TIME;integer;30;The ammount of time isotovideo is going to wait for the VNC console to become responsive
-_CHKSEL_RATE_HITS;integer;15000;The ammount of times, the select should return the same fileno during the _CHKSEL_RATE_WAIT_TIME seconds, to consider the VNC console unresponsive
+_CHKSEL_RATE_WAIT_TIME;integer;30;The amount of time isotovideo is going to wait for the VNC console to become responsive
+_CHKSEL_RATE_HITS;integer;15000;The amount of times, the select should return the same fileno during the _CHKSEL_RATE_WAIT_TIME seconds, to consider the VNC console unresponsive
 TIMEOUT_SCALE;integer;1;This scale parameter can be used based on performance of workers to prevent false positive timeouts based on differing worker performance.
 PAUSE_AT;string;;Test module (name or fullname) to pause test execution at. To be used together with the openQA developer mode to continue test execution. Be aware that the openQA web UI will only reflect this within the developer mode after confirming to control the test.
 PAUSE_ON_SCREEN_MISMATCH;boolean;0;Pause test execution on the next screen mismatch. Same notes as for `PAUSE_AT` apply.
 PAUSE_ON_NEXT_COMMAND;boolean;0;Pause test execution on the next test API command. Same notes as for `PAUSE_AT` apply.
 _QUIET_SCRIPT_CALLS;boolean;0;Add quiet flag to all the calls to script_run, script_output and validate_script_output. It will omit all the squares "wait_serial expected" on the Details view of the test case. This option might be useful for serial terminal tests.
-AUTOINST_URL_HOSTNAME;string;;hostname or IP adress of host running the autoinst webserver endpoint, defaults to the local IP adress within the qemu network for the qemu backend or the `WORKER_HOSTNAME` otherwise.
+AUTOINST_URL_HOSTNAME;string;;hostname or IP address of host running the autoinst webserver endpoint, defaults to the local IP address within the qemu network for the qemu backend or the `WORKER_HOSTNAME` otherwise.
 
 |====================
 
@@ -89,7 +89,7 @@ HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
 HDD_$i;filename;;Filename of HDD image to be used for VM. Up to 9
 HDDNUMQUEUES_$i;integer;-1;see qemu-system-x86_64 -device nvme,help - set the number of queues for HDD_$i
 ISO;filename;;Filename of ISO file to be attached to VM
-ISO_$i;filename;;Aditional ISO to be attached to VM. Up to 9
+ISO_$i;filename;;Additional ISO to be attached to VM. Up to 9
 KEEPHDDS;boolean;;Leave created HDD after test finishes. Useful for debugging tests
 LAPTOP;boolean or filename;0;If 1, loads Dell E6330 DMI. If filename, loads specified DMI
 MAKETESTSNAPSHOTS;boolean;0;Save snapshot for each test module in qcow image
@@ -131,7 +131,7 @@ QEMU_NO_TABLET;boolean;0;Don't use USB tablet.
 QEMU_VIRTIO_RNG;boolean;0;Enable virtio random number generator
 QEMU_NUMA;boolean;0;Enable NUMA simulation, requires QEMUCPUS to be greater than one
 QEMU_SMBIOS;see qemu -smbios ?;undef;pass this value to qemu -smbios
-QEMU_SOUNDHW;see qemu -soundhw ?;hda;pass this value to qemu -soundhw (for qemu < 4.2)
+QEMU_SOUNDHW;see qemu -soundhw ?;had;pass this value to qemu -soundhw (for qemu < 4.2)
 QEMU_AUDIODEV;see qemu -device ?;intel-hda;Audio device to use with audiodev to qemu -device (for qemu >= 4.2)
 QEMU_AUDIOBACKEND;see qemu -audio-help;none;Audio backend to use with audiodev (for qemu >= 4.2)
 QEMU_COMPRESS_LEVEL;integer;6;Sets the compression level used for memory dumps and snapshots. Zero turns compression off and 9 is the maximum level. Generally there is little improvement in compression ratio by increasing the level, but the CPU time can be high on some platforms.
@@ -184,7 +184,7 @@ VIRSH_GUEST_PASSWORD;string;;VNC password of the guest
 VIRSH_INSTANCE;integer;;VM's instance number on VIRSH_HOSTNAME
 VMWARE_USERNAME;string;;Administrator's username ('@' is '%40')
 VMWARE_PASSWORD;string;;Administrator's password
-VMWARE_HOST;string;;VCS server for autentication
+VMWARE_HOST;string;;VCS server for authentication
 VMWARE_DATASTORE;string;;VMware datastore
 VMWARE_NFS_DATASTORE;string;;VMware datastore with openQA NFS directories
 VMWARE_SERIAL_PORT;string;;TCP port where is VM's serial port stream to be expected on the ESX server
@@ -225,7 +225,7 @@ QEMURAM;integer;undef;Quantity of RAM
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-ARCH;string;undef;Arquitecture of the pvm backend
+ARCH;string;undef;Architecture of the pvm backend
 MEM;integer;2048;amount of RAM
 LPAR;string;osauto;LPAR name to be created
 LPARID;string;udef;LPAR id
@@ -264,7 +264,7 @@ GENERAL_HW_POWERON_CMD;string;;Shell Command to power on the SUT (in CMD_DIR)
 GENERAL_HW_POWERON_ARGS;string;;Arguments to pass GENERAL_HW_POWERON_CMD Shell script
 GENERAL_HW_POWEROFF_CMD;string;;Shell Command to power off the SUT (in CMD_DIR)
 GENERAL_HW_POWEROFF_ARGS;string;;Arguments to pass GENERAL_HW_POWEROFF_CMD Shell script
-GENERAL_HW_FLASH_CMD;string;;Shell Command to flash a disk image on SUT (in CMD_DIR), optionnal
+GENERAL_HW_FLASH_CMD;string;;Shell Command to flash a disk image on SUT (in CMD_DIR), optional
 GENERAL_HW_FLASH_ARGS;string;;Arguments to pass GENERAL_HW_FLASH_CMD Shell script
 |====================
 
