@@ -166,11 +166,6 @@ sub ensure_valid_vars {
     if ($gocrbin && !-x $gocrbin) {
         $gocrbin = undef;
     }
-    if ($vars{SUSEMIRROR} && $vars{SUSEMIRROR} =~ s{^(\w+)://}{}) {    # strip & check proto
-        if ($1 ne "http") {
-            die "only http mirror URLs are currently supported but found '$1'.";
-        }
-    }
 
     die "CASEDIR variable not set, unknown test case directory" if !defined $vars{CASEDIR};
     die "No scripts in $vars{CASEDIR}"                          if !-e "$vars{CASEDIR}";

@@ -24,7 +24,8 @@ use File::Temp 'tempdir';
 use File::Basename;
 use File::Path 'make_path';
 use Cwd 'abs_path';
-use Mojo::JSON;    # booleans
+use Mojo::File qw(path);
+use Mojo::JSON qw(decode_json);
 use Cpanel::JSON::XS ();
 use Test::Warnings qw(:report_warnings);
 
@@ -140,10 +141,13 @@ subtest 'HDD variables sanity check' => sub {
     throws_ok { bmwqemu::_check_publish_vars } qr/HDD_1 also specified in PUBLISH/, 'overwriting source HDD is prevented';
 };
 
+my %new_json = (foo => 'bar', baz => 42);
+ok bmwqemu::save_json_file(\%new_json, 'new_json_file.json'), 'JSON file can be saved with save_json_file';
+is_deeply decode_json(path('new_json_file.json')->slurp), \%new_json, 'JSON file written with correct content';
 done_testing;
 
 END {
-    unlink 'vars.json';
+    unlink for qw(vars.json new_json_file.json);
 }
 
 1;
