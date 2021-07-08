@@ -54,8 +54,8 @@ sub do_start_vm {
     my ($self) = @_;
 
     my $vars = \%bmwqemu::vars;
-    my $n    = $vars->{NUMDISKS} // 1;
-    $vars->{NUMDISKS} //= defined($vars->{RAIDLEVEL}) ? 4 : $n;
+    $vars->{HDDSIZEGB} //= 10;
+    $vars->{NUMDISKS}  //= defined($vars->{RAIDLEVEL}) ? 4 : 1;
     $self->truncate_serial_file;
     my $ssh = $testapi::distri->add_console(
         'svirt',
