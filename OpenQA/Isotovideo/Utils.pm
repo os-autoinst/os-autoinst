@@ -59,7 +59,7 @@ sub checkout_git_repo_and_branch {
 
     my $branch      = $url->fragment;
     my $clone_url   = $url->fragment(undef)->to_string;
-    my $local_path  = $url->path->parts->[-1] =~ s/.git//r;
+    my $local_path  = $url->path->parts->[-1] =~ s/\.git$//r;
     my $clone_cmd   = 'env GIT_SSH_COMMAND="ssh -oBatchMode=yes" git clone';
     my $clone_args  = "--depth $args{clone_depth}";
     my $branch_args = '';
@@ -93,7 +93,7 @@ sub checkout_git_repo_and_branch {
                 $return_code = $?;
                 bmwqemu::diag "git fetch: @out";
                 die "Unable to fetch Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
-                die "Could not find '$branch' in complete history" if grep /remote: Total 0/, @out;
+                die "Could not find '$branch' in complete history in cloned Git repository '$dir'" if grep /remote: Total 0/, @out;
             }
             qx{git -C $local_path checkout $branch};
             die "Unable to checkout branch '$branch' in cloned Git repository '$dir'" unless $? == 0;
