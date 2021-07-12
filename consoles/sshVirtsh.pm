@@ -329,13 +329,13 @@ sub add_disk {
 
     my $backingfile             = $args->{backingfile};
     my $cdrom                   = $args->{cdrom};
-    my $size                    = $args->{size} || '20G';
     my $name                    = $self->name;
     my $file                    = $name . $args->{dev_id} . ($self->vmm_family eq 'vmware' ? '.vmdk' : '.img');
     my $basedir                 = '/var/lib/libvirt/images/';
     my $vmware_datastore        = get_var('VMWARE_DATASTORE', '');
     my $vmware_openqa_datastore = "/vmfs/volumes/$vmware_datastore/openQA/";
     if ($args->{create}) {
+        my $size = $args->{size} || '20G';
         if ($self->vmm_family eq 'vmware') {
             my $vmware_disk_path = $vmware_openqa_datastore . $file;
             # Power VM off, delete it's disk image, and create it again.
@@ -417,7 +417,7 @@ sub add_disk {
             }
             else {
                 $file = $basedir . $file;
-                $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -b '$basedir/%s' $size", $file_basename))
+                $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -b '$basedir/%s'", $file_basename))
                   && die 'qemu-img create with backing file failed';
             }
         }
