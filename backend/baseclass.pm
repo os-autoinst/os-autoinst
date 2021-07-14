@@ -517,8 +517,7 @@ sub format_vtt_timestamp {
     $caption .= " --> ";
     $caption .= sprintf(POSIX::strftime("%T.%%03d\n", gmtime($frametime_ms / 1000)), $frametime_ms % 1000);
     # clock value as caption text
-    $caption .= sprintf(POSIX::strftime("[%FT%T.%%03d]\n", localtime($walltime)), 1000 * ($walltime - int($walltime)));
-
+    
     return $caption;
 }
 
