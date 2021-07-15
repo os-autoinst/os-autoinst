@@ -26,6 +26,7 @@ use IO::Scalar;
 use Time::HiRes 'usleep';
 use bmwqemu;
 use testapi qw(get_var get_required_var check_var);
+use Mojo::Util qw(trim);
 
 use constant SERIAL_CONSOLE_DEFAULT_PORT   => 0;
 use constant SERIAL_CONSOLE_DEFAULT_DEVICE => 'console';
@@ -84,6 +85,9 @@ sub do_stop_vm {
             my $ps = 'powershell -Command';
             $self->run_ssh_cmd("$ps Stop-VM -Force -VMName $vmname -TurnOff");
             $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Remove-VM -Force -VMName $vmname"));
+            my $vhdx_path = sprintf "%s%s\\\\cache\\%s_*", get_var('HYPERV_DISK', 'D:'), get_var('HYPERV_ROOT', ''), $vmname;
+            $self->run_ssh_cmd("$ps Remove-Item $vhdx_path -Force");
+
         }
         else {
             my $virsh = 'virsh';
@@ -167,25 +171,34 @@ sub save_snapshot {
 
 sub load_snapshot {
     my ($self, $args) = @_;
-    my $snapname = $args->{name};
-    my $vmname   = $self->console('svirt')->name;
-    my $rsp;
+    my $snapname                   = $args->{name};
+    my $vmname                     = $self->console('svirt')->name;
     my $post_load_snapshot_command = '';
+    my $vm_state;
+    my $rsp;
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
-        my $ps = 'powershell -Command';
+        my $attempts = get_var('RDP_RECONNECT_ATTEMPS', 5);
+        my $ps       = 'powershell -Command';
+        $self->run_ssh_cmd("$ps (Get-VMCheckpoint -VMName $vmname).Name");
         $rsp = $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false"));
+        # after restoring from checkpoint, VM should be 'Running'.
+        (undef, $vm_state) = $self->run_ssh_cmd("$ps (Get-VM -VMName $vmname).State", wantarray => 1);
+        $vm_state = trim($vm_state);
+        bmwqemu::diag "VM state: $vm_state, after restoring from checkpoint";
         $self->run_ssh_cmd("mv -v xfreerdp_${vmname}_stop xfreerdp_${vmname}_stop.bkp", $self->get_ssh_credentials('hyperv'));
+        # Because of FreeRDP issue https://github.com/FreeRDP/FreeRDP/issues/3876,
+        # we can't connect too "early". Let's have a nap for a while.
+        my $i = 0;
+        do {
+            sleep 5;
+            (undef, $vm_state) = $self->run_ssh_cmd("$ps (Get-VM -VMName $vmname).State", wantarray => 1);
+            $vm_state = trim($vm_state);
+            bmwqemu::diag "Restoring RDP connection, attempts: ${\++$i}, VM state: $vm_state";
+        } while ($i < $attempts && $self->run_ssh_cmd("pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)", $self->get_ssh_credentials('hyperv'))
+            && $vm_state eq 'Running');
 
-        for my $i (1 .. 5) {
-            # Because of FreeRDP issue https://github.com/FreeRDP/FreeRDP/issues/3876,
-            # we can't connect too "early". Let's have a nap for a while.
-            sleep 10;
-            last
-              unless $self->run_ssh_cmd(
-                "pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)",
-                $self->get_ssh_credentials('hyperv'));
-            $self->die("xfreerdp did not start") if ($i eq 5);
-        }
+        $vm_state eq 'Running' or $self->die("The VM is not running");
+        $self->die("xfreerdp did not start") if ($i == $attempts);
     }
     else {
         my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
