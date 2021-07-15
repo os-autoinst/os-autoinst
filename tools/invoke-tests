@@ -43,7 +43,7 @@ db="$build_directory/cover_db"
 export PERL5LIB="$source_directory:$source_directory/external/os-autoinst-common/lib:$source_directory/ppmclibs:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
 if [[ $WITH_COVER_OPTIONS ]]; then
     path_regex="^|$source_directory/|\\.\\./"
-    select="($path_regex)(OpenQA|backend|consoles|ppmclibs)/|($path_regex)isotovideo|($path_regex)[^/]+\.pm,-ignore,\.t|data/tests/|fake/tests/|$prove_path"
+    select="($path_regex)(OpenQA|backend|consoles|ppmclibs|t)/|($path_regex)isotovideo|($path_regex)[^/]+\.(pm|t),-ignore,$prove_path"
     export PERL5OPT="-MDevel::Cover=-db,$db,-select,$select,-coverage,statement"
 fi
 
