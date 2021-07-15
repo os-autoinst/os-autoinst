@@ -392,7 +392,7 @@ sub runtest {
 
     $self->done();
     $self->{execution_time} = execution_time($starttime);
-    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, POSIX::strftime('%F %T', gmtime), $self->{execution_time}));
+    bmwqemu::diag(sprintf("||| finished %s %s at %s (%d s)", $name, $self->{category}, $self->{execution_time}));
     return;
 }
 
