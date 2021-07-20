@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright (C) 2017-2020 SUSE LLC
+# Copyright (C) 2017-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@ use Test::Most;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '360';
+use OpenQA::Test::TimeLimit '300';
 use Test::Warnings ':report_warnings';
 use Try::Tiny;
 use File::Basename;
@@ -100,31 +100,5 @@ subtest 'Assert screen failure' => sub {
 
     is($count, 2, 'Assert screen failures');
 };
-
-open($var, '>', 'vars.json');
-print $var <<EOV;
-{
-   "ARCH" : "i386",
-   "BACKEND" : "qemu",
-   "QEMU" : "i386",
-   "QEMU_NO_KVM" : "1",
-   "QEMU_NO_TABLET" : "1",
-   "QEMU_NO_FDC_SET" : "1",
-   "CASEDIR" : "$data_dir/tests",
-   "ISO" : "$data_dir/Core-7.2.iso",
-   "CDMODEL" : "ide-cd",
-   "HDDMODEL" : "ide-hd",
-   "INTEGRATION_TESTS" : "1",
-   "VERSION" : "1"
-}
-EOV
-
-# call isotovideo with additional test parameters provided by command line
-system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt");
-$log = path('autoinst-log.txt')->slurp;
-unlike $log, qr/assert_screen_fail_test/,         'assert screen test not scheduled';
-like $log,   qr/\d* Snapshots are not supported/, 'Snapshots are not supported';
-like $log,   qr/isotovideo done/,                 'isotovideo is done';
-like $log,   qr/EXIT 0/,                          'Test finished as expected';
 
 done_testing();
