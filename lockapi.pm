@@ -19,6 +19,7 @@ package lockapi;
 use strict;
 use warnings;
 use Scalar::Util 'looks_like_number';
+use Time::Seconds;
 use base 'Exporter';
 our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_wait
   barrier_create barrier_wait barrier_try_wait barrier_destroy);
@@ -71,7 +72,7 @@ sub _log {
     if (defined $args{amend}) {
         # amend log info with wait duration
         $autotest::current_test->remove_last_result;
-        $subject .= ' ' . int($args{amend} / 60) . 'm' . $args{amend} % 60 . 's';
+        $subject .= ' ' . int($args{amend} / ONE_MINUTE) . 'm' . $args{amend} % ONE_MINUTE . 's';
     }
     testapi::record_info $subject, $msg;
 }

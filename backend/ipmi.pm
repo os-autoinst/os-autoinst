@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@ use autodie ':all';
 use base 'backend::baseclass';
 
 use Time::HiRes qw(sleep);
+use Time::Seconds;
 use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
@@ -174,7 +175,7 @@ sub do_mc_reset {
             bmwqemu::diag("sleep ends, will do ping");
             # check until  mc reset is done and ipmi recovered
             my $count      = 0;
-            my $timeout    = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT}    // 60;
+            my $timeout    = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT}    // ONE_MINUTE;
             my $ping_count = $bmwqemu::vars{IPMI_MC_RESET_PING_COUNT} // 1;
             my $ping_cmd   = "ping -c$ping_count '$bmwqemu::vars{IPMI_HOSTNAME}'";
             my $ipmi_tries = $bmwqemu::vars{IPMI_MC_RESET_IPMI_TRIES} // 3;

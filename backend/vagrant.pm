@@ -25,6 +25,7 @@ use Cwd qw(abs_path);
 use File::Temp;
 use File::chdir;
 use IPC::Run;
+use Time::Seconds;
 
 sub new ($class) {
     my $self = $class->SUPER::new;
@@ -105,7 +106,7 @@ sub run_vagrant_command ($self, $args) {
     my @vagrant_cmd = ("vagrant", $args->{cmd});
     push(@vagrant_cmd, ("--machine-readable")) unless $args->{not_machine_readable};
     push @vagrant_cmd, @{$args->{extra_args}} if defined $args->{extra_args};
-    my $timeout = $args->{timeout} // 60;
+    my $timeout = $args->{timeout} // ONE_MINUTE;
 
     bmwqemu::diag("Invoking vagrant command: @vagrant_cmd");
     {

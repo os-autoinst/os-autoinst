@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@ use IPC::Run ();
 require IPC::System::Simple;
 use Socket;
 use File::Which;
+use Time::Seconds;
 use testapi qw(get_var);
 
 # helper function
@@ -38,7 +39,7 @@ sub sshCommand {
     my ($self, $username, $host, $gui) = @_;
 
     my $server_alive_count_max = get_var('_SSH_SERVER_ALIVE_COUNT_MAX', 480);
-    my $server_alive_interval  = get_var('_SSH_SERVER_ALIVE_INTERVAL',  60);
+    my $server_alive_interval  = get_var('_SSH_SERVER_ALIVE_INTERVAL',  ONE_MINUTE);
     my $sshopts = "-o TCPKeepAlive=yes -o ServerAliveCountMax=$server_alive_count_max -o ServerAliveInterval=$server_alive_interval -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no $username\@$host";
     $sshopts = "-X $sshopts" if $gui;
     return "ssh $sshopts; read";

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright © 2020 SUSE LLC
+# Copyright © 2020-2021 SUSE LLC
 
 use Test::Most;
 use Test::Warnings qw(:all :report_warnings);
@@ -9,7 +9,7 @@ use Test::Warnings qw(:all :report_warnings);
 use Test::MockModule;
 use Test::Output;
 use POSIX 'mkfifo';
-
+use Time::Seconds;
 use consoles::virtio_terminal;
 use testapi;
 use bmwqemu;
@@ -32,7 +32,7 @@ sub prepare_pipes
         $SIG{ALRM} = sub {
             die('Timeout for pipe other side helper');
         };
-        alarm 60;
+        alarm ONE_MINUTE;
 
         open(my $fd_r, "<", $pipe_in)
           or die "Can't open in pipe for writing $!";
