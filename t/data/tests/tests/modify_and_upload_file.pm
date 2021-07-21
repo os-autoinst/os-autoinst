@@ -1,4 +1,4 @@
-# Copyright (C) 2017 SUSE LLC
+# Copyright (C) 2017-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,6 +44,9 @@ sub run {
     my $url = autoinst_url . '/files/modified.xml';
     $content =~ s/PASSWORD/nots3cr3t/g;
     save_tmp_file('modified.xml', $content);
+    # ensure we have an IP to workaround "No route to host" error
+    # note: Note sure why the IP address is not assigned automatically anymore as it used to be.
+    assert_script_run('sudo ifconfig eth0 add 10.0.2.2\24');
     # Verify that correct file is downloaded
     assert_script_run("wget -q $url");
     script_run "echo '72d2c15cb10535f36862d7d2eecc8a79  modified.xml' > modified.md5";
