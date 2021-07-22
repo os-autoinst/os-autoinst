@@ -1137,7 +1137,7 @@ sub process_qemu_output {
     my ($buffer) = @_;
     for my $line (split(/\n/, $buffer)) {
         die "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
-        if ($line =~ /^qemu-system-.*: (?!terminating on signal)/) {
+        if ($line =~ /^\s*qemu-system-[^:]+: (?!terminating on signal)/) {
             bmwqemu::fctwarn $line, '';
         }
         else {
