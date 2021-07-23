@@ -835,4 +835,12 @@ subtest 'mouse_drag' => sub {
     ], 'mouse drag (redundant definition by a needle)') or diag explain $cmds;
 };
 
+subtest 'show_curl_progress_meter' => sub {
+    $testapi::serialdev = 'ttyS0';
+    $bmwqemu::vars{UPLOAD_METER} = 1;
+    is(testapi::show_curl_progress_meter(), '-o /dev/ttyS0 ', 'show_curl_progress_meter returns curl output parameter pointing to /dev/ttyS0');
+    $bmwqemu::vars{UPLOAD_METER} = 0;
+    is(testapi::show_curl_progress_meter(), '', 'show_curl_progress_meter returns "0" when UPLOAD_METER is not set');
+};
+
 done_testing;
