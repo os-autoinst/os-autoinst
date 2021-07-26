@@ -57,7 +57,7 @@ sub call {
 
 # test without a server
 subtest 'mmapi: server not reachable' => sub {
-    combined_like { is_deeply call($_), undef, "undef returned ($)" } qr/Connection error/, "error logged ($_)" for (qw(mmapi::get_children));
+    combined_like { is_deeply call($_), undef, "undef returned ($_)" } qr/Connection error/, "error logged ($_)" for (qw(mmapi::get_children));
     is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
 };
 subtest 'lockapi: server not reachable' => sub {
