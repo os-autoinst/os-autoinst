@@ -252,7 +252,7 @@ Wait while any running or scheduled children exist.
 
 sub wait_for_children {
     while (1) {
-        my $children = get_children() // {};
+        my $children = get_children() // die 'Failed to wait for children';
         my $n        = 0;
         for my $state (values %$children) {
             next if $state eq 'done' or $state eq 'cancelled';
@@ -274,7 +274,7 @@ Wait while any scheduled children exist.
 =cut
 sub wait_for_children_to_start {
     while (1) {
-        my $children = get_children() // {};
+        my $children = get_children() // die 'Failed to wait for children to start';
         my $n        = 0;
         for my $state (values %$children) {
             next if $state eq 'done' or $state eq 'cancelled' or $state eq 'running';

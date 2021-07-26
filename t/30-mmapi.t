@@ -31,6 +31,7 @@ BEGIN {
 use FindBin;
 use lib "$FindBin::Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
+use Test::Fatal;
 use Test::Output;
 use Test::MockModule;
 use Mojolicious;
@@ -216,8 +217,8 @@ subtest 'mmapi: wait functions' => sub {
     $wait_for_children_state = {interations_left => 1, state => 'running'};
     combined_like { mmapi::wait_for_children_to_start } qr/Waiting for 1 jobs to start/, 'wait for children to be runnning';
     my $mmapi_mock = Test::MockModule->new('mmapi');
-    $mmapi_mock->redefine(get_children => {});
-    combined_like { mmapi::wait_for_children } qr/Waiting for 0 jobs to finish/, 'wait for children stops waiting on error';
+    $mmapi_mock->redefine(get_children => undef);
+    like exception { mmapi::wait_for_children }, qr/Failed to wait/, 'wait for children dies on error';
 };
 
 done_testing;
