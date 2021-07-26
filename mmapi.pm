@@ -31,8 +31,9 @@ require bmwqemu;
 use Mojo::UserAgent;
 use Mojo::URL;
 
-our $retry_count   = $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}   // 3;
-our $poll_interval = $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL} // 1;
+our $retry_count    = $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}    // 3;
+our $retry_interval = $ENV{OS_AUTOINST_MMAPI_RETRY_INTERVAL} // 3;
+our $poll_interval  = $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL}  // 1;
 
 our $url;
 
@@ -92,6 +93,8 @@ sub api_call_2 {
         $tx  = $ua->$method($ua_url);
         $res = $tx->res;
         last if $res->code && ($expected_codes // $CODES_EXPECTED_BY_DEFAULT)->{$res->code};
+        bmwqemu::diag("api_call_2 failed, retries left: $tries of $retry_count");
+        sleep $retry_interval;
     }
     return $tx;
 }
