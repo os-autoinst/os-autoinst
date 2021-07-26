@@ -215,6 +215,9 @@ subtest 'mmapi: wait functions' => sub {
     combined_like { mmapi::wait_for_children } qr/Waiting for 1 jobs to finish/, 'wait for children to be done';
     $wait_for_children_state = {interations_left => 1, state => 'running'};
     combined_like { mmapi::wait_for_children_to_start } qr/Waiting for 1 jobs to start/, 'wait for children to be runnning';
+    my $mmapi_mock = Test::MockModule->new('mmapi');
+    $mmapi_mock->redefine(get_children => {});
+    combined_like { mmapi::wait_for_children } qr/Waiting for 0 jobs to finish/, 'wait for children stops waiting on error';
 };
 
 done_testing;
