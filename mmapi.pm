@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2020 SUSE LLC
+# Copyright (c) 2015-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,9 +34,10 @@ use Mojo::URL;
 use constant RETRY_COUNT   => $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}   // 3;
 use constant POLL_INTERVAL => $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL} // 1;
 
+our $url;
+
 # private ua
 my $ua;
-my $url;
 my $app;
 
 # define HTTP return codes which are not treated as errors by api_call/api_call_2/handle_api_error
@@ -50,15 +51,7 @@ sub _init {
     my $host   = $bmwqemu::vars{OPENQA_URL};
     my $secret = $bmwqemu::vars{JOBTOKEN};
     return unless $host && $secret;
-
-    if ($host !~ '/') {
-        $url = Mojo::URL->new();
-        $url->host($host);
-        $url->scheme('http');
-    }
-    else {
-        $url = Mojo::URL->new($host);
-    }
+    $url = Mojo::URL->new($host =~ '/' ? $host : "http://$host");
 
     # Relative paths are appended to the existing one
     $url->path('/api/v1/');
