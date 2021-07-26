@@ -35,6 +35,7 @@ PAUSE_ON_SCREEN_MISMATCH;boolean;0;Pause test execution on the next screen misma
 PAUSE_ON_NEXT_COMMAND;boolean;0;Pause test execution on the next test API command. Same notes as for `PAUSE_AT` apply.
 _QUIET_SCRIPT_CALLS;boolean;0;Add quiet flag to all the calls to script_run, script_output and validate_script_output. It will omit all the squares "wait_serial expected" on the Details view of the test case. This option might be useful for serial terminal tests.
 AUTOINST_URL_HOSTNAME;string;;hostname or IP address of host running the autoinst webserver endpoint, defaults to the local IP address within the qemu network for the qemu backend or the `WORKER_HOSTNAME` otherwise.
+UPLOAD_METER;boolean;0;Display curl progress meter in `upload_logs()` and `upload_assets()` subroutines.
 
 |====================
 

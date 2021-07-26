@@ -2233,6 +2233,7 @@ sub upload_logs {
     my $basename = basename($file);
     my $upname   = $args{log_name} || ($autotest::current_test->{name} . '-' . $basename);
     my $cmd      = "curl --form upload=\@$file --form upname=$upname ";
+    $cmd .= show_curl_progress_meter();
     $cmd .= autoinst_url("/uploadlog/$basename");
     if ($failok) {
         # just use script_run so we don't care if the upload fails
@@ -2280,6 +2281,7 @@ sub upload_asset {
     bmwqemu::log_call(file => $file, public => $public, nocheck => $nocheck);
     my $cmd = "curl --form upload=\@$file ";
     $cmd .= "--form target=assets_public " if $public;
+    $cmd .= show_curl_progress_meter();
     my $basename = basename($file);
     $cmd .= autoinst_url("/upload_asset/$basename");
     if ($nocheck) {
@@ -2312,5 +2314,19 @@ sub compat_args {
     map { $ret{$_} //= $def_args->{$_} } keys(%{$def_args});
     return %ret;
 }
+
+=head2 show_curl_progress_meter
+
+Helper function to alter the curl command to show progress meter.
+Progress meter is shown only when the server output is redirected.
+This works only when uploading where the output is not lately used.
+
+    show_curl_progress_meter( $cmd )
+
+A typical call would look like:
+
+    $cmd .= show_curl_progress_meter($cmd);
+=cut
+sub show_curl_progress_meter { get_var('UPLOAD_METER') ? "-o /dev/$serialdev " : '' }
 
 1;
