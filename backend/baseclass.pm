@@ -84,9 +84,7 @@ sub handle_command {
     my ($self, $cmd) = @_;
 
     my $func = $cmd->{cmd};
-    unless ($self->can($func)) {
-        die "not supported command: $func";
-    }
+    die "not supported command: $func" unless $self->can($func);
     return $self->$func($cmd->{arguments});
 }
 
@@ -168,6 +166,100 @@ sub _write_buffered_data_to_file_handle {
     }
 }
 
+sub do_capture {
+    my ($self, $timeout, $starttime) = @_;
+    # Time slot buckets
+    my $buckets         = {};
+    my $wait_time_limit = $bmwqemu::vars{_CHKSEL_RATE_WAIT_TIME} // 30;
+    my $hits_limit      = $bmwqemu::vars{_CHKSEL_RATE_HITS}      // 15_000;
+
+    while (1) {
+        last unless $self->{cmdpipe};
+        my $now             = gettimeofday;
+        my $time_to_timeout = "Inf" + 0;
+        if (defined $timeout) {
+            $time_to_timeout = $timeout - ($now - $starttime);
+            last if $time_to_timeout <= 0;
+        }
+
+        my $time_to_update_request = $self->update_request_interval - ($now - $self->last_update_request);
+        if ($time_to_update_request <= 0) {
+            $self->request_screen_update();
+            $self->last_update_request($now);
+            # no need to interrupt loop if VNC does not talk to us first
+            $time_to_update_request = $time_to_timeout;
+        }
+
+        # if we got stalled for a long time, we assume bad hardware and report it
+        if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
+            $self->stall_detected(1);
+            my $diff = $now - $self->last_screenshot;
+            bmwqemu::fctwarn "There is some problem with your environment, we detected a stall for $diff seconds";
+        }
+
+        my $time_to_screenshot = $self->screenshot_interval - ($now - $self->last_screenshot);
+        if ($time_to_screenshot <= 0) {
+            $self->capture_screenshot();
+            $self->last_screenshot($now);
+            $time_to_screenshot = $self->screenshot_interval;
+        }
+
+        my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
+        my ($read_set, $write_set) = IO::Select->select($self->{select_read}, $self->{select_write}, undef, $time_to_next);
+
+        # We need to check the video encoder and the serial socket
+        my ($video_encoder, $external_video_encoder, $other) = (0, 0, 0);
+        for my $fh (@$write_set) {
+            if ($fh == $self->{encoder_pipe}) {
+                $self->_write_buffered_data_to_file_handle('Encoder', $self->{video_frame_data}, $fh);
+                $video_encoder = 1;
+            }
+            elsif ($fh == $self->{external_video_encoder_cmd_pipe}) {
+                $self->_write_buffered_data_to_file_handle('External encoder', $self->{external_video_encoder_image_data}, $fh);
+                $external_video_encoder = 1;
+            }
+            else {
+                next if $other;
+                $other = 1;
+                if (!$self->check_socket($fh, 1) && !$other) {
+                    die "huh! $fh\n";
+                }
+            }
+            last if $video_encoder == 1 && $external_video_encoder == 1 && $other;
+        }
+
+        for my $fh (@$read_set) {
+            # This tries to solve the problem of half-open sockets (when reading, as writing will throw an exception)
+            # There are three ways to solve this problem:
+            # + Send a message either to the application protocol (null message) or to the application protocol framing (an empty message)
+            #   Disadvantages: Requires changes on both ends of the communication. (for example: on SSH connection i realized that after a
+            #   while I start getting "bad packet length" errors)
+            # + Polling the connections (Note: This is how HTTP servers work when dealing with persistent connections)
+            #    Disadvantages: False positives
+            # + Change the keepalive packet settings
+            #   Disadvantages: TCP/IP stacks are not required to support keepalives.
+            if (fileno $fh && fileno $fh != -1) {
+                # Very high limits! On a working socket, the maximum hits per 10 seconds will be around 60.
+                # The maximum hits per 10 seconds saw on a half open socket was >100k
+                if (check_select_rate($buckets, $wait_time_limit, $hits_limit, fileno $fh)) {
+                    my $console = $self->{current_console}->{testapi_console};
+                    OpenQA::Exception::ConsoleReadError->throw(error => "The console '$console' is not responding (half-open socket?). Make sure the console is reachable or disable stall detection on expected disconnects with '\$console->disable_vnc_stalls', for example in case of intended machine shutdown");
+                }
+            }
+
+
+            unless ($self->check_socket($fh, 0)) {
+                die "huh! $fh\n";
+            }
+            # don't check for further sockets after this one as
+            # check_socket can have side effects on the sockets
+            # (e.g. console resets), so better take the next socket
+            # next time
+            last;
+        }
+    }
+}
+
 =head2 run_capture_loop($timeout)
 
 =out
@@ -184,111 +276,12 @@ $self->{cmdpipe} is closed, whichever occurs first.
 sub run_capture_loop {
     my ($self, $timeout) = @_;
     my $starttime = gettimeofday;
-    if (!$self->last_screenshot) {
-        my $now = gettimeofday;
-        $self->last_screenshot($now);
-    }
+    $self->last_screenshot($starttime) unless $self->last_screenshot;
 
-    eval {
-        # Time slot buckets
-        my $buckets         = {};
-        my $wait_time_limit = $bmwqemu::vars{_CHKSEL_RATE_WAIT_TIME} // 30;
-        my $hits_limit      = $bmwqemu::vars{_CHKSEL_RATE_HITS}      // 15_000;
-
-        while (1) {
-            last if (!$self->{cmdpipe});
-
-            my $now             = gettimeofday;
-            my $time_to_timeout = "Inf" + 0;
-            if (defined $timeout) {
-                $time_to_timeout = $timeout - ($now - $starttime);
-
-                last if $time_to_timeout <= 0;
-            }
-
-            my $time_to_update_request = $self->update_request_interval - ($now - $self->last_update_request);
-            if ($time_to_update_request <= 0) {
-                $self->request_screen_update();
-                $self->last_update_request($now);
-                # no need to interrupt loop if VNC does not talk to us first
-                $time_to_update_request = $time_to_timeout;
-            }
-
-            # if we got stalled for a long time, we assume bad hardware and report it
-            if ($self->assert_screen_last_check && $now - $self->last_screenshot > $self->screenshot_interval * 20) {
-                $self->stall_detected(1);
-                my $diff = $now - $self->last_screenshot;
-                bmwqemu::fctwarn "There is some problem with your environment, we detected a stall for $diff seconds";
-            }
-
-            my $time_to_screenshot = $self->screenshot_interval - ($now - $self->last_screenshot);
-            if ($time_to_screenshot <= 0) {
-                $self->capture_screenshot();
-                $self->last_screenshot($now);
-                $time_to_screenshot = $self->screenshot_interval;
-            }
-
-            my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
-            my ($read_set, $write_set) = IO::Select->select($self->{select_read}, $self->{select_write}, undef, $time_to_next);
-
-            # We need to check the video encoder and the serial socket
-            my ($video_encoder, $external_video_encoder, $other) = (0, 0, 0);
-            for my $fh (@$write_set) {
-                if ($fh == $self->{encoder_pipe}) {
-                    $self->_write_buffered_data_to_file_handle('Encoder', $self->{video_frame_data}, $fh);
-                    $video_encoder = 1;
-                }
-                elsif ($fh == $self->{external_video_encoder_cmd_pipe}) {
-                    $self->_write_buffered_data_to_file_handle('External encoder', $self->{external_video_encoder_image_data}, $fh);
-                    $external_video_encoder = 1;
-                }
-                else {
-                    next if $other;
-                    $other = 1;
-                    if (!$self->check_socket($fh, 1) && !$other) {
-                        die "huh! $fh\n";
-                    }
-                }
-                last if $video_encoder == 1 && $external_video_encoder == 1 && $other;
-            }
-
-            for my $fh (@$read_set) {
-                # This tries to solve the problem of half-open sockets (when reading, as writing will throw an exception)
-                # There are three ways to solve this problem:
-                # + Send a message either to the application protocol (null message) or to the application protocol framing (an empty message)
-                #   Disadvantages: Requires changes on both ends of the communication. (for example: on SSH connection i realized that after a
-                #   while I start getting "bad packet length" errors)
-                # + Polling the connections (Note: This is how HTTP servers work when dealing with persistent connections)
-                #    Disadvantages: False positives
-                # + Change the keepalive packet settings
-                #   Disadvantages: TCP/IP stacks are not required to support keepalives.
-                if (fileno $fh && fileno $fh != -1) {
-                    # Very high limits! On a working socket, the maximum hits per 10 seconds will be around 60.
-                    # The maximum hits per 10 seconds saw on a half open socket was >100k
-                    if (check_select_rate($buckets, $wait_time_limit, $hits_limit, fileno $fh)) {
-                        my $console = $self->{current_console}->{testapi_console};
-                        OpenQA::Exception::ConsoleReadError->throw(error => "The console '$console' is not responding (half-open socket?). Make sure the console is reachable or disable stall detection on expected disconnects with '\$console->disable_vnc_stalls', for example in case of intended machine shutdown");
-                    }
-                }
-
-
-                unless ($self->check_socket($fh, 0)) {
-                    die "huh! $fh\n";
-                }
-                # don't check for further sockets after this one as
-                # check_socket can have side effects on the sockets
-                # (e.g. console resets), so better take the next socket
-                # next time
-                last;
-            }
-        }
-    };
-
-    if ($@) {
-        bmwqemu::fctwarn "capture loop failed $@";
-        $self->close_pipes();
-    }
-    return;
+    eval { $self->do_capture($timeout, $starttime) };
+    return unless $@;
+    bmwqemu::fctwarn "capture loop failed $@";
+    $self->close_pipes();
 }
 
 # wait_time_limit = seconds
@@ -297,16 +290,7 @@ sub check_select_rate {
     my ($buckets, $wait_time_limit, $hits_limit, $id) = @_;
 
     my $time        = gettimeofday;
-    my $lower_limit = $time;
-
-    if ($buckets->{TIME}) {
-        $lower_limit = $buckets->{TIME};
-    }
-    else {
-        # Bucket initialization;
-        $buckets->{TIME} = $time;
-    }
-
+    my $lower_limit = $buckets->{TIME} //= $time;
     my $upper_limit = $lower_limit + $wait_time_limit;
     if ($time > $upper_limit) {
         $buckets->{TIME} = $time;
@@ -449,16 +433,14 @@ sub stop_vm {
 
 sub alive {
     my ($self) = @_;
-    if ($self->{started}) {
-        if ($self->file_alive() and $self->raw_alive()) {
-            return 1;
-        }
-        else {
-            bmwqemu::fctwarn 'backend.run got deleted! - exiting...';
-            _exit(1);
-        }
+    return 0 unless $self->{started};
+    if ($self->file_alive() and $self->raw_alive()) {
+        return 1;
     }
-    return 0;
+    else {
+        bmwqemu::fctwarn("ALARM: backend.run got deleted! - exiting...");
+        _exit(1);
+    }
 }
 
 # new api end
@@ -835,9 +817,7 @@ sub reload_needles {
     # called from testapi::set_var, so read the vars
     bmwqemu::load_vars();
 
-    for my $n (needle->all()) {
-        $n->unregister();
-    }
+    $_->unregister() for needle->all();
     needle::init();
 }
 
