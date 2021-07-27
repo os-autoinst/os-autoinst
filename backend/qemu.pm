@@ -401,7 +401,8 @@ sub inflate_balloon {
     my $rsp         = $self->handle_qmp_command({execute => 'query-balloon'}, fatal => 1);
     my $prev_actual = $rsp->{return}->{actual};
     my $i           = 0;
-    while ($i < 5) {
+    my $timeout     = $vars->{QEMU_BALLOON_TIMEOUT} // 5;
+    while ($i < $timeout) {
         $i += 1;
         sleep(1);
         $rsp = $self->handle_qmp_command({execute => 'query-balloon'}, fatal => 1);
