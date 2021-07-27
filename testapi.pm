@@ -35,6 +35,7 @@ use Carp qw(cluck croak);
 use MIME::Base64 'decode_base64';
 use Scalar::Util qw(looks_like_number reftype);
 use B::Deparse;
+use Time::Seconds;
 
 require bmwqemu;
 use constant OPENQA_LIBPATH => '/usr/share/openqa/lib';
@@ -1913,7 +1914,7 @@ Returns true on success and false if C<$timeout> timeout is hit. Default timeout
 
 sub check_shutdown {
     my ($timeout) = @_;
-    $timeout //= 60;
+    $timeout //= ONE_MINUTE;
     bmwqemu::log_call(timeout => $timeout);
     $timeout = bmwqemu::scale_timeout($timeout);
     while ($timeout >= 0) {
@@ -1945,7 +1946,7 @@ if C<$timeout> timeout is hit. Default timeout is 60s.
 
 sub assert_shutdown {
     my ($timeout) = @_;
-    $timeout //= 60;
+    $timeout //= ONE_MINUTE;
     if (check_shutdown($timeout)) {
         $autotest::current_test->take_screenshot('ok');
         return;
