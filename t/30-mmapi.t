@@ -24,6 +24,7 @@ BEGIN {
     $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT}    = 1;
     $ENV{OS_AUTOINST_LOCKAPI_RETRY_INTERVAL} = 0;
     $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}      = 1;
+    $ENV{OS_AUTOINST_MMAPI_RETRY_INTERVAL}   = 0;
     $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL}    = 0;
     $ENV{MOJO_CONNECT_TIMEOUT}               = 0.01;
 }
@@ -31,6 +32,7 @@ BEGIN {
 use FindBin;
 use lib "$FindBin::Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
+use Test::Fatal;
 use Test::Output;
 use Test::MockModule;
 use Mojolicious;
@@ -57,7 +59,7 @@ sub call {
 
 # test without a server
 subtest 'mmapi: server not reachable' => sub {
-    combined_like { is_deeply call($_), undef, "undef returned ($)" } qr/Connection error/, "error logged ($_)" for (qw(mmapi::get_children));
+    combined_like { is_deeply call($_), undef, "undef returned ($_)" } qr/Connection error/, "error logged ($_)" for (qw(mmapi::get_children));
     is_deeply(\@recorded_info, [], 'no info recorded') or diag explain \@recorded_info;
 };
 subtest 'lockapi: server not reachable' => sub {
@@ -215,6 +217,9 @@ subtest 'mmapi: wait functions' => sub {
     combined_like { mmapi::wait_for_children } qr/Waiting for 1 jobs to finish/, 'wait for children to be done';
     $wait_for_children_state = {interations_left => 1, state => 'running'};
     combined_like { mmapi::wait_for_children_to_start } qr/Waiting for 1 jobs to start/, 'wait for children to be runnning';
+    my $mmapi_mock = Test::MockModule->new('mmapi');
+    $mmapi_mock->redefine(get_children => undef);
+    like exception { mmapi::wait_for_children }, qr/Failed to wait/, 'wait for children dies on error';
 };
 
 done_testing;

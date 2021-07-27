@@ -1,4 +1,4 @@
-# Copyright (c) 2015-2020 SUSE LLC
+# Copyright (c) 2015-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,12 +31,14 @@ require bmwqemu;
 use Mojo::UserAgent;
 use Mojo::URL;
 
-use constant RETRY_COUNT   => $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}   // 3;
-use constant POLL_INTERVAL => $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL} // 1;
+our $retry_count    = $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}    // 3;
+our $retry_interval = $ENV{OS_AUTOINST_MMAPI_RETRY_INTERVAL} // 3;
+our $poll_interval  = $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL}  // 1;
+
+our $url;
 
 # private ua
 my $ua;
-my $url;
 my $app;
 
 # define HTTP return codes which are not treated as errors by api_call/api_call_2/handle_api_error
@@ -50,15 +52,7 @@ sub _init {
     my $host   = $bmwqemu::vars{OPENQA_URL};
     my $secret = $bmwqemu::vars{JOBTOKEN};
     return unless $host && $secret;
-
-    if ($host !~ '/') {
-        $url = Mojo::URL->new();
-        $url->host($host);
-        $url->scheme('http');
-    }
-    else {
-        $url = Mojo::URL->new($host);
-    }
+    $url = Mojo::URL->new($host =~ '/' ? $host : "http://$host");
 
     # Relative paths are appended to the existing one
     $url->path('/api/v1/');
@@ -93,12 +87,14 @@ sub api_call_2 {
     $ua_url->path($action);
     $ua_url->query($params) if $params;
 
-    my $tries = RETRY_COUNT;
+    my $tries = $retry_count;
     my ($tx, $res);
     while ($tries--) {
         $tx  = $ua->$method($ua_url);
         $res = $tx->res;
         last if $res->code && ($expected_codes // $CODES_EXPECTED_BY_DEFAULT)->{$res->code};
+        bmwqemu::diag("api_call_2 failed, retries left: $tries of $retry_count");
+        sleep $retry_interval;
     }
     return $tx;
 }
@@ -259,7 +255,7 @@ Wait while any running or scheduled children exist.
 
 sub wait_for_children {
     while (1) {
-        my $children = get_children() // {};
+        my $children = get_children() // die 'Failed to wait for children';
         my $n        = 0;
         for my $state (values %$children) {
             next if $state eq 'done' or $state eq 'cancelled';
@@ -268,7 +264,7 @@ sub wait_for_children {
 
         bmwqemu::diag("Waiting for $n jobs to finish");
         last unless $n;
-        sleep POLL_INTERVAL;
+        sleep $poll_interval;
     }
 }
 
@@ -281,7 +277,7 @@ Wait while any scheduled children exist.
 =cut
 sub wait_for_children_to_start {
     while (1) {
-        my $children = get_children() // {};
+        my $children = get_children() // die 'Failed to wait for children to start';
         my $n        = 0;
         for my $state (values %$children) {
             next if $state eq 'done' or $state eq 'cancelled' or $state eq 'running';
@@ -290,7 +286,7 @@ sub wait_for_children_to_start {
 
         bmwqemu::diag("Waiting for $n jobs to start");
         last unless $n;
-        sleep POLL_INTERVAL;
+        sleep $poll_interval;
     }
 }
 
