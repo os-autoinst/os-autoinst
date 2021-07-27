@@ -50,7 +50,6 @@ ok $backend->get_mc_status, 'can call get_mc_status';
 
 # reduce retries for testing
 $bmwqemu::vars{IPMI_MC_RESET_MAX_TRIES} = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT} = 3;
-my $main = Test::MockModule->new('main', no_auto => 1);
 combined_like { $backend->do_mc_reset } qr/IPMI mc reset success/, 'can call do_mc_reset';
 
 done_testing;
