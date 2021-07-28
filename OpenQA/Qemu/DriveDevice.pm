@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -94,10 +94,7 @@ sub node_name {
 sub _gen_node_name {
     my ($self, $pcount, $pid) = @_;
 
-    if ($pcount > 1) {
-        return $self->node_name . '-' . $pid;
-    }
-    return $self->node_name;
+    return $pcount > 1 ? $self->node_name . '-' . $pid : $self->node_name;
 }
 
 sub gen_cmdline {

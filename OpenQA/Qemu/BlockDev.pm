@@ -1,4 +1,4 @@
-# Copyright © 2018-2020 SUSE LLC
+# Copyright © 2018-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -90,14 +90,7 @@ To avoid memory leaks we weaken this reference.
 sub overlay {
     my ($self, $ol) = @_;
 
-    unless (defined $ol) {
-        if (defined $self->{overlay}) {
-            return $self->{overlay};
-        } else {
-            return;
-        }
-    }
-
+    return $self->{overlay} unless defined $ol;
     $self->{overlay} = $ol;
     weaken($self->{overlay});
 
@@ -132,7 +125,7 @@ If this is set to an empty snapshot then this blockdevice does not belong to
 any snapshot.
 
 =cut
-has snapshot => sub { return OpenQA::Qemu::Snapshot->new(); };
+has snapshot => sub { return OpenQA::Qemu::Snapshot->new() };
 
 # See MutParams.pm
 sub gen_cmdline {
@@ -166,15 +159,8 @@ creating.
 
 =cut
 sub gen_qemu_img_cmdlines {
-    my $self = shift;
-    my @cmdlns;
-
-    if (defined $self->backing_file) {
-        @cmdlns = $self->backing_file->gen_qemu_img_cmdlines;
-    } else {
-        @cmdlns = ();
-    }
-
+    my $self   = shift;
+    my @cmdlns = defined $self->backing_file ? $self->backing_file->gen_qemu_img_cmdlines : ();
     return @cmdlns unless $self->needs_creating;
 
     my @params = ('create', '-f', $self->driver);
@@ -196,10 +182,8 @@ sub gen_unlink_list {
     my $self = shift;
 
     return () unless $self->needs_creating;
-
-    if (defined $self->backing_file) {
-        return ($self->file, $self->backing_file->gen_unlink_list());
-    }
+    return ($self->file, $self->backing_file->gen_unlink_list())
+      if defined $self->backing_file;
     return ($self->file);
 }
 
@@ -219,9 +203,8 @@ sub _from_map {
     my ($self, $drives, $snap_conf) = @_;
     my ($this, @rest) = @$drives;
 
-    if (@rest > 0) {
-        $self->backing_file(OpenQA::Qemu::BlockDev->new()->_from_map(\@rest, $snap_conf));
-    }
+    $self->backing_file(OpenQA::Qemu::BlockDev->new()->_from_map(\@rest, $snap_conf))
+      if @rest > 0;
 
     return $self->driver($this->{driver})
       ->file($this->{file})
@@ -232,8 +215,6 @@ sub _from_map {
       ->snapshot($snap_conf->get_snapshot(sequence => $this->{snapshot}));
 }
 
-sub CARP_TRACE {
-    return 'OpenQA::Qemu::BlockDev(' . (shift->node_name || '') . ')';
-}
+sub CARP_TRACE { 'OpenQA::Qemu::BlockDev(' . (shift->node_name || '') . ')' }
 
 1;
