@@ -112,7 +112,10 @@ subtest 'productdir variable relative/absolute' => sub {
     unlink("$pool_dir/product/foo/main.pm");
     mkdir("$data_dir/tests/product")                                      unless -e "$data_dir/tests/product";
     symlink("$data_dir/tests/main.pm", "$data_dir/tests/product/main.pm") unless -e "$data_dir/tests/product/main.pm";
-    combined_like { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product") } qr/\d* scheduling.*shutdown/, 'schedule can still be found for productdir relative to casedir';
+    # additionally testing correct schedule for our "integration tests" mode
+    my $log = combined_from { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product integration_tests=1") };
+    like $log,   qr/\d* scheduling.*shutdown/, 'schedule can still be found for productdir relative to casedir';
+    unlike $log, qr/assert_screen_fail_test/,  'assert screen test not scheduled';
 };
 
 subtest 'upload assets on demand even in failed jobs' => sub {
