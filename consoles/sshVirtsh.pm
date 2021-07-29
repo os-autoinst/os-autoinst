@@ -27,6 +27,7 @@ use XML::LibXML;
 use File::Temp 'tempfile';
 use File::Basename;
 use Class::Accessor 'antlers';
+use Mojo::JSON qw(decode_json);
 
 use backend::svirt;
 use testapi qw(get_var get_required_var check_var set_var);
@@ -417,7 +418,13 @@ sub add_disk {
             }
             else {
                 $file = $basedir . $file;
-                $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -b '$basedir/%s'", $file_basename))
+                # requested expected value in GBs, if there is any passed as an argument
+                my $size = $args->{size} // 0;
+                # expected value in Bytes
+                my (undef, $json) = $self->run_cmd("qemu-img info --output=json $args->{file}", wantarray => 1);
+                my $image_vsize = decode_json($json)->{'virtual-size'};
+                $size = (($size * 1024 * 1024 * 1024) <= $image_vsize) ? $image_vsize : $size . 'G';
+                $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -b '$basedir/%s' ${size}", $file_basename))
                   && die 'qemu-img create with backing file failed';
             }
         }
