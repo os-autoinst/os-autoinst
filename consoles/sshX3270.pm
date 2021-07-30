@@ -4,15 +4,13 @@
 
 package consoles::sshX3270;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 use base 'consoles::localXvnc';
 
 use testapi 'get_var';
 
-sub activate {
-    my ($self) = @_;
-
+sub activate ($self) {
     my $sshcommand = $self->sshCommand('root', get_var("PARMFILE")->{Hostname});
     my $display = $self->{backend}->{consoles}->{worker}->{DISPLAY};
     my $sshpassword = $testapi::password;

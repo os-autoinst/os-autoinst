@@ -4,15 +4,14 @@
 
 package consoles::network_console;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 use base 'consoles::console';
 
 use Try::Tiny;
 use Scalar::Util 'blessed';
 
-sub activate {
-    my ($self) = @_;
+sub activate ($self) {
     try {
         local $SIG{__DIE__} = undef;
         $self->connect_remote($self->{args});

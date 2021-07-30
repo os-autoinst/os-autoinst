@@ -4,20 +4,17 @@
 
 package consoles::remoteVnc;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 use base 'consoles::vnc_base';
 
 use testapi 'get_var';
 
-sub init {
-    my ($self) = @_;
+sub init ($self) {
     $self->{name} = 'remote-vnc';
 }
 
-sub activate {
-    my ($self, $testapi_console, $console_args) = @_;
-
+sub activate ($self, $testapi_console, $console_args) {
     return $self->SUPER::activate(
         $testapi_console,
         {

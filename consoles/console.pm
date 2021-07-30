@@ -16,7 +16,7 @@ of other functions. See vnc_base and virtio_terminal to see how this works.
 
 package consoles::console;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 use testapi 'check_var';
 
@@ -25,8 +25,7 @@ use Class::Accessor 'antlers';
 
 has backend => (is => "rw");
 
-sub new {
-    my ($class, $testapi_console, $args) = @_;
+sub new ($class, $testapi_console, $args) {
     my $self = bless({class => $class}, $class);
     $self->{testapi_console} = $testapi_console;
     $self->{args} = $args;
@@ -35,22 +34,19 @@ sub new {
     return $self;
 }
 
-sub init {
-    my ($self) = @_;
+sub init ($self) {
     # Special keys like Ctrl-Alt-Fx are not passed to the VM by xfreerdp.
     # That means switch from graphical to console is not possible on Hyper-V.
     $self->{console_hotkey} = check_var('VIRSH_VMM_FAMILY', 'hyperv') ? 'alt-f' : 'ctrl-alt-f';
 }
 
 # SUT was e.g. rebooted
-sub reset {
-    my ($self) = @_;
+sub reset ($self) {
     $self->{activated} = 0;
     return;
 }
 
-sub screen {
-    my ($self) = @_;
+sub screen ($self) {
     die "screen needs to be implemented in subclasses - $self->{class} does not\n";
     return;
 }
@@ -58,8 +54,7 @@ sub screen {
 # to be overloaded
 sub trigger_select { }
 
-sub select {
-    my ($self) = @_;
+sub select ($self) {
     my $activated;
     if (!$self->{activated}) {
         my $ret = $self->activate;
@@ -76,25 +71,20 @@ sub activate { }
 
 sub is_serial_terminal { 0 }
 
-sub set_args {
-    my ($self, %args) = @_;
-
+sub set_args ($self, %args) {
     my $my_args = $self->{args};
     $self->{args}->{$_} = $args{$_} for (keys %args);
     # no need to send changes to right process; console proxy already takes care
     # that this method is called in the right process
 }
 
-sub set_tty {
-    my ($self, $tty) = @_;
-
+sub set_tty ($self, $tty) {
     $self->{args}->{tty} = $tty;
     # no need to send changes to right process; console proxy already takes care
     # that this method is called in the right process
 }
 
-sub console_key {
-    my ($self) = @_;
+sub console_key ($self) {
     return undef unless $self->{console_hotkey} && $self->{args}->{tty};
     return $self->{console_hotkey} . $self->{args}->{tty};
 }
