@@ -752,7 +752,9 @@ sub start_qemu {
     mkpath($basedir);
 
     # do not use autodie here, it can fail on tmpfs, xfs, ...
-    run_diag('/usr/bin/chattr', '-f', '+C', $basedir);
+    # timeout with arbitrary value to catch a potential indefinite blocking
+    # chattr call, also see https://progress.opensuse.org/issues/81828
+    run_diag('timeout 30 /usr/bin/chattr', '-f', '+C', $basedir);
 
     bmwqemu::diag('Configuring storage controllers and block devices');
     my $keephdds = $vars->{KEEPHDDS} || $vars->{SKIPTO};
