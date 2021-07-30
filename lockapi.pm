@@ -73,7 +73,7 @@ sub _log {
         $autotest::current_test->remove_last_result;
         $subject .= ' ' . int($args{amend} / ONE_MINUTE) . 'm' . $args{amend} % ONE_MINUTE . 's';
     }
-    testapi::record_info $subject, $msg;
+    record_info $subject, $msg;
 }
 
 sub _api_call_with_logging_and_error_handling {
