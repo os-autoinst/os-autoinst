@@ -16,6 +16,8 @@ use File::Path 'mkpath';
 use File::Which;
 use Time::Seconds;
 
+our $xterm_vt = 'xterm-console';
+
 # helper function
 # Keep ssh session for the maximum of ServerAliveCountMax x ServerAliveInterval seconds
 # even without receiving any message back from the server, and this will not affect normal
@@ -33,8 +35,8 @@ sub sshCommand ($self, $username, $host, $gui = undef) {
 sub callxterm ($self, $command, $window_name) {
     my $display = $self->{DISPLAY};
     $command = "TERM=xterm $command";
-    my $xterm_vt_cmd = which "xterm-console";
-    die "Missing 'xterm-console'" unless $xterm_vt_cmd;
+    my $xterm_vt_cmd = which $xterm_vt;
+    die "Missing '$xterm_vt'" unless $xterm_vt_cmd;
     die('Missing "Xvnc"') unless which('Xvnc');
     die('Missing "icewm"') unless which('icewm');
     die('Missing "xterm"') unless which('xterm');
@@ -42,8 +44,7 @@ sub callxterm ($self, $command, $window_name) {
         mkpath 'ulogs';
         $command = "script -f ulogs/hardware-console-log.txt -c \"$command\"";
     }
-    eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command' & echo \"xterm PID is \$!\""); };
-    die "cant' start xterm on $display (err: $! retval: $?)" if $@;
+    system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command' & echo \"xterm PID is \$!\"");
 }
 
 sub fullscreen ($self, $args) {
