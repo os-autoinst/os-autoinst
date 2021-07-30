@@ -62,27 +62,32 @@ subtest 'using Open vSwitch D-Bus service' => sub {
     like exception { $backend->_dbus_call('show') }, qr/failed/, 'failed dbus call throws exception';
 };
 
-$backend_mock->redefine(handle_qmp_command => sub { $called{handle_qmp_command} = $_[1] });
+$backend_mock->redefine(handle_qmp_command => sub { push @{$called{handle_qmp_command}}, $_[1] });
 $backend->power({action => 'off'});
 ok(exists $called{handle_qmp_command}, 'a qmp command has been called');
-is_deeply($called{handle_qmp_command}, {execute => 'quit'}, 'quit has been called for off');
+is_deeply($called{handle_qmp_command}, [{execute => 'quit'}], 'quit has been called for off');
+$called{handle_qmp_command} = undef;
 $backend->power({action => 'acpi'});
-is_deeply($called{handle_qmp_command}, {execute => 'system_powerdown'}, 'powerdown has been called for acpi');
+is_deeply($called{handle_qmp_command}, [{execute => 'system_powerdown'}], 'powerdown has been called for acpi');
+$called{handle_qmp_command} = undef;
 
 subtest 'eject cd' => sub {
     my %default_eject_params = (execute => 'eject', arguments => {id     => 'cd0-device', force => Mojo::JSON->true});
     my %legacy_eject_params  = (execute => 'eject', arguments => {device => 'cd0',        force => Mojo::JSON->false});
 
+    $called{handle_qmp_command} = undef;
     $backend->eject_cd;
-    is_deeply $called{handle_qmp_command}, \%default_eject_params, 'eject called with correct defaults';
+    is_deeply $called{handle_qmp_command}[0], \%default_eject_params, 'eject called with correct defaults';
+    $called{handle_qmp_command} = undef;
     $backend->eject_cd({device => 'cd0', force => 0});
-    is_deeply $called{handle_qmp_command}, \%legacy_eject_params, 'eject called with custom parameters';
+    is_deeply $called{handle_qmp_command}[0], \%legacy_eject_params, 'eject called with custom parameters';
 };
 
 subtest 'execute arbitrary QMP command' => sub {
     my %query = (execute => 'foo', arguments => {bar => 1});
+    $called{handle_qmp_command} = undef;
     $backend->execute_qmp_command({query => \%query});
-    is_deeply $called{handle_qmp_command}, \%query, 'query params passed as-is';
+    is_deeply $called{handle_qmp_command}, [\%query], 'query params passed as-is';
 };
 
 subtest 'process_qemu_output' => sub {
