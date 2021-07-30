@@ -12,6 +12,7 @@ use bmwqemu ();
 use ocr;
 use testapi ();
 use autotest ();
+use List::Util 'any';
 use MIME::Base64 'decode_base64';
 use OpenQA::Exceptions;
 use Mojo::File 'path';
@@ -98,6 +99,9 @@ sub is_applicable ($self) {
         my %included = map { $_ => 1 } split(/\s*,\s*/, $bmwqemu::vars{INCLUDE_MODULES});
 
         return 0 unless ($included{$self->{class}} || $included{$self->{fullname}});
+    }
+    if (my $exit_after = $bmwqemu::vars{EXIT_AFTER_MODULE}) {
+        return 0 if any { $_->{class} eq $exit_after || $_->{fullname} eq $exit_after } @autotest::testorder;
     }
     return 1;
 }
