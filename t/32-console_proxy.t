@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use Test::MockObject;
 use Test::MockModule;
 use Test::Warnings qw(:all :report_warnings);

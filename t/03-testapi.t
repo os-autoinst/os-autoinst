@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -31,16 +32,11 @@ my $fake_needle_found             = 1;
 my $fake_needle_found_after_pause = 0;
 
 # define 'write_with_thumbnail' to fake image
-sub write_with_thumbnail {
-}
+sub write_with_thumbnail { }
 
-sub fake_send_json {
-    my ($to_fd, $cmd) = @_;
-    push(@$cmds, $cmd);
-}
+sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
 
-sub fake_read_json {
-    my ($fd) = @_;
+sub fake_read_json ($fd) {
     my $lcmd = $cmds->[-1];
     my $cmd  = $lcmd->{cmd};
     if ($cmd eq 'backend_wait_serial') {
@@ -96,6 +92,7 @@ $mod->redefine(read_json => \&fake_read_json);
 
 use testapi qw(is_serial_terminal :DEFAULT);
 use basetest;
+
 my $mock_basetest = Test::MockModule->new('basetest');
 $mock_basetest->redefine(_result_add_screenshot => sub { my ($self, $result) = @_; });
 $autotest::current_test = basetest->new();
@@ -108,7 +105,7 @@ my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
 
 subtest 'type_string' => sub {
     ## no critic (ProhibitSubroutinePrototypes)
-    sub fake_wait_screen_change(&@) {
+    sub fake_wait_screen_change : prototype(&@) {
         my ($callback, $timeout) = @_;
         $callback->() if $callback;
     }
@@ -217,7 +214,7 @@ $mock_bmwqemu->redefine(result_dir => File::Temp->newdir());
 subtest 'send_key with wait_screen_change' => sub {
     my $mock_testapi              = Test::MockModule->new('testapi');
     my $wait_screen_change_called = 0;
-    $mock_testapi->redefine(wait_screen_change => sub(&@) { shift->(); $wait_screen_change_called = 1 });
+    $mock_testapi->redefine(wait_screen_change => sub : prototype(&@) { shift->(); $wait_screen_change_called = 1 });
     send_key 'ret', wait_screen_change => 1;
     is(scalar @$cmds, 1, 'send_key waits for screen change') || diag explain $cmds;
     $cmds = [];
@@ -295,7 +292,7 @@ subtest 'check_assert_screen' => sub {
     $mock_testapi->redefine(_handle_found_needle => sub { return $_[0] });
 
     my $mock_tinycv = Test::MockModule->new('tinycv');
-    $mock_tinycv->redefine(from_ppm => sub($) { return bless({} => __PACKAGE__); });
+    $mock_tinycv->redefine(from_ppm => sub : prototype($) { return bless({} => __PACKAGE__); });
 
     throws_ok(sub { assert_screen(''); }, qr/no tags specified/, 'error if tag(s) is falsy scalar');
     throws_ok(sub { assert_screen([]); }, qr/no tags specified/, 'error if tag(s) is empty array');
@@ -486,9 +483,8 @@ subtest 'record_info' => sub {
     like(exception { record_info('my title', 'output', result => 'not supported', resultname => 'foo') }, qr/unsupported/, 'invalid result');
 };
 
-sub script_output_test {
-    my $is_serial_terminal = shift;
-    my $mock_testapi       = Test::MockModule->new('testapi');
+sub script_output_test ($is_serial_terminal) {
+    my $mock_testapi = Test::MockModule->new('testapi');
     $testapi::serialdev = 'null';
     $mock_testapi->redefine(type_string        => sub { return });
     $mock_testapi->redefine(send_key           => sub { return });

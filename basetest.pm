@@ -18,10 +18,11 @@ use Mojo::File 'path';
 my $serial_file_pos  = 0;
 my $autoinst_log_pos = 0;
 
-# enable strictures and warnings in all tests globaly
+# enable strictures and warnings in all tests globally but allow signatures
 sub import {
     strict->import;
     warnings->import;
+    warnings->unimport('experimental::signatures');
 }
 
 sub new {

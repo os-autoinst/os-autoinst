@@ -2,7 +2,7 @@
 # Copyright 2015-2020 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 # We need :no_end_test here because otherwise it would output a no warnings
 # test for each of the modules, but with the same test number
 use Test::Warnings qw(:no_end_test :report_warnings);

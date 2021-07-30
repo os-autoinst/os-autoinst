@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -20,8 +21,7 @@ use basetest;
 use needle;
 
 # define 'write_with_thumbnail' to fake image
-sub write_with_thumbnail {
-}
+sub write_with_thumbnail { }
 
 subtest run_post_fail_test => sub {
     my $basetest_class = 'basetest';
