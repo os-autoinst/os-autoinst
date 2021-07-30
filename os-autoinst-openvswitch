@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 package OVS;
 
-use Mojo::Base 'Net::DBus::Object';
+use Mojo::Base 'Net::DBus::Object', -signatures;
 use autodie ':all';
 use Net::DBus::Exporter 'org.opensuse.os_autoinst.switch';
 require IPC::System::Simple;
@@ -9,18 +9,14 @@ use IPC::Open3;
 use Symbol 'gensym';
 use Time::Seconds;
 
-sub new {
-    my $class = shift;
-    my $service = shift;
+sub new ($class, $service) {
     my $self = $class->SUPER::new($service, '/switch');
     bless $self, $class;
     $self->init_switch;
     return $self;
 }
 
-sub init_switch {
-    my $self = shift;
-
+sub init_switch ($self) {
     $self->{BRIDGE} = $ENV{OS_AUTOINST_USE_BRIDGE};
     $self->{BRIDGE} //= 'br0';
 
@@ -96,10 +92,7 @@ sub init_switch {
 }
 
 # Check if tap and vlan are in the correct format.
-sub _ovs_check {
-    my $tap = shift;
-    my $vlan = shift;
-    my $bridge = shift;
+sub _ovs_check ($tap, $vlan, $bridge) {
     my $return_output;
     my $return_code = 1;
 
@@ -122,8 +115,7 @@ sub _ovs_check {
     return 0;
 }
 
-sub _cmd {
-    my @args = @_;
+sub _cmd (@args) {
     my ($wtr, $rdr, $err);
     $err = gensym;
 
@@ -139,8 +131,7 @@ sub _cmd {
     return $return_code, "@ovs_vsctl_error", "@ovs_vsctl_output";
 }
 
-sub check_min_ovs_version {
-    my $min_ver = shift;
+sub check_min_ovs_version ($min_ver) {
     my $out = `ovs-vsctl --version`;
     return if ($out !~ /\(Open vSwitch\)\s+(\d+\.\d+\.\d+)/m);
     my @ver = split(/\./, $1);
@@ -151,10 +142,7 @@ sub check_min_ovs_version {
 }
 
 dbus_method("set_vlan", ["string", "uint32"], ["int32", "string"]);
-sub set_vlan {
-    my $self = shift;
-    my $tap = shift;
-    my $vlan = shift;
+sub set_vlan ($self, $tap, $vlan) {
     my $return_output;
     my $return_code = 1;
     my $ovs_vsctl_error;
@@ -185,10 +173,7 @@ sub set_vlan {
 }
 
 dbus_method("unset_vlan", ["string", "uint32"], ["int32", "string"]);
-sub unset_vlan {
-    my $self = shift;
-    my $tap = shift;
-    my $vlan = shift;
+sub unset_vlan ($self, $tap, $vlan) {
     my $return_output;
     my $return_code = 1;
     my $ovs_vsctl_error;
@@ -210,17 +195,14 @@ sub unset_vlan {
 }
 
 dbus_method("show", [], ["int32", "string"]);
-sub show {
-    my $self = shift;
-
+sub show ($self) {
     my ($return_code, undef, $ovs_vsctl_output) = _cmd('ovs-vsctl', 'show');
-
     return $return_code, $ovs_vsctl_output;
 }
 
 ################################################################################
 package main;
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 use Net::DBus;
 use Net::DBus::Reactor;
