@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie;
 
 
