@@ -15,8 +15,7 @@
 
 package OpenQA::Isotovideo::Interface;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 # version of the test API and the API relevant to the worker
 # -> increment on every change of such APIs

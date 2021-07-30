@@ -15,8 +15,7 @@
 package consoles::serial_screen;
 
 use 5.018;
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use integer;
 
 use English -no_match_vars;

@@ -16,8 +16,7 @@
 
 package consoles::remoteVnc;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use base 'consoles::vnc_base';
 

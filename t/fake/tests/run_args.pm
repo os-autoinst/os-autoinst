@@ -1,6 +1,5 @@
 use 5.018;
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use base 'basetest';
 

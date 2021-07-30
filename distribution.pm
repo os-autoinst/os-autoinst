@@ -15,8 +15,7 @@
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
 package distribution;
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use testapi ();
 use Carp 'croak';

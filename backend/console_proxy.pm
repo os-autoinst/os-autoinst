@@ -22,8 +22,7 @@
 
 package backend::console_proxy;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use feature 'say';
 
 sub new {

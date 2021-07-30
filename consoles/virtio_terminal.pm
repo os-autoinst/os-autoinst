@@ -15,8 +15,7 @@
 package consoles::virtio_terminal;
 
 use 5.018;
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use autodie;
 
 use base 'consoles::console';

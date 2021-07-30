@@ -18,8 +18,7 @@
 
 package consoles::sshSerial;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use base 'consoles::console';
 

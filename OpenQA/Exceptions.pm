@@ -15,8 +15,7 @@
 
 package OpenQA::Exceptions;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use Exception::Class (
     'OpenQA::Exception::InternalException' => {

@@ -1,7 +1,6 @@
 #!/usr/bin/perl -w
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use File::Basename;
 

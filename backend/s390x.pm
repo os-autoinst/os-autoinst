@@ -16,8 +16,7 @@
 
 package backend::s390x;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use autodie ':all';
 
 use base 'backend::baseclass';

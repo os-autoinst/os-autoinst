@@ -16,8 +16,7 @@
 
 package needle;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use autodie ':all';
 
 use Cwd 'cwd';

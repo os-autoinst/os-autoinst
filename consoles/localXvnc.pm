@@ -16,8 +16,7 @@
 
 package consoles::localXvnc;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use autodie ':all';
 
 use base 'consoles::vnc_base';

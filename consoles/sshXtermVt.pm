@@ -16,8 +16,7 @@
 
 package consoles::sshXtermVt;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use autodie ':all';
 
 use base 'consoles::localXvnc';

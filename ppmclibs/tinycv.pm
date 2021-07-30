@@ -16,8 +16,7 @@
 
 package tinycv;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use bmwqemu 'fctwarn';
 use File::Basename;
@@ -34,8 +33,7 @@ bootstrap tinycv $VERSION;
 
 package tinycv::Image;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 sub mean_square_error {
     my ($areas) = @_;
