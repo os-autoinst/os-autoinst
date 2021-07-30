@@ -292,7 +292,7 @@ sub save_memory_dump ($self, $args) {
     my $filename = $args->{filename} . '-vm-memory-dump';
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
-    bmwqemu::diag("Migrating the machine (Current VM state is $rsp->{return}->{status}).");
+    bmwqemu::diag("Migrating the machine (Current VM state is $rsp->{return}->{status})");
     my $was_running = $rsp->{return}->{status} eq 'running';
 
     mkpath('ulogs');
@@ -301,7 +301,7 @@ sub save_memory_dump ($self, $args) {
         filename => "ulogs/$filename",
         max_bandwidth => $vars->{QEMU_MAX_BANDWIDTH});
 
-    diag "Memory dump completed.";
+    diag 'Memory dump completed';
 
     $self->cont_vm() if $was_running;
 
@@ -330,7 +330,7 @@ sub save_storage_drives ($self, $args) {
             format => "qcow2"
         });
 
-    diag "Successfully extracted disk #%d.", $args->{disk};
+    diag "Successfully extracted disk #%d", $args->{disk};
     return;
 }
 
@@ -364,7 +364,7 @@ sub save_snapshot ($self, $args) {
     my $bdc = $self->{proc}->blockdev_conf;
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
-    bmwqemu::diag("Saving snapshot (Current VM state is $rsp->{return}->{status}).");
+    bmwqemu::diag("Saving snapshot (Current VM state is $rsp->{return}->{status})");
     my $was_running = $rsp->{return}->{status} eq 'running';
     if ($was_running) {
         $self->inflate_balloon();
@@ -418,7 +418,7 @@ sub load_snapshot ($self, $args) {
     my $vmname = $args->{name};
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
-    bmwqemu::diag("Loading snapshot (Current VM state is $rsp->{return}->{status}).");
+    bmwqemu::diag("Loading snapshot (Current VM state is $rsp->{return}->{status})");
     my $was_running = $rsp->{return}->{status} eq 'running';
     $self->freeze_vm() if $was_running;
 
