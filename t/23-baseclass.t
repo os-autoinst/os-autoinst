@@ -170,8 +170,8 @@ subtest 'SSH utilities' => sub {
     my $exp_log_new = qr/SSH connection to root\@foo\.bar established/;
     my $exp_log_existing = qr/Use existing SSH connection/;
     my $exp_log_renew = qr/Close broken SSH connection[\s\S]+SSH connection to root\@foo\.bar established/;
-    my $default_logger = $bmwqemu::logger;
-    $bmwqemu::logger = Mojo::Log->new(level => 'debug');
+    my $default_logger = $log::logger;
+    $log::logger = Mojo::Log->new(level => 'debug');
 
     # 1st SSH instance
     stderr_like { $ssh1 = $baseclass->new_ssh_connection(%ssh_creds) } $exp_log_new, 'New SSH connection announced in logs 1';
@@ -200,7 +200,7 @@ subtest 'SSH utilities' => sub {
     stderr_like { $ssh8 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds, port => 2222) } $exp_log_new, 'New SSH connection announced in logs -- port=2222';
     $ssh_expect->{port} = undef;
 
-    $bmwqemu::logger = $default_logger;
+    $log::logger = $default_logger;
 
     # Double check references
     isnt(refaddr($ssh1), refaddr($ssh2), "Got new connection each call");

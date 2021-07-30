@@ -120,7 +120,7 @@ subtest "Test open_pipe() error condition" => sub {
 };
 
 subtest "Test snapshot handling" => sub {
-    $bmwqemu::logger = Mojo::Log->new(level => 'error');    # hide debug messages within this test
+    $log::logger = Mojo::Log->new(level => 'error');    # hide debug messages within this test
 
     my $socket_path = './virtio_console_open_test';
     my $test_data = "Test data foo";

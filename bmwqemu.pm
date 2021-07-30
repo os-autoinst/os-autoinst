@@ -16,7 +16,6 @@ use File::Path 'remove_tree';
 use Data::Dumper;
 use Mojo::Log;
 use Mojo::File qw(path);
-use Time::Moment;
 use Term::ANSIColor;
 
 use Exporter 'import';
@@ -25,6 +24,7 @@ our $VERSION;
 our @EXPORT_OK = qw(diag fctres fctinfo fctwarn modstate save_vars);
 
 require IPC::System::Simple;
+use log;
 
 sub mydie;
 
@@ -40,10 +40,6 @@ our $screenshotpath = "qemuscreenshot";
 
 # global vars
 
-our $logger;
-
-our $direct_output;
-
 # Known locations of OVMF (UEFI) firmware: first is openSUSE, second is
 # the kraxel.org nightly packages, third is Fedora's edk2-ovmf package,
 # fourth is Debian's ovmf package.
@@ -57,9 +53,18 @@ tie %vars, 'bmwqemu::tiedvars', %vars;
 
 sub result_dir { 'testresults' }
 
-sub logger { $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback) }
-
-sub init_logger { logger->path(path(result_dir, 'autoinst-log.txt')) unless $direct_output }
+# deprecated functions, moved to log module
+{
+    no warnings 'once';
+    *log_format_callback = \&log::log_format_callback;
+    *diag = \&log::diag;
+    *fctres = \&log::fctres;
+    *fctinfo = \&log::fctinfo;
+    *fctwarn = \&log::fctwarn;
+    *modstate = \&log::modstate;
+    *logger = \&log::logger;
+    *init_logger = \&log::init_logger;
+}
 
 use constant STATE_FILE => 'base_state.json';
 
@@ -126,7 +131,7 @@ sub init {
     mkdir result_dir;
     mkdir join('/', result_dir, 'ulogs');
 
-    init_logger;
+    log::init_logger;
 }
 
 sub _check_publish_vars {
@@ -171,58 +176,6 @@ our $backend;
 
 # util and helper functions
 
-sub log_format_callback {
-    my ($time, $level, @items) = @_;
-
-    my $lines = join("\n", @items, '');
-
-    # ensure indentation for multi-line output
-    $lines =~ s/(?<!\A)^/  /gm;
-
-    return '[' . Time::Moment->now . "] [$level] " . $lines;
-}
-
-sub diag {
-    my ($args) = @_;
-    confess "missing input" unless $_[0];
-    logger->append(color('white'));
-    logger->debug(@_)->append(color('reset'));
-    return;
-}
-
-sub fctres {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    logger->append(color('green'));
-    logger->debug(">>> $fname: $text")->append(color('reset'));
-    return;
-}
-
-sub fctinfo {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    logger->append(color('yellow'));
-    logger->info("::: $fname: $text")->append(color('reset'));
-    return;
-}
-
-sub fctwarn {
-    my ($text, $fname) = @_;
-
-    $fname //= (caller(1))[3];
-    logger->append(color('red'));
-    logger->warn("!!! $fname: $text")->append(color('reset'));
-    return;
-}
-
-sub modstate {
-    logger->append(color('bold blue'));
-    logger->debug("||| @{[join(' ', @_)]}")->append(color('reset'));
-    return;
-}
-
 sub current_test {
     require autotest;
     no warnings 'once';
@@ -240,7 +193,7 @@ sub update_line_number {
         $filename =~ s@$casedir/?@@;
         push @out, "$filename:$line called $subroutine";
     }
-    $logger->debug(join(' -> ', @out));
+    log::logger->debug(join(' -> ', @out));
     return;
 }
 
@@ -271,7 +224,7 @@ sub log_call {
         }
         $params = join(", ", @result);
     }
-    logger->debug('<<< ' . $fname . "($params)");
+    log::logger->debug('<<< ' . $fname . "($params)");
     return;
 }
 

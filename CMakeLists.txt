@@ -51,6 +51,7 @@ set(PERL_FILES
     consoles/VNC.pm
     distribution.pm
     lockapi.pm
+    log.pm
     mmapi.pm
     myjsonrpc.pm
     needle.pm

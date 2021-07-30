@@ -236,6 +236,7 @@ cd %{__builddir}
 %{_prefix}/lib/os-autoinst/testapi.pm
 %{_prefix}/lib/os-autoinst/mmapi.pm
 %{_prefix}/lib/os-autoinst/lockapi.pm
+%{_prefix}/lib/os-autoinst/log.pm
 %{_prefix}/lib/os-autoinst/cv.pm
 %{_prefix}/lib/os-autoinst/ocr.pm
 %{_prefix}/lib/os-autoinst/needle.pm

@@ -63,7 +63,7 @@ subtest 'log_call' => sub {
 };
 
 subtest 'update_line_number' => sub {
-    $bmwqemu::direct_output = 1;
+    $log::direct_output = 1;
     bmwqemu::init_logger();
     ok !bmwqemu::update_line_number(), 'update_line_number needs current_test defined';
     $autotest::current_test = {script => 'my/module.pm'};
