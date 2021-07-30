@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 use Cwd 'abs_path';
 
@@ -22,8 +22,7 @@ use testdistribution;
 
 testapi::set_distribution(testdistribution->new());
 
-sub unregister_needle_tags {
-    my ($tag) = @_;
+sub unregister_needle_tags ($tag) {
     my @a = @{needle::tags($tag)};
     for my $n (@a) { $n->unregister($tag); }
 }

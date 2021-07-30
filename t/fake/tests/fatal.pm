@@ -1,4 +1,4 @@
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use base 'basetest';
 
 sub run { }

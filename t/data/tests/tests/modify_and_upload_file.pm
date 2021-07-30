@@ -13,10 +13,8 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-use Mojo::Base -strict;
-
+use Mojo::Base -strict, -signatures;
 use base "basetest";
-
 use testapi;
 
 my $orig_file = <<'END';
