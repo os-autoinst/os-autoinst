@@ -72,15 +72,19 @@ is_deeply($called{handle_qmp_command}, [{execute => 'system_powerdown'}], 'power
 $called{handle_qmp_command} = undef;
 
 subtest 'eject cd' => sub {
-    my %default_eject_params = (execute => 'eject', arguments => {id     => 'cd0-device', force => Mojo::JSON->true});
-    my %legacy_eject_params  = (execute => 'eject', arguments => {device => 'cd0',        force => Mojo::JSON->false});
+    my %default_eject_params  = (execute => 'eject',                  arguments => {id => 'cd0-device', force => Mojo::JSON->true});
+    my %default_remove_params = (execute => 'blockdev-remove-medium', arguments => {id => 'cd0-device'});
+    my %custom_eject_params   = (execute => 'eject',                  arguments => {id => 'cd1', force => Mojo::JSON->false});
+    my %custom_remove_params  = (execute => 'blockdev-remove-medium', arguments => {id => 'cd1'});
 
     $called{handle_qmp_command} = undef;
     $backend->eject_cd;
-    is_deeply $called{handle_qmp_command}[0], \%default_eject_params, 'eject called with correct defaults';
+    is_deeply $called{handle_qmp_command}[0], \%default_eject_params,  'eject called with correct defaults';
+    is_deeply $called{handle_qmp_command}[1], \%default_remove_params, 'blockdev-remove-medium called with correct defaults';
     $called{handle_qmp_command} = undef;
-    $backend->eject_cd({device => 'cd0', force => 0});
-    is_deeply $called{handle_qmp_command}[0], \%legacy_eject_params, 'eject called with custom parameters';
+    $backend->eject_cd({id => 'cd1', force => 0});
+    is_deeply $called{handle_qmp_command}[0], \%custom_eject_params,  'eject called with custom parameters';
+    is_deeply $called{handle_qmp_command}[1], \%custom_remove_params, 'blockdev-remove-medium called with custom parameters';
 };
 
 subtest 'execute arbitrary QMP command' => sub {

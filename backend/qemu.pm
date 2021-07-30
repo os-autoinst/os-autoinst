@@ -104,10 +104,13 @@ sub power {
 
 sub eject_cd {
     my ($self, $args) = @_;
+    die "'device' parameter is not supported anymore, use 'id'" if defined $args->{device};
+    my $id = $args->{id} // 'cd0-device';
     $self->handle_qmp_command({execute => 'eject', arguments => {
-                (defined $args->{id} || !defined $args->{device} ? (id => $args->{id} // 'cd0-device') : (device => $args->{device})),
+                id    => $id,
                 force => (!defined $args->{force} || $args->{force} ? Mojo::JSON->true : Mojo::JSON->false)
     }});
+    $self->handle_qmp_command({execute => 'blockdev-remove-medium', arguments => {id => $id}});
 }
 
 sub execute_qmp_command {
