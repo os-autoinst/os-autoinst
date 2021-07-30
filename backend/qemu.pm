@@ -754,6 +754,7 @@ sub start_qemu {
     # do not use autodie here, it can fail on tmpfs, xfs, ...
     run_diag('/usr/bin/chattr', '-f', '+C', $basedir);
 
+    bmwqemu::diag('Configuring storage controllers and block devices');
     my $keephdds = $vars->{KEEPHDDS} || $vars->{SKIPTO};
     if ($keephdds) {
         $self->{proc}->load_state();
@@ -762,6 +763,7 @@ sub start_qemu {
         $self->{proc}->configure_blockdevs($bootfrom, $basedir, $vars);
         $self->{proc}->configure_pflash($vars);
     }
+    bmwqemu::diag('Initializing block device images');
     $self->{proc}->init_blockdev_images();
 
     sp('only-migratable') if $self->can_handle({function => 'snapshots', no_warn => 1});

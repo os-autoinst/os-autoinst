@@ -335,6 +335,7 @@ sub init_blockdev_images {
         die "init_blockdev_images: '@$qicmd' failed after $tries tries: $@" if $@;
     }
 
+    bmwqemu::diag('init_blockdev_images: Finished creating block devices');
     $self->blockdev_conf->mark_all_created();
 }
 
