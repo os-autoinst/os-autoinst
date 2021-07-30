@@ -74,14 +74,14 @@ done_testing;
 
 sub initialize_git_repo {
     my $git_init = <<"EOM";
-mkdir $git_dir
-cd $git_dir
-git init >/dev/null 2>&1
-git config user.email "you\@example.com" >/dev/null
-git config user.name "Your Name" >/dev/null
-git config init.defaultBranch main >/dev/null
-touch README
-git add README
+mkdir $git_dir && \
+cd $git_dir && \
+git init >/dev/null 2>&1 && \
+git config user.email "you\@example.com" >/dev/null && \
+git config user.name "Your Name" >/dev/null && \
+git config init.defaultBranch main >/dev/null && \
+touch README && \
+git add README && \
 git commit -mInit >/dev/null
 EOM
     system $git_init;
