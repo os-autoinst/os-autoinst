@@ -15,14 +15,13 @@ gen_cmdline has been overridden to use '-drive' instead.
 =cut
 
 package OpenQA::Qemu::PFlashDevice;
-use Mojo::Base 'OpenQA::Qemu::DriveDevice';
+use Mojo::Base 'OpenQA::Qemu::DriveDevice', -signatures;
 
 has model => 'pflash';
 has 'unit';
 has 'readonly';
 
-sub gen_cmdline {
-    my ($self) = @_;
+sub gen_cmdline ($self) {
     my $drive  = $self->drive;
     my @params = ('id=' . $drive->node_name,
         "if=pflash",
