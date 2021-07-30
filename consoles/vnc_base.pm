@@ -4,7 +4,7 @@
 
 package consoles::vnc_base;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use feature 'say';
 
 use base 'consoles::network_console';
@@ -19,31 +19,25 @@ use bmwqemu ();
 # speed limit: 30 keys per second
 use constant VNC_TYPING_LIMIT_DEFAULT => 30;
 
-sub screen {
-    my ($self) = @_;
+sub screen ($self) {
     return $self;
 }
 
-sub disable {
-    my ($self) = @_;
+sub disable ($self) {
     close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
     $self->{vnc} = undef;
 }
 
-sub get_last_mouse_set {
-    my ($self) = @_;
+sub get_last_mouse_set ($self) {
     return $self->{mouse};
 }
 
-sub disable_vnc_stalls {
-    my ($self, $args) = @_;
+sub disable_vnc_stalls ($self) {
     return unless $self->{vnc};
     $self->{vnc}->check_vnc_stalls(0);
 }
 
-sub connect_remote {
-    my ($self, $args) = @_;
-
+sub connect_remote ($self, $args) {
     $self->{mouse} = {x => -1, y => -1};
 
     bmwqemu::diag "Establishing VNC connection to $args->{hostname}:$args->{port}";
@@ -52,8 +46,7 @@ sub connect_remote {
     return $self->{vnc};
 }
 
-sub request_screen_update {
-    my ($self) = @_;
+sub request_screen_update ($self, @) {
     return unless $self->{vnc};
     # drain the VNC socket before polling for a new update
     $self->{vnc}->update_framebuffer();
@@ -61,8 +54,7 @@ sub request_screen_update {
     return;
 }
 
-sub current_screen {
-    my ($self) = @_;
+sub current_screen ($self) {
     return unless $self->{vnc};
 
     unless ($self->{vnc}->_framebuffer) {
@@ -84,9 +76,7 @@ sub current_screen {
 
 sub _typing_limit () { $bmwqemu::vars{VNC_TYPING_LIMIT} // VNC_TYPING_LIMIT_DEFAULT || 1 }
 
-sub type_string {
-    my ($self, $args) = @_;
-
+sub type_string ($self, $args) {
     my $seconds_per_keypress = 1 / _typing_limit;
 
     # further slow down if being asked for.
@@ -125,9 +115,7 @@ sub type_string {
     return {};
 }
 
-sub send_key {
-    my ($self, $args) = @_;
-
+sub send_key ($self, $args) {
     # send_key rate must be limited to take into account VNC_TYPING_LIMIT- poo#55703
     # map_and_send_key: do not be faster than default
     my $press_release_delay = 1 / _typing_limit;
@@ -137,22 +125,19 @@ sub send_key {
     return {};
 }
 
-sub hold_key {
-    my ($self, $args) = @_;
+sub hold_key ($self, $args) {
     $self->{vnc}->map_and_send_key($args->{key}, 1, 1 / VNC_TYPING_LIMIT_DEFAULT);
     $self->backend->run_capture_loop(.2);
     return {};
 }
 
-sub release_key {
-    my ($self, $args) = @_;
+sub release_key ($self, $args) {
     $self->{vnc}->map_and_send_key($args->{key}, 0, 1 / VNC_TYPING_LIMIT_DEFAULT);
     $self->backend->run_capture_loop(.2);
     return {};
 }
 
-sub _mouse_move {
-    my ($self, $x, $y) = @_;
+sub _mouse_move ($self, $x, $y) {
     die "need parameter \$x and \$y" unless (defined $x and defined $y);
 
     if ($self->{mouse}->{x} == $x && $self->{mouse}->{y} == $y) {
@@ -175,8 +160,7 @@ sub _mouse_move {
     return;
 }
 
-sub mouse_hide {
-    my ($self, $args) = @_;
+sub mouse_hide ($self, $args) {
     $args->{border_offset} //= 0;
 
     my $x = $self->{vnc}->width - 1;
@@ -192,8 +176,7 @@ sub mouse_hide {
     return {absolute => $self->{vnc}->absolute};
 }
 
-sub mouse_set {
-    my ($self, $args) = @_;
+sub mouse_set ($self, $args) {
     die "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
 
     # TODO: for framebuffers larger than 1024x768, we need to upscale
@@ -201,9 +184,7 @@ sub mouse_set {
     return {};
 }
 
-sub mouse_button {
-    my ($self, $args) = @_;
-
+sub mouse_button ($self, $args) {
     my $button = $args->{button};
     my $bstate = $args->{bstate};
 
