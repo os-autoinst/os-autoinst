@@ -4,19 +4,14 @@
 
 package backend::ikvm;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'backend::ipmi';
 
-sub new {
-    my $class = shift;
-    return $class->SUPER::new;
-}
+sub new ($class) { $class->SUPER::new }
 
-sub relogin_vnc {
-    my ($self) = @_;
-
+sub relogin_vnc ($self) {
     my $vncopts = {
         hostname => $bmwqemu::vars{IPMI_HOSTNAME},
         port => 5900,
@@ -36,9 +31,7 @@ sub relogin_vnc {
     return 1;
 }
 
-sub do_start_vm {
-    my ($self) = @_;
-
+sub do_start_vm ($self) {
     $self->get_mc_status;
     $self->restart_host;
     $self->relogin_vnc;
@@ -48,9 +41,7 @@ sub do_start_vm {
     return {};
 }
 
-sub do_stop_vm {
-    my ($self) = @_;
-
+sub do_stop_vm ($self) {
     $self->ipmitool("chassis power off");
     $self->deactivate_console({testapi_console => 'sol'});
     return {};

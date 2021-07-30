@@ -4,7 +4,7 @@
 
 package backend::svirt;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 use base 'backend::virt';
 
@@ -28,8 +28,7 @@ our @EXPORT_OK = qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_CONSOLE_DEFAULT_DEVICE SE
 
 use constant SERIAL_TERMINAL_LOG_PATH => 'serial_terminal.txt';
 
-sub new {
-    my $class = shift;
+sub new ($class) {
     my $self = $class->SUPER::new;
     get_required_var('WORKER_HOSTNAME');
 
@@ -37,9 +36,7 @@ sub new {
 }
 
 # we don't do anything actually
-sub do_start_vm {
-    my ($self) = @_;
-
+sub do_start_vm ($self) {
     my $vars = \%bmwqemu::vars;
     my $n = $vars->{NUMDISKS} // 1;
     $vars->{NUMDISKS} //= defined($vars->{RAIDLEVEL}) ? 4 : $n;
@@ -59,9 +56,7 @@ sub do_start_vm {
     return {};
 }
 
-sub do_stop_vm {
-    my ($self) = @_;
-
+sub do_stop_vm ($self) {
     $self->stop_serial_grab;
 
     unless (get_var('SVIRT_KEEP_VM_RUNNING')) {
@@ -90,8 +85,7 @@ sub do_stop_vm {
 }
 
 # Log stdout and stderr and return them in a list (comped).
-sub scp_get {
-    my ($self, $src, $dest) = @_;
+sub scp_get ($self, $src, $dest) {
     bmwqemu::log_call(@_);
 
     my %credentials = $self->get_ssh_credentials(check_var('VIRSH_VMM_FAMILY', 'hyperv') ? 'hyperv' : 'default');
@@ -106,8 +100,7 @@ sub scp_get {
     $ssh->disconnect();
 }
 
-sub can_handle {
-    my ($self, $args) = @_;
+sub can_handle ($self, $args) {
     my $vars = \%bmwqemu::vars;
     if ($args->{function} eq 'snapshots' && !check_var('HDDFORMAT', 'raw')) {
         # Snapshots via libvirt are supported on KVM and, perhaps, ESXi. Hyper-V uses native tools.
@@ -118,8 +111,7 @@ sub can_handle {
     return;
 }
 
-sub is_shutdown {
-    my ($self) = @_;
+sub is_shutdown ($self) {
     my $vmname = $self->console('svirt')->name;
     my $rsp;
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
@@ -132,8 +124,7 @@ sub is_shutdown {
     return $rsp;
 }
 
-sub save_snapshot {
-    my ($self, $args) = @_;
+sub save_snapshot ($self, $args) {
     my $snapname = $args->{name};
     my $vmname = $self->console('svirt')->name;
     my $rsp;
@@ -152,8 +143,7 @@ sub save_snapshot {
     return;
 }
 
-sub load_snapshot {
-    my ($self, $args) = @_;
+sub load_snapshot ($self, $args) {
     my $snapname = $args->{name};
     my $vmname = $self->console('svirt')->name;
     my $rsp;
@@ -184,10 +174,7 @@ sub load_snapshot {
     return $post_load_snapshot_command;
 }
 
-sub get_ssh_credentials {
-    my ($self, $domain) = @_;
-    $domain //= 'default';
-
+sub get_ssh_credentials ($self, $domain = 'default') {
     unless ($self->{ssh_credentials}) {
         $self->{ssh_credentials} = {
             default => {
@@ -209,8 +196,7 @@ sub get_ssh_credentials {
     return %{$self->{ssh_credentials}->{$domain}};
 }
 
-sub start_serial_grab {
-    my ($self, $name) = @_;
+sub start_serial_grab ($self, $name) {
     bmwqemu::log_call(name => $name);
 
     my %credentials = $self->get_ssh_credentials(check_var('VIRSH_VMM_FAMILY', 'hyperv') ? 'hyperv' : 'default');
@@ -253,8 +239,7 @@ into file.
 C<$args{port}> used non-default port
 C<$args{devname}> used device name
 =cut
-sub open_serial_console_via_ssh {
-    my ($self, $name, %args) = @_;
+sub open_serial_console_via_ssh ($self, $name, %args) {
     bmwqemu::log_call(name => $name, %args);
     my ($chan, $cmd, $cmd_full, $ret, $ssh, $stderr, $stdout);
     my $port = $args{port} // '';
@@ -296,16 +281,13 @@ sub open_serial_console_via_ssh {
     return ($ssh, $chan);
 }
 
-sub delete_log {
-    my ($self) = @_;
+sub delete_log ($self) {
     my $log = $self->serial_terminal_log_file();
     $self->run_ssh_cmd("[ -f '$log' ] && rm -v $log");
 }
 
 # Intent to use CORE::GLOBAL::die, that does not have $self.
-sub die {
-    my ($self, $err) = @_;
-    $err //= '';
+sub die ($self, $err = '') {
     if ($self->{need_delete_log}) {
         bmwqemu::fctwarn("error, cleanup logs before die");
         $self->delete_log();
@@ -313,21 +295,16 @@ sub die {
     die $err;
 }
 
-sub serial_terminal_log_file {
-    my ($self) = @_;
+sub serial_terminal_log_file ($self) {
     return "/tmp/" . SERIAL_TERMINAL_LOG_PATH . '.'
       . get_required_var('JOBTOKEN');
 }
 
-sub check_socket {
-    my ($self, $fh, $write) = @_;
-
+sub check_socket ($self, $fh, $write = undef) {
     return $self->check_ssh_serial($fh, $write) || $self->SUPER::check_socket($fh, $write);
 }
 
-sub stop_serial_grab {
-    my ($self) = @_;
-
+sub stop_serial_grab ($self) {
     $self->stop_ssh_serial;
     return;
 }

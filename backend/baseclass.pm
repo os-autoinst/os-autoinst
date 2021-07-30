@@ -5,7 +5,7 @@
 # this is an abstract class
 package backend::baseclass;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use feature 'say';
 use autodie ':all';
 
@@ -44,8 +44,7 @@ __PACKAGE__->mk_accessors(
       stall_detected
     ));
 
-sub new {
-    my $class = shift;
+sub new ($class) {
     my $self = bless({class => $class}, $class);
     $self->{started} = 0;
     $self->{serialfile} = "serial0";
@@ -62,23 +61,19 @@ sub new {
     return $self;
 }
 
-sub truncate_serial_file {
-    my ($self) = @_;
+sub truncate_serial_file ($self) {
     open(my $sf, '>', $self->{serialfile});
     close($sf);
 }
 
 # runs in the backend process to deserialize VNC commands
-sub handle_command {
-    my ($self, $cmd) = @_;
-
+sub handle_command ($self, $cmd) {
     my $func = $cmd->{cmd};
     die "not supported command: $func" unless $self->can($func);
     return $self->$func($cmd->{arguments});
 }
 
-sub die_handler {
-    my $msg = shift;
+sub die_handler ($msg) {
     chomp($msg);
     bmwqemu::fctinfo "Backend process died, backend errors are reported below in the following lines:\n$msg";
     bmwqemu::serialize_state(component => 'backend', msg => $msg);
@@ -86,15 +81,12 @@ sub die_handler {
     $backend->close_pipes();
 }
 
-sub backend_signalhandler {
-    my ($sig) = @_;
+sub backend_signalhandler ($sig) {
     bmwqemu::diag("backend got $sig");
     $backend->stop_vm;
 }
 
-sub run {
-    my ($self, $cmdpipe, $rsppipe) = @_;
-
+sub run ($self, $cmdpipe, $rsppipe) {
     die "there can be only one!" if $backend;
     $backend = $self;
 
@@ -137,9 +129,7 @@ sub run {
     bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
 }
 
-sub _write_buffered_data_to_file_handle {
-    my ($self, $program_name, $array_of_buffers, $fh) = @_;
-
+sub _write_buffered_data_to_file_handle ($self, $program_name, $array_of_buffers, $fh) {
     # write as much data as possible (this is called when $fh is ready to write)
     my $data = shift @$array_of_buffers;
     my $data_written = $fh->syswrite($data);
@@ -155,8 +145,7 @@ sub _write_buffered_data_to_file_handle {
     }
 }
 
-sub do_capture {
-    my ($self, $timeout, $starttime) = @_;
+sub do_capture ($self, $timeout = undef, $starttime = undef) {
     # Time slot buckets
     my $buckets = {};
     my $wait_time_limit = $bmwqemu::vars{_CHKSEL_RATE_WAIT_TIME} // 30;
@@ -166,7 +155,7 @@ sub do_capture {
         last unless $self->{cmdpipe};
         my $now = gettimeofday;
         my $time_to_timeout = "Inf" + 0;
-        if (defined $timeout) {
+        if (defined $timeout && defined $starttime) {
             $time_to_timeout = $timeout - ($now - $starttime);
             last if $time_to_timeout <= 0;
         }
@@ -262,8 +251,7 @@ $self->{cmdpipe} is closed, whichever occurs first.
 
 =cut
 
-sub run_capture_loop {
-    my ($self, $timeout) = @_;
+sub run_capture_loop ($self, $timeout = undef) {
     my $starttime = gettimeofday;
     $self->last_screenshot($starttime) unless $self->last_screenshot;
 
@@ -275,9 +263,7 @@ sub run_capture_loop {
 
 # wait_time_limit = seconds
 # This is not sliding buckets. All the IDs inside the bucket must be over the limit!
-sub check_select_rate {
-    my ($buckets, $wait_time_limit, $hits_limit, $id) = @_;
-
+sub check_select_rate ($buckets, $wait_time_limit, $hits_limit, $id) {
     my $time = gettimeofday;
     my $lower_limit = $buckets->{TIME} //= $time;
     my $upper_limit = $lower_limit + $wait_time_limit;
@@ -298,18 +284,14 @@ sub check_select_rate {
     return 0;
 }
 
-sub _invoke_video_encoder {
-    my ($self, $pipe_name, $display_name, @cmd) = @_;
-
+sub _invoke_video_encoder ($self, $pipe_name, $display_name, @cmd) {
     my $pid = open($self->{$pipe_name}, '|-', @cmd);
     my $pipe = $self->{$pipe_name};
     $self->{video_encoders}->{$pid} = {name => $display_name, pipe => $pipe};
     $pipe->blocking(0);
 }
 
-sub _start_external_video_encoder_if_configured {
-    my ($self) = @_;
-
+sub _start_external_video_encoder_if_configured ($self) {
     return 0 if $bmwqemu::vars{NOVIDEO};
 
     my $cmd = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} or return 0;
@@ -322,9 +304,7 @@ sub _start_external_video_encoder_if_configured {
     return 1;
 }
 
-sub start_encoder {
-    my ($self) = @_;
-
+sub start_encoder ($self) {
     # start external video encoder if configured
     my $has_external_video_encoder_configured = $self->_start_external_video_encoder_if_configured;
 
@@ -341,9 +321,7 @@ sub start_encoder {
     return;
 }
 
-sub _stop_video_encoder {
-    my ($self) = @_;
-
+sub _stop_video_encoder ($self) {
     my $video_encoders = delete $self->{video_encoders};
     return undef unless defined $video_encoders && keys %$video_encoders;
 
@@ -398,15 +376,13 @@ sub _stop_video_encoder {
 
 # new api
 
-sub start_vm {
-    my ($self) = @_;
+sub start_vm ($self, @) {
     $self->{started} = 1;
     $self->start_encoder();
     return $self->do_start_vm();
 }
 
-sub stop_vm {
-    my ($self) = @_;
+sub stop_vm ($self) {
     if ($self->{started}) {
         # backend.run might have disappeared already in case of failed builds
         no autodie 'unlink';
@@ -420,8 +396,7 @@ sub stop_vm {
     return;
 }
 
-sub alive {
-    my ($self) = @_;
+sub alive ($self, @) {
     return 0 unless $self->{started};
     return 1 if $self->file_alive() and $self->raw_alive();
     bmwqemu::fctwarn("ALARM: backend.run got deleted! - exiting...");
@@ -431,51 +406,36 @@ sub alive {
 # new api end
 
 # virtual methods
-sub notimplemented { confess "backend method not implemented" }
+sub notimplemented ($self) { confess "backend method not implemented" }
 
-sub power {
+# parameters: acpi, reset, (on), off
+sub power ($self, $args) { notimplemented }
+sub insert_cd ($self) { notimplemented }
+sub eject_cd ($self, $args = {}) { notimplemented }
+sub do_start_vm ($self) { notimplemented }
+sub do_stop_vm ($self) { notimplemented }
+sub stop ($self) { notimplemented }
+sub cont ($self) { notimplemented }
 
-    # parameters: acpi, reset, (on), off
-    notimplemented;
-}
-
-sub insert_cd { notimplemented }
-sub eject_cd { notimplemented }
-
-sub do_start_vm {
-    # start up the vm
-    notimplemented;
-}
-
-sub do_stop_vm { notimplemented }
-
-sub stop { notimplemented }
-sub cont { notimplemented }
-
-sub can_handle {
-    my ($self, $args) = @_;
+sub can_handle ($self, $args) {
     return;    # sorry, no
 }
 
-sub do_extract_assets { notimplemented }
+sub do_extract_assets ($self) { notimplemented }
 
-sub is_shutdown { -1 }
+sub is_shutdown ($self) { -1 }
 
-sub save_memory_dump { notimplemented }
+sub save_memory_dump ($self) { notimplemented }
 
-sub save_storage_drives { notimplemented }
+sub save_storage_drives ($self) { notimplemented }
 
 ## MAY be overwritten:
 
-sub cpu_stat {
-    # vm's would return
-    # (userstat, systemstat)
-    return [];
-}
+# vm's would return
+# (userstat, systemstat)
+sub cpu_stat ($self) { [] }
 
-sub format_vtt_timestamp {
-    my ($self, $walltime) = @_;
-
+sub format_vtt_timestamp ($self, $walltime) {
     my $frametime_ms = 1000 * $self->{video_frame_number} / 24;
     my $caption = "\n$self->{video_frame_number}\n";
     # presentation time span (one frame)
@@ -489,11 +449,7 @@ sub format_vtt_timestamp {
     return $caption;
 }
 
-sub enqueue_screenshot {
-    my ($self, $image) = @_;
-
-    return unless $image;
-
+sub enqueue_screenshot ($self, $image) {
     my $watch = OpenQA::Benchmark::Stopwatch->new();
     $watch->start();
 
@@ -558,9 +514,7 @@ sub enqueue_screenshot {
     return;
 }
 
-sub close_pipes {
-    my ($self) = @_;
-
+sub close_pipes ($self) {
     if ($self->{cmdpipe}) {
         close($self->{cmdpipe}) || die "close $!\n";
         $self->{cmdpipe} = undef;
@@ -576,9 +530,7 @@ sub close_pipes {
 }
 
 # this is called for all sockets ready to read from
-sub check_socket {
-    my ($self, $fh, $write) = @_;
-
+sub check_socket ($self, $fh, $write = undef) {
     if ($self->{cmdpipe} && $fh == $self->{cmdpipe}) {
         return 1 if $write;
         my $cmd = myjsonrpc::read_json($self->{cmdpipe});
@@ -619,8 +571,7 @@ sub check_socket {
 # }
 #-> select
 
-sub select_console {
-    my ($self, $args) = @_;
+sub select_console ($self, $args) {
     my $testapi_console = $args->{testapi_console};
 
     my $selected_console = $self->console($testapi_console);
@@ -639,9 +590,7 @@ sub select_console {
     return {activated => $activated};
 }
 
-sub reset_consoles {
-    my ($self, $args) = @_;
-
+sub reset_consoles ($self, $args) {
     # we iterate through all consoles
     for my $console (keys %{$testapi::distri->{consoles}}) {
         next if $self->console($console)->{args}->{persistent};
@@ -650,14 +599,12 @@ sub reset_consoles {
     return;
 }
 
-sub reset_console {
-    my ($self, $args) = @_;
+sub reset_console ($self, $args) {
     $self->console($args->{testapi_console})->reset;
     return;
 }
 
-sub deactivate_console {
-    my ($self, $args) = @_;
+sub deactivate_console ($self, $args) {
     my $testapi_console = $args->{testapi_console};
 
     my $console_info = $self->console($testapi_console);
@@ -668,9 +615,7 @@ sub deactivate_console {
     return;
 }
 
-sub disable_consoles {
-    my ($self) = @_;
-
+sub disable_consoles ($self) {
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
         if ($console_info->can('disable')) {
@@ -679,9 +624,7 @@ sub disable_consoles {
     }
 }
 
-sub reenable_consoles {
-    my ($self) = @_;
-
+sub reenable_consoles ($self) {
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
         if ($console_info->{activated} && $console_info->can('disable')) {
@@ -698,9 +641,7 @@ unprocessed output from the SUT in their buffers which is needed by test
 module after the snapshot.
 
 =cut
-sub save_console_snapshots {
-    my ($self, $name) = @_;
-
+sub save_console_snapshots ($self, $name) {
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
         if ($console_info->can('save_snapshot')) {
@@ -715,9 +656,7 @@ Should be called when a snapshot of the SUT is loaded to ensure consoles are
 in the same state as when the snapshot was taken.
 
 =cut
-sub load_console_snapshots {
-    my ($self, $name) = @_;
-
+sub load_console_snapshots ($self, $name) {
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
         if ($console_info->can('load_snapshot')) {
@@ -726,73 +665,59 @@ sub load_console_snapshots {
     }
 }
 
-sub request_screen_update {
-    my ($self) = @_;
+sub request_screen_update ($self) {
     return $self->bouncer('request_screen_update', undef);
 }
 
-sub console {
-    my ($self, $testapi_console) = @_;
-
+sub console ($self, $testapi_console) {
     my $ret = $testapi::distri->{consoles}->{$testapi_console};
     carp "console $testapi_console does not exist" unless $ret;
     return $ret;
 }
 
-sub bouncer {
-    my ($self, $call, $args) = @_;
+sub bouncer ($self, $call, $args) {
     # forward to the current VNC console
     return unless $self->{current_screen};
     return $self->{current_screen}->$call($args);
 }
 
-sub send_key {
-    my ($self, $args) = @_;
+sub send_key ($self, $args) {
     return $self->bouncer('send_key', $args);
 }
 
-sub hold_key {
-    my ($self, $args) = @_;
+sub hold_key ($self, $args) {
     return $self->bouncer('hold_key', $args);
 }
 
-sub release_key {
-    my ($self, $args) = @_;
+sub release_key ($self, $args) {
     return $self->bouncer('release_key', $args);
 }
 
-sub type_string {
-    my ($self, $args) = @_;
+sub type_string ($self, $args) {
     return $self->bouncer('type_string', $args);
 }
 
-sub mouse_set {
-    my ($self, $args) = @_;
+sub mouse_set ($self, $args) {
     return $self->bouncer('mouse_set', $args);
 }
 
-sub mouse_hide {
-    my ($self, $args) = @_;
+sub mouse_hide ($self, $args) {
     return $self->bouncer('mouse_hide', $args);
 }
 
-sub mouse_button {
-    my ($self, $args) = @_;
+sub mouse_button ($self, $args) {
     return $self->bouncer('mouse_button', $args);
 }
 
-sub get_last_mouse_set {
-    my ($self, $args) = @_;
+sub get_last_mouse_set ($self, $args) {
     return $self->bouncer('get_last_mouse_set', $args);
 }
 
-sub is_serial_terminal {
-    my ($self, $args) = @_;
+sub is_serial_terminal ($self, $args) {
     return {yesorno => $self->{current_console}->is_serial_terminal};
 }
 
-sub capture_screenshot {
-    my ($self) = @_;
+sub capture_screenshot ($self) {
     return unless $self->{current_screen};
 
     my $screen = $self->{current_screen}->current_screen();
@@ -800,7 +725,7 @@ sub capture_screenshot {
     return;
 }
 
-sub reload_needles {
+sub reload_needles () {
     # called from testapi::set_var, so read the vars
     bmwqemu::load_vars();
 
@@ -810,9 +735,7 @@ sub reload_needles {
 
 ###################################################################
 # this is used by backend::console_proxy
-sub proxy_console_call {
-    my ($self, $wrapped_call) = @_;
-
+sub proxy_console_call ($self, $wrapped_call) {
     my ($console, $function, $args) = @$wrapped_call{qw(console function args)};
     $console = $self->console($console);
 
@@ -836,9 +759,7 @@ previous test's serial output. Call this before you start doing something new
 
 =cut
 
-sub clear_serial_buffer {
-    my ($self) = @_;
-
+sub clear_serial_buffer ($self, @) {
     $self->{serial_offset} = -s $self->{serialfile};
     return $self->{serial_offset};
 }
@@ -850,8 +771,7 @@ Returns the output on the serial device since the last call to clear_serial_buff
 
 =cut
 
-sub serial_text {
-    my ($self) = @_;
+sub serial_text ($self) {
     return ($self->read_serial($self->{serial_offset}))[0];
 }
 
@@ -861,11 +781,9 @@ Returns the output and the offset after reading on the serial device from positi
 
 =cut
 
-sub read_serial {
-    my ($self, $position, $whence) = @_;
-
+sub read_serial ($self, $position, $whence = 0) {
     open(my $SERIAL, "<", $self->{serialfile});
-    seek($SERIAL, $position, $whence // 0);
+    seek($SERIAL, $position, $whence);
     local $/;
     my $data = <$SERIAL>;
     my $offset = tell $SERIAL;
@@ -874,9 +792,7 @@ sub read_serial {
     return ($data, $offset);
 }
 
-sub wait_serial {
-    my ($self, $args) = @_;
-
+sub wait_serial ($self, $args) {
     my $regexp = $args->{regexp};
     my $timeout = $args->{timeout};
     my $matched = 0;
@@ -915,21 +831,17 @@ sub wait_serial {
 # set_reference_screenshot and similiarity_to_reference are necessary to
 # implement wait_still and wait_changed functions in the tests without having
 # to transfer the screenshot into the test process
-sub set_reference_screenshot {
-    my ($self, $args) = @_;
-
+sub set_reference_screenshot ($self, $args) {
     $self->reference_screenshot($self->last_image);
     return;
 }
 
-sub similiarity_to_reference {
-    my ($self, $args) = @_;
+sub similiarity_to_reference ($self, $args) {
     return {sim => 10000} if (!$self->reference_screenshot || !$self->last_image);
     return {sim => $self->reference_screenshot->similarity($self->last_image)};
 }
 
-sub set_tags_to_assert {
-    my ($self, $args) = @_;
+sub set_tags_to_assert ($self, $args) {
     my $mustmatch = $args->{mustmatch};
     my $timeout = $args->{timeout} // $bmwqemu::default_timeout;
 
@@ -979,21 +891,16 @@ sub set_tags_to_assert {
     return {tags => \@tags};
 }
 
-sub set_assert_screen_timeout {
-    my ($self, $timeout) = @_;
+sub set_assert_screen_timeout ($self, $timeout) {
     return bmwqemu::fctwarn('set_assert_screen_timeout called with non-numeric timeout') unless looks_like_number($timeout);
     $self->assert_screen_deadline(time + $timeout);
 }
 
-sub _time_to_assert_screen_deadline {
-    my ($self) = @_;
-
+sub _time_to_assert_screen_deadline ($self) {
     return $self->assert_screen_deadline - time;
 }
 
-sub _failed_screens_to_json {
-    my ($self) = @_;
-
+sub _failed_screens_to_json ($self) {
     my $failed_screens = $self->assert_screen_fails;
     my $final_mismatch = $failed_screens->[-1];
     if ($final_mismatch) {
@@ -1022,15 +929,12 @@ sub _failed_screens_to_json {
     return {timeout => 1, failed_screens => \@json_fails};
 }
 
-sub time_remaining_str {
-    my $time = shift;
+sub time_remaining_str ($time) {
     # compensate rounding to be consistent with truncation in $search_ratio calculation
     return sprintf("%.1fs", $time - 0.05);
 }
 
-sub check_asserted_screen {
-    my ($self, $args) = @_;
-
+sub check_asserted_screen ($self, $args) {
     my $img = $self->last_image;
     return unless $img;    # no screenshot yet to search on
     my $watch = OpenQA::Benchmark::Stopwatch->new();
@@ -1136,9 +1040,7 @@ sub check_asserted_screen {
     return;
 }
 
-sub _reduce_to_biggest_changes {
-    my ($imglist, $limit) = @_;
-
+sub _reduce_to_biggest_changes ($imglist, $limit) {
     return if @$imglist <= $limit;
 
     my $first = shift @$imglist;
@@ -1156,20 +1058,17 @@ sub _reduce_to_biggest_changes {
     return;
 }
 
-sub freeze_vm {
-    my ($self) = @_;
+sub freeze_vm ($self) {
     bmwqemu::diag "ignored freeze_vm";
     return;
 }
 
-sub cont_vm {
-    my ($self) = @_;
+sub cont_vm ($self) {
     bmwqemu::diag "ignored cont_vm";
     return;
 }
 
-sub last_screenshot_data {
-    my ($self, $args) = @_;
+sub last_screenshot_data ($self, $args) {
     return {} unless $self->last_image;
     return {
         image => encode_base64($self->last_image->ppm_data),
@@ -1177,8 +1076,7 @@ sub last_screenshot_data {
     };
 }
 
-sub verify_image {
-    my ($self, $args) = @_;
+sub verify_image ($self, $args) {
     my $imgpath = $args->{imgpath};
     my $mustmatch = $args->{mustmatch};
 
@@ -1190,9 +1088,7 @@ sub verify_image {
     return {candidates => $failed_candidates};
 }
 
-sub retry_assert_screen {
-    my ($self, $args) = @_;
-
+sub retry_assert_screen ($self, $args) {
     $self->reload_needles if $args->{reload_needles};
     # reset timeout otherwise continue wait_forneedle might just fail if stopped too long than timeout
     $self->set_assert_screen_timeout($args->{timeout}) if $args->{timeout};
@@ -1206,8 +1102,7 @@ sub retry_assert_screen {
 }
 
 # shared between svirt and s390 backend
-sub new_ssh_connection {
-    my ($self, %args) = @_;
+sub new_ssh_connection ($self, %args) {
     bmwqemu::log_call(%{$self->hide_password(%args)});
     my %credentials = $self->get_ssh_credentials;
     $args{$_} //= $credentials{$_} foreach (keys(%credentials));
@@ -1272,13 +1167,10 @@ sub new_ssh_connection {
 Should return a hash with the keys: C<hostname, username, password, port>
 The keys port and username are optional and default to 22 and 'root', respectively.
 =cut
-sub get_ssh_credentials {
-    return;
-}
+sub get_ssh_credentials ($self) { }
 
 # open another ssh connection to grab the serial console
-sub start_ssh_serial {
-    my ($self, %args) = @_;
+sub start_ssh_serial ($self, %args) {
     bmwqemu::log_call(%{$self->hide_password(%args)});
     $self->stop_ssh_serial;
 
@@ -1292,9 +1184,7 @@ sub start_ssh_serial {
     return ($ssh, $chan);
 }
 
-sub check_ssh_serial {
-    my ($self, $fh, $write) = @_;
-
+sub check_ssh_serial ($self, $fh = undef, $write = undef) {
     my $ssh = $self->{serial};
     return 0 unless $ssh;
     my $ssh_socket = $ssh->sock;
@@ -1330,8 +1220,7 @@ sub check_ssh_serial {
    ($ret, $stdout, $stderr) = run_ssh_cmd($cmd [, username => ?][, password => ?][,host => ?], wantarray => 1);
 
 =cut
-sub run_ssh_cmd {
-    my ($self, $cmd, %args) = @_;
+sub run_ssh_cmd ($self, $cmd, %args) {
     my ($stdout, $stderr) = ('', '');
     $args{wantarray} //= 0;
     $args{keep_open} //= 1;
@@ -1356,8 +1245,7 @@ sub run_ssh_cmd {
     return $args{wantarray} ? ($ret, $stdout, $stderr) : $ret;
 }
 
-sub run_ssh {
-    my ($self, $cmd, %args) = @_;
+sub run_ssh ($self, $cmd, %args) {
     bmwqemu::log_call(cmd => $cmd, %{$self->hide_password(%args)});
     $args{blocking} //= 1;
     my $ssh = $self->new_ssh_connection(%args);
@@ -1367,8 +1255,7 @@ sub run_ssh {
     return ($ssh, $chan);
 }
 
-sub close_ssh_connections {
-    my $self = shift;
+sub close_ssh_connections ($self) {
     my $cons = $self->{ssh_connections} // {};
     for my $key (keys(%{$cons})) {
         bmwqemu::diag("SSH disconnect $key");
@@ -1377,9 +1264,7 @@ sub close_ssh_connections {
     }
 }
 
-sub stop_ssh_serial {
-    my ($self) = @_;
-
+sub stop_ssh_serial ($self) {
     my $ssh = $self->{serial};
     return undef unless $ssh;
     bmwqemu::diag('Closing SSH serial connection with ' . $ssh->hostname);
@@ -1389,15 +1274,13 @@ sub stop_ssh_serial {
     return $self->{serial} = undef;
 }
 
-sub hide_password {
-    my ($self, %args) = @_;
+sub hide_password ($self, %args) {
     $args{password} = 'SECRET' if ($args{password});
     return \%args;
 }
 
 # Send TERM signal to any child process
-sub _stop_children_processes {
-    my ($self) = @_;
+sub _stop_children_processes ($self) {
     my $ret;
     for my $pid (@{$self->{children}}) {
         bmwqemu::diag("terminating child $pid");
@@ -1411,9 +1294,7 @@ sub _stop_children_processes {
     }
 }
 
-sub _child_process {
-    my ($self, $code) = @_;
-
+sub _child_process ($self, $code) {
     die "Can't spawn child without code" unless ref($code) eq "CODE";
 
     my $pid = fork();

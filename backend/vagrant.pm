@@ -200,21 +200,18 @@ sub run_cmd ($self, $cmd) {
     return $res->{stdout};
 }
 
-sub can_handle { }
+sub can_handle ($self) { }
 
 # don't use signatures here, as is_shutdown also receives some additional args
 # that are not really used anywhere
-sub is_shutdown {
-    my ($self) = @_;
+sub is_shutdown ($self) {
     my $res = $self->run_vagrant_command({cmd => "status", timeout => 5});
     chomp($res->{stdout});
     return $res->{stdout} =~ /default,state,(shutoff|not_created|poweroff)/;
 }
 
-sub check_socket ($self, $fh, $write) {
-    return $self->SUPER::check_socket($fh, $write);
-}
+sub check_socket ($self, $fh, $write = undef) { $self->SUPER::check_socket($fh, $write) }
 
-sub stop_serial_grab { }
+sub stop_serial_grab ($self) { }
 
 1;
