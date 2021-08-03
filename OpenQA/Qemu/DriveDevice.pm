@@ -135,12 +135,13 @@ sub gen_qemu_img_cmdlines {
 }
 
 sub gen_qemu_img_convert {
-    my ($self, $img_dir, $name) = @_;
-    my @cmd = qw(convert);
+    my ($self, $img_dir, $name, $qemu_compress_qcow) = @_;
+
     # By compressing we are making the images self contained, i.e. they are
     # portable by not requiring backing files referencing the openQA instance.
     # Compressing takes longer but the transfer takes shorter amount of time.
-    my $compress = $bmwqemu::vars{QEMU_COMPRESS_QCOW2} //= 1;
+    my $compress = $qemu_compress_qcow;
+    my @cmd      = qw(convert);
     push @cmd, qw(-c) if $compress;
     push @cmd, ('-O', QEMU_IMAGE_FORMAT, $self->drive->file, "$img_dir/$name");
     return \@cmd;

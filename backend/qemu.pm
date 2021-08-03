@@ -518,7 +518,8 @@ sub do_extract_assets {
     $self->{proc}->load_state() unless $self->{proc}->has_state();
     mkpath($img_dir);
     bmwqemu::fctinfo("Extracting $pattern");
-    my $res = $self->{proc}->export_blockdev_images($pattern, $img_dir, $name);
+    my $qemu_compress_qcow = $bmwqemu::vars{QEMU_COMPRESS_QCOW2} // 1;
+    my $res                = $self->{proc}->export_blockdev_images($pattern, $img_dir, $name, $qemu_compress_qcow);
     die "Expected one drive to be exported, not $res" if $res != 1;
 }
 
