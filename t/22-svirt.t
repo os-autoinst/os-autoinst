@@ -8,6 +8,7 @@ use Test::MockModule;
 use Test::MockObject;
 use Test::Warnings ':report_warnings';
 use Test::Output;
+use Test::Mock::Time;
 use Mojo::Log;
 use XML::SemanticDiff;
 use backend::svirt;
@@ -234,4 +235,474 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
     is(shift @deleted_logs, $expected_serial_file, "Check if $expected_serial_file was deleted on die()");
 };
 
+subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
+    my $ssh_creds_svirt = {hostname => 'hostname_svirt', password => 'password_svirt', username => 'root'};
+    my @last_ssh_commands;
+    my @last_ssh_args;
+    my @ssh_cmd_return;
+    my $_10gb = 1024 * 1024 * 1024 * 10;
+
+    my $mock_baseclass = Test::MockModule->new('backend::baseclass');
+    $mock_baseclass->redefine('run_ssh_cmd' => sub {
+            my ($self, $cmd, %args) = @_;
+            push @last_ssh_commands, $cmd;
+            push @last_ssh_args,     [%args];
+
+            my $ret = shift @ssh_cmd_return;
+            return undef unless defined $ret;
+
+            if (ref($ret) eq 'ARRAY') {
+                return @$ret;
+            } else {
+                return $ret;
+            }
+    });
+
+    subtest 'family vmware' => sub {
+        set_var(VIRSH_INSTANCE => '1');
+        set_var(VIRSH_VMM_TYPE => 'XXX');
+
+        set_var(VMWARE_HOST          => 'my_vmware_host');
+        set_var(VMWARE_PASSWORD      => 'my_vmware_password');
+        set_var(VIRSH_VMM_FAMILY     => 'vmware');
+        set_var(VMWARE_DATASTORE     => 'my_vmware_datastore');
+        set_var(VMWARE_NFS_DATASTORE => 'nfs');
+
+        my $vmware_openqa_datastore = '/vmfs/volumes/' . get_var('VMWARE_DATASTORE') . '/openQA/';
+
+        my $svirt = consoles::sshVirtsh->new('svirt');
+        $svirt->backend(backend::baseclass->new);
+        $svirt->_init_ssh($ssh_creds_svirt);
+        $svirt->_init_xml();
+
+        subtest 'vmware create=1' => sub {
+            my $dev_id       = 'device_id_001';
+            my $vm_name      = $svirt->name;
+            my $exp_filename = $svirt->name . $dev_id . '.vmdk';
+            my $exp_fullpath = $vmware_openqa_datastore . $exp_filename;
+            $svirt->add_disk({create => 1, size => '66G', dev_id => $dev_id});
+            my $cmd = shift @last_ssh_commands;
+            is(defined($cmd), 1, 'Command was triggered');
+
+            like($cmd, qr@\( set -x; vmid=\$\(vim-cmd vmsvc\/getallvms \| awk '\/$vm_name\/ \{ print \$1 \}'\);\s+if \[ \$vmid \]; then\s+vim-cmd vmsvc\/power\.off \$vmid\s+vim-cmd vmsvc\/destroy \$vmid\s+fi\s+sleep 10 \) 2>&1\;@, "Check delete and destroy");
+            $cmd = shift @last_ssh_commands;
+            like($cmd, qr/vmkfstools -v1 --deletevirtualdisk $exp_fullpath/, "Check name of image to be deleted");
+            $cmd = shift @last_ssh_commands;
+            like($cmd, qr/vmkfstools -v1 --createvirtualdisk 66G --diskformat thin $exp_fullpath/, "Check size");
+
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="disk"]/target[@dev="hd' . $dev_id . '" and @bus="ide"]');
+            is($target_nodelist->size, 1, 'Only one <target> with that dev_id exists');
+
+            my $target_node = $target_nodelist->shift;
+            is(defined($target_node), 1, '<target> node exists');
+            my $source_node = $target_node->parentNode->findnodes('source')->shift;
+            is($source_node->getAttribute('file'), '[my_vmware_datastore] openQA/' . $exp_filename, 'XML dokument contains correct file set');
+        };
+
+        # Check backing file
+        subtest 'vmware backingfile=1' => sub {
+            @last_ssh_commands = ();
+            my $dev_id            = 'dev_id_002';
+            my $original_filename = 'foo_file.vmdk';
+            my $exp_filename      = $svirt->name . $dev_id . '.vmdk';
+            set_var(VMWARE_NFS_DATASTORE => 'nfs');
+            my $exp_fullpath = $vmware_openqa_datastore . $exp_filename;
+            my $vm_name      = $svirt->name;
+            $svirt->add_disk({backingfile => 1, size => '77G', dev_id => $dev_id, file => $original_filename});
+
+            my $cmd = shift @last_ssh_commands;
+            like($cmd, qr@\( set -x; vmid=\$\(vim-cmd vmsvc\/getallvms \| awk '\/openQA-SUT-1\/ \{ print \$1 \}'\);\s+if \[ \$vmid \]; then\s+vim-cmd vmsvc\/power\.off \$vmid\s+vim-cmd vmsvc\/destroy \$vmid\s+fi\s+sleep 10 \) 2>&1\;@, "Check delete and destroy");
+            $cmd = shift @last_ssh_commands;
+            like($cmd, qr/vmkfstools -v1 --deletevirtualdisk $exp_fullpath/, "Check name of image to be deleted");
+            $cmd = shift @last_ssh_commands;
+            like($cmd, qr%cp\s+/vmfs/volumes/nfs/hdd/$original_filename\s+$vmware_openqa_datastore;%, "Copy hdd to $vmware_openqa_datastore");
+            $cmd = shift @last_ssh_commands;
+            like($cmd, qr/vmkfstools -v1 --clonevirtualdisk $vmware_openqa_datastore$original_filename --diskformat thin $exp_fullpath/, "Check size");
+
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="disk"]/target[@dev="hd' . $dev_id . '" and @bus="ide"]');
+            is($target_nodelist->size, 1, 'Only one <target> with that dev_id exists');
+            my $target_node = $target_nodelist->shift;
+            is(defined($target_node), 1, '<target> node exists');
+            my $source_node = $target_node->parentNode->findnodes('source')->shift;
+            is($source_node->getAttribute('file'), '[my_vmware_datastore] openQA/' . $exp_filename, 'XML dokument contains correct file set');
+        };
+        subtest 'family vmware backingfile=1 xz file' => sub {
+            my $dev_id = 'dev_id_002a';
+            @last_ssh_commands = ();
+            @ssh_cmd_return    = (0, 0);
+            my $file            = "my_compressed_hdd.vmdk.xz";
+            my $file_wo_xz      = "my_compressed_hdd.vmdk";
+            my $vm_name         = $svirt->name;
+            my $exp_filename    = "${vm_name}${dev_id}.vmdk";
+            my $exp_fullpath_xz = $vmware_openqa_datastore . $file;
+            my $exp_fullpath    = $vmware_openqa_datastore . $exp_filename;
+            $svirt->add_disk({
+                    backingfile => 1,
+                    dev_id      => $dev_id,
+                    file        => '/my/path/to/this/file/' . $file,
+            });
+
+            my $cmd = shift @last_ssh_commands;
+            like($cmd, qr@\( set -x; vmid=\$\(vim-cmd vmsvc\/getallvms \| awk '\/$vm_name\/ \{ print \$1 \}'\);\s+if \[ \$vmid \]; then\s+vim-cmd vmsvc\/power\.off \$vmid\s+vim-cmd vmsvc\/destroy \$vmid\s+fi\s+sleep 10 \) 2>&1\;@, "Check delete and destroy");
+            $cmd = shift @last_ssh_commands;
+            like($cmd, qr/vmkfstools -v1 --deletevirtualdisk $exp_fullpath/, "Check name of image to be deleted");
+            $cmd = shift @last_ssh_commands;
+            like($cmd, qr%cp\s+/vmfs/volumes/nfs/hdd/$file\s+$vmware_openqa_datastore*;%, "Copy hdd to $vmware_openqa_datastore");
+            $cmd = shift @last_ssh_commands;
+            like($cmd, qr%xz --decompress --keep --verbose --no-warn --quiet '$exp_fullpath_xz'%, 'Uncompress file with unxz');
+            $cmd = shift @last_ssh_commands;
+            like($cmd, qr/vmkfstools -v1 --clonevirtualdisk $vmware_openqa_datastore$file_wo_xz --diskformat thin $exp_fullpath/, "Check size");
+
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="disk"]/target[@dev="hd' . $dev_id . '" and @bus="ide"]');
+            is($target_nodelist->size, 1, 'Only one <target> with that dev_id exists');
+            my $target_node = $target_nodelist->shift;
+            is(defined($target_node), 1, '<target> node exists');
+            my $source_node = $target_node->parentNode->findnodes('source')->shift;
+            is($source_node->getAttribute('file'), '[my_vmware_datastore] openQA/' . $exp_filename, 'XML dokument contains correct file set');
+        };
+
+        subtest 'vmware cdrom=1' => sub {
+            my $dev_id       = 'dev_id_003';
+            my $filename     = 'my_cdrom_file_' . $dev_id . '.iso';
+            my $vm_name      = $svirt->name;
+            my $exp_filename = $svirt->name . $dev_id . '.vmdk';
+            my $exp_fullpath = $vmware_openqa_datastore . $exp_filename;
+            set_var(VMWARE_NFS_DATASTORE => 'nfs_data_store');
+            @last_ssh_commands = ();
+            $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => '/my/path/to/this/file/' . $filename});
+
+            my $cmd = shift @last_ssh_commands;
+            like($cmd, qr@\( set -x; vmid=\$\(vim-cmd vmsvc\/getallvms \| awk '\/$vm_name\/ \{ print \$1 \}'\);\s+if \[ \$vmid \]; then\s+vim-cmd vmsvc\/power\.off \$vmid\s+vim-cmd vmsvc\/destroy \$vmid\s+fi\s+sleep 10 \) 2>&1\;@, "Check delete and destroy");
+            $cmd = shift @last_ssh_commands;
+            like($cmd, qr/vmkfstools -v1 --deletevirtualdisk $exp_fullpath/, "Check name of image to be deleted");
+            $cmd = shift @last_ssh_commands;
+            like($cmd, qr%cp\s+/vmfs/volumes/nfs_data_store/iso/$filename\s+$vmware_openqa_datastore\s*;%, "Copy iso to $vmware_openqa_datastore");
+
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="cdrom"]/target[@dev="hd' . $dev_id . '" and @bus="ide"]');
+            is($target_nodelist->size(), 1, 'Only one <target> with that dev_id exists');
+            my $target_node = $target_nodelist->shift;
+            is(defined($target_node), 1, '<target> node exists');
+            my $source_node = $target_node->parentNode->findnodes('source')->shift;
+
+            is(defined($source_node),              1,                                        '<source> node exists');
+            is($source_node->getAttribute('file'), "[my_vmware_datastore] openQA/$filename", 'file attribute of <source> is correct');
+        };
+
+        # Check different size for vmware
+        foreach my $size (qw(666k 666K 666M 666G 666T)) {
+            my $dev_id = "dev_id_004_$size";
+            my $name   = $vmware_openqa_datastore . 'openQA-SUT-1' . $dev_id . '\\.vmdk';
+            $svirt->add_disk({create => 1, size => $size, dev_id => $dev_id});
+            like($last_ssh_commands[-1], qr/vmkfstools -v1 --createvirtualdisk $size --diskformat thin $name/, "Check size $size");
+        }
+    };
+
+    subtest 'family svirt-xen-hvm' => sub {
+        set_var(VIRSH_VMM_FAMILY => 'xen');
+        set_var(VIRSH_VMM_TYPE   => 'hvm');
+        my $basedir = '/var/lib/libvirt/images/';
+
+        my $svirt = consoles::sshVirtsh->new('svirt');
+        $svirt->backend(backend::baseclass->new);
+        $svirt->_init_ssh($ssh_creds_svirt);
+        $svirt->_init_xml();
+
+        subtest 'family svirt-xen-hvm create=1 error handling' => sub {
+            @ssh_cmd_return = ([1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock']);
+
+            my $dev_id   = 'dev_id_005';
+            my $exp_file = $svirt->name . $dev_id . '.img';
+            throws_ok { $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id}) } qr/Too many attempts to format HDD/, "Died after 5 retry attempts";
+
+            @ssh_cmd_return = ([1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [0, '', '']);
+            $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id});
+            is($last_ssh_commands[-1], "qemu-img create -f qcow2 $basedir$exp_file 88G", 'Triggered img creation, after 4 errors');
+
+            @ssh_cmd_return = ([0, '', ''], [0, '', ''], [0, '', ''], [0, '', ''], [0, '', '']);
+            foreach my $size (qw(666k 666K 666M 666G 666T)) {
+                $dev_id   = "dev_id_006_$size";
+                $exp_file = $svirt->name . $dev_id . '.img';
+
+                $svirt->add_disk({create => 1, size => $size, dev_id => $dev_id});
+                is($last_ssh_commands[-1], "qemu-img create -f qcow2 $basedir$exp_file $size", "Check different size type $size");
+            }
+
+            @ssh_cmd_return = ([0, '', '']);
+            $dev_id         = 'dev_id_007_NO_SIZE';
+            $exp_file       = $svirt->name . $dev_id . '.img';
+            $svirt->add_disk({create => 1, dev_id => $dev_id});
+            is($last_ssh_commands[-1], "qemu-img create -f qcow2 $basedir$exp_file 20G", 'Check for default size 20G');
+
+
+        };
+
+        # Reset xml
+        $svirt->_init_xml();
+
+        subtest 'family svirt-xen-hvm create=1' => sub {
+            my $dev_id   = 'dev_id_008';
+            my $exp_file = $svirt->name . $dev_id . '.img';
+            @ssh_cmd_return    = ([0, '', '']);
+            @last_ssh_commands = ();
+            $svirt->add_disk({create => 1, size => '999G', dev_id => $dev_id});
+            is($last_ssh_commands[-1], "qemu-img create -f qcow2 $basedir$exp_file 999G", 'Check create image was triggered');
+
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="disk"]/target[@dev="xvd' . $dev_id . '" and @bus="xen"]');
+            is($target_nodelist->size(), 1, 'Only one <target> with that dev_id exists');
+            my $target_node = $target_nodelist->shift;
+            is(defined($target_node), 1, '<target> node exists');
+            my $source_node = $target_node->parentNode->findnodes('source')->shift;
+            my $driver_node = $target_node->parentNode->findnodes('driver')->shift;
+
+            is(defined($source_node),              1,                    '<source> node exists');
+            is($source_node->getAttribute('file'), $basedir . $exp_file, 'file attribute of <source> is correct');
+
+            is(defined($driver_node),               1,        '<driver> node exists');
+            is($driver_node->getAttribute('name'),  'qemu',   'name attribute of <driver> is correct');
+            is($driver_node->getAttribute('type'),  'qcow2',  'type attribute of <driver> is correct');
+            is($driver_node->getAttribute('cache'), 'unsafe', 'cache attribute of <driver> is correct');
+        };
+
+        subtest 'family svirt-xen-hvm backingfile=1' => sub {
+            my $dev_id = 'dev_id_009';
+            my $file   = "my_image_$dev_id.img";
+            @last_ssh_commands = ();
+            @ssh_cmd_return    = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
+
+            $svirt->add_disk({
+                    backingfile => 1,
+                    dev_id      => $dev_id,
+                    file        => '/my/path/to/this/file/' . $file,
+                    size        => 12
+            });
+            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file $basedir$file%, 'Use rsync to copy file');
+            is($last_ssh_commands[-1], "qemu-img create -f qcow2 -b $basedir$file ${basedir}openQA-SUT-1$dev_id.img 12G", 'Used image size > backingfile size');
+        };
+
+        subtest 'family svirt-xen-hvm backingfile=1 size <= backingfile-size' => sub {
+            # Test backingfile=1 with image-size smaller then backingfile
+            my $dev_id = 'dev_id_010';
+            my $file   = "my_image_$dev_id.img";
+            @last_ssh_commands = ();
+            @ssh_cmd_return    = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
+            $svirt->add_disk({
+                    backingfile => 1,
+                    dev_id      => $dev_id,
+                    file        => '/my/path/to/this/file/' . $file,
+                    size        => 5
+            });
+            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file $basedir$file%, 'Use rsync to copy file');
+            is($last_ssh_commands[-1], "qemu-img create -f qcow2 -b $basedir$file ${basedir}openQA-SUT-1$dev_id.img $_10gb", 'Used image size <= backingfile size');
+
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="disk"]/target[@dev="xvd' . $dev_id . '" and @bus="xen"]');
+            is($target_nodelist->size(), 1, 'Only one <target> with that dev_id exists');
+            my $target_node = $target_nodelist->shift;
+            is(defined($target_node), 1, '<target> node exists');
+            my $source_node = $target_node->parentNode->findnodes('source')->shift;
+            my $driver_node = $target_node->parentNode->findnodes('driver')->shift;
+
+            is(defined($source_node),              1,                                    '<source> node exists');
+            is($source_node->getAttribute('file'), $basedir . "openQA-SUT-1$dev_id.img", 'file attribute of <source> is correct');
+
+            is(defined($driver_node),               1,        '<driver> node exists');
+            is($driver_node->getAttribute('name'),  'qemu',   'name attribute of <driver> is correct');
+            is($driver_node->getAttribute('type'),  'qcow2',  'type attribute of <driver> is correct');
+            is($driver_node->getAttribute('cache'), 'unsafe', 'cache attribute of <driver> is correct');
+
+            throws_ok { $svirt->add_disk({backingfile => 1, dev_id => $dev_id}) } qr/file/, "Die on missing file argument";
+        };
+
+        subtest 'family svirt-xen-hvm cdrom=1' => sub {
+            my $dev_id = 'dev_id_011';
+            my $file   = "my_cdrom_$dev_id.iso";
+            @last_ssh_commands = ();
+            @ssh_cmd_return    = (0, 0);
+            $svirt->add_disk({
+                    cdrom  => 1,
+                    dev_id => $dev_id,
+                    file   => '/my/path/to/this/file/' . $file,
+            });
+            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir$file%, 'Use rsync to copy cdrom iso');
+
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="cdrom"]/target[@dev="sd' . $dev_id . '" and @bus="scsi"]');
+            is($target_nodelist->size(), 1, 'Only one <target> with that dev_id exists');
+            my $target_node = $target_nodelist->shift;
+            is(defined($target_node), 1, '<target> node exists');
+            my $source_node = $target_node->parentNode->findnodes('source')->shift;
+            my $driver_node = $target_node->parentNode->findnodes('driver')->shift;
+
+            is(defined($source_node),              1,                '<source> node exists');
+            is($source_node->getAttribute('file'), $basedir . $file, 'file attribute of <source> is correct');
+
+            is(defined($driver_node),               1,      '<driver> node exists');
+            is($driver_node->getAttribute('name'),  'qemu', 'name attribute of <driver> is correct');
+            is($driver_node->getAttribute('type'),  'raw',  'type attribute of <driver> is correct');
+            is($driver_node->getAttribute('cache'), undef,  'cache attribute of <driver> is not defined');
+
+            throws_ok { $svirt->add_disk({cdrom => 1, dev_id => $dev_id}) } qr/file/, "Die on missing file argument";
+        };
+    };
+
+    subtest 'family kvm' => sub {
+        set_var(VIRSH_VMM_FAMILY => 'kvm');
+        set_var(VIRSH_VMM_TYPE   => undef);
+        my $basedir = '/var/lib/libvirt/images/';
+
+        my $svirt = consoles::sshVirtsh->new('svirt');
+        $svirt->backend(backend::baseclass->new);
+        $svirt->_init_ssh($ssh_creds_svirt);
+        $svirt->_init_xml();
+
+        subtest 'family kvm create=1' => sub {
+            my $dev_id   = 'dev_id_012';
+            my $exp_file = $svirt->name . $dev_id . ".img";
+
+            @ssh_cmd_return = ([0, '', '']);
+            $svirt->add_disk({create => 1, size => '778G', dev_id => $dev_id});
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="disk"]/target[@dev="vd' . $dev_id . '" and @bus="virtio"]');
+            is($target_nodelist->size(), 1, 'Only one <target> with that dev_id exists');
+            my $target_node = $target_nodelist->shift;
+            is(defined($target_node), 1, '<target> node exists');
+            my $source_node = $target_node->parentNode->findnodes('source')->shift;
+            my $driver_node = $target_node->parentNode->findnodes('driver')->shift;
+
+            is(defined($source_node),              1,                    '<source> node exists');
+            is($source_node->getAttribute('file'), $basedir . $exp_file, 'file attribute of <source> is correct');
+
+            is(defined($driver_node),               1,        '<driver> node exists');
+            is($driver_node->getAttribute('name'),  'qemu',   'name attribute of <driver> is correct');
+            is($driver_node->getAttribute('type'),  'qcow2',  'type attribute of <driver> is correct');
+            is($driver_node->getAttribute('cache'), 'unsafe', 'cache attribute of <driver> is correct');
+        };
+
+        subtest 'family kvm create=1 size types' => sub {
+            @ssh_cmd_return = ([0, '', ''], [0, '', ''], [0, '', ''], [0, '', ''], [0, '', ''], [0, '', '']);
+            foreach my $size (qw(666k 666K 666M 666G 666T)) {
+                my $dev_id   = 'dev_id_013' . $size;
+                my $exp_file = $svirt->name . $dev_id . ".img";
+                $svirt->add_disk({create => 1, size => $size, dev_id => $dev_id});
+                is($last_ssh_commands[-1], "qemu-img create -f qcow2 $basedir$exp_file $size", "Check different size type $size");
+            }
+
+            my $dev_id   = 'dev_id_014_NO_SIZE';
+            my $exp_file = $svirt->name . $dev_id . ".img";
+            $svirt->add_disk({create => 1, dev_id => $dev_id});
+            is($last_ssh_commands[-1], "qemu-img create -f qcow2 $basedir$exp_file 20G", "Default size is 20G");
+        };
+
+        subtest 'family svirt-xen-hvm backingfile=1' => sub {
+            my $dev_id = 'dev_id_015';
+            my $file   = "my_image_$dev_id.img";
+            @last_ssh_commands = ();
+            @ssh_cmd_return    = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
+
+            $svirt->add_disk({
+                    backingfile => 1,
+                    dev_id      => $dev_id,
+                    file        => '/my/path/to/this/file/' . $file,
+                    size        => 12
+            });
+            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir$file%, 'Use rsync to copy file');
+            is($last_ssh_commands[-1], "qemu-img create -f qcow2 -b $basedir$file ${basedir}openQA-SUT-1$dev_id.img 12G", 'Used image size > backingfile size');
+        };
+
+        subtest 'family kvm backingfile=1 size <= backingfile-size' => sub {
+            # Test backingfile=1 with image-size smaller then backingfile
+            my $dev_id = 'dev_id_016';
+            my $file   = "my_image_$dev_id.img";
+            @last_ssh_commands = ();
+            @ssh_cmd_return    = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
+            $svirt->add_disk({
+                    backingfile => 1,
+                    dev_id      => $dev_id,
+                    file        => '/my/path/to/this/file/' . $file,
+                    size        => 5
+            });
+            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir$file%, 'Use rsync to copy file');
+            is($last_ssh_commands[-1], "qemu-img create -f qcow2 -b $basedir$file ${basedir}openQA-SUT-1$dev_id.img $_10gb", 'Used image size <= backingfile size');
+
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="disk"]/target[@dev="vd' . $dev_id . '" and @bus="virtio"]');
+            is($target_nodelist->size(), 1, 'Only one <target> with that dev_id exists');
+            my $target_node = $target_nodelist->shift;
+            is(defined($target_node), 1, '<target> node exists');
+            my $source_node = $target_node->parentNode->findnodes('source')->shift;
+            my $driver_node = $target_node->parentNode->findnodes('driver')->shift;
+
+            is(defined($source_node),              1,                                    '<source> node exists');
+            is($source_node->getAttribute('file'), $basedir . "openQA-SUT-1$dev_id.img", 'file attribute of <source> is correct');
+
+            is(defined($driver_node),               1,        '<driver> node exists');
+            is($driver_node->getAttribute('name'),  'qemu',   'name attribute of <driver> is correct');
+            is($driver_node->getAttribute('type'),  'qcow2',  'type attribute of <driver> is correct');
+            is($driver_node->getAttribute('cache'), 'unsafe', 'cache attribute of <driver> is correct');
+        };
+
+        subtest 'family kvm cdrom=1' => sub {
+            my $dev_id = 'dev_id_017';
+            my $file   = "my_cdrom_$dev_id.iso";
+            @last_ssh_commands = ();
+            @ssh_cmd_return    = (0, 0);
+            $svirt->add_disk({
+                    cdrom  => 1,
+                    dev_id => $dev_id,
+                    file   => '/my/path/to/this/file/' . $file,
+            });
+            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir$file%, 'Use rsync to copy cdrom iso');
+
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="cdrom"]/target[@dev="hd' . $dev_id . '" and @bus="ide"]');
+            is($target_nodelist->size(), 1, 'Only one <target> with that dev_id exists');
+            my $target_node = $target_nodelist->shift;
+            is(defined($target_node), 1, '<target> node exists');
+            my $source_node = $target_node->parentNode->findnodes('source')->shift;
+            my $driver_node = $target_node->parentNode->findnodes('driver')->shift;
+
+            is(defined($source_node),              1,                '<source> node exists');
+            is($source_node->getAttribute('file'), $basedir . $file, 'file attribute of <source> is correct');
+
+            is(defined($driver_node),               1,      '<driver> node exists');
+            is($driver_node->getAttribute('name'),  'qemu', 'name attribute of <driver> is correct');
+            is($driver_node->getAttribute('type'),  'raw',  'type attribute of <driver> is correct');
+            is($driver_node->getAttribute('cache'), undef,  'cache attribute of <driver> is not defined');
+        };
+
+        subtest 'family kvm backingfile=1 xz file' => sub {
+            my $dev_id     = 'dev_id_018';
+            my $file_wo_xz = "my_compressed_hdd_$dev_id.raw";
+            my $file       = "my_compressed_hdd_$dev_id.raw.xz";
+            @last_ssh_commands = ();
+            @ssh_cmd_return    = (0, 0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
+            $svirt->add_disk({
+                    backingfile => 1,
+                    dev_id      => $dev_id,
+                    size        => '12G',
+                    file        => "/my/path/to/this/file/$file"
+            });
+
+            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir$file%,                 'Use rsync to copy compressed hdd image file');
+            like($last_ssh_commands[1], qr%xz --decompress --keep --verbose --no-warn --quiet '$basedir$file'%, 'Uncompress file with unxz');
+            is($last_ssh_commands[-1], "qemu-img create -f qcow2 -b $basedir$file_wo_xz ${basedir}openQA-SUT-1$dev_id.img 12G", 'Create backing file from decompressed image');
+
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="disk"]/target[@dev="vd' . $dev_id . '" and @bus="virtio"]');
+            is($target_nodelist->size(), 1, 'Only one <target> with that dev_id exists');
+            my $target_node = $target_nodelist->shift;
+            is(defined($target_node), 1, '<target> node exists');
+            my $source_node = $target_node->parentNode->findnodes('source')->shift;
+            is(defined($source_node),              1,                                   '<source> node exists');
+            is($source_node->getAttribute('file'), "${basedir}openQA-SUT-1$dev_id.img", 'file attribute of <source> is correct');
+        };
+
+        subtest 'check bootorder argument' => sub {
+            my $dev_id = 'dev_id_019';
+            my $file   = "my_compressed_cdrom_$dev_id.iso";
+            $svirt->add_disk({
+                    cdrom     => 1,
+                    dev_id    => $dev_id,
+                    file      => '/my/path/to/this/file/' . $file,
+                    bootorder => 'MyArbitraryBootOrderArgument'
+            });
+            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="cdrom"]/boot[@order="MyArbitraryBootOrderArgument"]');
+            is($target_nodelist->size(), 1, 'Boot order entry was created');
+        }
+    };
+};
 done_testing;
