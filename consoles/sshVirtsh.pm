@@ -454,9 +454,10 @@ sub add_disk {
         if ($args->{cdrom}) {
             $dev_type = "sd$dev_id";
             $bus_type = 'scsi';
+        } else {
+            $dev_type = "xvd$dev_id";
+            $bus_type = 'xen';
         }
-        $dev_type = "xvd$dev_id";
-        $bus_type = 'xen';
     }
     elsif ($self->vmm_family eq 'vmware') {
         $dev_type = "hd$dev_id";
