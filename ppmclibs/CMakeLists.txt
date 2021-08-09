@@ -77,6 +77,7 @@ add_library(tinycv MODULE
 target_link_libraries(tinycv PRIVATE opencv_core opencv_imgcodecs)
 target_include_directories(tinycv PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${PERL_INCLUDE_DIRECTORY}")
 target_compile_definitions(tinycv PRIVATE "-DVERSION=\"1.0\"" "-DXS_VERSION=\"1.0\"" "-D_LARGEFILE_SOURCE" "-D_FILE_OFFSET_BITS=64")
+target_compile_options(tinycv PRIVATE ${PRIVATE_COMPILE_OPTIONS})
 set_target_properties(tinycv PROPERTIES PREFIX "") # remove lib prefix (library is *not* supposed to be called libtinycv.so)
 
 # install the native library and Perl code
