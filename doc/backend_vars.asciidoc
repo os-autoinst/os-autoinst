@@ -286,6 +286,7 @@ LPAR_ID;string;udef;LPAR id
 |====================
 Variable;Values allowed;Default value;Explanation
 GENERAL_HW_VNC_IP;string;;Hostname of the gadget's network. If not set, SSH consoles will be used
+GENERAL_HW_VIDEO_STREAM_URL;string;;Video stream URL (in ffmpeg's syntax) to receive, for example 'udp://@:5004'.
 GENERAL_HW_CMD_DIR;string;;Directory with allowed CMD scripts. Note: This variable should be set in the workers.ini file, otherwise it will be ignored by openQA.
 GENERAL_HW_SOL_CMD;string;;Shell Script to output serial output (in CMD_DIR)
 GENERAL_HW_SOL_ARGS;string;;Arguments to pass GENERAL_HW_SOL_CMD Shell script
@@ -295,6 +296,8 @@ GENERAL_HW_POWEROFF_CMD;string;;Shell Command to power off the SUT (in CMD_DIR)
 GENERAL_HW_POWEROFF_ARGS;string;;Arguments to pass GENERAL_HW_POWEROFF_CMD Shell script
 GENERAL_HW_FLASH_CMD;string;;Shell Command to flash a disk image on SUT (in CMD_DIR), optional
 GENERAL_HW_FLASH_ARGS;string;;Arguments to pass GENERAL_HW_FLASH_CMD Shell script
+GENERAL_HW_INPUT_CMD;string;;Shell Command to control keyboard/mouse of the SUT, should wait for keyboard events on its stdin (in syntax used in 'send_key'), or mouse events as 'mouse_move <x> <y>' or 'mouse_button <buttons-pressed-mask>'. This is used only if GENERAL_HW_VIDEO_STREAM_URL is set.
+GENERAL_HW_INPUT_ARGS;string;;Arguments to pass GENERAL_HW_INPUT_CMD Shell script
 HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
 HDD_$i;filename;;Filename of HDD image to be used for machine.
 HDDSIZEGB_$i;integer;;Creates HDD with specified size in GiB for corresponding HDD
