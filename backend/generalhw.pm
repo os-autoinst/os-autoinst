@@ -27,7 +27,7 @@ sub get_cmd ($self, $cmd) {
     my $dir = get_required_var('GENERAL_HW_CMD_DIR');
     die 'GENERAL_HW_CMD_DIR is not pointing to a directory' unless -d $dir;
 
-    my %GENERAL_HW_ARG_VARIABLES_BY_CMD = ('GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS', 'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS', 'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS', 'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS');
+    my %GENERAL_HW_ARG_VARIABLES_BY_CMD = ('GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS', 'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS', 'GENERAL_HW_INPUT_CMD' => 'GENERAL_HW_INPUT_ARGS', 'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS', 'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS');
     my $args = get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}) if get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd});
 
     # Append HDD infos to flash script
@@ -96,6 +96,24 @@ sub relogin_vnc ($self) {
     return 1;
 }
 
+sub reconnect_video_stream ($self, @) {
+
+    my $input_cmd;
+    $input_cmd = $self->get_cmd('GENERAL_HW_INPUT_CMD') if get_var('GENERAL_HW_INPUT_CMD');
+    my $vnc = $testapi::distri->add_console(
+        'sut',
+        'video-stream',
+        {
+            url => get_var('GENERAL_HW_VIDEO_STREAM_URL'),
+            connect_timeout => 50,
+            input_cmd => $input_cmd,
+        });
+    $vnc->backend($self);
+    $self->select_console({testapi_console => 'sut'});
+
+    return 1;
+}
+
 sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
     if (get_var('GENERAL_HW_FLASH_CMD')) {
@@ -104,6 +122,7 @@ sub do_start_vm ($self, @) {
     }
     $self->restart_host;
     $self->relogin_vnc if (get_var('GENERAL_HW_VNC_IP'));
+    $self->reconnect_video_stream if (get_var('GENERAL_HW_VIDEO_STREAM_URL'));
     $self->start_serial_grab if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
     return {};
 }
@@ -111,6 +130,7 @@ sub do_start_vm ($self, @) {
 sub do_stop_vm ($self, @) {
     $self->poweroff_host;
     $self->stop_serial_grab() if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
+    $self->disable_consoles;
     return {};
 }
 
