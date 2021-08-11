@@ -105,6 +105,9 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 include(pkg-config)
 find_package(OpenCV REQUIRED)
 
+# configure flags regarding warnings
+include(warnings)
+
 # build and install tools/libraries in sub directories
 add_subdirectory(debugviewer)
 add_subdirectory(snd2png)
