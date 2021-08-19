@@ -654,6 +654,8 @@ subtest 'compat_args' => sub {
 
     like(warning { testapi::compat_args(\%def_args, [], a => 'Z', 'outch') }->[0], qr/^Odd number of arguments/, 'Warned on Odd number 1');
     like(warning { testapi::compat_args(\%def_args, [], 'outch') }->[0],           qr/^Odd number of arguments/, 'Warned on Odd number 2');
+
+    is_deeply({testapi::compat_args(\%def_args, ['a'], '^[invalid regex string')}, {%def_args, a => '^[invalid regex string'}, 'Check invalid regex string');
 };
 
 subtest 'check quiet option on script runs' => sub {
