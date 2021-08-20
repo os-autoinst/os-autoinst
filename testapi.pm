@@ -2144,6 +2144,7 @@ sub diag {
     Return VM's host IP
     in a kvm instance you reach the VM's host under default 10.0.2.2
 =cut
+
 sub host_ip {
     return check_var('BACKEND', 'qemu') ? get_var('QEMU_HOST_IP', '10.0.2.2') : get_required_var('WORKER_HOSTNAME');
 }
@@ -2304,6 +2305,7 @@ A typical call would look like:
 
     my %args = compat_args({timeout => 60, .. }, ['timeout'], @_);
 =cut
+
 sub compat_args {
     my ($def_args, $fix_keys) = splice(@_, 0, 2);
     my %ret;
@@ -2328,6 +2330,7 @@ A typical call would look like:
 
     $cmd .= show_curl_progress_meter($cmd);
 =cut
+
 sub show_curl_progress_meter { get_var('UPLOAD_METER') ? "-o /dev/$serialdev " : '' }
 
 1;
