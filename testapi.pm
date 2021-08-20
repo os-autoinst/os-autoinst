@@ -2145,9 +2145,7 @@ sub diag {
     in a kvm instance you reach the VM's host under default 10.0.2.2
 =cut
 
-sub host_ip {
-    return check_var('BACKEND', 'qemu') ? get_var('QEMU_HOST_IP', '10.0.2.2') : get_required_var('WORKER_HOSTNAME');
-}
+sub host_ip { check_var('BACKEND', 'qemu') ? get_var('QEMU_HOST_IP', '10.0.2.2') : get_required_var('WORKER_HOSTNAME') }
 
 =head2 autoinst_url
 
@@ -2194,15 +2192,8 @@ in the corresponding variable
 
 sub data_url($) {
     my ($name) = @_;
-    if ($name =~ /^REPO_\d$/) {
-        return autoinst_url("/assets/repo/" . get_var($name));
-    }
-    if ($name =~ /^ASSET_\d$/) {
-        return autoinst_url("/assets/other/" . get_var($name));
-    }
-    else {
-        return autoinst_url("/data/$name");
-    }
+    autoinst_url($name =~ /^REPO_\d$/ ? "/assets/repo/" . get_var($name) :
+          $name =~ /^ASSET_\d$/ ? "/assets/other/" . get_var($name) : "/data/$name");
 }
 
 
