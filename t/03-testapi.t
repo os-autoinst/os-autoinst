@@ -683,17 +683,25 @@ subtest 'check quiet option on script runs' => sub {
     delete $bmwqemu::vars{_QUIET_SCRIPT_CALLS};
 };
 
-subtest 'autoinst_url' => sub {
+subtest 'host_ip, autoinst_url' => sub {
     $bmwqemu::vars{QEMUPORT}        = 0;
     $bmwqemu::vars{JOBTOKEN}        = '';
     $bmwqemu::vars{WORKER_HOSTNAME} = 'my_worker_host';
     is(autoinst_url('foo'), 'http://my_worker_host:1/foo', 'autoinst_url returns reasonable URL based on WORKER_HOSTNAME');
+    is testapi::host_ip, 'my_worker_host', 'host_ip has sane default';
     $bmwqemu::vars{BACKEND} = 'qemu';
     is(autoinst_url('foo'), 'http://10.0.2.2:1/foo', 'autoinst_url returns static IP for qemu');
+    is testapi::host_ip, '10.0.2.2', 'host_ip has sane default for qemu';
     $bmwqemu::vars{QEMU_HOST_IP} = '192.168.42.1';
     is(autoinst_url('foo'), 'http://192.168.42.1:1/foo', 'autoinst_url returns configured static IP');
     $bmwqemu::vars{AUTOINST_URL_HOSTNAME} = 'localhost';
     is(autoinst_url('foo'), 'http://localhost:1/foo', 'we can configure the hostname that autoinst_url returns');
+};
+
+subtest 'data_url' => sub {
+    like data_url 'foo', qr{localhost.*data/foo}, 'data_url returns local data reference by default';
+    $bmwqemu::vars{ASSET_3} = 'foo.xml';
+    like data_url 'ASSET_3', qr{other/foo.xml}, 'data_url returns local data reference by default';
 };
 
 subtest '_calculate_clickpoint' => sub {
