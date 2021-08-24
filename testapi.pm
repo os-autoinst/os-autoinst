@@ -2141,8 +2141,9 @@ sub diag {
 
 =for stopwords kvm VM
 
-    Return VM's host IP
-    in a kvm instance you reach the VM's host under default 10.0.2.2
+Return VM's host IP.
+In a kvm instance you reach the VM's host under default 10.0.2.2
+
 =cut
 
 sub host_ip { check_var('BACKEND', 'qemu') ? get_var('QEMU_HOST_IP', '10.0.2.2') : get_required_var('WORKER_HOSTNAME') }
@@ -2295,6 +2296,7 @@ from positional arguments to named one.
 A typical call would look like:
 
     my %args = compat_args({timeout => 60, .. }, ['timeout'], @_);
+
 =cut
 
 sub compat_args {
@@ -2320,6 +2322,7 @@ This works only when uploading where the output is not lately used.
 A typical call would look like:
 
     $cmd .= show_curl_progress_meter($cmd);
+
 =cut
 
 sub show_curl_progress_meter { get_var('UPLOAD_METER') ? "-o /dev/$serialdev " : '' }
