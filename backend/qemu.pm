@@ -24,7 +24,6 @@ use base 'backend::virt';
 
 use File::Basename 'dirname';
 use File::Path 'mkpath';
-use File::Spec;
 use File::Which;
 use Time::HiRes qw(sleep gettimeofday);
 use IO::Socket::UNIX 'SOCK_STREAM';
@@ -444,7 +443,7 @@ sub save_snapshot {
     });
 
     $self->_migrate_to_file(
-        filename         => File::Spec->catfile(VM_SNAPSHOTS_DIR, $snapshot->name),
+        filename         => path(VM_SNAPSHOTS_DIR, $snapshot->name),
         compress_level   => $vars->{QEMU_COMPRESS_LEVEL} || 6,
         compress_threads => $vars->{QEMU_COMPRESS_THREADS} // $vars->{QEMUCPUS},
         max_bandwidth    => $vars->{QEMU_MAX_BANDWIDTH});
@@ -548,7 +547,7 @@ sub start_qemu {
     my $self = shift;
     my $vars = \%bmwqemu::vars;
 
-    my $basedir = File::Spec->rel2abs("raid");
+    my $basedir = path('raid')->to_abs;
     my $qemubin = $ENV{QEMU};
 
     my $qemuimg = find_bin('/usr/bin/', qw(kvm-img qemu-img));

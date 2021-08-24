@@ -60,7 +60,6 @@ RUN zypper in -y -C \
        'perl(File::Basename)' \
        'perl(File::Find)' \
        'perl(File::Path)' \
-       'perl(File::Spec)' \
        'perl(File::Temp)' \
        'perl(File::Touch)' \
        'perl(File::Which)' \

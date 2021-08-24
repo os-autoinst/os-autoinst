@@ -22,7 +22,6 @@ use warnings;
 use bmwqemu;
 use Exporter 'import';
 use File::Basename;
-use File::Spec;
 use Socket;
 use IO::Handle;
 use POSIX '_exit';
@@ -31,6 +30,7 @@ use signalblocker;
 use Scalar::Util 'blessed';
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
+use Mojo::File qw(path);
 
 our @EXPORT_OK = qw(loadtest $selected_console $last_milestone_console query_isotovideo);
 
@@ -58,11 +58,11 @@ sub find_script {
     my $script_override_path = join('/', $bmwqemu::vars{ASSETDIR} // '', 'other', $script);
     if (-f $script_override_path) {
         bmwqemu::diag("Found override test module for $script: $script_override_path");
-        return File::Spec->abs2rel($script_override_path, $casedir);
+        return path($script_override_path)->to_rel($casedir);
     }
     elsif (!-f join('/', $casedir, $script)) {
         warn "loadtest needs a script below $casedir - $script is not\n";
-        return File::Spec->abs2rel($script, $casedir);
+        return path($script)->to_rel($casedir);
     }
     return "$casedir/$script";
 }
@@ -108,7 +108,7 @@ sub loadtest {
     my $fullname = "$category-$name";
     # perl code generating perl code is overcool
     my $code = "package $name;";
-    $code .= "use lib '.';" unless File::Spec->file_name_is_absolute($casedir);
+    $code .= "use lib '.';" unless path($casedir)->is_abs;
     $code .= "use lib '$casedir/lib';";
     my $basename = dirname($script_path);
     $code .= "use lib '$basename';";
