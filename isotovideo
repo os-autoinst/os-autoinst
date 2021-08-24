@@ -77,7 +77,6 @@ require IPC::System::Simple;
 use POSIX qw(:sys_wait_h _exit);
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use Try::Tiny;
-use File::Spec;
 use File::Path;
 use Mojo::UserAgent;
 use Mojo::IOLoop::ReadWriteProcess 'process';
