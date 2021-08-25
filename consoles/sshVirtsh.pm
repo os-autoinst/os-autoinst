@@ -403,6 +403,34 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
     return $file;
 }
 
+sub _driver_elem ($doc, $cdrom) {
+    my $elem = $doc->createElement('driver');
+    $elem->setAttribute(name => 'qemu');
+    if ($cdrom) {
+        $elem->setAttribute(type => 'raw');
+    }
+    else {
+        $elem->setAttribute(type  => 'qcow2');
+        $elem->setAttribute(cache => 'unsafe');
+    }
+    return $elem;
+}
+
+sub _handle_disk_type ($vmm_family, $cdrom, $dev_id) {
+    return ("sd$dev_id",  'scsi')   if $cdrom && $vmm_family eq 'xen';
+    return ("xvd$dev_id", 'xen')    if $vmm_family eq 'xen';
+    return ("hd$dev_id",  'ide')    if $vmm_family eq 'vmware';
+    return ("hd$dev_id",  'ide')    if $cdrom && $vmm_family eq 'kvm';
+    return ("vd$dev_id",  'virtio') if $vmm_family eq 'kvm';
+    return (undef,        undef);
+}
+
+sub _bootorder_elem ($doc, $bootorder) {
+    my $elem = $doc->createElement('boot');
+    $elem->setAttribute(order => $bootorder);
+    return $elem;
+}
+
 sub add_disk ($self, $args) {
     my $cdrom                   = $args->{cdrom};
     my $name                    = $self->name;
@@ -426,45 +454,8 @@ sub add_disk ($self, $args) {
     $devices->appendChild($disk);
 
     # there's no <driver> property on VMware
-    if ($self->vmm_family ne 'vmware') {
-        my $elem = $doc->createElement('driver');
-        $elem->setAttribute(name => 'qemu');
-        if ($cdrom) {
-            $elem->setAttribute(type => 'raw');
-        }
-        else {
-            $elem->setAttribute(type  => 'qcow2');
-            $elem->setAttribute(cache => 'unsafe');
-        }
-        $disk->appendChild($elem);
-    }
-
-    my $dev_type;
-    my $bus_type;
-    my $dev_id = $args->{dev_id};
-    if ($self->vmm_family eq 'xen') {
-        if ($cdrom) {
-            $dev_type = "sd$dev_id";
-            $bus_type = 'scsi';
-        } else {
-            $dev_type = "xvd$dev_id";
-            $bus_type = 'xen';
-        }
-    }
-    elsif ($self->vmm_family eq 'vmware') {
-        $dev_type = "hd$dev_id";
-        $bus_type = 'ide';
-    }
-    elsif ($self->vmm_family eq 'kvm') {
-        if ($cdrom) {
-            $dev_type = "hd$dev_id";
-            $bus_type = 'ide';
-        }
-        else {
-            $dev_type = "vd$dev_id";
-            $bus_type = 'virtio';
-        }
-    }
+    $disk->appendChild(_driver_elem($doc, $cdrom)) if $self->vmm_family ne 'vmware';
+    my ($dev_type, $bus_type) = _handle_disk_type($self->vmm_family, $cdrom, $args->{dev_id});
     my $elem = $doc->createElement('target');
     $elem->setAttribute(dev => $dev_type);
     $elem->setAttribute(bus => $bus_type);
@@ -475,12 +466,7 @@ sub add_disk ($self, $args) {
     $elem->setAttribute(file => $self->vmm_family eq 'vmware' ? "[$vmware_datastore] openQA/$file" : $file);
     $disk->appendChild($elem);
 
-    if (my $bootorder = $args->{bootorder}) {
-        $elem = $doc->createElement('boot');
-        $elem->setAttribute(order => $bootorder);
-        $disk->appendChild($elem);
-    }
-
+    if (my $bootorder = $args->{bootorder}) { $disk->appendChild(_bootorder_elem($doc, $bootorder)) }
     return;
 }
 
