@@ -337,6 +337,43 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
     return $file;
 }
 
+sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile) {
+    # If the file exists, make sure someone else is not copying it there right now,
+    # otherwise copy image from NFS datastore.
+    my $nfs_dir              = $backingfile ? 'hdd' : 'iso';
+    my $vmware_nfs_datastore = get_required_var('VMWARE_NFS_DATASTORE');
+    my $cmd =
+      "if test -e $vmware_openqa_datastore$file_basename; then " .
+      "while lsof | grep 'cp.*$file_basename'; do " .
+      "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
+      'done;' .
+      'else ' .
+      "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
+      'fi;';
+    my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
+    die "Can't copy VMware image $file_basename" if $retval;
+    return unless $backingfile;
+    # Power VM off, delete it's disk image, and create it again.
+    # Than wait for some time for the VM to *really* turn off.
+    $cmd =
+      "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
+      'if [ $vmid ]; then ' .
+      'vim-cmd vmsvc/power.off $vmid;' .
+      'fi;' .
+      "vmkfstools -v1 -U $vmware_disk_path_thinfile;" .
+      "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1";
+    $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
+    die "Can't create thin VMware image" if $retval;
+}
+
+sub _copy_image_else ($self, $file, $file_basename, $basedir) {
+    $self->run_cmd(sprintf("rsync -av '$file' '$basedir/%s'", $file_basename)) && die 'rsync failed';
+    if ($file_basename =~ /(.*)\.xz$/) {
+        $self->run_cmd(sprintf("nice ionice unxz -f -k '$basedir/%s'", $file_basename)) unless -e "$basedir$1";
+        $file_basename = $1;
+    }
+}
+
 sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir, $cdrom) {
     # Copy image to VM host
     die 'No file given' unless $args->{file};
@@ -346,40 +383,10 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
     my $vmware_disk_path_thinfile = $vmware_disk_path =~ s/\.vmdk/_${name}_thinfile\.vmdk/r;
     if ($cdrom || $backingfile) {
         if ($self->vmm_family eq 'vmware') {
-            # If the file exists, make sure someone else is not copying it there right now,
-            # otherwise copy image from NFS datastore.
-            my $nfs_dir              = $backingfile ? 'hdd' : 'iso';
-            my $vmware_nfs_datastore = get_required_var('VMWARE_NFS_DATASTORE');
-            my $cmd =
-              "if test -e $vmware_openqa_datastore$file_basename; then " .
-              "while lsof | grep 'cp.*$file_basename'; do " .
-              "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
-              'done;' .
-              'else ' .
-              "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
-              'fi;';
-            my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
-            die "Can't copy VMware image $file_basename" if $retval;
-            if ($backingfile) {
-                # Power VM off, delete it's disk image, and create it again.
-                # Than wait for some time for the VM to *really* turn off.
-                my $cmd =
-                  "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
-                  'if [ $vmid ]; then ' .
-                  'vim-cmd vmsvc/power.off $vmid;' .
-                  'fi;' .
-                  "vmkfstools -v1 -U $vmware_disk_path_thinfile;" .
-                  "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1";
-                my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
-                die "Can't create thin VMware image" if $retval;
-            }
+            $self->_copy_image_vmware($name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile);
         }
         else {
-            $self->run_cmd(sprintf("rsync -av '$args->{file}' '$basedir/%s'", $file_basename)) && die 'rsync failed';
-            if ($file_basename =~ /(.*)\.xz$/) {
-                $self->run_cmd(sprintf("nice ionice unxz -f -k '$basedir/%s'", $file_basename)) unless -e "$basedir$1";
-                $file_basename = $1;
-            }
+            $self->_copy_image_else($args->{file}, $file_basename, $basedir);
         }
     }
 
