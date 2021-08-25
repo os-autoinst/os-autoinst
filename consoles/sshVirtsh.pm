@@ -77,7 +77,7 @@ sub _init_ssh ($self, $args) {
     }
 }
 
-sub get_ssh_credentials ($self, $domain = 'default') {
+sub get_ssh_credentials ($self, $domain = undef) {
     $domain //= 'default';
     die("Unknown ssh credentials domain $domain") unless (exists($self->{ssh_credentials}->{$domain}));
     return %{$self->{ssh_credentials}->{$domain}};
@@ -301,8 +301,109 @@ sub add_interface ($self, $args) {
     return;
 }
 
+sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir) {
+    my $size = $args->{size} || '20G';
+    if ($self->vmm_family eq 'vmware') {
+        my $vmware_disk_path = $vmware_openqa_datastore . $file;
+        # Power VM off, delete it's disk image, and create it again.
+        # Than wait for some time for the VM to *really* turn off.
+        my $cmd =
+          "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
+          'if [ $vmid ]; then ' .
+          'vim-cmd vmsvc/power.off $vmid;' .
+          'vim-cmd vmsvc/destroy $vmid;' .
+          'fi;' .
+          "vmkfstools -v1 -U $vmware_disk_path;" .
+          "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1";
+        my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
+        die "Can't create VMware image $vmware_disk_path" if $retval;
+    }
+    else {
+        $file = $basedir . $file;
+        my $bucket = 5;
+        # Avoid qemu-img's failure to get a write lock to be the reason for a job to fail
+        while (1) {
+            my ($ret, $stdout, $stderr) = $self->run_cmd("qemu-img create $file $size -f qcow2", wantarray => 1);
+            if ($stderr =~ /lock/i) {
+                $bucket--;
+                die "Too many attempts to format HDD" unless $bucket;
+                bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
+                sleep 5;
+                next;
+            }
+            last unless $ret;
+        }
+    }
+    return $file;
+}
+
+sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir, $cdrom) {
+    # Copy image to VM host
+    die 'No file given' unless $args->{file};
+    my $file_basename             = basename($args->{file});
+    my $backingfile               = $args->{backingfile};
+    my $vmware_disk_path          = $vmware_openqa_datastore . $file_basename;
+    my $vmware_disk_path_thinfile = $vmware_disk_path =~ s/\.vmdk/_${name}_thinfile\.vmdk/r;
+    if ($cdrom || $backingfile) {
+        if ($self->vmm_family eq 'vmware') {
+            # If the file exists, make sure someone else is not copying it there right now,
+            # otherwise copy image from NFS datastore.
+            my $nfs_dir              = $backingfile ? 'hdd' : 'iso';
+            my $vmware_nfs_datastore = get_required_var('VMWARE_NFS_DATASTORE');
+            my $cmd =
+              "if test -e $vmware_openqa_datastore$file_basename; then " .
+              "while lsof | grep 'cp.*$file_basename'; do " .
+              "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
+              'done;' .
+              'else ' .
+              "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
+              'fi;';
+            my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
+            die "Can't copy VMware image $file_basename" if $retval;
+            if ($backingfile) {
+                # Power VM off, delete it's disk image, and create it again.
+                # Than wait for some time for the VM to *really* turn off.
+                my $cmd =
+                  "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
+                  'if [ $vmid ]; then ' .
+                  'vim-cmd vmsvc/power.off $vmid;' .
+                  'fi;' .
+                  "vmkfstools -v1 -U $vmware_disk_path_thinfile;" .
+                  "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1";
+                my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
+                die "Can't create thin VMware image" if $retval;
+            }
+        }
+        else {
+            $self->run_cmd(sprintf("rsync -av '$args->{file}' '$basedir/%s'", $file_basename)) && die 'rsync failed';
+            if ($file_basename =~ /(.*)\.xz$/) {
+                $self->run_cmd(sprintf("nice ionice unxz -f -k '$basedir/%s'", $file_basename)) unless -e "$basedir$1";
+                $file_basename = $1;
+            }
+        }
+    }
+
+    # e.g. cdrom
+    return ($self->vmm_family eq 'vmware' ? '' : $basedir) . $file_basename unless $backingfile;
+
+    if ($self->vmm_family eq 'vmware') {
+        $file = basename($vmware_disk_path_thinfile);
+    }
+    else {
+        $file = $basedir . $file;
+        # requested expected value in GBs, if there is any passed as an argument
+        my $size = $args->{size} // 0;
+        # expected value in Bytes
+        my (undef, $json) = $self->run_cmd("qemu-img info --output=json $args->{file}", wantarray => 1);
+        my $image_vsize = decode_json($json)->{'virtual-size'};
+        $size = (($size * 1024 * 1024 * 1024) <= $image_vsize) ? $image_vsize : $size . 'G';
+        $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -b '$basedir/%s' ${size}", $file_basename))
+          && die 'qemu-img create with backing file failed';
+    }
+    return $file;
+}
+
 sub add_disk ($self, $args) {
-    my $backingfile             = $args->{backingfile};
     my $cdrom                   = $args->{cdrom};
     my $name                    = $self->name;
     my $file                    = $name . $args->{dev_id} . ($self->vmm_family eq 'vmware' ? '.vmdk' : '.img');
@@ -310,101 +411,10 @@ sub add_disk ($self, $args) {
     my $vmware_datastore        = get_var('VMWARE_DATASTORE', '');
     my $vmware_openqa_datastore = "/vmfs/volumes/$vmware_datastore/openQA/";
     if ($args->{create}) {
-        my $size = $args->{size} || '20G';
-        if ($self->vmm_family eq 'vmware') {
-            my $vmware_disk_path = $vmware_openqa_datastore . $file;
-            # Power VM off, delete it's disk image, and create it again.
-            # Than wait for some time for the VM to *really* turn off.
-            my $cmd =
-              "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
-              'if [ $vmid ]; then ' .
-              'vim-cmd vmsvc/power.off $vmid;' .
-              'vim-cmd vmsvc/destroy $vmid;' .
-              'fi;' .
-              "vmkfstools -v1 -U $vmware_disk_path;" .
-              "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1";
-            my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
-            die "Can't create VMware image $vmware_disk_path" if $retval;
-        }
-        else {
-            $file = $basedir . $file;
-            my $bucket = 5;
-            # Avoid qemu-img's failure to get a write lock to be the reason for a job to fail
-            while (1) {
-                my ($ret, $stdout, $stderr) = $self->run_cmd("qemu-img create $file $size -f qcow2", wantarray => 1);
-                if ($stderr =~ /lock/i) {
-                    $bucket--;
-                    die "Too many attempts to format HDD" unless $bucket;
-                    bmwqemu::diag("Resource is still not free, waiting a bit more. $bucket attempts left");
-                    sleep 5;
-                    next;
-                }
-                last unless $ret;
-            }
-        }
+        $file = $self->_create_disk($args, $vmware_openqa_datastore, $file, $name, $basedir);
     }
-    else {    # Copy image to VM host
-        die 'No file given' unless $args->{file};
-        my $file_basename             = basename($args->{file});
-        my $vmware_disk_path          = $vmware_openqa_datastore . $file_basename;
-        my $vmware_disk_path_thinfile = $vmware_disk_path =~ s/\.vmdk/_${name}_thinfile\.vmdk/r;
-        if ($cdrom || $backingfile) {
-            if ($self->vmm_family eq 'vmware') {
-                # If the file exists, make sure someone else is not copying it there right now,
-                # otherwise copy image from NFS datastore.
-                my $nfs_dir              = $backingfile ? 'hdd' : 'iso';
-                my $vmware_nfs_datastore = get_required_var('VMWARE_NFS_DATASTORE');
-                my $cmd =
-                  "if test -e $vmware_openqa_datastore$file_basename; then " .
-                  "while lsof | grep 'cp.*$file_basename'; do " .
-                  "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
-                  'done;' .
-                  'else ' .
-                  "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
-                  'fi;';
-                my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
-                die "Can't copy VMware image $file_basename" if $retval;
-                if ($backingfile) {
-                    # Power VM off, delete it's disk image, and create it again.
-                    # Than wait for some time for the VM to *really* turn off.
-                    my $cmd =
-                      "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
-                      'if [ $vmid ]; then ' .
-                      'vim-cmd vmsvc/power.off $vmid;' .
-                      'fi;' .
-                      "vmkfstools -v1 -U $vmware_disk_path_thinfile;" .
-                      "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1";
-                    my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
-                    die "Can't create thin VMware image" if $retval;
-                }
-            }
-            else {
-                $self->run_cmd(sprintf("rsync -av '$args->{file}' '$basedir/%s'", $file_basename)) && die 'rsync failed';
-                if ($file_basename =~ /(.*)\.xz$/) {
-                    $self->run_cmd(sprintf("nice ionice unxz -f -k '$basedir/%s'", $file_basename)) unless -e "$basedir$1";
-                    $file_basename = $1;
-                }
-            }
-        }
-        if ($backingfile) {
-            if ($self->vmm_family eq 'vmware') {
-                $file = basename($vmware_disk_path_thinfile);
-            }
-            else {
-                $file = $basedir . $file;
-                # requested expected value in GBs, if there is any passed as an argument
-                my $size = $args->{size} // 0;
-                # expected value in Bytes
-                my (undef, $json) = $self->run_cmd("qemu-img info --output=json $args->{file}", wantarray => 1);
-                my $image_vsize = decode_json($json)->{'virtual-size'};
-                $size = (($size * 1024 * 1024 * 1024) <= $image_vsize) ? $image_vsize : $size . 'G';
-                $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -b '$basedir/%s' ${size}", $file_basename))
-                  && die 'qemu-img create with backing file failed';
-            }
-        }
-        else {    # e.g. cdrom
-            $file = ($self->vmm_family eq 'vmware' ? '' : $basedir) . $file_basename;
-        }
+    else {
+        $file = $self->_copy_image_to_vm_host($args, $vmware_openqa_datastore, $file, $name, $basedir, $cdrom);
     }
 
     my $doc     = $self->{domainxml};
@@ -461,6 +471,7 @@ sub add_disk ($self, $args) {
     $disk->appendChild($elem);
 
     $elem = $doc->createElement('source');
+    $file =~ s/\.xz$//;
     $elem->setAttribute(file => $self->vmm_family eq 'vmware' ? "[$vmware_datastore] openQA/$file" : $file);
     $disk->appendChild($elem);
 
