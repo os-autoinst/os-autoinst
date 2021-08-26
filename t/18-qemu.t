@@ -5,7 +5,7 @@ use Test::Most;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use OpenQA::Test::TimeLimit '1';
 use Test::Fatal;
 use Test::Warnings qw(warnings :report_warnings);
 use Mojo::File qw(tempfile tempdir path);
@@ -341,6 +341,8 @@ $bdc->for_each_drive(sub {
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after deserialising and reverting a snapshot')
   || diag(explain(\@gcmdl));
 
+# this should trigger a timeout
+sleep 60;
 
 sub qemu_proc {
     my ($static_params, $vars) = @_;
