@@ -37,7 +37,6 @@ use Mojo::Base 'OpenQA::Qemu::MutParams';
 
 use Scalar::Util 'weaken';
 use OpenQA::Qemu::SnapshotConf;
-use File::Spec;
 
 use constant FILE_POSTFIX => '-file';
 

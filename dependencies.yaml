@@ -127,7 +127,6 @@ main_requires:
   perl(File::chdir):
   perl(File::Find):
   perl(File::Path):
-  perl(File::Spec):
   perl(File::Temp):
   perl(File::Touch):
   perl(File::Which):

@@ -16,9 +16,9 @@
 package OpenQA::Isotovideo::Utils;
 use Mojo::Base -base;
 use Mojo::URL;
+use Mojo::File qw(path);
 
 use Exporter 'import';
-use File::Spec;
 use Cwd;
 use bmwqemu;
 use Try::Tiny;
@@ -105,7 +105,7 @@ sub checkout_git_repo_and_branch {
     else {
         bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
     }
-    return $bmwqemu::vars{$dir_variable} = File::Spec->rel2abs($local_path);
+    return $bmwqemu::vars{$dir_variable} = path($local_path)->to_abs;
 }
 
 =head2 checkout_git_refspec
@@ -197,21 +197,21 @@ sub load_test_schedule {
     my @oldINC = @INC;
     unshift @INC, $bmwqemu::vars{CASEDIR} . '/lib';
     if ($bmwqemu::vars{SCHEDULE}) {
-        unshift @INC, '.' unless File::Spec->file_name_is_absolute($bmwqemu::vars{CASEDIR});
+        unshift @INC, '.' unless path($bmwqemu::vars{CASEDIR})->is_abs;
         bmwqemu::fctinfo 'Enforced test schedule by \'SCHEDULE\' variable in action';
         $bmwqemu::vars{INCLUDE_MODULES} = undef;
         autotest::loadtest($_ =~ qr/\./ ? $_ : $_ . '.pm') foreach split(',', $bmwqemu::vars{SCHEDULE});
         $bmwqemu::vars{INCLUDE_MODULES} = 'none';
     }
     my $productdir = $bmwqemu::vars{PRODUCTDIR};
-    my $main_path  = File::Spec->catfile($productdir, 'main.pm');
+    my $main_path  = path($productdir, 'main.pm');
     try {
         if (-e $main_path) {
             unshift @INC, '.';
             require $main_path;
         }
-        elsif (!File::Spec->file_name_is_absolute($productdir) && -e File::Spec->catfile($bmwqemu::vars{CASEDIR}, $main_path)) {
-            require File::Spec->catfile($bmwqemu::vars{CASEDIR}, $main_path);
+        elsif (!path($productdir)->is_abs && -e path($bmwqemu::vars{CASEDIR}, $main_path)) {
+            require(path($bmwqemu::vars{CASEDIR}, $main_path)->to_string);
         }
         elsif (!$bmwqemu::vars{SCHEDULE}) {
             die "'SCHEDULE' not set and $main_path not found, need one of both";

@@ -24,7 +24,6 @@ requires 'Fcntl';
 requires 'File::Basename';
 requires 'File::Find';
 requires 'File::Path';
-requires 'File::Spec';
 requires 'File::Temp';
 requires 'File::Touch';
 requires 'File::Which';

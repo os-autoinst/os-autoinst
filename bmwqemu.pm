@@ -29,7 +29,6 @@ use Cpanel::JSON::XS ();
 use File::Path 'remove_tree';
 use Data::Dumper;
 use Mojo::Log;
-use File::Spec::Functions qw(catfile);
 use Mojo::File qw(path);
 use POSIX 'strftime';
 use Term::ANSIColor;
@@ -74,7 +73,7 @@ sub result_dir { 'testresults' }
 
 sub logger { $logger //= Mojo::Log->new(level => 'debug', format => \&log_format_callback) }
 
-sub init_logger { logger->path(catfile(result_dir, 'autoinst-log.txt')) unless $direct_output }
+sub init_logger { logger->path(path(result_dir, 'autoinst-log.txt')) unless $direct_output }
 
 use constant STATE_FILE => 'base_state.json';
 

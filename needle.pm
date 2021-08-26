@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,8 +22,7 @@ use autodie ':all';
 
 use Cwd 'cwd';
 use File::Find;
-use File::Spec;
-use Mojo::File;
+use Mojo::File qw(path);
 use Mojo::JSON 'decode_json';
 use Cpanel::JSON::XS ();
 use File::Basename;
@@ -54,7 +53,7 @@ sub new {
     my $json;
     if (ref $jsonfile eq 'HASH') {
         $json     = $jsonfile;
-        $jsonfile = $json->{file} || File::Spec->catfile($needles_dir, $json->{name} . '.json');
+        $jsonfile = $json->{file} || path($needles_dir, $json->{name} . '.json');
     }
 
     my $self = {};
@@ -66,10 +65,10 @@ sub new {
     if (index($jsonfile, $needles_dir) == 0) {
         $self->{file} = substr($jsonfile, length($needles_dir) + 1);
     }
-    elsif (-f File::Spec->catfile($needles_dir, $jsonfile)) {
+    elsif (-f path($needles_dir, $jsonfile)) {
         # json file path already relative
         $self->{file} = $jsonfile;
-        $jsonfile = File::Spec->catfile($needles_dir, $jsonfile);
+        $jsonfile = path($needles_dir, $jsonfile);
     }
     else {
         die "Needle $jsonfile is not under needle directory $needles_dir";
@@ -77,7 +76,7 @@ sub new {
 
     if (!$json) {
         try {
-            $json = decode_json(Mojo::File->new($jsonfile)->slurp);
+            $json = decode_json(path($jsonfile)->slurp);
         }
         catch {
             warn "broken json $jsonfile: $_";
@@ -126,7 +125,7 @@ sub new {
     $self->{name} = basename($jsonfile, '.json');
     my $png = $self->{png} || $self->{name} . ".png";
 
-    $self->{png} = File::Spec->catdir(dirname($jsonfile), $png);
+    $self->{png} = path(dirname($jsonfile), $png);
     warn "Can't find $self->{png}" && return unless -s $self->{png};
     $self = bless $self, $classname;
     $self->register();
@@ -314,8 +313,8 @@ sub init {
     my $init_needles_dir = ($bmwqemu::vars{NEEDLES_DIR} // default_needles_dir);
     $needles_dir = $init_needles_dir;
     unless (-d $needles_dir) {
-        die "Can't init needles from $needles_dir" if (File::Spec->file_name_is_absolute($needles_dir));
-        $needles_dir = File::Spec->catdir($bmwqemu::vars{CASEDIR}, $needles_dir);
+        die "Can't init needles from $needles_dir" if (path($needles_dir)->is_abs);
+        $needles_dir = path($bmwqemu::vars{CASEDIR}, $needles_dir);
         die "Can't init needles from $init_needles_dir; If one doesn't specify NEEDLES_DIR, the needles will be loaded from \$PRODUCTDIR/needles firstly or $needles_dir (\$CASEDIR + $init_needles_dir), check vars.json" unless -d $needles_dir;
     }
     $bmwqemu::vars{NEEDLES_GIT_HASH} = checkout_git_refspec($needles_dir => 'NEEDLES_GIT_REFSPEC');
