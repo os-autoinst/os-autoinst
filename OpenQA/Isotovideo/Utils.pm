@@ -105,7 +105,7 @@ sub checkout_git_repo_and_branch {
     else {
         bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
     }
-    return $bmwqemu::vars{$dir_variable} = path($local_path)->to_abs;
+    return $bmwqemu::vars{$dir_variable} = path($local_path)->to_abs->to_string;
 }
 
 =head2 checkout_git_refspec
