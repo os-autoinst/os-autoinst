@@ -68,6 +68,11 @@ subtest 'successful clone' => sub {
     };
     is $path, $clone_dir, 'checkout_git_repo_and_branch with existing local directory returned correct path';
     like $out, qr{Skipping to clone.*tmpgitrepo already exists}, 'Log says that local directory already exists';
+
+    eval {
+        bmwqemu::save_vars(no_secret => 1);
+    };
+    is($@, '', 'serialization successful');
 };
 
 done_testing;
