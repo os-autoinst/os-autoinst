@@ -338,6 +338,7 @@ subtest 'load test successfully when CASEDIR is a relative path' => sub {
     loadtest 'start';
 };
 
+pass autotest::loadtest('tests/test.py'), 'can load python test module at all';
 loadtest 'test.py', 'we can also parse python test modules';
 
 done_testing();
