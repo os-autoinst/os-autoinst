@@ -165,7 +165,8 @@ sub upload_file {
 
     # choose 'target' field from curl form, otherwise default 'assets_private', assume the pool directory is the current working dir
     my $target = $self->param('target') || 'assets_private';
-    mkdir($target) or die "Unable to create directory for upload: $!" unless -d $target;
+    eval { mkdir $target unless -d $target };
+    if (my $error = $@) { return $self->render(text => "Unable to create directory for upload: $error", status => 500) }
 
     my $upname   = $self->param('upname');
     my $filename = basename($upname ? $upname : $self->param('filename'));

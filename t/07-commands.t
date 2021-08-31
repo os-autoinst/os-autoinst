@@ -194,6 +194,11 @@ subtest 'upload api' => sub {
     subtest 'file content missing' => sub {
         $t->post_ok("$base_url/$job/upload_asset/foo")->status_is(400)->content_is('Upload file content missing');
     };
+    subtest 'target directory cannot be created' => sub {
+        $pool_directory->child('a-file')->touch;
+        $t->post_ok("$base_url/$job/upload_asset/foo", form => {upload => {content => 'foo'}, target => 'a-file'});
+        $t->status_is(500)->content_like(qr/Unable to create directory for upload.*File exists/);
+    };
     subtest 'successful upload' => sub {
         $t->post_ok("$base_url/$job/upload_asset/private-asset", form => {upload => {content => 'private-content'}});
         $t->status_is(200)->content_is("OK: private-asset\n");
