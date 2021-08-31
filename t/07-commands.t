@@ -21,6 +21,7 @@ use Test::Most;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
+use Mojo::Base -strict, -signatures;
 use File::Find;
 require IPC::System::Simple;
 use autodie ':all';
@@ -31,10 +32,17 @@ use Time::HiRes 'sleep';
 use Test::Warnings ':report_warnings';
 use Test::Output;
 use Test::Mojo;
+use Test::MockModule;
 use Mojo::File qw(path tempfile tempdir);
 use File::Which;
 use Data::Dumper;
 use POSIX '_exit';
+
+# fake return value of "is_limit_exceeded" via "fake_limit" parameter for upload API tests
+my $msg_mock = Test::MockModule->new('Mojo::Message::Request');
+$msg_mock->redefine(is_limit_exceeded => sub ($self) {
+        $self->param('fake_limit') // $msg_mock->original('is_limit_exceeded')->($self);
+});
 
 our $mojoport = Mojo::IOLoop::Server->generate_port;
 my $base_url     = "http://localhost:$mojoport";
@@ -198,6 +206,10 @@ subtest 'upload api' => sub {
         $pool_directory->child('a-file')->touch;
         $t->post_ok("$base_url/$job/upload_asset/foo", form => {upload => {content => 'foo'}, target => 'a-file'});
         $t->status_is(500)->content_like(qr/Unable to create directory for upload.*File exists/);
+    };
+    subtest 'file exceeds limit' => sub {
+        $t->post_ok("$base_url/$job/upload_asset/foo", form => {upload => {content => 'foo'}, fake_limit => 1});
+        $t->status_is(400)->content_is('File is too big');
     };
     subtest 'successful upload' => sub {
         $t->post_ok("$base_url/$job/upload_asset/private-asset", form => {upload => {content => 'private-content'}});
