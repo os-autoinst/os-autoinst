@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -160,8 +160,8 @@ sub get_asset {
 sub upload_file {
     my ($self) = @_;
 
-    return $self->render(message => 'File is too big', status => 400) if $self->req->is_limit_exceeded;
-    return $self->render(message => 'Upload file content missing', status => 400) unless my $upload = $self->req->upload('upload');
+    return $self->render(text => 'File is too big', status => 400) if $self->req->is_limit_exceeded;
+    return $self->render(text => 'Upload file content missing', status => 400) unless my $upload = $self->req->upload('upload');
 
     # choose 'target' field from curl form, otherwise default 'assets_private', assume the pool directory is the current working dir
     my $target = $self->param('target') || 'assets_private';
