@@ -160,12 +160,13 @@ sub get_asset {
 sub upload_file {
     my ($self) = @_;
 
-    return $self->render(message => 'File is too big', status => 400) if $self->req->is_limit_exceeded;
-    return $self->render(message => 'Upload file content missing', status => 400) unless my $upload = $self->req->upload('upload');
+    return $self->render(text => 'File is too big', status => 400) if $self->req->is_limit_exceeded;
+    return $self->render(text => 'Upload file content missing', status => 400) unless my $upload = $self->req->upload('upload');
 
     # choose 'target' field from curl form, otherwise default 'assets_private', assume the pool directory is the current working dir
     my $target = $self->param('target') || 'assets_private';
-    mkdir($target) or die "Unable to create directory for upload: $!" unless -d $target;
+    eval { mkdir $target unless -d $target };
+    if (my $error = $@) { return $self->render(text => "Unable to create directory for upload: $error", status => 500) }
 
     my $upname   = $self->param('upname');
     my $filename = basename($upname ? $upname : $self->param('filename'));

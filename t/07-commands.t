@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (c) 2016-2020 SUSE LLC
+# Copyright (c) 2016-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@ use Test::Most;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
+use Mojo::Base -strict, -signatures;
 use File::Find;
 require IPC::System::Simple;
 use autodie ':all';
@@ -31,10 +32,17 @@ use Time::HiRes 'sleep';
 use Test::Warnings ':report_warnings';
 use Test::Output;
 use Test::Mojo;
+use Test::MockModule;
 use Mojo::File qw(path tempfile tempdir);
 use File::Which;
 use Data::Dumper;
 use POSIX '_exit';
+
+# fake return value of "is_limit_exceeded" via "fake_limit" parameter for upload API tests
+my $msg_mock = Test::MockModule->new('Mojo::Message::Request');
+$msg_mock->redefine(is_limit_exceeded => sub ($self) {
+        $self->param('fake_limit') // $msg_mock->original('is_limit_exceeded')->($self);
+});
 
 our $mojoport = Mojo::IOLoop::Server->generate_port;
 my $base_url     = "http://localhost:$mojoport";
@@ -56,6 +64,8 @@ $bmwqemu::vars{CASEDIR}  = $data_dir->child('tests');
 $bmwqemu::vars{ASSETDIR} = $data_dir->child('assets');
 
 # now this is a game of luck
+my $pool_directory = $data_dir->child('pool');
+ok(chdir $pool_directory, "change command server working directory to $pool_directory");
 my ($cserver, $cfd);
 ok(chdir $data_dir->child('pool'), 'change command server working directory');
 combined_like { ($cserver, $cfd) = commands::start_server($mojoport); } qr//, 'command server started';
@@ -185,6 +195,30 @@ subtest 'asset api' => sub {
     subtest 'file from parent directory not served' => sub {
         $t->get_ok("$base_url/$job/assets/../accept-ssh-host-key.png")->status_is(404);
         $t->get_ok("$base_url/$job/assets/other/../../accept-ssh-host-key.png")->status_is(404);
+    };
+};
+
+subtest 'upload api' => sub {
+    subtest 'file content missing' => sub {
+        $t->post_ok("$base_url/$job/upload_asset/foo")->status_is(400)->content_is('Upload file content missing');
+    };
+    subtest 'target directory cannot be created' => sub {
+        $pool_directory->child('a-file')->touch;
+        $t->post_ok("$base_url/$job/upload_asset/foo", form => {upload => {content => 'foo'}, target => 'a-file'});
+        $t->status_is(500)->content_like(qr/Unable to create directory for upload.*File exists/);
+    };
+    subtest 'file exceeds limit' => sub {
+        $t->post_ok("$base_url/$job/upload_asset/foo", form => {upload => {content => 'foo'}, fake_limit => 1});
+        $t->status_is(400)->content_is('File is too big');
+    };
+    subtest 'successful upload' => sub {
+        $t->post_ok("$base_url/$job/upload_asset/private-asset", form => {upload => {content => 'private-content'}});
+        $t->status_is(200)->content_is("OK: private-asset\n");
+        is $pool_directory->child('assets_private/private-asset')->slurp, 'private-content', 'private asset created';
+
+        $t->post_ok("$base_url/$job/upload_asset/public-asset", form => {upload => {content => 'public-content'}, target => 'assets_public'});
+        $t->status_is(200)->content_is("OK: public-asset\n");
+        is $pool_directory->child('assets_public/public-asset')->slurp, 'public-content', 'public asset created';
     };
 };
 
