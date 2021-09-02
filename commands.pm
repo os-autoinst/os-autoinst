@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -236,9 +236,9 @@ sub get_temp_file {
 sub run_daemon {
     my ($port, $isotovideo) = @_;
 
-    # allow up to 20GB - hdd images
-    $ENV{MOJO_MAX_MESSAGE_SIZE}   = 1024 * 1024 * 1024 * 20;
-    $ENV{MOJO_INACTIVITY_TIMEOUT} = 300;
+    # allow up to 20 GiB for uploads of big hdd images
+    $ENV{MOJO_MAX_MESSAGE_SIZE}   //= ($bmwqemu::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} // 20) * 1024**3;
+    $ENV{MOJO_INACTIVITY_TIMEOUT} //= ($bmwqemu::vars{UPLOAD_INACTIVITY_TIMEOUT}  // 300);
 
     # avoid leaking token
     app->mode('production');
