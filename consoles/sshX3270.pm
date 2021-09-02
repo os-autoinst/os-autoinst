@@ -16,8 +16,7 @@
 
 package consoles::sshX3270;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use base 'consoles::localXvnc';
 

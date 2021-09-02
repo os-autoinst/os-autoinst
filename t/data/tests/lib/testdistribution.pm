@@ -15,8 +15,7 @@
 
 package testdistribution;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use base 'distribution';
 

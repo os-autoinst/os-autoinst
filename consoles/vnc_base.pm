@@ -16,8 +16,7 @@
 
 package consoles::vnc_base;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use feature 'say';
 
 use base 'consoles::network_console';

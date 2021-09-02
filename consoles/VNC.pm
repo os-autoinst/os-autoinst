@@ -1,7 +1,6 @@
 package consoles::VNC;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use bytes;
 use feature 'say';
 

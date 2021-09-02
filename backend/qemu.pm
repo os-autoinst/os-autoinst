@@ -16,8 +16,7 @@
 
 package backend::qemu;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use autodie ':all';
 
 use base 'backend::virt';

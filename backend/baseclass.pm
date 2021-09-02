@@ -17,8 +17,7 @@
 # this is an abstract class
 package backend::baseclass;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use feature 'say';
 use autodie ':all';
 

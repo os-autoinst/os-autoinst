@@ -15,8 +15,7 @@
 
 package backend::virt;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use base 'backend::baseclass';
 

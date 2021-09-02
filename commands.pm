@@ -16,8 +16,7 @@
 
 package commands;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use autodie ':all';
 
 require IPC::System::Simple;

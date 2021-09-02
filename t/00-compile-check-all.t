@@ -14,8 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 # We need :no_end_test here because otherwise it would output a no warnings
 # test for each of the modules, but with the same test number
 use Test::Warnings qw(:no_end_test :report_warnings);

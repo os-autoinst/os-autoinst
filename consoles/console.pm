@@ -28,8 +28,7 @@ of other functions. See vnc_base and virtio_terminal to see how this works.
 
 package consoles::console;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use autodie ':all';
 use testapi 'check_var';
 

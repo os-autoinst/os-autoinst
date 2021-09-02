@@ -17,8 +17,7 @@
 # wrapper around tinycv
 
 package cv;
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use constant BPP => 3;
 use ExtUtils::testlib;
 

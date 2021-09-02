@@ -21,8 +21,7 @@
 
 package backend::driver;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use autodie ':all';
 
 use Carp 'croak';

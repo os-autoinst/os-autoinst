@@ -16,8 +16,7 @@
 ## synchronization API
 package lockapi;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use Scalar::Util 'looks_like_number';
 use Time::Seconds;
 use base 'Exporter';

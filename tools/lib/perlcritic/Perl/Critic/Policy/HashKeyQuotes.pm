@@ -1,7 +1,6 @@
 package Perl::Critic::Policy::HashKeyQuotes;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use Perl::Critic::Utils qw( :severities :classification :ppi );
 use base 'Perl::Critic::Policy';

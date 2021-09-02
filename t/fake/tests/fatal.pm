@@ -1,5 +1,4 @@
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use base 'basetest';
 
 sub run { }

@@ -47,8 +47,7 @@ automatically for convenience.
 
 =cut
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 use autodie ':all';
 no autodie 'kill';
 
