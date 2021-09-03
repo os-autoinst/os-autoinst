@@ -495,7 +495,7 @@ sub resume ($self) {
 
 sub get_remote_vmm () { get_var('VMWARE_REMOTE_VMM', '') }
 
-sub define_and_start ($self, $args) {
+sub define_and_start ($self) {
     my $remote_vmm = "";
     if ($self->vmm_family eq 'vmware') {
         my ($fh, $libvirtauthfilename) = tempfile(DIR => "/tmp/");
