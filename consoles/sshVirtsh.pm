@@ -562,9 +562,9 @@ sub attach_to_running ($self, $args) {
     }
 }
 
-sub start_serial_grab ($self, $args) { $self->backend->start_serial_grab($self->name) }
+sub start_serial_grab ($self) { $self->backend->start_serial_grab($self->name) }
 
-sub stop_serial_grab ($self, $args) { $self->backend->stop_serial_grab($self->name) }
+sub stop_serial_grab ($self) { $self->backend->stop_serial_grab($self->name) }
 
 
 =head2 run_cmd
