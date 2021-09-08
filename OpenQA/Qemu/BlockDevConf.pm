@@ -131,7 +131,7 @@ new overlay is created so that the existing qcow2 image is not modified.
 sub add_existing_drive {
     my ($self, $id, $file_name, $model, $size, $num_queues) = @_;
 
-    my $base_drive = $self->add_existing_base($id, $file_name, $size)->implicit(1);
+    my $base_drive = $self->add_existing_base($id, $file_name, $size)->implicit(1)->deduce_driver;
     my $overlay    = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);
 
     return $self->_push_new_drive_dev($id, $overlay, $model, $num_queues);
@@ -164,11 +164,9 @@ variables. See the OpenQA::Qemu::PFlashDevice class.
 =cut
 sub add_pflash_drive {
     my ($self, $id, $file_name, $size) = @_;
-    my $base_drive = $self->add_existing_base($id, $file_name, $size)
-      ->implicit(1)
-      ->driver($file_name =~ qr/\.qcow2$/ ? 'qcow2' : 'raw');
-    my $overlay = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);
-    my $pflash  = OpenQA::Qemu::PFlashDevice->new()
+    my $base_drive = $self->add_existing_base($id, $file_name, $size)->implicit(1)->deduce_driver;
+    my $overlay    = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);
+    my $pflash     = OpenQA::Qemu::PFlashDevice->new()
       ->id($id)
       ->drive($overlay);
 
