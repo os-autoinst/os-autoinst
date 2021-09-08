@@ -158,13 +158,15 @@ creating.
 
 =cut
 sub gen_qemu_img_cmdlines {
-    my $self   = shift;
-    my @cmdlns = defined $self->backing_file ? $self->backing_file->gen_qemu_img_cmdlines : ();
+    my $self = shift;
+
+    my $backing_file = $self->backing_file;
+    my @cmdlns       = defined $backing_file ? $backing_file->gen_qemu_img_cmdlines : ();
     return @cmdlns unless $self->needs_creating;
 
     my @params = ('create', '-f', $self->driver);
-    push(@params, ('-b', $self->backing_file->file))
-      if defined $self->backing_file;
+    push(@params, '-F', $backing_file->driver, '-b', $backing_file->file)
+      if defined $backing_file;
     push(@params, $self->file);
     push(@params, $self->size);
 
