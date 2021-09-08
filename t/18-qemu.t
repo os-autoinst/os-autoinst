@@ -84,7 +84,7 @@ $bdc->add_existing_drive('hd1', '/abs/path/sle15-minimal.qcow2', 'virtio-blk', 2
 @gcmdl = $bdc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single existing drive');
 
-@cmdl  = ([qw(create -f qcow2 -b /abs/path/sle15-minimal.qcow2 raid/hd1-overlay0 22548578304)]);
+@cmdl  = ([qw(create -f qcow2 -F qcow2 -b /abs/path/sle15-minimal.qcow2 raid/hd1-overlay0 22548578304)]);
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing drive');
 
@@ -114,7 +114,7 @@ $proc  = qemu_proc('-foo', \%vars);
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single existing UEFI disk using vars');
 
-@cmdl  = ([qw(create -f qcow2 -b), "$Bin/data/Core-7.2.iso", qw(raid/hd0-overlay0 11116544)]);
+@cmdl  = ([qw(create -f qcow2 -F qcow2 -b), "$Bin/data/Core-7.2.iso", qw(raid/hd0-overlay0 11116544)]);
 @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing UEFI disk');
 
@@ -229,8 +229,8 @@ $proc->deserialise_state(path($path)->slurp());
 is_deeply(\@gcmdl, \@cmdl, 'Command line after snapshot and serialisation')
   || diag(explain(\@gcmdl));
 
-@cmdl = ([qw(create -f qcow2 -b raid/hd0 raid/hd0-overlay1 10G)],
-    [qw(create -f qcow2 -b raid/cd0-overlay0 raid/cd0-overlay1 11116544)]);
+@cmdl = ([qw(create -f qcow2 -F qcow2 -b raid/hd0 raid/hd0-overlay1 10G)],
+    [qw(create -f qcow2 -F qcow2 -b raid/cd0-overlay0 raid/cd0-overlay1 11116544)]);
 @gcmdl = $bdc->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate reverted snapshot images');
 
@@ -384,10 +384,10 @@ subtest 'relative assets' => sub {
     symlink("$Bin/data/Core-7.2.iso", "./Core-7.2.iso");
     $proc = qemu_proc('-foo', \%vars);
     my @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
-    @cmdl = map { [qw(create -f qcow2 -b), "$dir/Core-7.2.iso", "raid/$_-overlay0", 11116544] } qw(hd0 cd0 cd1);
-    push @cmdl, ["create", "-f", "qcow2", "-b", "$Bin/data/uefi-code.bin", "raid/pflash-code-overlay0", 1966080];
-    push @cmdl, ["create", "-f", "qcow2", "-b", "$dir/Core-7.2.iso",       "raid/pflash-vars-overlay0", 11116544];
-    is_deeply(\@gcmdl, \@cmdl, 'find the asset real path');
+    @cmdl = map { [qw(create -f qcow2 -F), $_ eq 'hd0' ? 'qcow2' : 'raw', '-b', "$dir/Core-7.2.iso", "raid/$_-overlay0", 11116544] } qw(hd0 cd0 cd1);
+    push @cmdl, [qw(create -f qcow2 -F raw -b), "$Bin/data/uefi-code.bin", "raid/pflash-code-overlay0", 1966080];
+    push @cmdl, [qw(create -f qcow2 -F raw -b), "$dir/Core-7.2.iso",       "raid/pflash-vars-overlay0", 11116544];
+    is_deeply(\@gcmdl, \@cmdl, 'find the asset real path') or diag explain \@gcmdl;
 };
 
 subtest 'qemu was killed due to the system being out of memory' => sub {
