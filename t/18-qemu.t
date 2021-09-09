@@ -114,7 +114,7 @@ $proc  = qemu_proc('-foo', \%vars);
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single existing UEFI disk using vars');
 
-@cmdl  = ([qw(create -f qcow2 -F qcow2 -b), "$Bin/data/Core-7.2.iso", qw(raid/hd0-overlay0 11116544)]);
+@cmdl  = ([qw(create -f qcow2 -F raw -b), "$Bin/data/Core-7.2.iso", qw(raid/hd0-overlay0 11116544)]);
 @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing UEFI disk');
 
@@ -380,13 +380,19 @@ subtest DriveDevice => sub {
 };
 
 subtest 'relative assets' => sub {
-    $vars{$_} = "Core-7.2.iso" for qw(ISO ISO_1 HDD_1 UEFI_PFLASH_VARS);
+    $vars{$_} = "Core-7.2.iso" for qw(ISO ISO_1 UEFI_PFLASH_VARS);
+    $vars{$_} = "some.qcow2"   for qw(HDD_1 UEFI_PFLASH_VARS);
     symlink("$Bin/data/Core-7.2.iso", "./Core-7.2.iso");
+    path('./some.qcow2')->spurt('123');
     $proc = qemu_proc('-foo', \%vars);
     my @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
-    @cmdl = map { [qw(create -f qcow2 -F), $_ eq 'hd0' ? 'qcow2' : 'raw', '-b', "$dir/Core-7.2.iso", "raid/$_-overlay0", 11116544] } qw(hd0 cd0 cd1);
-    push @cmdl, [qw(create -f qcow2 -F raw -b), "$Bin/data/uefi-code.bin", "raid/pflash-code-overlay0", 1966080];
-    push @cmdl, [qw(create -f qcow2 -F raw -b), "$dir/Core-7.2.iso",       "raid/pflash-vars-overlay0", 11116544];
+    @cmdl = (
+        [qw(create -f qcow2 -F qcow2 -b), "$dir/some.qcow2",         "raid/hd0-overlay0",         512],
+        [qw(create -f qcow2 -F raw -b),   "$dir/Core-7.2.iso",       "raid/cd0-overlay0",         11116544],
+        [qw(create -f qcow2 -F raw -b),   "$dir/Core-7.2.iso",       "raid/cd1-overlay0",         11116544],
+        [qw(create -f qcow2 -F raw -b),   "$Bin/data/uefi-code.bin", "raid/pflash-code-overlay0", 1966080],
+        [qw(create -f qcow2 -F qcow2 -b), "$dir/some.qcow2",         "raid/pflash-vars-overlay0", 512],
+    );
     is_deeply(\@gcmdl, \@cmdl, 'find the asset real path') or diag explain \@gcmdl;
 };
 

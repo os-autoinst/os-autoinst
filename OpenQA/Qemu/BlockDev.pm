@@ -33,7 +33,7 @@ weakened.
 =cut
 
 package OpenQA::Qemu::BlockDev;
-use Mojo::Base 'OpenQA::Qemu::MutParams';
+use Mojo::Base 'OpenQA::Qemu::MutParams', -signatures;
 
 use Scalar::Util 'weaken';
 use OpenQA::Qemu::SnapshotConf;
@@ -215,6 +215,8 @@ sub _from_map {
       ->implicit($this->{implicit})
       ->snapshot($snap_conf->get_snapshot(sequence => $this->{snapshot}));
 }
+
+sub deduce_driver ($self) { $self->driver($self->file =~ qr/\.qcow2$/ ? 'qcow2' : 'raw') }
 
 sub CARP_TRACE { 'OpenQA::Qemu::BlockDev(' . (shift->node_name || '') . ')' }
 
