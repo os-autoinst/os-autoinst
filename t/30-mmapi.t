@@ -222,4 +222,15 @@ subtest 'mmapi: wait functions' => sub {
     like exception { mmapi::wait_for_children }, qr/Failed to wait/, 'wait for children dies on error';
 };
 
+subtest 'mmapi: get_current_job_id function' => sub {
+    my $do_error = 0;
+    $fake_api->get('/whoami' => sub { return $do_error ? shift->render(status => 404, text => 'error') : shift->render(json => {id => 23}) });
+
+    is(get_current_job_id(), 23, 'Retrieve jobid');
+    $do_error = 1;
+    combined_like {
+        is(get_current_job_id(), undef, 'Retrieve undef on error');
+    } qr /404 response/, 'Error message has 404';
+};
+
 done_testing;

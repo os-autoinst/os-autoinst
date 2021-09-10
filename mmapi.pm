@@ -22,7 +22,7 @@ use base 'Exporter';
 our @EXPORT = qw(get_children_by_state get_children get_parents
   get_job_info get_job_autoinst_url get_job_autoinst_vars
   wait_for_children wait_for_children_to_start api_call
-  api_call_2 handle_api_error
+  api_call_2 handle_api_error get_current_job_id
 );
 
 require bmwqemu;
@@ -287,6 +287,18 @@ sub wait_for_children_to_start {
         last unless $n;
         sleep $poll_interval;
     }
+}
+
+=head2 get_current_job_id
+
+    get_current_job_id();
+
+Query openQA's API to retrieve the current job ID 
+=cut
+sub get_current_job_id {
+    my $tx = api_call_2(get => 'whoami', undef, $CODES_EXPECTED_BY_MMAPI);
+    return undef if handle_api_error($tx, 'whoami', $CODES_EXPECTED_BY_MMAPI);
+    return $tx->res->json('/id');
 }
 
 1;
