@@ -84,7 +84,7 @@ Source0:        %{name}-%{version}.tar.xz
 BuildRequires:  %test_requires %test_version_only_requires
 Requires:       %main_requires
 Recommends:     tesseract-ocr
-Recommends:     /usr/bin/xkbcomp /usr/bin/Xvnc dumponlyconsole x3270 icewm
+Recommends:     /usr/bin/xkbcomp /usr/bin/Xvnc dumponlyconsole x3270 icewm xterm xterm-console xdotool
 Recommends:     qemu >= 2.0.0
 Recommends:     /usr/bin/qemu-img
 # Optional dependency for Python test API support
