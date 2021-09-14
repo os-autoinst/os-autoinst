@@ -550,8 +550,10 @@ __END"
     return;
 }
 
-sub attach_to_running ($self, $args) {
-    my $name = ref($args) ? $args->{name} : $args;
+sub attach_to_running ($self, $args = undef) {
+    $args = {name => $args} unless ref $args;
+
+    my $name = $args->{name};
     $self->name($name) if $name;
     $self->backend->start_serial_grab($self->name);
 
