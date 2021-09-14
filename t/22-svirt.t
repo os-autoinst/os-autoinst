@@ -167,6 +167,32 @@ subtest 'SSH usage in console::sshVirtsh' => sub {
     }
 };
 
+subtest 'Methods backend::svirt::attach_to_running, start_serial_grab and stop_serial_grab' => sub {
+    my $backend_mock = Test::MockObject->new->set_true('start_serial_grab')->set_true('stop_serial_grab');
+    $svirt_console->backend($backend_mock);
+    $svirt_console->attach_to_running;
+    $backend_mock->called_ok('start_serial_grab', 'serial grab attempted');
+    is $bmwqemu::vars{SVIRT_KEEP_VM_RUNNING}, 1, 'destructon of VM prevented by default';
+
+    $svirt_console->attach_to_running('foobar');
+    is $svirt_console->name, 'foobar', 'console name set';
+
+    $bmwqemu::vars{SVIRT_KEEP_VM_RUNNING} = 0;
+    $svirt_console->attach_to_running({name => 'barfoo', stop_vm => 1});
+    is $svirt_console->name, 'barfoo', 'console name set (2)';
+    is $bmwqemu::vars{SVIRT_KEEP_VM_RUNNING}, 0, 'VM not kept running';
+
+    $backend_mock->clear;
+    $svirt_console->start_serial_grab;
+    $backend_mock->called_ok('start_serial_grab', 'start serial grab');
+    $backend_mock->called_args_pos_is(0, 2, 'barfoo', 'name passed to start serial grab');
+
+    $backend_mock->clear;
+    $svirt_console->stop_serial_grab;
+    $backend_mock->called_ok('stop_serial_grab', 'stop serial grab');
+    $backend_mock->called_args_pos_is(0, 2, 'barfoo', 'name passed to stop serial grab');
+};
+
 subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
     my $module = Test::MockModule->new('backend::baseclass');
     my @LAST_;
