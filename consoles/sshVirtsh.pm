@@ -550,16 +550,16 @@ __END"
     return;
 }
 
-sub attach_to_running ($self, $args) {
-    my $name = ref($args) ? $args->{name} : $args;
+sub attach_to_running ($self, $args = undef) {
+    $args = {name => $args} unless ref $args;
+
+    my $name = $args->{name};
     $self->name($name) if $name;
     $self->backend->start_serial_grab($self->name);
 
     # Setting SVIRT_KEEP_VM_RUNNING variable prevents destruction of a perhaps valuable VM
     # outside of openQA. Set 'stop_vm' argument should the VM be destroyed at the end.
-    unless ($args->{stop_vm}) {
-        set_var('SVIRT_KEEP_VM_RUNNING', 1);
-    }
+    set_var('SVIRT_KEEP_VM_RUNNING', 1) unless $args->{stop_vm};
 }
 
 sub start_serial_grab ($self) { $self->backend->start_serial_grab($self->name) }
