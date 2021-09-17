@@ -247,5 +247,6 @@ cd %{__builddir}
 %files qemu-kvm
 %files qemu-x86
 %endif
+%files s390-deps
 
 %changelog
