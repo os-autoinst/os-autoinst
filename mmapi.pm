@@ -30,8 +30,8 @@ require bmwqemu;
 use Mojo::UserAgent;
 use Mojo::URL;
 
-our $retry_count    = $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}    // 3;
-our $retry_interval = $ENV{OS_AUTOINST_MMAPI_RETRY_INTERVAL} // 3;
+our $retry_count    = $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}    // 30;
+our $retry_interval = $ENV{OS_AUTOINST_MMAPI_RETRY_INTERVAL} // 10;
 our $poll_interval  = $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL}  // 1;
 
 our $url;
