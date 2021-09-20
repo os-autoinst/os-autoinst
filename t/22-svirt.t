@@ -75,7 +75,7 @@ subtest 'XML config for VNC and serial console' => sub {
     $svirt_console->add_pty({pty_dev     => SERIAL_TERMINAL_DEFAULT_DEVICE, pty_dev_type => 'pty', target_port => SERIAL_TERMINAL_DEFAULT_PORT});
 
     my $produced_xml = $svirt_console->{domainxml}->toString(2);
-    my $expected_xml = "$Bin/22-svirth-virsh-config.xml";
+    my $expected_xml = "$Bin/22-svirt-virsh-config.xml";
 
     my $diff = XML::SemanticDiff->new(keeplinenums => 1);
     if (my @changes = $diff->compare($produced_xml, $expected_xml)) {

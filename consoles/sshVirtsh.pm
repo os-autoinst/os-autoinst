@@ -97,8 +97,9 @@ sub _init_xml ($self, $args = {}) {
     $elem->appendTextNode($self->name);
     $root->appendChild($elem);
 
+    my $openqa_hostname = get_var('OPENQA_HOSTNAME', 'no-webui-set');
     $elem = $doc->createElement('description');
-    $elem->appendTextNode("openQA Instance $instance: ");
+    $elem->appendTextNode("openQA WebUI: $openqa_hostname ($instance): ");
     $elem->appendTextNode(get_var('NAME', '0-no-scenario'));
     $root->appendChild($elem);
 
