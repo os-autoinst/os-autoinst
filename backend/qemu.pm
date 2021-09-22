@@ -683,7 +683,7 @@ sub start_qemu {
         # newer qemu needs safe cache capability level quirk settings
         # https://progress.opensuse.org/issues/75259
         my $caps = ',cap-cfpc=broken,cap-sbbc=broken,cap-ibs=broken';
-        $vars->{QEMUMACHINE} .= $caps if $self->{qemu_version} >= '4' && $vars->{QEMUMACHINE} !~ /$caps/;
+        $vars->{QEMUMACHINE} .= $caps if $vars->{QEMUMACHINE} !~ /$caps/;
     }
     sp('vga', $vars->{QEMUVGA}) if $vars->{QEMUVGA};
 
