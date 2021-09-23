@@ -113,6 +113,7 @@ sub loadtest {
     my $basename = dirname($script_path);
     $code .= "use lib '$basename';";
     die "Unsupported file extension for '$script'" unless $script =~ /\.p[my]/;
+    my $is_python = 0;
     if ($script =~ m/\.pm$/) {
         $code .= "require '$script_path';";
     }
@@ -125,10 +126,15 @@ sub loadtest {
             use Inline Python => 'import sys; sys.path.append(\"$inc\")';
             use Inline Python => path('$casedir/$script')->slurp;
             ";
+        $is_python = 1;
     }
     eval $code;
-    if ($@) {
-        my $msg = "error on $script: $@";
+    if (my $err = $@) {
+        if ($is_python) {
+            eval "use Inline Python => 'sys.stderr.flush()';";
+            bmwqemu::fctwarn("Unable to flush Python's stderr, error message from Python might be missing: $@") if $@;    # uncoverable statement
+        }
+        my $msg = "error on $script: $err";
         bmwqemu::fctwarn($msg);
         bmwqemu::serialize_state(component => 'tests', msg => "unable to load $script, check the log for the cause (e.g. syntax error)");
         die $msg;

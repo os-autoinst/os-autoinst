@@ -6,6 +6,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_like combined_from);
+use Test::Exception;
 use Test::Fatal;
 use Test::MockModule;
 use File::Basename ();
@@ -340,6 +341,10 @@ subtest 'load test successfully when CASEDIR is a relative path' => sub {
 
 pass autotest::loadtest('tests/test.py'), 'can load python test module at all';
 loadtest 'test.py', 'we can also parse python test modules';
+
+stderr_like {
+    throws_ok { autotest::loadtest 'tests/faulty.py' } qr/py_eval raised an exception/, 'dies on Python exception';
+} qr/Traceback.*No module named.*thismoduleshouldnotexist.*/s, 'Python traceback logged';
 
 done_testing();
 
