@@ -84,7 +84,7 @@ test_base_requires:
   perl(Test::Pod):
   perl(Test::Strict):
   perl(Test::Warnings): '>= 0.029'
-  qemu:
+  qemu: '>= 4.0'
   qemu-tools:
   qemu-x86:
   procps:
