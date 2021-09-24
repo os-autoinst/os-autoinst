@@ -39,7 +39,7 @@ done
 
 CI_ENV=$(bash <(curl -s https://codecov.io/env))
 
-IMAGE=registry.opensuse.org/devel/openqa/containers/os-autoinst_dev
+IMAGE=registry.opensuse.org/devel/openqa/containers15.3/os-autoinst_dev
 docker pull $IMAGE
 docker images | grep opensuse
 
