@@ -352,10 +352,10 @@ thing as performing an offline migration.
 
 =cut
 sub export_blockdev_images {
-    my ($self, $filter, $img_dir, $name) = @_;
+    my ($self, $filter, $img_dir, $name, $qemu_compress_qcow) = @_;
     my $count = 0;
 
-    for my $qicmd ($self->blockdev_conf->gen_qemu_img_convert($filter, $img_dir, $name)) {
+    for my $qicmd ($self->blockdev_conf->gen_qemu_img_convert($filter, $img_dir, $name, $qemu_compress_qcow)) {
         runcmd('nice', 'ionice', $self->qemu_img_bin, @$qicmd);
 
         my $img        = "$img_dir/$name";
