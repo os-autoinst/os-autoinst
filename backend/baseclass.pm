@@ -1,5 +1,5 @@
 # Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2020 SUSE LLC
+# Copyright © 2012-2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -40,6 +40,7 @@ use List::MoreUtils 'uniq';
 use Scalar::Util 'looks_like_number';
 use Mojo::File 'path';
 use OpenQA::Exceptions;
+use Time::Seconds;
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -1240,7 +1241,8 @@ sub new_ssh_connection {
         }
     }
 
-    my $ssh = Net::SSH2->new;
+    # timeout requires libssh2 >= 1.2.9 so not all versions might have it
+    my $ssh = Net::SSH2->new(timeout => ($bmwqemu::vars{SSH_COMMAND_TIMEOUT_S} // 0) * 1000);
 
     # Retry multiple times, in case of the guest is not running yet
     my $counter    = $bmwqemu::vars{SSH_CONNECT_RETRY} // 5;
