@@ -5,7 +5,7 @@ target="${default_target:-"coverage-codecovbash"}"
 
 usage() {
     cat << EOF
-Usage: docker_run_ci [<options...>] ...
+Usage: container_run_ci [<options...>] ...
 
 Options:
  -v, --verbose          execute with verbose output
@@ -17,8 +17,8 @@ Options:
                         otherwise.
 
 Examples:
- docker_run_ci
- docker_run_ci --target=coverage-codecovbash
+ container_run_ci
+ container_run_ci --target=coverage-codecovbash
 EOF
     exit "$1"
 }
@@ -40,14 +40,15 @@ done
 CI_ENV=$(bash <(curl -s https://codecov.io/env))
 
 IMAGE=registry.opensuse.org/devel/openqa/containers15.3/os-autoinst_dev
-docker pull $IMAGE
-docker images | grep opensuse
+cre="${cre:-"podman"}"
+$cre pull $IMAGE
+$cre images | grep opensuse
 
 # shellcheck disable=SC2086
-docker run --env "QEMU_QMP_CONNECT_ATTEMPTS=10" \
+$cre run --env "QEMU_QMP_CONNECT_ATTEMPTS=10" \
   $CI_ENV --rm --entrypoint '' -v "$PWD":/opt $IMAGE sh -ec "
 . /etc/os-release
-if [[ \"$ID\" == \"opensuse-leap\" ]]; then
+if [[ \"$cre\" == \"docker\" && \"$ID\" == \"opensuse-leap\" ]]; then
     echo 'Newer docker versions need a patched qemu with disabled membarrier'
     zypper -n addrepo http://download.opensuse.org/repositories/devel:/openQA:/ci/openSUSE_Leap_\${VERSION} qemu
     zypper -n --gpg-auto-import-keys --no-gpg-checks refresh

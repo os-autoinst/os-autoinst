@@ -2,7 +2,7 @@
 
 # This script is used for CI testing.
 # Used to install new dependencies.
-# If there are new dependencies, they won't be installed in the docker
+# If there are new dependencies, they won't be installed in the
 # container yet, so we just install all deps again.
 
 set -euo pipefail
@@ -16,7 +16,7 @@ DIFFDEPS=/tmp/diff-deps.txt
 listdeps > $OLDDEPS
 
 # shellcheck disable=SC2207
-DEPS=($(getdeps_docker))
+DEPS=($(getdeps_container))
 
 sudo zypper --no-refresh install -y -C "${DEPS[@]}"
 

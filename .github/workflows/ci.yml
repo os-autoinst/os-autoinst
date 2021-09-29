@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Static checks, unit- and integration tests
-        run: tools/docker_run_ci
+        run: tools/container_run_ci
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
         with:
