@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-cre="${cre:-"docker"}"
+cre="${cre:-"podman"}"
 for i in container/*/Dockerfile*; do
     echo "$0 => Testing container $i"
     tag=${i,,}

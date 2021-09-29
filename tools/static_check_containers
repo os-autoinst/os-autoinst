@@ -8,5 +8,5 @@ if [ "$(curl -s -w "%{http_code}" https://ghcr.io/v2/ -o /dev/null)" = "401" ]; 
 else
     img=ghcr.io/hadolint/hadolint
 fi
-cre="${cre:-"docker"}"
+cre="${cre:-"podman"}"
 $cre run --rm -i -v "$(readlink -f "$(dirname "$0")"/..)":/root --workdir=/root $img:latest-debian hadolint container/*/Dockerfile*
