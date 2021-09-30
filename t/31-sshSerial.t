@@ -20,7 +20,7 @@ my $eagain = [
 ];
 
 my $mock_backend = Test::MockObject->new();
-my $mock_ssh     = Test::MockObject->new();
+my $mock_ssh = Test::MockObject->new();
 my $mock_channel = Test::MockObject->new();
 my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
 
@@ -28,12 +28,12 @@ $mock_ssh->{error} = undef;
 
 $mock_channel->{write_limits} = [];
 $mock_channel->{write_buffer} = '';
-$mock_channel->{read_queue}   = [];
-$mock_channel->{blocking}     = 1;
+$mock_channel->{read_queue} = [];
+$mock_channel->{blocking} = 1;
 
-$mock_channel->mock(pty      => sub { 1 });
+$mock_channel->mock(pty => sub { 1 });
 $mock_channel->mock(ext_data => sub { 1 });
-$mock_channel->mock(shell    => sub { 1 });
+$mock_channel->mock(shell => sub { 1 });
 $mock_channel->mock(send_eof => sub { 1 });
 
 $mock_ssh->mock(channel => sub { $mock_channel });
@@ -88,10 +88,10 @@ $mock_ssh->mock(error => sub ($self) {
 $mock_ssh->mock(die_with_error => sub { die $_[1] });
 
 subtest 'Read test' => sub {
-    $mock_ssh->{error}            = undef;
+    $mock_ssh->{error} = undef;
     $mock_channel->{write_limits} = [];
     $mock_channel->{write_buffer} = '';
-    $mock_channel->{read_queue}   = [
+    $mock_channel->{read_queue} = [
         'First line',
         'Second line',
         undef,
@@ -158,11 +158,11 @@ subtest 'Read test' => sub {
 };
 
 subtest 'Write test' => sub {
-    $mock_ssh->{error}            = undef;
+    $mock_ssh->{error} = undef;
     $mock_channel->{write_limits} = [];
     $mock_channel->{write_buffer} = '';
-    $mock_channel->{read_queue}   = [];
-    $mock_channel->{blocking}     = 1;
+    $mock_channel->{read_queue} = [];
+    $mock_channel->{blocking} = 1;
 
     my $console = consoles::sshSerial->new(undef, {hostname => 'localhost'});
     $console->backend($mock_backend);

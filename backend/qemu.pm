@@ -40,9 +40,9 @@ use constant VM_SNAPSHOTS_DIR => 'vm-snapshots';
 
 sub new {
     my $class = shift;
-    my $self  = $class->SUPER::new;
+    my $self = $class->SUPER::new;
     $self->{pidfilename} = 'qemu.pid';
-    $self->{proc}        = OpenQA::Qemu::Proc->new();
+    $self->{proc} = OpenQA::Qemu::Proc->new();
     $self->{proc}->_process->pidfile($self->{pidfilename});
     return $self;
 }
@@ -54,7 +54,7 @@ sub raw_alive { shift->{proc}->_process->is_running }
 sub _wrap_hmc {
     my $cmdline = shift;
     return {
-        execute   => 'human-monitor-command',
+        execute => 'human-monitor-command',
         arguments => {'command-line' => $cmdline}};
 }
 
@@ -81,9 +81,9 @@ sub power {
     # parameters: acpi, reset, (on), off
     my ($self, $args) = @_;
     my %action_to_cmd = (
-        acpi  => 'system_powerdown',
+        acpi => 'system_powerdown',
         reset => 'system_reset',
-        off   => 'quit',
+        off => 'quit',
     );
     $self->handle_qmp_command({execute => $action_to_cmd{$args->{action}}});
 }
@@ -93,7 +93,7 @@ sub eject_cd {
     die "'device' parameter is not supported anymore, use 'id'" if defined $args->{device};
     my $id = $args->{id} // 'cd0-device';
     $self->handle_qmp_command({execute => 'eject', arguments => {
-                id    => $id,
+                id => $id,
                 force => (!defined $args->{force} || $args->{force} ? Mojo::JSON->true : Mojo::JSON->false)
     }});
     $self->handle_qmp_command({execute => 'blockdev-remove-medium', arguments => {id => $id}});
@@ -107,7 +107,7 @@ sub execute_qmp_command {
 sub cpu_stat {
     my $self = shift;
     my $stat = path("/proc/" . $self->{proc}->_process->pid . "/stat")->slurp;
-    my @a    = split(" ", $stat);
+    my @a = split(" ", $stat);
     return [@a[13, 14]];
 }
 
@@ -129,10 +129,10 @@ sub _dbus_do_call {
     # we intentionally do not persist the dbus connection to avoid
     # queueing up signals we are not interested in handling:
     # https://progress.opensuse.org/issues/90872
-    my $bus         = Net::DBus->system(private => 1);
+    my $bus = Net::DBus->system(private => 1);
     my $bus_service = $bus->get_service("org.opensuse.os_autoinst.switch");
-    my $bus_object  = $bus_service->get_object("/switch", "org.opensuse.os_autoinst.switch");
-    my @result      = $bus_object->$fn(@args);
+    my $bus_object = $bus_service->get_object("/switch", "org.opensuse.os_autoinst.switch");
+    my @result = $bus_object->$fn(@args);
     $bus->get_connection->disconnect;
     return @result;
 }
@@ -177,7 +177,7 @@ sub can_handle {
     return unless $args->{function} eq 'snapshots';
     return if $vars->{QEMU_DISABLE_SNAPSHOTS};
     my @models = ($vars->{HDDMODEL}, map { $vars->{"HDDMODEL_$_"} } (1 .. $vars->{NUMDISKS}));
-    my $nvme   = first { ($_ // '') eq 'nvme' } @models;
+    my $nvme = first { ($_ // '') eq 'nvme' } @models;
     return {ret => 1} unless $nvme;
     bmwqemu::fctwarn('NVMe drives can not be migrated which is required for snapshotting')
       unless $args->{no_warn};
@@ -188,11 +188,11 @@ sub open_file_and_send_fd_to_qemu {
     my ($self, $path, $fdname) = @_;
 
     mkpath(dirname($path));
-    my $fd  = POSIX::open($path, POSIX::O_CREAT() | POSIX::O_RDWR()) or die "Failed to open $path: $!";
+    my $fd = POSIX::open($path, POSIX::O_CREAT() | POSIX::O_RDWR()) or die "Failed to open $path: $!";
     my $rsp = $self->handle_qmp_command(
         {execute => 'getfd', arguments => {fdname => $fdname}},
         send_fd => $fd,
-        fatal   => 1
+        fatal => 1
     );
     POSIX::close($fd);
 }
@@ -202,12 +202,12 @@ sub set_migrate_capability {
 
     $self->handle_qmp_command(
         {
-            execute   => 'migrate-set-capabilities',
+            execute => 'migrate-set-capabilities',
             arguments => {
                 capabilities => [
                     {
                         capability => $name,
-                        state      => $state ? Mojo::JSON::true : Mojo::JSON::false,
+                        state => $state ? Mojo::JSON::true : Mojo::JSON::false,
                     }]}
         },
         fatal => 1
@@ -218,7 +218,7 @@ sub _wait_while_status_is {
     my ($self, $status, $timeout, $fail_msg) = @_;
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
-    my $i   = 0;
+    my $i = 0;
     while (($rsp->{return}->{status} // '') =~ $status) {
         $i += 1;
         die "$fail_msg; QEMU status is $rsp->{return}->{status}" if $i > $timeout;
@@ -228,9 +228,9 @@ sub _wait_while_status_is {
 }
 
 sub _wait_for_migrate {
-    my ($self)              = @_;
+    my ($self) = @_;
     my $migration_starttime = gettimeofday;
-    my $execution_time      = gettimeofday;
+    my $execution_time = gettimeofday;
     # We need to wait for qemu, since it will not honor timeouts
     # 240 seconds should be ok for 4GB
     my $max_execution_time = $bmwqemu::vars{QEMU_MAX_MIGRATION_TIME} // 240;
@@ -242,7 +242,7 @@ sub _wait_for_migrate {
         sleep 0.5;
 
         $execution_time = gettimeofday - $migration_starttime;
-        $rsp            = $self->handle_qmp_command({execute => 'query-migrate'}, fatal => 1);
+        $rsp = $self->handle_qmp_command({execute => 'query-migrate'}, fatal => 1);
         die 'Migrate to file failed' if $rsp->{return}->{status} eq 'failed';
 
         diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
@@ -265,23 +265,23 @@ sub _wait_for_migrate {
 
 sub _migrate_to_file {
     my ($self, %args) = @_;
-    my $fdname           = 'dumpfd';
-    my $compress_level   = $args{compress_level} || 0;
+    my $fdname = 'dumpfd';
+    my $compress_level = $args{compress_level} || 0;
     my $compress_threads = $args{compress_threads} // 2;
-    my $filename         = $args{filename};
-    my $max_bandwidth    = $args{max_bandwidth} // LONG_MAX;
+    my $filename = $args{filename};
+    my $max_bandwidth = $args{max_bandwidth} // LONG_MAX;
 
     # Internally compressed dumps can't be opened by crash. They need to be
     # fed back into QEMU as an incoming migration.
     $self->set_migrate_capability('compress', 1) if $compress_level > 0;
-    $self->set_migrate_capability('events',   1);
+    $self->set_migrate_capability('events', 1);
 
     $self->handle_qmp_command(
         {
-            execute   => 'migrate-set-parameters',
+            execute => 'migrate-set-parameters',
             arguments => {
                 # This is ignored if the compress capability is not set
-                'compress-level'   => $compress_level + 0,
+                'compress-level' => $compress_level + 0,
                 'compress-threads' => $compress_threads + 0,
                 # Ensure slow dump times are not due to a transfer rate cap
                 'max-bandwidth' => $max_bandwidth + 0,
@@ -298,7 +298,7 @@ sub _migrate_to_file {
     # migrate consumes the file descriptor, so we do not need to call closefd
     $self->handle_qmp_command(
         {
-            execute   => 'migrate',
+            execute => 'migrate',
             arguments => {uri => "fd:$fdname"}
         },
         fatal => 1
@@ -309,12 +309,12 @@ sub _migrate_to_file {
 
 sub save_memory_dump {
     my ($self, $args) = @_;
-    my $fdname           = 'dumpfd';
-    my $vars             = \%bmwqemu::vars;
-    my $compress_method  = $vars->{QEMU_DUMP_COMPRESS_METHOD} || 'xz';
-    my $compress_level   = $vars->{QEMU_COMPRESS_LEVEL}       || 6;
-    my $compress_threads = $vars->{QEMU_COMPRESS_THREADS}     || $vars->{QEMUCPUS} || 2;
-    my $filename         = $args->{filename} . '-vm-memory-dump';
+    my $fdname = 'dumpfd';
+    my $vars = \%bmwqemu::vars;
+    my $compress_method = $vars->{QEMU_DUMP_COMPRESS_METHOD} || 'xz';
+    my $compress_level = $vars->{QEMU_COMPRESS_LEVEL} || 6;
+    my $compress_threads = $vars->{QEMU_COMPRESS_THREADS} || $vars->{QEMUCPUS} || 2;
+    my $filename = $args->{filename} . '-vm-memory-dump';
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
     bmwqemu::diag("Migrating the machine (Current VM state is $rsp->{return}->{status}).");
@@ -323,8 +323,8 @@ sub save_memory_dump {
     mkpath('ulogs');
     $self->_migrate_to_file(compress_level => $compress_method eq 'internal' ? $compress_level : 0,
         compress_threads => $compress_threads,
-        filename         => "ulogs/$filename",
-        max_bandwidth    => $vars->{QEMU_MAX_BANDWIDTH});
+        filename => "ulogs/$filename",
+        max_bandwidth => $vars->{QEMU_MAX_BANDWIDTH});
 
     diag "Memory dump completed.";
 
@@ -351,9 +351,9 @@ sub save_storage_drives {
     $self->do_extract_assets(
         {
             hdd_num => $args->{disk},
-            name    => sprintf("%s-%d-vm_disk_file.qcow2", $args->{filename}, $args->{disk}),
-            dir     => "ulogs",
-            format  => "qcow2"
+            name => sprintf("%s-%d-vm_disk_file.qcow2", $args->{filename}, $args->{disk}),
+            dir => "ulogs",
+            format => "qcow2"
         });
 
     diag "Successfully extracted disk #%d.", $args->{disk};
@@ -366,10 +366,10 @@ sub inflate_balloon {
     return unless $vars->{QEMU_BALLOON_TARGET};
     my $target_bytes = $vars->{QEMU_BALLOON_TARGET} * 1048576;
     $self->handle_qmp_command({execute => 'balloon', arguments => {value => $target_bytes}}, fatal => 1);
-    my $rsp         = $self->handle_qmp_command({execute => 'query-balloon'}, fatal => 1);
+    my $rsp = $self->handle_qmp_command({execute => 'query-balloon'}, fatal => 1);
     my $prev_actual = $rsp->{return}->{actual};
-    my $i           = 0;
-    my $timeout     = $vars->{QEMU_BALLOON_TIMEOUT} // 5;
+    my $i = 0;
+    my $timeout = $vars->{QEMU_BALLOON_TIMEOUT} // 5;
     while ($i < $timeout) {
         $i += 1;
         sleep(1);
@@ -388,9 +388,9 @@ sub deflate_balloon {
 
 sub save_snapshot {
     my ($self, $args) = @_;
-    my $vars   = \%bmwqemu::vars;
+    my $vars = \%bmwqemu::vars;
     my $vmname = $args->{name};
-    my $bdc    = $self->{proc}->blockdev_conf;
+    my $bdc = $self->{proc}->blockdev_conf;
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
     bmwqemu::diag("Saving snapshot (Current VM state is $rsp->{return}->{status}).");
@@ -404,17 +404,17 @@ sub save_snapshot {
 
     my $snapshot = $self->{proc}->snapshot_conf->add_snapshot($vmname);
     $bdc->for_each_drive(sub {
-            local $Data::Dumper::Indent   = 0;
-            local $Data::Dumper::Terse    = 1;
+            local $Data::Dumper::Indent = 0;
+            local $Data::Dumper::Terse = 1;
             local $Data::Dumper::Sortkeys = 1;
             my $drive = shift;
 
             my $overlay = $bdc->add_snapshot_to_drive($drive, $snapshot);
-            my $req     = {execute => 'blockdev-snapshot-sync',
+            my $req = {execute => 'blockdev-snapshot-sync',
                 arguments => {'node-name' => $overlay->backing_file->node_name,
                     'snapshot-node-name' => $overlay->node_name,
-                    'snapshot-file'      => $overlay->file,
-                    format               => $overlay->driver}};
+                    'snapshot-file' => $overlay->file,
+                    format => $overlay->driver}};
             $rsp = $self->handle_qmp_command($req);
 
             # Assumes errors are caused by pflash drives using an autogenerated
@@ -430,10 +430,10 @@ sub save_snapshot {
     });
 
     $self->_migrate_to_file(
-        filename         => path(VM_SNAPSHOTS_DIR, $snapshot->name),
-        compress_level   => $vars->{QEMU_COMPRESS_LEVEL} || 6,
+        filename => path(VM_SNAPSHOTS_DIR, $snapshot->name),
+        compress_level => $vars->{QEMU_COMPRESS_LEVEL} || 6,
         compress_threads => $vars->{QEMU_COMPRESS_THREADS} // $vars->{QEMUCPUS},
-        max_bandwidth    => $vars->{QEMU_MAX_BANDWIDTH});
+        max_bandwidth => $vars->{QEMU_MAX_BANDWIDTH});
     diag('Snapshot complete');
 
     if ($was_running) {
@@ -477,7 +477,7 @@ sub load_snapshot {
     # $self->open_file_and_send_fd_to_qemu(VM_SNAPSHOTS_DIR . '/' . $snapshot->name,
     #                                     $fdname);
     $self->set_migrate_capability('compress', 1);
-    $self->set_migrate_capability('events',   1);
+    $self->set_migrate_capability('events', 1);
     $rsp = $self->handle_qmp_command({execute => 'migrate-incoming',
             arguments => {uri => 'exec:cat ' . VM_SNAPSHOTS_DIR . '/' . $snapshot->name}},
         #arguments => { uri => "fd:$fdname" }},
@@ -497,7 +497,7 @@ sub load_snapshot {
 
 sub do_extract_assets {
     my ($self, $args) = @_;
-    my $name    = $args->{name};
+    my $name = $args->{name};
     my $img_dir = $args->{dir};
     my $hdd_num = $args->{hdd_num} - 1;
     my $pattern = $args->{pflash_vars} ? qr/^pflash-vars$/ : qr/^hd$hdd_num$/;
@@ -505,7 +505,7 @@ sub do_extract_assets {
     mkpath($img_dir);
     bmwqemu::fctinfo("Extracting $pattern");
     my $qemu_compress_qcow = $bmwqemu::vars{QEMU_COMPRESS_QCOW2} // 1;
-    my $res                = $self->{proc}->export_blockdev_images($pattern, $img_dir, $name, $qemu_compress_qcow);
+    my $res = $self->{proc}->export_blockdev_images($pattern, $img_dir, $name, $qemu_compress_qcow);
     die "Expected one drive to be exported, not $res" if $res != 1;
 }
 
@@ -548,7 +548,7 @@ sub start_qemu {
         }
         else {
             (my $class = $vars->{WORKER_CLASS} || '') =~ s/qemu_/qemu-system\-/g;
-            my @execs   = qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64 qemu-system-aarch64);
+            my @execs = qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64 qemu-system-aarch64);
             my %allowed = map { $_ => 1 } @execs;
             for (split(/\s*,\s*/, $class)) {
                 if ($allowed{$_}) {
@@ -561,7 +561,7 @@ sub start_qemu {
     }
 
     die "no kvm-img/qemu-img found\n" unless $qemuimg;
-    die "no Qemu/KVM found\n"         unless $qemubin;
+    die "no Qemu/KVM found\n" unless $qemubin;
 
     $self->{proc}->qemu_bin($qemubin);
     $self->{proc}->qemu_img_bin($qemuimg);
@@ -573,8 +573,8 @@ sub start_qemu {
     $self->{qemu_version} = $qemu_version;
     bmwqemu::diag "qemu version detected: $self->{qemu_version}";
 
-    $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});        # XXX: compat with old deployment
-    $vars->{UEFI} = 1                    if $vars->{UEFI_PFLASH};
+    $vars->{BIOS} //= $vars->{UEFI_BIOS} if ($vars->{UEFI});    # XXX: compat with old deployment
+    $vars->{UEFI} = 1 if $vars->{UEFI_PFLASH};
 
 
     if ($vars->{UEFI_PFLASH} && (($vars->{ARCH} // '') eq 'x86_64')) {
@@ -632,17 +632,17 @@ sub start_qemu {
     # disk settings
     if ($vars->{MULTIPATH}) {
         $vars->{HDDMODEL} ||= "scsi-hd";
-        $vars->{PATHCNT}  ||= 2;
+        $vars->{PATHCNT} ||= 2;
     }
     $vars->{NUMDISKS} //= defined($vars->{RAIDLEVEL}) ? 4 : 1;
     $vars->{HDDSIZEGB} ||= 10;
-    $vars->{CDMODEL}   ||= "scsi-cd";
-    $vars->{HDDMODEL}  ||= "virtio-blk";
+    $vars->{CDMODEL} ||= "scsi-cd";
+    $vars->{HDDMODEL} ||= "virtio-blk";
 
     # network settings
     $vars->{NICMODEL} ||= "virtio-net";
-    $vars->{NICTYPE}  ||= "user";
-    $vars->{NICMAC}   ||= "52:54:00:12:34:56" if $vars->{NICTYPE} eq 'user';
+    $vars->{NICTYPE} ||= "user";
+    $vars->{NICMAC} ||= "52:54:00:12:34:56" if $vars->{NICTYPE} eq 'user';
     if ($vars->{NICTYPE} eq "vde") {
         $vars->{VDE_SOCKETDIR} ||= '.';
         # use consistent port. port 1 is slirpvde so add + 2.
@@ -661,7 +661,7 @@ sub start_qemu {
         my $video_device = ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) ? 'VGA' : 'virtio-gpu-pci';
         sp('device', $video_device);
         $arch_supports_boot_order = 0;
-        $use_usb_kbd              = 1;
+        $use_usb_kbd = 1;
     }
     elsif ($vars->{OFW}) {
         $vars->{QEMUVGA} ||= "std";
@@ -681,10 +681,10 @@ sub start_qemu {
     my @tapscript;
     my @tapdownscript;
 
-    @nicmac        = split /\s*,\s*/, $vars->{NICMAC}        if $vars->{NICMAC};
-    @nicvlan       = split /\s*,\s*/, $vars->{NICVLAN}       if $vars->{NICVLAN};
-    @tapdev        = split /\s*,\s*/, $vars->{TAPDEV}        if $vars->{TAPDEV};
-    @tapscript     = split /\s*,\s*/, $vars->{TAPSCRIPT}     if $vars->{TAPSCRIPT};
+    @nicmac = split /\s*,\s*/, $vars->{NICMAC} if $vars->{NICMAC};
+    @nicvlan = split /\s*,\s*/, $vars->{NICVLAN} if $vars->{NICVLAN};
+    @tapdev = split /\s*,\s*/, $vars->{TAPDEV} if $vars->{TAPDEV};
+    @tapscript = split /\s*,\s*/, $vars->{TAPSCRIPT} if $vars->{TAPSCRIPT};
     @tapdownscript = split /\s*,\s*/, $vars->{TAPDOWNSCRIPT} if $vars->{TAPDOWNSCRIPT};
 
     my $num_networks = $vars->{OFFLINE_SUT} ? 0 : max(1, scalar @nicmac, scalar @nicvlan, scalar @tapdev);
@@ -701,20 +701,20 @@ sub start_qemu {
         my $vlan = (@nicvlan) ? $nicvlan[-1] : 0;
         $nicvlan[$i] //= $vlan;
     }
-    push @tapscript,     'no' until @tapscript >= $num_networks;        #no TAPSCRIPT by default
+    push @tapscript, 'no' until @tapscript >= $num_networks;    #no TAPSCRIPT by default
     push @tapdownscript, 'no' until @tapdownscript >= $num_networks;    #no TAPDOWNSCRIPT by default
 
     # put it back to the vars for saving
-    $vars->{NICMAC}        = join ',', @nicmac;
-    $vars->{NICVLAN}       = join ',', @nicvlan;
-    $vars->{TAPDEV}        = join ',', @tapdev        if $vars->{NICTYPE} eq "tap";
-    $vars->{TAPSCRIPT}     = join ',', @tapscript     if $vars->{NICTYPE} eq "tap";
+    $vars->{NICMAC} = join ',', @nicmac;
+    $vars->{NICVLAN} = join ',', @nicvlan;
+    $vars->{TAPDEV} = join ',', @tapdev if $vars->{NICTYPE} eq "tap";
+    $vars->{TAPSCRIPT} = join ',', @tapscript if $vars->{NICTYPE} eq "tap";
     $vars->{TAPDOWNSCRIPT} = join ',', @tapdownscript if $vars->{NICTYPE} eq "tap";
 
     if ($vars->{NICTYPE} eq "vde") {
         my $mgmtsocket = $vars->{VDE_SOCKETDIR} . '/vde.mgmt';
-        my $port       = $vars->{VDE_PORT};
-        my $vlan       = $nicvlan[0];
+        my $port = $vars->{VDE_PORT};
+        my $vlan = $nicvlan[0];
         # XXX: no useful return value from those commands
         runcmd('vdecmd', '-s', $mgmtsocket, 'port/remove', $port);
         runcmd('vdecmd', '-s', $mgmtsocket, 'port/create', $port);
@@ -724,7 +724,7 @@ sub start_qemu {
         }
 
         if ($vars->{VDE_USE_SLIRP}) {
-            my @cmd       = ('slirpvde', '--dhcp', '-s', "$vars->{VDE_SOCKETDIR}/vde.ctl", '--port', $port + 1);
+            my @cmd = ('slirpvde', '--dhcp', '-s', "$vars->{VDE_SOCKETDIR}/vde.ctl", '--port', $port + 1);
             my $child_pid = $self->_child_process(
                 sub {
                     $SIG{__DIE__} = undef;    # overwrite the default - just exit
@@ -760,10 +760,10 @@ sub start_qemu {
 
     sp('only-migratable') if $self->can_handle({function => 'snapshots', no_warn => 1});
     sp('chardev', 'ringbuf,id=serial0,logfile=serial0,logappend=on');
-    sp('serial',  'chardev:serial0');
+    sp('serial', 'chardev:serial0');
 
     if ($self->requires_audiodev) {
-        my $audiodev     = $vars->{QEMU_AUDIODEV}     // 'intel-hda';
+        my $audiodev = $vars->{QEMU_AUDIODEV} // 'intel-hda';
         my $audiobackend = $vars->{QEMU_AUDIOBACKEND} // 'none';
         sp('audiodev', $audiobackend . ',id=snd0');
         if ("$audiodev" eq "intel-hda") {
@@ -780,10 +780,10 @@ sub start_qemu {
         # Remove floppy drive device on architectures
         sp('global', 'isa-fdc.fdtypeA=none') unless ($arch eq 'aarch64' || $arch eq 'arm' || $vars->{QEMU_NO_FDC_SET});
 
-        sp('m',       $vars->{QEMURAM})     if $vars->{QEMURAM};
+        sp('m', $vars->{QEMURAM}) if $vars->{QEMURAM};
         sp('machine', $vars->{QEMUMACHINE}) if $vars->{QEMUMACHINE};
-        sp('cpu',     $vars->{QEMUCPU})     if $vars->{QEMUCPU};
-        sp('net',     'none')               if $vars->{OFFLINE_SUT};
+        sp('cpu', $vars->{QEMUCPU}) if $vars->{QEMUCPU};
+        sp('net', 'none') if $vars->{OFFLINE_SUT};
         if (my $path = $vars->{QEMU_HUGE_PAGES_PATH}) {
             sp('mem-prealloc');
             sp('mem-path', $path);
@@ -832,7 +832,7 @@ sub start_qemu {
         if ($vars->{QEMUTPM}) {
             my $tpmn = $vars->{QEMUTPM} eq 'instance' ? $vars->{WORKER_INSTANCE} : $vars->{QEMUTPM};
             sp('chardev', "socket,id=chrtpm,path=/tmp/mytpm$tpmn/swtpm-sock");
-            sp('tpmdev',  'emulator,id=tpm0,chardev=chrtpm');
+            sp('tpmdev', 'emulator,id=tpm0,chardev=chrtpm');
             if ($arch eq 'aarch64') {
                 sp('device', 'tpm-tis-device,tpmdev=tpm0');
             }
@@ -880,7 +880,7 @@ sub start_qemu {
         }
 
         sp('device', 'usb-kbd') if $use_usb_kbd;
-        sp('smp',    $vars->{QEMUTHREADS} ? [qv "$vars->{QEMUCPUS} threads=$vars->{QEMUTHREADS}"] : $vars->{QEMUCPUS});
+        sp('smp', $vars->{QEMUTHREADS} ? [qv "$vars->{QEMUCPUS} threads=$vars->{QEMUTHREADS}"] : $vars->{QEMUCPUS});
         if ($vars->{QEMU_NUMA}) {
             for my $i (0 .. ($vars->{QEMUCPUS} - 1)) {
                 my $m = int($vars->{QEMURAM} / $vars->{QEMUCPUS});
@@ -888,7 +888,7 @@ sub start_qemu {
                 # allocated
                 $m += $vars->{QEMURAM} % $vars->{QEMUCPUS} if $i == 0;
                 sp('object', "memory-backend-ram,size=${m}m,id=m$i");
-                sp('numa',   [qv "node nodeid=$i,memdev=m$i"]);
+                sp('numa', [qv "node nodeid=$i,memdev=m$i"]);
             }
         }
 
@@ -898,7 +898,7 @@ sub start_qemu {
         if ($vars->{VNC}) {
             my $vncport = $vars->{VNC} !~ /:/ ? ":$vars->{VNC}" : $vars->{VNC};
             sp('vnc', [qv "$vncport share=force-shared"]);
-            sp('k',   $vars->{VNCKB}) if $vars->{VNCKB};
+            sp('k', $vars->{VNCKB}) if $vars->{VNCKB};
         }
 
         my @virtio_consoles = virtio_console_names;
@@ -906,13 +906,13 @@ sub start_qemu {
             sp('device', 'virtio-serial');
             for my $name (@virtio_consoles) {
                 sp('chardev', [qv "pipe id=$name path=$name logfile=$name.log logappend=on"]);
-                sp('device',  [qv "virtconsole chardev=$name name=org.openqa.console.$name"]);
+                sp('device', [qv "virtconsole chardev=$name name=org.openqa.console.$name"]);
             }
         }
 
         my $qmpid = 'qmp_socket';
         sp('chardev', [qv "socket path=$qmpid server nowait id=$qmpid logfile=$qmpid.log logappend=on"]);
-        sp('qmp',     "chardev:$qmpid");
+        sp('qmp', "chardev:$qmpid");
         sp('S');
     }
 
@@ -935,9 +935,9 @@ sub start_qemu {
         'sut',
         'vnc-base',
         {
-            hostname        => 'localhost',
+            hostname => 'localhost',
             connect_timeout => 3,
-            port            => 5900 + $bmwqemu::vars{VNC}});
+            port => 5900 + $bmwqemu::vars{VNC}});
 
     $vnc->backend($self);
     try {
@@ -953,9 +953,9 @@ sub start_qemu {
     };
 
     if ($vars->{NICTYPE} eq "tap") {
-        $self->{allocated_networks}    = $num_networks;
+        $self->{allocated_networks} = $num_networks;
         $self->{allocated_tap_devices} = \@tapdev;
-        $self->{allocated_vlan_tags}   = \@nicvlan;
+        $self->{allocated_vlan_tags} = \@nicvlan;
         for (my $i = 0; $i < $num_networks; $i++) {
             $self->_dbus_call('set_vlan', $tapdev[$i], $nicvlan[$i]);
         }

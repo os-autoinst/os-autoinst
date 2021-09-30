@@ -34,10 +34,10 @@ $msg_mock->redefine(is_limit_exceeded => sub ($self) {
 });
 
 our $mojoport = Mojo::IOLoop::Server->generate_port;
-my $base_url     = "http://localhost:$mojoport";
-my $job          = 'Hallo';
+my $base_url = "http://localhost:$mojoport";
+my $job = 'Hallo';
 my $toplevel_dir = path(__FILE__)->dirname->realpath;
-my $data_dir     = $toplevel_dir->child('data');
+my $data_dir = $toplevel_dir->child('data');
 
 sub wait_for_server ($ua) {
     for (my $counter = 0; $counter < 20; $counter++) {
@@ -48,7 +48,7 @@ sub wait_for_server ($ua) {
 }
 
 $bmwqemu::vars{JOBTOKEN} = $job;
-$bmwqemu::vars{CASEDIR}  = $data_dir->child('tests');
+$bmwqemu::vars{CASEDIR} = $data_dir->child('tests');
 $bmwqemu::vars{ASSETDIR} = $data_dir->child('assets');
 
 # now this is a game of luck
@@ -63,7 +63,7 @@ if ($spid == 0) {
     # we need to fake isotovideo here
     while (1) {
         my $json = myjsonrpc::read_json($cfd);
-        my $cmd  = delete $json->{cmd};
+        my $cmd = delete $json->{cmd};
         if ($cmd eq 'version') {
             myjsonrpc::send_json($cfd, {VERSION => 'COOL'});
         }
@@ -101,7 +101,7 @@ subtest 'web socket route' => sub {
     $t->send_ok(
         {
             json => {
-                cmd  => 'set_pause_at_test',
+                cmd => 'set_pause_at_test',
                 name => 'installation-welcome',
             }
         },
@@ -109,7 +109,7 @@ subtest 'web socket route' => sub {
     );
     $t->message_ok('result from isotovideo is passed back');
     $t->json_message_is('/response_for' => 'set_pause_at_test');
-    $t->json_message_is('/name'         => 'installation-welcome');
+    $t->json_message_is('/name' => 'installation-welcome');
 
     subtest 'broadcast messages to websocket clients' => sub {
         my $t2 = Test::Mojo->new;
@@ -128,30 +128,30 @@ subtest 'data api (directory download)' => sub {
     die "'cpio' is needed for these tests" unless which 'cpio';
 
     $t->get_ok("$base_url/$job/data")->status_is(200)->content_type_is('application/x-cpio');
-    my $tmpdir  = tempdir;
+    my $tmpdir = tempdir;
     my $outfile = path($tmpdir . '/data_full.cpio');
     $outfile->spurt($t->tx->res->body);
     ok(system("cd $tmpdir && cpio -id < data_full.cpio >/dev/null 2>&1") == 0, 'Extract cpio archive');
-    ok(-d $tmpdir . '/data/mod1',                                              'Recursive directory download 1.1');
-    ok(-d $tmpdir . '/data/mod1/sub',                                          'Recursive directory download 1.2');
-    ok(-f $tmpdir . '/data/mod1/test1.txt',                                    'Recursive directory download 1.3');
-    ok(-f $tmpdir . '/data/mod1/sub/test2.txt',                                'Recursive directory download 1.4');
-    ok(-f $tmpdir . '/data/autoinst.xml',                                      'Recursive directory download 1.5');
-    ok(path($tmpdir . '/data/mod1/sub/test2.txt')->slurp eq 'TEST_FILE_2',     'Recursive directory download 1.6');
-    ok(path($tmpdir . '/data/mod1/test1.txt')->slurp eq 'TEST_FILE_1',         'Recursive directory download 1.7');
+    ok(-d $tmpdir . '/data/mod1', 'Recursive directory download 1.1');
+    ok(-d $tmpdir . '/data/mod1/sub', 'Recursive directory download 1.2');
+    ok(-f $tmpdir . '/data/mod1/test1.txt', 'Recursive directory download 1.3');
+    ok(-f $tmpdir . '/data/mod1/sub/test2.txt', 'Recursive directory download 1.4');
+    ok(-f $tmpdir . '/data/autoinst.xml', 'Recursive directory download 1.5');
+    ok(path($tmpdir . '/data/mod1/sub/test2.txt')->slurp eq 'TEST_FILE_2', 'Recursive directory download 1.6');
+    ok(path($tmpdir . '/data/mod1/test1.txt')->slurp eq 'TEST_FILE_1', 'Recursive directory download 1.7');
 
     $t->get_ok("$base_url/$job/data/mod1");
     $t->status_is(200);
     $t->content_type_is("application/x-cpio");
-    $tmpdir  = tempdir;
+    $tmpdir = tempdir;
     $outfile = path($tmpdir . '/data_full.cpio');
     $outfile->spurt($t->tx->res->body);
     ok(system("cd $tmpdir && cpio -id < data_full.cpio >/dev/null 2>&1") == 0, 'Extract cpio archive');
-    ok(-d $tmpdir . '/data/sub',                                               'Recursive directory download 2.1');
-    ok(-f $tmpdir . '/data/test1.txt',                                         'Recursive directory download 2.2');
-    ok(-f $tmpdir . '/data/sub/test2.txt',                                     'Recursive directory download 2.3');
-    ok(path($tmpdir . '/data/sub/test2.txt')->slurp eq 'TEST_FILE_2',          'Recursive directory download 2.4');
-    ok(path($tmpdir . '/data/test1.txt')->slurp eq 'TEST_FILE_1',              'Recursive directory download 2.5');
+    ok(-d $tmpdir . '/data/sub', 'Recursive directory download 2.1');
+    ok(-f $tmpdir . '/data/test1.txt', 'Recursive directory download 2.2');
+    ok(-f $tmpdir . '/data/sub/test2.txt', 'Recursive directory download 2.3');
+    ok(path($tmpdir . '/data/sub/test2.txt')->slurp eq 'TEST_FILE_2', 'Recursive directory download 2.4');
+    ok(path($tmpdir . '/data/test1.txt')->slurp eq 'TEST_FILE_1', 'Recursive directory download 2.5');
 
     $t->get_ok("$base_url/$job/data/mod1/sub")->status_is(200)->content_type_is('application/x-cpio');
 };

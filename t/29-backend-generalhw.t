@@ -26,20 +26,20 @@ use testapi;
 # setup test variables
 my $cmd_dir = tempdir;
 my $cmd_ctl = "$cmd_dir/ctl";
-$bmwqemu::vars{WORKER_HOSTNAME}         = 'worker-hostname';
-$bmwqemu::vars{GENERAL_HW_CMD_DIR}      = $cmd_dir;
-$bmwqemu::vars{GENERAL_HW_POWERON_CMD}  = 'ctl poweron';
+$bmwqemu::vars{WORKER_HOSTNAME} = 'worker-hostname';
+$bmwqemu::vars{GENERAL_HW_CMD_DIR} = $cmd_dir;
+$bmwqemu::vars{GENERAL_HW_POWERON_CMD} = 'ctl poweron';
 $bmwqemu::vars{GENERAL_HW_POWEROFF_CMD} = 'ctl poweroff';
-$bmwqemu::vars{GENERAL_HW_SOL_CMD}      = 'ctl console';
-$bmwqemu::vars{GENERAL_HW_SOL_ARGS}     = 'console';
-$bmwqemu::vars{GENERAL_HW_FLASH_CMD}    = 'ctl flash';
-$bmwqemu::vars{GENERAL_HW_FLASH_ARGS}   = 'light';
-$bmwqemu::vars{GENERAL_HW_VNC_IP}       = 'vnc.server';
-$bmwqemu::vars{HDD_1}                   = '/hdd';
-$bmwqemu::vars{HDDSIZEGB_1}             = 5;
+$bmwqemu::vars{GENERAL_HW_SOL_CMD} = 'ctl console';
+$bmwqemu::vars{GENERAL_HW_SOL_ARGS} = 'console';
+$bmwqemu::vars{GENERAL_HW_FLASH_CMD} = 'ctl flash';
+$bmwqemu::vars{GENERAL_HW_FLASH_ARGS} = 'light';
+$bmwqemu::vars{GENERAL_HW_VNC_IP} = 'vnc.server';
+$bmwqemu::vars{HDD_1} = '/hdd';
+$bmwqemu::vars{HDDSIZEGB_1} = 5;
 
 # initialize distribution and backend
-my $distri  = $testapi::distri = distribution->new;
+my $distri = $testapi::distri = distribution->new;
 my $backend = backend::generalhw->new;
 
 # mock IPC::Run and the VNC console
@@ -49,7 +49,7 @@ $ipc_run_mock->redefine(run => sub {
         my ($args, $stdin, $stdout, $stderr) = @_;
         die $fake_ipc_error if $fake_ipc_error;
         push @invoked_cmds, $args;
-        $$stdin  = 'stdin';
+        $$stdin = 'stdin';
         $$stdout = 'stdout';
         $$stderr = 'stderr';
 });
@@ -58,7 +58,7 @@ $serial_mock->redefine(start_serial_grab => sub { push @invoked_cmds, 'start_ser
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
 my @vnc_logins;
 $vnc_mock->redefine(login => sub { push @vnc_logins, [shift->hostname] });
-$vnc_mock->redefine($_    => sub { }) for (qw(_receive_message _send_frame_buffer send_update_request));
+$vnc_mock->redefine($_ => sub { }) for (qw(_receive_message _send_frame_buffer send_update_request));
 my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
 # silence some log output for cleaner tests
 $bmwqemu_mock->noop('diag');
@@ -68,15 +68,15 @@ subtest 'start VM' => sub {
     is_deeply($backend->do_start_vm, {}, 'return value');
     is_deeply(\@invoked_cmds, [
             [$cmd_ctl, 'poweroff'], [$cmd_ctl, 'flash', 'light', '/hdd', '5G'], [$cmd_ctl, 'poweroff'],
-            ['sleep',  3],          [$cmd_ctl, 'poweron'], 'start_serial_grab'
+            ['sleep', 3], [$cmd_ctl, 'poweron'], 'start_serial_grab'
     ], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
     is_deeply(\@vnc_logins, [['vnc.server']], 'tried to connect to VNC server') or diag explain \@vnc_logins;
 };
 
 subtest 'stop VM' => sub {
     @invoked_cmds = ();
-    is_deeply($backend->do_stop_vm, {},                       'return value');
-    is_deeply(\@invoked_cmds,       [[$cmd_ctl, 'poweroff']], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
+    is_deeply($backend->do_stop_vm, {}, 'return value');
+    is_deeply(\@invoked_cmds, [[$cmd_ctl, 'poweroff']], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
 };
 
 subtest 'error handling' => sub {

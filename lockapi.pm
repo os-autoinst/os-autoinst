@@ -15,14 +15,14 @@ require bmwqemu;
 use mmapi qw(api_call_2 get_job_info);
 use testapi ();
 
-use constant RETRY_COUNT    => $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT}    // 7;
+use constant RETRY_COUNT => $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT} // 7;
 use constant RETRY_INTERVAL => $ENV{OS_AUTOINST_LOCKAPI_RETRY_INTERVAL} // 10;
-use constant POLL_INTERVAL  => $ENV{OS_AUTOINST_LOCKAPI_POLL_INTERVAL}  // 5;
+use constant POLL_INTERVAL => $ENV{OS_AUTOINST_LOCKAPI_POLL_INTERVAL} // 5;
 
 sub _try_lock {
     my ($type, $name, $param) = @_;
 
-    my $log_ctx               = "acquiring $type '$name'";
+    my $log_ctx = "acquiring $type '$name'";
     my %expected_return_codes = (200 => 1, 409 => 1, 410 => 1);
     my $actual_return_code;
     for (1 .. RETRY_COUNT) {
@@ -34,7 +34,7 @@ sub _try_lock {
         sleep RETRY_INTERVAL;                              # uncoverable statement
     }
     if ($actual_return_code) {
-        return 1                                               if $actual_return_code == 200;
+        return 1 if $actual_return_code == 200;
         bmwqemu::mydie "$log_ctx: lock owner already finished" if $actual_return_code == 410;
     }
     return 0;
@@ -110,15 +110,15 @@ sub mutex_wait {
     my ($name, $where, $info) = @_;
     _log $name, where => $where, info => $info;
     my $start = time;
-    mutex_lock $name,   $where;
+    mutex_lock $name, $where;
     mutex_unlock $name, $where;
-    _log $name,         where => $where, info => $info, amend => time - $start;
+    _log $name, where => $where, info => $info, amend => time - $start;
 }
 
 ## Barriers
 sub barrier_create {
     my ($name, $tasks) = @_;
-    bmwqemu::mydie('missing barrier name')           unless $name;
+    bmwqemu::mydie('missing barrier name') unless $name;
     bmwqemu::mydie('missing number of barrier task') unless $tasks;
     return _api_call_with_logging_and_error_handling("barrier create '$name' for $tasks tasks", post => 'barrier', {name => $name, tasks => $tasks});
 }
@@ -126,7 +126,7 @@ sub barrier_create {
 sub _wait_action {
     my ($name, $where, $check_dead_job) = @_;
     my $param;
-    $param->{where}          = $where          if $where;
+    $param->{where} = $where if $where;
     $param->{check_dead_job} = $check_dead_job if defined $check_dead_job;
 
     return _try_lock('barrier', $name, $param);

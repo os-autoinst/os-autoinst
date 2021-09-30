@@ -19,7 +19,7 @@ use Cpanel::JSON::XS ();
 use Test::Warnings qw(:report_warnings);
 
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
-my $data_dir     = "$toplevel_dir/t/data";
+my $data_dir = "$toplevel_dir/t/data";
 
 sub create_vars ($data) {
     open(my $varsfh, '>', 'vars.json') || BAIL_OUT('can not create vars.json');
@@ -101,7 +101,7 @@ subtest 'save_vars' => sub {
 
     my %vars = %{read_vars()};
     is($vars{_SECRET_TEST}, 'my_credentials', '_SECRET_TEST unchanged');
-    is($vars{CASEDIR},      $dir,             'CASEDIR unchanged');
+    is($vars{CASEDIR}, $dir, 'CASEDIR unchanged');
 };
 
 subtest 'save_vars no_secret' => sub {

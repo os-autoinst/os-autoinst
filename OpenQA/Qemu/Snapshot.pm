@@ -17,7 +17,7 @@ package OpenQA::Qemu::Snapshot;
 use Mojo::Base 'OpenQA::Qemu::MutParams', -signatures;
 
 has sequence => sub { return -1; };
-has name     => sub { return 'none'; };
+has name => sub { return 'none'; };
 has 'previous';
 
 sub equals ($self, $other) { $self->sequence == $other->sequence }

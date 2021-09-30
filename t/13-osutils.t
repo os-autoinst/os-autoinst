@@ -16,8 +16,8 @@ subtest qv => sub {
     use osutils 'qv';
 
     my $apple = 1;
-    my $tree  = 2;
-    my $bar   = 3;
+    my $tree = 2;
+    my $bar = 3;
     my $vars;
 
     is_deeply [qv "$apple $tree $bar"], [qw(1 2 3)], "Can interpolate variables";
@@ -37,7 +37,7 @@ subtest qv => sub {
 subtest gen_params => sub {
     use osutils qw(qv gen_params);
 
-    my @params    = qw(-foo bar -baz foobar);
+    my @params = qw(-foo bar -baz foobar);
     my $condition = 0;
 
     gen_params @params, "test", "1";
@@ -54,8 +54,8 @@ subtest gen_params => sub {
 
     @params = qw(-foo bar);
     my $apple = 1;
-    my $tree  = 2;
-    my $bar   = 3;
+    my $tree = 2;
+    my $bar = 3;
     gen_params @params, "test", [qv "$apple $tree $bar"];
     is_deeply(\@params, [qw(-foo bar -test), '1,2,3'], "Added parameter if parameter is an arrayref supplied with qv()");
 
@@ -85,7 +85,7 @@ subtest gen_params => sub {
 subtest dd_gen_params => sub {
     use osutils qw(qv dd_gen_params);
 
-    my @params    = qw(--foo bar --baz foobar);
+    my @params = qw(--foo bar --baz foobar);
     my $condition = 0;
 
     dd_gen_params @params, "test", "1";
@@ -102,8 +102,8 @@ subtest dd_gen_params => sub {
 
     @params = qw(--foo bar);
     my $apple = 1;
-    my $tree  = 2;
-    my $bar   = 3;
+    my $tree = 2;
+    my $bar = 3;
     dd_gen_params @params, "test", [qv "$apple $tree $bar"];
     is_deeply(\@params, [qw(--foo bar --test), '1,2,3'], "Added parameter if parameter is an arrayref supplied with qv()");
 
@@ -137,7 +137,7 @@ subtest quote => sub {
     my $bar = "bar bar";
     my $vars;
 
-    is quote($foo), "\'foo\'",     "Quote variables";
+    is quote($foo), "\'foo\'", "Quote variables";
     is quote($bar), "\'bar bar\'", "Quote words";
     is quote('foo' . $bar), "\'foobar bar\'", "Quote words and variables";
 
@@ -170,18 +170,18 @@ subtest attempt => sub {
     is $var, 5, 'all attempts exhausted';
     $var = 0;
     stderr_like { attempt {
-            attempts  => 6,
+            attempts => 6,
             condition => sub { $var == 6 },
-            cb        => sub { $var++ }
+            cb => sub { $var++ }
     } } qr/Waiting for.*attempts/, 'attempts conducted with named parameters';
     is $var, 6, 'correct attempts with named parameters';
 
     $var = 0;
     stderr_like { attempt {
-            attempts  => 6,
+            attempts => 6,
             condition => sub { $var == 7 },
-            cb        => sub { $var++ },
-            or        => sub { $var = 42 }
+            cb => sub { $var++ },
+            or => sub { $var = 42 }
     } } qr/Waiting for.*attempts/, 'attempts with alternative return';
     is $var, 42, 'alternative return set';
 };

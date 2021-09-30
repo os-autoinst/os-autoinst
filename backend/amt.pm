@@ -212,10 +212,10 @@ sub do_start_vm {
         'sut',
         'vnc-base',
         {
-            hostname        => $bmwqemu::vars{AMT_HOSTNAME},
-            password        => $vnc_password,
+            hostname => $bmwqemu::vars{AMT_HOSTNAME},
+            password => $vnc_password,
             connect_timeout => 3,
-            port            => 5900
+            port => 5900
         });
 
     $vnc->backend($self);

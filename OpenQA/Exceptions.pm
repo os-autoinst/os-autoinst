@@ -11,7 +11,7 @@ use Exception::Class (
     },
     'OpenQA::Exception::FailedNeedle' => {
         description => 'assert_screen failed',
-        fields      => 'tags',
+        fields => 'tags',
     },
     'OpenQA::Exception::VNCProtocolError' => {
         description => 'VNC Server interrupted connection'

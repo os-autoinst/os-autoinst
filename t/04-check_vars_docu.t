@@ -15,7 +15,7 @@ use autodie ':all';
 
 use constant {
     BACKEND_DIR => "$FindBin::Bin/../backend",
-    DOC_DIR     => "$FindBin::Bin/../doc",
+    DOC_DIR => "$FindBin::Bin/../doc",
 };
 use constant VARS_DOC => DOC_DIR . '/backend_vars.asciidoc';
 
@@ -56,7 +56,7 @@ sub read_doc() {
                 my ($var, $value, $default, $explanation) = $line =~ /^([^;]+);\s*([^;]*);\s*([^;]*);\s*(.*)$/;
                 next unless ($var);
                 $default = '' unless (defined $default);
-                $value   = '' unless (defined $value);
+                $value = '' unless (defined $value);
                 unless ($explanation) {
                     fail "still missing explanation for backend $backend variable $var";
                 }

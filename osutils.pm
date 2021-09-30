@@ -44,7 +44,7 @@ sub find_bin {
 sub gen_params(\@$$;%) {
     my ($array, $argument, $parameter, %args) = @_;
 
-    return              unless ($parameter);
+    return unless ($parameter);
     $args{prefix} = "-" unless $args{prefix};
 
     if (ref($parameter) eq "") {

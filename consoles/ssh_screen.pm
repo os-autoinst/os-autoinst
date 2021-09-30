@@ -9,16 +9,16 @@ use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use Time::Seconds;
 
 has ssh_connection => undef;
-has ssh_channel    => undef;
+has ssh_channel => undef;
 
 use constant TYPE_STRING_TIMEOUT => ONE_MINUTE;
 
 sub new {
     my $class = shift;
-    my $self  = bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, ref $class || $class;
+    my $self = bless @_ ? @_ > 1 ? {@_} : {%{$_[0]}} : {}, ref $class || $class;
 
     croak('Missing parameter ssh_connection') unless $self->ssh_connection;
-    croak('Missing parameter ssh_channel')    unless $self->ssh_channel;
+    croak('Missing parameter ssh_channel') unless $self->ssh_channel;
 
     if ($self->{logfile}) {
         open($self->{loghandle}, ">>", $self->{logfile})
@@ -32,7 +32,7 @@ sub do_read
 {
     my ($self, undef, %args) = @_;
     my $buffer = '';
-    $args{timeout}  //= undef;    # wait till data is available
+    $args{timeout} //= undef;    # wait till data is available
     $args{max_size} //= 2048;
 
     croak('We expect to get a none blocking SSH channel') if ($self->ssh_channel->blocking());
@@ -56,10 +56,10 @@ sub type_string {
 
     bmwqemu::log_call(%$nargs);
 
-    my $text           = $nargs->{text};
+    my $text = $nargs->{text};
     my $terminate_with = $nargs->{terminate_with} // '';
-    my $written        = 0;
-    my $stime          = consoles::serial_screen::thetime();
+    my $written = 0;
+    my $stime = consoles::serial_screen::thetime();
 
     $text .= "\cC" if ($terminate_with eq 'ETX');
 

@@ -29,8 +29,8 @@ sub new {
     my ($class, $testapi_console, $args) = @_;
     my $self = bless({class => $class}, $class);
     $self->{testapi_console} = $testapi_console;
-    $self->{args}            = $args;
-    $self->{activated}       = 0;
+    $self->{args} = $args;
+    $self->{activated} = 0;
     $self->init;
     return $self;
 }

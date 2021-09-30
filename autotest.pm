@@ -22,7 +22,7 @@ use Mojo::File qw(path);
 
 our @EXPORT_OK = qw(loadtest $selected_console $last_milestone_console query_isotovideo);
 
-our %tests;        # scheduled or run tests
+our %tests;    # scheduled or run tests
 our @testorder;    # for keeping them in order
 our $isotovideo;
 our $process;
@@ -41,8 +41,8 @@ loadtest is called.
 =cut
 
 sub find_script {
-    my ($script)             = @_;
-    my $casedir              = $bmwqemu::vars{CASEDIR};
+    my ($script) = @_;
+    my $casedir = $bmwqemu::vars{CASEDIR};
     my $script_override_path = join('/', $bmwqemu::vars{ASSETDIR} // '', 'other', $script);
     if (-f $script_override_path) {
         bmwqemu::diag("Found override test module for $script: $script_override_path");
@@ -89,7 +89,7 @@ e.g. by making use of the openQA asset download feature.
 
 sub loadtest {
     my ($script, %args) = @_;
-    my $casedir     = $bmwqemu::vars{CASEDIR};
+    my $casedir = $bmwqemu::vars{CASEDIR};
     my $script_path = find_script($script);
     my ($name, $category) = parse_test_path($script_path);
     my $test;
@@ -127,10 +127,10 @@ sub loadtest {
         bmwqemu::serialize_state(component => 'tests', msg => "unable to load $script, check the log for the cause (e.g. syntax error)");
         die $msg;
     }
-    $test                      = $name->new($category);
-    $test->{script}            = $script;
-    $test->{fullname}          = $fullname;
-    $test->{serial_failures}   = $testapi::distri->{serial_failures}   // [];
+    $test = $name->new($category);
+    $test->{script} = $script;
+    $test->{fullname} = $fullname;
+    $test->{serial_failures} = $testapi::distri->{serial_failures} // [];
     $test->{autoinst_failures} = $testapi::distri->{autoinst_failures} // [];
 
     if (defined $args{run_args}) {
@@ -173,7 +173,7 @@ sub parse_test_path {
         die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.p[my]\n";
     }
     my $category = $1;
-    my $name     = $2;
+    my $name = $2;
     if ($category ne 'other') {
         # show full folder hierarchy as category for non-sideloaded tests
         my $pattern = qr,(tests/[^/]+/)?tests/([\w/]+)/([^/]+)\.p[my]$,;
@@ -190,7 +190,7 @@ sub set_current_test {
         'set_current_test',
         $current_test ?
           {
-            name      => $current_test->{name},
+            name => $current_test->{name},
             full_name => $current_test->{fullname},
           }
         : {});
@@ -203,10 +203,10 @@ sub write_test_order {
         push(
             @result,
             {
-                name     => $t->{name},
+                name => $t->{name},
                 category => $t->{category},
-                flags    => $t->test_flags(),
-                script   => $t->{script}});
+                flags => $t->test_flags(),
+                script => $t->{script}});
     }
     bmwqemu::save_json_file(\@result, bmwqemu::result_dir . "/test_order.json");
 }
@@ -230,7 +230,7 @@ sub load_snapshot {
 }
 
 sub run_all {
-    my $died      = 0;
+    my $died = 0;
     my $completed = 0;
     $tests_running = 1;
     eval { $completed = autotest::runalltests(); };
@@ -270,8 +270,8 @@ sub start_process {
     $process = process(sub {
             close $child;
             $SIG{TERM} = \&handle_sigterm;
-            $SIG{INT}  = 'DEFAULT';
-            $SIG{HUP}  = 'DEFAULT';
+            $SIG{INT} = 'DEFAULT';
+            $SIG{HUP} = 'DEFAULT';
             $SIG{CHLD} = 'DEFAULT';
 
             my $signal_blocker = signalblocker->new;
@@ -291,12 +291,12 @@ sub start_process {
 
             run_all;
         },
-        sleeptime_during_kill       => 0.1,
+        sleeptime_during_kill => 0.1,
         total_sleeptime_during_kill => 5,
-        blocking_stop               => 1,
-        separate_err                => 0,
-        set_pipes                   => 0,
-        internal_pipes              => 0)->start;
+        blocking_stop => 1,
+        separate_err => 0,
+        set_pipes => 0,
+        internal_pipes => 0)->start;
     $process->on(collected => sub { bmwqemu::diag "[" . __PACKAGE__ . "] process exited: " . shift->exit_status; });
 
     close $isotovideo;
@@ -326,16 +326,16 @@ sub runalltests {
 
     die "ERROR: no tests loaded" unless @testorder;
 
-    my $firsttest           = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
-    my $vmloaded            = 0;
+    my $firsttest = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
+    my $vmloaded = 0;
     my $snapshots_supported = query_isotovideo('backend_can_handle', {function => 'snapshots'});
     bmwqemu::diag "Snapshots are " . ($snapshots_supported ? '' : 'not ') . "supported";
 
     write_test_order();
 
     for (my $testindex = 0; $testindex <= $#testorder; $testindex++) {
-        my $t        = $testorder[$testindex];
-        my $flags    = $t->test_flags();
+        my $t = $testorder[$testindex];
+        my $flags = $t->test_flags();
         my $fullname = $t->{fullname};
 
         if (!$vmloaded && $fullname eq $firsttest) {
@@ -400,7 +400,7 @@ sub runalltests {
             }
             if ($snapshots_supported && $makesnapshot) {
                 make_snapshot('lastgood');
-                $last_milestone         = $t;
+                $last_milestone = $t;
                 $last_milestone_console = $selected_console;
             }
         }
@@ -411,7 +411,7 @@ sub runalltests {
 sub loadtestdir {
     my ($dir) = @_;
     die "need argument \$dir" unless $dir;
-    $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;        # legacy where absolute path is specified
+    $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
     $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
     die "'$dir' does not exist!\n" unless -d $dir;
     foreach my $script (glob "$dir/*.pm") {

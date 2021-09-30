@@ -94,9 +94,9 @@ sub relogin_vnc {
         'sut',
         'vnc-base',
         {
-            hostname        => get_required_var('GENERAL_HW_VNC_IP'),
-            port            => 5900,
-            depth           => 16,
+            hostname => get_required_var('GENERAL_HW_VNC_IP'),
+            port => 5900,
+            depth => 16,
             connect_timeout => 50
         });
     $vnc->backend($self);
@@ -114,7 +114,7 @@ sub do_start_vm {
         $self->run_cmd('GENERAL_HW_FLASH_CMD');
     }
     $self->restart_host;
-    $self->relogin_vnc       if (get_var('GENERAL_HW_VNC_IP'));
+    $self->relogin_vnc if (get_var('GENERAL_HW_VNC_IP'));
     $self->start_serial_grab if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
     return {};
 }
@@ -141,9 +141,9 @@ sub start_serial_grab {
     $self->{serialpid} = fork();
     return unless $self->{serialpid} == 0;
     setpgrp 0, 0;
-    open(my $serial, '>',  $self->{serialfile});
-    open(STDOUT,     ">&", $serial);
-    open(STDERR,     ">&", $serial);
+    open(my $serial, '>', $self->{serialfile});
+    open(STDOUT, ">&", $serial);
+    open(STDERR, ">&", $serial);
     exec($self->get_cmd('GENERAL_HW_SOL_CMD'));
     die "exec failed $!";
 }

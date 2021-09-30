@@ -18,7 +18,7 @@ my $dirname = dirname(__FILE__);
 chdir($dirname . '/..');
 
 my $pc = Pod::Coverage->new(
-    package  => 'testapi',
+    package => 'testapi',
     pod_from => 'testapi.pm',
 );
 is($pc->coverage, 1, 'Everything in testapi covered') || diag('Uncovered: ', join(', ', $pc->uncovered), "\n");

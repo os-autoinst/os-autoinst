@@ -13,7 +13,7 @@ use Mojo::Base 'OpenQA::Qemu::MutParams', -signatures;
 
 use OpenQA::Qemu::DrivePath;
 
-use constant DEVICE_POSTFIX    => '-device';
+use constant DEVICE_POSTFIX => '-device';
 use constant QEMU_IMAGE_FORMAT => 'qcow2';
 
 use Exporter 'import';
@@ -95,8 +95,8 @@ sub gen_cmdline ($self) {
             push(@params, 'bus=' . $path->controller->id . '.0');
         }
         # Configure bootindex only for first path
-        $self->_push_ifdef(\@params, 'bootindex=',  $self->bootindex) if (!$path->id || $path->id eq 'path0');
-        $self->_push_ifdef(\@params, 'serial=',     $self->serial);
+        $self->_push_ifdef(\@params, 'bootindex=', $self->bootindex) if (!$path->id || $path->id eq 'path0');
+        $self->_push_ifdef(\@params, 'serial=', $self->serial);
         $self->_push_ifdef(\@params, 'num_queues=', $self->num_queues) if (($self->num_queues // -1) != -1);
         push(@cmdln, ('-device', join(',', @params)));
     }
@@ -111,7 +111,7 @@ sub gen_qemu_img_convert ($self, $img_dir, $name, $qemu_compress_qcow) {
     # portable by not requiring backing files referencing the openQA instance.
     # Compressing takes longer but the transfer takes shorter amount of time.
     my $compress = $qemu_compress_qcow;
-    my @cmd      = qw(convert);
+    my @cmd = qw(convert);
     push @cmd, qw(-c) if $compress;
     push @cmd, ('-O', QEMU_IMAGE_FORMAT, $self->drive->file, "$img_dir/$name");
     return \@cmd;
@@ -130,7 +130,7 @@ sub for_each_overlay ($self, $sub) {
 
 sub _to_map ($self) {
     my @overlays = ();
-    my @paths    = map { $_->_to_map() } @{$self->paths};
+    my @paths = map { $_->_to_map() } @{$self->paths};
 
     $self->for_each_overlay(sub {
             my $ol = shift;
@@ -139,11 +139,11 @@ sub _to_map ($self) {
     });
 
     return {drives => \@overlays,
-        model      => $self->model,
-        paths      => \@paths,
-        bootindex  => $self->bootindex,
-        serial     => $self->serial,
-        id         => $self->id,
+        model => $self->model,
+        paths => \@paths,
+        bootindex => $self->bootindex,
+        serial => $self->serial,
+        id => $self->id,
         num_queues => $self->num_queues};
 }
 

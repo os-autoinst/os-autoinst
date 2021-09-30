@@ -13,12 +13,12 @@ if (not -e "$Bin/../.git") {
 }
 
 my $build_dir = $ENV{OS_AUTOINST_BUILD_DIRECTORY} || "$Bin/..";
-my $make_tool = $ENV{OS_AUTOINST_MAKE_TOOL}       || 'make';
-my $make_cmd  = "$make_tool update-deps";
+my $make_tool = $ENV{OS_AUTOINST_MAKE_TOOL} || 'make';
+my $make_cmd = "$make_tool update-deps";
 
 chdir $build_dir;
 my @out = qx{$make_cmd};
-my $rc  = $?;
+my $rc = $?;
 die "Could not run $make_cmd: rc=$rc, out: @out" if $rc;
 
 my @status = grep { not m/^\?/ } qx{git -C "$Bin/.." status --porcelain};

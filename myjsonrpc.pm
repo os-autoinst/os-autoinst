@@ -9,9 +9,9 @@ use IO::Select;
 use Errno;
 use Mojo::JSON;    # booleans
 use Cpanel::JSON::XS ();
-use bmwqemu          ();
+use bmwqemu ();
 
-use constant DEBUG_JSON  => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
+use constant DEBUG_JSON => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
 use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8000000;
 
 sub send_json {
@@ -104,12 +104,12 @@ sub read_json {
         }
 
         # wait for next read
-        my @res                = $s->can_read;
+        my @res = $s->can_read;
         my $remaining_attempts = 5;
         while (!@res) {
             # throw an error except can_read has been interrupted
             my $error = $!;
-            confess "ERROR: unable to wait for JSON reply: $error\n"                                 unless $!{EINTR};
+            confess "ERROR: unable to wait for JSON reply: $error\n" unless $!{EINTR};
             confess "ERROR: can_read's underlying system call has been interrupted too many times\n" unless $remaining_attempts;
 
             # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation

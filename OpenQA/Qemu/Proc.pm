@@ -38,21 +38,21 @@ use POSIX ();
 
 use constant STATE_FILE => 'qemu_state.json';
 
-has qemu_bin     => 'qemu-kvm';
+has qemu_bin => 'qemu-kvm';
 has qemu_img_bin => 'qemu-img';
-has _process     => sub { process(
-        pidfile       => 'qemu.pid',
-        separate_err  => 0,
+has _process => sub { process(
+        pidfile => 'qemu.pid',
+        separate_err => 0,
         blocking_stop => 1) };
 
 has _static_params => sub { return []; };
-has _mut_params    => sub { return []; };
+has _mut_params => sub { return []; };
 
 sub _push_mut { push(@{shift->_mut_params}, shift); }
 
 has controller_conf => sub { return OpenQA::Qemu::ControllerConf->new(); };
-has blockdev_conf   => sub { return OpenQA::Qemu::BlockDevConf->new(); };
-has snapshot_conf   => sub { return OpenQA::Qemu::SnapshotConf->new(); };
+has blockdev_conf => sub { return OpenQA::Qemu::BlockDevConf->new(); };
+has snapshot_conf => sub { return OpenQA::Qemu::SnapshotConf->new(); };
 
 sub new ($class, @args) {
     my $self = $class->SUPER::new(@args);
@@ -99,7 +99,7 @@ sub configure_controllers ($self, $vars) {
     }
 
     my $scsi_con = $vars->{SCSICONTROLLER} || 0;
-    my $cc       = $self->controller_conf;
+    my $cc = $self->controller_conf;
 
     if ($scsi_con) {
         $cc->add_controller($scsi_con, 'scsi0');
@@ -145,18 +145,18 @@ Configure disk drives and their block device backing chains. See BlockDevConf.pm
 
 =cut
 sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
-    my $bdc       = $self->blockdev_conf;
+    my $bdc = $self->blockdev_conf;
     my @scsi_ctrs = $self->controller_conf->get_controllers(qr/scsi/);
 
     $bdc->basedir($basedir);
 
     for my $i (1 .. $vars->{NUMDISKS}) {
-        my $hdd_model    = $vars->{"HDDMODEL_$i"} // $vars->{HDDMODEL};
+        my $hdd_model = $vars->{"HDDMODEL_$i"} // $vars->{HDDMODEL};
         my $backing_file = $vars->{"HDD_$i"};
-        my $node_id      = 'hd' . ($i - 1);
-        my $hdd_serial   = $vars->{"HDDSERIAL_$i"} || $node_id;
-        my $size         = $vars->{"HDDSIZEGB_$i"};
-        my $num_queues   = $vars->{"HDDNUMQUEUES_$i"} || -1;
+        my $node_id = 'hd' . ($i - 1);
+        my $hdd_serial = $vars->{"HDDSERIAL_$i"} || $node_id;
+        my $size = $vars->{"HDDSIZEGB_$i"};
+        my $num_queues = $vars->{"HDDNUMQUEUES_$i"} || -1;
         my $drive;
 
         $size .= 'G' if defined($size);
@@ -211,10 +211,10 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
     for my $k (sort grep { /^ISO_\d+$/ } keys %$vars) {
         next unless $vars->{$k};
         my $addoniso = path($vars->{$k})->to_abs;
-        my $i        = $k;
+        my $i = $k;
         $i =~ s/^ISO_//;
 
-        my $size  = $self->get_img_size($addoniso);
+        my $size = $self->get_img_size($addoniso);
         my $drive = $bdc->add_iso_drive("cd$i", $addoniso, $vars->{CDMODEL}, $size);
         $drive->serial("cd$i");
         # first connected cdrom gets ",bootindex=0 when booting from cdrom and
@@ -327,9 +327,9 @@ sub export_blockdev_images ($self, $filter, $img_dir, $name, $qemu_compress_qcow
     for my $qicmd ($self->blockdev_conf->gen_qemu_img_convert($filter, $img_dir, $name, $qemu_compress_qcow)) {
         runcmd('nice', 'ionice', $self->qemu_img_bin, @$qicmd);
 
-        my $img        = "$img_dir/$name";
+        my $img = "$img_dir/$name";
         my $exp_format = OpenQA::Qemu::DriveDevice::QEMU_IMAGE_FORMAT;
-        my $format     = $self->get_img_format($img);
+        my $format = $self->get_img_format($img);
         die "'$format': unexpected format for '$img' (expected '$exp_format'), maybe snapshotting failed" unless $format eq $exp_format;
 
         $count++;
@@ -408,14 +408,14 @@ using the JSON QAPI. QMP and QAPI are documented in the QEMU source tree.
 sub connect_qmp ($self) {
     my $sk;
     osutils::attempt {
-        attempts  => $ENV{QEMU_QMP_CONNECT_ATTEMPTS} // 20,
+        attempts => $ENV{QEMU_QMP_CONNECT_ATTEMPTS} // 20,
         condition => sub { $sk },
-        or        => sub { die "Can't open QMP socket" },
-        cb        => sub {
+        or => sub { die "Can't open QMP socket" },
+        cb => sub {
             die "QEMU terminated before QMP connection could be established. Check for errors below\n" if $self->{_qemu_terminated};
             $sk = IO::Socket::UNIX->new(
-                Type     => IO::Socket::UNIX::SOCK_STREAM,
-                Peer     => 'qmp_socket',
+                Type => IO::Socket::UNIX::SOCK_STREAM,
+                Peer => 'qmp_socket',
                 Blocking => 0
             );
         },
@@ -439,7 +439,7 @@ sub revert_to_snapshot ($self, $name) {
 
     my $snapshot = $self->snapshot_conf->revert_to_snapshot($name);
     $bdc->for_each_drive(sub {
-            my $drive     = shift;
+            my $drive = shift;
             my $del_files = $bdc->revert_to_snapshot($drive, $snapshot);
 
             die "Snapshot $name not found for " . $drive->id unless defined($del_files);
@@ -462,9 +462,9 @@ Serialise our object model of QEMU to JSON and return the JSON text.
 =cut
 sub serialise_state ($self) {
     return encode_json({
-            blockdev_conf   => $self->blockdev_conf->to_map(),
+            blockdev_conf => $self->blockdev_conf->to_map(),
             controller_conf => $self->controller_conf->to_map(),
-            snapshot_conf   => $self->snapshot_conf->to_map(),
+            snapshot_conf => $self->snapshot_conf->to_map(),
     });
 }
 

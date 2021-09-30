@@ -20,11 +20,11 @@ use needle;
     use Mojo::File qw(path);
 
     sub new ($classname, $image_path, $match_level, $margin) {
-        my $name  = path($image_path)->basename;
+        my $name = path($image_path)->basename;
         my $image = tinycv::read $image_path;
-        my %area  = (type => 'match', match => $match_level, margin => $margin,
+        my %area = (type => 'match', match => $match_level, margin => $margin,
             xpos => 0, ypos => 0, width => $image->xres, height => $image->yres,
-            img  => $image);
+            img => $image);
         my $self = {name => $name, png => $image_path, area => [\%area]};
         bless $self, $classname;
         $self->register;
@@ -53,12 +53,12 @@ imagesearch \
 }
 
 getopt 'needle-images=s@{1,}' => \my @needle_image_paths,
-  'haystack-images=s@{1,}'    => \my @image_paths,
-  'match-level=f'             => \my $match_level,
-  'margin=f'                  => \my $margin,
-  'threshold=f'               => \my $threshold,
-  'search-ratio=f'            => \my $search_ratio,
-  'v|verbose'                 => \my $verbose;
+  'haystack-images=s@{1,}' => \my @image_paths,
+  'match-level=f' => \my $match_level,
+  'margin=f' => \my $margin,
+  'threshold=f' => \my $threshold,
+  'search-ratio=f' => \my $search_ratio,
+  'v|verbose' => \my $verbose;
 
 print_usage unless @needle_image_paths && @image_paths;
 
@@ -68,10 +68,10 @@ $log->level($verbose ? 'debug' : 'info');
 $log->debug('Loading tinycv');
 cv::init;
 require tinycv;
-$match_level  //= 80;         # the similarity level required to consider a finding a match (unit: percent)
-$margin       //= 1000000;    # very high value to search within full image by default (unit: pixel)
-$search_ratio //= 0;          # set to zero to disable unwanted computation of margin (which assumes an image width of 1024 px)
-$threshold    //= 0.0;        # subtracted from each area's match level; just keep at zero here
+$match_level //= 80;    # the similarity level required to consider a finding a match (unit: percent)
+$margin //= 1000000;    # very high value to search within full image by default (unit: pixel)
+$search_ratio //= 0;    # set to zero to disable unwanted computation of margin (which assumes an image width of 1024 px)
+$threshold //= 0.0;     # subtracted from each area's match level; just keep at zero here
 $log->debug("Martch-level: $match_level, margin: $margin, threshold: $threshold, search ratio: $search_ratio");
 
 # load needles

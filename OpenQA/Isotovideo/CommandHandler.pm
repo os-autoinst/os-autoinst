@@ -39,7 +39,7 @@ has reason_for_pause => 0;
 
 # when paused, save the command from autotest which has been postponed to be able to resume
 has postponed_answer_fd => undef;
-has postponed_command   => undef;
+has postponed_command => undef;
 
 # properties consumed by isotovideo::check_asserted_screen
 #  * timeout for the select (only set for check_screens)
@@ -78,7 +78,7 @@ sub process_command ($self, $answer_fd, $command_to_process) {
 sub stop_command_processing ($self) { $self->_send_to_cmd_srv({stop_processing_isotovideo_commands => 1}) }
 
 sub _postpone_backend_command_until_resumed ($self, $response) {
-    my $cmd              = $response->{cmd};
+    my $cmd = $response->{cmd};
     my $reason_for_pause = $self->reason_for_pause;
 
     # check whether we're supposed to pause on the next command if there's no other reason to pause anyways
@@ -121,7 +121,7 @@ sub _pass_command_to_backend_unless_paused ($self, $response, $backend_cmd) {
     $self->backend_requester($self->answer_fd);
 
     $self->_send_to_cmd_srv({
-            $backend_cmd         => $response,
+            $backend_cmd => $response,
             current_api_function => $backend_cmd,
     });
     $self->_send_to_backend({cmd => $backend_cmd, arguments => $response});
@@ -131,7 +131,7 @@ sub _pass_command_to_backend_unless_paused ($self, $response, $backend_cmd) {
 sub _is_configured_to_pause_on_timeout ($self, $response) {
     return 0 unless my $pause_on_screen_mismatch = $self->pause_on_screen_mismatch;
 
-    return 1                          if ($pause_on_screen_mismatch eq 'check_screen');
+    return 1 if ($pause_on_screen_mismatch eq 'check_screen');
     return $response->{check} ? 0 : 1 if ($pause_on_screen_mismatch eq 'assert_screen');
     return 0;
 }
@@ -187,7 +187,7 @@ sub _handle_command_set_pause_on_next_command ($self, $response, @) {
 }
 
 sub _handle_command_resume_test_execution ($self, $response, @) {
-    my $postponed_command   = $self->postponed_command;
+    my $postponed_command = $self->postponed_command;
     my $postponed_answer_fd = $self->postponed_answer_fd;
 
     diag($self->reason_for_pause ?
@@ -206,7 +206,7 @@ sub _handle_command_resume_test_execution ($self, $response, @) {
     # if no command has been postponed (because paused due to timeout) just return 1
     if (!$postponed_command) {
         myjsonrpc::send_json($postponed_answer_fd, {
-                ret         => 1,
+                ret => 1,
                 new_needles => $response->{new_needles},
         });
         $self->postponed_answer_fd(undef);
@@ -232,7 +232,7 @@ sub _handle_command_set_current_test ($self, $response, @) {
     $self->status('running');
     $self->current_test_full_name($full_test_name);
     $self->_send_to_cmd_srv({
-            set_current_test       => $test_name,
+            set_current_test => $test_name,
             current_test_full_name => $full_test_name,
     });
 
@@ -263,17 +263,17 @@ sub _handle_command_check_screen ($self, $response, @) {
 
     my %arguments = (
         mustmatch => $response->{mustmatch},
-        timeout   => $response->{timeout},
-        check     => $response->{check},
+        timeout => $response->{timeout},
+        check => $response->{check},
     );
     my $current_api_function = $response->{check} ? 'check_screen' : 'assert_screen';
     $self->_send_to_cmd_srv({
-            check_screen         => \%arguments,
+            check_screen => \%arguments,
             current_api_function => $current_api_function,
     });
     $self->tags($bmwqemu::backend->_send_json(
             {
-                cmd       => 'set_tags_to_assert',
+                cmd => 'set_tags_to_assert',
                 arguments => \%arguments,
             })->{tags});
     $self->current_api_function($current_api_function);
@@ -283,7 +283,7 @@ sub _handle_command_set_assert_screen_timeout ($self, $response, @) {
     my $timeout = $response->{timeout};
     $self->_send_to_cmd_srv({set_assert_screen_timeout => $timeout});
     $bmwqemu::backend->_send_json({
-            cmd       => 'set_assert_screen_timeout',
+            cmd => 'set_assert_screen_timeout',
             arguments => $timeout,
     });
     $self->_respond_ok();
@@ -291,14 +291,14 @@ sub _handle_command_set_assert_screen_timeout ($self, $response, @) {
 
 sub _handle_command_status ($self, $response, @) {
     $self->_respond({
-            tags                     => $self->tags,
-            running                  => $self->current_test_name,
-            current_test_full_name   => $self->current_test_full_name,
-            current_api_function     => $self->current_api_function,
-            pause_test_name          => $self->pause_test_name,
+            tags => $self->tags,
+            running => $self->current_test_name,
+            current_test_full_name => $self->current_test_full_name,
+            current_api_function => $self->current_api_function,
+            pause_test_name => $self->pause_test_name,
             pause_on_screen_mismatch => ($self->pause_on_screen_mismatch // Mojo::JSON->false),
-            pause_on_next_command    => $self->pause_on_next_command,
-            test_execution_paused    => $self->reason_for_pause,
+            pause_on_next_command => $self->pause_on_next_command,
+            test_execution_paused => $self->reason_for_pause,
             devel_mode_major_version => $OpenQA::Isotovideo::Interface::developer_mode_major_version,
             devel_mode_minor_version => $OpenQA::Isotovideo::Interface::developer_mode_minor_version,
     });
@@ -306,9 +306,9 @@ sub _handle_command_status ($self, $response, @) {
 
 sub _handle_command_version ($self, $response, @) {
     $self->_respond({
-            test_git_hash    => $bmwqemu::vars{TEST_GIT_HASH},
+            test_git_hash => $bmwqemu::vars{TEST_GIT_HASH},
             needles_git_hash => $bmwqemu::vars{NEEDLES_GIT_HASH},
-            version          => $OpenQA::Isotovideo::Interface::version,
+            version => $OpenQA::Isotovideo::Interface::version,
     });
 }
 
@@ -327,10 +327,10 @@ sub _handle_command_send_clients ($self, $response, @) {
 
 sub update_status_file ($self) {
     my $coder = Cpanel::JSON::XS->new->pretty->canonical;
-    my $data  = {
+    my $data = {
         test_execution_paused => $self->reason_for_pause,
-        status                => $self->status,
-        current_test          => $self->current_test_name,
+        status => $self->status,
+        current_test => $self->current_test_name,
     };
     my $json = $coder->encode($data);
 

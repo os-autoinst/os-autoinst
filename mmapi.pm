@@ -18,9 +18,9 @@ require bmwqemu;
 use Mojo::UserAgent;
 use Mojo::URL;
 
-our $retry_count    = $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}    // 30;
+our $retry_count = $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT} // 30;
 our $retry_interval = $ENV{OS_AUTOINST_MMAPI_RETRY_INTERVAL} // 10;
-our $poll_interval  = $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL}  // 1;
+our $poll_interval = $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL} // 1;
 
 our $url;
 
@@ -36,7 +36,7 @@ my $CODES_EXPECTED_BY_MMAPI = {200 => 1};
 
 sub _init {
     # init $ua and $url
-    my $host   = $bmwqemu::vars{OPENQA_URL};
+    my $host = $bmwqemu::vars{OPENQA_URL};
     my $secret = $bmwqemu::vars{JOBTOKEN};
     return unless $host && $secret;
     $url = Mojo::URL->new($host =~ '/' ? $host : "http://$host");
@@ -67,7 +67,7 @@ Queries openQA's multi-machine API and returns the resulting Mojo::Transaction::
 
 sub api_call_2 {
     my ($method, $action, $params, $expected_codes) = @_;
-    _init                                       unless $ua;
+    _init unless $ua;
     bmwqemu::mydie('Missing mandatory options') unless $method && $action && $ua;
 
     my $ua_url = $url->clone;
@@ -77,7 +77,7 @@ sub api_call_2 {
     my $tries = $retry_count;
     my ($tx, $res);
     while ($tries--) {
-        $tx  = $ua->$method($ua_url);
+        $tx = $ua->$method($ua_url);
         $res = $tx->res;
         last if $res->code && ($expected_codes // $CODES_EXPECTED_BY_DEFAULT)->{$res->code};
         bmwqemu::diag("api_call_2 failed, retries left: $tries of $retry_count");
@@ -107,9 +107,9 @@ sub handle_api_error {
     my $err = $tx->error;
     return 0 unless $err;
 
-    my $url  = $tx->req->url;
+    my $url = $tx->req->url;
     my $code = $err->{code};
-    return 0                            if $code && ($expected_codes // $CODES_EXPECTED_BY_DEFAULT)->{$code};
+    return 0 if $code && ($expected_codes // $CODES_EXPECTED_BY_DEFAULT)->{$code};
     $err->{message} .= "; URL was $url" if $url;
     bmwqemu::diag($code
         ? "$log_ctx: $code response: $err->{message}"
@@ -195,10 +195,10 @@ sub get_job_autoinst_url {
     my $workers = $tx->res->json('/workers') // [];
     for my $worker (@$workers) {
         if ($worker->{jobid} && $target_id == $worker->{jobid} && $worker->{host} && $worker->{instance} && $worker->{properties}{JOBTOKEN}) {
-            my $hostname   = $worker->{host};
-            my $token      = $worker->{properties}{JOBTOKEN};
+            my $hostname = $worker->{host};
+            my $token = $worker->{properties}{JOBTOKEN};
             my $workerport = $worker->{instance} * 10 + 20002 + 1;    # the same as in openqa/script/worker
-            my $url        = "http://$hostname:$workerport/$token";
+            my $url = "http://$hostname:$workerport/$token";
             return $url;
         }
     }
@@ -243,7 +243,7 @@ Wait while any running or scheduled children exist.
 sub wait_for_children {
     while (1) {
         my $children = get_children() // die 'Failed to wait for children';
-        my $n        = 0;
+        my $n = 0;
         for my $state (values %$children) {
             next if $state eq 'done' or $state eq 'cancelled';
             $n++;
@@ -265,7 +265,7 @@ Wait while any scheduled children exist.
 sub wait_for_children_to_start {
     while (1) {
         my $children = get_children() // die 'Failed to wait for children to start';
-        my $n        = 0;
+        my $n = 0;
         for my $state (values %$children) {
             next if $state eq 'done' or $state eq 'cancelled' or $state eq 'running';
             $n++;

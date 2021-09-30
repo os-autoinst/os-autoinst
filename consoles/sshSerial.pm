@@ -31,7 +31,7 @@ sub disable {
 }
 
 sub activate {
-    my ($self)   = @_;
+    my ($self) = @_;
     my $hostname = $self->{args}->{hostname} || die('we need a hostname to ssh to');
     my $password = $self->{args}->{password} // $testapi::password;
     my $username = $self->{args}->{username} // 'root';
@@ -58,8 +58,8 @@ sub activate {
 
     $self->{screen} = consoles::ssh_screen->new(
         ssh_connection => $ssh,
-        ssh_channel    => $chan,
-        logfile        => $self->{args}->{logfile} // "serial_terminal.txt"
+        ssh_channel => $chan,
+        logfile => $self->{args}->{logfile} // "serial_terminal.txt"
     );
     $self->{ssh} = $ssh;
     return;

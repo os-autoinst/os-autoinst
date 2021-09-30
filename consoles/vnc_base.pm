@@ -110,7 +110,7 @@ sub type_string {
     for my $letter (split("", $args->{text})) {
         next if ($letter eq "\r");
         my $charmap = {
-            "-"  => 'minus',
+            "-" => 'minus',
             "\t" => 'tab',
             "\n" => 'ret',
             "\b" => 'backspace',

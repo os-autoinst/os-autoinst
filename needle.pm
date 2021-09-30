@@ -39,7 +39,7 @@ sub new {
 
     my $json;
     if (ref $jsonfile eq 'HASH') {
-        $json     = $jsonfile;
+        $json = $jsonfile;
         $jsonfile = $json->{file} || path($needles_dir, $json->{name} . '.json');
     }
 
@@ -71,7 +71,7 @@ sub new {
         return undef unless $json;
     }
 
-    $self->{tags}       = $json->{tags}       || [];
+    $self->{tags} = $json->{tags} || [];
     $self->{properties} = $json->{properties} || [];
 
     my $gotmatch;
@@ -84,8 +84,8 @@ sub new {
         for my $tag (qw(processing_flags max_offset)) {
             $area->{$tag} = $area_from_json->{$tag} if $area_from_json->{$tag};
         }
-        $area->{match}  = $area_from_json->{match} if $area_from_json->{match};
-        $area->{type}   = $area_from_json->{type}   || 'match';
+        $area->{match} = $area_from_json->{match} if $area_from_json->{match};
+        $area->{type} = $area_from_json->{type} || 'match';
         $area->{margin} = $area_from_json->{margin} || 50;
         if (my $click_point = $area_from_json->{click_point}) {
             if ($got_click_point) {
@@ -132,8 +132,8 @@ sub save {
     }
     my $json = Cpanel::JSON::XS->new->pretty->utf8->canonical->encode(
         {
-            tags       => [sort(@{$self->{tags}})],
-            area       => \@area,
+            tags => [sort(@{$self->{tags}})],
+            area => \@area,
             properties => [$self->{properties}],
         });
     open(my $fh, '>', $fn);
@@ -184,7 +184,7 @@ sub _load_image {
     }
 
     return {
-        image      => $image,
+        image => $image,
         image_path => $image_path,
     };
 }
@@ -196,7 +196,7 @@ sub _load_image_with_caching {
     my ($self) = @_;
 
     # insert newly loaded image to cache or recycle previously cached image
-    my $image_path       = $self->{png};
+    my $image_path = $self->{png};
     my $image_cache_item = $image_cache{$image_path};
     if (!$image_cache_item) {
         my $new_image_cache_item = $self->_load_image($image_path);
@@ -216,8 +216,8 @@ sub clean_image_cache {
 
     # compute the number of images to delete
     my @cache_items = values %image_cache;
-    my $cache_size  = scalar @cache_items;
-    my $to_delete   = $cache_size - $limit;
+    my $cache_size = scalar @cache_items;
+    my $to_delete = $cache_size - $limit;
     return unless $to_delete > 0 && $to_delete <= $cache_size;
 
     # sort the cache items by their last use (ascending)
@@ -246,7 +246,7 @@ sub get_image {
     my ($self, $area) = @_;
 
     my $image = $self->_load_image_with_caching;
-    return undef  unless $image;
+    return undef unless $image;
     return $image unless $area;
     return $area->{img} //= $image->copyrect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height});
 }
@@ -307,7 +307,7 @@ sub init {
     $bmwqemu::vars{NEEDLES_GIT_HASH} = checkout_git_refspec($needles_dir => 'NEEDLES_GIT_REFSPEC');
 
     %needles = ();
-    %tags    = ();
+    %tags = ();
     bmwqemu::diag("init needles from $needles_dir");
     find({no_chdir => 1, wanted => \&wanted_, follow => 1}, $needles_dir);
     bmwqemu::diag(sprintf("loaded %d needles", scalar keys %needles));
@@ -321,10 +321,10 @@ sub needles_dir { $needles_dir; }
 sub set_needles_dir { ($needles_dir) = @_; }
 
 sub tags {
-    my ($wanted)  = @_;
-    my @wanted    = split(/ /, $wanted);
+    my ($wanted) = @_;
+    my @wanted = split(/ /, $wanted);
     my $first_tag = shift @wanted;
-    my $goods     = $tags{$first_tag};
+    my $goods = $tags{$first_tag};
 
     # go out early if there is nothing to do
     return $goods || [] unless $goods && @wanted;

@@ -22,8 +22,8 @@ chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 my $proc = Test::MockModule->new('OpenQA::Qemu::Proc');
-$proc->redefine(exec_qemu            => undef);
-$proc->redefine(connect_qmp          => undef);
+$proc->redefine(exec_qemu => undef);
+$proc->redefine(connect_qmp => undef);
 $proc->redefine(init_blockdev_images => undef);
 ok(my $backend = backend::qemu->new(), 'backend can be created');
 # disable any graphics display in tests
@@ -53,7 +53,7 @@ is($called{add_console}, 1, 'one console has been added');
 
 subtest 'using Open vSwitch D-Bus service' => sub {
     my $expected = qr/Open vSwitch command.*show.*arguments 'foo bar'.*(The name.*not provided|Failed to connect)/;
-    my $msg      = 'error about missing service';
+    my $msg = 'error about missing service';
     like exception { $backend->_dbus_call('show', 'foo', 'bar') }, $expected, $msg . ' in exception';
     $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 1;
     combined_like { ok($backend->_dbus_call('show', 'foo', 'bar'), 'failed dbus call ignored gracefully') } $expected, $msg;
@@ -72,18 +72,18 @@ is_deeply($called{handle_qmp_command}, [{execute => 'system_powerdown'}], 'power
 $called{handle_qmp_command} = undef;
 
 subtest 'eject cd' => sub {
-    my %default_eject_params  = (execute => 'eject',                  arguments => {id => 'cd0-device', force => Mojo::JSON->true});
+    my %default_eject_params = (execute => 'eject', arguments => {id => 'cd0-device', force => Mojo::JSON->true});
     my %default_remove_params = (execute => 'blockdev-remove-medium', arguments => {id => 'cd0-device'});
-    my %custom_eject_params   = (execute => 'eject',                  arguments => {id => 'cd1', force => Mojo::JSON->false});
-    my %custom_remove_params  = (execute => 'blockdev-remove-medium', arguments => {id => 'cd1'});
+    my %custom_eject_params = (execute => 'eject', arguments => {id => 'cd1', force => Mojo::JSON->false});
+    my %custom_remove_params = (execute => 'blockdev-remove-medium', arguments => {id => 'cd1'});
 
     $called{handle_qmp_command} = undef;
     $backend->eject_cd;
-    is_deeply $called{handle_qmp_command}[0], \%default_eject_params,  'eject called with correct defaults';
+    is_deeply $called{handle_qmp_command}[0], \%default_eject_params, 'eject called with correct defaults';
     is_deeply $called{handle_qmp_command}[1], \%default_remove_params, 'blockdev-remove-medium called with correct defaults';
     $called{handle_qmp_command} = undef;
     $backend->eject_cd({id => 'cd1', force => 0});
-    is_deeply $called{handle_qmp_command}[0], \%custom_eject_params,  'eject called with custom parameters';
+    is_deeply $called{handle_qmp_command}[0], \%custom_eject_params, 'eject called with custom parameters';
     is_deeply $called{handle_qmp_command}[1], \%custom_remove_params, 'blockdev-remove-medium called with custom parameters';
 };
 
@@ -101,7 +101,7 @@ Copyright 2003-2019 Fabrice Bellard and the QEMU Project developers
 qemu-system-x86_64: cannot set up guest memory 'pc.ram': Cannot allocate memory
 EOF
     my $expected = qr/\[debug\].*QEMU emulator version.*\[warn\].*Cannot allocate memory/s;
-    my $msg      = 'qemu output logged with distinct log levels';
+    my $msg = 'qemu output logged with distinct log levels';
     combined_like { backend::qemu::process_qemu_output($qemu_log) } $expected, $msg;
 };
 

@@ -14,10 +14,10 @@ use Time::HiRes 'usleep';
 use bmwqemu;
 use testapi qw(get_var get_required_var check_var);
 
-use constant SERIAL_CONSOLE_DEFAULT_PORT   => 0;
+use constant SERIAL_CONSOLE_DEFAULT_PORT => 0;
 use constant SERIAL_CONSOLE_DEFAULT_DEVICE => 'console';
 
-use constant SERIAL_TERMINAL_DEFAULT_PORT   => 1;
+use constant SERIAL_TERMINAL_DEFAULT_PORT => 1;
 use constant SERIAL_TERMINAL_DEFAULT_DEVICE => 'console';
 
 use Exporter 'import';
@@ -30,7 +30,7 @@ use constant SERIAL_TERMINAL_LOG_PATH => 'serial_terminal.txt';
 
 sub new {
     my $class = shift;
-    my $self  = $class->SUPER::new;
+    my $self = $class->SUPER::new;
     get_required_var('WORKER_HOSTNAME');
 
     return $self;
@@ -41,7 +41,7 @@ sub do_start_vm {
     my ($self) = @_;
 
     my $vars = \%bmwqemu::vars;
-    my $n    = $vars->{NUMDISKS} // 1;
+    my $n = $vars->{NUMDISKS} // 1;
     $vars->{NUMDISKS} //= defined($vars->{RAIDLEVEL}) ? 4 : $n;
     $self->truncate_serial_file;
     my $ssh = $testapi::distri->add_console(
@@ -95,7 +95,7 @@ sub scp_get {
     bmwqemu::log_call(@_);
 
     my %credentials = $self->get_ssh_credentials(check_var('VIRSH_VMM_FAMILY', 'hyperv') ? 'hyperv' : 'default');
-    my $ssh         = $self->new_ssh_connection(%credentials);
+    my $ssh = $self->new_ssh_connection(%credentials);
 
     open(my $fh, '>', $dest) or die "Could not open file '$dest' $!";
     bmwqemu::diag("SCP file: '$src' => '$dest'");
@@ -135,7 +135,7 @@ sub is_shutdown {
 sub save_snapshot {
     my ($self, $args) = @_;
     my $snapname = $args->{name};
-    my $vmname   = $self->console('svirt')->name;
+    my $vmname = $self->console('svirt')->name;
     my $rsp;
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
         my $ps = 'powershell -Command';
@@ -155,7 +155,7 @@ sub save_snapshot {
 sub load_snapshot {
     my ($self, $args) = @_;
     my $snapname = $args->{name};
-    my $vmname   = $self->console('svirt')->name;
+    my $vmname = $self->console('svirt')->name;
     my $rsp;
     my $post_load_snapshot_command = '';
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
@@ -176,7 +176,7 @@ sub load_snapshot {
     }
     else {
         my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
-        $rsp                        = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
+        $rsp = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
         $post_load_snapshot_command = 'vmware_fixup' if check_var('VIRSH_VMM_FAMILY', 'vmware');
     }
     bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
@@ -257,10 +257,10 @@ sub open_serial_console_via_ssh {
     my ($self, $name, %args) = @_;
     bmwqemu::log_call(name => $name, %args);
     my ($chan, $cmd, $cmd_full, $ret, $ssh, $stderr, $stdout);
-    my $port      = $args{port}    // '';
-    my $devname   = $args{devname} // '';
-    my $marker    = "CONSOLE_EXIT_" . get_required_var('JOBTOKEN') . ":";
-    my $log       = $self->serial_terminal_log_file();
+    my $port = $args{port} // '';
+    my $devname = $args{devname} // '';
+    my $marker = "CONSOLE_EXIT_" . get_required_var('JOBTOKEN') . ":";
+    my $log = $self->serial_terminal_log_file();
     my $max_tries = 10;
 
     if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {

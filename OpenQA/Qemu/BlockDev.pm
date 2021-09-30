@@ -144,7 +144,7 @@ creating.
 =cut
 sub gen_qemu_img_cmdlines ($self) {
     my $backing_file = $self->backing_file;
-    my @cmdlns       = defined $backing_file ? $backing_file->gen_qemu_img_cmdlines : ();
+    my @cmdlns = defined $backing_file ? $backing_file->gen_qemu_img_cmdlines : ();
     return @cmdlns unless $self->needs_creating;
 
     my @params = ('create', '-f', $self->driver);
@@ -171,12 +171,12 @@ sub gen_unlink_list ($self) {
 
 sub _to_map ($self) {
     return {driver => $self->driver,
-        file           => $self->file,
-        node_name      => $self->node_name,
-        size           => $self->size,
+        file => $self->file,
+        node_name => $self->node_name,
+        size => $self->size,
         needs_creating => $self->needs_creating,
-        implicit       => $self->implicit,
-        snapshot       => $self->snapshot->sequence};
+        implicit => $self->implicit,
+        snapshot => $self->snapshot->sequence};
 }
 
 sub _from_map ($self, $drives, $snap_conf) {

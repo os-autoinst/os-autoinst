@@ -46,10 +46,10 @@ uses two pipes to communicate with virtio_consoles from qemu.
 sub new {
     my ($class, $testapi_console, $args) = @_;
     my $self = $class->SUPER::new($testapi_console, $args);
-    $self->{fd_read}        = 0;
-    $self->{fd_write}       = 0;
-    $self->{pipe_prefix}    = $self->{args}->{socked_path} // cwd() . '/virtio_console';
-    $self->{snapshots}      = {};
+    $self->{fd_read} = 0;
+    $self->{fd_write} = 0;
+    $self->{pipe_prefix} = $self->{args}->{socked_path} // cwd() . '/virtio_console';
+    $self->{snapshots} = {};
     $self->{preload_buffer} = '';
     return $self;
 }
@@ -64,9 +64,9 @@ sub disable {
     if ($self->{fd_read} > 0) {
         close $self->{fd_read};
         close $self->{fd_write};
-        $self->{fd_read}  = 0;
+        $self->{fd_read} = 0;
         $self->{fd_write} = 0;
-        $self->{screen}   = undef;
+        $self->{screen} = undef;
     }
 }
 
@@ -74,7 +74,7 @@ sub save_snapshot {
     my ($self, $name) = @_;
 
     $self->set_snapshot($name, 'activated', $self->{activated});
-    $self->set_snapshot($name, 'buffer',    $self->{screen} ? $self->{screen}->peak() : $self->{preload_buffer});
+    $self->set_snapshot($name, 'buffer', $self->{screen} ? $self->{screen}->peak() : $self->{preload_buffer});
 }
 
 sub load_snapshot {
@@ -176,9 +176,9 @@ sub activate {
     my ($self) = @_;
     if (!check_var('VIRTIO_CONSOLE', 0)) {
         ($self->{fd_read}, $self->{fd_write}) = $self->open_pipe() unless ($self->{fd_read});
-        $self->{screen}                 = consoles::serial_screen::->new($self->{fd_read}, $self->{fd_write});
+        $self->{screen} = consoles::serial_screen::->new($self->{fd_read}, $self->{fd_write});
         $self->{screen}->{carry_buffer} = $self->{preload_buffer};
-        $self->{preload_buffer}         = '';
+        $self->{preload_buffer} = '';
     }
     else {
         croak 'VIRTIO_CONSOLE is set 0, so no virtio-serial and virtconsole devices will be available to use with this console.';

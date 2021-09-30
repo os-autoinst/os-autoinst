@@ -64,7 +64,7 @@ sub dell_sleep {
 
 sub restart_host {
     my ($self) = @_;
-    my $tries = 3;     # arbitrary selection of tries
+    my $tries = 3;    # arbitrary selection of tries
 
     my $stdout = $self->ipmitool('chassis power status', tries => $tries);
     if ($stdout !~ m/is off/) {
@@ -161,10 +161,10 @@ sub do_mc_reset {
             sleep $bmwqemu::vars{IPMI_MC_RESET_SLEEP_TIME_S} // 10;
             bmwqemu::diag("sleep ends, will do ping");
             # check until  mc reset is done and ipmi recovered
-            my $count      = 0;
-            my $timeout    = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT}    // ONE_MINUTE;
+            my $count = 0;
+            my $timeout = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT} // ONE_MINUTE;
             my $ping_count = $bmwqemu::vars{IPMI_MC_RESET_PING_COUNT} // 1;
-            my $ping_cmd   = "ping -c$ping_count '$bmwqemu::vars{IPMI_HOSTNAME}'";
+            my $ping_cmd = "ping -c$ping_count '$bmwqemu::vars{IPMI_HOSTNAME}'";
             my $ipmi_tries = $bmwqemu::vars{IPMI_MC_RESET_IPMI_TRIES} // 3;
             while ($count++ < $timeout) {
                 eval { system($ping_cmd); };

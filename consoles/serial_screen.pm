@@ -20,8 +20,8 @@ sub new {
         $self = bless {class => $class}, $class;
     }
 
-    $self->{fd_read}      = $fd_read;
-    $self->{fd_write}     = $fd_write // $fd_read;
+    $self->{fd_read} = $fd_read;
+    $self->{fd_write} = $fd_write // $fd_read;
     $self->{carry_buffer} = '';
 
     return $self;
@@ -88,8 +88,8 @@ sub type_string {
     my $text = $nargs->{text};
     my $term;
     for ($nargs->{terminate_with} || '') {
-        if    (/^ETX$/) { $term = "\cC"; }    #^C, Ctrl-c, End Of Text
-        elsif (/^EOT$/) { $term = "\cD"; }    #^D, Ctrl-d, End Of Transmission
+        if (/^ETX$/) { $term = "\cC"; }    #^C, Ctrl-c, End Of Text
+        elsif (/^EOT$/) { $term = "\cD"; } #^D, Ctrl-d, End Of Transmission
     }
 
     $text .= $term if defined $term;
@@ -159,7 +159,7 @@ sub do_read
 {
     my ($self, undef, %args) = @_;
     my $buffer = '';
-    $args{timeout}  //= undef;    # wait till data is available
+    $args{timeout} //= undef;    # wait till data is available
     $args{max_size} //= 2048;
     my $fd = $self->{fd_read};
 
@@ -220,11 +220,11 @@ on failure.
 =cut
 sub read_until {
     my ($self, $pattern, $timeout) = @_[0 .. 2];
-    my $fd       = $self->{fd_read};
-    my %nargs    = @_[3 .. $#_];
-    my $buflen   = $nargs{buffer_size} || 4096;
+    my $fd = $self->{fd_read};
+    my %nargs = @_[3 .. $#_];
+    my $buflen = $nargs{buffer_size} || 4096;
     my $overflow = $nargs{record_output} ? '' : undef;
-    my $sttime   = thetime();
+    my $sttime = thetime();
     my ($rbuf, $buf) = ($self->{carry_buffer}, '');
     my $loops = 0;
     my ($prematch, $match);
@@ -243,8 +243,8 @@ sub read_until {
             for my $p (@$re) {
                 my $i = index($rbuf, $p);
                 if ($i >= 0) {
-                    $match                = substr $rbuf, $i, length($p);
-                    $prematch             = substr $rbuf, 0, $i;
+                    $match = substr $rbuf, $i, length($p);
+                    $prematch = substr $rbuf, 0, $i;
                     $self->{carry_buffer} = substr $rbuf, $i + length($p);
                     last READ;
                 }
@@ -252,8 +252,8 @@ sub read_until {
         }
         elsif ($rbuf =~ m/$re/) {
             # See match variable perf issues: http://bit.ly/2dbGrzo
-            $prematch             = substr $rbuf, 0, $LAST_MATCH_START[0];
-            $match                = substr $rbuf, $LAST_MATCH_START[0], $LAST_MATCH_END[0] - $LAST_MATCH_START[0];
+            $prematch = substr $rbuf, 0, $LAST_MATCH_START[0];
+            $match = substr $rbuf, $LAST_MATCH_START[0], $LAST_MATCH_END[0] - $LAST_MATCH_START[0];
             $self->{carry_buffer} = substr $rbuf, $LAST_MATCH_END[0];
             last READ;
         }
@@ -301,9 +301,9 @@ no information available about what data is expected to be available.
 =cut
 sub peak {
     my ($self, %nargs) = @_;
-    my $buflen     = $nargs{buffer_size} || 4096;
+    my $buflen = $nargs{buffer_size} || 4096;
     my $total_read = 0;
-    my $buf        = '';
+    my $buf = '';
     my $read;
 
     bmwqemu::log_call(%nargs);

@@ -21,7 +21,7 @@ require tinycv;
 
 my ($res, $needle, $image, $cand, $img_src);
 
-my $data_dir   = "$Bin/data";
+my $data_dir = "$Bin/data";
 my $result_dir = "$data_dir/results";
 
 make_path($result_dir);

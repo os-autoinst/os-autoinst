@@ -12,15 +12,15 @@ use OpenQA::Test::TimeLimit '5';
 use Test::Warnings ':report_warnings';
 
 use Mojo::File 'tempdir';
-my $tmpdir    = tempdir("/tmp/$FindBin::Script-XXXX");
-my $git_dir   = "$tmpdir/tmpgitrepo";
+my $tmpdir = tempdir("/tmp/$FindBin::Script-XXXX");
+my $git_dir = "$tmpdir/tmpgitrepo";
 my $clone_dir = "$Bin/tmpgitrepo";
 
 chdir $Bin;
 
-my $head        = initialize_git_repo();
+my $head = initialize_git_repo();
 my $case_dir_ok = "file://$git_dir#$head";
-my $case_dir    = "file://$git_dir#abcdef";
+my $case_dir = "file://$git_dir#abcdef";
 
 subtest 'failing clone' => sub {
     %bmwqemu::vars = (
@@ -32,7 +32,7 @@ subtest 'failing clone' => sub {
     };
     my $error = $@;
     like $error, qr{Could not find 'abcdef' in complete history in cloned Git repository '\Q$case_dir\E'}, "Error message when trying to clone wrong git hash";
-    like $out,   qr{Cloning git URL.*Fetching more remote objects.*git fetch:}s,                           'git fetch was called to get more commits';
+    like $out, qr{Cloning git URL.*Fetching more remote objects.*git fetch:}s, 'git fetch was called to get more commits';
 };
 
 cleanup();

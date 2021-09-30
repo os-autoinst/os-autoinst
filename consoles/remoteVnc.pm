@@ -23,8 +23,8 @@ sub activate {
         {
             hostname => get_var("PARMFILE")->{Hostname},
             password => get_var("DISPLAY")->{PASSWORD},
-            port     => 5901,
-            ikvm     => 0,
+            port => 5901,
+            ikvm => 0,
         });
 }
 

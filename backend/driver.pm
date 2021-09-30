@@ -27,7 +27,7 @@ sub new {
     my $self = bless({class => $class}, $class);
 
     require "backend/$name.pm";
-    $self->{backend}      = "backend::$name"->new();
+    $self->{backend} = "backend::$name"->new();
     $self->{backend_name} = $name;
 
     session->on(
@@ -48,14 +48,14 @@ sub start {
     open(my $STDERRPARENT, '>&', *STDERR);
 
     my $backend_process = process(
-        sleeptime_during_kill       => .1,
+        sleeptime_during_kill => .1,
         total_sleeptime_during_kill => 30,
-        max_kill_attempts           => 1,
-        kill_sleeptime              => 0,
-        blocking_stop               => 1,
-        separate_err                => 0,
-        subreaper                   => 1,
-        code                        => sub {
+        max_kill_attempts => 1,
+        kill_sleeptime => 0,
+        blocking_stop => 1,
+        separate_err => 0,
+        subreaper => 1,
+        code => sub {
             my $process = shift;
             $0 = "$0: backend";
 
@@ -76,7 +76,7 @@ sub start {
     $backend_process->on(collected => sub { bmwqemu::diag("backend process exited: " . shift->exit_status) });
 
     bmwqemu::diag("$$: channel_out " . fileno($backend_process->channel_out) . ', channel_in ' . fileno($backend_process->channel_in));
-    $self->{backend_pid}     = $backend_process->pid;
+    $self->{backend_pid} = $backend_process->pid;
     $self->{backend_process} = $backend_process;
 }
 
@@ -89,9 +89,9 @@ sub stop {
     my ($self, $cmd) = @_;
     return unless $self->{backend_process}->is_running;
 
-    $self->stop_backend()                        if $self->{backend_process}->channel_out;
+    $self->stop_backend() if $self->{backend_process}->channel_out;
     close($self->{backend_process}->channel_out) if $self->{backend_process}->channel_out;
-    close($self->{backend_process}->channel_in)  if $self->{backend_process}->channel_in;
+    close($self->{backend_process}->channel_in) if $self->{backend_process}->channel_in;
     $self->{backend_process}->channel_in(undef);
     $self->{backend_process}->channel_out(undef);
     $self->{backend_process}->stop;
@@ -137,7 +137,7 @@ sub _send_json {
     my ($self, $cmd) = @_;
     croak "no backend running" unless $self->{backend_process}->channel_in;
     my $token = myjsonrpc::send_json($self->{backend_process}->channel_in, $cmd);
-    my $rsp   = myjsonrpc::read_json($self->{backend_process}->channel_out, $token);
+    my $rsp = myjsonrpc::read_json($self->{backend_process}->channel_out, $token);
 
     return $rsp->{rsp} if defined $rsp;
     # this might have been closed by signal handler

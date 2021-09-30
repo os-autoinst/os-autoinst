@@ -43,11 +43,11 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
 
     $args{clone_depth} //= 1;
 
-    my $branch      = $url->fragment;
-    my $clone_url   = $url->fragment(undef)->to_string;
-    my $local_path  = $url->path->parts->[-1] =~ s/\.git$//r;
-    my $clone_cmd   = 'env GIT_SSH_COMMAND="ssh -oBatchMode=yes" git clone';
-    my $clone_args  = "--depth $args{clone_depth}";
+    my $branch = $url->fragment;
+    my $clone_url = $url->fragment(undef)->to_string;
+    my $local_path = $url->path->parts->[-1] =~ s/\.git$//r;
+    my $clone_cmd = 'env GIT_SSH_COMMAND="ssh -oBatchMode=yes" git clone';
+    my $clone_args = "--depth $args{clone_depth}";
     my $branch_args = '';
     my ($return_code, @out);
     my $handle_output = sub {
@@ -60,7 +60,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     }
     if (!-e $local_path) {
         bmwqemu::diag "Cloning git URL '$clone_url' to use as test distribution";
-        @out         = qx{$clone_cmd $clone_args $branch_args $clone_url 2>&1};
+        @out = qx{$clone_cmd $clone_args $branch_args $clone_url 2>&1};
         $return_code = $?;
         if ($branch && grep /warning: Could not find remote branch/, @out) {
             # maybe we misspelled or maybe someone gave a commit hash instead
@@ -70,12 +70,12 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
             # * https://stackoverflow.com/questions/18515488/how-to-check-if-the-commit-exists-in-a-git-repository-by-its-sha-1
             # * https://stackoverflow.com/questions/26135216/why-isnt-there-a-git-clone-specific-commit-option
             bmwqemu::diag "Fetching more remote objects to ensure availability of '$branch'";
-            @out         = qx{$clone_cmd $clone_args $clone_url 2>&1};
+            @out = qx{$clone_cmd $clone_args $clone_url 2>&1};
             $return_code = $?;
             $handle_output->();
             while (qx[git -C $local_path cat-file -e $branch^{commit} 2>&1] =~ /Not a valid object/) {
                 $args{clone_depth} *= 2;
-                @out         = qx[git -C $local_path fetch --progress --depth=$args{clone_depth} 2>&1];
+                @out = qx[git -C $local_path fetch --progress --depth=$args{clone_depth} 2>&1];
                 $return_code = $?;
                 bmwqemu::diag "git fetch: @out";
                 die "Unable to fetch Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
@@ -132,19 +132,19 @@ sub handle_generated_assets ($command_handler, $clean_shutdown) {
     my $nd = $bmwqemu::vars{NUMDISKS};
     if ($command_handler->test_completed) {
         for my $i (1 .. $nd) {
-            my $dir  = 'assets_private';
+            my $dir = 'assets_private';
             my $name = $bmwqemu::vars{"STORE_HDD_$i"} || undef;
             unless ($name) {
                 $name = $bmwqemu::vars{"PUBLISH_HDD_$i"} || undef;
-                $dir  = 'assets_public';
+                $dir = 'assets_public';
             }
             next unless $name;
             push @toextract, _store_asset($i, $name, $dir);
         }
         if ($bmwqemu::vars{UEFI} && $bmwqemu::vars{PUBLISH_PFLASH_VARS}) {
             push(@toextract, {pflash_vars => 1,
-                    name   => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
-                    dir    => 'assets_public',
+                    name => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
+                    dir => 'assets_public',
                     format => 'qcow2'});
         }
         if (@toextract && !$clean_shutdown) {
@@ -188,7 +188,7 @@ sub load_test_schedule {
         $bmwqemu::vars{INCLUDE_MODULES} = 'none';
     }
     my $productdir = $bmwqemu::vars{PRODUCTDIR};
-    my $main_path  = path($productdir, 'main.pm');
+    my $main_path = path($productdir, 'main.pm');
     try {
         if (-e $main_path) {
             unshift @INC, '.';

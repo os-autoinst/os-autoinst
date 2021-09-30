@@ -13,7 +13,7 @@ use testapi qw(get_var get_required_var);
 
 sub new {
     my $class = shift;
-    my $self  = $class->SUPER::new;
+    my $self = $class->SUPER::new;
     get_required_var('WORKER_HOSTNAME');
 
     return $self;
@@ -28,9 +28,9 @@ sub do_start_vm {
         'novalink-ssh',
         'ssh-xterm',
         {
-            hostname   => get_required_var('NOVALINK_HOSTNAME'),
-            password   => get_required_var('NOVALINK_PASSWORD'),
-            username   => get_var('NOVALINK_USERNAME', 'root'),
+            hostname => get_required_var('NOVALINK_HOSTNAME'),
+            password => get_required_var('NOVALINK_PASSWORD'),
+            username => get_var('NOVALINK_USERNAME', 'root'),
             persistent => 1});
     $ssh->backend($self);
 
@@ -81,12 +81,12 @@ sub stop_serial_grab {
 sub power {
     # parameters: on, off, reset
     my ($self, $args) = @_;
-    my $action  = $args->{action};
+    my $action = $args->{action};
     my $lpar_id = get_required_var('NOVALINK_LPAR_ID');
 
     my %cmds = (
-        on    => "pvmctl lpar power-on -i id=${lpar_id} --bootmode norm",
-        off   => "pvmctl lpar power-off -i id=${lpar_id} --hard",
+        on => "pvmctl lpar power-on -i id=${lpar_id} --bootmode norm",
+        off => "pvmctl lpar power-off -i id=${lpar_id} --hard",
         reset => "pvmctl lpar restart -i id=${lpar_id}");
     $self->run_cmd($cmds{$action}) if (exists($cmds{$action})) || die "Unknown power action ${action}";
 }

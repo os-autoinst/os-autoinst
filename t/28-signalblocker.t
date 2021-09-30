@@ -61,7 +61,7 @@ cmp_ok(thread_count, '<=', $last_thread_count, 'no new threads after searching f
 # send a lot of SIGTERMs to ourselves; expect no crashes
 # notes: Not simply using Perl's kill function here because using that I've never been able to actually observe
 #        any crashes without the signal blocker in place (OS_AUTOINST_TEST_NO_SIGNAL_BLOCKER=1).
-my $pid     = $$;
+my $pid = $$;
 my $timeout = 5;
 exec bash => '-e', '-c', "for i in {1..100}; do echo \"# sending SIGTERM \$i\" && kill $pid; done" unless my $fork = fork;
 waitpid $fork, 0;

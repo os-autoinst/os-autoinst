@@ -33,14 +33,14 @@ END
     script_run 'alias bash=sh', 0;
     my $out = script_output('mount');
     die "mount does not show any mount points? output: $out" unless $out =~ /.*\/.*on/;
-    die "^rootfs not found. output: $out"                    unless $out =~ qr{^rootfs};
-    die "tmpfs on /dev/shm not found. output: $out"          unless $out =~ qr{tmpfs on /dev/shm};
+    die "^rootfs not found. output: $out" unless $out =~ qr{^rootfs};
+    die "tmpfs on /dev/shm not found. output: $out" unless $out =~ qr{tmpfs on /dev/shm};
 
-    type_string("echo do not wait_still_screen\n",                         max_interval      => 50, wait_still_screen => 0);
-    type_string("echo type string and wait for .2 seconds\n",              wait_still_screen => .2);
-    type_string("echo test\necho wait\necho 1se\n",                        max_interval      => 100, wait_screen_changes => 11, wait_still_screen => 1);
-    type_string("echo test if wait_screen_change functions as expected\n", max_interval      => 150, wait_screen_changes => 11, wait_still_screen => 1);
-    type_string("echo wait_still_screen for .1 seconds\n",                 max_interval      => 200, wait_still_screen   => .1);
+    type_string("echo do not wait_still_screen\n", max_interval => 50, wait_still_screen => 0);
+    type_string("echo type string and wait for .2 seconds\n", wait_still_screen => .2);
+    type_string("echo test\necho wait\necho 1se\n", max_interval => 100, wait_screen_changes => 11, wait_still_screen => 1);
+    type_string("echo test if wait_screen_change functions as expected\n", max_interval => 150, wait_screen_changes => 11, wait_still_screen => 1);
+    type_string("echo wait_still_screen for .1 seconds\n", max_interval => 200, wait_still_screen => .1);
     type_string("echo 'ignore \\r'\r\n");
 
 }

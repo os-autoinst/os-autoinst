@@ -27,8 +27,8 @@ use bmwqemu ();
 our $VERSION;
 
 $testapi::password = 'd*97Jlk/.d';
-my $socket_path       = './virtio_console';
-my $sharefile         = "$Bin/fork-share.txt";
+my $socket_path = './virtio_console';
+my $sharefile = "$Bin/fork-share.txt";
 my $login_prompt_data = <<'FIN.';
 
 
@@ -37,35 +37,35 @@ Welcome to SUSE Linux Enterprise Server 12 SP2 RC3 (x86_64) - Kernel 4.4.21-65-d
 FIN.
 $login_prompt_data .= 'linux-5rw7 login: ';
 my $user_name_prompt_data = "login: ";
-my $user_name_data        = "root\n";
-my $password_prompt_data  = 'Password: ';
-my $password_data         = "$testapi::password\n";
+my $user_name_data = "root\n";
+my $password_prompt_data = 'Password: ';
+my $password_data = "$testapi::password\n";
 # Contains some ANSI/XTERM escape sequences
-my $first_prompt_data      = "\e[1mlinux-5rw7:~ #\e[0m\e(B";
-my $set_prompt_data        = qq/PS1="# "\n/;
+my $first_prompt_data = "\e[1mlinux-5rw7:~ #\e[0m\e(B";
+my $set_prompt_data = qq/PS1="# "\n/;
 my $normalised_prompt_data = '# ';
-my $C0_EOT                 = "\cD";
-my $C0_ETX                 = "\cC";
-my $C1_control_code        = qq(\eQ\n);
-my $US_keyboard_data       = <<'FIN.';
+my $C0_EOT = "\cD";
+my $C0_ETX = "\cC";
+my $C1_control_code = qq(\eQ\n);
+my $US_keyboard_data = <<'FIN.';
 !@\#$%^&*()-_+={}[]|:;"'<>,.?/~`
 abcdefghijklmnopqrstuvwxyz
 ABCDEFGHIJKLMNOPQRSTUVWXYZ
 0123456789
 FIN.
-my $stop_code_data        = "FIN.\n";
+my $stop_code_data = "FIN.\n";
 my $repeat_sequence_count = 1000;
-my $next_test             = "GOTO NEXT\n";
+my $next_test = "GOTO NEXT\n";
 
 # If test keeps timing out, this can be increased or you can add more calls to
 # alarm in fake terminal
 my $timeout = 10;
 
-my ($logfd, $log_path) = tempfile('10-terminalXXXXX',       TMPDIR => 1, SUFFIX => '.log');
+my ($logfd, $log_path) = tempfile('10-terminalXXXXX', TMPDIR => 1, SUFFIX => '.log');
 my ($errfd, $err_path) = tempfile('10-terminal-ERRORXXXXX', TMPDIR => 1, SUFFIX => '.log');
 
 $bmwqemu::direct_output = 0;
-$bmwqemu::logger        = Mojo::Log->new(path => $err_path);
+$bmwqemu::logger = Mojo::Log->new(path => $err_path);
 
 # Either write $msg to the socket or die
 sub try_write ($fd, $msg) {
@@ -176,7 +176,7 @@ sub fake_terminal ($pipe_in, $pipe_out) {
 
     report_child_test(ok => try_read($fd_r, $fd_w, $C0_EOT), 'fake_terminal reads: C0 EOT control code');
     report_child_test(ok => try_read($fd_r, $fd_w, $C0_ETX), 'fake_terminal reads: C0 ETX control code');
-    report_child_test(ok => try_read($fd_r, $fd_w, "\n"),    'fake_terminal reads: ret');
+    report_child_test(ok => try_read($fd_r, $fd_w, "\n"), 'fake_terminal reads: ret');
     try_write($fd_w, $login_prompt_data);
 
     alarm $timeout;
@@ -256,10 +256,10 @@ sub test_terminal_directly () {
 
     my $result = $scrn->read_until(
         $stop_code_data, $timeout,
-        no_regex    => 1,
+        no_regex => 1,
         buffer_size => 256
     );
-    report_child_test(is   => length($result->{string}), 256,                               'direct: returned data is same length as buffer');
+    report_child_test(is => length($result->{string}), 256, 'direct: returned data is same length as buffer');
     report_child_test(like => $result->{string}, qr/\Q$US_keyboard_data\E$stop_code_data$/, 'direct: read a large amount of data with small ring buffer');
     type_string($next_test);
 
@@ -310,7 +310,7 @@ sub test_terminal_disabled () {
 
 # Called after waitpid to check child's exit
 sub check_child ($child, $expected_exit_status = 0) {
-    my $exited      = WIFEXITED($CHILD_ERROR);
+    my $exited = WIFEXITED($CHILD_ERROR);
     my $exit_status = WEXITSTATUS($CHILD_ERROR);
 
     ok($exited, "$child process exits cleanly");
@@ -323,7 +323,7 @@ sub check_child ($child, $expected_exit_status = 0) {
 # so wait for fake terminal to create socket and emit SIGCONT. Sigsuspend only
 # returns if a signal is received which has a handler set. We must initially
 # block the signal in case SIGCONT is emitted before we reach sigsuspend.
-my $pipe_in  = $socket_path . ".in";
+my $pipe_in = $socket_path . ".in";
 my $pipe_out = $socket_path . ".out";
 
 for (($pipe_in, $pipe_out)) {

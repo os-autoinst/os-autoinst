@@ -16,10 +16,10 @@ use Mojo::Util qw(scope_guard);
 use OpenQA::Isotovideo::Utils qw(load_test_schedule handle_generated_assets);
 use OpenQA::Isotovideo::CommandHandler;
 
-my $dir          = tempdir("/tmp/$FindBin::Script-XXXX");
+my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
-my $data_dir     = "$toplevel_dir/t/data";
-my $pool_dir     = "$dir/pool";
+my $data_dir = "$toplevel_dir/t/data";
+my $pool_dir = "$dir/pool";
 chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
@@ -27,13 +27,13 @@ mkdir $pool_dir;
 sub isotovideo {
     my (%args) = @_;
     $args{default_opts} //= 'backend=null';
-    $args{opts}         //= '';
-    $args{exit_code}    //= 1;
+    $args{opts} //= '';
+    $args{exit_code} //= 1;
     my @cmd = ($^X, "$toplevel_dir/isotovideo", '-d', $args{default_opts}, split(' ', $args{opts}));
     note "Starting isotovideo with: @cmd";
     my $output = qx(@cmd);
-    my $res    = $?;
-    return fail 'failed to execute isotovideo: ' . $!         if $res == -1;    # uncoverable statement
+    my $res = $?;
+    return fail 'failed to execute isotovideo: ' . $! if $res == -1;    # uncoverable statement
     return fail 'isotovideo died with signal ' . ($res & 127) if $res & 127;    # uncoverable statement
     is $res >> 8, $args{exit_code}, 'isotovideo exit code';
     return $output;
@@ -68,7 +68,7 @@ EOV
 subtest 'isotovideo with custom git repo parameters specified' => sub {
     chdir($pool_dir);
     my $base_state = path(bmwqemu::STATE_FILE);
-    $base_state->remove       if -e $base_state;
+    $base_state->remove if -e $base_state;
     path('vars.json')->remove if -e 'vars.json';
     path('repo.git')->make_path;
     my $git_init_output = qx{git init -q --bare repo.git 2>&1};
@@ -78,11 +78,11 @@ subtest 'isotovideo with custom git repo parameters specified' => sub {
     remove_tree('repo');
     my $log = combined_from { isotovideo(
             opts => "casedir=file://$pool_dir/repo.git#foo needles_dir=$data_dir _exit_after_schedule=1") };
-    like $log,   qr/Cloning into 'repo'/, 'repo picked up';
-    like $log,   qr{git URL.*/repo},      'git repository attempted to be cloned';
-    like $log,   qr/branch.*foo/,         'branch in git repository attempted to be checked out';
-    like $log,   qr/fatal:.*/,            'fatal Git error logged';
-    unlike $log, qr/No scripts/,          'execution of isotovideo aborted; no follow-up error about empty CASEDIR produced';
+    like $log, qr/Cloning into 'repo'/, 'repo picked up';
+    like $log, qr{git URL.*/repo}, 'git repository attempted to be cloned';
+    like $log, qr/branch.*foo/, 'branch in git repository attempted to be checked out';
+    like $log, qr/fatal:.*/, 'fatal Git error logged';
+    unlike $log, qr/No scripts/, 'execution of isotovideo aborted; no follow-up error about empty CASEDIR produced';
 
     subtest 'fatal error recorded for passing as reason' => sub {
         my $state = decode_json($base_state->slurp);
@@ -105,30 +105,30 @@ subtest 'productdir variable relative/absolute' => sub {
     unlink('vars.json') if -e 'vars.json';
     combined_like { isotovideo(
             opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=$data_dir/tests") } qr/\d* scheduling.*shutdown/, 'schedule has been evaluated';
-    mkdir('product')                                                    unless -e 'product';
-    mkdir('product/foo')                                                unless -e 'product/foo';
+    mkdir('product') unless -e 'product';
+    mkdir('product/foo') unless -e 'product/foo';
     symlink("$data_dir/tests/main.pm", "$pool_dir/product/foo/main.pm") unless -e "$pool_dir/product/foo/main.pm";
     combined_like { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product/foo") } qr/\d* scheduling.*shutdown/, 'schedule can still be found';
     unlink("$pool_dir/product/foo/main.pm");
-    mkdir("$data_dir/tests/product")                                      unless -e "$data_dir/tests/product";
+    mkdir("$data_dir/tests/product") unless -e "$data_dir/tests/product";
     symlink("$data_dir/tests/main.pm", "$data_dir/tests/product/main.pm") unless -e "$data_dir/tests/product/main.pm";
     # additionally testing correct schedule for our "integration tests" mode
     my $log = combined_from { isotovideo(opts => "casedir=$data_dir/tests _exit_after_schedule=1 productdir=product integration_tests=1") };
-    like $log,   qr/\d* scheduling.*shutdown/, 'schedule can still be found for productdir relative to casedir';
-    unlike $log, qr/assert_screen_fail_test/,  'assert screen test not scheduled';
+    like $log, qr/\d* scheduling.*shutdown/, 'schedule can still be found for productdir relative to casedir';
+    unlike $log, qr/assert_screen_fail_test/, 'assert screen test not scheduled';
 };
 
 subtest 'upload assets on demand even in failed jobs' => sub {
     chdir($pool_dir);
     path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
-    path('vars.json')->remove         if -e 'vars.json';
+    path('vars.json')->remove if -e 'vars.json';
     my $module = 'tests/failing_module';
-    my $log    = combined_from { isotovideo(
+    my $log = combined_from { isotovideo(
             opts => "casedir=$data_dir/tests schedule=$module force_publish_hdd_1=foo.qcow2 qemu_no_kvm=1 arch=i386 backend=qemu qemu=i386", exit_code => 0) };
     like $log, qr/scheduling failing_module $module\.pm/, 'module scheduled';
-    like $log, qr/qemu-img.*foo.qcow2/,                   'requested image is published even though the job failed';
+    like $log, qr/qemu-img.*foo.qcow2/, 'requested image is published even though the job failed';
     ok(-e $pool_dir . '/assets_public/foo.qcow2', 'published image exists');
-    ok(!-e $pool_dir . '/base_state.json',        'no fatal error recorded');
+    ok(!-e $pool_dir . '/base_state.json', 'no fatal error recorded');
 };
 
 # mock backend/driver
@@ -149,10 +149,10 @@ subtest 'upload assets on demand even in failed jobs' => sub {
 
 subtest 'upload the asset even in an incomplete job' => sub {
     my $command_handler = OpenQA::Isotovideo::CommandHandler->new();
-    $bmwqemu::vars{BACKEND}             = 'qemu';
-    $bmwqemu::vars{NUMDISKS}            = 1;
+    $bmwqemu::vars{BACKEND} = 'qemu';
+    $bmwqemu::vars{NUMDISKS} = 1;
     $bmwqemu::vars{FORCE_PUBLISH_HDD_1} = 'force_publish_test.qcow2';
-    $bmwqemu::vars{PUBLISH_HDD_1}       = 'publish_test.qcow2';
+    $bmwqemu::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
     $command_handler->test_completed(0);
     $bmwqemu::backend = FakeBackendDriver->new('qemu');
     my $return_code;
@@ -162,7 +162,7 @@ subtest 'upload the asset even in an incomplete job' => sub {
     my $base_state = path(bmwqemu::STATE_FILE);
     is $return_code, 0, 'The asset was uploaded successfully' or die $base_state->slurp;
     my $force_publish_asset = $pool_dir . '/assets_public/force_publish_test.qcow2';
-    ok(-e $force_publish_asset,                             'test.qcow2 image exists');
+    ok(-e $force_publish_asset, 'test.qcow2 image exists');
     ok(!-e $pool_dir . '/assets_public/publish_test.qcow2', 'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
 };
 
@@ -196,17 +196,17 @@ subtest 'error handling when loading test schedule' => sub {
 subtest 'load test success when casedir and productdir are relative path' => sub {
     chdir($pool_dir);
     path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
-    path('vars.json')->remove         if -e 'vars.json';
-    mkdir('my_cases')                                                   unless -e 'my_cases';
-    symlink("$data_dir/tests/lib", 'my_cases/lib')                      unless -e 'my_cases/lib';
-    mkdir('my_cases/products')                                          unless -e 'my_cases/products';
-    mkdir('my_cases/products/foo')                                      unless -e 'my_cases/foo';
-    symlink("$data_dir/tests/tests", 'my_cases/tests')                  unless -e 'my_cases/tests';
+    path('vars.json')->remove if -e 'vars.json';
+    mkdir('my_cases') unless -e 'my_cases';
+    symlink("$data_dir/tests/lib", 'my_cases/lib') unless -e 'my_cases/lib';
+    mkdir('my_cases/products') unless -e 'my_cases/products';
+    mkdir('my_cases/products/foo') unless -e 'my_cases/foo';
+    symlink("$data_dir/tests/tests", 'my_cases/tests') unless -e 'my_cases/tests';
     symlink("$data_dir/tests/needles", 'my_cases/products/foo/needles') unless -e 'my_cases/products/foo/needles';
     my $module = 'tests/failing_module';
-    my $log    = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) };
+    my $log = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) };
     like $log, qr/scheduling failing_module/, 'schedule can still be found';
-    like $log, qr/\d* loaded 4 needles/,      'loaded needles successfully';
+    like $log, qr/\d* loaded 4 needles/, 'loaded needles successfully';
 };
 
 done_testing();
