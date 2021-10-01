@@ -8,6 +8,7 @@ use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_like combined_from);
 use Test::Exception;
 use Test::Fatal;
+use Test::Warnings qw(:report_warnings warning);
 use Test::MockModule;
 use File::Basename ();
 use File::Path 'rmtree';
@@ -22,11 +23,11 @@ my @sent;
 
 
 like(exception { autotest::runalltests }, qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first');
-stderr_like {
+like warning {
     like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest.*does not match required pattern/,
         'loadtest catches incorrect test script paths')
-}
-qr/loadtest needs a script below.*is not/,
+},
+  qr/loadtest needs a script below.*is not/,
   'loadtest outputs on stderr';
 
 sub loadtest {
@@ -67,7 +68,7 @@ my $completed;
 # we have to define this to *something* so the `close` in run_all
 # doesn't crash us
 $autotest::isotovideo = 'foo';
-stderr_like { autotest::run_all } qr/ERROR: no tests loaded/, 'run_all outputs status on stderr';
+like warning { autotest::run_all }, qr/ERROR: no tests loaded/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died,      1, 'run_all with no tests should catch runalltests dying');
 is($completed, 0, 'run_all with no tests should not complete');
@@ -336,7 +337,7 @@ is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"),               
 subtest 'load test successfully when CASEDIR is a relative path' => sub {
     symlink($bmwqemu::vars{CASEDIR}, 'foo');
     $bmwqemu::vars{CASEDIR} = 'foo';
-    loadtest 'start';
+    like warning { loadtest 'start' }, qr{Subroutine run redefined}, 'We get a warning for loading a test a second time';
 };
 
 stderr_like { autotest::loadtest('tests/test.py') } qr{scheduling test tests/test.py}, 'can load python test module at all';
