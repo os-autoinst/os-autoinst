@@ -393,18 +393,16 @@ sub _server_initialization {
     my $socket = $self->socket;
     $socket->read(my $server_init, 24) || die 'unexpected end of data';
 
-    #<<< tidy off
-    my ( $framebuffer_width, $framebuffer_height,
-	 $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
-	 %pixinfo,
-	 $name_length );
-    ( $framebuffer_width,  $framebuffer_height,
-      $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
-      $pixinfo{red_max},   $pixinfo{green_max},   $pixinfo{blue_max},
-      $pixinfo{red_shift}, $pixinfo{green_shift}, $pixinfo{blue_shift},
-      $name_length
+    my ($framebuffer_width, $framebuffer_height,
+        $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
+        %pixinfo,
+        $name_length);
+    ($framebuffer_width, $framebuffer_height,
+        $bits_per_pixel,     $depth,                $server_is_big_endian, $true_colour_flag,
+        $pixinfo{red_max},   $pixinfo{green_max},   $pixinfo{blue_max},
+        $pixinfo{red_shift}, $pixinfo{green_shift}, $pixinfo{blue_shift},
+        $name_length
     ) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
-    #>>> tidy on
 
     if (!$self->depth) {
 
@@ -892,7 +890,6 @@ sub _receive_message {
     $message_type = unpack('C', $message_type);
     #print "receive message $message_type\n";
 
-    #<<< tidy off
     # This result is unused.  It's meaning is different for the different methods
     my $result
       = !defined $message_type ? die 'bad message type received'
@@ -901,13 +898,12 @@ sub _receive_message {
       : $message_type == 2     ? $self->_receive_bell()
       : $message_type == 3     ? $self->_receive_cut_text()
       : $message_type == 0x39  ? $self->_receive_ikvm_session()
-      : $message_type == 0x04 ? $self->_discard_ikvm_message($message_type, 20)
-      : $message_type == 0x16 ? $self->_discard_ikvm_message($message_type, 1)
-      : $message_type == 0x33 ? $self->_discard_ikvm_message($message_type, 4)
-      : $message_type == 0x37 ? $self->_discard_ikvm_message($message_type, $self->old_ikvm ? 2 : 3)
-      : $message_type == 0x3c ? $self->_discard_ikvm_message($message_type, 8)
-      :                         die 'unsupported message type received';
-    #>>> tidy on
+      : $message_type == 0x04  ? $self->_discard_ikvm_message($message_type, 20)
+      : $message_type == 0x16  ? $self->_discard_ikvm_message($message_type, 1)
+      : $message_type == 0x33  ? $self->_discard_ikvm_message($message_type, 4)
+      : $message_type == 0x37  ? $self->_discard_ikvm_message($message_type, $self->old_ikvm ? 2 : 3)
+      : $message_type == 0x3c  ? $self->_discard_ikvm_message($message_type, 8)
+      :                          die 'unsupported message type received';
     return $message_type;
 }
 
@@ -1232,4 +1228,4 @@ under the same terms as Perl itself.
 Copyright (C) 2014-2017 Stephan Kulow (coolo@suse.de)
 adapted to be purely useful for qemu/openqa
 
-Copyright © 2017-2020 SUSE LLC
+Copyright © 2017-2021 SUSE LLC
