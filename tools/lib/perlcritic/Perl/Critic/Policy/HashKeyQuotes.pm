@@ -1,6 +1,6 @@
 package Perl::Critic::Policy::HashKeyQuotes;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 use Perl::Critic::Utils qw( :severities :classification :ppi );
 use base 'Perl::Critic::Policy';
@@ -14,9 +14,7 @@ sub applies_to       { return qw(PPI::Token::Quote::Single PPI::Token::Quote::Do
 # check that hashes are not overly using quotes
 # (os-autoinst coding style)
 
-sub violates {
-    my ($self, $elem) = @_;
-
+sub violates ($self, $elem, $) {
     #we only want the check hash keys
     return if !is_hash_key($elem);
 
