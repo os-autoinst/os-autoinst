@@ -1,3 +1,7 @@
+# Workaround needed for handling non-ASCII in files.
+# # See <https://github.com/houseabsolute/perl-code-tidyall/issues/84>.
+--character-encoding=none
+--no-valign
 # 120 characters would be desired but it is not feasible right now
 #-l=120   # 120 characters per line
 -l=160

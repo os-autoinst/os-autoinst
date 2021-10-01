@@ -47,6 +47,7 @@ RUN zypper in -y -C \
        'perl(Carp)' \
        'perl(Carp::Always)' \
        'perl(Class::Accessor::Fast)' \
+       'perl(Code::TidyAll)' \
        'perl(Config)' \
        'perl(Cpanel::JSON::XS)' \
        'perl(Crypt::DES)' \
