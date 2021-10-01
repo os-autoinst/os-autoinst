@@ -105,7 +105,7 @@ else
     find-files | xargs perltidy --pro=.../.perltidyrc
 fi
 
-find . -name "*.tdy" | while read -r file
+(git ls-files --others "*.tdy" || find . -name "*.tdy") | while read -r file
 do
     if diff -u "${file%.tdy}" "$file"; then
         continue
