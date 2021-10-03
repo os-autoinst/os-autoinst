@@ -262,13 +262,9 @@ Inspiration from my colleagues at L<http://www.nestoria.co.uk>
 
 =head1 COPYRIGHT
 
-Copyright 2006 Edmund von der Burg. All rights reserved.
+Copyright 2006 Edmund von der Burg
 
-This module is free software; you can redistribute it and/or modify it under
-the same terms as Perl itself. If it breaks you get to keep both pieces.
-
-THERE IS NO WARRANTY.
-
+SPDX-License-Identifier: Artistic-1.0 OR GPL-1.0-or-later
 =cut
 
 1;
