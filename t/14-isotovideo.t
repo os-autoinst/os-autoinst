@@ -159,9 +159,11 @@ subtest 'upload the asset even in an incomplete job' => sub {
     combined_like {
         $return_code = handle_generated_assets($command_handler, 1)
     } qr/Requested to force the publication/, 'forced publication of asset';
-    is $return_code, 0, 'The asset was uploaded success';
-    ok(-e $pool_dir . '/assets_public/force_publish_test.qcow2', 'test.qcow2 image exists');
-    ok(!-e $pool_dir . '/assets_public/publish_test.qcow2',      'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
+    my $base_state = path(bmwqemu::STATE_FILE);
+    is $return_code, 0, 'The asset was uploaded successfully' or die $base_state->slurp;
+    my $force_publish_asset = $pool_dir . '/assets_public/force_publish_test.qcow2';
+    ok(-e $force_publish_asset,                             'test.qcow2 image exists');
+    ok(!-e $pool_dir . '/assets_public/publish_test.qcow2', 'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
 };
 
 subtest 'error handling when loading test schedule' => sub {
