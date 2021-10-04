@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright © 2020-2021 SUSE LLC
+# Copyright 2020-2021 SUSE LLC
 
 use Test::Most;
 use Test::Warnings qw(:all :report_warnings);

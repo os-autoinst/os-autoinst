@@ -262,7 +262,7 @@ Inspiration from my colleagues at L<http://www.nestoria.co.uk>
 
 =head1 COPYRIGHT
 
-Copyright (C) 2006 Edmund von der Burg. All rights reserved.
+Copyright 2006 Edmund von der Burg. All rights reserved.
 
 This module is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself. If it breaks you get to keep both pieces.

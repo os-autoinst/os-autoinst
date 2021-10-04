@@ -1,4 +1,5 @@
-# Copyright 2019-2021 SUSE LLC
+#!/usr/bin/perl
+# Copyright 2021 SUSE LLC
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -13,12 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <http://www.gnu.org/licenses/>.
 
-use Mojo::Base -strict, -signatures;
-use base 'basetest';
-use testapi;
+use Test::Most;
 
-sub run {
-    select_console 'brokeniucv';
-}
-
-1;
+ok system(qq{git grep -I -l 'Copyright \((C)\|(c)\|©\)' ':!COPYING' ':!external/'}) != 0, 'No redundant copyright character';
+done_testing;

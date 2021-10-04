@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# Copyright © 2019 SUSE LLC
+# Copyright 2019 SUSE LLC
 
 use Test::Most;
 use FindBin '$Bin';

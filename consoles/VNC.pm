@@ -1220,12 +1220,13 @@ Maurice Castro maurice@ipexchange.com.au
 Many thanks for Foxtons Ltd for giving Leon the opportunity to write
 the original version of this module.
 
-Copyright (C) 2006, Leon Brocard
+Copyright 2006, Leon Brocard
 
 This module is free software; you can redistribute it or modify it
 under the same terms as Perl itself.
 
-Copyright (C) 2014-2017 Stephan Kulow (coolo@suse.de)
+Copyright 2014-2017 Stephan Kulow (coolo@suse.de)
 adapted to be purely useful for qemu/openqa
 
-Copyright © 2017-2021 SUSE LLC
+Copyright 2017-2021 SUSE LLC
+
