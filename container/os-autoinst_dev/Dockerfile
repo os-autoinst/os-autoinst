@@ -116,6 +116,7 @@ RUN zypper in -y -C \
        'perl(Test::Warnings)' \
        'perl(Thread::Queue)' \
        'perl(Time::HiRes)' \
+       'perl(Time::Moment)' \
        'perl(Time::Seconds)' \
        'perl(Try::Tiny)' \
        'perl(XML::LibXML)' \

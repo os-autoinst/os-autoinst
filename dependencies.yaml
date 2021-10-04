@@ -159,6 +159,7 @@ main_requires:
   perl(Term::ANSIColor):
   perl(Thread::Queue):
   perl(Time::HiRes):
+  perl(Time::Moment):
   perl(Time::Seconds):
   perl(Try::Tiny):
   perl(XML::LibXML):

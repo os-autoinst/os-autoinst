@@ -57,6 +57,7 @@ requires 'Socket::MsgHdr';
 requires 'Term::ANSIColor';
 requires 'Thread::Queue';
 requires 'Time::HiRes';
+requires 'Time::Moment';
 requires 'Time::Seconds';
 requires 'Try::Tiny';
 requires 'XML::LibXML';
