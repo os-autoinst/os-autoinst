@@ -1222,11 +1222,9 @@ the original version of this module.
 
 Copyright 2006, Leon Brocard
 
-This module is free software; you can redistribute it or modify it
-under the same terms as Perl itself.
-
 Copyright 2014-2017 Stephan Kulow (coolo@suse.de)
 adapted to be purely useful for qemu/openqa
 
 Copyright 2017-2021 SUSE LLC
 
+SPDX-License-Identifier: Artistic-1.0 OR GPL-1.0-or-later
