@@ -309,4 +309,17 @@ sub stop_serial_grab ($self, @) {
     return;
 }
 
+sub get_wait_still_screen_on_here_doc_input ($self, $args) {
+    # We encountered a sporadic error when type into the here-document in the
+    # distribution::script_output() function (poo#60566). This issue was only
+    # seen by svirt backends from VMM_FAMILY hyperv or vmware.
+    #
+    # With wait_still_screen we actually do a sleep, but the given duration is
+    # the minimum and will be extended till there is no change on the screen.
+    # by comparing the screen and checking that nothing else will write on it.
+    # So if the here-document input is really slow, we hope the wait_still_screen
+    # takes even longer.
+    ($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') =~ qr/^hyperv|vmware$/ ? 1 : 0;
+}
+
 1;

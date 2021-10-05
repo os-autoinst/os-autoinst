@@ -723,6 +723,8 @@ sub is_serial_terminal ($self, $args) {
     return {yesorno => $self->{current_console}->is_serial_terminal};
 }
 
+sub get_wait_still_screen_on_here_doc_input ($self, $args) { 0 }
+
 sub capture_screenshot ($self) {
     return unless $self->{current_screen};
 

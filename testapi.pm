@@ -2335,4 +2335,17 @@ A typical call would look like:
 
 sub show_curl_progress_meter { get_var('UPLOAD_METER') ? "-o /dev/$serialdev " : '' }
 
+=head2 backend_get_wait_still_screen_on_here_doc_input 
+
+Function to query the backend if it has the known bug from
+https://progress.opensuse.org/issues/60566 which is that typing too fast into
+the here-document input can yield invalid script content.
+This function returns the value to be used by C<wait_still_screen> before 
+starting to write the script into the here document.
+=cut
+sub backend_get_wait_still_screen_on_here_doc_input {
+    state $ret;
+    $ret = query_isotovideo('backend_get_wait_still_screen_on_here_doc_input', {}) unless defined($ret);
+    return get_var(_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT => $ret);
+}
 1;

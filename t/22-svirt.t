@@ -689,4 +689,14 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
         }
     };
 };
+
+subtest 'get_wait_still_screen_on_here_doc_input' => sub {
+    set_var(VIRSH_VMM_FAMILY => 'hyperv');
+    is($svirt->get_wait_still_screen_on_here_doc_input({}) > 0, 1, 'wait_still_screen on here doc is set for hyperv');
+    set_var(VIRSH_VMM_FAMILY => 'vmware');
+    is($svirt->get_wait_still_screen_on_here_doc_input({}) > 0, 1, 'wait_still_screen on here doc is set for vmware');
+    set_var(VIRSH_VMM_FAMILY => 'kvm');
+    is($svirt->get_wait_still_screen_on_here_doc_input({}), 0, 'wait_still_screen on here doc is not set for kvm');
+};
+
 done_testing;
