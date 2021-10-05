@@ -831,15 +831,15 @@ sub proxy_console_call {
     return $wrapped_result;
 }
 
-=head2 set_serial_offset
+=head2 clear_serial_buffer
 
 Determines the starting offset within the serial file - so that we do not check the
 previous test's serial output. Call this before you start doing something new
 
 =cut
 
-sub set_serial_offset {
-    my ($self, $keep) = @_;
+sub clear_serial_buffer {
+    my ($self) = @_;
 
     $self->{serial_offset} = -s $self->{serialfile};
     return $self->{serial_offset};
@@ -848,7 +848,7 @@ sub set_serial_offset {
 
 =head2 serial_text
 
-Returns the output on the serial device since the last call to set_serial_offset
+Returns the output on the serial device since the last call to clear_serial_buffer
 
 =cut
 
