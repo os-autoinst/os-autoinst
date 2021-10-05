@@ -6,7 +6,7 @@
 usage() {
     cat << EOF
 Usage:
- tidy [-c|--check] [-f|--force] [-o|--only-changed]
+ tidy [-c|--check] [-f|--force] [-o|--only-changed] [path/to/file]
 
 Options:
  -h, -?, --help       display this help
@@ -14,6 +14,9 @@ Options:
  -f, --force          Force check even if tidy version mismatches
  -o --only-changed    Only tidy files with uncommitted changes in git. This can
                       speed up execution a lot.
+ path/to/file         When passing a file as argument, tidy will run perltidy
+                      wether it is added to the git tree or not
+
 
 perltidy rules can be found in .perltidyrc
 EOF
@@ -40,6 +43,9 @@ while true; do
     * ) break ;;
   esac
 done
+
+shift $((OPTIND - 1))
+filename=$*
 
 trap cleanup EXIT
 
@@ -88,7 +94,7 @@ test -e tools/tidy || exit 1
 
 cleanup
 
-find-files | xargs perltidy --pro=.../.perltidyrc
+[[ -f $filename ]] && perltidy --pro=.../.perltidyrc $filename || find-files | xargs perltidy --pro=.../.perltidyrc
 
 find . -name "*.tdy" | while read -r file
 do
