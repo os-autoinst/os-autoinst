@@ -7,7 +7,6 @@ package testapi;
 use base Exporter;
 use Carp;
 use Exporter;
-use 5.018;
 use Mojo::Base -strict;
 use File::Basename qw(basename dirname);
 use File::Path 'make_path';

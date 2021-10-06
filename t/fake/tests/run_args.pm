@@ -1,4 +1,3 @@
-use 5.018;
 use Mojo::Base -strict, -signatures;
 
 use base 'basetest';

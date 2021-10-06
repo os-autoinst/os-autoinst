@@ -1,6 +1,5 @@
 #!/usr/bin/perl
 
-use 5.018;
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 
