@@ -13,7 +13,7 @@ use Mojo::File 'path';
 use Mojo::JSON 'decode_json';
 use backend::baseclass;
 use POSIX 'tzset';
-use Mojo::File 'tempdir';
+use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use bmwqemu ();
 
@@ -278,6 +278,40 @@ subtest 'running test' => sub {
         is($state->{component}, 'backend', 'state file contains component message');
         like($state->{msg}, qr/fdopen Invalid argument/, 'state file contains error message');
     }
+};
+
+subtest 'wait_serial' => sub {
+    #mock console settings
+    my $current_console = Test::MockObject->new();
+    $current_console->set_false('is_serial_terminal');
+    $baseclass->{current_console} = $current_console;
+
+    #mock content of serial0.txt
+    path($baseclass->{serialfile})->spurt(<<EOT);
+Just a simple text
+Just a simple another text that will disappear
+Welcome to GRUB2
+BdsDxe: loading Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)
+Some leftover
+UUID=2e41327c-ca46-4c5c-93a2-b41933d40ca8 btrfs 24G 589.7M 21.4G 2% /
+UUID=2e41327c-ca46-4c5c-93a2-b41933d40ca8 btrfs 24G 589.7M 21.4G 2% /opt
+BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)
+Welcome to GRUB!
+EOT
+
+    # set default arguments for wait_serial set by testapi.pm
+    my %dargs = (timeout => 90, expect_not_found => 0, quiet => undef, no_regex => 0, buffer_size => undef, record_output => undef);
+
+    is_deeply($baseclass->wait_serial({%dargs, regexp => 'simple', no_regex => 1}), {matched => 1, string => 'Just a simple'}, 'Test string literal on the first line');
+    is_deeply($baseclass->wait_serial({%dargs, regexp => 'GRUB2', no_regex => 1}), {matched => 1, string => " text\nJust a simple another text that will disappear\nWelcome to GRUB2"}, 'Multiline literal string match');
+    is_deeply($baseclass->wait_serial({%dargs, regexp => qr/loading\s+Boot\d{4}\s+.*\)/}), {matched => 1, string => qq[\nBdsDxe: loading Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)]}, 'One line regex match');
+    is_deeply($baseclass->wait_serial({%dargs, regexp => qr/\(0x8,0x0\)/}), {matched => 1, string => '
+Some leftover
+UUID=2e41327c-ca46-4c5c-93a2-b41933d40ca8 btrfs 24G 589.7M 21.4G 2% /
+UUID=2e41327c-ca46-4c5c-93a2-b41933d40ca8 btrfs 24G 589.7M 21.4G 2% /opt
+BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)'}, 'Test regex match multiline leftover');
+    is_deeply($baseclass->wait_serial({%dargs, regexp => qr/welcome$/, timeout => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, "Test regex mismatch");
+    is_deeply($baseclass->wait_serial({%dargs, regexp => 'something wrong', timeout => 1, no_regex => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, "Test string literal mismatch");
 };
 
 done_testing;
