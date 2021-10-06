@@ -74,12 +74,12 @@ sub type_string {
         if (!defined($chunk)) {
             my ($errcode, $errname, $errstr) = $self->ssh_connection->error;
 
-            croak "Lost SSH connection to SUT: $errstr"
+            croak "Lost SSH connection to SUT: $errcode $errstr"
               if $errcode != LIBSSH2_ERROR_EAGAIN;
             select(undef, undef, undef, 0.1);
         } elsif ($chunk < 0) {
             # Old Net::SSH2 error signaling
-            croak "Lost SSH connection to SUT"
+            croak "Lost SSH connection to SUT: $chunk"
               if $chunk != LIBSSH2_ERROR_EAGAIN;
             select(undef, undef, undef, 0.1);
         } else {
