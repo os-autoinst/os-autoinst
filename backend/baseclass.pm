@@ -1238,7 +1238,7 @@ sub new_ssh_connection {
     }
 
     # timeout requires libssh2 >= 1.2.9 so not all versions might have it
-    my $ssh = Net::SSH2->new(timeout => ($bmwqemu::vars{SSH_COMMAND_TIMEOUT_S} // 0) * 1000);
+    my $ssh = Net::SSH2->new(timeout => ($bmwqemu::vars{SSH_COMMAND_TIMEOUT_S} // 5 * ONE_MINUTE) * 1000);
 
     # Retry multiple times, in case of the guest is not running yet
     my $counter    = $bmwqemu::vars{SSH_CONNECT_RETRY} // 5;
