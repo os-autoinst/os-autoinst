@@ -7,6 +7,7 @@
 # threads upfront.
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 
 BEGIN {
     $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT}    = 1;
@@ -40,9 +41,8 @@ $bmwqemu::vars{OPENQA_URL} = 'http://not/relevant';
 $bmwqemu::vars{JOBTOKEN}   = 'fake-jobtoken';
 
 # define helper to call a function by its name
-sub call {
-    my $function_name = shift;
-    __PACKAGE__->can($function_name)->(@_);
+sub call ($function_name, @args) {
+    __PACKAGE__->can($function_name)->(@args);
 }
 
 # test without a server

@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
-use Mojo::Base -signatures;
+use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -36,7 +36,7 @@ throws_ok(
     'died when constructing needle without prior call to needle::init()'
 );
 
-sub needle_init {
+sub needle_init() {
     my $ret;
     stderr_like { $ret = needle::init } qr/loaded.*needles/, 'log output for needle init';
     return $ret;

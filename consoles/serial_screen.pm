@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 package consoles::serial_screen;
 
-use 5.018;
 use Mojo::Base -strict;
 use integer;
 

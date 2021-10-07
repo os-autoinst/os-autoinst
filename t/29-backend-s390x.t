@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 
-use 5.018;
+use Mojo::Base -strict;
 use Test::Most;
 
 use FindBin '$Bin';

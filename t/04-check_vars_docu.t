@@ -5,6 +5,7 @@
 
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 
 use Test::Warnings ':report_warnings';
 use FindBin;
@@ -33,12 +34,9 @@ my $ignore_errors = 1;
 
 my $table_header = 'Variable;Values allowed;Default value;Explanation';
 
-sub say {
-    my ($text) = @_;
-    print STDERR "$text\n";
-}
+sub say ($text) { print STDERR "$text\n" }
 
-sub read_doc {
+sub read_doc() {
     # read and parse old vars doc
     my $docfh;
     open($docfh, '<', VARS_DOC);
