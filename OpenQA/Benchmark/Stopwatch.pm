@@ -91,11 +91,10 @@ the summary.
 =cut
 
 sub lap {
-    my $self        = shift;
-    my $name        = shift;
-    my $time        = $self->time;
-    my $name_lenght = length $name;
-    $self->{length} = $name_lenght if $name_lenght > $self->{length};
+    my $self = shift;
+    my $name = shift;
+    my $time = $self->time;
+    $self->{length} = length $name // $self->{length};
     push @{$self->{events}}, {name => $name, time => $time};
     return $self;
 }
