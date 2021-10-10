@@ -3,7 +3,7 @@
 
 package OpenQA::Exceptions;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 use Exception::Class (
     'OpenQA::Exception::InternalException' => {
