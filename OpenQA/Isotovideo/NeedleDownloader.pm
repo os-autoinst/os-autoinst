@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package OpenQA::Isotovideo::NeedleDownloader;
-use Mojo::Base -base;
+use Mojo::Base -base, -signatures;
 
 use Mojo::UserAgent;
 use Mojo::URL;
@@ -55,9 +55,7 @@ has openqa_url        => sub {
 has ua             => sub { Mojo::UserAgent->new };
 has download_limit => 150;
 
-sub _add_download {
-    my ($self, $needle, $extension, $path_param) = @_;
-
+sub _add_download ($self, $needle, $extension, $path_param) {
     my $needle_name     = $needle->{name};
     my $latest_update   = $needle->{t_updated};
     my $needles_dir     = needle::needles_dir();
@@ -79,9 +77,7 @@ sub _add_download {
     });
 }
 
-sub _download_file {
-    my ($self, $download) = @_;
-
+sub _download_file ($self, $download) {
     my $download_url    = $download->{url};
     my $download_target = $download->{target};
     bmwqemu::diag("download new needle: $download_url => $download_target");
@@ -112,9 +108,7 @@ sub _download_file {
 }
 
 # adds downloads for the specified $new_needles if those are missing/outdated locally
-sub add_relevant_downloads {
-    my ($self, $new_needles) = @_;
-
+sub add_relevant_downloads ($self, $new_needles) {
     my $download_limit  = $self->download_limit;
     my $added_downloads = $self->files_to_download;
     for my $needle (@$new_needles) {
@@ -125,16 +119,11 @@ sub add_relevant_downloads {
 }
 
 # downloads previously added downloads
-sub download {
-    my ($self) = @_;
-    $self->_download_file($_) for (@{$self->files_to_download});
-}
+sub download ($self) { $self->_download_file($_) for (@{$self->files_to_download}) }
 
 # downloads missing needles considering $new_needles
 # (see t/21-needle-downloader.t for an example of $new_needles)
-sub download_missing_needles {
-    my ($self, $new_needles) = @_;
-
+sub download_missing_needles ($self, $new_needles) {
     $self->add_relevant_downloads($new_needles);
     $self->download();
 }

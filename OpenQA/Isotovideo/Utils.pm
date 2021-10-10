@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package OpenQA::Isotovideo::Utils;
-use Mojo::Base -base;
+use Mojo::Base -base, -signatures;
 use Mojo::URL;
 use Mojo::File qw(path);
 
@@ -14,8 +14,7 @@ use Try::Tiny;
 our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec
   handle_generated_assets load_test_schedule);
 
-sub calculate_git_hash {
-    my ($git_repo_dir) = @_;
+sub calculate_git_hash ($git_repo_dir) {
     my $dir = getcwd();
     chdir($git_repo_dir);
     chomp(my $git_hash = qx{git rev-parse HEAD ||:});
@@ -35,8 +34,7 @@ optional git refspec to checkout. The git clone depth can be specified in the
 argument C<clone_depth> which defaults to 1.
 
 =cut
-sub checkout_git_repo_and_branch {
-    my ($dir_variable, %args) = @_;
+sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $dir = $bmwqemu::vars{$dir_variable};
     return undef unless defined $dir;
 
@@ -109,8 +107,7 @@ Example:
     checkout_git_refspec('/path/to/casedir', 'TEST_GIT_REFSPEC');
 
 =cut
-sub checkout_git_refspec {
-    my ($dir, $refspec_variable) = @_;
+sub checkout_git_refspec ($dir, $refspec_variable) {
     return undef unless defined $dir;
     if (my $refspec = $bmwqemu::vars{$refspec_variable}) {
         bmwqemu::diag "Checking out local git refspec '$refspec' in '$dir'";
@@ -127,8 +124,7 @@ configuration variables.
 
 =cut
 
-sub handle_generated_assets {
-    my ($command_handler, $clean_shutdown) = @_;
+sub handle_generated_assets ($command_handler, $clean_shutdown) {
     my $return_code = 0;
     # mark hard disks for upload if test finished
     return unless $bmwqemu::vars{BACKEND} eq 'qemu';
@@ -219,8 +215,7 @@ sub load_test_schedule {
     }
 }
 
-sub _store_asset {
-    my ($index, $name, $dir) = @_;
+sub _store_asset ($index, $name, $dir) {
     $name =~ /\.([[:alnum:]]+)$/;
     my $format = $1;
     return {hdd_num => $index, name => $name, dir => $dir, format => $format};
