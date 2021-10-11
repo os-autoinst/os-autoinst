@@ -1,0 +1,147 @@
+{
+   "t/data/other-desktop-dvd-20140904.png" : {
+      "candidates" : [
+         {
+            "area" : [
+               {
+                  "h" : 63,
+                  "result" : "ok",
+                  "similarity" : 0.874986207657509,
+                  "w" : 53,
+                  "x" : 761,
+                  "y" : 339
+               }
+            ],
+            "error" : 0.0156284482758516,
+            "needle" : {
+               "area" : [
+                  {
+                     "height" : 63,
+                     "img" : null,
+                     "margin" : 1000000,
+                     "match" : 80,
+                     "type" : "match",
+                     "width" : 53,
+                     "xpos" : 0,
+                     "ypos" : 0
+                  }
+               ],
+               "file" : null,
+               "name" : "gnome-logo-distorted.png",
+               "png" : "t/imgsearch/gnome-logo-distorted.png",
+               "properties" : [],
+               "tags" : [],
+               "unregistered" : null
+            },
+            "ok" : 1
+         }
+      ],
+      "match" : {
+         "area" : [
+            {
+               "h" : 64,
+               "result" : "ok",
+               "similarity" : 0.999548350041771,
+               "w" : 63,
+               "x" : 755,
+               "y" : 421
+            }
+         ],
+         "error" : 2.03987684768152e-07,
+         "needle" : {
+            "area" : [
+               {
+                  "height" : 64,
+                  "img" : null,
+                  "margin" : 1000000,
+                  "match" : 80,
+                  "type" : "match",
+                  "width" : 63,
+                  "xpos" : 0,
+                  "ypos" : 0
+               }
+            ],
+            "file" : null,
+            "name" : "kde-logo.png",
+            "png" : "t/imgsearch/kde-logo.png",
+            "properties" : [],
+            "tags" : [],
+            "unregistered" : null
+         },
+         "ok" : 1
+      }
+   },
+   "t/data/xterm-started-20141204.png" : {
+      "candidates" : [
+         {
+            "area" : [
+               {
+                  "h" : 63,
+                  "result" : "fail",
+                  "similarity" : 0,
+                  "w" : 53,
+                  "x" : 1,
+                  "y" : 335
+               }
+            ],
+            "error" : 1,
+            "needle" : {
+               "area" : [
+                  {
+                     "height" : 63,
+                     "img" : null,
+                     "margin" : 1000000,
+                     "match" : 80,
+                     "type" : "match",
+                     "width" : 53,
+                     "xpos" : 0,
+                     "ypos" : 0
+                  }
+               ],
+               "file" : null,
+               "name" : "gnome-logo-distorted.png",
+               "png" : "t/imgsearch/gnome-logo-distorted.png",
+               "properties" : [],
+               "tags" : [],
+               "unregistered" : null
+            },
+            "ok" : 0
+         },
+         {
+            "area" : [
+               {
+                  "h" : 64,
+                  "result" : "fail",
+                  "similarity" : 0,
+                  "w" : 63,
+                  "x" : 548,
+                  "y" : 350
+               }
+            ],
+            "error" : 1,
+            "needle" : {
+               "area" : [
+                  {
+                     "height" : 64,
+                     "img" : null,
+                     "margin" : 1000000,
+                     "match" : 80,
+                     "type" : "match",
+                     "width" : 63,
+                     "xpos" : 0,
+                     "ypos" : 0
+                  }
+               ],
+               "file" : null,
+               "name" : "kde-logo.png",
+               "png" : "t/imgsearch/kde-logo.png",
+               "properties" : [],
+               "tags" : [],
+               "unregistered" : null
+            },
+            "ok" : 0
+         }
+      ],
+      "match" : null
+   }
+}

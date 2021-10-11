@@ -1,0 +1,90 @@
+#!/usr/bin/perl -w
+# Copyright 2021 SUSE LLC
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+
+use Mojo::Base -strict, -signatures;
+use Mojo::JSON qw(encode_json);
+use Mojo::Log;
+use Mojo::Util qw(getopt);
+
+use FindBin '$Bin';
+use lib "$Bin";
+use cv;
+use needle;
+
+# define a basic needle package; normally `needle` should inherit from this package
+{
+    package basic_needle;
+    use base 'needle';
+    use Mojo::File qw(path);
+
+    sub new ($classname, $image_path, $match_level, $margin) {
+        my $name  = path($image_path)->basename;
+        my $image = tinycv::read $image_path;
+        my %area  = (type => 'match', match => $match_level, margin => $margin,
+            xpos => 0, ypos => 0, width => $image->xres, height => $image->yres,
+            img  => $image);
+        my $self = {name => $name, png => $image_path, area => [\%area]};
+        bless $self, $classname;
+        $self->register;
+        return $self;
+    }
+
+    sub get_image ($self, $area = undef) { ($area // $self->{area}->[0])->{img} }
+
+    sub from_paths ($needle_paths, @args) { [map { basic_needle->new($_, @args) } @$needle_paths] }
+}
+
+sub print_usage {
+    print "imgsearch [options]
+
+options:
+    --needle-images    specifies images to look for
+    --haystack-images  specifies images to look in
+    --verbose          enables debug output
+
+example:
+imagesearch \
+    --needle-images logo1.png logo2.png \
+    --haystack-images asset.png screenshot.png
+";
+    exit 0;
+}
+
+getopt 'needle-images=s@{1,}' => \my @needle_image_paths,
+  'haystack-images=s@{1,}'    => \my @image_paths,
+  'match-level=f'             => \my $match_level,
+  'margin=f'                  => \my $margin,
+  'threshold=f'               => \my $threshold,
+  'search-ratio=f'            => \my $search_ratio,
+  'v|verbose'                 => \my $verbose;
+
+print_usage unless @needle_image_paths && @image_paths;
+
+# initialize logging, tinycv and parameters
+my $log = Mojo::Log->new;
+$log->level($verbose ? 'debug' : 'info');
+$log->debug('Loading tinycv');
+cv::init;
+require tinycv;
+$match_level  //= 80;         # the similarity level required to consider a finding a match (unit: percent)
+$margin       //= 1000000;    # very high value to search within full image by default (unit: pixel)
+$search_ratio //= 0;          # set to zero to disable unwanted computation of margin (which assumes an image width of 1024 px)
+$threshold    //= 0.0;        # subtracted from each area's match level; just keep at zero here
+$log->debug("Martch-level: $match_level, margin: $margin, threshold: $threshold, search ratio: $search_ratio");
+
+# load needles
+$log->info('Loading needles');
+my $needles = basic_needle::from_paths(\@needle_image_paths, $match_level, $margin);
+
+# search needles in images
+my %results = map {
+    my $image_path = $_;
+    $log->info("Searching $image_path");
+    my $image = tinycv::read $image_path;
+    my ($match, $candidates) = $image->search($needles, $threshold, $search_ratio);
+    ($image_path => {match => $match, candidates => $candidates});
+} @image_paths;
+
+print encode_json(\%results);
