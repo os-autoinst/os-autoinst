@@ -953,7 +953,7 @@ sub start_qemu {
         $self->select_console({testapi_console => 'sut'});
     }
     catch {
-        if (!raw_alive) {
+        if (!$self->raw_alive) {
             bmwqemu::diag "qemu didn't start";
             $self->read_qemupipe;
             exit(1);
