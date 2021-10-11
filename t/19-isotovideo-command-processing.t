@@ -36,12 +36,8 @@ $rpc_mock->redefine(read_json => sub {
 # mock bmwqemu/backend
 {
     package FakeBackend;
-    sub new {
-        my ($class) = @_;
-        return bless({messages => []}, $class);
-    }
-    sub _send_json {
-        my ($self, $cmd) = @_;
+    sub new ($class) { bless({messages => []}, $class) }
+    sub _send_json ($self, $cmd) {
         push(@{$self->{messages}}, $cmd);
         return {tags => [qw(some fake tags)]};
     }
@@ -59,7 +55,7 @@ my $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     status => 'initial',
 );
 
-sub reset_state {
+sub reset_state () {
     $command_handler->tags(undef);
     $command_handler->pause_test_name(undef);
     $last_received_msg_by_fd[$answer_fd] = undef;

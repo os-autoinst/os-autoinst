@@ -176,7 +176,7 @@ present.
 
 =cut
 
-sub load_test_schedule {
+sub load_test_schedule () {
     # add lib of the test distributions - but only for main.pm not to pollute
     # further dependencies (the tests get it through autotest)
     my @oldINC = @INC;

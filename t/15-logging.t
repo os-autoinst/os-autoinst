@@ -16,7 +16,7 @@ use log;
 use bmwqemu ();
 
 
-sub output_once {
+sub output_once () {
     log::diag('Via diag function');
     log::fctres('Via fctres function');
     log::fctinfo('Via fctinfo function');

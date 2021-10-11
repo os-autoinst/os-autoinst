@@ -5,9 +5,9 @@ use Perl::Critic::Utils qw( :severities :classification :ppi );
 
 our $VERSION = '0.0.1';
 
-sub default_severity { return $SEVERITY_HIGH }
-sub default_themes { return qw(openqa) }
-sub applies_to { return qw(PPI::Token::Quote::Single PPI::Token::Quote::Double) }
+sub default_severity (@) { $SEVERITY_HIGH }
+sub default_themes (@) { qw(openqa) }
+sub applies_to (@) { qw(PPI::Token::Quote::Single PPI::Token::Quote::Double) }
 
 # check that hashes are not overly using quotes
 # (os-autoinst coding style)

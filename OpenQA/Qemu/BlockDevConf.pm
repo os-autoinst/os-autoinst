@@ -19,7 +19,7 @@ use constant OVERLAY_POSTFIX => '-overlay';
 
 has basedir => 'raid';
 
-has _drives => sub { return []; };
+has _drives => sub ($self) { [] };
 
 =head3 add_existing_base
 
@@ -71,9 +71,7 @@ snapshot. This function does not create the file, it just updates the object
 model.
 
 =cut
-sub add_new_overlay { return add_existing_overlay(@_)->needs_creating(1) }
-
-sub del_overlay { }
+sub add_new_overlay ($self, @args) { $self->add_existing_overlay(@args)->needs_creating(1) }
 
 sub _push_new_drive_dev ($self, $id, $drive, $model, $num_queues = undef) {
     die 'PFlash drives are not supported by DriveDevice, use PFlashDevice'
@@ -263,6 +261,6 @@ sub from_map ($self, $map, $cont_conf, $snap_conf) {
 }
 
 # See MutParams.pm
-sub has_state { scalar(@{shift->_drives}) }
+sub has_state ($self) { scalar(@{$self->_drives}) }
 
 1;

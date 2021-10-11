@@ -28,7 +28,7 @@ $vnc_mock->redefine(_send_frame_buffer => sub ($self, $data) { push @sent, $data
 my $c = consoles::VNC->new(_bpp => 32);    # create VNC console with bit-depth of 32 bit
 my $inet_mock = Test::MockModule->new('IO::Socket::INET');
 my $s = Test::MockObject->new->set_true(qw(sockopt print connected close blocking));
-sub _setup_rfb_magic { $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1)) }
+sub _setup_rfb_magic () { $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1)) }
 _setup_rfb_magic;
 $s->mock(read => sub { $_[1] = $s->mocked_read; defined $_[1] });
 $s->mock($_ => sub { push @printed, $_[1] }) for qw(print write);

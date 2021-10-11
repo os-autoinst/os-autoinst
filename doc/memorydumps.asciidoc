@@ -51,5 +51,5 @@ sub post_fail_hook ($self) {
     save_storage_drives('my-disk');
 }
 
-sub test_flags () { { fatal => 1 } }
+sub test_flags ($) { { fatal => 1 } }
 ----------------------------------------

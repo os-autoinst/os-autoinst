@@ -30,9 +30,8 @@ prompt in \Q and \E anyway otherwise the whitespace will be ignored.
     return $self;
 }
 
-sub init {
-    # no cmds on default distri
-}
+# no cmds on default distri
+sub init ($self) { }
 
 sub add_console ($self, $testapi_console, $backend_console, $backend_args = undef) {
     my %class_names = (
@@ -62,7 +61,7 @@ sub add_console ($self, $testapi_console, $backend_console, $backend_args = unde
     return $ret;
 }
 
-sub x11_start_program {
+sub x11_start_program (@) {
     die "TODO: implement x11_start_program for your distri " . testapi::get_var('DISTRI');
 }
 

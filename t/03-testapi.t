@@ -35,7 +35,7 @@ my $fake_needle_found = 1;
 my $fake_needle_found_after_pause = 0;
 
 # define 'write_with_thumbnail' to fake image
-sub write_with_thumbnail { }
+sub write_with_thumbnail (@) { }
 
 sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
 

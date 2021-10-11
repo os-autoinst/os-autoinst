@@ -92,11 +92,9 @@ sub runcmd (@cmd) {
 
 ## use critic
 
-sub wait_attempt {
-    sleep($ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} // 1);
-}
+sub wait_attempt () { sleep($ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} // 1) }
 
-sub attempt {
+sub attempt {    # no:style:signatures
     my $attempts = 0;
     my ($total_attempts, $condition, $cb, $or) = ref $_[0] eq 'HASH' ? (@{$_[0]}{qw(attempts condition cb or)}) : @_;
     until ($condition->() || $attempts >= $total_attempts) {

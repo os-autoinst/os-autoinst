@@ -22,7 +22,7 @@ use basetest;
 use needle;
 
 # define 'write_with_thumbnail' to fake image
-sub write_with_thumbnail { }
+sub write_with_thumbnail (@) { }
 
 # Anything added to $serial_buffer will be returned by the next call
 # to read_serial, used e.g. by basetest::get_new_serial_output.

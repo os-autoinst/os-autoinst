@@ -42,8 +42,7 @@ sub start_ws ($self) {
     $self->app->defaults('clients')->{$id} = $self->tx;
 
     $self->on(
-        message => sub {
-            my ($self, $msg) = @_;
+        message => sub ($self, $msg) {
             $self->pass_message_from_ws_client_to_isotovideo($id, $msg);
         });
     $self->on(finish => sub {

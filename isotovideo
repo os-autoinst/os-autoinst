@@ -301,7 +301,7 @@ $command_handler->on(tests_done => sub (@) {
 });
 
 my ($last_check_seconds, $last_check_microseconds) = gettimeofday;
-sub _calc_check_delta {
+sub _calc_check_delta () {
     # an estimate of eternity
     my $delta = $last_check_seconds ? tv_interval([$last_check_seconds, $last_check_microseconds], [gettimeofday]) : 100;
     # sleep the remains of one second if $delta > 0

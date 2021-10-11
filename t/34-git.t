@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use File::Path qw(rmtree);
 use FindBin '$Bin';
 use Test::Output qw(combined_from);
@@ -69,7 +70,7 @@ subtest 'successful clone' => sub {
 
 done_testing;
 
-sub initialize_git_repo {
+sub initialize_git_repo () {
     my $git_init = <<"EOM";
 mkdir $git_dir && \
 cd $git_dir && \
@@ -93,7 +94,7 @@ EOM
     return $head;
 }
 
-sub cleanup {
+sub cleanup () {
     rmtree $clone_dir;
     unlink 'vars.json';
 }

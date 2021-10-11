@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Mojo::Base -strict, -signatures;
 use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -25,8 +26,7 @@ chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
 
-sub isotovideo {
-    my (%args) = @_;
+sub isotovideo (%args) {
     $args{default_opts} //= 'backend=null';
     $args{opts} //= '';
     $args{exit_code} //= 1;
@@ -156,17 +156,13 @@ subtest 'load test success when casedir and productdir are relative path' => sub
 # mock backend/driver
 {
     package FakeBackendDriver;
-    sub new {
-        my ($class, $name) = @_;
+    sub new ($class, $name) {
         my $self = bless({class => $class}, $class);
         require "backend/$name.pm";
         $self->{backend} = "backend::$name"->new();
         return $self;
     }
-    sub extract_assets {
-        my $self = shift;
-        $self->{backend}->do_extract_assets(@_);
-    }
+    sub extract_assets ($self, @args) { $self->{backend}->do_extract_assets(@args) }
 }
 
 subtest 'upload the asset even in an incomplete job' => sub {

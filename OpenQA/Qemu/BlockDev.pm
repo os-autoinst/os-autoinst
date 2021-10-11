@@ -110,7 +110,7 @@ If this is set to an empty snapshot then this blockdevice does not belong to
 any snapshot.
 
 =cut
-has snapshot => sub { return OpenQA::Qemu::Snapshot->new() };
+has snapshot => sub ($self) { OpenQA::Qemu::Snapshot->new() };
 
 # See MutParams.pm
 sub gen_cmdline ($self) {
@@ -196,6 +196,6 @@ sub _from_map ($self, $drives, $snap_conf) {
 
 sub deduce_driver ($self) { $self->driver($self->file =~ qr/\.(qcow2|vmdk)/ ? "$1" : 'raw') }
 
-sub CARP_TRACE { 'OpenQA::Qemu::BlockDev(' . (shift->node_name || '') . ')' }
+sub CARP_TRACE ($self) { 'OpenQA::Qemu::BlockDev(' . ($self->node_name || '') . ')' }
 
 1;

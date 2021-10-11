@@ -22,6 +22,6 @@ sub _from_map ($self, $map, $cont_conf) {
       ->controller($cont_conf->get_controller($map->{controller}));
 }
 
-sub CARP_TRACE { 'OpenQA::Qemu::DrivePath(' . (shift->id || '') . ')' }
+sub CARP_TRACE ($self) { 'OpenQA::Qemu::DrivePath(' . ($self->id || '') . ')' }
 
 1;

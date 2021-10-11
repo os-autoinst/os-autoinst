@@ -72,7 +72,7 @@ sub read_doc () {
     close($docfh);
 }
 
-sub write_doc {
+sub write_doc () {
     my $docfh;
     open($docfh, '>', VARS_DOC . '.newvars');
     print $docfh <<EO_HEADER;
