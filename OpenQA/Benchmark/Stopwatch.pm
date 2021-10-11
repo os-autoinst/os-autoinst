@@ -1,6 +1,6 @@
 package OpenQA::Benchmark::Stopwatch;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 our $VERSION = '0.05';
 use Time::HiRes;
@@ -55,9 +55,8 @@ Creates a new stopwatch.
 
 =cut
 
-sub new {
-    my $class = shift;
-    my $self  = {};
+sub new ($class) {
+    my $self = {};
 
     $self->{events} = [];
     $self->{_time}  = sub { Time::HiRes::time() };
@@ -75,8 +74,7 @@ chain.
 
 =cut
 
-sub start {
-    my $self = shift;
+sub start ($self) {
     $self->{start} = $self->time;
     return $self;
 }
@@ -90,12 +88,9 @@ the summary.
 
 =cut
 
-sub lap {
-    my $self        = shift;
-    my $name        = shift;
-    my $time        = $self->time;
-    my $name_lenght = length $name;
-    $self->{length} = $name_lenght if $name_lenght > $self->{length};
+sub lap ($self, $name) {
+    my $time = $self->time;
+    $self->{length} = length $name // $self->{length};
     push @{$self->{events}}, {name => $name, time => $time};
     return $self;
 }
@@ -108,8 +103,7 @@ Stops the stopwatch. Returns a reference to the stopwatch so you can chain.
 
 =cut
 
-sub stop {
-    my $self = shift;
+sub stop ($self) {
     $self->{stop} = $self->time;
     return $self;
 }
@@ -124,9 +118,7 @@ for.
 
 =cut
 
-sub total_time {
-    my $self = shift;
-
+sub total_time ($self) {
     # Get the stop time or now if missing.
     my $stop = $self->{stop} || $self->time;
 
@@ -153,8 +145,7 @@ The final entry C<_stop_> is when the stop watch was stopped.
 
 =cut
 
-sub summary {
-    my $self          = shift;
+sub summary ($self) {
     my $out           = '';
     my $header_format = "%-$self->{length}.$self->{length}s %-11s %-15s %s\n";
     my $result_format = " %-$self->{length}.$self->{length}s %-11.3f %-15.3f %.3f%%\n";
@@ -214,8 +205,7 @@ The returned hashref will look like this:
 
 =cut
 
-sub as_data {
-    my $self = shift;
+sub as_data ($self) {
     my %data = ();
 
     $data{start_time} = $self->{start};

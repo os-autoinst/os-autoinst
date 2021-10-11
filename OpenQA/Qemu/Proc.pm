@@ -19,7 +19,7 @@ parameters which are represented as complex objects.
 =cut
 
 package OpenQA::Qemu::Proc;
-use Mojo::Base -base;
+use Mojo::Base -base, -signatures;
 
 use Data::Dumper;
 use File::Basename;
@@ -54,9 +54,8 @@ has controller_conf => sub { return OpenQA::Qemu::ControllerConf->new(); };
 has blockdev_conf   => sub { return OpenQA::Qemu::BlockDevConf->new(); };
 has snapshot_conf   => sub { return OpenQA::Qemu::SnapshotConf->new(); };
 
-sub new {
-    my $self = shift->SUPER::new(@_);
-
+sub new ($class, @args) {
+    my $self = $class->SUPER::new(@args);
     $self->_push_mut($self->controller_conf);
     $self->_push_mut($self->blockdev_conf);
     $self->_push_mut($self->snapshot_conf);
@@ -70,14 +69,12 @@ Add a plain QEMU parameter, represented as an array of strings. The first item
 in the array will have '-' prepended to it.
 
 =cut
-sub static_param {
-    my $self = shift;
-
-    if (@_ < 2) {
-        push(@{$self->_static_params}, '-' . shift);
+sub static_param ($self, @args) {
+    if (@args < 2) {
+        push(@{$self->_static_params}, '-' . $args[0]);
     }
     else {
-        gen_params(@{$self->_static_params}, shift, shift, @_);
+        gen_params(@{$self->_static_params}, shift @args, shift @args, @args);
     }
 }
 
@@ -87,9 +84,7 @@ Add SCSI, PCI and USB controllers if necessary. QEMU will automatically create
 controllers for simple configurations.
 
 =cut
-sub configure_controllers {
-    my ($self, $vars) = @_;
-
+sub configure_controllers ($self, $vars) {
     # Setting the HD or CD model to a type of SCSI controller has been
     # deprecated for a long time.
     for my $var (qw(HDDMODEL CDMODEL)) {
@@ -124,8 +119,7 @@ sub configure_controllers {
     return $self;
 }
 
-sub get_img_json_field {
-    my ($self, $path, $field) = @_;
+sub get_img_json_field ($self, $path, $field) {
     my $json = run($self->qemu_img_bin, 'info', '--output=json', $path);
     # We can't check the exit code of qemu-img, because it sometimes returns 1
     # even for a successful command on ppc. Instead we just hide and ignore
@@ -141,23 +135,16 @@ sub get_img_json_field {
     return $map->{$field};
 }
 
-sub get_img_size {
-    my ($self, $path) = @_;
-    return $self->get_img_json_field($path, 'virtual-size');
-}
+sub get_img_size ($self, $path) { $self->get_img_json_field($path, 'virtual-size') }
 
-sub get_img_format {
-    my ($self, $path) = @_;
-    return $self->get_img_json_field($path, 'format');
-}
+sub get_img_format ($self, $path) { $self->get_img_json_field($path, 'format') }
 
 =head3 configure_blockdevs
 
 Configure disk drives and their block device backing chains. See BlockDevConf.pm.
 
 =cut
-sub configure_blockdevs {
-    my ($self, $bootfrom, $basedir, $vars) = @_;
+sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
     my $bdc       = $self->blockdev_conf;
     my @scsi_ctrs = $self->controller_conf->get_controllers(qr/scsi/);
 
@@ -248,8 +235,7 @@ variables. Unfortunately pflash drives are handled differently by QEMU than
 other block devices which slightly complicates things. See BlockDevConf.pm.
 
 =cut
-sub configure_pflash {
-    my ($self, $vars) = @_;
+sub configure_pflash ($self, $vars) {
     my $bdc = $self->blockdev_conf;
 
     return $self unless $vars->{UEFI};
@@ -286,9 +272,7 @@ sub configure_pflash {
 Generate the QEMU command line arguments from our object model.
 
 =cut
-sub gen_cmdline {
-    my $self = shift;
-
+sub gen_cmdline ($self) {
     return ($self->qemu_bin,
         @{$self->_static_params},
         map { $_->gen_cmdline() } @{$self->_mut_params});
@@ -303,9 +287,7 @@ create them.
 This should only be called when QEMU is not running.
 
 =cut
-sub init_blockdev_images {
-    my $self = shift;
-
+sub init_blockdev_images ($self) {
     for my $file ($self->blockdev_conf->gen_unlink_list()) {
         no autodie 'unlink';
         unlink($file) if -e $file;
@@ -339,8 +321,7 @@ need to export the VM state (migration) file, which is effectively the same
 thing as performing an offline migration.
 
 =cut
-sub export_blockdev_images {
-    my ($self, $filter, $img_dir, $name, $qemu_compress_qcow) = @_;
+sub export_blockdev_images ($self, $filter, $img_dir, $name, $qemu_compress_qcow) {
     my $count = 0;
 
     for my $qicmd ($self->blockdev_conf->gen_qemu_img_convert($filter, $img_dir, $name, $qemu_compress_qcow)) {
@@ -363,9 +344,7 @@ Create a shell script which will execute QEMU with the same parameters which
 we are using.
 
 =cut
-sub gen_runfile {
-    my $self = shift;
-
+sub gen_runfile ($self) {
     open(my $cmdfd, '>', 'runqemu');
     print $cmdfd "#!/bin/bash\n";
     my @args;
@@ -381,9 +360,7 @@ sub gen_runfile {
     chmod 0755, 'runqemu';
 }
 
-sub exec_qemu {
-    my ($self) = @_;
-
+sub exec_qemu ($self) {
     my @params = $self->gen_cmdline();
     session->enable;
     bmwqemu::diag('starting: ' . join(' ', @params));
@@ -413,9 +390,7 @@ sub exec_qemu {
     return $process->read_stream;
 }
 
-sub stop_qemu {
-    my ($self) = @_;
-
+sub stop_qemu ($self) {
     $self->{_stopping} = 1;
     $self->_process->stop;
 }
@@ -430,9 +405,7 @@ Connect to QEMU's QMP command socket so that we can control QEMU's execution
 using the JSON QAPI. QMP and QAPI are documented in the QEMU source tree.
 
 =cut
-sub connect_qmp {
-    my ($self) = @_;
-
+sub connect_qmp ($self) {
     my $sk;
     osutils::attempt {
         attempts  => $ENV{QEMU_QMP_CONNECT_ATTEMPTS} // 20,
@@ -461,8 +434,7 @@ Roll back the SUT to a previous state, including its temporary and permanent
 storage as well as its CPU.
 
 =cut
-sub revert_to_snapshot {
-    my ($self, $name) = @_;
+sub revert_to_snapshot ($self, $name) {
     my $bdc = $self->blockdev_conf;
 
     my $snapshot = $self->snapshot_conf->revert_to_snapshot($name);
@@ -488,9 +460,7 @@ sub revert_to_snapshot {
 Serialise our object model of QEMU to JSON and return the JSON text.
 
 =cut
-sub serialise_state {
-    my ($self) = @_;
-
+sub serialise_state ($self) {
     return encode_json({
             blockdev_conf   => $self->blockdev_conf->to_map(),
             controller_conf => $self->controller_conf->to_map(),
@@ -503,9 +473,7 @@ sub serialise_state {
 Save our object model of QEMU to a file.
 
 =cut
-sub save_state {
-    my ($self) = @_;
-
+sub save_state ($self) {
     if ($self->has_state) {
         bmwqemu::fctinfo('Saving QEMU state to ' . STATE_FILE);
         path(STATE_FILE)->spurt($self->serialise_state());
@@ -521,8 +489,7 @@ sub save_state {
 Deserialise our object model from a string of JSON text.
 
 =cut
-sub deserialise_state {
-    my ($self, $json) = @_;
+sub deserialise_state ($self, $json) {
     my $state_map = decode_json($json);
 
     $self->snapshot_conf->from_map($state_map->{snapshot_conf});
@@ -539,9 +506,7 @@ sub deserialise_state {
 Load our object model of QEMU from a file.
 
 =cut
-sub load_state {
-    my ($self) = @_;
-
+sub load_state ($self) {
     # In order to remove this, you need to merge the new state with the
     # existing state from disk without breaking existing snapshots (block
     # devices).
@@ -557,10 +522,6 @@ Returns true if our object model of QEMU has been populated with non-default
 state.
 
 =cut
-sub has_state {
-    my $self = shift;
-
-    return scalar(grep { $_->has_state } @{$self->_mut_params});
-}
+sub has_state ($self) { scalar(grep { $_->has_state } @{$self->_mut_params}) }
 
 1;
