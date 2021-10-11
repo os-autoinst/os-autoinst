@@ -114,7 +114,7 @@ $proc  = qemu_proc('-foo', \%vars);
 @gcmdl = $proc->gen_cmdline();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line for single existing UEFI disk using vars');
 
-@cmdl  = ([qw(create -f qcow2 -F raw -b), "$Bin/data/Core-7.2.iso", qw(raid/hd0-overlay0 11116544)]);
+@cmdl  = ([qw(create -f qcow2 -F raw -b), "$Bin/data/Core-7.2.iso", qw(raid/hd0-overlay0 69G)]);
 @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing UEFI disk');
 
@@ -386,7 +386,7 @@ subtest 'relative assets' => sub {
     $proc = qemu_proc('-foo', \%vars);
     my @gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
     @cmdl = (
-        [qw(create -f qcow2 -F qcow2 -b), "$dir/some.qcow2",         "raid/hd0-overlay0",         512],
+        [qw(create -f qcow2 -F qcow2 -b), "$dir/some.qcow2",         "raid/hd0-overlay0",         "10G"],
         [qw(create -f qcow2 -F raw -b),   "$dir/Core-7.2.iso",       "raid/cd0-overlay0",         11116544],
         [qw(create -f qcow2 -F raw -b),   "$dir/Core-7.2.iso",       "raid/cd1-overlay0",         11116544],
         [qw(create -f qcow2 -F raw -b),   "$Bin/data/uefi-code.bin", "raid/pflash-code-overlay0", 1966080],
