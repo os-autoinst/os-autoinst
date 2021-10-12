@@ -12,7 +12,7 @@ use testapi qw(set_var power);
 
 subtest 'SSH credentials in spvm' => sub {
     my $expected_credentials = {username => 'root', password => 'foo', hostname => 'my_foo_hostname'};
-    my $mock_spvm            = Test::MockModule->new('backend::spvm');
+    my $mock_spvm = Test::MockModule->new('backend::spvm');
     $mock_spvm->mock(run_ssh_cmd => sub {
             my ($self, $cmd, %args) = @_;
             for my $k (keys(%{$expected_credentials})) {
@@ -30,7 +30,7 @@ subtest 'SSH credentials in spvm' => sub {
 
     set_var('NOVALINK_USERNAME', 'tony');
     $expected_credentials->{username} = 'tony';
-    is($spvm->run_cmd('true'),  0, "Test default credentials - with user");
+    is($spvm->run_cmd('true'), 0, "Test default credentials - with user");
     is($spvm->run_cmd('false'), 1, "Test different return code");
 
     $expected_credentials = {hostname => 'specific_hostname', username => 'tony', password => 'specific_password'};
@@ -43,7 +43,7 @@ subtest 'PowerVM power actions' => sub {
             my ($self, $cmd) = @_;
             return $cmd;
     });
-    my $spvm    = backend::spvm->new();
+    my $spvm = backend::spvm->new();
     my $lpar_id = 3;
     set_var(NOVALINK_LPAR_ID => $lpar_id);
     is($spvm->power({action => 'on'}), "pvmctl lpar power-on -i id=${lpar_id} --bootmode norm", "Test power on");

@@ -13,7 +13,7 @@ use testapi qw(get_var get_required_var);
 
 sub new {
     my $class = shift;
-    my $self  = $class->SUPER::new;
+    my $self = $class->SUPER::new;
     get_required_var('HMC_MACHINE_NAME');
 
     return $self;
@@ -32,9 +32,9 @@ sub do_start_vm {
         'powerhmc-ssh',
         'ssh-xterm',
         {
-            hostname   => get_required_var('HMC_HOSTNAME'),
-            password   => get_required_var('HMC_PASSWORD'),
-            username   => get_var('HMC_USERNAME', 'hscroot'),
+            hostname => get_required_var('HMC_HOSTNAME'),
+            password => get_required_var('HMC_PASSWORD'),
+            username => get_var('HMC_USERNAME', 'hscroot'),
             persistent => 1});
     $ssh->backend($self);
 
@@ -64,8 +64,8 @@ sub can_handle {
 }
 
 sub is_shutdown {
-    my ($self)           = @_;
-    my $lpar_id          = get_required_var('LPAR_ID');
+    my ($self) = @_;
+    my $lpar_id = get_required_var('LPAR_ID');
     my $hmc_machine_name = get_required_var('HMC_MACHINE_NAME');
     return $self->run_cmd("! lssyscfg -m ${hmc_machine_name} -r lpar --filter 'lpar_ids=${lpar_id}' -F state | grep -i 'not activated' -q");
 }

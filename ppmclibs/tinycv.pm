@@ -12,7 +12,7 @@ use Math::Complex 'sqrt';
 require Exporter;
 require DynaLoader;
 
-our @ISA    = qw(Exporter DynaLoader);
+our @ISA = qw(Exporter DynaLoader);
 our @EXPORT = qw();
 
 our $VERSION = '1.0';
@@ -47,10 +47,10 @@ sub mean_square_error {
 # }
 sub search_ {
     my ($self, $needle, $threshold, $search_ratio, $stopwatch) = @_;
-    $threshold    ||= 0.0;
+    $threshold ||= 0.0;
     $search_ratio ||= 0.0;
-    my ($sim,     $xmatch, $ymatch);
-    my (@exclude, @match,  @ocr);
+    my ($sim, $xmatch, $ymatch);
+    my (@exclude, @match, @ocr);
 
     return unless $needle;
 
@@ -64,8 +64,8 @@ sub search_ {
     my $img = $self;
     for my $area (@{$needle->{area}}) {
         push @exclude, $area if $area->{type} eq 'exclude';
-        push @match,   $area if $area->{type} eq 'match';
-        push @ocr,     $area if $area->{type} eq 'ocr';
+        push @match, $area if $area->{type} eq 'match';
+        push @ocr, $area if $area->{type} eq 'ocr';
     }
 
     if (@exclude) {
@@ -85,11 +85,11 @@ sub search_ {
         $stopwatch->lap("**++ tinycv::search_needle $area->{width}x$area->{height} + $margin @ $area->{xpos}x$area->{ypos}") if $stopwatch;
         my $ma = {
             similarity => $sim,
-            x          => $xmatch,
-            y          => $ymatch,
-            w          => $area->{width},
-            h          => $area->{height},
-            result     => 'ok',
+            x => $xmatch,
+            y => $ymatch,
+            w => $area->{width},
+            h => $area->{height},
+            result => 'ok',
         };
         if (my $click_point = $area->{click_point}) {
             $ma->{click_point} = $click_point;
@@ -103,7 +103,7 @@ sub search_ {
         my $m = ($area->{match} || 96) / 100;
         if ($sim < $m - $threshold) {
             $ma->{result} = 'fail';
-            $ret->{ok}    = 0;
+            $ret->{ok} = 0;
         }
         push @{$ret->{area}}, $ma;
     }
@@ -132,8 +132,8 @@ sub cmp_by_error_type_ {
     return $okay if $okay;
     my $error = $a->{error} <=> $b->{error};
     return $error if $error;
-    return -1     if ($a->{needle}->has_property('workaround') && !$b->{needle}->has_property('workaround'));
-    return 1      if ($b->{needle}->has_property('workaround') && !$a->{needle}->has_property('workaround'));
+    return -1 if ($a->{needle}->has_property('workaround') && !$b->{needle}->has_property('workaround'));
+    return 1 if ($b->{needle}->has_property('workaround') && !$a->{needle}->has_property('workaround'));
     return $a->{needle}->{name} cmp $b->{needle}->{name};
 
     ## use critic
@@ -179,7 +179,7 @@ sub search {
         return unless $found;
         if (wantarray) {
             return ($found, undef) if ($found->{ok});
-            return (undef,  [$found]);
+            return (undef, [$found]);
         }
         return unless $found->{ok};
         return $found;
@@ -192,8 +192,8 @@ sub write_with_thumbnail {
     $self->write($filename);
 
     my $thumb = $self->scale($self->xres() * 45 / $self->yres(), 45);
-    my $dir   = File::Basename::dirname($filename) . "/.thumbs";
-    my $base  = File::Basename::basename($filename);
+    my $dir = File::Basename::dirname($filename) . "/.thumbs";
+    my $base = File::Basename::basename($filename);
 
     mkdir($dir);
     $thumb->write("$dir/$base");

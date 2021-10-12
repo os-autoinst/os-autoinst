@@ -12,8 +12,8 @@ use File::Which 'which';
 use File::Basename;
 
 BEGIN {
-    $bmwqemu::vars{DISTRI}      = 'unicorn';
-    $bmwqemu::vars{CASEDIR}     = '/var/lib/empty';
+    $bmwqemu::vars{DISTRI} = 'unicorn';
+    $bmwqemu::vars{CASEDIR} = '/var/lib/empty';
     $bmwqemu::vars{NEEDLES_DIR} = dirname(__FILE__) . '/data';
 }
 
@@ -30,7 +30,7 @@ unless (which('tesseract')) {
 }
 
 stderr_like { needle::init } qr/loaded.*needles/, 'log output for needle init';
-my $img1   = tinycv::read(needle::needles_dir() . '/bootmenu.test.png');
+my $img1 = tinycv::read(needle::needles_dir() . '/bootmenu.test.png');
 my $needle = needle->new('bootmenu-ocr.ref.json');
 my $res;
 stderr_like { $res = $img1->search($needle) } qr/Tesseract.*OCR/, 'log output for OCR';

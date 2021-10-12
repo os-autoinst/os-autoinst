@@ -17,7 +17,7 @@ use bmwqemu;
 
 
 sub prepare_pipes ($socket_path, $write_buffer = undef) {
-    my $pipe_in  = $socket_path . ".in";
+    my $pipe_in = $socket_path . ".in";
     my $pipe_out = $socket_path . ".out";
 
     for (($pipe_in, $pipe_out)) {
@@ -54,13 +54,13 @@ sub cleanup_pipes ($obj) {
 }
 
 subtest "Test open_pipe() error condition" => sub {
-    my $socket_path    = './virtio_console_open_test';
-    my $file_mock      = Test::MockModule->new('Mojo::File');
+    my $socket_path = './virtio_console_open_test';
+    my $file_mock = Test::MockModule->new('Mojo::File');
     my $vterminal_mock = Test::MockModule->new('consoles::virtio_terminal');
     $vterminal_mock->redefine("get_pipe_sz", sub { return; });
 
     my $helper = prepare_pipes($socket_path);
-    my $term   = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
+    my $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     combined_like { dies_ok { $term->open_pipe(); } 'Expect die if pipe_sz fail' } qr/\[debug\] <<<.*open_pipe/, 'log';
     cleanup_pipes($helper);
 
@@ -73,7 +73,7 @@ subtest "Test open_pipe() error condition" => sub {
             return $size = $newsize;
     });
     $helper = prepare_pipes($socket_path);
-    $term   = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
+    $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     stderr_like { $term->open_pipe() } qr/Set PIPE_SZ from 1024 to 2048/, 'Log mention size';
     cleanup_pipes($helper);
     is($size, 2048, "PIPE_SZ is 2048");
@@ -81,7 +81,7 @@ subtest "Test open_pipe() error condition" => sub {
     $size = 1024;
     $vterminal_mock->redefine("set_pipe_sz", undef);
     $helper = prepare_pipes($socket_path);
-    $term   = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
+    $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     stderr_like { $term->open_pipe() } qr/Set PIPE_SZ from 1024 to 1024/, 'Log mention new size';
     cleanup_pipes($helper);
     is($size, 1024, "Size didn't changed");
@@ -93,14 +93,14 @@ subtest "Test open_pipe() error condition" => sub {
     });
 
     $helper = prepare_pipes($socket_path);
-    $term   = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
+    $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     combined_like { $term->open_pipe() } qr/Set PIPE_SZ from 1024 to 65536/, 'Log mention new size';
     cleanup_pipes($helper);
     is($size, 65536, "PIPE_SZ is 65536");
 
     testapi::set_var('VIRTIO_CONSOLE_PIPE_SZ', 5555);
     $helper = prepare_pipes($socket_path);
-    $term   = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
+    $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     stderr_like { $term->open_pipe() } qr/Set PIPE_SZ from 1024 to 5555/, 'Log mention new size';
     cleanup_pipes($helper);
     is($size, 5555, "PIPE_SZ is 5555 from VIRTIO_CONSOLE_PIPE_SZ");
@@ -114,30 +114,30 @@ subtest "Test snapshot handling" => sub {
     $bmwqemu::logger = Mojo::Log->new(level => 'error');    # hide debug messages within this test
 
     my $socket_path = './virtio_console_open_test';
-    my $test_data   = "Test data foo";
-    my $helper      = prepare_pipes($socket_path, $test_data);
-    my $term        = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
+    my $test_data = "Test data foo";
+    my $helper = prepare_pipes($socket_path, $test_data);
+    my $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
 
-    is_deeply($term->get_snapshot(),                                  undef, "Return undef if no name is given");
-    is_deeply($term->get_snapshot('unknown_snapshot'),                undef, "Return undef, if snapshotname doesn't exist");
+    is_deeply($term->get_snapshot(), undef, "Return undef if no name is given");
+    is_deeply($term->get_snapshot('unknown_snapshot'), undef, "Return undef, if snapshotname doesn't exist");
     is_deeply($term->get_snapshot('unknown_snapshot', 'unknown_key'), undef, "Return undef, if snapshot and key doesn't exist");
-    is_deeply($term->set_snapshot(),                                  undef, "Return undef, if snapshot name not given");
-    is_deeply($term->set_snapshot('foo'),                             undef, "Return undef, if key not given");
-    is_deeply($term->{snapshots},                                     {},    "Snapshots are empty");
+    is_deeply($term->set_snapshot(), undef, "Return undef, if snapshot name not given");
+    is_deeply($term->set_snapshot('foo'), undef, "Return undef, if key not given");
+    is_deeply($term->{snapshots}, {}, "Snapshots are empty");
 
     $term->select();
     is_deeply($term->{snapshots}, {}, "Snapshots are empty after select/activate");
 
     $term->save_snapshot('snap1');
-    is($term->get_snapshot('snap1', 'buffer'),    $test_data, '[snap1] virtio_terminal stored all available data');
-    is($term->get_snapshot('snap1', 'activated'), 1,          '[snap1] console snapshot is activated');
-    is_deeply($term->get_snapshot('snap1', 'unknown_key'), undef,                                  "[snap1] return undef, if key doesn't exist");
-    is_deeply($term->get_snapshot('snap1'),                {activated => 1, buffer => $test_data}, '[snap1] Snapshots data verified');
+    is($term->get_snapshot('snap1', 'buffer'), $test_data, '[snap1] virtio_terminal stored all available data');
+    is($term->get_snapshot('snap1', 'activated'), 1, '[snap1] console snapshot is activated');
+    is_deeply($term->get_snapshot('snap1', 'unknown_key'), undef, "[snap1] return undef, if key doesn't exist");
+    is_deeply($term->get_snapshot('snap1'), {activated => 1, buffer => $test_data}, '[snap1] Snapshots data verified');
 
     $term->screen()->read_until('Test data ', 60);
     $term->save_snapshot('snap2');
-    is($term->get_snapshot('snap2', 'buffer'),    'foo', '[snap2] virtio_terminal stored all available data');
-    is($term->get_snapshot('snap2', 'activated'), 1,     '[snap2] console snapshot is activated');
+    is($term->get_snapshot('snap2', 'buffer'), 'foo', '[snap2] virtio_terminal stored all available data');
+    is($term->get_snapshot('snap2', 'activated'), 1, '[snap2] console snapshot is activated');
     is_deeply($term->get_snapshot('snap2'), {activated => 1, buffer => 'foo'}, '[snap2] Snapshots data verified');
 
     $term->reset();

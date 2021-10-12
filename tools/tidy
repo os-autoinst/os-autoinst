@@ -3,6 +3,9 @@
 #
 # perltidy rules can be found in ../.perltidyrc
 #
+
+PERLTIDY_ARGS="--no-valign --pro=.../.perltidyrc"
+
 usage() {
     cat << EOF
 Usage:
@@ -96,13 +99,15 @@ cleanup
 
 if [[ -n "$filename" ]]; then
    if [[ -f "$filename" ]]; then
-       perltidy --pro=.../.perltidyrc "$filename"
+       # shellcheck disable=SC2086
+       perltidy $PERLTIDY_ARGS "$filename"
    else
        echo "\"$filename\" is not a valid file, please provide only one file"
        exit 22
    fi
 else
-    find-files | xargs perltidy --pro=.../.perltidyrc
+    # shellcheck disable=SC2086
+    find-files | xargs perltidy $PERLTIDY_ARGS
 fi
 
 (git ls-files --others "*.tdy" || find . -name "*.tdy") | while read -r file

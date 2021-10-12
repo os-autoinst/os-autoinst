@@ -48,16 +48,16 @@ subtest 'format_vtt_timestamp' => sub {
 };
 
 subtest 'SSH utilities' => sub {
-    my $ssh_expect           = {username => 'root', password => 'password', hostname => 'foo.bar', port => undef};
+    my $ssh_expect = {username => 'root', password => 'password', hostname => 'foo.bar', port => undef};
     my $fail_on_channel_call = undef;
-    my $ssh_auth_ok          = 1;
-    my $ssh_obj_data         = {};                                                                                # used to store Net::SSH2 fake data per object
-    my @net_ssh2_error       = ();
-    my $net_ssh2             = Test::MockModule->new('Net::SSH2');
+    my $ssh_auth_ok = 1;
+    my $ssh_obj_data = {};    # used to store Net::SSH2 fake data per object
+    my @net_ssh2_error = ();
+    my $net_ssh2 = Test::MockModule->new('Net::SSH2');
     $net_ssh2->redefine(new => sub {
             my ($class, %opts) = @_;
             my $self = Test::MockObject->new();
-            my $id   = $self->{my_custom_id} = bmwqemu::random_string(32);
+            my $id = $self->{my_custom_id} = bmwqemu::random_string(32);
             die 'Identifier not unique' if exists $ssh_obj_data->{$id};
             $ssh_obj_data->{$id} = $self;
 
@@ -67,7 +67,7 @@ subtest 'SSH utilities' => sub {
                     # if unspecified, default to port 22
                     is($port, $ssh_expect->{port} // 22, 'Connect to correct port');
                     $self->{hostname} = $hostname;
-                    $self->{port}     = $port;
+                    $self->{port} = $port;
                     $self->{blocking} = 0;
                     return 1;
             });
@@ -99,7 +99,7 @@ subtest 'SSH utilities' => sub {
                     unless ($self->{sock}) {
                         my $mock_sock = Test::MockObject->new();
                         $mock_sock->{ssh} = $self;
-                        $self->{sock}     = $mock_sock;
+                        $self->{sock} = $mock_sock;
                     }
                     return $self->{sock};
             });
@@ -114,9 +114,9 @@ subtest 'SSH utilities' => sub {
                             $self->{cmd} = $cmd;
                             $self->{eof} = 0;
                             if ($cmd =~ /^(echo|test)/) {
-                                $self->{stdout}      = `$cmd`;
+                                $self->{stdout} = `$cmd`;
                                 $self->{exit_status} = $?;
-                                $self->{stderr}      = '';
+                                $self->{stderr} = '';
                             }
                             return 1;
                     });
@@ -125,13 +125,13 @@ subtest 'SSH utilities' => sub {
                             $self->{eof} = 1;
                             return ($self->{stdout}, $self->{stderr});
                     });
-                    $mock_channel->mock(eof         => sub { return shift->{eof}; });
-                    $mock_channel->mock(blocking    => sub { return shift->{ssh}->blocking(shift) });
-                    $mock_channel->mock(pty         => sub { return 1; });
-                    $mock_channel->mock(send_eof    => sub { return 1; });
+                    $mock_channel->mock(eof => sub { return shift->{eof}; });
+                    $mock_channel->mock(blocking => sub { return shift->{ssh}->blocking(shift) });
+                    $mock_channel->mock(pty => sub { return 1; });
+                    $mock_channel->mock(send_eof => sub { return 1; });
                     $mock_channel->mock(exit_status => sub { shift->{exit_status}; });
-                    $mock_channel->mock(ext_data    => sub { my ($self, $v) = @_; $self->{ext_data} = $v; });
-                    $mock_channel->mock(close       => sub { return 1; });
+                    $mock_channel->mock(ext_data => sub { my ($self, $v) = @_; $self->{ext_data} = $v; });
+                    $mock_channel->mock(close => sub { return 1; });
                     return $mock_channel;
             });
 
@@ -140,11 +140,11 @@ subtest 'SSH utilities' => sub {
     sub refaddr { return shift->{my_custom_id}; }
 
     my ($ssh1, $ssh2, $ssh3, $ssh4, $ssh5, $ssh6, $ssh7, $ssh8);
-    my %ssh_creds        = (username => 'root', password => 'password', hostname => 'foo.bar');
-    my $exp_log_new      = qr/SSH connection to root\@foo\.bar established/;
+    my %ssh_creds = (username => 'root', password => 'password', hostname => 'foo.bar');
+    my $exp_log_new = qr/SSH connection to root\@foo\.bar established/;
     my $exp_log_existing = qr/Use existing SSH connection/;
-    my $exp_log_renew    = qr/Close broken SSH connection[\s\S]+SSH connection to root\@foo\.bar established/;
-    my $default_logger   = $bmwqemu::logger;
+    my $exp_log_renew = qr/Close broken SSH connection[\s\S]+SSH connection to root\@foo\.bar established/;
+    my $default_logger = $bmwqemu::logger;
     $bmwqemu::logger = Mojo::Log->new(level => 'debug');
 
     # 1st SSH instance
@@ -153,7 +153,7 @@ subtest 'SSH utilities' => sub {
     stderr_like { $ssh2 = $baseclass->new_ssh_connection(%ssh_creds) } $exp_log_new, 'New SSH connection announced in logs 2';
     # 3rd SSH instance
     stderr_like { $ssh3 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_new, 'New SSH connection announced in logs (first keep_open=>1)';
-    stderr_unlike { $ssh4 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_new,    'No new SSH connection announced in logs';
+    stderr_unlike { $ssh4 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_new, 'No new SSH connection announced in logs';
     stderr_like { $ssh5 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_existing, 'Existing SSH connection announced in logs';
 
     # New connection for different username
@@ -202,26 +202,26 @@ subtest 'SSH utilities' => sub {
     $baseclass->run_ssh_cmd('echo -n "foo"', %ssh_creds, password => '2+3=5', keep_open => 0);
     is($num_ssh_connect + 1, scalar(keys(%{$ssh_obj_data})), 'Ensure run_ssh_cmd(keep_open => 0) uses a new SSH connection');
 
-    my @connected_ssh    = grep { $_->{connected} } values(%$ssh_obj_data);
+    my @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
     my @disconnected_ssh = grep { !$_->{connected} } values(%$ssh_obj_data);
 
     is(scalar(@connected_ssh), 5, "Expect 5 connected SSH connections");
-    is($ssh1->{connected},     1, "SSH connection ssh1 connected");
-    is($ssh2->{connected},     1, "SSH connection ssh2 connected");
-    is($ssh7->{connected},     1, "SSH connection ssh7 connected");
-    is($ssh8->{connected},     1, "SSH connection ssh8 connected");
+    is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
+    is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
+    is($ssh7->{connected}, 1, "SSH connection ssh7 connected");
+    is($ssh8->{connected}, 1, "SSH connection ssh8 connected");
     # +1 unnamed connection form implicit run_ssh_cmd()
 
     is(scalar(@disconnected_ssh), 3, "Expect 3 disconnected SSH connections");
-    is($ssh3->{connected},        0, "SSH connection ssh3 disconnected");
+    is($ssh3->{connected}, 0, "SSH connection ssh3 disconnected");
     # +1 from auth failure
     # +1 run_ssh_cmd(keep_open => 0)
 
     $baseclass->close_ssh_connections();
     @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
     is(scalar(@connected_ssh), 2, "Expect 2 connected SSH connections (ssh1 and ssh2");
-    is($ssh1->{connected},     1, "SSH connection ssh1 connected");
-    is($ssh2->{connected},     1, "SSH connection ssh2 connected");
+    is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
+    is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
 
     subtest 'Serial SSH' => sub {
         my $io_select_mock = Test::MockModule->new('IO::Select');
@@ -229,15 +229,15 @@ subtest 'SSH utilities' => sub {
         $io_select_mock->redefine('remove');
         $baseclass->{select_read} = IO::Select->new;
 
-        $ssh_expect      = {username => 'serial', password => 'XXX', hostname => 'serial.host'};
+        $ssh_expect = {username => 'serial', password => 'XXX', hostname => 'serial.host'};
         $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
         my ($ssh, $chan) = $baseclass->start_ssh_serial(username => 'serial', password => 'XXX', hostname => 'serial.host');
         is($num_ssh_connect + 1, scalar(keys(%{$ssh_obj_data})), 'Ensure start_ssh_serial() uses a new SSH connection');
-        is($chan->{ext_data},    'merge',                        'STDOUT and STDERR are merged');
-        is($ssh->blocking(),     0,                              'We run SSH in none blocking mode');
+        is($chan->{ext_data}, 'merge', 'STDOUT and STDERR are merged');
+        is($ssh->blocking(), 0, 'We run SSH in none blocking mode');
 
         $baseclass->truncate_serial_file();
-        my $expect_output       = "FOO$/" x 4096;
+        my $expect_output = "FOO$/" x 4096;
         my $channel_read_string = $expect_output;
         $chan->mock(read => sub {
                 my ($self, undef, $max) = @_;
@@ -251,19 +251,19 @@ subtest 'SSH utilities' => sub {
         my $exit_value;
         stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } $expect_output, 'Serial output is printed to STDOUT';
         is(path($baseclass->{serialfile})->slurp(), $expect_output, 'Serial output is written to serial file');
-        is($exit_value,                             1,              'Check return value on success');
+        is($exit_value, 1, 'Check return value on success');
 
         $channel_read_string = undef;
-        @net_ssh2_error      = (LIBSSH2_ERROR_EAGAIN, 'EAGAIN', 'Try later');
+        @net_ssh2_error = (LIBSSH2_ERROR_EAGAIN, 'EAGAIN', 'Try later');
         stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } '', 'No output on EAGAIN only';
-        is($exit_value,          1,    'Check return value on EAGAIN');
+        is($exit_value, 1, 'Check return value on EAGAIN');
         is($baseclass->{serial}, $ssh, 'Serial SSH exists after EGAIN');
 
         is($baseclass->check_ssh_serial(42), 0, 'Return 0 when called with wrong socket');
 
         @net_ssh2_error = (666, 'UNKNOWN', 'OHA');
         stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } '', 'No output on ERROR only';
-        is($exit_value,          1,     'Check return value on EAGAIN');
+        is($exit_value, 1, 'Check return value on EAGAIN');
         is($baseclass->{serial}, undef, 'SSH serial get disconnected on unknown read ERROR');
 
         is($baseclass->check_ssh_serial(23), 0, 'Return 0 if SSH serial isn\'t connected');

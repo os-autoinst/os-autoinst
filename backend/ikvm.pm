@@ -19,7 +19,7 @@ sub relogin_vnc {
 
     my $vncopts = {
         hostname => $bmwqemu::vars{IPMI_HOSTNAME},
-        port     => 5900,
+        port => 5900,
         username => $bmwqemu::vars{IPMI_USER},
         password => $bmwqemu::vars{IPMI_PASSWORD},
     };

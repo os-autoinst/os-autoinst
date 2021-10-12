@@ -9,7 +9,7 @@ use Try::Tiny;
 use Mojo::JSON qw(decode_json to_json);
 
 sub pass_message_from_ws_client_to_isotovideo ($self, $id, $msg) {
-    my $app        = $self->app;
+    my $app = $self->app;
     my $isotovideo = $app->defaults('isotovideo');
     return $app->log->debug('cmdsrv: not passing command from client to isotovideo; connection to isotovideo has already been stopped')
       unless defined $isotovideo;
@@ -52,14 +52,14 @@ sub start_ws ($self) {
 }
 
 sub broadcast_message_to_websocket_clients ($self) {
-    my $app     = $self->app;
+    my $app = $self->app;
     my $clients = $app->defaults('clients');
     my $message = $self->req->json;
 
     $app->log->debug('cmdsrv: broadcasting message from API call to all ws clients');
     return $self->render(
         json => {
-            error  => 'JSON message to be boradcasted missing or invalid',
+            error => 'JSON message to be boradcasted missing or invalid',
             status => 'boradcast failed',
         },
         status => 400,

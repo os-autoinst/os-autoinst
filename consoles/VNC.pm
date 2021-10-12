@@ -36,54 +36,54 @@ my $client_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
 # The numbers in the hashes below were acquired from the VNC source code
 my %supported_depths = (
     32 => {    # same as 24 actually
-        bpp         => 32,
+        bpp => 32,
         true_colour => 1,
-        red_max     => 255,
-        green_max   => 255,
-        blue_max    => 255,
-        red_shift   => 16,
+        red_max => 255,
+        green_max => 255,
+        blue_max => 255,
+        red_shift => 16,
         green_shift => 8,
-        blue_shift  => 0,
+        blue_shift => 0,
     },
     24 => {
-        bpp         => 32,
+        bpp => 32,
         true_colour => 1,
-        red_max     => 255,
-        green_max   => 255,
-        blue_max    => 255,
-        red_shift   => 16,
+        red_max => 255,
+        green_max => 255,
+        blue_max => 255,
+        red_shift => 16,
         green_shift => 8,
-        blue_shift  => 0,
+        blue_shift => 0,
     },
     16 => {    # same as 15
-        bpp         => 16,
+        bpp => 16,
         true_colour => 1,
-        red_max     => 31,
-        green_max   => 31,
-        blue_max    => 31,
-        red_shift   => 10,
+        red_max => 31,
+        green_max => 31,
+        blue_max => 31,
+        red_shift => 10,
         green_shift => 5,
-        blue_shift  => 0,
+        blue_shift => 0,
     },
     15 => {
-        bpp         => 16,
+        bpp => 16,
         true_colour => 1,
-        red_max     => 31,
-        green_max   => 31,
-        blue_max    => 31,
-        red_shift   => 10,
+        red_max => 31,
+        green_max => 31,
+        blue_max => 31,
+        red_shift => 10,
         green_shift => 5,
-        blue_shift  => 0
+        blue_shift => 0
     },
     8 => {
-        bpp         => 8,
+        bpp => 8,
         true_colour => 0,
-        red_max     => 8,
-        green_max   => 8,
-        blue_max    => 4,
-        red_shift   => 5,
+        red_max => 8,
+        green_max => 8,
+        blue_max => 4,
+        red_shift => 5,
         green_shift => 2,
-        blue_shift  => 0,
+        blue_shift => 0,
     },
 );
 
@@ -91,33 +91,33 @@ my @encodings = (
 
     # These ones are defined in rfbproto.pdf
     {
-        num       => 0,
-        name      => 'Raw',
+        num => 0,
+        name => 'Raw',
         supported => 1,
     },
     {
-        num       => 16,
-        name      => 'ZRLE',
+        num => 16,
+        name => 'ZRLE',
         supported => 1,
     },
     {
-        num       => -223,
-        name      => 'DesktopSize',
+        num => -223,
+        name => 'DesktopSize',
         supported => 1,
     },
     {
-        num       => -257,
-        name      => 'VNC_ENCODING_POINTER_TYPE_CHANGE',
+        num => -257,
+        name => 'VNC_ENCODING_POINTER_TYPE_CHANGE',
         supported => 1,
     },
     {
-        num       => -261,
-        name      => 'VNC_ENCODING_LED_STATE',
+        num => -261,
+        name => 'VNC_ENCODING_LED_STATE',
         supported => 1,
     },
     {
-        num       => -224,
-        name      => 'VNC_ENCODING_LAST_RECT',
+        num => -224,
+        name => 'VNC_ENCODING_LAST_RECT',
         supported => 1,
     },
 );
@@ -139,7 +139,7 @@ sub login {
     $self->{_inflater} = undef;
 
     my $hostname = $self->hostname || 'localhost';
-    my $port     = $self->port     || 5900;
+    my $port = $self->port || 5900;
 
     my $endtime = time + $connect_timeout;
 
@@ -149,7 +149,7 @@ sub login {
         $socket = IO::Socket::INET->new(
             PeerAddr => $hostname,
             PeerPort => $port,
-            Proto    => 'tcp',
+            Proto => 'tcp',
         );
         if (!$socket) {
             $err_cnt++;
@@ -221,7 +221,7 @@ sub _handshake_security {
     my $security_type;
     if ($self->_rfb_version ge '003.007') {
         my $number_of_security_types = 0;
-        my $r                        = $socket->read($number_of_security_types, 1);
+        my $r = $socket->read($number_of_security_types, 1);
         if ($r) {
             $number_of_security_types = unpack('C', $number_of_security_types);
         }
@@ -315,7 +315,7 @@ sub _handshake_security {
     }
     elsif ($security_type == 16) {    # ikvm
 
-        $socket->print(pack('C',   16));                # accept
+        $socket->print(pack('C', 16));    # accept
         $socket->write(pack('Z24', $self->username));
         $socket->write(pack('Z24', $self->password));
         $socket->read(my $num_tunnels, 4);
@@ -398,8 +398,8 @@ sub _server_initialization {
         %pixinfo,
         $name_length);
     ($framebuffer_width, $framebuffer_height,
-        $bits_per_pixel,     $depth,                $server_is_big_endian, $true_colour_flag,
-        $pixinfo{red_max},   $pixinfo{green_max},   $pixinfo{blue_max},
+        $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
+        $pixinfo{red_max}, $pixinfo{green_max}, $pixinfo{blue_max},
         $pixinfo{red_shift}, $pixinfo{green_shift}, $pixinfo{blue_shift},
         $name_length
     ) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
@@ -459,8 +459,8 @@ sub _server_initialization {
     }
 
     my $info = tinycv::new_vncinfo(
-        $self->_do_endian_conversion, $self->_true_colour,   $self->_bpp / 8,    $pixinfo{red_max}, $pixinfo{red_shift},
-        $pixinfo{green_max},          $pixinfo{green_shift}, $pixinfo{blue_max}, $pixinfo{blue_shift});
+        $self->_do_endian_conversion, $self->_true_colour, $self->_bpp / 8, $pixinfo{red_max}, $pixinfo{red_shift},
+        $pixinfo{green_max}, $pixinfo{green_shift}, $pixinfo{blue_max}, $pixinfo{blue_shift});
     $self->vncinfo($info);
 
     # setpixelformat
@@ -501,8 +501,8 @@ sub _server_initialization {
     $socket->print(
         pack(
             'CCn',
-            2,               # message_type
-            0,               # padding
+            2,    # message_type
+            0,    # padding
             scalar @encs,    # number_of_encodings
         ));
     for my $enc (@encs) {
@@ -524,14 +524,14 @@ sub _send_key_event {
     # (false) if it is now released. The key itself is specified using the “keysym” values
     # defined by the X Window System.
 
-    my $socket   = $self->socket;
+    my $socket = $self->socket;
     my $template = 'CCnN';
     # for a strange reason ikvm has a lot more padding
     $template = 'CxCnNx9' if $self->ikvm;
     $socket->print(
         pack(
             $template,
-            4,             # message_type
+            4,    # message_type
             $down_flag,    # down-flag
             0,             # padding
             $key,          # key
@@ -551,45 +551,45 @@ sub send_key_event_up {
 ## no critic (HashKeyQuotes)
 
 my $keymap_x11 = {
-    'esc'       => 0xff1b,
-    'down'      => 0xff54,
-    'right'     => 0xff53,
-    'up'        => 0xff52,
-    'left'      => 0xff51,
-    'equal'     => ord('='),
-    'spc'       => ord(' '),
-    'minus'     => ord('-'),
-    'shift'     => 0xffe1,
-    'ctrl'      => 0xffe3,     # left, right is e4
-    'caps'      => 0xffe5,
-    'meta'      => 0xffe7,     # left, right is e8
-    'alt'       => 0xffe9,     # left one, right is ea
-    'ret'       => 0xff0d,
-    'tab'       => 0xff09,
+    'esc' => 0xff1b,
+    'down' => 0xff54,
+    'right' => 0xff53,
+    'up' => 0xff52,
+    'left' => 0xff51,
+    'equal' => ord('='),
+    'spc' => ord(' '),
+    'minus' => ord('-'),
+    'shift' => 0xffe1,
+    'ctrl' => 0xffe3,    # left, right is e4
+    'caps' => 0xffe5,
+    'meta' => 0xffe7,    # left, right is e8
+    'alt' => 0xffe9,     # left one, right is ea
+    'ret' => 0xff0d,
+    'tab' => 0xff09,
     'backspace' => 0xff08,
-    'end'       => 0xff57,
-    'delete'    => 0xffff,
-    'home'      => 0xff50,
-    'insert'    => 0xff63,
-    'pgup'      => 0xff55,
-    'pgdn'      => 0xff56,
-    'sysrq'     => 0xff15,
-    'super'     => 0xffeb,     # left, right is ec
+    'end' => 0xff57,
+    'delete' => 0xffff,
+    'home' => 0xff50,
+    'insert' => 0xff63,
+    'pgup' => 0xff55,
+    'pgdn' => 0xff56,
+    'sysrq' => 0xff15,
+    'super' => 0xffeb,    # left, right is ec
 };
 
 # ikvm aka USB: https://www.win.tue.nl/~aeb/linux/kbd/scancodes-14.html
 my $keymap_ikvm = {
-    'ctrl'   => 0xe0,
-    'shift'  => 0xe1,
-    'alt'    => 0xe2,
-    'meta'   => 0xe3,
-    'caps'   => 0x39,
-    'sysrq'  => 0x9a,
-    'end'    => 0x4d,
+    'ctrl' => 0xe0,
+    'shift' => 0xe1,
+    'alt' => 0xe2,
+    'meta' => 0xe3,
+    'caps' => 0x39,
+    'sysrq' => 0x9a,
+    'end' => 0x4d,
     'delete' => 0x4c,
-    'home'   => 0x4a,
+    'home' => 0x4a,
     'insert' => 0x49,
-    'super'  => 0xe3,
+    'super' => 0xe3,
 
     #    {NSPrintScreenFunctionKey, 0x46},
     # {NSScrollLockFunctionKey, 0x47},
@@ -598,29 +598,29 @@ my $keymap_ikvm = {
     'pgup' => 0x4b,
     'pgdn' => 0x4e,
 
-    'left'  => 0x50,
+    'left' => 0x50,
     'right' => 0x4f,
-    'up'    => 0x52,
-    'down'  => 0x51,
+    'up' => 0x52,
+    'down' => 0x51,
 
-    '0'         => 0x27,
-    'ret'       => 0x28,
-    'esc'       => 0x29,
+    '0' => 0x27,
+    'ret' => 0x28,
+    'esc' => 0x29,
     'backspace' => 0x2a,
-    'tab'       => 0x2b,
-    ' '         => 0x2c,
-    'spc'       => 0x2c,
-    'minus'     => 0x2d,
-    '='         => 0x2e,
-    '['         => 0x2f,
-    ']'         => 0x30,
-    '\\'        => 0x31,
-    ';'         => 0x33,
-    '\''        => 0x34,
-    '`'         => 0x35,
-    ','         => 0x36,
-    '.'         => 0x37,
-    '/'         => 0x38,
+    'tab' => 0x2b,
+    ' ' => 0x2c,
+    'spc' => 0x2c,
+    'minus' => 0x2d,
+    '=' => 0x2e,
+    '[' => 0x2f,
+    ']' => 0x30,
+    '\\' => 0x31,
+    ';' => 0x33,
+    '\'' => 0x34,
+    '`' => 0x35,
+    ',' => 0x36,
+    '.' => 0x37,
+    '/' => 0x38,
 };
 
 sub shift_keys {
@@ -768,7 +768,7 @@ sub send_pointer_event {
     $self->socket->print(
         pack(
             $template,
-            5,               # message type
+            5,    # message type
             $button_mask,    # button-mask
             $x,              # x-position
             $y,              # y-position
@@ -847,10 +847,10 @@ sub send_update_request {
     return $self->_send_frame_buffer(
         {
             incremental => $incremental,
-            x           => 0,
-            y           => 0,
-            width       => $self->width,
-            height      => $self->height
+            x => 0,
+            y => 0,
+            width => $self->width,
+            height => $self->height
         });
 }
 
@@ -864,10 +864,10 @@ sub send_forced_update_request {
     return $self->_send_frame_buffer(
         {
             incremental => 0,
-            x           => 0,
-            y           => 0,
-            width       => 16,
-            height      => 16
+            x => 0,
+            y => 0,
+            width => 16,
+            height => 16
         });
 }
 
@@ -893,17 +893,17 @@ sub _receive_message {
     # This result is unused.  It's meaning is different for the different methods
     my $result
       = !defined $message_type ? die 'bad message type received'
-      : $message_type == 0     ? $self->_receive_update()
-      : $message_type == 1     ? $self->_receive_colour_map()
-      : $message_type == 2     ? $self->_receive_bell()
-      : $message_type == 3     ? $self->_receive_cut_text()
-      : $message_type == 0x39  ? $self->_receive_ikvm_session()
-      : $message_type == 0x04  ? $self->_discard_ikvm_message($message_type, 20)
-      : $message_type == 0x16  ? $self->_discard_ikvm_message($message_type, 1)
-      : $message_type == 0x33  ? $self->_discard_ikvm_message($message_type, 4)
-      : $message_type == 0x37  ? $self->_discard_ikvm_message($message_type, $self->old_ikvm ? 2 : 3)
-      : $message_type == 0x3c  ? $self->_discard_ikvm_message($message_type, 8)
-      :                          die 'unsupported message type received';
+      : $message_type == 0 ? $self->_receive_update()
+      : $message_type == 1 ? $self->_receive_colour_map()
+      : $message_type == 2 ? $self->_receive_bell()
+      : $message_type == 3 ? $self->_receive_cut_text()
+      : $message_type == 0x39 ? $self->_receive_ikvm_session()
+      : $message_type == 0x04 ? $self->_discard_ikvm_message($message_type, 20)
+      : $message_type == 0x16 ? $self->_discard_ikvm_message($message_type, 1)
+      : $message_type == 0x33 ? $self->_discard_ikvm_message($message_type, 4)
+      : $message_type == 0x37 ? $self->_discard_ikvm_message($message_type, $self->old_ikvm ? 2 : 3)
+      : $message_type == 0x3c ? $self->_discard_ikvm_message($message_type, 8)
+      : die 'unsupported message type received';
     return $message_type;
 }
 
@@ -917,10 +917,10 @@ sub _receive_update {
         $self->_framebuffer($image);
     }
 
-    my $socket               = $self->socket;
-    my $hlen                 = $socket->read(my $header, 3) || die 'unexpected end of data';
+    my $socket = $self->socket;
+    my $hlen = $socket->read(my $header, 3) || die 'unexpected end of data';
     my $number_of_rectangles = unpack('xn', $header);
-    my $depth                = $self->depth;
+    my $depth = $self->depth;
     my $do_endian_conversion = $self->_do_endian_conversion;
 
     foreach (my $i = 0; $i < $number_of_rectangles; ++$i) {
@@ -1003,7 +1003,7 @@ sub _receive_zrle_encoding {
     my ($self, $x, $y, $w, $h) = @_;
 
     my $socket = $self->socket;
-    my $image  = $self->_framebuffer;
+    my $image = $self->_framebuffer;
 
     my $pi = $self->_pixinfo;
 
@@ -1024,7 +1024,7 @@ sub _receive_zrle_encoding {
     $self->{_inflater} ||= Compress::Raw::Zlib::Inflate->new;
     my $out;
     my $old_total_out = $self->{_inflater}->total_out;
-    my $status        = $self->{_inflater}->inflate($data, $out, 1);
+    my $status = $self->{_inflater}->inflate($data, $out, 1);
     if ($status != Z_OK) {
         OpenQA::Exception::VNCProtocolError->throw(error => "inflation failed $status");
     }
@@ -1039,7 +1039,7 @@ sub _receive_ikvm_encoding {
     my ($self, $encoding_type, $x, $y, $w, $h) = @_;
 
     my $socket = $self->socket;
-    my $image  = $self->_framebuffer;
+    my $image = $self->_framebuffer;
 
     # ikvm specific
     $socket->read(my $aten_data, 8);

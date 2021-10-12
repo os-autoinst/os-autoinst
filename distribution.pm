@@ -12,8 +12,8 @@ sub new {
     my ($class) = @_;
 
     my $self = bless {}, $class;
-    $self->{consoles}          = {};
-    $self->{serial_failures}   = [];
+    $self->{consoles} = {};
+    $self->{serial_failures} = [];
     $self->{autoinst_failures} = [];
 
 =head2 serial_term_prompt
@@ -39,22 +39,22 @@ sub add_console {
     my ($self, $testapi_console, $backend_console, $backend_args) = @_;
 
     my %class_names = (
-        'tty-console'       => 'ttyConsole',
-        'ssh-serial'        => 'sshSerial',
-        'ssh-xterm'         => 'sshXtermVt',
-        'ssh-virtsh'        => 'sshVirtsh',
+        'tty-console' => 'ttyConsole',
+        'ssh-serial' => 'sshSerial',
+        'ssh-xterm' => 'sshXtermVt',
+        'ssh-virtsh' => 'sshVirtsh',
         'ssh-virtsh-serial' => 'sshVirtshSUT',
-        'vnc-base'          => 'vnc_base',
-        'local-Xvnc'        => 'localXvnc',
-        'ssh-iucvconn'      => 'sshIucvconn',
-        'virtio-terminal'   => 'virtio_terminal',
-        'amt-sol'           => 'amtSol',
-        'ipmi-sol'          => 'ipmiSol',
-        'ipmi-xterm'        => 'sshXtermIPMI',
+        'vnc-base' => 'vnc_base',
+        'local-Xvnc' => 'localXvnc',
+        'ssh-iucvconn' => 'sshIucvconn',
+        'virtio-terminal' => 'virtio_terminal',
+        'amt-sol' => 'amtSol',
+        'ipmi-sol' => 'ipmiSol',
+        'ipmi-xterm' => 'sshXtermIPMI',
     );
     my $required_type = $class_names{$backend_console} || $backend_console;
-    my $location      = "consoles/$required_type.pm";
-    my $class         = "consoles::$required_type";
+    my $location = "consoles/$required_type.pm";
+    my $class = "consoles::$required_type";
 
     require $location;
 
@@ -121,8 +121,8 @@ sub script_run {
     my %args = testapi::compat_args(
         {
             timeout => $bmwqemu::default_timeout,
-            output  => '',
-            quiet   => undef
+            output => '',
+            quiet => undef
         }, ['timeout'], @_);
 
     if (testapi::is_serial_terminal) {
@@ -132,7 +132,7 @@ sub script_run {
     if ($args{timeout} > 0) {
         die "Terminator '&' found in script_run call. script_run can not check script success. Use 'background_script_run' instead."
           if $cmd =~ qr/(?<!\\)&$/;
-        my $str    = testapi::hashed_string("SR" . $cmd . $args{timeout});
+        my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
         my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
         if (testapi::is_serial_terminal) {
             testapi::type_string($marker);
@@ -176,7 +176,7 @@ sub background_script_run {
 
     $cmd = "( $cmd )";
     testapi::type_string $cmd;
-    my $str    = testapi::hashed_string("SR" . $cmd);
+    my $str = testapi::hashed_string("SR" . $cmd);
     my $marker = "& echo $str-\$!-" . ($args{output} ? "Comment: $args{output}" : '');
     if (testapi::is_serial_terminal) {
         testapi::type_string($marker);
@@ -208,7 +208,7 @@ sub script_sudo {
 
     my $str;
     if ($wait > 0) {
-        $str  = testapi::hashed_string("SS$prog$wait");
+        $str = testapi::hashed_string("SS$prog$wait");
         $prog = "$prog; echo $str > /dev/$testapi::serialdev";
     }
     testapi::type_string "sudo $prog\n";
@@ -246,15 +246,15 @@ sub script_output {
     my ($self, $script) = splice(@_, 0, 2);
     my %args = testapi::compat_args(
         {
-            timeout            => undef,
-            proceed_on_failure => 0,       # fail on error by default
-            quiet              => undef,
+            timeout => undef,
+            proceed_on_failure => 0,    # fail on error by default
+            quiet => undef,
             # 80 is approximate quantity of chars typed during 'curl' approach
             # if script length is lower there is no point to proceed with more complex solution
             type_command => length($script) < 80,
         }, ['timeout'], @_);
 
-    my $marker      = testapi::hashed_string("SO$script");
+    my $marker = testapi::hashed_string("SO$script");
     my $script_path = "/tmp/script$marker.sh";
 
     # prevent use of network for offline installations
@@ -265,7 +265,7 @@ sub script_output {
 
     if (testapi::is_serial_terminal) {
         my $heretag = 'EOT_' . $marker;
-        my $cat     = "cat > $script_path << '$heretag'; echo $marker-\$?-";
+        my $cat = "cat > $script_path << '$heretag'; echo $marker-\$?-";
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
         bmwqemu::log_call("Content of $script_path :\n \"$cat\" \n");
         testapi::type_string($cat . "\n");
@@ -296,7 +296,7 @@ sub script_output {
     # unambiguously separate the expected output from other content that we
     # might encounter on the serial device depending on how it is used in the
     # SUT
-    my $shell_cmd  = testapi::is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
+    my $shell_cmd = testapi::is_serial_terminal() ? 'bash -oe pipefail' : 'bash -eox pipefail';
     my $run_script = "echo $marker; $shell_cmd $script_path ; echo SCRIPT_FINISHED$marker-\$?-";
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});

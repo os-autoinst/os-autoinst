@@ -26,7 +26,7 @@ sub sshCommand {
     my ($self, $username, $host, $gui) = @_;
 
     my $server_alive_count_max = get_var('_SSH_SERVER_ALIVE_COUNT_MAX', 480);
-    my $server_alive_interval  = get_var('_SSH_SERVER_ALIVE_INTERVAL',  ONE_MINUTE);
+    my $server_alive_interval = get_var('_SSH_SERVER_ALIVE_INTERVAL', ONE_MINUTE);
     my $sshopts = "-o TCPKeepAlive=yes -o ServerAliveCountMax=$server_alive_count_max -o ServerAliveInterval=$server_alive_interval -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no $username\@$host";
     $sshopts = "-X $sshopts" if $gui;
     return "ssh $sshopts; read";
@@ -39,9 +39,9 @@ sub callxterm {
     $command = "TERM=xterm $command";
     my $xterm_vt_cmd = which "xterm-console";
     die "Missing 'xterm-console'" unless $xterm_vt_cmd;
-    die('Missing "Xvnc"')         unless which('Xvnc');
-    die('Missing "icewm"')        unless which('icewm');
-    die('Missing "xterm"')        unless which('xterm');
+    die('Missing "Xvnc"') unless which('Xvnc');
+    die('Missing "icewm"') unless which('icewm');
+    die('Missing "xterm"') unless which('xterm');
     eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command' & echo \"xterm PID is \$!\""); };
     die "cant' start xterm on $display (err: $! retval: $?)" if $@;
 }
@@ -49,7 +49,7 @@ sub callxterm {
 sub fullscreen {
     my ($self, $args) = @_;
 
-    my $display     = $self->{DISPLAY};
+    my $display = $self->{DISPLAY};
     my $window_name = $args->{window_name};
 
     my $xdotool = which "xdotool";
@@ -76,14 +76,14 @@ sub activate {
     my ($port) = sockaddr_in(getsockname($s));
 
     my $display = ":$port";
-    my $pid     = fork();
+    my $pid = fork();
     die unless defined $pid;
     if (!$pid) {
         listen($s, 1);
         my $peer;
         accept($peer, $s);
         close($s);
-        open(STDIN,  "<&", $peer);
+        open(STDIN, "<&", $peer);
         open(STDOUT, ">&", $peer);
         close($peer);
         exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");
@@ -93,8 +93,8 @@ sub activate {
     $self->connect_remote(
         {
             hostname => "localhost",
-            port     => $port,
-            ikvm     => 0
+            port => $port,
+            ikvm => 0
         });
     bmwqemu::diag("Connected to Xvnc - PID $pid");
     $self->{DISPLAY} = $display;

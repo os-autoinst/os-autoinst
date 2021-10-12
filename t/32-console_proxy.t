@@ -12,27 +12,27 @@ use testapi;
 use basetest;
 use distribution;
 
-my $mock_bmwqemu   = Test::MockModule->new('bmwqemu');
-my $mock_basetest  = Test::MockModule->new('basetest');
+my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+my $mock_basetest = Test::MockModule->new('basetest');
 my $mock_baseclass = Test::MockModule->new('backend::baseclass');
-my $mock_jsonrpc   = Test::MockModule->new('myjsonrpc');
+my $mock_jsonrpc = Test::MockModule->new('myjsonrpc');
 
 my $console_check_args = [];
 my %console_const_hash = (x => 'a', y => 'b', z => 'c');
-my $console            = Test::MockObject->new();
-$console->mock('ret_array',           sub { my @array = qw(a b c d ); });
-$console->mock('ret_array_empty',     sub { my @a; });
-$console->mock('ret_array_ref',       sub { [qw(a b c d)]; });
+my $console = Test::MockObject->new();
+$console->mock('ret_array', sub { my @array = qw(a b c d ); });
+$console->mock('ret_array_empty', sub { my @a; });
+$console->mock('ret_array_ref', sub { [qw(a b c d)]; });
 $console->mock('ret_array_ref_empty', sub { []; });
-$console->mock('ret_hash',            sub { %console_const_hash; });
-$console->mock('ret_hash_empty',      sub { my %empty_hash; });
-$console->mock('ret_hash_ref',        sub { {x => 'a', y => 'b', z => 'c'}; });
-$console->mock('ret_hash_ref_empty',  sub { {} });
-$console->mock('ret_scalar',          sub { "a" });
-$console->mock('ret_undef',           sub { return undef; });
-$console->mock('ret_list',            sub { qw(a b c d); });
-$console->mock('ret_list_empty',      sub { return; });
-$console->mock('ret_die',             sub { die("!!Urgs!!"); });
+$console->mock('ret_hash', sub { %console_const_hash; });
+$console->mock('ret_hash_empty', sub { my %empty_hash; });
+$console->mock('ret_hash_ref', sub { {x => 'a', y => 'b', z => 'c'}; });
+$console->mock('ret_hash_ref_empty', sub { {} });
+$console->mock('ret_scalar', sub { "a" });
+$console->mock('ret_undef', sub { return undef; });
+$console->mock('ret_list', sub { qw(a b c d); });
+$console->mock('ret_list_empty', sub { return; });
+$console->mock('ret_die', sub { die("!!Urgs!!"); });
 $console->mock('check_args', sub {
         my ($self, @args) = @_;
         is_deeply(\@args, $console_check_args, 'Got expected (' . join(',', @args) . ') arguments');
@@ -46,7 +46,7 @@ my $baseclass = backend::baseclass->new();
 testapi::set_distribution(distribution->new());
 $autotest::current_test = basetest->new();
 
-my $jsonrpc_cmds    = [];
+my $jsonrpc_cmds = [];
 my $jsonrpc_results = [];
 $mock_jsonrpc->redefine(
     send_json => sub { push(@$jsonrpc_cmds, $_[1]); },
@@ -64,18 +64,18 @@ $mock_jsonrpc->redefine(
     });
 
 subtest 'Verify fake console return values in scalar context' => sub {
-    is_deeply(scalar($console->ret_array()),           4,                              'ARRAY');
-    is_deeply(scalar($console->ret_array_empty()),     0,                              'Empty ARRAY');
-    is_deeply(scalar($console->ret_array_ref()),       ['a', 'b', 'c', 'd'],           'ARRAY-REF');
-    is_deeply(scalar($console->ret_array_ref_empty()), [],                             'Empty ARRAY-REF');
-    is_deeply(scalar($console->ret_hash()),            3,                              'HASH');
-    is_deeply(scalar($console->ret_hash_empty()),      0,                              'Empty HASH');
-    is_deeply(scalar($console->ret_hash_ref()),        {x => 'a', y => 'b', z => 'c'}, 'HASH-REF');
-    is_deeply(scalar($console->ret_hash_ref_empty()),  {},                             'Empty HASH-REF');
-    is_deeply(scalar($console->ret_scalar()),          "a",                            'SCALAR');
-    is_deeply(scalar($console->ret_undef()),           undef,                          'Return undef');
-    is_deeply(scalar($console->ret_list()),            'd',                            'LIST');
-    is_deeply(scalar($console->ret_list_empty()),      undef,                          'Empty LIST');
+    is_deeply(scalar($console->ret_array()), 4, 'ARRAY');
+    is_deeply(scalar($console->ret_array_empty()), 0, 'Empty ARRAY');
+    is_deeply(scalar($console->ret_array_ref()), ['a', 'b', 'c', 'd'], 'ARRAY-REF');
+    is_deeply(scalar($console->ret_array_ref_empty()), [], 'Empty ARRAY-REF');
+    is_deeply(scalar($console->ret_hash()), 3, 'HASH');
+    is_deeply(scalar($console->ret_hash_empty()), 0, 'Empty HASH');
+    is_deeply(scalar($console->ret_hash_ref()), {x => 'a', y => 'b', z => 'c'}, 'HASH-REF');
+    is_deeply(scalar($console->ret_hash_ref_empty()), {}, 'Empty HASH-REF');
+    is_deeply(scalar($console->ret_scalar()), "a", 'SCALAR');
+    is_deeply(scalar($console->ret_undef()), undef, 'Return undef');
+    is_deeply(scalar($console->ret_list()), 'd', 'LIST');
+    is_deeply(scalar($console->ret_list_empty()), undef, 'Empty LIST');
 };
 
 subtest 'testapi::console() => backend::console_proxy => backend::baseclass::proxy_console_call()' => sub {
@@ -102,25 +102,25 @@ subtest 'testapi::console() => backend::console_proxy => backend::baseclass::pro
 
         my $exp = [
             {
-                cmd       => 'backend_proxy_console_call',
-                console   => 'a-console',
-                function  => $func,
-                args      => [],
+                cmd => 'backend_proxy_console_call',
+                console => 'a-console',
+                function => $func,
+                args => [],
                 wantarray => undef,
             },
             {
-                cmd       => 'backend_proxy_console_call',
-                console   => 'a-console',
-                function  => $func,
-                args      => [],
+                cmd => 'backend_proxy_console_call',
+                console => 'a-console',
+                function => $func,
+                args => [],
                 wantarray => !!0,
             },
 
             {
-                cmd       => 'backend_proxy_console_call',
-                console   => 'a-console',
-                function  => $func,
-                args      => [],
+                cmd => 'backend_proxy_console_call',
+                console => 'a-console',
+                function => $func,
+                args => [],
                 wantarray => !!1,
             },
         ];
@@ -131,10 +131,10 @@ subtest 'testapi::console() => backend::console_proxy => backend::baseclass::pro
     like($jsonrpc_results->[-1]->{exception}, qr/!!Urgs!!/, "Exception was JSON encoded");
 
     my $exp = {
-        cmd       => 'backend_proxy_console_call',
-        console   => 'a-console',
-        function  => 'check_args',
-        args      => undef,
+        cmd => 'backend_proxy_console_call',
+        console => 'a-console',
+        function => 'check_args',
+        args => undef,
         wantarray => undef,
     };
 

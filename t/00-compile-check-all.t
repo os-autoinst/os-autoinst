@@ -12,13 +12,13 @@ use File::Which;
 use FindBin '$Bin';
 chdir "$Bin/..";
 
-push @Test::Strict::MODULES_ENABLING_STRICT,   'Test::Most';
+push @Test::Strict::MODULES_ENABLING_STRICT, 'Test::Most';
 push @Test::Strict::MODULES_ENABLING_WARNINGS, 'Test::Most';
 
-$Test::Strict::TEST_SYNTAX   = 1;
-$Test::Strict::TEST_STRICT   = 1;
+$Test::Strict::TEST_SYNTAX = 1;
+$Test::Strict::TEST_STRICT = 1;
 $Test::Strict::TEST_WARNINGS = 1;
-$Test::Strict::TEST_SKIP     = [
+$Test::Strict::TEST_SKIP = [
     't/data/tests/main.pm',
     't/data/tests/product/main.pm',
     't/pool/product/foo/main.pm',
@@ -36,7 +36,7 @@ if (-d '.git' and which('git')) {
         my @all_git_files = qx{git ls-files};
         chomp(@all_git_files);
         my $files_to_skip = $Test::Strict::TEST_SKIP || [];
-        my %skip          = map { $_ => undef } @$files_to_skip;
+        my %skip = map { $_ => undef } @$files_to_skip;
         return map { $root . $_ } grep { !exists $skip{$_} } @all_git_files;    # Exclude files to skip
     }
 }

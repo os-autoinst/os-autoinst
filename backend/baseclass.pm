@@ -46,18 +46,18 @@ __PACKAGE__->mk_accessors(
 
 sub new {
     my $class = shift;
-    my $self  = bless({class => $class}, $class);
-    $self->{started}                           = 0;
-    $self->{serialfile}                        = "serial0";
-    $self->{serial_offset}                     = 0;
-    $self->{video_frame_data}                  = [];
-    $self->{video_frame_number}                = 0;
-    $self->{video_encoders}                    = {};
+    my $self = bless({class => $class}, $class);
+    $self->{started} = 0;
+    $self->{serialfile} = "serial0";
+    $self->{serial_offset} = 0;
+    $self->{video_frame_data} = [];
+    $self->{video_frame_number} = 0;
+    $self->{video_encoders} = {};
     $self->{external_video_encoder_image_data} = [];
-    $self->{min_image_similarity}              = 10000;
-    $self->{min_video_similarity}              = 10000;
-    $self->{children}                          = [];
-    $self->{ssh_connections}                   = {};
+    $self->{min_image_similarity} = 10000;
+    $self->{min_video_similarity} = 10000;
+    $self->{children} = [];
+    $self->{ssh_connections} = {};
 
     return $self;
 }
@@ -99,7 +99,7 @@ sub run {
     $backend = $self;
 
     $SIG{__DIE__} = \&die_handler;
-    $SIG{TERM}    = \&backend_signalhandler;
+    $SIG{TERM} = \&backend_signalhandler;
 
     my $io = IO::Handle->new();
     $io->fdopen($cmdpipe, "r") || die "r fdopen $!";
@@ -115,7 +115,7 @@ sub run {
 
     bmwqemu::diag "started mgmt loop with pid $$";
 
-    my $select_read  = $self->{select_read}  = IO::Select->new;
+    my $select_read = $self->{select_read} = IO::Select->new;
     my $select_write = $self->{select_write} = IO::Select->new;
     $select_read->add($self->{cmdpipe});
     $select_write->add($self->{cmdpipe});
@@ -141,7 +141,7 @@ sub _write_buffered_data_to_file_handle {
     my ($self, $program_name, $array_of_buffers, $fh) = @_;
 
     # write as much data as possible (this is called when $fh is ready to write)
-    my $data         = shift @$array_of_buffers;
+    my $data = shift @$array_of_buffers;
     my $data_written = $fh->syswrite($data);
     die "$program_name not accepting data: $!" unless defined $data_written;
 
@@ -158,13 +158,13 @@ sub _write_buffered_data_to_file_handle {
 sub do_capture {
     my ($self, $timeout, $starttime) = @_;
     # Time slot buckets
-    my $buckets         = {};
+    my $buckets = {};
     my $wait_time_limit = $bmwqemu::vars{_CHKSEL_RATE_WAIT_TIME} // 30;
-    my $hits_limit      = $bmwqemu::vars{_CHKSEL_RATE_HITS}      // 15_000;
+    my $hits_limit = $bmwqemu::vars{_CHKSEL_RATE_HITS} // 15_000;
 
     while (1) {
         last unless $self->{cmdpipe};
-        my $now             = gettimeofday;
+        my $now = gettimeofday;
         my $time_to_timeout = "Inf" + 0;
         if (defined $timeout) {
             $time_to_timeout = $timeout - ($now - $starttime);
@@ -278,7 +278,7 @@ sub run_capture_loop {
 sub check_select_rate {
     my ($buckets, $wait_time_limit, $hits_limit, $id) = @_;
 
-    my $time        = gettimeofday;
+    my $time = gettimeofday;
     my $lower_limit = $buckets->{TIME} //= $time;
     my $upper_limit = $lower_limit + $wait_time_limit;
     if ($time > $upper_limit) {
@@ -301,7 +301,7 @@ sub check_select_rate {
 sub _invoke_video_encoder {
     my ($self, $pipe_name, $display_name, @cmd) = @_;
 
-    my $pid  = open($self->{$pipe_name}, '|-', @cmd);
+    my $pid = open($self->{$pipe_name}, '|-', @cmd);
     my $pipe = $self->{$pipe_name};
     $self->{video_encoders}->{$pid} = {name => $display_name, pipe => $pipe};
     $pipe->blocking(0);
@@ -312,7 +312,7 @@ sub _start_external_video_encoder_if_configured {
 
     return 0 if $bmwqemu::vars{NOVIDEO};
 
-    my $cmd              = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} or return 0;
+    my $cmd = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} or return 0;
     my $output_file_name = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_OUTPUT_FILE_EXTENSION} // 'webm';
     my $output_file_path = Cwd::getcwd . "/video.$output_file_name";
     $cmd .= " '$output_file_path'" unless $cmd =~ s/%OUTPUT_FILE_NAME%/$output_file_path/;
@@ -349,11 +349,11 @@ sub _stop_video_encoder {
 
     # pass remaining video frames to the video encoder
     bmwqemu::diag 'Passing remaining frames to the video encoder';
-    my $timeout                         = 30;
+    my $timeout = 30;
     my $video_data_for_internal_encoder = $self->{video_frame_data};
     my $video_data_for_external_encoder = $self->{external_video_encoder_image_data};
-    my $select                          = IO::Select->new;
-    $select->add(my $internal_pipe = $self->{encoder_pipe})                    if @$video_data_for_internal_encoder;
+    my $select = IO::Select->new;
+    $select->add(my $internal_pipe = $self->{encoder_pipe}) if @$video_data_for_internal_encoder;
     $select->add(my $external_pipe = $self->{external_video_encoder_cmd_pipe}) if @$video_data_for_external_encoder;
     try {
         while ($select->count) {
@@ -444,7 +444,7 @@ sub power {
 }
 
 sub insert_cd { notimplemented }
-sub eject_cd  { notimplemented }
+sub eject_cd { notimplemented }
 
 sub do_start_vm {
     # start up the vm
@@ -481,7 +481,7 @@ sub format_vtt_timestamp {
     my ($self, $walltime) = @_;
 
     my $frametime_ms = 1000 * $self->{video_frame_number} / 24;
-    my $caption      = "\n$self->{video_frame_number}\n";
+    my $caption = "\n$self->{video_frame_number}\n";
     # presentation time span (one frame)
     $caption .= sprintf(POSIX::strftime("%T.%%03d", gmtime($frametime_ms / 1000)), $frametime_ms % 1000);
     $frametime_ms += 1000 / 24;
@@ -529,7 +529,7 @@ sub enqueue_screenshot {
 
     my $external_video_encoder_cmd_pipe = $self->{external_video_encoder_cmd_pipe};
     if ($self->{min_video_similarity} > 50) {    # we ignore smaller differences
-        push(@{$self->{video_frame_data}},                  "R\n");
+        push(@{$self->{video_frame_data}}, "R\n");
         push(@{$self->{external_video_encoder_image_data}}, $self->{last_image_data})
           if defined $external_video_encoder_cmd_pipe && defined $self->{last_image_data};
     }
@@ -626,7 +626,7 @@ sub select_console {
     my $testapi_console = $args->{testapi_console};
 
     my $selected_console = $self->console($testapi_console);
-    my $activated        = try {
+    my $activated = try {
         local $SIG{__DIE__} = 'DEFAULT';
         $selected_console->select;
     }
@@ -636,7 +636,7 @@ sub select_console {
 
     return $activated if ref($activated);
     $self->{current_console} = $selected_console;
-    $self->{current_screen}  = $selected_console->screen;
+    $self->{current_screen} = $selected_console->screen;
     $self->capture_screenshot();
     return {activated => $activated};
 }
@@ -869,7 +869,7 @@ sub read_serial {
     open(my $SERIAL, "<", $self->{serialfile});
     seek($SERIAL, $position, $whence // 0);
     local $/;
-    my $data   = <$SERIAL>;
+    my $data = <$SERIAL>;
     my $offset = tell $SERIAL;
     close($SERIAL);
 
@@ -879,7 +879,7 @@ sub read_serial {
 sub wait_serial {
     my ($self, $args) = @_;
 
-    my $regexp  = $args->{regexp};
+    my $regexp = $args->{regexp};
     my $timeout = $args->{timeout};
     my $matched = 0;
     my $str;
@@ -890,19 +890,19 @@ sub wait_serial {
     }
 
     $regexp = [$regexp] if ref $regexp ne 'ARRAY';
-    my $initial_time   = time;
+    my $initial_time = time;
     my $current_offset = $self->{serial_offset};
     while (time < $initial_time + $timeout) {
         $str = $self->serial_text();
         for my $r (@$regexp) {
             if (!$args->{no_regex} && $str =~ m/$r/) {
                 $current_offset += $LAST_MATCH_END[0];
-                $str     = substr($str, 0, $LAST_MATCH_END[0]);
+                $str = substr($str, 0, $LAST_MATCH_END[0]);
                 $matched = 1;
                 last;
             } elsif ($args->{no_regex} && (my $i = index($str, $r)) >= 0) {
                 $current_offset += length($r) + $i;
-                $str     = substr($str, 0, $i + length($r));
+                $str = substr($str, 0, $i + length($r));
                 $matched = 1;
                 last;
             }
@@ -933,7 +933,7 @@ sub similiarity_to_reference {
 sub set_tags_to_assert {
     my ($self, $args) = @_;
     my $mustmatch = $args->{mustmatch};
-    my $timeout   = $args->{timeout} // $bmwqemu::default_timeout;
+    my $timeout = $args->{timeout} // $bmwqemu::default_timeout;
 
     # keep only the most recently used images (https://progress.opensuse.org/issues/15438)
     needle::clean_image_cache();
@@ -960,7 +960,7 @@ sub set_tags_to_assert {
     }
     elsif ($mustmatch) {
         $needles = needle::tags($mustmatch) || [];
-        @tags    = ($mustmatch);
+        @tags = ($mustmatch);
     }
 
     {    # remove duplicates
@@ -1013,8 +1013,8 @@ sub _failed_screens_to_json {
         my ($img, $failed_candidates, $testtime, $similarity, $frame) = @$l;
         my $h = {
             candidates => $failed_candidates,
-            image      => encode_base64($img->ppm_data),
-            frame      => $frame,
+            image => encode_base64($img->ppm_data),
+            frame => $frame,
         };
         push(@json_fails, $h);
     }
@@ -1035,10 +1035,10 @@ sub check_asserted_screen {
 
     my $img = $self->last_image;
     return unless $img;    # no screenshot yet to search on
-    my $watch     = OpenQA::Benchmark::Stopwatch->new();
+    my $watch = OpenQA::Benchmark::Stopwatch->new();
     my $timestamp = $self->last_screenshot;
-    my $n         = $self->_time_to_assert_screen_deadline;
-    my $frame     = $self->{video_frame_number};
+    my $n = $self->_time_to_assert_screen_deadline;
+    my $frame = $self->{video_frame_number};
 
     my $search_ratio = 0.02;
     $search_ratio = 1 if ($n % 5 == 0);
@@ -1065,10 +1065,10 @@ sub check_asserted_screen {
     if ($foundneedle) {
         $self->assert_screen_last_check(undef);
         return {
-            image      => encode_base64($img->ppm_data),
-            found      => $foundneedle,
+            image => encode_base64($img->ppm_data),
+            found => $foundneedle,
             candidates => $failed_candidates,
-            frame      => $frame,
+            frame => $frame,
         };
     }
 
@@ -1120,7 +1120,7 @@ sub check_asserted_screen {
         # as the images create memory pressure, we only save quite different images
         # the last screen is handled automatically and the first screen is only interesting
         # if there are no others
-        my $sim            = 29;
+        my $sim = 29;
         my $failed_screens = $self->assert_screen_fails;
         if ($failed_screens->[-1] && $n > 0) {
             $sim = $failed_screens->[-1]->[0]->similarity($img);
@@ -1181,14 +1181,14 @@ sub last_screenshot_data {
 
 sub verify_image {
     my ($self, $args) = @_;
-    my $imgpath   = $args->{imgpath};
+    my $imgpath = $args->{imgpath};
     my $mustmatch = $args->{mustmatch};
 
-    my $img     = tinycv::read($imgpath);
+    my $img = tinycv::read($imgpath);
     my $needles = needle::tags($mustmatch) || [];
 
     my ($foundneedle, $failed_candidates) = $img->search($needles, 0, 1);
-    return {found      => $foundneedle, candidates => $failed_candidates} if $foundneedle;
+    return {found => $foundneedle, candidates => $failed_candidates} if $foundneedle;
     return {candidates => $failed_candidates};
 }
 
@@ -1214,7 +1214,7 @@ sub new_ssh_connection {
     my %credentials = $self->get_ssh_credentials;
     $args{$_} //= $credentials{$_} foreach (keys(%credentials));
     $args{username} ||= 'root';
-    $args{port}     ||= 22;
+    $args{port} ||= 22;
     $args{keep_open} //= 0;
     my $connection_key;
 
@@ -1241,7 +1241,7 @@ sub new_ssh_connection {
     my $ssh = Net::SSH2->new(timeout => ($bmwqemu::vars{SSH_COMMAND_TIMEOUT_S} // 5 * ONE_MINUTE) * 1000);
 
     # Retry multiple times, in case of the guest is not running yet
-    my $counter    = $bmwqemu::vars{SSH_CONNECT_RETRY} // 5;
+    my $counter = $bmwqemu::vars{SSH_CONNECT_RETRY} // 5;
     my $con_pretty = "$args{username}\@$args{hostname}";
     $con_pretty .= ":$args{port}" unless $args{port} == 22;
     while ($counter > 0) {
@@ -1284,7 +1284,7 @@ sub start_ssh_serial {
     bmwqemu::log_call(%{$self->hide_password(%args)});
     $self->stop_ssh_serial;
 
-    my $ssh  = $self->{serial}      = $self->new_ssh_connection(%args);
+    my $ssh = $self->{serial} = $self->new_ssh_connection(%args);
     my $chan = $self->{serial_chan} = $ssh->channel();
     $ssh->die_with_error("Unable to establish SSH channel for serial console") unless $chan;
     $chan->blocking(0);
@@ -1362,7 +1362,7 @@ sub run_ssh {
     my ($self, $cmd, %args) = @_;
     bmwqemu::log_call(cmd => $cmd, %{$self->hide_password(%args)});
     $args{blocking} //= 1;
-    my $ssh  = $self->new_ssh_connection(%args);
+    my $ssh = $self->new_ssh_connection(%args);
     my $chan = $ssh->channel() || $ssh->die_with_error("Unable to create SSH channel for executing \"$cmd\"");
     $chan->exec($cmd) || $ssh->die_with_error("Unable to execute \"$cmd\"");
     $ssh->blocking($args{blocking});

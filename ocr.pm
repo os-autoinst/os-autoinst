@@ -11,7 +11,7 @@ use autodie ':all';
 sub tesseract {
     my ($img, $area) = @_;
     my $imgfn = 'ocr.png';
-    my $txtfn = 'ocr';       # tesseract appends .txt automatically o_O
+    my $txtfn = 'ocr';    # tesseract appends .txt automatically o_O
     my $txt;
 
     if ($area) {

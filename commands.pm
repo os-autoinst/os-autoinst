@@ -108,7 +108,7 @@ sub _is_allowed_path {
 sub test_data {
     my ($self) = @_;
 
-    my $path    = path($bmwqemu::vars{CASEDIR}, 'data');
+    my $path = path($bmwqemu::vars{CASEDIR}, 'data');
     my $relpath = $self->param('relpath');
     if (defined $relpath) {
         return $self->reply->not_found unless _is_allowed_path($relpath);
@@ -116,7 +116,7 @@ sub test_data {
     }
 
     $self->app->log->info("Test data requested: $path");
-    return _test_data_dir($self, $path)  if -d $path;
+    return _test_data_dir($self, $path) if -d $path;
     return _test_data_file($self, $path) if -f $path;
     return $self->reply->not_found;
 }
@@ -131,7 +131,7 @@ sub get_asset {
     # check for the asset within the current working directory because the worker cache will store it here; otherwise
     # fallback to $bmwqemu::vars{ASSETDIR} for legacy setups (see poo#70723)
     my $relpath = $self->param('relpath');
-    my $path    = path($asset_name);
+    my $path = path($asset_name);
     $path = path($bmwqemu::vars{ASSETDIR}, $asset_type, $asset_name) unless -f $path;
     if (defined $relpath) {
         return $self->reply->not_found unless _is_allowed_path($relpath);
@@ -155,7 +155,7 @@ sub upload_file {
     eval { mkdir $target unless -d $target };
     if (my $error = $@) { return $self->render(text => "Unable to create directory for upload: $error", status => 500) }
 
-    my $upname   = $self->param('upname');
+    my $upname = $self->param('upname');
     my $filename = basename($upname ? $upname : $self->param('filename'));
     # note: Only renaming the file if upname parameter is present, e.g. from upload_logs(). With this it won't rename the file in
     #       case of upload_assert() and autoyast profiles as those are not done via upload_logs().
@@ -214,9 +214,9 @@ sub isotovideo_post {
 }
 
 sub get_temp_file {
-    my ($self)  = @_;
+    my ($self) = @_;
     my $relpath = $self->param('relpath');
-    my $path    = testapi::hashed_string($relpath);
+    my $path = testapi::hashed_string($relpath);
     return _test_data_file($self, $path) if -f $path;
     return $self->reply->not_found;
 }
@@ -225,8 +225,8 @@ sub run_daemon {
     my ($port, $isotovideo) = @_;
 
     # allow up to 20 GiB for uploads of big hdd images
-    $ENV{MOJO_MAX_MESSAGE_SIZE}   //= ($bmwqemu::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} // 20) * 1024**3;
-    $ENV{MOJO_INACTIVITY_TIMEOUT} //= ($bmwqemu::vars{UPLOAD_INACTIVITY_TIMEOUT}  // 300);
+    $ENV{MOJO_MAX_MESSAGE_SIZE} //= ($bmwqemu::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} // 20) * 1024**3;
+    $ENV{MOJO_INACTIVITY_TIMEOUT} //= ($bmwqemu::vars{UPLOAD_INACTIVITY_TIMEOUT} // 300);
 
     # avoid leaking token
     app->mode('production');
@@ -234,7 +234,7 @@ sub run_daemon {
     app->log->debug('cmdsrv: run daemon ' . $isotovideo);
     # abuse the defaults to store singletons for the server
     app->defaults(isotovideo => $isotovideo);
-    app->defaults(clients    => {});
+    app->defaults(clients => {});
 
     my $r = app->routes;
     $r->namespaces(['OpenQA']);
@@ -259,7 +259,7 @@ sub run_daemon {
     $token_auth->get('/files/*relpath' => \&get_temp_file);
 
     # get asset
-    $token_auth->get('/assets/#assettype/#assetname'          => \&get_asset);
+    $token_auth->get('/assets/#assettype/#assetname' => \&get_asset);
     $token_auth->get('/assets/#assettype/#assetname/*relpath' => \&get_asset);
 
     # get vars
@@ -299,7 +299,7 @@ sub run_daemon {
             my ($reactor, $writable) = @_;
 
             my @isotovideo_responses = myjsonrpc::read_json($isotovideo, undef, 1);
-            my $clients              = app->defaults('clients');
+            my $clients = app->defaults('clients');
             for my $response (@isotovideo_responses) {
                 _handle_isotovideo_response(app, $response);
                 delete $response->{json_cmd_token};
@@ -333,8 +333,8 @@ sub start_server {
 
     my $process = process(sub {
             $SIG{TERM} = 'DEFAULT';
-            $SIG{INT}  = 'DEFAULT';
-            $SIG{HUP}  = 'DEFAULT';
+            $SIG{INT} = 'DEFAULT';
+            $SIG{HUP} = 'DEFAULT';
             $SIG{CHLD} = 'DEFAULT';
 
             close($child);
@@ -343,11 +343,11 @@ sub start_server {
             Devel::Cover::report() if Devel::Cover->can('report');
             _exit(0);
         },
-        sleeptime_during_kill       => 0.1,
+        sleeptime_during_kill => 0.1,
         total_sleeptime_during_kill => 5,
-        blocking_stop               => 1,
-        internal_pipes              => 0,
-        set_pipes                   => 0)->start;
+        blocking_stop => 1,
+        internal_pipes => 0,
+        set_pipes => 0)->start;
 
     close($isotovideo);
     $process->on(collected => sub { bmwqemu::diag("commands process exited: " . shift->exit_status); });

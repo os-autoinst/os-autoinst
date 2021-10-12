@@ -24,7 +24,7 @@ sub activate {
     my @command = $self->backend->ipmi_cmdline;
     push(@command, qw(sol activate));
     my $serial = $self->{args}->{serial};
-    my $cstr   = join(' ', @command);
+    my $cstr = join(' ', @command);
 
     # Try to deactivate IPMI SOL before activate
     eval { $self->backend->ipmitool("sol deactivate"); };

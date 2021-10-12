@@ -49,24 +49,24 @@ is($downloader->download_limit, 150, 'by default limited to 150 downloads');
 subtest 'add relevant downloads' => sub {
     my @new_needles = (
         {
-            id         => 1,
-            name       => 'foo',
-            directory  => 'fixtures',
-            tags       => [qw(some tag)],
-            json_path  => '/needles/1/json',
+            id => 1,
+            name => 'foo',
+            directory => 'fixtures',
+            tags => [qw(some tag)],
+            json_path => '/needles/1/json',
             image_path => '/needles/1/image',
-            t_created  => '2018-01-01T00:00:00Z',
-            t_updated  => '2018-01-01T00:00:00Z',
+            t_created => '2018-01-01T00:00:00Z',
+            t_updated => '2018-01-01T00:00:00Z',
         },
         {
-            id         => 2,
-            name       => 'bar',
-            directory  => 'fixtures',
-            tags       => [qw(yet another tag)],
-            json_path  => '/needles/2/json',
+            id => 2,
+            name => 'bar',
+            directory => 'fixtures',
+            tags => [qw(yet another tag)],
+            json_path => '/needles/2/json',
             image_path => '/needles/2/image',
-            t_created  => '2018-01-01T00:00:00Z',
-            t_updated  => '2018-01-01T00:00:00Z',
+            t_created => '2018-01-01T00:00:00Z',
+            t_updated => '2018-01-01T00:00:00Z',
         },
     );
 
@@ -80,15 +80,15 @@ subtest 'add relevant downloads' => sub {
     my @expected_downloads = (
         {
             target => $needles_dir . '/foo.json',
-            url    => 'http://openqa/needles/1/json',
+            url => 'http://openqa/needles/1/json',
         },
         {
             target => $needles_dir . '/bar.json',
-            url    => 'http://openqa/needles/2/json',
+            url => 'http://openqa/needles/2/json',
         },
         {
             target => $needles_dir . '/bar.png',
-            url    => 'http://openqa/needles/2/image',
+            url => 'http://openqa/needles/2/image',
         }
     );
 

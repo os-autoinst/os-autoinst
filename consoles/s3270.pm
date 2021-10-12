@@ -18,8 +18,8 @@ use IPC::Run::Debug;    # set IPCRUNDEBUG=data in shell environment for trace
 use Thread::Queue;
 use Time::HiRes 'usleep';
 
-has zVM_host    => (is => "rw");
-has guest_user  => (is => "rw");
+has zVM_host => (is => "rw");
+has guest_user => (is => "rw");
 has guest_login => (is => "rw");
 
 sub start {
@@ -29,7 +29,7 @@ sub start {
     $self->{raw_expect_queue} = Thread::Queue->new;
 
     # start the local terminal emulator
-    $self->{in}  = "";
+    $self->{in} = "";
     $self->{out} = "";
     $self->{err} = "";
 
@@ -75,9 +75,9 @@ sub send_3270 {
     my @out_array = split(/\n/, $out_string);
 
     my $out = {
-        command_status  => pop @out_array,
+        command_status => pop @out_array,
         terminal_status => pop @out_array,
-        command_output  => \@out_array,
+        command_output => \@out_array,
     };
 
     foreach my $line (@{$out->{command_output}}) {
@@ -145,19 +145,19 @@ sub ensure_screen_update {
 sub expect_3270 {
     my ($self, %arg) = @_;
 
-    $arg{buffer_full}     //= qr/MORE\.\.\./;
-    $arg{buffer_ready}    //= qr/RUNNING/;
+    $arg{buffer_full} //= qr/MORE\.\.\./;
+    $arg{buffer_ready} //= qr/RUNNING/;
     $arg{expected_status} //= $arg{buffer_ready};
-    $arg{timeout}         //= 7;
-    $arg{clear_buffer}    //= 0;
-    $arg{output_delim}    //= undef;
-    $arg{delete_lines}    //= qr/^ +$/;
+    $arg{timeout} //= 7;
+    $arg{clear_buffer} //= 0;
+    $arg{output_delim} //= undef;
+    $arg{delete_lines} //= qr/^ +$/;
 
     if ($arg{clear_buffer}) {
         my $n = $self->{raw_expect_queue}->pending();
         $self->{raw_expect_queue}->dequeue_nb($n) if $n;
     }
-    my $result     = [];
+    my $result = [];
     my $start_time = time();
     while (1) {
         my $r;
@@ -173,7 +173,7 @@ sub expect_3270 {
             my $co = $r->{command_output};
 
             my $status_line = pop @$co;
-            my $input_line  = pop @$co;
+            my $input_line = pop @$co;
             my @output_area = @$co;
 
             @output_area = grep !/$arg{delete_lines}/, @output_area if defined $arg{delete_lines};
@@ -394,7 +394,7 @@ sub connect_and_login {
         # os-autoinst use
 
         if (grep { /(?:RECONNECT|HCPLGA).*/ } @$r) {
-            carp                                                                                      #
+            carp    #
               "connect_and_login: machine is in use ($self->{zVM_host} $self->{guest_login}):\n" .    #
               join("\n", @$r) . "\n";
 

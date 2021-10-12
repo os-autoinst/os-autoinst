@@ -37,12 +37,12 @@ sub AUTOLOAD {
     # allow symbolic references
     no strict 'refs';
     *$AUTOLOAD = sub {
-        my $self         = shift;
-        my $args         = \@_;
+        my $self = shift;
+        my $args = \@_;
         my $wrapped_call = {
-            console   => $self->{console},
-            function  => $function,
-            args      => $args,
+            console => $self->{console},
+            function => $function,
+            args => $args,
             wantarray => wantarray,
         };
 

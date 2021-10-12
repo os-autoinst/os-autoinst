@@ -13,7 +13,7 @@ use bmwqemu;
 sub new {
     my ($class) = @_;
     my $self = $class->SUPER::new;
-    $bmwqemu::vars{QEMURAM}  //= 1024;
+    $bmwqemu::vars{QEMURAM} //= 1024;
     $bmwqemu::vars{QEMUCPUS} //= 1;
     return $self;
 }

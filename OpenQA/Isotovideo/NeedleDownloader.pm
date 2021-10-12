@@ -14,11 +14,11 @@ use bmwqemu;
 use needle;
 
 has files_to_download => sub { [] };
-has openqa_url        => sub {
+has openqa_url => sub {
     # deduce the default openQA URL from OPENQA_URL/OPENQA_HOSTNAME
     # note: OPENQA_URL is sometimes just the hostname (eg. e212.suse.de) but might be a proper URL
     #       as well (eg. http://openqa1-opensuse).
-    my $url  = Mojo::URL->new($bmwqemu::vars{OPENQA_URL});
+    my $url = Mojo::URL->new($bmwqemu::vars{OPENQA_URL});
     my $host = $bmwqemu::vars{OPENQA_HOSTNAME};
 
     # determine host if not present in OPENQA_URL
@@ -52,13 +52,13 @@ has openqa_url        => sub {
 
     return $url;
 };
-has ua             => sub { Mojo::UserAgent->new };
+has ua => sub { Mojo::UserAgent->new };
 has download_limit => 150;
 
 sub _add_download ($self, $needle, $extension, $path_param) {
-    my $needle_name     = $needle->{name};
-    my $latest_update   = $needle->{t_updated};
-    my $needles_dir     = needle::needles_dir();
+    my $needle_name = $needle->{name};
+    my $latest_update = $needle->{t_updated};
+    my $needles_dir = needle::needles_dir();
     my $download_target = "$needles_dir/$needle_name.$extension";
 
     if (my $target_stat = stat($download_target)) {
@@ -73,12 +73,12 @@ sub _add_download ($self, $needle, $extension, $path_param) {
 
     push(@{$self->files_to_download}, {
             target => $download_target,
-            url    => Mojo::URL->new($self->openqa_url . $needle->{$path_param}),
+            url => Mojo::URL->new($self->openqa_url . $needle->{$path_param}),
     });
 }
 
 sub _download_file ($self, $download) {
-    my $download_url    = $download->{url};
+    my $download_url = $download->{url};
     my $download_target = $download->{target};
     bmwqemu::diag("download new needle: $download_url => $download_target");
 
@@ -109,12 +109,12 @@ sub _download_file ($self, $download) {
 
 # adds downloads for the specified $new_needles if those are missing/outdated locally
 sub add_relevant_downloads ($self, $new_needles) {
-    my $download_limit  = $self->download_limit;
+    my $download_limit = $self->download_limit;
     my $added_downloads = $self->files_to_download;
     for my $needle (@$new_needles) {
         last if (scalar @$added_downloads >= $download_limit);
         $self->_add_download($needle, 'json', 'json_path');
-        $self->_add_download($needle, 'png',  'image_path');
+        $self->_add_download($needle, 'png', 'image_path');
     }
 }
 

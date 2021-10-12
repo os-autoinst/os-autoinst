@@ -44,7 +44,7 @@ $distri->redefine(add_console => sub {
 $testapi::distri = distribution->new;
 
 ok $backend->do_start_vm, 'can call do_start_vm';
-ok $backend->do_stop_vm,  'can call do_stop_vm';
+ok $backend->do_stop_vm, 'can call do_stop_vm';
 ok !$backend->check_socket, 'check_socket not returning true by default';
 ok $backend->get_mc_status, 'can call get_mc_status';
 

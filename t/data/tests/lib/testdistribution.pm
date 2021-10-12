@@ -18,7 +18,7 @@ sub init_consoles ($self) {
         'vnc-base',
         {
             hostname => 'novnc.nowhere',
-            port     => 5901,
+            port => 5901,
             password => $testapi::password
         });
     $self->add_console(

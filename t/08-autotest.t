@@ -69,7 +69,7 @@ my $completed;
 $autotest::isotovideo = 'foo';
 like warning { autotest::run_all }, qr/ERROR: no tests loaded/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
-is($died,      1, 'run_all with no tests should catch runalltests dying');
+is($died, 1, 'run_all with no tests should catch runalltests dying');
 is($completed, 0, 'run_all with no tests should not complete');
 @sent = [];
 
@@ -77,14 +77,14 @@ loadtest 'start';
 loadtest 'next';
 is(keys %autotest::tests, 2, 'two tests have been scheduled');
 loadtest 'start', 'rescheduling same step later';
-is(keys %autotest::tests,                    3,         'three steps have been scheduled (one twice)') || diag explain %autotest::tests;
+is(keys %autotest::tests, 3, 'three steps have been scheduled (one twice)') || diag explain %autotest::tests;
 is($autotest::tests{'tests-start1'}->{name}, 'start#1', 'handle duplicate tests');
-is($autotest::tests{'tests-start1'}->{$_},   $autotest::tests{'tests-start'}->{$_}, "duplicate tests point to the same $_")
+is($autotest::tests{'tests-start1'}->{$_}, $autotest::tests{'tests-start'}->{$_}, "duplicate tests point to the same $_")
   for qw(script fullname category class);
 
 stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
-is($died,      0, 'start+next+start should not die');
+is($died, 0, 'start+next+start should not die');
 is($completed, 1, 'start+next+start should complete');
 @sent = [];
 
@@ -92,7 +92,7 @@ is($completed, 1, 'start+next+start should complete');
 # runargs test module, as it fails.
 subtest 'test always_rollback flag' => sub {
     # Test that no rollback is triggered when flag is not explicitly set to true
-    $mock_basetest->redefine(test_flags       => sub { return {milestone => 1}; });
+    $mock_basetest->redefine(test_flags => sub { return {milestone => 1}; });
     $mock_autotest->redefine(query_isotovideo => sub { return 0; });
     my $reverts_done = 0;
     $mock_autotest->redefine(load_snapshot => sub { $reverts_done++; });
@@ -101,67 +101,67 @@ subtest 'test always_rollback flag' => sub {
 
     stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
     ($died, $completed) = get_tests_done;
-    is($died,         0, 'start+next+start should not die when always_rollback flag is set');
-    is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
+    is($died, 0, 'start+next+start should not die when always_rollback flag is set');
+    is($completed, 1, 'start+next+start should complete when always_rollback flag is set');
     is($reverts_done, 0, "No snapshots loaded when flag is not explicitly set to true");
     $reverts_done = 0;
     is($snapshots_made, 0, 'No snapshots made if snapshots are not supported');
     $snapshots_made = 0;
-    @sent           = [];
+    @sent = [];
 
     # Test that no rollback is triggered if snapshots are not supported
-    $mock_basetest->redefine(test_flags       => sub { return {always_rollback => 1, milestone => 1}; });
+    $mock_basetest->redefine(test_flags => sub { return {always_rollback => 1, milestone => 1}; });
     $mock_autotest->redefine(query_isotovideo => sub { return 0; });
     $reverts_done = 0;
     $mock_autotest->redefine(load_snapshot => sub { $reverts_done++; });
 
     stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
     ($died, $completed) = get_tests_done;
-    is($died,         0, 'start+next+start should not die when always_rollback flag is set');
-    is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
+    is($died, 0, 'start+next+start should not die when always_rollback flag is set');
+    is($completed, 1, 'start+next+start should complete when always_rollback flag is set');
     is($reverts_done, 0, "No snapshots loaded if snapshots are not supported");
     $reverts_done = 0;
     is($snapshots_made, 0, 'No snapshots made if snapshots are not supported');
     $snapshots_made = 0;
-    @sent           = [];
+    @sent = [];
 
     # Test that snapshot loading is triggered even when tests are successful
-    $mock_basetest->redefine(test_flags       => sub { return {always_rollback => 1}; });
+    $mock_basetest->redefine(test_flags => sub { return {always_rollback => 1}; });
     $mock_autotest->redefine(query_isotovideo => sub { return 1; });
     $reverts_done = 0;
 
     stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
     ($died, $completed) = get_tests_done;
-    is($died,         0, 'start+next+start should not die when always_rollback flag is set');
-    is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
+    is($died, 0, 'start+next+start should not die when always_rollback flag is set');
+    is($completed, 1, 'start+next+start should complete when always_rollback flag is set');
     is($reverts_done, 0, "No snapshots loaded if not test with milestone flag");
     $reverts_done = 0;
     is($snapshots_made, 0, 'No snapshots made if snapshots are not supported');
     $snapshots_made = 0;
-    @sent           = [];
+    @sent = [];
 
     # Test with snapshot available
     $mock_basetest->redefine(test_flags => sub { return {always_rollback => 1, milestone => 1}; });
     stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
     ($died, $completed) = get_tests_done;
-    is($died,         0, 'start+next+start should not die when always_rollback flag is set');
-    is($completed,    1, 'start+next+start should complete when always_rollback flag is set');
+    is($died, 0, 'start+next+start should not die when always_rollback flag is set');
+    is($completed, 1, 'start+next+start should complete when always_rollback flag is set');
     is($reverts_done, 2, "Snapshots are loaded even when tests succeed");
     $reverts_done = 0;
     is($snapshots_made, 2, 'Milestone snapshots are made for all except the last');
     $snapshots_made = 0;
-    @sent           = [];
+    @sent = [];
 
     $mock_basetest->redefine(test_flags => sub { return {milestone => 1, fatal => 1}; });
     stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
     ($died, $completed) = get_tests_done;
-    is($died,         0, 'start+next+start should not die as fatal milestones');
-    is($completed,    1, 'start+next+start should complete as fatal milestones');
+    is($died, 0, 'start+next+start should not die as fatal milestones');
+    is($completed, 1, 'start+next+start should complete as fatal milestones');
     is($reverts_done, 0, 'No rollbacks done');
     $reverts_done = 0;
     is($snapshots_made, 0, 'No snapshots made as no test needed them');
     $snapshots_made = 0;
-    @sent           = [];
+    @sent = [];
 
     # # Revert mocks
     $mock_basetest->unmock('test_flags');
@@ -177,14 +177,14 @@ stderr_like {
 qr@scheduling alt_name tests/run_args.pm@;
 stderr_like { autotest::run_all } qr/finished alt_name tests/, 'dynamic scheduled alt_name shows up';
 ($died, $completed) = get_tests_done;
-is($died,      0, 'run_args test should not die');
+is($died, 0, 'run_args test should not die');
 is($completed, 1, 'run_args test should complete');
 @sent = [];
 
 stderr_like { autotest::loadtest("tests/run_args.pm", name => 'alt_name') } qr@scheduling alt_name tests/run_args.pm@;
 stderr_like { autotest::run_all } qr/Snapshots are not supported/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
-is($died,      0, 'run_args test should not die if there is no run_args');
+is($died, 0, 'run_args test should not die if there is no run_args');
 is($completed, 0, 'run_args test should not complete if there is no run_args');
 @sent = [];
 
@@ -206,7 +206,7 @@ $mock_autotest->redefine(query_isotovideo => sub {
 
 stderr_like { autotest::run_all } qr/oh noes/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
-is($died,      0, 'non-fatal test failure should not die');
+is($died, 0, 'non-fatal test failure should not die');
 is($completed, 1, 'non-fatal test failure should complete');
 @sent = [];
 
@@ -214,7 +214,7 @@ is($completed, 1, 'non-fatal test failure should complete');
 loadtest 'ignore_failure';
 stderr_like { autotest::run_all } qr/oh noes/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
-is($died,      0, 'unimportant test failure should not die');
+is($died, 0, 'unimportant test failure should not die');
 is($completed, 1, 'unimportant test failure should complete');
 @sent = [];
 
@@ -229,7 +229,7 @@ $mock_basetest->redefine(search_for_expected_serial_failures => sub {
 
 stderr_like { autotest::run_all } qr/Snapshots are supported/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
-is($died,      0, 'fatal serial failure test should not die');
+is($died, 0, 'fatal serial failure test should not die');
 is($completed, 0, 'fatal serial failure test should not complete');
 @sent = [];
 
@@ -243,19 +243,19 @@ $mock_basetest->redefine(search_for_expected_serial_failures => sub {
 
 stderr_like { autotest::run_all } qr/Snapshots are supported/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
-is($died,      0, 'non-fatal serial failure test should not die');
+is($died, 0, 'non-fatal serial failure test should not die');
 is($completed, 1, 'non-fatal serial failure test should complete');
 @sent = [];
 
 # disable snapshots and clean last milestone from previous testrun (with had snapshots enabled)
-$enable_snapshots         = 0;
+$enable_snapshots = 0;
 $autotest::last_milestone = undef;
 
 my $output = combined_from(sub { autotest::run_all });
 like($output, qr/Snapshots are not supported/, 'snapshots actually disabled');
 unlike($output, qr/Loading a VM snapshot/, 'no attempt to load VM snapshot');
 ($died, $completed) = get_tests_done;
-is($died,      0, 'non-fatal serial failure test should not die');
+is($died, 0, 'non-fatal serial failure test should not die');
 is($completed, 0, 'non-fatal serial failure test should not complete by default without snapshot support');
 @sent = [];
 
@@ -264,7 +264,7 @@ $output = combined_from(sub { autotest::run_all });
 like($output, qr/Snapshots are not supported/, 'snapshots actually disabled');
 unlike($output, qr/Loading a VM snapshot/, 'no attempt to load VM snapshot');
 ($died, $completed) = get_tests_done;
-is($died,      0, 'non-fatal serial failure test should not die');
+is($died, 0, 'non-fatal serial failure test should not die');
 is($completed, 1, 'non-fatal serial failure test should complete with {fatal => 0} and not snapshot support');
 @sent = [];
 
@@ -277,7 +277,7 @@ $mock_basetest->redefine(runtest => sub { die "oh noes!\n"; });
 loadtest 'fatal';
 stderr_like { autotest::run_all } qr/oh noes/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
-is($died,      0, 'fatal test failure should not die');
+is($died, 0, 'fatal test failure should not die');
 is($completed, 0, 'fatal test failure should not complete');
 @sent = [];
 
@@ -290,23 +290,23 @@ is(@{$autotest::tests{'tests-fatal'}}{@opts}, @{$autotest::tests{'tests-fatal' .
 
 subtest 'test scheduling test modules at test runtime' => sub {
     $autotest::tests_running = 0;
-    @autotest::testorder     = ();
-    %autotest::tests         = ();
+    @autotest::testorder = ();
+    %autotest::tests = ();
 
     my %json_data;
     my $json_filename = bmwqemu::result_dir . '/test_order.json';
-    my $testorder     = [
+    my $testorder = [
         {
-            name     => 'scheduler',
+            name => 'scheduler',
             category => 'tests',
-            flags    => {},
-            script   => 'tests/scheduler.pm'
+            flags => {},
+            script => 'tests/scheduler.pm'
         },
         {
-            name     => 'next',
+            name => 'next',
             category => 'tests',
-            flags    => {},
-            script   => 'tests/next.pm'
+            flags => {},
+            script => 'tests/next.pm'
         }
     ];
 
@@ -329,9 +329,9 @@ subtest 'test scheduling test modules at test runtime' => sub {
 };
 
 my $sharedir = '/home/tux/.local/lib/openqa/share';
-is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/firefox.pm"),        'x11');
+is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/firefox.pm"), 'x11');
 is(autotest::parse_test_path("$sharedir/tests/sle/tests/x11/toolkits/motif.pm"), 'x11/toolkits');
-is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"),                'other');
+is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"), 'other');
 
 subtest 'load test successfully when CASEDIR is a relative path' => sub {
     symlink($bmwqemu::vars{CASEDIR}, 'foo');

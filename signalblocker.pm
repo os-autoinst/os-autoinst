@@ -20,15 +20,15 @@ sub new {
     bmwqemu::diag('Blocking SIGCHLD and SIGTERM');
     my %old_sig = %SIG;
     $SIG{TERM} = 'IGNORE';
-    $SIG{INT}  = 'IGNORE';
-    $SIG{HUP}  = 'IGNORE';
+    $SIG{INT} = 'IGNORE';
+    $SIG{HUP} = 'IGNORE';
     my $sigset = POSIX::SigSet->new(SIGCHLD, SIGTERM);
     die "Could not block SIGCHLD and SIGTERM\n" unless defined sigprocmask(SIG_BLOCK, $sigset, undef);
 
     # create the actual object holding the information to restore the previous state
     my $self = $class->SUPER::new(@args);
     $self->{_old_sig} = \%old_sig;
-    $self->{_sigset}  = $sigset;
+    $self->{_sigset} = $sigset;
     return $self;
 }
 

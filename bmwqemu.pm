@@ -33,7 +33,7 @@ sub mydie;
 $| = 1;
 
 
-our $default_timeout      = 30;                        # assert timeout, 0 is a valid timeout
+our $default_timeout = 30;    # assert timeout, 0 is a valid timeout
 our $openqa_default_share = '/var/lib/openqa/share';
 
 my @ocrrect;
@@ -51,7 +51,7 @@ our $direct_output;
 # fourth is Debian's ovmf package.
 our @ovmf_locations = (
     '/usr/share/qemu/ovmf-x86_64-ms-code.bin', '/usr/share/edk2.git/ovmf-x64/OVMF_CODE-pure-efi.fd',
-    '/usr/share/edk2/ovmf/OVMF_CODE.fd',       '/usr/share/OVMF/OVMF_CODE.fd'
+    '/usr/share/edk2/ovmf/OVMF_CODE.fd', '/usr/share/OVMF/OVMF_CODE.fd'
 );
 
 our %vars;
@@ -68,13 +68,13 @@ use constant STATE_FILE => 'base_state.json';
 sub serialize_state {
     my $state = {@_};
     bmwqemu::diag($state->{msg}) if delete $state->{log};
-    return undef                 if -e STATE_FILE;
+    return undef if -e STATE_FILE;
     eval { Mojo::File->new(STATE_FILE)->spurt(encode_json($state)); };
     bmwqemu::diag("Unable to serialize fatal error: $@") if $@;
 }
 
 sub load_vars {
-    my $fn  = "vars.json";
+    my $fn = "vars.json";
     my $ret = {};
     local $/;
     my $fh;
@@ -93,7 +93,7 @@ sub save_vars {
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
     flock($fd, LOCK_EX) or die "cannot lock vars.json: $!\n";
-    truncate($fd, 0)    or die "cannot truncate vars.json: $!\n";
+    truncate($fd, 0) or die "cannot truncate vars.json: $!\n";
 
     my $write_vars = \%vars;
     if ($args{no_secret}) {
@@ -145,7 +145,7 @@ sub _check_publish_vars {
 sub ensure_valid_vars {
     # defaults
     $vars{QEMUPORT} ||= 15222;
-    $vars{VNC}      ||= 90;
+    $vars{VNC} ||= 90;
     # openQA already sets a random string we can reuse
     $vars{JOBTOKEN} ||= random_string(10);
 
@@ -154,7 +154,7 @@ sub ensure_valid_vars {
     }
 
     die "CASEDIR variable not set, unknown test case directory" if !defined $vars{CASEDIR};
-    die "No scripts in $vars{CASEDIR}"                          if !-e "$vars{CASEDIR}";
+    die "No scripts in $vars{CASEDIR}" if !-e "$vars{CASEDIR}";
     _check_publish_vars();
     save_vars();
 }

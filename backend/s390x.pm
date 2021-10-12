@@ -16,7 +16,7 @@ use testapi 'get_required_var';
 
 sub new {
     my $class = shift;
-    my $self  = $class->SUPER::new;
+    my $self = $class->SUPER::new;
     get_required_var('WORKER_HOSTNAME');
     return $self;
 }

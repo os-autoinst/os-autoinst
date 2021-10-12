@@ -52,7 +52,7 @@ sub activate {
     my ($ssh, $chan) = $backend->open_serial_console_via_ssh(
         $self->{libvirt_domain}, devname => $self->{pty_dev}, port => $self->{serial_port_no}, blocking => 0);
     $self->{screen} = consoles::ssh_screen->new(ssh_connection => $ssh, ssh_channel => $chan);
-    $self->{ssh}    = $ssh;
+    $self->{ssh} = $ssh;
     return;
 }
 

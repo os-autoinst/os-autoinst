@@ -10,12 +10,12 @@ use Test::Most;
 use Mojo::Base -strict, -signatures;
 
 BEGIN {
-    $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT}    = 1;
+    $ENV{OS_AUTOINST_LOCKAPI_RETRY_COUNT} = 1;
     $ENV{OS_AUTOINST_LOCKAPI_RETRY_INTERVAL} = 0;
-    $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT}      = 1;
-    $ENV{OS_AUTOINST_MMAPI_RETRY_INTERVAL}   = 0;
-    $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL}    = 0;
-    $ENV{MOJO_CONNECT_TIMEOUT}               = 0.01;
+    $ENV{OS_AUTOINST_MMAPI_RETRY_COUNT} = 1;
+    $ENV{OS_AUTOINST_MMAPI_RETRY_INTERVAL} = 0;
+    $ENV{OS_AUTOINST_MMAPI_POLL_INTERVAL} = 0;
+    $ENV{MOJO_CONNECT_TIMEOUT} = 0.01;
 }
 
 use FindBin;
@@ -38,7 +38,7 @@ $autotest::current_test = basetest->new;
 
 # init mmapi/lockapi
 $bmwqemu::vars{OPENQA_URL} = 'http://not/relevant';
-$bmwqemu::vars{JOBTOKEN}   = 'fake-jobtoken';
+$bmwqemu::vars{JOBTOKEN} = 'fake-jobtoken';
 
 # define helper to call a function by its name
 sub call ($function_name, @args) {
@@ -66,12 +66,12 @@ $mock_srv->log->unsubscribe('message')->on(
 $mock_srv->helper(render_mutex => sub {
         my ($self, %args) = @_;
         my $name = $self->param('name') // '';
-        return $self->render(status => 200, text => 'ok')             if $name eq 'lucky_lock';
-        return $self->render(status => 404, text => 'error')          if $name eq 'prone_lock';
+        return $self->render(status => 200, text => 'ok') if $name eq 'lucky_lock';
+        return $self->render(status => 404, text => 'error') if $name eq 'prone_lock';
         return $self->render(status => 410, text => 'owner finished') if $name eq 'finished_lock';
         return $self->render(status => 409, text => 'conflict');
 });
-my $routes   = $mock_srv->routes;
+my $routes = $mock_srv->routes;
 my $fake_api = $routes->any('/api/v1');
 my $wait_for_children_state;
 $fake_api->get('/mm/children' => sub {
@@ -81,7 +81,7 @@ $fake_api->get('/mm/children' => sub {
             return $self->render(json => {jobs => {1 => $wait_for_children_state->{state}}});
         }
         return $self->render(status => 403, text => 'not authorized') if ($self->tx->req->headers->header('X-API-JobToken') || '') ne 'fake-jobtoken';
-        return $self->render(json   => {jobs => [1, 2, 3]});
+        return $self->render(json => {jobs => [1, 2, 3]});
 });
 $fake_api->get('/mm/children/#state' => sub {
         my ($self) = @_;
@@ -89,28 +89,28 @@ $fake_api->get('/mm/children/#state' => sub {
         return $self->render(json => {jobs => [1]});
 });
 $fake_api->get('/mm/parents' => sub { shift->render(json => {jobs => [4, 5, 6]}) });
-$fake_api->get('/jobs/100'   => sub { shift->render(json => {job  => {the => 'job info'}}) });
+$fake_api->get('/jobs/100' => sub { shift->render(json => {job => {the => 'job info'}}) });
 $fake_api->get('/workers' => sub {
         shift->render(json => {workers => [{
-                        jobid      => '100',
-                        host       => 'fake-host',
-                        instance   => 42,
+                        jobid => '100',
+                        host => 'fake-host',
+                        instance => 42,
                         properties => {JOBTOKEN => 'fake-jobtoken'},
         }]});
 });
-$fake_api->post('/mutex'     => sub { shift->render_mutex });
+$fake_api->post('/mutex' => sub { shift->render_mutex });
 $fake_api->post('/mutex/foo' => sub { shift->render(json => {some => 'mutex'}) });
 $fake_api->post('/mutex/#name' => sub {
         my ($self) = @_;
-        my $name   = $self->param('name')   // '';
+        my $name = $self->param('name') // '';
         my $action = $self->param('action') // '';
         return $self->render(status => 200, text => 'ok') if ($name eq 'lockable' && $action eq 'lock') || ($name eq 'unlockable' && $action eq 'unlock');
         return $self->render_mutex;
 });
 $fake_api->post('/barrier' => sub {
         my ($self) = @_;
-        my $name   = $self->param('name')  // '';
-        my $tasks  = $self->param('tasks') // '';
+        my $name = $self->param('name') // '';
+        my $tasks = $self->param('tasks') // '';
         return $self->render(status => 200, text => 'ok') if $name eq 'lucky_barrier' && $tasks eq '41';
         return $self->render_mutex;
 });
@@ -137,12 +137,12 @@ subtest 'mmapi: general usage' => sub {
     is(api_call(post => 'mutex/foo', {action => 'unlock'})->code, 200, 'api_call returns result');
 
     # test mmapi's `get_` functions
-    is_deeply(mmapi::get_children(),                      [1, 2, 3], 'query children');
-    is_deeply(mmapi::get_children_by_state('some-state'), [1],       'query children by state');
+    is_deeply(mmapi::get_children(), [1, 2, 3], 'query children');
+    is_deeply(mmapi::get_children_by_state('some-state'), [1], 'query children by state');
     combined_like {
         is_deeply(mmapi::get_children_by_state('another-state'), undef, 'query children by state (no results)');
     } qr|get_children_by_state: 404 response.*URL was.*/mm/children/another-state|, 'query children by state error logged';
-    is_deeply(mmapi::get_parents(),     [4, 5, 6],           'query parents');
+    is_deeply(mmapi::get_parents(), [4, 5, 6], 'query parents');
     is_deeply(mmapi::get_job_info(100), {the => 'job info'}, 'query job info');
     combined_like {
         is_deeply(mmapi::get_job_info(101), undef, 'query job info (no result)');
@@ -186,7 +186,7 @@ subtest 'lockapi: server returns error' => sub {
 subtest 'lockapi: successful use' => sub {
     combined_like {
         is lockapi::mutex_create('lucky_lock'), 1, 'mutex created';
-        is lockapi::mutex_lock('lockable'),     1, 'mutex locked';
+        is lockapi::mutex_lock('lockable'), 1, 'mutex locked';
         is lockapi::mutex_try_lock('lockable'), 1, 'mutex locked (try)';
         is lockapi::mutex_unlock('unlockable'), 1, 'mutex unlocked';
         is lockapi::barrier_create('lucky_barrier', 41), 1, 'barrier created';
@@ -195,7 +195,7 @@ subtest 'lockapi: successful use' => sub {
         is lockapi::barrier_wait({name => 'check_dead_job_barrier', check_dead_job => 1}), 1, 'waited for barrier with check_dead_job flag';
         is $recorded_info[1]->[1], 'Wait for check_dead_job_barrier (on parent job)', 'different info recorded with check_dead_job flag';
         is lockapi::barrier_try_wait('unblocked'), 1, 'tried waiting for barrier';
-        is lockapi::barrier_destroy('deletable'),  1, 'barrier destroyed';
+        is lockapi::barrier_destroy('deletable'), 1, 'barrier destroyed';
     } qr/mutex create.*mutex lock.*mutex try lock.*mutex unlock.*barrier create.*barrier wait.*barrier try wait.*barrier destroy/s, 'logging';
     is scalar @recorded_info, 2, 'record info called expected number of times' or diag explain \@recorded_info;
 };

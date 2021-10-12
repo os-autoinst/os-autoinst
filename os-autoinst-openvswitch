@@ -13,9 +13,9 @@ use Symbol 'gensym';
 use Time::Seconds;
 
 sub new {
-    my $class   = shift;
+    my $class = shift;
     my $service = shift;
-    my $self    = $class->SUPER::new($service, '/switch');
+    my $self = $class->SUPER::new($service, '/switch');
     bless $self, $class;
     $self->init_switch;
     return $self;
@@ -36,17 +36,17 @@ sub init_switch {
     for (my $timeout = $ENV{OS_AUTOINST_OPENVSWITCH_INIT_TIMEOUT} // ONE_MINUTE; $timeout > 0; --$timeout) {
         my $bridge_conf = `ip addr show $self->{BRIDGE}`;
         $self->{MAC} = $1 if $bridge_conf =~ /ether\s+(([0-9a-f]{2}:){5}[0-9a-f]{2})\s/;
-        $self->{IP}  = $1 if $bridge_conf =~ /inet\s+(([0-9]+.){3}[0-9]+\/[0-9]+)\s/;
+        $self->{IP} = $1 if $bridge_conf =~ /inet\s+(([0-9]+.){3}[0-9]+\/[0-9]+)\s/;
         last if $self->{IP};
         print "Waiting for IP on bridge '$self->{BRIDGE}', ${timeout}s left ...\n";
         sleep 1;
     }
 
     die "can't parse bridge local port MAC" unless $self->{MAC};
-    die "can't parse bridge local port IP"  unless $self->{IP};
+    die "can't parse bridge local port IP" unless $self->{IP};
 
-    my $local_ip       = $ENV{OS_AUTOINST_BRIDGE_LOCAL_IP}       // '10.0.2.2';
-    my $netmask        = $ENV{OS_AUTOINST_BRIDGE_NETMASK}        // 15;
+    my $local_ip = $ENV{OS_AUTOINST_BRIDGE_LOCAL_IP} // '10.0.2.2';
+    my $netmask = $ENV{OS_AUTOINST_BRIDGE_NETMASK} // 15;
     my $rewrite_target = $ENV{OS_AUTOINST_BRIDGE_REWRITE_TARGET} // '10.1.0.0';
     # we also need a hex-converted form of the rewrite target, thanks
     # https://www.perlmonks.org/?node_id=704295
@@ -100,8 +100,8 @@ sub init_switch {
 
 # Check if tap and vlan are in the correct format.
 sub _ovs_check {
-    my $tap    = shift;
-    my $vlan   = shift;
+    my $tap = shift;
+    my $vlan = shift;
     my $bridge = shift;
     my $return_output;
     my $return_code = 1;
@@ -135,7 +135,7 @@ sub _cmd {
     my $ovs_vsctl_pid = open3($wtr, $rdr, $err, @args);
 
     my @ovs_vsctl_output = <$rdr>;
-    my @ovs_vsctl_error  = <$err>;
+    my @ovs_vsctl_error = <$err>;
     waitpid($ovs_vsctl_pid, 0);
     my $return_code = $?;
 
@@ -144,9 +144,9 @@ sub _cmd {
 
 sub check_min_ovs_version {
     my $min_ver = shift;
-    my $out     = `ovs-vsctl --version`;
+    my $out = `ovs-vsctl --version`;
     return if ($out !~ /\(Open vSwitch\)\s+(\d+\.\d+\.\d+)/m);
-    my @ver     = split(/\./, $1);
+    my @ver = split(/\./, $1);
     my @min_ver = split(/\./, $min_ver);
     return if (@ver != @min_ver);
 
@@ -156,7 +156,7 @@ sub check_min_ovs_version {
 dbus_method("set_vlan", ["string", "uint32"], ["int32", "string"]);
 sub set_vlan {
     my $self = shift;
-    my $tap  = shift;
+    my $tap = shift;
     my $vlan = shift;
     my $return_output;
     my $return_code = 1;
@@ -180,7 +180,7 @@ sub set_vlan {
     ($return_code, $ovs_vsctl_error, $ovs_vsctl_output) = _cmd(@cmd);
 
     print STDERR $ovs_vsctl_error if length($ovs_vsctl_error) > 0;
-    print $ovs_vsctl_output       if length($ovs_vsctl_output) > 0;
+    print $ovs_vsctl_output if length($ovs_vsctl_output) > 0;
     return $return_code, $ovs_vsctl_error unless $return_code == 0;
 
     $return_code = system('ip', 'link', 'set', $tap, 'up');
@@ -190,7 +190,7 @@ sub set_vlan {
 dbus_method("unset_vlan", ["string", "uint32"], ["int32", "string"]);
 sub unset_vlan {
     my $self = shift;
-    my $tap  = shift;
+    my $tap = shift;
     my $vlan = shift;
     my $return_output;
     my $return_code = 1;
@@ -208,7 +208,7 @@ sub unset_vlan {
     ($return_code, $ovs_vsctl_error, $ovs_vsctl_output) = _cmd('ovs-vsctl', 'remove', 'port', $tap, 'tag', $vlan);
 
     print STDERR $ovs_vsctl_error if length($ovs_vsctl_error) > 0;
-    print $ovs_vsctl_output       if length($ovs_vsctl_output) > 0;
+    print $ovs_vsctl_output if length($ovs_vsctl_output) > 0;
     return $return_code, $return_code != 0 ? $ovs_vsctl_error : '';
 }
 
@@ -231,7 +231,7 @@ use Net::DBus::Reactor;
 my $bus = Net::DBus->system;
 
 my $service = $bus->export_service("org.opensuse.os_autoinst.switch");
-my $object  = OVS->new($service);
+my $object = OVS->new($service);
 
 Net::DBus::Reactor->main->run;
 

@@ -14,7 +14,7 @@ use File::Basename;
 sub init {
     use Config;
     my $vendorlib = $Config{installvendorlib};
-    my $libdir    = dirname(__FILE__);
+    my $libdir = dirname(__FILE__);
     # undef is substituted at install time, see CMakeLists.txt
     my $sysdir = undef;
     return if ($sysdir && $libdir eq $sysdir);
