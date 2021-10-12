@@ -281,7 +281,7 @@ sub script_output {
     elsif ($args{type_command}) {
         my $cat = "cat - > $script_path;\n";
         testapi::type_string($cat);
-        testapi::type_string($script . "\n");
+        testapi::type_string($script . "\n", timeout => $args{timeout});
         testapi::send_key('ctrl-d');
     }
     else {
