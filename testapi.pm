@@ -958,8 +958,8 @@ Deprecated mode
 
   assert_script_run($cmd [, $timeout [, $fail_message]]);
 
-Run C<$cmd> via C<$distri->script_run> and C<die> unless it returns zero (indicating
-successful completion of C<$cmd>). Default timeout is 90 seconds.
+Run C<$cmd> via C<< $distri->script_run >> and C<die> unless it returns zero
+(indicating successful completion of C<$cmd>). Default timeout is 90 seconds.
 Use C<script_run> instead if C<$cmd> may fail.
 
 C<$fail_message> is returned in the die message if specified.
@@ -997,10 +997,10 @@ Deprecated mode
 
   script_run($cmd [, $timeout]);
 
-Run C<$cmd> (in the default implementation, by assuming the console prompt and typing
-the command). If C<$timeout> is greater than 0, wait for that length of time for
-execution to complete (otherwise, returns undef immediately). See C<distri->script_run>
-for default timeout.
+Run C<$cmd> (in the default implementation, by assuming the console prompt and
+typing the command). If C<$timeout> is greater than 0, wait for that length of
+time for execution to complete (otherwise, returns undef immediately). See
+C<< distri->script_run >> for default timeout.
 
 C<$output> can be used as an explanatory text that will be displayed with the execution of
 the command.
