@@ -10,7 +10,7 @@ jobs:
       - name: Static checks, unit- and integration tests
         run: tools/container_run_ci
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v2
         with:
           file: ./cover_db/codecov.json
           fail_ci_if_error: true
