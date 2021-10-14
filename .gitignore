@@ -1,3 +1,15 @@
 videoencoder
 debugviewer/debugviewer
 snd2png/snd2png
+__pycache__/
+base_state.json
+doc/backend_vars.asciidoc.newvars
+pod2htmd.tmp
+serial0
+serial_terminal.txt
+t/base_state.json
+t/foo
+t/serial0
+t/serial_terminal.txt
+testresults/
+vars.json
