@@ -54,4 +54,6 @@ combined_like { $backend->do_mc_reset } qr/IPMI mc reset success/, 'can call do_
 
 done_testing;
 
-1;
+END {
+    unlink 'serial0';
+}
