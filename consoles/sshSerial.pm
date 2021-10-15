@@ -36,13 +36,15 @@ sub activate {
     my $password = $self->{args}->{password} // $testapi::password;
     my $username = $self->{args}->{username} // 'root';
     my $pty_cols = $self->{args}->{pty_cols} // 2048;
+    my $port = $self->{args}->{port} // 22;
 
-    bmwqemu::diag("Connecting SSH serial console for $username\@$hostname");
+    bmwqemu::diag("Connecting SSH serial console for $username\@$hostname port $port");
 
     my $ssh = $self->backend->new_ssh_connection(
         hostname => $hostname,
         password => $password,
-        username => $username
+        username => $username,
+        port => $port,
     );
     my $chan = $ssh->channel()
       or $ssh->die_with_error('Cannot open SSH channel');
