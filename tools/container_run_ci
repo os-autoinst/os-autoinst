@@ -59,7 +59,7 @@ cd /opt
 ./tools/install-new-deps.sh
 mkdir -p /tmp/build
 cd /tmp/build
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
 export CI=1 WITH_COVER_OPTIONS=1
 ninja -v check
 ninja -v $target"
