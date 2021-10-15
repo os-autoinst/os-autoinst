@@ -57,6 +57,8 @@ fi
 [[ \"$target\" == \"coverage-codecovbash\" ]] && zypper -n in perl-App-cpanminus && cpanm -nq 'Devel::Cover::Report::Codecovbash'
 cd /opt
 ./tools/install-new-deps.sh
+mkdir -p /tmp/build
+cd /tmp/build
 cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .
 export CI=1 WITH_COVER_OPTIONS=1
 ninja -v check
