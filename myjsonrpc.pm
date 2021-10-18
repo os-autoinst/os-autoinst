@@ -37,6 +37,7 @@ sub send_json ($to_fd, $cmd) {
     }
     $json .= "\n";
 
+    return $cmdcopy{json_cmd_token} unless defined $to_fd;
     my $wb = syswrite($to_fd, "$json");
     if (!$wb || $wb != length($json)) {
         if (!DEBUG_JSON && $! =~ qr/Broken pipe/) {
