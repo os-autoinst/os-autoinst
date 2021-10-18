@@ -40,6 +40,7 @@ done
 CI_ENV=$(bash <(curl -s https://codecov.io/env))
 
 IMAGE=registry.opensuse.org/devel/openqa/containers15.3/os-autoinst_dev
+build_dir="${build_dir:"/tmp/build"}"
 cre="${cre:-"podman"}"
 $cre pull $IMAGE
 $cre images | grep opensuse
@@ -57,7 +58,7 @@ fi
 [[ \"$target\" == \"coverage-codecovbash\" ]] && zypper -n in perl-App-cpanminus && cpanm -nq 'Devel::Cover::Report::Codecovbash'
 cd /opt
 ./tools/install-new-deps.sh
-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release .
 export CI=1 WITH_COVER_OPTIONS=1
-ninja -v check
-ninja -v $target"
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -S . -B \"$build_dir\"
+cmake --build \"$build_dir\" --verbose --target check
+cmake --build \"$build_dir\" --verbose --target $target"
