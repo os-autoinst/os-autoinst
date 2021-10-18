@@ -3,7 +3,7 @@
 
 package myjsonrpc;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use Carp qw(cluck confess);
 use IO::Select;
 use Errno;
@@ -14,9 +14,7 @@ use bmwqemu ();
 use constant DEBUG_JSON => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
 use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8000000;
 
-sub send_json {
-    my ($to_fd, $cmd) = @_;
-
+sub send_json ($to_fd, $cmd) {
     # allow regular expressions to be automatically converted into
     # strings, using the Regex::TO_JSON function as defined at the end
     # of this file.
@@ -53,9 +51,7 @@ sub send_json {
 our $sockets;
 
 # utility function
-sub read_json {
-    my ($socket, $cmd_token, $multi) = @_;
-
+sub read_json ($socket, $cmd_token = undef, $multi = undef) {
     my $cjx = Cpanel::JSON::XS->new;
 
     my $fd = fileno($socket);
@@ -139,8 +135,7 @@ sub read_json {
 package
 Regexp;
 #>>> perltidy on
-sub TO_JSON {
-    my $regex = shift;
+sub TO_JSON ($regex) {
     $regex = "$regex";
     return $regex;
 }
