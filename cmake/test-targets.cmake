@@ -152,6 +152,7 @@ if (COVER_PATH AND PROVE_PATH)
         COMMENT "Perl test suite coverage (codecovbash, useful if direct report upload not available)"
         COMMAND "${COVER_PATH}" -report codecovbash "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
         DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
     add_dependencies(coverage-codecovbash symlinks)
 
