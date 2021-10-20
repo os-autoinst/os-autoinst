@@ -3,13 +3,11 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package ocr;
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 require IPC::System::Simple;
 use autodie ':all';
 
-# input: image ref, area
-sub tesseract {
-    my ($img, $area) = @_;
+sub tesseract ($img, $area) {
     my $imgfn = 'ocr.png';
     my $txtfn = 'ocr';    # tesseract appends .txt automatically o_O
     my $txt;
