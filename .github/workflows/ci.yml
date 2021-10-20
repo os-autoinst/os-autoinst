@@ -12,7 +12,7 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
         with:
-          file: ./cover_db/codecov.json
+          file: ./build/cover_db/codecov.json
           fail_ci_if_error: true
           verbose: true
   static-check-containers:
