@@ -37,12 +37,10 @@ sub send_json ($to_fd, $cmd) {
     }
     $json .= "\n";
 
-    return $cmdcopy{json_cmd_token} unless defined $to_fd;
+    confess 'myjsonprc: called on undefined file descriptor' unless defined $to_fd;
     my $wb = syswrite($to_fd, "$json");
     if (!$wb || $wb != length($json)) {
-        if (!DEBUG_JSON && $! =~ qr/Broken pipe/) {
-            die('myjsonrpc: remote end terminated connection, stopping');
-        }
+        die('myjsonrpc: remote end terminated connection, stopping') if !DEBUG_JSON && $! =~ qr/Broken pipe/;
         confess "syswrite failed: $!";
     }
     return $cmdcopy{json_cmd_token};
@@ -56,9 +54,7 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
     my $cjx = Cpanel::JSON::XS->new;
 
     my $fd = fileno($socket);
-    if (DEBUG_JSON) {
-        bmwqemu::diag("($$) read_json($fd)");
-    }
+    bmwqemu::diag("($$) read_json($fd)") if DEBUG_JSON;
     if (exists $sockets->{$fd}) {
         # start with the trailing text from previous call
         my $buffer = delete $sockets->{$fd};
@@ -87,9 +83,7 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
                 push @results, undef;
                 last;
             }
-            if ($cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token) {
-                confess "ERROR: the token does not match - questions and answers not in the right order";
-            }
+            confess "ERROR: the token does not match - questions and answers not in the right order" if $cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token; # uncoverable statement
             push @results, $hash;
             # parse all lines from buffer
             next if $multi;
