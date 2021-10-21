@@ -15,7 +15,7 @@ use myjsonrpc;
 use Test::Warnings qw(warnings :report_warnings);
 
 no warnings 'redefine';
-sub bmwqemu::diag { warn $_[0] }
+sub bmwqemu::diag ($msg) { warn $msg }
 
 my ($child, $isotovideo);
 socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC);
@@ -43,15 +43,13 @@ subtest single_json => sub {
 };
 
 subtest multi_json => sub {
-
     myjsonrpc::send_json($child, $send1);
     myjsonrpc::send_json($child, $send2);
     my @read = myjsonrpc::read_json($isotovideo, undef, 1);
     is_deeply(\@read, [$send1, $send2], "read_json in list context works");
-
 };
 
-sub magic_close {
+sub magic_close () {
     myjsonrpc::send_json($child, {QUIT => 1});
     my $quit = myjsonrpc::read_json($isotovideo);
     is($quit, undef, "received magic close");
