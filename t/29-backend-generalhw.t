@@ -101,3 +101,7 @@ subtest 'error handling' => sub {
 };
 
 done_testing();
+
+END {
+    unlink 'serial0';
+}

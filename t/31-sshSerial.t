@@ -182,3 +182,7 @@ subtest 'Write test' => sub {
 };
 
 done_testing;
+
+END {
+    unlink 'serial_terminal.txt';
+}

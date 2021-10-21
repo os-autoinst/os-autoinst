@@ -51,6 +51,7 @@ $bmwqemu::vars{JOBTOKEN} = $job;
 $bmwqemu::vars{CASEDIR} = $data_dir->child('tests');
 $bmwqemu::vars{ASSETDIR} = $data_dir->child('assets');
 
+my @tempfiles;
 # now this is a game of luck
 my $pool_directory = $data_dir->child('pool');
 ok(chdir $pool_directory, "change command server working directory to $pool_directory");
@@ -191,6 +192,7 @@ subtest 'upload api' => sub {
         $t->post_ok("$base_url/$job/upload_asset/foo")->status_is(400)->content_is('Upload file content missing');
     };
     subtest 'target directory cannot be created' => sub {
+        push @tempfiles, $pool_directory->child('a-file');
         $pool_directory->child('a-file')->touch;
         $t->post_ok("$base_url/$job/upload_asset/foo", form => {upload => {content => 'foo'}, target => 'a-file'});
         $t->status_is(500)->content_like(qr/Unable to create directory for upload.*File exists/);
@@ -202,10 +204,12 @@ subtest 'upload api' => sub {
     subtest 'successful upload' => sub {
         $t->post_ok("$base_url/$job/upload_asset/private-asset", form => {upload => {content => 'private-content'}});
         $t->status_is(200)->content_is("OK: private-asset\n");
+        push @tempfiles, $pool_directory->child('assets_private/private-asset');
         is $pool_directory->child('assets_private/private-asset')->slurp, 'private-content', 'private asset created';
 
         $t->post_ok("$base_url/$job/upload_asset/public-asset", form => {upload => {content => 'public-content'}, target => 'assets_public'});
         $t->status_is(200)->content_is("OK: public-asset\n");
+        push @tempfiles, $pool_directory->child('assets_public/public-asset');
         is $pool_directory->child('assets_public/public-asset')->slurp, 'public-content', 'public asset created';
     };
 };
@@ -215,3 +219,7 @@ waitpid($spid, 0);
 combined_like { eval { $cserver->stop() } } qr/commands process exited/, 'commands server stopped';
 
 done_testing;
+
+END {
+    unlink @tempfiles;
+}

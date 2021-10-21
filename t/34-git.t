@@ -89,7 +89,10 @@ EOM
     return $head;
 }
 
-sub cleanup { rmtree $clone_dir }
+sub cleanup {
+    rmtree $clone_dir;
+    unlink 'vars.json';
+}
 
 END {
     cleanup();
