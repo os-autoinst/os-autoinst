@@ -512,6 +512,33 @@ sub qemu_params_ofw ($self) {
     return 1;
 }
 
+sub setup_tpm ($self, $arch) {
+    my $vars = \%bmwqemu::vars;
+    return unless ($vars->{QEMUTPM});
+    my $tpmn = $vars->{QEMUTPM} eq 'instance' ? $vars->{WORKER_INSTANCE} : $vars->{QEMUTPM};
+    my $vmpath = "/tmp/mytpm$tpmn";
+    mkdir $vmpath unless -d $vmpath;
+    my $vmsock = "$vmpath/swtpm-sock";
+    unless (-e $vmsock) {
+        my @args = ('swtpm', 'socket', '--tpmstate', "dir=$vmpath", '--ctrl', "type=unixio,path=$vmsock", '--log', 'level=20', '-d');
+        push @args, '--tpm2' if (($vars->{QEMUTPM_VER} // '2.0') == '2.0');
+        runcmd(@args);
+    }
+    sp('chardev', "socket,id=chrtpm,path=$vmsock");
+    sp('tpmdev', 'emulator,id=tpm0,chardev=chrtpm');
+    if ($arch eq 'aarch64') {
+        sp('device', 'tpm-tis-device,tpmdev=tpm0');
+    }
+    elsif ($arch eq 'ppc64le') {
+        sp('device', 'tpm-spapr,tpmdev=tpm0');
+        sp('device', 'spapr-vscsi,id=scsi9,reg=0x00002000');
+    }
+    else {
+        # x86_64
+        sp('device', 'tpm-tis,tpmdev=tpm0');
+    }
+}
+
 sub start_qemu ($self) {
     my $vars = \%bmwqemu::vars;
 
@@ -801,22 +828,7 @@ sub start_qemu ($self) {
             sp('append', "dhcp && sanhook iscsi:$vars->{WORKER_HOSTNAME}::3260:1:$vars->{NBF}", no_quotes => 1);
         }
 
-        if ($vars->{QEMUTPM}) {
-            my $tpmn = $vars->{QEMUTPM} eq 'instance' ? $vars->{WORKER_INSTANCE} : $vars->{QEMUTPM};
-            sp('chardev', "socket,id=chrtpm,path=/tmp/mytpm$tpmn/swtpm-sock");
-            sp('tpmdev', 'emulator,id=tpm0,chardev=chrtpm');
-            if ($arch eq 'aarch64') {
-                sp('device', 'tpm-tis-device,tpmdev=tpm0');
-            }
-            elsif ($arch eq 'ppc64le') {
-                sp('device', 'tpm-spapr,tpmdev=tpm0');
-                sp('device', 'spapr-vscsi,id=scsi9,reg=0x00002000');
-            }
-            else {
-                # x86_64
-                sp('device', 'tpm-tis,tpmdev=tpm0');
-            }
-        }
+        $self->setup_tpm($arch);
 
         my @boot_args;
         # Enable boot menu for aarch64 workaround, see bsc#1022064 for details

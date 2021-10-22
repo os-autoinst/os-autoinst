@@ -112,12 +112,16 @@ subtest qemu_huge_pages_option => sub {
 #       of QEMU here.
 subtest qemu_tpm_option => sub {
     # call isotovideo with QEMUTPM=instance
+    mkdir('/tmp/mytpm3');
+    path('/tmp/mytpm3/swtpm-sock')->touch;
     run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => 'instance');
     like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock|, '-chardev socket option added (instance)');
     like($log, qr|-tpmdev emulator,id=tpm0,chardev=chrtpm|, '-tpmdev emulator option added');
     like($log, qr|-device tpm-tis,tpmdev=tpm0|, '-device tpm-tis option added');
 
     # call isotovideo with QEMUTPM=2
+    mkdir('/tmp/mytpm2');
+    path('/tmp/mytpm2/swtpm-sock')->touch;
     run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => '2');
     like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm2/swtpm-sock|, '-chardev socket option added (2)');
 
@@ -133,6 +137,18 @@ subtest qemu_tpm_option => sub {
     like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock|, '-chardev socket option added (instance)');
     like($log, qr/-tpmdev emulator,id=tpm0,chardev=chrtpm/, '-tpmdev emulator option added');
     like($log, qr/-device tpm-tis-device,tpmdev=tpm0/, '-device tpm-tis option added');
+
+    # call isotovideo with QEMUTPM=4 w/o creating a device beforehand
+    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => '4');
+    like($log, qr|swtpm socket --tpmstate dir=/tmp/mytpm4 --ctrl type=unixio,path=/tmp/mytpm4/swtpm-sock --log level=20 -d --tpm2|, 'swtpm default device created');
+
+    # call isotovideo with QEMUTPM=5, QEMUTPM_VER=2.0 w/o creating a device beforehand
+    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => '5', QEMUTPM_VER => '2.0');
+    like($log, qr|swtpm socket --tpmstate dir=/tmp/mytpm5 --ctrl type=unixio,path=/tmp/mytpm5/swtpm-sock --log level=20 -d --tpm2|, 'swtpm 2.0 device created');
+
+    # call isotovideo with QEMUTPM=6, QEMU_TPM_VER=1.2 w/o creating a device beforehand
+    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => '6', QEMUTPM_VER => '1.2');
+    like($log, qr|swtpm socket --tpmstate dir=/tmp/mytpm6 --ctrl type=unixio,path=/tmp/mytpm6/swtpm-sock --log level=20 -d|, 'swtpm 1.2 device created');
 };
 
 done_testing();
