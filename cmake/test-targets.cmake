@@ -135,6 +135,12 @@ if (COVER_PATH AND PROVE_PATH)
     )
     add_dependencies(coverage symlinks)
     add_custom_target(
+        check-coverage-t
+        COMMENT "Check coverage in t/ folder of all functional tests"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/check_t_coverage"
+        DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/coverage.html"
+    )
+    add_custom_target(
         coverage-codecov
         COMMENT "Perl test suite coverage (codecov, if direct report uploading possible, e.g. within travis CI)"
         COMMAND "${COVER_PATH}" -report codecov "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
@@ -149,7 +155,7 @@ if (COVER_PATH AND PROVE_PATH)
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
     add_dependencies(coverage-codecovbash symlinks)
-
+    add_custom_target(coverage-ci)
 else ()
     message(STATUS "Set COVER_PATH to the path of the cover executable to enable coverage computition of the Perl testsuite.")
 endif ()

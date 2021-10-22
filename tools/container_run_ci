@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 default_target="${TRAVIS+"coverage-codecov"}"
-target="${default_target:-"coverage-codecovbash"}"
+target="${default_target:-"coverage-ci"}"
 
 usage() {
     cat << EOF
@@ -13,12 +13,12 @@ Options:
  -t --target=<target>   The final target to be called in the build environment,
                         default based on local or CI environment: '$target'
                         Default alternatives are 'coverage-codecov' if
-                        'travis CI' is detected and 'coverage-codecovbash'
+                        'travis CI' is detected and 'coverage-ci'
                         otherwise.
 
 Examples:
  container_run_ci
- container_run_ci --target=coverage-codecovbash
+ container_run_ci --target=coverage-ci
 EOF
     exit "$1"
 }
@@ -55,7 +55,7 @@ if [[ \"$cre\" == \"docker\" && \"$ID\" == \"opensuse-leap\" ]]; then
     zypper -n --gpg-auto-import-keys --no-gpg-checks refresh
     zypper -n in --from qemu qemu qemu-x86 qemu-tools qemu-ipxe qemu-sgabios qemu-seabios
 fi
-[[ \"$target\" == \"coverage-codecovbash\" ]] && zypper -n in perl-App-cpanminus && cpanm -nq 'Devel::Cover::Report::Codecovbash'
+[[ \"$target\" == \"coverage-ci\" ]] && zypper -n in perl-App-cpanminus && cpanm -nq 'Devel::Cover::Report::Codecovbash'
 cd /opt
 ./tools/install-new-deps.sh
 export CI=1 WITH_COVER_OPTIONS=1 CHECK_GIT_STATUS=1
