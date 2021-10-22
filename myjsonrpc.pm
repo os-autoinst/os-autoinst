@@ -107,7 +107,6 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
             bmwqemu::diag("($$) read_json($fd): can_read's underlying system call has been interrupted, trying again\n") if DEBUG_JSON;
             @res = $s->can_read;
             $remaining_attempts -= 1;
-            next;
         }
 
         my $qbuffer;
