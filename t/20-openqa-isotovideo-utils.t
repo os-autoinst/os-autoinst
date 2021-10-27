@@ -44,6 +44,11 @@ subtest 'error handling when loading test schedule' => sub {
             like($state->{msg}, qr/unable to load foo\/bar\.pm/, 'state file contains error message');
         }
     };
+    subtest 'invalid productdir' => sub {
+        $bmwqemu::vars{SCHEDULE} = undef;
+        $bmwqemu::vars{PRODUCTDIR} = 'not/found';
+        throws_ok { load_test_schedule } qr/PRODUCTDIR.*invalid/, 'error logged';
+    };
 };
 
 done_testing;

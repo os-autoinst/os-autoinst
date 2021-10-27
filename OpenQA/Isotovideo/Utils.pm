@@ -198,6 +198,9 @@ sub load_test_schedule {
         elsif (!path($productdir)->is_abs && -e path($bmwqemu::vars{CASEDIR}, $main_path)) {
             require(path($bmwqemu::vars{CASEDIR}, $main_path)->to_string);
         }
+        elsif ($productdir && !-e $productdir) {
+            die "PRODUCTDIR '$productdir' invalid, could not be found";
+        }
         elsif (!$bmwqemu::vars{SCHEDULE}) {
             die "'SCHEDULE' not set and $main_path not found, need one of both";
         }
