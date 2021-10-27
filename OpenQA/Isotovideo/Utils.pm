@@ -9,6 +9,7 @@ use Mojo::File qw(path);
 use Exporter 'import';
 use Cwd;
 use bmwqemu;
+use autotest;
 use Try::Tiny;
 
 our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec
