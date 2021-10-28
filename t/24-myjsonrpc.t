@@ -6,6 +6,8 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use Test::Exception;
+use Test::MockModule 'strict';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -58,6 +60,10 @@ subtest magic_close => sub {
     my @warnings = warnings { magic_close() };
     like($warnings[0], qr{received magic close});
 };
+
+my $io_select_mock = Test::MockModule->new('IO::Select');
+$io_select_mock->redefine(can_read => undef);
+throws_ok { myjsonrpc::read_json($isotovideo) } qr/Illegal seek/, 'error exception raised when reading is aborted';
 
 close $isotovideo;
 close $child;
