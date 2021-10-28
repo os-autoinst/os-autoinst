@@ -129,7 +129,7 @@ subtest 'upload assets on demand even in failed jobs' => sub {
     like $log, qr/scheduling failing_module $module\.pm/, 'module scheduled';
     like $log, qr/qemu-img.*foo.qcow2/, 'requested image is published even though the job failed';
     ok(-e $pool_dir . '/assets_public/foo.qcow2', 'published image exists');
-    ok(!-e $pool_dir . '/base_state.json', 'no fatal error recorded');
+    ok(!-e bmwqemu::STATE_FILE, 'no fatal error recorded') or die path(bmwqemu::STATE_FILE)->slurp;
 };
 
 subtest 'load test success when casedir and productdir are relative path' => sub {
@@ -177,8 +177,7 @@ subtest 'upload the asset even in an incomplete job' => sub {
     combined_like {
         $return_code = handle_generated_assets($command_handler, 1)
     } qr/Requested to force the publication/, 'forced publication of asset';
-    my $base_state = path(bmwqemu::STATE_FILE);
-    is $return_code, 0, 'The asset was uploaded successfully' or die $base_state->slurp;
+    is $return_code, 0, 'The asset was uploaded successfully' or die path(bmwqemu::STATE_FILE)->slurp;
     my $force_publish_asset = $pool_dir . '/assets_public/force_publish_test.qcow2';
     ok(-e $force_publish_asset, 'test.qcow2 image exists');
     ok(!-e $pool_dir . '/assets_public/publish_test.qcow2', 'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
