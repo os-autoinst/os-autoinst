@@ -105,4 +105,8 @@ EOF
     combined_like { backend::qemu::process_qemu_output($qemu_log) } $expected, $msg;
 };
 
+$bmwqemu::vars{OFW} = 1;
+stderr_like { ok($backend->start_qemu(), 'qemu can be started for OFW') } qr/Start CPU/, 'output for OFW';
+like join(' ', $backend->{proc}->gen_cmdline), qr/cap-cfpc=broken/, 'OFW workarounds applied';
+
 done_testing();

@@ -530,6 +530,21 @@ sub create_virtio_console_fifo { console_fifo($_) for virtio_console_fifo_names 
 
 sub delete_virtio_console_fifo { unlink $_ or bmwqemu::fctwarn("Could not unlink $_ $!") for grep { -e } virtio_console_fifo_names }
 
+sub qemu_params_ofw {
+    my $self = shift;
+    my $vars = \%bmwqemu::vars;
+    $vars->{QEMUVGA} ||= "std";
+    $vars->{QEMUMACHINE} //= "usb=off";
+    sp('g', '1024x768');
+    # newer qemu needs safe cache capability level quirk settings
+    # https://progress.opensuse.org/issues/75259
+    my $caps = ',cap-cfpc=broken,cap-sbbc=broken,cap-ibs=broken';
+    $vars->{QEMUMACHINE} .= $caps if $vars->{QEMUMACHINE} !~ /$caps/;
+    $caps = ',cap-ccf-assist=off';
+    $vars->{QEMUMACHINE} .= $caps if $self->{qemu_version} >= version->declare(5) && $vars->{QEMUMACHINE} !~ /$caps/;
+    return 1;
+}
+
 sub start_qemu {
     my $self = shift;
     my $vars = \%bmwqemu::vars;
@@ -664,14 +679,7 @@ sub start_qemu {
         $use_usb_kbd = 1;
     }
     elsif ($vars->{OFW}) {
-        $vars->{QEMUVGA} ||= "std";
-        $vars->{QEMUMACHINE} //= "usb=off";
-        sp('g', '1024x768');
-        $use_usb_kbd = 1;
-        # newer qemu needs safe cache capability level quirk settings
-        # https://progress.opensuse.org/issues/75259
-        my $caps = ',cap-cfpc=broken,cap-sbbc=broken,cap-ibs=broken';
-        $vars->{QEMUMACHINE} .= $caps if $vars->{QEMUMACHINE} !~ /$caps/;
+        $use_usb_kbd = $self->qemu_params_ofw;
     }
     sp('vga', $vars->{QEMUVGA}) if $vars->{QEMUVGA};
 
