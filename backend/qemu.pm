@@ -875,7 +875,7 @@ sub start_qemu {
         }
 
         unless ($vars->{QEMU_NO_TABLET}) {
-            sp('device', ($vars->{OFW} || $arch eq 'aarch64') ? 'nec-usb-xhci' : 'usb-ehci');
+            sp('device', ($vars->{OFW} || $arch eq 'aarch64') ? 'nec-usb-xhci' : 'qemu-xhci');
             sp('device', 'usb-tablet');
         }
 
