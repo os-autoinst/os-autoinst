@@ -21,7 +21,7 @@ sub new ($class) {
 }
 
 ###################################################################
-sub do_start_vm ($self) {
+sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
     my $console = $testapi::distri->add_console('x3270', 's3270');
     $console->backend($self);
@@ -30,7 +30,7 @@ sub do_start_vm ($self) {
     return 1;
 }
 
-sub do_stop_vm ($self) {
+sub do_stop_vm ($self, @) {
     # first kill all _remote_ consoles except for the remote zVM
     # console (which would stop the vm guest)
     my @consoles = keys %{$self->{consoles}};

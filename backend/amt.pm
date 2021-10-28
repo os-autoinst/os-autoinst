@@ -173,7 +173,7 @@ sub restart_host ($self) {
     $self->set_power_state($self->is_shutdown() ? 2 : 5);
 }
 
-sub do_start_vm ($self) {
+sub do_start_vm ($self, @) {
     #if (!$self->{configured}) {
     #   $self->enable_solider();
     #   $self->configure_vnc();
@@ -207,7 +207,7 @@ sub do_start_vm ($self) {
     return {};
 }
 
-sub do_stop_vm ($self) {
+sub do_stop_vm ($self, @) {
     # need to terminate both VNC and console first, otherwise AMT will refuse
     # to shutdown
     $self->deactivate_console({testapi_console => 'sol'});
@@ -216,7 +216,7 @@ sub do_stop_vm ($self) {
     return {};
 }
 
-sub is_shutdown ($self) {
+sub is_shutdown ($self, @) {
     my $ret = $self->get_power_state();
     return $ret == 8;
 }

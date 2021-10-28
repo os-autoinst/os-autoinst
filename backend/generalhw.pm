@@ -49,16 +49,16 @@ sub get_cmd ($self, $cmd) {
     return $cmd;
 }
 
-sub run_cmd ($self, $cmd) {
-    my @full_cmd = split / /, $self->get_cmd($cmd);
+sub run_cmd ($self, @args) {
+    my @full_cmd = split / /, $self->get_cmd($args[0]);
 
     my ($stdin, $stdout, $stderr, $ret);
     eval { $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr) };
-    die "Unable to run command '@full_cmd' (deduced from test variable $cmd): $@\n" if $@;
+    die "Unable to run command '@full_cmd' (deduced from test variable $args[0]): $@\n" if $@;
     chomp $stdout;
     chomp $stderr;
 
-    die "$cmd: $stderr" unless $ret;
+    die "$args[0]: $stderr" unless $ret;
     bmwqemu::diag("IPMI: $stdout");
     return $stdout;
 }
@@ -96,7 +96,7 @@ sub relogin_vnc ($self) {
     return 1;
 }
 
-sub do_start_vm ($self) {
+sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
     if (get_var('GENERAL_HW_FLASH_CMD')) {
         $self->poweroff_host;    # Ensure system is off, before flashing
@@ -108,7 +108,7 @@ sub do_start_vm ($self) {
     return {};
 }
 
-sub do_stop_vm ($self) {
+sub do_stop_vm ($self, @) {
     $self->poweroff_host;
     $self->stop_serial_grab() if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
     return {};
@@ -131,7 +131,7 @@ sub start_serial_grab ($self) {
     die "exec failed $!";
 }
 
-sub stop_serial_grab ($self) {
+sub stop_serial_grab ($self, @) {
     return unless $self->{serialpid};
     kill("-TERM", $self->{serialpid});
     return waitpid($self->{serialpid}, 0);

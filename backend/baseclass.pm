@@ -382,7 +382,7 @@ sub start_vm ($self, @) {
     return $self->do_start_vm();
 }
 
-sub stop_vm ($self) {
+sub stop_vm ($self, @) {
     if ($self->{started}) {
         # backend.run might have disappeared already in case of failed builds
         no autodie 'unlink';
@@ -412,18 +412,18 @@ sub notimplemented ($self) { confess "backend method not implemented" }
 sub power ($self, $args) { notimplemented }
 sub insert_cd ($self) { notimplemented }
 sub eject_cd ($self, $args = {}) { notimplemented }
-sub do_start_vm ($self) { notimplemented }
-sub do_stop_vm ($self) { notimplemented }
+sub do_start_vm ($self, @) { notimplemented }
+sub do_stop_vm ($self, @) { notimplemented }
 sub stop ($self) { notimplemented }
 sub cont ($self) { notimplemented }
 
-sub can_handle ($self, $args) {
+sub can_handle ($self, @) {
     return;    # sorry, no
 }
 
 sub do_extract_assets ($self) { notimplemented }
 
-sub is_shutdown ($self) { -1 }
+sub is_shutdown ($self, @) { -1 }
 
 sub save_memory_dump ($self) { notimplemented }
 
@@ -725,7 +725,7 @@ sub capture_screenshot ($self) {
     return;
 }
 
-sub reload_needles () {
+sub reload_needles (@) {
     # called from testapi::set_var, so read the vars
     bmwqemu::load_vars();
 
@@ -1058,12 +1058,12 @@ sub _reduce_to_biggest_changes ($imglist, $limit) {
     return;
 }
 
-sub freeze_vm ($self) {
+sub freeze_vm ($self, @) {
     bmwqemu::diag "ignored freeze_vm";
     return;
 }
 
-sub cont_vm ($self) {
+sub cont_vm ($self, @) {
     bmwqemu::diag "ignored cont_vm";
     return;
 }

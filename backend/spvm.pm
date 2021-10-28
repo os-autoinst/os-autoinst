@@ -19,7 +19,7 @@ sub new ($class) {
 
 # only define the novalink console - we leave the actual
 # poweron to the test
-sub do_start_vm ($self) {
+sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
     $bmwqemu::vars{NOVALINK_HOSTNAME} // die 'Need variable \'NOVALINK_HOSTNAME\'';
     $bmwqemu::vars{NOVALINK_PASSWORD} // die 'Need variable \'NOVALINK_PASSWORD\'';
@@ -36,7 +36,7 @@ sub do_start_vm ($self) {
     return {};
 }
 
-sub do_stop_vm ($self) {
+sub do_stop_vm ($self, @) {
     $self->stop_serial_grab;
     $self->deactivate_console({testapi_console => 'novalink-ssh'});
     return {};
@@ -48,11 +48,9 @@ sub run_cmd ($self, $cmd, $hostname = $bmwqemu::vars{NOVALINK_HOSTNAME}, $passwo
     return $self->run_ssh_cmd($cmd, username => $username, password => $password, hostname => $hostname, keep_open => 0);
 }
 
-sub can_handle ($self, $args) {
-    return;
-}
+sub can_handle ($self, @) { }
 
-sub is_shutdown ($self) {
+sub is_shutdown ($self, @) {
     my $lpar_id = $bmwqemu::vars{NOVALINK_LPAR_ID} // die 'Need variable \'NOVALINK_LPAR_ID\'';
     return $self->run_cmd("! pvmctl  lpar list -i id=${lpar_id} | grep  'not a'");
 }
@@ -61,7 +59,7 @@ sub check_socket ($self, $fh, $write = undef) {
     return $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write);
 }
 
-sub stop_serial_grab ($self) {
+sub stop_serial_grab ($self, @) {
     $self->stop_ssh_serial;
     return;
 }

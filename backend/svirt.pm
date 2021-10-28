@@ -36,7 +36,7 @@ sub new ($class) {
 }
 
 # we don't do anything actually
-sub do_start_vm ($self) {
+sub do_start_vm ($self, @) {
     my $vars = \%bmwqemu::vars;
     my $n = $vars->{NUMDISKS} // 1;
     $vars->{NUMDISKS} //= defined($vars->{RAIDLEVEL}) ? 4 : $n;
@@ -56,7 +56,7 @@ sub do_start_vm ($self) {
     return {};
 }
 
-sub do_stop_vm ($self) {
+sub do_stop_vm ($self, @) {
     $self->stop_serial_grab;
 
     unless (get_var('SVIRT_KEEP_VM_RUNNING')) {
@@ -111,7 +111,7 @@ sub can_handle ($self, $args) {
     return;
 }
 
-sub is_shutdown ($self) {
+sub is_shutdown ($self, @) {
     my $vmname = $self->console('svirt')->name;
     my $rsp;
     if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
@@ -304,7 +304,7 @@ sub check_socket ($self, $fh, $write = undef) {
     return $self->check_ssh_serial($fh, $write) || $self->SUPER::check_socket($fh, $write);
 }
 
-sub stop_serial_grab ($self) {
+sub stop_serial_grab ($self, @) {
     $self->stop_ssh_serial;
     return;
 }

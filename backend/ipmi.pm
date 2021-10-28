@@ -82,7 +82,7 @@ sub restart_host ($self) {
     1;
 }
 
-sub do_start_vm ($self) {
+sub do_start_vm ($self, @) {
     # reset ipmi main board if switch on
     # We may need this IPMI_BACKEND_MC_RESET setting to tune differently
     # on different ipmi workers according to different ipmi machines' behavior.
@@ -98,13 +98,13 @@ sub do_start_vm ($self) {
     return {};
 }
 
-sub do_stop_vm ($self) {
+sub do_stop_vm ($self, @) {
     $self->ipmitool("chassis power off") unless $bmwqemu::vars{IPMI_DO_NOT_POWER_OFF};
     $self->deactivate_console({testapi_console => 'sol'}) if defined $testapi::distri->{consoles}->{sol};
     return {};
 }
 
-sub is_shutdown ($self) {
+sub is_shutdown ($self, @) {
     my $ret = $self->ipmitool('chassis power status', tries => 3);
     return $ret =~ m/is off/;
 }

@@ -77,11 +77,9 @@ sub start ($self) {
     $self->{backend_process} = $backend_process;
 }
 
-sub extract_assets ($self) {
-    $self->{backend}->do_extract_assets(@_);
-}
+sub extract_assets ($self, @args) { $self->{backend}->do_extract_assets(@args) }
 
-sub stop ($self, $cmd) {
+sub stop ($self) {
     return unless $self->{backend_process}->is_running;
 
     $self->stop_backend() if $self->{backend_process}->channel_out;
@@ -117,11 +115,7 @@ sub stop_backend ($self) {
 
 # new api end
 
-sub mouse_hide ($self, $border_offset) {
-    $border_offset ||= 0;
-
-    return $self->_send_json({cmd => 'mouse_hide', arguments => {border_offset => $border_offset}});
-}
+sub mouse_hide ($self, $border_offset = 0) { $self->_send_json({cmd => 'mouse_hide', arguments => {border_offset => $border_offset}}) }
 
 # virtual methods end
 

@@ -98,7 +98,7 @@ sub cpu_stat ($self) {
     return [@a[13, 14]];
 }
 
-sub do_start_vm ($self) {
+sub do_start_vm ($self, @) {
     $self->start_qemu();
     return {};
 }
@@ -139,7 +139,7 @@ sub _dbus_call ($self, $fn, @args) {
     return ($rt, $message, ($error) x !!($error));
 }
 
-sub do_stop_vm ($self) {
+sub do_stop_vm ($self, @) {
 
     my $proc = $self->{proc};
     if ($bmwqemu::vars{QEMU_WAIT_FINISH}) {
@@ -1030,7 +1030,7 @@ sub close_pipes ($self) {
     $self->SUPER::close_pipes() unless exists $self->{stop_only_qemu} && $self->{stop_only_qemu};
 }
 
-sub is_shutdown ($self) {
+sub is_shutdown ($self, @) {
     my $ret = $self->handle_qmp_command({execute => 'query-status'})->{return}->{status}
       || 'unknown';
 
@@ -1061,7 +1061,7 @@ sub freeze_vm ($self, @) {
     return $ret;
 }
 
-sub cont_vm ($self) {
+sub cont_vm ($self, @) {
     $self->update_request_interval(delete $self->{_qemu_saved_request_interval}) if $self->{_qemu_saved_request_interval};
     return $self->handle_qmp_command({execute => 'cont'});
 }

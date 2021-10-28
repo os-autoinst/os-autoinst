@@ -36,7 +36,7 @@ sub new ($class) {
     return $self;
 }
 
-sub do_start_vm ($self) {
+sub do_start_vm ($self, @) {
     $self->start_lpar();
     return {};
 }
@@ -224,9 +224,9 @@ sub _status ($self) {
     return qx{pvmctl lpar list -i id=$id -d LogicalPartition.state --hide-label};
 }
 
-sub is_shutdown ($self) { $self->_status =~ /running/ }
+sub is_shutdown ($self, @) { $self->_status =~ /running/ }
 
-sub do_stop_vm ($self) {
+sub do_stop_vm ($self, @) {
     my $vars = \%bmwqemu::vars;
     $self->pvmctl("lpar", "power-off") if (!$self->is_shutdown);
     runcmd("rmvterm", "--id", $vars->{LPARID});
