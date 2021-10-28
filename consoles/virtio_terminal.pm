@@ -108,8 +108,7 @@ sub set_snapshot {
 This is a helper method for system which do not have F_GETPIPE_SZ in
 there Fcntl bindings. See https://perldoc.perl.org/Fcntl.html
 =cut
-sub F_GETPIPE_SZ
-{
+sub F_GETPIPE_SZ {
     return eval 'no warnings "all"; Fcntl::F_GETPIPE_SZ;' || 1032;
 }
 
@@ -117,20 +116,17 @@ sub F_GETPIPE_SZ
 This is a helper method for system which do not have F_SETPIPE_SZ in
 there Fcntl bindings. See: https://perldoc.perl.org/Fcntl.html
 =cut
-sub F_SETPIPE_SZ
-{
-    return eval 'no warnings "all"; Fcntl::F_SETPIPE_SZ;' || 1031;
+sub F_SETPIPE_SZ {
+    return eval 'no warnings "all"; Fcntl::F_SETPIPE_SZ;' || 1031;    # uncoverable statement
 }
 
-sub set_pipe_sz
-{
+sub set_pipe_sz {
     no autodie;
-    my ($self, $fd, $newsize) = @_;
-    return fcntl($fd, F_SETPIPE_SZ(), int($newsize));
+    my ($self, $fd, $newsize) = @_;    # uncoverable statement
+    return fcntl($fd, F_SETPIPE_SZ(), int($newsize));    # uncoverable statement
 }
 
-sub get_pipe_sz
-{
+sub get_pipe_sz {
     my ($self, $fd) = @_;
     return fcntl($fd, F_GETPIPE_SZ(), 0);
 }
