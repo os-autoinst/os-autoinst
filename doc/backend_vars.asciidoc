@@ -289,3 +289,15 @@ AMT_PASSWORD;string;;Password for admin AMT user on target host
 Variable;Values allowed;Default value;Explanation
 WORKER_HOSTNAME;string;undef;Worker host name
 |====================
+
+.SPVM backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+WORKER_HOSTNAME;string;undef;Worker host name
+NOVALINK_HOSTNAME;string;undef;Novalink target host to connect to
+NOVALINK_USERNAME;string;root;Username to authenticate on Novalink host
+NOVALINK_PASSWORD;string;undef;Password to authenticate on Novalink host
+NOVALINK_LPAR_ID;string;undef;LPAR ID on the Novalink target to control
+|====================
