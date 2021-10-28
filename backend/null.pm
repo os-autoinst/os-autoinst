@@ -13,6 +13,8 @@ sub do_start_vm { {} }
 
 sub do_stop_vm { }
 
+sub do_extract_assets { }
+
 sub run_cmd { }
 
 sub can_handle { }
