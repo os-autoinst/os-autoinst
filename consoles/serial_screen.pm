@@ -12,13 +12,7 @@ use Carp 'croak';
 our $VERSION;
 
 sub new ($class, $fd_read, $fd_write = undef) {
-    my $self;
-    if (ref($class) ne '' && $class->isa('consoles::serial_screen')) {
-        $self = $class;
-    } else {
-        $self = bless {class => $class}, $class;
-    }
-
+    my $self = ref($class) ne '' && $class->isa('consoles::serial_screen') ? $class : bless {class => $class}, $class;
     $self->{fd_read} = $fd_read;
     $self->{fd_write} = $fd_write // $fd_read;
     $self->{carry_buffer} = '';
@@ -43,13 +37,9 @@ name to terminal code mappings.
 
 =cut
 sub send_key ($self, $nargs) {
-    if ($nargs->{key} eq 'ret') {
-        $nargs->{text} = "\n";
-        $self->type_string($nargs);
-    }
-    else {
-        croak $trying_to_use_keys;
-    }
+    croak $trying_to_use_keys unless $nargs->{key} eq 'ret';
+    $nargs->{text} = "\n";
+    $self->type_string($nargs);
 }
 
 sub hold_key { croak $trying_to_use_keys }
@@ -90,12 +80,8 @@ sub type_string ($self, $nargs) {
 
     $text .= $term if defined $term;
     my $written = syswrite $fd, $text;
-    unless (defined $written) {
-        croak "Error writing to virtio/svirt serial terminal: $ERRNO";
-    }
-    if ($written < length($text)) {
-        croak "Was not able to write entire message to virtio/svirt serial terminal. Only $written of $nargs->{text}";
-    }
+    croak "Error writing to virtio/svirt serial terminal: $ERRNO" unless defined $written;
+    croak "Was not able to write entire message to virtio/svirt serial terminal. Only $written of $nargs->{text}" if $written < length($text);
 }
 
 sub thetime { clock_gettime(CLOCK_MONOTONIC) }
@@ -115,22 +101,11 @@ sub remaining ($start, $timeout) {
 # Otherwise leave as is.
 sub normalise_pattern ($pattern, $no_regex) {
     if (ref $pattern eq 'ARRAY' && !$no_regex) {
-        my $hr = shift @$pattern;
-        if (@$pattern > 0) {
-            my $re = qr/($hr)/;
-            for my $r (@$pattern) {
-                $re .= qr/|($r)/;
-            }
-            return $re;
-        }
-        return $hr;
+        my $re = join "|", map { "($_)" } @$pattern;
+        return qr{$re};
     }
 
-    if ($no_regex && ref $pattern ne 'ARRAY') {
-        return [$pattern];
-    }
-
-    return $pattern;
+    return $no_regex && ref $pattern ne 'ARRAY' ? [$pattern] : $pattern;
 }
 
 =head2 do_read
@@ -156,18 +131,13 @@ sub do_read ($self, $, %args) {
     my $rin = '';
     vec($rin, fileno($fd), 1) = 1;
     my $nfound = select(my $rout = $rin, undef, my $eout = $rin, $args{timeout});
-    if ($nfound < 0) {
-        croak "Failed to select socket for reading: $ERRNO";
-    } elsif ($nfound == 0) {
-        return undef;
-    }
+    croak "Failed to select socket for reading: $ERRNO" if $nfound < 0;
+    return undef if $nfound == 0;
 
     my $read;
     while (!defined($read)) {
         $read = sysread($fd, $buffer, $args{max_size});
-        if (!defined($read) && !($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK})) {
-            croak "Failed to read from virtio/svirt serial console char device: $ERRNO";
-        }
+        croak "Failed to read from virtio/svirt serial console char device: $ERRNO" if !defined($read) && !($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK});
     }
     $_[1] = $buffer;
     return $read;
@@ -260,9 +230,7 @@ sub read_until ($self, $pattern, $timeout, %nargs) {
         # $overflow.
         if (length($rbuf) + $read > $buflen) {
             my $remove_len = $read - ($buflen - length($rbuf));
-            if (defined $overflow) {
-                $overflow .= substr $rbuf, 0, $remove_len;
-            }
+            $overflow .= substr $rbuf, 0, $remove_len if defined $overflow;
             $rbuf = substr $rbuf, $remove_len;
         }
         $rbuf .= $buf;
@@ -272,9 +240,7 @@ sub read_until ($self, $pattern, $timeout, %nargs) {
     bmwqemu::fctinfo("Matched output from SUT in $loops loops & $elapsed seconds: $match");
 
     $overflow ||= '';
-    if ($nargs{exclude_match}) {
-        return $overflow . $prematch;
-    }
+    return $overflow . $prematch if $nargs{exclude_match};
     return {matched => 1, string => $overflow . $prematch . $match};
 }
 
