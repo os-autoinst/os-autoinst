@@ -24,6 +24,7 @@ use OpenQA::Test::TimeLimit '5';
 use Test::Fatal;
 use Test::Output;
 use Test::MockModule;
+use Test::Warnings qw(:report_warnings);
 use Mojolicious;
 use mmapi;
 use lockapi;
