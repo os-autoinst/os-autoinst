@@ -13,7 +13,7 @@ use Cwd 'abs_path';
 use Mojo::File qw(tempdir path);
 use Mojo::JSON qw(decode_json);
 use Mojo::Util qw(scope_guard);
-use OpenQA::Isotovideo::Utils qw(load_test_schedule handle_generated_assets);
+use OpenQA::Isotovideo::Utils qw(handle_generated_assets);
 use OpenQA::Isotovideo::CommandHandler;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
@@ -131,6 +131,23 @@ subtest 'upload assets on demand even in failed jobs' => sub {
     ok(!-e $pool_dir . '/base_state.json', 'no fatal error recorded');
 };
 
+subtest 'load test success when casedir and productdir are relative path' => sub {
+    chdir($pool_dir);
+    path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
+    path('vars.json')->remove if -e 'vars.json';
+    mkdir('my_cases') unless -e 'my_cases';
+    symlink("$data_dir/tests/lib", 'my_cases/lib') unless -e 'my_cases/lib';
+    mkdir('my_cases/products') unless -e 'my_cases/products';
+    mkdir('my_cases/products/foo') unless -e 'my_cases/foo';
+    symlink("$data_dir/tests/tests", 'my_cases/tests') unless -e 'my_cases/tests';
+    symlink("$data_dir/tests/needles", 'my_cases/products/foo/needles') unless -e 'my_cases/products/foo/needles';
+    my $module = 'tests/failing_module';
+    my $log = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) };
+    like $log, qr/scheduling failing_module/, 'schedule can still be found';
+    like $log, qr/\d* loaded 4 needles/, 'loaded needles successfully';
+};
+
+
 # mock backend/driver
 {
     package FakeBackendDriver;
@@ -164,49 +181,6 @@ subtest 'upload the asset even in an incomplete job' => sub {
     my $force_publish_asset = $pool_dir . '/assets_public/force_publish_test.qcow2';
     ok(-e $force_publish_asset, 'test.qcow2 image exists');
     ok(!-e $pool_dir . '/assets_public/publish_test.qcow2', 'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
-};
-
-subtest 'error handling when loading test schedule' => sub {
-    chdir($dir);
-    my $base_state = path(bmwqemu::STATE_FILE);
-    subtest 'no schedule at all' => sub {
-        $base_state->remove;
-        $bmwqemu::vars{CASEDIR} = $bmwqemu::vars{PRODUCTDIR} = $dir;
-        throws_ok { load_test_schedule } qr/'SCHEDULE' not set and/, 'error logged';
-        my $state = decode_json($base_state->slurp);
-        if (is(ref $state, 'HASH', 'state file contains object')) {
-            is($state->{component}, 'tests', 'state file contains component message');
-            like($state->{msg}, qr/unable to load main\.pm/, 'state file contains error message');
-        }
-    };
-    subtest 'unable to load test module' => sub {
-        $base_state->remove;
-        my $module = 'foo/bar';
-        $bmwqemu::vars{SCHEDULE} = $module;
-        combined_like { throws_ok {
-                load_test_schedule } qr/Can't locate $module\.pm/, 'error logged' } qr/error on $module\.pm: Can't locate $module\.pm/, 'debug message logged';
-        my $state = decode_json($base_state->slurp);
-        if (is(ref $state, 'HASH', 'state file contains object')) {
-            is($state->{component}, 'tests', 'state file contains component');
-            like($state->{msg}, qr/unable to load foo\/bar\.pm/, 'state file contains error message');
-        }
-    };
-};
-
-subtest 'load test success when casedir and productdir are relative path' => sub {
-    chdir($pool_dir);
-    path(bmwqemu::STATE_FILE)->remove if -e bmwqemu::STATE_FILE;
-    path('vars.json')->remove if -e 'vars.json';
-    mkdir('my_cases') unless -e 'my_cases';
-    symlink("$data_dir/tests/lib", 'my_cases/lib') unless -e 'my_cases/lib';
-    mkdir('my_cases/products') unless -e 'my_cases/products';
-    mkdir('my_cases/products/foo') unless -e 'my_cases/foo';
-    symlink("$data_dir/tests/tests", 'my_cases/tests') unless -e 'my_cases/tests';
-    symlink("$data_dir/tests/needles", 'my_cases/products/foo/needles') unless -e 'my_cases/products/foo/needles';
-    my $module = 'tests/failing_module';
-    my $log = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) };
-    like $log, qr/scheduling failing_module/, 'schedule can still be found';
-    like $log, qr/\d* loaded 4 needles/, 'loaded needles successfully';
 };
 
 done_testing();

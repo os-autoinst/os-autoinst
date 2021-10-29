@@ -9,6 +9,7 @@ use Mojo::File qw(path);
 use Exporter 'import';
 use Cwd;
 use bmwqemu;
+use autotest;
 use Try::Tiny;
 
 our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec
@@ -196,6 +197,9 @@ sub load_test_schedule {
         }
         elsif (!path($productdir)->is_abs && -e path($bmwqemu::vars{CASEDIR}, $main_path)) {
             require(path($bmwqemu::vars{CASEDIR}, $main_path)->to_string);
+        }
+        elsif ($productdir && !-e $productdir) {
+            die "PRODUCTDIR '$productdir' invalid, could not be found";
         }
         elsif (!$bmwqemu::vars{SCHEDULE}) {
             die "'SCHEDULE' not set and $main_path not found, need one of both";
