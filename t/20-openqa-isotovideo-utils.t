@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 use Test::Most;
+use Test::Warnings qw(warning :report_warnings);
 use autodie ':all';
 use Test::Output qw(combined_like);
 use File::Path qw(remove_tree rmtree);
@@ -36,8 +37,9 @@ subtest 'error handling when loading test schedule' => sub {
         $base_state->remove;
         my $module = 'foo/bar';
         $bmwqemu::vars{SCHEDULE} = $module;
-        combined_like { throws_ok {
-                load_test_schedule } qr/Can't locate $module\.pm/, 'error logged' } qr/error on $module\.pm: Can't locate $module\.pm/, 'debug message logged';
+        combined_like {
+            warning { throws_ok { load_test_schedule } qr/Can't locate $module\.pm/, 'error logged' }
+        } qr/Can't locate $module\.pm/, 'debug message logged';
         my $state = decode_json($base_state->slurp);
         if (is(ref $state, 'HASH', 'state file contains object')) {
             is($state->{component}, 'tests', 'state file contains component');

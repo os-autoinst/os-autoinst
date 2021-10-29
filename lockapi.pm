@@ -29,7 +29,7 @@ sub _try_lock {
         my $tx = api_call_2(post => "$type/$name", $param, \%expected_return_codes);
         $actual_return_code = $tx->res->code;
         last unless mmapi::handle_api_error($tx, $log_ctx, \%expected_return_codes);
-        last unless $actual_return_code == 410;
+        last unless ($actual_return_code // 0) == 410;
         bmwqemu::fctinfo("Retry $_ of " . RETRY_COUNT);    # uncoverable statement
         sleep RETRY_INTERVAL;                              # uncoverable statement
     }
