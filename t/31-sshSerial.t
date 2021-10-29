@@ -37,6 +37,8 @@ $mock_channel->mock(shell => sub { 1 });
 $mock_channel->mock(send_eof => sub { 1 });
 
 $mock_ssh->mock(channel => sub { $mock_channel });
+$mock_ssh->mock(hostname => sub { 1 });
+$mock_ssh->mock(disconnect => sub { 1 });
 
 $mock_backend->mock(new_ssh_connection => sub { $mock_ssh });
 
@@ -155,6 +157,9 @@ subtest 'Read test' => sub {
     ok !$$ret{matched}, 'read until reports failure if search term not found';
     is $$ret{string}, ' more than usual.', 'rest of data has been read';
     is_deeply $mock_channel->{read_queue}, [], 'nothing left in read queue';
+
+    is $console->disable, undef, 'can call disable';
+    is $console->is_serial_terminal, 1, 'sshSerial is a serial terminal';
 };
 
 subtest 'Write test' => sub {
