@@ -1602,7 +1602,7 @@ Hide mouse cursor by moving it out of screen area.
 sub mouse_hide(;$) {
     my $border_offset = shift || 0;
     bmwqemu::log_call(border_offset => $border_offset);
-    query_isotovideo('backend_mouse_hide', {offset => $border_offset});
+    query_isotovideo('backend_mouse_hide', {border_offset => $border_offset});
 }
 
 =head2 mouse_drag
