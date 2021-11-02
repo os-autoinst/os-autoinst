@@ -262,6 +262,13 @@ subtest 'set_pause_on_next_command, postponing command, resuming' => sub {
     is($command_handler->postponed_command, undef, 'no command postponed anymore');
     is($command_handler->postponed_answer_fd, undef, 'postponed answer_fd cleared');
     is($command_handler->reason_for_pause, 0, 'test no longer paused');
+
+    # resume without previously postponed command
+    # note: The check for relevant early return is provided by mock function of send_json which is defined
+    #       at the top of this file.
+    stderr_like {
+        $command_handler->process_command($answer_fd, {cmd => 'resume_test_execution'});
+    } qr/resuming.*not paused anyways/, 'resuming test execution without previously pausing';
 };
 
 subtest 'assert_screen' => sub {

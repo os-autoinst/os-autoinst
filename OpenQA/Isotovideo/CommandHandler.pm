@@ -203,6 +203,11 @@ sub _handle_command_resume_test_execution ($self, $response, @) {
     my $downloader = OpenQA::Isotovideo::NeedleDownloader->new();
     $downloader->download_missing_needles($response->{new_needles} // []);
 
+    # skip resuming last command if receiving a resume command without having previously postponed an answer
+    # note: This should normally not be the case. However, the JavaScript client can technically send the command
+    #       to resume at any time and that apparently also happens sometimes in the fullstack test (see poo#101734).
+    return undef unless defined $postponed_answer_fd;
+
     # if no command has been postponed (because paused due to timeout) just return 1
     if (!$postponed_command) {
         myjsonrpc::send_json($postponed_answer_fd, {
