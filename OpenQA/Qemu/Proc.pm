@@ -113,7 +113,7 @@ sub configure_controllers ($self, $vars) {
     }
 
     if ($vars->{USBBOOT}) {
-        $cc->add_controller('usb-ehci', 'ehci0');
+        $cc->add_controller('qemu-xhci', 'xhci0');
     }
 
     return $self;
