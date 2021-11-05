@@ -61,11 +61,8 @@ subtest modules_test => sub {
 subtest parse_serial_output => sub {
     my $mock_basetest = Test::MockModule->new('basetest');
     # Mock reading of the serial output
-    $mock_basetest->redefine(get_serial_output_json => sub {
-            return {
-                serial => "Serial to match\n1q2w333\nMore text",
-                position => '100'
-            };
+    $mock_basetest->redefine(get_new_serial_output => sub {
+            return "Serial to match\n1q2w333\nMore text";
     });
     my $basetest = basetest->new('installation');
     my $message;
@@ -133,7 +130,6 @@ subtest parse_serial_output => sub {
     eval { $basetest->parse_serial_output_qemu() };
     like($@, qr(Message not defined for serial failure for the pattern.*), 'test died because of missing message');
     is($basetest->{result}, 'fail', 'test result set to hard failure');
-
 };
 
 subtest record_testresult => sub {
