@@ -533,8 +533,8 @@ sub _send_key_event {
             $template,
             4,    # message_type
             $down_flag,    # down-flag
-            0,             # padding
-            $key,          # key
+            0,    # padding
+            $key,    # key
         ));
 }
 
@@ -563,7 +563,7 @@ my $keymap_x11 = {
     'ctrl' => 0xffe3,    # left, right is e4
     'caps' => 0xffe5,
     'meta' => 0xffe7,    # left, right is e8
-    'alt' => 0xffe9,     # left one, right is ea
+    'alt' => 0xffe9,    # left one, right is ea
     'ret' => 0xff0d,
     'tab' => 0xff09,
     'backspace' => 0xff08,
@@ -770,8 +770,8 @@ sub send_pointer_event {
             $template,
             5,    # message type
             $button_mask,    # button-mask
-            $x,              # x-position
-            $y,              # y-position
+            $x,    # x-position
+            $y,    # y-position
         ));
 }
 
@@ -1126,9 +1126,9 @@ sub _receive_ikvm_encoding {
                 pack(
                     $template,
                     0x32,    # message type
-                    0,       # magic number
-                    11,      # highest possible quality
-                    444,     # no sub sampling
+                    0,    # magic number
+                    11,    # highest possible quality
+                    444,    # no sub sampling
                 ));
         }
         else {

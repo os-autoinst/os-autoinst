@@ -19,9 +19,9 @@ chdir "$Bin/..";
 
 my ($data_dir, $imgsearch_dir) = (path('t/data'), path('t/imgsearch'));
 my $haystack_image_1 = $data_dir->child('other-desktop-dvd-20140904.png');    # contains KDE and GNOME logo
-my $haystack_image_2 = $data_dir->child('xterm-started-20141204.png');        # contains none of the logos
-my $kde_logo = $imgsearch_dir->child('kde-logo.png');                         # KDE logo, exactly like in $haystack_image_1; expected match
-my $gnome_logo = $imgsearch_dir->child('gnome-logo-distorted.png');           # GNOME logo, slightly distorted; candidate with high similarity
+my $haystack_image_2 = $data_dir->child('xterm-started-20141204.png');    # contains none of the logos
+my $kde_logo = $imgsearch_dir->child('kde-logo.png');    # KDE logo, exactly like in $haystack_image_1; expected match
+my $gnome_logo = $imgsearch_dir->child('gnome-logo-distorted.png');    # GNOME logo, slightly distorted; candidate with high similarity
 
 my $stdout;
 stderr_like { $stdout = qx{"./imgsearch" --verbose --haystack-images $haystack_image_1 $haystack_image_2 --needle-images $kde_logo $gnome_logo} }

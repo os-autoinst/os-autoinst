@@ -161,9 +161,9 @@ sub summary ($self) {
         my $percentage = ($duration / $self->total_time) * 100;
 
         $out .= sprintf $result_format,    #
-          $event->{name},                  #
-          $duration,                       #
-          $cumulative,                     #
+          $event->{name},    #
+          $duration,    #
+          $cumulative,    #
           $percentage;
 
         $prev_time = $event->{time};
