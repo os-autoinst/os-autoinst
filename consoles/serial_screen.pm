@@ -89,7 +89,7 @@ sub type_string {
     my $term;
     for ($nargs->{terminate_with} || '') {
         if (/^ETX$/) { $term = "\cC"; }    #^C, Ctrl-c, End Of Text
-        elsif (/^EOT$/) { $term = "\cD"; } #^D, Ctrl-d, End Of Transmission
+        elsif (/^EOT$/) { $term = "\cD"; }    #^D, Ctrl-d, End Of Transmission
     }
 
     $text .= $term if defined $term;
