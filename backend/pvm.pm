@@ -21,15 +21,17 @@ use osutils qw(dd_gen_params gen_params runcmd);
 # the spvm backend will only support the basics, but generally through
 # ssh to a novalink installation (so you only need ssh and terminal on worker)
 
+# uncoverable statement
+sub _masterlpar { qx{cat /proc/device-tree/ibm,partition-name} }
+
 sub new {
     my $class = shift;
     my $self = $class->SUPER::new;
-    my $masterlpar = qx{cat /proc/device-tree/ibm,partition-name};
     $self->{pid} = undef;
     $self->{children} = [];
     $self->{pidfilename} = 'pvm.pid';
-    $self->{pvmctl} = '/usr/bin/pvmctl';
-    $self->{masterlpar} = substr($masterlpar, 0, -1);
+    $self->{pvmctl} = $ENV{PVMCTL} // '/usr/bin/pvmctl';
+    $self->{masterlpar} = substr(_masterlpar, 0, -1);
     die "pvmctl not found" unless -x $self->{pvmctl};
 
     return $self;
