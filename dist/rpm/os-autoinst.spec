@@ -93,6 +93,7 @@ Recommends:     perl(Inline::Python)
 Requires(pre):  %{_bindir}/getent
 Requires(pre):  %{_sbindir}/useradd
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
+ExcludeArch:    %{ix86}
 
 %description
 The OS-autoinst project aims at providing a means to run fully
