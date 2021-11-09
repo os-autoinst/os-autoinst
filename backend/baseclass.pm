@@ -516,7 +516,9 @@ sub enqueue_screenshot {
     $self->{min_video_similarity} -= 1;
     $self->{min_video_similarity} = $sim if $sim < $self->{min_video_similarity};
 
-    $self->{vtt_caption_file}->print($self->format_vtt_timestamp(gettimeofday));
+    # ensure gettimeofday returns float number, not a list of two entries
+    # where we would discard the second element
+    $self->{vtt_caption_file}->print($self->format_vtt_timestamp('' . gettimeofday));
 
     # we have two different similarity levels - one (slightly higher value, based
     # t/data/user-settings-*) to determine if it's worth it to recheck needles

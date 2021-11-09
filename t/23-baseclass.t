@@ -32,17 +32,17 @@ bmwqemu::init_logger;
 my $baseclass = backend::baseclass->new();
 
 subtest 'format_vtt_timestamp' => sub {
-    my $timestamp = 1543917024;
-
+    my $timestamp = 1543917024.24791;
     $baseclass->{video_frame_number} = 0;
     is($baseclass->format_vtt_timestamp($timestamp),
-        "\n0\n00:00:00.000 --> 00:00:00.041\n[2018-12-04T09:50:24.000]\n",
+        "\n0\n00:00:00.000 --> 00:00:00.041\n[2018-12-04T09:50:24.247]\n",
         'frame number 0'
     );
 
+    $timestamp += .1;
     $baseclass->{video_frame_number} = 1;
     is($baseclass->format_vtt_timestamp($timestamp),
-        "\n1\n00:00:00.041 --> 00:00:00.083\n[2018-12-04T09:50:24.000]\n",
+        "\n1\n00:00:00.041 --> 00:00:00.083\n[2018-12-04T09:50:24.347]\n",
         'frame number 1'
     );
 };
