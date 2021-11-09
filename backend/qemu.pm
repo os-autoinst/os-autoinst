@@ -23,7 +23,6 @@ use Fcntl;
 use Net::DBus;
 use bmwqemu qw(diag);
 require IPC::System::Simple;
-use Try::Tiny;
 use osutils qw(find_bin gen_params qv run_diag runcmd);
 use List::Util qw(first max);
 use Data::Dumper;
@@ -948,17 +947,7 @@ sub start_qemu {
             port => 5900 + $bmwqemu::vars{VNC}});
 
     $vnc->backend($self);
-    try {
-        local $SIG{__DIE__} = undef;
-        $self->select_console({testapi_console => 'sut'});
-    }
-    catch {
-        if (!raw_alive) {
-            bmwqemu::diag "qemu didn't start";
-            $self->read_qemupipe;
-            exit(1);
-        }
-    };
+    $self->select_console({testapi_console => 'sut'});
 
     if ($vars->{NICTYPE} eq "tap") {
         $self->{allocated_networks} = $num_networks;
