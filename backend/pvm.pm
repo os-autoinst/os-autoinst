@@ -8,7 +8,7 @@ use autodie ':all';
 
 use base 'backend::baseclass';
 
-use bmwqemu qw(diag);
+use bmwqemu qw(diag fctwarn);
 use File::Path 'mkpath';
 require IPC::System::Simple;
 use File::Basename;
@@ -33,7 +33,7 @@ sub new {
     $self->{pvmctl} = $ENV{PVMCTL} // '/usr/bin/pvmctl';
     $self->{masterlpar} = substr(_masterlpar, 0, -1);
     die "pvmctl not found" unless -x $self->{pvmctl};
-
+    bmwqemu::fctwarn 'DEPRECATED: backend::pvm is unsupported and planned to be removed from os-autoinst eventually';
     return $self;
 }
 
