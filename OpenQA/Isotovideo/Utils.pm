@@ -149,7 +149,7 @@ sub handle_generated_assets ($command_handler, $clean_shutdown) {
                     format => 'qcow2'});
         }
         if (@toextract && !$clean_shutdown) {
-            bmwqemu::serialize_state(component => 'isotovideo', msg => 'unable to handle generated assets: machine not shut down when uploading disks', log => 1);
+            bmwqemu::serialize_state(component => 'isotovideo', msg => 'unable to handle generated assets: machine not shut down when uploading disks', error => 1);
             return 1;
         }
     }
@@ -162,7 +162,7 @@ sub handle_generated_assets ($command_handler, $clean_shutdown) {
         local $@;
         eval { $bmwqemu::backend->extract_assets($asset); };
         if ($@) {
-            bmwqemu::serialize_state(component => 'backend', msg => "unable to extract assets: $@", log => 1);
+            bmwqemu::serialize_state(component => 'backend', msg => "unable to extract assets: $@", error => 1);
             $return_code = 1;
         }
     }
