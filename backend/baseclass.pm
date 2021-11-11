@@ -220,7 +220,7 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
             if (fileno $fh && fileno $fh != -1) {
                 # Very high limits! On a working socket, the maximum hits per 10 seconds will be around 60.
                 # The maximum hits per 10 seconds saw on a half open socket was >100k
-                if (check_select_rate($buckets, $wait_time_limit, $hits_limit, fileno $fh)) {
+                if (check_select_rate($buckets, $wait_time_limit, $hits_limit, fileno $fh, time())) {
                     my $console = $self->{current_console}->{testapi_console};
                     my $fd_nr = fileno $fh;
                     my $cnt = $buckets->{BUCKET}{$fd_nr};
@@ -270,8 +270,7 @@ sub run_capture_loop ($self, $timeout = undef) {
 
 # wait_time_limit = seconds
 # This is not sliding buckets. All the IDs inside the bucket must be over the limit!
-sub check_select_rate ($buckets, $wait_time_limit, $hits_limit, $id) {
-    my $time = gettimeofday;
+sub check_select_rate ($buckets, $wait_time_limit, $hits_limit, $id, $time) {
     my $lower_limit = $buckets->{TIME} //= $time;
     my $upper_limit = $lower_limit + $wait_time_limit;
     if ($time > $upper_limit) {
