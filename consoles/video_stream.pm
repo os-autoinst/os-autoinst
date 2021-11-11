@@ -18,6 +18,8 @@ use bmwqemu;
 # speed limit: 30 keys per second
 use constant STREAM_TYPING_LIMIT_DEFAULT => 30;
 
+use constant DV_TIMINGS_CHECK_INTERVAL => 3;
+
 my $CHARMAP = {
     "\t" => 'tab',
     "\n" => 'ret',
@@ -30,18 +32,73 @@ sub screen ($self, @) {
     return $self;
 }
 
+sub disable_video ($self) {
+    my $ret = 0;
+    if ($self->{ffmpeg}) {
+        kill(TERM => $self->{ffmpegpid});
+        close($self->{ffmpeg});
+        $self->{ffmpeg} = undef;
+        $ret = waitpid($self->{ffmpegpid}, 0);
+        $self->{ffmpegpid} = undef;
+    }
+    return $ret;
+}
+
 sub disable ($self, @) {
-    return unless $self->{ffmpeg};
-    kill(TERM => $self->{ffmpegpid});
-    close($self->{ffmpeg});
-    $self->{ffmpeg} = undef;
-    my $ret = waitpid($self->{ffmpegpid}, 0);
-    $self->{ffmpegpid} = undef;
+    my $ret = $self->disable_video;
     if ($self->{input_pipe}) {
         close($self->{input_pipe});
         waitpid($self->{inputpid}, 0);
     }
     return $ret;
+}
+
+sub _v4l2_ctl ($device, $cmd) {
+    my @cmd = ("v4l2-ctl", "--device", $device, "--concise");
+    push(@cmd, split(/ /, $cmd));
+    my $pipe;
+    my $pid = open($pipe, '-|', @cmd) or return undef;
+    $pipe->read(my $str, 50);
+    my $ret = waitpid($pid, 0);
+    if ($ret > 0 && $? == 0) {
+        # remove header and whitespaces
+        $str =~ s/DV timings://;
+        $str =~ s/^\s+|\s+$//g;
+        return $str;
+    }
+    return undef;
+}
+
+sub connect_remote ($self, $args) {
+    if ($args->{url} =~ m/^\/dev\/video/) {
+        if ($args->{edid}) {
+            my $ret = _v4l2_ctl($args->{url}, "--set-edid $args->{edid}");
+            die "Failed to set EDID" unless defined $ret;
+        }
+
+        my $timings = _v4l2_ctl($args->{url}, '--get-dv-timings');
+        if ($timings) {
+            if ($timings ne "0x0pnan") {
+                $self->{dv_timings} = $timings;
+            } else {
+                $self->{dv_timings} = '';
+            }
+            $self->{dv_timings_supported} = 1;
+            $self->{dv_timings_last_check} = time;
+            bmwqemu::diag "Current DV timings: $timings";
+        } else {
+            $self->{dv_timings_supported} = 0;
+            bmwqemu::diag "DV timings not supported";
+        }
+    } else {
+        # applies to v4l only
+        $self->{dv_timings_supported} = 0;
+    }
+
+    bmwqemu::diag "Starting to receive video stream at $args->{url}";
+    $self->connect_remote_video($args->{url});
+
+    $self->connect_remote_input($args->{input_cmd}) if $args->{input_cmd};
 }
 
 sub _get_ffmpeg_cmd ($self, $url) {
@@ -50,18 +107,23 @@ sub _get_ffmpeg_cmd ($self, $url) {
     return \@cmd;
 }
 
-sub connect_remote ($self, $args) {
-    bmwqemu::diag "Starting receiving HDbitT stream at TODO";
-    my $cmd = $self->_get_ffmpeg_cmd($args->{url});
+sub connect_remote_video ($self, $url) {
+    if ($self->{dv_timings_supported}) {
+        if (!_v4l2_ctl($url, '--set-dv-bt-timings query')) {
+            bmwqemu::diag("No video signal");
+            return;
+        }
+        $self->{dv_timings} = _v4l2_ctl($url, '--get-dv-timings');
+    }
+
+    my $cmd = $self->_get_ffmpeg_cmd($url);
     my $ffmpeg;
     $self->{ffmpegpid} = open($ffmpeg, '-|', @$cmd)
       or die "Failed to start ffmpeg for video stream at $url";
     $self->{ffmpeg} = $ffmpeg;
     $ffmpeg->blocking(0);
 
-    $self->connect_remote_input($args->{input_cmd}) if $args->{input_cmd};
-
-    return $ffmpeg;
+    return 1;
 }
 
 sub connect_remote_input ($self, $cmd) {
@@ -110,6 +172,28 @@ sub _receive_frame ($self) {
 }
 
 sub update_framebuffer ($self) {
+    if ($self->{dv_timings_supported}) {
+        # periodically check if DV timings needs update due to resolution change
+        if (time - $self->{dv_timings_last_check} >= DV_TIMINGS_CHECK_INTERVAL) {
+            my $current_timings = _v4l2_ctl($self->{args}->{url}, '--query-dv-timings');
+            if ($current_timings && $current_timings ne $self->{dv_timings}) {
+                bmwqemu::diag "Updating DV timings, new: $current_timings";
+                # yes, there is need to update DV timings, restart ffmpeg,
+                # connect_remote_video will update the timings
+                $self->disable_video;
+                $self->connect_remote_video($self->{args}->{url});
+            } elsif ($self->{dv_timings} && !$current_timings) {
+                bmwqemu::diag "video disconnected";
+                $self->disable_video;
+                $self->{dv_timings} = '';
+            }
+            $self->{dv_timings_last_check} = time;
+        }
+    }
+
+    # no video connected, don't read anything
+    return 0 unless $self->{ffmpeg};
+
     my $have_recieved_update = 0;
     while ($self->_receive_frame()) {
         $have_recieved_update = 1;
