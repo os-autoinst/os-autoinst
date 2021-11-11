@@ -126,6 +126,7 @@ sub reconnect_video_stream ($self, @) {
             url => $bmwqemu::vars{GENERAL_HW_VIDEO_STREAM_URL},
             connect_timeout => 50,
             input_cmd => $input_cmd,
+            edid => $bmwqemu::vars{GENERAL_HW_EDID},
         });
     $vnc->backend($self);
     $self->select_console({testapi_console => 'sut'});
