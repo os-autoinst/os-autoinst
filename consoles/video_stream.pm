@@ -17,6 +17,8 @@ use constant STREAM_TYPING_LIMIT_DEFAULT => 30;
 
 use constant DV_TIMINGS_CHECK_INTERVAL => 3;
 
+use constant STALL_THRESHOLD => 4;
+
 sub screen ($self, @) {
     return $self;
 }
@@ -59,6 +61,8 @@ sub _v4l2_ctl ($device, $cmd) {
 }
 
 sub connect_remote ($self, $args) {
+    $self->{_last_update_received} = 0;
+
     if ($args->{url} =~ m/^\/dev\/video/) {
         if ($args->{edid}) {
             my $ret = _v4l2_ctl($args->{url}, "--set-edid $args->{edid}");
@@ -112,6 +116,8 @@ sub connect_remote_video ($self, $url) {
     $self->{ffmpeg} = $ffmpeg;
     $ffmpeg->blocking(0);
 
+    $self->{_last_update_received} = time;
+
     return 1;
 }
 
@@ -157,6 +163,7 @@ sub _receive_frame ($self) {
     $self->{_framebuffer} = $img;
     $self->{width} = $width;
     $self->{height} = $height;
+    $self->{_last_update_received} = time;
     return $img;
 }
 
@@ -197,8 +204,15 @@ sub current_screen ($self) {
 }
 
 sub request_screen_update ($self, @) {
-    $self->update_framebuffer();
-# TODO? just wait
+    if (!$self->update_framebuffer()) {
+        # check if it isn't stalled, perhaps we missed resolution change?
+        my $time_since_last_update = time - $self->{_last_update_received};
+        if ($self->{ffmpeg} && $time_since_last_update > STALL_THRESHOLD) {
+            # reconnect, it will refresh the device settings too
+            $self->disable_video;
+            $self->connect_remote_video($self->{args}->{url});
+        }
+    }
 }
 
 sub send_key_event ($self, $key, $press_release_delay) {
