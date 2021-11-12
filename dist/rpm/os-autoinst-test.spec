@@ -7,6 +7,7 @@ Summary:        test package for os-autoinst
 License:        GPL-2.0-or-later
 #BuildRequires:  %{short_name} == %{version}
 BuildRequires:  %{short_name}
+ExcludeArch:    %{ix86}
 
 %description
 .
