@@ -30,6 +30,7 @@ sub get_cmd ($self, $cmd) {
         'GENERAL_HW_INPUT_CMD' => 'GENERAL_HW_INPUT_ARGS',
         'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS',
         'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS',
+        'GENERAL_HW_IMAGE_CMD' => 'GENERAL_HW_IMAGE_ARGS',
     );
     my $args = $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}} if $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}};
 
@@ -187,5 +188,14 @@ sub stop_serial_grab ($self, @) {
 }
 
 # serial grab end
+
+sub do_extract_assets ($self, $args) {
+    my $name = $args->{name};
+    my $img_dir = $args->{dir};
+    my $hdd_num = $args->{hdd_num} - 1;
+    die "extracting pflash vars not supported" if $args->{pflash_vars};
+
+    $self->run_cmd('GENERAL_HW_IMAGE_CMD', ($hdd_num, "$img_dir/$name"));
+}
 
 1;
