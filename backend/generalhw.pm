@@ -24,7 +24,13 @@ sub get_cmd ($self, $cmd) {
     my $dir = $bmwqemu::vars{GENERAL_HW_CMD_DIR} or die 'Need variable GENERAL_HW_CMD_DIR';
     die 'GENERAL_HW_CMD_DIR is not pointing to a directory' unless -d $dir;
 
-    my %GENERAL_HW_ARG_VARIABLES_BY_CMD = ('GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS', 'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS', 'GENERAL_HW_INPUT_CMD' => 'GENERAL_HW_INPUT_ARGS', 'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS', 'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS');
+    my %GENERAL_HW_ARG_VARIABLES_BY_CMD = (
+        'GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS',
+        'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS',
+        'GENERAL_HW_INPUT_CMD' => 'GENERAL_HW_INPUT_ARGS',
+        'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS',
+        'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS',
+    );
     my $args = $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}} if $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}};
 
     $cmd = $bmwqemu::vars{$cmd} or die "Need test variable '$cmd'";
