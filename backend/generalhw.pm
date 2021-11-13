@@ -30,27 +30,16 @@ sub get_cmd ($self, $cmd) {
     my %GENERAL_HW_ARG_VARIABLES_BY_CMD = ('GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS', 'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS', 'GENERAL_HW_INPUT_CMD' => 'GENERAL_HW_INPUT_ARGS', 'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS', 'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS');
     my $args = get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}) if get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd});
 
-    # Append HDD infos to flash script
-    if ($cmd eq 'GENERAL_HW_FLASH_CMD' and get_var('HDD_1')) {
-        my $numdisks = get_var('NUMDISKS') // 1;
-        for my $i (1 .. $numdisks) {
-            # Pass path of HDD
-            $args .= " " . get_required_var("HDD_$i");
-            # Pass size of HDD
-            my $size = get_var("HDDSIZEGB_$i");
-            $size //= get_var('HDDSIZEGB') // 10;
-            $args .= " $size" . 'G';
-        }
-    }
-
     $cmd = get_required_var($cmd);
     $cmd = "$dir/" . basename($cmd);
     $cmd .= " $args" if $args;
     return $cmd;
 }
 
-sub run_cmd ($self, @args) {
-    my @full_cmd = split / /, $self->get_cmd($args[0]);
+sub run_cmd ($self, $cmd, @extra_args) {
+    my @full_cmd = split / /, $self->get_cmd($cmd);
+
+    push @full_cmd, @extra_args;
 
     my ($stdin, $stdout, $stderr, $ret);
     eval { $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr) };
@@ -115,11 +104,31 @@ sub reconnect_video_stream ($self, @) {
     return 1;
 }
 
+sub compute_hdd_args ($self) {
+    my @hdd_args;
+    if (get_var('HDD_1')) {
+        my $numdisks = get_var('NUMDISKS') // 1;
+        for my $i (1 .. $numdisks) {
+            # Pass path of HDD
+            push @hdd_args, get_required_var("HDD_$i");
+            # Pass size of HDD
+            my $size = get_var("HDDSIZEGB_$i");
+            $size //= get_var('HDDSIZEGB') // 10;
+            push @hdd_args, "$size" . 'G';
+        }
+    }
+    return \@hdd_args;
+}
+
+
 sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
     if (get_var('GENERAL_HW_FLASH_CMD')) {
+        # Append HDD infos to flash script
+        my $hdd_args = $self->compute_hdd_args;
+
         $self->poweroff_host;    # Ensure system is off, before flashing
-        $self->run_cmd('GENERAL_HW_FLASH_CMD');
+        $self->run_cmd('GENERAL_HW_FLASH_CMD', @$hdd_args);
     }
     $self->restart_host;
     $self->relogin_vnc if (get_var('GENERAL_HW_VNC_IP'));
