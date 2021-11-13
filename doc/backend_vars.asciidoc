@@ -273,6 +273,8 @@ GENERAL_HW_POWEROFF_CMD;string;;Shell Command to power off the SUT (in CMD_DIR)
 GENERAL_HW_POWEROFF_ARGS;string;;Arguments to pass GENERAL_HW_POWEROFF_CMD Shell script
 GENERAL_HW_FLASH_CMD;string;;Shell Command to flash a disk image on SUT (in CMD_DIR), optional
 GENERAL_HW_FLASH_ARGS;string;;Arguments to pass GENERAL_HW_FLASH_CMD Shell script
+GENERAL_HW_IMAGE_CMD;string;;Shell Command to extract disk image from SUT (in CMD_DIR), optional
+GENERAL_HW_IMAGE_ARGS;string;;Arguments to pass GENERAL_HW_IMAGE_CMD Shell script. The script will get also extra arguments: disk number and file path to save it into.
 GENERAL_HW_INPUT_CMD;string;;Shell Command to control keyboard/mouse of the SUT, should wait for keyboard events on its stdin (in syntax used in 'send_key'), or mouse events as 'mouse_move <x> <y>' or 'mouse_button <buttons-pressed-mask>'. This is used only if GENERAL_HW_VIDEO_STREAM_URL is set.
 GENERAL_HW_INPUT_ARGS;string;;Arguments to pass GENERAL_HW_INPUT_CMD Shell script
 GENERAL_HW_EDID;string;;EDID to be set on relevant /dev/video device (see 'GENERAL_HW_VIDEO_STREAM_URL'), used directly as an argument for 'v4l2-ctl --set-edit'. Example values: 'type=hdmi', 'file=/some/path'.
