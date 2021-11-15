@@ -528,6 +528,9 @@ sub close_pipes ($self) {
 
     return unless $self->{rsppipe};
 
+    # disarm SIGTERM handler to avoid re-entrant stop_vm call, stopping anyway
+    $SIG{TERM} = 'IGNORE';
+
     bmwqemu::diag "sending magic and exit";
     myjsonrpc::send_json($self->{rsppipe}, {QUIT => 1});
     close($self->{rsppipe}) || die "close $!\n";
