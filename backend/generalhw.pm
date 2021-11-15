@@ -15,6 +15,7 @@ use bmwqemu;
 use IPC::Run ();
 require IPC::System::Simple;
 use File::Basename 'basename';
+use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 
 sub new ($class) {
     # required for the tests to access our HTTP port
@@ -41,12 +42,17 @@ sub run_cmd ($self, $cmd, @extra_args) {
     push @full_cmd, @extra_args;
 
     my ($stdin, $stdout, $stderr, $ret);
-    eval { $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr) };
-    die "Unable to run command '@full_cmd' (deduced from test variable $args[0]): $@\n" if $@;
+
+    {
+        # Do not let the SIGCHLD handler of Mojo::IOLoop::ReadWriteProcess::Session steal the exit code from IPC::Run
+        local $SIG{CHLD};
+        eval { $ret = IPC::Run::run(\@full_cmd, \$stdin, \$stdout, \$stderr) };
+        die "Unable to run command '@full_cmd' (deduced from test variable $cmd): $@\n" if $@;
+    }
     chomp $stdout;
     chomp $stderr;
 
-    die "$args[0]: $stderr" unless $ret;
+    die "$cmd: $stderr" unless $ret;
     bmwqemu::diag("IPMI: $stdout");
     return $stdout;
 }
