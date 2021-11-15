@@ -69,7 +69,7 @@ IPMI_MC_RESET_SLEEP_TIME_S;integer;10;Time to sleep after sending mc reset comma
 IPMI_MC_RESET_TIMEOUT;integer;60;Counts to try to reach IPMI interface after mc reset
 IPMI_MC_RESET_PING_COUNT;integer;1;Ping counts that must be successful after mc reset
 IPMI_MC_RESET_IPMI_TRIES;integer;3;Maximum number of IPMI command tries that are conducted after mc reset
-IPMI_SOL_PERSISTENT_CONSOLE;boolean;0;Make SOL console persistent and don't reset it, disabled by default
+IPMI_SOL_PERSISTENT_CONSOLE;boolean;1;Make SOL console persistent and don't reset it, enabled by default
 |====================
 
 .QEMU backend
