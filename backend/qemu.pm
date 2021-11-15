@@ -4,7 +4,7 @@
 
 package backend::qemu;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'backend::virt';
@@ -37,8 +37,7 @@ use constant LONG_MAX => (~0 >> 1);
 # in a separate dir.
 use constant VM_SNAPSHOTS_DIR => 'vm-snapshots';
 
-sub new {
-    my $class = shift;
+sub new ($class) {
     my $self = $class->SUPER::new;
     $self->{pidfilename} = 'qemu.pid';
     $self->{proc} = OpenQA::Qemu::Proc->new();
@@ -48,37 +47,31 @@ sub new {
 
 # baseclass virt method overwrite
 
-sub raw_alive { shift->{proc}->_process->is_running }
+sub raw_alive ($self) { $self->{proc}->_process->is_running }
 
-sub _wrap_hmc {
-    my $cmdline = shift;
-    return {
+sub _wrap_hmc ($cmdline) { {
         execute => 'human-monitor-command',
-        arguments => {'command-line' => $cmdline}};
+        arguments => {'command-line' => $cmdline}}
 }
 
 # poo#66667: Since qemu 4.2, -audiodev is required to record sounds, as we need an audiodev id for 'wavcapture'
-sub requires_audiodev {
-    my ($self) = @_;
+sub requires_audiodev ($self) {
     return (version->declare($self->{qemu_version}) ge version->declare(4.2));
 }
 
-sub start_audiocapture {
-    my ($self, $args) = @_;
+sub start_audiocapture ($self, $args) {
 
     # poo#66667: an audiodev id is required by wavcapture when audiodev is used
     my $audiodev_id = $self->requires_audiodev ? 'snd0' : '';
     $self->handle_qmp_command(_wrap_hmc("wavcapture $args->{filename} $audiodev_id 44100 16 1"));
 }
 
-sub stop_audiocapture {
-    my ($self, $args) = @_;
+sub stop_audiocapture ($self, $args) {
     $self->handle_qmp_command(_wrap_hmc("stopcapture 0"));
 }
 
-sub power {
-    # parameters: acpi, reset, (on), off
-    my ($self, $args) = @_;
+# parameters: acpi, reset, (on), off
+sub power ($self, $args) {
     my %action_to_cmd = (
         acpi => 'system_powerdown',
         reset => 'system_reset',
@@ -87,8 +80,7 @@ sub power {
     $self->handle_qmp_command({execute => $action_to_cmd{$args->{action}}});
 }
 
-sub eject_cd {
-    my ($self, $args) = @_;
+sub eject_cd ($self, $args = {}) {
     die "'device' parameter is not supported anymore, use 'id'" if defined $args->{device};
     my $id = $args->{id} // 'cd0-device';
     $self->handle_qmp_command({execute => 'eject', arguments => {
@@ -98,33 +90,26 @@ sub eject_cd {
     $self->handle_qmp_command({execute => 'blockdev-remove-medium', arguments => {id => $id}});
 }
 
-sub execute_qmp_command {
-    my ($self, $args) = @_;
-    $self->handle_qmp_command($args->{query});
-}
+sub execute_qmp_command ($self, $args) { $self->handle_qmp_command($args->{query}) }
 
-sub cpu_stat {
-    my $self = shift;
+sub cpu_stat ($self) {
     my $stat = path("/proc/" . $self->{proc}->_process->pid . "/stat")->slurp;
     my @a = split(" ", $stat);
     return [@a[13, 14]];
 }
 
-sub do_start_vm {
-    my $self = shift;
+sub do_start_vm ($self, @) {
     $self->start_qemu();
     return {};
 }
 
-sub stop_qemu {
-    my ($self) = (@_);
+sub stop_qemu ($self) {
     $self->{proc}->stop_qemu;
-    $self->delete_virtio_console_fifo();
+    delete_virtio_console_fifo();
     $self->_stop_children_processes;
 }
 
-sub _dbus_do_call {
-    my ($self, $fn, @args) = @_;
+sub _dbus_do_call ($self, $fn, @args) {
     # we intentionally do not persist the dbus connection to avoid
     # queueing up signals we are not interested in handling:
     # https://progress.opensuse.org/issues/90872
@@ -136,8 +121,7 @@ sub _dbus_do_call {
     return @result;
 }
 
-sub _dbus_call {
-    my ($self, $fn, @args) = @_;
+sub _dbus_call ($self, $fn, @args) {
     my ($rt, $message);
     eval {
         # do not die on unconfigured service
@@ -155,8 +139,7 @@ sub _dbus_call {
     return ($rt, $message, ($error) x !!($error));
 }
 
-sub do_stop_vm {
-    my $self = shift;
+sub do_stop_vm ($self, @) {
 
     my $proc = $self->{proc};
     if ($bmwqemu::vars{QEMU_WAIT_FINISH}) {
@@ -169,8 +152,7 @@ sub do_stop_vm {
     $self->stop_qemu;
 }
 
-sub can_handle {
-    my ($self, $args) = @_;
+sub can_handle ($self, $args) {
     my $vars = \%bmwqemu::vars;
 
     return unless $args->{function} eq 'snapshots';
@@ -183,8 +165,7 @@ sub can_handle {
     return undef;
 }
 
-sub open_file_and_send_fd_to_qemu {
-    my ($self, $path, $fdname) = @_;
+sub open_file_and_send_fd_to_qemu ($self, $path, $fdname) {
 
     mkpath(dirname($path));
     my $fd = POSIX::open($path, POSIX::O_CREAT() | POSIX::O_RDWR()) or die "Failed to open $path: $!";
@@ -196,8 +177,7 @@ sub open_file_and_send_fd_to_qemu {
     POSIX::close($fd);
 }
 
-sub set_migrate_capability {
-    my ($self, $name, $state) = @_;
+sub set_migrate_capability ($self, $name, $state) {
 
     $self->handle_qmp_command(
         {
@@ -213,8 +193,7 @@ sub set_migrate_capability {
     );
 }
 
-sub _wait_while_status_is {
-    my ($self, $status, $timeout, $fail_msg) = @_;
+sub _wait_while_status_is ($self, $status, $timeout, $fail_msg) {
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
     my $i = 0;
@@ -226,8 +205,7 @@ sub _wait_while_status_is {
     }
 }
 
-sub _wait_for_migrate {
-    my ($self) = @_;
+sub _wait_for_migrate ($self) {
     my $migration_starttime = gettimeofday;
     my $execution_time = gettimeofday;
     # We need to wait for qemu, since it will not honor timeouts
@@ -262,8 +240,7 @@ sub _wait_for_migrate {
         'Timed out waiting for migration to finalize');
 }
 
-sub _migrate_to_file {
-    my ($self, %args) = @_;
+sub _migrate_to_file ($self, %args) {
     my $fdname = 'dumpfd';
     my $compress_level = $args{compress_level} || 0;
     my $compress_threads = $args{compress_threads} // 2;
@@ -306,8 +283,7 @@ sub _migrate_to_file {
     return $self->_wait_for_migrate();
 }
 
-sub save_memory_dump {
-    my ($self, $args) = @_;
+sub save_memory_dump ($self, $args) {
     my $fdname = 'dumpfd';
     my $vars = \%bmwqemu::vars;
     my $compress_method = $vars->{QEMU_DUMP_COMPRESS_METHOD} || 'xz';
@@ -344,8 +320,7 @@ sub save_memory_dump {
     }
 }
 
-sub save_storage_drives {
-    my ($self, $args) = @_;
+sub save_storage_drives ($self, $args) {
     diag "Attempting to extract disk #%d.", $args->{disk};
     $self->do_extract_assets(
         {
@@ -359,8 +334,7 @@ sub save_storage_drives {
     return;
 }
 
-sub inflate_balloon {
-    my $self = shift;
+sub inflate_balloon ($self) {
     my $vars = \%bmwqemu::vars;
     return unless $vars->{QEMU_BALLOON_TARGET};
     my $target_bytes = $vars->{QEMU_BALLOON_TARGET} * 1048576;
@@ -377,16 +351,14 @@ sub inflate_balloon {
     }
 }
 
-sub deflate_balloon {
-    my $self = shift;
+sub deflate_balloon ($self) {
     my $vars = \%bmwqemu::vars;
     return unless $vars->{QEMU_BALLOON_TARGET};
     my $ram_bytes = $vars->{QEMURAM} * 1048576;
     $self->handle_qmp_command({execute => 'balloon', arguments => {value => $ram_bytes}}, fatal => 1);
 }
 
-sub save_snapshot {
-    my ($self, $args) = @_;
+sub save_snapshot ($self, $args) {
     my $vars = \%bmwqemu::vars;
     my $vmname = $args->{name};
     my $bdc = $self->{proc}->blockdev_conf;
@@ -442,8 +414,7 @@ sub save_snapshot {
     return;
 }
 
-sub load_snapshot {
-    my ($self, $args) = @_;
+sub load_snapshot ($self, $args) {
     my $vmname = $args->{name};
 
     my $rsp = $self->handle_qmp_command({execute => 'query-status'}, fatal => 1);
@@ -461,7 +432,7 @@ sub load_snapshot {
 
     my $snapshot = $self->{proc}->revert_to_snapshot($vmname);
 
-    $self->create_virtio_console_fifo();
+    create_virtio_console_fifo();
     my $qemu_pipe = $self->{qemupipe} = $self->{proc}->exec_qemu();
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
@@ -494,8 +465,7 @@ sub load_snapshot {
     $self->deflate_balloon();
 }
 
-sub do_extract_assets {
-    my ($self, $args) = @_;
+sub do_extract_assets ($self, $args) {
     my $name = $args->{name};
     my $img_dir = $args->{dir};
     my $hdd_num = $args->{hdd_num} - 1;
@@ -510,27 +480,25 @@ sub do_extract_assets {
 
 # baseclass virt method overwrite end
 
-sub find_ovmf { first { -e } @bmwqemu::ovmf_locations }
+sub find_ovmf () { first { -e } @bmwqemu::ovmf_locations }
 
-sub virtio_console_names {
+sub virtio_console_names () {
     return () unless $bmwqemu::vars{VIRTIO_CONSOLE};
     return map { 'virtio_console' . ($_ || '') } (0 .. ($bmwqemu::vars{VIRTIO_CONSOLE_NUM} // 1));
 }
 
-sub virtio_console_fifo_names { map { $_ . '.in', $_ . '.out' } virtio_console_names }
+sub virtio_console_fifo_names () { map { $_ . '.in', $_ . '.out' } virtio_console_names }
 
-sub console_fifo {
-    my ($name) = @_;
+sub console_fifo ($name) {
     return bmwqemu::fctwarn("Fifo pipe '$name' already exists!") if -e $name;
     mkfifo($name, 0666) or bmwqemu::fctwarn("Failed to create pipe $name: $!");
 }
 
-sub create_virtio_console_fifo { console_fifo($_) for virtio_console_fifo_names }
+sub create_virtio_console_fifo() { console_fifo($_) for virtio_console_fifo_names }
 
-sub delete_virtio_console_fifo { unlink $_ or bmwqemu::fctwarn("Could not unlink $_ $!") for grep { -e } virtio_console_fifo_names }
+sub delete_virtio_console_fifo() { unlink $_ or bmwqemu::fctwarn("Could not unlink $_ $!") for grep { -e } virtio_console_fifo_names }
 
-sub qemu_params_ofw {
-    my $self = shift;
+sub qemu_params_ofw ($self) {
     my $vars = \%bmwqemu::vars;
     $vars->{QEMUVGA} ||= "std";
     $vars->{QEMUMACHINE} //= "usb=off";
@@ -544,8 +512,7 @@ sub qemu_params_ofw {
     return 1;
 }
 
-sub start_qemu {
-    my $self = shift;
+sub start_qemu ($self) {
     my $vars = \%bmwqemu::vars;
 
     my $basedir = path('raid')->to_abs;
@@ -931,7 +898,7 @@ sub start_qemu {
         sp(split(' ', $_)) for @spl;
     }
 
-    $self->create_virtio_console_fifo();
+    create_virtio_console_fifo();
     my $qemu_pipe = $self->{qemupipe} = $self->{proc}->exec_qemu();
     return bmwqemu::fctinfo('Not connecting to QEMU as requested by QEMU_ONLY_EXEC') if $vars->{QEMU_ONLY_EXEC};
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
@@ -996,9 +963,7 @@ Pass send_fd => $fd to send $fd to QEMU using SCM rights. Probably only useful
 with the getfd command.
 
 =cut
-sub handle_qmp_command {
-    my ($self, $cmd) = @_[0, 1];
-    my %optargs = @_[2 .. $#_];
+sub handle_qmp_command ($self, $cmd, %optargs) {
     $optargs{fatal} ||= 0;
     my $sk = $self->{qmpsocket};
 
@@ -1024,8 +989,7 @@ sub handle_qmp_command {
     return $hash;
 }
 
-sub process_qemu_output {
-    my ($buffer) = @_;
+sub process_qemu_output ($buffer) {
     for my $line (split(/\n/, $buffer)) {
         die "QEMU: Shutting down the job" if $line =~ m/key event queue full/;
         if ($line =~ /^\s*qemu-system-[^:]+: (?!terminating on signal)/) {
@@ -1037,8 +1001,7 @@ sub process_qemu_output {
     }
 }
 
-sub read_qemupipe {
-    my ($self) = @_;
+sub read_qemupipe ($self) {
     my $buffer;
     my $bytes = sysread($self->{qemupipe}, $buffer, 1000);
     chomp $buffer;
@@ -1046,8 +1009,7 @@ sub read_qemupipe {
     return $bytes;
 }
 
-sub close_pipes {
-    my ($self) = @_;
+sub close_pipes ($self) {
     $self->do_stop_vm() if $self->{started};
 
     if (my $qemu_pipe = $self->{qemupipe}) {
@@ -1068,8 +1030,7 @@ sub close_pipes {
     $self->SUPER::close_pipes() unless exists $self->{stop_only_qemu} && $self->{stop_only_qemu};
 }
 
-sub is_shutdown {
-    my ($self) = @_;
+sub is_shutdown ($self, @) {
     my $ret = $self->handle_qmp_command({execute => 'query-status'})->{return}->{status}
       || 'unknown';
 
@@ -1080,8 +1041,7 @@ sub is_shutdown {
 
 # this is called for all sockets ready to read from. return 1 if socket
 # detected and -1 if there was an error
-sub check_socket {
-    my ($self, $fh, $write) = @_;
+sub check_socket ($self, $fh, $write = undef) {
 
     if ($self->{qemupipe} && $fh == $self->{qemupipe}) {
         $self->close_pipes() if !$write && !$self->read_qemupipe();
@@ -1090,8 +1050,7 @@ sub check_socket {
     return $self->SUPER::check_socket($fh);
 }
 
-sub freeze_vm {
-    my ($self) = @_;
+sub freeze_vm ($self, @) {
     # qemu specific - all other backends will crash
     my $ret = $self->handle_qmp_command({execute => 'stop'}, fatal => 1);
     # once we stopped, there is no point in querying VNC
@@ -1102,8 +1061,7 @@ sub freeze_vm {
     return $ret;
 }
 
-sub cont_vm {
-    my ($self) = @_;
+sub cont_vm ($self, @) {
     $self->update_request_interval(delete $self->{_qemu_saved_request_interval}) if $self->{_qemu_saved_request_interval};
     return $self->handle_qmp_command({execute => 'cont'});
 }

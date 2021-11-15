@@ -6,7 +6,7 @@
 
 package backend::generalhw;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'backend::baseclass';
@@ -17,16 +17,13 @@ use IPC::Run ();
 require IPC::System::Simple;
 use File::Basename 'basename';
 
-sub new {
-    my $class = shift;
+sub new ($class) {
     # required for the tests to access our HTTP port
     get_required_var('WORKER_HOSTNAME');
     return $class->SUPER::new;
 }
 
-sub get_cmd {
-    my ($self, $cmd) = @_;
-
+sub get_cmd ($self, $cmd) {
     my $dir = get_required_var('GENERAL_HW_CMD_DIR');
     die 'GENERAL_HW_CMD_DIR is not pointing to a directory' unless -d $dir;
 
@@ -52,39 +49,33 @@ sub get_cmd {
     return $cmd;
 }
 
-sub run_cmd {
-    my ($self, $cmd) = @_;
-    my @full_cmd = split / /, $self->get_cmd($cmd);
+sub run_cmd ($self, @args) {
+    my @full_cmd = split / /, $self->get_cmd($args[0]);
 
     my ($stdin, $stdout, $stderr, $ret);
     eval { $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr) };
-    die "Unable to run command '@full_cmd' (deduced from test variable $cmd): $@\n" if $@;
+    die "Unable to run command '@full_cmd' (deduced from test variable $args[0]): $@\n" if $@;
     chomp $stdout;
     chomp $stderr;
 
-    die "$cmd: $stderr" unless $ret;
+    die "$args[0]: $stderr" unless $ret;
     bmwqemu::diag("IPMI: $stdout");
     return $stdout;
 }
 
-sub poweroff_host {
-    my ($self) = @_;
+sub poweroff_host ($self) {
     $self->run_cmd('GENERAL_HW_POWEROFF_CMD');
     return;
 }
 
-sub restart_host {
-    my ($self) = @_;
-
+sub restart_host ($self) {
     $self->poweroff_host;
     sleep(3);
     $self->run_cmd('GENERAL_HW_POWERON_CMD');
     return;
 }
 
-sub relogin_vnc {
-    my ($self) = @_;
-
+sub relogin_vnc ($self) {
     if ($self->{vnc}) {
         close($self->{vnc}->socket);
         sleep(1);
@@ -105,9 +96,7 @@ sub relogin_vnc {
     return 1;
 }
 
-sub do_start_vm {
-    my ($self) = @_;
-
+sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
     if (get_var('GENERAL_HW_FLASH_CMD')) {
         $self->poweroff_host;    # Ensure system is off, before flashing
@@ -119,25 +108,19 @@ sub do_start_vm {
     return {};
 }
 
-sub do_stop_vm {
-    my ($self) = @_;
-
+sub do_stop_vm ($self, @) {
     $self->poweroff_host;
     $self->stop_serial_grab() if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
     return {};
 }
 
-sub check_socket {
-    my ($self, $fh, $write) = @_;
-
+sub check_socket ($self, $fh, $write = undef) {
     return $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write);
 }
 
 # serial grab
 
-sub start_serial_grab {
-    my ($self) = @_;
-
+sub start_serial_grab ($self) {
     $self->{serialpid} = fork();
     return unless $self->{serialpid} == 0;
     setpgrp 0, 0;
@@ -148,8 +131,7 @@ sub start_serial_grab {
     die "exec failed $!";
 }
 
-sub stop_serial_grab {
-    my ($self) = @_;
+sub stop_serial_grab ($self, @) {
     return unless $self->{serialpid};
     kill("-TERM", $self->{serialpid});
     return waitpid($self->{serialpid}, 0);

@@ -3,7 +3,7 @@
 
 package backend::pvm;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'backend::baseclass';
@@ -22,10 +22,9 @@ use osutils qw(dd_gen_params gen_params runcmd);
 # ssh to a novalink installation (so you only need ssh and terminal on worker)
 
 # uncoverable statement
-sub _masterlpar { qx{cat /proc/device-tree/ibm,partition-name} }
+sub _masterlpar () { qx{cat /proc/device-tree/ibm,partition-name} }
 
-sub new {
-    my $class = shift;
+sub new ($class) {
     my $self = $class->SUPER::new;
     $self->{pid} = undef;
     $self->{children} = [];
@@ -37,14 +36,12 @@ sub new {
     return $self;
 }
 
-sub do_start_vm {
-    my $self = shift;
+sub do_start_vm ($self, @) {
     $self->start_lpar();
     return {};
 }
 
-sub do_extract_assets {
-    my ($self, $args) = @_;
+sub do_extract_assets ($self, $args) {
     my $vars = \%bmwqemu::vars;
     my $hdd_num = $args->{hdd_num};
     my $name = $args->{name};
@@ -82,10 +79,7 @@ sub do_extract_assets {
     qx/sudo rescan-scsi-bus.sh -r/;
 }
 
-sub pvmctl {
-    my $self = shift @_;
-    my $type = shift @_;
-    my $action = shift @_;
+sub pvmctl ($self, $type, $action, @args) {
     my $vars = \%bmwqemu::vars;
 
     die "pvmctl: Not enough arguments (at least you should supply a type and an action)" unless ($type && $action);
@@ -96,7 +90,7 @@ sub pvmctl {
     if ($type =~ /lpar/) {
         gen_params @cmd, "i", "name=$lpar" if ($lpar && $action =~ /power|restart|delete/);
         if ($action =~ /create/) {
-            my ($cpu, $memory) = @_;
+            my ($cpu, $memory) = @args;
             dd_gen_params @cmd, "proc-type", "shared";
             dd_gen_params @cmd, "sharing-mode", "uncapped";
             dd_gen_params @cmd, "type", "AIX/Linux";
@@ -107,7 +101,7 @@ sub pvmctl {
         }
     }
     elsif ($type =~ /scsi/) {
-        my ($kind, $file, $target) = @_;
+        my ($kind, $file, $target) = @args;
         die "pvmctl: scsi type needs at least both kind and file" unless ($kind && $file);
 
         #so far only disks are reatachable to the master LPAR
@@ -119,12 +113,12 @@ sub pvmctl {
         dd_gen_params @cmd, "vg", "name=rootvg" if ($type =~ /lv/);
     }
     elsif ($type =~ /lv/) {
-        my ($name, $size) = @_;
+        my ($name, $size) = @args;
         dd_gen_params @cmd, "name", $name if $name;
         dd_gen_params @cmd, "size", $size if $size;
     }
     elsif ($type =~ /eth/) {
-        my ($vlan, $vswitch) = @_;
+        my ($vlan, $vswitch) = @args;
         dd_gen_params @cmd, "pvid", $vlan if $vlan;
         dd_gen_params @cmd, "vswitch", $vswitch if $vswitch;
         gen_params @cmd, "p", "name=$lpar" if $lpar;
@@ -134,8 +128,7 @@ sub pvmctl {
     }
     runcmd(@cmd);
 }
-sub attach_console {
-    my $vars = \%bmwqemu::vars;
+sub attach_console ($vars) {
     my $vncport = qx{sudo /usr/sbin/mkvtermutil --id $vars->{LPARID} --vnc --local --log serial0 2>/dev/null};
     $vncport =~ /([0-9]+)/;
     chomp($vncport);
@@ -143,8 +136,7 @@ sub attach_console {
     diag "VNC is $vars->{VNC}";
 }
 
-sub image_exists {
-    my ($img, $size) = @_;
+sub image_exists ($img, $size) {
     #lv already exists?
     my @cmd;
     my $pvmctlcmd = "pvmctl lv list -w LogicalVolume.name=$img -d LogicalVolume.name LogicalVolume.capacity -f , --hide-label";
@@ -158,8 +150,7 @@ sub image_exists {
     }
     runcmd(@cmd);
 }
-sub start_lpar {
-    my $self = shift;
+sub start_lpar ($self) {
     my $vars = \%bmwqemu::vars;
     #general settiings
     $vars->{LPAR} = "osauto" . $vars->{WORKER_ID};
@@ -228,19 +219,14 @@ sub start_lpar {
     $self->select_console({testapi_console => 'sut'});
 }
 
-sub _status {
-    my ($self) = @_;
+sub _status ($self) {
     my $id = $bmwqemu::vars{LPARID};
     return qx{pvmctl lpar list -i id=$id -d LogicalPartition.state --hide-label};
 }
 
-sub is_shutdown {
-    my ($self) = @_;
-    return $self->_status =~ /running/;
-}
+sub is_shutdown ($self, @) { $self->_status =~ /running/ }
 
-sub do_stop_vm {
-    my $self = shift;
+sub do_stop_vm ($self, @) {
     my $vars = \%bmwqemu::vars;
     $self->pvmctl("lpar", "power-off") if (!$self->is_shutdown);
     runcmd("rmvterm", "--id", $vars->{LPARID});

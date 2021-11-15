@@ -10,39 +10,34 @@
 
 package backend::console_proxy;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use feature 'say';
 
-sub new {
-    my ($class, $console) = @_;
+sub new ($class, $console) {
 
     my $self = bless({class => $class, console => $console}, $class);
 
     return $self;
 }
 
-sub DESTROY {
-    # nothing to destroy but avoid AUTOLOAD
-}
+# nothing to destroy but avoid AUTOLOAD
+sub DESTROY () { }
 
 # handles the attempt to invoke an undefined method on the proxy console object
 # using query_isotovideo() to invoke the method on the actual console object in
 # the right process
-sub AUTOLOAD {
-
+sub AUTOLOAD ($self, @args) {
     my $function = our $AUTOLOAD;
 
     $function =~ s,.*::,,;
 
     # allow symbolic references
     no strict 'refs';
-    *$AUTOLOAD = sub {
-        my $self = shift;
-        my $args = \@_;
+    *$AUTOLOAD = sub ($self, @args) {
         my $wrapped_call = {
             console => $self->{console},
             function => $function,
-            args => $args,
+            args => \@args,
             wantarray => wantarray,
         };
 

@@ -12,7 +12,7 @@ use backend::s390x;    # SUT
 
 $bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
 ok my $backend = backend::s390x->new(), 'can instantiate backend';
-ok !$backend->check_socket, 'check_socket returns false by default';
+ok !$backend->check_socket(undef), 'check_socket returns false by default';
 
 done_testing;
 
