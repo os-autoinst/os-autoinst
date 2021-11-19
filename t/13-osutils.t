@@ -10,7 +10,7 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Warnings qw(:all :report_warnings);
-use Test::Output qw(stderr_like);
+use Test::Output qw(stderr_like stderr_unlike);
 
 subtest qv => sub {
     use osutils 'qv';
@@ -150,13 +150,43 @@ subtest runcmd => sub {
 
     my @cmd = ('qemu-img', 'create', '-f', 'qcow2', 'image.qcow2', '1G');
     my $ret;
-    stderr_like { $ret = runcmd(@cmd) } qr/running qemu-img/, 'debug runcmd progress output';
+    stderr_like { $ret = runcmd(@cmd) } qr/running `qemu-img/, 'debug runcmd progress output';
     is $ret, 0, "qemu-image creation and get its return code";
-    stderr_like { $ret = runcmd('rm', 'image.qcow2') } qr/running rm/, 'debug runcmd output with rm';
+    stderr_like { $ret = runcmd('rm', 'image.qcow2') } qr/running `rm/, 'debug runcmd output with rm';
     is $ret, 0, "delete image and get its return code";
     local $@;
     stderr_like { eval { runcmd('ls', 'image.qcow2') } } qr/No such file or directory/, 'no image found as expected';
     like $@, qr/runcmd 'ls image.qcow2' failed with exit code \d+/, "command failed and calls die";
+};
+
+subtest run_diag => sub {
+    use osutils 'run_diag';
+
+    stderr_like {
+        is(run_diag(qw(echo foo)), 'foo', 'Return stdout')
+    } qr/terminated with 0/, 'Exit code appear in log';
+
+    stderr_like {
+        is(run_diag('echo foo 1>&2'), 'foo', 'Return stderr')
+    } qr/running `echo/, 'Command appear in log';
+
+    stderr_unlike {
+        is(run_diag('false'), '', 'Empty string, if command does not produce output')
+    } qr/^\s*$/m, 'No empty line, if command does not produce output';
+
+
+
+    stderr_like {
+        run_diag('echo "foo$$bar"');
+    } qr/foo\d+bar/, 'Output appear in the log';
+
+    stderr_like {
+        run_diag('echo "foo$$bar" 1>&2');
+    } qr/foo\d+bar/, 'STDERR output appear in the log';
+
+    stderr_like {
+        is(run_diag('/I_do_not_exists'), undef, 'Return undef on execution error and do not die')
+    } qr/No such file or directory/, 'Error message appear in log';
 };
 
 subtest attempt => sub {

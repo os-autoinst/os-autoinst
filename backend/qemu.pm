@@ -716,8 +716,6 @@ sub start_qemu ($self) {
     mkpath($basedir);
 
     # do not use autodie here, it can fail on tmpfs, xfs, ...
-    # potential endless loop on chattr call,
-    # see https://progress.opensuse.org/issues/81828
     run_diag('/usr/bin/chattr', '+C', $basedir);
 
     bmwqemu::diag('Configuring storage controllers and block devices');
