@@ -437,8 +437,8 @@ sub load_snapshot ($self, $args) {
     $self->{qmpsocket} = $self->{proc}->connect_qmp();
     my $init = myjsonrpc::read_json($self->{qmpsocket});
     my $hash = $self->handle_qmp_command({execute => 'qmp_capabilities'});
-    $self->{select_read}->add($qemu_pipe);
-    $self->{select_write}->add($qemu_pipe);
+    $self->{select_read}->add($qemu_pipe, 'qemu::load_snapshot::qemu_pipe');
+    $self->{select_write}->add($qemu_pipe, 'qemu::load_snapshot::qemu_pipe');
 
     # Ideally we want to send a file descriptor to QEMU, but it doesn't seem
     # to work for incoming migrations, so we are forced to use exec:cat instead.
@@ -960,8 +960,8 @@ sub start_qemu ($self) {
         $self->handle_qmp_command({execute => 'cont'});
     }
 
-    $self->{select_read}->add($qemu_pipe);
-    $self->{select_write}->add($qemu_pipe);
+    $self->{select_read}->add($qemu_pipe, 'qemu::start_qemu::qemu_pipe');
+    $self->{select_write}->add($qemu_pipe, 'qemu::start_qemu::qemu_pipe');
 }
 
 =head2 handle_qmp_command

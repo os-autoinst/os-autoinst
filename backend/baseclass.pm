@@ -30,6 +30,7 @@ use Mojo::File 'path';
 use OpenQA::Exceptions;
 use Time::Seconds;
 use English -no_match_vars;
+use OpenQA::NamedIOSelect;
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -107,10 +108,10 @@ sub run ($self, $cmdpipe, $rsppipe) {
 
     bmwqemu::diag "started mgmt loop with pid $$";
 
-    my $select_read = $self->{select_read} = IO::Select->new;
-    my $select_write = $self->{select_write} = IO::Select->new;
-    $select_read->add($self->{cmdpipe});
-    $select_write->add($self->{cmdpipe});
+    my $select_read = $self->{select_read} = OpenQA::NamedIOSelect->new;
+    my $select_write = $self->{select_write} = OpenQA::NamedIOSelect->new;
+    $select_read->add($self->{cmdpipe}, "baseclass::cmdpipe");
+    $select_write->add($self->{cmdpipe}, "baseclass::cmdpipe");
 
     $self->last_update_request("-Inf" + 0);
     $self->last_screenshot(undef);
@@ -183,7 +184,7 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
         }
 
         my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
-        my ($read_set, $write_set) = IO::Select->select($self->{select_read}, $self->{select_write}, undef, $time_to_next);
+        my ($read_set, $write_set) = IO::Select->select($self->{select_read}->select(), $self->{select_write}->select(), undef, $time_to_next);
 
         # We need to check the video encoder and the serial socket
         my ($video_encoder, $external_video_encoder, $other) = (0, 0, 0);
@@ -221,7 +222,13 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
                 # The maximum hits per 10 seconds saw on a half open socket was >100k
                 if (check_select_rate($buckets, $wait_time_limit, $hits_limit, fileno $fh)) {
                     my $console = $self->{current_console}->{testapi_console};
-                    OpenQA::Exception::ConsoleReadError->throw(error => "The console '$console' is not responding (half-open socket?). Make sure the console is reachable or disable stall detection on expected disconnects with '\$console->disable_vnc_stalls', for example in case of intended machine shutdown");
+                    my $fd_nr = fileno $fh;
+                    my $cnt = $buckets->{BUCKET}{$fd_nr};
+                    my $name = $self->{select_read}->get_name($fh);
+                    my $msg = "The file descriptor $fd_nr ($name) hit the read attempts threshold of $hits_limit/${wait_time_limit}s by $cnt. ";
+                    $msg .= "Active console '$console' is not responding, it could be a half-open socket or you need to increase _CHKSEL_RATE_HITS value. ";
+                    $msg .= "Make sure the console is reachable or disable stall detection on expected disconnects with '\$console->disable_vnc_stalls', for example in case of intended machine shutdown.";
+                    OpenQA::Exception::ConsoleReadError->throw(error => $msg);
                 }
             }
 
@@ -497,11 +504,11 @@ sub enqueue_screenshot ($self, $image) {
           if defined $external_video_encoder_cmd_pipe;
     }
     my $encoder_pipe = $self->{encoder_pipe};
-    $self->{select_read}->add($encoder_pipe);
-    $self->{select_write}->add($encoder_pipe);
+    $self->{select_read}->add($encoder_pipe, 'baseclass::encoder_pipe');
+    $self->{select_write}->add($encoder_pipe, 'baseclass::encoder_pipe');
     if (defined $external_video_encoder_cmd_pipe) {
-        $self->{select_read}->add($external_video_encoder_cmd_pipe);
-        $self->{select_write}->add($external_video_encoder_cmd_pipe);
+        $self->{select_read}->add($external_video_encoder_cmd_pipe, 'baseclass::external_video_encoder_cmd_pipe');
+        $self->{select_write}->add($external_video_encoder_cmd_pipe, 'baseclass::external_video_encoder_cmd_pipe');
     }
     $self->{video_frame_number} += 1;
 
