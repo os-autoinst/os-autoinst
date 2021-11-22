@@ -8,9 +8,10 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Mock::Time;
 use File::Temp;
-use Test::Output qw(combined_like stderr_like);
+use Test::Output qw(combined_like stderr_like stderr_unlike);
 use Test::Fatal;
 use Test::Warnings qw(:all :report_warnings);
+use Test::Exception;
 use Scalar::Util 'looks_like_number';
 
 use OpenQA::Isotovideo::Interface;
@@ -24,6 +25,7 @@ my $cmds;
 use Test::MockModule;
 my $mod = Test::MockModule->new('myjsonrpc');
 my $fake_exit = 0;
+my $fake_matched = 1;
 
 # define variables for 'fake_read_json'
 my $report_timeout_called = 0;
@@ -42,7 +44,7 @@ sub fake_read_json ($fd) {
     if ($cmd eq 'backend_wait_serial') {
         my $str = $lcmd->{regexp};
         $str =~ s,\\d\+(\\s\+\\S\+)?,$fake_exit,;
-        return {ret => {matched => 1, string => $str}};
+        return {ret => {matched => $fake_matched, string => $str}};
     }
     elsif ($cmd eq 'backend_select_console') {
         return {ret => {activated => 0}};
@@ -272,16 +274,24 @@ subtest 'script_run' => sub {
     );
     $fake_exit = 0;
     $cmds = [];
-    is(script_run('true'), '0', 'script_run with no check of success, returns exit code');
+    is(script_run('true', die_on_timeout => 1), '0', 'script_run with no check of success, returns exit code');
     like($cmds->[1]->{text}, qr/; echo /);
     $cmds = [];
-    is(script_run('true', output => 'foo'), '0', 'script_run with no check of success and output, returns exit code');
+    is(script_run('true', die_on_timeout => 1, output => 'foo'), '0', 'script_run with no check of success and output, returns exit code');
     like($cmds->[1]->{text}, qr/; echo .*Comment: foo/);
     $fake_exit = 1;
-    is(script_run('false'), '1', 'script_run with no check of success, returns exit code');
-    is(script_run('false', output => 'foo'), '1', 'script_run with no check of success and output, returns exit code');
-    is(script_run('false', 0), undef, 'script_run with no check of success, returns undef when not waiting');
+    is(script_run('false', die_on_timeout => 1), '1', 'script_run with no check of success, returns exit code');
+    is(script_run('false', die_on_timeout => 1, output => 'foo'), '1', 'script_run with no check of success and output, returns exit code');
+    is(script_run('false', 0, die_on_timeout => 1), undef, 'script_run with no check of success, returns undef when not waiting');
+    $fake_matched = 0;
+    throws_ok { script_run('sleep 13', timeout => 10, die_on_timeout => 1, quiet => 1) } qr/command.*timed out/, 'exception occured on script_run() timeout';
+    $fake_matched = 1;
 
+    stderr_like { script_run('true', quiet => 1) } qr/DEPRECATED/, 'DEPRECATED message appear if `die_on_timeout` is not given.';
+    stderr_unlike { script_run('true', die_on_timeout => 0, quiet => 1) } qr/DEPRECATED/, 'DEPRECATED does not appear, if `die_on_timeout=>0` is set.';
+    stderr_unlike { script_run('true', die_on_timeout => 1, quiet => 1) } qr/DEPRECATED/, 'DEPRECATED does not appear, if `die_on_timeout=>1` is set.';
+
+    $fake_matched = 1;
     $fake_exit = 1234;
     is(background_script_run('sleep 10'), '1234', 'background_script_run returns a PID');
     is(background_script_run('sleep 10', output => 'foo'), '1234', 'background_script_run with output returns valid PID');
@@ -663,7 +673,7 @@ subtest 'check quiet option on script runs' => sub {
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', 30), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 expects command output');
-    is(script_run('true'), '0', 'script_run with _QUIET_SCRIPT_CALLS=1');
+    is(script_run('true', die_on_timeout => 1), '0', 'script_run with _QUIET_SCRIPT_CALLS=1');
     is(assert_script_run('true'), undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1');
     ok(!validate_script_output('script', sub { m/output/ }), 'validate_script_output with _QUIET_SCRIPT_CALLS=1');
 
@@ -673,7 +683,7 @@ subtest 'check quiet option on script runs' => sub {
             return "XXXfoo\nSCRIPT_FINISHEDXXX-0-";
     });
     is(script_output('echo foo', quiet => 0), 'foo', 'script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
-    is(script_run('true', quiet => 0), '0', 'script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
+    is(script_run('true', quiet => 0, die_on_timeout => 1), '0', 'script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     is(assert_script_run('true', quiet => 0), undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     ok(!validate_script_output('script', sub { m/output/ }, quiet => 0), 'validate_script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     delete $bmwqemu::vars{_QUIET_SCRIPT_CALLS};
