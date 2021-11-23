@@ -24,6 +24,32 @@ use needle;
 # define 'write_with_thumbnail' to fake image
 sub write_with_thumbnail { }
 
+# Anything added to $serial_buffer will be returned by the next call
+# to read_serial, used e.g. by basetest::get_new_serial_output.
+my $serial_buffer = "";
+# Mock the JSON call for read_serial
+my $cmds;
+my $jsonmod = Test::MockModule->new('myjsonrpc');
+
+sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
+sub fake_read_json ($fd) {
+    my $lcmd = $cmds->[-1];
+    my $cmd = $lcmd->{cmd};
+    if ($cmd eq 'read_serial') {
+        return {
+            serial => substr($serial_buffer, $lcmd->{position}),
+            position => length($serial_buffer),
+        };
+    }
+    else {
+        note "mock method not implemented \$cmd: $cmd\n";
+    }
+    return {};
+}
+
+$jsonmod->redefine(send_json => \&fake_send_json);
+$jsonmod->redefine(read_json => \&fake_read_json);
+
 subtest run_post_fail_test => sub {
     my $basetest_class = 'basetest';
     Test::MockModule->new("autotest")->noop('set_current_test');
@@ -130,6 +156,16 @@ subtest parse_serial_output => sub {
     eval { $basetest->parse_serial_output_qemu() };
     like($@, qr(Message not defined for serial failure for the pattern.*), 'test died because of missing message');
     is($basetest->{result}, 'fail', 'test result set to hard failure');
+};
+
+subtest get_new_serial_output => sub {
+    my $mock_basetest = Test::MockModule->new('basetest');
+    my $basetest = basetest->new('installation');
+    $serial_buffer = "Some serial string";
+    is($basetest->get_new_serial_output(), 'Some serial string', 'returns serial output');
+    is($basetest->get_new_serial_output(), '', 'returns nothing if nothing got added');
+    $serial_buffer .= "Some more data";
+    is($basetest->get_new_serial_output(), 'Some more data', 'returns new serial output');
 };
 
 subtest record_testresult => sub {
