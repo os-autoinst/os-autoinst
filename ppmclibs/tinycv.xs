@@ -63,6 +63,13 @@ CODE:
 OUTPUT:
        RETVAL
 
+int
+default_thread_count()
+CODE:
+        RETVAL = opencv_default_thread_count();
+OUTPUT:
+        RETVAL
+
 void
 create_threads(int thread_count = -1)
 CODE:
