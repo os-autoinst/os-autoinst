@@ -320,6 +320,10 @@ sub run_post_fail {
         eval { $self->post_fail_hook; };
         bmwqemu::diag("post_fail_hook failed: $@") if $@;
         $self->{post_fail_hook_running} = 0;
+
+        # There might be more messages on serial now.
+        # Read them now to not stumble upon them in the next module.
+        $self->get_new_serial_output();
     }
     $self->fail_if_running();
     die $msg . "\n";
@@ -669,11 +673,13 @@ sub search_for_expected_serial_failures {
     }
 }
 
-sub get_serial_output_json {
+sub get_new_serial_output {
     my ($self) = @_;
 
     myjsonrpc::send_json($autotest::isotovideo, {cmd => 'read_serial', position => $serial_file_pos});
-    return myjsonrpc::read_json($autotest::isotovideo);
+    my $json = myjsonrpc::read_json($autotest::isotovideo);
+    $serial_file_pos = $json->{position};
+    return $json->{serial};
 }
 
 sub parse_serial_output_qemu {
@@ -681,11 +687,11 @@ sub parse_serial_output_qemu {
     # serial failures defined in distri (test can override them)
     my $failures = $self->{serial_failures};
 
-    my $json = $self->get_serial_output_json($serial_file_pos);
+    my $serial = $self->get_new_serial_output();
     my $die = 0;
     my %regexp_matched;
     # loop line by line
-    for my $line (split(/^/, $json->{serial})) {
+    for my $line (split(/^/, $serial)) {
         chomp $line;
         for my $regexp_table (@{$failures}) {
             my $regexp = $regexp_table->{pattern};
@@ -713,7 +719,6 @@ sub parse_serial_output_qemu {
             }
         }
     }
-    $serial_file_pos = $json->{position};
     die "Got serial hard failure" if $die;
     return;
 }
