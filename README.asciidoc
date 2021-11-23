@@ -189,9 +189,14 @@ requests for consideration or create an issue with a code change proposal.
 
 === Installing dependencies
 
-On openSUSE one can install the package
-link:https://build.opensuse.org/project/show/devel:openQA[`os-autoinst-devel`] which
-pulls all dependencies.
+On openSUSE one can install the package `os-autoinst-devel` which provides all
+the dependencies to build and run os-autoinst for the corresponding version of
+the sources. To build a current version of `os-autoinst` it is recommended to
+install `os-autoinst-devel` from
+link:https://build.opensuse.org/project/show/devel:openQA[devel:openQA] as the
+distribution-provided packages might be too old or miss dependencies. This is
+particularly true for openSUSE Leap. Also see
+link:https://open.qa/docs/#_development_version_repository[the openQA docs].
 
 The required dependencies are also declared in `dependencies.yaml`. (The names listed
 within that file are specific to openSUSE but can be easily transferred to other
