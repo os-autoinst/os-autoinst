@@ -78,28 +78,31 @@ sub quote {
 }
 
 sub run {
-    bmwqemu::diag "running " . join(' ', @_);
-    my @args = @_;
-    my $out;
-    my $buffer;
-    open my $handle, '>', \$buffer;
-    my $p = process(sub { local *STDERR = $handle; exec(@args) });
-    $p->channels(0)->quirkiness(1)->internal_pipes(0)->separate_err(0)->start;
-    $p->on(stop => sub {
-            while (defined(my $line = $p->getline)) {
-                $out .= $line;
-            }
-            bmwqemu::diag $buffer if defined $buffer && length($buffer) > 0;
-    });
-    $p->wait_stop;
+    my @cmd = @_;
+
+    bmwqemu::diag "running `@cmd`";
+    my $p = process(execute => shift @cmd, args => [@cmd]);
+    $p->quirkiness(1)->separate_err(0)->start()->wait_stop();
+
+    my $stdout = join('', $p->read_stream->getlines());
+    chomp $stdout;
+
     close($p->$_ ? $p->$_ : ()) for qw(read_stream write_stream error_stream);
 
-    chomp($out) if $out;
-    return $p->exit_status, $out;
+    return $p->exit_status, $stdout;
 }
 
 # Do not check for anything - just execute and print
-sub run_diag { my $o = (run(@_))[1]; bmwqemu::diag($o) if $o; $o }
+sub run_diag {
+    my ($exit_status, $output);
+    eval {
+        local $SIG{__DIE__} = undef;
+        ($exit_status, $output) = run(@_);
+        bmwqemu::diag("Command `@_` terminated with $exit_status" . (length($output) ? "\n$output" : ''));
+    };
+    bmwqemu::diag("Fatal error in command `@_`: $@") if ($@);
+    return $output;
+}
 
 # Open a process to run external program and check its return status
 sub runcmd {
