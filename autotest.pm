@@ -379,6 +379,12 @@ sub runalltests {
                 query_isotovideo('backend_save_memory_dump', {filename => $fullname});
             }
             if ($t->{fatal_failure} || $flags->{fatal} || (!exists $flags->{fatal} && !$snapshots_supported) || $bmwqemu::vars{TESTDEBUG}) {
+                my $reason = ($t->{fatal_failure} || $flags->{fatal})
+                  ? 'after a fatal test failure'
+                  : ($bmwqemu::vars{TESTDEBUG}
+                    ? 'because TESTDEBUG has been set'
+                    : 'because snapshotting is disabled/unavailable and "fatal => 0" has NOT been set explicitly');
+                bmwqemu::diag "stopping overall test execution $reason";
                 bmwqemu::stop_vm();
                 return 0;
             }

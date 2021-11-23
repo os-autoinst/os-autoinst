@@ -55,7 +55,9 @@ my $mock_jsonrpc = Test::MockModule->new('myjsonrpc');
 $mock_jsonrpc->redefine(send_json => \&fake_send);
 $mock_jsonrpc->redefine(read_json => sub { });
 my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+my $vm_stopped = 0;
 $mock_bmwqemu->redefine(save_json_file => sub { });
+$mock_bmwqemu->redefine(stop_vm => sub { $vm_stopped = 1 });
 my $mock_basetest = Test::MockModule->new('basetest');
 $mock_basetest->redefine(_result_add_screenshot => sub { });
 # stop run_all from quitting at the end
@@ -163,7 +165,28 @@ subtest 'test always_rollback flag' => sub {
     $snapshots_made = 0;
     @sent = [];
 
+    subtest 'stopping overall test execution early due to fatal test failure' => sub {
+        $mock_basetest->redefine(runtest => sub { die "test died\n" });
+        $vm_stopped = 0;
+        stderr_like { autotest::run_all } qr/.*stopping overall test execution after a fatal test failure.*/, 'reason logged';
+        ($died, $completed) = get_tests_done;
+        is($died, 0, 'tests still not considered died if only a test module failed');
+        is($completed, 0, 'tests not considered completed');
+        is($reverts_done, 0, 'no rollbacks done');
+        $reverts_done = 0;
+        is($snapshots_made, 0, 'no snapshots made');
+        $snapshots_made = 0;
+        @sent = ();
+        ok $vm_stopped, 'VM has been stopped';
+
+        $mock_basetest->redefine(test_flags => {milestone => 1});
+        $mock_autotest->redefine(query_isotovideo => 0);
+        stderr_like { autotest::run_all } qr/.*stopping overall test execution because snapshotting is disabled.*/, 'reason logged (snapshotting not available';
+        @sent = ();
+    };
+
     # # Revert mocks
+    $mock_basetest->unmock('runtest');
     $mock_basetest->unmock('test_flags');
     $mock_autotest->unmock('load_snapshot');
     $mock_autotest->unmock('make_snapshot');
