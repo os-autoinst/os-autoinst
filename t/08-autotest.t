@@ -169,7 +169,12 @@ subtest 'test always_rollback flag' => sub {
         $mock_autotest->redefine(query_isotovideo => 0);
         stderr_like { autotest::run_all } qr/.*stopping overall test execution because snapshotting is disabled.*/, 'reason logged (snapshotting not available';
         @sent = ();
+
+        $bmwqemu::vars{TESTDEBUG} = 1;
+        stderr_like { autotest::run_all } qr/.*stopping overall test execution because TESTDEBUG has been set.*/, 'reason logged (TESTDEBUG)';
+        @sent = ();
     };
+    delete $bmwqemu::vars{TESTDEBUG};
     $mock_basetest->unmock($_) for qw(runtest test_flags);
     $mock_autotest->unmock($_) for qw(load_snapshot make_snapshot query_isotovideo);
 };
