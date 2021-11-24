@@ -57,15 +57,13 @@ $mock_bmwqemu->noop('save_json_file');
 $mock_bmwqemu->redefine(stop_vm => sub { $vm_stopped = 1 });
 my $mock_basetest = Test::MockModule->new('basetest');
 $mock_basetest->noop('_result_add_screenshot');
-# stop run_all from quitting at the end
+# stop `run_all` from calling `Devel::Cover::report()` and quitting at the end
+# note: We are not calling `run_all` from a sub process here so the extra coverage collection must *not* run.
 my $mock_autotest = Test::MockModule->new('autotest', no_auto => 1);
-$mock_autotest->noop('_exit');
+$mock_autotest->noop('_terminate');
 
 my $died;
 my $completed;
-# we have to define this to *something* so the `close` in run_all
-# doesn't crash us
-$autotest::isotovideo = 'foo';
 like warning { autotest::run_all }, qr/ERROR: no tests loaded/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died, 1, 'run_all with no tests should catch runalltests dying');

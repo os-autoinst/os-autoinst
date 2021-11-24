@@ -229,6 +229,12 @@ sub load_snapshot {
     query_isotovideo('backend_start_serial_grab');
 }
 
+sub _terminate () {
+    close $isotovideo;    # uncoverable statement
+    Devel::Cover::report() if Devel::Cover->can('report');    # uncoverable statement
+    _exit(0);    # uncoverable statement
+}
+
 sub run_all {
     my $died = 0;
     my $completed = 0;
@@ -242,9 +248,7 @@ sub run_all {
         bmwqemu::save_vars(no_secret => 1);
         myjsonrpc::send_json($isotovideo, {cmd => 'tests_done', died => $died, completed => $completed});
     };
-    close $isotovideo;
-    Devel::Cover::report() if Devel::Cover->can('report');
-    _exit(0);
+    _terminate;
 }
 
 sub handle_sigterm {
