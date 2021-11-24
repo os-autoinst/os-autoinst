@@ -128,6 +128,7 @@ if (COVER_PATH AND PROVE_PATH)
         COMMAND "${COVER_PATH}" -report html_basic "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
         DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
         OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/coverage.html"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
     add_custom_target(
         coverage-reset
