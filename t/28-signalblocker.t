@@ -21,9 +21,6 @@ use signalblocker;
 no warnings 'redefine';
 sub bmwqemu::diag { note $_[0] }
 
-# make the number of threads to spawn configurable
-my $fix_thread_count_for_testing = $ENV{OS_AUTOINST_TEST_THREAD_COUNT} // 8;
-
 # make the usage of the signal blocker configurable
 # note: The test will fail if this variable is set. This configuration is used to verify that the
 #       test itself is actually able to show negative results.
@@ -47,9 +44,15 @@ $SIG{CHLD} = sub { $received_sigchld += 1; note "received SIGCHLD $received_sigc
     require cv;
     cv::init();
     require tinycv;
-    tinycv::create_threads($fix_thread_count_for_testing);
+
+    # make the number of threads to spawn configurable
+    my $thread_count = tinycv::default_thread_count();
+    my $thread_count_for_testing = $ENV{OS_AUTOINST_TEST_THREAD_COUNT} || $thread_count;
+    diag "threads used: $thread_count_for_testing of $thread_count";
+
+    tinycv::create_threads($thread_count_for_testing);
     $last_thread_count = thread_count;
-    cmp_ok($last_thread_count, '>=', $fix_thread_count_for_testing, "at least $fix_thread_count_for_testing threads created");
+    cmp_ok($last_thread_count, '>=', $thread_count_for_testing, "at least $thread_count_for_testing threads created");
 }
 
 # do some native calls; no further threads should be created

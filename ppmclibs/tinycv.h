@@ -6,6 +6,7 @@
 
 // opaque type to separate perl from opencv
 struct Image;
+int opencv_default_thread_count();
 void create_opencv_threads(int thread_count);
 void image_destroy(Image *s);
 Image *image_new(long width, long height);

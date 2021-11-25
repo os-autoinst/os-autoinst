@@ -315,6 +315,23 @@ private:
 #endif
 
 /*!
+ * \brief Returns the default thread count for create_opencv_threads().
+ *
+ * That is the number of threads we can safely spawn without running into limitations.
+ *
+ * \remarks
+ * - This should be generally at least one thread and we generally just use OpenCV's default.
+ * - To avoid running into TBB's soft limit which seems to be one thread less than the number
+ *   of physical CPU threads (see TBB function `calc_workers_soft_limit`) we also limit ourselves
+ *   to that. Otherwise we might run into a deadlock with "The number of workers is currently
+ *   limited to 7. The request for 8 workers is ignored.".
+ */
+int opencv_default_thread_count()
+{
+    return std::max(1, std::min(cv::getNumThreads(), cv::getNumberOfCPUs() - 1));
+}
+
+/*!
  * \brief Creates OpenCV's threads upfront.
  *
  * This allows one to take control over spawning these threads, e.g. to block signals. One can
@@ -326,18 +343,17 @@ private:
  *   framework (e.g. OpenMP or TBB) but that would mean multiple code paths depending on OpenCV's
  *   configuration.
  * - We can not simply invoke `parallel_for_(Range(0, arbitrary_high_number), [&] (const Range &) {}`
- *   because that would not guarantee that actually up to \a thread_count are kept busy at the same
- *   time and indeed does not work in practice for high \a thread_count values like 32. Hence we
+ *   because that would not guarantee that actually up to \a thread_count threads are kept busy at the
+ *   same time and indeed does not work in practice for high \a thread_count values like 32. Hence we
  *   keep the threads idling until the expected number of threads has been spawned.
  */
 void create_opencv_threads(int thread_count)
 {
-    // use the number of CPU cores as default \a thread_count
+    // ensure \a thread_count is initialized and set it explicitly in any case so the number of
+    // expected threads is fix
     if (thread_count < 0) {
-        thread_count = std::max(0, cv::getNumberOfCPUs());
+        thread_count = opencv_default_thread_count();
     }
-
-    // set the number of threads explicitly in any case so the number of expected threads is fix
     cv::setNumThreads(thread_count);
 
     // execute a parallel algorithm which ensures that \a thread_count are busy at the same time
