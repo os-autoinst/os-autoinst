@@ -285,15 +285,8 @@ sub run_daemon {
     }
     my $daemon = Mojo::Server::Daemon->new(app => app, listen => ["http://$address:$port"]);
     $daemon->silent;
-    # We need to override the default logging format
-    app->log->format(
-        sub {
-            my ($time, $level, @lines) = @_;
-            # Unfortunately $time doesn't have the precision we want. So we need to use Time::HiRes
-            $time = gettimeofday;
-            return sprintf(strftime("[%FT%T.%%03d %Z] [$level] ", localtime($time)), 1000 * ($time - int($time))) . join("\n", @lines, '');
-        });
-
+    # Use same log format as isotovideo
+    app->log->format(\&bmwqemu::log_format_callback);
     # process json messages from isotovideo
     Mojo::IOLoop->singleton->reactor->io($isotovideo => sub {
             my ($reactor, $writable) = @_;
