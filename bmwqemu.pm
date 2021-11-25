@@ -19,6 +19,7 @@ use Mojo::Log;
 use Mojo::File qw(path);
 use Time::Moment;
 use Term::ANSIColor;
+use File::Basename;
 
 use Exporter 'import';
 
@@ -180,7 +181,10 @@ sub log_format_callback {
     # ensure indentation for multi-line output
     $lines =~ s/(?<!\A)^/  /gm;
 
-    return '[' . Time::Moment->now . "] [$level] " . $lines;
+    my $idx = index($0, ': ');
+    my $proc = sprintf('%.10s[%d]', $idx != -1 ? substr($0, $idx + 2) : basename($0), $$);
+
+    return '[' . Time::Moment->now . "] $proc [$level] " . $lines;
 }
 
 sub diag {
