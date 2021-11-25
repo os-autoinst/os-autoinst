@@ -184,7 +184,9 @@ sub log_format_callback {
     my $idx = index($0, ': ');
     my $proc = sprintf('%.10s[%d]', $idx != -1 ? substr($0, $idx + 2) : basename($0), $$);
 
-    return '[' . Time::Moment->now . "] $proc [$level] " . $lines;
+    return sprintf('%s %s [%s] %s',
+        Time::Moment->now_utc()->with_precision(3)->to_string(),
+        $proc, $level, $lines);
 }
 
 sub diag {
