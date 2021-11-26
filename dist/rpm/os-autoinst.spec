@@ -143,6 +143,15 @@ Requires:       qemu-tools
 Convenience package providing os-autoinst and qemu-x86 dependencies.
 %endif
 
+%package swtpm
+Summary:        Convenience package providing os-autoinst+swtpm
+Group:          Development/Tools/Other
+Requires:       os-autoinst
+Requires:       swtpm
+
+%description swtpm
+Convenience package providing os-autoinst and swtpm dependencies.
+
 %package s390-deps
 Summary:        Convenience package providing os-autoinst + s390 worker jumphost deps
 Group:          Development/Tools/Other
