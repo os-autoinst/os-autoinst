@@ -62,6 +62,8 @@ getopt 'needle-images=s@{1,}' => \my @needle_image_paths,
 
 print_usage unless @needle_image_paths && @image_paths;
 
+# stop opencv logging messages polluting stdout
+$ENV{'OPENCV_LOG_LEVEL'} ||= 'SILENT';
 # initialize logging, tinycv and parameters
 my $log = Mojo::Log->new;
 $log->level($verbose ? 'debug' : 'info');
