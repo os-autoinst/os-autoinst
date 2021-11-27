@@ -31,16 +31,16 @@ $mock_channel->{write_buffer} = '';
 $mock_channel->{read_queue} = [];
 $mock_channel->{blocking} = 1;
 
-$mock_channel->mock(pty => sub { 1 });
-$mock_channel->mock(ext_data => sub { 1 });
-$mock_channel->mock(shell => sub { 1 });
-$mock_channel->mock(send_eof => sub { 1 });
+$mock_channel->set_always(pty => 1);
+$mock_channel->set_always(ext_data => 1);
+$mock_channel->set_always(shell => 1);
+$mock_channel->set_always(send_eof => 1);
 
-$mock_ssh->mock(channel => sub { $mock_channel });
-$mock_ssh->mock(hostname => sub { 1 });
-$mock_ssh->mock(disconnect => sub { 1 });
+$mock_ssh->set_always(channel => $mock_channel);
+$mock_ssh->set_always(hostname => 1);
+$mock_ssh->set_always(disconnect => 1);
 
-$mock_backend->mock(new_ssh_connection => sub { $mock_ssh });
+$mock_backend->set_always(new_ssh_connection => $mock_ssh);
 
 $mock_bmwqemu->noop('diag', 'fctinfo', 'log_call');
 
@@ -79,7 +79,7 @@ $mock_channel->mock(write => sub ($self, $data) {
         return length($data);
 });
 
-$mock_ssh->mock(blocking => sub { return $mock_channel->blocking($_[1]) });
+$mock_ssh->set_always(blocking => $mock_channel->blocking($_[1]));
 
 $mock_ssh->mock(error => sub ($self) {
         return undef unless defined($self->{error});
