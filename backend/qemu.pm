@@ -895,7 +895,7 @@ sub start_qemu ($self) {
         }
 
         my $qmpid = 'qmp_socket';
-        sp('chardev', [qv "socket path=$qmpid server nowait id=$qmpid logfile=$qmpid.log logappend=on"]);
+        sp('chardev', [qv "socket path=$qmpid server=on wait=off id=$qmpid logfile=$qmpid.log logappend=on"]);
         sp('qmp', "chardev:$qmpid");
         sp('S');
     }
