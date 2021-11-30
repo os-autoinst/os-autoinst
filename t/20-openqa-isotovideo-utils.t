@@ -43,7 +43,7 @@ subtest 'error handling when loading test schedule' => sub {
         my $state = decode_json($base_state->slurp);
         if (is(ref $state, 'HASH', 'state file contains object')) {
             is($state->{component}, 'tests', 'state file contains component');
-            like($state->{msg}, qr/unable to load foo\/bar\.pm/, 'state file contains error message');
+            like($state->{msg}, qr@unable to load foo/bar,@, 'state file contains error message');
         }
     };
     subtest 'invalid productdir' => sub {

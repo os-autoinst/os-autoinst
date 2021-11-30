@@ -22,7 +22,7 @@ $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
 
 like(exception { autotest::runalltests }, qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first');
 like warning {
-    like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest.*does not match required pattern/,
+    like(exception { autotest::loadtest 'does/not/match' }, qr@loadtest.+'does/not/match'.*does not match required pattern@,
         'loadtest catches incorrect test script paths')
 },
   qr/loadtest needs a script below.*is not/,
