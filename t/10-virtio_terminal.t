@@ -15,6 +15,8 @@ use consoles::virtio_terminal;
 use testapi;
 use bmwqemu;
 
+my $pipe_data_written;
+sub wait_till_pipe_data_written() { sleep 1 while (!$pipe_data_written) }
 
 sub prepare_pipes ($socket_path, $write_buffer = undef) {
     my $pipe_in = $socket_path . ".in";
@@ -25,6 +27,9 @@ sub prepare_pipes ($socket_path, $write_buffer = undef) {
         mkfifo($_, 0666) or die("Cannot create fifo pipe $_");
     }
 
+    $pipe_data_written = 0;
+    $SIG{USR2} = sub { $pipe_data_written = 1 };
+
     my $pid = fork || do {
         my $running = 1;
         $SIG{USR1} = sub { $running = 0; };
@@ -32,14 +37,17 @@ sub prepare_pipes ($socket_path, $write_buffer = undef) {
             die('Timeout for pipe other side helper');
         };
         alarm ONE_MINUTE;
-
-        open(my $fd_r, "<", $pipe_in)
+        my $fd_r = IO::Handle->new();
+        my $fd_w = IO::Handle->new();
+        open($fd_r, "<", $pipe_in)
           or die "Can't open in pipe for writing $!";
-        open(my $fd_w, ">", $pipe_out)
+        open($fd_w, ">", $pipe_out)
           or die "Can't open out pipe for reading $!";
 
         syswrite($fd_w, $write_buffer) if ($write_buffer);
+        $fd_w->flush();
 
+        kill 'USR2', getppid;
         sysread($fd_r, my $buf, 1024) while ($running);
         exit 0;
     };
@@ -126,6 +134,7 @@ subtest "Test snapshot handling" => sub {
     is_deeply($term->{snapshots}, {}, "Snapshots are empty");
 
     $term->select();
+    wait_till_pipe_data_written();
     is_deeply($term->{snapshots}, {}, "Snapshots are empty after select/activate");
 
     $term->save_snapshot('snap1');
