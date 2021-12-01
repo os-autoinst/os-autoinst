@@ -4,7 +4,7 @@
 
 package consoles::localXvnc;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'consoles::vnc_base';
@@ -22,9 +22,7 @@ use testapi qw(get_var);
 # ssh disconnect and console switching. Ssh console may not display returned result of
 # long-time run test without these options. TCPKeepAlive ensures that if network goes down
 # or the remote host dies, machines will be properly noticed
-sub sshCommand {
-    my ($self, $username, $host, $gui) = @_;
-
+sub sshCommand ($self, $username, $host, $gui = undef) {
     my $server_alive_count_max = get_var('_SSH_SERVER_ALIVE_COUNT_MAX', 480);
     my $server_alive_interval = get_var('_SSH_SERVER_ALIVE_INTERVAL', ONE_MINUTE);
     my $sshopts = "-o TCPKeepAlive=yes -o ServerAliveCountMax=$server_alive_count_max -o ServerAliveInterval=$server_alive_interval -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no $username\@$host";
@@ -32,9 +30,7 @@ sub sshCommand {
     return "ssh $sshopts; read";
 }
 
-sub callxterm {
-    my ($self, $command, $window_name) = @_;
-
+sub callxterm ($self, $command, $window_name) {
     my $display = $self->{DISPLAY};
     $command = "TERM=xterm $command";
     my $xterm_vt_cmd = which "xterm-console";
@@ -46,9 +42,7 @@ sub callxterm {
     die "cant' start xterm on $display (err: $! retval: $?)" if $@;
 }
 
-sub fullscreen {
-    my ($self, $args) = @_;
-
+sub fullscreen ($self, $args) {
     my $display = $self->{DISPLAY};
     my $window_name = $args->{window_name};
 
@@ -64,9 +58,7 @@ sub fullscreen {
     system("DISPLAY=$display $xdotool windowmove $window_id 0 0");
 }
 
-sub activate {
-    my ($self) = @_;
-
+sub activate ($self) {
     # start Xvnc on a random high port and use that port also as $DISPLAY
 
     my $tcpproto = getprotobyname('tcp');
@@ -105,9 +97,7 @@ sub activate {
     return;
 }
 
-sub disable {
-    my ($self) = @_;
-
+sub disable ($self) {
     return unless $self->{local_X_handle};
 
     # We could shut down more gracefully, some processes may still be open on
@@ -119,8 +109,7 @@ sub disable {
     return;
 }
 
-sub DESTROY {
-    my $self = shift;
+sub DESTROY ($self) {
     $self->disable();
     return;
 }

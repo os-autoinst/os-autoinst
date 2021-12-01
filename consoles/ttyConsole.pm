@@ -4,22 +4,19 @@
 
 package consoles::ttyConsole;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'consoles::console';
 
 require IPC::System::Simple;
-use testapi 'check_var';
 
-sub trigger_select {
-    my ($self) = @_;
+sub trigger_select ($self) {
     $self->screen->send_key({key => $self->console_key});
     return;
 }
 
-sub screen {
-    my ($self) = @_;
+sub screen ($self) {
     return $self->backend->console('sut');
 }
 

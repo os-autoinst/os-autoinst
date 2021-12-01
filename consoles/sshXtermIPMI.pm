@@ -4,7 +4,7 @@
 
 package consoles::sshXtermIPMI;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'consoles::localXvnc';
@@ -13,9 +13,7 @@ use testapi 'get_required_var';
 require IPC::System::Simple;
 use File::Which;
 
-sub activate {
-    my ($self) = @_;
-
+sub activate ($self) {
     # start Xvnc
     $self->SUPER::activate;
 
@@ -38,9 +36,7 @@ sub activate {
     $self->callxterm($cstr, "ipmitool:$testapi_console");
 }
 
-sub reset {
-    my ($self) = @_;
-
+sub reset ($self) {
     # Deactivate sol connection if it is activated
     if ($self->{activated}) {
         $self->backend->ipmitool("sol deactivate");
@@ -49,17 +45,13 @@ sub reset {
     return;
 }
 
-sub disable {
-    my ($self) = @_;
-
+sub disable ($self) {
     # Try to deactivate IPMI SOL during disable
     $self->reset;
     $self->SUPER::disable;
 }
 
-sub do_mc_reset {
-    my ($self) = @_;
-
+sub do_mc_reset ($self) {
     if ($self->{activated}) {
         $self->backend->do_mc_reset;
         $self->{activated} = 0;

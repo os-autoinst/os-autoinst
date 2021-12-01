@@ -4,7 +4,7 @@
 
 package consoles::sshXtermVt;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use base 'consoles::localXvnc';
@@ -13,9 +13,7 @@ use IO::Socket::INET;
 use testapi 'get_var';
 require IPC::System::Simple;
 
-sub activate {
-    my ($self) = @_;
-
+sub activate ($self) {
     # start Xvnc
     $self->SUPER::activate;
 
@@ -54,8 +52,7 @@ sub activate {
     }
 }
 
-sub wait_for_ssh_port {
-    my ($self, $hostname, %args) = @_;
+sub wait_for_ssh_port ($self, $hostname, %args) {
     $args{timeout} //= 120;
     $args{port} //= 22;
 
@@ -72,9 +69,7 @@ sub wait_for_ssh_port {
 }
 
 # to be called on reconnect
-sub kill_ssh {
-    my ($self) = @_;
-
+sub kill_ssh ($self) {
     $self->backend->stop_ssh_serial;
 }
 
