@@ -315,4 +315,39 @@ BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)'}, '
     is_deeply($baseclass->wait_serial({%dargs, regexp => 'something wrong', timeout => 1, no_regex => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, "Test string literal mismatch");
 };
 
+subtest check_select_rate => sub {
+    my $time_limit = 3;    # _CHKSEL_RATE_WAIT_TIME
+    my $hit_limit = 10;    # _CHKSEL_RATE_HITS
+
+    subtest recover_if_not_all_hit_the_limit => sub {
+        my $buckets = {};
+        for my $loop (1 .. ($hit_limit - 1)) {
+            for my $fd (42 .. 45) {
+                is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, $fd, 0), 0, "$loop hit on $fd return 0");
+            }
+        }
+        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, 0), 0, "The fd 42 does not hit the limit, as time isn't up");
+        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 0, "The fd 42 does not hit the limit, cause not all fd's hit it!");
+        is($buckets->{BUCKET}->{42}, 1, "The counter of fd 42 was reset to 1");
+    };
+
+    subtest single_fd_hit_the_limit => sub {
+        my $buckets = {};
+        for my $loop (1 .. ($hit_limit)) {
+            is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, 0), 0, "$loop hit on fd 42 after reset.");
+        }
+        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 1, "The fd 42 hit now the limit.");
+    };
+
+    subtest all_fds_hit_the_limit => sub {
+        my $buckets = {};
+        for my $loop (1 .. ($hit_limit)) {
+            for my $fd (42 .. 45) {
+                is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, $fd, 0), 0, "$loop hit on $fd return 0");
+            }
+        }
+        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 1, "Hit the limit, as all fds hit it!");
+    };
+};
+
 done_testing;
