@@ -35,7 +35,6 @@ set(PERL_FILES
     consoles/ipmiSol.pm
     consoles/localXvnc.pm
     consoles/network_console.pm
-    consoles/remoteVnc.pm
     consoles/s3270.pm
     consoles/serial_screen.pm
     consoles/sshIucvconn.pm
