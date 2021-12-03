@@ -20,7 +20,7 @@ sub output_once {
     bmwqemu::fctres('Via fctres function');
     bmwqemu::fctinfo('Via fctinfo function');
     bmwqemu::fctwarn('Via fctwarn function');
-    bmwqemu::modstart('Via modstart function');
+    bmwqemu::modstate('Via modstate function');
 }
 
 subtest 'Logging to STDERR' => sub {
@@ -29,7 +29,7 @@ subtest 'Logging to STDERR' => sub {
     my @matches = ($output =~ m/Via .*? function/gm);
     ok(@matches == 5, 'All messages logged to STDERR');
     my $i = 0;
-    ok($matches[$i++] =~ /$_/, "Logging $_ match!") for ('diag', 'fctres', 'fctinfo', 'fctwarn', 'modstart');
+    ok($matches[$i++] =~ /$_/, "Logging $_ match!") for ('diag', 'fctres', 'fctinfo', 'fctwarn', 'modstate');
 };
 
 subtest 'Logging to file' => sub {
@@ -39,7 +39,7 @@ subtest 'Logging to file' => sub {
     my @matches = (Mojo::File->new($log_file)->slurp =~ m/Via .*? function/gm);
     ok(@matches == 5, 'All messages logged to file');
     my $i = 0;
-    ok($matches[$i++] =~ /$_/, "Logging $_ match!") for ('diag', 'fctres', 'fctinfo', 'fctwarn', 'modstart');
+    ok($matches[$i++] =~ /$_/, "Logging $_ match!") for ('diag', 'fctres', 'fctinfo', 'fctwarn', 'modstate');
 };
 
 done_testing;

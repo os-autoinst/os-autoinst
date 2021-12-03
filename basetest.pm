@@ -332,7 +332,7 @@ sub run_post_fail {
     $self->fail_if_running();
     $self->compute_test_execution_time();
     my $post_fail_hook_execution_time = execution_time($post_fail_hook_start_time);
-    bmwqemu::diag(sprintf("||| post fail hooks runtime: %d s", $post_fail_hook_execution_time));
+    bmwqemu::modstate("post fail hooks runtime: $post_fail_hook_execution_time s");
     die $msg . "\n";
 }
 
@@ -341,7 +341,7 @@ sub execution_time { time - shift }
 sub compute_test_execution_time ($self) {
     # Set the execution time for a general time spent
     $self->{execution_time} = execution_time($self->{test_start_time});
-    bmwqemu::diag(sprintf("||| finished %s %s (runtime: %d s)", $self->{name}, $self->{category}, $self->{execution_time}));
+    bmwqemu::modstate(sprintf("finished %s %s (runtime: %d s)", $self->{name}, $self->{category}, $self->{execution_time}));
 }
 
 sub runtest {
