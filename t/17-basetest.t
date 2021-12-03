@@ -63,6 +63,9 @@ subtest run_post_fail_test => sub {
             execute_time => 42,
     }, $basetest_class);
     combined_like { dies_ok { $basetest->runtest } 'run_post_fail end up with die' } qr/Test died/, 'test died';
+    combined_like { dies_ok { $basetest->runtest } 'post fail hooks runtime' } qr/post fail hooks runtime:/,
+      'Post fail hooks runtime present';
+
     $bmwqemu::vars{_SKIP_POST_FAIL_HOOKS} = 1;
     combined_like { dies_ok { $basetest->runtest } 'behavior persists regardless of _SKIP_POST_FAIL_HOOKS setting' }
     qr/Test died/, 'test died';

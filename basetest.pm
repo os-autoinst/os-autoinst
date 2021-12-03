@@ -4,7 +4,7 @@
 
 package basetest;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use bmwqemu ();
@@ -46,6 +46,7 @@ sub new {
     $self->{autoinst_failures} = [];
     $self->{fatal_failure} = 0;
     $self->{execution_time} = 0;
+    $self->{test_start_time} = 0;
     return bless $self, $class;
 }
 
@@ -315,6 +316,8 @@ sub post_run_hook {
 
 sub run_post_fail {
     my ($self, $msg) = @_;
+    my $post_fail_hook_start_time = time;
+
     unless ($bmwqemu::vars{_SKIP_POST_FAIL_HOOKS}) {
         $self->{post_fail_hook_running} = 1;
         eval { $self->post_fail_hook; };
@@ -325,15 +328,25 @@ sub run_post_fail {
         # Read them now to not stumble upon them in the next module.
         $self->get_new_serial_output();
     }
+
     $self->fail_if_running();
+    $self->compute_test_execution_time();
+    my $post_fail_hook_execution_time = execution_time($post_fail_hook_start_time);
+    bmwqemu::diag(sprintf("||| post fail hooks runtime: %d s", $post_fail_hook_execution_time));
     die $msg . "\n";
 }
 
 sub execution_time { time - shift }
 
+sub compute_test_execution_time ($self) {
+    # Set the execution time for a general time spent
+    $self->{execution_time} = execution_time($self->{test_start_time});
+    bmwqemu::diag(sprintf("||| finished %s %s (runtime: %d s)", $self->{name}, $self->{category}, $self->{execution_time}));
+}
+
 sub runtest {
     my ($self) = @_;
-    my $starttime = time;
+    $self->{test_start_time} = time;
 
     my $died;
     my $name = $self->{name};
@@ -382,9 +395,8 @@ sub runtest {
         $self->run_post_fail("test $name failed");
     }
 
+    $self->compute_test_execution_time();
     $self->done();
-    $self->{execution_time} = execution_time($starttime);
-    bmwqemu::diag(sprintf("||| finished %s %s (runtime: %d s)", $name, $self->{category}, $self->{execution_time}));
     return;
 }
 
