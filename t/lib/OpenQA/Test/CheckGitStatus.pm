@@ -16,19 +16,22 @@ if ($CHECK_GIT_STATUS) {
 }
 
 sub check_status {
-    local $?;
-    chdir $cwd;
-    my $git = File::Which::which('git');
-    return unless $git;
-    my $cmd = 'git rev-parse --git-dir';
-    my $out = qx{$cmd};
-    return if $? != 0;
-    $cmd = 'git status --porcelain=v1 2>&1';
-    my @lines = qx{$cmd};
-    die "Problem running git:\n" . join '', @lines if $? != 0;
+    my @lines;
+    {
+        local $?;
+        chdir $cwd;
+        my $git = File::Which::which('git');
+        return unless $git;
+        my $cmd = 'git rev-parse --git-dir';
+        my $out = qx{$cmd};
+        return if $? != 0;
+        $cmd = 'git status --porcelain=v1 2>&1';
+        @lines = qx{$cmd};
+        die "Problem running git:\n" . join '', @lines if $? != 0;
+    }
     if (@lines > 0) {
         Test::More::diag("Error: modified or untracked files\n" . join '', @lines);
-        exit 1;
+        $? = 1;
     }
 }
 
