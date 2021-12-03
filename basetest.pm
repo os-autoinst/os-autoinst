@@ -4,7 +4,7 @@
 
 package basetest;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use bmwqemu ();
@@ -338,8 +338,7 @@ sub run_post_fail {
 
 sub execution_time { time - shift }
 
-sub compute_test_execution_time {
-    my ($self) = @_;
+sub compute_test_execution_time ($self) {
     # Set the execution time for a general time spent
     $self->{execution_time} = execution_time($self->{test_start_time});
     bmwqemu::diag(sprintf("||| finished %s %s (runtime: %d s)", $self->{name}, $self->{category}, $self->{execution_time}));
