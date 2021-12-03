@@ -16,6 +16,7 @@ if ($CHECK_GIT_STATUS) {
 }
 
 sub check_status {
+    local $?;
     chdir $cwd;
     my $git = File::Which::which('git');
     return unless $git;
