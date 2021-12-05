@@ -361,7 +361,7 @@ sub runalltests {
         }
 
         my $name = $t->{name};
-        bmwqemu::modstart "starting $name $t->{script}";
+        bmwqemu::modstate "starting $name $t->{script}";
         $t->start();
 
         # avoid erasing the good vm snapshot

@@ -23,7 +23,7 @@ use Term::ANSIColor;
 use Exporter 'import';
 
 our $VERSION;
-our @EXPORT_OK = qw(diag fctres fctinfo fctwarn modstart save_vars);
+our @EXPORT_OK = qw(diag fctres fctinfo fctwarn modstate save_vars);
 
 use backend::driver;
 require IPC::System::Simple;
@@ -218,7 +218,7 @@ sub fctwarn {
     return;
 }
 
-sub modstart {
+sub modstate {
     logger->append(color('bold blue'));
     logger->debug("||| @{[join(' ', @_)]}")->append(color('reset'));
     return;
