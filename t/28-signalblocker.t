@@ -48,7 +48,7 @@ $SIG{CHLD} = sub { $received_sigchld += 1; note "received SIGCHLD $received_sigc
     # make the number of threads to spawn configurable
     my $thread_count = tinycv::default_thread_count();
     my $thread_count_for_testing = $ENV{OS_AUTOINST_TEST_THREAD_COUNT} || $thread_count;
-    diag "threads used: $thread_count_for_testing of $thread_count";
+    note "threads used: $thread_count_for_testing of $thread_count";
 
     tinycv::create_threads($thread_count_for_testing);
     $last_thread_count = thread_count;
