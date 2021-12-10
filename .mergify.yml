@@ -11,6 +11,9 @@ pull_request_rules:
         # wait for OBS package build as well which is triggered independantly
         # See https://progress.opensuse.org/issues/55346 for details
         - "check-success=OBS Package Build"
+        - "#check-failure=0"
+        - "#check-pending=0"
+        - linear-history
       - and:
         - "#approved-reviews-by>=2"
         - "#changes-requested-reviews-by=0"
