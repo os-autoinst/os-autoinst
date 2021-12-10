@@ -1,0 +1,41 @@
+# pr:
+#   steps:
+#   - branch_package:
+#       source_project: devel:openQA
+#       source_package: os-autoinst
+#       target_project: home:tinita:branches:devel:openQA:GitHub
+#   filters:
+#     event: pull_request
+
+pr:
+  steps:
+  - link_package:
+      source_project: devel:openQA
+      source_package: os-autoinst
+      target_project: home:tinita:branches:devel:openQA:GitHubLink
+  - configure_repositories:
+      project: home:tinita:branches:devel:openQA:GitHubLink
+      repositories:
+      - name: openSUSE_Tumbleweed
+        target_project: openSUSE:Factory
+        target_repository: snapshot
+        architectures: [ x86_64, aarch64 ]
+      - name: openSUSE_Leap_15.3
+        target_project: devel:openQA:Leap:15.3
+        target_repository: openSUSE_Leap_15.3
+        architectures: [ x86_64 ]
+      - name: openSUSE_Leap_15.2
+        target_project: devel:openQA:Leap:15.2
+        target_repository: openSUSE_Leap_15.2
+        architectures: [ x86_64 ]
+  filters:
+    event: pull_request
+#    branches:
+#      only: [ master ]
+#    architectures:
+#      only: x86_64
+#    repositories:
+#      only:
+#      - openSUSE_Factory
+#      - openSUSE_15.2
+#      - openSUSE_15.3
