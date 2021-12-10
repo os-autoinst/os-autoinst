@@ -1,0 +1,18 @@
+#rebuild:
+#  steps:
+#  - rebuild_package:
+#      project: home:tinita:githubtest
+#      package: obstest
+#  filters:
+#    event: push
+#    branches:
+#      only: [main]
+
+pr:
+  steps:
+  - branch_package:
+      source_project: devel:openQA
+      source_package: os-autoinst
+      target_project: home:tinita:branches:devel:openQA:GitHub
+  filters:
+    event: pull_request
