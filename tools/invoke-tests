@@ -58,7 +58,5 @@ if [[ $TESTS = *[!\ ]* ]]; then
     "$prove_path" $PROVE_ARGS $TESTS
 else
     # shellcheck disable=SC2086
-    cd t && "$prove_path" $PROVE_ARGS -r
-    # shellcheck disable=SC2086
-    cd ../xt && "$prove_path" $PROVE_ARGS -r
+    "$prove_path" $PROVE_ARGS -r t/ xt/
 fi
