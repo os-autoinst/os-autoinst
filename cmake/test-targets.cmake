@@ -84,7 +84,6 @@ if (PROVE_PATH)
     add_test(
         NAME test-perl-testsuite
         COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" ${INVOKE_TEST_ARGS}
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
 else ()
     message(STATUS "Set PROVE_PATH to the path of the prove executable to enable running the Perl testsuite.")
@@ -114,11 +113,10 @@ if (COVER_PATH AND PROVE_PATH)
         COMMENT "Run Perl testsuite with coverage instrumentation if no coverage data has been collected so far"
         COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/invoke-tests" --coverage --skip-if-cover-db-exists ${INVOKE_TEST_ARGS}
         OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
     add_custom_command(
         COMMENT "Generate coverage report (HTML)"
-        COMMAND "${COVER_PATH}" -report html_basic "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
+        COMMAND "${COVER_PATH}" -report html "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
         DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
         OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/coverage.html"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -139,6 +137,7 @@ if (COVER_PATH AND PROVE_PATH)
         COMMENT "Perl test suite coverage (codecov, if direct report uploading possible, e.g. within travis CI)"
         COMMAND "${COVER_PATH}" -report codecov "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
         DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/cover_db"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     )
     add_dependencies(coverage-codecov symlinks)
     add_custom_target(
