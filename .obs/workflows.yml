@@ -10,21 +10,6 @@
 
 pr:
   steps:
-  - configure_repositories:
-      project: home:tinita:branches:devel:openQA:GitHub
-      repositories:
-      - name: openSUSE_Factory
-        target_project: devel:openQA
-        target_repository: openSUSE_Factory
-        architectures: [ x86_64 ]
-      - name: openSUSE_15.2
-        target_project: devel:openQA
-        target_repository: openSUSE_Leap_15.2
-        architectures: [ x86_64 ]
-      - name: openSUSE_15.3
-        target_project: devel:openQA
-        target_repository: openSUSE_Leap_15.3
-        architectures: [ x86_64 ]
 
   - branch_package:
       source_project: devel:openQA
