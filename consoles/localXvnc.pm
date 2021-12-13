@@ -12,6 +12,7 @@ use base 'consoles::vnc_base';
 use IPC::Run ();
 require IPC::System::Simple;
 use Socket;
+use File::Path 'mkpath';
 use File::Which;
 use Time::Seconds;
 use testapi qw(get_var);
@@ -38,6 +39,10 @@ sub callxterm ($self, $command, $window_name) {
     die('Missing "Xvnc"') unless which('Xvnc');
     die('Missing "icewm"') unless which('icewm');
     die('Missing "xterm"') unless which('xterm');
+    if ($self->{args}->{log}) {
+        mkpath 'ulogs';
+        $command = "script -f ulogs/hardware-console-log.txt -c \"$command\"";
+    }
     eval { system("DISPLAY=$display $xterm_vt_cmd -title $window_name -e bash -c '$command' & echo \"xterm PID is \$!\""); };
     die "cant' start xterm on $display (err: $! retval: $?)" if $@;
 }

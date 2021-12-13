@@ -93,7 +93,11 @@ sub do_start_vm ($self, @) {
     $self->get_mc_status;
     $self->restart_host unless $bmwqemu::vars{IPMI_DO_NOT_RESTART_HOST};
     $self->truncate_serial_file;
-    my $sol = $testapi::distri->add_console('sol', 'ipmi-xterm', {persistent => $bmwqemu::vars{IPMI_SOL_PERSISTENT_CONSOLE} // 1});
+    my $sol = $testapi::distri->add_console(
+        'sol', 'ipmi-xterm',
+        {
+            persistent => $bmwqemu::vars{IPMI_SOL_PERSISTENT_CONSOLE} // 1,
+            log => $bmwqemu::vars{HARDWARE_CONSOLE_LOG} // 0});
     $sol->backend($self);
     return {};
 }

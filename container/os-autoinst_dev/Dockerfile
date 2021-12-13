@@ -26,6 +26,7 @@ RUN zypper in -y -C \
        cpio \
        gcc-c++ \
        git-core \
+       icewm \
        ninja \
        perl-base \
        pkg-config \
@@ -38,6 +39,9 @@ RUN zypper in -y -C \
        qemu-x86 \
        sudo \
        which \
+       xorg-x11-Xvnc \
+       xterm \
+       xterm-console \
        'perl(B::Deparse)' \
        'perl(Benchmark)' \
        'perl(Carp)' \

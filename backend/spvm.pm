@@ -30,7 +30,8 @@ sub do_start_vm ($self, @) {
             hostname => $bmwqemu::vars{NOVALINK_HOSTNAME},
             password => $bmwqemu::vars{NOVALINK_PASSWORD},
             username => $bmwqemu::vars{NOVALINK_USERNAME} // 'root',
-            persistent => 1});
+            persistent => 1,
+            log => $bmwqemu::vars{HARDWARE_CONSOLE_LOG} // 0});
     $ssh->backend($self);
 
     return {};
