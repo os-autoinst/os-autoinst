@@ -83,7 +83,9 @@ sub fake_read_json ($fd) {
     elsif ($cmd eq 'backend_mouse_set') {
         return {ret => {x => 100, y => 100}};
     }
-    else {
+    elsif ($cmd eq 'backend_get_wait_still_screen_on_here_doc_input') {
+        return {ret => 0};
+    } else {
         note "mock method not implemented \$cmd: $cmd\n";
     }
     return {};
@@ -857,6 +859,12 @@ subtest 'show_curl_progress_meter' => sub {
     is(testapi::show_curl_progress_meter(), '-o /dev/ttyS0 ', 'show_curl_progress_meter returns curl output parameter pointing to /dev/ttyS0');
     $bmwqemu::vars{UPLOAD_METER} = 0;
     is(testapi::show_curl_progress_meter(), '', 'show_curl_progress_meter returns "0" when UPLOAD_METER is not set');
+};
+
+subtest 'get_wait_still_screen_on_here_doc_input' => sub {
+    is(testapi::backend_get_wait_still_screen_on_here_doc_input({}) != 42, 1, 'Sanity check, that wait_still_screen_on_here_doc_input returns not 42!');
+    testapi::set_var(_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT => 42);
+    is(testapi::backend_get_wait_still_screen_on_here_doc_input({}), 42, 'The variable `_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT` has precedence over backend value!');
 };
 
 done_testing;

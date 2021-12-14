@@ -350,4 +350,6 @@ subtest check_select_rate => sub {
     };
 };
 
+is($baseclass->get_wait_still_screen_on_here_doc_input({}), 0, 'wait_still_screen on here doc is off by default!');
+
 done_testing;

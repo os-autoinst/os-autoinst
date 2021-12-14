@@ -279,8 +279,9 @@ sub script_output {
         testapi::wait_serial("$marker-0-", quiet => $args{quiet});
     }
     elsif ($args{type_command}) {
-        my $cat = "cat - > $script_path;\n";
+        my $cat = "cat - > $script_path;";
         testapi::type_string($cat);
+        testapi::type_string("\n", wait_still_screen => testapi::backend_get_wait_still_screen_on_here_doc_input());
         testapi::type_string($script . "\n", timeout => $args{timeout});
         testapi::send_key('ctrl-d');
     }
