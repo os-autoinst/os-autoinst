@@ -32,7 +32,8 @@ sub do_start_vm ($self, @) {
             hostname => get_required_var('HMC_HOSTNAME'),
             password => get_required_var('HMC_PASSWORD'),
             username => get_var('HMC_USERNAME', 'hscroot'),
-            persistent => 1});
+            persistent => 1,
+            log => $bmwqemu::vars{HARDWARE_CONSOLE_LOG} // 0});
     $ssh->backend($self);
 
     return {};

@@ -89,6 +89,10 @@ test_base_requires:
   qemu-x86:
   procps:
   python3-setuptools:
+  xterm-console:
+  xorg-x11-Xvnc:
+  icewm:
+  xterm:
 
 test_version_only_requires:
   perl(Mojo::IOLoop::ReadWriteProcess): '>= 0.28'

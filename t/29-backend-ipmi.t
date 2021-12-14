@@ -13,10 +13,12 @@ use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
 
 BEGIN { *backend::ipmi::system = sub { 1 } }
+BEGIN { *consoles::localXvnc::system = sub { "@_" =~ /hardware-console-log/ ? 1 : 0 } }
 
 use backend::ipmi;    # SUT
 
 $bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
+$bmwqemu::vars{"HARDWARE_CONSOLE_LOG"} = 1;
 ok my $backend = backend::ipmi->new(), 'backend can be created';
 $bmwqemu::vars{"IPMI_$_"} = "fake_$_" foreach qw(HOSTNAME USER PASSWORD);
 my @ipmi_cmdline = $backend->ipmi_cmdline;
@@ -36,17 +38,16 @@ $ipmi->redefine(ipmitool => sub { $_[1] =~ /power status/ ? $ipmitool_mock->ipmi
 ok $backend->restart_host, 'can call restart_host';
 $ipmi->noop('ipmitool');
 my $distri = Test::MockModule->new('distribution');
-$distri->redefine(add_console => sub {
-        my $ret = Test::MockObject->new();
-        $ret->set_true('backend');
-        return $ret;
-});
 $testapi::distri = distribution->new;
 
 ok $backend->do_start_vm, 'can call do_start_vm';
 ok $backend->do_stop_vm, 'can call do_stop_vm';
 ok !$backend->check_socket(undef), 'check_socket not returning true by default';
 ok $backend->get_mc_status, 'can call get_mc_status';
+
+is $testapi::distri->{consoles}->{sol}->{args}->{log}, '1';
+$testapi::distri->{consoles}->{sol}->{DISPLAY} = "display";
+ok !$testapi::distri->{consoles}->{sol}->callxterm('ipmi', "console"), "can create console with log enabled";
 
 # reduce retries for testing
 $bmwqemu::vars{IPMI_MC_RESET_MAX_TRIES} = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT} = 3;

@@ -57,6 +57,7 @@ _SSH_SERVER_ALIVE_INTERVAL;integer;60;Sets a timeout interval in seconds after w
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
+HARDWARE_CONSOLE_LOG;boolean;undef;Enable direct log capture of sol console, disabled by default
 IPMI_HOSTNAME;string;undef;Hostname/IP for IPMI interface
 IPMI_PASSWORD;string;undef;Password for the IPMI interface
 IPMI_USER;string;undef;Username for the IPMI interface
@@ -255,6 +256,7 @@ WORKER_ID;string;undef;osauto id
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
+HARDWARE_CONSOLE_LOG;boolean;undef;Enable direct log capture of mkvterm console, disabled by default
 HMC_USERNAME;string;;Username for HMC
 |====================
 
@@ -297,6 +299,7 @@ WORKER_HOSTNAME;string;undef;Worker host name
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
+HARDWARE_CONSOLE_LOG;boolean;undef;Enable direct log capture of mkvterm console, disabled by default
 WORKER_HOSTNAME;string;undef;Worker host name
 NOVALINK_HOSTNAME;string;undef;Novalink target host to connect to
 NOVALINK_USERNAME;string;root;Username to authenticate on Novalink host
