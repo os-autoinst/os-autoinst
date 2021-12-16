@@ -96,24 +96,31 @@ sub loadtest {
     my $fullname = "$category-$name";
     # perl code generating perl code is overcool
     my $code = "package $name;";
-    $code .= "use lib '.';" unless path($casedir)->is_abs;
-    $code .= "use lib '$casedir/lib';";
+    unshift @INC, '.' unless path($casedir)->is_abs;
+    #    $code .= "use lib '.';" unless path($casedir)->is_abs;
+    unshift @INC, "$casedir/lib";
+    #    $code .= "use lib '$casedir/lib';";
     my $basename = dirname($script_path);
-    $code .= "use lib '$basename';";
+    unshift @INC, "$basename";
+    #    $code .= "use lib '$basename';";
     die "Unsupported file extension for '$script'" unless $script =~ /\.p[my]/;
     my $is_python = 0;
+    my $pmodule = "/tmp/pythonmodule.$$.py";
     if ($script =~ m/\.pm$/) {
-        $code .= "require '$script_path';";
+        $code .= "require '$script_path';\n";
     }
     elsif ($script =~ m/\.py$/) {
         # Adding the include path of os-autoinst into python context
         my $inc = File::Basename::dirname(__FILE__);
-        $code .= "
-            use base 'basetest';
-            use Mojo::File 'path';
-            use Inline Python => 'import sys; sys.path.append(\"$inc\")';
-            use Inline Python => path('$casedir/$script')->slurp;
-            ";
+        open my $fh, '>', $pmodule or die $!;
+        print $fh <<"EOM";
+use base 'basetest';
+use Mojo::File 'path';
+use Inline Python => 'import sys; sys.path.append(\"$inc\")';
+use Inline Python => path('$casedir/$script')->slurp;
+1;
+EOM
+        $code .= "require '$pmodule';";
         $is_python = 1;
     }
     eval $code;
@@ -126,6 +133,9 @@ sub loadtest {
         bmwqemu::fctwarn($msg);
         bmwqemu::serialize_state(component => 'tests', msg => "unable to load $script, check the log for the cause (e.g. syntax error)");
         die $msg;
+    }
+    if ($is_python && $pmodule) {
+        unlink $pmodule;
     }
     $test = $name->new($category);
     $test->{script} = $script;
