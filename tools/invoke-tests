@@ -42,7 +42,17 @@ db="$build_directory/cover_db"
 # set Perl module include path and coverage options
 export PERL5LIB="$source_directory:$source_directory/ppmclibs/blib/lib:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
 if [[ $WITH_COVER_OPTIONS ]]; then
-    select="-ignore,^/|^external/|/tmp|CheckGitStatus.pm"
+    # As described on
+    # https://stackoverflow.com/a/22733744
+    # whenever you put coverage into a coverage DB you should ensure that you
+    # are doing it from the same directory, so that Devel::Cover can match and
+    # locate the files in the coverage DB.
+    # Meaning that chdir in tests is harmful. We either try to run everything
+    # from the root source folder or everything from another folder,
+    # previously from within t/ but of course we could also run everything
+    # from the build folder or a temporary directory
+
+    select="-select,$source_directory,-ignore,^/|external|/tmp|/CheckGitStatus.pm"
     # add ' -MOpenQA::Test::PatchDeparse' for older OS versions to avoid warnings
     export PERL5OPT="-I$source_directory/t/lib -I$source_directory/external/os-autoinst-common/lib -MOpenQA::Test::CheckGitStatus -MDevel::Cover=-db,$db,-select,$select,-coverage,statement"
 fi

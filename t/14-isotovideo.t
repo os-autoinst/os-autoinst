@@ -26,6 +26,14 @@ my $pool_dir = "$dir/pool";
 chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
+# TODO if we stay in the root dir of os-autoinst coverage will not
+# output files with absolute paths but keep using relative paths
+# of course with exception of the subtest that gets the version number where
+# we change to the root dir /
+# I think this means that any chdir in tests is harmful, also see
+# https://stackoverflow.com/a/22733744
+#$pool_dir = $toplevel_dir;
+#chdir $toplevel_dir;
 
 sub isotovideo (%args) {
     $args{default_opts} //= 'backend=null';
