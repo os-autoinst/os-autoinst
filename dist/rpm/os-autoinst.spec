@@ -175,6 +175,8 @@ sed  -i 's/ my $thisversion = qx{git.*rev-parse HEAD}.*;/ my $thisversion = "%{v
 for i in 07-commands 13-osutils 14-isotovideo 18-qemu-options 18-backend-qemu 99-full-stack; do
     rm t/$i.t
 done
+# Remove test relying on a git working copy
+rm xt/30-make.t
 
 %build
 %define __builder ninja
