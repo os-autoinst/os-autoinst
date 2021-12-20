@@ -257,6 +257,7 @@ cd %{__builddir}
 %ifarch x86_64
 %files qemu-kvm
 %files qemu-x86
+%files swtpm
 %endif
 %files s390-deps
 
