@@ -35,7 +35,6 @@ my @common_options = (
     ARCH => 'i386',
     BACKEND => 'qemu',
     QEMU => 'i386',
-    QEMU_NO_KVM => 1,
     QEMU_NO_TABLET => 1,
     QEMU_NO_FDC_SET => 1,
     CASEDIR => "$data_dir/tests",
