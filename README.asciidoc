@@ -157,6 +157,20 @@ programming language is provided.
 Find more details about how to write tests on
 http://open.qa/docs/#_how_to_write_tests
 
+== Verifying a runtime environment
+
+To check if your hardware is able to successfully execute os-autoinst based
+tests one can execute openQA tests, all the development tests or simply call
+something like
+
+----
+podman run --pull=always --rm -it --entrypoint '' registry.opensuse.org/devel/openqa/containers/os-autoinst_dev:latest /bin/sh -c 'git -C /opt clone --depth 1 https://github.com/os-autoinst/os-autoinst && make -C /opt/os-autoinst/ test-perl-testsuite TESTS=t/99-full-stack.t'
+----
+
+which only requires the container runtime environment "podman" and will run a
+container based os-autoinst full-stack test, here without KVM hardware
+accelerated virtualization support.
+
 == How to contribute
 
 If you want to contribute to this project, please clone and send
