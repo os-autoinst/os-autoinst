@@ -22,6 +22,9 @@ use autodie ':all';
 require IPC::System::Simple;
 use Class::Accessor 'antlers';
 
+# magic default from testapi.pm
+use constant DEFAULT_MAX_INTERVAL => 250;
+
 has backend => (is => "rw");
 
 sub new ($class, $testapi_console, $args) {

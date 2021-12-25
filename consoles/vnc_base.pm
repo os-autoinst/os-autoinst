@@ -11,6 +11,7 @@ use base 'consoles::network_console';
 use consoles::VNC;
 use Time::HiRes qw(usleep);
 
+use consoles::console qw(DEFAULT_MAX_INTERVAL);
 use bmwqemu ();
 
 # speed limit: 30 keys per second
@@ -73,7 +74,6 @@ sub type_string ($self, $args) {
     my $seconds_per_keypress = 1 / _typing_limit;
 
     # further slow down if being asked for.
-    # 250 = magic default from testapi.pm
 
     # Note: the intended use of max_interval is the bootloader. The bootloader
     # prompt drops characters when typing quickly. This problem mostly occurs
@@ -82,7 +82,7 @@ sub type_string ($self, $args) {
     # screen while typing', e.g. waiting for no more screen updates 'in the
     # right area'.  For now, just waiting is good enough: The slow-down only
     # affects the bootloader sequence.
-    if (($args->{max_interval} // 250) < 250) {
+    if (($args->{max_interval} // consoles::console::DEFAULT_MAX_INTERVAL) < consoles::console::DEFAULT_MAX_INTERVAL) {
         # according to 	  git grep "type_string.*, *[0-9]"  on
         #   https://github.com/os-autoinst/os-autoinst-distri-opensuse,
         # typical max_interval values are
