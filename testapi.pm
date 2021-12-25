@@ -26,6 +26,7 @@ use Time::Seconds;
 
 require bmwqemu;
 use constant OPENQA_LIBPATH => '/usr/share/openqa/lib';
+use constant DEFAULT_MAX_INTERVAL => 250;
 
 our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
@@ -58,7 +59,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
 
   save_tmp_file get_test_data
 );
-our @EXPORT_OK = qw(is_serial_terminal);
+our @EXPORT_OK = qw(is_serial_terminal DEFAULT_MAX_INTERVAL);
 
 our %cmd;
 
