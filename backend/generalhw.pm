@@ -16,6 +16,7 @@ use testapi qw(get_required_var get_var);
 use IPC::Run ();
 require IPC::System::Simple;
 use File::Basename 'basename';
+use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 
 sub new ($class) {
     # required for the tests to access our HTTP port
@@ -27,21 +28,15 @@ sub get_cmd ($self, $cmd) {
     my $dir = get_required_var('GENERAL_HW_CMD_DIR');
     die 'GENERAL_HW_CMD_DIR is not pointing to a directory' unless -d $dir;
 
-    my %GENERAL_HW_ARG_VARIABLES_BY_CMD = ('GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS', 'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS', 'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS', 'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS');
+    my %GENERAL_HW_ARG_VARIABLES_BY_CMD = (
+        'GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS',
+        'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS',
+        'GENERAL_HW_INPUT_CMD' => 'GENERAL_HW_INPUT_ARGS',
+        'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS',
+        'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS',
+        'GENERAL_HW_IMAGE_CMD' => 'GENERAL_HW_IMAGE_ARGS',
+    );
     my $args = get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}) if get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd});
-
-    # Append HDD infos to flash script
-    if ($cmd eq 'GENERAL_HW_FLASH_CMD' and get_var('HDD_1')) {
-        my $numdisks = get_var('NUMDISKS') // 1;
-        for my $i (1 .. $numdisks) {
-            # Pass path of HDD
-            $args .= " " . get_required_var("HDD_$i");
-            # Pass size of HDD
-            my $size = get_var("HDDSIZEGB_$i");
-            $size //= get_var('HDDSIZEGB') // 10;
-            $args .= " $size" . 'G';
-        }
-    }
 
     $cmd = get_required_var($cmd);
     $cmd = "$dir/" . basename($cmd);
@@ -49,17 +44,24 @@ sub get_cmd ($self, $cmd) {
     return $cmd;
 }
 
-sub run_cmd ($self, @args) {
-    my @full_cmd = split / /, $self->get_cmd($args[0]);
+sub run_cmd ($self, $cmd, @extra_args) {
+    my @full_cmd = split / /, $self->get_cmd($cmd);
+
+    push @full_cmd, @extra_args;
 
     my ($stdin, $stdout, $stderr, $ret);
-    eval { $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr) };
-    die "Unable to run command '@full_cmd' (deduced from test variable $args[0]): $@\n" if $@;
+
+    {
+        # Do not let the SIGCHLD handler of Mojo::IOLoop::ReadWriteProcess::Session steal the exit code from IPC::Run
+        local $SIG{CHLD};
+        eval { $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr) };
+        die "Unable to run command '@full_cmd' (deduced from test variable $cmd): $@\n" if $@;
+    }
     chomp $stdout;
     chomp $stderr;
 
-    die "$args[0]: $stderr" unless $ret;
-    bmwqemu::diag("IPMI: $stdout");
+    die "$cmd: stdout: $stdout, stderr: $stderr" unless $ret;
+    bmwqemu::diag("IPMI: stdout: $stdout, stderr: $stderr");
     return $stdout;
 }
 
@@ -96,14 +98,54 @@ sub relogin_vnc ($self) {
     return 1;
 }
 
+sub reconnect_video_stream ($self, @) {
+
+    my $input_cmd;
+    $input_cmd = $self->get_cmd('GENERAL_HW_INPUT_CMD') if get_var('GENERAL_HW_INPUT_CMD');
+    my $vnc = $testapi::distri->add_console(
+        'sut',
+        'video-stream',
+        {
+            url => get_var('GENERAL_HW_VIDEO_STREAM_URL'),
+            connect_timeout => 50,
+            input_cmd => $input_cmd,
+            edid => get_var('GENERAL_HW_EDID'),
+        });
+    $vnc->backend($self);
+    $self->select_console({testapi_console => 'sut'});
+
+    return 1;
+}
+
+sub compute_hdd_args ($self) {
+    my @hdd_args;
+    if (get_var('HDD_1')) {
+        my $numdisks = get_var('NUMDISKS') // 1;
+        for my $i (1 .. $numdisks) {
+            # Pass path of HDD
+            push @hdd_args, get_required_var("HDD_$i");
+            # Pass size of HDD
+            my $size = get_var("HDDSIZEGB_$i");
+            $size //= get_var('HDDSIZEGB') // 10;
+            push @hdd_args, "$size" . 'G';
+        }
+    }
+    return \@hdd_args;
+}
+
+
 sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
     if (get_var('GENERAL_HW_FLASH_CMD')) {
+        # Append HDD infos to flash script
+        my $hdd_args = $self->compute_hdd_args;
+
         $self->poweroff_host;    # Ensure system is off, before flashing
-        $self->run_cmd('GENERAL_HW_FLASH_CMD');
+        $self->run_cmd('GENERAL_HW_FLASH_CMD', @$hdd_args);
     }
     $self->restart_host;
     $self->relogin_vnc if (get_var('GENERAL_HW_VNC_IP'));
+    $self->reconnect_video_stream if (get_var('GENERAL_HW_VIDEO_STREAM_URL'));
     $self->start_serial_grab if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
     return {};
 }
@@ -111,6 +153,7 @@ sub do_start_vm ($self, @) {
 sub do_stop_vm ($self, @) {
     $self->poweroff_host;
     $self->stop_serial_grab() if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
+    $self->disable_consoles;
     return {};
 }
 
@@ -138,5 +181,14 @@ sub stop_serial_grab ($self, @) {
 }
 
 # serial grab end
+
+sub do_extract_assets ($self, $args) {
+    my $name = $args->{name};
+    my $img_dir = $args->{dir};
+    my $hdd_num = $args->{hdd_num} - 1;
+    die "extracting pflash vars not supported" if $args->{pflash_vars};
+
+    $self->run_cmd('GENERAL_HW_IMAGE_CMD', ($hdd_num, "$img_dir/$name"));
+}
 
 1;
