@@ -38,7 +38,7 @@ virtualization acceleration:
 
 [source,sh]
 ----
-podman run --rm -it -v .:/tests registry.opensuse.org/devel/openqa/containers15.3/isotovideo:qemu-kvm casedir=/tests
+podman run --rm -it -v .:/tests registry.opensuse.org/devel/openqa/containers/isotovideo:qemu-kvm casedir=/tests
 ----
 
 Use the image variant ending with `qemu-x86` on x86_64 if no KVM support is
