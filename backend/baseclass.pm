@@ -412,28 +412,33 @@ sub alive ($self, @) {
 # new api end
 
 # virtual methods
-sub notimplemented ($self) { confess "backend method not implemented" }
+sub notimplemented ($self) {
+    my $method = (caller(1))[3];
+    $method =~ s/^backend::baseclass:://;
+    confess sprintf "backend method '%s' not implemented for class '%s'",
+      $method, ref $self;
+}
 
 # parameters: acpi, reset, (on), off
-sub power ($self, $args) { notimplemented }
-sub insert_cd ($self) { notimplemented }
-sub eject_cd ($self, $args = {}) { notimplemented }
-sub do_start_vm ($self, @) { notimplemented }
-sub do_stop_vm ($self, @) { notimplemented }
-sub stop ($self) { notimplemented }
-sub cont ($self) { notimplemented }
+sub power ($self, $args) { $self->notimplemented }
+sub insert_cd ($self) { $self->notimplemented }
+sub eject_cd ($self, $args = {}) { $self->notimplemented }
+sub do_start_vm ($self, @) { $self->notimplemented }
+sub do_stop_vm ($self, @) { $self->notimplemented }
+sub stop ($self) { $self->notimplemented }
+sub cont ($self) { $self->notimplemented }
 
 sub can_handle ($self, @) {
     return;    # sorry, no
 }
 
-sub do_extract_assets ($self) { notimplemented }
+sub do_extract_assets ($self, $args) { $self->notimplemented }
 
 sub is_shutdown ($self, @) { -1 }
 
-sub save_memory_dump ($self) { notimplemented }
+sub save_memory_dump ($self, $args) { $self->notimplemented }
 
-sub save_storage_drives ($self) { notimplemented }
+sub save_storage_drives ($self, $args) { $self->notimplemented }
 
 ## MAY be overwritten:
 

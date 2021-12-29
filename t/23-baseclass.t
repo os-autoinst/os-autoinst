@@ -47,6 +47,32 @@ subtest 'format_vtt_timestamp' => sub {
     );
 };
 
+subtest 'not implemented' => sub {
+    local @dummy::ISA = ('backend::baseclass');
+    my $dummy = bless {}, 'dummy';
+    my @tests = (
+        [power => 23],
+        [insert_cd =>],
+        [eject_cd =>],
+        [eject_cd => 23],
+        [do_start_vm => 23,],
+        [do_start_vm => 23, 42],
+        [do_stop_vm => 23,],
+        [do_stop_vm => 23, 42],
+        [stop =>],
+        [cont =>],
+        [do_extract_assets => 23],
+        [save_memory_dump => 23],
+        [save_storage_drives => 23],
+    );
+    for my $test (@tests) {
+        my ($m, @args) = @$test;
+        eval { $dummy->$m(@args) };
+        my $err = $@;
+        like $err, qr{backend method '$m' not implemented for class 'dummy'}, "notimplemented() works for '\$self->$m(@args)'";
+    }
+};
+
 subtest 'SSH utilities' => sub {
     my $ssh_expect = {username => 'root', password => 'password', hostname => 'foo.bar', port => undef};
     my $fail_on_channel_call = undef;
