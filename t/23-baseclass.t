@@ -47,6 +47,11 @@ subtest 'format_vtt_timestamp' => sub {
     );
 };
 
+subtest 'Extract assets' => sub {
+    my $args = {foo => 'bar', spam => 'eggs'};
+    throws_ok { $baseclass->do_extract_assets($args) } qr/backend method not implemented/, 'Not implemented by default';
+};
+
 subtest 'SSH utilities' => sub {
     my $ssh_expect = {username => 'root', password => 'password', hostname => 'foo.bar', port => undef};
     my $fail_on_channel_call = undef;

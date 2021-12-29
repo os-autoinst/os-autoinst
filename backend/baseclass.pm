@@ -427,7 +427,7 @@ sub can_handle ($self, @) {
     return;    # sorry, no
 }
 
-sub do_extract_assets ($self) { notimplemented }
+sub do_extract_assets ($self, $args) { $self->notimplemented }
 
 sub is_shutdown ($self, @) { -1 }
 
