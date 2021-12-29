@@ -184,6 +184,20 @@ subtest 'upload the asset even in an incomplete job' => sub {
     ok(!-e $pool_dir . '/assets_public/publish_test.qcow2', 'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
 };
 
+subtest 'asset handling in unsupported backends' => sub {
+    my $command_handler = OpenQA::Isotovideo::CommandHandler->new();
+    $bmwqemu::vars{BACKEND} = 'vagrant';
+    $bmwqemu::vars{NUMDISKS} = 1;
+    $bmwqemu::vars{VAGRANT_PROVIDER} = 'libvirt';
+    $bmwqemu::vars{VAGRANT_BOX} = 'foobar';
+    $bmwqemu::backend = FakeBackendDriver->new('vagrant');
+    combined_like { handle_generated_assets($command_handler, 1) } qr/unable to extract assets: backend method '.*' not implemented for class/, 'Fails with not implemented error';
+
+    delete $bmwqemu::vars{FORCE_PUBLISH_HDD_1};
+    delete $bmwqemu::vars{PUBLISH_HDD_1};
+    is(handle_generated_assets($command_handler, 1), 0, 'No extraction called');
+};
+
 done_testing();
 
 END {
