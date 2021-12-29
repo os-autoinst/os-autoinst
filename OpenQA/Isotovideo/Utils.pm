@@ -128,7 +128,6 @@ configuration variables.
 sub handle_generated_assets ($command_handler, $clean_shutdown) {
     my $return_code = 0;
     # mark hard disks for upload if test finished
-    return unless $bmwqemu::vars{BACKEND} eq 'qemu';
     my @toextract;
     my $nd = $bmwqemu::vars{NUMDISKS};
     if ($command_handler->test_completed) {
@@ -158,6 +157,8 @@ sub handle_generated_assets ($command_handler, $clean_shutdown) {
         bmwqemu::diag "Requested to force the publication of '$name'";
         push @toextract, _store_asset($i, $name, 'assets_public');
     }
+    # Nothing to do here if we don't have any assets to extract
+    return unless @toextract;
     for my $asset (@toextract) {
         local $@;
         eval { $bmwqemu::backend->extract_assets($asset); };
