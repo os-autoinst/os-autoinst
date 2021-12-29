@@ -430,7 +430,7 @@ sub add_disk ($self, $args) {
     my $cdrom = $args->{cdrom};
     my $name = $self->name;
     my $file = $name . $args->{dev_id} . ($self->vmm_family eq 'vmware' ? '.vmdk' : '.img');
-    my $basedir = '/var/lib/libvirt/images/';
+    my $basedir = backend::svirt::IMAGE_STORAGE;
     my $vmware_datastore = $bmwqemu::vars{VMWARE_DATASTORE} // '';
     my $vmware_openqa_datastore = "/vmfs/volumes/$vmware_datastore/openQA/";
     if ($args->{create}) {
@@ -507,7 +507,7 @@ __END"
 
     my $instance = $self->instance;
     my $xmldata = $self->{domainxml}->toString(2);
-    my $xmlfilename = "/var/lib/libvirt/images/" . $self->name . ".xml";
+    my $xmlfilename = backend::svirt::IMAGE_STORAGE . $self->name . ".xml";
     my $ret;
     bmwqemu::diag("Creating libvirt configuration file $xmlfilename:\n$xmldata");
     my ($ssh, $chan) = $self->backend->run_ssh("cat > $xmlfilename", $self->get_ssh_credentials(), keep_open => 1);

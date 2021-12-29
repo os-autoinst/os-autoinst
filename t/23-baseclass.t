@@ -61,7 +61,6 @@ subtest 'not implemented' => sub {
         [do_stop_vm => 23, 42],
         [stop =>],
         [cont =>],
-        [do_extract_assets => 23],
         [save_memory_dump => 23],
         [save_storage_drives => 23],
     );

@@ -17,8 +17,10 @@ use distribution;
 use Net::SSH2;
 use testapi qw(get_var get_required_var check_var set_var);
 use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT);
-use Mojo::File 'tempdir';
+use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
+use OpenQA::Isotovideo::Utils qw(handle_generated_assets);
+use OpenQA::Isotovideo::CommandHandler;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
@@ -127,7 +129,7 @@ subtest 'starting VMware console' => sub {
     is_deeply \@cmds, [
         $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
-        $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
+        $s . ' define ' . backend::svirt::IMAGE_STORAGE . 'openQA-SUT-1.xml',
         'echo bios.bootDelay = \\"10000\\" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
@@ -451,7 +453,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
     subtest 'family svirt-xen-hvm' => sub {
         set_var(VIRSH_VMM_FAMILY => 'xen');
         set_var(VIRSH_VMM_TYPE => 'hvm');
-        my $basedir = '/var/lib/libvirt/images/';
+        my $basedir = backend::svirt::IMAGE_STORAGE;
 
         my $svirt = consoles::sshVirtsh->new('svirt');
         $svirt->backend(backend::baseclass->new);
@@ -590,7 +592,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
     subtest 'family kvm' => sub {
         set_var(VIRSH_VMM_FAMILY => 'kvm');
         set_var(VIRSH_VMM_TYPE => undef);
-        my $basedir = '/var/lib/libvirt/images/';
+        my $basedir = backend::svirt::IMAGE_STORAGE;
 
         my $svirt = consoles::sshVirtsh->new('svirt');
         $svirt->backend(backend::baseclass->new);
@@ -740,6 +742,35 @@ subtest 'get_wait_still_screen_on_here_doc_input' => sub {
     is($svirt->get_wait_still_screen_on_here_doc_input({}) > 0, 1, 'wait_still_screen on here doc is set for vmware');
     set_var(VIRSH_VMM_FAMILY => 'kvm');
     is($svirt->get_wait_still_screen_on_here_doc_input({}), 0, 'wait_still_screen on here doc is not set for kvm');
+};
+
+# mock backend/driver
+{
+    package FakeBackendDriver;
+    sub new ($class, $name) {
+        my $self = bless({class => $class}, $class);
+        require "backend/$name.pm";
+        $self->{backend} = "backend::$name"->new();
+        return $self;
+    }
+    sub extract_assets ($self, $args) {
+        $self->{backend}->do_extract_assets($args);
+    }
+}
+
+subtest 'upload assets' => sub {
+    my $osutils_mock = Test::MockModule->new('osutils');
+    $osutils_mock->redefine(run => sub (@cmd) {
+            is join(' ', @cmd), 'nice ionice qemu-img convert -p -O qcow2 ' . backend::svirt::IMAGE_STORAGE . 'barfoob.img assets_public/test.qcow2 -c', 'got expected command';
+            return 0, '';
+    });
+
+    my $command_handler = OpenQA::Isotovideo::CommandHandler->new();
+    $bmwqemu::vars{NUMDISKS} = 1;
+    $bmwqemu::vars{FORCE_PUBLISH_HDD_1} = 'test.qcow2';
+    $bmwqemu::backend = FakeBackendDriver->new('svirt');
+    my $return_code = handle_generated_assets($command_handler, 1);
+    is $return_code, 0, 'The asset was uploaded successfully';
 };
 
 done_testing;
