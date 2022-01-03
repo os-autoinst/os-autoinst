@@ -55,6 +55,7 @@ our @ovmf_locations = (
 );
 
 our %vars;
+tie %vars, 'bmwqemu::tiedvars';
 
 sub result_dir { 'testresults' }
 
@@ -329,6 +330,62 @@ sub wait_for_one_more_screenshot {
     # uncoverable subroutine
     # uncoverable statement
     sleep 1;
+}
+
+package bmwqemu::tiedvars;
+use Tie::Hash;
+use base qw/ Tie::StdHash /;
+use Carp ();
+
+sub TIEHASH {
+    my ($class, %args) = @_;
+    my $self = bless {
+        data => {%args},
+    }, $class;
+}
+
+sub STORE {
+    my ($self, $key, $val) = @_;
+    warn Carp::longmess "Settings key '$key' is invalid" unless $key =~ m/^(?:[A-Z0-9_]+)\z/;
+    $self->{data}->{$key} = $val;
+}
+
+sub FIRSTKEY {
+    my ($self) = @_;
+    my $data = $self->{data};
+    my @k = keys %$data;    # reset
+    my $next = each %$data;
+}
+
+sub NEXTKEY {
+    my ($self, $last) = @_;
+    my $data = $self->{data};
+    my $next = each %$data;
+}
+
+sub FETCH {
+    my ($self, $key) = @_;
+    my $val = $self->{data}->{$key};
+}
+
+sub DELETE {
+    my ($self, $key) = @_;
+    delete $self->{data}->{$key};
+}
+
+sub EXISTS {
+    my ($self, $key) = @_;
+    return exists $self->{data}->{$key};
+}
+
+sub CLEAR {
+    my ($self) = @_;
+    $self->{data} = {};
+}
+
+sub SCALAR {
+    my ($self) = @_;
+    return scalar %{$self->{data}};
 }
 
 1;
