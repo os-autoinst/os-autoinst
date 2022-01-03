@@ -5,7 +5,7 @@
 
 use Test::Most;
 use FindBin '$Bin';
-
+use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Mojo::Base -strict, -signatures;
 use Mojo::File qw(path);
