@@ -4,7 +4,7 @@
 
 package consoles::s3270;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use feature 'say';
 
 use base 'consoles::localXvnc';
@@ -22,9 +22,7 @@ has zVM_host => (is => "rw");
 has guest_user => (is => "rw");
 has guest_login => (is => "rw");
 
-sub start {
-    my $self = shift;
-
+sub start ($self) {
     # prepare the communication queue
     $self->{raw_expect_queue} = Thread::Queue->new;
 
@@ -37,8 +35,7 @@ sub start {
 
 }
 
-sub finish {
-    my $self = shift;
+sub finish ($self) {
     IPC::Run::finish($self->{connection});
 }
 
@@ -55,9 +52,7 @@ sub finish {
 #    terminal_status => "s3270 status line, see man s3270",
 # }
 
-sub send_3270 {
-    my ($self, $command, %arg) = @_;
-    $command //= '';
+sub send_3270 ($self, $command = '', %arg) {
     $arg{command_status} //= "ok";
     confess "command_status must be 'ok' or 'error' or 'any', got $arg{command_status}."
       unless (grep $arg{command_status}, ['ok', 'error', 'any']);
@@ -91,8 +86,7 @@ sub send_3270 {
     return $out;
 }
 
-sub ensure_screen_update {
-    my ($self) = @_;
+sub ensure_screen_update ($self) {
     # # TODO we capture_screenshot here to ensure
     # # no screen content is lost in the video.  It is
     # # a hacky work around until this loop is properly
@@ -142,9 +136,7 @@ sub ensure_screen_update {
 #  - only clear the screen when it's full, not all the time, thus
 #    cope with new incremental input in addition to something that
 #    is already captured.
-sub expect_3270 {
-    my ($self, %arg) = @_;
-
+sub expect_3270 ($self, %arg) {
     $arg{buffer_full} //= qr/MORE\.\.\./;
     $arg{buffer_ready} //= qr/RUNNING/;
     $arg{expected_status} //= $arg{buffer_ready};
@@ -256,9 +248,8 @@ sub expect_3270 {
     return $result;
 }
 
-sub wait_output {
-    my ($self, $timeout) = @_;
-    $timeout //= 0;    # just poll
+# timeout = 0: just poll
+sub wait_output ($self, $timeout = 0) {
     my $r = $self->send_3270("Wait($timeout,Output)", command_status => 'any');
     return 1 if $r->{command_status} eq 'ok';
     return 0 if $r->{command_output}[0] eq 'Wait: Timed out';
@@ -267,14 +258,12 @@ sub wait_output {
 
 ###################################################################
 
-sub sequence_3270 {
-    my ($self, @commands) = @_;
+sub sequence_3270 ($self, @commands) {
     $self->send_3270($_) for (@commands);
 }
 
 # map the terminal status of x3270 to a hash
-sub nice_3270_status {
-    my ($self, $status_string) = @_;
+sub nice_3270_status ($self, $status_string) {
     my (@raw_status) = split(" ", $status_string);
     my @status_names = (
         'keyboard_state',
@@ -329,9 +318,7 @@ sub nice_3270_status {
     return \%nice_status;
 }
 
-sub _connect_3270 {
-    my ($self, $host) = @_;
-
+sub _connect_3270 ($self, $host) {
     my $r = $self->send_3270("Connect($host)");
     confess "connect to host >$host< failed.\n" . join("\n", @$r) if $r->{terminal_status} !~ / C\($host\) /;
     $self->send_3270("Wait(InputField)");
@@ -340,9 +327,7 @@ sub _connect_3270 {
     return $r;
 }
 
-sub _login_guest {
-    my ($self, $guest, $password) = @_;
-
+sub _login_guest ($self, $guest, $password) {
     $self->send_3270("String($guest)");
     $self->send_3270("String($password)");
     $self->send_3270("ENTER");
@@ -355,9 +340,7 @@ sub _login_guest {
     return $r;
 }
 
-sub cp_logoff_disconnect {
-    my ($self) = @_;
-
+sub cp_logoff_disconnect ($self) {
     # #cp force logoff immediate ??
     $self->send_3270('String("#cp logoff")');
     $self->send_3270('ENTER');
@@ -365,22 +348,17 @@ sub cp_logoff_disconnect {
 
 }
 
-sub cp_disconnect {
-    my ($self) = @_;
-
+sub cp_disconnect ($self) {
     $self->send_3270('String("#cp disconnect")');
     $self->send_3270('ENTER');
     $self->send_3270('Wait(Disconnect)');
 }
 
-sub DESTROY {
-    my ($self) = @_;
+sub DESTROY ($self) {
     IPC::Run::finish($self->{connection}) if $self->{connection};
 }
 
-sub connect_and_login {
-    my ($self, $reconnect_ok) = @_;
-    $reconnect_ok //= 0;
+sub connect_and_login ($self, $reconnect_ok = 0) {
     my $r;
     ###################################################################
     # try to connect exactly trice
@@ -421,8 +399,7 @@ sub connect_and_login {
 
 ###################################################################
 # create x3270 terminals, -e ssh ones and true 3270 ones.
-sub new_3270_console {
-    my ($self) = @_;
+sub new_3270_console ($self) {
     $self->{s3270} = [
         qw(x3270),
         "-display", $self->{DISPLAY},
@@ -443,9 +420,7 @@ sub new_3270_console {
     return;
 }
 
-sub activate {
-    my ($self) = @_;
-
+sub activate ($self) {
     $self->SUPER::activate;
 
     $self->zVM_host(get_required_var("ZVM_HOST"));
@@ -456,8 +431,7 @@ sub activate {
     return;
 }
 
-sub disable {
-    my ($self) = @_;
+sub disable ($self) {
     $self->cp_logoff_disconnect();
     $self->_kill_window();
 }

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 package consoles::virtio_terminal;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie;
 
 use base 'consoles::console';
@@ -43,8 +43,7 @@ uses two pipes to communicate with virtio_consoles from qemu.
 
 =cut
 
-sub new {
-    my ($class, $testapi_console, $args) = @_;
+sub new ($class, $testapi_console, $args) {
     my $self = $class->SUPER::new($testapi_console, $args);
     $self->{fd_read} = 0;
     $self->{fd_write} = 0;
@@ -54,13 +53,11 @@ sub new {
     return $self;
 }
 
-sub screen {
-    my ($self) = @_;
+sub screen ($self) {
     return $self->{screen};
 }
 
-sub disable {
-    my ($self) = @_;
+sub disable ($self) {
     if ($self->{fd_read} > 0) {
         close $self->{fd_read};
         close $self->{fd_write};
@@ -70,16 +67,12 @@ sub disable {
     }
 }
 
-sub save_snapshot {
-    my ($self, $name) = @_;
-
+sub save_snapshot ($self, $name) {
     $self->set_snapshot($name, 'activated', $self->{activated});
     $self->set_snapshot($name, 'buffer', $self->{screen} ? $self->{screen}->peak() : $self->{preload_buffer});
 }
 
-sub load_snapshot {
-    my ($self, $name) = @_;
-
+sub load_snapshot ($self, $name) {
     $self->{activated} = $self->get_snapshot($name, 'activated') // 0;
     my $buffer = $self->get_snapshot($name, 'buffer') // '';
     if (defined($self->{screen})) {
@@ -120,14 +113,12 @@ sub F_SETPIPE_SZ {
     return eval 'no warnings "all"; Fcntl::F_SETPIPE_SZ;' || 1031;    # uncoverable statement
 }
 
-sub set_pipe_sz {
+sub set_pipe_sz ($self, $fd, $newsize) {
     no autodie;
-    my ($self, $fd, $newsize) = @_;    # uncoverable statement
     return fcntl($fd, F_SETPIPE_SZ(), int($newsize));    # uncoverable statement
 }
 
-sub get_pipe_sz {
-    my ($self, $fd) = @_;
+sub get_pipe_sz ($self, $fd) {
     return fcntl($fd, F_GETPIPE_SZ(), 0);
 }
 
@@ -141,8 +132,7 @@ Returns the read and write file descriptors for the open sockets,
 otherwise it dies.
 
 =cut
-sub open_pipe {
-    my ($self) = @_;
+sub open_pipe ($self) {
     bmwqemu::log_call(pipe_prefix => $self->{pipe_prefix});
 
     sysopen(my $fd_w, $self->{pipe_prefix} . '.in', O_WRONLY)
@@ -168,8 +158,7 @@ sub open_pipe {
     return ($fd_r, $fd_w);
 }
 
-sub activate {
-    my ($self) = @_;
+sub activate ($self) {
     if (!check_var('VIRTIO_CONSOLE', 0)) {
         ($self->{fd_read}, $self->{fd_write}) = $self->open_pipe() unless ($self->{fd_read});
         $self->{screen} = consoles::serial_screen::->new($self->{fd_read}, $self->{fd_write});
