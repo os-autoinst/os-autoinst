@@ -55,7 +55,7 @@ our @ovmf_locations = (
 );
 
 our %vars;
-tie %vars, 'bmwqemu::tiedvars';
+tie %vars, 'bmwqemu::tiedvars', %vars;
 
 sub result_dir { 'testresults' }
 
