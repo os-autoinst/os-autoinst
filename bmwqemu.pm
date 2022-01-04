@@ -19,6 +19,7 @@ use Mojo::Log;
 use Mojo::File qw(path);
 use Time::Moment;
 use Term::ANSIColor;
+use YAML::PP;
 
 use Exporter 'import';
 
@@ -294,7 +295,6 @@ sub mydie {
 
 # runtime information gathering functions end
 
-
 # store the obj as json into the given filename
 sub save_json_file {
     my ($result, $fn) = @_;
@@ -303,6 +303,23 @@ sub save_json_file {
     print $fd $json;
     close($fd);
     return rename("$fn.new", $fn);
+}
+
+=head2 save_yaml_file
+
+  save_yaml_file($yaml, $filename);
+
+Load YAML string and save the data as YAML into the given filename.
+Also validate YAML string.
+
+=cut
+
+sub save_yaml_file {
+    my ($yaml, $filename) = @_;
+    my $yp = YAML::PP->new;
+    my $data = $yp->load_string($yaml);
+    $yp->dump_file("$filename.new", $data);
+    return rename("$filename.new", $filename);
 }
 
 sub scale_timeout {

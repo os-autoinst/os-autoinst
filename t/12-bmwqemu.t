@@ -140,10 +140,21 @@ subtest 'invalid vars characters' => sub {
 my %new_json = (foo => 'bar', baz => 42);
 ok bmwqemu::save_json_file(\%new_json, 'new_json_file.json'), 'JSON file can be saved with save_json_file';
 is_deeply decode_json(path('new_json_file.json')->slurp), \%new_json, 'JSON file written with correct content';
+
+my $valid_yaml = <<'EOM';
+---
+syscalls:
+  ustat01:
+  - message: ustat() is known to fail with EINVAL on Btrfs. Downstream fixes didn't make it to upstream and were removed. bsc#1194208
+    product: opensuse-Tumbleweed
+    retval: ^1$
+EOM
+ok bmwqemu::save_yaml_file($valid_yaml, 'valid.yaml'), 'YAML file can be saved with save_yaml_file()';
+
 done_testing;
 
 END {
-    unlink for qw(vars.json new_json_file.json);
+    unlink for qw(new_json_file.json valid.yaml vars.json);
 }
 
 1;
