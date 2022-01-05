@@ -25,7 +25,6 @@ use Exporter 'import';
 our $VERSION;
 our @EXPORT_OK = qw(diag fctres fctinfo fctwarn modstate save_vars);
 
-use backend::driver;
 require IPC::System::Simple;
 
 sub mydie;
@@ -227,6 +226,7 @@ sub modstate {
 
 sub current_test {
     require autotest;
+    no warnings 'once';
     return $autotest::current_test;
 }
 
