@@ -69,6 +69,7 @@ subtest "Test open_pipe() error condition" => sub {
 
     my $helper = prepare_pipes($socket_path);
     my $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
+    is $term->is_serial_terminal, 1, 'is a serial terminal';
     combined_like { dies_ok { $term->open_pipe(); } 'Expect die if pipe_sz fail' } qr/\[debug\] <<<.*open_pipe/, 'log';
     cleanup_pipes($helper);
 

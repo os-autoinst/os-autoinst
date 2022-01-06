@@ -15,7 +15,6 @@ use Carp 'croak';
 use Scalar::Util 'blessed';
 use Cwd;
 use consoles::serial_screen ();
-use testapi qw(check_var get_var);
 use Fcntl;
 
 our $VERSION;
@@ -140,7 +139,7 @@ sub open_pipe ($self) {
     sysopen(my $fd_r, $self->{pipe_prefix} . '.out', O_NONBLOCK | O_RDONLY)
       or die "Can't open out pipe for reading $!";
 
-    my $newsize = get_var('VIRTIO_CONSOLE_PIPE_SZ', path('/proc/sys/fs/pipe-max-size')->slurp());
+    my $newsize = $bmwqemu::vars{VIRTIO_CONSOLE_PIPE_SZ} // path('/proc/sys/fs/pipe-max-size')->slurp();
     for my $fd (($fd_w, $fd_r)) {
         my $old = $self->get_pipe_sz($fd) or die("Unable to read PIPE_SZ");
         {
@@ -159,15 +158,12 @@ sub open_pipe ($self) {
 }
 
 sub activate ($self) {
-    if (!check_var('VIRTIO_CONSOLE', 0)) {
-        ($self->{fd_read}, $self->{fd_write}) = $self->open_pipe() unless ($self->{fd_read});
-        $self->{screen} = consoles::serial_screen::->new($self->{fd_read}, $self->{fd_write});
-        $self->{screen}->{carry_buffer} = $self->{preload_buffer};
-        $self->{preload_buffer} = '';
-    }
-    else {
-        croak 'VIRTIO_CONSOLE is set 0, so no virtio-serial and virtconsole devices will be available to use with this console.';
-    }
+    croak 'VIRTIO_CONSOLE is set 0, so no virtio-serial and virtconsole devices will be available to use with this console'
+      unless ($bmwqemu::vars{VIRTIO_CONSOLE} // 1);
+    ($self->{fd_read}, $self->{fd_write}) = $self->open_pipe() unless ($self->{fd_read});
+    $self->{screen} = consoles::serial_screen::->new($self->{fd_read}, $self->{fd_write});
+    $self->{screen}->{carry_buffer} = $self->{preload_buffer};
+    $self->{preload_buffer} = '';
     return;
 }
 
