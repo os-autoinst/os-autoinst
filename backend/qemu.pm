@@ -876,7 +876,7 @@ sub start_qemu ($self) {
             }
         }
 
-        sp('enable-kvm') unless $vars->{QEMU_NO_KVM};
+        sp('enable-kvm') if -r '/dev/kvm' && !$vars->{QEMU_NO_KVM};
         sp('no-shutdown');
 
         if ($vars->{VNC}) {
