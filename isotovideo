@@ -53,6 +53,7 @@ BEGIN {
 }
 
 use bmwqemu;
+use backend::driver;
 use needle;
 use autotest ();
 use commands;

@@ -22,6 +22,7 @@ my $main_pid = $$;
 
 use consoles::virtio_terminal;
 use testapi ();
+use myjsonrpc;
 use bmwqemu ();
 
 our $VERSION;
