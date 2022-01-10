@@ -203,6 +203,9 @@ export CI=1
 # account for sporadic slowness in build environments
 # https://progress.opensuse.org/issues/89059
 export OPENQA_TEST_TIMEOUT_SCALE_CI=20
+# Enable verbose test output as we can not store test artifacts within package
+# build environments in case of needing to investigate failures
+export PROVE_ARGS="--timer -v"
 cd %{__builddir}
 %cmake_build check-pkg-build
 

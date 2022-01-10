@@ -55,8 +55,10 @@ export OS_AUTOINST_MAKE_TOOL=$make_path
 if [[ $TESTS = *[!\ ]* ]]; then
     # split TESTS on white-spaces to allow specifying multiple tests as documented
     # shellcheck disable=SC2086
-    "$prove_path" "$PROVE_ARGS" $TESTS
+    "$prove_path" $PROVE_ARGS $TESTS
 else
-    cd t && "$prove_path" "$PROVE_ARGS" -r
-    cd ../xt && "$prove_path" "$PROVE_ARGS" -r
+    # shellcheck disable=SC2086
+    cd t && "$prove_path" $PROVE_ARGS -r
+    # shellcheck disable=SC2086
+    cd ../xt && "$prove_path" $PROVE_ARGS -r
 fi
