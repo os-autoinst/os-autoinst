@@ -55,6 +55,21 @@ $compress = 0;
 @gcmdl = $bdc->gen_qemu_img_convert(qr/^hd/, 'images', 'hd1.qcow2', $compress);
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert for single new drive, without compression');
 
+my %vars;
+my $proc;
+
+%vars = (
+    NUMDISKS => 1,
+    HDDMODEL => 'virtio-blk',
+    CDMODEL => 'virtio-cd',
+    HDDSIZEGB_1 => 42,
+    HDD_1 => "$Bin/data/test-image-disk.vmdk"
+);
+$proc = qemu_proc('-foo', \%vars);
+@cmdl = ([qw(create -f qcow2 -F vmdk -b), "$Bin/data/test-image-disk.vmdk", qw(raid/hd0-overlay0 42G)]);
+@gcmdl = $proc->blockdev_conf->gen_qemu_img_cmdlines();
+is_deeply(\@gcmdl, \@cmdl, 'qemu-img create call for a vmdk disk image');
+
 @cmdl = ('-blockdev', 'driver=file,node-name=hd1-file,filename=raid/hd1,cache.no-flush=on',
     '-blockdev', 'driver=qcow2,node-name=hd1,file=hd1-file,cache.no-flush=on',
     '-device', 'virtio-blk,id=hd1-device,drive=hd1',
@@ -96,9 +111,6 @@ $compress = 1;
 @cmdl = (['convert', '-c', '-O', 'qcow2', 'raid/hd1-overlay0', 'images/hd1.qcow2']);
 @gcmdl = $bdc->gen_qemu_img_convert(qr/^hd1/, 'images', 'hd1.qcow2', $compress);
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert for single existing drive');
-
-my %vars;
-my $proc;
 
 @cmdl = ('qemu-kvm', '-foo',
     '-blockdev', 'driver=file,node-name=hd0-overlay0-file,filename=raid/hd0-overlay0,cache.no-flush=on',
