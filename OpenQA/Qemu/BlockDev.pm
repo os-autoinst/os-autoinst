@@ -194,7 +194,7 @@ sub _from_map ($self, $drives, $snap_conf) {
       ->snapshot($snap_conf->get_snapshot(sequence => $this->{snapshot}));
 }
 
-sub deduce_driver ($self) { $self->driver($self->file =~ qr/\.qcow2$/ ? 'qcow2' : 'raw') }
+sub deduce_driver ($self) { $self->driver($self->file =~ qr/\.(qcow2|vmdk)/ ? "$1" : 'raw') }
 
 sub CARP_TRACE { 'OpenQA::Qemu::BlockDev(' . (shift->node_name || '') . ')' }
 
