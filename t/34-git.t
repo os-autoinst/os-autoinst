@@ -8,6 +8,7 @@ use File::Path qw(rmtree);
 use FindBin '$Bin';
 use Test::Output qw(combined_from);
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch);
+use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Warnings ':report_warnings';
 
