@@ -8,7 +8,7 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Mock::Time;
 use File::Temp;
-use Test::Output qw(combined_like stderr_like stderr_unlike);
+use Test::Output qw(stderr_like stderr_unlike);
 use Test::Fatal;
 use Test::Warnings qw(:all :report_warnings);
 use Test::Exception;
