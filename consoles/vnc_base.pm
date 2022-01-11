@@ -5,32 +5,25 @@
 package consoles::vnc_base;
 
 use Mojo::Base -strict, -signatures;
-use feature 'say';
 
 use base 'consoles::network_console';
 
 use consoles::VNC;
-use List::Util 'max';
 use Time::HiRes qw(usleep);
 
-use Try::Tiny;
 use bmwqemu ();
 
 # speed limit: 30 keys per second
 use constant VNC_TYPING_LIMIT_DEFAULT => 30;
 
-sub screen ($self) {
-    return $self;
-}
+sub screen ($self) { $self }
 
 sub disable ($self) {
     close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
     $self->{vnc} = undef;
 }
 
-sub get_last_mouse_set ($self) {
-    return $self->{mouse};
-}
+sub get_last_mouse_set ($self) { $self->{mouse} }
 
 sub disable_vnc_stalls ($self) {
     return unless $self->{vnc};
@@ -178,8 +171,6 @@ sub mouse_hide ($self, $args) {
 
 sub mouse_set ($self, $args) {
     die "Need x/y arguments" unless (defined $args->{x} && defined $args->{y});
-
-    # TODO: for framebuffers larger than 1024x768, we need to upscale
     $self->_mouse_move(int($args->{x}), int($args->{y}));
     return {};
 }
@@ -187,17 +178,7 @@ sub mouse_set ($self, $args) {
 sub mouse_button ($self, $args) {
     my $button = $args->{button};
     my $bstate = $args->{bstate};
-
-    my $mask = 0;
-    if ($button eq 'left') {
-        $mask = $bstate;
-    }
-    elsif ($button eq 'right') {
-        $mask = $bstate << 2;
-    }
-    elsif ($button eq 'middle') {
-        $mask = $bstate << 1;
-    }
+    my $mask = {left => $bstate, right => $bstate << 2, middle => $bstate << 1}->{$button} // 0;
     bmwqemu::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
     $self->{vnc}->send_pointer_event($mask, $self->{mouse}->{x}, $self->{mouse}->{y});
     return {};
