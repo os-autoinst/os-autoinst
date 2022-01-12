@@ -14,7 +14,6 @@ use Class::Accessor 'antlers';
 use Mojo::JSON qw(decode_json);
 
 use backend::svirt;
-use testapi qw(get_var get_required_var check_var set_var);
 
 has instance => (is => "rw", isa => "Num");
 has name => (is => "rw", isa => "Str");
@@ -24,11 +23,11 @@ has vmm_type => (is => "rw", isa => "Str");
 sub new ($class, $testapi_console = undef, $args = {}) {
     my $self = $class->SUPER::new($testapi_console, $args);
 
-    $self->instance(get_var('VIRSH_INSTANCE', 1));
+    $self->instance($bmwqemu::vars{VIRSH_INSTANCE} // 1);
     # default name
     $self->name("openQA-SUT-" . $self->instance);
-    $self->vmm_family(get_var('VIRSH_VMM_FAMILY', 'kvm'));
-    $self->vmm_type(get_var('VIRSH_VMM_TYPE', 'hvm'));
+    $self->vmm_family($bmwqemu::vars{VIRSH_VMM_FAMILY} // 'kvm');
+    $self->vmm_type($bmwqemu::vars{VIRSH_VMM_TYPE} // 'hvm');
 
     return $self;
 }
@@ -58,8 +57,8 @@ sub _init_ssh ($self, $args) {
     if ($self->vmm_family eq 'vmware') {
         $self->{ssh_credentials}->{sshVMwareServer} =
           {
-            hostname => get_required_var('VMWARE_HOST'),
-            password => get_required_var('VMWARE_PASSWORD'),
+            hostname => $bmwqemu::vars{VMWARE_HOST} || die('Need variable VMWARE_HOST'),
+            password => $bmwqemu::vars{VMWARE_PASSWORD} || die('Need variable VMWARE_PASSWORD'),
             username => 'root',
           };
     }
@@ -85,19 +84,19 @@ sub _init_xml ($self, $args = {}) {
     $elem->appendTextNode($self->name);
     $root->appendChild($elem);
 
-    my $openqa_hostname = get_var('OPENQA_HOSTNAME', 'no-webui-set');
+    my $openqa_hostname = $bmwqemu::vars{OPENQA_HOSTNAME} // 'no-webui-set';
     $elem = $doc->createElement('description');
     $elem->appendTextNode("openQA WebUI: $openqa_hostname ($instance): ");
-    $elem->appendTextNode(get_var('NAME', '0-no-scenario'));
+    $elem->appendTextNode($bmwqemu::vars{NAME} // '0-no-scenario');
     $root->appendChild($elem);
 
     $elem = $doc->createElement('memory');
-    $elem->appendTextNode(get_required_var('QEMURAM'));
+    $elem->appendTextNode($bmwqemu::vars{QEMURAM} or die 'Need variable QEMURAM');
     $elem->setAttribute(unit => 'MiB');
     $root->appendChild($elem);
 
     $elem = $doc->createElement('vcpu');
-    $elem->appendTextNode(get_required_var('QEMUCPUS'));
+    $elem->appendTextNode($bmwqemu::vars{QEMUCPUS} or die 'Need variable QEMUCPUS');
     $root->appendChild($elem);
 
     my $os = $doc->createElement('os');
@@ -134,19 +133,19 @@ sub _init_xml ($self, $args = {}) {
         $root->appendChild($elem);
     }
 
-    if (get_var('UEFI') and check_var('ARCH', 'x86_64') and !get_var('BIOS') and !check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+    if ($bmwqemu::vars{UEFI} and $bmwqemu::vars{ARCH} eq 'x86_64' and !$bmwqemu::vars{BIOS} and !$bmwqemu::vars{VIRSH_VMM_FAMILY} eq 'hyperv') {
         foreach my $firmware (@bmwqemu::ovmf_locations) {
             if (!$self->run_cmd("test -e $firmware")) {
-                set_var('BIOS', $firmware);
+                $bmwqemu::vars{BIOS} = $firmware;
                 $elem = $doc->createElement('loader');
                 $elem->appendTextNode($firmware);
                 $os->appendChild($elem);
                 last;
             }
         }
-        if (!get_var('BIOS')) {
+        if (!$bmwqemu::vars{BIOS}) {
             # We know this won't go well.
-            my $virsh_hostname = get_var('VIRSH_HOSTNAME', '');
+            my $virsh_hostname = $bmwqemu::vars{VIRSH_HOSTNAME} // '';
             die "No UEFI firmware can be found on hypervisor '$virsh_hostname'. Please specify BIOS or UEFI_BIOS or install an appropriate package.";
         }
     }
@@ -224,7 +223,7 @@ sub add_pty ($self, $args) {
         my $elem = $doc->createElement('source');
         $elem->setAttribute(mode => 'bind');
         $elem->setAttribute(host => '0.0.0.0');
-        $elem->setAttribute(service => get_var('VMWARE_SERIAL_PORT'));
+        $elem->setAttribute(service => $bmwqemu::vars{VMWARE_SERIAL_PORT});
         $console->appendChild($elem);
     }
 
@@ -330,7 +329,7 @@ sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_open
     # If the file exists, make sure someone else is not copying it there right now,
     # otherwise copy image from NFS datastore.
     my $nfs_dir = $backingfile ? 'hdd' : 'iso';
-    my $vmware_nfs_datastore = get_required_var('VMWARE_NFS_DATASTORE');
+    my $vmware_nfs_datastore = $bmwqemu::vars{VMWARE_NFS_DATASTORE} or die 'Need variable VMWARE_NFS_DATASTORE';
     my $cmd =
       "if test -e $vmware_openqa_datastore$file_basename; then " .
       "while lsof | grep 'cp.*$file_basename'; do " .
@@ -432,7 +431,7 @@ sub add_disk ($self, $args) {
     my $name = $self->name;
     my $file = $name . $args->{dev_id} . ($self->vmm_family eq 'vmware' ? '.vmdk' : '.img');
     my $basedir = '/var/lib/libvirt/images/';
-    my $vmware_datastore = get_var('VMWARE_DATASTORE', '');
+    my $vmware_datastore = $bmwqemu::vars{VMWARE_DATASTORE} // '';
     my $vmware_openqa_datastore = "/vmfs/volumes/$vmware_datastore/openQA/";
     if ($args->{create}) {
         $file = $self->_create_disk($args, $vmware_openqa_datastore, $file, $name, $basedir);
@@ -468,7 +467,7 @@ sub add_disk ($self, $args) {
 
 sub virsh () {
     my $virsh = 'virsh';
-    $virsh .= ' ' . get_var('VMWARE_REMOTE_VMM') if get_var('VMWARE_REMOTE_VMM');
+    $virsh .= ' ' . $bmwqemu::vars{VMWARE_REMOTE_VMM} if $bmwqemu::vars{VMWARE_REMOTE_VMM};
     return $virsh;
 }
 
@@ -482,7 +481,7 @@ sub resume ($self) {
     bmwqemu::diag "VM " . $self->name . " resumed";
 }
 
-sub get_remote_vmm ($self) { get_var('VMWARE_REMOTE_VMM', '') }
+sub get_remote_vmm ($self) { $bmwqemu::vars{VMWARE_REMOTE_VMM} // '' }
 
 sub define_and_start ($self) {
     my $remote_vmm = "";
@@ -494,16 +493,16 @@ sub define_and_start ($self) {
         $self->run_cmd(
             "cat > $libvirtauthfilename <<__END
 [credentials-vmware]
-username=" . get_required_var('VMWARE_USERNAME') . "
-password=" . get_required_var('VMWARE_PASSWORD') . "
-[auth-esx-" . get_required_var('VMWARE_HOST') . "]
+username=" . $bmwqemu::vars{VMWARE_USERNAME} or die 'Need variable VMWARE_USERNAME' . "
+password=" . $bmwqemu::vars{VMWARE_PASSWORD} or die 'Need variable VMWARE_PASSWORD' . "
+[auth-esx-" . $bmwqemu::vars{VMWARE_HOST} or die 'Need variable VMWARE_HOST' . "]
 credentials=vmware
 __END"
         );
-        my $user = get_required_var('VMWARE_USERNAME');
-        my $host = get_required_var('VMWARE_HOST');
+        my $user = $bmwqemu::vars{VMWARE_USERNAME} or die 'Need variable VMWARE_USERNAME';
+        my $host = $bmwqemu::vars{VMWARE_HOST} or die 'Need variable VMWARE_HOST';
         $remote_vmm = "-c esx://$user\@$host/?no_verify=1\\&authfile=$libvirtauthfilename ";
-        set_var('VMWARE_REMOTE_VMM', $remote_vmm);
+        $bmwqemu::vars{VMWARE_REMOTE_VMM} = $remote_vmm;
     }
 
     my $instance = $self->instance;
@@ -548,7 +547,7 @@ sub attach_to_running ($self, $args = undef) {
 
     # Setting SVIRT_KEEP_VM_RUNNING variable prevents destruction of a perhaps valuable VM
     # outside of openQA. Set 'stop_vm' argument should the VM be destroyed at the end.
-    set_var('SVIRT_KEEP_VM_RUNNING', 1) unless $args->{stop_vm};
+    $bmwqemu::vars{SVIRT_KEEP_VM_RUNNING} = 1 unless $args->{stop_vm};
 }
 
 sub start_serial_grab ($self) { $self->backend->start_serial_grab($self->name) }

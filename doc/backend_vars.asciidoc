@@ -43,6 +43,16 @@ UPLOAD_INACTIVITY_TIMEOUT;integer;300;Specifies the inactivity timeout in second
 
 |====================
 
+.ZVM backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+ZVM_HOST;string;;Sets the remote hostname.
+ZVM_GUEST;string;;Sets the remote username.
+ZVM_PASSWORD;string;;Sets the remote password.
+|====================
+
 .SSH backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
@@ -72,6 +82,8 @@ IPMI_MC_RESET_TIMEOUT;integer;60;Counts to try to reach IPMI interface after mc 
 IPMI_MC_RESET_PING_COUNT;integer;1;Ping counts that must be successful after mc reset
 IPMI_MC_RESET_IPMI_TRIES;integer;3;Maximum number of IPMI command tries that are conducted after mc reset
 IPMI_SOL_PERSISTENT_CONSOLE;boolean;1;Make SOL console persistent and don't reset it, enabled by default
+IPMI_$_;;;Internal iterator variable
+WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
 
 .QEMU backend
@@ -172,7 +184,7 @@ VDE_USE_SLIRP;integer;1;whether to start slirpvde
 VNC;integer;worker instance + 90;Display on which VNC server is running. Actual port is 5900 + VNC
 VNCKB;;;Set the keyboard layout if you are not using en-us
 WORKER_CLASS;string;undef;qemu system types
-WORKER_HOSTNAME;string;undef;Worker host name
+WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
 
 .SVIRT backend
@@ -184,7 +196,8 @@ HDDSIZEGB;integer;15;Disk size in GB
 QEMUCPUS;integer;1;Number of CPUs to assign to VM
 QEMURAM;integer;1024;Size of RAM of VM in MiB
 VIRSH_HOSTNAME;string;;SSH Host with virsh
-VIRSH_PASSWORD;string;;Password for root account on above host
+VIRSH_USERNAME;string;;Username on above host, defaults to root
+VIRSH_PASSWORD;string;;Password for user account on above host
 VIRSH_VMM_FAMILY;string;;Host's hypervisor ('kvm', 'xen')
 VIRSH_VMM_TYPE;string;;Host's hypervisor type ('hvm' for full virtualization on 'kvm' and 'xen' families, 'linux' for paravirtualization on 'xen' family)
 VIRSH_GUEST;string;;Where to look for VNC server (SUT or VM)
@@ -205,6 +218,9 @@ HYPERV_SERIAL_PORT;integer;;TCP port where is VM's serial port stream to be expe
 HYPERV_VIRTUAL_SWITCH;string;;ExternalVirtualSwitch;Name of Hyper-V's External Virtual Switch
 NUMDISKS;integer;1;Number of disks
 RAIDLEVEL;integer;undef;Sets the raid level
+HDDFORMAT;;;HDD format
+SVIRT_KEEP_VM_RUNNING;boolean;undef;Keep VM running after execution, disabled by default
+WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
 
 .VAGRANT backend
@@ -257,13 +273,14 @@ WORKER_ID;string;undef;osauto id
 |====================
 Variable;Values allowed;Default value;Explanation
 HARDWARE_CONSOLE_LOG;boolean;undef;Enable direct log capture of mkvterm console, disabled by default
-HMC_MACHINE_NAME;;Sets the public name of the host
-HMC_HOSTNAME;;Sets the remote host to connect tp
-HMC_USERNAME;string;;Username for the remote host
+HMC_MACHINE_NAME;string;;Sets the public name of the host
+HMC_HOSTNAME;string;;Sets the remote host to connect tp
+HMC_USERNAME;string;;Username for the remote host, defaults to hscroot
 HMC_PASSWORD;string;;Password for the remote host
+LPAR_ID;string;udef;LPAR id
 |====================
 
-.GENERAL_HW backend
+.GENERALHW backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
@@ -278,6 +295,11 @@ GENERAL_HW_POWEROFF_CMD;string;;Shell Command to power off the SUT (in CMD_DIR)
 GENERAL_HW_POWEROFF_ARGS;string;;Arguments to pass GENERAL_HW_POWEROFF_CMD Shell script
 GENERAL_HW_FLASH_CMD;string;;Shell Command to flash a disk image on SUT (in CMD_DIR), optional
 GENERAL_HW_FLASH_ARGS;string;;Arguments to pass GENERAL_HW_FLASH_CMD Shell script
+HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
+HDD_$i;filename;;Filename of HDD image to be used for machine.
+HDDSIZEGB_$i;integer;;Creates HDD with specified size in GiB for corresponding HDD
+NUMDISKS;integer;1;Number of disks attached to machine
+WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
 
 .AMT backend
@@ -294,7 +316,7 @@ AMT_PASSWORD;string;;Password for admin AMT user on target host
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-WORKER_HOSTNAME;string;undef;Worker host name
+WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
 
 .SPVM backend
@@ -303,7 +325,7 @@ WORKER_HOSTNAME;string;undef;Worker host name
 |====================
 Variable;Values allowed;Default value;Explanation
 HARDWARE_CONSOLE_LOG;boolean;undef;Enable direct log capture of mkvterm console, disabled by default
-WORKER_HOSTNAME;string;undef;Worker host name
+WORKER_HOSTNAME;string;undef;Worker hostname
 NOVALINK_HOSTNAME;string;undef;Novalink target host to connect to
 NOVALINK_USERNAME;string;root;Username to authenticate on Novalink host
 NOVALINK_PASSWORD;string;undef;Password to authenticate on Novalink host

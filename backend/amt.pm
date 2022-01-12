@@ -12,7 +12,6 @@ use Time::HiRes qw(sleep gettimeofday);
 use Data::Dumper;
 require Carp;
 use bmwqemu ();
-use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
 
@@ -28,8 +27,8 @@ my $ADR = "http://schemas.xmlsoap.org/ws/2004/08/addressing";
 my $vnc_password = 'we4kP@ss';
 
 sub new ($class) {
-    get_required_var('AMT_HOSTNAME');
-    get_required_var('AMT_PASSWORD');
+    defined $bmwqemu::vars{AMT_HOSTNAME} or die 'Need variable AMT_HOSTNAME';
+    defined $bmwqemu::vars{AMT_PASSWORD} or die 'Need variable AMT_PASSWORD';
 
     # use env to avoid leaking password to logs
     $ENV{'WSMAN_USER'} = 'admin';

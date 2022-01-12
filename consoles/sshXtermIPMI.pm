@@ -9,7 +9,6 @@ use autodie ':all';
 
 use base 'consoles::localXvnc';
 
-use testapi 'get_required_var';
 require IPC::System::Simple;
 use File::Which;
 

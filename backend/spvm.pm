@@ -7,8 +7,6 @@ use Mojo::Base -strict, -signatures;
 
 use base 'backend::virt';
 
-use testapi qw(get_var get_required_var);
-
 # supporting the minimal command set of NovaLink through a ssh tunnel
 
 sub new ($class) {

@@ -10,7 +10,6 @@ use IO::Socket::INET;
 use bmwqemu qw(diag fctwarn);
 use Time::HiRes qw( sleep gettimeofday time );
 use List::Util 'min';
-use testapi 'get_var';
 use Crypt::DES;
 use Compress::Raw::Zlib;
 use Carp qw(confess cluck carp croak);
@@ -819,7 +818,7 @@ sub _send_frame_buffer {
 sub send_update_request {
     my ($self) = @_;
 
-    my $time_after_vnc_is_considered_stalled = get_var('VNC_STALL_THRESHOLD', 4);
+    my $time_after_vnc_is_considered_stalled = $bmwqemu::vars{VNC_STALL_THRESHOLD} // 4;
     # after 2 seconds: send forced update
     # after 4 seconds: turn off screen
     my $time_since_last_update = time - $self->_last_update_received;

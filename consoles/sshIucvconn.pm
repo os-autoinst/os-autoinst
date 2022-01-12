@@ -11,11 +11,10 @@ use autodie ':all';
 
 use base 'consoles::network_console';
 
-use testapi 'get_var';
 
 sub connect_remote ($self, $args) {
     my $hostname = $args->{hostname};
-    my $zvmguest = get_var('ZVM_GUEST');
+    my $zvmguest = $bmwqemu::vars{ZVM_GUEST};
 
     # ssh connection to SUT for agetty
     my $ttyconn = $self->backend->new_ssh_connection(hostname => $hostname, password => $args->{password}, username => 'root');

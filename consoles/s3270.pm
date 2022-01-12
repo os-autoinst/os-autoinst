@@ -12,7 +12,6 @@ use base 'consoles::localXvnc';
 use Class::Accessor 'antlers';
 use Data::Dumper 'Dumper';
 use Carp qw(confess cluck carp croak);
-use testapi 'get_required_var';
 require IPC::Run;
 use IPC::Run::Debug;    # set IPCRUNDEBUG=data in shell environment for trace
 use Thread::Queue;
@@ -423,9 +422,9 @@ sub new_3270_console ($self) {
 sub activate ($self) {
     $self->SUPER::activate;
 
-    $self->zVM_host(get_required_var("ZVM_HOST"));
-    $self->guest_user(get_required_var("ZVM_GUEST"));
-    $self->guest_login(get_required_var("ZVM_PASSWORD"));
+    $self->zVM_host($bmwqemu::vars{ZVM_HOST} or die 'Need variable ZVM_HOST');
+    $self->guest_user($bmwqemu::vars{ZVM_GUEST} or die 'Need variable ZVM_GUEST');
+    $self->guest_login($bmwqemu::vars{ZVM_PASSWORD} or die 'Need variable ZVM_PASSWORD');
     $self->new_3270_console;
     $self->connect_and_login;
     return;

@@ -11,17 +11,16 @@ use base 'backend::baseclass';
 
 use Time::HiRes qw(sleep);
 use Time::Seconds;
-use testapi 'get_required_var';
 use IPC::Run ();
 require IPC::System::Simple;
 
 sub new ($class) {
-    get_required_var('WORKER_HOSTNAME');
+    $bmwqemu::vars{WORKER_HOSTNAME} or die 'Need variable WORKER_HOSTNAME';
     return $class->SUPER::new;
 }
 
 sub ipmi_cmdline ($self) {
-    get_required_var("IPMI_$_") foreach qw(HOSTNAME USER PASSWORD);
+    $bmwqemu::vars{"IPMI_$_"} or die 'Need variable IPMI_$_' foreach qw(HOSTNAME USER PASSWORD);
     return ('ipmitool', '-I', 'lanplus', '-H', $bmwqemu::vars{IPMI_HOSTNAME}, '-U', $bmwqemu::vars{IPMI_USER}, '-P', $bmwqemu::vars{IPMI_PASSWORD});
 }
 
