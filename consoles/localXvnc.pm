@@ -101,21 +101,4 @@ sub activate ($self) {
     return;
 }
 
-sub disable ($self) {
-    return unless $self->{local_X_handle};
-
-    # We could shut down more gracefully, some processes may still be open on
-    # Xvnc.
-    IPC::Run::signal($self->{local_X_handle}, 'TERM');
-    IPC::Run::signal($self->{local_X_handle}, 'KILL');
-    IPC::Run::finish($self->{local_X_handle});
-    $self->{local_X_handle} = undef;
-    return;
-}
-
-sub DESTROY ($self) {
-    $self->disable();
-    return;
-}
-
 1;
