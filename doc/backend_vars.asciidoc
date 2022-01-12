@@ -43,6 +43,16 @@ UPLOAD_INACTIVITY_TIMEOUT;integer;300;Specifies the inactivity timeout in second
 
 |====================
 
+.ZVM backend
+[grid="rows",format="csv"]
+[options="header",cols="^m,^m,^m,v",separator=";"]
+|====================
+Variable;Values allowed;Default value;Explanation
+ZVM_HOST;string;;Sets the remote hostname.
+ZVM_GUEST;string;;Sets the remote username.
+ZVM_PASSWORD;string;;Sets the remote password.
+|====================
+
 .SSH backend
 [grid="rows",format="csv"]
 [options="header",cols="^m,^m,^m,v",separator=";"]
