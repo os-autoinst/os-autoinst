@@ -70,7 +70,7 @@ sub serialize_state {
     bmwqemu::fctwarn($state->{msg}) if delete $state->{error};
     bmwqemu::diag($state->{msg}) if delete $state->{log};
     return undef if -e STATE_FILE;
-    eval { Mojo::File->new(STATE_FILE)->spurt(encode_json($state)); };
+    eval { path(STATE_FILE)->spurt(encode_json($state)) };
     bmwqemu::diag("Unable to serialize fatal error: $@") if $@;
 }
 

@@ -12,6 +12,7 @@ use Test::Warnings qw(warning :report_warnings);
 use File::Basename;
 use File::Path 'make_path';
 use File::Temp qw(tempdir);
+use Mojo::File qw(path);
 
 BEGIN {
     $bmwqemu::vars{DISTRI} = "unicorn";
@@ -409,7 +410,7 @@ subtest 'needle::init accepts custom NEEDLES_DIR within working directory and ot
     my $needles_dir = $bmwqemu::vars{NEEDLES_DIR} = "$temp_working_dir/some-needle-repo";
     make_path("$needles_dir/subdir");
     for my $extension (qw(json png)) {
-        Mojo::File->new($misc_needles_dir, "click-point.$extension")->copy_to("$needles_dir/subdir/foo.$extension");
+        path($misc_needles_dir, "click-point.$extension")->copy_to("$needles_dir/subdir/foo.$extension");
     }
 
     subtest 'custom NEEDLES_DIR used when within working directory' => sub {
