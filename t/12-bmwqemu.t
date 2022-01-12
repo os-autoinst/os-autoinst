@@ -106,7 +106,7 @@ subtest 'save_vars' => sub {
 
 subtest 'save_vars no_secret' => sub {
     my $dir = "$data_dir/tests";
-    create_vars({CASEDIR => $dir, _SECRET_TEST => 'my_credentials'});
+    create_vars({CASEDIR => $dir, _SECRET_TEST => 'my_credentials', MY_PASSWORD => 'secret'});
     $bmwqemu::openqa_default_share = $data_dir;
 
     eval {
@@ -118,6 +118,7 @@ subtest 'save_vars no_secret' => sub {
 
     my %vars = %{read_vars()};
     ok(!$vars{_SECRET_TEST}, '_SECRET_TEST not written to vars.json');
+    ok(!$vars{MY_PASSWORD}, 'MY_PASSWORD not written to vars.json');
     is($vars{CASEDIR}, $dir, 'CASEDIR unchanged');
 };
 
