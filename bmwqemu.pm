@@ -9,7 +9,6 @@ use autodie ':all';
 use Fcntl ':flock';
 use Time::HiRes qw(sleep);
 use IO::Socket;
-use POSIX;
 use Carp;
 use Mojo::JSON qw(encode_json);
 use Cpanel::JSON::XS ();
