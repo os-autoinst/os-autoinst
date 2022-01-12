@@ -50,7 +50,7 @@ sub fullscreen ($self, $args) {
     my $display = $self->{DISPLAY};
     my $window_name = $args->{window_name};
 
-    my $xdotool = which "xdotool";
+    my $xdotool = $ENV{OS_AUTOINST_XDOTOOL} // which "xdotool";
     die "Missing 'xdotool'" unless $xdotool;
 
     # search for YaST Window and grab the id
@@ -60,6 +60,21 @@ sub fullscreen ($self, $args) {
     # resize and move window to fit in icewm
     system("DISPLAY=$display $xdotool windowsize $window_id 100% 100%");
     system("DISPLAY=$display $xdotool windowmove $window_id 0 0");
+}
+
+# uncoverable statement count:1
+# uncoverable statement count:2
+# uncoverable statement count:3
+# uncoverable statement count:4
+sub start_xvnc ($s, $display) {
+    listen($s, 1);    # uncoverable statement
+    my $peer;    # uncoverable statement
+    accept($peer, $s);    # uncoverable statement
+    close($s);    # uncoverable statement
+    open(STDIN, "<&", $peer);    # uncoverable statement
+    open(STDOUT, ">&", $peer);    # uncoverable statement
+    close($peer);    # uncoverable statement
+    exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");    # uncoverable statement
 }
 
 sub activate ($self) {
@@ -74,16 +89,7 @@ sub activate ($self) {
     my $display = ":$port";
     my $pid = fork();
     die unless defined $pid;
-    if (!$pid) {
-        listen($s, 1);
-        my $peer;
-        accept($peer, $s);
-        close($s);
-        open(STDIN, "<&", $peer);
-        open(STDOUT, ">&", $peer);
-        close($peer);
-        exec("Xvnc -depth 16 -inetd -SecurityTypes None -ac $display");
-    }
+    start_xvnc($s, $display) unless $pid;
     close($s);
 
     $self->connect_remote(
