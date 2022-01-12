@@ -12,5 +12,5 @@ ok system(qq{git grep -I -l 'This program is free software.*if not, see <http://
 ok system(qq{git grep -I -l '[#/ ]*SPDX-License-Identifier ' ':!COPYING' ':!external/' ':!xt/01-style.t'}) != 0, 'SPDX-License-Identifier correctly terminated';
 is qx{git grep -I -L '^use Test::Most' t/**.t}, '', 'All tests use Test::Most';
 is qx{git grep -I -L '^use Test::Warnings' t/**.t}, '', 'All tests use Test::Warnings';
-is qx{git grep -I -l '^use testapi' backend/}, '', 'No backend files use external facing testapi';
+is qx{git grep -I -l '^use testapi' backend/ consoles/}, '', 'No backend or console files use external facing testapi';
 done_testing;

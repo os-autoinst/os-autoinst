@@ -8,10 +8,9 @@ use Mojo::Base -strict, -signatures;
 
 use base 'consoles::localXvnc';
 
-use testapi 'get_var';
 
 sub activate ($self) {
-    my $sshcommand = $self->sshCommand('root', get_var("PARMFILE")->{Hostname});
+    my $sshcommand = $self->sshCommand('root', $bmwqemu::vars{PARMFILE}->{Hostname});
     my $display = $self->{backend}->{consoles}->{worker}->{DISPLAY};
     my $sshpassword = $testapi::password;
 

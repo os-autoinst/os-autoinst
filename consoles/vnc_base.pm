@@ -14,8 +14,7 @@ use List::Util 'max';
 use Time::HiRes qw(usleep);
 
 use Try::Tiny;
-use testapi 'get_var';
-use bmwqemu qw(diag);
+use bmwqemu ();
 
 # speed limit: 30 keys per second
 use constant VNC_TYPING_LIMIT_DEFAULT => 30;
@@ -47,7 +46,7 @@ sub connect_remote {
 
     $self->{mouse} = {x => -1, y => -1};
 
-    diag "Establishing VNC connection to $args->{hostname}:$args->{port}";
+    bmwqemu::diag "Establishing VNC connection to $args->{hostname}:$args->{port}";
     $self->{vnc} = consoles::VNC->new($args);
     $self->{vnc}->login($args->{connect_timeout});
     return $self->{vnc};
@@ -83,10 +82,12 @@ sub current_screen {
     return $self->{vnc}->_framebuffer;
 }
 
+sub _typing_limit () { $bmwqemu::vars{VNC_TYPING_LIMIT} // VNC_TYPING_LIMIT_DEFAULT || 1 }
+
 sub type_string {
     my ($self, $args) = @_;
 
-    my $seconds_per_keypress = 1 / (get_var('VNC_TYPING_LIMIT', VNC_TYPING_LIMIT_DEFAULT) || 1);
+    my $seconds_per_keypress = 1 / _typing_limit;
 
     # further slow down if being asked for.
     # 250 = magic default from testapi.pm
@@ -129,7 +130,7 @@ sub send_key {
 
     # send_key rate must be limited to take into account VNC_TYPING_LIMIT- poo#55703
     # map_and_send_key: do not be faster than default
-    my $press_release_delay = 1 / (get_var('VNC_TYPING_LIMIT', VNC_TYPING_LIMIT_DEFAULT) || 1);
+    my $press_release_delay = 1 / _typing_limit;
 
     $self->{vnc}->map_and_send_key($args->{key}, undef, $press_release_delay);
     $self->backend->run_capture_loop(.2);

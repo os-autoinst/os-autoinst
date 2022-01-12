@@ -15,7 +15,6 @@ use Socket;
 use File::Path 'mkpath';
 use File::Which;
 use Time::Seconds;
-use testapi qw(get_var);
 
 # helper function
 # Keep ssh session for the maximum of ServerAliveCountMax x ServerAliveInterval seconds
@@ -24,8 +23,8 @@ use testapi qw(get_var);
 # long-time run test without these options. TCPKeepAlive ensures that if network goes down
 # or the remote host dies, machines will be properly noticed
 sub sshCommand ($self, $username, $host, $gui = undef) {
-    my $server_alive_count_max = get_var('_SSH_SERVER_ALIVE_COUNT_MAX', 480);
-    my $server_alive_interval = get_var('_SSH_SERVER_ALIVE_INTERVAL', ONE_MINUTE);
+    my $server_alive_count_max = $bmwqemu::vars{_SSH_SERVER_ALIVE_COUNT_MAX} // 480;
+    my $server_alive_interval = $bmwqemu::vars{_SSH_SERVER_ALIVE_INTERVAL} // ONE_MINUTE;
     my $sshopts = "-o TCPKeepAlive=yes -o ServerAliveCountMax=$server_alive_count_max -o ServerAliveInterval=$server_alive_interval -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o PubkeyAuthentication=no $username\@$host";
     $sshopts = "-X $sshopts" if $gui;
     return "ssh $sshopts; read";
