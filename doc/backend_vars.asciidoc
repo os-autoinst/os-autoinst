@@ -182,7 +182,7 @@ VDE_USE_SLIRP;integer;1;whether to start slirpvde
 VNC;integer;worker instance + 90;Display on which VNC server is running. Actual port is 5900 + VNC
 VNCKB;;;Set the keyboard layout if you are not using en-us
 WORKER_CLASS;string;undef;qemu system types
-WORKER_HOSTNAME;string;undef;Worker host name
+WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
 
 .SVIRT backend
@@ -304,7 +304,7 @@ AMT_PASSWORD;string;;Password for admin AMT user on target host
 [options="header",cols="^m,^m,^m,v",separator=";"]
 |====================
 Variable;Values allowed;Default value;Explanation
-WORKER_HOSTNAME;string;undef;Worker host name
+WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
 
 .SPVM backend
@@ -313,7 +313,7 @@ WORKER_HOSTNAME;string;undef;Worker host name
 |====================
 Variable;Values allowed;Default value;Explanation
 HARDWARE_CONSOLE_LOG;boolean;undef;Enable direct log capture of mkvterm console, disabled by default
-WORKER_HOSTNAME;string;undef;Worker host name
+WORKER_HOSTNAME;string;undef;Worker hostname
 NOVALINK_HOSTNAME;string;undef;Novalink target host to connect to
 NOVALINK_USERNAME;string;root;Username to authenticate on Novalink host
 NOVALINK_PASSWORD;string;undef;Password to authenticate on Novalink host
