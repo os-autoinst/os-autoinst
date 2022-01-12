@@ -257,7 +257,10 @@ WORKER_ID;string;undef;osauto id
 |====================
 Variable;Values allowed;Default value;Explanation
 HARDWARE_CONSOLE_LOG;boolean;undef;Enable direct log capture of mkvterm console, disabled by default
-HMC_USERNAME;string;;Username for HMC
+HMC_MACHINE_NAME;;Sets the public name of the host
+HMC_HOSTNAME;;Sets the remote host to connect tp
+HMC_USERNAME;string;;Username for the remote host
+HMC_PASSWORD;string;;Password for the remote host
 |====================
 
 .GENERAL_HW backend
