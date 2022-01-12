@@ -29,8 +29,7 @@ note("pool dir: $pool_dir");
 chdir($pool_dir);
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
-open(my $var, '>', 'vars.json');
-print $var <<EOV;
+path('vars.json')->spurt(<<EOV);
 {
    "ARCH" : "i386",
    "BACKEND" : "qemu",
@@ -46,10 +45,8 @@ print $var <<EOV;
    "SSH_CONNECT_RETRY_INTERVAL"  : ".001",
 }
 EOV
-close($var);
 # create screenshots
-open($var, '>', 'live_log');
-close($var);
+path('live_log')->touch;
 system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
 my $log = path('autoinst-log.txt')->slurp;
 like $log, qr/\d*: EXIT 0/, 'test executed fine';
@@ -77,16 +74,8 @@ for my $result (glob("testresults/result*fail*.json")) {
 }
 
 subtest 'Assert screen failure' => sub {
-    plan tests => 1;
-    open my $ifh, '<', 'autoinst-log.txt';
-    my $regexp = qr /(?<=no candidate needle with tag\(s\)) '(no_tag, no_tag2|no_tag3)'/;
-    my $count = 0;
-    for my $line (<$ifh>) {
-        $count++ if $line =~ $regexp;
-    }
-    close $ifh;
-
-    is($count, 2, 'Assert screen failures');
+    my $count = () = path('autoinst-log.txt')->slurp =~ /(?<=no candidate needle with tag\(s\)) '(no_tag, no_tag2|no_tag3)'/g;
+    is $count, 2, 'Assert screen failures';
 };
 
 done_testing();
