@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 package consoles::serial_screen;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use integer;
 
 use English -no_match_vars;
@@ -11,8 +11,7 @@ use Carp 'croak';
 
 our $VERSION;
 
-sub new {
-    my ($class, $fd_read, $fd_write) = @_;
+sub new ($class, $fd_read, $fd_write = undef) {
     my $self;
     if (ref($class) ne '' && $class->isa('consoles::serial_screen')) {
         $self = $class;
@@ -43,9 +42,7 @@ been implemented. In the future this could be extended to provide more key
 name to terminal code mappings.
 
 =cut
-sub send_key {
-    my ($self, $nargs) = @_;
-
+sub send_key ($self, $nargs) {
     if ($nargs->{key} eq 'ret') {
         $nargs->{text} = "\n";
         $self->type_string($nargs);
@@ -79,8 +76,7 @@ and ETX is the same as pressing Ctrl-C on a terminal.
 consoles.
 
 =cut
-sub type_string {
-    my ($self, $nargs) = @_;
+sub type_string ($self, $nargs) {
     my $fd = $self->{fd_write};
 
     bmwqemu::log_call(%$nargs);
@@ -104,24 +100,20 @@ sub type_string {
 
 sub thetime { clock_gettime(CLOCK_MONOTONIC) }
 
-sub elapsed {
+sub elapsed ($start) {
     no integer;
-    my $start = shift;
     return thetime() - $start;
 }
 
-sub remaining {
+sub remaining ($start, $timeout) {
     no integer;
-    my ($start, $timeout) = @_;
     return $timeout - elapsed($start);
 }
 
 # If $pattern is an array of regexes combine them into a single one.
 # If $pattern is a single string, wrap it in an array.
 # Otherwise leave as is.
-sub normalise_pattern {
-    my ($pattern, $no_regex) = @_;
-
+sub normalise_pattern ($pattern, $no_regex) {
     if (ref $pattern eq 'ARRAY' && !$no_regex) {
         my $hr = shift @$pattern;
         if (@$pattern > 0) {
@@ -155,9 +147,7 @@ An undefined timeout will cause to wait indefinitely. A timeout of 0 means to
 just read once.
 
 =cut
-sub do_read
-{
-    my ($self, undef, %args) = @_;
+sub do_read ($self, $, %args) {
     my $buffer = '';
     $args{timeout} //= undef;    # wait till data is available
     $args{max_size} //= 2048;
@@ -218,10 +208,8 @@ C<{ matched => 0, string => 'text from the terminal' }>
 on failure.
 
 =cut
-sub read_until {
-    my ($self, $pattern, $timeout) = @_[0 .. 2];
+sub read_until ($self, $pattern, $timeout, %nargs) {
     my $fd = $self->{fd_read};
-    my %nargs = @_[3 .. $#_];
     my $buflen = $nargs{buffer_size} || 4096;
     my $overflow = $nargs{record_output} ? '' : undef;
     my $sttime = thetime();
@@ -299,8 +287,7 @@ the backend and data transport. Therefore it should only be used when there is
 no information available about what data is expected to be available.
 
 =cut
-sub peak {
-    my ($self, %nargs) = @_;
+sub peak ($self, %nargs) {
     my $buflen = $nargs{buffer_size} || 4096;
     my $total_read = 0;
     my $buf = '';
