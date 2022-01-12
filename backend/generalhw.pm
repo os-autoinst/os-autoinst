@@ -12,38 +12,37 @@ use autodie ':all';
 use base 'backend::baseclass';
 
 use bmwqemu;
-use testapi qw(get_required_var get_var);
 use IPC::Run ();
 require IPC::System::Simple;
 use File::Basename 'basename';
 
 sub new ($class) {
     # required for the tests to access our HTTP port
-    get_required_var('WORKER_HOSTNAME');
+    defined $bmwqemu::vars{WORKER_HOSTNAME} or die 'Need variable WORKER_HOSTNAME';
     return $class->SUPER::new;
 }
 
 sub get_cmd ($self, $cmd) {
-    my $dir = get_required_var('GENERAL_HW_CMD_DIR');
+    my $dir = $bmwqemu::vars{GENERAL_HW_CMD_DIR} or die 'Need variable GENERAL_HW_CMD_DIR';
     die 'GENERAL_HW_CMD_DIR is not pointing to a directory' unless -d $dir;
 
     my %GENERAL_HW_ARG_VARIABLES_BY_CMD = ('GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS', 'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS', 'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS', 'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS');
-    my $args = get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}) if get_var($GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd});
+    my $args = $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}} if $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}};
 
     # Append HDD infos to flash script
-    if ($cmd eq 'GENERAL_HW_FLASH_CMD' and get_var('HDD_1')) {
-        my $numdisks = get_var('NUMDISKS') // 1;
+    if ($cmd eq 'GENERAL_HW_FLASH_CMD' and $bmwqemu::vars{HDD_1}) {
+        my $numdisks = $bmwqemu::vars{NUMDISKS} // 1;
         for my $i (1 .. $numdisks) {
             # Pass path of HDD
-            $args .= " " . get_required_var("HDD_$i");
+            $args .= " " . $bmwqemu::vars{"HDD_$i"} or die 'Need variable HDD_$i';
             # Pass size of HDD
-            my $size = get_var("HDDSIZEGB_$i");
-            $size //= get_var('HDDSIZEGB') // 10;
+            my $size = $bmwqemu::vars{"HDDSIZEGB_$i"};
+            $size //= $bmwqemu::vars{HDDSIZEGB} // 10;
             $args .= " $size" . 'G';
         }
     }
 
-    $cmd = get_required_var($cmd);
+    $cmd = $bmwqemu::vars{$cmd} or die "Need test variable '$cmd'";
     $cmd = "$dir/" . basename($cmd);
     $cmd .= " $args" if $args;
     return $cmd;
@@ -85,7 +84,7 @@ sub relogin_vnc ($self) {
         'sut',
         'vnc-base',
         {
-            hostname => get_required_var('GENERAL_HW_VNC_IP'),
+            hostname => $bmwqemu::vars{GENERAL_HW_VNC_IP} || die('Need variable GENERAL_HW_VNC_IP'),
             port => 5900,
             depth => 16,
             connect_timeout => 50
@@ -98,19 +97,19 @@ sub relogin_vnc ($self) {
 
 sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
-    if (get_var('GENERAL_HW_FLASH_CMD')) {
+    if ($bmwqemu::vars{GENERAL_HW_FLASH_CMD}) {
         $self->poweroff_host;    # Ensure system is off, before flashing
         $self->run_cmd('GENERAL_HW_FLASH_CMD');
     }
     $self->restart_host;
-    $self->relogin_vnc if (get_var('GENERAL_HW_VNC_IP'));
-    $self->start_serial_grab if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
+    $self->relogin_vnc if ($bmwqemu::vars{GENERAL_HW_VNC_IP});
+    $self->start_serial_grab if ($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD});
     return {};
 }
 
 sub do_stop_vm ($self, @) {
     $self->poweroff_host;
-    $self->stop_serial_grab() if (get_var('GENERAL_HW_VNC_IP') || get_var('GENERAL_HW_SOL_CMD'));
+    $self->stop_serial_grab() if ($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD});
     return {};
 }
 

@@ -7,7 +7,6 @@ use Mojo::Base -strict, -signatures;
 
 use base 'backend::baseclass';
 
-use testapi 'get_var';
 use bmwqemu;
 
 sub new ($class) {

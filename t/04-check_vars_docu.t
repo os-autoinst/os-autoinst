@@ -22,7 +22,12 @@ use constant VARS_DOC => DOC_DIR . '/backend_vars.asciidoc';
 # array of ignored "backends"
 my @backend_blocklist = qw();
 # blocklist of vars per backend. These vars will be ignored during vars exploration
-my %var_blocklist = (QEMU => ['WORKER_ID', 'WORKER_INSTANCE'], VAGRANT => ['QEMUCPUS', 'QEMURAM']);
+my %var_blocklist = (
+    QEMU => ['WORKER_ID', 'WORKER_INSTANCE'],
+    VAGRANT => ['QEMUCPUS', 'QEMURAM'],
+    GENERALHW => ['HDD_1'],
+    SVIRT => ['JOBTOKEN'],
+);
 # in case we want to present backend under different name, place it here
 my %backend_renames = (BASECLASS => 'Common', IKVM => 'IPMI');
 

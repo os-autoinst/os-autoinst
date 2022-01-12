@@ -5,7 +5,6 @@ package backend::vagrant;
 
 use base 'backend::virt';
 use bmwqemu;
-use testapi ();
 
 use Mojo::Base -strict, -signatures;
 use Mojo::File;

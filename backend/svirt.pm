@@ -12,7 +12,6 @@ use File::Basename;
 use IO::Scalar;
 use Time::HiRes 'usleep';
 use bmwqemu;
-use testapi qw(get_var get_required_var check_var);
 
 use constant SERIAL_CONSOLE_DEFAULT_PORT => 0;
 use constant SERIAL_CONSOLE_DEFAULT_DEVICE => 'console';
@@ -30,7 +29,7 @@ use constant SERIAL_TERMINAL_LOG_PATH => 'serial_terminal.txt';
 
 sub new ($class) {
     my $self = $class->SUPER::new;
-    get_required_var('WORKER_HOSTNAME');
+    defined $bmwqemu::vars{WORKER_HOSTNAME} or die 'Need variable WORKER_HOSTNAME';
 
     return $self;
 }
@@ -45,9 +44,9 @@ sub do_start_vm ($self, @) {
         'svirt',
         'ssh-virtsh',
         {
-            hostname => get_required_var('VIRSH_HOSTNAME'),
-            username => get_var('VIRSH_USERNAME'),
-            password => get_var('VIRSH_PASSWORD'),
+            hostname => $bmwqemu::vars{VIRSH_HOSTNAME} || die('Need variables VIRSH_HOSTNAME'),
+            username => $bmwqemu::vars{VIRSH_USERNAME},
+            password => $bmwqemu::vars{VIRSH_PASSWORD},
         });
 
     $ssh->backend($self);
@@ -59,17 +58,17 @@ sub do_start_vm ($self, @) {
 sub do_stop_vm ($self, @) {
     $self->stop_serial_grab;
 
-    unless (get_var('SVIRT_KEEP_VM_RUNNING')) {
+    unless ($bmwqemu::vars{SVIRT_KEEP_VM_RUNNING}) {
         my $vmname = $self->console('svirt')->name;
         bmwqemu::diag "Destroying $vmname virtual machine";
-        if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+        if (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv') {
             my $ps = 'powershell -Command';
             $self->run_ssh_cmd("$ps Stop-VM -Force -VMName $vmname -TurnOff");
             $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Remove-VM -Force -VMName $vmname"));
         }
         else {
             my $virsh = 'virsh';
-            $virsh .= ' ' . get_var('VMWARE_REMOTE_VMM') if get_var('VMWARE_REMOTE_VMM');
+            $virsh .= ' ' . $bmwqemu::vars{VMWARE_REMOTE_VMM} if $bmwqemu::vars{VMWARE_REMOTE_VMM};
             $self->run_ssh_cmd("$virsh destroy $vmname");
             $self->run_ssh_cmd("$virsh undefine --snapshots-metadata $vmname");
         }
@@ -88,7 +87,7 @@ sub do_stop_vm ($self, @) {
 sub scp_get ($self, $src, $dest) {
     bmwqemu::log_call(@_);
 
-    my %credentials = $self->get_ssh_credentials(check_var('VIRSH_VMM_FAMILY', 'hyperv') ? 'hyperv' : 'default');
+    my %credentials = $self->get_ssh_credentials(($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv' ? 'hyperv' : 'default');
     my $ssh = $self->new_ssh_connection(%credentials);
 
     open(my $fh, '>', $dest) or die "Could not open file '$dest' $!";
@@ -102,11 +101,9 @@ sub scp_get ($self, $src, $dest) {
 
 sub can_handle ($self, $args) {
     my $vars = \%bmwqemu::vars;
-    if ($args->{function} eq 'snapshots' && !check_var('HDDFORMAT', 'raw')) {
+    if ($args->{function} eq 'snapshots' && !$bmwqemu::vars{HDDFORMAT} eq 'raw') {
         # Snapshots via libvirt are supported on KVM and, perhaps, ESXi. Hyper-V uses native tools.
-        if (check_var('VIRSH_VMM_FAMILY', 'kvm') || check_var('VIRSH_VMM_FAMILY', 'hyperv') || check_var('VIRSH_VMM_FAMILY', 'vmware')) {
-            return {ret => 1};
-        }
+        return {ret => 1} if ($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') =~ qr/kvm|hyperv|vmware/;
     }
     return;
 }
@@ -114,11 +111,11 @@ sub can_handle ($self, $args) {
 sub is_shutdown ($self, @) {
     my $vmname = $self->console('svirt')->name;
     my $rsp;
-    if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+    if (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv') {
         $rsp = $self->run_ssh_cmd("powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"");
     }
     else {
-        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
+        my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
         $rsp = $self->run_ssh_cmd("! virsh $libvirt_connector dominfo $vmname | grep -w 'shut off'");
     }
     return $rsp;
@@ -128,13 +125,13 @@ sub save_snapshot ($self, $args) {
     my $snapname = $args->{name};
     my $vmname = $self->console('svirt')->name;
     my $rsp;
-    if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+    if (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv') {
         my $ps = 'powershell -Command';
         $self->run_ssh_cmd("$ps Remove-VMSnapshot -VMName $vmname -Name $snapname");
         $rsp = $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Checkpoint-VM -VMName $vmname -SnapshotName $snapname"));
     }
     else {
-        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
+        my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
         $self->run_ssh_cmd("virsh $libvirt_connector snapshot-delete $vmname $snapname");
         $rsp = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-create-as $vmname $snapname");
     }
@@ -148,7 +145,7 @@ sub load_snapshot ($self, $args) {
     my $vmname = $self->console('svirt')->name;
     my $rsp;
     my $post_load_snapshot_command = '';
-    if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+    if (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv') {
         my $ps = 'powershell -Command';
         $rsp = $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false"));
         $self->run_ssh_cmd("mv -v xfreerdp_${vmname}_stop xfreerdp_${vmname}_stop.bkp", $self->get_ssh_credentials('hyperv'));
@@ -165,9 +162,9 @@ sub load_snapshot ($self, $args) {
         }
     }
     else {
-        my $libvirt_connector = get_var('VMWARE_REMOTE_VMM', '');
+        my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
         $rsp = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-revert $vmname $snapname");
-        $post_load_snapshot_command = 'vmware_fixup' if check_var('VIRSH_VMM_FAMILY', 'vmware');
+        $post_load_snapshot_command = 'vmware_fixup' if ($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'vmware';
     }
     bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
     $self->die if $rsp;
@@ -178,16 +175,16 @@ sub get_ssh_credentials ($self, $domain = 'default') {
     unless ($self->{ssh_credentials}) {
         $self->{ssh_credentials} = {
             default => {
-                hostname => get_required_var('VIRSH_HOSTNAME'),
-                username => get_var('VIRSH_USERNAME', 'root'),
-                password => get_required_var('VIRSH_PASSWORD'),
+                hostname => $bmwqemu::vars{VIRSH_HOSTNAME} || die('Need variable VIRSH_HOSTNAME'),
+                username => $bmwqemu::vars{VIRSH_USERNAME} // 'root',
+                password => $bmwqemu::vars{VIRSH_PASSWORD} || die('Need variable VIRSH_PASSWORD'),
             }
         };
-        if (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+        if (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv') {
             # Credentials for hyperv intermediary host
             $self->{ssh_credentials}->{hyperv} = {
-                hostname => get_required_var('VIRSH_GUEST'),
-                password => get_required_var('VIRSH_GUEST_PASSWORD'),
+                hostname => $bmwqemu::vars{VIRSH_GUEST} || die('Need variable VIRSH_GUEST'),
+                password => $bmwqemu::vars{VIRSH_GUEST_PASSWORD} || die('Need variable VIRSH_GUEST_PASSWORD'),
                 username => 'root',
             };
         }
@@ -199,20 +196,20 @@ sub get_ssh_credentials ($self, $domain = 'default') {
 sub start_serial_grab ($self, $name) {
     bmwqemu::log_call(name => $name);
 
-    my %credentials = $self->get_ssh_credentials(check_var('VIRSH_VMM_FAMILY', 'hyperv') ? 'hyperv' : 'default');
+    my %credentials = $self->get_ssh_credentials(($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv' ? 'hyperv' : 'default');
     my ($ssh, $chan) = $self->start_ssh_serial(%credentials);
     my $cmd;
-    if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {
+    if ($bmwqemu::vars{VIRSH_VMM_FAMILY} eq 'vmware') {
         # libvirt esx driver does not support `virsh console', so
         # we have to connect to VM's serial port via TCP which is
         # provided by ESXi server.
-        $cmd = 'socat - TCP4:' . get_var('VMWARE_HOST') . ':' . get_var('VMWARE_SERIAL_PORT') . ',crnl';
+        $cmd = 'socat - TCP4:' . $bmwqemu::vars{VMWARE_HOST} . ':' . $bmwqemu::vars{VMWARE_SERIAL_PORT} . ',crnl';
     }
-    elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+    elsif ($bmwqemu::vars{VIRSH_VMM_FAMILY} eq 'hyperv') {
         # Hyper-V does not support serial console export via TCP, just
         # windows named pipes (e.g. \\.\pipe\mypipe). Such a named pipe
         # has to be enabled by a namedpipe-to-TCP on HYPERV_SERVER application.
-        $cmd = 'socat - TCP4:' . get_var('HYPERV_SERVER') . ':' . get_var('HYPERV_SERIAL_PORT') . ',crnl';
+        $cmd = 'socat - TCP4:' . $bmwqemu::vars{HYPERV_SERVER} . ':' . $bmwqemu::vars{HYPERV_SERIAL_PORT} . ',crnl';
     }
     else {
         $cmd = 'virsh console ' . $name;
@@ -244,21 +241,21 @@ sub open_serial_console_via_ssh ($self, $name, %args) {
     my ($chan, $cmd, $cmd_full, $ret, $ssh, $stderr, $stdout);
     my $port = $args{port} // '';
     my $devname = $args{devname} // '';
-    my $marker = "CONSOLE_EXIT_" . get_required_var('JOBTOKEN') . ":";
+    my $marker = "CONSOLE_EXIT_" . $bmwqemu::vars{JOBTOKEN} or die 'Need variable JOBTOKEN' . ":";
     my $log = $self->serial_terminal_log_file();
     my $max_tries = 10;
 
-    if (check_var('VIRSH_VMM_FAMILY', 'vmware')) {
+    if (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'vmware') {
         # libvirt esx driver does not support `virsh console', so
         # we have to connect to VM's serial port via TCP which is
         # provided by ESXi server.
-        $cmd = 'socat - TCP4:' . get_var('VMWARE_HOST') . ':' . $port . ',crnl';
+        $cmd = 'socat - TCP4:' . $bmwqemu::vars{VMWARE_HOST} . ':' . $port . ',crnl';
     }
-    elsif (check_var('VIRSH_VMM_FAMILY', 'hyperv')) {
+    elsif (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv') {
         # Hyper-V does not support serial console export via TCP, just
         # windows named pipes (e.g. \\.\pipe\mypipe). Such a named pipe
         # has to be enabled by a namedpipe-to-TCP on HYPERV_SERVER application.
-        $cmd = 'socat - TCP4:' . get_var('HYPERV_SERVER') . ':' . $port . ',crnl';
+        $cmd = 'socat - TCP4:' . $bmwqemu::vars{HYPERV_SERVER} . ':' . $port . ',crnl';
     }
     else {
         $cmd = "virsh console $name $devname$port";
@@ -296,8 +293,8 @@ sub die ($self, $err = '') {
 }
 
 sub serial_terminal_log_file ($self) {
-    return "/tmp/" . SERIAL_TERMINAL_LOG_PATH . '.'
-      . get_required_var('JOBTOKEN');
+    defined $bmwqemu::vars{JOBTOKEN} || CORE::die 'Need variable JOBTOKEN';
+    return '/tmp/' . SERIAL_TERMINAL_LOG_PATH . '.' . $bmwqemu::vars{JOBTOKEN};
 }
 
 sub check_socket ($self, $fh, $write = undef) {
