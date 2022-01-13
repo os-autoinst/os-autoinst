@@ -31,7 +31,7 @@ $c->{vnc} = $vnc;
 is $c->disable_vnc_stalls, 1, 'can call disable_vnc_stalls with VNC';
 ok $vnc->called('check_vnc_stalls'), 'check_vnc_stalls called with VNC';
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
-$vnc_mock->redefine(new => $vnc);
+$vnc_mock->mock(new => $vnc);
 $vnc->set_true('login');
 stderr_like { $c->connect_remote({hostname => 'localhost', port => 42}) } qr/Establishing VNC connection to localhost:42/, 'can call connect_remote';
 $vnc->set_true('update_framebuffer', 'send_update_request');
