@@ -69,6 +69,16 @@ sub restart_host ($self) {
     return;
 }
 
+sub power ($self, $args) {
+    if ($args->{action} eq 'on') {
+        $self->run_cmd('GENERAL_HW_POWERON_CMD');
+    } elsif ($args->{action} eq 'off') {
+        $self->run_cmd('GENERAL_HW_POWEROFF_CMD');
+    } else {
+        $self->notimplemented;
+    }
+}
+
 sub relogin_vnc ($self) {
     if ($self->{vnc}) {
         close($self->{vnc}->socket);
