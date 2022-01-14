@@ -287,6 +287,9 @@ subtest 'script_run' => sub {
     is(script_run('false', 0, die_on_timeout => 1), undef, 'script_run with no check of success, returns undef when not waiting');
     $fake_matched = 0;
     throws_ok { script_run('sleep 13', timeout => 10, die_on_timeout => 1, quiet => 1) } qr/command.*timed out/, 'exception occured on script_run() timeout';
+    $testapi::distri->{script_run_die_on_timeout} = 1;
+    throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occured on script_run() timeout';
+    $testapi::distri->{script_run_die_on_timeout} = -1;
     $fake_matched = 1;
 
     stderr_like { script_run('true', quiet => 1) } qr/DEPRECATED/, 'DEPRECATED message appear if `die_on_timeout` is not given.';

@@ -15,6 +15,7 @@ sub new {
     $self->{consoles} = {};
     $self->{serial_failures} = [];
     $self->{autoinst_failures} = [];
+    $self->{script_run_die_on_timeout} = -1;
 
 =head2 serial_term_prompt
 

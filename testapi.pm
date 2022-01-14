@@ -1028,7 +1028,7 @@ sub script_run {
             timeout => $bmwqemu::default_timeout,
             output => '',
             quiet => testapi::get_var('_QUIET_SCRIPT_CALLS'),
-            die_on_timeout => -1,
+            die_on_timeout => $distri->{script_run_die_on_timeout},
         }, ['timeout'], @_);
 
     bmwqemu::log_call(cmd => $cmd, %args);
@@ -1045,7 +1045,9 @@ sub script_run {
                 my $casedir = testapi::get_var(CASEDIR => '');
                 $filename =~ s%^\Q$casedir\E/%%;
                 bmwqemu::fctwarn("DEPRECATED call of script_run() in $filename:$line " .
-                      'add `die_on_timeout => ?` to avoid this warning');
+                      'add `die_on_timeout => ?` to the call or set
+                      $distri->{script_run_die_on_timeout} to avoid this
+                      warning');
             }
         }
     }
