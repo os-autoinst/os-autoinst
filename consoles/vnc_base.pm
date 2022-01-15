@@ -30,6 +30,7 @@ sub disable_vnc_stalls ($self) {
 sub connect_remote ($self, $args) {
     $self->{mouse} = {x => -1, y => -1};
 
+    die "Need parameters 'hostname' and 'port'" unless $args->{hostname} && $args->{port};
     bmwqemu::diag "Establishing VNC connection to $args->{hostname}:$args->{port}";
     $self->{vnc} = consoles::VNC->new($args);
     $self->{vnc}->login($args->{connect_timeout});
