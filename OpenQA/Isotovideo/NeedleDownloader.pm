@@ -6,7 +6,7 @@ use Mojo::Base -base, -signatures;
 
 use Mojo::UserAgent;
 use Mojo::URL;
-use Mojo::File;
+use Mojo::File qw(path);
 use File::stat;
 use Try::Tiny;
 use POSIX 'strftime';
@@ -100,7 +100,7 @@ sub _download_file ($self, $download) {
     return unless ($download_res);
     try {
         unlink($download_target);
-        Mojo::File->new($download_target)->spurt($download_res->body);
+        path($download_target)->spurt($download_res->body);
     }
     catch {
         bmwqemu::diag("unable to store download under $download_target");

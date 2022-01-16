@@ -11,7 +11,7 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_from);
 use bmwqemu;
-use Mojo::File 'tempfile';
+use Mojo::File qw(path tempfile);
 use Data::Dumper;
 
 
@@ -36,7 +36,7 @@ subtest 'Logging to file' => sub {
     my $log_file = tempfile;
     $bmwqemu::logger = Mojo::Log->new(path => $log_file);
     output_once;
-    my @matches = (Mojo::File->new($log_file)->slurp =~ m/Via .*? function/gm);
+    my @matches = (path($log_file)->slurp =~ m/Via .*? function/gm);
     ok(@matches == 5, 'All messages logged to file');
     my $i = 0;
     ok($matches[$i++] =~ /$_/, "Logging $_ match!") for ('diag', 'fctres', 'fctinfo', 'fctwarn', 'modstate');

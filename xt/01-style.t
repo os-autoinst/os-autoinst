@@ -13,4 +13,7 @@ ok system(qq{git grep -I -l '[#/ ]*SPDX-License-Identifier ' ':!COPYING' ':!exte
 is qx{git grep -I -L '^use Test::Most' t/**.t}, '', 'All tests use Test::Most';
 is qx{git grep -I -L '^use Test::Warnings' t/**.t}, '', 'All tests use Test::Warnings';
 is qx{git grep -I -l '^use testapi' backend/ consoles/}, '', 'No backend or console files use external facing testapi';
+is qx{git grep -L '^#!.*perl' t/**.t}, '', 'All test files have shebang';
+is qx{git ls-files -s t/**.t | grep -v ^1007}, '', 'All test modules are executable';
+is qx{git grep -l '^use POSIX;'}, '', 'Use of bare POSIX import is discouraged, see https://perldoc.perl.org/POSIX';
 done_testing;

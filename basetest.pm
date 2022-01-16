@@ -9,7 +9,6 @@ use autodie ':all';
 
 use bmwqemu ();
 use ocr;
-use POSIX;
 use testapi ();
 use autotest ();
 use MIME::Base64 'decode_base64';
