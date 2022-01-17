@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 package consoles::serial_screen;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use integer;
 
 use English -no_match_vars;
@@ -11,15 +11,8 @@ use Carp 'croak';
 
 our $VERSION;
 
-sub new {
-    my ($class, $fd_read, $fd_write) = @_;
-    my $self;
-    if (ref($class) ne '' && $class->isa('consoles::serial_screen')) {
-        $self = $class;
-    } else {
-        $self = bless {class => $class}, $class;
-    }
-
+sub new ($class, $fd_read, $fd_write = undef) {
+    my $self = ref($class) ne '' && $class->isa('consoles::serial_screen') ? $class : bless {class => $class}, $class;
     $self->{fd_read} = $fd_read;
     $self->{fd_write} = $fd_write // $fd_read;
     $self->{carry_buffer} = '';
@@ -43,16 +36,10 @@ been implemented. In the future this could be extended to provide more key
 name to terminal code mappings.
 
 =cut
-sub send_key {
-    my ($self, $nargs) = @_;
-
-    if ($nargs->{key} eq 'ret') {
-        $nargs->{text} = "\n";
-        $self->type_string($nargs);
-    }
-    else {
-        croak $trying_to_use_keys;
-    }
+sub send_key ($self, $nargs) {
+    croak $trying_to_use_keys unless $nargs->{key} eq 'ret';
+    $nargs->{text} = "\n";
+    $self->type_string($nargs);
 }
 
 sub hold_key { croak $trying_to_use_keys }
@@ -79,8 +66,7 @@ and ETX is the same as pressing Ctrl-C on a terminal.
 consoles.
 
 =cut
-sub type_string {
-    my ($self, $nargs) = @_;
+sub type_string ($self, $nargs) {
     my $fd = $self->{fd_write};
 
     bmwqemu::log_call(%$nargs);
@@ -94,51 +80,32 @@ sub type_string {
 
     $text .= $term if defined $term;
     my $written = syswrite $fd, $text;
-    unless (defined $written) {
-        croak "Error writing to virtio/svirt serial terminal: $ERRNO";
-    }
-    if ($written < length($text)) {
-        croak "Was not able to write entire message to virtio/svirt serial terminal. Only $written of $nargs->{text}";
-    }
+    croak "Error writing to virtio/svirt serial terminal: $ERRNO" unless defined $written;
+    croak "Was not able to write entire message to virtio/svirt serial terminal. Only $written of $nargs->{text}" if $written < length($text);
 }
 
 sub thetime { clock_gettime(CLOCK_MONOTONIC) }
 
-sub elapsed {
+sub elapsed ($start) {
     no integer;
-    my $start = shift;
     return thetime() - $start;
 }
 
-sub remaining {
+sub remaining ($start, $timeout) {
     no integer;
-    my ($start, $timeout) = @_;
     return $timeout - elapsed($start);
 }
 
 # If $pattern is an array of regexes combine them into a single one.
 # If $pattern is a single string, wrap it in an array.
 # Otherwise leave as is.
-sub normalise_pattern {
-    my ($pattern, $no_regex) = @_;
-
+sub normalise_pattern ($pattern, $no_regex) {
     if (ref $pattern eq 'ARRAY' && !$no_regex) {
-        my $hr = shift @$pattern;
-        if (@$pattern > 0) {
-            my $re = qr/($hr)/;
-            for my $r (@$pattern) {
-                $re .= qr/|($r)/;
-            }
-            return $re;
-        }
-        return $hr;
+        my $re = join "|", map { "($_)" } @$pattern;
+        return qr{$re};
     }
 
-    if ($no_regex && ref $pattern ne 'ARRAY') {
-        return [$pattern];
-    }
-
-    return $pattern;
+    return $no_regex && ref $pattern ne 'ARRAY' ? [$pattern] : $pattern;
 }
 
 =head2 do_read
@@ -155,9 +122,7 @@ An undefined timeout will cause to wait indefinitely. A timeout of 0 means to
 just read once.
 
 =cut
-sub do_read
-{
-    my ($self, undef, %args) = @_;
+sub do_read ($self, $, %args) {
     my $buffer = '';
     $args{timeout} //= undef;    # wait till data is available
     $args{max_size} //= 2048;
@@ -166,18 +131,13 @@ sub do_read
     my $rin = '';
     vec($rin, fileno($fd), 1) = 1;
     my $nfound = select(my $rout = $rin, undef, my $eout = $rin, $args{timeout});
-    if ($nfound < 0) {
-        croak "Failed to select socket for reading: $ERRNO";
-    } elsif ($nfound == 0) {
-        return undef;
-    }
+    croak "Failed to select socket for reading: $ERRNO" if $nfound < 0;
+    return undef if $nfound == 0;
 
     my $read;
     while (!defined($read)) {
         $read = sysread($fd, $buffer, $args{max_size});
-        if (!defined($read) && !($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK})) {
-            croak "Failed to read from virtio/svirt serial console char device: $ERRNO";
-        }
+        croak "Failed to read from virtio/svirt serial console char device: $ERRNO" if !defined($read) && !($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK});
     }
     $_[1] = $buffer;
     return $read;
@@ -218,10 +178,8 @@ C<{ matched => 0, string => 'text from the terminal' }>
 on failure.
 
 =cut
-sub read_until {
-    my ($self, $pattern, $timeout) = @_[0 .. 2];
+sub read_until ($self, $pattern, $timeout, %nargs) {
     my $fd = $self->{fd_read};
-    my %nargs = @_[3 .. $#_];
     my $buflen = $nargs{buffer_size} || 4096;
     my $overflow = $nargs{record_output} ? '' : undef;
     my $sttime = thetime();
@@ -272,9 +230,7 @@ sub read_until {
         # $overflow.
         if (length($rbuf) + $read > $buflen) {
             my $remove_len = $read - ($buflen - length($rbuf));
-            if (defined $overflow) {
-                $overflow .= substr $rbuf, 0, $remove_len;
-            }
+            $overflow .= substr $rbuf, 0, $remove_len if defined $overflow;
             $rbuf = substr $rbuf, $remove_len;
         }
         $rbuf .= $buf;
@@ -284,9 +240,7 @@ sub read_until {
     bmwqemu::fctinfo("Matched output from SUT in $loops loops & $elapsed seconds: $match");
 
     $overflow ||= '';
-    if ($nargs{exclude_match}) {
-        return $overflow . $prematch;
-    }
+    return $overflow . $prematch if $nargs{exclude_match};
     return {matched => 1, string => $overflow . $prematch . $match};
 }
 
@@ -299,8 +253,7 @@ the backend and data transport. Therefore it should only be used when there is
 no information available about what data is expected to be available.
 
 =cut
-sub peak {
-    my ($self, %nargs) = @_;
+sub peak ($self, %nargs) {
     my $buflen = $nargs{buffer_size} || 4096;
     my $total_read = 0;
     my $buf = '';
