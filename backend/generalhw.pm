@@ -15,6 +15,7 @@ use bmwqemu;
 use IPC::Run ();
 require IPC::System::Simple;
 use File::Basename 'basename';
+use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 
 sub new ($class) {
     # required for the tests to access our HTTP port
@@ -29,36 +30,30 @@ sub get_cmd ($self, $cmd) {
     my %GENERAL_HW_ARG_VARIABLES_BY_CMD = ('GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS', 'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS', 'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS', 'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS');
     my $args = $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}} if $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}};
 
-    # Append HDD infos to flash script
-    if ($cmd eq 'GENERAL_HW_FLASH_CMD' and $bmwqemu::vars{HDD_1}) {
-        my $numdisks = $bmwqemu::vars{NUMDISKS} // 1;
-        for my $i (1 .. $numdisks) {
-            # Pass path of HDD
-            $args .= " " . $bmwqemu::vars{"HDD_$i"} or die 'Need variable HDD_$i';
-            # Pass size of HDD
-            my $size = $bmwqemu::vars{"HDDSIZEGB_$i"};
-            $size //= $bmwqemu::vars{HDDSIZEGB} // 10;
-            $args .= " $size" . 'G';
-        }
-    }
-
     $cmd = $bmwqemu::vars{$cmd} or die "Need test variable '$cmd'";
     $cmd = "$dir/" . basename($cmd);
     $cmd .= " $args" if $args;
     return $cmd;
 }
 
-sub run_cmd ($self, @args) {
-    my @full_cmd = split / /, $self->get_cmd($args[0]);
+sub run_cmd ($self, $cmd, @extra_args) {
+    my @full_cmd = split / /, $self->get_cmd($cmd);
+
+    push @full_cmd, @extra_args;
 
     my ($stdin, $stdout, $stderr, $ret);
-    eval { $ret = IPC::Run::run([@full_cmd], \$stdin, \$stdout, \$stderr) };
-    die "Unable to run command '@full_cmd' (deduced from test variable $args[0]): $@\n" if $@;
+
+    {
+        # Do not let the SIGCHLD handler of Mojo::IOLoop::ReadWriteProcess::Session steal the exit code from IPC::Run
+        local $SIG{CHLD};
+        eval { $ret = IPC::Run::run(\@full_cmd, \$stdin, \$stdout, \$stderr) };
+        die "Unable to run command '@full_cmd' (deduced from test variable $cmd): $@\n" if $@;
+    }
     chomp $stdout;
     chomp $stderr;
 
-    die "$args[0]: $stderr" unless $ret;
-    bmwqemu::diag("IPMI: $stdout");
+    die "$cmd: stdout: $stdout, stderr: $stderr" unless $ret;
+    bmwqemu::diag("IPMI: stdout: $stdout, stderr: $stderr");
     return $stdout;
 }
 
@@ -72,6 +67,16 @@ sub restart_host ($self) {
     sleep(3);
     $self->run_cmd('GENERAL_HW_POWERON_CMD');
     return;
+}
+
+sub power ($self, $args) {
+    if ($args->{action} eq 'on') {
+        $self->run_cmd('GENERAL_HW_POWERON_CMD');
+    } elsif ($args->{action} eq 'off') {
+        $self->run_cmd('GENERAL_HW_POWEROFF_CMD');
+    } else {
+        $self->notimplemented;
+    }
 }
 
 sub relogin_vnc ($self) {
@@ -95,11 +100,31 @@ sub relogin_vnc ($self) {
     return 1;
 }
 
+sub compute_hdd_args ($self) {
+    my @hdd_args;
+
+    if ($bmwqemu::vars{HDD_1}) {
+        my $numdisks = $bmwqemu::vars{NUMDISKS} // 1;
+        for my $i (1 .. $numdisks) {
+            # Pass path of HDD
+            push @hdd_args, $bmwqemu::vars{"HDD_$i"} or die 'Need variable HDD_$i';
+            # Pass size of HDD
+            my $size = $bmwqemu::vars{"HDDSIZEGB_$i"};
+            $size //= $bmwqemu::vars{HDDSIZEGB} // 10;
+            push @hdd_args, $size . 'G';
+        }
+    }
+    return \@hdd_args;
+}
+
 sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
     if ($bmwqemu::vars{GENERAL_HW_FLASH_CMD}) {
+        # Append HDD infos to flash script
+        my $hdd_args = $self->compute_hdd_args;
+
         $self->poweroff_host;    # Ensure system is off, before flashing
-        $self->run_cmd('GENERAL_HW_FLASH_CMD');
+        $self->run_cmd('GENERAL_HW_FLASH_CMD', @$hdd_args);
     }
     $self->restart_host;
     $self->relogin_vnc if ($bmwqemu::vars{GENERAL_HW_VNC_IP});
