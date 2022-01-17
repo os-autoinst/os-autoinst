@@ -556,7 +556,7 @@ sub start_qemu ($self) {
 
     my $qemuimg = find_bin('/usr/bin/', qw(kvm-img qemu-img));
 
-    local *sp = sub { $self->{proc}->static_param(@_); };
+    local *sp = sub (@args) { $self->{proc}->static_param(@args); };
     $vars->{VIRTIO_CONSOLE} = 1 if ($vars->{VIRTIO_CONSOLE} // '') ne 0;
 
     unless ($qemubin) {

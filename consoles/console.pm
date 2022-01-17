@@ -50,7 +50,7 @@ sub screen ($self) {
 }
 
 # to be overloaded
-sub trigger_select { }
+sub trigger_select ($self) { }
 
 sub select ($self) {
     my $activated;
@@ -65,9 +65,9 @@ sub select ($self) {
     return $activated;
 }
 
-sub activate { }
+sub activate ($self) { }
 
-sub is_serial_terminal { 0 }
+sub is_serial_terminal ($self) { 0 }
 
 sub set_args ($self, %args) {
     my $my_args = $self->{args};

@@ -545,7 +545,7 @@ my $keymap_ikvm = {
     '/' => 0x38,
 };
 
-sub shift_keys {
+sub shift_keys () {
     # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
     return {
         '~' => '`',
@@ -1035,7 +1035,7 @@ sub _receive_colour_map ($self) {
 }
 
 # Discard the bell signal
-sub _receive_bell { 1 }
+sub _receive_bell ($self) { 1 }
 
 sub _receive_ikvm_session ($self) {
     $self->socket->read(my $ikvm_session_infos, 264);

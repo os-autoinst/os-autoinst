@@ -21,6 +21,6 @@ sub activate ($self) {
 }
 
 # to be overwritten
-sub connect_remote { }
+sub connect_remote ($self, $args) { }
 
 1;

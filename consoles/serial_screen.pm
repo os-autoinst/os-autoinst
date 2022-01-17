@@ -42,9 +42,9 @@ sub send_key ($self, $nargs) {
     $self->type_string($nargs);
 }
 
-sub hold_key { croak $trying_to_use_keys }
+sub hold_key ($self, $args) { croak $trying_to_use_keys }
 
-sub release_key { croak $trying_to_use_keys }
+sub release_key ($self, $args) { croak $trying_to_use_keys }
 
 =head2 type_string
 
@@ -84,7 +84,7 @@ sub type_string ($self, $nargs) {
     croak "Was not able to write entire message to virtio/svirt serial terminal. Only $written of $nargs->{text}" if $written < length($text);
 }
 
-sub thetime { clock_gettime(CLOCK_MONOTONIC) }
+sub thetime () { clock_gettime(CLOCK_MONOTONIC) }
 
 sub elapsed ($start) {
     no integer;
@@ -274,8 +274,8 @@ sub peak ($self, %nargs) {
     return $self->{carry_buffer};
 }
 
-sub current_screen { 0 }
+sub current_screen ($self) { 0 }
 
-sub request_screen_update { }
+sub request_screen_update ($self) { }
 
 1;
