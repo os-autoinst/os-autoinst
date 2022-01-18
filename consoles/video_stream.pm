@@ -4,19 +4,13 @@
 
 package consoles::video_stream;
 
-use Mojo::Base -strict, -signatures;
-
-use base 'consoles::network_console';
+use Mojo::Base 'consoles::video_stream', -signatures;
 
 use List::Util 'max';
 use Time::HiRes qw(usleep);
 
 use Try::Tiny;
-use consoles::console qw(DEFAULT_MAX_INTERVAL);
-use bmwqemu;
-
-# speed limit: 30 keys per second
-use constant STREAM_TYPING_LIMIT_DEFAULT => 30;
+use bmwqemu ();
 
 use constant DV_TIMINGS_CHECK_INTERVAL => 3;
 
@@ -29,10 +23,6 @@ my $CHARMAP = {
     "\e" => 'esc',
     " " => 'spc',
 };
-
-sub screen ($self, @) {
-    return $self;
-}
 
 sub disable_video ($self) {
     my $ret = 0;
@@ -226,35 +216,6 @@ sub request_screen_update ($self, @) {
     }
 }
 
-sub type_string ($self, $args) {
-    my $seconds_per_keypress = 1 / ($bmwqemu::vars{STREAM_TYPING_LIMIT} || STREAM_TYPING_LIMIT_DEFAULT);
-
-    # further slow down if being asked for.
-
-    # Note: the intended use of max_interval is the bootloader. The bootloader
-    # prompt drops characters when typing quickly. This problem mostly occurs
-    # in the bootloader. Humans notice because they look at the screen while
-    # typing. So this loop should be replaced by some true 'looking at the
-    # screen while typing', e.g. waiting for no more screen updates 'in the
-    # right area'.  For now, just waiting is good enough: The slow-down only
-    # affects the bootloader sequence.
-    if (($args->{max_interval} // consoles::console::DEFAULT_MAX_INTERVAL) < consoles::console::DEFAULT_MAX_INTERVAL) {
-        # according to 	  git grep "type_string.*, *[0-9]"  on
-        #   https://github.com/os-autoinst/os-autoinst-distri-opensuse,
-        # typical max_interval values are
-        #   4ish:  veeery slow
-        #   15ish: slow
-        $seconds_per_keypress = $seconds_per_keypress + 1 / sqrt($args->{max_interval});
-    }
-
-    for my $letter (split("", $args->{text})) {
-        next if ($letter eq "\r");
-        $self->_send_key_event($CHARMAP->{$letter} || $letter);
-        $self->{backend}->run_capture_loop($seconds_per_keypress);
-    }
-    return {};
-}
-
 sub send_key ($self, $args) {
     $self->_send_key_event($args->{key});
     $self->backend->run_capture_loop(.2);
@@ -265,10 +226,6 @@ sub _send_key_event ($self, $key) {
     return unless $self->{input_pipe};
     $self->{input_pipe}->write($key . "\n")
       or die "failed to send '$key' input event";
-}
-
-sub get_last_mouse_set ($self, @) {
-    return $self->{mouse};
 }
 
 sub _mouse_move ($self, $x, $y) {
@@ -325,16 +282,9 @@ sub mouse_set ($self, $args) {
     return {};
 }
 
-sub mouse_button ($self, $args) {
-    return unless $self->{input_pipe};
-    my $button = $args->{button};
-    my $bstate = $args->{bstate};
-
-    my $mask = {left => $bstate, right => $bstate << 2, middle => $bstate << 1}->{$button} // 0;
-    bmwqemu::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
+sub send_pointer_event ($self, $mask) {
     $self->{input_pipe}->write("mouse_button $mask\n");
     $self->{input_pipe}->flush;
-    return {};
 }
 
 1;

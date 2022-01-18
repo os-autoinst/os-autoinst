@@ -4,9 +4,7 @@
 
 package consoles::vnc_base;
 
-use Mojo::Base -strict, -signatures;
-
-use base 'consoles::network_console';
+use Mojo::Base 'consoles::video_base', -signatures;
 
 use consoles::VNC;
 use Time::HiRes qw(usleep);
@@ -14,44 +12,39 @@ use Time::HiRes qw(usleep);
 use consoles::console qw(DEFAULT_MAX_INTERVAL);
 use bmwqemu ();
 
-# speed limit: 30 keys per second
-use constant VNC_TYPING_LIMIT_DEFAULT => 30;
-
-sub screen ($self) { $self }
+use constant VNC_TYPING_LIMIT_DEFAULT => TYPING_LIMIT_DEFAULT;
 
 sub disable ($self) {
-    close($self->{vnc}->socket) if ($self->{vnc} && $self->{vnc}->socket);
-    $self->{vnc} = undef;
+    close($self->{console}->socket) if ($self->{console} && $self->{console}->socket);
+    $self->{console} = undef;
 }
 
-sub get_last_mouse_set ($self, $args) { $self->{mouse} }
-
 sub disable_vnc_stalls ($self) {
-    return unless $self->{vnc};
-    $self->{vnc}->check_vnc_stalls(0);
+    return unless $self->{console};
+    $self->{console}->check_vnc_stalls(0);
 }
 
 sub connect_remote ($self, $args) {
     $self->{mouse} = {x => -1, y => -1};
 
     bmwqemu::diag "Establishing VNC connection to $args->{hostname}:$args->{port}";
-    $self->{vnc} = consoles::VNC->new($args);
-    $self->{vnc}->login($args->{connect_timeout});
-    return $self->{vnc};
+    $self->{console} = consoles::VNC->new($args);
+    $self->{console}->login($args->{connect_timeout});
+    return $self->{console};
 }
 
 sub request_screen_update ($self, @) {
-    return unless $self->{vnc};
+    return unless $self->{console};
     # drain the VNC socket before polling for a new update
-    $self->{vnc}->update_framebuffer();
-    $self->{vnc}->send_update_request();
+    $self->{console}->update_framebuffer();
+    $self->{console}->send_update_request();
     return;
 }
 
 sub current_screen ($self) {
-    return unless $self->{vnc};
+    return unless $self->{console};
 
-    unless ($self->{vnc}->_framebuffer) {
+    unless ($self->{console}->_framebuffer) {
         # No _framebuffer yet.  First connect?  Tickle vnc server to
         # get it filled.
         $self->request_screen_update();
@@ -63,9 +56,9 @@ sub current_screen ($self) {
         usleep(50_000);
     }
 
-    $self->{vnc}->update_framebuffer();
-    return unless $self->{vnc}->_framebuffer;
-    return $self->{vnc}->_framebuffer;
+    $self->{console}->update_framebuffer();
+    return unless $self->{console}->_framebuffer;
+    return $self->{console}->_framebuffer;
 }
 
 sub _typing_limit () { $bmwqemu::vars{VNC_TYPING_LIMIT} // VNC_TYPING_LIMIT_DEFAULT || 1 }
@@ -102,7 +95,7 @@ sub type_string ($self, $args) {
         };
         $letter = $charmap->{$letter} || $letter;
         # 25% is spent hitting the key, 25% releasing it, 50% searching the next key
-        $self->{vnc}->map_and_send_key($letter, undef, $seconds_per_keypress * 0.25);
+        $self->{console}->map_and_send_key($letter, undef, $seconds_per_keypress * 0.25);
         $self->{backend}->run_capture_loop($seconds_per_keypress * 0.5);
     }
     return {};
@@ -113,19 +106,19 @@ sub send_key ($self, $args) {
     # map_and_send_key: do not be faster than default
     my $press_release_delay = 1 / _typing_limit;
 
-    $self->{vnc}->map_and_send_key($args->{key}, undef, $press_release_delay);
+    $self->{console}->map_and_send_key($args->{key}, undef, $press_release_delay);
     $self->backend->run_capture_loop(.2);
     return {};
 }
 
 sub hold_key ($self, $args) {
-    $self->{vnc}->map_and_send_key($args->{key}, 1, 1 / VNC_TYPING_LIMIT_DEFAULT);
+    $self->{console}->map_and_send_key($args->{key}, 1, 1 / VNC_TYPING_LIMIT_DEFAULT);
     $self->backend->run_capture_loop(.2);
     return {};
 }
 
 sub release_key ($self, $args) {
-    $self->{vnc}->map_and_send_key($args->{key}, 0, 1 / VNC_TYPING_LIMIT_DEFAULT);
+    $self->{console}->map_and_send_key($args->{key}, 0, 1 / VNC_TYPING_LIMIT_DEFAULT);
     $self->backend->run_capture_loop(.2);
     return {};
 }
@@ -141,23 +134,23 @@ sub _mouse_move ($self, $x, $y) {
         # need to make sure the mouse is really where expected
         my $delta = 5;
         # move it to the left in case the mouse is right
-        $delta = -5 if $x > $self->{vnc}->width / 2;
-        $self->{vnc}->mouse_move_to($x + $delta, $y + $delta);
+        $delta = -5 if $x > $self->{console}->width / 2;
+        $self->{console}->mouse_move_to($x + $delta, $y + $delta);
     }
 
     $self->{mouse}->{x} = $x;
     $self->{mouse}->{y} = $y;
 
     bmwqemu::diag "mouse_move $x, $y";
-    $self->{vnc}->mouse_move_to($x, $y);
+    $self->{console}->mouse_move_to($x, $y);
     return;
 }
 
 sub mouse_hide ($self, $args) {
     $args->{border_offset} //= 0;
 
-    my $x = $self->{vnc}->width - 1;
-    my $y = $self->{vnc}->height - 1;
+    my $x = $self->{console}->width - 1;
+    my $y = $self->{console}->height - 1;
 
     if (defined $args->{border_offset}) {
         my $border_offset = int($args->{border_offset});
@@ -166,7 +159,7 @@ sub mouse_hide ($self, $args) {
     }
 
     $self->_mouse_move($x, $y);
-    return {absolute => $self->{vnc}->absolute};
+    return {absolute => $self->{console}->absolute};
 }
 
 sub mouse_set ($self, $args) {
@@ -175,13 +168,6 @@ sub mouse_set ($self, $args) {
     return {};
 }
 
-sub mouse_button ($self, $args) {
-    my $button = $args->{button};
-    my $bstate = $args->{bstate};
-    my $mask = {left => $bstate, right => $bstate << 2, middle => $bstate << 1}->{$button} // 0;
-    bmwqemu::diag "pointer_event $mask $self->{mouse}->{x}, $self->{mouse}->{y}";
-    $self->{vnc}->send_pointer_event($mask, $self->{mouse}->{x}, $self->{mouse}->{y});
-    return {};
-}
+sub send_pointer_event ($self, $mask) { $self->{console}->send_pointer_event($mask, $self->{mouse}->{x}, $self->{mouse}->{y}) }
 
 1;

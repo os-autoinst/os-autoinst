@@ -87,8 +87,8 @@ sub power ($self, $args) {
 }
 
 sub relogin_vnc ($self) {
-    if ($self->{vnc}) {
-        close($self->{vnc}->socket);
+    if ($self->{console}) {
+        close($self->{console}->socket);
         sleep(1);
     }
 
