@@ -23,7 +23,7 @@ sub disable ($self) {
     $self->{vnc} = undef;
 }
 
-sub get_last_mouse_set ($self) { $self->{mouse} }
+sub get_last_mouse_set ($self, $args) { $self->{mouse} }
 
 sub disable_vnc_stalls ($self) {
     return unless $self->{vnc};
