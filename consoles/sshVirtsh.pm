@@ -493,9 +493,9 @@ sub define_and_start ($self) {
         $self->run_cmd(
             "cat > $libvirtauthfilename <<__END
 [credentials-vmware]
-username=" . $bmwqemu::vars{VMWARE_USERNAME} or die 'Need variable VMWARE_USERNAME' . "
-password=" . $bmwqemu::vars{VMWARE_PASSWORD} or die 'Need variable VMWARE_PASSWORD' . "
-[auth-esx-" . $bmwqemu::vars{VMWARE_HOST} or die 'Need variable VMWARE_HOST' . "]
+username=" . ($bmwqemu::vars{VMWARE_USERNAME} or die 'Need variable VMWARE_USERNAME') . "
+password=" . ($bmwqemu::vars{VMWARE_PASSWORD} or die 'Need variable VMWARE_PASSWORD') . "
+[auth-esx-" . ($bmwqemu::vars{VMWARE_HOST} or die 'Need variable VMWARE_HOST') . "]
 credentials=vmware
 __END"
         );
