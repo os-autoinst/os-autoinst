@@ -23,7 +23,7 @@ $vnc->set_always('socket', 0);
 $c->disable;
 is $c->{vnc}, undef, 'VNC removed by disable';
 
-is $c->get_last_mouse_set, undef, 'can call get_last_mouse_set';
+is $c->get_last_mouse_set({}), undef, 'can call get_last_mouse_set';
 $vnc->set_true('check_vnc_stalls');
 is $c->disable_vnc_stalls, undef, 'can call disable_vnc_stalls without VNC';
 ok !$vnc->called('check_vnc_stalls'), 'check_vnc_stalls not called without VNC';
