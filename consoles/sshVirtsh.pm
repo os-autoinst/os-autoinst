@@ -133,7 +133,7 @@ sub _init_xml ($self, $args = {}) {
         $root->appendChild($elem);
     }
 
-    if ($bmwqemu::vars{UEFI} and $bmwqemu::vars{ARCH} eq 'x86_64' and !$bmwqemu::vars{BIOS} and !$bmwqemu::vars{VIRSH_VMM_FAMILY} eq 'hyperv') {
+    if ($bmwqemu::vars{UEFI} and $bmwqemu::vars{ARCH} eq 'x86_64' and !$bmwqemu::vars{BIOS} and $bmwqemu::vars{VIRSH_VMM_FAMILY} ne 'hyperv') {
         foreach my $firmware (@bmwqemu::ovmf_locations) {
             if (!$self->run_cmd("test -e $firmware")) {
                 $bmwqemu::vars{BIOS} = $firmware;
