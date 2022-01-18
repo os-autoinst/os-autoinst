@@ -52,13 +52,13 @@ BEGIN {
     unshift @INC, "$installprefix";
 }
 
-use bmwqemu;
 use backend::driver;
+use bmwqemu qw(diag fctwarn);
 use needle;
 use autotest ();
 use commands;
 use distribution;
-use testapi 'diag';
+use testapi ();
 use File::Basename;
 use Getopt::Long;
 require IPC::System::Simple;
@@ -356,7 +356,7 @@ while ($loop) {
     for my $readable (@$ready_for_read) {
         my $rsp = myjsonrpc::read_json($readable);
         if (!defined $rsp) {
-            diag sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($readable), fileno($testfd), fileno($cmd_srv_fd));
+            fctwarn sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($readable), fileno($testfd), fileno($cmd_srv_fd));
             $readable = 1;
             $loop = 0;
             last;

@@ -56,11 +56,11 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
         die "Unable to clone Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
     };
     if ($branch) {
-        bmwqemu::diag "Checking out git refspec/branch '$branch'";
+        bmwqemu::fctinfo "Checking out git refspec/branch '$branch'";
         $branch_args = " --branch $branch";
     }
     if (!-e $local_path) {
-        bmwqemu::diag "Cloning git URL '$clone_url' to use as test distribution";
+        bmwqemu::fctinfo "Cloning git URL '$clone_url' to use as test distribution";
         @out = qx{$clone_cmd $clone_args $branch_args $clone_url 2>&1};
         $return_code = $?;
         if ($branch && grep /warning: Could not find remote branch/, @out) {

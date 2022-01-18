@@ -93,7 +93,7 @@ sub _download_file ($self, $download) {
         }
     }
     catch {
-        bmwqemu::diag("internal error occurred when downloading $download_url: $_");
+        bmwqemu::fctinfo("internal error occurred when downloading $download_url: $_");
     };
 
     # store the file on disk
