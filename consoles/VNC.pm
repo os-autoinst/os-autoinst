@@ -1027,7 +1027,7 @@ sub _receive_colour_map ($self) {
     $self->socket->read(my $map_infos, 5);
     my ($padding, $first_colour, $number_of_colours) = unpack('Cnn', $map_infos);
 
-    for (0 .. $number_of_colours) {
+    for (0 .. $number_of_colours - 1) {
         $self->socket->read(my $colour, 6);
         my ($red, $green, $blue) = unpack('nnn', $colour);
         tinycv::set_colour($self->vncinfo, $first_colour + $_, $red / 256, $green / 256, $blue / 256);
