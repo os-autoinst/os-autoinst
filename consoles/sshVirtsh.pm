@@ -486,7 +486,7 @@ sub get_remote_vmm ($self) { $bmwqemu::vars{VMWARE_REMOTE_VMM} // '' }
 sub define_and_start ($self) {
     my $remote_vmm = "";
     if ($self->vmm_family eq 'vmware') {
-        my ($fh, $libvirtauthfilename) = tempfile(DIR => "/tmp/");
+        my ($fh, $libvirtauthfilename) = File::Temp::tempfile(DIR => "/tmp/");
 
         # The libvirt esx driver supports connection over HTTP(S) only. When
         # asked to authenticate we provide the password via 'authfile'.

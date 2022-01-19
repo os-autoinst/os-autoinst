@@ -105,6 +105,33 @@ subtest 'XML config with UEFI loader and VMware' => sub {
     _is_xml $svirt_console->{domainxml}->toString(2), "$Bin/22-svirt-virsh-config-uefi.xml";
 };
 
+subtest 'starting VMware console' => sub {
+    $bmwqemu::vars{VMWARE_HOST} = 'h';
+    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
+    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
+
+    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close));
+    my $backend_mock = Test::MockModule->new('backend::svirt');
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my $tmp_mock = Test::MockModule->new('File::Temp');
+    my (@cmds, @ssh_cmds);
+    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(start_serial_grab => 1);
+    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
+    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
+
+    $svirt_console->define_and_start;
+    like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
+    my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
+    is_deeply \@cmds, [
+        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
+        'echo bios.bootDelay = \\"10000\\" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
+        $s . ' dumpxml openQA-SUT-1'
+    ], 'expected commands invoked' or diag explain \@cmds;
 };
 
 subtest 'SSH credentials' => sub {
