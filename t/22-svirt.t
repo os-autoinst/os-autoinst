@@ -69,26 +69,42 @@ is_deeply($svirt_sut_console, {
         pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE,
 }, 'SUT serial console correctly initialized') or diag explain $consoles;
 
+sub _is_xml ($actual_xml_data, $expected_xml_file_path) {
+    my $diff = XML::SemanticDiff->new(keeplinenums => 1);
+    if (my @changes = $diff->compare($actual_xml_data, $expected_xml_file_path)) {
+        fail 'XML not as expected';
+        diag explain 'differences:', \@changes;
+        note 'produced XML:';
+        note $actual_xml_data;
+        return 0;
+    }
+    ok 'XML looks as expected';
+}
+
 subtest 'XML config for VNC and serial console' => sub {
     $svirt_console->_init_xml();
     $svirt_console->add_vnc({port => 5901});
     $svirt_console->add_pty({target_port => SERIAL_CONSOLE_DEFAULT_PORT});
     $svirt_console->add_pty({pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE, pty_dev_type => 'pty', target_port => SERIAL_TERMINAL_DEFAULT_PORT});
+    _is_xml $svirt_console->{domainxml}->toString(2), "$Bin/22-svirt-virsh-config.xml";
+};
 
-    my $produced_xml = $svirt_console->{domainxml}->toString(2);
-    my $expected_xml = "$Bin/22-svirt-virsh-config.xml";
+# assume VMware for further testing
+$svirt_console->vmm_family($bmwqemu::vars{VIRSH_VMM_FAMILY} = 'vmware');
 
-    my $diff = XML::SemanticDiff->new(keeplinenums => 1);
-    if (my @changes = $diff->compare($produced_xml, $expected_xml)) {
-        fail('XML not as expected');
-        note('differences:');
-        diag explain \@changes;
-        note('produced XML:');
-        note($produced_xml);
-    }
-    else {
-        ok('XML looks as expected');
-    }
+subtest 'XML config with UEFI loader and VMware' => sub {
+    $bmwqemu::vars{UEFI} = 1;
+    $bmwqemu::vars{ARCH} = 'x86_64';
+
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    $console_mock->redefine(run_cmd => 1);
+    throws_ok { $svirt_console->_init_xml } qr/No UEFI firmware can be found on hypervisor/, 'dies if UEFI firmware missing';
+
+    $console_mock->redefine(run_cmd => 0);
+    $svirt_console->_init_xml;
+    _is_xml $svirt_console->{domainxml}->toString(2), "$Bin/22-svirt-virsh-config-uefi.xml";
+};
+
 };
 
 subtest 'SSH credentials' => sub {
