@@ -3,12 +3,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package backend::qemu;
-
-use Mojo::Base -strict, -signatures;
+use Mojo::Base 'backend::virt', -signatures;
 use autodie ':all';
-
-use base 'backend::virt';
-
 use File::Basename 'dirname';
 use File::Path 'mkpath';
 use File::Which;

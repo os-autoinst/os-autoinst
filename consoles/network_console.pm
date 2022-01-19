@@ -4,10 +4,7 @@
 
 package consoles::network_console;
 
-use Mojo::Base -strict, -signatures;
-
-use base 'consoles::console';
-
+use Mojo::Base 'consoles::console', -signatures;
 use Try::Tiny;
 use Scalar::Util 'blessed';
 

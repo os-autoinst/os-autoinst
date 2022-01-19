@@ -3,9 +3,7 @@
 
 package testdistribution;
 
-use Mojo::Base -strict, -signatures;
-
-use base 'distribution';
+use Mojo::Base 'distribution', -signatures;
 
 sub init ($self) {
     $self->SUPER::init();

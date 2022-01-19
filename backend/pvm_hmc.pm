@@ -2,10 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package backend::pvm_hmc;
-
-use Mojo::Base -strict, -signatures;
-
-use base 'backend::virt';
+use Mojo::Base 'backend::virt', -signatures;
 
 # supporting the minimal command set of the HMC through a ssh tunnel
 

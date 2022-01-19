@@ -3,11 +3,8 @@
 
 package osutils;
 
-require 5.002;
-use Mojo::Base -strict;
-
+use Mojo::Base 'Exporter';
 use Carp;
-use base 'Exporter';
 use Mojo::File 'path';
 use bmwqemu;
 use Mojo::IOLoop::ReadWriteProcess 'process';

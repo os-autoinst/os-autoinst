@@ -1,5 +1,4 @@
-use Mojo::Base -strict, -signatures;
-use base 'basetest';
+use Mojo::Base 'basetest', -signatures;
 use autotest 'loadtest';
 
 sub run {

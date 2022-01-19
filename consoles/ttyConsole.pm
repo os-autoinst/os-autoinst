@@ -4,11 +4,8 @@
 
 package consoles::ttyConsole;
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base 'consoles::console', -signatures;
 use autodie ':all';
-
-use base 'consoles::console';
-
 require IPC::System::Simple;
 
 sub trigger_select ($self) {

@@ -4,10 +4,8 @@
 
 package backend::ikvm;
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base 'backend::ipmi', -signatures;
 use autodie ':all';
-
-use base 'backend::ipmi';
 
 sub new ($class) { $class->SUPER::new }
 

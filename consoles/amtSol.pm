@@ -3,11 +3,8 @@
 
 package consoles::amtSol;
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base 'consoles::console', -signatures;
 use autodie ':all';
-
-use base 'consoles::console';
-
 require IPC::System::Simple;
 use POSIX '_exit';
 use bmwqemu;

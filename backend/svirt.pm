@@ -3,11 +3,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package backend::svirt;
-
-use Mojo::Base -strict, -signatures;
-
-use base 'backend::virt';
-
+use Mojo::Base 'backend::virt', -signatures;
 use File::Basename;
 use IO::Scalar;
 use Time::HiRes 'usleep';

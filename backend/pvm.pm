@@ -2,12 +2,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package backend::pvm;
-
-use Mojo::Base -strict, -signatures;
+use Mojo::Base 'backend::baseclass', -signatures;
 use autodie ':all';
-
-use base 'backend::baseclass';
-
 use bmwqemu qw(diag fctwarn);
 use File::Path 'mkpath';
 require IPC::System::Simple;

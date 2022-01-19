@@ -1,11 +1,8 @@
 #!/usr/bin/perl
 package OVS;
 
-use Mojo::Base -strict;
+use Mojo::Base 'Net::DBus::Object';
 use autodie ':all';
-
-use base 'Net::DBus::Object';
-
 use Net::DBus::Exporter 'org.opensuse.os_autoinst.switch';
 require IPC::System::Simple;
 use IPC::Open3;

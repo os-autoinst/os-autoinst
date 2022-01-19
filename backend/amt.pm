@@ -3,11 +3,8 @@
 
 package backend::amt;
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base 'backend::baseclass', -signatures;
 use autodie ':all';
-
-use base 'backend::baseclass';
-
 use Time::HiRes qw(sleep gettimeofday);
 use Data::Dumper;
 require Carp;

@@ -4,11 +4,8 @@
 
 package consoles::localXvnc;
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base 'consoles::vnc_base', -signatures;
 use autodie ':all';
-
-use base 'consoles::vnc_base';
-
 use IPC::Run ();
 require IPC::System::Simple;
 use Socket;

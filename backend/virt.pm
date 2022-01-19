@@ -3,10 +3,7 @@
 
 package backend::virt;
 
-use Mojo::Base -strict, -signatures;
-
-use base 'backend::baseclass';
-
+use Mojo::Base 'backend::baseclass', -signatures;
 use bmwqemu;
 
 sub new ($class) {

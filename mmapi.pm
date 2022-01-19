@@ -4,9 +4,7 @@
 ## Multi-Machine API
 package mmapi;
 
-use Mojo::Base -strict;
-
-use base 'Exporter';
+use Mojo::Base 'Exporter';
 our @EXPORT = qw(get_children_by_state get_children get_parents
   get_job_info get_job_autoinst_url get_job_autoinst_vars
   wait_for_children wait_for_children_to_start api_call
