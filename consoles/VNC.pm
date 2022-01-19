@@ -367,17 +367,6 @@ sub _handshake_security {
     }
 }
 
-sub _bin_int {
-    my ($self, $s) = @_;
-    my @a = unpack("C*", $s);
-    my $r = 0;
-    for (my $i = 0; $i < @a; $i++) {
-        $r = 256 * $r;
-        $r += $a[$i];
-    }
-    return $r;
-}
-
 sub _client_initialization {
     my $self = shift;
 
