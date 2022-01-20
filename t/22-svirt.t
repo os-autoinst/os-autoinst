@@ -69,26 +69,69 @@ is_deeply($svirt_sut_console, {
         pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE,
 }, 'SUT serial console correctly initialized') or diag explain $consoles;
 
+sub _is_xml ($actual_xml_data, $expected_xml_file_path) {
+    my $diff = XML::SemanticDiff->new(keeplinenums => 1);
+    if (my @changes = $diff->compare($actual_xml_data, $expected_xml_file_path)) {
+        fail 'XML not as expected';
+        diag explain 'differences:', \@changes;
+        note 'produced XML:';
+        note $actual_xml_data;
+        return 0;
+    }
+    ok 'XML looks as expected';
+}
+
 subtest 'XML config for VNC and serial console' => sub {
     $svirt_console->_init_xml();
     $svirt_console->add_vnc({port => 5901});
     $svirt_console->add_pty({target_port => SERIAL_CONSOLE_DEFAULT_PORT});
     $svirt_console->add_pty({pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE, pty_dev_type => 'pty', target_port => SERIAL_TERMINAL_DEFAULT_PORT});
+    _is_xml $svirt_console->{domainxml}->toString(2), "$Bin/22-svirt-virsh-config.xml";
+};
 
-    my $produced_xml = $svirt_console->{domainxml}->toString(2);
-    my $expected_xml = "$Bin/22-svirt-virsh-config.xml";
+# assume VMware for further testing
+$svirt_console->vmm_family($bmwqemu::vars{VIRSH_VMM_FAMILY} = 'vmware');
 
-    my $diff = XML::SemanticDiff->new(keeplinenums => 1);
-    if (my @changes = $diff->compare($produced_xml, $expected_xml)) {
-        fail('XML not as expected');
-        note('differences:');
-        diag explain \@changes;
-        note('produced XML:');
-        note($produced_xml);
-    }
-    else {
-        ok('XML looks as expected');
-    }
+subtest 'XML config with UEFI loader and VMware' => sub {
+    $bmwqemu::vars{UEFI} = 1;
+    $bmwqemu::vars{ARCH} = 'x86_64';
+
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    $console_mock->redefine(run_cmd => 1);
+    throws_ok { $svirt_console->_init_xml } qr/No UEFI firmware can be found on hypervisor/, 'dies if UEFI firmware missing';
+
+    $console_mock->redefine(run_cmd => 0);
+    $svirt_console->_init_xml;
+    _is_xml $svirt_console->{domainxml}->toString(2), "$Bin/22-svirt-virsh-config-uefi.xml";
+};
+
+subtest 'starting VMware console' => sub {
+    $bmwqemu::vars{VMWARE_HOST} = 'h';
+    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
+    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
+
+    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close));
+    my $backend_mock = Test::MockModule->new('backend::svirt');
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my $tmp_mock = Test::MockModule->new('File::Temp');
+    my (@cmds, @ssh_cmds);
+    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(start_serial_grab => 1);
+    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
+    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
+
+    $svirt_console->define_and_start;
+    like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
+    my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
+    is_deeply \@cmds, [
+        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
+        'echo bios.bootDelay = \\"10000\\" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
+        $s . ' dumpxml openQA-SUT-1'
+    ], 'expected commands invoked' or diag explain \@cmds;
 };
 
 subtest 'SSH credentials' => sub {

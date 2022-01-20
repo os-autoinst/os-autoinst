@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<domain type="vmware">
+  <name>openQA-SUT-1</name>
+  <description>openQA WebUI: no-webui-set (1): 0-no-scenario</description>
+  <memory unit="MiB">1024</memory>
+  <vcpu>1</vcpu>
+  <os>
+    <type>hvm</type>
+    <loader>/usr/share/qemu/ovmf-x86_64-ms-code.bin</loader>
+  </os>
+  <features><acpi/><apic/><pae/></features>
+  <devices/>
+</domain>
