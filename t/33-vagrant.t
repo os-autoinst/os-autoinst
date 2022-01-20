@@ -17,7 +17,7 @@ use backend::vagrant;
 use bmwqemu ();
 
 # hide debug messages, keep warnings & errors
-$bmwqemu::logger = Mojo::Log->new(level => 'warn');
+$log::logger = Mojo::Log->new(level => 'warn');
 
 my $mock_vagrant = Test::MockModule->new("vagrant", no_auto => 1);
 $mock_vagrant->noop('mkdir');

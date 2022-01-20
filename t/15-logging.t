@@ -10,31 +10,37 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(stderr_from);
-use bmwqemu;
 use Mojo::File qw(path tempfile);
 use Data::Dumper;
+use log;
+use bmwqemu ();
 
 
 sub output_once {
-    bmwqemu::diag('Via diag function');
-    bmwqemu::fctres('Via fctres function');
-    bmwqemu::fctinfo('Via fctinfo function');
-    bmwqemu::fctwarn('Via fctwarn function');
-    bmwqemu::modstate('Via modstate function');
+    log::diag('Via diag function');
+    log::fctres('Via fctres function');
+    log::fctinfo('Via fctinfo function');
+    log::fctwarn('Via fctwarn function');
+    log::modstate('Via modstate function');
 }
 
 subtest 'Logging to STDERR' => sub {
     my $output = stderr_from(\&output_once);
+    $output .= stderr_from { bmwqemu::diag('Via diag function') };
+    $output .= stderr_from { bmwqemu::fctres('Via fctres function') };
+    $output .= stderr_from { bmwqemu::fctinfo('Via fctinfo function') };
+    $output .= stderr_from { bmwqemu::fctwarn('Via fctwarn function') };
+    $output .= stderr_from { bmwqemu::modstate('Via modstate function') };
     note $output;
     my @matches = ($output =~ m/Via .*? function/gm);
-    ok(@matches == 5, 'All messages logged to STDERR');
+    ok(@matches == 10, 'All messages logged to STDERR');
     my $i = 0;
     ok($matches[$i++] =~ /$_/, "Logging $_ match!") for ('diag', 'fctres', 'fctinfo', 'fctwarn', 'modstate');
 };
 
 subtest 'Logging to file' => sub {
     my $log_file = tempfile;
-    $bmwqemu::logger = Mojo::Log->new(path => $log_file);
+    $log::logger = Mojo::Log->new(path => $log_file);
     output_once;
     my @matches = (path($log_file)->slurp =~ m/Via .*? function/gm);
     ok(@matches == 5, 'All messages logged to file');
