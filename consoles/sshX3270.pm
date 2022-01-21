@@ -4,10 +4,7 @@
 
 package consoles::sshX3270;
 
-use Mojo::Base -strict, -signatures;
-
-use base 'consoles::localXvnc';
-
+use Mojo::Base 'consoles::localXvnc', -signatures;
 
 sub activate ($self) {
     my $sshcommand = $self->sshCommand('root', $bmwqemu::vars{PARMFILE}->{Hostname});

@@ -4,10 +4,9 @@
 ## synchronization API
 package lockapi;
 
-use Mojo::Base -strict;
+use Mojo::Base 'Exporter';
 use Scalar::Util 'looks_like_number';
 use Time::Seconds;
-use base 'Exporter';
 our @EXPORT = qw(mutex_create mutex_lock mutex_unlock mutex_try_lock mutex_wait
   barrier_create barrier_wait barrier_try_wait barrier_destroy);
 

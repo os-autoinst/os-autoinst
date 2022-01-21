@@ -2,10 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package backend::null;
-
-use Mojo::Base -strict, -signatures;
-
-use base 'backend::baseclass';
+use Mojo::Base 'backend::baseclass', -signatures;
 
 sub new ($self) { $self->SUPER::new }
 

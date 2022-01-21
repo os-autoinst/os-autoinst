@@ -3,12 +3,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package backend::ipmi;
-
-use Mojo::Base -strict, -signatures;
+use Mojo::Base 'backend::baseclass', -signatures;
 use autodie ':all';
-
-use base 'backend::baseclass';
-
 use Time::HiRes qw(sleep);
 use Time::Seconds;
 use IPC::Run ();

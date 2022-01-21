@@ -3,10 +3,8 @@
 
 package backend::vagrant;
 
-use base 'backend::virt';
+use Mojo::Base 'backend::virt', -signatures;
 use bmwqemu;
-
-use Mojo::Base -strict, -signatures;
 use Mojo::File;
 use Cwd qw(abs_path);
 use File::Temp;

@@ -1,11 +1,7 @@
 package consoles::VNC;
 
-use Mojo::Base -strict;
+use Mojo::Base 'Class::Accessor::Fast', -signatures;
 use bytes;
-use feature 'say';
-
-use base 'Class::Accessor::Fast';
-
 use IO::Socket::INET;
 use bmwqemu qw(diag fctwarn);
 use Time::HiRes qw( sleep gettimeofday time );

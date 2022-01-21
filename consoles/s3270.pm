@@ -4,11 +4,8 @@
 
 package consoles::s3270;
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base 'consoles::localXvnc', -signatures;
 use feature 'say';
-
-use base 'consoles::localXvnc';
-
 use Class::Accessor 'antlers';
 use Data::Dumper 'Dumper';
 use Carp qw(confess cluck carp croak);

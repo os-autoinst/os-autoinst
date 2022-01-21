@@ -6,10 +6,7 @@
 
 package consoles::sshSerial;
 
-use Mojo::Base -strict, -signatures;
-
-use base 'consoles::console';
-
+use Mojo::Base 'consoles::console', -signatures;
 use consoles::ssh_screen;
 
 sub new ($class, $testapi_console, $args) {

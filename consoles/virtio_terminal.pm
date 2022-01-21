@@ -2,11 +2,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 package consoles::virtio_terminal;
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base 'consoles::console', -signatures;
 use autodie;
-
-use base 'consoles::console';
-
 use Mojo::File 'path';
 use Socket qw(SOCK_NONBLOCK PF_UNIX SOCK_STREAM sockaddr_un);
 use Errno qw(EAGAIN EWOULDBLOCK);

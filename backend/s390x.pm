@@ -3,12 +3,8 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package backend::s390x;
-
-use Mojo::Base -strict, -signatures;
+use Mojo::Base 'backend::baseclass', -signatures;
 use autodie ':all';
-
-use base 'backend::baseclass';
-
 use English;
 require IPC::System::Simple;
 use Carp qw(confess cluck carp croak);
