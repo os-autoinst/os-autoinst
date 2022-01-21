@@ -38,7 +38,7 @@ sub wsman_cmdline ($self) {
     return ('wsman', '-h', $bmwqemu::vars{AMT_HOSTNAME}, '-P', '16992');
 }
 
-sub wsman ($self, $cmd, $stdin) {
+sub wsman ($self, $cmd, $stdin = undef) {
     my @cmd = $self->wsman_cmdline();
     push(@cmd, split(/ /, $cmd));
 
@@ -95,19 +95,11 @@ sub set_power_state ($self, $power_state) {
 }
 
 sub select_next_boot ($self, $bootdev) {
-    my $amt_bootdev;
-    if ($bootdev eq 'cddvd') {
-        $amt_bootdev = 'Intel(r) AMT: Force CD/DVD Boot';
-    }
-    elsif ($bootdev eq 'hdd') {
-        $amt_bootdev = 'Intel(r) AMT: Force Hard-drive Boot';
-    }
-    elsif ($bootdev eq 'pxe') {
-        $amt_bootdev = 'Intel(r) AMT: Force PXE Boot';
-    }
-    else {
-        die "Unsupported boot device $bootdev";
-    }
+    my $amt_bootdev = 'Intel(r) AMT: Force ' . {
+        cddvd => 'CD/DVD Boot',
+        hdd => 'Hard-drive Boot',
+        pxe => 'PXE Boot',
+    }->{$bootdev};
 
     # reset boot configuration to known state
     my $keys = "-k BIOSPause=false -k BootMediaIndex=0";
@@ -158,11 +150,7 @@ sub select_next_boot ($self, $bootdev) {
 </p:SetBootConfigRole_INPUT>";
 
     $stdout = $self->wsman("-J - invoke -a SetBootConfigRole $CIM/CIM_BootService", $cmd_stdin);
-
-    if (!($stdout =~ m/:ReturnValue>0</)) {
-        die "SetBootConfigRole failed";
-    }
-
+    die 'SetBootConfigRole failed' unless $stdout =~ m/:ReturnValue>0</;
 }
 
 sub restart_host ($self) {
