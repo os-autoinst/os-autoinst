@@ -1,3 +1,5 @@
+...
+
 = os-autoinst image:https://github.com/os-autoinst/os-autoinst/workflows/ci/badge.svg?branch=master[link=https://github.com/os-autoinst/os-autoinst/actions] image:https://codecov.io/gh/os-autoinst/os-autoinst/branch/master/graph/badge.svg[link=https://codecov.io/gh/os-autoinst/os-autoinst]
 :author: openSUSE Team at SUSE
 :toc:
