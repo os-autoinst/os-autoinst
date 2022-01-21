@@ -42,13 +42,6 @@ else ()
     message(STATUS "Set BLACK_PATH to the path of the black executable to enable python style checks.")
 endif ()
 
-# add tidy check
-add_test(
-    NAME test-local-tidy
-    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/tools/tidy" --check
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-)
-
 find_program(SHELLCHECK_PATH shellcheck)
 if (SHELLCHECK_PATH)
     add_test(

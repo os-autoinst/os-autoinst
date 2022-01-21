@@ -505,7 +505,7 @@ sub _send_key_event {
     my ($self, $down_flag, $key) = @_;
 
     # A key press or release. Down-flag is non-zero (true) if the key is now pressed, zero
-    # (false) if it is now released. The key itself is specified using the “keysym” values
+    # (false) if it is now released. The key itself is specified using the "keysym" values
     # defined by the X Window System.
 
     my $socket = $self->socket;

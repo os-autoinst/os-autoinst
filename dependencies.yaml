@@ -42,6 +42,7 @@ cover_requires:
 devel_requires:
   '%test_requires':
   '%python_style_requires':
+  perl(Code::TidyAll):
   perl(Devel::Cover):
   perl(Devel::Cover::Report::Codecov):
   perl(Perl::Tidy): '== 20211029'

@@ -4,8 +4,6 @@
 # perltidy rules can be found in ../.perltidyrc
 #
 
-PERLTIDY_ARGS="--no-valign --pro=.../.perltidyrc"
-
 usage() {
     cat << EOF
 Usage:
@@ -26,31 +24,25 @@ EOF
     exit
 }
 
-cleanup() {
-    find . -name '*.tdy' -delete
-}
-
 set -eo pipefail
 
-check=
-only_changed=false
+args=""
+selection='--all'
 opts=$(getopt -o hcfo --long help,check,force,only-changed -n 'parse-options' -- "$@") || usage
 eval set -- "$opts"
 while true; do
   case "$1" in
     -h | --help ) usage; shift ;;
-    -c | --check ) check=true; shift ;;
+    -c | --check ) args+=' --check-only'; shift ;;
     -f | --force ) force=true; shift ;;
-    -o | --only-changed ) only_changed=true; shift ;;
+    -o | --only-changed ) selection='--git'; shift ;;
     -- ) shift; break ;;
     * ) break ;;
   esac
 done
 
 shift $((OPTIND - 1))
-filename=$*
-
-trap cleanup EXIT
+filename=${*:-"$selection"}
 
 if ! command -v perltidy > /dev/null 2>&1; then
     echo "No perltidy found, install it first!"
@@ -59,11 +51,11 @@ fi
 
 # cpan file is in top directory
 dir="$(dirname "$0")/.."
-perltidy_version_expected=$(sed -n "s/^.*Tidy[^0-9]*\([0-9]*\)['];$/\1/p" "$dir"/cpanfile)
+perltidy_version_expected=$(sed -n "s/^.*Perl::Tidy[^0-9]*\([0-9]*\)['];$/\1/p" "$dir"/cpanfile)
 if [ -z "${perltidy_version_expected}" ]; then
     # No cpanfile in the linked repo, use the one from os-autoinst instead
     dir="$(dirname "$(readlink -f "$0")")/.."
-    perltidy_version_expected=$(sed -n "s/^.*Tidy[^0-9]*\([0-9]*\)['];$/\1/p" "$dir"/cpanfile)
+    perltidy_version_expected=$(sed -n "s/^.*Perl::Tidy[^0-9]*\([0-9]*\)['];$/\1/p" "$dir"/cpanfile)
 fi
 perltidy_version_found=$(perltidy -version | sed -n '1s/^.*perltidy, v\([0-9]*\)\s*$/\1/p')
 if [ "$perltidy_version_found" != "$perltidy_version_expected" ]; then
@@ -76,49 +68,11 @@ if [ "$perltidy_version_found" != "$perltidy_version_expected" ]; then
     fi
 fi
 
-find-files() {
-    local files=()
-    [[ -d script ]] && files+=(script/*)
-    # shellcheck disable=SC2207
-    files=($(file --mime-type -- * "${files[@]}" | (grep text/x-perl || true) | awk -F':' '{ print $1 }'))
-    files+=('**.p[ml]' '**.t')
-    if $only_changed; then
-        git status --porcelain "${files[@]}" | awk '{ print $2 }'
-    else
-        git ls-files "${files[@]}"
-    fi
-}
-
 # go to caller directory
 cd "$(dirname "$0")/.."
 
 # just to make sure we are at the right location
 test -e tools/tidy || exit 1
 
-cleanup
-
-if [[ -n "$filename" ]]; then
-   if [[ -f "$filename" ]]; then
-       # shellcheck disable=SC2086
-       perltidy $PERLTIDY_ARGS "$filename"
-   else
-       echo "\"$filename\" is not a valid file, please provide only one file"
-       exit 22
-   fi
-else
-    # shellcheck disable=SC2086
-    find-files | xargs perltidy $PERLTIDY_ARGS
-fi
-
-(git ls-files --others "*.tdy" || find . -name "*.tdy") | while read -r file
-do
-    if diff -u "${file%.tdy}" "$file"; then
-        continue
-    fi
-    if [[ -n "$check" ]]; then
-        echo "RUN tools/tidy script before checkin"
-        exit 1
-    else
-        mv -v "$file" "${file%.tdy}"
-    fi
-done
+# shellcheck disable=SC2086
+tidyall $args $filename

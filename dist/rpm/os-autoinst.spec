@@ -80,7 +80,7 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define test_requires %build_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(Inline::Python) perl(YAML::PP)
 # The following line is generated from dependencies.yaml
-%define devel_requires %python_style_requires %test_requires ShellCheck perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy)
+%define devel_requires %python_style_requires %test_requires ShellCheck perl(Code::TidyAll) perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy)
 %define s390_zvm_requires /usr/bin/xkbcomp /usr/bin/Xvnc x3270 icewm xterm xterm-console xdotool fonts-config mkfontdir mkfontscale
 BuildRequires:  %test_requires %test_version_only_requires
 Requires:       %main_requires
@@ -176,6 +176,8 @@ sed  -i 's/ my $thisversion = qx{git.*rev-parse HEAD}.*;/ my $thisversion = "%{v
 for i in 07-commands 13-osutils 14-isotovideo 18-qemu-options 18-backend-qemu 29-backend-driver 99-full-stack; do
     rm t/$i.t
 done
+# exclude unnecessary author tests
+rm xt/00-tidy.t
 # Remove test relying on a git working copy
 rm xt/30-make.t
 
