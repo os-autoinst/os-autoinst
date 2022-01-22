@@ -176,9 +176,6 @@ sub do_start_vm ($self, @) {
     #   $self->{configured} = 1;
     #}
     $self->select_next_boot('pxe');
-
-    # remove backend.crashed
-    $self->unlink_crash_file;
     $self->restart_host;
     sleep(5);
     $self->truncate_serial_file;
