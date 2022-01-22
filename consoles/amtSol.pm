@@ -9,6 +9,7 @@ require IPC::System::Simple;
 use POSIX '_exit';
 use bmwqemu;
 use IO::Pipe;
+use IO::Select;
 
 sub activate ($self) {
     $self->{serial_pipe} = IO::Pipe->new();
