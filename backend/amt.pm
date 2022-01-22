@@ -31,6 +31,7 @@ sub new ($class) {
     $ENV{'WSMAN_USER'} = 'admin';
     $ENV{'WSMAN_PASS'} = $bmwqemu::vars{AMT_PASSWORD};
 
+    bmwqemu::fctwarn 'DEPRECATED: backend::amt is unsupported and planned to be removed from os-autoinst eventually';
     return $class->SUPER::new;
 }
 
