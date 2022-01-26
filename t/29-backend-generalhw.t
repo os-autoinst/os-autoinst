@@ -35,6 +35,7 @@ $bmwqemu::vars{GENERAL_HW_SOL_ARGS} = 'console';
 $bmwqemu::vars{GENERAL_HW_FLASH_CMD} = 'ctl flash';
 $bmwqemu::vars{GENERAL_HW_FLASH_ARGS} = 'light';
 $bmwqemu::vars{GENERAL_HW_VNC_IP} = 'vnc.server';
+$bmwqemu::vars{GENERAL_HW_VNC_PORT} = 5900;
 $bmwqemu::vars{HDD_1} = '/hdd';
 $bmwqemu::vars{HDDSIZEGB_1} = 5;
 
