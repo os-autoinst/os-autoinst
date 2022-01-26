@@ -87,7 +87,8 @@ sub relogin_vnc ($self) {
         'vnc-base',
         {
             hostname => $bmwqemu::vars{GENERAL_HW_VNC_IP} || die('Need variable GENERAL_HW_VNC_IP'),
-            port => 5900,
+            port => $bmwqemu::vars{GENERAL_HW_VNC_PORT} // 5900,
+            password => $bmwqemu::vars{GENERAL_HW_VNC_PASSWORD},
             depth => 16,
             connect_timeout => 50
         });
@@ -125,13 +126,13 @@ sub do_start_vm ($self, @) {
     }
     $self->restart_host;
     $self->relogin_vnc if ($bmwqemu::vars{GENERAL_HW_VNC_IP});
-    $self->start_serial_grab if ($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD});
+    $self->start_serial_grab if (($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD}) && !$bmwqemu::vars{GENERAL_HW_NO_SERIAL});
     return {};
 }
 
 sub do_stop_vm ($self, @) {
     $self->poweroff_host;
-    $self->stop_serial_grab() if ($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD});
+    $self->stop_serial_grab() if (($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD}) && !$bmwqemu::vars{GENERAL_HW_NO_SERIAL});
     return {};
 }
 

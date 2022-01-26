@@ -288,6 +288,9 @@ LPAR_ID;string;udef;LPAR id
 |====================
 Variable;Values allowed;Default value;Explanation
 GENERAL_HW_VNC_IP;string;;Hostname of the gadget's network. If not set, SSH consoles will be used
+GENERAL_HW_VNC_PASSWORD;string;;Password for VNC server
+GENERAL_HW_VNC_PORT;integer;5900;VNC Port number
+GENERAL_HW_NO_SERIAL;boolean;;Don't use serial
 GENERAL_HW_CMD_DIR;string;;Directory with allowed CMD scripts. Note: This variable should be set in the workers.ini file, otherwise it will be ignored by openQA.
 GENERAL_HW_SOL_CMD;string;;Shell Script to output serial output (in CMD_DIR)
 GENERAL_HW_SOL_ARGS;string;;Arguments to pass GENERAL_HW_SOL_CMD Shell script
