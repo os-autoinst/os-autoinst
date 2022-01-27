@@ -800,9 +800,7 @@ sub _send_frame_buffer {
 }
 
 # frame buffer update request
-sub send_update_request {
-    my ($self) = @_;
-
+sub send_update_request ($self, $incremental = undef) {
     my $time_after_vnc_is_considered_stalled = $bmwqemu::vars{VNC_STALL_THRESHOLD} // 4;
     # after 2 seconds: send forced update
     # after 4 seconds: turn off screen
@@ -825,9 +823,8 @@ sub send_update_request {
         }
     }
 
-    my $incremental = $self->_framebuffer ? 1 : 0;
     # if we have a black screen, we need a full update
-    $incremental = 0 unless $self->_last_update_received;
+    $incremental = $self->_framebuffer && $self->_last_update_received ? 1 : 0 unless defined $incremental;
     return $self->_send_frame_buffer(
         {
             incremental => $incremental,
