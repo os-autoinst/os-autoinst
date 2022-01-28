@@ -195,8 +195,6 @@ Variable;Values allowed;Default value;Explanation
 HDDSIZEGB;integer;15;Disk size in GB
 QEMUCPUS;integer;1;Number of CPUs to assign to VM
 QEMURAM;integer;1024;Size of RAM of VM in MiB
-QEMU_COMPRESS_QCOW2;boolean;1;compress qcow2 images intended for upload
-S390_ZKVM;boolean;1;if set the first disk is assumed to be a, otherwise b
 VIRSH_HOSTNAME;string;;SSH Host with virsh
 VIRSH_USERNAME;string;;Username on above host, defaults to root
 VIRSH_PASSWORD;string;;Password for user account on above host

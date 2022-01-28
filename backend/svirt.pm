@@ -5,13 +5,9 @@
 package backend::svirt;
 use Mojo::Base 'backend::virt', -signatures;
 use File::Basename;
-use File::Path 'mkpath';
 use IO::Scalar;
 use Time::HiRes 'usleep';
 use bmwqemu;
-use osutils qw(runcmd);
-
-use constant IMAGE_STORAGE => '/var/lib/libvirt/images/';
 
 use constant SERIAL_CONSOLE_DEFAULT_PORT => 0;
 use constant SERIAL_CONSOLE_DEFAULT_DEVICE => 'console';
@@ -169,25 +165,6 @@ sub load_snapshot ($self, $args) {
     bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
     $self->die if $rsp;
     return $post_load_snapshot_command;
-}
-
-sub do_extract_assets ($self, $args) {
-    my $format = $args->{format};
-    return undef if (($format ne 'raw') and ($format ne 'qcow2'));
-
-    my $first_hdd = $bmwqemu::vars{S390_ZKVM} ? 'a' : 'b';
-    my $name = $args->{name};
-    my $hdd_num = $args->{hdd_num} - 1;
-    my $vmname = $self->console('svirt')->name;
-    my $svirt_img_name = IMAGE_STORAGE . $vmname . chr(ord($first_hdd) + $hdd_num) . '.img';
-    my $img_dir = $args->{dir};
-    mkpath($img_dir);
-
-    my @args = ();
-    my $qemu_compress_qcow = $bmwqemu::vars{QEMU_COMPRESS_QCOW2} // 1;
-    push @args, '-c' if $qemu_compress_qcow;
-    runcmd('nice', 'ionice', 'qemu-img', 'convert', '-p', '-O', $format, $svirt_img_name, "$img_dir/$name", @args);
-    return undef;
 }
 
 sub get_ssh_credentials ($self, $domain = 'default') {

@@ -432,6 +432,8 @@ sub can_handle ($self, @) {
     return;    # sorry, no
 }
 
+sub do_extract_assets ($self, $args) { $self->notimplemented }
+
 sub is_shutdown ($self, @) { -1 }
 
 sub save_memory_dump ($self, $args) { $self->notimplemented }
