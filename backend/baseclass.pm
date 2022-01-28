@@ -32,6 +32,8 @@ use Time::Seconds;
 use English -no_match_vars;
 use OpenQA::NamedIOSelect;
 
+use constant FULL_SCREEN_SEARCH_FREQUENCY => $ENV{OS_AUTOINST_FULL_SCREEN_SEARCH_FREQUENCY} // 5;
+
 # should be a singleton - and only useful in backend process
 our $backend;
 
@@ -951,28 +953,17 @@ sub time_remaining_str ($time) {
 }
 
 sub check_asserted_screen ($self, $args) {
-    my $img = $self->last_image;
-    return unless $img;    # no screenshot yet to search on
+    return unless my $img = $self->last_image;    # no screenshot yet to search on
     my $watch = OpenQA::Benchmark::Stopwatch->new();
     my $timestamp = $self->last_screenshot;
     my $n = $self->_time_to_assert_screen_deadline;
     my $frame = $self->{video_frame_number};
 
-    my $search_ratio = 0.02;
-    $search_ratio = 1 if ($n % 5 == 0);
-
+    # do a full-screen search every FULL_SCREEN_SEARCH_FREQUENCY'th time and at the end
+    my $search_ratio = $n < 0 || $n % FULL_SCREEN_SEARCH_FREQUENCY == 0 ? 1 : 0.02;
     my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || [undef, 0]};
 
-    if ($n < 0) {
-        # one last big search
-        $search_ratio = 1;
-    }
-    else {
-        if ($oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio) {
-            bmwqemu::diag('no change: ' . time_remaining_str($n));
-            return;
-        }
-    }
+    bmwqemu::diag('no change: ' . time_remaining_str($n)) and return if $n >= 0 && $oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio;
 
     $watch->start();
     $watch->{debug} = 0;
