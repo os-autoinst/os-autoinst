@@ -32,6 +32,11 @@ use Time::Seconds;
 use English -no_match_vars;
 use OpenQA::NamedIOSelect;
 
+
+use constant FULL_SCREEN_SEARCH_PERIOD => $ENV{OS_AUTOINST_FULL_SCREEN_SEARCH_PERIOD} // 5;
+use constant FULL_UPDATE_REQUEST_PERIOD => $ENV{OS_AUTOINST_FULL_UPDATE_REQUEST_PERIOD} // 5;
+
+
 # should be a singleton - and only useful in backend process
 our $backend;
 
@@ -955,22 +960,11 @@ sub check_asserted_screen ($self, $args) {
     my $timestamp = $self->last_screenshot;
     my $n = $self->_time_to_assert_screen_deadline;
     my $frame = $self->{video_frame_number};
-
-    my $search_ratio = 0.02;
-    $search_ratio = 1 if ($n % 5 == 0);
-
+    my $search_ratio = $n < 0 || $n % FULL_SCREEN_SEARCH_PERIOD == 0 ? 1 : 0.02;
     my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || [undef, 0]};
+    $self->{_full_update_requested} = $n % FULL_UPDATE_REQUEST_PERIOD == 0;
 
-    if ($n < 0) {
-        # one last big search
-        $search_ratio = 1;
-    }
-    else {
-        if ($oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio) {
-            bmwqemu::diag('no change: ' . time_remaining_str($n));
-            return;
-        }
-    }
+    bmwqemu::diag('no change: ' . time_remaining_str($n)) && return if $n >= 0 && $oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio;
 
     $watch->start();
     $watch->{debug} = 0;
