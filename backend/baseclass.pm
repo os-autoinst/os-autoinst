@@ -33,6 +33,7 @@ use English -no_match_vars;
 use OpenQA::NamedIOSelect;
 
 use constant FULL_SCREEN_SEARCH_FREQUENCY => $ENV{OS_AUTOINST_FULL_SCREEN_SEARCH_FREQUENCY} // 5;
+use constant FULL_UPDATE_REQUEST_FREQUENCY => $ENV{OS_AUTOINST_FULL_UPDATE_REQUEST_FREQUENCY} // 5;
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -1030,6 +1031,9 @@ sub check_asserted_screen ($self, $args) {
         # as we're nearing the deadline
         $self->request_screen_update({incremental => 0});
         $self->{_final_full_update_requested} = 1;
+    }
+    elsif ($n % FULL_UPDATE_REQUEST_FREQUENCY == 0) {
+        $self->request_screen_update({incremental => 0});
     }
 
     if ($search_ratio == 1) {
