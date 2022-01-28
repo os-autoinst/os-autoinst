@@ -5,6 +5,7 @@ use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
+use Test::Mock::Time;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Output;
@@ -29,6 +30,11 @@ tzset;
 
 bmwqemu::init_logger;
 
+my $baseclass_mock = Test::MockModule->new('backend::baseclass');
+$baseclass_mock->redefine(run_capture_loop => sub {
+        sleep 5;    # simulate that time passes (mocked via Test::Mock::Time)
+        $baseclass_mock->original('run_capture_loop')->(@_);
+});
 my $baseclass = backend::baseclass->new();
 
 subtest 'format_vtt_timestamp' => sub {
