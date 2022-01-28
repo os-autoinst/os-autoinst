@@ -761,30 +761,16 @@ subtest 'get_wait_still_screen_on_here_doc_input' => sub {
 subtest 'upload assets' => sub {
     my $osutils_mock = Test::MockModule->new('osutils');
     $osutils_mock->redefine(run => sub (@cmd) {
-            my $first_hdd = $bmwqemu::vars{S390_ZKVM} ? 'a' : 'b';
-            is join(' ', @cmd), 'nice ionice qemu-img convert -p -O qcow2 ' . backend::svirt::IMAGE_STORAGE . $bmwqemu::backend->{backend}->{vmname} . $first_hdd . '.img assets_public/test.qcow2 -c', 'got expected command';
+            is join(' ', @cmd), 'nice ionice qemu-img convert -p -O qcow2 ' . backend::svirt::IMAGE_STORAGE . 'barfoob.img assets_public/test.qcow2 -c', 'got expected command';
             return 0, '';
     });
-
-    my $mock_baseclass = Test::MockModule->new('backend::baseclass');
-    $mock_baseclass->redefine('run_ssh_cmd' => sub ($self, $cmd, %args) { 0 });
 
     my $command_handler = OpenQA::Isotovideo::CommandHandler->new();
     $bmwqemu::vars{NUMDISKS} = 1;
     $bmwqemu::vars{FORCE_PUBLISH_HDD_1} = 'test.qcow2';
     $bmwqemu::backend = FakeBackendDriver->new('svirt');
-    $bmwqemu::backend->{backend}->do_start_vm;
-    $bmwqemu::backend->{backend}->load_snapshot({name => 'test'});
     my $return_code = handle_generated_assets($command_handler, 1);
     is $return_code, 0, 'The asset was uploaded successfully';
-
-    $bmwqemu::vars{S390_ZKVM} = '1';
-    $return_code = handle_generated_assets($command_handler, 1);
-    is $return_code, 0, 'The asset was uploaded successfully (disk a)';
-
-    $bmwqemu::backend->{backend}->save_snapshot({name => 'test'});
-    $bmwqemu::backend->{backend}->is_shutdown;
-    $bmwqemu::backend->{backend}->do_stop_vm;
 };
 
 done_testing;
