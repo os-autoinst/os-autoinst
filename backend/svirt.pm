@@ -5,13 +5,9 @@
 package backend::svirt;
 use Mojo::Base 'backend::virt', -signatures;
 use File::Basename;
-use File::Path 'mkpath';
 use IO::Scalar;
 use Time::HiRes 'usleep';
 use bmwqemu;
-use osutils qw(runcmd);
-
-use constant IMAGE_STORAGE => '/var/lib/libvirt/images/';
 
 use constant SERIAL_CONSOLE_DEFAULT_PORT => 0;
 use constant SERIAL_CONSOLE_DEFAULT_DEVICE => 'console';
@@ -50,7 +46,6 @@ sub do_start_vm ($self, @) {
         });
 
     $ssh->backend($self);
-    $self->{vmname} = $self->console('svirt')->name;
 
     bmwqemu::save_vars();    # update variables
     return {};
@@ -60,8 +55,8 @@ sub do_stop_vm ($self, @) {
     $self->stop_serial_grab;
 
     unless ($bmwqemu::vars{SVIRT_KEEP_VM_RUNNING}) {
-        my $vmname = $self->{vmname};
-        bmwqemu::diag "Destroying $self->{vmname} virtual machine";
+        my $vmname = $self->console('svirt')->name;
+        bmwqemu::diag "Destroying $vmname virtual machine";
         if (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv') {
             my $ps = 'powershell -Command';
             $self->run_ssh_cmd("$ps Stop-VM -Force -VMName $vmname -TurnOff");
@@ -110,7 +105,7 @@ sub can_handle ($self, $args) {
 }
 
 sub is_shutdown ($self, @) {
-    my $vmname = $self->{vmname};
+    my $vmname = $self->console('svirt')->name;
     my $rsp;
     if (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv') {
         $rsp = $self->run_ssh_cmd("powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"");
@@ -124,7 +119,7 @@ sub is_shutdown ($self, @) {
 
 sub save_snapshot ($self, $args) {
     my $snapname = $args->{name};
-    my $vmname = $self->{vmname};
+    my $vmname = $self->console('svirt')->name;
     my $rsp;
     if (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv') {
         my $ps = 'powershell -Command';
@@ -143,7 +138,7 @@ sub save_snapshot ($self, $args) {
 
 sub load_snapshot ($self, $args) {
     my $snapname = $args->{name};
-    my $vmname = $self->{vmname};
+    my $vmname = $self->console('svirt')->name;
     my $rsp;
     my $post_load_snapshot_command = '';
     if (($bmwqemu::vars{VIRSH_VMM_FAMILY} // '') eq 'hyperv') {
@@ -170,24 +165,6 @@ sub load_snapshot ($self, $args) {
     bmwqemu::diag "LOAD snapshot $snapname to $vmname, return code=$rsp";
     $self->die if $rsp;
     return $post_load_snapshot_command;
-}
-
-sub do_extract_assets ($self, $args) {
-    my $format = $args->{format};
-    return undef if (($format ne 'raw') and ($format ne 'qcow2'));
-
-    my $first_hdd = $bmwqemu::vars{S390_ZKVM} ? 'a' : 'b';
-    my $name = $args->{name};
-    my $hdd_num = $args->{hdd_num} - 1;
-    my $svirt_img_name = IMAGE_STORAGE . $self->{vmname} . chr(ord($first_hdd) + $hdd_num) . '.img';
-    my $img_dir = $args->{dir};
-    mkpath($img_dir);
-
-    my @args = ();
-    my $qemu_compress_qcow = $bmwqemu::vars{QEMU_COMPRESS_QCOW2} // 1;
-    push @args, '-c' if $qemu_compress_qcow;
-    runcmd('nice', 'ionice', 'qemu-img', 'convert', '-p', '-O', $format, $svirt_img_name, "$img_dir/$name", @args);
-    return undef;
 }
 
 sub get_ssh_credentials ($self, $domain = 'default') {
