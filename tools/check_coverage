@@ -8,7 +8,7 @@ die "Need threshold as argument" unless @ARGV;
 
 my $filename = 'cover_db/coverage.html';
 
-open (my $fh, '<', $filename);
+open(my $fh, '<', $filename);
 my @log = <$fh>;
 close($fh);
 my @summary = grep { /Total/ } @log;
