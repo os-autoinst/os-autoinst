@@ -228,7 +228,7 @@ sub as_data ($self) {
 
         $running_total += $lapcopy{time};
         $lapcopy{cumulative} = $running_total;
-        $lapcopy{fraction} = $lapcopy{time} / $data{total_time};
+        $lapcopy{fraction} = $lapcopy{time} / $data{total_time} if $data{total_time};
 
         push @{$data{laps}}, \%lapcopy;
     }

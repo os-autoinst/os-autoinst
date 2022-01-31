@@ -32,6 +32,9 @@ use Time::Seconds;
 use English -no_match_vars;
 use OpenQA::NamedIOSelect;
 
+use constant FULL_SCREEN_SEARCH_FREQUENCY => $ENV{OS_AUTOINST_FULL_SCREEN_SEARCH_FREQUENCY} // 5;
+use constant FULL_UPDATE_REQUEST_FREQUENCY => $ENV{OS_AUTOINST_FULL_UPDATE_REQUEST_FREQUENCY} // 5;
+
 # should be a singleton - and only useful in backend process
 our $backend;
 
@@ -679,8 +682,8 @@ sub load_console_snapshots ($self, $name) {
     }
 }
 
-sub request_screen_update ($self) {
-    return $self->bouncer('request_screen_update', undef);
+sub request_screen_update ($self, $args = undef) {
+    return $self->bouncer('request_screen_update', $args);
 }
 
 sub console ($self, $testapi_console) {
@@ -950,29 +953,23 @@ sub time_remaining_str ($time) {
     return sprintf("%.1fs", $time - 0.05);
 }
 
+sub _reset_asserted_screen_check_variables ($self) {
+    $self->{_final_full_update_requested} = 0;
+    $self->assert_screen_last_check(undef);
+}
+
 sub check_asserted_screen ($self, $args) {
-    my $img = $self->last_image;
-    return unless $img;    # no screenshot yet to search on
+    return unless my $img = $self->last_image;    # no screenshot yet to search on
     my $watch = OpenQA::Benchmark::Stopwatch->new();
     my $timestamp = $self->last_screenshot;
     my $n = $self->_time_to_assert_screen_deadline;
     my $frame = $self->{video_frame_number};
 
-    my $search_ratio = 0.02;
-    $search_ratio = 1 if ($n % 5 == 0);
-
+    # do a full-screen search every FULL_SCREEN_SEARCH_FREQUENCY'th time and at the end
+    my $search_ratio = $n < 0 || $n % FULL_SCREEN_SEARCH_FREQUENCY == 0 ? 1 : 0.02;
     my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || [undef, 0]};
 
-    if ($n < 0) {
-        # one last big search
-        $search_ratio = 1;
-    }
-    else {
-        if ($oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio) {
-            bmwqemu::diag('no change: ' . time_remaining_str($n));
-            return;
-        }
-    }
+    bmwqemu::diag('no change: ' . time_remaining_str($n)) and return if $n >= 0 && $oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio;
 
     $watch->start();
     $watch->{debug} = 0;
@@ -981,7 +978,7 @@ sub check_asserted_screen ($self, $args) {
     my ($foundneedle, $failed_candidates) = $img->search(\@registered_needles, 0, $search_ratio, ($watch->{debug} ? $watch : undef));
     $watch->lap("Needle search") unless $watch->{debug};
     if ($foundneedle) {
-        $self->assert_screen_last_check(undef);
+        $self->_reset_asserted_screen_check_variables;
         return {
             image => encode_base64($img->ppm_data),
             found => $foundneedle,
@@ -1010,8 +1007,7 @@ sub check_asserted_screen ($self, $args) {
     bmwqemu::diag($no_match_diag);
 
     if ($n < 0) {
-        # make sure we recheck later
-        $self->assert_screen_last_check(undef);
+        $self->_reset_asserted_screen_check_variables;
 
         if (!$self->assert_screen_check) {
             my @unregistered_needles = grep { $_->{unregistered} } @{$self->assert_screen_needles};
@@ -1029,6 +1025,15 @@ sub check_asserted_screen ($self, $args) {
         $hash->{stall} = $self->stall_detected;
 
         return $hash;
+    }
+    elsif ($n <= $self->screenshot_interval * 2 && !$self->{_final_full_update_requested}) {
+        # try to request a full screen update to workaround possibly destorted VNC screen
+        # as we're nearing the deadline
+        $self->request_screen_update({incremental => 0});
+        $self->{_final_full_update_requested} = 1;
+    }
+    elsif ($n % FULL_UPDATE_REQUEST_FREQUENCY == 0) {
+        $self->request_screen_update({incremental => 0});
     }
 
     if ($search_ratio == 1) {

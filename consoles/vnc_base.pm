@@ -37,11 +37,11 @@ sub connect_remote ($self, $args) {
     return $self->{vnc};
 }
 
-sub request_screen_update ($self, @) {
+sub request_screen_update ($self, $args = undef) {
     return unless $self->{vnc};
     # drain the VNC socket before polling for a new update
     $self->{vnc}->update_framebuffer();
-    $self->{vnc}->send_update_request();
+    $self->{vnc}->send_update_request($args ? $args->{incremental} : undef);
     return;
 }
 

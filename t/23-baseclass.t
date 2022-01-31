@@ -5,6 +5,7 @@ use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
+use Test::Mock::Time;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Output;
@@ -28,6 +29,17 @@ $ENV{TZ} = 'UTC';
 tzset;
 
 bmwqemu::init_logger;
+
+my $baseclass_mock = Test::MockModule->new('backend::baseclass');
+my @requested_screen_updates;
+$baseclass_mock->redefine(run_capture_loop => sub {
+        sleep 5;    # simulate that time passes (mocked via Test::Mock::Time)
+        $baseclass_mock->original('run_capture_loop')->(@_);
+});
+$baseclass_mock->redefine(request_screen_update => sub ($self, $args) {
+        is $args->{incremental}, 0, 'screen update is always expected to be non-incremental within this test';
+        push @requested_screen_updates, [$args];
+});
 
 my $baseclass = backend::baseclass->new();
 
@@ -374,6 +386,24 @@ subtest check_select_rate => sub {
         }
         is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 1, "Hit the limit, as all fds hit it!");
     };
+};
+
+subtest 'requesting full screen update' => sub {
+    is scalar @requested_screen_updates, 0, 'no screen update requested so far';
+    $baseclass->last_image(Test::MockObject->new->set_list(search => 0, []));
+    $baseclass->assert_screen_tags(['foo']);
+    $baseclass->assert_screen_needles([{}]);
+    $baseclass_mock->redefine(_time_to_assert_screen_deadline => 41);
+    $baseclass->screenshot_interval(20);
+    $baseclass->check_asserted_screen({});
+    is scalar @requested_screen_updates, 0, 'no screen update requested';
+    $baseclass_mock->redefine(_time_to_assert_screen_deadline => 40);
+    $baseclass->check_asserted_screen({});
+    is scalar @requested_screen_updates, 1, 'screen update requested as deadline nearing end';
+    is scalar @requested_screen_updates, 1, 'no further screen update requested';
+    $baseclass_mock->redefine(_time_to_assert_screen_deadline => 2 * backend::baseclass::FULL_UPDATE_REQUEST_FREQUENCY);
+    $baseclass->check_asserted_screen({});
+    is scalar @requested_screen_updates, 2, 'screen update triggered periodically';
 };
 
 is($baseclass->get_wait_still_screen_on_here_doc_input({}), 0, 'wait_still_screen on here doc is off by default!');
