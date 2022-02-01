@@ -34,8 +34,8 @@ unless ($integration_tests) {
 }
 
 autotest::loadtest "tests/boot.pm";
+autotest::loadtest "tests/assert_screen.pm";
 unless ($integration_tests) {
-    autotest::loadtest "tests/assert_screen.pm";
     autotest::loadtest "tests/typing.pm";
     autotest::loadtest "tests/select_console_fail_test.pm";
     autotest::loadtest "tests/select_ssh_console_fail_test.pm";
