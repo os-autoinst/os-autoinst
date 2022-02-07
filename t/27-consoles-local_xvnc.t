@@ -45,11 +45,4 @@ is $c->callxterm('true', 'window1'), '', 'can call callxterm';
 is $c->fullscreen({window_name => 'foo'}), 1, 'can call fullscreen';
 is $c->disable, undef, 'can call disable';
 
-my $base_screen_update_called;
-$vnc_base_mock->redefine(request_screen_update => sub { ++$base_screen_update_called });
-is $c->request_screen_update({incremental => 0}), 0, 'non-incremental screen updated prevented';
-is $base_screen_update_called, undef, 'non-incremental screen update not passed to vnc_base';
-is $c->request_screen_update(), 1, 'incremental screen updated done as usual';
-is $c->request_screen_update({incremental => 1}), 2, 'explicit incremental screen updated done as usual';
-
 done_testing;

@@ -43,13 +43,6 @@ sub callxterm ($self, $command, $window_name) {
     die "cant' start xterm on $display (err: $! retval: $?)" if $@;
 }
 
-sub request_screen_update ($self, $args = undef) {
-    # avoid non-incremental screen updates, see poo#106017
-    # note: It apparently breaks some cases causing the stale VNC detection to force a re-connect which then
-    #       fails with "Connection refused".
-    $self->SUPER::request_screen_update($args) if !(exists $args->{incremental}) || $args->{incremental};
-}
-
 sub fullscreen ($self, $args) {
     my $display = $self->{DISPLAY};
     my $window_name = $args->{window_name};
