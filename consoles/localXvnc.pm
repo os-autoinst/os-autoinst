@@ -89,12 +89,14 @@ sub activate ($self) {
     start_xvnc($s, $display) unless $pid;
     close($s);
 
-    $self->connect_remote(
+    my $vnc = $self->connect_remote(
         {
             hostname => "localhost",
             port => $port,
             ikvm => 0
         });
+    # disable checking VNC stalls as this setup would not survive possible re-connects anyways
+    $vnc->check_vnc_stalls(0);
     bmwqemu::diag("Connected to Xvnc - PID $pid");
     $self->{DISPLAY} = $display;
     sleep 1;
