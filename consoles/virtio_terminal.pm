@@ -111,7 +111,7 @@ sub F_SETPIPE_SZ {
 
 sub set_pipe_sz ($self, $fd, $newsize) {
     no autodie;
-    return fcntl($fd, F_SETPIPE_SZ(), int($newsize));    # uncoverable statement
+    return fcntl($fd, F_SETPIPE_SZ(), int($newsize));
 }
 
 sub get_pipe_sz ($self, $fd) {

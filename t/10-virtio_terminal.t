@@ -117,6 +117,13 @@ subtest "Test open_pipe() error condition" => sub {
     $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     combined_like { throws_ok { $term->open_pipe() } qr/No such file or directory/, "Throw exception if pipe doesn't exists" }
     qr/\[debug\] <<<.*open_pipe/, 'log for open_pipe on non-existent pipe';
+
+    undef $vterminal_mock;
+    $helper = prepare_pipes($socket_path);
+    $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
+    local $bmwqemu::vars{VIRTIO_CONSOLE_PIPE_SZ} = 65537;
+    combined_like { $term->open_pipe() } qr/Set PIPE_SZ from 65536 to 131072/, 'Log mention new size';
+    cleanup_pipes($helper);
 };
 
 subtest "Test snapshot handling" => sub {
