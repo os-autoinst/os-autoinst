@@ -117,9 +117,7 @@ my @encodings = (
     },
 );
 
-sub login {
-    my ($self, $connect_timeout) = @_;
-    $connect_timeout //= 10;
+sub login ($self, $connect_timeout = 10) {
     # arbitrary
     my $connect_failure_limit = 2;
 
@@ -178,9 +176,7 @@ sub login {
     }
 }
 
-sub _handshake_protocol_version {
-    my ($self) = @_;
-
+sub _handshake_protocol_version ($self) {
     my $socket = $self->socket;
     $socket->read(my $protocol_version, 12) || die 'unexpected end of data';
     my $protocol_pattern = qr/\A RFB [ ] (\d{3}\.\d{3}) \s* \z/xms;
@@ -207,9 +203,7 @@ sub _handshake_protocol_version {
     $socket->print($protocol_version);
 }
 
-sub _handshake_security {
-    my $self = shift;
-
+sub _handshake_security ($self) {
     my $socket = $self->socket;
 
     # Retrieve list of security options
@@ -363,17 +357,12 @@ sub _handshake_security {
     }
 }
 
-sub _client_initialization {
-    my $self = shift;
-
+sub _client_initialization ($self) {
     my $socket = $self->socket;
-
     $socket->print(pack('C', !$self->ikvm));    # share
 }
 
-sub _server_initialization {
-    my $self = shift;
-
+sub _server_initialization ($self) {
     my $socket = $self->socket;
     $socket->read(my $server_init, 24) || die 'unexpected end of data';
 
@@ -501,9 +490,7 @@ sub _server_initialization {
     }
 }
 
-sub _send_key_event {
-    my ($self, $down_flag, $key) = @_;
-
+sub _send_key_event ($self, $down_flag, $key) {
     # A key press or release. Down-flag is non-zero (true) if the key is now pressed, zero
     # (false) if it is now released. The key itself is specified using the "keysym" values
     # defined by the X Window System.
@@ -522,13 +509,11 @@ sub _send_key_event {
         ));
 }
 
-sub send_key_event_down {
-    my ($self, $key) = @_;
+sub send_key_event_down ($self, $key) {
     $self->_send_key_event(1, $key);
 }
 
-sub send_key_event_up {
-    my ($self, $key) = @_;
+sub send_key_event_up ($self, $key) {
     $self->_send_key_event(0, $key);
 }
 
@@ -608,7 +593,6 @@ my $keymap_ikvm = {
 };
 
 sub shift_keys {
-
     # see http://en.wikipedia.org/wiki/IBM_PC_keyboard
     return {
         '~' => '`',
@@ -643,9 +627,7 @@ sub shift_keys {
 
 ## use critic
 
-sub init_x11_keymap {
-    my ($self) = @_;
-
+sub init_x11_keymap ($self) {
     return if $self->keymap;
     # create a deep copy - we want to reuse it in other instances
     my %keymap = %$keymap_x11;
@@ -669,9 +651,7 @@ sub init_x11_keymap {
     $self->keymap(\%keymap);
 }
 
-sub init_ikvm_keymap {
-    my ($self) = @_;
-
+sub init_ikvm_keymap ($self) {
     return if $self->keymap;
     my %keymap = %$keymap_ikvm;
     for my $key ("a" .. "z") {
@@ -694,9 +674,7 @@ sub init_ikvm_keymap {
 }
 
 
-sub map_and_send_key {
-    my ($self, $keys, $down_flag, $press_release_delay) = @_;
-
+sub map_and_send_key ($self, $keys, $down_flag, $press_release_delay) {
     die "need delay" unless $press_release_delay;
 
     if ($self->ikvm) {
@@ -742,8 +720,7 @@ sub map_and_send_key {
     }
 }
 
-sub send_pointer_event {
-    my ($self, $button_mask, $x, $y) = @_;
+sub send_pointer_event ($self, $button_mask, $x, $y) {
     bmwqemu::diag "send_pointer_event $button_mask, $x, $y, " . $self->absolute;
 
     my $template = 'CCnn';
@@ -761,9 +738,7 @@ sub send_pointer_event {
 
 # drain the VNC socket from all pending incoming messages.  return
 # true if there was a screen update.
-sub update_framebuffer {    # upstream VNC.pm:  "capture"
-    my ($self) = @_;
-
+sub update_framebuffer ($self) {
     try {
         local $SIG{__DIE__} = undef;
         my $have_recieved_update = 0;
@@ -785,9 +760,7 @@ sub update_framebuffer {    # upstream VNC.pm:  "capture"
 
 use POSIX ':errno_h';
 
-sub _send_frame_buffer {
-    my ($self, $args) = @_;
-
+sub _send_frame_buffer ($self, $args) {
     return $self->socket->print(
         pack(
             'CCnnnn',
@@ -838,9 +811,7 @@ sub send_update_request ($self, $incremental = undef) {
 # to check if VNC connection is still alive
 # just force an update to the upper 16x16 pixels
 # to avoid checking old screens if VNC goes down
-sub send_forced_update_request {
-    my ($self) = @_;
-
+sub send_forced_update_request ($self) {
     $self->_last_update_requested(time);
     return $self->_send_frame_buffer(
         {
@@ -852,9 +823,7 @@ sub send_forced_update_request {
         });
 }
 
-sub _receive_message {
-    my $self = shift;
-
+sub _receive_message ($self) {
     my $socket = $self->socket;
     $socket or die 'socket does not exist. Probably your backend instance could not start or died.';
     $socket->blocking(0);
@@ -888,9 +857,7 @@ sub _receive_message {
     return $message_type;
 }
 
-sub _receive_update {
-    my ($self) = @_;
-
+sub _receive_update ($self) {
     $self->_last_update_received(time);
     my $image = $self->_framebuffer;
     if (!$image && $self->width && $self->height) {
@@ -962,8 +929,7 @@ sub _receive_update {
     return $number_of_rectangles;
 }
 
-sub _discard_ikvm_message {
-    my ($self, $type, $bytes) = @_;
+sub _discard_ikvm_message ($self, $type, $bytes) {
     # we don't care for the content
     $self->socket->read(my $dummy, $bytes);
     print "discarding $bytes bytes for message $type\n";
@@ -980,9 +946,7 @@ sub _discard_ikvm_message {
     #     bytes "get-viewer-lang", 8
 }
 
-sub _receive_zrle_encoding {
-    my ($self, $x, $y, $w, $h) = @_;
-
+sub _receive_zrle_encoding ($self, $x, $y, $w, $h) {
     my $socket = $self->socket;
     my $image = $self->_framebuffer;
 
@@ -1016,9 +980,7 @@ sub _receive_zrle_encoding {
     return $res;
 }
 
-sub _receive_ikvm_encoding {
-    my ($self, $encoding_type, $x, $y, $w, $h) = @_;
-
+sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
     my $socket = $self->socket;
     my $image = $self->_framebuffer;
 
@@ -1121,9 +1083,7 @@ sub _receive_ikvm_encoding {
     }
 }
 
-sub _receive_colour_map {
-    my $self = shift;
-
+sub _receive_colour_map ($self) {
     $self->socket->read(my $map_infos, 5);
     my ($padding, $first_colour, $number_of_colours) = unpack('Cnn', $map_infos);
 
@@ -1140,9 +1100,7 @@ sub _receive_colour_map {
 # Discard the bell signal
 sub _receive_bell { 1 }
 
-sub _receive_ikvm_session {
-    my $self = shift;
-
+sub _receive_ikvm_session ($self) {
     $self->socket->read(my $ikvm_session_infos, 264);
 
     my ($msg1, $msg2, $str) = unpack('NNZ256', $ikvm_session_infos);
@@ -1150,9 +1108,7 @@ sub _receive_ikvm_session {
     return 1;
 }
 
-sub _receive_cut_text {
-    my $self = shift;
-
+sub _receive_cut_text ($self) {
     my $socket = $self->socket;
     $socket->read(my $cut_msg, 7) || OpenQA::Exception::VNCProtocolError->throw(error => 'unexpected end of data');
     my $cut_length = unpack 'xxxN', $cut_msg;
@@ -1164,21 +1120,16 @@ sub _receive_cut_text {
     return 1;
 }
 
-sub mouse_move_to {
-    my ($self, $x, $y) = @_;
+sub mouse_move_to ($self, $x, $y) {
     $self->send_pointer_event(0, $x, $y);
 }
 
-sub mouse_click {
-    my ($self, $x, $y) = @_;
-
+sub mouse_click ($self, $x, $y) {
     $self->send_pointer_event(1, $x, $y);
     $self->send_pointer_event(0, $x, $y);
 }
 
-sub mouse_right_click {
-    my ($self, $x, $y) = @_;
-
+sub mouse_right_click ($self, $x, $y) {
     $self->send_pointer_event(4, $x, $y);
     $self->send_pointer_event(0, $x, $y);
 }
