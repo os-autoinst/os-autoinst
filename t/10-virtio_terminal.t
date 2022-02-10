@@ -14,6 +14,7 @@ use Time::Seconds;
 use consoles::virtio_terminal;
 use testapi;
 use bmwqemu;
+use Mojo::File qw(path);
 
 my $pipe_data_written;
 sub wait_till_pipe_data_written() { sleep 1 while (!$pipe_data_written) }
@@ -118,11 +119,13 @@ subtest "Test open_pipe() error condition" => sub {
     combined_like { throws_ok { $term->open_pipe() } qr/No such file or directory/, "Throw exception if pipe doesn't exists" }
     qr/\[debug\] <<<.*open_pipe/, 'log for open_pipe on non-existent pipe';
 
-    undef $vterminal_mock;
+    $vterminal_mock = Test::MockModule->new('consoles::virtio_terminal');
+    $vterminal_mock->redefine("get_pipe_sz", sub { 1024 });
     $helper = prepare_pipes($socket_path);
     $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
-    local $bmwqemu::vars{VIRTIO_CONSOLE_PIPE_SZ} = 65537;
-    combined_like { $term->open_pipe() } qr/Set PIPE_SZ from 65536 to 131072/, 'Log mention new size';
+    my $max = path('/proc/sys/fs/pipe-max-size')->slurp();
+    local $bmwqemu::vars{VIRTIO_CONSOLE_PIPE_SZ} = $max;
+    combined_like { $term->open_pipe() } qr/Set PIPE_SZ from 1024 to $max/, 'Log mention new size';
     cleanup_pipes($helper);
 };
 
