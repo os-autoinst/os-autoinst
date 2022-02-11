@@ -439,6 +439,8 @@ sub do_extract_assets ($self, $args) { $self->notimplemented }
 
 sub is_shutdown ($self, @) { -1 }
 
+sub switch_network ($self, $args) { $self->notimplemented }
+
 sub save_memory_dump ($self, $args) { $self->notimplemented }
 
 sub save_storage_drives ($self, $args) { $self->notimplemented }

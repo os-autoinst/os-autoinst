@@ -87,6 +87,23 @@ subtest 'eject cd' => sub {
     is_deeply $called{handle_qmp_command}[1], \%custom_remove_params, 'blockdev-remove-medium called with custom parameters';
 };
 
+subtest 'switch_network' => sub {
+    my %switch_network_params = (arguments => {name => 'qanet0', up => Mojo::JSON->false}, execute => 'set_link');
+    $called{handle_qmp_command} = undef;
+
+    $backend->switch_network({network_enabled => 0});
+    ok(exists $called{handle_qmp_command}, 'network must be disabled');
+    is_deeply($called{handle_qmp_command}[0], \%switch_network_params, 'qmp command for setlink is passed');
+
+    $called{handle_qmp_command} = undef;
+    $backend->switch_network({network_enabled => 1, network_link_name => 'bingo'});
+    %switch_network_params = (arguments => {name => 'bingo', up => Mojo::JSON->true}, execute => 'set_link');
+    ok(exists $called{handle_qmp_command}, 'a qmp command has been called');
+    is_deeply($called{handle_qmp_command}[0], \%switch_network_params, 'Network name can be specified, network can be enabled');
+
+    $called{handle_qmp_command} = undef;
+};
+
 subtest 'execute arbitrary QMP command' => sub {
     my %query = (execute => 'foo', arguments => {bar => 1});
     $called{handle_qmp_command} = undef;
