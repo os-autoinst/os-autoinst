@@ -279,6 +279,13 @@ sub _migrate_to_file ($self, %args) {
     return $self->_wait_for_migrate();
 }
 
+sub switch_network ($self, $args) {
+    $self->handle_qmp_command({execute => 'set_link', arguments => {
+                name => $args->{network_link_name} // "qanet0",
+                up => (!defined $args->{network_enabled} || $args->{network_enabled} ? Mojo::JSON->true : Mojo::JSON->false)
+    }}, fatal => 1);
+}
+
 sub save_memory_dump ($self, $args) {
     my $fdname = 'dumpfd';
     my $vars = \%bmwqemu::vars;

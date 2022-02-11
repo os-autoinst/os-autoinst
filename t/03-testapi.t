@@ -185,6 +185,16 @@ subtest 'eject_cd' => sub {
     $cmds = [];
 };
 
+subtest 'switch_network' => sub {
+    switch_network network_enabled => 0;
+    is_deeply $cmds, [{cmd => 'backend_switch_network', network_enabled => 0}] or diag explain $cmds;
+    $cmds = [];
+
+    switch_network network_enabled => 1, network_link_name => 'bingo';
+    is_deeply $cmds, [{cmd => 'backend_switch_network', network_enabled => 1, network_link_name => 'bingo'}] or diag explain $cmds;
+    $cmds = [];
+};
+
 subtest 'type_string with wait_still_screen' => sub {
     my $wait_still_screen_called = 0;
     my $module = Test::MockModule->new('testapi');

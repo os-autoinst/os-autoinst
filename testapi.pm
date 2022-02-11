@@ -51,6 +51,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   record_soft_failure record_info force_soft_failure
   become_root x11_start_program ensure_installed eject_cd power
 
+  switch_network
   save_memory_dump save_storage_drives freeze_vm resume_vm
 
   diag hashed_string
@@ -1980,6 +1981,23 @@ sub eject_cd {
     my (%nargs) = @_;
     bmwqemu::log_call(%nargs);
     query_isotovideo(backend_eject_cd => \%nargs);
+}
+
+=head2 switch_network
+
+  switch_network network_enabled => $boolean, [network_link_name => $string];
+
+Changes network device's state akin to disconnecting the physical cable,
+default network is qanet0.
+
+This method is fatal in case the network device doesn't exist.
+
+=cut
+
+sub switch_network {
+    my (%nargs) = @_;
+    bmwqemu::log_call(%nargs);
+    query_isotovideo(backend_switch_network => \%nargs);
 }
 
 =head2 save_memory_dump
