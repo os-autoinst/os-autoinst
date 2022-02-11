@@ -117,7 +117,8 @@ my @encodings = (
     },
 );
 
-sub login ($self, $connect_timeout = 10) {
+sub login ($self, $connect_timeout = undef) {
+    $connect_timeout //= 10;
     # arbitrary
     my $connect_failure_limit = 2;
 
