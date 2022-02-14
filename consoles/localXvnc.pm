@@ -89,7 +89,7 @@ sub activate ($self) {
     start_xvnc($s, $display) unless $pid;
     close($s);
 
-    my $vnc = $self->connect_remote({hostname => 'localhost', port => $port, ikvm => 0});
+    my $vnc = $self->connect_remote({hostname => 'localhost', port => $port, ikvm => 0, description => 'local Xvnc'});
     # disable checking VNC stalls as this setup would not survive re-connects triggered by the VNC stall
     # detection anyways (as Xvnc terminates itself when the connection is closed)
     # note: Otherwise jobs are failing with "Error connecting to VNC server localhost … Connection refused"

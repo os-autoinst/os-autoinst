@@ -15,7 +15,7 @@ use Scalar::Util 'blessed';
 use OpenQA::Exceptions;
 
 __PACKAGE__->mk_accessors(
-    qw(hostname port username password socket name width height depth
+    qw(description hostname port username password socket name width height depth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
       _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell
@@ -134,6 +134,7 @@ sub login ($self, $connect_timeout = undef) {
 
     my $hostname = $self->hostname || 'localhost';
     my $port = $self->port || 5900;
+    my $description = $self->description || 'VNC server';
 
     my $endtime = time + $connect_timeout;
 
@@ -147,7 +148,7 @@ sub login ($self, $connect_timeout = undef) {
         );
         if (!$socket) {
             $err_cnt++;
-            my $error_message = "Error connecting to VNC server <$hostname:$port>: $@";
+            my $error_message = "Error connecting to $description <$hostname:$port>: $@";
             if (time > $endtime) {
                 OpenQA::Exception::VNCSetupError->throw(error => $error_message);
             }
