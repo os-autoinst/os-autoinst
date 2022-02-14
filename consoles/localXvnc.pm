@@ -90,7 +90,10 @@ sub activate ($self) {
     close($s);
 
     my $vnc = $self->connect_remote({hostname => 'localhost', port => $port, ikvm => 0});
-    # disable checking VNC stalls as this setup would not survive possible re-connects anyways
+    # disable checking VNC stalls as this setup would not survive re-connects triggered by the VNC stall
+    # detection anyways (as Xvnc terminates itself when the connection is closed)
+    # note: Otherwise jobs are failing with "Error connecting to VNC server localhost … Connection refused"
+    #       (see poo#105882).
     $vnc->check_vnc_stalls(0);
     bmwqemu::diag("Connected to Xvnc - PID $pid");
     $self->{DISPLAY} = $display;
