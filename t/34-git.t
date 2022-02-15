@@ -18,6 +18,9 @@ my $git_dir = "$tmpdir/tmpgitrepo";
 my $clone_dir = "$Bin/tmpgitrepo";
 
 chdir $Bin;
+# some git variables might be set if this test is
+# run during a `git rebase -x 'make test'`
+delete @ENV{qw(GIT_DIR GIT_REFLOG_ACTION GIT_WORK_TREE)};
 
 my $head = initialize_git_repo();
 my $case_dir_ok = "file://$git_dir#$head";
@@ -78,7 +81,7 @@ touch README && \
 git add README && \
 git commit -mInit >/dev/null
 EOM
-    system $git_init;
+    system $git_init and die "git init failed";
 
     # Create some dummy commits so the code has to increase the clone depth a
     # couple of times
