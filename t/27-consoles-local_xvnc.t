@@ -6,6 +6,7 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::Warnings qw(:all :report_warnings);
+use Test::MockObject;
 use Test::MockModule;
 use Test::Output qw(stderr_like);
 use Mojo::File qw(tempdir);
@@ -34,22 +35,18 @@ my $c = consoles::localXvnc->new('sut', {});
 like $c->sshCommand('user', 'localhost'), qr/^ssh/, 'can call sshCommand';
 my $socket_mock = Test::MockModule->new('Socket');
 my $vnc_base_mock = Test::MockModule->new('consoles::vnc_base');
-$vnc_base_mock->noop('connect_remote');
+my $vnc_mock = Test::MockObject->new->set_true('check_vnc_stalls');
+$vnc_base_mock->redefine(connect_remote => $vnc_mock);
 $bmwqemu::scriptdir = "$Bin/..";
 my $local_xvnc_mock = Test::MockModule->new('consoles::localXvnc');
 $local_xvnc_mock->redefine(start_xvnc => sub { _exit(0) });
 stderr_like { $c->activate } qr/Connected to Xvnc/, 'can call activate';
 is $c->callxterm('true', 'window1'), '', 'can call callxterm';
+$vnc_mock->called_pos_ok(0, 'check_vnc_stalls', 'VNC stall detection configured');
+$vnc_mock->called_args_pos_is(0, 2, 0, 'VNC stall detection disabled');
 $c->{args}->{log} = 1;
 is $c->callxterm('true', 'window1'), '', 'can call callxterm';
 is $c->fullscreen({window_name => 'foo'}), 1, 'can call fullscreen';
 is $c->disable, undef, 'can call disable';
-
-my $base_screen_update_called;
-$vnc_base_mock->redefine(request_screen_update => sub { ++$base_screen_update_called });
-is $c->request_screen_update({incremental => 0}), 0, 'non-incremental screen updated prevented';
-is $base_screen_update_called, undef, 'non-incremental screen update not passed to vnc_base';
-is $c->request_screen_update(), 1, 'incremental screen updated done as usual';
-is $c->request_screen_update({incremental => 1}), 2, 'explicit incremental screen updated done as usual';
 
 done_testing;

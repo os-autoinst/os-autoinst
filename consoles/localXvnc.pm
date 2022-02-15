@@ -43,13 +43,6 @@ sub callxterm ($self, $command, $window_name) {
     die "cant' start xterm on $display (err: $! retval: $?)" if $@;
 }
 
-sub request_screen_update ($self, $args = undef) {
-    # avoid non-incremental screen updates, see poo#106017
-    # note: It apparently breaks some cases causing the stale VNC detection to force a re-connect which then
-    #       fails with "Connection refused".
-    $self->SUPER::request_screen_update($args) if !(exists $args->{incremental}) || $args->{incremental};
-}
-
 sub fullscreen ($self, $args) {
     my $display = $self->{DISPLAY};
     my $window_name = $args->{window_name};
@@ -96,12 +89,12 @@ sub activate ($self) {
     start_xvnc($s, $display) unless $pid;
     close($s);
 
-    $self->connect_remote(
-        {
-            hostname => "localhost",
-            port => $port,
-            ikvm => 0
-        });
+    my $vnc = $self->connect_remote({hostname => 'localhost', port => $port, ikvm => 0});
+    # disable checking VNC stalls as this setup would not survive re-connects triggered by the VNC stall
+    # detection anyways (as Xvnc terminates itself when the connection is closed)
+    # note: Otherwise jobs are failing with "Error connecting to VNC server localhost … Connection refused"
+    #       (see poo#105882).
+    $vnc->check_vnc_stalls(0);
     bmwqemu::diag("Connected to Xvnc - PID $pid");
     $self->{DISPLAY} = $display;
     sleep 1;
