@@ -210,7 +210,8 @@ sub start_lpar ($self) {
         'vnc-base',
         {
             hostname => 'localhost',
-            port => $vars->{VNC}});
+            port => $vars->{VNC},
+            description => 'mkvtermutil VNC'});
     $vnc->backend($self);
     $self->select_console({testapi_console => 'sut'});
 }

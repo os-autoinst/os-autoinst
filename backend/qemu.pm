@@ -924,7 +924,8 @@ sub start_qemu ($self) {
         {
             hostname => 'localhost',
             connect_timeout => 3,
-            port => 5900 + $bmwqemu::vars{VNC}});
+            port => 5900 + $bmwqemu::vars{VNC},
+            description => "QEMU's VNC"});
 
     $vnc->backend($self);
     $self->select_console({testapi_console => 'sut'});
