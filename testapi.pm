@@ -233,6 +233,7 @@ sub record_info {
     my ($title, $output, %nargs) = @_;
     $nargs{result} //= 'ok';
     die 'unsupported $result \'' . $nargs{result} . '\'' unless _is_valid_result($nargs{result});
+    $output //= '';
     bmwqemu::log_call(title => $title, output => $output, %nargs);
     $autotest::current_test->record_resultfile($title, $output, %nargs);
 }
