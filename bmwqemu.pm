@@ -286,7 +286,7 @@ sub wait_for_one_more_screenshot {
 
 package bmwqemu::tiedvars;
 use Tie::Hash;
-use base qw/ Tie::StdHash /;
+use base qw/ Tie::StdHash /;    # no:style prevent style warning regarding use of Mojo::Base and base in this file
 use Carp ();
 
 sub TIEHASH {
