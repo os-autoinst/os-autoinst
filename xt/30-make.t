@@ -13,6 +13,9 @@ use OpenQA::Test::TimeLimit '20';
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $srcdir = path("$Bin/..")->realpath;
+# some git variables might be set if this test is
+# run during a `git rebase -x 'make test'`
+delete @ENV{qw(GIT_DIR GIT_REFLOG_ACTION GIT_WORK_TREE)};
 stderr_like { is qx{git -C $dir clone $srcdir os-autoinst}, '', 'prepare working copy with git' } qr/Cloning/, 'git clone';
 chdir "$dir/os-autoinst" or die "Failed to change directory to $dir/os-autoinst";
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
