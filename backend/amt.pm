@@ -31,7 +31,22 @@ sub new ($class) {
     $ENV{'WSMAN_USER'} = 'admin';
     $ENV{'WSMAN_PASS'} = $bmwqemu::vars{AMT_PASSWORD};
 
-    bmwqemu::fctwarn 'DEPRECATED: backend::amt is unsupported and planned to be removed from os-autoinst eventually';
+    my $backend = 'AMT';
+    my $deprecation_message = <<"EOF";
+DEPRECATED: 'backend::$backend' is unsupported and planned to be
+removed from os-autoinst eventually. If the backend is still needed please
+report an issue on https://github.com/os-autoinst/os-autoinst . This message
+can be temporarily turned into a warning by setting the environment variable
+'OS_AUTOINST_NO_DEPRECATE_BACKEND_$backend' or the os-autoinst variable
+'NO_DEPRECATE_BACKEND_$backend'
+EOF
+    if ($bmwqemu::vars{"NO_DEPRECATE_BACKEND_$backend"} ||
+        $ENV{"OS_AUTOINST_NO_DEPRECATE_BACKEND_$backend"}) {
+        log::fctwarn $deprecation_message;
+    }
+    else {
+        die $deprecation_message;
+    }
     return $class->SUPER::new;
 }
 
