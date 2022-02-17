@@ -20,7 +20,7 @@ use constant {
 use constant VARS_DOC => DOC_DIR . '/backend_vars.asciidoc';
 
 # array of ignored "backends"
-my @backend_blocklist = qw(amt ikvm pvm);
+my @backend_blocklist = qw();
 # blocklist of vars per backend. These vars will be ignored during vars exploration
 my %var_blocklist = (
     QEMU => ['WORKER_ID', 'WORKER_INSTANCE'],
