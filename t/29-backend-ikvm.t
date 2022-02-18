@@ -14,6 +14,7 @@ use OpenQA::Test::TimeLimit '5';
 use backend::ikvm;    # SUT
 
 $bmwqemu::vars{WORKER_HOSTNAME} = 'localhost';
+like(exception { backend::ikvm->new }, qr/DEPRECATED/, 'deprecated backend dies by default');
 $bmwqemu::vars{"NO_DEPRECATE_BACKEND_IKVM"} = 1;
 my $backend;
 stderr_like { $backend = backend::ikvm->new } qr/DEPRECATED/, 'backend can be created but is deprecated';
