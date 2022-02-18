@@ -89,8 +89,11 @@ my ($reverts_done, $snapshots_made) = (0, 0);
 $mock_autotest->redefine(load_snapshot => sub { $reverts_done++ });
 $mock_autotest->redefine(make_snapshot => sub { $snapshots_made++ });
 $mock_autotest->redefine(query_isotovideo => 0);
+my @records;    # array of recorded info files (sans nargs)
 $mock_basetest->redefine(test_flags => {milestone => 1});
-sub snapshot_subtest ($name, $sub) { subtest $name, $sub; $reverts_done = $snapshots_made = 0; @sent = () }
+my $mock_testapi = Test::MockModule->new('testapi');
+$mock_testapi->redefine(record_info => sub ($title, $output, %nargs) { push @records, "$title.$output" });
+sub snapshot_subtest ($name, $sub) { subtest $name, $sub; $reverts_done = $snapshots_made = 0; @sent = @records = () }
 
 subtest 'test always_rollback flag' => sub {
     snapshot_subtest 'no rollback is triggered when flag is not explicitly set to true' => sub {
@@ -100,6 +103,7 @@ subtest 'test always_rollback flag' => sub {
         is $completed, 1, 'start+next+start should complete when always_rollback flag is set';
         is $reverts_done, 0, 'no snapshots loaded when flag is not explicitly set to true';
         is $snapshots_made, 0, 'no snapshots made if snapshots are not supported';
+        is scalar @records, 0, 'no recorded result files';
     };
     snapshot_subtest 'no rollback is triggered if snapshots are not supported' => sub {
         $mock_basetest->redefine(test_flags => {always_rollback => 1, milestone => 1});
@@ -111,6 +115,7 @@ subtest 'test always_rollback flag' => sub {
         is $completed, 1, 'start+next+start should complete when always_rollback flag is set';
         is $reverts_done, 0, 'no snapshots loaded if snapshots are not supported';
         is $snapshots_made, 0, 'no snapshots made if snapshots are not supported';
+        is scalar @records, 0, 'no recorded result files';
     };
     snapshot_subtest 'snapshot loading triggered even when tests successful' => sub {
         $mock_basetest->redefine(test_flags => {always_rollback => 1});
@@ -121,6 +126,7 @@ subtest 'test always_rollback flag' => sub {
         is $completed, 1, 'start+next+start should complete when always_rollback flag is set';
         is $reverts_done, 0, 'no snapshots loaded if not test with milestone flag';
         is $snapshots_made, 0, 'no snapshots made if snapshots are not supported';
+        is scalar @records, 0, 'no recorded result files';
     };
     snapshot_subtest 'snapshot loading with milestone flag' => sub {
         $mock_basetest->redefine(test_flags => {always_rollback => 1, milestone => 1});
@@ -130,6 +136,7 @@ subtest 'test always_rollback flag' => sub {
         is $completed, 1, 'start+next+start should complete when always_rollback flag is set';
         is $reverts_done, 2, 'snapshots are loaded even when tests succeed';
         is $snapshots_made, 2, 'milestone snapshots are made for all except the last';
+        is scalar @records, 2, 'recorded result files for snapshot triggering';
     };
     snapshot_subtest 'snapshot loading with milestone flag and fatal test' => sub {
         $mock_basetest->redefine(test_flags => {milestone => 1, fatal => 1});
@@ -139,6 +146,7 @@ subtest 'test always_rollback flag' => sub {
         is $completed, 1, 'start+next+start should complete as fatal milestones';
         is $reverts_done, 0, 'no rollbacks done';
         is $snapshots_made, 0, 'no snapshots made as no test needed them';
+        is scalar @records, 0, 'no recorded result files expected';
     };
     snapshot_subtest 'stopping overall test execution early due to fatal test failure' => sub {
         $mock_basetest->redefine(runtest => sub { die "test died\n" });

@@ -345,9 +345,11 @@ sub runalltests {
         if (!$vmloaded && $fullname eq $firsttest) {
             if ($bmwqemu::vars{SKIPTO}) {
                 if ($bmwqemu::vars{TESTDEBUG}) {
+                    $current_test->record_resultfile('loading snapshot', 'TESTDEBUG set');
                     load_snapshot('lastgood');
                 }
                 else {
+                    $current_test->record_resultfile('loading snapshot', 'skipping to first test');
                     load_snapshot($firsttest);
                 }
             }
@@ -393,12 +395,15 @@ sub runalltests {
                 return 0;
             }
             elsif (!$flags->{no_rollback} && $last_milestone) {
+                $current_test->record_resultfile('loading snapshot', 'milestone requested');
                 load_snapshot('lastgood');
                 $last_milestone->rollback_activated_consoles();
             }
         }
         else {
             if (!$flags->{no_rollback} && $last_milestone && $flags->{always_rollback}) {
+                die 'Unable to rollback as no tests have been loaded' unless $current_test;
+                $current_test->record_resultfile('loading snapshot', 'milestone requested, always rollback flag set');
                 load_snapshot('lastgood');
                 $last_milestone->rollback_activated_consoles();
             }
