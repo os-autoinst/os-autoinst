@@ -1302,6 +1302,19 @@ sub hide_password ($self, %args) {
     return \%args;
 }
 
+sub handle_deprecate_backend ($backend) {
+    my $deprecation_message = <<"EOF";
+DEPRECATED: 'backend::$backend' is unsupported and planned to be
+removed from os-autoinst eventually. If the backend is still needed please
+report an issue on https://github.com/os-autoinst/os-autoinst . This message
+can be temporarily turned into a warning by setting the environment variable
+'OS_AUTOINST_NO_DEPRECATE_BACKEND_$backend' or the os-autoinst variable
+'NO_DEPRECATE_BACKEND_$backend'
+EOF
+    die $deprecation_message unless $bmwqemu::vars{"NO_DEPRECATE_BACKEND_$backend"} || $ENV{"OS_AUTOINST_NO_DEPRECATE_BACKEND_$backend"};
+    log::fctwarn $deprecation_message;
+}
+
 # Send TERM signal to any child process
 sub _stop_children_processes ($self) {
     my $ret;

@@ -199,6 +199,11 @@ implications and how we can help each other to improve
 If this is too much hassle for you feel free to provide incomplete pull
 requests for consideration or create an issue with a code change proposal.
 
+=== Deprecation approach
+
+In case you want to deprecate functionality consider the use of the function
+`backend::baseclass::handle_deprecate_backend`.
+
 == Build instructions
 
 === Installing dependencies

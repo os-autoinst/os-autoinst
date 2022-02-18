@@ -28,7 +28,7 @@ sub new ($class) {
     $self->{pvmctl} = $ENV{PVMCTL} // '/usr/bin/pvmctl';
     $self->{masterlpar} = substr(_masterlpar, 0, -1);
     die "pvmctl not found" unless -x $self->{pvmctl};
-    bmwqemu::fctwarn 'DEPRECATED: backend::pvm is unsupported and planned to be removed from os-autoinst eventually';
+    backend::baseclass::handle_deprecate_backend('PVM');
     return $self;
 }
 

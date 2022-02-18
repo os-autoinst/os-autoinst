@@ -33,6 +33,7 @@ sub redefine_ipc_run_cmd ($expected_stdout = ':ReturnValue>0<') {
 
 $bmwqemu::vars{AMT_HOSTNAME} = 'localhost';
 $bmwqemu::vars{AMT_PASSWORD} = 'password';
+$bmwqemu::vars{"NO_DEPRECATE_BACKEND_AMT"} = 1;
 my $backend;
 stderr_like { $backend = backend::amt->new } qr/DEPRECATED/, 'backend can be created but is deprecated';
 is $backend->wsman_cmdline, 16992, 'wsman_cmdline generated';

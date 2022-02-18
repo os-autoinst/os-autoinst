@@ -7,6 +7,11 @@ package backend::ikvm;
 use Mojo::Base 'backend::ipmi', -signatures;
 use autodie ':all';
 
+sub new ($class) {
+    backend::baseclass::handle_deprecate_backend('IKVM');
+    return $class->SUPER::new;
+}
+
 sub relogin_vnc ($self) {
     my $vncopts = {
         hostname => $bmwqemu::vars{IPMI_HOSTNAME},
