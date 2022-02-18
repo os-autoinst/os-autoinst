@@ -1,0 +1,7 @@
+paths:
+  "backend/**.pm":
+    - Consider running manual verification tests, especially for non-qemu backends
+  "consoles/**.pm":
+    - Consider running manual verification tests on real hardware, especially for non-qemu backends
+  "testapi.pm":
+    - Consider bumping the version number in OpenQA/Isotovideo/Interface.pm for changes in behaviour
