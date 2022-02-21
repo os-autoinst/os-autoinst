@@ -17,6 +17,7 @@ use backend::baseclass;
 use POSIX 'tzset';
 use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
+use IO::Pipe;
 use bmwqemu ();
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
@@ -306,6 +307,57 @@ subtest 'SSH utilities' => sub {
 
         is($baseclass->check_ssh_serial(23), 0, 'Return 0 if SSH serial isn\'t connected');
     };
+};
+
+sub _prepare_video_encoder ($baseclass) {
+    my @pipes;
+    for (1 .. 3) {
+        my $pipe = IO::Pipe->new;
+        my $pid = fork;
+        if ($pid) { $pipe->writer }
+        elsif (defined $pid) {    # uncoverable statement
+            $pipe->reader;    # uncoverable statement
+            my @lines = <$pipe>;    # uncoverable statement
+            exit;    # uncoverable statement
+        }    # uncoverable statement
+        else { die "Couldn't fork" }    # uncoverable statement
+        push @pipes, [$pid => $pipe];
+    }
+    my $pipe = $pipes[2]->[1];
+    my $pid = $pipes[2]->[0];
+    my $encoder = {name => 'foo', pipe => $pipe};
+    $baseclass->{video_encoders} = {$pid => $encoder};
+
+    my $encoder_pipe = $pipes[0]->[1];
+    $baseclass->{encoder_pipe} = $encoder_pipe;
+    my $external_video_encoder_cmd_pipe = $pipes[1]->[1];
+    $baseclass->{external_video_encoder_cmd_pipe} = $external_video_encoder_cmd_pipe;
+    $baseclass->{select_read} = OpenQA::NamedIOSelect->new;
+    $baseclass->{select_write} = OpenQA::NamedIOSelect->new;
+    $baseclass->{select_read}->add($encoder_pipe, 'baseclass::encoder_pipe');
+    $baseclass->{select_write}->add($encoder_pipe, 'baseclass::encoder_pipe');
+    $baseclass->{select_read}->add($external_video_encoder_cmd_pipe, 'baseclass::external_video_encoder_cmd_pipe');
+    $baseclass->{select_write}->add($external_video_encoder_cmd_pipe, 'baseclass::external_video_encoder_cmd_pipe');
+    $baseclass->{video_frame_data} = [5 .. 10];
+    $baseclass->{external_video_encoder_image_data} = [55 .. 60];
+}
+
+subtest 'video-encoder' => sub {
+    my $baseclass = backend::baseclass->new();
+    _prepare_video_encoder($baseclass);
+    $baseclass->stop_vm;
+    is scalar @{$baseclass->{video_frame_data}}, 0, 'video_frame_data array is empty';
+    is scalar @{$baseclass->{external_video_encoder_image_data}}, 0, 'external_video_encoder_image_data array is empty';
+    is $baseclass->{video_encoders}, undef, 'video_encoders entry was deleted';
+
+    my $mock = Test::MockModule->new('backend::baseclass');
+    $mock->redefine(_write_buffered_data_to_file_handle => sub { die "FAIL!" });
+    my $mockbmw = Test::MockModule->new('bmwqemu');
+    my @diag;
+    $mockbmw->redefine(diag => sub { push @diag, @_ });
+    _prepare_video_encoder($baseclass);
+    $baseclass->stop_vm;
+    like "@diag", qr{Unable to pass remaining frames to video encoder}, 'catch block called like expected';
 };
 
 subtest 'running test' => sub {
