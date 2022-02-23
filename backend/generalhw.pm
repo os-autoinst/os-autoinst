@@ -24,7 +24,14 @@ sub get_cmd ($self, $cmd) {
     my $dir = $bmwqemu::vars{GENERAL_HW_CMD_DIR} or die 'Need variable GENERAL_HW_CMD_DIR';
     die 'GENERAL_HW_CMD_DIR is not pointing to a directory' unless -d $dir;
 
-    my %GENERAL_HW_ARG_VARIABLES_BY_CMD = ('GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS', 'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS', 'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS', 'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS');
+    my %GENERAL_HW_ARG_VARIABLES_BY_CMD = (
+        'GENERAL_HW_FLASH_CMD' => 'GENERAL_HW_FLASH_ARGS',
+        'GENERAL_HW_SOL_CMD' => 'GENERAL_HW_SOL_ARGS',
+        'GENERAL_HW_INPUT_CMD' => 'GENERAL_HW_INPUT_ARGS',
+        'GENERAL_HW_POWERON_CMD' => 'GENERAL_HW_POWERON_ARGS',
+        'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS',
+        'GENERAL_HW_IMAGE_CMD' => 'GENERAL_HW_IMAGE_ARGS',
+    );
     my $args = $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}} if $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}};
 
     $cmd = $bmwqemu::vars{$cmd} or die "Need test variable '$cmd'";
@@ -115,6 +122,25 @@ sub compute_hdd_args ($self) {
     return \@hdd_args;
 }
 
+sub reconnect_video_stream ($self, @) {
+
+    my $input_cmd;
+    $input_cmd = $self->get_cmd('GENERAL_HW_INPUT_CMD') if ($bmwqemu::vars{GENERAL_HW_INPUT_CMD});
+    my $vnc = $testapi::distri->add_console(
+        'sut',
+        'video-stream',
+        {
+            url => $bmwqemu::vars{GENERAL_HW_VIDEO_STREAM_URL},
+            connect_timeout => 50,
+            input_cmd => $input_cmd,
+            edid => $bmwqemu::vars{GENERAL_HW_EDID},
+        });
+    $vnc->backend($self);
+    $self->select_console({testapi_console => 'sut'});
+
+    return 1;
+}
+
 sub do_start_vm ($self, @) {
     $self->truncate_serial_file;
     if ($bmwqemu::vars{GENERAL_HW_FLASH_CMD}) {
@@ -126,6 +152,7 @@ sub do_start_vm ($self, @) {
     }
     $self->restart_host;
     $self->relogin_vnc if ($bmwqemu::vars{GENERAL_HW_VNC_IP});
+    $self->reconnect_video_stream if ($bmwqemu::vars{GENERAL_HW_VIDEO_STREAM_URL});
     $self->start_serial_grab if (($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD}) && !$bmwqemu::vars{GENERAL_HW_NO_SERIAL});
     return {};
 }
@@ -133,6 +160,7 @@ sub do_start_vm ($self, @) {
 sub do_stop_vm ($self, @) {
     $self->poweroff_host;
     $self->stop_serial_grab() if (($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD}) && !$bmwqemu::vars{GENERAL_HW_NO_SERIAL});
+    $self->disable_consoles;
     return {};
 }
 
@@ -160,5 +188,14 @@ sub stop_serial_grab ($self, @) {
 }
 
 # serial grab end
+
+sub do_extract_assets ($self, $args) {
+    my $name = $args->{name};
+    my $img_dir = $args->{dir};
+    my $hdd_num = $args->{hdd_num} - 1;
+    die "extracting pflash vars not supported" if $args->{pflash_vars};
+
+    $self->run_cmd('GENERAL_HW_IMAGE_CMD', ($hdd_num, "$img_dir/$name"));
+}
 
 1;

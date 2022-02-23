@@ -46,6 +46,8 @@ set(PERL_FILES
     consoles/sshXtermIPMI.pm
     consoles/sshXtermVt.pm
     consoles/ttyConsole.pm
+    consoles/video_base.pm
+    consoles/video_stream.pm
     consoles/virtio_terminal.pm
     consoles/vnc_base.pm
     consoles/VNC.pm
