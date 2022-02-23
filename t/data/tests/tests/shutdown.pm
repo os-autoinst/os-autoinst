@@ -5,8 +5,7 @@ use Mojo::Base 'basetest', -signatures;
 use testapi;
 
 sub run {
-    type_string "sudo su\n";
-    type_string "poweroff\n";
+    enter_cmd 'sudo poweroff';
     assert_shutdown(get_var('INTEGRATION_TESTS') ? 90 : undef);
 }
 
