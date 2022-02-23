@@ -134,6 +134,10 @@ subtest 'starting VMware console' => sub {
     ], 'expected commands invoked' or diag explain \@cmds;
 };
 
+# XXX: Loading a VM snapshot (autotest)
+# XXX: snapshot-revert (svirt)
+# XXX: LOAD snapshot (svirt)
+
 subtest 'SSH credentials' => sub {
 
     set_var('VIRSH_GUEST', 'foo321');
