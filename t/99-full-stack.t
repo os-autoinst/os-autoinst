@@ -61,6 +61,11 @@ like $log, qr/.*event.*RESUME/, 'Machine properly resumed';
 like $log, qr/get_test_data returned expected file/, 'get_test_data test';
 like $log, qr/save_tmp_file returned expected file/, 'save_tmp_file test';
 unlike $log, qr/warn.*qemu-system.*terminating/, 'No warning about expected termination';
+like $log, qr/\d* Creating a VM snapshot/, 'Snapshot was requested';
+like $log, qr/\d* Saving snapshot/, 'Snapshot save triggered';
+like $log, qr/\d* blockdev-snapshot-sync/, 'Snapshot command picked up';
+like $log, qr/\d* Snapshot complete/, 'Snapshot done';
+like $log, qr/\d* Could not find snapshot with name/, 'Snapshot absent';    # XXX
 
 my $ignore_results_re = qr/fail/;
 for my $result (grep { $_ !~ $ignore_results_re } glob("testresults/result*.json")) {
