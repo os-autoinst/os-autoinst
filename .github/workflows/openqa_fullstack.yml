@@ -1,7 +1,15 @@
 ---
 name: openQA Fullstack
 # yamllint disable-line rule:truthy
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      stability_test:
+        description: 'Set to 1 to fail if any of the RETRY fails'
+        default: 0
+
 jobs:
   fullstack:
     runs-on: ubuntu-latest
@@ -19,3 +27,5 @@ jobs:
         run: make symlinks
       - name: Run unit tests
         run: make -C ../openQA test-fullstack
+        env:
+          STABILITY_TEST: ${{ github.event.inputs.stability_test }}
