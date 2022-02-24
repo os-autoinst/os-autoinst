@@ -8,7 +8,9 @@ use Cwd 'abs_path';
 use testapi;
 use testdistribution;
 
-testapi::set_distribution(testdistribution->new());
+my $distri = testdistribution->new();
+$distri->{script_run_die_on_timeout} = 1;
+testapi::set_distribution($distri);
 
 sub unregister_needle_tags ($tag) {
     my @a = @{needle::tags($tag)};
