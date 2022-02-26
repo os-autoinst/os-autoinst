@@ -1,9 +1,7 @@
 #!/usr/bin/perl -w
 
 use Mojo::Base -strict, -signatures;
-
 use File::Basename;
-
 use needle;
 use cv;
 
@@ -11,9 +9,7 @@ cv::init();
 require tinycv;
 
 my ($res, $needle, $img);
-
 my $ndir = $ARGV[0] || ".";
-
 my @jsons = glob "${ndir}/*.json";
 my @pngs = glob "${ndir}/*.png";
 
@@ -25,14 +21,10 @@ foreach my $json (@jsons) {
         $img = tinycv::read($png);
         $res = $img->search($needle);
         if ($res) {
-            if ($bnjson ne $bnpng) {
-                print "Needle ambiguity: [Needle] " . $bnjson . " - [Image] " . $bnpng . " [" . $res->{similarity} . "]\n";
-            }
+            print "Needle ambiguity: [Needle] " . $bnjson . " - [Image] " . $bnpng . " [" . $res->{similarity} . "]\n" if $bnjson ne $bnpng;
         }
         else {
-            if ($bnjson eq $bnpng) {
-                print "Needle do not match himself: [Needle] " . $bnjson . " - [Image] " . $bnpng . "\n";
-            }
+            print "Needle do not match himself: [Needle] " . $bnjson . " - [Image] " . $bnpng . "\n" if $bnjson eq $bnpng;
         }
     }
 }
