@@ -748,7 +748,7 @@ sub reload_needles (@) {
     # called from testapi::set_var, so read the vars
     bmwqemu::load_vars();
 
-    $_->unregister() for needle->all();
+    $_->unregister() for needle::all();
     needle::init();
 }
 
