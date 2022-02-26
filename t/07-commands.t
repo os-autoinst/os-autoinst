@@ -65,21 +65,15 @@ if ($spid == 0) {
     while (1) {
         my $json = myjsonrpc::read_json($cfd);
         my $cmd = delete $json->{cmd};
-        if ($cmd eq 'version') {
-            myjsonrpc::send_json($cfd, {VERSION => 'COOL'});
-        }
-        elsif ($cmd) {
-            myjsonrpc::send_json($cfd, {response_for => $cmd, %$json});
-        }
+        next unless $cmd;
+        myjsonrpc::send_json($cfd, $cmd eq 'version' ? {VERSION => 'COOL'} : {response_for => $cmd, %$json});
     }
     _exit(0);
 }
 
 # create test user agent and wait for server
 my $t = Test::Mojo->new;
-if (wait_for_server($t->ua)) {
-    exit(0);
-}
+exit(0) if wait_for_server($t->ua);
 
 ok(chdir $toplevel_dir, "change overall test working directory back to $toplevel_dir");
 
