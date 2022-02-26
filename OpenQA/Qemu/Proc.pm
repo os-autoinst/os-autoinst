@@ -74,7 +74,7 @@ sub static_param ($self, @args) {
         push(@{$self->_static_params}, '-' . $args[0]);
     }
     else {
-        gen_params(@{$self->_static_params}, shift @args, shift @args, @args);
+        gen_params($self->_static_params, shift @args, shift @args, @args);
     }
 }
 
