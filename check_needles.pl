@@ -24,7 +24,7 @@ foreach my $json (@jsons) {
             print "Needle ambiguity: [Needle] " . $bnjson . " - [Image] " . $bnpng . " [" . $res->{similarity} . "]\n" if $bnjson ne $bnpng;
         }
         else {
-            print "Needle do not match himself: [Needle] " . $bnjson . " - [Image] " . $bnpng . "\n" if $bnjson eq $bnpng;
+            print "Needle does not match itself: [Needle] " . $bnjson . " - [Image] " . $bnpng . "\n" if $bnjson eq $bnpng;
         }
     }
 }
