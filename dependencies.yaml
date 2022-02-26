@@ -108,6 +108,7 @@ test_requires:
   '%yamllint_requires':
   perl(YAML::PP):
   perl(Inline::Python):
+  python3-Pillow-tk:
 
 main_requires:
   git-core:
