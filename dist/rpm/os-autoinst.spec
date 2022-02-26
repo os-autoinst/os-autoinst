@@ -164,7 +164,6 @@ Convenience package providing os-autoinst + s390 worker jumphost dependencies.
 
 %prep
 %setup -q
-sed -e 's,/bin/env python,/bin/python3,' -i crop.py
 # Replace version number from git to what's reported by the package
 sed  -i 's/ my $thisversion = qx{git.*rev-parse HEAD}.*;/ my $thisversion = "%{version}";/' isotovideo
 
