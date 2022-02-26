@@ -4,7 +4,7 @@
 
 package bmwqemu;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 use Fcntl ':flock';
 use Time::HiRes qw(sleep);
@@ -51,7 +51,7 @@ our @ovmf_locations = (
 our %vars;
 tie %vars, 'bmwqemu::tiedvars', %vars;
 
-sub result_dir { 'testresults' }
+sub result_dir () { 'testresults' }
 
 # deprecated functions, moved to log module
 {
@@ -69,16 +69,15 @@ sub result_dir { 'testresults' }
 use constant STATE_FILE => 'base_state.json';
 
 # Write a JSON representation of the process termination to disk
-sub serialize_state {
-    my $state = {@_};
-    bmwqemu::fctwarn($state->{msg}) if delete $state->{error};
-    bmwqemu::diag($state->{msg}) if delete $state->{log};
+sub serialize_state (%state) {
+    bmwqemu::fctwarn($state{msg}) if delete $state{error};
+    bmwqemu::diag($state{msg}) if delete $state{log};
     return undef if -e STATE_FILE;
-    eval { path(STATE_FILE)->spurt(encode_json($state)) };
+    eval { path(STATE_FILE)->spurt(encode_json(\%state)) };
     bmwqemu::diag("Unable to serialize fatal error: $@") if $@;
 }
 
-sub load_vars {
+sub load_vars () {
     my $fn = "vars.json";
     my $ret = {};
     local $/;
@@ -92,8 +91,7 @@ sub load_vars {
     return;
 }
 
-sub save_vars {
-    my (%args) = @_;
+sub save_vars (%args) {
     my $fn = "vars.json";
     unlink "vars.json" if -e "vars.json";
     open(my $fd, ">", $fn);
@@ -118,7 +116,7 @@ our $gocrbin = "/usr/bin/gocr";
 # set from isotovideo during initialization
 our $scriptdir;
 
-sub init {
+sub init () {
     load_vars();
 
     $vars{BACKEND} ||= "qemu";
@@ -134,7 +132,7 @@ sub init {
     log::init_logger;
 }
 
-sub _check_publish_vars {
+sub _check_publish_vars () {
     return 0 unless my $nd = $vars{NUMDISKS};
     my @hdds = map { $vars{"HDD_$_"} } 1 .. $nd;
     for my $i (1 .. $nd) {
@@ -147,7 +145,7 @@ sub _check_publish_vars {
     return 1;
 }
 
-sub ensure_valid_vars {
+sub ensure_valid_vars () {
     # defaults
     $vars{QEMUPORT} ||= 15222;
     $vars{VNC} ||= 90;
@@ -176,13 +174,13 @@ our $backend;
 
 # util and helper functions
 
-sub current_test {
+sub current_test () {
     require autotest;
     no warnings 'once';
     return $autotest::current_test;
 }
 
-sub update_line_number {
+sub update_line_number () {
     return unless current_test;
     return unless current_test->{script};
     my @out;
@@ -198,25 +196,25 @@ sub update_line_number {
 }
 
 # pretty print like Data::Dumper but without the "VAR1 = " prefix
-sub pp {
+sub pp (@args) {
     # FTR, I actually hate Data::Dumper.
-    my $value_with_trailing_newline = Data::Dumper->new(\@_)->Terse(1)->Useqq(1)->Dump();
+    my $value_with_trailing_newline = Data::Dumper->new(\@args)->Terse(1)->Useqq(1)->Dump();
     chomp($value_with_trailing_newline);
     return $value_with_trailing_newline;
 }
 
-sub log_call {
+sub log_call (@args) {
     my $fname = (caller(1))[3];
     update_line_number();
     my $params;
-    if (@_ == 1) {
-        $params = pp($_[0]);
+    if (@args == 1) {
+        $params = pp($args[0]);
     }
     else {
         # key/value pairs
         my @result;
-        my $should_hide = grep { ($_ // '') eq 'secret' } @_;
-        while (my ($key, $value) = splice(@_, 0, 2)) {
+        my $should_hide = grep { ($_ // '') eq 'secret' } @args;
+        while (my ($key, $value) = splice(@args, 0, 2)) {
             if ($key =~ tr/0-9a-zA-Z_//c) {
                 # only quote if needed
                 $key = pp($key);
@@ -234,14 +232,13 @@ sub log_call {
 
 # backend management
 
-sub stop_vm {
+sub stop_vm () {
     return unless $backend;
     my $ret = $backend->stop();
     return $ret;
 }
 
-sub mydie {
-    my ($cause_of_death) = @_;
+sub mydie ($cause_of_death) {
     log_call(cause_of_death => $cause_of_death);
     croak "mydie";
 }
@@ -250,8 +247,7 @@ sub mydie {
 
 
 # store the obj as json into the given filename
-sub save_json_file {
-    my ($result, $fn) = @_;
+sub save_json_file ($result, $fn) {
     open(my $fd, ">", "$fn.new");
     my $json = Cpanel::JSON::XS->new->pretty->canonical->encode($result);
     print $fd $json;
@@ -259,8 +255,7 @@ sub save_json_file {
     return rename("$fn.new", $fn);
 }
 
-sub scale_timeout {
-    my ($timeout) = @_;
+sub scale_timeout ($timeout) {
     return $timeout * ($vars{TIMEOUT_SCALE} // 1);
 }
 
@@ -270,8 +265,7 @@ sub scale_timeout {
 
 Just a random string useful for pseudo security or temporary files.
 =cut
-sub random_string {
-    my ($count) = @_;
+sub random_string ($count) {
     $count //= 4;
     my $string;
     my @chars = ('a' .. 'z', 'A' .. 'Z');
@@ -279,67 +273,46 @@ sub random_string {
     return $string;
 }
 
-sub wait_for_one_more_screenshot {
-    # sleeping for one second should ensure that one more screenshot is taken
-    # uncoverable subroutine
-    # uncoverable statement
-    sleep 1;
-}
+# sleeping for one second should ensure that one more screenshot is taken
+sub wait_for_one_more_screenshot () { sleep 1 }
 
 package bmwqemu::tiedvars;
 use Tie::Hash;
 use base qw/ Tie::StdHash /;    # no:style prevent style warning regarding use of Mojo::Base and base in this file
 use Carp ();
 
-sub TIEHASH {
-    my ($class, %args) = @_;
+sub TIEHASH ($class, %args) {
     my $self = bless {
         data => {%args},
     }, $class;
 }
 
-sub STORE {
-    my ($self, $key, $val) = @_;
+sub STORE ($self, $key, $val) {
     warn Carp::longmess "Settings key '$key' is invalid" unless $key =~ m/^(?:[A-Z0-9_]+)\z/;
     $self->{data}->{$key} = $val;
 }
 
-sub FIRSTKEY {
-    my ($self) = @_;
+sub FIRSTKEY ($self) {
     my $data = $self->{data};
     my @k = keys %$data;    # reset
     my $next = each %$data;
 }
 
-sub NEXTKEY {
-    my ($self, $last) = @_;
+sub NEXTKEY ($self, $last) {
     my $data = $self->{data};
     my $next = each %$data;
 }
 
-sub FETCH {
-    my ($self, $key) = @_;
+sub FETCH ($self, $key) {
     my $val = $self->{data}->{$key};
 }
 
-sub DELETE {
-    my ($self, $key) = @_;
-    delete $self->{data}->{$key};
-}
+sub DELETE ($self, $key) { delete $self->{data}->{$key} }
 
-sub EXISTS {
-    my ($self, $key) = @_;
-    return exists $self->{data}->{$key};
-}
+sub EXISTS ($self, $key) { exists $self->{data}->{$key} }
 
-sub CLEAR {
-    my ($self) = @_;
-    $self->{data} = {};
-}
+sub CLEAR ($self) { $self->{data} = {} }
 
-sub SCALAR {
-    my ($self) = @_;
-    return scalar %{$self->{data}};
-}
+sub SCALAR ($self) { scalar %{$self->{data}} }
 
 1;

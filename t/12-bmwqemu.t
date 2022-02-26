@@ -5,6 +5,7 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use Test::Mock::Time;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -146,6 +147,9 @@ subtest 'invalid vars characters' => sub {
 my %new_json = (foo => 'bar', baz => 42);
 ok bmwqemu::save_json_file(\%new_json, 'new_json_file.json'), 'JSON file can be saved with save_json_file';
 is_deeply decode_json(path('new_json_file.json')->slurp), \%new_json, 'JSON file written with correct content';
+
+ok bmwqemu::wait_for_one_more_screenshot, 'wait for one more screenshot is ok';
+
 done_testing;
 
 END {
