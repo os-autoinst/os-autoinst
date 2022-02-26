@@ -85,7 +85,7 @@ set(PERL_FILES
 )
 set(MISC_FILES
     consoles/icewm.cfg
-    crop.py
+    script/crop.py
     testapi.py
     dmidata/dell_e6330/smbios_type_1.bin
     dmidata/dell_e6330/smbios_type_2.bin
@@ -209,8 +209,8 @@ install(FILES "schema/Wheels-01.yaml" DESTINATION "${OS_AUTOINST_DATA_DIR}/schem
 
 # install openvswitch files
 install(
-    FILES "os-autoinst-openvswitch"
-    DESTINATION "${OS_AUTOINST_DATA_DIR}"
+    FILES "script/os-autoinst-openvswitch"
+    DESTINATION "${OS_AUTOINST_DATA_DIR}/script"
     PERMISSIONS ${EXECUTABLE_PERMISSIONS}
     COMPONENT "openvswitch" EXCLUDE_FROM_ALL
 )
@@ -220,10 +220,10 @@ install(
     COMPONENT "openvswitch"
     EXCLUDE_FROM_ALL
 )
-foreach (EXTRA_SCRIPT check_qemu_oom dewebsockify vnctest)
+foreach (EXTRA_SCRIPT script/check_qemu_oom script/dewebsockify script/vnctest)
     install(
         FILES "${EXTRA_SCRIPT}"
-        DESTINATION "${OS_AUTOINST_DATA_DIR}"
+        DESTINATION "${OS_AUTOINST_DATA_DIR}/script"
         PERMISSIONS ${EXECUTABLE_PERMISSIONS}
     )
 endforeach ()

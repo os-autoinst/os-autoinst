@@ -230,7 +230,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     $vmware->_cleanup_previous_dewebsockify_process;
 
     # test error handling of dewebsockify
-    my $dewebsockify_cmd_start = "$bmwqemu::topdir/dewebsockify --listenport $tcp_port --websocketurl";
+    my $dewebsockify_cmd_start = "$bmwqemu::topdir/scripts/dewebsockify --listenport $tcp_port --websocketurl";
     my $assert_log = sub ($dewebsockify_pipe, $expected) {
         my $dewebsockify_log;
         read($dewebsockify_pipe, $dewebsockify_log, 1000) or die "Unable read dewebsockify pipe: $!";
@@ -282,7 +282,7 @@ subtest 'test against real VMWare instance' => sub {
 
     # spawn test instance of dewebsockify for manually testing with vncviewer
     if (my $port = $ENV{OS_AUTOINST_DEWEBSOCKIFY_PORT}) {    # uncoverable statement
-        system "'$Bin/../dewebsockify' --listenport '$port' --websocketurl '$wss_url' --cookie 'vmware_client=VMware; $session' --insecure"; # uncoverable statement
+        system "'$Bin/../scripts/dewebsockify' --listenport '$port' --websocketurl '$wss_url' --cookie 'vmware_client=VMware; $session' --insecure"; # uncoverable statement
 
     }
 };

@@ -24,7 +24,7 @@ my $kde_logo = $imgsearch_dir->child('kde-logo.png');    # KDE logo, exactly lik
 my $gnome_logo = $imgsearch_dir->child('gnome-logo-distorted.png');    # GNOME logo, slightly distorted; candidate with high similarity
 
 my $stdout;
-stderr_like { $stdout = qx{"./imgsearch" --verbose --haystack-images $haystack_image_1 $haystack_image_2 --needle-images $kde_logo $gnome_logo} }
+stderr_like { $stdout = qx{"script/imgsearch" --verbose --haystack-images $haystack_image_1 $haystack_image_2 --needle-images $kde_logo $gnome_logo} }
 qr/Loading needles.*Searching.*png/s, 'log via stderr';
 
 my $actual_output = decode_json($stdout);
