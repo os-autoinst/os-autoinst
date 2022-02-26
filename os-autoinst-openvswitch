@@ -1,4 +1,21 @@
 #!/usr/bin/perl
+# Copyright SUSE LLC
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+=head1 SYNOPSIS
+
+os-autoinst-openvswitch [OPTIONS]
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-h, -?, --help>
+
+Show this help.
+
+=cut
+
 package OVS;
 
 use Mojo::Base 'Net::DBus::Object', -signatures;
