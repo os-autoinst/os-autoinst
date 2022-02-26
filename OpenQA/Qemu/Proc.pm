@@ -377,7 +377,7 @@ sub stop_qemu ($self) {
 
 sub qemu_pid ($process) { $process->_process->process_id }
 
-sub check_qemu_oom ($process) { system("$bmwqemu::topdir/check_qemu_oom " . $process->qemu_pid) }    # uncoverable statement
+sub check_qemu_oom ($process) { system("$bmwqemu::topdir/script/check_qemu_oom " . $process->qemu_pid) }    # uncoverable statement
 
 =head3 connect_qmp
 

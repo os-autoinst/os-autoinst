@@ -85,7 +85,7 @@ set(PERL_FILES
 )
 set(MISC_FILES
     consoles/icewm.cfg
-    crop.py
+    script/crop.py
     dmidata/dell_e6330/smbios_type_1.bin
     dmidata/dell_e6330/smbios_type_2.bin
     dmidata/dell_e6330/smbios_type_3.bin
@@ -182,7 +182,7 @@ add_custom_command(
     COMMAND
         sed -e "\"s,\\$$installprefix = undef\;,\\$$installprefix = '${CMAKE_INSTALL_PREFIX}/${OS_AUTOINST_DATA_DIR}'\;,\""
             -e "\"s,my \\$$thisversion = \\(.*\\);,my \\$$thisversion = '${OS_AUTOINST_VERSION_REPLACE}';,\""
-        "${CMAKE_CURRENT_SOURCE_DIR}/isotovideo" > "${CMAKE_CURRENT_BINARY_DIR}/install-target/isotovideo"
+        "${CMAKE_CURRENT_SOURCE_DIR}/script/isotovideo" > "${CMAKE_CURRENT_BINARY_DIR}/install-target/isotovideo"
     DEPENDS "isotovideo" "CMakeLists.txt" "${CMAKE_CURRENT_BINARY_DIR}/install-target"
     OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/install-target/isotovideo"
 )
@@ -225,8 +225,8 @@ install(FILES "schema/Wheels-01.yaml" DESTINATION "${OS_AUTOINST_DATA_DIR}/schem
 
 # install openvswitch files
 install(
-    FILES "os-autoinst-openvswitch"
-    DESTINATION "${OS_AUTOINST_DATA_DIR}"
+    FILES "script/os-autoinst-openvswitch"
+    DESTINATION "${OS_AUTOINST_DATA_DIR}/script"
     PERMISSIONS ${EXECUTABLE_PERMISSIONS}
     COMPONENT "openvswitch" EXCLUDE_FROM_ALL
 )
@@ -242,10 +242,10 @@ install(
     COMPONENT "openvswitch"
     EXCLUDE_FROM_ALL
 )
-foreach (EXTRA_SCRIPT check_qemu_oom dewebsockify vnctest)
+foreach (EXTRA_SCRIPT script/check_qemu_oom script/dewebsockify script/vnctest)
     install(
         FILES "${EXTRA_SCRIPT}"
-        DESTINATION "${OS_AUTOINST_DATA_DIR}"
+        DESTINATION "${OS_AUTOINST_DATA_DIR}/script"
         PERMISSIONS ${EXECUTABLE_PERMISSIONS}
     )
 endforeach ()

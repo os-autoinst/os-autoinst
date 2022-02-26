@@ -1,4 +1,4 @@
 [PerlTidy]
-select = **/*.{pl,pm,t} check_qemu_oom imgsearch isotovideo os-autoinst-openvswitch
+select = **/*.{pl,pm,t} script/check_qemu_oom script/imgsearch script/isotovideo script/os-autoinst-openvswitch
 ignore = external/**/*
 argv = --profile=$ROOT/.perltidyrc
