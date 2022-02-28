@@ -564,22 +564,29 @@ subtest 'script_output' => sub {
 
 subtest 'validate_script_output' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
-    $mock_testapi->redefine(script_output => sub { return 'output'; });
+    $mock_testapi->redefine(script_output => 'output');
     ok(!validate_script_output('script', sub { m/output/ }), 'validating output with default timeout');
     ok(!validate_script_output('script', qr/output/), 'validating output with regex and default timeout');
     ok(!validate_script_output('script', sub { m/output/ }, 30), 'specifying timeout');
-    like(
-        exception {
-            validate_script_output('script', sub { m/error/ });
-        },
-        qr/output not validating/
+    throws_ok {
+        validate_script_output('script', sub { m/error/ })
+    } qr/output not validating/, 'Die on output not match';
+    throws_ok {
+        validate_script_output('script', ['Invalid parameter'])
+    } qr/coderef or regexp/, 'Die on invalid parameter';
+
+    $mock_testapi->redefine(script_output => sub ($script, @args) { join(',', @args) });
+    my @exp_args_list = (
+        [123, proceed_on_failure => 1, type_command => 1],
+        [proceed_on_failure => 1, type_command => 1],
+        [type_command => 1],
+        [timeout => 1],
+        [123]
     );
-    like(
-        exception {
-            validate_script_output('script', ['Invalid parameter']);
-        },
-        qr/coderef or regexp/
-    );
+    for my $exp_args (@exp_args_list) {
+        my $joined_args = join(',', @$exp_args);
+        lives_ok { validate_script_output('script', qr/^$joined_args$/, @$exp_args) } "Arguments passed to script_output($joined_args)";
+    }
 };
 
 subtest 'wait_still_screen & assert_still_screen' => sub {
@@ -682,6 +689,7 @@ subtest 'compat_args' => sub {
 subtest 'check quiet option on script runs' => sub {
     $bmwqemu::vars{_QUIET_SCRIPT_CALLS} = 1;
     my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->redefine(script_output => sub { return 'output'; });
     $mock_testapi->redefine(wait_serial => sub {
             my ($regex, %args) = @_;
             is($args{quiet}, 1, 'Check default quiet argument');
