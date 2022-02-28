@@ -13,11 +13,10 @@ check_qemu_oom qemu_pid
 
 =cut
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 my $qemu_pid = $ARGV[0];
 
 eval { use Pod::Usage; pod2usage(1); } unless $qemu_pid;
 
-exit 0 if (index(qx{dmesg}, "Out of memory: Killed process $qemu_pid") != -1);
-exit 1;
+exit(index(qx{dmesg}, "Out of memory: Killed process $qemu_pid") != -1) ? 0 : 1;
