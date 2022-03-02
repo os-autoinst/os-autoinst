@@ -31,6 +31,7 @@ RUN zypper in -y -C \
        perl-base \
        pkg-config \
        procps \
+       python3-Pillow-tk \
        python3-black \
        python3-setuptools \
        python3-yamllint \

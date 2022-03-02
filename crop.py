@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # Copyright 2013-2016 SUSE LLC
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -19,12 +19,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-try:
-    # Python 2
-    from Tkinter import Tk, Canvas, NW
-except ImportError:
-    # Python 3
-    from tkinter import Tk, Canvas, NW
+from tkinter import Tk, Canvas, NW
 from PIL import Image, ImageTk
 import json
 import optparse

@@ -78,7 +78,7 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define test_version_only_requires perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
 # The following line is generated from dependencies.yaml
-%define test_requires %build_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(Inline::Python) perl(YAML::PP)
+%define test_requires %build_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(Inline::Python) perl(YAML::PP) python3-Pillow-tk
 # The following line is generated from dependencies.yaml
 %define devel_requires %python_style_requires %test_requires ShellCheck perl(Code::TidyAll) perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy)
 %define s390_zvm_requires /usr/bin/xkbcomp /usr/bin/Xvnc x3270 icewm xterm xterm-console xdotool fonts-config mkfontdir mkfontscale
@@ -90,6 +90,8 @@ Recommends:     qemu >= 4.0.0
 Recommends:     qemu-tools 
 # Optional dependency for Python test API support
 Recommends:     perl(Inline::Python)
+# Optional dependency for crop.py
+Recommends:     python3-Pillow-tk
 Requires(pre):  %{_bindir}/getent
 Requires(pre):  %{_sbindir}/useradd
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
@@ -164,7 +166,6 @@ Convenience package providing os-autoinst + s390 worker jumphost dependencies.
 
 %prep
 %setup -q
-sed -e 's,/bin/env python,/bin/python3,' -i crop.py
 # Replace version number from git to what's reported by the package
 sed  -i 's/ my $thisversion = qx{git.*rev-parse HEAD}.*;/ my $thisversion = "%{version}";/' isotovideo
 

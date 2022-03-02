@@ -1,13 +1,40 @@
 #!/usr/bin/perl
+# Copyright SUSE LLC
+# SPDX-License-Identifier: GPL-2.0-or-later
+
+=head1 SYNOPSIS
+
+os-autoinst-openvswitch [OPTIONS]
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-h, -?, --help>
+
+Show this help.
+
+=cut
+
 package OVS;
 
 use Mojo::Base 'Net::DBus::Object', -signatures;
 use autodie ':all';
+use Getopt::Long;
 use Net::DBus::Exporter 'org.opensuse.os_autoinst.switch';
 require IPC::System::Simple;
 use IPC::Open3;
 use Symbol 'gensym';
 use Time::Seconds;
+
+sub usage ($r) {
+    eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
+    die "cannot display help, install perl(Pod::Usage)\n" if $@;
+}
+
+my %options;
+GetOptions(\%options, 'help|h|?') or usage(1);
+usage(0) if $options{help};
 
 sub new ($class, $service) {
     my $self = $class->SUPER::new($service, '/switch');

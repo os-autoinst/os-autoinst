@@ -14,7 +14,20 @@ check_qemu_oom qemu_pid
 =cut
 
 use Mojo::Base -strict, -signatures;
+use Getopt::Long;
 
+Getopt::Long::Configure("no_ignore_case");
+
+my %options;
+
+sub usage ($r) {
+    eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
+    die "cannot display help, install perl(Pod::Usage)\n" if $@;
+}
+
+GetOptions(\%options, 'help|h|?') or usage(1);
+usage(0) if $options{help};
+usage(1) unless @ARGV;
 my $qemu_pid = $ARGV[0];
 
 eval { use Pod::Usage; pod2usage(1); } unless $qemu_pid;
