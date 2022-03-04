@@ -1239,14 +1239,9 @@ alternatively matches a regular expression. Use it as
 =cut
 
 sub validate_script_output {
-    my ($script, $check) = splice(@_, 0, 2);
-    my %args = compat_args(
-        {
-            timeout => 30,
-            quiet => testapi::get_var('_QUIET_SCRIPT_CALLS')
-        }, ['timeout'], @_);
+    my ($script, $check, @args) = @_;
 
-    my $output = script_output($script, %args);
+    my $output = script_output($script, @args);
     my $res = 'ok';
 
     my $message = '';
