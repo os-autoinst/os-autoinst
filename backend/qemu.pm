@@ -523,6 +523,12 @@ sub setup_tpm ($self, $arch) {
     mkdir $vmpath unless -d $vmpath;
     my $vmsock = "$vmpath/swtpm-sock";
     unless (-e $vmsock) {
+        # Before create swtpm-sock, we should make sure there is no tpm*.permall file
+        # When tpm version is 2.0, the file is tpm2-00.permall.
+        # When tpm version is 1.x, the file is tpm-00.permall.
+        # See: https://progress.opensuse.org/issues/107155
+        unlink glob "$vmpath/tpm*.permall";
+
         my @args = ('swtpm', 'socket', '--tpmstate', "dir=$vmpath", '--ctrl', "type=unixio,path=$vmsock", '--log', 'level=20', '-d');
         push @args, '--tpm2' if (($vars->{QEMUTPM_VER} // '2.0') == '2.0');
         runcmd(@args);
