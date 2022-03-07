@@ -149,9 +149,7 @@ sub login ($self, $connect_timeout = undef) {
         if (!$socket) {
             $err_cnt++;
             my $error_message = "Error connecting to $description <$hostname:$port>: $@";
-            if (time > $endtime) {
-                OpenQA::Exception::VNCSetupError->throw(error => $error_message);
-            }
+            OpenQA::Exception::VNCSetupError->throw(error => $error_message) if time > $endtime;
             # we might be too fast trying to connect to the VNC host (e.g.
             # qemu) so ignore the first occurrences of a failed
             # connection attempt.
@@ -170,36 +168,28 @@ sub login ($self, $connect_timeout = undef) {
         $self->_server_initialization();
     };
     my $error = $@;    # store so it doesn't get overwritten
-    if ($error) {
-
-        # clean up so socket can be garbage collected
-        $self->socket(undef);
-        die $error;
-    }
+    return unless $error;
+    # clean up so socket can be garbage collected
+    $self->socket(undef);
+    die $error;
 }
 
 sub _handshake_protocol_version ($self) {
     my $socket = $self->socket;
     $socket->read(my $protocol_version, 12) || die 'unexpected end of data';
     my $protocol_pattern = qr/\A RFB [ ] (\d{3}\.\d{3}) \s* \z/xms;
-    if ($protocol_version !~ m/$protocol_pattern/xms) {
-        die 'Malformed RFB protocol: ' . $protocol_version;
-    }
+    die 'Malformed RFB protocol: ' . $protocol_version if $protocol_version !~ m/$protocol_pattern/xms;
     $self->_rfb_version($1);
 
     if ($protocol_version gt $MAX_PROTOCOL_VERSION) {
         $protocol_version = $MAX_PROTOCOL_VERSION;
 
         # Repeat with the changed version
-        if ($protocol_version !~ m/$protocol_pattern/xms) {
-            die 'Malformed RFB protocol';
-        }
+        die 'Malformed RFB protocol' unless $protocol_version =~ m/$protocol_pattern/xms;
         $self->_rfb_version($1);
     }
 
-    if ($self->_rfb_version lt '003.003') {
-        die 'RFB protocols earlier than v3.3 are not supported';
-    }
+    die 'RFB protocols earlier than v3.3 are not supported' if $self->_rfb_version lt '003.003';
 
     # let's use the same version of the protocol, or the max, whichever's lower
     $socket->print($protocol_version);
@@ -213,12 +203,8 @@ sub _handshake_security ($self) {
     if ($self->_rfb_version ge '003.007') {
         my $number_of_security_types = 0;
         my $r = $socket->read($number_of_security_types, 1);
-        if ($r) {
-            $number_of_security_types = unpack('C', $number_of_security_types);
-        }
-        if ($number_of_security_types == 0) {
-            die 'Error authenticating';
-        }
+        $number_of_security_types = unpack('C', $number_of_security_types) if $r;
+        die 'Error authenticating' if $number_of_security_types == 0;
 
         my @security_types;
         foreach (1 .. $number_of_security_types) {
@@ -248,20 +234,13 @@ sub _handshake_security ($self) {
     }
 
     if ($security_type == 1) {
-
         # No authorization needed!
-        if ($self->_rfb_version ge '003.007') {
-            $socket->print(pack('C', 1));
-        }
-
+        $socket->print(pack('C', 1)) if $self->_rfb_version ge '003.007';
     }
     elsif ($security_type == 2) {
-
         # DES-encrypted challenge/response
 
-        if ($self->_rfb_version ge '003.007') {
-            $socket->print(pack('C', 2));
-        }
+        $socket->print(pack('C', 2)) if $self->_rfb_version ge '003.007';
 
         # # VNC authentication is to be used and protocol data is to be
         # # sent unencrypted. The server sends a random 16-byte
@@ -270,13 +249,11 @@ sub _handshake_security ($self) {
         # # No. of bytes Type [Value] Description
         # # 16 U8 challenge
 
-
-        $socket->read(my $challenge, 16)
-          || die 'unexpected end of data';
+        $socket->read(my $challenge, 16) || die 'unexpected end of data';
 
         # the RFB protocol only uses the first 8 characters of a password
         my $key = substr($self->password, 0, 8);
-        $key = '' if (!defined $key);
+        $key = '' unless defined $key;
         $key .= pack('C', 0) until (length($key) % 8) == 0;
 
         my $realkey;
@@ -313,12 +290,7 @@ sub _handshake_security ($self) {
 
         $num_tunnels = unpack('N', $num_tunnels);
         # found in https://github.com/kanaka/noVNC
-        if ($num_tunnels > 0x1000000) {
-            $self->old_ikvm(1);
-        }
-        else {
-            $self->old_ikvm(0);
-        }
+        $self->old_ikvm($num_tunnels > 0x1000000 ? 1 : 0);
         $socket->read(my $ikvm_session, 20) || die 'unexpected end of data';
         my @bytes = unpack("C20", $ikvm_session);
         print "Session info: ";
@@ -335,9 +307,7 @@ sub _handshake_security ($self) {
         $socket->read(my $security_result, 4) || die 'Failed to login';
         $security_result = unpack('C', $security_result);
         print "Security Result: $security_result\n";
-        if ($security_result != 0) {
-            die 'Failed to login';
-        }
+        die 'Failed to login' unless $security_result == 0;
     }
     else {
         die 'VNC Server wants security, but we have no password';
@@ -382,19 +352,9 @@ sub _server_initialization ($self) {
     if (!$self->depth) {
 
         # client did not express a depth preference, so check if the server's preference is OK
-        if (!$supported_depths{$depth}) {
-            die 'Unsupported depth ' . $depth;
-        }
-        if ($bits_per_pixel != $supported_depths{$depth}->{bpp}) {
-            die 'Unsupported bits-per-pixel value ' . $bits_per_pixel;
-        }
-        if (
-            $true_colour_flag ?
-            !$supported_depths{$depth}->{true_colour}
-            : $supported_depths{$depth}->{true_colour})
-        {
-            die 'Unsupported true colour flag';
-        }
+        die 'Unsupported depth ' . $depth unless $supported_depths{$depth};
+        die 'Unsupported bits-per-pixel value ' . $bits_per_pixel unless $bits_per_pixel == $supported_depths{$depth}->{bpp};
+        die 'Unsupported true colour flag' if ($true_colour_flag ? !$supported_depths{$depth}->{true_colour} : $supported_depths{$depth}->{true_colour});
         $self->depth($depth);
 
         # Use server's values for *_max and *_shift
@@ -407,12 +367,8 @@ sub _server_initialization ($self) {
     }
     $self->absolute($self->ikvm // 0);
 
-    if (!$self->width && !$self->ikvm) {
-        $self->width($framebuffer_width);
-    }
-    if (!$self->height && !$self->ikvm) {
-        $self->height($framebuffer_height);
-    }
+    $self->width($framebuffer_width) if !$self->width && !$self->ikvm;
+    $self->height($framebuffer_height) if !$self->height && !$self->ikvm;
     $self->_pixinfo(\%pixinfo);
     $self->_bpp($supported_depths{$self->depth}->{bpp});
     $self->_true_colour($supported_depths{$self->depth}->{true_colour});
@@ -511,13 +467,9 @@ sub _send_key_event ($self, $down_flag, $key) {
         ));
 }
 
-sub send_key_event_down ($self, $key) {
-    $self->_send_key_event(1, $key);
-}
+sub send_key_event_down ($self, $key) { $self->_send_key_event(1, $key) }
 
-sub send_key_event_up ($self, $key) {
-    $self->_send_key_event(0, $key);
-}
+sub send_key_event_up ($self, $key) { $self->_send_key_event(0, $key) }
 
 ## no critic (HashKeyQuotes)
 
@@ -831,16 +783,12 @@ sub _receive_message ($self) {
     $socket->blocking(0);
     my $ret = $socket->read(my $message_type, 1);
     $socket->blocking(1);
-
-    if (!$ret) {
-        return;
-    }
+    return unless $ret;
     $self->_vnc_stalled(0);
 
     die "socket closed: $ret\n${\Dumper $self}" unless $ret > 0;
 
     $message_type = unpack('C', $message_type);
-    #print "receive message $message_type\n";
 
     # This result is unused.  It's meaning is different for the different methods
     my $result
@@ -961,9 +909,7 @@ sub _receive_zrle_encoding ($self, $x, $y, $w, $h) {
     my $read_len = 0;
     while ($read_len < $data_len) {
         my $len = read($socket, $data, $data_len - $read_len, $read_len);
-        if (!$len) {
-            OpenQA::Exception::VNCProtocolError->throw(error => "short read for zrle data $read_len - $data_len");
-        }
+        OpenQA::Exception::VNCProtocolError->throw(error => "short read for zrle data $read_len - $data_len") unless $len;
         $read_len += $len;
     }
     diag sprintf("read $data_len in %fs\n", time - $stime) if (time - $stime > 0.1);
@@ -972,13 +918,9 @@ sub _receive_zrle_encoding ($self, $x, $y, $w, $h) {
     my $out;
     my $old_total_out = $self->{_inflater}->total_out;
     my $status = $self->{_inflater}->inflate($data, $out, 1);
-    if ($status != Z_OK) {
-        OpenQA::Exception::VNCProtocolError->throw(error => "inflation failed $status");
-    }
+    OpenQA::Exception::VNCProtocolError->throw(error => "inflation failed $status") unless $status == Z_OK;
     my $res = $image->map_raw_data_zrle($x, $y, $w, $h, $self->vncinfo, $out, $self->{_inflater}->total_out - $old_total_out);
-    if ($old_total_out + $res != $self->{_inflater}->total_out) {
-        OpenQA::Exception::VNCProtocolError->throw(error => "not read enough data");
-    }
+    OpenQA::Exception::VNCProtocolError->throw(error => "not read enough data") if $old_total_out + $res != $self->{_inflater}->total_out;
     return $res;
 }
 
@@ -989,14 +931,12 @@ sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
     # ikvm specific
     $socket->read(my $aten_data, 8);
     my ($data_prefix, $data_len) = unpack('NN', $aten_data);
-    #printf "P $encoding_type $data_prefix $data_len $x+$y $w x $h (%dx%d)\n", $self->width, $self->height;
 
     $self->screen_on($w < 33000);    # screen is off is signaled by negative numbers
 
     # ikvm doesn't bother sending screen size changes
     if ($w != $self->width || $h != $self->height) {
         if ($self->screen_on) {
-            # printf "resizing to $w $h from %dx%d\n", $self->width, $self->height;
             my $newimg = tinycv::new($w, $h);
             if ($image) {
                 $image = $image->copyrect(0, 0, min($image->xres(), $w), min($image->yres(), $h));
@@ -1059,9 +999,7 @@ sub _receive_ikvm_encoding ($self, $encoding_type, $x, $y, $w, $h) {
     }
     elsif ($encoding_type == 87) {
         return if $data_len == 0;
-        if ($self->old_ikvm) {
-            die "we guessed wrong - this is a new board!";
-        }
+        die "we guessed wrong - this is a new board!" if $self->old_ikvm;
         $socket->read(my $data, $data_len);
         # enforce high quality to simplify our decoder
         if (substr($data, 0, 4) ne pack('CCn', 11, 11, 444)) {
@@ -1089,13 +1027,11 @@ sub _receive_colour_map ($self) {
     $self->socket->read(my $map_infos, 5);
     my ($padding, $first_colour, $number_of_colours) = unpack('Cnn', $map_infos);
 
-    for (my $i = 0; $i < $number_of_colours; $i++) {
+    for (0 .. $number_of_colours) {
         $self->socket->read(my $colour, 6);
         my ($red, $green, $blue) = unpack('nnn', $colour);
-        tinycv::set_colour($self->vncinfo, $first_colour + $i, $red / 256, $green / 256, $blue / 256);
+        tinycv::set_colour($self->vncinfo, $first_colour + $_, $red / 256, $green / 256, $blue / 256);
     }
-    #die "we do not support color maps $first_colour $number_of_colours";
-
     return 1;
 }
 

@@ -26,7 +26,7 @@ $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1));
 $s->mock('read', sub { $_[1] = $s->mocked_read; 1 });
 $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
-is $c->login, '', 'can call login';
+is $c->login, undef, 'can call login';
 
 subtest 'send update request' => sub {
     $c->width(1024);
