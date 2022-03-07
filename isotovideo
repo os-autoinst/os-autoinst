@@ -35,7 +35,7 @@ automatically for convenience.
 
 =cut
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 no autodie 'kill';
 
@@ -79,16 +79,10 @@ session->enable;
 session->enable_subreaper;
 
 my %options;
-# global exit status
-my $return_code = 1;
 
-sub usage {
-    my ($usage_return_code) = @_;
-    $return_code = $usage_return_code;
-    eval { use Pod::Usage; pod2usage($return_code); };
-    if ($@) {
-        die "cannot display help, install perl(Pod::Usage)\n";
-    }
+sub usage ($r) {
+    eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
+    die "cannot display help, install perl(Pod::Usage)\n" if $@;
 }
 
 sub _get_version_string {
@@ -100,7 +94,6 @@ sub _get_version_string {
 }
 
 sub version {
-    $return_code = 0;
     print _get_version_string() . "\n";
     exit 0;
 }
@@ -109,6 +102,8 @@ GetOptions(\%options, 'debug|d', 'help|h|?', 'version|v') or usage(1);
 usage(0) if $options{help};
 version() if $options{version};
 
+# global exit status
+my $return_code = 1;
 
 # record the last die message
 # note: It might *not* be a fatal error so we don't call bmwqemu::serialize_state here
