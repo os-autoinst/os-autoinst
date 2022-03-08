@@ -17,4 +17,5 @@ is qx{git grep -L '^#!.*perl' t/**.t}, '', 'All test files have shebang';
 is qx{git ls-files -s t/**.t | grep -v ^1007}, '', 'All test modules are executable';
 is qx{git grep -l '^use POSIX;'}, '', 'Use of bare POSIX import is discouraged, see https://perldoc.perl.org/POSIX';
 is qx{git grep --all-match -P -e '^use Mojo::Base' -e '^use base (?!.*# no:style)'}, '', 'No redundant Mojo::Base+base';
+is qx{git grep -I -l -P '^use (warnings|strict)' ':!external/'}, '', 'No files using "warning|strict", should use Mojo::Base instead';
 done_testing;

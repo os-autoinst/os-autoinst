@@ -305,7 +305,9 @@ subtest 'load test successfully when CASEDIR is a relative path' => sub {
     like warning { loadtest 'start' }, qr{Subroutine run redefined}, 'We get a warning for loading a test a second time';
 };
 
-stderr_like { autotest::loadtest('tests/test.py') } qr{scheduling test tests/test.py}, 'can load python test module at all';
+stderr_like {
+    lives_ok { autotest::loadtest('tests/test.py') } 'can load test module'
+} qr{scheduling test tests/test.py}, 'python test module referenced';
 loadtest 'test.py', 'we can also parse python test modules';
 
 stderr_like {
