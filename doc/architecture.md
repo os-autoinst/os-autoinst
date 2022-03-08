@@ -4,25 +4,25 @@ This document gives an overview about the multi-process architecture of os-autoi
 ## Process tree
 Once everything is running, the process tree looks like this:
 
-* **isotovideo**: spawns further processes, IO-loop for passing commands (main occupation), cleanup  
+* **isotovideo**: spawns further processes, IO-loop for passing commands (main occupation), cleanup
   relevant files: `isotovideo`, `needle.pm` (initial needle scan)
 
     * **backend**: spawns and handles backend (eg. qemu), receives commands from isotovideo IO-loop,
-                   handles the VNC connections, makes regular screenshots  
+                   handles the VNC connections, makes regular screenshots
       relevant files: `baseclass.pm` and derived, `console.pm` and derived, `needle.pm` (reloading, matching), `cv.pm`, `ppmclibs/*`
 
         * **qemu** (for instance)
 
-        * **videoencoder**: encodes the Ogg Theora file  
+        * **videoencoder**: encodes the Ogg Theora file
           relevant files: `videoencoder.cpp`
 
     * **autotest**: determines test order, runs test code and thus testapi functions, sends
-                    commands to isotovideo IO-loop (via `query_isotovideo`)  
+                    commands to isotovideo IO-loop (via `query_isotovideo`)
       relevant files: `autotest.pm`, `testapi.pm`, `console_proxy.pm`, `basetest.pm` and derived,
                       `needle.pm` (needles are instantiated here as well)
 
     * **command server**: provides GET/POST HTTP routes and WS server, passes commands received via
-                          WS to isotovideo IO-loop  
+                          WS to isotovideo IO-loop
       relevant files: `commands.pm`, `OpenQA/Commands.pm`
 
 ### Further notes

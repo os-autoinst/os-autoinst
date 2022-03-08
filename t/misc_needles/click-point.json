@@ -1,12 +1,12 @@
 {
     "area": [
         {
-            "height": 250, 
-            "match": 95, 
-            "max_offset": 0, 
-            "processing_flags": "t", 
-            "type": "match", 
-            "width": 800, 
+            "height": 250,
+            "match": 95,
+            "max_offset": 0,
+            "processing_flags": "t",
+            "type": "match",
+            "width": 800,
             "xpos": 5,
             "ypos": 10,
             "click_point": {
@@ -14,7 +14,7 @@
                 "ypos": 4
             }
         }
-    ], 
+    ],
     "tags": ["click-point"],
     "properties": ["glossy"]
 }

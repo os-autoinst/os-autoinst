@@ -102,10 +102,10 @@ os-autoinst is used in the openQA project.
 
 This subroutine is used to by several subroutines dealing with mouse clicks to calculate
 a clickpoint, when only the needle area is available. It takes the area coordinates and
-returns the center of that area. It is meant to be a helper subroutine not available 
+returns the center of that area. It is meant to be a helper subroutine not available
 to be used in tests.
 
-=cut    
+=cut
 
 sub _calculate_clickpoint {
     my ($needle_to_use, $needle_area, $click_point) = @_;
@@ -1011,7 +1011,7 @@ With C<die_on_timeout> -1 (default) a warning will be printed to log. To avoid
 this warning, set it explicit to 0. With C<die_on_timeout> equal to 1, this command
 throw an exception, if timeout expires.
 
-<Returns> exit code received from I<$cmd> or undef if C<$timeout> is 0 or timeout 
+<Returns> exit code received from I<$cmd> or undef if C<$timeout> is 0 or timeout
 expired and C<die_on_timeout> is not C<1>.
 
 I<The implementation is distribution specific and not always available.>
@@ -1629,12 +1629,12 @@ sub mouse_hide(;$) {
 =head2 mouse_drag
   mouse_drag([$startpoint, $endpoint, $startx, $starty, $endx, $endy, $button, $timeout]);
 
-Click mouse C<$button>, C<'left'> or C<'right'>, at a given location, hold the button and drag 
-the mouse to another location where the button is released. You can set the C<$startpoint> 
+Click mouse C<$button>, C<'left'> or C<'right'>, at a given location, hold the button and drag
+the mouse to another location where the button is released. You can set the C<$startpoint>
 and C<$endpoint> by passing the name of the needle tag, i.e. the mouse drag happens between
 the two needle areas. Alternatively, you can set all the coordinates explicitly with C<$startx>,
 C<$starty>, C<$endx>, and C<$endy>. You can also set one point using a needle and another one
-using coordinates.  If both the coordinates and the needle are provided, the coordinates 
+using coordinates.  If both the coordinates and the needle are provided, the coordinates
 will be used to set up the locations and the needle location will be overridden.
 
 =cut
@@ -2352,12 +2352,12 @@ A typical call would look like:
 
 sub show_curl_progress_meter { get_var('UPLOAD_METER') ? "-o /dev/$serialdev " : '' }
 
-=head2 backend_get_wait_still_screen_on_here_doc_input 
+=head2 backend_get_wait_still_screen_on_here_doc_input
 
 Function to query the backend if it has the known bug from
 https://progress.opensuse.org/issues/60566 which is that typing too fast into
 the here-document input can yield invalid script content.
-This function returns the value to be used by C<wait_still_screen> before 
+This function returns the value to be used by C<wait_still_screen> before
 starting to write the script into the here document.
 =cut
 sub backend_get_wait_still_screen_on_here_doc_input {

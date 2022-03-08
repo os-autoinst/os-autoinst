@@ -113,7 +113,7 @@ tinycv::VNCInfo new_vncinfo(bool do_endian_conversion, bool true_color, unsigned
 void set_colour(tinycv::VNCInfo info, unsigned int index, unsigned red, unsigned green, unsigned blue)
    CODE:
      image_set_vnc_color(info, index, red, green, blue);
-     
+
 MODULE = tinycv     PACKAGE = tinycv::Image  PREFIX = Image
 
 bool write(tinycv::Image self, const char *file)
@@ -181,7 +181,7 @@ long map_raw_data_zrle(tinycv::Image self, long x, long y, long w, long h, tinyc
 
   OUTPUT:
    RETVAL
-   
+
 void blend(tinycv::Image self, tinycv::Image source, long x, long y)
   CODE:
     image_blend_image(self, source, x, y);
@@ -197,7 +197,7 @@ void avgcolor(tinycv::Image self)
     PUSHs(sv_2mortal(newSVnv(res[0])));
     PUSHs(sv_2mortal(newSVnv(res[1])));
     PUSHs(sv_2mortal(newSVnv(res[2])));
- 
+
 void search_needle(tinycv::Image self, tinycv::Image needle, long x, long y, long width, long height, long margin)
   PPCODE:
     double similarity = 0;
@@ -207,7 +207,7 @@ void search_needle(tinycv::Image self, tinycv::Image needle, long x, long y, lon
     PUSHs(sv_2mortal(newSVnv(similarity)));
 
     std::vector<int>::const_iterator it = ret.begin();
-    for (; it != ret.end(); ++it) { 
+    for (; it != ret.end(); ++it) {
       PUSHs(sv_2mortal(newSViv(*it)));
     }
 
@@ -222,7 +222,7 @@ tinycv::Image scale(tinycv::Image self, long width, long height)
 double similarity(tinycv::Image self, tinycv::Image other)
   CODE:
     RETVAL = image_similarity(self, other);
-   
+
   OUTPUT:
     RETVAL
 
