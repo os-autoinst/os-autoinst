@@ -4,8 +4,7 @@
 
 package autotest;
 
-use strict;
-use warnings;
+use Mojo::Base -strict;
 
 use bmwqemu;
 use Exporter 'import';
@@ -89,6 +88,7 @@ e.g. by making use of the openQA asset download feature.
 
 sub loadtest {
     my ($script, %args) = @_;
+    no utf8;    # Inline Python fails on utf8, so let's exclude it here
     my $casedir = $bmwqemu::vars{CASEDIR};
     my $script_path = find_script($script);
     my ($name, $category) = parse_test_path($script_path);
