@@ -5,6 +5,7 @@ package osutils;
 
 use Mojo::Base 'Exporter';
 use Carp;
+use List::Util 'first';
 use Mojo::File 'path';
 use bmwqemu;
 use Mojo::IOLoop::ReadWriteProcess 'process';
@@ -25,11 +26,7 @@ our @EXPORT_OK = qw(
 # First argument is the directory, the remainining are the candidates.
 sub find_bin {
     my ($dir, @candidates) = @_;
-
-    foreach my $t_bin (map { path($dir, $_) } @candidates) {
-        return $t_bin if -e $t_bin && -x $t_bin;
-    }
-    return;
+    return first { -e && -x } map { path($dir, $_) } @candidates;
 }
 
 # An helper to full a parameter list, typically used to build option arguments for executing external programs.
