@@ -279,7 +279,7 @@ sub wait_for_children_to_start {
 
     get_current_job_id();
 
-Query openQA's API to retrieve the current job ID 
+Query openQA's API to retrieve the current job ID
 =cut
 sub get_current_job_id {
     my $tx = api_call_2(get => 'whoami', undef, $CODES_EXPECTED_BY_MMAPI);

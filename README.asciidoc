@@ -283,7 +283,7 @@ Run individual tests by specifying them explicitly:
 make test-perl-testsuite TESTS="t/15-logging.t t/28-signalblocker.t"
 ----
 
-Notice that the user needs to include the test directory for each test (either t for normal or 
+Notice that the user needs to include the test directory for each test (either t for normal or
 xt for developer-centric tests) when specifying individual tests.
 
 Add additional arguments to the `prove` invocation, e.g. enable verbose output:

@@ -87,7 +87,7 @@ Requires:       %main_requires
 Recommends:     tesseract-ocr
 Recommends:     dumponlyconsole %s390_zvm_requires
 Recommends:     qemu >= 4.0.0
-Recommends:     qemu-tools 
+Recommends:     qemu-tools
 # Optional dependency for Python test API support
 Recommends:     perl(Inline::Python)
 # Optional dependency for crop.py
