@@ -100,6 +100,7 @@ use basetest;
 my $mock_basetest = Test::MockModule->new('basetest');
 $mock_basetest->noop('_result_add_screenshot');
 $autotest::current_test = basetest->new();
+$autotest::isotovideo = 1;
 
 # we have to mock out wait_screen_change for the type_string tests
 # that use it, as it doesn't work with the fake send_json and read_json

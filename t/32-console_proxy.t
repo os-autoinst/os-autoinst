@@ -45,6 +45,7 @@ $mock_baseclass->redefine('console', $console);
 my $baseclass = backend::baseclass->new();
 testapi::set_distribution(distribution->new());
 $autotest::current_test = basetest->new();
+$autotest::isotovideo = 1;
 
 my $jsonrpc_cmds = [];
 my $jsonrpc_results = [];

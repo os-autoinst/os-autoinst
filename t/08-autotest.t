@@ -78,6 +78,9 @@ is($autotest::tests{'tests-start1'}->{name}, 'start#1', 'handle duplicate tests'
 is($autotest::tests{'tests-start1'}->{$_}, $autotest::tests{'tests-start'}->{$_}, "duplicate tests point to the same $_")
   for qw(script fullname category class);
 
+like warning { autotest::run_all }, qr/isotovideo.*not initialized/, 'autotest methods need a valid isotovideo socket';
+@sent = ();
+$autotest::isotovideo = 1;
 stderr_like { autotest::run_all } qr/finished/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died, 0, 'start+next+start should not die');
