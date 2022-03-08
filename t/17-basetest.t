@@ -30,6 +30,7 @@ my $serial_buffer = "";
 # Mock the JSON call for read_serial
 my $cmds;
 my $jsonmod = Test::MockModule->new('myjsonrpc');
+$autotest::isotovideo = 1;
 
 sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
 sub fake_read_json ($fd) {

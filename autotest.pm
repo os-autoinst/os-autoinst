@@ -317,7 +317,7 @@ sub query_isotovideo {
     }
     $json{cmd} = $cmd;
 
-    # send the command to isotovideo
+    die "isotovideo is not initialized. Ensure that you only call test API functions from test modules, not schedule code\n" unless defined $isotovideo;
     myjsonrpc::send_json($isotovideo, \%json);
 
     # wait for response (if test is paused, this will block until resume)
