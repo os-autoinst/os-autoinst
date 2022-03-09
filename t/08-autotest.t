@@ -11,6 +11,7 @@ use Test::Exception;
 use Test::Fatal;
 use Test::Warnings qw(:report_warnings warning);
 use Test::MockModule;
+use Test::MockObject;
 use File::Basename ();
 use File::Path 'rmtree';
 
@@ -93,6 +94,7 @@ $mock_autotest->redefine(load_snapshot => sub { $reverts_done++ });
 $mock_autotest->redefine(make_snapshot => sub { $snapshots_made++ });
 $mock_autotest->redefine(query_isotovideo => 0);
 $mock_basetest->redefine(test_flags => {milestone => 1});
+$mock_basetest->noop('record_resultfile');
 sub snapshot_subtest ($name, $sub) { subtest $name, $sub; $reverts_done = $snapshots_made = 0; @sent = () }
 
 subtest 'test always_rollback flag' => sub {
@@ -198,10 +200,13 @@ $mock_autotest->redefine(query_isotovideo => sub ($command, $arguments) {
         $command eq 'backend_can_handle' && $arguments->{function} eq 'snapshots' ? $enable_snapshots : 1;
 });
 
+my $record_resultfile_called;
+$mock_basetest->redefine(record_resultfile => sub { ++$record_resultfile_called });
 stderr_like { autotest::run_all } qr/oh noes/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died, 0, 'non-fatal test failure should not die');
 is($completed, 1, 'non-fatal test failure should complete');
+is $record_resultfile_called, 4, 'record_resultfile was called';
 
 # now let's add an ignore_failure test
 loadtest 'ignore_failure';
@@ -230,6 +235,7 @@ $mock_basetest->redefine(search_for_expected_serial_failures => sub ($self) {
         die "Got serial hard failure";
 });
 
+$autotest::current_test = Test::MockObject->new->set_true('record_resultfile');
 stderr_like { autotest::run_all } qr/Snapshots are supported/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
 is($died, 0, 'non-fatal serial failure test should not die');

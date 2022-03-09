@@ -372,6 +372,7 @@ sub runalltests {
         eval { $t->runtest; };
         my $error = $@;    # save $@, it might be overwritten
         $t->save_test_result();
+        my $next_test = $testindex eq $#testorder ? undef : $testorder[$testindex + 1];
 
         if ($error) {
             my $msg = $error;
@@ -394,18 +395,20 @@ sub runalltests {
             }
             elsif (!$flags->{no_rollback} && $last_milestone) {
                 load_snapshot('lastgood');
+                $next_test->record_resultfile('Snapshot', "Loaded snapshot because '$name' failed", result => 'ok') if $next_test;
                 $last_milestone->rollback_activated_consoles();
             }
         }
         else {
             if (!$flags->{no_rollback} && $last_milestone && $flags->{always_rollback}) {
                 load_snapshot('lastgood');
+                $next_test->record_resultfile('Snapshot', "Loaded snapshot after '$name' (always_rollback)", result => 'ok') if $next_test;
                 $last_milestone->rollback_activated_consoles();
             }
             my $makesnapshot = $bmwqemu::vars{TESTDEBUG};
             # Only make a snapshot if there is a next test and it's not a fatal milestone
-            if ($testindex ne $#testorder) {
-                my $nexttestflags = $testorder[$testindex + 1]->test_flags();
+            if (defined $next_test) {
+                my $nexttestflags = $next_test->test_flags();
                 $makesnapshot ||= $flags->{milestone} && !($nexttestflags->{milestone} && $nexttestflags->{fatal});
             }
             if ($snapshots_supported && $makesnapshot) {
