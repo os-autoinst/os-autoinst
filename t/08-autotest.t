@@ -133,7 +133,7 @@ subtest 'test always_rollback flag' => sub {
         ($died, $completed) = get_tests_done;
         is $died, 0, 'start+next+start should not die when always_rollback flag is set';
         is $completed, 1, 'start+next+start should complete when always_rollback flag is set';
-        is $reverts_done, 2, 'snapshots are loaded even when tests succeed';
+        is $reverts_done, 1, 'snapshots are loaded even when tests succeed';
         is $snapshots_made, 2, 'milestone snapshots are made for all except the last';
     };
     snapshot_subtest 'snapshot loading with milestone flag and fatal test' => sub {

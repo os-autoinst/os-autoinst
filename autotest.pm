@@ -381,14 +381,14 @@ sub runalltests () {
                 bmwqemu::stop_vm();
                 return 0;
             }
-            elsif (!$flags->{no_rollback} && $last_milestone) {
+            elsif (defined $next_test && !$flags->{no_rollback} && $last_milestone) {
                 load_snapshot('lastgood');
-                $next_test->record_resultfile('Snapshot', "Loaded snapshot because '$name' failed", result => 'ok') if $next_test;
+                $next_test->record_resultfile('Snapshot', "Loaded snapshot because '$name' failed", result => 'ok');
                 $last_milestone->rollback_activated_consoles();
             }
         }
         else {
-            if (!$flags->{no_rollback} && $last_milestone && $flags->{always_rollback}) {
+            if (defined $next_test && !$flags->{no_rollback} && $last_milestone && $flags->{always_rollback}) {
                 load_snapshot('lastgood');
                 $next_test->record_resultfile('Snapshot', "Loaded snapshot after '$name' (always_rollback)", result => 'ok') if $next_test;
                 $last_milestone->rollback_activated_consoles();
