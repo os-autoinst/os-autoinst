@@ -314,7 +314,7 @@ sub get_wait_still_screen_on_here_doc_input ($self, $args) {
     # by comparing the screen and checking that nothing else will write on it.
     # So if the here-document input is really slow, we hope the wait_still_screen
     # takes even longer.
-    _vmm_family() =~ qr/^hyperv|vmware$/ ? 1 : 0;
+    _vmm_family() =~ qr/^(hyperv|vmware)$/ ? 1 : 0;
 }
 
 1;
