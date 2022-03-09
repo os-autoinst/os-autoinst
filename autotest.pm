@@ -372,7 +372,7 @@ sub runalltests {
         eval { $t->runtest; };
         my $error = $@;    # save $@, it might be overwritten
         $t->save_test_result();
-        my $next_test = $testindex eq $#testorder ? undef : $testorder[$testindex + 1];
+        my $next_test = $testorder[$testindex + 1];
 
         if ($error) {
             my $msg = $error;
