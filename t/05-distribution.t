@@ -18,7 +18,7 @@ subtest 'script_run' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(type_string => undef);
     $mock_testapi->redefine(wait_serial => undef);
-    like(warning { $d->script_run }->[0], qr/^Use of uninitialized.*\$cmd/, 'Warning on incorrect usage');
+    like(exception { $d->script_run }, qr/^Too few arguments/, 'Error on incorrect usage');
     like(warning { $d->script_run('foo') }, qr/^Use of uninitialized.*serialdev/, 'Warning on undefined serialdev');
     {
         no warnings 'once';
