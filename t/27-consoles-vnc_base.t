@@ -31,9 +31,13 @@ $c->{vnc} = $vnc;
 is $c->disable_vnc_stalls, 1, 'can call disable_vnc_stalls with VNC';
 ok $vnc->called('check_vnc_stalls'), 'check_vnc_stalls called with VNC';
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
-$vnc_mock->mock(new => $vnc);
-$vnc->set_true('login');
-stderr_like { $c->connect_remote({hostname => 'localhost', port => 42}) } qr/Establishing VNC connection to localhost:42/, 'can call connect_remote';
+$vnc_mock->redefine(login => 1);
+my $real_vnc_obj;
+stderr_like { $real_vnc_obj = $c->connect_remote({hostname => 'localhost', port => 42}) } qr/Establishing VNC connection to localhost:42/, 'can call connect_remote';
+ok $real_vnc_obj, 'VNC console returned';
+is $real_vnc_obj->hostname, 'localhost', 'parameters passed to VNC console (1)';
+is $real_vnc_obj->port, 42, 'parameters passed to VNC console (2)';
+$c->{vnc} = $vnc;    # swap real VNC object with fake one
 $vnc->set_true('update_framebuffer', 'send_update_request');
 is $c->request_screen_update, undef, 'can call request_screen_update';
 $vnc->set_always('_framebuffer', 0);
