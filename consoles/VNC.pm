@@ -118,7 +118,6 @@ my @encodings = (
 );
 
 sub login ($self, $connect_timeout = undef) {
-    $connect_timeout //= 10;
     # arbitrary
     my $connect_failure_limit = 2;
 
@@ -135,7 +134,9 @@ sub login ($self, $connect_timeout = undef) {
     my $hostname = $self->hostname || 'localhost';
     my $port = $self->port || 5900;
     my $description = $self->description || 'VNC server';
-
+    my $local_timeout = $bmwqemu::vars{VNC_CONNECT_TIMEOUT_LOCAL} // 10;
+    my $remote_timeout = $bmwqemu::vars{VNC_CONNECT_TIMEOUT_REMOTE} // 60;
+    $connect_timeout //= ($hostname =~ qr/(localhost|127\.0\.0\.\d+|::1)/) ? $local_timeout : $remote_timeout;
     my $endtime = time + $connect_timeout;
 
     my $socket;

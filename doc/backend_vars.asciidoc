@@ -28,6 +28,8 @@ SSH_CONNECT_RETRY;integer;5;Maximum retries to connect to SSH based console targ
 SSH_CONNECT_RETRY_INTERVAL;float;10;Interval in seconds between retries to connect to SSH based console targets. Related to SSH_CONNECT_RETRY
 VNC_STALL_THRESHOLD;integer;4;Time after which is VNC considered stalled
 VNC_TYPING_LIMIT;integer;30;Maximum number of keys per second
+VNC_CONNECT_TIMEOUT_LOCAL;integer;10;Timeout for local VNC connections in seconds
+VNC_CONNECT_TIMEOUT_REMOTE;integer;60;Timeout for remote VNC connections in seconds
 _CHKSEL_RATE_WAIT_TIME;integer;30;The amount of time isotovideo is going to wait for the VNC console to become responsive
 _CHKSEL_RATE_HITS;integer;15000;The amount of times, the select should return the same fileno during the _CHKSEL_RATE_WAIT_TIME seconds, to consider the VNC console unresponsive
 TIMEOUT_SCALE;integer;1;This scale parameter can be used based on performance of workers to prevent false positive timeouts based on differing worker performance.

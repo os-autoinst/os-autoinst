@@ -5,6 +5,7 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+
 use Test::Warnings qw(:all :report_warnings);
 use Test::Exception;
 use Test::Output qw(combined_like);
@@ -22,7 +23,8 @@ $vnc_mock->redefine(_send_frame_buffer => sub ($self, $data) { push @sent, $data
 my $c = consoles::VNC->new;
 my $inet_mock = Test::MockModule->new('IO::Socket::INET');
 my $s = Test::MockObject->new->set_true(qw(sockopt print connected close));
-$s->set_series('mocked_read', 'RFB 003.006', pack('N', 1));
+sub _setup_rfb_magic { $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1)) }
+_setup_rfb_magic;
 $s->mock('read', sub { $_[1] = $s->mocked_read; 1 });
 $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
@@ -48,6 +50,25 @@ subtest 'handling VNC stall, malformed RFB protocol on re-connect' => sub {
         } qr/Malformed RFB protocol: REB 003\.006/, 'dies on malformed RFB protocol';
     } qr/considering VNC stalled/, 'VNC stall logged';
     is scalar @sent, 1, 'no further message sent' or diag explain \@sent;
+};
+
+subtest 'handling connect timeout' => sub {
+    $bmwqemu::vars{VNC_CONNECT_TIMEOUT_LOCAL} = 5;
+    $bmwqemu::vars{VNC_CONNECT_TIMEOUT_REMOTE} = 10;
+    my $attempts = 0;
+    $c->hostname('127.0.0.100');
+    $inet_mock->redefine(new => sub { ++$attempts; undef });
+    _setup_rfb_magic;
+    combined_like {
+        throws_ok { $c->login } 'OpenQA::Exception::VNCSetupError', 'dies on connect timeout' }
+    qr/.*Error connecting to.*/, 'error logged';
+    is $attempts, 7, 'login attempts for local hostname';
+    $attempts = 0;
+    $c->hostname('10.161.145.95');
+    combined_like {
+        throws_ok { $c->login } 'OpenQA::Exception::VNCSetupError', 'dies on connect timeout (2)'
+    } qr/.*Error connecting to.*/, 'error logged (2)';
+    is $attempts, 12, 'login attempts for remote hostname';
 };
 
 done_testing;
