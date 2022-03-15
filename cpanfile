@@ -7,7 +7,6 @@
 requires 'B::Deparse';
 requires 'Carp';
 requires 'Carp::Always';
-requires 'Class::Accessor::Fast';
 requires 'Config';
 requires 'Cpanel::JSON::XS';
 requires 'Crypt::DES';

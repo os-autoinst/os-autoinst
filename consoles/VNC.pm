@@ -1,6 +1,6 @@
 package consoles::VNC;
 
-use Mojo::Base 'Class::Accessor::Fast', -signatures;
+use Mojo::Base -base, -signatures;
 use bytes;
 use IO::Socket::INET;
 use bmwqemu qw(diag fctwarn);
@@ -14,12 +14,10 @@ use Try::Tiny;
 use Scalar::Util 'blessed';
 use OpenQA::Exceptions;
 
-__PACKAGE__->mk_accessors(
-    qw(description hostname port username password socket name width height depth
+has [qw(description hostname port username password socket name width height depth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
-      _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell
-    ));
+      _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell)];
 
 our $VERSION = '0.40';
 
