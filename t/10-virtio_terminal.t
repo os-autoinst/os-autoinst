@@ -120,12 +120,13 @@ subtest "Test open_pipe() error condition" => sub {
     qr/\[debug\] <<<.*open_pipe/, 'log for open_pipe on non-existent pipe';
 
     $vterminal_mock = Test::MockModule->new('consoles::virtio_terminal');
-    $vterminal_mock->redefine("get_pipe_sz", sub { 1024 });
+    $vterminal_mock->redefine("get_pipe_sz", sub { 1 });
     $helper = prepare_pipes($socket_path);
     $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     my $max = path('/proc/sys/fs/pipe-max-size')->slurp();
+    ok $max > 1, "maximum pipe size $max is larger than 1";
     local $bmwqemu::vars{VIRTIO_CONSOLE_PIPE_SZ} = $max;
-    combined_like { $term->open_pipe() } qr/Set PIPE_SZ from 1024 to $max/, 'Log mention new size';
+    combined_like { $term->open_pipe() } qr/Set PIPE_SZ from 1 to $max/, 'Log mention new size';
     cleanup_pipes($helper);
 };
 
