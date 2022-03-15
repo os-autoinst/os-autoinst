@@ -10,15 +10,11 @@ require IPC::System::Simple;
 use XML::LibXML;
 use File::Temp 'tempfile';
 use File::Basename;
-use Class::Accessor 'antlers';
 use Mojo::JSON qw(decode_json);
 
 use backend::svirt;
 
-has instance => (is => "rw", isa => "Num");
-has name => (is => "rw", isa => "Str");
-has vmm_family => (is => "rw", isa => "Str");
-has vmm_type => (is => "rw", isa => "Str");
+has [qw(instance name vmm_family vmm_type)];
 
 sub new ($class, $testapi_console = undef, $args = {}) {
     my $self = $class->SUPER::new($testapi_console, $args);

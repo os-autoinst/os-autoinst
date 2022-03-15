@@ -116,7 +116,6 @@ main_requires:
   perl(B::Deparse):
   perl(Carp):
   perl(Carp::Always):
-  perl(Class::Accessor::Fast):
   perl(Config):
   perl(Cpanel::JSON::XS):
   perl(Crypt::DES):

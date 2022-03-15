@@ -6,7 +6,6 @@ package consoles::s3270;
 
 use Mojo::Base 'consoles::localXvnc', -signatures;
 use feature 'say';
-use Class::Accessor 'antlers';
 use Data::Dumper 'Dumper';
 use Carp qw(confess cluck carp croak);
 require IPC::Run;
@@ -14,9 +13,7 @@ use IPC::Run::Debug;    # set IPCRUNDEBUG=data in shell environment for trace
 use Thread::Queue;
 use Time::HiRes 'usleep';
 
-has zVM_host => (is => "rw");
-has guest_user => (is => "rw");
-has guest_login => (is => "rw");
+has [qw(zVM_host guest_user guest_login)];
 
 sub start ($self) {
     # prepare the communication queue

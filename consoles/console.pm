@@ -16,13 +16,12 @@ of other functions. See vnc_base and virtio_terminal to see how this works.
 
 package consoles::console;
 
-use Mojo::Base -strict, -signatures;
+use Mojo::Base -base, -signatures;
 use autodie ':all';
 
 require IPC::System::Simple;
-use Class::Accessor 'antlers';
 
-has backend => (is => "rw");
+has 'backend';
 
 sub new ($class, $testapi_console, $args) {
     my $self = bless({class => $class}, $class);
