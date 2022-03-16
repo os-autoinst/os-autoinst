@@ -25,6 +25,7 @@ sub get_last_mouse_set ($self, $args) { $self->{mouse} }
 sub disable_vnc_stalls ($self) {
     return unless $self->{vnc};
     $self->{vnc}->check_vnc_stalls(0);
+    return 0;
 }
 
 sub connect_remote ($self, $args) {

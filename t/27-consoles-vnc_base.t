@@ -27,9 +27,6 @@ is $c->get_last_mouse_set({}), undef, 'can call get_last_mouse_set';
 $vnc->set_true('check_vnc_stalls');
 is $c->disable_vnc_stalls, undef, 'can call disable_vnc_stalls without VNC';
 ok !$vnc->called('check_vnc_stalls'), 'check_vnc_stalls not called without VNC';
-$c->{vnc} = $vnc;
-is $c->disable_vnc_stalls, 1, 'can call disable_vnc_stalls with VNC';
-ok $vnc->called('check_vnc_stalls'), 'check_vnc_stalls called with VNC';
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
 $vnc_mock->redefine(login => 1);
 my $real_vnc_obj;
@@ -37,6 +34,8 @@ stderr_like { $real_vnc_obj = $c->connect_remote({hostname => 'localhost', port 
 ok $real_vnc_obj, 'VNC console returned';
 is $real_vnc_obj->hostname, 'localhost', 'parameters passed to VNC console (1)';
 is $real_vnc_obj->port, 42, 'parameters passed to VNC console (2)';
+is $c->disable_vnc_stalls, 0, 'disabling VNC stalls returns 0 (or at least something serializable)';
+is $real_vnc_obj->check_vnc_stalls, 0, 'checking for VNC stalls is now disabled';
 $c->{vnc} = $vnc;    # swap real VNC object with fake one
 $vnc->set_true('update_framebuffer', 'send_update_request');
 is $c->request_screen_update, undef, 'can call request_screen_update';
