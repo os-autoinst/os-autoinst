@@ -70,6 +70,7 @@ use POSIX qw(:sys_wait_h _exit);
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use Try::Tiny;
 use File::Path;
+use IO::Select;
 use Mojo::UserAgent;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
@@ -276,8 +277,6 @@ for my $tool (keys %debugging_tools) {
     { exec(@{$debugging_tools{$tool}}) };
     exit -1;    # don't continue in any case (exec returns if it fails to spawn the process printing an error message on its own)
 }
-
-use IO::Select;
 
 $backend_process = $bmwqemu::backend->{backend_process};
 my $io_select = IO::Select->new();
