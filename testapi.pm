@@ -882,7 +882,7 @@ Setting C<$no_regex> will cause it to do a plain string search.
 Set C<$quiet>, to avoid recording serial_result.
 
 For serial_terminal there are more options available, like C<record_output>,
-C<buffer_size>. See C<consoles::serial_screen::read_unitl> for details.
+C<buffer_size>. See C<consoles::serial_screen::read_until> for details.
 
 Returns the string matched or C<undef> if C<$expect_not_found> is false
 (default).
