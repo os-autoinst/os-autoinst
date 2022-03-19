@@ -913,6 +913,7 @@ sub set_tags_to_assert ($self, $args) {
 sub set_assert_screen_timeout ($self, $timeout) {
     return bmwqemu::fctwarn('set_assert_screen_timeout called with non-numeric timeout') unless looks_like_number($timeout);
     $self->assert_screen_deadline(time + $timeout);
+    return $self->assert_screen_deadline;
 }
 
 sub _time_to_assert_screen_deadline ($self) {
