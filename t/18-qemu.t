@@ -412,8 +412,9 @@ subtest 'qemu was killed due to the system being out of memory' => sub {
     $mock_proc->redefine(check_qemu_oom => sub { return 0; });
     $proc = qemu_proc('-foo', \%vars);
     $proc->exec_qemu;
-    $proc->_process->stop;
+    $proc->_process->sleeptime_during_kill(0.1)->wait_stop;
     my $base_state = path(bmwqemu::STATE_FILE);
+    ok -f $base_state, qq{state file "$base_state" exists};
     my $state = decode_json($base_state->slurp);
     is($state->{msg}, 'QEMU was killed due to the system being out of memory', 'qemu was killed and the reason was shown correctly');
     unlink("./Core-7.2.iso");
