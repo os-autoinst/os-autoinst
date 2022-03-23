@@ -40,7 +40,7 @@ _QUIET_SCRIPT_CALLS;boolean;0;Add quiet flag to all the calls to script_run, scr
 _WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT;float;0;If this value is greater then 0, it is used by `wait_still_screen` before starting to write the script into the here document used in `testapi::script_output()` function (see: poo#60566). By default this depends on the backend.
 AUTOINST_URL_HOSTNAME;string;;hostname or IP address of host running the autoinst webserver endpoint, defaults to the local IP address within the qemu network for the qemu backend or the `WORKER_HOSTNAME` otherwise.
 UPLOAD_METER;boolean;0;Display curl progress meter in `upload_logs()` and `upload_assets()` test API functions.
-UPLOAD_MAX_MESSAGE_SIZE_GB;integer;20;Specifies the max. upload size in GiB for the test API functions `upload_logs()` and `upload_assets()` and the underlying command server API.
+UPLOAD_MAX_MESSAGE_SIZE_GB;integer;0;Specifies the max. upload size in GiB for the test API functions `upload_logs()` and `upload_assets()` and the underlying command server API. Zero denotes infinity.
 UPLOAD_INACTIVITY_TIMEOUT;integer;300;Specifies the inactivity timeout in seconds for the test API functions `upload_logs()` and `upload_assets()` and underlying the command server API.
 NO_DEPRECATE_BACKEND_$backend;boolean;0;Only warn about deprecated backends instead of aborting
 

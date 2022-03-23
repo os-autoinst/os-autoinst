@@ -225,7 +225,7 @@ sub run_daemon {
     my ($port, $isotovideo) = @_;
 
     # allow up to 20 GiB for uploads of big hdd images
-    $ENV{MOJO_MAX_MESSAGE_SIZE} //= ($bmwqemu::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} // 20) * 1024**3;
+    $ENV{MOJO_MAX_MESSAGE_SIZE} //= ($bmwqemu::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} // 0) * 1024**3;
     $ENV{MOJO_INACTIVITY_TIMEOUT} //= ($bmwqemu::vars{UPLOAD_INACTIVITY_TIMEOUT} // 300);
 
     # avoid leaking token
