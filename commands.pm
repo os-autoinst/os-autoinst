@@ -147,8 +147,9 @@ sub get_asset {
 sub upload_file {
     my ($self) = @_;
 
-    return $self->render(text => 'File is too big', status => 400) if $self->req->is_limit_exceeded;
-    return $self->render(text => 'Upload file content missing', status => 400) unless my $upload = $self->req->upload('upload');
+    my $req = $self->req;
+    return $self->render(text => (($req->error // {})->{message} // 'Limit exceeded'), status => 400) if $req->is_limit_exceeded;
+    return $self->render(text => 'Upload file content missing', status => 400) unless my $upload = $req->upload('upload');
 
     # choose 'target' field from curl form, otherwise default 'assets_private', assume the pool directory is the current working dir
     my $target = $self->param('target') || 'assets_private';
