@@ -147,8 +147,9 @@ sub get_asset {
 sub upload_file {
     my ($self) = @_;
 
-    return $self->render(text => 'File is too big', status => 400) if $self->req->is_limit_exceeded;
-    return $self->render(text => 'Upload file content missing', status => 400) unless my $upload = $self->req->upload('upload');
+    my $req = $self->req;
+    return $self->render(text => (($req->error // {})->{message} // 'Limit exceeded'), status => 400) if $req->is_limit_exceeded;
+    return $self->render(text => 'Upload file content missing', status => 400) unless my $upload = $req->upload('upload');
 
     # choose 'target' field from curl form, otherwise default 'assets_private', assume the pool directory is the current working dir
     my $target = $self->param('target') || 'assets_private';
@@ -225,7 +226,7 @@ sub run_daemon {
     my ($port, $isotovideo) = @_;
 
     # allow up to 20 GiB for uploads of big hdd images
-    $ENV{MOJO_MAX_MESSAGE_SIZE} //= ($bmwqemu::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} // 20) * 1024**3;
+    $ENV{MOJO_MAX_MESSAGE_SIZE} //= ($bmwqemu::vars{UPLOAD_MAX_MESSAGE_SIZE_GB} // 0) * 1024**3;
     $ENV{MOJO_INACTIVITY_TIMEOUT} //= ($bmwqemu::vars{UPLOAD_INACTIVITY_TIMEOUT} // 300);
 
     # avoid leaking token
