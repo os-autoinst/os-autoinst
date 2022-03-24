@@ -68,10 +68,11 @@ consoles.
 =cut
 sub type_string ($self, $nargs) {
     my $fd = $self->{fd_write};
+    my $text = $nargs->{text};
 
+    $nargs->{text} = 'SECRET STRING' if defined $nargs->{secret};
     bmwqemu::log_call(%$nargs);
 
-    my $text = $nargs->{text};
     my $term;
     for ($nargs->{terminate_with} || '') {
         if (/^ETX$/) { $term = "\cC"; }    #^C, Ctrl-c, End Of Text
