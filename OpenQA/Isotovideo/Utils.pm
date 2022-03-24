@@ -49,6 +49,10 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $local_path = $url->path->parts->[-1] =~ s/\.git$//r;
     my $clone_cmd = 'env GIT_SSH_COMMAND="ssh -oBatchMode=yes" git clone';
     my $clone_args = "--depth $args{clone_depth}";
+
+    my $distri = $bmwqemu::vars{"DISTRI"} || undef;
+    $clone_args .= " --reference-if-able /var/lib/openqa/tests/$distri" if ( length $distri );
+
     my $branch_args = '';
     my ($return_code, @out);
     my $handle_output = sub {
