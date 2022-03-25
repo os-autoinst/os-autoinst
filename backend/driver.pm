@@ -8,8 +8,8 @@
 # in that 2nd process runs the actual backend, derived from backend::baseclass
 
 package backend::driver;
+use Mojo::Base -base, -signatures;
 
-use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use Carp 'croak';
@@ -24,7 +24,7 @@ use signalblocker;
 use log qw(diag fctinfo);
 
 sub new ($class, $name) {
-    my $self = bless({class => $class}, $class);
+    my $self = $class->SUPER::new({class => $class});
 
     require "backend/$name.pm";
     $self->{backend} = "backend::$name"->new();
