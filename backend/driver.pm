@@ -8,8 +8,8 @@
 # in that 2nd process runs the actual backend, derived from backend::baseclass
 
 package backend::driver;
+use Mojo::Base -base, -signatures;
 
-use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use Carp 'croak';
@@ -21,9 +21,10 @@ use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use myjsonrpc;
 use signalblocker;
+use log qw(diag fctinfo);
 
 sub new ($class, $name) {
-    my $self = bless({class => $class}, $class);
+    my $self = $class->SUPER::new({class => $class});
 
     require "backend/$name.pm";
     $self->{backend} = "backend::$name"->new();
@@ -32,7 +33,7 @@ sub new ($class, $name) {
     session->on(
         collected_orphan => sub {
             my ($session, $p) = @_;
-            bmwqemu::fctinfo("Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status);
+            fctinfo("Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status);
         });
 
     $self->start();
@@ -68,11 +69,12 @@ sub start ($self) {
             undef $signal_blocker;
 
             $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
-        })->start;
+        });
 
-    $backend_process->on(collected => sub { bmwqemu::diag("backend process exited: " . shift->exit_status) });
+    $backend_process->on(collected => sub { diag("backend process exited: " . shift->exit_status) });
+    $backend_process->start;
 
-    bmwqemu::diag("$$: channel_out " . fileno($backend_process->channel_out) . ', channel_in ' . fileno($backend_process->channel_in));
+    diag("$$: channel_out " . fileno($backend_process->channel_out) . ', channel_in ' . fileno($backend_process->channel_in));
     $self->{backend_pid} = $backend_process->pid;
     $self->{backend_process} = $backend_process;
 }
