@@ -8,6 +8,7 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Mock::Time;
 use File::Temp;
+use Mojo::File qw(path);
 use Test::Output qw(stderr_like stderr_unlike);
 use Test::Fatal;
 use Test::Warnings qw(:all :report_warnings);
@@ -583,6 +584,14 @@ subtest 'validate_script_output' => sub {
         my $joined_args = join(',', @$exp_args);
         lives_ok { validate_script_output('script', qr/^$joined_args$/, @$exp_args) } "Arguments passed to script_output($joined_args)";
     }
+};
+
+subtest save_tmp_file => sub {
+    my $expected = '<profile>Test</profile>';
+    my $filename = save_tmp_file('autoyast/autoinst.xml', $expected);
+    my $xml = path($filename);
+    is($xml->slurp, $expected, 'Expected file contents written');
+    $xml->remove;
 };
 
 subtest 'wait_still_screen & assert_still_screen' => sub {
