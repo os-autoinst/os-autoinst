@@ -21,6 +21,7 @@ use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use myjsonrpc;
 use signalblocker;
+use log qw(diag fctinfo);
 
 sub new ($class, $name) {
     my $self = bless({class => $class}, $class);
@@ -32,7 +33,7 @@ sub new ($class, $name) {
     session->on(
         collected_orphan => sub {
             my ($session, $p) = @_;
-            bmwqemu::fctinfo("Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status);
+            fctinfo("Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status);
         });
 
     $self->start();
@@ -70,10 +71,10 @@ sub start ($self) {
             $self->{backend}->run(fileno($process->channel_in), fileno($process->channel_out));
         });
 
-    $backend_process->on(collected => sub { bmwqemu::diag("backend process exited: " . shift->exit_status) });
+    $backend_process->on(collected => sub { diag("backend process exited: " . shift->exit_status) });
     $backend_process->start;
 
-    bmwqemu::diag("$$: channel_out " . fileno($backend_process->channel_out) . ', channel_in ' . fileno($backend_process->channel_in));
+    diag("$$: channel_out " . fileno($backend_process->channel_out) . ', channel_in ' . fileno($backend_process->channel_in));
     $self->{backend_pid} = $backend_process->pid;
     $self->{backend_process} = $backend_process;
 }
