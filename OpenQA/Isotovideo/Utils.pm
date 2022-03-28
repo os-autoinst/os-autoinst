@@ -33,10 +33,11 @@ Takes a test or needles distribution directory parameter and checks out the
 referenced git repository into a local working copy with an additional,
 optional git refspec to checkout. The git clone depth can be specified in the
 argument C<clone_depth> which defaults to 1.
+If C<repo> is specified it is used as the actual URL of the repo.
 
 =cut
 sub checkout_git_repo_and_branch ($dir_variable, %args) {
-    my $dir = $bmwqemu::vars{$dir_variable};
+    my $dir = $bmwqemu::vars{$dir_variable} // $args{repo};
     return undef unless defined $dir;
 
     my $url = Mojo::URL->new($dir);
@@ -60,7 +61,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
         $branch_args = " --branch $branch";
     }
     if (!-e $local_path) {
-        bmwqemu::fctinfo "Cloning git URL '$clone_url' to use as test distribution";
+        bmwqemu::fctinfo "Cloning git URL '$clone_url'";
         @out = qx{$clone_cmd $clone_args $branch_args $clone_url 2>&1};
         $return_code = $?;
         if ($branch && grep /warning: Could not find remote branch/, @out) {
@@ -92,7 +93,8 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     else {
         bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
     }
-    return $bmwqemu::vars{$dir_variable} = path($local_path)->to_abs->to_string;
+    return $bmwqemu::vars{$dir_variable} = path($local_path)->to_abs->to_string unless $args{repo};
+    return undef;
 }
 
 =head2 checkout_git_refspec

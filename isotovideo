@@ -36,6 +36,10 @@ automatically for convenience.
 =cut
 
 use Mojo::Base -strict, -signatures;
+use Mojo::File qw(path);
+use JSON::Validator;
+use YAML::XS;    # Required by JSON::Validator as a runtime dependency
+use YAML::PP;
 use autodie ':all';
 no autodie 'kill';
 
@@ -245,6 +249,25 @@ $bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 
 
 # set a default distribution if the tests don't have one
 $testapi::distri = distribution->new;
+
+my $specfile = path($bmwqemu::vars{PRODUCTDIR} . '/wheels.yaml');
+if (-e $specfile) {
+    my $schema_file = dirname(__FILE__) . '/schema/Wheels-01.yaml';
+    # JSON::Validator 4.10 reports an unexpected error message for
+    # non-existent schema files with absolute paths
+    die "Unable to load schema '$schema_file'" unless -f $schema_file;
+    my $validator = JSON::Validator->new;
+    $validator->schema($schema_file);
+    my $spec = YAML::PP->new->load_file($specfile);
+    my @errors = $validator->validate($spec);
+    die 'Invalid YAML: ' . join(',', @errors) if @errors;
+    die 'Unsupported version: Version must be "v0.1"' if $spec->{version} ne 'v0.1';
+
+    foreach my $repo (@{$spec->{wheels}}) {
+        $repo = "https://github.com/$repo.git" unless $repo =~ '^http';
+        checkout_git_repo_and_branch($specfile, repo => $repo);
+    }
+}
 
 load_test_schedule;
 

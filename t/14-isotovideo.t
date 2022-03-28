@@ -105,6 +105,20 @@ subtest 'isotovideo with git refspec specified' => sub {
             opts => "casedir=$data_dir/tests test_git_refspec=deadbeef _exit_after_schedule=1") } qr/Checking.*local.*deadbeef/, 'refspec in local git repository would be checked out';
 };
 
+subtest 'isotovideo with wheels' => sub {
+    chdir($pool_dir);
+    unlink('vars.json') if -e 'vars.json';
+
+    my $specfile = path("$data_dir/tests/wheels.yaml");
+    $specfile->spurt("wheels: [foo/bar]");
+    combined_like { isotovideo(
+            opts => "casedir=$data_dir/tests _exit_after_schedule=1") } qr@Invalid.*Missing property@, 'invalid YAML causes error';
+    $specfile->spurt("version: v99\nwheels: [foo/bar]");
+    combined_like { isotovideo(
+            opts => "casedir=$data_dir/tests _exit_after_schedule=1") } qr@Unsupported version@, 'unsupported version';
+    $specfile->remove;
+};
+
 subtest 'productdir variable relative/absolute' => sub {
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';

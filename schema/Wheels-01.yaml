@@ -1,0 +1,18 @@
+$id: http://open.qa/api/schema/Wheels-01.yaml
+$schema: http://json-schema.org/draft-04/schema#
+description: Spec for loadable wheels
+type: object
+additionalProperties: false
+required:
+  - version
+  - wheels
+
+properties:
+  version:
+    description: Schema version
+    type: string
+  wheels:
+    description: Repositories to use
+    type: array
+    items:
+      - type: string
