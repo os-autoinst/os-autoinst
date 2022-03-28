@@ -1177,6 +1177,8 @@ including file, so it can be fetched via http later on using
 Can be used to modify files for specific test needs, e.g. autoinst profiles.
 Dies if cannot open file for writing.
 
+Returns filename of saved file (filename hashed).
+
 Example:
   save_tmp_file('autoyast/autoinst.xml', '<profile>Test</profile>')
 Then the file can be fetched using url:
@@ -1192,6 +1194,8 @@ sub save_tmp_file {
     open my $fh, ">", $path;
     print $fh $content;
     close $fh;
+
+    return $path;
 }
 
 =head2 get_test_data
