@@ -60,6 +60,11 @@ subtest 'log_call' => sub {
         bmwqemu::log_call(test => $lines);
     }
     stderr_like(\&log_call_indent, qr{\Q<<< main::log_call_indent(test=[\E\n\Q    "a",\E\n\Q    [\E\n\Q      "b"\E\n\Q    ]\E\n\Q  ])}, 'log_call auto indentation');
+
+    sub log_call_test_secret {
+        bmwqemu::log_call(text => "passwd\n", secret => 1);
+    }
+    stderr_like(\&log_call_test_secret, qr{\Q<<< main::log_call_test_secret(text="[masked]", secret=1)}, 'log_call hides sensitive info');
 };
 
 subtest 'update_line_number' => sub {

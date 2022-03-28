@@ -1461,7 +1461,6 @@ sub type_string {
     else {
         %args = @_;
     }
-    my $log = $args{secret} ? 'SECRET STRING' : $string;
     $string .= "\n" if $args{lf};
 
     if (is_serial_terminal) {
@@ -1474,7 +1473,7 @@ sub type_string {
     my $wait_still = $args{wait_still_screen} // 0;
     my $wait_timeout = $args{timeout} // 30;
     my $wait_sim_level = $args{similarity_level} // 47;
-    bmwqemu::log_call(string => $log, max_interval => $max_interval, wait_screen_changes => $wait, wait_still_screen => $wait_still,
+    bmwqemu::log_call(string => $string, max_interval => $max_interval, wait_screen_changes => $wait, wait_still_screen => $wait_still,
         timeout => $wait_timeout, similarity_level => $wait_sim_level);
     my @pieces;
     if ($wait) {
