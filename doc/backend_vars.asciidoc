@@ -150,7 +150,7 @@ QEMU_MAX_MIGRATION_TIME;integer;240;Maximum time in seconds a migration to file 
 QEMU_NO_FDC_SET;boolean;0;Don't disable the floppy drive.
 QEMU_NO_KVM;boolean;0;Don't use KVM acceleration.
 QEMU_NO_TABLET;boolean;0;Don't use USB tablet.
-QEMU_VIRTIO_RNG;boolean;0;Enable virtio random number generator
+QEMU_VIRTIO_RNG;boolean;1;Enable virtio random number generator
 QEMU_NUMA;boolean;0;Enable NUMA simulation, requires QEMUCPUS to be greater than one
 QEMU_SMBIOS;see qemu -smbios ?;undef;pass this value to qemu -smbios
 QEMU_SOUNDHW;see qemu -soundhw ?;had;pass this value to qemu -soundhw (for qemu < 4.2)
