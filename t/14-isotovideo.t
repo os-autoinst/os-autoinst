@@ -16,7 +16,7 @@ use Cwd 'abs_path';
 use Mojo::File qw(tempdir path);
 use Mojo::JSON qw(decode_json);
 use Mojo::Util qw(scope_guard);
-use OpenQA::Isotovideo::Utils qw(handle_generated_assets);
+use OpenQA::Isotovideo::Utils qw(checkout_wheels handle_generated_assets);
 use OpenQA::Isotovideo::CommandHandler;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
@@ -106,6 +106,45 @@ subtest 'isotovideo with git refspec specified' => sub {
     unlink('vars.json') if -e 'vars.json';
     combined_like { isotovideo(
             opts => "casedir=$data_dir/tests test_git_refspec=deadbeef _exit_after_schedule=1") } qr/Checking.*local.*deadbeef/, 'refspec in local git repository would be checked out';
+};
+
+subtest 'isotovideo with wheels' => sub {
+    chdir($pool_dir);
+    unlink('vars.json') if -e 'vars.json';
+
+    my $wheels_dir = "$data_dir";
+    my $specfile = path("$wheels_dir/wheels.yaml");
+    $specfile->spurt("wheels: [foo/bar]");
+    # also verify that isotovideo invokes the wheel code correctly
+    combined_like { isotovideo(
+            opts => "wheels_dir=$wheels_dir casedir=$data_dir/tests _exit_after_schedule=1") } qr@Invalid.*Missing property@, 'invalid YAML causes error';
+    $specfile->spurt("version: v99\nwheels: [foo/bar]");
+    # from here on we directly test wheels in a way we can mock
+    $bmwqemu::scriptdir = "$Bin/..";
+    throws_ok { checkout_wheels(
+            "$wheels_dir") } qr@Unsupported version@, 'unsupported version';
+    $specfile->spurt("version: v0.1\nwheels: [https://github.com/foo/bar.git]");
+    my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
+    my @repos;
+    $utils_mock->redefine(checkout_git_repo_and_branch => sub ($dir_variable, %args) { push @repos, $args{repo} });
+    checkout_wheels("$wheels_dir");
+    is($repos[0], 'https://github.com/foo/bar.git', 'repo with full URL');
+    is(scalar @repos, 1, 'one wheel');
+    $specfile->spurt("version: v0.1\nwheels: [https://github.com/foo/bar.git#branch]");
+    checkout_wheels("$wheels_dir");
+    is($repos[1], 'https://github.com/foo/bar.git#branch', 'repo URL with branch');
+    is(scalar @repos, 2, 'one wheel');
+    $specfile->spurt("version: v0.1\nwheels: [foo/bar]");
+    checkout_wheels("$wheels_dir");
+    is(scalar @repos, 3, 'one wheel');
+    is($repos[2], 'https://github.com/foo/bar.git', 'only wheel');
+    $specfile->spurt("version: v0.1\nwheels: [foo/bar, spam/eggs]");
+    checkout_wheels("$wheels_dir");
+    is($repos[4], 'https://github.com/spam/eggs.git', 'second wheel');
+    is(scalar @repos, 5, 'two wheels');
+    $specfile->remove;
+    is(checkout_wheels("$wheels_dir"), 1, 'no wheels');
+    is(scalar @repos, 5, 'git never called');
 };
 
 subtest 'productdir variable relative/absolute' => sub {
@@ -245,4 +284,5 @@ done_testing();
 
 END {
     rmtree "$Bin/data/tests/product";
+    unlink("$data_dir/wheels.yaml") if -e "$data_dir/wheels.yaml";
 }

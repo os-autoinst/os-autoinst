@@ -36,6 +36,7 @@ requires 'IO::Socket::UNIX';
 requires 'IPC::Open3';
 requires 'IPC::Run::Debug';
 requires 'IPC::System::Simple';
+requires 'JSON::Validator';
 requires 'List::MoreUtils';
 requires 'List::Util';
 requires 'Mojo::IOLoop::ReadWriteProcess', '>= 0.26';
@@ -61,6 +62,8 @@ requires 'Time::Seconds';
 requires 'Try::Tiny';
 requires 'XML::LibXML';
 requires 'XML::SemanticDiff';
+requires 'YAML::PP';
+requires 'YAML::XS';
 requires 'autodie';
 requires 'base';
 requires 'constant';
@@ -91,7 +94,6 @@ on 'test' => sub {
     requires 'Test::Pod';
     requires 'Test::Strict';
     requires 'Test::Warnings', '>= 0.029';
-    requires 'YAML::PP';
 
 };
 

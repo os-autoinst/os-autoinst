@@ -81,6 +81,7 @@ Getopt::Long::Configure("no_ignore_case");
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_repo_and_branch
+  checkout_wheels
   checkout_git_refspec handle_generated_assets load_test_schedule);
 
 session->enable;
@@ -245,6 +246,8 @@ $bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 
 # set a default distribution if the tests don't have one
 $testapi::distri = distribution->new;
 
+$bmwqemu::vars{WHEELS_DIR} ||= $bmwqemu::vars{CASEDIR};
+checkout_wheels($bmwqemu::vars{WHEELS_DIR});
 load_test_schedule;
 
 # start the command fork before we get into the backend, the command child

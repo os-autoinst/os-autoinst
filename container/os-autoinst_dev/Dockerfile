@@ -81,6 +81,7 @@ RUN zypper in -y -C \
        'perl(IPC::Run::Debug)' \
        'perl(IPC::System::Simple)' \
        'perl(Inline::Python)' \
+       'perl(JSON::Validator)' \
        'perl(List::MoreUtils)' \
        'perl(List::Util)' \
        'perl(Mojo::IOLoop::ReadWriteProcess)' \
@@ -127,6 +128,7 @@ RUN zypper in -y -C \
        'perl(XML::LibXML)' \
        'perl(XML::SemanticDiff)' \
        'perl(YAML::PP)' \
+       'perl(YAML::XS)' \
        'perl(autodie)' \
        'perl(base)' \
        'perl(constant)' \

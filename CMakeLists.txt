@@ -201,6 +201,7 @@ foreach (FILE ${PERL_FILES} ${MISC_FILES})
     install(FILES "${FILE}" DESTINATION "${OS_AUTOINST_DATA_DIR}/${SUB_DIR}")
 endforeach ()
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/install-target/cv.pm" DESTINATION "${OS_AUTOINST_DATA_DIR}")
+install(FILES "schema/Wheels-01.yaml" DESTINATION "${OS_AUTOINST_DATA_DIR}/schema")
 
 # install openvswitch files
 install(

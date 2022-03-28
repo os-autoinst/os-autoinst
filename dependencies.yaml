@@ -107,7 +107,6 @@ test_requires:
   '%test_base_requires':
   '%spellcheck_requires':
   '%yamllint_requires':
-  perl(YAML::PP):
   perl(Inline::Python):
   python3-Pillow-tk:
 
@@ -170,6 +169,9 @@ main_requires:
   perl(Try::Tiny):
   perl(XML::LibXML):
   perl(XML::SemanticDiff):
+  perl(YAML::PP):
+  perl(JSON::Validator):
+  perl(YAML::XS):           # Required by JSON::Validator as a runtime dependency
   perl(autodie):
   perl(base):
   perl(constant):

@@ -5,6 +5,9 @@ package OpenQA::Isotovideo::Utils;
 use Mojo::Base -base, -signatures;
 use Mojo::URL;
 use Mojo::File qw(path);
+use JSON::Validator;
+use YAML::XS;    # Required by JSON::Validator as a runtime dependency
+use YAML::PP;
 
 use Exporter 'import';
 use Cwd;
@@ -13,6 +16,7 @@ use autotest;
 use Try::Tiny;
 
 our @EXPORT_OK = qw(git_rev_parse checkout_git_repo_and_branch
+  checkout_wheels
   checkout_git_refspec handle_generated_assets load_test_schedule);
 
 sub git_rev_parse ($dirname) {
@@ -39,10 +43,11 @@ Takes a test or needles distribution directory parameter and checks out the
 referenced git repository into a local working copy with an additional,
 optional git refspec to checkout. The git clone depth can be specified in the
 argument C<clone_depth> which defaults to 1.
+If C<repo> is specified it is used as the actual URL of the repo.
 
 =cut
 sub checkout_git_repo_and_branch ($dir_variable, %args) {
-    my $dir = $bmwqemu::vars{$dir_variable};
+    my $dir = $bmwqemu::vars{$dir_variable} // $args{repo};
     return undef unless defined $dir;
 
     my $url = Mojo::URL->new($dir);
@@ -66,7 +71,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
         $branch_args = " --branch $branch";
     }
     if (!-e $local_path) {
-        bmwqemu::fctinfo "Cloning git URL '$clone_url' to use as test distribution";
+        bmwqemu::fctinfo "Cloning git URL '$clone_url'";
         @out = qx{$clone_cmd $clone_args $branch_args $clone_url 2>&1};
         $return_code = $?;
         if ($branch && grep /warning: Could not find remote branch/, @out) {
@@ -98,7 +103,40 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     else {
         bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
     }
+    return undef if $args{repo};
     return $bmwqemu::vars{$dir_variable} = path($local_path)->to_abs->to_string;
+}
+
+=head2 checkout_wheels
+
+    checkout_wheels($dir);
+
+Takes a directory which may require wheels and checks out the
+referenced git repository into a local working copy with an additional,
+optional git refspec to checkout.
+If no wheels are configured the function returns early.
+
+=cut
+sub checkout_wheels ($dir) {
+    my $specfile = path($dir, 'wheels.yaml');
+    return 1 unless -e $specfile;
+
+    my $schema_file = "$bmwqemu::scriptdir/schema/Wheels-01.yaml";
+    # JSON::Validator 4.10 reports an unexpected error message for
+    # non-existent schema files with absolute paths
+    die "Unable to load schema '$schema_file'" unless -f $schema_file;
+    my $validator = JSON::Validator->new;
+    $validator->schema($schema_file);
+    my $spec = YAML::PP->new->load_file($specfile);
+    my @errors = $validator->validate($spec);
+    die 'Invalid YAML: ' . join(',', @errors) if @errors;
+    die 'Unsupported version: Version must be "v0.1"' if $spec->{version} ne 'v0.1';
+
+    foreach my $repo (@{$spec->{wheels}}) {
+        $repo = "https://github.com/$repo.git" unless $repo =~ qr/^http/;
+        checkout_git_repo_and_branch($specfile, repo => $repo);
+    }
+    return 0;
 }
 
 =head2 checkout_git_refspec

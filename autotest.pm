@@ -32,6 +32,10 @@ OS Autoinst decides which test modules to run based on a distribution specific
 script called main.pm. This is either located in $vars{PRODUCTDIR} or
 $vars{CASEDIR} (e.g. <distribution>/products/<product>/main.pm).
 
+Wheels can be used to add functionality from other repositories. If a file
+wheels.yaml is present the specified git repositories are cloned before tests
+are run. $vars{WHEELS_DIR} defaults to $vars{CASEDIR} if not set explicitly.
+
 This script does not actually run the tests, but queues them to be run by
 autotest.pm. A test is queued by calling the loadtest function which is also
 located in autotest.pm. The test modules are executed in the same order that
