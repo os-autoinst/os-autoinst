@@ -7,7 +7,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
-use Test::Output 'stderr_like';
+use Test::Output qw(stderr_like stderr_unlike);
 use Test::Warnings ':report_warnings';
 use Mojo::JSON;
 use OpenQA::Isotovideo::CommandHandler;
@@ -106,6 +106,19 @@ subtest 'set pause at test' => sub {
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'answer received');
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {set_pause_at_test => 'some test'}, 'broadcasted via command server');
     is($command_handler->pause_test_name, 'some test', 'test to pause at set');
+
+    stderr_unlike {
+        $command_handler->process_command($answer_fd, {cmd => 'set_current_test', name => 'foo', full_name => 'foo'})
+    } qr/pausing/, 'pausing not logged';
+    is_deeply $last_received_msg_by_fd[$answer_fd], {ret => 1}, 'not paused on different test module';
+    ok !$command_handler->reason_for_pause, 'reason for pause set not set';
+    is $command_handler->postponed_answer_fd, undef, 'answer not postponed';
+
+    stderr_like {
+        $command_handler->process_command($answer_fd, {cmd => 'set_current_test', name => 'some test', full_name => 'some test'})
+    } qr/pausing test execution.*some test/, 'pausing logged';
+    is $command_handler->reason_for_pause, 'reached module some test', 'reason for pause set when reaching module to pause on';
+    is $command_handler->postponed_answer_fd, $answer_fd, 'answer postponed';
 
     stderr_like {
         $command_handler->process_command($answer_fd, {
