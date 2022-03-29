@@ -1465,7 +1465,6 @@ sub type_string {
     $string .= "\n" if $args{lf};
 
     if (is_serial_terminal) {
-        bmwqemu::log_call(text => $log, %args);
         query_isotovideo('backend_type_string', {text => $string, %args});
         return;
     }
