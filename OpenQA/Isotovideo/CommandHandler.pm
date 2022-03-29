@@ -114,6 +114,12 @@ sub _respond ($self, $data) { myjsonrpc::send_json($self->answer_fd, $data) }
 
 sub _respond_ok ($self) { $self->_respond({ret => 1}) }
 
+sub _respond_ok_or_postpone_if_paused ($self) {
+    return $self->_respond_ok unless my $reason_for_pause = $self->reason_for_pause;
+    $self->_send_to_cmd_srv({paused => 1, reason => $reason_for_pause});
+    $self->postponed_answer_fd($self->answer_fd)->postponed_command(undef);
+}
+
 sub _pass_command_to_backend_unless_paused ($self, $response, $backend_cmd) {
     return if $self->_postpone_backend_command_until_resumed($response);
 
@@ -208,7 +214,7 @@ sub _handle_command_resume_test_execution ($self, $response, @) {
     #       to resume at any time and that apparently also happens sometimes in the fullstack test (see poo#101734).
     return undef unless defined $postponed_answer_fd;
 
-    # if no command has been postponed (because paused due to timeout) just return 1
+    # if no command has been postponed (because paused due to timeout or on set_current_test) just return 1
     if (!$postponed_command) {
         myjsonrpc::send_json($postponed_answer_fd, {
                 ret => 1,
@@ -250,7 +256,7 @@ sub _handle_command_set_current_test ($self, $response, @) {
         $self->reason_for_pause('reached module ' . $pause_test_name);
     }
     $self->update_status_file;
-    $self->_respond_ok();
+    $self->_respond_ok_or_postpone_if_paused;
 }
 
 sub _handle_command_tests_done ($self, $response, @) {

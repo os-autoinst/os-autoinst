@@ -7,7 +7,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
-use Test::Output 'stderr_like';
+use Test::Output qw(stderr_like stderr_unlike);
 use Test::Warnings ':report_warnings';
 use Mojo::JSON;
 use OpenQA::Isotovideo::CommandHandler;
@@ -98,20 +98,27 @@ subtest 'set pause at test' => sub {
     reset_state;
 
     stderr_like {
-        $command_handler->process_command($answer_fd, {
-                cmd => 'set_pause_at_test',
-                name => 'some test',
-        });
+        $command_handler->process_command($answer_fd, {cmd => 'set_pause_at_test', name => 'some test'})
     } qr/paused.*some test/, 'log for pause';
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'answer received');
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {set_pause_at_test => 'some test'}, 'broadcasted via command server');
     is($command_handler->pause_test_name, 'some test', 'test to pause at set');
 
+    stderr_unlike {
+        $command_handler->process_command($answer_fd, {cmd => 'set_current_test', name => 'foo', full_name => 'foo'})
+    } qr/pausing/, 'pausing not logged';
+    is_deeply $last_received_msg_by_fd[$answer_fd], {ret => 1}, 'not paused on different test module';
+    ok !$command_handler->reason_for_pause, 'reason for pause set not set';
+    is $command_handler->postponed_answer_fd, undef, 'answer not postponed';
+
     stderr_like {
-        $command_handler->process_command($answer_fd, {
-                cmd => 'set_pause_at_test',
-                name => undef,
-        });
+        $command_handler->process_command($answer_fd, {cmd => 'set_current_test', name => 'some test', full_name => 'some test'})
+    } qr/pausing test execution.*some test/, 'pausing logged';
+    is $command_handler->reason_for_pause, 'reached module some test', 'reason for pause set when reaching module to pause on';
+    is $command_handler->postponed_answer_fd, $answer_fd, 'answer postponed';
+
+    stderr_like {
+        $command_handler->process_command($answer_fd, {cmd => 'set_pause_at_test', name => undef});
     } qr/no longer.*paused/, 'log for unpause';
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'answer received');
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {set_pause_at_test => undef}, 'broadcasted via command server');
@@ -119,46 +126,27 @@ subtest 'set pause at test' => sub {
 };
 
 subtest 'report timeout, set pause on assert/check screen timeout' => sub {
-    my %basic_report_timeout_cmd = (
-        cmd => 'report_timeout',
-        msg => 'some test',
-    );
-
+    my %basic_report_timeout_cmd = (cmd => 'report_timeout', msg => 'some test');
     reset_state;
 
     # report timeout when not supposted to pause
-    $command_handler->process_command($answer_fd, {
-            cmd => 'is_configured_to_pause_on_timeout',
-            check => 0,
-    });
+    $command_handler->process_command($answer_fd, {cmd => 'is_configured_to_pause_on_timeout', check => 0});
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 0}, 'not configured to pause on assert_screen');
-    $command_handler->process_command($answer_fd, {
-            cmd => 'is_configured_to_pause_on_timeout',
-            check => 1,
-    });
+    $command_handler->process_command($answer_fd, {cmd => 'is_configured_to_pause_on_timeout', check => 1});
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 0}, 'not configured to pause on check_screen');
     $command_handler->process_command($answer_fd, \%basic_report_timeout_cmd);
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 0}, 'not supposed to pause');
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], undef, 'nothing sent to cmd srv');
 
     # enable pause on assert_screen timeout
-    $command_handler->process_command($answer_fd, {
-            cmd => 'set_pause_on_screen_mismatch',
-            pause_on => 'assert_screen',
-    });
+    $command_handler->process_command($answer_fd, {cmd => 'set_pause_on_screen_mismatch', pause_on => 'assert_screen'});
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {
             set_pause_on_screen_mismatch => 'assert_screen',
     }, 'event passed cmd srv');
     is($command_handler->pause_on_screen_mismatch, 'assert_screen', 'enabling pause on assert_screen timeout');
-    $command_handler->process_command($answer_fd, {
-            cmd => 'is_configured_to_pause_on_timeout',
-            check => 0,
-    });
+    $command_handler->process_command($answer_fd, {cmd => 'is_configured_to_pause_on_timeout', check => 0});
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'configured to pause on assert_screen');
-    $command_handler->process_command($answer_fd, {
-            cmd => 'is_configured_to_pause_on_timeout',
-            check => 1,
-    });
+    $command_handler->process_command($answer_fd, {cmd => 'is_configured_to_pause_on_timeout', check => 1});
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 0}, 'not configured to pause on check_screen');
 
     # report timeout when supposed to pause
@@ -178,23 +166,14 @@ subtest 'report timeout, set pause on assert/check screen timeout' => sub {
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 0}, 'not supposed to pause on check_screen');
 
     # enable pause on check_screen timeout
-    $command_handler->process_command($answer_fd, {
-            cmd => 'set_pause_on_screen_mismatch',
-            pause_on => 'check_screen',
-    });
+    $command_handler->process_command($answer_fd, {cmd => 'set_pause_on_screen_mismatch', pause_on => 'check_screen'});
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {
             set_pause_on_screen_mismatch => 'check_screen',
     }, 'event passed cmd srv');
     is($command_handler->pause_on_screen_mismatch, 'check_screen', 'enabling pause on check_screen timeout');
-    $command_handler->process_command($answer_fd, {
-            cmd => 'is_configured_to_pause_on_timeout',
-            check => 0,
-    });
+    $command_handler->process_command($answer_fd, {cmd => 'is_configured_to_pause_on_timeout', check => 0});
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'configured to pause on assert_screen');
-    $command_handler->process_command($answer_fd, {
-            cmd => 'is_configured_to_pause_on_timeout',
-            check => 1,
-    });
+    $command_handler->process_command($answer_fd, {cmd => 'is_configured_to_pause_on_timeout', check => 1});
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'configured to pause on check_screen');
     stderr_like {
         $command_handler->process_command($answer_fd, \%basic_report_timeout_cmd);
@@ -202,10 +181,7 @@ subtest 'report timeout, set pause on assert/check screen timeout' => sub {
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'supposed to pause on check_screen');
 
     # disabling pause on assert_screen timeout disables pause on check_screen timeout as well
-    $command_handler->process_command($answer_fd, {
-            cmd => 'set_pause_on_screen_mismatch',
-            pause_on => undef,
-    });
+    $command_handler->process_command($answer_fd, {cmd => 'set_pause_on_screen_mismatch', pause_on => undef});
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {
             set_pause_on_screen_mismatch => 0,
     }, 'event passed cmd srv');
@@ -217,10 +193,7 @@ subtest 'report timeout, set pause on assert/check screen timeout' => sub {
 subtest 'set_pause_on_next_command, postponing command, resuming' => sub {
     # enable pausing on next command
     is($command_handler->pause_on_next_command, 0, 'pause on next command disabled by default');
-    $command_handler->process_command($answer_fd, {
-            cmd => 'set_pause_on_next_command',
-            flag => 1,
-    });
+    $command_handler->process_command($answer_fd, {cmd => 'set_pause_on_next_command', flag => 1});
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {
             set_pause_on_next_command => 1,
     }, 'event passed cmd srv');
@@ -238,10 +211,7 @@ subtest 'set_pause_on_next_command, postponing command, resuming' => sub {
     is($command_handler->postponed_answer_fd, $answer_fd, 'answer fd for postponed command set');
 
     # disable pausing on next command again
-    $command_handler->process_command($answer_fd, {
-            cmd => 'set_pause_on_next_command',
-            flag => 0,
-    });
+    $command_handler->process_command($answer_fd, {cmd => 'set_pause_on_next_command', flag => 0});
     is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {
             set_pause_on_next_command => 0,
     }, 'event passed cmd srv');
