@@ -39,6 +39,10 @@ use Mojo::Base -strict, -signatures;
 use autodie ':all';
 no autodie 'kill';
 
+# Avoid "Subroutine JSON::PP::Boolean::(0+ redefined" warnings
+# Details: https://progress.opensuse.org/issues/90371
+use JSON::PP;
+
 my $installprefix;    # $bmwqemu::scriptdir
 my $fatal_error;    # the last error message caught by the die handler
 
