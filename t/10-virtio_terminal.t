@@ -62,6 +62,11 @@ sub cleanup_pipes ($obj) {
     unlink for (@{$obj->{files}});
 }
 
+subtest 'set_pipe_sz() error handling (ensuring stable test coverage of that function)' => sub {
+    my $term = consoles::virtio_terminal->new('unit-test-console', {});
+    like(warning { ok !$term->set_pipe_sz(0, 42), 'error returned' }, qr/fcntl\(\) on unopened filehandle 0/, 'fcntl invoked');
+};
+
 subtest "Test open_pipe() error condition" => sub {
     my $socket_path = './virtio_console_open_test';
     my $file_mock = Test::MockModule->new('Mojo::File');
