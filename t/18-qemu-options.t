@@ -7,7 +7,7 @@ use Mojo::Base -strict, -signatures;
 use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '20';
+use OpenQA::Test::TimeLimit '10';
 use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
@@ -68,27 +68,17 @@ subtest qemu_append_option => sub {
     unlike($log, qr/\: invalid option/, 'no invalid option detected');
     cmp_ok($time->[0], '<', $ENV{EXPECTED_ISOTOVIDEO_RUNTIME}, "execution time of isotovideo ($time->[0] s) within reasonable limits");
 
-    # list machines: call isotovideo with QEMU_APPEND, to list machines
+    # multiple options added, only version will be effective
     # test whether QMP connection attempts are aborted when QEMU exists: unset QEMU_QMP_CONNECT_ATTEMPTS temporarily
     my $qmp_connect_attempts = delete $ENV{QEMU_QMP_CONNECT_ATTEMPTS};
-    run_isotovideo(@common_options, QEMU_APPEND => 'M ?');
+    run_isotovideo(@common_options, QEMU_APPEND => 'M ? -version');
     like($log, qr/-M \?/, '-M ? option added');
-    like($log, qr/Supported machines are\:/, 'Supported machines listed');
+    like($log, qr/-version/, '-version option added');
+    like($log, qr/QEMU emulator version/, 'QEMU version printed');
+    unlike($log, qr/Supported machines are\:/, 'Supported machines not listed');
     unlike($log, qr/\: invalid option/, 'no invalid option detected');
     like($log, qr/QEMU terminated before QMP connection could be established/, 'connecting to QMP socket aborted');
     $ENV{QEMU_QMP_CONNECT_ATTEMPTS} = $qmp_connect_attempts;
-
-    # multiple options: call isotovideo with QEMU_APPEND, with version
-    run_isotovideo(QEMU_APPEND => 'M ? -version');
-    like($log, qr/-version/, '-version option added');
-    like($log, qr/QEMU emulator version/, 'QEMU version printed');
-    like($log, qr/Fabrice Bellard and the QEMU Project developers/, 'Copyright printed');
-    unlike($log, qr/\: invalid option/, 'no invalid option detected');
-
-    # invalid option: call isotovideo with QEMU_APPEND, with a broken option
-    run_isotovideo(QEMU_APPEND => 'broken option');
-    like($log, qr/-broken option/, '-broken option added');
-    like($log, qr/-broken\: invalid option/, 'invalid option detected');
 };
 
 done_testing();
