@@ -38,7 +38,6 @@ my @common_options = (
     QEMU_NO_TABLET => 1,
     QEMU_NO_FDC_SET => 1,
     CASEDIR => "$data_dir/tests",
-    ISO => "$data_dir/Core-7.2.iso",
     CDMODEL => 'ide-cd',
     HDDMODEL => 'ide-hd',
     WORKER_INSTANCE => 3,
