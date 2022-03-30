@@ -35,13 +35,8 @@ my @common_options = (
     ARCH => 'i386',
     BACKEND => 'qemu',
     QEMU => 'i386',
-    QEMU_NO_TABLET => 1,
-    QEMU_NO_FDC_SET => 1,
     CASEDIR => "$data_dir/tests",
-    CDMODEL => 'ide-cd',
-    HDDMODEL => 'ide-hd',
     WORKER_INSTANCE => 3,
-    VERSION => 1,
     SCHEDULE => 'tests/noop',
 );
 my $vars_json = path('vars.json');
