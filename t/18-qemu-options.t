@@ -91,15 +91,6 @@ subtest qemu_append_option => sub {
     like($log, qr/-broken\: invalid option/, 'invalid option detected');
 };
 
-# test QEMU_HUGE_PAGES_PATH with different options
-subtest qemu_huge_pages_option => sub {
-    # print version: call isotovideo with QEMU_HUGE_PAGES_PATH
-    run_isotovideo(QEMU_HUGE_PAGES_PATH => '/no/dev/hugepages/');
-    like($log, qr/-mem-prealloc/, '-mem-prealloc option added');
-    like($log, qr|-mem-path /no/dev/hugepages/|, '-mem-path /no/dev/hugepages/');
-    like($log, qr|can\'t open backing store /no/dev/hugepages/ for guest RAM\: No such file or directory|, 'expected failure as /no/dev/hugepages/ does not exist');
-};
-
 # test QEMUTPM with different options
 # note: Since this test does not have any checks for the actual QEMU output it would be possible to mock the actual execution
 #       of QEMU here.

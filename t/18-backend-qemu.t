@@ -11,11 +11,18 @@ use Test::MockObject;
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
+use Carp;
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
 use Mojo::JSON;
 
 use backend::qemu;
+
+sub backend() {
+    my $backend = backend::qemu->new();
+    ($backend->{"select_$_"} = Test::MockObject->new)->set_true('add') for qw(read write);
+    return $backend;
+}
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
@@ -25,7 +32,7 @@ my $proc = Test::MockModule->new('OpenQA::Qemu::Proc');
 $proc->redefine(exec_qemu => undef);
 $proc->redefine(connect_qmp => undef);
 $proc->redefine(init_blockdev_images => undef);
-ok(my $backend = backend::qemu->new(), 'backend can be created');
+ok(my $backend = backend(), 'backend can be created');
 # disable any graphics display in tests
 $bmwqemu::vars{QEMU_APPEND} = '-nographic';
 # as needed to start backend
@@ -46,7 +53,7 @@ $distri->redefine(add_console => sub {
 # defining this still matters for unknown reason
 $backend_mock->mock(select_console => undef);
 $testapi::distri = distribution->new;
-($backend->{"select_$_"} = Test::MockObject->new)->set_true('add') for qw(read write);
+
 stderr_like { ok($backend->start_qemu(), 'qemu can be started') } qr/running .*chattr/, 'preparing local files';
 ok(exists $called{add_console}, 'a console has been added');
 is($called{add_console}, 1, 'one console has been added');
@@ -122,8 +129,26 @@ EOF
     combined_like { backend::qemu::process_qemu_output($qemu_log) } $expected, $msg;
 };
 
+# For all following tests log output is not needed and is disabled to not
+# pollute stderr
+my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+$mock_bmwqemu->noop('log_call', 'fctwarn', 'diag');
+
+sub qemu_cmdline (%args) {
+    $bmwqemu::vars{$_} = $args{$_} for keys %args;
+    $backend = backend();
+    croak 'Failed to start qemu backend' unless $backend->start_qemu;
+    return join(' ', $backend->{proc}->gen_cmdline);
+}
+
 $bmwqemu::vars{OFW} = 1;
-stderr_like { ok($backend->start_qemu(), 'qemu can be started for OFW') } qr/Start CPU/, 'output for OFW';
-like join(' ', $backend->{proc}->gen_cmdline), qr/cap-cfpc=broken/, 'OFW workarounds applied';
+like qemu_cmdline(), qr/cap-cfpc=broken/, 'OFW workarounds applied';
+
+# test QEMU_HUGE_PAGES_PATH with different options
+subtest qemu_huge_pages_option => sub {
+    my $cmdline = qemu_cmdline(QEMU_HUGE_PAGES_PATH => '/no/dev/hugepages/');
+    like $cmdline, qr/-mem-prealloc/, '-mem-prealloc option added';
+    like $cmdline, qr|-mem-path /no/dev/hugepages/|, '-mem-path /no/dev/hugepages/';
+};
 
 done_testing();
