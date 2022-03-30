@@ -12,7 +12,7 @@ use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
 use Carp;
-use Mojo::File 'tempdir';
+use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use Mojo::JSON;
 
@@ -149,6 +149,47 @@ subtest qemu_huge_pages_option => sub {
     my $cmdline = qemu_cmdline(QEMU_HUGE_PAGES_PATH => '/no/dev/hugepages/');
     like $cmdline, qr/-mem-prealloc/, '-mem-prealloc option added';
     like $cmdline, qr|-mem-path /no/dev/hugepages/|, '-mem-path /no/dev/hugepages/';
+    delete $bmwqemu::vars{QEMU_HUGE_PAGES_PATH};
+};
+
+subtest qemu_tpm_option => sub {
+    $bmwqemu::vars{QEMUTPM_PATH_PREFIX} = "$dir/mytpm";
+    my $runcmd;
+    $backend_mock->redefine(runcmd => sub (@cmd) { $runcmd = join(' ', @cmd) });
+    my $cmdline = qemu_cmdline(QEMUTPM => 'instance', WORKER_INSTANCE => 3);
+    like $cmdline, qr|-chardev socket,id=chrtpm,path=.*mytpm3/swtpm-sock|, '-chardev socket option added (instance)';
+    like $cmdline, qr|-tpmdev emulator,id=tpm0,chardev=chrtpm|, '-tpmdev emulator option added';
+    like $cmdline, qr|-device tpm-tis,tpmdev=tpm0|, '-device tpm-tis option added';
+
+    # call qemu with QEMUTPM=2
+    mkdir("$dir/mytpm2");
+    path("$dir/mytpm2/swtpm-sock")->touch;
+    like qemu_cmdline(QEMUTPM => '2'), qr|-chardev socket,id=chrtpm,path=.*mytpm2/swtpm-sock|, '-chardev socket option added (2)';
+
+    # call qemu with QEMUTPM=instance, ppc64le arch
+    $cmdline = qemu_cmdline(QEMUTPM => 'instance', ARCH => 'ppc64le');
+    like $cmdline, qr|-chardev socket,id=chrtpm,path=.*mytpm3/swtpm-sock|, '-chardev socket option added (instance)';
+    like $cmdline, qr/-tpmdev emulator,id=tpm0,chardev=chrtpm/, '-tpmdev emulator option added';
+    like $cmdline, qr/-device tpm-spapr,tpmdev=tpm0/, '-device tpm-spapr option added';
+    like $cmdline, qr/-device spapr-vscsi,id=scsi9,reg=0x00002000/, '-device spapr-vscsi option added';
+
+    # call qemu with QEMUTPM=instance, aarch64 arch
+    $cmdline = qemu_cmdline(QEMUTPM => 'instance', ARCH => 'aarch64');
+    like $cmdline, qr|-chardev socket,id=chrtpm,path=.*mytpm3/swtpm-sock|, '-chardev socket option added (instance)';
+    like $cmdline, qr/-tpmdev emulator,id=tpm0,chardev=chrtpm/, '-tpmdev emulator option added';
+    like $cmdline, qr/-device tpm-tis-device,tpmdev=tpm0/, '-device tpm-tis option added';
+
+    # call qemu with QEMUTPM=4 w/o creating a device beforehand
+    $cmdline = qemu_cmdline(QEMUTPM => '4');
+    like $runcmd, qr|swtpm socket --tpmstate dir=.*mytpm4 --ctrl type=unixio,path=.*mytpm4/swtpm-sock --log level=20 -d --tpm2|, 'swtpm default device created';
+
+    # call qemu with QEMUTPM=5, QEMUTPM_VER=2.0 w/o creating a device beforehand
+    $cmdline = qemu_cmdline(QEMUTPM => '5', QEMUTPM_VER => '2.0');
+    like $runcmd, qr|swtpm socket --tpmstate dir=.*mytpm5 --ctrl type=unixio,path=.*mytpm5/swtpm-sock --log level=20 -d --tpm2|, 'swtpm 2.0 device created';
+
+    # call qemu with QEMUTPM=6, QEMU_TPM_VER=1.2 w/o creating a device beforehand
+    $cmdline = qemu_cmdline(QEMUTPM => '6', QEMUTPM_VER => '1.2');
+    like $runcmd, qr|swtpm socket --tpmstate dir=.*mytpm6 --ctrl type=unixio,path=.*mytpm6/swtpm-sock --log level=20 -d|, 'swtpm 1.2 device created';
 };
 
 done_testing();
