@@ -12,7 +12,7 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
-
+use log qw(logger);
 
 use backend::driver;
 
@@ -21,6 +21,7 @@ chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
 my $driver;
+logger->handle->autoflush(1);
 combined_like { $driver = backend::driver->new('null') } qr/channel_out.+channel_in/, 'log output for backend driver creation';
 ok $driver, 'can create driver';
 combined_like { ok $driver->start, 'can start driver' } qr/channel_out.+channel_in/, 'log content again';
