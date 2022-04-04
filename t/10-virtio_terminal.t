@@ -9,7 +9,7 @@ use Test::Warnings qw(:all :report_warnings);
 # internally already
 use Test::MockModule;
 use Test::Output;
-use POSIX 'mkfifo';
+use POSIX qw(mkfifo _exit);
 use Time::Seconds;
 use consoles::virtio_terminal;
 use testapi;
@@ -17,6 +17,7 @@ use bmwqemu;
 use Mojo::File qw(path);
 
 my $pipe_data_written;
+my $prepare_pipes_covered = 0;
 sub wait_till_pipe_data_written() { sleep 1 while (!$pipe_data_written) }
 
 sub prepare_pipes ($socket_path, $write_buffer = undef) {
@@ -50,9 +51,10 @@ sub prepare_pipes ($socket_path, $write_buffer = undef) {
 
         kill 'USR2', getppid;
         sysread($fd_r, my $buf, 1024) while ($running);
+        _exit 0 if $prepare_pipes_covered;
         exit 0;
     };
-
+    $prepare_pipes_covered = 1;
     return {pid => $pid, files => [$pipe_in, $pipe_out]};
 }
 
@@ -143,11 +145,7 @@ subtest "Test snapshot handling" => sub {
     my $helper = prepare_pipes($socket_path, $test_data);
     my $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
 
-    is_deeply($term->get_snapshot(), undef, "Return undef if no name is given");
-    is_deeply($term->get_snapshot('unknown_snapshot'), undef, "Return undef, if snapshotname doesn't exist");
     is_deeply($term->get_snapshot('unknown_snapshot', 'unknown_key'), undef, "Return undef, if snapshot and key doesn't exist");
-    is_deeply($term->set_snapshot(), undef, "Return undef, if snapshot name not given");
-    is_deeply($term->set_snapshot('foo'), undef, "Return undef, if key not given");
     is_deeply($term->{snapshots}, {}, "Snapshots are empty");
 
     $term->select();

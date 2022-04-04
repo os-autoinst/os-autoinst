@@ -49,18 +49,15 @@ sub new ($class, $testapi_console, $args) {
     return $self;
 }
 
-sub screen ($self) {
-    return $self->{screen};
-}
+sub screen ($self) { $self->{screen} }
 
 sub disable ($self) {
-    if ($self->{fd_read} > 0) {
-        close $self->{fd_read};
-        close $self->{fd_write};
-        $self->{fd_read} = 0;
-        $self->{fd_write} = 0;
-        $self->{screen} = undef;
-    }
+    return undef unless $self->{fd_read} > 0;
+    close $self->{fd_read};
+    close $self->{fd_write};
+    $self->{fd_read} = 0;
+    $self->{fd_write} = 0;
+    $self->{screen} = undef;
 }
 
 sub save_snapshot ($self, $name) {
@@ -78,18 +75,12 @@ sub load_snapshot ($self, $name) {
     }
 }
 
-sub get_snapshot {
-    my ($self, $name, $key) = @_;
-    return undef unless defined($name);
-
+sub get_snapshot ($self, $name, $key = undef) {
     my $snapshot = $self->{snapshots}->{$name};
     return (defined($key) && $snapshot) ? $snapshot->{$key} : $snapshot;
 }
 
-sub set_snapshot {
-    my ($self, $name, $key, $value) = @_;
-    return undef if (!defined($name) || !defined($key));
-
+sub set_snapshot ($self, $name, $key, $value = undef) {
     $self->{snapshots}->{$name}->{$key} = $value;
 }
 
@@ -97,26 +88,20 @@ sub set_snapshot {
 This is a helper method for system which do not have F_GETPIPE_SZ in
 there Fcntl bindings. See https://perldoc.perl.org/Fcntl.html
 =cut
-sub F_GETPIPE_SZ {
-    return eval 'no warnings "all"; Fcntl::F_GETPIPE_SZ;' || 1032;
-}
+sub F_GETPIPE_SZ () { eval 'no warnings "all"; Fcntl::F_GETPIPE_SZ;' || 1032 }
 
 =head2 F_SETPIPE_SZ
 This is a helper method for system which do not have F_SETPIPE_SZ in
 there Fcntl bindings. See: https://perldoc.perl.org/Fcntl.html
 =cut
-sub F_SETPIPE_SZ {
-    return eval 'no warnings "all"; Fcntl::F_SETPIPE_SZ;' || 1031;    # uncoverable statement
-}
+sub F_SETPIPE_SZ () { eval 'no warnings "all"; Fcntl::F_SETPIPE_SZ;' || 1031 }
 
 sub set_pipe_sz ($self, $fd, $newsize) {
     no autodie;
     return fcntl($fd, F_SETPIPE_SZ(), int($newsize));
 }
 
-sub get_pipe_sz ($self, $fd) {
-    return fcntl($fd, F_GETPIPE_SZ(), 0);
-}
+sub get_pipe_sz ($self, $fd) { fcntl($fd, F_GETPIPE_SZ(), 0) }
 
 =head2 open_pipe
 
@@ -164,6 +149,6 @@ sub activate ($self) {
     return;
 }
 
-sub is_serial_terminal { 1 }
+sub is_serial_terminal ($self, @) { 1 }
 
 1;
