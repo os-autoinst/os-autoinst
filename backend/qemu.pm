@@ -519,7 +519,7 @@ sub setup_tpm ($self, $arch) {
     my $vars = \%bmwqemu::vars;
     return unless ($vars->{QEMUTPM});
     my $tpmn = $vars->{QEMUTPM} eq 'instance' ? $vars->{WORKER_INSTANCE} : $vars->{QEMUTPM};
-    my $vmpath = "/tmp/mytpm$tpmn";
+    my $vmpath = ($vars->{QEMUTPM_PATH_PREFIX} // '/tmp/mytpm') . $tpmn;
     mkdir $vmpath unless -d $vmpath;
     my $vmsock = "$vmpath/swtpm-sock";
     unless (-e $vmsock) {

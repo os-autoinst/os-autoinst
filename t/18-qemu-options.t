@@ -7,7 +7,7 @@ use Mojo::Base -strict, -signatures;
 use Test::Warnings ':report_warnings';
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '40';
+use OpenQA::Test::TimeLimit '10';
 use Try::Tiny;
 use File::Basename;
 use Cwd 'abs_path';
@@ -35,14 +35,8 @@ my @common_options = (
     ARCH => 'i386',
     BACKEND => 'qemu',
     QEMU => 'i386',
-    QEMU_NO_TABLET => 1,
-    QEMU_NO_FDC_SET => 1,
     CASEDIR => "$data_dir/tests",
-    ISO => "$data_dir/Core-7.2.iso",
-    CDMODEL => 'ide-cd',
-    HDDMODEL => 'ide-hd',
     WORKER_INSTANCE => 3,
-    VERSION => 1,
     SCHEDULE => 'tests/noop',
 );
 my $vars_json = path('vars.json');
@@ -74,80 +68,17 @@ subtest qemu_append_option => sub {
     unlike($log, qr/\: invalid option/, 'no invalid option detected');
     cmp_ok($time->[0], '<', $ENV{EXPECTED_ISOTOVIDEO_RUNTIME}, "execution time of isotovideo ($time->[0] s) within reasonable limits");
 
-    # list machines: call isotovideo with QEMU_APPEND, to list machines
+    # multiple options added, only version will be effective
     # test whether QMP connection attempts are aborted when QEMU exists: unset QEMU_QMP_CONNECT_ATTEMPTS temporarily
     my $qmp_connect_attempts = delete $ENV{QEMU_QMP_CONNECT_ATTEMPTS};
-    run_isotovideo(@common_options, QEMU_APPEND => 'M ?');
+    run_isotovideo(@common_options, QEMU_APPEND => 'M ? -version');
     like($log, qr/-M \?/, '-M ? option added');
-    like($log, qr/Supported machines are\:/, 'Supported machines listed');
+    like($log, qr/-version/, '-version option added');
+    like($log, qr/QEMU emulator version/, 'QEMU version printed');
+    unlike($log, qr/Supported machines are\:/, 'Supported machines not listed');
     unlike($log, qr/\: invalid option/, 'no invalid option detected');
     like($log, qr/QEMU terminated before QMP connection could be established/, 'connecting to QMP socket aborted');
     $ENV{QEMU_QMP_CONNECT_ATTEMPTS} = $qmp_connect_attempts;
-
-    # multiple options: call isotovideo with QEMU_APPEND, with version
-    run_isotovideo(QEMU_APPEND => 'M ? -version');
-    like($log, qr/-version/, '-version option added');
-    like($log, qr/QEMU emulator version/, 'QEMU version printed');
-    like($log, qr/Fabrice Bellard and the QEMU Project developers/, 'Copyright printed');
-    unlike($log, qr/\: invalid option/, 'no invalid option detected');
-
-    # invalid option: call isotovideo with QEMU_APPEND, with a broken option
-    run_isotovideo(QEMU_APPEND => 'broken option');
-    like($log, qr/-broken option/, '-broken option added');
-    like($log, qr/-broken\: invalid option/, 'invalid option detected');
-};
-
-# test QEMU_HUGE_PAGES_PATH with different options
-subtest qemu_huge_pages_option => sub {
-    # print version: call isotovideo with QEMU_HUGE_PAGES_PATH
-    run_isotovideo(QEMU_HUGE_PAGES_PATH => '/no/dev/hugepages/');
-    like($log, qr/-mem-prealloc/, '-mem-prealloc option added');
-    like($log, qr|-mem-path /no/dev/hugepages/|, '-mem-path /no/dev/hugepages/');
-    like($log, qr|can\'t open backing store /no/dev/hugepages/ for guest RAM\: No such file or directory|, 'expected failure as /no/dev/hugepages/ does not exist');
-};
-
-# test QEMUTPM with different options
-# note: Since this test does not have any checks for the actual QEMU output it would be possible to mock the actual execution
-#       of QEMU here.
-subtest qemu_tpm_option => sub {
-    # call isotovideo with QEMUTPM=instance
-    mkdir('/tmp/mytpm3');
-    path('/tmp/mytpm3/swtpm-sock')->touch;
-    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => 'instance');
-    like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock|, '-chardev socket option added (instance)');
-    like($log, qr|-tpmdev emulator,id=tpm0,chardev=chrtpm|, '-tpmdev emulator option added');
-    like($log, qr|-device tpm-tis,tpmdev=tpm0|, '-device tpm-tis option added');
-
-    # call isotovideo with QEMUTPM=2
-    mkdir('/tmp/mytpm2');
-    path('/tmp/mytpm2/swtpm-sock')->touch;
-    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => '2');
-    like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm2/swtpm-sock|, '-chardev socket option added (2)');
-
-    # call isotovideo with QEMUTPM=instance, ppc64le arch
-    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => 'instance', ARCH => 'ppc64le');
-    like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock|, '-chardev socket option added (instance)');
-    like($log, qr/-tpmdev emulator,id=tpm0,chardev=chrtpm/, '-tpmdev emulator option added');
-    like($log, qr/-device tpm-spapr,tpmdev=tpm0/, '-device tpm-spapr option added');
-    like($log, qr/-device spapr-vscsi,id=scsi9,reg=0x00002000/, '-device spapr-vscsi option added');
-
-    # call isotovideo with QEMUTPM=instance, aarch64 arch
-    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => 'instance', ARCH => 'aarch64');
-    like($log, qr|-chardev socket,id=chrtpm,path=/tmp/mytpm3/swtpm-sock|, '-chardev socket option added (instance)');
-    like($log, qr/-tpmdev emulator,id=tpm0,chardev=chrtpm/, '-tpmdev emulator option added');
-    like($log, qr/-device tpm-tis-device,tpmdev=tpm0/, '-device tpm-tis option added');
-
-    # call isotovideo with QEMUTPM=4 w/o creating a device beforehand
-    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => '4');
-    like($log, qr|swtpm socket --tpmstate dir=/tmp/mytpm4 --ctrl type=unixio,path=/tmp/mytpm4/swtpm-sock --log level=20 -d --tpm2|, 'swtpm default device created');
-
-    # call isotovideo with QEMUTPM=5, QEMUTPM_VER=2.0 w/o creating a device beforehand
-    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => '5', QEMUTPM_VER => '2.0');
-    like($log, qr|swtpm socket --tpmstate dir=/tmp/mytpm5 --ctrl type=unixio,path=/tmp/mytpm5/swtpm-sock --log level=20 -d --tpm2|, 'swtpm 2.0 device created');
-
-    # call isotovideo with QEMUTPM=6, QEMU_TPM_VER=1.2 w/o creating a device beforehand
-    run_isotovideo(QEMU_ONLY_EXEC => 1, QEMUTPM => '6', QEMUTPM_VER => '1.2');
-    like($log, qr|swtpm socket --tpmstate dir=/tmp/mytpm6 --ctrl type=unixio,path=/tmp/mytpm6/swtpm-sock --log level=20 -d|, 'swtpm 1.2 device created');
 };
 
 done_testing();
