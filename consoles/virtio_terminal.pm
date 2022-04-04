@@ -75,16 +75,12 @@ sub load_snapshot ($self, $name) {
     }
 }
 
-sub get_snapshot ($self, $name = undef, $key = undef) {
-    return undef unless defined($name);
-
+sub get_snapshot ($self, $name, $key = undef) {
     my $snapshot = $self->{snapshots}->{$name};
     return (defined($key) && $snapshot) ? $snapshot->{$key} : $snapshot;
 }
 
-sub set_snapshot ($self, $name = undef, $key = undef, $value = undef) {
-    return undef if (!defined($name) || !defined($key));
-
+sub set_snapshot ($self, $name, $key, $value = undef) {
     $self->{snapshots}->{$name}->{$key} = $value;
 }
 
