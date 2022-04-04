@@ -143,11 +143,7 @@ subtest "Test snapshot handling" => sub {
     my $helper = prepare_pipes($socket_path, $test_data);
     my $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
 
-    is_deeply($term->get_snapshot(), undef, "Return undef if no name is given");
-    is_deeply($term->get_snapshot('unknown_snapshot'), undef, "Return undef, if snapshotname doesn't exist");
     is_deeply($term->get_snapshot('unknown_snapshot', 'unknown_key'), undef, "Return undef, if snapshot and key doesn't exist");
-    is_deeply($term->set_snapshot(), undef, "Return undef, if snapshot name not given");
-    is_deeply($term->set_snapshot('foo'), undef, "Return undef, if key not given");
     is_deeply($term->{snapshots}, {}, "Snapshots are empty");
 
     $term->select();
