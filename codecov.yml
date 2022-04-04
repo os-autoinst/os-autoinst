@@ -13,6 +13,28 @@ coverage:
       default:
         target: 62.2
         threshold: 0.1
+      fully_covered:
+        target: 100.0
+        paths:
+          - OpenQA/Benchmark
+          - OpenQA/Isotovideo/Interface.pm
+          - OpenQA/Test
+          - OpenQA/Exceptions.pm
+          - backend/amt.pm
+          - backend/null.pm
+          - backend/spvm.pm
+          - backend/vagrant.pm
+          - backend/virt.pm
+          - consoles/localXvnc.pm
+          - consoles/network_console.pm
+          - consoles/serial_screen.pm
+          - consoles/sshSerial.pm
+          - consoles/virtio_terminal.pm
+          - bmwqemu.pm
+          - log.pm
+          - mmapi.pm
+          - osutils.pm
+          - signalblocker.pm
     patch:
       default:
         branches: null
