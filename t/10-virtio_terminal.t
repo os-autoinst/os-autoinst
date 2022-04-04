@@ -35,7 +35,7 @@ sub prepare_pipes ($socket_path, $write_buffer = undef) {
         my $running = 1;
         $SIG{USR1} = sub { $running = 0; };
         $SIG{ALRM} = sub {
-            die('Timeout for pipe other side helper');
+            die('Timeout for pipe other side helper');    # uncoverable statement
         };
         alarm ONE_MINUTE;
         my $fd_r = IO::Handle->new();
