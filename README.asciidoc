@@ -176,6 +176,8 @@ accelerated virtualization support.
 If you want to contribute to this project, please clone and send
 pull requests via https://github.com/os-autoinst/os-autoinst.
 
+Before submission, is recommended to install the <<githooks, git-hooks>>.
+
 More information on the contribution can be found on
 http://os-autoinst.github.io/openQA/contact/, too.
 
@@ -313,6 +315,28 @@ Install files for packaging:
 ----
 make install DESTDIR=…
 ----
+
+=== Install git hooks
+[[githooks]]
+
+Git hook scripts are useful for identifying simple issues before submission to code review.
+Make sure that you have installed the recommended git-hooks on your system before contribution
+to the project.
+
+If `githook-perltidy` has been already installed on your system, check if the `.git/hooks/pre-commit`
+contains the following lines
+
+----
+$ which githook-perltidy
+/usr/bin/githook-perltidy
+$ cat .git/hooks/pre-commit
+#!/bin/sh
+/usr/bin/githook-perltidy pre-commit
+----
+
+Otherwise run `githook-perltidy install` and check again.
+In case you have enabled `pre-commit` hooks by your own use the `-f` flag
+or edit the file
 
 Further notes:
 
