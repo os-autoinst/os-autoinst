@@ -54,7 +54,6 @@ RUN zypper in -y -C \
        'perl(Cwd)' \
        'perl(Data::Dumper)' \
        'perl(Devel::Cover)' \
-       'perl(Devel::Cover)' \
        'perl(Devel::Cover::Report::Codecov)' \
        'perl(Digest::MD5)' \
        'perl(DynaLoader)' \
