@@ -4,7 +4,7 @@
 
 package needle;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 use autodie ':all';
 
 use Cwd 'cwd';
@@ -24,17 +24,14 @@ our $cleanuphandler;
 
 my $needles_dir;
 
-sub is_click_point_valid {
-    my ($click_point) = @_;
+sub is_click_point_valid ($click_point) {
     return (ref $click_point eq 'HASH'
           && $click_point->{xpos}
           && $click_point->{ypos})
       || $click_point eq 'center';
 }
 
-sub new {
-    my ($classname, $jsonfile) = @_;
-
+sub new ($classname, $jsonfile) {
     die 'needles not initialized via needle::init() before needle constructor called' unless defined $needles_dir;
 
     my $json;
@@ -119,9 +116,7 @@ sub new {
     return $self;
 }
 
-sub save {
-    my ($self, $fn) = @_;
-    $fn ||= $self->{file};
+sub save ($self, $fn = $self->{file}) {
     my @area;
     for my $area_from_json (@{$self->{area}}) {
         my $area = {};
@@ -141,8 +136,7 @@ sub save {
     close $fh;
 }
 
-sub unregister {
-    my ($self, $reason) = @_;
+sub unregister ($self, $reason = undef) {
     for my $g (@{$self->{tags}}) {
         @{$tags{$g}} = grep { $_ != $self } @{$tags{$g}};
         delete $tags{$g} unless (@{$tags{$g}});
@@ -150,8 +144,7 @@ sub unregister {
     $self->{unregistered} //= $reason || 'unknown reason';
 }
 
-sub register {
-    my ($self) = @_;
+sub register ($self) {
     my %check_dups;
     for my $g (@{$self->{tags}}) {
         if ($check_dups{$g}) {
@@ -164,9 +157,7 @@ sub register {
     }
 }
 
-sub _load_image {
-    my ($self, $image_path) = @_;
-
+sub _load_image ($self, $image_path) {
     # read PNG file measuring required time
     my $watch = OpenQA::Benchmark::Stopwatch->new();
     $watch->start();
@@ -192,9 +183,7 @@ sub _load_image {
 my %image_cache;
 my $image_cache_tick = 0;
 
-sub _load_image_with_caching {
-    my ($self) = @_;
-
+sub _load_image_with_caching ($self) {
     # insert newly loaded image to cache or recycle previously cached image
     my $image_path = $self->{png};
     my $image_cache_item = $image_cache{$image_path};
@@ -210,10 +199,7 @@ sub _load_image_with_caching {
     return $image_cache_item->{image};
 }
 
-sub clean_image_cache {
-    my ($limit) = @_;
-    $limit //= 30;
-
+sub clean_image_cache ($limit = 30) {
     # compute the number of images to delete
     my @cache_items = values %image_cache;
     my $cache_size = scalar @cache_items;
@@ -240,34 +226,27 @@ sub clean_image_cache {
     }
 }
 
-sub image_cache_size { scalar keys %image_cache }
+sub image_cache_size () { scalar keys %image_cache }
 
-sub get_image {
-    my ($self, $area) = @_;
-
+sub get_image ($self, $area = undef) {
     my $image = $self->_load_image_with_caching;
     return undef unless $image;
     return $image unless $area;
     return $area->{img} //= $image->copyrect($area->{xpos}, $area->{ypos}, $area->{width}, $area->{height});
 }
 
-sub has_tag {
-    my ($self, $tag) = @_;
+sub has_tag ($self, $tag) {
     for my $t (@{$self->{tags}}) {
         return 1 if ($t eq $tag);
     }
     return 0;
 }
 
-sub has_property {
-    my ($self, $property_name) = @_;
-
+sub has_property ($self, $property_name) {
     return grep { ref($_) eq "HASH" ? $_->{name} eq $property_name : $_ eq $property_name } @{$self->{properties}};
 }
 
-sub get_property_value {
-    my ($self, $property_name) = @_;
-
+sub get_property_value ($self, $property_name) {
     for my $property (@{$self->{properties}}) {
         if (ref($property) eq "HASH") {
             return $property->{value} if ($property->{name} eq $property_name);
@@ -281,23 +260,20 @@ sub get_property_value {
     return undef;
 }
 
-sub TO_JSON {
-    my ($self) = @_;
-
+sub TO_JSON ($self) {
     my %hash = map { $_ => $self->{$_} } qw(tags properties area file png unregistered name);
     return \%hash;
 }
 
-sub wanted_ {
+sub wanted_ () {
     return unless (m/.json$/);
     my $needle = needle->new($File::Find::name);
     $needles{$needle->{name}} = $needle if $needle;
 }
 
-sub default_needles_dir { "$bmwqemu::vars{PRODUCTDIR}/needles" }
+sub default_needles_dir () { "$bmwqemu::vars{PRODUCTDIR}/needles" }
 
-sub init {
-    my $init_needles_dir = ($bmwqemu::vars{NEEDLES_DIR} // default_needles_dir);
+sub init ($init_needles_dir = $bmwqemu::vars{NEEDLES_DIR} // default_needles_dir) {
     $needles_dir = $init_needles_dir;
     unless (-d $needles_dir) {
         die "Can't init needles from $needles_dir" if (path($needles_dir)->is_abs);
@@ -316,12 +292,11 @@ sub init {
     return $needles_dir;
 }
 
-sub needles_dir { $needles_dir; }
+sub needles_dir () { $needles_dir }
 
-sub set_needles_dir { ($needles_dir) = @_; }
+sub set_needles_dir ($_needles_dir) { $needles_dir = $_needles_dir }
 
-sub tags {
-    my ($wanted) = @_;
+sub tags ($wanted) {
     my @wanted = split(/ /, $wanted);
     my $first_tag = shift @wanted;
     my $goods = $tags{$first_tag};
@@ -341,6 +316,6 @@ sub tags {
     return \@results;
 }
 
-sub all { values %needles }
+sub all () { values %needles }
 
 1;
