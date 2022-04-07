@@ -4,7 +4,7 @@
 
 package autotest;
 
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 
 use bmwqemu;
 use Exporter 'import';
@@ -39,8 +39,7 @@ loadtest is called.
 
 =cut
 
-sub find_script {
-    my ($script) = @_;
+sub find_script ($script) {
     my $casedir = $bmwqemu::vars{CASEDIR};
     my $script_override_path = join('/', $bmwqemu::vars{ASSETDIR} // '', 'other', $script);
     if (-f $script_override_path) {
@@ -86,8 +85,7 @@ e.g. by making use of the openQA asset download feature.
 
 =cut
 
-sub loadtest {
-    my ($script, %args) = @_;
+sub loadtest ($script, %args) {
     no utf8;    # Inline Python fails on utf8, so let's exclude it here
     my $casedir = $bmwqemu::vars{CASEDIR};
     my $script_path = find_script($script);
@@ -167,8 +165,7 @@ our $selected_console;
 our $last_milestone;
 our $last_milestone_console;
 
-sub parse_test_path {
-    my ($script_path) = @_;
+sub parse_test_path ($script_path) {
     unless ($script_path =~ m,(\w+)/([^/]+)\.p[my]$,) {
         die "loadtest: script path '$script_path' does not match required pattern \\w.+/[^/]+.p[my]\n";
     }
@@ -184,8 +181,8 @@ sub parse_test_path {
     return ($name, $category);
 }
 
-sub set_current_test {
-    ($current_test) = @_;
+sub set_current_test ($test) {
+    $current_test = $test;
     query_isotovideo(
         'set_current_test',
         $current_test ?
@@ -196,8 +193,7 @@ sub set_current_test {
         : {});
 }
 
-sub write_test_order {
-
+sub write_test_order () {
     my @result;
     for my $t (@testorder) {
         push(
@@ -211,14 +207,12 @@ sub write_test_order {
     bmwqemu::save_json_file(\@result, bmwqemu::result_dir . "/test_order.json");
 }
 
-sub make_snapshot {
-    my ($sname) = @_;
+sub make_snapshot ($sname) {
     bmwqemu::diag("Creating a VM snapshot $sname");
     return query_isotovideo('backend_save_snapshot', {name => $sname});
 }
 
-sub load_snapshot {
-    my ($sname) = @_;
+sub load_snapshot ($sname) {
     bmwqemu::diag("Loading a VM snapshot $sname");
     my $command = query_isotovideo('backend_load_snapshot', {name => $sname});
     # On VMware VNC console needs to be re-selected after snapshot revert,
@@ -235,7 +229,7 @@ sub _terminate () {
     _exit(0);    # uncoverable statement
 }
 
-sub run_all {
+sub run_all () {
     my $died = 0;
     my $completed = 0;
     $tests_running = 1;
@@ -251,9 +245,7 @@ sub run_all {
     _terminate;
 }
 
-sub handle_sigterm {
-    my ($sig) = @_;
-
+sub handle_sigterm ($sig) {
     if ($current_test) {
         bmwqemu::diag("autotest received signal $sig, saving results of current test before exiting");
         $current_test->result('canceled');
@@ -262,9 +254,8 @@ sub handle_sigterm {
     _exit(1);
 }
 
-sub start_process {
+sub start_process () {
     my $child;
-
     socketpair($child, $isotovideo, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
       or die "socketpair: $!";
 
@@ -307,9 +298,7 @@ sub start_process {
     return ($process, $child);
 }
 
-sub query_isotovideo {
-    my ($cmd, $args) = @_;
-
+sub query_isotovideo ($cmd, $args = undef) {
     # deep copy
     my %json;
     if ($args) {
@@ -326,8 +315,7 @@ sub query_isotovideo {
     return $rsp->{ret};
 }
 
-sub runalltests {
-
+sub runalltests () {
     die "ERROR: no tests loaded" unless @testorder;
 
     my $firsttest = $bmwqemu::vars{SKIPTO} || $testorder[0]->{fullname};
@@ -421,8 +409,7 @@ sub runalltests {
     return 1;
 }
 
-sub loadtestdir {
-    my ($dir) = @_;
+sub loadtestdir ($dir) {
     die "need argument \$dir" unless $dir;
     $dir =~ s/^\Q$bmwqemu::vars{CASEDIR}\E\/?//;    # legacy where absolute path is specified
     $dir = join('/', $bmwqemu::vars{CASEDIR}, $dir);    # always load from casedir
