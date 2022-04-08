@@ -24,8 +24,8 @@ our @EXPORT_OK = qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_CONSOLE_DEFAULT_DEVICE SE
 use constant SERIAL_TERMINAL_LOG_PATH => 'serial_terminal.txt';
 
 sub _vmm_family () { $bmwqemu::vars{VIRSH_VMM_FAMILY} // '' }
-sub _is_hyperv() { _vmm_family() eq 'hyperv' }
-sub _is_vmware() { _vmm_family() eq 'vmware' }
+sub _is_hyperv () { _vmm_family() eq 'hyperv' }
+sub _is_vmware () { _vmm_family() eq 'vmware' }
 
 sub new ($class) {
     my $self = $class->SUPER::new;

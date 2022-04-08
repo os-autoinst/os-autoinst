@@ -37,7 +37,7 @@ throws_ok(
     'died when constructing needle without prior call to needle::init()'
 );
 
-sub needle_init() {
+sub needle_init () {
     my $ret;
     stderr_like { $ret = needle::init } qr/loaded.*needles/, 'log output for needle init';
     return $ret;

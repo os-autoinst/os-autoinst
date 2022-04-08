@@ -40,7 +40,7 @@ sub fake_send ($target, $msg) { push @sent, $msg }
 
 # find the (first) 'tests_done' message from the @sent array and
 # return the 'died' and 'completed' values
-sub get_tests_done() {
+sub get_tests_done () {
     for my $msg (@sent) {
         if (ref $msg eq 'HASH' && $msg->{cmd} eq 'tests_done') {
             @sent = ();

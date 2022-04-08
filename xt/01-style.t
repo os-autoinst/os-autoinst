@@ -18,4 +18,5 @@ is qx{git ls-files -s t/**.t | grep -v ^1007}, '', 'All test modules are executa
 is qx{git grep -l '^use POSIX;'}, '', 'Use of bare POSIX import is discouraged, see https://perldoc.perl.org/POSIX';
 is qx{git grep --all-match -P -e '^use Mojo::Base' -e '^use base (?!.*# no:style)'}, '', 'No redundant Mojo::Base+base';
 is qx{git grep -I -l -P '^use (warnings|strict)' ':!external/'}, '', 'No files using "warning|strict", should use Mojo::Base instead';
+is qx{git grep -I -l 'sub [a-z_A-Z0-9]\\+()'}, '', 'Consistent space before function signatures (this is not ensured by perltidy)';
 done_testing;

@@ -18,7 +18,7 @@ use Mojo::JSON;
 
 use backend::qemu;
 
-sub backend() {
+sub backend () {
     my $backend = backend::qemu->new();
     ($backend->{"select_$_"} = Test::MockObject->new)->set_true('add') for qw(read write);
     return $backend;
