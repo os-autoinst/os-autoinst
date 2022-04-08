@@ -41,7 +41,7 @@ my $table_header = 'Variable;Values allowed;Default value;Explanation';
 
 sub say ($text) { print STDERR "$text\n" }
 
-sub read_doc() {
+sub read_doc () {
     # read and parse old vars doc
     my $docfh;
     open($docfh, '<', VARS_DOC);

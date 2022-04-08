@@ -18,7 +18,7 @@ use Mojo::File qw(path);
 
 my $pipe_data_written;
 my $prepare_pipes_covered = 0;
-sub wait_till_pipe_data_written() { sleep 1 while (!$pipe_data_written) }
+sub wait_till_pipe_data_written () { sleep 1 while (!$pipe_data_written) }
 
 sub prepare_pipes ($socket_path, $write_buffer = undef) {
     my $pipe_in = $socket_path . ".in";

@@ -497,9 +497,9 @@ sub console_fifo ($name) {
     mkfifo($name, 0666) or bmwqemu::fctwarn("Failed to create pipe $name: $!");
 }
 
-sub create_virtio_console_fifo() { console_fifo($_) for virtio_console_fifo_names }
+sub create_virtio_console_fifo () { console_fifo($_) for virtio_console_fifo_names }
 
-sub delete_virtio_console_fifo() { unlink $_ or bmwqemu::fctwarn("Could not unlink $_ $!") for grep { -e } virtio_console_fifo_names }
+sub delete_virtio_console_fifo () { unlink $_ or bmwqemu::fctwarn("Could not unlink $_ $!") for grep { -e } virtio_console_fifo_names }
 
 sub qemu_params_ofw ($self) {
     my $vars = \%bmwqemu::vars;
