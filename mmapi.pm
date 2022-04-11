@@ -4,7 +4,7 @@
 ## Multi-Machine API
 package mmapi;
 
-use Mojo::Base 'Exporter';
+use Mojo::Base 'Exporter', -signatures;
 our @EXPORT = qw(get_children_by_state get_children get_parents
   get_job_info get_job_autoinst_url get_job_autoinst_vars
   wait_for_children wait_for_children_to_start api_call
@@ -45,16 +45,12 @@ sub _init {
     $ua = Mojo::UserAgent->new;
 
     # add JOBTOKEN header secret
-    $ua->on(
-        start => sub {
-            my ($ua, $tx) = @_;
-            $tx->req->headers->add('X-API-JobToken' => $secret);
-        });
+    $ua->on(start => sub ($ua, $tx) { $tx->req->headers->add('X-API-JobToken' => $secret) });
 }
 
-sub set_app {
+sub set_app ($app_arg) {
     _init;
-    $ua->server->app($app = shift);
+    $ua->server->app($app = $app_arg);
 }
 
 =head2 api_call_2
@@ -63,8 +59,7 @@ Queries openQA's multi-machine API and returns the resulting Mojo::Transaction::
 
 =cut
 
-sub api_call_2 {
-    my ($method, $action, $params, $expected_codes) = @_;
+sub api_call_2 ($method, $action, $params = undef, $expected_codes = undef) {
     _init unless $ua;
     bmwqemu::mydie('Missing mandatory options') unless $method && $action && $ua;
 
@@ -90,7 +85,7 @@ Queries openQA's multi-machine API and returns the result as Mojo::Message::Resp
 
 =cut
 
-sub api_call { api_call_2(@_)->res }
+sub api_call (@args) { api_call_2(@args)->res }
 
 =head2 handle_api_error
 
@@ -99,9 +94,7 @@ Logs the errors if a log context is specified.
 
 =cut
 
-sub handle_api_error {
-    my ($tx, $log_ctx, $expected_codes) = @_;
-
+sub handle_api_error ($tx, $log_ctx, $expected_codes) {
     my $err = $tx->error;
     return 0 unless $err;
 
@@ -124,8 +117,7 @@ Returns an array ref containing ids of children in given state.
 
 =cut
 
-sub get_children_by_state {
-    my ($state) = @_;
+sub get_children_by_state ($state) {
     my $tx = api_call_2(get => "mm/children/$state", undef, $CODES_EXPECTED_BY_MMAPI);
     return undef if handle_api_error($tx, 'get_children_by_state', $CODES_EXPECTED_BY_MMAPI);
     return $tx->res->json('/jobs');
@@ -140,7 +132,7 @@ Returns a hash ref containing { id => state } pair for each child job.
 
 =cut
 
-sub get_children {
+sub get_children () {
     my $tx = api_call_2(get => 'mm/children', undef, $CODES_EXPECTED_BY_MMAPI);
     return undef if handle_api_error($tx, 'get_children', $CODES_EXPECTED_BY_MMAPI);
     return $tx->res->json('/jobs');
@@ -155,7 +147,7 @@ Returns an array ref containing ids of parent jobs.
 
 =cut
 
-sub get_parents {
+sub get_parents () {
     my $tx = api_call_2(get => 'mm/parents', undef, $CODES_EXPECTED_BY_MMAPI);
     return undef if handle_api_error($tx, 'get_parents', $CODES_EXPECTED_BY_MMAPI);
     return $tx->res->json('/jobs');
@@ -170,8 +162,7 @@ Returns a hash containin job information provided by openQA server.
 
 =cut
 
-sub get_job_info {
-    my ($target_id) = @_;
+sub get_job_info ($target_id) {
     my $tx = api_call_2(get => "jobs/$target_id", undef, $CODES_EXPECTED_BY_MMAPI);
     return undef if handle_api_error($tx, 'get_job_info', $CODES_EXPECTED_BY_MMAPI);
     return $tx->res->json('/job');
@@ -185,8 +176,7 @@ Returns url of os-autoinst webserver for job $target_id or C<undef> on failure.
 
 =cut
 
-sub get_job_autoinst_url {
-    my ($target_id) = @_;
+sub get_job_autoinst_url ($target_id) {
     my $tx = api_call_2(get => 'workers', undef, $CODES_EXPECTED_BY_MMAPI);
     return undef if handle_api_error($tx, 'get_job_autoinst_url', $CODES_EXPECTED_BY_MMAPI);
 
@@ -214,9 +204,7 @@ are taken from vars.json file of the corresponding worker.
 
 =cut
 
-sub get_job_autoinst_vars {
-    my ($target_id) = @_;
-
+sub get_job_autoinst_vars ($target_id) {
     my $url = get_job_autoinst_url($target_id);
     return undef unless $url;
 
