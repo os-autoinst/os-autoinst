@@ -15,7 +15,6 @@ use POSIX ':signal_h';
 
 sub new ($class, @args) {
     # block signals
-    bmwqemu::diag('Blocking SIGCHLD and SIGTERM');
     my %old_sig = %SIG;
     $SIG{TERM} = 'IGNORE';
     $SIG{INT} = 'IGNORE';
@@ -32,7 +31,6 @@ sub new ($class, @args) {
 
 sub DESTROY ($self) {
     # set back signal handling to default to be able to terminate properly
-    bmwqemu::diag('Unblocking SIGCHLD and SIGTERM');
     die "Could not unblock SIGCHLD and SIGTERM\n" unless defined sigprocmask(SIG_UNBLOCK, $self->{_sigset}, undef);
     %SIG = %{$self->{_old_sig}};
 }
