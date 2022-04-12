@@ -61,7 +61,7 @@ sub type_string ($self, $nargs) {
     while ($written < length($text)) {
         my $elapsed = consoles::serial_screen::elapsed($stime);
 
-        croak("type_screen(): Timed out after $elapsed seconds.")
+        croak((caller(0))[3] . ": Timed out after $elapsed seconds.")
           if ($elapsed > TYPE_STRING_TIMEOUT);
 
         my $chunk = $self->ssh_channel->write(substr($text, $written));
