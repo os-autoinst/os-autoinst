@@ -95,7 +95,7 @@ sub mutex_create ($name, @) {
 }
 
 # Wrapper for mutex_lock & mutex_unlock
-sub mutex_wait ($name, $where, $info) {
+sub mutex_wait ($name, $where = undef, $info = undef) {
     _log $name, where => $where, info => $info;
     my $start = time;
     mutex_lock $name, $where;
