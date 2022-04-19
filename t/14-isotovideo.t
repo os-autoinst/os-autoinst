@@ -109,6 +109,8 @@ subtest 'isotovideo with wheels' => sub {
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
 
+    my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
+    $utils_mock->redefine(capture => sub { return; });
     my $specfile = path("$data_dir/tests/wheels.yaml");
     $specfile->spurt("wheels: [foo/bar]");
     combined_like { isotovideo(
@@ -116,6 +118,19 @@ subtest 'isotovideo with wheels' => sub {
     $specfile->spurt("version: v99\nwheels: [foo/bar]");
     combined_like { isotovideo(
             opts => "casedir=$data_dir/tests _exit_after_schedule=1") } qr@Unsupported version@, 'unsupported version';
+
+    $specfile->spurt("version: v0.1\nwheels: [https://github.com/foo/bar.git]");
+    combined_like { isotovideo(
+            opts => "casedir=$data_dir/tests _exit_after_schedule=1") } qr@Cloning.*foo/bar@, 'single repo with full url';
+    $specfile->spurt("version: v0.1\nwheels: [https://github.com/foo/bar.git#branch]");
+    combined_like { isotovideo(
+            opts => "casedir=$data_dir/tests _exit_after_schedule=1") } qr@Cloning.*foo/bar@, 'single repo with branch';
+    $specfile->spurt("version: v0.1\nwheels: [foo/bar]");
+    combined_like { isotovideo(
+            opts => "casedir=$data_dir/tests _exit_after_schedule=1") } qr@Cloning.*foo/bar@, 'single repo';
+    $specfile->spurt("version: v0.1\nwheels: [foo/bar, spam/eggs]");
+    combined_like { isotovideo(
+            opts => "casedir=$data_dir/tests _exit_after_schedule=1") } qr@Cloning.*spam/eggs@, 'two repos';
     $specfile->remove;
 };
 

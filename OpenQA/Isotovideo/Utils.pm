@@ -11,6 +11,7 @@ use Cwd;
 use bmwqemu;
 use autotest;
 use Try::Tiny;
+use IPC::System::Simple qw(capture);
 
 our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec
   handle_generated_assets load_test_schedule);
@@ -62,7 +63,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     }
     if (!-e $local_path) {
         bmwqemu::fctinfo "Cloning git URL '$clone_url'";
-        @out = qx{$clone_cmd $clone_args $branch_args $clone_url 2>&1};
+        eval { @out = capture("$clone_cmd $clone_args $branch_args $clone_url"); };
         $return_code = $?;
         if ($branch && grep /warning: Could not find remote branch/, @out) {
             # maybe we misspelled or maybe someone gave a commit hash instead
@@ -72,18 +73,18 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
             # * https://stackoverflow.com/questions/18515488/how-to-check-if-the-commit-exists-in-a-git-repository-by-its-sha-1
             # * https://stackoverflow.com/questions/26135216/why-isnt-there-a-git-clone-specific-commit-option
             bmwqemu::diag "Fetching more remote objects to ensure availability of '$branch'";
-            @out = qx{$clone_cmd $clone_args $clone_url 2>&1};
+            eval { @out = capture("$clone_cmd $clone_args $clone_url"); };
             $return_code = $?;
             $handle_output->();
-            while (qx[git -C $local_path cat-file -e $branch^{commit} 2>&1] =~ /Not a valid object/) {
+            while (capture("git -C $local_path cat-file -e $branch^{commit}") =~ /Not a valid object/) {
                 $args{clone_depth} *= 2;
-                @out = qx[git -C $local_path fetch --progress --depth=$args{clone_depth} 2>&1];
+                eval { @out = capture("git -C $local_path fetch --progress --depth=$args{clone_depth}"); };
                 $return_code = $?;
                 bmwqemu::diag "git fetch: @out";
                 die "Unable to fetch Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
                 die "Could not find '$branch' in complete history in cloned Git repository '$dir'" if grep /remote: Total 0/, @out;
             }
-            qx{git -C $local_path checkout $branch};
+            eval { capture("git -C $local_path checkout $branch"); };
             die "Unable to checkout branch '$branch' in cloned Git repository '$dir'" unless $? == 0;
         }
         else {
