@@ -98,7 +98,7 @@ sub _get_version_string () {
     return "Current version is $thisversion [interface v$OpenQA::Isotovideo::Interface::version]";
 }
 
-sub version {
+sub version () {
     print _get_version_string() . "\n";
     exit 0;
 }
@@ -176,7 +176,7 @@ sub stop_commands ($reason) {
     diag('done with command server');
 }
 
-sub stop_autotest {
+sub stop_autotest () {
     return unless defined $testprocess;
 
     diag('stopping autotest process ' . $testprocess->pid);
@@ -185,7 +185,7 @@ sub stop_autotest {
     diag('done with autotest process');
 }
 
-sub stop_backend {
+sub stop_backend () {
     return unless defined $bmwqemu::backend && $backend_process;
 
     diag('stopping backend process ' . $backend_process->pid);
@@ -285,7 +285,7 @@ $io_select->add($cmd_srv_fd);
 $io_select->add($backend_process->channel_out);
 
 # stop main loop as soon as one of the child processes terminates
-my $stop_loop = sub { $loop = 0 if $loop; };
+my $stop_loop = sub (@) { $loop = 0 if $loop; };
 $testprocess->once(collected => $stop_loop);
 $backend_process->once(collected => $stop_loop);
 $cmd_srv_process->once(collected => $stop_loop);
@@ -297,7 +297,7 @@ $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     cmd_srv_fd => $cmd_srv_fd,
     backend_fd => $backend_process->channel_in,
 );
-$command_handler->on(tests_done => sub {
+$command_handler->on(tests_done => sub (@) {
         CORE::close($testfd);
         $testfd = undef;
         stop_autotest;
