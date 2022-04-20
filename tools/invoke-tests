@@ -43,10 +43,9 @@ db="$build_directory/cover_db"
 export PERL5LIB="$source_directory:$source_directory/ppmclibs:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
 if [[ $WITH_COVER_OPTIONS ]]; then
     path_regex="^|$source_directory/|\\.\\./"
-    select="($path_regex)(OpenQA|backend|consoles|ppmclibs)/|($path_regex)isotovideo|($path_regex)[^/]+\.pm,-ignore,\.t|data/tests/|fake/tests/|/CheckGitStatus.pm|$prove_path"
-    export PERL5OPT="-I$source_directory/t/lib -MOpenQA::Test::CheckGitStatus -MDevel::Cover=-db,$db,-select,$select,-coverage,statement"
+    select="($path_regex)(OpenQA|backend|consoles|ppmclibs)/|($path_regex)isotovideo|($path_regex)[^/]+\.pm,-ignore,external/|\.t|data/tests/|fake/tests/|/CheckGitStatus.pm|$prove_path"
+    export PERL5OPT="-I$source_directory/t/lib -I$source_directory/external/os-autoinst-common/lib -MOpenQA::Test::CheckGitStatus -MDevel::Cover=-db,$db,-select,$select,-coverage,statement -MOpenQA::Test::PatchDeparse"
 fi
-
 # set variables for tests which need to invoke the make tool
 export OS_AUTOINST_BUILD_DIRECTORY=$build_directory
 export OS_AUTOINST_MAKE_TOOL=$make_path
