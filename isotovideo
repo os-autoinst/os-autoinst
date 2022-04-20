@@ -89,7 +89,7 @@ sub usage ($r) {
     die "cannot display help, install perl(Pod::Usage)\n" if $@;
 }
 
-sub _get_version_string {
+sub _get_version_string () {
     my $dirname = dirname(__FILE__);
     my $thisversion = qx{git -C $dirname rev-parse HEAD};
     chomp $thisversion;
@@ -146,8 +146,7 @@ my $loop = 1;
 #       However, the worker also ensures that all processes are being terminated (and
 #       eventually killed).
 
-sub stop_commands {
-    my ($reason) = @_;
+sub stop_commands ($reason) {
     return unless defined $cmd_srv_process;
     return unless $cmd_srv_process->is_running;
 
@@ -194,8 +193,7 @@ sub stop_backend {
     diag('done with backend process');
 }
 
-sub signalhandler {
-    my ($sig) = @_;
+sub signalhandler ($sig) {
     bmwqemu::serialize_state(component => 'isotovideo', msg => "isotovideo received signal $sig", log => 1);
     return $loop = 0 if $loop;
     stop_backend;
@@ -204,9 +202,7 @@ sub signalhandler {
     _exit(1);
 }
 
-sub init_backend {
-    my ($name) = @_;
-
+sub init_backend () {
     $bmwqemu::vars{BACKEND} ||= "qemu";
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
     return $bmwqemu::backend;
@@ -322,9 +318,7 @@ sub _calc_check_delta {
     return $delta;
 }
 
-sub check_asserted_screen {
-    my $no_wait = shift;
-
+sub check_asserted_screen ($no_wait = undef) {
     if ($no_wait) {
         # prevent CPU overload by waiting at least a little bit
         $command_handler->timeout(0.1);
