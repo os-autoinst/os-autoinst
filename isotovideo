@@ -88,6 +88,15 @@ session->enable;
 session->enable_subreaper;
 
 my %options;
+my $return_code;
+my $cmd_srv_process;
+my $command_handler;
+my $testprocess;
+my $cmd_srv_fd;
+my $cmd_srv_port;
+my $backend_process;
+my $loop = 1;
+
 
 sub usage ($r) {
     eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
@@ -107,11 +116,7 @@ sub version () {
 GetOptions(\%options, 'debug|d', 'workdir=s', 'help|h|?', 'version|v') or usage(1);
 usage(0) if $options{help};
 version() if $options{version};
-
 chdir $options{workdir} if $options{workdir};
-
-# global exit status
-my $return_code = 1;
 
 # record the last die message
 # note: It might *not* be a fatal error so we don't call bmwqemu::serialize_state here
@@ -137,14 +142,6 @@ for my $arg (@ARGV) {
         diag("Setting forced test parameter $key -> $2");
     }
 }
-
-my $cmd_srv_process;
-my $command_handler;
-my $testprocess;
-my $cmd_srv_fd;
-my $cmd_srv_port;
-my $backend_process;
-my $loop = 1;
 
 # note: The subsequently defined stop_* functions are used to tear down the process tree.
 #       However, the worker also ensures that all processes are being terminated (and
@@ -211,6 +208,8 @@ sub init_backend () {
     $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
     return $bmwqemu::backend;
 }
+
+$return_code = 1;
 
 $SIG{TERM} = \&signalhandler;
 $SIG{INT} = \&signalhandler;
