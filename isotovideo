@@ -179,6 +179,109 @@ sub init_backend () {
     return $bmwqemu::backend;
 }
 
+sub _calc_check_delta ($last_check_seconds, $last_check_microseconds) {
+    # an estimate of eternity
+    my $delta = 100;
+    if ($last_check_seconds) {
+        $delta = tv_interval([$last_check_seconds, $last_check_microseconds], [gettimeofday]);
+    }
+    # sleep the remains of one second if $delta > 0
+    my $timeout = $delta > 0 ? 1 - $delta : 0;
+    $command_handler->timeout($timeout < 0 ? 0 : $timeout);
+    return $delta;
+}
+
+sub check_asserted_screen ($last_check_seconds, $last_check_microseconds, $testfd, $no_wait = undef) {
+    if ($no_wait) {
+        # prevent CPU overload by waiting at least a little bit
+        $command_handler->timeout(0.1);
+    }
+    else {
+        _calc_check_delta($last_check_seconds, $last_check_microseconds);
+        # come back later, avoid too often called function
+        return if $command_handler->timeout > 0.05;
+    }
+    ($last_check_seconds, $last_check_microseconds) = gettimeofday;
+    my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'}) || {};
+    # the test needs that information
+    $rsp->{tags} = $command_handler->tags;
+    if ($rsp->{found} || $rsp->{timeout}) {
+        myjsonrpc::send_json($testfd, {ret => $rsp});
+        $command_handler->clear_tags_and_timeout();
+    }
+    else {
+        _calc_check_delta($last_check_seconds, $last_check_microseconds) unless $no_wait;
+    }
+}
+
+sub main_loop ($testfd, $io_select) {
+    my ($last_check_seconds, $last_check_microseconds) = gettimeofday;
+    # enter the main loop: process messages from autotest, command server and backend
+    $return_code = 0;
+    while ($loop) {
+        my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $command_handler->timeout);
+        for my $readable (@$ready_for_read) {
+            my $rsp = myjsonrpc::read_json($readable);
+            if (!defined $rsp) {
+                fctwarn sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($readable), fileno($testfd), fileno($cmd_srv_fd));
+                $readable = 1;
+                $loop = 0;
+                last;
+            }
+            if ($readable == $backend_process->channel_out) {
+                $command_handler->send_to_backend_requester({ret => $rsp->{rsp}});
+                next;
+            }
+            $command_handler->process_command($readable, $rsp);
+        }
+        if (defined($command_handler->tags)) {
+            check_asserted_screen($last_check_seconds, $last_check_microseconds, $testfd, $command_handler->no_wait);
+        }
+    }
+}
+
+sub handle_shutdown ($testfd) {
+    # tell the command server that it should no longer process isotovideo commands since we've
+    # just left the loop which would handle such commands (otherwise the command server would just
+    # hang on the next isotovideo command)
+    $command_handler->stop_command_processing;
+
+    # terminate/kill the command server and let it inform its websocket clients before
+    stop_commands('test execution ended');
+
+    $return_code = 0;
+    if ($testfd) {
+        $return_code = 1;    # unusual shutdown
+        CORE::close $testfd;
+        stop_autotest;
+    }
+
+    diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
+
+    my $clean_shutdown;
+    if (!$return_code) {
+        eval {
+            $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
+            diag('backend shutdown state: ' . ($clean_shutdown // '?'));
+        };
+
+        # don't rely on the backend in a sane state if we failed - just stop it later
+        eval { bmwqemu::stop_vm(); };
+        if ($@) {
+            bmwqemu::serialize_state(component => 'backend', msg => "unable to stop VM: $@", error => 1);
+            $return_code = 1;
+        }
+    }
+
+    # read calculated variables from backend and tests
+    bmwqemu::load_vars();
+
+    $return_code = handle_generated_assets($command_handler, $clean_shutdown) unless $return_code;
+
+    # clear any previously recorded die message; it was not fatal after all if the execution came this far
+    $fatal_error = undef;
+}
+
 GetOptions(\%options, 'debug|d', 'workdir=s', 'help|h|?', 'version|v') or usage(1);
 usage(0) if $options{help};
 version() if $options{version};
@@ -304,101 +407,8 @@ $command_handler->on(tests_done => sub (@) {
         $loop = 0;
 });
 
-my ($last_check_seconds, $last_check_microseconds) = gettimeofday;
-sub _calc_check_delta () {
-    # an estimate of eternity
-    my $delta = $last_check_seconds ? tv_interval([$last_check_seconds, $last_check_microseconds], [gettimeofday]) : 100;
-    # sleep the remains of one second if $delta > 0
-    my $timeout = $delta > 0 ? 1 - $delta : 0;
-    $command_handler->timeout($timeout < 0 ? 0 : $timeout);
-    return $delta;
-}
-
-sub check_asserted_screen ($no_wait = undef) {
-    if ($no_wait) {
-        # prevent CPU overload by waiting at least a little bit
-        $command_handler->timeout(0.1);
-    }
-    else {
-        _calc_check_delta;
-        # come back later, avoid too often called function
-        return if $command_handler->timeout > 0.05;
-    }
-    ($last_check_seconds, $last_check_microseconds) = gettimeofday;
-    my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'}) || {};
-    # the test needs that information
-    $rsp->{tags} = $command_handler->tags;
-    if ($rsp->{found} || $rsp->{timeout}) {
-        myjsonrpc::send_json($testfd, {ret => $rsp});
-        $command_handler->clear_tags_and_timeout();
-    }
-    else {
-        _calc_check_delta unless $no_wait;
-    }
-}
-
-$return_code = 0;
-
-# enter the main loop: process messages from autotest, command server and backend
-while ($loop) {
-    my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $command_handler->timeout);
-    for my $readable (@$ready_for_read) {
-        my $rsp = myjsonrpc::read_json($readable);
-        if (!defined $rsp) {
-            fctwarn sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($readable), fileno($testfd), fileno($cmd_srv_fd));
-            $readable = 1;
-            $loop = 0;
-            last;
-        }
-        if ($readable == $backend_process->channel_out) {
-            $command_handler->send_to_backend_requester({ret => $rsp->{rsp}});
-            next;
-        }
-        $command_handler->process_command($readable, $rsp);
-    }
-    if (defined($command_handler->tags)) {
-        check_asserted_screen($command_handler->no_wait);
-    }
-}
-
-# tell the command server that it should no longer process isotovideo commands since we've
-# just left the loop which would handle such commands (otherwise the command server would just
-# hang on the next isotovideo command)
-$command_handler->stop_command_processing;
-
-# terminate/kill the command server and let it inform its websocket clients before
-stop_commands('test execution ended');
-
-if ($testfd) {
-    $return_code = 1;    # unusual shutdown
-    CORE::close $testfd;
-    stop_autotest;
-}
-
-diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
-
-my $clean_shutdown;
-if (!$return_code) {
-    eval {
-        $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
-        diag('backend shutdown state: ' . ($clean_shutdown // '?'));
-    };
-
-    # don't rely on the backend in a sane state if we failed - just stop it later
-    eval { bmwqemu::stop_vm(); };
-    if ($@) {
-        bmwqemu::serialize_state(component => 'backend', msg => "unable to stop VM: $@", error => 1);
-        $return_code = 1;
-    }
-}
-
-# read calculated variables from backend and tests
-bmwqemu::load_vars();
-
-$return_code = handle_generated_assets($command_handler, $clean_shutdown) unless $return_code;
-
-# clear any previously recorded die message; it was not fatal after all if the execution came this far
-$fatal_error = undef;
+main_loop($testfd, $io_select);
+handle_shutdown($testfd);
 
 END {
     stop_backend;
