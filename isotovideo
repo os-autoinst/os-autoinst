@@ -2,7 +2,6 @@
 # Copyright 2009-2013 Bernhard M. Wiedemann
 # Copyright 2012-2020 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
-#
 
 =head1 SYNOPSIS
 
@@ -181,10 +180,7 @@ sub init_backend () {
 
 sub _calc_check_delta ($last_check_seconds, $last_check_microseconds) {
     # an estimate of eternity
-    my $delta = 100;
-    if ($last_check_seconds) {
-        $delta = tv_interval([$last_check_seconds, $last_check_microseconds], [gettimeofday]);
-    }
+    my $delta = $last_check_seconds ? tv_interval([$last_check_seconds, $last_check_microseconds], [gettimeofday]) : 100;
     # sleep the remains of one second if $delta > 0
     my $timeout = $delta > 0 ? 1 - $delta : 0;
     $command_handler->timeout($timeout < 0 ? 0 : $timeout);
@@ -234,9 +230,7 @@ sub main_loop ($testfd, $io_select) {
             }
             $command_handler->process_command($readable, $rsp);
         }
-        if (defined($command_handler->tags)) {
-            check_asserted_screen($last_check_seconds, $last_check_microseconds, $testfd, $command_handler->no_wait);
-        }
+        check_asserted_screen($last_check_seconds, $last_check_microseconds, $testfd, $command_handler->no_wait) if defined $command_handler->tags;
     }
 }
 
@@ -365,10 +359,8 @@ my $testfd;
 init_backend();
 path('os-autoinst.pid')->spurt("$$");
 
-if (!$bmwqemu::backend->_send_json({cmd => 'alive'})) {
-    # might throw an exception
-    $bmwqemu::backend->start_vm();
-}
+# might throw an exception
+$bmwqemu::backend->start_vm() unless $bmwqemu::backend->_send_json({cmd => 'alive'});
 
 # launch debugging tools
 my %debugging_tools;
