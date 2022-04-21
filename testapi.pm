@@ -75,7 +75,14 @@ our @EXPORT_OK = qw(is_serial_terminal);
 
 our %cmd;    ## no critic (Variables::ProhibitPackageVars)
 
+package testapi::tieddistri {
+    sub TIESCALAR ($class) { bless {}, $class }
+    sub FETCH ($self) { bmwqemu::distribution() }
+    sub STORE ($self, $value) { bmwqemu::_set_distribution($value) }
+}
+
 our $distri;    ## no critic (Variables::ProhibitPackageVars)
+tie $distri, 'testapi::tieddistri';
 
 our $realname = 'Bernhard M. Wiedemann';    ## no critic (Variables::ProhibitPackageVars)
 our $username;    ## no critic (Variables::ProhibitPackageVars)
@@ -816,15 +823,7 @@ For more info see consoles/virtio_console.pm and consoles/serial_screen.pm.
 
 =cut
 
-sub is_serial_terminal () {
-    state $ret;
-    state $last_seen = '';
-    if (defined current_console() && current_console() ne $last_seen) {
-        $last_seen = current_console();
-        $ret = query_isotovideo('backend_is_serial_terminal', {});
-    }
-    return $ret->{yesorno};
-}
+sub is_serial_terminal () { autotest::is_serial_terminal }
 
 
 =head2 wait_serial

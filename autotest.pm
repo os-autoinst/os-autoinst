@@ -324,8 +324,9 @@ sub loadtest ($script, %args) {
     $test = $name->new($category);
     $test->{script} = $script;
     $test->{fullname} = $fullname;
-    $test->{serial_failures} = $testapi::distri->{serial_failures} // [];
-    $test->{autoinst_failures} = $testapi::distri->{autoinst_failures} // [];
+    my $distri = bmwqemu::distribution();
+    $test->{serial_failures} = $distri ? $distri->{serial_failures} // [] : [];
+    $test->{autoinst_failures} = $distri ? $distri->{autoinst_failures} // [] : [];
 
     if (defined $args{run_args}) {
         unless (blessed($args{run_args}) && $args{run_args}->isa('OpenQA::Test::RunArgs')) {
@@ -657,6 +658,16 @@ sub rollback_activated_consoles () {
         die $ret->{error} if $ret->{error};
     }
     return;
+}
+
+sub is_serial_terminal () {
+    state $ret;
+    state $last_seen = '';
+    if (defined $selected_console && $selected_console ne $last_seen) {
+        $last_seen = $selected_console;
+        $ret = query_isotovideo('backend_is_serial_terminal', {});
+    }
+    return $ret->{yesorno};
 }
 
 1;

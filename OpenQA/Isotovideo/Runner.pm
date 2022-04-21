@@ -85,7 +85,7 @@ sub prepare ($self) {
 
 sub load_schedule ($self) {
     # set a default distribution if the tests don't have one
-    $testapi::distri = distribution->new;
+    bmwqemu::_set_distribution(distribution->new);
 
     load_test_schedule;
 }

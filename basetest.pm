@@ -10,7 +10,6 @@ use Feature::Compat::Try;
 
 use bmwqemu ();
 use ocr;
-use testapi ();
 use autotest ();
 use MIME::Base64 'decode_base64';
 use OpenQA::Exceptions;
@@ -435,9 +434,10 @@ sub record_resultfile ($self, $title, $output, %nargs) {
 sub record_serialresult ($self, $ref, $res, $string = undef, %args) {
     $string //= '';
     # take screenshot for documentation (screenshot does not represent fail itself)
-    $self->take_screenshot() unless (testapi::is_serial_terminal);
+    $self->take_screenshot() unless (autotest::is_serial_terminal);
 
-    my $pretty = $testapi::distri ? $testapi::distri->get_pretty_serial_marker() : (testapi::get_var('PRETTY_SERIAL_MARKER') || testapi::get_var('HIDE_MARKER_EVALUATION'));
+    my $distri = bmwqemu::distribution();
+    my $pretty = $distri ? $distri->get_pretty_serial_marker() : ($bmwqemu::vars{PRETTY_SERIAL_MARKER} || $bmwqemu::vars{HIDE_MARKER_EVALUATION});
     my $internal = $args{internal_marker};
     my $output_string = $string;
     my $captured_val;
