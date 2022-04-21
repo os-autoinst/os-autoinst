@@ -83,6 +83,6 @@ sub disable ($self) {
 }
 
 # we have no screen
-sub screen { }
+sub screen ($self) { }
 
 1;

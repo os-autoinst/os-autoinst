@@ -87,7 +87,6 @@ sub disable ($self) {
     return $ret;
 }
 
-# we have no screen
-sub screen { }
+sub screen ($self) { }
 
 1;

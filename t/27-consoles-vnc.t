@@ -29,6 +29,7 @@ $s->mock('read', sub { $_[1] = $s->mocked_read; 1 });
 $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
 is $c->login, undef, 'can call login';
+is $c->_receive_bell, 1, 'can call _receive_bell';
 
 subtest 'send update request' => sub {
     $c->width(1024);

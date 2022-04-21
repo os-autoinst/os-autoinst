@@ -23,5 +23,6 @@ dies_ok { $screen->hold_key } 'hold_key dies with error';
 dies_ok { $screen->release_key } 'release_key dies with error';
 dies_ok { $screen->send_key({key => 'space'}) } 'send_key dies for most keys';
 is $screen->current_screen, 0, 'no current screen';
+is $screen->request_screen_update, undef, 'can call request_screen_update';
 
 done_testing;

@@ -14,9 +14,7 @@ use Mojo::Base -strict, -signatures;
 use feature 'say';
 
 sub new ($class, $console) {
-
     my $self = bless({class => $class, console => $console}, $class);
-
     return $self;
 }
 
@@ -43,10 +41,8 @@ sub AUTOLOAD ($self, @args) {
 
         bmwqemu::log_call(wrapped_call => $wrapped_call);
         my $wrapped_retval = autotest::query_isotovideo('backend_proxy_console_call', $wrapped_call);
+        die $wrapped_retval->{exception} if exists $wrapped_retval->{exception};
 
-        if (exists $wrapped_retval->{exception}) {
-            die $wrapped_retval->{exception};
-        }
         # get more screenshots from consoles, especially from x3270 on s390
         $autotest::current_test->take_screenshot;
 

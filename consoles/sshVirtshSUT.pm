@@ -26,7 +26,7 @@ sub new ($class, $testapi_console, $args) {
     return $self;
 }
 
-sub screen { shift->{screen} }
+sub screen ($self) { $self->{screen} }
 
 sub disable ($self) {
     return unless $self->{ssh};
@@ -46,6 +46,6 @@ sub activate ($self) {
     return;
 }
 
-sub is_serial_terminal { 1 }
+sub is_serial_terminal ($self) { 1 }
 
 1;
