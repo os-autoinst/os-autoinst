@@ -1,3 +1,4 @@
 [PerlTidy]
 select = **/*.{pl,pm,t} check_qemu_oom imgsearch isotovideo os-autoinst-openvswitch
+ignore = external/**/*
 argv = --profile=$ROOT/.perltidyrc
