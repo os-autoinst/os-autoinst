@@ -51,7 +51,7 @@ sub fullscreen ($self, $args) {
     die "Missing 'xdotool'" unless $xdotool;
 
     # search for YaST Window and grab the id
-    my $window_id = qx"DISPLAY=$display $xdotool search --sync --limit 1 --name $window_name";
+    my $window_id = qx"DISPLAY=$display $xdotool search --sync --onlyvisible --name $window_name";
     $window_id =~ s/\D//g;
 
     # resize and move window to fit in icewm
