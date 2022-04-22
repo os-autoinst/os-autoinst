@@ -57,7 +57,7 @@ BEGIN {
 }
 
 use backend::driver;
-use bmwqemu qw(diag fctwarn);
+use log qw(diag fctwarn);
 use needle;
 use autotest ();
 use commands;
