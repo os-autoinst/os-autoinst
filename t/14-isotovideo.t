@@ -16,6 +16,7 @@ use Mojo::JSON qw(decode_json);
 use Mojo::Util qw(scope_guard);
 use OpenQA::Isotovideo::Utils qw(handle_generated_assets);
 use OpenQA::Isotovideo::CommandHandler;
+use OpenQA::Isotovideo::Runner;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $toplevel_dir = abs_path(dirname(__FILE__) . '/..');
@@ -147,7 +148,9 @@ subtest 'load test success when casedir and productdir are relative path' => sub
     symlink("$data_dir/tests/tests", 'my_cases/tests') unless -e 'my_cases/tests';
     symlink("$data_dir/tests/needles", 'my_cases/products/foo/needles') unless -e 'my_cases/products/foo/needles';
     my $module = 'tests/failing_module';
-    my $log = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) };
+    my $runner = OpenQA::Isotovideo::Runner->new(productdir => 'my_cases/products/foo');
+    $runner->prepare_casedir('my_cases');
+    my $log = combined_from { $runner->load_test_schedule($module); };
     like $log, qr/scheduling failing_module/, 'schedule can still be found';
     like $log, qr/\d* loaded 4 needles/, 'loaded needles successfully';
 };

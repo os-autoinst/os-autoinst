@@ -10,7 +10,6 @@ use Exporter 'import';
 use Cwd;
 use bmwqemu;
 use autotest;
-use Try::Tiny;
 
 our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec
   handle_generated_assets load_test_schedule);
@@ -27,7 +26,7 @@ sub calculate_git_hash ($git_repo_dir) {
 
 =head2 checkout_git_repo_and_branch
 
-    checkout_git_repo_and_branch($dir [, clone_depth => <num>]);
+    checkout_git_repo_and_branch($dir, $context [, clone_depth => <num>]);
 
 Takes a test or needles distribution directory parameter and checks out the
 referenced git repository into a local working copy with an additional,
@@ -35,12 +34,11 @@ optional git refspec to checkout. The git clone depth can be specified in the
 argument C<clone_depth> which defaults to 1.
 
 =cut
-sub checkout_git_repo_and_branch ($dir_variable, %args) {
-    my $dir = $bmwqemu::vars{$dir_variable};
+sub checkout_git_repo_and_branch ($dir, $context, %args) {
     return undef unless defined $dir;
 
     my $url = Mojo::URL->new($dir);
-    return undef unless $url->scheme;    # assume we have a remote git URL to clone only if this looks like a remote URL
+    return path($dir) unless $url->scheme;    # assume we have a remote git URL to clone only if this looks like a remote URL
 
     $args{clone_depth} //= 1;
 
@@ -53,7 +51,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my ($return_code, @out);
     my $handle_output = sub {
         bmwqemu::diag "@out" if @out;
-        die "Unable to clone Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
+        die "Unable to clone Git repository '$dir' specified via $context (see log for details)" unless $return_code == 0;
     };
     if ($branch) {
         bmwqemu::fctinfo "Checking out git refspec/branch '$branch'";
@@ -79,7 +77,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
                 @out = qx[git -C $local_path fetch --progress --depth=$args{clone_depth} 2>&1];
                 $return_code = $?;
                 bmwqemu::diag "git fetch: @out";
-                die "Unable to fetch Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
+                die "Unable to fetch Git repository '$dir' specified via $context (see log for details)" unless $return_code == 0;
                 die "Could not find '$branch' in complete history in cloned Git repository '$dir'" if grep /remote: Total 0/, @out;
             }
             qx{git -C $local_path checkout $branch};
@@ -92,7 +90,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     else {
         bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
     }
-    return $bmwqemu::vars{$dir_variable} = path($local_path)->to_abs->to_string;
+    return path($local_path)->to_abs;
 }
 
 =head2 checkout_git_refspec
@@ -167,56 +165,6 @@ sub handle_generated_assets ($command_handler, $clean_shutdown) {
         }
     }
     return $return_code;
-}
-
-=head2 load_test_schedule
-
-Loads the test schedule (main.pm) or particular test modules if the `SCHEDULE` variable is
-present.
-
-=cut
-
-sub load_test_schedule {
-    # add lib of the test distributions - but only for main.pm not to pollute
-    # further dependencies (the tests get it through autotest)
-    my @oldINC = @INC;
-    unshift @INC, $bmwqemu::vars{CASEDIR} . '/lib';
-    if ($bmwqemu::vars{SCHEDULE}) {
-        unshift @INC, '.' unless path($bmwqemu::vars{CASEDIR})->is_abs;
-        bmwqemu::fctinfo 'Enforced test schedule by \'SCHEDULE\' variable in action';
-        $bmwqemu::vars{INCLUDE_MODULES} = undef;
-        autotest::loadtest($_ =~ qr/\./ ? $_ : $_ . '.pm') foreach split(/[, ]+/, $bmwqemu::vars{SCHEDULE});
-        $bmwqemu::vars{INCLUDE_MODULES} = 'none';
-    }
-    my $productdir = $bmwqemu::vars{PRODUCTDIR};
-    my $main_path = path($productdir, 'main.pm');
-    try {
-        if (-e $main_path) {
-            unshift @INC, '.';
-            require $main_path;
-        }
-        elsif (!path($productdir)->is_abs && -e path($bmwqemu::vars{CASEDIR}, $main_path)) {
-            require(path($bmwqemu::vars{CASEDIR}, $main_path)->to_string);
-        }
-        elsif ($productdir && !-e $productdir) {
-            die "PRODUCTDIR '$productdir' invalid, could not be found";
-        }
-        elsif (!$bmwqemu::vars{SCHEDULE}) {
-            die "'SCHEDULE' not set and $main_path not found, need one of both";
-        }
-    }
-    catch {
-        # record that the exception is caused by the tests themselves before letting it pass
-        my $error_message = $_;
-        bmwqemu::serialize_state(component => 'tests', msg => 'unable to load main.pm, check the log for the cause (e.g. syntax error)');
-        die "$error_message\n";
-    };
-    @INC = @oldINC;
-
-    if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {
-        bmwqemu::fctinfo 'Early exit has been requested with _EXIT_AFTER_SCHEDULE. Only evaluating test schedule.';
-        exit 0;
-    }
 }
 
 sub _store_asset ($index, $name, $dir) {

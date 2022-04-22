@@ -76,8 +76,8 @@ use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
-use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch
-  checkout_git_refspec handle_generated_assets load_test_schedule);
+use OpenQA::Isotovideo::Runner;
+use OpenQA::Isotovideo::Utils qw(handle_generated_assets);
 
 session->enable;
 session->enable_subreaper;
@@ -218,31 +218,27 @@ $SIG{HUP} = \&signalhandler;
 $ENV{LC_ALL} = 'en_US.UTF-8';
 $ENV{LANG} = 'en_US.UTF-8';
 
-checkout_git_repo_and_branch('CASEDIR');
-
 # Try to load the main.pm from one of the following in this order:
 #  - product dir
 #  - casedir
 #
 # This allows further structuring the test distribution collections with
 # multiple distributions or flavors in one repository.
-$bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
-
-# checkout Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
-checkout_git_repo_and_branch('NEEDLES_DIR');
+my $runner = OpenQA::Isotovideo::Runner->new(productdir => $bmwqemu::vars{PRODUCTDIR} // $bmwqemu::vars{CASEDIR});
+$runner->prepare_casedir($bmwqemu::vars{CASEDIR});
+$runner->prepare_needles($bmwqemu::vars{NEEDLES_DIR});
 
 bmwqemu::ensure_valid_vars();
-
-# as we are about to load the test modules checkout the specified git refspec,
-# if specified, or simply store the git hash that has been used. If it is not a
-# git repo fail silently, i.e. store an empty variable
-
-$bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
 
 # set a default distribution if the tests don't have one
 $testapi::distri = distribution->new;
 
-load_test_schedule;
+$runner->load_test_schedule($bmwqemu::vars{SCHEDULE});
+
+if ($bmwqemu::vars{_EXIT_AFTER_SCHEDULE}) {
+    bmwqemu::fctinfo 'Early exit has been requested with _EXIT_AFTER_SCHEDULE. Only evaluating test schedule.';
+    exit 0;
+}
 
 # start the command fork before we get into the backend, the command child
 # is not supposed to talk to the backend directly
