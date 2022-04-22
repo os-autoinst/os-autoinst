@@ -276,6 +276,6 @@ sub peak ($self, %nargs) {
 
 sub current_screen ($self) { 0 }
 
-sub request_screen_update ($self) { }
+sub request_screen_update ($self, @) { }
 
 1;
