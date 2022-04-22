@@ -211,8 +211,8 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
         for my $fh (@$read_set) {
             # This tries to solve the problem of half-open sockets (when reading, as writing will throw an exception)
             # There are three ways to solve this problem:
-            # + Send a message either to the application protocol (null message) or to the application protocol framing (an empty message)
-            #   Disadvantages: Requires changes on both ends of the communication. (for example: on SSH connection i realized that after a
+# + Send a message either to the application protocol (null message) or to the application protocol framing (an empty message)
+#   Disadvantages: Requires changes on both ends of the communication. (for example: on SSH connection i realized that after a
             #   while I start getting "bad packet length" errors)
             # + Polling the connections (Note: This is how HTTP servers work when dealing with persistent connections)
             #    Disadvantages: False positives
@@ -361,8 +361,8 @@ sub _stop_video_encoder ($self) {
     };
 
     # give the video encoder processes time to finalize the video
-    # note: Closing the pipe should cause the video encoder to terminate. Not sending SIGTERM/SIGINT because the signal might be
-    #       already sent by the worker or shell and ffmpeg will not continue finalizing the video after receiving a 2nd exit signal.
+# note: Closing the pipe should cause the video encoder to terminate. Not sending SIGTERM/SIGINT because the signal might be
+#       already sent by the worker or shell and ffmpeg will not continue finalizing the video after receiving a 2nd exit signal.
     no autodie qw(close waitpid);
     close $video_encoders->{$_}->{pipe} for keys %$video_encoders;
     bmwqemu::diag 'Waiting for video encoder to finalize the video';

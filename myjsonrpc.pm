@@ -100,7 +100,7 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
             # throw an error except can_read has been interrupted
             my $error = $!;
             confess "ERROR: unable to wait for JSON reply: $error\n" unless $!{EINTR};
-            # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation
+         # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation
             bmwqemu::diag("($$) read_json($fd): can_read's underlying system call has been interrupted, trying again\n") if DEBUG_JSON;
             @res = $s->can_read;
         }

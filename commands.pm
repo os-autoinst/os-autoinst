@@ -151,14 +151,14 @@ sub upload_file {
     return $self->render(text => (($req->error // {})->{message} // 'Limit exceeded'), status => 400) if $req->is_limit_exceeded;
     return $self->render(text => 'Upload file content missing', status => 400) unless my $upload = $req->upload('upload');
 
-    # choose 'target' field from curl form, otherwise default 'assets_private', assume the pool directory is the current working dir
+# choose 'target' field from curl form, otherwise default 'assets_private', assume the pool directory is the current working dir
     my $target = $self->param('target') || 'assets_private';
     eval { mkdir $target unless -d $target };
     if (my $error = $@) { return $self->render(text => "Unable to create directory for upload: $error", status => 500) }
 
     my $upname = $self->param('upname');
     my $filename = basename($upname ? $upname : $self->param('filename'));
-    # note: Only renaming the file if upname parameter is present, e.g. from upload_logs(). With this it won't rename the file in
+# note: Only renaming the file if upname parameter is present, e.g. from upload_logs(). With this it won't rename the file in
     #       case of upload_assert() and autoyast profiles as those are not done via upload_logs().
 
     $upload->move_to("$target/$filename");

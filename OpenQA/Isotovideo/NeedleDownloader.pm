@@ -32,7 +32,7 @@ has openqa_url => sub {
                 $url->scheme('');
             }
             else {
-                # treat URLs like just 'e212.suse.de' in the way that 'e212.suse.de' is the hostname (and not a relative path)
+          # treat URLs like just 'e212.suse.de' in the way that 'e212.suse.de' is the hostname (and not a relative path)
                 $url->host($path_parts->[0]);
             }
             $url->path(Mojo::Path->new);

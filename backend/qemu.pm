@@ -669,7 +669,7 @@ sub start_qemu ($self) {
     }
 
     # misc
-    my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
+    my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;   # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
     my $use_usb_kbd;
     my $arch = $vars->{ARCH} // '';
     $arch = 'arm' if ($arch =~ /armv6|armv7/);

@@ -71,7 +71,7 @@ sub mutex_lock ($name, $where = undef) {
     while (1) {
         my $res = _lock_action($name, $where);
         return 1 if $res;
-        bmwqemu::diag("mutex lock '$name' unavailable, sleeping " . POLL_INTERVAL . ' seconds');    # uncoverable statement
+        bmwqemu::diag("mutex lock '$name' unavailable, sleeping " . POLL_INTERVAL . ' seconds'); # uncoverable statement
         sleep POLL_INTERVAL;    # uncoverable statement
     }
 }
@@ -141,7 +141,7 @@ sub barrier_wait (@args) {
             return 1;
         }
 
-        bmwqemu::diag("barrier '$name' not released, sleeping " . POLL_INTERVAL . ' seconds');    # uncoverable statement
+        bmwqemu::diag("barrier '$name' not released, sleeping " . POLL_INTERVAL . ' seconds');   # uncoverable statement
         sleep POLL_INTERVAL;    # uncoverable statement
     }
 }

@@ -274,7 +274,7 @@ for my $tool (keys %debugging_tools) {
     next if fork() != 0;
     no autodie 'exec';
     { exec(@{$debugging_tools{$tool}}) };
-    exit -1;    # don't continue in any case (exec returns if it fails to spawn the process printing an error message on its own)
+    exit -1; # don't continue in any case (exec returns if it fails to spawn the process printing an error message on its own)
 }
 
 use IO::Select;

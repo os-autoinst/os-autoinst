@@ -68,7 +68,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
             # for which we need to take a different approach by downloading the
             # repository in the necessary depth until we can reach the commit
             # References:
-            # * https://stackoverflow.com/questions/18515488/how-to-check-if-the-commit-exists-in-a-git-repository-by-its-sha-1
+     # * https://stackoverflow.com/questions/18515488/how-to-check-if-the-commit-exists-in-a-git-repository-by-its-sha-1
             # * https://stackoverflow.com/questions/26135216/why-isnt-there-a-git-clone-specific-commit-option
             bmwqemu::diag "Fetching more remote objects to ensure availability of '$branch'";
             @out = qx{$clone_cmd $clone_args $clone_url 2>&1};

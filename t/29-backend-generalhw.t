@@ -110,7 +110,7 @@ subtest 'error handling' => sub {
     $fake_ipc_error = 'fake error';
     throws_ok(
         sub { $backend->run_cmd('GENERAL_HW_POWEROFF_CMD') },
-        qr/Unable to run command '$cmd_ctl poweroff' \(deduced from test variable GENERAL_HW_POWEROFF_CMD\): fake error/,
+qr/Unable to run command '$cmd_ctl poweroff' \(deduced from test variable GENERAL_HW_POWEROFF_CMD\): fake error/,
         'IPC error thrown with context'
     );
     $bmwqemu::vars{GENERAL_HW_CMD_DIR} = 'does-not-exist';
