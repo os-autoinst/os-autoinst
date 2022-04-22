@@ -276,36 +276,77 @@ sub handle_shutdown ($testfd) {
     $fatal_error = undef;
 }
 
-GetOptions(\%options, 'debug|d', 'workdir=s', 'help|h|?', 'version|v') or usage(1);
-usage(0) if $options{help};
-version() if $options{version};
-chdir $options{workdir} if $options{workdir};
+sub launch_debugging_tools () {
+    my %debugging_tools;
+    $debugging_tools{vncviewer} = ['vncviewer', '-viewonly', '-shared', "localhost:$bmwqemu::vars{VNC}"] if $ENV{RUN_VNCVIEWER};
+    $debugging_tools{debugviewer} = ["$bmwqemu::scriptdir/debugviewer/debugviewer", 'qemuscreenshot/last.png'] if $ENV{RUN_DEBUGVIEWER};
+    for my $tool (keys %debugging_tools) {
+        next if fork() != 0;
+        no autodie 'exec';
+        { exec(@{$debugging_tools{$tool}}) };
+        exit -1;    # don't continue in any case (exec returns if it fails to spawn the process printing an error message on its own)
+    }
+}
 
-# record the last die message
-# note: It might *not* be a fatal error so we don't call bmwqemu::serialize_state here
-#       immediately but only in the END block.
-$SIG{__DIE__} = sub ($_fatal_error) { $fatal_error = $_fatal_error };
+sub startup_cli () {
+    GetOptions(\%options, 'debug|d', 'help|h|?', 'version|v') or usage(1);
+    usage(0) if $options{help};
+    version() if $options{version};
+    chdir $options{workdir} if $options{workdir};
 
-diag(_get_version_string());
+    # record the last die message
+    # note: It might *not* be a fatal error so we don't call bmwqemu::serialize_state here
+    #       immediately but only in the END block.
+    $SIG{__DIE__} = sub ($_fatal_error) { $fatal_error = $_fatal_error };
 
-# enable debug default when started from a tty
-$log::direct_output = $options{debug};
+    diag(_get_version_string());
 
-$return_code = 1;
-select(STDERR);
-$| = 1;
-select(STDOUT);    # default
-$| = 1;
+    # enable debug default when started from a tty
+    $log::direct_output = $options{debug};
 
-$bmwqemu::scriptdir = $installprefix;
-bmwqemu::init();
-for my $arg (@ARGV) {
-    if ($arg =~ /^([[:alnum:]_\[\]\.]+)=(.+)/) {
+    $return_code = 1;
+    select(STDERR);
+    $| = 1;
+    select(STDOUT);    # default
+    $| = 1;
+}
+
+sub handle_forced_test_paramaters () {
+    for my $arg (@ARGV) {
+        next unless $arg =~ /^([[:alnum:]_\[\]\.]+)=(.+)/;
         my $key = uc $1;
         $bmwqemu::vars{$key} = $2;
         diag("Setting forced test parameter $key -> $2");
     }
 }
+
+sub handle_variables_and_repositories () {
+    checkout_git_repo_and_branch('CASEDIR');
+
+    # Try to load the main.pm from one of the following in this order:
+    #  - product dir
+    #  - casedir
+    #
+    # This allows further structuring the test distribution collections with
+    # multiple distributions or flavors in one repository.
+    $bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
+
+    # checkout Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
+    checkout_git_repo_and_branch('NEEDLES_DIR');
+
+    bmwqemu::ensure_valid_vars();
+
+    # as we are about to load the test modules checkout the specified git refspec,
+    # if specified, or simply store the git hash that has been used. If it is not a
+    # git repo fail silently, i.e. store an empty variable
+
+    $bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
+}
+
+startup_cli();
+$bmwqemu::scriptdir = $installprefix;
+bmwqemu::init();
+handle_forced_test_paramaters();
 
 $SIG{TERM} = \&signalhandler;
 $SIG{INT} = \&signalhandler;
@@ -317,26 +358,7 @@ $SIG{HUP} = \&signalhandler;
 $ENV{LC_ALL} = 'en_US.UTF-8';
 $ENV{LANG} = 'en_US.UTF-8';
 
-checkout_git_repo_and_branch('CASEDIR');
-
-# Try to load the main.pm from one of the following in this order:
-#  - product dir
-#  - casedir
-#
-# This allows further structuring the test distribution collections with
-# multiple distributions or flavors in one repository.
-$bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
-
-# checkout Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
-checkout_git_repo_and_branch('NEEDLES_DIR');
-
-bmwqemu::ensure_valid_vars();
-
-# as we are about to load the test modules checkout the specified git refspec,
-# if specified, or simply store the git hash that has been used. If it is not a
-# git repo fail silently, i.e. store an empty variable
-
-$bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
+handle_variables_and_repositories();
 
 # set a default distribution if the tests don't have one
 $testapi::distri = distribution->new;
@@ -362,16 +384,7 @@ path('os-autoinst.pid')->spurt("$$");
 # might throw an exception
 $bmwqemu::backend->start_vm() unless $bmwqemu::backend->_send_json({cmd => 'alive'});
 
-# launch debugging tools
-my %debugging_tools;
-$debugging_tools{vncviewer} = ['vncviewer', '-viewonly', '-shared', "localhost:$bmwqemu::vars{VNC}"] if $ENV{RUN_VNCVIEWER};
-$debugging_tools{debugviewer} = ["$bmwqemu::scriptdir/debugviewer/debugviewer", 'qemuscreenshot/last.png'] if $ENV{RUN_DEBUGVIEWER};
-for my $tool (keys %debugging_tools) {
-    next if fork() != 0;
-    no autodie 'exec';
-    { exec(@{$debugging_tools{$tool}}) };
-    exit -1;    # don't continue in any case (exec returns if it fails to spawn the process printing an error message on its own)
-}
+launch_debugging_tools();
 
 $backend_process = $bmwqemu::backend->{backend_process};
 my $io_select = IO::Select->new();
