@@ -112,6 +112,22 @@ sub _init_xml ($self, $args = {}) {
     $elem = $doc->createElement('pae');
     $features->appendChild($elem);
 
+    ## Following features are required for s390's SIE instruction
+    # https://share.confex.com/share/117/webprogram/Handout/Session9564/9564%20-%20zVM%20Security%20and%20Integrity.pdf p6
+    # https://qemu.readthedocs.io/en/latest/system/s390x/vfio-ap.html#start-interpretive-execution-sie-instruction
+    
+    if ( defined $bmwqemu::vars{S390_SIE_AP_MATRIX_PATH} ){
+        $elem = $doc->createElement('ap');
+        $features->appendChild($elem);
+
+        $elem = $doc->createElement('apqci');
+        $features->appendChild($elem);
+
+        $elem = $doc->createElement('aptf');
+        $features->appendChild($elem);
+	add_vfio_mediated_device(path => $bmwqemu::vars{S390_SIE_AP_MATRIX_PATH});
+    }
+
     if ($self->vmm_family eq 'xen' and $self->vmm_type eq 'linux') {
         $elem = $doc->createElement('kernel');
         $elem->appendTextNode('/usr/lib/grub2/x86_64-xen/grub.xen');
@@ -259,6 +275,27 @@ sub add_input ($self, $args) {
     $input->setAttribute(type => $args->{type});
     $input->setAttribute(bus => $args->{bus});
     $devices->appendChild($input);
+
+    return;
+}
+
+=head1
+    add_vfio_mediated_device path => /path/to/host/device
+
+   Creates a mediated device, see https://www.ibm.com/docs/en/linux-on-systems?topic=libvirt-ap-queues and
+   https://libvirt.org/formatdomain.html#usb-pci-scsi-devices
+=cut
+
+sub add_vfio_mediated_device ($self, $args) {
+    my $doc = $self->{domainxml};
+    my $devices = $self->{devices_element};
+
+    my $vfio_mediated_device = $doc->createElement('hostdev');
+    $vfio_mediated_device->setAttribute(mode => 'subsystem');
+    $vfio_mediated_device->setAttribute(type => 'mdev');
+    $vfio_mediated_device->setAttribute(model => 'vfio-ap');
+    $vfio_mediated_device->setAttribute(path => $args->path);
+    $devices->appendChild($vfio_mediated_device);
 
     return;
 }
