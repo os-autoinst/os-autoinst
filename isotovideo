@@ -63,14 +63,13 @@ use autotest ();
 use commands;
 use distribution;
 use testapi ();
-use File::Basename;
 use Getopt::Long;
 require IPC::System::Simple;
 use POSIX qw(:sys_wait_h _exit);
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use Try::Tiny;
-use File::Path;
 use IO::Select;
+use Mojo::File qw(curfile path);
 use Mojo::UserAgent;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
@@ -91,7 +90,7 @@ sub usage ($r) {
 }
 
 sub _get_version_string () {
-    my $dirname = dirname(__FILE__);
+    my $dirname = curfile->dirname;
     my $thisversion = qx{git -C $dirname rev-parse HEAD};
     chomp $thisversion;
     die 'Could not parse version' unless $thisversion;
@@ -257,10 +256,7 @@ my $testfd;
 ($testprocess, $testfd) = autotest::start_process();
 
 init_backend();
-
-open(my $fd, ">", "os-autoinst.pid");
-print $fd "$$\n";
-close $fd;
+path('os-autoinst.pid')->spurt("$$");
 
 if (!$bmwqemu::backend->_send_json({cmd => 'alive'})) {
     # might throw an exception
