@@ -86,7 +86,6 @@ use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_repo_and_branch
 session->enable;
 session->enable_subreaper;
 
-my %options;
 my $return_code;
 my $cmd_srv_process;
 my $command_handler;
@@ -94,7 +93,7 @@ my $testprocess;
 my $cmd_srv_fd;
 my $cmd_srv_port;
 my $backend_process;
-my $loop = 1;
+my $loop;
 
 
 sub usage ($r) {
@@ -289,6 +288,7 @@ sub launch_debugging_tools () {
 }
 
 sub startup_cli () {
+    my %options;
     GetOptions(\%options, 'debug|d', 'help|h|?', 'version|v') or usage(1);
     usage(0) if $options{help};
     version() if $options{version};
@@ -343,75 +343,80 @@ sub handle_variables_and_repositories () {
     $bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
 }
 
-startup_cli();
-$bmwqemu::scriptdir = $installprefix;
-bmwqemu::init();
-handle_forced_test_paramaters();
+sub startup () {
+    startup_cli();
+    $bmwqemu::scriptdir = $installprefix;
+    bmwqemu::init();
+    handle_forced_test_paramaters();
 
-$SIG{TERM} = \&signalhandler;
-$SIG{INT} = \&signalhandler;
-$SIG{HUP} = \&signalhandler;
+    $SIG{TERM} = \&signalhandler;
+    $SIG{INT} = \&signalhandler;
+    $SIG{HUP} = \&signalhandler;
 
-# make sure all commands coming from the backend will not be in the
-# developers's locale - but a defined english one. This is SUSE's
-# default locale
-$ENV{LC_ALL} = 'en_US.UTF-8';
-$ENV{LANG} = 'en_US.UTF-8';
+    # make sure all commands coming from the backend will not be in the
+    # developers's locale - but a defined english one. This is SUSE's
+    # default locale
+    $ENV{LC_ALL} = 'en_US.UTF-8';
+    $ENV{LANG} = 'en_US.UTF-8';
 
-handle_variables_and_repositories();
+    handle_variables_and_repositories();
 
-# set a default distribution if the tests don't have one
-$testapi::distri = distribution->new;
+    # set a default distribution if the tests don't have one
+    $testapi::distri = distribution->new;
 
-$bmwqemu::vars{WHEELS_DIR} ||= $bmwqemu::vars{CASEDIR};
-checkout_wheels($bmwqemu::vars{WHEELS_DIR});
-load_test_schedule;
+    $bmwqemu::vars{WHEELS_DIR} ||= $bmwqemu::vars{CASEDIR};
+    checkout_wheels($bmwqemu::vars{WHEELS_DIR});
+    load_test_schedule;
 
-# start the command fork before we get into the backend, the command child
-# is not supposed to talk to the backend directly
-($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
+    # start the command fork before we get into the backend, the command child
+    # is not supposed to talk to the backend directly
+    ($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
 
-testapi::init();
-needle::init();
-bmwqemu::save_vars();
+    testapi::init();
+    needle::init();
+    bmwqemu::save_vars();
 
-my $testfd;
-($testprocess, $testfd) = autotest::start_process();
+    my $testfd;
+    ($testprocess, $testfd) = autotest::start_process();
+    init_backend();
+    path('os-autoinst.pid')->spurt("$$");
 
-init_backend();
-path('os-autoinst.pid')->spurt("$$");
+    # might throw an exception
+    $bmwqemu::backend->start_vm() unless $bmwqemu::backend->_send_json({cmd => 'alive'});
 
-# might throw an exception
-$bmwqemu::backend->start_vm() unless $bmwqemu::backend->_send_json({cmd => 'alive'});
+    launch_debugging_tools();
 
-launch_debugging_tools();
+    $backend_process = $bmwqemu::backend->{backend_process};
+    my $io_select = IO::Select->new();
+    $io_select->add($testfd);
+    $io_select->add($cmd_srv_fd);
+    $io_select->add($backend_process->channel_out);
 
-$backend_process = $bmwqemu::backend->{backend_process};
-my $io_select = IO::Select->new();
-$io_select->add($testfd);
-$io_select->add($cmd_srv_fd);
-$io_select->add($backend_process->channel_out);
+    # stop main loop as soon as one of the child processes terminates
+    my $stop_loop = sub (@) { $loop = 0 if $loop; };
+    $testprocess->once(collected => $stop_loop);
+    $backend_process->once(collected => $stop_loop);
+    $cmd_srv_process->once(collected => $stop_loop);
 
-# stop main loop as soon as one of the child processes terminates
-my $stop_loop = sub (@) { $loop = 0 if $loop; };
-$testprocess->once(collected => $stop_loop);
-$backend_process->once(collected => $stop_loop);
-$cmd_srv_process->once(collected => $stop_loop);
+    # now we have everything, give the tests a go
+    $testfd->write("GO\n");
 
-# now we have everything, give the tests a go
-$testfd->write("GO\n");
+    $command_handler = OpenQA::Isotovideo::CommandHandler->new(
+        cmd_srv_fd => $cmd_srv_fd,
+        backend_fd => $backend_process->channel_in,
+    );
 
-$command_handler = OpenQA::Isotovideo::CommandHandler->new(
-    cmd_srv_fd => $cmd_srv_fd,
-    backend_fd => $backend_process->channel_in,
-);
+    return ($testfd, $io_select);
+}
+
+my ($testfd, $io_select) = startup();
+$loop = 1;
 $command_handler->on(tests_done => sub (@) {
         CORE::close($testfd);
         $testfd = undef;
         stop_autotest;
         $loop = 0;
 });
-
 main_loop($testfd, $io_select);
 handle_shutdown($testfd);
 
