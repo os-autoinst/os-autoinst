@@ -85,9 +85,8 @@ sub gen_cmdline ($self) {
 
     # Then tell QEMU how to emulate the drive device
     for my $path (@$paths) {
-        my @params = ($self->model,
-            'id=' . $self->_gen_node_name($pathn, $path->id),
-            'drive=' . $self->drive->node_name);
+        my @params
+          = ($self->model, 'id=' . $self->_gen_node_name($pathn, $path->id), 'drive=' . $self->drive->node_name);
 
         push(@params, 'share-rw=true') if $pathn > 1;
 
@@ -132,34 +131,30 @@ sub _to_map ($self) {
     my @overlays = ();
     my @paths = map { $_->_to_map() } @{$self->paths};
 
-    $self->for_each_overlay(sub {
+    $self->for_each_overlay(
+        sub {
             my $ol = shift;
 
             push(@overlays, $ol->_to_map());
-    });
+        });
 
-    return {drives => \@overlays,
+    return {
+        drives => \@overlays,
         model => $self->model,
         paths => \@paths,
         bootindex => $self->bootindex,
         serial => $self->serial,
         id => $self->id,
-        num_queues => $self->num_queues};
+        num_queues => $self->num_queues
+    };
 }
 
 sub _from_map ($self, $map, $cont_conf, $snap_conf) {
     my $drive = OpenQA::Qemu::BlockDev->new()->_from_map($map->{drives}, $snap_conf);
-    my @paths = map {
-        OpenQA::Qemu::DrivePath->new()->_from_map($_, $cont_conf)
-    } @{$map->{paths}};
+    my @paths = map { OpenQA::Qemu::DrivePath->new()->_from_map($_, $cont_conf) } @{$map->{paths}};
 
-    return $self->drive($drive)
-      ->model($map->{model})
-      ->paths(\@paths)
-      ->bootindex($map->{bootindex})
-      ->serial($map->{serial})
-      ->id($map->{id})
-      ->num_queues($map->{num_queues});
+    return $self->drive($drive)->model($map->{model})->paths(\@paths)->bootindex($map->{bootindex})
+      ->serial($map->{serial})->id($map->{id})->num_queues($map->{num_queues});
 }
 
 sub CARP_TRACE { 'OpenQA::Qemu::DriveDevice(' . (shift->id || '') . ')' }

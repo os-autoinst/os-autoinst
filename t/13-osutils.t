@@ -57,7 +57,8 @@ subtest gen_params => sub {
     my $tree = 2;
     my $bar = 3;
     gen_params @params, "test", [qv "$apple $tree $bar"];
-    is_deeply(\@params, [qw(-foo bar -test), '1,2,3'], "Added parameter if parameter is an arrayref supplied with qv()");
+    is_deeply(\@params, [qw(-foo bar -test), '1,2,3'],
+        "Added parameter if parameter is an arrayref supplied with qv()");
 
     my $nothing_is_there;
     @params = qw(-foo bar);
@@ -67,19 +68,35 @@ subtest gen_params => sub {
 
     @params = qw(!!foo bar);
     gen_params @params, "test", [qv "$apple $tree $bar"], prefix => "!!";
-    is_deeply(\@params, [qw(!!foo bar !!test), '1,2,3'], "Added parameter if parameter is an arrayref and with custom prefix");
+    is_deeply(
+        \@params,
+        [qw(!!foo bar !!test), '1,2,3'],
+        "Added parameter if parameter is an arrayref and with custom prefix"
+    );
 
     @params = qw(-kernel vmlinuz -initrd initrd);
     gen_params @params, "append", "ro root=/dev/sda1";
-    is_deeply(\@params, [('-kernel', 'vmlinuz', '-initrd', 'initrd', '-append', "\'ro root=/dev/sda1\'")], "Quote itself if parameter contains whitespace");
+    is_deeply(
+        \@params,
+        [('-kernel', 'vmlinuz', '-initrd', 'initrd', '-append', "\'ro root=/dev/sda1\'")],
+        "Quote itself if parameter contains whitespace"
+    );
 
     @params = qw(-kernel vmlinuz -initrd initrd);
     gen_params @params, "append", "ro root=/dev/sda1", no_quotes => 1;
-    is_deeply(\@params, [('-kernel', 'vmlinuz', '-initrd', 'initrd', '-append', "ro root=/dev/sda1")], "Do not quote itself if pass no_quotes argument");
+    is_deeply(
+        \@params,
+        [('-kernel', 'vmlinuz', '-initrd', 'initrd', '-append', "ro root=/dev/sda1")],
+        "Do not quote itself if pass no_quotes argument"
+    );
 
     @params = qw(-kernel vmlinuz);
     gen_params @params, "append", "ro root=/dev/sda1", no_quotes => 1, prefix => '--';
-    is_deeply(\@params, [('-kernel', 'vmlinuz', '--append', "ro root=/dev/sda1")], "Do not quote itself if pass no_quotes argument with custom prefix");
+    is_deeply(
+        \@params,
+        [('-kernel', 'vmlinuz', '--append', "ro root=/dev/sda1")],
+        "Do not quote itself if pass no_quotes argument with custom prefix"
+    );
 };
 
 subtest dd_gen_params => sub {
@@ -105,7 +122,11 @@ subtest dd_gen_params => sub {
     my $tree = 2;
     my $bar = 3;
     dd_gen_params @params, "test", [qv "$apple $tree $bar"];
-    is_deeply(\@params, [qw(--foo bar --test), '1,2,3'], "Added parameter if parameter is an arrayref supplied with qv()");
+    is_deeply(
+        \@params,
+        [qw(--foo bar --test), '1,2,3'],
+        "Added parameter if parameter is an arrayref supplied with qv()"
+    );
 
     my $nothing_is_there;
     @params = qw(--foo bar);
@@ -155,7 +176,10 @@ subtest runcmd => sub {
     stderr_like { $ret = runcmd('rm', 'image.qcow2') } qr/running `rm/, 'debug runcmd output with rm';
     is $ret, 0, "delete image and get its return code";
     local $@;
-    stderr_like { eval { runcmd('ls', 'image.qcow2') } } qr/No such file or directory/, 'no image found as expected';
+    stderr_like {
+        eval { runcmd('ls', 'image.qcow2') }
+    }
+    qr/No such file or directory/, 'no image found as expected';
     like $@, qr/runcmd 'ls image.qcow2' failed with exit code \d+/, "command failed and calls die";
 };
 
@@ -164,29 +188,35 @@ subtest run_diag => sub {
 
     stderr_like {
         is(run_diag(qw(echo foo)), 'foo', 'Return stdout')
-    } qr/terminated with 0/, 'Exit code appear in log';
+    }
+    qr/terminated with 0/, 'Exit code appear in log';
 
     stderr_like {
         is(run_diag('echo foo 1>&2'), 'foo', 'Return stderr')
-    } qr/running `echo/, 'Command appear in log';
+    }
+    qr/running `echo/, 'Command appear in log';
 
     stderr_unlike {
         is(run_diag('false'), '', 'Empty string, if command does not produce output')
-    } qr/^\s*$/m, 'No empty line, if command does not produce output';
+    }
+    qr/^\s*$/m, 'No empty line, if command does not produce output';
 
 
 
     stderr_like {
         run_diag('echo "foo$$bar"');
-    } qr/foo\d+bar/, 'Output appear in the log';
+    }
+    qr/foo\d+bar/, 'Output appear in the log';
 
     stderr_like {
         run_diag('echo "foo$$bar" 1>&2');
-    } qr/foo\d+bar/, 'STDERR output appear in the log';
+    }
+    qr/foo\d+bar/, 'STDERR output appear in the log';
 
     stderr_like {
         is(run_diag('/I_do_not_exists'), undef, 'Return undef on execution error and do not die')
-    } qr/No such file or directory/, 'Error message appear in log';
+    }
+    qr/No such file or directory/, 'Error message appear in log';
 };
 
 subtest attempt => sub {
@@ -196,23 +226,32 @@ subtest attempt => sub {
     $module->redefine(wait_attempt => sub { sleep 0; });
 
     my $var = 0;
-    stderr_like { attempt(5, sub { $var == 5 }, sub { $var++ }) } qr/Waiting for.*attempts/, 'attempts conducted';
+    stderr_like {
+        attempt(5, sub { $var == 5 }, sub { $var++ })
+    }
+    qr/Waiting for.*attempts/, 'attempts conducted';
     is $var, 5, 'all attempts exhausted';
     $var = 0;
-    stderr_like { attempt {
+    stderr_like {
+        attempt {
             attempts => 6,
             condition => sub { $var == 6 },
             cb => sub { $var++ }
-    } } qr/Waiting for.*attempts/, 'attempts conducted with named parameters';
+        }
+    }
+    qr/Waiting for.*attempts/, 'attempts conducted with named parameters';
     is $var, 6, 'correct attempts with named parameters';
 
     $var = 0;
-    stderr_like { attempt {
+    stderr_like {
+        attempt {
             attempts => 6,
             condition => sub { $var == 7 },
             cb => sub { $var++ },
             or => sub { $var = 42 }
-    } } qr/Waiting for.*attempts/, 'attempts with alternative return';
+        }
+    }
+    qr/Waiting for.*attempts/, 'attempts with alternative return';
     is $var, 42, 'alternative return set';
 };
 

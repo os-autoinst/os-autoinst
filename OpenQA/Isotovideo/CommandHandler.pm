@@ -126,10 +126,11 @@ sub _pass_command_to_backend_unless_paused ($self, $response, $backend_cmd) {
     die 'isotovideo: we need to implement a backend queue' if $self->backend_requester;
     $self->backend_requester($self->answer_fd);
 
-    $self->_send_to_cmd_srv({
+    $self->_send_to_cmd_srv(
+        {
             $backend_cmd => $response,
             current_api_function => $backend_cmd,
-    });
+        });
     $self->_send_to_backend({cmd => $backend_cmd, arguments => $response});
     $self->current_api_function($backend_cmd);
 }
@@ -160,9 +161,9 @@ sub _handle_command_report_timeout ($self, $response, @) {
 }
 
 sub _handle_command_is_configured_to_pause_on_timeout ($self, $response, @) {
-    $self->_respond({
-            ret => ($self->_is_configured_to_pause_on_timeout($response) ? 1 : 0)
-    });
+    $self->_respond(
+        {
+            ret => ($self->_is_configured_to_pause_on_timeout($response) ? 1 : 0)});
 }
 
 sub _handle_command_set_pause_at_test ($self, $response, @) {
@@ -196,8 +197,9 @@ sub _handle_command_resume_test_execution ($self, $response, @) {
     my $postponed_command = $self->postponed_command;
     my $postponed_answer_fd = $self->postponed_answer_fd;
 
-    diag($self->reason_for_pause ?
-          'isotovideo: test execution will be resumed'
+    diag(
+        $self->reason_for_pause
+        ? 'isotovideo: test execution will be resumed'
         : 'isotovideo: resuming test execution requested but not paused anyways'
     );
     $self->_send_to_cmd_srv({resume_test_execution => $postponed_command});
@@ -216,10 +218,12 @@ sub _handle_command_resume_test_execution ($self, $response, @) {
 
     # if no command has been postponed (because paused due to timeout or on set_current_test) just return 1
     if (!$postponed_command) {
-        myjsonrpc::send_json($postponed_answer_fd, {
+        myjsonrpc::send_json(
+            $postponed_answer_fd,
+            {
                 ret => 1,
                 new_needles => $response->{new_needles},
-        });
+            });
         $self->postponed_answer_fd(undef);
         return;
     }
@@ -242,17 +246,20 @@ sub _handle_command_set_current_test ($self, $response, @) {
     $self->current_test_name($test_name);
     $self->status('running');
     $self->current_test_full_name($full_test_name);
-    $self->_send_to_cmd_srv({
+    $self->_send_to_cmd_srv(
+        {
             set_current_test => $test_name,
             current_test_full_name => $full_test_name,
-    });
+        });
 
-    if ($pause_test_name
+    if (   $pause_test_name
         && $test_name
         && $full_test_name
         && ($pause_test_name eq $test_name || $pause_test_name eq $full_test_name))
     {
-        diag("isotovideo: pausing test execution of $pause_test_name because we're supposed to pause at this test module");
+        diag(
+            "isotovideo: pausing test execution of $pause_test_name because we're supposed to pause at this test module"
+        );
         $self->reason_for_pause('reached module ' . $pause_test_name);
     }
     $self->update_status_file;
@@ -278,30 +285,35 @@ sub _handle_command_check_screen ($self, $response, @) {
         check => $response->{check},
     );
     my $current_api_function = $response->{check} ? 'check_screen' : 'assert_screen';
-    $self->_send_to_cmd_srv({
+    $self->_send_to_cmd_srv(
+        {
             check_screen => \%arguments,
             current_api_function => $current_api_function,
-    });
-    $self->tags($bmwqemu::backend->_send_json(
+        });
+    $self->tags(
+        $bmwqemu::backend->_send_json(
             {
                 cmd => 'set_tags_to_assert',
                 arguments => \%arguments,
-            })->{tags});
+            }
+        )->{tags});
     $self->current_api_function($current_api_function);
 }
 
 sub _handle_command_set_assert_screen_timeout ($self, $response, @) {
     my $timeout = $response->{timeout};
     $self->_send_to_cmd_srv({set_assert_screen_timeout => $timeout});
-    $bmwqemu::backend->_send_json({
+    $bmwqemu::backend->_send_json(
+        {
             cmd => 'set_assert_screen_timeout',
             arguments => $timeout,
-    });
+        });
     $self->_respond_ok();
 }
 
 sub _handle_command_status ($self, $response, @) {
-    $self->_respond({
+    $self->_respond(
+        {
             tags => $self->tags,
             running => $self->current_test_name,
             current_test_full_name => $self->current_test_full_name,
@@ -312,15 +324,16 @@ sub _handle_command_status ($self, $response, @) {
             test_execution_paused => $self->reason_for_pause,
             devel_mode_major_version => $OpenQA::Isotovideo::Interface::developer_mode_major_version,
             devel_mode_minor_version => $OpenQA::Isotovideo::Interface::developer_mode_minor_version,
-    });
+        });
 }
 
 sub _handle_command_version ($self, $response, @) {
-    $self->_respond({
+    $self->_respond(
+        {
             test_git_hash => $bmwqemu::vars{TEST_GIT_HASH},
             needles_git_hash => $bmwqemu::vars{NEEDLES_GIT_HASH},
             version => $OpenQA::Isotovideo::Interface::version,
-    });
+        });
 }
 
 sub _handle_command_read_serial ($self, $response, @) {

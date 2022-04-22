@@ -43,12 +43,13 @@ my $backend_mock = Test::MockModule->new('backend::qemu', no_auto => 1);
 $backend_mock->redefine(handle_qmp_command => undef);
 my $distri = Test::MockModule->new('distribution');
 my %called;
-$distri->redefine(add_console => sub {
+$distri->redefine(
+    add_console => sub {
         $called{add_console}++;
         my $ret = Test::MockObject->new();
         $ret->set_true('backend');
         return $ret;
-});
+    });
 # "redefine" fails with "backend::qemu::select_console does not exist!" but
 # defining this still matters for unknown reason
 $backend_mock->mock(select_console => undef);
@@ -63,7 +64,8 @@ subtest 'using Open vSwitch D-Bus service' => sub {
     my $msg = 'error about missing service';
     like exception { $backend->_dbus_call('show', 'foo', 'bar') }, $expected, $msg . ' in exception';
     $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 1;
-    combined_like { ok($backend->_dbus_call('show', 'foo', 'bar'), 'failed dbus call ignored gracefully') } $expected, $msg;
+    combined_like { ok($backend->_dbus_call('show', 'foo', 'bar'), 'failed dbus call ignored gracefully') } $expected,
+      $msg;
     $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 0;
     $backend_mock->redefine(_dbus_do_call => sub { (1, 'failed') });
     like exception { $backend->_dbus_call('show') }, qr/failed/, 'failed dbus call throws exception';
@@ -87,11 +89,13 @@ subtest 'eject cd' => sub {
     $called{handle_qmp_command} = undef;
     $backend->eject_cd;
     is_deeply $called{handle_qmp_command}[0], \%default_eject_params, 'eject called with correct defaults';
-    is_deeply $called{handle_qmp_command}[1], \%default_remove_params, 'blockdev-remove-medium called with correct defaults';
+    is_deeply $called{handle_qmp_command}[1], \%default_remove_params,
+      'blockdev-remove-medium called with correct defaults';
     $called{handle_qmp_command} = undef;
     $backend->eject_cd({id => 'cd1', force => 0});
     is_deeply $called{handle_qmp_command}[0], \%custom_eject_params, 'eject called with custom parameters';
-    is_deeply $called{handle_qmp_command}[1], \%custom_remove_params, 'blockdev-remove-medium called with custom parameters';
+    is_deeply $called{handle_qmp_command}[1], \%custom_remove_params,
+      'blockdev-remove-medium called with custom parameters';
 };
 
 subtest 'switch_network' => sub {
@@ -106,7 +110,8 @@ subtest 'switch_network' => sub {
     $backend->switch_network({network_enabled => 1, network_link_name => 'bingo'});
     %switch_network_params = (arguments => {name => 'bingo', up => Mojo::JSON->true}, execute => 'set_link');
     ok(exists $called{handle_qmp_command}, 'a qmp command has been called');
-    is_deeply($called{handle_qmp_command}[0], \%switch_network_params, 'Network name can be specified, network can be enabled');
+    is_deeply($called{handle_qmp_command}[0],
+        \%switch_network_params, 'Network name can be specified, network can be enabled');
 
     $called{handle_qmp_command} = undef;
 };
@@ -164,7 +169,8 @@ subtest qemu_tpm_option => sub {
     # call qemu with QEMUTPM=2
     mkdir("$dir/mytpm2");
     path("$dir/mytpm2/swtpm-sock")->touch;
-    like qemu_cmdline(QEMUTPM => '2'), qr|-chardev socket,id=chrtpm,path=.*mytpm2/swtpm-sock|, '-chardev socket option added (2)';
+    like qemu_cmdline(QEMUTPM => '2'), qr|-chardev socket,id=chrtpm,path=.*mytpm2/swtpm-sock|,
+      '-chardev socket option added (2)';
 
     # call qemu with QEMUTPM=instance, ppc64le arch
     $cmdline = qemu_cmdline(QEMUTPM => 'instance', ARCH => 'ppc64le');
@@ -181,15 +187,21 @@ subtest qemu_tpm_option => sub {
 
     # call qemu with QEMUTPM=4 w/o creating a device beforehand
     $cmdline = qemu_cmdline(QEMUTPM => '4');
-    like $runcmd, qr|swtpm socket --tpmstate dir=.*mytpm4 --ctrl type=unixio,path=.*mytpm4/swtpm-sock --log level=20 -d --tpm2|, 'swtpm default device created';
+    like $runcmd,
+      qr|swtpm socket --tpmstate dir=.*mytpm4 --ctrl type=unixio,path=.*mytpm4/swtpm-sock --log level=20 -d --tpm2|,
+      'swtpm default device created';
 
     # call qemu with QEMUTPM=5, QEMUTPM_VER=2.0 w/o creating a device beforehand
     $cmdline = qemu_cmdline(QEMUTPM => '5', QEMUTPM_VER => '2.0');
-    like $runcmd, qr|swtpm socket --tpmstate dir=.*mytpm5 --ctrl type=unixio,path=.*mytpm5/swtpm-sock --log level=20 -d --tpm2|, 'swtpm 2.0 device created';
+    like $runcmd,
+      qr|swtpm socket --tpmstate dir=.*mytpm5 --ctrl type=unixio,path=.*mytpm5/swtpm-sock --log level=20 -d --tpm2|,
+      'swtpm 2.0 device created';
 
     # call qemu with QEMUTPM=6, QEMU_TPM_VER=1.2 w/o creating a device beforehand
     $cmdline = qemu_cmdline(QEMUTPM => '6', QEMUTPM_VER => '1.2');
-    like $runcmd, qr|swtpm socket --tpmstate dir=.*mytpm6 --ctrl type=unixio,path=.*mytpm6/swtpm-sock --log level=20 -d|, 'swtpm 1.2 device created';
+    like $runcmd,
+      qr|swtpm socket --tpmstate dir=.*mytpm6 --ctrl type=unixio,path=.*mytpm6/swtpm-sock --log level=20 -d|,
+      'swtpm 1.2 device created';
 };
 
 done_testing();

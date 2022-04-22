@@ -81,7 +81,8 @@ sub type_string ($self, $nargs) {
     $text .= $term if defined $term;
     my $written = syswrite $fd, $text;
     croak "Error writing to virtio/svirt serial terminal: $ERRNO" unless defined $written;
-    croak "Was not able to write entire message to virtio/svirt serial terminal. Only $written of $nargs->{text}" if $written < length($text);
+    croak "Was not able to write entire message to virtio/svirt serial terminal. Only $written of $nargs->{text}"
+      if $written < length($text);
 }
 
 sub thetime () { clock_gettime(CLOCK_MONOTONIC) }
@@ -137,7 +138,8 @@ sub do_read ($self, $, %args) {
     my $read;
     while (!defined($read)) {
         $read = sysread($fd, $buffer, $args{max_size});
-        croak "Failed to read from virtio/svirt serial console char device: $ERRNO" if !defined($read) && !($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK});
+        croak "Failed to read from virtio/svirt serial console char device: $ERRNO"
+          if !defined($read) && !($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK});
     }
     $_[1] = $buffer;
     return $read;

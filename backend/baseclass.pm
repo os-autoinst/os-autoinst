@@ -38,13 +38,14 @@ use constant FULL_UPDATE_REQUEST_FREQUENCY => $ENV{OS_AUTOINST_FULL_UPDATE_REQUE
 # should be a singleton - and only useful in backend process
 our $backend;
 
-has [qw(
+has [
+    qw(
       update_request_interval last_update_request screenshot_interval
       last_screenshot last_image assert_screen_check
       reference_screenshot assert_screen_tags assert_screen_needles
       assert_screen_deadline assert_screen_fails assert_screen_last_check
       stall_detected
-)];
+    )];
 
 sub new ($class) {
     my $self = bless({class => $class}, $class);
@@ -185,7 +186,8 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
         }
 
         my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
-        my ($read_set, $write_set) = IO::Select->select($self->{select_read}->select(), $self->{select_write}->select(), undef, $time_to_next);
+        my ($read_set, $write_set)
+          = IO::Select->select($self->{select_read}->select(), $self->{select_write}->select(), undef, $time_to_next);
 
         # We need to check the video encoder and the serial socket
         my ($video_encoder, $external_video_encoder, $other) = (0, 0, 0);
@@ -195,7 +197,8 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
                 $video_encoder = 1;
             }
             elsif ($fh == $self->{external_video_encoder_cmd_pipe}) {
-                $self->_write_buffered_data_to_file_handle('External encoder', $self->{external_video_encoder_image_data}, $fh);
+                $self->_write_buffered_data_to_file_handle('External encoder',
+                    $self->{external_video_encoder_image_data}, $fh);
                 $external_video_encoder = 1;
             }
             else {
@@ -211,8 +214,8 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
         for my $fh (@$read_set) {
             # This tries to solve the problem of half-open sockets (when reading, as writing will throw an exception)
             # There are three ways to solve this problem:
-            # + Send a message either to the application protocol (null message) or to the application protocol framing (an empty message)
-            #   Disadvantages: Requires changes on both ends of the communication. (for example: on SSH connection i realized that after a
+# + Send a message either to the application protocol (null message) or to the application protocol framing (an empty message)
+#   Disadvantages: Requires changes on both ends of the communication. (for example: on SSH connection i realized that after a
             #   while I start getting "bad packet length" errors)
             # + Polling the connections (Note: This is how HTTP servers work when dealing with persistent connections)
             #    Disadvantages: False positives
@@ -226,9 +229,12 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
                     my $fd_nr = fileno $fh;
                     my $cnt = $buckets->{BUCKET}{$fd_nr};
                     my $name = $self->{select_read}->get_name($fh);
-                    my $msg = "The file descriptor $fd_nr ($name) hit the read attempts threshold of $hits_limit/${wait_time_limit}s by $cnt. ";
-                    $msg .= "Active console '$console' is not responding, it could be a half-open socket or you need to increase _CHKSEL_RATE_HITS value. ";
-                    $msg .= "Make sure the console is reachable or disable stall detection on expected disconnects with '\$console->disable_vnc_stalls', for example in case of intended machine shutdown.";
+                    my $msg
+                      = "The file descriptor $fd_nr ($name) hit the read attempts threshold of $hits_limit/${wait_time_limit}s by $cnt. ";
+                    $msg
+                      .= "Active console '$console' is not responding, it could be a half-open socket or you need to increase _CHKSEL_RATE_HITS value. ";
+                    $msg
+                      .= "Make sure the console is reachable or disable stall detection on expected disconnects with '\$console->disable_vnc_stalls', for example in case of intended machine shutdown.";
                     OpenQA::Exception::ConsoleReadError->throw(error => $msg);
                 }
             }
@@ -318,7 +324,9 @@ sub start_encoder ($self) {
     # start internal video encoder; only start it to generate PNGs if an external video encoder is used or NOVIDEO set
     my $cwd = Cwd::getcwd;
     my @cmd = (qw(nice -n 19), "$bmwqemu::scriptdir/videoencoder", "$cwd/video.ogv");
-    push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO} || ($has_external_video_encoder_configured && !$bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_ADDITIONALLY});
+    push(@cmd, '-n')
+      if $bmwqemu::vars{NOVIDEO}
+      || ($has_external_video_encoder_configured && !$bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_ADDITIONALLY});
     $self->_invoke_video_encoder(encoder_pipe => 'built-in video encoder', @cmd);
 
     # open file for recording real time clock timestamps as subtitle
@@ -350,7 +358,8 @@ sub _stop_video_encoder ($self) {
                     $select->remove($fh) unless @$video_data_for_internal_encoder;
                 }
                 elsif (defined $external_pipe && $fh == $external_pipe) {
-                    $self->_write_buffered_data_to_file_handle('External encoder', $video_data_for_external_encoder, $fh);
+                    $self->_write_buffered_data_to_file_handle('External encoder',
+                        $video_data_for_external_encoder, $fh);
                     $select->remove($fh) unless @$video_data_for_external_encoder;
                 }
             }
@@ -361,8 +370,8 @@ sub _stop_video_encoder ($self) {
     };
 
     # give the video encoder processes time to finalize the video
-    # note: Closing the pipe should cause the video encoder to terminate. Not sending SIGTERM/SIGINT because the signal might be
-    #       already sent by the worker or shell and ffmpeg will not continue finalizing the video after receiving a 2nd exit signal.
+# note: Closing the pipe should cause the video encoder to terminate. Not sending SIGTERM/SIGINT because the signal might be
+#       already sent by the worker or shell and ffmpeg will not continue finalizing the video after receiving a 2nd exit signal.
     no autodie qw(close waitpid);
     close $video_encoders->{$_}->{pipe} for keys %$video_encoders;
     bmwqemu::diag 'Waiting for video encoder to finalize the video';
@@ -416,8 +425,7 @@ sub alive ($self, @) {
 sub notimplemented ($self) {
     my $method = (caller(1))[3];
     $method =~ s/^backend::baseclass:://;
-    confess sprintf "backend method '%s' not implemented for class '%s'",
-      $method, ref $self;
+    confess sprintf "backend method '%s' not implemented for class '%s'", $method, ref $self;
 }
 
 # parameters: acpi, reset, (on), off
@@ -765,7 +773,8 @@ sub proxy_console_call ($self, $wrapped_call) {
         # Move the decision to actually die to the server side instead.
         # For this ignore backend::baseclass::die_handler.
         local $SIG{__DIE__} = 'DEFAULT';
-        $wrapped_result->{result} = $wrapped_call->{wantarray} ? [$console->$function(@$args)] : $console->$function(@$args);
+        $wrapped_result->{result}
+          = $wrapped_call->{wantarray} ? [$console->$function(@$args)] : $console->$function(@$args);
     };
     $wrapped_result->{exception} = join("\n", bmwqemu::pp($wrapped_call), $@) if $@;
     return $wrapped_result;
@@ -833,7 +842,8 @@ sub wait_serial ($self, $args) {
                 $str = substr($str, 0, $LAST_MATCH_END[0]);
                 $matched = 1;
                 last;
-            } elsif ($args->{no_regex} && (my $i = index($str, $r)) >= 0) {
+            }
+            elsif ($args->{no_regex} && (my $i = index($str, $r)) >= 0) {
                 $current_offset += length($r) + $i;
                 $str = substr($str, 0, $i + length($r));
                 $matched = 1;
@@ -911,7 +921,8 @@ sub set_tags_to_assert ($self, $args) {
 }
 
 sub set_assert_screen_timeout ($self, $timeout) {
-    return bmwqemu::fctwarn('set_assert_screen_timeout called with non-numeric timeout') unless looks_like_number($timeout);
+    return bmwqemu::fctwarn('set_assert_screen_timeout called with non-numeric timeout')
+      unless looks_like_number($timeout);
     $self->assert_screen_deadline(time + $timeout);
     return $self->assert_screen_deadline;
 }
@@ -970,13 +981,15 @@ sub check_asserted_screen ($self, $args) {
     my $search_ratio = $n < 0 || $n % FULL_SCREEN_SEARCH_FREQUENCY == 0 ? 1 : 0.02;
     my ($oldimg, $old_search_ratio) = @{$self->assert_screen_last_check || [undef, 0]};
 
-    bmwqemu::diag('no change: ' . time_remaining_str($n)) and return if $n >= 0 && $oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio;
+    bmwqemu::diag('no change: ' . time_remaining_str($n)) and return
+      if $n >= 0 && $oldimg && $oldimg eq $img && $old_search_ratio >= $search_ratio;
 
     $watch->start();
     $watch->{debug} = 0;
 
     my @registered_needles = grep { !$_->{unregistered} } @{$self->assert_screen_needles};
-    my ($foundneedle, $failed_candidates) = $img->search(\@registered_needles, 0, $search_ratio, ($watch->{debug} ? $watch : undef));
+    my ($foundneedle, $failed_candidates)
+      = $img->search(\@registered_needles, 0, $search_ratio, ($watch->{debug} ? $watch : undef));
     $watch->lap("Needle search") unless $watch->{debug};
     if ($foundneedle) {
         $self->_reset_asserted_screen_check_variables;
@@ -999,11 +1012,8 @@ sub check_asserted_screen ($self, $args) {
 
     my $no_match_diag = 'no match: ' . time_remaining_str($n);
     if (my $best_candidate = $failed_candidates->[0]) {
-        $no_match_diag .= sprintf(
-            ", best candidate: %s (%.2f)",
-            $best_candidate->{needle}->{name},
-            1 - sqrt($best_candidate->{error})
-        );
+        $no_match_diag .= sprintf(", best candidate: %s (%.2f)",
+            $best_candidate->{needle}->{name}, 1 - sqrt($best_candidate->{error}));
     }
     bmwqemu::diag($no_match_diag);
 
@@ -1144,7 +1154,8 @@ sub new_ssh_connection ($self, %args) {
                 $tmp_chan->close();
                 bmwqemu::diag "Use existing SSH connection (key:$connection_key)";
                 return $con;
-            } else {
+            }
+            else {
                 bmwqemu::diag "Close broken SSH connection (key:$connection_key)";
                 $con->disconnect();
                 delete $self->{ssh_connections}->{$connection_key};
@@ -1310,7 +1321,8 @@ can be temporarily turned into a warning by setting the environment variable
 'OS_AUTOINST_NO_DEPRECATE_BACKEND_$backend' or the os-autoinst variable
 'NO_DEPRECATE_BACKEND_$backend'
 EOF
-    die $deprecation_message unless $bmwqemu::vars{"NO_DEPRECATE_BACKEND_$backend"} || $ENV{"OS_AUTOINST_NO_DEPRECATE_BACKEND_$backend"};
+    die $deprecation_message
+      unless $bmwqemu::vars{"NO_DEPRECATE_BACKEND_$backend"} || $ENV{"OS_AUTOINST_NO_DEPRECATE_BACKEND_$backend"};
     log::fctwarn $deprecation_message;
 }
 

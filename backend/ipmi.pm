@@ -17,7 +17,9 @@ sub new ($class) {
 
 sub ipmi_cmdline ($self) {
     $bmwqemu::vars{"IPMI_$_"} or die 'Need variable IPMI_$_' foreach qw(HOSTNAME USER PASSWORD);
-    return ('ipmitool', '-I', 'lanplus', '-H', $bmwqemu::vars{IPMI_HOSTNAME}, '-U', $bmwqemu::vars{IPMI_USER}, '-P', $bmwqemu::vars{IPMI_PASSWORD});
+    return (
+        'ipmitool', '-I', 'lanplus', '-H', $bmwqemu::vars{IPMI_HOSTNAME},
+        '-U', $bmwqemu::vars{IPMI_USER}, '-P', $bmwqemu::vars{IPMI_PASSWORD});
 }
 
 sub ipmitool ($self, $cmd, %args) {
@@ -35,7 +37,8 @@ sub ipmitool ($self, $cmd, %args) {
         if ($ret == 0) {
             $self->dell_sleep;
             last;
-        } else {
+        }
+        else {
             sleep 4;
         }
     }
@@ -89,10 +92,12 @@ sub do_start_vm ($self, @) {
     $self->restart_host unless $bmwqemu::vars{IPMI_DO_NOT_RESTART_HOST};
     $self->truncate_serial_file;
     my $sol = $testapi::distri->add_console(
-        'sol', 'ipmi-xterm',
+        'sol',
+        'ipmi-xterm',
         {
             persistent => $bmwqemu::vars{IPMI_SOL_PERSISTENT_CONSOLE} // 1,
-            log => $bmwqemu::vars{HARDWARE_CONSOLE_LOG} // 0});
+            log => $bmwqemu::vars{HARDWARE_CONSOLE_LOG} // 0
+        });
     $sol->backend($self);
     return {};
 }
@@ -108,7 +113,9 @@ sub is_shutdown ($self, @) {
     return $ret =~ m/is off/;
 }
 
-sub check_socket ($self, $fh, $write = undef) { $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write) }
+sub check_socket ($self, $fh, $write = undef) {
+    $self->check_ssh_serial($fh) || $self->SUPER::check_socket($fh, $write);
+}
 
 sub get_mc_status ($self) {
     $self->ipmitool("mc guid");

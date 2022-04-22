@@ -13,11 +13,7 @@ use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 
 use consoles::sshSerial;
 
-my $eagain = [
-    LIBSSH2_ERROR_EAGAIN,
-    'LIBSSH2_ERROR_EAGAIN',
-    'Operation would block'
-];
+my $eagain = [LIBSSH2_ERROR_EAGAIN, 'LIBSSH2_ERROR_EAGAIN', 'Operation would block'];
 
 my $mock_backend = Test::MockObject->new();
 my $mock_ssh = Test::MockObject->new();
@@ -44,12 +40,14 @@ $mock_backend->set_always(new_ssh_connection => $mock_ssh);
 
 $mock_bmwqemu->noop('diag', 'fctinfo', 'log_call');
 
-$mock_channel->mock(blocking => sub ($self, $arg = undef) {
+$mock_channel->mock(
+    blocking => sub ($self, $arg = undef) {
         $self->{blocking} = $arg if defined($arg);
         return $self->{blocking};
-});
+    });
 
-$mock_channel->mock(read => sub ($self, $, $size) {
+$mock_channel->mock(
+    read => sub ($self, $, $size) {
         my $data = shift @{$self->{read_queue}};
 
         if (!defined($data)) {
@@ -64,9 +62,10 @@ $mock_channel->mock(read => sub ($self, $, $size) {
 
         $_[1] = $data;
         return length($data);
-});
+    });
 
-$mock_channel->mock(write => sub ($self, $data) {
+$mock_channel->mock(
+    write => sub ($self, $data) {
         my $limit = shift @{$self->{write_limits}};
 
         if (defined($limit) && $limit < 0) {
@@ -77,15 +76,16 @@ $mock_channel->mock(write => sub ($self, $data) {
         $data = substr($data, 0, $limit) if defined($limit);
         $self->{write_buffer} .= $data;
         return length($data);
-});
+    });
 
 $mock_ssh->set_always(blocking => $mock_channel->blocking($_[1]));
 
-$mock_ssh->mock(error => sub ($self) {
+$mock_ssh->mock(
+    error => sub ($self) {
         return undef unless defined($self->{error});
         return ${$self->{error}}[0] if ((caller(0))[5]);
         return @{$self->{error}};
-});
+    });
 
 $mock_ssh->mock(die_with_error => sub { die $_[1] });
 
@@ -93,12 +93,7 @@ subtest 'Read test' => sub {
     $mock_ssh->{error} = undef;
     $mock_channel->{write_limits} = [];
     $mock_channel->{write_buffer} = '';
-    $mock_channel->{read_queue} = [
-        'First line',
-        'Second line',
-        undef,
-        'Third line'
-    ];
+    $mock_channel->{read_queue} = ['First line', 'Second line', undef, 'Third line'];
     $mock_channel->{blocking} = 1;
 
     my $console = consoles::sshSerial->new(undef, {hostname => 'localhost'});
@@ -131,15 +126,8 @@ subtest 'Read test' => sub {
     $serial_screen_mock->unmock('elapsed');
 
     # Test that read_until() can correctly assemble fragmented messages
-    $mock_channel->{read_queue} = [
-        'This message ',
-        undef,
-        'is fragmented',
-        ' a little b',
-        undef,
-        'it more t',
-        'han usual.',
-    ];
+    $mock_channel->{read_queue}
+      = ['This message ', undef, 'is fragmented', ' a little b', undef, 'it more t', 'han usual.',];
 
     $ret = $screen->read_until('frag', 1);
     ok $$ret{matched}, 'data can be read partially';

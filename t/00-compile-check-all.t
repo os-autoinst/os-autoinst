@@ -20,10 +20,8 @@ $Test::Strict::TEST_SYNTAX = 1;
 $Test::Strict::TEST_STRICT = 1;
 $Test::Strict::TEST_WARNINGS = 1;
 $Test::Strict::TEST_SKIP = [
-    't/data/tests/main.pm',
-    't/data/tests/product/main.pm',
-    't/pool/product/foo/main.pm',
-    'tools/lib/perlcritic/Perl/Critic/Policy/HashKeyQuotes.pm',
+    't/data/tests/main.pm', 't/data/tests/product/main.pm',
+    't/pool/product/foo/main.pm', 'tools/lib/perlcritic/Perl/Critic/Policy/HashKeyQuotes.pm',
 ];
 
 # Prevent any non-tracked files or files within .git (e.g. in.git/rr-cache) to

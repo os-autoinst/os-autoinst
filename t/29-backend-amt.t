@@ -24,11 +24,12 @@ my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 my $ipc_run_mock = Test::MockModule->new('IPC::Run');
 
 sub redefine_ipc_run_cmd ($expected_stdout = ':ReturnValue>0<') {
-    $ipc_run_mock->redefine(run => sub ($args, $stdin, $stdout, $stderr) {
+    $ipc_run_mock->redefine(
+        run => sub ($args, $stdin, $stdout, $stderr) {
             $$stdin = 'stdin';
             $$stdout = $expected_stdout;
             $$stderr = 'stderr';
-    });
+        });
 }
 
 $bmwqemu::vars{AMT_HOSTNAME} = 'localhost';
@@ -48,7 +49,8 @@ redefine_ipc_run_cmd(':PowerState>0<');
 is $backend->get_power_state, 0, 'can call get_power_state';
 is $backend->is_shutdown, '', 'can call is_shutdown';
 is $backend->set_power_state('foo'), '', 'can call set_power_state';
-like exception { $backend->select_next_boot('hdd') }, qr/ChangeBootOrder failed/, 'select_next_boot evaluates wsman command';
+like exception { $backend->select_next_boot('hdd') }, qr/ChangeBootOrder failed/,
+  'select_next_boot evaluates wsman command';
 redefine_ipc_run_cmd;
 my $backend_mock = Test::MockModule->new('backend::amt');
 $backend_mock->redefine(is_shutdown => 1);

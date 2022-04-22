@@ -32,7 +32,8 @@ sub get_cmd ($self, $cmd) {
         'GENERAL_HW_POWEROFF_CMD' => 'GENERAL_HW_POWEROFF_ARGS',
         'GENERAL_HW_IMAGE_CMD' => 'GENERAL_HW_IMAGE_ARGS',
     );
-    my $args = $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}} if $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}};
+    my $args = $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}}
+      if $bmwqemu::vars{$GENERAL_HW_ARG_VARIABLES_BY_CMD{$cmd}};
 
     $cmd = $bmwqemu::vars{$cmd} or die "Need test variable '$cmd'";
     $cmd = "$dir/" . basename($cmd);
@@ -76,9 +77,11 @@ sub restart_host ($self) {
 sub power ($self, $args) {
     if ($args->{action} eq 'on') {
         $self->run_cmd('GENERAL_HW_POWERON_CMD');
-    } elsif ($args->{action} eq 'off') {
+    }
+    elsif ($args->{action} eq 'off') {
         $self->run_cmd('GENERAL_HW_POWEROFF_CMD');
-    } else {
+    }
+    else {
         $self->notimplemented;
     }
 }
@@ -153,13 +156,17 @@ sub do_start_vm ($self, @) {
     $self->restart_host;
     $self->relogin_vnc if ($bmwqemu::vars{GENERAL_HW_VNC_IP});
     $self->reconnect_video_stream if ($bmwqemu::vars{GENERAL_HW_VIDEO_STREAM_URL});
-    $self->start_serial_grab if (($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD}) && !$bmwqemu::vars{GENERAL_HW_NO_SERIAL});
+    $self->start_serial_grab
+      if (($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD})
+        && !$bmwqemu::vars{GENERAL_HW_NO_SERIAL});
     return {};
 }
 
 sub do_stop_vm ($self, @) {
     $self->poweroff_host;
-    $self->stop_serial_grab() if (($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD}) && !$bmwqemu::vars{GENERAL_HW_NO_SERIAL});
+    $self->stop_serial_grab()
+      if (($bmwqemu::vars{GENERAL_HW_VNC_IP} || $bmwqemu::vars{GENERAL_HW_SOL_CMD})
+        && !$bmwqemu::vars{GENERAL_HW_NO_SERIAL});
     $self->disable_consoles;
     return {};
 }

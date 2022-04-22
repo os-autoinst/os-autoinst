@@ -267,7 +267,13 @@ sub _handle_found_needle {
     $autotest::current_test->record_screenmatch($img, $foundneedle, $tags, $rsp->{candidates}, $frame);
     my $lastarea = $foundneedle->{area}->[-1];
     bmwqemu::fctres(
-        sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x} // 0, $lastarea->{y} // 0));
+        sprintf(
+            "found %s, similarity %.2f @ %d/%d",
+            $foundneedle->{needle}->{name},
+            $lastarea->{similarity},
+            $lastarea->{x} // 0,
+            $lastarea->{y} // 0
+        ));
     $last_matched_needle = $foundneedle;
     return $foundneedle;
 }
@@ -311,11 +317,13 @@ sub _check_backend_response {
 
         # do a special rpc call to isotovideo which will block if the test should be paused
         # (if the test should not be paused this call will return 0; on resume (after pause) it will return 1)
-        query_isotovideo('report_timeout', {
+        query_isotovideo(
+            'report_timeout',
+            {
                 tags => $tags,
                 msg => $status_message,
                 check => $check,
-        }) and return 'try_again';
+            }) and return 'try_again';
 
         if ($check) {
             # only care for the last one
@@ -391,7 +399,8 @@ sub _check_or_assert {
     $args{timeout} = bmwqemu::scale_timeout($args{timeout});
 
     while (1) {
-        my $rsp = query_isotovideo('check_screen', {mustmatch => $mustmatch, check => $check, timeout => $args{timeout}, no_wait => $args{no_wait}});
+        my $rsp = query_isotovideo('check_screen',
+            {mustmatch => $mustmatch, check => $check, timeout => $args{timeout}, no_wait => $args{no_wait}});
 
         # check backend response
         # (implemented as separate function because it needs to call itself)
@@ -903,7 +912,10 @@ sub wait_serial {
             no_regex => 0,
             buffer_size => undef,
             record_output => undef,
-        }, ['timeout', 'expect_not_found'], @_);
+        },
+        ['timeout', 'expect_not_found'],
+        @_
+    );
 
     bmwqemu::log_call(%args);
     $args{timeout} = bmwqemu::scale_timeout($args{timeout});
@@ -984,7 +996,10 @@ sub assert_script_run {
             timeout => 90,
             fail_message => '',
             quiet => testapi::get_var('_QUIET_SCRIPT_CALLS')
-        }, ['timeout', 'fail_message'], @_);
+        },
+        ['timeout', 'fail_message'],
+        @_
+    );
 
     bmwqemu::log_call(cmd => $cmd, %args);
     my $ret = $distri->script_run($cmd, timeout => $args{timeout}, quiet => $args{quiet});
@@ -1030,7 +1045,10 @@ sub script_run {
             output => '',
             quiet => testapi::get_var('_QUIET_SCRIPT_CALLS'),
             die_on_timeout => $distri->{script_run_die_on_timeout},
-        }, ['timeout'], @_);
+        },
+        ['timeout'],
+        @_
+    );
 
     bmwqemu::log_call(cmd => $cmd, %args);
     my $die_on_timeout = delete $args{die_on_timeout};
@@ -1038,17 +1056,20 @@ sub script_run {
     if ($args{timeout} > 0) {
         if ($die_on_timeout > 0) {
             croak("command '$cmd' timed out") if !defined($ret);
-        } else {
+        }
+        else {
             # This is to warn users of script_run(), if they do not use
             # die_on_timeout => 0 explicit.
             if ($die_on_timeout < 0) {
                 my ($package, $filename, $line) = caller;
                 my $casedir = testapi::get_var(CASEDIR => '');
                 $filename =~ s%^\Q$casedir\E/%%;
-                bmwqemu::fctwarn("DEPRECATED call of script_run() in $filename:$line " .
-                      'add `die_on_timeout => ?` to the call or set
+                bmwqemu::fctwarn(
+                        "DEPRECATED call of script_run() in $filename:$line "
+                      . 'add `die_on_timeout => ?` to the call or set
                       $distri->{script_run_die_on_timeout} to avoid this
-                      warning');
+                      warning'
+                );
             }
         }
     }
@@ -1161,7 +1182,10 @@ sub script_output {
             proceed_on_failure => undef,    # fail on error by default
             quiet => testapi::get_var('_QUIET_SCRIPT_CALLS'),
             type_command => undef,
-        }, ['timeout'], @_);
+        },
+        ['timeout'],
+        @_
+    );
 
     return $distri->script_output($script, %args);
 }
@@ -1278,10 +1302,7 @@ sub validate_script_output {
     else {
         croak "Invalid use of validate_script_output(), second arg must be a coderef or regexp";
     }
-    $autotest::current_test->record_resultfile(
-        'validate_script_output', $message,
-        result => $res,
-    );
+    $autotest::current_test->record_resultfile('validate_script_output', $message, result => $res,);
     if ($res eq 'fail') {
         croak "output not validating";
     }
@@ -1473,8 +1494,14 @@ sub type_string {
     my $wait_still = $args{wait_still_screen} // 0;
     my $wait_timeout = $args{timeout} // 30;
     my $wait_sim_level = $args{similarity_level} // 47;
-    bmwqemu::log_call(string => $string, max_interval => $max_interval, wait_screen_changes => $wait, wait_still_screen => $wait_still,
-        timeout => $wait_timeout, similarity_level => $wait_sim_level);
+    bmwqemu::log_call(
+        string => $string,
+        max_interval => $max_interval,
+        wait_screen_changes => $wait,
+        wait_still_screen => $wait_still,
+        timeout => $wait_timeout,
+        similarity_level => $wait_sim_level
+    );
     my @pieces;
     if ($wait) {
         # split string into an array of pieces of specified size
@@ -1486,13 +1513,21 @@ sub type_string {
     }
     for my $piece (@pieces) {
         if ($wait) {
-            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); };
+            wait_screen_change {
+                query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval});
+            };
         }
         else {
             query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval});
         }
-        if ($wait_still && !wait_still_screen(stilltime => $wait_still,
-                timeout => $wait_timeout, similarity_level => $wait_sim_level)) {
+        if (
+            $wait_still
+            && !wait_still_screen(
+                stilltime => $wait_still,
+                timeout => $wait_timeout,
+                similarity_level => $wait_sim_level
+            ))
+        {
             die "wait_still_screen timed out after ${wait_timeout}s!";
         }
     }
@@ -1659,7 +1694,8 @@ sub mouse_drag {
     }
     # If neither coordinates nor a needle is provided, report an error and quit.
     else {
-        die "The starting point of the drag was not correctly provided. Either provide the 'startx' and 'starty' coordinates, or a needle marking the starting point.";
+        die
+"The starting point of the drag was not correctly provided. Either provide the 'startx' and 'starty' coordinates, or a needle marking the starting point.";
     }
 
     # Repeat the same for endpoint coordinates or needles.
@@ -1673,7 +1709,8 @@ sub mouse_drag {
         ($endx, $endy) = _calculate_clickpoint($end_matched_needle);
     }
     else {
-        die "The ending point of the drag was not correctly provided. Either provide the 'endx' and 'endy' coordinates, or a needle marking the end point.";
+        die
+"The ending point of the drag was not correctly provided. Either provide the 'endx' and 'endy' coordinates, or a needle marking the end point.";
     }
     # Get the button variable. If no button has been provided, assume the "left" button.
     my $button = $args{button} // "left";
@@ -2220,8 +2257,11 @@ in the corresponding variable
 
 sub data_url($) {
     my ($name) = @_;
-    autoinst_url($name =~ /^REPO_\d$/ ? "/assets/repo/" . get_var($name) :
-          $name =~ /^ASSET_\d$/ ? "/assets/other/" . get_var($name) : "/data/$name");
+    autoinst_url(
+          $name =~ /^REPO_\d$/ ? "/assets/repo/" . get_var($name)
+        : $name =~ /^ASSET_\d$/ ? "/assets/other/" . get_var($name)
+        : "/data/$name"
+    );
 }
 
 

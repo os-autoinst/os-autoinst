@@ -33,28 +33,32 @@ bmwqemu::init_logger;
 
 my $baseclass_mock = Test::MockModule->new('backend::baseclass');
 my @requested_screen_updates;
-$baseclass_mock->redefine(run_capture_loop => sub {
+$baseclass_mock->redefine(
+    run_capture_loop => sub {
         sleep 5;    # simulate that time passes (mocked via Test::Mock::Time)
         $baseclass_mock->original('run_capture_loop')->(@_);
-});
-$baseclass_mock->redefine(request_screen_update => sub ($self, $args) {
+    });
+$baseclass_mock->redefine(
+    request_screen_update => sub ($self, $args) {
         is $args->{incremental}, 0, 'screen update is always expected to be non-incremental within this test';
         push @requested_screen_updates, [$args];
-});
+    });
 
 my $baseclass = backend::baseclass->new();
 
 subtest 'format_vtt_timestamp' => sub {
     my $timestamp = 1543917024.24791;
     $baseclass->{video_frame_number} = 0;
-    is($baseclass->format_vtt_timestamp($timestamp),
+    is(
+        $baseclass->format_vtt_timestamp($timestamp),
         "\n0\n00:00:00.000 --> 00:00:00.041\n[2018-12-04T09:50:24.247]\n",
         'frame number 0'
     );
 
     $timestamp += .1;
     $baseclass->{video_frame_number} = 1;
-    is($baseclass->format_vtt_timestamp($timestamp),
+    is(
+        $baseclass->format_vtt_timestamp($timestamp),
         "\n1\n00:00:00.041 --> 00:00:00.083\n[2018-12-04T09:50:24.347]\n",
         'frame number 1'
     );
@@ -82,7 +86,8 @@ subtest 'not implemented' => sub {
         my ($m, @args) = @$test;
         eval { $dummy->$m(@args) };
         my $err = $@;
-        like $err, qr{backend method '$m' not implemented for class 'dummy'}, "notimplemented() works for '\$self->$m(@args)'";
+        like $err, qr{backend method '$m' not implemented for class 'dummy'},
+          "notimplemented() works for '\$self->$m(@args)'";
     }
 };
 
@@ -93,14 +98,16 @@ subtest 'SSH utilities' => sub {
     my $ssh_obj_data = {};    # used to store Net::SSH2 fake data per object
     my @net_ssh2_error = ();
     my $net_ssh2 = Test::MockModule->new('Net::SSH2');
-    $net_ssh2->redefine(new => sub {
+    $net_ssh2->redefine(
+        new => sub {
             my ($class, %opts) = @_;
             my $self = Test::MockObject->new();
             my $id = $self->{my_custom_id} = bmwqemu::random_string(32);
             die 'Identifier not unique' if exists $ssh_obj_data->{$id};
             $ssh_obj_data->{$id} = $self;
 
-            $self->mock(connect => sub {
+            $self->mock(
+                connect => sub {
                     my ($self, $hostname, $port) = @_;
                     is($hostname, $ssh_expect->{hostname}, 'Connect to correct hostname');
                     # if unspecified, default to port 22
@@ -109,31 +116,36 @@ subtest 'SSH utilities' => sub {
                     $self->{port} = $port;
                     $self->{blocking} = 0;
                     return 1;
-            });
+                });
             $self->mock(hostname => sub { return $ssh_obj_data->{refaddr(shift)}->{hostname} });
-            $self->mock(auth => sub {
+            $self->mock(
+                auth => sub {
                     my ($self, %args) = @_;
                     is($args{username}, $ssh_expect->{username}, 'Correct username for ssh connection');
                     is($args{password}, $ssh_expect->{password}, 'Correct password for ssh connection');
                     return 1;
-            });
+                });
             $self->mock(auth_agent => sub { return 1; });
-            $self->mock(auth_ok => sub {
+            $self->mock(
+                auth_ok => sub {
                     my $self = shift;
                     $self->{connected} = !!$ssh_auth_ok;
                     return $ssh_auth_ok;
-            });
-            $self->mock(blocking => sub {
+                });
+            $self->mock(
+                blocking => sub {
                     my ($self, $v) = @_;
                     $self->{blocking} = $v if defined($v);
                     return $self->{blocking};
-            });
-            $self->mock(disconnect => sub {
+                });
+            $self->mock(
+                disconnect => sub {
                     shift->{connected} = 0;
                     return 1;
-            });
+                });
             $self->mock(error => sub { return @net_ssh2_error; });
-            $self->mock(sock => sub {
+            $self->mock(
+                sock => sub {
                     my $self = shift;
                     unless ($self->{sock}) {
                         my $mock_sock = Test::MockObject->new();
@@ -141,14 +153,16 @@ subtest 'SSH utilities' => sub {
                         $self->{sock} = $mock_sock;
                     }
                     return $self->{sock};
-            });
-            $self->mock(channel => sub {
+                });
+            $self->mock(
+                channel => sub {
                     my $self = shift;
                     die("Not connected") unless ($self->{connected});
                     return $fail_on_channel_call = undef if $fail_on_channel_call;
                     my $mock_channel = Test::MockObject->new();
                     $mock_channel->{ssh} = $self;
-                    $mock_channel->mock(exec => sub {
+                    $mock_channel->mock(
+                        exec => sub {
                             my ($self, $cmd) = @_;
                             $self->{cmd} = $cmd;
                             $self->{eof} = 0;
@@ -158,12 +172,13 @@ subtest 'SSH utilities' => sub {
                                 $self->{stderr} = '';
                             }
                             return 1;
-                    });
-                    $mock_channel->mock(read2 => sub {
+                        });
+                    $mock_channel->mock(
+                        read2 => sub {
                             my ($self) = @_;
                             $self->{eof} = 1;
                             return ($self->{stdout}, $self->{stderr});
-                    });
+                        });
                     $mock_channel->mock(eof => sub { return shift->{eof}; });
                     $mock_channel->mock(blocking => sub { return shift->{ssh}->blocking(shift) });
                     $mock_channel->mock(pty => sub { return 1; });
@@ -172,10 +187,10 @@ subtest 'SSH utilities' => sub {
                     $mock_channel->mock(ext_data => sub { my ($self, $v) = @_; $self->{ext_data} = $v; });
                     $mock_channel->mock(close => sub { return 1; });
                     return $mock_channel;
-            });
+                });
 
             return $self;
-    });
+        });
     sub refaddr { return shift->{my_custom_id}; }
 
     my ($ssh1, $ssh2, $ssh3, $ssh4, $ssh5, $ssh6, $ssh7, $ssh8);
@@ -187,30 +202,38 @@ subtest 'SSH utilities' => sub {
     $log::logger = Mojo::Log->new(level => 'debug');
 
     # 1st SSH instance
-    stderr_like { $ssh1 = $baseclass->new_ssh_connection(%ssh_creds) } $exp_log_new, 'New SSH connection announced in logs 1';
+    stderr_like { $ssh1 = $baseclass->new_ssh_connection(%ssh_creds) } $exp_log_new,
+      'New SSH connection announced in logs 1';
     # 2nd SSH instance
-    stderr_like { $ssh2 = $baseclass->new_ssh_connection(%ssh_creds) } $exp_log_new, 'New SSH connection announced in logs 2';
+    stderr_like { $ssh2 = $baseclass->new_ssh_connection(%ssh_creds) } $exp_log_new,
+      'New SSH connection announced in logs 2';
     # 3rd SSH instance
-    stderr_like { $ssh3 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_new, 'New SSH connection announced in logs (first keep_open=>1)';
-    stderr_unlike { $ssh4 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_new, 'No new SSH connection announced in logs';
-    stderr_like { $ssh5 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_existing, 'Existing SSH connection announced in logs';
+    stderr_like { $ssh3 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_new,
+      'New SSH connection announced in logs (first keep_open=>1)';
+    stderr_unlike { $ssh4 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_new,
+      'No new SSH connection announced in logs';
+    stderr_like { $ssh5 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_existing,
+      'Existing SSH connection announced in logs';
 
     # New connection for different username
     $ssh_expect->{username} = 'foo911';
     $exp_log_new = qr/SSH connection to foo911\@foo\.bar established/;
     # 4th SSH instance
-    stderr_like { $ssh6 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds, username => 'foo911') } $exp_log_new, 'New SSH connection announced in logs -- username=foo911';
+    stderr_like { $ssh6 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds, username => 'foo911') }
+    $exp_log_new, 'New SSH connection announced in logs -- username=foo911';
     $ssh_expect->{username} = 'root';
 
     # New connection if keeped connection is broken
     $fail_on_channel_call = 1;
     # 5th SSH instance but 3rd get closed
-    stderr_like { $ssh7 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_renew, 'Existing SSH connection announced in logs';
+    stderr_like { $ssh7 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds) } $exp_log_renew,
+      'Existing SSH connection announced in logs';
 
     # New connection using a different port
     $ssh_expect->{port} = 2222;
     $exp_log_new = qr/SSH connection to root\@foo\.bar:2222 established/;
-    stderr_like { $ssh8 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds, port => 2222) } $exp_log_new, 'New SSH connection announced in logs -- port=2222';
+    stderr_like { $ssh8 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds, port => 2222) } $exp_log_new,
+      'New SSH connection announced in logs -- port=2222';
     $ssh_expect->{port} = undef;
 
     $log::logger = $default_logger;
@@ -224,7 +247,11 @@ subtest 'SSH utilities' => sub {
     isnt(refaddr($ssh4), refaddr($ssh8), "Got same connection with different ports");
 
     $ssh_auth_ok = 0;
-    throws_ok(sub { $baseclass->new_ssh_connection(%ssh_creds) }, qr/Error connecting to/, 'Got exception on connection error');
+    throws_ok(
+        sub { $baseclass->new_ssh_connection(%ssh_creds) },
+        qr/Error connecting to/,
+        'Got exception on connection error'
+    );
     $ssh_auth_ok = 1;
 
     # check run_ssh_cmd() usage
@@ -235,11 +262,16 @@ subtest 'SSH utilities' => sub {
 
     # Create a SSH session implecit with `run_ssh_cmd()`
     $ssh_expect->{password} = '2+3=5';
-    is($baseclass->run_ssh_cmd('echo -n "foo"', %ssh_creds, password => '2+3=5'), 0, 'Allow SSH credentials per run_ssh_cmd() call');
+    is($baseclass->run_ssh_cmd('echo -n "foo"', %ssh_creds, password => '2+3=5'),
+        0, 'Allow SSH credentials per run_ssh_cmd() call');
 
     my $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
     $baseclass->run_ssh_cmd('echo -n "foo"', %ssh_creds, password => '2+3=5', keep_open => 0);
-    is($num_ssh_connect + 1, scalar(keys(%{$ssh_obj_data})), 'Ensure run_ssh_cmd(keep_open => 0) uses a new SSH connection');
+    is(
+        $num_ssh_connect + 1,
+        scalar(keys(%{$ssh_obj_data})),
+        'Ensure run_ssh_cmd(keep_open => 0) uses a new SSH connection'
+    );
 
     my @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
     my @disconnected_ssh = grep { !$_->{connected} } values(%$ssh_obj_data);
@@ -270,7 +302,8 @@ subtest 'SSH utilities' => sub {
 
         $ssh_expect = {username => 'serial', password => 'XXX', hostname => 'serial.host'};
         $num_ssh_connect = scalar(keys(%{$ssh_obj_data}));
-        my ($ssh, $chan) = $baseclass->start_ssh_serial(username => 'serial', password => 'XXX', hostname => 'serial.host');
+        my ($ssh, $chan)
+          = $baseclass->start_ssh_serial(username => 'serial', password => 'XXX', hostname => 'serial.host');
         is($num_ssh_connect + 1, scalar(keys(%{$ssh_obj_data})), 'Ensure start_ssh_serial() uses a new SSH connection');
         is($chan->{ext_data}, 'merge', 'STDOUT and STDERR are merged');
         is($ssh->blocking(), 0, 'We run SSH in none blocking mode');
@@ -278,7 +311,8 @@ subtest 'SSH utilities' => sub {
         $baseclass->truncate_serial_file();
         my $expect_output = "FOO$/" x 4096;
         my $channel_read_string = $expect_output;
-        $chan->mock(read => sub {
+        $chan->mock(
+            read => sub {
                 my ($self, undef, $max) = @_;
                 return unless (defined($channel_read_string));
                 $max //= 4096;
@@ -286,9 +320,10 @@ subtest 'SSH utilities' => sub {
                 my $ret = length($_[1]);
                 $channel_read_string = substr($channel_read_string, $ret);
                 return $ret;
-        });
+            });
         my $exit_value;
-        stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } $expect_output, 'Serial output is printed to STDOUT';
+        stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } $expect_output,
+          'Serial output is printed to STDOUT';
         is(path($baseclass->{serialfile})->slurp(), $expect_output, 'Serial output is written to serial file');
         is($exit_value, 1, 'Check return value on success');
 
@@ -391,18 +426,52 @@ Welcome to GRUB!
 EOT
 
     # set default arguments for wait_serial set by testapi.pm
-    my %dargs = (timeout => 90, expect_not_found => 0, quiet => undef, no_regex => 0, buffer_size => undef, record_output => undef);
+    my %dargs = (
+        timeout => 90,
+        expect_not_found => 0,
+        quiet => undef,
+        no_regex => 0,
+        buffer_size => undef,
+        record_output => undef
+    );
 
-    is_deeply($baseclass->wait_serial({%dargs, regexp => 'simple', no_regex => 1}), {matched => 1, string => 'Just a simple'}, 'Test string literal on the first line');
-    is_deeply($baseclass->wait_serial({%dargs, regexp => 'GRUB2', no_regex => 1}), {matched => 1, string => " text\nJust a simple another text that will disappear\nWelcome to GRUB2"}, 'Multiline literal string match');
-    is_deeply($baseclass->wait_serial({%dargs, regexp => qr/loading\s+Boot\d{4}\s+.*\)/}), {matched => 1, string => qq[\nBdsDxe: loading Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)]}, 'One line regex match');
-    is_deeply($baseclass->wait_serial({%dargs, regexp => qr/\(0x8,0x0\)/}), {matched => 1, string => '
+    is_deeply(
+        $baseclass->wait_serial({%dargs, regexp => 'simple', no_regex => 1}),
+        {matched => 1, string => 'Just a simple'},
+        'Test string literal on the first line'
+    );
+    is_deeply(
+        $baseclass->wait_serial({%dargs, regexp => 'GRUB2', no_regex => 1}),
+        {matched => 1, string => " text\nJust a simple another text that will disappear\nWelcome to GRUB2"},
+        'Multiline literal string match'
+    );
+    is_deeply(
+        $baseclass->wait_serial({%dargs, regexp => qr/loading\s+Boot\d{4}\s+.*\)/}),
+        {matched => 1, string => qq[\nBdsDxe: loading Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)]},
+        'One line regex match'
+    );
+    is_deeply(
+        $baseclass->wait_serial({%dargs, regexp => qr/\(0x8,0x0\)/}),
+        {
+            matched => 1,
+            string => '
 Some leftover
 UUID=2e41327c-ca46-4c5c-93a2-b41933d40ca8 btrfs 24G 589.7M 21.4G 2% /
 UUID=2e41327c-ca46-4c5c-93a2-b41933d40ca8 btrfs 24G 589.7M 21.4G 2% /opt
-BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)'}, 'Test regex match multiline leftover');
-    is_deeply($baseclass->wait_serial({%dargs, regexp => qr/welcome$/, timeout => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, "Test regex mismatch");
-    is_deeply($baseclass->wait_serial({%dargs, regexp => 'something wrong', timeout => 1, no_regex => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, "Test string literal mismatch");
+BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)'
+        },
+        'Test regex match multiline leftover'
+    );
+    is_deeply(
+        $baseclass->wait_serial({%dargs, regexp => qr/welcome$/, timeout => 1}),
+        {matched => 0, string => "\nWelcome to GRUB!\n"},
+        "Test regex mismatch"
+    );
+    is_deeply(
+        $baseclass->wait_serial({%dargs, regexp => 'something wrong', timeout => 1, no_regex => 1}),
+        {matched => 0, string => "\nWelcome to GRUB!\n"},
+        "Test string literal mismatch"
+    );
 };
 
 subtest check_select_rate => sub {
@@ -413,30 +482,37 @@ subtest check_select_rate => sub {
         my $buckets = {};
         for my $loop (1 .. ($hit_limit - 1)) {
             for my $fd (42 .. 45) {
-                is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, $fd, 0), 0, "$loop hit on $fd return 0");
+                is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, $fd, 0),
+                    0, "$loop hit on $fd return 0");
             }
         }
-        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, 0), 0, "The fd 42 does not hit the limit, as time isn't up");
-        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 0, "The fd 42 does not hit the limit, cause not all fd's hit it!");
+        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, 0),
+            0, "The fd 42 does not hit the limit, as time isn't up");
+        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1),
+            0, "The fd 42 does not hit the limit, cause not all fd's hit it!");
         is($buckets->{BUCKET}->{42}, 1, "The counter of fd 42 was reset to 1");
     };
 
     subtest single_fd_hit_the_limit => sub {
         my $buckets = {};
         for my $loop (1 .. ($hit_limit)) {
-            is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, 0), 0, "$loop hit on fd 42 after reset.");
+            is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, 0),
+                0, "$loop hit on fd 42 after reset.");
         }
-        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 1, "The fd 42 hit now the limit.");
+        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1),
+            1, "The fd 42 hit now the limit.");
     };
 
     subtest all_fds_hit_the_limit => sub {
         my $buckets = {};
         for my $loop (1 .. ($hit_limit)) {
             for my $fd (42 .. 45) {
-                is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, $fd, 0), 0, "$loop hit on $fd return 0");
+                is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, $fd, 0),
+                    0, "$loop hit on $fd return 0");
             }
         }
-        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1), 1, "Hit the limit, as all fds hit it!");
+        is(backend::baseclass::check_select_rate($buckets, $time_limit, $hit_limit, 42, $time_limit + 1),
+            1, "Hit the limit, as all fds hit it!");
     };
 };
 

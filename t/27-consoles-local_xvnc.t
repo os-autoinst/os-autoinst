@@ -21,8 +21,12 @@ my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
-BEGIN { *consoles::localXvnc::system = sub { 1 } }
-BEGIN { *CORE::GLOBAL::sleep = sub { 1 } }
+BEGIN {
+    *consoles::localXvnc::system = sub { 1 }
+}
+BEGIN {
+    *CORE::GLOBAL::sleep = sub { 1 }
+}
 
 # mock external tool for testing
 $ENV{OS_AUTOINST_XDOTOOL} = 'true';

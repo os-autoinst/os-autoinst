@@ -48,8 +48,10 @@ subtest 'handling VNC stall, malformed RFB protocol on re-connect' => sub {
     combined_like {
         throws_ok {
             $c->send_update_request;
-        } qr/Malformed RFB protocol: REB 003\.006/, 'dies on malformed RFB protocol';
-    } qr/considering VNC stalled/, 'VNC stall logged';
+        }
+        qr/Malformed RFB protocol: REB 003\.006/, 'dies on malformed RFB protocol';
+    }
+    qr/considering VNC stalled/, 'VNC stall logged';
     is scalar @sent, 1, 'no further message sent' or diag explain \@sent;
 };
 
@@ -60,15 +62,13 @@ subtest 'handling connect timeout' => sub {
     $c->hostname('127.0.0.100');
     $inet_mock->redefine(new => sub { ++$attempts; undef });
     _setup_rfb_magic;
-    combined_like {
-        throws_ok { $c->login } 'OpenQA::Exception::VNCSetupError', 'dies on connect timeout' }
+    combined_like { throws_ok { $c->login } 'OpenQA::Exception::VNCSetupError', 'dies on connect timeout' }
     qr/.*Error connecting to.*/, 'error logged';
     is $attempts, 7, 'login attempts for local hostname';
     $attempts = 0;
     $c->hostname('10.161.145.95');
-    combined_like {
-        throws_ok { $c->login } 'OpenQA::Exception::VNCSetupError', 'dies on connect timeout (2)'
-    } qr/.*Error connecting to.*/, 'error logged (2)';
+    combined_like { throws_ok { $c->login } 'OpenQA::Exception::VNCSetupError', 'dies on connect timeout (2)' }
+    qr/.*Error connecting to.*/, 'error logged (2)';
     is $attempts, 12, 'login attempts for remote hostname';
 };
 

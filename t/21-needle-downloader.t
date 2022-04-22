@@ -18,10 +18,11 @@ use needle;
 # mock user agent and file
 my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');
 my @queried_urls;
-$user_agent_mock->redefine(get => sub ($self, $url) {
+$user_agent_mock->redefine(
+    get => sub ($self, $url) {
         push(@queried_urls, $url);
         return $user_agent_mock->original('get')->(@_);
-});
+    });
 
 # setup needle directory
 my $needles_dir = path(tempdir, 'needles_dir');
@@ -30,15 +31,19 @@ needle::set_needles_dir($needles_dir);
 
 subtest 'deduce URL for needle download from test variable OPENQA_URL' => sub {
     $bmwqemu::vars{OPENQA_URL} = 'https://openqa1-opensuse';
-    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'https://openqa1-opensuse', 'existing scheme not overridden');
+    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url,
+        'https://openqa1-opensuse', 'existing scheme not overridden');
     $bmwqemu::vars{OPENQA_URL} = 'not/a/proper/hostname';
     is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'http:not/a/proper/hostname', 'hostname not present');
     $bmwqemu::vars{OPENQA_HOSTNAME} = 'openqa1-opensuse';
-    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'http://openqa1-opensuse', 'hostname taken from OPENQA_HOSTNAME if not present');
+    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url,
+        'http://openqa1-opensuse', 'hostname taken from OPENQA_HOSTNAME if not present');
     $bmwqemu::vars{OPENQA_URL} = 'openqa';
-    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'http://openqa', 'domain is treated as host (and not relative path)');
+    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url,
+        'http://openqa', 'domain is treated as host (and not relative path)');
     $bmwqemu::vars{OPENQA_URL} = 'localhost:9526';
-    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url, 'http://localhost:9526', 'domain:port is treated as host + port (and not protocol + path)');
+    is(OpenQA::Isotovideo::NeedleDownloader->new()->openqa_url,
+        'http://localhost:9526', 'domain:port is treated as host + port (and not protocol + path)');
 };
 
 # setup a NeedleDownloader instance
@@ -89,8 +94,7 @@ subtest 'add relevant downloads' => sub {
         {
             target => $needles_dir . '/bar.png',
             url => 'http://openqa/needles/2/image',
-        }
-    );
+        });
 
     # actually add the downloads
     stderr_like { $downloader->add_relevant_downloads(\@new_needles) }
@@ -111,14 +115,13 @@ subtest 'download added URLs' => sub {
     is_deeply(\@queried_urls, [], 'no URLs queried so far');
 
     stderr_like { $downloader->download() }
-    qr/.*download new needle.*\n.*(failed to download.*server returned 404|internal error occurred).*/,
-      'errors logged';
+    qr/.*download new needle.*\n.*(failed to download.*server returned 404|internal error occurred).*/, 'errors logged';
 
-    is_deeply(\@queried_urls, [
-            'http://openqa/needles/1/json',
-            'http://openqa/needles/2/json',
-            'http://openqa/needles/2/image',
-    ], 'right URLs queried');
+    is_deeply(
+        \@queried_urls,
+        ['http://openqa/needles/1/json', 'http://openqa/needles/2/json', 'http://openqa/needles/2/image',],
+        'right URLs queried'
+    );
 };
 
 remove_tree($needles_dir);

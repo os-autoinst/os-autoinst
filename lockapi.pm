@@ -46,7 +46,10 @@ sub _lock_action ($name, $where = undef) {
 # Log info about event and it's location
 sub _log ($name, %args) {
     # Generate log message
-    my $job = $args{where} ? ((get_job_info($args{where}) // {})->{settings}->{TEST} // '?') . " #$args{where}" : 'parent job';
+    my $job
+      = $args{where}
+      ? ((get_job_info($args{where}) // {})->{settings}->{TEST} // '?') . " #$args{where}"
+      : 'parent job';
     my $msg = "Wait for $name (on $job)";
     $msg .= " - $args{info}" if $args{info};
     my $subject = 'Paused';
@@ -71,7 +74,7 @@ sub mutex_lock ($name, $where = undef) {
     while (1) {
         my $res = _lock_action($name, $where);
         return 1 if $res;
-        bmwqemu::diag("mutex lock '$name' unavailable, sleeping " . POLL_INTERVAL . ' seconds');    # uncoverable statement
+        bmwqemu::diag("mutex lock '$name' unavailable, sleeping " . POLL_INTERVAL . ' seconds'); # uncoverable statement
         sleep POLL_INTERVAL;    # uncoverable statement
     }
 }
@@ -107,7 +110,10 @@ sub mutex_wait ($name, $where = undef, $info = undef) {
 sub barrier_create ($name, $tasks = undef, @) {
     bmwqemu::mydie('missing barrier name') unless $name;
     bmwqemu::mydie('missing number of barrier task') unless $tasks;
-    return _api_call_with_logging_and_error_handling("barrier create '$name' for $tasks tasks", post => 'barrier', {name => $name, tasks => $tasks});
+    return _api_call_with_logging_and_error_handling(
+        "barrier create '$name' for $tasks tasks",
+        post => 'barrier',
+        {name => $name, tasks => $tasks});
 }
 
 sub _wait_action ($name, $where = undef, $check_dead_job = undef) {
@@ -141,15 +147,17 @@ sub barrier_wait (@args) {
             return 1;
         }
 
-        bmwqemu::diag("barrier '$name' not released, sleeping " . POLL_INTERVAL . ' seconds');    # uncoverable statement
+        bmwqemu::diag("barrier '$name' not released, sleeping " . POLL_INTERVAL . ' seconds');   # uncoverable statement
         sleep POLL_INTERVAL;    # uncoverable statement
     }
 }
 
 sub barrier_destroy ($name, $where = undef) {
     bmwqemu::mydie('missing barrier name') unless $name;
-    return _api_call_with_logging_and_error_handling("barrier destroy '$name'",
-        delete => "barrier/$name", $where ? {where => $where} : undef, {200 => 1});
+    return _api_call_with_logging_and_error_handling(
+        "barrier destroy '$name'",
+        delete => "barrier/$name",
+        $where ? {where => $where} : undef, {200 => 1});
 }
 
 1;

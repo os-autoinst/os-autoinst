@@ -33,7 +33,9 @@ use Time::HiRes 'gettimeofday';
 # GPLv2+
 sub _makecpiohead {
     my ($name, $s) = @_;
-    return "07070100000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000b00000000TRAILER!!!\0\0\0\0" if !$s;
+    return
+"07070100000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000b00000000TRAILER!!!\0\0\0\0"
+      if !$s;
     #        magic ino
     my $h = "07070100000000";
     # mode                S_IFREG
@@ -148,17 +150,19 @@ sub upload_file {
     my ($self) = @_;
 
     my $req = $self->req;
-    return $self->render(text => (($req->error // {})->{message} // 'Limit exceeded'), status => 400) if $req->is_limit_exceeded;
-    return $self->render(text => 'Upload file content missing', status => 400) unless my $upload = $req->upload('upload');
+    return $self->render(text => (($req->error // {})->{message} // 'Limit exceeded'), status => 400)
+      if $req->is_limit_exceeded;
+    return $self->render(text => 'Upload file content missing', status => 400)
+      unless my $upload = $req->upload('upload');
 
-    # choose 'target' field from curl form, otherwise default 'assets_private', assume the pool directory is the current working dir
+# choose 'target' field from curl form, otherwise default 'assets_private', assume the pool directory is the current working dir
     my $target = $self->param('target') || 'assets_private';
     eval { mkdir $target unless -d $target };
     if (my $error = $@) { return $self->render(text => "Unable to create directory for upload: $error", status => 500) }
 
     my $upname = $self->param('upname');
     my $filename = basename($upname ? $upname : $self->param('filename'));
-    # note: Only renaming the file if upname parameter is present, e.g. from upload_logs(). With this it won't rename the file in
+# note: Only renaming the file if upname parameter is present, e.g. from upload_logs(). With this it won't rename the file in
     #       case of upload_assert() and autoyast profiles as those are not done via upload_logs().
 
     $upload->move_to("$target/$filename");
@@ -290,7 +294,8 @@ sub run_daemon {
     # Use same log format as isotovideo
     app->log->format(\&bmwqemu::log_format_callback);
     # process json messages from isotovideo
-    Mojo::IOLoop->singleton->reactor->io($isotovideo => sub {
+    Mojo::IOLoop->singleton->reactor->io(
+        $isotovideo => sub {
             my ($reactor, $writable) = @_;
 
             my @isotovideo_responses = myjsonrpc::read_json($isotovideo, undef, 1);
@@ -299,12 +304,13 @@ sub run_daemon {
                 _handle_isotovideo_response(app, $response);
                 delete $response->{json_cmd_token};
 
-                app->log->debug('cmdsrv: broadcasting message from os-autoinst to all ws clients: ' . to_json($response));
+                app->log->debug(
+                    'cmdsrv: broadcasting message from os-autoinst to all ws clients: ' . to_json($response));
                 for (keys %$clients) {
                     $clients->{$_}->send({json => $response});
                 }
             }
-    })->watch($isotovideo, 1, 0);    # watch only readable (and not writable)
+        })->watch($isotovideo, 1, 0);    # watch only readable (and not writable)
 
     app->log->info("cmdsrv: daemon reachable under http://*:$port/$bmwqemu::vars{JOBTOKEN}/");
     try {
@@ -326,7 +332,8 @@ sub start_server {
     $child->autoflush(1);
     $isotovideo->autoflush(1);
 
-    my $process = process(sub {
+    my $process = process(
+        sub {
             $SIG{TERM} = 'DEFAULT';
             $SIG{INT} = 'DEFAULT';
             $SIG{HUP} = 'DEFAULT';
@@ -342,7 +349,8 @@ sub start_server {
         total_sleeptime_during_kill => 5,
         blocking_stop => 1,
         internal_pipes => 0,
-        set_pipes => 0)->start;
+        set_pipes => 0
+    )->start;
 
     close($isotovideo);
     $process->on(collected => sub { bmwqemu::diag("commands process exited: " . shift->exit_status); });

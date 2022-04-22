@@ -25,8 +25,8 @@ sub activate ($self) {
     my $ipmi_response = $@;
     if ($ipmi_response) {
         # IPMI response like SOL payload already de-activated is expected
-        die "Unexpected IPMI response: $ipmi_response" unless
-          ($ipmi_response =~ /SOL payload already de-activated/);
+        die "Unexpected IPMI response: $ipmi_response"
+          unless ($ipmi_response =~ /SOL payload already de-activated/);
     }
 
     $self->callxterm($cstr, "ipmitool:$testapi_console");

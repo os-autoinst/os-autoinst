@@ -70,7 +70,8 @@ sub load_snapshot ($self, $name) {
     my $buffer = $self->get_snapshot($name, 'buffer') // '';
     if (defined($self->{screen})) {
         $self->{screen}->{carry_buffer} = $buffer;
-    } else {
+    }
+    else {
         $self->{preload_buffer} = $buffer;
     }
 }
@@ -140,7 +141,8 @@ sub open_pipe ($self) {
 }
 
 sub activate ($self) {
-    croak 'VIRTIO_CONSOLE is set 0, so no virtio-serial and virtconsole devices will be available to use with this console'
+    croak
+      'VIRTIO_CONSOLE is set 0, so no virtio-serial and virtconsole devices will be available to use with this console'
       unless ($bmwqemu::vars{VIRTIO_CONSOLE} // 1);
     ($self->{fd_read}, $self->{fd_write}) = $self->open_pipe() unless ($self->{fd_read});
     $self->{screen} = consoles::serial_screen::->new($self->{fd_read}, $self->{fd_write});

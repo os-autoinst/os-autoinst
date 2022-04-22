@@ -22,15 +22,17 @@ my $data_dir = dirname(__FILE__) . '/data/';
 my $mock_console = Test::MockModule->new('consoles::video_stream');
 my %v4l2_ctl_results = ();
 my @v4l2_ctl_calls;
-$mock_console->redefine(_v4l2_ctl => sub {
+$mock_console->redefine(
+    _v4l2_ctl => sub {
         push @v4l2_ctl_calls, [@_];
         return $v4l2_ctl_results{$_[1]} || $v4l2_ctl_results{''};
-});
+    });
 my $mock_video_source = '/dev/null';
-$mock_console->redefine(_get_ffmpeg_cmd => sub ($self, $url) {
+$mock_console->redefine(
+    _get_ffmpeg_cmd => sub ($self, $url) {
         my @cmd = ('cat', $mock_video_source);
         return \@cmd;
-});
+    });
 
 my $mock_backend = Test::MockObject->new();
 $mock_backend->mock('run_capture_loop', sub { });
@@ -56,10 +58,8 @@ subtest 'connect stream' => sub {
     $console->connect_remote({url => '/dev/video0'});
     is $console->{dv_timings_supported}, 1, "use v4l2-ctl";
     is $console->{dv_timings}, '', "correct lack of resolution";
-    is_deeply \@v4l2_ctl_calls, [
-        [('/dev/video0', '--get-dv-timings')],
-        [('/dev/video0', '--set-dv-bt-timings query')],
-    ], "calls to v4l2-ctl";
+    is_deeply \@v4l2_ctl_calls,
+      [[('/dev/video0', '--get-dv-timings')], [('/dev/video0', '--set-dv-bt-timings query')],], "calls to v4l2-ctl";
 
     @v4l2_ctl_calls = ();
     %v4l2_ctl_results = (
@@ -69,11 +69,13 @@ subtest 'connect stream' => sub {
     $console->connect_remote({url => '/dev/video0'});
     is $console->{dv_timings_supported}, 1, "use v4l2-ctl";
     is $console->{dv_timings}, '640x480p60', "correct resolution";
-    is_deeply \@v4l2_ctl_calls, [
+    is_deeply \@v4l2_ctl_calls,
+      [
         [('/dev/video0', '--get-dv-timings')],
         [('/dev/video0', '--set-dv-bt-timings query')],
         [('/dev/video0', '--get-dv-timings')],
-    ], "calls to v4l2-ctl";
+      ],
+      "calls to v4l2-ctl";
 
     @v4l2_ctl_calls = ();
     %v4l2_ctl_results = (
@@ -83,12 +85,14 @@ subtest 'connect stream' => sub {
     );
     $console->connect_remote({url => '/dev/video0', edid => 'type=hdmi'});
     is $console->{dv_timings_supported}, 1, "use v4l2-ctl and set edid";
-    is_deeply \@v4l2_ctl_calls, [
+    is_deeply \@v4l2_ctl_calls,
+      [
         [('/dev/video0', '--set-edid type=hdmi')],
         [('/dev/video0', '--get-dv-timings')],
         [('/dev/video0', '--set-dv-bt-timings query')],
         [('/dev/video0', '--get-dv-timings')],
-    ], "calls to v4l2-ctl";
+      ],
+      "calls to v4l2-ctl";
 
 };
 
@@ -125,16 +129,12 @@ subtest 'v4l2 resolution' => sub {
     @v4l2_ctl_calls = ();
 
     # still the same resolution
-    %v4l2_ctl_results = (
-        '--query-dv-timings' => '640x480p60',
-    );
+    %v4l2_ctl_results = ('--query-dv-timings' => '640x480p60',);
     $console->{dv_timings_last_check} = time - 4;
 
     $console->update_framebuffer();
     is $console->{dv_timings}, '640x480p60', 'correct resolution detected';
-    is_deeply \@v4l2_ctl_calls, [
-        [('/dev/video0', '--query-dv-timings')],
-    ], "calls to v4l2-ctl";
+    is_deeply \@v4l2_ctl_calls, [[('/dev/video0', '--query-dv-timings')],], "calls to v4l2-ctl";
 
     @v4l2_ctl_calls = ();
 
@@ -148,20 +148,24 @@ subtest 'v4l2 resolution' => sub {
 
     $console->update_framebuffer();
     is $console->{dv_timings}, '1024x768p60', 'correct resolution detected';
-    is_deeply \@v4l2_ctl_calls, [
+    is_deeply \@v4l2_ctl_calls,
+      [
         [('/dev/video0', '--query-dv-timings')],
         [('/dev/video0', '--set-dv-bt-timings query')],
         [('/dev/video0', '--get-dv-timings')],
-    ], "calls to v4l2-ctl";
+      ],
+      "calls to v4l2-ctl";
     $console->disable_video;
 };
 
 subtest 'input events' => sub {
     my ($cmds_fh, @cmds);
-    my $console = consoles::video_stream->new(undef, {
+    my $console = consoles::video_stream->new(
+        undef,
+        {
             url => 'udp://@:5004',
             input_cmd => 'cat > input-commands',
-    });
+        });
     $console->backend($mock_backend);
     $console->activate;
 
@@ -178,7 +182,8 @@ subtest 'input events' => sub {
     $console->disable;
     ok open($cmds_fh, 'input-commands'), 'open input-commands';
     @cmds = <$cmds_fh>;
-    is_deeply \@cmds, [
+    is_deeply \@cmds,
+      [
         "mouse_move 320 420\n",
         "mouse_move 325 420\n",
         "mouse_move 320 420\n",
@@ -189,7 +194,8 @@ subtest 'input events' => sub {
         "mouse_button 2\n",
         "mouse_button 0\n",
         "mouse_move 1023 767\n",
-    ], "correct commands sent";
+      ],
+      "correct commands sent";
 
     $console->activate;
     $console->send_key({key => 'a'});
@@ -198,11 +204,8 @@ subtest 'input events' => sub {
     $console->disable;
     ok open($cmds_fh, 'input-commands'), 'open input-commands';
     @cmds = <$cmds_fh>;
-    is_deeply \@cmds, [
-        "a\n",
-        "ctrl-x\n",
-        "s\n", "o\n", "m\n", "e\n", "spc\n", "t\n", "e\n", "s\n", "t\n", "ret\n",
-    ], "correct commands sent";
+    is_deeply \@cmds, ["a\n", "ctrl-x\n", "s\n", "o\n", "m\n", "e\n", "spc\n", "t\n", "e\n", "s\n", "t\n", "ret\n",],
+      "correct commands sent";
 };
 
 done_testing;

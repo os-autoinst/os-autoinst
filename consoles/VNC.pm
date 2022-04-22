@@ -14,10 +14,12 @@ use Try::Tiny;
 use Scalar::Util 'blessed';
 use OpenQA::Exceptions;
 
-has [qw(description hostname port username password socket name width height depth
+has [
+    qw(description hostname port username password socket name width height depth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
-      _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell)];
+      _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell)
+];
 
 our $VERSION = '0.40';
 
@@ -337,14 +339,12 @@ sub _server_initialization ($self) {
     my $socket = $self->socket;
     $socket->read(my $server_init, 24) || die 'unexpected end of data';
 
-    my ($framebuffer_width, $framebuffer_height,
-        $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
-        %pixinfo,
-        $name_length);
-    ($framebuffer_width, $framebuffer_height,
-        $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
-        $pixinfo{red_max}, $pixinfo{green_max}, $pixinfo{blue_max},
-        $pixinfo{red_shift}, $pixinfo{green_shift}, $pixinfo{blue_shift},
+    my ($framebuffer_width, $framebuffer_height, $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
+        %pixinfo, $name_length);
+    (
+        $framebuffer_width, $framebuffer_height, $bits_per_pixel, $depth,
+        $server_is_big_endian, $true_colour_flag, $pixinfo{red_max}, $pixinfo{green_max},
+        $pixinfo{blue_max}, $pixinfo{red_shift}, $pixinfo{green_shift}, $pixinfo{blue_shift},
         $name_length
     ) = unpack 'nnCCCCnnnCCCxxxN', $server_init;
 
@@ -352,8 +352,10 @@ sub _server_initialization ($self) {
 
         # client did not express a depth preference, so check if the server's preference is OK
         die 'Unsupported depth ' . $depth unless $supported_depths{$depth};
-        die 'Unsupported bits-per-pixel value ' . $bits_per_pixel unless $bits_per_pixel == $supported_depths{$depth}->{bpp};
-        die 'Unsupported true colour flag' if ($true_colour_flag ? !$supported_depths{$depth}->{true_colour} : $supported_depths{$depth}->{true_colour});
+        die 'Unsupported bits-per-pixel value ' . $bits_per_pixel
+          unless $bits_per_pixel == $supported_depths{$depth}->{bpp};
+        die 'Unsupported true colour flag'
+          if ($true_colour_flag ? !$supported_depths{$depth}->{true_colour} : $supported_depths{$depth}->{true_colour});
         $self->depth($depth);
 
         # Use server's values for *_max and *_shift
@@ -382,15 +384,17 @@ sub _server_initialization ($self) {
     if ($self->ikvm) {
         $socket->read(my $ikvm_init, 12) || die 'unexpected end of data';
 
-        my ($current_thread, $ikvm_video_enable, $ikvm_km_enable, $ikvm_kick_enable, $v_usb_enable) = unpack 'x4NCCCC', $ikvm_init;
+        my ($current_thread, $ikvm_video_enable, $ikvm_km_enable, $ikvm_kick_enable, $v_usb_enable) = unpack 'x4NCCCC',
+          $ikvm_init;
         print "IKVM specifics: $current_thread $ikvm_video_enable $ikvm_km_enable $ikvm_kick_enable $v_usb_enable\n";
         die "Can't use keyboard and mouse.  Is another ipmi vnc viewer logged in?" unless $ikvm_km_enable;
         return;    # the rest is kindly ignored by ikvm anyway
     }
 
     my $info = tinycv::new_vncinfo(
-        $self->_do_endian_conversion, $self->_true_colour, $self->_bpp / 8, $pixinfo{red_max}, $pixinfo{red_shift},
-        $pixinfo{green_max}, $pixinfo{green_shift}, $pixinfo{blue_max}, $pixinfo{blue_shift});
+        $self->_do_endian_conversion, $self->_true_colour, $self->_bpp / 8,
+        $pixinfo{red_max}, $pixinfo{red_shift}, $pixinfo{green_max},
+        $pixinfo{green_shift}, $pixinfo{blue_max}, $pixinfo{blue_shift});
     $self->vncinfo($info);
 
     # setpixelformat
@@ -908,7 +912,8 @@ sub _receive_zrle_encoding ($self, $x, $y, $w, $h) {
     my $read_len = 0;
     while ($read_len < $data_len) {
         my $len = read($socket, $data, $data_len - $read_len, $read_len);
-        OpenQA::Exception::VNCProtocolError->throw(error => "short read for zrle data $read_len - $data_len") unless $len;
+        OpenQA::Exception::VNCProtocolError->throw(error => "short read for zrle data $read_len - $data_len")
+          unless $len;
         $read_len += $len;
     }
     diag sprintf("read $data_len in %fs\n", time - $stime) if (time - $stime > 0.1);
@@ -918,8 +923,10 @@ sub _receive_zrle_encoding ($self, $x, $y, $w, $h) {
     my $old_total_out = $self->{_inflater}->total_out;
     my $status = $self->{_inflater}->inflate($data, $out, 1);
     OpenQA::Exception::VNCProtocolError->throw(error => "inflation failed $status") unless $status == Z_OK;
-    my $res = $image->map_raw_data_zrle($x, $y, $w, $h, $self->vncinfo, $out, $self->{_inflater}->total_out - $old_total_out);
-    OpenQA::Exception::VNCProtocolError->throw(error => "not read enough data") if $old_total_out + $res != $self->{_inflater}->total_out;
+    my $res
+      = $image->map_raw_data_zrle($x, $y, $w, $h, $self->vncinfo, $out, $self->{_inflater}->total_out - $old_total_out);
+    OpenQA::Exception::VNCProtocolError->throw(error => "not read enough data")
+      if $old_total_out + $res != $self->{_inflater}->total_out;
     return $res;
 }
 

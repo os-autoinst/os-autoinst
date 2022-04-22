@@ -23,7 +23,8 @@ sub new ($class) {
     $self->{box_url} = $vars->{VAGRANT_BOX_URL};
 
     if (substr($self->{box_name}, 0, 1) eq '/') {
-        my $asset_dir = $vars->{VAGRANT_ASSETDIR} // die 'Need variable \'VAGRANT_ASSETDIR\' when using local vagrant boxes';
+        my $asset_dir = $vars->{VAGRANT_ASSETDIR}
+          // die 'Need variable \'VAGRANT_ASSETDIR\' when using local vagrant boxes';
         my $box_abs_path = undef;
 
         opendir(my $dh, $asset_dir) or die "Could not opendir $asset_dir: $!";
@@ -60,7 +61,8 @@ END
     v.cpus = $vars->{QEMUCPUS}
   end
 END
-    } elsif ($self->{provider} eq 'libvirt') {
+    }
+    elsif ($self->{provider} eq 'libvirt') {
         $self->{libvirt_storage_pool_path} = "$self->{vagrant_cwd}/pool";
         mkdir $self->{libvirt_storage_pool_path};
         $self->{libvirt_pool_name} = "vagrant" . int(rand(100000));
@@ -72,7 +74,8 @@ END
     libvirt.storage_pool_name = "$self->{libvirt_pool_name}"
   end
 END
-    } else {
+    }
+    else {
         die "got an unknown vagrant provider $self->{provider}";
     }
 
@@ -131,7 +134,11 @@ sub do_start_vm ($self, @) {
     if (defined($self->{libvirt_pool_name})) {
         my ($stdout, $stderr, $virsh_res);
 
-        my @virsh_cmd = ("virsh", "pool-create-as", "--target", $self->{libvirt_storage_pool_path}, "--name", $self->{libvirt_pool_name}, "--type", "dir");
+        my @virsh_cmd = (
+            "virsh", "pool-create-as", "--target", $self->{libvirt_storage_pool_path},
+            "--name", $self->{libvirt_pool_name},
+            "--type", "dir"
+        );
         my $handle = IPC::Run::start(\@virsh_cmd, \undef, \$stdout, \$stderr);
         IPC::Run::finish($handle);
         $virsh_res = $handle->full_result(0);
@@ -160,20 +167,24 @@ sub do_start_vm ($self, @) {
 sub do_stop_vm ($self, @) {
     my $res = $self->run_vagrant_command({cmd => "halt"});
     if ($res->{retval} != 0) {
-        bmwqemu::fctwarn("vagrant: failed to execute vagrant halt, got $res->{retval},\n$res->{stdout}\n$res->{stderr}");
+        bmwqemu::fctwarn(
+            "vagrant: failed to execute vagrant halt, got $res->{retval},\n$res->{stdout}\n$res->{stderr}");
     }
 
     my @extra_args = ("-f");
     my $destroy_res = $self->run_vagrant_command({cmd => "destroy", extra_args => \@extra_args});
     if ($destroy_res->{retval} != 0) {
-        bmwqemu::fctwarn("vagrant: failed to destroy the vagrant VM, got:\n$destroy_res->{stdout}\n$destroy_res->{stderr}");
+        bmwqemu::fctwarn(
+            "vagrant: failed to destroy the vagrant VM, got:\n$destroy_res->{stdout}\n$destroy_res->{stderr}");
     }
 
     # ensure that the box is gone:
     my $extra_remove_args = ["remove", "-af", "--provider", $self->{provider}, $self->{box_name}];
     my $box_remove_res = $self->run_vagrant_command({cmd => "box", extra_args => $extra_remove_args});
     if ($box_remove_res->{retval} != 0) {
-        bmwqemu::fctwarn("vagrant: failed to destroy the vagrant box $self->{box_name}, got:\n$box_remove_res->{stdout}\n$box_remove_res->{stderr}");
+        bmwqemu::fctwarn(
+"vagrant: failed to destroy the vagrant box $self->{box_name}, got:\n$box_remove_res->{stdout}\n$box_remove_res->{stderr}"
+        );
     }
 
     if (defined($self->{libvirt_pool_name})) {
@@ -184,7 +195,9 @@ sub do_stop_vm ($self, @) {
         $virsh_res = $handle->full_result(0);
 
         if ($virsh_res != 0) {
-            bmwqemu::fctwarn("vagrant: failed to destroy the libvirt storage pool $self->{libvirt_pool_name}, got $virsh_res\n$stdout\n$stderr");
+            bmwqemu::fctwarn(
+"vagrant: failed to destroy the libvirt storage pool $self->{libvirt_pool_name}, got $virsh_res\n$stdout\n$stderr"
+            );
         }
     }
 }

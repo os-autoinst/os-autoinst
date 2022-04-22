@@ -20,9 +20,7 @@ has _head => sub { return OpenQA::Qemu::Snapshot->new(); };
 
 sub add_snapshot ($self, $name) {
     $self->_sequence($self->_sequence + 1);
-    my $new = OpenQA::Qemu::Snapshot->new()
-      ->sequence($self->_sequence)
-      ->name($name);
+    my $new = OpenQA::Qemu::Snapshot->new()->sequence($self->_sequence)->name($name);
 
     $new->previous($self->_head);
     $self->_head($new);

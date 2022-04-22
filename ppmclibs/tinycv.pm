@@ -78,9 +78,12 @@ sub search_ ($self, $needle, $threshold, $search_ratio, $stopwatch = undef) {
     for my $area (@match) {
         my $margin = int($area->{margin} + $search_ratio * (1024 - $area->{margin}));
 
-        ($sim, $xmatch, $ymatch) = $img->search_needle($needle_image, $area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}, $margin);
+        ($sim, $xmatch, $ymatch)
+          = $img->search_needle($needle_image, $area->{xpos}, $area->{ypos}, $area->{width}, $area->{height}, $margin);
 
-        $stopwatch->lap("**++ tinycv::search_needle $area->{width}x$area->{height} + $margin @ $area->{xpos}x$area->{ypos}") if $stopwatch;
+        $stopwatch->lap(
+            "**++ tinycv::search_needle $area->{width}x$area->{height} + $margin @ $area->{xpos}x$area->{ypos}")
+          if $stopwatch;
         my $ma = {
             similarity => $sim,
             x => $xmatch,

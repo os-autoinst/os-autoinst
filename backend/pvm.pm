@@ -135,7 +135,8 @@ sub attach_console ($vars) {
 sub image_exists ($img, $size) {
     #lv already exists?
     my @cmd;
-    my $pvmctlcmd = "pvmctl lv list -w LogicalVolume.name=$img -d LogicalVolume.name LogicalVolume.capacity -f , --hide-label";
+    my $pvmctlcmd
+      = "pvmctl lv list -w LogicalVolume.name=$img -d LogicalVolume.name LogicalVolume.capacity -f , --hide-label";
     my ($name, $capacity) = split(",", qx/$pvmctlcmd/);
     return if !($name =~ /$img/);
     if (($img =~ /$name/) && ($size =~ /$capacity/)) {
@@ -211,7 +212,8 @@ sub start_lpar ($self) {
         {
             hostname => 'localhost',
             port => $vars->{VNC},
-            description => 'mkvtermutil VNC'});
+            description => 'mkvtermutil VNC'
+        });
     $vnc->backend($self);
     $self->select_console({testapi_console => 'sut'});
 }

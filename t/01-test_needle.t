@@ -101,7 +101,8 @@ subtest 'handle failure to load image' => sub {
     my $missing_needle_path = $needle_without_png->{png} .= '.missing.png';
     stderr_like {
         is($needle_without_png->get_image, undef, 'get_image returns undef if no image present')
-    } qr/Could not open image/, 'log output for missing image';
+    }
+    qr/Could not open image/, 'log output for missing image';
 
     stderr_like {
         my ($best_candidate, $candidates) = $image->search([$needle_without_png, $needle_with_png]);
@@ -404,7 +405,9 @@ is($other_needle->get_image, $img2, 'cleaning cache to keep 1 image kept $img2')
 ok($needle->get_image != $img1, 'cleaning cache to keep 1 image deleted $img1');
 is($needle->{file}, 'other-desktop-dvd-20140904.json', 'needle json path is relative to needles dir');
 
-subtest 'needle::init accepts custom NEEDLES_DIR within working directory and otherwise falls back to "$bmwqemu::vars{PRODUCTDIR}/needles"' => sub {
+subtest
+'needle::init accepts custom NEEDLES_DIR within working directory and otherwise falls back to "$bmwqemu::vars{PRODUCTDIR}/needles"'
+  => sub {
     # create temporary working directory and a needle directory within it
     my $temp_working_dir = tempdir(CLEANUP => 1);
     my $needles_dir = $bmwqemu::vars{NEEDLES_DIR} = "$temp_working_dir/some-needle-repo";
@@ -423,7 +426,7 @@ subtest 'needle::init accepts custom NEEDLES_DIR within working directory and ot
         is($needle->{file}, 'subdir/foo.json', 'file path relative to needle directory');
         is($needle->{png}, "$needles_dir/subdir/foo.png", 'absolute image path assigned');
     };
-};
+  };
 
 subtest 'click point' => sub {
     needle::set_needles_dir($misc_needles_dir);
@@ -434,9 +437,13 @@ subtest 'click point' => sub {
     $needle = needle->new('click-point-center.json');
     is_deeply($needle->{area}->[0]->{click_point}, 'center', 'click point "center" parsed');
 
-    like(warning {
+    like(
+        warning {
             $needle = needle->new('click-point-multiple.json');
-    }, qr/click-point-multiple\.json has more than one area with a click point/, 'warning shown');
+        },
+        qr/click-point-multiple\.json has more than one area with a click point/,
+        'warning shown'
+    );
     is_deeply($needle, undef, 'multiple click points not accepted');
 };
 
@@ -449,7 +456,8 @@ subtest 'workaround property' => sub {
     my $mix_workaround_string_needle = needle->new('check-workaround-mix-bsc987321-20190617.json');
     my $mix_workaround_hash_needle = needle->new('check-workaround-hash-mix-20190617.json');
 
-    ok($workaround_string_needle->has_property("workaround"), "workaround property found when it is recorded in string");
+    ok($workaround_string_needle->has_property("workaround"),
+        "workaround property found when it is recorded in string");
     ok($workaround_hash_needle->has_property("workaround"), "workaround property found when it is recorded in hash");
     ok($mix_workaround_string_needle->has_property("workaround"), "workaround property found in mixed properties");
     ok($mix_workaround_hash_needle->has_property("workaround"), "workaround property found in mixed properties");
@@ -458,10 +466,19 @@ subtest 'workaround property' => sub {
     ok(!$workaround_string_needle->has_property("glossy"), "glossy property not found");
     ok(!$workaround_hash_needle->has_property("glossy"), "glossy property not found");
 
-    is($workaround_string_needle->get_property_value("workaround"), "bsc#1234567", "get correct value when workaround is recorded in string");
-    is($workaround_hash_needle->get_property_value("workaround"), "bsc#7654321: this is a test about workaround.", "get ccorrect value when workaround is recorded in hash");
+    is($workaround_string_needle->get_property_value("workaround"),
+        "bsc#1234567", "get correct value when workaround is recorded in string");
+    is(
+        $workaround_hash_needle->get_property_value("workaround"),
+        "bsc#7654321: this is a test about workaround.",
+        "get ccorrect value when workaround is recorded in hash"
+    );
     is($mix_workaround_string_needle->get_property_value("workaround"), "bsc#987321", "workaround value is correct");
-    is($mix_workaround_hash_needle->get_property_value("workaround"), "bsc#123789: This is a test for workaround property", "workaround value is correct");
+    is(
+        $mix_workaround_hash_needle->get_property_value("workaround"),
+        "bsc#123789: This is a test for workaround property",
+        "workaround value is correct"
+    );
     is($workaround_hash_needle->get_property_value("test"), undef, "no test value");
     is($no_workaround_needle->get_property_value("workaround"), undef, "no workaround property");
     is($no_workaround_needle->get_property_value("glossy"), undef, "glossy property is a string, has no value");
@@ -471,10 +488,13 @@ subtest 'clarify error message when needles directory does not exist' => sub {
     $bmwqemu::vars{CASEDIR} = '/tmp/foo';
     $bmwqemu::vars{PRODUCTDIR} = '/tmp/boo/products/boo';
     $bmwqemu::vars{NEEDLES_DIR} = undef;
-    throws_ok { needle::init } qr/Can't init needles from \/tmp\/boo\/products\/boo\/needles at.*/, 'do not combine CASEDIR when the default needles directory is an absolute path';
+    throws_ok { needle::init } qr/Can't init needles from \/tmp\/boo\/products\/boo\/needles at.*/,
+      'do not combine CASEDIR when the default needles directory is an absolute path';
 
     $bmwqemu::vars{PRODUCTDIR} = 'boo/products/boo';
-    throws_ok { needle::init } qr/Can't init needles from boo\/products\/boo\/needles;.*\/tmp\/foo\/boo\/products\/boo\/needles/, 'combine CASEDIR when the default needles directory is a relative path';
+    throws_ok { needle::init }
+    qr/Can't init needles from boo\/products\/boo\/needles;.*\/tmp\/foo\/boo\/products\/boo\/needles/,
+      'combine CASEDIR when the default needles directory is a relative path';
 };
 
 done_testing();

@@ -234,22 +234,38 @@ sub test_terminal_directly () {
         $scrn->type_string({text => shift});
     };
 
-    is_matched($scrn->read_until(qr/$user_name_prompt_data$/, $timeout), $login_prompt_data, 'direct: find login prompt');
+    is_matched($scrn->read_until(qr/$user_name_prompt_data$/, $timeout),
+        $login_prompt_data, 'direct: find login prompt');
     type_string($user_name_data);
 
-    is_matched($scrn->read_until(qr/$password_prompt_data$/, $timeout), $user_name_data . $password_prompt_data, 'direct: find password prompt');
+    is_matched(
+        $scrn->read_until(qr/$password_prompt_data$/, $timeout),
+        $user_name_data . $password_prompt_data,
+        'direct: find password prompt'
+    );
     type_string($password_data);
 
-    is_matched($scrn->read_until($first_prompt_data, $timeout, no_regex => 1), $password_data . $first_prompt_data, 'direct: find first command prompt');
+    is_matched(
+        $scrn->read_until($first_prompt_data, $timeout, no_regex => 1),
+        $password_data . $first_prompt_data,
+        'direct: find first command prompt'
+    );
     type_string($set_prompt_data);
 
-    is_matched($scrn->read_until(qr/$normalised_prompt_data$/, $timeout), $set_prompt_data . $normalised_prompt_data, 'direct: find normalised prompt');
+    is_matched(
+        $scrn->read_until(qr/$normalised_prompt_data$/, $timeout),
+        $set_prompt_data . $normalised_prompt_data,
+        'direct: find normalised prompt'
+    );
 
     $scrn->type_string({text => '', terminate_with => 'EOT'});
     $scrn->type_string({text => '', terminate_with => 'ETX'});
     $scrn->send_key({key => 'ret'});
 
-    report_child_test(like => $scrn->read_until([qr/.*\: /, qr/7/], $timeout)->{string}, qr/.*\Q$login_prompt_data\E/, 'direct: use array of regexs');
+    report_child_test(
+        like => $scrn->read_until([qr/.*\: /, qr/7/], $timeout)->{string},
+        qr/.*\Q$login_prompt_data\E/, 'direct: use array of regexs'
+    );
 
     # Note that a real terminal would echo this back to us causing the next test to fail
     # unless we suck up the echo.
@@ -261,11 +277,14 @@ sub test_terminal_directly () {
         buffer_size => 256
     );
     report_child_test(is => length($result->{string}), 256, 'direct: returned data is same length as buffer');
-    report_child_test(like => $result->{string}, qr/\Q$US_keyboard_data\E$stop_code_data$/, 'direct: read a large amount of data with small ring buffer');
+    report_child_test(
+        like => $result->{string},
+        qr/\Q$US_keyboard_data\E$stop_code_data$/, 'direct: read a large amount of data with small ring buffer'
+    );
     type_string($next_test);
 
-    report_child_test(like =>
-          $scrn->read_until(qr/$stop_code_data$/, $timeout, record_output => 1)->{string},
+    report_child_test(
+        like => $scrn->read_until(qr/$stop_code_data$/, $timeout, record_output => 1)->{string},
         qr/^(\Q$US_keyboard_data\E){$repeat_sequence_count}$stop_code_data$/,
         'direct: record a large amount of data'
     );
@@ -274,13 +293,25 @@ sub test_terminal_directly () {
     # In theory, even if the carry buffer is not implemented, this may succeed
     # if the kernel is preempted in, and/or a kernel buffer ends in just the
     # right place.
-    report_child_test(is => $scrn->read_until($US_keyboard_data, $timeout, no_regex => 1)->{matched}, 1, 'direct: read including trailing data with no_regex');
-    report_child_test(is => $scrn->read_until(qr/$stop_code_data$/, $timeout)->{matched}, 1, 'direct: trailing data is carried over to next read');
+    report_child_test(
+        is => $scrn->read_until($US_keyboard_data, $timeout, no_regex => 1)->{matched},
+        1, 'direct: read including trailing data with no_regex'
+    );
+    report_child_test(
+        is => $scrn->read_until(qr/$stop_code_data$/, $timeout)->{matched},
+        1, 'direct: trailing data is carried over to next read'
+    );
     type_string($next_test);
 
-    report_child_test(is => $scrn->read_until(qr/\Q$US_keyboard_data\E/, $timeout)->{matched}, 1, 'direct: read including trailing data');
-    report_child_test(is => $scrn->read_until(qr/$stop_code_data$stop_code_data/, $timeout)->{matched}, 1,
-        'direct: trailing data is carried over to next read');
+    report_child_test(
+        is => $scrn->read_until(qr/\Q$US_keyboard_data\E/, $timeout)->{matched},
+        1, 'direct: read including trailing data'
+    );
+    report_child_test(
+        is => $scrn->read_until(qr/$stop_code_data$stop_code_data/, $timeout)->{matched},
+        1,
+        'direct: trailing data is carried over to next read'
+    );
     type_string($next_test);
 
     my $res;
@@ -288,11 +319,17 @@ sub test_terminal_directly () {
         $res = $scrn->peak();
     } while (length($res) < 1);
     report_child_test(ok => $res, 'direct: peaked');
-    report_child_test(is => $scrn->read_until($first_prompt_data, $timeout, no_regex => 1)->{matched}, 1,
-        'direct: read after peak');
+    report_child_test(
+        is => $scrn->read_until($first_prompt_data, $timeout, no_regex => 1)->{matched},
+        1,
+        'direct: read after peak'
+    );
     type_string($next_test);
 
-    report_child_test(is_deeply => $scrn->read_until('we timeout', 1), {matched => 0, string => $US_keyboard_data}, 'direct: timeout');
+    report_child_test(
+        is_deeply => $scrn->read_until('we timeout', 1),
+        {matched => 0, string => $US_keyboard_data}, 'direct: timeout'
+    );
     type_string($next_test);
 
     $term->reset;

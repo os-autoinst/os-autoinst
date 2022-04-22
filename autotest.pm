@@ -118,11 +118,15 @@ sub loadtest ($script, %args) {
     if (my $err = $@) {
         if ($is_python) {
             eval "use Inline Python => 'sys.stderr.flush()';";
-            bmwqemu::fctwarn("Unable to flush Python's stderr, error message from Python might be missing: $@") if $@;    # uncoverable statement
+            bmwqemu::fctwarn("Unable to flush Python's stderr, error message from Python might be missing: $@")
+              if $@;    # uncoverable statement
         }
         my $msg = "error on $script: $err";
         bmwqemu::fctwarn($msg);
-        bmwqemu::serialize_state(component => 'tests', msg => "unable to load $script, check the log for the cause (e.g. syntax error)");
+        bmwqemu::serialize_state(
+            component => 'tests',
+            msg => "unable to load $script, check the log for the cause (e.g. syntax error)"
+        );
         die $msg;
     }
     $test = $name->new($category);
@@ -185,8 +189,8 @@ sub set_current_test ($test) {
     $current_test = $test;
     query_isotovideo(
         'set_current_test',
-        $current_test ?
-          {
+        $current_test
+        ? {
             name => $current_test->{name},
             full_name => $current_test->{fullname},
           }
@@ -262,7 +266,8 @@ sub start_process () {
     $child->autoflush(1);
     $isotovideo->autoflush(1);
 
-    $process = process(sub {
+    $process = process(
+        sub {
             close $child;
             $SIG{TERM} = \&handle_sigterm;
             $SIG{INT} = 'DEFAULT';
@@ -291,7 +296,8 @@ sub start_process () {
         blocking_stop => 1,
         separate_err => 0,
         set_pipes => 0,
-        internal_pipes => 0)->start;
+        internal_pipes => 0
+    )->start;
     $process->on(collected => sub { bmwqemu::diag "[" . __PACKAGE__ . "] process exited: " . shift->exit_status; });
 
     close $isotovideo;
@@ -306,7 +312,9 @@ sub query_isotovideo ($cmd, $args = undef) {
     }
     $json{cmd} = $cmd;
 
-    die "isotovideo is not initialized. Ensure that you only call test API functions from test modules, not schedule code\n" unless defined $isotovideo;
+    die
+"isotovideo is not initialized. Ensure that you only call test API functions from test modules, not schedule code\n"
+      unless defined $isotovideo;
     myjsonrpc::send_json($isotovideo, \%json);
 
     # wait for response (if test is paused, this will block until resume)
@@ -353,7 +361,8 @@ sub runalltests () {
         $t->start();
 
         # avoid erasing the good vm snapshot
-        if ($snapshots_supported && (($bmwqemu::vars{SKIPTO} || '') ne $fullname) && $bmwqemu::vars{MAKETESTSNAPSHOTS}) {
+        if ($snapshots_supported && (($bmwqemu::vars{SKIPTO} || '') ne $fullname) && $bmwqemu::vars{MAKETESTSNAPSHOTS})
+        {
             make_snapshot($t->{fullname});
         }
 
@@ -371,26 +380,36 @@ sub runalltests () {
             if ($bmwqemu::vars{DUMP_MEMORY_ON_FAIL}) {
                 query_isotovideo('backend_save_memory_dump', {filename => $fullname});
             }
-            if ($t->{fatal_failure} || $flags->{fatal} || (!exists $flags->{fatal} && !$snapshots_supported) || $bmwqemu::vars{TESTDEBUG}) {
-                my $reason = ($t->{fatal_failure} || $flags->{fatal})
-                  ? 'after a fatal test failure'
-                  : ($bmwqemu::vars{TESTDEBUG}
-                    ? 'because TESTDEBUG has been set'
-                    : 'because snapshotting is disabled/unavailable and "fatal => 0" has NOT been set explicitly');
+            if (   $t->{fatal_failure}
+                || $flags->{fatal}
+                || (!exists $flags->{fatal} && !$snapshots_supported)
+                || $bmwqemu::vars{TESTDEBUG})
+            {
+                my $reason
+                  = ($t->{fatal_failure} || $flags->{fatal}) ? 'after a fatal test failure'
+                  : (
+                    $bmwqemu::vars{TESTDEBUG} ? 'because TESTDEBUG has been set'
+                    : 'because snapshotting is disabled/unavailable and "fatal => 0" has NOT been set explicitly'
+                  );
                 bmwqemu::diag "stopping overall test execution $reason";
                 bmwqemu::stop_vm();
                 return 0;
             }
             elsif (!$flags->{no_rollback} && $last_milestone) {
                 load_snapshot('lastgood');
-                $next_test->record_resultfile('Snapshot', "Loaded snapshot because '$name' failed", result => 'ok') if $next_test;
+                $next_test->record_resultfile('Snapshot', "Loaded snapshot because '$name' failed", result => 'ok')
+                  if $next_test;
                 $last_milestone->rollback_activated_consoles();
             }
         }
         else {
             if (!$flags->{no_rollback} && $last_milestone && $flags->{always_rollback}) {
                 load_snapshot('lastgood');
-                $next_test->record_resultfile('Snapshot', "Loaded snapshot after '$name' (always_rollback)", result => 'ok') if $next_test;
+                $next_test->record_resultfile(
+                    'Snapshot',
+                    "Loaded snapshot after '$name' (always_rollback)",
+                    result => 'ok'
+                ) if $next_test;
                 $last_milestone->rollback_activated_consoles();
             }
             my $makesnapshot = $bmwqemu::vars{TESTDEBUG};

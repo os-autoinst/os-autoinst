@@ -16,7 +16,8 @@ use constant SERIAL_TERMINAL_DEFAULT_PORT => 1;
 use constant SERIAL_TERMINAL_DEFAULT_DEVICE => 'console';
 
 use Exporter 'import';
-our @EXPORT_OK = qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_CONSOLE_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE);
+our @EXPORT_OK
+  = qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_CONSOLE_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE);
 
 # this is a fake backend to some extend. We don't start VMs, but provide ssh access
 # to a libvirt running host (KVM for System Z in mind)
@@ -112,7 +113,10 @@ sub is_shutdown ($self, @) {
     my $vmname = $self->console('svirt')->name;
     my $rsp;
     if (_is_hyperv) {
-        $rsp = $self->run_ssh_cmd("powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\"");
+        $rsp
+          = $self->run_ssh_cmd(
+"powershell -Command \"if (\$(Get-VM -VMName $vmname \| Where-Object {\$_.state -eq 'Off'})) { exit 1 } else { exit 0 }\""
+          );
     }
     else {
         my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
@@ -128,7 +132,8 @@ sub save_snapshot ($self, $args) {
     if (_is_hyperv) {
         my $ps = 'powershell -Command';
         $self->run_ssh_cmd("$ps Remove-VMSnapshot -VMName $vmname -Name $snapname");
-        $rsp = $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Checkpoint-VM -VMName $vmname -SnapshotName $snapname"));
+        $rsp = $self->run_ssh_cmd(
+            qq($ps "\$ProgressPreference='SilentlyContinue'; Checkpoint-VM -VMName $vmname -SnapshotName $snapname"));
     }
     else {
         my $libvirt_connector = $bmwqemu::vars{VMWARE_REMOTE_VMM} // '';
@@ -147,16 +152,19 @@ sub load_snapshot ($self, $args) {
     my $post_load_snapshot_command = '';
     if (_is_hyperv) {
         my $ps = 'powershell -Command';
-        $rsp = $self->run_ssh_cmd(qq($ps "\$ProgressPreference='SilentlyContinue'; Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false"));
-        $self->run_ssh_cmd("mv -v xfreerdp_${vmname}_stop xfreerdp_${vmname}_stop.bkp", $self->get_ssh_credentials('hyperv'));
+        $rsp
+          = $self->run_ssh_cmd(
+qq($ps "\$ProgressPreference='SilentlyContinue'; Restore-VMSnapshot -VMName $vmname -Name $snapname -Confirm:\$false")
+          );
+        $self->run_ssh_cmd("mv -v xfreerdp_${vmname}_stop xfreerdp_${vmname}_stop.bkp",
+            $self->get_ssh_credentials('hyperv'));
 
         for my $i (1 .. 5) {
             # Because of FreeRDP issue https://github.com/FreeRDP/FreeRDP/issues/3876,
             # we can't connect too "early". Let's have a nap for a while.
             sleep 10;
             last
-              unless $self->run_ssh_cmd(
-                "pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)",
+              unless $self->run_ssh_cmd("pgrep --full --list-full xfreerdp.*\$(cat xfreerdp_${vmname}_stop.bkp)",
                 $self->get_ssh_credentials('hyperv'));
             $self->die("xfreerdp did not start") if ($i eq 5);
         }
@@ -178,8 +186,7 @@ sub get_ssh_credentials ($self, $domain = 'default') {
                 hostname => $bmwqemu::vars{VIRSH_HOSTNAME} || die('Need variable VIRSH_HOSTNAME'),
                 username => $bmwqemu::vars{VIRSH_USERNAME} // 'root',
                 password => $bmwqemu::vars{VIRSH_PASSWORD} || die('Need variable VIRSH_PASSWORD'),
-            }
-        };
+            }};
         if (_is_hyperv) {
             # Credentials for hyperv intermediary host
             $self->{ssh_credentials}->{hyperv} = {
@@ -297,7 +304,9 @@ sub serial_terminal_log_file ($self) {
     return '/tmp/' . SERIAL_TERMINAL_LOG_PATH . '.' . $bmwqemu::vars{JOBTOKEN};
 }
 
-sub check_socket ($self, $fh, $write = undef) { $self->check_ssh_serial($fh, $write) || $self->SUPER::check_socket($fh, $write) }
+sub check_socket ($self, $fh, $write = undef) {
+    $self->check_ssh_serial($fh, $write) || $self->SUPER::check_socket($fh, $write);
+}
 
 sub stop_serial_grab ($self, @) {
     $self->stop_ssh_serial;

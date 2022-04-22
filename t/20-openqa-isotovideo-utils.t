@@ -39,7 +39,8 @@ subtest 'error handling when loading test schedule' => sub {
         $bmwqemu::vars{SCHEDULE} = $module;
         combined_like {
             warning { throws_ok { load_test_schedule } qr/Can't locate $module\.pm/, 'error logged' }
-        } qr/Can't locate $module\.pm/, 'debug message logged';
+        }
+        qr/Can't locate $module\.pm/, 'debug message logged';
         my $state = decode_json($base_state->slurp);
         if (is(ref $state, 'HASH', 'state file contains object')) {
             is($state->{component}, 'tests', 'state file contains component');

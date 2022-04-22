@@ -33,7 +33,10 @@ sub new ($class, $name) {
     session->on(
         collected_orphan => sub {
             my ($session, $p) = @_;
-            fctinfo("Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status);
+            fctinfo("Driver backend collected unknown process with pid "
+                  . $p->pid
+                  . " and exit status: "
+                  . $p->exit_status);
         });
 
     $self->start();
@@ -74,7 +77,10 @@ sub start ($self) {
     $backend_process->on(collected => sub { diag("backend process exited: " . shift->exit_status) });
     $backend_process->start;
 
-    diag("$$: channel_out " . fileno($backend_process->channel_out) . ', channel_in ' . fileno($backend_process->channel_in));
+    diag(   "$$: channel_out "
+          . fileno($backend_process->channel_out)
+          . ', channel_in '
+          . fileno($backend_process->channel_in));
     $self->{backend_pid} = $backend_process->pid;
     $self->{backend_process} = $backend_process;
 }
@@ -117,7 +123,9 @@ sub stop_backend ($self) {
 
 # new api end
 
-sub mouse_hide ($self, $border_offset = 0) { $self->_send_json({cmd => 'mouse_hide', arguments => {border_offset => $border_offset}}) }
+sub mouse_hide ($self, $border_offset = 0) {
+    $self->_send_json({cmd => 'mouse_hide', arguments => {border_offset => $border_offset}});
+}
 
 # virtual methods end
 

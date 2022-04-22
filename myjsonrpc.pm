@@ -83,7 +83,8 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
                 push @results, undef;
                 last;
             }
-            confess "ERROR: the token does not match - questions and answers not in the right order" if $cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token; # uncoverable statement
+            confess "ERROR: the token does not match - questions and answers not in the right order"
+              if $cmd_token && ($hash->{json_cmd_token} || '') ne $cmd_token;    # uncoverable statement
             push @results, $hash;
             # parse all lines from buffer
             next if $multi;
@@ -100,8 +101,9 @@ sub read_json ($socket, $cmd_token = undef, $multi = undef) {
             # throw an error except can_read has been interrupted
             my $error = $!;
             confess "ERROR: unable to wait for JSON reply: $error\n" unless $!{EINTR};
-            # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation
-            bmwqemu::diag("($$) read_json($fd): can_read's underlying system call has been interrupted, trying again\n") if DEBUG_JSON;
+         # try again if can_read's underlying system call has been interrupted as suggested by the perlipc documentation
+            bmwqemu::diag("($$) read_json($fd): can_read's underlying system call has been interrupted, trying again\n")
+              if DEBUG_JSON;
             @res = $s->can_read;
         }
 

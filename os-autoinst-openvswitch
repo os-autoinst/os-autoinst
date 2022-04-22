@@ -95,23 +95,22 @@ sub init_switch ($self) {
         'table=0,priority=1,in_port=LOCAL,actions=resubmit(,1)',
 
 
-        # arp e.g. 10.0.2.2 - learn rule for handling replies, rewrite ARP sender IP to e.g. 10.1.x.x range and send to local
+   # arp e.g. 10.0.2.2 - learn rule for handling replies, rewrite ARP sender IP to e.g. 10.1.x.x range and send to local
         # the learned rule rewrites ARP target to the original IP and sends the packet to the original port
-        "table=0,priority=100,dl_type=0x0806,nw_dst=$local_ip,actions=" .
-'learn(table=1,priority=100,in_port=LOCAL,dl_type=0x0806,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],output:NXM_OF_IN_PORT[]),' .
-        "load:0x$rewrite_target_hex->NXM_OF_ARP_SPA[],move:NXM_OF_ETH_SRC[0..$netmask]->NXM_OF_ARP_SPA[0..$netmask]," .
-        'local',
+        "table=0,priority=100,dl_type=0x0806,nw_dst=$local_ip,actions="
+        . 'learn(table=1,priority=100,in_port=LOCAL,dl_type=0x0806,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_ARP_SPA[]->NXM_OF_ARP_TPA[],output:NXM_OF_IN_PORT[]),'
+        . "load:0x$rewrite_target_hex->NXM_OF_ARP_SPA[],move:NXM_OF_ETH_SRC[0..$netmask]->NXM_OF_ARP_SPA[0..$netmask],"
+        . 'local',
 
-        # tcp to $self->{MAC} syn - learn rule for handling replies, rewrite source IP to e.g. 10.1.x.x range and send to local
+ # tcp to $self->{MAC} syn - learn rule for handling replies, rewrite source IP to e.g. 10.1.x.x range and send to local
         # the learned rule rewrites DST to the original IP and sends the packet to the original port
-        "table=0,priority=100,dl_type=0x0800,tcp_flags=+syn-ack,dl_dst=$self->{MAC},actions=" .
-'learn(table=1,priority=100,in_port=LOCAL,dl_type=0x0800,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_IP_SRC[]->NXM_OF_IP_DST[],output:NXM_OF_IN_PORT[]),' .
-        "mod_nw_src:$rewrite_target,move:NXM_OF_ETH_SRC[0..$netmask]->NXM_OF_IP_SRC[0..$netmask]," .
-        'local',
+        "table=0,priority=100,dl_type=0x0800,tcp_flags=+syn-ack,dl_dst=$self->{MAC},actions="
+        . 'learn(table=1,priority=100,in_port=LOCAL,dl_type=0x0800,NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:NXM_OF_IP_SRC[]->NXM_OF_IP_DST[],output:NXM_OF_IN_PORT[]),'
+        . "mod_nw_src:$rewrite_target,move:NXM_OF_ETH_SRC[0..$netmask]->NXM_OF_IP_SRC[0..$netmask]," . 'local',
 
         # tcp to $self->{MAC} other - rewrite source IP to e.g. 10.1.x.x range and send to local
-        "table=0,priority=99,dl_type=0x0800,dl_dst=$self->{MAC},actions=" .
-        "mod_nw_src:$rewrite_target,move:NXM_OF_ETH_SRC[0..$netmask]->NXM_OF_IP_SRC[0..$netmask],local",
+        "table=0,priority=99,dl_type=0x0800,dl_dst=$self->{MAC},actions="
+        . "mod_nw_src:$rewrite_target,move:NXM_OF_ETH_SRC[0..$netmask]->NXM_OF_IP_SRC[0..$netmask],local",
       )
     {
         system('ovs-ofctl', 'add-flow', $self->{BRIDGE}, $rule);

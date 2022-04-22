@@ -12,8 +12,12 @@ use Test::MockObject;
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
 
-BEGIN { *backend::ipmi::system = sub { 1 } }
-BEGIN { *consoles::localXvnc::system = sub { "@_" =~ /hardware-console-log/ ? 1 : 0 } }
+BEGIN {
+    *backend::ipmi::system = sub { 1 }
+}
+BEGIN {
+    *consoles::localXvnc::system = sub { "@_" =~ /hardware-console-log/ ? 1 : 0 }
+}
 
 use backend::ipmi;    # SUT
 
@@ -22,7 +26,8 @@ $bmwqemu::vars{"HARDWARE_CONSOLE_LOG"} = 1;
 ok my $backend = backend::ipmi->new(), 'backend can be created';
 $bmwqemu::vars{"IPMI_$_"} = "fake_$_" foreach qw(HOSTNAME USER PASSWORD);
 my @ipmi_cmdline = $backend->ipmi_cmdline;
-is_deeply \@ipmi_cmdline, [qw(ipmitool -I lanplus -H fake_HOSTNAME -U fake_USER -P fake_PASSWORD)], 'valid ipmi_cmdline';
+is_deeply \@ipmi_cmdline, [qw(ipmitool -I lanplus -H fake_HOSTNAME -U fake_USER -P fake_PASSWORD)],
+  'valid ipmi_cmdline';
 
 my $ipmi = Test::MockModule->new('backend::ipmi');
 $ipmi->redefine(ipmi_cmdline => sub { (qw(echo simulating ipmi)) });

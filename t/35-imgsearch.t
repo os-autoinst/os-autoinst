@@ -21,10 +21,14 @@ my ($data_dir, $imgsearch_dir) = (path('t/data'), path('t/imgsearch'));
 my $haystack_image_1 = $data_dir->child('other-desktop-dvd-20140904.png');    # contains KDE and GNOME logo
 my $haystack_image_2 = $data_dir->child('xterm-started-20141204.png');    # contains none of the logos
 my $kde_logo = $imgsearch_dir->child('kde-logo.png');    # KDE logo, exactly like in $haystack_image_1; expected match
-my $gnome_logo = $imgsearch_dir->child('gnome-logo-distorted.png');    # GNOME logo, slightly distorted; candidate with high similarity
+my $gnome_logo
+  = $imgsearch_dir->child('gnome-logo-distorted.png');  # GNOME logo, slightly distorted; candidate with high similarity
 
 my $stdout;
-stderr_like { $stdout = qx{"./imgsearch" --verbose --haystack-images $haystack_image_1 $haystack_image_2 --needle-images $kde_logo $gnome_logo} }
+stderr_like {
+    $stdout
+      = qx{"./imgsearch" --verbose --haystack-images $haystack_image_1 $haystack_image_2 --needle-images $kde_logo $gnome_logo}
+}
 qr/Loading needles.*Searching.*png/s, 'log via stderr';
 
 my $actual_output = decode_json($stdout);
@@ -42,7 +46,8 @@ my ($actual_error_kde, $expected_error_kde)
 
 sub is_similar ($actual, $expected, $test) { cmp_ok abs($actual - $expected), '<', '0.05', $test }
 
-is_similar $actual_similarity_gnome, $expected_similarity_gnome, 'slightly distorted GNOME logo is matching candidate with high similarity';
+is_similar $actual_similarity_gnome, $expected_similarity_gnome,
+  'slightly distorted GNOME logo is matching candidate with high similarity';
 is_similar $actual_similarity_kde, $expected_similarity_kde, 'exact KDE logo is best match with very high similarity';
 is_similar $actual_error_gnome, $expected_error_gnome, 'snall error for candidate with high similarity';
 is_similar $actual_error_kde, $expected_error_kde, 'very small error for best match';

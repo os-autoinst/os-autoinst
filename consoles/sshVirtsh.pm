@@ -48,15 +48,13 @@ sub _init_ssh ($self, $args) {
             hostname => $args->{hostname} || die('we need a hostname to ssh to'),
             username => $args->{username},
             password => $args->{password},
-        }
-    };
+        }};
     if ($self->vmm_family eq 'vmware') {
-        $self->{ssh_credentials}->{sshVMwareServer} =
-          {
+        $self->{ssh_credentials}->{sshVMwareServer} = {
             hostname => $bmwqemu::vars{VMWARE_HOST} || die('Need variable VMWARE_HOST'),
             password => $bmwqemu::vars{VMWARE_PASSWORD} || die('Need variable VMWARE_PASSWORD'),
             username => 'root',
-          };
+        };
     }
 }
 
@@ -129,7 +127,11 @@ sub _init_xml ($self, $args = {}) {
         $root->appendChild($elem);
     }
 
-    if ($bmwqemu::vars{UEFI} and $bmwqemu::vars{ARCH} eq 'x86_64' and !$bmwqemu::vars{BIOS} and $bmwqemu::vars{VIRSH_VMM_FAMILY} ne 'hyperv') {
+    if (    $bmwqemu::vars{UEFI}
+        and $bmwqemu::vars{ARCH} eq 'x86_64'
+        and !$bmwqemu::vars{BIOS}
+        and $bmwqemu::vars{VIRSH_VMM_FAMILY} ne 'hyperv')
+    {
         foreach my $firmware (@bmwqemu::ovmf_locations) {
             if (!$self->run_cmd("test -e $firmware")) {
                 $bmwqemu::vars{BIOS} = $firmware;
@@ -142,7 +144,8 @@ sub _init_xml ($self, $args = {}) {
         if (!$bmwqemu::vars{BIOS}) {
             # We know this won't go well.
             my $virsh_hostname = $bmwqemu::vars{VIRSH_HOSTNAME} // '';
-            die "No UEFI firmware can be found on hypervisor '$virsh_hostname'. Please specify BIOS or UEFI_BIOS or install an appropriate package.";
+            die
+"No UEFI firmware can be found on hypervisor '$virsh_hostname'. Please specify BIOS or UEFI_BIOS or install an appropriate package.";
         }
     }
 
@@ -291,14 +294,13 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
         my $vmware_disk_path = $vmware_openqa_datastore . $file;
         # Power VM off, delete it's disk image, and create it again.
         # Than wait for some time for the VM to *really* turn off.
-        my $cmd =
-          "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
-          'if [ $vmid ]; then ' .
-          'vim-cmd vmsvc/power.off $vmid;' .
-          'vim-cmd vmsvc/destroy $vmid;' .
-          'fi;' .
-          "vmkfstools -v1 -U $vmware_disk_path;" .
-          "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1";
+        my $cmd
+          = "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');"
+          . 'if [ $vmid ]; then '
+          . 'vim-cmd vmsvc/power.off $vmid;'
+          . 'vim-cmd vmsvc/destroy $vmid;' . 'fi;'
+          . "vmkfstools -v1 -U $vmware_disk_path;"
+          . "vmkfstools -v1 -c $size --diskformat thin $vmware_disk_path; sleep 10 ) 2>&1";
         my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
         die "Can't create VMware image $vmware_disk_path" if $retval;
     }
@@ -321,31 +323,30 @@ sub _create_disk ($self, $args, $vmware_openqa_datastore, $file, $name, $basedir
     return $file;
 }
 
-sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile) {
+sub _copy_image_vmware ($self, $name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path,
+    $vmware_disk_path_thinfile)
+{
     # If the file exists, make sure someone else is not copying it there right now,
     # otherwise copy image from NFS datastore.
     my $nfs_dir = $backingfile ? 'hdd' : 'iso';
     my $vmware_nfs_datastore = $bmwqemu::vars{VMWARE_NFS_DATASTORE} or die 'Need variable VMWARE_NFS_DATASTORE';
-    my $cmd =
-      "if test -e $vmware_openqa_datastore$file_basename; then " .
-      "while lsof | grep 'cp.*$file_basename'; do " .
-      "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" .
-      'done;' .
-      'else ' .
-      "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" .
-      'fi;';
+    my $cmd
+      = "if test -e $vmware_openqa_datastore$file_basename; then "
+      . "while lsof | grep 'cp.*$file_basename'; do "
+      . "echo File $file_basename is being copied by other process, sleeping for 60 seconds; sleep 60;" . 'done;'
+      . 'else '
+      . "cp /vmfs/volumes/$vmware_nfs_datastore/$nfs_dir/$file_basename $vmware_openqa_datastore;" . 'fi;';
     my $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
     die "Can't copy VMware image $file_basename" if $retval;
     return unless $backingfile;
     # Power VM off, delete it's disk image, and create it again.
     # Than wait for some time for the VM to *really* turn off.
-    $cmd =
-      "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');" .
-      'if [ $vmid ]; then ' .
-      'vim-cmd vmsvc/power.off $vmid;' .
-      'fi;' .
-      "vmkfstools -v1 -U $vmware_disk_path_thinfile;" .
-      "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1";
+    $cmd
+      = "( set -x; vmid=\$(vim-cmd vmsvc/getallvms | awk \'/$name/ { print \$1 }\');"
+      . 'if [ $vmid ]; then '
+      . 'vim-cmd vmsvc/power.off $vmid;' . 'fi;'
+      . "vmkfstools -v1 -U $vmware_disk_path_thinfile;"
+      . "vmkfstools -v1 -i $vmware_disk_path --diskformat thin $vmware_disk_path_thinfile; sleep 10 ) 2>&1";
     $retval = $self->run_cmd($cmd, domain => 'sshVMwareServer');
     die "Can't create thin VMware image" if $retval;
 }
@@ -367,7 +368,8 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
     my $vmware_disk_path_thinfile = $vmware_disk_path =~ s/\.vmdk/_${name}_thinfile\.vmdk/r;
     if ($cdrom || $backingfile) {
         if ($self->vmm_family eq 'vmware') {
-            $self->_copy_image_vmware($name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path, $vmware_disk_path_thinfile);
+            $self->_copy_image_vmware($name, $backingfile, $file_basename, $vmware_openqa_datastore, $vmware_disk_path,
+                $vmware_disk_path_thinfile);
         }
         else {
             $self->_copy_image_else($args->{file}, $file_basename, $basedir);
@@ -521,10 +523,12 @@ __END"
     # define the new domain
     $self->run_cmd("virsh $remote_vmm define $xmlfilename") && die "virsh define failed";
     if ($self->vmm_family eq 'vmware') {
-        $self->run_cmd('echo bios.bootDelay = \"10000\" >> /vmfs/volumes/datastore1/openQA/' . $self->name . '.vmx', domain => 'sshVMwareServer');
+        $self->run_cmd('echo bios.bootDelay = \"10000\" >> /vmfs/volumes/datastore1/openQA/' . $self->name . '.vmx',
+            domain => 'sshVMwareServer');
     }
 
-    $ret = $self->run_cmd("virsh $remote_vmm start " . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');
+    $ret = $self->run_cmd(
+        "virsh $remote_vmm start " . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');
     bmwqemu::diag("Dump actually used libvirt configuration file " . ($ret ? "(broken)" : "(working)"));
     $self->run_cmd("virsh $remote_vmm dumpxml " . $self->name);
     die "virsh start failed" if $ret;
@@ -584,7 +588,8 @@ contains I<stdout> and I<stderr>.
 This function is B<deprecated>, you should use C<<$svirt->run_cmd()>> instead.
 =cut
 sub get_cmd_output ($self, $cmd, $args = {}) {
-    my (undef, $stdout, $stderr) = $self->backend->run_ssh_cmd($cmd, $self->get_ssh_credentials($args->{domain}), wantarray => 1);
+    my (undef, $stdout, $stderr)
+      = $self->backend->run_ssh_cmd($cmd, $self->get_ssh_credentials($args->{domain}), wantarray => 1);
     return $args->{wantarray} ? [$stdout, $stderr] : $stdout;
 }
 

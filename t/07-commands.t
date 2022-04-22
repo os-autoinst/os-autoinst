@@ -103,9 +103,11 @@ subtest 'web socket route' => sub {
 
     subtest 'broadcast messages to websocket clients' => sub {
         my $t2 = Test::Mojo->new;
-        $t2->post_ok("$base_url/$job/broadcast", json => {
+        $t2->post_ok(
+            "$base_url/$job/broadcast",
+            json => {
                 stopping_test_execution => 'foo',
-        });
+            });
         $t2->status_is(200);
         $t->message_ok('message from broadcast route received');
         $t->json_message_is('/stopping_test_execution' => 'foo');
@@ -196,7 +198,8 @@ subtest 'upload api' => sub {
         push @tempfiles, $pool_directory->child('assets_private/private-asset');
         is $pool_directory->child('assets_private/private-asset')->slurp, 'private-content', 'private asset created';
 
-        $t->post_ok("$base_url/$job/upload_asset/public-asset", form => {upload => {content => 'public-content'}, target => 'assets_public'});
+        $t->post_ok("$base_url/$job/upload_asset/public-asset",
+            form => {upload => {content => 'public-content'}, target => 'assets_public'});
         $t->status_is(200)->content_is("OK: public-asset\n");
         push @tempfiles, $pool_directory->child('assets_public/public-asset');
         is $pool_directory->child('assets_public/public-asset')->slurp, 'public-content', 'public asset created';
@@ -205,7 +208,10 @@ subtest 'upload api' => sub {
 
 kill TERM => $spid;
 waitpid($spid, 0);
-combined_like { eval { $cserver->stop() } } qr/commands process exited/, 'commands server stopped';
+combined_like {
+    eval { $cserver->stop() }
+}
+qr/commands process exited/, 'commands server stopped';
 
 done_testing;
 

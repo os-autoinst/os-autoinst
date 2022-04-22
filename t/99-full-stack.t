@@ -75,7 +75,8 @@ for my $result (glob("testresults/result*fail*.json")) {
 }
 
 subtest 'Assert screen failure' => sub {
-    my $count = () = path('autoinst-log.txt')->slurp =~ /(?<=no candidate needle with tag\(s\)) '(no_tag, no_tag2|no_tag3)'/g;
+    my $count = ()
+      = path('autoinst-log.txt')->slurp =~ /(?<=no candidate needle with tag\(s\)) '(no_tag, no_tag2|no_tag3)'/g;
     is $count, 2, 'Assert screen failures';
 };
 

@@ -33,10 +33,12 @@ $console->mock('ret_undef', sub { return undef; });
 $console->mock('ret_list', sub { qw(a b c d); });
 $console->mock('ret_list_empty', sub { return; });
 $console->mock('ret_die', sub { die("!!Urgs!!"); });
-$console->mock('check_args', sub {
+$console->mock(
+    'check_args',
+    sub {
         my ($self, @args) = @_;
         is_deeply(\@args, $console_check_args, 'Got expected (' . join(',', @args) . ') arguments');
-});
+    });
 
 $mock_bmwqemu->noop('log_call');
 $mock_basetest->noop('_result_add_screenshot');
@@ -84,10 +86,13 @@ subtest 'testapi::console() => backend::console_proxy => backend::baseclass::pro
     select_console('a-console');
     # Call each method in SCALAR and ARRAY context once via the proxy and once without.
     # Validate that both calls return the same value.
-    for my $func (qw(ret_array ret_array_empty ret_array_ref ret_array_ref_empty
+    for my $func (
+        qw(ret_array ret_array_empty ret_array_ref ret_array_ref_empty
         ret_hash ret_hash_empty ret_hash_ref ret_hash_ref_empty
         ret_scalar ret_undef
-        ret_list ret_list_empty)) {
+        ret_list ret_list_empty)
+      )
+    {
         $jsonrpc_cmds = [];    # we do not need $jsonrpc_cmds history!
 
         # Call in void context

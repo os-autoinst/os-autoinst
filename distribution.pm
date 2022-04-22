@@ -116,14 +116,18 @@ sub script_run ($self, $cmd, @args) {
             timeout => $bmwqemu::default_timeout,
             output => '',
             quiet => undef
-        }, ['timeout'], @args);
+        },
+        ['timeout'],
+        @args
+    );
 
     if (testapi::is_serial_terminal) {
         testapi::wait_serial($self->{serial_term_prompt}, no_regex => 1, quiet => $args{quiet});
     }
     testapi::type_string "$cmd";
     if ($args{timeout} > 0) {
-        die "Terminator '&' found in script_run call. script_run can not check script success. Use 'background_script_run' instead."
+        die
+"Terminator '&' found in script_run call. script_run can not check script success. Use 'background_script_run' instead."
           if $cmd =~ qr/(?<!\\)&$/;
         my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
         my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
@@ -238,7 +242,10 @@ sub script_output ($self, $script, @args) {
             # 80 is approximate quantity of chars typed during 'curl' approach
             # if script length is lower there is no point to proceed with more complex solution
             type_command => length($script) < 80,
-        }, ['timeout'], @args);
+        },
+        ['timeout'],
+        @args
+    );
 
     my $marker = testapi::hashed_string("SO$script");
     my $script_path = "/tmp/script$marker.sh";
@@ -293,8 +300,11 @@ sub script_output ($self, $script, @args) {
     else {
         testapi::type_string("($run_script) | tee /dev/$testapi::serialdev\n");
     }
-    my $output = testapi::wait_serial("SCRIPT_FINISHED$marker-\\d+-", timeout => $args{timeout}, record_output => 1, quiet => $args{quiet})
-      || croak "script timeout: $script";
+    my $output = testapi::wait_serial(
+        "SCRIPT_FINISHED$marker-\\d+-",
+        timeout => $args{timeout},
+        record_output => 1,
+        quiet => $args{quiet}) || croak "script timeout: $script";
 
     if ($output !~ "SCRIPT_FINISHED$marker-0-") {
         my $log_message = 'script failed with : ' . $output;

@@ -30,14 +30,18 @@ my $expected_console_name = undef;
 my $expected_console_type = undef;
 my %expected_console_credentials = ();
 my $distri = Test::MockModule->new('distribution');
-$distri->redefine('add_console', sub ($self, $name, $type, $creds) {
+$distri->redefine(
+    'add_console',
+    sub ($self, $name, $type, $creds) {
         local $Test::Builder::Level = $Test::Builder::Level + 1;
 
         if (defined($expected_console_name)) {
-            die "Invalid console name '$name'. Expected '$expected_console_name'" unless $name eq $expected_console_name;
+            die "Invalid console name '$name'. Expected '$expected_console_name'"
+              unless $name eq $expected_console_name;
         }
         if (defined($expected_console_type)) {
-            die "Invalid console type '$type'. Expected '$expected_console_type'" unless $type eq $expected_console_type;
+            die "Invalid console type '$type'. Expected '$expected_console_type'"
+              unless $type eq $expected_console_type;
         }
         if (keys %expected_console_credentials) {
             is_deeply($creds, \%expected_console_credentials, 'Check the name of the console');
@@ -45,22 +49,25 @@ $distri->redefine('add_console', sub ($self, $name, $type, $creds) {
         my $ret = Test::MockObject->new();
         $ret->set_true('backend');
         return $ret;
-});
+    });
 $testapi::distri = distribution->new;
 
 my $check_socket_ret = undef;
 my $check_socket_fh_expected = undef;
 my $check_socket_write_expected = undef;
 my $mock_base = Test::MockModule->new("backend::baseclass", no_auto => 1);
-$mock_base->redefine('check_socket', sub ($self, $fh, $write) {
+$mock_base->redefine(
+    'check_socket',
+    sub ($self, $fh, $write) {
         if (defined($check_socket_fh_expected)) {
             die "Invalid fh '$fh'. Expected '$fh'" unless $fh eq $check_socket_fh_expected;
         }
         if (defined($check_socket_write_expected)) {
-            die "Invalid write '$write'. Expected '$check_socket_write_expected'" unless $write eq $check_socket_write_expected;
+            die "Invalid write '$write'. Expected '$check_socket_write_expected'"
+              unless $write eq $check_socket_write_expected;
         }
         return $check_socket_ret;
-});
+    });
 
 
 my $mock_run = Test::MockModule->new("IPC::Run");
@@ -70,12 +77,14 @@ my $expected_spurt_str = undef;
 my $mock_path = Test::MockObject->new();
 $mock_path->mock('make_path', sub ($self, %opts) { return $self; });
 $mock_path->mock('child', sub ($self, $child_name) { return $self; });
-$mock_path->mock('spurt', sub ($self, $str) {
+$mock_path->mock(
+    'spurt',
+    sub ($self, $str) {
         if (defined($expected_spurt_str)) {
             die "Invalid spurt contents '$str', expected '$expected_spurt_str'" unless $str eq $expected_spurt_str;
         }
         return $self;
-});
+    });
 
 my $mock_mojo_file = Test::MockModule->new("Mojo::File");
 $mock_mojo_file->redefine('path', $mock_path);
@@ -83,14 +92,18 @@ $mock_mojo_file->redefine('path', $mock_path);
 my $ipc_run_retval = [];
 
 my $mock_handle = Test::MockObject->new();
-$mock_handle->mock('full_result', sub {
+$mock_handle->mock(
+    'full_result',
+    sub {
         return (@$ipc_run_retval > 0) ? pop(@$ipc_run_retval) : 0;
-});
+    });
 my $run_expect_cmd = [];
 my $run_stdout_to_write = [];
 my $run_stderr_to_write = [];
 
-$mock_run->redefine('start', sub ($cmd, $stdin, $stdout, $stderr, $timeout = undef) {
+$mock_run->redefine(
+    'start',
+    sub ($cmd, $stdin, $stdout, $stderr, $timeout = undef) {
         $$stdout = (@$run_stdout_to_write > 0) ? pop(@$run_stdout_to_write) : '';
         $$stderr = (@$run_stderr_to_write > 0) ? pop(@$run_stderr_to_write) : '';
 
@@ -99,7 +112,7 @@ $mock_run->redefine('start', sub ($cmd, $stdin, $stdout, $stderr, $timeout = und
             is_deeply($cmd, $next_expected_cmd);
         }
         return $mock_handle;
-});
+    });
 
 $mock_run->redefine('finish');
 
@@ -128,7 +141,11 @@ end
 END
     my $libvirt_vagrant = backend::vagrant->new();
     is($libvirt_vagrant->{box_name}, $backend_vars->{VAGRANT_BOX}, 'Backend variable matches box_name class variable');
-    is($libvirt_vagrant->{provider}, $backend_vars->{VAGRANT_PROVIDER}, 'Backend variable matches provider class variable');
+    is(
+        $libvirt_vagrant->{provider},
+        $backend_vars->{VAGRANT_PROVIDER},
+        'Backend variable matches provider class variable'
+    );
 
     $expected_spurt_str = undef;
 };
@@ -150,8 +167,16 @@ Vagrant.configure("2") do |config|
 end
 END
     my $virtualbox_backend = backend::vagrant->new();
-    is($virtualbox_backend->{box_name}, $backend_vars->{VAGRANT_BOX}, 'Backend variable matches box_name class variable');
-    is($virtualbox_backend->{provider}, $backend_vars->{VAGRANT_PROVIDER}, 'Backend variable matches provider class variable');
+    is(
+        $virtualbox_backend->{box_name},
+        $backend_vars->{VAGRANT_BOX},
+        'Backend variable matches box_name class variable'
+    );
+    is(
+        $virtualbox_backend->{provider},
+        $backend_vars->{VAGRANT_PROVIDER},
+        'Backend variable matches provider class variable'
+    );
 
     $expected_spurt_str = undef;
 };
@@ -159,7 +184,8 @@ END
 subtest 'Vagrantfile with a box url' => sub {
     $backend_vars->{VAGRANT_PROVIDER} = "libvirt";
     $backend_vars->{VAGRANT_BOX} = "Leap-15.2.x86_64";
-    $backend_vars->{VAGRANT_BOX_URL} = "http://download.opensuse.org/distribution/leap/15.2/appliances/boxes/Leap-15.2.x86_64.json";
+    $backend_vars->{VAGRANT_BOX_URL}
+      = "http://download.opensuse.org/distribution/leap/15.2/appliances/boxes/Leap-15.2.x86_64.json";
     $backend_vars->{QEMUCPUS} = 1;
     $backend_vars->{QEMURAM} = 1024;
 
@@ -177,9 +203,18 @@ Vagrant.configure("2") do |config|
 end
 END
     my $provider_with_url = backend::vagrant->new();
-    is($provider_with_url->{box_name}, $backend_vars->{VAGRANT_BOX}, 'Backend variable matches box_name class variable');
-    is($provider_with_url->{provider}, $backend_vars->{VAGRANT_PROVIDER}, 'Backend variable matches provider class variable');
-    is($provider_with_url->{box_url}, $backend_vars->{VAGRANT_BOX_URL}, 'Backend variable matches box_url class variable');
+    is($provider_with_url->{box_name}, $backend_vars->{VAGRANT_BOX},
+        'Backend variable matches box_name class variable');
+    is(
+        $provider_with_url->{provider},
+        $backend_vars->{VAGRANT_PROVIDER},
+        'Backend variable matches provider class variable'
+    );
+    is(
+        $provider_with_url->{box_url},
+        $backend_vars->{VAGRANT_BOX_URL},
+        'Backend variable matches box_url class variable'
+    );
 
     $expected_spurt_str = undef;
     $backend_vars->{VAGRANT_BOX_URL} = undef;
@@ -202,10 +237,7 @@ subtest 'backend creation dies when the vagrant box is not in VAGRANT_ASSETDIR' 
     $backend_vars->{VAGRANT_BOX} = "/foobar";
 
     eval { backend::vagrant->new(); };
-    like(
-        $@, qr/File $tmpdir\/foobar does not exist/,
-        'error message that the box was not found is in the output'
-    );
+    like($@, qr/File $tmpdir\/foobar does not exist/, 'error message that the box was not found is in the output');
 
     $backend_vars->{VAGRANT_BOX} = "foobar";
     $backend_vars->{ASSETDIR} = undef;
@@ -234,8 +266,16 @@ Vagrant.configure("2") do |config|
 end
 END
     my $local_file_backend = backend::vagrant->new();
-    like($local_file_backend->{box_name}, qr/$backend_vars->{VAGRANT_BOX}/, 'Backend variable matches box_name class variable');
-    is($local_file_backend->{provider}, $backend_vars->{VAGRANT_PROVIDER}, 'Backend variable matches provider class variable');
+    like(
+        $local_file_backend->{box_name},
+        qr/$backend_vars->{VAGRANT_BOX}/,
+        'Backend variable matches box_name class variable'
+    );
+    is(
+        $local_file_backend->{provider},
+        $backend_vars->{VAGRANT_PROVIDER},
+        'Backend variable matches provider class variable'
+    );
 
     $expected_spurt_str = undef;
     $backend_vars->{ASSETDIR} = undef;
@@ -256,7 +296,8 @@ subtest 'get_ssh_credentials returns default values' => sub {
     $run_stdout_to_write = [];
     my %credentials = $vagrant->get_ssh_credentials();
     my %default_credentials = (hostname => "localhost", username => "vagrant", password => "vagrant", port => 22);
-    is_deeply(\%credentials, \%default_credentials, 'get_ssh_credentials returns the defaults without a match in stdout');
+    is_deeply(\%credentials, \%default_credentials,
+        'get_ssh_credentials returns the defaults without a match in stdout');
 };
 
 subtest 'get_ssh_credentials parses the ssh configuration' => sub {
@@ -295,8 +336,7 @@ subtest 'do_stop_vm does not try to remove the libvirt storage pool when using v
     $run_expect_cmd = [
         ["vagrant", "box", "--machine-readable", "remove", "-af", "--provider", "virtualbox", "baz"],
         ["vagrant", "destroy", "--machine-readable", "-f"],
-        ["vagrant", "halt", "--machine-readable"]
-    ];
+        ["vagrant", "halt", "--machine-readable"]];
 
     $backend_vars->{VAGRANT_PROVIDER} = "virtualbox";
     $backend_vars->{VAGRANT_BOX} = "baz";
@@ -310,8 +350,7 @@ subtest 'do_stop_vm halts the vm, destroys the vm and removes the base box and t
         ["virsh", "pool-destroy", "vagrant0"],
         ["vagrant", "box", "--machine-readable", "remove", "-af", "--provider", "libvirt", "foobar"],
         ["vagrant", "destroy", "--machine-readable", "-f"],
-        ["vagrant", "halt", "--machine-readable"]
-    ];
+        ["vagrant", "halt", "--machine-readable"]];
     my $res = $vagrant->do_stop_vm();
 };
 
@@ -327,10 +366,7 @@ subtest 'do_stop_vm logs when vagrant halt fails' => sub {
 };
 
 subtest 'do_stop_vm logs when destroying the vm fails' => sub {
-    $run_expect_cmd = [
-        ["vagrant", "destroy", "--machine-readable", "-f"],
-        ["vagrant", "halt", "--machine-readable"]
-    ];
+    $run_expect_cmd = [["vagrant", "destroy", "--machine-readable", "-f"], ["vagrant", "halt", "--machine-readable"]];
     $ipc_run_retval = [1, 0];
 
     stderr_like(
@@ -344,8 +380,7 @@ subtest 'do_stop_vm logs when removing the box fails' => sub {
     $run_expect_cmd = [
         ["vagrant", "box", "--machine-readable", "remove", "-af", "--provider", "libvirt", "foobar"],
         ["vagrant", "destroy", "--machine-readable", "-f"],
-        ["vagrant", "halt", "--machine-readable"]
-    ];
+        ["vagrant", "halt", "--machine-readable"]];
     $ipc_run_retval = [1, 0, 0];
 
     stderr_like(
@@ -360,8 +395,7 @@ subtest 'do_stop_vm logs when destroying the libvirt pool fails' => sub {
         ["virsh", "pool-destroy", "vagrant0"],
         ["vagrant", "box", "--machine-readable", "remove", "-af", "--provider", "libvirt", "foobar"],
         ["vagrant", "destroy", "--machine-readable", "-f"],
-        ["vagrant", "halt", "--machine-readable"]
-    ];
+        ["vagrant", "halt", "--machine-readable"]];
     $ipc_run_retval = [3, 0, 0, 0];
 
     stderr_like(
@@ -375,8 +409,7 @@ subtest 'do_start_vm launches vm via vagrant up and configures a ssh terminal' =
     $run_expect_cmd = [
         ["vagrant", "ssh-config"],
         ["vagrant", "up", "--machine-readable", "--provider", "libvirt"],
-        ["virsh", "pool-create-as", "--target", "$tmpdir/pool", "--name", "vagrant0", "--type", "dir"]
-    ];
+        ["virsh", "pool-create-as", "--target", "$tmpdir/pool", "--name", "vagrant0", "--type", "dir"]];
     $expected_console_name = 'vagrant-ssh';
     $expected_console_type = 'ssh-serial';
     %expected_console_credentials = (hostname => "localhost", username => "vagrant", password => "vagrant", port => 22);
@@ -389,15 +422,17 @@ subtest 'do_start_vm launches vm via vagrant up and configures a ssh terminal' =
 };
 
 subtest 'do_start_vm dies when the libvirt pool cannot be created' => sub {
-    $run_expect_cmd = [
-        ["virsh", "pool-create-as", "--target", "$tmpdir/pool", "--name", "vagrant0", "--type", "dir"]
-    ];
+    $run_expect_cmd = [["virsh", "pool-create-as", "--target", "$tmpdir/pool", "--name", "vagrant0", "--type", "dir"]];
     $ipc_run_retval = [1];
     $run_stdout_to_write = ['fooStdout'];
     $run_stderr_to_write = ['barStderr'];
 
     eval { $vagrant->do_start_vm(); };
-    like($@, qr/Create libvirt storage pool failed with exit code: 1/, 'Check the error message reported by do_start_vm');
+    like(
+        $@,
+        qr/Create libvirt storage pool failed with exit code: 1/,
+        'Check the error message reported by do_start_vm'
+    );
     like($@, qr/fooStdout/, 'Check that the error message contains stdout');
     like($@, qr/barStderr/, 'Check that the error message contains stderr');
 };
@@ -408,9 +443,7 @@ error: Failed to create pool vagrant0
 error: operation failed: pool 'vagrant0' already exists with uuid 0ad1d63e-a52f-4524-8b33-b20cca52d57b
 
 END
-    $run_expect_cmd = [
-        ["virsh", "pool-create-as", "--target", "$tmpdir/pool", "--name", "vagrant0", "--type", "dir"]
-    ];
+    $run_expect_cmd = [["virsh", "pool-create-as", "--target", "$tmpdir/pool", "--name", "vagrant0", "--type", "dir"]];
     $ipc_run_retval = [1];
     $run_stdout_to_write = [''];
     $run_stderr_to_write = [$virsh_pool_exists_stderr];
@@ -421,8 +454,7 @@ END
 subtest 'do_start_vm dies when vagrant up returns an error' => sub {
     $run_expect_cmd = [
         ["vagrant", "up", "--machine-readable", "--provider", "libvirt"],
-        ["virsh", "pool-create-as", "--target", "$tmpdir/pool", "--name", "vagrant0", "--type", "dir"]
-    ];
+        ["virsh", "pool-create-as", "--target", "$tmpdir/pool", "--name", "vagrant0", "--type", "dir"]];
     $ipc_run_retval = [1, 0];
     $run_stdout_to_write = ['fooStdout', ''];
     $run_stderr_to_write = ['barStderr', ''];
@@ -434,10 +466,7 @@ subtest 'do_start_vm dies when vagrant up returns an error' => sub {
 };
 
 subtest 'do_start_vm does not call to virsh when using virtualbox' => sub {
-    $run_expect_cmd = [
-        ["vagrant", "ssh-config"],
-        ["vagrant", "up", "--machine-readable", "--provider", "virtualbox"],
-    ];
+    $run_expect_cmd = [["vagrant", "ssh-config"], ["vagrant", "up", "--machine-readable", "--provider", "virtualbox"],];
 
     $backend_vars->{VAGRANT_PROVIDER} = "virtualbox";
     my $virtualbox = backend::vagrant->new();
@@ -450,8 +479,7 @@ subtest 'is_shutdown reports the status correctly' => sub {
     $run_expect_cmd = [
         ["vagrant", "status", "--machine-readable"],
         ["vagrant", "status", "--machine-readable"],
-        ["vagrant", "status", "--machine-readable"]
-    ];
+        ["vagrant", "status", "--machine-readable"]];
     my $libvirt_running_stdout = << 'END';
 1623931306,default,metadata,provider,libvirt
 1623931306,default,provider-name,libvirt
@@ -480,9 +508,7 @@ END
 
 END
 
-    $run_stdout_to_write = [
-        $libvirt_not_created_stdout, $libvirt_not_running_stdout, $libvirt_running_stdout
-    ];
+    $run_stdout_to_write = [$libvirt_not_created_stdout, $libvirt_not_running_stdout, $libvirt_running_stdout];
 
     ok(!$vagrant->is_shutdown(), 'vagrant should report the VM as running');
     ok($vagrant->is_shutdown(), 'vagrant should report the shutoff VM as turned off');

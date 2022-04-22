@@ -11,7 +11,8 @@ use Mojo::JSON qw(decode_json to_json);
 sub pass_message_from_ws_client_to_isotovideo ($self, $id, $msg) {
     my $app = $self->app;
     my $isotovideo = $app->defaults('isotovideo');
-    return $app->log->debug('cmdsrv: not passing command from client to isotovideo; connection to isotovideo has already been stopped')
+    return $app->log->debug(
+        'cmdsrv: not passing command from client to isotovideo; connection to isotovideo has already been stopped')
       unless defined $isotovideo;
 
     $app->log->debug("cmdsrv: passing command from client to isotovideo $isotovideo: $msg");
@@ -46,9 +47,10 @@ sub start_ws ($self) {
             my ($self, $msg) = @_;
             $self->pass_message_from_ws_client_to_isotovideo($id, $msg);
         });
-    $self->on(finish => sub {
+    $self->on(
+        finish => sub {
             $self->handle_ws_client_disconnects($id);
-    });
+        });
 }
 
 sub broadcast_message_to_websocket_clients ($self) {
@@ -71,10 +73,12 @@ sub broadcast_message_to_websocket_clients ($self) {
     return $self->render(json => {status => 'boradcast done'}) unless $outstanding_transactions;
 
     for (keys %$clients) {
-        $clients->{$_}->send({json => $message}, sub {
+        $clients->{$_}->send(
+            {json => $message},
+            sub {
                 return undef if (($outstanding_transactions -= 1) > 0);
                 return $self->render(json => {status => 'boradcast done'});
-        });
+            });
     }
 
     return $self;

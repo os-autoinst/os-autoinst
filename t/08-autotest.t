@@ -23,8 +23,11 @@ $bmwqemu::vars{CASEDIR} = File::Basename::dirname($0) . '/fake';
 
 like(exception { autotest::runalltests }, qr/ERROR: no tests loaded/, 'runalltests needs tests loaded first');
 like warning {
-    like(exception { autotest::loadtest 'does/not/match' }, qr/loadtest.*does not match required pattern/,
-        'loadtest catches incorrect test script paths')
+    like(
+        exception { autotest::loadtest 'does/not/match' },
+        qr/loadtest.*does not match required pattern/,
+        'loadtest catches incorrect test script paths'
+    )
 },
   qr/loadtest needs a script below.*is not/,
   'loadtest outputs on stderr';
@@ -32,7 +35,8 @@ like warning {
 sub loadtest ($test, $msg = undef) {
     my $filename = $test =~ /\.p[my]$/ ? $test : $test . '.pm';
     $test =~ s/\.p[my]//;
-    stderr_like { autotest::loadtest "tests/$filename" } qr@scheduling $test#?[0-9]* tests/$test|$test already scheduled@, $msg;
+    stderr_like { autotest::loadtest "tests/$filename" }
+    qr@scheduling $test#?[0-9]* tests/$test|$test already scheduled@, $msg;
 }
 
 my @sent;    # array of messages sent with the fake json_send
@@ -76,8 +80,11 @@ is(keys %autotest::tests, 2, 'two tests have been scheduled');
 loadtest 'start', 'rescheduling same step later';
 is(keys %autotest::tests, 3, 'three steps have been scheduled (one twice)') || diag explain %autotest::tests;
 is($autotest::tests{'tests-start1'}->{name}, 'start#1', 'handle duplicate tests');
-is($autotest::tests{'tests-start1'}->{$_}, $autotest::tests{'tests-start'}->{$_}, "duplicate tests point to the same $_")
-  for qw(script fullname category class);
+is(
+    $autotest::tests{'tests-start1'}->{$_},
+    $autotest::tests{'tests-start'}->{$_},
+    "duplicate tests point to the same $_"
+) for qw(script fullname category class);
 
 like warning { autotest::run_all }, qr/isotovideo.*not initialized/, 'autotest methods need a valid isotovideo socket';
 @sent = ();
@@ -148,7 +155,8 @@ subtest 'test always_rollback flag' => sub {
     snapshot_subtest 'stopping overall test execution early due to fatal test failure' => sub {
         $mock_basetest->redefine(runtest => sub { die "test died\n" });
         $vm_stopped = 0;
-        stderr_like { autotest::run_all } qr/.*stopping overall test execution after a fatal test failure.*/, 'reason logged';
+        stderr_like { autotest::run_all } qr/.*stopping overall test execution after a fatal test failure.*/,
+          'reason logged';
         ($died, $completed) = get_tests_done;
         is $died, 0, 'tests still not considered died if only a test module failed';
         is $completed, 0, 'tests not considered completed';
@@ -159,11 +167,13 @@ subtest 'test always_rollback flag' => sub {
     snapshot_subtest 'stopping overall test execution early due to snapshotting not available' => sub {
         $mock_basetest->redefine(test_flags => {milestone => 1});
         $mock_autotest->redefine(query_isotovideo => 0);
-        stderr_like { autotest::run_all } qr/.*stopping overall test execution because snapshotting is disabled.*/, 'reason logged';
+        stderr_like { autotest::run_all } qr/.*stopping overall test execution because snapshotting is disabled.*/,
+          'reason logged';
     };
     snapshot_subtest 'stopping overall test execution early due to TESTDEBUG' => sub {
         $bmwqemu::vars{TESTDEBUG} = 1;
-        stderr_like { autotest::run_all } qr/.*stopping overall test execution because TESTDEBUG has been set.*/, 'reason logged (TESTDEBUG)';
+        stderr_like { autotest::run_all } qr/.*stopping overall test execution because TESTDEBUG has been set.*/,
+          'reason logged (TESTDEBUG)';
         delete $bmwqemu::vars{TESTDEBUG};
     };
     $mock_basetest->unmock($_) for qw(runtest test_flags);
@@ -196,9 +206,10 @@ like($@, qr/The run_args must be a sub-class of OpenQA::Test::RunArgs/, 'error m
 # dies that we may not want to run into here
 $mock_basetest->redefine(runtest => sub { die 'oh noes!' });
 my $enable_snapshots = 1;
-$mock_autotest->redefine(query_isotovideo => sub ($command, $arguments) {
+$mock_autotest->redefine(
+    query_isotovideo => sub ($command, $arguments) {
         $command eq 'backend_can_handle' && $arguments->{function} eq 'snapshots' ? $enable_snapshots : 1;
-});
+    });
 
 my $record_resultfile_called;
 $mock_basetest->redefine(record_resultfile => sub { ++$record_resultfile_called });
@@ -218,10 +229,11 @@ is($completed, 1, 'unimportant test failure should complete');
 # unmock runtest, to fail in search_for_expected_serial_failures
 $mock_basetest->unmock('runtest');
 # mock reading of the serial output
-$mock_basetest->redefine(search_for_expected_serial_failures => sub ($self) {
+$mock_basetest->redefine(
+    search_for_expected_serial_failures => sub ($self) {
         $self->{fatal_failure} = 1;
         die "Got serial hard failure";
-});
+    });
 
 stderr_like { autotest::run_all } qr/Snapshots are supported/, 'run_all outputs status on stderr';
 ($died, $completed) = get_tests_done;
@@ -230,10 +242,11 @@ is($completed, 0, 'fatal serial failure test should not complete');
 
 # make the serial failure non-fatal
 $mock_basetest->unmock('search_for_expected_serial_failures');
-$mock_basetest->redefine(search_for_expected_serial_failures => sub ($self) {
+$mock_basetest->redefine(
+    search_for_expected_serial_failures => sub ($self) {
         $self->{fatal_failure} = 0;
         die "Got serial hard failure";
-});
+    });
 
 $autotest::current_test = Test::MockObject->new->set_true('record_resultfile');
 stderr_like { autotest::run_all } qr/Snapshots are supported/, 'run_all outputs status on stderr';
@@ -274,7 +287,11 @@ is($completed, 0, 'fatal test failure should not complete');
 
 loadtest 'fatal', 'rescheduling same step later' for 1 .. 10;
 my @opts = qw(script fullname category class);
-is(@{$autotest::tests{'tests-fatal'}}{@opts}, @{$autotest::tests{'tests-fatal' . $_}}{@opts}, "tests-fatal$_ share same options with tests-fatal")
+is(
+    @{$autotest::tests{'tests-fatal'}}{@opts},
+    @{$autotest::tests{'tests-fatal' . $_}}{@opts},
+    "tests-fatal$_ share same options with tests-fatal"
+  )
   && is(@{$autotest::tests{'tests-fatal' . $_}}{name}, 'fatal#' . $_)
   for 1 .. 10;
 
@@ -287,8 +304,7 @@ subtest 'test scheduling test modules at test runtime' => sub {
     my $json_filename = bmwqemu::result_dir . '/test_order.json';
     my @testorder = (
         {name => 'scheduler', category => 'tests', flags => {}, script => 'tests/scheduler.pm'},
-        {name => 'next', category => 'tests', flags => {}, script => 'tests/next.pm'}
-    );
+        {name => 'next', category => 'tests', flags => {}, script => 'tests/next.pm'});
 
     $mock_basetest->unmock('runtest');
     $mock_bmwqemu->redefine(save_json_file => sub ($data, $filename) { $json_data{$filename} = $data });
@@ -311,17 +327,20 @@ is(autotest::parse_test_path("$sharedir/factory/other/sysrq.pm"), 'other');
 subtest 'load test successfully when CASEDIR is a relative path' => sub {
     symlink($bmwqemu::vars{CASEDIR}, 'foo');
     $bmwqemu::vars{CASEDIR} = 'foo';
-    like warning { loadtest 'start' }, qr{Subroutine run redefined}, 'We get a warning for loading a test a second time';
+    like warning { loadtest 'start' }, qr{Subroutine run redefined},
+      'We get a warning for loading a test a second time';
 };
 
 stderr_like {
     lives_ok { autotest::loadtest('tests/test.py') } 'can load test module'
-} qr{scheduling test tests/test.py}, 'python test module referenced';
+}
+qr{scheduling test tests/test.py}, 'python test module referenced';
 loadtest 'test.py', 'we can also parse python test modules';
 
 stderr_like {
     throws_ok { autotest::loadtest 'tests/faulty.py' } qr/py_eval raised an exception/, 'dies on Python exception';
-} qr/Traceback.*No module named.*thismoduleshouldnotexist.*/s, 'Python traceback logged';
+}
+qr/Traceback.*No module named.*thismoduleshouldnotexist.*/s, 'Python traceback logged';
 
 done_testing();
 

@@ -32,7 +32,7 @@ has openqa_url => sub {
                 $url->scheme('');
             }
             else {
-                # treat URLs like just 'e212.suse.de' in the way that 'e212.suse.de' is the hostname (and not a relative path)
+          # treat URLs like just 'e212.suse.de' in the way that 'e212.suse.de' is the hostname (and not a relative path)
                 $url->host($path_parts->[0]);
             }
             $url->path(Mojo::Path->new);
@@ -65,16 +65,20 @@ sub _add_download ($self, $needle, $extension, $path_param) {
         if (my $target_last_modified = $target_stat->[9] // $target_stat->[8]) {
             $target_last_modified = strftime('%Y-%m-%dT%H:%M:%SZ', gmtime($target_last_modified));
             if ($target_last_modified ge $latest_update) {
-                bmwqemu::diag("skipping downloading new needle: $download_target seems already up-to-date (last update: $target_last_modified > $latest_update)");
+                bmwqemu::diag(
+"skipping downloading new needle: $download_target seems already up-to-date (last update: $target_last_modified > $latest_update)"
+                );
                 return;
             }
         }
     }
 
-    push(@{$self->files_to_download}, {
+    push(
+        @{$self->files_to_download},
+        {
             target => $download_target,
             url => Mojo::URL->new($self->openqa_url . $needle->{$path_param}),
-    });
+        });
 }
 
 sub _download_file ($self, $download) {

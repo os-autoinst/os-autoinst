@@ -18,8 +18,7 @@ has 'controller';
 sub _to_map ($self) { {id => $self->id, controller => $self->controller->id} }
 
 sub _from_map ($self, $map, $cont_conf) {
-    $self->id($map->{id})
-      ->controller($cont_conf->get_controller($map->{controller}));
+    $self->id($map->{id})->controller($cont_conf->get_controller($map->{controller}));
 }
 
 sub CARP_TRACE { 'OpenQA::Qemu::DrivePath(' . (shift->id || '') . ')' }

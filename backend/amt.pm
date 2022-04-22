@@ -96,11 +96,15 @@ sub set_power_state ($self, $power_state) {
 }
 
 sub select_next_boot ($self, $bootdev) {
-    my $amt_bootdev = 'Intel(r) AMT: Force ' . ({
+    my $amt_bootdev = 'Intel(r) AMT: Force '
+      . (
+        {
             cddvd => 'CD/DVD Boot',
             hdd => 'Hard-drive Boot',
             pxe => 'PXE Boot',
-    }->{$bootdev} or die "Unsupported boot device $bootdev");
+        }->{$bootdev}
+          or die "Unsupported boot device $bootdev"
+      );
 
     # reset boot configuration to known state
     my $keys = "-k BIOSPause=false -k BootMediaIndex=0";

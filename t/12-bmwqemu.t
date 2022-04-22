@@ -44,28 +44,48 @@ subtest 'log_call' => sub {
     sub log_call_test {
         bmwqemu::log_call(foo => "bar\tbaz\rboo\n");
     }
-    stderr_like(\&log_call_test, qr{\Q<<< main::log_call_test(foo="bar\tbaz\rboo\n")}, 'log_call escapes special characters');
+    stderr_like(
+        \&log_call_test,
+        qr{\Q<<< main::log_call_test(foo="bar\tbaz\rboo\n")},
+        'log_call escapes special characters'
+    );
 
     sub log_call_test_escape_key {
         bmwqemu::log_call("foo\nbar" => "bar\tbaz\rboo\n");
     }
-    stderr_like(\&log_call_test_escape_key, qr{\Q<<< main::log_call_test_escape_key("foo\nbar"="bar\tbaz\rboo\n")}, 'log_call escapes special characters');
+    stderr_like(
+        \&log_call_test_escape_key,
+        qr{\Q<<< main::log_call_test_escape_key("foo\nbar"="bar\tbaz\rboo\n")},
+        'log_call escapes special characters'
+    );
 
     sub log_call_test_single {
         bmwqemu::log_call("bar\tbaz\rboo\n");
     }
-    stderr_like(\&log_call_test_single, qr{\Q<<< main::log_call_test_single("bar\tbaz\rboo\n")}, 'log_call escapes special characters');
+    stderr_like(
+        \&log_call_test_single,
+        qr{\Q<<< main::log_call_test_single("bar\tbaz\rboo\n")},
+        'log_call escapes special characters'
+    );
 
     sub log_call_indent {
         my $lines = ["a", ["b"]];
         bmwqemu::log_call(test => $lines);
     }
-    stderr_like(\&log_call_indent, qr{\Q<<< main::log_call_indent(test=[\E\n\Q    "a",\E\n\Q    [\E\n\Q      "b"\E\n\Q    ]\E\n\Q  ])}, 'log_call auto indentation');
+    stderr_like(
+        \&log_call_indent,
+        qr{\Q<<< main::log_call_indent(test=[\E\n\Q    "a",\E\n\Q    [\E\n\Q      "b"\E\n\Q    ]\E\n\Q  ])},
+        'log_call auto indentation'
+    );
 
     sub log_call_test_secret {
         bmwqemu::log_call(text => "passwd\n", secret => 1);
     }
-    stderr_like(\&log_call_test_secret, qr{\Q<<< main::log_call_test_secret(text="[masked]", secret=1)}, 'log_call hides sensitive info');
+    stderr_like(
+        \&log_call_test_secret,
+        qr{\Q<<< main::log_call_test_secret(text="[masked]", secret=1)},
+        'log_call hides sensitive info'
+    );
 };
 
 subtest 'update_line_number' => sub {
@@ -73,7 +93,8 @@ subtest 'update_line_number' => sub {
     bmwqemu::init_logger();
     ok !bmwqemu::update_line_number(), 'update_line_number needs current_test defined';
     $autotest::current_test = {script => 'my/module.pm'};
-    stderr_like { bmwqemu::update_line_number() } qr{bmwqemu.t.*called.*subtest}, 'update_line_number identifies caller scope';
+    stderr_like { bmwqemu::update_line_number() } qr{bmwqemu.t.*called.*subtest},
+      'update_line_number identifies caller scope';
 };
 
 subtest 'CASEDIR is mandatory' => sub {
@@ -133,12 +154,14 @@ subtest 'HDD variables sanity check' => sub {
     %bmwqemu::vars = (NUMDISKS => 1, HDD_1 => 'foo.qcow2', PUBLISH_HDD_1 => 'bar.qcow2');
     ok(bmwqemu::_check_publish_vars, 'one HDD for reading, one for publishing is ok');
     $bmwqemu::vars{PUBLISH_HDD_1} = 'foo.qcow2';
-    throws_ok { bmwqemu::_check_publish_vars } qr/HDD_1 also specified in PUBLISH/, 'overwriting source HDD is prevented';
+    throws_ok { bmwqemu::_check_publish_vars } qr/HDD_1 also specified in PUBLISH/,
+      'overwriting source HDD is prevented';
 };
 
 subtest 'invalid vars characters' => sub {
     my $num = scalar %bmwqemu::vars;
-    like warning { $bmwqemu::vars{lowercase_not_accepted} = 23 }, qr{Settings key 'lowercase_not_accepted' is invalid.*12-bmwqemu.t}s, 'Warning is issued for invalid setting keys';
+    like warning { $bmwqemu::vars{lowercase_not_accepted} = 23 },
+      qr{Settings key 'lowercase_not_accepted' is invalid.*12-bmwqemu.t}s, 'Warning is issued for invalid setting keys';
     my $new_num = %bmwqemu::vars;
     is $new_num, $num + 1, '%vars in scalar context works';
     is exists $bmwqemu::vars{lowercase_not_accepted}, 1, 'exists $vars{...} works';

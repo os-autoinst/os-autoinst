@@ -119,17 +119,29 @@ sub gen_cmdline ($self) {
     # The first blockdev defines the data store, we only use files, but in
     # theory it could be a http address, ISCSI or a link to an object store
     # item (like Ceph).
-    push(@cmdl, ('-blockdev',
-            join(',', ('driver=file',
-                    'node-name=' . $self->node_name . FILE_POSTFIX,
-                    'filename=' . $self->file,
-                    'cache.no-flush=on'))));
+    push(
+        @cmdl,
+        (
+            '-blockdev',
+            join(
+                ',',
+                (
+                    'driver=file', 'node-name=' . $self->node_name . FILE_POSTFIX,
+                    'filename=' . $self->file, 'cache.no-flush=on'
+                ))));
     # The second blockdev tells QEMU what format we are using i.e. qcow2.
-    push(@cmdl, ('-blockdev',
-            join(',', ('driver=' . $self->driver,
+    push(
+        @cmdl,
+        (
+            '-blockdev',
+            join(
+                ',',
+                (
+                    'driver=' . $self->driver,
                     'node-name=' . $self->node_name,
                     'file=' . $self->node_name . FILE_POSTFIX,
-                    'cache.no-flush=on'))));
+                    'cache.no-flush=on'
+                ))));
 
     return @cmdl;
 }
@@ -170,13 +182,15 @@ sub gen_unlink_list ($self) {
 }
 
 sub _to_map ($self) {
-    return {driver => $self->driver,
+    return {
+        driver => $self->driver,
         file => $self->file,
         node_name => $self->node_name,
         size => $self->size,
         needs_creating => $self->needs_creating,
         implicit => $self->implicit,
-        snapshot => $self->snapshot->sequence};
+        snapshot => $self->snapshot->sequence
+    };
 }
 
 sub _from_map ($self, $drives, $snap_conf) {
@@ -185,12 +199,8 @@ sub _from_map ($self, $drives, $snap_conf) {
     $self->backing_file(OpenQA::Qemu::BlockDev->new()->_from_map(\@rest, $snap_conf))
       if @rest > 0;
 
-    return $self->driver($this->{driver})
-      ->file($this->{file})
-      ->node_name($this->{node_name})
-      ->size($this->{size})
-      ->needs_creating($this->{needs_creating})
-      ->implicit($this->{implicit})
+    return $self->driver($this->{driver})->file($this->{file})->node_name($this->{node_name})->size($this->{size})
+      ->needs_creating($this->{needs_creating})->implicit($this->{implicit})
       ->snapshot($snap_conf->get_snapshot(sequence => $this->{snapshot}));
 }
 

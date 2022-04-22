@@ -53,7 +53,8 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my ($return_code, @out);
     my $handle_output = sub {
         bmwqemu::diag "@out" if @out;
-        die "Unable to clone Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
+        die "Unable to clone Git repository '$dir' specified via $dir_variable (see log for details)"
+          unless $return_code == 0;
     };
     if ($branch) {
         bmwqemu::fctinfo "Checking out git refspec/branch '$branch'";
@@ -68,7 +69,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
             # for which we need to take a different approach by downloading the
             # repository in the necessary depth until we can reach the commit
             # References:
-            # * https://stackoverflow.com/questions/18515488/how-to-check-if-the-commit-exists-in-a-git-repository-by-its-sha-1
+     # * https://stackoverflow.com/questions/18515488/how-to-check-if-the-commit-exists-in-a-git-repository-by-its-sha-1
             # * https://stackoverflow.com/questions/26135216/why-isnt-there-a-git-clone-specific-commit-option
             bmwqemu::diag "Fetching more remote objects to ensure availability of '$branch'";
             @out = qx{$clone_cmd $clone_args $clone_url 2>&1};
@@ -79,8 +80,10 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
                 @out = qx[git -C $local_path fetch --progress --depth=$args{clone_depth} 2>&1];
                 $return_code = $?;
                 bmwqemu::diag "git fetch: @out";
-                die "Unable to fetch Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
-                die "Could not find '$branch' in complete history in cloned Git repository '$dir'" if grep /remote: Total 0/, @out;
+                die "Unable to fetch Git repository '$dir' specified via $dir_variable (see log for details)"
+                  unless $return_code == 0;
+                die "Could not find '$branch' in complete history in cloned Git repository '$dir'"
+                  if grep /remote: Total 0/, @out;
             }
             qx{git -C $local_path checkout $branch};
             die "Unable to checkout branch '$branch' in cloned Git repository '$dir'" unless $? == 0;
@@ -143,13 +146,21 @@ sub handle_generated_assets ($command_handler, $clean_shutdown) {
             push @toextract, _store_asset($i, $name, $dir);
         }
         if ($bmwqemu::vars{UEFI} && $bmwqemu::vars{PUBLISH_PFLASH_VARS}) {
-            push(@toextract, {pflash_vars => 1,
+            push(
+                @toextract,
+                {
+                    pflash_vars => 1,
                     name => $bmwqemu::vars{PUBLISH_PFLASH_VARS},
                     dir => 'assets_public',
-                    format => 'qcow2'});
+                    format => 'qcow2'
+                });
         }
         if (@toextract && !$clean_shutdown) {
-            bmwqemu::serialize_state(component => 'isotovideo', msg => 'unable to handle generated assets: machine not shut down when uploading disks', error => 1);
+            bmwqemu::serialize_state(
+                component => 'isotovideo',
+                msg => 'unable to handle generated assets: machine not shut down when uploading disks',
+                error => 1
+            );
             return 1;
         }
     }
@@ -208,7 +219,10 @@ sub load_test_schedule {
     catch {
         # record that the exception is caused by the tests themselves before letting it pass
         my $error_message = $_;
-        bmwqemu::serialize_state(component => 'tests', msg => 'unable to load main.pm, check the log for the cause (e.g. syntax error)');
+        bmwqemu::serialize_state(
+            component => 'tests',
+            msg => 'unable to load main.pm, check the log for the cause (e.g. syntax error)'
+        );
         die "$error_message\n";
     };
     @INC = @oldINC;

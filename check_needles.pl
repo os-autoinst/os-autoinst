@@ -21,10 +21,12 @@ foreach my $json (@jsons) {
         $img = tinycv::read($png);
         $res = $img->search($needle);
         if ($res) {
-            print "Needle ambiguity: [Needle] " . $bnjson . " - [Image] " . $bnpng . " [" . $res->{similarity} . "]\n" if $bnjson ne $bnpng;
+            print "Needle ambiguity: [Needle] " . $bnjson . " - [Image] " . $bnpng . " [" . $res->{similarity} . "]\n"
+              if $bnjson ne $bnpng;
         }
         else {
-            print "Needle does not match itself: [Needle] " . $bnjson . " - [Image] " . $bnpng . "\n" if $bnjson eq $bnpng;
+            print "Needle does not match itself: [Needle] " . $bnjson . " - [Image] " . $bnpng . "\n"
+              if $bnjson eq $bnpng;
         }
     }
 }

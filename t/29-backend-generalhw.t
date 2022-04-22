@@ -8,7 +8,9 @@ use Mojo::Base -strict, -signatures;
 
 # mock sleeps
 my @invoked_cmds;
-BEGIN { *CORE::GLOBAL::sleep = sub { push @invoked_cmds, [sleep => shift] } }
+BEGIN {
+    *CORE::GLOBAL::sleep = sub { push @invoked_cmds, [sleep => shift] }
+}
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -46,14 +48,15 @@ my $backend = backend::generalhw->new;
 # mock IPC::Run and the VNC console
 my $ipc_run_mock = Test::MockModule->new('IPC::Run');
 my $fake_ipc_error;
-$ipc_run_mock->redefine(run => sub {
+$ipc_run_mock->redefine(
+    run => sub {
         my ($args, $stdin, $stdout, $stderr) = @_;
         die $fake_ipc_error if $fake_ipc_error;
         push @invoked_cmds, $args;
         $$stdin = 'stdin';
         $$stdout = 'stdout';
         $$stderr = 'stderr';
-});
+    });
 my $serial_mock = Test::MockModule->new('backend::generalhw');
 $serial_mock->redefine(start_serial_grab => sub { push @invoked_cmds, 'start_serial_grab' });
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
@@ -71,10 +74,18 @@ $bmwqemu_mock->noop('diag');
 subtest 'start VM' => sub {
     # start the "VM" which should actually just run a few commands via IPC::Run and start the VNC and serial consoles
     is_deeply($backend->do_start_vm, {}, 'return value');
-    is_deeply(\@invoked_cmds, [
-            [$cmd_ctl, 'poweroff'], [$cmd_ctl, 'flash', 'light', '/hdd', '5G'], [$cmd_ctl, 'poweroff'],
-            ['sleep', 3], [$cmd_ctl, 'poweron'], 'start_serial_grab'
-    ], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
+    is_deeply(
+        \@invoked_cmds,
+        [
+            [$cmd_ctl, 'poweroff'],
+            [$cmd_ctl, 'flash', 'light', '/hdd', '5G'],
+            [$cmd_ctl, 'poweroff'],
+            ['sleep', 3],
+            [$cmd_ctl, 'poweron'],
+            'start_serial_grab'
+        ],
+        'poweroff/on commands invoked'
+    ) or diag explain \@invoked_cmds;
     is_deeply(\@vnc_logins, [['vnc.server']], 'tried to connect to VNC server') or diag explain \@vnc_logins;
 };
 
@@ -85,10 +96,18 @@ subtest 'start VM with video' => sub {
     $bmwqemu::vars{GENERAL_HW_INPUT_CMD} = 'ctl input';
     @invoked_cmds = ();
     is_deeply($backend->do_start_vm, {}, 'return value');
-    is_deeply(\@invoked_cmds, [
-            [$cmd_ctl, 'poweroff'], [$cmd_ctl, 'flash', 'light', '/hdd', '5G'], [$cmd_ctl, 'poweroff'],
-            ['sleep', 3], [$cmd_ctl, 'poweron'], 'start_serial_grab'
-    ], 'poweroff/on commands invoked') or diag explain \@invoked_cmds;
+    is_deeply(
+        \@invoked_cmds,
+        [
+            [$cmd_ctl, 'poweroff'],
+            [$cmd_ctl, 'flash', 'light', '/hdd', '5G'],
+            [$cmd_ctl, 'poweroff'],
+            ['sleep', 3],
+            [$cmd_ctl, 'poweron'],
+            'start_serial_grab'
+        ],
+        'poweroff/on commands invoked'
+    ) or diag explain \@invoked_cmds;
     is_deeply(\@video_connects, [['udp://@:5004']], 'tried to connect to video stream') or diag explain \@vnc_logins;
 };
 
@@ -110,7 +129,7 @@ subtest 'error handling' => sub {
     $fake_ipc_error = 'fake error';
     throws_ok(
         sub { $backend->run_cmd('GENERAL_HW_POWEROFF_CMD') },
-        qr/Unable to run command '$cmd_ctl poweroff' \(deduced from test variable GENERAL_HW_POWEROFF_CMD\): fake error/,
+qr/Unable to run command '$cmd_ctl poweroff' \(deduced from test variable GENERAL_HW_POWEROFF_CMD\): fake error/,
         'IPC error thrown with context'
     );
     $bmwqemu::vars{GENERAL_HW_CMD_DIR} = 'does-not-exist';
@@ -120,11 +139,7 @@ subtest 'error handling' => sub {
         'error when GENERAL_HW_CMD_DIR is not a directory'
     );
     $bmwqemu::vars{WORKER_HOSTNAME} = undef;
-    throws_ok(
-        sub { backend::generalhw->new },
-        qr/WORKER_HOSTNAME/,
-        'WORKER_HOSTNAME required'
-    );
+    throws_ok(sub { backend::generalhw->new }, qr/WORKER_HOSTNAME/, 'WORKER_HOSTNAME required');
 };
 
 done_testing();

@@ -66,7 +66,11 @@ sub cleanup_pipes ($obj) {
 
 subtest 'set_pipe_sz() error handling (ensuring stable test coverage of that function)' => sub {
     my $term = consoles::virtio_terminal->new('unit-test-console', {});
-    like(warning { ok !$term->set_pipe_sz(0, 42), 'error returned' }, qr/fcntl\(\) on unopened filehandle 0/, 'fcntl invoked');
+    like(
+        warning { ok !$term->set_pipe_sz(0, 42), 'error returned' },
+        qr/fcntl\(\) on unopened filehandle 0/,
+        'fcntl invoked'
+    );
 };
 
 subtest "Test open_pipe() error condition" => sub {
@@ -78,17 +82,22 @@ subtest "Test open_pipe() error condition" => sub {
     my $helper = prepare_pipes($socket_path);
     my $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     is $term->is_serial_terminal, 1, 'is a serial terminal';
-    combined_like { dies_ok { $term->open_pipe(); } 'Expect die if pipe_sz fail' } qr/\[debug\] <<<.*open_pipe/, 'log';
+    combined_like {
+        dies_ok { $term->open_pipe(); } 'Expect die if pipe_sz fail'
+    }
+    qr/\[debug\] <<<.*open_pipe/, 'log';
     cleanup_pipes($helper);
 
     my $size = 1024;
     $file_mock->redefine(slurp => sub { return 65536; });
     $vterminal_mock->redefine("get_pipe_sz", sub { return 1024; });
-    $vterminal_mock->redefine("set_pipe_sz", sub {
+    $vterminal_mock->redefine(
+        "set_pipe_sz",
+        sub {
             my ($self, $fd, $newsize) = @_;
             return if ($newsize > 2048);
             return $size = $newsize;
-    });
+        });
     $helper = prepare_pipes($socket_path);
     $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
     stderr_like { $term->open_pipe() } qr/Set PIPE_SZ from 1024 to 2048/, 'Log mention size';
@@ -104,10 +113,12 @@ subtest "Test open_pipe() error condition" => sub {
     is($size, 1024, "Size didn't changed");
 
     $size = 1024;
-    $vterminal_mock->redefine("set_pipe_sz", sub {
+    $vterminal_mock->redefine(
+        "set_pipe_sz",
+        sub {
             my ($self, $fd, $newsize) = @_;
             return $size = $newsize;
-    });
+        });
 
     $helper = prepare_pipes($socket_path);
     $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
@@ -123,8 +134,9 @@ subtest "Test open_pipe() error condition" => sub {
     is($size, 5555, "PIPE_SZ is 5555 from VIRTIO_CONSOLE_PIPE_SZ");
 
     $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
-    combined_like { throws_ok { $term->open_pipe() } qr/No such file or directory/, "Throw exception if pipe doesn't exists" }
-    qr/\[debug\] <<<.*open_pipe/, 'log for open_pipe on non-existent pipe';
+    combined_like { throws_ok { $term->open_pipe() } qr/No such file or directory/,
+          "Throw exception if pipe doesn't exists" } qr/\[debug\] <<<.*open_pipe/,
+      'log for open_pipe on non-existent pipe';
 
     $vterminal_mock = Test::MockModule->new('consoles::virtio_terminal');
     $vterminal_mock->redefine("get_pipe_sz", sub { 1 });
@@ -145,7 +157,8 @@ subtest "Test snapshot handling" => sub {
     my $helper = prepare_pipes($socket_path, $test_data);
     my $term = consoles::virtio_terminal->new('unit-test-console', {socked_path => $socket_path});
 
-    is_deeply($term->get_snapshot('unknown_snapshot', 'unknown_key'), undef, "Return undef, if snapshot and key doesn't exist");
+    is_deeply($term->get_snapshot('unknown_snapshot', 'unknown_key'),
+        undef, "Return undef, if snapshot and key doesn't exist");
     is_deeply($term->{snapshots}, {}, "Snapshots are empty");
 
     $term->select();
@@ -180,7 +193,8 @@ subtest "Test snapshot handling" => sub {
     $term->disable();
     $term->{preload_buffer} = 'test123';
     $term->save_snapshot('snap4');
-    is($term->get_snapshot('snap4', 'buffer'), 'test123', '[snap4] virtio_terminal stored preload_buffer if screen is not set');
+    is($term->get_snapshot('snap4', 'buffer'),
+        'test123', '[snap4] virtio_terminal stored preload_buffer if screen is not set');
     $term->{preload_buffer} = 'this should be overwritten by load_snapshot';
     $term->load_snapshot('snap4');
     is($term->{preload_buffer}, 'test123', '[snap4] preload_buffer is restored after loading snapshot');

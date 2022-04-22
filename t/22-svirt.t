@@ -34,11 +34,15 @@ set_var(VIRSH_PASSWORD => 'password');
 my $distri = $testapi::distri = distribution->new();
 my $svirt = backend::svirt->new();
 
-is_deeply({$svirt->get_ssh_credentials()}, {
+is_deeply(
+    {$svirt->get_ssh_credentials()},
+    {
         hostname => 'bar',
         username => 'root',
         password => 'password',
-}, 'read credentials');
+    },
+    'read credentials'
+);
 
 $svirt->do_start_vm;
 $distri->add_console('sut-serial', 'ssh-virtsh-serial', {});
@@ -58,7 +62,9 @@ subtest 'svirt console correctly initialized' => sub {
     is($svirt_console->{vmm_type}, 'hvm');
 };
 
-is_deeply($svirt_sut_console, {
+is_deeply(
+    $svirt_sut_console,
+    {
         activated => 0,
         args => {},
         class => 'consoles::sshVirtshSUT',
@@ -67,7 +73,9 @@ is_deeply($svirt_sut_console, {
         serial_port_no => 1,
         testapi_console => 'sut-serial',
         pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE,
-}, 'SUT serial console correctly initialized') or diag explain $consoles;
+    },
+    'SUT serial console correctly initialized'
+) or diag explain $consoles;
 
 sub _is_xml ($actual_xml_data, $expected_xml_file_path) {
     my $diff = XML::SemanticDiff->new(keeplinenums => 1);
@@ -85,7 +93,9 @@ subtest 'XML config for VNC and serial console' => sub {
     $svirt_console->_init_xml();
     $svirt_console->add_vnc({port => 5901});
     $svirt_console->add_pty({target_port => SERIAL_CONSOLE_DEFAULT_PORT});
-    $svirt_console->add_pty({pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE, pty_dev_type => 'pty', target_port => SERIAL_TERMINAL_DEFAULT_PORT});
+    $svirt_console->add_pty(
+        {pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE, pty_dev_type => 'pty', target_port => SERIAL_TERMINAL_DEFAULT_PORT}
+    );
     _is_xml $svirt_console->{domainxml}->toString(2), "$Bin/22-svirt-virsh-config.xml";
 };
 
@@ -98,7 +108,8 @@ subtest 'XML config with UEFI loader and VMware' => sub {
 
     my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
     $console_mock->redefine(run_cmd => 1);
-    throws_ok { $svirt_console->_init_xml } qr/No UEFI firmware can be found on hypervisor/, 'dies if UEFI firmware missing';
+    throws_ok { $svirt_console->_init_xml } qr/No UEFI firmware can be found on hypervisor/,
+      'dies if UEFI firmware missing';
 
     $console_mock->redefine(run_cmd => 0);
     $svirt_console->_init_xml;
@@ -124,14 +135,17 @@ subtest 'starting VMware console' => sub {
     $svirt_console->define_and_start;
     like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
-    is_deeply \@cmds, [
+    is_deeply \@cmds,
+      [
         $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
         'echo bios.bootDelay = \\"10000\\" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
-    ], 'expected commands invoked' or diag explain \@cmds;
+      ],
+      'expected commands invoked'
+      or diag explain \@cmds;
 };
 
 subtest 'SSH credentials' => sub {
@@ -145,7 +159,11 @@ subtest 'SSH credentials' => sub {
     is_deeply(\%creds, {hostname => 'bar', password => 'password', username => 'root'}, 'Check SSH credentials');
 
     %creds = $svirt->get_ssh_credentials('hyperv');
-    is_deeply(\%creds, {hostname => 'foo321', password => 'password321', username => 'root'}, 'Check SSH credentials for hyperv');
+    is_deeply(
+        \%creds,
+        {hostname => 'foo321', password => 'password321', username => 'root'},
+        'Check SSH credentials for hyperv'
+    );
 };
 
 subtest 'SSH usage in console::sshVirtsh' => sub {
@@ -154,17 +172,19 @@ subtest 'SSH usage in console::sshVirtsh' => sub {
     my %ssh_expect = (%$ssh_creds_svirt, wantarray => undef, keep_open => undef);
     my $run_ssh_cmd_return = undef;
     my $mock_baseclass = Test::MockModule->new('backend::baseclass');
-    $mock_baseclass->redefine('run_ssh_cmd' => sub {
+    $mock_baseclass->redefine(
+        'run_ssh_cmd' => sub {
             my ($self, $cmd, %args) = @_;
             for my $key (keys(%ssh_expect)) {
                 is($args{$key}, $ssh_expect{$key}, "Correct $key for ssh connection") if $ssh_expect{$key};
             }
             if (ref($run_ssh_cmd_return) eq 'ARRAY') {
                 return @$run_ssh_cmd_return;
-            } else {
+            }
+            else {
                 return $run_ssh_cmd_return;
             }
-    });
+        });
 
     # W/A cause $svirt_console->activate() didn't worked so far
     $svirt_console->_init_ssh($ssh_creds_svirt);
@@ -173,18 +193,24 @@ subtest 'SSH usage in console::sshVirtsh' => sub {
 
     $run_ssh_cmd_return = [0, 'BLAFAFU', ''];
     $ssh_expect{wantarray} = 1;
-    is_deeply([$svirt_console->run_cmd('echo -n "BLAFAFU"', wantarray => 1)], $run_ssh_cmd_return, "sshVirtsh::run_cmd_(wantarray => 1) ");
+    is_deeply([$svirt_console->run_cmd('echo -n "BLAFAFU"', wantarray => 1)],
+        $run_ssh_cmd_return, "sshVirtsh::run_cmd_(wantarray => 1) ");
 
     $run_ssh_cmd_return = [undef, 'BLAFAFU', undef];
     is($svirt_console->get_cmd_output('echo -n "BLAFAFU"'), 'BLAFAFU', "sshVirtsh::get_cmd_output()");
 
     $run_ssh_cmd_return = [undef, 'STDOUT', 'STDERR'];
-    is_deeply($svirt_console->get_cmd_output('echo -n "BLAFAFU"', {wantarray => 1}), ['STDOUT', 'STDERR'], "sshVirtsh::get_cmd_output(wantarray => 1 ");
+    is_deeply(
+        $svirt_console->get_cmd_output('echo -n "BLAFAFU"', {wantarray => 1}),
+        ['STDOUT', 'STDERR'],
+        "sshVirtsh::get_cmd_output(wantarray => 1 "
+    );
     $ssh_expect{wantarray} = undef;
 
     $ssh_expect{keep_open} = 0;
     $run_ssh_cmd_return = 0;
-    is($svirt_console->run_cmd('echo "BLAFAFU"', keep_open => 0), 0, "sshVirtsh::run_cmd(keep_open=>0) test return value ");
+    is($svirt_console->run_cmd('echo "BLAFAFU"', keep_open => 0),
+        0, "sshVirtsh::run_cmd(keep_open=>0) test return value ");
     $ssh_expect{keep_open} = undef;
 
     subtest 'SSH usage in consoles::sshVirtsh(vmware)' => sub {
@@ -196,18 +222,22 @@ subtest 'SSH usage in console::sshVirtsh' => sub {
         $svirt_vmware_console->_init_ssh($ssh_creds_svirt);
         $svirt_vmware_console->backend(backend::baseclass->new);
 
-        is($svirt_vmware_console->run_cmd('echo "BLAFAFU"'), 0, "sshVirtsh::run_cmd() Check use of `default` credentials");
+        is($svirt_vmware_console->run_cmd('echo "BLAFAFU"'),
+            0, "sshVirtsh::run_cmd() Check use of `default` credentials");
 
         $run_ssh_cmd_return = [undef, 'STDOUT', undef];
-        is_deeply($svirt_console->get_cmd_output('echo -n "BLAFAFU"'), 'STDOUT', "sshVirtsh::get_cmd_output() Check use of `default` credentials");
+        is_deeply($svirt_console->get_cmd_output('echo -n "BLAFAFU"'),
+            'STDOUT', "sshVirtsh::get_cmd_output() Check use of `default` credentials");
 
         $ssh_expect{hostname} = 'my_vmware_host';
         $ssh_expect{password} = 'my_vmware_password';
         $run_ssh_cmd_return = 0;
-        is($svirt_vmware_console->run_cmd('echo "BLAFAFU"', domain => 'sshVMwareServer'), 0, "sshVirtsh::run_cmd(domain => sshVMwareServer) check use of VMWARE credentials ");
+        is($svirt_vmware_console->run_cmd('echo "BLAFAFU"', domain => 'sshVMwareServer'),
+            0, "sshVirtsh::run_cmd(domain => sshVMwareServer) check use of VMWARE credentials ");
 
         $run_ssh_cmd_return = [undef, 'STDOUT', undef];
-        is_deeply($svirt_vmware_console->get_cmd_output('echo -n "BLAFAFU"', {domain => 'sshVMwareServer'}), 'STDOUT', "sshVirtsh::get_cmd_output() Check use of VMWARE credentials");
+        is_deeply($svirt_vmware_console->get_cmd_output('echo -n "BLAFAFU"', {domain => 'sshVMwareServer'}),
+            'STDOUT', "sshVirtsh::get_cmd_output() Check use of VMWARE credentials");
     }
 };
 
@@ -243,7 +273,8 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
     my $test_log_cnt = 0;
     my $grep_return = 1;
     my @deleted_logs;
-    $module->redefine(run_ssh_cmd => sub {
+    $module->redefine(
+        run_ssh_cmd => sub {
             my $self = shift;
             @LAST_ = @_;
             my $cmd = shift;
@@ -252,14 +283,15 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
             push @deleted_logs, ($cmd =~ /(\S+)$/) if ($cmd =~ / && rm /);
             return (0, "FOOBAR_OUTPUT", '') if ($cmd =~ m/^cat /);
             die("Adopt test, unexpected call of run_ssh_cmd()");
-    });
+        });
 
     my $run_ssh_expect = '$a';
-    $module->redefine(run_ssh => sub {
+    $module->redefine(
+        run_ssh => sub {
             my ($self, $cmd, %args) = @_;
             like($cmd, qr/$run_ssh_expect/, "run_ssh() command is like qr/$run_ssh_expect/");
             return ('A', 'B');
-    });
+        });
 
     delete $bmwqemu::vars{VIRSH_VMM_FAMILY};
     $bmwqemu::vars{JOBTOKEN} = 'XYZ23';
@@ -291,7 +323,8 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
 
     # Disable command check, as we do not care anymore
     $module->redefine(run_ssh => sub { return ('A', 'B') });
-    is_deeply([$svirt->open_serial_console_via_ssh('NAME')], ['A', 'B'], 'Check that we get output from run_ssh() call');
+    is_deeply([$svirt->open_serial_console_via_ssh('NAME')], ['A', 'B'],
+        'Check that we get output from run_ssh() call');
 
     $bmwqemu::vars{JOBTOKEN} = 'CHECK_DELETE_TOKEN';
     my $expected_serial_file = '/tmp/' . $svirt->SERIAL_TERMINAL_LOG_PATH . '.CHECK_DELETE_TOKEN';
@@ -342,7 +375,8 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
     my $_10gb = 1024 * 1024 * 1024 * 10;
 
     my $mock_baseclass = Test::MockModule->new('backend::baseclass');
-    $mock_baseclass->redefine('run_ssh_cmd' => sub {
+    $mock_baseclass->redefine(
+        'run_ssh_cmd' => sub {
             my ($self, $cmd, %args) = @_;
             push @last_ssh_commands, $cmd;
             push @last_ssh_args, [%args];
@@ -352,10 +386,11 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
 
             if (ref($ret) eq 'ARRAY') {
                 return @$ret;
-            } else {
+            }
+            else {
                 return $ret;
             }
-    });
+        });
 
     subtest 'family vmware' => sub {
         set_var(VIRSH_INSTANCE => '1');
@@ -381,7 +416,8 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             $svirt->add_disk({dev_id => $dev_id, file => $file_name_given});
             is(scalar(@last_ssh_commands), 0, 'None command was triggered');
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 dev => 'hd' . $dev_id,
                 bus => 'ide',
                 source_file => '[my_vmware_datastore] openQA/' . $exp_filename
@@ -399,7 +435,8 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             like($cmd, qr/vmkfstools -v1 -U $exp_fullpath;/, "Check name");
             like($cmd, qr/vmkfstools -v1 -c 66G --diskformat thin $exp_fullpath;/, "Check size");
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 dev => 'hd' . $dev_id,
                 bus => 'ide',
                 source_file => '[my_vmware_datastore] openQA/' . $exp_filename
@@ -413,9 +450,14 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $exp_filename = 'foo_file_' . $svirt->name . '_thinfile.vmdk';
             set_var(VMWARE_NFS_DATASTORE => 'nfs');
             $svirt->add_disk({backingfile => 1, size => '77G', dev_id => $dev_id, file => $filename});
-            like($last_ssh_commands[1], qr/vmkfstools -v1 -i $vmware_openqa_datastore$filename --diskformat thin $vmware_openqa_datastore$exp_filename;/, "Check size");
+            like(
+                $last_ssh_commands[1],
+qr/vmkfstools -v1 -i $vmware_openqa_datastore$filename --diskformat thin $vmware_openqa_datastore$exp_filename;/,
+                "Check size"
+            );
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 dev => 'hd' . $dev_id,
                 bus => 'ide',
                 source_file => '[my_vmware_datastore] openQA/' . $exp_filename
@@ -428,9 +470,14 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             set_var(VMWARE_NFS_DATASTORE => 'nfs_data_store');
             @last_ssh_commands = ();
             $svirt->add_disk({cdrom => 1, dev_id => $dev_id, file => '/my/path/to/this/file/' . $filename});
-            like($last_ssh_commands[0], qr%cp\s+/vmfs/volumes/nfs_data_store/iso/$filename\s+$vmware_openqa_datastore\s*;%, "Copy iso to $vmware_openqa_datastore");
+            like(
+                $last_ssh_commands[0],
+                qr%cp\s+/vmfs/volumes/nfs_data_store/iso/$filename\s+$vmware_openqa_datastore\s*;%,
+                "Copy iso to $vmware_openqa_datastore"
+            );
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 disk_device => 'cdrom',
                 dev => 'hd' . $dev_id,
                 bus => 'ide',
@@ -467,7 +514,8 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             $svirt->add_disk({dev_id => $dev_id, file => $file_name_given});
             is(scalar(@last_ssh_commands), 0, 'None command was triggered');
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 dev => 'xvd' . $dev_id,
                 bus => 'xen',
                 source_file => $basedir . $exp_filename
@@ -479,11 +527,16 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
 
             my $dev_id = 'dev_id_005';
             my $exp_file = $svirt->name . $dev_id . '.img';
-            throws_ok { $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id}) } qr/Too many attempts to format HDD/, "Died after 5 retry attempts";
+            throws_ok { $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id}) }
+            qr/Too many attempts to format HDD/, "Died after 5 retry attempts";
 
             @ssh_cmd_return = ([1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [1, '', 'lock'], [0, '', '']);
             $svirt->add_disk({create => 1, size => '88G', dev_id => $dev_id});
-            is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file 88G -f qcow2", 'Triggered img creation, after 4 errors');
+            is(
+                $last_ssh_commands[-1],
+                "qemu-img create $basedir$exp_file 88G -f qcow2",
+                'Triggered img creation, after 4 errors'
+            );
 
             @ssh_cmd_return = ([0, '', ''], [0, '', ''], [0, '', ''], [0, '', ''], [0, '', '']);
 
@@ -493,7 +546,11 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     $exp_file = $svirt->name . $dev_id . '.img';
 
                     $svirt->add_disk({create => 1, size => $size, dev_id => $dev_id});
-                    is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file $size -f qcow2", "Check different size type $size");
+                    is(
+                        $last_ssh_commands[-1],
+                        "qemu-img create $basedir$exp_file $size -f qcow2",
+                        "Check different size type $size"
+                    );
                 }
             };
 
@@ -513,14 +570,18 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             @ssh_cmd_return = ([0, '', '']);
             @last_ssh_commands = ();
             $svirt->add_disk({create => 1, size => '999G', dev_id => $dev_id});
-            is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file 999G -f qcow2", 'Check create image was triggered');
+            is(
+                $last_ssh_commands[-1],
+                "qemu-img create $basedir$exp_file 999G -f qcow2",
+                'Check create image was triggered'
+            );
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 dev => 'xvd' . $dev_id,
                 bus => 'xen',
                 source_file => $basedir . $exp_file,
-                driver => {name => 'qemu', type => 'qcow2', cache => 'unsafe'}
-            );
+                driver => {name => 'qemu', type => 'qcow2', cache => 'unsafe'});
         };
 
         subtest 'family svirt-xen-hvm backingfile=1' => sub {
@@ -529,14 +590,23 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             @last_ssh_commands = ();
             @ssh_cmd_return = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
 
-            $svirt->add_disk({
+            $svirt->add_disk(
+                {
                     backingfile => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
                     size => 12
-            });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
-            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' 12G", 'Used image size > backingfile size');
+                });
+            like(
+                $last_ssh_commands[0],
+                qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%,
+                'Use rsync to copy file'
+            );
+            is(
+                $last_ssh_commands[-1],
+                "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' 12G",
+                'Used image size > backingfile size'
+            );
         };
 
         subtest 'family svirt-xen-hvm backingfile=1 size smaller backingfile-size' => sub {
@@ -544,23 +614,33 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $file = "my_image_$dev_id.img";
             @last_ssh_commands = ();
             @ssh_cmd_return = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
-            $svirt->add_disk({
+            $svirt->add_disk(
+                {
                     backingfile => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
                     size => 5
-            });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
-            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' $_10gb", 'Used image size <= backingfile size');
+                });
+            like(
+                $last_ssh_commands[0],
+                qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%,
+                'Use rsync to copy file'
+            );
+            is(
+                $last_ssh_commands[-1],
+                "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' $_10gb",
+                'Used image size <= backingfile size'
+            );
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 dev => 'xvd' . $dev_id,
                 bus => 'xen',
                 source_file => $basedir . "openQA-SUT-1$dev_id.img",
-                driver => {name => 'qemu', type => 'qcow2', cache => 'unsafe'}
-            );
+                driver => {name => 'qemu', type => 'qcow2', cache => 'unsafe'});
 
-            throws_ok { $svirt->add_disk({backingfile => 1, dev_id => $dev_id}) } qr/file/, "Die on missing file argument";
+            throws_ok { $svirt->add_disk({backingfile => 1, dev_id => $dev_id}) } qr/file/,
+              "Die on missing file argument";
         };
 
         subtest 'family svirt-xen-hvm cdrom=1' => sub {
@@ -568,20 +648,25 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $file = "my_cdrom_$dev_id.iso";
             @last_ssh_commands = ();
             @ssh_cmd_return = (0, 0);
-            $svirt->add_disk({
+            $svirt->add_disk(
+                {
                     cdrom => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
-            });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
+                });
+            like(
+                $last_ssh_commands[0],
+                qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%,
+                'Use rsync to copy cdrom iso'
+            );
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 disk_device => 'cdrom',
                 dev => 'sd' . $dev_id,
                 bus => 'scsi',
                 source_file => $basedir . $file,
-                driver => {name => 'qemu', type => 'raw', cache => undef}
-            );
+                driver => {name => 'qemu', type => 'raw', cache => undef});
 
             throws_ok { $svirt->add_disk({cdrom => 1, dev_id => $dev_id}) } qr/file/, "Die on missing file argument";
         };
@@ -604,12 +689,12 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             @ssh_cmd_return = ([0, '', '']);
             $svirt->add_disk({create => 1, size => '778G', dev_id => $dev_id});
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 dev => 'vd' . $dev_id,
                 bus => 'virtio',
                 source_file => $basedir . $exp_file,
-                driver => {name => 'qemu', type => 'qcow2', cache => 'unsafe'}
-            );
+                driver => {name => 'qemu', type => 'qcow2', cache => 'unsafe'});
         };
 
         subtest 'family kvm create=1 size types' => sub {
@@ -618,7 +703,11 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                 my $dev_id = 'dev_id_013' . $size;
                 my $exp_file = $svirt->name . $dev_id . ".img";
                 $svirt->add_disk({create => 1, size => $size, dev_id => $dev_id});
-                is($last_ssh_commands[-1], "qemu-img create $basedir$exp_file $size -f qcow2", "Check different size type $size");
+                is(
+                    $last_ssh_commands[-1],
+                    "qemu-img create $basedir$exp_file $size -f qcow2",
+                    "Check different size type $size"
+                );
             }
 
             my $dev_id = 'dev_id_014_NO_SIZE';
@@ -633,14 +722,23 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             @last_ssh_commands = ();
             @ssh_cmd_return = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
 
-            $svirt->add_disk({
+            $svirt->add_disk(
+                {
                     backingfile => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
                     size => 12
-            });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
-            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' 12G", 'Used image size > backingfile size');
+                });
+            like(
+                $last_ssh_commands[0],
+                qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%,
+                'Use rsync to copy file'
+            );
+            is(
+                $last_ssh_commands[-1],
+                "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' 12G",
+                'Used image size > backingfile size'
+            );
         };
 
         subtest 'family kvm backingfile=1 size smaller then backingfile' => sub {
@@ -648,21 +746,30 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $file = "my_image_$dev_id.img";
             @last_ssh_commands = ();
             @ssh_cmd_return = (0, [0, '{"virtual-size": ' . $_10gb . ' }', '']);
-            $svirt->add_disk({
+            $svirt->add_disk(
+                {
                     backingfile => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
                     size => 5
-            });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
-            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' $_10gb", 'Used image size <= backingfile size');
+                });
+            like(
+                $last_ssh_commands[0],
+                qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%,
+                'Use rsync to copy file'
+            );
+            is(
+                $last_ssh_commands[-1],
+                "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' $_10gb",
+                'Used image size <= backingfile size'
+            );
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 dev => 'vd' . $dev_id,
                 bus => 'virtio',
                 source_file => $basedir . "openQA-SUT-1$dev_id.img",
-                driver => {name => 'qemu', type => 'qcow2', cache => 'unsafe'}
-            );
+                driver => {name => 'qemu', type => 'qcow2', cache => 'unsafe'});
         };
 
         subtest 'family kvm cdrom=1' => sub {
@@ -670,20 +777,25 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $file = "my_cdrom_$dev_id.iso";
             @last_ssh_commands = ();
             @ssh_cmd_return = (0, 0);
-            $svirt->add_disk({
+            $svirt->add_disk(
+                {
                     cdrom => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
-            });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
+                });
+            like(
+                $last_ssh_commands[0],
+                qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%,
+                'Use rsync to copy cdrom iso'
+            );
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 disk_device => 'cdrom',
                 dev => 'hd' . $dev_id,
                 bus => 'ide',
                 source_file => $basedir . $file,
-                driver => {name => 'qemu', type => 'raw', cache => undef}
-            );
+                driver => {name => 'qemu', type => 'raw', cache => undef});
         };
 
         subtest 'family kvm cdrom=1 xz file' => sub {
@@ -692,41 +804,50 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
             my $file = $file_wo_xz . '.xz';
             @last_ssh_commands = ();
             @ssh_cmd_return = (0, 0);
-            $svirt->add_disk({
+            $svirt->add_disk(
+                {
                     cdrom => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/' . $file,
-            });
-            like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy cdrom iso');
+                });
+            like(
+                $last_ssh_commands[0],
+                qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%,
+                'Use rsync to copy cdrom iso'
+            );
             like($last_ssh_commands[1], qr%unxz%, 'Uncompress file with unxz');
 
-            svirt_xml_validate($svirt,
+            svirt_xml_validate(
+                $svirt,
                 disk_device => 'cdrom',
                 dev => 'hd' . $dev_id,
                 bus => 'ide',
                 source_file => $basedir . $file_wo_xz,
-                driver => {name => 'qemu', type => 'raw', cache => undef}
-            );
+                driver => {name => 'qemu', type => 'raw', cache => undef});
         };
 
         subtest 'check bootorder argument' => sub {
             my $dev_id = 'dev_id_019';
-            $svirt->add_disk({
+            $svirt->add_disk(
+                {
                     cdrom => 1,
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/foo_file.iso',
                     bootorder => 'MyArbitraryBootOrderArgument'
-            });
-            my $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="cdrom"]/boot[@order="MyArbitraryBootOrderArgument"]');
+                });
+            my $target_nodelist = $svirt->{domainxml}->findnodes(
+                'domain/devices/disk[@type="file" and @device="cdrom"]/boot[@order="MyArbitraryBootOrderArgument"]');
             is($target_nodelist->size(), 1, 'Boot order entry was created in <disk device="cdrom">');
 
             $dev_id = 'dev_id_020';
-            $svirt->add_disk({
+            $svirt->add_disk(
+                {
                     dev_id => $dev_id,
                     file => '/my/path/to/this/file/foo_file2.iso',
                     bootorder => 'MyArbitraryBootOrderArgumentXXX'
-            });
-            $target_nodelist = $svirt->{domainxml}->findnodes('domain/devices/disk[@type="file" and @device="disk"]/boot[@order="MyArbitraryBootOrderArgumentXXX"]');
+                });
+            $target_nodelist = $svirt->{domainxml}->findnodes(
+                'domain/devices/disk[@type="file" and @device="disk"]/boot[@order="MyArbitraryBootOrderArgumentXXX"]');
             is($target_nodelist->size(), 1, 'Boot order entry was created in <disk device="disk">');
 
         }

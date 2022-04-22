@@ -30,7 +30,8 @@ ok !$vnc->called('check_vnc_stalls'), 'check_vnc_stalls not called without VNC';
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
 $vnc_mock->redefine(login => 1);
 my $real_vnc_obj;
-stderr_like { $real_vnc_obj = $c->connect_remote({hostname => 'localhost', port => 42}) } qr/Establishing VNC connection to localhost:42/, 'can call connect_remote';
+stderr_like { $real_vnc_obj = $c->connect_remote({hostname => 'localhost', port => 42}) }
+qr/Establishing VNC connection to localhost:42/, 'can call connect_remote';
 ok $real_vnc_obj, 'VNC console returned';
 is $real_vnc_obj->hostname, 'localhost', 'parameters passed to VNC console (1)';
 is $real_vnc_obj->port, 42, 'parameters passed to VNC console (2)';

@@ -31,7 +31,8 @@ autotest::loadtest "tests/freeze.pm" unless $integration_tests;
 
 # Add import path for local test python modules from pool directory
 unless ($integration_tests) {
-    use Inline Python => "import os.path, sys; sys.path.insert(0, os.path.abspath(os.path.join(os.path.curdir, '../..')))";
+    use Inline Python =>
+      "import os.path, sys; sys.path.insert(0, os.path.abspath(os.path.join(os.path.curdir, '../..')))";
     autotest::loadtest "tests/pre_boot.py";
 }
 

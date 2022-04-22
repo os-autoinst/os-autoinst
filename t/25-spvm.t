@@ -14,13 +14,14 @@ use testapi qw(set_var power);
 subtest 'SSH credentials in spvm' => sub {
     my $expected_credentials = {username => 'root', password => 'foo', hostname => 'my_foo_hostname'};
     my $mock_spvm = Test::MockModule->new('backend::spvm');
-    $mock_spvm->mock(run_ssh_cmd => sub {
+    $mock_spvm->mock(
+        run_ssh_cmd => sub {
             my ($self, $cmd, %args) = @_;
             for my $k (keys(%{$expected_credentials})) {
                 is($args{$k}, $expected_credentials->{$k}, "Correct $k parameter");
             }
             return $cmd =~ m/true/ ? 0 : 1;
-    });
+        });
 
     set_var(WORKER_HOSTNAME => 'foo');
     my $spvm = backend::spvm->new();
@@ -35,15 +36,18 @@ subtest 'SSH credentials in spvm' => sub {
     is($spvm->run_cmd('false'), 1, "Test different return code");
 
     $expected_credentials = {hostname => 'specific_hostname', username => 'tony', password => 'specific_password'};
-    is($spvm->run_cmd('true', $expected_credentials->{hostname}, $expected_credentials->{password}), 0, "Test specific credentials");
+    is($spvm->run_cmd('true', $expected_credentials->{hostname}, $expected_credentials->{password}),
+        0, "Test specific credentials");
 };
 
 subtest 'PowerVM power actions' => sub {
     my $mock_spvm = Test::MockModule->new('backend::spvm');
-    $mock_spvm->redefine('run_cmd', sub {
+    $mock_spvm->redefine(
+        'run_cmd',
+        sub {
             my ($self, $cmd) = @_;
             return $cmd;
-    });
+        });
     my $spvm = backend::spvm->new();
     my $lpar_id = 3;
     set_var(NOVALINK_LPAR_ID => $lpar_id);

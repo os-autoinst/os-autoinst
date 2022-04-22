@@ -22,9 +22,16 @@ use needle;
     sub new ($classname, $image_path, $match_level, $margin) {
         my $name = path($image_path)->basename;
         my $image = tinycv::read $image_path;
-        my %area = (type => 'match', match => $match_level, margin => $margin,
-            xpos => 0, ypos => 0, width => $image->xres, height => $image->yres,
-            img => $image);
+        my %area = (
+            type => 'match',
+            match => $match_level,
+            margin => $margin,
+            xpos => 0,
+            ypos => 0,
+            width => $image->xres,
+            height => $image->yres,
+            img => $image
+        );
         my $self = {name => $name, png => $image_path, area => [\%area]};
         bless $self, $classname;
         $self->register;
@@ -33,7 +40,9 @@ use needle;
 
     sub get_image ($self, $area = undef) { ($area // $self->{area}->[0])->{img} }
 
-    sub from_paths ($needle_paths, @args) { [map { basic_needle->new($_, @args) } @$needle_paths] }
+    sub from_paths ($needle_paths, @args) {
+        [map { basic_needle->new($_, @args) } @$needle_paths]
+    }
 }
 
 sub print_usage {
@@ -52,7 +61,8 @@ imagesearch \
     exit 0;
 }
 
-getopt 'needle-images=s@{1,}' => \my @needle_image_paths,
+getopt
+  'needle-images=s@{1,}' => \my @needle_image_paths,
   'haystack-images=s@{1,}' => \my @image_paths,
   'match-level=f' => \my $match_level,
   'margin=f' => \my $margin,
@@ -72,7 +82,7 @@ cv::init;
 require tinycv;
 $match_level //= 80;    # the similarity level required to consider a finding a match (unit: percent)
 $margin //= 1000000;    # very high value to search within full image by default (unit: pixel)
-$search_ratio //= 0;    # set to zero to disable unwanted computation of margin (which assumes an image width of 1024 px)
+$search_ratio //= 0;   # set to zero to disable unwanted computation of margin (which assumes an image width of 1024 px)
 $threshold //= 0.0;    # subtracted from each area's match level; just keep at zero here
 $log->debug("Martch-level: $match_level, margin: $margin, threshold: $threshold, search ratio: $search_ratio");
 

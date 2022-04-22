@@ -40,10 +40,13 @@ use constant STATE_FILE => 'qemu_state.json';
 
 has qemu_bin => 'qemu-kvm';
 has qemu_img_bin => 'qemu-img';
-has _process => sub { process(
+has _process => sub {
+    process(
         pidfile => 'qemu.pid',
         separate_err => 0,
-        blocking_stop => 1) };
+        blocking_stop => 1
+    );
+};
 
 has _static_params => sub { return []; };
 has _mut_params => sub { return []; };
@@ -89,8 +92,7 @@ sub configure_controllers ($self, $vars) {
     # deprecated for a long time.
     for my $var (qw(HDDMODEL CDMODEL)) {
         if ($vars->{$var} =~ /virtio-scsi.*/) {
-            die "Set $var to scsi-" . lc(substr($var, 0, 1)) . 'd and SCSICONTROLLER to '
-              . $vars->{$var};
+            die "Set $var to scsi-" . lc(substr($var, 0, 1)) . 'd and SCSICONTROLLER to ' . $vars->{$var};
         }
     }
 
@@ -173,7 +175,8 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
             }
             $size //= $self->get_img_size($backing_file);
             $drive = $bdc->add_existing_drive($node_id, $backing_file, $hdd_model, $size, $num_queues);
-        } else {
+        }
+        else {
             $size //= $vars->{HDDSIZEGB} . 'G';
             $drive = $bdc->add_new_drive($node_id, $hdd_model, $size, $num_queues);
         }
@@ -185,9 +188,7 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
         $drive->serial($hdd_serial);
         if ($vars->{MULTIPATH}) {
             for my $c (0 .. $vars->{PATHCNT} - 1) {
-                $bdc->add_path_to_drive("path$c",
-                    $drive,
-                    $scsi_ctrs[$c % 2]);
+                $bdc->add_path_to_drive("path$c", $drive, $scsi_ctrs[$c % 2]);
             }
         }
     }
@@ -251,14 +252,11 @@ sub configure_pflash ($self, $vars) {
 
     my $fw = $vars->{UEFI_PFLASH_CODE};
     if ($fw) {
-        $bdc->add_pflash_drive('pflash-code', $fw, $self->get_img_size($fw))
-          ->unit(0)
-          ->readonly('on');
+        $bdc->add_pflash_drive('pflash-code', $fw, $self->get_img_size($fw))->unit(0)->readonly('on');
 
         $fw = path($vars->{UEFI_PFLASH_VARS})->to_abs;
         die 'Need UEFI_PFLASH_VARS with UEFI_PFLASH_CODE' unless $fw;
-        $bdc->add_pflash_drive('pflash-vars', $fw, $self->get_img_size($fw))
-          ->unit(1);
+        $bdc->add_pflash_drive('pflash-vars', $fw, $self->get_img_size($fw))->unit(1);
     }
     elsif ($vars->{UEFI_PFLASH_VARS}) {
         die 'Need UEFI_PFLASH_CODE with UEFI_PFLASH_VARS';
@@ -273,9 +271,7 @@ Generate the QEMU command line arguments from our object model.
 
 =cut
 sub gen_cmdline ($self) {
-    return ($self->qemu_bin,
-        @{$self->_static_params},
-        map { $_->gen_cmdline() } @{$self->_mut_params});
+    return ($self->qemu_bin, @{$self->_static_params}, map { $_->gen_cmdline() } @{$self->_mut_params});
 }
 
 =head3 init_blockdev_images
@@ -330,7 +326,8 @@ sub export_blockdev_images ($self, $filter, $img_dir, $name, $qemu_compress_qcow
         my $img = "$img_dir/$name";
         my $exp_format = OpenQA::Qemu::DriveDevice::QEMU_IMAGE_FORMAT;
         my $format = $self->get_img_format($img);
-        die "'$format': unexpected format for '$img' (expected '$exp_format'), maybe snapshotting failed" unless $format eq $exp_format;
+        die "'$format': unexpected format for '$img' (expected '$exp_format'), maybe snapshotting failed"
+          unless $format eq $exp_format;
 
         $count++;
     }
@@ -377,13 +374,14 @@ sub exec_qemu ($self) {
                 bmwqemu::serialize_state(component => 'backend', msg => $msg);
             }
         });
-    $process->code(sub {
+    $process->code(
+        sub {
             $SIG{__DIE__} = undef;    # overwrite the default - just exit
             system $self->qemu_bin, '-version';
             # don't try to talk to the host's PA
             $ENV{QEMU_AUDIO_DRV} = "none";
             exec(@params);
-    });
+        });
     $process->separate_err(0)->start();
 
     fcntl($process->read_stream, Fcntl::F_SETFL, Fcntl::O_NONBLOCK) or die "can't setfl(): $!\n";
@@ -412,7 +410,8 @@ sub connect_qmp ($self) {
         condition => sub { $sk },
         or => sub { die "Can't open QMP socket" },
         cb => sub {
-            die "QEMU terminated before QMP connection could be established. Check for errors below\n" if $self->{_qemu_terminated};
+            die "QEMU terminated before QMP connection could be established. Check for errors below\n"
+              if $self->{_qemu_terminated};
             $sk = IO::Socket::UNIX->new(
                 Type => IO::Socket::UNIX::SOCK_STREAM,
                 Peer => 'qmp_socket',
@@ -424,7 +423,8 @@ sub connect_qmp ($self) {
     $sk->autoflush(1);
     binmode $sk;
     my $flags = fcntl($sk, Fcntl::F_GETFL, 0) or die "Can't get file status flags of QMP socket: $!\n";
-    $flags = fcntl($sk, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK) or die "Can't set file status flags of QMP socket: $!\n";
+    $flags = fcntl($sk, Fcntl::F_SETFL, $flags | Fcntl::O_NONBLOCK)
+      or die "Can't set file status flags of QMP socket: $!\n";
     return $sk;
 }
 
@@ -438,7 +438,8 @@ sub revert_to_snapshot ($self, $name) {
     my $bdc = $self->blockdev_conf;
 
     my $snapshot = $self->snapshot_conf->revert_to_snapshot($name);
-    $bdc->for_each_drive(sub {
+    $bdc->for_each_drive(
+        sub {
             my $drive = shift;
             my $del_files = $bdc->revert_to_snapshot($drive, $snapshot);
 
@@ -448,7 +449,7 @@ sub revert_to_snapshot ($self, $name) {
                 bmwqemu::diag("Unlinking $file");
                 POSIX::remove($file);
             }
-    });
+        });
 
     $self->init_blockdev_images();
 
@@ -461,11 +462,12 @@ Serialise our object model of QEMU to JSON and return the JSON text.
 
 =cut
 sub serialise_state ($self) {
-    return encode_json({
+    return encode_json(
+        {
             blockdev_conf => $self->blockdev_conf->to_map(),
             controller_conf => $self->controller_conf->to_map(),
             snapshot_conf => $self->snapshot_conf->to_map(),
-    });
+        });
 }
 
 =head3 save_state
@@ -477,7 +479,8 @@ sub save_state ($self) {
     if ($self->has_state) {
         bmwqemu::fctinfo('Saving QEMU state to ' . STATE_FILE);
         path(STATE_FILE)->spurt($self->serialise_state());
-    } else {
+    }
+    else {
         bmwqemu::fctinfo('Refusing to save an empty state file to avoid overwriting a useful one');
     }
 
@@ -494,9 +497,7 @@ sub deserialise_state ($self, $json) {
 
     $self->snapshot_conf->from_map($state_map->{snapshot_conf});
     $self->controller_conf->from_map($state_map->{controller_conf});
-    $self->blockdev_conf->from_map($state_map->{blockdev_conf},
-        $self->controller_conf,
-        $self->snapshot_conf);
+    $self->blockdev_conf->from_map($state_map->{blockdev_conf}, $self->controller_conf, $self->snapshot_conf);
 
     return $self;
 }
@@ -522,6 +523,8 @@ Returns true if our object model of QEMU has been populated with non-default
 state.
 
 =cut
-sub has_state ($self) { scalar(grep { $_->has_state } @{$self->_mut_params}) }
+sub has_state ($self) {
+    scalar(grep { $_->has_state } @{$self->_mut_params});
+}
 
 1;

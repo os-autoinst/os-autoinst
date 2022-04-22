@@ -26,7 +26,8 @@ sub do_start_vm ($self, @) {
             password => $bmwqemu::vars{NOVALINK_PASSWORD},
             username => $bmwqemu::vars{NOVALINK_USERNAME} // 'root',
             persistent => 1,
-            log => $bmwqemu::vars{HARDWARE_CONSOLE_LOG} // 0});
+            log => $bmwqemu::vars{HARDWARE_CONSOLE_LOG} // 0
+        });
     $ssh->backend($self);
 
     return {};
@@ -38,10 +39,12 @@ sub do_stop_vm ($self, @) {
     return {};
 }
 
-sub run_cmd ($self, $cmd, $hostname = $bmwqemu::vars{NOVALINK_HOSTNAME}, $password = $bmwqemu::vars{NOVALINK_PASSWORD}) {
+sub run_cmd ($self, $cmd, $hostname = $bmwqemu::vars{NOVALINK_HOSTNAME}, $password = $bmwqemu::vars{NOVALINK_PASSWORD})
+{
     my $username = $bmwqemu::vars{NOVALINK_USERNAME} // 'root';
 
-    return $self->run_ssh_cmd($cmd, username => $username, password => $password, hostname => $hostname, keep_open => 0);
+    return $self->run_ssh_cmd($cmd, username => $username, password => $password, hostname => $hostname,
+        keep_open => 0);
 }
 
 sub can_handle ($self, @) { }
@@ -68,7 +71,8 @@ sub power ($self, $args) {
     my %cmds = (
         on => "pvmctl lpar power-on -i id=${lpar_id} --bootmode norm",
         off => "pvmctl lpar power-off -i id=${lpar_id} --hard",
-        reset => "pvmctl lpar restart -i id=${lpar_id}");
+        reset => "pvmctl lpar restart -i id=${lpar_id}"
+    );
     $self->run_cmd($cmds{$action}) if (exists($cmds{$action})) || die "Unknown power action ${action}";
 }
 

@@ -38,7 +38,10 @@ END
     enter_cmd 'echo do not wait_still_screen', max_interval => 50, wait_still_screen => 0;
     enter_cmd 'echo type string and wait for .2 seconds', wait_still_screen => .2;
     enter_cmd "echo test\necho wait\necho 1se", max_interval => 100, wait_screen_changes => 11, wait_still_screen => 1;
-    enter_cmd 'echo test if wait_screen_change functions as expected', max_interval => 150, wait_screen_changes => 11, wait_still_screen => 1;
+    enter_cmd 'echo test if wait_screen_change functions as expected',
+      max_interval => 150,
+      wait_screen_changes => 11,
+      wait_still_screen => 1;
     enter_cmd 'echo wait_still_screen for .1 seconds', max_interval => 200, wait_still_screen => .1;
     enter_cmd "echo 'ignore \\r'\r";
 }

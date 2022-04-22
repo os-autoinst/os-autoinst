@@ -282,9 +282,7 @@ use base qw/ Tie::StdHash /;    # no:style prevent style warning regarding use o
 use Carp ();
 
 sub TIEHASH ($class, %args) {
-    my $self = bless {
-        data => {%args},
-    }, $class;
+    my $self = bless {data => {%args},}, $class;
 }
 
 sub STORE ($self, $key, $val) {

@@ -313,7 +313,8 @@ sub execution_time { time - shift }
 sub compute_test_execution_time ($self) {
     # Set the execution time for a general time spent
     $self->{execution_time} = execution_time($self->{test_start_time});
-    bmwqemu::modstate(sprintf("finished %s %s (runtime: %d s)", $self->{name}, $self->{category}, $self->{execution_time}));
+    bmwqemu::modstate(
+        sprintf("finished %s %s (runtime: %d s)", $self->{name}, $self->{category}, $self->{execution_time}));
 }
 
 sub runtest ($self) {
@@ -554,7 +555,12 @@ sub verify_sound_image ($self, $imgpath, $mustmatch, $check) {
         my $foundneedle = $rsp->{found};
         $self->record_screenmatch($img, $foundneedle, [$mustmatch], $rsp->{candidates});
         my $lastarea = $foundneedle->{area}->[-1];
-        bmwqemu::fctres(sprintf("found %s, similarity %.2f @ %d/%d", $foundneedle->{needle}->{name}, $lastarea->{similarity}, $lastarea->{x}, $lastarea->{y}));
+        bmwqemu::fctres(
+            sprintf(
+                "found %s, similarity %.2f @ %d/%d",
+                $foundneedle->{needle}->{name},
+                $lastarea->{similarity},
+                $lastarea->{x}, $lastarea->{y}));
         return $foundneedle;
     }
     bmwqemu::fctres(sprintf("failed to find %s", $mustmatch));
@@ -651,7 +657,8 @@ sub parse_serial_output_qemu ($self) {
             my $type = $regexp_table->{type};
 
             # Input parameters validation
-            die "Wrong type defined for serial failure. Only 'info', 'soft', 'hard' or 'fatal' allowed. Got: $type" if $type !~ /^info|soft|hard|fatal$/;
+            die "Wrong type defined for serial failure. Only 'info', 'soft', 'hard' or 'fatal' allowed. Got: $type"
+              if $type !~ /^info|soft|hard|fatal$/;
             die "Message not defined for serial failure for the pattern: '$regexp', type: $type" if !defined $message;
 
             # If you want to match a simple string please be sure that you create it with quotemeta

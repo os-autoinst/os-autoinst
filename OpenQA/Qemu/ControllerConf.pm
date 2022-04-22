@@ -10,19 +10,23 @@ use List::Util 'first';
 has _controllers => sub { return []; };
 
 sub add_controller ($self, $model, $id) {
-    my $dc = OpenQA::Qemu::DriveController->new()
-      ->model($model)
-      ->id($id);
+    my $dc = OpenQA::Qemu::DriveController->new()->model($model)->id($id);
 
     push(@{$self->_controllers}, $dc);
     return $dc;
 }
 
-sub gen_cmdline ($self) { map { $_->gen_cmdline() } @{$self->_controllers}, }
+sub gen_cmdline ($self) {
+    map { $_->gen_cmdline() } @{$self->_controllers},;
+}
 
-sub get_controller ($self, $id) { first { $_->id eq $id } @{$self->_controllers} }
+sub get_controller ($self, $id) {
+    first { $_->id eq $id } @{$self->_controllers};
+}
 
-sub get_controllers ($self, $type) { grep { $_->model =~ $type } @{$self->_controllers} }
+sub get_controllers ($self, $type) {
+    grep { $_->model =~ $type } @{$self->_controllers};
+}
 
 sub to_map ($self) {
     my @controllers = map { $_->_to_map } @{$self->_controllers};

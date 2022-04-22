@@ -73,17 +73,20 @@ sub connect_remote ($self, $args) {
         if ($timings) {
             if ($timings ne "0x0pnan") {
                 $self->{dv_timings} = $timings;
-            } else {
+            }
+            else {
                 $self->{dv_timings} = '';
             }
             $self->{dv_timings_supported} = 1;
             $self->{dv_timings_last_check} = time;
             bmwqemu::diag "Current DV timings: $timings";
-        } else {
+        }
+        else {
             $self->{dv_timings_supported} = 0;
             bmwqemu::diag "DV timings not supported";
         }
-    } else {
+    }
+    else {
         # applies to v4l only
         $self->{dv_timings_supported} = 0;
     }
@@ -178,7 +181,8 @@ sub update_framebuffer ($self) {
                 # connect_remote_video will update the timings
                 $self->disable_video;
                 $self->connect_remote_video($self->{args}->{url});
-            } elsif ($self->{dv_timings} && !$current_timings) {
+            }
+            elsif ($self->{dv_timings} && !$current_timings) {
                 bmwqemu::diag "video disconnected";
                 $self->disable_video;
                 $self->{dv_timings} = '';

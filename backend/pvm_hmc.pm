@@ -28,7 +28,8 @@ sub do_start_vm ($self, @) {
             password => $bmwqemu::vars{HMC_PASSWORD} || die('Need variable HMC_PASSWORD'),
             username => $bmwqemu::vars{HMC_USERNAME} // 'hscroot',
             persistent => 1,
-            log => $bmwqemu::vars{HARDWARE_CONSOLE_LOG} // 0});
+            log => $bmwqemu::vars{HARDWARE_CONSOLE_LOG} // 0
+        });
     $ssh->backend($self);
 
     return {};
@@ -44,7 +45,8 @@ sub run_cmd ($self, $cmd, $hostname = undef, $password = undef, @) {
     $hostname //= $bmwqemu::vars{HMC_HOSTNAME} or die 'Need variable HMC_HOSTNAME';
     $password //= $bmwqemu::vars{HMC_PASSWORD} or die 'Need variable HMC_PASSWORD';
     my $username = $bmwqemu::vars{HMC_USERNAME} // 'hscroot';
-    return $self->run_ssh_cmd($cmd, username => $username, password => $password, hostname => $hostname, keep_open => 0);
+    return $self->run_ssh_cmd($cmd, username => $username, password => $password, hostname => $hostname,
+        keep_open => 0);
 }
 
 sub can_handle ($self, @) { undef }
@@ -52,7 +54,9 @@ sub can_handle ($self, @) { undef }
 sub is_shutdown ($self, @) {
     my $lpar_id = $bmwqemu::vars{LPAR_ID} or die 'Need variable LPAR_ID';
     my $hmc_machine_name = $bmwqemu::vars{HMC_MACHINE_NAME} or die 'Need variable HMC_MACHINE_NAME';
-    return $self->run_cmd("! lssyscfg -m ${hmc_machine_name} -r lpar --filter 'lpar_ids=${lpar_id}' -F state | grep -i 'not activated' -q");
+    return $self->run_cmd(
+        "! lssyscfg -m ${hmc_machine_name} -r lpar --filter 'lpar_ids=${lpar_id}' -F state | grep -i 'not activated' -q"
+    );
 }
 
 sub check_socket ($self, $fh, $write = undef) {

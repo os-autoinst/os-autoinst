@@ -102,9 +102,11 @@ sub handle_api_error ($tx, $log_ctx, $expected_codes) {
     my $code = $err->{code};
     return 0 if $code && ($expected_codes // $CODES_EXPECTED_BY_DEFAULT)->{$code};
     $err->{message} .= "; URL was $url" if $url;
-    bmwqemu::diag($code
+    bmwqemu::diag(
+        $code
         ? "$log_ctx: $code response: $err->{message}"
-        : "$log_ctx: Connection error: $err->{message}") if $log_ctx;
+        : "$log_ctx: Connection error: $err->{message}"
+    ) if $log_ctx;
     return 1;
 }
 
@@ -182,7 +184,12 @@ sub get_job_autoinst_url ($target_id) {
 
     my $workers = $tx->res->json('/workers') // [];
     for my $worker (@$workers) {
-        if ($worker->{jobid} && $target_id == $worker->{jobid} && $worker->{host} && $worker->{instance} && $worker->{properties}{JOBTOKEN}) {
+        if (   $worker->{jobid}
+            && $target_id == $worker->{jobid}
+            && $worker->{host}
+            && $worker->{instance}
+            && $worker->{properties}{JOBTOKEN})
+        {
             my $hostname = $worker->{host};
             my $token = $worker->{properties}{JOBTOKEN};
             my $workerport = $worker->{instance} * 10 + 20002 + 1;    # the same as in openqa/script/worker

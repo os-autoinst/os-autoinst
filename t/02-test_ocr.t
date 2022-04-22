@@ -42,6 +42,6 @@ for my $area (@{$res->{needle}->{area}}) {
     stderr_like { $ocr .= ocr::tesseract($img1, $area) } qr/Tesseract.*OCR/, 'log output for tesseract call';
 }
 
-ok defined $ocr, 'OCR area found' and
-  ok($ocr =~ /Memory Test.*Video Mode/s, 'multiple OCR regions');
+ok defined $ocr, 'OCR area found'
+  and ok($ocr =~ /Memory Test.*Video Mode/s, 'multiple OCR regions');
 done_testing;
