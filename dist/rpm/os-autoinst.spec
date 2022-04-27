@@ -92,6 +92,8 @@ Recommends:     qemu-tools
 Recommends:     perl(Inline::Python)
 # Optional dependency for crop.py
 Recommends:     python3-Pillow-tk
+# Optional dependency for QEMU's built-in samba service (enabled via QEMU_ENABLE_SMBD=1)
+Recommends:     samba
 Requires(pre):  %{_bindir}/getent
 Requires(pre):  %{_sbindir}/useradd
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
