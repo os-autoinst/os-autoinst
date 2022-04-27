@@ -19,6 +19,7 @@ listdeps > $OLDDEPS
 DEPS=($(getdeps_container))
 
 sudo zypper --no-refresh install -y -C "${DEPS[@]}"
+sudo zypper --no-refresh install -y --oldpackage libslirp0=4.3.1-1.51
 
 listdeps > $NEWDEPS
 
