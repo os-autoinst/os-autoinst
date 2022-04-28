@@ -57,19 +57,19 @@ BEGIN {
 }
 
 use backend::driver;
-use bmwqemu qw(diag fctwarn);
+use log qw(diag fctwarn);
 use needle;
 use autotest ();
 use commands;
 use distribution;
 use testapi ();
-use File::Basename;
 use Getopt::Long;
 require IPC::System::Simple;
 use POSIX qw(:sys_wait_h _exit);
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use Try::Tiny;
-use File::Path;
+use IO::Select;
+use Mojo::File qw(curfile path);
 use Mojo::UserAgent;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
@@ -90,14 +90,14 @@ sub usage ($r) {
 }
 
 sub _get_version_string () {
-    my $dirname = dirname(__FILE__);
+    my $dirname = curfile->dirname;
     my $thisversion = qx{git -C $dirname rev-parse HEAD};
     chomp $thisversion;
     die 'Could not parse version' unless $thisversion;
     return "Current version is $thisversion [interface v$OpenQA::Isotovideo::Interface::version]";
 }
 
-sub version {
+sub version () {
     print _get_version_string() . "\n";
     exit 0;
 }
@@ -175,7 +175,7 @@ sub stop_commands ($reason) {
     diag('done with command server');
 }
 
-sub stop_autotest {
+sub stop_autotest () {
     return unless defined $testprocess;
 
     diag('stopping autotest process ' . $testprocess->pid);
@@ -184,7 +184,7 @@ sub stop_autotest {
     diag('done with autotest process');
 }
 
-sub stop_backend {
+sub stop_backend () {
     return unless defined $bmwqemu::backend && $backend_process;
 
     diag('stopping backend process ' . $backend_process->pid);
@@ -256,10 +256,7 @@ my $testfd;
 ($testprocess, $testfd) = autotest::start_process();
 
 init_backend();
-
-open(my $fd, ">", "os-autoinst.pid");
-print $fd "$$\n";
-close $fd;
+path('os-autoinst.pid')->spurt("$$");
 
 if (!$bmwqemu::backend->_send_json({cmd => 'alive'})) {
     # might throw an exception
@@ -277,8 +274,6 @@ for my $tool (keys %debugging_tools) {
     exit -1;    # don't continue in any case (exec returns if it fails to spawn the process printing an error message on its own)
 }
 
-use IO::Select;
-
 $backend_process = $bmwqemu::backend->{backend_process};
 my $io_select = IO::Select->new();
 $io_select->add($testfd);
@@ -286,7 +281,7 @@ $io_select->add($cmd_srv_fd);
 $io_select->add($backend_process->channel_out);
 
 # stop main loop as soon as one of the child processes terminates
-my $stop_loop = sub { $loop = 0 if $loop; };
+my $stop_loop = sub (@) { $loop = 0 if $loop; };
 $testprocess->once(collected => $stop_loop);
 $backend_process->once(collected => $stop_loop);
 $cmd_srv_process->once(collected => $stop_loop);
@@ -298,7 +293,7 @@ $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     cmd_srv_fd => $cmd_srv_fd,
     backend_fd => $backend_process->channel_in,
 );
-$command_handler->on(tests_done => sub {
+$command_handler->on(tests_done => sub (@) {
         CORE::close($testfd);
         $testfd = undef;
         stop_autotest;
