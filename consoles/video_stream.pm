@@ -8,6 +8,7 @@ use Mojo::Base 'consoles::video_base', -signatures;
 
 use List::Util 'max';
 use Time::HiRes qw(usleep);
+use Fcntl;
 
 use Try::Tiny;
 use bmwqemu;
@@ -114,6 +115,8 @@ sub connect_remote_video ($self, $url) {
     my $ffmpeg;
     $self->{ffmpegpid} = open($ffmpeg, '-|', @$cmd)
       or die "Failed to start ffmpeg for video stream at $url";
+    # make the pipe size large enough to hold full frame and a bit
+    fcntl($ffmpeg, Fcntl::F_SETPIPE_SZ, 4194304);
     $self->{ffmpeg} = $ffmpeg;
     $ffmpeg->blocking(0);
 
