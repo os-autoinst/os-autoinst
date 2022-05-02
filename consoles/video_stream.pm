@@ -104,6 +104,7 @@ sub connect_remote_video ($self, $url) {
     if ($self->{dv_timings_supported}) {
         if (!_v4l2_ctl($url, '--set-dv-bt-timings query')) {
             bmwqemu::diag("No video signal");
+            $self->{dv_timings} = '';
             return;
         }
         $self->{dv_timings} = _v4l2_ctl($url, '--get-dv-timings');
