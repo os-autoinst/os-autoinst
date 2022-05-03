@@ -45,6 +45,7 @@ devel_requires:
   perl(Code::TidyAll):
   perl(Devel::Cover):
   perl(Devel::Cover::Report::Codecov):
+  perl(Template::Toolkit):
   perl(Perl::Tidy): '== 20220217'
   ShellCheck:
 
