@@ -106,6 +106,7 @@ RUN zypper in -y -C \
        'perl(Scalar::Util)' \
        'perl(Socket)' \
        'perl(Socket::MsgHdr)' \
+       'perl(Template::Toolkit)' \
        'perl(Term::ANSIColor)' \
        'perl(Test::Fatal)' \
        'perl(Test::Mock::Time)' \
