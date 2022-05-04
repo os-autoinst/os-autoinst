@@ -55,7 +55,7 @@ sub qv ($string) { split /\s+|\h+|\r+/, $string }
 # Add single quote mark to string
 # Mainly use in the case of multiple kernel parameters to be passed to the -append option
 # and they need to be quoted using single or double quotes
-sub quote ($string) { "\'" . $string . "\'" }
+sub quote ($string) { "'$string'" }
 
 sub run (@args) {
     bmwqemu::diag "running `@args`";
