@@ -17,7 +17,7 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use consoles::VNC;
 
-my @sent;
+my (@sent, @printed);
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
 $vnc_mock->redefine(_send_frame_buffer => sub ($self, $data) { push @sent, $data });
 my $c = consoles::VNC->new;
@@ -25,11 +25,14 @@ my $inet_mock = Test::MockModule->new('IO::Socket::INET');
 my $s = Test::MockObject->new->set_true(qw(sockopt print connected close));
 sub _setup_rfb_magic { $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1)) }
 _setup_rfb_magic;
-$s->mock('read', sub { $_[1] = $s->mocked_read; 1 });
+$s->mock(read => sub { $_[1] = $s->mocked_read; 1 });
+$s->mock(print => sub { push @printed, $_[1] });
 $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
 is $c->login, undef, 'can call login';
 is $c->_receive_bell, 1, 'can call _receive_bell';
+is_deeply \@printed, ['RFB 003.006', pack('C', 1)], 'protocol version and security type replied' or diag explain \@printed;
+@printed = ();
 
 subtest 'send update request' => sub {
     $c->width(1024);
@@ -70,6 +73,26 @@ subtest 'handling connect timeout' => sub {
         throws_ok { $c->login } 'OpenQA::Exception::VNCSetupError', 'dies on connect timeout (2)'
     } qr/.*Error connecting to.*/, 'error logged (2)';
     is $attempts, 12, 'login attempts for remote hostname';
+};
+
+is_deeply \@printed, [], 'nothing printed so far' or diag explain \@printed;
+
+subtest 'send pointer events' => sub {
+    $c->socket($s);
+    $c->absolute(0);
+    combined_like {
+        $c->mouse_move_to(2, 3);
+        $c->mouse_click(5, 7);
+        $c->mouse_right_click(11, 13);
+    } qr/send_pointer_event/, 'pointer events logged';
+    my @expected = (
+        pack(CCnn => 5, 0, 2, 3),    # mouse_move_to
+        pack(CCnn => 5, 1, 5, 7),    # mouse_click (left click)
+        pack(CCnn => 5, 0, 5, 7),    # mouse_click (release)
+        pack(CCnn => 5, 4, 11, 13),    # mouse_right_click (right click)
+        pack(CCnn => 5, 0, 11, 13),    # mouse_right_click (release)
+    );
+    is_deeply \@printed, \@expected, 'sent mouse move' or diag explain \@printed;
 };
 
 done_testing;
