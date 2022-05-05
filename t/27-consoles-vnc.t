@@ -5,6 +5,7 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use utf8;
 
 use Test::Warnings qw(:all :report_warnings);
 use Test::Exception;
@@ -76,10 +77,10 @@ subtest 'handling connect timeout' => sub {
 };
 
 is_deeply \@printed, [], 'nothing printed so far' or diag explain \@printed;
+$c->socket($s);
+$c->absolute(0);
 
-subtest 'send pointer events' => sub {
-    $c->socket($s);
-    $c->absolute(0);
+subtest 'sending pointer events' => sub {
     combined_like {
         $c->mouse_move_to(2, 3);
         $c->mouse_click(5, 7);
@@ -93,6 +94,26 @@ subtest 'send pointer events' => sub {
         pack(CCnn => 5, 0, 11, 13),    # mouse_right_click (release)
     );
     is_deeply \@printed, \@expected, 'sent mouse move' or diag explain \@printed;
+};
+
+subtest 'sending key events' => sub {
+    @printed = ();
+    $c->keymap(undef);
+    $c->ikvm(1);
+    throws_ok { $c->map_and_send_key('ä', 1, 0.0001) } qr/No map for/, 'dies on missing key mapping';
+    $c->map_and_send_key('a', 1, 0.0001);
+    $c->ikvm(0);
+    $c->keymap(undef);
+    $c->map_and_send_key('a', undef, 0.0001);    # undef means key down and key up
+    $c->map_and_send_key('@', 1, 0.0001);    # requires shift key
+    my @expected = (
+        pack(CxCnNx9 => 4, 2, 0, 0x4),    # single key press event for 'a' on ikvm
+        pack(CCnN => 4, 1, 0, 0x61),    # key down event for 'a' on regular VNC
+        pack(CCnN => 4, 0, 0, 0x61),    # key up event for 'a' on regular VNC
+        pack(CCnN => 4, 1, 0, 0xffe1),    # key down event for '@' on regular VNC (shift)
+        pack(CCnN => 4, 1, 0, 0x40),    # key down event for '@' on regular VNC ('@' itself)
+    );
+    is_deeply \@printed, \@expected, 'sent key events' or diag explain \@printed;
 };
 
 done_testing;
