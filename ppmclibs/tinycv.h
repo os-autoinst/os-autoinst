@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <string>
+#include <tuple>
 #include <vector>
 
 // opaque type to separate perl from opencv
@@ -27,6 +28,7 @@ long image_yres(Image *s);
 void image_replacerect(Image *s, long x, long y, long width, long height);
 Image *image_copyrect(Image *s, long x, long y, long width, long height);
 void image_threshold(Image *s, int level);
+std::tuple<long, long, long> image_get_pixel(Image* a, long x, long y);
 std::vector<float> image_avgcolor(Image *s);
 bool image_differ(Image *a, Image *b, unsigned char maxdiff);
 

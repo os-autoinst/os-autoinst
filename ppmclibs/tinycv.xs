@@ -190,6 +190,14 @@ void threshold(tinycv::Image self, int level)
   CODE:
     image_threshold(self, level);
 
+void get_pixel(tinycv::Image self, long x, long y)
+  PPCODE:
+    const auto pixel = image_get_pixel(self, x, y);
+    EXTEND(SP, 3);
+    PUSHs(sv_2mortal(newSVnv(std::get<0>(pixel))));
+    PUSHs(sv_2mortal(newSVnv(std::get<1>(pixel))));
+    PUSHs(sv_2mortal(newSVnv(std::get<2>(pixel))));
+
 void avgcolor(tinycv::Image self)
   PPCODE:
     std::vector<float> res = image_avgcolor(self);

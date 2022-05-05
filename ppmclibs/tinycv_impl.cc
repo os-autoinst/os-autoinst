@@ -474,6 +474,12 @@ void image_threshold(Image* a, int level)
     }
 }
 
+std::tuple<long, long, long> image_get_pixel(Image* a, long x, long y)
+{
+    const auto pixel = a->img.at<Vec3b>(y, x);
+    return std::make_tuple(pixel[0], pixel[1], pixel[2]);
+}
+
 std::vector<float> image_avgcolor(Image* s)
 {
     Scalar t = mean(s->img);

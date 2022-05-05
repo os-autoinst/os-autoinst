@@ -17,16 +17,20 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use consoles::VNC;
+use cv;
+
+cv::init;
+require tinycv;
 
 my (@sent, @printed);
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
 $vnc_mock->redefine(_send_frame_buffer => sub ($self, $data) { push @sent, $data });
-my $c = consoles::VNC->new;
+my $c = consoles::VNC->new(_bpp => 32);    # create VNC console with bit-depth of 32 bit
 my $inet_mock = Test::MockModule->new('IO::Socket::INET');
-my $s = Test::MockObject->new->set_true(qw(sockopt print connected close));
+my $s = Test::MockObject->new->set_true(qw(sockopt print connected close blocking));
 sub _setup_rfb_magic { $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1)) }
 _setup_rfb_magic;
-$s->mock(read => sub { $_[1] = $s->mocked_read; 1 });
+$s->mock(read => sub { $_[1] = $s->mocked_read; defined $_[1] });
 $s->mock(print => sub { push @printed, $_[1] });
 $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
@@ -114,6 +118,34 @@ subtest 'sending key events' => sub {
         pack(CCnN => 4, 1, 0, 0x40),    # key down event for '@' on regular VNC ('@' itself)
     );
     is_deeply \@printed, \@expected, 'sent key events' or diag explain \@printed;
+};
+
+subtest 'update framebuffer' => sub {
+    # test with wrong data
+    throws_ok { $c->update_framebuffer } qr/unsupported message type received/, 'dies on unsupported message';
+
+    # test with truncated data
+    my $update_message = pack('C', 0);
+    my $one_rectangle = pack(xn => 1);
+    my $of_type_zrle_with_coordinates_17_19_23_29 = pack(nnnnN => 17, 19, 23, 29, 16);
+    my $expected_error = qr/Error in VNC protocol - relogin: short read for length/;
+    my $logged_in = 0;
+    $vnc_mock->redefine(login => sub { $logged_in = 1 });
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_zrle_with_coordinates_17_19_23_29);
+    combined_like { $c->update_framebuffer } $expected_error, 'protocol error logged';
+    ok $logged_in, 'relogin on protocol error';
+
+    # test with full data (just one pixel, though) and vncinfo present (defines endianness and chroma subsampling)
+    my $vncinfo = tinycv::new_vncinfo($c->_do_endian_conversion, $c->_true_colour, $c->_bpp / 8, 255, 0, 255, 8, 255, 16);
+    my $gray_pixel = pack(CCCC => 31, 37, 41, 0);    # dark prime grey
+    my $of_type_raw_with_coordinates_43_47_1_1 = pack(nnnnN => 43, 47, 1, 1, 0);
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_raw_with_coordinates_43_47_1_1, $gray_pixel);
+    $c->_framebuffer(undef)->width(1024)->height(512)->vncinfo($vncinfo);
+    ok $c->update_framebuffer, 'truthy return value for successful pixel update';
+    my ($blue, $green, $red) = $c->_framebuffer->get_pixel(43, 47);
+    is $blue, 41, 'pixel data updated in framebuffer (blue)';
+    is $green, 37, 'pixel data updated in framebuffer (green)';
+    is $red, 31, 'pixel data updated in framebuffer (red)';
 };
 
 done_testing;
