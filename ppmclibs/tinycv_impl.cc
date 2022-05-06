@@ -581,6 +581,10 @@ public:
 
     Vec3b read_cpixel(const unsigned char* data, size_t& offset);
     Vec3b read_pixel(const unsigned char* data, size_t& offset);
+    const Vec3b &get_colour(unsigned int index) const {
+        assert(index < 256);
+        return colourMap[index];
+    }
     void set_colour(unsigned int index, unsigned int red, unsigned int green,
         unsigned int blue)
     {
@@ -588,6 +592,12 @@ public:
         colourMap[index] = Vec3b(blue, green, red);
     }
 };
+
+std::tuple<long, long, long> image_get_vnc_color(VNCInfo* info, unsigned int index)
+{
+    const auto &color = info->get_colour(index);
+    return std::make_tuple(color[0], color[1], color[2]);
+}
 
 void image_set_vnc_color(VNCInfo* info, unsigned int index, unsigned int red,
     unsigned int green, unsigned int blue)

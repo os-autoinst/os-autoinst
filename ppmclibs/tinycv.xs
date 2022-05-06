@@ -110,6 +110,14 @@ tinycv::VNCInfo new_vncinfo(bool do_endian_conversion, bool true_color, unsigned
    OUTPUT:
      RETVAL
 
+void get_colour(tinycv::VNCInfo info, unsigned int index)
+  PPCODE:
+    const auto color = image_get_vnc_color(info, index);
+    EXTEND(SP, 3);
+    PUSHs(sv_2mortal(newSVnv(std::get<0>(color))));
+    PUSHs(sv_2mortal(newSVnv(std::get<1>(color))));
+    PUSHs(sv_2mortal(newSVnv(std::get<2>(color))));
+
 void set_colour(tinycv::VNCInfo info, unsigned int index, unsigned red, unsigned green, unsigned blue)
    CODE:
      image_set_vnc_color(info, index, red, green, blue);

@@ -45,6 +45,7 @@ VNCInfo *image_vncinfo(bool do_endian_conversion,
 		       unsigned int red_mask,   unsigned int red_shift,
 		       unsigned int green_mask, unsigned int green_shift,
 		       unsigned int blue_mask,  unsigned int blue_shift);
+std::tuple<long, long, long> image_get_vnc_color(VNCInfo* info, unsigned int index);
 void image_set_vnc_color(VNCInfo *info, unsigned int index, unsigned int red, unsigned int green, unsigned int blue);
 
 // this is for VNC support - RAW encoding

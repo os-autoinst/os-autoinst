@@ -164,6 +164,16 @@ subtest 'cutting text' => sub {
     is $s->mocked_read, undef, 'no more messages left to read';
 };
 
+subtest 'receiving color map' => sub {
+    $s->set_series(mocked_read => pack(Cnn => 0, 0, 1), pack(nnn => 51 * 256, 53 * 256, 57 * 256));
+    ok $c->_receive_colour_map, 'color map received';
+    is $s->mocked_read, undef, 'no more messages left to read';
+    my ($blue, $green, $red) = tinycv::get_colour($c->vncinfo, 0);
+    is $blue, 57, 'pixel data updated in framebuffer (blue)';
+    is $green, 53, 'pixel data updated in framebuffer (green)';
+    is $red, 51, 'pixel data updated in framebuffer (red)';
+};
+
 subtest 'security handshake: DES' => sub {
     # assume server propose DES as only option with just zero-bytes as challenge
     $c->_rfb_version('003.007');
