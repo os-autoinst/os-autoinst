@@ -158,6 +158,12 @@ subtest 'update framebuffer' => sub {
     is $red, 31, 'pixel data updated in framebuffer (red)';
 };
 
+subtest 'cutting text' => sub {
+    $s->set_series(mocked_read => pack(xxxN => 1), pack(C => 0));
+    ok $c->_receive_cut_text, 'text is merely discarded';
+    is $s->mocked_read, undef, 'no more messages left to read';
+};
+
 subtest 'security handshake: DES' => sub {
     # assume server propose DES as only option with just zero-bytes as challenge
     $c->_rfb_version('003.007');
