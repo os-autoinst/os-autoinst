@@ -21,7 +21,8 @@ has [qw(description hostname port username password socket name width height dep
 
 our $VERSION = '0.40';
 
-my $MAX_PROTOCOL_VERSION = 'RFB 003.008' . chr(0x0a);    # Max version supported
+my $MAX_PROTOCOL_VERSION = '003.008';
+my $MAX_PROTOCOL_HANDSHAKE = 'RFB ' . $MAX_PROTOCOL_VERSION . chr(0x0a);    # Max version supported
 
 # This line comes from perlport.pod
 my $client_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
@@ -180,12 +181,10 @@ sub _handshake_protocol_version ($self) {
     die 'Malformed RFB protocol: ' . $protocol_version if $protocol_version !~ m/$protocol_pattern/xms;
     $self->_rfb_version($1);
 
-    if ($protocol_version gt $MAX_PROTOCOL_VERSION) {
-        $protocol_version = $MAX_PROTOCOL_VERSION;
-
+    if ($protocol_version gt $MAX_PROTOCOL_HANDSHAKE) {
+        $protocol_version = $MAX_PROTOCOL_HANDSHAKE;
         # Repeat with the changed version
-        die 'Malformed RFB protocol' unless $protocol_version =~ m/$protocol_pattern/xms;
-        $self->_rfb_version($1);
+        $self->_rfb_version($MAX_PROTOCOL_VERSION);
     }
 
     die 'RFB protocols earlier than v3.3 are not supported' if $self->_rfb_version lt '003.003';

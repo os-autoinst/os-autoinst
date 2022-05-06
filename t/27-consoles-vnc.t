@@ -61,10 +61,20 @@ subtest 'handling VNC stall, malformed RFB protocol on re-connect' => sub {
     is scalar @sent, 1, 'no further message sent' or diag explain \@sent;
 };
 
+subtest 'repeating handshake with max. version' => sub {
+    $s->set_series('mocked_read', 'RFB 003.106');
+    $c->socket($s);
+    $c->_handshake_protocol_version;
+    is $c->_rfb_version, '003.008', 'RFB version set to max. supported version';
+    is_deeply \@printed, ['RFB 003.008' . chr(0x0a)], 'replied max. RFB version' or diag explain \@printed;
+    @printed = ();
+};
+
 subtest 'handling connect timeout' => sub {
     $bmwqemu::vars{VNC_CONNECT_TIMEOUT_LOCAL} = 5;
     $bmwqemu::vars{VNC_CONNECT_TIMEOUT_REMOTE} = 10;
     my $attempts = 0;
+    $c->socket(undef);
     $c->hostname('127.0.0.100');
     $inet_mock->redefine(new => sub { ++$attempts; undef });
     _setup_rfb_magic;
