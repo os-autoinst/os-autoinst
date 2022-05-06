@@ -31,7 +31,7 @@ my $s = Test::MockObject->new->set_true(qw(sockopt print connected close blockin
 sub _setup_rfb_magic { $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1)) }
 _setup_rfb_magic;
 $s->mock(read => sub { $_[1] = $s->mocked_read; defined $_[1] });
-$s->mock(print => sub { push @printed, $_[1] });
+$s->mock($_ => sub { push @printed, $_[1] }) for qw(print write);
 $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
 is $c->login, undef, 'can call login';
@@ -156,6 +156,52 @@ subtest 'update framebuffer' => sub {
     is $blue, 41, 'pixel data updated in framebuffer (blue)';
     is $green, 37, 'pixel data updated in framebuffer (green)';
     is $red, 31, 'pixel data updated in framebuffer (red)';
+};
+
+subtest 'security handshake: DES' => sub {
+    # assume server propose DES as only option with just zero-bytes as challenge
+    $c->_rfb_version('003.007');
+    $s->set_series(mocked_read => pack(C => 1), pack(C => 2), pack(NNNN => 0, 0, 0, 0), pack(N => 0));
+
+    # let our client respond assuming some password
+    @printed = ();
+    $c->password('supersecret');    # only the first 8 characters will be considered
+    $c->_handshake_security;
+    my @expected = (
+        pack(C => 2),    # client confirms to use DES
+        pack(NNNN => 0x80D03992, 0xB0DB4495, 0x80D03992, 0xB0DB4495),    # client solves challenge
+    );
+    is_deeply \@printed, \@expected, 'expected response' or diag explain \@printed;
+};
+
+subtest 'security handshake: ikvm' => sub {
+    # assume server propose ikvm as only option with 0 tunnels and '?' as session info
+    $c->_rfb_version('003.007');
+    $s->set_series(mocked_read => pack(C => 1), pack(C => 16), pack(N => 0), pack(C20 => 0), pack(NNNN => 0, 0, 0, 0));
+
+    # let our client respond assuming some username and password
+    @printed = ();
+    $c->ikvm(1);
+    $c->username('nobody');
+    $c->password('supersecret');    # only the first 8 characters will be considered
+    combined_like { $c->_handshake_security } qr/Session info: 00/, 'session info logged';
+    my @expected = (
+        pack(C => 16),    # client confirms to use ikvm
+        pack(Z24 => $c->username),    # client sends username …
+        pack(Z24 => $c->password)    # … and password
+    );
+    is $c->old_ikvm, 0, 'not considered old ikvm';
+    is_deeply \@printed, \@expected, 'expected response' or diag explain \@printed;
+};
+
+subtest 'security handshake: failue' => sub {
+    $c->_rfb_version('003.006');
+    $s->set_series(mocked_read => pack(N => 42));
+    throws_ok { $c->_handshake_security } qr/security/, 'dies on unknown security type';
+
+    $s->set_series(mocked_read => pack(N => 1));
+    $s->set_false('connected');
+    throws_ok { $c->_handshake_security } qr/login failed/, 'dies when socket closed';
 };
 
 done_testing;
