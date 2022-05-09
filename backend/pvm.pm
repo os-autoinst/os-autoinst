@@ -84,16 +84,16 @@ sub pvmctl ($self, $type, $action, @args) {
     my $lpar = $vars->{LPAR};
 
     if ($type =~ /lpar/) {
-        gen_params @cmd, "i", "name=$lpar" if ($lpar && $action =~ /power|restart|delete/);
+        gen_params \@cmd, "i", "name=$lpar" if ($lpar && $action =~ /power|restart|delete/);
         if ($action =~ /create/) {
             my ($cpu, $memory) = @args;
-            dd_gen_params @cmd, "proc-type", "shared";
-            dd_gen_params @cmd, "sharing-mode", "uncapped";
-            dd_gen_params @cmd, "type", "AIX/Linux";
-            dd_gen_params @cmd, "proc", $cpu if $cpu;
-            dd_gen_params @cmd, "mem", $memory if $memory;
-            dd_gen_params @cmd, "name", $lpar if $lpar;
-            dd_gen_params @cmd, "proc-unit", $cpu * 0.05 if $cpu;
+            dd_gen_params \@cmd, "proc-type", "shared";
+            dd_gen_params \@cmd, "sharing-mode", "uncapped";
+            dd_gen_params \@cmd, "type", "AIX/Linux";
+            dd_gen_params \@cmd, "proc", $cpu if $cpu;
+            dd_gen_params \@cmd, "mem", $memory if $memory;
+            dd_gen_params \@cmd, "name", $lpar if $lpar;
+            dd_gen_params \@cmd, "proc-unit", $cpu * 0.05 if $cpu;
         }
     }
     elsif ($type =~ /scsi/) {
@@ -103,21 +103,21 @@ sub pvmctl ($self, $type, $action, @args) {
         #so far only disks are reatachable to the master LPAR
         #set it back to default if argument is omitted
         $lpar = $target if $target;
-        dd_gen_params @cmd, "type", $kind;
-        dd_gen_params @cmd, "stor-id", $file;
-        dd_gen_params @cmd, "lpar", "name=$lpar" if $lpar;
-        dd_gen_params @cmd, "vg", "name=rootvg" if ($type =~ /lv/);
+        dd_gen_params \@cmd, "type", $kind;
+        dd_gen_params \@cmd, "stor-id", $file;
+        dd_gen_params \@cmd, "lpar", "name=$lpar" if $lpar;
+        dd_gen_params \@cmd, "vg", "name=rootvg" if ($type =~ /lv/);
     }
     elsif ($type =~ /lv/) {
         my ($name, $size) = @args;
-        dd_gen_params @cmd, "name", $name if $name;
-        dd_gen_params @cmd, "size", $size if $size;
+        dd_gen_params \@cmd, "name", $name if $name;
+        dd_gen_params \@cmd, "size", $size if $size;
     }
     elsif ($type =~ /eth/) {
         my ($vlan, $vswitch) = @args;
-        dd_gen_params @cmd, "pvid", $vlan if $vlan;
-        dd_gen_params @cmd, "vswitch", $vswitch if $vswitch;
-        gen_params @cmd, "p", "name=$lpar" if $lpar;
+        dd_gen_params \@cmd, "pvid", $vlan if $vlan;
+        dd_gen_params \@cmd, "vswitch", $vswitch if $vswitch;
+        gen_params \@cmd, "p", "name=$lpar" if $lpar;
     }
     else {
         die "Unrecognized command $type";

@@ -19,7 +19,7 @@ use Fcntl;
 use Net::DBus;
 use bmwqemu qw(diag);
 require IPC::System::Simple;
-use osutils qw(find_bin gen_params qv run_diag runcmd);
+use osutils qw(find_bin qv run_diag runcmd);
 use List::Util qw(first max);
 use Data::Dumper;
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
