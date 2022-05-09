@@ -409,9 +409,9 @@ sub connect_qmp ($self) {
     my $sk;
     osutils::attempt {
         attempts => $ENV{QEMU_QMP_CONNECT_ATTEMPTS} // 20,
-        condition => sub { $sk },
-        or => sub { die "Can't open QMP socket" },
-        cb => sub {
+        condition => sub () { $sk },
+        or => sub () { die "Can't open QMP socket" },
+        cb => sub () {
             die "QEMU terminated before QMP connection could be established. Check for errors below\n" if $self->{_qemu_terminated};
             $sk = IO::Socket::UNIX->new(
                 Type => IO::Socket::UNIX::SOCK_STREAM,
