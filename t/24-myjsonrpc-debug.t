@@ -18,7 +18,7 @@ use myjsonrpc;
 use Test::Warnings qw(warnings :report_warnings);
 
 no warnings 'redefine';
-sub bmwqemu::diag { warn $_[0] }
+sub bmwqemu::diag ($text) { warn $text }
 
 
 my ($child, $isotovideo);

@@ -86,6 +86,6 @@ sub from_map ($self, $map) {
     return $self;
 }
 
-sub has_state { shift->_sequence }
+sub has_state ($self) { $self->_sequence }
 
 1;

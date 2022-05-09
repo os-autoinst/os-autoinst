@@ -71,14 +71,14 @@ sub run (@args) {
 }
 
 # Do not check for anything - just execute and print
-sub run_diag {
+sub run_diag (@args) {
     my ($exit_status, $output);
     eval {
         local $SIG{__DIE__} = undef;
-        ($exit_status, $output) = run(@_);
-        bmwqemu::diag("Command `@_` terminated with $exit_status" . (length($output) ? "\n$output" : ''));
+        ($exit_status, $output) = run(@args);
+        bmwqemu::diag("Command `@args` terminated with $exit_status" . (length($output) ? "\n$output" : ''));
     };
-    bmwqemu::diag("Fatal error in command `@_`: $@") if ($@);
+    bmwqemu::diag("Fatal error in command `@args`: $@") if ($@);
     return $output;
 }
 

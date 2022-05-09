@@ -48,7 +48,7 @@ has _process => sub { process(
 has _static_params => sub { return []; };
 has _mut_params => sub { return []; };
 
-sub _push_mut { push(@{shift->_mut_params}, shift); }
+sub _push_mut ($key, $value) { push(@{$key->_mut_params}, $value) }
 
 has controller_conf => sub { return OpenQA::Qemu::ControllerConf->new(); };
 has blockdev_conf => sub { return OpenQA::Qemu::BlockDevConf->new(); };
@@ -395,9 +395,9 @@ sub stop_qemu ($self) {
     $self->_process->stop;
 }
 
-sub qemu_pid { shift->_process->process_id }
+sub qemu_pid ($process) { $process->_process->process_id }
 
-sub check_qemu_oom { system("$bmwqemu::scriptdir/check_qemu_oom " . shift->qemu_pid); }    # uncoverable statement
+sub check_qemu_oom ($process) { system("$bmwqemu::scriptdir/check_qemu_oom " . $process->qemu_pid) }    # uncoverable statement
 
 =head3 connect_qmp
 

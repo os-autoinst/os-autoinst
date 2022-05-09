@@ -308,7 +308,7 @@ sub run_post_fail ($self, $msg) {
     die $msg . "\n";
 }
 
-sub execution_time { time - shift }
+sub execution_time ($now) { time - $now }
 
 sub compute_test_execution_time ($self) {
     # Set the execution time for a general time spent
