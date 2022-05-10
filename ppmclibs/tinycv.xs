@@ -110,6 +110,14 @@ tinycv::VNCInfo new_vncinfo(bool do_endian_conversion, bool true_color, unsigned
    OUTPUT:
      RETVAL
 
+void get_colour(tinycv::VNCInfo info, unsigned int index)
+  PPCODE:
+    const auto color = image_get_vnc_color(info, index);
+    EXTEND(SP, 3);
+    PUSHs(sv_2mortal(newSVnv(std::get<0>(color))));
+    PUSHs(sv_2mortal(newSVnv(std::get<1>(color))));
+    PUSHs(sv_2mortal(newSVnv(std::get<2>(color))));
+
 void set_colour(tinycv::VNCInfo info, unsigned int index, unsigned red, unsigned green, unsigned blue)
    CODE:
      image_set_vnc_color(info, index, red, green, blue);
@@ -189,6 +197,14 @@ void blend(tinycv::Image self, tinycv::Image source, long x, long y)
 void threshold(tinycv::Image self, int level)
   CODE:
     image_threshold(self, level);
+
+void get_pixel(tinycv::Image self, long x, long y)
+  PPCODE:
+    const auto pixel = image_get_pixel(self, x, y);
+    EXTEND(SP, 3);
+    PUSHs(sv_2mortal(newSVnv(std::get<0>(pixel))));
+    PUSHs(sv_2mortal(newSVnv(std::get<1>(pixel))));
+    PUSHs(sv_2mortal(newSVnv(std::get<2>(pixel))));
 
 void avgcolor(tinycv::Image self)
   PPCODE:

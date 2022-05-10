@@ -474,6 +474,12 @@ void image_threshold(Image* a, int level)
     }
 }
 
+std::tuple<long, long, long> image_get_pixel(Image* a, long x, long y)
+{
+    const auto pixel = a->img.at<Vec3b>(y, x);
+    return std::make_tuple(pixel[0], pixel[1], pixel[2]);
+}
+
 std::vector<float> image_avgcolor(Image* s)
 {
     Scalar t = mean(s->img);
@@ -575,6 +581,10 @@ public:
 
     Vec3b read_cpixel(const unsigned char* data, size_t& offset);
     Vec3b read_pixel(const unsigned char* data, size_t& offset);
+    const Vec3b &get_colour(unsigned int index) const {
+        assert(index < 256);
+        return colourMap[index];
+    }
     void set_colour(unsigned int index, unsigned int red, unsigned int green,
         unsigned int blue)
     {
@@ -582,6 +592,12 @@ public:
         colourMap[index] = Vec3b(blue, green, red);
     }
 };
+
+std::tuple<long, long, long> image_get_vnc_color(VNCInfo* info, unsigned int index)
+{
+    const auto &color = info->get_colour(index);
+    return std::make_tuple(color[0], color[1], color[2]);
+}
 
 void image_set_vnc_color(VNCInfo* info, unsigned int index, unsigned int red,
     unsigned int green, unsigned int blue)
