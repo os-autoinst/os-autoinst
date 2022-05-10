@@ -168,9 +168,49 @@ subtest 'update framebuffer' => sub {
 
     $c->ikvm(1);
     my $unsupported_ikvm_encoding = pack(nnnnN => 0, 0, 1, 1, 88);
-    my $ikvm_specific_data = pack(NN => 0, 5);    # some "prefix" and data length
+    my $ikvm_specific_data = pack(NN => 0, 9);    # some "prefix" and data length
     $s->set_series(mocked_read => $update_message, $one_rectangle, $unsupported_ikvm_encoding, $ikvm_specific_data);
     throws_ok { $c->update_framebuffer } qr/unsupported encoding 88/, 'dies on unsupported ikvm encoding';
+
+    my $ikvm_encoding = pack(nnnnN => 0, 0, 2, 2, 89);    # 2x2 pixels at 0,0
+    my $surplus_byte = pack(CC => 1);    # will be ignored
+    my $actual_image_data = pack(NN => 0xFFFFFFE0, 0xFFFFFFE0);    # white pixels
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $surplus_byte, $actual_image_data);
+    combined_like { $c->update_framebuffer } qr/Additional Bytes: 01/, 'additional bytes skipped';
+    ($blue, $green, $red) = $c->_framebuffer->get_pixel(0, 0);
+    is $c->_framebuffer->xres, 2, 'xres updated';
+    is $c->_framebuffer->yres, 2, 'yres updated';
+    is $blue, 248, 'pixel data updated in framebuffer via ikvm encoding (blue)';
+    is $green, 248, 'pixel data updated in framebuffer via ikvm encoding (green)';
+    is $red, 248, 'pixel data updated in framebuffer via ikvm encoding (red)';
+
+    my $raw_ikvm_encoding = pack(nnnnN => 0, 0, 2, 2, 0);    # 2x2 pixels at 0,0
+    my $raw_ikvm_segment = pack(CxNN => 0, 1, 1);    # one segment of length 1 and type 0
+    my $raw_ikvm_data = pack(nnCC => 0, 0, 0, 0);    # coordinates are 0,0
+    my $raw_ikvm_data2 = pack('C[512]' => 0);    # just provide zeros for the image data
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $raw_ikvm_encoding, $ikvm_specific_data, $raw_ikvm_segment, $raw_ikvm_data, $raw_ikvm_data2);
+    $c->update_framebuffer;
+
+    $raw_ikvm_encoding = pack(nnnnN => 0, 0, -1, 0, 0);    # negative width, supposed to turn screen off
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $raw_ikvm_encoding, $ikvm_specific_data, $raw_ikvm_segment, $raw_ikvm_data, $raw_ikvm_data2);
+    $c->update_framebuffer;
+    is $c->_framebuffer, undef, 'framebuffer removed';
+    ok !$c->screen_on, 'screen turned off by negative with';
+
+    @printed = ();
+    $ikvm_encoding = pack(nnnnN => 0, 0, 2, 2, 87);    # 2x2 pixels at 0,0, ast2100 encoded
+    $actual_image_data = pack(CCn => 10, 11, 444);    # anything but high quality
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $actual_image_data);
+    combined_like { $c->update_framebuffer } qr/fixing quality/, 'enforcing high quality';
+    is_deeply \@printed, [pack(CCCn => 0x32, 0, 11, 444)], 'high quality requested' or diag explain \@printed;
+    ok $c->_framebuffer, 'framebuffer present again';
+    ok $c->screen_on, 'screen on again';
+
+    $actual_image_data = pack(CCnN => 11, 11, 444, 0x90);    # high quality, ctrl 9 for stopping ast2100 decoding early
+    $ikvm_specific_data = pack(NN => 0, length($actual_image_data));    # some "prefix" and data length
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $actual_image_data);
+    $c->update_framebuffer;
+    is scalar @printed, 1, 'no further image requested' or diag explain \@printed;
 };
 
 subtest 'read special messages/encodings' => sub {
