@@ -832,7 +832,7 @@ sub _receive_update ($self) {
         my $bytes_per_pixel = $self->_bpp / 8;
 
         ### Raw encoding ###
-        if ($encoding_type == 0 && !$self->ikvm) {
+        if ($encoding_type == 0 && !$self->ikvm) {    # Raw
 
             $socket->read(my $data, $w * $h * $bytes_per_pixel) || die 'unexpected end of data';
 
@@ -841,10 +841,10 @@ sub _receive_update ($self) {
 
             $image->map_raw_data($data, $x, $y, $w, $h, $self->vncinfo);
         }
-        elsif ($encoding_type == 16) {
+        elsif ($encoding_type == 16) {    # ZRLE
             $self->_receive_zrle_encoding($x, $y, $w, $h);
         }
-        elsif ($encoding_type == -223) {
+        elsif ($encoding_type == -223) {    # DesktopSize pseudo-encoding
             $self->width($w);
             $self->height($h);
             $image = tinycv::new($self->width, $self->height);
