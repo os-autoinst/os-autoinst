@@ -156,6 +156,27 @@ subtest 'update framebuffer' => sub {
     is $blue, 41, 'pixel data updated in framebuffer (blue)';
     is $green, 37, 'pixel data updated in framebuffer (green)';
     is $red, 31, 'pixel data updated in framebuffer (red)';
+
+    my $last_rectangle = pack(nnnnN => 0, 0, 0, 0, -224);
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $last_rectangle);
+    ok $c->update_framebuffer, 'truthy return value last rectangle';
+
+    my $unknown_encoding = pack(nnnnN => 0, 0, 0, 0, -225);
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $unknown_encoding);
+    throws_ok { $c->update_framebuffer } qr/unsupported update encoding -225/, 'dies on unsupported encoding';
+    is $s->mocked_read, undef, 'no more messages left to read after reading unknown encoding';
+
+    $c->ikvm(1);
+    my $unsupported_ikvm_encoding = pack(nnnnN => 0, 0, 1, 1, 88);
+    my $ikvm_specific_data = pack(NN => 0, 5);    # some "prefix" and data length
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $unsupported_ikvm_encoding, $ikvm_specific_data);
+    throws_ok { $c->update_framebuffer } qr/unsupported encoding 88/, 'dies on unsupported ikvm encoding';
+};
+
+subtest 'read special messages/encodings' => sub {
+    $s->set_series(mocked_read => pack(C => 51), pack(N => 0));
+    combined_like { $c->update_framebuffer } qr/discarding 4 bytes for message 51/, 'ikvm message discarded';
+    is $s->mocked_read, undef, 'no more messages left to read after discarding';
 };
 
 subtest 'cutting text' => sub {
@@ -166,6 +187,7 @@ subtest 'cutting text' => sub {
 
 subtest 'receiving color map' => sub {
     $s->set_series(mocked_read => pack(Cnn => 0, 0, 1), pack(nnn => 51 * 256, 53 * 256, 57 * 256));
+    $c->ikvm(0);
     ok $c->_receive_colour_map, 'color map received';
     is $s->mocked_read, undef, 'no more messages left to read';
     my ($blue, $green, $red) = tinycv::get_colour($c->vncinfo, 0);
