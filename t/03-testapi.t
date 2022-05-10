@@ -256,13 +256,9 @@ subtest 'send_key with wait_screen_change' => sub {
 
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
 $mock_bmwqemu->unmock('log_call');
-stderr_like(\&record_soft_failure, qr/record_soft_failure\(reason=undef\)/, 'soft failure recorded in log');
-is($autotest::current_test->{dents}, 1, 'one dent recorded');
-is(scalar @{$autotest::current_test->{details}}, 1, 'exactly one detail added recorded');
-
 stderr_like { record_soft_failure('workaround for bug#1234') } qr/record_soft_failure.*reason=.*workaround for bug#1234.*/, 'soft failure with reason';
-is($autotest::current_test->{dents}, 2, 'one more dent recorded');
-is(scalar @{$autotest::current_test->{details}}, 2, 'exactly one more detail added recorded');
+is($autotest::current_test->{dents}, 1, 'one more dent recorded');
+is(scalar @{$autotest::current_test->{details}}, 1, 'exactly one more detail added recorded');
 my $details = $autotest::current_test->{details}[-1];
 my $details_ok = is($details->{title}, 'Soft Failed', 'title for soft failure added');
 $details_ok &= is($details->{result}, 'softfail', 'result correct');
@@ -388,7 +384,7 @@ subtest 'check_assert_screen' => sub {
         is_deeply($autotest::current_test->{details}, [
                 {
                     result => 'unk',
-                    screenshot => 'basetest-15.png',
+                    screenshot => 'basetest-13.png',
                     frametime => [qw(1.75 1.79)],
                     tags => [qw(fake tags)],
                 }
@@ -445,7 +441,6 @@ subtest 'check_assert_screen' => sub {
 
 ok(save_screenshot);
 
-is(match_has_tag, undef, 'match_has_tag on no value -> undef');
 is(match_has_tag('foo'), undef, 'match_has_tag on not matched tag -> undef');
 subtest 'assert_and_click' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
@@ -738,9 +733,9 @@ subtest 'host_ip, autoinst_url' => sub {
 };
 
 subtest 'data_url' => sub {
-    like data_url 'foo', qr{localhost.*data/foo}, 'data_url returns local data reference by default';
+    like data_url('foo'), qr{localhost.*data/foo}, 'data_url returns local data reference by default';
     $bmwqemu::vars{ASSET_3} = 'foo.xml';
-    like data_url 'ASSET_3', qr{other/foo.xml}, 'data_url returns local data reference by default';
+    like data_url('ASSET_3'), qr{other/foo.xml}, 'data_url returns local data reference by default';
 };
 
 subtest '_calculate_clickpoint' => sub {
@@ -893,9 +888,9 @@ subtest 'show_curl_progress_meter' => sub {
 };
 
 subtest 'get_wait_still_screen_on_here_doc_input' => sub {
-    is(testapi::backend_get_wait_still_screen_on_here_doc_input({}) != 42, 1, 'Sanity check, that wait_still_screen_on_here_doc_input returns not 42!');
+    is(testapi::backend_get_wait_still_screen_on_here_doc_input != 42, 1, 'Sanity check, that wait_still_screen_on_here_doc_input returns not 42!');
     testapi::set_var(_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT => 42);
-    is(testapi::backend_get_wait_still_screen_on_here_doc_input({}), 42, 'The variable `_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT` has precedence over backend value!');
+    is(testapi::backend_get_wait_still_screen_on_here_doc_input, 42, 'The variable `_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT` has precedence over backend value!');
 };
 
 subtest init => sub {
