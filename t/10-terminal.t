@@ -389,7 +389,7 @@ sub report_child_test ($method, @args) {
     close $fh;
 }
 
-sub retrieve_child_tests {
+sub retrieve_child_tests () {
     return unless -e $sharefile;
     open my $fh, '<', $sharefile or die $!;
     flock $fh, LOCK_SH;

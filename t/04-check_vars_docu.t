@@ -72,7 +72,7 @@ sub read_doc () {
     close($docfh);
 }
 
-sub write_doc {
+sub write_doc () {
     my $docfh;
     open($docfh, '>', VARS_DOC . '.newvars');
     print $docfh <<EO_HEADER;
@@ -108,7 +108,7 @@ EO_BACKEND_FOOTER
     }
 }
 
-sub read_backend_pm {
+sub read_backend_pm {    # no:style:signatures
     my ($backend) = $_ =~ /^([^\.]+)\.pm/;
     return unless $backend;
     return if (grep { /$backend/i } @backend_blocklist);

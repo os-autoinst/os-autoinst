@@ -176,7 +176,7 @@ subtest 'SSH utilities' => sub {
 
             return $self;
     });
-    sub refaddr { return shift->{my_custom_id}; }
+    sub refaddr ($host) { $host->{my_custom_id} }
 
     my ($ssh1, $ssh2, $ssh3, $ssh4, $ssh5, $ssh6, $ssh7, $ssh8);
     my %ssh_creds = (username => 'root', password => 'password', hostname => 'foo.bar');

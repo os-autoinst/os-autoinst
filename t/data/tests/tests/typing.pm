@@ -4,7 +4,7 @@
 use Mojo::Base 'basetest', -signatures;
 use testapi;
 
-sub run {
+sub run ($) {
     assert_script_run 'cat /proc/cpuinfo';
     type_string "cat > text <<EOF\n";
 
@@ -43,8 +43,6 @@ END
     enter_cmd "echo 'ignore \\r'\r";
 }
 
-sub test_flags {
-    return {};
-}
+sub test_flags ($) { {} }
 
 1;

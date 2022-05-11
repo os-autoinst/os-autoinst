@@ -29,7 +29,7 @@ sub create_vars ($data) {
     close($varsfh);
 }
 
-sub read_vars {
+sub read_vars () {
     local $/;
     open(my $varsfh, '<', 'vars.json') || BAIL_OUT('can not open vars.json for reading');
     my $ret;

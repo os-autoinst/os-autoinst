@@ -4,7 +4,7 @@
 use Mojo::Base 'basetest', -signatures;
 use testapi;
 
-sub run {
+sub run ($) {
     die "fail";
 }
 

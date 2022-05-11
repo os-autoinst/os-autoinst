@@ -18,7 +18,7 @@ use myjsonrpc;
 use Test::Warnings qw(warnings :report_warnings);
 
 no warnings 'redefine';
-sub bmwqemu::diag { warn $_[0] }
+sub bmwqemu::diag ($text) { warn $text }
 
 
 my ($child, $isotovideo);
@@ -32,13 +32,12 @@ my $send2 = {b => 12, json_cmd_token => 'dummy'};
 
 $send1->{json_cmd_token} = 'dummy';
 
-sub debug {
+sub debug () {
     myjsonrpc::send_json($child, $send1);
     my $read = myjsonrpc::read_json($isotovideo);
     is_deeply($read, $send1, "read_json returns what send_json sent");
 }
 subtest debug_json => sub {
-
     my @warnings = warnings { debug() };
     like($warnings[0], qr{send_json}, "debug send_json");
     like($warnings[1], qr{read_json}, "debug read_json");

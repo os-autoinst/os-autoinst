@@ -305,8 +305,7 @@ subtest 'Method backend::svirt::open_serial_console_via_ssh()' => sub {
     is(shift @deleted_logs, $expected_serial_file, "Check if $expected_serial_file was deleted on die()");
 };
 
-sub svirt_xml_validate {
-    my ($svirt, %args) = @_;
+sub svirt_xml_validate ($svirt, %args) {
     $args{disk_device} //= 'disk';
     die 'missing dev' unless $args{dev};
     die 'missing bus' unless $args{bus};

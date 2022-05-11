@@ -4,7 +4,7 @@
 use Mojo::Base 'basetest', -signatures;
 use testapi;
 
-sub run {
+sub run ($) {
     # this is the default, but to test set_var without argument
     set_var('VERSION', '1');
     enter_cmd 'echo HALLO';

@@ -1,5 +1,5 @@
 package OpenQA::Test::CheckGitStatus;
-use Mojo::Base -strict;
+use Mojo::Base -strict, -signatures;
 my $CHECK_GIT_STATUS = $ENV{CHECK_GIT_STATUS};
 # prevent subsequent perl processes to check the status
 $ENV{CHECK_GIT_STATUS} = 0;
@@ -15,7 +15,7 @@ if ($CHECK_GIT_STATUS) {
     $cwd = Cwd::cwd();
 }
 
-sub check_status {
+sub check_status () {
     my @lines;
     {
         local $?;

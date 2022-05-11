@@ -69,7 +69,7 @@ has 'num_queues';
 
 sub new_overlay_id ($self) { $self->last_overlay_id($self->last_overlay_id + 1)->last_overlay_id }
 
-sub node_name { shift->id . DEVICE_POSTFIX }
+sub node_name ($self) { $self->id . DEVICE_POSTFIX }
 
 # For multipath
 sub _gen_node_name ($self, $pcount, $pid) { $pcount > 1 ? $self->node_name . '-' . $pid : $self->node_name }
@@ -132,9 +132,7 @@ sub _to_map ($self) {
     my @overlays = ();
     my @paths = map { $_->_to_map() } @{$self->paths};
 
-    $self->for_each_overlay(sub {
-            my $ol = shift;
-
+    $self->for_each_overlay(sub ($ol) {
             push(@overlays, $ol->_to_map());
     });
 
@@ -162,6 +160,6 @@ sub _from_map ($self, $map, $cont_conf, $snap_conf) {
       ->num_queues($map->{num_queues});
 }
 
-sub CARP_TRACE { 'OpenQA::Qemu::DriveDevice(' . (shift->id || '') . ')' }
+sub CARP_TRACE ($self) { 'OpenQA::Qemu::DriveDevice(' . ($self->id || '') . ')' }
 
 1;

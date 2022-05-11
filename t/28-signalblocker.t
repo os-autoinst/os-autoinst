@@ -19,7 +19,7 @@ use POSIX ':signal_h';
 use signalblocker;
 
 no warnings 'redefine';
-sub bmwqemu::diag { note $_[0] }
+sub bmwqemu::diag ($text) { note $text }
 
 # make the usage of the signal blocker configurable
 # note: The test will fail if this variable is set. This configuration is used to verify that the
@@ -27,7 +27,7 @@ sub bmwqemu::diag { note $_[0] }
 my $no_signal_blocker = $ENV{OS_AUTOINST_TEST_NO_SIGNAL_BLOCKER};
 
 # define a helper to find the number of threads spawned by this test
-sub thread_count { scalar split("\n", `ps huH p $$`) }
+sub thread_count () { scalar split("\n", `ps huH p $$`) }
 is(my $last_thread_count = thread_count, 1, 'initially one thread');
 
 # count SIGTERMs we receive; those handlers should work after creating/destroying the signal blocker

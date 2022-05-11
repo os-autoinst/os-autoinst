@@ -36,7 +36,7 @@ use needle;
     sub from_paths ($needle_paths, @args) { [map { basic_needle->new($_, @args) } @$needle_paths] }
 }
 
-sub print_usage {
+sub print_usage () {
     print "imgsearch [options]
 
 options:

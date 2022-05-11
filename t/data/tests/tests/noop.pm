@@ -4,12 +4,10 @@
 use Mojo::Base 'basetest', -signatures;
 use testapi;
 
-sub run {
+sub run ($) {
     # supposed to do nothing
 }
 
-sub test_flags {
-    return {};
-}
+sub test_flags ($) { {} }
 
 1;

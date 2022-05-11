@@ -40,19 +40,19 @@ use constant STATE_FILE => 'qemu_state.json';
 
 has qemu_bin => 'qemu-kvm';
 has qemu_img_bin => 'qemu-img';
-has _process => sub { process(
+has _process => sub (@) { process(
         pidfile => 'qemu.pid',
         separate_err => 0,
         blocking_stop => 1) };
 
-has _static_params => sub { return []; };
-has _mut_params => sub { return []; };
+has _static_params => sub ($) { [] };
+has _mut_params => sub ($) { [] };
 
-sub _push_mut { push(@{shift->_mut_params}, shift); }
+sub _push_mut ($key, $value) { push(@{$key->_mut_params}, $value) }
 
-has controller_conf => sub { return OpenQA::Qemu::ControllerConf->new(); };
-has blockdev_conf => sub { return OpenQA::Qemu::BlockDevConf->new(); };
-has snapshot_conf => sub { return OpenQA::Qemu::SnapshotConf->new(); };
+has controller_conf => sub ($) { OpenQA::Qemu::ControllerConf->new() };
+has blockdev_conf => sub ($) { return OpenQA::Qemu::BlockDevConf->new() };
+has snapshot_conf => sub ($) { return OpenQA::Qemu::SnapshotConf->new() };
 
 sub new ($class, @args) {
     my $self = $class->SUPER::new(@args);
@@ -395,9 +395,9 @@ sub stop_qemu ($self) {
     $self->_process->stop;
 }
 
-sub qemu_pid { shift->_process->process_id }
+sub qemu_pid ($process) { $process->_process->process_id }
 
-sub check_qemu_oom { system("$bmwqemu::scriptdir/check_qemu_oom " . shift->qemu_pid); }    # uncoverable statement
+sub check_qemu_oom ($process) { system("$bmwqemu::scriptdir/check_qemu_oom " . $process->qemu_pid) }    # uncoverable statement
 
 =head3 connect_qmp
 
@@ -409,9 +409,9 @@ sub connect_qmp ($self) {
     my $sk;
     osutils::attempt {
         attempts => $ENV{QEMU_QMP_CONNECT_ATTEMPTS} // 20,
-        condition => sub { $sk },
-        or => sub { die "Can't open QMP socket" },
-        cb => sub {
+        condition => sub () { $sk },
+        or => sub () { die "Can't open QMP socket" },
+        cb => sub () {
             die "QEMU terminated before QMP connection could be established. Check for errors below\n" if $self->{_qemu_terminated};
             $sk = IO::Socket::UNIX->new(
                 Type => IO::Socket::UNIX::SOCK_STREAM,
@@ -438,8 +438,7 @@ sub revert_to_snapshot ($self, $name) {
     my $bdc = $self->blockdev_conf;
 
     my $snapshot = $self->snapshot_conf->revert_to_snapshot($name);
-    $bdc->for_each_drive(sub {
-            my $drive = shift;
+    $bdc->for_each_drive(sub ($drive) {
             my $del_files = $bdc->revert_to_snapshot($drive, $snapshot);
 
             die "Snapshot $name not found for " . $drive->id unless defined($del_files);

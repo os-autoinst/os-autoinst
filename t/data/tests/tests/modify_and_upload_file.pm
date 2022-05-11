@@ -18,7 +18,7 @@ my $orig_file = <<'END';
 </profile>
 END
 
-sub run {
+sub run ($) {
     # Get file from data directory
     my $content = get_test_data('autoinst.xml');
 

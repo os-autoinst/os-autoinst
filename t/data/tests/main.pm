@@ -17,7 +17,7 @@ sub unregister_needle_tags ($tag) {
     for my $n (@a) { $n->unregister($tag); }
 }
 
-sub cleanup_needles {
+sub cleanup_needles () {
     unregister_needle_tags("ENV-VERSION-2") if check_var('VERSION', '1');
     unregister_needle_tags("ENV-VERSION-1") unless check_var('VERSION', '1');
 }

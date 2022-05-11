@@ -71,14 +71,14 @@ sub run (@args) {
 }
 
 # Do not check for anything - just execute and print
-sub run_diag {
+sub run_diag (@args) {
     my ($exit_status, $output);
     eval {
         local $SIG{__DIE__} = undef;
-        ($exit_status, $output) = run(@_);
-        bmwqemu::diag("Command `@_` terminated with $exit_status" . (length($output) ? "\n$output" : ''));
+        ($exit_status, $output) = run(@args);
+        bmwqemu::diag("Command `@args` terminated with $exit_status" . (length($output) ? "\n$output" : ''));
     };
-    bmwqemu::diag("Fatal error in command `@_`: $@") if ($@);
+    bmwqemu::diag("Fatal error in command `@args`: $@") if ($@);
     return $output;
 }
 
@@ -92,11 +92,9 @@ sub runcmd (@cmd) {
 
 ## use critic
 
-sub wait_attempt {
-    sleep($ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} // 1);
-}
+sub wait_attempt () { sleep($ENV{OSUTILS_WAIT_ATTEMPT_INTERVAL} // 1) }
 
-sub attempt {
+sub attempt {    # no:style:signatures
     my $attempts = 0;
     my ($total_attempts, $condition, $cb, $or) = ref $_[0] eq 'HASH' ? (@{$_[0]}{qw(attempts condition cb or)}) : @_;
     until ($condition->() || $attempts >= $total_attempts) {

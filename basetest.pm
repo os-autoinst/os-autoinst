@@ -18,7 +18,7 @@ my $serial_file_pos = 0;
 my $autoinst_log_pos = 0;
 
 # enable strictures and warnings in all tests globally but allow signatures
-sub import {
+sub import ($self) {
     strict->import;
     warnings->import;
     warnings->unimport('experimental::signatures');
@@ -100,9 +100,7 @@ Return a hash of flags that are either there or not
 
 =cut
 
-sub test_flags {
-    return {};
-}
+sub test_flags ($self) { {} }
 
 =head2 post_fail_hook
 
@@ -110,9 +108,7 @@ Function is run after test has failed to e.g. recover log files
 
 =cut
 
-sub post_fail_hook {
-    return 1;
-}
+sub post_fail_hook () { 1 }
 
 =head2 _framenumber_to_timerange
 
@@ -308,7 +304,7 @@ sub run_post_fail ($self, $msg) {
     die $msg . "\n";
 }
 
-sub execution_time { time - shift }
+sub execution_time ($now) { time - $now }
 
 sub compute_test_execution_time ($self) {
     # Set the execution time for a general time spent
@@ -584,9 +580,7 @@ Return a listref containing hashrefs like this:
 
 =cut
 
-sub ocr_checklist {
-    return [];
-}
+sub ocr_checklist () { [] }
 
 sub standstill_detected ($self, $lastscreenshot) {
     $self->record_screenfail(

@@ -7,7 +7,7 @@ use Mojo::Base 'OpenQA::Qemu::MutParams', -signatures;
 use OpenQA::Qemu::DriveController;
 use List::Util 'first';
 
-has _controllers => sub { return []; };
+has _controllers => sub ($self) { [] };
 
 sub add_controller ($self, $model, $id) {
     my $dc = OpenQA::Qemu::DriveController->new()
@@ -35,6 +35,6 @@ sub from_map ($self, $map) {
     }
 }
 
-sub has_state { scalar(@{shift->_controllers}) }
+sub has_state ($self) { scalar(@{$self->_controllers}) }
 
 1;

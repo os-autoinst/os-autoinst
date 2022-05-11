@@ -16,7 +16,7 @@ use Mojo::Base 'OpenQA::Qemu::MutParams', -signatures;
 use OpenQA::Qemu::Snapshot;
 
 has _sequence => 0;
-has _head => sub { return OpenQA::Qemu::Snapshot->new(); };
+has _head => sub ($self) { OpenQA::Qemu::Snapshot->new() };
 
 sub add_snapshot ($self, $name) {
     $self->_sequence($self->_sequence + 1);
@@ -56,12 +56,7 @@ sub revert_to_snapshot ($self, $name) {
     return $snap;
 }
 
-sub gen_cmdline ($self) {
-    if ($self->_head->sequence > -1) {
-        return qw(-incoming defer);
-    }
-    return ();
-}
+sub gen_cmdline ($self) { $self->_head->sequence > -1 ? qw(-incoming defer) : () }
 
 sub to_map ($self) {
     my @snapshots = ();
@@ -86,6 +81,6 @@ sub from_map ($self, $map) {
     return $self;
 }
 
-sub has_state { shift->_sequence }
+sub has_state ($self) { $self->_sequence }
 
 1;

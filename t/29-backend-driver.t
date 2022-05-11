@@ -25,7 +25,7 @@ my (@diag, @fctinfo);
 my $mocklog = Test::MockModule->new('backend::driver');
 $mocklog->redefine(diag => sub { push @diag, @_ });
 $mocklog->redefine(fctinfo => sub { push @fctinfo, @_ });
-sub reset_logs { @diag = (); @fctinfo = () }
+sub reset_logs () { @diag = (); @fctinfo = () }
 
 my $driver;
 logger->handle->autoflush(1);

@@ -112,7 +112,7 @@ my $return_code = 1;
 # record the last die message
 # note: It might *not* be a fatal error so we don't call bmwqemu::serialize_state here
 #       immediately but only in the END block.
-$SIG{__DIE__} = sub { $fatal_error = shift };
+$SIG{__DIE__} = sub ($e) { $fatal_error = $e };
 
 diag(_get_version_string());
 
@@ -301,12 +301,9 @@ $command_handler->on(tests_done => sub (@) {
 });
 
 my ($last_check_seconds, $last_check_microseconds) = gettimeofday;
-sub _calc_check_delta {
+sub _calc_check_delta () {
     # an estimate of eternity
-    my $delta = 100;
-    if ($last_check_seconds) {
-        $delta = tv_interval([$last_check_seconds, $last_check_microseconds], [gettimeofday]);
-    }
+    my $delta = $last_check_seconds ? tv_interval([$last_check_seconds, $last_check_microseconds], [gettimeofday]) : 100;
     # sleep the remains of one second if $delta > 0
     my $timeout = $delta > 0 ? 1 - $delta : 0;
     $command_handler->timeout($timeout < 0 ? 0 : $timeout);

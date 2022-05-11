@@ -42,8 +42,8 @@ my @common_options = (
 my $vars_json = path('vars.json');
 my $log_file = path('autoinst-log.txt');
 my $log = '';
-sub run_isotovideo {
-    $vars_json->spurt(encode_json({@common_options, @_}));
+sub run_isotovideo (@args) {
+    $vars_json->spurt(encode_json({@common_options, @args}));
     ok system("perl $toplevel_dir/isotovideo -d qemu_disable_snapshots=1 2>&1 | tee autoinst-log.txt") == 0, 'zero exit status';
     $log = $log_file->slurp;
 }
