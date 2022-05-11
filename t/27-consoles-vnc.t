@@ -168,14 +168,58 @@ subtest 'update framebuffer' => sub {
 
     $c->ikvm(1);
     my $unsupported_ikvm_encoding = pack(nnnnN => 0, 0, 1, 1, 88);
-    my $ikvm_specific_data = pack(NN => 0, 5);    # some "prefix" and data length
+    my $ikvm_specific_data = pack(NN => 0, 9);    # some "prefix" and data length
     $s->set_series(mocked_read => $update_message, $one_rectangle, $unsupported_ikvm_encoding, $ikvm_specific_data);
     throws_ok { $c->update_framebuffer } qr/unsupported encoding 88/, 'dies on unsupported ikvm encoding';
+
+    my $ikvm_encoding = pack(nnnnN => 0, 0, 2, 2, 89);    # 2x2 pixels at 0,0
+    my $surplus_byte = pack(CC => 1);    # will be ignored
+    my $actual_image_data = pack(NN => 0xFFFFFFE0, 0xFFFFFFE0);    # white pixels
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $surplus_byte, $actual_image_data);
+    combined_like { $c->update_framebuffer } qr/Additional Bytes: 01/, 'additional bytes skipped';
+    ($blue, $green, $red) = $c->_framebuffer->get_pixel(0, 0);
+    is $c->_framebuffer->xres, 2, 'xres updated';
+    is $c->_framebuffer->yres, 2, 'yres updated';
+    is $blue, 248, 'pixel data updated in framebuffer via ikvm encoding (blue)';
+    is $green, 248, 'pixel data updated in framebuffer via ikvm encoding (green)';
+    is $red, 248, 'pixel data updated in framebuffer via ikvm encoding (red)';
+
+    my $raw_ikvm_encoding = pack(nnnnN => 0, 0, 2, 2, 0);    # 2x2 pixels at 0,0
+    my $raw_ikvm_segment = pack(CxNN => 0, 1, 1);    # one segment of length 1 and type 0
+    my $raw_ikvm_data = pack(nnCC => 0, 0, 0, 0);    # coordinates are 0,0
+    my $raw_ikvm_data2 = pack('C[512]' => 0);    # just provide zeros for the image data
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $raw_ikvm_encoding, $ikvm_specific_data, $raw_ikvm_segment, $raw_ikvm_data, $raw_ikvm_data2);
+    $c->update_framebuffer;
+
+    $raw_ikvm_encoding = pack(nnnnN => 0, 0, -1, 0, 0);    # negative width, supposed to turn screen off
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $raw_ikvm_encoding, $ikvm_specific_data, $raw_ikvm_segment, $raw_ikvm_data, $raw_ikvm_data2);
+    $c->update_framebuffer;
+    is $c->_framebuffer, undef, 'framebuffer removed';
+    ok !$c->screen_on, 'screen turned off by negative with';
+
+    @printed = ();
+    $ikvm_encoding = pack(nnnnN => 0, 0, 2, 2, 87);    # 2x2 pixels at 0,0, ast2100 encoded
+    $actual_image_data = pack(CCn => 10, 11, 444);    # anything but high quality
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $actual_image_data);
+    combined_like { $c->update_framebuffer } qr/fixing quality/, 'enforcing high quality';
+    is_deeply \@printed, [pack(CCCn => 0x32, 0, 11, 444)], 'high quality requested' or diag explain \@printed;
+    ok $c->_framebuffer, 'framebuffer present again';
+    ok $c->screen_on, 'screen on again';
+
+    $actual_image_data = pack(CCnN => 11, 11, 444, 0x90);    # high quality, ctrl 9 for stopping ast2100 decoding early
+    $ikvm_specific_data = pack(NN => 0, length($actual_image_data));    # some "prefix" and data length
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $ikvm_encoding, $ikvm_specific_data, $actual_image_data);
+    $c->update_framebuffer;
+    is scalar @printed, 1, 'no further image requested' or diag explain \@printed;
 };
 
 subtest 'read special messages/encodings' => sub {
     $s->set_series(mocked_read => pack(C => 51), pack(N => 0));
     combined_like { $c->update_framebuffer } qr/discarding 4 bytes for message 51/, 'ikvm message discarded';
+    is $s->mocked_read, undef, 'no more messages left to read after discarding';
+
+    $s->set_series(mocked_read => pack(C => 0x39), pack(NNZ256 => 1, 2, 3));
+    combined_like { $c->update_framebuffer } qr/IKVM Session Message: 1 2 3/, 'ikvm session logged';
     is $s->mocked_read, undef, 'no more messages left to read after discarding';
 };
 
@@ -240,6 +284,59 @@ subtest 'security handshake: failue' => sub {
     $s->set_series(mocked_read => pack(N => 1));
     $s->set_false('connected');
     throws_ok { $c->_handshake_security } qr/login failed/, 'dies when socket closed';
+};
+
+subtest 'server initialization' => sub {
+    $vnc_mock->unmock('_server_initialization');
+    @printed = ();
+
+    my $client_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
+    my $framebuffer_width = 1024;
+    my $framebuffer_height = 512;
+    my $bits_per_pixel = 32;
+    my $depth = 32;
+    my $server_is_big_endian = 0;
+    my $true_colour_flag = 1;
+    my $name_length = 0;
+    my $red_max = 255;
+    my $green_max = 255;
+    my $blue_max = 255;
+    my $red_shift = 0;
+    my $green_shift = 8;
+    my $blue_shift = 16;
+    my $server_init = pack(nnCCCCnnnCCCxxxN => $framebuffer_width, $framebuffer_height,
+        $bits_per_pixel, $depth, $server_is_big_endian, $true_colour_flag,
+        $red_max, $green_max, $blue_max, $red_shift, $green_shift, $blue_shift, $name_length);
+    my $ikvm_init = pack(x4NCCCC => 1, 2, 3, 4, 5);
+
+    # test as ikvm taking setpixelformat from server
+    $s->set_series(mocked_read => $server_init, $ikvm_init);
+    $c->depth(undef)->ikvm(1);
+    combined_like { $c->_server_initialization } qr/IKVM specifics: 1 2 3 4 5/, 'ikvm specifics logged';
+    is $c->depth, 32, 'depth assigned';
+    is_deeply \@printed, [], 'no further messages sent for ikvm' or diag explain \@printed;
+
+    # test as dell requesting 16-bit setpixelformat
+    $s->set_series(mocked_read => $server_init);
+    $c->depth(16)->ikvm(0)->dell(1);
+    $c->_server_initialization;
+    # expect params for 16-bit depth being replied as setpixelformat
+    $bits_per_pixel = $depth = 16;
+    $red_max = $green_max = $blue_max = 31;
+    $red_shift = 10;
+    $green_shift = 5;
+    $blue_shift = 0;
+    my @params = ($bits_per_pixel, $depth, $server_is_big_endian != $client_is_big_endian, $true_colour_flag, $red_max, $green_max, $blue_max, $red_shift, $green_shift, $blue_shift);
+    my @expected = (
+        pack(CCCCCCCCnnnCCCCCC => 0, 0, 0, 0, @params, 0, 0, 0),    # setpixelformat
+        pack(CCn => 2, 0, 5),    # five supported encodings (no ZRLE due to dell flag)
+        pack(N => 0000),    # raw
+        pack(N => -223),    # DesktopSize
+        pack(N => -224),    # VNC_ENCODING_LAST_RECT
+        pack(N => -257),    # VNC_ENCODING_POINTER_TYPE_CHANGE
+        pack(N => -261),    # VNC_ENCODING_LED_STATE
+    );
+    is_deeply \@printed, \@expected, 'pixel format and encodings replied' or diag explain \@printed;
 };
 
 done_testing;
