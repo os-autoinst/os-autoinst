@@ -343,7 +343,7 @@ void decode_ast2100(cv::Mat* pic, const unsigned char* data, size_t datal)
     setpalette(palette + 3 * 3, 0xc0, 0x80, 0x80);
 
     if (datal & 3) {
-        fprintf(stderr, "bad data len\n");
+        fprintf(stderr, "bad data len (not divisible by 4): %zu\n", datal);
         exit(1);
     }
     memset(&ins, 0, sizeof(ins));
