@@ -30,10 +30,10 @@ sub log_format_callback ($time, $level, @items) {
     return '[' . Time::Moment->now . "] [$level] $lines";
 }
 
-sub diag ($args) {
-    confess "missing input" unless $args;
+sub diag (@args) {
+    confess "missing input" unless @args;
     logger->append(color('white'));
-    logger->debug(@_)->append(color('reset'));
+    logger->debug(@args)->append(color('reset'));
     return;
 }
 
