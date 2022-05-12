@@ -1474,7 +1474,7 @@ sub type_string {
     my $wait_timeout = $args{timeout} // 30;
     my $wait_sim_level = $args{similarity_level} // 47;
     bmwqemu::log_call(string => $string, max_interval => $max_interval, wait_screen_changes => $wait, wait_still_screen => $wait_still,
-        timeout => $wait_timeout, similarity_level => $wait_sim_level);
+        timeout => $wait_timeout, similarity_level => $wait_sim_level, secret => $args{secret});
     my @pieces;
     if ($wait) {
         # split string into an array of pieces of specified size

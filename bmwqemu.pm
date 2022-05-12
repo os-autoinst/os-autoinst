@@ -213,13 +213,13 @@ sub log_call (@args) {
     else {
         # key/value pairs
         my @result;
-        my $should_hide = grep { ($_ // '') eq 'secret' } @args;
+        my %args = @_;
         while (my ($key, $value) = splice(@args, 0, 2)) {
             if ($key =~ tr/0-9a-zA-Z_//c) {
                 # only quote if needed
                 $key = pp($key);
             }
-            $value = "[masked]" if ($key eq 'text' && $should_hide);
+            $value = "[masked]" if ($key =~ /string|text/ && $args{secret});
             push @result, join("=", $key, pp($value));
         }
         $params = join(", ", @result);
