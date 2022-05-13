@@ -108,7 +108,7 @@ Function is run after test has failed to e.g. recover log files
 
 =cut
 
-sub post_fail_hook () { 1 }
+sub post_fail_hook ($self) { 1 }
 
 =head2 _framenumber_to_timerange
 
