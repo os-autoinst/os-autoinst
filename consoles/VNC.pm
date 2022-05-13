@@ -829,16 +829,8 @@ sub _receive_update ($self) {
         # work around buggy addrlink VNC
         next if $encoding_type > 0 && $w * $h == 0;
 
-        my $bytes_per_pixel = $self->_bpp / 8;
-
-        ### Raw encoding ###
         if ($encoding_type == 0 && !$self->ikvm) {    # Raw
-
-            $socket->read(my $data, $w * $h * $bytes_per_pixel) || die 'unexpected end of data';
-
-            # splat raw pixels into the image
-            my $img = tinycv::new($w, $h);
-
+            $socket->read(my $data, $w * $h * $self->_bpp / 8) || die 'unexpected end of data';
             $image->map_raw_data($data, $x, $y, $w, $h, $self->vncinfo);
         }
         elsif ($encoding_type == 16) {    # ZRLE
