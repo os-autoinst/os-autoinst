@@ -10,7 +10,6 @@ use Crypt::DES;
 use Compress::Raw::Zlib;
 use Carp qw(confess cluck carp croak);
 use Data::Dumper 'Dumper';
-use Try::Tiny;
 use Scalar::Util 'blessed';
 use OpenQA::Exceptions;
 
@@ -688,26 +687,22 @@ sub send_pointer_event ($self, $button_mask, $x, $y) {
         ));
 }
 
-# drain the VNC socket from all pending incoming messages.  return
-# true if there was a screen update.
+# drain the VNC socket from all pending incoming messages
+# return truthy value if there was a screen update
 sub update_framebuffer ($self) {
-    try {
+    my $have_recieved_update = 0;
+    eval {
         local $SIG{__DIE__} = undef;
-        my $have_recieved_update = 0;
         while (defined(my $message_type = $self->_receive_message())) {
             $have_recieved_update = 1 if $message_type == 0;
         }
-        return $have_recieved_update;
-    }
-    catch {
-        if (blessed $_ && $_->isa('OpenQA::Exception::VNCProtocolError')) {
-            bmwqemu::fctwarn "Error in VNC protocol - relogin: " . $_->error;
-            $self->login;
-        }
-        else {
-            die $_;
-        }
     };
+    if (my $e = $@) {
+        die $e unless blessed $e && $e->isa('OpenQA::Exception::VNCProtocolError');
+        bmwqemu::fctwarn "Error in VNC protocol - relogin: " . $e->error;
+        $self->login;
+    }
+    return $have_recieved_update;
 }
 
 use POSIX ':errno_h';
