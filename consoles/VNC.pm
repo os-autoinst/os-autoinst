@@ -116,7 +116,7 @@ my @encodings = (
     },
 );
 
-sub login ($self, $connect_timeout = undef) {
+sub login ($self, $connect_timeout = undef, $timeout = undef) {
     # arbitrary
     my $connect_failure_limit = 2;
 
@@ -133,19 +133,19 @@ sub login ($self, $connect_timeout = undef) {
     my $hostname = $self->hostname || 'localhost';
     my $port = $self->port || 5900;
     my $description = $self->description || 'VNC server';
-    my $local_timeout = $bmwqemu::vars{VNC_CONNECT_TIMEOUT_LOCAL} // 10;
-    my $remote_timeout = $bmwqemu::vars{VNC_CONNECT_TIMEOUT_REMOTE} // 60;
-    $connect_timeout //= ($hostname =~ qr/(localhost|127\.0\.0\.\d+|::1)/) ? $local_timeout : $remote_timeout;
-    my $endtime = time + $connect_timeout;
+    my $is_local = $hostname =~ qr/(localhost|127\.0\.0\.\d+|::1)/;
+    my $local_timeout = $bmwqemu::vars{VNC_TIMEOUT_LOCAL} // 10;
+    my $remote_timeout = $bmwqemu::vars{VNC_TIMEOUT_REMOTE} // 60;
+    my $local_connect_timeout = $bmwqemu::vars{VNC_CONNECT_TIMEOUT_LOCAL} // $local_timeout;
+    my $remote_connect_timeout = $bmwqemu::vars{VNC_CONNECT_TIMEOUT_REMOTE} // $remote_timeout;
+    $connect_timeout //= $is_local ? $local_connect_timeout : $remote_connect_timeout;
+    $timeout //= $is_local ? $local_timeout : $remote_timeout;
 
     my $socket;
     my $err_cnt = 0;
+    my $endtime = time + $connect_timeout;
     while (!$socket) {
-        $socket = IO::Socket::INET->new(
-            PeerAddr => $hostname,
-            PeerPort => $port,
-            Proto => 'tcp',
-        );
+        $socket = IO::Socket::INET->new(PeerAddr => $hostname, PeerPort => $port, Proto => 'tcp', Timeout => $connect_timeout);
         if (!$socket) {
             $err_cnt++;
             my $error_message = "Error connecting to $description <$hostname:$port>: $@";

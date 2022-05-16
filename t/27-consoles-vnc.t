@@ -70,6 +70,16 @@ subtest 'repeating handshake with max. version' => sub {
     @printed = ();
 };
 
+subtest 'setting socket timeout' => sub {
+    my %socket_args;
+    $bmwqemu::vars{VNC_TIMEOUT_REMOTE} = 6;
+    $inet_mock->redefine(new => sub ($class, @args) { %socket_args = @args; $s });
+    $c->hostname('10.161.145.95');
+    throws_ok { $c->login } qr/unexpected end of data/, 'login dies on unexpected end of data';
+    is $socket_args{Timeout}, 6, 'remote timeout passed to socket' or diag explain \%socket_args;
+    @printed = ();
+};
+
 subtest 'handling connect timeout' => sub {
     $bmwqemu::vars{VNC_CONNECT_TIMEOUT_LOCAL} = 5;
     $bmwqemu::vars{VNC_CONNECT_TIMEOUT_REMOTE} = 10;
