@@ -27,6 +27,7 @@ use Test::MockModule;
 my $mod = Test::MockModule->new('myjsonrpc');
 my $fake_exit = 0;
 my $fake_matched = 1;
+my $fake_similarity = 0;
 
 # define variables for 'fake_read_json'
 my $report_timeout_called = 0;
@@ -84,9 +85,13 @@ sub fake_read_json ($fd) {
     elsif ($cmd eq 'backend_mouse_set') {
         return {ret => {x => 100, y => 100}};
     }
-    elsif ($cmd eq 'backend_get_wait_still_screen_on_here_doc_input') {
+    elsif ($cmd eq 'backend_get_wait_still_screen_on_here_doc_input' || $cmd eq 'backend_set_reference_screenshot') {
         return {ret => 0};
-    } else {
+    }
+    elsif ($cmd eq 'backend_similiarity_to_reference') {
+        return {ret => {sim => $fake_similarity}};
+    }
+    else {
         note "mock method not implemented \$cmd: $cmd\n";
     }
     return {};
@@ -168,6 +173,21 @@ subtest 'type_string' => sub {
 
     type_password 'hallo', max_interval => 5;
     is_deeply($cmds, [{cmd => 'backend_type_string', max_interval => 5, text => 'hallo'}]);
+    $cmds = [];
+};
+
+subtest 'wait_screen_change' => sub {
+    my $callback_invoked = 0;
+    ok wait_screen_change { $callback_invoked = 1 }, 'change found';
+    ok $callback_invoked, 'callback invoked';
+    my @expected_cmds = (map { {cmd => $_} } qw(backend_set_reference_screenshot backend_similiarity_to_reference));
+    is_deeply $cmds, \@expected_cmds, 'similarity checked one time (as immediately successful)' or diag explain $cmds;
+    $cmds = [];
+
+    $fake_similarity = 50;    # too similar to be considered a change
+    push @expected_cmds, {cmd => 'backend_similiarity_to_reference'};    # we expect to see two checks in total
+    ok !wait_screen_change(sub { $callback_invoked = 1 }, 1), 'no change found';    # one second timeout
+    is_deeply $cmds, \@expected_cmds, 'similarity checked two times (one second timeout, 0.5 delay between checks)' or diag explain $cmds;
     $cmds = [];
 };
 
