@@ -158,6 +158,11 @@ sub login ($self, $connect_timeout = undef, $timeout = undef) {
             next;
         }
         $socket->sockopt(Socket::TCP_NODELAY, 1);    # turn off Naegle's algorithm for vnc
+
+        # set timeout for receiving/sending as the timeout specified via c'tor only applies to connect/accept
+        my $struct_timeval = pack('l!l!', $timeout, 0);    # defined in `#include <sys/time.h>`
+        $socket->sockopt(Socket::SO_RCVTIMEO, $struct_timeval);
+        $socket->sockopt(Socket::SO_SNDTIMEO, $struct_timeval);
     }
     $self->socket($socket);
 
