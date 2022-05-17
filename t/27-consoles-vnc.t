@@ -27,14 +27,14 @@ my $vnc_mock = Test::MockModule->new('consoles::VNC');
 $vnc_mock->redefine(_send_frame_buffer => sub ($self, $data) { push @sent, $data });
 my $c = consoles::VNC->new(_bpp => 32);    # create VNC console with bit-depth of 32 bit
 my $inet_mock = Test::MockModule->new('IO::Socket::INET');
-my $s = Test::MockObject->new->set_true(qw(sockopt print connected close blocking));
+my $s = Test::MockObject->new->set_true(qw(sockopt fileno print connected close blocking));
 sub _setup_rfb_magic () { $s->set_series('mocked_read', 'RFB 003.006', pack('N', 1)) }
 _setup_rfb_magic;
 $s->mock(read => sub { $_[1] = $s->mocked_read; defined $_[1] });
 $s->mock($_ => sub { push @printed, $_[1] }) for qw(print write);
 $inet_mock->redefine(new => $s);
 $vnc_mock->noop('_server_initialization');
-is $c->login, undef, 'can call login';
+combined_like { is $c->login, undef, 'can call login' } qr/socket timeout/, 'would have set socket timeout';
 is $c->_receive_bell, 1, 'can call _receive_bell';
 is_deeply \@printed, ['RFB 003.006', pack('C', 1)], 'protocol version and security type replied' or diag explain \@printed;
 @printed = ();
@@ -75,8 +75,9 @@ subtest 'setting socket timeout' => sub {
     $bmwqemu::vars{VNC_TIMEOUT_REMOTE} = 6;
     $inet_mock->redefine(new => sub ($class, @args) { %socket_args = @args; $s });
     $c->hostname('10.161.145.95');
-    throws_ok { $c->login } qr/unexpected end of data/, 'login dies on unexpected end of data';
-    is $socket_args{Timeout}, 6, 'remote timeout passed to socket' or diag explain \%socket_args;
+    combined_like { throws_ok { $c->login } qr/unexpected end of data/, 'login dies on unexpected end of data' }
+    qr/warn.*login.*Unable to set VNC socket timeout: .+/, 'timeout would have been passed to socket';
+    is $socket_args{Timeout}, 6, 'remote timeout passed to socket constructor' or diag explain \%socket_args;
     @printed = ();
 };
 

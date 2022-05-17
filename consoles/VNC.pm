@@ -160,9 +160,9 @@ sub login ($self, $connect_timeout = undef, $timeout = undef) {
         $socket->sockopt(Socket::TCP_NODELAY, 1);    # turn off Naegle's algorithm for vnc
 
         # set timeout for receiving/sending as the timeout specified via c'tor only applies to connect/accept
-        my $struct_timeval = pack('l!l!', $timeout, 0);    # defined in `#include <sys/time.h>`
-        $socket->sockopt(Socket::SO_RCVTIMEO, $struct_timeval);
-        $socket->sockopt(Socket::SO_SNDTIMEO, $struct_timeval);
+        # note: Using native code to set VNC socket timeout because from C++ we can simply include `struct timeval`
+        #       from `#include <sys/time.h>` instead of relying on unportable manual packing.
+        tinycv::set_socket_timeout($socket->fileno, $timeout) or bmwqemu::fctwarn "Unable to set VNC socket timeout: $!";
     }
     $self->socket($socket);
 
