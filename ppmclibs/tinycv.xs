@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 typedef Image *tinycv__Image;
 typedef VNCInfo *tinycv__VNCInfo;
@@ -52,6 +53,16 @@ static SysRet clib_send_with_fd(int sk, char *buf, size_t len, int fd)
 	return sendmsg(sk, &msg, 0);
 }
 
+static SysRet clib_set_socket_timeout(int sockfd, time_t seconds, suseconds_t microseconds)
+{
+    struct timeval tv;
+    tv.tv_sec = seconds;
+    tv.tv_usec = microseconds;
+    const auto error1 = setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, static_cast<const void *>(&tv), sizeof(tv));
+    const auto error2 = setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, static_cast<const void *>(&tv), sizeof(tv));
+    return error1 ? error1 : error2;
+}
+
 MODULE = tinycv     PACKAGE = tinycv
 
 PROTOTYPES: ENABLE
@@ -62,6 +73,13 @@ CODE:
        RETVAL = clib_send_with_fd(PerlIO_fileno(sk), buf, strlen(buf), fd);
 OUTPUT:
        RETVAL
+
+SysRet
+set_socket_timeout(int sockfd, time_t seconds)
+CODE:
+        RETVAL = clib_set_socket_timeout(sockfd, seconds, 0);
+OUTPUT:
+        RETVAL
 
 int
 default_thread_count()
