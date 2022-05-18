@@ -11,7 +11,7 @@ coverage:
     changes: false
     project:
       default:
-        target: 62.2
+        target: 80.0
         threshold: 0.1
       fully_covered:
         target: 100.0
