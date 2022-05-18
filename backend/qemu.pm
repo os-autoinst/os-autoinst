@@ -643,9 +643,6 @@ sub start_qemu ($self) {
         }
     }
 
-    die 'HDDFORMAT has been removed. If you are using existing images in some other format then qcow2 overlays will be created on top of them'
-      if $vars->{HDDFORMAT};
-
     # disk settings
     if ($vars->{MULTIPATH}) {
         $vars->{HDDMODEL} ||= "scsi-hd";

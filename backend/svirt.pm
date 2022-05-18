@@ -100,12 +100,7 @@ sub scp_get ($self, $src, $dest) {
 }
 
 sub can_handle ($self, $args) {
-    my $vars = \%bmwqemu::vars;
-    if ($args->{function} eq 'snapshots' && !$bmwqemu::vars{HDDFORMAT} eq 'raw') {
-        # Snapshots via libvirt are supported on KVM and, perhaps, ESXi. Hyper-V uses native tools.
-        return {ret => 1} if _vmm_family() =~ qr/kvm|hyperv|vmware/;
-    }
-    return;
+    $args->{function} eq 'snapshots' && _vmm_family =~ qr/kvm|hyperv|vmware/ ? {ret => 1} : undef;
 }
 
 sub is_shutdown ($self, @) {
@@ -136,7 +131,7 @@ sub save_snapshot ($self, $args) {
         $rsp = $self->run_ssh_cmd("virsh $libvirt_connector snapshot-create-as $vmname $snapname");
     }
     bmwqemu::diag "SAVE VM $vmname as $snapname snapshot, return code=$rsp";
-    $self->die unless ($rsp == 0);
+    $self->die if $rsp;
     return;
 }
 
@@ -297,7 +292,7 @@ sub serial_terminal_log_file ($self) {
     return '/tmp/' . SERIAL_TERMINAL_LOG_PATH . '.' . $bmwqemu::vars{JOBTOKEN};
 }
 
-sub check_socket ($self, $fh, $write = undef) { $self->check_ssh_serial($fh, $write) || $self->SUPER::check_socket($fh, $write) }
+sub check_socket ($self, $fh, $write = undef) { $self->check_ssh_serial($fh, $write) || $self->SUPER::check_socket($fh, $write) }    # uncoverable statement
 
 sub stop_serial_grab ($self, @) {
     $self->stop_ssh_serial;
