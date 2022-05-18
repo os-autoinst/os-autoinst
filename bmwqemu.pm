@@ -203,27 +203,49 @@ sub pp (@args) {
     return $value_with_trailing_newline;
 }
 
+# Use special argument `-masked` to hide the given value in log output.
+# It can be specified multiple times and or the value can be a ARRAY_REF or
+# scalar.
 sub log_call (@args) {
     my $fname = (caller(1))[3];
     update_line_number();
+
+    # extract -masked parameter out of argument list
+    my @masked;
+    my @effective_args;
+    while (@args) {
+        my $v = shift @args;
+        if (defined($v) && $v eq '-masked' && @args) {
+            my $mval = shift @args;
+            push @masked, ref($mval) eq 'ARRAY' ? @$mval : $mval;
+        } else {
+            push @effective_args, $v;
+        }
+    }
+
     my $params;
-    if (@args == 1) {
-        $params = pp($args[0]);
+    if (@effective_args == 1) {
+        $params = pp($effective_args[0]);
     }
     else {
         # key/value pairs
         my @result;
-        my $should_hide = grep { ($_ // '') eq 'secret' } @args;
-        while (my ($key, $value) = splice(@args, 0, 2)) {
+        while (my ($key, $value) = splice(@effective_args, 0, 2)) {
             if ($key =~ tr/0-9a-zA-Z_//c) {
                 # only quote if needed
                 $key = pp($key);
             }
-            $value = "[masked]" if ($key eq 'text' && $should_hide);
             push @result, join("=", $key, pp($value));
         }
         $params = join(", ", @result);
     }
+
+    foreach (@masked) {
+        my $mask = pp($_);
+        $mask =~ s/^"(.*)"$/$1/;
+        $params =~ s/\Q$mask\E/[masked]/g;
+    }
+
     log::logger->debug('<<< ' . $fname . "($params)");
     return;
 }

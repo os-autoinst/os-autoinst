@@ -49,7 +49,7 @@ sub do_read ($self, $, %args) {
 }
 
 sub type_string ($self, $nargs) {
-    bmwqemu::log_call(%$nargs);
+    bmwqemu::log_call(%$nargs, $nargs->{secret} ? (-masked => $nargs->{text}) : ());
 
     my $text = $nargs->{text};
     my $terminate_with = $nargs->{terminate_with} // '';
