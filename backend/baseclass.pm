@@ -201,9 +201,7 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
             else {
                 next if $other;
                 $other = 1;
-                if (!$self->check_socket($fh, 1) && !$other) {
-                    die "huh! $fh\n";
-                }
+                die "error checking socket for write: $fh\n" unless $self->check_socket($fh, 1) || $other;
             }
             last if $video_encoder == 1 && $external_video_encoder == 1 && $other;
         }
@@ -234,9 +232,7 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
             }
 
 
-            unless ($self->check_socket($fh, 0)) {
-                die "huh! $fh\n";
-            }
+            die "error checking socket for read: $fh\n" unless $self->check_socket($fh, 0);
             # don't check for further sockets after this one as
             # check_socket can have side effects on the sockets
             # (e.g. console resets), so better take the next socket
