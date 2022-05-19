@@ -63,9 +63,27 @@ subtest 'log_call' => sub {
     stderr_like(\&log_call_indent, qr{\Q<<< main::log_call_indent(test=[\E\n\Q    "a",\E\n\Q    [\E\n\Q      "b"\E\n\Q    ]\E\n\Q  ])}, 'log_call auto indentation');
 
     sub log_call_test_secret {
-        bmwqemu::log_call(text => "passwd\n", secret => 1);
+        my (%args) = @_;
+        # Use @_ instead of %args to keep the order
+        bmwqemu::log_call(@_, ($args{secret} ? (-masked => $args{text}) : ()));
+        return;
     }
-    stderr_like(\&log_call_test_secret, qr{\Q<<< main::log_call_test_secret(text="[masked]", secret=1)}, 'log_call hides sensitive info');
+    stderr_like { log_call_test_secret(text => "password\n", secret => 1) } qr{\Q<<< main::log_call_test_secret(text="[masked]", secret=1)}, 'log_call hides sensitive info';
+    stderr_like { log_call_test_secret(text => "password\n") } qr{\Q<<< main::log_call_test_secret(text="password\n")}, 'log_call hides sensitive info';
+
+    my $do_not_show_me = '$^a{1}\n\\FooBar.';
+    stderr_like { log_call_test_secret(text => $do_not_show_me, psk => $do_not_show_me, -masked => $do_not_show_me) } qr{\Q<<< main::log_call_test_secret(text="[masked]", psk="[masked]")}, 'Hide secrets with special regex chars';
+    stderr_like { log_call_test_secret(text => "$do_not_show_me$do_not_show_me", -masked => $do_not_show_me) } qr{\Q<<< main::log_call_test_secret(text="[masked][masked]")}, 'Hide secrets if it occure multiple times';
+
+    stderr_like { log_call_test_secret(text => "a666b42c", -masked => ['666', '42']) } qr{\Q<<< main::log_call_test_secret(text="a[masked]b[masked]c")}, 'Hide multiple secrets given as array';
+    stderr_like { log_call_test_secret(text => "a666b42c", -masked => '666', -masked => '42') } qr{\Q<<< main::log_call_test_secret(text="a[masked]b[masked]c")}, 'Hide multiple secrets given as multiple arguments';
+    stderr_like { log_call_test_secret(text => "a666b42c5", -masked => ['666', '5'], -masked => '42') } qr{\Q<<< main::log_call_test_secret(text="a[masked]b[masked]c[masked]")}, 'Hide multiple secrets given in mixed format';
+
+    my $super_long_partly_secret_string = "Hallo world my psk is $do_not_show_me";
+    stderr_like { log_call_test_secret(output => $super_long_partly_secret_string, -masked => $do_not_show_me) } qr{\Q<<< main::log_call_test_secret(output="Hallo world my psk is [masked]")}, 'Hide secrets as part of a string';
+
+    stderr_like { log_call_test_secret(value => 0) } qr{\Q<<< main::log_call_test_secret(value=0)}, 'Value evaluate to false';
+    stderr_like { log_call_test_secret(value => undef) } qr{\Q<<< main::log_call_test_secret(value=undef)}, 'Undef as value';
 };
 
 subtest 'update_line_number' => sub {

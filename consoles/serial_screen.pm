@@ -69,7 +69,7 @@ consoles.
 sub type_string ($self, $nargs) {
     my $fd = $self->{fd_write};
 
-    bmwqemu::log_call(%$nargs);
+    bmwqemu::log_call(%$nargs, $nargs->{secret} ? (-masked => $nargs->{text}) : ());
 
     my $text = $nargs->{text};
     my $term;
