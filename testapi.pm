@@ -6,7 +6,7 @@ package testapi;
 
 use Carp;
 use Exporter;
-use Mojo::Base 'Exporter';
+use Mojo::Base 'Exporter', -signatures;
 use File::Basename qw(basename dirname);
 use File::Path 'make_path';
 use Time::HiRes qw(sleep gettimeofday tv_interval);
@@ -616,7 +616,7 @@ similarity_level is 50.
 
 =cut
 
-sub wait_screen_change(&@) {
+sub wait_screen_change : prototype(&@) {
     my ($callback, $timeout, %args) = @_;
     $timeout ||= 10;
     $args{similarity_level} //= 50;
@@ -657,7 +657,7 @@ Example:
 
 =cut
 
-sub assert_screen_change(&@) {
+sub assert_screen_change : prototype(&@) {
     # Need to parse code reference and pass to the method explicitly as
     # wait_screen_change uses prototype which expects code block as an argument
     # This resolves compile time issues
@@ -731,7 +731,7 @@ into C<wait_still_screen> for details.
 
 =cut
 
-sub assert_still_screen(@) {
+sub assert_still_screen : prototype(@) {
     wait_still_screen(@_) or die 'assert_still_screen failed to detect a still screen';
 }
 
@@ -1576,7 +1576,7 @@ Same as mouse_click only for double click.
 
 =cut
 
-sub mouse_dclick(;$$) {
+sub mouse_dclick : prototype(;$$) {
     my $button = shift || 'left';
     my $time = shift || 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
@@ -1597,7 +1597,7 @@ Same as mouse_click only for triple click.
 
 =cut
 
-sub mouse_tclick(;$$) {
+sub mouse_tclick : prototype(;$$) {
     my $button = shift || 'left';
     my $time = shift || 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
@@ -1622,7 +1622,7 @@ Hide mouse cursor by moving it out of screen area.
 
 =cut
 
-sub mouse_hide(;$) {
+sub mouse_hide : prototype(;$) {
     my $border_offset = shift || 0;
     bmwqemu::log_call(border_offset => $border_offset);
     query_isotovideo('backend_mouse_hide', {border_offset => $border_offset});
@@ -2218,7 +2218,7 @@ in the corresponding variable
 
 =cut
 
-sub data_url($) {
+sub data_url : prototype($) {
     my ($name) = @_;
     autoinst_url($name =~ /^REPO_\d$/ ? "/assets/repo/" . get_var($name) :
           $name =~ /^ASSET_\d$/ ? "/assets/other/" . get_var($name) : "/data/$name");
