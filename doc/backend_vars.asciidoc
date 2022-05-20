@@ -103,7 +103,6 @@ BOOT_MENU_TIMEOUT;integer;5000;boot menu timeout in ms. Needs BOOT_MENU
 BOOTFROM;chars;undef;Influences order of boot devices. See qemu -boot option
 CDMODEL;see qemu -device ?;undef;Storage device for virtualized CD
 DELAYED_START;boolean;;delay vm cpu start until resume_vm() is called
-HDDFORMAT;;;HDD format
 HDDMODEL;see qemu -device ?;virtio-blk;Storage device for virtualized HDD.
 HDDMODEL_$_;see qemu -device ?;virtio-blk;Storage device for virtualized HDD. Overrides global HDDMODEL for HDD_$i
 HDDSIZEGB;integer;10;Creates HDD with specified size in GiB
@@ -222,7 +221,6 @@ HYPERV_SERIAL_PORT;integer;;TCP port where is VM's serial port stream to be expe
 HYPERV_VIRTUAL_SWITCH;string;;ExternalVirtualSwitch;Name of Hyper-V's External Virtual Switch
 NUMDISKS;integer;1;Number of disks
 RAIDLEVEL;integer;undef;Sets the raid level
-HDDFORMAT;;;HDD format
 SVIRT_KEEP_VM_RUNNING;boolean;undef;Keep VM running after execution, disabled by default
 WORKER_HOSTNAME;string;undef;Worker hostname
 |====================
