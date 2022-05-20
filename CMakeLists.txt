@@ -148,10 +148,10 @@ add_dependencies(symlinks videoencoder snd2png debugviewer tinycv)
 
 # create installable versions of isotovideo and cv.pm
 set(OS_AUTOINST_VERSION "" CACHE STRING "os-autoinst version to set for the installation")
+find_program(GIT_BIN git)
 if (OS_AUTOINST_VERSION)
     set(OS_AUTOINST_VERSION_REPLACE "${OS_AUTOINST_VERSION}")
 elseif (GIT_BIN AND IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/.git")
-    find_program(GIT_BIN git)
     execute_process(COMMAND "${GIT_BIN}" rev-parse HEAD
                     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                     OUTPUT_VARIABLE OS_AUTOINST_VERSION_REPLACE)
