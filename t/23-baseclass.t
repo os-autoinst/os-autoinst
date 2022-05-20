@@ -5,6 +5,7 @@ use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
+use Test::Exception;
 use Test::Mock::Time;
 use Test::MockModule;
 use Test::MockObject;
@@ -75,6 +76,7 @@ subtest 'not implemented' => sub {
         [stop =>],
         [cont =>],
         [do_extract_assets => 23],
+        [switch_network => 23],
         [save_memory_dump => 23],
         [save_storage_drives => 23],
     );
@@ -85,6 +87,11 @@ subtest 'not implemented' => sub {
         like $err, qr{backend method '$m' not implemented for class 'dummy'}, "notimplemented() works for '\$self->$m(@args)'";
     }
 };
+
+is $baseclass->can_handle, undef, 'can_handle returns false by default';
+is $baseclass->is_shutdown, -1, 'can call is_shutdown default implementation';
+is_deeply $baseclass->cpu_stat, [], 'can call cpu_stat empty default implementation';
+throws_ok { $baseclass->handle_command({cmd => 'power'}) } qr/not implemented/, 'handle_command executes specified command';
 
 subtest 'SSH utilities' => sub {
     my $ssh_expect = {username => 'root', password => 'password', hostname => 'foo.bar', port => undef};

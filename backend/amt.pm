@@ -159,11 +159,6 @@ sub restart_host ($self) {
 }
 
 sub do_start_vm ($self, @) {
-    #if (!$self->{configured}) {
-    #   $self->enable_solider();
-    #   $self->configure_vnc();
-    #   $self->{configured} = 1;
-    #}
     $self->select_next_boot('pxe');
     $self->restart_host;
     sleep(5);

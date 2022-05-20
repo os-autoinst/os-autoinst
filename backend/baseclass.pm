@@ -201,9 +201,7 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
             else {
                 next if $other;
                 $other = 1;
-                if (!$self->check_socket($fh, 1) && !$other) {
-                    die "huh! $fh\n";
-                }
+                die "error checking socket for write: $fh\n" unless $self->check_socket($fh, 1) || $other;
             }
             last if $video_encoder == 1 && $external_video_encoder == 1 && $other;
         }
@@ -234,9 +232,7 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
             }
 
 
-            unless ($self->check_socket($fh, 0)) {
-                die "huh! $fh\n";
-            }
+            die "error checking socket for read: $fh\n" unless $self->check_socket($fh, 0);
             # don't check for further sockets after this one as
             # check_socket can have side effects on the sockets
             # (e.g. console resets), so better take the next socket
@@ -623,11 +619,8 @@ sub reset_console ($self, $args) {
 
 sub deactivate_console ($self, $args) {
     my $testapi_console = $args->{testapi_console};
-
     my $console_info = $self->console($testapi_console);
-    if (defined $self->{current_console} && $self->{current_console} == $console_info) {
-        $self->{current_console} = undef;
-    }
+    $self->{current_console} = undef if defined $self->{current_console} && $self->{current_console} == $console_info;
     $console_info->disable();
     return;
 }
@@ -635,18 +628,14 @@ sub deactivate_console ($self, $args) {
 sub disable_consoles ($self) {
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
-        if ($console_info->can('disable')) {
-            $console_info->disable();
-        }
+        $console_info->disable() if $console_info->can('disable');
     }
 }
 
 sub reenable_consoles ($self) {
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
-        if ($console_info->{activated} && $console_info->can('disable')) {
-            $console_info->activate();
-        }
+        $console_info->activate() if $console_info->{activated} && $console_info->can('disable');
     }
 }
 
@@ -661,9 +650,7 @@ module after the snapshot.
 sub save_console_snapshots ($self, $name) {
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
-        if ($console_info->can('save_snapshot')) {
-            $console_info->save_snapshot($name);
-        }
+        $console_info->save_snapshot($name) if $console_info->can('save_snapshot');
     }
 }
 
@@ -676,9 +663,7 @@ in the same state as when the snapshot was taken.
 sub load_console_snapshots ($self, $name) {
     for my $console (keys %{$testapi::distri->{consoles}}) {
         my $console_info = $self->console($console);
-        if ($console_info->can('load_snapshot')) {
-            $console_info->load_snapshot($name);
-        }
+        $console_info->load_snapshot($name) if $console_info->can('load_snapshot');
     }
 }
 
