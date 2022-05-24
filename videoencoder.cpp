@@ -116,7 +116,7 @@ static unsigned char clamp(int d)
 
 using namespace cv;
 
-void rgb_to_yuv(Mat* image, th_ycbcr_buffer ycbcr)
+void rgb_to_yuv(Mat* image, th_ycbcr_buffer ycbcr, int xres, int yres)
 {
     unsigned int x;
     unsigned int y;
@@ -128,9 +128,9 @@ void rgb_to_yuv(Mat* image, th_ycbcr_buffer ycbcr)
     unsigned char* yuv_v;
 
     unsigned long w, h;
-    w = yuv_w = 1024;
+    w = yuv_w = xres;
     /* Must hold: yuv_h >= h */
-    h = 768;
+    h = yres;
 
     yuv_w = ycbcr[0].width;
 
@@ -171,11 +171,19 @@ int main(int argc, char* argv[])
     int ret;
 
     bool output_video = true;
+    int xres = 1024;
+    int yres = 768;
     int opt;
-    while ((opt = getopt(argc, argv, "n")) != -1) {
+    while ((opt = getopt(argc, argv, "nx:y:")) != -1) {
         switch (opt) {
         case 'n':
             output_video = false;
+            break;
+        case 'x':
+            xres = atoi(optarg);
+            break;
+        case 'y':
+            yres = atoi(optarg);
             break;
         default: /* '?' */
             fprintf(stderr,
@@ -208,8 +216,8 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    unsigned int w = 1024;
-    unsigned int h = 768;
+    unsigned int w = xres;
+    unsigned int h = yres;
     th_ycbcr_buffer ycbcr;
 
     ycbcr[0].width = w;
@@ -365,7 +373,7 @@ int main(int argc, char* argv[])
             }
 
             if (output_video)
-                rgb_to_yuv(&last_frame_image, ycbcr);
+                rgb_to_yuv(&last_frame_image, ycbcr, xres, yres);
 
         } else if (line[0] == 'R') {
             // Just repeat the last frame
