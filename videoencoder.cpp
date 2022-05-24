@@ -56,6 +56,7 @@ video.
 #include <cassert>
 #include <csignal>
 #include <cstdio>
+#include <cstdlib>
 
 using namespace std;
 
@@ -216,8 +217,8 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    unsigned int w = xres;
-    unsigned int h = yres;
+    int w = xres;
+    int h = yres;
     th_ycbcr_buffer ycbcr;
 
     ycbcr[0].width = w;
