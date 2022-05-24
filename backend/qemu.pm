@@ -670,9 +670,12 @@ sub start_qemu ($self) {
     my $use_usb_kbd;
     my $arch = $vars->{ARCH} // '';
     $arch = 'arm' if ($arch =~ /armv6|armv7/);
+    my $xres = $vars->{XRES} // '1024';
+    my $yres = $vars->{YRES} // '768';
+    my $custom_video_device = $vars->{QEMU_VIDEO_DEVICE} // 'virtio-gpu-pci';
 
     if ($arch eq 'aarch64' || $arch eq 'arm') {
-        my $video_device = ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) ? 'VGA' : 'virtio-gpu-gl,edid=on,xres=1920,yres=720,max_outputs=1';
+        my $video_device = ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) ? 'VGA' : "${custom_video_device},xres=${xres},yres=${yres}";
         sp('device', $video_device);
         $arch_supports_boot_order = 0;
         $use_usb_kbd = 1;

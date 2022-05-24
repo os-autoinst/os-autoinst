@@ -463,7 +463,9 @@ sub enqueue_screenshot ($self, $image) {
     my $watch = OpenQA::Benchmark::Stopwatch->new();
     $watch->start();
 
-    $image = $image->scale(1920, 720);
+    my $xres = $bmwqemu::vars{XRES} // 1024;
+    my $yres = $bmwqemu::vars{YRES} // 768;
+    $image = $image->scale(int($xres), int($yres));
     $watch->lap("scaling");
 
     my $lastscreenshot = $self->last_image;
