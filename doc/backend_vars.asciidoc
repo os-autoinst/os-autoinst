@@ -191,8 +191,6 @@ VNCKB;;;Set the keyboard layout if you are not using en-us
 WORKER_CLASS;string;undef;qemu system types
 WORKER_HOSTNAME;string;undef;Worker hostname
 QEMU_VIDEO_DEVICE;string;virtio-gpu-pci;Video device to use for ARM architectures (can have options appended e.g. virtio-gpu-gl,edid=on)
-XRES;integer;1024;Resolution of display on x axis
-YRES;integer;768;Resolution of display on y axis
 |====================
 
 .SVIRT backend

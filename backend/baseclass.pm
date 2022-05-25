@@ -59,6 +59,8 @@ sub new ($class) {
     $self->{min_video_similarity} = 10000;
     $self->{children} = [];
     $self->{ssh_connections} = {};
+    $self->{xres} = $bmwqemu::vars{XRES} // 1024;
+    $self->{yres} = $bmwqemu::vars{YRES} // 768;
 
     return $self;
 }
@@ -315,9 +317,7 @@ sub start_encoder ($self) {
     my $cwd = Cwd::getcwd;
     my @cmd = (qw(nice -n 19), "$bmwqemu::scriptdir/videoencoder", "$cwd/video.ogv");
     push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO} || ($has_external_video_encoder_configured && !$bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_ADDITIONALLY});
-    my $xres = $bmwqemu::vars{XRES} // '1024';
-    my $yres = $bmwqemu::vars{YRES} // '768';
-    push(@cmd, "-x $xres -y $yres");
+    push(@cmd, "-x $self->{xres} -y $self->{yres}");
     $self->_invoke_video_encoder(encoder_pipe => 'built-in video encoder', @cmd);
 
     # open file for recording real time clock timestamps as subtitle
@@ -466,9 +466,7 @@ sub enqueue_screenshot ($self, $image) {
     my $watch = OpenQA::Benchmark::Stopwatch->new();
     $watch->start();
 
-    my $xres = $bmwqemu::vars{XRES} // 1024;
-    my $yres = $bmwqemu::vars{YRES} // 768;
-    $image = $image->scale(int($xres), int($yres));
+    $image = $image->scale($self->{xres}, $self->{yres});
     $watch->lap("scaling");
 
     my $lastscreenshot = $self->last_image;
