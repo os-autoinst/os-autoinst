@@ -46,8 +46,7 @@ sub do_extract_assets ($self, $args) {
     my $disk = $vars->{"HDD_$hdd_num"};
     my $lpar = $self->{masterlpar};
     my $cmd = "pvmctl scsi list -w";
-    $cmd = $cmd . " VirtualDisk.name=$disk";
-    $cmd = $cmd . " -d VirtualDisk.udid --hide-label";
+    $cmd .= " VirtualDisk.name=$disk -d VirtualDisk.udid --hide-label";
     #attach disk
     diag "Attaching $disk to $lpar";
     $self->pvmctl("scsi", "create", "lv", $disk, $lpar);

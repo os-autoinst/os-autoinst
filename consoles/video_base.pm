@@ -49,7 +49,7 @@ sub type_string ($self, $args) {
         # typical max_interval values are
         #   4ish:  veeery slow
         #   15ish: slow
-        $seconds_per_keypress = $seconds_per_keypress + 1 / sqrt($args->{max_interval});
+        $seconds_per_keypress += 1 / sqrt($args->{max_interval});
     }
 
     for my $letter (split("", $args->{text})) {
