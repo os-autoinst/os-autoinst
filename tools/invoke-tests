@@ -40,7 +40,7 @@ db="$build_directory/cover_db"
 [[ $SKIP_IF_COVER_DB_EXISTS ]] && [[ -d $db ]] && exit 0
 
 # set Perl module include path and coverage options
-export PERL5LIB="$source_directory:$source_directory/ppmclibs:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
+export PERL5LIB="$source_directory:$source_directory/ppmclibs/blib/lib:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
 if [[ $WITH_COVER_OPTIONS ]]; then
     path_regex="^|$source_directory/|\\.\\./"
     select="($path_regex)(OpenQA|backend|consoles|ppmclibs)/|($path_regex)isotovideo|($path_regex)[^/]+\.pm,-ignore,external/|\.t|data/tests/|fake/tests/|/CheckGitStatus.pm|$prove_path"
@@ -57,7 +57,5 @@ if [[ $TESTS = *[!\ ]* ]]; then
     "$prove_path" $PROVE_ARGS $TESTS
 else
     # shellcheck disable=SC2086
-    cd t && "$prove_path" $PROVE_ARGS -r
-    # shellcheck disable=SC2086
-    cd ../xt && "$prove_path" $PROVE_ARGS -r
+    "$prove_path" $PROVE_ARGS -r t xt
 fi
