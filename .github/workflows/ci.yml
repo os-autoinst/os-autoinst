@@ -15,6 +15,13 @@ jobs:
           file: ./build/cover_db/codecov.json
           fail_ci_if_error: true
           verbose: true
+      - run: |
+          tar cvf coverage.tar build/cover_db
+      - uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: coverage.tar
+          retention-days: 15
   static-check-containers:
     runs-on: ubuntu-latest
     steps:
