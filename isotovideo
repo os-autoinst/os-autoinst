@@ -18,6 +18,10 @@ Parses command line parameters, vars.json and tests the given assets/ISOs.
 
 Enable direct output to STDERR instead of autoinst-log.txt
 
+=item B<--workdir=>
+
+isotovideo will chdir to that directory on startup
+
 =item B<-v, --version>
 
 Show the current program version and test API version
@@ -102,9 +106,11 @@ sub version () {
     exit 0;
 }
 
-GetOptions(\%options, 'debug|d', 'help|h|?', 'version|v') or usage(1);
+GetOptions(\%options, 'debug|d', 'workdir=s', 'help|h|?', 'version|v') or usage(1);
 usage(0) if $options{help};
 version() if $options{version};
+
+chdir $options{workdir} if $options{workdir};
 
 # global exit status
 my $return_code = 1;
