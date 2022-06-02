@@ -61,4 +61,5 @@ cd /opt
 export CI=1 WITH_COVER_OPTIONS=1 CHECK_GIT_STATUS=1
 cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -S . -B \"$build_dir\"
 cmake --build \"$build_dir\" --verbose --target check
-cmake --build \"$build_dir\" --verbose --target $target"
+cmake --build \"$build_dir\" --verbose --target $target
+cover -report html_basic \"$build_dir\"/cover_db"
