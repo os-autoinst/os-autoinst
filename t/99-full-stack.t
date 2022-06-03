@@ -47,7 +47,7 @@ path('vars.json')->spurt(<<EOV);
 EOV
 # create screenshots
 path('live_log')->touch;
-system("perl $toplevel_dir/isotovideo -d 2>&1 | tee autoinst-log.txt");
+system("cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d 2>&1 | tee $pool_dir/autoinst-log.txt");
 my $log = path('autoinst-log.txt')->slurp;
 like $log, qr/\d*: EXIT 0/, 'test executed fine';
 like $log, qr/\d* Snapshots are supported/, 'Snapshots are enabled';
