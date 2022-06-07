@@ -20,7 +20,7 @@ my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');
 my @queried_urls;
 $user_agent_mock->redefine(get => sub ($self, $url) {
         push(@queried_urls, $url);
-        return $user_agent_mock->original('get')->(@_);
+        return $user_agent_mock->original('get')->($self, $url);
 });
 
 # setup needle directory

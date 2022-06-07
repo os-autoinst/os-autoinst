@@ -122,7 +122,8 @@ An undefined timeout will cause to wait indefinitely. A timeout of 0 means to
 just read once.
 
 =cut
-sub do_read ($self, $, %args) {
+sub do_read {    # no:style:signatures
+    my ($self, undef, %args) = @_;
     my $buffer = '';
     $args{timeout} //= undef;    # wait till data is available
     $args{max_size} //= 2048;
@@ -139,6 +140,8 @@ sub do_read ($self, $, %args) {
         $read = sysread($fd, $buffer, $args{max_size});
         croak "Failed to read from virtio/svirt serial console char device: $ERRNO" if !defined($read) && !($ERRNO{EAGAIN} || $ERRNO{EWOULDBLOCK});
     }
+    # this is why we can't use a signature for this function,
+    # assigning to @_ in a function with signature triggers a warning
     $_[1] = $buffer;
     return $read;
 }
