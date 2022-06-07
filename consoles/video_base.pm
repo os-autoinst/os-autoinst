@@ -76,9 +76,8 @@ sub mouse_move_to ($self, $x, $y) { }
 
 # those refer to emulated tablet resolution, which (theoretically) might be
 # different than the screen
-sub mouse_width ($self) { return 1024; }
-
-sub mouse_height ($self) { return 768; }
+sub mouse_width ($self) { $self->{backend}->{xres}; }
+sub mouse_height ($self) { $self->{backend}->{yres}; }
 
 sub mouse_absolute ($self) { return 1; }
 
