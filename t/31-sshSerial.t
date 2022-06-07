@@ -49,7 +49,9 @@ $mock_channel->mock(blocking => sub ($self, $arg = undef) {
         return $self->{blocking};
 });
 
-$mock_channel->mock(read => sub ($self, $, $size) {
+$mock_channel->mock(read => sub {    # no:style:signatures
+        my ($self, undef, $size) = @_;
+
         my $data = shift @{$self->{read_queue}};
 
         if (!defined($data)) {
@@ -62,6 +64,9 @@ $mock_channel->mock(read => sub ($self, $, $size) {
             $data = substr($data, 0, $size);
         }
 
+        # this is why we can't use a signature for this function,
+        # assigning to @_ in a function with signature triggers a
+        # warning
         $_[1] = $data;
         return length($data);
 });

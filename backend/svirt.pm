@@ -85,7 +85,7 @@ sub do_stop_vm ($self, @) {
 
 # Log stdout and stderr and return them in a list (comped).
 sub scp_get ($self, $src, $dest) {
-    bmwqemu::log_call(@_);
+    bmwqemu::log_call($self, $src, $dest);
 
     my %credentials = $self->get_ssh_credentials(_is_hyperv ? 'hyperv' : 'default');
     my $ssh = $self->new_ssh_connection(%credentials);

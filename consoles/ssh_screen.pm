@@ -27,7 +27,8 @@ sub new ($class, @args) {
     return $self->SUPER::new($self->ssh_channel);
 }
 
-sub do_read ($self, $, %args) {
+sub do_read {    # no:style:signatures
+    my ($self, undef, %args) = @_;
     my $buffer = '';
     $args{timeout} //= undef;    # wait till data is available
     $args{max_size} //= 2048;
@@ -37,6 +38,9 @@ sub do_read ($self, $, %args) {
     while (!$args{timeout} || (consoles::serial_screen::elapsed($stime) < $args{timeout})) {
         my $read = $self->ssh_channel->read($buffer, $args{max_size});
         if (defined($read)) {
+            # this is why we can't use a signature for this function,
+            # assigning to @_ in a function with signature triggers a
+            # warning
             $_[1] = $buffer;
             print {$self->{loghandle}} $buffer if $self->{loghandle};
             return $read;
