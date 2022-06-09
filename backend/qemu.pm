@@ -503,7 +503,7 @@ sub delete_virtio_console_fifo () { unlink $_ or bmwqemu::fctwarn("Could not unl
 
 sub qemu_params_ofw ($self) {
     my $vars = \%bmwqemu::vars;
-    $vars->{QEMUVGA} ||= "std";
+    $vars->{QEMUVGA} ||= 'std';
     $vars->{QEMUMACHINE} //= "usb=off";
     sp('g', '1024x768');
     # newer qemu needs safe cache capability level quirk settings
@@ -681,7 +681,9 @@ sub start_qemu ($self) {
     elsif ($vars->{OFW}) {
         $use_usb_kbd = $self->qemu_params_ofw;
     }
-    sp('vga', $vars->{QEMUVGA}) if $vars->{QEMUVGA};
+    # qxl hard-codes the default resolution, see poo#111992
+    die "qxl is unsupported\n" if ($vars->{QEMUVGA} // '') eq 'qxl';
+    sp('vga', $vars->{QEMUVGA});
 
     my @nicmac;
     my @nicvlan;

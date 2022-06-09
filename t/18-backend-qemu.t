@@ -192,4 +192,12 @@ subtest qemu_tpm_option => sub {
     like $runcmd, qr|swtpm socket --tpmstate dir=.*mytpm6 --ctrl type=unixio,path=.*mytpm6/swtpm-sock --log level=20 -d|, 'swtpm 1.2 device created';
 };
 
+subtest qemu_vga_option => sub {
+    my $runcmd;
+    $backend_mock->redefine(runcmd => sub (@cmd) { $runcmd = join(' ', @cmd) });
+    unlike qemu_cmdline(QEMUVGA => undef), qr|-vga|, 'nothing specified by default';
+    like qemu_cmdline(QEMUVGA => 'std'), qr|-vga std|, 'std selected explicitly';
+    throws_ok { qemu_cmdline(QEMUVGA => 'qxl') } qr/qxl is unsupported/, 'unsupported vga aborts execution';
+};
+
 done_testing();
