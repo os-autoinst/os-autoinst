@@ -141,8 +141,8 @@ sub qemu_cmdline (%args) {
     return join(' ', $backend->{proc}->gen_cmdline);
 }
 
-$bmwqemu::vars{OFW} = 1;
-like qemu_cmdline(), qr/cap-cfpc=broken/, 'OFW workarounds applied';
+like qemu_cmdline(OFW => 1, XRES => 640, YRES => 480), qr/-g 640x480/, 'res is set for ppc/sparc';
+like qemu_cmdline(OFW => 1), qr/cap-cfpc=broken/, 'OFW workarounds applied';
 
 # test QEMU_HUGE_PAGES_PATH with different options
 subtest qemu_huge_pages_option => sub {
