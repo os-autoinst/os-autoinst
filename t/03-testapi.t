@@ -898,4 +898,16 @@ subtest 'get_wait_still_screen_on_here_doc_input' => sub {
     is(testapi::backend_get_wait_still_screen_on_here_doc_input({}), 42, 'The variable `_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT` has precedence over backend value!');
 };
 
+subtest init => sub {
+    testapi::init;
+    is $testapi::serialdev, 'ttyS0', 'init sets default serial device';
+    set_var('OFW', 1);
+    testapi::init;
+    is $testapi::serialdev, 'hvc0', 'init sets serial device for OFW/PPC';
+    set_var('OFW', 0);
+    set_var('SERIALDEV', 'foo');
+    testapi::init;
+    is $testapi::serialdev, 'foo', 'custom serial device can be set';
+};
+
 done_testing;
