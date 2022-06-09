@@ -912,4 +912,16 @@ subtest init => sub {
 
 lives_ok { force_soft_failure('boo#42') } 'can call force_soft_failure';
 
+subtest 'set_var' => sub {
+    $cmds = [];
+    lives_ok { set_var('FOO', 'BAR', reload_needles => 1) } 'can call set_var with reload_needles';
+    is_deeply $cmds, [{cmd => 'backend_reload_needles'}], 'reload_needles called' or diag explain $cmds;
+};
+
+subtest 'get_var_array and check_var_array' => sub {
+    set_var('MY_ARRAY', '1,2,FOO');
+    ok check_var_array('MY_ARRAY', 'FOO'), 'can check for value in array';
+    ok !check_var_array('MY_ARRAY', '4'), 'not present entry returns false';
+};
+
 done_testing;
