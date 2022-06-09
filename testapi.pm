@@ -777,8 +777,7 @@ Returns true if test variable C<$variable> is equal to C<$value> or returns C<un
 =cut
 
 sub check_var ($var, $val) {
-    return 1 if (defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val);
-    return 0;
+    return defined $bmwqemu::vars{$var} && $bmwqemu::vars{$var} eq $val;
 }
 
 =head2 get_var_array
