@@ -910,4 +910,6 @@ subtest init => sub {
     is $testapi::serialdev, 'foo', 'custom serial device can be set';
 };
 
+lives_ok { force_soft_failure('boo#42') } 'can call force_soft_failure';
+
 done_testing;
