@@ -39,6 +39,10 @@ is $c->_receive_bell, 1, 'can call _receive_bell';
 is_deeply \@printed, ['RFB 003.006', pack('C', 1)], 'protocol version and security type replied' or diag explain \@printed;
 @printed = ();
 
+# ensure endian conversion is setup correctly (despite initially mocking _server_initialization)
+my $machine_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
+$c->_do_endian_conversion($machine_is_big_endian);
+
 subtest 'send update request' => sub {
     $c->width(1024);
     $c->height(512);
