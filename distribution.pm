@@ -62,7 +62,7 @@ sub add_console ($self, $testapi_console, $backend_console, $backend_args = unde
 }
 
 sub x11_start_program (@) {
-    die "TODO: implement x11_start_program for your distri " . testapi::get_var('DISTRI');
+    die "TODO: implement x11_start_program for your distri " . testapi::get_var('DISTRI', '');
 }
 
 sub ensure_installed ($self, @pkglist) {

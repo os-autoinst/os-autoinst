@@ -924,4 +924,6 @@ subtest 'get_var_array and check_var_array' => sub {
     ok !check_var_array('MY_ARRAY', '4'), 'not present entry returns false';
 };
 
+like(exception { x11_start_program 'true' }, qr/implement x11_start_program/, 'x11_start_program needs specific implementation');
+
 done_testing;
