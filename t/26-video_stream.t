@@ -33,6 +33,8 @@ $mock_console->redefine(_get_ffmpeg_cmd => sub ($self, $url) {
 });
 
 my $mock_backend = Test::MockObject->new();
+$mock_backend->{xres} = 1024;
+$mock_backend->{yres} = 768;
 $mock_backend->mock('run_capture_loop', sub { });
 
 my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
