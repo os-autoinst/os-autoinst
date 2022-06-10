@@ -505,7 +505,8 @@ sub qemu_params_ofw ($self) {
     my $vars = \%bmwqemu::vars;
     $vars->{QEMUVGA} ||= "std";
     $vars->{QEMUMACHINE} //= "usb=off";
-    sp('g', '1024x768');
+    # set the initial resolution on PCC and SPARC
+    sp('g', "$self->{xres}x$self->{yres}");
     # newer qemu needs safe cache capability level quirk settings
     # https://progress.opensuse.org/issues/75259
     my $caps = ',cap-cfpc=broken,cap-sbbc=broken,cap-ibs=broken';
