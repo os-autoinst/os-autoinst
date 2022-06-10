@@ -95,9 +95,8 @@ sub usage ($r) {
 
 sub _get_version_string () {
     my $dirname = curfile->dirname;
-    my $thisversion = qx{git -C $dirname rev-parse HEAD};
+    my $thisversion = (-d "$dirname/.git" ? qx{git -C $dirname rev-parse HEAD} : '') || 'unknown';
     chomp $thisversion;
-    die 'Could not parse version' unless $thisversion;
     return "Current version is $thisversion [interface v$OpenQA::Isotovideo::Interface::version]";
 }
 
