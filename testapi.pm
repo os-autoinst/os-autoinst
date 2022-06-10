@@ -198,9 +198,7 @@ sub record_soft_failure ($reason) {
     $autotest::current_test->record_soft_failure_result($reason);
 }
 
-sub _is_valid_result ($result) {
-    return $result =~ /^(ok|fail|softfail)$/;
-}
+sub _is_valid_result ($result) { $result =~ /^(ok|fail|softfail)$/ }
 
 =head2 record_info
 
@@ -463,10 +461,7 @@ been matched at the time of the call.
 
 =cut
 
-sub match_has_tag ($tag) {
-    return $last_matched_needle->{needle}->has_tag($tag) if $last_matched_needle;
-    return;
-}
+sub match_has_tag ($tag) { $last_matched_needle ? $last_matched_needle->{needle}->has_tag($tag) : undef }
 
 =head2 assert_and_click
 
