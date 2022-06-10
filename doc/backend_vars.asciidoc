@@ -143,7 +143,7 @@ QEMUTHREADS;integer;0;Number of cpu threads used by VM
 QEMUTPM;'instance' or appropriate value for local swtpm config;undef;Configure VM to use a TPM emulator device, with appropriate args for the arch. If a TPM device is available at QEMUTPM_PATH_PREFIX + X, where X is the value of QEMUTPM or the worker instance number if QEMUTPM is set to 'instance', it will be used. Otherwise it will be created at test startup. See QEMUTPM_VER in the latter case.
 QEMUTPM_VER;'1.2' or '2.0' depending on which TPM chip should be emulated;'2.0';If no TPM device has been setup otherwise, swtpm will be used internally to create one with a socket at /tmp/mytpmX
 QEMUTPM_PATH_PREFIX;string;'/tmp/mytpm';Path prefix to use or create TPM emulator device in
-QEMUVGA;see qemu -device ?;cirrus;VGA device to use with VM
+QEMUVGA;see qemu -device ?;std;VGA device to use with VM
 QEMU_COMPRESS_QCOW2;boolean;1;compress qcow2 images intended for upload
 QEMU_IMG_CREATE_TRIES;integer;3;Define number of tries for qemu-img commands
 QEMU_HUGE_PAGES_PATH;string;undef;Define a path to use huge pages (e.g. /dev/hugepages/)
