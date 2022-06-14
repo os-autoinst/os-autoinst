@@ -1,10 +1,31 @@
 # Backends in openQA
 OpenQA (or actually os-autoinst) supports multiple backends to run the SUT. This
-document is meant to describe their particularities. So far only svirt and
-Vagrant are covered, though.
+document is meant to describe their particularities. It does not cover all
+available backends, though. Note that instructions for QEMU are already given in
+the main README file.
 
 For backend specific variables, there is a
 [separate documentation](backend_vars.asciidoc).
+
+## General recommendations
+Normally the execution environment for exotic backends (like svirt and s390x) is
+setup in production. For development purposes it makes sense to take out an
+openQA worker from production that is configured to use the backend you want to
+develop for. In some cases it can also be possible to setup a suitable
+environment on your local machine (see e.g. section about the svirt backend).
+
+### Take out worker from production
+1. Find a worker host of the type you need, e.g. by searching the workers table
+   in web UI of the relevant openQA instance.
+2. Configure an additional worker slot in your local workers.ini using worker
+   settings from the corresponding production worker.
+3. Take out the corresponding worker slot from production, e.g. by stopping the
+   corresponding systemd unit.
+4. Start the locally configured worker slot and clone/run some jobs.
+5. When you're done, bring back the production worker slots.
+
+Steps specific to SUSE's internal setup can be found in the
+[openQA project Wiki](https://progress.opensuse.org/projects/openqav3/wiki/#Use-a-production-host-for-testing-backend-changes-locally-eg-svirt-powerVM-IPMI-bare-metal-s390x-etc).
 
 ## svirt
 This backend establishes an SSH connection to another machine to start there
@@ -135,3 +156,16 @@ directly on the worker and not in testsuites or anywhere else.
 Currently the backend only supports running scripts/commands and rudimentary
 checks (e.g. whether the SUT is running or shut off). Needle matching and
 listening to serial lines is not supported at the moment.
+
+## s390x
+There are two approaches to run tests on s390x. One uses the `s390x` backend
+(zVM) and one uses the `svirt` backend (zKVM).
+
+The diagram on the
+[openQA project Wiki](https://progress.opensuse.org/projects/openqav3/wiki/#s390x-Test-Organisation)
+shows the `s390x` backend's setup at the top and the `svirt` backend's setup
+at the bottom.
+
+As mentioned in the svirt section it is generally possible to run the backend
+locally. However, you would generally resort to taking out a worker from
+production as explained under general recommendations.
