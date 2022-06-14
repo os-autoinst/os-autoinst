@@ -136,6 +136,10 @@ link:https://github.com/os-autoinst/os-autoinst-distri-opensuse/blob/master/vari
 Then you can run the `isotovideo` script within the created working directory. When doing
 a manual build, that script can be found at the top-level of the os-autoinst Git checkout.
 
+All of these examples were using the QEMU backend which is usually the easiest backend
+to handle and therefore recommended. If you need to develop and test other backends, have
+a look at the link:doc/backends.md[backend-specific documentation].
+
 When using the QEMU backend it is possible to access the system under test via VNC:
 
 ----------------------------------------
