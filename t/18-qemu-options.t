@@ -71,7 +71,7 @@ subtest qemu_append_option => sub {
     # multiple options added, only version will be effective
     # test whether QMP connection attempts are aborted when QEMU exists: unset QEMU_QMP_CONNECT_ATTEMPTS temporarily
     my $qmp_connect_attempts = delete $ENV{QEMU_QMP_CONNECT_ATTEMPTS};
-    run_isotovideo(@common_options, QEMU_APPEND => 'M ? -version');
+    run_isotovideo(@common_options, QEMU_APPEND => 'version -M ?');
     like($log, qr/-M \?/, '-M ? option added');
     like($log, qr/-version/, '-version option added');
     like($log, qr/QEMU emulator version/, 'QEMU version printed');
