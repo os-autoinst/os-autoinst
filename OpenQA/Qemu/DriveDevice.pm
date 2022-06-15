@@ -67,6 +67,13 @@ The number of I/O queues of the drive, esp. for NVMe devices
 =cut
 has 'num_queues';
 
+=head3 aio
+
+Asynchronous I/O option. Can be set to threads, native, or io_uring.
+
+=cut
+has 'aio';
+
 sub new_overlay_id ($self) { $self->last_overlay_id($self->last_overlay_id + 1)->last_overlay_id }
 
 sub node_name ($self) { $self->id . DEVICE_POSTFIX }
@@ -98,6 +105,7 @@ sub gen_cmdline ($self) {
         $self->_push_ifdef(\@params, 'bootindex=', $self->bootindex) if (!$path->id || $path->id eq 'path0');
         $self->_push_ifdef(\@params, 'serial=', $self->serial);
         $self->_push_ifdef(\@params, 'num_queues=', $self->num_queues) if (($self->num_queues // -1) != -1);
+        $self->_push_ifdef(\@params, 'aio=', $self->aio);
         push(@cmdln, ('-device', join(',', @params)));
     }
 
@@ -142,7 +150,8 @@ sub _to_map ($self) {
         bootindex => $self->bootindex,
         serial => $self->serial,
         id => $self->id,
-        num_queues => $self->num_queues};
+        num_queues => $self->num_queues,
+        aio => $self->aio};
 }
 
 sub _from_map ($self, $map, $cont_conf, $snap_conf) {
@@ -157,7 +166,8 @@ sub _from_map ($self, $map, $cont_conf, $snap_conf) {
       ->bootindex($map->{bootindex})
       ->serial($map->{serial})
       ->id($map->{id})
-      ->num_queues($map->{num_queues});
+      ->num_queues($map->{num_queues})
+      ->aio($map->{aio});
 }
 
 sub CARP_TRACE ($self) { 'OpenQA::Qemu::DriveDevice(' . ($self->id || '') . ')' }

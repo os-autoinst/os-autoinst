@@ -73,7 +73,7 @@ model.
 =cut
 sub add_new_overlay ($self, @args) { $self->add_existing_overlay(@args)->needs_creating(1) }
 
-sub _push_new_drive_dev ($self, $id, $drive, $model, $num_queues = undef) {
+sub _push_new_drive_dev ($self, $id, $drive, $model, $num_queues = undef, $aio = undef) {
     die 'PFlash drives are not supported by DriveDevice, use PFlashDevice'
       if $model eq 'pflash';
 
@@ -81,7 +81,8 @@ sub _push_new_drive_dev ($self, $id, $drive, $model, $num_queues = undef) {
       ->id($id)
       ->drive($drive)
       ->model($model)
-      ->num_queues($num_queues);
+      ->num_queues($num_queues)
+      ->aio($aio);
     push(@{$self->_drives}, $dd);
 
     return $dd;
@@ -92,9 +93,9 @@ sub _push_new_drive_dev ($self, $id, $drive, $model, $num_queues = undef) {
 Create a new drive device and qcow2 image.
 
 =cut
-sub add_new_drive ($self, $id, $model, $size, $num_queues = undef) {
+sub add_new_drive ($self, $id, $model, $size, $num_queues = undef, $aio = undef) {
     my $base_drive = $self->add_new_base($id, $id, $size);
-    return $self->_push_new_drive_dev($id, $base_drive, $model, $num_queues);
+    return $self->_push_new_drive_dev($id, $base_drive, $model, $num_queues, $aio);
 }
 
 =head3 add_existing_drive
@@ -103,11 +104,11 @@ Create a new drive device with an existing qcow2 image as the backing store. A
 new overlay is created so that the existing qcow2 image is not modified.
 
 =cut
-sub add_existing_drive ($self, $id, $file_name, $model, $size, $num_queues = undef) {
+sub add_existing_drive ($self, $id, $file_name, $model, $size, $num_queues = undef, $aio = undef) {
     my $base_drive = $self->add_existing_base($id, $file_name, $size)->implicit(1)->deduce_driver;
     my $overlay = $self->add_new_overlay($id . OVERLAY_POSTFIX . '0', $base_drive);
 
-    return $self->_push_new_drive_dev($id, $overlay, $model, $num_queues);
+    return $self->_push_new_drive_dev($id, $overlay, $model, $num_queues, $aio);
 }
 
 
