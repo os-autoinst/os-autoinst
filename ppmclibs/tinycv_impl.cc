@@ -10,6 +10,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <sys/time.h>
+#include <byteswap.h>
 
 #include <algorithm> // std::min
 #include <vector>
@@ -647,13 +648,10 @@ void image_map_raw_data_rgb555(Image* a, const unsigned char* data)
 static uint16_t read_u16(const unsigned char* data, size_t& offset,
     bool do_endian_conversion)
 {
-    uint16_t pixel;
+    uint16_t pixel = *(uint16_t*)(data + offset);
+    offset += 2;
     if (do_endian_conversion) {
-        pixel = data[offset++] * 256;
-        pixel += data[offset++];
-    } else {
-        pixel = data[offset++];
-        pixel += data[offset++] * 256;
+        pixel = bswap_16(pixel);
     }
     return pixel;
 }
@@ -668,17 +666,10 @@ Vec3b VNCInfo::read_pixel(const unsigned char* data, size_t& offset)
     if (bytes_per_pixel == 2) {
         pixel = read_u16(data, offset, do_endian_conversion);
     } else if (bytes_per_pixel == 4) {
+        pixel = *(uint32_t*)(data + offset);
+        offset += 4;
         if (do_endian_conversion) {
-            pixel = data[offset++];
-            pixel <<= 8;
-            pixel |= data[offset++];
-            pixel <<= 8;
-            pixel |= data[offset++];
-            pixel <<= 8;
-            pixel |= data[offset++];
-        } else {
-            pixel = *(uint32_t*)(data + offset);
-            offset += 4;
+            pixel = bswap_32(pixel);
         }
     } else if (bytes_per_pixel == 1) {
         pixel = data[offset++];
