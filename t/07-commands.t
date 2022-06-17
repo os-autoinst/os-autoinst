@@ -16,12 +16,14 @@ require IPC::System::Simple;
 use autodie ':all';
 
 use commands;
+use OpenQA::Commands;
 use Mojo::IOLoop::Server;
 use Time::HiRes 'sleep';
 use Test::Warnings ':report_warnings';
 use Test::Output;
 use Test::Mojo;
 use Test::MockModule;
+use Test::MockObject;
 use Mojo::File qw(path tempfile tempdir);
 use File::Which;
 use Data::Dumper;
@@ -206,6 +208,33 @@ subtest 'upload api' => sub {
 kill TERM => $spid;
 waitpid($spid, 0);
 combined_like { eval { $cserver->stop() } } qr/commands process exited/, 'commands server stopped';
+
+subtest 'decode failure' => sub {
+    my $jsonrpc = Test::MockModule->new('myjsonrpc');
+    $jsonrpc->redefine(send_json => sub ($iso, $data) { 1 });
+
+    my $oc = Test::MockModule->new('OpenQA::Commands');
+    $oc->redefine(decode_json => sub ($json) { die 23 });
+
+    my $mock_log = Test::MockObject->new({});
+    my (@debug, @warn);
+    $mock_log->mock(debug => sub ($self, $msg) { push @debug, $msg });
+    $mock_log->mock(warn => sub ($self, $msg) { push @warn, $msg });
+
+    my $mock_app = Test::MockObject->new({});
+    $mock_app->mock(log => sub ($self) { $mock_log });
+    $mock_app->mock(defaults => sub ($self, $type) { 1 });
+
+    my $mock = Test::MockObject->new({});
+    $mock->mock(app => sub ($self) { $mock_app });
+
+    my $json = '{"foo":"bar"}';
+    my $ret = OpenQA::Commands::pass_message_from_ws_client_to_isotovideo($mock, 23, $json);
+    is $debug[0], "cmdsrv: passing command from client to isotovideo 1: $json",
+      'debug output like expected';
+    is $warn[0], 'cmdsrv: failed to decode message', 'warn output like expected';
+    is $ret, undef, 'pass_message_from_ws_client_to_isotovideo returns undef';
+};
 
 done_testing;
 
