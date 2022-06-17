@@ -9,6 +9,7 @@ use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Output qw(stderr_like stderr_unlike);
 use Test::Warnings ':report_warnings';
+use Test::Fatal;
 use Mojo::JSON;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
@@ -235,6 +236,22 @@ subtest 'set_pause_on_next_command, postponing command, resuming' => sub {
     stderr_like {
         $command_handler->process_command($answer_fd, {cmd => 'resume_test_execution'});
     } qr/resuming.*not paused anyways/, 'resuming test execution without previously pausing';
+
+    subtest 'resume when no command was postponed but with existing postponed_answer_fd' => sub {
+        my $mock = Test::MockModule->new('OpenQA::Isotovideo::CommandHandler');
+        $mock->redefine(postponed_command => undef);
+        my @set_answer_fd;
+        $mock->redefine(postponed_answer_fd => sub ($self, $fd = undef) { push @set_answer_fd, $fd; 1 });
+        stderr_unlike {
+            $command_handler->process_command($answer_fd, {cmd => 'resume_test_execution'});
+        } qr/resuming, continue/, 'Correct output';
+        is_deeply($last_received_msg_by_fd[$backend_fd], {
+                new_needles => undef,
+                ret => 1,
+        }, 'Correct data received');
+        is_deeply(\@set_answer_fd, [undef, undef]);
+    };
+
 };
 
 subtest 'assert_screen' => sub {
@@ -287,6 +304,47 @@ subtest 'set_assert_screen_timeout' => sub {
             arguments => 43,
     }, 'timeout passed to backend');
     is_deeply($last_received_msg_by_fd[$answer_fd], {ret => 1}, 'response for set_assert_screen_timeout');
+};
+
+subtest version => sub {
+    local $bmwqemu::vars{TEST_GIT_HASH} = 'coffee';
+    local $bmwqemu::vars{NEEDLES_GIT_HASH} = 'coffee';
+    $command_handler->process_command($answer_fd, {
+            cmd => 'version',
+    });
+    is_deeply($last_received_msg_by_fd[$answer_fd], {
+            version => $OpenQA::Isotovideo::Interface::version,
+            test_git_hash => 'coffee',
+            needles_git_hash => 'coffee',
+    }, 'response for version');
+};
+
+subtest 'send_clients' => sub {
+    $command_handler->process_command($answer_fd, {
+            cmd => 'send_clients',
+            set_current_test => 'FOO',
+            current_test_full_name => 'FOO/BAR',
+    });
+    is_deeply($last_received_msg_by_fd[$cmd_srv_fd], {
+            set_current_test => 'FOO',
+            current_test_full_name => 'FOO/BAR',
+    }, 'response for send_clients');
+};
+
+subtest 'invalid command' => sub {
+    like exception {
+        $command_handler->process_command($answer_fd, {
+                cmd => 'foobar',
+                lala => 23,
+        });
+    }, qr{isotovideo: unknown command foobar}, 'Correct error message for unknown command';
+};
+
+subtest '_is_configured_to_pause_on_timeout' => sub {
+    my $mock = Test::MockModule->new('OpenQA::Isotovideo::CommandHandler');
+    $mock->redefine(pause_on_screen_mismatch => 'foo');
+    my $result = $command_handler->_is_configured_to_pause_on_timeout({});
+    is $result, 0, '_is_configured_to_pause_on_timeout returned 0';
 };
 
 done_testing;
