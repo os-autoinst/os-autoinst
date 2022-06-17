@@ -649,11 +649,11 @@ static uint16_t read_u16(const unsigned char* data, size_t& offset,
 {
     uint16_t pixel;
     if (do_endian_conversion) {
-        pixel = data[offset++] * 256;
-        pixel += data[offset++];
+        pixel =  (data[offset++] >> 0);
+        pixel |= (data[offset++] >> 8);
     } else {
-        pixel = data[offset++];
-        pixel += data[offset++] * 256;
+        pixel = *(uint16_t*)(data + offset);
+        offset += 2;
     }
     return pixel;
 }
@@ -669,13 +669,10 @@ Vec3b VNCInfo::read_pixel(const unsigned char* data, size_t& offset)
         pixel = read_u16(data, offset, do_endian_conversion);
     } else if (bytes_per_pixel == 4) {
         if (do_endian_conversion) {
-            pixel = data[offset++];
-            pixel <<= 8;
-            pixel |= data[offset++];
-            pixel <<= 8;
-            pixel |= data[offset++];
-            pixel <<= 8;
-            pixel |= data[offset++];
+            pixel =  (data[offset++] >> 0);
+            pixel |= (data[offset++] >> 8);
+            pixel |= (data[offset++] >> 16);
+            pixel |= (data[offset++] >> 24);
         } else {
             pixel = *(uint32_t*)(data + offset);
             offset += 4;
