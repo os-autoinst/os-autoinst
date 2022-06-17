@@ -3,6 +3,7 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Test::Warnings ':report_warnings';
+use Test::MockModule;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '20';
@@ -167,22 +168,77 @@ subtest 'load test success when casedir and productdir are relative path' => sub
     sub extract_assets ($self, @args) { $self->{backend}->do_extract_assets(@args) }
 }
 
-subtest 'upload the asset even in an incomplete job' => sub {
-    my $command_handler = OpenQA::Isotovideo::CommandHandler->new();
+subtest 'publish assets' => sub {
     $bmwqemu::vars{BACKEND} = 'qemu';
     $bmwqemu::vars{NUMDISKS} = 1;
-    $bmwqemu::vars{FORCE_PUBLISH_HDD_1} = 'force_publish_test.qcow2';
-    $bmwqemu::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
-    $command_handler->test_completed(0);
     $bmwqemu::backend = FakeBackendDriver->new('qemu');
-    my $return_code;
-    combined_like {
-        $return_code = handle_generated_assets($command_handler, 1)
-    } qr/Requested to force the publication/, 'forced publication of asset';
-    is $return_code, 0, 'The asset was uploaded successfully' or die path(bmwqemu::STATE_FILE)->slurp;
-    my $force_publish_asset = $pool_dir . '/assets_public/force_publish_test.qcow2';
-    ok(-e $force_publish_asset, 'test.qcow2 image exists');
-    ok(!-e $pool_dir . '/assets_public/publish_test.qcow2', 'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
+    my $publish_asset = $pool_dir . '/assets_public/publish_test.qcow2';
+
+    my $command_handler = OpenQA::Isotovideo::CommandHandler->new();
+    subtest publish => sub {
+        $bmwqemu::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
+        $command_handler->test_completed(1);
+        my $return_code;
+        my $out = combined_from { $return_code = handle_generated_assets($command_handler, 1) };
+        like $out, qr/convert.*publish_test.qcow2/, 'publication of asset';
+        is $return_code, 0, 'The asset was uploaded successfully' or die path(bmwqemu::STATE_FILE)->slurp;
+        ok(-e $publish_asset, 'test.qcow2 image exists');
+        unlink $publish_asset;
+    };
+
+    subtest 'upload the asset even in an incomplete job' => sub {
+        $bmwqemu::vars{FORCE_PUBLISH_HDD_1} = 'force_publish_test.qcow2';
+        $bmwqemu::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
+        $command_handler->test_completed(0);
+        my $return_code;
+        my $out = combined_from { $return_code = handle_generated_assets($command_handler, 1) };
+        like $out, qr/Requested to force the publication/, 'forced publication of asset';
+        is $return_code, 0, 'The asset was uploaded successfully' or die path(bmwqemu::STATE_FILE)->slurp;
+        my $force_publish_asset = $pool_dir . '/assets_public/force_publish_test.qcow2';
+        ok(-e $force_publish_asset, 'test.qcow2 image exists');
+        ok(!-e $pool_dir . '/assets_public/publish_test.qcow2', 'the asset defined by PUBLISH_HDD_X would not be generated in an incomplete job');
+        delete $bmwqemu::vars{FORCE_PUBLISH_HDD_1};
+    };
+
+    subtest 'unclean shutdown' => sub {
+        $bmwqemu::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
+        $command_handler->test_completed(1);
+        my $return_code;
+        my $out = combined_from { $return_code = handle_generated_assets($command_handler, 0) };
+        like $out, qr/unable to handle generated assets:/, 'correct output';
+        is $return_code, 1, 'Unsuccessful handle_generated_assets' or die path(bmwqemu::STATE_FILE)->slurp;
+        ok !-e $publish_asset, 'test.qcow2 does not exist';
+    };
+
+    subtest 'unsuccessful do_extract_assets' => sub {
+        my $mock = Test::MockModule->new('backend::qemu');
+        $mock->redefine(do_extract_assets => sub (@) { die "oops" });
+        $bmwqemu::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
+        $command_handler->test_completed(1);
+        my $return_code;
+        my $out = combined_from { $return_code = handle_generated_assets($command_handler, 1) };
+        like $out, qr/unable to extract assets: oops/, 'correct output';
+        is $return_code, 1, 'Unsuccessful handle_generated_assets' or die path(bmwqemu::STATE_FILE)->slurp;
+        ok !-e $publish_asset, 'test.qcow2 does not exist';
+    };
+
+    subtest 'UEFI & PUBLISH_PFLASH_VARS' => sub {
+        $bmwqemu::vars{PUBLISH_HDD_1} = 'publish_test.qcow2';
+        $bmwqemu::vars{UEFI} = 1;
+        $bmwqemu::vars{PUBLISH_PFLASH_VARS} = 'opensuse-15.3-x86_64-20220617-4-kde@uefi-uefi-vars.qcow2';
+        $bmwqemu::vars{UEFI_PFLASH_CODE} = '/usr/share/qemu/ovmf-x86_64-ms-code.bin';
+        $bmwqemu::vars{UEFI_PFLASH_VARS} = '/usr/share/qemu/ovmf-x86_64-ms-vars.bin';
+        my $mock = Test::MockModule->new('OpenQA::Qemu::Proc');
+        $mock->redefine(export_blockdev_images => sub ($self, $filter, $img_dir, $name, $qemu_compress_qcow) {
+                return 1;
+        });
+        $command_handler->test_completed(1);
+        my $return_code;
+        my $out = combined_from { $return_code = handle_generated_assets($command_handler, 1) };
+        like $out, qr/Extracting.*pflash-vars/, 'correct output';
+        is $return_code, 0, 'Successful handle_generated_assets' or die path(bmwqemu::STATE_FILE)->slurp;
+        ok !-e $publish_asset, 'test.qcow2 does not exist';
+    };
 };
 
 done_testing();
