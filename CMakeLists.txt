@@ -51,6 +51,7 @@ set(PERL_FILES
     consoles/virtio_terminal.pm
     consoles/vnc_base.pm
     consoles/VNC.pm
+    consoles/VMWare.pm
     distribution.pm
     lockapi.pm
     log.pm
@@ -216,11 +217,13 @@ install(
     COMPONENT "openvswitch"
     EXCLUDE_FROM_ALL
 )
-install(
-    FILES "check_qemu_oom"
-    DESTINATION "${OS_AUTOINST_DATA_DIR}"
-    PERMISSIONS ${EXECUTABLE_PERMISSIONS}
-)
+foreach (EXTRA_SCRIPT check_qemu_oom dewebsockify vnctest)
+    install(
+        FILES "${EXTRA_SCRIPT}"
+        DESTINATION "${OS_AUTOINST_DATA_DIR}"
+        PERMISSIONS ${EXECUTABLE_PERMISSIONS}
+    )
+endforeach ()
 add_custom_target(install-openvswitch
     COMMAND "${CMAKE_COMMAND}" -DCMAKE_INSTALL_COMPONENT=openvswitch -P "${CMAKE_BINARY_DIR}/cmake_install.cmake")
 
