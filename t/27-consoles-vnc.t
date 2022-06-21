@@ -41,7 +41,6 @@ is_deeply \@printed, ['RFB 003.006', pack('C', 1)], 'protocol version and securi
 
 # ensure endian conversion is setup correctly (despite initially mocking _server_initialization)
 my $machine_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
-$c->_do_endian_conversion($machine_is_big_endian);
 
 subtest 'send update request' => sub {
     $c->width(1024);
@@ -161,6 +160,7 @@ subtest 'update framebuffer' => sub {
     ok $logged_in, 'relogin on protocol error';
 
     # test with full data (just one pixel, though) and vncinfo present (defines endianness and chroma subsampling)
+    $c->_do_endian_conversion($machine_is_big_endian);    # assume server is little-endian
     my $vncinfo = tinycv::new_vncinfo($c->_do_endian_conversion, $c->_true_colour, $c->_bpp / 8, 255, 0, 255, 8, 255, 16);
     my $gray_pixel = pack(CCCC => 31, 37, 41, 0);    # dark prime grey
     my $of_type_raw_with_coordinates_43_47_1_1 = pack(nnnnN => 43, 47, 1, 1, 0);
@@ -180,6 +180,18 @@ subtest 'update framebuffer' => sub {
     $s->set_series(mocked_read => $update_message, $one_rectangle, $unknown_encoding);
     throws_ok { $c->update_framebuffer } qr/unsupported update encoding -225/, 'dies on unsupported encoding';
     is $s->mocked_read, undef, 'no more messages left to read after reading unknown encoding';
+
+    # test with full data again, assuming the server is big-endian
+    $c->_do_endian_conversion(!$machine_is_big_endian);    # assume server is big-endian
+    $vncinfo = tinycv::new_vncinfo($c->_do_endian_conversion, $c->_true_colour, $c->_bpp / 8, 255, 0, 255, 8, 255, 16);
+    $gray_pixel = pack(CCCC => 0, 41, 37, 31);    # dark prime grey
+    $s->set_series(mocked_read => $update_message, $one_rectangle, $of_type_raw_with_coordinates_43_47_1_1, $gray_pixel);
+    $c->_framebuffer(undef)->width(1024)->height(512)->vncinfo($vncinfo);
+    ok $c->update_framebuffer, 'truthy return value for successful pixel update of big-endian server';
+    ($blue, $green, $red) = $c->_framebuffer->get_pixel(43, 47);
+    is $blue, 41, 'pixel data updated in framebuffer (blue, big-endian server)';
+    is $green, 37, 'pixel data updated in framebuffer (green, big-endian server)';
+    is $red, 31, 'pixel data updated in framebuffer (red, big-endian server)';
 
     $c->ikvm(1);
     my $unsupported_ikvm_encoding = pack(nnnnN => 0, 0, 1, 1, 88);
