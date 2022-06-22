@@ -10,7 +10,7 @@ use File::Touch;
 use File::Path qw(make_path remove_tree);
 use Test::MockModule;
 use Test::Warnings ':report_warnings';
-use Test::Output 'stderr_like';
+use Test::Output qw(stderr_like stderr_from);
 use Mojo::File qw(path tempdir);
 use OpenQA::Isotovideo::NeedleDownloader;
 use needle;
@@ -119,6 +119,34 @@ subtest 'download added URLs' => sub {
             'http://openqa/needles/2/json',
             'http://openqa/needles/2/image',
     ], 'right URLs queried');
+};
+
+subtest '_download_file' => sub {
+    $user_agent_mock->redefine(get => sub { Mojo::Transaction::HTTP->new });
+    my $http = Test::MockModule->new('Mojo::Transaction::HTTP');
+    $http->redefine(result => sub { Mojo::Message::Response->new->code(404) });
+    my $stderr = stderr_from {
+        $downloader->_download_file({url => 'http://1/', target => "$needles_dir/foo"});
+    };
+    like $stderr, qr{download new needle: http://1/.*server returned 404}s, 'Download returned 404';
+
+    $http->redefine(result => sub { Mojo::Message::Response->new->code(200) });
+    $stderr = stderr_from {
+        $downloader->_download_file({url => 'http://2/', target => "$needles_dir/bar"});
+    };
+    like $stderr, qr{download new needle: http://2/}, 'Download succeeded';
+    unlike $stderr, qr{server returned 404}, 'Download did not return 404';
+
+    $stderr = stderr_from {
+        $downloader->_download_file({url => 'http://3/', target => '/doesnotexist/baz'});
+    };
+    like $stderr, qr{unable to store download.*No such file or directory}, 'Could not write target';
+
+    $http->redefine(result => sub { die 'oops' });
+    $stderr = stderr_from {
+        $downloader->_download_file({url => 'http://3/', target => '/doesnotexist/baz'});
+    };
+    like $stderr, qr{internal error occurred when downloading.*oops}, 'internal error was logged';
 };
 
 remove_tree($needles_dir);

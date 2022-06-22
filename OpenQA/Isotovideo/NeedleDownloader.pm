@@ -103,7 +103,7 @@ sub _download_file ($self, $download) {
         path($download_target)->spurt($download_res->body);
     }
     catch {
-        bmwqemu::diag("unable to store download under $download_target");
+        bmwqemu::diag("unable to store download under $download_target: $_");
     };
 }
 
