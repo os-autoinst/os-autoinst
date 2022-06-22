@@ -471,7 +471,7 @@ sub load_snapshot ($self, $args) {
 sub do_extract_assets ($self, $args) {
     my $name = $args->{name};
     my $img_dir = $args->{dir};
-    my $hdd_num = $args->{hdd_num} - 1;
+    my $hdd_num = ($args->{hdd_num} // 0) - 1;
     my $pattern = $args->{pflash_vars} ? qr/^pflash-vars$/ : qr/^hd$hdd_num$/;
     $self->{proc}->load_state() unless $self->{proc}->has_state();
     mkpath($img_dir);
