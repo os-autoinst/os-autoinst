@@ -8,11 +8,13 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Fatal;
 use Test::Warnings qw(warnings :report_warnings);
+use Test::Output qw(stderr_from);
 use Mojo::File qw(tempfile tempdir path);
 use Carp 'cluck';
 use Mojo::Util qw(scope_guard);
 use Mojo::JSON 'decode_json';
 use Test::MockModule;
+use File::Copy qw(move);
 use bmwqemu;
 
 use OpenQA::Qemu::BlockDevConf;
@@ -433,6 +435,155 @@ subtest 'qemu is not called on an empty file when ISO_1 is an empty string' => s
 
     OpenQA::Qemu::Proc->new()->configure_blockdevs('disk', 'raid', \%empty_iso_vars);
     is($call_count, 0, 'get_img_size call count check');
+};
+
+subtest configure_controllers => sub {
+    my $cc = Test::MockModule->new('OpenQA::Qemu::ControllerConf');
+    local $SIG{__DIE__} = undef;
+    my $proc = OpenQA::Qemu::Proc->new;
+    my %vars = (HDDMODEL => 'virtio-scsi-foo');
+    my $exception = exception { $proc->configure_controllers(\%vars) };
+    like $exception, qr{Set HDDMODEL to scsi-hd and SCSICONTROLLER to virtio-scsi-foo}, 'correct exception for HDDMODEL';
+    %vars = (HDDMODEL => '', CDMODEL => 'virtio-scsi-foo');
+    $exception = exception { $proc->configure_controllers(\%vars) };
+    like $exception, qr{Set CDMODEL to scsi-cd and SCSICONTROLLER to virtio-scsi-foo}, 'correct exception for CDMODEL';
+
+    my @controllers;
+    $cc->redefine(add_controller => sub ($self, $x, $y) {
+            push @controllers, [$x, $y];
+    });
+    %vars = (HDDMODEL => '', CDMODEL => '', ATACONTROLLER => 'foo');
+    $proc->configure_controllers(\%vars);
+    is_deeply \@controllers, [[qw(foo ahci0)]], 'ATACONTROLLER added';
+    @controllers = ();
+
+    %vars = (HDDMODEL => '', CDMODEL => '', USBBOOT => 'foo');
+    $proc->configure_controllers(\%vars);
+    is_deeply \@controllers, [[qw(qemu-xhci xhci0)]], 'USBBOOT added';
+};
+
+subtest 'configure_blockdevs xz' => sub {
+    local $SIG{__DIE__} = undef;
+    my $proc = OpenQA::Qemu::Proc->new;
+    my $mock_proc = Test::MockModule->new('OpenQA::Qemu::Proc');
+    my %vars = (NUMDISKS => 1, HDD_1 => 'foo.xz', HDDMODEL => 'model');
+    path('foo.xz')->spurt('123');
+    $mock_proc->redefine(runcmd => sub (@args) {
+            move 'foo.xz', 'foo';
+    });
+    $mock_proc->redefine(which => sub (@) { 1 });
+    my @size;
+    $mock_proc->redefine(get_img_size => sub ($self, $file) {
+            push @size, [$file, -s $file];
+            return -s $file;
+    });
+    $proc->configure_blockdevs(disk => raid => \%vars);
+    is_deeply \@size, [["$dir/foo", 3]], 'runcmd unxz called successfully';
+};
+
+subtest 'configure_blockdevs USBBOOT' => sub {
+    local $SIG{__DIE__} = undef;
+    my $proc = OpenQA::Qemu::Proc->new;
+    my $mock_proc = Test::MockModule->new('OpenQA::Qemu::Proc');
+    my $bdc = Test::MockModule->new('OpenQA::Qemu::BlockDevConf');
+    my %vars = (NUMDISKS => 1, HDD_1 => 'foo', HDDMODEL => 'model', USBBOOT => 1, ISO => "$Bin/data/Core-7.2.iso", USBSIZEGB => '42');
+    my @size;
+    $mock_proc->redefine(get_img_size => sub ($self, $file) {
+            push @size, [$file, -s $file];
+            return -s $file;
+    });
+    my @iso;
+    $bdc->redefine(add_iso_drive => sub ($self, $id, $file_name, $model, $size) {
+            push @iso, [$id, $file_name, $model, $size];
+    });
+    $proc->configure_blockdevs(disk => raid => \%vars);
+    is_deeply \@iso, [[usbstick => "$Bin/data/Core-7.2.iso" => 'usb-storage' => '42G']], 'add_iso_drive correctly called';
+};
+
+subtest 'configure_blockdevs boot from cdrom' => sub {
+    local $SIG{__DIE__} = undef;
+    my $proc = OpenQA::Qemu::Proc->new;
+    my $dd = Test::MockModule->new('OpenQA::Qemu::DriveDevice');
+    my %vars = (NUMDISKS => 0, HDD_1 => 'foo', CDMODEL => 'model', ISO_1 => "$Bin/data/Core-7.2.iso");
+    my $index;
+    $dd->redefine(bootindex => sub ($self, $ix) { $index = $ix });
+    $proc->configure_blockdevs(cdrom => raid => \%vars);
+    is $index, 0, 'bootindex correctly called';
+};
+
+subtest configure_pflash => sub {
+    local $SIG{__DIE__} = undef;
+    my $proc = OpenQA::Qemu::Proc->new;
+    my $mock_proc = Test::MockModule->new('OpenQA::Qemu::Proc');
+    my %vars = (UEFI => 1, UEFI_PFLASH => 1, UEFI_PFLASH_CODE => 'x');
+    my $exc = exception { $proc->configure_pflash(\%vars) };
+    like $exc, qr{Mixing old and new PFLASH variables}, 'Fatal mixing of old and new PFLASH';
+
+    my $bdc = Test::MockModule->new('OpenQA::Qemu::BlockDevConf');
+    my @flash;
+    $bdc->redefine(add_pflash_drive => sub ($self, $id, $file_name, $size) {
+            push @flash, [$id, $file_name, $size];
+    });
+    my @size;
+    $mock_proc->redefine(get_img_size => sub ($self, $file) {
+            push @size, [$file, -s $file];
+            return -s $file;
+    });
+    %vars = (UEFI => 1, UEFI_PFLASH => 1, BIOS => 'foo');
+    my $res = $proc->configure_pflash(\%vars);
+    is_deeply \@flash, [[qw(pflash foo 3)]], 'add_pflash_drive correctly called';
+
+    %vars = (UEFI => 1, UEFI_PFLASH_VARS => 'vars');
+    $exc = exception { $proc->configure_pflash(\%vars) };
+    like $exc, qr{Need UEFI_PFLASH_CODE with UEFI_PFLASH_VARS}, 'Fatal UEFI_PFLASH_VARS without UEFI_PFLASH_CODE';
+};
+
+subtest connect_qmp => sub {
+    local $SIG{__DIE__} = undef;
+    local $ENV{QEMU_QMP_CONNECT_ATTEMPTS} = -1;
+    my $proc = OpenQA::Qemu::Proc->new;
+    my $exc = exception { $proc->connect_qmp };
+    like $exc, qr{Can't open QMP socket}, 'Fatal connect_qmp';
+};
+
+subtest save_state => sub {
+    my $proc = OpenQA::Qemu::Proc->new;
+    my $mock_proc = Test::MockModule->new('OpenQA::Qemu::Proc');
+    $mock_proc->redefine(has_state => 0);
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    my @info;
+    $mock_bmwqemu->redefine(fctinfo => sub ($msg) { push @info, $msg });
+    my $stderr = stderr_from { $proc->save_state };
+    is $info[0], 'Refusing to save an empty state file to avoid overwriting a useful one', 'Info about not writing empty state fle';
+    pass;
+};
+
+subtest revert_to_snapshot => sub {
+    local $SIG{__DIE__} = undef;
+    my $proc = OpenQA::Qemu::Proc->new;
+    my $mock_sc = Test::MockModule->new('OpenQA::Qemu::SnapshotConf');
+    my $scname;
+    $mock_sc->redefine(revert_to_snapshot => sub ($self, $name) { $scname = $name });
+    my $bdc = Test::MockModule->new('OpenQA::Qemu::BlockDevConf');
+    my $drive = OpenQA::Qemu::DriveDevice->new(id => 'foo');
+    my $bdcname;
+    $bdc->redefine(revert_to_snapshot => sub ($, $name, $sn) {
+            $bdcname = $sn;
+            return ['foo'];
+    });
+    $bdc->redefine(for_each_drive => sub ($self, $cb) {
+            $cb->($drive);
+    });
+    my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+    my @diag;
+    $mock_bmwqemu->redefine(diag => sub ($msg) { push @diag, $msg });
+
+    path('foo')->spurt('123');
+    $proc->revert_to_snapshot('foo');
+    is $scname, 'foo', 'SnapshotConf->revert_to_snapshot called';
+    is $bdcname, 'foo', 'BlockDevConf->revert_to_snapshot called';
+    is -e 'foo', undef, 'foo was removed';
+    is $diag[0], 'Unlinking foo', 'Message about unlinking foo';
 };
 
 done_testing();
