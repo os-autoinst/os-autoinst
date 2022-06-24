@@ -228,8 +228,6 @@ Create qemu-img command lines for all drives that need creating.
 =cut
 sub gen_qemu_img_cmdlines ($self) { map { $_->gen_qemu_img_cmdlines() } @{$self->_drives} }
 
-sub gen_qemu_img_commit ($self) { grep { defined $_ } map { $_->gen_qemu_img_commit() } @{$self->_drives} }
-
 sub gen_qemu_img_convert ($self, $filter, $img_dir, $name, $qemu_compress_qcow) {
     map { $_->gen_qemu_img_convert($img_dir, $name, $qemu_compress_qcow) }
       grep { $_->id =~ $filter } @{$self->_drives};
