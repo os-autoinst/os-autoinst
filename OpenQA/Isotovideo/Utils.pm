@@ -12,15 +12,16 @@ use bmwqemu;
 use autotest;
 use Try::Tiny;
 
-our @EXPORT_OK = qw(checkout_git_repo_and_branch checkout_git_refspec
-  handle_generated_assets load_test_schedule);
+our @EXPORT_OK = qw(git_rev_parse checkout_git_repo_and_branch
+  checkout_git_refspec handle_generated_assets load_test_schedule);
+
+sub git_rev_parse($dirname) {
+    chomp(my $version = (-d "$dirname/.git" ? qx{git -C $dirname rev-parse HEAD} : '') || 'UNKNOWN');
+    return $version;
+}
 
 sub calculate_git_hash ($git_repo_dir) {
-    my $dir = getcwd();
-    chdir($git_repo_dir);
-    chomp(my $git_hash = qx{git rev-parse HEAD ||:});
-    $git_hash ||= "UNKNOWN";
-    chdir($dir);
+    my $git_hash = git_rev_parse($git_repo_dir);
     bmwqemu::diag "git hash in $git_repo_dir: $git_hash";
     return $git_hash;
 }
