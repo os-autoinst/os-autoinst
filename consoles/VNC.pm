@@ -814,11 +814,9 @@ sub _receive_update ($self) {
     }
 
     my $socket = $self->socket;
-    my $hlen = $socket->read(my $header, 3) || die 'unexpected end of data';
-    my $number_of_rectangles = unpack('xn', $header);
-    my $depth = $self->depth;
-    my $do_endian_conversion = $self->_do_endian_conversion;
+    $socket->read(my $header, 3) || die 'unexpected end of data';
 
+    my $number_of_rectangles = unpack('xn', $header);
     foreach (my $i = 0; $i < $number_of_rectangles; ++$i) {
         $socket->read(my $data, 12) || die 'unexpected end of data';
         my ($x, $y, $w, $h, $encoding_type) = unpack 'nnnnN', $data;
