@@ -338,28 +338,6 @@ sub export_blockdev_images ($self, $filter, $img_dir, $name, $qemu_compress_qcow
     return $count;
 }
 
-=head3 gen_runfile
-
-Create a shell script which will execute QEMU with the same parameters which
-we are using.
-
-=cut
-sub gen_runfile ($self) {
-    open(my $cmdfd, '>', 'runqemu');
-    print $cmdfd "#!/bin/bash\n";
-    my @args;
-    for my $arg ($self->_static_params) {
-        $arg =~ s,\\,\\\\,g;
-        $arg =~ s,\$,\\\$,g;
-        $arg =~ s,\",\\\",g;
-        $arg =~ s,\`,\\\`,;
-        push(@args, "\"$arg\"");
-    }
-    printf $cmdfd "%s \\\n  %s \\\n  \"\$@\"\n", $self->qemu_bin, join(" \\\n  ", @args);
-    close $cmdfd;
-    chmod 0755, 'runqemu';
-}
-
 sub exec_qemu ($self) {
     my @params = $self->gen_cmdline();
     session->enable;
