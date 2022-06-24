@@ -49,6 +49,8 @@ EOV
 path('live_log')->touch;
 system("cd $toplevel_dir && perl $toplevel_dir/isotovideo --workdir $pool_dir -d 2>&1 | tee $pool_dir/autoinst-log.txt");
 my $log = path('autoinst-log.txt')->slurp;
+my $version = -e "$toplevel_dir/.git" ? qr/[a-f0-9]+/ : 'UNKNOWN';
+like $log, qr/Current version is $version [interface v[0-9]+]/, 'version read from git';
 like $log, qr/\d*: EXIT 0/, 'test executed fine';
 like $log, qr/\d* Snapshots are supported/, 'Snapshots are enabled';
 unlike $log, qr/Tests died:/, 'Tests did not fail within modules' or diag "autoinst-log.txt: $log";
