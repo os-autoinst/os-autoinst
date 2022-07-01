@@ -16,7 +16,7 @@ our @EXPORT_OK = qw(git_rev_parse checkout_git_repo_and_branch
   checkout_git_refspec handle_generated_assets load_test_schedule);
 
 sub git_rev_parse($dirname) {
-    chomp(my $version = (-d "$dirname/.git" ? qx{git -C $dirname rev-parse HEAD} : '') || 'UNKNOWN');
+    chomp(my $version = (-e "$dirname/.git" ? qx{git -C $dirname rev-parse HEAD} : '') || 'UNKNOWN');
     return $version;
 }
 
