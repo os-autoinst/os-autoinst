@@ -1390,7 +1390,7 @@ sub send_key_until_needlematch {
 
 =head2 type_string
 
-  type_string($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, wait_still_screen => <num> ] [, secret => 1 ]
+  type_string($string [, max_interval => <num> ] [, wait_screen_change => <num> ] [, wait_still_screen => <num> ] [, secret => 1 ]
   [, timeout => <num>] [, similarity_level => <num>] [, lf => 1 ]);
 
 send a string of characters, mapping them to appropriate key names as necessary
@@ -1440,7 +1440,7 @@ sub type_string {    # no:style:signatures
     my $wait_still = $args{wait_still_screen} // 0;
     my $wait_timeout = $args{timeout} // 30;
     my $wait_sim_level = $args{similarity_level} // 47;
-    bmwqemu::log_call(string => $string, max_interval => $max_interval, wait_screen_changes => $wait, wait_still_screen => $wait_still,
+    bmwqemu::log_call(string => $string, max_interval => $max_interval, wait_screen_change => $wait, wait_still_screen => $wait_still,
         timeout => $wait_timeout, similarity_level => $wait_sim_level, $args{secret} ? (-masked => $string) : ());
     my @pieces;
     if ($wait) {
@@ -1467,7 +1467,7 @@ sub type_string {    # no:style:signatures
 
 =head2 type_password
 
-  type_password($password [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, wait_still_screen => <num> ] [, timeout => <num>]
+  type_password($password [, max_interval => <num> ] [, wait_screen_change => <num> ] [, wait_still_screen => <num> ] [, timeout => <num>]
   [, similarity_level => <num>] );
 
 A convenience wrapper around C<type_string>, which doesn't log the string.
@@ -1486,7 +1486,7 @@ sub type_password {    # no:style:signatures
 
 =head2 enter_cmd
 
-  enter_cmd($string [, max_interval => <num> ] [, wait_screen_changes => <num> ] [, wait_still_screen => <num> ] [, secret => 1 ]
+  enter_cmd($string [, max_interval => <num> ] [, wait_screen_change => <num> ] [, wait_still_screen => <num> ] [, secret => 1 ]
   [, timeout => <num>] [, similarity_level => <num>] );
 
 A convenience wrapper around C<type_string>, that adds a linefeed to execute a
