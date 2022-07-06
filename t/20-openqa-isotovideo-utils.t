@@ -53,4 +53,6 @@ subtest 'error handling when loading test schedule' => sub {
     };
 };
 
+is_deeply OpenQA::Isotovideo::Utils::_store_asset(0, 'foo.qcow2', 'bar'), {hdd_num => 0, name => 'foo.qcow2', dir => 'bar', format => 'qcow2'}, '_store_asset returns correct parameters';
+
 done_testing;
