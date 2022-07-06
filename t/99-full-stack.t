@@ -29,6 +29,7 @@ note("pool dir: $pool_dir");
 chdir($pool_dir);
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 
+my $casedir = path($data_dir, 'tests');
 path('vars.json')->spurt(<<EOV);
 {
    "ARCH" : "i386",
@@ -36,7 +37,7 @@ path('vars.json')->spurt(<<EOV);
    "QEMU" : "i386",
    "QEMU_NO_TABLET" : "1",
    "QEMU_NO_FDC_SET" : "1",
-   "CASEDIR" : "$data_dir/tests",
+   "CASEDIR" : "$casedir",
    "ISO" : "$data_dir/Core-7.2.iso",
    "CDMODEL" : "ide-cd",
    "HDDMODEL" : "ide-hd",
