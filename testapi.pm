@@ -1324,9 +1324,7 @@ Special characters naming:
 =cut
 
 sub send_key {    # no:style:signatures
-    my $key = shift;
-    my %args = (@_ == 1) ? (do_wait => +shift()) : @_;
-    $args{do_wait} //= 0;
+    my ($key, %args) = @_;
     $args{wait_screen_change} //= 0;
     bmwqemu::log_call(key => $key, %args);
     if ($args{wait_screen_change}) {
