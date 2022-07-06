@@ -559,6 +559,13 @@ sub assert_and_dclick ($mustmatch, %args) {
     return assert_and_click($mustmatch, %args);
 }
 
+# with 'no_wait' actually wait a little bit not to waste too much CPU
+# corresponding to what check_screen/assert_screen also does
+# internally
+sub _sleep_screen_check ($args) {
+    sleep($args->{no_wait} ? 0.01 : 0.5);
+}
+
 =head2 wait_screen_change
 
   wait_screen_change(CODEREF [,$timeout [, similarity_level => 50]]);
@@ -612,7 +619,7 @@ sub wait_screen_change : prototype(&@) {    # no:style:signatures
             bmwqemu::fctres("screen change seen at " . (time - $starttime));
             return 1;
         }
-        sleep(0.5);
+        _sleep_screen_check(\%args);
     }
     save_screenshot;
     bmwqemu::fctres("timed out");
@@ -688,10 +695,7 @@ sub wait_still_screen {    # no:style:signatures
             bmwqemu::fctres("detected same image for $stilltime seconds, last detected similarity is $sim");
             return 1;
         }
-        # with 'no_wait' actually wait a little bit not to waste too much CPU
-        # corresponding to what check_screen/assert_screen also does
-        # internally
-        sleep($args{no_wait} ? 0.01 : 0.5);
+        _sleep_screen_check(\%args);
     }
     $autotest::current_test->timeout_screenshot();
     bmwqemu::fctres("wait_still_screen timed out after $timeout, last detected similarity is $sim");
