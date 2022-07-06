@@ -247,11 +247,18 @@ $mock_bmwqemu->redefine(result_dir => File::Temp->newdir());
 subtest 'send_key with wait_screen_change' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     my $wait_screen_change_called = 0;
-    $mock_testapi->redefine(wait_screen_change => sub : prototype(&@) { shift->(); $wait_screen_change_called = 1 });
-    send_key 'ret', wait_screen_change => 1;
+    my $wait_screen_change_args;
+    $mock_testapi->redefine(wait_screen_change => sub : prototype(&@) {
+            my ($callback, $timeout, %args) = @_;
+            $callback->();
+            $wait_screen_change_called = 1;
+            $wait_screen_change_args = \%args;
+    });
+    send_key 'ret', wait_screen_change => 1, no_wait => 1;
     is(scalar @$cmds, 1, 'send_key waits for screen change') || diag explain $cmds;
     $cmds = [];
     ok($wait_screen_change_called, 'wait_screen_change called by send_key');
+    is_deeply($wait_screen_change_args, {wait_screen_change => 1, no_wait => 1}, 'wait_screen_change args match call');
 };
 
 is($autotest::current_test->{dents}, 0, 'no soft failures so far');
