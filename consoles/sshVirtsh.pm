@@ -24,6 +24,11 @@ sub new ($class, $testapi_console = undef, $args = {}) {
     $self->name("openQA-SUT-" . $self->instance);
     $self->vmm_family($bmwqemu::vars{VIRSH_VMM_FAMILY} // 'kvm');
     $self->vmm_type($bmwqemu::vars{VIRSH_VMM_TYPE} // 'hvm');
+    if ($self->vmm_family eq 'vmware') {
+        $self->{_vmm_user} = $bmwqemu::vars{VMWARE_USERNAME};
+        $self->{_vmm_pword} = $bmwqemu::vars{VMWARE_PASSWORD};
+        $self->{_vmm_host} = $bmwqemu::vars{VMWARE_HOST};
+    }
 
     return $self;
 }
@@ -461,26 +466,19 @@ sub add_disk ($self, $args) {
     return;
 }
 
-sub virsh () {
-    my $virsh = 'virsh';
-    $virsh .= ' ' . $bmwqemu::vars{VMWARE_REMOTE_VMM} if $bmwqemu::vars{VMWARE_REMOTE_VMM};
-    return $virsh;
-}
-
 sub suspend ($self) {
-    $self->run_cmd(virsh() . " suspend " . $self->name) && die "Can't suspend VM ";
+    $self->run_cmd($self->{virsh} . " suspend " . $self->name) && die "Can't suspend VM ";
     bmwqemu::diag "VM " . $self->name . " suspended";
 }
 
 sub resume ($self) {
-    $self->run_cmd(virsh() . " resume " . $self->name) && die "Can't resume VM ";
+    $self->run_cmd($self->{virsh} . " resume " . $self->name) && die "Can't resume VM ";
     bmwqemu::diag "VM " . $self->name . " resumed";
 }
 
 sub get_remote_vmm ($self) { $bmwqemu::vars{VMWARE_REMOTE_VMM} // '' }
 
-sub define_and_start ($self) {
-    my $remote_vmm = "";
+sub prepare_virsh ($self) {
     if ($self->vmm_family eq 'vmware') {
         my ($fh, $libvirtauthfilename) = File::Temp::tempfile(DIR => "/tmp/");
 
@@ -489,22 +487,28 @@ sub define_and_start ($self) {
         $self->run_cmd(
             "cat > $libvirtauthfilename <<__END
 [credentials-vmware]
-username=" . ($bmwqemu::vars{VMWARE_USERNAME} or die 'Need variable VMWARE_USERNAME') . "
-password=" . ($bmwqemu::vars{VMWARE_PASSWORD} or die 'Need variable VMWARE_PASSWORD') . "
-[auth-esx-" . ($bmwqemu::vars{VMWARE_HOST} or die 'Need variable VMWARE_HOST') . "]
+username=$self->{_vmm_user}
+password=$self->{_vmm_pword}
+[auth-esx-$self->{_vmm_host}]
 credentials=vmware
-__END"
+__END");
+        my $remote_vmm = sprintf('-c esx://%s@%s/?no_verify=1\&authfile=%s ', $self->{_vmm_user},
+            $self->{_vmm_host},
+            $libvirtauthfilename
         );
-        my $user = $bmwqemu::vars{VMWARE_USERNAME} or die 'Need variable VMWARE_USERNAME';
-        my $host = $bmwqemu::vars{VMWARE_HOST} or die 'Need variable VMWARE_HOST';
-        $remote_vmm = "-c esx://$user\@$host/?no_verify=1\\&authfile=$libvirtauthfilename ";
+
         $bmwqemu::vars{VMWARE_REMOTE_VMM} = $remote_vmm;
+        return $self->{virsh} = "virsh $remote_vmm";
     }
 
+    return $self->{virsh} = 'virsh ';
+}
+
+sub define_domain ($self) {
     my $instance = $self->instance;
     my $xmldata = $self->{domainxml}->toString(2);
-    my $xmlfilename = "/var/lib/libvirt/images/" . $self->name . ".xml";
-    my $ret;
+    my $xmlfilename = sprintf('/var/lib/libvirt/images/%s.xml', $self->{name});
+
     bmwqemu::diag("Creating libvirt configuration file $xmlfilename:\n$xmldata");
     my ($ssh, $chan) = $self->backend->run_ssh("cat > $xmlfilename", $self->get_ssh_credentials(), keep_open => 1);
     # scp_put is unfortunately unreliable (RT#61771)
@@ -512,25 +516,65 @@ __END"
     $chan->send_eof();
     $chan->close();
 
-    # shut down possibly running previous test (just to be sure) - ignore errors
-    # just making sure we continue after the command finished
-    my $ignore = ' |& grep -v "\(failed to get domain\|Domain not found\)"';
-    $self->run_cmd("virsh $remote_vmm destroy " . $self->name . $ignore);
-    $self->run_cmd("virsh $remote_vmm undefine --snapshots-metadata " . $self->name . $ignore);
+    $self->run_cmd("$self->{virsh} define $xmlfilename") && die "virsh define failed";
+}
 
-    # define the new domain
-    $self->run_cmd("virsh $remote_vmm define $xmlfilename") && die "virsh define failed";
-    if ($self->vmm_family eq 'vmware') {
-        $self->run_cmd('echo bios.bootDelay = \"10000\" >> /vmfs/volumes/datastore1/openQA/' . $self->name . '.vmx', domain => 'sshVMwareServer');
-    }
-
-    $ret = $self->run_cmd("virsh $remote_vmm start " . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');
+sub start_domain ($self) {
+    my $ret = $self->run_cmd("$self->{virsh} start $self->{name} 2> >(tee /tmp/os-autoinst-$self->{name}-stderr.log >&2)");
     bmwqemu::diag("Dump actually used libvirt configuration file " . ($ret ? "(broken)" : "(working)"));
-    $self->run_cmd("virsh $remote_vmm dumpxml " . $self->name);
+    $self->run_cmd("$self->{virsh} dumpxml $self->{name}");
     die "virsh start failed" if $ret;
 
     $self->backend->start_serial_grab($self->name);
+}
 
+sub shutdown_domain ($self) {
+    my $ignore = '|& grep -v "\(failed to get domain\|Domain not found\)"';
+    my $ret = $self->run_cmd("$self->{virsh} destroy $self->{name} $ignore");
+    bmwqemu::diag("virsh destroy returned $ret");
+}
+
+sub remove_domain ($self) {
+    my $ignore = '|& grep -v "\(failed to get domain\|Domain not found\)"';
+    my $ret = $self->run_cmd("$self->{virsh} undefine $self->{name} --snapshots-metadata $ignore");
+    bmwqemu::diag("virsh undefine returned $ret");
+}
+
+sub modify_vmx ($self) {
+    # VMX files are VMWare specific
+    return unless ($self->vmm_family eq 'vmware');
+
+    my $vmx = sprintf('/vmfs/volumes/datastore1/openQA/%s.vmx', $self->name);
+    my $ci_meta = $bmwqemu::vars{CLOUD_INIT_META};
+    my $ci_user = $bmwqemu::vars{CLOUD_INIT_USER};
+    my $ci_encoding = $bmwqemu::vars{CLOUD_INIT_ENCODING};
+
+    # set default boot delay
+    $self->run_cmd("echo bios.bootDelay = \"10000\" >> $vmx", domain => 'sshVMwareServer');
+
+    # inject cloud init metadata and userdata required for the image
+    if ($ci_meta && $ci_user && $ci_encoding) {
+        $self->run_cmd("echo guestinfo.metadata = \"$ci_meta\" >> $vmx", domain => 'sshVMwareServer');
+        $self->run_cmd("echo guestinfo.metadata.encoding = \"$ci_encoding\" >> $vmx", domain => 'sshVMwareServer');
+        $self->run_cmd("echo guestinfo.userdata = \"$ci_user\" >> $vmx", domain => 'sshVMwareServer');
+        $self->run_cmd("echo guestinfo.userdata.encoding = \"$ci_encoding\" >> $vmx", domain => 'sshVMwareServer');
+    }
+}
+
+sub define_and_start ($self) {
+    bmwqemu::diag("Method consoles::sshVirtsh::define_and_start will become DEPRECATED!");
+    $self->prepare_virsh();
+    # clean up
+    # shut down possibly running previous test (just to be sure) - ignore errors
+    # just making sure we continue after the command finished
+    $self->shutdown_domain();
+    $self->remove_domain();
+
+    # define the new domain
+    $self->define_domain();
+    $self->modify_vmx();
+
+    $self->start_domain();
     return;
 }
 

@@ -109,6 +109,9 @@ subtest 'starting VMware console' => sub {
     $bmwqemu::vars{VMWARE_HOST} = 'h';
     $bmwqemu::vars{VMWARE_USERNAME} = 'u';
     $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
+    $svirt_console->{_vmm_host} = 'h';
+    $svirt_console->{_vmm_pword} = 'p';
+    $svirt_console->{_vmm_user} = 'u';
 
     my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close));
     my $backend_mock = Test::MockModule->new('backend::svirt');
@@ -126,9 +129,9 @@ subtest 'starting VMware console' => sub {
     my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
     is_deeply \@cmds, [
         $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
-        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' undefine openQA-SUT-1 --snapshots-metadata |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
-        'echo bios.bootDelay = \\"10000\\" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo bios.bootDelay = "10000" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
     ], 'expected commands invoked' or diag explain \@cmds;
