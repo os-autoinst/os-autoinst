@@ -30,8 +30,6 @@ sub _typing_limit () { $bmwqemu::vars{TYPING_LIMIT} // TYPING_LIMIT_DEFAULT || 1
 sub send_key_event ($key, $press_release_delay) { }
 
 sub type_string ($self, $args) {
-    bmwqemu::log_call(%$args, $args->{secret} ? (-masked => $args->{text}) : ());
-
     my $seconds_per_keypress = 1 / _typing_limit;
 
     # further slow down if being asked for.
