@@ -80,7 +80,7 @@ use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
-use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch
+use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_repo_and_branch
   checkout_git_refspec handle_generated_assets load_test_schedule);
 
 session->enable;
@@ -94,9 +94,7 @@ sub usage ($r) {
 }
 
 sub _get_version_string () {
-    my $dirname = curfile->dirname;
-    my $thisversion = (-d "$dirname/.git" ? qx{git -C $dirname rev-parse HEAD} : '') || 'unknown';
-    chomp $thisversion;
+    my $thisversion = git_rev_parse(curfile->dirname);
     return "Current version is $thisversion [interface v$OpenQA::Isotovideo::Interface::version]";
 }
 
