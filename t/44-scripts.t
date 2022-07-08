@@ -24,9 +24,9 @@ for my $key (keys %types) {
 }
 
 for my $script (sort keys %types) {
-    my $out = qx{timeout 3 $Bin/../$script --help 2>&1};
-    my $rc = $?;
-    is($rc, 0, "Calling '$script --help' returns exit code 0") or diag "Output: $out";
+    my $out = qx{timeout 8 $Bin/../$script --help 2>&1};
+    my $rc = $? >> 8;
+    is $rc, 0, "Calling '$script --help' returns exit code 0" or diag "Output($script): $out";
 }
 
 done_testing;
