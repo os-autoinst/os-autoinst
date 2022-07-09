@@ -133,9 +133,9 @@ sub login ($self, $connect_timeout = undef, $timeout = undef) {
     my $port = $self->port || 5900;
     my $description = $self->description || 'VNC server';
     my $is_local = $hostname =~ qr/(localhost|127\.0\.0\.\d+|::1)/;
-    my $local_timeout = $bmwqemu::vars{VNC_TIMEOUT_LOCAL} // 10;
+    my $local_timeout = $bmwqemu::vars{VNC_TIMEOUT_LOCAL} // 60;
     my $remote_timeout = $bmwqemu::vars{VNC_TIMEOUT_REMOTE} // 60;
-    my $local_connect_timeout = $bmwqemu::vars{VNC_CONNECT_TIMEOUT_LOCAL} // $local_timeout;
+    my $local_connect_timeout = $bmwqemu::vars{VNC_CONNECT_TIMEOUT_LOCAL} // 20;
     my $remote_connect_timeout = $bmwqemu::vars{VNC_CONNECT_TIMEOUT_REMOTE} // 240;
     $connect_timeout //= $is_local ? $local_connect_timeout : $remote_connect_timeout;
     $timeout //= $is_local ? $local_timeout : $remote_timeout;
