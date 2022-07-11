@@ -346,12 +346,15 @@ To use the script the previously shown build instructions need to be executed
 
 == History of os-autoinst
 
-At a time Bernhard M. Wiedemann from SUSE was on the openSUSE testing team and
-was assigned the task of testing the installer. Which meant tedious and dull
-work of waiting for 4GB ISO files to download when it's not even clear if
-those things even boot. And as the Perl founder Larry Wall states, important
-traits of programmers are lazyness, impatience and hybris. Which quickly led
-to developing os-autoinst to automate installations ;)
+At a time Bernhard M. Wiedemann who later joined was on the openSUSE testing
+team and was assigned the task of testing the installer. Which meant tedious
+and dull work of waiting for 4GB ISO files to download when it's not even
+clear if those things even boot. And as the Perl founder Larry Wall states,
+important traits of programmers are lazyness, impatience and hybris. Which
+quickly led to developing os-autoinst to automate installations ;) See
+https://lizards.opensuse.org/2010/04/29/making-of-the-opensuse-install-video/
+and https://lizards.opensuse.org/2010/05/25/automated-opensuse-testing/ for
+Bernhard's blog posts.
 
 == Further notes
 
