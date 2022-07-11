@@ -344,6 +344,15 @@ enough, `match` will be `null`.
 To use the script the previously shown build instructions need to be executed
 (including the invocation of the `symlinks` target).
 
+== History of os-autoinst
+
+At a time Bernhard M. Wiedemann from SUSE was on the openSUSE testing team and
+was assigned the task of testing the installer. Which meant tedious and dull
+work of waiting for 4GB ISO files to download when it's not even clear if
+those things even boot. And as the Perl founder Larry Wall states, important
+traits of programmers are lazyness, impatience and hybris. Which quickly led
+to developing os-autoinst to automate installations ;)
+
 == Further notes
 
 When using the QEMU backend, also ensure your user running os-autoinst has access
