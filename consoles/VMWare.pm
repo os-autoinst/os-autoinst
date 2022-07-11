@@ -5,6 +5,7 @@ package consoles::VMWare;
 
 use Mojo::Base -base, -signatures;
 
+use FindBin '$Bin';
 use Mojo::JSON qw(encode_json);
 use Mojo::UserAgent;
 use Mojo::URL;
@@ -15,6 +16,7 @@ has host => undef;
 has vm_id => 1;
 has username => 'root';
 has password => undef;
+has dewebsockify_pid => undef;
 
 sub _get_vmware_error ($dom) {
     my $faultstring_element = $dom->find('faultstring')->first;
@@ -75,6 +77,24 @@ sub get_vmware_wss_url ($self) {
     my $cookie = $request_wss_txn->req->cookies->[0];
     die "VMWare did not return a session cookie\n" unless $cookie;
     return (Mojo::URL->new($wss_url->text), $cookie);
+}
+
+sub _cleanup_previous_dewebsockify_process ($self) {
+    return undef unless my $pid = $self->dewebsockify_pid;
+    kill SIGTERM => $pid;
+    waitpid $pid, 0;
+    $self->dewebsockify_pid(undef);
+}
+
+sub _start_dewebsockify_process ($self, $listen_port, $websockets_url, $session) {
+    my $pid = fork;
+    return $self->dewebsockify_pid($pid) if $pid;
+    exec "$Bin/dewebsockify", '--listenport', $listen_port, '--websocketurl', $websockets_url, '--cookie', "vmware_client=VMware; $session";
+}
+
+sub launch_vnc_server ($self, $listen_port) {
+    $self->_cleanup_previous_dewebsockify_process;
+    $self->_start_dewebsockify_process($listen_port, $self->get_vmware_wss_url);
 }
 
 1;

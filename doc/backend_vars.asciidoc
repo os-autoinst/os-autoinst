@@ -218,6 +218,7 @@ VMWARE_NFS_DATASTORE;string;;VMware datastore with openQA NFS directories
 VMWARE_SERIAL_PORT;string;;TCP port where is VM's serial port stream to be expected on the ESX server
 VMWARE_BRIDGE;string;;VMware's bridge name (usual default is 'VM Network')
 VMWARE_REMOTE_VMM;string;;Set the vmware Virtual Machine Manager
+VMWARE_VNC_OVER_WS;boolean;0;Whether to use VNC over WebSockets (instead of raw VNC connection)
 HYPERV_USERNAME;string;;Administrator account name
 HYPERV_PASSWORD;string;;Password for above account
 HYPERV_SERVER;string;;Windows Server (2008 R2, 2012 R2, or 2016) instance IP address

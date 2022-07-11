@@ -12,11 +12,13 @@ use Carp qw(confess cluck carp croak);
 use Data::Dumper 'Dumper';
 use Scalar::Util 'blessed';
 use OpenQA::Exceptions;
+use consoles::VMWare;
 
 has [qw(description hostname port username password socket name width height depth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
-      _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell)];
+      _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell
+      vmware_vnc_over_ws_url)];
 
 our $VERSION = '0.40';
 
@@ -116,6 +118,16 @@ my @encodings = (
 );
 
 sub login ($self, $connect_timeout = undef, $timeout = undef) {
+    my $port = $self->port || 5900;
+    if (my $ws_url = $self->vmware_vnc_over_ws_url) {
+        my $vmware_handler = $self->{_vmware_handler} //= consoles::VMWare->new;
+        bmwqemu::diag "Establishing VNC connection over WebSockets via $ws_url";
+        $self->hostname('127.0.0.1');
+        $self->description('VNC over WebSockets server provided by VMWare');
+        $vmware_handler->configure_from_url($ws_url);
+        $vmware_handler->launch_vnc_server($port);
+    }
+
     # arbitrary
     my $connect_failure_limit = 2;
 
@@ -130,7 +142,6 @@ sub login ($self, $connect_timeout = undef, $timeout = undef) {
     $self->{_inflater} = undef;
 
     my $hostname = $self->hostname || 'localhost';
-    my $port = $self->port || 5900;
     my $description = $self->description || 'VNC server';
     my $is_local = $hostname =~ qr/(localhost|127\.0\.0\.\d+|::1)/;
     my $local_timeout = $bmwqemu::vars{VNC_TIMEOUT_LOCAL} // 60;
