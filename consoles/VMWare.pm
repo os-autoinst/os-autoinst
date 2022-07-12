@@ -10,6 +10,7 @@ use Mojo::JSON qw(encode_json);
 use Mojo::UserAgent;
 use Mojo::URL;
 use Mojo::Util qw(xml_escape);
+use log;
 
 has protocol => 'https';
 has host => undef;
@@ -48,12 +49,14 @@ sub get_vmware_wss_url ($self) {
     my $api_url = "$protocol://$host/sdk";
     my $username = xml_escape $self->username;
     my $password = xml_escape $self->password;
+    log::diag "VMWare credentials: username: $username, password: $password";    # FIXME: remove before merging
     my $vm_id = xml_escape $self->vm_id;
     my $auth_xml = qq{<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Header><operationID>esxui-8fb8</operationID></Header><Body><Login xmlns="urn:vim25"><_this type="SessionManager">ha-sessionmgr</_this><userName>$username</userName><password>$password</password></Login></Body></Envelope>};
     my $request_wss_xml = qq{<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Header><operationID>esxui-c51d</operationID></Header><Body><AcquireTicket xmlns="urn:vim25"><_this type="VirtualMachine">$vm_id</_this><ticketType>webmks</ticketType></AcquireTicket></Body></Envelope>};
 
     # request VMWare session
     my $ua = ($self->{_vmware_ua} //= Mojo::UserAgent->new);
+    $ua->cookie_jar->empty;    # avoid auth error because we're already logged in
     my ($auth_txn, $auth_headers) = _prepare_vmware_request($ua, $api_url, $auth_xml);
     $auth_headers->cookie('vmware_client=VMware');
     $ua->insecure(1);    # so far our setup doesn't have a proper certificate
@@ -94,7 +97,17 @@ sub _start_dewebsockify_process ($self, $listen_port, $websockets_url, $session)
 
 sub launch_vnc_server ($self, $listen_port) {
     $self->_cleanup_previous_dewebsockify_process;
-    $self->_start_dewebsockify_process($listen_port, $self->get_vmware_wss_url);
+
+    my $attempts = $bmwqemu::vars{VMWARE_VNC_OVER_WS_REQUEST_ATTEMPTS} // 11;
+    my $delay = $bmwqemu::vars{VMWARE_VNC_OVER_WS_REQUEST_DELAY} // 5;
+    for (; $attempts >= 0; --$attempts) {
+        my ($websockets_url, $session) = eval { $self->get_vmware_wss_url };
+        return $self->_start_dewebsockify_process($listen_port, $websockets_url, $session) unless my $error = $@;
+        die $error if $error =~ qr/incorrect user name or password/;    # no use to attempt further
+        chomp $error;
+        log::diag "$error, trying $attempts more times";
+        sleep $delay;
+    }
 }
 
 1;
