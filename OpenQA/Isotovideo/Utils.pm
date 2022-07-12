@@ -8,6 +8,7 @@ use Mojo::File qw(path);
 
 use Exporter 'import';
 use Cwd;
+use File::Spec;
 use bmwqemu;
 use autotest;
 use Try::Tiny;
@@ -17,6 +18,7 @@ our @EXPORT_OK = qw(git_rev_parse checkout_git_repo_and_branch
 
 sub git_rev_parse ($dirname) {
     return 'UNKNOWN' unless -e "$dirname/.git";
+    $dirname = File::Spec->catfile(cwd, $dirname) unless File::Spec->file_name_is_absolute($dirname);
     my $checksafe = q{git config --global --get safe.directory | grep -q};
     my $addsafe = q{HOME=$(mktemp -d --tmpdir os-autoinst-git.XXXXX) && git config --global --add safe.directory};
     my $version = qx{($checksafe "$dirname" && git -C "$dirname" rev-parse HEAD || $addsafe "$dirname" && git -C "$dirname" rev-parse HEAD && rm -r \$HOME)};
