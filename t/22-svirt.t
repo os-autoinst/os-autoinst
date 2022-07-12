@@ -110,12 +110,13 @@ subtest 'starting VMware console' => sub {
     $bmwqemu::vars{VMWARE_USERNAME} = 'u';
     $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
 
-    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close));
+    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
     my $backend_mock = Test::MockModule->new('backend::svirt');
     my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
     my $tmp_mock = Test::MockModule->new('File::Temp');
     my (@cmds, @ssh_cmds);
     $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
     $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
     $backend_mock->redefine(start_serial_grab => 1);
     $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
