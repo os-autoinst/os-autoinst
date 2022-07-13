@@ -118,15 +118,7 @@ my @encodings = (
 );
 
 sub login ($self, $connect_timeout = undef, $timeout = undef) {
-    my $port = $self->port || 5900;
-    if (my $ws_url = $self->vmware_vnc_over_ws_url) {
-        my $vmware_handler = $self->{_vmware_handler} //= consoles::VMWare->new;
-        bmwqemu::diag "Establishing VNC connection over WebSockets via $ws_url";
-        $self->hostname('127.0.0.1');
-        $self->description('VNC over WebSockets server provided by VMWare');
-        $vmware_handler->configure_from_url($ws_url);
-        $vmware_handler->launch_vnc_server($port);
-    }
+    consoles::VMWare::setup_for_vnc_console($self);
 
     # arbitrary
     my $connect_failure_limit = 2;
@@ -142,6 +134,7 @@ sub login ($self, $connect_timeout = undef, $timeout = undef) {
     $self->{_inflater} = undef;
 
     my $hostname = $self->hostname || 'localhost';
+    my $port = $self->port || 5900;
     my $description = $self->description || 'VNC server';
     my $is_local = $hostname =~ qr/(localhost|127\.0\.0\.\d+|::1)/;
     my $local_timeout = $bmwqemu::vars{VNC_TIMEOUT_LOCAL} // 60;

@@ -21,12 +21,12 @@ sub usage ($r = 0) {
 
 # read CLI args
 my %options;
-GetOptions(\%options, 'websocketurl=s', 'listenport=s', 'cookie=s', 'help|h|?') or usage(1);
+GetOptions(\%options, 'websocketurl=s', 'listenport=s', 'cookie=s', 'loglevel=s', 'help|h|?') or usage(1);
 usage if $options{help};
 my $ws_url = $options{websocketurl} or die "websocket URL missing\n";
 my $port = $options{listenport} // 5900;
 my $cookie = $options{cookie} ? $options{cookie} : undef;
-my $log = Mojo::Log->new;
+my $log = Mojo::Log->new(level => $options{loglevel} // 'info');
 $log->debug("websocket url: $ws_url");
 $log->debug("listen port: $port");
 $log->debug("cookie: " . $cookie) if $cookie;
@@ -71,7 +71,7 @@ $server->on(accept => sub ($server, $handle) {
                     $log->error('Unable to upgrade to WebSocket connection');
                 }
                 my $body = $tx->res->body;
-                $log->debug($body) if $body;
+                $log->trace($body) if $body;
                 $ws_connection = undef;
                 $stream->close_gracefully if $stream;
                 return undef;
@@ -82,10 +82,10 @@ $server->on(accept => sub ($server, $handle) {
 
             # pass data from websocket to raw socket
             $tx->on(text => sub ($tx, $text) {
-                $log->debug("WebSocket text message: $text");
+                $log->trace("WebSocket text message: $text");
             });
             $tx->on(binary => sub ($tx, $bytes) {
-                $log->debug("WebSocket binary message:\n" . sprintf("%v02X", $bytes));
+                $log->trace("WebSocket binary message:\n" . sprintf("%v02X", $bytes));
                 $stream->write($bytes) if $stream;
             });
 

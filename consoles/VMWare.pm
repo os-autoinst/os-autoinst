@@ -5,7 +5,6 @@ package consoles::VMWare;
 
 use Mojo::Base -base, -signatures;
 
-use FindBin '$Bin';
 use Mojo::JSON qw(encode_json);
 use Mojo::UserAgent;
 use Mojo::URL;
@@ -52,7 +51,6 @@ sub get_vmware_wss_url ($self) {
     my $username = xml_escape $self->username;
     my $password = xml_escape $self->password;
     my $vm_id = xml_escape($self->vm_id || $bmwqemu::vars{VIRSH_VM_ID});
-    log::diag "VMWare credentials: username: $username, password: $password, id: $vm_id";    # FIXME: remove before merging
     my $auth_xml = qq{<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Header><operationID>esxui-8fb8</operationID></Header><Body><Login xmlns="urn:vim25"><_this type="SessionManager">ha-sessionmgr</_this><userName>$username</userName><password>$password</password></Login></Body></Envelope>};
     my $request_wss_xml = qq{<Envelope xmlns="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><Header><operationID>esxui-c51d</operationID></Header><Body><AcquireTicket xmlns="urn:vim25"><_this type="VirtualMachine">$vm_id</_this><ticketType>webmks</ticketType></AcquireTicket></Body></Envelope>};
 
@@ -94,7 +92,7 @@ sub _cleanup_previous_dewebsockify_process ($self) {
 sub _start_dewebsockify_process ($self, $listen_port, $websockets_url, $session) {
     my $pid = fork;
     return $self->dewebsockify_pid($pid) if $pid;
-    exec "$Bin/dewebsockify", '--listenport', $listen_port, '--websocketurl', $websockets_url, '--cookie', "vmware_client=VMware; $session";
+    exec "$bmwqemu::scriptdir/dewebsockify", '--listenport', $listen_port, '--websocketurl', $websockets_url, '--cookie', "vmware_client=VMware; $session";
 }
 
 sub launch_vnc_server ($self, $listen_port) {
@@ -110,6 +108,17 @@ sub launch_vnc_server ($self, $listen_port) {
         log::diag "$error, trying $attempts more times";
         sleep $delay;
     }
+}
+
+sub setup_for_vnc_console ($vnc_console) {
+    return undef unless my $ws_url = $vnc_console->vmware_vnc_over_ws_url;
+    my $self = $vnc_console->{_vmware_handler} //= consoles::VMWare->new;
+    log::diag 'Establishing VNC connection over WebSockets via ' . Mojo::URL->new($ws_url)->to_string;
+    $vnc_console->hostname('127.0.0.1');
+    $vnc_console->description('VNC over WebSockets server provided by VMWare');
+    $self->configure_from_url($ws_url);
+    $self->launch_vnc_server($vnc_console->port || 5900);
+    return $self;
 }
 
 1;
