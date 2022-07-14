@@ -96,6 +96,20 @@ subtest 'request WebSockets URL' => sub {
     is $cookie, 'the cookie', 'cookie returned';
 };
 
+subtest 'deducing VNC over WebSockets URL from vars' => sub {
+    is consoles::VMWare::deduce_url_from_vars, undef, 'no URL if VMWARE_VNC_OVER_WS not set';
+
+    $bmwqemu::vars{VMWARE_VNC_OVER_WS} = 1;
+    throws_ok { consoles::VMWare::deduce_url_from_vars } qr/VMWARE_VNC_OVER_WS set but not VMWARE_HOST/, 'error if vars specified inconsistently';
+
+    $bmwqemu::vars{VMWARE_HOST} = 'the-host';
+    throws_ok { consoles::VMWare::deduce_url_from_vars } qr/VMWARE_VNC_OVER_WS set but not VMWARE_PASSWORD/, 'error if password missing';
+
+    $bmwqemu::vars{VMWARE_USERNAME} = 'foo';
+    $bmwqemu::vars{VMWARE_PASSWORD} = 'bar';
+    is consoles::VMWare::deduce_url_from_vars, 'https://foo:bar@the-host', 'URL deduced from vars';
+};
+
 subtest 'test against real VMWare instance' => sub {
     my $vmware = consoles::VMWare->new;
     my $instance_url = $ENV{OS_AUTOINST_TEST_AGAINST_REAL_VMWARE_INSTANCE};
