@@ -14,9 +14,9 @@ use Try::Tiny;
 our @EXPORT_OK = qw(git_rev_parse checkout_git_repo_and_branch
   checkout_git_refspec handle_generated_assets load_test_schedule);
 
-sub git_rev_parse ($dirname) {
+sub git_rev_parse ($dirname, $cmd_prefix = '') {
     $dirname = path($dirname)->realpath;
-    chomp(my $version = qx{git -C "$dirname" rev-parse HEAD 2>&1});
+    chomp(my $version = qx{$cmd_prefix git -C "$dirname" rev-parse HEAD 2>&1});
     return $version if $? == 0;
     return 'UNKNOWN' unless $version =~ /(git config.*safe.directory.*$)/;
     my $addsafe = 'TMPDIR=$(mktemp -d --tmpdir os-autoinst-git.XXXXX) && HOME=$TMPDIR && ' . $1;
