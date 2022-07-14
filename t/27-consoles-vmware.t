@@ -17,13 +17,19 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 
+use Test::Exception;
 use Test::MockObject;
 use Test::MockModule;
 use Test::Output qw(combined_like);
+use Mojo::Transaction::HTTP;
+use Mojo::Message::Request;
+use Mojo::Message::Response;
 
 use consoles::VMWare;
 
 $bmwqemu::scriptdir = "$Bin/..";
+
+sub mk_res ($code, @text) { map { Mojo::Message::Response->new->code($code)->body($_) } @text }
 
 subtest 'test configuration with fake URL' => sub {
     my $vmware_mock = Test::MockModule->new('consoles::VMWare');
@@ -54,6 +60,40 @@ subtest 'test configuration with fake URL' => sub {
     is $vmware->vm_id, undef, 'no VM-ID set (as our URL did not include one)';
     is $vmware->username, 'root', 'username set';
     is $vmware->password, 'secret#', 'password set (with URL-encoded character)';
+
+    $vmware->configure_from_url('https://not-root:123@another-host/42');
+    is $vmware->protocol, 'https', 'protocol configured from URL';
+    is $vmware->host, 'another-host', 'host configured from URL';
+    is $vmware->vm_id, '42', 'specific VM-ID configured from URL';
+};
+
+subtest 'request WebSockets URL' => sub {
+    # mock ua
+    my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');
+    my $http = Test::MockModule->new('Mojo::Transaction::HTTP');
+    my $req_mock = Test::MockModule->new('Mojo::Message::Request');
+    my @fake_res = mk_res 200, '<faultstring>some error</faultstring>';
+    $user_agent_mock->redefine(start => sub ($ua, $tx) { });
+    $user_agent_mock->redefine(get => sub { Mojo::Transaction::HTTP->new });
+    $http->redefine(result => sub { shift @fake_res });
+
+    my $vmware = consoles::VMWare->new(vm_id => 42, host => 'mocked');
+    throws_ok { $vmware->get_vmware_wss_url } qr/VMWare auth request failed: some error/, 'auth error handled';
+
+    @fake_res = mk_res 200, '', '<faultstring>another error</faultstring>';
+    throws_ok { $vmware->get_vmware_wss_url } qr/VMWare web socket URL request failed: another error/, 'ws request error handled';
+
+    @fake_res = mk_res 200, '', 'foo';
+    throws_ok { $vmware->get_vmware_wss_url } qr/VMWare did not return a web socket URL, it responsed:\nfoo/, 'no ws URL handled';
+
+    @fake_res = mk_res 200, '', '<url>wss://</url>';
+    throws_ok { $vmware->get_vmware_wss_url } qr/VMWare did not return a session cookie/, 'no cookie handled';
+
+    @fake_res = mk_res 200, '', '<url>wss://foo.bar</url>';
+    $req_mock->redefine(cookies => ['the cookie']);
+    my ($url, $cookie) = $vmware->get_vmware_wss_url;
+    is $url, 'wss://foo.bar', 'URL found';
+    is $cookie, 'the cookie', 'cookie returned';
 };
 
 subtest 'test against real VMWare instance' => sub {
