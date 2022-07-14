@@ -15,12 +15,12 @@ our @EXPORT_OK = qw(git_rev_parse checkout_git_repo_and_branch
   checkout_git_refspec handle_generated_assets load_test_schedule);
 
 sub git_rev_parse ($dirname) {
-    return 'UNKNOWN' unless -e "$dirname/.git";
     $dirname = path($dirname)->realpath;
-    my $checksafe = q{git config --global --get safe.directory | grep -q};
-    my $addsafe = q{HOME=$(mktemp -d --tmpdir os-autoinst-git.XXXXX) && git config --global --add safe.directory};
-    my $version = qx{($checksafe "$dirname" && git -C "$dirname" rev-parse HEAD || $addsafe "$dirname" && git -C "$dirname" rev-parse HEAD && rm -r \$HOME)};
-    $version ||= '(unreadable git hash)';
+    chomp(my $version = qx{git -C "$dirname" rev-parse HEAD 2>&1});
+    return $version if $? == 0;
+    return 'UNKNOWN' unless $version =~ /(git config.*safe.directory.*$)/;
+    my $addsafe = 'TMPDIR=$(mktemp -d --tmpdir os-autoinst-git.XXXXX) && HOME=$TMPDIR && ' . $1;
+    $version = qx{$addsafe && git -C "$dirname" rev-parse HEAD && rm -r \$TMPDIR} || '(unreadable git hash)';
     chomp($version);
     return $version;
 }
