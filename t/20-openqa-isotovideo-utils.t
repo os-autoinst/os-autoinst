@@ -3,7 +3,7 @@
 use Test::Most;
 use Test::Warnings qw(warning :report_warnings);
 use autodie ':all';
-use Test::Output qw(combined_like);
+use Test::Output qw(combined_like stderr_like);
 use File::Path qw(remove_tree rmtree);
 use Cwd 'abs_path';
 use Mojo::File qw(tempdir path);
@@ -12,13 +12,21 @@ use Mojo::Util qw(scope_guard);
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '10';
-use OpenQA::Isotovideo::Utils qw(load_test_schedule);
+use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_refspec load_test_schedule);
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 my $pool_dir = "$dir/pool";
 chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
+
+
+is git_rev_parse($dir), 'UNKNOWN', 'non-git repo detected as such';
+stderr_like { checkout_git_refspec($dir, 'MY_REFSPEC_VARIABLE') }
+qr/git hash in.*UNKNOWN/, 'checkout_git_refspec also detects UNKNOWN';
+my $toplevel_dir = "$Bin/..";
+my $version = -e "$toplevel_dir/.git" ? qr/[a-f0-9]+/ : qr/UNKNOWN/;
+like git_rev_parse($toplevel_dir), $version, 'can parse working copy version (if it is git)';
 
 subtest 'error handling when loading test schedule' => sub {
     chdir($dir);
