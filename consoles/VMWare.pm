@@ -89,10 +89,12 @@ sub _cleanup_previous_dewebsockify_process ($self) {
     $self->dewebsockify_pid(undef);
 }
 
-sub _start_dewebsockify_process ($self, $listen_port, $websockets_url, $session) {
+sub _start_dewebsockify_process ($self, $listen_port, $websockets_url, $session, $log_level = undef) {
+    my @args = ("$bmwqemu::scriptdir/dewebsockify", '--listenport', $listen_port, '--websocketurl', $websockets_url, '--cookie', "vmware_client=VMware; $session");
+    push @args, '--loglevel', $log_level if $log_level;
     my $pid = fork;
     return $self->dewebsockify_pid($pid) if $pid;
-    exec "$bmwqemu::scriptdir/dewebsockify", '--listenport', $listen_port, '--websocketurl', $websockets_url, '--cookie', "vmware_client=VMware; $session";
+    exec @args;    # uncoverable statement
 }
 
 sub launch_vnc_server ($self, $listen_port) {

@@ -107,12 +107,12 @@ $server->on(accept => sub ($server, $handle) {
     # pass data from raw socket to websocket
     $stream->on(read => sub ($s, $bytes) {
         if ($ws_connection) {
-            $log->debug("Raw socket message:\n" . sprintf("%v02X", $bytes));
-            $ws_connection->send({binary => $bytes});
+            $log->debug("Raw socket message:\n" . sprintf("%v02X", $bytes));  # uncoverable statement
+            $ws_connection->send({binary => $bytes});  # uncoverable statement
         }
         else {
-            $log->debug("Raw socket message (forwarding later):\n" . sprintf("%v02X", $bytes));
-            push @tosend, $bytes;
+            $log->debug("Raw socket message (forwarding later):\n" . sprintf("%v02X", $bytes));  # uncoverable statement
+            push @tosend, $bytes;  # uncoverable statement
         }
     });
 
@@ -120,10 +120,10 @@ $server->on(accept => sub ($server, $handle) {
     $stream->on(close => sub ($s) {
         $log->info('Client closed connection');
         $stream = undef;
-        $ws_connection->finish if $ws_connection;
+        $ws_connection ? $ws_connection->finish : Mojo::IOLoop->stop_gracefully;
     });
     $stream->on(error => sub ($stream, $err) {
-        $log->error("Client error: $err");
+        $log->error("Client error: $err");  # uncoverable statement
     });
 
     $log->info('Client accepted');
