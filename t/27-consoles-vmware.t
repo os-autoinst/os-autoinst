@@ -20,10 +20,13 @@ use OpenQA::Test::TimeLimit '5';
 use Test::Exception;
 use Test::MockObject;
 use Test::MockModule;
+use Test::Mojo;
 use Test::Output qw(combined_like);
 use Mojo::Transaction::HTTP;
 use Mojo::Message::Request;
 use Mojo::Message::Response;
+use Mojo::IOLoop::Server;
+use Mojo::Server::Daemon;
 
 use consoles::VMWare;
 
@@ -108,6 +111,75 @@ subtest 'deducing VNC over WebSockets URL from vars' => sub {
     $bmwqemu::vars{VMWARE_USERNAME} = 'foo';
     $bmwqemu::vars{VMWARE_PASSWORD} = 'bar';
     is consoles::VMWare::deduce_url_from_vars, 'https://foo:bar@the-host', 'URL deduced from vars';
+};
+
+subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
+    # define simple WebSocket server for testing
+    {
+        package TestWebSocketApp;
+        use Mojo::Base 'Mojolicious', -signatures;
+        has received_data => '';
+        sub startup ($self) { $self->routes->websocket('/test')->to('test#start_ws') }
+        sub received_everything ($self) { length $self->received_data >= length 'message sent from raw socket' }
+    }
+    {
+        package TestWebSocketApp::Controller::Test;
+        use Mojo::Base 'Mojolicious::Controller', -signatures;
+        sub start_ws ($self) {
+            my $sent_everything;
+            $self->send({binary => 'binary sent from WebSocket'}, sub {
+                    $self->send({text => 'text message sent from WebSocket'}, sub {
+                            $sent_everything = 1;
+                            $self->finish if length $self->app->received_everything;
+                    });
+            });
+            $self->on(
+                message => sub ($self, $msg) {
+                    $self->app->received_data($self->app->received_data . $msg);
+                    $self->finish if $sent_everything && $self->app->received_everything;
+                });
+            $self->on(finish => sub { Mojo::IOLoop->stop });
+        }
+    }
+
+    # start test WebSocket server
+    my $log_level = $ENV{OS_AUTOINST_TEST_DEWEBSOCKIFY_VERBOSE} ? 'trace' : 'error';
+    my $t = Test::Mojo->new('TestWebSocketApp');
+    my $app = $t->app;
+    $app->log->level($log_level);
+    my $ws_port = Mojo::IOLoop::Server->generate_port;
+    my $daemon = Mojo::Server::Daemon->new(listen => ["http://127.0.0.1:$ws_port"], ioloop => $t->ua->ioloop, app => $app);
+    combined_like { $daemon->start } qr/Web application available at/, 'could start test WebSocket server' or BAIL_OUT 'cannot proceed without test server';
+
+    # start dewebsockify
+    my $tcp_port = Mojo::IOLoop::Server->generate_port;
+    my @dewebsockify_args = ("$Bin/../dewebsockify", '--listenport', $tcp_port, '--websocketurl', "ws://127.0.0.1:$ws_port/test", '--loglevel', $log_level);
+    exec @dewebsockify_args unless my $dewebsockify_pid = fork;
+
+    # connect to dewebsockify and let everything run
+    my $data_received_via_raw_socket = '';
+    my $connect_attempts = $ENV{OS_AUTOINST_TEST_DEWEBSOCKIFY_CONNECT_ATTEMPTS} // 10;
+    my $connect_to_dewebsockify;
+    $connect_to_dewebsockify = sub ($loop) {
+        $loop->client({port => $tcp_port} => sub ($loop, $err, $stream) {
+                if ($err) {    # uncoverable statement
+                    return $loop->timer(0.1 => $connect_to_dewebsockify) if --$connect_attempts;    # uncoverable statement
+                    fail "unable to connect to dewebsockify: $err";    # uncoverable statement
+                    return $loop->stop;    # uncoverable statement
+                }
+                $stream->on(read => sub ($stream, $bytes) { $data_received_via_raw_socket .= $bytes });
+                $stream->write('message sent from raw socket');
+        });
+    };
+    $t->ua->ioloop->next_tick($connect_to_dewebsockify);
+    $t->ua->ioloop->start;
+
+    # check whether all messages have been passed as expected
+    is $data_received_via_raw_socket, 'binary sent from WebSocket', 'expected data received via raw socket';
+    is $app->received_data, 'message sent from raw socket', 'expected data received via WebSocket';
+    note 'stopping dewebsockify';
+    kill $dewebsockify_pid;
+    waitpid $dewebsockify_pid, 0;
 };
 
 subtest 'test against real VMWare instance' => sub {
