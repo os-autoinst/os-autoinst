@@ -110,8 +110,9 @@ sub launch_vnc_server ($self, $listen_port) {
     }
 }
 
-sub deduce_url_from_vars () {
+sub deduce_url_from_vars ($vnc_console) {
     return undef unless $bmwqemu::vars{VMWARE_VNC_OVER_WS};
+    return undef unless $vnc_console->hostname eq ($bmwqemu::vars{VIRSH_GUEST} // '');
     my $host = $bmwqemu::vars{VMWARE_HOST} or die "VMWARE_VNC_OVER_WS set but not VMWARE_HOST\n";
     my $user = $bmwqemu::vars{VMWARE_USERNAME} // 'root';
     my $password = $bmwqemu::vars{VMWARE_PASSWORD} or die "VMWARE_VNC_OVER_WS set but not VMWARE_PASSWORD\n";
@@ -119,7 +120,7 @@ sub deduce_url_from_vars () {
 }
 
 sub setup_for_vnc_console ($vnc_console) {
-    return undef unless my $ws_url = $vnc_console->vmware_vnc_over_ws_url // deduce_url_from_vars;
+    return undef unless my $ws_url = $vnc_console->vmware_vnc_over_ws_url // deduce_url_from_vars($vnc_console);
     my $self = $vnc_console->{_vmware_handler} //= consoles::VMWare->new;
     log::diag 'Establishing VNC connection over WebSockets via ' . Mojo::URL->new($ws_url)->to_string;
     $vnc_console->hostname('127.0.0.1');

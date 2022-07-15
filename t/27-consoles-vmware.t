@@ -100,17 +100,22 @@ subtest 'request WebSockets URL' => sub {
 };
 
 subtest 'deducing VNC over WebSockets URL from vars' => sub {
-    is consoles::VMWare::deduce_url_from_vars, undef, 'no URL if VMWARE_VNC_OVER_WS not set';
+    my $vnc_console = Test::MockObject->new;
+    is consoles::VMWare::deduce_url_from_vars($vnc_console), undef, 'no URL if VMWARE_VNC_OVER_WS not set';
 
     $bmwqemu::vars{VMWARE_VNC_OVER_WS} = 1;
-    throws_ok { consoles::VMWare::deduce_url_from_vars } qr/VMWARE_VNC_OVER_WS set but not VMWARE_HOST/, 'error if vars specified inconsistently';
+    $vnc_console->set_always(hostname => 'foo');
+    is consoles::VMWare::deduce_url_from_vars($vnc_console), undef, 'no URL if VIRSH_GUEST not matching';
+
+    $vnc_console->set_always(hostname => $bmwqemu::vars{VIRSH_GUEST} = 'virsh-guest-host');
+    throws_ok { consoles::VMWare::deduce_url_from_vars($vnc_console) } qr/VMWARE_VNC_OVER_WS set but not VMWARE_HOST/, 'error if vars specified inconsistently';
 
     $bmwqemu::vars{VMWARE_HOST} = 'the-host';
-    throws_ok { consoles::VMWare::deduce_url_from_vars } qr/VMWARE_VNC_OVER_WS set but not VMWARE_PASSWORD/, 'error if password missing';
+    throws_ok { consoles::VMWare::deduce_url_from_vars($vnc_console) } qr/VMWARE_VNC_OVER_WS set but not VMWARE_PASSWORD/, 'error if password missing';
 
     $bmwqemu::vars{VMWARE_USERNAME} = 'foo';
     $bmwqemu::vars{VMWARE_PASSWORD} = 'bar';
-    is consoles::VMWare::deduce_url_from_vars, 'https://foo:bar@the-host', 'URL deduced from vars';
+    is consoles::VMWare::deduce_url_from_vars($vnc_console), 'https://foo:bar@the-host', 'URL deduced from vars';
 };
 
 subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
