@@ -111,6 +111,66 @@ test distribution for details. When cloning an openSUSE test, the
 setting `BACKEND=svirt`. When overriding `SCHEDULE` you have to take it into
 account manually.
 
+### Testing with remote VMWare ESXi hypervisor using local `virsh`-client
+It is possible to use your local `virsh`-client to connect to a a remote VMWare
+ESXi hypervisor and run tests on it.
+
+#### libvirt configuration
+Since your local libvirt tooling is used by this setup, you still need to
+install at least `virsh` locally (the `libvirt-client` package under openSUSE).
+
+In this setup, `virsh` will be invoked with the `-c` parameter to specify the remote
+hypervisor host. If you want to use `virsh` manually, you also need to specify that
+parameter accordingly (e.g. grab the hypervisor URL from the autoinst log while the
+test is running).
+
+Like with "Local setup" one *could* also use `virt-manager`. The `esx://`-URL
+can be added as custom URL and then one is prompted for the password. I only ran
+into the problem that the self-signed certificate of our hypervisor instance was
+not accepted.
+
+#### openQA worker configuration
+The configuration is like the one from the "Local setup" section. The main
+difference is that we now set the VMWare host and password:
+
+```
+[3]
+BACKEND = svirt
+WORKER_CLASS = svirt-vmware
+VIRSH_HOSTNAME=127.0.0.1
+VIRSH_USERNAME=root
+VIRSH_PASSWORD=$THE_ROOT_PASSWORD
+VIRSH_CMDLINE=ifcfg=dhcp
+VIRSH_INSTANCE=10
+VMWARE_HOST=$THE_HYPERVISOR_HOSTNAME
+VMWARE_PASSWORD=$THE_HYPERVISOR_PASSWORD
+```
+
+You can use any number for `VIRSH_INSTANCE`. If the VMWare hypervisor host is
+also used in production, it makes sense to specify a `VIRSH_INSTANCE` that is
+not already used in production (which means you don't have to take out worker
+slots from production).
+
+Note that `VIRSH_INSTANCE` is not used as the VM's ID. It is used to set the
+libvirt-domain, e.g. in this example the libvirt-domain would be
+`openQA-SUT-10`. The actual VM-ID is assigned by VMWare and can be queried via
+`virsh`, e.g. `virsh -c esx://… dumpxml openQA-SUT-10`.
+
+#### SSH configuration
+Since we're still just connecting to our own host (for the SSH part) everything
+from "Local setup" applies here as well.
+
+#### Clone a job from production
+It makes most sense to clone a VMWare test scenario so simply search the
+production instance for existing VMWare jobs. The variables from the worker
+config should apply automatically so jobs can be cloned as-is.
+
+#### Further notes
+* Within the ESXi web interface you can monitor events and tasks which is useful
+  to keep track of what's going on from VMWare's side.
+* The default timeout of the ESXi web interface is very low but you can change
+  the timeout in the user menu (if you are annoyed by having to re-login all the
+  time).
 
 ## Vagrant
 
