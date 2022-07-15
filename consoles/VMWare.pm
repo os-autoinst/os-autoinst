@@ -100,14 +100,16 @@ sub launch_vnc_server ($self, $listen_port) {
 
     my $attempts = $bmwqemu::vars{VMWARE_VNC_OVER_WS_REQUEST_ATTEMPTS} // 11;
     my $delay = $bmwqemu::vars{VMWARE_VNC_OVER_WS_REQUEST_DELAY} // 5;
+    my $error;
     for (; $attempts >= 0; --$attempts) {
         my ($websockets_url, $session) = eval { $self->get_vmware_wss_url };
-        return $self->_start_dewebsockify_process($listen_port, $websockets_url, $session) unless my $error = $@;
+        return $self->_start_dewebsockify_process($listen_port, $websockets_url, $session) unless $error = $@;
         die $error if $error =~ qr/incorrect user name or password/;    # no use to attempt further
         chomp $error;
         log::diag "$error, trying $attempts more times";
         sleep $delay;
     }
+    die $error;
 }
 
 sub deduce_url_from_vars ($vnc_console) {

@@ -185,6 +185,15 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     note 'stopping dewebsockify';
     kill $dewebsockify_pid;
     waitpid $dewebsockify_pid, 0;
+subtest 'multiple attempts to launch VNC server' => sub {
+    my $vmware_mock = Test::MockModule->new('consoles::VMWare');
+    $vmware_mock->redefine(get_vmware_wss_url => sub { die "test error handling\n" });
+    $bmwqemu::vars{VMWARE_VNC_OVER_WS_REQUEST_DELAY} = 0;
+
+    my $vmware = consoles::VMWare->new;
+    combined_like {
+        throws_ok { $vmware->launch_vnc_server(1234) } qr/test error handling/, 'exception re-thrown'
+    } qr/test error handling, trying 11 more times.*trying 1 more times/s, 'attempts logged';
 };
 
 subtest 'test against real VMWare instance' => sub {
