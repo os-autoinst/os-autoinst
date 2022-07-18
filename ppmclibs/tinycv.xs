@@ -110,7 +110,7 @@ tinycv::Image read(const char *file)
 tinycv::Image from_ppm(SV *data)
   CODE:
     STRLEN len;
-    register unsigned char *buf = (unsigned char*)SvPV(data, len);
+    unsigned char *buf = (unsigned char*)SvPV(data, len);
     RETVAL = image_from_ppm(buf, len);
 
   OUTPUT:
