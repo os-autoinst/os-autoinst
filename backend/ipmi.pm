@@ -41,8 +41,9 @@ sub ipmitool ($self, $cmd, %args) {
     }
     chomp $stdout;
     chomp $stderr;
+    # Output error message with ipmi password masked
+    die join(' ', map { $_ eq $bmwqemu::vars{IPMI_PASSWORD} ? "[masked]" : $_ } @cmd) . ": $stderr" unless ($ret);
 
-    die join(' ', @cmd) . ": $stderr" unless ($ret);
     bmwqemu::diag("IPMI: $stdout");
     return $stdout;
 }

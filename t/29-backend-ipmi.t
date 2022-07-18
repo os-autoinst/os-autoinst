@@ -25,6 +25,7 @@ my @ipmi_cmdline = $backend->ipmi_cmdline;
 is_deeply \@ipmi_cmdline, [qw(ipmitool -I lanplus -H fake_HOSTNAME -U fake_USER -P fake_PASSWORD)], 'valid ipmi_cmdline';
 
 my $ipmi = Test::MockModule->new('backend::ipmi');
+throws_ok { $backend->ipmitool('foo') } qr/[masked]/, 'ipmi password masked in error output';
 $ipmi->redefine(ipmi_cmdline => sub { (qw(echo simulating ipmi)) });
 my $ret;
 combined_like { $ret = $backend->ipmitool('foo') } qr/IPMI: simulating ipmi foo/, 'log output for IPMI call';
