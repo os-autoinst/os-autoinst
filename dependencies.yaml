@@ -51,6 +51,7 @@ devel_requires:
 
 docker_requires:
   pkgconfig(opencv):
+  shadow:
   sudo:
   which:
 

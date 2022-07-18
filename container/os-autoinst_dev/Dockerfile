@@ -33,6 +33,7 @@ RUN zypper in -y -C \
        qemu \
        qemu-tools \
        qemu-x86 \
+       shadow \
        sudo \
        which \
        xorg-x11-Xvnc \
