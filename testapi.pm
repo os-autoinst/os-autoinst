@@ -1343,7 +1343,7 @@ Hold one C<$key> until release it
 
 sub hold_key {
     my ($key) = @_;
-    bmwqemu::log_call('hold_key', key => $key);
+    bmwqemu::log_call(key => $key);
     query_isotovideo('backend_hold_key', {key => $key});
 }
 
@@ -1357,7 +1357,7 @@ Release one C<$key> which is kept holding
 
 sub release_key {
     my $key = shift;
-    bmwqemu::log_call('release_key', key => $key);
+    bmwqemu::log_call(key => $key);
     query_isotovideo('backend_release_key', {key => $key});
 }
 
