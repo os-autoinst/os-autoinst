@@ -188,8 +188,10 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
                     $stream->close;
                     return $loop->stop;
                 }
-                $stream->on(read => sub ($stream, $bytes) { $data_received_via_raw_socket .= $bytes });
-                $stream->write('message sent from raw socket');
+                $stream->on(read => sub ($stream, $bytes) {
+                        $data_received_via_raw_socket .= $bytes;
+                        $stream->write('message sent from raw socket') if length $data_received_via_raw_socket >= length 'binary sent from WebSocket';
+                });
         });
     };
     $t->ua->ioloop->next_tick($connect_to_dewebsockify);
