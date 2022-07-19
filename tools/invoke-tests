@@ -51,12 +51,6 @@ fi
 export OS_AUTOINST_BUILD_DIRECTORY=$build_directory
 export OS_AUTOINST_MAKE_TOOL=$make_path
 
-# invoke tests within the t and xt directory
-if [[ $TESTS = *[!\ ]* ]]; then
-    # split TESTS on white-spaces to allow specifying multiple tests as documented
-    # shellcheck disable=SC2086
-    "$prove_path" $PROVE_ARGS $TESTS
-else
-    # shellcheck disable=SC2086
-    "$prove_path" $PROVE_ARGS -r t xt
-fi
+# split TESTS on white-spaces to allow specifying multiple tests as documented
+# shellcheck disable=SC2086
+(cd "$source_directory" && "$prove_path" $PROVE_ARGS ${TESTS:-"-r"})
