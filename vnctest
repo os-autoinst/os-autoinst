@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 # Copyright 2022 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
@@ -32,7 +32,7 @@ require tinycv;
 
 my $image_path = '/tmp/vnc-framebuffer.png' // $ENV{VNC_TEST_TEMP_IMAGE_PATH};
 unlink $image_path;
-exec "$Bin/debugviewer/debugviewer", $image_path if fork == 0;
+exec "$Bin/debugviewer/debugviewer", $image_path if $ENV{VNC_TEST_DEBUGVIEWER} && fork == 0;
 
 $log->info('Initializing VNC');
 my $vnc = consoles::VNC->new(%options);
