@@ -59,7 +59,7 @@ sub get_vmware_wss_url ($self) {
     $ua->cookie_jar->empty;    # avoid auth error because we're already logged in
     my ($auth_txn, $auth_headers) = _prepare_vmware_request($ua, $api_url, $auth_xml);
     $auth_headers->cookie('vmware_client=VMware');
-    $ua->insecure(1);    # so far our setup doesn't have a proper certificate
+    $ua->insecure($bmwqemu::vars{VMWARE_VNC_OVER_WS_INSECURE} // 0);
     $ua->start($auth_txn);
 
     # check for auth error
@@ -92,6 +92,7 @@ sub _cleanup_previous_dewebsockify_process ($self) {
 sub _start_dewebsockify_process ($self, $listen_port, $websockets_url, $session, $log_level = undef) {
     my @args = ("$bmwqemu::scriptdir/dewebsockify", '--listenport', $listen_port, '--websocketurl', $websockets_url, '--cookie', "vmware_client=VMware; $session");
     push @args, '--loglevel', $log_level if $log_level;
+    push @args, '--insecure' if $bmwqemu::vars{VMWARE_VNC_OVER_WS_INSECURE};
     my $pid = fork;
     return $self->dewebsockify_pid($pid) if $pid;
     exec @args;    # uncoverable statement

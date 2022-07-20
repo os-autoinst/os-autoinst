@@ -31,6 +31,7 @@ use Mojo::Server::Daemon;
 use consoles::VMWare;
 
 $bmwqemu::scriptdir = "$Bin/..";
+$bmwqemu::vars{VMWARE_VNC_OVER_WS_INSECURE} = 1;
 
 sub mk_res ($code, @text) { map { Mojo::Message::Response->new->code($code)->body($_) } @text }
 
@@ -258,7 +259,7 @@ subtest 'test against real VMWare instance' => sub {
 
     # spawn test instance of dewebsockify for manually testing with vncviewer
     if (my $port = $ENV{OS_AUTOINST_DEWEBSOCKIFY_PORT}) {
-        system "'$Bin/../dewebsockify' --listenport '$port' --websocketurl '$wss_url' --cookie 'vmware_client=VMware; $session'";
+        system "'$Bin/../dewebsockify' --listenport '$port' --websocketurl '$wss_url' --cookie 'vmware_client=VMware; $session' --insecure";
     }
 };
 

@@ -15,13 +15,13 @@ use Mojo::UserAgent;
 
 sub usage ($r = 0) {
     say 'Listens on a TCP port forwarding data to the specified websocket server
-    example: --websocketurl wss://... --listenport 590x --cookie "vmware_client=VMware; some_session=foobar"';
+    example: --websocketurl wss://... --listenport 590x --cookie "vmware_client=VMware; some_session=foobar" --insecure';
     exit $r;
 }
 
 # read CLI args
 my %options;
-GetOptions(\%options, 'websocketurl=s', 'listenport=s', 'cookie=s', 'loglevel=s', 'help|h|?') or usage(1);
+GetOptions(\%options, 'websocketurl=s', 'listenport=s', 'cookie=s', 'loglevel=s', 'insecure', 'help|h|?') or usage(1);
 usage if $options{help};
 my $ws_url = $options{websocketurl} or die "websocket URL missing\n";
 my $port = $options{listenport} // 5900;
@@ -37,7 +37,7 @@ my $server = Mojo::IOLoop::Server->new;
 my $ws_connection;
 my $stream;
 my @tosend;
-$ua->insecure(1);  # so far our setup doesn't have a proper certificate
+$ua->insecure($options{insecure} // 0);
 
 # accept new connections
 $server->on(accept => sub ($server, $handle) {
