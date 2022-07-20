@@ -12,11 +12,13 @@ use Carp qw(confess cluck carp croak);
 use Data::Dumper 'Dumper';
 use Scalar::Util 'blessed';
 use OpenQA::Exceptions;
+use consoles::VMWare;
 
 has [qw(description hostname port username password socket name width height depth
       no_endian_conversion  _pixinfo _colourmap _framebuffer _rfb_version screen_on
       _bpp _true_colour _do_endian_conversion absolute ikvm keymap _last_update_received
-      _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell)];
+      _last_update_requested check_vnc_stalls _vnc_stalled vncinfo old_ikvm dell
+      vmware_vnc_over_ws_url)];
 
 our $VERSION = '0.40';
 
@@ -116,6 +118,8 @@ my @encodings = (
 );
 
 sub login ($self, $connect_timeout = undef, $timeout = undef) {
+    consoles::VMWare::setup_for_vnc_console($self);
+
     # arbitrary
     my $connect_failure_limit = 2;
 

@@ -256,6 +256,8 @@ cd %{__builddir}
 %{_prefix}/lib/os-autoinst/autotest.pm
 %{_prefix}/lib/os-autoinst/*.py
 %{_prefix}/lib/os-autoinst/check_qemu_oom
+%{_prefix}/lib/os-autoinst/dewebsockify
+%{_prefix}/lib/os-autoinst/vnctest
 
 %dir %{_prefix}/lib/os-autoinst/schema
 %{_prefix}/lib/os-autoinst/schema/Wheels-01.yaml

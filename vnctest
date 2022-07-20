@@ -1,0 +1,53 @@
+#!/usr/bin/perl
+# Copyright 2022 SUSE LLC
+# SPDX-License-Identifier: GPL-2.0-or-later
+#
+
+use Mojo::Base -strict, -signatures;
+use Mojo::Log;
+use Getopt::Long;
+use Time::HiRes;
+
+use FindBin '$Bin';
+use lib "$Bin";
+use consoles::VNC;
+use cv;
+use needle;
+
+sub usage ($r = 0) {
+    say 'Connects to the specified VNC server using os-autoinst\'s VNC module
+    example: --hostname localhost --port 590x';
+    exit $r;
+}
+my %options;
+GetOptions(\%options, 'hostname=s', 'port=s', 'password=s', 'update-delay=s', 'verbose|v', 'help|h|?') or usage(1);
+usage if $options{help};
+
+my $update_delay = $options{'update-delay'} // 1;
+my $log = Mojo::Log->new;
+$log->level($options{verbose} ? 'debug' : 'info');
+$log->debug('Loading tinycv');
+cv::init;
+require tinycv;
+
+my $image_path = '/tmp/vnc-framebuffer.png' // $ENV{VNC_TEST_TEMP_IMAGE_PATH};
+unlink $image_path;
+exec "$Bin/debugviewer/debugviewer", $image_path if $ENV{VNC_TEST_DEBUGVIEWER} && fork == 0;
+
+$log->info('Initializing VNC');
+my $vnc = consoles::VNC->new(%options);
+my $incremental = 0;
+$vnc->login;
+
+while(1) {
+    $log->info('Send update request');
+    $vnc->send_update_request($incremental);
+    $incremental = 1;
+    $log->debug('Updating frame buffer');
+    if ($vnc->update_framebuffer) {
+        my $frame_buffer = $vnc->_framebuffer;
+        $log->debug($frame_buffer ? 'Update received, has frame buffer' : 'Update received');
+        $frame_buffer->write($image_path) if $frame_buffer;
+    }
+    sleep $update_delay;
+}

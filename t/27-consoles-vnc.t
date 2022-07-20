@@ -22,6 +22,8 @@ use cv;
 cv::init;
 require tinycv;
 
+$bmwqemu::scriptdir = "$Bin/..";
+
 my (@sent, @printed);
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
 $vnc_mock->redefine(_send_frame_buffer => sub ($self, $data) { push @sent, $data });
@@ -363,6 +365,30 @@ subtest 'server initialization' => sub {
         pack(N => -261),    # VNC_ENCODING_LED_STATE
     );
     is_deeply \@printed, \@expected, 'pixel format and encodings replied' or diag explain \@printed;
+};
+
+subtest 'login on real VNC server via vnctest, request and receive frame buffer' => sub {
+    # This test is using `vnctest` so this script is covered as well. Note that the `vnctest` script has mainly been added to be able to run our VNC client
+    # code manually against a real VNC server (which can sometimes be useful).
+
+    my $display = $ENV{VNC_TEST_DISPLAY} // 20;
+    my $port = 5900 + $display;
+
+    note "running Xvnc for display $display (port $port) and connect via $bmwqemu::scriptdir/vnctest";
+    my $xvnc_pid = open(my $xvnc_pipe, "Xvnc -depth 16 -SecurityTypes None -ac :$display 2>&1 |");
+    my $vnc_test_pid = open(my $vnc_test_pipe, "$bmwqemu::scriptdir/vnctest --port $port --verbose 2>&1 |");
+    my ($sent_update_request, $has_framebuffer) = (0, 0);
+    while (my $line = <$vnc_test_pipe>) {
+        ++$sent_update_request if $line =~ qr/Send update request/;
+        ++$has_framebuffer if $line =~ qr/has frame buffer/;
+        last if $sent_update_request && $has_framebuffer;
+    }
+    kill SIGTERM => $_ for $xvnc_pid, $vnc_test_pid;
+    waitpid $_, 0 for $xvnc_pid, $vnc_test_pid;
+    close $_ for $xvnc_pipe, $vnc_test_pipe;
+
+    ok $sent_update_request, 'sent update request';
+    ok $has_framebuffer, 'received frame buffer';
 };
 
 done_testing;
