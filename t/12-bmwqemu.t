@@ -156,10 +156,12 @@ subtest 'HDD variables sanity check' => sub {
 
 subtest 'invalid vars characters' => sub {
     my $num = scalar %bmwqemu::vars;
-    like warning { $bmwqemu::vars{lowercase_not_accepted} = 23 }, qr{Settings key 'lowercase_not_accepted' is invalid.*12-bmwqemu.t}s, 'Warning is issued for invalid setting keys';
+    throws_ok { $bmwqemu::vars{lowercase_not_accepted} = 23 } qr{Settings key 'lowercase_not_accepted' is invalid.*12-bmwqemu.t}s, 'Invalid keys results in an exception';
+    $bmwqemu::vars{LOWERCASE_NOT_ACCEPTED} = 23;
     my $new_num = %bmwqemu::vars;
     is $new_num, $num + 1, '%vars in scalar context works';
-    is exists $bmwqemu::vars{lowercase_not_accepted}, 1, 'exists $vars{...} works';
+    is exists $bmwqemu::vars{lowercase_not_accepted}, '', 'exists $vars{...} works, lowercase key not found';
+    is exists $bmwqemu::vars{LOWERCASE_NOT_ACCEPTED}, 1, 'exists $vars{...} works';
 };
 
 my %new_json = (foo => 'bar', baz => 42);

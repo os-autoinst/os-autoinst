@@ -301,7 +301,7 @@ sub wait_for_one_more_screenshot () { sleep 1 }
 package bmwqemu::tiedvars;
 use Tie::Hash;
 use base qw/ Tie::StdHash /;    # no:style prevent style warning regarding use of Mojo::Base and base in this file
-use Carp ();
+use Carp 'croak';
 
 sub TIEHASH ($class, %args) {
     my $self = bless {
@@ -310,7 +310,7 @@ sub TIEHASH ($class, %args) {
 }
 
 sub STORE ($self, $key, $val) {
-    warn Carp::longmess "Settings key '$key' is invalid" unless $key =~ m/^(?:[A-Z0-9_]+)\z/;
+    croak("Settings key '$key' is invalid (check your test settings)") unless $key =~ m/^(?:[A-Z0-9_]+)\z/;
     $self->{data}->{$key} = $val;
 }
 
