@@ -103,8 +103,9 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     else {
         bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
     }
-    return undef if $args{repo};
-    return $bmwqemu::vars{$dir_variable} = path($local_path)->to_abs->to_string;
+    my $local_abs = path($local_path)->to_abs->to_string;
+    $bmwqemu::vars{$dir_variable} = $local_abs unless $args{repo};
+    return $local_abs;
 }
 
 =head2 checkout_wheels
@@ -134,7 +135,9 @@ sub checkout_wheels ($dir) {
 
     foreach my $repo (@{$spec->{wheels}}) {
         $repo = "https://github.com/$repo.git" unless $repo =~ qr/^http/;
-        checkout_git_repo_and_branch($specfile, repo => $repo);
+        if (my $clone = checkout_git_repo_and_branch($specfile, repo => $repo)) {
+            unshift @INC, "$clone/lib";
+        }
     }
     return 0;
 }
