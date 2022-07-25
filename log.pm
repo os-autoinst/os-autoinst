@@ -33,34 +33,35 @@ sub log_format_callback ($time, $level, @items) {
 sub diag (@args) {
     confess "missing input" unless @args;
     logger->append(color('white'));
-    logger->debug(@args)->append(color('reset'));
+    $args[-1] .= color('reset');
+    logger->debug(@args);
     return;
 }
 
 sub fctres ($text, $fname = undef) {
     $fname //= (caller(1))[3];
     logger->append(color('green'));
-    logger->debug(">>> $fname: $text")->append(color('reset'));
+    logger->debug(">>> $fname: $text" . color('reset'));
     return;
 }
 
 sub fctinfo ($text, $fname = undef) {
     $fname //= (caller(1))[3];
     logger->append(color('yellow'));
-    logger->info("::: $fname: $text")->append(color('reset'));
+    logger->info("::: $fname: $text" . color('reset'));
     return;
 }
 
 sub fctwarn ($text, $fname = undef) {
     $fname //= (caller(1))[3];
     logger->append(color('red'));
-    logger->warn("!!! $fname: $text")->append(color('reset'));
+    logger->warn("!!! $fname: $text" . color('reset'));
     return;
 }
 
 sub modstate (@text) {
     logger->append(color('bold blue'));
-    logger->debug("||| @{[join(' ', @text)]}")->append(color('reset'));
+    logger->debug("||| @{[join(' ', @text)]}" . color('reset'));
     return;
 }
 
