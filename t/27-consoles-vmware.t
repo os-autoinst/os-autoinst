@@ -46,18 +46,22 @@ subtest 'test configuration with fake URL' => sub {
     is consoles::VMWare::setup_for_vnc_console($fake_vnc), undef, 'noop if URL not set';
 
     $fake_vnc->set_always(vmware_vnc_over_ws_url => 'https://root:secret%23@foo.bar');
+    $fake_vnc->set_always(hostname => 'original-hostname');
+    $fake_vnc->set_always(original_hostname => undef);
     $fake_vnc->set_always(port => 12345);
-    $fake_vnc->set_true(qw(hostname description));
+    $fake_vnc->set_true(qw(description));
     $fake_vnc->clear;
 
     my $vmware;
     combined_like { $vmware = consoles::VMWare::setup_for_vnc_console($fake_vnc) }
     qr{Establishing VNC connection over WebSockets via https://foo\.bar}, 'log message present without secrets';
     ok $vmware, 'VMWare "console" returned if URL is set' or return undef;
-    $fake_vnc->called_pos_ok(2, 'hostname', 'hostname assigned');
-    $fake_vnc->called_args_pos_is(2, 2, '127.0.0.1', 'hostname set to localhost');
-    $fake_vnc->called_pos_ok(3, 'description', 'description assigned');
-    $fake_vnc->called_args_pos_is(3, 2, 'VNC over WebSockets server provided by VMWare', 'description set accordingly');
+    $fake_vnc->called_pos_ok(4, 'original_hostname', 'hostname saved as original hostname');
+    $fake_vnc->called_args_pos_is(4, 2, 'original-hostname', 'original hostname set to hostname');
+    $fake_vnc->called_pos_ok(5, 'hostname', 'hostname assigned');
+    $fake_vnc->called_args_pos_is(5, 2, '127.0.0.1', 'hostname set to localhost');
+    $fake_vnc->called_pos_ok(6, 'description', 'description assigned');
+    $fake_vnc->called_args_pos_is(6, 2, 'VNC over WebSockets server provided by VMWare', 'description set accordingly');
     is_deeply \@dewebsockify_args, [12345, 'wss://foo', 'session'], 'dewebsockify called with expected args'
       or diag explain \@dewebsockify_args;
     is $vmware->host, 'foo.bar', 'hostname set';
@@ -105,7 +109,7 @@ subtest 'deducing VNC over WebSockets URL from vars' => sub {
     is consoles::VMWare::deduce_url_from_vars($vnc_console), undef, 'no URL if VMWARE_VNC_OVER_WS not set';
 
     $bmwqemu::vars{VMWARE_VNC_OVER_WS} = 1;
-    $vnc_console->set_always(hostname => 'foo');
+    $vnc_console->set_always(original_hostname => undef)->set_always(hostname => 'foo');
     is consoles::VMWare::deduce_url_from_vars($vnc_console), undef, 'no URL if VIRSH_GUEST not matching';
 
     $vnc_console->set_always(hostname => $bmwqemu::vars{VIRSH_GUEST} = 'virsh-guest-host');
@@ -117,6 +121,9 @@ subtest 'deducing VNC over WebSockets URL from vars' => sub {
     $bmwqemu::vars{VMWARE_USERNAME} = 'foo';
     $bmwqemu::vars{VMWARE_PASSWORD} = 'bar';
     is consoles::VMWare::deduce_url_from_vars($vnc_console), 'https://foo:bar@the-host', 'URL deduced from vars';
+
+    $vnc_console->set_always(original_hostname => $bmwqemu::vars{VIRSH_GUEST})->set_always(hostname => '127.0.0.1');
+    is consoles::VMWare::deduce_url_from_vars($vnc_console), 'https://foo:bar@the-host', 'original hostname used to check if VIRSH_GUEST matching';
 };
 
 subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
