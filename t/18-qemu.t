@@ -36,7 +36,7 @@ my @cmdl;
 my @gcmdl;
 
 @cmdl = ('-blockdev', 'driver=file,node-name=hd1-file,filename=raid/hd1,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=hd1,file=hd1-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=hd1,file=hd1-file,cache.no-flush=on,discard=unmap',
     '-device', 'virtio-blk,id=hd1-device,drive=hd1');
 $bdc = OpenQA::Qemu::BlockDevConf->new();
 $bdc->add_new_drive('hd1', 'virtio-blk', '10G');
@@ -73,10 +73,10 @@ $proc = qemu_proc('-foo', \%vars);
 is_deeply(\@gcmdl, \@cmdl, 'qemu-img create call for a vmdk disk image');
 
 @cmdl = ('-blockdev', 'driver=file,node-name=hd1-file,filename=raid/hd1,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=hd1,file=hd1-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=hd1,file=hd1-file,cache.no-flush=on,discard=unmap',
     '-device', 'virtio-blk,id=hd1-device,drive=hd1',
     '-blockdev', 'driver=file,node-name=hd2-file,filename=raid/hd2,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=hd2,file=hd2-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=hd2,file=hd2-file,cache.no-flush=on,discard=unmap',
     '-device', 'scsi-blk,id=hd2-device,drive=hd2');
 $bdc = OpenQA::Qemu::BlockDevConf->new();
 $bdc->add_new_drive('hd1', 'virtio-blk', '10G');
@@ -94,7 +94,7 @@ is_deeply(\@cmdl, \@gcmdl, 'Generate unlink list for multiple new drives');
 is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for multiple new drives');
 
 @cmdl = ('-blockdev', 'driver=file,node-name=hd1-overlay0-file,filename=raid/hd1-overlay0,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=hd1-overlay0,file=hd1-overlay0-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=hd1-overlay0,file=hd1-overlay0-file,cache.no-flush=on,discard=unmap',
     '-device', 'virtio-blk,id=hd1-device,drive=hd1-overlay0');
 $bdc = OpenQA::Qemu::BlockDevConf->new();
 $bdc->add_existing_drive('hd1', '/abs/path/sle15-minimal.qcow2', 'virtio-blk', 22548578304);
@@ -116,7 +116,7 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert for single existing drive'
 
 @cmdl = ('qemu-kvm', '-foo',
     '-blockdev', 'driver=file,node-name=hd0-overlay0-file,filename=raid/hd0-overlay0,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=hd0-overlay0,file=hd0-overlay0-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=hd0-overlay0,file=hd0-overlay0-file,cache.no-flush=on,discard=unmap',
     '-device', 'virtio-blk,id=hd0-device,drive=hd0-overlay0,bootindex=0,serial=hd0');
 %vars = (NUMDISKS => 1,
     HDDMODEL => 'virtio-blk',
@@ -137,12 +137,12 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img command line for single existing U
     '-device', 'virtio-scsi-device,id=scsi1',
 
     '-blockdev', 'driver=file,node-name=hd0-file,filename=raid/hd0,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=hd0,file=hd0-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=hd0,file=hd0-file,cache.no-flush=on,discard=unmap',
     '-device', 'sega-mega,id=hd0-device-path0,drive=hd0,share-rw=true,bus=scsi0.0,bootindex=0,serial=hd0',
     '-device', 'sega-mega,id=hd0-device-path1,drive=hd0,share-rw=true,bus=scsi1.0,serial=hd0',
 
     '-blockdev', 'driver=file,node-name=hd1-file,filename=raid/hd1,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=hd1,file=hd1-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=hd1,file=hd1-file,cache.no-flush=on,discard=unmap',
     '-device', 'sega-mega,id=hd1-device-path0,drive=hd1,share-rw=true,bus=scsi0.0,serial=hd1',
     '-device', 'sega-mega,id=hd1-device-path1,drive=hd1,share-rw=true,bus=scsi1.0,serial=hd1');
 %vars = (NUMDISKS => 2,
@@ -180,11 +180,11 @@ ok $proc->init_blockdev_images(), 'init_blockdev_images passes';
     '-device', 'virtio-scsi-device,id=scsi0',
 
     '-blockdev', 'driver=file,node-name=hd0-file,filename=raid/hd0,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=hd0,file=hd0-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=hd0,file=hd0-file,cache.no-flush=on,discard=unmap',
     '-device', 'scsi-hd,id=hd0-device,drive=hd0,bootindex=0,serial=hd0',
 
     '-blockdev', 'driver=file,node-name=cd0-overlay0-file,filename=raid/cd0-overlay0,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=cd0-overlay0,file=cd0-overlay0-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=cd0-overlay0,file=cd0-overlay0-file,cache.no-flush=on,discard=unmap',
     '-device', 'scsi-cd,id=cd0-device,drive=cd0-overlay0,serial=cd0');
 %vars = (NUMDISKS => 1,
     HDDMODEL => 'scsi-hd',
@@ -205,11 +205,11 @@ my $ss;
     '-device', 'virtio-scsi-device,id=scsi0',
 
     '-blockdev', 'driver=file,node-name=hd0-overlay1-file,filename=raid/hd0-overlay1,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=hd0-overlay1,file=hd0-overlay1-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=hd0-overlay1,file=hd0-overlay1-file,cache.no-flush=on,discard=unmap',
     '-device', 'scsi-hd,id=hd0-device,drive=hd0-overlay1,bootindex=0,serial=hd0',
 
     '-blockdev', 'driver=file,node-name=cd0-overlay1-file,filename=raid/cd0-overlay1,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=cd0-overlay1,file=cd0-overlay1-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=cd0-overlay1,file=cd0-overlay1-file,cache.no-flush=on,discard=unmap',
     '-device', 'scsi-cd,id=cd0-device,drive=cd0-overlay1,serial=cd0',
     '-incoming', 'defer');
 $ssc = $proc->snapshot_conf;
@@ -260,11 +260,11 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu-img convert with snapshots');
     '-device', 'virtio-scsi-device,id=scsi0',
 
     '-blockdev', 'driver=file,node-name=hd0-overlay1-file,filename=raid/hd0-overlay1,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=hd0-overlay1,file=hd0-overlay1-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=hd0-overlay1,file=hd0-overlay1-file,cache.no-flush=on,discard=unmap',
     '-device', 'scsi-hd,id=hd0-device,drive=hd0-overlay1,bootindex=0,serial=hd0',
 
     '-blockdev', 'driver=file,node-name=cd0-overlay1-file,filename=raid/cd0-overlay1,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=cd0-overlay1,file=cd0-overlay1-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=cd0-overlay1,file=cd0-overlay1-file,cache.no-flush=on,discard=unmap',
     '-device', 'scsi-cd,id=cd0-device,drive=cd0-overlay1,serial=cd0',
     '-incoming', 'defer');
 $proc = qemu_proc('-static-args', \%vars);
@@ -312,11 +312,11 @@ is_deeply(\@gcmdl, \@cmdl, 'Generate qemu command line after deserialising and r
     '-device', 'virtio-scsi-device,id=scsi0',
 
     '-blockdev', 'driver=file,node-name=hd0-overlay1-file,filename=raid/hd0-overlay1,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=hd0-overlay1,file=hd0-overlay1-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=hd0-overlay1,file=hd0-overlay1-file,cache.no-flush=on,discard=unmap',
     '-device', 'scsi-hd,id=hd0-device,drive=hd0-overlay1,bootindex=0,serial=hd0',
 
     '-blockdev', 'driver=file,node-name=cd0-overlay1-file,filename=raid/cd0-overlay1,cache.no-flush=on',
-    '-blockdev', 'driver=qcow2,node-name=cd0-overlay1,file=cd0-overlay1-file,cache.no-flush=on',
+    '-blockdev', 'driver=qcow2,node-name=cd0-overlay1,file=cd0-overlay1-file,cache.no-flush=on,discard=unmap',
     '-device', 'scsi-cd,id=cd0-device,drive=cd0-overlay1,serial=cd0',
 
     '-drive', 'id=pflash-code-overlay1,if=pflash,file=raid/pflash-code-overlay1',

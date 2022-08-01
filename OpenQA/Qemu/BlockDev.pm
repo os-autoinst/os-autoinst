@@ -129,7 +129,8 @@ sub gen_cmdline ($self) {
             join(',', ('driver=' . $self->driver,
                     'node-name=' . $self->node_name,
                     'file=' . $self->node_name . FILE_POSTFIX,
-                    'cache.no-flush=on'))));
+                    'cache.no-flush=on',
+                    'discard=unmap'))));
 
     return @cmdl;
 }
