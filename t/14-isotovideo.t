@@ -294,5 +294,4 @@ done_testing();
 END {
     rmtree "$Bin/data/tests/product";
     unlink("$data_dir/wheels.yaml") if -e "$data_dir/wheels.yaml";
-    rmtree "$pool_dir/writer";
 }
