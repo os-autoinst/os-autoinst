@@ -42,10 +42,9 @@ db="$build_directory/cover_db"
 # set Perl module include path and coverage options
 export PERL5LIB="$source_directory:$source_directory/ppmclibs/blib/lib:$source_directory/ppmclibs/blib/arch/auto/tinycv:$PERL5LIB"
 if [[ $WITH_COVER_OPTIONS ]]; then
-    path_regex="^|$source_directory/|\\.\\./"
-    select="($path_regex)(OpenQA|backend|consoles|ppmclibs)/|($path_regex)isotovideo|($path_regex)[^/]+\.pm,-ignore,external/|/tmp|/CheckGitStatus.pm|$prove_path"
+    ignore="external/|/tmp|/CheckGitStatus.pm|$prove_path"
     # add ' -MOpenQA::Test::PatchDeparse' for older OS versions to avoid warnings
-    export PERL5OPT="-I$source_directory/t/lib -I$source_directory/external/os-autoinst-common/lib -MOpenQA::Test::CheckGitStatus -MDevel::Cover=-db,$db,-select,$select,-coverage,statement"
+    export PERL5OPT="-I$source_directory/t/lib -I$source_directory/external/os-autoinst-common/lib -MOpenQA::Test::CheckGitStatus -MDevel::Cover=-db,$db,-ignore,$ignore,-coverage,statement"
 fi
 # set variables for tests which need to invoke the make tool
 export OS_AUTOINST_BUILD_DIRECTORY=$build_directory
