@@ -44,6 +44,9 @@ loadtest is called.
 =cut
 
 sub find_script ($script) {
+    if (defined(my $wheel = (glob Cwd::getcwd . "/*/tests/$script"))) {
+        return $wheel;
+    }
     my $casedir = $bmwqemu::vars{CASEDIR};
     my $script_override_path = join('/', $bmwqemu::vars{ASSETDIR} // '', 'other', $script);
     if (-f $script_override_path) {

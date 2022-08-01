@@ -112,15 +112,13 @@ subtest 'isotovideo with wheels' => sub {
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
 
+    $bmwqemu::scriptdir = "$Bin/..";
     my $wheels_dir = "$data_dir";
     my $specfile = path("$wheels_dir/wheels.yaml");
     $specfile->spurt("wheels: [foo/bar]");
-    # also verify that isotovideo invokes the wheel code correctly
-    combined_like { isotovideo(
-            opts => "wheels_dir=$wheels_dir casedir=$data_dir/tests _exit_after_schedule=1") } qr@Invalid.*Missing property@, 'invalid YAML causes error';
+    throws_ok { checkout_wheels(
+            "$wheels_dir") } qr@Invalid.*Missing property@, 'invalid YAML causes error';
     $specfile->spurt("version: v99\nwheels: [foo/bar]");
-    # from here on we directly test wheels in a way we can mock
-    $bmwqemu::scriptdir = "$Bin/..";
     throws_ok { checkout_wheels(
             "$wheels_dir") } qr@Unsupported version@, 'unsupported version';
     $specfile->spurt("version: v0.1\nwheels: [https://github.com/foo/bar.git]");
@@ -145,6 +143,17 @@ subtest 'isotovideo with wheels' => sub {
     $specfile->remove;
     is(checkout_wheels("$wheels_dir"), 1, 'no wheels');
     is(scalar @repos, 5, 'git never called');
+
+    # also verify that isotovideo invokes the wheel code correctly
+    $bmwqemu::vars{CASEDIR} = "$data_dir/tests";
+    $specfile->spurt("version: v0.1\nwheels: [copy/writer]");
+    path($pool_dir, 'writer', 'lib', 'Copy', 'Writer')->make_path->child('Content.pm')->spurt("package Copy::Writer::Content; use Mojo::Base 'Exporter'; our \@EXPORT_OK = qw(write); sub write {}; 1");
+    path($pool_dir, 'writer', 'tests', 'pen')->make_path->child('ink.pm')->spurt("use Mojo::Base 'basetest'; use Copy::Writer::Content 'write'; sub run {}; 1");
+    my $log = combined_from { isotovideo(
+            opts => "wheels_dir=$wheels_dir casedir=$data_dir/tests schedule=pen/ink _exit_after_schedule=1") };
+    like $log, qr@Skipping to clone.+copy/writer@, 'already cloned wheel picked up';
+    like $log, qr/scheduling ink/, 'module from the wheel scheduled';
+    rmtree "$pool_dir/writer";
 };
 
 subtest 'productdir variable relative/absolute' => sub {
@@ -285,4 +294,5 @@ done_testing();
 END {
     rmtree "$Bin/data/tests/product";
     unlink("$data_dir/wheels.yaml") if -e "$data_dir/wheels.yaml";
+    rmtree "$pool_dir/writer";
 }
