@@ -880,7 +880,7 @@ sub start_qemu ($self) {
                 # allocated
                 $m += $vars->{QEMURAM} % $vars->{QEMUCPUS} if $i == 0;
                 sp('object', "memory-backend-ram,size=${m}m,id=m$i");
-                sp('numa', [qv "node nodeid=$i,memdev=m$i"]);
+                sp('numa', [qv "node nodeid=$i,memdev=m$i,cpus=$i"]);
             }
         }
 
