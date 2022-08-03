@@ -522,7 +522,22 @@ __END"
     # define the new domain
     $self->run_cmd("virsh $remote_vmm define $xmlfilename") && die "virsh define failed";
     if ($self->vmm_family eq 'vmware') {
-        $self->run_cmd('echo bios.bootDelay = \"10000\" >> /vmfs/volumes/datastore1/openQA/' . $self->name . '.vmx', domain => 'sshVMwareServer');
+        my $vmx = sprintf('/vmfs/volumes/datastore1/openQA/%s.vmx', $self->name);
+
+        # set default boot delay
+        $self->run_cmd("echo bios.bootDelay = \"10000\" >> $vmx", domain => 'sshVMwareServer');
+
+        # inject cloud init metadata and userdata required for the image if there are any
+        my $ci_meta = $bmwqemu::vars{CLOUD_INIT_META};
+        my $ci_user = $bmwqemu::vars{CLOUD_INIT_USER};
+        my $ci_encoding = $bmwqemu::vars{CLOUD_INIT_ENCODING};
+
+        if ($ci_meta && $ci_user && $ci_encoding) {
+            $self->run_cmd("echo guestinfo.metadata = \"$ci_meta\" >> $vmx", domain => 'sshVMwareServer');
+            $self->run_cmd("echo guestinfo.metadata.encoding = \"$ci_encoding\" >> $vmx", domain => 'sshVMwareServer');
+            $self->run_cmd("echo guestinfo.userdata = \"$ci_user\" >> $vmx", domain => 'sshVMwareServer');
+            $self->run_cmd("echo guestinfo.userdata.encoding = \"$ci_encoding\" >> $vmx", domain => 'sshVMwareServer');
+        }
     }
 
     $ret = $self->run_cmd("virsh $remote_vmm start " . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');

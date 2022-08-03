@@ -129,7 +129,44 @@ subtest 'starting VMware console' => sub {
         $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
-        'echo bios.bootDelay = \\"10000\\" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo bios.bootDelay = "10000" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
+        $s . ' dumpxml openQA-SUT-1'
+    ], 'expected commands invoked' or diag explain \@cmds;
+};
+
+subtest 'starting VMware console with Cloud Init' => sub {
+    $bmwqemu::vars{VMWARE_HOST} = 'h';
+    $bmwqemu::vars{VMWARE_USERNAME} = 'u';
+    $bmwqemu::vars{VMWARE_PASSWORD} = 'p';
+    $bmwqemu::vars{CLOUD_INIT_META} = 'test@meta';
+    $bmwqemu::vars{CLOUD_INIT_USER} = 'test%user';
+    $bmwqemu::vars{CLOUD_INIT_ENCODING} = 'gzip+base64';
+
+    my $chan_mock = Test::MockObject->new->set_true(qw(write send_eof close read2 eof exit_status));
+    my $backend_mock = Test::MockModule->new('backend::svirt');
+    my $console_mock = Test::MockModule->new('consoles::sshVirtsh');
+    my $tmp_mock = Test::MockModule->new('File::Temp');
+    my (@cmds, @ssh_cmds);
+    $console_mock->redefine(run_cmd => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $console_mock->redefine(get_cmd_output => sub ($self, $cmd, %args) { push @cmds, $cmd; 0 });
+    $backend_mock->redefine(run_ssh => sub ($self, $cmd, %args) { push @ssh_cmds, $cmd; (undef, $chan_mock) });
+    $backend_mock->redefine(start_serial_grab => 1);
+    $console_mock->redefine(get_ssh_credentials => sub { (hostname => 'foo', username => 'root', password => '123') });
+    $tmp_mock->redefine(tempfile => sub { (undef, '/t') });
+
+    $svirt_console->define_and_start;
+    like shift @cmds, qr/cat > \/t <<.*username=u.*password=p.*auth-esx-h/s, 'config written';
+    my $s = 'virsh -c esx://u@h/?no_verify=1\\&authfile=/t ';
+    is_deeply \@cmds, [
+        $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
+        $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
+        'echo bios.bootDelay = "10000" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo guestinfo.metadata = "test@meta" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo guestinfo.metadata.encoding = "gzip+base64" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo guestinfo.userdata = "test%user" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo guestinfo.userdata.encoding = "gzip+base64" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
     ], 'expected commands invoked' or diag explain \@cmds;
