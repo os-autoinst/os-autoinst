@@ -68,6 +68,7 @@ RUN zypper in -y -C \
        'perl(File::chdir)' \
        'perl(FindBin)' \
        'perl(IO::Handle)' \
+       'perl(IO::Interactive)' \
        'perl(IO::Scalar)' \
        'perl(IO::Select)' \
        'perl(IO::Socket)' \

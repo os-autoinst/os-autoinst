@@ -22,9 +22,9 @@ Enable direct output to STDERR instead of autoinst-log.txt
 
 isotovideo will chdir to that directory on startup
 
-=item B<--color=[yes|no]>
+=item B<--color=[yes|no|auto]>
 
-Enable or disable color output explicitly. Defaults to "yes". Alternatively
+Enable or disable color output explicitly. Defaults to "auto". Alternatively
 ANSI_COLORS_DISABLED or NO_COLOR can be set to any value to disable colors.
 
 =item B<-v, --version>
@@ -77,6 +77,7 @@ require IPC::System::Simple;
 use POSIX qw(:sys_wait_h _exit);
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use Try::Tiny;
+use IO::Interactive qw(is_interactive);
 use IO::Select;
 use Mojo::File qw(curfile path);
 use Mojo::UserAgent;
@@ -113,7 +114,9 @@ GetOptions(\%options, 'debug|d', 'workdir=s', 'color=s', 'help|h|?', 'version|v'
 usage(0) if $options{help};
 version() if $options{version};
 
-my $color = $options{color} // 'yes';
+my $color = $options{color} // 'auto';
+# Default to no color if there is no terminal
+$color = 'no' if $color eq 'auto' unless is_interactive;
 # User setting has preference, see https://no-color.org/
 delete $ENV{NO_COLOR} if $color eq 'yes';
 # Term::ANSIColor honors this variable
