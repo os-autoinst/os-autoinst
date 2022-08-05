@@ -9,6 +9,7 @@ use Mojo::Base -strict, -signatures;
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
+use Term::ANSIColor qw(colorstrip);
 use Test::Output qw(stderr_from);
 use Mojo::File qw(path tempfile);
 use Data::Dumper;
@@ -36,6 +37,15 @@ subtest 'Logging to STDERR' => sub {
     ok(@matches == 10, 'All messages logged to STDERR');
     my $i = 0;
     ok($matches[$i++] =~ /$_/, "Logging $_ match!") for ('diag', 'fctres', 'fctinfo', 'fctwarn', 'modstate');
+};
+
+subtest 'Color output can be disabled' => sub {
+    delete $ENV{ANSI_COLORS_DISABLED};
+    my $out = stderr_from { bmwqemu::fctwarn('with color') };
+    isnt($out, colorstrip($out), 'logs use colors');
+    $ENV{ANSI_COLORS_DISABLED} = 1;
+    $out = stderr_from { bmwqemu::fctwarn('no colors') };
+    is($out, colorstrip($out), 'no colors in logs');
 };
 
 subtest 'Logging to file' => sub {

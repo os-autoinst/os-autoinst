@@ -2,6 +2,7 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use Term::ANSIColor qw(colorstrip);
 use Test::Warnings ':report_warnings';
 use Test::MockModule;
 use FindBin '$Bin';
@@ -9,7 +10,7 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '20';
 use autodie ':all';
 use IPC::System::Simple qw(system);
-use Test::Output qw(combined_like combined_from);
+use Test::Output qw(combined_like combined_from stderr_from);
 use File::Basename;
 use File::Path qw(remove_tree rmtree);
 use Cwd 'abs_path';
@@ -49,6 +50,15 @@ subtest 'get the version number' => sub {
     combined_like { system $^X, "$toplevel_dir/isotovideo", '--workdir', $pool_dir, '--version' } qr/Current version is.+\[interface v[0-9]+\]/, 'version printed';
     chdir $pool_dir;
     ok(!-e bmwqemu::STATE_FILE, 'no state file was written');
+};
+
+subtest 'color output can be configured via the command-line' => sub {
+    chdir($pool_dir);
+    unlink('vars.json') if -e 'vars.json';
+    my $out = stderr_from { isotovideo(opts => "--color=yes casedir=$data_dir/tests schedule=foo,bar/baz _exit_after_schedule=1") };
+    isnt($out, colorstrip($out), 'logs use colors when requested');
+    $out = stderr_from { isotovideo(opts => "--color=no casedir=$data_dir/tests schedule=foo,bar/baz _exit_after_schedule=1") };
+    is($out, colorstrip($out), 'no colors in logs');
 };
 
 subtest 'standalone isotovideo without vars.json file and only command line parameters' => sub {
