@@ -1378,13 +1378,16 @@ sub send_key_until_needlematch {
 
     $counter //= 20;
     $timeout //= 1;
-    while (!check_screen($tag, $timeout)) {
+
+    my $real_timeout = 0;
+    while (!check_screen($tag, $real_timeout)) {
         wait_screen_change {
             send_key $key;
         };
         if (!$counter--) {
             assert_screen $tag, 1;
         }
+        $real_timeout = $timeout;
     }
 }
 
