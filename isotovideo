@@ -22,6 +22,11 @@ Enable direct output to STDERR instead of autoinst-log.txt
 
 isotovideo will chdir to that directory on startup
 
+=item B<--color=[yes|no]>
+
+Enable or disable color output explicitly. Defaults to "yes". Alternatively
+ANSI_COLORS_DISABLED or NO_COLOR can be set to any value to disable colors.
+
 =item B<-v, --version>
 
 Show the current program version and test API version
@@ -104,9 +109,15 @@ sub version () {
     exit 0;
 }
 
-GetOptions(\%options, 'debug|d', 'workdir=s', 'help|h|?', 'version|v') or usage(1);
+GetOptions(\%options, 'debug|d', 'workdir=s', 'color=s', 'help|h|?', 'version|v') or usage(1);
 usage(0) if $options{help};
 version() if $options{version};
+
+my $color = $options{color} // 'yes';
+# User setting has preference, see https://no-color.org/
+delete $ENV{NO_COLOR} if $color eq 'yes';
+# Term::ANSIColor honors this variable
+$ENV{ANSI_COLORS_DISABLED} = 1 if $color eq 'no';
 
 chdir $options{workdir} if $options{workdir};
 
