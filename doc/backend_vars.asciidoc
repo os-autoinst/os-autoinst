@@ -135,12 +135,16 @@ QEMU_QMP_CONNECT_ATTEMPTS;integer;20;The number of attempts to connect to qemu q
 PATHCNT;integer;2;Number of paths in MULTIPATH scenario
 PXEBOOT;boolean or 'once';0;Boot VM from network, on every boot or only once if set to 'once'
 QEMU;QEMU binary filename;undef;Filename of QEMU binary to use
+QEMUCLUSTERS;integer;undef;Number of CPU clusters used by VM
+QEMUCORES;integer;undef;Number of CPU cores used by VM
 QEMUCPU;see qemu -cpu ?;undef;CPU to emulate
 QEMUCPUS;integer;1;Number of CPUs to assign to VM
+QEMUDIES;integer;undef;Number of CPU dies used by VM
 QEMUMACHINE;see qemu -machine ?;undef;Machine and chipset to emulate
 QEMUPORT;integer;20002 + worker instance * 10;Port on which QEMU monitor should listen
 QEMURAM;integer;1024;Size of RAM of VM in MiB
-QEMUTHREADS;integer;0;Number of cpu threads used by VM
+QEMUSOCKETS;integer;undef;Number of CPU sockets used by VM
+QEMUTHREADS;integer;undef;Number of CPU threads used by VM
 QEMUTPM;'instance' or appropriate value for local swtpm config;undef;Configure VM to use a TPM emulator device, with appropriate args for the arch. If a TPM device is available at QEMUTPM_PATH_PREFIX + X, where X is the value of QEMUTPM or the worker instance number if QEMUTPM is set to 'instance', it will be used. Otherwise it will be created at test startup. See QEMUTPM_VER in the latter case.
 QEMUTPM_VER;'1.2' or '2.0' depending on which TPM chip should be emulated;'2.0';If no TPM device has been setup otherwise, swtpm will be used internally to create one with a socket at /tmp/mytpmX
 QEMUTPM_PATH_PREFIX;string;'/tmp/mytpm';Path prefix to use or create TPM emulator device in

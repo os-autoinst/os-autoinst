@@ -872,7 +872,14 @@ sub start_qemu ($self) {
         }
 
         sp('device', 'usb-kbd') if $use_usb_kbd;
-        sp('smp', $vars->{QEMUTHREADS} ? [qv "$vars->{QEMUCPUS} threads=$vars->{QEMUTHREADS}"] : $vars->{QEMUCPUS});
+
+        my $smp_config = [$vars->{QEMUCPUS}];
+        for my $key (qw(QEMUSOCKETS QEMUDIES QEMUCLUSTERS QEMUCORES QEMUTHREADS)) {
+            my $qkey = lc($key =~ s/^QEMU//r);
+            push @$smp_config, "$qkey=$vars->{$key}" if exists $vars->{$key};
+        }
+        sp('smp', $smp_config);
+
         if ($vars->{QEMU_NUMA}) {
             for my $i (0 .. ($vars->{QEMUCPUS} - 1)) {
                 my $m = int($vars->{QEMURAM} / $vars->{QEMUCPUS});
