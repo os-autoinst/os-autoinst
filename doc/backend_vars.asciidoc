@@ -114,7 +114,7 @@ HDDNUMQUEUES_$i;integer;-1;see qemu-system-x86_64 -device nvme,help - set the nu
 ISO;filename;;Filename of ISO file to be attached to VM
 ISO_$i;filename;;Additional ISO to be attached to VM. Up to 9
 KEEPHDDS;boolean;;Leave created HDD after test finishes. Useful for debugging tests
-LAPTOP;boolean or filename;0;If 1, loads Dell E6330 DMI. If filename, loads specified DMI
+LAPTOP;boolean or filename;0;If 1, loads HP EliteBook 820 G1 DMI. If filename, loads specified DMI
 MAKETESTSNAPSHOTS;boolean;0;Save snapshot for each test module in qcow image
 MULTIPATH;boolean;0;Add HDD drives as multipath devices. Override HDDMODEL to virtio-scsi-pci
 NBF;boolean;0;open source network boot firmware e.g. to attach iscsi target on boot http://ipxe.org/

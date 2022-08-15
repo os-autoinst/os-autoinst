@@ -621,7 +621,7 @@ sub start_qemu ($self) {
         if ($vars->{LAPTOP} =~ /\/|\.\./) {
             die "invalid characters in LAPTOP\n";
         }
-        $vars->{LAPTOP} = 'dell_e6330' if $vars->{LAPTOP} eq '1';
+        $vars->{LAPTOP} = 'hp_elitebook_820g1' if $vars->{LAPTOP} eq '1';
         die "no dmi data for '$vars->{LAPTOP}'\n" unless -d "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
     }
 
