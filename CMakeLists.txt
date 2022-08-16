@@ -90,6 +90,9 @@ set(MISC_FILES
     dmidata/dell_e6330/smbios_type_1.bin
     dmidata/dell_e6330/smbios_type_2.bin
     dmidata/dell_e6330/smbios_type_3.bin
+    dmidata/hp_elitebook_820g1/smbios_type_1.bin
+    dmidata/hp_elitebook_820g1/smbios_type_2.bin
+    dmidata/hp_elitebook_820g1/smbios_type_3.bin
     dmidata/dump
 )
 
