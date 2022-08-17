@@ -2,7 +2,7 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
-use FindBin '$Bin';
+use FindBin qw($Bin $Script);
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::Exception;
@@ -466,5 +466,56 @@ subtest 'requesting full screen update' => sub {
 };
 
 is($baseclass->get_wait_still_screen_on_here_doc_input({}), 0, 'wait_still_screen on here doc is off by default!');
+
+subtest 'corner cases of do_capture' => sub {
+    # note: This test covers a few corner cases of do_capture that are not otherwise covered anyways:
+    #       using external video encoder, stall detection, screen update request, unresponsive console
+
+    # prepare file handle to have something to read from
+    open my $file_fh, '<', "$Bin/$Script";    # just open this Perl script itself
+    my $file_no = fileno $file_fh;
+
+    # mock IO::Select to return external video encoder fh and other fh as ready-to-write and the prepare file handle read-to-read
+    # note: The "other" file handle is ignored by the current implementation so when writing this test I assume
+    #       this is the intended behavior - although the condition in the code looks a bit odd.
+    my $video_encoder_fh = 41;
+    my $external_video_encoder_fh = 42;
+    my $other_fh = 43;
+    my $io_select_mock = Test::MockModule->new('IO::Select');
+    $io_select_mock->redefine(select => sub { ([$file_fh], [$external_video_encoder_fh, $other_fh]) });
+
+    # prepare test $baseclass with data to be passed to external video encoder and timeout triggering stall detection
+    $baseclass->{current_console}->{testapi_console} = 'fake-console';
+    $baseclass->{select_read} = OpenQA::NamedIOSelect->new;
+    $baseclass->{select_write} = OpenQA::NamedIOSelect->new;
+    $baseclass->{encoder_pipe} = $video_encoder_fh;
+    $baseclass->{external_video_encoder_cmd_pipe} = $external_video_encoder_fh;
+    $baseclass->{external_video_encoder_image_data} = 'data for external encoder';
+    $baseclass->{cmdpipe} = IO::Handle->new_from_fd(fileno(STDOUT), "w");    # just give it *some* handle
+    $baseclass->assert_screen_last_check(1);
+    $baseclass->last_screenshot(0);    # should set stall_detected flag
+    $baseclass->update_request_interval(0);    # always exercise the update request here
+    $baseclass->last_update_request(0);
+    $baseclass_mock->redefine(request_screen_update => sub ($self, $args = undef) {
+            $self->{cmdpipe} = undef;    # ensure we'll exit the while loop after one iteration
+    });
+    $baseclass_mock->redefine(_write_buffered_data_to_file_handle => sub ($self, @args) {
+            push @{$self->{writes}}, \@args;
+    });
+    $baseclass_mock->redefine(check_select_rate => sub ($buckets, @args) {
+            $buckets->{BUCKET}->{$file_no} = 'some count';
+            return 1;    # pretend console is not responding
+    });
+    ok !$baseclass->stall_detected, 'no stall detected so far';
+
+    # actually run the loop
+    eval { $baseclass->do_capture };    # throw_ok does not work with OpenQA::Exception::ConsoleReadError
+    like $@, qr/file descriptor $file_no.*not responding/, 'dies on unresponsive console';
+    ok $baseclass->stall_detected, 'stall detected';
+    is_deeply $baseclass->{writes},
+      [['External encoder', 'data for external encoder', $external_video_encoder_fh]],
+      'data written to external video encoder'
+      or diag explain $baseclass->{writes};
+};
 
 done_testing;
