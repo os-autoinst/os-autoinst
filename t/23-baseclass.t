@@ -558,4 +558,40 @@ subtest 'starting external video encoder and enqueuing screenshot data for it' =
     is scalar @$image_data, 1, 'image data enqueued';
 };
 
+subtest 'console functions' => sub {
+    my $consoles = $testapi::distri->{consoles} = {};
+    my @console_func = qw(reset disable activate);
+    my $foo_console = $consoles->{foo} = Test::MockObject->new->set_true(@console_func, 'load_snapshot');
+    my $bar_console = $consoles->{bar} = Test::MockObject->new->set_true(@console_func, 'save_snapshot');
+    my $baz_console = $consoles->{baz} = Test::MockObject->new->set_true(@console_func);
+    $foo_console->{activated} = 1;
+    $baz_console->{args}->{persistent} = 1;
+
+    $baseclass->reset_consoles({});
+    $consoles->{$_}->called_pos_ok(1, 'reset', "$_ reset") for qw(foo bar);
+    ok !$baz_console->called('reset'), 'persistent console not reset';
+    $baseclass->deactivate_console({testapi_console => 'foo'});
+    $consoles->{$_}->called_pos_ok(2, 'disable', "$_ disabled via deactivate_console") for qw(foo);
+
+    $_->clear for values %$consoles;
+    $consoles->{cannot_disable} = Test::MockObject->new;    # ok if consoles cannot be disabled
+    $baseclass->disable_consoles;
+    $consoles->{$_}->called_pos_ok(1, 'disable', "$_ disabled via disable_consoles") for qw(foo bar baz);
+    $_->clear for values %$consoles;
+
+    $baseclass->reenable_consoles;
+    $consoles->{$_}->called_pos_ok(1, 'activate', "$_ activated") for qw(foo);
+    ok !$consoles->{$_}->called('activate'), "$_ skipped (activated not set / cannot disable)" for qw(bar baz cannot_disable);
+
+    $_->clear for values %$consoles;
+    $baseclass->save_console_snapshots('foo');
+    $consoles->{$_}->called_pos_ok(1, 'save_snapshot', "$_ saved") for qw(bar);
+    ok !$consoles->{$_}->called('save_snapshot'), "$_ skipped (cannot save)" for qw(foo baz cannot_disable);
+
+    $_->clear for values %$consoles;
+    $baseclass->load_console_snapshots('bar');
+    $consoles->{$_}->called_pos_ok(1, 'load_snapshot', "$_ loaded") for qw(foo);
+    ok !$consoles->{$_}->called('load_snapshot'), "$_ skipped (cannot load)" for qw(bar baz cannot_disable);
+};
+
 done_testing;
