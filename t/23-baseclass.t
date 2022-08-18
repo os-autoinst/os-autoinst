@@ -12,7 +12,7 @@ use Test::MockObject;
 use Test::Output;
 use Test::Warnings ':report_warnings';
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
-use Mojo::File 'path';
+use Mojo::File qw(path tempfile);
 use Mojo::JSON 'decode_json';
 use backend::baseclass;
 use POSIX 'tzset';
@@ -20,7 +20,11 @@ use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use IO::Pipe;
 use bmwqemu ();
+use cv;
 use log();
+
+cv::init;
+require tinycv;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
@@ -519,7 +523,7 @@ subtest 'corner cases of do_capture/run_capture_loop' => sub {
       or diag explain $baseclass->{writes};
 };
 
-subtest 'starting external video encoder' => sub {
+subtest 'starting external video encoder and enqueuing screenshot data for it' => sub {
     my $video_encoders = $baseclass->{video_encoders} = {};
     $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} = 'true -o %OUTPUT_FILE_NAME% "trailing arg"';
     $log::logger->level('info');
@@ -540,6 +544,18 @@ subtest 'starting external video encoder' => sub {
     is scalar @video_encoder_pids, 1, 'one video encoder started (without %OUTPUT_FILE_NAME%)';
     like $video_encoders->{$video_encoder_pids[0]}->{cmd}, qr/true "trailing arg" .*\/video\.webm/, 'command correct, output file appended'
       or diag explain $video_encoders;
+
+    # now enqueue image data
+    my $image_data = $baseclass->{external_video_encoder_image_data} = [];
+    my $vtt_caption_file = tempfile;
+    open $baseclass->{vtt_caption_file}, '>', $vtt_caption_file;
+    $baseclass->screenshot_interval(-1);    # provoke warning about enqueueing screenshot taking too long to cover this as well
+    $baseclass->last_image(tinycv::new(1, 1));
+    $log::logger = Mojo::Log->new(level => 'debug');
+    combined_like { $baseclass->enqueue_screenshot(tinycv::new(1, 1)) } qr/enqueue_screenshot took/, 'warning about ';
+    close $baseclass->{vtt_caption_file};
+    like $vtt_caption_file->slurp, qr/\d\d:.* --> \d\d:/, 'vtt caption written';
+    is scalar @$image_data, 1, 'image data enqueued';
 };
 
 done_testing;
