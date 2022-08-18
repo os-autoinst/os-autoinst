@@ -415,6 +415,15 @@ UUID=2e41327c-ca46-4c5c-93a2-b41933d40ca8 btrfs 24G 589.7M 21.4G 2% /opt
 BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)'}, 'Test regex match multiline leftover');
     is_deeply($baseclass->wait_serial({%dargs, regexp => qr/welcome$/, timeout => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, "Test regex mismatch");
     is_deeply($baseclass->wait_serial({%dargs, regexp => 'something wrong', timeout => 1, no_regex => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, "Test string literal mismatch");
+
+    subtest 'waiting for serial terminal' => sub {
+        my $fake_screen = $baseclass->{current_screen} = Test::MockObject->new->set_true('read_until');
+        $current_console->set_true('is_serial_terminal');
+        is_deeply $baseclass->is_serial_terminal({}), {yesorno => 1}, 'is_serial_terminal returns expected result';
+        $baseclass->wait_serial({});
+        $fake_screen->called_ok('read_until', 'read_until is called');
+        $baseclass->{current_screen} = undef;
+    };
 };
 
 subtest check_select_rate => sub {
