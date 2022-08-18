@@ -292,7 +292,7 @@ sub check_select_rate ($buckets, $wait_time_limit, $hits_limit, $id, $time) {
 sub _invoke_video_encoder ($self, $pipe_name, $display_name, @cmd) {
     my $pid = open($self->{$pipe_name}, '|-', @cmd);
     my $pipe = $self->{$pipe_name};
-    $self->{video_encoders}->{$pid} = {name => $display_name, pipe => $pipe};
+    $self->{video_encoders}->{$pid} = {name => $display_name, pipe => $pipe, cmd => join ' ', @cmd};
     $pipe->blocking(0);
 }
 
