@@ -594,4 +594,11 @@ subtest 'console functions' => sub {
     ok !$consoles->{$_}->called('load_snapshot'), "$_ skipped (cannot load)" for qw(bar baz cannot_disable);
 };
 
+subtest 'bouncer functions' => sub {
+    my @bouncer_functions = qw(hold_key release_key type_string mouse_set mouse_hide mouse_button get_last_mouse_set);
+    my $fake_screen = $baseclass->{current_screen} = Test::MockObject->new->set_true(@bouncer_functions);
+    $baseclass->$_({}) for @bouncer_functions;
+    $fake_screen->called_ok($_, "function '$_' bounced") for @bouncer_functions;
+};
+
 done_testing;
