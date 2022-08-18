@@ -43,8 +43,6 @@ sub new ($class) {
 
 # baseclass virt method overwrite
 
-sub raw_alive ($self) { $self->{proc}->_process->is_running }
-
 sub _wrap_hmc ($cmdline) { {
         execute => 'human-monitor-command',
         arguments => {'command-line' => $cmdline}}

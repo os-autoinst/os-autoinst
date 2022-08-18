@@ -402,13 +402,6 @@ sub stop_vm ($self, @) {
     return;
 }
 
-sub alive ($self, @) {
-    return 0 unless $self->{started};
-    return 1 if $self->file_alive() and $self->raw_alive();
-    bmwqemu::fctwarn("ALARM: backend.run got deleted! - exiting...");
-    _exit(1);
-}
-
 # new api end
 
 # virtual methods
