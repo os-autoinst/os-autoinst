@@ -130,7 +130,7 @@ sub run ($self, $cmdpipe, $rsppipe) {
 
     $self->run_capture_loop;
 
-    bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
+    bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));    # uncoverable statement
 }
 
 sub _write_buffered_data_to_file_handle ($self, $program_name, $array_of_buffers, $fh) {
@@ -535,7 +535,7 @@ sub close_pipes ($self) {
     myjsonrpc::send_json($self->{rsppipe}, {QUIT => 1});
     close($self->{rsppipe}) || die "close $!\n";
     Devel::Cover::report() if Devel::Cover->can('report');
-    _exit(0);
+    _exit(0);    # uncoverable statement
 }
 
 # this is called for all sockets ready to read from
