@@ -20,6 +20,7 @@ use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use IO::Pipe;
 use bmwqemu ();
+use log();
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
@@ -30,7 +31,7 @@ mkdir 'testresults';
 $ENV{TZ} = 'UTC';
 tzset;
 
-bmwqemu::init_logger;
+log::init_logger;
 
 my $baseclass_mock = Test::MockModule->new('backend::baseclass');
 my @requested_screen_updates;
@@ -467,7 +468,7 @@ subtest 'requesting full screen update' => sub {
 
 is($baseclass->get_wait_still_screen_on_here_doc_input({}), 0, 'wait_still_screen on here doc is off by default!');
 
-subtest 'corner cases of do_capture' => sub {
+subtest 'corner cases of do_capture/run_capture_loop' => sub {
     # note: This test covers a few corner cases of do_capture that are not otherwise covered anyways:
     #       using external video encoder, stall detection, screen update request, unresponsive console
 
@@ -493,7 +494,7 @@ subtest 'corner cases of do_capture' => sub {
     $baseclass->{external_video_encoder_image_data} = 'data for external encoder';
     $baseclass->{cmdpipe} = IO::Handle->new_from_fd(fileno(STDOUT), "w");    # just give it *some* handle
     $baseclass->assert_screen_last_check(1);
-    $baseclass->last_screenshot(0);    # should set stall_detected flag
+    $baseclass->last_screenshot(1);    # should set stall_detected flag
     $baseclass->update_request_interval(0);    # always exercise the update request here
     $baseclass->last_update_request(0);
     $baseclass_mock->redefine(request_screen_update => sub ($self, $args = undef) {
@@ -509,8 +510,8 @@ subtest 'corner cases of do_capture' => sub {
     ok !$baseclass->stall_detected, 'no stall detected so far';
 
     # actually run the loop
-    eval { $baseclass->do_capture };    # throw_ok does not work with OpenQA::Exception::ConsoleReadError
-    like $@, qr/file descriptor $file_no.*not responding/, 'dies on unresponsive console';
+    $log::logger = Mojo::Log->new(level => 'debug');
+    combined_like { $baseclass->run_capture_loop } qr/file descriptor $file_no.*not responding/, 'loop aborted due to unresponsive console';
     ok $baseclass->stall_detected, 'stall detected';
     is_deeply $baseclass->{writes},
       [['External encoder', 'data for external encoder', $external_video_encoder_fh]],
