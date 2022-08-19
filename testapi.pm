@@ -1365,7 +1365,7 @@ sub release_key {
 
   send_key_until_needlematch($tag, $key [, $counter, $timeout]);
 
-Send specific key until needle with C<$tag> is not matched or C<$counter> is 0.
+Send specific key until needle with C<$tag> is matched or C<$counter> is 0.
 C<$tag> can be string or C<ARRAYREF> (C<['tag1', 'tag2']>)
 Default counter is 20 steps, default timeout is 1s
 
@@ -1384,7 +1384,7 @@ sub send_key_until_needlematch {
         wait_screen_change {
             send_key $key;
         };
-        if (!$counter--) {
+        if (--$counter <= 0) {
             assert_screen $tag, 1;
         }
         $real_timeout = $timeout;
