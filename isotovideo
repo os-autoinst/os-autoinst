@@ -275,10 +275,8 @@ my $testfd;
 init_backend();
 path('os-autoinst.pid')->spurt("$$");
 
-if (!$bmwqemu::backend->_send_json({cmd => 'alive'})) {
-    # might throw an exception
-    $bmwqemu::backend->start_vm();
-}
+# might throw an exception
+$bmwqemu::backend->start_vm;
 
 # launch debugging tools
 my %debugging_tools;

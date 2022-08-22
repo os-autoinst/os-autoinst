@@ -12,7 +12,7 @@ use Test::MockObject;
 use Test::Output;
 use Test::Warnings ':report_warnings';
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
-use Mojo::File 'path';
+use Mojo::File qw(path tempfile);
 use Mojo::JSON 'decode_json';
 use backend::baseclass;
 use POSIX 'tzset';
@@ -20,6 +20,11 @@ use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use IO::Pipe;
 use bmwqemu ();
+use cv;
+use log();
+
+cv::init;
+require tinycv;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
@@ -30,7 +35,7 @@ mkdir 'testresults';
 $ENV{TZ} = 'UTC';
 tzset;
 
-bmwqemu::init_logger;
+log::init_logger;
 
 my $baseclass_mock = Test::MockModule->new('backend::baseclass');
 my @requested_screen_updates;
@@ -410,6 +415,15 @@ UUID=2e41327c-ca46-4c5c-93a2-b41933d40ca8 btrfs 24G 589.7M 21.4G 2% /opt
 BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)'}, 'Test regex match multiline leftover');
     is_deeply($baseclass->wait_serial({%dargs, regexp => qr/welcome$/, timeout => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, "Test regex mismatch");
     is_deeply($baseclass->wait_serial({%dargs, regexp => 'something wrong', timeout => 1, no_regex => 1}), {matched => 0, string => "\nWelcome to GRUB!\n"}, "Test string literal mismatch");
+
+    subtest 'waiting for serial terminal' => sub {
+        my $fake_screen = $baseclass->{current_screen} = Test::MockObject->new->set_true('read_until');
+        $current_console->set_true('is_serial_terminal');
+        is_deeply $baseclass->is_serial_terminal({}), {yesorno => 1}, 'is_serial_terminal returns expected result';
+        $baseclass->wait_serial({});
+        $fake_screen->called_ok('read_until', 'read_until is called');
+        $baseclass->{current_screen} = undef;
+    };
 };
 
 subtest check_select_rate => sub {
@@ -467,7 +481,7 @@ subtest 'requesting full screen update' => sub {
 
 is($baseclass->get_wait_still_screen_on_here_doc_input({}), 0, 'wait_still_screen on here doc is off by default!');
 
-subtest 'corner cases of do_capture' => sub {
+subtest 'corner cases of do_capture/run_capture_loop' => sub {
     # note: This test covers a few corner cases of do_capture that are not otherwise covered anyways:
     #       using external video encoder, stall detection, screen update request, unresponsive console
 
@@ -493,7 +507,7 @@ subtest 'corner cases of do_capture' => sub {
     $baseclass->{external_video_encoder_image_data} = 'data for external encoder';
     $baseclass->{cmdpipe} = IO::Handle->new_from_fd(fileno(STDOUT), "w");    # just give it *some* handle
     $baseclass->assert_screen_last_check(1);
-    $baseclass->last_screenshot(0);    # should set stall_detected flag
+    $baseclass->last_screenshot(1);    # should set stall_detected flag
     $baseclass->update_request_interval(0);    # always exercise the update request here
     $baseclass->last_update_request(0);
     $baseclass_mock->redefine(request_screen_update => sub ($self, $args = undef) {
@@ -509,13 +523,91 @@ subtest 'corner cases of do_capture' => sub {
     ok !$baseclass->stall_detected, 'no stall detected so far';
 
     # actually run the loop
-    eval { $baseclass->do_capture };    # throw_ok does not work with OpenQA::Exception::ConsoleReadError
-    like $@, qr/file descriptor $file_no.*not responding/, 'dies on unresponsive console';
+    $log::logger = Mojo::Log->new(level => 'debug');
+    combined_like { $baseclass->run_capture_loop } qr/file descriptor $file_no.*not responding/, 'loop aborted due to unresponsive console';
     ok $baseclass->stall_detected, 'stall detected';
     is_deeply $baseclass->{writes},
       [['External encoder', 'data for external encoder', $external_video_encoder_fh]],
       'data written to external video encoder'
       or diag explain $baseclass->{writes};
+};
+
+subtest 'starting external video encoder and enqueuing screenshot data for it' => sub {
+    my $video_encoders = $baseclass->{video_encoders} = {};
+    $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} = 'true -o %OUTPUT_FILE_NAME% "trailing arg"';
+    $log::logger->level('info');
+    ok $baseclass->_start_external_video_encoder_if_configured, 'video encoder started';
+    my @video_encoder_pids = keys %$video_encoders;
+    is scalar @video_encoder_pids, 1, 'one video encoder started';
+    my $launched_video_encoder = $video_encoders->{$video_encoder_pids[0]};
+    subtest 'params passed as expected' => sub {
+        is $launched_video_encoder->{name}, 'external video encoder', 'name set';
+        like $launched_video_encoder->{cmd}, qr/true -o .*\/video\.webm "trailing arg"/, 'command correct, %OUTPUT_FILE_NAME% substituted';
+    } or diag explain $video_encoders;
+
+    # launch again without %OUTPUT_FILE_NAME%
+    $video_encoders = $baseclass->{video_encoders} = {};
+    $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} = 'true "trailing arg"';
+    ok $baseclass->_start_external_video_encoder_if_configured, 'video encoder started';
+    @video_encoder_pids = keys %$video_encoders;
+    is scalar @video_encoder_pids, 1, 'one video encoder started (without %OUTPUT_FILE_NAME%)';
+    like $video_encoders->{$video_encoder_pids[0]}->{cmd}, qr/true "trailing arg" .*\/video\.webm/, 'command correct, output file appended'
+      or diag explain $video_encoders;
+
+    # now enqueue image data
+    my $image_data = $baseclass->{external_video_encoder_image_data} = [];
+    my $vtt_caption_file = tempfile;
+    open $baseclass->{vtt_caption_file}, '>', $vtt_caption_file;
+    $baseclass->screenshot_interval(-1);    # provoke warning about enqueueing screenshot taking too long to cover this as well
+    $baseclass->last_image(tinycv::new(1, 1));
+    $log::logger = Mojo::Log->new(level => 'debug');
+    combined_like { $baseclass->enqueue_screenshot(tinycv::new(1, 1)) } qr/enqueue_screenshot took/, 'warning about ';
+    close $baseclass->{vtt_caption_file};
+    like $vtt_caption_file->slurp, qr/\d\d:.* --> \d\d:/, 'vtt caption written';
+    is scalar @$image_data, 1, 'image data enqueued';
+};
+
+subtest 'console functions' => sub {
+    my $consoles = $testapi::distri->{consoles} = {};
+    my @console_func = qw(reset disable activate);
+    my $foo_console = $consoles->{foo} = Test::MockObject->new->set_true(@console_func, 'load_snapshot');
+    my $bar_console = $consoles->{bar} = Test::MockObject->new->set_true(@console_func, 'save_snapshot');
+    my $baz_console = $consoles->{baz} = Test::MockObject->new->set_true(@console_func);
+    $foo_console->{activated} = 1;
+    $baz_console->{args}->{persistent} = 1;
+
+    $baseclass->reset_consoles({});
+    $consoles->{$_}->called_pos_ok(1, 'reset', "$_ reset") for qw(foo bar);
+    ok !$baz_console->called('reset'), 'persistent console not reset';
+    $baseclass->deactivate_console({testapi_console => 'foo'});
+    $consoles->{$_}->called_pos_ok(2, 'disable', "$_ disabled via deactivate_console") for qw(foo);
+
+    $_->clear for values %$consoles;
+    $consoles->{cannot_disable} = Test::MockObject->new;    # ok if consoles cannot be disabled
+    $baseclass->disable_consoles;
+    $consoles->{$_}->called_pos_ok(1, 'disable', "$_ disabled via disable_consoles") for qw(foo bar baz);
+    $_->clear for values %$consoles;
+
+    $baseclass->reenable_consoles;
+    $consoles->{$_}->called_pos_ok(1, 'activate', "$_ activated") for qw(foo);
+    ok !$consoles->{$_}->called('activate'), "$_ skipped (activated not set / cannot disable)" for qw(bar baz cannot_disable);
+
+    $_->clear for values %$consoles;
+    $baseclass->save_console_snapshots('foo');
+    $consoles->{$_}->called_pos_ok(1, 'save_snapshot', "$_ saved") for qw(bar);
+    ok !$consoles->{$_}->called('save_snapshot'), "$_ skipped (cannot save)" for qw(foo baz cannot_disable);
+
+    $_->clear for values %$consoles;
+    $baseclass->load_console_snapshots('bar');
+    $consoles->{$_}->called_pos_ok(1, 'load_snapshot', "$_ loaded") for qw(foo);
+    ok !$consoles->{$_}->called('load_snapshot'), "$_ skipped (cannot load)" for qw(bar baz cannot_disable);
+};
+
+subtest 'bouncer functions' => sub {
+    my @bouncer_functions = qw(hold_key release_key type_string mouse_set mouse_hide mouse_button get_last_mouse_set);
+    my $fake_screen = $baseclass->{current_screen} = Test::MockObject->new->set_true(@bouncer_functions);
+    $baseclass->$_({}) for @bouncer_functions;
+    $fake_screen->called_ok($_, "function '$_' bounced") for @bouncer_functions;
 };
 
 done_testing;

@@ -158,7 +158,7 @@ sub summary ($self) {
 
         my $duration = $event->{time} - $prev_time;
         my $cumulative = $event->{time} - $self->{start};
-        my $percentage = ($duration / $self->total_time) * 100;
+        my $percentage = $self->total_time > 0 ? (($duration / $self->total_time) * 100) : 0;
 
         $out .= sprintf $result_format,    #
           $event->{name},    #

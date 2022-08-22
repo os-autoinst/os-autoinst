@@ -130,7 +130,7 @@ sub run ($self, $cmdpipe, $rsppipe) {
 
     $self->run_capture_loop;
 
-    bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));
+    bmwqemu::diag("management process exit at " . POSIX::strftime("%F %T", gmtime));    # uncoverable statement
 }
 
 sub _write_buffered_data_to_file_handle ($self, $program_name, $array_of_buffers, $fh) {
@@ -292,7 +292,7 @@ sub check_select_rate ($buckets, $wait_time_limit, $hits_limit, $id, $time) {
 sub _invoke_video_encoder ($self, $pipe_name, $display_name, @cmd) {
     my $pid = open($self->{$pipe_name}, '|-', @cmd);
     my $pipe = $self->{$pipe_name};
-    $self->{video_encoders}->{$pid} = {name => $display_name, pipe => $pipe};
+    $self->{video_encoders}->{$pid} = {name => $display_name, pipe => $pipe, cmd => join ' ', @cmd};
     $pipe->blocking(0);
 }
 
@@ -400,13 +400,6 @@ sub stop_vm ($self, @) {
     $self->close_ssh_connections();
     $self->close_pipes();    # does not return
     return;
-}
-
-sub alive ($self, @) {
-    return 0 unless $self->{started};
-    return 1 if $self->file_alive() and $self->raw_alive();
-    bmwqemu::fctwarn("ALARM: backend.run got deleted! - exiting...");
-    _exit(1);
 }
 
 # new api end
@@ -542,7 +535,7 @@ sub close_pipes ($self) {
     myjsonrpc::send_json($self->{rsppipe}, {QUIT => 1});
     close($self->{rsppipe}) || die "close $!\n";
     Devel::Cover::report() if Devel::Cover->can('report');
-    _exit(0);
+    _exit(0);    # uncoverable statement
 }
 
 # this is called for all sockets ready to read from
