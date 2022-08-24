@@ -2127,13 +2127,16 @@ sub diag (@args) { bmwqemu::diag(@args) }
 Return VM's host IP.
 In a kvm instance you reach the VM's host under default 10.0.2.2
 
+Optional named parameter C<inside_sut> in C<$args> will force using actual worker IP/hostname
+even on KVM guests if set to 0.
+
 =cut
 
-sub host_ip () { check_var('BACKEND', 'qemu') ? get_var('QEMU_HOST_IP', '10.0.2.2') : get_required_var('WORKER_HOSTNAME') }
+sub host_ip ($args = {}) { (check_var('BACKEND', 'qemu') && ($args->{inside_sut} // 1)) ? get_var('QEMU_HOST_IP', '10.0.2.2') : get_required_var('WORKER_HOSTNAME') }
 
 =head2 autoinst_url
 
-  autoinst_url([$path, $query]);
+  autoinst_url([$path, $query, $args]);
 
 returns the base URL to contact the local C<os-autoinst> service
 
@@ -2142,16 +2145,19 @@ Optional C<$path> argument is appended after base url.
 Optional HASHREF C<$query> is converted to URL query and appended
 after path.
 
+Optional named parameter C<inside_sut> in C<$args> will force using actual worker IP/hostname
+even on KVM guests if set to 0.
+
 Returns constructor URL. Can be used inline:
 
   script_run("curl " . autoinst_url . "/data");
 
 =cut
 
-sub autoinst_url ($path = undef, $query = undef) {
+sub autoinst_url ($path = undef, $query = undef, $args = {}) {
     $path //= '';
     $query //= {};
-    my $hostname = get_var('AUTOINST_URL_HOSTNAME', host_ip());
+    my $hostname = get_var('AUTOINST_URL_HOSTNAME', host_ip($args));
     # QEMUPORT is historical for the base port of the worker instance
     my $workerport = get_var("QEMUPORT") + 1;
 
