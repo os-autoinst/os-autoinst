@@ -1143,7 +1143,7 @@ sub new_ssh_connection ($self, %args) {
     while ($counter > 0) {
         if ($ssh->connect($args{hostname}, $args{port})) {
 
-            if ($args{password}) {
+            if (defined($args{password})) {
                 $ssh->auth(username => $args{username}, password => $args{password});
             }
             else {
