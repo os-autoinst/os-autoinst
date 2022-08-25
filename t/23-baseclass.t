@@ -105,6 +105,7 @@ subtest 'SSH utilities' => sub {
     my $ssh_obj_data = {};    # used to store Net::SSH2 fake data per object
     my @net_ssh2_error = ();
     my $net_ssh2 = Test::MockModule->new('Net::SSH2');
+    my @agent;
     $net_ssh2->redefine(new => sub {
             my ($class, %opts) = @_;
             my $self = Test::MockObject->new();
@@ -129,7 +130,7 @@ subtest 'SSH utilities' => sub {
                     is($args{password}, $ssh_expect->{password}, 'Correct password for ssh connection');
                     return 1;
             });
-            $self->mock(auth_agent => sub { return 1; });
+            $self->mock(auth_agent => sub { push @agent, [@_]; return 1 });
             $self->mock(auth_ok => sub {
                     my $self = shift;
                     $self->{connected} = !!$ssh_auth_ok;
@@ -237,7 +238,13 @@ subtest 'SSH utilities' => sub {
 
     $ssh_auth_ok = 0;
     throws_ok(sub { $baseclass->new_ssh_connection(%ssh_creds) }, qr/Error connecting to/, 'Got exception on connection error');
+
     $ssh_auth_ok = 1;
+    $ssh_expect->{password} = '';
+    @agent = ();
+    $baseclass->new_ssh_connection(%ssh_creds, password => '');
+    is scalar @agent, 0, 'Empty password also accepted, auth_agent not called';
+    $ssh_expect->{password} = 'password';
 
     # check run_ssh_cmd() usage
     is($baseclass->run_ssh_cmd('echo -n "foo"', %ssh_creds), 0, 'Command successful exit');
@@ -256,7 +263,7 @@ subtest 'SSH utilities' => sub {
     my @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
     my @disconnected_ssh = grep { !$_->{connected} } values(%$ssh_obj_data);
 
-    is(scalar(@connected_ssh), 5, "Expect 5 connected SSH connections");
+    is(scalar(@connected_ssh), 6, "Expect 6 connected SSH connections");
     is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
     is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
     is($ssh7->{connected}, 1, "SSH connection ssh7 connected");
@@ -270,7 +277,7 @@ subtest 'SSH utilities' => sub {
 
     $baseclass->close_ssh_connections();
     @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
-    is(scalar(@connected_ssh), 2, "Expect 2 connected SSH connections (ssh1 and ssh2");
+    is(scalar(@connected_ssh), 3, "Expect 3 connected SSH connections (ssh1 and ssh2)");
     is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
     is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
 
