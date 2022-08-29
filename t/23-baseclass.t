@@ -617,4 +617,58 @@ subtest 'bouncer functions' => sub {
     $fake_screen->called_ok($_, "function '$_' bounced") for @bouncer_functions;
 };
 
+subtest 'reduce to biggest changes' => sub {
+    my $dummy_img = tinycv::new(1, 1);
+    my @imglist = (
+        # image, failed candidates (not used by this function so we just assign string), test time, similarity, frame (also not used)
+        [$dummy_img, 'img 1', 5, 500, $dummy_img],
+        [$dummy_img, 'img 2', 6, 900, $dummy_img],
+        [$dummy_img, 'img 3', 7, 800, $dummy_img],
+        [$dummy_img, 'img 4', 8, 950, $dummy_img],
+        [$dummy_img, 'img 5', 1, 700, $dummy_img],
+        [$dummy_img, 'img 6', 2, 950, $dummy_img],
+        [$dummy_img, 'img 7', 3, 850, $dummy_img],
+    );
+    my @expected = (
+        [$dummy_img, 'img 4', 8, 950, $dummy_img],    # images sorted by test time and similarity (as 2nd criteria) in descending order
+        [$dummy_img, 'img 3', 7, 1000000, $dummy_img],    # similarity of images (after the top one) recomputes (so we just get 1000000 for our dummies)
+        [$dummy_img, 'img 2', 6, 1000000, $dummy_img],
+        [$dummy_img, 'img 1', 5, 1000000, $dummy_img],    # first image preserved despite lowest similarity (so 2nd lowest is removed instead)
+        [$dummy_img, 'img 7', 3, 1000000, $dummy_img],
+        [$dummy_img, 'img 6', 2, 1000000, $dummy_img],
+    );
+    backend::baseclass::_reduce_to_biggest_changes(\@imglist, 5);    # pass limit of 5, we actually keep 6 images as the first one doesn't count
+    is_deeply \@imglist, \@expected, 'images reduced as expected' or diag explain \@imglist;
+
+    # note: This test has been added retrospectively assuming the implementation was correct at this point.
+};
+
+subtest 'stub functions' => sub {
+    combined_like {
+        $baseclass->freeze_vm;
+        $baseclass->cont_vm;
+    } qr/ignored freeze_vm.*ignored cont_vm/s, 'freeze/cont ignored by default';
+};
+
+subtest 'verifying image' => sub {
+    my $fail_res = $baseclass->verify_image({imgpath => "$Bin/imgsearch/kde-logo.png", mustmatch => 0});
+    is_deeply $fail_res, {candidates => []}, 'image not found (no candidates)' or diag explain $fail_res;
+
+    my $fake_image = Test::MockObject->new->mock(search => sub ($self, $needles, $threshold, $search_ratio) { (1, [qw(foo bar)]) });
+    my $tinycv_mock = Test::MockModule->new('tinycv')->redefine(read => $fake_image);
+    my $ok_res = $baseclass->verify_image({imgpath => "$Bin/imgsearch/kde-logo.png", mustmatch => 0});
+    is_deeply $ok_res, {found => 1, candidates => [qw(foo bar)]}, 'image found (mocked search)' or diag explain $ok_res;
+};
+
+subtest 'retrying assert screen' => sub {
+    my $needles_reloaded = 0;
+    my $mock = Test::MockModule->new('backend::baseclass')->redefine(reload_needles => sub ($self) { $needles_reloaded = 1 });
+    $baseclass->assert_screen_deadline(0);
+    combined_like {
+        $baseclass->retry_assert_screen({reload_needles => 1, timeout => 42})
+    } qr/cont_vm.*set_tags_to_assert: NO matching needles for foo/s, 'cont_vm called, set_tags_to_assert invoked';
+    ok $needles_reloaded, 'needles have been reloaded';
+    ok $baseclass->assert_screen_deadline, 'assert screen timeout set';
+};
+
 done_testing;
