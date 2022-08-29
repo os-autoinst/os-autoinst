@@ -20,6 +20,7 @@ use POSIX qw(_exit :sys_wait_h);
 use IO::Select;
 require IPC::System::Simple;
 use myjsonrpc;
+use needle;
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use OpenQA::Benchmark::Stopwatch;
 use MIME::Base64 'encode_base64';
