@@ -24,9 +24,9 @@ EOF
 }
 
 set -eo pipefail
-dir="$(dirname "$0")"
+dir="$(dirname "$(realpath -s "$0")")"
 
-args=""
+args="--conf-file $dir/../.tidyallrc"
 selection='--all'
 [[ -e "$dir/perlfiles" ]] && selection=$("$dir"/perlfiles)
 opts=$(getopt -o hcfol --long help,check,force,only-changed,list -n "$0" -- "$@") || usage
@@ -55,8 +55,8 @@ perltidy_version_expected=$(sed -n "s/^.*Perl::Tidy[^0-9]*\([0-9]*\)['];$/\1/p" 
 # This might be used from another repo like os-autoinst-distri-opensuse
 if [ -z "${perltidy_version_expected}" ]; then
     # No cpanfile in the linked repo, use the one from os-autoinst instead
-    dir="$(dirname "$(readlink -f "$0")")"
-    perltidy_version_expected=$(sed -n "s/^.*Perl::Tidy[^0-9]*\([0-9]*\)['];$/\1/p" "$dir"/../cpanfile)
+    cpanfile_dir="$(dirname "$(readlink -f "$0")")"
+    perltidy_version_expected=$(sed -n "s/^.*Perl::Tidy[^0-9]*\([0-9]*\)['];$/\1/p" "$cpanfile_dir"/../cpanfile)
 fi
 perltidy_version_found=$(perltidy -version | sed -n '1s/^.*perltidy, v\([0-9]*\)\s*$/\1/p')
 if [ "$perltidy_version_found" != "$perltidy_version_expected" ]; then
@@ -68,12 +68,6 @@ if [ "$perltidy_version_found" != "$perltidy_version_expected" ]; then
         exit 1
     fi
 fi
-
-# go to caller directory
-cd "$dir/.."
-
-# just to make sure we are at the right location
-test -e tools/tidy || exit 1
 
 # shellcheck disable=SC2086
 tidyall $args $filename
