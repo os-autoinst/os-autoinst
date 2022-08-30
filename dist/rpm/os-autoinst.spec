@@ -181,10 +181,6 @@ done
 rm xt/00-tidy.t
 # Remove test relying on a git working copy
 rm xt/30-make.t
-# https://progress.opensuse.org/issues/114881
-%ifarch ppc64le
-rm t/27-consoles-vmware.t
-%endif
 
 %build
 %define __builder ninja
