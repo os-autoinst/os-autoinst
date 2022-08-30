@@ -590,10 +590,16 @@ subtest 'starting external video encoder and enqueuing screenshot data for it' =
     $baseclass->screenshot_interval(-1);    # provoke warning about enqueueing screenshot taking too long to cover this as well
     $baseclass->last_image(tinycv::new(1, 1));
     $log::logger = Mojo::Log->new(level => 'debug');
-    combined_like { $baseclass->enqueue_screenshot(tinycv::new(1, 1)) } qr/enqueue_screenshot took/, 'warning about ';
+    combined_like { $baseclass->enqueue_screenshot(tinycv::new(1, 1)) } qr/enqueue_screenshot took/, 'warning about time (1)';
+    is substr($baseclass->{video_frame_data}->[-2], 0, 2), 'E ', 'new image passed to built-in video encoder (to make png)';
+    is scalar @$image_data, 1, 'image data enqueued for external encoder';
+
+    # enqueue the same image again
+    combined_like { $baseclass->enqueue_screenshot(tinycv::new(1, 1)) } qr/enqueue_screenshot took/, 'warning about time (2)';
     close $baseclass->{vtt_caption_file};
     like $vtt_caption_file->slurp, qr/\d\d:.* --> \d\d:/, 'vtt caption written';
-    is scalar @$image_data, 1, 'image data enqueued';
+    is $baseclass->{video_frame_data}->[-1], "R\n", 'last frame just repeated, no new image passed to built-in video encoder';
+    is scalar @$image_data, 2, 'further image data enqueued for external encoder';
 };
 
 subtest 'console functions' => sub {
