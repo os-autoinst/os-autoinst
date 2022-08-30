@@ -10,7 +10,7 @@ use Test::Mock::Time;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Output;
-use Test::Warnings ':report_warnings';
+use Test::Warnings qw(:all :report_warnings);
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use Mojo::File qw(path tempfile);
 use Mojo::JSON 'decode_json';
@@ -669,6 +669,65 @@ subtest 'retrying assert screen' => sub {
     } qr/cont_vm.*set_tags_to_assert: NO matching needles for foo/s, 'cont_vm called, set_tags_to_assert invoked';
     ok $needles_reloaded, 'needles have been reloaded';
     ok $baseclass->assert_screen_deadline, 'assert screen timeout set';
+};
+
+local $SIG{__DIE__} = 'DEFAULT';
+
+subtest 'error handling when checking socket' => sub {
+    my $rpc_mock = Test::MockModule->new('myjsonrpc')->redefine(read_json => {invalid => 'response'});
+    $baseclass->{cmdpipe} = 42;
+    throws_ok { $baseclass->check_socket(42) } qr/no command in.*invalid.*response/s, 'dies on invalid response';
+};
+
+subtest 'special cases of set_tags_to_assert' => sub {
+    combined_like { needle::init("$Bin/data") } qr/loaded \d+ needles/, 'needles loaded';
+
+    subtest 'invalid tags passed' => sub {
+        my $warning = warning {
+            combined_like {
+                my $res = $baseclass->set_tags_to_assert({mustmatch => [{invalid => 'tags'}]});
+                is_deeply $res, {tags => []}, 'empty set of tags returned for invalid needle' or diag explain $res;
+            } qr/NO matching needles for/, 'no match logged for invalid needle'
+        };
+        like $warning, qr/invalid needle passed <HASH>.*invalid.*tags/s, 'warning about invalid needle';
+        is_deeply $baseclass->assert_screen_needles, [], 'no assert screen needles assigned';
+    };
+
+    subtest 'multiple tags specified, multiple needles set for assertion' => sub {
+        my @tags = (qw(inst-welcome not-existing));
+        my $res = $baseclass->set_tags_to_assert({mustmatch => \@tags});
+        is_deeply $res, {tags => \@tags}, 'tags returned' or diag explain $res;
+        my @needles = sort { $a->{name} cmp $b->{name} } @{$baseclass->assert_screen_needles};
+        is scalar @needles, 2, 'matching needles assigned';
+        is $needles[0]->{name}, 'inst-welcome-20140902', 'needle inst-welcome-20140902 matched';
+        is $needles[1]->{name}, 'welcome.ref', 'needle welcome.ref matched';
+    };
+};
+
+subtest 'test _failed_screens_to_json when _reduce_to_biggest_changes removed final mismatch' => sub {
+    my $mock = Test::MockModule->new('backend::baseclass')->redefine(_reduce_to_biggest_changes => sub ($failed_screens, $limit) {
+            pop @$failed_screens;    # test case when the last one in the reduced list differs
+    });
+    my $dummy_img = Test::MockObject->new->set_always(similarity => 49)->set_always(ppm_data => 'img-data');
+    my $dummy_frame = 'foo';
+    $baseclass->assert_screen_fails([[$dummy_img, 'img 1', 5, 500, 'foo'], [$dummy_img, 'img 2', 5, 500, 'bar']]);
+    my @expected_failures = (
+        {candidates => 'img 1', frame => 'foo', image => "aW1nLWRhdGE=\n"},
+        {candidates => 'img 2', frame => 'bar', image => "aW1nLWRhdGE=\n"},
+    );
+    my $res = $baseclass->_failed_screens_to_json;
+    is_deeply $res, {timeout => 1, failed_screens => \@expected_failures}, 'expected res' or diag explain $res;
+};
+
+subtest 'check_asserted_screen takes too long' => sub {
+    my $mock = Test::MockModule->new('backend::baseclass')->redefine(_reduce_to_biggest_changes => sub ($failed_screens, $limit) {
+            splice @$failed_screens, $limit;
+    });
+    $baseclass->assert_screen_last_check(undef);
+    $baseclass->assert_screen_fails([1 .. 60, [tinycv::new(1, 1), 'img 1', 5, 500, tinycv::new(1, 1)]]);
+    combined_like { $baseclass->check_asserted_screen({}) } qr/check_asserted_screen took .* seconds for 2 candidate needles - make your needles more specific/, 'warning logged if check_asserted_screen takes too long';
+    is ref $baseclass->assert_screen_last_check->[0], 'tinycv::Image', 'assert_screen_last_check assigned';
+    is scalar @{$baseclass->assert_screen_fails}, 20, 'assert screen fails cleaned up';
 };
 
 done_testing;
