@@ -947,7 +947,7 @@ subtest 'send_key_until_needlematch' => sub {
     $mock_testapi->unmock('send_key');
     $fake_needle_found = $fake_needle_found_after_pause = 0;
     $cmds = [];
-    throws_ok(sub { send_key_until_needlematch('tag', 'esc', 2); },
+    throws_ok(sub { send_key_until_needlematch('tag', 'esc', 3); },
         qr/assert_screen reached/,
         'no candidate needle matched tags'
     );
