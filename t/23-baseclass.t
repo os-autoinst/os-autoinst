@@ -103,6 +103,7 @@ subtest 'SSH utilities' => sub {
     my $fail_on_channel_call = undef;
     my $ssh_auth_ok = 1;
     my $ssh_obj_data = {};    # used to store Net::SSH2 fake data per object
+    my $ssh_connect_error;
     my @net_ssh2_error = ();
     my $net_ssh2 = Test::MockModule->new('Net::SSH2');
     my @agent;
@@ -115,6 +116,7 @@ subtest 'SSH utilities' => sub {
 
             $self->mock(connect => sub {
                     my ($self, $hostname, $port) = @_;
+                    return 0 if $ssh_connect_error;
                     is($hostname, $ssh_expect->{hostname}, 'Connect to correct hostname');
                     # if unspecified, default to port 22
                     is($port, $ssh_expect->{port} // 22, 'Connect to correct port');
@@ -191,7 +193,7 @@ subtest 'SSH utilities' => sub {
     });
     sub refaddr ($host) { $host->{my_custom_id} }
 
-    my ($ssh1, $ssh2, $ssh3, $ssh4, $ssh5, $ssh6, $ssh7, $ssh8);
+    my ($ssh1, $ssh2, $ssh3, $ssh4, $ssh5, $ssh6, $ssh7, $ssh8, $ssh9);
     my %ssh_creds = (username => 'root', password => 'password', hostname => 'foo.bar');
     my $exp_log_new = qr/SSH connection to root\@foo\.bar established/;
     my $exp_log_existing = qr/Use existing SSH connection/;
@@ -213,6 +215,12 @@ subtest 'SSH utilities' => sub {
     $exp_log_new = qr/SSH connection to foo911\@foo\.bar established/;
     # 4th SSH instance
     stderr_like { $ssh6 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds, username => 'foo911') } $exp_log_new, 'New SSH connection announced in logs -- username=foo911';
+
+    # New connection using agent (instead of password)
+    $exp_log_new = qr/SSH connection to foo912\@foo\.bar established/;
+    stderr_like { $ssh9 = $baseclass->new_ssh_connection(keep_open => 0, %ssh_creds, username => 'foo912', password => undef) } $exp_log_new, 'New SSH connection announced in logs -- username=foo912';
+    is scalar @agent, 1, 'auth agent called once' or diag explain \@agent;
+
     $ssh_expect->{username} = 'root';
 
     # New connection if keeped connection is broken
@@ -263,11 +271,12 @@ subtest 'SSH utilities' => sub {
     my @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
     my @disconnected_ssh = grep { !$_->{connected} } values(%$ssh_obj_data);
 
-    is(scalar(@connected_ssh), 6, "Expect 6 connected SSH connections");
+    is(scalar(@connected_ssh), 7, "Expect 6 connected SSH connections");
     is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
     is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
     is($ssh7->{connected}, 1, "SSH connection ssh7 connected");
     is($ssh8->{connected}, 1, "SSH connection ssh8 connected");
+    is($ssh9->{connected}, 1, "SSH connection ssh9 connected");
     # +1 unnamed connection form implicit run_ssh_cmd()
 
     is(scalar(@disconnected_ssh), 3, "Expect 3 disconnected SSH connections");
@@ -277,9 +286,10 @@ subtest 'SSH utilities' => sub {
 
     $baseclass->close_ssh_connections();
     @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
-    is(scalar(@connected_ssh), 3, "Expect 3 connected SSH connections (ssh1 and ssh2)");
+    is scalar @connected_ssh, 4, 'Expect 4 connected SSH connections (ssh1, ssh2 and ssh9)';
     is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
     is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
+    is($ssh9->{connected}, 1, "SSH connection ssh9 connected (user agent auth)");
 
     subtest 'Serial SSH' => sub {
         my $io_select_mock = Test::MockModule->new('IO::Select');
@@ -318,6 +328,7 @@ subtest 'SSH utilities' => sub {
         is($baseclass->{serial}, $ssh, 'Serial SSH exists after EGAIN');
 
         is($baseclass->check_ssh_serial(42), 0, 'Return 0 when called with wrong socket');
+        is $baseclass->check_ssh_serial($ssh->sock, 1), 1, 'early return if $write is set';
 
         @net_ssh2_error = (666, 'UNKNOWN', 'OHA');
         stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } '', 'No output on ERROR only';
@@ -325,6 +336,17 @@ subtest 'SSH utilities' => sub {
         is($baseclass->{serial}, undef, 'SSH serial get disconnected on unknown read ERROR');
 
         is($baseclass->check_ssh_serial(23), 0, 'Return 0 if SSH serial isn\'t connected');
+    };
+
+    subtest 'handling connection error' => sub {
+        my $mockbmw = Test::MockModule->new('bmwqemu');
+        my $diag = '';
+        $mockbmw->redefine(diag => sub { $diag .= $_[0] });
+        $bmwqemu::vars{SSH_CONNECT_RETRY} = 2;
+        $ssh_connect_error = 1;
+        $exp_log_new = qr/Could not connect to serial\@foo, Retrying/;
+        $baseclass->new_ssh_connection(keep_open => 0, hostname => 'foo', username => 'serial', password => 'XXX');
+        like $diag, qr/Could not connect to serial\@foo, Retrying/, 'connection error logged';
     };
 };
 
