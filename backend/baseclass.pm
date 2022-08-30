@@ -1306,7 +1306,7 @@ sub _stop_children_processes ($self) {
             $ret = waitpid($pid, WNOHANG);
             bmwqemu::diag "waitpid for $pid returned $ret";
             last if ($ret == $pid);
-            sleep 1;
+            sleep 1;    # uncoverable statement
         }
     }
 }
@@ -1315,10 +1315,10 @@ sub _child_process ($self, $code) {
     die "Can't spawn child without code" unless ref($code) eq "CODE";
 
     my $pid = fork();
-    die "fork failed" unless defined($pid);
+    die "fork failed" unless defined($pid);    # uncoverable statement
 
     if ($pid == 0) {
-        $code->();
+        $code->();    # uncoverable statement
     }
     else {
         push @{$self->{children}}, $pid;
