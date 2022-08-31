@@ -15,7 +15,7 @@ use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use Mojo::File qw(path tempfile);
 use Mojo::JSON 'decode_json';
 use backend::baseclass;
-use POSIX qw(tzset pause);
+use POSIX qw(tzset pause _exit);
 use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use IO::Pipe;
@@ -761,9 +761,9 @@ subtest 'check_asserted_screen takes too long' => sub {
 subtest 'child process handling' => sub {
     throws_ok { $baseclass->_child_process(undef) } qr/without code/, 'starting dies without specifying coderef';
     local $SIG{TERM} = 'DEFAULT';
-    my $pid = $baseclass->_child_process(sub { pause; exit 0 });
+    my $pid = $baseclass->_child_process(sub { pause; _exit 0 });
     ok $pid, 'started child, pid returned: ' . ($pid // '?');
-    combined_like { $baseclass->_stop_children_processes } qr/waitpid for $pid returned 0/, 'stopped child again';
+    combined_like { $baseclass->_stop_children_processes } qr/waitpid for $pid returned/, 'stopped child again';
 };
 
 done_testing;

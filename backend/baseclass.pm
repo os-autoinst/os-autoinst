@@ -16,7 +16,7 @@ use File::Copy 'cp';
 use File::Basename;
 use Time::HiRes qw(gettimeofday time tv_interval);
 use Try::Tiny;
-use POSIX qw(_exit :sys_wait_h);
+use POSIX qw(_exit waitpid WNOHANG);
 use IO::Select;
 require IPC::System::Simple;
 use myjsonrpc;
