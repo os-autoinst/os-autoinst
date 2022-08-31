@@ -55,7 +55,10 @@ if [[ \"$cre\" == \"docker\" && \"$ID\" == \"opensuse-leap\" ]]; then
     zypper -n --gpg-auto-import-keys --no-gpg-checks refresh
     zypper -n in --from qemu qemu qemu-x86 qemu-tools qemu-ipxe qemu-sgabios qemu-seabios
 fi
-[[ \"$target\" == \"coverage-codecovbash\" ]] && zypper -n in perl-App-cpanminus && cpanm -nq 'Devel::Cover::Report::Codecovbash'
+if [[ \"$target\" == \"coverage-codecovbash\" ]]; then
+	zypper -n in perl-App-cpanminus
+	cpanm -nq 'Devel::Cover::Report::Codecovbash'
+fi
 cd /opt
 ./tools/install-new-deps.sh
 export CI=1 WITH_COVER_OPTIONS=1 CHECK_GIT_STATUS=1
