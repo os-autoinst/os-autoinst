@@ -47,7 +47,7 @@ $cre images | grep opensuse
 
 # shellcheck disable=SC2086
 $cre run --env "QEMU_QMP_CONNECT_ATTEMPTS=10" \
-  $CI_ENV --rm --entrypoint '' -v "$PWD":/opt $IMAGE sh -ec "
+  $CI_ENV --rm --entrypoint '' -v "$PWD":/opt $IMAGE bash -ec "
 . /etc/os-release
 if [[ \"$cre\" == \"docker\" && \"$ID\" == \"opensuse-leap\" ]]; then
     echo 'Newer docker versions need a patched qemu with disabled membarrier'
