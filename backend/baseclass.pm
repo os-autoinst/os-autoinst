@@ -16,10 +16,11 @@ use File::Copy 'cp';
 use File::Basename;
 use Time::HiRes qw(gettimeofday time tv_interval);
 use Try::Tiny;
-use POSIX qw(_exit :sys_wait_h);
+use POSIX qw(_exit waitpid WNOHANG);
 use IO::Select;
 require IPC::System::Simple;
 use myjsonrpc;
+use needle;
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use OpenQA::Benchmark::Stopwatch;
 use MIME::Base64 'encode_base64';
@@ -1305,7 +1306,7 @@ sub _stop_children_processes ($self) {
             $ret = waitpid($pid, WNOHANG);
             bmwqemu::diag "waitpid for $pid returned $ret";
             last if ($ret == $pid);
-            sleep 1;
+            sleep 1;    # uncoverable statement
         }
     }
 }
@@ -1314,10 +1315,10 @@ sub _child_process ($self, $code) {
     die "Can't spawn child without code" unless ref($code) eq "CODE";
 
     my $pid = fork();
-    die "fork failed" unless defined($pid);
+    die "fork failed" unless defined($pid);    # uncoverable statement
 
     if ($pid == 0) {
-        $code->();
+        $code->();    # uncoverable statement
     }
     else {
         push @{$self->{children}}, $pid;

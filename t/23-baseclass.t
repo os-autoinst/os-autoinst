@@ -10,12 +10,12 @@ use Test::Mock::Time;
 use Test::MockModule;
 use Test::MockObject;
 use Test::Output;
-use Test::Warnings ':report_warnings';
+use Test::Warnings qw(:all :report_warnings);
 use Net::SSH2 'LIBSSH2_ERROR_EAGAIN';
 use Mojo::File qw(path tempfile);
 use Mojo::JSON 'decode_json';
 use backend::baseclass;
-use POSIX 'tzset';
+use POSIX qw(tzset pause _exit);
 use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use IO::Pipe;
@@ -103,6 +103,7 @@ subtest 'SSH utilities' => sub {
     my $fail_on_channel_call = undef;
     my $ssh_auth_ok = 1;
     my $ssh_obj_data = {};    # used to store Net::SSH2 fake data per object
+    my $ssh_connect_error;
     my @net_ssh2_error = ();
     my $net_ssh2 = Test::MockModule->new('Net::SSH2');
     my @agent;
@@ -115,6 +116,7 @@ subtest 'SSH utilities' => sub {
 
             $self->mock(connect => sub {
                     my ($self, $hostname, $port) = @_;
+                    return 0 if $ssh_connect_error;
                     is($hostname, $ssh_expect->{hostname}, 'Connect to correct hostname');
                     # if unspecified, default to port 22
                     is($port, $ssh_expect->{port} // 22, 'Connect to correct port');
@@ -191,7 +193,7 @@ subtest 'SSH utilities' => sub {
     });
     sub refaddr ($host) { $host->{my_custom_id} }
 
-    my ($ssh1, $ssh2, $ssh3, $ssh4, $ssh5, $ssh6, $ssh7, $ssh8);
+    my ($ssh1, $ssh2, $ssh3, $ssh4, $ssh5, $ssh6, $ssh7, $ssh8, $ssh9);
     my %ssh_creds = (username => 'root', password => 'password', hostname => 'foo.bar');
     my $exp_log_new = qr/SSH connection to root\@foo\.bar established/;
     my $exp_log_existing = qr/Use existing SSH connection/;
@@ -213,6 +215,12 @@ subtest 'SSH utilities' => sub {
     $exp_log_new = qr/SSH connection to foo911\@foo\.bar established/;
     # 4th SSH instance
     stderr_like { $ssh6 = $baseclass->new_ssh_connection(keep_open => 1, %ssh_creds, username => 'foo911') } $exp_log_new, 'New SSH connection announced in logs -- username=foo911';
+
+    # New connection using agent (instead of password)
+    $exp_log_new = qr/SSH connection to foo912\@foo\.bar established/;
+    stderr_like { $ssh9 = $baseclass->new_ssh_connection(keep_open => 0, %ssh_creds, username => 'foo912', password => undef) } $exp_log_new, 'New SSH connection announced in logs -- username=foo912';
+    is scalar @agent, 1, 'auth agent called once' or diag explain \@agent;
+
     $ssh_expect->{username} = 'root';
 
     # New connection if keeped connection is broken
@@ -263,11 +271,12 @@ subtest 'SSH utilities' => sub {
     my @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
     my @disconnected_ssh = grep { !$_->{connected} } values(%$ssh_obj_data);
 
-    is(scalar(@connected_ssh), 6, "Expect 6 connected SSH connections");
+    is(scalar(@connected_ssh), 7, "Expect 6 connected SSH connections");
     is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
     is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
     is($ssh7->{connected}, 1, "SSH connection ssh7 connected");
     is($ssh8->{connected}, 1, "SSH connection ssh8 connected");
+    is($ssh9->{connected}, 1, "SSH connection ssh9 connected");
     # +1 unnamed connection form implicit run_ssh_cmd()
 
     is(scalar(@disconnected_ssh), 3, "Expect 3 disconnected SSH connections");
@@ -277,9 +286,10 @@ subtest 'SSH utilities' => sub {
 
     $baseclass->close_ssh_connections();
     @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
-    is(scalar(@connected_ssh), 3, "Expect 3 connected SSH connections (ssh1 and ssh2)");
+    is scalar @connected_ssh, 4, 'Expect 4 connected SSH connections (ssh1, ssh2 and ssh9)';
     is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
     is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
+    is($ssh9->{connected}, 1, "SSH connection ssh9 connected (user agent auth)");
 
     subtest 'Serial SSH' => sub {
         my $io_select_mock = Test::MockModule->new('IO::Select');
@@ -318,6 +328,7 @@ subtest 'SSH utilities' => sub {
         is($baseclass->{serial}, $ssh, 'Serial SSH exists after EGAIN');
 
         is($baseclass->check_ssh_serial(42), 0, 'Return 0 when called with wrong socket');
+        is $baseclass->check_ssh_serial($ssh->sock, 1), 1, 'early return if $write is set';
 
         @net_ssh2_error = (666, 'UNKNOWN', 'OHA');
         stdout_is { $exit_value = $baseclass->check_ssh_serial($ssh->sock()) } '', 'No output on ERROR only';
@@ -325,6 +336,17 @@ subtest 'SSH utilities' => sub {
         is($baseclass->{serial}, undef, 'SSH serial get disconnected on unknown read ERROR');
 
         is($baseclass->check_ssh_serial(23), 0, 'Return 0 if SSH serial isn\'t connected');
+    };
+
+    subtest 'handling connection error' => sub {
+        my $mockbmw = Test::MockModule->new('bmwqemu');
+        my $diag = '';
+        $mockbmw->redefine(diag => sub { $diag .= $_[0] });
+        $bmwqemu::vars{SSH_CONNECT_RETRY} = 2;
+        $ssh_connect_error = 1;
+        $exp_log_new = qr/Could not connect to serial\@foo, Retrying/;
+        $baseclass->new_ssh_connection(keep_open => 0, hostname => 'foo', username => 'serial', password => 'XXX');
+        like $diag, qr/Could not connect to serial\@foo, Retrying/, 'connection error logged';
     };
 };
 
@@ -568,10 +590,16 @@ subtest 'starting external video encoder and enqueuing screenshot data for it' =
     $baseclass->screenshot_interval(-1);    # provoke warning about enqueueing screenshot taking too long to cover this as well
     $baseclass->last_image(tinycv::new(1, 1));
     $log::logger = Mojo::Log->new(level => 'debug');
-    combined_like { $baseclass->enqueue_screenshot(tinycv::new(1, 1)) } qr/enqueue_screenshot took/, 'warning about ';
+    combined_like { $baseclass->enqueue_screenshot(tinycv::new(1, 1)) } qr/enqueue_screenshot took/, 'warning about time (1)';
+    is substr($baseclass->{video_frame_data}->[-2], 0, 2), 'E ', 'new image passed to built-in video encoder (to make png)';
+    is scalar @$image_data, 1, 'image data enqueued for external encoder';
+
+    # enqueue the same image again
+    combined_like { $baseclass->enqueue_screenshot(tinycv::new(1, 1)) } qr/enqueue_screenshot took/, 'warning about time (2)';
     close $baseclass->{vtt_caption_file};
     like $vtt_caption_file->slurp, qr/\d\d:.* --> \d\d:/, 'vtt caption written';
-    is scalar @$image_data, 1, 'image data enqueued';
+    is $baseclass->{video_frame_data}->[-1], "R\n", 'last frame just repeated, no new image passed to built-in video encoder';
+    is scalar @$image_data, 2, 'further image data enqueued for external encoder';
 };
 
 subtest 'console functions' => sub {
@@ -615,6 +643,127 @@ subtest 'bouncer functions' => sub {
     my $fake_screen = $baseclass->{current_screen} = Test::MockObject->new->set_true(@bouncer_functions);
     $baseclass->$_({}) for @bouncer_functions;
     $fake_screen->called_ok($_, "function '$_' bounced") for @bouncer_functions;
+};
+
+subtest 'reduce to biggest changes' => sub {
+    my $dummy_img = tinycv::new(1, 1);
+    my @imglist = (
+        # image, failed candidates (not used by this function so we just assign string), test time, similarity, frame (also not used)
+        [$dummy_img, 'img 1', 5, 500, $dummy_img],
+        [$dummy_img, 'img 2', 6, 900, $dummy_img],
+        [$dummy_img, 'img 3', 7, 800, $dummy_img],
+        [$dummy_img, 'img 4', 8, 950, $dummy_img],
+        [$dummy_img, 'img 5', 1, 700, $dummy_img],
+        [$dummy_img, 'img 6', 2, 950, $dummy_img],
+        [$dummy_img, 'img 7', 3, 850, $dummy_img],
+    );
+    my @expected = (
+        [$dummy_img, 'img 4', 8, 950, $dummy_img],    # images sorted by test time and similarity (as 2nd criteria) in descending order
+        [$dummy_img, 'img 3', 7, 1000000, $dummy_img],    # similarity of images (after the top one) recomputes (so we just get 1000000 for our dummies)
+        [$dummy_img, 'img 2', 6, 1000000, $dummy_img],
+        [$dummy_img, 'img 1', 5, 1000000, $dummy_img],    # first image preserved despite lowest similarity (so 2nd lowest is removed instead)
+        [$dummy_img, 'img 7', 3, 1000000, $dummy_img],
+        [$dummy_img, 'img 6', 2, 1000000, $dummy_img],
+    );
+    backend::baseclass::_reduce_to_biggest_changes(\@imglist, 5);    # pass limit of 5, we actually keep 6 images as the first one doesn't count
+    is_deeply \@imglist, \@expected, 'images reduced as expected' or diag explain \@imglist;
+
+    # note: This test has been added retrospectively assuming the implementation was correct at this point.
+};
+
+subtest 'stub functions' => sub {
+    combined_like {
+        $baseclass->freeze_vm;
+        $baseclass->cont_vm;
+    } qr/ignored freeze_vm.*ignored cont_vm/s, 'freeze/cont ignored by default';
+};
+
+subtest 'verifying image' => sub {
+    my $fail_res = $baseclass->verify_image({imgpath => "$Bin/imgsearch/kde-logo.png", mustmatch => 0});
+    is_deeply $fail_res, {candidates => []}, 'image not found (no candidates)' or diag explain $fail_res;
+
+    my $fake_image = Test::MockObject->new->mock(search => sub ($self, $needles, $threshold, $search_ratio) { (1, [qw(foo bar)]) });
+    my $tinycv_mock = Test::MockModule->new('tinycv')->redefine(read => $fake_image);
+    my $ok_res = $baseclass->verify_image({imgpath => "$Bin/imgsearch/kde-logo.png", mustmatch => 0});
+    is_deeply $ok_res, {found => 1, candidates => [qw(foo bar)]}, 'image found (mocked search)' or diag explain $ok_res;
+};
+
+subtest 'retrying assert screen' => sub {
+    my $needles_reloaded = 0;
+    my $mock = Test::MockModule->new('backend::baseclass')->redefine(reload_needles => sub ($self) { $needles_reloaded = 1 });
+    $baseclass->assert_screen_deadline(0);
+    combined_like {
+        $baseclass->retry_assert_screen({reload_needles => 1, timeout => 42})
+    } qr/cont_vm.*set_tags_to_assert: NO matching needles for foo/s, 'cont_vm called, set_tags_to_assert invoked';
+    ok $needles_reloaded, 'needles have been reloaded';
+    ok $baseclass->assert_screen_deadline, 'assert screen timeout set';
+};
+
+local $SIG{__DIE__} = 'DEFAULT';
+
+subtest 'error handling when checking socket' => sub {
+    my $rpc_mock = Test::MockModule->new('myjsonrpc')->redefine(read_json => {invalid => 'response'});
+    $baseclass->{cmdpipe} = 42;
+    throws_ok { $baseclass->check_socket(42) } qr/no command in.*invalid.*response/s, 'dies on invalid response';
+};
+
+subtest 'special cases of set_tags_to_assert' => sub {
+    combined_like { needle::init("$Bin/data") } qr/loaded \d+ needles/, 'needles loaded';
+
+    subtest 'invalid tags passed' => sub {
+        my $warning = warning {
+            combined_like {
+                my $res = $baseclass->set_tags_to_assert({mustmatch => [{invalid => 'tags'}]});
+                is_deeply $res, {tags => []}, 'empty set of tags returned for invalid needle' or diag explain $res;
+            } qr/NO matching needles for/, 'no match logged for invalid needle'
+        };
+        like $warning, qr/invalid needle passed <HASH>.*invalid.*tags/s, 'warning about invalid needle';
+        is_deeply $baseclass->assert_screen_needles, [], 'no assert screen needles assigned';
+    };
+
+    subtest 'multiple tags specified, multiple needles set for assertion' => sub {
+        my @tags = (qw(inst-welcome not-existing));
+        my $res = $baseclass->set_tags_to_assert({mustmatch => \@tags});
+        is_deeply $res, {tags => \@tags}, 'tags returned' or diag explain $res;
+        my @needles = sort { $a->{name} cmp $b->{name} } @{$baseclass->assert_screen_needles};
+        is scalar @needles, 2, 'matching needles assigned';
+        is $needles[0]->{name}, 'inst-welcome-20140902', 'needle inst-welcome-20140902 matched';
+        is $needles[1]->{name}, 'welcome.ref', 'needle welcome.ref matched';
+    };
+};
+
+subtest 'test _failed_screens_to_json when _reduce_to_biggest_changes removed final mismatch' => sub {
+    my $mock = Test::MockModule->new('backend::baseclass')->redefine(_reduce_to_biggest_changes => sub ($failed_screens, $limit) {
+            pop @$failed_screens;    # test case when the last one in the reduced list differs
+    });
+    my $dummy_img = Test::MockObject->new->set_always(similarity => 49)->set_always(ppm_data => 'img-data');
+    my $dummy_frame = 'foo';
+    $baseclass->assert_screen_fails([[$dummy_img, 'img 1', 5, 500, 'foo'], [$dummy_img, 'img 2', 5, 500, 'bar']]);
+    my @expected_failures = (
+        {candidates => 'img 1', frame => 'foo', image => "aW1nLWRhdGE=\n"},
+        {candidates => 'img 2', frame => 'bar', image => "aW1nLWRhdGE=\n"},
+    );
+    my $res = $baseclass->_failed_screens_to_json;
+    is_deeply $res, {timeout => 1, failed_screens => \@expected_failures}, 'expected res' or diag explain $res;
+};
+
+subtest 'check_asserted_screen takes too long' => sub {
+    my $mock = Test::MockModule->new('backend::baseclass')->redefine(_reduce_to_biggest_changes => sub ($failed_screens, $limit) {
+            splice @$failed_screens, $limit;
+    });
+    $baseclass->assert_screen_last_check(undef);
+    $baseclass->assert_screen_fails([1 .. 60, [tinycv::new(1, 1), 'img 1', 5, 500, tinycv::new(1, 1)]]);
+    combined_like { $baseclass->check_asserted_screen({}) } qr/check_asserted_screen took .* seconds for 2 candidate needles - make your needles more specific/, 'warning logged if check_asserted_screen takes too long';
+    is ref $baseclass->assert_screen_last_check->[0], 'tinycv::Image', 'assert_screen_last_check assigned';
+    is scalar @{$baseclass->assert_screen_fails}, 20, 'assert screen fails cleaned up';
+};
+
+subtest 'child process handling' => sub {
+    throws_ok { $baseclass->_child_process(undef) } qr/without code/, 'starting dies without specifying coderef';
+    local $SIG{TERM} = 'DEFAULT';
+    my $pid = $baseclass->_child_process(sub { pause; _exit 0 });
+    ok $pid, 'started child, pid returned: ' . ($pid // '?');
+    combined_like { $baseclass->_stop_children_processes } qr/waitpid for $pid returned/, 'stopped child again';
 };
 
 done_testing;
