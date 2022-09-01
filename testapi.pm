@@ -597,26 +597,22 @@ sub wait_screen_change : prototype(&@) {    # no:style:signatures
     $args{similarity_level} //= 50;
 
     bmwqemu::log_call(timeout => $timeout, %args);
-    $timeout = bmwqemu::scale_timeout($timeout);
+    $args{timeout} = bmwqemu::scale_timeout($timeout);
 
     # get the initial screen
     query_isotovideo('backend_set_reference_screenshot');
     $callback->() if $callback;
 
-    my $starttime = time;
-
-    while (time - $starttime < $timeout) {
-        my $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
-        bmwqemu::diag("waiting for screen change: " . (time - $starttime) . " $sim");
-        if ($sim < $args{similarity_level}) {
-            bmwqemu::fctres("screen change seen at " . (time - $starttime));
-            return 1;
-        }
-        sleep(0.5);
+    my $res = query_isotovideo('backend_wait_screen_change', \%args);
+    if (!$res->{timed_out}) {
+        bmwqemu::fctres("screen change seen after $res->{elapsed} seconds (similarity: $res->{sim})");
+        return 1;
     }
-    save_screenshot;
-    bmwqemu::fctres("timed out");
-    return 0;
+    else {
+        bmwqemu::fctres("timed out after $res->{elapsed} seconds (similarity: $res->{sim})");
+        save_screenshot;
+        return 0;
+    }
 }
 
 =head2 assert_screen_change

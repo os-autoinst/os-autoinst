@@ -455,6 +455,44 @@ BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)'}, '
     };
 };
 
+subtest 'waiting for screen change' => sub {
+    my @sent_json;
+    my $rpc_mock = Test::MockModule->new('myjsonrpc')->redefine(send_json => sub (@args) { push @sent_json, [@args] });
+    my %expected_response = (json_cmd_token => 'faketoken', rsp => {sim => 10000, elapsed => 10, timed_out => !!0});
+    $baseclass->{rsppipe} = 41;
+    $baseclass->{_postponed_cmd_token} = 'faketoken';
+
+    subtest 'enqueuing waiting for screen change' => sub {
+        is_deeply $baseclass->wait_screen_change({similarity_level => 10000, timeout => 10}), {postponed => 1}, 'reply is postponed';
+        is ref $baseclass->{_wait_screen_change}, 'HASH', 'check for screen change enqueued';
+    };
+    subtest 'screen has not changed and timeout has not been exceeded' => sub {
+        $baseclass->{_wait_screen_change}->{starttime} = 20;
+        $baseclass->_check_for_screen_change(30);    # assume time difference of 10 seconds, exactly within timeout
+        is ref $baseclass->{_wait_screen_change}, 'HASH', 'still waiting for screen change';
+        is_deeply \@sent_json, [], 'no response sent' or diag explain \@sent_json;
+    };
+    subtest 'screen has changed' => sub {
+        $baseclass->{_wait_screen_change}->{starttime} = 20;
+        $baseclass->{_wait_screen_change}->{similarity_level} += 1;    # let's just be satisfied with a higher similarity
+        $baseclass->_check_for_screen_change(30);    # assume time difference of 10 seconds, exactly within timeout
+        ok !$baseclass->{_wait_screen_change}, 'no longer waiting for screen change';
+        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or diag explain \@sent_json;
+    };
+    subtest 'timeout exceeded' => sub {
+        is_deeply $baseclass->wait_screen_change({similarity_level => 10, timeout => 4}), {postponed => 1}, 'reply is postponed';
+        $baseclass->{_wait_screen_change}->{starttime} = 20;
+        @sent_json = ();
+        $baseclass->_check_for_screen_change(25);    # time difference of 5 seconds, exactly one second passed the timeout
+        $expected_response{rsp}->{timed_out} = 1;
+        $expected_response{rsp}->{elapsed} = 5;
+        ok !$baseclass->{_wait_screen_change}, 'no longer waiting for screen change';
+        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or diag explain \@sent_json;
+    };
+
+    $baseclass->{rsppipe} = undef;
+};
+
 subtest check_select_rate => sub {
     my $time_limit = 3;    # _CHKSEL_RATE_WAIT_TIME
     my $hit_limit = 10;    # _CHKSEL_RATE_HITS
@@ -701,10 +739,15 @@ subtest 'retrying assert screen' => sub {
 
 local $SIG{__DIE__} = 'DEFAULT';
 
-subtest 'error handling when checking socket' => sub {
-    my $rpc_mock = Test::MockModule->new('myjsonrpc')->redefine(read_json => {invalid => 'response'});
+subtest 'special cases when checking socket' => sub {
+    my $rpc_mock = Test::MockModule->new('myjsonrpc');
+    $rpc_mock->redefine(read_json => {invalid => 'response'});
     $baseclass->{cmdpipe} = 42;
     throws_ok { $baseclass->check_socket(42) } qr/no command in.*invalid.*response/s, 'dies on invalid response';
+
+    $rpc_mock->redefine(read_json => {cmd => 'wait_screen_change', json_cmd_token => 'fake-postponed-token'});
+    $baseclass->check_socket(42);
+    is $baseclass->{_postponed_cmd_token}, 'fake-postponed-token', 'reply postponed, token saved for later';
 };
 
 subtest 'special cases of set_tags_to_assert' => sub {
