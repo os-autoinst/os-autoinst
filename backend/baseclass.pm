@@ -150,6 +150,19 @@ sub _write_buffered_data_to_file_handle ($self, $program_name, $array_of_buffers
     }
 }
 
+sub _check_for_screen_change ($self, $now) {
+    return undef unless my $wait_screen_change = $self->{_wait_screen_change};
+    my $similiarity_to_reference = $self->similiarity_to_reference(undef);
+    my $elapsed = $similiarity_to_reference->{elapsed} = $now - $wait_screen_change->{starttime};
+    my $screen_changed = $similiarity_to_reference->{sim} < $wait_screen_change->{similarity_level};
+    my $timed_out = $similiarity_to_reference->{timed_out} = $elapsed > $wait_screen_change->{timeout};
+    return undef unless $screen_changed || $timed_out;
+    $self->{_wait_screen_change} = undef;    # no longer waiting for screen change
+    return undef unless $self->{rsppipe};
+    my %reply = (rsp => $similiarity_to_reference, json_cmd_token => $self->{_postponed_cmd_token});
+    myjsonrpc::send_json($self->{rsppipe}, \%reply);
+}
+
 sub do_capture ($self, $timeout = undef, $starttime = undef) {
     # Time slot buckets
     my $buckets = {};
@@ -180,12 +193,17 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
             bmwqemu::fctwarn "There is some problem with your environment, we detected a stall for $diff seconds";
         }
 
+        # capture the screen if screenshot interval exceeded
+        # TODO: assume lower screenshot interval when waiting for a screen change
         my $time_to_screenshot = $self->screenshot_interval - ($now - $self->last_screenshot);
         if ($time_to_screenshot <= 0) {
             $self->capture_screenshot();
             $self->last_screenshot($now);
             $time_to_screenshot = $self->screenshot_interval;
         }
+
+        # check whether the screen has changed if waiting for a screen change and send back the result
+        $self->_check_for_screen_change($now);
 
         my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
         my ($read_set, $write_set) = IO::Select->select($self->{select_read}->select(), $self->{select_write}->select(), undef, $time_to_next);
@@ -521,6 +539,12 @@ sub enqueue_screenshot ($self, $image) {
     return;
 }
 
+sub wait_screen_change ($self, $args) {
+    $args->{starttime} = gettimeofday;
+    $self->{_wait_screen_change} = $args;
+    return {postponed => 1};
+}
+
 sub close_pipes ($self) {
     if ($self->{cmdpipe}) {
         close($self->{cmdpipe}) || die "close $!\n";
@@ -546,10 +570,13 @@ sub check_socket ($self, $fh, $write = undef) {
         my $cmd = myjsonrpc::read_json($self->{cmdpipe});
 
         if ($cmd->{cmd}) {
-            my $rsp = {rsp => ($self->handle_command($cmd) // 0)};
-            $rsp->{json_cmd_token} = $cmd->{json_cmd_token};
-            if ($self->{rsppipe}) {    # the command might have closed it
-                myjsonrpc::send_json($self->{rsppipe}, $rsp);
+            my $rsp = ($self->handle_command($cmd) // 0);
+            my $response = {rsp => $rsp};
+            if (ref $rsp eq 'HASH' && $rsp->{postponed}) {
+                $self->{_postponed_cmd_token} = $cmd->{json_cmd_token};
+            } elsif ($self->{rsppipe}) {    # the command might have closed it
+                $response->{json_cmd_token} = $cmd->{json_cmd_token};
+                myjsonrpc::send_json($self->{rsppipe}, $response);
             }
         }
         else {
