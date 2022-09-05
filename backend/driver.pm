@@ -23,21 +23,18 @@ use myjsonrpc;
 use signalblocker;
 use log qw(diag fctinfo);
 
+sub _collect_orphan ($session, $p, @) {
+    fctinfo "Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status;
+}
+
 sub new ($class, $name) {
     my $self = $class->SUPER::new({class => $class});
 
     require "backend/$name.pm";
     $self->{backend} = "backend::$name"->new();
     $self->{backend_name} = $name;
-
-    session->on(
-        collected_orphan => sub {
-            my ($session, $p) = @_;
-            fctinfo("Driver backend collected unknown process with pid " . $p->pid . " and exit status: " . $p->exit_status);
-        });
-
+    session->on(collected_orphan => \&_collect_orphan);
     $self->start();
-
     return $self;
 }
 
