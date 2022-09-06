@@ -157,10 +157,10 @@ sub do_mc_reset ($self) {
                         return;
                     }
                 }
-                sleep 3;
+                sleep 3;    # uncoverable statement
             }
         }
-        sleep 3;
+        sleep 3;    # uncoverable statement
     }
 
     die "IPMI mc reset failure after $max_tries tries! Exit...";

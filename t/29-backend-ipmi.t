@@ -50,9 +50,25 @@ is $testapi::distri->{consoles}->{sol}->{args}->{log}, '1';
 $testapi::distri->{consoles}->{sol}->{DISPLAY} = "display";
 ok !$testapi::distri->{consoles}->{sol}->callxterm('ipmi', "console"), "can create console with log enabled";
 
-# reduce retries for testing
-$bmwqemu::vars{IPMI_MC_RESET_MAX_TRIES} = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT} = 3;
-combined_like { $backend->do_mc_reset } qr/IPMI mc reset success/, 'can call do_mc_reset';
+subtest 'cold reset' => sub {
+    # reduce retries for testing
+    $bmwqemu::vars{IPMI_MC_RESET_MAX_TRIES} = $bmwqemu::vars{IPMI_MC_RESET_TIMEOUT} = 3;
+    combined_like { $backend->do_mc_reset } qr/IPMI mc reset success/, 'can call do_mc_reset';
+
+    $ipmi->redefine(ipmitool => sub { die 'fake error' });
+    throws_ok { combined_like { $backend->do_mc_reset } qr/IPMI mc reset failure: fake error/, 'error logged' }
+    qr/IPMI mc reset failure after 3 tries/, 'dies when retries exhausted';
+};
+
+subtest 'dell sleep' => sub {
+    my $ipc_run_mock = Test::MockModule->new('IPC::Run');
+    $ipc_run_mock->redefine(run => sub ($cmd, $stdin, $stdout, $stderr) { $$stdin = 'in', $$stdout = 'out', $$stderr = 'err'; return 0 });
+    $ipmi->unmock('ipmitool');
+    $bmwqemu::vars{IPMI_HW} = 'dell';
+    my $start = time;
+    throws_ok { $backend->ipmitool('foo') } qr/ipmi foo: err/, 'error logged';
+    is time, $start + 4, 'slept 4 seconds';
+};
 
 done_testing;
 
