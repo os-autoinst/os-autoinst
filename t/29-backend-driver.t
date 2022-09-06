@@ -6,6 +6,7 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 use Mojo::File qw(tempdir);
+use Mojo::IOLoop::ReadWriteProcess qw(process);
 use Mojo::Util qw(scope_guard);
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
@@ -46,6 +47,12 @@ $out = combined_from { is $driver->stop_backend, undef, 'stop_backend' };
 like "@diag", qr/backend.*exited/, 'exit logged';
 reset_logs();
 is $driver->stop, undef, 'stop';
+
+my $process = process(process_id => 42, _status => (5 << 8));
+reset_logs;
+backend::driver::_collect_orphan(undef, $process);
+like $fctinfo[0], qr/collected.*pid.*42.*exit status.*5/, 'message for collected orphan logged';
+
 done_testing;
 
 1;
