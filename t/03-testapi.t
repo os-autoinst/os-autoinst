@@ -116,7 +116,9 @@ my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
 
 subtest 'type_string' => sub {
     $mod2->redefine(wait_screen_change => sub : prototype(&@) {
-            my ($callback, $timeout) = @_;
+            my ($callback, $timeout, %args) = @_;
+            is $timeout, 30, 'expected timeout passed to wait_screen_change';
+            ok $args{no_wait}, 'no_wait parameter passed to wait_screen_change';
             $callback->() if $callback;
     });
 

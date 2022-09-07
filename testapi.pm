@@ -1456,7 +1456,7 @@ sub type_string {    # no:style:signatures
     }
     for my $piece (@pieces) {
         if ($wait) {
-            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); };
+            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); } $wait_timeout, no_wait => 1;
         }
         else {
             query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval});
