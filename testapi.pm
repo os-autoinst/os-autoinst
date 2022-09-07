@@ -561,7 +561,7 @@ sub assert_and_dclick ($mustmatch, %args) {
 
 =head2 wait_screen_change
 
-  wait_screen_change(CODEREF [,$timeout [, similarity_level => 50]]);
+  wait_screen_change(CODEREF [,$timeout [, similarity_level => 50, no_wait => 0]]);
 
 Wrapper around code that is supposed to change the screen. This is the
 opposite to C<wait_still_screen>. Make sure to put the commands to change the
@@ -585,6 +585,10 @@ subroutine block.
   wait_screen_change(sub {
     send_key 'esc';
   }, 15);
+
+To lower the backend's internal update interval while looking for screen changes, use
+the optional parameter `no_wait => 1`. This makes the test execution faster if the
+screen change is expected to happen (almost) immediately.
 
 Returns true if screen changed or false on timeout. Default timeout is 10s. Default
 similarity_level is 50.
