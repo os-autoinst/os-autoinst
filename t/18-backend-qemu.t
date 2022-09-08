@@ -207,4 +207,17 @@ subtest qemu_tpm_option => sub {
     like $runcmd, qr|swtpm socket --tpmstate dir=.*mytpm6 --ctrl type=unixio,path=.*mytpm6/swtpm-sock --log level=20 -d|, 'swtpm 1.2 device created';
 };
 
+subtest 'capturing audio' => sub {
+    $called{handle_qmp_command} = undef;
+    $backend->start_audiocapture({filename => 'foo'});
+    $backend->stop_audiocapture({});
+    is_deeply $called{handle_qmp_command}, [{
+            arguments => {'command-line' => 'wavcapture foo snd0 44100 16 1'},
+            execute => 'human-monitor-command',
+        }, {
+            arguments => {'command-line' => 'stopcapture 0'},
+            execute => 'human-monitor-command',
+        }], 'expected QMP command called' or diag explain $called{handle_qmp_command};
+};
+
 done_testing();
