@@ -27,7 +27,7 @@ use Test::MockModule;
 my $mod = Test::MockModule->new('myjsonrpc');
 my $fake_exit = 0;
 my $fake_matched = 1;
-my $fake_similarity = 0;
+my $fake_timeout = 0;
 
 # define variables for 'fake_read_json'
 my $report_timeout_called = 0;
@@ -88,8 +88,8 @@ sub fake_read_json ($fd) {
     elsif ($cmd eq 'backend_get_wait_still_screen_on_here_doc_input' || $cmd eq 'backend_set_reference_screenshot') {
         return {ret => 0};
     }
-    elsif ($cmd eq 'backend_similiarity_to_reference') {
-        return {ret => {sim => $fake_similarity}};
+    elsif ($cmd eq 'backend_wait_screen_change') {
+        return {ret => {sim => 42, elapsed => 5, timed_out => $fake_timeout}};
     }
     else {
         note "mock method not implemented \$cmd: $cmd\n";
@@ -180,14 +180,18 @@ subtest 'wait_screen_change' => sub {
     my $callback_invoked = 0;
     ok wait_screen_change { $callback_invoked = 1 }, 'change found';
     ok $callback_invoked, 'callback invoked';
-    my @expected_cmds = (map { {cmd => $_} } qw(backend_set_reference_screenshot backend_similiarity_to_reference));
-    is_deeply $cmds, \@expected_cmds, 'similarity checked one time (as immediately successful)' or diag explain $cmds;
+    my @expected_cmds = (
+        {cmd => 'backend_set_reference_screenshot'},
+        {cmd => 'backend_wait_screen_change', similarity_level => 50, timeout => 10},
+    );
+    is_deeply $cmds, \@expected_cmds, 'backend function wait_screen_change called (1)' or diag explain $cmds;
     $cmds = [];
 
-    $fake_similarity = 50;    # too similar to be considered a change
-    push @expected_cmds, {cmd => 'backend_similiarity_to_reference'};    # we expect to see two checks in total
-    ok !wait_screen_change(sub { $callback_invoked = 1 }, 1), 'no change found';    # one second timeout
-    is_deeply $cmds, \@expected_cmds, 'similarity checked two times (one second timeout, 0.5 delay between checks)' or diag explain $cmds;
+    $fake_timeout = 1;
+    $expected_cmds[1]->{timeout} = 1;
+    $expected_cmds[1]->{similarity_level} = 51;
+    ok !wait_screen_change(sub { $callback_invoked = 1 }, 1, similarity_level => 51), 'no change found';
+    is_deeply $cmds, \@expected_cmds, 'backend function wait_screen_change called (2)' or diag explain $cmds;
     $cmds = [];
 };
 

@@ -128,7 +128,7 @@ sub do_mc_reset ($self) {
     }
 
     # during the eval execution of following commands, SIG{__DIE__} will definitely be triggered, let it go
-    local $SIG{__DIE__} = {};
+    local $SIG{__DIE__} = sub { };
 
     # mc reset cmd should return immediately, try maximum 5 times to ensure cmd executed
     my $max_tries = $bmwqemu::vars{IPMI_MC_RESET_MAX_TRIES} // 5;
@@ -157,10 +157,10 @@ sub do_mc_reset ($self) {
                         return;
                     }
                 }
-                sleep 3;
+                sleep 3;    # uncoverable statement
             }
         }
-        sleep 3;
+        sleep 3;    # uncoverable statement
     }
 
     die "IPMI mc reset failure after $max_tries tries! Exit...";
