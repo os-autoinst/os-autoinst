@@ -3,7 +3,7 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 
-use FindBin '$Bin';
+use FindBin qw($Bin $Script);
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
@@ -15,6 +15,7 @@ use Carp;
 use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use Mojo::JSON;
+use Scalar::Util qw(looks_like_number);
 
 use backend::qemu;
 
@@ -233,6 +234,30 @@ subtest 'capturing audio' => sub {
             arguments => {'command-line' => 'stopcapture 0'},
             execute => 'human-monitor-command',
         }], 'expected QMP command called' or diag explain $called{handle_qmp_command};
+};
+
+subtest 'misc functions' => sub {
+    $backend->{proc}->_process(Test::MockObject->set_always(pid => $$));
+    my $res = $backend->cpu_stat;
+    is scalar @$res, 2, 'cpu_stat returns two values' or diag explain $res;
+    ok looks_like_number($res->[$_]), "cpu_stat value $_ is a number" for (0, 1);
+
+    $bmwqemu::vars{HDDMODEL} = 'nvme';
+    is $backend->can_handle({function => 'snapshots'}), undef, 'NVMe snapshots not supported';
+
+    $called{handle_qmp_command} = undef;
+    $backend->set_migrate_capability('foo', 0);
+    is_deeply $called{handle_qmp_command}, [{
+            execute => 'migrate-set-capabilities',
+            arguments => {capabilities => [{capability => 'foo', state => Mojo::JSON::false}]},
+    }], 'expected QMP command called for "set_migrate_capability"' or diag explain $called{handle_qmp_command};
+
+    $called{handle_qmp_command} = undef;
+    $backend->open_file_and_send_fd_to_qemu("$Bin/$Script", 'foo');
+    is_deeply $called{handle_qmp_command}, [{
+            execute => 'getfd',
+            arguments => {fdname => 'foo'},
+    }], 'expected QMP command called for "open_file_and_send_fd_to_qemu"' or diag explain $called{handle_qmp_command};
 };
 
 done_testing();
