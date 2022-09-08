@@ -67,6 +67,21 @@ subtest 'using Open vSwitch D-Bus service' => sub {
     $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 0;
     $backend_mock->redefine(_dbus_do_call => sub { (1, 'failed') });
     like exception { $backend->_dbus_call('show') }, qr/failed/, 'failed dbus call throws exception';
+
+    # test one unmocked _dbus_do_call againsted mocked Net::DBus
+    $backend_mock->unmock('_dbus_do_call');
+    my $fake_object = Test::MockObject->new;
+    $fake_object->mock(foo => sub ($self, $one, $two) { $one == 1 && $two == 2 ? (qw(the result)) : () });
+    my $fake_service = Test::MockObject->new;
+    $fake_service->mock(get_object => sub ($self, $path, $name) { $path eq '/switch' && $name eq 'org.opensuse.os_autoinst.switch' ? $fake_object : undef });
+    my $fake_connection = Test::MockObject->new;
+    $fake_connection->set_always(disconnect => 1);
+    my $fake_bus = Test::MockObject->new;
+    $fake_bus->set_always(get_connection => $fake_connection);
+    $fake_bus->mock(get_service => sub ($self, $name) { $name eq 'org.opensuse.os_autoinst.switch' ? $fake_service : undef });
+    my $dbus_mock = Test::MockModule->new('Net::DBus');
+    $dbus_mock->redefine(system => sub ($self, %args) { $args{private} ? $fake_bus : undef });
+    is_deeply [$backend->_dbus_do_call(foo => 1, 2)], [qw(the result)], 'result returned';
 };
 
 $backend_mock->redefine(handle_qmp_command => sub { push @{$called{handle_qmp_command}}, $_[1] });
