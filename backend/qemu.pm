@@ -216,8 +216,8 @@ sub _wait_for_migrate ($self) {
         $rsp = $self->handle_qmp_command({execute => 'query-migrate'}, fatal => 1);
         die 'Migrate to file failed' if $rsp->{return}->{status} eq 'failed';
 
-        diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
-        diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
+        log::diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
+        log::diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
 
         if ($execution_time > $max_execution_time) {
             # migrate_cancel returns an empty hash, so there is no need to check.

@@ -8,6 +8,7 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::MockObject;
+use Test::Mock::Time;
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
@@ -44,6 +45,7 @@ my $backend_mock = Test::MockModule->new('backend::qemu', no_auto => 1);
 $backend_mock->redefine(handle_qmp_command => undef);
 my $distri = Test::MockModule->new('distribution');
 my %called;
+my $invoked_qmp_cmds = \$called{handle_qmp_command};
 $distri->redefine(add_console => sub {
         $called{add_console}++;
         my $ret = Test::MockObject->new();
@@ -85,7 +87,8 @@ subtest 'using Open vSwitch D-Bus service' => sub {
     is_deeply [$backend->_dbus_do_call(foo => 1, 2)], [qw(the result)], 'result returned';
 };
 
-$backend_mock->redefine(handle_qmp_command => sub { push @{$called{handle_qmp_command}}, $_[1] });
+my $fake_qmp_answer;
+$backend_mock->redefine(handle_qmp_command => sub { push @{$called{handle_qmp_command}}, $_[1]; $fake_qmp_answer });
 $backend->power({action => 'off'});
 ok(exists $called{handle_qmp_command}, 'a qmp command has been called');
 is_deeply($called{handle_qmp_command}, [{execute => 'quit'}], 'quit has been called for off');
@@ -234,6 +237,54 @@ subtest 'capturing audio' => sub {
             arguments => {'command-line' => 'stopcapture 0'},
             execute => 'human-monitor-command',
         }], 'expected QMP command called' or diag explain $called{handle_qmp_command};
+};
+
+subtest 'wait functions' => sub {
+    my $start = time;
+    my $timeout = $bmwqemu::vars{QEMU_MAX_MIGRATION_TIME} = 3;
+    my $log_mock = Test::MockModule->new('log')->redefine(diag => undef);
+    subtest 'waiting until status changes' => sub {
+        $fake_qmp_answer = {return => {status => 'foo'}};
+        $$invoked_qmp_cmds = undef;
+        throws_ok { $backend->_wait_while_status_is('foo', $timeout, 'test fail message') } qr/test fail message.*status is foo/, 'dies on timeout';
+        is time - $start, $timeout, "would have waited $timeout seconds";
+        $fake_qmp_answer = undef;
+        $backend->_wait_while_status_is('foo', $timeout, 'test fail message');
+        is time - $start, $timeout, 'waited no further as status differs';
+        is_deeply $$invoked_qmp_cmds->[$_], {execute => 'query-status'}, "status queries ($_)" for (0 .. 4);
+    };
+    subtest 'waiting for migration (failure)' => sub {
+        $fake_qmp_answer = {return => {status => 'running', ram => {total => 41, remaining => 15}}};
+        $$invoked_qmp_cmds = undef;
+        throws_ok { $backend->_wait_for_migrate } qr/Migrate to file failed.*running for more than $timeout/,
+          'migration considered failed after timeout';
+        is_deeply $$invoked_qmp_cmds->[-2], {execute => 'query-migrate'}, 'migration queried';
+        is_deeply $$invoked_qmp_cmds->[-1], {execute => 'migrate_cancel'}, 'migration cancelled';
+    };
+    subtest 'waitinng for migration (success)' => sub {
+        my @wait_args;
+        $backend_mock->redefine(_wait_while_status_is => sub ($self, $regex, @) { @wait_args = ($self, $regex) });
+        $fake_qmp_answer = {return => {status => 'completed', ram => {total => 41, remaining => 15}}};
+        $$invoked_qmp_cmds = undef;
+        $backend->_wait_for_migrate;
+        is_deeply $$invoked_qmp_cmds, [{execute => 'query-migrate'}], 'migration queried' or diag explain $$invoked_qmp_cmds;
+        is_deeply \@wait_args, [$backend, qr/paused|finish-migrate/], 'waited for status change' or diag explain \@wait_args;
+    };
+};
+
+subtest 'migration to file' => sub {
+    my @wait_for_migrate_args;
+    $backend_mock->redefine(_wait_for_migrate => sub (@args) { @wait_for_migrate_args = @args });
+    $$invoked_qmp_cmds = undef;
+    $backend->_migrate_to_file(filename => 'foo');
+    is_deeply \@wait_for_migrate_args, [$backend], 'migration awaited';
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]}},
+        {execute => 'migrate-set-parameters', arguments => {'compress-level' => 0, 'compress-threads' => 2, 'max-bandwidth' => '9223372036854775807'}},
+        {execute => 'getfd', arguments => {fdname => 'dumpfd'}},
+        {execute => 'stop'},
+        {execute => 'migrate', arguments => {uri => 'fd:dumpfd'}},
+    ], 'expected QMP commands invoked' or diag explain $$invoked_qmp_cmds;
 };
 
 subtest 'misc functions' => sub {
