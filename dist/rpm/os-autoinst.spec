@@ -83,6 +83,8 @@ Source0:        %{name}-%{version}.tar.xz
 %define devel_requires %python_style_requires %test_requires ShellCheck perl(Code::TidyAll) perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy) perl(Template::Toolkit)
 %define s390_zvm_requires /usr/bin/xkbcomp /usr/bin/Xvnc x3270 icewm xterm xterm-console xdotool fonts-config mkfontdir mkfontscale
 BuildRequires:  %test_requires %test_version_only_requires
+# For unbuffered output of Perl testsuite, especially when running it on OBS so timestamps in the log are actually useful
+BuildRequires:  expect
 Requires:       %main_requires
 Recommends:     tesseract-ocr
 Recommends:     dumponlyconsole %s390_zvm_requires
@@ -214,7 +216,7 @@ export CI=1
 export OPENQA_TEST_TIMEOUT_SCALE_CI=20
 # Enable verbose test output as we can not store test artifacts within package
 # build environments in case of needing to investigate failures
-export PROVE_ARGS="--timer -v"
+export PROVE_ARGS="--timer -v --nocolor"
 cd %{__builddir}
 %cmake_build check-pkg-build
 
