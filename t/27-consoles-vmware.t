@@ -180,11 +180,10 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     # connect to dewebsockify and let everything run
     my $data_received_via_raw_socket = '';
     my $configured_connect_attempts = OpenQA::Test::TimeLimit::scale_timeout($ENV{OS_AUTOINST_TEST_DEWEBSOCKIFY_CONNECT_ATTEMPTS} // 25);
-    my ($close_immediately, $client_callback, $connect_attempts, $connect_to_dewebsockify);
+    my ($close_immediately, $connect_attempts, $connect_to_dewebsockify);
     $connect_to_dewebsockify = sub ($loop) {
         note "connecting to dewebsockify on port $tcp_port";
         $loop->client({port => $tcp_port} => sub ($loop, $err, $stream) {
-                $client_callback = 1;
                 if ($err) {    # uncoverable statement
                     if (--$connect_attempts) {    # uncoverable statement
                         note "unable to connect to dewebsockify on port $tcp_port: $err (will try again $connect_attempts times)";    # uncoverable statement
@@ -207,10 +206,9 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     };
     my $connect_to_dewebsockify_with_multiple_attempts = sub (%args) {
         $connect_attempts = $configured_connect_attempts;
-        $client_callback = 0;
         $close_immediately = $args{close_immediately} // 0;
         $t->ua->ioloop->next_tick($connect_to_dewebsockify);
-        $t->ua->ioloop->start until $client_callback;
+        $t->ua->ioloop->start;
         if (my $pid = $args{wait_pid}) {
             note "waiting for dewebsockify process to terminate, pid: $pid";
             waitpid $pid, 0;    # dewebsockify is supposed to exit on its own
