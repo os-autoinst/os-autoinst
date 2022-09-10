@@ -588,20 +588,37 @@ subtest 'validate_script_output' => sub {
         validate_script_output('script', sub { m/error/ })
     } qr/output not validating/, 'Die on output not match';
     throws_ok {
+        validate_script_output('script', qr/error/)
+    } qr/output not validating/, 'Die on output not match';
+    throws_ok {
         validate_script_output('script', ['Invalid parameter'])
     } qr/coderef or regexp/, 'Die on invalid parameter';
+    throws_ok {
+        validate_script_output('script', qr/error/, fail_message => 'foo bar')
+    } qr/foo bar/, 'Die on output not match';
 
-    $mock_testapi->redefine(script_output => sub ($script, @args) { join(',', @args) });
-    my @exp_args_list = (
-        [123, proceed_on_failure => 1, type_command => 1],
-        [proceed_on_failure => 1, type_command => 1],
-        [type_command => 1],
-        [timeout => 1],
-        [123]
+    my $arguments;
+    my %script_output_defaults = (
+        timeout => undef,
+        proceed_on_failure => undef,
+        quiet => 1,
+        type_command => undef
     );
-    for my $exp_args (@exp_args_list) {
-        my $joined_args = join(',', @$exp_args);
-        lives_ok { validate_script_output('script', qr/^$joined_args$/, @$exp_args) } "Arguments passed to script_output($joined_args)";
+
+    $mock_testapi->redefine(script_output => sub ($script, @args) { $arguments = {@args}; return '' });
+    my @exp_args_list = (
+        [123, proceed_on_failure => 1, type_command => 1, fail_message => 'fail_message'] => {%script_output_defaults, timeout => 123, proceed_on_failure => 1, type_command => 1},
+        [123, title => "FOO"] => {%script_output_defaults, timeout => 123},
+        [title => "FOO", timeout => 123] => {%script_output_defaults, timeout => 123},
+        [123] => {%script_output_defaults, timeout => 123},
+        [fail_message => "FOO"] => {%script_output_defaults},
+
+    );
+    while (@exp_args_list) {
+        my $args = shift @exp_args_list;
+        my $exp = shift @exp_args_list;
+        validate_script_output('script', qr//, @$args);
+        is_deeply $arguments, $exp, 'Arguments passed to script_output' or diag explain $arguments;
     }
 };
 
