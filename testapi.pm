@@ -1443,6 +1443,7 @@ sub type_string {    # no:style:signatures
     my $wait_still = $args{wait_still_screen} // 0;
     my $wait_timeout = $args{timeout} // 30;
     my $wait_sim_level = $args{similarity_level} // 47;
+    my $wait_screen_change_sim_level = $args{wait_screen_change_similarity_level} // 60;
     bmwqemu::log_call(string => $string, max_interval => $max_interval, wait_screen_change => $wait, wait_still_screen => $wait_still,
         timeout => $wait_timeout, similarity_level => $wait_sim_level, $args{secret} ? (-masked => $string) : ());
     my @pieces;
@@ -1456,7 +1457,7 @@ sub type_string {    # no:style:signatures
     }
     for my $piece (@pieces) {
         if ($wait) {
-            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); } $wait_timeout, no_wait => 1;
+            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); } $wait_timeout, no_wait => 1, similarity_level => $wait_screen_change_sim_level;
         }
         else {
             query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval});
