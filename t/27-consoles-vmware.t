@@ -158,8 +158,12 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
             $self->on(finish => sub ($ws, $code, $reason) { $self->ua->ioloop->stop });
         }
         sub fallback ($self) {
+            Test::Most::note 'start replying HTTP response';
             $self->render(text => 'fallback', status => 404);
-            $self->tx->on(finish => sub { $self->ua->ioloop->stop });
+            $self->tx->on(finish => sub ($ws, $code, $reason) {
+                    Test::Most::note 'finished replying HTTP response';
+                    $self->ua->ioloop->stop;
+            });
         }
     }
 
