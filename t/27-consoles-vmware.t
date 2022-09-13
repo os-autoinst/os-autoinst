@@ -27,6 +27,7 @@ use Mojo::Message::Request;
 use Mojo::Message::Response;
 use Mojo::IOLoop::Server;
 use Mojo::Server::Daemon;
+use Scalar::Util qw(blessed);
 
 use consoles::VMWare;
 
@@ -167,6 +168,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     my $t = Test::Mojo->new('TestWebSocketApp');
     my $app = $t->app;
     $app->log->level($log_level);
+    note 'Using reactor ' . blessed $t->ua->ioloop->reactor;
     my $ws_port = Mojo::IOLoop::Server->generate_port;
     my $daemon = Mojo::Server::Daemon->new(listen => ["http://127.0.0.1:$ws_port"], ioloop => $t->ua->ioloop, app => $app);
     combined_like { $daemon->start } qr/Web application available at/, 'could start test WebSocket server' or BAIL_OUT 'cannot proceed without test server';
