@@ -501,7 +501,6 @@ sub delete_virtio_console_fifo () { unlink $_ or bmwqemu::fctwarn("Could not unl
 
 sub qemu_params_ofw ($self) {
     my $vars = \%bmwqemu::vars;
-    $vars->{QEMUVGA} ||= "std";
     $vars->{QEMUMACHINE} //= "usb=off";
     # set the initial resolution on PCC and SPARC
     sp('g', "$self->{xres}x$self->{yres}");
@@ -547,18 +546,38 @@ sub setup_tpm ($self, $arch) {
     }
 }
 
-sub _set_graphics_backend ($self) {
-    # note: Specifying EDID information explicitly for std/virtio backends to get consistent behavior across different QEMU
-    #       versions (as of QEMU 7.0.0 the default resolution is no longer 1024x768).
-
-    my $qemu_vga = $bmwqemu::vars{QEMUVGA};
-    if (!$qemu_vga || $qemu_vga eq 'std') {
-        sp('device', "VGA,edid=on,xres=$self->{xres},yres=$self->{yres}");
-    } elsif ($qemu_vga eq 'virtio') {
-        sp('device', "virtio-vga,edid=on,xres=$self->{xres},yres=$self->{yres}");
-    } else {
-        sp('vga', $qemu_vga);    # adding this only if not specifying a device; otherwise we'd end up with two graphic cards
+sub _set_graphics_backend ($self, $is_arm) {
+    my $vars = \%bmwqemu::vars;
+    my $device = "VGA";
+    my $options = "";
+    if ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) {
+        bmwqemu::fctwarn("QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 is deprecated, please set QEMU_VIDEO_DEVICE=VGA instead");
     }
+    else {
+        # annoying pre-existing special-case default for ARM
+        $device = "virtio-gpu-pci" if ($is_arm);
+    }
+    if ($vars->{QEMU_VIDEO_DEVICE}) {
+        bmwqemu::fctwarn("Both QEMUVGA and QEMU_VIDEO_DEVICE set, ignoring deprecated QEMUVGA!") if $vars->{QEMUVGA};
+        $device = $vars->{QEMU_VIDEO_DEVICE};
+    }
+    elsif ($vars->{QEMUVGA}) {
+        my $vga = $vars->{QEMUVGA};
+        bmwqemu::fctwarn("QEMUVGA is deprecated, please set QEMU_VIDEO_DEVICE");
+        $device = "virtio-vga" if ($vga eq "virtio");
+        $device = "qxl-vga" if ($vga eq "qxl");
+        $device = "cirrus-vga" if ($vga eq "cirrus");
+        $device = "VGA" if ($vga eq "std");
+    }
+    my @edids = ("VGA", "virtio-vga", "virtio-gpu-pci", "bochs-display");
+    if (grep { $device eq $_ } @edids) {
+        # these devices support EDID
+        $options = ",edid=on,xres=$self->{xres},yres=$self->{yres}";
+    }
+    if ($vars->{QEMU_VIDEO_DEVICE_OPTIONS}) {
+        $options .= "," . $vars->{QEMU_VIDEO_DEVICE_OPTIONS};
+    }
+    sp('device', "${device}${options}");
 }
 
 sub start_qemu ($self) {
@@ -678,24 +697,24 @@ sub start_qemu ($self) {
         $vars->{VDE_PORT} ||= ($vars->{WORKER_ID} // 0) * 2 + 2;
     }
 
-    # misc
-    my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
-    my $use_usb_kbd;
+    # arch discovery
     my $arch = $vars->{ARCH} // '';
     $arch = 'arm' if ($arch =~ /armv6|armv7/);
     my $is_arm = $arch eq 'aarch64' || $arch eq 'arm';
-    my $custom_video_device = $vars->{QEMU_VIDEO_DEVICE} // 'virtio-gpu-pci';
+
+    $self->_set_graphics_backend($is_arm);
+
+    # misc
+    my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
+    my $use_usb_kbd;
 
     if ($is_arm) {
-        my $video_device = ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) ? 'VGA' : "${custom_video_device},xres=$self->{xres},yres=$self->{yres}";
-        sp('device', $video_device);
         $arch_supports_boot_order = 0;
         $use_usb_kbd = 1;
     }
     elsif ($vars->{OFW}) {
         $use_usb_kbd = $self->qemu_params_ofw;
     }
-    $self->_set_graphics_backend unless $is_arm;
 
     my @nicmac;
     my @nicvlan;
@@ -798,7 +817,7 @@ sub start_qemu ($self) {
     }
     {
         # Remove floppy drive device on architectures
-        sp('global', 'isa-fdc.fdtypeA=none') unless ($arch eq 'aarch64' || $arch eq 'arm' || $vars->{QEMU_NO_FDC_SET});
+        sp('global', 'isa-fdc.fdtypeA=none') unless ($is_arm || $vars->{QEMU_NO_FDC_SET});
 
         sp('m', $vars->{QEMURAM}) if $vars->{QEMURAM};
         sp('machine', $vars->{QEMUMACHINE}) if $vars->{QEMUMACHINE};

@@ -44,8 +44,8 @@ UPLOAD_METER;boolean;0;Display curl progress meter in `upload_logs()` and `uploa
 UPLOAD_MAX_MESSAGE_SIZE_GB;integer;0;Specifies the max. upload size in GiB for the test API functions `upload_logs()` and `upload_assets()` and the underlying command server API. Zero denotes infinity.
 UPLOAD_INACTIVITY_TIMEOUT;integer;300;Specifies the inactivity timeout in seconds for the test API functions `upload_logs()` and `upload_assets()` and underlying the command server API.
 NO_DEPRECATE_BACKEND_$backend;boolean;0;Only warn about deprecated backends instead of aborting
-XRES;integer;1024;Resolution of display on x axis
-YRES;integer;768;Resolution of display on y axis
+XRES;integer;1024;Resolution of display on x axis. Sets the resolution of the video encoder, and in qemu, the initial console resolution when OFW is set (Power and SPARC), and the EDID resolution for devices that support EDID
+YRES;integer;768;Resolution of display on y axis. Sets the resolution of the video encoder, and in qemu, the initial console resolution when OFW is set (Power and SPARC), and the EDID resolution for devices that support EDID
 
 |====================
 
@@ -129,7 +129,7 @@ OFW;boolean;0;QEMU Open Firmware is in use
 OVS_DEBUG;integer;undef;Set debug mode if value is 1
 QEMU_ONLY_EXEC;boolean;undef;If set, only execute the qemu process but return early before connecting to the process. This can be helpful for cutting testing time or to connect to the qemu process manually.
 QEMU_WAIT_FINISH;boolean;undef;Only used for internal testing, see comment in t/18-qemu-options.t for details.
-QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64;boolean;undef;If set, for aarch64 systems use VGA as video adapter
+QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64;boolean;undef;(Deprecated, set QEMU_VIDEO_DEVICE=VGA) If set, and QEMU_VIDEO_DEVICE is not set, for arm systems use VGA as video adapter instead of virtio-gpu-pci
 QEMU_DISABLE_SNAPSHOTS;boolean;undef;If set, disable snapshots in QEMU. This needs to be set when using vmdk disk images or in case the worker has slow disks to avoid save_vm calls failing due to timeouts (See https://bugzilla.suse.com/show_bug.cgi?id=1035453[bsc#1035453])
 QEMU_QMP_CONNECT_ATTEMPTS;integer;20;The number of attempts to connect to qemu qmp. Usually used for internal testing
 PATHCNT;integer;2;Number of paths in MULTIPATH scenario
@@ -148,7 +148,7 @@ QEMUTHREADS;integer;undef;Number of CPU threads used by VM
 QEMUTPM;'instance' or appropriate value for local swtpm config;undef;Configure VM to use a TPM emulator device, with appropriate args for the arch. If a TPM device is available at QEMUTPM_PATH_PREFIX + X, where X is the value of QEMUTPM or the worker instance number if QEMUTPM is set to 'instance', it will be used. Otherwise it will be created at test startup. See QEMUTPM_VER in the latter case.
 QEMUTPM_VER;'1.2' or '2.0' depending on which TPM chip should be emulated;'2.0';If no TPM device has been setup otherwise, swtpm will be used internally to create one with a socket at /tmp/mytpmX
 QEMUTPM_PATH_PREFIX;string;'/tmp/mytpm';Path prefix to use or create TPM emulator device in
-QEMUVGA;see qemu -device ?;QEMU's default;VGA device to use with VM
+QEMUVGA;virtio,qxl,cirrus,std;See QEMU_VIDEO_DEVICE;(Deprecated, use QEMU_VIDEO_DEVICE instead) VGA device to use with VM (will be converted to a matching -device parameter)
 QEMU_COMPRESS_QCOW2;boolean;1;compress qcow2 images intended for upload
 QEMU_IMG_CREATE_TRIES;integer;3;Define number of tries for qemu-img commands
 QEMU_HUGE_PAGES_PATH;string;undef;Define a path to use huge pages (e.g. /dev/hugepages/)
@@ -195,7 +195,8 @@ VNC;integer;worker instance + 90;Display on which VNC server is running. Actual 
 VNCKB;;;Set the keyboard layout if you are not using en-us
 WORKER_CLASS;string;undef;qemu system types
 WORKER_HOSTNAME;string;undef;Worker hostname
-QEMU_VIDEO_DEVICE;string;virtio-gpu-pci;Video device to use for ARM architectures (can have options appended e.g. virtio-gpu-gl,edid=on)
+QEMU_VIDEO_DEVICE;string;virtio-gpu-pci on ARM, VGA otherwise;Video device to use with VM (using -device, not -vga). Can have options appended e.g. "virtio-gpu-gl,edid=on", but it is better to set QEMU_VIDEO_DEVICE_OPTIONS. See qemu docs and https://www.kraxel.org/blog/2019/09/display-devices-in-qemu/ for valid choices
+QEMU_VIDEO_DEVICE_OPTIONS;string;none;Additional options for QEMU_VIDEO_DEVICE (comma-separated). Will be appended after automatically-generated resolution setting options on devices that support EDID
 |====================
 
 .SVIRT backend
