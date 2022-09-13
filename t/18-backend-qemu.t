@@ -111,6 +111,21 @@ subtest 'switch_network' => sub {
     $called{handle_qmp_command} = undef;
 };
 
+subtest 'setting graphics backend' => sub {
+    my @params;
+    local *backend::qemu::sp = sub (@args) { @params = @args };
+    $backend->_set_graphics_backend;
+    is_deeply \@params, [device => 'VGA,edid=on,xres=1024,yres=768'], 'consistent EDID info set for std backend (no QEMUVGA set)' or diag explain \@params;
+
+    $bmwqemu::vars{QEMUVGA} = 'virtio';
+    $backend->_set_graphics_backend;
+    is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768'], 'consistent EDID info set for virtio backend' or diag explain \@params;
+
+    $bmwqemu::vars{QEMUVGA} = 'cirrus';
+    $backend->_set_graphics_backend;
+    is_deeply \@params, [vga => 'cirrus'], 'other backends passes as-is via "-vga" parameter' or diag explain \@params;
+};
+
 subtest 'execute arbitrary QMP command' => sub {
     my %query = (execute => 'foo', arguments => {bar => 1});
     $called{handle_qmp_command} = undef;

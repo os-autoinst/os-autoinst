@@ -547,6 +547,20 @@ sub setup_tpm ($self, $arch) {
     }
 }
 
+sub _set_graphics_backend ($self) {
+    # note: Specifying EDID information explicitly for std/virtio backends to get consistent behavior across different QEMU
+    #       versions (as of QEMU 7.0.0 the default resolution is no longer 1024x768).
+
+    my $qemu_vga = $bmwqemu::vars{QEMUVGA};
+    if (!$qemu_vga || $qemu_vga eq 'std') {
+        sp('device', "VGA,edid=on,xres=$self->{xres},yres=$self->{yres}");
+    } elsif ($qemu_vga eq 'virtio') {
+        sp('device', "virtio-vga,edid=on,xres=$self->{xres},yres=$self->{yres}");
+    } else {
+        sp('vga', $qemu_vga);    # adding this only if not specifying a device; otherwise we'd end up with two graphic cards
+    }
+}
+
 sub start_qemu ($self) {
     my $vars = \%bmwqemu::vars;
 
@@ -680,18 +694,7 @@ sub start_qemu ($self) {
     elsif ($vars->{OFW}) {
         $use_usb_kbd = $self->qemu_params_ofw;
     }
-
-    # set graphics backend
-    # note: Specifying EDID information explicitly for std/virtio backends to get consistent behavior across different QEMU
-    #       versions (as of QEMU 7.0.0 the default resolution is no longer 1024x768).
-    my $qemu_vga = $vars->{QEMUVGA};
-    if (!$qemu_vga || $qemu_vga eq 'std') {
-        sp('device', "VGA,edid=on,xres=$self->{xres},yres=$self->{yres}");
-    } elsif ($qemu_vga eq 'virtio') {
-        sp('device', "virtio-vga,edid=on,xres=$self->{xres},yres=$self->{yres}");
-    } else {
-        sp('vga', $qemu_vga);    # adding this only if not specifying a device; otherwise we'd end up with two graphic cards
-    }
+    $self->_set_graphics_backend;
 
     my @nicmac;
     my @nicvlan;
