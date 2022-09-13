@@ -155,11 +155,11 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
                     $self->app->received_data($self->app->received_data . $msg);
                     $self->finish if $sent_everything && $self->app->received_everything;
                 });
-            $self->on(finish => sub { Mojo::IOLoop->stop });
+            $self->on(finish => sub ($ws, $code, $reason) { $self->ua->ioloop->stop });
         }
         sub fallback ($self) {
             $self->render(text => 'fallback', status => 404);
-            $self->tx->on(finish => sub { Mojo::IOLoop->stop });
+            $self->tx->on(finish => sub { $self->ua->ioloop->stop });
         }
     }
 
@@ -168,6 +168,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     my $t = Test::Mojo->new('TestWebSocketApp');
     my $app = $t->app;
     $app->log->level($log_level);
+    $app->ua->ioloop($t->ua->ioloop); # ensure the app providing the HTTP/websocket server and its transactions use the same event loop we use in subsequent code
     note 'Using reactor ' . blessed $t->ua->ioloop->reactor;
     my $ws_port = Mojo::IOLoop::Server->generate_port;
     my $daemon = Mojo::Server::Daemon->new(listen => ["http://127.0.0.1:$ws_port"], ioloop => $t->ua->ioloop, app => $app);
