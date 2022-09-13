@@ -918,7 +918,16 @@ sub start_qemu ($self) {
     if ($vars->{QEMU_APPEND}) {
         # Split multiple options, if needed
         my @spl = split(' -', $vars->{QEMU_APPEND});
-        sp(split(' ', $_)) for @spl;
+        # Deal with multiple "append" options
+        foreach my $i (@spl) {
+            if (index($i, 'append') != -1) {
+                my @append_split = split('append', $i);
+                sp('append', $append_split[1]);
+             }
+             else {
+                sp(split(' ', $i));
+            }
+        }
     }
 
     create_virtio_console_fifo();
