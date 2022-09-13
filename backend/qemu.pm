@@ -683,9 +683,10 @@ sub start_qemu ($self) {
     my $use_usb_kbd;
     my $arch = $vars->{ARCH} // '';
     $arch = 'arm' if ($arch =~ /armv6|armv7/);
+    my $is_arm = $arch eq 'aarch64' || $arch eq 'arm';
     my $custom_video_device = $vars->{QEMU_VIDEO_DEVICE} // 'virtio-gpu-pci';
 
-    if ($arch eq 'aarch64' || $arch eq 'arm') {
+    if ($is_arm) {
         my $video_device = ($vars->{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64}) ? 'VGA' : "${custom_video_device},xres=$self->{xres},yres=$self->{yres}";
         sp('device', $video_device);
         $arch_supports_boot_order = 0;
@@ -694,7 +695,7 @@ sub start_qemu ($self) {
     elsif ($vars->{OFW}) {
         $use_usb_kbd = $self->qemu_params_ofw;
     }
-    $self->_set_graphics_backend;
+    $self->_set_graphics_backend unless $is_arm;
 
     my @nicmac;
     my @nicvlan;
