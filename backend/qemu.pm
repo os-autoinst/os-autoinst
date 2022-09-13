@@ -680,7 +680,15 @@ sub start_qemu ($self) {
     elsif ($vars->{OFW}) {
         $use_usb_kbd = $self->qemu_params_ofw;
     }
-    sp('vga', $vars->{QEMUVGA}) if $vars->{QEMUVGA};
+    if (my $qemu_vga = $vars->{QEMUVGA}) {
+        if ($qemu_vga eq 'virtio') {
+            # specify EDID information explicitly to get consistent behavior across different QEMU versions
+            sp('device', "virtio-vga,edid=on,xres=$self->{xres},yres=$self->{yres}");
+        }
+        else {
+            sp('vga', $qemu_vga);
+        }
+    }
 
     my @nicmac;
     my @nicvlan;
