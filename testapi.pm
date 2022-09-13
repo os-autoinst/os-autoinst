@@ -2283,8 +2283,12 @@ A typical call would look like:
 sub compat_args {    # no:style:signatures
     my ($def_args, $fix_keys) = splice(@_, 0, 2);
     my %ret;
-    for my $key (@{$fix_keys}) {
-        $ret{$key} = shift if (scalar(@_) >= 1 && (!defined($_[0]) || !grep { $_ eq $_[0] } keys(%{$def_args})));
+    if (@$fix_keys == 1) {
+        $ret{$fix_keys->[0]} = shift if ((@_ % 2) != 0);
+    } else {
+        for my $key (@{$fix_keys}) {
+            $ret{$key} = shift if (@_ >= 1 && (!defined($_[0]) || !exists $def_args->{$_[0]}));
+        }
     }
     carp("Odd number of arguments") unless ((@_ % 2) == 0);
     %ret = (%{$def_args}, %ret, @_);

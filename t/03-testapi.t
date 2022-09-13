@@ -690,6 +690,7 @@ subtest 'compat_args' => sub {
 
     is_deeply({testapi::compat_args(\%def_args, [], a => 'Y', b => 666, k => 5)}, {a => 'Y', b => 666, c => $def_args{c}, k => 5}, 'Additional parameter 1');
     is_deeply({testapi::compat_args(\%def_args, [], k => 5)}, {a => $def_args{a}, b => $def_args{b}, c => $def_args{c}, k => 5}, 'Additional parameter 2');
+    is_deeply({testapi::compat_args(\%def_args, ['c'], k => 5)}, {a => $def_args{a}, b => $def_args{b}, c => $def_args{c}, k => 5}, 'Additional parameter - one fixed parameter');
     is_deeply({testapi::compat_args(\%def_args, ['c'], 666, k => 5)}, {a => $def_args{a}, b => $def_args{b}, c => 666, k => 5}, 'Additional parameter 3');
 
     like(warning { testapi::compat_args(\%def_args, [], a => 'Z', 'outch') }->[0], qr/^Odd number of arguments/, 'Warned on Odd number 1');
