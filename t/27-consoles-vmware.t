@@ -226,17 +226,17 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     my $dewebsockify_cmd_start = "$bmwqemu::scriptdir/dewebsockify --listenport $tcp_port --websocketurl";
     my $assert_log = sub ($dewebsockify_pipe, $expected) {
         my $dewebsockify_log;
-        read $dewebsockify_pipe, $dewebsockify_log, 1000;
+        read($dewebsockify_pipe, $dewebsockify_log, 1000) or die "Unable read dewebsockify pipe: $!";
         like $dewebsockify_log, $expected, 'error logged';
-        close $dewebsockify_pipe;
+        close $dewebsockify_pipe;    # might fail because dewebsockify has already exited but that's ok
     };
     subtest 'handle error when WebSocket server is not reachable' => sub {
-        my $dewebsockify_pid = open(my $dewebsockify_pipe, "$dewebsockify_cmd_start ws://127.0.0.1:0 2>&1 |");
+        my $dewebsockify_pid = open(my $dewebsockify_pipe, "$dewebsockify_cmd_start ws://127.0.0.1:0 2>&1 |") or die "Unable to start dewebsockify: $!";
         $connect_to_dewebsockify_with_multiple_attempts->(close_immediately => 1, wait_pid => $dewebsockify_pid);
         $assert_log->($dewebsockify_pipe, qr/WebSocket connection error:/);
     };
     subtest 'handle error when HTTP server is not upgrading to WebSockets' => sub {
-        my $dewebsockify_pid = open(my $dewebsockify_pipe, "$dewebsockify_cmd_start ws://127.0.0.1:$ws_port/foo 2>&1 |");
+        my $dewebsockify_pid = open(my $dewebsockify_pipe, "$dewebsockify_cmd_start ws://127.0.0.1:$ws_port/foo 2>&1 |") or die "Unable to start dewebsockify: $!";
         $connect_to_dewebsockify_with_multiple_attempts->(close_immediately => 0, wait_pid => $dewebsockify_pid);
         $assert_log->($dewebsockify_pipe, qr/WebSocket 404 response: Not Found/);
     };
