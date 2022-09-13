@@ -562,8 +562,14 @@ subtest 'corner cases of do_capture/run_capture_loop' => sub {
     my $video_encoder_fh = 41;
     my $external_video_encoder_fh = 42;
     my $other_fh = 43;
+    my $fake_pipe = IO::Handle->new_from_fd(fileno(STDOUT), "w");    # create *some* handle to use as cmdpipe
     my $io_select_mock = Test::MockModule->new('IO::Select');
-    $io_select_mock->redefine(select => sub { ([$file_fh], [$external_video_encoder_fh, $other_fh]) });
+    my $io_select_timeout;
+    my @io_select_res = ([$file_fh], [$external_video_encoder_fh, $other_fh]);
+    $io_select_mock->redefine(select => sub ($self, $read_select, $write_select, $exception, $timeout) {
+            $io_select_timeout = $timeout;
+            return @io_select_res;
+    });
 
     # prepare test $baseclass with data to be passed to external video encoder and timeout triggering stall detection
     $baseclass->{current_console}->{testapi_console} = 'fake-console';
@@ -572,10 +578,11 @@ subtest 'corner cases of do_capture/run_capture_loop' => sub {
     $baseclass->{encoder_pipe} = $video_encoder_fh;
     $baseclass->{external_video_encoder_cmd_pipe} = $external_video_encoder_fh;
     $baseclass->{external_video_encoder_image_data} = 'data for external encoder';
-    $baseclass->{cmdpipe} = IO::Handle->new_from_fd(fileno(STDOUT), "w");    # just give it *some* handle
+    $baseclass->{cmdpipe} = $fake_pipe;
     $baseclass->assert_screen_last_check(1);
     $baseclass->last_screenshot(1);    # should set stall_detected flag
     $baseclass->update_request_interval(0);    # always exercise the update request here
+    $baseclass->screenshot_interval(20);    # set some arbitrarily high value here, supposed to be passed as select timeout
     $baseclass->last_update_request(0);
     $baseclass_mock->redefine(request_screen_update => sub ($self, $args = undef) {
             $self->{cmdpipe} = undef;    # ensure we'll exit the while loop after one iteration
@@ -593,10 +600,18 @@ subtest 'corner cases of do_capture/run_capture_loop' => sub {
     $log::logger = Mojo::Log->new(level => 'debug');
     combined_like { $baseclass->run_capture_loop } qr/file descriptor $file_no.*not responding/, 'loop aborted due to unresponsive console';
     ok $baseclass->stall_detected, 'stall detected';
+    is $io_select_timeout, 20, 'set screenshot_interval used as select timeout';
     is_deeply $baseclass->{writes},
       [['External encoder', 'data for external encoder', $external_video_encoder_fh]],
       'data written to external video encoder'
       or diag explain $baseclass->{writes};
+
+    # run again, this time assuming no handles are ready and we're waiting for a screen change with no_wait
+    @io_select_res = ([], []);
+    $baseclass->{cmdpipe} = $fake_pipe;
+    $baseclass->{_wait_screen_change} = {no_wait => 1, starttime => 0, elapsed => 0, timeout => 10, similarity_level => 50};
+    $baseclass->do_capture;
+    is $io_select_timeout, 0.1, 'very low timeout used as select timeout for wait_screen_change with no_wait parameter';
 };
 
 subtest 'starting external video encoder and enqueuing screenshot data for it' => sub {

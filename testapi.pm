@@ -561,7 +561,7 @@ sub assert_and_dclick ($mustmatch, %args) {
 
 =head2 wait_screen_change
 
-  wait_screen_change(CODEREF [,$timeout [, similarity_level => 50]]);
+  wait_screen_change(CODEREF [,$timeout [, similarity_level => 50, no_wait => 0]]);
 
 Wrapper around code that is supposed to change the screen. This is the
 opposite to C<wait_still_screen>. Make sure to put the commands to change the
@@ -585,6 +585,10 @@ subroutine block.
   wait_screen_change(sub {
     send_key 'esc';
   }, 15);
+
+To lower the backend's internal update interval while looking for screen changes, use
+the optional parameter `no_wait => 1`. This makes the test execution faster if the
+screen change is expected to happen (almost) immediately.
 
 Returns true if screen changed or false on timeout. Default timeout is 10s. Default
 similarity_level is 50.
@@ -1439,6 +1443,7 @@ sub type_string {    # no:style:signatures
     my $wait_still = $args{wait_still_screen} // 0;
     my $wait_timeout = $args{timeout} // 30;
     my $wait_sim_level = $args{similarity_level} // 47;
+    my $wait_screen_change_sim_level = $args{wait_screen_change_similarity_level} // 60;
     bmwqemu::log_call(string => $string, max_interval => $max_interval, wait_screen_change => $wait, wait_still_screen => $wait_still,
         timeout => $wait_timeout, similarity_level => $wait_sim_level, $args{secret} ? (-masked => $string) : ());
     my @pieces;
@@ -1452,7 +1457,7 @@ sub type_string {    # no:style:signatures
     }
     for my $piece (@pieces) {
         if ($wait) {
-            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); };
+            wait_screen_change { query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval}); } $wait_timeout, no_wait => 1, similarity_level => $wait_screen_change_sim_level;
         }
         else {
             query_isotovideo('backend_type_string', {text => $piece, max_interval => $max_interval});

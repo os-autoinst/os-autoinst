@@ -178,7 +178,13 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
             last if $time_to_timeout <= 0;
         }
 
-        my $time_to_update_request = $self->update_request_interval - ($now - $self->last_update_request);
+        # lower the intervals when waiting for screen change with `no_wait` option
+        # note: Still keeping the interval at 0.1 s to avoid wasting too much CPU (corresponding to what check_screen/assert_screen
+        #       also does).
+        my $wait_screen_change = $self->{_wait_screen_change};
+        my @additional_intervals = $wait_screen_change && $wait_screen_change->{no_wait} ? (0.1) : ();
+
+        my $time_to_update_request = min($self->update_request_interval, @additional_intervals) - ($now - $self->last_update_request);
         if ($time_to_update_request <= 0) {
             $self->request_screen_update();
             $self->last_update_request($now);
@@ -194,12 +200,12 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
         }
 
         # capture the screen if screenshot interval exceeded
-        # TODO: assume lower screenshot interval when waiting for a screen change
-        my $time_to_screenshot = $self->screenshot_interval - ($now - $self->last_screenshot);
+        my $screenshot_interval = min($self->screenshot_interval, @additional_intervals);
+        my $time_to_screenshot = $screenshot_interval - ($now - $self->last_screenshot);
         if ($time_to_screenshot <= 0) {
             $self->capture_screenshot();
             $self->last_screenshot($now);
-            $time_to_screenshot = $self->screenshot_interval;
+            $time_to_screenshot = $screenshot_interval;
         }
 
         # check whether the screen has changed if waiting for a screen change and send back the result
