@@ -173,12 +173,12 @@ sub check_socket ($self, $fh, $write = undef) {
 sub start_serial_grab ($self) {
     $self->{serialpid} = fork();
     return unless $self->{serialpid} == 0;
-    setpgrp 0, 0;
-    open(my $serial, '>', $self->{serialfile});
-    open(STDOUT, ">&", $serial);
-    open(STDERR, ">&", $serial);
-    exec($self->get_cmd('GENERAL_HW_SOL_CMD'));
-    die "exec failed $!";
+    setpgrp 0, 0;    # uncoverable statement
+    open(my $serial, '>', $self->{serialfile});    # uncoverable statement
+    open(STDOUT, ">&", $serial);    # uncoverable statement
+    open(STDERR, ">&", $serial);    # uncoverable statement
+    exec($self->get_cmd('GENERAL_HW_SOL_CMD'));    # uncoverable statement
+    die "exec failed $!";    # uncoverable statement
 }
 
 sub stop_serial_grab ($self, @) {

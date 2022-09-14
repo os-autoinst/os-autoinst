@@ -10,13 +10,15 @@ use Mojo::Base -strict, -signatures;
 my @invoked_cmds;
 BEGIN { *CORE::GLOBAL::sleep = sub { push @invoked_cmds, [sleep => shift] } }
 
-use FindBin '$Bin';
+use FindBin qw($Bin $Script);
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
-use Mojo::File qw(tempdir);
+use Mojo::File qw(tempdir tempfile);
+use Scalar::Util qw(blessed openhandle);
+use POSIX qw(waitpid WNOHANG);
 
 use bmwqemu;
 use backend::generalhw;
@@ -67,6 +69,8 @@ $video_mock->redefine($_ => sub { }) for (qw(update_framebuffer request_screen_u
 my $bmwqemu_mock = Test::MockModule->new('bmwqemu');
 # silence some log output for cleaner tests
 $bmwqemu_mock->noop('diag');
+
+ok !$backend->check_socket(1), 'can check socket';
 
 subtest 'start VM' => sub {
     # start the "VM" which should actually just run a few commands via IPC::Run and start the VNC and serial consoles
@@ -125,6 +129,63 @@ subtest 'error handling' => sub {
         qr/WORKER_HOSTNAME/,
         'WORKER_HOSTNAME required'
     );
+};
+
+subtest 'handling power commands' => sub {
+    my $mock = Test::MockModule->new('backend::generalhw');
+    my @invoked_cmds;
+    $mock->redefine(run_cmd => sub ($self, $cmd, @extra_args) { push @invoked_cmds, $cmd });
+    $backend->power({action => 'on'});
+    $backend->power({action => 'off'});
+    is_deeply \@invoked_cmds, ['GENERAL_HW_POWERON_CMD', 'GENERAL_HW_POWEROFF_CMD'], 'power commands invoked' or diag explain \@invoked_cmds;
+    throws_ok { $backend->power({action => 'foo'}) } qr/not implemented/, 'dies on invalid action';
+};
+
+subtest 're-login VNC' => sub {
+    my $vnc = $backend->{vnc} = consoles::VNC->new;
+    open my $fake_socket, '<', "$Bin/$Script";
+    $bmwqemu::vars{GENERAL_HW_VNC_IP} = '127.0.0.1';
+    $vnc->socket($fake_socket);
+
+    ok $backend->relogin_vnc, 're-login has truthy return code';
+    is blessed $testapi::distri->{consoles}->{sut}, 'consoles::vnc_base', 'VNC base console assigned';
+    is openhandle($fake_socket), undef, 'previously assigned VNC socket closed';
+};
+
+subtest 'serial grab' => sub {
+    my $serialfile = $backend->{serialfile} = tempfile;
+    $serial_mock->unmock('start_serial_grab');
+
+    subtest 'capturing output' => sub {
+        $bmwqemu::vars{GENERAL_HW_CMD_DIR} = '/usr/bin';
+        $bmwqemu::vars{GENERAL_HW_SOL_CMD} = 'echo -n foo';
+        $bmwqemu::vars{GENERAL_HW_SOL_ARGS} = 'infinity';
+        $backend->start_serial_grab;
+        my $pid = $backend->{serialpid};
+        ok $pid, 'serial PID assigned: ' . ($pid // '?') or return undef;
+        waitpid $pid, 0;
+        is $serialfile->slurp, 'foo infinity', 'serial output captured';
+    };
+    subtest 'stop grabbing' => sub {
+        $bmwqemu::vars{GENERAL_HW_SOL_CMD} .= ' && sleep';
+        $backend->start_serial_grab;
+        $backend->stop_serial_grab;
+        is waitpid($backend->{serialpid}, WNOHANG), -1, 'process terminated via stop_serial_grab';
+    };
+
+    $serialfile->remove;
+};
+
+subtest 'extracting assets' => sub {
+    my @args = (name => 'foo', dir => 'bar', hdd_num => 42);
+    throws_ok { $backend->do_extract_assets({@args, pflash_vars => 1}) } qr/pflash.*not supported/, 'dies for pflash_vars assets';
+
+    my $mock = Test::MockModule->new('backend::generalhw');
+    my (@invoked_cmds, @extra_args);
+    $mock->redefine(run_cmd => sub ($self, $cmd, @args) { push @invoked_cmds, $cmd; push @extra_args, @args });
+    $backend->do_extract_assets({@args});
+    is_deeply \@invoked_cmds, ['GENERAL_HW_IMAGE_CMD'], 'image command invoked' or diag explain \@invoked_cmds;
+    is_deeply \@extra_args, [41, 'bar/foo'], 'image path passed' or diag explain \@extra_args;
 };
 
 done_testing();
