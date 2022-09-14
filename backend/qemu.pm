@@ -322,7 +322,7 @@ sub save_memory_dump ($self, $args) {
 }
 
 sub save_storage_drives ($self, $args) {
-    diag "Attempting to extract disk #%d.", $args->{disk};
+    diag "Attempting to extract disk #$args->{disk}";
     $self->do_extract_assets(
         {
             hdd_num => $args->{disk},
@@ -331,7 +331,7 @@ sub save_storage_drives ($self, $args) {
             format => "qcow2"
         });
 
-    diag "Successfully extracted disk #%d", $args->{disk};
+    diag "Successfully extracted disk #$args->{disk}";
     return;
 }
 
