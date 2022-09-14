@@ -2280,18 +2280,17 @@ A typical call would look like:
 
 =cut
 
-sub compat_args {    # no:style:signatures
-    my ($def_args, $fix_keys) = splice(@_, 0, 2);
+sub compat_args ($def_args, $fix_keys, @args) {
     my %ret;
     if (@$fix_keys == 1) {
-        $ret{$fix_keys->[0]} = shift if ((@_ % 2) != 0);
+        $ret{$fix_keys->[0]} = shift @args if ((@args % 2) != 0);
     } else {
         for my $key (@{$fix_keys}) {
-            $ret{$key} = shift if (@_ >= 1 && (!defined($_[0]) || !exists $def_args->{$_[0]}));
+            $ret{$key} = shift @args if (@args >= 1 && (!defined($args[0]) || !exists $def_args->{$args[0]}));
         }
     }
-    carp("Odd number of arguments") unless ((@_ % 2) == 0);
-    %ret = (%{$def_args}, %ret, @_);
+    carp("Odd number of arguments") unless ((@args % 2) == 0);
+    %ret = (%{$def_args}, %ret, @args);
     map { $ret{$_} //= $def_args->{$_} } keys(%{$def_args});
     return %ret;
 }
