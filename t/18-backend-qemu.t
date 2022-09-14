@@ -350,4 +350,24 @@ subtest 'saving storage drives' => sub {
     is_deeply \@extract_args, \@expected_args, 'expected assets extracted' or diag explain \@extract_args;
 };
 
+subtest '"balloon" handling' => sub {
+    $fake_qmp_answer = {return => {actual => 1}};
+    $$invoked_qmp_cmds = undef;
+    $backend->inflate_balloon;
+    $backend->deflate_balloon;
+    is_deeply $$invoked_qmp_cmds, undef, 'no QMP commands invoked without QEMU_BALLOON_TARGET' or diag explain $$invoked_qmp_cmds;
+
+    $bmwqemu::vars{QEMU_BALLOON_TARGET} = 1;
+    $backend->inflate_balloon;
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'balloon', arguments => {value => 1048576}}, {execute => 'query-balloon'}, {execute => 'query-balloon'}
+    ], 'expected QMP commands invoked when "inflating balloon"' or diag explain $$invoked_qmp_cmds;
+
+    $$invoked_qmp_cmds = undef;
+    $backend->deflate_balloon;
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'balloon', arguments => {value => 1073741824}}    # QEMURAM * 1048576
+    ], 'expected QMP commands invoked when "deflating balloon"' or diag explain $$invoked_qmp_cmds;
+};
+
 done_testing();
