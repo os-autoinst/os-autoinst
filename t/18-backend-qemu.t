@@ -370,4 +370,34 @@ subtest '"balloon" handling' => sub {
     ], 'expected QMP commands invoked when "deflating balloon"' or diag explain $$invoked_qmp_cmds;
 };
 
+subtest 'snapshot handling' => sub {
+    my @migrate_args;
+    $backend_mock->redefine(_migrate_to_file => sub (@args) { push @migrate_args, \@args });
+    $fake_qmp_answer = {return => {status => 'running'}};
+    $bmwqemu::vars{QEMU_BALLOON_TARGET} = undef;
+    $$invoked_qmp_cmds = undef;
+    $backend->{proc}->snapshot_conf->add_snapshot('fakevm')->name('fakesnapshot');
+    combined_like { $backend->save_snapshot({name => 'fakevm'}) } qr/snapshot complete/i, 'completion logged';
+    my $snapshot_file = delete $$invoked_qmp_cmds->[2]->{arguments}->{'snapshot-file'};
+    like $snapshot_file, qr{/raid/hd0-overlay1$}, 'snapshot file passed';
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'query-status'},
+        {execute => 'stop'},
+        {execute => 'blockdev-snapshot-sync', arguments => {format => 'qcow2', 'node-name' => 'hd0', 'snapshot-node-name' => 'hd0-overlay1'}},
+        {execute => 'cont'},
+    ], 'expected QMP commands invoked when saving snapshot' or diag explain $$invoked_qmp_cmds;
+
+    $$invoked_qmp_cmds = undef;
+    combined_like { $backend->load_snapshot({name => 'fakevm'}) } qr/restored snapshot/i, 'restoration logged';
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'query-status'},
+        {execute => 'stop'},
+        {execute => 'qmp_capabilities'},
+        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'compress', state => Mojo::JSON->true}]}},
+        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]}},
+        {execute => 'migrate-incoming', arguments => {uri => 'exec:cat vm-snapshots/fakevm'}},
+        {execute => 'cont'},
+    ], 'expected QMP commands invoked when loading snapshot' or diag explain $$invoked_qmp_cmds;
+};
+
 done_testing();
