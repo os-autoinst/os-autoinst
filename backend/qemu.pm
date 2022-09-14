@@ -308,7 +308,7 @@ sub save_memory_dump ($self, $args) {
 
     return undef unless $compress_method;
     if ($compress_method eq 'xz') {
-        if (defined which('xz')) {
+        if (defined File::Which::which('xz')) {
             runcmd('xz', '--no-warn', '-T', $compress_threads, "-v$compress_level", "ulogs/$filename");
         }
         else {

@@ -186,10 +186,11 @@ subtest qemu_huge_pages_option => sub {
     delete $bmwqemu::vars{QEMU_HUGE_PAGES_PATH};
 };
 
+my $runcmd;
+$backend_mock->redefine(runcmd => sub (@cmd) { $runcmd = join(' ', @cmd) });
+
 subtest qemu_tpm_option => sub {
     $bmwqemu::vars{QEMUTPM_PATH_PREFIX} = "$dir/mytpm";
-    my $runcmd;
-    $backend_mock->redefine(runcmd => sub (@cmd) { $runcmd = join(' ', @cmd) });
     my $cmdline = qemu_cmdline(QEMUTPM => 'instance', WORKER_INSTANCE => 3);
     like $cmdline, qr|-chardev socket,id=chrtpm,path=.*mytpm3/swtpm-sock|, '-chardev socket option added (instance)';
     like $cmdline, qr|-tpmdev emulator,id=tpm0,chardev=chrtpm|, '-tpmdev emulator option added';
@@ -309,6 +310,35 @@ subtest 'misc functions' => sub {
             execute => 'getfd',
             arguments => {fdname => 'foo'},
     }], 'expected QMP command called for "open_file_and_send_fd_to_qemu"' or diag explain $called{handle_qmp_command};
+};
+
+subtest 'saving memory dump' => sub {
+    my $which_mock = Test::MockModule->new('File::Which')->redefine(which => 1);
+    $mock_bmwqemu->unmock('fctwarn');
+
+    $fake_qmp_answer = {return => {status => 'running'}};
+    $called{handle_qmp_command} = undef;
+    combined_like { $backend->save_memory_dump({filename => 'foo'}) } qr/memory dump completed/i, 'completion logged';
+    is_deeply $called{handle_qmp_command}, [
+        {execute => 'query-status'},
+        {
+            execute => 'migrate-set-capabilities',
+            arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]},
+        },
+        {
+            execute => 'migrate-set-parameters',
+            arguments => {'compress-level' => 0, 'compress-threads' => 1, 'max-bandwidth' => '9223372036854775807'},
+        },
+        {execute => 'getfd', arguments => {fdname => 'dumpfd'}},
+        {execute => 'stop'},
+        {execute => 'migrate', arguments => {uri => 'fd:dumpfd'}},
+        {execute => 'cont'},
+    ], 'expected QMP command called for "save_memory_dump"' or diag explain $called{handle_qmp_command};
+    is $runcmd, 'xz --no-warn -T 1 -v6 ulogs/foo-vm-memory-dump', 'expected compression command invoked';
+
+    $which_mock->redefine(which => undef);
+    combined_like { $backend->save_memory_dump({filename => 'foo'}) } qr/falling back to bzip2/i, 'fallback to bzip2 logged';
+    is $runcmd, 'bzip2 -v6 ulogs/foo-vm-memory-dump', 'expected compression fallback command invoked';
 };
 
 done_testing();
