@@ -338,14 +338,7 @@ sub runalltests () {
         my $fullname = $t->{fullname};
 
         if (!$vmloaded && $fullname eq $firsttest) {
-            if ($bmwqemu::vars{SKIPTO}) {
-                if ($bmwqemu::vars{TESTDEBUG}) {
-                    load_snapshot('lastgood');
-                }
-                else {
-                    load_snapshot($firsttest);
-                }
-            }
+            load_snapshot($bmwqemu::vars{TESTDEBUG} ? 'lastgood' : $firsttest) if $bmwqemu::vars{SKIPTO};
             $vmloaded = 1;
         }
         if (!$vmloaded) {
