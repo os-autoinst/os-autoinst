@@ -663,39 +663,23 @@ sub wait_still_screen {    # no:style:signatures
     my %args = (stilltime => $stilltime, timeout => $timeout, @_);
     $args{similarity_level} //= 47;
     bmwqemu::log_call(%args);
-    $timeout = bmwqemu::scale_timeout($args{timeout});
+    $timeout = $args{timeout} = bmwqemu::scale_timeout($args{timeout});
     $stilltime = $args{stilltime};
     if ($timeout < $stilltime) {
         bmwqemu::fctwarn("Selected timeout \'$timeout\' below stilltime \'$stilltime\', returning with false");
         return 0;
     }
 
-    my $starttime = time;
-    my $lastchangetime = [gettimeofday];
-    query_isotovideo('backend_set_reference_screenshot');
-
-    my $sim = 0;
-    while (time - $starttime < $timeout) {
-        $sim = query_isotovideo('backend_similiarity_to_reference')->{sim};
-        my $now = [gettimeofday];
-        if ($sim < $args{similarity_level}) {
-
-            # a change
-            $lastchangetime = $now;
-            query_isotovideo('backend_set_reference_screenshot');
-        }
-        if (($now->[0] - $lastchangetime->[0]) + ($now->[1] - $lastchangetime->[1]) / 1000000. >= $stilltime) {
-            bmwqemu::fctres("detected same image for $stilltime seconds, last detected similarity is $sim");
-            return 1;
-        }
-        # with 'no_wait' actually wait a little bit not to waste too much CPU
-        # corresponding to what check_screen/assert_screen also does
-        # internally
-        sleep($args{no_wait} ? 0.01 : 0.5);
+    my $res = query_isotovideo('backend_wait_still_screen', \%args);
+    if (!$res->{timed_out}) {
+        bmwqemu::fctres("detected same image for $stilltime seconds ($res->{elapsed} s elapsed), last detected similarity is $res->{sim}");
+        return 1;
     }
-    $autotest::current_test->timeout_screenshot();
-    bmwqemu::fctres("wait_still_screen timed out after $timeout, last detected similarity is $sim");
-    return 0;
+    else {
+        $autotest::current_test->timeout_screenshot;
+        bmwqemu::fctres("wait_still_screen timed out after $res->{elapsed} seconds, last detected similarity is $res->{sim}");
+        return 0;
+    }
 }
 
 =head2 assert_still_screen

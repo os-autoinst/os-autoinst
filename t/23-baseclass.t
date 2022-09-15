@@ -455,7 +455,7 @@ BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)'}, '
     };
 };
 
-subtest 'waiting for screen change' => sub {
+subtest 'waiting for screen change or still screen' => sub {
     my @sent_json;
     my $rpc_mock = Test::MockModule->new('myjsonrpc')->redefine(send_json => sub (@args) { push @sent_json, [@args] });
     my %expected_response = (json_cmd_token => 'faketoken', rsp => {sim => 10000, elapsed => 10, timed_out => !!0});
@@ -468,14 +468,14 @@ subtest 'waiting for screen change' => sub {
     };
     subtest 'screen has not changed and timeout has not been exceeded' => sub {
         $baseclass->{_wait_screen_change}->{starttime} = 20;
-        $baseclass->_check_for_screen_change(30);    # assume time difference of 10 seconds, exactly within timeout
+        ok !$baseclass->_check_for_screen_change(30), 'falsy return';    # assume time difference of 10 seconds, exactly within timeout
         is ref $baseclass->{_wait_screen_change}, 'HASH', 'still waiting for screen change';
         is_deeply \@sent_json, [], 'no response sent' or diag explain \@sent_json;
     };
     subtest 'screen has changed' => sub {
         $baseclass->{_wait_screen_change}->{starttime} = 20;
         $baseclass->{_wait_screen_change}->{similarity_level} += 1;    # let's just be satisfied with a higher similarity
-        $baseclass->_check_for_screen_change(30);    # assume time difference of 10 seconds, exactly within timeout
+        ok $baseclass->_check_for_screen_change(30), 'truthy return';    # assume time difference of 10 seconds, exactly within timeout
         ok !$baseclass->{_wait_screen_change}, 'no longer waiting for screen change';
         is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or diag explain \@sent_json;
     };
@@ -483,13 +483,67 @@ subtest 'waiting for screen change' => sub {
         is_deeply $baseclass->wait_screen_change({similarity_level => 10, timeout => 4}), {postponed => 1}, 'reply is postponed';
         $baseclass->{_wait_screen_change}->{starttime} = 20;
         @sent_json = ();
-        $baseclass->_check_for_screen_change(25);    # time difference of 5 seconds, exactly one second passed the timeout
+        ok $baseclass->_check_for_screen_change(25), 'truthy return';    # time difference of 5 seconds, exactly one second passed the timeout
         $expected_response{rsp}->{timed_out} = 1;
         $expected_response{rsp}->{elapsed} = 5;
         ok !$baseclass->{_wait_screen_change}, 'no longer waiting for screen change';
         is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or diag explain \@sent_json;
     };
 
+    my ($starttime, $set_reference_screenshot_called);
+    @sent_json = ();
+    subtest 'enqueuing waiting for still screen' => sub {
+        $baseclass->reference_screenshot(undef)->last_image('fake image');
+        is_deeply $baseclass->wait_still_screen({similarity_level => 50, timeout => 11, stilltime => 11}), {postponed => 1}, 'reply is postponed';
+        is ref $baseclass->{_wait_still_screen}, 'HASH', 'check for still screen enqueued';
+        is $baseclass->reference_screenshot, $baseclass->last_image, 'reference screenshot set';
+        ok $starttime = $baseclass->{_wait_still_screen}->{starttime}, 'starttime initialized';
+    };
+    subtest 'screen has not changed and timeout has not been exceeded but screen is not still long enough' => sub {
+        $baseclass->reference_screenshot(undef)->last_image(undef);
+        $baseclass_mock->redefine(set_reference_screenshot => sub ($self, $args) { $set_reference_screenshot_called = 1 });
+        ok !$baseclass->_check_for_still_screen($starttime + 10), 'falsy return';    # assume time difference of 10 seconds, exactly one second before stilltime
+        is ref $baseclass->{_wait_still_screen}, 'HASH', 'still checking for still screen as it is not still for long enough';
+        is $baseclass->{_wait_still_screen}->{lastchangetime}, $starttime, 'still "streak" continues';
+        ok !$set_reference_screenshot_called, 'reference screenshot has not been updated';
+        is_deeply \@sent_json, [], 'no response sent' or diag explain \@sent_json;
+    };
+    subtest 'screen has changed and timeout has not been exceeded' => sub {
+        $baseclass_mock->redefine(similiarity_to_reference => {sim => 49});    # exactly one "level" below the set similarity level
+        ok !$baseclass->_check_for_still_screen($starttime + 10), 'falsy return';    # assume time difference of 10 seconds, exactly one second before stilltime
+        is ref $baseclass->{_wait_still_screen}, 'HASH', 'still checking for still screen as the streak has ended but timeout not exceeded';
+        is $baseclass->{_wait_still_screen}->{lastchangetime}, $starttime + 10, 'still "streak" has ended';
+        ok $set_reference_screenshot_called, 'reference screenshot has been updated';
+        is_deeply \@sent_json, [], 'no response sent' or diag explain \@sent_json;
+    };
+    subtest 'broken streak means stilltime needs to be awaited again from the start' => sub {
+        $baseclass_mock->redefine(similiarity_to_reference => {sim => 50});    # exactly "still" enough by the set similarity level
+        ok !$baseclass->_check_for_still_screen($starttime + 11), 'falsy return'; # assume time difference of 11 seconds since start, exactly matching stilltime, exactly within timeout
+        is ref $baseclass->{_wait_still_screen}, 'HASH', 'still waiting for still screen even screen is still and stilltime has passed as streak was interrupted';
+    };
+    subtest 'screen is still long enough and timeout has not been exceeded' => sub {
+        $baseclass_mock->redefine(similiarity_to_reference => {sim => 50});    # exactly "still" enough by the set similarity level
+        ok $baseclass->_check_for_still_screen($baseclass->{_wait_still_screen}->{lastchangetime} + 11), 'truthy return'; # assume time difference of 11 seconds since last change, exactly matching stilltime
+        is $baseclass->{_wait_still_screen}, undef, 'no longer checking for still screen' or diag explain $baseclass->{_wait_still_screen};
+        $expected_response{rsp} = {timed_out => 0, elapsed => 21, sim => 50};
+        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or diag explain \@sent_json;
+
+        # note: Here we waited actually 21 seconds (1st streak broke after 10 s, 2st streak long enough after 11 s) which exceeds the timeout but it is
+        # still not considered a timeout. That is ok because we have pretended that the _check_for_still_screen invocation happened after the timeout which
+        # could also happen in reality if the backend's loop is for some reason busy with something else and can therefore not run the next check in time.
+        # Supposedly we still want to consider this a success then.
+    };
+    subtest 'timeout has been exceeded before screen is still long enough' => sub {
+        @sent_json = ();
+        is_deeply $baseclass->wait_still_screen({similarity_level => 50, timeout => 11, stilltime => 11}), {postponed => 1}, 'enqueued a new still screen wait';
+        ok $baseclass_mock->redefine(similiarity_to_reference => {sim => 49}), 'truthy return';    # exactly one "level" below the set similarity level
+        $baseclass->_check_for_still_screen($starttime + 12);    # assume time difference of 11 seconds since last change, just exceeding timeout
+        is $baseclass->{_wait_still_screen}, undef, 'no longer checking for still screen' or diag explain $baseclass->{_wait_still_screen};
+        $expected_response{rsp} = {timed_out => 1, elapsed => 12, sim => 49};
+        is_deeply \@sent_json, [[$baseclass->{rsppipe}, \%expected_response]], 'response sent' or diag explain \@sent_json;
+    };
+
+    $baseclass_mock->noop('similarity_to_reference');
     $baseclass->{rsppipe} = undef;
 };
 

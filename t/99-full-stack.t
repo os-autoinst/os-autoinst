@@ -59,7 +59,7 @@ unlike $log, qr/script_run: DEPRECATED call of script_run.+die_on_timeout/, 'no 
 like $log, qr/do not wait_still_screen/, 'test type string and do not wait';
 like $log, qr/wait_still_screen: detected same image for 0.2 seconds/, 'test type string and wait for .2 seconds';
 like $log, qr/wait_still_screen: detected same image for 1 seconds/, 'test type string and wait for 1 seconds';
-like $log, qr/wait_still_screen: detected same image for 0.1 seconds/, 'test type string and wait for .1 seconds';
+like $log, qr/wait_still_screen: detected same image for 0\.1 seconds/, 'test type string and wait for .1 seconds';
 like $log, qr/.*event.*STOP/, 'Machine properly paused';
 like $log, qr/.*event.*RESUME/, 'Machine properly resumed';
 like $log, qr/get_test_data returned expected file/, 'get_test_data test';
