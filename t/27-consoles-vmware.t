@@ -27,6 +27,7 @@ use Mojo::Message::Request;
 use Mojo::Message::Response;
 use Mojo::IOLoop::Server;
 use Mojo::Server::Daemon;
+use Scalar::Util qw(blessed);
 
 use consoles::VMWare;
 
@@ -154,11 +155,15 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
                     $self->app->received_data($self->app->received_data . $msg);
                     $self->finish if $sent_everything && $self->app->received_everything;
                 });
-            $self->on(finish => sub { Mojo::IOLoop->stop });
+            $self->on(finish => sub ($ws, $code, $reason) { $self->ua->ioloop->stop });
         }
         sub fallback ($self) {
+            Test::Most::note 'start replying HTTP response';
             $self->render(text => 'fallback', status => 404);
-            $self->tx->on(finish => sub { Mojo::IOLoop->stop });
+            $self->tx->on(finish => sub ($ws, $code, $reason) {
+                    Test::Most::note 'finished replying HTTP response';
+                    $self->ua->ioloop->stop;
+            });
         }
     }
 
@@ -167,6 +172,8 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     my $t = Test::Mojo->new('TestWebSocketApp');
     my $app = $t->app;
     $app->log->level($log_level);
+    $app->ua->ioloop($t->ua->ioloop); # ensure the app providing the HTTP/websocket server and its transactions use the same event loop we use in subsequent code
+    note 'Using reactor ' . blessed $t->ua->ioloop->reactor;
     my $ws_port = Mojo::IOLoop::Server->generate_port;
     my $daemon = Mojo::Server::Daemon->new(listen => ["http://127.0.0.1:$ws_port"], ioloop => $t->ua->ioloop, app => $app);
     combined_like { $daemon->start } qr/Web application available at/, 'could start test WebSocket server' or BAIL_OUT 'cannot proceed without test server';
@@ -180,11 +187,10 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     # connect to dewebsockify and let everything run
     my $data_received_via_raw_socket = '';
     my $configured_connect_attempts = OpenQA::Test::TimeLimit::scale_timeout($ENV{OS_AUTOINST_TEST_DEWEBSOCKIFY_CONNECT_ATTEMPTS} // 25);
-    my ($close_immediately, $client_callback, $connect_attempts, $connect_to_dewebsockify);
+    my ($close_immediately, $connect_attempts, $connect_to_dewebsockify);
     $connect_to_dewebsockify = sub ($loop) {
         note "connecting to dewebsockify on port $tcp_port";
         $loop->client({port => $tcp_port} => sub ($loop, $err, $stream) {
-                $client_callback = 1;
                 if ($err) {    # uncoverable statement
                     if (--$connect_attempts) {    # uncoverable statement
                         note "unable to connect to dewebsockify on port $tcp_port: $err (will try again $connect_attempts times)";    # uncoverable statement
@@ -207,10 +213,9 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     };
     my $connect_to_dewebsockify_with_multiple_attempts = sub (%args) {
         $connect_attempts = $configured_connect_attempts;
-        $client_callback = 0;
         $close_immediately = $args{close_immediately} // 0;
         $t->ua->ioloop->next_tick($connect_to_dewebsockify);
-        $t->ua->ioloop->start until $client_callback;
+        $t->ua->ioloop->start;
         if (my $pid = $args{wait_pid}) {
             note "waiting for dewebsockify process to terminate, pid: $pid";
             waitpid $pid, 0;    # dewebsockify is supposed to exit on its own
@@ -228,17 +233,17 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     my $dewebsockify_cmd_start = "$bmwqemu::scriptdir/dewebsockify --listenport $tcp_port --websocketurl";
     my $assert_log = sub ($dewebsockify_pipe, $expected) {
         my $dewebsockify_log;
-        read $dewebsockify_pipe, $dewebsockify_log, 1000;
+        read($dewebsockify_pipe, $dewebsockify_log, 1000) or die "Unable read dewebsockify pipe: $!";
         like $dewebsockify_log, $expected, 'error logged';
-        close $dewebsockify_pipe;
+        close $dewebsockify_pipe;    # might fail because dewebsockify has already exited but that's ok
     };
     subtest 'handle error when WebSocket server is not reachable' => sub {
-        my $dewebsockify_pid = open(my $dewebsockify_pipe, "$dewebsockify_cmd_start ws://127.0.0.1:0 2>&1 |");
+        my $dewebsockify_pid = open(my $dewebsockify_pipe, "$dewebsockify_cmd_start ws://127.0.0.1:0 2>&1 |") or die "Unable to start dewebsockify: $!";
         $connect_to_dewebsockify_with_multiple_attempts->(close_immediately => 1, wait_pid => $dewebsockify_pid);
         $assert_log->($dewebsockify_pipe, qr/WebSocket connection error:/);
     };
     subtest 'handle error when HTTP server is not upgrading to WebSockets' => sub {
-        my $dewebsockify_pid = open(my $dewebsockify_pipe, "$dewebsockify_cmd_start ws://127.0.0.1:$ws_port/foo 2>&1 |");
+        my $dewebsockify_pid = open(my $dewebsockify_pipe, "$dewebsockify_cmd_start ws://127.0.0.1:$ws_port/foo 2>&1 |") or die "Unable to start dewebsockify: $!";
         $connect_to_dewebsockify_with_multiple_attempts->(close_immediately => 0, wait_pid => $dewebsockify_pid);
         $assert_log->($dewebsockify_pipe, qr/WebSocket 404 response: Not Found/);
     };
