@@ -310,6 +310,9 @@ subtest 'misc functions' => sub {
             execute => 'getfd',
             arguments => {fdname => 'foo'},
     }], 'expected QMP command called for "open_file_and_send_fd_to_qemu"' or diag explain $called{handle_qmp_command};
+
+    @bmwqemu::ovmf_locations = ('does not exist', "$Bin/$Script", 'does not exist either');
+    is backend::qemu::find_ovmf, "$Bin/$Script", 'locating ovmf (nomally "/usr/share/qemu/ovmf-x86_64-ms-code.bin")';
 };
 
 subtest 'saving memory dump' => sub {
