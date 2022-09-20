@@ -403,4 +403,11 @@ subtest 'snapshot handling' => sub {
     ], 'expected QMP commands invoked when loading snapshot' or diag explain $$invoked_qmp_cmds;
 };
 
+subtest 'special cases when handling QMP command' => sub {
+    $backend_mock->unmock('handle_qmp_command');
+    $bmwqemu::vars{QEMU_ONLY_EXEC} = 1;
+    combined_like { is $backend->handle_qmp_command('foo'), undef, 'handling skipped via QEMU_ONLY_EXEC' }
+    qr/Skipping.*because QEMU_ONLY_EXEC/, 'skipping logged';
+};
+
 done_testing();
