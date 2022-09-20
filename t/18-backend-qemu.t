@@ -403,7 +403,45 @@ subtest 'snapshot handling' => sub {
     ], 'expected QMP commands invoked when loading snapshot' or diag explain $$invoked_qmp_cmds;
 };
 
+subtest 'special cases when starting QEMU' => sub {
+    # set certain variables to test special handling for them that is not otherwise tested
+    $bmwqemu::scriptdir = "$Bin/..";    # for dmi data
+    $bmwqemu::vars{UEFI_PFLASH} = 1;
+    $bmwqemu::vars{ARCH} = 'x86_64';
+    $bmwqemu::vars{KERNEL} = 'linuxboot.bin';
+    $bmwqemu::vars{LAPTOP} = '1';
+    $bmwqemu::vars{BOOT_HDD_IMAGE} = 1;
+    $bmwqemu::vars{MULTIPATH} = 1;
+    $bmwqemu::vars{HDDMODEL} = '';
+    $bmwqemu::vars{NICTYPE} = 'vde';
+    $bmwqemu::vars{WORKER_ID} = 42;
+    $bmwqemu::vars{VDE_USE_SLIRP} = 1;
+    $bmwqemu::vars{KEEPHDDS} = 1;
+
+    my ($pid, $load_state, @qemu_params);
+    $backend_mock->redefine(_child_process => sub ($self, $coderef) { ++$pid });
+    $proc->redefine(load_state => sub ($self) { ++$load_state });
+    $proc->redefine(static_param => sub ($self, @params) { push @qemu_params, @params });
+    $backend_mock->redefine(requires_audiodev => 0);
+
+    combined_like { $backend->start_qemu } qr{UEFI_PFLASH and BIOS are deprecated.*slirpvde --dhcp -s ./vde.ctl --port 87 started with pid 1}s,
+      'deprecation warning for UEFI_PFLASH/BIOS logged, slirpvde started';
+    is $bmwqemu::vars{BIOS}, "$Bin/$Script", 'BIOS set to @bmwqemu::ovmf_locations for UEFI_PFLASH=1 and ARCH=x86_64';
+    like $bmwqemu::vars{KERNEL}, qr{/.*/linuxboot\.bin}, 'KERNEL set to absolute location';
+    is $bmwqemu::vars{LAPTOP}, 'hp_elitebook_820g1', 'default laptop model assigned for LAPTOP=1';
+    is $bmwqemu::vars{BOOTFROM}, 'c', 'BOOTFROM defaults to "c" for BOOT_HDD_IMAGE=1';
+    is $bmwqemu::vars{HDDMODEL}, 'scsi-hd', 'HDDMODEL set for MULTIPATH=1';
+    is $bmwqemu::vars{PATHCNT}, 2, 'PATHCNT set for MULTIPATH=1';
+    is $bmwqemu::vars{VDE_SOCKETDIR}, '.', 'VDE_SOCKETDIR set for NICTYPE=vde';
+    is $bmwqemu::vars{VDE_PORT}, 86, 'VDE_PORT set for NICTYPE=vde';
+    is $load_state, 1, 'load_state called once due to KEEPHDDS=1';
+    like join(' ', @qemu_params), qr{smbios file=.*dmidata/hp_elitebook_820g1/smbios_type_1.bin}, 'QEMU invoked with smbios params'
+      or diag explain \@qemu_params;
+};
+
 subtest 'special cases when handling QMP command' => sub {
+    my $create_virtio_console_fifo_called;
+    $backend_mock->redefine(create_virtio_console_fifo => sub () { ++$create_virtio_console_fifo_called });
     $backend_mock->unmock('handle_qmp_command');
     $bmwqemu::vars{QEMU_ONLY_EXEC} = 1;
     combined_like { is $backend->handle_qmp_command('foo'), undef, 'handling skipped via QEMU_ONLY_EXEC' }
