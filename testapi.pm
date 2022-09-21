@@ -1195,7 +1195,7 @@ sub get_test_data {
 
 =head2 validate_script_output
 
-  validate_script_output($script, $code | $regexp [, timeout => $timeout] [,quiet => $quiet])
+  validate_script_output($script, $code | $regexp [, timeout => $timeout] [, quiet => $quiet] [, title => $title] [, fail_message => $fail_message])
 
 Deprecated mode
 
@@ -1206,14 +1206,25 @@ alternatively matches a regular expression. Use it as
 
   validate_script_output "cat /etc/hosts", sub { m/127.*localhost/ };
   validate_script_output "cat /etc/hosts", qr/127.*localhost/;
+  validate_script_output "cat /etc/hosts", qr/127.*localhost/, title => 'localhost check', fail_message => 'No localhost line in /etc/hosts!';
   validate_script_output "cat /etc/hosts", sub { $_ !~ m/987.*somehost/ };
 
 =cut
 
 sub validate_script_output {    # no:style:signatures
     my ($script, $check, @args) = @_;
-
-    my $output = script_output($script, @args);
+    my %args = compat_args(
+        {
+            title => 'validate_script_output',
+            fail_message => 'output not validating',
+            timeout => undef,
+            proceed_on_failure => undef,
+            quiet => 1,    # less noise by default
+            type_command => undef,
+        }, ['timeout'], @args);
+    my $title = delete $args{title};
+    my $fail_message = delete $args{fail_message};
+    my $output = script_output($script, %args);
     my $res = 'ok';
 
     my $message = '';
@@ -1231,8 +1242,8 @@ sub validate_script_output {    # no:style:signatures
         my $body = $deparse->coderef2text($check);
 
         $message = sprintf
-          "validate_script_output got:\n%s\n\nCheck function (deparsed code):\n%s",
-          $output, $body;
+          "Script:\n%s\n\nCheck function (deparsed code):\n%s\n\nOutput:\n%s",
+          $script, $body, $output;
     }
     elsif (reftype $check eq 'REGEXP') {
         if ($output !~ $check) {
@@ -1240,18 +1251,18 @@ sub validate_script_output {    # no:style:signatures
             bmwqemu::diag("output does not match the regex:\n$output");
         }
         $message = sprintf
-          "validate_script_output got:\n%s\n\nRegular expression:\n%s",
-          $output, $check;
+          "Script:\n%s\n\nRegular expression:\n%s\n\nOutput:\n%s",
+          $script, $check, $output;
     }
     else {
         croak "Invalid use of validate_script_output(), second arg must be a coderef or regexp";
     }
     $autotest::current_test->record_resultfile(
-        'validate_script_output', $message,
+        $title, $message,
         result => $res,
     );
     if ($res eq 'fail') {
-        croak "output not validating";
+        croak $fail_message;
     }
     return 0;
 }
