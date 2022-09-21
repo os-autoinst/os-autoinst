@@ -589,7 +589,7 @@ subtest 'validate_script_output' => sub {
     } qr/output not validating/, 'Die on output not match';
     throws_ok {
         validate_script_output('script', qr/error/)
-    } qr/output not validating/, 'Die on output not match';
+    } qr/output not validating/, 'Die on output not match for regex';
     throws_ok {
         validate_script_output('script', ['Invalid parameter'])
     } qr/coderef or regexp/, 'Die on invalid parameter';
