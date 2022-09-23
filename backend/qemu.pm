@@ -751,8 +751,7 @@ sub start_qemu ($self) {
                 sub {
                     # overwrite the default die handler to just exit
                     $SIG{__DIE__} = undef;    # uncoverable statement
-                    exec(@cmd);    # uncoverable statement
-                    die "failed to exec slirpvde";    # uncoverable statement
+                    exec @cmd or die "failed to exec slirpvde: $!";    # uncoverable statement
                 });
             diag join(' ', @cmd) . " started with pid $child_pid";
 
