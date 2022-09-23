@@ -27,13 +27,14 @@ use Test::MockModule;
 my $mod = Test::MockModule->new('myjsonrpc');
 my $fake_exit = 0;
 my $fake_matched = 1;
-my $fake_timeout = 0;
 
 # define variables for 'fake_read_json'
 my $report_timeout_called = 0;
 my $fake_pause_on_timeout = 0;
 my $fake_needle_found = 1;
 my $fake_needle_found_after_pause = 0;
+my $fake_timeout = 0;
+my $fake_similarity = 42;
 
 # define 'write_with_thumbnail' to fake image
 sub write_with_thumbnail (@) { }
@@ -88,8 +89,8 @@ sub fake_read_json ($fd) {
     elsif ($cmd eq 'backend_get_wait_still_screen_on_here_doc_input' || $cmd eq 'backend_set_reference_screenshot') {
         return {ret => 0};
     }
-    elsif ($cmd eq 'backend_wait_screen_change') {
-        return {ret => {sim => 42, elapsed => 5, timed_out => $fake_timeout}};
+    elsif ($cmd eq 'backend_wait_screen_change' || $cmd eq 'backend_wait_still_screen') {
+        return {ret => {sim => $fake_similarity, elapsed => 5, timed_out => $fake_timeout}};
     }
     else {
         note "mock method not implemented \$cmd: $cmd\n";
@@ -633,7 +634,8 @@ subtest save_tmp_file => sub {
 };
 
 subtest 'wait_still_screen & assert_still_screen' => sub {
-    $mod->redefine(read_json => {ret => {sim => 999}});
+    $fake_similarity = 999;
+    $fake_timeout = 0;
     $mock_bmwqemu->noop('log_call');
     ok(wait_still_screen, 'default arguments');
     ok(wait_still_screen(3), 'still time specified');
@@ -649,6 +651,8 @@ subtest 'wait_still_screen & assert_still_screen' => sub {
     $testapi->redefine(wait_still_screen => sub { die "wait_still_screen(@_)" });
     like(exception { assert_still_screen similarity_level => 9999; }, qr/wait_still_screen\(similarity_level 9999\)/,
         'assert_still_screen forwards arguments to wait_still_screen');
+    $fake_timeout = 1;
+    ok !wait_still_screen, 'falsy return value on timeout';
 };
 
 subtest 'test console::console argument settings' => sub {

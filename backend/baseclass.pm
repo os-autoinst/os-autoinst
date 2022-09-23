@@ -161,6 +161,27 @@ sub _check_for_screen_change ($self, $now) {
     return undef unless $self->{rsppipe};
     my %reply = (rsp => $similiarity_to_reference, json_cmd_token => $self->{_postponed_cmd_token});
     myjsonrpc::send_json($self->{rsppipe}, \%reply);
+    return 1;
+}
+
+sub _check_for_still_screen ($self, $now) {
+    return undef unless my $wait_still_screen = $self->{_wait_still_screen};
+    my $similiarity_to_reference = $self->similiarity_to_reference(undef);
+    my $elapsed = $similiarity_to_reference->{elapsed} = $now - $wait_still_screen->{starttime};
+    my $screen_changed = $similiarity_to_reference->{sim} < $wait_still_screen->{similarity_level};
+    my $timed_out = $elapsed > $wait_still_screen->{timeout};
+    my $lastchangetime = \$wait_still_screen->{lastchangetime};
+    if ($screen_changed) {
+        $$lastchangetime = $now;
+        $self->set_reference_screenshot({});
+    }
+    my $is_still = $now - $$lastchangetime >= $wait_still_screen->{stilltime};
+    return undef unless $is_still || $timed_out;
+    $similiarity_to_reference->{timed_out} = $is_still ? 0 : $timed_out;
+    $self->{_wait_still_screen} = undef;    # no longer waiting for still screen
+    my %reply = (rsp => $similiarity_to_reference, json_cmd_token => $self->{_postponed_cmd_token});
+    myjsonrpc::send_json($self->{rsppipe}, \%reply);
+    return 1;
 }
 
 sub do_capture ($self, $timeout = undef, $starttime = undef) {
@@ -178,11 +199,11 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
             last if $time_to_timeout <= 0;
         }
 
-        # lower the intervals when waiting for screen change with `no_wait` option
+        # lower the intervals when there is a pending wait command with `no_wait` option
         # note: Still keeping the interval at 0.1 s to avoid wasting too much CPU (corresponding to what check_screen/assert_screen
         #       also does).
-        my $wait_screen_change = $self->{_wait_screen_change};
-        my @additional_intervals = $wait_screen_change && $wait_screen_change->{no_wait} ? (0.1) : ();
+        my $pending_wait_command = $self->{_wait_screen_change} || $self->{_wait_still_screen};
+        my @additional_intervals = $pending_wait_command && $pending_wait_command->{no_wait} ? (0.1) : ();
 
         my $time_to_update_request = min($self->update_request_interval, @additional_intervals) - ($now - $self->last_update_request);
         if ($time_to_update_request <= 0) {
@@ -209,7 +230,7 @@ sub do_capture ($self, $timeout = undef, $starttime = undef) {
         }
 
         # check whether the screen has changed if waiting for a screen change and send back the result
-        $self->_check_for_screen_change($now);
+        $self->_check_for_screen_change($now) or $self->_check_for_still_screen($now);
 
         my $time_to_next = min($time_to_screenshot, $time_to_update_request, $time_to_timeout);
         my ($read_set, $write_set) = IO::Select->select($self->{select_read}->select(), $self->{select_write}->select(), undef, $time_to_next);
@@ -548,6 +569,13 @@ sub enqueue_screenshot ($self, $image) {
 sub wait_screen_change ($self, $args) {
     $args->{starttime} = gettimeofday;
     $self->{_wait_screen_change} = $args;
+    return {postponed => 1};
+}
+
+sub wait_still_screen ($self, $args) {
+    $args->{starttime} = $args->{lastchangetime} = gettimeofday;
+    $self->set_reference_screenshot({});
+    $self->{_wait_still_screen} = $args;
     return {postponed => 1};
 }
 
