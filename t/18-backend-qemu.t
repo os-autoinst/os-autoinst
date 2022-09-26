@@ -13,6 +13,7 @@ use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
 use Carp;
+use Mojo::Collection;
 use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use Mojo::JSON;
@@ -417,15 +418,22 @@ subtest 'special cases when starting QEMU' => sub {
     $bmwqemu::vars{WORKER_ID} = 42;
     $bmwqemu::vars{VDE_USE_SLIRP} = 1;
     $bmwqemu::vars{KEEPHDDS} = 1;
+    $bmwqemu::vars{NBF} = 1;
+    $bmwqemu::vars{WORKER_HOSTNAME} = 1;
+    $bmwqemu::vars{BOOT_MENU} = 1;
+    $bmwqemu::vars{QEMU_NUMA} = 1;
+    $bmwqemu::vars{QEMUCPUS} = 1;
+    $bmwqemu::vars{DELAYED_START} = 1;
 
     my ($pid, $load_state, @qemu_params);
     $backend_mock->redefine(_child_process => sub ($self, $coderef) { ++$pid });
     $proc->redefine(load_state => sub ($self) { ++$load_state });
     $proc->redefine(static_param => sub ($self, @params) { push @qemu_params, @params });
+    $mock_bmwqemu->unmock('diag');
     $backend_mock->redefine(requires_audiodev => 0);
 
-    combined_like { $backend->start_qemu } qr{UEFI_PFLASH and BIOS are deprecated.*slirpvde --dhcp -s ./vde.ctl --port 87 started with pid 1}s,
-      'deprecation warning for UEFI_PFLASH/BIOS logged, slirpvde started';
+    combined_like { $backend->start_qemu } qr{UEFI_PFLASH and BIOS are deprecated.*slirpvde --dhcp -s ./vde.ctl --port 87 started with pid 1.*not starting CPU}s,
+      'deprecation warning for UEFI_PFLASH/BIOS logged, slirpvde started, DELAYED_START logged';
     is $bmwqemu::vars{BIOS}, "$Bin/$Script", 'BIOS set to @bmwqemu::ovmf_locations for UEFI_PFLASH=1 and ARCH=x86_64';
     like $bmwqemu::vars{KERNEL}, qr{/.*/linuxboot\.bin}, 'KERNEL set to absolute location';
     is $bmwqemu::vars{LAPTOP}, 'hp_elitebook_820g1', 'default laptop model assigned for LAPTOP=1';
@@ -435,8 +443,61 @@ subtest 'special cases when starting QEMU' => sub {
     is $bmwqemu::vars{VDE_SOCKETDIR}, '.', 'VDE_SOCKETDIR set for NICTYPE=vde';
     is $bmwqemu::vars{VDE_PORT}, 86, 'VDE_PORT set for NICTYPE=vde';
     is $load_state, 1, 'load_state called once due to KEEPHDDS=1';
-    like join(' ', @qemu_params), qr{smbios file=.*dmidata/hp_elitebook_820g1/smbios_type_1.bin}, 'QEMU invoked with smbios params'
-      or diag explain \@qemu_params;
+    my $qemu_params = Mojo::Collection->new(\@qemu_params)->flatten->join(' ');
+    like $qemu_params, qr{smbios file=.*dmidata/hp_elitebook_820g1/smbios_type_1.bin}, 'smbios params present';
+    like $qemu_params, qr{kernel /usr/share/qemu/ipxe.lkrn}, 'ipxe kernel param for NBF=1 present';
+    like $qemu_params, qr{menu=on,splash-time=\d+}, 'menu parameter present for BOOT_MENU=1';
+    unlike $qemu_params, qr{order=}, 'order parameter not present despite BOOT_HDD_IMAGE=1 because UEFI=1';
+    unlike $qemu_params, qr{\sbios}, 'bios parameter not present despite BIOS=1 because UEFI=1';
+    like $qemu_params, qr{object memory-backend-ram,size=1024m,id=m0 numa node nodeid=0,memdev=m0,cpus=0}, 'numa parameters present for QEMU_NUMA=1/QEMUCPUS=1';
+
+    # set different parameters to test remaining cases
+    $bmwqemu::vars{UEFI} = $bmwqemu::vars{UEFI_PFLASH} = 0;
+    $bmwqemu::vars{NICTYPE} = 'tap';
+    $bmwqemu::vars{DELAYED_START} = 0;
+    $bmwqemu::vars{OVS_DEBUG} = 1;
+
+    my $process_mock = Test::MockObject->new;
+    my %callbacks;
+    $process_mock->set_always(emit => 1);
+    $process_mock->mock(on => sub ($self, $event_name, $function) { $callbacks{$event_name} = $function });
+    my @dbus_invocations;
+    $backend_mock->redefine(_dbus_call => sub (@args) { push @dbus_invocations, \@args });
+    $backend->{proc}->_process($process_mock);
+    @qemu_params = ();
+    combined_like { $backend->start_qemu } qr{.*}s, 'invoked with tap';
+
+    $qemu_params = Mojo::Collection->new(\@qemu_params)->flatten->join(' ');
+    like $qemu_params, qr{tap id=qanet0 ifname=tap2 script=no downscript=no}, 'parameters for NICTYPE=tap present';
+    like $qemu_params, qr{order=}, 'order parameter present due to BOOT_HDD_IMAGE=1 and UEFI=0';
+    like $qemu_params, qr{\sbios}, 'bios parameter present due to BIOS=1 and UEFI=0';
+    is scalar @dbus_invocations, 2, 'two D-Bus invocatios made';
+    is_deeply $dbus_invocations[0], [$backend, set_vlan => 'tap2', 0], 'vlan set for tap device via D-Bus call' or diag explain \@dbus_invocations;
+    is_deeply $dbus_invocations[1], [$backend, 'show'], 'networking status shown for OVS_DEBUG=1' or diag explain \@dbus_invocations;
+    if (is ref $callbacks{cleanup}, 'CODE', 'cleanup callback set') {
+        $callbacks{cleanup}->();
+        is_deeply $dbus_invocations[2], [$backend, unset_vlan => 'tap2', 0], 'vlan unset in cleanup handler via D-Bus call';
+    }
+    if (is ref $callbacks{collected}, 'CODE', 'collected callback set') {
+        $callbacks{collected}->();
+        $process_mock->called_pos_ok(3, 'emit', 'emit called');
+        $process_mock->called_args_pos_is(3, 2, 'cleanup', 'cleanup event emitted');
+    }
+
+    subtest 'various error cases' => sub {
+        $bmwqemu::vars{NICTYPE} = 'foo';
+        combined_like { throws_ok { $backend->start_qemu } qr/unknown NICTYPE foo/, 'dies on unknown NICTYPE' }
+        qr/qemu version.*Initializing block device images/si, 'expected logs until exception thrown (1)';
+        $bmwqemu::vars{LAPTOP} = '..';
+        combined_like { throws_ok { $backend->start_qemu } qr{invalid characters in LAPTOP}, 'dies on invalid characters in LAPTOP' }
+        qr/qemu version/si, 'expected logs until exception thrown (2)';
+        $bmwqemu::vars{LAPTOP} = 'auslaufmoDELL';
+        combined_like { throws_ok { $backend->start_qemu } qr{no dmi data for 'auslaufmoDELL'}, 'dies on unknown LAPTOP' }
+        qr/qemu version/si, 'expected logs until exception thrown (3)';
+        $bmwqemu::vars{KERNEL} = 'does-not-exist';
+        combined_like { throws_ok { $backend->start_qemu } qr{'/.*/does-not-exist' missing, check KERNEL}, 'dies on non-existant BOOT/KERNEL/INITRD' }
+        qr/qemu version/si, 'expected logs until exception thrown (4)';
+    };
 };
 
 subtest 'special cases when handling QMP command' => sub {
