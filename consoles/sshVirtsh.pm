@@ -543,10 +543,10 @@ __END"
     $ret = $self->run_cmd("virsh $remote_vmm start " . $self->name . ' 2> >(tee /tmp/os-autoinst-' . $self->name . '-stderr.log >&2)');
     bmwqemu::diag("Dump actually used libvirt configuration file " . ($ret ? "(broken)" : "(working)"));
     my $config = $self->get_cmd_output("virsh $remote_vmm dumpxml " . $self->name);
-    die "virsh start failed" if $ret;
+    die "virsh start failed, virsh domain XML:\n$config" if $ret;
     my $config_domain = Mojo::DOM->new($config)->at('domain');
     my $vm_id = $config_domain ? $config_domain->attr('id') : '';
-    die 'virsh domain XML does not specify VM ID which is required from VNC over WebSockets' if !$vm_id && $bmwqemu::vars{VMWARE_VNC_OVER_WS};
+    die "virsh domain XML does not specify VM ID which is required from VNC over WebSockets:\n$config" if !$vm_id && $bmwqemu::vars{VMWARE_VNC_OVER_WS};
     $bmwqemu::vars{VIRSH_VM_ID} = $vm_id;
 
     $self->backend->start_serial_grab($self->name);
