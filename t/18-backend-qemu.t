@@ -380,16 +380,38 @@ subtest 'snapshot handling' => sub {
     $fake_qmp_answer = {return => {status => 'running'}};
     $bmwqemu::vars{QEMU_BALLOON_TARGET} = undef;
     $$invoked_qmp_cmds = undef;
-    $backend->{proc}->snapshot_conf->add_snapshot('fakevm')->name('fakesnapshot');
-    combined_like { $backend->save_snapshot({name => 'fakevm'}) } qr/snapshot complete/i, 'completion logged';
+    my $proc = $backend->{proc};
+    $proc->snapshot_conf->add_snapshot('fakevm')->name('fakesnapshot');
+    $proc->blockdev_conf->add_new_drive('some-id', 'some-model', 1024);
+    combined_like { $backend->save_snapshot({name => 'fakevm'}) } qr/snapshot complete/i, 'completion logged (1)';
     my $snapshot_file = delete $$invoked_qmp_cmds->[2]->{arguments}->{'snapshot-file'};
     like $snapshot_file, qr{/raid/hd0-overlay1$}, 'snapshot file passed';
     is_deeply $$invoked_qmp_cmds, [
         {execute => 'query-status'},
         {execute => 'stop'},
         {execute => 'blockdev-snapshot-sync', arguments => {format => 'qcow2', 'node-name' => 'hd0', 'snapshot-node-name' => 'hd0-overlay1'}},
+        {execute => 'blockdev-snapshot-sync', arguments => {
+                format => 'qcow2', 'node-name' => 'some-id', 'snapshot-file' => "$dir/raid/some-id-overlay1", 'snapshot-node-name' => 'some-id-overlay1'},
+        },
         {execute => 'cont'},
     ], 'expected QMP commands invoked when saving snapshot' or diag explain $$invoked_qmp_cmds;
+
+    # save the snapshot again again assuming the blockdev-snapshot-sync call fails
+    my %first_overlay = (
+        execute => 'blockdev-snapshot-sync',
+        # error handling adds "device" and removes "node-name"
+        arguments => {device => 'hd0-overlay1', format => 'qcow2', 'snapshot-file' => "$dir/raid/hd0-overlay2", 'snapshot-node-name' => 'hd0-overlay2'},
+    );
+    my %second_overlay = (
+        execute => 'blockdev-snapshot-sync',
+        arguments => {device => 'some-id-overlay1', format => 'qcow2', 'snapshot-file' => "$dir/raid/some-id-overlay2", 'snapshot-node-name' => 'some-id-overlay2'}
+    );
+    $$invoked_qmp_cmds = undef;
+    $fake_qmp_answer = {return => {status => 'running'}, error => 1};
+    combined_like { $backend->save_snapshot({name => 'fakevm'}) } qr/snapshot complete/i, 'completion logged (2)';
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'query-status'}, {execute => 'stop'}, \%first_overlay, \%first_overlay, \%second_overlay, \%second_overlay, {execute => 'cont'},
+    ], 'expected QMP commands invoked when saving snapshot with error' or diag explain $$invoked_qmp_cmds;
 
     $$invoked_qmp_cmds = undef;
     combined_like { $backend->load_snapshot({name => 'fakevm'}) } qr/restored snapshot/i, 'restoration logged';
