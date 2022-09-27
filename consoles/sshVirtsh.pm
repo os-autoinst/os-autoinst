@@ -522,7 +522,7 @@ __END"
     # define the new domain
     $self->run_cmd("virsh $remote_vmm define $xmlfilename") && die "virsh define failed";
     if ($self->vmm_family eq 'vmware') {
-        my $vmx = sprintf('/vmfs/volumes/datastore1/openQA/%s.vmx', $self->name);
+        my $vmx = sprintf('/vmfs/volumes/%s/openQA/%s.vmx', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $self->name);
 
         # set default boot delay
         $self->run_cmd("echo bios.bootDelay = \"10000\" >> $vmx", domain => 'sshVMwareServer');
