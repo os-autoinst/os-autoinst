@@ -424,6 +424,7 @@ subtest 'special cases when starting QEMU' => sub {
     $bmwqemu::vars{QEMU_NUMA} = 1;
     $bmwqemu::vars{QEMUCPUS} = 1;
     $bmwqemu::vars{DELAYED_START} = 1;
+    $bmwqemu::vars{WORKER_CLASS} = 'qemu_aarch64';
 
     my ($pid, $load_state, @qemu_params);
     $backend_mock->redefine(_child_process => sub ($self, $coderef) { ++$pid });
@@ -456,6 +457,8 @@ subtest 'special cases when starting QEMU' => sub {
     $bmwqemu::vars{NICTYPE} = 'tap';
     $bmwqemu::vars{DELAYED_START} = 0;
     $bmwqemu::vars{OVS_DEBUG} = 1;
+    $bmwqemu::vars{WORKER_CLASS} = '';
+    $bmwqemu::vars{BOOTFROM} = 'cdrom';
 
     my $process_mock = Test::MockObject->new;
     my %callbacks;
@@ -471,6 +474,7 @@ subtest 'special cases when starting QEMU' => sub {
     like $qemu_params, qr{tap id=qanet0 ifname=tap2 script=no downscript=no}, 'parameters for NICTYPE=tap present';
     like $qemu_params, qr{order=}, 'order parameter present due to BOOT_HDD_IMAGE=1 and UEFI=0';
     like $qemu_params, qr{\sbios}, 'bios parameter present due to BIOS=1 and UEFI=0';
+    is $bmwqemu::vars{BOOTFROM}, 'd', 'BOOTFROM set to "d" for "cdrom"';
     is scalar @dbus_invocations, 2, 'two D-Bus invocatios made';
     is_deeply $dbus_invocations[0], [$backend, set_vlan => 'tap2', 0], 'vlan set for tap device via D-Bus call' or diag explain \@dbus_invocations;
     is_deeply $dbus_invocations[1], [$backend, 'show'], 'networking status shown for OVS_DEBUG=1' or diag explain \@dbus_invocations;
@@ -488,15 +492,23 @@ subtest 'special cases when starting QEMU' => sub {
         $bmwqemu::vars{NICTYPE} = 'foo';
         combined_like { throws_ok { $backend->start_qemu } qr/unknown NICTYPE foo/, 'dies on unknown NICTYPE' }
         qr/qemu version.*Initializing block device images/si, 'expected logs until exception thrown (1)';
+        $bmwqemu::vars{BOOTFROM} = 'punch-card';
+        combined_like { throws_ok { $backend->start_qemu } qr{unsupported boot order: punch-card}, 'dies on unsupported boot order' }
+        qr/qemu version/si, 'expected logs until exception thrown (2)';
         $bmwqemu::vars{LAPTOP} = '..';
         combined_like { throws_ok { $backend->start_qemu } qr{invalid characters in LAPTOP}, 'dies on invalid characters in LAPTOP' }
-        qr/qemu version/si, 'expected logs until exception thrown (2)';
+        qr/qemu version/si, 'expected logs until exception thrown (3)';
         $bmwqemu::vars{LAPTOP} = 'auslaufmoDELL';
         combined_like { throws_ok { $backend->start_qemu } qr{no dmi data for 'auslaufmoDELL'}, 'dies on unknown LAPTOP' }
-        qr/qemu version/si, 'expected logs until exception thrown (3)';
+        qr/qemu version/si, 'expected logs until exception thrown (4)';
         $bmwqemu::vars{KERNEL} = 'does-not-exist';
         combined_like { throws_ok { $backend->start_qemu } qr{'/.*/does-not-exist' missing, check KERNEL}, 'dies on non-existant BOOT/KERNEL/INITRD' }
-        qr/qemu version/si, 'expected logs until exception thrown (4)';
+        qr/qemu version/si, 'expected logs until exception thrown (5)';
+        $bmwqemu::vars{UEFI_PFLASH} = 0;
+        $bmwqemu::vars{UEFI} = 1;
+        $bmwqemu::vars{UEFI_PFLASH_CODE} = 0;
+        combined_like { throws_ok { $backend->start_qemu } qr{No UEFI firmware can be found}, 'dies if UEFI firmware not found' }
+        qr/qemu version/si, 'expected logs until exception thrown (6)';
     };
 };
 
