@@ -216,8 +216,8 @@ sub _wait_for_migrate ($self) {
         $rsp = $self->handle_qmp_command({execute => 'query-migrate'}, fatal => 1);
         die 'Migrate to file failed' if $rsp->{return}->{status} eq 'failed';
 
-        diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
-        diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
+        log::diag "Migrating total bytes:     \t" . $rsp->{return}->{ram}->{total};
+        log::diag "Migrating remaining bytes:   \t" . $rsp->{return}->{ram}->{remaining};
 
         if ($execution_time > $max_execution_time) {
             # migrate_cancel returns an empty hash, so there is no need to check.
@@ -308,7 +308,7 @@ sub save_memory_dump ($self, $args) {
 
     return undef unless $compress_method;
     if ($compress_method eq 'xz') {
-        if (defined which('xz')) {
+        if (defined File::Which::which('xz')) {
             runcmd('xz', '--no-warn', '-T', $compress_threads, "-v$compress_level", "ulogs/$filename");
         }
         else {
@@ -322,7 +322,7 @@ sub save_memory_dump ($self, $args) {
 }
 
 sub save_storage_drives ($self, $args) {
-    diag "Attempting to extract disk #%d.", $args->{disk};
+    diag "Attempting to extract disk #$args->{disk}";
     $self->do_extract_assets(
         {
             hdd_num => $args->{disk},
@@ -331,7 +331,7 @@ sub save_storage_drives ($self, $args) {
             format => "qcow2"
         });
 
-    diag "Successfully extracted disk #%d", $args->{disk};
+    diag "Successfully extracted disk #$args->{disk}";
     return;
 }
 
@@ -749,9 +749,9 @@ sub start_qemu ($self) {
             my @cmd = ('slirpvde', '--dhcp', '-s', "$vars->{VDE_SOCKETDIR}/vde.ctl", '--port', $port + 1);
             my $child_pid = $self->_child_process(
                 sub {
-                    $SIG{__DIE__} = undef;    # overwrite the default - just exit
-                    exec(@cmd);
-                    die "failed to exec slirpvde";
+                    # overwrite the default die handler to just exit
+                    $SIG{__DIE__} = undef;    # uncoverable statement
+                    exec @cmd or die "failed to exec slirpvde: $!";    # uncoverable statement
                 });
             diag join(' ', @cmd) . " started with pid $child_pid";
 

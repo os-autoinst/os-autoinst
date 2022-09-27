@@ -3,18 +3,21 @@
 use Test::Most;
 use Mojo::Base -strict, -signatures;
 
-use FindBin '$Bin';
+use FindBin qw($Bin $Script);
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::MockObject;
+use Test::Mock::Time;
 use Test::Output qw(combined_like stderr_like);
 use Test::Warnings qw(:all :report_warnings);
 use Test::Fatal;
 use Carp;
+use Mojo::Collection;
 use Mojo::File qw(tempdir path);
 use Mojo::Util qw(scope_guard);
 use Mojo::JSON;
+use Scalar::Util qw(looks_like_number);
 
 use backend::qemu;
 
@@ -43,6 +46,7 @@ my $backend_mock = Test::MockModule->new('backend::qemu', no_auto => 1);
 $backend_mock->redefine(handle_qmp_command => undef);
 my $distri = Test::MockModule->new('distribution');
 my %called;
+my $invoked_qmp_cmds = \$called{handle_qmp_command};
 $distri->redefine(add_console => sub {
         $called{add_console}++;
         my $ret = Test::MockObject->new();
@@ -67,9 +71,25 @@ subtest 'using Open vSwitch D-Bus service' => sub {
     $bmwqemu::vars{QEMU_NON_FATAL_DBUS_CALL} = 0;
     $backend_mock->redefine(_dbus_do_call => sub { (1, 'failed') });
     like exception { $backend->_dbus_call('show') }, qr/failed/, 'failed dbus call throws exception';
+
+    # test one unmocked _dbus_do_call againsted mocked Net::DBus
+    $backend_mock->unmock('_dbus_do_call');
+    my $fake_object = Test::MockObject->new;
+    $fake_object->mock(foo => sub ($self, $one, $two) { $one == 1 && $two == 2 ? (qw(the result)) : () });
+    my $fake_service = Test::MockObject->new;
+    $fake_service->mock(get_object => sub ($self, $path, $name) { $path eq '/switch' && $name eq 'org.opensuse.os_autoinst.switch' ? $fake_object : undef });
+    my $fake_connection = Test::MockObject->new;
+    $fake_connection->set_always(disconnect => 1);
+    my $fake_bus = Test::MockObject->new;
+    $fake_bus->set_always(get_connection => $fake_connection);
+    $fake_bus->mock(get_service => sub ($self, $name) { $name eq 'org.opensuse.os_autoinst.switch' ? $fake_service : undef });
+    my $dbus_mock = Test::MockModule->new('Net::DBus');
+    $dbus_mock->redefine(system => sub ($self, %args) { $args{private} ? $fake_bus : undef });
+    is_deeply [$backend->_dbus_do_call(foo => 1, 2)], [qw(the result)], 'result returned';
 };
 
-$backend_mock->redefine(handle_qmp_command => sub { push @{$called{handle_qmp_command}}, $_[1] });
+my $fake_qmp_answer;
+$backend_mock->redefine(handle_qmp_command => sub { push @{$called{handle_qmp_command}}, $_[1]; $fake_qmp_answer });
 $backend->power({action => 'off'});
 ok(exists $called{handle_qmp_command}, 'a qmp command has been called');
 is_deeply($called{handle_qmp_command}, [{execute => 'quit'}], 'quit has been called for off');
@@ -167,10 +187,11 @@ subtest qemu_huge_pages_option => sub {
     delete $bmwqemu::vars{QEMU_HUGE_PAGES_PATH};
 };
 
+my $runcmd;
+$backend_mock->redefine(runcmd => sub (@cmd) { $runcmd = join(' ', @cmd) });
+
 subtest qemu_tpm_option => sub {
     $bmwqemu::vars{QEMUTPM_PATH_PREFIX} = "$dir/mytpm";
-    my $runcmd;
-    $backend_mock->redefine(runcmd => sub (@cmd) { $runcmd = join(' ', @cmd) });
     my $cmdline = qemu_cmdline(QEMUTPM => 'instance', WORKER_INSTANCE => 3);
     like $cmdline, qr|-chardev socket,id=chrtpm,path=.*mytpm3/swtpm-sock|, '-chardev socket option added (instance)';
     like $cmdline, qr|-tpmdev emulator,id=tpm0,chardev=chrtpm|, '-tpmdev emulator option added';
@@ -205,6 +226,287 @@ subtest qemu_tpm_option => sub {
     # call qemu with QEMUTPM=6, QEMU_TPM_VER=1.2 w/o creating a device beforehand
     $cmdline = qemu_cmdline(QEMUTPM => '6', QEMUTPM_VER => '1.2');
     like $runcmd, qr|swtpm socket --tpmstate dir=.*mytpm6 --ctrl type=unixio,path=.*mytpm6/swtpm-sock --log level=20 -d|, 'swtpm 1.2 device created';
+};
+
+subtest 'capturing audio' => sub {
+    $called{handle_qmp_command} = undef;
+    $backend->start_audiocapture({filename => 'foo'});
+    $backend->stop_audiocapture({});
+    is_deeply $called{handle_qmp_command}, [{
+            arguments => {'command-line' => 'wavcapture foo snd0 44100 16 1'},
+            execute => 'human-monitor-command',
+        }, {
+            arguments => {'command-line' => 'stopcapture 0'},
+            execute => 'human-monitor-command',
+        }], 'expected QMP command called' or diag explain $called{handle_qmp_command};
+};
+
+subtest 'wait functions' => sub {
+    my $start = time;
+    my $timeout = $bmwqemu::vars{QEMU_MAX_MIGRATION_TIME} = 3;
+    my $log_mock = Test::MockModule->new('log')->redefine(diag => undef);
+    subtest 'waiting until status changes' => sub {
+        $fake_qmp_answer = {return => {status => 'foo'}};
+        $$invoked_qmp_cmds = undef;
+        throws_ok { $backend->_wait_while_status_is('foo', $timeout, 'test fail message') } qr/test fail message.*status is foo/, 'dies on timeout';
+        is time - $start, $timeout, "would have waited $timeout seconds";
+        $fake_qmp_answer = undef;
+        $backend->_wait_while_status_is('foo', $timeout, 'test fail message');
+        is time - $start, $timeout, 'waited no further as status differs';
+        is_deeply $$invoked_qmp_cmds->[$_], {execute => 'query-status'}, "status queries ($_)" for (0 .. 4);
+    };
+    subtest 'waiting for migration (failure)' => sub {
+        $fake_qmp_answer = {return => {status => 'running', ram => {total => 41, remaining => 15}}};
+        $$invoked_qmp_cmds = undef;
+        throws_ok { $backend->_wait_for_migrate } qr/Migrate to file failed.*running for more than $timeout/,
+          'migration considered failed after timeout';
+        is_deeply $$invoked_qmp_cmds->[-2], {execute => 'query-migrate'}, 'migration queried';
+        is_deeply $$invoked_qmp_cmds->[-1], {execute => 'migrate_cancel'}, 'migration cancelled';
+    };
+    subtest 'waitinng for migration (success)' => sub {
+        my @wait_args;
+        $backend_mock->redefine(_wait_while_status_is => sub ($self, $regex, @) { @wait_args = ($self, $regex) });
+        $fake_qmp_answer = {return => {status => 'completed', ram => {total => 41, remaining => 15}}};
+        $$invoked_qmp_cmds = undef;
+        $backend->_wait_for_migrate;
+        is_deeply $$invoked_qmp_cmds, [{execute => 'query-migrate'}], 'migration queried' or diag explain $$invoked_qmp_cmds;
+        is_deeply \@wait_args, [$backend, qr/paused|finish-migrate/], 'waited for status change' or diag explain \@wait_args;
+    };
+};
+
+subtest 'migration to file' => sub {
+    my @wait_for_migrate_args;
+    $backend_mock->redefine(_wait_for_migrate => sub (@args) { @wait_for_migrate_args = @args });
+    $$invoked_qmp_cmds = undef;
+    $backend->_migrate_to_file(filename => 'foo');
+    is_deeply \@wait_for_migrate_args, [$backend], 'migration awaited';
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]}},
+        {execute => 'migrate-set-parameters', arguments => {'compress-level' => 0, 'compress-threads' => 2, 'max-bandwidth' => '9223372036854775807'}},
+        {execute => 'getfd', arguments => {fdname => 'dumpfd'}},
+        {execute => 'stop'},
+        {execute => 'migrate', arguments => {uri => 'fd:dumpfd'}},
+    ], 'expected QMP commands invoked' or diag explain $$invoked_qmp_cmds;
+};
+
+subtest 'misc functions' => sub {
+    $backend->{proc}->_process(Test::MockObject->set_always(pid => $$));
+    my $res = $backend->cpu_stat;
+    is scalar @$res, 2, 'cpu_stat returns two values' or diag explain $res;
+    ok looks_like_number($res->[$_]), "cpu_stat value $_ is a number" for (0, 1);
+
+    $bmwqemu::vars{HDDMODEL} = 'nvme';
+    is $backend->can_handle({function => 'snapshots'}), undef, 'NVMe snapshots not supported';
+
+    $called{handle_qmp_command} = undef;
+    $backend->set_migrate_capability('foo', 0);
+    is_deeply $called{handle_qmp_command}, [{
+            execute => 'migrate-set-capabilities',
+            arguments => {capabilities => [{capability => 'foo', state => Mojo::JSON::false}]},
+    }], 'expected QMP command called for "set_migrate_capability"' or diag explain $called{handle_qmp_command};
+
+    $called{handle_qmp_command} = undef;
+    $backend->open_file_and_send_fd_to_qemu("$Bin/$Script", 'foo');
+    is_deeply $called{handle_qmp_command}, [{
+            execute => 'getfd',
+            arguments => {fdname => 'foo'},
+    }], 'expected QMP command called for "open_file_and_send_fd_to_qemu"' or diag explain $called{handle_qmp_command};
+
+    @bmwqemu::ovmf_locations = ('does not exist', "$Bin/$Script", 'does not exist either');
+    is backend::qemu::find_ovmf, "$Bin/$Script", 'locating ovmf (nomally "/usr/share/qemu/ovmf-x86_64-ms-code.bin")';
+};
+
+subtest 'saving memory dump' => sub {
+    my $which_mock = Test::MockModule->new('File::Which')->redefine(which => 1);
+    $mock_bmwqemu->unmock('fctwarn');
+
+    $fake_qmp_answer = {return => {status => 'running'}};
+    $called{handle_qmp_command} = undef;
+    combined_like { $backend->save_memory_dump({filename => 'foo'}) } qr/memory dump completed/i, 'completion logged';
+    is_deeply $called{handle_qmp_command}, [
+        {execute => 'query-status'},
+        {
+            execute => 'migrate-set-capabilities',
+            arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]},
+        },
+        {
+            execute => 'migrate-set-parameters',
+            arguments => {'compress-level' => 0, 'compress-threads' => 1, 'max-bandwidth' => '9223372036854775807'},
+        },
+        {execute => 'getfd', arguments => {fdname => 'dumpfd'}},
+        {execute => 'stop'},
+        {execute => 'migrate', arguments => {uri => 'fd:dumpfd'}},
+        {execute => 'cont'},
+    ], 'expected QMP command called for "save_memory_dump"' or diag explain $called{handle_qmp_command};
+    is $runcmd, 'xz --no-warn -T 1 -v6 ulogs/foo-vm-memory-dump', 'expected compression command invoked';
+
+    $which_mock->redefine(which => undef);
+    combined_like { $backend->save_memory_dump({filename => 'foo'}) } qr/falling back to bzip2/i, 'fallback to bzip2 logged';
+    is $runcmd, 'bzip2 -v6 ulogs/foo-vm-memory-dump', 'expected compression fallback command invoked';
+};
+
+subtest 'saving storage drives' => sub {
+    my @extract_args;
+    my @expected_args = ([$backend, {hdd_num => 42, name => 'foo-42-vm_disk_file.qcow2', dir => 'ulogs', format => 'qcow2'}]);
+    $backend_mock->redefine(do_extract_assets => sub (@args) { push @extract_args, \@args });
+    combined_like { $backend->save_storage_drives({disk => 42, filename => 'foo'}) }
+    qr/Attempting to extract disk #42.*Successfully extracted disk #42/s, 'extraction logged';
+    is_deeply \@extract_args, \@expected_args, 'expected assets extracted' or diag explain \@extract_args;
+};
+
+subtest '"balloon" handling' => sub {
+    $fake_qmp_answer = {return => {actual => 1}};
+    $$invoked_qmp_cmds = undef;
+    $backend->inflate_balloon;
+    $backend->deflate_balloon;
+    is_deeply $$invoked_qmp_cmds, undef, 'no QMP commands invoked without QEMU_BALLOON_TARGET' or diag explain $$invoked_qmp_cmds;
+
+    $bmwqemu::vars{QEMU_BALLOON_TARGET} = 1;
+    $backend->inflate_balloon;
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'balloon', arguments => {value => 1048576}}, {execute => 'query-balloon'}, {execute => 'query-balloon'}
+    ], 'expected QMP commands invoked when "inflating balloon"' or diag explain $$invoked_qmp_cmds;
+
+    $$invoked_qmp_cmds = undef;
+    $backend->deflate_balloon;
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'balloon', arguments => {value => 1073741824}}    # QEMURAM * 1048576
+    ], 'expected QMP commands invoked when "deflating balloon"' or diag explain $$invoked_qmp_cmds;
+};
+
+subtest 'snapshot handling' => sub {
+    my @migrate_args;
+    $backend_mock->redefine(_migrate_to_file => sub (@args) { push @migrate_args, \@args });
+    $fake_qmp_answer = {return => {status => 'running'}};
+    $bmwqemu::vars{QEMU_BALLOON_TARGET} = undef;
+    $$invoked_qmp_cmds = undef;
+    $backend->{proc}->snapshot_conf->add_snapshot('fakevm')->name('fakesnapshot');
+    combined_like { $backend->save_snapshot({name => 'fakevm'}) } qr/snapshot complete/i, 'completion logged';
+    my $snapshot_file = delete $$invoked_qmp_cmds->[2]->{arguments}->{'snapshot-file'};
+    like $snapshot_file, qr{/raid/hd0-overlay1$}, 'snapshot file passed';
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'query-status'},
+        {execute => 'stop'},
+        {execute => 'blockdev-snapshot-sync', arguments => {format => 'qcow2', 'node-name' => 'hd0', 'snapshot-node-name' => 'hd0-overlay1'}},
+        {execute => 'cont'},
+    ], 'expected QMP commands invoked when saving snapshot' or diag explain $$invoked_qmp_cmds;
+
+    $$invoked_qmp_cmds = undef;
+    combined_like { $backend->load_snapshot({name => 'fakevm'}) } qr/restored snapshot/i, 'restoration logged';
+    is_deeply $$invoked_qmp_cmds, [
+        {execute => 'query-status'},
+        {execute => 'stop'},
+        {execute => 'qmp_capabilities'},
+        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'compress', state => Mojo::JSON->true}]}},
+        {execute => 'migrate-set-capabilities', arguments => {capabilities => [{capability => 'events', state => Mojo::JSON->true}]}},
+        {execute => 'migrate-incoming', arguments => {uri => 'exec:cat vm-snapshots/fakevm'}},
+        {execute => 'cont'},
+    ], 'expected QMP commands invoked when loading snapshot' or diag explain $$invoked_qmp_cmds;
+};
+
+subtest 'special cases when starting QEMU' => sub {
+    # set certain variables to test special handling for them that is not otherwise tested
+    $bmwqemu::scriptdir = "$Bin/..";    # for dmi data
+    $bmwqemu::vars{UEFI_PFLASH} = 1;
+    $bmwqemu::vars{ARCH} = 'x86_64';
+    $bmwqemu::vars{KERNEL} = 'linuxboot.bin';
+    $bmwqemu::vars{LAPTOP} = '1';
+    $bmwqemu::vars{BOOT_HDD_IMAGE} = 1;
+    $bmwqemu::vars{MULTIPATH} = 1;
+    $bmwqemu::vars{HDDMODEL} = '';
+    $bmwqemu::vars{NICTYPE} = 'vde';
+    $bmwqemu::vars{WORKER_ID} = 42;
+    $bmwqemu::vars{VDE_USE_SLIRP} = 1;
+    $bmwqemu::vars{KEEPHDDS} = 1;
+    $bmwqemu::vars{NBF} = 1;
+    $bmwqemu::vars{WORKER_HOSTNAME} = 1;
+    $bmwqemu::vars{BOOT_MENU} = 1;
+    $bmwqemu::vars{QEMU_NUMA} = 1;
+    $bmwqemu::vars{QEMUCPUS} = 1;
+    $bmwqemu::vars{DELAYED_START} = 1;
+
+    my ($pid, $load_state, @qemu_params);
+    $backend_mock->redefine(_child_process => sub ($self, $coderef) { ++$pid });
+    $proc->redefine(load_state => sub ($self) { ++$load_state });
+    $proc->redefine(static_param => sub ($self, @params) { push @qemu_params, @params });
+    $mock_bmwqemu->unmock('diag');
+    $backend_mock->redefine(requires_audiodev => 0);
+
+    combined_like { $backend->start_qemu } qr{UEFI_PFLASH and BIOS are deprecated.*slirpvde --dhcp -s ./vde.ctl --port 87 started with pid 1.*not starting CPU}s,
+      'deprecation warning for UEFI_PFLASH/BIOS logged, slirpvde started, DELAYED_START logged';
+    is $bmwqemu::vars{BIOS}, "$Bin/$Script", 'BIOS set to @bmwqemu::ovmf_locations for UEFI_PFLASH=1 and ARCH=x86_64';
+    like $bmwqemu::vars{KERNEL}, qr{/.*/linuxboot\.bin}, 'KERNEL set to absolute location';
+    is $bmwqemu::vars{LAPTOP}, 'hp_elitebook_820g1', 'default laptop model assigned for LAPTOP=1';
+    is $bmwqemu::vars{BOOTFROM}, 'c', 'BOOTFROM defaults to "c" for BOOT_HDD_IMAGE=1';
+    is $bmwqemu::vars{HDDMODEL}, 'scsi-hd', 'HDDMODEL set for MULTIPATH=1';
+    is $bmwqemu::vars{PATHCNT}, 2, 'PATHCNT set for MULTIPATH=1';
+    is $bmwqemu::vars{VDE_SOCKETDIR}, '.', 'VDE_SOCKETDIR set for NICTYPE=vde';
+    is $bmwqemu::vars{VDE_PORT}, 86, 'VDE_PORT set for NICTYPE=vde';
+    is $load_state, 1, 'load_state called once due to KEEPHDDS=1';
+    my $qemu_params = Mojo::Collection->new(\@qemu_params)->flatten->join(' ');
+    like $qemu_params, qr{smbios file=.*dmidata/hp_elitebook_820g1/smbios_type_1.bin}, 'smbios params present';
+    like $qemu_params, qr{kernel /usr/share/qemu/ipxe.lkrn}, 'ipxe kernel param for NBF=1 present';
+    like $qemu_params, qr{menu=on,splash-time=\d+}, 'menu parameter present for BOOT_MENU=1';
+    unlike $qemu_params, qr{order=}, 'order parameter not present despite BOOT_HDD_IMAGE=1 because UEFI=1';
+    unlike $qemu_params, qr{\sbios}, 'bios parameter not present despite BIOS=1 because UEFI=1';
+    like $qemu_params, qr{object memory-backend-ram,size=1024m,id=m0 numa node nodeid=0,memdev=m0,cpus=0}, 'numa parameters present for QEMU_NUMA=1/QEMUCPUS=1';
+
+    # set different parameters to test remaining cases
+    $bmwqemu::vars{UEFI} = $bmwqemu::vars{UEFI_PFLASH} = 0;
+    $bmwqemu::vars{NICTYPE} = 'tap';
+    $bmwqemu::vars{DELAYED_START} = 0;
+    $bmwqemu::vars{OVS_DEBUG} = 1;
+
+    my $process_mock = Test::MockObject->new;
+    my %callbacks;
+    $process_mock->set_always(emit => 1);
+    $process_mock->mock(on => sub ($self, $event_name, $function) { $callbacks{$event_name} = $function });
+    my @dbus_invocations;
+    $backend_mock->redefine(_dbus_call => sub (@args) { push @dbus_invocations, \@args });
+    $backend->{proc}->_process($process_mock);
+    @qemu_params = ();
+    combined_like { $backend->start_qemu } qr{.*}s, 'invoked with tap';
+
+    $qemu_params = Mojo::Collection->new(\@qemu_params)->flatten->join(' ');
+    like $qemu_params, qr{tap id=qanet0 ifname=tap2 script=no downscript=no}, 'parameters for NICTYPE=tap present';
+    like $qemu_params, qr{order=}, 'order parameter present due to BOOT_HDD_IMAGE=1 and UEFI=0';
+    like $qemu_params, qr{\sbios}, 'bios parameter present due to BIOS=1 and UEFI=0';
+    is scalar @dbus_invocations, 2, 'two D-Bus invocatios made';
+    is_deeply $dbus_invocations[0], [$backend, set_vlan => 'tap2', 0], 'vlan set for tap device via D-Bus call' or diag explain \@dbus_invocations;
+    is_deeply $dbus_invocations[1], [$backend, 'show'], 'networking status shown for OVS_DEBUG=1' or diag explain \@dbus_invocations;
+    if (is ref $callbacks{cleanup}, 'CODE', 'cleanup callback set') {
+        $callbacks{cleanup}->();
+        is_deeply $dbus_invocations[2], [$backend, unset_vlan => 'tap2', 0], 'vlan unset in cleanup handler via D-Bus call';
+    }
+    if (is ref $callbacks{collected}, 'CODE', 'collected callback set') {
+        $callbacks{collected}->();
+        $process_mock->called_pos_ok(3, 'emit', 'emit called');
+        $process_mock->called_args_pos_is(3, 2, 'cleanup', 'cleanup event emitted');
+    }
+
+    subtest 'various error cases' => sub {
+        $bmwqemu::vars{NICTYPE} = 'foo';
+        combined_like { throws_ok { $backend->start_qemu } qr/unknown NICTYPE foo/, 'dies on unknown NICTYPE' }
+        qr/qemu version.*Initializing block device images/si, 'expected logs until exception thrown (1)';
+        $bmwqemu::vars{LAPTOP} = '..';
+        combined_like { throws_ok { $backend->start_qemu } qr{invalid characters in LAPTOP}, 'dies on invalid characters in LAPTOP' }
+        qr/qemu version/si, 'expected logs until exception thrown (2)';
+        $bmwqemu::vars{LAPTOP} = 'auslaufmoDELL';
+        combined_like { throws_ok { $backend->start_qemu } qr{no dmi data for 'auslaufmoDELL'}, 'dies on unknown LAPTOP' }
+        qr/qemu version/si, 'expected logs until exception thrown (3)';
+        $bmwqemu::vars{KERNEL} = 'does-not-exist';
+        combined_like { throws_ok { $backend->start_qemu } qr{'/.*/does-not-exist' missing, check KERNEL}, 'dies on non-existant BOOT/KERNEL/INITRD' }
+        qr/qemu version/si, 'expected logs until exception thrown (4)';
+    };
+};
+
+subtest 'special cases when handling QMP command' => sub {
+    my $create_virtio_console_fifo_called;
+    $backend_mock->redefine(create_virtio_console_fifo => sub () { ++$create_virtio_console_fifo_called });
+    $backend_mock->unmock('handle_qmp_command');
+    $bmwqemu::vars{QEMU_ONLY_EXEC} = 1;
+    combined_like { is $backend->handle_qmp_command('foo'), undef, 'handling skipped via QEMU_ONLY_EXEC' }
+    qr/Skipping.*because QEMU_ONLY_EXEC/, 'skipping logged';
 };
 
 done_testing();
