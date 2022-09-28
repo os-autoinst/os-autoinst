@@ -129,7 +129,7 @@ subtest 'starting VMware console' => sub {
         $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
-        'echo bios.bootDelay = "10000" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
     ], 'expected commands invoked' or diag explain \@cmds;
@@ -162,11 +162,11 @@ subtest 'starting VMware console with Cloud Init' => sub {
         $s . ' destroy openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' undefine --snapshots-metadata openQA-SUT-1 |& grep -v "\\(failed to get domain\\|Domain not found\\)"',
         $s . ' define /var/lib/libvirt/images/openQA-SUT-1.xml',
-        'echo bios.bootDelay = "10000" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo guestinfo.metadata = "test@meta" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo guestinfo.metadata.encoding = "gzip+base64" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo guestinfo.userdata = "test%user" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
-        'echo guestinfo.userdata.encoding = "gzip+base64" >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'bios.bootDelay = "10000"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'guestinfo.metadata = "test@meta"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'guestinfo.metadata.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'guestinfo.userdata = "test%user"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
+        'echo \'guestinfo.userdata.encoding = "gzip+base64"\' >> /vmfs/volumes/datastore1/openQA/openQA-SUT-1.vmx',
         $s . ' start openQA-SUT-1 2> >(tee /tmp/os-autoinst-openQA-SUT-1-stderr.log >&2)',
         $s . ' dumpxml openQA-SUT-1'
     ], 'expected commands invoked' or diag explain \@cmds;
