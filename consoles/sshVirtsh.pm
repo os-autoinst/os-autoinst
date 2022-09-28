@@ -525,7 +525,7 @@ __END"
         my $vmx = sprintf('/vmfs/volumes/%s/openQA/%s.vmx', $bmwqemu::vars{VMWARE_DATASTORE} // 'datastore1', $self->name);
 
         # set default boot delay
-        $self->run_cmd("echo bios.bootDelay = \"10000\" >> $vmx", domain => 'sshVMwareServer');
+        $self->run_cmd(qq{echo 'bios.bootDelay = "10000"' >> $vmx}, domain => 'sshVMwareServer');
 
         # inject cloud init metadata and userdata required for the image if there are any
         my $ci_meta = $bmwqemu::vars{CLOUD_INIT_META};
@@ -533,10 +533,10 @@ __END"
         my $ci_encoding = $bmwqemu::vars{CLOUD_INIT_ENCODING};
 
         if ($ci_meta && $ci_user && $ci_encoding) {
-            $self->run_cmd("echo guestinfo.metadata = \"$ci_meta\" >> $vmx", domain => 'sshVMwareServer');
-            $self->run_cmd("echo guestinfo.metadata.encoding = \"$ci_encoding\" >> $vmx", domain => 'sshVMwareServer');
-            $self->run_cmd("echo guestinfo.userdata = \"$ci_user\" >> $vmx", domain => 'sshVMwareServer');
-            $self->run_cmd("echo guestinfo.userdata.encoding = \"$ci_encoding\" >> $vmx", domain => 'sshVMwareServer');
+            $self->run_cmd(qq{echo 'guestinfo.metadata = "$ci_meta"' >> $vmx}, domain => 'sshVMwareServer');
+            $self->run_cmd(qq{echo 'guestinfo.metadata.encoding = "$ci_encoding"' >> $vmx}, domain => 'sshVMwareServer');
+            $self->run_cmd(qq{echo 'guestinfo.userdata = "$ci_user"' >> $vmx}, domain => 'sshVMwareServer');
+            $self->run_cmd(qq{echo 'guestinfo.userdata.encoding = "$ci_encoding"' >> $vmx}, domain => 'sshVMwareServer');
         }
     }
 
