@@ -856,11 +856,8 @@ sub start_qemu ($self) {
         $vars->{BOOT_MENU} //= 1 if ($vars->{BOOTFROM} && ($arch eq 'aarch64'));
         push @boot_args, ('menu=on,splash-time=' . ($vars->{BOOT_MENU_TIMEOUT} // '5000')) if $vars->{BOOT_MENU};
         if ($arch_supports_boot_order) {
-            if (($vars->{PXEBOOT} // '') eq 'once') {
-                push @boot_args, 'once=n';
-            }
-            elsif ($vars->{PXEBOOT}) {
-                push @boot_args, 'n';
+            if ($vars->{PXEBOOT}) {
+                push @boot_args, ($vars->{PXEBOOT} eq 'once' ? 'once=n' : 'n');
             }
             elsif ($vars->{BOOTFROM}) {
                 push @boot_args, "order=$vars->{BOOTFROM}";
