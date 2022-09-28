@@ -18,10 +18,20 @@ coverage:
         paths:
           - OpenQA
           - backend/amt.pm
+          - backend/baseclass.pm
+          - backend/console_proxy.pm
+          - backend/driver.pm
+          - backend/generalhw.pm
+          - backend/ipmi.pm
           - backend/null.pm
+          - backend/qemu.pm
+          - backend/s390x.pm
           - backend/spvm.pm
+          - backend/svirt.pm
           - backend/vagrant.pm
           - backend/virt.pm
+          - consoles/VMWare.pm
+          - consoles/VNC.pm
           - consoles/localXvnc.pm
           - consoles/network_console.pm
           - consoles/serial_screen.pm
