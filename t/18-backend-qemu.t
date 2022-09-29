@@ -437,6 +437,7 @@ subtest 'special cases when starting QEMU' => sub {
     $bmwqemu::vars{MULTIPATH} = 1;
     $bmwqemu::vars{HDDMODEL} = '';
     $bmwqemu::vars{NICTYPE} = 'vde';
+    $bmwqemu::vars{NICVLAN} = 'foovlan';
     $bmwqemu::vars{WORKER_ID} = 42;
     $bmwqemu::vars{VDE_USE_SLIRP} = 1;
     $bmwqemu::vars{KEEPHDDS} = 1;
@@ -455,6 +456,8 @@ subtest 'special cases when starting QEMU' => sub {
     $mock_bmwqemu->unmock('diag');
     $backend_mock->redefine(requires_audiodev => 0);
 
+    my @invoked_cmds;
+    $backend_mock->redefine(runcmd => sub (@cmd) { push @invoked_cmds, join(' ', @cmd) });
     combined_like { $backend->start_qemu } qr{UEFI_PFLASH and BIOS are deprecated.*slirpvde --dhcp -s ./vde.ctl --port 87 started with pid 1.*not starting CPU}s,
       'deprecation warning for UEFI_PFLASH/BIOS logged, slirpvde started, DELAYED_START logged';
     is $bmwqemu::vars{BIOS}, "$Bin/$Script", 'BIOS set to @bmwqemu::ovmf_locations for UEFI_PFLASH=1 and ARCH=x86_64';
@@ -473,8 +476,13 @@ subtest 'special cases when starting QEMU' => sub {
     unlike $qemu_params, qr{order=}, 'order parameter not present despite BOOT_HDD_IMAGE=1 because UEFI=1';
     unlike $qemu_params, qr{\sbios}, 'bios parameter not present despite BIOS=1 because UEFI=1';
     like $qemu_params, qr{object memory-backend-ram,size=1024m,id=m0 numa node nodeid=0,memdev=m0,cpus=0}, 'numa parameters present for QEMU_NUMA=1/QEMUCPUS=1';
+    is_deeply \@invoked_cmds, [
+        'vdecmd -s ./vde.mgmt port/remove 86', 'vdecmd -s ./vde.mgmt port/create 86', 'vdecmd -s ./vde.mgmt vlan/create foovlan',
+        'vdecmd -s ./vde.mgmt port/setvlan 86 foovlan', 'vdecmd -s ./vde.mgmt port/setvlan 87 foovlan',
+        "swtpm socket --tpmstate dir=$dir/mytpm6 --ctrl type=unixio,path=$dir/mytpm6/swtpm-sock --log level=20 -d"
+    ], 'vde and swtpm commands invoked' or diag explain \@invoked_cmds;
 
-    # set different parameters to test remaining cases
+    # set different parameters to test more cases
     $bmwqemu::vars{UEFI} = $bmwqemu::vars{UEFI_PFLASH} = 0;
     $bmwqemu::vars{NICTYPE} = 'tap';
     $bmwqemu::vars{DELAYED_START} = 0;
@@ -498,17 +506,25 @@ subtest 'special cases when starting QEMU' => sub {
     like $qemu_params, qr{\sbios}, 'bios parameter present due to BIOS=1 and UEFI=0';
     is $bmwqemu::vars{BOOTFROM}, 'd', 'BOOTFROM set to "d" for "cdrom"';
     is scalar @dbus_invocations, 2, 'two D-Bus invocatios made';
-    is_deeply $dbus_invocations[0], [$backend, set_vlan => 'tap2', 0], 'vlan set for tap device via D-Bus call' or diag explain \@dbus_invocations;
+    is_deeply $dbus_invocations[0], [$backend, set_vlan => 'tap2', 'foovlan'], 'vlan set for tap device via D-Bus call' or diag explain \@dbus_invocations;
     is_deeply $dbus_invocations[1], [$backend, 'show'], 'networking status shown for OVS_DEBUG=1' or diag explain \@dbus_invocations;
     if (is ref $callbacks{cleanup}, 'CODE', 'cleanup callback set') {
         $callbacks{cleanup}->();
-        is_deeply $dbus_invocations[2], [$backend, unset_vlan => 'tap2', 0], 'vlan unset in cleanup handler via D-Bus call';
+        is_deeply $dbus_invocations[2], [$backend, unset_vlan => 'tap2', 'foovlan'], 'vlan unset in cleanup handler via D-Bus call';
     }
     if (is ref $callbacks{collected}, 'CODE', 'collected callback set') {
         $callbacks{collected}->();
         $process_mock->called_pos_ok(3, 'emit', 'emit called');
         $process_mock->called_args_pos_is(3, 2, 'cleanup', 'cleanup event emitted');
     }
+
+    # set different parameters to test remaining cases
+    @qemu_params = ();
+    $bmwqemu::vars{PXEBOOT} = 'once';
+    combined_like { $backend->start_qemu } qr{.+}s, 'invoked with PXEBOOT=once';
+    $qemu_params = Mojo::Collection->new(\@qemu_params)->flatten->join(' ');
+    unlike $qemu_params, qr{order=}, 'order parameter not present due to PXEBOOT';
+    like $qemu_params, qr{once=n}, 'once=n parameter present due to PXEBOOT';
 
     subtest 'various error cases' => sub {
         $bmwqemu::vars{NICTYPE} = 'foo';
