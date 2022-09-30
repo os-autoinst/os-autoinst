@@ -17,11 +17,9 @@ coverage:
         target: 100.0
         paths:
           - OpenQA
-          - backend/amt.pm
-          - backend/null.pm
-          - backend/spvm.pm
-          - backend/vagrant.pm
-          - backend/virt.pm
+          - backend
+          - consoles/VMWare.pm
+          - consoles/VNC.pm
           - consoles/localXvnc.pm
           - consoles/network_console.pm
           - consoles/serial_screen.pm
@@ -32,6 +30,9 @@ coverage:
           - mmapi.pm
           - osutils.pm
           - signalblocker.pm
+        ignore:
+          - backend/ikvm.pm
+          - backend/pvm.pm
     patch:
       default:
         branches: null
