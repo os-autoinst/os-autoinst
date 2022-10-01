@@ -992,4 +992,16 @@ subtest 'send_key_until_needlematch' => sub {
     $fake_needle_found = 1;
 };
 
+subtest 'mouse click' => sub {
+    $cmds = [];
+    mouse_click();
+    is $cmds->[0]{button}, 'left', 'mouse_click called with default button' or diag explain $cmds;
+    $cmds = [];
+    mouse_dclick();
+    is $cmds->[0]{button}, 'left', 'mouse_dclick called with default button' or diag explain $cmds;
+    $cmds = [];
+    mouse_tclick();
+    is $cmds->[0]{button}, 'left', 'mouse_tclick called with default button' or diag explain $cmds;
+};
+
 done_testing;
