@@ -1540,9 +1540,9 @@ Same as mouse_click only for triple click.
 
 =cut
 
-sub mouse_tclick : prototype(;$$) {
-    my $button = shift || 'left';
-    my $time = shift || 0.10;
+sub mouse_tclick ($button = undef, $time = undef) {
+    $button //= 'left';
+    $time //= 0.10;
     bmwqemu::log_call(button => $button, cursor_down => $time);
     query_isotovideo('backend_mouse_button', {button => $button, bstate => 1});
     sleep $time;
