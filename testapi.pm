@@ -1398,13 +1398,8 @@ sub type_string {    # no:style:signatures
 
     # special argument handling for backward compat
     my $string = shift;
-    my %args;
-    if (@_ == 1) {    # backward compat
-        %args = (max_interval => $_[0]);
-    }
-    else {
-        %args = @_;
-    }
+    # backward compat
+    my %args = (@_ == 1) ? (max_interval => $_[0]) : @_;
     $string .= "\n" if $args{lf};
 
     if (is_serial_terminal) {
