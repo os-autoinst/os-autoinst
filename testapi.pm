@@ -133,16 +133,13 @@ Used for internal initialization, do not call from tests.
 
 =cut
 
+sub _serialdev () {
+    return 'hvc0' if get_var('OFW') || get_var('BACKEND', '') =~ /s390x|pvm_hmc/;
+    return get_var('SERIALDEV', 'ttyS0');
+}
+
 sub init () {
-    if (get_var('OFW') || get_var('BACKEND', '') =~ /s390x|pvm_hmc/) {
-        $serialdev = "hvc0";
-    }
-    elsif (get_var('SERIALDEV')) {
-        $serialdev = get_var('SERIALDEV');
-    }
-    else {
-        $serialdev = 'ttyS0';
-    }
+    $serialdev = _serialdev();
     return;
 }
 
@@ -303,33 +300,20 @@ sub _check_backend_response ($rsp, $check, $timeout, $mustmatch) {
                 check => $check,
         }) and return 'try_again';
 
-        if ($check) {
-            # only care for the last one
-            $failed_screens = [$final_mismatch];
-        }
+        # only care for the last one
+        $failed_screens = [$final_mismatch] if $check;
         for my $l (@$failed_screens) {
             my $img = tinycv::from_ppm(decode_base64($l->{image}));
             my $result = $check ? 'unk' : 'fail';
             $result = 'unk' if ($l != $final_mismatch);
-            if ($rsp->{saveresult}) {
-                $autotest::current_test->record_screenfail(
-                    img => $img,
-                    needles => $l->{candidates},
-                    tags => $tags,
-                    result => $result,
-                    frame => $l->{frame},
-                );
-            }
-            else {
-                $autotest::current_test->record_screenfail(
-                    img => $img,
-                    needles => $l->{candidates},
-                    tags => $tags,
-                    result => $result,
-                    overall => $check ? undef : 'fail',
-                    frame => $l->{frame},
-                );
-            }
+            $autotest::current_test->record_screenfail(
+                img => $img,
+                needles => $l->{candidates},
+                tags => $tags,
+                result => $result,
+                overall => (!$rsp->{saveresult} && $check) ? undef : 'fail',
+                frame => $l->{frame},
+            );
         }
         # Handle case where a stall was detected: fail if this is an
         # assert_screen, warn if it's a check_screen
@@ -343,10 +327,7 @@ sub _check_backend_response ($rsp, $check, $timeout, $mustmatch) {
         }
         if (!$check && !$rsp->{saveresult}) {
             # Must match can be only scalar or array ref.
-            my $needletags = $mustmatch;
-            if (ref($mustmatch) eq 'ARRAY') {
-                $needletags = join(', ', @$mustmatch);
-            }
+            my $needletags = ref($mustmatch) eq 'ARRAY' ? join(', ', @$mustmatch) : $mustmatch;
             OpenQA::Exception::FailedNeedle->throw(
                 error => "no candidate needle with tag(s) '$needletags' matched",
                 tags => $mustmatch
@@ -1245,9 +1226,7 @@ sub validate_script_output {    # no:style:signatures
         $title, $message,
         result => $res,
     );
-    if ($res eq 'fail') {
-        croak $fail_message;
-    }
+    croak $fail_message if $res eq 'fail';
     return 0;
 }
 
@@ -1892,9 +1871,7 @@ sub check_shutdown ($timeout = undef) {
             sleep($timeout);
         }
         # -1 counts too
-        if ($is_shutdown) {
-            return 1;
-        }
+        return 1 if $is_shutdown;
         sleep 1;
         --$timeout;
     }
