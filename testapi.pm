@@ -843,11 +843,7 @@ sub wait_serial {    # no:style:signatures
     $args{timeout} = bmwqemu::scale_timeout($args{timeout});
 
     my $ret = query_isotovideo('backend_wait_serial', \%args);
-    my $matched = $ret->{matched};
-
-    if ($args{expect_not_found}) {
-        $matched = !$matched;
-    }
+    my $matched = $args{expect_not_found} ? !$ret->{matched} : $ret->{matched};
     bmwqemu::wait_for_one_more_screenshot() unless is_serial_terminal;
 
     # to string, we need to feed string of result to
