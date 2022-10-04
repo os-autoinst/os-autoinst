@@ -134,16 +134,33 @@ subtest 'switch_network' => sub {
 subtest 'setting graphics backend' => sub {
     my @params;
     local *backend::qemu::sp = sub (@args) { @params = @args };
-    $backend->_set_graphics_backend;
-    is_deeply \@params, [device => 'VGA,edid=on,xres=1024,yres=768'], 'consistent EDID info set for std backend (no QEMUVGA set)' or diag explain \@params;
+    $backend->_set_graphics_backend(0);
+    is_deeply \@params, [device => 'VGA,edid=on,xres=1024,yres=768'], 'default backend is VGA with EDID info (no QEMUVGA or QEMU_VIDEO_DEVICE set)' or diag explain \@params;
+
+    $backend->_set_graphics_backend(1);
+    is_deeply \@params, [device => 'virtio-gpu-pci,edid=on,xres=1024,yres=768'], 'default backend for ARM is virtio with EDID info (no QEMUVGA or QEMU_VIDEO_DEVICE set)' or diag explain \@params;
+
+    $bmwqemu::vars{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64} = '1';
+    $backend->_set_graphics_backend(1);
+    is_deeply \@params, [device => 'VGA,edid=on,xres=1024,yres=768'], 'QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64 changes ARM default to VGA' or diag explain \@params;
+    delete $bmwqemu::vars{QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64};
 
     $bmwqemu::vars{QEMUVGA} = 'virtio';
-    $backend->_set_graphics_backend;
-    is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768'], 'consistent EDID info set for virtio backend' or diag explain \@params;
+    $backend->_set_graphics_backend(0);
+    is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768'], 'QEMUVGA=virtio results in device virtio-vga with EDID info' or diag explain \@params;
 
     $bmwqemu::vars{QEMUVGA} = 'cirrus';
-    $backend->_set_graphics_backend;
-    is_deeply \@params, [vga => 'cirrus'], 'other backends passes as-is via "-vga" parameter' or diag explain \@params;
+    $backend->_set_graphics_backend(0);
+    is_deeply \@params, [device => 'cirrus-vga'], 'QEMUVGA=cirrus results in device cirrus-vga with no EDID info' or diag explain \@params;
+
+    $bmwqemu::vars{QEMU_VIDEO_DEVICE} = 'virtio-vga';
+    $backend->_set_graphics_backend(0);
+    is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768'], 'QEMU_VIDEO_DEVICE wins if both it and QEMUVGA are set' or diag explain \@params;
+
+    delete $bmwqemu::vars{QEMUVGA};
+    $bmwqemu::vars{QEMU_VIDEO_DEVICE_OPTIONS} = 'foo=bar';
+    $backend->_set_graphics_backend(0);
+    is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768,foo=bar'], 'QEMU_VIDEO_DEVICE_OPTIONS gets appended to EDID values' or diag explain \@params;
 };
 
 subtest 'execute arbitrary QMP command' => sub {
