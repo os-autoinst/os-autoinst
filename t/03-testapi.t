@@ -334,6 +334,33 @@ subtest 'script_run' => sub {
     is(background_script_run('sleep 10', output => 'foo'), '1234', 'background_script_run with output returns valid PID');
 };
 
+sub assert_script_sudo_test ($is_serial_terminal) {
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->redefine(_handle_found_needle => sub { return $_[0] });
+    $mock_testapi->noop(qw(send_key enter_cmd));
+    $mock_testapi->redefine(hashed_string => 'XXX');
+    $mock_testapi->redefine(wait_serial => "XXX-0-");
+    my $info = $is_serial_terminal ? 'with serial_terminal' : 'without serial_terminal';
+    is(assert_script_sudo('echo foo'), undef, 'successfull assertion of script_sudo $info');
+    is(assert_script_sudo('bash'), undef, 'successfull assertion of script_sudo $info');
+}
+
+sub set_assert_marker_test ($is_serial_terminal) {
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->redefine(_handle_found_needle => sub { return $_[0] });
+    $mock_testapi->redefine(is_serial_terminal => $is_serial_terminal);
+    my $expected_output = $is_serial_terminal ? ' > /dev/null' : '';
+    require testapi;
+    is(testapi::_set_assert_marker('XXX'), "echo XXX-\$?-$expected_output", 'marker setter return correct string to the serial');
+}
+
+subtest 'assert_script_sudo' => sub {
+    subtest('_set_assert_marker redirects to serial devices on serial terminal', \&set_assert_marker_test, 0);
+    subtest('_set_assert_marker returns correct marker on non-serial terminal', \&set_assert_marker_test, 1);
+    subtest('Test with is_serial_terminal==0', \&assert_script_sudo_test, 0);
+    subtest('Test with is_serial_terminal==1', \&assert_script_sudo_test, 1);
+};
+
 subtest 'check_assert_screen' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->redefine(_handle_found_needle => sub { return $_[0] });
