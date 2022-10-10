@@ -467,7 +467,7 @@ sub assert_and_click ($mustmatch, %args) {
     $last_matched_needle = assert_screen($mustmatch, $args{timeout});
     bmwqemu::log_call(mustmatch => $mustmatch, %args);
 
-    my %click_args = map { $_ => $args{$_} } qw(button dclick mousehide);
+    my %click_args = map { $_ => $args{$_} } qw(button clicktime dclick mousehide);
     return click_lastmatch(%click_args);
 }
 
