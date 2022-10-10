@@ -252,7 +252,9 @@ subtest 'SSH utilities' => sub {
     @agent = ();
     $baseclass->new_ssh_connection(%ssh_creds, password => '');
     is scalar @agent, 0, 'Empty password also accepted, auth_agent not called';
-    $ssh_expect->{password} = 'password';
+
+    $baseclass->new_ssh_connection(%ssh_creds, password => '', use_ssh_agent => 1);
+    is scalar @agent, 1, 'auth_agent called via "use_ssh_agent" despite empty password';
 
     # check run_ssh_cmd() usage
     is($baseclass->run_ssh_cmd('echo -n "foo"', %ssh_creds), 0, 'Command successful exit');
@@ -271,7 +273,7 @@ subtest 'SSH utilities' => sub {
     my @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
     my @disconnected_ssh = grep { !$_->{connected} } values(%$ssh_obj_data);
 
-    is(scalar(@connected_ssh), 7, "Expect 6 connected SSH connections");
+    is(scalar(@connected_ssh), 8, "Expect 8 connected SSH connections");
     is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
     is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
     is($ssh7->{connected}, 1, "SSH connection ssh7 connected");
@@ -286,7 +288,7 @@ subtest 'SSH utilities' => sub {
 
     $baseclass->close_ssh_connections();
     @connected_ssh = grep { $_->{connected} } values(%$ssh_obj_data);
-    is scalar @connected_ssh, 4, 'Expect 4 connected SSH connections (ssh1, ssh2 and ssh9)';
+    is scalar @connected_ssh, 5, 'Expect 5 connected SSH connections (ssh1, ssh2 and ssh9)';
     is($ssh1->{connected}, 1, "SSH connection ssh1 connected");
     is($ssh2->{connected}, 1, "SSH connection ssh2 connected");
     is($ssh9->{connected}, 1, "SSH connection ssh9 connected (user agent auth)");
