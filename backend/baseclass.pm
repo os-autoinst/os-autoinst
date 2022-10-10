@@ -1205,7 +1205,7 @@ sub new_ssh_connection ($self, %args) {
     while ($counter > 0) {
         if ($ssh->connect($args{hostname}, $args{port})) {
 
-            if (defined($args{password})) {
+            if (!$args{use_ssh_agent} && defined($args{password})) {
                 $ssh->auth(username => $args{username}, password => $args{password});
             }
             else {

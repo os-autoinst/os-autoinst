@@ -27,6 +27,7 @@ sub activate ($self) {
     my $hostname = $self->{args}->{hostname} || die('we need a hostname to ssh to');
     my $password = $self->{args}->{password} // $testapi::password;
     my $username = $self->{args}->{username} // 'root';
+    my $use_ssh_agent = $self->{args}->{use_ssh_agent} // 0;
     my $pty_cols = $self->{args}->{pty_cols} // 2048;
     my $port = $self->{args}->{port} // 22;
 
@@ -36,6 +37,7 @@ sub activate ($self) {
         hostname => $hostname,
         password => $password,
         username => $username,
+        use_ssh_agent => $use_ssh_agent,
         port => $port,
     );
     my $chan = $ssh->channel()
