@@ -255,6 +255,14 @@ sub _handle_command_set_pause_on_next_command ($self, $response, @) {
     $self->_respond_ok();
 }
 
+sub _handle_command_pause_test_execution ($self, $response, @) {
+    return $self->_respond_ok if $self->reason_for_pause;    # do nothing if already paused
+    my $reason_for_pause = $response->{reason} // 'manually paused';
+    $self->reason_for_pause($reason_for_pause);
+    $self->_send_to_cmd_srv({paused => 1, reason => $reason_for_pause});
+    $self->postponed_answer_fd($self->answer_fd)->postponed_command(undef);
+}
+
 sub _handle_command_resume_test_execution ($self, $response, @) {
     my $postponed_command = $self->postponed_command;
     my $postponed_answer_fd = $self->postponed_answer_fd;
@@ -282,6 +290,7 @@ sub _handle_command_resume_test_execution ($self, $response, @) {
         myjsonrpc::send_json($postponed_answer_fd, {
                 ret => 1,
                 new_needles => $response->{new_needles},
+                options => $response->{options},
         });
         $self->postponed_answer_fd(undef);
         return;
