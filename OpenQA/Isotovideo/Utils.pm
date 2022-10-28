@@ -15,6 +15,7 @@ use autotest;
 use Try::Tiny;
 
 our @EXPORT_OK = qw(git_rev_parse checkout_git_repo_and_branch
+  spawn_debuggers
   checkout_wheels
   checkout_git_refspec handle_generated_assets load_test_schedule);
 
@@ -270,6 +271,16 @@ sub _store_asset ($index, $name, $dir) {
     $name =~ /\.([[:alnum:]]+)$/;
     my $format = $1;
     return {hdd_num => $index, name => $name, dir => $dir, format => $format};
+}
+
+sub spawn_debuggers () {
+    my %debugging_tools;
+    $debugging_tools{vncviewer} = ['vncviewer', '-viewonly', '-shared', "localhost:$bmwqemu::vars{VNC}"] if $ENV{RUN_VNCVIEWER};
+    $debugging_tools{debugviewer} = ["$bmwqemu::scriptdir/debugviewer/debugviewer", 'qemuscreenshot/last.png'] if $ENV{RUN_DEBUGVIEWER};
+    for my $tool (keys %debugging_tools) {
+        my ($stdin, $stdout, $stderr, $ret);
+        IPC::Run::run(\@{$debugging_tools{$tool}}, \$stdin, \$stdout, \$stderr);
+    }
 }
 
 1;
