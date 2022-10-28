@@ -347,6 +347,11 @@ subtest '_is_configured_to_pause_on_timeout' => sub {
     is $result, 0, '_is_configured_to_pause_on_timeout returned 0';
 };
 
+subtest check_asserted_screen => sub {
+    $command_handler->check_asserted_screen;
+    ok($command_handler->timeout, 'Timeout was set');
+};
+
 done_testing;
 
 END {

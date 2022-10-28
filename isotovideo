@@ -75,7 +75,6 @@ use testapi ();
 use Getopt::Long;
 require IPC::System::Simple;
 use POSIX qw(:sys_wait_h _exit);
-use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use Try::Tiny;
 use IO::Select;
 use Mojo::File qw(curfile);
@@ -278,6 +277,7 @@ $testfd->write("GO\n");
 
 $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     cmd_srv_fd => $cmd_srv_fd,
+    test_fd => $testfd,
     backend_fd => $backend->process->channel_in,
 );
 $command_handler->on(tests_done => sub (@) {
@@ -286,39 +286,6 @@ $command_handler->on(tests_done => sub (@) {
         stop_autotest;
         $loop = 0;
 });
-
-my ($last_check_seconds, $last_check_microseconds) = gettimeofday;
-sub _calc_check_delta () {
-    # an estimate of eternity
-    my $delta = $last_check_seconds ? tv_interval([$last_check_seconds, $last_check_microseconds], [gettimeofday]) : 100;
-    # sleep the remains of one second if $delta > 0
-    my $timeout = $delta > 0 ? 1 - $delta : 0;
-    $command_handler->timeout($timeout < 0 ? 0 : $timeout);
-    return $delta;
-}
-
-sub check_asserted_screen ($no_wait = undef) {
-    if ($no_wait) {
-        # prevent CPU overload by waiting at least a little bit
-        $command_handler->timeout(0.1);
-    }
-    else {
-        _calc_check_delta;
-        # come back later, avoid too often called function
-        return if $command_handler->timeout > 0.05;
-    }
-    ($last_check_seconds, $last_check_microseconds) = gettimeofday;
-    my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'}) || {};
-    # the test needs that information
-    $rsp->{tags} = $command_handler->tags;
-    if ($rsp->{found} || $rsp->{timeout}) {
-        myjsonrpc::send_json($testfd, {ret => $rsp});
-        $command_handler->clear_tags_and_timeout();
-    }
-    else {
-        _calc_check_delta unless $no_wait;
-    }
-}
 
 $return_code = 0;
 
@@ -339,9 +306,7 @@ while ($loop) {
         }
         $command_handler->process_command($readable, $rsp);
     }
-    if (defined($command_handler->tags)) {
-        check_asserted_screen($command_handler->no_wait);
-    }
+    $command_handler->check_asserted_screen if defined($command_handler->tags);
 }
 
 # tell the command server that it should no longer process isotovideo commands since we've
