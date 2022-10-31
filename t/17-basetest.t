@@ -116,6 +116,26 @@ subtest parse_serial_output => sub {
     is($basetest->{result}, 'ok', 'test result set to ok');
     is($message, 'CPU soft lockup detected - Serial error: Serial to match', 'log message matches output');
 
+    $basetest->{result} = 'softfail';
+    $basetest->{serial_failures} = [
+        {type => 'info', message => 'CPU soft lockup detected', pattern => qr/Serial/},
+    ];
+    $basetest->parse_serial_output_qemu();
+    is($basetest->{result}, 'softfail', 'test result stays at softfail on ok match');
+
+    $basetest->{result} = 'fail';
+    $basetest->{serial_failures} = [
+        {type => 'info', message => 'CPU soft lockup detected', pattern => qr/Serial/},
+    ];
+    $basetest->parse_serial_output_qemu();
+    is($basetest->{result}, 'fail', 'test result stays at fail on ok match');
+    $basetest->{serial_failures} = [
+        {type => 'soft', message => 'CPU soft lockup detected', pattern => qr/Serial/},
+    ];
+    $basetest->parse_serial_output_qemu();
+    is($basetest->{result}, 'fail', 'test result stays at fail on softfail match');
+    $basetest->{result} = undef;
+
     $basetest->{serial_failures} = [
         {type => 'soft', message => 'SimplePattern', pattern => qr/Serial/},
     ];

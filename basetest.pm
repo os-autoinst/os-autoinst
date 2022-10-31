@@ -17,6 +17,15 @@ use Mojo::File 'path';
 my $serial_file_pos = 0;
 my $autoinst_log_pos = 0;
 
+my $fail_severity = {
+    '' => 0,
+    na => 0,
+    ok => 100,
+    softfail => 200,
+    fail => 300,
+    canceled => 800
+};
+
 # enable strictures and warnings in all tests globally but allow signatures
 sub import ($self, @) {
     strict->import;
@@ -658,9 +667,11 @@ sub parse_serial_output_qemu ($self) {
                 elsif ($type =~ 'hard|fatal') {
                     $die = 1;
                     $fail_type = 'fail';
-                    $self->{fatal_failure} = $type eq 'fatal';
+                    $self->{fatal_failure} |= $type eq 'fatal';
                 }
                 $self->record_resultfile($message, $message . " - Serial error: $line", result => $fail_type);
+                # don't make overall result better - only worse
+                next if (defined($self->{result}) && ($fail_severity->{$self->{result}} // 999) > $fail_severity->{$fail_type});
                 $self->{result} = $fail_type;
             }
         }
