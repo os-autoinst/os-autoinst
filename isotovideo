@@ -54,6 +54,7 @@ use JSON::PP;
 
 my $installprefix;    # $bmwqemu::scriptdir
 my $fatal_error;    # the last error message caught by the die handler
+my $backend;
 
 BEGIN {
     # the following line is modified during make install
@@ -65,7 +66,6 @@ BEGIN {
     unshift @INC, "$installprefix";
 }
 
-use backend::driver;
 use log qw(diag fctwarn);
 use needle;
 use autotest ();
@@ -78,11 +78,12 @@ use POSIX qw(:sys_wait_h _exit);
 use Time::HiRes qw(gettimeofday tv_interval sleep time);
 use Try::Tiny;
 use IO::Select;
-use Mojo::File qw(curfile path);
+use Mojo::File qw(curfile);
 use Mojo::UserAgent;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
+use OpenQA::Isotovideo::Backend;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_repo_and_branch
@@ -155,7 +156,6 @@ my $command_handler;
 my $testprocess;
 my $cmd_srv_fd;
 my $cmd_srv_port;
-my $backend_process;
 my $loop = 1;
 
 # note: The subsequently defined stop_* functions are used to tear down the process tree.
@@ -200,28 +200,13 @@ sub stop_autotest () {
     diag('done with autotest process');
 }
 
-sub stop_backend () {
-    return unless defined $bmwqemu::backend && $backend_process;
-
-    diag('stopping backend process ' . $backend_process->pid);
-    $backend_process->stop if $backend_process->is_running;
-    $backend_process = undef;
-    diag('done with backend process');
-}
-
 sub signalhandler ($sig) {
     bmwqemu::serialize_state(component => 'isotovideo', msg => "isotovideo received signal $sig", log => 1);
     return $loop = 0 if $loop;
-    stop_backend;
+    $backend->stop if defined $backend;
     stop_commands("received signal $sig");
     stop_autotest;
     _exit(1);
-}
-
-sub init_backend () {
-    $bmwqemu::vars{BACKEND} ||= "qemu";
-    $bmwqemu::backend = backend::driver->new($bmwqemu::vars{BACKEND});
-    return $bmwqemu::backend;
 }
 
 $SIG{TERM} = \&signalhandler;
@@ -273,24 +258,19 @@ bmwqemu::save_vars();
 my $testfd;
 ($testprocess, $testfd) = autotest::start_process();
 
-init_backend();
-path('os-autoinst.pid')->spurt("$$");
-
-# might throw an exception
-$bmwqemu::backend->start_vm;
+$backend = OpenQA::Isotovideo::Backend->new;
 
 spawn_debuggers;
 
-$backend_process = $bmwqemu::backend->{backend_process};
 my $io_select = IO::Select->new();
 $io_select->add($testfd);
 $io_select->add($cmd_srv_fd);
-$io_select->add($backend_process->channel_out);
+$io_select->add($backend->process->channel_out);
 
 # stop main loop as soon as one of the child processes terminates
 my $stop_loop = sub (@) { $loop = 0 if $loop; };
 $testprocess->once(collected => $stop_loop);
-$backend_process->once(collected => $stop_loop);
+$backend->process->once(collected => $stop_loop);
 $cmd_srv_process->once(collected => $stop_loop);
 
 # now we have everything, give the tests a go
@@ -298,7 +278,7 @@ $testfd->write("GO\n");
 
 $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     cmd_srv_fd => $cmd_srv_fd,
-    backend_fd => $backend_process->channel_in,
+    backend_fd => $backend->process->channel_in,
 );
 $command_handler->on(tests_done => sub (@) {
         CORE::close($testfd);
@@ -353,7 +333,7 @@ while ($loop) {
             $loop = 0;
             last;
         }
-        if ($readable == $backend_process->channel_out) {
+        if ($readable == $backend->process->channel_out) {
             $command_handler->send_to_backend_requester({ret => $rsp->{rsp}});
             next;
         }
@@ -404,7 +384,7 @@ $return_code = handle_generated_assets($command_handler, $clean_shutdown) unless
 $fatal_error = undef;
 
 END {
-    stop_backend;
+    $backend->stop if defined $backend;
     stop_commands('test execution ended through exception');
     stop_autotest;
 
