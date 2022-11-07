@@ -66,7 +66,7 @@ BEGIN {
     unshift @INC, "$installprefix";
 }
 
-use log qw(diag fctwarn);
+use log qw(diag);
 use needle;
 use autotest ();
 use commands;
@@ -76,7 +76,6 @@ use Getopt::Long;
 require IPC::System::Simple;
 use POSIX qw(:sys_wait_h _exit);
 use Try::Tiny;
-use IO::Select;
 use Mojo::File qw(curfile);
 use Mojo::UserAgent;
 use Mojo::IOLoop::ReadWriteProcess 'process';
@@ -155,7 +154,6 @@ my $command_handler;
 my $testprocess;
 my $cmd_srv_fd;
 my $cmd_srv_port;
-my $loop = 1;
 
 # note: The subsequently defined stop_* functions are used to tear down the process tree.
 #       However, the worker also ensures that all processes are being terminated (and
@@ -198,19 +196,6 @@ sub stop_autotest () {
     $testprocess = undef;
     diag('done with autotest process');
 }
-
-sub signalhandler ($sig) {
-    bmwqemu::serialize_state(component => 'isotovideo', msg => "isotovideo received signal $sig", log => 1);
-    return $loop = 0 if $loop;
-    $backend->stop if defined $backend;
-    stop_commands("received signal $sig");
-    stop_autotest;
-    _exit(1);
-}
-
-$SIG{TERM} = \&signalhandler;
-$SIG{INT} = \&signalhandler;
-$SIG{HUP} = \&signalhandler;
 
 # make sure all commands coming from the backend will not be in the
 # developers's locale - but a defined english one. This is SUSE's
@@ -261,58 +246,35 @@ $backend = OpenQA::Isotovideo::Backend->new;
 
 spawn_debuggers;
 
-my $io_select = IO::Select->new();
-$io_select->add($testfd);
-$io_select->add($cmd_srv_fd);
-$io_select->add($backend->process->channel_out);
-
 # stop main loop as soon as one of the child processes terminates
-my $stop_loop = sub (@) { $loop = 0 if $loop; };
+my $stop_loop = sub (@) { $command_handler->loop(0) if $command_handler->loop; };
 $testprocess->once(collected => $stop_loop);
 $backend->process->once(collected => $stop_loop);
 $cmd_srv_process->once(collected => $stop_loop);
-
-# now we have everything, give the tests a go
-$testfd->write("GO\n");
 
 $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     cmd_srv_fd => $cmd_srv_fd,
     test_fd => $testfd,
     backend_fd => $backend->process->channel_in,
+    backend_out_fd => $backend->process->channel_out,
 );
 $command_handler->on(tests_done => sub (@) {
         CORE::close($testfd);
         $testfd = undef;
         stop_autotest;
-        $loop = 0;
 });
+$command_handler->on(signal => sub ($event, $sig) {
+        $backend->stop if defined $backend;    # uncoverable statement
+        stop_commands("received signal $sig");    # uncoverable statement
+        stop_autotest;    # uncoverable statement
+        _exit(1);    # uncoverable statement
+});
+$command_handler->setup_signal_handler;
 
 $return_code = 0;
 
 # enter the main loop: process messages from autotest, command server and backend
-while ($loop) {
-    my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $command_handler->timeout);
-    for my $readable (@$ready_for_read) {
-        my $rsp = myjsonrpc::read_json($readable);
-        if (!defined $rsp) {
-            fctwarn sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($readable), fileno($testfd), fileno($cmd_srv_fd));
-            $readable = 1;
-            $loop = 0;
-            last;
-        }
-        if ($readable == $backend->process->channel_out) {
-            $command_handler->send_to_backend_requester({ret => $rsp->{rsp}});
-            next;
-        }
-        $command_handler->process_command($readable, $rsp);
-    }
-    $command_handler->check_asserted_screen if defined($command_handler->tags);
-}
-
-# tell the command server that it should no longer process isotovideo commands since we've
-# just left the loop which would handle such commands (otherwise the command server would just
-# hang on the next isotovideo command)
-$command_handler->stop_command_processing;
+$command_handler->run;
 
 # terminate/kill the command server and let it inform its websocket clients before
 stop_commands('test execution ended');
