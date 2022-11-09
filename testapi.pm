@@ -1012,8 +1012,7 @@ sub background_script_run {    # no:style:signatures
     return $distri->background_script_run($cmd, %args);
 }
 
-sub _set_assert_marker {
-    my ($hashed_string) = @_;
+sub _set_assert_marker ($hashed_string) {
     my $redirect_to_serial_console = is_serial_terminal() ? " > /dev/$serialdev" : '';
     return "echo $hashed_string-\$?-$redirect_to_serial_console";
 }
