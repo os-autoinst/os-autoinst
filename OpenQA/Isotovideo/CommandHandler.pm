@@ -9,12 +9,13 @@ use testapi 'diag';
 use OpenQA::Isotovideo::Interface;
 use Cpanel::JSON::XS;
 use Mojo::File 'path';
+use Time::HiRes qw(gettimeofday tv_interval);
 
 use constant AUTOINST_STATUSFILE => 'autoinst-status.json';
 
 
 # io handles for sending data to command server and backend
-has [qw(cmd_srv_fd backend_fd answer_fd)] => undef;
+has [qw(test_fd cmd_srv_fd backend_fd answer_fd)] => undef;
 
 # the name of the current test (full name includes category prefix, eg. installation-)
 has [qw(current_test_name current_test_full_name)];
@@ -52,6 +53,15 @@ has backend_requester => undef;
 
 # whether the test has already been completed and whether it has died
 has [qw(test_completed test_died)] => 0;
+
+# the time of the last asserted screen
+has [qw(last_check_seconds last_check_microseconds)] => 0;
+
+sub new ($class, @args) {
+    my $self = $class->SUPER::new(@args);
+    $self->_update_last_check;
+    return $self;
+}
 
 sub clear_tags_and_timeout ($self) {
     $self->tags(undef);
@@ -348,6 +358,44 @@ sub update_status_file ($self) {
     my $tmp = AUTOINST_STATUSFILE . ".$$.tmp";
     path($tmp)->spurt($json);
     rename $tmp, AUTOINST_STATUSFILE or die $!;
+}
+
+sub _calc_check_delta ($self) {
+    # an estimate of eternity
+    my $delta = $self->last_check_seconds ? tv_interval([$self->last_check_seconds, $self->last_check_microseconds]) : 100;
+    # sleep the remains of one second if $delta > 0
+    my $timeout = $delta > 0 ? 1 - $delta : 0;
+    $self->timeout($timeout < 0 ? 0 : $timeout);
+    return $delta;
+}
+
+sub _update_last_check ($self) {
+    my ($last_check_seconds, $last_check_microseconds) = gettimeofday;
+    $self->last_check_seconds($last_check_seconds);
+    $self->last_check_microseconds($last_check_microseconds);
+}
+
+sub check_asserted_screen ($self) {
+    if ($self->no_wait) {
+        # prevent CPU overload by waiting at least a little bit
+        $self->timeout(0.1);
+    }
+    else {
+        $self->_calc_check_delta;
+        # come back later, avoid too often called function
+        return if $self->timeout > 0.05;
+    }
+    $self->_update_last_check;
+    my $rsp = $bmwqemu::backend->_send_json({cmd => 'check_asserted_screen'}) || {};
+    # the test needs that information
+    $rsp->{tags} = $self->tags;
+    if ($rsp->{found} || $rsp->{timeout}) {
+        myjsonrpc::send_json($self->test_fd, {ret => $rsp});
+        $self->clear_tags_and_timeout();
+    }
+    else {
+        $self->_calc_check_delta unless $self->no_wait;
+    }
 }
 
 1;
