@@ -339,7 +339,7 @@ sub _invoke_video_encoder ($self, $pipe_name, $display_name, @cmd) {
     my $pid = open($self->{$pipe_name}, '|-', @cmd);
     my $pipe = $self->{$pipe_name};
     $self->{video_encoders}->{$pid} = {name => $display_name, pipe => $pipe, cmd => join ' ', @cmd};
-    $pipe->blocking(0);
+    $pipe->blocking(!!$bmwqemu::vars{VIDEO_ENCODER_BLOCKING_PIPE});
 }
 
 sub _start_external_video_encoder_if_configured ($self) {
