@@ -12,6 +12,7 @@ use File::Path 'make_path';
 use Time::HiRes qw(sleep gettimeofday tv_interval);
 use autotest 'query_isotovideo';
 use Mojo::DOM;
+use Net::Domain qw(hostfqdn);
 require IPC::System::Simple;
 use autodie ':all';
 use OpenQA::Exceptions;
@@ -2091,12 +2092,15 @@ sub diag (@args) { bmwqemu::diag(@args) }
 Return VM's host IP.
 In a kvm instance you reach the VM's host under default 10.0.2.2
 
-Optional named parameter C<inside_sut> in C<$args> will force using actual worker IP/hostname
-even on KVM guests if set to 0.
+Optional named parameter C<inside_sut> in C<$args> will force using actual
+worker IP/hostname even on KVM guests if set to 0.
+
+In case of non-qemu tries to return a sane default if the test variable
+C<WORKER_HOSTNAME> was not specified.
 
 =cut
 
-sub host_ip ($args = {}) { (check_var('BACKEND', 'qemu') && ($args->{inside_sut} // 1)) ? get_var('QEMU_HOST_IP', '10.0.2.2') : get_required_var('WORKER_HOSTNAME') }
+sub host_ip ($args = {}) { (check_var('BACKEND', 'qemu') && ($args->{inside_sut} // 1)) ? get_var('QEMU_HOST_IP', '10.0.2.2') : ($bmwqemu::vars{WORKER_HOSTNAME} //= hostfqdn) }
 
 =head2 autoinst_url
 

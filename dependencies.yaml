@@ -155,6 +155,7 @@ main_requires:
   perl(Mojo::UserAgent):
   perl(Mojolicious::Lite):
   perl(Net::DBus):
+  perl(Net::Domain):
   perl(Net::IP):
   perl(Net::SNMP):
   perl(Net::SSH2):

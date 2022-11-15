@@ -88,6 +88,7 @@ RUN zypper in -y -C \
        'perl(Mojolicious)' \
        'perl(Mojolicious::Lite)' \
        'perl(Net::DBus)' \
+       'perl(Net::Domain)' \
        'perl(Net::IP)' \
        'perl(Net::SNMP)' \
        'perl(Net::SSH2)' \
