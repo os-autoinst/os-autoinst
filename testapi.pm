@@ -12,6 +12,7 @@ use File::Path 'make_path';
 use Time::HiRes qw(sleep gettimeofday tv_interval);
 use autotest 'query_isotovideo';
 use Mojo::DOM;
+use Net::Domain qw(hostfqdn);
 require IPC::System::Simple;
 use autodie ':all';
 use OpenQA::Exceptions;
@@ -2099,7 +2100,7 @@ C<WORKER_HOSTNAME> was not specified.
 
 =cut
 
-sub host_ip ($args = {}) { (check_var('BACKEND', 'qemu') && ($args->{inside_sut} // 1)) ? get_var('QEMU_HOST_IP', '10.0.2.2') : ($bmwqemu::vars{WORKER_HOSTNAME} //= qx{hostname -f}) }
+sub host_ip ($args = {}) { (check_var('BACKEND', 'qemu') && ($args->{inside_sut} // 1)) ? get_var('QEMU_HOST_IP', '10.0.2.2') : ($bmwqemu::vars{WORKER_HOSTNAME} //= hostfqdn) }
 
 =head2 autoinst_url
 

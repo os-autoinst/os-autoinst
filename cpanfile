@@ -47,6 +47,7 @@ requires 'Mojo::UserAgent';
 requires 'Mojolicious', '>= 8.42';
 requires 'Mojolicious::Lite';
 requires 'Net::DBus';
+requires 'Net::Domain';
 requires 'Net::IP';
 requires 'Net::SNMP';
 requires 'Net::SSH2';
