@@ -28,6 +28,7 @@ requires 'File::Touch';
 requires 'File::Which';
 requires 'File::chdir';
 requires 'IO::Handle';
+requires 'IO::Interactive';
 requires 'IO::Scalar';
 requires 'IO::Select';
 requires 'IO::Socket';

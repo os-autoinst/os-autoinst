@@ -59,6 +59,10 @@ subtest 'color output can be configured via the command-line' => sub {
     isnt($out, colorstrip($out), 'logs use colors when requested');
     $out = stderr_from { isotovideo(opts => "--color=no casedir=$data_dir/tests schedule=foo,bar/baz _exit_after_schedule=1") };
     is($out, colorstrip($out), 'no colors in logs');
+    my $mock = Test::MockModule->new('IO::Interactive');
+    $mock->redefine(is_interactive => sub (@) { 0 });
+    $out = stderr_from { isotovideo(opts => "--color=auto casedir=$data_dir/tests schedule=foo,bar/baz _exit_after_schedule=1") };
+    isnt($out, colorstrip($out), 'logs use no colors unless interactive');
 };
 
 subtest 'standalone isotovideo without vars.json file and only command line parameters' => sub {
