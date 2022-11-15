@@ -414,4 +414,11 @@ subtest 'execute_time' => sub {
     is($test->{execution_time}, 42, 'the execution time is correct');
 };
 
+subtest skip_if_not_running => sub {
+    my $test = basetest->new();
+    $test->{result} = undef;
+    $test->skip_if_not_running;
+    is($test->{result}, 'skip', 'skip_if_not_running works as expected');
+};
+
 done_testing;
