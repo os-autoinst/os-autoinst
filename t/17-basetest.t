@@ -79,6 +79,8 @@ subtest modules_test => sub {
     ok($basetest->is_applicable, 'module is applicable by default');
     $bmwqemu::vars{EXCLUDE_MODULES} = 'foo,bar';
     ok(!$basetest->is_applicable, 'module can be excluded');
+    $bmwqemu::vars{EXCLUDE_MODULES} = 'installation-foo';
+    ok(!$basetest->is_applicable, 'model can be excluded by fullname');
     $bmwqemu::vars{EXCLUDE_MODULES} = '';
     $bmwqemu::vars{INCLUDE_MODULES} = 'bar,baz';
     ok(!$basetest->is_applicable, 'modules can be excluded based on a passlist');

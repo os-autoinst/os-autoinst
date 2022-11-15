@@ -520,7 +520,7 @@ sub take_screenshot ($self, $res = undef) {
     my $result = $self->record_testresult($res);
     $self->_result_add_screenshot($result);
 
-    # prevent adding incomplete result to details in case not image was available
+    # prevent adding incomplete result to details in case no image was available
     $self->remove_last_result() unless ($result->{screenshot});
 
     return $result;
