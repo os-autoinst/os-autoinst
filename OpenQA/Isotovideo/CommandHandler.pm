@@ -5,17 +5,19 @@ package OpenQA::Isotovideo::CommandHandler;
 use Mojo::Base 'Mojo::EventEmitter', -signatures;
 
 use bmwqemu;
-use testapi 'diag';
+use log qw(diag fctwarn);
 use OpenQA::Isotovideo::Interface;
+use OpenQA::Isotovideo::NeedleDownloader;
 use Cpanel::JSON::XS;
 use Mojo::File 'path';
+use IO::Select;
 use Time::HiRes qw(gettimeofday tv_interval);
 
 use constant AUTOINST_STATUSFILE => 'autoinst-status.json';
 
 
 # io handles for sending data to command server and backend
-has [qw(test_fd cmd_srv_fd backend_fd answer_fd)] => undef;
+has [qw(test_fd cmd_srv_fd backend_fd backend_out_fd answer_fd)] => undef;
 
 # the name of the current test (full name includes category prefix, eg. installation-)
 has [qw(current_test_name current_test_full_name)];
@@ -37,6 +39,8 @@ has pause_on_next_command => sub { $bmwqemu::vars{PAUSE_ON_NEXT_COMMAND} // 0 };
 
 # the reason why the test execution has paused or 0 if not paused
 has reason_for_pause => 0;
+# the loop status
+has loop => 1;
 
 # when paused, save the command from autotest which has been postponed to be able to resume
 has postponed_answer_fd => undef;
@@ -61,6 +65,19 @@ sub new ($class, @args) {
     my $self = $class->SUPER::new(@args);
     $self->_update_last_check;
     return $self;
+}
+
+sub setup_signal_handler ($self) {
+    my $signal_handler = sub ($sig) { $self->_signal_handler($sig) };
+    $SIG{TERM} = $signal_handler;
+    $SIG{INT} = $signal_handler;
+    $SIG{HUP} = $signal_handler;
+}
+
+sub _signal_handler ($self, $sig) {
+    bmwqemu::serialize_state(component => 'isotovideo', msg => "isotovideo received signal $sig", log => 1);
+    return $self->loop(0) if $self->loop;
+    $self->emit(signal => $sig);
 }
 
 sub clear_tags_and_timeout ($self) {
@@ -273,6 +290,7 @@ sub _handle_command_tests_done ($self, $response, @) {
     $self->test_died($response->{died});
     $self->test_completed($response->{completed});
     $self->emit(tests_done => $response);
+    $self->loop(0);
     $self->current_test_name('');
     $self->status('finished');
     $self->update_status_file;
@@ -396,6 +414,39 @@ sub check_asserted_screen ($self) {
     else {
         $self->_calc_check_delta unless $self->no_wait;
     }
+}
+
+sub _read_response ($self, $rsp, $fd) {
+    if (!defined $rsp) {
+        fctwarn sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($fd), fileno($self->test_fd), fileno($self->cmd_srv_fd));
+        $self->loop(0);
+    } elsif ($fd == $self->backend_out_fd) {
+        $self->send_to_backend_requester({ret => $rsp->{rsp}});
+    } else {
+        $self->process_command($fd, $rsp);
+    }
+}
+
+sub run ($self) {
+    # now we have everything, give the tests a go
+    $self->test_fd->write("GO\n");
+
+    my $io_select = IO::Select->new();
+    $io_select->add($self->test_fd);
+    $io_select->add($self->cmd_srv_fd);
+    $io_select->add($self->backend_out_fd);
+
+    while ($self->loop) {
+        my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $self->timeout);
+        for my $readable (@$ready_for_read) {
+            my $rsp = myjsonrpc::read_json($readable);
+            $self->_read_response($rsp, $readable);
+            last unless defined $rsp;
+        }
+        $self->check_asserted_screen if defined($self->tags);
+    }
+    $self->stop_command_processing;
+    return 0;
 }
 
 1;
