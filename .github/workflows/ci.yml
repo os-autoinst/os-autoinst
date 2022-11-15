@@ -12,6 +12,8 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
+          # should not be necessary for public repos, but might help avoid sporadic upload token errors
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./build/cover_db/codecov.json
           fail_ci_if_error: true
           verbose: true
