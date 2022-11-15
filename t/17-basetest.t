@@ -421,4 +421,10 @@ subtest skip_if_not_running => sub {
     is($test->{result}, 'skip', 'skip_if_not_running works as expected');
 };
 
+subtest capture_filename => sub {
+    my $test = basetest->new();
+    $test->capture_filename;
+    is($test->{wav_fn}, 'basetest-captured.wav', 'capture_filename works as expected');
+};
+
 done_testing;
