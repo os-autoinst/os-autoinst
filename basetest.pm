@@ -365,11 +365,7 @@ sub runtest ($self) {
     }
 
     $self->run_post_fail("test $name died") if ($died);
-
-    if (($self->{result} || '') eq 'fail') {
-        # fatal
-        $self->run_post_fail("test $name failed");
-    }
+    $self->run_post_fail("test $name failed") if (($self->{result} || '') eq 'fail');    # fatal
 
     $self->compute_test_execution_time();
     $self->done();
