@@ -12,6 +12,11 @@ use Test::Output qw(combined_like);
 use File::Basename;
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
+use MIME::Base64 'encode_base64';
+use cv;
+
+cv::init;
+require tinycv;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
@@ -32,6 +37,8 @@ my $cmds;
 my $jsonmod = Test::MockModule->new('myjsonrpc');
 $autotest::isotovideo = 1;
 
+my $last_screenshot_data;
+
 sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
 sub fake_read_json ($fd) {
     my $lcmd = $cmds->[-1];
@@ -44,6 +51,10 @@ sub fake_read_json ($fd) {
     }
     elsif ($cmd eq 'backend_stop_audiocapture') {
         return {};
+    }
+    elsif ($cmd eq 'backend_last_screenshot_data') {
+        return {} unless $last_screenshot_data;
+        return {ret => {image => $last_screenshot_data, frame => 1}};
     }
     else {
         note "mock method not implemented \$cmd: $cmd\n";
@@ -206,6 +217,7 @@ subtest record_testresult => sub {
             result => undef,
             details => [],
             test_count => 0,
+            name => 'test',
     }, $basetest_class);
 
     is_deeply($basetest->record_testresult(), {result => 'unk'}, 'adding unknown result');
@@ -239,9 +251,16 @@ subtest record_testresult => sub {
     is_deeply($basetest->take_screenshot(), {result => 'unk'},
         'unknown result from take_screenshot not added to details');
 
-    my $nr_test_details = 9;
-    is($basetest->{test_count}, $nr_test_details, 'test_count accumulated');
-    is(scalar @{$basetest->{details}}, $nr_test_details, 'all details added');
+    $last_screenshot_data = encode_base64(tinycv::new(1, 1)->ppm_data);
+
+    my $res = $basetest->take_screenshot();
+    is(ref delete $res->{frametime}, 'ARRAY', 'frametime returned');
+
+    is_deeply($res, {result => 'unk', screenshot => 'test-11.png'},
+        'mock image added to details');
+
+    is($basetest->{test_count}, 11, 'test_count accumulated');
+    is(scalar @{$basetest->{details}}, 10, 'all details added');
 };
 
 subtest record_screenmatch => sub {
