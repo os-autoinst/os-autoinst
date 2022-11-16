@@ -75,7 +75,6 @@ require IPC::System::Simple;
 use POSIX qw(:sys_wait_h _exit);
 use Try::Tiny;
 use Mojo::File qw(curfile);
-use Mojo::UserAgent;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
@@ -146,43 +145,11 @@ for my $arg (@ARGV) {
     }
 }
 
-my $cmd_srv_process;
 my $command_handler;
-my $cmd_srv_fd;
-my $cmd_srv_port;
 
 # note: The subsequently defined stop_* functions are used to tear down the process tree.
 #       However, the worker also ensures that all processes are being terminated (and
 #       eventually killed).
-
-sub stop_commands ($reason) {
-    return unless defined $cmd_srv_process;
-    return unless $cmd_srv_process->is_running;
-
-    my $pid = $cmd_srv_process->pid;
-    diag("stopping command server $pid because $reason");
-
-    if ($cmd_srv_port && $reason && $reason eq 'test execution ended') {
-        my $job_token = $bmwqemu::vars{JOBTOKEN};
-        my $url = "http://127.0.0.1:$cmd_srv_port/$job_token/broadcast";
-        diag('isotovideo: informing websocket clients before stopping command server: ' . $url);
-
-        # note: If the job is stopped by the worker because it has been
-        # aborted, the worker will send this command on its own to the command
-        # server and also stop the command server. So this is only done in the
-        # case the test execution just ends.
-
-        my $timeout = 15;
-        # The command server might have already been stopped by the worker
-        # after the user has aborted the job or the job timeout has been
-        # exceeded so no checks for failure done.
-        Mojo::UserAgent->new(request_timeout => $timeout)->post($url, json => {stopping_test_execution => $reason});
-    }
-
-    $cmd_srv_process->stop();
-    $cmd_srv_process = undef;
-    diag('done with command server');
-}
 
 # make sure all commands coming from the backend will not be in the
 # developers's locale - but a defined english one. This is SUSE's
@@ -220,7 +187,7 @@ load_test_schedule;
 
 # start the command fork before we get into the backend, the command child
 # is not supposed to talk to the backend directly
-($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
+my ($cmd_srv_process, $cmd_srv_fd) = commands::start_server(my $cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
 
 testapi::init();
 needle::init();
@@ -233,11 +200,12 @@ my $stop_loop = sub (@) { $command_handler->loop(0) if $command_handler->loop; }
 $cmd_srv_process->once(collected => $stop_loop);
 
 $command_handler = OpenQA::Isotovideo::CommandHandler->new(
+    cmd_srv_process => $cmd_srv_process,
     cmd_srv_fd => $cmd_srv_fd,
 )->init;
 $command_handler->on(signal => sub ($event, $sig) {
         $command_handler->backend->stop if defined $command_handler->backend;    # uncoverable statement
-        stop_commands("received signal $sig");    # uncoverable statement
+        $command_handler->stop_server("received signal $sig");    # uncoverable statement
         _exit(1);    # uncoverable statement
 });
 $command_handler->setup_signal_handler;
@@ -248,7 +216,7 @@ $return_code = 0;
 $command_handler->run;
 
 # terminate/kill the command server and let it inform its websocket clients before
-stop_commands('test execution ended');
+$command_handler->stop_server('test execution ended');
 
 if ($command_handler->test_fd) {
     $return_code = 1;    # unusual shutdown
@@ -283,7 +251,7 @@ $fatal_error = undef;
 
 END {
     $command_handler->backend->stop if $command_handler and $command_handler->backend;
-    stop_commands('test execution ended through exception');
+    $command_handler->stop_server('test execution ended through exception') if defined $command_handler;
     $command_handler->stop_autotest if defined $command_handler;
 
     # in case of early exit, e.g. help display

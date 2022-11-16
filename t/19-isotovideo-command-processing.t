@@ -5,12 +5,13 @@ use Mojo::Base -strict, -signatures;
 
 use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '5';
+use OpenQA::Test::TimeLimit '8';
 use Test::MockModule;
 use Test::Output qw(stderr_like stderr_unlike);
 use Test::Warnings ':report_warnings';
 use Test::Fatal;
 use Mojo::JSON;
+use Mojo::IOLoop::ReadWriteProcess 'process';
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 
@@ -408,6 +409,19 @@ subtest 'No readable JSON' => sub {
         $command_handler->_read_response(undef, $readable);
     } qr/THERE IS NOTHING TO READ/, 'no response';
     is($command_handler->loop, 0, 'Loop was stopped');
+};
+
+subtest 'Stopping the command server' => sub {
+    # A fake server and port is enough to exercise the code path
+    my $process = process(sub { sleep })->start;
+    $command_handler->cmd_srv_port(1);
+    $command_handler->cmd_srv_process($process);
+    $bmwqemu::vars{JOBTOKEN} = 'deadbeef';
+    stderr_like {
+        $command_handler->stop_server('test execution ended');
+    } qr/stopping command server.+deadbeef/, 'reason logged';
+    is $command_handler->cmd_srv_process, undef, 'process unset';
+    not $process->is_running, 'process stopped';
 };
 
 done_testing;

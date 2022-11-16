@@ -12,6 +12,7 @@ use OpenQA::Isotovideo::NeedleDownloader;
 use OpenQA::Isotovideo::Backend;
 use Cpanel::JSON::XS;
 use Mojo::File 'path';
+use Mojo::UserAgent;
 use IO::Select;
 use Time::HiRes qw(gettimeofday tv_interval);
 
@@ -23,6 +24,9 @@ has [qw(test_fd cmd_srv_fd backend backend_fd backend_out_fd answer_fd)] => unde
 
 # the running test process
 has test_process => undef;
+
+# the command server process
+has [qw(cmd_srv_process cmd_srv_port)] => undef;
 
 # the name of the current test (full name includes category prefix, eg. installation-)
 has [qw(current_test_name current_test_full_name)];
@@ -141,6 +145,32 @@ sub process_command ($self, $answer_fd, $command_to_process) {
 }
 
 sub stop_command_processing ($self) { $self->_send_to_cmd_srv({stop_processing_isotovideo_commands => 1}) }
+
+sub stop_server ($self, $reason) {
+    return unless defined $self->cmd_srv_process && $self->cmd_srv_process->is_running;
+    diag('stopping command server ' . $self->cmd_srv_process->pid() . " because $reason");
+
+    if ($self->cmd_srv_port && $reason && $reason eq 'test execution ended') {
+        my $job_token = $bmwqemu::vars{JOBTOKEN};
+        my $url = 'http://127.0.0.1:' . $self->cmd_srv_port . "/$job_token/broadcast";
+        diag('isotovideo: informing websocket clients before stopping command server: ' . $url);
+
+        # note: If the job is stopped by the worker because it has been
+        # aborted, the worker will send this command on its own to the command
+        # server and also stop the command server. So this is only done in the
+        # case the test execution just ends.
+
+        my $timeout = 15;
+        # The command server might have already been stopped by the worker
+        # after the user has aborted the job or the job timeout has been
+        # exceeded so no checks for failure done.
+        Mojo::UserAgent->new(request_timeout => $timeout)->post($url, json => {stopping_test_execution => $reason});
+    }
+
+    $self->cmd_srv_process->stop();
+    $self->cmd_srv_process(undef);
+    diag('done with command server');
+}
 
 sub _postpone_backend_command_until_resumed ($self, $response) {
     my $cmd = $response->{cmd};
