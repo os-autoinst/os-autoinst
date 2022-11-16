@@ -321,8 +321,19 @@ subtest 'script_run' => sub {
     throws_ok { script_run('sleep 13', timeout => 10, die_on_timeout => 1, quiet => 1) } qr/command.*timed out/, 'exception occured on script_run() timeout';
     $testapi::distri->{script_run_die_on_timeout} = 1;
     throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occured on script_run() timeout';
+
+    throws_ok { assert_script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurs on assert_script_run() timeout by default';
+    my $autotest_mock = Test::MockModule->new('autotest');
+    my @diag_messages;
+    $mock_bmwqemu->redefine(diag => sub ($msg) { push @diag_messages, $msg });
+    $autotest_mock->redefine(pause_on_failure => {ignore_failure => 1});
+    lives_ok { assert_script_run('sleep 13', timeout => 10, quiet => 1) } 'assert_script_run() timeout ignored if pausing on failure';
+    is_deeply \@diag_messages, ["ignoring failure via developer mode: command 'sleep 13' timed out"], 'ignored failure logged'
+      or diag explain \@diag_messages;
+
     $testapi::distri->{script_run_die_on_timeout} = -1;
     $fake_matched = 1;
+
 
     stderr_like { script_run('true', quiet => 1) } qr/DEPRECATED/, 'DEPRECATED message appear if `die_on_timeout` is not given.';
     stderr_unlike { script_run('true', die_on_timeout => 0, quiet => 1) } qr/DEPRECATED/, 'DEPRECATED does not appear, if `die_on_timeout=>0` is set.';

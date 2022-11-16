@@ -366,16 +366,12 @@ sub runtest ($self) {
         $died = 1;
     }
 
-    # pause the test execution if tests are supposed to pause on failures via developer mode
-    if ($error_message) {
-        # hang until the user resumes, possibly ignore the failure
-        my $rsp = autotest::query_isotovideo(pause_test_execution => {due_to_failure => 1, reason => "test died: $error_message"});
-        if (ref $rsp eq 'HASH' && $rsp->{ignore_failure}) {
-            bmwqemu::diag($died
-                ? 'ignoring previously logged failure via developer mode'
-                : "ignoring failure via developer mode: $error_message");
-            $ignore_error = 1;
-        }
+    # pause the test execution if tests are supposed to pause on failures via developer mode, possibly ignore error
+    if ($error_message && autotest::pause_on_failure("test died: $error_message")->{ignore_failure}) {
+        bmwqemu::diag($died
+            ? 'ignoring previously logged failure via developer mode'
+            : "ignoring failure via developer mode: $error_message");
+        $ignore_error = 1;
     }
 
     if (!$ignore_error) {

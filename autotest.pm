@@ -12,6 +12,7 @@ use File::Basename;
 use Socket;
 use IO::Handle;
 use POSIX '_exit';
+use Carp qw();
 use cv;
 use signalblocker;
 use Scalar::Util 'blessed';
@@ -320,6 +321,32 @@ sub query_isotovideo ($cmd, $args = undef) {
     my $rsp = myjsonrpc::read_json($isotovideo);
 
     return $rsp->{ret};
+}
+
+sub croak ($command, $error) {
+    # possibly pause and ignore failure …
+    return bmwqemu::diag "ignoring failure via developer mode: $error"
+      if autotest::pause_on_failure("$command failed: $error", $command)->{ignore_failure};
+
+    # … or escalate the failure as usual via croak
+    local $Carp::CarpLevel = 2;    # omit this helper function in the trace
+    Carp::croak $error;
+}
+
+my $failed_command;
+sub pause_on_failure ($reason, $command = undef) {
+    # avoid handling a failing command again (via the die handler) after the test execution has been resumed
+    if (!defined $command && $failed_command) {
+        undef $failed_command;
+        return {};
+    }
+    $failed_command = $command;
+
+    # hang until the user resumes if supposed to pause on failures via developer mode
+    my $rsp = autotest::query_isotovideo(pause_test_execution => {due_to_failure => 1, reason => $reason});
+    $rsp = {} unless ref $rsp eq 'HASH';
+    undef $failed_command if $rsp->{ignore_failure};
+    return $rsp;
 }
 
 sub runalltests () {
