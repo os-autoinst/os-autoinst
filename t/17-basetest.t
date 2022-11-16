@@ -42,6 +42,9 @@ sub fake_read_json ($fd) {
             position => length($serial_buffer),
         };
     }
+    elsif ($cmd eq 'backend_stop_audiocapture') {
+        return {};
+    }
     else {
         note "mock method not implemented \$cmd: $cmd\n";
     }
@@ -50,6 +53,9 @@ sub fake_read_json ($fd) {
 
 $jsonmod->redefine(send_json => \&fake_send_json);
 $jsonmod->redefine(read_json => \&fake_read_json);
+
+my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+$mock_bmwqemu->noop('log_call');
 
 subtest run_post_fail_test => sub {
     my $basetest_class = 'basetest';
@@ -196,9 +202,6 @@ subtest get_new_serial_output => sub {
 
 subtest record_testresult => sub {
     my $basetest_class = 'basetest';
-    my $mock_basetest = Test::MockModule->new($basetest_class);
-    $mock_basetest->redefine(_result_add_screenshot => sub { });
-
     my $basetest = bless({
             result => undef,
             details => [],
@@ -425,6 +428,14 @@ subtest capture_filename => sub {
     my $test = basetest->new();
     $test->capture_filename;
     is($test->{wav_fn}, 'basetest-captured.wav', 'capture_filename works as expected');
+};
+
+subtest stop_audiocapture => sub {
+    my $test = basetest->new();
+    my $res = $test->stop_audiocapture();
+    is($res->{audio}, undef, 'audio capture stopped');
+    is($res->{result}, 'unk', 'audio capture stopped');
+    is($test->{details}->[-1], $res, 'result appended to details');
 };
 
 done_testing;
