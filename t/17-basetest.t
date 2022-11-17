@@ -49,6 +49,9 @@ sub fake_read_json ($fd) {
             position => length($serial_buffer),
         };
     }
+    elsif ($cmd eq 'backend_verify_image') {
+        return {ret => {found => {needle => {name => 'foundneedle', file => 'foundneedle.json'}, area => [{x => 1, y => 2, similarity => 100}]}, candidates => []}};
+    }
     elsif ($cmd eq 'backend_stop_audiocapture') {
         return {};
     }
@@ -455,6 +458,14 @@ subtest stop_audiocapture => sub {
     is($res->{audio}, undef, 'audio capture stopped');
     is($res->{result}, 'unk', 'audio capture stopped');
     is($test->{details}->[-1], $res, 'result appended to details');
+};
+
+subtest verify_sound_image => sub {
+    my $test = basetest->new();
+    my $res = $test->verify_sound_image("$FindBin::Bin/data/frame1.ppm", 'notapath2', 'check');
+    is_deeply($res->{area}, [{x => 1, y => 2, similarity => 100}], 'area was returned') or diag explain $res->{area};
+    is($res->{needle}->{file}, 'foundneedle.json', 'needle file was returned');
+    is($res->{needle}->{name}, 'foundneedle', 'needle name was returned');
 };
 
 done_testing;

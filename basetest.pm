@@ -139,7 +139,7 @@ sub record_screenmatch ($self, $img, $match, $tags = [], $failed_needles = [], $
         json => $serialized_match->{json},
         tags => [@$tags],    # make a copy
         properties => [@$properties],    # make a copy
-        frametime => _framenumber_to_timerange($frame),
+        frametime => defined($frame) ? _framenumber_to_timerange($frame) : undef,
         screenshot => $self->next_resultname('png'),
         result => 'ok',
     };
