@@ -278,6 +278,7 @@ subtest record_screenmatch => sub {
             name => 'foo',
             file => 'some/path/foo.json',
         },
+        unregistered => 'yes',
     );
     my @tags = (qw(some tags));
     my @failed_needles = (
