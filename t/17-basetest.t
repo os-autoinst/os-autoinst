@@ -90,6 +90,7 @@ subtest run_post_fail_test => sub {
     $bmwqemu::vars{_SKIP_POST_FAIL_HOOKS} = 1;
     combined_like { dies_ok { $basetest->runtest } 'behavior persists regardless of _SKIP_POST_FAIL_HOOKS setting' }
     qr/Test died/, 'test died';
+    $basetest->{result} = 'fail'    # make regex to check output with
 };
 
 subtest modules_test => sub {
