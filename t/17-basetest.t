@@ -52,6 +52,9 @@ sub fake_read_json ($fd) {
     elsif ($cmd eq 'backend_verify_image') {
         return {ret => {found => {needle => {name => 'foundneedle', file => 'foundneedle.json'}, area => [{x => 1, y => 2, similarity => 100}]}, candidates => []}};
     }
+    elsif ($cmd eq 'last_milestone_console') {
+        return {};
+    }
     elsif ($cmd eq 'backend_stop_audiocapture') {
         return {};
     }
