@@ -39,6 +39,8 @@ $autotest::isotovideo = 1;
 
 my $last_screenshot_data;
 my $fake_ignore_failure;
+my @reset_consoles;
+my @selected_consoles;
 sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
 sub fake_read_json ($fd) {
     my $lcmd = $cmds->[-1];
@@ -53,6 +55,14 @@ sub fake_read_json ($fd) {
         return {ret => {found => {needle => {name => 'foundneedle', file => 'foundneedle.json'}, area => [{x => 1, y => 2, similarity => 100}]}, candidates => []}};
     }
     elsif ($cmd eq 'last_milestone_console') {
+        return {};
+    }
+    elsif ($cmd eq 'backend_reset_console') {
+        push @reset_consoles, $lcmd;
+        return {};
+    }
+    elsif ($cmd eq 'backend_select_console') {
+        push @selected_consoles, $lcmd;
         return {};
     }
     elsif ($cmd eq 'backend_stop_audiocapture') {
@@ -486,6 +496,16 @@ subtest verify_sound_image => sub {
     is_deeply($res->{area}, [{x => 1, y => 2, similarity => 100}], 'area was returned') or diag explain $res->{area};
     is($res->{needle}->{file}, 'foundneedle.json', 'needle file was returned');
     is($res->{needle}->{name}, 'foundneedle', 'needle name was returned');
+};
+
+subtest rollback_activated_consoles => sub {
+    my $test = basetest->new();
+    $test->{activated_consoles} = ['activated_console'];
+    $autotest::last_milestone_console = 'last_milestone_console';
+    $test->rollback_activated_consoles;
+    is_deeply($test->{activated_consoles}, [], 'activated consoles cleared') or diag explain $test->{activated_consoles};
+    is_deeply(\@reset_consoles, [{cmd => 'backend_reset_console', testapi_console => 'activated_console'}], 'activated consoles reset') or diag explain \@reset_consoles;
+    is_deeply(\@selected_consoles, [{cmd => 'backend_select_console', testapi_console => 'last_milestone_console'}], 'last milestone console selected') or diag explain \@selected_consoles;
 };
 
 done_testing;
