@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package OpenQA::Isotovideo::Utils;
+use IPC::Run;
 use Mojo::Base -base, -signatures;
 use Mojo::URL;
 use Mojo::File qw(path);
