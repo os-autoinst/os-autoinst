@@ -36,13 +36,12 @@ sub isotovideo (%args) {
     my @cmd = ($^X, "$toplevel_dir/isotovideo", '--workdir', $pool_dir, '-d', $args{default_opts}, split(' ', $args{opts}));
     chdir $pool_dir;
     note "Starting isotovideo with: @cmd";
-    my $output = qx(cd $toplevel_dir && @cmd);
+    qx(cd $toplevel_dir && @cmd);
     my $res = $?;
     return fail 'failed to execute isotovideo: ' . $! if $res == -1;    # uncoverable statement
     return fail 'isotovideo died with signal ' . ($res & 127) if $res & 127;    # uncoverable statement
     local $Test::Builder::Level = $Test::Builder::Level + 1;
-    is $res >> 8, $args{exit_code}, 'isotovideo exit code';
-    return $output;
+    return is $res >> 8, $args{exit_code}, 'isotovideo exit code';
 }
 
 subtest 'get the version number' => sub {
@@ -209,6 +208,7 @@ subtest 'load test success when casedir and productdir are relative path' => sub
     symlink("$data_dir/tests/needles", 'my_cases/products/foo/needles') unless -e 'my_cases/products/foo/needles';
     my $module = 'tests/failing_module';
     my $log = combined_from { isotovideo(opts => "casedir=my_cases productdir=my_cases/products/foo schedule=$module", exit_code => 0) };
+    unlike $log, qr/\[warn\]/, 'no warnings';
     like $log, qr/scheduling failing_module/, 'schedule can still be found';
     like $log, qr/\d* loaded 4 needles/, 'loaded needles successfully';
 };
