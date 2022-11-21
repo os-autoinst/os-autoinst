@@ -371,6 +371,7 @@ subtest signalhandler => sub {
 subtest 'No readable JSON' => sub {
     # We need valid fd's so fileno works but they're never used
     open(my $readable, "$Bin");
+    $command_handler->test_fd($readable);
     $command_handler->cmd_srv_fd($readable);
     stderr_like {
         $command_handler->_read_response(undef, $readable);
