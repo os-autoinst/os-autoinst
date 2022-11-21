@@ -139,7 +139,7 @@ sub record_screenmatch ($self, $img, $match, $tags = [], $failed_needles = [], $
         json => $serialized_match->{json},
         tags => [@$tags],    # make a copy
         properties => [@$properties],    # make a copy
-        frametime => _framenumber_to_timerange($frame),
+        frametime => defined($frame) ? _framenumber_to_timerange($frame) : undef,
         screenshot => $self->next_resultname('png'),
         result => 'ok',
     };
@@ -522,7 +522,7 @@ sub take_screenshot ($self, $res = undef) {
     my $result = $self->record_testresult($res);
     $self->_result_add_screenshot($result);
 
-    # prevent adding incomplete result to details in case not image was available
+    # prevent adding incomplete result to details in case no image was available
     $self->remove_last_result() unless ($result->{screenshot});
 
     return $result;

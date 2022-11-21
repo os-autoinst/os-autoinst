@@ -12,6 +12,11 @@ use Test::Output qw(combined_like);
 use File::Basename;
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
+use MIME::Base64 'encode_base64';
+use cv;
+
+cv::init;
+require tinycv;
 
 my $dir = tempdir("/tmp/$FindBin::Script-XXXX");
 chdir $dir;
@@ -32,6 +37,8 @@ my $cmds;
 my $jsonmod = Test::MockModule->new('myjsonrpc');
 $autotest::isotovideo = 1;
 
+my $last_screenshot_data;
+
 sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
 sub fake_read_json ($fd) {
     my $lcmd = $cmds->[-1];
@@ -42,6 +49,19 @@ sub fake_read_json ($fd) {
             position => length($serial_buffer),
         };
     }
+    elsif ($cmd eq 'backend_verify_image') {
+        return {ret => {found => {needle => {name => 'foundneedle', file => 'foundneedle.json'}, area => [{x => 1, y => 2, similarity => 100}]}, candidates => []}};
+    }
+    elsif ($cmd eq 'last_milestone_console') {
+        return {};
+    }
+    elsif ($cmd eq 'backend_stop_audiocapture') {
+        return {};
+    }
+    elsif ($cmd eq 'backend_last_screenshot_data') {
+        return {} unless $last_screenshot_data;
+        return {ret => {image => $last_screenshot_data, frame => 1}};
+    }
     else {
         note "mock method not implemented \$cmd: $cmd\n";
     }
@@ -50,6 +70,9 @@ sub fake_read_json ($fd) {
 
 $jsonmod->redefine(send_json => \&fake_send_json);
 $jsonmod->redefine(read_json => \&fake_read_json);
+
+my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+$mock_bmwqemu->noop('log_call');
 
 subtest run_post_fail_test => sub {
     my $basetest_class = 'basetest';
@@ -72,6 +95,7 @@ subtest run_post_fail_test => sub {
     $bmwqemu::vars{_SKIP_POST_FAIL_HOOKS} = 1;
     combined_like { dies_ok { $basetest->runtest } 'behavior persists regardless of _SKIP_POST_FAIL_HOOKS setting' }
     qr/Test died/, 'test died';
+    $basetest->{result} = 'fail'    # make regex to check output with
 };
 
 subtest modules_test => sub {
@@ -81,6 +105,8 @@ subtest modules_test => sub {
     ok($basetest->is_applicable, 'module is applicable by default');
     $bmwqemu::vars{EXCLUDE_MODULES} = 'foo,bar';
     ok(!$basetest->is_applicable, 'module can be excluded');
+    $bmwqemu::vars{EXCLUDE_MODULES} = 'installation-foo';
+    ok(!$basetest->is_applicable, 'model can be excluded by fullname');
     $bmwqemu::vars{EXCLUDE_MODULES} = '';
     $bmwqemu::vars{INCLUDE_MODULES} = 'bar,baz';
     ok(!$basetest->is_applicable, 'modules can be excluded based on a passlist');
@@ -196,13 +222,11 @@ subtest get_new_serial_output => sub {
 
 subtest record_testresult => sub {
     my $basetest_class = 'basetest';
-    my $mock_basetest = Test::MockModule->new($basetest_class);
-    $mock_basetest->redefine(_result_add_screenshot => sub { });
-
     my $basetest = bless({
             result => undef,
             details => [],
             test_count => 0,
+            name => 'test',
     }, $basetest_class);
 
     is_deeply($basetest->record_testresult(), {result => 'unk'}, 'adding unknown result');
@@ -236,9 +260,16 @@ subtest record_testresult => sub {
     is_deeply($basetest->take_screenshot(), {result => 'unk'},
         'unknown result from take_screenshot not added to details');
 
-    my $nr_test_details = 9;
-    is($basetest->{test_count}, $nr_test_details, 'test_count accumulated');
-    is(scalar @{$basetest->{details}}, $nr_test_details, 'all details added');
+    $last_screenshot_data = encode_base64(tinycv::new(1, 1)->ppm_data);
+
+    my $res = $basetest->take_screenshot();
+    is(ref delete $res->{frametime}, 'ARRAY', 'frametime returned');
+
+    is_deeply($res, {result => 'unk', screenshot => 'test-11.png'},
+        'mock image added to details');
+
+    is($basetest->{test_count}, 11, 'test_count accumulated');
+    is(scalar @{$basetest->{details}}, 10, 'all details added');
 };
 
 subtest record_screenmatch => sub {
@@ -253,6 +284,7 @@ subtest record_screenmatch => sub {
             name => 'foo',
             file => 'some/path/foo.json',
         },
+        unregistered => 'yes',
     );
     my @tags = (qw(some tags));
     my @failed_needles = (
@@ -412,6 +444,35 @@ subtest 'execute_time' => sub {
     $mock_basetest->redefine(done => undef);
     combined_like { $test->runtest } qr/finished basetest foo/, 'finish status message found';
     is($test->{execution_time}, 42, 'the execution time is correct');
+};
+
+subtest skip_if_not_running => sub {
+    my $test = basetest->new();
+    $test->{result} = undef;
+    $test->skip_if_not_running;
+    is($test->{result}, 'skip', 'skip_if_not_running works as expected');
+};
+
+subtest capture_filename => sub {
+    my $test = basetest->new();
+    $test->capture_filename;
+    is($test->{wav_fn}, 'basetest-captured.wav', 'capture_filename works as expected');
+};
+
+subtest stop_audiocapture => sub {
+    my $test = basetest->new();
+    my $res = $test->stop_audiocapture();
+    is($res->{audio}, undef, 'audio capture stopped');
+    is($res->{result}, 'unk', 'audio capture stopped');
+    is($test->{details}->[-1], $res, 'result appended to details');
+};
+
+subtest verify_sound_image => sub {
+    my $test = basetest->new();
+    my $res = $test->verify_sound_image("$FindBin::Bin/data/frame1.ppm", 'notapath2', 'check');
+    is_deeply($res->{area}, [{x => 1, y => 2, similarity => 100}], 'area was returned') or diag explain $res->{area};
+    is($res->{needle}->{file}, 'foundneedle.json', 'needle file was returned');
+    is($res->{needle}->{name}, 'foundneedle', 'needle name was returned');
 };
 
 done_testing;
