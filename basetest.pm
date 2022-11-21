@@ -294,6 +294,8 @@ sub post_run_hook ($self) {
 }
 
 sub run_post_fail ($self, $msg) {
+    my $name = $self->{name};
+    autotest::query_isotovideo(set_current_test => {name => $name, full_name => ($self->{fullname} // $name) . ' (post fail hook)'});
     my $post_fail_hook_start_time = time;
     unless ($bmwqemu::vars{_SKIP_POST_FAIL_HOOKS}) {
         $self->{post_fail_hook_running} = 1;

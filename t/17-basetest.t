@@ -66,6 +66,8 @@ subtest run_post_fail_test => sub {
     combined_like { dies_ok { $basetest->runtest } 'run_post_fail end up with die' } qr/Test died/, 'test died';
     combined_like { dies_ok { $basetest->runtest } 'post fail hooks runtime' } qr/post fail hooks runtime:/,
       'Post fail hooks runtime present';
+    my %cmd = (cmd => 'set_current_test', name => 'foo', full_name => 'foo (post fail hook)');
+    is_deeply $cmds->[0], \%cmd, 'test name updated (to show post fail hook in developer mode)';
 
     $bmwqemu::vars{_SKIP_POST_FAIL_HOOKS} = 1;
     combined_like { dies_ok { $basetest->runtest } 'behavior persists regardless of _SKIP_POST_FAIL_HOOKS setting' }
