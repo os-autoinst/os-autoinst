@@ -587,19 +587,6 @@ Return a listref containing hashrefs like this:
 
 sub ocr_checklist () { [] }
 
-sub standstill_detected ($self, $lastscreenshot) {
-    $self->record_screenfail(
-        img => $lastscreenshot,
-        result => 'fail',
-        overall => 'fail'
-    );
-
-    testapi::send_key('alt-sysrq-w');
-    testapi::send_key('alt-sysrq-l');
-    testapi::send_key('alt-sysrq-d');    # only available with CONFIG_LOCKDEP
-    return;
-}
-
 # this is called if the test failed and the framework loaded a VM
 # snapshot - all consoles activated in the test's run function loose their
 # state
