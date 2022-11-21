@@ -239,10 +239,10 @@ testapi::init();
 needle::init();
 bmwqemu::save_vars();
 
-my $testfd;
-($testprocess, $testfd) = autotest::start_process();
 
 $backend = OpenQA::Isotovideo::Backend->new;
+my $testfd;
+($testprocess, $testfd) = autotest::start_process();
 
 spawn_debuggers;
 

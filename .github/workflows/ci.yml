@@ -4,7 +4,7 @@ name: ci
 on: [push, pull_request]
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04 # ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
       - name: Static checks, unit- and integration tests
