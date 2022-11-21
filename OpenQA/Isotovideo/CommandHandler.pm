@@ -5,7 +5,6 @@ package OpenQA::Isotovideo::CommandHandler;
 use Mojo::Base 'Mojo::EventEmitter', -signatures;
 
 use bmwqemu;
-use autotest ();
 use log qw(diag fctwarn);
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::NeedleDownloader;
@@ -19,9 +18,6 @@ use constant AUTOINST_STATUSFILE => 'autoinst-status.json';
 
 # io handles for sending data to command server and backend
 has [qw(test_fd cmd_srv_fd backend_fd backend_out_fd answer_fd)] => undef;
-
-# the running test process
-has test_process => undef;
 
 # the name of the current test (full name includes category prefix, eg. installation-)
 has [qw(current_test_name current_test_full_name)];
@@ -68,10 +64,6 @@ has [qw(last_check_seconds last_check_microseconds)] => 0;
 sub new ($class, @args) {
     my $self = $class->SUPER::new(@args);
     $self->_update_last_check;
-    my ($test_process, $test_fd) = autotest::start_process;
-    $test_process->once(collected => sub { $self->loop(0) if $self->loop });
-    $self->test_process($test_process);
-    $self->test_fd($test_fd);
     return $self;
 }
 
@@ -85,16 +77,7 @@ sub setup_signal_handler ($self) {
 sub _signal_handler ($self, $sig) {
     bmwqemu::serialize_state(component => 'isotovideo', msg => "isotovideo received signal $sig", log => 1);
     return $self->loop(0) if $self->loop;
-    $self->stop_autotest;
     $self->emit(signal => $sig);
-}
-
-sub stop_autotest ($self) {
-    my $test_process = $self->test_process or return;
-    diag('stopping autotest process ' . $test_process->pid);
-    $test_process->stop() if $test_process->is_running;
-    $self->test_process(undef);
-    diag('done with autotest process');
 }
 
 sub clear_tags_and_timeout ($self) {
@@ -306,9 +289,6 @@ sub _handle_command_set_current_test ($self, $response, @) {
 sub _handle_command_tests_done ($self, $response, @) {
     $self->test_died($response->{died});
     $self->test_completed($response->{completed});
-    CORE::close($self->test_fd);
-    $self->test_fd(undef);
-    $self->stop_autotest;
     $self->emit(tests_done => $response);
     $self->loop(0);
     $self->current_test_name('');
