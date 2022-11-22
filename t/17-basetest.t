@@ -39,6 +39,7 @@ $autotest::isotovideo = 1;
 
 my $last_screenshot_data;
 my $fake_ignore_failure;
+my $suppress_match;
 my @reset_consoles;
 my @selected_consoles;
 sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
@@ -52,7 +53,8 @@ sub fake_read_json ($fd) {
         };
     }
     elsif ($cmd eq 'backend_verify_image') {
-        return {ret => {found => {needle => {name => 'foundneedle', file => 'foundneedle.json'}, area => [{x => 1, y => 2, similarity => 100}]}, candidates => []}};
+        return {ret => {found => {needle => {name => 'foundneedle', file => 'foundneedle.json'}, area => [{x => 1, y => 2, similarity => 100}]}, candidates => []}} unless $suppress_match;
+        return {};
     }
     elsif ($cmd eq 'last_milestone_console') {
         return {};
@@ -497,6 +499,16 @@ subtest verify_sound_image => sub {
     is_deeply($res->{area}, [{x => 1, y => 2, similarity => 100}], 'area was returned') or diag explain $res->{area};
     is($res->{needle}->{file}, 'foundneedle.json', 'needle file was returned');
     is($res->{needle}->{name}, 'foundneedle', 'needle name was returned');
+    $suppress_match = 'yes';
+    my $details;
+    my $mock_test = Test::MockModule->new('basetest');
+    $mock_test->mock(record_screenfail => sub { my ($self, %args) = @_; $details = \%args; });
+    $res = $test->verify_sound_image("$FindBin::Bin/data/frame1.ppm", "$FindBin::Bin/data/frame2.ppm", 1);
+    is($res, undef, 'res is undef as expected') or diag explain $res;
+    is($details->{result}, 'unk', 'no needle match: unknown status correct') or diag explain $details;
+    $res = $test->verify_sound_image("$FindBin::Bin/data/frame1.ppm", "$FindBin::Bin/data/frame2.ppm", 0);
+    is($details->{result}, 'fail', 'no needle match: status fail') or diag explain $details;
+    is($details->{overall}, 'fail', 'no needle match: overall fail') or diag explain $details;
 };
 
 subtest rollback_activated_consoles => sub {
