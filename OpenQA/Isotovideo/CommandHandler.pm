@@ -41,6 +41,8 @@ has pause_on_screen_mismatch => sub { $bmwqemu::vars{PAUSE_ON_SCREEN_MISMATCH} }
 # (set to 'assert_screen' or 'check_screen' where 'check_screen' includes 'assert_screen')
 has pause_on_next_command => sub { $bmwqemu::vars{PAUSE_ON_NEXT_COMMAND} // 0 };
 # (set to 0 or 1)
+has pause_on_failure => sub { $bmwqemu::vars{PAUSE_ON_FAILURE} // 0 };
+# (set to 0 or 1)
 
 # the reason why the test execution has paused or 0 if not paused
 has reason_for_pause => 0;
@@ -255,8 +257,16 @@ sub _handle_command_set_pause_on_next_command ($self, $response, @) {
     $self->_respond_ok();
 }
 
+sub _handle_command_set_pause_on_failure ($self, $response, @) {
+    my $set_pause_on_failure = ($response->{flag} ? 1 : 0);
+    $self->pause_on_failure($set_pause_on_failure);
+    $self->_send_to_cmd_srv({set_pause_on_failure => $set_pause_on_failure});
+    $self->_respond_ok();
+}
+
 sub _handle_command_pause_test_execution ($self, $response, @) {
     return $self->_respond_ok if $self->reason_for_pause;    # do nothing if already paused
+    return $self->_respond_ok if $response->{due_to_failure} && !$self->pause_on_failure;
     my $reason_for_pause = $response->{reason} // 'manually paused';
     $self->reason_for_pause($reason_for_pause);
     $self->_send_to_cmd_srv({paused => 1, reason => $reason_for_pause});
@@ -288,9 +298,8 @@ sub _handle_command_resume_test_execution ($self, $response, @) {
     # if no command has been postponed (because paused due to timeout or on set_current_test) just return 1
     if (!$postponed_command) {
         myjsonrpc::send_json($postponed_answer_fd, {
-                ret => 1,
+                ret => ($response->{options} // 1),
                 new_needles => $response->{new_needles},
-                options => $response->{options},
         });
         $self->postponed_answer_fd(undef);
         return;
@@ -385,6 +394,7 @@ sub _handle_command_status ($self, $response, @) {
             pause_test_name => $self->pause_test_name,
             pause_on_screen_mismatch => ($self->pause_on_screen_mismatch // Mojo::JSON->false),
             pause_on_next_command => $self->pause_on_next_command,
+            pause_on_failure => $self->pause_on_failure,
             test_execution_paused => $self->reason_for_pause,
             devel_mode_major_version => $OpenQA::Isotovideo::Interface::developer_mode_major_version,
             devel_mode_minor_version => $OpenQA::Isotovideo::Interface::developer_mode_minor_version,

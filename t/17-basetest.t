@@ -8,7 +8,7 @@ use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
 use Test::Fatal;
-use Test::Output qw(combined_like);
+use Test::Output qw(combined_like combined_from);
 use File::Basename;
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
@@ -38,7 +38,7 @@ my $jsonmod = Test::MockModule->new('myjsonrpc');
 $autotest::isotovideo = 1;
 
 my $last_screenshot_data;
-
+my $fake_ignore_failure;
 sub fake_send_json ($to_fd, $cmd) { push(@$cmds, $cmd) }
 sub fake_read_json ($fd) {
     my $lcmd = $cmds->[-1];
@@ -62,7 +62,10 @@ sub fake_read_json ($fd) {
         return {} unless $last_screenshot_data;
         return {ret => {image => $last_screenshot_data, frame => 1}};
     }
-    else {
+    elsif ($cmd eq 'pause_test_execution') {
+        return {ret => {ignore_failure => $fake_ignore_failure}};
+    }
+    elsif ($cmd ne 'set_current_test') {
         note "mock method not implemented \$cmd: $cmd\n";
     }
     return {};
@@ -86,15 +89,27 @@ subtest run_post_fail_test => sub {
             category => 'category1',
             execute_time => 42,
     }, $basetest_class);
-    combined_like { dies_ok { $basetest->runtest } 'run_post_fail end up with die' } qr/Test died/, 'test died';
-    combined_like { dies_ok { $basetest->runtest } 'post fail hooks runtime' } qr/post fail hooks runtime:/,
-      'Post fail hooks runtime present';
-    my %cmd = (cmd => 'set_current_test', name => 'foo', full_name => 'foo (post fail hook)');
-    is_deeply $cmds->[0], \%cmd, 'test name updated (to show post fail hook in developer mode)';
+    my $logs = combined_from { dies_ok { $basetest->runtest } 'run_post_fail end up with die' };
+    like $logs, qr/Test died/, 'test died';
+    like $logs, qr/post fail hooks runtime:/, 'post fail hook ran and its runtime is logged';
+    subtest 'expected commands sent' => sub {
+        my %pause_on_failure = (cmd => 'pause_test_execution', due_to_failure => 1);
+        like delete $cmds->[0]->{reason}, qr/test died: Died at .*17-basetest\.t/, 'reason for pause passed';
+        is_deeply $cmds->[0], \%pause_on_failure, 'failure reported to pause if pausing on failures enabled';
+        my %test_name_update = (cmd => 'set_current_test', name => 'foo', full_name => 'foo (post fail hook)');
+        is_deeply $cmds->[1], \%test_name_update, 'test name updated (to show post fail hook in developer mode)';
+    } or diag explain $cmds;
 
     $bmwqemu::vars{_SKIP_POST_FAIL_HOOKS} = 1;
     combined_like { dies_ok { $basetest->runtest } 'behavior persists regardless of _SKIP_POST_FAIL_HOOKS setting' }
     qr/Test died/, 'test died';
+
+    $bmwqemu::vars{_SKIP_POST_FAIL_HOOKS} = 0;
+    $cmds = [];
+    $fake_ignore_failure = 1;
+    $logs = combined_from { $basetest->runtest };
+    like $logs, qr/Test died.*ignoring.*failure via developer mode/s, 'test died but failure ignored';
+    unlike $logs, qr/post fail hook/, 'post fail hook not invoked when ignoring failure';
 };
 
 subtest modules_test => sub {
