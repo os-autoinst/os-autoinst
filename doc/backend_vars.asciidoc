@@ -34,9 +34,10 @@ VNC_CONNECT_TIMEOUT_REMOTE;integer;60;Timeout for remote VNC connections in seco
 _CHKSEL_RATE_WAIT_TIME;integer;30;The amount of time isotovideo is going to wait for the VNC console to become responsive
 _CHKSEL_RATE_HITS;integer;15000;The amount of times, the select should return the same fileno during the _CHKSEL_RATE_WAIT_TIME seconds, to consider the VNC console unresponsive
 TIMEOUT_SCALE;integer;1;This scale parameter can be used based on performance of workers to prevent false positive timeouts based on differing worker performance.
-PAUSE_AT;string;;Test module (name or fullname) to pause test execution at. To be used together with the openQA developer mode to continue test execution. Be aware that the openQA web UI will only reflect this within the developer mode after confirming to control the test.
+PAUSE_AT;string;;Test module (name or fullname) to pause test execution at. To be used together with the openQA developer mode which also allows to continue test execution again. Note that this does not start a developer mode session. So you still need to confirm taking control over the test to access the developer mode controls.
 PAUSE_ON_SCREEN_MISMATCH;boolean;0;Pause test execution on the next screen mismatch. Same notes as for `PAUSE_AT` apply.
 PAUSE_ON_NEXT_COMMAND;boolean;0;Pause test execution on the next test API command. Same notes as for `PAUSE_AT` apply.
+PAUSE_ON_FAILURE:boolean;0;Pause test execution on a test failure (instead of invoking the post-fail hook and terminating). Same notes as for `PAUSE_AT` apply.
 _QUIET_SCRIPT_CALLS;boolean;0;Add quiet flag to all the calls to script_run, script_output and validate_script_output. It will omit all the squares "wait_serial expected" on the Details view of the test case. This option might be useful for serial terminal tests.
 _WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT;float;0;If this value is greater then 0, it is used by `wait_still_screen` before starting to write the script into the here document used in `testapi::script_output()` function (see: poo#60566). By default this depends on the backend.
 AUTOINST_URL_HOSTNAME;string;;hostname or IP address of host running the autoinst webserver endpoint, defaults to the local IP address within the qemu network for the qemu backend or the `WORKER_HOSTNAME` otherwise.
