@@ -307,6 +307,7 @@ subtest record_screenmatch => sub {
         needle => {
             name => 'foo',
             file => 'some/path/foo.json',
+            unregistered => 'yes',
         },
     );
     my @tags = (qw(some tags));
