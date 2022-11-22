@@ -9,6 +9,7 @@ use autotest ();
 use log qw(diag fctwarn);
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::NeedleDownloader;
+use OpenQA::Isotovideo::Backend;
 use Cpanel::JSON::XS;
 use Mojo::File 'path';
 use IO::Select;
@@ -18,7 +19,7 @@ use constant AUTOINST_STATUSFILE => 'autoinst-status.json';
 
 
 # io handles for sending data to command server and backend
-has [qw(test_fd cmd_srv_fd backend_fd backend_out_fd answer_fd)] => undef;
+has [qw(test_fd cmd_srv_fd backend backend_fd backend_out_fd answer_fd)] => undef;
 
 # the running test process
 has test_process => undef;
@@ -68,11 +69,29 @@ has [qw(last_check_seconds last_check_microseconds)] => 0;
 sub new ($class, @args) {
     my $self = $class->SUPER::new(@args);
     $self->_update_last_check;
+    return $self;
+}
+
+sub init ($self) {
+    $self->start_process;
+    $self->start_backend;
+    return $self;
+}
+
+sub start_process ($self) {
     my ($test_process, $test_fd) = autotest::start_process;
     $test_process->once(collected => sub { $self->loop(0) if $self->loop });
     $self->test_process($test_process);
     $self->test_fd($test_fd);
-    return $self;
+}
+
+sub start_backend ($self) {
+    my $backend = OpenQA::Isotovideo::Backend->new;
+    my $stop_loop = sub (@) { $self->loop(0) if $self->loop; };
+    $backend->process->once(collected => $stop_loop);
+    $self->backend($backend);
+    $self->backend_fd($backend->process->channel_in);
+    $self->backend_out_fd($backend->process->channel_out);
 }
 
 sub setup_signal_handler ($self) {
