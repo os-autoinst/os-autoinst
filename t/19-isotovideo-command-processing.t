@@ -51,10 +51,19 @@ $rpc_mock->redefine(read_json => sub {
 # setup a CommandHandler instance using the fake file descriptors
 my $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     cmd_srv_fd => $cmd_srv_fd,
-    backend_fd => $backend_fd,
     current_test_name => 'welcome',
     status => 'initial',
 );
+{
+    my $mock = Test::MockModule->new('OpenQA::Isotovideo::CommandHandler');
+    $mock->redefine(start_backend => sub ($self) {
+            $self->backend($bmwqemu::backend);
+            $self->backend_fd($backend_fd);
+            $self->backend_out_fd($answer_fd);
+    });
+    $command_handler->init;
+}
+
 
 sub reset_state () {
     $command_handler->tags(undef);
@@ -371,7 +380,6 @@ subtest signalhandler => sub {
 subtest 'No readable JSON' => sub {
     # We need valid fd's so fileno works but they're never used
     open(my $readable, "$Bin");
-    $command_handler->test_fd($readable);
     $command_handler->cmd_srv_fd($readable);
     stderr_like {
         $command_handler->_read_response(undef, $readable);
