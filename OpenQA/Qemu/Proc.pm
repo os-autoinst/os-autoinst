@@ -155,7 +155,7 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
         my $backing_file = $vars->{"HDD_$i"};
         my $node_id = 'hd' . ($i - 1);
         my $hdd_serial = $vars->{"HDDSERIAL_$i"} || $node_id;
-        my $size = $vars->{"HDDSIZEGB_$i"};
+        my $size = $vars->{"HDDSIZEGB_$i"} // $vars->{HDDSIZEGB};
         my $num_queues = $vars->{"HDDNUMQUEUES_$i"} || -1;
         my $drive;
 
@@ -174,7 +174,6 @@ sub configure_blockdevs ($self, $bootfrom, $basedir, $vars) {
             $size //= $self->get_img_size($backing_file);
             $drive = $bdc->add_existing_drive($node_id, $backing_file, $hdd_model, $size, $num_queues);
         } else {
-            $size //= $vars->{HDDSIZEGB} . 'G';
             $drive = $bdc->add_new_drive($node_id, $hdd_model, $size, $num_queues);
         }
 
