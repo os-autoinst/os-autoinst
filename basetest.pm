@@ -326,7 +326,7 @@ sub compute_test_execution_time ($self) {
 sub runtest ($self) {
     $self->{test_start_time} = time;
 
-    my $died;
+    my ($died, $error_message, $ignore_error);
     my $name = $self->{name};
     # Set flags to the field value
     $self->{flags} = $self->test_flags();
@@ -340,7 +340,7 @@ sub runtest ($self) {
         }
         $self->post_run_hook();
     };
-    if ($@) {
+    if ($error_message = $@) {
         # copy the exception early
         my $internal = Exception::Class->caught('OpenQA::Exception::InternalException');
 
@@ -361,13 +361,27 @@ sub runtest ($self) {
     eval { $self->search_for_expected_serial_failures(); };
     # Process serial detection failure
     if ($@) {
-        bmwqemu::diag($@);
+        bmwqemu::diag($error_message = $@);
         $self->record_resultfile('Failed', $@, result => 'fail');
         $died = 1;
     }
 
-    $self->run_post_fail("test $name died") if ($died);
-    $self->run_post_fail("test $name failed") if (($self->{result} || '') eq 'fail');    # fatal
+    # pause the test execution if tests are supposed to pause on failures via developer mode
+    if ($error_message) {
+        # hang until the user resumes, possibly ignore the failure
+        my $rsp = autotest::query_isotovideo(pause_test_execution => {due_to_failure => 1, reason => "test died: $error_message"});
+        if (ref $rsp eq 'HASH' && $rsp->{ignore_failure}) {
+            bmwqemu::diag($died
+                ? 'ignoring previously logged failure via developer mode'
+                : "ignoring failure via developer mode: $error_message");
+            $ignore_error = 1;
+        }
+    }
+
+    if (!$ignore_error) {
+        $self->run_post_fail("test $name died") if $died;
+        $self->run_post_fail("test $name failed") if ($self->{result} || '') eq 'fail';
+    }
 
     $self->compute_test_execution_time();
     $self->done();

@@ -94,6 +94,7 @@ subtest status => sub {
             pause_test_name => 'foo',
             pause_on_screen_mismatch => Mojo::JSON->false,
             pause_on_next_command => 0,
+            pause_on_failure => 0,
             test_execution_paused => 0,
             devel_mode_major_version => $OpenQA::Isotovideo::Interface::developer_mode_major_version,
             devel_mode_minor_version => $OpenQA::Isotovideo::Interface::developer_mode_minor_version,
@@ -261,6 +262,28 @@ subtest 'set_pause_on_next_command, postponing command, resuming' => sub {
         is_deeply(\@set_answer_fd, [undef, undef]);
     };
 
+};
+
+subtest 'set_pause_on_failure' => sub {
+    # enable pausing on failure
+    is $command_handler->pause_on_failure, 0, 'pause on failure disabled by default';
+    $command_handler->process_command($answer_fd, {cmd => 'set_pause_on_failure', flag => 1});
+    is_deeply $last_received_msg_by_fd[$cmd_srv_fd], {set_pause_on_failure => 1}, 'event passed cmd srv (1)';
+    is $command_handler->pause_on_failure, 1, 'pause on failure enabled';
+
+    # check whether pausing the test execution on a failure would cause the test to pause now
+    $command_handler->process_command($answer_fd, {cmd => 'pause_test_execution', due_to_failure => 1});
+    is $command_handler->reason_for_pause, 'manually paused', 'test execution paused due to failure if enabled';
+    $command_handler->reason_for_pause(undef);
+
+    # disable pausing on failure
+    $command_handler->process_command($answer_fd, {cmd => 'set_pause_on_failure', flag => 0});
+    is_deeply $last_received_msg_by_fd[$cmd_srv_fd], {set_pause_on_failure => 0}, 'event passed cmd srv (2)';
+    is $command_handler->pause_on_failure, 0, 'pause on failure disabled';
+
+    # check whether pausing the test execution on a failure would *not* cause the test to pause anymore
+    $command_handler->process_command($answer_fd, {cmd => 'pause_test_execution', due_to_failure => 1});
+    is $command_handler->reason_for_pause, undef, 'test execution not paused due to failure if disabled';
 };
 
 subtest 'assert_screen' => sub {
