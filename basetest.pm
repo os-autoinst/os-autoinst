@@ -126,7 +126,7 @@ Create a media fragment time from a given framenumber
 =cut
 
 sub _framenumber_to_timerange ($frame) {
-    return [sprintf("%.2f", $frame / 24.0), sprintf("%.2f", ($frame + 1) / 24.0)];
+    return defined($frame) ? [sprintf("%.2f", $frame / 24.0), sprintf("%.2f", ($frame + 1) / 24.0)] : undef;
 }
 
 sub record_screenmatch ($self, $img, $match, $tags = [], $failed_needles = [], $frame = undef) {
@@ -139,7 +139,7 @@ sub record_screenmatch ($self, $img, $match, $tags = [], $failed_needles = [], $
         json => $serialized_match->{json},
         tags => [@$tags],    # make a copy
         properties => [@$properties],    # make a copy
-        frametime => defined($frame) ? _framenumber_to_timerange($frame) : undef,
+        frametime => _framenumber_to_timerange($frame),
         screenshot => $self->next_resultname('png'),
         result => 'ok',
     };
