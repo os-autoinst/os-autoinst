@@ -229,3 +229,15 @@ at the bottom.
 As mentioned in the svirt section it is generally possible to run the backend
 locally. However, you would generally resort to taking out a worker from
 production as explained under general recommendations.
+
+## generalhw
+
+The generalhw backend is used to test on real hardware. There is a variety of
+configurations that are supported by this backend. Eg. it is possible to connect
+to a SUT using a serial UART connection or an SSH connection via xterm console.
+It is also possible to use an HDMI grabber and control a keyboard emulation device.
+The backend can run scripts to powercycle the SUT and to flash an SD card using
+specal hardware.
+
+A detailed description how to use this backend can be found
+[here](https://github.com/os-autoinst/os-autoinst-distri-opensuse/blob/master/data/generalhw_scripts/raspberry_pi_hardware_testing_setup.md).

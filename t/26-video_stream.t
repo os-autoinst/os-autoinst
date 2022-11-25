@@ -5,6 +5,8 @@
 
 use Test::Most;
 use Mojo::Base -strict, -signatures;
+use Mojo::UserAgent;
+use Mojo::Transaction::HTTP;
 use Test::Warnings qw(:all :report_warnings);
 use File::Basename;
 use FindBin '$Bin';
@@ -205,6 +207,26 @@ subtest 'input events' => sub {
         "ctrl-x\n",
         "s\n", "o\n", "m\n", "e\n", "spc\n", "t\n", "e\n", "s\n", "t\n", "ret\n",
     ], "correct commands sent";
+
+    $bmwqemu::vars{GENERAL_HW_KEYBOARD_URL} = 'http://127.0.0.42:42000/cmd';
+
+    # mock ua
+    my $urls = [];
+    my $user_agent_mock = Test::MockModule->new('Mojo::UserAgent');
+    my $http = Test::MockModule->new('Mojo::Transaction::HTTP');
+    $user_agent_mock->redefine(get => sub ($ua, $url) { push(@$urls, "$url"); Mojo::Transaction::HTTP->new });
+    $http->redefine(result => sub { Mojo::Message::Response->new->code(200)->body("hallo") });
+
+    $console->activate;
+    $console->send_key({key => 'a'});
+    $console->send_key({key => 'ctrl-x'});
+    $console->type_string({text => "some test\n"});
+    $console->disable;
+    is_deeply $urls, [
+        'http://127.0.0.42:42000/cmd?sendkey=a',
+        'http://127.0.0.42:42000/cmd?sendkey=ctrl-x',
+        'http://127.0.0.42:42000/cmd?type=some+test%0A'
+    ], "correct kbd emu requests sent";
 };
 
 done_testing;
