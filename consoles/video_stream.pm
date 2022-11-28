@@ -5,6 +5,8 @@
 package consoles::video_stream;
 
 use Mojo::Base 'consoles::video_base', -signatures;
+use Mojo::UserAgent;
+use Mojo::URL;
 
 use List::Util 'max';
 use Time::HiRes qw(usleep);
@@ -19,6 +21,13 @@ use constant STREAM_TYPING_LIMIT_DEFAULT => 30;
 use constant DV_TIMINGS_CHECK_INTERVAL => 3;
 
 use constant STALL_THRESHOLD => 4;
+
+use constant DEFAULT_MAX_RES_X => 1680;
+use constant DEFAULT_MAX_RES_Y => 1050;
+use constant DEFAULT_MAX_RES => DEFAULT_MAX_RES_X * DEFAULT_MAX_RES_Y;
+use constant DEFAULT_BYTES_PER_PIXEL => 3;
+use constant DEFAULT_PPM_HEADER_BYTES => 20;
+use constant DEFAULT_VIDEO_STREAM_PIPE_BUFFER_SIZE => DEFAULT_MAX_RES * DEFAULT_BYTES_PER_PIXEL + DEFAULT_PPM_HEADER_BYTES;
 
 sub screen ($self, @) {
     return $self;
@@ -116,7 +125,8 @@ sub connect_remote_video ($self, $url) {
     $self->{ffmpegpid} = open($ffmpeg, '-|', @$cmd)
       or die "Failed to start ffmpeg for video stream at $url";
     # make the pipe size large enough to hold full frame and a bit
-    fcntl($ffmpeg, Fcntl::F_SETPIPE_SZ, 4194304);
+    my $frame_size = $bmwqemu::vars{VIDEO_STREAM_PIPE_BUFFER_SIZE} // DEFAULT_VIDEO_STREAM_PIPE_BUFFER_SIZE;
+    fcntl($ffmpeg, Fcntl::F_SETPIPE_SZ, $frame_size);
     $self->{ffmpeg} = $ffmpeg;
     $ffmpeg->blocking(0);
 
@@ -144,7 +154,7 @@ sub _receive_frame ($self) {
     my $ffmpeg = $self->{ffmpeg};
     $ffmpeg or die 'ffmpeg is not running. Probably your backend instance could not start or died.';
     $ffmpeg->blocking(0);
-    my $ret = $ffmpeg->read(my $header, 20);
+    my $ret = $ffmpeg->read(my $header, DEFAULT_PPM_HEADER_BYTES);
     $ffmpeg->blocking(1);
 
     return undef unless $ret;
@@ -223,6 +233,34 @@ sub send_key_event ($self, $key, $press_release_delay) {
     return unless $self->{input_pipe};
     $self->{input_pipe}->write($key . "\n")
       or die "failed to send '$key' input event";
+}
+
+sub type_string ($self, $args) {
+    my $keyboard_device_url = $bmwqemu::vars{GENERAL_HW_KEYBOARD_URL};
+    if ($keyboard_device_url) {
+        # Intended to be used together with this device:
+        # https://github.com/os-autoinst/os-autoinst-distri-opensuse/tree/master/data/generalhw_scripts/rpi_pico_w_keyboard
+        # send keyboard events using RPi Pico W based keyboard emulator
+        my $url = Mojo::URL->new($keyboard_device_url)->query(type => $args->{text});
+        $self->{_ua} //= Mojo::UserAgent->new;
+        bmwqemu::diag("Keyboard emulator says: " . $self->{_ua}->get($url)->result->body);
+        return {};
+    }
+    return $self->SUPER::type_string($args);
+}
+
+sub send_key ($self, $args) {
+    my $keyboard_device_url = $bmwqemu::vars{GENERAL_HW_KEYBOARD_URL};
+    if ($keyboard_device_url) {
+        # Intended to be used together with this device:
+        # https://github.com/os-autoinst/os-autoinst-distri-opensuse/tree/master/data/generalhw_scripts/rpi_pico_w_keyboard
+        # send keyboard events using RPi Pico W based keyboard emulator
+        my $url = Mojo::URL->new($keyboard_device_url)->query(sendkey => $args->{key});
+        $self->{_ua} //= Mojo::UserAgent->new;
+        bmwqemu::diag("Keyboard emulator says: " . $self->{_ua}->get($url)->result->body);
+        return {};
+    }
+    return $self->SUPER::send_key($args);
 }
 
 sub get_last_mouse_set ($self, @) {
