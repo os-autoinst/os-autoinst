@@ -24,6 +24,7 @@ use List::Util qw(first max);
 use Data::Dumper;
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 use OpenQA::Qemu::Proc;
+use Socket;
 
 # The maximum value of the system's native signed integer. Which will probably
 # be 2^64 - 1.
@@ -865,7 +866,9 @@ sub start_qemu ($self) {
         if ($vars->{NBF}) {
             die "Need variable WORKER_HOSTNAME\n" unless $vars->{WORKER_HOSTNAME};
             sp('kernel', '/usr/share/qemu/ipxe.lkrn');
-            sp('append', "dhcp && sanhook iscsi:$vars->{WORKER_HOSTNAME}::3260:1:$vars->{NBF}", no_quotes => 1);
+            my $worker_ip = inet_ntoa(inet_aton($vars->{WORKER_HOSTNAME}));
+            die "Unable to determine worker IP from WORKER_HOSTNAME\n" unless $worker_ip;
+            sp('append', "dhcp && sanhook iscsi:${worker_ip}::3260:1:$vars->{NBF}", no_quotes => 1);
         }
 
         $self->setup_tpm($arch);
