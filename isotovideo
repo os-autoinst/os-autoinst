@@ -54,6 +54,7 @@ use JSON::PP;
 
 my $installprefix;    # $bmwqemu::scriptdir
 my $fatal_error;    # the last error message caught by the die handler
+my $backend;
 
 BEGIN {
     # the following line is modified during make install
@@ -67,6 +68,7 @@ BEGIN {
 
 use log qw(diag);
 use needle;
+use autotest ();
 use commands;
 use distribution;
 use testapi ();
@@ -79,6 +81,7 @@ use Mojo::UserAgent;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
+use OpenQA::Isotovideo::Backend;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_repo_and_branch
@@ -148,6 +151,7 @@ for my $arg (@ARGV) {
 
 my $cmd_srv_process;
 my $command_handler;
+my $testprocess;
 my $cmd_srv_fd;
 my $cmd_srv_port;
 
@@ -182,6 +186,15 @@ sub stop_commands ($reason) {
     $cmd_srv_process->stop();
     $cmd_srv_process = undef;
     diag('done with command server');
+}
+
+sub stop_autotest () {
+    return unless defined $testprocess;
+
+    diag('stopping autotest process ' . $testprocess->pid);
+    $testprocess->stop() if $testprocess->is_running;
+    $testprocess = undef;
+    diag('done with autotest process');
 }
 
 # make sure all commands coming from the backend will not be in the
@@ -226,18 +239,34 @@ testapi::init();
 needle::init();
 bmwqemu::save_vars();
 
+my $testfd;
+($testprocess, $testfd) = autotest::start_process();
+
+$backend = OpenQA::Isotovideo::Backend->new;
+
 spawn_debuggers;
 
 # stop main loop as soon as one of the child processes terminates
 my $stop_loop = sub (@) { $command_handler->loop(0) if $command_handler->loop; };
+$testprocess->once(collected => $stop_loop);
+$backend->process->once(collected => $stop_loop);
 $cmd_srv_process->once(collected => $stop_loop);
 
 $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     cmd_srv_fd => $cmd_srv_fd,
-)->init;
+    test_fd => $testfd,
+    backend_fd => $backend->process->channel_in,
+    backend_out_fd => $backend->process->channel_out,
+);
+$command_handler->on(tests_done => sub (@) {
+        CORE::close($testfd);
+        $testfd = undef;
+        stop_autotest;
+});
 $command_handler->on(signal => sub ($event, $sig) {
-        $command_handler->backend->stop if defined $command_handler->backend;    # uncoverable statement
+        $backend->stop if defined $backend;    # uncoverable statement
         stop_commands("received signal $sig");    # uncoverable statement
+        stop_autotest;    # uncoverable statement
         _exit(1);    # uncoverable statement
 });
 $command_handler->setup_signal_handler;
@@ -250,10 +279,10 @@ $command_handler->run;
 # terminate/kill the command server and let it inform its websocket clients before
 stop_commands('test execution ended');
 
-if ($command_handler->test_fd) {
+if ($testfd) {
     $return_code = 1;    # unusual shutdown
-    CORE::close($command_handler->test_fd);    # uncoverable statement
-    $command_handler->stop_autotest;    # uncoverable statement
+    CORE::close $testfd;
+    stop_autotest;
 }
 
 diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
@@ -282,9 +311,9 @@ $return_code = handle_generated_assets($command_handler, $clean_shutdown) unless
 $fatal_error = undef;
 
 END {
-    $command_handler->backend->stop if $command_handler and $command_handler->backend;
+    $backend->stop if defined $backend;
     stop_commands('test execution ended through exception');
-    $command_handler->stop_autotest if defined $command_handler;
+    stop_autotest;
 
     # in case of early exit, e.g. help display
     $return_code //= 0;
