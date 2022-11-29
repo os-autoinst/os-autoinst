@@ -1013,11 +1013,6 @@ sub background_script_run {    # no:style:signatures
     return $distri->background_script_run($cmd, %args);
 }
 
-sub _set_assert_marker ($hashed_string) {
-    my $redirect_to_serial_console = is_serial_terminal() ? " > /dev/$serialdev" : '';
-    return "echo $hashed_string-\$?-$redirect_to_serial_console";
-}
-
 =head2 assert_script_sudo
 
   assert_script_sudo($command [, $wait]);
@@ -1035,10 +1030,10 @@ C<$serialdev>.
 
 sub assert_script_sudo {    # no:style:signatures
     my ($cmd, $wait) = @_;
+    # Keep in mind C<str> needs to agree with the corresponding C<str> marker
+    # defined on C<$distri->script_sudo> itself.
     my $str = hashed_string("ASS$cmd");
-    my $marker = _set_assert_marker($str);
-    script_sudo("$cmd; $marker", 0);
-    my $ret = wait_serial("$str-\\d+-", $wait);
+    my $ret = script_sudo("$cmd", $wait);
     $ret = ($ret =~ /$str-(\d+)-/)[0] if $ret;
     _handle_script_run_ret($ret, $cmd);
     return;
