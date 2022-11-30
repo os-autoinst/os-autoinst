@@ -235,30 +235,43 @@ sub send_key_event ($self, $key, $press_release_delay) {
       or die "failed to send '$key' input event";
 }
 
-sub type_string ($self, $args) {
+=head2 _send_keyboard_emulator_cmd
+
+	_send_keyboard_emulator_cmd($self, %args)
+
+Send keyboard events using RPi Pico W based keyboard emulator
+
+Args to be used:
+
+	type => "hallo welt\n"
+	sendkey => "ctrl-alt-del"
+
+Intended to be used together with this device:
+https://github.com/os-autoinst/os-autoinst-distri-opensuse/tree/master/data/generalhw_scripts/rpi_pico_w_keyboard
+
+=cut
+
+sub _send_keyboard_emulator_cmd ($self, %args) {
     my $keyboard_device_url = $bmwqemu::vars{GENERAL_HW_KEYBOARD_URL};
-    if ($keyboard_device_url) {
-        # Intended to be used together with this device:
-        # https://github.com/os-autoinst/os-autoinst-distri-opensuse/tree/master/data/generalhw_scripts/rpi_pico_w_keyboard
-        # send keyboard events using RPi Pico W based keyboard emulator
-        my $url = Mojo::URL->new($keyboard_device_url)->query(type => $args->{text});
-        $self->{_ua} //= Mojo::UserAgent->new;
-        bmwqemu::diag("Keyboard emulator says: " . $self->{_ua}->get($url)->result->body);
-        return {};
+    my $url = Mojo::URL->new($keyboard_device_url)->query(%args);
+    $self->{_ua} //= Mojo::UserAgent->new;
+    my $server_response = $self->{_ua}->get($url)->result->body;
+    chomp($server_response);
+    bmwqemu::diag("Keyboard emulator says: " . bmwqemu::pp($server_response));
+    return {};
+}
+
+
+sub type_string ($self, $args) {
+    if ($bmwqemu::vars{GENERAL_HW_KEYBOARD_URL}) {
+        return $self->_send_keyboard_emulator_cmd(type => $args->{text});
     }
     return $self->SUPER::type_string($args);
 }
 
 sub send_key ($self, $args) {
-    my $keyboard_device_url = $bmwqemu::vars{GENERAL_HW_KEYBOARD_URL};
-    if ($keyboard_device_url) {
-        # Intended to be used together with this device:
-        # https://github.com/os-autoinst/os-autoinst-distri-opensuse/tree/master/data/generalhw_scripts/rpi_pico_w_keyboard
-        # send keyboard events using RPi Pico W based keyboard emulator
-        my $url = Mojo::URL->new($keyboard_device_url)->query(sendkey => $args->{key});
-        $self->{_ua} //= Mojo::UserAgent->new;
-        bmwqemu::diag("Keyboard emulator says: " . $self->{_ua}->get($url)->result->body);
-        return {};
+    if ($bmwqemu::vars{GENERAL_HW_KEYBOARD_URL}) {
+        return $self->_send_keyboard_emulator_cmd(sendkey => $args->{key});
     }
     return $self->SUPER::send_key($args);
 }
