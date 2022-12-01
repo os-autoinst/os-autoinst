@@ -521,4 +521,14 @@ subtest rollback_activated_consoles => sub {
     is_deeply(\@selected_consoles, [{cmd => 'backend_select_console', testapi_console => 'last_milestone_console'}], 'last milestone console selected') or diag explain \@selected_consoles;
 };
 
+subtest search_for_expected_serial_failures => sub {
+    $bmwqemu::vars{BACKEND} = 'qemu';
+    my $basetest = basetest->new();
+    my $mock_basetest = Test::MockModule->new('basetest');
+    $mock_basetest->mock(run => sub { die 'test failure' });
+    $mock_basetest->mock(parse_serial_output_qemu => sub { $basetest->{result} = 'successfully called function' });
+    $basetest->runtest();
+    is($basetest->{result}, 'successfully called function', 'search for expected serial failures is working');
+};
+
 done_testing;
