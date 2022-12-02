@@ -323,6 +323,23 @@ stderr_like {
     throws_ok { autotest::loadtest 'tests/faulty.py' } qr/py_eval raised an exception/, 'dies on Python exception';
 } qr/Traceback.*No module named.*thismoduleshouldnotexist.*/s, 'Python traceback logged';
 
+subtest 'pausing on failure' => sub {
+    my $autotest_mock = Test::MockModule->new('autotest');
+    my %isotovideo_rsp = (ignore_failure => 1);
+    my @isotovideo_calls;
+    $autotest_mock->redefine(query_isotovideo => sub (@args) { push @isotovideo_calls, \@args; \%isotovideo_rsp });
+    my $rsp = autotest::pause_on_failure('some reason', 'relevant command');
+    is_deeply $rsp, \%isotovideo_rsp, 'response from isotovideo returned';
+    is $isotovideo_calls[0]->[0], 'pause_test_execution', 'isotovideo called to pause test execution';
+    autotest::pause_on_failure('some reason');
+    is scalar @isotovideo_calls, 2, 'isotovideo called again just after failing command because failure was ignored';
+    undef $isotovideo_rsp{ignore_failure};
+    autotest::pause_on_failure('another reason', 'relevant command');
+    is scalar @isotovideo_calls, 3, 'isotovideo called again after a command failed';
+    autotest::pause_on_failure('another reason');
+    is scalar @isotovideo_calls, 3, 'isotovideo not called after tests died because previous command failure was not ignored';
+};
+
 done_testing();
 
 END {

@@ -878,10 +878,10 @@ sub x11_start_program {    # no:style:signatures
 
 sub _handle_script_run_ret {    # no:style:signatures
     my ($ret, $cmd, %args) = @_;
-    croak "command '$cmd' timed out" unless (defined $ret);
+    return autotest::croak assert_script_run => "command '$cmd' timed out" unless defined $ret;
     my $die_msg = "command '$cmd' failed";
     $die_msg .= ": $args{fail_message}" if $args{fail_message};
-    croak $die_msg unless ($ret == 0);
+    return autotest::croak assert_script_run => $die_msg unless $ret == 0;
 }
 
 =head2 assert_script_run
