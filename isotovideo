@@ -66,23 +66,13 @@ BEGIN {
 }
 
 use log qw(diag);
-use needle;
-use autotest ();
-use commands;
-use distribution;
-use testapi ();
 use Getopt::Long;
-require IPC::System::Simple;
-use Try::Tiny;
 use Mojo::File qw(curfile);
-use Mojo::UserAgent;
-use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
-use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Runner;
-use OpenQA::Isotovideo::Utils qw(git_rev_parse spawn_debuggers handle_generated_assets );
+use OpenQA::Isotovideo::Utils qw(git_rev_parse spawn_debuggers handle_generated_assets);
 
 my %options;
 
@@ -130,32 +120,22 @@ $SIG{__DIE__} = sub ($e) { $fatal_error = $e };
 $ENV{LC_ALL} = 'en_US.UTF-8';
 $ENV{LANG} = 'en_US.UTF-8';
 
-my $runner = OpenQA::Isotovideo::Runner->new;
-
 diag(_get_version_string());
 
 # enable debug default when started from a tty
 $log::direct_output = $options{debug};
 
-$runner->_flush_std;
-
 $bmwqemu::scriptdir = $installprefix;
+
+my $runner = OpenQA::Isotovideo::Runner->new;
 $runner->_init_bmwqemu(@ARGV);
-$runner->checkout_code;
-$runner->load_schedule;
-
-$runner->start_server;
-
-testapi::init();
-needle::init();
-bmwqemu::save_vars();
-
+$runner->prepare;
 $runner->start_autotest;
 $runner->create_backend;
 
 spawn_debuggers;
 
-my $command_handler = $runner->handle_commands;
+$runner->handle_commands;
 
 $return_code = 0;
 
@@ -191,7 +171,7 @@ if (!$return_code) {
 # read calculated variables from backend and tests
 bmwqemu::load_vars();
 
-$return_code = handle_generated_assets($command_handler, $clean_shutdown) unless $return_code;
+$return_code = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $return_code;
 
 # clear any previously recorded die message; it was not fatal after all if the execution came this far
 $fatal_error = undef;

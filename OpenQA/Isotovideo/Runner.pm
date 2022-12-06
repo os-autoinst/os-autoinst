@@ -6,13 +6,19 @@ use Mojo::Base -base, -signatures;
 use autodie ':all';
 no autodie 'kill';
 use POSIX qw(:sys_wait_h _exit);
+use Mojo::UserAgent;
+use IO::Select;
 use log qw(diag fctwarn);
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch checkout_git_refspec checkout_wheels
 load_test_schedule);
 use OpenQA::Isotovideo::Backend;
+use OpenQA::Isotovideo::CommandHandler;
 use bmwqemu ();
 use testapi ();
 use autotest ();
+use needle ();
+use commands ();
+use distribution ();
 
 has [qw(cmd_srv_process cmd_srv_fd cmd_srv_port)];
 
@@ -57,6 +63,15 @@ sub _read_response ($self, $rsp, $fd) {
     }
 }
 
+sub prepare ($self) {
+    $self->_flush_std;
+    $self->checkout_code;
+    $self->load_schedule;
+    $self->start_server;
+    testapi::init();
+    needle::init();
+    bmwqemu::save_vars();
+}
 
 sub load_schedule ($self) {
     # set a default distribution if the tests don't have one
@@ -115,7 +130,6 @@ sub handle_commands ($self) {
     $self->setup_signal_handler;
 
     $self->command_handler($command_handler);
-    return $command_handler;
 }
 
 sub setup_signal_handler ($self) {

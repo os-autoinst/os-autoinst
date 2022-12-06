@@ -10,7 +10,6 @@ use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::NeedleDownloader;
 use Cpanel::JSON::XS;
 use Mojo::File 'path';
-use IO::Select;
 use Time::HiRes qw(gettimeofday tv_interval);
 
 use constant AUTOINST_STATUSFILE => 'autoinst-status.json';
