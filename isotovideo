@@ -85,10 +85,10 @@ use OpenQA::Isotovideo::Backend;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Runner;
-use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_repo_and_branch
+use OpenQA::Isotovideo::Utils qw(git_rev_parse
   spawn_debuggers
   checkout_wheels
-  checkout_git_refspec handle_generated_assets load_test_schedule);
+  handle_generated_assets load_test_schedule);
 
 my %options;
 
@@ -130,6 +130,12 @@ my $return_code = 1;
 #       immediately but only in the END block.
 $SIG{__DIE__} = sub ($e) { $fatal_error = $e };
 
+# make sure all commands coming from the backend will not be in the
+# developers's locale - but a defined english one. This is SUSE's
+# default locale
+$ENV{LC_ALL} = 'en_US.UTF-8';
+$ENV{LANG} = 'en_US.UTF-8';
+
 my $runner = OpenQA::Isotovideo::Runner->new;
 
 diag(_get_version_string());
@@ -140,8 +146,7 @@ $log::direct_output = $options{debug};
 $runner->_flush_std;
 
 $bmwqemu::scriptdir = $installprefix;
-bmwqemu::init();
-$runner->_init_vars(@ARGV);
+$runner->_init_bmwqemu(@ARGV);
 
 my $cmd_srv_process;
 my $command_handler;
@@ -149,46 +154,8 @@ my $testprocess;
 my $cmd_srv_fd;
 my $cmd_srv_port;
 
-# note: The subsequently defined stop_* functions are used to tear down the process tree.
-#       However, the worker also ensures that all processes are being terminated (and
-#       eventually killed).
 
-
-sub stop_autotest () {
-    return unless defined $testprocess;
-
-    diag('stopping autotest process ' . $testprocess->pid);
-    $testprocess->stop() if $testprocess->is_running;
-    $testprocess = undef;
-    diag('done with autotest process');
-}
-
-# make sure all commands coming from the backend will not be in the
-# developers's locale - but a defined english one. This is SUSE's
-# default locale
-$ENV{LC_ALL} = 'en_US.UTF-8';
-$ENV{LANG} = 'en_US.UTF-8';
-
-checkout_git_repo_and_branch('CASEDIR');
-
-# Try to load the main.pm from one of the following in this order:
-#  - product dir
-#  - casedir
-#
-# This allows further structuring the test distribution collections with
-# multiple distributions or flavors in one repository.
-$bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
-
-# checkout Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
-checkout_git_repo_and_branch('NEEDLES_DIR');
-
-bmwqemu::ensure_valid_vars();
-
-# as we are about to load the test modules checkout the specified git refspec,
-# if specified, or simply store the git hash that has been used. If it is not a
-# git repo fail silently, i.e. store an empty variable
-
-$bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
+$runner->checkout_code;
 
 # set a default distribution if the tests don't have one
 $testapi::distri = distribution->new;
@@ -227,12 +194,12 @@ $command_handler = OpenQA::Isotovideo::CommandHandler->new(
 $command_handler->on(tests_done => sub (@) {
         CORE::close($testfd);
         $testfd = undef;
-        stop_autotest;
+        $runner->stop_autotest(\$testprocess);
 });
 $command_handler->on(signal => sub ($event, $sig) {
         $backend->stop if defined $backend;    # uncoverable statement
         $runner->stop_commands("received signal $sig", \$cmd_srv_process, \$cmd_srv_port);    # uncoverable statement
-        stop_autotest;    # uncoverable statement
+        $runner->stop_autotest(\$testprocess);    # uncoverable statement
         _exit(1);    # uncoverable statement
 });
 $command_handler->setup_signal_handler;
@@ -248,7 +215,7 @@ $runner->stop_commands('test execution ended', \$cmd_srv_process, \$cmd_srv_port
 if ($testfd) {
     $return_code = 1;    # unusual shutdown
     CORE::close $testfd;
-    stop_autotest;
+    $runner->stop_autotest(\$testprocess);
 }
 
 diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
@@ -279,7 +246,7 @@ $fatal_error = undef;
 END {
     $backend->stop if defined $backend;
     $runner and $runner->stop_commands('test execution ended through exception', \$cmd_srv_process, \$cmd_srv_port);
-    stop_autotest;
+    $runner and $runner->stop_autotest(\$testprocess);
 
     # in case of early exit, e.g. help display
     $return_code //= 0;

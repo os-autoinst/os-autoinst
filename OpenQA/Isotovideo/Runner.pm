@@ -6,6 +6,12 @@ use Mojo::Base -base, -signatures;
 use autodie ':all';
 no autodie 'kill';
 use log qw(diag);
+use bmwqemu ();
+use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch checkout_git_refspec );
+
+# note: The subsequently defined stop_* functions are used to tear down the process tree.
+#       However, the worker also ensures that all processes are being terminated (and
+#       eventually killed).
 
 sub stop_commands ($self, $reason, $cmd_srv_process, $cmd_srv_port) {
     return unless defined $$cmd_srv_process;
@@ -36,7 +42,37 @@ sub stop_commands ($self, $reason, $cmd_srv_process, $cmd_srv_port) {
     diag('done with command server');
 }
 
+sub stop_autotest ($self, $testprocess) {
+    return unless defined $$testprocess;
 
+    diag('stopping autotest process ' . $$testprocess->pid);
+    $$testprocess->stop() if $$testprocess->is_running;
+    $$testprocess = undef;
+    diag('done with autotest process');
+}
+
+sub checkout_code($self) {
+    checkout_git_repo_and_branch('CASEDIR');
+
+    # Try to load the main.pm from one of the following in this order:
+    #  - product dir
+    #  - casedir
+    #
+    # This allows further structuring the test distribution collections with
+    # multiple distributions or flavors in one repository.
+    $bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
+
+    # checkout Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
+    checkout_git_repo_and_branch('NEEDLES_DIR');
+
+    bmwqemu::ensure_valid_vars();
+
+    # as we are about to load the test modules checkout the specified git refspec,
+    # if specified, or simply store the git hash that has been used. If it is not a
+    # git repo fail silently, i.e. store an empty variable
+
+    $bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
+}
 
 sub _flush_std ($) {
     select(STDERR);
@@ -45,7 +81,8 @@ sub _flush_std ($) {
     $| = 1;
 }
 
-sub _init_vars ($, @args) {
+sub _init_bmwqemu ($, @args) {
+    bmwqemu::init();
     for my $arg (@args) {
         if ($arg =~ /^([[:alnum:]_\[\]\.]+)=(.+)/) {
             my $key = uc $1;
