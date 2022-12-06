@@ -66,6 +66,7 @@ set(PERL_FILES
     OpenQA/Isotovideo/CommandHandler.pm
     OpenQA/Isotovideo/Interface.pm
     OpenQA/Isotovideo/NeedleDownloader.pm
+    OpenQA/Isotovideo/Runner.pm
     OpenQA/Isotovideo/Utils.pm
     OpenQA/NamedIOSelect.pm
     OpenQA/Qemu/BlockDevConf.pm
