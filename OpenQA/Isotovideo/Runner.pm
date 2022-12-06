@@ -8,8 +8,10 @@ no autodie 'kill';
 use log qw(diag);
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch checkout_git_refspec checkout_wheels
 load_test_schedule);
+use OpenQA::Isotovideo::Backend;
 use bmwqemu ();
 use testapi ();
+use autotest ();
 
 sub load_schedule ($self) {
     # set a default distribution if the tests don't have one
@@ -24,6 +26,16 @@ sub start_server ($self) {
     my ($cmd_srv_process, $cmd_srv_fd, $cmd_srv_port);
     ($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
     return ($cmd_srv_process, $cmd_srv_fd, $cmd_srv_port);
+}
+
+sub start_autotest ($self) {
+    my ($testprocess, $testfd) = autotest::start_process();
+    return ($testprocess, $testfd);
+}
+
+sub create_backend ($self) {
+    my $backend = OpenQA::Isotovideo::Backend->new;
+    return $backend;
 }
 
 # note: The subsequently defined stop_* functions are used to tear down the process tree.

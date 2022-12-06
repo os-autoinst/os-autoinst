@@ -54,7 +54,6 @@ use JSON::PP;
 
 my $installprefix;    # $bmwqemu::scriptdir
 my $fatal_error;    # the last error message caught by the die handler
-my $backend;
 
 BEGIN {
     # the following line is modified during make install
@@ -81,7 +80,6 @@ use Mojo::UserAgent;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
-use OpenQA::Isotovideo::Backend;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Runner;
@@ -144,30 +142,20 @@ $runner->_flush_std;
 
 $bmwqemu::scriptdir = $installprefix;
 $runner->_init_bmwqemu(@ARGV);
-
-my $cmd_srv_process;
-my $command_handler;
-my $testprocess;
-my $cmd_srv_fd;
-my $cmd_srv_port;
-
-
 $runner->checkout_code;
-
 $runner->load_schedule;
 
-($cmd_srv_process, $cmd_srv_fd, $cmd_srv_port) = $runner->start_server;
+my ($cmd_srv_process, $cmd_srv_fd, $cmd_srv_port) = $runner->start_server;
 
 testapi::init();
 needle::init();
 bmwqemu::save_vars();
 
-my $testfd;
-($testprocess, $testfd) = autotest::start_process();
-
-$backend = OpenQA::Isotovideo::Backend->new;
+my ($testprocess, $testfd) = $runner->start_autotest;
+my $backend = $runner->create_backend;
 
 spawn_debuggers;
+my $command_handler;
 
 # stop main loop as soon as one of the child processes terminates
 my $stop_loop = sub (@) { $command_handler->loop(0) if $command_handler->loop; };
