@@ -446,26 +446,4 @@ sub _read_response ($self, $rsp, $fd) {
     }
 }
 
-sub run ($self) {
-    # now we have everything, give the tests a go
-    $self->test_fd->write("GO\n");
-
-    my $io_select = IO::Select->new();
-    $io_select->add($self->test_fd);
-    $io_select->add($self->cmd_srv_fd);
-    $io_select->add($self->backend_out_fd);
-
-    while ($self->loop) {
-        my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $self->timeout);
-        for my $readable (@$ready_for_read) {
-            my $rsp = myjsonrpc::read_json($readable);
-            $self->_read_response($rsp, $readable);
-            last unless defined $rsp;
-        }
-        $self->check_asserted_screen if defined($self->tags);
-    }
-    $self->stop_command_processing;
-    return 0;
-}
-
 1;

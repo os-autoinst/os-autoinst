@@ -20,6 +20,29 @@ has [qw(testprocess testfd)];
 
 has [qw(backend command_handler)];
 
+sub run ($self) {
+    # now we have everything, give the tests a go
+    $self->testfd->write("GO\n");
+
+    my $ch = $self->command_handler;
+    my $io_select = IO::Select->new();
+    $io_select->add($self->testfd);
+    $io_select->add($ch->cmd_srv_fd);
+    $io_select->add($ch->backend_out_fd);
+
+    while ($ch->loop) {
+        my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $ch->timeout);
+        for my $readable (@$ready_for_read) {
+            my $rsp = myjsonrpc::read_json($readable);
+            $ch->_read_response($rsp, $readable);
+            last unless defined $rsp;
+        }
+        $ch->check_asserted_screen if defined($ch->tags);
+    }
+    $ch->stop_command_processing;
+    return 0;
+}
+
 sub load_schedule ($self) {
     # set a default distribution if the tests don't have one
     $testapi::distri = distribution->new;

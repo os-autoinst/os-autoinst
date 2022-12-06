@@ -160,7 +160,7 @@ my $command_handler = $runner->handle_commands;
 $return_code = 0;
 
 # enter the main loop: process messages from autotest, command server and backend
-$command_handler->run;
+$runner->run;
 
 # terminate/kill the command server and let it inform its websocket clients before
 $runner->stop_commands('test execution ended');
