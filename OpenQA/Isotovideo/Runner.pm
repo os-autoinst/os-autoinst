@@ -15,6 +15,8 @@ use autotest ();
 
 has [qw(cmd_srv_process cmd_srv_fd cmd_srv_port)];
 
+has [qw(testprocess testfd)];
+
 sub load_schedule ($self) {
     # set a default distribution if the tests don't have one
     $testapi::distri = distribution->new;
@@ -34,7 +36,8 @@ sub start_server ($self) {
 
 sub start_autotest ($self) {
     my ($testprocess, $testfd) = autotest::start_process();
-    return ($testprocess, $testfd);
+    $self->testprocess($testprocess);
+    $self->testfd($testfd);
 }
 
 sub create_backend ($self) {
@@ -75,12 +78,12 @@ sub stop_commands ($self, $reason) {
     diag('done with command server');
 }
 
-sub stop_autotest ($self, $testprocess) {
-    return unless defined $$testprocess;
+sub stop_autotest ($self) {
+    return unless defined $self->testprocess;
 
-    diag('stopping autotest process ' . $$testprocess->pid);
-    $$testprocess->stop() if $$testprocess->is_running;
-    $$testprocess = undef;
+    diag('stopping autotest process ' . $self->testprocess->pid);
+    $self->testprocess->stop() if $self->testprocess->is_running;
+    $self->testprocess(undef);
     diag('done with autotest process');
 }
 

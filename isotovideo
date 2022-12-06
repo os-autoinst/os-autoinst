@@ -151,7 +151,7 @@ testapi::init();
 needle::init();
 bmwqemu::save_vars();
 
-my ($testprocess, $testfd) = $runner->start_autotest;
+$runner->start_autotest;
 my $backend = $runner->create_backend;
 
 spawn_debuggers;
@@ -159,25 +159,25 @@ my $command_handler;
 
 # stop main loop as soon as one of the child processes terminates
 my $stop_loop = sub (@) { $command_handler->loop(0) if $command_handler->loop; };
-$testprocess->once(collected => $stop_loop);
+$runner->testprocess->once(collected => $stop_loop);
 $backend->process->once(collected => $stop_loop);
 $runner->cmd_srv_process->once(collected => $stop_loop);
 
 $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     cmd_srv_fd => $runner->cmd_srv_fd,
-    test_fd => $testfd,
+    test_fd => $runner->testfd,
     backend_fd => $backend->process->channel_in,
     backend_out_fd => $backend->process->channel_out,
 );
 $command_handler->on(tests_done => sub (@) {
-        CORE::close($testfd);
-        $testfd = undef;
-        $runner->stop_autotest(\$testprocess);
+        CORE::close($runner->testfd);
+        $runner->testfd(undef);
+        $runner->stop_autotest();
 });
 $command_handler->on(signal => sub ($event, $sig) {
         $backend->stop if defined $backend;    # uncoverable statement
         $runner->stop_commands("received signal $sig");    # uncoverable statement
-        $runner->stop_autotest(\$testprocess);    # uncoverable statement
+        $runner->stop_autotest();    # uncoverable statement
         _exit(1);    # uncoverable statement
 });
 $command_handler->setup_signal_handler;
@@ -190,10 +190,10 @@ $command_handler->run;
 # terminate/kill the command server and let it inform its websocket clients before
 $runner->stop_commands('test execution ended');
 
-if ($testfd) {
+if ($runner->testfd) {
     $return_code = 1;    # unusual shutdown
-    CORE::close $testfd;
-    $runner->stop_autotest(\$testprocess);
+    CORE::close $runner->testfd;
+    $runner->stop_autotest();
 }
 
 diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
@@ -224,7 +224,7 @@ $fatal_error = undef;
 END {
     $backend->stop if defined $backend;
     $runner and $runner->stop_commands('test execution ended through exception');
-    $runner and $runner->stop_autotest(\$testprocess);
+    $runner and $runner->stop_autotest();
 
     # in case of early exit, e.g. help display
     $return_code //= 0;
