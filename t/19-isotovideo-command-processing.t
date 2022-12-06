@@ -13,6 +13,7 @@ use Test::Fatal;
 use Mojo::JSON;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
+use OpenQA::Isotovideo::Runner;
 
 # declare fake file descriptors
 my $cmd_srv_fd = 0;
@@ -377,16 +378,18 @@ subtest check_asserted_screen => sub {
 
 subtest signalhandler => sub {
     my $last_signal;
+    my $runner = OpenQA::Isotovideo::Runner->new;
+    $runner->command_handler($command_handler);
     $command_handler->once(signal => sub ($event, $sig) { $last_signal = $sig });
     $command_handler->loop(1);
     stderr_like {
-        $command_handler->_signal_handler('TERM');
+        $runner->_signal_handler('TERM');
     } qr/isotovideo received signal TERM/, 'Signal logged';
     is($command_handler->loop, 0, 'Loop was stopped');
     is($last_signal, undef, 'No event emitted');
 
     stderr_like {
-        $command_handler->_signal_handler('INT');
+        $runner->_signal_handler('INT');
     } qr/isotovideo received signal INT/, 'Signal logged';
     is($last_signal, 'INT', 'Event emitted');
 };

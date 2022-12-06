@@ -89,6 +89,7 @@ sub handle_commands ($self) {
             CORE::close($self->testfd);
             $self->testfd(undef);
             $self->stop_autotest();
+            $command_handler->loop(0);
     });
     $command_handler->on(signal => sub ($event, $sig) {
             $self->backend->stop if defined $self->backend;    # uncoverable statement
