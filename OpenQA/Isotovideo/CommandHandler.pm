@@ -72,7 +72,7 @@ sub new ($class, @args) {
 
 my $backend;
 
-sub create_backend ($self) { $backend = OpenQA::Isotovideo::Backend->new }
+sub create_backend ($self) { $backend ||= OpenQA::Isotovideo::Backend->new }
 sub backend ($self) { $backend }
 
 
