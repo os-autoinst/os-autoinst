@@ -72,8 +72,8 @@ sub new ($class, @args) {
 
 my $backend;
 
-sub create_backend ($self) { $backend ||= OpenQA::Isotovideo::Backend->new }
-sub backend ($self) { $backend }
+sub create_backend ($class) { $backend ||= OpenQA::Isotovideo::Backend->new }
+sub backend ($class) { $backend }
 
 
 sub setup_signal_handler ($self) {
