@@ -6,8 +6,25 @@ use Mojo::Base -base, -signatures;
 use autodie ':all';
 no autodie 'kill';
 use log qw(diag);
+use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch checkout_git_refspec checkout_wheels
+load_test_schedule);
 use bmwqemu ();
-use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch checkout_git_refspec );
+use testapi ();
+
+sub load_schedule ($self) {
+    # set a default distribution if the tests don't have one
+    $testapi::distri = distribution->new;
+
+    load_test_schedule;
+}
+
+sub start_server ($self) {
+    # start the command fork before we get into the backend, the command child
+    # is not supposed to talk to the backend directly
+    my ($cmd_srv_process, $cmd_srv_fd, $cmd_srv_port);
+    ($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
+    return ($cmd_srv_process, $cmd_srv_fd, $cmd_srv_port);
+}
 
 # note: The subsequently defined stop_* functions are used to tear down the process tree.
 #       However, the worker also ensures that all processes are being terminated (and
@@ -72,6 +89,9 @@ sub checkout_code($self) {
     # git repo fail silently, i.e. store an empty variable
 
     $bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
+
+    $bmwqemu::vars{WHEELS_DIR} ||= $bmwqemu::vars{CASEDIR};
+    checkout_wheels($bmwqemu::vars{WHEELS_DIR});
 }
 
 sub _flush_std ($) {
