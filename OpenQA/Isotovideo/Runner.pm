@@ -5,6 +5,7 @@ package OpenQA::Isotovideo::Runner;
 use Mojo::Base -base, -signatures;
 use autodie ':all';
 no autodie 'kill';
+use POSIX qw(:sys_wait_h _exit);
 use log qw(diag);
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch checkout_git_refspec checkout_wheels
 load_test_schedule);
@@ -17,7 +18,7 @@ has [qw(cmd_srv_process cmd_srv_fd cmd_srv_port)];
 
 has [qw(testprocess testfd)];
 
-has [qw(backend)];
+has [qw(backend command_handler)];
 
 sub load_schedule ($self) {
     # set a default distribution if the tests don't have one
@@ -45,6 +46,37 @@ sub start_autotest ($self) {
 sub create_backend ($self) {
     my $backend = OpenQA::Isotovideo::Backend->new;
     $self->backend($backend);
+}
+
+sub handle_commands ($self) {
+    my $command_handler;
+    # stop main loop as soon as one of the child processes terminates
+    my $stop_loop = sub (@) { $command_handler->loop(0) if $command_handler->loop; };
+    $self->testprocess->once(collected => $stop_loop);
+    $self->backend->process->once(collected => $stop_loop);
+    $self->cmd_srv_process->once(collected => $stop_loop);
+
+    $command_handler = OpenQA::Isotovideo::CommandHandler->new(
+        cmd_srv_fd => $self->cmd_srv_fd,
+        test_fd => $self->testfd,
+        backend_fd => $self->backend->process->channel_in,
+        backend_out_fd => $self->backend->process->channel_out,
+    );
+    $command_handler->on(tests_done => sub (@) {
+            CORE::close($self->testfd);
+            $self->testfd(undef);
+            $self->stop_autotest();
+    });
+    $command_handler->on(signal => sub ($event, $sig) {
+            $self->backend->stop if defined $self->backend;    # uncoverable statement
+            $self->stop_commands("received signal $sig");    # uncoverable statement
+            $self->stop_autotest();    # uncoverable statement
+            _exit(1);    # uncoverable statement
+    });
+    $command_handler->setup_signal_handler;
+
+    $self->command_handler($command_handler);
+    return $command_handler;
 }
 
 # note: The subsequently defined stop_* functions are used to tear down the process tree.

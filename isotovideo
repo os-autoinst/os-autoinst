@@ -73,7 +73,6 @@ use distribution;
 use testapi ();
 use Getopt::Long;
 require IPC::System::Simple;
-use POSIX qw(:sys_wait_h _exit);
 use Try::Tiny;
 use Mojo::File qw(curfile);
 use Mojo::UserAgent;
@@ -155,32 +154,8 @@ $runner->start_autotest;
 $runner->create_backend;
 
 spawn_debuggers;
-my $command_handler;
 
-# stop main loop as soon as one of the child processes terminates
-my $stop_loop = sub (@) { $command_handler->loop(0) if $command_handler->loop; };
-$runner->testprocess->once(collected => $stop_loop);
-$runner->backend->process->once(collected => $stop_loop);
-$runner->cmd_srv_process->once(collected => $stop_loop);
-
-$command_handler = OpenQA::Isotovideo::CommandHandler->new(
-    cmd_srv_fd => $runner->cmd_srv_fd,
-    test_fd => $runner->testfd,
-    backend_fd => $runner->backend->process->channel_in,
-    backend_out_fd => $runner->backend->process->channel_out,
-);
-$command_handler->on(tests_done => sub (@) {
-        CORE::close($runner->testfd);
-        $runner->testfd(undef);
-        $runner->stop_autotest();
-});
-$command_handler->on(signal => sub ($event, $sig) {
-        $runner->backend->stop if defined $runner->backend;    # uncoverable statement
-        $runner->stop_commands("received signal $sig");    # uncoverable statement
-        $runner->stop_autotest();    # uncoverable statement
-        _exit(1);    # uncoverable statement
-});
-$command_handler->setup_signal_handler;
+my $command_handler = $runner->handle_commands;
 
 $return_code = 0;
 
