@@ -381,11 +381,11 @@ subtest signalhandler => sub {
     my $runner = OpenQA::Isotovideo::Runner->new;
     $runner->command_handler($command_handler);
     $command_handler->once(signal => sub ($event, $sig) { $last_signal = $sig });
-    $command_handler->loop(1);
+    $runner->loop(1);
     stderr_like {
         $runner->_signal_handler('TERM');
     } qr/isotovideo received signal TERM/, 'Signal logged';
-    is($command_handler->loop, 0, 'Loop was stopped');
+    is($runner->loop, 0, 'Loop was stopped');
     is($last_signal, undef, 'No event emitted');
 
     stderr_like {
@@ -404,7 +404,7 @@ subtest 'No readable JSON' => sub {
     stderr_like {
         $runner->_read_response(undef, $readable);
     } qr/THERE IS NOTHING TO READ/, 'no response';
-    is($command_handler->loop, 0, 'Loop was stopped');
+    is($runner->loop, 0, 'Loop was stopped');
 };
 
 done_testing;

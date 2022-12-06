@@ -41,8 +41,6 @@ has pause_on_failure => sub { $bmwqemu::vars{PAUSE_ON_FAILURE} // 0 };
 
 # the reason why the test execution has paused or 0 if not paused
 has reason_for_pause => 0;
-# the loop status
-has loop => 1;
 
 # when paused, save the command from autotest which has been postponed to be able to resume
 has postponed_answer_fd => undef;

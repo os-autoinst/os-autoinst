@@ -20,6 +20,9 @@ has [qw(testprocess testfd)];
 
 has [qw(backend command_handler)];
 
+# the loop status
+has loop => 1;
+
 sub run ($self) {
     # now we have everything, give the tests a go
     $self->testfd->write("GO\n");
@@ -30,7 +33,7 @@ sub run ($self) {
     $io_select->add($ch->cmd_srv_fd);
     $io_select->add($ch->backend_out_fd);
 
-    while ($ch->loop) {
+    while ($self->loop) {
         my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $ch->timeout);
         for my $readable (@$ready_for_read) {
             my $rsp = myjsonrpc::read_json($readable);
@@ -46,7 +49,7 @@ sub run ($self) {
 sub _read_response ($self, $rsp, $fd) {
     if (!defined $rsp) {
         fctwarn sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($fd), fileno($self->testfd), fileno($self->cmd_srv_fd));
-        $self->command_handler->loop(0);
+        $self->loop(0);
     } elsif ($fd == $self->command_handler->backend_out_fd) {
         $self->command_handler->send_to_backend_requester({ret => $rsp->{rsp}});
     } else {
@@ -86,7 +89,7 @@ sub create_backend ($self) {
 sub handle_commands ($self) {
     my $command_handler;
     # stop main loop as soon as one of the child processes terminates
-    my $stop_loop = sub (@) { $command_handler->loop(0) if $command_handler->loop; };
+    my $stop_loop = sub (@) { $self->loop(0) if $self->loop; };
     $self->testprocess->once(collected => $stop_loop);
     $self->backend->process->once(collected => $stop_loop);
     $self->cmd_srv_process->once(collected => $stop_loop);
@@ -101,7 +104,7 @@ sub handle_commands ($self) {
             CORE::close($self->testfd);
             $self->testfd(undef);
             $self->stop_autotest();
-            $command_handler->loop(0);
+            $self->loop(0);
     });
     $command_handler->on(signal => sub ($event, $sig) {
             $self->backend->stop if defined $self->backend;    # uncoverable statement
@@ -124,7 +127,7 @@ sub setup_signal_handler ($self) {
 
 sub _signal_handler ($self, $sig) {
     bmwqemu::serialize_state(component => 'isotovideo', msg => "isotovideo received signal $sig", log => 1);
-    return $self->command_handler->loop(0) if $self->command_handler->loop;
+    return $self->loop(0) if $self->loop;
     $self->command_handler->emit(signal => $sig);
 }
 
