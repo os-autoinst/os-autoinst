@@ -13,6 +13,8 @@ use bmwqemu ();
 use testapi ();
 use autotest ();
 
+has [qw(cmd_srv_process cmd_srv_fd cmd_srv_port)];
+
 sub load_schedule ($self) {
     # set a default distribution if the tests don't have one
     $testapi::distri = distribution->new;
@@ -25,7 +27,9 @@ sub start_server ($self) {
     # is not supposed to talk to the backend directly
     my ($cmd_srv_process, $cmd_srv_fd, $cmd_srv_port);
     ($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
-    return ($cmd_srv_process, $cmd_srv_fd, $cmd_srv_port);
+    $self->cmd_srv_process($cmd_srv_process);
+    $self->cmd_srv_fd($cmd_srv_fd);
+    $self->cmd_srv_port($cmd_srv_port);
 }
 
 sub start_autotest ($self) {
@@ -42,16 +46,16 @@ sub create_backend ($self) {
 #       However, the worker also ensures that all processes are being terminated (and
 #       eventually killed).
 
-sub stop_commands ($self, $reason, $cmd_srv_process, $cmd_srv_port) {
-    return unless defined $$cmd_srv_process;
-    return unless $$cmd_srv_process->is_running;
+sub stop_commands ($self, $reason) {
+    return unless defined $self->cmd_srv_process;
+    return unless $self->cmd_srv_process->is_running;
 
-    my $pid = $$cmd_srv_process->pid;
+    my $pid = $self->cmd_srv_process->pid;
     diag("stopping command server $pid because $reason");
 
-    if ($$cmd_srv_port && $reason && $reason eq 'test execution ended') {
+    if ($self->cmd_srv_port && $reason && $reason eq 'test execution ended') {
         my $job_token = $bmwqemu::vars{JOBTOKEN};
-        my $url = "http://127.0.0.1:$$cmd_srv_port/$job_token/broadcast";
+        my $url = "http://127.0.0.1:".$self->cmd_srv_port."/$job_token/broadcast";
         diag('isotovideo: informing websocket clients before stopping command server: ' . $url);
 
         # note: If the job is stopped by the worker because it has been
@@ -66,8 +70,8 @@ sub stop_commands ($self, $reason, $cmd_srv_process, $cmd_srv_port) {
         Mojo::UserAgent->new(request_timeout => $timeout)->post($url, json => {stopping_test_execution => $reason});
     }
 
-    $$cmd_srv_process->stop();
-    $$cmd_srv_process = undef;
+    $self->cmd_srv_process->stop();
+    $self->cmd_srv_process(undef);
     diag('done with command server');
 }
 

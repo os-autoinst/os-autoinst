@@ -145,7 +145,7 @@ $runner->_init_bmwqemu(@ARGV);
 $runner->checkout_code;
 $runner->load_schedule;
 
-my ($cmd_srv_process, $cmd_srv_fd, $cmd_srv_port) = $runner->start_server;
+$runner->start_server;
 
 testapi::init();
 needle::init();
@@ -161,10 +161,10 @@ my $command_handler;
 my $stop_loop = sub (@) { $command_handler->loop(0) if $command_handler->loop; };
 $testprocess->once(collected => $stop_loop);
 $backend->process->once(collected => $stop_loop);
-$cmd_srv_process->once(collected => $stop_loop);
+$runner->cmd_srv_process->once(collected => $stop_loop);
 
 $command_handler = OpenQA::Isotovideo::CommandHandler->new(
-    cmd_srv_fd => $cmd_srv_fd,
+    cmd_srv_fd => $runner->cmd_srv_fd,
     test_fd => $testfd,
     backend_fd => $backend->process->channel_in,
     backend_out_fd => $backend->process->channel_out,
@@ -176,7 +176,7 @@ $command_handler->on(tests_done => sub (@) {
 });
 $command_handler->on(signal => sub ($event, $sig) {
         $backend->stop if defined $backend;    # uncoverable statement
-        $runner->stop_commands("received signal $sig", \$cmd_srv_process, \$cmd_srv_port);    # uncoverable statement
+        $runner->stop_commands("received signal $sig");    # uncoverable statement
         $runner->stop_autotest(\$testprocess);    # uncoverable statement
         _exit(1);    # uncoverable statement
 });
@@ -188,7 +188,7 @@ $return_code = 0;
 $command_handler->run;
 
 # terminate/kill the command server and let it inform its websocket clients before
-$runner->stop_commands('test execution ended', \$cmd_srv_process, \$cmd_srv_port);
+$runner->stop_commands('test execution ended');
 
 if ($testfd) {
     $return_code = 1;    # unusual shutdown
@@ -223,7 +223,7 @@ $fatal_error = undef;
 
 END {
     $backend->stop if defined $backend;
-    $runner and $runner->stop_commands('test execution ended through exception', \$cmd_srv_process, \$cmd_srv_port);
+    $runner and $runner->stop_commands('test execution ended through exception');
     $runner and $runner->stop_autotest(\$testprocess);
 
     # in case of early exit, e.g. help display
