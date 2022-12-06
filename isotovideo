@@ -84,13 +84,11 @@ Getopt::Long::Configure("no_ignore_case");
 use OpenQA::Isotovideo::Backend;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
+use OpenQA::Isotovideo::Runner;
 use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_repo_and_branch
   spawn_debuggers
   checkout_wheels
   checkout_git_refspec handle_generated_assets load_test_schedule);
-
-session->enable;
-session->enable_subreaper;
 
 my %options;
 
@@ -113,6 +111,9 @@ GetOptions(\%options, 'debug|d', 'workdir=s', 'color=s', 'help|h|?', 'version|v'
 usage(0) if $options{help};
 version() if $options{version};
 
+session->enable;
+session->enable_subreaper;
+
 my $color = $options{color} // 'yes';
 # User setting has preference, see https://no-color.org/
 delete $ENV{NO_COLOR} if $color eq 'yes';
@@ -129,25 +130,18 @@ my $return_code = 1;
 #       immediately but only in the END block.
 $SIG{__DIE__} = sub ($e) { $fatal_error = $e };
 
+my $runner = OpenQA::Isotovideo::Runner->new;
+
 diag(_get_version_string());
 
 # enable debug default when started from a tty
 $log::direct_output = $options{debug};
 
-select(STDERR);
-$| = 1;
-select(STDOUT);    # default
-$| = 1;
+$runner->_flush_std;
 
 $bmwqemu::scriptdir = $installprefix;
 bmwqemu::init();
-for my $arg (@ARGV) {
-    if ($arg =~ /^([[:alnum:]_\[\]\.]+)=(.+)/) {
-        my $key = uc $1;
-        $bmwqemu::vars{$key} = $2;
-        diag("Setting forced test parameter $key -> $2");
-    }
-}
+$runner->_init_vars(@ARGV);
 
 my $cmd_srv_process;
 my $command_handler;
@@ -159,34 +153,6 @@ my $cmd_srv_port;
 #       However, the worker also ensures that all processes are being terminated (and
 #       eventually killed).
 
-sub stop_commands ($reason) {
-    return unless defined $cmd_srv_process;
-    return unless $cmd_srv_process->is_running;
-
-    my $pid = $cmd_srv_process->pid;
-    diag("stopping command server $pid because $reason");
-
-    if ($cmd_srv_port && $reason && $reason eq 'test execution ended') {
-        my $job_token = $bmwqemu::vars{JOBTOKEN};
-        my $url = "http://127.0.0.1:$cmd_srv_port/$job_token/broadcast";
-        diag('isotovideo: informing websocket clients before stopping command server: ' . $url);
-
-        # note: If the job is stopped by the worker because it has been
-        # aborted, the worker will send this command on its own to the command
-        # server and also stop the command server. So this is only done in the
-        # case the test execution just ends.
-
-        my $timeout = 15;
-        # The command server might have already been stopped by the worker
-        # after the user has aborted the job or the job timeout has been
-        # exceeded so no checks for failure done.
-        Mojo::UserAgent->new(request_timeout => $timeout)->post($url, json => {stopping_test_execution => $reason});
-    }
-
-    $cmd_srv_process->stop();
-    $cmd_srv_process = undef;
-    diag('done with command server');
-}
 
 sub stop_autotest () {
     return unless defined $testprocess;
@@ -265,7 +231,7 @@ $command_handler->on(tests_done => sub (@) {
 });
 $command_handler->on(signal => sub ($event, $sig) {
         $backend->stop if defined $backend;    # uncoverable statement
-        stop_commands("received signal $sig");    # uncoverable statement
+        $runner->stop_commands("received signal $sig", \$cmd_srv_process, \$cmd_srv_port);    # uncoverable statement
         stop_autotest;    # uncoverable statement
         _exit(1);    # uncoverable statement
 });
@@ -277,7 +243,7 @@ $return_code = 0;
 $command_handler->run;
 
 # terminate/kill the command server and let it inform its websocket clients before
-stop_commands('test execution ended');
+$runner->stop_commands('test execution ended', \$cmd_srv_process, \$cmd_srv_port);
 
 if ($testfd) {
     $return_code = 1;    # unusual shutdown
@@ -312,7 +278,7 @@ $fatal_error = undef;
 
 END {
     $backend->stop if defined $backend;
-    stop_commands('test execution ended through exception');
+    $runner and $runner->stop_commands('test execution ended through exception', \$cmd_srv_process, \$cmd_srv_port);
     stop_autotest;
 
     # in case of early exit, e.g. help display
