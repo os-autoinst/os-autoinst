@@ -96,11 +96,25 @@ sub handle_commands ($self) {
             $self->stop_autotest();    # uncoverable statement
             _exit(1);    # uncoverable statement
     });
-    $command_handler->setup_signal_handler;
+    $self->setup_signal_handler;
 
     $self->command_handler($command_handler);
     return $command_handler;
 }
+
+sub setup_signal_handler ($self) {
+    my $signal_handler = sub ($sig) { $self->_signal_handler($sig) };
+    $SIG{TERM} = $signal_handler;
+    $SIG{INT} = $signal_handler;
+    $SIG{HUP} = $signal_handler;
+}
+
+sub _signal_handler ($self, $sig) {
+    bmwqemu::serialize_state(component => 'isotovideo', msg => "isotovideo received signal $sig", log => 1);
+    return $self->command_handler->loop(0) if $self->command_handler->loop;
+    $self->command_handler->emit(signal => $sig);
+}
+
 
 # note: The subsequently defined stop_* functions are used to tear down the process tree.
 #       However, the worker also ensures that all processes are being terminated (and

@@ -69,19 +69,6 @@ sub new ($class, @args) {
     return $self;
 }
 
-sub setup_signal_handler ($self) {
-    my $signal_handler = sub ($sig) { $self->_signal_handler($sig) };
-    $SIG{TERM} = $signal_handler;
-    $SIG{INT} = $signal_handler;
-    $SIG{HUP} = $signal_handler;
-}
-
-sub _signal_handler ($self, $sig) {
-    bmwqemu::serialize_state(component => 'isotovideo', msg => "isotovideo received signal $sig", log => 1);
-    return $self->loop(0) if $self->loop;
-    $self->emit(signal => $sig);
-}
-
 sub clear_tags_and_timeout ($self) {
     $self->tags(undef);
     $self->timeout(undef);
