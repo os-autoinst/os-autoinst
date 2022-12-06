@@ -17,6 +17,8 @@ has [qw(cmd_srv_process cmd_srv_fd cmd_srv_port)];
 
 has [qw(testprocess testfd)];
 
+has [qw(backend)];
+
 sub load_schedule ($self) {
     # set a default distribution if the tests don't have one
     $testapi::distri = distribution->new;
@@ -42,7 +44,7 @@ sub start_autotest ($self) {
 
 sub create_backend ($self) {
     my $backend = OpenQA::Isotovideo::Backend->new;
-    return $backend;
+    $self->backend($backend);
 }
 
 # note: The subsequently defined stop_* functions are used to tear down the process tree.
