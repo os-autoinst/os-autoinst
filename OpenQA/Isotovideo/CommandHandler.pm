@@ -421,15 +421,4 @@ sub check_asserted_screen ($self) {
     }
 }
 
-sub _read_response ($self, $rsp, $fd) {
-    if (!defined $rsp) {
-        fctwarn sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($fd), fileno($self->test_fd), fileno($self->cmd_srv_fd));
-        $self->loop(0);
-    } elsif ($fd == $self->backend_out_fd) {
-        $self->send_to_backend_requester({ret => $rsp->{rsp}});
-    } else {
-        $self->process_command($fd, $rsp);
-    }
-}
-
 1;

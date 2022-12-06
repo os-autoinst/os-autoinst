@@ -395,12 +395,14 @@ subtest signalhandler => sub {
 };
 
 subtest 'No readable JSON' => sub {
+    my $runner = OpenQA::Isotovideo::Runner->new;
+    $runner->command_handler($command_handler);
     # We need valid fd's so fileno works but they're never used
     open(my $readable, "$Bin");
-    $command_handler->test_fd($readable);
-    $command_handler->cmd_srv_fd($readable);
+    $runner->testfd($readable);
+    $runner->cmd_srv_fd($readable);
     stderr_like {
-        $command_handler->_read_response(undef, $readable);
+        $runner->_read_response(undef, $readable);
     } qr/THERE IS NOTHING TO READ/, 'no response';
     is($command_handler->loop, 0, 'Loop was stopped');
 };

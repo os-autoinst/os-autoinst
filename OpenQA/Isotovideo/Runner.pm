@@ -6,7 +6,7 @@ use Mojo::Base -base, -signatures;
 use autodie ':all';
 no autodie 'kill';
 use POSIX qw(:sys_wait_h _exit);
-use log qw(diag);
+use log qw(diag fctwarn);
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch checkout_git_refspec checkout_wheels
 load_test_schedule);
 use OpenQA::Isotovideo::Backend;
@@ -34,7 +34,7 @@ sub run ($self) {
         my ($ready_for_read, $ready_for_write, $exceptions) = IO::Select::select($io_select, undef, $io_select, $ch->timeout);
         for my $readable (@$ready_for_read) {
             my $rsp = myjsonrpc::read_json($readable);
-            $ch->_read_response($rsp, $readable);
+            $self->_read_response($rsp, $readable);
             last unless defined $rsp;
         }
         $ch->check_asserted_screen if defined($ch->tags);
@@ -42,6 +42,18 @@ sub run ($self) {
     $ch->stop_command_processing;
     return 0;
 }
+
+sub _read_response ($self, $rsp, $fd) {
+    if (!defined $rsp) {
+        fctwarn sprintf("THERE IS NOTHING TO READ %d %d %d", fileno($fd), fileno($self->testfd), fileno($self->cmd_srv_fd));
+        $self->command_handler->loop(0);
+    } elsif ($fd == $self->command_handler->backend_out_fd) {
+        $self->command_handler->send_to_backend_requester({ret => $rsp->{rsp}});
+    } else {
+        $self->command_handler->process_command($fd, $rsp);
+    }
+}
+
 
 sub load_schedule ($self) {
     # set a default distribution if the tests don't have one
