@@ -8,6 +8,7 @@ use bmwqemu;
 use log qw(diag fctwarn);
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::NeedleDownloader;
+use OpenQA::Isotovideo::Backend;
 use Cpanel::JSON::XS;
 use Mojo::File 'path';
 use IO::Select;
@@ -68,6 +69,12 @@ sub new ($class, @args) {
     $self->_update_last_check;
     return $self;
 }
+
+my $backend;
+
+sub create_backend ($self) { $backend = OpenQA::Isotovideo::Backend->new }
+sub backend ($self) { $backend }
+
 
 sub setup_signal_handler ($self) {
     my $signal_handler = sub ($sig) { $self->_signal_handler($sig) };

@@ -54,7 +54,6 @@ use JSON::PP;
 
 my $installprefix;    # $bmwqemu::scriptdir
 my $fatal_error;    # the last error message caught by the die handler
-my $backend;
 
 BEGIN {
     # the following line is modified during make install
@@ -81,7 +80,6 @@ use Mojo::UserAgent;
 use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
-use OpenQA::Isotovideo::Backend;
 use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
 use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_repo_and_branch
@@ -242,21 +240,21 @@ bmwqemu::save_vars();
 my $testfd;
 ($testprocess, $testfd) = autotest::start_process();
 
-$backend = OpenQA::Isotovideo::Backend->new;
+OpenQA::Isotovideo::CommandHandler->create_backend;
 
 spawn_debuggers;
 
 # stop main loop as soon as one of the child processes terminates
 my $stop_loop = sub (@) { $command_handler->loop(0) if $command_handler->loop; };
 $testprocess->once(collected => $stop_loop);
-$backend->process->once(collected => $stop_loop);
+OpenQA::Isotovideo::CommandHandler->backend->process->once(collected => $stop_loop);
 $cmd_srv_process->once(collected => $stop_loop);
 
 $command_handler = OpenQA::Isotovideo::CommandHandler->new(
     cmd_srv_fd => $cmd_srv_fd,
     test_fd => $testfd,
-    backend_fd => $backend->process->channel_in,
-    backend_out_fd => $backend->process->channel_out,
+    backend_fd => OpenQA::Isotovideo::CommandHandler->backend->process->channel_in,
+    backend_out_fd => OpenQA::Isotovideo::CommandHandler->backend->process->channel_out,
 );
 $command_handler->on(tests_done => sub (@) {
         CORE::close($testfd);
@@ -264,7 +262,7 @@ $command_handler->on(tests_done => sub (@) {
         stop_autotest;
 });
 $command_handler->on(signal => sub ($event, $sig) {
-        $backend->stop if defined $backend;    # uncoverable statement
+        OpenQA::Isotovideo::CommandHandler->backend->stop if defined OpenQA::Isotovideo::CommandHandler->backend;    # uncoverable statement
         stop_commands("received signal $sig");    # uncoverable statement
         stop_autotest;    # uncoverable statement
         _exit(1);    # uncoverable statement
@@ -311,7 +309,7 @@ $return_code = handle_generated_assets($command_handler, $clean_shutdown) unless
 $fatal_error = undef;
 
 END {
-    $backend->stop if defined $backend;
+    OpenQA::Isotovideo::CommandHandler->backend->stop if defined OpenQA::Isotovideo::CommandHandler->backend;
     stop_commands('test execution ended through exception');
     stop_autotest;
 
