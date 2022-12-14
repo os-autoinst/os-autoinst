@@ -37,10 +37,9 @@ my $data_dir = $toplevel_dir->child('data');
 
 sub wait_for_server ($ua) {
     for (my $counter = 0; $counter < 20; $counter++) {
-        return if (($ua->get("$base_url/NEVEREVER")->res->code // 0) == 404);
         sleep .1;
+        return if (($ua->get("$base_url/NEVEREVER")->res->code // 0) == 404);
     }
-    return 1;
 }
 
 $bmwqemu::vars{JOBTOKEN} = $job;
@@ -59,18 +58,17 @@ combined_like { ($cserver, $cfd) = commands::start_server($mojoport); } qr//, 'c
 my $spid = fork();
 if ($spid == 0) {
     # we need to fake isotovideo here
-    while (1) {
-        my $json = myjsonrpc::read_json($cfd);
-        my $cmd = delete $json->{cmd};
-        next unless $cmd;
-        myjsonrpc::send_json($cfd, $cmd eq 'version' ? {VERSION => 'COOL'} : {response_for => $cmd, %$json});
+    while (1) {    # uncoverable statement
+        my $json = myjsonrpc::read_json($cfd);    # uncoverable statement
+        next unless my $cmd = delete $json->{cmd};    # uncoverable statement
+        myjsonrpc::send_json($cfd, $cmd eq 'version' ? {VERSION => 'COOL'} : {response_for => $cmd, %$json});    # uncoverable statement
     }
-    _exit(0);
+    _exit(0);    # uncoverable statement
 }
 
 # create test user agent and wait for server
 my $t = Test::Mojo->new;
-exit(0) if wait_for_server($t->ua);
+wait_for_server($t->ua);
 
 ok(chdir $toplevel_dir, "change overall test working directory back to $toplevel_dir");
 
