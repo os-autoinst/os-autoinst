@@ -39,8 +39,6 @@ my $ignore_errors = 1;
 
 my $table_header = 'Variable;Values allowed;Default value;Explanation';
 
-sub say ($text) { print STDERR "$text\n" }
-
 sub read_doc () {
     # read and parse old vars doc
     my $docfh;
@@ -62,9 +60,7 @@ sub read_doc () {
                 next unless ($var);
                 $default = '' unless (defined $default);
                 $value = '' unless (defined $value);
-                unless ($explanation) {
-                    fail "still missing explanation for backend $backend variable $var";
-                }
+                fail "still missing explanation for backend $backend variable $var" unless $explanation;    # uncoverable statement
                 $documented_vars{$backend}{$var} = [$value, $default, $explanation];
             }
         }
@@ -116,9 +112,7 @@ sub read_backend_pm {    # no:style:signatures
     $backend = uc $backend_renames{$backend} if $backend_renames{$backend};
     my $fh;
     eval { open($fh, '<', $File::Find::name) };
-    if (my $E = $@) {
-        say 'Unable to open ' . $File::Find::name && return;
-    }
+    return fail 'Unable to open ' . $File::Find::name if $@;    # uncoverable statement
     for my $line (<$fh>) {
         my @vars = $line =~ /(?:\$bmwqemu::|\$)vars(?:->)?{["']?([^}"']+)["']?}/g;
         for my $var (@vars) {
