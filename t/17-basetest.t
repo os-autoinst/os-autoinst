@@ -56,9 +56,6 @@ sub fake_read_json ($fd) {
         return {ret => {found => {needle => {name => 'foundneedle', file => 'foundneedle.json'}, area => [{x => 1, y => 2, similarity => 100}]}, candidates => []}} unless $suppress_match;
         return {};
     }
-    elsif ($cmd eq 'last_milestone_console') {
-        return {};
-    }
     elsif ($cmd eq 'backend_reset_console') {
         push @reset_consoles, $lcmd;
         return {};
@@ -67,18 +64,12 @@ sub fake_read_json ($fd) {
         push @selected_consoles, $lcmd;
         return {};
     }
-    elsif ($cmd eq 'backend_stop_audiocapture') {
-        return {};
-    }
     elsif ($cmd eq 'backend_last_screenshot_data') {
         return {} unless $last_screenshot_data;
         return {ret => {image => $last_screenshot_data, frame => 1}};
     }
     elsif ($cmd eq 'pause_test_execution') {
         return {ret => {ignore_failure => $fake_ignore_failure}};
-    }
-    elsif ($cmd ne 'set_current_test') {
-        note "mock method not implemented \$cmd: $cmd\n";
     }
     return {};
 }
