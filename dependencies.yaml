@@ -110,6 +110,8 @@ test_requires:
   '%yamllint_requires':
   perl(Inline::Python):
   python3-Pillow-tk:
+  tesseract-ocr:
+  tesseract-ocr-traineddata-english:
 
 main_requires:
   git-core:
