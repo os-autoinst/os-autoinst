@@ -25,6 +25,7 @@ cv::init();
 require tinycv;
 
 unless (which('tesseract')) {
+    # uncoverable statement count:2
     plan skip_all => 'No tesseract installed';
     exit(0);
 }
