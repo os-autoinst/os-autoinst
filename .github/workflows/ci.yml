@@ -6,7 +6,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Static checks, unit- and integration tests
         run: tools/container_run_ci
       - name: Upload coverage to Codecov
@@ -27,6 +27,6 @@ jobs:
   static-check-containers:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Test our container definitions
         run: tools/static_check_containers
