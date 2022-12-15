@@ -5,7 +5,6 @@
 package ocr;
 use Mojo::Base -strict, -signatures;
 require IPC::System::Simple;
-use autodie ':all';
 
 sub tesseract ($img, $area) {
     my $imgfn = 'ocr.png';

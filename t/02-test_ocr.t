@@ -44,4 +44,11 @@ for my $area (@{$res->{needle}->{area}}) {
 
 ok defined $ocr, 'OCR area found' and
   ok($ocr =~ /Memory Test.*Video Mode/s, 'multiple OCR regions');
+
 done_testing;
+
+
+END {
+    unlink 'ocr.png';
+    unlink 'tesseract_opencl_profile_devices.dat';
+}

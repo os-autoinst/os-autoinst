@@ -35,6 +35,8 @@ RUN zypper in -y -C \
        qemu-x86 \
        shadow \
        sudo \
+       tesseract-ocr \
+       tesseract-ocr-traineddata-english \
        which \
        xorg-x11-Xvnc \
        xterm \
