@@ -11,6 +11,7 @@ Usage:
 Options:
  -h, -?, --help       display this help
  -c, --check          Only check for style check differences
+ -q, --quiet          Only display errors
  -f, --force          Force check even if tidy version mismatches
  -o --only-changed    Only tidy files with uncommitted changes in git. This can
                       speed up execution a lot.
@@ -29,12 +30,13 @@ dir="$(dirname "$0")"
 args=""
 selection='--all'
 [[ -e "$dir/perlfiles" ]] && selection=$("$dir"/perlfiles)
-opts=$(getopt -o hcfol --long help,check,force,only-changed,list -n "$0" -- "$@") || usage
+opts=$(getopt -o hcqfol --long help,check,quiet,force,only-changed,list -n "$0" -- "$@") || usage
 eval set -- "$opts"
 while true; do
   case "$1" in
     -h | --help ) usage; shift ;;
     -c | --check ) args+=' --check-only'; shift ;;
+    -q | --quiet ) args+=' --quiet'; shift ;;
     -f | --force ) force=true; shift ;;
     -o | --only-changed ) selection='--git'; shift ;;
     -l | --list ) args+='--list'; shift ;;
