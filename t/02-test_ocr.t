@@ -25,9 +25,8 @@ cv::init();
 require tinycv;
 
 unless (which('tesseract')) {
-    # uncoverable statement count:2
-    plan skip_all => 'No tesseract installed';
-    exit(0);
+    plan skip_all => 'No tesseract installed';    # uncoverable statement
+    exit(0);    # uncoverable statement
 }
 
 stderr_like { needle::init } qr/loaded.*needles/, 'log output for needle init';
