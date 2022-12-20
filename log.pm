@@ -27,7 +27,7 @@ sub log_format_callback ($time, $level, @items) {
     # ensure indentation for multi-line output
     $lines =~ s/(?<!\A)^/  /gm;
 
-    return '[' . Time::Moment->now . "] [$level] $lines";
+    return '[' . Time::Moment->now . "] [$level] [pid:$$] $lines";
 }
 
 sub diag (@args) {
