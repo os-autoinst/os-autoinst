@@ -10,7 +10,7 @@ use Mojo::UserAgent;
 use IO::Select;
 use log qw(diag fctwarn);
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch checkout_git_refspec checkout_wheels
-load_test_schedule);
+  load_test_schedule);
 use OpenQA::Isotovideo::Backend;
 use OpenQA::Isotovideo::CommandHandler;
 use bmwqemu ();
@@ -121,6 +121,10 @@ sub handle_commands ($self) {
             $self->stop_autotest();
             $self->loop(0);
     });
+    # uncoverable statement count:1
+    # uncoverable statement count:2
+    # uncoverable statement count:3
+    # uncoverable statement count:4
     $command_handler->on(signal => sub ($event, $sig) {
             $self->backend->stop if defined $self->backend;    # uncoverable statement
             $self->stop_commands("received signal $sig");    # uncoverable statement
@@ -159,7 +163,7 @@ sub stop_commands ($self, $reason) {
 
     if ($self->cmd_srv_port && $reason && $reason eq 'test execution ended') {
         my $job_token = $bmwqemu::vars{JOBTOKEN};
-        my $url = "http://127.0.0.1:".$self->cmd_srv_port."/$job_token/broadcast";
+        my $url = "http://127.0.0.1:" . $self->cmd_srv_port . "/$job_token/broadcast";
         diag('isotovideo: informing websocket clients before stopping command server: ' . $url);
 
         # note: If the job is stopped by the worker because it has been
@@ -188,7 +192,7 @@ sub stop_autotest ($self) {
     diag('done with autotest process');
 }
 
-sub checkout_code($self) {
+sub checkout_code ($self) {
     checkout_git_repo_and_branch('CASEDIR');
 
     # Try to load the main.pm from one of the following in this order:

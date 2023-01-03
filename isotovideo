@@ -146,9 +146,10 @@ $runner->run;
 $runner->stop_commands('test execution ended');
 
 if ($runner->testfd) {
-    $return_code = 1;    # unusual shutdown
-    CORE::close $runner->testfd;
-    $runner->stop_autotest();
+    # unusual shutdown
+    $return_code = 1;    # uncoverable statement
+    CORE::close $runner->testfd;    # uncoverable statement
+    $runner->stop_autotest();    # uncoverable statement
 }
 
 diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
