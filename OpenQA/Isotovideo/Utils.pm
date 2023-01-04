@@ -37,6 +37,43 @@ sub calculate_git_hash ($git_repo_dir) {
     return $git_hash;
 }
 
+sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable) {
+    return bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists" if -e $local_path;
+    bmwqemu::fctinfo "Cloning git URL '$clone_url'";
+    my $branch_args = '';
+    if ($branch) {
+        bmwqemu::fctinfo "Checking out git refspec/branch '$branch'";
+        $branch_args = " --branch $branch";
+    }
+    my $clone_cmd = 'env GIT_SSH_COMMAND="ssh -oBatchMode=yes" git clone';
+    my @out = qx{$clone_cmd --depth=$clone_depth $branch_args $clone_url 2>&1};
+    my $handle_output = sub ($return_value, @out) {
+        bmwqemu::diag "@out" if @out;
+        die "Unable to clone Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_value == 0;
+        return 1;
+    };
+    return $handle_output->($?, @out) unless ($branch && grep /warning: Could not find remote branch/, @out);
+    # maybe we misspelled or maybe someone gave a commit hash instead
+    # for which we need to take a different approach by downloading the
+    # repository in the necessary depth until we can reach the commit
+    # References:
+    # * https://stackoverflow.com/questions/18515488/how-to-check-if-the-commit-exists-in-a-git-repository-by-its-sha-1
+    # * https://stackoverflow.com/questions/26135216/why-isnt-there-a-git-clone-specific-commit-option
+    bmwqemu::diag "Fetching more remote objects to ensure availability of '$branch'";
+    @out = qx{$clone_cmd --depth=$clone_depth $clone_url 2>&1};
+    $handle_output->($?, @out);
+    while (qx[git -C $local_path cat-file -e $branch^{commit} 2>&1] =~ /Not a valid object/) {
+        $clone_depth *= 2;
+        @out = qx[git -C $local_path fetch --progress --depth=$clone_depth 2>&1];
+        $handle_output->($?, @out);
+        die "Could not find '$branch' in complete history in cloned Git repository '$dir'" if grep /remote: Total 0/, @out;
+    }
+    @out = qx{git -C $local_path checkout $branch};
+    bmwqemu::diag "@out" if @out;
+    die "Unable to checkout branch '$branch' in cloned Git repository '$dir'" unless $? == 0;
+    return 1;
+}
+
 =head2 checkout_git_repo_and_branch
 
     checkout_git_repo_and_branch($dir [, clone_depth => <num>]);
@@ -47,6 +84,8 @@ optional git refspec to checkout. The git clone depth can be specified in the
 argument C<clone_depth> which defaults to 1.
 If C<repo> is specified it is used as the actual URL of the repo.
 
+Cloning may fail up to C<retry_count> times with a delay of C<retry_interval> seconds.
+
 =cut
 sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $dir = $bmwqemu::vars{$dir_variable} // $args{repo};
@@ -56,54 +95,16 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     return undef unless $url->scheme;    # assume we have a remote git URL to clone only if this looks like a remote URL
 
     $args{clone_depth} //= 1;
+    $args{retry_count} //= 2;
 
     my $branch = $url->fragment;
     my $clone_url = $url->fragment(undef)->to_string;
     my $local_path = $url->path->parts->[-1] =~ s/\.git$//r;
-    my $clone_cmd = 'env GIT_SSH_COMMAND="ssh -oBatchMode=yes" git clone';
-    my $clone_args = "--depth $args{clone_depth}";
-    my $branch_args = '';
-    my ($return_code, @out);
-    my $handle_output = sub {
-        bmwqemu::diag "@out" if @out;
-        die "Unable to clone Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
-    };
-    if ($branch) {
-        bmwqemu::fctinfo "Checking out git refspec/branch '$branch'";
-        $branch_args = " --branch $branch";
-    }
-    if (!-e $local_path) {
-        bmwqemu::fctinfo "Cloning git URL '$clone_url'";
-        @out = qx{$clone_cmd $clone_args $branch_args $clone_url 2>&1};
-        $return_code = $?;
-        if ($branch && grep /warning: Could not find remote branch/, @out) {
-            # maybe we misspelled or maybe someone gave a commit hash instead
-            # for which we need to take a different approach by downloading the
-            # repository in the necessary depth until we can reach the commit
-            # References:
-            # * https://stackoverflow.com/questions/18515488/how-to-check-if-the-commit-exists-in-a-git-repository-by-its-sha-1
-            # * https://stackoverflow.com/questions/26135216/why-isnt-there-a-git-clone-specific-commit-option
-            bmwqemu::diag "Fetching more remote objects to ensure availability of '$branch'";
-            @out = qx{$clone_cmd $clone_args $clone_url 2>&1};
-            $return_code = $?;
-            $handle_output->();
-            while (qx[git -C $local_path cat-file -e $branch^{commit} 2>&1] =~ /Not a valid object/) {
-                $args{clone_depth} *= 2;
-                @out = qx[git -C $local_path fetch --progress --depth=$args{clone_depth} 2>&1];
-                $return_code = $?;
-                bmwqemu::diag "git fetch: @out";
-                die "Unable to fetch Git repository '$dir' specified via $dir_variable (see log for details)" unless $return_code == 0;
-                die "Could not find '$branch' in complete history in cloned Git repository '$dir'" if grep /remote: Total 0/, @out;
-            }
-            qx{git -C $local_path checkout $branch};
-            die "Unable to checkout branch '$branch' in cloned Git repository '$dir'" unless $? == 0;
-        }
-        else {
-            $handle_output->();
-        }
-    }
-    else {
-        bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
+    my $tries = $args{retry_count};
+    while ($tries--) {
+        last unless clone_git $local_path, $clone_url, $args{clone_depth}, $branch, $dir, $dir_variable;
+        bmwqemu::diag "Clone failed, retries left: $tries of $args{retry_count}";
+        sleep($args{retry_interval} // 5);
     }
     my $local_abs = path($local_path)->to_abs->to_string;
     $bmwqemu::vars{$dir_variable} = $local_abs unless $args{repo};
