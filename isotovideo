@@ -54,7 +54,6 @@ use JSON::PP;
 
 my $installprefix;    # $bmwqemu::scriptdir
 my $fatal_error;    # the last error message caught by the die handler
-my $backend;
 
 BEGIN {
     # the following line is modified during make install
@@ -67,30 +66,13 @@ BEGIN {
 }
 
 use log qw(diag);
-use needle;
-use autotest ();
-use commands;
-use distribution;
-use testapi ();
 use Getopt::Long;
-require IPC::System::Simple;
-use POSIX qw(:sys_wait_h _exit);
-use Try::Tiny;
 use Mojo::File qw(curfile);
-use Mojo::UserAgent;
-use Mojo::IOLoop::ReadWriteProcess 'process';
 use Mojo::IOLoop::ReadWriteProcess::Session 'session';
 Getopt::Long::Configure("no_ignore_case");
-use OpenQA::Isotovideo::Backend;
-use OpenQA::Isotovideo::CommandHandler;
 use OpenQA::Isotovideo::Interface;
-use OpenQA::Isotovideo::Utils qw(git_rev_parse checkout_git_repo_and_branch
-  spawn_debuggers
-  checkout_wheels
-  checkout_git_refspec handle_generated_assets load_test_schedule);
-
-session->enable;
-session->enable_subreaper;
+use OpenQA::Isotovideo::Runner;
+use OpenQA::Isotovideo::Utils qw(git_rev_parse spawn_debuggers handle_generated_assets);
 
 my %options;
 
@@ -113,6 +95,9 @@ GetOptions(\%options, 'debug|d', 'workdir=s', 'color=s', 'help|h|?', 'version|v'
 usage(0) if $options{help};
 version() if $options{version};
 
+session->enable;
+session->enable_subreaper;
+
 my $color = $options{color} // 'yes';
 # User setting has preference, see https://no-color.org/
 delete $ENV{NO_COLOR} if $color eq 'yes';
@@ -129,160 +114,42 @@ my $return_code = 1;
 #       immediately but only in the END block.
 $SIG{__DIE__} = sub ($e) { $fatal_error = $e };
 
-diag(_get_version_string());
-
-# enable debug default when started from a tty
-$log::direct_output = $options{debug};
-
-select(STDERR);
-$| = 1;
-select(STDOUT);    # default
-$| = 1;
-
-$bmwqemu::scriptdir = $installprefix;
-bmwqemu::init();
-for my $arg (@ARGV) {
-    if ($arg =~ /^([[:alnum:]_\[\]\.]+)=(.+)/) {
-        my $key = uc $1;
-        $bmwqemu::vars{$key} = $2;
-        diag("Setting forced test parameter $key -> $2");
-    }
-}
-
-my $cmd_srv_process;
-my $command_handler;
-my $testprocess;
-my $cmd_srv_fd;
-my $cmd_srv_port;
-
-# note: The subsequently defined stop_* functions are used to tear down the process tree.
-#       However, the worker also ensures that all processes are being terminated (and
-#       eventually killed).
-
-sub stop_commands ($reason) {
-    return unless defined $cmd_srv_process;
-    return unless $cmd_srv_process->is_running;
-
-    my $pid = $cmd_srv_process->pid;
-    diag("stopping command server $pid because $reason");
-
-    if ($cmd_srv_port && $reason && $reason eq 'test execution ended') {
-        my $job_token = $bmwqemu::vars{JOBTOKEN};
-        my $url = "http://127.0.0.1:$cmd_srv_port/$job_token/broadcast";
-        diag('isotovideo: informing websocket clients before stopping command server: ' . $url);
-
-        # note: If the job is stopped by the worker because it has been
-        # aborted, the worker will send this command on its own to the command
-        # server and also stop the command server. So this is only done in the
-        # case the test execution just ends.
-
-        my $timeout = 15;
-        # The command server might have already been stopped by the worker
-        # after the user has aborted the job or the job timeout has been
-        # exceeded so no checks for failure done.
-        Mojo::UserAgent->new(request_timeout => $timeout)->post($url, json => {stopping_test_execution => $reason});
-    }
-
-    $cmd_srv_process->stop();
-    $cmd_srv_process = undef;
-    diag('done with command server');
-}
-
-sub stop_autotest () {
-    return unless defined $testprocess;
-
-    diag('stopping autotest process ' . $testprocess->pid);
-    $testprocess->stop() if $testprocess->is_running;
-    $testprocess = undef;
-    diag('done with autotest process');
-}
-
 # make sure all commands coming from the backend will not be in the
 # developers's locale - but a defined english one. This is SUSE's
 # default locale
 $ENV{LC_ALL} = 'en_US.UTF-8';
 $ENV{LANG} = 'en_US.UTF-8';
 
-checkout_git_repo_and_branch('CASEDIR');
+diag(_get_version_string());
 
-# Try to load the main.pm from one of the following in this order:
-#  - product dir
-#  - casedir
-#
-# This allows further structuring the test distribution collections with
-# multiple distributions or flavors in one repository.
-$bmwqemu::vars{PRODUCTDIR} ||= $bmwqemu::vars{CASEDIR};
+# enable debug default when started from a tty
+$log::direct_output = $options{debug};
 
-# checkout Git repo NEEDLES_DIR refers to (if it is a URL) and re-assign NEEDLES_DIR to contain the checkout path
-checkout_git_repo_and_branch('NEEDLES_DIR');
+$bmwqemu::scriptdir = $installprefix;
 
-bmwqemu::ensure_valid_vars();
-
-# as we are about to load the test modules checkout the specified git refspec,
-# if specified, or simply store the git hash that has been used. If it is not a
-# git repo fail silently, i.e. store an empty variable
-
-$bmwqemu::vars{TEST_GIT_HASH} = checkout_git_refspec($bmwqemu::vars{CASEDIR} => 'TEST_GIT_REFSPEC');
-
-# set a default distribution if the tests don't have one
-$testapi::distri = distribution->new;
-
-$bmwqemu::vars{WHEELS_DIR} ||= $bmwqemu::vars{CASEDIR};
-checkout_wheels($bmwqemu::vars{WHEELS_DIR});
-load_test_schedule;
-
-# start the command fork before we get into the backend, the command child
-# is not supposed to talk to the backend directly
-($cmd_srv_process, $cmd_srv_fd) = commands::start_server($cmd_srv_port = $bmwqemu::vars{QEMUPORT} + 1);
-
-testapi::init();
-needle::init();
-bmwqemu::save_vars();
-
-my $testfd;
-($testprocess, $testfd) = autotest::start_process();
-
-$backend = OpenQA::Isotovideo::Backend->new;
+my $runner = OpenQA::Isotovideo::Runner->new;
+$runner->_init_bmwqemu(@ARGV);
+$runner->prepare;
+$runner->start_autotest;
+$runner->create_backend;
 
 spawn_debuggers;
 
-# stop main loop as soon as one of the child processes terminates
-my $stop_loop = sub (@) { $command_handler->loop(0) if $command_handler->loop; };
-$testprocess->once(collected => $stop_loop);
-$backend->process->once(collected => $stop_loop);
-$cmd_srv_process->once(collected => $stop_loop);
-
-$command_handler = OpenQA::Isotovideo::CommandHandler->new(
-    cmd_srv_fd => $cmd_srv_fd,
-    test_fd => $testfd,
-    backend_fd => $backend->process->channel_in,
-    backend_out_fd => $backend->process->channel_out,
-);
-$command_handler->on(tests_done => sub (@) {
-        CORE::close($testfd);
-        $testfd = undef;
-        stop_autotest;
-});
-$command_handler->on(signal => sub ($event, $sig) {
-        $backend->stop if defined $backend;    # uncoverable statement
-        stop_commands("received signal $sig");    # uncoverable statement
-        stop_autotest;    # uncoverable statement
-        _exit(1);    # uncoverable statement
-});
-$command_handler->setup_signal_handler;
+$runner->handle_commands;
 
 $return_code = 0;
 
 # enter the main loop: process messages from autotest, command server and backend
-$command_handler->run;
+$runner->run;
 
 # terminate/kill the command server and let it inform its websocket clients before
-stop_commands('test execution ended');
+$runner->stop_commands('test execution ended');
 
-if ($testfd) {
-    $return_code = 1;    # unusual shutdown
-    CORE::close $testfd;
-    stop_autotest;
+if ($runner->testfd) {
+    # unusual shutdown
+    $return_code = 1;    # uncoverable statement
+    CORE::close $runner->testfd;    # uncoverable statement
+    $runner->stop_autotest();    # uncoverable statement
 }
 
 diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
@@ -305,15 +172,15 @@ if (!$return_code) {
 # read calculated variables from backend and tests
 bmwqemu::load_vars();
 
-$return_code = handle_generated_assets($command_handler, $clean_shutdown) unless $return_code;
+$return_code = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $return_code;
 
 # clear any previously recorded die message; it was not fatal after all if the execution came this far
 $fatal_error = undef;
 
 END {
-    $backend->stop if defined $backend;
-    stop_commands('test execution ended through exception');
-    stop_autotest;
+    $runner->backend->stop if $runner and $runner->backend;
+    $runner and $runner->stop_commands('test execution ended through exception');
+    $runner and $runner->stop_autotest();
 
     # in case of early exit, e.g. help display
     $return_code //= 0;
