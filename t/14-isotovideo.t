@@ -216,7 +216,7 @@ subtest 'load test success when casedir and productdir are relative path' => sub
 
 # mock backend/driver
 {
-    package FakeBackendDriver;
+    package FakeBackendDriver;    # uncoverable statement
     sub new ($class, $name) {
         my $self = bless({class => $class}, $class);
         require "backend/$name.pm";

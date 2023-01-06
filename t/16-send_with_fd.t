@@ -41,9 +41,7 @@ my $pid = fork || do {
 };
 
 my ($afd, $bfd) = POSIX::pipe();
-unless (defined $afd && defined $bfd) {
-    die "Could not create pipe: $!";
-}
+die "Could not create pipe: $!" unless (defined $afd && defined $bfd);
 
 ok(0 < tinycv::send_with_fd($bsk, 'echo', $bfd), 'Send file handle');
 POSIX::close($bfd);

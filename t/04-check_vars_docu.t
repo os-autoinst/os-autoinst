@@ -90,9 +90,9 @@ EO_BACKEND_HEADER
             next if ($var =~ /^\$[a-zA-Z]/);
             next if (grep { /$var/ } @{$var_blocklist{$backend}});
             unless ($documented_vars{$backend}{$var}) {
-                $error_found = 1;
-                $documented_vars{$backend}{$var} = ['', '', ''];
-                fail "missing documentation for backend $backend variable $var, please update backend_vars";
+                $error_found = 1;    # uncoverable statement
+                $documented_vars{$backend}{$var} = ['', '', ''];    # uncoverable statement
+                fail "missing documentation for backend $backend variable $var, please update backend_vars";    # uncoverable statement
             }
             my @var_docu = @{$documented_vars{$backend}{$var}};
             printf $docfh "%s;%s;%s;%s\n", $var, @var_docu;
