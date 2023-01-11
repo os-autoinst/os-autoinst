@@ -26,18 +26,18 @@ my $rpc_mock = Test::MockModule->new('myjsonrpc');
 $rpc_mock->redefine(send_json => sub {
         my ($fd, $cmd) = @_;
         if (!defined($fd) || ($fd != $cmd_srv_fd && $fd != $backend_fd && $fd != $answer_fd)) {
-            fail('invalid file descriptor passed to send_json: ' . ($fd ? $fd : 'undef'));
-            return;
+            fail('invalid file descriptor passed to send_json: ' . ($fd ? $fd : 'undef'));    # uncoverable statement
+            return;    # uncoverable statement
         }
         $last_received_msg_by_fd[$fd] = $cmd;
 });
 $rpc_mock->redefine(read_json => sub {
-        fail('we do not expect anything to be read here');
+        fail('we do not expect anything to be read here');    # uncoverable statement
 });
 
 # mock bmwqemu/backend
 {
-    package FakeBackend;
+    package FakeBackend;    # uncoverable statement
     sub new ($class) { bless({messages => []}, $class) }
     sub _send_json ($self, $cmd) {
         push(@{$self->{messages}}, $cmd);

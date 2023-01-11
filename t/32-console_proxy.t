@@ -61,7 +61,7 @@ $mock_jsonrpc->redefine(
             return {ret => {activated => 0}};
         }
 
-        die("$cmd not handled in this test");
+        die("$cmd not handled in this test");    # uncoverable statement
     });
 
 subtest 'Verify fake console return values in scalar context' => sub {

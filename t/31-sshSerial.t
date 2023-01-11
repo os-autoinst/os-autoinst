@@ -60,8 +60,8 @@ $mock_channel->mock(read => sub {    # no:style:signatures
         }
 
         if (length($data) > $size) {
-            unshift @{$self->{read_queue}}, substr($data, $size);
-            $data = substr($data, 0, $size);
+            unshift @{$self->{read_queue}}, substr($data, $size);    # uncoverable statement
+            $data = substr($data, 0, $size);    # uncoverable statement
         }
 
         # this is why we can't use a signature for this function,
@@ -89,7 +89,7 @@ $mock_ssh->set_always(blocking => $mock_channel->blocking($_[1]));
 $mock_ssh->mock(error => sub ($self) {
         return undef unless defined($self->{error});
         return ${$self->{error}}[0] if ((caller(0))[5]);
-        return @{$self->{error}};
+        return @{$self->{error}};    # uncoverable statement
 });
 
 $mock_ssh->mock(die_with_error => sub { die $_[1] });
