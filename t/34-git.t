@@ -7,7 +7,8 @@ use Test::Most;
 use Mojo::Base -strict, -signatures;
 use File::Path qw(rmtree);
 use FindBin '$Bin';
-use Test::Output qw(combined_from);
+use Test::Output qw(combined_from combined_like);
+use Test::Mock::Time;
 use OpenQA::Isotovideo::Utils qw(checkout_git_repo_and_branch);
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
@@ -23,6 +24,13 @@ chdir $Bin;
 # run during a `git rebase -x 'make test'`
 delete @ENV{qw(GIT_DIR GIT_REFLOG_ACTION GIT_WORK_TREE)};
 
+subtest 'failure to clone results in repeated attemps' => sub {
+    my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
+    my $failed_once = 0;
+    $utils_mock->redefine(clone_git => sub (@) { bmwqemu::diag "Connection reset by peer" unless $failed_once++; $failed_once });
+    combined_like { checkout_git_repo_and_branch('test', repo => 'https://github.com/foo/bar.git') } qr@Clone failed, retries left: 0 of 2@;
+};
+
 my $head = initialize_git_repo();
 my $case_dir_ok = "file://$git_dir#$head";
 my $case_dir = "file://$git_dir#abcdef";
@@ -37,7 +45,7 @@ subtest 'failing clone' => sub {
     };
     my $error = $@;
     like $error, qr{Could not find 'abcdef' in complete history in cloned Git repository '\Q$case_dir\E'}, "Error message when trying to clone wrong git hash";
-    like $out, qr{Cloning git URL.*Fetching more remote objects.*git fetch:}s, 'git fetch was called to get more commits';
+    like $out, qr{Cloning git URL.*Fetching more remote objects.*Enumerating objects}s, 'git fetch was called to get more commits';
 };
 
 cleanup();
