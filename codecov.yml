@@ -30,6 +30,7 @@ coverage:
           - mmapi.pm
           - osutils.pm
           - signalblocker.pm
+          - t
         ignore:
           - backend/ikvm.pm
           - backend/pvm.pm
