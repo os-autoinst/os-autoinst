@@ -72,11 +72,11 @@ is_deeply($svirt_sut_console, {
 sub _is_xml ($actual_xml_data, $expected_xml_file_path) {
     my $diff = XML::SemanticDiff->new(keeplinenums => 1);
     if (my @changes = $diff->compare($actual_xml_data, $expected_xml_file_path)) {
-        fail 'XML not as expected';
-        diag explain 'differences:', \@changes;
-        note 'produced XML:';
-        note $actual_xml_data;
-        return 0;
+        fail 'XML not as expected';    # uncoverable statement
+        diag explain 'differences:', \@changes;    # uncoverable statement
+        note 'produced XML:';    # uncoverable statement
+        note $actual_xml_data;    # uncoverable statement
+        return 0;    # uncoverable statement
     }
     ok 'XML looks as expected';
 }

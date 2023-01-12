@@ -426,9 +426,9 @@ subtest 'qemu is not called on an empty file when ISO_1 is an empty string' => s
     my $mock_proc = Test::MockModule->new('OpenQA::Qemu::Proc');
     my $call_count = 0;
     $mock_proc->redefine(get_img_size => sub {
-            my ($iso) = @_;
-            $call_count++;
-            die 'get_img_size called on an empty string' unless $iso;
+            my ($iso) = @_;    # uncoverable statement
+            $call_count++;    # uncoverable statement
+            die 'get_img_size called on an empty string' unless $iso;    # uncoverable statement
     });
 
     my %empty_iso_vars = (ISO_1 => '', NUMDISKS => 0);

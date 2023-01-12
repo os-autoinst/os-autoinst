@@ -130,7 +130,7 @@ subtest 'deducing VNC over WebSockets URL from vars' => sub {
 subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     # define simple WebSocket server for testing
     {
-        package TestWebSocketApp;
+        package TestWebSocketApp;    # uncoverable statement
         use Mojo::Base 'Mojolicious', -signatures;
         has received_data => '';
         sub startup ($self) {

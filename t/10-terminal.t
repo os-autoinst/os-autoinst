@@ -75,13 +75,13 @@ sub try_write ($fd, $msg) {
     while (1) {
         my $written = syswrite $fd, $msg;
         unless (defined $written) {
-            if ($ERRNO{EINTR}) {
-                next;
+            if ($ERRNO{EINTR}) {    # uncoverable statement
+                next;    # uncoverable statement
             }
-            confess "fake_terminal: Failed to write to socket $ERRNO";
+            confess "fake_terminal: Failed to write to socket $ERRNO";    # uncoverable statement
         }
         if ($written < length($msg)) {
-            confess "fake_terminal: Only wrote $written bytes of: $msg";
+            confess "fake_terminal: Only wrote $written bytes of: $msg";    # uncoverable statement
         }
         last;
     }
@@ -109,17 +109,17 @@ sub try_read ($fd, $fd_w, $expected) {
     while (1) {
         my $read = sysread $fd, $buf, length($expected);
         unless (defined $read) {
-            if ($ERRNO{EINTR}) {
-                $text .= $buf;
-                print $logfd $buf;
-                next;
+            if ($ERRNO{EINTR}) {    # uncoverable statement
+                $text .= $buf;    # uncoverable statement
+                print $logfd $buf;    # uncoverable statement
+                next;    # uncoverable statement
             }
-            confess "fake_terminal: Could not read from socket: $ERRNO";
+            confess "fake_terminal: Could not read from socket: $ERRNO";    # uncoverable statement
         }
         if ($read < length($expected)) {
-            $text .= $buf;
-            print $logfd $buf;
-            usleep(100);
+            $text .= $buf;    # uncoverable statement
+            print $logfd $buf;    # uncoverable statement
+            usleep(100);    # uncoverable statement
         }
         else {
             last;
@@ -131,7 +131,7 @@ sub try_read ($fd, $fd_w, $expected) {
         try_write($fd_w, $text);
     }
     elsif ($text ne $next_test) {
-        confess 'fake_terminal: Expecting special $next_test message, but got: ' . $text;
+        confess 'fake_terminal: Expecting special $next_test message, but got: ' . $text;    # uncoverable statement
     }
 
     return $text eq $expected;
@@ -142,8 +142,8 @@ sub fake_terminal ($pipe_in, $pipe_out) {
     my ($fd, $listen_fd);
 
     $SIG{ALRM} = sub {
-        report_child_test(fail => 'fake_terminal timed out while waiting for a connection');
-        exit(1);
+        report_child_test(fail => 'fake_terminal timed out while waiting for a connection');    # uncoverable statement
+        exit(1);    # uncoverable statement
     };
 
     alarm $timeout;
@@ -154,8 +154,8 @@ sub fake_terminal ($pipe_in, $pipe_out) {
       or die "Can't open out pipe for reading $!";
 
     $SIG{ALRM} = sub {
-        report_child_test(fail => 'fake_terminal timed out while performing IO');
-        exit(1);
+        report_child_test(fail => 'fake_terminal timed out while performing IO');    # uncoverable statement
+        exit(1);    # uncoverable statement
     };
 
     # Test::Most does not support forking, but if these tests fail it should
@@ -202,8 +202,8 @@ sub fake_terminal ($pipe_in, $pipe_out) {
 
     alarm $timeout;
     $SIG{ALRM} = sub {
-        report_child_test(fail => 'fake_terminal timed out first');
-        exit(0);
+        report_child_test(fail => 'fake_terminal timed out first');    # uncoverable statement
+        exit(0);    # uncoverable statement
     };
 
     try_read($fd_r, $fd_w, $next_test);
@@ -397,9 +397,9 @@ sub retrieve_child_tests () {
     while (my $json = <$fh>) {
         my $data = eval { decode_json($json) };
         if (my $error = $@) {
-            diag("Error decoding '$json': $error");
-            ok(0, "Valid JSON");
-            next;
+            diag("Error decoding '$json': $error");    # uncoverable statement
+            ok(0, "Valid JSON");    # uncoverable statement
+            next;    # uncoverable statement
         }
         my ($pid, $test) = @$data;
         push @{$tests{$pid}}, $test;
