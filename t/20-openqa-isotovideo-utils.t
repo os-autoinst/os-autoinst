@@ -2,7 +2,6 @@
 
 use Test::Most;
 use Test::Warnings qw(warning :report_warnings);
-use Test::MockModule;
 use autodie ':all';
 use Test::Output qw(combined_like stderr_like);
 use File::Path qw(remove_tree rmtree);
