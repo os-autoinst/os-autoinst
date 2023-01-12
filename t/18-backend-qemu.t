@@ -131,6 +131,29 @@ subtest 'switch_network' => sub {
     $called{handle_qmp_command} = undef;
 };
 
+subtest 'execute arbitrary QMP command' => sub {
+    my %query = (execute => 'foo', arguments => {bar => 1});
+    $called{handle_qmp_command} = undef;
+    $backend->execute_qmp_command({query => \%query});
+    is_deeply $called{handle_qmp_command}, [\%query], 'query params passed as-is';
+};
+
+subtest 'process_qemu_output' => sub {
+    my $qemu_log = <<'EOF';
+QEMU emulator version 4.2.1 (openSUSE Leap 15.2)
+Copyright 2003-2019 Fabrice Bellard and the QEMU Project developers
+qemu-system-x86_64: cannot set up guest memory 'pc.ram': Cannot allocate memory
+EOF
+    my $expected = qr/\[debug\].*QEMU emulator version.*\[warn\].*Cannot allocate memory/s;
+    my $msg = 'qemu output logged with distinct log levels';
+    combined_like { backend::qemu::process_qemu_output($qemu_log) } $expected, $msg;
+};
+
+# For all following tests log output is not needed and is disabled to not
+# pollute stderr
+my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
+$mock_bmwqemu->noop('log_call', 'fctwarn', 'diag');
+
 subtest 'setting graphics backend' => sub {
     my @params;
     local *backend::qemu::sp = sub (@args) { @params = @args };
@@ -162,29 +185,6 @@ subtest 'setting graphics backend' => sub {
     $backend->_set_graphics_backend(0);
     is_deeply \@params, [device => 'virtio-vga,edid=on,xres=1024,yres=768,foo=bar'], 'QEMU_VIDEO_DEVICE_OPTIONS gets appended to EDID values' or diag explain \@params;
 };
-
-subtest 'execute arbitrary QMP command' => sub {
-    my %query = (execute => 'foo', arguments => {bar => 1});
-    $called{handle_qmp_command} = undef;
-    $backend->execute_qmp_command({query => \%query});
-    is_deeply $called{handle_qmp_command}, [\%query], 'query params passed as-is';
-};
-
-subtest 'process_qemu_output' => sub {
-    my $qemu_log = <<'EOF';
-QEMU emulator version 4.2.1 (openSUSE Leap 15.2)
-Copyright 2003-2019 Fabrice Bellard and the QEMU Project developers
-qemu-system-x86_64: cannot set up guest memory 'pc.ram': Cannot allocate memory
-EOF
-    my $expected = qr/\[debug\].*QEMU emulator version.*\[warn\].*Cannot allocate memory/s;
-    my $msg = 'qemu output logged with distinct log levels';
-    combined_like { backend::qemu::process_qemu_output($qemu_log) } $expected, $msg;
-};
-
-# For all following tests log output is not needed and is disabled to not
-# pollute stderr
-my $mock_bmwqemu = Test::MockModule->new('bmwqemu');
-$mock_bmwqemu->noop('log_call', 'fctwarn', 'diag');
 
 sub qemu_cmdline (%args) {
     $bmwqemu::vars{$_} = $args{$_} for keys %args;
