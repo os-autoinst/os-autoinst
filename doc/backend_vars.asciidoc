@@ -143,7 +143,7 @@ QEMUCPU;see qemu -cpu ?;undef;CPU to emulate
 QEMUCPUS;integer;1;Number of CPUs to assign to VM
 QEMUDIES;integer;undef;Number of CPU dies used by VM
 QEMUMACHINE;see qemu -machine ?;undef;Machine and chipset to emulate
-QEMUPORT;integer;20003 + worker instance * 10;Port on which QEMU monitor should listen
+QEMUPORT;integer;20002 + worker instance * 10;Port on which QEMU monitor should listen
 QEMURAM;integer;1024;Size of RAM of VM in MiB
 QEMUSOCKETS;integer;undef;Number of CPU sockets used by VM
 QEMUTHREADS;integer;undef;Number of CPU threads used by VM
