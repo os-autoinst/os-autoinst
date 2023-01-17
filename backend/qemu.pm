@@ -598,7 +598,7 @@ sub start_qemu ($self) {
         }
         else {
             (my $class = $vars->{WORKER_CLASS} || '') =~ s/qemu_/qemu-system\-/g;
-            my @execs = qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64 qemu-system-aarch64);
+            my @execs = qw(kvm qemu-kvm qemu qemu-system-x86_64 qemu-system-ppc64 qemu-system-aarch64 qemu-system-s390x);
             my %allowed = map { $_ => 1 } @execs;
             for (split(/\s*,\s*/, $class)) {
                 if ($allowed{$_}) {
@@ -702,6 +702,7 @@ sub start_qemu ($self) {
     my $arch = $vars->{ARCH} // '';
     $arch = 'arm' if ($arch =~ /armv6|armv7/);
     my $is_arm = $arch eq 'aarch64' || $arch eq 'arm';
+    my $is_s390x = $arch eq 's390x';
 
     $self->_set_graphics_backend($is_arm);
 
@@ -798,27 +799,31 @@ sub start_qemu ($self) {
     bmwqemu::diag('Initializing block device images');
     $self->{proc}->init_blockdev_images();
 
-    sp('only-migratable') if $self->can_handle({function => 'snapshots', no_warn => 1});
+# qemu-system-s390x complains not supported? based on cpu type?
+    sp('only-migratable') unless $is_s390x && $self->can_handle({function => 'snapshots', no_warn => 1});
     sp('chardev', 'ringbuf,id=serial0,logfile=serial0,logappend=on');
     sp('serial', 'chardev:serial0');
 
-    if ($self->requires_audiodev) {
-        my $audiodev = $vars->{QEMU_AUDIODEV} // 'intel-hda';
-        my $audiobackend = $vars->{QEMU_AUDIOBACKEND} // 'none';
-        sp('audiodev', $audiobackend . ',id=snd0');
-        if ("$audiodev" eq "intel-hda") {
-            sp('device', $audiodev);
-            $audiodev = "hda-output";
+# No audio device support for s390x
+    unless ($is_s390x) {
+        if ($self->requires_audiodev) {
+            my $audiodev = $vars->{QEMU_AUDIODEV} // 'intel-hda';
+            my $audiobackend = $vars->{QEMU_AUDIOBACKEND} // 'none';
+            sp('audiodev', $audiobackend . ',id=snd0');
+            if ("$audiodev" eq "intel-hda") {
+                sp('device', $audiodev);
+                $audiodev = "hda-output";
+            }
+            sp('device', $audiodev . ',audiodev=snd0');
         }
-        sp('device', $audiodev . ',audiodev=snd0');
-    }
-    else {
-        my $soundhw = $vars->{QEMU_SOUNDHW} // 'hda';
-        sp('soundhw', $soundhw);
+        else {
+            my $soundhw = $vars->{QEMU_SOUNDHW} // 'hda';
+            sp('soundhw', $soundhw);
+        }
     }
     {
         # Remove floppy drive device on architectures
-        sp('global', 'isa-fdc.fdtypeA=none') unless ($is_arm || $vars->{QEMU_NO_FDC_SET});
+        sp('global', 'isa-fdc.fdtypeA=none') unless ($is_s390x || $is_arm || $vars->{QEMU_NO_FDC_SET});
 
         sp('m', $vars->{QEMURAM}) if $vars->{QEMURAM};
         sp('machine', $vars->{QEMUMACHINE}) if $vars->{QEMUMACHINE};
@@ -898,7 +903,7 @@ sub start_qemu ($self) {
             sp(lc($attribute), $vars->{$attribute}) if $vars->{$attribute};
         }
 
-        unless ($vars->{QEMU_NO_TABLET}) {
+        unless ($is_s390x or $vars->{QEMU_NO_TABLET}) {
             sp('device', ($vars->{OFW} || $arch eq 'aarch64') ? 'nec-usb-xhci' : 'qemu-xhci');
             sp('device', 'usb-tablet');
         }
