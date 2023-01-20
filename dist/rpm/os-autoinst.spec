@@ -212,6 +212,8 @@ export NO_BRP_STALE_LINK_ERROR=yes
 
 %check
 export CI=1
+# set TESSDATA_PREFIX for 02-ocr.t
+export TESSDATA_PREFIX="%{_datadir}/tessdata/"
 # account for sporadic slowness in build environments
 # https://progress.opensuse.org/issues/89059
 export OPENQA_TEST_TIMEOUT_SCALE_CI=20
