@@ -30,7 +30,7 @@ eval set -- "$opts"
 while true; do
   case "$1" in
     -v | --verbose ) set -x; shift ;;
-    -h | --help ) usage 0; shift ;;
+    -h | --help ) usage 0 ;;
     -t | --target ) target="$2"; shift 2 ;;
     -- ) shift; break ;;
     * ) break ;;
