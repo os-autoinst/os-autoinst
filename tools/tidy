@@ -34,7 +34,7 @@ opts=$(getopt -o hcqfol --long help,check,quiet,force,only-changed,list -n "$0" 
 eval set -- "$opts"
 while true; do
   case "$1" in
-    -h | --help ) usage; shift ;;
+    -h | --help ) usage ;;
     -c | --check ) args+=' --check-only'; shift ;;
     -q | --quiet ) args+=' --quiet'; shift ;;
     -f | --force ) force=true; shift ;;
