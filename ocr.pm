@@ -16,7 +16,8 @@ sub tesseract ($img, $area) {
     }
 
     $img->write($imgfn);
-    system('tesseract', $imgfn, $txtfn);
+    # disable debug output, because new versions by default only reports errors and warnings
+    system("tesseract $imgfn $txtfn quiet");
     $txtfn .= '.txt';
     open(my $fh, '<:encoding(UTF-8)', $txtfn);
     local $/;
