@@ -80,10 +80,10 @@ sub ensure_installed ($self, @pkglist) {
 }
 
 sub become_root ($self) {
-    testapi::script_sudo("bash", 0);    # become root
-    testapi::script_run('test $(id -u) -eq 0 && echo "imroot" > /dev/' . $testapi::serialdev, 0);
-    testapi::wait_serial("imroot", 5) || die "Root prompt not there";
-    testapi::script_run("cd /tmp");
+    testapi::script_sudo('bash', 0);    # become root
+    testapi::enter_cmd('test $(id -u) -eq 0 && echo "imroot" > /dev/' . $testapi::serialdev, 0);
+    testapi::wait_serial('imroot') || die 'Root prompt not there';
+    testapi::enter_cmd('cd /tmp');
 }
 
 =head2 script_run
