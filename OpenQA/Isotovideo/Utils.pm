@@ -102,7 +102,17 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $local_path = $url->path->parts->[-1] =~ s/\.git$//r;
     my $tries = $args{retry_count};
     while ($tries--) {
-        last unless clone_git $local_path, $clone_url, $args{clone_depth}, $branch, $dir, $dir_variable;
+        last if try {
+            clone_git $local_path, $clone_url, $args{clone_depth}, $branch, $dir, $dir_variable;
+        }
+        catch {
+            my $error_message = $_;
+            # Die if history could not be fetched
+            die $error_message if grep /Could not find.+in complete history/, $error_message;
+            # Die on the final attempt
+            die $error_message unless $tries;
+            bmwqemu::diag $error_message;
+        };
         bmwqemu::diag "Clone failed, retries left: $tries of $args{retry_count}";
         sleep($args{retry_interval} // 5);
     }

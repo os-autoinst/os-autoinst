@@ -27,8 +27,8 @@ delete @ENV{qw(GIT_DIR GIT_REFLOG_ACTION GIT_WORK_TREE)};
 subtest 'failure to clone results in repeated attemps' => sub {
     my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
     my $failed_once = 0;
-    $utils_mock->redefine(clone_git => sub (@) { bmwqemu::diag "Connection reset by peer" unless $failed_once++; $failed_once });
-    combined_like { checkout_git_repo_and_branch('test', repo => 'https://github.com/foo/bar.git') } qr@Clone failed, retries left: 0 of 2@;
+    $utils_mock->redefine(clone_git => sub (@) { die "Connection reset by peer" unless $failed_once++; 1 });
+    combined_like { checkout_git_repo_and_branch('test', repo => 'https://github.com/foo/bar.git') } qr@Clone failed, retries left: 1 of 2@;
 };
 
 my $head = initialize_git_repo();
