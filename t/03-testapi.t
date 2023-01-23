@@ -777,6 +777,7 @@ subtest 'check quiet option on script runs' => sub {
     is(assert_script_run('true', quiet => 0), undef, 'assert_script_run with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     ok(!validate_script_output('script', sub { m/output/ }, quiet => 0), 'validate_script_output with _QUIET_SCRIPT_CALLS=1 and quiet=>0');
     delete $bmwqemu::vars{_QUIET_SCRIPT_CALLS};
+    $mock_testapi->unmock('wait_serial');
 };
 
 subtest 'host_ip, autoinst_url' => sub {
@@ -1036,6 +1037,26 @@ subtest 'mouse click' => sub {
     $cmds = [];
     mouse_tclick();
     is $cmds->[0]{button}, 'left', 'mouse_tclick called with default button' or diag explain $cmds;
+};
+
+is_deeply testapi::_handle_found_needle(undef, undef, undef), undef, 'handle_found_needle returns no found needle by default';
+$bmwqemu::vars{CASEDIR} = 'foo';
+is get_test_data('foo'), undef, 'get_test_data can be called';
+lives_ok { become_root } 'become_root can be called';
+like(exception { ensure_installed }, qr/implement.*for your distri/, 'ensure_installed can be called');
+lives_ok { hold_key('ret') } 'hold_key can be called';
+lives_ok { release_key('ret') } 'release_key can be called';
+lives_ok { reset_consoles } 'reset_consoles can be called';
+lives_ok { power('on') } 'power can be called';
+lives_ok { save_memory_dump } 'save_memory_dump can be called';
+like(exception { save_storage_drives }, qr/should be called.*post_fail_hook/, 'save_storage_drives should be called special');
+lives_ok { freeze_vm } 'freeze_vm can be called';
+lives_ok { resume_vm } 'resume_vm can be called';
+
+subtest 'upload_asset' => sub {
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->noop('assert_script_run');
+    ok upload_asset('foo'), 'upload_asset can be called';
 };
 
 done_testing;

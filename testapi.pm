@@ -1144,7 +1144,8 @@ This will return content of the file located in data/autoyast/autoinst.xml
 
 sub get_test_data {
     my ($path) = @_;
-    $path = get_var('CASEDIR') . '/data/' . $path;
+    defined $bmwqemu::vars{CASEDIR} or die 'Need variable CASEDIR';
+    $path = "$bmwqemu::vars{CASEDIR}/data/$path";
     bmwqemu::log_call(path => $path);
     unless (-e $path) {
         bmwqemu::diag("File doesn't exist: $path");

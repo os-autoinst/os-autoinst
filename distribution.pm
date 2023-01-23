@@ -73,17 +73,17 @@ sub ensure_installed ($self, @pkglist) {
         testapi::x11_start_program("su -c 'yum -y install @pkglist'", 4, {terminal => 1});
     }
     else {
-        die "TODO: implement 'ensure_installed' for your distri " . testapi::get_var('DISTRI');
+        die "TODO: implement 'ensure_installed' for your distri " . testapi::get_var('DISTRI', '');
     }
     if ($testapi::password) { testapi::type_password; testapi::send_key("ret", 1); }
     wait_still_screen(7, 90);    # wait for install
 }
 
 sub become_root ($self) {
-    testapi::script_sudo("bash", 0);    # become root
-    testapi::script_run('test $(id -u) -eq 0 && echo "imroot" > /dev/' . $testapi::serialdev, 0);
-    testapi::wait_serial("imroot", 5) || die "Root prompt not there";
-    testapi::script_run("cd /tmp");
+    testapi::script_sudo('bash', 0);    # become root
+    testapi::enter_cmd('test $(id -u) -eq 0 && echo "imroot" > /dev/' . $testapi::serialdev, 0);
+    testapi::wait_serial('imroot') || die 'Root prompt not there';
+    testapi::enter_cmd('cd /tmp');
 }
 
 =head2 script_run
