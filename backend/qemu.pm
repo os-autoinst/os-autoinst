@@ -486,7 +486,10 @@ sub find_ovmf () { first { -e } @bmwqemu::ovmf_locations }
 
 sub virtio_console_names () {
     return () unless $bmwqemu::vars{VIRTIO_CONSOLE};
-    return map { 'virtio_console' . ($_ || '') } (0 .. ($bmwqemu::vars{VIRTIO_CONSOLE_NUM} // 1));
+    return (
+        'virtio_console', 'virtio_console_user',
+        map { 'virtio_console' . $_ } (1 .. ($bmwqemu::vars{VIRTIO_CONSOLE_NUM} // 1) - 1),
+    );
 }
 
 sub virtio_console_fifo_names () { map { $_ . '.in', $_ . '.out' } virtio_console_names }
