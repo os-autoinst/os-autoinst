@@ -931,7 +931,9 @@ sub start_qemu ($self) {
 
         if ($vars->{VNC}) {
             my $vncport = $vars->{VNC} !~ /:/ ? ":$vars->{VNC}" : $vars->{VNC};
-            sp('vnc', [qv "$vncport share=force-shared"]);
+            my $extravars = $vars->{VNC_EXTRA_VARS};
+            $extravars = defined $extravars ? " $extravars" : '';
+            sp('vnc', [qv "$vncport share=force-shared$extravars"]);
             sp('k', $vars->{VNCKB}) if $vars->{VNCKB};
         }
 

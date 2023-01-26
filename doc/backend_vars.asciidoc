@@ -194,6 +194,7 @@ VDE_PORT;integer;worker instance + 10;number of vde switch port to connect
 VDE_SOCKETDIR;string;.;directory where vde_switch control socket is to be found
 VDE_USE_SLIRP;integer;1;whether to start slirpvde
 VNC;integer;worker instance + 90;Display on which VNC server is running. Actual port is 5900 + VNC
+VNC_EXTRA_VARS;string;;Additional variables passed to the qemu VNC parameter (`-vnc`)
 VNCKB;;;Set the keyboard layout if you are not using en-us
 WORKER_CLASS;string;undef;qemu system types
 WORKER_HOSTNAME;string;undef;Worker hostname
