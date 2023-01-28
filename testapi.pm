@@ -1142,8 +1142,7 @@ This will return content of the file located in data/autoyast/autoinst.xml
 
 =cut
 
-sub get_test_data {
-    my ($path) = @_;
+sub get_test_data ($path) {
     defined $bmwqemu::vars{CASEDIR} or die 'Need variable CASEDIR';
     $path = "$bmwqemu::vars{CASEDIR}/data/$path";
     bmwqemu::log_call(path => $path);
@@ -1239,9 +1238,7 @@ I<The implementation is distribution specific and not always available.>
 
 =cut
 
-sub become_root {
-    return $distri->become_root;
-}
+sub become_root () { $distri->become_root }
 
 =head2 ensure_installed
 
@@ -1253,9 +1250,7 @@ I<The implementation is distribution specific and not always available.>
 
 =cut
 
-sub ensure_installed {
-    return $distri->ensure_installed(@_);
-}
+sub ensure_installed (@args) { $distri->ensure_installed(@args) }
 
 =head2 hashed_string
 
@@ -1314,8 +1309,7 @@ Hold one C<$key> until release it
 
 =cut
 
-sub hold_key {
-    my ($key) = @_;
+sub hold_key ($key) {
     bmwqemu::log_call(key => $key);
     query_isotovideo('backend_hold_key', {key => $key});
 }
@@ -1328,8 +1322,7 @@ Release one C<$key> which is kept holding
 
 =cut
 
-sub release_key {
-    my $key = shift;
+sub release_key ($key) {
     bmwqemu::log_call(key => $key);
     query_isotovideo('backend_release_key', {key => $key});
 }
@@ -1746,7 +1739,7 @@ if you did something to the system that affects the console (e.g. trigger reboot
 
 =cut
 
-sub reset_consoles {
+sub reset_consoles () {
     query_isotovideo('backend_reset_consoles');
     return;
 }
@@ -1836,10 +1829,7 @@ Trigger backend specific power action, can be C<'on'>, C<'off'>, C<'acpi'> or C<
 
 =cut
 
-sub power {
-
-    # params: (on), off, acpi, reset
-    my ($action) = @_;
+sub power ($action) {
     bmwqemu::log_call(action => $action);
     query_isotovideo('backend_power', {action => $action});
 }
@@ -1936,8 +1926,7 @@ I<Currently only qemu backend is supported.>
 
 =cut
 
-sub save_memory_dump {
-    my %nargs = @_;
+sub save_memory_dump (%nargs) {
     $nargs{filename} ||= $autotest::current_test->{name};
 
     bmwqemu::log_call(%nargs);
@@ -1959,8 +1948,8 @@ I<Currently only qemu backend is supported.>
 
 =cut
 
-sub save_storage_drives {
-    my $filename ||= $autotest::current_test->{name};
+sub save_storage_drives ($filename = undef) {
+    $filename //= $autotest::current_test->{name};
     die "save_storage_drives should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
 
     bmwqemu::log_call();
@@ -1990,7 +1979,7 @@ I<Currently only qemu backend is supported.>
 
 =cut
 
-sub freeze_vm {
+sub freeze_vm () {
     # While it might be a good idea to allow the user to stop the vm within a test
     # we're not encouraging them to do that outside a post_fail_hook or at any point
     # in the test code.
@@ -2011,7 +2000,7 @@ I<Currently only qemu backend is supported.>
 
 =cut
 
-sub resume_vm {
+sub resume_vm () {
     bmwqemu::log_call();
     query_isotovideo('backend_cont_vm');
 }
@@ -2220,9 +2209,7 @@ C<$nocheck> parameter:
 
 =cut
 
-sub upload_asset {
-    my ($file, $public, $nocheck) = @_;
-
+sub upload_asset ($file, $public = undef, $nocheck = undef) {
     if (get_var('OFFLINE_SUT')) {
         record_info('upload skipped', "Skipped uploading asset '$file' as we are offline");
         return;
