@@ -92,6 +92,9 @@ sub fake_read_json ($fd) {
     elsif ($cmd eq 'backend_wait_screen_change' || $cmd eq 'backend_wait_still_screen') {
         return {ret => {sim => $fake_similarity, elapsed => 5, timed_out => $fake_timeout}};
     }
+    elsif ($cmd eq 'backend_start_audiocapture') {
+        return {ret => 0};
+    }
     else {
         note "mock method not implemented \$cmd: $cmd\n";
     }
@@ -1046,16 +1049,30 @@ like(exception { ensure_installed }, qr/implement.*for your distri/, 'ensure_ins
 lives_ok { hold_key('ret') } 'hold_key can be called';
 lives_ok { release_key('ret') } 'release_key can be called';
 lives_ok { reset_consoles } 'reset_consoles can be called';
+
+subtest 'assert/check recorded sound' => sub {
+    $cmds = [];
+    lives_ok { start_audiocapture } 'start_audiocapture can be called';
+    like $cmds->[0]->{filename}, qr/captured\.wav/, 'audiocapture started with expected args' or diag explain $cmds;
+    my $mock_testapi = Test::MockModule->new('testapi');
+    $mock_testapi->noop('_snd2png');
+    $mock_basetest->noop('verify_sound_image');
+    ok assert_recorded_sound('foo'), 'assert_recorded_sound can be called';
+    ok check_recorded_sound('foo'), 'check_recorded_sound can be called';
+};
+
 lives_ok { power('on') } 'power can be called';
 lives_ok { save_memory_dump } 'save_memory_dump can be called';
 like(exception { save_storage_drives }, qr/should be called.*post_fail_hook/, 'save_storage_drives should be called special');
 lives_ok { freeze_vm } 'freeze_vm can be called';
 lives_ok { resume_vm } 'resume_vm can be called';
 
-subtest 'upload_asset' => sub {
+subtest 'upload_asset and parse_junit_log' => sub {
     my $mock_testapi = Test::MockModule->new('testapi');
     $mock_testapi->noop('assert_script_run');
     ok upload_asset('foo'), 'upload_asset can be called';
+    $mock_testapi->redefine(upload_logs => sub { die 'foo' });
+    like(exception { parse_junit_log('foo') }, qr/foo/, 'parse_junit_log calls upload_logs');
 };
 
 done_testing;
