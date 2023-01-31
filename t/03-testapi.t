@@ -347,7 +347,6 @@ subtest 'script_run' => sub {
 
 sub assert_script_sudo_test ($waittime, $is_serial_terminal) {
     my $mock_testapi = Test::MockModule->new('testapi');
-    $mock_testapi->redefine(_handle_found_needle => sub { return $_[0] });
     $mock_testapi->noop(qw(send_key enter_cmd));
     my $script_sudo = '';
     $mock_testapi->redefine(hashed_string => 'XXX');
