@@ -1060,3 +1060,7 @@ subtest 'upload_asset' => sub {
 };
 
 done_testing;
+
+END {
+    unlink 'vars.json';
+}
