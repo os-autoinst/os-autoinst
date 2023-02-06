@@ -112,6 +112,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
             $error = $@;
             last if $status;
             bmwqemu::diag "Clone failed, retries left: $tries of $args{retry_count}";
+            rmdir $local_path;
             sleep($args{retry_interval} // 5);
         } while ($tries-- > 0);
         die $error;
