@@ -86,6 +86,7 @@ git init >/dev/null 2>&1 && \
 git config user.email "you\@example.com" >/dev/null && \
 git config user.name "Your Name" >/dev/null && \
 git config init.defaultBranch main >/dev/null && \
+git config commit.gpgsign false >/dev/null && \
 touch README && \
 git add README && \
 git commit -mInit >/dev/null
