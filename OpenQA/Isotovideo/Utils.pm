@@ -38,7 +38,10 @@ sub calculate_git_hash ($git_repo_dir) {
 }
 
 sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable) {
-    return bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists" if -e $local_path;
+    if (-e $local_path) {
+        bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
+        return 1;
+    }
     bmwqemu::fctinfo "Cloning git URL '$clone_url'";
     my $branch_args = '';
     if ($branch) {
@@ -101,10 +104,17 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $clone_url = $url->fragment(undef)->to_string;
     my $local_path = $url->path->parts->[-1] =~ s/\.git$//r;
     my $tries = $args{retry_count};
-    while ($tries--) {
-        last unless clone_git $local_path, $clone_url, $args{clone_depth}, $branch, $dir, $dir_variable;
-        bmwqemu::diag "Clone failed, retries left: $tries of $args{retry_count}";
-        sleep($args{retry_interval} // 5);
+  retry: {
+        my $error;
+        do {
+            my $status;
+            eval { $status = clone_git $local_path, $clone_url, $args{clone_depth}, $branch, $dir, $dir_variable };
+            $error = $@;
+            last if $status;
+            bmwqemu::diag "Clone failed, retries left: $tries of $args{retry_count}";
+            sleep($args{retry_interval} // 5);
+        } while ($tries-- > 0);
+        die $error;
     }
     my $local_abs = path($local_path)->to_abs->to_string;
     $bmwqemu::vars{$dir_variable} = $local_abs unless $args{repo};
