@@ -24,11 +24,33 @@ chdir $Bin;
 # run during a `git rebase -x 'make test'`
 delete @ENV{qw(GIT_DIR GIT_REFLOG_ACTION GIT_WORK_TREE)};
 
+subtest 'failure to clone results once' => sub {
+    my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
+    my $failed_once = 0;
+    $utils_mock->redefine(clone_git => sub (@) {
+            unless ($failed_once++) {
+                bmwqemu::diag "Connection reset by peer";
+                die "Unable to clone Git repository";
+            }
+            bmwqemu::diag "Cloning into ...";
+            return 1;
+    });
+    combined_like { checkout_git_repo_and_branch('test', repo => 'https://github.com/foo/bar.git', retry_count => 3) } qr@Clone failed, retries left: 3 of 3@;
+};
+
 subtest 'failure to clone results in repeated attemps' => sub {
     my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
     my $failed_once = 0;
-    $utils_mock->redefine(clone_git => sub (@) { bmwqemu::diag "Connection reset by peer" unless $failed_once++; $failed_once });
-    combined_like { checkout_git_repo_and_branch('test', repo => 'https://github.com/foo/bar.git') } qr@Clone failed, retries left: 0 of 2@;
+    $utils_mock->redefine(clone_git => sub (@) {
+            bmwqemu::diag "Connection reset by peer";
+            die "Unable to clone Git repository";
+    });
+    my $out = combined_from {
+        eval { checkout_git_repo_and_branch('test', repo => 'https://github.com/foo/bar.git') };
+    };
+    my $error = $@;
+    like $error, qr@Unable to clone Git repository@;
+    like $out, qr@Clone failed, retries left: 0 of 2@, 'all retry attempts used';
 };
 
 my $head = initialize_git_repo();
@@ -41,7 +63,7 @@ subtest 'failing clone' => sub {
     );
     my $path;
     my $out = combined_from {
-        eval { $path = checkout_git_repo_and_branch('CASEDIR') };
+        eval { $path = checkout_git_repo_and_branch('CASEDIR', retry_count => 0) };
     };
     my $error = $@;
     like $error, qr{Could not find 'abcdef' in complete history in cloned Git repository '\Q$case_dir\E'}, "Error message when trying to clone wrong git hash";
@@ -86,6 +108,7 @@ git init >/dev/null 2>&1 && \
 git config user.email "you\@example.com" >/dev/null && \
 git config user.name "Your Name" >/dev/null && \
 git config init.defaultBranch main >/dev/null && \
+git config commit.gpgsign false >/dev/null && \
 touch README && \
 git add README && \
 git commit -mInit >/dev/null
