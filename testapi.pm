@@ -245,8 +245,7 @@ sub force_soft_failure ($reason) {
     $autotest::current_test->record_soft_failure_result($reason, force_status => 1);
 }
 
-sub _handle_found_needle {
-    my ($foundneedle, $rsp, $tags) = @_;
+sub _handle_found_needle ($foundneedle, $rsp, $tags) {
     # convert the needle back to an object
     $foundneedle->{needle} = needle->new($foundneedle->{needle});
     my $img = tinycv::from_ppm(decode_base64($rsp->{image}));
@@ -1339,9 +1338,7 @@ Throws C<FailedNeedle> exception if needle is not matched until C<$counter> is 0
 
 =cut
 
-sub send_key_until_needlematch {
-    my ($tag, $key, $counter, $timeout) = @_;
-
+sub send_key_until_needlematch ($tag, $key, $counter = undef, $timeout = undef) {
     $counter //= 20;
     $timeout //= 1;
 
@@ -1768,22 +1765,20 @@ I<Only supported by qemu backend.>
 
 =cut
 
-sub start_audiocapture {
+sub start_audiocapture () {
     my $fn = $autotest::current_test->capture_filename;
     my $filename = join('/', bmwqemu::result_dir(), $fn);
     bmwqemu::log_call(filename => $filename);
     return query_isotovideo('backend_start_audiocapture', {filename => $filename});
 }
 
-sub _check_or_assert_sound {
-    my ($mustmatch, $check) = @_;
+sub _snd2png ($wavfile, $imgpath) { system("snd2png $wavfile $imgpath") }    # uncoverable statement
 
+sub _check_or_assert_sound ($mustmatch, $check = undef) {
     my $result = $autotest::current_test->stop_audiocapture();
     my $wavfile = join('/', bmwqemu::result_dir(), $result->{audio});
-    system("snd2png $wavfile $result->{audio}.png");
-
     my $imgpath = "$result->{audio}.png";
-
+    _snd2png($wavfile, $result);
     return $autotest::current_test->verify_sound_image($imgpath, $mustmatch, $check);
 }
 
@@ -1798,8 +1793,7 @@ I<Only supported by QEMU backend.>
 
 =cut
 
-sub assert_recorded_sound {
-    my ($mustmatch) = @_;
+sub assert_recorded_sound ($mustmatch) {
     return _check_or_assert_sound $mustmatch;
 }
 
@@ -1814,8 +1808,7 @@ I<Only supported by QEMU backend.>
 
 =cut
 
-sub check_recorded_sound {
-    my ($mustmatch) = @_;
+sub check_recorded_sound ($mustmatch) {
     return _check_or_assert_sound $mustmatch, 1;
 }
 
@@ -2017,7 +2010,7 @@ file is then parsed as jUnit format and extra test results are created from it.
 =cut
 
 # XXX: To keep until tests are adapted
-sub parse_junit_log { return parse_extra_log('JUnit', shift) }
+sub parse_junit_log ($path) { return parse_extra_log('JUnit', $path) }
 
 =head2 parse_extra_log
 
@@ -2033,9 +2026,7 @@ file is then parsed as the format supplied, that can be understood by OpenQA::Pa
 
 =cut
 
-sub parse_extra_log {
-    my ($format, $file) = @_;
-
+sub parse_extra_log ($format, $file) {
     $file = upload_logs($file);
     my @tests;
 
