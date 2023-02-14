@@ -32,9 +32,6 @@ coverage:
           - signalblocker.pm
           - t
           - xt
-        ignore:
-          - backend/ikvm.pm
-          - backend/pvm.pm
     patch:
       default:
         branches: null

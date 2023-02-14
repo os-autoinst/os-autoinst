@@ -16,11 +16,9 @@ set(PERL_FILES
     backend/console_proxy.pm
     backend/driver.pm
     backend/generalhw.pm
-    backend/ikvm.pm
     backend/ipmi.pm
     backend/null.pm
     backend/pvm_hmc.pm
-    backend/pvm.pm
     backend/qemu.pm
     backend/s390x.pm
     backend/spvm.pm
