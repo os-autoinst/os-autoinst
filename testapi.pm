@@ -1778,7 +1778,7 @@ sub _check_or_assert_sound ($mustmatch, $check = undef) {
     my $result = $autotest::current_test->stop_audiocapture();
     my $wavfile = join('/', bmwqemu::result_dir(), $result->{audio});
     my $imgpath = "$result->{audio}.png";
-    _snd2png($wavfile, $result);
+    _snd2png($wavfile, $imgpath);
     return $autotest::current_test->verify_sound_image($imgpath, $mustmatch, $check);
 }
 
