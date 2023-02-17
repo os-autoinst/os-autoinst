@@ -73,12 +73,23 @@ Source0:        %{name}-%{version}.tar.xz
 %else
 %define python_style_requires %{nil}
 %endif
+%ifnarch ppc ppc64 ppc64le s390x
+%bcond_without ocr
+%else
+%bcond_with ocr
+%endif
+%if %{with ocr}
+# The following line is generated from dependencies.yaml
+%define ocr_requires tesseract-ocr tesseract-ocr-traineddata-english
+%else
+%define ocr_requires %{nil}
+%endif
 # The following line is generated from dependencies.yaml
 %define test_base_requires %main_requires cpio icewm perl(Benchmark) perl(Devel::Cover) perl(FindBin) perl(Pod::Coverage) perl(Test::Fatal) perl(Test::Mock::Time) perl(Test::MockModule) perl(Test::MockObject) perl(Test::MockRandom) perl(Test::Mojo) perl(Test::Most) perl(Test::Output) perl(Test::Pod) perl(Test::Strict) perl(Test::Warnings) >= 0.029 procps python3-setuptools qemu >= 4.0 qemu-tools qemu-x86 xorg-x11-Xvnc xterm xterm-console
 # The following line is generated from dependencies.yaml
 %define test_version_only_requires perl(Mojo::IOLoop::ReadWriteProcess) >= 0.28
 # The following line is generated from dependencies.yaml
-%define test_requires %build_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(Inline::Python) python3-Pillow-tk tesseract-ocr tesseract-ocr-traineddata-english
+%define test_requires %build_requires %ocr_requires %spellcheck_requires %test_base_requires %yamllint_requires perl(Inline::Python) python3-Pillow-tk
 # The following line is generated from dependencies.yaml
 %define devel_requires %python_style_requires %test_requires ShellCheck perl(Code::TidyAll) perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy) perl(Template::Toolkit)
 %define s390_zvm_requires /usr/bin/xkbcomp /usr/bin/Xvnc x3270 icewm xterm xterm-console xdotool fonts-config mkfontdir mkfontscale
@@ -86,7 +97,9 @@ BuildRequires:  %test_requires %test_version_only_requires
 # For unbuffered output of Perl testsuite, especially when running it on OBS so timestamps in the log are actually useful
 BuildRequires:  expect
 Requires:       %main_requires
+%if %{with ocr}
 Recommends:     tesseract-ocr
+%endif
 Recommends:     dumponlyconsole %s390_zvm_requires
 Recommends:     qemu >= 4.0.0
 Recommends:     qemu-tools
@@ -186,6 +199,10 @@ rm xt/00-tidy.t
 rm xt/30-make.t
 # https://progress.opensuse.org/issues/114881
 rm t/27-consoles-vmware.t
+# exclude tests requiring OCR dependencies when those are disabled
+%if %{without ocr}
+rm t/02-test_ocr.t
+%endif
 
 %build
 %define __builder ninja
