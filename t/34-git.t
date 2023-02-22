@@ -58,9 +58,7 @@ my $case_dir_ok = "file://$git_dir#$head";
 my $case_dir = "file://$git_dir#abcdef";
 
 subtest 'failing clone' => sub {
-    %bmwqemu::vars = (
-        CASEDIR => $case_dir,
-    );
+    %bmwqemu::vars = (CASEDIR => $case_dir);
     my $path;
     my $out = combined_from {
         eval { $path = checkout_git_repo_and_branch('CASEDIR', retry_count => 0) };
@@ -74,27 +72,17 @@ cleanup();
 
 subtest 'successful clone' => sub {
     my $path;
-    %bmwqemu::vars = (
-        CASEDIR => $case_dir_ok,
-    );
-    my $out = combined_from {
-        $path = checkout_git_repo_and_branch('CASEDIR');
-    };
+    %bmwqemu::vars = (CASEDIR => $case_dir_ok);
+    my $out = combined_from { $path = checkout_git_repo_and_branch('CASEDIR') };
     is $path, $clone_dir, 'checkout_git_repo_and_branch returned correct path';
     like $out, qr{Cloning git URL.*Fetching more remote objects}s, 'git clone was called again to fetch a git hash';
 
-    %bmwqemu::vars = (
-        CASEDIR => $case_dir_ok,
-    );
-    $out = combined_from {
-        $path = checkout_git_repo_and_branch('CASEDIR');
-    };
+    %bmwqemu::vars = (CASEDIR => $case_dir_ok);
+    $out = combined_from { $path = checkout_git_repo_and_branch('CASEDIR') };
     is $path, $clone_dir, 'checkout_git_repo_and_branch with existing local directory returned correct path';
     like $out, qr{Skipping to clone.*tmpgitrepo already exists}, 'Log says that local directory already exists';
 
-    eval {
-        bmwqemu::save_vars(no_secret => 1);
-    };
+    eval { bmwqemu::save_vars(no_secret => 1) };
     is($@, '', 'serialization successful');
 };
 
