@@ -37,7 +37,7 @@ sub calculate_git_hash ($git_repo_dir) {
     return $git_hash;
 }
 
-sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable) {
+sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variable, $direct_fetch) {
     if (-e $local_path) {
         bmwqemu::diag "Skipping to clone '$clone_url'; $local_path already exists";
         return 1;
@@ -56,15 +56,23 @@ sub clone_git ($local_path, $clone_url, $clone_depth, $branch, $dir, $dir_variab
         return 1;
     };
     return $handle_output->($?, @out) unless ($branch && grep /warning: Could not find remote branch/, @out);
-    # maybe we misspelled or maybe someone gave a commit hash instead
-    # for which we need to take a different approach by downloading the
-    # repository in the necessary depth until we can reach the commit
-    # References:
+
+    # if cloning with `--branch=…` does not work, just clone the default branch instead and fetch and checkout the missing
+    # ref manually
+    @out = qx{$clone_cmd --depth=$clone_depth $clone_url 2>&1};
+    if ($direct_fetch) {
+        bmwqemu::diag "Fetching '$branch' from origin manually";
+        $handle_output->($?, @out);
+        @out = qx{git -C "$local_path" fetch origin "$branch" 2>&1 && git -C "$local_path" checkout FETCH_HEAD 2>&1};
+        return $handle_output->($?, @out) unless (grep /could(n't| not) find remote ref/, @out);
+    }
+
+    # if fetching the specified rev did not work, take yet another approach (maybe we just misspelled, though)
+    # note: This approach repeatedly fetches further commits with increasing depth until the referenced rev exists.
+    # references:
     # * https://stackoverflow.com/questions/18515488/how-to-check-if-the-commit-exists-in-a-git-repository-by-its-sha-1
     # * https://stackoverflow.com/questions/26135216/why-isnt-there-a-git-clone-specific-commit-option
     bmwqemu::diag "Fetching more remote objects to ensure availability of '$branch'";
-    @out = qx{$clone_cmd --depth=$clone_depth $clone_url 2>&1};
-    $handle_output->($?, @out);
     while (qx[git -C $local_path cat-file -e $branch^{commit} 2>&1] =~ /Not a valid object/) {
         $clone_depth *= 2;
         @out = qx[git -C $local_path fetch --progress --depth=$clone_depth 2>&1];
@@ -111,7 +119,7 @@ sub checkout_git_repo_and_branch ($dir_variable, %args) {
     my $error;
     do {
         my $status;
-        eval { $status = clone_git $local_path, $clone_url, $args{clone_depth}, $branch, $dir, $dir_variable };
+        eval { $status = clone_git($local_path, $clone_url, $args{clone_depth}, $branch, $dir, $dir_variable, $args{direct_fetch} // 1) };
         $error = $@;
         return $local_abs if $status;
         bmwqemu::diag "Clone failed, retries left: $tries of $args{retry_count}";
