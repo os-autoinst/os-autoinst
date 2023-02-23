@@ -38,7 +38,7 @@ subtest 'failure to clone results once' => sub {
     combined_like { checkout_git_repo_and_branch('test', repo => 'https://github.com/foo/bar.git', retry_count => 3) } qr@Clone failed, retries left: 3 of 3@;
 };
 
-subtest 'failure to clone results in repeated attemps' => sub {
+subtest 'failure to clone results in repeated attempts' => sub {
     my $utils_mock = Test::MockModule->new('OpenQA::Isotovideo::Utils');
     my $failed_once = 0;
     $utils_mock->redefine(clone_git => sub (@) {
