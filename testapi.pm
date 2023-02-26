@@ -36,7 +36,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   hold_key release_key
 
   assert_screen check_screen assert_and_dclick save_screenshot
-  assert_and_click mouse_hide mouse_set mouse_click
+  assert_and_click mouse_hide mouse_set mouse_move mouse_click
   mouse_dclick mouse_tclick match_has_tag click_lastmatch mouse_drag
 
   assert_script_run script_run background_script_run
@@ -55,7 +55,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   switch_network
   save_memory_dump save_storage_drives freeze_vm resume_vm
 
-  diag hashed_string
+  diag hashed_string demosleep
 
   save_tmp_file get_test_data
 );
@@ -507,7 +507,13 @@ sub click_lastmatch (%args) {
     # Calculate the absolute click point.
     my ($x, $y) = _calculate_clickpoint($last_matched_needle, $relevant_area, $relative_click_point);
     bmwqemu::diag("clicking at $x/$y");
-    mouse_set($x, $y);
+    if ($bmwqemu::vars{DEMO_MODE}) {
+        mouse_move($x, $y);
+        sleep 1.5;
+    }
+    else {
+        mouse_set($x, $y);
+    }
     if ($args{dclick}) {
         mouse_dclick($args{button}, $args{clicktime});
     }
@@ -1472,8 +1478,39 @@ Move mouse pointer to given coordinates
 
 sub mouse_set ($mx, $my) {
     bmwqemu::log_call(x => $mx, y => $my);
+    _mouse_set($mx, $my);
+}
+
+sub _mouse_set ($mx, $my) {
+    bmwqemu::log_call(x => $mx, y => $my);
     query_isotovideo('backend_mouse_set', {x => $mx, y => $my});
 }
+
+=head2 mouse_move
+
+  mouse_move($x, $y, [$pixels_per_step, $delay_between_steps]);
+
+Slowly move mouse pointer to given coordinates by C<$delay_between_steps>,
+sleeping C<$delay_between_steps> between the steps.
+
+=cut
+
+sub mouse_move ($x, $y, $pixels_per_step = 5, $delay_between_steps = 0.01) {
+    bmwqemu::log_call(x => $x, y => $y);
+    my $old = query_isotovideo('backend_get_last_mouse_set');
+    my $curx = $old->{x};
+    my $cury = $old->{y};
+    return if $curx < 0 or $cury < 0;
+    while (1) {
+        $curx += _clamp($x - $curx, -$pixels_per_step, +$pixels_per_step);
+        $cury += _clamp($y - $cury, -$pixels_per_step, +$pixels_per_step);
+        _mouse_set $curx, $cury;
+        last if $curx == $x and $cury == $y;
+        sleep $delay_between_steps;
+    }
+}
+
+sub _clamp ($v, $lo, $hi) { $v < $lo ? $lo : $hi < $v ? $hi : $v }
 
 =head2 mouse_click
 
@@ -2274,4 +2311,14 @@ sub backend_get_wait_still_screen_on_here_doc_input () {
     $ret = query_isotovideo('backend_get_wait_still_screen_on_here_doc_input', {}) unless defined($ret);
     return get_var(_WAIT_STILL_SCREEN_ON_HERE_DOC_INPUT => $ret);
 }
+
+=head2 demosleep
+
+Sleep C<$seconds> if DEMO_MODE setting is enabled. Can take fractions of
+a second as an argument.
+
+=cut
+
+sub demosleep ($seconds) { sleep $seconds if $bmwqemu::vars{DEMO_MODE} }
+
 1;
