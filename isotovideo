@@ -151,21 +151,7 @@ eval {
     }
 
     diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
-
-    my $clean_shutdown;
-    if (!$return_code) {
-        eval {
-            $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
-            diag('backend shutdown state: ' . ($clean_shutdown // '?'));
-        };
-
-        # don't rely on the backend in a sane state if we failed - just stop it later
-        eval { bmwqemu::stop_vm(); };
-        if ($@) {
-            bmwqemu::serialize_state(component => 'backend', msg => "unable to stop VM: $@", error => 1);
-            $return_code = 1;
-        }
-    }
+    my $clean_shutdown = $runner->handle_shutdown(\$return_code);
 
     # read calculated variables from backend and tests
     bmwqemu::load_vars();

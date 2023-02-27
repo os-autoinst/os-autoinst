@@ -236,5 +236,22 @@ sub _init_bmwqemu ($, @args) {
     }
 }
 
+sub handle_shutdown ($self, $return_code) {
+    return undef if $$return_code;
+    my $clean_shutdown;
+    eval {
+        $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
+        diag('backend shutdown state: ' . ($clean_shutdown // '?'));
+    };
+
+    # don't rely on the backend to be in a sane state if we failed - just stop it later
+    eval { bmwqemu::stop_vm() };
+    if ($@) {
+        bmwqemu::serialize_state(component => 'backend', msg => "unable to stop VM: $@", error => 1);
+        $$return_code = 1;
+    }
+    return $clean_shutdown;
+}
+
 
 1;

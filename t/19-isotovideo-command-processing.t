@@ -7,7 +7,7 @@ use FindBin '$Bin';
 use lib "$Bin/../external/os-autoinst-common/lib";
 use OpenQA::Test::TimeLimit '5';
 use Test::MockModule;
-use Test::Output qw(stderr_like stderr_unlike);
+use Test::Output qw(stderr_like stderr_unlike combined_like);
 use Test::Warnings ':report_warnings';
 use Test::Fatal;
 use Mojo::JSON;
@@ -41,8 +41,9 @@ $rpc_mock->redefine(read_json => sub {
     sub new ($class) { bless({messages => []}, $class) }
     sub _send_json ($self, $cmd) {
         push(@{$self->{messages}}, $cmd);
-        return {tags => [qw(some fake tags)]};
+        return $cmd->{cmd} eq 'is_shutdown' ? 'down' : {tags => [qw(some fake tags)]};
     }
+    sub stop { die "faking stop\n" }
 }
 {
     package bmwqemu;
@@ -405,6 +406,18 @@ subtest 'No readable JSON' => sub {
         $runner->_read_response(undef, $readable);
     } qr/THERE IS NOTHING TO READ/, 'no response';
     is($runner->loop, 0, 'Loop was stopped');
+};
+
+subtest 'shutdown handling' => sub {
+    my $runner = OpenQA::Isotovideo::Runner->new;
+    my $return_code = 1;
+    ok !$runner->handle_shutdown(\$return_code), 'handling skipped if $return_code already set';
+
+    combined_like {
+        $return_code = 0;
+        is $runner->handle_shutdown(\$return_code), 'down', 'backup shutdown state returned';
+    } qr/state: down.*unable to stop VM: faking stop/s, 'shutdown state and error to stop VM logged';
+    is $return_code, 1, 'return code set to 1 due to error';
 };
 
 done_testing;
