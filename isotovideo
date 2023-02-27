@@ -53,7 +53,6 @@ no autodie 'kill';
 use JSON::PP;
 
 my $installprefix;    # $bmwqemu::scriptdir
-my $fatal_error;    # the last error message caught by the die handler
 
 BEGIN {
     # the following line is modified during make install
@@ -109,10 +108,8 @@ chdir $options{workdir} if $options{workdir};
 # global exit status
 my $return_code = 1;
 
-# record the last die message
-# note: It might *not* be a fatal error so we don't call bmwqemu::serialize_state here
-#       immediately but only in the END block.
-$SIG{__DIE__} = sub ($e) { $fatal_error = $e };
+# abstraction providing many helpers and function to run the select-loop
+my $runner;
 
 # make sure all commands coming from the backend will not be in the
 # developers's locale - but a defined english one. This is SUSE's
@@ -120,62 +117,48 @@ $SIG{__DIE__} = sub ($e) { $fatal_error = $e };
 $ENV{LC_ALL} = 'en_US.UTF-8';
 $ENV{LANG} = 'en_US.UTF-8';
 
-diag(_get_version_string());
+eval {
+    diag(_get_version_string());
 
-# enable debug default when started from a tty
-$log::direct_output = $options{debug};
+    # enable debug default when started from a tty
+    $log::direct_output = $options{debug};
 
-$bmwqemu::scriptdir = $installprefix;
+    $bmwqemu::scriptdir = $installprefix;
 
-my $runner = OpenQA::Isotovideo::Runner->new;
-$runner->_init_bmwqemu(@ARGV);
-$runner->prepare;
-$runner->start_autotest;
-$runner->create_backend;
+    $runner = OpenQA::Isotovideo::Runner->new;
+    $runner->_init_bmwqemu(@ARGV);
+    $runner->prepare;
+    $runner->start_autotest;
+    $runner->create_backend;
 
-spawn_debuggers;
+    spawn_debuggers;
 
-$runner->handle_commands;
+    $runner->handle_commands;
 
-$return_code = 0;
+    $return_code = 0;
 
-# enter the main loop: process messages from autotest, command server and backend
-$runner->run;
+    # enter the main loop: process messages from autotest, command server and backend
+    $runner->run;
 
-# terminate/kill the command server and let it inform its websocket clients before
-$runner->stop_commands('test execution ended');
+    # terminate/kill the command server and let it inform its websocket clients before
+    $runner->stop_commands('test execution ended');
 
-if ($runner->testfd) {
-    # unusual shutdown
-    $return_code = 1;    # uncoverable statement
-    CORE::close $runner->testfd;    # uncoverable statement
-    $runner->stop_autotest();    # uncoverable statement
-}
-
-diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
-
-my $clean_shutdown;
-if (!$return_code) {
-    eval {
-        $clean_shutdown = $bmwqemu::backend->_send_json({cmd => 'is_shutdown'});
-        diag('backend shutdown state: ' . ($clean_shutdown // '?'));
-    };
-
-    # don't rely on the backend in a sane state if we failed - just stop it later
-    eval { bmwqemu::stop_vm(); };
-    if ($@) {
-        bmwqemu::serialize_state(component => 'backend', msg => "unable to stop VM: $@", error => 1);
-        $return_code = 1;
+    if ($runner->testfd) {
+        # unusual shutdown
+        $return_code = 1;    # uncoverable statement
+        CORE::close $runner->testfd;    # uncoverable statement
+        $runner->stop_autotest();    # uncoverable statement
     }
-}
 
-# read calculated variables from backend and tests
-bmwqemu::load_vars();
+    diag 'isotovideo ' . ($return_code ? 'failed' : 'done');
+    my $clean_shutdown = $runner->handle_shutdown(\$return_code);
 
-$return_code = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $return_code;
+    # read calculated variables from backend and tests
+    bmwqemu::load_vars();
 
-# clear any previously recorded die message; it was not fatal after all if the execution came this far
-$fatal_error = undef;
+    $return_code = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $return_code;
+};
+bmwqemu::serialize_state(component => 'isotovideo', msg => $@) if $@;
 
 END {
     $runner->backend->stop if $runner and $runner->backend;
@@ -185,7 +168,6 @@ END {
     # in case of early exit, e.g. help display
     $return_code //= 0;
 
-    bmwqemu::serialize_state(component => 'isotovideo', msg => $fatal_error) if $fatal_error;
     print "$$: EXIT $return_code\n";
     $? = $return_code;
 }
