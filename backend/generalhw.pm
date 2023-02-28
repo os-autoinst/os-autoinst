@@ -57,7 +57,7 @@ sub run_cmd ($self, $cmd, @extra_args) {
     chomp $stderr;
 
     die "$cmd: stdout: $stdout, stderr: $stderr" unless $ret;
-    bmwqemu::diag("IPMI: stdout: $stdout, stderr: $stderr");
+    bmwqemu::diag("$cmd: stdout: $stdout, stderr: $stderr");
     return $stdout;
 }
 
