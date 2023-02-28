@@ -7,9 +7,9 @@ use Test::Warnings;
 use FindBin '$Bin';
 
 if (not -e "$Bin/../.git") {
-    pass("Skipping all tests, not in a git repository");
-    done_testing;
-    exit;
+    pass("Skipping all tests, not in a git repository");    # uncoverable statement
+    done_testing;    # uncoverable statement
+    exit;    # uncoverable statement
 }
 
 my $build_dir = $ENV{OS_AUTOINST_BUILD_DIRECTORY} || "$Bin/..";
