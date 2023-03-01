@@ -25,13 +25,6 @@ coverage:
           - consoles/serial_screen.pm
           - consoles/sshSerial.pm
           - consoles/virtio_terminal.pm
-          - bmwqemu.pm
-          - log.pm
-          - mmapi.pm
-          - osutils.pm
-          - signalblocker.pm
-          - t
-          - xt
     patch:
       default:
         branches: null
