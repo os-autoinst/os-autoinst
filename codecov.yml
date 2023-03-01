@@ -16,15 +16,13 @@ coverage:
       fully_covered:
         target: 100.0
         paths:
-          - OpenQA
-          - backend
-          - consoles/VMWare.pm
-          - consoles/VNC.pm
-          - consoles/localXvnc.pm
-          - consoles/network_console.pm
-          - consoles/serial_screen.pm
-          - consoles/sshSerial.pm
-          - consoles/virtio_terminal.pm
+          - bmwqemu.pm
+          - log.pm
+          - mmapi.pm
+          - osutils.pm
+          - signalblocker.pm
+          - t
+          - xt
     patch:
       default:
         branches: null
