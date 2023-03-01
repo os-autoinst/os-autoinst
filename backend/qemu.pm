@@ -609,7 +609,16 @@ sub start_qemu ($self) {
                     last;
                 }
             }
-            $qemubin = find_bin('/usr/bin/', @execs) unless $qemubin;
+            # qemubin_path_generic: Generic path of QEMU
+            # qemubin_path_el: QEMU path on Enterprise Linux
+            # qemubin_exec_el: QEMU executable name on Enterprise Linux
+            # qemubin_path_$DISTRO: QEMU path on $DISTRO
+            # qemubin_exec_$DISTRO: QEMU executable name on $DISTRO
+            my $qemubin_path_generic = '/usr/bin/';
+            my $qemubin_path_el = '/usr/libexec/';
+            my $qemubin_exec_el = 'qemu-kvm';
+            $qemubin = find_bin($qemubin_path_generic, @execs) unless $qemubin;
+            $qemubin = find_bin($qemubin_path_el, $qemubin_exec_el) unless $qemubin;
         }
     }
 
