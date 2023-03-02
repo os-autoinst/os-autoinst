@@ -31,6 +31,8 @@ coverage:
           - osutils.pm
           - signalblocker.pm
           - xt
+        ignore:
+          - t
     patch:
       default:
         branches: null
