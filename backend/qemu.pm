@@ -609,7 +609,7 @@ sub start_qemu ($self) {
                     last;
                 }
             }
-            $qemubin = find_bin('/usr/bin/', @execs) // find_bin('/usr/libexec/', @execs) unless $qemubin;
+            $qemubin ||= find_bin('/usr/bin/', @execs) // find_bin('/usr/libexec/', @execs);
         }
     }
 
