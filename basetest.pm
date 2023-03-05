@@ -210,6 +210,8 @@ sub _serialize_match ($self, $candidate) {
         for my $i (qw(x y w h result)) {
             $na->{$i} = $area->{$i};
         }
+        $na->{refstr} = $area->{refstr} if exists $area->{refstr};
+        $na->{ocr_str} = $area->{ocr_str} if exists $area->{ocr_str};
         $na->{similarity} = int($area->{similarity} * 100);
         $na->{click_point} = $area->{click_point} if exists $area->{click_point};
         push @{$match{area}}, $na;
