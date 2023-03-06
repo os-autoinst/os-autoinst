@@ -54,16 +54,18 @@ subtest 'get the version number' => sub {
 subtest 'color output can be configured via the command-line' => sub {
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
-    my $out = stderr_from { isotovideo(opts => "--color=yes casedir=$data_dir/tests schedule=foo,bar/baz _exit_after_schedule=1") };
+    my $out = stderr_from { isotovideo(opts => "--color=yes casedir=$data_dir/tests schedule=module1,bar/module2 _exit_after_schedule=1") };
     isnt($out, colorstrip($out), 'logs use colors when requested');
-    $out = stderr_from { isotovideo(opts => "--color=no casedir=$data_dir/tests schedule=foo,bar/baz _exit_after_schedule=1") };
+    $out = stderr_from { isotovideo(opts => "--color=no casedir=$data_dir/tests schedule=module1,bar/module2 _exit_after_schedule=1") };
     is($out, colorstrip($out), 'no colors in logs');
 };
 
 subtest 'standalone isotovideo without vars.json file and only command line parameters' => sub {
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
-    combined_like { isotovideo(opts => "casedir=$data_dir/tests schedule=foo,bar/baz _exit_after_schedule=1") } qr{scheduling.+(foo|bar/baz)}, 'requested modules scheduled';
+    my $out = stderr_from { isotovideo(opts => "casedir=$data_dir/tests schedule=module1,bar/module2 _exit_after_schedule=1") };
+    like $out, qr{scheduling.+(module1)}, 'requested module module1 scheduled';
+    like $out, qr{scheduling.+(bar/module2)}, 'requested module bar/module2 scheduled';
 };
 
 subtest 'standard tests based on simple vars.json file' => sub {
