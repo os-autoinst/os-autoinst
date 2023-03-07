@@ -45,21 +45,13 @@ sub run_cmd ($self, $cmd, @extra_args) {
 
     push @full_cmd, @extra_args;
 
-    my ($stdin, $stdout, $stderr, $ret);
-
-    {
-        # Do not let the SIGCHLD handler of Mojo::IOLoop::ReadWriteProcess::Session steal the exit code from IPC::Run
-        local $SIG{CHLD};
-        eval { $ret = IPC::Run::run(\@full_cmd, \$stdin, \$stdout, \$stderr) };
-        die "Unable to run command '@full_cmd' (deduced from test variable $cmd): $@\n" if $@;
-    }
-    chomp $stdout;
-    chomp $stderr;
-
-    die "$cmd: stdout: $stdout, stderr: $stderr" unless $ret;
-    bmwqemu::diag("$cmd: stdout: $stdout, stderr: $stderr");
-    return $stdout;
+    bmwqemu::diag("Calling $cmd");
+    my $ret = _system(@full_cmd);
+    die "Failed to run command '@full_cmd' (deduced from test variable $cmd): $ret\n" if ($ret != 0);
 }
+
+# wrapper to be mocked in os-autoinst unit tests as it is hard to mock system()
+sub _system (@cmd) { system(@cmd) }    # uncoverable statement
 
 sub poweroff_host ($self) {
     $self->run_cmd('GENERAL_HW_POWEROFF_CMD');

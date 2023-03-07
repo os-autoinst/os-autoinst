@@ -45,16 +45,13 @@ $bmwqemu::vars{HDDSIZEGB_1} = 5;
 my $distri = $testapi::distri = distribution->new;
 my $backend = backend::generalhw->new;
 
-# mock IPC::Run and the VNC console
-my $ipc_run_mock = Test::MockModule->new('IPC::Run');
-my $fake_ipc_error;
-$ipc_run_mock->redefine(run => sub {
-        my ($args, $stdin, $stdout, $stderr) = @_;
-        die $fake_ipc_error if $fake_ipc_error;
+# mock backend::generalhw::_system() and the VNC console
+my $cmd_mock = Test::MockModule->new('backend::generalhw');
+my $fake_system_return = 0;
+$cmd_mock->redefine(_system => sub {
+        my $args = \@_;
         push @invoked_cmds, $args;
-        $$stdin = 'stdin';
-        $$stdout = 'stdout';
-        $$stderr = 'stderr';
+        return $fake_system_return;
 });
 my $serial_mock = Test::MockModule->new('backend::generalhw');
 $serial_mock->redefine(start_serial_grab => sub { push @invoked_cmds, 'start_serial_grab' });
@@ -111,11 +108,11 @@ subtest 'stop VM' => sub {
 };
 
 subtest 'error handling' => sub {
-    $fake_ipc_error = 'fake error';
+    $fake_system_return = -1;
     throws_ok(
         sub { $backend->run_cmd('GENERAL_HW_POWEROFF_CMD') },
-        qr/Unable to run command '$cmd_ctl poweroff' \(deduced from test variable GENERAL_HW_POWEROFF_CMD\): fake error/,
-        'IPC error thrown with context'
+        qr/Failed to run command '$cmd_ctl poweroff' \(deduced from test variable GENERAL_HW_POWEROFF_CMD\): -1/,
+        'CMD error thrown with context'
     );
     $bmwqemu::vars{GENERAL_HW_CMD_DIR} = 'does-not-exist';
     throws_ok(
