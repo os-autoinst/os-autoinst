@@ -83,6 +83,46 @@ sub power ($self, $args) {
     }
 }
 
+=head2
+
+GENERAL_HW_ALSA_CTRL_DEV can be eg. /dev/snd/controlC0 or a symlink pointing there.
+
+How to configure a soundcard:
+Find the right soundcard by listing all the soundcards and remember the card id
+
+       cat /proc/asound/cards
+
+Find the right control device with the card id at the end and use the symlink
+pointing to that ctrl device
+
+       ls -l /dev/snd/by-path/
+
+--> GENERAL_HW_ALSA_CTRL_DEV=/dev/snd/by-path/pci-0000:06:00.3-usb-0:2.1:1.0
+
+Or use this one liner:
+
+       python3 -c 'import re,os; a="/dev/snd/by-path/"; m={re.match(r".*C(\d+)$", os.readlink(a+d)).group(1): a+d for d in os.listdir(a)}; print("\n".join([r + "\n"+" "*18+"==> GENERAL_HW_ALSA_CTRL_DEV="+m[re.match(r"^ (\d) \[", r).group(1)] for r in re.findall(r"^ \d+ \[.+(?:\n.+)", open("/proc/asound/cards").read(), re.MULTILINE)]))'
+
+=cut
+
+sub start_audiocapture ($self, $args) {
+    my $dev = $bmwqemu::vars{GENERAL_HW_ALSA_CTRL_DEV};
+    my $ctldev = Mojo::File->new($dev)->realpath->basename;
+    die "$dev is no ALSA control device\n" unless $ctldev =~ m/^controlC(\d+)$/;
+    my $card_num = $1;
+    my $card_name = trim(Mojo::File->new("/proc/asound/card$card_num/id")->slurp);
+
+    bmwqemu::diag("Starting audio capture");
+    my @cmd = ('arecord', '-D', "sysdefault:CARD=$card_name", '-c1', '-fS16', '-r44100', $args->{filename});
+    $self->{arecord} = IPC::Run::start(\@cmd);
+}
+
+sub stop_audiocapture ($self, $args) {
+    bmwqemu::diag("Stopping audio capture");
+    $self->{arecord}->signal('INT');
+    $self->{arecord}->finish();
+}
+
 sub relogin_vnc ($self) {
     if ($self->{vnc}) {
         close($self->{vnc}->socket);
