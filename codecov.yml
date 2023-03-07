@@ -32,6 +32,8 @@ coverage:
           - signalblocker.pm
           - t
           - xt
+        ignore:
+          - t/data/tests
     patch:
       default:
         branches: null
