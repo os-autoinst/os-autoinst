@@ -573,7 +573,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     size => 12
             });
             like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
-            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' 12G", 'Used image size > backingfile size');
+            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' 12G", 'Used image size > backingfile size');
         };
 
         subtest 'family svirt-xen-hvm backingfile=1 size smaller backingfile-size' => sub {
@@ -588,7 +588,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     size => 5
             });
             like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
-            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' $_10gb", 'Used image size <= backingfile size');
+            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' $_10gb", 'Used image size <= backingfile size');
 
             svirt_xml_validate($svirt,
                 dev => 'xvd' . $dev_id,
@@ -677,7 +677,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     size => 12
             });
             like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
-            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' 12G", 'Used image size > backingfile size');
+            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' 12G", 'Used image size > backingfile size');
         };
 
         subtest 'family kvm backingfile=1 size smaller then backingfile' => sub {
@@ -692,7 +692,7 @@ subtest 'Method consoles::sshVirtsh::add_disk()' => sub {
                     size => 5
             });
             like($last_ssh_commands[0], qr%^rsync.*/my/path/to/this/file/$file.*$basedir/$file%, 'Use rsync to copy file');
-            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -b '$basedir/$file' $_10gb", 'Used image size <= backingfile size');
+            is($last_ssh_commands[-1], "qemu-img create '${basedir}openQA-SUT-1$dev_id.img' -f qcow2 -F qcow2 -b '$basedir/$file' $_10gb", 'Used image size <= backingfile size');
 
             svirt_xml_validate($svirt,
                 dev => 'vd' . $dev_id,
