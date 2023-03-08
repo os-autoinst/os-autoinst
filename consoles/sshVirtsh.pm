@@ -389,7 +389,7 @@ sub _copy_image_to_vm_host ($self, $args, $vmware_openqa_datastore, $file, $name
         my (undef, $json) = $self->run_cmd("qemu-img info --output=json $args->{file}", wantarray => 1);
         my $image_vsize = decode_json($json)->{'virtual-size'};
         $size = (($size * 1024 * 1024 * 1024) <= $image_vsize) ? $image_vsize : $size . 'G';
-        $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -b '$basedir/%s' ${size}", $file_basename))
+        $self->run_cmd(sprintf("qemu-img create '${file}' -f qcow2 -F qcow2 -b '$basedir/%s' ${size}", $file_basename))
           && die 'qemu-img create with backing file failed';
     }
     return $file;
