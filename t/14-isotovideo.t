@@ -230,7 +230,6 @@ subtest 'load test success when casedir and productdir are relative path' => sub
 
 subtest 'publish assets' => sub {
     $bmwqemu::vars{BACKEND} = 'qemu';
-    $bmwqemu::vars{NUMDISKS} = 1;
     $bmwqemu::backend = FakeBackendDriver->new('qemu');
     my $publish_asset = $pool_dir . '/assets_public/publish_test.qcow2';
 
