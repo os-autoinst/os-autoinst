@@ -46,7 +46,7 @@ devel_requires:
   perl(Devel::Cover):
   perl(Devel::Cover::Report::Codecov):
   perl(Template::Toolkit):
-  perl(Perl::Tidy): '== 20221112'
+  perl(Perl::Tidy): '== 20230309'
   ShellCheck:
 
 docker_requires:
