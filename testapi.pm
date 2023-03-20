@@ -173,7 +173,8 @@ Saves screenshot of current SUT screen.
 
 =cut
 
-sub save_screenshot () { $autotest::current_test->take_screenshot }
+sub is_serial_terminal;
+sub save_screenshot () { $autotest::current_test->take_screenshot unless is_serial_terminal }
 
 =head2 record_soft_failure
 
