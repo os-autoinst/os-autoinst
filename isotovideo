@@ -52,7 +52,7 @@ no autodie 'kill';
 # Details: https://progress.opensuse.org/issues/90371
 use JSON::PP;
 
-my $installprefix;    # $bmwqemu::scriptdir
+my $installprefix;    # $bmwqemu::topdir
 
 BEGIN {
     # the following line is modified during make install
@@ -123,7 +123,7 @@ eval {
     # enable debug default when started from a tty
     $log::direct_output = $options{debug};
 
-    $bmwqemu::scriptdir = $installprefix;
+    $bmwqemu::topdir = $installprefix;
 
     $runner = OpenQA::Isotovideo::Runner->new;
     $runner->_init_bmwqemu(@ARGV);

@@ -10,7 +10,7 @@ use OpenQA::Test::TimeLimit '10';
 use OpenQA::Isotovideo::Utils qw(spawn_debuggers);
 
 subtest debuggers => sub {
-    $bmwqemu::scriptdir = "$Bin/..";
+    $bmwqemu::topdir = "$Bin/..";
     $bmwqemu::vars{VNC} = '1234';
     my $vncviewer_called = 0;
     my $debugviewer_called = 0;
