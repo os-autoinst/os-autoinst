@@ -700,7 +700,7 @@ sub start_qemu ($self) {
             die "invalid characters in LAPTOP\n";
         }
         $vars->{LAPTOP} = 'hp_elitebook_820g1' if $vars->{LAPTOP} eq '1';
-        die "no dmi data for '$vars->{LAPTOP}'\n" unless -d "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
+        die "no dmi data for '$vars->{LAPTOP}'\n" unless -d "$bmwqemu::topdir/dmidata/$vars->{LAPTOP}";
     }
 
     my $bootfrom = '';    # branch by "disk" or "cdrom", not "c" or "d"
@@ -911,7 +911,7 @@ sub start_qemu ($self) {
         sp('smbios', $vars->{QEMU_SMBIOS}) if $vars->{QEMU_SMBIOS};
 
         if ($vars->{LAPTOP}) {
-            my $laptop_path = "$bmwqemu::scriptdir/dmidata/$vars->{LAPTOP}";
+            my $laptop_path = "$bmwqemu::topdir/dmidata/$vars->{LAPTOP}";
             for my $f (glob "$laptop_path/*.bin") {
                 sp('smbios', "file=$f");
             }

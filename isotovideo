@@ -91,7 +91,7 @@ use constant {
 # Details: https://progress.opensuse.org/issues/90371
 use JSON::PP;
 
-my $installprefix;    # $bmwqemu::scriptdir
+my $installprefix;    # $bmwqemu::topdir
 
 BEGIN {
     # the following line is modified during make install
@@ -176,7 +176,7 @@ $ENV{LANG} = 'en_US.UTF-8';
 eval {
     diag(_get_version_string());
     $log::direct_output = $options{debug};    # enable debug default when started from a tty
-    $bmwqemu::scriptdir = $installprefix;
+    $bmwqemu::topdir = $installprefix;
     $runner = OpenQA::Isotovideo::Runner->new;
     $runner->init(@ARGV);
     spawn_debuggers;

@@ -261,7 +261,7 @@ sub checkout_wheels ($case_dir, $wheels_dir = undef) {
     my $specfile = path($case_dir, 'wheels.yaml');
     return 1 unless -e $specfile;
 
-    my $schema_file = "$bmwqemu::scriptdir/schema/Wheels-01.yaml";
+    my $schema_file = "$bmwqemu::topdir/schema/Wheels-01.yaml";
     # JSON::Validator 4.10 reports an unexpected error message for
     # non-existent schema files with absolute paths
     die "Unable to load schema '$schema_file'" unless -f $schema_file;
@@ -431,7 +431,7 @@ sub _store_asset ($index, $name, $dir) {
 sub spawn_debuggers () {
     my %debugging_tools;
     $debugging_tools{vncviewer} = ['vncviewer', '-viewonly', '-shared', "localhost:$bmwqemu::vars{VNC}"] if $ENV{RUN_VNCVIEWER};
-    $debugging_tools{debugviewer} = ["$bmwqemu::scriptdir/debugviewer/debugviewer", 'qemuscreenshot/last.png'] if $ENV{RUN_DEBUGVIEWER};
+    $debugging_tools{debugviewer} = ["$bmwqemu::topdir/debugviewer/debugviewer", 'qemuscreenshot/last.png'] if $ENV{RUN_DEBUGVIEWER};
     for my $tool (keys %debugging_tools) {
         my ($stdin, $stdout, $stderr, $ret);
         IPC::Run::run(\@{$debugging_tools{$tool}}, \$stdin, \$stdout, \$stderr);

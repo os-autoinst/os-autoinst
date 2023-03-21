@@ -103,7 +103,7 @@ sub activate ($self) {
     sleep 1;
 
     # we need a window manager for fullscreen apps to work
-    system("DISPLAY=$display icewm -c $bmwqemu::scriptdir/consoles/icewm.cfg & echo \"icewm PID is \$!\"");
+    system("DISPLAY=$display icewm -c $bmwqemu::topdir/consoles/icewm.cfg & echo \"icewm PID is \$!\"");
     return;
 }
 

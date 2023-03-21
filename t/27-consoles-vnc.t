@@ -24,7 +24,7 @@ use cv;
 cv::init;
 require tinycv;
 
-$bmwqemu::scriptdir = "$Bin/..";
+$bmwqemu::topdir = "$Bin/..";
 
 my (@sent, @printed);
 my $vnc_mock = Test::MockModule->new('consoles::VNC');
@@ -454,9 +454,9 @@ subtest 'login on real VNC server via vnctest, request and receive frame buffer'
     my $display = $ENV{VNC_TEST_DISPLAY} // 20;
     my $port = 5900 + $display;
 
-    note "running Xvnc for display $display (port $port) and connect via $bmwqemu::scriptdir/vnctest";
+    note "running Xvnc for display $display (port $port) and connect via $bmwqemu::topdir/vnctest";
     my $xvnc_pid = open(my $xvnc_pipe, "Xvnc -depth 16 -SecurityTypes None -ac :$display 2>&1 |");
-    my $vnc_test_pid = open(my $vnc_test_pipe, "$bmwqemu::scriptdir/vnctest --port $port --verbose 2>&1 |");
+    my $vnc_test_pid = open(my $vnc_test_pipe, "$bmwqemu::topdir/vnctest --port $port --verbose 2>&1 |");
     my ($sent_update_request, $has_framebuffer) = (0, 0);
     while (my $line = <$vnc_test_pipe>) {
         ++$sent_update_request if $line =~ qr/Send update request/;

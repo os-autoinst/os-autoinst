@@ -371,7 +371,7 @@ sub start_encoder ($self) {
 
     # start internal video encoder; only start it to generate PNGs if an external video encoder is used or NOVIDEO set
     my $cwd = Cwd::getcwd;
-    my @cmd = (qw(nice -n 19), "$bmwqemu::scriptdir/videoencoder", "$cwd/video.ogv");
+    my @cmd = (qw(nice -n 19), "$bmwqemu::topdir/videoencoder", "$cwd/video.ogv");
     push(@cmd, '-n') if $bmwqemu::vars{NOVIDEO} || ($has_external_video_encoder_configured && !$bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_ADDITIONALLY});
     push @cmd, '-x', $self->{xres}, '-y', $self->{yres};
     $self->_invoke_video_encoder(encoder_pipe => 'built-in video encoder', @cmd);

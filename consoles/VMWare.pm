@@ -90,7 +90,7 @@ sub _cleanup_previous_dewebsockify_process ($self) {
 }
 
 sub _start_dewebsockify_process ($self, $listen_port, $websockets_url, $session, $log_level = undef) {
-    my @args = ("$bmwqemu::scriptdir/dewebsockify", '--listenport', $listen_port, '--websocketurl', $websockets_url, '--cookie', "vmware_client=VMware; $session");
+    my @args = ("$bmwqemu::topdir/dewebsockify", '--listenport', $listen_port, '--websocketurl', $websockets_url, '--cookie', "vmware_client=VMware; $session");
     push @args, '--loglevel', $log_level if $log_level;
     push @args, '--insecure' if $bmwqemu::vars{VMWARE_VNC_OVER_WS_INSECURE};
     my $pid = fork;

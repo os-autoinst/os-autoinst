@@ -31,7 +31,7 @@ use Scalar::Util qw(blessed);
 
 use consoles::VMWare;
 
-$bmwqemu::scriptdir = "$Bin/..";
+$bmwqemu::topdir = "$Bin/..";
 $bmwqemu::vars{VMWARE_VNC_OVER_WS_INSECURE} = 1;
 
 sub mk_res ($code, @text) { map { Mojo::Message::Response->new->code($code)->body($_) } @text }
@@ -232,7 +232,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     $vmware->_cleanup_previous_dewebsockify_process;
 
     # test error handling of dewebsockify
-    my $dewebsockify_cmd_start = "$bmwqemu::scriptdir/dewebsockify --listenport $tcp_port --websocketurl";
+    my $dewebsockify_cmd_start = "$bmwqemu::topdir/dewebsockify --listenport $tcp_port --websocketurl";
     my $assert_log = sub ($dewebsockify_pipe, $expected) {
         my $dewebsockify_log;
         read($dewebsockify_pipe, $dewebsockify_log, 1000) or die "Unable read dewebsockify pipe: $!";

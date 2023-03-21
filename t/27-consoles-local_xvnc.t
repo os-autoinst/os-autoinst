@@ -38,7 +38,7 @@ my $socket_mock = Test::MockModule->new('Socket');
 my $vnc_base_mock = Test::MockModule->new('consoles::vnc_base');
 my $vnc_mock = Test::MockObject->new->set_true('check_vnc_stalls');
 $vnc_base_mock->redefine(connect_remote => $vnc_mock);
-$bmwqemu::scriptdir = "$Bin/..";
+$bmwqemu::topdir = "$Bin/..";
 my $local_xvnc_mock = Test::MockModule->new('consoles::localXvnc');
 # uncoverable statement count:2
 $local_xvnc_mock->redefine(start_xvnc => sub { _exit(0) });

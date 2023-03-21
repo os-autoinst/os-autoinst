@@ -559,7 +559,7 @@ subtest 'save storage' => sub {
 
 subtest 'special cases when starting QEMU' => sub {
     # set certain variables to test special handling for them that is not otherwise tested
-    $bmwqemu::scriptdir = "$Bin/..";    # for dmi data
+    $bmwqemu::topdir = "$Bin/..";    # for dmi data
     $bmwqemu::vars{UEFI_PFLASH} = 1;
     $bmwqemu::vars{ARCH} = 'x86_64';
     $bmwqemu::vars{KERNEL} = 'linuxboot.bin';

@@ -133,7 +133,7 @@ subtest 'isotovideo with git refspec specified' => sub {
 subtest 'isotovideo with wheels' => sub {
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
-    $bmwqemu::scriptdir = "$Bin/..";
+    $bmwqemu::topdir = "$Bin/..";
     my $case_dir = "$data_dir/tests";
     my $wheels_dir = "$data_dir/wheels_dir";
     my $specfile = path($case_dir)->make_path->child('wheels.yaml');
