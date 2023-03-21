@@ -69,16 +69,15 @@ our $realname = "Bernhard M. Wiedemann";
 our $username;
 our $password;
 
+our $last_matched_needle;
 our $serialdev;
 
-our $last_matched_needle;
-
-sub send_key;
 sub check_screen;
-sub type_string;
-sub type_password;
 sub enter_cmd;
-
+sub is_serial_terminal;
+sub send_key;
+sub type_password;
+sub type_string;
 
 =head1 introduction
 
@@ -173,7 +172,6 @@ Saves screenshot of current SUT screen.
 
 =cut
 
-sub is_serial_terminal;
 sub save_screenshot () { $autotest::current_test->take_screenshot unless is_serial_terminal }
 
 =head2 record_soft_failure
