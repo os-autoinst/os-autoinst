@@ -338,9 +338,8 @@ subtest 'script_run' => sub {
     $fake_matched = 1;
 
 
-    stderr_like { script_run('true', quiet => 1) } qr/DEPRECATED/, 'DEPRECATED message appear if `die_on_timeout` is not given.';
-    stderr_unlike { script_run('true', die_on_timeout => 0, quiet => 1) } qr/DEPRECATED/, 'DEPRECATED does not appear, if `die_on_timeout=>0` is set.';
-    stderr_unlike { script_run('true', die_on_timeout => 1, quiet => 1) } qr/DEPRECATED/, 'DEPRECATED does not appear, if `die_on_timeout=>1` is set.';
+    stderr_unlike { script_run('true', quiet => 1) } qr/DEPRECATED/, 'DEPRECATED does not appear if `die_on_timeout` is not provided';
+    stderr_like { script_run('true', die_on_timeout => 0, quiet => 1) } qr/DEPRECATED/, 'DEPRECATED appears if `die_on_timeout` is used';
 
     $fake_matched = 1;
     $fake_exit = 1234;

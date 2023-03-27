@@ -923,7 +923,7 @@ sub assert_script_run {    # no:style:signatures
 
 =head2 script_run
 
-  script_run($cmd [, timeout => $timeout] [, output => ''] [, quiet => $quiet] [, die_on_timeout => -1]);
+  script_run($cmd [, timeout => $timeout] [, output => ''] [, quiet => $quiet] [, die_on_timeout => 1]);
 
 Deprecated mode
 
@@ -936,9 +936,10 @@ execution to complete.
 C<$output> can be used as an explanatory text that will be displayed with the execution of
 the command.
 
-With C<die_on_timeout> -1 (default) a warning will be printed to log. To avoid
-this warning, set it explicit to 0. With C<die_on_timeout> equal to 1, this command
-throw an exception, if timeout expires.
+By default C<script_run> will throw an exception if the timeout has expired.
+This is equivalent to use of C<die_on_timeout> equal to 1. To use the
+deprecated behaviour of not throwing an error on timeout set the value to 0.
+This option will be removed in the near future.
 
 <Returns> exit code received from I<$cmd> or undef if C<$timeout> is 0 or timeout
 expired and C<die_on_timeout> is not C<1>.
@@ -962,23 +963,20 @@ sub script_run {    # no:style:signatures
         }, ['timeout'], @_);
 
     bmwqemu::log_call(cmd => $cmd, %args);
-    my $die_on_timeout = delete $args{die_on_timeout};
+    my $die_on_timeout = delete $args{die_on_timeout} // 1;
     my $ret = $distri->script_run($cmd, %args);
     if ($args{timeout} > 0) {
-        if ($die_on_timeout > 0) {
-            croak("command '$cmd' timed out") if !defined($ret);
+        if ($die_on_timeout == 0) {
+            # This is to warn users of deprecated behaviour of script_run()
+            my ($package, $filename, $line) = caller;
+            my $casedir = testapi::get_var(CASEDIR => '');
+            $filename =~ s%^\Q$casedir\E/%%;
+            bmwqemu::fctwarn("DEPRECATED call of script_run() in $filename:$line " .
+                  'requested by `die_on_timeout => 0` or set
+                  $distri->{script_run_die_on_timeout}. Adapt the test code to work
+                  with the default. This workaround will be removed in the near future');
         } else {
-            # This is to warn users of script_run(), if they do not use
-            # die_on_timeout => 0 explicit.
-            if ($die_on_timeout < 0) {
-                my ($package, $filename, $line) = caller;
-                my $casedir = testapi::get_var(CASEDIR => '');
-                $filename =~ s%^\Q$casedir\E/%%;
-                bmwqemu::fctwarn("DEPRECATED call of script_run() in $filename:$line " .
-                      'add `die_on_timeout => ?` to the call or set
-                      $distri->{script_run_die_on_timeout} to avoid this
-                      warning');
-            }
+            croak("command '$cmd' timed out") if !defined($ret);
         }
     }
     return $ret;
@@ -2163,7 +2161,7 @@ sub upload_logs ($file, %args) {
     $cmd .= autoinst_url("/uploadlog/$basename");
     if ($failok) {
         # just use script_run so we don't care if the upload fails
-        script_run($cmd, $timeout, die_on_timeout => 1);
+        script_run($cmd, $timeout);
     }
     else {
         assert_script_run($cmd, $timeout);
