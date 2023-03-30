@@ -1,0 +1,6 @@
+#!BuildTag: isotovideo:qemu-x86
+
+FROM opensuse/tumbleweed
+# Provide "jq" as convenience to work with the os-autoinst output
+RUN zypper -n in os-autoinst-qemu-x86 jq && zypper clean
+ENTRYPOINT ["/usr/bin/isotovideo"]
