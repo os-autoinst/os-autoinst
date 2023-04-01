@@ -9,7 +9,6 @@ use testapi;
 use testdistribution;
 
 my $distri = testdistribution->new();
-$distri->{script_run_die_on_timeout} = 1;
 testapi::set_distribution($distri);
 
 sub unregister_needle_tags ($tag) {
