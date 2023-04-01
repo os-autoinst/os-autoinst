@@ -28,6 +28,11 @@ chdir $dir;
 my $cleanup = scope_guard sub { chdir $Bin; undef $dir };
 mkdir $pool_dir;
 
+unless ($pool_dir) {
+    # this line can not be covered
+    my $x = "lala";
+}
+
 sub isotovideo (%args) {
     $args{default_opts} //= 'backend=null';
     $args{opts} //= '';
