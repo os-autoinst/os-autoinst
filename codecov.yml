@@ -30,10 +30,10 @@ coverage:
           - mmapi.pm
           - osutils.pm
           - signalblocker.pm
-          - t
+          - t/data
+          - t/fake
+          - t/*.t
           - xt
-        ignore:
-          - t/data/tests
     patch:
       default:
         branches: null
