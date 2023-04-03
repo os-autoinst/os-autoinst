@@ -16,8 +16,8 @@ coverage:
       fully_covered:
         target: 100.0
         paths:
-          - OpenQA
-          - backend
+          - OpenQA/
+          - backend/
           - consoles/VMWare.pm
           - consoles/VNC.pm
           - consoles/localXvnc.pm
@@ -30,10 +30,8 @@ coverage:
           - mmapi.pm
           - osutils.pm
           - signalblocker.pm
-          - t/data
-          - t/fake
-          - t/*.t
-          - xt
+          - t/
+          - xt/
     patch:
       default:
         branches: null
