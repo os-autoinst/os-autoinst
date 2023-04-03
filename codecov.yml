@@ -13,7 +13,7 @@ coverage:
       default:
         target: 80.0
         threshold: 0.1
-      fully_covered:
+      fully_covered1:
         target: 100.0
         paths:
           - OpenQA
@@ -30,10 +30,11 @@ coverage:
           - mmapi.pm
           - osutils.pm
           - signalblocker.pm
-          - t/data
-          - t/fake
-          - t/*.t
           - xt
+      fully_covered2:
+        target: 100.0
+        paths:
+          - t
     patch:
       default:
         branches: null
