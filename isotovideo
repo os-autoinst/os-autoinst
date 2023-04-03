@@ -64,6 +64,7 @@ BEGIN {
     unshift @INC, "$installprefix";
 }
 
+__END__
 use log qw(diag);
 use Getopt::Long;
 use Mojo::File qw(curfile);

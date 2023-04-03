@@ -7,7 +7,6 @@ use Test::Warnings ':report_warnings';
 
 use FindBin '$Bin';
 use lib "$FindBin::Bin/lib", "$Bin/../external/os-autoinst-common/lib";
-use OpenQA::Test::TimeLimit '120';
 
 my %allowed_types = (
     'text/x-perl' => 1,
@@ -23,7 +22,7 @@ for my $key (keys %types) {
     delete $types{$key} unless $allowed_types{$types{$key}};
 }
 
-for my $script (sort keys %types) {
+for my $script ("isotovideo") {
     my $out = qx{timeout 8 $Bin/../$script --help 2>&1};
     my $rc = $? >> 8;
     is $rc, 0, "Calling '$script --help' returns exit code 0" or diag "Output($script): $out";

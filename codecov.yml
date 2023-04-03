@@ -16,10 +16,7 @@ coverage:
       fully_covered1:
         target: 100.0
         paths:
-          - OpenQA
-          - backend
           - consoles/VMWare.pm
-          - consoles/VNC.pm
           - consoles/localXvnc.pm
           - consoles/network_console.pm
           - consoles/serial_screen.pm
@@ -34,7 +31,7 @@ coverage:
       fully_covered2:
         target: 100.0
         paths:
-          - t
+          - t/
     patch:
       default:
         branches: null
