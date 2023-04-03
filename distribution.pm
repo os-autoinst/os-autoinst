@@ -126,9 +126,8 @@ sub script_run ($self, $cmd, @args) {
         my $str = testapi::hashed_string("SR" . $cmd . $args{timeout});
         my $marker = "; echo $str-\$?-" . ($args{output} ? "Comment: $args{output}" : '');
         if (testapi::is_serial_terminal) {
-            testapi::type_string($marker);
-            testapi::wait_serial($cmd . $marker, no_regex => 1, quiet => $args{quiet});
-            testapi::type_string("\n");
+            testapi::type_string("$marker\n");
+            testapi::wait_serial($marker, no_regex => 1, quiet => $args{quiet});
         }
         else {
             testapi::type_string "$marker > /dev/$testapi::serialdev\n";
