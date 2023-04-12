@@ -358,10 +358,10 @@ sub _prepare_video_encoder ($baseclass) {
         my $pipe = IO::Pipe->new;
         my $pid = fork;
         if ($pid) { $pipe->writer }
-        elsif (defined $pid) {    # uncoverable statement
-            $pipe->reader;    # uncoverable statement
-            my @lines = <$pipe>;    # uncoverable statement
-            exit;    # uncoverable statement
+        elsif (defined $pid) {
+            $pipe->reader;
+            my @lines = <$pipe>;
+            exit;
         }    # uncoverable statement
         else { die "Couldn't fork" }    # uncoverable statement
         push @pipes, [$pid => $pipe];
@@ -875,6 +875,8 @@ subtest 'check_asserted_screen takes too long' => sub {
 subtest 'child process handling' => sub {
     throws_ok { $baseclass->_child_process(undef) } qr/without code/, 'starting dies without specifying coderef';
     local $SIG{TERM} = 'DEFAULT';
+    # uncoverable statement count:2
+    # uncoverable statement count:3
     my $pid = $baseclass->_child_process(sub { pause; _exit 0 });
     ok $pid, 'started child, pid returned: ' . ($pid // '?');
     combined_like { $baseclass->_stop_children_processes } qr/waitpid for $pid returned/, 'stopped child again';

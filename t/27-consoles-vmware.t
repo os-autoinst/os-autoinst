@@ -83,6 +83,7 @@ subtest 'request WebSockets URL' => sub {
     my $req_mock = Test::MockModule->new('Mojo::Message::Request');
     my @fake_res = mk_res 200, '<faultstring>some error</faultstring>';
     $user_agent_mock->redefine(start => sub ($ua, $tx) { });
+    # uncoverable statement count:2
     $user_agent_mock->redefine(get => sub { Mojo::Transaction::HTTP->new });
     $http->redefine(result => sub { shift @fake_res });
 
@@ -140,6 +141,7 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
         sub received_everything ($self) { length $self->received_data >= length 'message sent from raw socket' }
     }
     {
+        # uncoverable statement count:2
         package TestWebSocketApp::Controller::Test;
         use Mojo::Base 'Mojolicious::Controller', -signatures;
         sub start_ws ($self) {
@@ -191,10 +193,10 @@ subtest 'turning WebSocket into normal socket via dewebsockify' => sub {
     $connect_to_dewebsockify = sub ($loop) {
         note "connecting to dewebsockify on port $tcp_port";
         $loop->client({port => $tcp_port} => sub ($loop, $err, $stream) {
-                if ($err) {    # uncoverable statement
-                    if (--$connect_attempts) {    # uncoverable statement
-                        note "unable to connect to dewebsockify on port $tcp_port: $err (will try again $connect_attempts times)";    # uncoverable statement
-                        return $loop->timer(0.1 => $connect_to_dewebsockify);    # uncoverable statement
+                if ($err) {
+                    if (--$connect_attempts) {
+                        note "unable to connect to dewebsockify on port $tcp_port: $err (will try again $connect_attempts times)";
+                        return $loop->timer(0.1 => $connect_to_dewebsockify);
                     }
                     fail "unable to connect to dewebsockify on port $tcp_port: $err";    # uncoverable statement
                     return $loop->stop;    # uncoverable statement
@@ -265,7 +267,6 @@ subtest 'test against real VMWare instance' => sub {
     my $instance_url = $ENV{OS_AUTOINST_TEST_AGAINST_REAL_VMWARE_INSTANCE};
     unless ($instance_url) {
         plan skip_all => 'Set OS_AUTOINST_TEST_AGAINST_REAL_VMWARE_INSTANCE to run this test.';
-        exit(0);    # uncoverable statement
     }
     $vmware->configure_from_url($instance_url);    # uncoverable statement
     note 'host: ' . $vmware->host // '?';    # uncoverable statement

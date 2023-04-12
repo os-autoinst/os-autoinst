@@ -209,6 +209,8 @@ combined_like { eval { $cserver->stop() } } qr/commands process exited/, 'comman
 
 subtest 'decode failure' => sub {
     my $jsonrpc = Test::MockModule->new('myjsonrpc');
+    # uncoverable statement count:2
+    # uncoverable statement count:3
     $jsonrpc->redefine(send_json => sub ($iso, $data) { 1 });
 
     my $oc = Test::MockModule->new('OpenQA::Commands');

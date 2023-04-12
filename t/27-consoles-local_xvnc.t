@@ -39,6 +39,7 @@ my $vnc_mock = Test::MockObject->new->set_true('check_vnc_stalls');
 $vnc_base_mock->redefine(connect_remote => $vnc_mock);
 $bmwqemu::scriptdir = "$Bin/..";
 my $local_xvnc_mock = Test::MockModule->new('consoles::localXvnc');
+# uncoverable statement count:2
 $local_xvnc_mock->redefine(start_xvnc => sub { _exit(0) });
 stderr_like { $c->activate } qr/Connected to Xvnc/, 'can call activate';
 is $c->callxterm('true', 'window1'), '', 'can call callxterm';

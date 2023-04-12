@@ -38,8 +38,8 @@ sub isotovideo (%args) {
     note "Starting isotovideo with: @cmd";
     qx(cd $toplevel_dir && @cmd);
     my $res = $?;
-    return fail 'failed to execute isotovideo: ' . $! if $res == -1;    # uncoverable statement
-    return fail 'isotovideo died with signal ' . ($res & 127) if $res & 127;    # uncoverable statement
+    return fail 'failed to execute isotovideo: ' . $! if $res == -1;
+    return fail 'isotovideo died with signal ' . ($res & 127) if $res & 127;
     local $Test::Builder::Level = $Test::Builder::Level + 1;
     return is $res >> 8, $args{exit_code}, 'isotovideo exit code';
 }
