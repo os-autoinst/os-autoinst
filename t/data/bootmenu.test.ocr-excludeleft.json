@@ -1,0 +1,22 @@
+{
+    "area": [
+        {
+            "height": 43,
+            "type": "ocr",
+            "width": 128,
+            "xpos": 212,
+            "ypos": 551,
+	    "refstr": "Video Mode\nDefault"
+        },
+        {
+            "height": 43,
+            "type": "exclude",
+            "width": 26,
+            "xpos": 212,
+            "ypos": 551
+        }
+    ],
+    "tags": [
+        "none"
+    ]
+}

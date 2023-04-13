@@ -1,0 +1,28 @@
+{
+    "area": [
+        {
+            "height": 130,
+            "type": "match",
+            "width": 440,
+            "xpos": 120,
+            "ypos": 90
+        },
+        {
+            "height": 111,
+            "type": "exclude",
+            "width": 30,
+            "xpos": 122,
+            "ypos": 94
+        },
+        {
+            "height": 31,
+            "type": "exclude",
+            "width": 163,
+            "xpos": 122,
+            "ypos": 94
+        }
+    ],
+    "tags": [
+        "none"
+    ]
+}
