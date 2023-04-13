@@ -60,7 +60,7 @@ sub read_doc () {
                 next unless ($var);
                 $default = '' unless (defined $default);
                 $value = '' unless (defined $value);
-                fail "still missing explanation for backend $backend variable $var" unless $explanation;    # uncoverable statement
+                fail "still missing explanation for backend $backend variable $var" unless $explanation;
                 $documented_vars{$backend}{$var} = [$value, $default, $explanation];
             }
         }
@@ -107,12 +107,13 @@ EO_BACKEND_FOOTER
 sub read_backend_pm {    # no:style:signatures
     my ($backend) = $_ =~ /^([^\.]+)\.pm/;
     return unless $backend;
+    # uncoverable statement count:2
     return if (grep { /$backend/i } @backend_blocklist);
     $backend = uc $backend;
     $backend = uc $backend_renames{$backend} if $backend_renames{$backend};
     my $fh;
     eval { open($fh, '<', $File::Find::name) };
-    return fail 'Unable to open ' . $File::Find::name if $@;    # uncoverable statement
+    return fail 'Unable to open ' . $File::Find::name if $@;
     for my $line (<$fh>) {
         my @vars = $line =~ /(?:\$bmwqemu::|\$)vars(?:->)?{["']?([^}"']+)["']?}/g;
         for my $var (@vars) {

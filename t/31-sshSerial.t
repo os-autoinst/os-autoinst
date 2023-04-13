@@ -60,7 +60,9 @@ $mock_channel->mock(read => sub {    # no:style:signatures
         }
 
         if (length($data) > $size) {
-            unshift @{$self->{read_queue}}, substr($data, $size);    # uncoverable statement
+            # uncoverable statement count:1
+            # uncoverable statement count:2
+            unshift @{$self->{read_queue}}, substr($data, $size);
             $data = substr($data, 0, $size);    # uncoverable statement
         }
 
@@ -89,9 +91,12 @@ $mock_ssh->set_always(blocking => $mock_channel->blocking($_[1]));
 $mock_ssh->mock(error => sub ($self) {
         return undef unless defined($self->{error});
         return ${$self->{error}}[0] if ((caller(0))[5]);
-        return @{$self->{error}};    # uncoverable statement
+        # uncoverable statement count:1
+        # uncoverable statement count:2
+        return @{$self->{error}};
 });
 
+# uncoverable statement count:2
 $mock_ssh->mock(die_with_error => sub { die $_[1] });
 
 subtest 'Read test' => sub {

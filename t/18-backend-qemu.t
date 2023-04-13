@@ -569,6 +569,9 @@ subtest 'special cases when starting QEMU' => sub {
 
 subtest 'special cases when handling QMP command' => sub {
     my $create_virtio_console_fifo_called;
+    # uncoverable statement count:2
+    # uncoverable statement count:3
+    # uncoverable statement count:4
     $backend_mock->redefine(create_virtio_console_fifo => sub () { ++$create_virtio_console_fifo_called });
     $backend_mock->unmock('handle_qmp_command');
     $bmwqemu::vars{QEMU_ONLY_EXEC} = 1;

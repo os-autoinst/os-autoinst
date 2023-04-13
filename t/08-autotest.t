@@ -90,6 +90,7 @@ is($completed, 1, 'start+next+start should complete');
 # Test loading snapshots with always_rollback flag. Have to put it here, before loading
 # runargs test module, as it fails.
 my ($reverts_done, $snapshots_made) = (0, 0);
+# uncoverable statement count:2
 $mock_autotest->redefine(load_snapshot => sub { $reverts_done++ });
 $mock_autotest->redefine(make_snapshot => sub { $snapshots_made++ });
 $mock_autotest->redefine(query_isotovideo => 0);
