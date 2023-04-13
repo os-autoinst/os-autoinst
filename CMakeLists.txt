@@ -1,5 +1,5 @@
-project(os-autoinst CXX)
 cmake_minimum_required(VERSION 3.3.0)
+project(os-autoinst CXX)
 
 # list non-C++ source files
 set(DOC_FILES
