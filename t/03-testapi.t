@@ -700,6 +700,10 @@ subtest 'test console::console argument settings' => sub {
     is($console->{args}->{foo}, 'bar');
 };
 
+subtest 'test console::console::screen throws if not implemented' => sub {
+    throws_ok { consoles::console->new('dummy-console', {tty => 3})->screen } qr/needs to be implemented/, 'expected error message';
+};
+
 subtest 'check_assert_shutdown' => sub {
     # Test cases, when shutdown is finished before timeout is hit
     $mod->redefine(read_json => {ret => 1});

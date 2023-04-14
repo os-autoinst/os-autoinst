@@ -44,10 +44,7 @@ sub reset ($self) {
     return;
 }
 
-sub screen ($self) {
-    die "screen needs to be implemented in subclasses - $self->{class} does not\n";
-    return;
-}
+sub screen ($self) { die "screen needs to be implemented in subclasses - $self->{class} does not\n" }
 
 # to be overloaded
 sub trigger_select ($self) { }
