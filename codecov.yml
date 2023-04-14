@@ -18,6 +18,7 @@ coverage:
         paths:
           - OpenQA/
           - backend/
+          - consoles/console.pm
           - consoles/VMWare.pm
           - consoles/VNC.pm
           - consoles/localXvnc.pm
