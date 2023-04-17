@@ -168,6 +168,7 @@ subtest 'serial grab' => sub {
         $backend->start_serial_grab;
         $backend->stop_serial_grab;
         is waitpid($backend->{serialpid}, WNOHANG), -1, 'process terminated via stop_serial_grab';
+        is $backend->stop_serial_grab, -1, 'returns -1 if process does not exist (but does not die)';
     };
 
     $serialfile->remove;
