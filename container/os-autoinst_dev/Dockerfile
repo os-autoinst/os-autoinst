@@ -96,7 +96,7 @@ RUN zypper in -y -C \
        'perl(Net::SSH2)' \
        'perl(POSIX)' \
        'perl(Perl::Critic)' \
-       'perl(Perl::Critic::Freenode)' \
+       'perl(Perl::Critic::Community)' \
        'perl(Perl::Critic::Policy)' \
        'perl(Perl::Critic::Utils)' \
        'perl(Perl::Tidy)' \

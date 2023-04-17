@@ -62,7 +62,7 @@ spellcheck_requires:
 
 lint_requires:
   perl(Perl::Critic):
-  perl(Perl::Critic::Freenode):
+  perl(Perl::Critic::Community):
   perl(Perl::Critic::Policy):
   perl(Perl::Critic::Utils):
 
