@@ -80,7 +80,7 @@ on 'test' => sub {
     requires 'Inline::Python';
     requires 'Mojo::IOLoop::ReadWriteProcess', '>= 0.28';
     requires 'Perl::Critic';
-    requires 'Perl::Critic::Freenode';
+    requires 'Perl::Critic::Community';
     requires 'Perl::Critic::Policy';
     requires 'Perl::Critic::Utils';
     requires 'Pod::Coverage';
