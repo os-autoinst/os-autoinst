@@ -174,9 +174,11 @@ sub start_serial_grab ($self) {
 }
 
 sub stop_serial_grab ($self, @) {
-    return unless $self->{serialpid};
-    kill("-TERM", $self->{serialpid});
-    return waitpid($self->{serialpid}, 0);
+    return 0 unless $self->{serialpid};
+    eval { kill -TERM => $self->{serialpid} };
+    return waitpid($self->{serialpid}, 0) unless my $error = $@;
+    return -1 if $error =~ qr/No such process/i;
+    die "$error\n" if $error;    # uncoverable statement
 }
 
 # serial grab end
