@@ -52,9 +52,6 @@ fi
 export OS_AUTOINST_BUILD_DIRECTORY=$build_directory
 export OS_AUTOINST_MAKE_TOOL=$make_path
 
-# set TESSDATA_PREFIX for 02-test_ocr.t
-export TESSDATA_PREFIX='/usr/share/tessdata/'
-
 args=()
 # use unbuffer if it was found so e.g. timestamps on OBS builds will be useful
 # note: When executing tests with prove it seems that the output is only flushed after one test has finished unless there's a terminal.
