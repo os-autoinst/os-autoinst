@@ -1,4 +1,4 @@
-#!BuildTag: isotovideo:qemu-x86
+#!BuildTag: isotovideo:qemu-x86-jq
 
 FROM opensuse/tumbleweed
 # Provide "jq" as convenience to work with the os-autoinst output
