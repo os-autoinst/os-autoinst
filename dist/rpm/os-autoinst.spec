@@ -93,6 +93,7 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define devel_requires %python_style_requires %test_requires ShellCheck perl(Code::TidyAll) perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy) perl(Template::Toolkit)
 %define s390_zvm_requires /usr/bin/xkbcomp /usr/bin/Xvnc x3270 icewm xterm xterm-console xdotool fonts-config mkfontdir mkfontscale
+%define qemu_requires qemu-tools %{_bindir}/chattr
 BuildRequires:  %test_requires %test_version_only_requires
 # For unbuffered output of Perl testsuite, especially when running it on OBS so timestamps in the log are actually useful
 BuildRequires:  expect
@@ -102,7 +103,7 @@ Recommends:     tesseract-ocr
 %endif
 Recommends:     dumponlyconsole %s390_zvm_requires
 Recommends:     qemu >= 4.0.0
-Recommends:     qemu-tools
+Recommends:     %qemu_requires
 # Optional dependency for Python test API support
 Recommends:     perl(Inline::Python)
 # Optional dependency for crop.py
@@ -147,7 +148,7 @@ Summary:        Convenience package providing os-autoinst+qemu-kvm
 Group:          Development/Tools/Other
 Requires:       os-autoinst
 Requires:       qemu-kvm >= 4.0.0
-Requires:       qemu-tools
+Requires:       %qemu_requires
 
 %description qemu-kvm
 
@@ -156,7 +157,7 @@ Summary:        Convenience package providing os-autoinst+qemu-x86
 Group:          Development/Tools/Other
 Requires:       os-autoinst
 Requires:       qemu-x86 >= 4.0.0
-Requires:       qemu-tools
+Requires:       %qemu_requires
 
 %description qemu-x86
 Convenience package providing os-autoinst and qemu-x86 dependencies.
