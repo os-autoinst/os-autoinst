@@ -43,27 +43,30 @@ is_deeply \@printed, ['RFB 003.006', pack('C', 1)], 'protocol version and securi
 
 # ensure endian conversion is setup correctly (despite initially mocking _server_initialization)
 my $machine_is_big_endian = unpack('h*', pack('s', 1)) =~ /01/ ? 1 : 0;
+my %normal_update_request = (x => 0, y => 0, width => 1024, height => 512, incremental => 0);
 
 subtest 'send update request' => sub {
-    $c->width(1024);
-    $c->height(512);
-    $c->send_update_request;
-    my %expected_msg = (x => 0, y => 0, width => 1024, height => 512, incremental => 0);
-    is_deeply \@sent, [\%expected_msg], 'update sent' or diag explain \@sent;
+    $c->width(1024)->height(512)->send_update_request;
+    is_deeply \@sent, [\%normal_update_request], 'update sent' or diag explain \@sent;
+};
+
+subtest 'send forced update request' => sub {
+    @sent = ();
+    $c->width(1024)->height(512)->_last_update_received(0)->_framebuffer(1)->check_vnc_stalls(1)->send_update_request;
+    my %forced_update_request = (x => 0, y => 0, width => 16, height => 16, incremental => 0);
+    is_deeply \@sent, [\%forced_update_request, \%normal_update_request], 'update sent' or diag explain \@sent;
 };
 
 subtest 'handling VNC stall, malformed RFB protocol on re-connect' => sub {
-    $c->check_vnc_stalls(1);
-    $c->_framebuffer(1);
-    $c->_vnc_stalled(1);
-    $c->_last_update_received(-1000);
+    @sent = ();
+    $c->check_vnc_stalls(1)->_framebuffer(1)->_vnc_stalled(1)->_last_update_received(-1000);
     $s->set_series('mocked_read', 'REB 003.006', pack('N', 1));
     combined_like {
         throws_ok {
             $c->send_update_request;
         } qr/Malformed RFB protocol: REB 003\.006/, 'dies on malformed RFB protocol';
     } qr/considering VNC stalled/, 'VNC stall logged';
-    is scalar @sent, 1, 'no further message sent' or diag explain \@sent;
+    is scalar @sent, 0, 'no further message sent' or diag explain \@sent;
 };
 
 subtest 'repeating handshake with max. version' => sub {
