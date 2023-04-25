@@ -123,7 +123,7 @@ subtest 'isotovideo with wheels' => sub {
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';
 
-    $bmwqemu::scriptdir = "$Bin/..";
+    $bmwqemu::topdir = "$Bin/..";
     my $wheels_dir = "$data_dir";
     my $specfile = path("$wheels_dir/wheels.yaml");
     $specfile->spurt("wheels: [foo/bar]");

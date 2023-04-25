@@ -114,7 +114,7 @@ sub save_vars (%args) {
 our $gocrbin = "/usr/bin/gocr";
 
 # set from isotovideo during initialization
-our $scriptdir;
+our $topdir;
 
 sub init () {
     load_vars();
