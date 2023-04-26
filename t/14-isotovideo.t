@@ -60,6 +60,12 @@ subtest 'color output can be configured via the command-line' => sub {
     is($out, colorstrip($out), 'no colors in logs');
 };
 
+subtest 'standalone isotovideo without any parameters' => sub {
+    chdir $pool_dir;
+    unlink 'vars.json' if -e 'vars.json';
+    combined_like { isotovideo(opts => '') } qr{CASEDIR variable not set, unknown test case directory}, 'initialization error printed to user';
+};
+
 subtest 'standalone isotovideo without vars.json file and only command line parameters' => sub {
     chdir($pool_dir);
     unlink('vars.json') if -e 'vars.json';

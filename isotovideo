@@ -158,7 +158,10 @@ eval {
 
     $return_code = handle_generated_assets($runner->command_handler, $clean_shutdown) unless $return_code;
 };
-bmwqemu::serialize_state(component => 'isotovideo', msg => $@) if $@;
+if (my $error = $@) {
+    log::fctwarn $error, 'main';
+    bmwqemu::serialize_state(component => 'isotovideo', msg => $error);
+}
 
 END {
     $runner->backend->stop if $runner and $runner->backend;
