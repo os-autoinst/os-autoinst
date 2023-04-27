@@ -135,6 +135,7 @@ Used for internal initialization, do not call from tests.
 
 sub _serialdev () {
     return 'hvc0' if get_var('OFW') || get_var('BACKEND', '') =~ /s390x|pvm_hmc/;
+    return 'ttysclp0' if (check_var('ARCH', 's390x') && check_var('BACKEND', 'qemu'));
     return get_var('SERIALDEV', 'ttyS0');
 }
 

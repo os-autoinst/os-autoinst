@@ -968,6 +968,12 @@ subtest init => sub {
     testapi::init;
     is $testapi::serialdev, 'hvc0', 'init sets serial device for OFW/PPC';
     set_var('OFW', 0);
+    set_var('ARCH', 's390x');
+    set_var('BACKEND', 'qemu');
+    testapi::init;
+    is $testapi::serialdev, 'ttysclp0', 'init sets serial device for s390x on QEMU backend';
+    set_var('ARCH', '');
+    set_var('BACKEND', '');
     set_var('SERIALDEV', 'foo');
     testapi::init;
     is $testapi::serialdev, 'foo', 'custom serial device can be set';
