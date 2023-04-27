@@ -95,7 +95,8 @@ sub configure_controllers ($self, $vars) {
     }
 
     if ($vars->{CDMODEL} eq 'scsi-cd' || $vars->{HDDMODEL} eq 'scsi-hd') {
-        $vars->{SCSICONTROLLER} ||= "virtio-scsi-pci";
+        my $is_s390x = ($vars->{ARCH} // '') eq 's390x';
+        $vars->{SCSICONTROLLER} ||= $is_s390x ? 'virtio-scsi' : 'virtio-scsi-pci';
     }
 
     my $scsi_con = $vars->{SCSICONTROLLER} || 0;
