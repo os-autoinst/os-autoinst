@@ -378,7 +378,7 @@ sub _server_initialization ($self) {
     $self->_pixinfo(\%pixinfo);
     $self->_bpp($supported_depths{$self->depth}->{bpp});
     $self->_true_colour($supported_depths{$self->depth}->{true_colour});
-    $self->_do_endian_conversion($self->no_endian_conversion ? 0 : $server_is_big_endian != $client_is_big_endian);
+    $self->_do_endian_conversion($self->no_endian_conversion ? 0 : ($server_is_big_endian && $client_is_big_endian));
 
     if ($name_length) {
         $socket->read(my $name_string, $name_length)
