@@ -93,7 +93,7 @@ Source0:        %{name}-%{version}.tar.xz
 # The following line is generated from dependencies.yaml
 %define devel_requires %python_style_requires %test_requires ShellCheck perl(Code::TidyAll) perl(Devel::Cover) perl(Devel::Cover::Report::Codecov) perl(Perl::Tidy) perl(Template::Toolkit)
 %define s390_zvm_requires /usr/bin/xkbcomp /usr/bin/Xvnc x3270 icewm xterm xterm-console xdotool fonts-config mkfontdir mkfontscale
-%define qemu_requires qemu-tools %{_bindir}/chattr
+%define qemu_requires qemu-tools e2fsprogs
 BuildRequires:  %test_requires %test_version_only_requires
 # For unbuffered output of Perl testsuite, especially when running it on OBS so timestamps in the log are actually useful
 BuildRequires:  expect
