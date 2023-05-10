@@ -245,6 +245,17 @@ subtest qemu_tpm_option => sub {
     like $runcmd, qr|swtpm socket --tpmstate dir=.*mytpm6 --ctrl type=unixio,path=.*mytpm6/swtpm-sock --log level=20 -d|, 'swtpm 1.2 device created';
 };
 
+subtest s390x_options => sub {
+    my $cmdline = qemu_cmdline(ARCH => 's390x', QEMU_VIDEO_DEVICE => 'virtio-gpu', OFW => 0);
+    like $cmdline, qr/-device virtio-gpu,edid=on/, '-device virtio-gpu,edid=on option added';
+    unlike $cmdline, qr/-boot.*/, '-boot options not added';
+    like $cmdline, qr/-device virtio-keyboard/, '-device virtio-keyboard option added';
+    unlike $cmdline, qr/(audiodev|soundhw)/, 'audio options not added';
+    unlike $cmdline, qr/isa-fdc.fdtypeA=none/, 'isa-fdc.fdtypeA=none option is not added';
+    like $cmdline, qr/-device virtio-rng/, '-device virtio-rng option added';
+    like $cmdline, qr/-device virtio-tablet/, '-device virtio-tablet option added';
+};
+
 subtest 'capturing audio' => sub {
     $called{handle_qmp_command} = undef;
     $backend->start_audiocapture({filename => 'foo'});

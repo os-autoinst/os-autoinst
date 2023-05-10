@@ -573,7 +573,7 @@ sub _set_graphics_backend ($self, $is_arm) {
         $device = "cirrus-vga" if ($vga eq "cirrus");
         $device = "VGA" if ($vga eq "std");
     }
-    my @edids = ("VGA", "virtio-vga", "virtio-gpu-pci", "bochs-display");
+    my @edids = ("VGA", "virtio-vga", "virtio-gpu-pci", "bochs-display", "virtio-gpu");
     if (grep { $device eq $_ } @edids) {
         # these devices support EDID
         $options = ",edid=on,xres=$self->{xres},yres=$self->{yres}";
@@ -705,16 +705,22 @@ sub start_qemu ($self) {
     my $arch = $vars->{ARCH} // '';
     $arch = 'arm' if ($arch =~ /armv6|armv7/);
     my $is_arm = $arch eq 'aarch64' || $arch eq 'arm';
+    my $is_s390x = $arch eq 's390x';
 
     $self->_set_graphics_backend($is_arm);
 
     # misc
     my $arch_supports_boot_order = $vars->{UEFI} ? 0 : 1;    # UEFI/OVMF supports ",bootindex=N", but not "-boot order=X"
     my $use_usb_kbd;
+    my $use_virtio_kbd;
 
     if ($is_arm) {
         $arch_supports_boot_order = 0;
         $use_usb_kbd = 1;
+    }
+    elsif ($is_s390x) {
+        $arch_supports_boot_order = 0;
+        $use_virtio_kbd = 1;
     }
     elsif ($vars->{OFW}) {
         $use_usb_kbd = $self->qemu_params_ofw;
@@ -805,23 +811,25 @@ sub start_qemu ($self) {
     sp('chardev', 'ringbuf,id=serial0,logfile=serial0,logappend=on');
     sp('serial', 'chardev:serial0');
 
-    if ($self->requires_audiodev) {
-        my $audiodev = $vars->{QEMU_AUDIODEV} // 'intel-hda';
-        my $audiobackend = $vars->{QEMU_AUDIOBACKEND} // 'none';
-        sp('audiodev', $audiobackend . ',id=snd0');
-        if ("$audiodev" eq "intel-hda") {
-            sp('device', $audiodev);
-            $audiodev = "hda-output";
+    if (!$is_s390x) {
+        if ($self->requires_audiodev) {
+            my $audiodev = $vars->{QEMU_AUDIODEV} // 'intel-hda';
+            my $audiobackend = $vars->{QEMU_AUDIOBACKEND} // 'none';
+            sp('audiodev', $audiobackend . ',id=snd0');
+            if ("$audiodev" eq "intel-hda") {
+                sp('device', $audiodev);
+                $audiodev = "hda-output";
+            }
+            sp('device', $audiodev . ',audiodev=snd0');
         }
-        sp('device', $audiodev . ',audiodev=snd0');
-    }
-    else {
-        my $soundhw = $vars->{QEMU_SOUNDHW} // 'hda';
-        sp('soundhw', $soundhw);
+        else {
+            my $soundhw = $vars->{QEMU_SOUNDHW} // 'hda';
+            sp('soundhw', $soundhw);
+        }
     }
     {
         # Remove floppy drive device on architectures
-        sp('global', 'isa-fdc.fdtypeA=none') unless ($is_arm || $vars->{QEMU_NO_FDC_SET});
+        sp('global', 'isa-fdc.fdtypeA=none') unless ($is_arm || $is_s390x || $vars->{QEMU_NO_FDC_SET});
 
         sp('m', $vars->{QEMURAM}) if $vars->{QEMURAM};
         sp('machine', $vars->{QEMUMACHINE}) if $vars->{QEMUMACHINE};
@@ -854,8 +862,9 @@ sub start_qemu ($self) {
 
         # Keep additional virtio _after_ Ethernet setup to keep virtio-net as eth0
         if ($vars->{QEMU_VIRTIO_RNG} // 1) {
+            my $rngdev = $is_s390x ? 'virtio-rng' : 'virtio-rng-pci';
             sp('object', 'rng-random,filename=/dev/urandom,id=rng0');
-            sp('device', 'virtio-rng-pci,rng=rng0');
+            sp('device', "$rngdev,rng=rng0");
         }
 
         sp('smbios', $vars->{QEMU_SMBIOS}) if $vars->{QEMU_SMBIOS};
@@ -902,11 +911,12 @@ sub start_qemu ($self) {
         }
 
         unless ($vars->{QEMU_NO_TABLET}) {
-            sp('device', ($vars->{OFW} || $arch eq 'aarch64') ? 'nec-usb-xhci' : 'qemu-xhci');
-            sp('device', 'usb-tablet');
+            sp('device', ($vars->{OFW} || $arch eq 'aarch64') ? 'nec-usb-xhci' : $is_s390x ? 'virtio-tablet' : 'qemu-xhci');
+            sp('device', 'usb-tablet') unless $is_s390x;
         }
 
         sp('device', 'usb-kbd') if $use_usb_kbd;
+        sp('device', 'virtio-keyboard') if $use_virtio_kbd;
 
         my $smp_config = [$vars->{QEMUCPUS}];
         for my $key (qw(QEMUSOCKETS QEMUDIES QEMUCLUSTERS QEMUCORES QEMUTHREADS)) {
