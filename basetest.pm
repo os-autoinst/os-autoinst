@@ -402,12 +402,7 @@ sub save_test_result ($self) {
 sub next_resultname ($self, $type, $name = undef) {
     my $testname = $self->{name};
     my $count = ++$self->{test_count};
-    if ($name) {
-        return "$testname-$count.$name.$type";
-    }
-    else {
-        return "$testname-$count.$type";
-    }
+    return $name ? "$testname-$count.$name.$type" : "$testname-$count.$type";
 }
 
 sub write_resultfile ($self, $filename, $output) {
