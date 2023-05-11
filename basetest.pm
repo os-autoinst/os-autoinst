@@ -402,6 +402,8 @@ sub save_test_result ($self) {
 sub next_resultname ($self, $type, $name = undef) {
     my $testname = $self->{name};
     my $count = ++$self->{test_count};
+    my $max = $bmwqemu::vars{MAX_TEST_STEPS} // 10000;
+    die "Maximum allowed test steps (MAX_TEST_STEPS=$max) exceeded, aborting" if $count > $max;
     return $name ? "$testname-$count.$name.$type" : "$testname-$count.$type";
 }
 
