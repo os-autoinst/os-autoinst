@@ -484,6 +484,8 @@ subtest stop_audiocapture => sub {
     is($test->{details}->[-1], $res, 'result appended to details');
 };
 
+$mock_bmwqemu->noop('fctres', 'fctinfo');
+
 subtest verify_sound_image => sub {
     my $test = basetest->new();
     my $res = $test->verify_sound_image("$FindBin::Bin/data/frame1.ppm", 'notapath2', 'check');
@@ -511,6 +513,8 @@ subtest rollback_activated_consoles => sub {
     is_deeply(\@reset_consoles, [{cmd => 'backend_reset_console', testapi_console => 'activated_console'}], 'activated consoles reset') or diag explain \@reset_consoles;
     is_deeply(\@selected_consoles, [{cmd => 'backend_select_console', testapi_console => 'last_milestone_console'}], 'last milestone console selected') or diag explain \@selected_consoles;
 };
+
+$mock_bmwqemu->noop('diag', 'modstate');
 
 subtest search_for_expected_serial_failures => sub {
     $bmwqemu::vars{BACKEND} = 'qemu';
