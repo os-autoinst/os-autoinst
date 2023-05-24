@@ -73,6 +73,7 @@ sub new ($classname, $jsonfile) {
 
     my $gotmatch;
     my $got_click_point;
+    my $got_click_point_with_id;
     for my $area_from_json (@{$json->{area}}) {
         my $area = {};
         for my $tag (qw(xpos ypos width height)) {
@@ -86,14 +87,22 @@ sub new ($classname, $jsonfile) {
         $area->{margin} = $area_from_json->{margin} || 50;
         if (my $click_point = $area_from_json->{click_point}) {
             if ($got_click_point) {
-                warn "$jsonfile has more than one area with a click point\n";
+                warn "$jsonfile has more than one area with a click point without assigning IDs to each\n";
                 return;
             }
             if (!is_click_point_valid($click_point)) {
                 warn "$jsonfile has an area with invalid click point\n";
                 return;
             }
-            $got_click_point = 1;
+            if (ref $click_point ne 'HASH' || !defined $click_point->{id}) {
+                $got_click_point = 1;
+            } else {
+                $got_click_point_with_id = 1;
+            }
+            if ($got_click_point && $got_click_point_with_id) {
+                warn "$jsonfile has more than one area with a click point without assigning IDs to each\n";
+                return;
+            }
             $area->{click_point} = $click_point;
         }
 

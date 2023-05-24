@@ -446,7 +446,7 @@ sub match_has_tag ($tag) { $last_matched_needle ? $last_matched_needle->{needle}
 
 =head2 assert_and_click
 
-  assert_and_click($mustmatch [, timeout => $timeout] [, button => $button] [, clicktime => $clicktime ] [, dclick => 1 ] [, mousehide => 1 ]);
+  assert_and_click($mustmatch [, timeout => $timeout] [, button => $button] [, clicktime => $clicktime ] [, dclick => 1 ] [, mousehide => 1 ] [, point_id => $id ]);
 
 Wait for needle with C<$mustmatch> tag to appear on SUT screen. Then click
 C<$button> at the "click_point" position as defined in the needle JSON file,
@@ -455,7 +455,9 @@ needle area. If C<$dclick> is set, do double click instead.  C<$mustmatch> can
 be string or C<ARRAYREF> of strings (C<['tag1', 'tag2']>).  C<$button> is by
 default C<'left'>. C<'left'> and C<'right'> is supported. If C<$mousehide> is
 true then always move mouse to the 'hidden' position after clicking to prevent
-to hide the area where user wants to assert/click in second step.
+to hide the area where the user wants to assert/click in the second step. If
+C<$point_id> is specified, the clickpoint used will be the one with a matching
+ID.
 
 Throws C<FailedNeedle> exception if C<$timeout> timeout is hit. Default timeout is 30s.
 
@@ -467,22 +469,23 @@ sub assert_and_click ($mustmatch, %args) {
     $last_matched_needle = assert_screen($mustmatch, $args{timeout});
     bmwqemu::log_call(mustmatch => $mustmatch, %args);
 
-    my %click_args = map { $_ => $args{$_} } qw(button clicktime dclick mousehide);
+    my %click_args = map { $_ => $args{$_} } qw(button clicktime dclick mousehide point_id);
     return click_lastmatch(%click_args);
 }
 
 =head2 click_lastmatch
 
-  click_lastmatch([, button => $button] [, clicktime => $clicktime ] [, dclick => 1 ] [, mousehide => 1 ]);
+  click_lastmatch([, button => $button] [, clicktime => $clicktime ] [, dclick => 1 ] [, mousehide => 1 ] [, point_id => $id ]);
 
 Click C<$button> at the "click_point" position as defined in the needle JSON file
 of the last matched needle, or - if the JSON has not explicit "click_point" -
 in the middle of the last match area. If C<$dclick> is set, do double click
 instead. Supported values for C<$button> are C<'left'> and C<'right'>, C<'left'>
 is the default. If C<$mousehide> is true then always move mouse to the 'hidden'
-position after clicking to prevent to disturb the area where user wants to
-assert/click in second step, otherwise move the mouse back to its previous
-position.
+position after clicking to prevent to disturb the area where the user wants to
+assert/click in the second step, otherwise move the mouse back to its previous
+position. If C<$point_id> is specified, the clickpoint used will be the one
+with a matching ID.
 
 =cut
 
@@ -490,6 +493,7 @@ sub click_lastmatch (%args) {
     $args{button} //= 'left';
     $args{dclick} //= 0;
     $args{mousehide} //= 0;
+    $args{point_id} //= undef;
 
     return unless $last_matched_needle;
 
@@ -500,6 +504,7 @@ sub click_lastmatch (%args) {
     my $relative_click_point;
     for my $area (reverse @{$last_matched_needle->{area}}) {
         next unless ($relative_click_point = $area->{click_point});
+        next if defined $args{point_id} && $relative_click_point->{id} ne $args{point_id};
         $relevant_area = $area;
         last;
     }
