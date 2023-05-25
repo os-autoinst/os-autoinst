@@ -1,9 +1,10 @@
 # Copyright 2009-2013 Bernhard M. Wiedemann
-# Copyright 2012-2020 SUSE LLC
+# Copyright 2012-2023 SUSE LLC
 # SPDX-License-Identifier: GPL-2.0-or-later
 
 package backend::svirt;
 use Mojo::Base 'backend::virt', -signatures;
+use Mojo::File qw(path);
 use File::Basename;
 use IO::Scalar;
 use Time::HiRes 'usleep';
@@ -90,12 +91,10 @@ sub scp_get ($self, $src, $dest) {
     my %credentials = $self->get_ssh_credentials(_is_hyperv ? 'hyperv' : 'default');
     my $ssh = $self->new_ssh_connection(%credentials);
 
-    open(my $fh, '>', $dest) or die "Could not open file '$dest' $!";
     bmwqemu::diag("SCP file: '$src' => '$dest'");
     my $output = IO::Scalar->new;
     $ssh->scp_get($src, $output) or die "SCP failed";
-    print $fh $output;
-    close $fh;
+    path($dest)->spurt($output);
     $ssh->disconnect();
 }
 
