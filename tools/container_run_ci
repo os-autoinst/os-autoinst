@@ -39,7 +39,7 @@ done
 
 CI_ENV=$(bash <(curl -s https://codecov.io/env))
 
-IMAGE=registry.opensuse.org/devel/openqa/containers-tw/os-autoinst_dev
+IMAGE=registry.opensuse.org/devel/openqa/containers/os-autoinst_dev
 build_dir="${build_dir:-"build"}"  # default is in accordance with file path in `.github/workflows/ci.yml`
 cre="${cre:-"podman"}"
 $cre pull $IMAGE
