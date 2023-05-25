@@ -321,9 +321,9 @@ subtest 'script_run' => sub {
     is(script_run('false', die_on_timeout => 1, output => 'foo'), '1', 'script_run with no check of success and output, returns exit code');
     is(script_run('false', 0, die_on_timeout => 1), undef, 'script_run with no check of success, returns undef when not waiting');
     $fake_matched = 0;
-    throws_ok { script_run('sleep 13', timeout => 10, die_on_timeout => 1, quiet => 1) } qr/command.*timed out/, 'exception occured on script_run() timeout';
+    throws_ok { script_run('sleep 13', timeout => 10, die_on_timeout => 1, quiet => 1) } qr/command.*timed out/, 'exception occurred on script_run() timeout';
     $testapi::distri->{script_run_die_on_timeout} = 1;
-    throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occured on script_run() timeout';
+    throws_ok { script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurred on script_run() timeout';
 
     throws_ok { assert_script_run('sleep 13', timeout => 10, quiet => 1) } qr/command.*timed out/, 'exception occurs on assert_script_run() timeout by default';
     my $autotest_mock = Test::MockModule->new('autotest');
@@ -532,7 +532,25 @@ subtest 'assert_and_click' => sub {
             cmd => 'backend_mouse_set',
             x => 61,
             y => 70,
-    }, 'assert_and_click clicks at the  click point specified as "center"') or diag explain $cmds;
+    }, 'assert_and_click clicks at the click point specified as "center"') or diag explain $cmds;
+
+    $cmds = [];
+    @areas = ({x => 50, y => 60, w => 22, h => 20, click_point => {xpos => 5, ypos => 7, id => 'first'}}, {x => 0, y => 0, w => 10, h => 10, click_point => {xpos => 5, ypos => 7, id => 'second'}});
+    ok(assert_and_click('foo', point_id => 'first'));
+    is_deeply($cmds->[1], {
+            cmd => 'backend_mouse_set',
+            x => 55,
+            y => 67,
+    }, 'assert_and_click clicks at the click point with ID "first"') or diag explain $cmds;
+
+    $cmds = [];
+    @areas = ({x => 50, y => 60, w => 22, h => 20, click_point => {xpos => 5, ypos => 7, id => 'first'}}, {x => 0, y => 0, w => 10, h => 10, click_point => {xpos => 5, ypos => 7, id => 'second'}});
+    ok(assert_and_click('foo', point_id => 'second'));
+    is_deeply($cmds->[1], {
+            cmd => 'backend_mouse_set',
+            x => 5,
+            y => 7,
+    }, 'assert_and_click clicks at the click point with ID "second"') or diag explain $cmds;
 
     is_deeply($cmds->[-1], {cmd => 'backend_mouse_set', x => 100, y => 100}, 'assert_and_click succeeds and move to old mouse set');
 
