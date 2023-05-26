@@ -357,7 +357,7 @@ subtest 'server initialization' => sub {
     $red_shift = 10;
     $green_shift = 5;
     $blue_shift = 0;
-    my @params = ($bits_per_pixel, $depth, $server_is_big_endian != $machine_is_big_endian, $true_colour_flag, $red_max, $green_max, $blue_max, $red_shift, $green_shift, $blue_shift);
+    my @params = ($bits_per_pixel, $depth, ($server_is_big_endian && $machine_is_big_endian), $true_colour_flag, $red_max, $green_max, $blue_max, $red_shift, $green_shift, $blue_shift);
     my @expected = (
         pack(CCCCCCCCnnnCCCCCC => 0, 0, 0, 0, @params, 0, 0, 0),    # setpixelformat
         pack(CCn => 2, 0, 5),    # five supported encodings (no ZRLE due to dell flag)
