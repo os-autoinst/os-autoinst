@@ -105,7 +105,7 @@ BIOS;;;Set the filename for the BIOS
 BOOT_HDD_IMAGE;boolean;;enables boot from HDD_1 (BOOTFROM has higher priority)
 BOOT_MENU;boolean;undef;enables boot menu for selection of boot device
 BOOT_MENU_TIMEOUT;integer;5000;boot menu timeout in ms. Needs BOOT_MENU
-BOOTFROM;chars;undef;Influences order of boot devices. See qemu -boot option
+BOOTFROM;chars;undef;Influences order of boot devices. Multi boot order is not supported. This variable can be overriden by `PXEBOOT`. See qemu -boot option and PXEBOOT variable.
 CDMODEL;see qemu -device ?;undef;Storage device for virtualized CD
 DELAYED_START;boolean;;delay vm cpu start until resume_vm() is called
 HDDMODEL;see qemu -device ?;virtio-blk;Storage device for virtualized HDD.
@@ -135,7 +135,7 @@ QEMU_OVERRIDE_VIDEO_DEVICE_AARCH64;boolean;undef;(Deprecated, set QEMU_VIDEO_DEV
 QEMU_DISABLE_SNAPSHOTS;boolean;undef;If set, disable snapshots in QEMU. This needs to be set when using vmdk disk images or in case the worker has slow disks to avoid save_vm calls failing due to timeouts (See https://bugzilla.suse.com/show_bug.cgi?id=1035453[bsc#1035453])
 QEMU_QMP_CONNECT_ATTEMPTS;integer;20;The number of attempts to connect to qemu qmp. Usually used for internal testing
 PATHCNT;integer;2;Number of paths in MULTIPATH scenario
-PXEBOOT;boolean or 'once';0;Boot VM from network, on every boot or only once if set to 'once'
+PXEBOOT;boolean or 'once';0;Boot VM from network, on every boot or only once if set to 'once'. If value is 1 or 'once' it sets `bootindex=N` for each network device.
 QEMU;QEMU binary filename;undef;Filename of QEMU binary to use
 QEMUCLUSTERS;integer;undef;Number of CPU clusters used by VM
 QEMUCORES;integer;undef;Number of CPU cores used by VM
