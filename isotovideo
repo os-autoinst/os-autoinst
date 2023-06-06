@@ -75,7 +75,11 @@ use OpenQA::Isotovideo::Utils qw(git_rev_parse spawn_debuggers handle_generated_
 
 my %options;
 
+# global exit status
+my $return_code = 1;
+
 sub usage ($r) {
+    $return_code = $r;
     eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
     die "cannot display help, install perl(Pod::Usage)\n" if $@;
 }
@@ -87,6 +91,7 @@ sub _get_version_string () {
 
 sub version () {
     print _get_version_string() . "\n";
+    $return_code = 0;
     exit 0;
 }
 
@@ -104,9 +109,6 @@ delete $ENV{NO_COLOR} if $color eq 'yes';
 $ENV{ANSI_COLORS_DISABLED} = 1 if $color eq 'no';
 
 chdir $options{workdir} if $options{workdir};
-
-# global exit status
-my $return_code = 1;
 
 # abstraction providing many helpers and function to run the select-loop
 my $runner;

@@ -2,11 +2,24 @@
 
 use Mojo::Base -strict, -signatures;
 use File::Basename;
+use Getopt::Long;
 use needle;
 use cv;
 
 cv::init();
 require tinycv;
+
+Getopt::Long::Configure("no_ignore_case");
+
+my %options;
+
+sub usage ($r) {
+    eval { require Pod::Usage; Pod::Usage::pod2usage($r) };
+    die "cannot display help, install perl(Pod::Usage)\n" if $@;    # uncoverable statement
+}
+
+GetOptions(\%options, 'help|h|?') or usage(1);
+usage(0) if $options{help};
 
 my ($res, $needle, $img);
 my $ndir = $ARGV[0] || ".";

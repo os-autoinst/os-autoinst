@@ -36,20 +36,21 @@ use needle;
     sub from_paths ($needle_paths, @args) { [map { basic_needle->new($_, @args) } @$needle_paths] }
 }
 
-sub print_usage () {
+sub usage ($r) {
     print "imgsearch [options]
 
 options:
     --needle-images    specifies images to look for
     --haystack-images  specifies images to look in
     --verbose          enables debug output
+    --help             Show this help
 
 example:
 imagesearch \
     --needle-images logo1.png logo2.png \
     --haystack-images asset.png screenshot.png
 ";
-    exit 0;
+    exit $r;
 }
 
 getopt 'needle-images=s@{1,}' => \my @needle_image_paths,
@@ -58,9 +59,11 @@ getopt 'needle-images=s@{1,}' => \my @needle_image_paths,
   'margin=f' => \my $margin,
   'threshold=f' => \my $threshold,
   'search-ratio=f' => \my $search_ratio,
-  'v|verbose' => \my $verbose;
+  'v|verbose' => \my $verbose,
+  'h|help' => \my $help;
 
-print_usage unless @needle_image_paths && @image_paths;
+usage(0) if $help;
+usage(1) unless @needle_image_paths && @image_paths;
 
 # stop opencv logging messages polluting stdout
 $ENV{'OPENCV_LOG_LEVEL'} ||= 'SILENT';
