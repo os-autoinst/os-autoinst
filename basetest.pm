@@ -16,6 +16,7 @@ use Mojo::File 'path';
 
 my $serial_file_pos = 0;
 my $autoinst_log_pos = 0;
+my $total_result_count = 0;
 
 my $fail_severity = {
     '' => 0,
@@ -110,6 +111,14 @@ Return a hash of flags that are either there or not
 =cut
 
 sub test_flags ($self) { {} }
+
+=head2 total_result_count
+
+Returns the total number of results created via the various record methods.
+
+=cut
+
+sub total_result_count () { $total_result_count }
 
 =head2 post_fail_hook
 
@@ -240,7 +249,10 @@ sub record_screenfail ($self, %args) {
 }
 
 sub remove_last_result ($self) {
-    --$self->{test_count};
+    if ($self->{test_count} > 0) {
+        --$total_result_count;
+        --$self->{test_count};
+    }
     return pop @{$self->{details}};
 }
 
@@ -399,15 +411,16 @@ sub save_test_result ($self) {
     return $result;
 }
 
+sub _increment_test_count ($self, $max = $bmwqemu::vars{MAX_TEST_STEPS} // 50000) {
+    die "Maximum allowed test steps (MAX_TEST_STEPS=$max) exceeded, aborting" if $total_result_count >= $max;
+    ++$total_result_count;
+    ++$self->{test_count};
+}
+
 sub next_resultname ($self, $type, $name = undef) {
     my $testname = $self->{name};
-    my $count = ++$self->{test_count};
-    if ($name) {
-        return "$testname-$count.$name.$type";
-    }
-    else {
-        return "$testname-$count.$type";
-    }
+    my $count = $self->_increment_test_count;
+    return $name ? "$testname-$count.$name.$type" : "$testname-$count.$type";
 }
 
 sub write_resultfile ($self, $filename, $output) {
@@ -492,9 +505,9 @@ sub record_testresult ($self, $result = undef, %args) {
     }
 
     # add detail
+    $self->_increment_test_count;
     my $detail = {result => $result};
     push(@{$self->{details}}, $detail);
-    ++$self->{test_count};
     return $detail;
 }
 

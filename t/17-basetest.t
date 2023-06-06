@@ -14,6 +14,7 @@ use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
 use MIME::Base64 'encode_base64';
 use cv;
+use basetest;
 
 cv::init;
 require tinycv;
@@ -288,6 +289,19 @@ subtest record_testresult => sub {
     is($basetest->{test_count}, 11, 'test_count accumulated');
     is(scalar @{$basetest->{details}}, 10, 'all details added');
 };
+
+subtest 'number of test results is limited' => sub {
+    my $total_result_count = basetest::total_result_count;
+    ok $total_result_count, 'counter for total results has been incremented before';
+    my $basetest = basetest::new('basetest');
+    $bmwqemu::vars{MAX_TEST_STEPS} = $total_result_count + 1;
+    is_deeply $basetest->record_testresult('ok'), {result => 'ok'}, 'can add one more test result';
+    throws_ok { $basetest->record_testresult('ok') } qr/allowed test steps.*exceeded/, 'unable to add a second test result';
+    $basetest->remove_last_result;
+    is_deeply $basetest->record_testresult('ok'), {result => 'ok'}, 'can add one test result again';
+};
+
+delete $bmwqemu::vars{MAX_TEST_STEPS};
 
 subtest record_screenmatch => sub {
     my $basetest = basetest->new();
