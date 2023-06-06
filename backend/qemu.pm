@@ -674,6 +674,10 @@ sub start_qemu ($self) {
             $bootfrom = 'disk';
             $vars->{BOOTFROM} = 'c';
         }
+        elsif ($bootfrom_var eq 'n' || $bootfrom_var eq 'net') {
+            $bootfrom = 'net';
+            $vars->{BOOTFROM} = 'n';
+        }
         else {
             die "unknown/unsupported boot order: $bootfrom_var";
         }
@@ -857,7 +861,8 @@ sub start_qemu ($self) {
             else {
                 die "unknown NICTYPE $vars->{NICTYPE}\n";
             }
-            sp('device', [qv "$vars->{NICMODEL} netdev=qanet$i mac=$nicmac[$i]"]);
+            my $bootorder = $vars->{PXEBOOT} ? "bootindex=$i" : '';
+            sp('device', [qv "$vars->{NICMODEL} netdev=qanet$i mac=$nicmac[$i] $bootorder"]);
         }
 
         # Keep additional virtio _after_ Ethernet setup to keep virtio-net as eth0

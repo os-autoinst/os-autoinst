@@ -196,6 +196,47 @@ sub qemu_cmdline (%args) {
 like qemu_cmdline(OFW => 1, XRES => 640, YRES => 480), qr/-g 640x480/, 'res is set for ppc/sparc';
 like qemu_cmdline(OFW => 1), qr/cap-cfpc=broken/, 'OFW workarounds applied';
 
+sub test_boot_options ($boot, $arch, $pxe, $expected) {
+    my $cmdline;
+    my $bootfrom_supported = 0;
+    if ($pxe) {
+        $cmdline = qemu_cmdline(PXEBOOT => $pxe, ARCH => $arch);
+    } else {
+        $cmdline = qemu_cmdline(BOOTFROM => $boot, ARCH => $arch);
+        $bootfrom_supported = $arch ne 'x86_64';
+    }
+    if ($bootfrom_supported) {
+        unlike $cmdline, $expected, "'-boot' option is ignored on $arch";
+    } else {
+        like $cmdline, $expected, '-boot gets correct parameter';
+    }
+}
+
+subtest 'qemu_net_boot' => sub {
+    subtest 'qemu_bootindex_default' => sub {
+        my $cmdline = qemu_cmdline(ARCH => 'x86_64');
+        like $cmdline, qr|mac=\d{2}:\d{2}:\d{2}:\d{2}:\d{2}:\d{2}\s|, 'device does not set bootindex by default on x86_64';
+        like $cmdline, qr|-boot once=d|, 'boot parameter is set to once';
+        $cmdline = qemu_cmdline(ARCH => 'aarch64');
+        like $cmdline, qr|mac=\d{2}:\d{2}:\d{2}:\d{2}:\d{2}:\d{2}\s|, 'device does not set bootindex by default on aarch64';
+        unlike $cmdline, qr|-boot once=d|, 'boot parameter is not set on aarch64';
+    };
+    subtest('Test boot with n on x86_64', \&test_boot_options, 'n', 'x86_64', undef, qr|-boot order=n|);
+    subtest('Test boot with net on x86_64', \&test_boot_options, 'net', 'x86_64', undef, qr|-boot order=n|);
+    subtest('Test boot with n on aarch64', \&test_boot_options, 'n', 'aarch64', undef, qr|-boot order=n|);
+    subtest('Test boot with net on aarch64', \&test_boot_options, 'net', 'aarch64', undef, qr|-boot order=n|);
+    $bmwqemu::vars{BOOTFROM} = 'nc';
+    throws_ok { $backend->start_qemu } qr{unsupported boot order: nc}, 'dies on multi boot order as os-autoinst doesnt supported';
+    delete $bmwqemu::vars{BOOTFROM};
+    delete $bmwqemu::vars{BOOT_MENU};
+    subtest('Test boot with n on x86_64', \&test_boot_options, 0, 'x86_64', 1, qr|mac=.*,bootindex=\d|);
+    subtest('Test boot with n on aarch64', \&test_boot_options, 0, 'aarch64', 1, qr|mac=.*,bootindex=\d|);
+    subtest('Test boot with n on s390x', \&test_boot_options, 0, 's390x', 1, qr|mac=.*,bootindex=\d|);
+    subtest('Test boot with n on ppc64le', \&test_boot_options, 0, 'ppc64le', 1, qr|mac=.*,bootindex=\d|);
+    delete $bmwqemu::vars{PXEBOOT};
+    delete $bmwqemu::vars{ARCH};
+};
+
 # test QEMU_HUGE_PAGES_PATH with different options
 subtest qemu_huge_pages_option => sub {
     my $cmdline = qemu_cmdline(QEMU_HUGE_PAGES_PATH => '/no/dev/hugepages/');
