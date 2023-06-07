@@ -12,6 +12,7 @@ use ocr;
 use testapi ();
 use autotest ();
 use MIME::Base64 'decode_base64';
+use OpenQA::Exceptions;
 use Mojo::File 'path';
 
 my $serial_file_pos = 0;
@@ -411,8 +412,13 @@ sub save_test_result ($self) {
     return $result;
 }
 
-sub _increment_test_count ($self, $max = $bmwqemu::vars{MAX_TEST_STEPS} // 50000) {
-    die "Maximum allowed test steps (MAX_TEST_STEPS=$max) exceeded, aborting" if $total_result_count >= $max;
+sub _increment_test_count ($self, $max = $bmwqemu::vars{MAX_TEST_STEPS} // 50) {
+    if ($total_result_count >= $max) {
+        my $msg = "Maximum allowed test steps (MAX_TEST_STEPS=$max) exceeded";
+        $self->{fatal_failure} = 1;
+        bmwqemu::serialize_state(component => 'tests', msg => $msg, result => 'incomplete');
+        OpenQA::Exception::InternalException->throw(error => $msg);
+    }
     ++$total_result_count;
     ++$self->{test_count};
 }
