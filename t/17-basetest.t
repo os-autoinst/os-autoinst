@@ -10,10 +10,12 @@ use Test::MockModule;
 use Test::Fatal;
 use Test::Output qw(combined_like combined_from);
 use File::Basename;
-use Mojo::File 'tempdir';
+use Mojo::File qw(path tempdir);
+use Mojo::JSON qw(decode_json);
 use Mojo::Util qw(scope_guard);
 use MIME::Base64 'encode_base64';
 use cv;
+use basetest;
 
 cv::init;
 require tinycv;
@@ -288,6 +290,24 @@ subtest record_testresult => sub {
     is($basetest->{test_count}, 11, 'test_count accumulated');
     is(scalar @{$basetest->{details}}, 10, 'all details added');
 };
+
+subtest 'number of test results is limited' => sub {
+    my $total_result_count = basetest::total_result_count;
+    ok $total_result_count, 'counter for total results has been incremented before';
+    my $basetest = basetest::new('basetest');
+    $bmwqemu::vars{MAX_TEST_STEPS} = $total_result_count + 1;
+    is_deeply $basetest->record_testresult('ok'), {result => 'ok'}, 'can add one more test result';
+    throws_ok { $basetest->record_testresult('ok') } qr/allowed test steps.*exceeded/, 'unable to add a second test result';
+    my $state_file = decode_json(path(bmwqemu::STATE_FILE)->slurp);
+    is delete $state_file->{result}, 'incomplete', 'job result serialized';
+    like delete $state_file->{msg}, qr/allowed test.*exceeded/, 'message for reason serialized';
+    is delete $state_file->{component}, 'tests', 'component for reason serialized';
+    ok $basetest->{fatal_failure}, 'failure considered fatal';
+    $basetest->remove_last_result;
+    is_deeply $basetest->record_testresult('ok'), {result => 'ok'}, 'can add one test result again';
+};
+
+delete $bmwqemu::vars{MAX_TEST_STEPS};
 
 subtest record_screenmatch => sub {
     my $basetest = basetest->new();
