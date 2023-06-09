@@ -26,6 +26,6 @@ $ppmv = substr($ppmv, 0, 80);
 like($ppmv, qr/^P6\s1024 768\s255/, 'is a ppm');
 my $img2 = tinycv::from_ppm($ppm);
 
-is(1000000, $img1->similarity($img2));
+is(1_000_000, $img1->similarity($img2));
 
 done_testing();

@@ -74,7 +74,7 @@ $log->debug('Loading tinycv');
 cv::init;
 require tinycv;
 $match_level //= 80;    # the similarity level required to consider a finding a match (unit: percent)
-$margin //= 1000000;    # very high value to search within full image by default (unit: pixel)
+$margin //= 1_000_000;    # very high value to search within full image by default (unit: pixel)
 $search_ratio //= 0;    # set to zero to disable unwanted computation of margin (which assumes an image width of 1024 px)
 $threshold //= 0.0;    # subtracted from each area's match level; just keep at zero here
 $log->debug("Martch-level: $match_level, margin: $margin, threshold: $threshold, search ratio: $search_ratio");

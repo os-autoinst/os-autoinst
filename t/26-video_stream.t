@@ -104,7 +104,7 @@ subtest 'frames parsing' => sub {
 
     $img = tinycv::read($data_dir . "frame1.png");
     $received_img = $console->current_screen();
-    is $received_img->similarity($img), 1000000, "received correct frame";
+    is $received_img->similarity($img), 1_000_000, "received correct frame";
     $console->disable_video;
 
     # now two frames
@@ -113,7 +113,7 @@ subtest 'frames parsing' => sub {
 
     $img = tinycv::read($data_dir . "frame2.png");
     $received_img = $console->current_screen();
-    is $received_img->similarity($img), 1000000, "received correct frame";
+    is $received_img->similarity($img), 1_000_000, "received correct frame";
     $console->disable_video;
 };
 
