@@ -63,7 +63,7 @@ END
     } elsif ($self->{provider} eq 'libvirt') {
         $self->{libvirt_storage_pool_path} = "$self->{vagrant_cwd}/pool";
         mkdir $self->{libvirt_storage_pool_path};
-        $self->{libvirt_pool_name} = "vagrant" . int(rand(100000));
+        $self->{libvirt_pool_name} = "vagrant" . int(rand(100_000));
 
         $vagrant_file_contents .= <<END;
   config.vm.provider :libvirt do |libvirt|

@@ -56,8 +56,8 @@ sub new ($class) {
     $self->{video_frame_number} = 0;
     $self->{video_encoders} = {};
     $self->{external_video_encoder_image_data} = [];
-    $self->{min_image_similarity} = 10000;
-    $self->{min_video_similarity} = 10000;
+    $self->{min_image_similarity} = 10_000;
+    $self->{min_video_similarity} = 10_000;
     $self->{children} = [];
     $self->{ssh_connections} = {};
     $self->{xres} = $bmwqemu::vars{XRES} // 1024;
@@ -530,7 +530,7 @@ sub enqueue_screenshot ($self, $image) {
     # into the video
     if ($self->{min_image_similarity} <= 54) {
         $self->last_image($image);
-        $self->{min_image_similarity} = 10000;
+        $self->{min_image_similarity} = 10_000;
     }
 
     my $external_video_encoder_cmd_pipe = $self->{external_video_encoder_cmd_pipe};
@@ -544,7 +544,7 @@ sub enqueue_screenshot ($self, $image) {
         $watch->lap("convert ppm data");
         push(@{$self->{video_frame_data}}, 'E ' . length($imgdata) . "\n");
         push(@{$self->{video_frame_data}}, $imgdata);
-        $self->{min_video_similarity} = 10000;
+        $self->{min_video_similarity} = 10_000;
         push(@{$self->{external_video_encoder_image_data}}, $imgdata)
           if defined $external_video_encoder_cmd_pipe;
     }
@@ -898,7 +898,7 @@ sub set_reference_screenshot ($self, $args) {
 }
 
 sub similiarity_to_reference ($self, $args) {
-    return {sim => 10000} if (!$self->reference_screenshot || !$self->last_image);
+    return {sim => 10_000} if (!$self->reference_screenshot || !$self->last_image);
     return {sim => $self->reference_screenshot->similarity($self->last_image)};
 }
 

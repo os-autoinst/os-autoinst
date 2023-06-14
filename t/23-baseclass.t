@@ -460,12 +460,12 @@ BdsDxe: starting Boot0001 "UEFI Misc Device" from PciRoot(0x0)/Pci(0x8,0x0)'}, '
 subtest 'waiting for screen change or still screen' => sub {
     my @sent_json;
     my $rpc_mock = Test::MockModule->new('myjsonrpc')->redefine(send_json => sub (@args) { push @sent_json, [@args] });
-    my %expected_response = (json_cmd_token => 'faketoken', rsp => {sim => 10000, elapsed => 10, timed_out => !!0});
+    my %expected_response = (json_cmd_token => 'faketoken', rsp => {sim => 10_000, elapsed => 10, timed_out => !!0});
     $baseclass->{rsppipe} = 41;
     $baseclass->{_postponed_cmd_token} = 'faketoken';
 
     subtest 'enqueuing waiting for screen change' => sub {
-        is_deeply $baseclass->wait_screen_change({similarity_level => 10000, timeout => 10}), {postponed => 1}, 'reply is postponed';
+        is_deeply $baseclass->wait_screen_change({similarity_level => 10_000, timeout => 10}), {postponed => 1}, 'reply is postponed';
         is ref $baseclass->{_wait_screen_change}, 'HASH', 'check for screen change enqueued';
     };
     subtest 'screen has not changed and timeout has not been exceeded' => sub {
@@ -768,11 +768,11 @@ subtest 'reduce to biggest changes' => sub {
     );
     my @expected = (
         [$dummy_img, 'img 4', 8, 950, $dummy_img],    # images sorted by test time and similarity (as 2nd criteria) in descending order
-        [$dummy_img, 'img 3', 7, 1000000, $dummy_img],    # similarity of images (after the top one) recomputes (so we just get 1000000 for our dummies)
-        [$dummy_img, 'img 2', 6, 1000000, $dummy_img],
-        [$dummy_img, 'img 1', 5, 1000000, $dummy_img],    # first image preserved despite lowest similarity (so 2nd lowest is removed instead)
-        [$dummy_img, 'img 7', 3, 1000000, $dummy_img],
-        [$dummy_img, 'img 6', 2, 1000000, $dummy_img],
+        [$dummy_img, 'img 3', 7, 1_000_000, $dummy_img],    # similarity of images (after the top one) recomputes (so we just get 1000000 for our dummies)
+        [$dummy_img, 'img 2', 6, 1_000_000, $dummy_img],
+        [$dummy_img, 'img 1', 5, 1_000_000, $dummy_img],    # first image preserved despite lowest similarity (so 2nd lowest is removed instead)
+        [$dummy_img, 'img 7', 3, 1_000_000, $dummy_img],
+        [$dummy_img, 'img 6', 2, 1_000_000, $dummy_img],
     );
     backend::baseclass::_reduce_to_biggest_changes(\@imglist, 5);    # pass limit of 5, we actually keep 6 images as the first one doesn't count
     is_deeply \@imglist, \@expected, 'images reduced as expected' or diag explain \@imglist;

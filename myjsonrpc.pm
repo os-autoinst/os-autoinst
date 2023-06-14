@@ -12,7 +12,7 @@ use Cpanel::JSON::XS ();
 use bmwqemu ();
 
 use constant DEBUG_JSON => $ENV{PERL_MYJSONRPC_DEBUG} || 0;
-use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8000000;
+use constant READ_BUFFER => $ENV{PERL_MYJSONRPC_BYTES} || 8_000_000;
 
 sub send_json ($to_fd, $cmd) {
     # allow regular expressions to be automatically converted into

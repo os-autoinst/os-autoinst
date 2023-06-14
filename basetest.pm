@@ -412,7 +412,7 @@ sub save_test_result ($self) {
     return $result;
 }
 
-sub _increment_test_count ($self, $max = $bmwqemu::vars{MAX_TEST_STEPS} // 50000) {
+sub _increment_test_count ($self, $max = $bmwqemu::vars{MAX_TEST_STEPS} // 50_000) {
     if ($total_result_count >= $max) {
         my $msg = "Maximum allowed test steps (MAX_TEST_STEPS=$max) exceeded";
         $self->{fatal_failure} = 1;
