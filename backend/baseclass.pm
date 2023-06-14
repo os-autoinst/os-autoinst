@@ -347,7 +347,7 @@ sub _start_external_video_encoder_if_configured ($self) {
 
     my $cmd = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} or return 0;
     my $output_file_name = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_OUTPUT_FILE_EXTENSION} // 'webm';
-    my $output_file_path = Cwd::getcwd . "/video.$output_file_name";
+    my $output_file_path = "video.$output_file_name";
     $cmd .= " '$output_file_path'" unless $cmd =~ s/%OUTPUT_FILE_NAME%/$output_file_path/;
 
     bmwqemu::diag "Launching external video encoder: $cmd";
