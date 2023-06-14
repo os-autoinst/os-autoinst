@@ -680,7 +680,7 @@ subtest 'starting external video encoder and enqueuing screenshot data for it' =
     my $launched_video_encoder = $video_encoders->{$video_encoder_pids[0]};
     subtest 'params passed as expected' => sub {
         is $launched_video_encoder->{name}, 'external video encoder', 'name set';
-        like $launched_video_encoder->{cmd}, qr/true -o .*\/video\.webm "trailing arg"/, 'command correct, %OUTPUT_FILE_NAME% substituted';
+        like $launched_video_encoder->{cmd}, qr/true -o video\.webm "trailing arg"/, 'command correct, %OUTPUT_FILE_NAME% substituted';
     } or diag explain $video_encoders;
 
     # launch again without %OUTPUT_FILE_NAME%
@@ -689,7 +689,7 @@ subtest 'starting external video encoder and enqueuing screenshot data for it' =
     ok $baseclass->_start_external_video_encoder_if_configured, 'video encoder started';
     @video_encoder_pids = keys %$video_encoders;
     is scalar @video_encoder_pids, 1, 'one video encoder started (without %OUTPUT_FILE_NAME%)';
-    like $video_encoders->{$video_encoder_pids[0]}->{cmd}, qr/true "trailing arg" .*\/video\.webm/, 'command correct, output file appended'
+    like $video_encoders->{$video_encoder_pids[0]}->{cmd}, qr/true "trailing arg" 'video\.webm'/, 'command correct, output file appended'
       or diag explain $video_encoders;
 
     # now enqueue image data
