@@ -35,6 +35,7 @@ use OpenQA::NamedIOSelect;
 
 use constant FULL_SCREEN_SEARCH_FREQUENCY => $ENV{OS_AUTOINST_FULL_SCREEN_SEARCH_FREQUENCY} // 5;
 use constant FULL_UPDATE_REQUEST_FREQUENCY => $ENV{OS_AUTOINST_FULL_UPDATE_REQUEST_FREQUENCY} // 5;
+use constant DEFAULT_FFMPEG_CMD => 'ffmpeg -hide_banner -nostats -r 24 -f image2pipe -vcodec ppm -i - -pix_fmt yuv420p';
 
 # should be a singleton - and only useful in backend process
 our $backend;
@@ -342,10 +343,18 @@ sub _invoke_video_encoder ($self, $pipe_name, $display_name, @cmd) {
     $pipe->blocking(!!$bmwqemu::vars{VIDEO_ENCODER_BLOCKING_PIPE});
 }
 
+sub _ffmpeg_banner () { `ffmpeg 2>&1` // '' }
+
+sub _auto_detect_external_video_encoder ($self) {
+    my $ffmpeg_banner = _ffmpeg_banner;
+    return DEFAULT_FFMPEG_CMD . ' -c:v libsvtav1 -crf 50 -preset 7' if $ffmpeg_banner =~ qr/--enable-libsvtav1(\s|$)/;
+    return DEFAULT_FFMPEG_CMD . ' -c:v libvpx-vp9 -crf 35 -b:v 1500k -cpu-used 1' if $ffmpeg_banner =~ qr/--enable-libvpx(\s|$)/;
+}
+
 sub _start_external_video_encoder_if_configured ($self) {
     return 0 if $bmwqemu::vars{NOVIDEO};
 
-    my $cmd = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} or return 0;
+    my $cmd = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} // $self->_auto_detect_external_video_encoder or return 0;
     my $output_file_name = $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_OUTPUT_FILE_EXTENSION} // 'webm';
     my $output_file_path = "video.$output_file_name";
     $cmd .= " '$output_file_path'" unless $cmd =~ s/%OUTPUT_FILE_NAME%/$output_file_path/;

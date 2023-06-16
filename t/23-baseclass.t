@@ -670,8 +670,17 @@ subtest 'corner cases of do_capture/run_capture_loop' => sub {
     is $io_select_timeout, 0.1, 'very low timeout used as select timeout for wait_screen_change with no_wait parameter';
 };
 
+subtest 'auto-detection of external video encoder' => sub {
+    ok defined backend::baseclass::_ffmpeg_banner, 'ffmpeg banner is always defined (might be an empty string, though)';
+    $baseclass_mock->redefine(_ffmpeg_banner => "--enable-encoder='libsvtav1,libvpx_vp9'");    # not supposed to match
+    ok !$baseclass->_start_external_video_encoder_if_configured, 'external video encoder not used if SVT-AV1/VP9 not available';
+    $baseclass_mock->redefine(_ffmpeg_banner => '--enable-libsvtav1 --enable-libvpx');
+    like $baseclass->_auto_detect_external_video_encoder, qr/^ffmpeg.*ppm.*yuv420p.*libsvtav1/, 'SVT-AV1 preferably used if available';
+    $baseclass_mock->redefine(_ffmpeg_banner => '--enable-libvpx');
+    like $baseclass->_auto_detect_external_video_encoder, qr/^ffmpeg.*ppm.*yuv420p.*libvpx-vp9/, 'VP9 used as 2nd option if available';
+};
+
 subtest 'starting external video encoder and enqueuing screenshot data for it' => sub {
-    ok !$baseclass->_start_external_video_encoder_if_configured, 'external video encoder not used by default';
     my $video_encoders = $baseclass->{video_encoders} = {};
     $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} = 'true -o %OUTPUT_FILE_NAME% "trailing arg"';
     $log::logger->level('info');
