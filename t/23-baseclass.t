@@ -671,6 +671,7 @@ subtest 'corner cases of do_capture/run_capture_loop' => sub {
 };
 
 subtest 'starting external video encoder and enqueuing screenshot data for it' => sub {
+    ok !$baseclass->_start_external_video_encoder_if_configured, 'external video encoder not used by default';
     my $video_encoders = $baseclass->{video_encoders} = {};
     $bmwqemu::vars{EXTERNAL_VIDEO_ENCODER_CMD} = 'true -o %OUTPUT_FILE_NAME% "trailing arg"';
     $log::logger->level('info');
