@@ -343,7 +343,7 @@ sub _invoke_video_encoder ($self, $pipe_name, $display_name, @cmd) {
     $pipe->blocking(!!$bmwqemu::vars{VIDEO_ENCODER_BLOCKING_PIPE});
 }
 
-sub _ffmpeg_banner () { `ffmpeg 2>&1` // '' }
+sub _ffmpeg_banner () { qx{ffmpeg 2>&1} // '' }
 
 sub _auto_detect_external_video_encoder ($self) {
     my $ffmpeg_banner = _ffmpeg_banner;

@@ -168,7 +168,7 @@ subtest 'SSH utilities' => sub {
                             $self->{cmd} = $cmd;
                             $self->{eof} = 0;
                             if ($cmd =~ /^(echo|test)/) {
-                                $self->{stdout} = `$cmd`;
+                                $self->{stdout} = qx{$cmd};
                                 $self->{exit_status} = $?;
                                 $self->{stderr} = '';
                             }

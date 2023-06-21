@@ -620,7 +620,7 @@ sub start_qemu ($self) {
     $self->{proc}->qemu_img_bin($qemuimg);
 
     # Get qemu version
-    my $qemu_version = `$qemubin -version`;
+    my $qemu_version = qx{$qemubin -version};
     $qemu_version =~ /([0-9]+([.][0-9]+)+)/;
     $qemu_version = $1;
     $self->{qemu_version} = $qemu_version;

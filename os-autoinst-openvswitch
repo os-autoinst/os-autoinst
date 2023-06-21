@@ -54,7 +54,7 @@ sub init_switch ($self) {
     system('ovs-vsctl', 'br-exists', $self->{BRIDGE});
 
     for (my $timeout = $ENV{OS_AUTOINST_OPENVSWITCH_INIT_TIMEOUT} // ONE_MINUTE; $timeout > 0; --$timeout) {
-        my $bridge_conf = `ip addr show $self->{BRIDGE}`;
+        my $bridge_conf = qx{ip addr show $self->{BRIDGE}};
         $self->{MAC} = $1 if $bridge_conf =~ /ether\s+(([0-9a-f]{2}:){5}[0-9a-f]{2})\s/;
         $self->{IP} = $1 if $bridge_conf =~ /inet\s+(([0-9]+.){3}[0-9]+\/[0-9]+)\s/;
         last if $self->{IP};
@@ -132,7 +132,7 @@ sub _ovs_check ($tap, $vlan, $bridge) {
         return ($return_code, $return_output);
     }
 
-    my $check_bridge = `ovs-vsctl port-to-br $tap`;
+    my $check_bridge = qx{ovs-vsctl port-to-br $tap};
     chomp $check_bridge;
     if ($check_bridge ne $bridge) {
         $return_output = "'$tap' is not connected to bridge '$bridge'";
@@ -159,7 +159,7 @@ sub _cmd (@args) {
 }
 
 sub check_min_ovs_version ($min_ver) {
-    my $out = `ovs-vsctl --version`;
+    my $out = qx{ovs-vsctl --version};
     return if ($out !~ /\(Open vSwitch\)\s+(\d+\.\d+\.\d+)/m);
     my @ver = split(/\./, $1);
     my @min_ver = split(/\./, $min_ver);
