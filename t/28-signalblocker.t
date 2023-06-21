@@ -26,7 +26,7 @@ no warnings 'redefine';
 my $no_signal_blocker = $ENV{OS_AUTOINST_TEST_NO_SIGNAL_BLOCKER};
 
 # define a helper to find the number of threads spawned by this test
-sub thread_count () { scalar split("\n", `ps huH p $$`) }
+sub thread_count () { scalar split("\n", qx{ps huH p $$}) }
 is(my $last_thread_count = thread_count, 1, 'initially one thread');
 
 # count SIGTERMs we receive; those handlers should work after creating/destroying the signal blocker
