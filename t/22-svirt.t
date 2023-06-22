@@ -16,7 +16,7 @@ use backend::svirt;
 use distribution;
 use Net::SSH2;
 use testapi qw(get_var get_required_var check_var set_var);
-use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT);
+use backend::svirt qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT SERIAL_USER_TERMINAL_DEFAULT_DEVICE SERIAL_USER_TERMINAL_DEFAULT_PORT);
 use Mojo::File 'tempdir';
 use Mojo::Util qw(scope_guard);
 
@@ -86,6 +86,7 @@ subtest 'XML config for VNC and serial console' => sub {
     $svirt_console->add_vnc({port => 5901});
     $svirt_console->add_pty({target_port => SERIAL_CONSOLE_DEFAULT_PORT});
     $svirt_console->add_pty({pty_dev => SERIAL_TERMINAL_DEFAULT_DEVICE, pty_dev_type => 'pty', target_port => SERIAL_TERMINAL_DEFAULT_PORT});
+    $svirt_console->add_pty({pty_dev => SERIAL_USER_TERMINAL_DEFAULT_DEVICE, pty_dev_type => 'pty', target_port => SERIAL_USER_TERMINAL_DEFAULT_PORT});
     _is_xml $svirt_console->{domainxml}->toString(2), "$Bin/22-svirt-virsh-config.xml";
 };
 
