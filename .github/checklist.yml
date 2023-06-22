@@ -5,3 +5,5 @@ paths:
     - Consider running manual verification tests on real hardware, especially for non-qemu backends
   "testapi.pm":
     - Consider bumping the version number in OpenQA/Isotovideo/Interface.pm for changes in behaviour
+  "external":
+    - Consider doing this change in the upstream repository directly, see external/os-autoinst-common/README.md
