@@ -53,7 +53,7 @@ our @EXPORT = qw($realname $username $password $serialdev %cmd %vars
   become_root x11_start_program ensure_installed eject_cd power
 
   switch_network
-  save_memory_dump save_storage_drives freeze_vm resume_vm
+  save_memory_dump freeze_vm resume_vm
 
   diag hashed_string
 
@@ -1922,36 +1922,6 @@ sub save_memory_dump (%nargs) {
     bmwqemu::diag("Trying to save machine state");
 
     query_isotovideo('backend_save_memory_dump', \%nargs);
-}
-
-=head2 save_storage_drives
-
-  save_storage_drives([$filename]);
-
-Saves all of the SUT drives using C<$filename> as part of the final filename,
-the default will be the current test's name. The disk number will be always present.
-
-This method must be called within a post_fail_hook.
-
-I<Currently only qemu backend is supported.>
-
-=cut
-
-sub save_storage_drives ($filename = undef) {
-    $filename //= $autotest::current_test->{name};
-    die "save_storage_drives should be called within a post_fail_hook" unless ((caller(1))[3]) =~ /post_fail_hook/;
-
-    bmwqemu::log_call();
-    bmwqemu::diag("Trying to save machine drives");
-    bmwqemu::load_vars();
-
-    # Right now, we're saving all the disks
-    # sometimes we might not want to. This could be improved.
-    if (my $nd = $bmwqemu::vars{NUMDISKS}) {
-        for my $i (1 .. $nd) {
-            query_isotovideo('backend_save_storage_drives', {disk => $i, filename => $filename});
-        }
-    }
 }
 
 =head2 freeze_vm

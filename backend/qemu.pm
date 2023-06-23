@@ -322,20 +322,6 @@ sub save_memory_dump ($self, $args) {
     }
 }
 
-sub save_storage_drives ($self, $args) {
-    diag "Attempting to extract disk #$args->{disk}";
-    $self->do_extract_assets(
-        {
-            hdd_num => $args->{disk},
-            name => sprintf("%s-%d-vm_disk_file.qcow2", $args->{filename}, $args->{disk}),
-            dir => "ulogs",
-            format => "qcow2"
-        });
-
-    diag "Successfully extracted disk #$args->{disk}";
-    return;
-}
-
 sub inflate_balloon ($self) {
     my $vars = \%bmwqemu::vars;
     return unless $vars->{QEMU_BALLOON_TARGET};
