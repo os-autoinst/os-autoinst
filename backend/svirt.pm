@@ -13,11 +13,16 @@ use bmwqemu;
 use constant SERIAL_CONSOLE_DEFAULT_PORT => 0;
 use constant SERIAL_CONSOLE_DEFAULT_DEVICE => 'console';
 
+# root-sut-serial (console for root login)
 use constant SERIAL_TERMINAL_DEFAULT_PORT => 1;
 use constant SERIAL_TERMINAL_DEFAULT_DEVICE => 'console';
 
+# sut-serial (console for user login)
+use constant SERIAL_USER_TERMINAL_DEFAULT_PORT => 2;
+use constant SERIAL_USER_TERMINAL_DEFAULT_DEVICE => 'console';
+
 use Exporter 'import';
-our @EXPORT_OK = qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_CONSOLE_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE);
+our @EXPORT_OK = qw(SERIAL_CONSOLE_DEFAULT_PORT SERIAL_CONSOLE_DEFAULT_DEVICE SERIAL_TERMINAL_DEFAULT_PORT SERIAL_TERMINAL_DEFAULT_DEVICE SERIAL_USER_TERMINAL_DEFAULT_PORT SERIAL_USER_TERMINAL_DEFAULT_DEVICE);
 
 # this is a fake backend to some extend. We don't start VMs, but provide ssh access
 # to a libvirt running host (KVM for System Z in mind)

@@ -24,5 +24,8 @@
     <console type="pty">
       <target port="1"/>
     </console>
+    <console type="pty">
+      <target port="2"/>
+    </console>
   </devices>
 </domain>
